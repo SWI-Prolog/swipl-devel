@@ -382,81 +382,104 @@ executeKeyBinding(KeyBinding kb, Any receiver, Name cmd, int argc, Any argv[])
 { return sendv(receiver, cmd, argc, argv);
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_typed[] =
+        { "id=event_id", "for=[object]" };
+static const char *T_fillArgumentsAndExecute[] =
+        { "id=event_id", "receiver=object", "selector=name", "arguments=any ..." };
+static const char *T_function[] =
+        { "key=name|event_id", "action=name|code" };
+static const char *T_initialise[] =
+        { "name=[name]*", "super=key_binding ..." };
+static const char *T_lookup[] =
+        { "name", "key_binding ..." };
+static const char *T_execute[] =
+        { "receiver=object", "selector=name", "arguments=any ..." };
+
+/* Instance Variables */
+
+static const vardecl var_keyBinding[] =
+{ IV(NAME_name, "name*", IV_GET,
+     NAME_name, "Name of this binding-table"),
+  IV(NAME_bindings, "sheet", IV_GET,
+     NAME_binding, "Sheet mappings keys to functions"),
+  IV(NAME_defaults, "chain", IV_BOTH,
+     NAME_default, "Chain with key_bindings to inherit from"),
+  IV(NAME_defaultFunction, "name|code*", IV_BOTH,
+     NAME_binding, "Default function to perform"),
+  IV(NAME_prefix, "name", IV_GET,
+     NAME_event, "Currently parsed prefix"),
+  IV(NAME_argument, "[int]", IV_GET,
+     NAME_argument, "Universal (numerical) argument"),
+  IV(NAME_status, "{universal_argument,quoted_insert}*", IV_NONE,
+     NAME_event, "Internal flag"),
+  IV(NAME_savedColumn, "int*", IV_GET,
+     NAME_caret, "Saved {next_line,previous_line} column"),
+  IV(NAME_condition, "code*", IV_BOTH,
+     NAME_event, "Activation condition")
+};
+
+/* Send Methods */
+
+static const senddecl send_keyBinding[] =
+{ SM(NAME_initialise, 2, T_initialise, initialiseKeyBinding,
+     DEFAULT, "Create named binding-table with defaults"),
+  SM(NAME_reset, 1, "[graphical]*", resetKeyBinding,
+     NAME_abort, "Reset <-receiver and <-prefix"),
+  SM(NAME_function, 2, T_function, functionKeyBinding,
+     NAME_binding, "Append function association"),
+  SM(NAME_receiver, 1, "graphical*", receiverKeyBinding,
+     NAME_client, "Client of the key_binding object"),
+  SM(NAME_event, 1, "event", eventKeyBinding,
+     NAME_event, "Process keyboard event"),
+  SM(NAME_execute, 3, T_execute, executeKeyBinding,
+     NAME_event, "Invoke `selector' on `receiver' with args"),
+  SM(NAME_fillArgumentsAndExecute, 4, T_fillArgumentsAndExecute, fillArgumentsAndExecuteKeyBinding,
+     NAME_event, "Collect additional arguments and ->execute"),
+  SM(NAME_typed, 2, T_typed, typedKeyBinding,
+     NAME_event, "Process event-id (of keyboard event)")
+};
+
+/* Get Methods */
+
+static const getdecl get_keyBinding[] =
+{ GM(NAME_receiver, 0, "graphical", NULL, getReceiverKeyBinding,
+     NAME_client, "Client of the key_binding object"),
+  GM(NAME_convert, 1, "key_binding", "name", getConvertKeyBinding,
+     NAME_conversion, "Lookup existing table or create new named table"),
+  GM(NAME_binding, 1, "name", "function=name|code", getBindingKeyBinding,
+     NAME_meta, "Find key-binding from function"),
+  GM(NAME_function, 1, "name|code", "name|event_id", getFunctionKeyBinding,
+     NAME_meta, "Get function for given event-id"),
+  GM(NAME_lookup, 2, "key_binding", T_lookup, getLookupKeyBinding,
+     NAME_oms, "Lookup existing table")
+};
+
+/* Resources */
+
+static const resourcedecl rc_keyBinding[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name keyBinding_termnames[] = { NAME_name };
+
+ClassDecl(keyBinding_decls,
+          var_keyBinding, send_keyBinding, get_keyBinding, rc_keyBinding,
+          1, keyBinding_termnames,
+          "$Rev$");
+
 
 
 status
 makeClassKeyBinding(Class class)
-{ sourceClass(class, makeClassKeyBinding, __FILE__, "$Revision$");
-
-  localClass(class, NAME_name, NAME_name, "name*", NAME_get,
-	     "Name of this binding-table");
-  localClass(class, NAME_bindings, NAME_binding, "sheet", NAME_get,
-	     "Sheet mappings keys to functions");
-  localClass(class, NAME_defaults, NAME_default, "chain", NAME_both,
-	     "Chain with key_bindings to inherit from");
-  localClass(class, NAME_defaultFunction, NAME_binding, "name|code*",
-	     NAME_both, "Default function to perform");
-  localClass(class, NAME_prefix, NAME_event, "name", NAME_get,
-	     "Currently parsed prefix");
-  localClass(class, NAME_argument, NAME_argument, "[int]", NAME_get,
-	     "Universal (numerical) argument");
-  localClass(class, NAME_status, NAME_event,
-	     "{universal_argument,quoted_insert}*",
-	     NAME_none, "Internal flag");
-  localClass(class, NAME_savedColumn, NAME_caret, "int*", NAME_get,
-	     "Saved {next_line,previous_line} column");
-  localClass(class, NAME_condition, NAME_event, "code*", NAME_both,
-	     "Activation condition");
-
-  termClass(class, "key_binding", 1, NAME_name);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2,
-	     "name=[name]*", "super=key_binding ...",
-	     "Create named binding-table with defaults",
-	     initialiseKeyBinding);
-  sendMethod(class, NAME_reset, NAME_abort, 1, "[graphical]*",
-	     "Reset <-receiver and <-prefix",
-	     resetKeyBinding);
-  sendMethod(class, NAME_function, NAME_binding, 2,
-	     "key=name|event_id", "action=name|code",
-	     "Append function association",
-	     functionKeyBinding);
-  sendMethod(class, NAME_event, NAME_event, 1, "event",
-	     "Process keyboard event",
-	     eventKeyBinding);
-  sendMethod(class, NAME_typed, NAME_event, 2,
-	     "id=event_id", "for=[object]",
-	     "Process event-id (of keyboard event)",
-	     typedKeyBinding);
-  sendMethod(class, NAME_fillArgumentsAndExecute, NAME_event, 4,
-	     "id=event_id", "receiver=object",
-	     "selector=name", "arguments=any ...",
-	     "Collect additional arguments and ->execute",
-	     fillArgumentsAndExecuteKeyBinding);
-  sendMethod(class, NAME_execute, NAME_event, 3,
-	     "receiver=object", "selector=name", "arguments=any ...",
-	     "Invoke `selector' on `receiver' with args",
-	     executeKeyBinding);
-  sendMethod(class, NAME_receiver, NAME_client, 1, "graphical*",
-	     "Client of the key_binding object",
-	     receiverKeyBinding);
-
-  getMethod(class, NAME_convert, NAME_conversion, "key_binding", 1, "name",
-	    "Lookup existing table or create new named table",
-	    getConvertKeyBinding);
-  getMethod(class, NAME_lookup, NAME_oms, "key_binding", 2,
-	    "name", "key_binding ...",
-	    "Lookup existing table",
-	    getLookupKeyBinding);
-  getMethod(class, NAME_function, NAME_meta, "name|code", 1, "name|event_id",
-	    "Get function for given event-id",
-	    getFunctionKeyBinding);
-  getMethod(class, NAME_binding, NAME_meta, "name", 1, "function=name|code",
-	    "Find key-binding from function",
-	    getBindingKeyBinding);
-  getMethod(class, NAME_receiver, NAME_client, "graphical", 0,
-	    "Client of the key_binding object",
-	    getReceiverKeyBinding);
+{ declareClass(class, &keyBinding_decls);
 
   BindingTable = globalObject(NAME_keyBindings, ClassHashTable, 0);
 

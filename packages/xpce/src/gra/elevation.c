@@ -176,73 +176,90 @@ getModifyElevation(Elevation e, Name att, Any val)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_modify[] =
+        { "attribute={height,colour,relief,shadow,kind,background}",
+	  "value=any" };
+static const char *T_initialise[] =
+        { "name=[name|int]*", "height=[int]", "colour=[colour|pixmap]",
+	  "relief=[colour|pixmap]", "shadow=[colour|pixmap]",
+	  "kind=[{3d,shadow}]", "background=[colour|pixmap]" };
+
+/* Instance Variables */
+
+static const vardecl var_elevation[] =
+{ IV(NAME_name, "name|int*", IV_GET,
+     NAME_name, "Name for reuse"),
+  SV(NAME_height, "int", IV_GET|IV_STORE, heightElevation,
+     NAME_appearance, "Height above the surface"),
+  SV(NAME_colour, "[colour|pixmap]", IV_GET|IV_STORE, colourElevation,
+     NAME_appearance, "Colour/pixmap to paint the `top'"),
+  SV(NAME_background, "[colour|pixmap]", IV_GET|IV_STORE, backgroundElevation,
+     NAME_appearance, "Colour/pixmap when area is lowered"),
+  SV(NAME_relief, "[colour|pixmap]", IV_GET|IV_STORE, reliefElevation,
+     NAME_appearance, "Colour/pixmap used at `light' side"),
+  SV(NAME_shadow, "[colour|pixmap]", IV_GET|IV_STORE, shadowElevation,
+     NAME_appearance, "Colour/pixmap used at `dark' side"),
+  SV(NAME_kind, "{3d,shadow}", IV_GET|IV_STORE, kindElevation,
+     NAME_appearance, "How the elevation is realised")
+};
+
+/* Send Methods */
+
+static const senddecl send_elevation[] =
+{ SM(NAME_initialise, 7, T_initialise, initialiseElevation,
+     DEFAULT, "Create elevation from name, height and colours"),
+  SM(NAME_unlink, 0, NULL, unlinkElevation,
+     DEFAULT, "Delete from @elevations")
+};
+
+/* Get Methods */
+
+static const getdecl get_elevation[] =
+{ GM(NAME_convert, 1, "elevation", "name|int", getConvertElevation,
+     DEFAULT, "Convert name to object (reuse) or int to height"),
+  GM(NAME_lookup, 7, "elevation", T_initialise, getLookupElevation,
+     DEFAULT, "Lookup from @elevations"),
+  GM(NAME_modify, 2, "elevation", T_modify, getModifyElevation,
+     NAME_appearance, "Return modified (new) elevation object")
+};
+
+/* Resources */
+
+static const resourcedecl rc_elevation[] =
+{ RC(NAME_colour, "[colour|pixmap]", "@default",
+     "Colour of the top"),
+  RC(NAME_height, "int", "2",
+     "Default height of the evaluation"),
+  RC(NAME_kind, "{3d,shadow}", "3d",
+     "How the elevation is realised"),
+  RC(NAME_relief, "[colour|pixmap]", "@default",
+     "Colour of lighted sides"),
+  RC(NAME_shadow, "[colour|pixmap]", "@default",
+     "Colour of dark sides")
+};
+
+/* Class Declaration */
+
+static Name elevation_termnames[] =
+	{ NAME_name, NAME_height, NAME_colour, NAME_relief, NAME_shadow };
+
+ClassDecl(elevation_decls,
+          var_elevation, send_elevation, get_elevation, rc_elevation,
+          5, elevation_termnames,
+          "$Rev$");
+
+
 status
 makeClassElevation(Class class)
-{ sourceClass(class, makeClassElevation, __FILE__, "$Revision$");
+{ declareClass(class, &elevation_decls);
 
-  localClass(class, NAME_name, NAME_name, "name|int*", NAME_get,
-	     "Name for reuse");
-  localClass(class, NAME_height, NAME_appearance, "int", NAME_get,
-	     "Height above the surface");
-  localClass(class, NAME_colour, NAME_appearance, "[colour|pixmap]", NAME_get,
-	     "Colour/pixmap to paint the `top'");
-  localClass(class, NAME_background, NAME_appearance, "[colour|pixmap]", NAME_get,
-	     "Colour/pixmap when area is lowered");
-  localClass(class, NAME_relief, NAME_appearance, "[colour|pixmap]", NAME_get,
-	     "Colour/pixmap used at `light' side");
-  localClass(class, NAME_shadow, NAME_appearance, "[colour|pixmap]", NAME_get,
-	     "Colour/pixmap used at `dark' side");
-  localClass(class, NAME_kind, NAME_appearance, "{3d,shadow}", NAME_get,
-	     "How the elevation is realised");
-
-  termClass(class, "elevation", 5,
-	    NAME_name, NAME_height, NAME_colour, NAME_relief, NAME_shadow);
   cloneStyleClass(class, NAME_none);
-
-  storeMethod(class, NAME_height,     heightElevation);
-  storeMethod(class, NAME_colour,     colourElevation);
-  storeMethod(class, NAME_relief,     reliefElevation);
-  storeMethod(class, NAME_shadow,     shadowElevation);
-  storeMethod(class, NAME_kind,       kindElevation);
-  storeMethod(class, NAME_background, backgroundElevation);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 7,
-	     "name=[name|int]*", "height=[int]",
-	     "colour=[colour|pixmap]",
-	     "relief=[colour|pixmap]", "shadow=[colour|pixmap]",
-	     "kind=[{3d,shadow}]", "background=[colour|pixmap]",
-	     "Create elevation from name, height and colours",
-	     initialiseElevation);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Delete from @elevations",
-	     unlinkElevation);
-  
-  getMethod(class, NAME_convert, DEFAULT, "elevation", 1, "name|int",
-	    "Convert name to object (reuse) or int to height",
-	    getConvertElevation);
-  getMethod(class, NAME_lookup, DEFAULT, "elevation", 7,
-	    "name=[name|int]*", "height=[int]",
-	    "colour=[colour|pixmap]",
-	    "relief=[colour|pixmap]", "shadow=[colour|pixmap]",
-	    "kind=[{3d,shadow}]", "background=[colour|pixmap]",
-	    "Lookup from @elevations",
-	    getLookupElevation);
-  getMethod(class, NAME_modify, NAME_appearance, "elevation", 2,
-	    "attribute={height,colour,relief,shadow,kind,background}",
-	    "value=any",
-	    "Return modified (new) elevation object",
-	    getModifyElevation);
-
-  attach_resource(class, "height", "int", "2",
-		  "Default height of the evaluation");
-  attach_resource(class, "colour", "[colour|pixmap]", "@default",
-		  "Colour of the top");
-  attach_resource(class, "relief", "[colour|pixmap]", "@default",
-		  "Colour of lighted sides");
-  attach_resource(class, "shadow", "[colour|pixmap]", "@default",
-		  "Colour of dark sides");
-  attach_resource(class, "kind", "{3d,shadow}", "3d",
-		  "How the elevation is realised");
 
   ElevationTable = globalObject(NAME_elevations, ClassHashTable, 0);
 

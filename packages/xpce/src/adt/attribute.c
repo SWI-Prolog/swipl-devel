@@ -99,37 +99,66 @@ getArgumentTypeAttribute(Attribute att, Int n)
   fail;
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_contextAobject_argumentAunchecked_XXX[] =
+        { "context=object", "argument=unchecked ..." };
+static const char *T_initialise[] =
+        { "name=any", "value=any" };
+
+/* Instance Variables */
+
+static const vardecl var_attribute[] =
+{ IV(NAME_name, "any", IV_BOTH,
+     NAME_storage, "Name of the attribute"),
+  IV(NAME_value, "any", IV_BOTH,
+     NAME_storage, "Value of the attribute")
+};
+
+/* Send Methods */
+
+static const senddecl send_attribute[] =
+{ SM(NAME_initialise, 2, T_initialise, initialiseAttribute,
+     DEFAULT, "Create attribute from name and value"),
+  SM(NAME_send, 2, T_contextAobject_argumentAunchecked_XXX, sendAttribute,
+     NAME_execute, "Invoke (write) object-attribute")
+};
+
+/* Get Methods */
+
+static const getdecl get_attribute[] =
+{ GM(NAME_convert, 1, "attribute", "any", getConvertAttribute,
+     DEFAULT, "Converts name to attribute(name, @nil)"),
+  GM(NAME_get, 2, "value=unchecked", T_contextAobject_argumentAunchecked_XXX, getAttribute,
+     NAME_execute, "Invoke (read) object-attribute"),
+  GM(NAME_argumentType, 1, "type", "index=[int]", getArgumentTypeAttribute,
+     NAME_meta, "Type of n-th1 argument")
+};
+
+/* Resources */
+
+static const resourcedecl rc_attribute[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name attribute_termnames[] = { NAME_name, NAME_value };
+
+ClassDecl(attribute_decls,
+          var_attribute, send_attribute, get_attribute, rc_attribute,
+          2, attribute_termnames,
+          "$Rev$");
+
 
 status
 makeClassAttribute(Class class)
-{ sourceClass(class, makeClassAttribute, __FILE__, "$Revision$");
-
-  localClass(class, NAME_name, NAME_storage, "any", NAME_both,
-	     "Name of the attribute");
-  localClass(class, NAME_value, NAME_storage, "any", NAME_both,
-	     "Value of the attribute");
-
-  termClass(class, "attribute", 2, NAME_name, NAME_value);
+{ declareClass(class, &attribute_decls);
   setTraceFunctionClass(class, traceAttribute);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2, "name=any", "value=any",
-	     "Create attribute from name and value",
-	     initialiseAttribute);
-  sendMethod(class, NAME_send, NAME_execute, 2,
-	     "context=object", "argument=unchecked ...",
-	     "Invoke (write) object-attribute",
-	     sendAttribute);
-
-  getMethod(class, NAME_convert, DEFAULT, "attribute", 1, "any",
-	    "Converts name to attribute(name, @nil)",
-	    getConvertAttribute);
-  getMethod(class, NAME_get, NAME_execute, "value=unchecked", 2,
-	    "context=object", "argument=unchecked ...",
-	     "Invoke (read) object-attribute",
-	     getAttribute);
-  getMethod(class, NAME_argumentType, NAME_meta, "type", 1, "index=[int]",
-	    "Type of n-th1 argument",
-	    getArgumentTypeAttribute);
 
   succeed;
 }

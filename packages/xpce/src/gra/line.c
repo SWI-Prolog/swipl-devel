@@ -312,88 +312,99 @@ orientationLine(Line ln, Name o)
 }
 
 
-extern drawPostScriptLine(Line ln);
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_points[] =
+        { "start_x=[int]", "start_y=[int]", "end_x=[int]", "end_y=[int]" };
+static const char *T_initialise[] =
+        { "start_x=[int]", "start_y=[int]", "end_x=[int]", "end_y=[int]", "arrows=[{none,first,second,both}]" };
+
+/* Instance Variables */
+
+static const vardecl var_line[] =
+{ 
+};
+
+/* Send Methods */
+
+static const senddecl send_line[] =
+{ SM(NAME_initialise, 5, T_initialise, initialiseLine,
+     DEFAULT, "Create line (X1,Y1) - (X2,Y2) with arrows"),
+  SM(NAME_normalise, 0, NULL, normaliseLine,
+     DEFAULT, "Redefined from graphical: no-op"),
+  SM(NAME_orientation, 1, "{north_west,south_east,north_east,south_east}", orientationLine,
+     DEFAULT, "Redefined from graphical: no-op"),
+  SM(NAME_copy, 1, "line", copyLine,
+     NAME_copy, "Copy attributes from other line"),
+  SM(NAME_DrawPostScript, 0, NULL, drawPostScriptLine,
+     NAME_postscript, "Create PostScript"),
+  SM(NAME_end, 1, "point", endLine,
+     NAME_tip, "Set end-point of line segment"),
+  SM(NAME_endX, 1, "int", endXLine,
+     NAME_tip, "Set X of end-point"),
+  SM(NAME_endY, 1, "int", endYLine,
+     NAME_tip, "Set Y of end-point"),
+  SM(NAME_points, 4, T_points, pointsLine,
+     NAME_tip, "Reconfigure line (X1,Y1) - (X2,Y2)"),
+  SM(NAME_start, 1, "point", startLine,
+     NAME_tip, "Set start-point of line segment"),
+  SM(NAME_startX, 1, "int", startXLine,
+     NAME_tip, "Set X of start-point"),
+  SM(NAME_startY, 1, "int", startYLine,
+     NAME_tip, "Set Y of start-point")
+};
+
+/* Get Methods */
+
+static const getdecl get_line[] =
+{ GM(NAME_angle, 1, "degrees=real", "origin=[point]", getAngleLine,
+     NAME_calculate, "Angle"),
+  GM(NAME_intersection, 1, "point", "with=line", getIntersectionLine,
+     NAME_calculate, "Intersection between both infinitely extended lines"),
+  GM(NAME_length, 0, "int", NULL, getLengthLine,
+     NAME_calculate, "Distance between start and end-points"),
+  GM(NAME_end, 0, "point", NULL, getEndLine,
+     NAME_tip, "New point representing end-point"),
+  GM(NAME_endX, 0, "int", NULL, getEndXLine,
+     NAME_tip, "X of end-point"),
+  GM(NAME_endY, 0, "int", NULL, getEndYLine,
+     NAME_tip, "Y of end-point"),
+  GM(NAME_start, 0, "point", NULL, getStartLine,
+     NAME_tip, "New point representing start-point"),
+  GM(NAME_startX, 0, "int", NULL, getStartXLine,
+     NAME_tip, "X of start-point"),
+  GM(NAME_startY, 0, "int", NULL, getStartYLine,
+     NAME_tip, "Y of start-point")
+};
+
+/* Resources */
+
+static const resourcedecl rc_line[] =
+{ RC(NAME_selectionHandles, RC_REFINE, "line",
+     NULL)
+};
+
+/* Class Declaration */
+
+static Name line_termnames[] =
+	{ NAME_startX, NAME_startY, NAME_endX, NAME_endY, NAME_arrows };
+
+ClassDecl(line_decls,
+          var_line, send_line, get_line, rc_line,
+          5, line_termnames,
+          "$Rev$");
+
   
 status
 makeClassLine(Class class)
-{ sourceClass(class, makeClassLine, __FILE__, "$Revision$");
+{ declareClass(class, &line_decls);
 
-  termClass(class, "line",
-	    5, NAME_startX, NAME_startY, NAME_endX, NAME_endY, NAME_arrows);
   setRedrawFunctionClass(class, RedrawAreaLine);
   setInEventAreaFunctionClass(class, inEventAreaLine);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 5, 
-	     "start_x=[int]", "start_y=[int]", "end_x=[int]", "end_y=[int]",
-	     "arrows=[{none,first,second,both}]",
-	     "Create line (X1,Y1) - (X2,Y2) with arrows",
-	     initialiseLine);
-  sendMethod(class, NAME_end, NAME_tip, 1, "point",
-	     "Set end-point of line segment",
-	     endLine);
-  sendMethod(class, NAME_endX, NAME_tip, 1, "int",
-	     "Set X of end-point",
-	     endXLine);
-  sendMethod(class, NAME_endY, NAME_tip, 1, "int",
-	     "Set Y of end-point",
-	     endYLine);
-  sendMethod(class, NAME_points, NAME_tip, 4,
-	     "start_x=[int]", "start_y=[int]", "end_x=[int]", "end_y=[int]",
-	     "Reconfigure line (X1,Y1) - (X2,Y2)",
-	     pointsLine);
-  sendMethod(class, NAME_start, NAME_tip, 1, "point",
-	     "Set start-point of line segment",
-	     startLine);
-  sendMethod(class, NAME_startX, NAME_tip, 1, "int",
-	     "Set X of start-point",
-	     startXLine);
-  sendMethod(class, NAME_startY, NAME_tip, 1, "int",
-	     "Set Y of start-point",
-	     startYLine);
-  sendMethod(class, NAME_DrawPostScript, NAME_postscript, 0,
-	     "Create PostScript",
-	     drawPostScriptLine);
-  sendMethod(class, NAME_copy, NAME_copy, 1, "line",
-	     "Copy attributes from other line",
-	     copyLine);
-  sendMethod(class, NAME_normalise, DEFAULT, 0,
-	     "Redefined from graphical: no-op",
-	     normaliseLine);
-  sendMethod(class, NAME_orientation, DEFAULT,
-	     1, "{north_west,south_east,north_east,south_east}",
-	     "Redefined from graphical: no-op",
-	     orientationLine);
-
-  getMethod(class, NAME_end, NAME_tip, "point", 0,
-	    "New point representing end-point",
-	    getEndLine);
-  getMethod(class, NAME_endX, NAME_tip, "int", 0,
-	    "X of end-point",
-	    getEndXLine);
-  getMethod(class, NAME_endY, NAME_tip, "int", 0,
-	    "Y of end-point",
-	    getEndYLine);
-  getMethod(class, NAME_start, NAME_tip, "point", 0,
-	    "New point representing start-point",
-	    getStartLine);
-  getMethod(class, NAME_startX, NAME_tip, "int", 0,
-	    "X of start-point",
-	    getStartXLine);
-  getMethod(class, NAME_startY, NAME_tip, "int", 0,
-	    "Y of start-point",
-	    getStartYLine);
-  getMethod(class, NAME_length, NAME_calculate, "int", 0,
-	    "Distance between start and end-points",
-	    getLengthLine);
-  getMethod(class, NAME_intersection, NAME_calculate, "point", 1, "with=line",
-	    "Intersection between both infinitely extended lines",
-	    getIntersectionLine);
-  getMethod(class, NAME_angle, NAME_calculate, "degrees=real", 1,
-	    "origin=[point]",
-	    "Angle",
-	    getAngleLine);
-
-  refine_resource(class, "selection_handles", "line");
 
   succeed;
 }

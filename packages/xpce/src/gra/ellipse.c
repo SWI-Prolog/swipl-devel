@@ -48,33 +48,62 @@ RedrawAreaEllipse(Ellipse e, Area a)
 }
 
 
-extern drawPostScriptEllipse(Ellipse e);
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "width=[int]", "height=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_ellipse[] =
+{ SV(NAME_shadow, "int", IV_GET|IV_STORE, shadowGraphical,
+     NAME_appearance, "Shadow painted below/right"),
+  SV(NAME_fillPattern, "image|colour*", IV_GET|IV_STORE, fillPatternGraphical,
+     NAME_appearance, "Fill pattern for internals")
+};
+
+/* Send Methods */
+
+static const senddecl send_ellipse[] =
+{ SM(NAME_initialise, 2, T_initialise, initialiseEllipse,
+     DEFAULT, "Create ellipse from width and height"),
+  SM(NAME_DrawPostScript, 0, NULL, drawPostScriptEllipse,
+     NAME_postscript, "Create PostScript")
+};
+
+/* Get Methods */
+
+static const getdecl get_ellipse[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_ellipse[] =
+{ RC(NAME_selectionHandles, RC_REFINE, "sides",
+     NULL)
+};
+
+/* Class Declaration */
+
+static Name ellipse_termnames[] = { NAME_width, NAME_height };
+
+ClassDecl(ellipse_decls,
+          var_ellipse, send_ellipse, get_ellipse, rc_ellipse,
+          2, ellipse_termnames,
+          "$Rev$");
+
 
 status
 makeClassEllipse(Class class)
-{ sourceClass(class, makeClassEllipse, __FILE__, "$Revision$");
+{ declareClass(class, &ellipse_decls);
 
-  localClass(class, NAME_shadow, NAME_appearance, "int", NAME_get,
-	     "Shadow painted below/right");
-  localClass(class, NAME_fillPattern, NAME_appearance,
-	     "image|colour*", NAME_get,
-	     "Fill pattern for internals");
-
-  termClass(class, "ellipse", 2, NAME_width, NAME_height);
   cloneStyleVariableClass(class, NAME_fillPattern, NAME_reference);
   setRedrawFunctionClass(class, RedrawAreaEllipse);
-
-  storeMethod(class, NAME_fillPattern, fillPatternGraphical);
-  storeMethod(class, NAME_shadow,      shadowGraphical);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2, "width=[int]", "height=[int]",
-	     "Create ellipse from width and height",
-	     initialiseEllipse);
-  sendMethod(class, NAME_DrawPostScript, NAME_postscript, 0,
-	     "Create PostScript",
-	     drawPostScriptEllipse);
-
-  refine_resource(class, "selection_handles", "sides");
 
   succeed;
 }

@@ -168,48 +168,73 @@ terminatePopupGesture(PopupGesture g, EventObj ev)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "popup=[popup|function]", "button=[button_name]", "modifier=[modifier]" };
+
+/* Instance Variables */
+
+static const vardecl var_popupGesture[] =
+{ IV(NAME_popup, "popup|function*", IV_BOTH,
+     NAME_popup, "Popup displayed"),
+  IV(NAME_current, "popup*", IV_NONE,
+     NAME_popup, "Currently visible popup"),
+  IV(NAME_context, "any", IV_BOTH,
+     NAME_context, "Context to be send with the ->execute")
+};
+
+/* Send Methods */
+
+static const senddecl send_popupGesture[] =
+{ SM(NAME_drag, 1, "event", dragPopupGesture,
+     DEFAULT, "Pass drag events to popup"),
+  SM(NAME_initialise, 3, T_initialise, initialisePopupGesture,
+     DEFAULT, "Create from popup, button and modifier"),
+  SM(NAME_initiate, 1, "event", initiatePopupGesture,
+     DEFAULT, "Show popup"),
+  SM(NAME_terminate, 1, "event", terminatePopupGesture,
+     DEFAULT, "Unshow popup and execute selected item"),
+  SM(NAME_verify, 1, "event", verifyPopupGesture,
+     DEFAULT, "Verify popup can be activated"),
+  SM(NAME_event, 1, "event", eventPopupGesture,
+     NAME_accelerator, "Handle accelerators")
+};
+
+/* Get Methods */
+
+static const getdecl get_popupGesture[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_popupGesture[] =
+{ RC(NAME_button, "button_name", "right",
+     "Active on which button (right)"),
+  RC(NAME_cursor, "cursor", "right_ptr",
+     "Cursor while active"),
+  RC(NAME_modifier, "modifier", "",
+     "Condition on shift, control and meta")
+};
+
+/* Class Declaration */
+
+static Name popupGesture_termnames[] = { NAME_popup, NAME_button, NAME_modifier };
+
+ClassDecl(popupGesture_decls,
+          var_popupGesture, send_popupGesture,
+	  get_popupGesture, rc_popupGesture,
+          3, popupGesture_termnames,
+          "$Rev$");
+
 status
 makeClassPopupGesture(Class class)
-{ sourceClass(class, makeClassPopupGesture, __FILE__, "$Revision$");
-
-  localClass(class, NAME_popup, NAME_popup, "popup|function*", NAME_both,
-	     "Popup displayed");
-  localClass(class, NAME_current, NAME_popup, "popup*", NAME_none,
-	     "Currently visible popup");
-  localClass(class, NAME_context, NAME_context, "any", NAME_both,
-	     "Context to be send with the ->execute");
-
-  termClass(class, "popup_gesture", 3, NAME_popup, NAME_button, NAME_modifier);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 3,
-	     "popup=[popup|function]",
-	     "button=[button_name]", "modifier=[modifier]",
-	     "Create from popup, button and modifier",
-	     initialisePopupGesture);
-  sendMethod(class, NAME_verify, DEFAULT, 1, "event",
-	     "Verify popup can be activated",
-	     verifyPopupGesture);
-  sendMethod(class, NAME_initiate, DEFAULT, 1, "event",
-	     "Show popup",
-	     initiatePopupGesture);
-  sendMethod(class, NAME_drag, DEFAULT, 1, "event",
-	     "Pass drag events to popup",
-	     dragPopupGesture);
-  sendMethod(class, NAME_terminate, DEFAULT, 1, "event",
-	     "Unshow popup and execute selected item",
-	     terminatePopupGesture);
-  sendMethod(class, NAME_event, NAME_accelerator, 1, "event",
-	     "Handle accelerators",
-	     eventPopupGesture);
-
-  attach_resource(class, "modifier", "modifier", "",
-		  "Condition on shift, control and meta");
-  attach_resource(class, "button", "button_name", "right",
-		  "Active on which button (right)");
-  attach_resource(class, "cursor", "cursor", "right_ptr",
-		  "Cursor while active");
-
-  succeed;
+{ return declareClass(class, &popupGesture_decls);
 }
 
 

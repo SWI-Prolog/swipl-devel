@@ -65,37 +65,61 @@ getTreeEventNode(EventNodeObj n)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "value=name", "parent=[event_node]*" };
+
+/* Instance Variables */
+
+static const vardecl var_eventNode[] =
+{ IV(NAME_value, "event_id", IV_GET,
+     NAME_value, "Value of the node"),
+  IV(NAME_parent, "event_node|event_tree", IV_GET,
+     NAME_hierarchy, "Direct parent of the node"),
+  IV(NAME_sons, "chain*", IV_GET,
+     NAME_hierarchy, "Chain of direct sons")
+};
+
+/* Send Methods */
+
+static const senddecl send_eventNode[] =
+{ SM(NAME_initialise, 2, T_initialise, initialiseEventNode,
+     DEFAULT, "Create from value and parent"),
+  SM(NAME_son, 1, "event_node", sonEventNode,
+     NAME_edit, "Add a son to the node"),
+  SM(NAME_isA, 1, "event_node", isAEventNode,
+     NAME_test, "Test if node is a subnode of argument")
+};
+
+/* Get Methods */
+
+static const getdecl get_eventNode[] =
+{ GM(NAME_tree, 0, "event_tree", NULL, getTreeEventNode,
+     NAME_organisation, "The tree holding this event_node")
+};
+
+/* Resources */
+
+static const resourcedecl rc_eventNode[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name eventNode_termnames[] = { NAME_value, NAME_parent };
+
+ClassDecl(eventNode_decls,
+          var_eventNode, send_eventNode, get_eventNode, rc_eventNode,
+          2, eventNode_termnames,
+          "$Rev$");
+
 status
 makeClassEventNode(Class class)
-{ sourceClass(class, makeClassEventNode, __FILE__, "$Revision$");
-
-  localClass(class, NAME_value, NAME_value,
-	     "event_id", NAME_get,
-	     "Value of the node");
-  localClass(class, NAME_parent, NAME_hierarchy,
-	     "event_node|event_tree", NAME_get,
-	     "Direct parent of the node");
-  localClass(class, NAME_sons, NAME_hierarchy,
-	     "chain*", NAME_get,
-	     "Chain of direct sons");
-
-  termClass(class, "event_node", 2, NAME_value, NAME_parent);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2,
-	     "value=name", "parent=[event_node]*",
-	     "Create from value and parent",
-	     initialiseEventNode);
-  sendMethod(class, NAME_son, NAME_edit, 1, "event_node",
-	     "Add a son to the node",
-	     sonEventNode);
-  sendMethod(class, NAME_isA, NAME_test, 1, "event_node",
-	     "Test if node is a subnode of argument",
-	     isAEventNode);
-  
-  getMethod(class, NAME_tree, NAME_organisation, "event_tree", 0,
-	    "The tree holding this event_node",
-	    getTreeEventNode);
-
-  succeed;
+{ return declareClass(class, &eventNode_decls);
 }
 

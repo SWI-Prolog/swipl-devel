@@ -130,42 +130,71 @@ getMessageHost(Host h)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_name_any_XXX[] =
+        { "name", "any ..." };
+static const char *T_name_unchecked_XXX[] =
+        { "name", "unchecked ..." };
+
+/* Instance Variables */
+
+static const vardecl var_host[] =
+{ IV(NAME_language, "{prolog,lisp,c}", IV_BOTH,
+     NAME_host, "Host language pce is connected to"),
+  IV(NAME_system, "name", IV_BOTH,
+     NAME_host, "Identifier name of host language"),
+  IV(NAME_callBack, "bool", IV_BOTH,
+     NAME_callback, "Queue messages or invoke asynchronously"),
+  IV(NAME_messages, "chain*", IV_GET,
+     NAME_callback, "Message queue")
+};
+
+/* Send Methods */
+
+static const senddecl send_host[] =
+{ SM(NAME_initialise, 1, "name=name", initialiseHost,
+     DEFAULT, "Create host from name"),
+  SM(NAME_call, 2, T_name_unchecked_XXX, callHostv,
+     NAME_callback, "Invoke a host defined send_method"),
+  SM(NAME_catchAll, 2, T_name_any_XXX, catchAllHostv,
+     NAME_callback, "Call procedure on host")
+};
+
+/* Get Methods */
+
+static const getdecl get_host[] =
+{ GM(NAME_call, 2, "unchecked", T_name_unchecked_XXX, getCallHostv,
+     NAME_callback, "Invoke a host defined get_method"),
+  GM(NAME_catchAll, 2, "any", T_name_any_XXX, getCatchAllHostv,
+     NAME_callback, "Call function on host"),
+  GM(NAME_message, 0, "message", NULL, getMessageHost,
+     NAME_callback, "Read next message from queue")
+};
+
+/* Resources */
+
+static const resourcedecl rc_host[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name host_termnames[] = { NAME_system };
+
+ClassDecl(host_decls,
+          var_host, send_host, get_host, rc_host,
+          1, host_termnames,
+          "$Rev$");
+
 status
 makeClassHost(Class class)
-{ sourceClass(class, makeClassHost, __FILE__, "$Revision$");
-
-  localClass(class, NAME_language, NAME_host, "{prolog,lisp,c}", NAME_both,
-	     "Host language pce is connected to");
-  localClass(class, NAME_system, NAME_host, "name", NAME_both,
-	     "Identifier name of host language");
-  localClass(class, NAME_callBack, NAME_callback, "bool", NAME_both,
-	     "Queue messages or invoke asynchronously");
-  localClass(class, NAME_messages, NAME_callback, "chain*", NAME_get,
-	     "Message queue");
-
-  termClass(class, "host", 1, NAME_system);
+{ declareClass(class, &host_decls);
   saveStyleClass(class, NAME_external);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "name=name",
-	     "Create host from name",
-	     initialiseHost);
-  sendMethod(class, NAME_catchAll, NAME_callback, 2, "name", "any ...",
-	     "Call procedure on host",
-	     catchAllHostv);
-  sendMethod(class, NAME_call, NAME_callback, 2, "name", "unchecked ...",
-	     "Invoke a host defined send_method",
-	     callHostv);
-
-  getMethod(class, NAME_call, NAME_callback, "unchecked", 2,
-	    "name", "unchecked ...",
-	    "Invoke a host defined get_method",
-	    getCallHostv);
-  getMethod(class, NAME_catchAll, NAME_callback, "any", 2, "name", "any ...",
-	    "Call function on host",
-	    getCatchAllHostv);
-  getMethod(class, NAME_message, NAME_callback, "message", 0,
-	    "Read next message from queue",
-	    getMessageHost);
 
   HOST = globalObject(NAME_host, ClassHost, NAME_unknown, 0);
   protectObject(HOST);

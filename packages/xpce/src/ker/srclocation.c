@@ -80,34 +80,60 @@ getPathSourceLocation(SourceLocation loc)
   }
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_initialise[] =
+        { "file=name", "line=[int]*" };
+
+/* Instance Variables */
+
+static const vardecl var_sourceLocation[] =
+{ IV(NAME_fileName, "name", IV_BOTH,
+     NAME_location, "Name of the file in which the source resides"),
+  IV(NAME_lineNo, "int*", IV_BOTH,
+     NAME_location, "Starting line number of the source")
+};
+
+/* Send Methods */
+
+static const senddecl send_sourceLocation[] =
+{ SM(NAME_initialise, 2, T_initialise, initialiseSourceLocation,
+     DEFAULT, "Create from file_name and line_no"),
+  SM(NAME_copy, 1, "source_location", copySourceLocation,
+     NAME_copy, "Copy file_name and line_no from argument")
+};
+
+/* Get Methods */
+
+static const getdecl get_sourceLocation[] =
+{ GM(NAME_convert, 1, "source_location", "char_array|file", getConvertSourceLocation,
+     DEFAULT, "Convert `file', `path-name' and `path-name:line-no'"),
+  GM(NAME_path, 0, "name", NULL, getPathSourceLocation,
+     NAME_path, "Get absolute path-name of source file")
+};
+
+/* Resources */
+
+static const resourcedecl rc_sourceLocation[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name sourceLocation_termnames[] = { NAME_fileName, NAME_lineNo };
+
+ClassDecl(sourceLocation_decls,
+          var_sourceLocation, send_sourceLocation,
+	  get_sourceLocation, rc_sourceLocation,
+          2, sourceLocation_termnames,
+          "$Rev$");
 
 status
 makeClassSourceLocation(Class class)
-{ sourceClass(class, makeClassSourceLocation, __FILE__, "$Revision$");
-
-  localClass(class, NAME_fileName, NAME_location, "name", NAME_both,
-	     "Name of the file in which the source resides");
-  localClass(class, NAME_lineNo, NAME_location, "int*", NAME_both,
-	     "Starting line number of the source");
-
-  termClass(class, "source_location", 2, NAME_fileName, NAME_lineNo);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2, "file=name", "line=[int]*",
-	     "Create from file_name and line_no",
-	     initialiseSourceLocation);
-
-  sendMethod(class, NAME_copy, NAME_copy, 1, "source_location",
-	     "Copy file_name and line_no from argument",
-	     copySourceLocation);
-
-  getMethod(class, NAME_path, NAME_path, "name", 0,
-	    "Get absolute path-name of source file",
-	    getPathSourceLocation);
-  getMethod(class, NAME_convert, DEFAULT, "source_location",
-	    1, "char_array|file", 
-	    "Convert `file', `path-name' and `path-name:line-no'",
-	    getConvertSourceLocation);
-
-  succeed;
+{ return declareClass(class, &sourceLocation_decls);
 }
 

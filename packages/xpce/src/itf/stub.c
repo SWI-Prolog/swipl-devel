@@ -39,8 +39,6 @@ static char * host_action_names[] =
   "HOST_ABORT",
   "HOST_SIGNAL",
   "HOST_RECOVER_FROM_FATAL_ERROR",
-  "HOST_WRITE",
-  "HOST_FLUSH",
   "HOST_ATEXIT"
 };
 
@@ -82,12 +80,6 @@ Stub__HostActionv(int action, va_list args)
       break;
     case HOST_SIGNAL:
       signal(va_arg(args, int), va_arg(args, sig_handler_t));
-      break;
-    case HOST_WRITE:
-      printf("%s", va_arg(args, char *));
-      break;
-    case HOST_FLUSH:
-      fflush(stdout);
       break;
     default:
       fprintf(stderr, "Unknown action request from PCE: %d", action);

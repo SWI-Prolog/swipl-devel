@@ -72,36 +72,59 @@ getExecuteObtain(Obtain obt)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "receiver=object|function", "selector=name|function", "argument=any|function ..." };
+
+/* Instance Variables */
+
+static const vardecl var_obtain[] =
+{ IV(NAME_receiver, "object|function", IV_NONE,
+     NAME_storage, "Receiver of the operation"),
+  IV(NAME_selector, "name|function", IV_NONE,
+     NAME_storage, "Name of the operation"),
+  IV(NAME_arguments, "code_vector*", IV_NONE,
+     NAME_storage, "Vector of arguments")
+};
+
+/* Send Methods */
+
+static const senddecl send_obtain[] =
+{ SM(NAME_initialise, 3, T_initialise, initialiseObtainv,
+     DEFAULT, "Create from receiver, selector and args")
+};
+
+/* Get Methods */
+
+static const getdecl get_obtain[] =
+{ GM(NAME_Arg, 1, "unchecked", "int", getArgObtain,
+     DEFAULT, "Nth-1 argument of term instead of result's"),
+  GM(NAME_Arity, 0, "int", NULL, getArityObtain,
+     DEFAULT, "Arity of term instead of result's"),
+  GM(NAME_Execute, 0, "unchecked", NULL, getExecuteObtain,
+     DEFAULT, "Execute the get-operation")
+};
+
+/* Resources */
+
+static const resourcedecl rc_obtain[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(obtain_decls,
+          var_obtain, send_obtain, get_obtain, rc_obtain,
+          ARGC_UNKNOWN, NULL,
+          "$Rev$");
+
 status
 makeClassObtain(Class class)
-{ sourceClass(class, makeClassObtain, __FILE__, "$Revision$");
-  termClass(class, "?", ARGC_UNKNOWN);
-
-  localClass(class, NAME_receiver, NAME_storage, "object|function", NAME_none,
-	     "Receiver of the operation");
-  localClass(class, NAME_selector, NAME_storage, "name|function", NAME_none,
-	     "Name of the operation");
-  localClass(class, NAME_arguments, NAME_storage, "code_vector*", NAME_none,
-	     "Vector of arguments");
-
-  termClass(class, "?", 2, NAME_receiver, NAME_selector);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 3,
-	     "receiver=object|function", "selector=name|function",
-	     "argument=any|function ...",
-	     "Create from receiver, selector and args",
-	     initialiseObtainv);
-
-  getMethod(class, NAME_Arg, DEFAULT, "unchecked", 1, "int",
-	    "Nth-1 argument of term instead of result's",
-	    getArgObtain);
-  getMethod(class, NAME_Arity, DEFAULT, "int", 0,
-	    "Arity of term instead of result's",
-	    getArityObtain);
-  getMethod(class, NAME_Execute, DEFAULT, "unchecked", 0,
-	    "Execute the get-operation",
-	    getExecuteObtain);
-
-  succeed;
+{ return declareClass(class, &obtain_decls);
 }
 

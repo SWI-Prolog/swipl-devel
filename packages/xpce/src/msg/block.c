@@ -58,28 +58,53 @@ getArgBlock(Block b, Int n)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+
+/* Instance Variables */
+
+static const vardecl var_block[] =
+{ IV(NAME_parameters, "code_vector*", IV_BOTH,
+     NAME_argument, "Vector with formal parameters")
+};
+
+/* Send Methods */
+
+static const senddecl send_block[] =
+{ SM(NAME_initialise, 1, "var|code ...", initialiseBlockv,
+     DEFAULT, "Create from parameters and statements"),
+  SM(NAME_forward, 1, "any ...", forwardBlockv,
+     NAME_execute, "Push <-parameters, @arg1 ... and execute")
+};
+
+/* Get Methods */
+
+static const getdecl get_block[] =
+{ GM(NAME_Arg, 1, "code", "int", getArgBlock,
+     DEFAULT, "Nth-1 argument for term description"),
+  GM(NAME_Arity, 0, "int", NULL, getArityBlock,
+     DEFAULT, "Arity for term description")
+};
+
+/* Resources */
+
+static const resourcedecl rc_block[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(block_decls,
+          var_block, send_block, get_block, rc_block,
+          ARGC_UNKNOWN, NULL,
+          "$Rev$");
+
 status
 makeClassBlock(Class class)
-{ sourceClass(class, makeClassBlock, __FILE__, "$Revision$");
-  termClass(class, "block", ARGC_UNKNOWN);
-
-  localClass(class, NAME_parameters, NAME_argument, "code_vector*", NAME_both,
-	     "Vector with formal parameters");
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "var|code ...",
-	     "Create from parameters and statements",
-	     initialiseBlockv);
-  sendMethod(class, NAME_forward, NAME_execute, 1, "any ...",
-	     "Push <-parameters, @arg1 ... and execute",
-	     forwardBlockv);
-
-  getMethod(class, NAME_Arg, DEFAULT, "code", 1, "int",
-	    "Nth-1 argument for term description",
-	    getArgBlock);
-  getMethod(class, NAME_Arity, DEFAULT, "int", 0,
-	    "Arity for term description",
-	    getArityBlock);
-
-  succeed;
+{ return declareClass(class, &block_decls);
 }
 

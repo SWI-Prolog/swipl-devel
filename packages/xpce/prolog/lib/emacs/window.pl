@@ -886,7 +886,8 @@ m_x_previous(M, Value:any) :<-
 	->  Nidx = 1
 	;   Nidx is Idx + 1
 	),
-	(   get(M?m_x_history, nth1, Nidx, ArgVector)
+	(   get(M, m_x_history, H), H \== @nil,
+	    get(H, nth1, Nidx, ArgVector)
 	->  get(ArgVector, element, M?m_x_argn, Value),
 	    send(M, m_x_index, Nidx)
 	;   send(M, report, warning, 'No (more) history'),
@@ -977,6 +978,11 @@ append(MM, Name:name, Action:'name|menu_item', Before:[name]) :->
 
 :- pce_begin_class(emacs_key_binding, key_binding,
 		   "Specialised key_binding for history").
+
+initialise(KB, Name:[name]*, Super:[key_binding]) :->
+	default(Super, editor, S),
+	send(KB, send_super, initialise, Name, S).
+
 
 fill_arguments_and_execute(KB, Id:event_id, Receiver:emacs_mode, Selector:name,
 			   Argv:any ...) :->

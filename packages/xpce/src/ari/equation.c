@@ -20,21 +20,56 @@ initialiseBinaryCondition(BinaryCondition c, Any l, Any r)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "left=expression", "right=expression" };
+
+/* Instance Variables */
+
+static const vardecl var_binaryCondition[] =
+{ IV(NAME_left, "expression", IV_BOTH,
+     NAME_operant, "Left-hand side of conditional expression"),
+  IV(NAME_right, "expression", IV_BOTH,
+     NAME_operant, "Right-hand side of conditional expression")
+};
+
+/* Send Methods */
+
+static const senddecl send_binaryCondition[] =
+{ SM(NAME_initialise, 2, T_initialise, initialiseBinaryCondition,
+     DEFAULT, "Initialise from 2 expressions")
+};
+
+/* Get Methods */
+
+static const getdecl get_binaryCondition[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_binaryCondition[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name binaryCondition_termnames[] = { NAME_left, NAME_right };
+
+ClassDecl(binaryCondition_decls,
+          var_binaryCondition, send_binaryCondition,
+	  get_binaryCondition, rc_binaryCondition,
+          2, binaryCondition_termnames,
+          "$Rev$");
+
 status
 makeClassBinaryCondition(Class class)
-{ localClass(class, NAME_left, NAME_operant,  "expression", NAME_both,
-	     "Left-hand side of conditional expression");
-  localClass(class, NAME_right, NAME_operant, "expression", NAME_both,
-	     "Right-hand side of conditional expression");
-
-  termClass(class, "binary_condition", 2, NAME_left, NAME_right);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2,
-	     "left=expression", "right=expression",
-	     "Initialise from 2 expressions",
-	     initialiseBinaryCondition);
-
-  succeed;
+{ return declareClass(class, &binaryCondition_decls);
 }
 
 
@@ -174,21 +209,54 @@ ExecuteEquation(Equation e)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_var[] =
+        { "variable=var", "bindings== ..." };
+
+/* Instance Variables */
+
+static const vardecl var_equation[] =
+{ 
+};
+
+/* Send Methods */
+
+static const senddecl send_equation[] =
+{ SM(NAME_Execute, 0, NULL, ExecuteEquation,
+     DEFAULT, "Test if equation is true")
+};
+
+/* Get Methods */
+
+static const getdecl get_equation[] =
+{ GM(NAME_var, 2, "value=int", T_var, getVarEquationv,
+     NAME_calculate, "Get value of a variable")
+};
+
+/* Resources */
+
+static const resourcedecl rc_equation[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(equation_decls,
+          var_equation, send_equation, get_equation, rc_equation,
+          ARGC_INHERIT, NULL,
+          "$Rev$");
+
+
 status
 makeClassEquation(Class class)
-{ sourceClass(class, makeClassEquation, __FILE__, "$Revision$");
-
-  sendMethod(class, NAME_Execute, DEFAULT, 0,
-	     "Test if equation is true",
-	     ExecuteEquation);
-
-  getMethod(class, NAME_var, NAME_calculate, "value=int", 2,
-	    "variable=var", "bindings== ...",
-	    "Get value of a variable",
-	    getVarEquationv);
-
-  succeed;
+{ return declareClass(class, &equation_decls);
 }
+
 /* - -	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 				COMPARISON
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -266,49 +334,182 @@ ExecuteGreaterEqual(Equation e)
 }
 
 
+		 /*******************************
+		 *	     CLASS <		*
+		 *******************************/
+
+/* Type declarations */
+
+
+/* Instance Variables */
+
+static const vardecl var_less[] =
+{ 
+};
+
+/* Send Methods */
+
+static const senddecl send_less[] =
+{ SM(NAME_Execute, 0, NULL, ExecuteLess,
+     DEFAULT, "Evaluate arguments and compare")
+};
+
+/* Get Methods */
+
+static const getdecl get_less[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_less[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(less_decls,
+          var_less, send_less, get_less, rc_less,
+          ARGC_INHERIT, NULL,
+          "$Rev$");
+
 status
 makeClassLess(Class class)
-{ sourceClass(class, makeClassLess, __FILE__, "$Revision$");
-
-  sendMethod(class, NAME_Execute, DEFAULT, 0,
-	     "Evaluate arguments and compare",
-	     ExecuteLess);
-
-  succeed;
+{ return declareClass(class, &less_decls);
 }
+
+
+		 /*******************************
+		 *	     CLASS =<		*
+		 *******************************/
+
+/* Instance Variables */
+
+static const vardecl var_lessEqual[] =
+{ 
+};
+
+/* Send Methods */
+
+static const senddecl send_lessEqual[] =
+{ SM(NAME_Execute, 0, NULL, ExecuteLessEqual,
+     DEFAULT, "Evaluate arguments and compare")
+};
+
+/* Get Methods */
+
+static const getdecl get_lessEqual[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_lessEqual[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(lessEqual_decls,
+          var_lessEqual, send_lessEqual, get_lessEqual, rc_lessEqual,
+          ARGC_INHERIT, NULL,
+          "$Rev$");
+
 
 status
 makeClassLessEqual(Class class)
-{ sourceClass(class, makeClassLessEqual, __FILE__, "$Revision$");
-
-  sendMethod(class, NAME_Execute, DEFAULT, 0,
-	     "Evaluate arguments and compare",
-	     ExecuteLessEqual);
-
-  succeed;
+{ return declareClass(class, &lessEqual_decls);
 }
+
+
+		 /*******************************
+		 *	      CLASS >		*
+		 *******************************/
+
+/* Type declarations */
+
+
+/* Instance Variables */
+
+static const vardecl var_greater[] =
+{ 
+};
+
+/* Send Methods */
+
+static const senddecl send_greater[] =
+{ SM(NAME_Execute, 0, NULL, ExecuteGreater,
+     DEFAULT, "Evaluate arguments and compare")
+};
+
+/* Get Methods */
+
+static const getdecl get_greater[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_greater[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(greater_decls,
+          var_greater, send_greater, get_greater, rc_greater,
+          ARGC_INHERIT, NULL,
+          "$Rev$");
 
 
 status
 makeClassGreater(Class class)
-{ sourceClass(class, makeClassGreater, __FILE__, "$Revision$");
-
-  sendMethod(class, NAME_Execute, DEFAULT, 0,
-	     "Evaluate arguments and compare",
-	     ExecuteGreater);
-
-  succeed;
+{ return declareClass(class, &greater_decls);
 }
 
 
+		 /*******************************
+		 *	     CLASS >=		*
+		 *******************************/
+
+/* Type declarations */
+
+
+/* Instance Variables */
+
+static const vardecl var_greaterEqual[] =
+{ 
+};
+
+/* Send Methods */
+
+static const senddecl send_greaterEqual[] =
+{ SM(NAME_Execute, 0, NULL, ExecuteGreaterEqual,
+     DEFAULT, "Evaluate arguments and compare")
+};
+
+/* Get Methods */
+
+static const getdecl get_greaterEqual[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_greaterEqual[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(greaterEqual_decls,
+          var_greaterEqual, send_greaterEqual,
+	  get_greaterEqual, rc_greaterEqual,
+          ARGC_INHERIT, NULL,
+          "$Rev$");
+
 status
 makeClassGreaterEqual(Class class)
-{ sourceClass(class, makeClassGreaterEqual, __FILE__, "$Revision$");
-
-  sendMethod(class, NAME_Execute, DEFAULT, 0,
-	     "Evaluate arguments and compare",
-	     ExecuteGreaterEqual);
-
-  succeed;
+{ return declareClass(class, &greaterEqual_decls);
 }
 

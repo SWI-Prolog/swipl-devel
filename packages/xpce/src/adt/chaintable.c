@@ -54,25 +54,59 @@ deleteChainTable(ChainTable ct, Any name, Any value)
   fail;
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_delete[] =
+        { "key=any", "value=[any]" };
+static const char *T_keyAany_valueAany[] =
+        { "key=any", "value=any" };
+
+/* Instance Variables */
+
+static const vardecl var_chainTable[] =
+{ 
+};
+
+/* Send Methods */
+
+static const senddecl send_chainTable[] =
+{ SM(NAME_append, 2, T_keyAany_valueAany, appendChainTable,
+     DEFAULT, "Append association to table"),
+  SM(NAME_add, 2, T_keyAany_valueAany, appendChainTable,
+     NAME_add, "Add association to table"),
+  SM(NAME_prepend, 2, T_keyAany_valueAany, prependChainTable,
+     NAME_add, "Prepend association to table"),
+  SM(NAME_delete, 2, T_delete, deleteChainTable,
+     NAME_delete, "Delete all matching symbols")
+};
+
+/* Get Methods */
+
+static const getdecl get_chainTable[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_chainTable[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name chainTable_termnames[] = { NAME_buckets };
+
+ClassDecl(chainTable_decls,
+          var_chainTable, send_chainTable, get_chainTable, rc_chainTable,
+          1, chainTable_termnames,
+          "$Rev$");
+
 
 status
 makeClassChainTable(Class class)
-{ sourceClass(class, makeClassChainTable, __FILE__, "$Revision$");
-
-  termClass(class, "chain_table", 1, NAME_buckets);
-
-  sendMethod(class, NAME_append, DEFAULT, 2, "key=any", "value=any",
-	     "Append association to table",
-	     appendChainTable);
-  sendMethod(class, NAME_prepend, NAME_add, 2, "key=any", "value=any",
-	     "Prepend association to table",
-	     prependChainTable);
-  sendMethod(class, NAME_add, NAME_add, 2, "key=any", "value=any",
-	     "Add association to table",
-	     appendChainTable);
-  sendMethod(class, NAME_delete, NAME_delete, 2, "key=any", "value=[any]",
-	     "Delete all matching symbols",
-	     deleteChainTable);
-
-  succeed;
+{ return declareClass(class, &chainTable_decls);
 }

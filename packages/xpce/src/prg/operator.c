@@ -66,35 +66,60 @@ getKindOperator(Operator o)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "name=name", "priority=0..1200", "kind={xf,yf,xfx,xfy,yfx,yfy,fy,fx}" };
+
+/* Instance Variables */
+
+static const vardecl var_operator[] =
+{ IV(NAME_name, "name", IV_GET,
+     NAME_name, "Name of the operator"),
+  IV(NAME_priority, "int", IV_GET,
+     NAME_internal, "Priority of the operator"),
+  IV(NAME_leftPriority, "int", IV_GET,
+     NAME_internal, "Max priority of left-hand operant"),
+  IV(NAME_rightPriority, "int", IV_GET,
+     NAME_internal, "Max priority of right-hand operant")
+};
+
+/* Send Methods */
+
+static const senddecl send_operator[] =
+{ SM(NAME_initialise, 3, T_initialise, initialiseOperator,
+     DEFAULT, "Initialise"),
+  SM(NAME_kind, 1, "kind={xf,yf,xfx,xfy,yfx,yfy,fy,fx}", kindOperator,
+     NAME_syntax, "Define associativity of the operator")
+};
+
+/* Get Methods */
+
+static const getdecl get_operator[] =
+{ GM(NAME_kind, 0, "kind={xf,yf,xfx,xfy,yfx,yfy,fy,fx}", NULL, getKindOperator,
+     NAME_syntax, "associativity of the operator")
+};
+
+/* Resources */
+
+static const resourcedecl rc_operator[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name operator_termnames[] = { NAME_name, NAME_priority, NAME_kind };
+
+ClassDecl(operator_decls,
+          var_operator, send_operator, get_operator, rc_operator,
+          3, operator_termnames,
+          "$Rev$");
+
 status
 makeClassOperator(Class class)
-{ sourceClass(class, makeClassOperator, __FILE__, "$Revision$");
-
-  localClass(class, NAME_name, NAME_name, "name", NAME_get,
-	     "Name of the operator");
-  localClass(class, NAME_priority, NAME_internal, "int", NAME_get,
-	     "Priority of the operator");
-  localClass(class, NAME_leftPriority, NAME_internal, "int", NAME_get,
-	     "Max priority of left-hand operant");
-  localClass(class, NAME_rightPriority, NAME_internal, "int", NAME_get,
-	     "Max priority of right-hand operant");
-
-  termClass(class, "operator", 3, NAME_name, NAME_priority, NAME_kind);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 3,
-	     "name=name", "priority=0..1200",
-	     "kind={xf,yf,xfx,xfy,yfx,yfy,fy,fx}",
-	     "Initialise",
-	     initialiseOperator);
-  sendMethod(class, NAME_kind, NAME_syntax, 1,
-	     "kind={xf,yf,xfx,xfy,yfx,yfy,fy,fx}",
-	     "Define associativity of the operator",
-	     kindOperator);
-
-  getMethod(class, NAME_kind, NAME_syntax,
-	    "kind={xf,yf,xfx,xfy,yfx,yfy,fy,fx}", 0,
-	    "associativity of the operator",
-	    getKindOperator);
-
-  succeed;
+{ return declareClass(class, &operator_decls);
 }

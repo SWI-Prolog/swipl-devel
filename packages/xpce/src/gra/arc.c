@@ -313,7 +313,7 @@ sizeArc(Arc a, Size sz)
 
 static status
 startAngleArc(Arc a, Real s)
-{ if ( !equalReal(a->start_angle, s) )
+{ if ( a->start_angle->value != s->value )
   { valueReal(a->start_angle, s);
     requestComputeGraphical(a, DEFAULT);
   }
@@ -324,7 +324,7 @@ startAngleArc(Arc a, Real s)
 
 static status
 sizeAngleArc(Arc a, Real e)
-{ if ( !equalReal(a->size_angle, e) )
+{ if ( a->size_angle->value != e->value )
   { valueReal(a->size_angle, e);
     requestComputeGraphical(a, DEFAULT);
   }
@@ -438,82 +438,97 @@ pointsArc(Arc a, Int Sx, Int Sy, Int Ex, Int Ey, Int D)
 }
 
 
-extern drawPostScriptArc(Arc a);
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_connectAngle[] =
+        { "line", "line" };
+static const char *T_initialise[] =
+        { "radius=[int]", "start=[real]", "size=[real]" };
+static const char *T_resize[] =
+        { "real", "[real]", "[point]" };
+static const char *T_points[] =
+        { "start_x=int", "start_y=int", "end_x=int", "end_y=int", "curvature=int" };
+static const char *T_geometry[] =
+        { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_arc[] =
+{ SV(NAME_position, "point", IV_GET|IV_STORE, positionArc,
+     NAME_area, "Position of the arc"),
+  SV(NAME_size, "size", IV_GET|IV_STORE, sizeArc,
+     NAME_area, "Size of the ellipse I'm part of"),
+  SV(NAME_startAngle, "real", IV_GET|IV_STORE, startAngleArc,
+     NAME_pie, "Start angle (degrees)"),
+  SV(NAME_sizeAngle, "real", IV_GET|IV_STORE, sizeAngleArc,
+     NAME_pie, "Size (degrees)"),
+  SV(NAME_close, "{none,pie_slice,chord}", IV_GET|IV_STORE, closeArc,
+     NAME_appearance, "How the arc is closed"),
+  SV(NAME_fillPattern, "image|colour*", IV_GET|IV_STORE, fillPatternGraphical,
+     NAME_appearance, "Fill pattern for the slice")
+};
+
+/* Send Methods */
+
+static const senddecl send_arc[] =
+{ SM(NAME_compute, 0, NULL, computeArc,
+     DEFAULT, "Compute the bounding box area"),
+  SM(NAME_geometry, 4, T_geometry, geometryArc,
+     DEFAULT, "Only move the arc"),
+  SM(NAME_initialise, 3, T_initialise, initialiseArc,
+     DEFAULT, "Create Arc from radius, start_angle and size_angle (degrees)"),
+  SM(NAME_resize, 3, T_resize, resizeArc,
+     DEFAULT, "Resize arc with specified factor"),
+  SM(NAME_connectAngle, 2, T_connectAngle, connectAngleArc,
+     NAME_area, "Connect both lines with an angle"),
+  SM(NAME_radius, 1, "int", radiusArc,
+     NAME_dimension, "->width and ->height"),
+  SM(NAME_endAngle, 1, "real", endAngleArc,
+     NAME_pie, "Set ->size_angle to argument - <-start_angle"),
+  SM(NAME_DrawPostScript, 0, NULL, drawPostScriptArc,
+     NAME_postscript, "Create PostScript"),
+  SM(NAME_points, 5, T_points, pointsArc,
+     NAME_tip, "Arc between two points")
+};
+
+/* Get Methods */
+
+static const getdecl get_arc[] =
+{ GM(NAME_radius, 0, "int", NULL, getRadiusArc,
+     NAME_area, "Equivalent to <-width"),
+  GM(NAME_end, 0, "point", NULL, getEndArc,
+     NAME_tip, "End position of arc"),
+  GM(NAME_start, 0, "point", NULL, getStartArc,
+     NAME_tip, "Start position of arc")
+};
+
+/* Resources */
+
+static const resourcedecl rc_arc[] =
+{ RC(NAME_radius, "int", "30",
+     "Default radius")
+};
+
+/* Class Declaration */
+
+static Name arc_termnames[] = { NAME_radius, NAME_startAngle, NAME_sizeAngle };
+
+ClassDecl(arc_decls,
+          var_arc, send_arc, get_arc, rc_arc,
+          3, arc_termnames,
+          "$Rev$");
+
 
 status
 makeClassArc(Class class)
-{ sourceClass(class, makeClassArc, __FILE__, "$Revision$");
+{ declareClass(class, &arc_decls);
 
-  localClass(class, NAME_position, NAME_area, "point", NAME_get,
-	     "Position of the arc");
-  localClass(class, NAME_size, NAME_area, "size", NAME_get,
-	     "Size of the ellipse I'm part of");
-  localClass(class, NAME_startAngle, NAME_pie, "real", NAME_get,
-	     "Start angle (degrees)");
-  localClass(class, NAME_sizeAngle, NAME_pie, "real", NAME_get,
-	     "Size (degrees)");
-  localClass(class, NAME_close, NAME_appearance,
-	     "{none,pie_slice,chord}", NAME_get,
-	     "How the arc is closed");
-  localClass(class, NAME_fillPattern, NAME_appearance,
-	     "image|colour*", NAME_get,
-	     "Fill pattern for the slice");
-
-  termClass(class, "arc", 3, NAME_radius, NAME_startAngle, NAME_sizeAngle);
   cloneStyleVariableClass(class, NAME_fillPattern, NAME_reference);
   setRedrawFunctionClass(class, RedrawAreaArc);
-
-  storeMethod(class, NAME_fillPattern,	fillPatternGraphical);
-  storeMethod(class, NAME_position,	positionArc);
-  storeMethod(class, NAME_size,		sizeArc);
-  storeMethod(class, NAME_startAngle,	startAngleArc);
-  storeMethod(class, NAME_sizeAngle,	sizeAngleArc);
-  storeMethod(class, NAME_close,	closeArc);
-
-  sendMethod(class, NAME_initialise, DEFAULT,
-	     3, "radius=[int]", "start=[real]", "size=[real]",
-	     "Create Arc from radius, start_angle and size_angle (degrees)",
-	     initialiseArc);
-  sendMethod(class, NAME_compute, DEFAULT, 0,
-	     "Compute the bounding box area",
-	     computeArc);
-  sendMethod(class, NAME_geometry, DEFAULT,
-	     4, "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Only move the arc",
-	     geometryArc);
-  sendMethod(class, NAME_radius, NAME_dimension, 1, "int",
-	     "->width and ->height",
-	     radiusArc);
-  sendMethod(class, NAME_endAngle, NAME_pie, 1, "real",
-	     "Set ->size_angle to argument - <-start_angle",
-	     endAngleArc);
-  sendMethod(class, NAME_connectAngle, NAME_area, 2, "line", "line",
-	     "Connect both lines with an angle",
-	     connectAngleArc);
-  sendMethod(class, NAME_DrawPostScript, NAME_postscript, 0,
-	     "Create PostScript",
-	     drawPostScriptArc);
-  sendMethod(class, NAME_points, NAME_tip, 5,
-	     "start_x=int", "start_y=int", "end_x=int", "end_y=int",
-	     "curvature=int",
-	     "Arc between two points",
-	     pointsArc);
-
-  getMethod(class, NAME_radius, NAME_area, "int", 0,
-	    "Equivalent to <-width",
-	    getRadiusArc);
-  getMethod(class, NAME_start, NAME_tip, "point", 0,
-	    "Start position of arc",
-	    getStartArc);
-  getMethod(class, NAME_end, NAME_tip, "point", 0,
-	    "End position of arc",
-	    getEndArc);
-  sendMethod(class, NAME_resize, DEFAULT, 3, "real", "[real]", "[point]",
-	     "Resize arc with specified factor",
-	     resizeArc);
-
-  attach_resource(class, "radius", "int", "30",
-		  "Default radius");
 
   succeed;
 }

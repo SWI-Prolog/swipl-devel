@@ -35,6 +35,19 @@ CtoString(char *s)
 
 
 StringObj
+staticCtoString(const char *s)
+{ CharArray c = CtoScratchCharArray(s);
+  StringObj str;
+
+  c->data.readonly = TRUE;
+  str = answerObject(ClassString, name_procent_s, c, 0);
+  doneScratchCharArray(c);
+
+  return str;
+}
+
+
+StringObj
 CtoTempString(char *s)
 { CharArray c = CtoScratchCharArray(s);
   StringObj str =  tempObject(ClassString, name_procent_s, c, 0);
@@ -53,17 +66,22 @@ getModifyString(StringObj str, CharArray value)
 status
 initialiseStringv(StringObj str, CharArray fmt, int argc, Any *argv)
 { if ( isDefault(fmt) )
-  { str->data.b16 = 0;
-    str->data.pad = 0;
-    str->data.encoding = ENC_ASCII;
+  { str_inithdr(&str->data, ENC_ASCII);
     str->data.size = 0;
     str_alloc(&str->data);
   } else if ( (Name) fmt == name_procent_s &&
 	      argc == 1 && instanceOfObject(argv[0], ClassCharArray) )
   { CharArray v = argv[0];
+
     str_cphdr(&str->data, &v->data);
-    str_alloc(&str->data);
-    memcpy(str->data.s_text8, v->data.s_text8, str_datasize(&v->data));
+    if ( v->data.readonly )
+    { str->data.s_text8 = v->data.s_text8;
+
+      DEBUG(NAME_readOnly, Cprintf("Shared %s\n", pp(str)));
+    } else
+    { str_alloc(&str->data);
+      memcpy(str->data.s_text8, v->data.s_text8, str_datasize(&v->data));
+    }
   } else
     TRY(str_writefv(&str->data, fmt, argc, argv));
 
@@ -348,16 +366,27 @@ untabifyString(StringObj str, Any tabs)
 }
 
 
+static void
+prepareWriteString(StringObj s)
+{ if ( s->data.readonly )
+    setString(s, &s->data);
+}
+
+
 status
 upcaseString(StringObj s)
-{ str_upcase(&s->data, 0, s->data.size);
+{ prepareWriteString(s);
+
+  str_upcase(&s->data, 0, s->data.size);
   return setString(s, &s->data);
 }
 
 
 static status
 downcaseString(StringObj s)
-{ str_downcase(&s->data, 0, s->data.size);
+{ prepareWriteString(s);
+
+  str_downcase(&s->data, 0, s->data.size);
   return setString(s, &s->data);
 }
 
@@ -375,6 +404,8 @@ translateString(StringObj str, Int c1, Int c2)
   String s = &str->data;
   int size = s->size;
   int i = 0;
+
+  prepareWriteString(str);
 
   if ( notNil(c2) )
   { wchar t = valInt(c2);
@@ -426,7 +457,8 @@ characterString(StringObj str, Int index, Int chr)
     fail;
 
   if ( str_fetch(&str->data, i) != c )
-  { str_store(&str->data, i, c);
+  { prepareWriteString(str);
+    str_store(&str->data, i, c);
     setString(str, &str->data);
   }
 
@@ -477,8 +509,13 @@ setString(StringObj str, String s)
 { Class class = classOfObject(str);
 
   if ( str->data.s_text != s->s_text ||
-       str_allocsize(&str->data) != str_allocsize(s) )
+       str_allocsize(&str->data) != str_allocsize(s) ||
+       str->data.readonly )
   { string s2 = *s;
+
+    DEBUG(NAME_readOnly,
+	  if ( str->data.readonly )
+	    Cprintf("Copying %s", pp(str)));
 
     str_alloc(&s2);
     memcpy(s2.s_text8, s->s_text8, str_datasize(s));
@@ -527,86 +564,104 @@ str_insert_string(StringObj str, Int where, String s)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_insert[] =
+        { "at=[int]", "text=char_array" };
+static const char *T_character[] =
+        { "at=int", "char=char" };
+static const char *T_insertCharacter[] =
+        { "char=char", "at=[0..]", "times=[0..]" };
+static const char *T_formatADchar_arrayD_argumentAany_XXX[] =
+        { "format=[char_array]", "argument=any ..." };
+static const char *T_translate[] =
+        { "from=char", "into=char*" };
+static const char *T_delete[] =
+        { "from=int", "length=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_string[] =
+{ 
+};
+
+/* Send Methods */
+
+static const senddecl send_string[] =
+{ SM(NAME_initialise, 2, T_formatADchar_arrayD_argumentAany_XXX, initialiseStringv,
+     DEFAULT, "Create a string, initialise as ->format"),
+  SM(NAME_downcase, 0, NULL, downcaseString,
+     NAME_case, "Change all letters in string to lower case"),
+  SM(NAME_upcase, 0, NULL, upcaseString,
+     NAME_case, "Change all letters in string to upper case"),
+  SM(NAME_append, 1, "text=char_array", appendString,
+     NAME_content, "Append to the string"),
+  SM(NAME_character, 2, T_character, characterString,
+     NAME_content, "Change character at 0-based index"),
+  SM(NAME_delete, 2, T_delete, deleteString,
+     NAME_content, "Delete range from 0-based start and length"),
+  SM(NAME_ensureNl, 1, "[char_array]", ensureNlString,
+     NAME_content, "Ensure string has trailing newline [and append string]"),
+  SM(NAME_ensureSuffix, 1, "suffix=[char_array]", ensureSuffixString,
+     NAME_content, "Ensure string has indicated suffix"),
+  SM(NAME_insert, 2, T_insert, insertString,
+     NAME_content, "Insert string at 0-based index"),
+  SM(NAME_insertCharacter, 3, T_insertCharacter, insertCharacterString,
+     NAME_content, "Insert times character(s) at location"),
+  SM(NAME_newline, 1, "times=[0..]", newlineString,
+     NAME_content, "Append a newline to string"),
+  SM(NAME_prepend, 1, "char_array", prependString,
+     NAME_content, "Add argument at the beginning"),
+  SM(NAME_strip, 1, "[{leading,trailing}]", stripString,
+     NAME_content, "Strip leading/trailing blanks"),
+  SM(NAME_translate, 2, T_translate, translateString,
+     NAME_content, "Map occurrences of 1-st arg into 2-nd arg"),
+  SM(NAME_truncate, 1, "int", truncateString,
+     NAME_content, "Truncate string to argument characters"),
+  SM(NAME_value, 1, "text=char_array", valueString,
+     NAME_copy, "Set the contents of the string"),
+  SM(NAME_bitsPerCharacter, 1, "int", bitsPerCharacterString,
+     NAME_encoding, "8- or 16-bits per character"),
+  SM(NAME_format, 2, T_formatADchar_arrayD_argumentAany_XXX, formatString,
+     NAME_format, "Format (like printf) in string"),
+  SM(NAME_untabify, 1, "tabs=[int|vector]", untabifyString,
+     NAME_indentation, "Replace tab characters by spaces")
+};
+
+/* Get Methods */
+
+static const getdecl get_string[] =
+{ GM(NAME_convert, 1, "string", "any", convertString,
+     DEFAULT, "Convert name, int, real, etc."),
+  GM(NAME_modify, 1, "string", "char_array", getModifyString,
+     DEFAULT, "Make modified version"),
+  GM(NAME_copy, 0, "string", NULL, getCopyString,
+     NAME_copy, "Copy with the same text")
+};
+
+/* Resources */
+
+static const resourcedecl rc_string[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name string_termnames[] = { NAME_value };
+
+ClassDecl(string_decls,
+          var_string, send_string, get_string, rc_string,
+          1, string_termnames,
+          "$Rev$");
+
 status
 makeClassString(Class class)
-{ sourceClass(class, makeClassString, __FILE__, "$Revision$");
-
-  termClass(class, "string", 1, NAME_value);
+{ declareClass(class, &string_decls);
   setLoadStoreFunctionClass(class, loadString, storeString);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2,
-	     "format=[char_array]", "argument=any ...",
-	     "Create a string, initialise as ->format",
-	     initialiseStringv);
-
-  sendMethod(class, NAME_bitsPerCharacter, NAME_encoding, 1, "int", 
-	     "8- or 16-bits per character",
-	     bitsPerCharacterString);
-  sendMethod(class, NAME_append, NAME_content, 1, "text=char_array",
-	     "Append to the string",
-	     appendString);
-  sendMethod(class, NAME_character, NAME_content, 2, "at=int", "char=char",
-	     "Change character at 0-based index",
-	     characterString);
-  sendMethod(class, NAME_insertCharacter, NAME_content, 3,
-	     "char=char", "at=[0..]", "times=[0..]",
-	     "Insert times character(s) at location",
-	     insertCharacterString);
-  sendMethod(class, NAME_format, NAME_format, 2,
-	     "format=[char_array]", "argument=any ...",
-	     "Format (like printf) in string",
-	     formatString);
-  sendMethod(class, NAME_ensureNl, NAME_content, 1, "[char_array]",
-	     "Ensure string has trailing newline [and append string]",
-	     ensureNlString);
-  sendMethod(class, NAME_ensureSuffix, NAME_content, 1, "suffix=[char_array]",
-	     "Ensure string has indicated suffix",
-	     ensureSuffixString);
-  sendMethod(class, NAME_delete, NAME_content, 2, "from=int", "length=[int]",
-	     "Delete range from 0-based start and length",
-	     deleteString);
-  sendMethod(class, NAME_insert, NAME_content, 2,
-	     "at=[int]", "text=char_array",
-	     "Insert string at 0-based index",
-	     insertString);
-  sendMethod(class, NAME_newline, NAME_content, 1, "times=[0..]",
-	     "Append a newline to string",
-	     newlineString);
-  sendMethod(class, NAME_prepend, NAME_content, 1, "char_array",
-	     "Add argument at the beginning",
-	     prependString);
-  sendMethod(class, NAME_strip, NAME_content, 1, "[{leading,trailing}]",
-	     "Strip leading/trailing blanks",
-	     stripString);
-  sendMethod(class, NAME_truncate, NAME_content, 1, "int",
-	     "Truncate string to argument characters",
-	     truncateString);
-  sendMethod(class, NAME_value, NAME_copy, 1, "text=char_array",
-	     "Set the contents of the string",
-	     valueString);
-  sendMethod(class, NAME_upcase, NAME_case, 0,
-	     "Change all letters in string to upper case",
-	     upcaseString);
-  sendMethod(class, NAME_downcase, NAME_case, 0,
-	     "Change all letters in string to lower case",
-	     downcaseString);
-  sendMethod(class, NAME_translate, NAME_content, 2,
-	     "from=char", "into=char*",
-	     "Map occurrences of 1-st arg into 2-nd arg",
-	     translateString);
-  sendMethod(class, NAME_untabify, NAME_indentation, 1, "tabs=[int|vector]",
-	     "Replace tab characters by spaces",
-	     untabifyString);
-
-  getMethod(class, NAME_convert, DEFAULT, "string", 1, "any",
-	    "Convert name, int, real, etc.",
-	    convertString);
-  getMethod(class, NAME_copy, NAME_copy, "string", 0,
-	    "Copy with the same text",
-	    getCopyString);
-  getMethod(class, NAME_modify, DEFAULT, "string", 1, "char_array",
-	    "Make modified version",
-	    getModifyString);
 
   succeed;
 }

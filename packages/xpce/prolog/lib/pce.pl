@@ -52,21 +52,9 @@ reexports the content of these files.
 	  , pce_get_method_message/2
 
 	  , pce_catch_error/2		% pce_error
-
 	  , pce_open/3
-
-	  , strip_module/3		% pce_pl (module pce_host)
 	  , require/1
-	  , auto_call/1
-	  , (meta_predicate)/1
-	  , 'pceloadc++'/1
-	  , 'pceloadc++'/2
-	  , 'pceloadcxx'/1
-	  , 'pceloadcxx'/2
-	  , '$call_atom'/1
-	  , pce_error/1
-	  , pce_warn/1
-	  , pce_info/1
+
 	  , pce_welcome/0
 	  ]).
 
@@ -96,7 +84,6 @@ user:term_expansion((:- require(_)), []).
      pce_boot(pce_editor)
    ].
 
-:- retractall(user:file_search_path(pce_boot, _)).
 
 set_version :-
 	feature(version, PlVersion),
@@ -148,10 +135,3 @@ pce_welcome :-
 
 
 :- flag('$banner_goal', _, pce_welcome).
-
-		/********************************
-		*        LOCK LOADED FILES	*
-		********************************/
-
-%:- '$make_system_source_files'.
-%:- '$autoload':clear_library_index.

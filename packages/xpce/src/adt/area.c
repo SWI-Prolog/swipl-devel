@@ -692,141 +692,133 @@ getLessSidesArea(Area a, Area b)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_nearSides[] =
+        { "area", "int" };
+static const char *T_dxdydwdh[] =
+        { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_area[] =
+{ IV(NAME_x, "int", IV_BOTH,
+     NAME_position, "Origin's X-value"),
+  IV(NAME_y, "int", IV_BOTH,
+     NAME_position, "Origin's Y-value"),
+  IV(NAME_width, "int", IV_BOTH,
+     NAME_dimension, "Width in pixels (may be negative)"),
+  IV(NAME_height, "int", IV_BOTH,
+     NAME_dimension, "Height in pixels (may be negative)")
+};
+
+/* Send Methods */
+
+static const senddecl send_area[] =
+{ SM(NAME_initialise, 4, T_dxdydwdh, initialiseArea,
+     DEFAULT, "Create area from X, Y, W and H"),
+  SM(NAME_copy, 1, "area", copyArea,
+     NAME_copy, "Copy X, Y, W and H from argument area"),
+  SM(NAME_equal, 1, "area", equalArea,
+     NAME_equality, "Test if area is equal to the argument"),
+  SM(NAME_normalise, 0, NULL, normaliseArea,
+     NAME_orientation, "Make top-left corner the origin"),
+  SM(NAME_orientation, 1, "{north_west,south_east,north_east,south_east}", orientationArea,
+     NAME_orientation, "Put origin at indicated corner"),
+  SM(NAME_center, 1, "point", centerArea,
+     NAME_position, "Move to make point the center"),
+  SM(NAME_position, 1, "point", positionArea,
+     NAME_position, "Move origin to point"),
+  SM(NAME_relativeMove, 1, "point", relativeMoveArea,
+     NAME_position, "Move origin relative by point"),
+  SM(NAME_in, 1, "point", pointInArea,
+     NAME_relation, "Test if point is in area"),
+  SM(NAME_inside, 1, "area", insideArea,
+     NAME_relation, "Test if argument is entirely in area"),
+  SM(NAME_intersection, 1, "area", intersectionArea,
+     NAME_relation, "Make area the intersection with argument"),
+  SM(NAME_overlap, 1, "area", overlapArea,
+     NAME_relation, "Test whether area overlaps argument"),
+  SM(NAME_clear, 0, NULL, clearArea,
+     NAME_resize, "Set X, Y, W and H to 0"),
+  SM(NAME_corner, 1, "point", cornerArea,
+     NAME_resize, "Resize to make opposite of origin point"),
+  SM(NAME_decrease, 1, "int", decreaseArea,
+     NAME_resize, "Move all sides inwards"),
+  SM(NAME_increase, 1, "int", increaseArea,
+     NAME_resize, "Move all sides outwards"),
+  SM(NAME_set, 4, T_dxdydwdh, setArea,
+     NAME_resize, "Set X, Y, W and H values"),
+  SM(NAME_size, 1, "size", sizeArea,
+     NAME_resize, "Resize area to size"),
+  SM(NAME_union, 1, "area", unionArea,
+     NAME_resize, "Enlarge area to entail argument")
+};
+
+/* Get Methods */
+
+static const getdecl get_area[] =
+{ GM(NAME_normalised, 0, "area", NULL, getNormalisedArea,
+     NAME_copy, "New area with origin at top-left"),
+  GM(NAME_measure, 0, "int", NULL, getMeasureArea,
+     NAME_dimension, "`Area' of the area"),
+  GM(NAME_size, 0, "size", NULL, getSizeArea,
+     NAME_dimension, "New size from size of area"),
+  GM(NAME_orientation, 0, "{north_west,south_east,north_east,south_east}", NULL, getOrientationArea,
+     NAME_orientation, "Current orientation"),
+  GM(NAME_center, 0, "point", NULL, getCenterArea,
+     NAME_position, "New point from center position"),
+  GM(NAME_corner, 0, "point", NULL, getCornerArea,
+     NAME_position, "New point from point opposite origin"),
+  GM(NAME_position, 0, "point", NULL, getPositionArea,
+     NAME_position, "New point from origin"),
+  GM(NAME_distance, 1, "int", "area", getDistanceArea,
+     NAME_relation, "Closest distance between areas"),
+  GM(NAME_distanceX, 1, "int", "area", getDistanceXArea,
+     NAME_relation, "Distance between area's in X-direction"),
+  GM(NAME_distanceY, 1, "int", "area", getDistanceYArea,
+     NAME_relation, "Distance between area's in Y-direction"),
+  GM(NAME_intersection, 1, "area", "area", getIntersectionArea,
+     NAME_relation, "New area from intersection"),
+  GM(NAME_lessSides, 1, "int", "area", getLessSidesArea,
+     NAME_relation, "Bitmask (int) of sides closer to origin"),
+  GM(NAME_nearSides, 2, "int", T_nearSides, getNearSidesArea,
+     NAME_relation, "Bitmask (int) of almost equal sides"),
+  GM(NAME_sameSides, 1, "int", "area", sameSidesArea,
+     NAME_relation, "Bitmask (int) of equal sides"),
+  GM(NAME_union, 1, "area", "area", getUnionArea,
+     NAME_resize, "New area from union"),
+  GM(NAME_bottomSide, 0, "int", NULL, getBottomSideArea,
+     NAME_side, "Bottom-side of area"),
+  GM(NAME_leftSide, 0, "int", NULL, getLeftSideArea,
+     NAME_side, "Left-side of area"),
+  GM(NAME_rightSide, 0, "int", NULL, getRightSideArea,
+     NAME_side, "Right-side of area"),
+  GM(NAME_topSide, 0, "int", NULL, getTopSideArea,
+     NAME_side, "Top-side of area")
+};
+
+/* Resources */
+
+static const resourcedecl rc_area[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name area_termnames[] = { NAME_x, NAME_y, NAME_width, NAME_height };
+
+ClassDecl(area_decls,
+          var_area, send_area, get_area, rc_area,
+          4, area_termnames,
+          "$Rev$");
+
+
 status
 makeClassArea(Class class)
-{ sourceClass(class, makeClassArea, __FILE__, "$Revision$");
-
-  localClass(class, NAME_x, NAME_position, "int", NAME_both,
-	     "Origin's X-value");
-  localClass(class, NAME_y, NAME_position, "int", NAME_both,
-	     "Origin's Y-value");
-  localClass(class, NAME_width, NAME_dimension, "int", NAME_both,
-	     "Width in pixels (may be negative)");
-  localClass(class, NAME_height, NAME_dimension, "int", NAME_both,
-	     "Height in pixels (may be negative)");
-
-  termClass(class, "area", 4, NAME_x, NAME_y, NAME_width, NAME_height);
-
-  sendMethod(class, NAME_initialise, DEFAULT,
-	     4, "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Create area from X, Y, W and H",
-	     initialiseArea);
-  sendMethod(class, NAME_center, NAME_position, 1, "point",
-	     "Move to make point the center",
-	     centerArea);
-  sendMethod(class, NAME_clear, NAME_resize, 0,
-	     "Set X, Y, W and H to 0",
-	     clearArea);
-  sendMethod(class, NAME_copy, NAME_copy, 1, "area",
-	     "Copy X, Y, W and H from argument area",
-	     copyArea);
-  sendMethod(class, NAME_corner, NAME_resize, 1, "point",
-	     "Resize to make opposite of origin point",
-	     cornerArea);
-  sendMethod(class, NAME_decrease, NAME_resize, 1, "int",
-	     "Move all sides inwards",
-	     decreaseArea);
-  sendMethod(class, NAME_equal, NAME_equality, 1, "area",
-	     "Test if area is equal to the argument",
-	     equalArea);
-  sendMethod(class, NAME_in, NAME_relation, 1, "point",
-	     "Test if point is in area",
-	     pointInArea);
-  sendMethod(class, NAME_increase, NAME_resize, 1, "int",
-	     "Move all sides outwards",
-	     increaseArea);
-  sendMethod(class, NAME_inside, NAME_relation, 1, "area",
-	     "Test if argument is entirely in area",
-	     insideArea);
-  sendMethod(class, NAME_intersection, NAME_relation, 1, "area",
-	     "Make area the intersection with argument",
-	     intersectionArea);
-  sendMethod(class, NAME_normalise, NAME_orientation, 0,
-	     "Make top-left corner the origin",
-	     normaliseArea);
-  sendMethod(class, NAME_orientation, NAME_orientation,
-	     1, "{north_west,south_east,north_east,south_east}",
-	     "Put origin at indicated corner",
-	     orientationArea);
-  sendMethod(class, NAME_overlap, NAME_relation, 1, "area",
-	     "Test whether area overlaps argument",
-	     overlapArea);
-  sendMethod(class, NAME_position, NAME_position, 1, "point",
-	     "Move origin to point",
-	     positionArea);
-  sendMethod(class, NAME_relativeMove, NAME_position, 1, "point",
-	     "Move origin relative by point",
-	     relativeMoveArea);
-  sendMethod(class, NAME_set, NAME_resize, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Set X, Y, W and H values",
-	     setArea);
-  sendMethod(class, NAME_size, NAME_resize, 1, "size",
-	     "Resize area to size",
-	     sizeArea);
-  sendMethod(class, NAME_union, NAME_resize, 1, "area",
-	     "Enlarge area to entail argument",
-	     unionArea);
-
-  getMethod(class, NAME_leftSide, NAME_side, "int", 0,
-	    "Left-side of area",
-	    getLeftSideArea);
-  getMethod(class, NAME_rightSide, NAME_side, "int", 0,
-	    "Right-side of area",
-	    getRightSideArea);
-  getMethod(class, NAME_topSide, NAME_side, "int", 0,
-	    "Top-side of area",
-	    getTopSideArea);
-  getMethod(class, NAME_bottomSide, NAME_side, "int", 0,
-	    "Bottom-side of area",
-	    getBottomSideArea);
-  getMethod(class, NAME_center, NAME_position, "point", 0,
-	    "New point from center position",
-	    getCenterArea);
-  getMethod(class, NAME_corner, NAME_position, "point", 0,
-	    "New point from point opposite origin",
-	    getCornerArea);
-  getMethod(class, NAME_distance, NAME_relation, "int", 1, "area",
-	    "Closest distance between areas",
-	    getDistanceArea);
-  getMethod(class, NAME_distanceX, NAME_relation, "int", 1, "area",
-	    "Distance between area's in X-direction",
-	    getDistanceXArea);
-  getMethod(class, NAME_distanceY, NAME_relation, "int", 1, "area",
-	    "Distance between area's in Y-direction",
-	    getDistanceYArea);
-  getMethod(class, NAME_intersection, NAME_relation, "area", 1, "area",
-	    "New area from intersection",
-	    getIntersectionArea);
-  getMethod(class, NAME_lessSides, NAME_relation, "int", 1, "area",
-	    "Bitmask (int) of sides closer to origin",
-	    getLessSidesArea);
-  getMethod(class, NAME_nearSides, NAME_relation, "int", 2, "area", "int",
-	    "Bitmask (int) of almost equal sides",
-	    getNearSidesArea);
-  getMethod(class, NAME_normalised, NAME_copy, "area", 0,
-	    "New area with origin at top-left",
-	    getNormalisedArea);
-  getMethod(class, NAME_orientation, NAME_orientation,
-	    "{north_west,south_east,north_east,south_east}",
-	    0,
-	    "Current orientation",
-	    getOrientationArea);
-  getMethod(class, NAME_position, NAME_position, "point", 0,
-	    "New point from origin",
-	    getPositionArea);
-  getMethod(class, NAME_sameSides, NAME_relation, "int", 1, "area",
-	    "Bitmask (int) of equal sides",
-	    sameSidesArea);
-  getMethod(class, NAME_size, NAME_dimension, "size", 0,
-	    "New size from size of area",
-	    getSizeArea);
-  getMethod(class, NAME_union, NAME_resize, "area", 1, "area",
-	    "New area from union",
-	    getUnionArea);
-  getMethod(class, NAME_measure, NAME_dimension, "int", 0,
-	    "`Area' of the area",
-	    getMeasureArea);
-  
-  succeed;
+{ return declareClass(class, &area_decls);
 }

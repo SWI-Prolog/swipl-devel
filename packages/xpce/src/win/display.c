@@ -841,249 +841,236 @@ getContainedInDisplay(DisplayObj d)
 { answer(d->display_manager);
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "address=[name]", "resource_class=[name]" };
+static const char *T_cutBuffer[] =
+        { "buffer=[0..7]", "value=string" };
+static const char *T_busyCursor[] =
+        { "cursor=[cursor]*", "block_input=[bool]" };
+static const char *T_drawIn[] =
+        { "graphical", "at=[point]", "invert=[bool]", "subwindow=[bool]" };
+static const char *T_report[] =
+        { "kind={status,inform,progress,done,warning,error}",
+	  "format=[char_array]", "argument=any ..." };
+static const char *T_postscript[] =
+        { "landscape=[bool]", "max_area=[area]" };
+static const char *T_fontAlias[] =
+        { "name=name", "font=font", "force=[bool]" };
+static const char *T_name_any_XXX[] =
+        { "name", "any ..." };
+static const char *T_selectionOwner[] =
+        { "owner=object*", "which=[name]", "convert=[function]",
+	  "loose=[code]" };
+static const char *T_selection[] =
+        { "which=[name]", "target=[name]", "type=[type]" };
+
+/* Instance Variables */
+
+static const vardecl var_display[] =
+{ IV(NAME_size, "size*", IV_NONE,
+     NAME_dimension, "Size (width, height) of display"),
+  IV(NAME_address, "[name]", IV_BOTH,
+     NAME_address, "Host/screen on which display resides"),
+  IV(NAME_resourceClass, "name", IV_GET,
+     NAME_resource, "Resource class of display [Pce]"),
+  IV(NAME_fontTable, "hash_table", IV_BOTH,
+     NAME_font, "Mapping for logical font-names to fonts"),
+  IV(NAME_frames, "chain", IV_GET,
+     NAME_organisation, "Frames displayed on this display"),
+  IV(NAME_inspectHandlers, "chain", IV_GET,
+     NAME_event, "Chain of handlers to support inspector tools"),
+  SV(NAME_foreground, "colour", IV_GET|IV_STORE, foregroundDisplay,
+     NAME_appearance, "Windows default foreground colour"),
+  SV(NAME_background, "colour", IV_GET|IV_STORE, backgroundDisplay,
+     NAME_appearance, "Windows default background colour"),
+  IV(NAME_quickAndDirty, "bool", IV_BOTH,
+     NAME_cache, "Painting quick or correct?"),
+  IV(NAME_cache, "image*", IV_BOTH,
+     NAME_cache, "Scratch image to avoid flickering"),
+  IV(NAME_windowManager, "[{twm,olwm,mwm}|name]", IV_SEND,
+     NAME_windowManager, "Window manager running on this display"),
+  IV(NAME_displayManager, "display_manager", IV_GET,
+     NAME_organisation, "The global display manager (@display_manager)"),
+  IV(NAME_wsRef, "alien:WsRef", IV_NONE,
+     NAME_windowSystem, "Window-System reference")
+};
+
+/* Send Methods */
+
+static const senddecl send_display[] =
+{ SM(NAME_initialise, 2, T_initialise, initialiseDisplay,
+     DEFAULT, "Create from address and resource class"),
+  SM(NAME_reset, 0, NULL, resetDisplay,
+     NAME_abort, "Closedown informer/confirmer"),
+  SM(NAME_flush, 0, NULL, flushDisplay,
+     NAME_animate, "Flush pending commands to X-server"),
+  SM(NAME_grabServer, 1, "grab=bool", grabServerDisplay,
+     NAME_animate, "Freeze all other applications"),
+  SM(NAME_synchronise, 0, NULL, synchroniseDisplay,
+     NAME_animate, "->flush and process pending events"),
+  SM(NAME_synchronous, 1, "[bool]", synchronousDisplay,
+     NAME_debugging, "Make communication to X-server synchronous"),
+  SM(NAME_busyCursor, 2, T_busyCursor, busyCursorDisplay,
+     NAME_event, "Define (temporary) cursor for all frames on the display"),
+  SM(NAME_dispatch, 0, NULL, dispatchDisplay,
+     NAME_event, "Dispatch events for 1/4th second"),
+  SM(NAME_eventQueued, 0, NULL, eventQueuedDisplay,
+     NAME_event, "Test if there are X-events waiting"),
+  SM(NAME_inspectHandler, 1, "handler", inspectHandlerDisplay,
+     NAME_event, "Register handler for inspect tool"),
+  SM(NAME_fontAlias, 3, T_fontAlias, fontAliasDisplay,
+     NAME_font, "Define a logical name for a font"),
+  SM(NAME_loadFontAliases, 1, "resource=name", loadFontAliasesDisplay,
+     NAME_font, "Load font aliases from named resource"),
+  SM(NAME_loadFontFamily, 1, "family=name", loadFontFamilyDisplay,
+     NAME_font, "Create predefined fonts from family"),
+  SM(NAME_loadFonts, 0, NULL, loadFontsDisplay,
+     NAME_font, "Create predefined font set from resources"),
+  SM(NAME_ConfirmPressed, 1, "event", ConfirmPressedDisplay,
+     NAME_internal, "Handle confirmer events"),
+  SM(NAME_open, 0, NULL, openDisplay,
+     NAME_open, "Open connection to X-server and initialise"),
+  SM(NAME_Postscript, 0, NULL, postscriptDisplay,
+     NAME_postscript, "Create PostScript"),
+  SM(NAME_quit, 0, NULL, quitDisplay,
+     NAME_quit, "Destroy all window-system references"),
+  SM(NAME_bell, 1, "volume=[int]", bellDisplay,
+     NAME_report, "Ring the bell at volume"),
+  SM(NAME_confirm, 2, T_name_any_XXX, confirmDisplay,
+     NAME_report, "Test if the user confirms string"),
+  SM(NAME_inform, 2, T_name_any_XXX, informDisplay,
+     NAME_report, "Inform the user of something"),
+  SM(NAME_report, 3, T_report, reportDisplay,
+     NAME_report, "Report message using ->inform"),
+  SM(NAME_drawIn, 4, T_drawIn, drawInDisplay,
+     NAME_root, "Draw graphical in root window"),
+  SM(NAME_cutBuffer, 2, T_cutBuffer, cutBufferDisplay,
+     NAME_selection, "Set value of numbered X-cut buffer"),
+  SM(NAME_selectionOwner, 4, T_selectionOwner, selectionOwnerDisplay,
+     NAME_selection, "Define the owner of the X11 selection"),
+  SM(NAME_selectionTimeout, 1, "real", selectionTimeoutDisplay,
+     NAME_selection, "Set the timeout-time for getting the selection value"),
+  SM(NAME_screenSaver, 1, "bool", screenSaverDisplay,
+     NAME_x, "Activate (@on) or deactivate (@off) screensaver")
+};
+
+/* Get Methods */
+
+static const getdecl get_display[] =
+{ GM(NAME_containedIn, 0, "display_manager", NULL, getContainedInDisplay,
+     DEFAULT, "Display manager"),
+  GM(NAME_contains, 0, "chain", NULL, getContainsDisplay,
+     DEFAULT, "Chain with frames contained"),
+  GM(NAME_convert, 1, "display", "any", getConvertDisplay,
+     DEFAULT, "Convert graphical or `host:display[.screen]'"),
+  GM(NAME_depth, 0, "bits_per_pixel=int", NULL, getDepthDisplay,
+     NAME_colour, "Number of bits/pixel"),
+  GM(NAME_visualType, 0,
+     "{monochrome,static_grey,grey_scale,static_colour,pseudo_colour,true_colour,direct_colour}",
+     NULL, getVisualTypeDisplay,
+     NAME_colour, "Type of display attached"),
+  GM(NAME_height, 0, "int", NULL, getHeightDisplay,
+     NAME_dimension, "Height of the display in pixels"),
+  GM(NAME_size, 0, "size", NULL, getSizeDisplay,
+     NAME_dimension, "Size of the display"),
+  GM(NAME_width, 0, "int", NULL, getWidthDisplay,
+     NAME_dimension, "Width of the display in pixels"),
+  GM(NAME_fontAlias, 1, "font", "name=name", getFontAliasDisplay,
+     NAME_font, "Lookup logical name"),
+  GM(NAME_connectionFd, 0, "int", NULL, getConnectionFdDisplay,
+     NAME_host, "Unix file descriptor for X-display connection"),
+  GM(NAME_boundingBox, 0, "area", NULL, getBoundingBoxDisplay,
+     NAME_postscript, "PostScript bounding box for the display"),
+  GM(NAME_postscript, 2, "string", T_postscript, getPostscriptObject,
+     NAME_postscript, "Get PostScript or (area of) display"),
+  GM(NAME_cutBuffer, 1, "string", "buffer=[0..7]", getCutBufferDisplay,
+     NAME_selection, "New string with value of cut-buffer"),
+  GM(NAME_selection, 3, "any", T_selection, getSelectionDisplay,
+     NAME_selection, "Query value of the X-window selection"),
+  GM(NAME_selectionOwner, 1, "object", "which=[name]", getSelectionOwnerDisplay,
+     NAME_selection, "Current object owning the X11 selection"),
+  GM(NAME_selectionTimeout, 0, "real", NULL, getSelectionTimeoutDisplay,
+     NAME_selection, "Get the current selection timeout time (seconds)"),
+  GM(NAME_windowManager, 0, "[{twm,olwm,mwm,fvwm}|name]", NULL, getWindowManagerDisplay,
+     NAME_windowManager, "Window manager running on this display")
+};
+
+/* Resources */
+
+static const resourcedecl rc_display[] =
+{ RC(NAME_background, "colour", "white",
+     "Default background for windows"),
+  RC(NAME_foreground, "colour", "black",
+     "Default foreground for windows"),
+  RC(NAME_graphicsCache, "[size]", "@default",
+     "Size of cache image to avoid flickering"),
+  RC(NAME_initialise, "code*", "@nil",
+     "Code object to run on ->open"),
+  RC(NAME_labelFont, "font", "bold",
+     "Label font for confirm/inform"),
+  RC(NAME_systemFonts, "chain",
+     "[ normal    := font(helvetica, roman, 12),\n"
+     "  bold      := font(helvetica, bold, 12),\n"
+     "  italic    := font(helvetica, oblique, 12),\n"
+     "  small     := font(helvetica, roman, 10),\n"
+     "  large     := font(helvetica, roman, 14),\n"
+     "  boldlarge := font(helvetica, bold, 14),\n"
+     "  huge      := font(helvetica, roman, 18),\n"
+     "  boldhuge  := font(helvetica, bold, 18),\n"
+     "  fixed     := font(screen, roman, 13)\n"
+     "]",
+     "Predefined font-aliases"),
+  RC(NAME_noFont, "font", "fixed",
+     "Replacement for undefined fonts"),
+  RC(NAME_quickAndDirty, "bool", "@on",
+     "Draw quick or correct"),
+  RC(NAME_valueFont, "font", "normal",
+     "Text font for confirm/inform"),
+  RC(NAME_volume, "int", "0",
+     "Default volume of ->bell"),
+  RC(NAME_windowManager, "[name]", "@default",
+     "Window manager running on this display")
+#ifdef _WINDOWS
+  ,
+					/* @nil     --> no handling */
+					/* @default --> task-level handling */
+					/* name	    --> external dll */
+  RC(NAME_whMouseDll, "[name]*", "xpcemh.dll",
+     "DLL to generate area_enter/area_exit events")
+#endif
+};
+
+/* Class Declaration */
+
+static Name display_termnames[] = { NAME_address, NAME_resourceClass };
+
+ClassDecl(display_decls,
+          var_display, send_display, get_display, rc_display,
+          2, display_termnames,
+          "$Rev$");
+
+
 
 status
 makeClassDisplay(Class class)
 { DisplayObj TheDisplay;
 
-  sourceClass(class, makeClassDisplay, __FILE__, "$Revision$");
-
-  localClass(class, NAME_size, NAME_dimension, "size*", NAME_none,
-	     "Size (width, height) of display");
-  localClass(class, NAME_address, NAME_address, "[name]", NAME_both,
-	     "Host/screen on which display resides");
-  localClass(class, NAME_resourceClass, NAME_resource, "name", NAME_get,
-	     "Resource class of display [Pce]");
-  localClass(class, NAME_fontTable, NAME_font, "hash_table", NAME_both,
-	     "Mapping for logical font-names to fonts");
-  localClass(class, NAME_frames, NAME_organisation, "chain", NAME_get,
-	     "Frames displayed on this display");
-  localClass(class, NAME_inspectHandlers, NAME_event, "chain", NAME_get,
-	     "Chain of handlers to support inspector tools");
-  localClass(class, NAME_foreground, NAME_appearance, "colour", NAME_get,
-	     "Windows default foreground colour");
-  localClass(class, NAME_background, NAME_appearance, "colour", NAME_get,
-	     "Windows default background colour");
-  localClass(class, NAME_quickAndDirty, NAME_cache, "bool", NAME_both,
-	     "Painting quick or correct?");
-  localClass(class, NAME_cache, NAME_cache, "image*", NAME_both,
-	     "Scratch image to avoid flickering");
-  localClass(class, NAME_windowManager, NAME_windowManager,
-	     "[{twm,olwm,mwm}|name]", NAME_send,
-	     "Window manager running on this display");
-  localClass(class, NAME_displayManager, NAME_organisation,
-	     "display_manager", NAME_get,
-	     "The global display manager (@display_manager)");
-  localClass(class, NAME_wsRef, NAME_windowSystem, "alien:WsRef", NAME_none,
-	     "Window-System reference");
-
-  termClass(class, "display", 2, NAME_address, NAME_resourceClass);
+  declareClass(class, &display_decls);
   saveStyleClass(class, NAME_external);
   cloneStyleClass(class, NAME_none);
 
-  storeMethod(class, NAME_foreground, foregroundDisplay);
-  storeMethod(class, NAME_background, backgroundDisplay);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2,
-	     "address=[name]", "resource_class=[name]",
-	     "Create from address and resource class",
-	     initialiseDisplay);
-  sendMethod(class, NAME_reset, NAME_abort, 0,
-	     "Closedown informer/confirmer",
-	     resetDisplay);
-  sendMethod(class, NAME_confirm, NAME_report, 2, "name", "any ...",
-	     "Test if the user confirms string",
-	     confirmDisplay);
-  sendMethod(class, NAME_ConfirmPressed, NAME_internal, 1, "event",
-	     "Handle confirmer events",
-	     ConfirmPressedDisplay);
-  sendMethod(class, NAME_inform, NAME_report, 2, "name", "any ...",
-	     "Inform the user of something",
-	     informDisplay);
-  sendMethod(class, NAME_busyCursor, NAME_event, 2,
-	     "cursor=[cursor]*", "block_input=[bool]",
-	     "Define (temporary) cursor for all frames on the display",
-	     busyCursorDisplay);
-  sendMethod(class, NAME_open, NAME_open, 0,
-	     "Open connection to X-server and initialise",
-	     openDisplay);
-  sendMethod(class, NAME_eventQueued, NAME_event, 0,
-	     "Test if there are X-events waiting",
-	     eventQueuedDisplay);
-  sendMethod(class, NAME_dispatch, NAME_event, 0,
-	     "Dispatch events for 1/4th second",
-	     dispatchDisplay);
-  sendMethod(class, NAME_flush, NAME_animate, 0,
-	     "Flush pending commands to X-server",
-	     flushDisplay);
-  sendMethod(class, NAME_synchronise, NAME_animate, 0,
-	     "->flush and process pending events",
-	     synchroniseDisplay);
-  sendMethod(class, NAME_Postscript, NAME_postscript, 0,
-	     "Create PostScript",
-	     postscriptDisplay);
-  sendMethod(class, NAME_bell, NAME_report, 1, "volume=[int]",
-	     "Ring the bell at volume",
-	     bellDisplay);
-  sendMethod(class, NAME_cutBuffer, NAME_selection, 2,
-	     "buffer=[0..7]", "value=string",
-	     "Set value of numbered X-cut buffer",
-	     cutBufferDisplay);
-  sendMethod(class, NAME_synchronous, NAME_debugging, 1, "[bool]",
-	     "Make communication to X-server synchronous",
-	     synchronousDisplay);
-  sendMethod(class, NAME_inspectHandler, NAME_event, 1, "handler",
-	     "Register handler for inspect tool",
-	     inspectHandlerDisplay);
-  sendMethod(class, NAME_screenSaver, NAME_x, 1, "bool",
-	     "Activate (@on) or deactivate (@off) screensaver",
-	     screenSaverDisplay);
-  sendMethod(class, NAME_report, NAME_report, 3,
-	     "kind={status,inform,progress,done,warning,error}",
-	     "format=[char_array]", "argument=any ...",
-	     "Report message using ->inform",
-	     reportDisplay);
-  sendMethod(class, NAME_drawIn, NAME_root, 4,
-	     "graphical", "at=[point]", "invert=[bool]", "subwindow=[bool]",
-	     "Draw graphical in root window",
-	     drawInDisplay);
-  sendMethod(class, NAME_grabServer, NAME_animate, 1, "grab=bool",
-	     "Freeze all other applications",
-	     grabServerDisplay);
-  sendMethod(class, NAME_selectionTimeout, NAME_selection, 1, "real",
-	     "Set the timeout-time for getting the selection value",
-	     selectionTimeoutDisplay);
-  sendMethod(class, NAME_selectionOwner, NAME_selection, 4,
-	     "owner=object*", "which=[name]", "convert=[function]",
-	     "loose=[code]",
-	     "Define the owner of the X11 selection",
-	     selectionOwnerDisplay);
-  sendMethod(class, NAME_quit, NAME_quit, 0,
-	     "Destroy all window-system references",
-	     quitDisplay);
-
-  sendMethod(class, NAME_loadFonts, NAME_font, 0,
-	     "Create predefined font set from resources",
-	     loadFontsDisplay);
-  sendMethod(class, NAME_loadFontFamily, NAME_font, 1, "family=name",
-	     "Create predefined fonts from family",
-	     loadFontFamilyDisplay);
-  sendMethod(class, NAME_loadFontAliases, NAME_font, 1, "resource=name",
-	     "Load font aliases from named resource",
-	     loadFontAliasesDisplay);
-  sendMethod(class, NAME_fontAlias, NAME_font, 3,
-	     "name=name", "font=font", "force=[bool]",
-	     "Define a logical name for a font",
-	     fontAliasDisplay);
-
-  getMethod(class, NAME_size, NAME_dimension, "size", 0,
-	    "Size of the display",
-	    getSizeDisplay);
-  getMethod(class, NAME_width, NAME_dimension, "int", 0,
-	    "Width of the display in pixels",
-	    getWidthDisplay);
-  getMethod(class, NAME_height, NAME_dimension, "int", 0,
-	    "Height of the display in pixels",
-	    getHeightDisplay);
-  getMethod(class, NAME_boundingBox, NAME_postscript, "area", 0,
-	    "PostScript bounding box for the display",
-	    getBoundingBoxDisplay);
-  getMethod(class, NAME_postscript, NAME_postscript, "string", 2,
-	    "landscape=[bool]", "max_area=[area]",
-	    "Get PostScript or (area of) display",
-	    getPostscriptObject);
-  getMethod(class, NAME_cutBuffer, NAME_selection, "string", 1,"buffer=[0..7]",
-	    "New string with value of cut-buffer",
-	    getCutBufferDisplay);
-  getMethod(class, NAME_selectionTimeout, NAME_selection, "real", 0,
-	    "Get the current selection timeout time (seconds)",
-	    getSelectionTimeoutDisplay);
-  getMethod(class, NAME_selection, NAME_selection, "any", 3,
-	    "which=[name]", "target=[name]", "type=[type]",
-	    "Query value of the X-window selection",
-	    getSelectionDisplay);
-  getMethod(class, NAME_selectionOwner, NAME_selection, "object", 1,
-	    "which=[name]",
-	    "Current object owning the X11 selection",
-	    getSelectionOwnerDisplay);
-  getMethod(class, NAME_depth, NAME_colour, "bits_per_pixel=int", 0,
-	    "Number of bits/pixel",
-	    getDepthDisplay);
-  getMethod(class, NAME_visualType, NAME_colour,
-	    "{monochrome,static_grey,grey_scale,static_colour,pseudo_colour,true_colour,direct_colour}", 0,
-	    "Type of display attached",
-	    getVisualTypeDisplay);
-  getMethod(class, NAME_contains, DEFAULT, "chain", 0,
-	    "Chain with frames contained",
-	    getContainsDisplay);
-  getMethod(class, NAME_containedIn, DEFAULT, "display_manager", 0,
-	    "Display manager",
-	    getContainedInDisplay);
-  getMethod(class, NAME_windowManager, NAME_windowManager,
-	    "[{twm,olwm,mwm}|name]", 0,
-	    "Window manager running on this display",
-	    getWindowManagerDisplay);
-  getMethod(class, NAME_convert, DEFAULT, "display", 1, "any",
-	    "Convert graphical or `host:display[.screen]'",
-	    getConvertDisplay);
-  getMethod(class, NAME_connectionFd, NAME_host, "int", 0,
-	    "Unix file descriptor for X-display connection",
-	    getConnectionFdDisplay);
-  getMethod(class, NAME_fontAlias, NAME_font, "font", 1, "name=name",
-	     "Lookup logical name",
-	     getFontAliasDisplay);
-
-  initClass(class);
-					/* set up the displays */
   TheDisplay = globalObject(NAME_display, ClassDisplay, 0);
-
   globalObject(NAME_colourDisplay, ClassGreater,
 	       newObject(ClassObtain, TheDisplay, NAME_depth, 0),
 	       ONE, 0);
 
-  attach_resource(class, "label_font",	   "font",    "bold",
-		  "Label font for confirm/inform");
-  attach_resource(class, "value_font",     "font",    "normal",
-		  "Text font for confirm/inform");
-  attach_resource(class, "system_fonts", "chain",
-		  "[ normal    := font(helvetica, roman, 12),\n"
-		  "  bold      := font(helvetica, bold, 12),\n"
-		  "  italic    := font(helvetica, oblique, 12),\n"
-		  "  small     := font(helvetica, roman, 10),\n"
-		  "  large     := font(helvetica, roman, 14),\n"
-		  "  boldlarge := font(helvetica, bold, 14),\n"
-		  "  huge      := font(helvetica, roman, 18),\n"
-		  "  boldhuge  := font(helvetica, bold, 18),\n"
-		  "  fixed     := font(screen, roman, 13)\n"
-		  "]",
-		  "Predefined font-aliases");
-  attach_resource(class, "no_font",	   "font",    "fixed",
-		  "Replacement for undefined fonts");
-  attach_resource(class, "graphics_cache", "[size]",  "@default",
-		  "Size of cache image to avoid flickering");
-  attach_resource(class, "volume",	   "int", "0",
-		  "Default volume of ->bell");
-  attach_resource(class, "foreground",	   "colour",  "black",
-		  "Default foreground for windows");
-  attach_resource(class, "background",	   "colour",  "white",
-		  "Default background for windows");
-  attach_resource(class, "quick_and_dirty","bool",    "@on",
-		  "Draw quick or correct");
-  attach_resource(class, "window_manager", "[name]",  "@default",
-		  "Window manager running on this display");
-  attach_resource(class, "initialise", "code*", "@nil",
-		  "Code object to run on ->open");
-
   attach_font_families(class);
-
-#ifdef _WINDOWS
-					/* @nil     --> no handling */
-					/* @default --> task-level handling */
-					/* name	    --> external dll */
-  attach_resource(class, "wh_mouse_dll", "[name]*", "xpcemh.dll",
-		  "DLL to generate area_enter/area_exit events");
-#endif
-
 
   succeed;
 }

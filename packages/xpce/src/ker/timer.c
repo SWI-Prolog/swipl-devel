@@ -104,48 +104,70 @@ runningTimer(Timer tm, Bool val)
 { return (val == ON ? startTimer(tm, NAME_repeat) : stopTimer(tm));
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_initialise[] =
+        { "interval=real", "message=[code]*" };
+
+/* Instance Variables */
+
+static const vardecl var_timer[] =
+{ SV(NAME_interval, "real", IV_GET|IV_STORE, intervalTimer,
+     NAME_time, "Interval between messages in seconds"),
+  IV(NAME_message, "code*", IV_BOTH,
+     NAME_action, "Code executed each time"),
+  SV(NAME_status, "{idle,repeat,once}", IV_GET|IV_STORE, statusTimer,
+     NAME_status, "Status of timer"),
+  IV(NAME_wsRef, "alien:WsRef", IV_GET,
+     NAME_internal, "Window System Reference")
+};
+
+/* Send Methods */
+
+static const senddecl send_timer[] =
+{ SM(NAME_initialise, 2, T_initialise, initialiseTimer,
+     DEFAULT, "Create for interval and message"),
+  SM(NAME_unlink, 0, NULL, unlinkTimer,
+     DEFAULT, "Destroy X-timer"),
+  SM(NAME_execute, 0, NULL, executeTimer,
+     NAME_action, "Fire the timer right now"),
+  SM(NAME_delay, 0, NULL, delayTimer,
+     NAME_status, "Delay for <-interval"),
+  SM(NAME_running, 1, "running=bool", runningTimer,
+     NAME_status, "Start/stop the timer in `repeat' mode"),
+  SM(NAME_start, 1, "how=[{repeat,once}]", startTimer,
+     NAME_status, "Equivalent to ->status: [repeat]"),
+  SM(NAME_stop, 0, NULL, stopTimer,
+     NAME_status, "Equivalent to ->status: idle")
+};
+
+/* Get Methods */
+
+static const getdecl get_timer[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_timer[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name timer_termnames[] = { NAME_interval, NAME_message };
+
+ClassDecl(timer_decls,
+          var_timer, send_timer, get_timer, rc_timer,
+          2, timer_termnames,
+          "$Rev$");
 
 status
 makeClassTimer(Class class)
-{ sourceClass(class, makeClassTimer, __FILE__, "$Revision$");
-
-  localClass(class, NAME_interval, NAME_time, "real", NAME_get,
-	     "Interval between messages in seconds");
-  localClass(class, NAME_message, NAME_action, "code*", NAME_both,
-	     "Code executed each time");
-  localClass(class, NAME_status, NAME_status, "{idle,repeat,once}", NAME_get,
-	     "Status of timer");
-  localClass(class, NAME_wsRef, NAME_internal, "alien:WsRef", NAME_get,
-	     "Window System Reference");
-
-  termClass(class, "timer", 2, NAME_interval, NAME_message);
-
-  storeMethod(class, NAME_interval, intervalTimer);
-  storeMethod(class, NAME_status, statusTimer);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2,
-	     "interval=real", "message=[code]*",
-	     "Create for interval and message",
-	     initialiseTimer);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Destroy X-timer",
-	     unlinkTimer);
-  sendMethod(class, NAME_execute, NAME_action, 0,
-	     "Fire the timer right now",
-	     executeTimer);
-  sendMethod(class, NAME_start, NAME_status, 1, "how=[{repeat,once}]",
-	     "Equivalent to ->status: [repeat]",
-	     startTimer);
-  sendMethod(class, NAME_stop, NAME_status, 0,
-	     "Equivalent to ->status: idle",
-	     stopTimer);
-  sendMethod(class, NAME_running, NAME_status, 1, "running=bool",
-	     "Start/stop the timer in `repeat' mode",
-	     runningTimer);
-  sendMethod(class, NAME_delay, NAME_status, 0,
-	     "Delay for <-interval",
-	     delayTimer);
-
-  succeed;
+{ return declareClass(class, &timer_decls);
 }
 

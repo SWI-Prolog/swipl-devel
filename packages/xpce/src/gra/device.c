@@ -1666,170 +1666,172 @@ getContainsDevice(Device dev)
 { answer(dev->graphicals);
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
 
-extern drawPostScriptDevice(Device dev);
+/* Type declarations */
+
+static const char *T_DnameD_code[] =
+        { "[name]", "code" };
+static const char *T_find[] =
+        { "at=[point|event]", "condition=[code]" };
+static const char *T_pointedObjects[] =
+        { "at=point|event", "append_to=[chain]" };
+static const char *T_typed[] =
+        { "event_id", "[bool]" };
+static const char *T_format[] =
+        { "format*|name", "[any]" };
+static const char *T_modifiedItem[] =
+        { "graphical", "bool" };
+static const char *T_display[] =
+        { "graphical", "position=[point]" };
+static const char *T_appendDialogItem[] =
+        { "item=graphical", "relative_to_last=[{below,right,next_row}]" };
+static const char *T_convertLoadedObject[] =
+        { "old_version=int", "new_version=int" };
+static const char *T_changedUnion[] =
+        { "ox=int", "oy=int", "ow=int", "oh=int" };
+static const char *T_geometry[] =
+        { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+static const char *T_resize[] =
+        { "x_factor=real", "y_factor=[real]", "origin=[point]" };
+
+/* Instance Variables */
+
+static const vardecl var_device[] =
+{ IV(NAME_level, "int", IV_GET,
+     NAME_organisation, "Nesting depth to topmost device"),
+  IV(NAME_offset, "point", IV_NONE,
+     NAME_area, "Offset of origin"),
+  IV(NAME_clipArea, "area*", IV_NONE,
+     NAME_scroll, "Clip all graphicals to this area"),
+  IV(NAME_graphicals, "chain", IV_GET,
+     NAME_organisation, "Displayed graphicals (members)"),
+  IV(NAME_pointed, "chain", IV_GET,
+     NAME_event, "Graphicals pointed-to by the mouse"),
+  IV(NAME_format, "format*", IV_GET,
+     NAME_layout, "Use tabular layout"),
+  IV(NAME_badFormat, "bool", IV_NONE,
+     NAME_update, "Format needs to be recomputed"),
+  IV(NAME_badBoundingBox, "bool", IV_NONE,
+     NAME_update, "Indicate bounding box is out-of-date"),
+  IV(NAME_recompute, "chain", IV_NONE,
+     NAME_update, "Graphicals that requested a recompute")
+};
+
+/* Send Methods */
+
+static const senddecl send_device[] =
+{ SM(NAME_geometry, 4, T_geometry, geometryDevice,
+     DEFAULT, "Move device"),
+  SM(NAME_initialise, 0, NULL, initialiseDevice,
+     DEFAULT, "Create an empty device"),
+  SM(NAME_unlink, 0, NULL, unlinkDevice,
+     DEFAULT, "Clear device and unlink from super-device"),
+  SM(NAME_typed, 2, T_typed, typedDevice,
+     NAME_accelerator, "Handle accelerators"),
+  SM(NAME_foreground, 1, "colour", colourGraphical,
+     NAME_appearance, "Default colour for all members"),
+  SM(NAME_move, 1, "point", positionDevice,
+     NAME_area, "Set origin"),
+  SM(NAME_position, 1, "point", positionDevice,
+     NAME_area, "Set origin"),
+  SM(NAME_reference, 1, "[point]", referenceDevice,
+     NAME_area, "Move origin, while moving members opposite"),
+  SM(NAME_resize, 3, T_resize, resizeDevice,
+     NAME_area, "Resize device with specified factor"),
+  SM(NAME_x, 1, "int", xDevice,
+     NAME_area, "Set X of origin"),
+  SM(NAME_y, 1, "int", yDevice,
+     NAME_area, "Set Y of origin"),
+  SM(NAME_convertLoadedObject, 2, T_convertLoadedObject,
+     convertLoadedObjectDevice,
+     NAME_compatibility, "Initialise recompute and request_compute"),
+  SM(NAME_event, 1, "event", eventDevice,
+     NAME_event, "Process an event"),
+  SM(NAME_updatePointed, 1, "event", updatePointedDevice,
+     NAME_event, "Update <-pointed, sending area_enter and area_exit events"),
+  SM(NAME_advance, 1, "[graphical]*", advanceDevice,
+     NAME_focus, "Advance keyboard focus to next item"),
+  SM(NAME_forAll, 2, T_DnameD_code, forAllDevice,
+     NAME_iterate, "Run code on graphicals; demand acceptance"),
+  SM(NAME_forSome, 2, T_DnameD_code, forSomeDevice,
+     NAME_iterate, "Run code on all graphicals"),
+  SM(NAME_format, 2, T_format, formatDevice,
+     NAME_layout, "Use tabular layout"),
+  SM(NAME_layoutDialog, 1, "[size]", layoutDialogDevice,
+     NAME_layout, "(Re)compute layout of dialog_items"),
+  SM(NAME_room, 1, "area", roomDevice,
+     NAME_layout, "Test if no graphicals are in area"),
+  SM(NAME_appendDialogItem, 2, T_appendDialogItem, appendDialogItemDevice,
+     NAME_organisation, "Append dialog_item {below,right,next_row} last"),
+  SM(NAME_clear, 0, NULL, clearDevice,
+     NAME_organisation, "Erase all graphicals"),
+  SM(NAME_display, 2, T_display, displayDevice,
+     NAME_organisation, "Display graphical at point"),
+  SM(NAME_erase, 1, "graphical", eraseDevice,
+     NAME_organisation, "Erase a graphical"),
+  SM(NAME_reparent, 0, NULL, reparentDevice,
+     NAME_organisation, "Device's parent-chain has changed"),
+  SM(NAME_DrawPostScript, 0, NULL, drawPostScriptDevice,
+     NAME_postscript, "Create PostScript"),
+  SM(NAME_changedUnion, 4, T_changedUnion, changedUnionDevice,
+     NAME_resize, "Trap changes to the union of all graphicals"),
+  SM(NAME_selection, 1, "graphical|chain*", selectionDevice,
+     NAME_selection, "Set selection to graphical or chain"),
+  SM(NAME_compute, 0, NULL, computeDevice,
+     NAME_update, "Recompute device"),
+  SM(NAME_modifiedItem, 2, T_modifiedItem, failObject,
+     NAME_virtual, "Trap modification of item (fail)")
+};
+
+/* Get Methods */
+
+static const getdecl get_device[] =
+{ GM(NAME_contains, 0, "chain", NULL, getContainsDevice,
+     DEFAULT, "Chain with visuals contained"),
+  GM(NAME_offset, 0, "point", NULL, getOffsetDevice,
+     NAME_area, "Get origin (also <-position)"),
+  GM(NAME_position, 0, "point", NULL, getPositionDevice,
+     NAME_area, "Get origin"),
+  GM(NAME_x, 0, "int", NULL, getXDevice,
+     NAME_area, "Get X of origin"),
+  GM(NAME_y, 0, "int", NULL, getYDevice,
+     NAME_area, "Get Y of origin"),
+  GM(NAME_pointedObjects, 2, "chain", T_pointedObjects,
+     getPointedObjectsDevice,
+     NAME_event, "New chain holding graphicals at point|event"),
+  GM(NAME_catchAll, 1, "graphical", "name", getCatchAllDevice,
+     NAME_organisation, "Find named graphicals"),
+  GM(NAME_member, 1, "graphical", "graphical_name=name", getMemberDevice,
+     NAME_organisation, "Find named graphical"),
+  GM(NAME_find, 2, "graphical", T_find, getFindDevice,
+     NAME_search, "Find most local graphical"),
+  GM(NAME_inside, 1, "chain", "area", getInsideDevice,
+     NAME_selection, "New chain with graphicals inside area"),
+  GM(NAME_selection, 0, "chain", NULL, getSelectionDevice,
+     NAME_selection, "New chain of selected graphicals")
+};
+
+/* Resources */
+
+static const resourcedecl rc_device[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(device_decls,
+          var_device, send_device, get_device, rc_device,
+          0, NULL,
+          "$Rev$");
+
 
 status
 makeClassDevice(Class class)
-{ sourceClass(class, makeClassDevice, __FILE__, "$Revision$");
-
-  localClass(class, NAME_level, NAME_organisation, "int", NAME_get,
-	     "Nesting depth to topmost device");
-  localClass(class, NAME_offset, NAME_area, "point", NAME_none,
-	     "Offset of origin");
-  localClass(class, NAME_clipArea, NAME_scroll, "area*", NAME_none,
-	     "Clip all graphicals to this area");
-  localClass(class, NAME_graphicals, NAME_organisation, "chain", NAME_get,
-	     "Displayed graphicals (members)");
-  localClass(class, NAME_pointed, NAME_event, "chain", NAME_get,
-	     "Graphicals pointed-to by the mouse");
-  localClass(class, NAME_format, NAME_layout, "format*", NAME_get,
-	     "Use tabular layout");
-  localClass(class, NAME_badFormat, NAME_update, "bool", NAME_none,
-	     "Format needs to be recomputed");
-  localClass(class, NAME_badBoundingBox, NAME_update, "bool", NAME_none,
-	     "Indicate bounding box is out-of-date");
-  localClass(class, NAME_recompute, NAME_update, "chain", NAME_none,
-	     "Graphicals that requested a recompute");
-
-  termClass(class, "device", 0);
+{ declareClass(class, &device_decls);
   setRedrawFunctionClass(class, RedrawAreaDevice);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 0,
-	     "Create an empty device",
-	     initialiseDevice);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Clear device and unlink from super-device",
-	     unlinkDevice);
-  sendMethod(class, NAME_geometry, DEFAULT, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Move device",
-	     geometryDevice);
-  sendMethod(class, NAME_clear, NAME_organisation, 0,
-	     "Erase all graphicals",
-	     clearDevice);
-  sendMethod(class, NAME_compute, NAME_update, 0,
-	     "Recompute device",
-	     computeDevice);
-  sendMethod(class, NAME_appendDialogItem, NAME_organisation, 2,
-	     "item=graphical", "relative_to_last=[{below,right,next_row}]",
-	     "Append dialog_item {below,right,next_row} last",
-	     appendDialogItemDevice);
-  sendMethod(class, NAME_display, NAME_organisation, 2,
-	     "graphical", "position=[point]",
-	     "Display graphical at point",
-	     displayDevice);
-  sendMethod(class, NAME_erase, NAME_organisation, 1, "graphical",
-	     "Erase a graphical",
-	     eraseDevice);
-  sendMethod(class, NAME_event, NAME_event, 1, "event",
-	     "Process an event",
-	     eventDevice);
-  sendMethod(class, NAME_typed, NAME_accelerator, 2, "event_id", "[bool]",
-	     "Handle accelerators",
-	     typedDevice);
-  sendMethod(class, NAME_format, NAME_layout, 2, "format*|name", "[any]",
-	     "Use tabular layout",
-	     formatDevice);
-  sendMethod(class, NAME_layoutDialog, NAME_layout, 1, "[size]",
-	     "(Re)compute layout of dialog_items",
-	     layoutDialogDevice);
-  sendMethod(class, NAME_room, NAME_layout, 1, "area",
-	     "Test if no graphicals are in area",
-	     roomDevice);
-  sendMethod(class, NAME_selection, NAME_selection, 1, "graphical|chain*",
-	     "Set selection to graphical or chain",
-	     selectionDevice);
-  sendMethod(class, NAME_advance, NAME_focus, 1, "[graphical]*",
-	     "Advance keyboard focus to next item",
-	     advanceDevice);
-  sendMethod(class, NAME_DrawPostScript, NAME_postscript, 0,
-	     "Create PostScript",
-	     drawPostScriptDevice);
-  sendMethod(class, NAME_foreground, NAME_appearance, 1, "colour",
-	     "Default colour for all members",
-	     colourGraphical);
-  sendMethod(class, NAME_forSome, NAME_iterate, 2, "[name]", "code",
-	     "Run code on all graphicals",
-	     forSomeDevice);
-  sendMethod(class, NAME_forAll, NAME_iterate, 2, "[name]", "code",
-	     "Run code on graphicals; demand acceptance",
-	     forAllDevice);
-  sendMethod(class, NAME_reference, NAME_area, 1, "[point]",
-	     "Move origin, while moving members opposite",
-	     referenceDevice);
-  sendMethod(class, NAME_position, NAME_area, 1, "point",
-	     "Set origin",
-	     positionDevice);
-  sendMethod(class, NAME_move, NAME_area, 1, "point",
-	     "Set origin",
-	     positionDevice);
-  sendMethod(class, NAME_x, NAME_area, 1, "int",
-	     "Set X of origin",
-	     xDevice);
-  sendMethod(class, NAME_y, NAME_area, 1, "int",
-	     "Set Y of origin",
-	     yDevice);
-  sendMethod(class, NAME_resize, NAME_area, 3,
-	     "x_factor=real", "y_factor=[real]", "origin=[point]",
-	     "Resize device with specified factor",
-	     resizeDevice);
-  sendMethod(class, NAME_updatePointed, NAME_event, 1, "event",
-	     "Update <-pointed, sending area_enter and area_exit events",
-	     updatePointedDevice);
-  sendMethod(class, NAME_changedUnion, NAME_resize, 4,
-	     "ox=int", "oy=int", "ow=int", "oh=int",
-	     "Trap changes to the union of all graphicals",
-	     changedUnionDevice);
-  sendMethod(class, NAME_reparent, NAME_organisation, 0,
-	     "Device's parent-chain has changed",
-	     reparentDevice);
-  sendMethod(class, NAME_convertLoadedObject, NAME_compatibility, 2,
-	     "old_version=int", "new_version=int",
-	     "Initialise recompute and request_compute",
-	     convertLoadedObjectDevice);
-  sendMethod(class, NAME_modifiedItem, NAME_virtual, 2, "graphical", "bool",
-	     "Trap modification of item (fail)",
-	     failObject);
-
-  getMethod(class, NAME_catchAll, NAME_organisation, "graphical", 1, "name",
-	    "Find named graphicals",
-	    getCatchAllDevice);
-  getMethod(class, NAME_pointedObjects, NAME_event, "chain", 2,
-	    "at=point|event", "append_to=[chain]",
-	    "New chain holding graphicals at point|event",
-	    getPointedObjectsDevice);
-  getMethod(class, NAME_find, NAME_search, "graphical", 2,
-	    "at=[point|event]", "condition=[code]",
-	    "Find most local graphical",
-	    getFindDevice);
-  getMethod(class, NAME_selection, NAME_selection, "chain", 0,
-	    "New chain of selected graphicals",
-	    getSelectionDevice);
-  getMethod(class, NAME_inside, NAME_selection, "chain", 1, "area",
-	    "New chain with graphicals inside area",
-	    getInsideDevice);
-  getMethod(class, NAME_member, NAME_organisation, "graphical", 1,
-	    "graphical_name=name",
-	    "Find named graphical",
-	    getMemberDevice);
-  getMethod(class, NAME_position, NAME_area, "point", 0,
-	    "Get origin",
-	    getPositionDevice);
-  getMethod(class, NAME_x, NAME_area, "int", 0,
-	    "Get X of origin",
-	    getXDevice);
-  getMethod(class, NAME_y, NAME_area, "int", 0,
-	    "Get Y of origin",
-	    getYDevice);
-  getMethod(class, NAME_offset, NAME_area, "point", 0,
-	    "Get origin (also <-position)",
-	    getOffsetDevice);
-  getMethod(class, NAME_contains, DEFAULT, "chain", 0,
-	    "Chain with visuals contained",
-	    getContainsDevice);
-
-  initClass(class);
 
   succeed;
 }

@@ -7,9 +7,9 @@
     Copyright (C) 1994 University of Amsterdam. All rights reserved.
 */
 
-:- dynamic
-	term_expansion/2.
 :- multifile
+	term_expansion/2.
+:- dynamic
 	term_expansion/2.
 
 term_expansion(pce_ifhostproperty(Prop, Clause), TheClause) :-

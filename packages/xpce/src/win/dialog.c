@@ -270,87 +270,101 @@ getReportToDialog(Dialog d)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_typed[] =
+        { "event_id", "[bool]" };
+static const char *T_display[] =
+        { "graphical", "at=[point]" };
+static const char *T_modifiedItem[] =
+        { "item=graphical", "modified=bool" };
+static const char *T_append[] =
+        { "item=graphical", "relative_to_last=[{below,right,next_row}]" };
+static const char *T_initialise[] =
+        { "label=[name]", "size=[size]", "display=[display]" };
+
+/* Instance Variables */
+
+static const vardecl var_dialog[] =
+{ IV(NAME_gap, "size", IV_BOTH,
+     NAME_layout, "Distance in X and Y direction between items"),
+  IV(NAME_sizeGiven, "bool", IV_NONE,
+     NAME_layout, "User specified explicit size")
+};
+
+/* Send Methods */
+
+static const senddecl send_dialog[] =
+{ SM(NAME_initialise, 3, T_initialise, initialiseDialog,
+     DEFAULT, "Create from label, size and display"),
+  SM(NAME_defaultButton, 1, "member:button*", defaultButtonDialog,
+     NAME_accelerator, "Button connected to `RET'"),
+  SM(NAME_typed, 2, T_typed, typedDialog,
+     NAME_accelerator, "Handle accelerators"),
+  SM(NAME_active, 1, "bool", activeDialog,
+     NAME_active, "(DE)activate the entire window"),
+  SM(NAME_apply, 1, "always=[bool]", applyDialog,
+     NAME_apply, "->apply all changed items"),
+  SM(NAME_modifiedItem, 2, T_modifiedItem, modifiedItemDialog,
+     NAME_apply, "Indicates item has changed state"),
+  SM(NAME_restore, 0, NULL, restoreDialog,
+     NAME_apply, "->restore all items to their <-default"),
+  SM(NAME_size, 1, "size", sizeDialog,
+     NAME_area, "Give the dialog window an explicit size"),
+  SM(NAME_caret, 1, "member:graphical", caretDialog,
+     NAME_focus, "Assign the caret to an input object"),
+  SM(NAME_ComputeDesiredSize, 0, NULL, computeDesiredSizeDialog,
+     NAME_layout, "Compute the desired size"),
+  SM(NAME_layout, 0, NULL, layoutDialog,
+     NAME_layout, "(Re)compute layout of dialog_items"),
+  SM(NAME_append, 2, T_append, appendDialog,
+     NAME_organisation, "Append dialog_item {below,right,next_row} last"),
+  SM(NAME_delete, 1, "member:graphical", deleteDialog,
+     NAME_organisation, "Delete (named) dialog item"),
+  SM(NAME_display, 2, T_display, displayDialog,
+     NAME_organisation, "Display a graphical (or item) at point"),
+  SM(NAME_member, 1, "name|dialog_item", memberDialog,
+     NAME_organisation, "Test if dialog_item or name is a member")
+};
+
+/* Get Methods */
+
+static const getdecl get_dialog[] =
+{ GM(NAME_defaultButton, 0, "button", NULL, getDefaultButtonDialog,
+     NAME_accelerator, "Current Button connected to `RET'"),
+  GM(NAME_active, 0, "bool", NULL, getActiveDialog,
+     NAME_active, "Equivalent to Window <-sensitive"),
+  GM(NAME_member, 1, "graphical", "name|graphical", getMemberDialog,
+     NAME_organisation, "Find named dialog_item"),
+  GM(NAME_members, 0, "chain", NULL, getMembersDialog,
+     NAME_organisation, "Equivalent to <-graphicals"),
+  GM(NAME_reportTo, 0, "graphical|frame", NULL, getReportToDialog,
+     NAME_report, "<-member: reporter or <-contained_in")
+};
+
+/* Resources */
+
+static const resourcedecl rc_dialog[] =
+{ RC(NAME_gap, "size", "size(15,8)",
+     "Distance between items in X and Y")
+};
+
+/* Class Declaration */
+
+static Name dialog_termnames[] =
+	{ NAME_label, NAME_displaySize, NAME_display };
+
+ClassDecl(dialog_decls,
+          var_dialog, send_dialog, get_dialog, rc_dialog,
+          1, dialog_termnames,
+          "$Rev$");
+
 status
 makeClassDialog(Class class)
-{ sourceClass(class, makeClassDialog, __FILE__, "$Revision$");
-
-  localClass(class, NAME_gap, NAME_layout, "size", NAME_both,
-	     "Distance in X and Y direction between items");
-  localClass(class, NAME_sizeGiven, NAME_layout, "bool", NAME_none,
-	     "User specified explicit size");
-
-  termClass(class, "dialog", 1, NAME_label, NAME_displaySize, NAME_display);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 3,
-	     "label=[name]", "size=[size]", "display=[display]",
-	     "Create from label, size and display",
-	     initialiseDialog);
-  sendMethod(class, NAME_append, NAME_organisation, 2,
-	     "item=graphical", "relative_to_last=[{below,right,next_row}]",
-	     "Append dialog_item {below,right,next_row} last",
-	     appendDialog);
-  sendMethod(class, NAME_display, NAME_organisation, 2,
-	     "graphical", "at=[point]",
-	     "Display a graphical (or item) at point",
-	     displayDialog);
-  sendMethod(class, NAME_ComputeDesiredSize, NAME_layout, 0,
-	     "Compute the desired size",
-	     computeDesiredSizeDialog);
-  sendMethod(class, NAME_member, NAME_organisation, 1, "name|dialog_item",
-	     "Test if dialog_item or name is a member",
-	     memberDialog);
-  sendMethod(class, NAME_delete, NAME_organisation, 1, "member:graphical",
-	     "Delete (named) dialog item",
-	     deleteDialog);
-  sendMethod(class, NAME_size, NAME_area, 1, "size",
-	     "Give the dialog window an explicit size",
-	     sizeDialog);
-  sendMethod(class, NAME_active, NAME_active, 1, "bool",
-	     "(DE)activate the entire window",
-	     activeDialog);
-  sendMethod(class, NAME_layout, NAME_layout, 0,
-	     "(Re)compute layout of dialog_items",
-	     layoutDialog);
-  sendMethod(class, NAME_caret, NAME_focus, 1, "member:graphical",
-	     "Assign the caret to an input object",
-	     caretDialog);
-  sendMethod(class, NAME_typed, NAME_accelerator, 2, "event_id", "[bool]",
-	     "Handle accelerators",
-	     typedDialog);
-  sendMethod(class, NAME_apply, NAME_apply, 1, "always=[bool]",
-	     "->apply all changed items",
-	     applyDialog);
-  sendMethod(class, NAME_restore, NAME_apply, 0,
-	     "->restore all items to their <-default",
-	     restoreDialog);
-  sendMethod(class, NAME_modifiedItem, NAME_apply, 2,
-	     "item=graphical", "modified=bool",
-	     "Indicates item has changed state",
-	     modifiedItemDialog);
-  sendMethod(class, NAME_defaultButton, NAME_accelerator, 1, "member:button*",
-	     "Button connected to `RET'",
-	     defaultButtonDialog);
-
-  getMethod(class, NAME_member, NAME_organisation, "graphical", 1,
-	    "name|graphical",
-	    "Find named dialog_item",
-	    getMemberDialog);
-  getMethod(class, NAME_members, NAME_organisation, "chain", 0,
-	    "Equivalent to <-graphicals",
-	    getMembersDialog);
-  getMethod(class, NAME_active, NAME_active, "bool", 0,
-	    "Equivalent to Window <-sensitive",
-	    getActiveDialog);
-  getMethod(class, NAME_defaultButton, NAME_accelerator, "button", 0,
-	    "Current Button connected to `RET'",
-	    getDefaultButtonDialog);
-  getMethod(class, NAME_reportTo, NAME_report, "graphical|frame", 0,
-	    "<-member: reporter or <-contained_in",
-	    getReportToDialog);
-	    
-  attach_resource(class, "gap", "size", "size(15,8)",
-		  "Distance between items in X and Y");
-
-  succeed;
+{ return declareClass(class, &dialog_decls);
 }
 

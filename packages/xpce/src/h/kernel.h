@@ -275,7 +275,7 @@ GLOBAL unsigned long pce_data_pointer_offset;
 		********************************/
 
 #define ARGC_UNKNOWN		(-1)
-
+#define ARGC_INHERIT		(-2)	/* classdecl */
 
 		/********************************
 		*           FUNCTIONS		*
@@ -383,6 +383,10 @@ void	clearDFlagProgramObject(Any, ulong);
 
 #define D_ALIEN		   makeDFlag(20) /* Variable is alien */
 #define D_TYPENOWARN	   makeDFlag(21) /* Methods: donot warn */
+
+					/* Class attributes */
+#define DC_LAZY_GET	   makeDFlag(24) /* bind get-behaviour lazy */
+#define DC_LAZY_SEND	   makeDFlag(25) /* bind send-behaviour lazy */
 
 
 		/********************************
@@ -750,12 +754,93 @@ struct instance_proto
   struct object proto;			/* the proto itself */
 };
 
+		 /*******************************
+		 *	CLASS AND LAZY STUFF	*
+		 *******************************/
+
+typedef struct _vardecl
+{ Name		name;			/* name of the instance var */
+  char         *type;			/* type */
+  int		flags;			/* IV_<flag> bitwise or */
+  void	       *context;		/* wrapper or function ptr */
+  Name		group;			/* group identifier */
+  char	       *summary;		/* documentation summary */
+} vardecl;
+
+typedef struct _senddecl
+{ Name		name;			/* name of the method */
+  int		arity;			/* arity thereof */
+  void	       *types;			/* type or type-vector */
+  SendFunc	function;		/* implementation */
+  Name		group;			/* group id */
+  char   	*summary;		/* documentation summary */
+} senddecl;
+
+typedef struct _getdecl
+{ Name		name;			/* name of the method */
+  int		arity;			/* arity thereof */
+  char	       *rtype;			/* return type */
+  void	       *types;			/* type or type-vector */
+  GetFunc	function;		/* implementation */
+  Name		group;			/* group id */
+  char	       *summary;		/* documentation summary */
+} getdecl;
+
+typedef struct _resourcedecl
+{ Name		name;			/* Name of the resource */
+  char	       *type;			/* type description */
+  char	       *value;			/* (default) value */
+  char	       *summary;		/* documentation summary */
+} resourcedecl;
+
+typedef struct _classdecl
+{ const vardecl      *variables;	/* Instance variables */
+  const senddecl     *send_methods;	/* Send methods of class */
+  const getdecl      *get_methods;	/* get methods of class */
+  const resourcedecl *resources;	/* Resources of the class */
+  int		nvar;			/* number of entries in tables */
+  int		nsend;
+  int		nget;
+  int		nresources;
+  int		term_arity;		/* Arity of term description */
+  Name	       *term_names;		/* Array of term-names */
+  char	       *source_file;		/* Name of the source-file */
+  char	       *rcs_revision;		/* RCS version info */
+} classdecl;
+
+#define ClassDecl(name, vs, ss, gs, rs, ta, tn, rcs) \
+	static const classdecl name = \
+	{ vs, ss, gs, rs, \
+	  IVEntries(vs), SMEntries(ss), GMEntries(gs), RCEntries(rs), \
+	  ta, tn, __FILE__, rcs \
+	};
+
+					/* Dont change IV_GET and IV_SEND */
+#define IV_NONE		0x00		/* No access, nothing */
+#define IV_GET		0x01		/* instance var get-access */
+#define IV_SEND		0x02		/* instance var send-access */
+#define IV_BOTH		(IV_GET|IV_SEND) /* convenience */
+#define IV_SUPER	0x04		/* delegation variable */
+#define IV_STORE	0x08		/* has store method */
+#define IV_FETCH	0x10		/* has fetch method */
+
+#define RC_REFINE	(char *)(-1)	/* type for refinement of resource */
+
+#define SM(n, a, t, f, g, s)	{ n, a, t, (SendFunc) f, (Name) g, s }
+#define GM(n, a, r, t, f, g, s) { n, a, r, t, (GetFunc) f, (Name) g, s }
+#define RC(n, t, d, s)		{ n, t, d, s }
+#define IV(n, t, f, g, s)	{ n, t, f, NULL,        (Name) g, s }
+#define SV(n, t, f, c, g, s)	{ n, t, f, (void *)(c), (Name) g, s }
+#define IVEntries(l)		(sizeof(l) / sizeof(vardecl))
+#define SMEntries(l)		(sizeof(l) / sizeof(senddecl))
+#define GMEntries(l)		(sizeof(l) / sizeof(getdecl))
+#define RCEntries(l)		(sizeof(l) / sizeof(resourcedecl))
+
 NewClass(class)
   ABSTRACT_CLASS_STUB
   Vector	instance_variables;	/* (7) local variables */
   Chain		send_methods;		/* send methods for this class */
   Chain		get_methods;		/* get methods for this class */
-  Name		term_functor;		/* functor name of term */
   Vector	term_names;		/* get method to obtain arguments */
   Chain		delegate;		/* variables I delegate to */
   Chain		resources;		/* resources of this class */
@@ -769,10 +854,8 @@ NewClass(class)
   Chain		handles;		/* graphicals only: connection pts */
   Int		instance_size;		/* Instance size in bytes */
   Int		slots;			/* # instance variables */
-#ifndef O_RUNTIME
-  SourceLocation source;		/* (24) Source location */
-#endif
-  Name		rcs_revision;		/* (25) Current rcs-revision of source */
+  SourceLocation source;		/* Source location */
+  Name		rcs_revision;		/* Current rcs-revision of source */
   Chain		changed_messages;	/* Trap instance changes */
   Chain		created_messages;	/* Trap instance creation */
   Chain		freed_messages;		/* Trap instance destruction */
@@ -812,6 +895,8 @@ NewClass(class)
   SendFunc	make_class_function;	/* makeClass function pointer */
   VoidFunc	trace_function;		/* Trace execution */
   int		boot;			/* When booting: #pce-slots; else 0 */
+
+  classdecl    *c_declarations;		/* Non-object declarations */
 End;
 
 NewClass(type)
@@ -1136,6 +1221,7 @@ NewClass(message)
   ABSTRACT_CODE
   Any		receiver;		/* receiver of the message */
   Name		selector;		/* selector of the message */
+  Int		arg_count;		/* number of arguments */
   Vector	arguments;		/* argument vector of the message */
 End;
 
@@ -1570,6 +1656,12 @@ GLOBAL int hash_resizes;		/* # resizes done */
 				      fixSendFunctionClass((cl), (m))
 #define FixGetFunctionClass(cl, m) if ( !(cl)->get_function ) \
 				      fixGetFunctionClass((cl), (m))
+
+		 /*******************************
+		 *	  HOST INTERFACE	*
+		 *******************************/
+
+#include <h/interface.h>
 
 		/********************************
 		*        INLINE SUPPORT		*

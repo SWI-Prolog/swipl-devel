@@ -85,12 +85,12 @@ static void
 initOutput(void)
 { outputSize = 1024;		/* initial allocation */
   outputPointer = 0;
-  PostScript = malloc(outputSize);
+  PostScript = pceMalloc(outputSize);
 }
 
 static void
 closeOutput(void)
-{ free(PostScript);
+{ pceFree(PostScript);
   PostScript = NULL;
 }
 
@@ -98,7 +98,7 @@ void
 ps_put_char(int c)
 { if ( outputPointer == outputSize )
   { outputSize *= 2;
-    PostScript = realloc(PostScript, outputSize);
+    PostScript = pceRealloc(PostScript, outputSize);
   }
 
   PostScript[outputPointer++] = c;
@@ -458,7 +458,7 @@ header(Any gr, Area area, Bool ls)
     h = valInt(area->h);
   }
 
-  ps_output("%!\n");
+  ps_output("%!PS-Adobe-3.0 EPSF-3.0\n");
   ps_output("%%Creator: PCE ~N\n", get(PCE, NAME_version, 0));
   ps_output("%%CreationDate: ~S\n", get(PCE, NAME_date, 0));
   ps_output("%%Pages: 1\n");

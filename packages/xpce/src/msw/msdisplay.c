@@ -463,12 +463,12 @@ ws_get_cutbuffer(DisplayObj d, int n)
 
       for(i=0; data[i]; i++)
 	;
-      q = copy = malloc(i + 1);
+      q = copy = pceMalloc(i + 1);
 
       while(*q++ = *data++)
 	;
       rval = CtoString(copy);
-      free(copy);
+      pceFree(copy);
       GlobalUnlock(mem);
     }
     CloseClipboard();
@@ -738,10 +738,10 @@ load_resource_file(char *file)
 	    while ( size + l > bufsize )
 	    { bufsize *= 2;
 	      if ( buf == localbuf )
-	      { buf = malloc(bufsize);
+	      { buf = pceMalloc(bufsize);
 		strncpy(buf, localbuf, size);
 	      } else
-		buf = realloc(buf, bufsize);
+		buf = pceRealloc(buf, bufsize);
 	    }
 
 					/* copy the new line to the buf */

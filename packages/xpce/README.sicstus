@@ -1,18 +1,101 @@
 Dear SICStus Prolog user,
 
-[sorry, no SICStus support yet]
+XPCE version 4.8.16 contains a brand new interface for SICStus Prolog 3.
+This process describes the installation process.
 
-The installation for XPCE/SICStus has  been   tested  on a SPARC station
-running SunOs 4.1.3 and SICStus 2.1#9.    For  compilation, see the file
-COMPILATION.  The make target for building XPCE/SICStus is
+PREREQUISITES:
+==============
 
-	% make xpce-sicstus
+Before you start the installation of XPCE/SICStus, make sure to have the
+following tools ready:
 
-The following make variables need to be set according to your system:
+	* The GCC compiler or another supported compiler.  Both XPCE
+	itself and the interface are written in ANSI-C, so for example
+	the old SunOS 4.x cc compiler won't do the job.
 
-	PCEHOME
-	XBASE
-	ARCH
-	SICSHOME
+	You find gcc on almost any major ftp-site, you can buy for
+	only a few bucks in the local store on CD as well.
 
-See COMPILATION and/or Makefile for details.
+	* GNU-make, which you can obtain from the same source as GCC.
+	Unless you want to modify a lot to the Makefiles, don't try
+	anything else.
+
+	* SICStus version 3 installed.
+
+	* A disk with at least 25 MB available.
+
+	* Some coffee.
+
+
+BUILDING:
+=========
+
+	Step 1: Build libXPCE.a and xpce-client
+	--------------------------------------
+
+	* Unpack the XPCE source archive:
+
+		% gunzip xpce-4.8.16.tar.gz | tar xvf -
+
+	  which will create a xpce-4.8.16 directory below the working
+	  directory.
+
+	* Make a directory for your architecture.  So, if you using a
+	SUN with SunOS 4.1.x, do:
+
+		% cd xpce-4.8.16
+		% mkdir sunos4
+		% cd sunos4
+
+	* Configure and make the library:
+
+		% ../src/configure --without-pl
+		% make
+
+	* If all is right, you will end up with libXPCE.a and
+	  xpce-client in the current directory.  You may copy xpce-client
+          to a public place:
+
+		% cp xpce-client /usr/local/bin
+		% chmod 755 /usr/local/bin/xpce-client
+
+	NOTE: If you have XPCE build for SWI-Prolog, you can simply
+	skip step 1.
+
+	Step 2: Preparing the XPCE/SICStus Prolog files
+	-----------------------------------------------
+
+	* Change to the sicstus directory:
+
+		% cd ../sicstus
+
+	* Edit the Makefile and change SP_PATH to point to the
+	  SICStus home directory.
+
+	* Type
+		
+		% make
+
+	  to create the XPCE/Prolog directory structure in the SICStus
+	  library and copy the library and other resource files.
+
+	Step 3: Build the interface
+	---------------------------
+
+	* Change to sicstus/src:
+
+		% cd src
+
+	* Edit Makefile to change the variables indicated in the
+	  Makefile
+	
+	* Make the interface, .ql files, emulator and saved-state
+ 	  using:
+
+		% make
+
+	
+		
+		
+		
+	

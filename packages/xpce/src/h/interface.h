@@ -7,12 +7,16 @@
     Copyright (C) 1992 University of Amsterdam. All rights reserved.
 */
 
+#ifndef _XPCE_INTERFACE_H_INCLUDED
+#define _XPCE_INTERFACE_H_INCLUDED
+
+
 		/********************************
 		*            VERSIONS		*
 		********************************/
 
 #ifndef PCE_VERSION
-#define PCE_VERSION "4.8.13, Sep 1995"
+#define PCE_VERSION "4.8.15, Dec 1995"
 #endif
 
 #ifndef OS_VERSION
@@ -155,7 +159,7 @@ __pce_export void * pcePointerToC __P((PceObject datum));
 		*             VMI		*
 		********************************/
 
-__pce_export PceObject	pceNew __P((char *, PceObject, int, PceObject *));
+__pce_export PceObject	pceNew __P((PceName, PceObject, int, PceObject *));
 __pce_export int	pceSend __P((PceObject, PceName, int, PceObject *));
 __pce_export PceObject	pceGet __P((PceObject, PceName, int, PceObject *));
 
@@ -173,11 +177,9 @@ __pce_export PceObject	pceGet __P((PceObject, PceName, int, PceObject *));
 #define HOST_ABORT	6		/* abort, return to toplevel */
 #define HOST_SIGNAL	7		/* signal() replacement */
 #define HOST_RECOVER_FROM_FATAL_ERROR 9 /* Error: don't return */
-#define HOST_WRITE	10		/* Write a char * on the terminal */
-#define HOST_FLUSH	11		/* Flush terminal */
-#define HOST_ATEXIT	12		/* Callback on exit */
-#define HOST_CONSOLE	13		/* Win32: query HWND of console */
-#define HOST_CHECK_INTERRUPT 14		/* Win32: periodic check for ^C */
+#define HOST_ATEXIT	10		/* Callback on exit */
+#define HOST_CONSOLE	11		/* Win32: query HWND of console */
+#define HOST_CHECK_INTERRUPT 12		/* Win32: periodic check for ^C */
 
 typedef struct
 { int       (*hostSend)    __P((PceObject, PceName, int, PceObject *));
@@ -188,7 +190,14 @@ typedef struct
   int	    (*hostActionv) __P((int, va_list args));
   void	    (*vCprintf)	   __P((const char *fmt, va_list args));
   int	    (*Cputchar)	   __P((int));
+  void	    (*Cflush)	   __P((void));
   char *    (*Cgetline)	   __P((char *line, int size));
+  void *    (*malloc)	   __P((unsigned int size));
+  void *    (*realloc)	   __P((void *ptr, unsigned int size));
+  void      (*free)	   __P((void *ptr));
+  void *    pad13;			/* future enhancements */
+  void *    pad14;
+  void *    pad15;
 } pce_callback_functions;
 
 __pce_export void pceRegisterCallbacks __P((pce_callback_functions *funcs));
@@ -198,7 +207,7 @@ __pce_export void pceRegisterCallbacks __P((pce_callback_functions *funcs));
 		*         INITIALISATION	*
 		********************************/
 
-__pce_export int pceInitialise __P((int handles, char *home,
+__pce_export int pceInitialise __P((int handles, const char *home,
 				    int argc, char **argv));
 
 
@@ -209,17 +218,17 @@ __pce_export int pceInitialise __P((int handles, char *home,
 __pce_export PceObject	cToPceName __P((const char *));
 __pce_export PceObject	cToPceInteger __P((long));
 __pce_export PceObject	cToPceReal __P((double));
-__pce_export PceObject	cToPceString __P((char *, char *));
-__pce_export PceObject	cToPceAssoc __P((char *));
+__pce_export PceObject	cToPceString __P((PceName assoc, char *));
+__pce_export PceObject	cToPceAssoc __P((const char *));
 __pce_export PceObject	cToPceReference __P((unsigned long));
 __pce_export PceObject	cToPcePointer __P((void *ptr));
 __pce_export int	pceLock __P((PceObject));
 
-__pce_export PceObject	cToPceTmpCharArray __P((char *text));
+__pce_export PceObject	cToPceTmpCharArray __P((const char *text));
 __pce_export void	donePceTmpCharArray __P((PceObject));
 
 __pce_export int	pceExistsReference __P((unsigned long));
-__pce_export int	pceExistsAssoc __P((char *));
+__pce_export int	pceExistsAssoc __P((PceName assoc));
 
 __pce_export int	pceInstanceOf __P((PceObject obj, PceObject class));
 
@@ -241,7 +250,6 @@ __pce_export void	pceRedraw __P((void));
 
 __pce_export void	pceReset __P((void));
 __pce_export void	pceTrace __P((int)); /* 1: trace; 0: notrace */
-__pce_export void	pcePrintStack __P((int depth));	/* dump C-stack */
 __pce_export void	pceTraceBack __P((int depth)); /* dump message stack */
 __pce_export void	pceWriteCurrentGoal __P((void)); /* dump top stack */
 
@@ -249,8 +257,19 @@ __pce_export void	pceWriteCurrentGoal __P((void)); /* dump top stack */
 __pce_export void	Cprintf(const char *fmt, ...);
 __pce_export void	Cvprintf(const char *fmt, va_list args);
 __pce_export int	Cputchar(int chr);
+__pce_export void	Cflush(void);
 __pce_export char *	Cgetline(char *line, int size);
 
+
+		 /*******************************
+		 *	MEMORY ALLOCATION	*
+		 *******************************/
+
+#ifndef PCE_INCLUDED
+__pce_export void *	pceMalloc(int size);
+__pce_export void *	pceRealloc(void *ptr, int size);
+__pce_export void	pceFree(void);
+#endif
 
 		 /*******************************
 		 *	   STREAM INTERFACE	*
@@ -287,6 +306,12 @@ extern pce_callback_functions TheCallbackFunctions;
 	(*TheCallbackFunctions.hostCallProc)((h), (r), (s), (ac), (av))
 #define hostCallFunc(h, r, s, ac, av) \
 	(*TheCallbackFunctions.hostCallFunc)((h), (r), (s), (ac), (av))
+#define pceMalloc(n) \
+	(*TheCallbackFunctions.malloc)((n))
+#define pceRealloc(ptr, n) \
+	(*TheCallbackFunctions.realloc)((ptr), (n))
+#define pceFree(ptr) \
+	(*TheCallbackFunctions.free)((ptr))
 
 int		hostSend(PceObject host, PceName selector,
 			 int argc, PceObject argv []);
@@ -295,3 +320,5 @@ PceObject	hostGet(PceObject host, PceName selector,
 int		hostQuery(int what, PceCValue *value);
 int		hostAction(int what, ...);
 #endif
+
+#endif /*_XPCE_INTERFACE_H_INCLUDED*/

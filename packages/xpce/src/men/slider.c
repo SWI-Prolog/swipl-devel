@@ -521,99 +521,105 @@ applySlider(Slider s, Bool always)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "name", "low=int|real", "high=int|real", "value=int|real|function", "message=[code]*" };
+static const char *T_geometry[] =
+        { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_slider[] =
+{ SV(NAME_selection, "int|real", IV_GET|IV_STORE, selectionSlider,
+     NAME_selection, "Current selection"),
+  IV(NAME_default, "int|real|function", IV_NONE,
+     NAME_apply, "The default selection or function to get it"),
+  SV(NAME_displayedValue, "int|real", IV_GET|IV_STORE, displayedValueSlider,
+     NAME_selection, "Currently displayed value"),
+  SV(NAME_labelFont, "font", IV_GET|IV_STORE, labelFontSlider,
+     NAME_appearance, "Font for label"),
+  SV(NAME_valueFont, "font", IV_GET|IV_STORE, valueFontSlider,
+     NAME_appearance, "Font for current selection"),
+  SV(NAME_showLabel, "bool", IV_GET|IV_STORE, showLabelSlider,
+     NAME_appearance, "Whether label is shown"),
+  SV(NAME_showValue, "bool", IV_GET|IV_STORE, showValueSlider,
+     NAME_appearance, "Whether selection is shown"),
+  SV(NAME_format, "[name]", IV_GET|IV_STORE, formatSlider,
+     NAME_appearance, "Format for the printed values"),
+  SV(NAME_low, "int|real", IV_GET|IV_STORE, lowSlider,
+     NAME_selection, "Minimum of range"),
+  SV(NAME_high, "int|real", IV_GET|IV_STORE, highSlider,
+     NAME_selection, "Maximum of range"),
+  SV(NAME_width, "int", IV_NONE|IV_STORE, widthSlider,
+     NAME_area, "Length of the bar"),
+  IV(NAME_drag, "bool", IV_BOTH,
+     NAME_event, "Send messages while dragging")
+};
+
+/* Send Methods */
+
+static const senddecl send_slider[] =
+{ SM(NAME_compute, 0, NULL, computeSlider,
+     DEFAULT, "Compute desired size"),
+  SM(NAME_event, 1, "event", eventSlider,
+     DEFAULT, "Process an event"),
+  SM(NAME_geometry, 4, T_geometry, geometrySlider,
+     DEFAULT, "Adjust <-width"),
+  SM(NAME_initialise, 5, T_initialise, initialiseSlider,
+     DEFAULT, "Create from label, low, high, default and message"),
+  SM(NAME_apply, 1, "always=[bool]", applySlider,
+     NAME_apply, "->execute if <-modified or @on"),
+  SM(NAME_default, 1, "value=int|real|function", defaultSlider,
+     NAME_apply, "Set variable -default and ->selection"),
+  SM(NAME_modified, 1, "bool", modifiedSlider,
+     NAME_apply, "Reset modified flag"),
+  SM(NAME_restore, 0, NULL, restoreSlider,
+     NAME_apply, "Set ->selection to <-default"),
+  SM(NAME_labelWidth, 1, "pixels=[int]", labelWidthSlider,
+     NAME_layout, "Set width of label in pixels")
+};
+
+/* Get Methods */
+
+static const getdecl get_slider[] =
+{ GM(NAME_reference, 0, "point", NULL, getReferenceSlider,
+     DEFAULT, "Baseline of label"),
+  GM(NAME_default, 0, "int|real", NULL, getDefaultSlider,
+     NAME_apply, "Current default value"),
+  GM(NAME_modified, 0, "bool", NULL, getModifiedSlider,
+     NAME_apply, "If @on, slider has been modified"),
+  GM(NAME_width, 0, "int", NULL, getWidthSlider,
+     NAME_area, "Get width of bar"),
+  GM(NAME_labelWidth, 0, "int", NULL, getLabelWidthSlider,
+     NAME_layout, "Get minimal width required for label"),
+  GM(NAME_selection, 0, "int|real", NULL, getSelectionSlider,
+     NAME_selection, "Current value of the selection")
+};
+
+/* Resources */
+
+static const resourcedecl rc_slider[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name slider_termnames[] = { NAME_label, NAME_low, NAME_high, NAME_selection, NAME_message };
+
+ClassDecl(slider_decls,
+          var_slider, send_slider, get_slider, rc_slider,
+          5, slider_termnames,
+          "$Rev$");
+
 status
 makeClassSlider(Class class)
-{ sourceClass(class, makeClassSlider, __FILE__, "$Revision$");
-
-  localClass(class, NAME_selection, NAME_selection, "int|real", NAME_get,
-	     "Current selection");
-  localClass(class, NAME_default, NAME_apply, "int|real|function", NAME_none,
-	     "The default selection or function to get it");
-  localClass(class, NAME_displayedValue, NAME_selection, "int|real", NAME_get,
-	     "Currently displayed value");
-  localClass(class, NAME_labelFont, NAME_appearance, "font", NAME_get,
-	     "Font for label");
-  localClass(class, NAME_valueFont, NAME_appearance, "font", NAME_get,
-	     "Font for current selection");
-  localClass(class, NAME_showLabel, NAME_appearance, "bool", NAME_get,
-	     "Whether label is shown");
-  localClass(class, NAME_showValue, NAME_appearance, "bool", NAME_get,
-	     "Whether selection is shown");
-  localClass(class, NAME_format, NAME_appearance, "[name]", NAME_get,
-	     "Format for the printed values");
-  localClass(class, NAME_low, NAME_selection, "int|real", NAME_get,
-	     "Minimum of range");
-  localClass(class, NAME_high, NAME_selection, "int|real", NAME_get,
-	     "Maximum of range");
-  localClass(class, NAME_width, NAME_area, "int", NAME_none,
-	     "Length of the bar");
-  localClass(class, NAME_drag, NAME_event, "bool", NAME_both,
-	     "Send messages while dragging");
-
-  termClass(class, "slider", 5,
-	    NAME_label, NAME_low, NAME_high, NAME_selection, NAME_message);
+{ declareClass(class, &slider_decls);
   setRedrawFunctionClass(class, RedrawAreaSlider);
-
-  storeMethod(class, NAME_labelFont, 	  labelFontSlider);
-  storeMethod(class, NAME_valueFont, 	  valueFontSlider);
-  storeMethod(class, NAME_showLabel, 	  showLabelSlider);
-  storeMethod(class, NAME_showValue, 	  showValueSlider);
-  storeMethod(class, NAME_format,	  formatSlider);
-  storeMethod(class, NAME_low,       	  lowSlider);
-  storeMethod(class, NAME_high,      	  highSlider);
-  storeMethod(class, NAME_selection, 	  selectionSlider);
-  storeMethod(class, NAME_width,     	  widthSlider);
-  storeMethod(class, NAME_displayedValue, displayedValueSlider);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 5,
-	     "name","low=int|real", "high=int|real", "value=int|real|function",
-	     "message=[code]*",
-	     "Create from label, low, high, default and message",
-	     initialiseSlider);
-  sendMethod(class, NAME_compute, DEFAULT, 0,
-	     "Compute desired size",
-	     computeSlider);
-  sendMethod(class, NAME_geometry, DEFAULT, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Adjust <-width",
-	     geometrySlider);
-  sendMethod(class, NAME_event, DEFAULT, 1, "event",
-	     "Process an event",
-	     eventSlider);
-  sendMethod(class, NAME_labelWidth, NAME_layout, 1, "pixels=[int]",
-	     "Set width of label in pixels",
-	     labelWidthSlider);
-  sendMethod(class, NAME_restore, NAME_apply, 0,
-	     "Set ->selection to <-default",
-	     restoreSlider);
-  sendMethod(class, NAME_default, NAME_apply, 1, "value=int|real|function",
-	     "Set variable -default and ->selection",
-	     defaultSlider);
-  sendMethod(class, NAME_apply, NAME_apply, 1, "always=[bool]",
-	     "->execute if <-modified or @on",
-	     applySlider);
-  sendMethod(class, NAME_modified, NAME_apply, 1, "bool",
-	     "Reset modified flag",
-	     modifiedSlider);
-
-  getMethod(class, NAME_labelWidth, NAME_layout, "int", 0,
-	    "Get minimal width required for label",
-	    getLabelWidthSlider);
-  getMethod(class, NAME_width, NAME_area, "int", 0,
-	    "Get width of bar",
-	    getWidthSlider);
-  getMethod(class, NAME_selection, NAME_selection, "int|real", 0,
-	    "Current value of the selection",
-	    getSelectionSlider);
-  getMethod(class, NAME_modified, NAME_apply, "bool", 0,
-	    "If @on, slider has been modified",
-	    getModifiedSlider);
-  getMethod(class, NAME_default, NAME_apply, "int|real", 0,
-	    "Current default value",
-	    getDefaultSlider);
-  getMethod(class, NAME_reference, DEFAULT, "point", 0,
-	    "Baseline of label",
-	    getReferenceSlider);
 
   succeed;
 }

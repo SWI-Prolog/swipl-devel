@@ -1365,263 +1365,232 @@ getMasterListBrowser(ListBrowser lb)
   answer(lb);
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_scrollVertical[] =
+        { "{forwards,backwards,goto}", "{file,page,line}", "int" };
+static const char *T_changeSelection[] =
+        { "action={set,toggle,clear}", "context=[dict_item]" };
+static const char *T_initialise[] =
+        { "dict=[dict]", "width=[int]", "height=[int]" };
+static const char *T_style[] =
+        { "style_name=name", "style=style" };
+static const char *T_insertSelf[] =
+        { "times=[int]", "character=[char]" };
+static const char *T_xADintD_yADintD_widthADintD_heightADintD[] =
+        { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_listBrowser[] =
+{ SV(NAME_dict, "dict*", IV_GET|IV_STORE, dictListBrowser,
+     NAME_delegate, "Associated dict object (table of items)"),
+  IV(NAME_image, "text_image", IV_GET,
+     NAME_components, "TextImage used to display textlines"),
+  IV(NAME_scrollBar, "scroll_bar", IV_GET,
+     NAME_components, "Scrollbar used to scroll window"),
+  IV(NAME_labelText, "text*", IV_GET,
+     NAME_components, "Text object that displays the label"),
+  SV(NAME_status, "{active,inactive}", IV_GET|IV_STORE, statusListBrowser,
+     NAME_event, "Handle typing?"),
+  IV(NAME_keyBinding, "key_binding", IV_BOTH,
+     NAME_accelerator, "Key binding table"),
+  SV(NAME_selection, "chain|member:dict_item*", IV_NONE|IV_STORE, selectionListBrowser,
+     NAME_selection, "Selected items"),
+  IV(NAME_selectionStyle, "[style]", IV_GET,
+     NAME_appearance, "Style for selection feedback"),
+  SV(NAME_multipleSelection, "bool", IV_GET|IV_STORE, multipleSelectionListBrowser,
+     NAME_selection, "If @on, multiple items may be selected"),
+  IV(NAME_selectMessage, "code*", IV_BOTH,
+     NAME_action, "Send on left-click on item"),
+  IV(NAME_selectMiddleMessage, "code*", IV_BOTH,
+     NAME_action, "Send on middle-click on item"),
+  IV(NAME_openMessage, "code*", IV_BOTH,
+     NAME_action, "Send on keyboard selection or double click"),
+  IV(NAME_popup, "popup*", IV_BOTH,
+     NAME_menu, "Associated popup menu"),
+  SV(NAME_font, "font", IV_GET|IV_STORE, fontListBrowser,
+     NAME_appearance, "Font for displayed items"),
+  IV(NAME_styles, "sheet", IV_GET,
+     NAME_appearance, "Name --> style mapping"),
+  IV(NAME_size, "characters=size", IV_GET,
+     NAME_area, "Size in characters/lines"),
+  IV(NAME_start, "int", IV_GET,
+     NAME_scroll, "Object on top-row of display"),
+  IV(NAME_searchOrigin, "int", IV_NONE,
+     NAME_search, "Start of incremental search"),
+  IV(NAME_searchHit, "int", IV_NONE,
+     NAME_search, "Current hit"),
+  IV(NAME_searchString, "char_array*", IV_NONE,
+     NAME_search, "Current search string"),
+  IV(NAME_startCell, "alien:Cell", IV_NONE,
+     NAME_cache, "Cell reference to top-row of display")
+};
+
+/* Send Methods */
+
+static const senddecl send_listBrowser[] =
+{ SM(NAME_compute, 0, NULL, computeListBrowser,
+     DEFAULT, "Recompute the image"),
+  SM(NAME_geometry, 4, T_xADintD_yADintD_widthADintD_heightADintD, geometryListBrowser,
+     DEFAULT, "Resize the text_image"),
+  SM(NAME_initialise, 3, T_initialise, initialiseListBrowser,
+     DEFAULT, "Create from dict, width and height"),
+  SM(NAME_requestGeometry, 4, T_xADintD_yADintD_widthADintD_heightADintD, requestGeometryListBrowser,
+     DEFAULT, "Map size to character units"),
+  SM(NAME_unlink, 0, NULL, unlinkListBrowser,
+     DEFAULT, "Unlink from dict and device"),
+  SM(NAME_typed, 1, "event_id", typedListBrowser,
+     NAME_accelerator, "Handle typed character"),
+  SM(NAME_showLabel, 1, "show=bool", showLabelListBrowser,
+     NAME_appearance, "Show/unshow the label"),
+  SM(NAME_style, 2, T_style, styleListBrowser,
+     NAME_appearance, "Set style associated with name"),
+  SM(NAME_tabStops, 1, "vector*", tabStopsListBrowser,
+     NAME_appearance, "Set tab-stops (pixels)"),
+  SM(NAME_Size, 1, "pixels=size", SizeListBrowser,
+     NAME_area, "Set size in pixels (trap window resize)"),
+  SM(NAME_extendPrefixOrNext, 0, NULL, extendPrefixOrNextListBrowser,
+     NAME_caret, "->extend_prefix or ->next"),
+  SM(NAME_next, 0, NULL, nextListBrowser,
+     NAME_caret, "Move caret to next item (`device ->advance')"),
+  SM(NAME_reference, 1, "point", referenceListBrowser,
+     NAME_dialogItem, "Set reference as dialog_item"),
+  SM(NAME_clear, 0, NULL, clearListBrowser,
+     NAME_edit, "Remove all items from the associated dict"),
+  SM(NAME_WantsKeyboardFocus, 0, NULL, WantsKeyboardFocusListBrowser,
+     NAME_event, "Test if ready to accept input (non-empty)"),
+  SM(NAME_event, 1, "event", eventListBrowser,
+     NAME_event, "Handle arbitrary event"),
+  SM(NAME_label, 1, "name", labelListBrowser,
+     NAME_label, "Set the name of the label"),
+  SM(NAME_ChangeItem, 1, "dict_item", ChangeItemListBrowser,
+     NAME_repaint, "Handle changed item from dict"),
+  SM(NAME_Clear, 0, NULL, ClearListBrowser,
+     NAME_repaint, "Handle clear from dict"),
+  SM(NAME_DeleteItem, 1, "dict_item", DeleteItemListBrowser,
+     NAME_repaint, "Handle deleted item from dict"),
+  SM(NAME_InsertItem, 1, "dict_item", InsertItemListBrowser,
+     NAME_repaint, "Handle inserted item from dict"),
+  SM(NAME_normalise, 1, "member:dict_item", normaliseListBrowser,
+     NAME_scroll, "Make specified item visible"),
+  SM(NAME_scrollDown, 1, "[int]", scrollDownListBrowser,
+     NAME_scroll, "Scroll lines down (default one window)"),
+  SM(NAME_scrollTo, 1, "[int]", scrollToListBrowser,
+     NAME_scroll, "Make nth-1 item start of window"),
+  SM(NAME_scrollUp, 1, "[int]", scrollUpListBrowser,
+     NAME_scroll, "Scroll lines up (default one window)"),
+  SM(NAME_scrollVertical, 3, T_scrollVertical, scrollVerticalListBrowser,
+     NAME_scroll, "Handle scroll_bar request"),
+  SM(NAME_backwardDeleteChar, 0, NULL, backwardDeleteCharListBrowser,
+     NAME_search, "Undo last search extension"),
+  SM(NAME_cancelSearch, 0, NULL, cancelSearchListBrowser,
+     NAME_search, "Cancel the current search operation"),
+  SM(NAME_enter, 0, NULL, enterListBrowser,
+     NAME_search, "Select current item as double-click"),
+  SM(NAME_extendPrefix, 0, NULL, extendPrefixListBrowser,
+     NAME_search, "Extend search with common part"),
+  SM(NAME_extendToCurrent, 0, NULL, extendToCurrentListBrowser,
+     NAME_search, "Extend search to current item"),
+  SM(NAME_insertSelf, 2, T_insertSelf, insertSelfListBrowser,
+     NAME_search, "Start/Continue incremental search"),
+  SM(NAME_keyboardQuit, 0, NULL, cancelSearchListBrowser,
+     NAME_search, "Equivalent to ->cancel_search"),
+  SM(NAME_repeatSearch, 0, NULL, repeatSearchListBrowser,
+     NAME_search, "Repeat with same string"),
+  SM(NAME_changeSelection, 2, T_changeSelection, changeSelectionListBrowser,
+     NAME_selection, "Hook in selection management"),
+  SM(NAME_deselect, 1, "member:dict_item", deselectListBrowser,
+     NAME_selection, "Unselect (remove from selection) item"),
+  SM(NAME_select, 1, "member:dict_item", selectListBrowser,
+     NAME_selection, "Select (add to selection) item"),
+  SM(NAME_selected, 1, "member:dict_item", selectedListBrowser,
+     NAME_selection, "Test if item is selected")
+};
+
+/* Get Methods */
+
+static const getdecl get_listBrowser[] =
+{ GM(NAME_contains, 0, "chain", NULL, getContainsListBrowser,
+     DEFAULT, "Dict visualised"),
+  GM(NAME_master, 0, "device", NULL, getMasterListBrowser,
+     DEFAULT, "Principal visual I'm part of (self or browser)"),
+  GM(NAME_selection, 0, "chain|dict_item", NULL, getSelectionListBrowser,
+     DEFAULT, "Current value of selection"),
+  GM(NAME_showLabel, 0, "bool", NULL, getShowLabelListBrowser,
+     NAME_appearance, "Bool indicating if label is visible"),
+  GM(NAME_height, 0, "characters=int", NULL, getHeightListBrowser,
+     NAME_area, "Height in character units"),
+  GM(NAME_width, 0, "characters=int", NULL, getWidthListBrowser,
+     NAME_area, "Width in character units"),
+  GM(NAME_dictItem, 1, "dict_item", "event", getDictItemListBrowser,
+     NAME_event, "DictItem on which event occurred"),
+  GM(NAME_FetchFunction, 0, "alien:FetchFunction", NULL, getFetchFunctionListBrowser,
+     NAME_internal, "Pointer to C-function to fetch char"),
+  GM(NAME_MarginFunction, 0, "alien:MarginFunction", NULL, getMarginFunctionListBrowser,
+     NAME_internal, "Pointer to C-function to fetch margins"),
+  GM(NAME_RewindFunction, 0, "alien:RewindFunction", NULL, getRewindFunctionListBrowser,
+     NAME_internal, "Pointer to C-function to rewind object"),
+  GM(NAME_ScanFunction, 0, "alien:ScanFunction", NULL, getScanFunctionListBrowser,
+     NAME_internal, "Pointer to C-function to scan for char-type"),
+  GM(NAME_SeekFunction, 0, "alien:SeekFunction", NULL, getSeekFunctionListBrowser,
+     NAME_internal, "Pointer to C-function to seek to position"),
+  GM(NAME_label, 0, "name", NULL, getLabelListBrowser,
+     NAME_label, "Current value of the label"),
+  GM(NAME_member, 1, "dict_item", "any", getMemberListBrowser,
+     NAME_member, "DictItem with given key"),
+  GM(NAME_length, 0, "int", NULL, getLengthListBrowser,
+     NAME_scroll, "Length of contents (for scroll_bar)"),
+  GM(NAME_view, 0, "int", NULL, getViewListBrowser,
+     NAME_scroll, "Length of view (for scroll_bar)")
+};
+
+/* Resources */
+
+static const resourcedecl rc_listBrowser[] =
+{ RC(NAME_background, "colour|pixmap", "white",
+     "Colour/fill pattern of the background"),
+  RC(NAME_clearSelectionOnSearch, "bool", "@on",
+     "@on: clear selection when searching"),
+  RC(NAME_cursor, "cursor", "right_ptr",
+     "Default cursor"),
+  RC(NAME_font, "font", "normal",
+     "Default font"),
+  RC(NAME_isearchStyle, "[style]", "@default",
+     "Style for incremental search"),
+  RC(NAME_labelFont, "font", "bold",
+     "Font used to display the label"),
+  RC(NAME_pen, "0..", "0",
+     "Thickness of box around list_browser"),
+  RC(NAME_searchIgnoreCase, "bool", "@on",
+     "@on: ignore case when searching"),
+  RC(NAME_selectionStyle, "[style]", "@default",
+     "Style object for <-selection"),
+  RC(NAME_size, "size", "size(15,10)",
+     "Default size in `characters x lines'")
+};
+
+/* Class Declaration */
+
+static Name listBrowser_termnames[] = { NAME_dict, NAME_width, NAME_height };
+
+ClassDecl(listBrowser_decls,
+          var_listBrowser, send_listBrowser, get_listBrowser, rc_listBrowser,
+          3, listBrowser_termnames,
+          "$Rev$");
+
 
 status
 makeClassListBrowser(Class class)
-{ sourceClass(class, makeClassListBrowser, __FILE__, "$Revision$");
+{ declareClass(class, &listBrowser_decls);
 
   setLoadStoreFunctionClass(class, loadListBrowser, storeListBrowser);
-
-  localClass(class, NAME_dict, NAME_delegate, "dict*", NAME_get,
-	     "Associated dict object (table of items)");
-  localClass(class, NAME_image, NAME_components, "text_image", NAME_get,
-	     "TextImage used to display textlines");
-  localClass(class, NAME_scrollBar, NAME_components, "scroll_bar", NAME_get,
-	     "Scrollbar used to scroll window");
-  localClass(class, NAME_labelText, NAME_components, "text*", NAME_get,
-	     "Text object that displays the label");
-  localClass(class, NAME_status, NAME_event, "{active,inactive}", NAME_get,
-	     "Handle typing?");
-  localClass(class, NAME_keyBinding, NAME_accelerator, "key_binding",
-	     NAME_both, "Key binding table");
-  localClass(class, NAME_selection, NAME_selection,
-	     "chain|member:dict_item*", NAME_none,
-	     "Selected items");
-  localClass(class, NAME_selectionStyle, NAME_appearance, "[style]",
-	     NAME_get, "Style for selection feedback");
-  localClass(class, NAME_multipleSelection, NAME_selection, "bool", NAME_get,
-	     "If @on, multiple items may be selected");
-  localClass(class, NAME_selectMessage, NAME_action, "code*", NAME_both,
-	     "Send on left-click on item");
-  localClass(class, NAME_selectMiddleMessage, NAME_action, "code*",
-	     NAME_both,
-	     "Send on middle-click on item");
-  localClass(class, NAME_openMessage, NAME_action, "code*", NAME_both,
-	     "Send on keyboard selection or double click");
-  localClass(class, NAME_popup, NAME_menu, "popup*", NAME_both,
-	     "Associated popup menu");
-  localClass(class, NAME_font, NAME_appearance, "font", NAME_get,
-	     "Font for displayed items");
-  localClass(class, NAME_styles, NAME_appearance, "sheet", NAME_get,
-	     "Name --> style mapping");
-  localClass(class, NAME_size, NAME_area, "characters=size", NAME_get,
-	     "Size in characters/lines");
-  localClass(class, NAME_start, NAME_scroll, "int", NAME_get,
-	     "Object on top-row of display");
-  localClass(class, NAME_searchOrigin, NAME_search, "int", NAME_none,
-	     "Start of incremental search");
-  localClass(class, NAME_searchHit, NAME_search, "int", NAME_none,
-	     "Current hit");
-  localClass(class, NAME_searchString, NAME_search, "char_array*", NAME_none,
-	     "Current search string");
-  localClass(class, NAME_startCell, NAME_cache, "alien:Cell", NAME_none,
-	     "Cell reference to top-row of display");
-
-  termClass(class, "list_browser", 3, NAME_dict, NAME_width, NAME_height);
   setRedrawFunctionClass(class, RedrawAreaListBrowser);
   delegateClass(class, NAME_dict);
-
-  storeMethod(class, NAME_font, fontListBrowser);
-  storeMethod(class, NAME_dict, dictListBrowser);
-  storeMethod(class, NAME_multipleSelection, multipleSelectionListBrowser);
-  storeMethod(class, NAME_selection, selectionListBrowser);
-  storeMethod(class, NAME_status, statusListBrowser);
-
-  sendMethod(class, NAME_initialise, DEFAULT,
-	     3, "dict=[dict]", "width=[int]", "height=[int]",
-	     "Create from dict, width and height",
-	     initialiseListBrowser);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Unlink from dict and device",
-	     unlinkListBrowser);
-  sendMethod(class, NAME_requestGeometry, DEFAULT, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Map size to character units",
-	     requestGeometryListBrowser);
-  sendMethod(class, NAME_geometry, DEFAULT, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Resize the text_image",
-	     geometryListBrowser);
-  sendMethod(class, NAME_compute, DEFAULT, 0,
-	     "Recompute the image",
-	     computeListBrowser);
-  sendMethod(class, NAME_next, NAME_caret, 0,
-	     "Move caret to next item (`device ->advance')",
-	     nextListBrowser);
-  sendMethod(class, NAME_extendPrefixOrNext, NAME_caret, 0,
-	     "->extend_prefix or ->next",
-	     extendPrefixOrNextListBrowser);
-  sendMethod(class, NAME_WantsKeyboardFocus, NAME_event, 0,
-	     "Test if ready to accept input (non-empty)",
-	     WantsKeyboardFocusListBrowser);
-  sendMethod(class, NAME_typed, NAME_accelerator, 1, "event_id",
-	     "Handle typed character",
-	     typedListBrowser);
-  sendMethod(class, NAME_event, NAME_event, 1, "event",
-	     "Handle arbitrary event",
-	     eventListBrowser);
-  sendMethod(class, NAME_Size, NAME_area, 1, "pixels=size",
-	     "Set size in pixels (trap window resize)",
-	     SizeListBrowser);
-  sendMethod(class, NAME_normalise, NAME_scroll, 1, "member:dict_item",
-	     "Make specified item visible",
-	     normaliseListBrowser);
-  sendMethod(class, NAME_scrollTo, NAME_scroll, 1, "[int]",
-	     "Make nth-1 item start of window",
-	     scrollToListBrowser);
-  sendMethod(class, NAME_scrollUp, NAME_scroll, 1,"[int]",
-	     "Scroll lines up (default one window)",
-	     scrollUpListBrowser);
-  sendMethod(class, NAME_scrollDown, NAME_scroll, 1,"[int]",
-	     "Scroll lines down (default one window)",
-	     scrollDownListBrowser);
-  sendMethod(class, NAME_tabStops, NAME_appearance, 1, "vector*",
-	     "Set tab-stops (pixels)",
-	     tabStopsListBrowser);
-  sendMethod(class, NAME_style, NAME_appearance, 2,
-	     "style_name=name", "style=style",
-	     "Set style associated with name",
-	     styleListBrowser);
-  sendMethod(class, NAME_clear, NAME_edit, 0,
-	     "Remove all items from the associated dict",
-	     clearListBrowser);
-  sendMethod(class, NAME_label, NAME_label, 1, "name",
-	     "Set the name of the label",
-	     labelListBrowser);
-  sendMethod(class, NAME_showLabel, NAME_appearance, 1, "show=bool",
-	     "Show/unshow the label",
-	     showLabelListBrowser);
-
-  sendMethod(class, NAME_scrollVertical, NAME_scroll,
-	     3, "{forwards,backwards,goto}", "{file,page,line}", "int",
-	     "Handle scroll_bar request",
-	     scrollVerticalListBrowser);
-
-  sendMethod(class, NAME_DeleteItem, NAME_repaint, 1, "dict_item",
-	     "Handle deleted item from dict",
-	     DeleteItemListBrowser);
-  sendMethod(class, NAME_InsertItem, NAME_repaint, 1, "dict_item",
-	     "Handle inserted item from dict",
-	     InsertItemListBrowser);
-  sendMethod(class, NAME_ChangeItem, NAME_repaint, 1, "dict_item",
-	     "Handle changed item from dict",
-	     ChangeItemListBrowser);
-  sendMethod(class, NAME_Clear, NAME_repaint, 0,
-	     "Handle clear from dict",
-	     ClearListBrowser);
-
-  sendMethod(class, NAME_selected, NAME_selection, 1, "member:dict_item",
-	     "Test if item is selected",
-	     selectedListBrowser);
-  sendMethod(class, NAME_select, NAME_selection, 1, "member:dict_item",
-	     "Select (add to selection) item",
-	     selectListBrowser);
-  sendMethod(class, NAME_deselect, NAME_selection, 1, "member:dict_item",
-	     "Unselect (remove from selection) item",
-	     deselectListBrowser);
-  sendMethod(class, NAME_changeSelection, NAME_selection, 2,
-	     "action={set,toggle,clear}", "context=[dict_item]",
-	     "Hook in selection management",
-	     changeSelectionListBrowser);
-  sendMethod(class, NAME_insertSelf, NAME_search, 2,
-	     "times=[int]", "character=[char]",
-	     "Start/Continue incremental search",
-	     insertSelfListBrowser);
-  sendMethod(class, NAME_enter, NAME_search, 0,
-	     "Select current item as double-click",
-	     enterListBrowser);
-  sendMethod(class, NAME_cancelSearch, NAME_search, 0,
-	     "Cancel the current search operation",
-	     cancelSearchListBrowser);
-  sendMethod(class, NAME_keyboardQuit, NAME_search, 0,
-	     "Equivalent to ->cancel_search",
-	     cancelSearchListBrowser);
-  sendMethod(class, NAME_backwardDeleteChar, NAME_search, 0,
-	     "Undo last search extension",
-	     backwardDeleteCharListBrowser);
-  sendMethod(class, NAME_extendPrefix, NAME_search, 0,
-	     "Extend search with common part",
-	     extendPrefixListBrowser);
-  sendMethod(class, NAME_extendToCurrent, NAME_search, 0,
-	     "Extend search to current item",
-	     extendToCurrentListBrowser);
-  sendMethod(class, NAME_repeatSearch, NAME_search, 0,
-	     "Repeat with same string",
-	     repeatSearchListBrowser);
-  sendMethod(class, NAME_reference, NAME_dialogItem, 1, "point",
-	     "Set reference as dialog_item",
-	     referenceListBrowser);
-
-  getMethod(class, NAME_selection, DEFAULT, "chain|dict_item", 0,
-	    "Current value of selection",
-	    getSelectionListBrowser);
-  getMethod(class, NAME_width, NAME_area, "characters=int", 0,
-	    "Width in character units",
-	    getWidthListBrowser);
-  getMethod(class, NAME_height, NAME_area, "characters=int", 0,
-	    "Height in character units",
-	    getHeightListBrowser);
-  getMethod(class, NAME_SeekFunction, NAME_internal, "alien:SeekFunction", 0,
-	    "Pointer to C-function to seek to position",
-	    getSeekFunctionListBrowser);
-  getMethod(class, NAME_ScanFunction, NAME_internal, "alien:ScanFunction", 0,
-	    "Pointer to C-function to scan for char-type",
-	    getScanFunctionListBrowser);
-  getMethod(class, NAME_FetchFunction, NAME_internal, "alien:FetchFunction", 0,
-	    "Pointer to C-function to fetch char",
-	    getFetchFunctionListBrowser);
-  getMethod(class, NAME_MarginFunction, NAME_internal,"alien:MarginFunction",0,
-	    "Pointer to C-function to fetch margins",
-	    getMarginFunctionListBrowser);
-  getMethod(class, NAME_RewindFunction, NAME_internal,"alien:RewindFunction",0,
-	    "Pointer to C-function to rewind object",
-	    getRewindFunctionListBrowser);
-  getMethod(class, NAME_contains, DEFAULT, "chain", 0,
-	    "Dict visualised",
-	    getContainsListBrowser);
-  getMethod(class, NAME_member, NAME_member, "dict_item", 1, "any",
-	    "DictItem with given key",
-	    getMemberListBrowser);
-  getMethod(class, NAME_dictItem, NAME_event, "dict_item", 1, "event",
-	    "DictItem on which event occurred",
-	    getDictItemListBrowser);
-  getMethod(class, NAME_master, DEFAULT, "device", 0,
-	    "Principal visual I'm part of (self or browser)",
-	    getMasterListBrowser);
-  getMethod(class, NAME_label, NAME_label, "name", 0,
-	    "Current value of the label",
-	    getLabelListBrowser);
-  getMethod(class, NAME_showLabel, NAME_appearance, "bool", 0,
-	    "Bool indicating if label is visible",
-	    getShowLabelListBrowser);
-  getMethod(class, NAME_length, NAME_scroll, "int", 0,
-	    "Length of contents (for scroll_bar)",
-	    getLengthListBrowser);
-  getMethod(class, NAME_view, NAME_scroll, "int", 0,
-	    "Length of view (for scroll_bar)",
-	    getViewListBrowser);
-	    
-
-  attach_resource(class, "size",  	 "size",      "size(15,10)",
-		  "Default size in `characters x lines'");
-  attach_resource(class, "font",   	 "font",      "normal",
-		  "Default font");
-  attach_resource(class, "cursor", 	 "cursor",    "right_ptr",
-		  "Default cursor");
-  attach_resource(class, "clear_selection_on_search", "bool", "@on",
-		  "@on: clear selection when searching");
-  attach_resource(class, "search_ignore_case",        "bool", "@on",
-		  "@on: ignore case when searching");
-  attach_resource(class, "label_font", "font", "bold",
-		  "Font used to display the label");
-  attach_resource(class, "selection_style", "[style]",
-		  "@default", "Style object for <-selection");
-  attach_resource(class, "isearch_style", "[style]",
-		  "@default", "Style for incremental search");
-  attach_resource(class, "background", "colour|pixmap", "white",
-		  "Colour/fill pattern of the background");
-  attach_resource(class, "pen", "0..", "0",
-		  "Thickness of box around list_browser");
 
   succeed;
 }

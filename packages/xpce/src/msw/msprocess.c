@@ -48,7 +48,7 @@ separated by '\0'. The last is terminated by a secondary '\0'.
 static char *
 createWin32EnvriomentBlock(Process p)
 { if ( notNil(p->environment) )
-  { char *buf = malloc(getEnvironmentSizeProcess(p));
+  { char *buf = pceMalloc(getEnvironmentSizeProcess(p));
     char *s = buf;
     Cell cell;
 
@@ -164,7 +164,7 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
     }
 
     if ( env )
-      free(env);
+      pceFree(env);
 
     CloseHandle(wrfd[0]);
     CloseHandle(rdfd[1]);

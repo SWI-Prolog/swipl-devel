@@ -59,13 +59,13 @@ displayError(Error e, int argc, Any *argv)
 
     sendv(argv[0], NAME_report, argc+2, av);
   } else
-  { if ( e->kind == NAME_inform || e->kind == NAME_status )
-      writef("[PCE: ");
+  { if ( !swritefv(buf, (CharArray) e->format, argc, argv) )
+      strcpy(buf, "OOPS: conversion of format failed");
+	
+    if ( e->kind == NAME_inform || e->kind == NAME_status )
+      Cprintf("[PCE: %s", buf);
     else
-      writef("[PCE %s: ", e->kind);
-
-    if ( swritefv(buf, (CharArray) e->format, argc, argv) )
-      hostAction(HOST_WRITE, buf);
+      Cprintf("[PCE %s: %s", strName(e->kind), buf);
 
 #ifndef O_RUNTIME
     if ( e->kind == NAME_fatal ||
@@ -73,52 +73,78 @@ displayError(Error e, int argc, Any *argv)
 	  e->kind != NAME_inform &&
 	  e->kind != NAME_status &&
 	  e->kind != NAME_warning) )
-    { writef("\n\tin: ");
+    { Cprintf("\n\tin: ");
       pceWriteErrorGoal();
       send(PCE, NAME_exposeConsole, 0);
-      writef("%c", toInt(07));		/* ^G: ASCII bell */
+      Cputchar('\007');			/* ^G: ASCII bell */
       tracePce(PCE, NAME_user);
     }
 #endif
-
-    writef("]\n");
+    Cprintf("]\n");
   }
   
   succeed;
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_initialise[] =
+        { "name=name", "format=string", "kind=[{status,inform,warning,error,fatal,ignored}]", "feedback=[{report,print}]" };
+
+/* Instance Variables */
+
+static const vardecl var_error[] =
+{ IV(NAME_id, "name", IV_GET,
+     NAME_name, "Unique identifier"),
+  IV(NAME_format, "string", IV_GET,
+     NAME_report, "Format used to print the message"),
+  IV(NAME_kind, "{status,inform,warning,error,fatal,ignored}", IV_BOTH,
+     NAME_report, "Kind of message"),
+  IV(NAME_feedback, "{report,print}", IV_GET,
+     NAME_report, "Where (how) the report is reported")
+};
+
+/* Send Methods */
+
+static const senddecl send_error[] =
+{ SM(NAME_initialise, 4, T_initialise, initialiseError,
+     DEFAULT, "-> id, format, [kind], [feedback]"),
+  SM(NAME_display, 1, "any|function ...", displayError,
+     NAME_report, "Display the error message using context")
+};
+
+/* Get Methods */
+
+static const getdecl get_error[] =
+{ GM(NAME_convert, 1, "error", "name", getConvertError,
+     NAME_oms, "Convert id into error"),
+  GM(NAME_lookup, 1, "error", "name", getConvertError,
+     NAME_oms, "Convert id into error")
+};
+
+/* Resources */
+
+static const resourcedecl rc_error[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name error_termnames[] = { NAME_id, NAME_format, NAME_kind, NAME_feedback };
+
+ClassDecl(error_decls,
+          var_error, send_error, get_error, rc_error,
+          2, error_termnames,
+          "$Rev$");
+
 
 status
 makeClassError(Class class)
-{ sourceClass(class, makeClassError, __FILE__, "$Revision$");
-  termClass(class, "error", 2, NAME_id, NAME_format, NAME_kind, NAME_feedback);
-
-  localClass(class, NAME_id, NAME_name, "name", NAME_get,
-	     "Unique identifier");
-  localClass(class, NAME_format, NAME_report, "string", NAME_get,
-	     "Format used to print the message");
-  localClass(class, NAME_kind, NAME_report,
-	     "{status,inform,warning,error,fatal,ignored}", NAME_both,
-	     "Kind of message");
-  localClass(class, NAME_feedback, NAME_report, "{report,print}", NAME_get,
-	     "Where (how) the report is reported");
-
-  sendMethod(class, NAME_initialise, DEFAULT, 4,
-	     "name=name", "format=string",
-	     "kind=[{status,inform,warning,error,fatal,ignored}]",
-	     "feedback=[{report,print}]",
-	     "-> id, format, [kind], [feedback]",
-	     initialiseError);
-  sendMethod(class, NAME_display, NAME_report, 1, "any|function ...",
-	     "Display the error message using context",
-	     displayError);
-
-  getMethod(class, NAME_convert, NAME_oms, "error", 1, "name",
-	    "Convert id into error",
-	    getConvertError);
-  getMethod(class, NAME_lookup, NAME_oms, "error", 1, "name",
-	    "Convert id into error",
-	    getConvertError);
+{ declareClass(class, &error_decls);
 
   ErrorTable = globalObject(NAME_errors, ClassHashTable, 0);
   initErrorDatabase(ErrorTable);
@@ -496,8 +522,8 @@ static struct error_def errors[] =
     "%O: %d elements in only %d buckets?" },
 
 					/* Classes */
-  { NAME_redecaredReference,	0,
-    "%N: Redeclared object reference" },
+  { NAME_redeclaredReference,	0,
+    "%O: Redeclared object reference: %N" },
   { NAME_cannotChangeSuperClass,0,
     "%N: Cannot change super-class" },
   { NAME_notClassType,		0,

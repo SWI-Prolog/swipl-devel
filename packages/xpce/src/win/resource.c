@@ -544,80 +544,94 @@ getGroupResource(Resource r)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "name=name", "class=[name]", "type=[type]", "default=string", "context=[object]*", "summary=[string]*" };
+
+/* Instance Variables */
+
+static const vardecl var_resource[] =
+{ IV(NAME_name, "name", IV_GET,
+     NAME_name, "Name of the resource"),
+  IV(NAME_resourceClass, "name", IV_GET,
+     NAME_name, "Class of the resource"),
+  IV(NAME_type, "type", IV_GET,
+     NAME_type, "Type requested"),
+  IV(NAME_default, "string", IV_GET,
+     NAME_resource, "Default if no resource defined"),
+  IV(NAME_context, "object*", IV_GET,
+     NAME_context, "Object resource is associated with"),
+  IV(NAME_value, "any", IV_NONE,
+     NAME_cache, "Value of the resource"),
+  IV(NAME_summary, "string*", IV_BOTH,
+     NAME_manual, "Summary documentation")
+};
+
+/* Send Methods */
+
+static const senddecl send_resource[] =
+{ SM(NAME_context, 1, "object", contextResource,
+     DEFAULT, "Attach resource to an object"),
+  SM(NAME_initialise, 6, T_initialise, initialiseResource,
+     DEFAULT, "Create from name, class, type, default and context"),
+  SM(NAME_obtain, 1, "[object]", obtainResource,
+     NAME_value, "Compute its value"),
+  SM(NAME_value, 1, "any", valueResource,
+     NAME_value, "Set value of the resource")
+};
+
+/* Get Methods */
+
+static const getdecl get_resource[] =
+{ GM(NAME_group, 0, "name", NULL, getGroupResource,
+     NAME_manual, "Same as related variable"),
+  GM(NAME_manId, 0, "name", NULL, getManIdResource,
+     NAME_manual, "Card Id for resource"),
+  GM(NAME_manIndicator, 0, "name", NULL, getManIndicatorResource,
+     NAME_manual, "Manual type indicator (`R')"),
+  GM(NAME_manSummary, 0, "string", NULL, getManSummaryResource,
+     NAME_manual, "New string with documentation summary"),
+  GM(NAME_resourceClassName, 0, "name", NULL, getResourceClassNameResource,
+     NAME_name, "Resource class name"),
+  GM(NAME_printName, 0, "name", NULL, getPrintNameResource,
+     NAME_textual, "Class.name"),
+  GM(NAME_sub, 1, "resource", "class", getSubResource,
+     NAME_type, "Refined resource when redefined by user"),
+  GM(NAME_convertString, 1, "any|function", "textual=char_array", getConvertStringResource,
+     NAME_value, "Convert textual value into typed value"),
+  GM(NAME_stringValue, 1, "char_array", "context=[object]", getStringValueResource,
+     NAME_value, "Obtain and return value as a char_array"),
+  GM(NAME_value, 1, "any", "context=[object]", getValueResource,
+     NAME_value, "Compute and return the value")
+};
+
+/* Resources */
+
+static const resourcedecl rc_resource[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name resource_termnames[] = { NAME_name, NAME_class, NAME_type, NAME_default, NAME_context, NAME_summary };
+
+ClassDecl(resource_decls,
+          var_resource, send_resource, get_resource, rc_resource,
+          6, resource_termnames,
+          "$Rev$");
+
+
 status
 makeClassResource(Class class)
-{ sourceClass(class, makeClassResource, __FILE__, "$Revision$");
+{ declareClass(class, &resource_decls);
 
-  localClass(class, NAME_name, NAME_name, "name", NAME_get,
-	     "Name of the resource");
-  localClass(class, NAME_resourceClass, NAME_name, "name", NAME_get,
-	     "Class of the resource");
-  localClass(class, NAME_type, NAME_type, "type", NAME_get,
-	     "Type requested");
-  localClass(class, NAME_default, NAME_resource, "string", NAME_get,
-	     "Default if no resource defined");
-  localClass(class, NAME_context, NAME_context, "object*", NAME_get,
-	     "Object resource is associated with");
-  localClass(class, NAME_value, NAME_cache, "any", NAME_none,
-	     "Value of the resource");
-  localClass(class, NAME_summary, NAME_manual, "string*", NAME_both,
-	     "Summary documentation");
-
-  termClass(class, "resource", 6,
-	    NAME_name, NAME_class, NAME_type, NAME_default, NAME_context,
-	    NAME_summary);
   cloneStyleVariableClass(class, NAME_summary, NAME_reference);
   cloneStyleVariableClass(class, NAME_value,   NAME_reference);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 6,
-	     "name=name", "class=[name]", "type=[type]", "default=string",
-	     "context=[object]*", "summary=[string]*",
-	     "Create from name, class, type, default and context",
-	     initialiseResource);
-  sendMethod(class, NAME_context, DEFAULT, 1, "object",
-	     "Attach resource to an object",
-	     contextResource);
-  sendMethod(class, NAME_obtain, NAME_value, 1, "[object]",
-	     "Compute its value",
-	     obtainResource);
-  sendMethod(class, NAME_value, NAME_value, 1, "any",
-	     "Set value of the resource",
-	     valueResource);
-
-  getMethod(class, NAME_manId, NAME_manual, "name", 0,
-	    "Card Id for resource",
-	    getManIdResource);
-  getMethod(class, NAME_manIndicator, NAME_manual, "name", 0,
-	    "Manual type indicator (`R')",
-	    getManIndicatorResource);
-  getMethod(class, NAME_manSummary, NAME_manual, "string", 0,
-	    "New string with documentation summary",
-	    getManSummaryResource);
-  getMethod(class, NAME_resourceClassName, NAME_name, "name", 0,
-	    "Resource class name",
-	    getResourceClassNameResource);
-  getMethod(class, NAME_group, NAME_manual, "name", 0,
-	    "Same as related variable",
-	    getGroupResource);
-
-  getMethod(class, NAME_value, NAME_value, "any", 1,
-	    "context=[object]",
-	    "Compute and return the value",
-	    getValueResource);
-  getMethod(class, NAME_stringValue, NAME_value, "char_array", 1,
-	    "context=[object]",
-	    "Obtain and return value as a char_array",
-	    getStringValueResource);
-  getMethod(class, NAME_convertString, NAME_value, "any|function", 1,
-	    "textual=char_array",
-	    "Convert textual value into typed value",
-	    getConvertStringResource);
-  getMethod(class, NAME_printName, NAME_textual, "name", 0,
-	    "Class.name",
-	    getPrintNameResource);
-  getMethod(class, NAME_sub, NAME_type, "resource", 1, "class",
-	    "Refined resource when redefined by user",
-	    getSubResource);
 
   NotObtained = globalObject(NAME_notObtained, ClassConstant,
 			     NAME_notObtained,

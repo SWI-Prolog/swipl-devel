@@ -444,106 +444,115 @@ resetMenuBar(MenuBar mb)
   succeed;
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_activeMember[] =
+        { "popup=member:popup", "active=bool" };
+
+/* Instance Variables */
+
+static const vardecl var_menuBar[] =
+{ IV(NAME_members, "chain", IV_GET,
+     NAME_organisation, "The pulldown menus"),
+  IV(NAME_format, "{left,center,right}", IV_GET,
+     NAME_appearance, "Format of labels in their box"),
+  SV(NAME_labelFont, "font", IV_GET|IV_STORE, labelFontMenuBar,
+     NAME_appearance, "Font used to display the labels"),
+  IV(NAME_current, "popup*", IV_GET,
+     NAME_event, "Currently visible popup"),
+  IV(NAME_button, "button_name*", IV_NONE,
+     NAME_event, "Button that caused me to start"),
+  IV(NAME_buttons, "chain", IV_GET,
+     NAME_repaint, "Chain holding the buttons"),
+  IV(NAME_gap, "int", IV_GET,
+     NAME_appearance, "Distance between buttons"),
+  IV(NAME_radius, "int", IV_GET,
+     NAME_appearance, "Radius for the buttons")
+};
+
+/* Send Methods */
+
+static const senddecl send_menuBar[] =
+{ SM(NAME_compute, 0, NULL, computeMenuBar,
+     DEFAULT, "Recompute the menu-bar"),
+  SM(NAME_event, 1, "event", eventMenuBar,
+     DEFAULT, "Process an event"),
+  SM(NAME_initialise, 1, "name=[name]", initialiseMenuBar,
+     DEFAULT, "Create from a label"),
+  SM(NAME_reset, 0, NULL, resetMenuBar,
+     NAME_abort, "Reset menubar after an abort"),
+  SM(NAME_key, 1, "key=name", keyMenuBar,
+     NAME_accelerator, "Execute (first) menu_item with accelerator"),
+  SM(NAME_activeMember, 2, T_activeMember, activeMemberMenuBar,
+     NAME_active, "(De)activate popup or name"),
+  SM(NAME_allActive, 1, "bool", allActiveMenuBar,
+     NAME_active, "(De)activate all popups"),
+  SM(NAME_allOff, 1, "member:popup", allOffMenuBar,
+     NAME_active, "Deactivate all items of popup or name"),
+  SM(NAME_allOn, 1, "member:popup", allOnMenuBar,
+     NAME_active, "Activate all items of popup or name"),
+  SM(NAME_off, 1, "name|menu_item", offMenuBar,
+     NAME_active, "Deactivate menu_item or name"),
+  SM(NAME_on, 1, "name|menu_item", onMenuBar,
+     NAME_active, "Activate menu_item or name"),
+  SM(NAME_showPopup, 1, "popup", showPopupMenuBar,
+     NAME_event, "Make popup <-current and ->open it"),
+  SM(NAME_append, 1, "popup", appendMenuBar,
+     NAME_organisation, "Append a popup to the menubar"),
+  SM(NAME_clear, 0, NULL, clearMenuBar,
+     NAME_organisation, "Remove all menus from the menu_bar"),
+  SM(NAME_delete, 1, "member:popup", deleteMenuBar,
+     NAME_organisation, "Delete popup or name")
+};
+
+/* Get Methods */
+
+static const getdecl get_menuBar[] =
+{ GM(NAME_contains, 0, "any", NULL, getContainsMenuBar,
+     DEFAULT, "Chain with popup menus contained"),
+  GM(NAME_reference, 0, "point", NULL, getReferenceMenuBar,
+     DEFAULT, "Reference of first button"),
+  GM(NAME_popupFromEvent, 1, "popup", "event", getPopupFromEventMenuBar,
+     NAME_event, "Find popup to open from event on menu_bar"),
+  GM(NAME_member, 1, "popup", "name|popup", getMemberMenuBar,
+     NAME_organisation, "Find popup from name")
+};
+
+/* Resources */
+
+static const resourcedecl rc_menuBar[] =
+{ RC(NAME_format, "name", "center",
+     "Format items {left,center,right}"),
+  RC(NAME_gap, "int", "-1",
+     "Distance between buttons"),
+  RC(NAME_labelFont, "font", "normal",
+     "Default font for labels"),
+  RC(NAME_pen, "int", "1",
+     "Thickness of line around labels"),
+  RC(NAME_radius, "int", "0",
+     "Rounding radius of the buttons"),
+  RC(NAME_size, "size", "size(80,20)",
+     "Minimum size for labels")
+};
+
+/* Class Declaration */
+
+static Name menuBar_termnames[] = { NAME_label };
+
+ClassDecl(menuBar_decls,
+          var_menuBar, send_menuBar, get_menuBar, rc_menuBar,
+          1, menuBar_termnames,
+          "$Rev$");
+
+
 status
 makeClassMenuBar(Class class)
-{ sourceClass(class, makeClassMenuBar, __FILE__, "$Revision$");
-
-  localClass(class, NAME_members, NAME_organisation, "chain", NAME_get,
-	     "The pulldown menus");
-  localClass(class, NAME_format, NAME_appearance,
-	     "{left,center,right}", NAME_get,
-	     "Format of labels in their box");
-  localClass(class, NAME_labelFont, NAME_appearance, "font", NAME_get,
-	     "Font used to display the labels");
-  localClass(class, NAME_current, NAME_event, "popup*", NAME_get,
-	     "Currently visible popup");
-  localClass(class, NAME_button, NAME_event, "button_name*", NAME_none,
-	     "Button that caused me to start");
-  localClass(class, NAME_buttons, NAME_repaint, "chain", NAME_get,
-	     "Chain holding the buttons");
-  localClass(class, NAME_gap, NAME_appearance, "int", NAME_get,
-	     "Distance between buttons");
-  localClass(class, NAME_radius, NAME_appearance, "int", NAME_get,
-	     "Radius for the buttons");
-
-  termClass(class, "menu_bar", 1, NAME_label);
+{ declareClass(class, &menuBar_decls);
   setRedrawFunctionClass(class, RedrawAreaMenuBar);
-
-  storeMethod(class, NAME_labelFont, labelFontMenuBar);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "name=[name]",
-	     "Create from a label",
-	     initialiseMenuBar);
-  sendMethod(class, NAME_reset, NAME_abort, 0,
-	     "Reset menubar after an abort",
-	     resetMenuBar);
-  sendMethod(class, NAME_compute, DEFAULT, 0,
-	     "Recompute the menu-bar",
-	     computeMenuBar);
-  sendMethod(class, NAME_event, DEFAULT, 1, "event",
-	     "Process an event",
-	     eventMenuBar);
-  sendMethod(class, NAME_delete, NAME_organisation, 1, "member:popup",
-	     "Delete popup or name",
-	     deleteMenuBar);
-  sendMethod(class, NAME_on, NAME_active, 1, "name|menu_item",
-	     "Activate menu_item or name",
-	     onMenuBar);
-  sendMethod(class, NAME_off, NAME_active, 1, "name|menu_item",
-	     "Deactivate menu_item or name",
-	     offMenuBar);
-  sendMethod(class, NAME_allOn, NAME_active, 1, "member:popup",
-	     "Activate all items of popup or name",
-	     allOnMenuBar);
-  sendMethod(class, NAME_allOff, NAME_active, 1, "member:popup",
-	     "Deactivate all items of popup or name",
-	     allOffMenuBar);
-  sendMethod(class, NAME_append, NAME_organisation, 1, "popup",
-	     "Append a popup to the menubar",
-	     appendMenuBar);
-  sendMethod(class, NAME_clear, NAME_organisation, 0,
-	     "Remove all menus from the menu_bar",
-	     clearMenuBar);
-  sendMethod(class, NAME_allActive, NAME_active, 1, "bool",
-	     "(De)activate all popups",
-	     allActiveMenuBar);
-  sendMethod(class, NAME_activeMember, NAME_active, 2,
-	     "popup=member:popup", "active=bool",
-	     "(De)activate popup or name",
-	     activeMemberMenuBar);
-  sendMethod(class, NAME_key, NAME_accelerator, 1, "key=name",
-	     "Execute (first) menu_item with accelerator",
-	     keyMenuBar);
-  sendMethod(class, NAME_showPopup, NAME_event, 1, "popup",
-	     "Make popup <-current and ->open it",
-	     showPopupMenuBar);
-
-  getMethod(class, NAME_member, NAME_organisation, "popup", 1, "name|popup",
-	    "Find popup from name",
-	    getMemberMenuBar);
-  getMethod(class, NAME_contains, DEFAULT, "any", 0,
-	    "Chain with popup menus contained",
-	    getContainsMenuBar);
-  getMethod(class, NAME_reference, DEFAULT, "point", 0,
-	    "Reference of first button",
-	    getReferenceMenuBar);
-  getMethod(class, NAME_popupFromEvent, NAME_event, "popup", 1, "event",
-	    "Find popup to open from event on menu_bar",
-	    getPopupFromEventMenuBar);
-
-
-  attach_resource(class, "label_font", "font",    "normal",
-		  "Default font for labels");
-  attach_resource(class, "size",       "size",    "size(80,20)",
-		  "Minimum size for labels");
-  attach_resource(class, "pen",	       "int", "1",
-		  "Thickness of line around labels");
-  attach_resource(class, "format",     "name", "center",
-		  "Format items {left,center,right}");
-  attach_resource(class, "gap", "int", "-1",
-		  "Distance between buttons");
-  attach_resource(class, "radius", "int", "0",
-		  "Rounding radius of the buttons");
 
   succeed;
 }

@@ -522,11 +522,10 @@ str_writefv(String s, CharArray format, int argc, Any *argv)
 { char buf[FORMATSIZE];
 
   TRY(swritefv(buf, format, argc, argv));
+  str_inithdr(s, ENC_ASCII);
   s->size = strlen(buf);
   if ( s->size >= FORMATSIZE )
     return errorPce(format, NAME_formatBufferOverFlow, toInt(FORMATSIZE));
-  s->b16 = FALSE;
-  s->encoding = ENC_ASCII;
   str_alloc(s);
   memcpy(s->s_text, buf, s->size);
 
@@ -554,7 +553,7 @@ extern int vsscanf(const char *, const char *, va_list);
 
 #ifdef ALLOCA_BUG
 #undef alloca
-#define alloca(n) malloc(n)
+#define alloca(n) pceMalloc(n)
 #endif /*ALLOCA_BUG*/
 
 Int
@@ -809,7 +808,7 @@ scanstr(char *str, char *fmt, Any *r)
     }
 
 #ifdef ALLOCA_BUG
-    free(ptrs[n]);
+    pceFree(ptrs[n]);
 #endif
 
     r[n] = val;

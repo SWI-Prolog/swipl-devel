@@ -17,6 +17,7 @@
 :- use_module(library(pce)).
 :- require([ append/3
 	   , checklist/2
+	   , unix/1
 	   ]).
 
 :- consult(library('draw/draw')).

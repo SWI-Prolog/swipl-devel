@@ -9,7 +9,6 @@
 
 #include <h/kernel.h>
 
-
 static status
 initialiseNumber(Number n, Int i)
 { assign(n, value, i);
@@ -156,73 +155,84 @@ getValueNumber(Number n)
 { answer(n->value);
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_catchAll[] =
+        { "selector=name", "argument=unchecked ..." };
+
+/* Instance Variables */
+
+static const vardecl var_number[] =
+{ IV(NAME_value, "int", IV_SEND,
+     NAME_storage, "Value of number object")
+};
+
+/* Send Methods */
+
+static const senddecl send_number[] =
+{ SM(NAME_initialise, 1, "value=int", initialiseNumber,
+     DEFAULT, "Create from integer"),
+  SM(NAME_divide, 1, "int", divideNumber,
+     NAME_calculate, "Divide value by argument"),
+  SM(NAME_maximum, 1, "int", maximumNumber,
+     NAME_calculate, "Set value to largest of current and argument"),
+  SM(NAME_minimum, 1, "int", minimumNumber,
+     NAME_calculate, "Set value to largest of current and argument"),
+  SM(NAME_minus, 1, "int", minusNumber,
+     NAME_calculate, "Subtract argument from value"),
+  SM(NAME_plus, 1, "int", plusNumber,
+     NAME_calculate, "Add argument to value"),
+  SM(NAME_times, 1, "int", timesNumber,
+     NAME_calculate, "Multiply value by argument"),
+  SM(NAME_equal, 1, "int", equalNumber,
+     NAME_compare, "Test if equal to argument"),
+  SM(NAME_larger, 1, "int", largerNumber,
+     NAME_compare, "Test if larger than argument"),
+  SM(NAME_largerEqual, 1, "int", largerEqualNumber,
+     NAME_compare, "Test if larger-or-equal than argument"),
+  SM(NAME_lessEqual, 1, "int", lessEqualNumber,
+     NAME_compare, "Test if less-or-equal than argument"),
+  SM(NAME_notEqual, 1, "int", notEqualNumber,
+     NAME_compare, "Test if not-equal to argument"),
+  SM(NAME_smaller, 1, "int", smallerNumber,
+     NAME_compare, "Test if less than argument")
+};
+
+/* Get Methods */
+
+static const getdecl get_number[] =
+{ GM(NAME_convert, 1, "number", "any", getConvertNumber,
+     DEFAULT, "Converts int, real and char_array"),
+  GM(NAME_compare, 1, "{smaller,equal,larger}", "int", getCompareNumber,
+     NAME_compare, "Compare with argument"),
+  GM(NAME_catchAll, 2, "copy=number", T_catchAll, getCatchAllNumber,
+     NAME_copy, "Create copy and run method on it"),
+  GM(NAME_printName, 0, "string", NULL, getPrintNameNumber,
+     NAME_textual, "Formatted version (%d) of value"),
+  GM(NAME_value, 0, "int", NULL, getValueNumber,
+     NAME_value, "Integer representing value")
+};
+
+/* Resources */
+
+static const resourcedecl rc_number[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name number_termnames[] = { NAME_value };
+
+ClassDecl(number_decls,
+          var_number, send_number, get_number, rc_number,
+          1, number_termnames,
+          "$Rev$");
 
 status
 makeClassNumber(Class class)
-{ sourceClass(class, makeClassNumber, __FILE__, "$Revision$");
-
-  localClass(class, NAME_value, NAME_storage, "int", NAME_send,
-	     "Value of number object");
-
-  termClass(class, "number", 1, NAME_value);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "value=int",
-	     "Create from integer",
-	     initialiseNumber);
-  sendMethod(class, NAME_divide, NAME_calculate, 1, "int",
-	     "Divide value by argument",
-	     divideNumber);
-  sendMethod(class, NAME_equal, NAME_compare, 1, "int",
-	     "Test if equal to argument",
-	     equalNumber);
-  sendMethod(class, NAME_larger, NAME_compare, 1, "int",
-	     "Test if larger than argument",
-	     largerNumber);
-  sendMethod(class, NAME_largerEqual, NAME_compare, 1, "int",
-	     "Test if larger-or-equal than argument",
-	     largerEqualNumber);
-  sendMethod(class, NAME_lessEqual, NAME_compare, 1, "int",
-	     "Test if less-or-equal than argument",
-	     lessEqualNumber);
-  sendMethod(class, NAME_minus, NAME_calculate, 1, "int",
-	     "Subtract argument from value",
-	     minusNumber);
-  sendMethod(class, NAME_notEqual, NAME_compare, 1, "int",
-	     "Test if not-equal to argument",
-	     notEqualNumber);
-  sendMethod(class, NAME_plus, NAME_calculate, 1, "int",
-	     "Add argument to value",
-	     plusNumber);
-  sendMethod(class, NAME_smaller, NAME_compare, 1, "int",
-	     "Test if less than argument",
-	     smallerNumber);
-  sendMethod(class, NAME_times, NAME_calculate, 1, "int",
-	     "Multiply value by argument",
-	     timesNumber);
-  sendMethod(class, NAME_maximum, NAME_calculate, 1, "int",
-	     "Set value to largest of current and argument",
-	     maximumNumber);
-  sendMethod(class, NAME_minimum, NAME_calculate, 1, "int",
-	     "Set value to largest of current and argument",
-	     minimumNumber);
-
-  getMethod(class, NAME_value, NAME_value, "int", 0,
-	    "Integer representing value",
-	    getValueNumber);
-  getMethod(class, NAME_convert, DEFAULT, "number", 1, "any",
-	    "Converts int, real and char_array",
-	    getConvertNumber);
-  getMethod(class, NAME_printName, NAME_textual, "string", 0,
-	    "Formatted version (%d) of value",
-	    getPrintNameNumber);
-  getMethod(class, NAME_compare, NAME_compare, "{smaller,equal,larger}", 1,
-	    "int",
-	    "Compare with argument",
-	    getCompareNumber);
-  getMethod(class, NAME_catchAll, NAME_copy, "copy=number", 2,
-	    "selector=name", "argument=unchecked ...",
-	    "Create copy and run method on it",
-	    getCatchAllNumber);
-
-  succeed;
+{ return declareClass(class, &number_decls);
 }

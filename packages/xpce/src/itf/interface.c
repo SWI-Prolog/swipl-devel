@@ -40,7 +40,7 @@ cToPceReal(double f)
 
 
 Any
-cToPceString(char *assoc, char *s)
+cToPceString(Name assoc, char *s)
 { Any str;
   Any c = CtoScratchCharArray(s);
   str = pceNew(assoc, ClassString, 1, &c);
@@ -55,9 +55,8 @@ cToPceName(const char *text)
 { if ( text )
   { string s;
 
+    str_inithdr(&s, ENC_ASCII);
     s.size = strlen(text);
-    s.encoding = ENC_ASCII;
-    s.b16 = FALSE;
     s.s_text8 = (char8 *)text;
 
     return StringToName(&s);
@@ -85,7 +84,7 @@ pcePointerToC(PceObject obj)
 
 
 Any
-cToPceAssoc(char *s)
+cToPceAssoc(const char *s)
 { return getObjectFromReferencePce(PCE, CtoName(s));
 }
 
@@ -115,10 +114,10 @@ pceExistsReference(ulong ref)
 
 
 int
-pceExistsAssoc(char *assoc)
+pceExistsAssoc(PceName assoc)
 { Any addr;
 
-  if ( (addr = getObjectAssoc(CtoName(assoc))) == FAIL )
+  if ( !(addr = getObjectAssoc(assoc)) )
     return PCE_FAIL;
   if ( !isProperObject(addr) || isFreedObj(addr) )
     return PCE_FAIL;
@@ -128,7 +127,7 @@ pceExistsAssoc(char *assoc)
 
 
 PceObject
-cToPceTmpCharArray(char *s)
+cToPceTmpCharArray(const char *s)
 { return CtoScratchCharArray(s);
 }
 
@@ -308,12 +307,11 @@ pceGet(Any receiver, Name selector, int argc, Any *argv)
 
 
 Any
-pceNew(char *assoc, Any class, int argc, Any *argv)
+pceNew(Name assoc, Any class, int argc, Any *argv)
 { Any rval;
 
   Mode(MODE_USER,
-       if ( (rval = createObjectv(assoc == NULL ? (Name) NIL : CtoName(assoc),
-				  class, argc, argv)) )
+       if ( (rval = createObjectv(assoc, class, argc, argv)) )
          pushAnswerObject(rval));
 
   return rval;
@@ -464,14 +462,28 @@ pce_callback_functions TheCallbackFunctions =
   Stub__HostQuery,			/* hostQuery() */
   Stub__HostActionv,			/* hostActionv() */
   Stub__vCprintf,			/* console IO */
-  Stub__Cputchar,
-  Stub__Cgetline
+  Stub__Cputchar,			/* print single character */
+  Stub__Cflush,				/* flush console output */
+  Stub__Cgetline,			/* read line from console */
+  malloc,				/* malloc */
+  realloc,				/* realloc */
+  free,					/* free */
+  NULL,					/* pad13 */
+  NULL,					/* pad14 */
+  NULL					/* pad15 */
 };
 
 
 void
 pceRegisterCallbacks(pce_callback_functions *fs)
-{ TheCallbackFunctions = *fs;		/* structure copy! */
+{ void **new = (void **)fs;
+  void **old = (void **)&TheCallbackFunctions;
+  int i = sizeof(TheCallbackFunctions)/sizeof(void *);
+
+  for( ; i-- > 0; old++, new++)
+  { if ( *new )
+      *old = *new;
+  }
 }
 
 
@@ -533,8 +545,7 @@ Cprintf(const char *fmt, ...)
 void
 Cvprintf(const char *fmt, va_list args)
 { if ( TheCallbackFunctions.vCprintf )
-  { (*TheCallbackFunctions.vCprintf)(fmt, args);
-  }
+    (*TheCallbackFunctions.vCprintf)(fmt, args);
 }
 
 
@@ -549,6 +560,13 @@ Cputchar(int chr)
 }
 
 
+void
+Cflush()
+{ if ( TheCallbackFunctions.Cflush )
+    (*TheCallbackFunctions.Cflush)();
+}
+
+
 char *
 Cgetline(char *line, int size)
 { if ( TheCallbackFunctions.Cgetline )
@@ -560,3 +578,27 @@ Cgetline(char *line, int size)
   }
 }
 
+		 /*******************************
+		 *	 MEMORY ALLOCATION	*
+		 *******************************/
+
+#undef pceMalloc
+#undef pceRealloc
+#undef pceFree
+
+void *
+pceMalloc(int size)
+{ return (*TheCallbackFunctions.malloc)(size);
+}
+
+
+void *
+pceRealloc(void *ptr, int size)
+{ return (*TheCallbackFunctions.realloc)(ptr, size);
+}
+
+
+void
+pceFree(void *ptr)
+{ return (*TheCallbackFunctions.free)(ptr);
+}

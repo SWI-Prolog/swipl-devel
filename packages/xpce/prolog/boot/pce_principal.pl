@@ -18,8 +18,6 @@
 
 	  , object/1, object/2
 	  , pce_predicate_reference/2
-
-	  , '$pce_get_object'/4			  % to lib/pce_util.pl
 	  ]).
 
 pce_ifhostproperty(prolog(swi), (:- export(pce_open(_,_,_)))).
@@ -104,10 +102,6 @@ free(_).
 %
 %	'$pce_object'(+@Object)
 %	'$pce_object'(+@Object, -Description)
-%	'$pce_get_object'(+@Object, +Selector, +Arguments, -Value)
-%
-%   [Technical note: '$pce_object'/[1, 2] is necessary given the current
-%   implementation.  '$pce_get_object' could be defined in terms of '$pce_get'.]
 %
 %   Predicates which are basically similar except for multiple arguments
 %   are hacked around (a little).  These predicates are defined as having at

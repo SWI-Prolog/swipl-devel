@@ -33,9 +33,9 @@ ws_destroy_image(Image image)
 
   if ( (r=image->ws_ref) )
   { if ( r->data )
-      free(r->data);
+      pceFree(r->data);
     if ( r->msw_info )
-      free(r->msw_info);
+      pceFree(r->msw_info);
     unalloc(sizeof(ws_image), image->ws_ref);
     
     image->ws_ref = NULL;
@@ -146,7 +146,7 @@ read_bitmap_info(FileObj f)
   rgbquads = color_quads_in_bitmap_info(&bmih);
   DEBUG(NAME_image, Cprintf("%dx%d; %d rgbquads\n",
 			    bmih.biWidth, bmih.biHeight, rgbquads));
-  bmi = malloc(sizeof(bmih) + sizeof(RGBQUAD)*rgbquads);
+  bmi = pceMalloc(sizeof(bmih) + sizeof(RGBQUAD)*rgbquads);
   memcpy(&bmi->bmiHeader, &bmih, sizeof(bmih));
   if ( fread(&bmi->bmiColors, sizeof(RGBQUAD), rgbquads, fd) != rgbquads )
   { errorPce(f, NAME_ioError, OsError());
@@ -195,10 +195,10 @@ ws_load_windows_bmp_file(Image image, FileObj f)
   DEBUG(NAME_image,
 	Cprintf("%dx%dx%d image; %d data bytes\n",
 		bmih->biWidth, bmih->biHeight, bmih->biBitCount, databytes));
-  aBitmapBits = malloc(databytes);
+  aBitmapBits = pceMalloc(databytes);
   if ( fread(aBitmapBits, sizeof(BYTE), databytes, fd) != databytes )
-  { free(bmi);
-    free(aBitmapBits);
+  { pceFree(bmi);
+    pceFree(aBitmapBits);
 
     return errorPce(f, NAME_ioError, getOsErrorPce(PCE));
   }
@@ -273,9 +273,9 @@ ws_load_windows_ico_file(Image image)
   bmi->bmiHeader.biWidth  = ico_entry.bWidth; /* MS-Windows bug! */
   bmi->bmiHeader.biHeight = ico_entry.bHeight;
   databytes = ico_entry.dwBytesInRes - ftell(fd);
-  bits = malloc(databytes);
+  bits = pceMalloc(databytes);
   if ( fread(bits, sizeof(BYTE), databytes, fd) != databytes )
-  { free(bmi);
+  { pceFree(bmi);
     return errorPce(image->file, NAME_ioError, OsError());
   }
 
@@ -298,7 +298,7 @@ ws_load_image_file(Image image)
 			      pp(image->file->path)));
     if ( (data = read_bitmap_data(image->file->fd, &w, &h)) )
     { ws_create_image_from_x11_data(image, data, w, h);
-      free(data);
+      pceFree(data);
       rval = SUCCEED;
     } else if ( ws_load_windows_bmp_file(image, image->file) )
     { rval = SUCCEED;
@@ -558,7 +558,7 @@ ws_create_image_from_x11_data(Image image, unsigned char *data, int w, int h)
   r->msw_info = NULL;			/* X11 data */
   r->w = w;
   r->h = h;
-  dest = r->data = malloc(ws_sizeof_bits(w, h));
+  dest = r->data = pceMalloc(ws_sizeof_bits(w, h));
 
   for(y=0; y<h; y++)
   { int x;
@@ -590,7 +590,7 @@ ws_create_image_from_x11_data(Image image, unsigned char *data, int w, int h)
 void *
 ws_image_bits_for_cursor(Image image, Name kind, int w, int h)
 { WsImage r;
-  unsigned short *c, *cbits = malloc(ws_sizeof_bits(w, h));
+  unsigned short *c, *cbits = pceMalloc(ws_sizeof_bits(w, h));
   unsigned short *d, *dbits;
   int alloced;
   int dw, dh;

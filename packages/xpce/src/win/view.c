@@ -144,62 +144,84 @@ formatView(View v, CharArray fmt, int argc, Any *argv)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_format[] =
+        { "char_array", "any ..." };
+static const char *T_fromAint_toAint[] =
+        { "from=int", "to=int" };
+static const char *T_initialise[] =
+        { "label=[name]", "size=[size]", "display=[display]", "editor=[editor]" };
+static const char *T_requestGeometry[] =
+        { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_view[] =
+{ IV(NAME_editor, "editor", IV_GET,
+     NAME_delegate, "Editor displayed")
+};
+
+/* Send Methods */
+
+static const senddecl send_view[] =
+{ SM(NAME_editor, 1, "editor", editorView,
+     DEFAULT, "Associate editor with view"),
+  SM(NAME_initialise, 4, T_initialise, initialiseView,
+     DEFAULT, "Create from label, size, display and editor"),
+  SM(NAME_requestGeometry, 4, T_requestGeometry, requestGeometryView,
+     DEFAULT, "Map size to character units"),
+  SM(NAME_unlink, 0, NULL, unlinkView,
+     DEFAULT, "Unlink the editor"),
+  SM(NAME_clear, 0, NULL, clearView,
+     NAME_delete, "Overrule window behaviour"),
+  SM(NAME_format, 2, T_format, formatView,
+     NAME_format, "Formatted insert (see `string->format')"),
+  SM(NAME_normalise, 2, T_fromAint_toAint, normaliseView,
+     NAME_scroll, "Overrule window behaviour"),
+  SM(NAME_scrollTo, 1, "int", scrollToView,
+     NAME_scroll, "Overrule window behaviour"),
+  SM(NAME_selection, 2, T_fromAint_toAint, selectionView,
+     NAME_selection, "Overrule window behaviour")
+};
+
+/* Get Methods */
+
+static const getdecl get_view[] =
+{ GM(NAME_createEditor, 1, "editor", "size=[size]", getCreateEditorView,
+     NAME_create, "Create the editor of the view"),
+  GM(NAME_selected, 0, "string", NULL, getSelectedView,
+     NAME_selection, "New string with contents of selection"),
+  GM(NAME_selection, 0, "point", NULL, getSelectionView,
+     NAME_selection, "New point with start and end of selection")
+};
+
+/* Resources */
+
+static const resourcedecl rc_view[] =
+{ RC(NAME_pen, "int", "0",
+     "Pen (done by <-editor)"),
+  RC(NAME_size, "size", "size(80,20)",
+     "Default size in `characters x lines'")
+};
+
+/* Class Declaration */
+
+static Name view_termnames[] = { NAME_label, NAME_displaySize, NAME_display, NAME_editor };
+
+ClassDecl(view_decls,
+          var_view, send_view, get_view, rc_view,
+          1, view_termnames,
+          "$Rev$");
+
 status
 makeClassView(Class class)
-{ sourceClass(class, makeClassView, __FILE__, "$Revision$");
-
-  localClass(class, NAME_editor, NAME_delegate, "editor", NAME_get,
-	     "Editor displayed");
-
-  termClass(class, "view",
-	    1, NAME_label, NAME_displaySize, NAME_display, NAME_editor);
+{ declareClass(class, &view_decls);
   prependDelegateClass(class, NAME_editor);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 4,
-	     "label=[name]", "size=[size]",
-	     "display=[display]", "editor=[editor]",
-	     "Create from label, size, display and editor",
-	     initialiseView);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Unlink the editor",
-	     unlinkView);
-  sendMethod(class, NAME_clear, NAME_delete, 0,
-	     "Overrule window behaviour",
-	     clearView);
-  sendMethod(class, NAME_scrollTo, NAME_scroll, 1, "int",
-	     "Overrule window behaviour",
-	     scrollToView);
-  sendMethod(class, NAME_format, NAME_format, 2, "char_array", "any ...",
-	     "Formatted insert (see `string->format')",
-	     formatView);
-  sendMethod(class, NAME_selection, NAME_selection, 2, "from=int", "to=int",
-	     "Overrule window behaviour",
-	     selectionView);
-  sendMethod(class, NAME_normalise, NAME_scroll, 2, "from=int", "to=int",
-	     "Overrule window behaviour",
-	     normaliseView);
-  sendMethod(class, NAME_editor, DEFAULT, 1, "editor",
-	     "Associate editor with view",
-	     editorView);
-  sendMethod(class, NAME_requestGeometry, DEFAULT, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Map size to character units",
-	     requestGeometryView);
-
-  getMethod(class, NAME_selection, NAME_selection, "point", 0,
-	    "New point with start and end of selection",
-	    getSelectionView);
-  getMethod(class, NAME_selected, NAME_selection, "string", 0,
-	    "New string with contents of selection",
-	    getSelectedView);
-  getMethod(class, NAME_createEditor, NAME_create, "editor", 1, "size=[size]",
-	    "Create the editor of the view",
-	    getCreateEditorView);
-
-  attach_resource(class, "pen",    "int",   "0",
-		  "Pen (done by <-editor)");
-  attach_resource(class, "size",   "size",  "size(80,20)",
-		  "Default size in `characters x lines'");
 
   succeed;
 }

@@ -20,7 +20,8 @@ typedef struct _string
 { unsigned	size : 24;		/* size indication */
   unsigned	encoding : 5;		/* character encoding used */
   unsigned	b16 : 1;		/* 8- or 16-bit wide characters */
-  unsigned	pad : 2;		/* padding to word-boundary */
+  unsigned	readonly : 1;		/* storage is externally managed */
+  unsigned	pad : 1;		/* padding to word-boundary */
   union
   { char8 *	text8;
     char16 *	text16;
@@ -46,10 +47,13 @@ typedef struct _string
 #define str_store8(s, i, c)	(s->s_text8[(i)] = (char8)(c))
 #define str_store16(s, i, c)	(s->s_text16[(i)] = (char16)(c))
 
-#define str_cphdr(t, f) do { (t)->size     = (f)->size; \
-			     (t)->encoding = (f)->encoding; \
-			     (t)->b16      = (f)->b16; \
+#define str_cphdr(t, f) do { *(ulong *)(t) = *(ulong *)(f); \
 			   } while(0)
+#define str_inithdr(s, e) do { *(ulong *)(s) = 0L; \
+			       (s)->encoding = (e); \
+			       (s)->b16	     = ((e) == ENC_UNICODE ? 1 : 0); \
+			     } while(0)
+
 #define str_datasize(s) (isstr8(s) ? (s)->size : (s)->size * 2)
 
 #ifndef FALSE

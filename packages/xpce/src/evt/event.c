@@ -666,113 +666,117 @@ getDisplayEvent(EventObj ev)
 { answer(getDisplayGraphical((Graphical) ev->window));
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "id=event_id", "origin=[window]", "x=[int]", "y=[int]", "button_mask=[int]", "time=[int]" };
+static const char *T_post[] =
+        { "to=graphical", "recogniser=[recogniser]" };
+
+/* Instance Variables */
+
+static const vardecl var_event[] =
+{ IV(NAME_window, "window", IV_GET,
+     NAME_context, "Window that generated event"),
+  IV(NAME_receiver, "graphical", IV_GET,
+     NAME_context, "(Graphical) object receiving event"),
+  IV(NAME_id, "event_id", IV_GET,
+     NAME_name, "Id of the event (type of event)"),
+  IV(NAME_buttons, "mask=int", IV_GET,
+     NAME_classify, "Bitmask with status of buttons"),
+  IV(NAME_x, "pixels=int", IV_GET,
+     NAME_position, "X-coordinate, relative to window"),
+  IV(NAME_y, "pixels=int", IV_GET,
+     NAME_position, "Y-coordinate, relative to window"),
+  IV(NAME_position, "point*", IV_NONE,
+     NAME_position, "Last calculated position"),
+  IV(NAME_time, "alien:Time", IV_NONE,
+     NAME_timing, "Window System Time stamp")
+};
+
+/* Send Methods */
+
+static const senddecl send_event[] =
+{ SM(NAME_initialise, 6, T_initialise, initialiseEvent,
+     DEFAULT, "Create from type, window, x, y, buttons and time"),
+  SM(NAME_hasModifier, 1, "modifier", hasModifierEvent,
+     NAME_classify, "Test if event meets modifier spec"),
+  SM(NAME_isA, 1, "super=event_id", isAEvent,
+     NAME_classify, "Test if event matches type identifier"),
+  SM(NAME_isDown, 0, NULL, isDownEvent,
+     NAME_classify, "Test if event is a button-down event"),
+  SM(NAME_isDrag, 0, NULL, isDragEvent,
+     NAME_classify, "Test if event is a button-drag event"),
+  SM(NAME_isUp, 0, NULL, isUpEvent,
+     NAME_classify, "Test if event is a button-up event"),
+  SM(NAME_post, 2, T_post, postEvent,
+     NAME_forward, "Deliver the event at the argument"),
+  SM(NAME_inside, 1, "[graphical]", insideEvent,
+     NAME_position, "Test if event is in area of graphical")
+};
+
+/* Get Methods */
+
+static const getdecl get_event[] =
+{ GM(NAME_convert, 1, "event", "[any]", getConvertEvent,
+     DEFAULT, "Convert @default into current event (@event)"),
+  GM(NAME_time, 1, "int", "[event]", getTimeEvent,
+     DEFAULT, "Timestamp (relative to argument)"),
+  GM(NAME_distance, 1, "int", "to=event", getDistanceEvent,
+     NAME_calculate, "Rounded integer distance between events"),
+  GM(NAME_button, 0, "button_name", NULL, getButtonEvent,
+     NAME_classify, "Button-name of button-event"),
+  GM(NAME_clickDisplacement, 0, "pixels=int", NULL, getClickDisplacementEvent,
+     NAME_classify, "`up' events: distance since corresponding `down'"),
+  GM(NAME_clickTime, 0, "milliseconds=int", NULL, getClickTimeEvent,
+     NAME_classify, "`up' events: time since corresponding `down'"),
+  GM(NAME_key, 0, "name", NULL, getKeyEvent,
+     NAME_classify, "Key(-binding) description of event"),
+  GM(NAME_multiclick, 0, "{single,double,triple}", NULL, getMulticlickEvent,
+     NAME_classify, "Click type"),
+  GM(NAME_display, 0, "display", NULL, getDisplayEvent,
+     NAME_context, "Display on which the event occurred"),
+  GM(NAME_master, 0, "any", NULL, getMasterEvent,
+     NAME_context, "The <-master of <-receiver"),
+  GM(NAME_name, 0, "event_id", NULL, getIdEvent,
+     NAME_name, "Name of the event (synonym for <-id)"),
+  GM(NAME_areaPosition, 1, "point", "relative_to=[graphical]", getAreaPositionEvent,
+     NAME_position, "Position relative to top-left-corner"),
+  GM(NAME_insideSubWindow, 1, "frame|window", "[display|frame|window]", getInsideSubWindow,
+     NAME_position, "Frame or window event occurred in"),
+  GM(NAME_position, 1, "point", "relative_to=[graphical|frame|display]", getPositionEvent,
+     NAME_position, "Position relative to argument"),
+  GM(NAME_x, 1, "int", "relative_to=[graphical|frame|display]", getXEvent,
+     NAME_position, "X coordinate relative to argument"),
+  GM(NAME_y, 1, "int", "relative_to=[graphical|frame|display]", getYEvent,
+     NAME_position, "Y coordinate relative to argument")
+};
+
+/* Resources */
+
+static const resourcedecl rc_event[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name event_termnames[] = { NAME_receiver, NAME_name, NAME_position, NAME_buttons, NAME_time };
+
+ClassDecl(event_decls,
+          var_event, send_event, get_event, rc_event,
+          3, event_termnames,
+          "$Rev$");
+
 
 status
 makeClassEvent(Class class)
-{ sourceClass(class, makeClassEvent, __FILE__, "$Revision$");
-  termClass(class, "event", 3, NAME_receiver, NAME_name, NAME_position,
-	    		       NAME_buttons, NAME_time);
-
-  localClass(class, NAME_window, NAME_context, "window", NAME_get,
-	     "Window that generated event");
-  localClass(class, NAME_receiver, NAME_context, "graphical", NAME_get,
-	     "(Graphical) object receiving event");
-  localClass(class, NAME_id, NAME_name, "event_id", NAME_get,
-	     "Id of the event (type of event)");
-  localClass(class, NAME_buttons, NAME_classify, "mask=int", NAME_get,
-	     "Bitmask with status of buttons");
-  localClass(class, NAME_x, NAME_position, "pixels=int", NAME_get,
-	     "X-coordinate, relative to window");
-  localClass(class, NAME_y, NAME_position, "pixels=int", NAME_get,
-	     "Y-coordinate, relative to window");
-  localClass(class, NAME_position, NAME_position, "point*", NAME_none,
-	     "Last calculated position");
-  localClass(class, NAME_time, NAME_timing, "alien:Time", NAME_none,
-	     "Window System Time stamp");
-
-  sendMethod(class, NAME_initialise, DEFAULT, 6,
-	     "id=event_id", "origin=[window]",
-	     "x=[int]", "y=[int]", "button_mask=[int]", "time=[int]",
-	     "Create from type, window, x, y, buttons and time",
-	     initialiseEvent);
-  sendMethod(class, NAME_isA, NAME_classify, 1, "super=event_id",
-	     "Test if event matches type identifier",
-	     isAEvent);
-  sendMethod(class, NAME_post, NAME_forward, 2,
-	     "to=graphical", "recogniser=[recogniser]",
-	     "Deliver the event at the argument",
-	     postEvent);
-  sendMethod(class, NAME_isUp, NAME_classify, 0,
-	     "Test if event is a button-up event",
-	     isUpEvent);
-  sendMethod(class, NAME_isDown, NAME_classify, 0,
-	     "Test if event is a button-down event",
-	     isDownEvent);
-  sendMethod(class, NAME_isDrag, NAME_classify, 0,
-	     "Test if event is a button-drag event",
-	     isDragEvent);
-  sendMethod(class, NAME_hasModifier, NAME_classify, 1, "modifier",
-	     "Test if event meets modifier spec",
-	     hasModifierEvent);
-  sendMethod(class, NAME_inside, NAME_position, 1, "[graphical]",
-	     "Test if event is in area of graphical",
-	     insideEvent);
-
-  getMethod(class, NAME_master, NAME_context, "any", 0,
-	    "The <-master of <-receiver",
-	    getMasterEvent);
-  getMethod(class, NAME_name, NAME_name, "event_id", 0,
-	    "Name of the event (synonym for <-id)",
-	    getIdEvent);
-  getMethod(class, NAME_position, NAME_position, "point", 1,
-	    "relative_to=[graphical|frame|display]",
-	    "Position relative to argument",
-	    getPositionEvent);
-  getMethod(class, NAME_areaPosition, NAME_position, "point", 1,
-	    "relative_to=[graphical]",
-	    "Position relative to top-left-corner",
-	    getAreaPositionEvent);
-  getMethod(class, NAME_x, NAME_position, "int", 1,
-	    "relative_to=[graphical|frame|display]",
-	    "X coordinate relative to argument",
-	    getXEvent);
-  getMethod(class, NAME_y, NAME_position, "int", 1,
-	    "relative_to=[graphical|frame|display]",
-	    "Y coordinate relative to argument",
-	    getYEvent);
-  getMethod(class, NAME_distance, NAME_calculate, "int", 1, "to=event",
-	    "Rounded integer distance between events",
-	    getDistanceEvent);
-  getMethod(class, NAME_button, NAME_classify, "button_name", 0,
-	    "Button-name of button-event",
-	    getButtonEvent);
-  getMethod(class, NAME_multiclick, NAME_classify, "{single,double,triple}", 0,
-	    "Click type",
-	    getMulticlickEvent);
-  getMethod(class, NAME_clickTime, NAME_classify, "milliseconds=int", 0,
-	    "`up' events: time since corresponding `down'",
-	    getClickTimeEvent);
-  getMethod(class, NAME_clickDisplacement, NAME_classify, "pixels=int", 0,
-	    "`up' events: distance since corresponding `down'",
-	    getClickDisplacementEvent);
-  getMethod(class, NAME_key, NAME_classify, "name", 0,
-	    "Key(-binding) description of event",
-	    getKeyEvent);
-  getMethod(class, NAME_display, NAME_context, "display", 0,
-	    "Display on which the event occurred",
-	    getDisplayEvent);
-  getMethod(class, NAME_convert, DEFAULT, "event", 1, "[any]",
-	    "Convert @default into current event (@event)",
-	    getConvertEvent);
-  getMethod(class, NAME_insideSubWindow, NAME_position, "frame|window", 1,
-	    "[display|frame|window]",
-	    "Frame or window event occurred in",
-	    getInsideSubWindow);
-  getMethod(class, NAME_time, DEFAULT, "int", 1, "[event]",
-	    "Timestamp (relative to argument)",
-	    getTimeEvent);
-
+{ declareClass(class, &event_decls);
   init_event_tree();
+
   succeed;
 }
 

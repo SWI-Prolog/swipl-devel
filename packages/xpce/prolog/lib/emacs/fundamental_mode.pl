@@ -11,73 +11,70 @@
 :- use_module(library(pce)).
 :- use_module(library(pce_selection)).
 :- require([ append/3
+	   , auto_call/1
 	   , between/3
 	   , chain_list/2
 	   , default/3
 	   , ignore/1
 	   ]).
 
-:- initialization
-	new(KB, emacs_key_binding(fundamental, editor)),
-	send(KB, function, '\C-h',     prefix),
-	send(KB, function, '\C-hb',    show_key_bindings),
-	send(KB, function, '\C-xi',    insert_file),
-	send(KB, function, '\C-xk',    kill_buffer),
-	send(KB, function, '\C-x\C-w', write_file),
-	send(KB, function, '\C-x\C-c', quit),
-	send(KB, function, '\C-x\C-f', find_file),
-	send(KB, function, '\C-x\C-s', save_buffer),
-	send(KB, function, '\C-x\C-b', show_buffer_menu),
-	send(KB, function, '\C-xb',    switch_to_buffer),
-	send(KB, function, '\C-x2',    split_window),
-	send(KB, function, '\C-x1',    only_window),
-	send(KB, function, '\C-x#',    save_and_kill),
-	send(KB, function, '\C-x=',    what_cursor_position),
-	send(KB, function, '\e=',      count_lines_region),
-	send(KB, function, '\e%',      query_replace_regex),
-	send(KB, function, '\ew',      grab_region),
-	send(KB, function, '\eQ',      justify_paragraph),
-	send(KB, function, '\e@',      bookmark_line),
-	send(KB, function, '\ex',      execute_extended_command),
-	send(KB, function, '\em',      mode),
-	send(KB, function, '\es',      sticky_window),
-	send(KB, function, '\e\C-w',   write_region),
-	send(KB, function, '\C-xRET',  compile).
+:- emacs_begin_mode(fundamental, [],	% []: root of the mode hierarchy
+		    "Generic PceEmacs editing mode",
+	[ prefix		   = key('\C-h'),
+	  show_key_bindings	   = key('\C-hb'),
+	  insert_file		   = key('\C-xi'),
+	  write_file		   = key('\C-x\C-w'),
+	  split_window		   = key('\C-x2'),
+	  only_window              = key('\C-x1'),
+	  save_and_kill            = key('\C-x#'),
+	  what_cursor_position     = key('\C-x='),
+	  count_lines_region       = key('\e='),
+	  query_replace_regex      = key('\e%'),
+	  grab_region              = key('\ew'),
+	  justify_paragraph        = key('\eQ'),
+	  bookmark_line            = key('\e@'),
+	  execute_extended_command = key('\ex'),
+	  sticky_window		   = key('\es'),
+	  write_region		   = key('\e\C-w'),
+	  compile		   = key('\C-xRET'),
+	  
+					% FILE menu
+	  show_buffer_menu	   = key('\C-x\C-b') + button(file),
+	  switch_to_buffer	   = key('\C-xb') +
+				     button(file, @emacs_mode?buffers),
+	  find_file		   = key('\C-x\C-f') + button(file),
+	  save_buffer		   = key('\C-x\C-s') + button(file),
+	  revert		   = button(file),
+	  kill_buffer		   = key('\C-xk')    + button(file),
+	  ispell		   = button(file),
+	  shell			   = button(file),
+	  mode			   = key('\em') +
+	  			     button(file, @emacs_mode?modes),
+	  identify		   = button(file),
+	  quit			   = key('\C-x\C-c') + button(file),
 
-:- initialization
-	new(MM, emacs_mode_menu(fundamental)),
-	send(MM, append, file, show_buffer_menu),
-	send(MM, append, file,
-	     emacs_argument_item(switch_to_buffer, @emacs_mode?buffers)),
-	send(MM, append, file, find_file),
-	send(MM, append, file, save_buffer),
-	send(MM, append, file, revert),
-	send(MM, append, file, kill_buffer),
-	send(MM, append, file, ispell),
-	send(MM, append, file, shell),
-	send(MM, append, file,
-	     emacs_argument_item(mode, @emacs_mode?modes)),
-	send(MM, append, file, identify),
-	send(MM, append, file, quit),
+					% HELP menu
+	  help			   = button(help),
+	  customise		   = button(help),
+	  show_key_bindings	   = button(help),
+	  manpce		   = button(help),
+	  manual_entry		   = button(help),
 
-	send(MM, append, help, help),
-	send(MM, append, help, customise),
-	send(MM, append, help, show_key_bindings),
-	send(MM, append, help, manpce),
-	send(MM, append, help, manual_entry),
+					% EDIT menu
+	  undo			   = button(edit),
+	  copy			   = button(edit),
+	  cut			   = button(edit),
+	  paste			   = button(edit),
 
-	send(MM, append, edit, undo),
-	send(MM, append, edit, copy),
-	send(MM, append, edit, cut),
-	send(MM, append, edit, paste),
+					% BROWSER menu
+	  bookmark_line		   = button(browse),
+	  grep			   = button(browse),
 
-	send(MM, append, browse, bookmark_line),
-	send(MM, append, browse, grep),
-
-	send(MM, append, compile, compile).
-
-
-:- pce_begin_class(emacs_fundamental_mode, emacs_mode).
+					% COMPILE menu
+	  compile		   = button(compile)
+	],
+	[
+	]).
 
 resource(grep_command,	string, 'grep -n %s /dev/null',
 	 "Command of M-x grep").
@@ -723,4 +720,4 @@ drop(M, Obj:object) :->
 	->  send(M, find_file, Obj)
 	).
 
-:- pce_end_class.
+:- emacs_end_mode.

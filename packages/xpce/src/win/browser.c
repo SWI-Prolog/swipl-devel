@@ -146,71 +146,91 @@ getContainsBrowser(Browser b)
 { answer(getContainsListBrowser(b->list_browser));
 }
 
+
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_typed[] =
+        { "event_id", "delegate=[bool]" };
+static const char *T_initialise[] =
+        { "label=[name]", "size=[size]", "display=[display]" };
+static const char *T_requestGeometry[] =
+        { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_browser[] =
+{ IV(NAME_listBrowser, "list_browser", IV_GET,
+     NAME_delegate, "Displayed list_browser")
+};
+
+/* Send Methods */
+
+static const senddecl send_browser[] =
+{ SM(NAME_initialise, 3, T_initialise, initialiseBrowser,
+     DEFAULT, "Create from label, size and display"),
+  SM(NAME_requestGeometry, 4, T_requestGeometry, requestGeometryBrowser,
+     DEFAULT, "Map size to character units"),
+  SM(NAME_unlink, 0, NULL, unlinkBrowser,
+     DEFAULT, "Delete the list_browser"),
+  SM(NAME_typed, 2, T_typed, typedBrowser,
+     NAME_accelerator, "Handle typed character"),
+  SM(NAME_cursor, 1, "cursor*", cursorBrowser,
+     NAME_cursor, "Cursor when in focus of events"),
+  SM(NAME_popup, 1, "popup*", popupBrowser,
+     NAME_menu, "Associated popup menu"),
+  SM(NAME_clear, 0, NULL, clearBrowser,
+     NAME_delete, "Delete all items"),
+  SM(NAME_normalise, 1, "member:dict_item", normaliseBrowser,
+     NAME_scroll, "Ensure (named) item is visible"),
+  SM(NAME_scrollTo, 1, "int", scrollToBrowser,
+     NAME_scroll, "Scroll to nth-1 item"),
+  SM(NAME_selected, 1, "member:dict_item", selectedBrowser,
+     NAME_selection, "Test if object is selected"),
+  SM(NAME_selection, 1, "member:dict_item|chain*", selectionBrowser,
+     NAME_selection, "Set selected items")
+};
+
+/* Get Methods */
+
+static const getdecl get_browser[] =
+{ GM(NAME_contains, 0, "chain", NULL, getContainsBrowser,
+     DEFAULT, "The dict object contained"),
+  GM(NAME_size, 0, "characters=size", NULL, getSizeBrowser,
+     NAME_area, "Size in character units"),
+  GM(NAME_member, 1, "dict_item", "any", getMemberBrowser,
+     NAME_lookup, "Dict_item with given key value"),
+  GM(NAME_popup, 0, "popup*", NULL, getPopupBrowser,
+     NAME_menu, "Get popup menu of the list_browser"),
+  GM(NAME_selection, 0, "chain|dict_item*", NULL, getSelectionBrowser,
+     NAME_selection, "Get selected items")
+};
+
+/* Resources */
+
+static const resourcedecl rc_browser[] =
+{ RC(NAME_pen, "int", "0",
+     "Pen (done by <-list_browser)"),
+  RC(NAME_size, "size", "size(25,10)",
+     "Size in `characters x lines'")
+};
+
+/* Class Declaration */
+
+static Name browser_termnames[] = { NAME_label, NAME_size, NAME_display };
+
+ClassDecl(browser_decls,
+          var_browser, send_browser, get_browser, rc_browser,
+          1, browser_termnames,
+          "$Rev$");
+
 status
 makeClassBrowser(Class class)
-{ sourceClass(class, makeClassBrowser, __FILE__, "$Revision$");
-
-  localClass(class, NAME_listBrowser, NAME_delegate, "list_browser", NAME_get,
-	     "Displayed list_browser");
-
-  termClass(class, "browser", 1, NAME_label, NAME_size, NAME_display);
+{ declareClass(class, &browser_decls);
   prependDelegateClass(class, NAME_listBrowser);
-
-  storeMethod(class, NAME_popup, popupBrowser);
-  storeMethod(class, NAME_cursor, cursorBrowser);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 3,
-	     "label=[name]", "size=[size]", "display=[display]",
-	     "Create from label, size and display",
-	     initialiseBrowser);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Delete the list_browser",
-	     unlinkBrowser);
-  sendMethod(class, NAME_scrollTo, NAME_scroll, 1, "int",
-	     "Scroll to nth-1 item",
-	     scrollToBrowser);
-  sendMethod(class, NAME_normalise, NAME_scroll, 1, "member:dict_item",
-	     "Ensure (named) item is visible",
-	     normaliseBrowser);
-  sendMethod(class, NAME_clear, NAME_delete, 0,
-	     "Delete all items",
-	     clearBrowser);
-  sendMethod(class, NAME_typed, NAME_accelerator, 2,
-	     "event_id", "delegate=[bool]",
-	     "Handle typed character",
-	     typedBrowser);
-  sendMethod(class, NAME_selection, NAME_selection, 1,
-	     "member:dict_item|chain*",
-	     "Set selected items",
-	     selectionBrowser);
-  sendMethod(class, NAME_selected, NAME_selection, 1, "member:dict_item",
-	     "Test if object is selected",
-	     selectedBrowser);
-  sendMethod(class, NAME_requestGeometry, DEFAULT, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Map size to character units",
-	     requestGeometryBrowser);
-
-  getMethod(class, NAME_selection, NAME_selection, "chain|dict_item*", 0,
-	    "Get selected items",
-	    getSelectionBrowser);
-  getMethod(class, NAME_size, NAME_area, "characters=size", 0,
-	    "Size in character units",
-	    getSizeBrowser);
-  getMethod(class, NAME_popup, NAME_menu, "popup*", 0,
-	    "Get popup menu of the list_browser",
-	    getPopupBrowser);
-  getMethod(class, NAME_member, NAME_lookup, "dict_item", 1, "any",
-	    "Dict_item with given key value",
-	    getMemberBrowser);
-  getMethod(class, NAME_contains, DEFAULT, "chain", 0,
-	    "The dict object contained",
-	    getContainsBrowser);
-
-  attach_resource(class, "pen",    "int",   "0",
-		  "Pen (done by <-list_browser)");
-  attach_resource(class, "size",   "size",  "size(25,10)",
-		  "Size in `characters x lines'");
 
   succeed;
 }

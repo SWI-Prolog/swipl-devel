@@ -15,12 +15,10 @@
 static status	recordInstancesClass(Class class, Bool keep, Bool recursive);
 static status	fill_slots_class(Class class, Class super);
 static Variable	getLocaliseInstanceVariableClass(Class class, Name name);
+static Any	bindMethod(Class class, Name code, Name selector);
+static status	lazyBindingClass(Class class, Name which, Bool val);
 
-#ifndef O_RUNTIME
-#define CLASS_PCE_SLOTS 43
-#else
-#define CLASS_PCE_SLOTS 42		/* no source slot! */
-#endif
+#define CLASS_PCE_SLOTS 42
 
 #define InstanceSize(c)	((int) &((Instance) NULL)->slots[valInt((c)->slots)])
 #define SlotsClass(c) \
@@ -162,7 +160,7 @@ status
 defineClasses(struct class_definition *classes)
 { for(; classes->name; classes++)
   { Class class = defineClass(classes->name, classes->super,
-			      CtoString(classes->summary),
+			      staticCtoString(classes->summary),
 			      classes->makefunction);
 
     if ( classes->global )
@@ -222,6 +220,10 @@ realiseBootClass(Class class)
 
   DEBUG_BOOT(Cprintf("Realising boot class %s ...", strName(class->name)));
   realiseClass(class);
+/*  if ( class->name == NAME_type || class->name == NAME_charArray ) */
+  { bindMethod(class, NAME_send, NAME_initialise);
+    bindMethod(class, NAME_get,  NAME_lookup);
+  }
   deleteHashTable(class->send_table, NAME_initialise);
   deleteHashTable(class->get_table, NAME_lookup);
   assign(class, initialise_method, DEFAULT); /* rebind cache */
@@ -237,20 +239,20 @@ fill_slots_class(Class class, Class super)
     linkSubClass(super, class);
 
   initialiseProgramObject(class);
+
+  setDFlag(class, DC_LAZY_GET|DC_LAZY_SEND);
+
   assign(class, realised,        ON);
   assign(class, send_methods,    newObject(ClassChain, 0));
   assign(class, get_methods,     newObject(ClassChain, 0));
   assign(class, resources,       newObject(ClassChain, 0));
-  assign(class, term_functor,    class->name);
   assign(class, send_table,      newObject(ClassHashTable, 0));
   assign(class, get_table,       newObject(ClassHashTable, 0));
   assign(class, local_table,     newObject(ClassHashTable, 0));
   assign(class, resource_table,  NIL);
   assign(class, selection_style, NIL);
   assign(class, rcs_revision,	 NIL);
-#ifndef O_RUNTIME
   assign(class, source,		 NIL);
-#endif
   if ( isDefault(class->summary) )
     assign(class, summary,	 NIL);
 
@@ -261,8 +263,10 @@ fill_slots_class(Class class, Class super)
   assign(class, lookup_method,	   DEFAULT);
   if ( !class->boot )
     assign(class, initialise_method, DEFAULT);
-  class->send_function = NULL;
-  class->get_function = NULL;
+
+  class->send_function     = NULL;
+  class->get_function      = NULL;
+  class->c_declarations    = NULL;
 
   if ( notNil(super) )
   { assign(class, term_names,	        super->term_names);
@@ -478,7 +482,12 @@ installClass(Class class)
     Class cl;
 
     for(cl = class; ; cl = cl->super_class)
-    { for_cell(cell, cl->send_methods)
+    { if ( onDFlag(class, DC_LAZY_SEND) )
+	lazyBindingClass(cl, NAME_send, OFF);
+      if ( onDFlag(class, DC_LAZY_GET) )
+	lazyBindingClass(cl, NAME_get, OFF);
+
+      for_cell(cell, cl->send_methods)
       { SendMethod m = cell->value;
 
       	if ( !getMemberHashTable(class->send_table, m->name) )
@@ -839,7 +848,7 @@ sendMethodClass(Class class, SendMethod m)
 
 static void
 fixSubClassGetMethodsClass(Class class, Method m)
-{ if ( class->realised == ON )
+{ if ( class->realised == ON && !inBoot ) /* TBD */
   { Cell cell;
 
     deleteHashTable(class->get_table, m->name);
@@ -948,7 +957,6 @@ static inline void
 _termClass(Class class, char *name, int argc, va_list args)
 { realiseClass(class);
 
-  assign(class, term_functor, CtoName(name));
   if ( argc == ARGC_UNKNOWN )
   { assign(class, term_names, NIL);
   } else
@@ -1004,7 +1012,7 @@ _sendMethod(Class class, Name name, Name group, int argc, va_list args)
 
   if ( (rawdoc = va_arg(args, char *)) )
   { checkSummaryCharp(class->name, name, rawdoc);
-    doc = rawdoc[0] == EOS ? (StringObj) NIL : CtoString(rawdoc);
+    doc = rawdoc[0] == EOS ? (StringObj) NIL : staticCtoString(rawdoc);
   } else
     doc = NIL;
 
@@ -1083,7 +1091,8 @@ fetchMethod(Class class, Name name, void *function)
 
 
 static inline status
-_getMethod(Class class, Name name, Name group, char *rtype, int argc, va_list args)
+_getMethod(Class class, Name name, Name group,
+	   char *rtype, int argc, va_list args)
 { GetMethod m;
   Type rt;
   Type types[METHOD_MAX_ARGS];
@@ -1109,7 +1118,7 @@ _getMethod(Class class, Name name, Name group, char *rtype, int argc, va_list ar
 
   if ( (rawdoc = va_arg(args, char *)) )
   { checkSummaryCharp(class->name, name, rawdoc);
-    doc = rawdoc[0] == EOS ? (StringObj) NIL : CtoString(rawdoc);
+    doc = rawdoc[0] == EOS ? (StringObj) NIL : staticCtoString(rawdoc);
   } else
     doc = NIL;
 
@@ -1241,7 +1250,6 @@ sourceClass(Class class, SendFunc f, char *file, char *rcs)
   char buf[100];
   int l;
 
-  class->make_class_function = f;
 #ifndef O_RUNTIME
   assign(class, source, newObject(ClassSourceLocation, CtoName(file), 0));
 #endif
@@ -1274,18 +1282,77 @@ localClass(Class class, Name name, Name group,
   Type t;
 
   if ( !(t = CtoType(type)) )
-    sysPce("Bad type in localClass(): %s.%s: %s",
+    sysPce("Bad type in variable: %s.%s: %s",
 	   pp(class->name), pp(name), type);
 
   v = createVariable(name, t, access);
 
-  checkSummaryCharp(class->name, name, doc);
   if ( strlen(doc) > 0 )
-    assign(v, summary, CtoString(doc));
+    assign(v, summary, staticCtoString(doc));
   if ( notDefault(group) )
     assign(v, group, group);
 
   instanceVariableClass(class, v);
+}
+
+
+static Name iv_access_names[] = { NAME_none, NAME_get, NAME_send, NAME_both };
+
+status
+declareClass(Class class, const classdecl *decls)
+{ int i;
+  const vardecl *iv;
+  const resourcedecl *rc;
+
+  class->c_declarations = (classdecl *)decls; /* TBD: const */
+
+  sourceClass(class, NULL, decls->source_file, decls->rcs_revision);
+  if ( decls->term_arity != ARGC_INHERIT )
+  { if ( decls->term_arity == ARGC_UNKNOWN )
+    { assign(class, term_names, NIL);
+    } else
+    { assign(class, term_names,
+	     newObjectv(ClassVector, decls->term_arity,
+			(Any *)decls->term_names));
+    }
+  }
+
+  for( i=decls->nvar, iv = decls->variables; i-- > 0; iv++ )
+  { Name acs = iv_access_names[iv->flags & (IV_GET|IV_SEND)];
+
+    if ( iv->flags & IV_SUPER )
+    { Name wrap = iv->context;
+      assert(isName(wrap));
+
+      superClass(class, iv->name, iv->group, iv->type, acs, wrap, iv->summary);
+    } else
+    { localClass(class, iv->name, iv->group, iv->type, acs, iv->summary);
+
+      if ( iv->flags & IV_STORE )
+	storeMethod(class, iv->name, (SendFunc) iv->context);
+      else if ( iv->flags & IV_FETCH )
+	fetchMethod(class, iv->name, (GetFunc) iv->context);
+    }
+  }
+
+					/* should be delayed too? */
+  for( i=decls->nresources, rc=decls->resources; i-- > 0; rc++ )
+  { if ( rc->type == RC_REFINE )
+    { refine_resource(class, strName(rc->name), rc->value);
+    } else
+    { Resource r;
+      StringObj s = (rc->summary && strlen(rc->summary) > 0
+		     		? staticCtoString(rc->summary) : DEFAULT);
+      Name tp = (rc->type ? CtoName(rc->type) : DEFAULT);
+
+      TRY( r = newObject(ClassResource, rc->name, DEFAULT, tp,
+			 staticCtoString(rc->value), class, s, 0) );
+
+      resourceClass(class, r);
+    }
+  }
+
+  succeed;
 }
 
 
@@ -1300,7 +1367,7 @@ superClass(Class class, Name name, Name group, char *type, Name access, Name wra
 	   pp(class->name), pp(name), type);
 
   checkSummaryCharp(class->name, name, doc);
-  summary = (strlen(doc) > 0 ? CtoString(doc) : NIL);
+  summary = (strlen(doc) > 0 ? staticCtoString(doc) : NIL);
 
   v = newObject(ClassDelegateVariable, name, t, access, wrapper,
 		summary, group, 0);
@@ -1368,6 +1435,49 @@ getInstanceVariableClass(Class class, Any which)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Lazy binding of methods.
+
+We  donot  want  to  built   the    entire   method   representation  in
+<-send_methods,  <-get_methods,  <-instance_variables,  <-get_table  and
+<-send_table in one go. Many methods are   never used in an application,
+and it would be good practice if   their definition is never loaded from
+disk.
+
+Therefore, a <-get_table and <-send_table start of empty. If a method is
+needed, getSendMethodClass()/getGetMethodClass() is called,  which first
+does  a  lookup  in  these  tables.  If    the   method  is  not  found,
+getResolve(Send/Get)MethodClass() is called to find the method.
+
+One       day,       the       implementation         was        simple.
+getResolve(Send/Get)MethodClass() just walked  along   the  methods  and
+variables and added the method or  var   to  the table when found,or the
+constant @nil if the method was not found.
+
+Right now, live is  harder  as   <-send_methods  and  <-get_methods  are
+initially not filled either.  There  are   two  sources  of methods: the
+classdecl  structure  from  <-c_declarations    and  the  host-language.
+Moreover, the definitions in the host-language  may be change at runtime
+(recompilation of sourcefiles).
+
+Two cases need to be considered. Binding all (send- or get-) methods and
+binding a single one. After all  methods   have  been  bound, no dynamic
+binding is needed until the sources  are   changed.  If  a single method
+needs to be bound, the system should first  check whether the host has a
+more recent definition. If so, the host   should pass its definition. If
+not, the current definition must be used.
+
+To realise this, the class is  given   a  `generation number', and so is
+each method. If a method needs  to   be  resolved, the system will first
+check the method chain. If the method   chain contains a method with the
+same generation as the class, this one is  used. If the number is older,
+or the method is not known at  all,   the  host binder is called. If the
+host binder fails, the built-in binder is called. If this fails too, the
+instance variables are checked.
+
+class->clear_cache increments the generation number of the class.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static status
 boundSendMethodClass(Class class, Name name)
 { if ( class->realised == ON )
@@ -1414,24 +1524,142 @@ boundGetMethodClass(Class class, Name name)
 }
 
 
-static void
+static SendMethod
+attachLazySendMethodClass(Class class, const senddecl *sm)
+{ SendMethod m;
+  Type types[METHOD_MAX_ARGS];
+  int i;
+  Vector tv;
+  StringObj doc;
+  char **tps = (sm->arity == 1 ? (char **)&sm->types : (char **)sm->types);
+
+  for(i=0; i<sm->arity; i++)
+  { if ( !(types[i] = CtoType(tps[i])) )
+      sysPce("Bad type in argument %d of %s->%s: %s",
+	     i+1, pp(class->name), pp(sm->name), tps[i]);
+  }
+
+  tv = inBoot ? createVectorv(sm->arity, (Any *)types)
+              : answerObjectv(ClassVector, sm->arity, (Any *)types);
+  doc = (sm->summary ? (Any) staticCtoString(sm->summary) : DEFAULT);
+  m = createSendMethod(sm->name, tv, doc, sm->function);
+  if ( notDefault(sm->group) )
+    assign(m, group, sm->group);
+
+  appendChain(class->send_methods, m);
+  assign(m, context, class);
+
+  return m;
+}
+
+
+static GetMethod
+attachLazyGetMethodClass(Class class, const getdecl *gm)
+{ GetMethod m;
+  Type types[METHOD_MAX_ARGS];
+  Type rtype;
+  int i;
+  Vector tv;
+  StringObj doc;
+  char **tps = (gm->arity == 1 ? (char **)&gm->types : (char **)gm->types);
+
+  for(i=0; i<gm->arity; i++)
+  { if ( !(types[i] = CtoType(tps[i])) )
+      sysPce("Bad type in argument %d of %s<-%s: %s",
+	     i+1, pp(class->name), pp(gm->name),tps[i]);
+  }
+  if ( !(rtype = CtoType(gm->rtype)) )
+  { sysPce("Bad return-type in %s<-%s: %s",
+	   pp(class->name), pp(gm->name), gm->rtype);
+  }
+
+  tv = inBoot ? createVectorv(gm->arity, (Any *)types)
+              : answerObjectv(ClassVector, gm->arity, (Any *)types);
+  doc = (gm->summary ? (Any) staticCtoString(gm->summary) : DEFAULT);
+  m = createGetMethod(gm->name, rtype, tv, doc, gm->function);
+  if ( notDefault(gm->group) )
+    assign(m, group, gm->group);
+
+  appendChain(class->get_methods, m);
+  assign(m, context, class);
+
+  return m;
+}
+
+
+static Any
 bindMethod(Class class, Name code, Name selector)
 { Any c;
+  status rval = FAIL;
+  classdecl *cdecls = class->c_declarations;
+  int i;
+
+  if ( isDefault(selector) && cdecls )
+  { if ( code == NAME_send )
+    { const senddecl *sm;
+
+      for( i = cdecls->nsend, sm = cdecls->send_methods; i-- > 0; sm++ )
+	attachLazySendMethodClass(class, sm);
+    } else
+    { const getdecl *gm;
+
+      for( i = cdecls->nget, gm = cdecls->get_methods; i-- > 0; gm++ )
+	attachLazyGetMethodClass(class, gm);
+    }
+  }
 
   if ( notNil((c=class->resolve_method_message)) && notDefault(c) )
   { if ( instanceOfObject(c, ClassCode) )
-      forwardReceiverCode(c, class, code, class->name, selector, 0);
+      rval = forwardReceiverCode(c, class, code, class->name, selector, 0);
     else
     { Any av[2];
 
       av[0] = class->name;
       av[1] = selector;
 
-      hostCallProc(c, code, class, 2, av);
+      rval = hostCallProc(c, code, class, 2, av);
     }
   }
-}
 
+  if ( isDefault(selector) )
+    return DEFAULT;
+
+  if ( rval )
+  { Chain ch = (code == NAME_send ? class->send_methods : class->get_methods);
+    Cell cell;
+    Method m = getTailChain(ch);
+    
+    if ( m && m->name == selector )	/* this will be the common case! */
+      return m;
+
+    for_cell(cell, ch)
+    { Method m = cell->value;
+
+      if ( m->name == selector )
+	return m;
+    }
+  } else
+  { if ( cdecls )
+    { if ( code == NAME_send )
+      { const senddecl *sm;
+      
+	for( i = cdecls->nsend, sm = cdecls->send_methods; i-- > 0; sm++ )
+	{ if ( sm->name == selector )
+	    return attachLazySendMethodClass(class, sm);
+	}
+      } else				/* get */
+      { const getdecl *gm;
+	
+	for( i = cdecls->nget, gm = cdecls->get_methods; i-- > 0; gm++ )
+	{ if ( gm->name == selector )
+	    return attachLazyGetMethodClass(class, gm);
+	}
+      }
+    }
+  }
+
+  fail;
+}
 
 
 Any
@@ -1450,14 +1678,21 @@ getResolveSendMethodClass(Class class, Name name)
       answer(sm);
     }
 
-    bindMethod(super, NAME_send, name);
-
+					/* first do built-in, so redefines */
+					/* need to remove a method first */
     for_cell(cell, super->send_methods)
     { SendMethod m = cell->value;
 
       if ( m->name == name )
       { appendHashTable(class->send_table, name, m);
 	answer(m);
+      }
+    }
+
+    if ( onDFlag(super, DC_LAZY_SEND) )
+    { if ( (sm = bindMethod(super, NAME_send, name)) )
+      {	appendHashTable(class->send_table, name, sm);
+	answer(sm);
       }
     }
 
@@ -1492,14 +1727,19 @@ getResolveGetMethodClass(Class class, Name name)
       answer(gm);
     }
 
-    bindMethod(super, NAME_get, name);
-
     for_cell(cell, super->get_methods)
     { GetMethod m = cell->value;
 
       if ( m->name == name )
       { appendHashTable(class->get_table, name, m);
 	answer(m);
+      }
+    }
+
+    if ( onDFlag(super, DC_LAZY_GET) )
+    { if ( (gm = bindMethod(super, NAME_get, name)) )
+      { appendHashTable(class->get_table, name, gm);
+	answer(gm);
       }
     }
 
@@ -1530,6 +1770,56 @@ clearCacheClass(Class class)
     installClass(class);		/* Enter function special methods */
   }
     
+  succeed;
+}
+
+
+status
+deleteSendMethodClass(Class class, Name selector)
+{ if ( class->realised == ON )
+  { Cell cell;
+
+    deleteHashTable(class->send_table, selector);
+    for_cell(cell, class->send_methods)
+    { SendMethod sm = cell->value;
+    
+      if ( sm->name == selector )
+      { deleteChain(class->send_methods, sm);
+	break;
+      }
+    }
+
+    if ( selector == NAME_initialise )
+      assign(class, initialise_method, DEFAULT);
+    else if ( selector == NAME_catchAll )
+      assign(class, send_catch_all, DEFAULT);
+  }
+
+  succeed;
+}
+
+
+status
+deleteGetMethodClass(Class class, Name selector)
+{ if ( class->realised == ON )
+  { Cell cell;
+
+    deleteHashTable(class->get_table, selector);
+    for_cell(cell, class->get_methods)
+    { GetMethod sm = cell->value;
+    
+      if ( sm->name == selector )
+      { deleteChain(class->get_methods, sm);
+	break;
+      }
+    }
+
+    if ( selector == NAME_lookup )
+      assign(class, lookup_method, DEFAULT);
+    else if ( selector == NAME_convert )
+      assign(class, convert_method, DEFAULT);
+  }
+
   succeed;
 }
 
@@ -1816,12 +2106,39 @@ getFeatureClass(Class class, Name name)
 }
 
 
+		 /*******************************
+		 *	LAZY METHOD BINDING	*
+		 *******************************/
+
+static Bool
+getLazyBindingClass(Class class, Name which)
+{ ulong mask = (which == NAME_send ? DC_LAZY_SEND : DC_LAZY_GET);
+
+  answer(onDFlag(class, mask) ? ON : OFF);
+}
+
+
+static status
+lazyBindingClass(Class class, Name which, Bool val)
+{ ulong mask = (which == NAME_send ? DC_LAZY_SEND : DC_LAZY_GET);
+
+  if ( val == ON )
+    setDFlag(class, mask);
+  else
+  { if ( onDFlag(class, mask ) )
+    { bindMethod(class, which, DEFAULT);
+      clearDFlag(class, mask);
+    }
+  }    
+
+  succeed;
+}
+
 
 Chain
 getSendMethodsClass(Class class)
 { realiseClass(class);
-
-  bindMethod(class, NAME_send, DEFAULT);
+  lazyBindingClass(class, NAME_send, OFF);
 
   answer(class->send_methods);
 }
@@ -1830,12 +2147,10 @@ getSendMethodsClass(Class class)
 static Chain
 getGetMethodsClass(Class class)
 { realiseClass(class);
-
-  bindMethod(class, NAME_get, DEFAULT);
+  lazyBindingClass(class, NAME_get, OFF);
 
   answer(class->get_methods);
 }
-
 
 
 status
@@ -1848,8 +2163,6 @@ makeClassClass(Class class)
 	     "Send methods not inherited");
   localClass(class, NAME_getMethods, NAME_behaviour, "chain", NAME_none,
 	     "Get methods not inherited");
-  localClass(class, NAME_termFunctor, NAME_term, "name", NAME_both,
-	     "Functor used for term description");
   localClass(class, NAME_termNames, NAME_term, "vector*", NAME_both,
 	     "Selectors to obtain term arguments");
   localClass(class, NAME_delegate, NAME_behaviour, "chain", NAME_get,
@@ -1880,10 +2193,8 @@ makeClassClass(Class class)
 	     "Size of an instance in bytes");
   localClass(class, NAME_slots, NAME_oms, "int", NAME_get,
 	     "Total number of instance variables");
-#ifndef O_RUNTIME
   localClass(class, NAME_source, NAME_manual, "source_location*", NAME_both,
 	     "Location in the sources");
-#endif /*O_RUNTIME*/
   localClass(class, NAME_rcsRevision, NAME_version, "name*", NAME_get,
 	     "RCS revision of sourcefile");
   localClass(class, NAME_changedMessages, NAME_change, "chain*", NAME_both,
@@ -1968,6 +2279,9 @@ makeClassClass(Class class)
   localClass(class, NAME_boot, NAME_internal,
 	     "alien:int", NAME_none,
 	     "#PCE slots when booting; 0 otherwise");
+  localClass(class, NAME_cDeclarations, NAME_internal,
+	     "alien:classdecl*", NAME_none,
+	     "Description left by C-compiler");
 
   termClass(class, "class", 2, NAME_name, NAME_superClassName);
   saveStyleClass(class, NAME_external);
@@ -2036,6 +2350,12 @@ makeClassClass(Class class)
   sendMethod(class, NAME_clearCache, NAME_cache, 0,
 	     "Clear method resolution cache",
 	     clearCacheClass);
+  sendMethod(class, NAME_deleteSendMethod, NAME_cache, 1, "name",
+	     "Delete a send-method",
+	     deleteSendMethodClass);
+  sendMethod(class, NAME_deleteGetMethod, NAME_cache, 1, "name",
+	     "Delete a get-method",
+	     deleteGetMethodClass);
   sendMethod(class, NAME_feature, NAME_version, 2,
 	     "feature=name", "value=[any]",
 	     "Register class feature",
@@ -2055,6 +2375,9 @@ makeClassClass(Class class)
   sendMethod(class, NAME_boundGetMethod, NAME_cache, 1, "name",
 	     "Test if class defines get_method `name'",
 	     boundGetMethodClass);
+  sendMethod(class, NAME_lazyBinding, NAME_cache, 2, "{send,get}", "bool",
+	     "Determines when messages are bound",
+	     lazyBindingClass);
 
   getMethod(class, NAME_subClass, NAME_oms, "class", 1, "name",
 	    "Create a class below this one (or return existing)",
@@ -2094,6 +2417,10 @@ makeClassClass(Class class)
   getMethod(class, NAME_feature, NAME_version, "any", 1, "feature=name",
 	    "Get value of given feature",
 	    getFeatureClass);
+  getMethod(class, NAME_lazyBinding, NAME_cache, "bool", 1, "{send,get}",
+	    "@on if methods are bound lazy",
+	    getLazyBindingClass);
+
 
 		 /*******************************
 		 *	   RESOURCE FUNCTIONS	*

@@ -168,16 +168,51 @@ out:
   return rval;
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_send[] =
+        { "receiver=object", "argument=unchecked ..." };
+
+/* Instance Variables */
+
+static const vardecl var_sendMethod[] =
+{ 
+};
+
+/* Send Methods */
+
+static const senddecl send_sendMethod[] =
+{ SM(NAME_send, 2, T_send, sendSendMethod,
+     NAME_execute, "Invoke send method on object")
+};
+
+/* Get Methods */
+
+static const getdecl get_sendMethod[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_sendMethod[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(sendMethod_decls,
+          var_sendMethod, send_sendMethod, get_sendMethod, rc_sendMethod,
+          ARGC_INHERIT, NULL,
+          "$Rev$");
+
 
 status
 makeClassSendMethod(Class class)
-{ sourceClass(class, makeClassSendMethod, __FILE__, "$Revision$");
-
-  sendMethod(class, NAME_send, NAME_execute, 2,
-	     "receiver=object", "argument=unchecked ...",
-	     "Invoke send method on object",
-	     sendSendMethod);
-
+{ declareClass(class, &sendMethod_decls);
 					/* fix up bootClass stuff */
   assign(class, initialise_method,
 	 getSendMethodClass(ClassMethod, NAME_initialise));

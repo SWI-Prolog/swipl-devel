@@ -55,29 +55,55 @@ getArgOr(Or or, Int n)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+
+/* Instance Variables */
+
+static const vardecl var_or[] =
+{ IV(NAME_members, "chain", IV_GET,
+     NAME_statement, "One of these must succeed")
+};
+
+/* Send Methods */
+
+static const senddecl send_or[] =
+{ SM(NAME_Execute, 0, NULL, ExecuteOr,
+     DEFAULT, "Evaluate tests until one succeeds"),
+  SM(NAME_initialise, 1, "test=code ...", initialiseOrv,
+     DEFAULT, "Create from tests")
+};
+
+/* Get Methods */
+
+static const getdecl get_or[] =
+{ GM(NAME_Arg, 1, "code", "int", getArgOr,
+     DEFAULT, "Nth-1 argument for term description"),
+  GM(NAME_Arity, 0, "int", NULL, getArityOr,
+     DEFAULT, "Arity for term description")
+};
+
+/* Resources */
+
+static const resourcedecl rc_or[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(or_decls,
+          var_or, send_or, get_or, rc_or,
+          ARGC_UNKNOWN, NULL,
+          "$Rev$");
+
 status
 makeClassOr(Class class)
-{ sourceClass(class, makeClassOr, __FILE__, "$Revision$");
-
-  localClass(class, NAME_members, NAME_statement, "chain", NAME_get,
-	     "One of these must succeed");
-
-  termClass(class, "or", ARGC_UNKNOWN);
+{ declareClass(class, &or_decls);
   delegateClass(class, NAME_members);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "test=code ...",
-	     "Create from tests",
-	     initialiseOrv);
-  sendMethod(class, NAME_Execute, DEFAULT, 0,
-	     "Evaluate tests until one succeeds",
-	     ExecuteOr);
-
-  getMethod(class, NAME_Arg, DEFAULT, "code", 1, "int",
-	    "Nth-1 argument for term description",
-	    getArgOr);
-  getMethod(class, NAME_Arity, DEFAULT, "int", 0,
-	    "Arity for term description",
-	    getArityOr);
 
   succeed;
 }

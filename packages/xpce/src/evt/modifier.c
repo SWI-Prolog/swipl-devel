@@ -62,27 +62,58 @@ getConvertModifier(Class class, Name name)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "shift=[{up,down}]", "control=[{up,down}]", "meta=[{up,down}]" };
+
+/* Instance Variables */
+
+static const vardecl var_modifier[] =
+{ IV(NAME_shift, "[{up,down}]", IV_BOTH,
+     NAME_modifier, "Condition on shift"),
+  IV(NAME_control, "[{up,down}]", IV_BOTH,
+     NAME_modifier, "Condition on control"),
+  IV(NAME_meta, "[{up,down}]", IV_BOTH,
+     NAME_modifier, "Condition on meta")
+};
+
+/* Send Methods */
+
+static const senddecl send_modifier[] =
+{ SM(NAME_initialise, 3, T_initialise, initialiseModifier,
+     DEFAULT, "Create from shift, control and meta")
+};
+
+/* Get Methods */
+
+static const getdecl get_modifier[] =
+{ GM(NAME_convert, 1, "modifier", "name", getConvertModifier,
+     NAME_conversion, "Convert name, consisting of {s|m|c}")
+};
+
+/* Resources */
+
+static const resourcedecl rc_modifier[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name modifier_termnames[] = { NAME_shift, NAME_control, NAME_meta };
+
+ClassDecl(modifier_decls,
+          var_modifier, send_modifier, get_modifier, rc_modifier,
+          3, modifier_termnames,
+          "$Rev$");
+
 status
 makeClassModifier(Class class)
-{ sourceClass(class, makeClassModifier, __FILE__, "$Revision$");
-
-  localClass(class, NAME_shift, NAME_modifier, "[{up,down}]", NAME_both,
-	     "Condition on shift");
-  localClass(class, NAME_control, NAME_modifier, "[{up,down}]", NAME_both,
-	     "Condition on control");
-  localClass(class, NAME_meta, NAME_modifier, "[{up,down}]", NAME_both,
-	     "Condition on meta");
-
-  termClass(class, "modifier", 3, NAME_shift, NAME_control, NAME_meta);
-
-  sendMethod(class, NAME_initialise, DEFAULT,
-	     3, "shift=[{up,down}]", "control=[{up,down}]", "meta=[{up,down}]",
-	     "Create from shift, control and meta",
-	     initialiseModifier);
-
-  getMethod(class, NAME_convert, NAME_conversion, "modifier", 1, "name",
-	    "Convert name, consisting of {s|m|c}",
-	    getConvertModifier);
+{ declareClass(class, &modifier_decls);
 
   MODIFIER_shift = globalObject(NAME_ModifierShift, ClassModifier,
 				NAME_down, NAME_up, NAME_up, 0);

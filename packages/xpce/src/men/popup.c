@@ -493,104 +493,121 @@ showCurrentPopup(PopupObj p, Bool show)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_drag[] =
+        { "event", "check_pullright=[bool]" };
+static const char *T_showPullrightMenu[] =
+        { "item=menu_item", "event=[event]", "context=[any]" };
+static const char *T_initialise[] =
+        { "name=[name]", "message=[code]*" };
+static const char *T_open[] =
+        { "on=graphical", "offset=point", "offset_is_pointer=[bool]", "warp=[bool]", "ensure_on_display=[bool]" };
+
+/* Instance Variables */
+
+static const vardecl var_popup[] =
+{ IV(NAME_context, "any*", IV_BOTH,
+     NAME_context, "Invoking context"),
+  IV(NAME_updateMessage, "code*", IV_BOTH,
+     NAME_active, "Ran just before popup is displayed"),
+  IV(NAME_pullright, "popup*", IV_NONE,
+     NAME_part, "Currently shown pullright menu"),
+  IV(NAME_selectedItem, "menu_item|popup*", IV_GET,
+     NAME_selection, "Selected menu-item/sub-popup"),
+  IV(NAME_button, "button_name", IV_GET,
+     NAME_event, "Name of invoking button"),
+  IV(NAME_defaultItem, "{first,selection}|any*", IV_BOTH,
+     NAME_appearance, "Initial previewed item"),
+  SV(NAME_showCurrent, "bool", IV_GET|IV_STORE, showCurrentPopup,
+     NAME_appearance, "If @on, show the currently selected value")
+};
+
+/* Send Methods */
+
+static const senddecl send_popup[] =
+{ SM(NAME_event, 1, "event", eventPopup,
+     DEFAULT, "Handle an event"),
+  SM(NAME_initialise, 2, T_initialise, initialisePopup,
+     DEFAULT, "Create from name and message"),
+  SM(NAME_key, 1, "key=name", keyPopup,
+     NAME_accelerator, "Set <-selected_item according to accelerator"),
+  SM(NAME_update, 1, "context=any", updatePopup,
+     NAME_active, "Update entries using context object)"),
+  SM(NAME_endGroup, 1, "bool", endGroupPopup,
+     NAME_appearance, "Pullright: separation line below item in super"),
+  SM(NAME_drag, 2, T_drag, dragPopup,
+     NAME_event, "Handle a drag event"),
+  SM(NAME_showPullrightMenu, 3, T_showPullrightMenu, showPullrightMenuPopup,
+     NAME_event, "Show pullright for this item"),
+  SM(NAME_execute, 1, "context=[object]*", executePopup,
+     NAME_execute, "Execute selected message of item"),
+  SM(NAME_close, 0, NULL, closePopup,
+     NAME_open, "Finish after ->open"),
+  SM(NAME_open, 5, T_open, openPopup,
+     NAME_open, "Open on point relative to graphical"),
+  SM(NAME_reset, 0, NULL, resetPopup,
+     NAME_reset, "Close popup after an abort")
+};
+
+/* Get Methods */
+
+static const getdecl get_popup[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_popup[] =
+{ RC(NAME_acceleratorFont, "font*", "small",
+     "Show the accelerators"),
+  RC(NAME_border, "int", "2",
+     "Default border around items"),
+  RC(NAME_cursor, "cursor", "right_ptr",
+     "Cursor when popup is active"),
+  RC(NAME_defaultItem, "name*", "first",
+     "Item to select as default"),
+  RC(NAME_feedback, "name", "image",
+     "Feedback style"),
+  RC(NAME_kind, "name", "popup",
+     "Menu kind"),
+  RC(NAME_labelSuffix, "name", "",
+     "Ensured suffix of label"),
+  RC(NAME_layout, "name", "vertical",
+     "Put items below each other"),
+  RC(NAME_multipleSelection, "bool", "@off",
+     "Can have multiple selection"),
+  RC(NAME_offImage, "image*", "@nil",
+     "Marker for items not in selection"),
+  RC(NAME_onImage, "image*", "@nil",
+     "Marker for items in selection"),
+  RC(NAME_pen, "int", "0",
+     "Thickness of the drawing-pen"),
+  RC(NAME_popupImage, "image*", "@pull_right_image",
+     "Marker for items with popup"),
+  RC(NAME_previewFeedback, "name", "invert",
+     "Feedback on `preview' item"),
+  RC(NAME_showLabel, "bool", "@off",
+     "Label is visible"),
+  RC(NAME_valueWidth, "int", "80",
+     "Minimum width in pixels")
+};
+
+/* Class Declaration */
+
+static Name popup_termnames[] = { NAME_name, NAME_message };
+
+ClassDecl(popup_decls,
+          var_popup, send_popup, get_popup, rc_popup,
+          2, popup_termnames,
+          "$Rev$");
+
 status
 makeClassPopup(Class class)
-{ sourceClass(class, makeClassPopup, __FILE__, "$Revision$");
-
-  localClass(class, NAME_context, NAME_context, "any*", NAME_both,
-	     "Invoking context");
-  localClass(class, NAME_updateMessage, NAME_active, "code*", NAME_both,
-	     "Ran just before popup is displayed");
-  localClass(class, NAME_pullright, NAME_part, "popup*", NAME_none,
-	     "Currently shown pullright menu");
-  localClass(class, NAME_selectedItem, NAME_selection,
-	     "menu_item|popup*", NAME_get,
-	     "Selected menu-item/sub-popup");
-  localClass(class, NAME_button, NAME_event, "button_name", NAME_get,
-	     "Name of invoking button");
-  localClass(class, NAME_defaultItem, NAME_appearance, 
-	     "{first,selection}|any*", NAME_both,
-	     "Initial previewed item");
-  localClass(class, NAME_showCurrent, NAME_appearance, "bool", NAME_get,
-	     "If @on, show the currently selected value");
-
-  termClass(class, "popup", 2, NAME_name, NAME_message);
-
-  storeMethod(class, NAME_showCurrent, showCurrentPopup);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2,
-	     "name=[name]", "message=[code]*",
-	     "Create from name and message",
-	     initialisePopup);
-  sendMethod(class, NAME_reset, NAME_reset, 0,
-	     "Close popup after an abort",
-	     resetPopup);
-  sendMethod(class, NAME_event, DEFAULT, 1, "event",
-	     "Handle an event",
-	     eventPopup);
-  sendMethod(class, NAME_drag, NAME_event, 2,
-	     "event", "check_pullright=[bool]",
-	     "Handle a drag event",
-	     dragPopup);
-  sendMethod(class, NAME_showPullrightMenu, NAME_event, 3,
-	     "item=menu_item", "event=[event]", "context=[any]",
-	     "Show pullright for this item",
-	     showPullrightMenuPopup);
-  sendMethod(class, NAME_update, NAME_active, 1, "context=any",
-	     "Update entries using context object)",
-	     updatePopup);
-  sendMethod(class, NAME_open, NAME_open, 5,
-	     "on=graphical", "offset=point",
-	     "offset_is_pointer=[bool]", "warp=[bool]",
-	     "ensure_on_display=[bool]",
-	     "Open on point relative to graphical",
-	     openPopup);
-  sendMethod(class, NAME_close, NAME_open, 0,
-	     "Finish after ->open",
-	     closePopup);
-  sendMethod(class, NAME_execute, NAME_execute, 1, "context=[object]*",
-	     "Execute selected message of item",
-	     executePopup);
-  sendMethod(class, NAME_endGroup, NAME_appearance, 1, "bool",
-	     "Pullright: separation line below item in super",
-	     endGroupPopup);
-  sendMethod(class, NAME_key, NAME_accelerator, 1, "key=name",
-	     "Set <-selected_item according to accelerator",
-	     keyPopup);
-
-  attach_resource(class, "show_label", "bool", "@off",
-		  "Label is visible");
-  attach_resource(class, "accelerator_font", "font*", "small",
-		  "Show the accelerators");
-  attach_resource(class, "default_item", "name*", "first",
-		  "Item to select as default");
-  attach_resource(class, "cursor",     "cursor",  "right_ptr",
-		  "Cursor when popup is active");
-  attach_resource(class, "kind",       "name",  "popup",
-		  "Menu kind");
-  attach_resource(class, "multiple_selection", "bool",  "@off",
-		  "Can have multiple selection");
-  attach_resource(class, "value_width", "int", "80",
-		  "Minimum width in pixels");
-  attach_resource(class, "border",	"int", "2",
-		  "Default border around items");
-  attach_resource(class, "layout",	"name", "vertical",
-		  "Put items below each other");
-  attach_resource(class, "on_image",   "image*",   "@nil",
-		  "Marker for items in selection");
-  attach_resource(class, "off_image",  "image*",   "@nil",
-		  "Marker for items not in selection");
-  attach_resource(class, "popup_image","image*",   "@pull_right_image",
-		  "Marker for items with popup");
-  attach_resource(class, "feedback",   "name",   "image",
-		  "Feedback style");
-  attach_resource(class, "preview_feedback", "name", "invert",
-		  "Feedback on `preview' item");
-  attach_resource(class, "pen", "int", "0",
-		  "Thickness of the drawing-pen");
-  attach_resource(class, "label_suffix", "name", "",
-		  "Ensured suffix of label");
-
-  succeed;
+{ return declareClass(class, &popup_decls);
 }
 

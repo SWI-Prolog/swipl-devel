@@ -275,84 +275,94 @@ getLabelWindowDecorator(WindowDecorator dw)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_label[] =
+        { "format=char_array*", "argument=any ..." };
+static const char *T_initialise[] =
+        { "window=window", "scrollbars=[{none,vertical,horizontal,both}]", "label=[char_array]" };
+static const char *T_xADintD_yADintD_widthADintD_heightADintD[] =
+        { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_windowDecorator[] =
+{ IV(NAME_window, "window", IV_GET,
+     NAME_client, "Decorated window"),
+  IV(NAME_horizontalScrollbar, "scroll_bar*", IV_GET,
+     NAME_scroll, "Scrollbar for X-direction"),
+  IV(NAME_verticalScrollbar, "scroll_bar*", IV_GET,
+     NAME_scroll, "Scrollbar for Y-direction"),
+  IV(NAME_labelText, "text*", IV_GET,
+     NAME_label, "Text object to display label")
+};
+
+/* Send Methods */
+
+static const senddecl send_windowDecorator[] =
+{ SM(NAME_displayed, 1, "bool", displayedWindowDecorator,
+     DEFAULT, "(Un)display window.  Take care of <-window"),
+  SM(NAME_geometry, 4, T_xADintD_yADintD_widthADintD_heightADintD, geometryWindowDecorator,
+     DEFAULT, "Update internals"),
+  SM(NAME_initialise, 3, T_initialise, initialiseWindowDecorator,
+     DEFAULT, "Create decoration for window"),
+  SM(NAME_requestGeometry, 4, T_xADintD_yADintD_widthADintD_heightADintD, requestGeometryWindowDecorator,
+     DEFAULT, "Handle window geometry request"),
+  SM(NAME_resize, 0, NULL, resizeWindowDecorator,
+     DEFAULT, "Also `window ->resize' <-window"),
+  SM(NAME_unlink, 0, NULL, unlinkWindowDecorator,
+     DEFAULT, "Make sure <-window is destroyed"),
+  SM(NAME_label, 2, T_label, labelWindowDecorator,
+     NAME_label, "Define window-level label"),
+  SM(NAME_ComputeDesiredSize, 0, NULL, ComputeDesiredSizeWindowDecorator,
+     NAME_layout, "Compute the desired size (delegate to <-window)"),
+  SM(NAME_rearrange, 0, NULL, rearrangeWindowDecorator,
+     NAME_layout, "Rearrange <-window, <-scrollbars and <-label_text"),
+  SM(NAME_horizontalScrollbar, 1, "bool", horizontalScrollbarWindowDecorator,
+     NAME_scroll, "Attach/detach horizontal scrollbar"),
+  SM(NAME_scrollbars, 1, "{none,horizontal,vertical,both}", scrollbarsWindowDecorator,
+     NAME_scroll, "Set/remove scrollbars"),
+  SM(NAME_verticalScrollbar, 1, "bool", verticalScrollbarWindowDecorator,
+     NAME_scroll, "Attach/detach horizontal scrollbar")
+};
+
+/* Get Methods */
+
+static const getdecl get_windowDecorator[] =
+{ GM(NAME_label, 0, "char_array", NULL, getLabelWindowDecorator,
+     NAME_label, "Currently displayed label"),
+  GM(NAME_scrollbars, 0, "{none,horizontal,vertical,both}", NULL, getScrollbarsWindowDecorator,
+     NAME_scroll, "Available scrollbars")
+};
+
+/* Resources */
+
+static const resourcedecl rc_windowDecorator[] =
+{ RC(NAME_border, "int", "0",
+     "Distance between outside and inside"),
+  RC(NAME_labelFont, "font", "bold",
+     "Font to display label"),
+  RC(NAME_pen, "int", "0",
+     "Thickness of outside line")
+};
+
+/* Class Declaration */
+
+static Name windowDecorator_termnames[] =
+	{ NAME_window, NAME_scrollbars, NAME_label };
+
+ClassDecl(windowDecorator_decls,
+          var_windowDecorator, send_windowDecorator,
+	  get_windowDecorator, rc_windowDecorator,
+          3, windowDecorator_termnames,
+          "$Rev$");
+
+
 status
 makeClassWindowDecorator(Class class)
-{ sourceClass(class, makeClassWindowDecorator, __FILE__, "$Revision$");
-
-  localClass(class, NAME_window, NAME_client, "window", NAME_get,
-	     "Decorated window");
-  localClass(class, NAME_horizontalScrollbar, NAME_scroll,
-	     "scroll_bar*", NAME_get,
-	     "Scrollbar for X-direction");
-  localClass(class, NAME_verticalScrollbar, NAME_scroll,
-	     "scroll_bar*", NAME_get,
-	     "Scrollbar for Y-direction");
-  localClass(class, NAME_labelText, NAME_label,
-	     "text*", NAME_get,
-	     "Text object to display label");
-
-  termClass(class, "window_decorator", 3,
-	    NAME_window, NAME_scrollbars, NAME_label);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 3,
-	     "window=window", "scrollbars=[{none,vertical,horizontal,both}]",
-	     "label=[char_array]",
-	     "Create decoration for window",
-	     initialiseWindowDecorator);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Make sure <-window is destroyed",
-	     unlinkWindowDecorator);
-
-  sendMethod(class, NAME_geometry, DEFAULT, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Update internals",
-	     geometryWindowDecorator);
-  sendMethod(class, NAME_requestGeometry, DEFAULT, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Handle window geometry request",
-	     requestGeometryWindowDecorator);
-  sendMethod(class, NAME_rearrange, NAME_layout, 0,
-	     "Rearrange <-window, <-scrollbars and <-label_text",
-	     rearrangeWindowDecorator);
-  sendMethod(class, NAME_resize, DEFAULT, 0,
-	     "Also `window ->resize' <-window",
-	     resizeWindowDecorator);
-  sendMethod(class, NAME_label, NAME_label, 2,
-	     "format=char_array*", "argument=any ...",
-	     "Define window-level label",
-	     labelWindowDecorator);
-  sendMethod(class, NAME_displayed, DEFAULT, 1, "bool",
-	     "(Un)display window.  Take care of <-window",
-	     displayedWindowDecorator);
-  sendMethod(class, NAME_ComputeDesiredSize, NAME_layout, 0,
-	     "Compute the desired size (delegate to <-window)",
-	     ComputeDesiredSizeWindowDecorator);
-
-  sendMethod(class, NAME_horizontalScrollbar, NAME_scroll, 1, "bool",
-	     "Attach/detach horizontal scrollbar",
-	     horizontalScrollbarWindowDecorator);
-  sendMethod(class, NAME_verticalScrollbar, NAME_scroll, 1, "bool",
-	     "Attach/detach horizontal scrollbar",
-	     verticalScrollbarWindowDecorator);
-  sendMethod(class, NAME_scrollbars, NAME_scroll, 1,
-	     "{none,horizontal,vertical,both}",
-	     "Set/remove scrollbars",
-	     scrollbarsWindowDecorator);
-
-  getMethod(class, NAME_label, NAME_label, "char_array", 0,
-	    "Currently displayed label",
-	    getLabelWindowDecorator);
-  getMethod(class, NAME_scrollbars, NAME_scroll,
-	    "{none,horizontal,vertical,both}", 0,
-	    "Available scrollbars",
-	    getScrollbarsWindowDecorator);
-
-  attach_resource(class, "border", "int", "0",
-		  "Distance between outside and inside");
-  attach_resource(class, "pen", "int", "0",
-		  "Thickness of outside line");
-  attach_resource(class, "label_font", "font", "bold",
-		  "Font to display label");
-
-  succeed;
+{ return declareClass(class, &windowDecorator_decls);
 }

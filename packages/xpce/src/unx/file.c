@@ -985,136 +985,135 @@ checkObjectFile(FileObj f)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_seek[] =
+        { "byte=int", "from=[{start,here,end}]" };
+static const char *T_format[] =
+        { "format=char_array", "argument=any ..." };
+static const char *T_open[] =
+        { "mode={read,write,append}", "filter=[name]",
+	  "extension=[char_array]" };
+static const char *T_find[] =
+        { "path=[char_array]", "access=[{read,write,append,execute}]" };
+static const char *T_initialise[] =
+        { "path=[name]", "kind=[{text,binary}]" };
+
+/* Instance Variables */
+
+static const vardecl var_file[] =
+{ SV(NAME_name, "name=name", IV_GET|IV_STORE, nameFile,
+     NAME_path, "Name of the file"),
+  IV(NAME_path, "path=[name]", IV_BOTH,
+     NAME_path, "Full path-name of the file"),
+  SV(NAME_kind, "{text,binary}", IV_GET|IV_STORE, kindFile,
+     NAME_fileType, "Text or binary file"),
+  IV(NAME_status, "{closed,read,write}", IV_GET,
+     NAME_open, "One of {closed,read,write}"),
+  IV(NAME_filter, "command=name*", IV_BOTH,
+     NAME_filter, "Name of input/output filter used"),
+  IV(NAME_fd, "alien:FILE *", IV_NONE,
+     NAME_internal, "Unix file (stream) handle")
+};
+
+/* Send Methods */
+
+static const senddecl send_file[] =
+{ SM(NAME_initialise, 2, T_initialise, initialiseFile,
+     DEFAULT, "Create from name and kind"),
+  SM(NAME_unlink, 0, NULL, unlinkFile,
+     DEFAULT, "Close file"),
+  SM(NAME_backup, 1, "extension=[name]", backupFile,
+     NAME_copy, "Make a backup by adding extension (~)"),
+  SM(NAME_copy, 1, "from=file", copyFile,
+     NAME_copy, "Copy to destination file"),
+  SM(NAME_remove, 0, NULL, removeFile,
+     NAME_delete, "Unlink from Unix file system"),
+  SM(NAME_checkObject, 0, NULL, checkObjectFile,
+     NAME_file, "Test if file contains a saved PCE object"),
+  SM(NAME_find, 2, T_find, findFile,
+     NAME_location, "Find file in search-path"),
+  SM(NAME_seek, 2, T_seek, seekFile,
+     NAME_location, "Seek to index from {start,here,end}"),
+  SM(NAME_close, 0, NULL, closeFile,
+     NAME_open, "Close file"),
+  SM(NAME_open, 3, T_open, openFile,
+     NAME_open, "Open file in mode, read/write through filter"),
+  SM(NAME_absolutePath, 0, NULL, absolutePathFile,
+     NAME_path, "Convert <-name to an absolute path"),
+  SM(NAME_isAbsolute, 0, NULL, isAbsoluteFile,
+     NAME_path, "Test if <-name specifies an absolute path"),
+  SM(NAME_access, 1, "mode={read,write,append,execute}", accessFile,
+     NAME_test, "Test if file has access"),
+  SM(NAME_exists, 1, "must_be_file=[bool]", existsFile,
+     NAME_test, "Test if file exists"),
+  SM(NAME_same, 1, "file=file", sameFile,
+     NAME_test, "Test if two paths refer to the same physical file"),
+  SM(NAME_append, 1, "text=char_array", appendFile,
+     NAME_write, "Append string to file"),
+  SM(NAME_flush, 0, NULL, flushFile,
+     NAME_write, "Flush pending output"),
+  SM(NAME_format, 2, T_format, formatFile,
+     NAME_write, "Format arguments and ->append"),
+  SM(NAME_newline, 0, NULL, newlineFile,
+     NAME_write, "Append newline to file")
+};
+
+/* Get Methods */
+
+static const getdecl get_file[] =
+{ GM(NAME_convert, 1, "file", "path=name", getConvertFile,
+     DEFAULT, "Convert name to file"),
+  GM(NAME_backupFileName, 1, "char_array", "extension=[char_array]",
+     getBackupFileNameFile,
+     NAME_copy, "Name for storing ->backup data"),
+  GM(NAME_size, 0, "bytes=int", NULL, getSizeFile,
+     NAME_dimension, "Size in characters"),
+  GM(NAME_object, 0, "object=any|function", NULL, getObjectFile,
+     NAME_file, "New object from file created with ->save_in_file"),
+  GM(NAME_filter, 0, "extension_and_filter=attribute", NULL, getFilterFile,
+     NAME_filter, "Determine input filter from extension"),
+  GM(NAME_index, 0, "byte=int", NULL, getIndexFile,
+     NAME_location, "Current index (Unix tell())"),
+  GM(NAME_absolutePath, 0, "path=name", NULL, getAbsolutePathFile,
+     NAME_path, "Convert <-name to an absolute path"),
+  GM(NAME_baseName, 0, "name", NULL, getBaseNameFile,
+     NAME_path, "Base name of file in directory"),
+  GM(NAME_directoryName, 0, "name", NULL, getDirectoryNameFile,
+     NAME_path, "Directory name of file"),
+  GM(NAME_character, 0, "char", NULL, getCharacterFile,
+     NAME_read, "Read next character as ASCII value"),
+  GM(NAME_read, 1, "string", "count=[int]", getReadFile,
+     NAME_read, "New string width next n characters"),
+  GM(NAME_readLine, 0, "string", NULL, getReadLineFile,
+     NAME_read, "New string with next line"),
+  GM(NAME_time, 1, "date=date", "which_time=[{modified,access}]", getTimeFile,
+     NAME_time, "New date holding modification/access time")
+};
+
+/* Resources */
+
+static const resourcedecl rc_file[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name file_termnames[] = { NAME_name };
+
+ClassDecl(file_decls,
+          var_file, send_file, get_file, rc_file,
+          1, file_termnames,
+          "$Rev$");
+
 status
 makeClassFile(Class class)
-{ sourceClass(class, makeClassFile, __FILE__, "$Revision$");
-
-  localClass(class, NAME_name, NAME_path, "name=name", NAME_get,
-	     "Name of the file");
-  localClass(class, NAME_path, NAME_path, "path=[name]", NAME_both,
-	     "Full path-name of the file");
-  localClass(class, NAME_kind, NAME_fileType, "{text,binary}", NAME_get,
-	     "Text or binary file");
-  localClass(class, NAME_status, NAME_open, "{closed,read,write}", NAME_get,
-	     "One of {closed,read,write}");
-  localClass(class, NAME_filter, NAME_filter, "command=name*", NAME_both,
-	     "Name of input/output filter used");
-  localClass(class, NAME_fd, NAME_internal, "alien:FILE *", NAME_none,
-	     "Unix file (stream) handle");
-
-  termClass(class, "file", 1, NAME_name);
+{ declareClass(class, &file_decls);
   setLoadStoreFunctionClass(class, loadFile, storeFile);
-  
-  storeMethod(class, NAME_name, nameFile);
-  storeMethod(class, NAME_kind, kindFile);
-  
-  sendMethod(class, NAME_initialise, DEFAULT, 2,
-	     "path=[name]", "kind=[{text,binary}]",
-	     "Create from name and kind",
-	     initialiseFile);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Close file",
-	     unlinkFile);
-  sendMethod(class, NAME_exists, NAME_test, 1, "must_be_file=[bool]",
-	     "Test if file exists",
-	     existsFile);
-  sendMethod(class, NAME_same, NAME_test, 1, "file=file",
-	     "Test if two paths refer to the same physical file",
-	     sameFile);
-  sendMethod(class, NAME_absolutePath, NAME_path, 0,
-	     "Convert <-name to an absolute path",
-	     absolutePathFile);
-  sendMethod(class, NAME_isAbsolute, NAME_path, 0,
-	     "Test if <-name specifies an absolute path",
-	     isAbsoluteFile);
-  sendMethod(class, NAME_access, NAME_test, 1,
-	     "mode={read,write,append,execute}",
-	     "Test if file has access",
-	     accessFile);
-  sendMethod(class, NAME_append, NAME_write, 1, "text=char_array",
-	     "Append string to file",
-	     appendFile);
-  sendMethod(class, NAME_newline, NAME_write, 0,
-	     "Append newline to file",
-	     newlineFile);
-  sendMethod(class, NAME_format, NAME_write, 2,
-	     "format=char_array", "argument=any ...",
-	     "Format arguments and ->append",
-	     formatFile);
-  sendMethod(class, NAME_remove, NAME_delete, 0,
-	     "Unlink from Unix file system",
-	     removeFile);
-  sendMethod(class, NAME_open, NAME_open, 3,
-	     "mode={read,write,append}", "filter=[name]",
-	     "extension=[char_array]",
-	     "Open file in mode, read/write through filter",
-	     openFile);
-  sendMethod(class, NAME_close, NAME_open, 0,
-	     "Close file",
-	     closeFile);
-  sendMethod(class, NAME_seek, NAME_location, 2,
-	     "byte=int", "from=[{start,here,end}]",
-	     "Seek to index from {start,here,end}",
-	     seekFile);
-  sendMethod(class, NAME_checkObject, NAME_file, 0,
-	     "Test if file contains a saved PCE object",
-	     checkObjectFile);
-  sendMethod(class, NAME_find, NAME_location,
-	     2, "path=[char_array]", "access=[{read,write,append,execute}]",
-	     "Find file in search-path",
-	     findFile);
-  sendMethod(class, NAME_copy, NAME_copy, 1, "from=file",
-	     "Copy to destination file",
-	     copyFile);
-  sendMethod(class, NAME_backup, NAME_copy, 1, "extension=[name]",
-	     "Make a backup by adding extension (~)",
-	     backupFile);
-  sendMethod(class, NAME_flush, NAME_write, 0,
-	     "Flush pending output",
-	     flushFile);
-
-  getMethod(class, NAME_character, NAME_read, "char", 0,
-	    "Read next character as ASCII value",
-	    getCharacterFile);
-  getMethod(class, NAME_baseName, NAME_path, "name", 0,
-	    "Base name of file in directory",
-	    getBaseNameFile);
-  getMethod(class, NAME_directoryName, NAME_path, "name", 0,
-	    "Directory name of file",
-	    getDirectoryNameFile);
-  getMethod(class, NAME_backupFileName, NAME_copy, "char_array",
-	    1, "extension=[char_array]",
-	    "Name for storing ->backup data",
-	    getBackupFileNameFile);
-  getMethod(class, NAME_read, NAME_read, "string", 1, "count=[int]",
-	    "New string width next n characters",
-	    getReadFile);
-  getMethod(class, NAME_readLine, NAME_read, "string", 0,
-	    "New string with next line",
-	    getReadLineFile);
-  getMethod(class, NAME_size, NAME_dimension, "bytes=int", 0,
-	    "Size in characters",
-	    getSizeFile);
-  getMethod(class, NAME_object, NAME_file, "object=any|function", 0,
-	    "New object from file created with ->save_in_file",
-	    getObjectFile);
-  getMethod(class, NAME_index, NAME_location, "byte=int", 0,
-	    "Current index (Unix tell())",
-	    getIndexFile);
-  getMethod(class, NAME_time, NAME_time, "date=date", 1,
-	    "which_time=[{modified,access}]",
-	    "New date holding modification/access time",
-	    getTimeFile);
-  getMethod(class, NAME_convert, DEFAULT, "file", 1, "path=name",
-	    "Convert name to file",
-	    getConvertFile);
-  getMethod(class, NAME_absolutePath, NAME_path, "path=name", 0,
-	    "Convert <-name to an absolute path",
-	    getAbsolutePathFile);
-  getMethod(class, NAME_filter, NAME_filter,
-	    "extension_and_filter=attribute", 0,
-	    "Determine input filter from extension",
-	    getFilterFile);
 
 #if defined(__WIN32__)
 { int w32s = iswin32s();

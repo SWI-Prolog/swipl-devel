@@ -270,139 +270,138 @@ modifiedDialogItem(Any di, Bool modified)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+
+/* Instance Variables */
+
+static const vardecl var_dialogItem[] =
+{ SV(NAME_label, "name", IV_GET|IV_STORE, labelDialogItem,
+     NAME_label, "Label of the item"),
+  IV(NAME_labelWidth, "[int]", IV_NONE,
+     NAME_layout, "Width of the label in pixels"),
+  SV(NAME_labelFormat, "{left,center,right}", IV_GET|IV_STORE,
+     labelFormatDialogItem,
+     NAME_layout, "Align labels in their box"),
+  SV(NAME_background, "image|colour*", IV_GET|IV_STORE, backgroundDialogItem,
+     NAME_appearance, "Opaque background for item"),
+  SV(NAME_status, "{inactive,active,preview,execute}", IV_GET|IV_STORE,
+     statusDialogItem,
+     NAME_event, "Status for event-processing"),
+  IV(NAME_message, "[code]*", IV_BOTH,
+     NAME_action, "Associated command"),
+  IV(NAME_popup, "popup*", IV_BOTH,
+     NAME_menu, "Associated popup menu"),
+  SV(NAME_look, "{x,open_look,motif,win}", IV_GET|IV_STORE, lookDialogItem,
+     NAME_appearance, "Look-and-feel switch"),
+  IV(NAME_autoAlign, "bool", IV_BOTH,
+     NAME_layout, "Item is automatically placed by its dialog"),
+  IV(NAME_reference, "[point]", IV_SEND,
+     NAME_layout, "Reference point for alignment"),
+  IV(NAME_above, "graphical*", IV_GET,
+     NAME_layout, "DialogItem above me"),
+  IV(NAME_below, "graphical*", IV_GET,
+     NAME_layout, "DialogItem below me"),
+  IV(NAME_right, "graphical*", IV_GET,
+     NAME_layout, "DialogItem right of me"),
+  IV(NAME_left, "graphical*", IV_GET,
+     NAME_layout, "DialogItem left of me"),
+  IV(NAME_alignment, "{column,left,center,right}", IV_BOTH,
+     NAME_layout, "Align in columns or right of item to the left"),
+  IV(NAME_autoLabelAlign, "bool", IV_BOTH,
+     NAME_layout, "Automatically align label"),
+  IV(NAME_autoValueAlign, "bool", IV_BOTH,
+     NAME_layout, "Automatically align value")
+};
+
+/* Send Methods */
+
+static const senddecl send_dialogItem[] =
+{ SM(NAME_initialise, 1, "name=name", createDialogItem,
+     DEFAULT, "Create from name"),
+  SM(NAME_device, 1, "device*", deviceDialogItem,
+     DEFAULT, "Device I'm displayed on"),
+  SM(NAME_name, 1, "name", nameDialogItem,
+     DEFAULT, "Change <-name, update <-label"),
+  SM(NAME_reset, 0, NULL, resetDialogItem,
+     DEFAULT, "Change status to `inactive'"),
+  SM(NAME_unlink, 0, NULL, unlinkDialogItem,
+     DEFAULT, "Remove left,right,above,below links"),
+  SM(NAME_default, 1, "any", virtualObject,
+     NAME_apply, "Virtual method"),
+  SM(NAME_modified, 1, "bool", modifiedDialogItem,
+     NAME_apply, "Forward modification to associated <-device"),
+  SM(NAME_cancel, 0, NULL, cancelDialogItem,
+     NAME_event, "Cancel operation (enter inactive state)"),
+  SM(NAME_event, 1, "event", eventDialogItem,
+     NAME_event, "Process an event"),
+  SM(NAME_labelWidth, 1, "[int]", virtualObject,
+     NAME_layout, "Virtual method"),
+  SM(NAME_valueWidth, 1, "[int]", virtualObject,
+     NAME_layout, "Virtual method"),
+  SM(NAME_open, 0, NULL, openDialogItem,
+     NAME_organisation, "Create dialog with this item and ->open"),
+  SM(NAME_show, 1, "bool", showDialogItem,
+     NAME_organisation, "Equivalent to <->displayed")
+};
+
+/* Get Methods */
+
+static const getdecl get_dialogItem[] =
+{ GM(NAME_default, 0, "any", NULL, getVirtualObject,
+     NAME_apply, "Virtual method"),
+  GM(NAME_modified, 0, "bool", NULL, getModifiedDialogItem,
+     NAME_apply, "Virtual method (return @off)"),
+  GM(NAME_labelName, 1, "name", "name", getLabelNameDialogItem,
+     NAME_label, "Determine default-label from the name"),
+  GM(NAME_labelWidth, 0, "int", NULL, getVirtualObject,
+     NAME_layout, "Virtual method"),
+  GM(NAME_reference, 0, "point", NULL, getReferenceDialogItem,
+     NAME_layout, "Reference point for alignment"),
+  GM(NAME_valueWidth, 0, "int", NULL, getVirtualObject,
+     NAME_layout, "Virtual method"),
+  GM(NAME_show, 0, "bool", NULL, getShowDialogItem,
+     NAME_organisation, "Equivalent to <-displayed")
+};
+
+/* Resources */
+
+static const resourcedecl rc_dialogItem[] =
+{ RC(NAME_alignment, "{column,left,center,right}", "column",
+     "Alignment in the row"),
+  RC(NAME_background, "colour|pixmap*", "@nil",
+     "Background of the item"),
+  RC(NAME_elevation, "elevation*", "@nil",
+     "3-D elevation"),
+  RC(NAME_labelFont, "font", "bold",
+     "Default font for labels"),
+  RC(NAME_labelFormat, "{left,center,right}", "left",
+     "Alignment of the label in its box"),
+  RC(NAME_labelSuffix, "name", ":",
+     "Ensured suffix of label"),
+  RC(NAME_look, "{x,open_look,motif,win}", "x",
+     "Look-and-feel switch"),
+  RC(NAME_selectionHandles, RC_REFINE, "@nil",
+     NULL),
+  RC(NAME_valueFont, "font", "normal",
+     "Default font for values")
+};
+
+/* Class Declaration */
+
+static Name dialogItem_termnames[] = { NAME_label };
+
+ClassDecl(dialogItem_decls,
+          var_dialogItem, send_dialogItem, get_dialogItem, rc_dialogItem,
+          1, dialogItem_termnames,
+          "$Rev$");
+
 status
 makeClassDialogItem(Class class)
-{ sourceClass(class, makeClassDialogItem, __FILE__, "$Revision$");
-
-  localClass(class, NAME_label, NAME_label, "name", NAME_get,
-	     "Label of the item");
-  localClass(class, NAME_labelWidth, NAME_layout, "[int]", NAME_none,
-	     "Width of the label in pixels");
-  localClass(class, NAME_labelFormat, NAME_layout,
-	     "{left,center,right}", NAME_get,
-	     "Align labels in their box");
-  localClass(class, NAME_background, NAME_appearance, "image|colour*",
-	     NAME_get,
-	     "Opaque background for item");
-  localClass(class, NAME_status, NAME_event,
-	     "{inactive,active,preview,execute}", NAME_get,
-	     "Status for event-processing");
-  localClass(class, NAME_message, NAME_action, "[code]*", NAME_both,
-	     "Associated command");
-  localClass(class, NAME_popup, NAME_menu, "popup*", NAME_both,
-	     "Associated popup menu");
-  localClass(class, NAME_look, NAME_appearance,
-	     "{x,open_look,motif,win}", NAME_get,
-	     "Look-and-feel switch");
-  localClass(class, NAME_autoAlign, NAME_layout, "bool", NAME_both,
-	     "Item is automatically placed by its dialog");
-  localClass(class, NAME_reference, NAME_layout, "[point]", NAME_send,
-	     "Reference point for alignment");
-  localClass(class, NAME_above, NAME_layout, "graphical*", NAME_get,
-	     "DialogItem above me");
-  localClass(class, NAME_below, NAME_layout, "graphical*", NAME_get,
-	     "DialogItem below me");
-  localClass(class, NAME_right, NAME_layout, "graphical*", NAME_get,
-	     "DialogItem right of me");
-  localClass(class, NAME_left, NAME_layout, "graphical*", NAME_get,
-	     "DialogItem left of me");
-  localClass(class, NAME_alignment, NAME_layout,
-	     "{column,left,center,right}", NAME_both,
-	     "Align in columns or right of item to the left");
-  localClass(class, NAME_autoLabelAlign, NAME_layout, "bool", NAME_both,
-	     "Automatically align label");
-  localClass(class, NAME_autoValueAlign, NAME_layout, "bool", NAME_both,
-	     "Automatically align value");
-
-  termClass(class, "dialog_item", 1, NAME_label);  
-  cloneStyleVariableClass(class, NAME_left,  NAME_nil); /* referenceOrNil? */
-  cloneStyleVariableClass(class, NAME_right, NAME_nil);
-  cloneStyleVariableClass(class, NAME_above, NAME_nil);
-  cloneStyleVariableClass(class, NAME_below, NAME_nil);
-
-  storeMethod(class, NAME_name,        nameDialogItem);
-  storeMethod(class, NAME_label,       labelDialogItem);
-  storeMethod(class, NAME_status,      statusDialogItem);
-  storeMethod(class, NAME_device,      deviceDialogItem);
-  storeMethod(class, NAME_look,        lookDialogItem);
-  storeMethod(class, NAME_background,  backgroundDialogItem);
-  storeMethod(class, NAME_labelFormat, labelFormatDialogItem);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "name=name",
-	     "Create from name",
-	     createDialogItem);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Remove left,right,above,below links",
-	     unlinkDialogItem);
-  sendMethod(class, NAME_reset, DEFAULT, 0,
-	     "Change status to `inactive'",
-	     resetDialogItem);
-  sendMethod(class, NAME_cancel, NAME_event, 0,
-	     "Cancel operation (enter inactive state)",
-	     cancelDialogItem);
-  sendMethod(class, NAME_show, NAME_organisation, 1, "bool",
-	     "Equivalent to <->displayed",
-	     showDialogItem);
-  sendMethod(class, NAME_event, NAME_event, 1, "event",
-	     "Process an event",
-	     eventDialogItem);
-
-  sendMethod(class, NAME_open, NAME_organisation, 0,
-	     "Create dialog with this item and ->open",
-	     openDialogItem);
-  sendMethod(class, NAME_modified, NAME_apply, 1, "bool",
-	     "Forward modification to associated <-device",
-	     modifiedDialogItem);
-  sendMethod(class, NAME_default, NAME_apply, 1, "any",
-	     "Virtual method",
-	     virtualObject);
-  sendMethod(class, NAME_labelWidth, NAME_layout, 1, "[int]",
-	     "Virtual method",
-	     virtualObject);
-  sendMethod(class, NAME_valueWidth, NAME_layout, 1, "[int]",
-	     "Virtual method",
-	     virtualObject);
-
-  getMethod(class, NAME_labelName, NAME_label, "name", 1, "name",
-	    "Determine default-label from the name",
-	    getLabelNameDialogItem);
-  getMethod(class, NAME_show, NAME_organisation, "bool", 0,
-	    "Equivalent to <-displayed",
-	    getShowDialogItem);
-  getMethod(class, NAME_labelWidth, NAME_layout, "int", 0,
-	    "Virtual method",
-	    getVirtualObject);
-  getMethod(class, NAME_valueWidth, NAME_layout, "int", 0,
-	    "Virtual method",
-	    getVirtualObject);
-  getMethod(class, NAME_default, NAME_apply, "any", 0,
-	    "Virtual method",
-	    getVirtualObject);
-  getMethod(class, NAME_modified, NAME_apply, "bool", 0,
-	    "Virtual method (return @off)",
-	    getModifiedDialogItem);
-  getMethod(class, NAME_reference, NAME_layout, "point", 0,
-	    "Reference point for alignment",
-	    getReferenceDialogItem);
-
-  refine_resource(class, "selection_handles", "@nil");
-  attach_resource(class, "look", "{x,open_look,motif,win}", "x",
-		  "Look-and-feel switch");
-  attach_resource(class, "label_format", "{left,center,right}", "left",
-		  "Alignment of the label in its box");
-  attach_resource(class, "label_suffix", "name", ":",
-		  "Ensured suffix of label");
-  attach_resource(class, "label_font", "font", "bold",
-		  "Default font for labels");
-  attach_resource(class, "value_font", "font", "normal",
-		  "Default font for values");
-  attach_resource(class, "alignment", "{column,left,center,right}", "column",
-		  "Alignment in the row");
-  attach_resource(class, "background", "colour|pixmap*", "@nil",
-		  "Background of the item");
-  attach_resource(class, "elevation", "elevation*", "@nil",
-		  "3-D elevation");
-
-  succeed;
+{ return declareClass(class, &dialogItem_decls);
 }
 

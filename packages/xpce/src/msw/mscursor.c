@@ -221,23 +221,25 @@ typedef struct
 
 static CursorGlyphSet
 read_cursor_glyphs(FILE *in)
-{ CursorGlyphSet set = malloc(sizeof(cursor_glyph_set));
+{ CursorGlyphSet set = pceMalloc(sizeof(cursor_glyph_set));
   int entries;
   int dshorts;
+  int cachesize;
 
   fread(&set->header, sizeof(cursor_glyph_file_header), 1, in);
   if ( set->header.magic != XPCE_CURSOR_FILE_MAGIC )
   { Cprintf("Bad magic number\n");
-    free(set);
+    pceFree(set);
     return NULL;
   }
   
-  entries = set->header.entries;
-  dshorts = set->header.dsize / sizeof(unsigned short);
+  entries   = set->header.entries;
+  dshorts   = set->header.dsize / sizeof(unsigned short);
+  cachesize = entries/2 * sizeof(cursor_bits);
 
-  if ( !(set->glyphs = malloc(sizeof(cursor_glyph) * entries)) ||
-       !(set->data   = malloc(set->header.dsize)) ||
-       !(set->cache  = calloc(entries/2, sizeof(cursor_bits))) )
+  if ( !(set->glyphs = pceMalloc(sizeof(cursor_glyph) * entries)) ||
+       !(set->data   = pceMalloc(set->header.dsize)) ||
+       !(set->cache  = pceMalloc(cachesize)) )
   { Cprintf("Not enough memory\n");
     return NULL;
   }
@@ -248,6 +250,7 @@ read_cursor_glyphs(FILE *in)
     return NULL;
   }
     
+  memset(set->cache, 0, cachesize);
   set->cwidth = cursor_width;
   set->cheight = cursor_height;
 
@@ -397,8 +400,8 @@ get_cursor_bits(CursorGlyphSet set, int cursor, int *hx, int *hy)
   if ( !result->image )
   { CursorGlyph iglyph = &set->glyphs[cursor];
 
-    result->image = malloc(ws_sizeof_bits(set->cwidth, set->cheight));
-    result->mask  = malloc(ws_sizeof_bits(set->cwidth, set->cheight));
+    result->image = pceMalloc(ws_sizeof_bits(set->cwidth, set->cheight));
+    result->mask  = pceMalloc(ws_sizeof_bits(set->cwidth, set->cheight));
     
     DEBUG(NAME_cursor, Cprintf("Mask hotspot = %d, %d\n",
 			       SEC(mglyph->hot_x), SEC(mglyph->hot_y)));
@@ -544,8 +547,8 @@ ws_create_cursor(CursorObj c, DisplayObj d)
 		       cursor_width,
 		       cursor_height,
 		       mask, source);
-    free(source);
-    free(mask);
+    pceFree(source);
+    pceFree(mask);
   }
 
   if ( !msc )

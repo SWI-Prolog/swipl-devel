@@ -1,3 +1,4 @@
+
 /*  $Id$
 
     Part of XPCE
@@ -496,73 +497,92 @@ nonum:
 }
 	  
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+
+/* Instance Variables */
+
+static const vardecl var_tokeniser[] =
+{ IV(NAME_syntax, "syntax_table", IV_BOTH,
+     NAME_syntax, "Syntax used"),
+  IV(NAME_source, "file|char_array|text_buffer*", IV_GET,
+     NAME_input, "Input source"),
+  IV(NAME_stack, "chain*", IV_GET,
+     NAME_readAhead, "Stack of pushed-back tokens"),
+  IV(NAME_symbols, "hash_table", IV_GET,
+     NAME_syntax, "Table with punctuation-character symbols"),
+  IV(NAME_access, "alien:int", IV_NONE,
+     NAME_input, "Internal access context"),
+  IV(NAME_line, "alien:int", IV_NONE,
+     NAME_report, "Current line number"),
+  IV(NAME_caret, "alien:int", IV_NONE,
+     NAME_input, "Point for random_access devices")
+};
+
+/* Send Methods */
+
+static const senddecl send_tokeniser[] =
+{ SM(NAME_initialise, 1, "syntax=[syntax_table]", initialiseTokeniser,
+     DEFAULT, "Create from syntax"),
+  SM(NAME_close, 0, NULL, closeTokeniser,
+     NAME_input, "Close source"),
+  SM(NAME_character, 1, "char", characterTokeniser,
+     NAME_readAhead, "Unget (push back) character"),
+  SM(NAME_token, 1, "token=any", tokenTokeniser,
+     NAME_readAhead, "Push back a token"),
+  SM(NAME_syntaxError, 1, "message=char_array", syntaxErrorTokeniser,
+     NAME_report, "Generate syntax-error warning"),
+  SM(NAME_symbol, 1, "symbol=name", symbolTokeniser,
+     NAME_syntax, "Declare name to be a symbol")
+};
+
+/* Get Methods */
+
+static const getdecl get_tokeniser[] =
+{ GM(NAME_open, 1, "tokeniser", "file|char_array|text_buffer*", getOpenTokeniser,
+     NAME_input, "Open input for tokenising"),
+  GM(NAME_character, 0, "char", NULL, getCharacterTokeniser,
+     NAME_parse, "Read next character"),
+  GM(NAME_peek, 0, "char", NULL, getPeekTokeniser,
+     NAME_parse, "Peek at next character"),
+  GM(NAME_token, 0, "token=any", NULL, getTokenTokeniser,
+     NAME_parse, "Read next token"),
+  GM(NAME_caret, 0, "int", NULL, getCaretTokeniser,
+     NAME_report, "Current character-index"),
+  GM(NAME_line, 0, "int", NULL, getLineTokeniser,
+     NAME_report, "Current line-number (1-based)"),
+  GM(NAME_reportTo, 0, "any", NULL, getReportToTokeniser,
+     NAME_report, "Report errors to the <-source")
+};
+
+/* Resources */
+
+static const resourcedecl rc_tokeniser[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name tokeniser_termnames[] = { NAME_source, NAME_syntax };
+
+ClassDecl(tokeniser_decls,
+          var_tokeniser, send_tokeniser, get_tokeniser, rc_tokeniser,
+          2, tokeniser_termnames,
+          "$Rev$");
+
 status
 makeClassTokeniser(Class class)
-{ sourceClass(class, makeClassTokeniser, __FILE__, "$Revision$");
+{ declareClass(class, &tokeniser_decls);
 
-  localClass(class, NAME_syntax, NAME_syntax, "syntax_table", NAME_both,
-	     "Syntax used");
-  localClass(class, NAME_source, NAME_input, "file|char_array|text_buffer*",
-	     NAME_get, "Input source");
-  localClass(class, NAME_stack, NAME_readAhead, "chain*", NAME_get,
-	     "Stack of pushed-back tokens");
-  localClass(class, NAME_symbols, NAME_syntax, "hash_table", NAME_get,
-	     "Table with punctuation-character symbols");
-  localClass(class, NAME_access, NAME_input, "alien:int", NAME_none,
-	     "Internal access context");
-  localClass(class, NAME_line, NAME_report, "alien:int", NAME_none,
-	     "Current line number");
-  localClass(class, NAME_caret, NAME_input, "alien:int", NAME_none,
-	     "Point for random_access devices");
-
-  termClass(class, "tokeniser", 2, NAME_source, NAME_syntax);
   setCloneFunctionClass(class, cloneTokeniser);
   cloneStyleVariableClass(class, NAME_syntax,  NAME_reference);
   cloneStyleVariableClass(class, NAME_symbols, NAME_reference);
   cloneStyleVariableClass(class, NAME_source,  NAME_reference);
   cloneStyleVariableClass(class, NAME_stack,   NAME_nil);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "syntax=[syntax_table]",
-	     "Create from syntax",
-	     initialiseTokeniser);
-  sendMethod(class, NAME_close, NAME_input, 0,
-	     "Close source",
-	     closeTokeniser);
-  sendMethod(class, NAME_symbol, NAME_syntax, 1, "symbol=name",
-	     "Declare name to be a symbol",
-	     symbolTokeniser);
-  sendMethod(class, NAME_token, NAME_readAhead, 1, "token=any",
-	     "Push back a token",
-	     tokenTokeniser);
-  sendMethod(class, NAME_syntaxError, NAME_report, 1, "message=char_array",
-	     "Generate syntax-error warning",
-	     syntaxErrorTokeniser);
-  sendMethod(class, NAME_character, NAME_readAhead, 1, "char",
-	     "Unget (push back) character",
-	     characterTokeniser);
-
-  getMethod(class, NAME_token, NAME_parse, "token=any", 0,
-	    "Read next token",
-	    getTokenTokeniser);
-  getMethod(class, NAME_character, NAME_parse, "char", 0,
-	    "Read next character",
-	    getCharacterTokeniser);
-  getMethod(class, NAME_peek, NAME_parse, "char", 0,
-	    "Peek at next character",
-	    getPeekTokeniser);
-  getMethod(class, NAME_reportTo, NAME_report, "any", 0,
-	    "Report errors to the <-source",
-	    getReportToTokeniser);
-  getMethod(class, NAME_open, NAME_input, "tokeniser", 1,
-	    "file|char_array|text_buffer*",
-	    "Open input for tokenising",
-	    getOpenTokeniser);
-  getMethod(class, NAME_caret, NAME_report, "int", 0,
-	    "Current character-index",
-	    getCaretTokeniser);
-  getMethod(class, NAME_line, NAME_report, "int", 0,
-	    "Current line-number (1-based)",
-	    getLineTokeniser);
 
   EndOfFile = globalObject(NAME_endOfFile, ClassConstant,
 			   NAME_endOfFile,

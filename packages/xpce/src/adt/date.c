@@ -308,108 +308,113 @@ getDifferenceDate(Date d1, Date d2, Name units)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_initialise[] =
+        { "seconds=[0..59]", "minutes=[0..59]",
+	  "hours=[0..23]", "day=[1..31]", "month=[1..12]",
+	  "year=[1970..2050]" };
+static const char *T_difference[] =
+        { "to=[date]", "unit=[{second,minute,hour,day,week,year}]" };
+
+/* Instance Variables */
+
+static const vardecl var_date[] =
+{ IV(NAME_date, "alien:long", IV_NONE,
+     NAME_storage, "Unix's notion of date")
+};
+
+/* Send Methods */
+
+static const senddecl send_date[] =
+{ SM(NAME_initialise, 6, T_initialise, initialiseDate,
+     DEFAULT, "Create a date from smhDMY (default now)"),
+  SM(NAME_after, 1, "date", afterDate,
+     NAME_compare, "Test if date is after argument"),
+  SM(NAME_before, 1, "date", beforeDate,
+     NAME_compare, "Test if date is before argument"),
+  SM(NAME_equal, 1, "date", equalDate,
+     NAME_compare, "Test if date is equal"),
+  SM(NAME_day, 1, "1..31", dayDate,
+     NAME_dateComponent, "Set day"),
+  SM(NAME_hour, 1, "0..23", hourDate,
+     NAME_dateComponent, "Set hour"),
+  SM(NAME_minute, 1, "0..59", minuteDate,
+     NAME_dateComponent, "Set minute"),
+  SM(NAME_month, 1, "1..12", monthDate,
+     NAME_dateComponent, "Set month"),
+  SM(NAME_second, 1, "0..59", secondDate,
+     NAME_dateComponent, "Set seconds"),
+  SM(NAME_year, 1, "1970..2050", yearDate,
+     NAME_dateComponent, "Set year"),
+  SM(NAME_current, 0, NULL, currentDate,
+     NAME_set, "Change date to be `now'"),
+  SM(NAME_set, 6, T_initialise, setDate,
+     NAME_set, "Set date from smhDMY"),
+  SM(NAME_convert, 1, "description=char_array", convertDate,
+     NAME_textual, "Set date conform time description")
+};
+
+/* Get Methods */
+
+static const getdecl doget_date[] =
+{ GM(NAME_difference, 2, "units=int", T_difference, getDifferenceDate,
+     NAME_calculate, "Difference between dates in specified units"),
+  GM(NAME_compare, 1, "{smaller,equal,larger}", "date", getCompareDate,
+     NAME_compare, "Compare two dates for `chain ->sort'"),
+  GM(NAME_day, 0, "1..31", NULL, getDayDate,
+     NAME_dateComponent, "Day in the month"),
+  GM(NAME_dayName, 1, "name", "short=[bool]", getDayNameDate,
+     NAME_dateComponent, "Name of day in the week"),
+  GM(NAME_hour, 0, "0..23", NULL, getHourDate,
+     NAME_dateComponent, "Hour in the day"),
+  GM(NAME_minute, 0, "0..59", NULL, getMinuteDate,
+     NAME_dateComponent, "Minute in the hour"),
+  GM(NAME_month, 0, "1..12", NULL, getMonthDate,
+     NAME_dateComponent, "Month in the year"),
+  GM(NAME_monthName, 1, "name", "short=[bool]", getMonthNameDate,
+     NAME_dateComponent, "Name of the month"),
+  GM(NAME_second, 0, "0..59", NULL, getSecondDate,
+     NAME_dateComponent, "Second in the minute"),
+  GM(NAME_weekDay, 0, "0..6", NULL, getWeekDayDate,
+     NAME_dateComponent, "Day in the week"),
+  GM(NAME_year, 0, "1970..2050", NULL, getYearDate,
+     NAME_dateComponent, "Year of the date"),
+  GM(NAME_convert, 1, "date", "string", getConvertDate,
+     NAME_textual, "Convert Day/Month/Year to date"),
+  GM(NAME_printName, 0, "string", NULL, getStringDate,
+     NAME_textual, "Same as <-string"),
+  GM(NAME_string, 0, "string", NULL, getStringDate,
+     NAME_textual, "New string representing date")
+};
+
+/* Resources */
+
+static const resourcedecl rc_date[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name date_termnames[] = { NAME_second, NAME_minute, NAME_hour,
+				 NAME_day, NAME_month, NAME_year };
+
+ClassDecl(date_decls,
+          var_date, send_date, doget_date, rc_date,
+          6, date_termnames,
+          "$Rev$");
+
 
 
 status
 makeClassDate(Class class)
-{ sourceClass(class, makeClassDate, __FILE__, "$Revision$");
-
-  localClass(class, NAME_date, NAME_storage, "alien:long", NAME_none,
-	     "Unix's notion of date");
+{ declareClass(class, &date_decls);
 
   setLoadStoreFunctionClass(class, loadDate, storeDate);
-  termClass(class, "date", 6, NAME_second, NAME_minute, NAME_hour,
-			      NAME_day, NAME_month, NAME_year);
-
-  sendMethod(class, NAME_initialise, DEFAULT,
-	     6, "seconds=[0..59]", "minutes=[0..59]", "hours=[0..23]",
-	        "day=[1..31]", "month=[1..12]", "year=[1970..2050]",
-	     "Create a date from smhDMY (default now)",
-	     initialiseDate);
-  sendMethod(class, NAME_equal, NAME_compare, 1, "date",
-	     "Test if date is equal",
-	     equalDate);
-  sendMethod(class, NAME_set, NAME_set,
-	     6, "[0..59]", "[0..59]", "[0..23]",
-	        "[1..31]", "[1..12]", "[1970..2050]",
-	     "Set date from smhDMY",
-	     setDate);
-  sendMethod(class, NAME_before, NAME_compare, 1, "date",
-	     "Test if date is before argument",
-	     beforeDate);
-  sendMethod(class, NAME_after, NAME_compare, 1, "date",
-	     "Test if date is after argument",
-	     afterDate);
-  sendMethod(class, NAME_current, NAME_set, 0,
-	     "Change date to be `now'",
-	     currentDate);
-
-  sendMethod(class, NAME_second, NAME_dateComponent, 1, "0..59",
-	     "Set seconds",
-	     secondDate);
-  sendMethod(class, NAME_minute, NAME_dateComponent, 1, "0..59",
-	     "Set minute",
-	     minuteDate);
-  sendMethod(class, NAME_hour, NAME_dateComponent, 1, "0..23",
-	     "Set hour",
-	     hourDate);
-  sendMethod(class, NAME_day, NAME_dateComponent, 1, "1..31",
-	     "Set day",
-	     dayDate);
-  sendMethod(class, NAME_month, NAME_dateComponent, 1, "1..12",
-	     "Set month",
-	     monthDate);
-  sendMethod(class, NAME_year, NAME_dateComponent, 1, "1970..2050",
-	     "Set year",
-	     yearDate);
-  sendMethod(class, NAME_convert, NAME_textual, 1, "description=char_array",
-	     "Set date conform time description",
-	     convertDate);
-
-  getMethod(class, NAME_string, NAME_textual, "string", 0,
-	    "New string representing date",
-	    getStringDate);
-  getMethod(class, NAME_printName, NAME_textual, "string", 0,
-	    "Same as <-string",
-	    getStringDate);
-  getMethod(class, NAME_weekDay, NAME_dateComponent, "0..6", 0,
-	    "Day in the week",
-	    getWeekDayDate);
-  getMethod(class, NAME_dayName, NAME_dateComponent, "name", 1, "short=[bool]",
-	    "Name of day in the week",
-	    getDayNameDate);
-  getMethod(class, NAME_monthName, NAME_dateComponent, "name", 1, "short=[bool]",
-	    "Name of the month",
-	    getMonthNameDate);
-  getMethod(class, NAME_second, NAME_dateComponent, "0..59", 0,
-	    "Second in the minute",
-	    getSecondDate);
-  getMethod(class, NAME_minute, NAME_dateComponent, "0..59", 0,
-	    "Minute in the hour",
-	    getMinuteDate);
-  getMethod(class, NAME_hour, NAME_dateComponent, "0..23", 0,
-	    "Hour in the day",
-	    getHourDate);
-  getMethod(class, NAME_day, NAME_dateComponent, "1..31", 0,
-	    "Day in the month",
-	    getDayDate);
-  getMethod(class, NAME_month, NAME_dateComponent, "1..12", 0,
-	    "Month in the year",
-	    getMonthDate);
-  getMethod(class, NAME_year, NAME_dateComponent, "1970..2050", 0,
-	    "Year of the date",
-	    getYearDate);
-  getMethod(class, NAME_convert, NAME_textual, "date", 1, "string",
-	    "Convert Day/Month/Year to date",
-	    getConvertDate);
-  getMethod(class, NAME_compare, NAME_compare, "{smaller,equal,larger}",
-	    1, "date",
-	    "Compare two dates for `chain ->sort'",
-	    getCompareDate);
-  getMethod(class, NAME_difference, NAME_calculate, "units=int", 2,
-	    "to=[date]", "unit=[{second,minute,hour,day,week,year}]",
-	    "Difference between dates in specified units",
-	    getDifferenceDate);
 
   succeed;
 }

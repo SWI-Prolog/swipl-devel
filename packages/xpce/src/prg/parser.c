@@ -214,10 +214,10 @@ pushStack(Stack s, Any v)
   { int new = s->allocated * 2;
 
     if ( s->values == s->fast_values )
-    { s->values = malloc(sizeof(Any) * new);
+    { s->values = pceMalloc(sizeof(Any) * new);
       memcpy(s->values, s->fast_values, sizeof(Any) * s->size);
     } else
-      s->values = realloc(s->values, sizeof(Any) * new);
+      s->values = pceRealloc(s->values, sizeof(Any) * new);
   }
 
   s->values[s->size++] = v;
@@ -239,7 +239,7 @@ peekStack(Stack s)
 static void
 doneStack(Stack s)
 { if ( s->values != s->fast_values )
-    free(s->values);
+    pceFree(s->values);
 }
 
 
@@ -445,47 +445,75 @@ getParseParser(Parser p, Any input)
 
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_buildTerm[] =
+        { "class=class", "argument=unchecked ..." };
+static const char *T_list[] =
+        { "end=[name]", "delimiter=[name]*", "functor=[name]" };
+static const char *T_active[] =
+        { "token=any", "message=code|function" };
+static const char *T_initialise[] =
+        { "tokeniser=tokeniser", "operators=operator..." };
+
+/* Instance Variables */
+
+static const vardecl var_parser[] =
+{ IV(NAME_tokeniser, "tokeniser", IV_BOTH,
+     NAME_syntax, "Tokeniser used for this parser"),
+  IV(NAME_operators, "chain_table", IV_BOTH,
+     NAME_syntax, "Operator table for this parser"),
+  IV(NAME_active, "hash_table*", IV_BOTH,
+     NAME_syntax, "Active tokens")
+};
+
+/* Send Methods */
+
+static const senddecl send_parser[] =
+{ SM(NAME_initialise, 2, T_initialise, initialiseParserv,
+     DEFAULT, "Create from tokeniser and operators"),
+  SM(NAME_active, 2, T_active, activeParser,
+     NAME_syntax, "Declare token to call message"),
+  SM(NAME_operator, 1, "operator=operator", operatorParser,
+     NAME_syntax, "Declare operator for parser")
+};
+
+/* Get Methods */
+
+static const getdecl get_parser[] =
+{ GM(NAME_buildTerm, 2, "object=unchecked", T_buildTerm, getBuildTermParser,
+     NAME_build, "Create object from data read"),
+  GM(NAME_list, 3, "object=unchecked", T_list, getListParser,
+     NAME_parse, "Read terms upto end"),
+  GM(NAME_parse, 1, "unchecked", "input=char_array|file|text_buffer", getParseParser,
+     NAME_parse, "Open, read <-term and close"),
+  GM(NAME_term, 1, "term=unchecked", "end=[chain]", getTermParser,
+     NAME_parse, "Read next term")
+};
+
+/* Resources */
+
+static const resourcedecl rc_parser[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name parser_termnames[] = { NAME_tokeniser };
+
+ClassDecl(parser_decls,
+          var_parser, send_parser, get_parser, rc_parser,
+          1, parser_termnames,
+          "$Rev$");
+
 status
 makeClassParser(Class class)
-{ sourceClass(class, makeClassParser, __FILE__, "$Revision$");
-
-  localClass(class, NAME_tokeniser, NAME_syntax, "tokeniser", NAME_both,
-	     "Tokeniser used for this parser");
-  localClass(class, NAME_operators, NAME_syntax, "chain_table", NAME_both,
-	     "Operator table for this parser");
-  localClass(class, NAME_active, NAME_syntax, "hash_table*", NAME_both,
-	     "Active tokens");
-
-  termClass(class, "parser", 1, NAME_tokeniser);
+{ declareClass(class, &parser_decls);
   delegateClass(class, NAME_tokeniser);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2,
-	     "tokeniser=tokeniser", "operators=operator...",
-	     "Create from tokeniser and operators",
-	     initialiseParserv);
-  sendMethod(class, NAME_operator, NAME_syntax, 1, "operator=operator",
-	     "Declare operator for parser",
-	     operatorParser);
-  sendMethod(class, NAME_active, NAME_syntax, 2,
-	     "token=any", "message=code|function",
-	     "Declare token to call message",
-	     activeParser);
-
-  getMethod(class, NAME_term, NAME_parse, "term=unchecked", 1, "end=[chain]",
-	    "Read next term",
-	    getTermParser);
-  getMethod(class, NAME_list, NAME_parse, "object=unchecked", 3,
-	    "end=[name]", "delimiter=[name]*", "functor=[name]",
-	    "Read terms upto end",
-	    getListParser);
-  getMethod(class, NAME_parse, NAME_parse, "unchecked", 1,
-	    "input=char_array|file|text_buffer",
-	    "Open, read <-term and close",
-	    getParseParser);
-  getMethod(class, NAME_buildTerm, NAME_build, "object=unchecked", 2,
-	    "class=class", "argument=unchecked ...",
-	    "Create object from data read",
-	    getBuildTermParser);
 
   openbracket = CtoName("(");
   closebracket = CtoName(")");

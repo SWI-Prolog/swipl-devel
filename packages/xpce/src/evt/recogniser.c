@@ -24,20 +24,51 @@ eventRecogniser(Recogniser r, EventObj ev)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+
+/* Instance Variables */
+
+static const vardecl var_recogniser[] =
+{ IV(NAME_active, "bool", IV_BOTH,
+     NAME_status, "Ignore events when @off")
+};
+
+/* Send Methods */
+
+static const senddecl send_recogniser[] =
+{ SM(NAME_initialise, 0, NULL, initialiseRecogniser,
+     DEFAULT, "Create new recogniser"),
+  SM(NAME_event, 1, "event", eventRecogniser,
+     NAME_event, "Process an event (fails)")
+};
+
+/* Get Methods */
+
+static const getdecl get_recogniser[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_recogniser[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(recogniser_decls,
+          var_recogniser, send_recogniser, get_recogniser, rc_recogniser,
+          ARGC_INHERIT, NULL,
+          "$Rev$");
+
+
 status
 makeClassRecogniser(Class class)
-{ sourceClass(class, makeClassRecogniser, __FILE__, "$Revision$");
-
-  localClass(class, NAME_active, NAME_status, "bool", NAME_both,
-	     "Ignore events when @off");
-
-  sendMethod(class, NAME_initialise, DEFAULT, 0,
-	     "Create new recogniser",
-	     initialiseRecogniser);
-  sendMethod(class, NAME_event, NAME_event, 1, "event",
-	     "Process an event (fails)",
-	     eventRecogniser);
-
-  succeed;
+{ return declareClass(class, &recogniser_decls);
 }
 

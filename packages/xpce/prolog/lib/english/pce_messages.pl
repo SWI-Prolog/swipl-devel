@@ -15,6 +15,26 @@
 	    pce_message_context/3
 	  ]).
 
+					% Messages from the interface
+pce_message(pce(bad_object_description, Culprit)) -->
+	['Illegal object description: `~w'''-[Culprit], nl].
+pce_message(pce(bad_selector, Culprit)) -->
+	['Illegal selector: `~w'''-[Culprit], nl].
+pce_message(pce(bad_reference, Culprit)) -->
+	['Illegal reference: `~w'''-[Culprit], nl].
+pce_message(pce(bad_integer_reference, Culprit)) -->
+	['Invalid integer reference: `@~w'''-[Culprit], nl].
+pce_message(pce(bad_string_argument, Culprit)) -->
+	['Cannot create string from: `~w'''-[Culprit], nl].
+pce_message(pce(unknown_reference, Culprit)) -->
+	['Unknown object reference: `@~w'''-[Culprit], nl].
+pce_message(pce(open_qeury)) -->
+	['Internal interface error: open_query() failed'-[], nl].
+pce_message(pce(inconsistent_argc)) -->
+	['Internal interface error: inconsistent argument count'-[], nl].
+pce_message(pce(no_predicate_reference)) -->
+	['Internal interface error: not a predicate reference'-[], nl].
+
 pce_message(help_goal(Goal)) -->
 	[nl,'For HELP, please invoke the predicate `~w''.'-[Goal],nl,nl].
 pce_message(pce_host_send_or_get) -->

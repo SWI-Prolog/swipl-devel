@@ -23,6 +23,7 @@
 	   , apply/2
 	   , chain_list/2
 	   , ignore/1
+	   , unix/1
 	   ]).
 
 %	pce_main_loop(+Goal)

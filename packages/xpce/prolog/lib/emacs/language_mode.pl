@@ -9,40 +9,27 @@
 
 :- module(emacs_language_mode, []).
 :- use_module(library(pce)).
-:- require([ default/3
-	   , emacs_init_tags/1
-	   , emacs_tag/3
-	   , emacs_tag_file/1
+:- require([ auto_call/1
+	   , default/3
 	   , ignore/1
 	   , member/2
 	   ]).
 
-
-:- pce_begin_class(emacs_language_mode, emacs_fundamental_mode).
-
-:- initialization
-	new(KB, emacs_key_binding(language,	fundamental)),
-	send(KB, function, 'TAB',	indent_line),
-	send(KB, function, 'DEL',	backward_delete_char_untabify),
-	send(KB, function, ']',		align_close_bracket),
-	send(KB, function, '}',	   	align_close_bracket),
-	send(KB, function, ')',		align_close_bracket),
-	send(KB, function, '\e\C-h', 	insert_file_header),
-	send(KB, function, '\eh',	insert_section_header),
-	send(KB, function, '\C-c\C-q',	insert_comment_block),
-	send(KB, function, '\e;',	insert_line_comment),
-	send(KB, function, '\e.',	find_tag).
-
-:- initialization
-	new(X, syntax_table(language)),
-	send(X, syntax, '"',  string_quote, '"'),
-	send(X, syntax, '''', string_quote, ''''),
-	send(X, paragraph_end, regex('\s *$\|/\* - - -\|- - -.*\*/$')).
-
-:- initialization
-	new(MM, emacs_mode_menu(language, fundamental)),
-	send(MM, append, browse, find_tag).
-
+:- emacs_begin_mode(language, fundamental,
+		    "Edit (programming) languages",
+	[ indent_line			= key('TAB'),
+	  backward_delete_char_untabify	= key('DEL'),
+	  align_close_bracket		= key(']') + key('}') + key(')'),
+	  insert_file_header		= key('\e\C-h'),
+	  insert_section_header		= key('\eh'),
+	  insert_comment_block		= key('\C-c\C-q'),
+	  insert_line_comment		= key('\e;'),
+	  find_tag			= key('\e.') + button(browse)
+	],
+	[ '"'  = string_quote('"'),
+	  '''' = string_quote(''''),
+	  paragraph_end(regex('\s *$\|/\* - - -\|- - -.*\*/$'))
+	]).
 
 :- pce_autoload(emacs_tag_item, library(emacs_tags)).
 
@@ -202,18 +189,18 @@ backward_delete_char_untabify(M, Times:[int]) :->
 visit_tag_table(M, Table:'tag_file=file') :->
 	"Load specified GNU-Emacs (etags) tag-table"::
 	get(Table, absolute_path, TagFileName),
-	emacs_init_tags(TagFileName),
+	auto_call(emacs_init_tags(TagFileName)),
 	send(M, report, status, 'Loaded TAG table %s', TagFileName).
 
 
 find_tag(M, Tag:[name], Editor:editor) :<-
 	"Jump to indicated tag entry"::
-	(   emacs_tag_file(_)
+	(   auto_call(emacs_tag_file(_))
 	->  true
 	;   get(M, directory, Dir),
 	    (	send(?(Dir, file, 'TAGS'), exists)
 	    ->	get(Dir, path, Path),
-		emacs_init_tags(Path)
+		auto_call(emacs_init_tags(Path))
 	    ;	send(M, noarg_call, visit_tag_table)
 	    )
 	),
@@ -223,7 +210,7 @@ find_tag(M, Tag:[name], Editor:editor) :<-
 	    get(M, prompt_using, I, TheTag)
 	;   TheTag = Tag
 	),
-	(   emacs_tag(TheTag, File, Line),
+	(   auto_call(emacs_tag(TheTag, File, Line)),
 	    new(B, emacs_buffer(File)),
 	    send(B, open),
 	    get(B?editors, head, Editor),
@@ -278,5 +265,5 @@ beginning_of_text_on_line(E) :->
 	get(E, skip_comment, SOL, EOL, P0),
 	send(E, caret, P0).
 
-:- pce_end_class.
+:- emacs_end_mode.
 

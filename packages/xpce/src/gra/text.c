@@ -1229,194 +1229,190 @@ convertOldSlotText(TextObj t, Name slot, Any value)
   succeed;
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
 
-extern drawPostScriptText(TextObj t);
+/* Type declarations */
+
+static const char *T_insert[] =
+        { "at=[int]", "text=char_array" };
+static const char *T_resize[] =
+        { "factor_x=real", "factor_y=[real]", "origin=[point]" };
+static const char *T_margin[] =
+        { "int*", "[{wrap,wrap_fixed_width,clip}]" };
+static const char *T_linesADintD_columnADintD[] =
+        { "lines=[int]", "column=[int]" };
+static const char *T_delegate[] =
+        { "program_object", "string", "unchecked ..." };
+static const char *T_convertOldSlot[] =
+        { "slot=name", "value=unchecked" };
+static const char *T_initialise[] =
+        { "string=[char_array]", "format=[{left,center,right}]",
+	  "font=[font]" };
+static const char *T_insertSelf[] =
+        { "times=[int]", "character=[char]" };
+static const char *T_geometry[] =
+        { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_text[] =
+{ SV(NAME_string, "char_array", IV_GET|IV_SUPER, NAME_delegate,
+     NAME_storage, "Represented string (may contain newlines)"),
+  SV(NAME_font, "font", IV_GET|IV_STORE, fontText,
+     NAME_appearance, "Font used to draw the string"),
+  SV(NAME_format, "{left,center,right}", IV_GET|IV_STORE, formatText,
+     NAME_appearance, "Left, center or right alignment"),
+  IV(NAME_margin, "int", IV_GET,
+     NAME_appearance, "Margin for <->wrap equals wrap"),
+  IV(NAME_position, "point", IV_NONE,
+     NAME_internal, "Avoid `walking' with alignment"),
+  IV(NAME_caret, "int", IV_GET,
+     NAME_caret, "Index (0-based) of caret"),
+  SV(NAME_showCaret, "bool|{passive}", IV_GET|IV_STORE, showCaretText,
+     NAME_appearance, "If not @off, show the caret"),
+  SV(NAME_background, "[colour|pixmap]*", IV_GET|IV_STORE, backgroundText,
+     NAME_appearance, "@nil: transparent; @default: cleared"),
+  SV(NAME_border, "0..", IV_GET|IV_STORE, borderText,
+     NAME_appearance, "Border around actual text"),
+  IV(NAME_wrap, "{extend,wrap,wrap_fixed_width,clip}", IV_GET,
+     NAME_appearance, "How long text is handled"),
+  IV(NAME_xOffset, "int", IV_NONE,
+     NAME_internal, "Horizontal scroll when nonzero length"),
+  IV(NAME_xCaret, "int", IV_NONE,
+     NAME_internal, "X-position of caret"),
+  IV(NAME_yCaret, "int", IV_NONE,
+     NAME_internal, "Y-position of caret")
+};
+
+/* Send Methods */
+
+static const senddecl send_text[] =
+{ SM(NAME_event, 1, "event", eventText,
+     DEFAULT, "Handle focus and keyboard events"),
+  SM(NAME_geometry, 4, T_geometry, geometryText,
+     DEFAULT, "Only move text"),
+  SM(NAME_initialise, 3, T_initialise, initialiseText,
+     DEFAULT, "Create from string, format and font"),
+  SM(NAME_resize, 3, T_resize, resizeText,
+     DEFAULT, "Resize text with specified factor"),
+  SM(NAME_string, 1, "char_array", stringText,
+     NAME_storage, "Represented string"),
+  SM(NAME_formatCenter, 0, NULL, formatCenterText,
+     NAME_appearance, "Set center alignment"),
+  SM(NAME_formatLeft, 0, NULL, formatLeftText,
+     NAME_appearance, "Set left alignment"),
+  SM(NAME_formatRight, 0, NULL, formatRightText,
+     NAME_appearance, "Set right alignment"),
+  SM(NAME_margin, 2, T_margin, marginText,
+     NAME_appearance, "Determine how long text is handled"),
+  SM(NAME_length, 1, "int", lengthText,
+     NAME_area, "(compatibility)"),
+  SM(NAME_prefix, 0, NULL, succeedObject,
+     NAME_binding, "Multi-key prefix (see class key_binding)"),
+  SM(NAME_backwardChar, 1, "times=[int]", backwardCharText,
+     NAME_caret, "Move caret characters backward (\\C-f)"),
+  SM(NAME_backwardWord, 1, "times=[int]", backwardWordText,
+     NAME_caret, "Move caret words backward (\\eb)"),
+  SM(NAME_beginningOfLine, 1, "times=[int]", beginningOfLineText,
+     NAME_caret, "Move caret to start of line (\\C-a)"),
+  SM(NAME_caret, 1, "[int]", caretText,
+     NAME_caret, "Move caret to 0-based index"),
+  SM(NAME_endOfLine, 1, "times=[int]", endOfLineText,
+     NAME_caret, "Move caret to end of line (\\C-e)"),
+  SM(NAME_forwardChar, 1, "times=[int]", forwardCharText,
+     NAME_caret, "Move caret characters forwards (\\C-f)"),
+  SM(NAME_forwardWord, 1, "times=[int]", forwardWordText,
+     NAME_caret, "Move caret words forward (\\ef)"),
+  SM(NAME_nextLine, 2, T_linesADintD_columnADintD, nextLineText,
+     NAME_caret, "Move caret lines down (\\C-n)"),
+  SM(NAME_previousLine, 2, T_linesADintD_columnADintD, previousLineText,
+     NAME_caret, "Move caret lines up (\\C-n)"),
+  SM(NAME_convertOldSlot, 2, T_convertOldSlot, convertOldSlotText,
+     NAME_compatibility, "Convert <-transparent to <-background"),
+  SM(NAME_transparent, 1, "bool", transparentText,
+     NAME_compatibility, "Defines <-background"),
+  SM(NAME_delegate, 3, T_delegate, delegateTextv,
+     NAME_delegate, "Delegate to string"),
+  SM(NAME_backwardDeleteChar, 1, "times=[int]", backwardDeleteCharText,
+     NAME_delete, "Delete chars backward from caret (DEL)"),
+  SM(NAME_backwardKillWord, 1, "times=[int]", backwardKillWordText,
+     NAME_delete, "Deletes words backward from caret (\\eDEL)"),
+  SM(NAME_clear, 0, NULL, clearText,
+     NAME_delete, "Wipe out all text"),
+  SM(NAME_deleteChar, 1, "times=[int]", deleteCharText,
+     NAME_delete, "Delete characters forwards (\\C-d)"),
+  SM(NAME_killLine, 1, "times=[int]", killLineText,
+     NAME_delete, "Delete lines from caret \\C-k)"),
+  SM(NAME_killWord, 1, "times=[int]", killWordText,
+     NAME_delete, "Deletes words forward from caret (\\ed)"),
+  SM(NAME_typed, 1, "event_id", typedText,
+     NAME_event, "Handle a keystroke"),
+  SM(NAME_insert, 2, T_insert, insertText,
+     NAME_insert, "Insert text at position [<-caret]"),
+  SM(NAME_insertSelf, 2, T_insertSelf, insertSelfText,
+     NAME_insert, "Insert n-times char at caret"),
+  SM(NAME_newline, 1, "times=[int]", newlineText,
+     NAME_insert, "Insert newlines (RET, LFD)"),
+  SM(NAME_openLine, 1, "times=[int]", openLineText,
+     NAME_insert, "Insert newlines after caret (\\C-o)"),
+  SM(NAME_DrawPostScript, 0, NULL, drawPostScriptText,
+     NAME_postscript, "Create PostScript"),
+  SM(NAME_compute, 0, NULL, computeText,
+     NAME_repaint, "Recompute area/offset"),
+  SM(NAME_paste, 1, "[0..9]", pasteText,
+     NAME_selection, "Paste value of cut-buffer"),
+  SM(NAME_gosmacsTranspose, 0, NULL, gosmacsTransposeText,
+     NAME_transpose, "Transpose two char_array before caret"),
+  SM(NAME_transposeChars, 0, NULL, transposeCharsText,
+     NAME_transpose, "Transpose two char_array around caret")
+};
+
+/* Get Methods */
+
+static const getdecl get_text[] =
+{ GM(NAME_characterPosition, 1, "point", "index=[int]",
+     getCharacterPositionText,
+     NAME_calculate, "Convert index to position of character"),
+  GM(NAME_column, 0, "pixels=int", NULL, getColumnText,
+     NAME_caret, "Current X-location of caret (pixels)"),
+  GM(NAME_transparent, 0, "bool", NULL, getTransparentText,
+     NAME_compatibility, "Map <-background"),
+  GM(NAME_pointed, 1, "index=int", "at=point", getPointedText,
+     NAME_event, "Convert position to character index")
+};
+
+/* Resources */
+
+static const resourcedecl rc_text[] =
+{ RC(NAME_border, "0..", "0",
+     "Space around the actual text"),
+  RC(NAME_font, "font", "normal",
+     "Default font"),
+  RC(NAME_format, "name", "left",
+     "Default adjustment: {left,center,right}"),
+  RC(NAME_keyBinding, "string", "",
+     "`Key = selector' binding list")
+};
+
+/* Class Declaration */
+
+static Name text_termnames[] = { NAME_string, NAME_format, NAME_font };
+
+ClassDecl(text_decls,
+          var_text, send_text, get_text, rc_text,
+          3, text_termnames,
+          "$Rev$");
+
+
+
 
 status
 makeClassText(Class class)
-{ sourceClass(class, makeClassText, __FILE__, "$Revision$");
-
-  superClass(class, NAME_string, NAME_storage, "char_array", NAME_get, 
-	     NAME_delegate,
-	     "Represented string (may contain newlines)");
-  localClass(class, NAME_font, NAME_appearance, "font", NAME_get,
-	     "Font used to draw the string");
-  localClass(class, NAME_format, NAME_appearance,
-	     "{left,center,right}", NAME_get,
-	     "Left, center or right alignment");
-  localClass(class, NAME_margin, NAME_appearance, "int", NAME_get,
-	     "Margin for <->wrap equals wrap");
-  localClass(class, NAME_position, NAME_internal, "point", NAME_none,
-	     "Avoid `walking' with alignment");
-  localClass(class, NAME_caret, NAME_caret, "int", NAME_get,
-	     "Index (0-based) of caret");
-  localClass(class, NAME_showCaret, NAME_appearance, "bool|{passive}",
-	     NAME_get,
-	     "If not @off, show the caret");
-  localClass(class, NAME_background, NAME_appearance, "[colour|pixmap]*",
-	     NAME_get,
-	     "@nil: transparent; @default: cleared");
-  localClass(class, NAME_border, NAME_appearance, "0..", NAME_get,
-	     "Border around actual text");
-  localClass(class, NAME_wrap, NAME_appearance,
-	     "{extend,wrap,wrap_fixed_width,clip}", NAME_get,
-	     "How long text is handled");
-  localClass(class, NAME_xOffset, NAME_internal, "int", NAME_none,
-	     "Horizontal scroll when nonzero length");
-  localClass(class, NAME_xCaret, NAME_internal, "int", NAME_none,
-	     "X-position of caret");
-  localClass(class, NAME_yCaret, NAME_internal, "int", NAME_none,
-	     "Y-position of caret");
-
-  termClass(class, "text", 3, NAME_string, NAME_format, NAME_font);
+{ declareClass(class, &text_decls);
   setRedrawFunctionClass(class, RedrawAreaText);
   setLoadStoreFunctionClass(class, loadText, NULL);
-
-  storeMethod(class, NAME_font,        fontText);
-  storeMethod(class, NAME_format,      formatText);
-  storeMethod(class, NAME_showCaret,   showCaretText);
-  storeMethod(class, NAME_string,      stringText);
-  storeMethod(class, NAME_background,  backgroundText);
-  storeMethod(class, NAME_border,      borderText);
-
-  sendMethod(class, NAME_initialise, DEFAULT,
-	     3, "string=[char_array]", "format=[{left,center,right}]",
-	        "font=[font]",
-	     "Create from string, format and font",
-	     initialiseText);
-  sendMethod(class, NAME_delegate, NAME_delegate,
-	     3, "program_object", "string", "unchecked ...",
-	     "Delegate to string",
-	     delegateTextv);
-  sendMethod(class, NAME_geometry, DEFAULT, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Only move text",
-	     geometryText);
-  sendMethod(class, NAME_compute, NAME_repaint, 0,
-	     "Recompute area/offset",
-	     computeText);
-  sendMethod(class, NAME_caret, NAME_caret, 1, "[int]",
-	     "Move caret to 0-based index",
-	     caretText);
-  sendMethod(class, NAME_resize, DEFAULT, 3,
-	     "factor_x=real", "factor_y=[real]", "origin=[point]",
-	     "Resize text with specified factor",
-	     resizeText);
-  sendMethod(class, NAME_typed, NAME_event, 1, "event_id",
-	     "Handle a keystroke",
-	     typedText);
-  sendMethod(class, NAME_event, DEFAULT, 1, "event",
-	     "Handle focus and keyboard events",
-	     eventText);
-  sendMethod(class, NAME_DrawPostScript, NAME_postscript, 0,
-	     "Create PostScript",
-	     drawPostScriptText);
-  sendMethod(class, NAME_paste, NAME_selection, 1, "[0..9]",
-	     "Paste value of cut-buffer",
-	     pasteText);
-  sendMethod(class, NAME_length, NAME_area, 1, "int",
-	     "(compatibility)",
-	     lengthText);
-  sendMethod(class, NAME_margin, NAME_appearance, 2, "int*",
-	     "[{wrap,wrap_fixed_width,clip}]",
-	     "Determine how long text is handled",
-	     marginText);
-  sendMethod(class, NAME_insert, NAME_insert, 2, "at=[int]", "text=char_array",
-	     "Insert text at position [<-caret]",
-	     insertText);
-			/*** INTERACTIVE ***/
-
-  sendMethod(class, NAME_insertSelf, NAME_insert, 2,
-	     "times=[int]", "character=[char]",
-	     "Insert n-times char at caret",
-	     insertSelfText);
-
-#define interactiveMethod(name, func, group, doc) \
-  sendMethod(class, name, group, 1, "times=[int]", doc, func)
-#define noArgMethod(name, func, group, doc) \
-  sendMethod(class, name, group, 0, doc, func)
-
-  noArgMethod(NAME_formatCenter, formatCenterText,
-	      NAME_appearance, "Set center alignment");
-  noArgMethod(NAME_formatLeft, formatLeftText,
-	      NAME_appearance, "Set left alignment");
-  noArgMethod(NAME_formatRight, formatRightText,
-	      NAME_appearance, "Set right alignment");
-  noArgMethod(NAME_prefix, succeedObject,
-	      NAME_binding, "Multi-key prefix (see class key_binding)");
-  noArgMethod(NAME_clear, clearText,
-	      NAME_delete, "Wipe out all text");
-  noArgMethod(NAME_gosmacsTranspose, gosmacsTransposeText,
-	      NAME_transpose, "Transpose two char_array before caret");
- noArgMethod(NAME_transposeChars, transposeCharsText,
-	      NAME_transpose, "Transpose two char_array around caret");
-
-  interactiveMethod(NAME_backwardChar,          backwardCharText,
-                    NAME_caret, "Move caret characters backward (\\C-f)");
-  interactiveMethod(NAME_endOfLine,		endOfLineText,
-		    NAME_caret, "Move caret to end of line (\\C-e)");
-  interactiveMethod(NAME_forwardChar,		forwardCharText,
-		    NAME_caret, "Move caret characters forwards (\\C-f)");
-  interactiveMethod(NAME_beginningOfLine,	beginningOfLineText,
-		    NAME_caret, "Move caret to start of line (\\C-a)");
-  interactiveMethod(NAME_forwardWord,		forwardWordText,
-		    NAME_caret, "Move caret words forward (\\ef)");
-  interactiveMethod(NAME_backwardWord,		backwardWordText,
-		    NAME_caret, "Move caret words backward (\\eb)");
-  interactiveMethod(NAME_backwardDeleteChar,	backwardDeleteCharText,
-		    NAME_delete, "Delete chars backward from caret (DEL)");
-  interactiveMethod(NAME_deleteChar,		deleteCharText,
-		    NAME_delete, "Delete characters forwards (\\C-d)");
-  interactiveMethod(NAME_killLine,		killLineText,
-		    NAME_delete, "Delete lines from caret \\C-k)");
-  interactiveMethod(NAME_newline,		newlineText,
-		    NAME_insert, "Insert newlines (RET, LFD)");
-  interactiveMethod(NAME_openLine,		openLineText,
-		    NAME_insert, "Insert newlines after caret (\\C-o)");
-  interactiveMethod(NAME_killWord,		killWordText,
-		    NAME_delete, "Deletes words forward from caret (\\ed)");
-  interactiveMethod(NAME_backwardKillWord,	backwardKillWordText,
-		    NAME_delete, "Deletes words backward from caret (\\eDEL)");
-
-  sendMethod(class, NAME_nextLine, NAME_caret, 2,
-	     "lines=[int]", "column=[int]",
-	     "Move caret lines down (\\C-n)",
-	     nextLineText);
-  sendMethod(class, NAME_previousLine, NAME_caret, 2,
-	     "lines=[int]", "column=[int]",
-	     "Move caret lines up (\\C-n)",
-	     previousLineText);
-
-  sendMethod(class, NAME_transparent, NAME_compatibility, 1, "bool",
-	     "Defines <-background",
-	     transparentText);
-  sendMethod(class, NAME_convertOldSlot, NAME_compatibility, 2,
-	     "slot=name", "value=unchecked",
-	     "Convert <-transparent to <-background",
-	     convertOldSlotText);
-
-  getMethod(class, NAME_pointed, NAME_event, "index=int", 1, "at=point",
-	    "Convert position to character index",
-	    getPointedText);
-  getMethod(class, NAME_characterPosition, NAME_calculate, "point", 1,
-	    "index=[int]",
-	    "Convert index to position of character",
-	    getCharacterPositionText);
-  getMethod(class, NAME_column, NAME_caret, "pixels=int", 0,
-	    "Current X-location of caret (pixels)",
-	    getColumnText);
-  getMethod(class, NAME_transparent, NAME_compatibility, "bool", 0,
-	    "Map <-background",
-	    getTransparentText);
-
-  attach_resource(class, "font", "font", "normal",
-		  "Default font");
-  attach_resource(class, "format", "name", "left",
-		  "Default adjustment: {left,center,right}");
-  attach_resource(class, "key_binding", "string", "",
-		  "`Key = selector' binding list");
-  attach_resource(class, "border", "0..", "0",
-		  "Space around the actual text");
 
   succeed;
 }

@@ -867,74 +867,96 @@ kindType(Type t, Name kind)
   succeed;
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_initialise[] =
+        { "name=name", "kind=[name]", "context=[any]", "supers=[chain*]" };
+static const char *T_validate[] =
+        { "unchecked", "[object]*" };
+static const char *T_valueAunchecked_contextADobjectDN[] =
+        { "value=unchecked", "context=[object]*" };
+
+/* Instance Variables */
+
+static const vardecl var_type[] =
+{ SV(NAME_kind, "name", IV_GET|IV_STORE, kindType,
+     NAME_check, "Type of type"),
+  IV(NAME_fullname, "name", IV_GET,
+     NAME_name, "Symbolic name for this type"),
+  IV(NAME_argumentName, "name*", IV_GET,
+     NAME_argument, "Name of the argument"),
+  IV(NAME_supers, "chain*", IV_GET,
+     NAME_components, "Super-types"),
+  IV(NAME_context, "any", IV_GET,
+     NAME_check, "Context for check- and convert functions"),
+  IV(NAME_vector, "bool", IV_GET,
+     NAME_argument, "Methods: variable number of arguments"),
+  IV(NAME_validateFunction, "alien:SendFunc", IV_NONE,
+     NAME_internal, "C-function to check this type"),
+  IV(NAME_translateFunction, "alien:Func", IV_NONE,
+     NAME_internal, "C-function to convert to this")
+};
+
+/* Send Methods */
+
+static const senddecl send_type[] =
+{ SM(NAME_initialise, 4, T_initialise, initialiseType,
+     DEFAULT, "Create type from name, kind, context and supers"),
+  SM(NAME_validate, 2, T_validate, validateType,
+     NAME_check, "Validate argument is of this type"),
+  SM(NAME_includes, 1, "type", includesType,
+     NAME_meta, "Type includes its argument"),
+  SM(NAME_specialised, 1, "type", specialisedType,
+     NAME_meta, "Test if argument is a specialised type")
+};
+
+/* Get Methods */
+
+static const getdecl get_type[] =
+{ GM(NAME_check, 2, "unchecked", T_valueAunchecked_contextADobjectDN, getCheckType,
+     NAME_check, "Validate and translate if necessary"),
+  GM(NAME_convert, 1, "type", "name", getConvertType,
+     NAME_check, "Convert symbolic type-name"),
+  GM(NAME_translate, 2, "unchecked", T_valueAunchecked_contextADobjectDN, getTranslateType,
+     NAME_check, "Translate argument given context"),
+  GM(NAME_copy, 1, "type", "name", getCopyType,
+     NAME_copy, "Get a copy of a type with a different name"),
+  GM(NAME_valueSet, 1, "chain", "[object]*", getValueSetType,
+     NAME_meta, "Chain with values that satisfy this type"),
+  GM(NAME_name, 0, "name", NULL, getNameType,
+     NAME_name, "Name without argument specification"),
+  GM(NAME_lookup, 1, "type", "name", getLookupType,
+     NAME_oms, "Lookup type in type-database")
+};
+
+/* Resources */
+
+static const resourcedecl rc_type[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name type_termnames[] = { NAME_name, NAME_kind,
+				 NAME_context, NAME_supers };
+
+ClassDecl(type_decls,
+          var_type, send_type, get_type, rc_type,
+          4, type_termnames,
+          "$Rev$");
+
 
 status
 makeClassType(Class class)
-{ sourceClass(class, makeClassType, __FILE__, "$Revision$");
+{ declareClass(class, &type_decls);
 
-  localClass(class, NAME_kind, NAME_check, "name", NAME_get,
-	     "Type of type");
-  localClass(class, NAME_fullname, NAME_name, "name", NAME_get,
-	     "Symbolic name for this type");
-  localClass(class, NAME_argumentName, NAME_argument, "name*", NAME_get,
-	     "Name of the argument");
-  localClass(class, NAME_supers, NAME_components, "chain*", NAME_get,
-	     "Super-types");
-  localClass(class, NAME_context, NAME_check, "any", NAME_get,
-	     "Context for check- and convert functions");
-  localClass(class, NAME_vector, NAME_argument, "bool", NAME_get,
-	     "Methods: variable number of arguments");
-  localClass(class, NAME_validateFunction, NAME_internal, "alien:SendFunc",
-	     NAME_none,
-	     "C-function to check this type");
-  localClass(class, NAME_translateFunction, NAME_internal, "alien:Func",
-	     NAME_none,
-	     "C-function to convert to this");
-
-  termClass(class, "type", 4, NAME_name, NAME_kind, NAME_context, NAME_supers);
   setLoadStoreFunctionClass(class, loadType, storeType);
   setTraceFunctionClass(class, traceType);
   cloneStyleClass(class, NAME_none);
-
-  storeMethod(class, NAME_kind, kindType);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 4,
-	     "name=name", "kind=[name]", "context=[any]", "supers=[chain*]",
-	     "Create type from name, kind, context and supers",
-	     initialiseType);
-  sendMethod(class, NAME_validate, NAME_check, 2, "unchecked", "[object]*",
-	     "Validate argument is of this type",
-	     validateType);
-  sendMethod(class, NAME_specialised, NAME_meta, 1, "type",
-	     "Test if argument is a specialised type",
-	     specialisedType);
-  sendMethod(class, NAME_includes, NAME_meta, 1, "type",
-	     "Type includes its argument",
-	     includesType);
-
-  getMethod(class, NAME_convert, NAME_check, "type", 1, "name",
-	    "Convert symbolic type-name",
-	    getConvertType);
-  getMethod(class, NAME_lookup, NAME_oms, "type", 1, "name",
-	    "Lookup type in type-database",
-	    getLookupType);
-  getMethod(class, NAME_translate, NAME_check, "unchecked", 2,
-	    "value=unchecked", "context=[object]*",
-	    "Translate argument given context",
-	    getTranslateType);
-  getMethod(class, NAME_check, NAME_check, "unchecked", 2,
-	    "value=unchecked", "context=[object]*",
-	    "Validate and translate if necessary",
-	    getCheckType);
-  getMethod(class, NAME_copy, NAME_copy, "type", 1, "name",
-	    "Get a copy of a type with a different name",
-	    getCopyType);
-  getMethod(class, NAME_valueSet, NAME_meta, "chain", 1, "[object]*",
-	    "Chain with values that satisfy this type",
-	    getValueSetType);
-  getMethod(class, NAME_name, NAME_name, "name", 0,
-	    "Name without argument specification",
-	    getNameType);
 
   succeed;
 }

@@ -62,37 +62,63 @@ terminateMoveGesture(MoveGesture g, EventObj ev)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "button=[button_name]", "modifier=[modifier]" };
+
+/* Instance Variables */
+
+static const vardecl var_moveGesture[] =
+{ IV(NAME_offset, "point", IV_GET,
+     NAME_internal, "Offset of down relative to object")
+};
+
+/* Send Methods */
+
+static const senddecl send_moveGesture[] =
+{ SM(NAME_drag, 1, "event", dragMoveGesture,
+     DEFAULT, "Drag to next position"),
+  SM(NAME_initialise, 2, T_initialise, initialiseMoveGesture,
+     DEFAULT, "Create from button and modifier"),
+  SM(NAME_initiate, 1, "event", initiateMoveGesture,
+     DEFAULT, "Initiate move"),
+  SM(NAME_terminate, 1, "event", terminateMoveGesture,
+     DEFAULT, "Finish the move"),
+  SM(NAME_verify, 1, "event", verifyMoveGesture,
+     DEFAULT, "Verify object moved is displayed on a device")
+};
+
+/* Get Methods */
+
+static const getdecl get_moveGesture[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_moveGesture[] =
+{ RC(NAME_button, "button_name", "middle",
+     "Active on which button (middle)"),
+  RC(NAME_cursor, "cursor", "fleur",
+     "Cursor while active")
+};
+
+/* Class Declaration */
+
+static Name moveGesture_termnames[] = { NAME_button, NAME_modifier };
+
+ClassDecl(moveGesture_decls,
+          var_moveGesture, send_moveGesture, get_moveGesture, rc_moveGesture,
+          2, moveGesture_termnames,
+          "$Rev$");
+
 status
 makeClassMoveGesture(Class class)
-{ sourceClass(class, makeClassMoveGesture, __FILE__, "$Revision$");
-
-  localClass(class, NAME_offset, NAME_internal, "point", NAME_get,
-	     "Offset of down relative to object");
-
-  termClass(class, "move_gesture", 2, NAME_button, NAME_modifier);
-
-  sendMethod(class, NAME_initialise, DEFAULT,
-	     2, "button=[button_name]", "modifier=[modifier]",
-	     "Create from button and modifier",
-	     initialiseMoveGesture);
-  sendMethod(class, NAME_verify, DEFAULT, 1, "event",
-	     "Verify object moved is displayed on a device",
-	     verifyMoveGesture);
-  sendMethod(class, NAME_initiate, DEFAULT, 1, "event",
-	     "Initiate move",
-	     initiateMoveGesture);
-  sendMethod(class, NAME_drag, DEFAULT, 1, "event",
-	     "Drag to next position",
-	     dragMoveGesture);
-  sendMethod(class, NAME_terminate, DEFAULT, 1, "event",
-	     "Finish the move",
-	     terminateMoveGesture);
-
-  attach_resource(class, "button", "button_name", "middle",
-		  "Active on which button (middle)");
-  attach_resource(class, "cursor", "cursor", "fleur",
-		  "Cursor while active");
-
-  succeed;
+{ return declareClass(class, &moveGesture_decls);
 }
 

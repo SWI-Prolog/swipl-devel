@@ -448,10 +448,8 @@ ws_get_cutbuffer(DisplayObj d, int n)
   else
     data = XFetchBuffer(r->display_xref, &size, valInt(n));
 
+  str_inithdr(&str, ENC_ASCII);
   str.size = size;
-  str.encoding = ENC_ASCII;
-  str.b16 = FALSE;
-  str.pad = 0;
   str.s_text = data;
   rval = StringToString(&str);
 
@@ -513,15 +511,13 @@ collect_selection_display(Widget w, XtPointer xtp,
   { string s;
 
     if ( *format == 8 )
-    { s.encoding = ENC_ASCII;
+    { str_inithdr(&s, ENC_ASCII);
       s.size = *len;
       s.s_text = value;
-      s.b16 = FALSE;
     } else if ( *format == 16 )
-    { s.encoding = ENC_ASCII;
+    { str_inithdr(&s, ENC_UNICODE);
       s.size = *len / 2;
       s.s_text = value;
-      s.b16 = TRUE;
     } else
     { selection_error = CtoName("Bad format");
       selection_complete = TRUE;

@@ -10,7 +10,8 @@
 :- module(msg_behaviour_model, []).
 :- use_module(library(pce)).
 :- use_module(library(pce_template)).
-:- require([ between/3
+:- require([ auto_call/1
+	   , between/3
 	   , chain_list/2
 	   , default/3
 	   , forall/2
@@ -1077,7 +1078,8 @@ value(P, Value:'any|function') :<-
 	    send(D, destroy),
 	    fail
 	;   (   term_to_atom(Term, Atom)
-	    ->	(   compound(Term), Term \= @_
+	    ->	(   compound(Term),
+		    \+ functor(Term, @, 1)
 		->  new(Value, Term)
 		;   Value = Term,
 		    send(D, destroy)

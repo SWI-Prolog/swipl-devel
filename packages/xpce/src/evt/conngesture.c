@@ -200,74 +200,96 @@ connectConnectGesture(ConnectGesture g, Graphical gr1, Graphical gr2,
 
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_indicateHandle[] =
+        { "at=graphical", "handle=name", "indicators=chain" };
+static const char *T_indicate[] =
+        { "at=graphical", "near=event", "handle_kind=name", "indicators=chain", "variable={to_handle,from_handle}" };
+static const char *T_initialise[] =
+        { "button=[button_name]", "modifier=[modifier]", "link=[link]" };
+static const char *T_connect[] =
+        { "from=graphical", "to=graphical", "link=link", "from_handle=[name]", "to_handle=[name]" };
+
+/* Instance Variables */
+
+static const vardecl var_connectGesture[] =
+{ IV(NAME_device, "device*", IV_BOTH,
+     NAME_context, "Device used for feedback"),
+  IV(NAME_line, "line", IV_GET,
+     NAME_feedback, "Line for feedback (cf. outline)"),
+  IV(NAME_mark, "image", IV_BOTH,
+     NAME_feedback, "Image used to mark handles"),
+  IV(NAME_link, "link*", IV_BOTH,
+     NAME_connection, "Link used to connect the graphicals"),
+  IV(NAME_fromIndicators, "chain", IV_GET,
+     NAME_feedback, "Chain of bitmaps to indicate handles"),
+  IV(NAME_toIndicators, "chain", IV_GET,
+     NAME_feedback, "Chain of bitmaps to indicate handles"),
+  IV(NAME_fromHandle, "[name]", IV_GET,
+     NAME_connection, "Name of handle at from side"),
+  IV(NAME_toHandle, "[name]", IV_GET,
+     NAME_connection, "Name of handle at to side"),
+  IV(NAME_to, "graphical*", IV_GET,
+     NAME_connection, "Graphical at to side (target)")
+};
+
+/* Send Methods */
+
+static const senddecl send_connectGesture[] =
+{ SM(NAME_drag, 1, "event", dragConnectGesture,
+     DEFAULT, "Drag to next position"),
+  SM(NAME_initialise, 3, T_initialise, initialiseConnectGesture,
+     DEFAULT, "Create from button, modifier and link"),
+  SM(NAME_initiate, 1, "event", initiateConnectGesture,
+     DEFAULT, "Initiate connect"),
+  SM(NAME_terminate, 1, "event", terminateConnectGesture,
+     DEFAULT, "Finish the connect"),
+  SM(NAME_verify, 1, "event", verifyConnectGesture,
+     DEFAULT, "Verify object connected is displayed on a device"),
+  SM(NAME_connect, 5, T_connect, connectConnectGesture,
+     NAME_execute, "Connect the receiver with the target"),
+  SM(NAME_indicate, 5, T_indicate, indicateConnectGesture,
+     NAME_feedback, "Indicate possible connectionpoints"),
+  SM(NAME_indicateHandle, 3, T_indicateHandle, indicateHandleConnectGesture,
+     NAME_feedback, "Indicate position of named handle")
+};
+
+/* Get Methods */
+
+static const getdecl get_connectGesture[] =
+{ GM(NAME_pointed, 1, "chain", "event", getPointedConnectGesture,
+     NAME_event, "Find the graphicals covered by the mouse")
+};
+
+/* Resources */
+
+static const resourcedecl rc_connectGesture[] =
+{ RC(NAME_button, "button_name", "left",
+     "Active on which button (left)"),
+  RC(NAME_mark, "image", "@mark_handle_image",
+     "Marker for handle position"),
+  RC(NAME_modifier, "modifier", "",
+     "Modifier (none)")
+};
+
+/* Class Declaration */
+
+static Name connectGesture_termnames[] =
+	{ NAME_button, NAME_modifier, NAME_link };
+
+ClassDecl(connectGesture_decls,
+          var_connectGesture, send_connectGesture,
+	  get_connectGesture, rc_connectGesture,
+          3, connectGesture_termnames,
+          "$Rev$");
+
 status
 makeClassConnectGesture(Class class)
-{ sourceClass(class, makeClassConnectGesture, __FILE__, "$Revision$");
-
-  localClass(class, NAME_device, NAME_context, "device*", NAME_both,
-	     "Device used for feedback");
-  localClass(class, NAME_line, NAME_feedback, "line", NAME_get,
-	     "Line for feedback (cf. outline)");
-  localClass(class, NAME_mark, NAME_feedback, "image", NAME_both,
-	     "Image used to mark handles");
-  localClass(class, NAME_link, NAME_connection, "link*", NAME_both,
-	     "Link used to connect the graphicals");
-  localClass(class, NAME_fromIndicators, NAME_feedback, "chain", NAME_get,
-	     "Chain of bitmaps to indicate handles");
-  localClass(class, NAME_toIndicators, NAME_feedback, "chain", NAME_get,
-	     "Chain of bitmaps to indicate handles");
-  localClass(class, NAME_fromHandle, NAME_connection, "[name]", NAME_get,
-	     "Name of handle at from side");
-  localClass(class, NAME_toHandle, NAME_connection, "[name]", NAME_get,
-	     "Name of handle at to side");
-  localClass(class, NAME_to, NAME_connection, "graphical*", NAME_get,
-	     "Graphical at to side (target)");
-
-  termClass(class, "connect_gesture",
-	    3, NAME_button, NAME_modifier, NAME_link);
-
-  sendMethod(class, NAME_initialise, DEFAULT,
-	     3, "button=[button_name]", "modifier=[modifier]", "link=[link]",
-	     "Create from button, modifier and link",
-	     initialiseConnectGesture);
-  sendMethod(class, NAME_verify, DEFAULT, 1, "event",
-	     "Verify object connected is displayed on a device",
-	     verifyConnectGesture);
-  sendMethod(class, NAME_initiate, DEFAULT, 1, "event",
-	     "Initiate connect",
-	     initiateConnectGesture);
-  sendMethod(class, NAME_drag, DEFAULT, 1, "event",
-	     "Drag to next position",
-	     dragConnectGesture);
-  sendMethod(class, NAME_terminate, DEFAULT, 1, "event",
-	     "Finish the connect",
-	     terminateConnectGesture);
-  sendMethod(class, NAME_connect, NAME_execute, 5,
-	     "from=graphical", "to=graphical", "link=link",
-	     "from_handle=[name]", "to_handle=[name]",
-	     "Connect the receiver with the target",
-	     connectConnectGesture);
-  sendMethod(class, NAME_indicate, NAME_feedback, 5,
-	     "at=graphical", "near=event", "handle_kind=name",
-	     "indicators=chain", "variable={to_handle,from_handle}",
-	     "Indicate possible connectionpoints",
-	     indicateConnectGesture);
-  sendMethod(class, NAME_indicateHandle, NAME_feedback, 3,
-	     "at=graphical", "handle=name", "indicators=chain",
-	     "Indicate position of named handle",
-	     indicateHandleConnectGesture);
-
-  getMethod(class, NAME_pointed, NAME_event, "chain", 1, "event",
-	    "Find the graphicals covered by the mouse",
-	    getPointedConnectGesture);
-
-  attach_resource(class, "button",   "button_name",   "left",
-		  "Active on which button (left)");
-  attach_resource(class, "modifier", "modifier", "",
-		  "Modifier (none)");
-  attach_resource(class, "mark",   "image", "@mark_handle_image",
-		  "Marker for handle position");
-
-  succeed;
+{ return declareClass(class, &connectGesture_decls);
 }
 

@@ -302,73 +302,92 @@ getIntensityColour(Colour c)
   answer(toInt((r*20 + g*32 + b*18)/(20+32+18)));
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_lookup[] =
+        { "[name|int]", "red=[0..65535]", "green=[0..65535]",
+	  "blue=[0..65535]" };
+static const char *T_initialise[] =
+        { "name=[name]", "red=[0..65535]", "green=[0..65535]",
+	  "blue=[0..65535]" };
+
+/* Instance Variables */
+
+static const vardecl var_colour[] =
+{ IV(NAME_name, "name|int", IV_GET,
+     NAME_name, "Name of the colour"),
+  IV(NAME_kind, "{named,rgb}", IV_NONE,
+     NAME_kind, "From X-colour database or user-defined"),
+  SV(NAME_red, "[0..65535]", IV_NONE|IV_FETCH, getRedColour,
+     NAME_colour, "Red value"),
+  SV(NAME_green, "[0..65535]", IV_NONE|IV_FETCH, getGreenColour,
+     NAME_colour, "Green value"),
+  SV(NAME_blue, "[0..65535]", IV_NONE|IV_FETCH, getBlueColour,
+     NAME_colour, "Blue value")
+};
+
+/* Send Methods */
+
+static const senddecl send_colour[] =
+{ SM(NAME_initialise, 4, T_initialise, initialiseColour,
+     DEFAULT, "Create from name and optional rgb"),
+  SM(NAME_unlink, 0, NULL, unlinkColour,
+     DEFAULT, "Deallocate the colour object"),
+  SM(NAME_Xclose, 1, "display", XCloseColour,
+     NAME_x, "Destroy window-system counterpart"),
+  SM(NAME_Xopen, 1, "display", XopenColour,
+     NAME_x, "Create window-system counterpart")
+};
+
+/* Get Methods */
+
+static const getdecl get_colour[] =
+{ GM(NAME_hilite, 0, "colour", NULL, getHiliteColour,
+     NAME_3d, "Hilited version of the colour"),
+  GM(NAME_reduce, 0, "colour", NULL, getReduceColour,
+     NAME_3d, "Reduced version of the colour"),
+  GM(NAME_convert, 1, "colour", "name", getConvertColour,
+     NAME_conversion, "Convert X-colour name"),
+  GM(NAME_storageReference, 0, "name", NULL, getStorageReferenceColour,
+     NAME_file, "Description name for ->save_in_file"),
+  GM(NAME_intensity, 0, "0..65535", NULL, getIntensityColour,
+     NAME_grey, "Total light intensity of the colour"),
+  GM(NAME_lookup, 4, "colour", T_lookup, getLookupColour,
+     NAME_oms, "Lookup in @colours table")
+};
+
+/* Resources */
+
+static const resourcedecl rc_colour[] =
+{ RC(NAME_hiliteFactor, "real", "0.9",
+     "Factor for <-hilite'd colour"),
+  RC(NAME_reduceFactor, "real", "0.5",
+     "Factor for <-reduce'd colour")
+};
+
+/* Class Declaration */
+
+static Name colour_termnames[] = { NAME_name };
+
+ClassDecl(colour_decls,
+          var_colour, send_colour, get_colour, rc_colour,
+          1, colour_termnames,
+          "$Rev$");
+
 
 status
 makeClassColour(Class class)
-{ sourceClass(class, makeClassColour, __FILE__, "$Revision$");
+{ declareClass(class, &colour_decls);
 
-  localClass(class, NAME_name, NAME_name, "name|int", NAME_get,
-	     "Name of the colour");
-  localClass(class, NAME_kind, NAME_kind, "{named,rgb}", NAME_none,
-	     "From X-colour database or user-defined");
-  localClass(class, NAME_red, NAME_colour, "[0..65535]", NAME_none,
-	     "Red value");
-  localClass(class, NAME_green, NAME_colour, "[0..65535]", NAME_none,
-	     "Green value");
-  localClass(class, NAME_blue, NAME_colour, "[0..65535]", NAME_none,
-	     "Blue value");
-
-  termClass(class, "colour", 1, NAME_name);
   setLoadStoreFunctionClass(class, loadColour, storeColour);
   cloneStyleClass(class, NAME_none);
 
-  fetchMethod(class, NAME_red,   getRedColour);
-  fetchMethod(class, NAME_green, getGreenColour);
-  fetchMethod(class, NAME_blue,  getBlueColour);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 4,
-	     "name=[name]",
-	     "red=[0..65535]", "green=[0..65535]", "blue=[0..65535]",
-	     "Create from name and optional rgb",
-	     initialiseColour);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Deallocate the colour object",
-	     unlinkColour);
-  sendMethod(class, NAME_Xopen, NAME_x, 1, "display",
-	     "Create window-system counterpart",
-	     XopenColour);
-  sendMethod(class, NAME_Xclose, NAME_x, 1, "display",
-	     "Destroy window-system counterpart",
-	     XCloseColour);
-
-  getMethod(class, NAME_convert, NAME_conversion, "colour", 1, "name",
-	    "Convert X-colour name",
-	    getConvertColour);
-  getMethod(class, NAME_lookup, NAME_oms, "colour", 4,
-	    "[name|int]",
-	    "red=[0..65535]", "green=[0..65535]", "blue=[0..65535]",
-	    "Lookup in @colours table",
-	    getLookupColour);
-  getMethod(class, NAME_hilite, NAME_3d, "colour", 0,
-	    "Hilited version of the colour",
-	    getHiliteColour);
-  getMethod(class, NAME_reduce, NAME_3d, "colour", 0,
-	    "Reduced version of the colour",
-	    getReduceColour);
-  getMethod(class, NAME_intensity, NAME_grey, "0..65535", 0,
-	    "Total light intensity of the colour",
-	    getIntensityColour);
-  getMethod(class, NAME_storageReference, NAME_file, "name", 0,
-	    "Description name for ->save_in_file",
-	    getStorageReferenceColour);
-
   ColourTable = globalObject(NAME_colours, ClassHashTable, toInt(32), 0);
   assign(ColourTable, refer, OFF);
-
-  attach_resource(class, "reduce_factor", "real", "0.5",
-		  "Factor for <-reduce'd colour");
-  attach_resource(class, "hilite_factor", "real", "0.9",
-		  "Factor for <-hilite'd colour");
 
   succeed;
 }

@@ -31,32 +31,60 @@ getExecuteWhen(When w)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "condition=code", "then=any|function", "else=any|function" };
+
+/* Instance Variables */
+
+static const vardecl var_when[] =
+{ IV(NAME_condition, "code", IV_BOTH,
+     NAME_statement, "Condition to be tested"),
+  IV(NAME_then, "any|function", IV_BOTH,
+     NAME_statement, "Executed if condition is true"),
+  IV(NAME_else, "any|function", IV_BOTH,
+     NAME_statement, "Executed if condition is false")
+};
+
+/* Send Methods */
+
+static const senddecl send_when[] =
+{ SM(NAME_initialise, 3, T_initialise, initialiseWhen,
+     DEFAULT, "Create from condition, when- and else"),
+  SM(NAME_unlink, 0, NULL, succeedObject,
+     DEFAULT, "temp; just to trap")
+};
+
+/* Get Methods */
+
+static const getdecl get_when[] =
+{ GM(NAME_Execute, 0, "unchecked", NULL, getExecuteWhen,
+     DEFAULT, "Test condition and evaluate <-then or <-else")
+};
+
+/* Resources */
+
+static const resourcedecl rc_when[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name when_termnames[] = { NAME_condition, NAME_then, NAME_else };
+
+ClassDecl(when_decls,
+          var_when, send_when, get_when, rc_when,
+          3, when_termnames,
+          "$Rev$");
+
 status
 makeClassWhen(Class class)
-{ sourceClass(class, makeClassWhen, __FILE__, "$Revision$");
-
-  localClass(class, NAME_condition, NAME_statement, "code", NAME_both,
-	     "Condition to be tested");
-  localClass(class, NAME_then, NAME_statement, "any|function", NAME_both,
-	     "Executed if condition is true");
-  localClass(class, NAME_else, NAME_statement, "any|function", NAME_both,
-	     "Executed if condition is false");
-
-  termClass(class, "when", 3, NAME_condition, NAME_then, NAME_else);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 3,
-	     "condition=code", "then=any|function", "else=any|function",
-	     "Create from condition, when- and else",
-	     initialiseWhen);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "temp; just to trap",
-	     succeedObject);
-
-  getMethod(class, NAME_Execute, DEFAULT, "unchecked", 0,
-	     "Test condition and evaluate <-then or <-else",
-	     getExecuteWhen);
-
-  succeed;
+{ return declareClass(class, &when_decls);
 }
 
 

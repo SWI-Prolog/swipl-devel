@@ -36,26 +36,57 @@ ExecuteWhile(While w)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "condition=code", "statement=[code]*" };
+
+/* Instance Variables */
+
+static const vardecl var_while[] =
+{ IV(NAME_condition, "code", IV_BOTH,
+     NAME_statement, "Condition to be tested"),
+  IV(NAME_body, "code*", IV_BOTH,
+     NAME_statement, "Statement to execute")
+};
+
+/* Send Methods */
+
+static const senddecl send_while[] =
+{ SM(NAME_Execute, 0, NULL, ExecuteWhile,
+     DEFAULT, "Execute body until test fails"),
+  SM(NAME_initialise, 2, T_initialise, initialiseWhile,
+     DEFAULT, "Create from condition and statement")
+};
+
+/* Get Methods */
+
+static const getdecl get_while[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_while[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name while_termnames[] = { NAME_condition, NAME_body };
+
+ClassDecl(while_decls,
+          var_while, send_while, get_while, rc_while,
+          2, while_termnames,
+          "$Rev$");
+
 status
 makeClassWhile(Class class)
-{ sourceClass(class, makeClassWhile, __FILE__, "$Revision$");
-
-  localClass(class, NAME_condition, NAME_statement, "code", NAME_both,
-	     "Condition to be tested");
-  localClass(class, NAME_body, NAME_statement, "code*", NAME_both,
-	     "Statement to execute");
-
-  termClass(class, "while", 2, NAME_condition, NAME_body);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2,
-	     "condition=code", "statement=[code]*",
-	     "Create from condition and statement",
-	     initialiseWhile);
-  sendMethod(class, NAME_Execute, DEFAULT, 0,
-	     "Execute body until test fails",
-	     ExecuteWhile);
-
-  succeed;
+{ return declareClass(class, &while_decls);
 }
 
 

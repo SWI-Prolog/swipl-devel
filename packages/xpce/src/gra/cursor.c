@@ -110,50 +110,77 @@ getConvertCursor(Class class, Name name)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "name=name*", "image=[image]", "mask=[image]", "hot_spot=[point]", "foreground=[colour]", "background=[colour]" };
+
+/* Instance Variables */
+
+static const vardecl var_cursor[] =
+{ IV(NAME_name, "name*", IV_GET,
+     NAME_name, "Name of the cursor"),
+  IV(NAME_fontId, "[int]*", IV_GET,
+     NAME_appearance, "Id in X-cursor font"),
+  IV(NAME_image, "image*", IV_GET,
+     NAME_appearance, "User-defined image"),
+  IV(NAME_mask, "image*", IV_GET,
+     NAME_appearance, "User-defined mask"),
+  IV(NAME_hotSpot, "point*", IV_GET,
+     NAME_appearance, "User-defined hot spot"),
+  IV(NAME_foreground, "[colour]*", IV_GET,
+     NAME_appearance, "Foreground colour of the cursor"),
+  IV(NAME_background, "[colour]*", IV_GET,
+     NAME_appearance, "Background colour of the cursor")
+};
+
+/* Send Methods */
+
+static const senddecl send_cursor[] =
+{ SM(NAME_initialise, 6, T_initialise, initialiseCursor,
+     DEFAULT, "Create from name or name, image, mask, hot_spot"),
+  SM(NAME_unlink, 0, NULL, unlinkCursor,
+     DEFAULT, "Destroy the cursor"),
+  SM(NAME_Xclose, 1, "display", XcloseCursor,
+     NAME_x, "Destroy X-cursor on display"),
+  SM(NAME_Xopen, 1, "display", XopenCursor,
+     NAME_x, "Create X-cursor on display")
+};
+
+/* Get Methods */
+
+static const getdecl get_cursor[] =
+{ GM(NAME_convert, 1, "cursor", "name", getConvertCursor,
+     NAME_conversion, "Convert cursor-name to cursor"),
+  GM(NAME_lookup, 1, "cursor", "name", getLookupCursor,
+     NAME_oms, "Lookup from @cursors table")
+};
+
+/* Resources */
+
+static const resourcedecl rc_cursor[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name cursor_termnames[] = { NAME_name };
+
+ClassDecl(cursor_decls,
+          var_cursor, send_cursor, get_cursor, rc_cursor,
+          1, cursor_termnames,
+          "$Rev$");
+
+
 status
 makeClassCursor(Class class)
-{ sourceClass(class, makeClassCursor, __FILE__, "$Revision$");
+{ declareClass(class, &cursor_decls);
 
-  localClass(class, NAME_name, NAME_name, "name*", NAME_get,
-	     "Name of the cursor");
-  localClass(class, NAME_fontId, NAME_appearance, "[int]*", NAME_get,
-	     "Id in X-cursor font");
-  localClass(class, NAME_image, NAME_appearance, "image*", NAME_get,
-	     "User-defined image");
-  localClass(class, NAME_mask, NAME_appearance, "image*", NAME_get,
-	     "User-defined mask");
-  localClass(class, NAME_hotSpot, NAME_appearance, "point*", NAME_get,
-	     "User-defined hot spot");
-  localClass(class, NAME_foreground, NAME_appearance, "[colour]*", NAME_get,
-	     "Foreground colour of the cursor");
-  localClass(class, NAME_background, NAME_appearance, "[colour]*", NAME_get,
-	     "Background colour of the cursor");
-
-  termClass(class, "cursor", 1, NAME_name);
   cloneStyleClass(class, NAME_none);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 6,
-	     "name=name*", "image=[image]", "mask=[image]", "hot_spot=[point]",
-	     "foreground=[colour]", "background=[colour]",
-	     "Create from name or name, image, mask, hot_spot",
-	     initialiseCursor);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Destroy the cursor",
-	     unlinkCursor);
-  sendMethod(class, NAME_Xopen, NAME_x, 1, "display",
-	     "Create X-cursor on display",
-	     XopenCursor);
-  sendMethod(class, NAME_Xclose, NAME_x, 1, "display",
-	     "Destroy X-cursor on display",
-	     XcloseCursor);
-
-  getMethod(class, NAME_convert, NAME_conversion, "cursor", 1, "name",
-	    "Convert cursor-name to cursor",
-	    getConvertCursor);
-  getMethod(class, NAME_lookup, NAME_oms, "cursor", 1, "name",
-	    "Lookup from @cursors table",
-	    getLookupCursor);
-
   CursorTable = globalObject(NAME_cursors, ClassHashTable, toInt(32), 0);
   ws_init_cursor_font();
 

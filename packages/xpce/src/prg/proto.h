@@ -1,11 +1,11 @@
 
-/* operator.c */
+/* prg/operator.c */
 status		makeClassOperator(Class class);
 
-/* parser.c */
+/* prg/parser.c */
 status		makeClassParser(Class class);
 
-/* tokeniser.c */
+/* prg/tokeniser.c */
 Int		getLineTokeniser(Tokeniser t);
 Int		getCaretTokeniser(Tokeniser t);
 Tokeniser	getOpenTokeniser(Tokeniser t, Any source);

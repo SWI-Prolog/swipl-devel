@@ -555,105 +555,121 @@ getContainedInFragment(Fragment f)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_insert[] =
+        { "[int]", "char_array" };
+static const char *T_delete[] =
+        { "from=int", "length=[int]" };
+static const char *T_start[] =
+        { "int", "move_end=[bool]" };
+static const char *T_convertOldSlot[] =
+        { "name", "any" };
+static const char *T_sub[] =
+        { "start=int", "end=[int]" };
+static const char *T_initialise[] =
+        { "text=text_buffer", "start=int", "length=int", "style=[name]" };
+static const char *T_include[] =
+        { "what=[{start,end,both}]", "include=[bool]" };
+
+/* Instance Variables */
+
+static const vardecl var_fragment[] =
+{ IV(NAME_textBuffer, "text_buffer", IV_GET,
+     NAME_whole, "Text_buffer I'm a range of"),
+  IV(NAME_next, "fragment*", IV_NONE,
+     NAME_list, "Next in double-linked chain"),
+  IV(NAME_previous, "fragment*", IV_NONE,
+     NAME_list, "Previous in double-linked chain"),
+  SV(NAME_style, "[name]", IV_GET|IV_STORE, styleFragment,
+     NAME_appearance, "Visual feedback: name of style in editor"),
+  IV(NAME_start, "alien:long", IV_NONE,
+     NAME_dimension, "Start index (0-based)"),
+  IV(NAME_length, "alien:long", IV_NONE,
+     NAME_dimension, "Length in characters"),
+  IV(NAME_attributes, "alien:long", IV_NONE,
+     NAME_internal, "Various packed attributes")
+};
+
+/* Send Methods */
+
+static const senddecl send_fragment[] =
+{ SM(NAME_initialise, 4, T_initialise, initialiseFragment,
+     DEFAULT, "Create from text_buffer, start, length, style"),
+  SM(NAME_unlink, 0, NULL, unlinkFragment,
+     DEFAULT, "Unlink from the text_buffer"),
+  SM(NAME_overlap, 1, "int|fragment|point", overlapFragment,
+     NAME_compare, "Test if overlap with argument"),
+  SM(NAME_convertOldSlot, 2, T_convertOldSlot, convertOldSlotFragment,
+     NAME_compatibility, "Convert start and length slots"),
+  SM(NAME_delete, 2, T_delete, deleteFragment,
+     NAME_contents, "Delete range of characters"),
+  SM(NAME_insert, 2, T_insert, insertFragment,
+     NAME_contents, "Insert text at location [append]"),
+  SM(NAME_string, 1, "char_array", stringFragment,
+     NAME_contents, "Replace text by argument"),
+  SM(NAME_end, 1, "int", endFragment,
+     NAME_dimension, "End (changes <-length)"),
+  SM(NAME_length, 1, "int", lengthFragment,
+     NAME_dimension, "Length in characters"),
+  SM(NAME_start, 2, T_start, startFragment,
+     NAME_dimension, "Start index (0-based)"),
+#if O_STATISTICS
+  SM(NAME_dumpMap, 0, NULL, dumpMisFragment,
+     NAME_internal, "Debugging: dump `mis' info"),
+#endif
+  SM(NAME_doesInclude, 1, "what={start,end}", doesIncludeFragment,
+     NAME_update, "Test whether start or end is included"),
+  SM(NAME_include, 2, T_include, includeFragment,
+     NAME_update, "Define whether start and end are included"),
+  SM(NAME_emptied, 0, NULL, succeedObject,
+     NAME_virtual, "Called if text is killed/deleted")
+};
+
+/* Get Methods */
+
+static const getdecl get_fragment[] =
+{ GM(NAME_containedIn, 0, "editor", NULL, getContainedInFragment,
+     DEFAULT, "editor object I'm contained in"),
+  GM(NAME_string, 0, "string", NULL, getStringFragment,
+     NAME_contents, "New string with contents"),
+  GM(NAME_sub, 2, "string", T_sub, getSubFragment,
+     NAME_contents, "New string with contents in range"),
+  GM(NAME_end, 0, "int", NULL, getEndFragment,
+     NAME_dimension, "End (<-start + <-length) of fragment"),
+  GM(NAME_length, 0, "int", NULL, getLengthFragment,
+     NAME_dimension, "Length in characters"),
+  GM(NAME_start, 0, "int", NULL, getStartFragment,
+     NAME_dimension, "Start index (0-based)"),
+  GM(NAME_next, 1, "fragment", "condition=[code]", getNextFragment,
+     NAME_list, "Next in list for which condition is true"),
+  GM(NAME_previous, 1, "fragment", "condition=[code]", getPreviousFragment,
+     NAME_list, "Previous in list for which condition is true")
+};
+
+/* Resources */
+
+static const resourcedecl rc_fragment[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name fragment_termnames[] = { NAME_textBuffer, NAME_start, NAME_length, NAME_style };
+
+ClassDecl(fragment_decls,
+          var_fragment, send_fragment, get_fragment, rc_fragment,
+          4, fragment_termnames,
+          "$Rev$");
+
 status
 makeClassFragment(Class class)
-{ sourceClass(class, makeClassFragment, __FILE__, "$Revision$");
-
-  localClass(class, NAME_textBuffer, NAME_whole, "text_buffer", NAME_get,
-	     "Text_buffer I'm a range of");
-  localClass(class, NAME_next, NAME_list, "fragment*", NAME_none,
-	     "Next in double-linked chain");
-  localClass(class, NAME_previous, NAME_list, "fragment*", NAME_none,
-	     "Previous in double-linked chain");
-  localClass(class, NAME_style, NAME_appearance, "[name]", NAME_get,
-	     "Visual feedback: name of style in editor");
-  localClass(class, NAME_start, NAME_dimension, "alien:long", NAME_none,
-	     "Start index (0-based)");
-  localClass(class, NAME_length, NAME_dimension, "alien:long", NAME_none,
-	     "Length in characters");
-  localClass(class, NAME_attributes, NAME_internal, "alien:long", NAME_none,
-	     "Various packed attributes");
-
-  termClass(class, "fragment", 4, NAME_textBuffer, NAME_start,
-			          NAME_length, NAME_style);
+{ declareClass(class, &fragment_decls);
   setLoadStoreFunctionClass(class, loadFragment, storeFragment);
-
-  storeMethod(class, NAME_style,  styleFragment);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 4,
-	     "text=text_buffer", "start=int", "length=int", "style=[name]",
-	     "Create from text_buffer, start, length, style",
-	     initialiseFragment);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Unlink from the text_buffer",
-	     unlinkFragment);
-  sendMethod(class, NAME_overlap, NAME_compare, 1, "int|fragment|point",
-	     "Test if overlap with argument",
-	     overlapFragment);
-  sendMethod(class, NAME_start, NAME_dimension, 2, "int", "move_end=[bool]",
-	     "Start index (0-based)",
-	     startFragment);
-  sendMethod(class, NAME_length, NAME_dimension, 1, "int",
-	     "Length in characters",
-	     lengthFragment);
-  sendMethod(class, NAME_end, NAME_dimension, 1, "int",
-	     "End (changes <-length)",
-	     endFragment);
-  sendMethod(class, NAME_string, NAME_contents, 1, "char_array",
-	     "Replace text by argument",
-	     stringFragment);
-  sendMethod(class, NAME_insert, NAME_contents, 2, "[int]", "char_array",
-	     "Insert text at location [append]",
-	     insertFragment);
-  sendMethod(class, NAME_delete, NAME_contents, 2, "from=int", "length=[int]",
-	     "Delete range of characters",
-	     deleteFragment);
-  sendMethod(class, NAME_convertOldSlot, NAME_compatibility, 2,
-	     "name", "any",
-	     "Convert start and length slots",
-	     convertOldSlotFragment);
-  sendMethod(class, NAME_emptied, NAME_virtual, 0,
-	     "Called if text is killed/deleted",
-	     succeedObject);
-  sendMethod(class, NAME_include, NAME_update, 2,
-	     "what=[{start,end,both}]", "include=[bool]",
-	     "Define whether start and end are included",
-	     includeFragment);
-  sendMethod(class, NAME_doesInclude, NAME_update, 1,
-	     "what={start,end}",
-	     "Test whether start or end is included",
-	     doesIncludeFragment);
-#if O_STATISTICS
-  sendMethod(class, NAME_dumpMap, NAME_internal, 0,
-	     "Debugging: dump `mis' info",
-	     dumpMisFragment);
-#endif
-
-  getMethod(class, NAME_string, NAME_contents, "string", 0,
-	    "New string with contents",
-	    getStringFragment);
-  getMethod(class, NAME_sub, NAME_contents, "string", 2,
-	    "start=int", "end=[int]",
-	    "New string with contents in range",
-	    getSubFragment);
-  getMethod(class, NAME_start, NAME_dimension, "int", 0,
-	    "Start index (0-based)",
-	    getStartFragment);
-  getMethod(class, NAME_length, NAME_dimension, "int", 0,
-	    "Length in characters",
-	    getLengthFragment);
-  getMethod(class, NAME_end, NAME_dimension, "int", 0,
-	    "End (<-start + <-length) of fragment",
-	    getEndFragment);
-  getMethod(class, NAME_next, NAME_list, "fragment", 1, "condition=[code]",
-	    "Next in list for which condition is true",
-	    getNextFragment);
-  getMethod(class, NAME_previous, NAME_list, "fragment", 1, "condition=[code]",
-	    "Previous in list for which condition is true",
-	    getPreviousFragment);
-  getMethod(class, NAME_containedIn, DEFAULT, "editor", 0,
-	    "editor object I'm contained in",
-	    getContainedInFragment);
 
   succeed;
 }

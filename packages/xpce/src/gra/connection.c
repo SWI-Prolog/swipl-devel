@@ -367,59 +367,84 @@ eventConnection(Connection c, EventObj ev)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "from=graphical", "to=graphical", "link=[link]", "handle_from=[name]*", "handle_to=[name]*" };
+static const char *T_points[] =
+        { "start_x=[int]", "start_y=[int]", "end_x=[int]", "end_y=[int]" };
+static const char *T_geometry[] =
+        { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_connection[] =
+{ IV(NAME_link, "link", IV_GET,
+     NAME_relation, "Generic definition of the link"),
+  IV(NAME_from, "graphical", IV_GET,
+     NAME_relation, "Graphical at `from' side"),
+  IV(NAME_to, "graphical", IV_GET,
+     NAME_relation, "Graphical at `to' side"),
+  IV(NAME_fromHandle, "name*", IV_GET,
+     NAME_relation, "Name of 1st handle link is connected to"),
+  IV(NAME_toHandle, "name*", IV_GET,
+     NAME_relation, "Name of 2nd handle link is connected to"),
+  IV(NAME_fixedFrom, "bool", IV_GET,
+     NAME_relation, "From side is fixed"),
+  IV(NAME_fixedTo, "bool", IV_GET,
+     NAME_relation, "To side is fixed")
+};
+
+/* Send Methods */
+
+static const senddecl send_connection[] =
+{ SM(NAME_compute, 0, NULL, computeConnection,
+     DEFAULT, "Recompute the line"),
+  SM(NAME_geometry, 4, T_geometry, geometryConnection,
+     DEFAULT, "Do nothing: constrained by connected graphicals"),
+  SM(NAME_initialise, 5, T_initialise, initialiseConnection,
+     DEFAULT, "Create from graphicals, link and handle names"),
+  SM(NAME_points, 4, T_points, pointsConnection,
+     DEFAULT, "Set X1, Y1, X2, Y2"),
+  SM(NAME_unlink, 0, NULL, unlinkConnection,
+     DEFAULT, "Detach from graphicals"),
+  SM(NAME_event, 1, "event", eventConnection,
+     NAME_event, "Process an event"),
+  SM(NAME_updateLinkAttributes, 0, NULL, updateLinkAttributesConnection,
+     NAME_update, "Re-read the link properties")
+};
+
+/* Get Methods */
+
+static const getdecl get_connection[] =
+{ GM(NAME_opposite, 1, "graphical", "graphical", getOppositeConnection,
+     NAME_relation, "Other side of the connection")
+};
+
+/* Resources */
+
+static const resourcedecl rc_connection[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name connection_termnames[] = { NAME_from, NAME_to, NAME_link, NAME_fromHandle, NAME_toHandle };
+
+ClassDecl(connection_decls,
+          var_connection, send_connection, get_connection, rc_connection,
+          5, connection_termnames,
+          "$Rev$");
+
 status
 makeClassConnection(Class class)
-{ sourceClass(class, makeClassConnection, __FILE__, "$Revision$");
+{ declareClass(class, &connection_decls);
 
-  localClass(class, NAME_link, NAME_relation, "link", NAME_get,
-	     "Generic definition of the link");
-  localClass(class, NAME_from, NAME_relation, "graphical", NAME_get,
-	     "Graphical at `from' side");
-  localClass(class, NAME_to, NAME_relation, "graphical", NAME_get,
-	     "Graphical at `to' side");
-  localClass(class, NAME_fromHandle, NAME_relation, "name*", NAME_get,
-	     "Name of 1st handle link is connected to");
-  localClass(class, NAME_toHandle, NAME_relation, "name*", NAME_get,
-	     "Name of 2nd handle link is connected to");
-  localClass(class, NAME_fixedFrom, NAME_relation, "bool", NAME_get,
-	     "From side is fixed");
-  localClass(class, NAME_fixedTo, NAME_relation, "bool", NAME_get,
-	     "To side is fixed");
-
-  termClass(class, "connection",
-	    5, NAME_from, NAME_to, NAME_link, NAME_fromHandle, NAME_toHandle);
   cloneStyleClass(class, NAME_relation);
-
-  sendMethod(class, NAME_initialise, DEFAULT,
-	     5, "from=graphical", "to=graphical", "link=[link]",
-	        "handle_from=[name]*", "handle_to=[name]*",
-	     "Create from graphicals, link and handle names",
-	     initialiseConnection);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Detach from graphicals",
-	     unlinkConnection);
-  sendMethod(class, NAME_geometry, DEFAULT, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Do nothing: constrained by connected graphicals",
-	     geometryConnection);
-  sendMethod(class, NAME_compute, DEFAULT, 0,
-	     "Recompute the line",
-	     computeConnection);
-  sendMethod(class, NAME_points, DEFAULT, 4,
-	     "start_x=[int]", "start_y=[int]", "end_x=[int]", "end_y=[int]",
-	     "Set X1, Y1, X2, Y2",
-	     pointsConnection);
-  sendMethod(class, NAME_updateLinkAttributes, NAME_update, 0,
-	     "Re-read the link properties",
-	     updateLinkAttributesConnection);
-  sendMethod(class, NAME_event, NAME_event, 1, "event",
-	     "Process an event",
-	     eventConnection);
-
-  getMethod(class, NAME_opposite, NAME_relation, "graphical", 1, "graphical",
-	    "Other side of the connection",
-	    getOppositeConnection);
-
   distanceLineToPoint(0, 0, 10, 10, 0, 10);	/* initialise */
 
   succeed;

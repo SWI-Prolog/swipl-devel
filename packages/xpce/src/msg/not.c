@@ -31,23 +31,53 @@ ExecuteNot(Not n)
   succeed;
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+
+/* Instance Variables */
+
+static const vardecl var_not[] =
+{ IV(NAME_argument, "code", IV_BOTH,
+     NAME_statement, "Test to negate")
+};
+
+/* Send Methods */
+
+static const senddecl send_not[] =
+{ SM(NAME_Execute, 0, NULL, ExecuteNot,
+     DEFAULT, "Evaluate argument test and negate result"),
+  SM(NAME_initialise, 1, "test=code", initialiseNotv,
+     DEFAULT, "Create from test")
+};
+
+/* Get Methods */
+
+static const getdecl get_not[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_not[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name not_termnames[] = { NAME_argument };
+
+ClassDecl(not_decls,
+          var_not, send_not, get_not, rc_not,
+          1, not_termnames,
+          "$Rev$");
+
 
 status
 makeClassNot(Class class)
-{ sourceClass(class, makeClassNot, __FILE__, "$Revision$");
-
-  localClass(class, NAME_argument, NAME_statement, "code", NAME_both,
-	     "Test to negate");
-
-  termClass(class, "not", 1, NAME_argument);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "test=code",
-	     "Create from test",
-	     initialiseNotv);
-  sendMethod(class, NAME_Execute, DEFAULT, 0,
-	     "Evaluate argument test and negate result",
-	     ExecuteNot);
-
-  succeed;
+{ return declareClass(class, &not_decls);
 }
 

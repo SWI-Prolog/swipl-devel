@@ -724,9 +724,9 @@ nameReferenceObject(Any obj, Name name)
   if ( (old = getObjectAssoc(name)) == obj )
     succeed;
   if ( old )
-    exceptionPce(PCE, NAME_redecaredReference, name, 0);
+    exceptionPce(PCE, NAME_redeclaredReference, name, 0);
   if ( (old = getObjectAssoc(name)) )
-    errorPce(obj, NAME_redecaredReference, name);
+    errorPce(obj, NAME_redeclaredReference, name);
 
   deleteAssoc(obj);
   if ( notNil(name) )
@@ -1291,7 +1291,7 @@ getArityObject(Any obj)
 
 Name
 getFunctorObject(Any obj)
-{ answer( classOfObject(obj)->term_functor );
+{ answer(classOfObject(obj)->name);
 }
 
 
@@ -2382,7 +2382,7 @@ reportObject(Any obj, Name kind, CharArray fmt, int argc, Any *argv)
 				   			   "[PCE: %s: %s]\n"),
 	       2, av);
     if ( kind == NAME_progress )
-      hostAction(HOST_FLUSH);
+      Cflush();
     considerPreserveObject(av[1]);
 
     succeed;
@@ -2427,323 +2427,255 @@ getPrintNameObject(Any obj)
     answer((CharArray) CtoString(pp(obj)));
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_forSlotReference[] =
+        { "action=code", "recursive=[bool]" };
+static const char *T_attribute[] =
+        { "attribute|name", "value=[any]" };
+static const char *T_error[] =
+        { "error=error", "context=any ..." };
+static const char *T_hyper_nameADnameD_selectorAname_argumentAunchecked_XXX[] =
+        { "hyper_name=[name]", "selector=name", "argument=unchecked ..." };
+static const char *T_hyper_nameADnameD_testADcodeD[] =
+        { "hyper_name=[name]", "test=[code]" };
+static const char *T_attachHyper[] =
+        { "hyper", "object" };
+static const char *T_report[] =
+        { "kind={status,inform,progress,done,warning,error}", "format=[char_array]", "argument=any ..." };
+static const char *T_deleteHypers[] =
+        { "name=[name]", "condition=[code]" };
+static const char *T_slot[] =
+        { "name|int", "unchecked" };
+static const char *T_name_any[] =
+        { "name", "any" };
+static const char *T_convertLoadedObject[] =
+        { "old_version=int", "current_version=int" };
+static const char *T_selectorAname_argumentAunchecked_XXX[] =
+        { "selector=name", "argument=unchecked ..." };
+
+/* Instance Variables */
+
+static const vardecl var_object[] =
+{ 
+};
+
+/* Send Methods */
+
+static const senddecl send_object[] =
+{ SM(NAME_equal, 1, "to=any", equalObject,
+     NAME_compare, "Test if i'm equal to the argument"),
+  SM(NAME_sameReference, 1, "to=any", sameReferenceObject,
+     NAME_compare, "Test if i'm the same object as the argument"),
+  SM(NAME_forSlotReference, 2, T_forSlotReference, forSlotReferenceObject,
+     NAME_debugging, "Run code on object-slot-value references"),
+  SM(NAME_convertLoadedObject, 2, T_convertLoadedObject, convertLoadedObjectObject,
+     NAME_file, "Called by File <-object if conversion might be required"),
+  SM(NAME_initialiseNewSlot, 1, "new=variable", initialiseNewSlotObject,
+     NAME_file, "Called by File <-object if a new slot is found"),
+  SM(NAME_saveInFile, 1, "file", saveInFileObject,
+     NAME_file, "Save object and it's context in a file"),
+  SM(NAME_Free, 0, NULL, freeObject,
+     NAME_function, "Equivalent to ->free"),
+  SM(NAME_Inspect, 1, "bool", inspectObject,
+     NAME_function, "Equivalent to ->inspect"),
+  SM(NAME_InstanceOf, 1, "class", instanceOfObject,
+     NAME_function, "Equivalent to ->instance_of"),
+  SM(NAME_SameReference, 1, "to=any|function", sameReferenceObject,
+     NAME_function, "Equivalent to ->same_reference"),
+  SM(NAME_hasGetMethod, 1, "selector=name", hasGetMethodObject,
+     NAME_meta, "Test if object defines get_method"),
+  SM(NAME_hasSendMethod, 1, "selector=name", hasSendMethodObject,
+     NAME_meta, "Test if object defines send_method"),
+  SM(NAME_done, 0, NULL, doneObject,
+     NAME_oms, "Indicate I'm done with some answer"),
+  SM(NAME_free, 0, NULL, freeObject,
+     NAME_oms, "Delete object from the object-base"),
+  SM(NAME_initialise, 1, "unchecked ...", initialiseObject,
+     NAME_oms, "Initialise variables and resources"),
+  SM(NAME_lockObject, 1, "bool", lockObject,
+     NAME_oms, "Lock object for incremental garbage collection"),
+  SM(NAME_protect, 0, NULL, protectObject,
+     NAME_oms, "Lock object for destruction with ->free"),
+  SM(NAME_unlink, 0, NULL, succeedObject,
+     NAME_oms, "Unlink from environment"),
+  SM(NAME_unlinking, 0, NULL, unlinkingObject,
+     NAME_oms, "Try if ->unlink is in progress"),
+  SM(NAME_getMethod, 1, "get_method|chain", getMethodObject,
+     NAME_programming, "Add an object-level get_method"),
+  SM(NAME_sendClass, 2, T_selectorAname_argumentAunchecked_XXX, sendClassObject,
+     NAME_programming, "Send using method of class of object"),
+  SM(NAME_sendMethod, 1, "send_method|chain", sendMethodObject,
+     NAME_programming, "Add an object-level send_method"),
+  SM(NAME_sendSub, 2, T_selectorAname_argumentAunchecked_XXX, sendSubObject,
+     NAME_programming, "Send using method of subclass"),
+  SM(NAME_sendSuper, 2, T_selectorAname_argumentAunchecked_XXX, sendSuperObject,
+     NAME_programming, "Send using method of super-class"),
+  SM(NAME_sendSuperVector, 1, "unchecked ...", sendSuperVectorObject,
+     NAME_programming, "Varargs: any ..., vector, [int]"),
+  SM(NAME_sendVector, 1, "unchecked ...", sendVectorObject,
+     NAME_programming, "Varargs: any ..., vector, [int]"),
+  SM(NAME_slot, 2, T_slot, slotObject,
+     NAME_programming, "Set value of an instance variable"),
+  SM(NAME_nameReference, 1, "name*", nameReferenceObject,
+     NAME_reference, "Change named (atomic) reference"),
+  SM(NAME_attachHyper, 2, T_attachHyper, attachHyperObject,
+     NAME_relation, "Attach a hyper to an object"),
+  SM(NAME_deleteHyper, 1, "hyper", deleteHyperObject,
+     NAME_relation, "Detach a hyper from an object"),
+  SM(NAME_deleteHypers, 2, T_deleteHypers, freeHypersObject,
+     NAME_relation, "Delete all matching hypers"),
+  SM(NAME_sendHyper, 3, T_hyper_nameADnameD_selectorAname_argumentAunchecked_XXX, sendHyperObject,
+     NAME_relation, "Send message using named hypers"),
+  SM(NAME_error, 2, T_error, errorObjectv,
+     NAME_report, "Initiate an error: id, context ..."),
+  SM(NAME_report, 3, T_report, reportObject,
+     NAME_report, "Report message (send to @event <-receiver)"),
+  SM(NAME_obtainResources, 0, NULL, obtainResourcesObject,
+     NAME_resource, "Obtain resources for @default-valued slots"),
+  SM(NAME_attribute, 2, T_attribute, attributeObject,
+     NAME_storage, "Append/change object-level attribute"),
+  SM(NAME_deleteAttribute, 1, "name|attribute", deleteAttributeObject,
+     NAME_storage, "Delete object-level attribute"),
+  SM(NAME_hasValue, 2, T_name_any, hasValueObject,
+     NAME_test, "Test if Obj <-name equals 2nd argument"),
+  SM(NAME_isOff, 1, "name", isOffObject,
+     NAME_test, "Test if Obj <-name returns @off"),
+  SM(NAME_isOn, 1, "name", isOnObject,
+     NAME_test, "Test if Obj <-name returns @on"),
+  SM(NAME_notHasValue, 2, T_name_any, notHasValueObject,
+     NAME_test, "Test if Obj <-name not-equal 2nd argument"),
+  SM(NAME_instanceOf, 1, "class", instanceOfObject,
+     NAME_type, "Test of object is an instance of class"),
+  SM(NAME_sameClass, 1, "object", sameClassObject,
+     NAME_type, "Is object of the same class as argument")
+#ifndef O_RUNTIME
+  ,
+  SM(NAME_inspect, 1, "bool", inspectObject,
+     NAME_debugging, "Forward changes via classes' changed_messages"),
+  SM(NAME_Check, 1, "recursive=[bool]", CheckObject,
+     NAME_debugging, "Check types for all instance-variables of object")
+#endif /*O_RUNTIME*/
+};
+
+/* Get Methods */
+
+static const getdecl get_object[] =
+{ GM(NAME_clone, 0, "object", NULL, getCloneObject,
+     NAME_copy, "New object that is a (recursive) copy)"),
+  GM(NAME_Flags, 0, "name", NULL, getFlagsObject,
+     NAME_debugging, "Name width {P, L and A} flags"),
+  GM(NAME_codeReferences, 0, "int", NULL, getCodeReferencesObject,
+     NAME_debugging, "Number of code-references to this object"),
+  GM(NAME_references, 0, "int", NULL, getReferencesObject,
+     NAME_debugging, "Number of references to this object"),
+  GM(NAME_storageReference, 0, "any", NULL, getFailObject,
+     NAME_file, "Description name for ->save_in_file"),
+  GM(NAME_Class, 0, "class", NULL, getClassObject,
+     NAME_function, "Equivalent to <-class"),
+  GM(NAME_ClassName, 0, "name", NULL, getClassNameObject,
+     NAME_function, "Equivalent to <-class_name"),
+  GM(NAME_References, 0, "int", NULL, getReferencesObject,
+     NAME_function, "Equivalent to <-references"),
+  GM(NAME_Slot, 1, "unchecked", "name|int", getSlotObject,
+     NAME_function, "Equivalent to <-slot"),
+  GM(NAME_allAttributes, 1, "chain", "create=[bool]", getAllAttributesObject,
+     NAME_meta, "Chain with object-level attributes"),
+  GM(NAME_allConstraints, 1, "chain", "create=[bool]", getAllConstraintsObject,
+     NAME_meta, "Chain with all constraints"),
+  GM(NAME_allGetMethods, 1, "chain", "create=[bool]", getAllGetMethodsObject,
+     NAME_meta, "Chain with all get methods"),
+  GM(NAME_allHypers, 1, "chain", "create=[bool]", getAllHypersObject,
+     NAME_meta, "Chain with all hypers"),
+  GM(NAME_allSendMethods, 1, "chain", "create=[bool]", getAllSendMethodsObject,
+     NAME_meta, "Chain with all send methods"),
+  GM(NAME_findAllSendMethods, 1, "chain", "condition=[code]", getFindAllSendMethodsObject,
+     NAME_meta, "New chain with all send-methods satisfying code"),
+  GM(NAME_getMethod, 1, "tuple", "name", getGetMethodObject,
+     NAME_meta, "Tuple containing receiver and implementing object"),
+  GM(NAME_sendMethod, 1, "tuple", "name", getSendMethodObject,
+     NAME_meta, "Tuple containing receiver and implementing object"),
+  GM(NAME_convert, 1, "object", "char_array", getConvertObject,
+     NAME_oms, "Convert '@reference' into object"),
+  GM(NAME_lockObject, 0, "bool", NULL, getLockObject,
+     NAME_oms, "Boolean to indicate locked for GC"),
+  GM(NAME_protect, 0, "bool", NULL, getProtectObject,
+     NAME_oms, "Boolean to indicate locked for ->free"),
+  GM(NAME_self, 0, "object", NULL, getSelfObject,
+     NAME_oms, "Returns itself"),
+  GM(NAME_getClass, 2, "unchecked", T_selectorAname_argumentAunchecked_XXX, getGetClassObject,
+     NAME_programming, "Get, using method of class of object"),
+  GM(NAME_getSub, 2, "unchecked", T_selectorAname_argumentAunchecked_XXX, getGetSubObject,
+     NAME_programming, "Get, using method of sub-class"),
+  GM(NAME_getSuper, 2, "unchecked", T_selectorAname_argumentAunchecked_XXX, getGetSuperObject,
+     NAME_programming, "Get, using method of super-class"),
+  GM(NAME_getVector, 1, "unchecked", "unchecked ...", getVectorObject,
+     NAME_programming, "Varargs: any ..., vector, [int]"),
+  GM(NAME_slot, 1, "unchecked", "name|int", getSlotObject,
+     NAME_programming, "Get value of a slot"),
+  GM(NAME_objectReference, 0, "name|int", NULL, getObjectReferenceObject,
+     NAME_reference, "Name of the object (e.g. @pce)"),
+  GM(NAME_findHyper, 2, "hyper", T_hyper_nameADnameD_testADcodeD, getFindHyperObject,
+     NAME_relation, "Find hyper-relation object"),
+  GM(NAME_getHyper, 3, "unchecked", T_hyper_nameADnameD_selectorAname_argumentAunchecked_XXX, getHyperObject,
+     NAME_relation, "Get-operation using named hypers"),
+  GM(NAME_hypered, 2, "object", T_hyper_nameADnameD_testADcodeD, getHyperedObject,
+     NAME_relation, "Find hyper-related object"),
+  GM(NAME_reportTo, 0, "object", NULL, getReportToObject,
+     NAME_report, "Object for ->report (@event <-receiver)"),
+  GM(NAME_resourceValue, 1, "any", "name", getResourceValueObject,
+     NAME_resource, "Get value of associated resource"),
+  GM(NAME_attribute, 1, "unchecked", "name", getAttributeObject,
+     NAME_storage, "Get value of a object-level attribute"),
+  GM(NAME_Arg, 1, "unchecked", "int", getArgObject,
+     NAME_term, "Nth-1 argument of term description"),
+  GM(NAME_Arity, 0, "int", NULL, getArityObject,
+     NAME_term, "Number of arguments of term description"),
+  GM(NAME_functor, 0, "name", NULL, getFunctorObject,
+     NAME_term, "Functor (name) of term description"),
+  GM(NAME_printName, 0, "text=char_array", NULL, getPrintNameObject,
+     NAME_textual, "Calls <-name"),
+  GM(NAME_class, 0, "class", NULL, getClassObject,
+     NAME_type, "Class the object belongs to"),
+  GM(NAME_className, 0, "name", NULL, getClassNameObject,
+     NAME_type, "Name of the class the object belongs to")
+#ifndef O_RUNTIME
+  ,
+  GM(NAME_inspect, 0, "bool", NULL, getInspectObject,
+     NAME_debugging, "Boolean to indicate changes forwarding"),
+  GM(NAME_Inspect, 0, "bool", NULL, getInspectObject,
+     NAME_function, "Equivalent to <-inspect"),
+  GM(NAME_ManId, 0, "name", NULL, getManIdObject,
+     NAME_function, "Equivalent to <-man_id"),
+  GM(NAME_manId, 0, "name", NULL, getManIdObject,
+     NAME_manual, "Card Id for global object"),
+  GM(NAME_manIndicator, 0, "name", NULL, getManIndicatorObject,
+     NAME_manual, "Manual type indicator (`O')")
+#endif /*O_RUNTIME*/
+};
+
+/* Resources */
+
+static const resourcedecl rc_object[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(object_decls,
+          var_object, send_object, get_object, rc_object,
+          0, NULL,
+          "$Rev$");
+
 
 status
 makeClassObject(Class class)
-{ sourceClass(class, makeClassObject, __FILE__, "$Revision$");
-
-  termClass(class, "object", 0);
+{ declareClass(class, &object_decls);
   setChangedFunctionClass(class, changedFieldObject);
-
-  sendMethod(class, NAME_initialise, NAME_oms, 1, "unchecked ...",
-	     "Initialise variables and resources",
-	     initialiseObject);
-  sendMethod(class, NAME_attribute, NAME_storage, 2,
-	     "attribute|name", "value=[any]",
-	     "Append/change object-level attribute",
-	     attributeObject);
-  sendMethod(class, NAME_deleteAttribute, NAME_storage, 1, "name|attribute",
-	     "Delete object-level attribute",
-	     deleteAttributeObject);
-  sendMethod(class, NAME_sendMethod, NAME_programming, 1, "send_method|chain",
-	     "Add an object-level send_method",
-	     sendMethodObject);
-  sendMethod(class, NAME_getMethod, NAME_programming, 1, "get_method|chain",
-	     "Add an object-level get_method",
-	     getMethodObject);
-  sendMethod(class, NAME_attachHyper, NAME_relation, 2, "hyper", "object",
-	     "Attach a hyper to an object",
-	     attachHyperObject);
-  sendMethod(class, NAME_deleteHyper, NAME_relation, 1, "hyper",
-	     "Detach a hyper from an object",
-	     deleteHyperObject);
-  sendMethod(class, NAME_deleteHypers, NAME_relation, 2,
-	     "name=[name]", "condition=[code]",
-	     "Delete all matching hypers",
-	     freeHypersObject);
-  sendMethod(class, NAME_free, NAME_oms, 0,
-	     "Delete object from the object-base",
-	     freeObject);
-  sendMethod(class, NAME_done, NAME_oms, 0,
-	     "Indicate I'm done with some answer",
-	     doneObject);
-  sendMethod(class, NAME_unlink, NAME_oms, 0,
-	     "Unlink from environment",
-	     succeedObject);
-  sendMethod(class, NAME_unlinking, NAME_oms, 0,
-	     "Try if ->unlink is in progress",
-	     unlinkingObject);
-  sendMethod(class, NAME_lockObject, NAME_oms, 1, "bool",
-	     "Lock object for incremental garbage collection",
-	     lockObject);
-  sendMethod(class, NAME_protect, NAME_oms, 0,
-	     "Lock object for destruction with ->free",
-	     protectObject);
-#ifndef O_RUNTIME
-  sendMethod(class, NAME_inspect, NAME_debugging, 1, "bool",
-	     "Forward changes via classes' changed_messages",
-	     inspectObject);
-#endif
-  sendMethod(class, NAME_nameReference, NAME_reference, 1, "name*",
-	     "Change named (atomic) reference",
-	     nameReferenceObject);
-  sendMethod(class, NAME_sameClass, NAME_type, 1, "object",
-	     "Is object of the same class as argument",
-	     sameClassObject);
-  sendMethod(class, NAME_saveInFile, NAME_file, 1, "file",
-	     "Save object and it's context in a file",
-	     saveInFileObject);
-  sendMethod(class, NAME_isOn, NAME_test, 1, "name",
-	     "Test if Obj <-name returns @on",
-	     isOnObject);
-  sendMethod(class, NAME_isOff, NAME_test, 1, "name",
-	     "Test if Obj <-name returns @off",
-	     isOffObject);
-  sendMethod(class, NAME_instanceOf, NAME_type, 1, "class",
-	     "Test of object is an instance of class",
-	     instanceOfObject);
-  sendMethod(class, NAME_hasValue, NAME_test, 2, "name", "any",
-	     "Test if Obj <-name equals 2nd argument",
-	     hasValueObject);
-  sendMethod(class, NAME_notHasValue, NAME_test, 2, "name", "any",
-	     "Test if Obj <-name not-equal 2nd argument",
-	     notHasValueObject);
-  sendMethod(class, NAME_slot, NAME_programming, 2, "name|int", "unchecked",
-	     "Set value of an instance variable",
-	     slotObject);
-  sendMethod(class, NAME_sendHyper, NAME_relation, 3,
-	     "hyper_name=[name]", "selector=name", "argument=unchecked ...",
-	     "Send message using named hypers",
-	     sendHyperObject);
-  sendMethod(class, NAME_sendSub, NAME_programming, 2,
-	     "selector=name", "argument=unchecked ...",
-	     "Send using method of subclass",
-	     sendSubObject);
-  sendMethod(class, NAME_sendSuper, NAME_programming, 2,
-	     "selector=name", "argument=unchecked ...",
-	     "Send using method of super-class",
-	     sendSuperObject);
-  sendMethod(class, NAME_sendClass, NAME_programming, 2,
-	     "selector=name", "argument=unchecked ...",
-	     "Send using method of class of object",
-	     sendClassObject);
-  sendMethod(class, NAME_sendVector, NAME_programming, 1, "unchecked ...",
-	     "Varargs: any ..., vector, [int]",
-	     sendVectorObject);
-  sendMethod(class, NAME_sendSuperVector, NAME_programming, 1, "unchecked ...",
-	     "Varargs: any ..., vector, [int]",
-	     sendSuperVectorObject);
-  sendMethod(class, NAME_error, NAME_report, 2,
-	     "error=error", "context=any ...",
-	     "Initiate an error: id, context ...",
-	     errorObjectv);
-  sendMethod(class, NAME_report, NAME_report, 3,
-	     "kind={status,inform,progress,done,warning,error}",
-	     "format=[char_array]", "argument=any ...",
-	     "Report message (send to @event <-receiver)",
-	     reportObject);
-#ifndef O_RUNTIME
-  sendMethod(class, NAME_Check, NAME_debugging, 1, "recursive=[bool]",
-	     "Check types for all instance-variables of object",
-	     CheckObject);
-#endif
-  sendMethod(class, NAME_obtainResources, NAME_resource, 0,
-	     "Obtain resources for @default-valued slots",
-	     obtainResourcesObject);
-  sendMethod(class, NAME_convertLoadedObject, NAME_file, 2,
-	     "old_version=int", "current_version=int",
-	     "Called by File <-object if conversion might be required",
-	     convertLoadedObjectObject);
-  sendMethod(class, NAME_initialiseNewSlot, NAME_file, 1, "new=variable",
-	     "Called by File <-object if a new slot is found",
-	     initialiseNewSlotObject);
-  sendMethod(class, NAME_forSlotReference, NAME_debugging, 2,
-	     "action=code", "recursive=[bool]",
-	     "Run code on object-slot-value references",
-	     forSlotReferenceObject);
-  sendMethod(class, NAME_equal, NAME_compare, 1, "to=any",
-	     "Test if i'm equal to the argument",
-	     equalObject);
-  sendMethod(class, NAME_sameReference, NAME_compare, 1, "to=any",
-	     "Test if i'm the same object as the argument",
-	     sameReferenceObject);
-  sendMethod(class, NAME_hasSendMethod, NAME_meta, 1, "selector=name",
-	     "Test if object defines send_method",
-	     hasSendMethodObject);
-  sendMethod(class, NAME_hasGetMethod, NAME_meta, 1, "selector=name",
-	     "Test if object defines get_method",
-	     hasGetMethodObject);
-  
-  getMethod(class, NAME_class, NAME_type, "class", 0,
-	    "Class the object belongs to",
-	    getClassObject);
-  getMethod(class, NAME_className, NAME_type, "name", 0,
-	    "Name of the class the object belongs to",
-	    getClassNameObject);
-  getMethod(class, NAME_clone, NAME_copy, "object", 0,
-	    "New object that is a (recursive) copy)",
-	    getCloneObject);
-  getMethod(class, NAME_lockObject, NAME_oms, "bool", 0,
-	    "Boolean to indicate locked for GC",
-	    getLockObject);
-  getMethod(class, NAME_protect, NAME_oms, "bool", 0,
-	    "Boolean to indicate locked for ->free",
-	    getProtectObject);
-#ifndef O_RUNTIME
-  getMethod(class, NAME_inspect, NAME_debugging, "bool", 0,
-	    "Boolean to indicate changes forwarding",
-	    getInspectObject);
-#endif
-  getMethod(class, NAME_objectReference, NAME_reference, "name|int", 0,
-	    "Name of the object (e.g. @pce)",
-	    getObjectReferenceObject);
-  getMethod(class, NAME_references, NAME_debugging, "int", 0,
-	    "Number of references to this object",
-	    getReferencesObject);
-  getMethod(class, NAME_codeReferences, NAME_debugging, "int", 0,
-	    "Number of code-references to this object",
-	    getCodeReferencesObject);
-  getMethod(class, NAME_self, NAME_oms, "object", 0,
-	    "Returns itself",
-	    getSelfObject);
-  getMethod(class, NAME_Arity, NAME_term, "int", 0,
-	    "Number of arguments of term description",
-	    getArityObject);
-  getMethod(class, NAME_functor, NAME_term, "name", 0,
-	    "Functor (name) of term description",
-	    getFunctorObject);
-  getMethod(class, NAME_Arg, NAME_term, "unchecked", 1, "int",
-	    "Nth-1 argument of term description",
-	    getArgObject);
-  getMethod(class, NAME_Flags, NAME_debugging, "name", 0,
-	    "Name width {P, L and A} flags",
-	    getFlagsObject);
-  getMethod(class, NAME_slot, NAME_programming, "unchecked", 1, "name|int",
-	    "Get value of a slot",
-	    getSlotObject);
-  getMethod(class, NAME_attribute, NAME_storage, "unchecked", 1, "name",
-	    "Get value of a object-level attribute",
-	    getAttributeObject);
-  getMethod(class, NAME_getSub, NAME_programming, "unchecked", 2,
-	    "selector=name", "argument=unchecked ...",
-	    "Get, using method of sub-class",
-	    getGetSubObject);
-  getMethod(class, NAME_getSuper, NAME_programming, "unchecked", 2,
-	    "selector=name", "argument=unchecked ...",
-	    "Get, using method of super-class",
-	    getGetSuperObject);
-  getMethod(class, NAME_getClass, NAME_programming, "unchecked", 2,
-	    "selector=name", "argument=unchecked ...",
-	    "Get, using method of class of object",
-	    getGetClassObject);
-  getMethod(class, NAME_getVector, NAME_programming, "unchecked", 1,
-	    "unchecked ...",
-	    "Varargs: any ..., vector, [int]",
-	    getVectorObject);
-  getMethod(class, NAME_getHyper, NAME_relation, "unchecked", 3,
-	    "hyper_name=[name]", "selector=name", "argument=unchecked ...",
-	     "Get-operation using named hypers",
-	     getHyperObject);
-
-  getMethod(class, NAME_allConstraints, NAME_meta, "chain", 1,
-	    "create=[bool]",
-	    "Chain with all constraints",
-	    getAllConstraintsObject);
-  getMethod(class, NAME_allHypers, NAME_meta, "chain", 1,
-	    "create=[bool]",
-	    "Chain with all hypers",
-	    getAllHypersObject);
-  getMethod(class, NAME_allAttributes, NAME_meta, "chain", 1,
-	    "create=[bool]",
-	    "Chain with object-level attributes",
-	    getAllAttributesObject);
-  getMethod(class, NAME_allSendMethods, NAME_meta, "chain", 1,
-	    "create=[bool]",
-	    "Chain with all send methods",
-	    getAllSendMethodsObject);
-  getMethod(class, NAME_allGetMethods, NAME_meta, "chain", 1,
-	    "create=[bool]",
-	    "Chain with all get methods",
-	    getAllGetMethodsObject);
-  getMethod(class, NAME_printName, NAME_textual, "text=char_array", 0,
-	    "Calls <-name",
-	    getPrintNameObject);
-
-  sendMethod(class, NAME_Free, NAME_function, 0,
-	     "Equivalent to ->free",
-	     freeObject);
-#ifndef O_RUNTIME
-  sendMethod(class, NAME_Inspect, NAME_function, 1, "bool",
-	     "Equivalent to ->inspect",
-	     inspectObject);
-#endif
-  sendMethod(class, NAME_InstanceOf, NAME_function, 1, "class",
-	     "Equivalent to ->instance_of",
-	     instanceOfObject);
-  sendMethod(class, NAME_SameReference, NAME_function, 1, "to=any|function",
-	     "Equivalent to ->same_reference",
-	     sameReferenceObject);
-
-  getMethod(class, NAME_ClassName, NAME_function, "name", 0,
-	    "Equivalent to <-class_name",
-	    getClassNameObject);
-  getMethod(class, NAME_Class, NAME_function, "class", 0,
-	    "Equivalent to <-class",
-	    getClassObject);
-  getMethod(class, NAME_Slot, NAME_function, "unchecked", 1, "name|int",
-	    "Equivalent to <-slot",
-	    getSlotObject);
-  getMethod(class, NAME_References, NAME_function, "int", 0,
-	    "Equivalent to <-references",
-	    getReferencesObject);
-
-#ifndef O_RUNTIME
-  getMethod(class, NAME_Inspect, NAME_function, "bool", 0,
-	    "Equivalent to <-inspect",
-	    getInspectObject);
-  getMethod(class, NAME_ManId, NAME_function, "name", 0,
-	    "Equivalent to <-man_id",
-	    getManIdObject);
-  getMethod(class, NAME_manId, NAME_manual, "name", 0,
-	    "Card Id for global object",
-	    getManIdObject);
-  getMethod(class, NAME_manIndicator, NAME_manual, "name", 0,
-	    "Manual type indicator (`O')",
-	    getManIndicatorObject);
-#endif /*O_RUNTIME*/
-
-  getMethod(class, NAME_resourceValue, NAME_resource, "any", 1, "name",
-	    "Get value of associated resource",
-	    getResourceValueObject);
-  getMethod(class, NAME_sendMethod, NAME_meta, "tuple",
-	    1, "name",
-	    "Tuple containing receiver and implementing object",
-	    getSendMethodObject);
-  getMethod(class, NAME_getMethod, NAME_meta, "tuple",
-	    1, "name",
-	    "Tuple containing receiver and implementing object",
-	    getGetMethodObject);
-  getMethod(class, NAME_findAllSendMethods, NAME_meta, "chain", 1,
-	    "condition=[code]",
-	    "New chain with all send-methods satisfying code",
-	    getFindAllSendMethodsObject);
-  getMethod(class, NAME_reportTo, NAME_report, "object", 0,
-	    "Object for ->report (@event <-receiver)",
-	    getReportToObject);
-  getMethod(class, NAME_hypered, NAME_relation, "object", 2,
-	    "hyper_name=[name]", "test=[code]",
-	    "Find hyper-related object",
-	    getHyperedObject);
-  getMethod(class, NAME_findHyper, NAME_relation, "hyper", 2,
-	    "hyper_name=[name]", "test=[code]",
-	    "Find hyper-relation object",
-	    getFindHyperObject);
-  getMethod(class, NAME_convert, NAME_oms, "object", 1, "char_array",
-	    "Convert '@reference' into object",
-	    getConvertObject);
-  getMethod(class, NAME_storageReference, NAME_file, "any", 0,
-	    "Description name for ->save_in_file",
-	    getFailObject);
 
 
   succeed;

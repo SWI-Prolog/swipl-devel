@@ -12,7 +12,8 @@
 
 :- use_module(library(pce)).
 :- ensure_loaded(library(pce_selection)).
-:- require([ ignore/1
+:- require([ concat_atom/2
+	   , ignore/1
 	   , portray_object/2
 	   , send_list/3
 	   , shell/1

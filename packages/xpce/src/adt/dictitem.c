@@ -159,55 +159,75 @@ getContainedInDictItem(DictItem di)
   fail;
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_initialise[] =
+        { "key=any", "label=[char_array]", "object=[any]*", "style=[name]" };
+
+/* Instance Variables */
+
+static const vardecl var_dictItem[] =
+{ SV(NAME_key, "any", IV_GET|IV_STORE, keyDictItem,
+     NAME_value, "Key used to index from dict"),
+  SV(NAME_label, "[char_array]", IV_NONE|IV_STORE, labelDictItem,
+     NAME_appearance, "Label used to display in browser"),
+  IV(NAME_object, "any", IV_BOTH,
+     NAME_delegate, "Associated data"),
+  SV(NAME_style, "[name]", IV_GET|IV_STORE, styleDictItem,
+     NAME_appearance, "Display style for item"),
+  IV(NAME_index, "int", IV_GET,
+     NAME_order, "Index in dict (0-based)"),
+  SV(NAME_dict, "dict*", IV_GET|IV_STORE, dictDictItem,
+     NAME_organisation, "Dict holding me")
+};
+
+/* Send Methods */
+
+static const senddecl send_dictItem[] =
+{ SM(NAME_initialise, 4, T_initialise, initialiseDictItem,
+     DEFAULT, "Create from key, label, object and style"),
+  SM(NAME_unlink, 0, NULL, unlinkDictItem,
+     DEFAULT, "Delete from dict")
+};
+
+/* Get Methods */
+
+static const getdecl get_dictItem[] =
+{ GM(NAME_containedIn, 0, "dict", NULL, getContainedInDictItem,
+     DEFAULT, "dict object I'm contained in"),
+  GM(NAME_convert, 1, "dict_item", "any", getConvertDictItem,
+     DEFAULT, "Convert <-key to dict_item"),
+  GM(NAME_label, 0, "char_array", NULL, getLabelDictItem,
+     DEFAULT, "<-label<-print_name or <-key if <-label == @default"),
+  GM(NAME_position, 0, "point", NULL, getPositionDictItem,
+     NAME_area, "Position in coordinate-system of list_browser"),
+  GM(NAME_image, 0, "list_browser", NULL, getImageDictItem,
+     NAME_popup, "<-browser of the <-dict (for popup menu's)")
+};
+
+/* Resources */
+
+static const resourcedecl rc_dictItem[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name dictItem_termnames[] = { NAME_key, NAME_label, NAME_object };
+
+ClassDecl(dictItem_decls,
+          var_dictItem, send_dictItem, get_dictItem, rc_dictItem,
+          3, dictItem_termnames,
+          "$Rev$");
 
 status
 makeClassDictItem(Class class)
-{ sourceClass(class, makeClassDictItem, __FILE__, "$Revision$");
-
-  localClass(class, NAME_key, NAME_value, "any", NAME_get,
-	     "Key used to index from dict");
-  localClass(class, NAME_label, NAME_appearance, "[char_array]", NAME_none,
-	     "Label used to display in browser");
-  localClass(class, NAME_object, NAME_delegate, "any", NAME_both,
-	     "Associated data");
-  localClass(class, NAME_style, NAME_appearance, "[name]", NAME_get,
-	     "Display style for item");
-  localClass(class, NAME_index, NAME_order, "int", NAME_get,
-	     "Index in dict (0-based)");
-  localClass(class, NAME_dict, NAME_organisation, "dict*", NAME_get,
-	     "Dict holding me");
-
-  termClass(class, "dict_item", 3, NAME_key, NAME_label, NAME_object);
+{ declareClass(class, &dictItem_decls);
   delegateClass(class, NAME_object);
-
-  storeMethod(class, NAME_label, labelDictItem);
-  storeMethod(class, NAME_key,   keyDictItem);
-  storeMethod(class, NAME_style, styleDictItem);
-  storeMethod(class, NAME_dict,  dictDictItem);
-
-  sendMethod(class, NAME_initialise, DEFAULT,
-	     4, "key=any", "label=[char_array]","object=[any]*","style=[name]",
-	     "Create from key, label, object and style",
-	     initialiseDictItem);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Delete from dict",
-	     unlinkDictItem);
-
-  getMethod(class, NAME_label, DEFAULT, "char_array", 0,
-	    "<-label<-print_name or <-key if <-label == @default",
-	    getLabelDictItem);
-  getMethod(class, NAME_image, NAME_popup, "list_browser", 0,
-	    "<-browser of the <-dict (for popup menu's)",
-	    getImageDictItem);
-  getMethod(class, NAME_position, NAME_area, "point", 0,
-	    "Position in coordinate-system of list_browser",
-	    getPositionDictItem);
-  getMethod(class, NAME_containedIn, DEFAULT, "dict", 0,
-	    "dict object I'm contained in",
-	    getContainedInDictItem);
-  getMethod(class, NAME_convert, DEFAULT, "dict_item", 1, "any",
-	    "Convert <-key to dict_item",
-	    getConvertDictItem);
 
   succeed;
 }

@@ -39,33 +39,64 @@ getConnectionLink(Link link, Graphical gr, Graphical gr2, Name from, Name to)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_connection[] =
+        { "from=graphical", "to=graphical", "from_handle=[name]", "to_handle=[name]" };
+static const char *T_initialise[] =
+        { "handle_kind1=[name]", "handle_kind2=[name]", "line=[line]", "connection_class=[class]" };
+
+/* Instance Variables */
+
+static const vardecl var_link[] =
+{ IV(NAME_line, "line", IV_GET,
+     NAME_appearance, "Line (with pen, arrows, etc.)"),
+  IV(NAME_from, "name", IV_BOTH,
+     NAME_relation, "Name of valid handles at `from' side"),
+  IV(NAME_to, "name", IV_BOTH,
+     NAME_relation, "Name of valid handles at `to' side"),
+  IV(NAME_connectionClass, "[class]", IV_BOTH,
+     NAME_relation, "Class used by <-connection")
+};
+
+/* Send Methods */
+
+static const senddecl send_link[] =
+{ SM(NAME_initialise, 4, T_initialise, initialiseLink,
+     DEFAULT, "Create from handle names, line")
+};
+
+/* Get Methods */
+
+static const getdecl get_link[] =
+{ GM(NAME_connection, 4, "connection", T_connection, getConnectionLink,
+     NAME_relation, "Instantiate the link by creating a connection")
+};
+
+/* Resources */
+
+static const resourcedecl rc_link[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name link_termnames[] = { NAME_from, NAME_to, NAME_line };
+
+ClassDecl(link_decls,
+          var_link, send_link, get_link, rc_link,
+          3, link_termnames,
+          "$Rev$");
+
+
 status
 makeClassLink(Class class)
-{ sourceClass(class, makeClassLink, __FILE__, "$Revision$");
-
-  localClass(class, NAME_line, NAME_appearance, "line", NAME_get,
-	     "Line (with pen, arrows, etc.)");
-  localClass(class, NAME_from, NAME_relation, "name", NAME_both,
-	     "Name of valid handles at `from' side");
-  localClass(class, NAME_to, NAME_relation, "name", NAME_both,
-	     "Name of valid handles at `to' side");
-  localClass(class, NAME_connectionClass, NAME_relation, "[class]", NAME_both,
-	     "Class used by <-connection");
-
+{ declareClass(class, &link_decls);
   delegateClass(class, NAME_line);
-  termClass(class, "link", 3, NAME_from, NAME_to, NAME_line);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 4,
-	     "handle_kind1=[name]", "handle_kind2=[name]",
-	     "line=[line]", "connection_class=[class]",
-	     "Create from handle names, line",
-	     initialiseLink);
-
-  getMethod(class, NAME_connection, NAME_relation, "connection", 4,
-	    "from=graphical", "to=graphical",
-	    "from_handle=[name]", "to_handle=[name]",
-	    "Instantiate the link by creating a connection",
-	    getConnectionLink);
 
   succeed;
 }

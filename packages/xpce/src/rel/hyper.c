@@ -81,40 +81,68 @@ loadHyper(Hyper h, FILE *fd, ClassDef def)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "from=object", "to=object", "forward=name", "backward=[name]" };
+
+/* Instance Variables */
+
+static const vardecl var_hyper[] =
+{ IV(NAME_from, "object", IV_GET,
+     NAME_client, "From side of hyper link"),
+  IV(NAME_to, "object", IV_GET,
+     NAME_client, "To side of hyper link"),
+  IV(NAME_forwardName, "name", IV_BOTH,
+     NAME_name, "Name as visible from <-from"),
+  IV(NAME_backwardName, "name", IV_BOTH,
+     NAME_name, "Name as visible from <-to")
+};
+
+/* Send Methods */
+
+static const senddecl send_hyper[] =
+{ SM(NAME_initialise, 4, T_initialise, initialiseHyper,
+     DEFAULT, "Create named link between objects"),
+  SM(NAME_unlink, 0, NULL, unlinkHyper,
+     DEFAULT, "Unlink hyper from objects"),
+  SM(NAME_SaveRelation, 1, "file", SaveRelationHyper,
+     NAME_file, "Consider saving relation (->save_in_file)"),
+  SM(NAME_unlinkFrom, 0, NULL, unlinkFromHyper,
+     NAME_internal, "<-from side is being unlinked"),
+  SM(NAME_unlinkTo, 0, NULL, unlinkToHyper,
+     NAME_internal, "<-to side is being unlinked")
+};
+
+/* Get Methods */
+
+static const getdecl get_hyper[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_hyper[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name hyper_termnames[] = { NAME_from, NAME_to, NAME_forwardName, NAME_backwardName };
+
+ClassDecl(hyper_decls,
+          var_hyper, send_hyper, get_hyper, rc_hyper,
+          4, hyper_termnames,
+          "$Rev$");
+
 status
 makeClassHyper(Class class)
-{ sourceClass(class, makeClassHyper, __FILE__, "$Revision$");
-
+{ declareClass(class, &hyper_decls);
   setLoadStoreFunctionClass(class, loadHyper, storeSlotsObject);
-
-  localClass(class, NAME_from, NAME_client, "object", NAME_get,
-	     "From side of hyper link");
-  localClass(class, NAME_to, NAME_client, "object", NAME_get,
-	     "To side of hyper link");
-  localClass(class, NAME_forwardName, NAME_name, "name", NAME_both,
-	     "Name as visible from <-from");
-  localClass(class, NAME_backwardName, NAME_name, "name", NAME_both,
-	     "Name as visible from <-to");
-
-  termClass(class, "hyper",
-	    4, NAME_from, NAME_to, NAME_forwardName, NAME_backwardName);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 4,
-	     "from=object", "to=object", "forward=name", "backward=[name]",
-	     "Create named link between objects",
-	     initialiseHyper);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Unlink hyper from objects",
-	     unlinkHyper);
-  sendMethod(class, NAME_SaveRelation, NAME_file, 1, "file",
-	     "Consider saving relation (->save_in_file)",
-	     SaveRelationHyper);
-  sendMethod(class, NAME_unlinkFrom, NAME_internal, 0,
-	     "<-from side is being unlinked",
-	     unlinkFromHyper);
-  sendMethod(class, NAME_unlinkTo, NAME_internal, 0,
-	     "<-to side is being unlinked",
-	     unlinkToHyper);
 
   succeed;
 }

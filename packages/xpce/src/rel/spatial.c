@@ -138,45 +138,73 @@ createSpatial(Spatial s, Any from, Any to)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_create[] =
+        { "from=graphical*", "to=graphical*" };
+static const char *T_fromAgraphical_toAgraphical[] =
+        { "from=graphical", "to=graphical" };
+static const char *T_initialise[] =
+        { "x1=[=]*", "y1=[=]*", "x2=[=]*", "y2=[=]*", "width=[=]*", "height=[=]*" };
+
+/* Instance Variables */
+
+static const vardecl var_spatial[] =
+{ IV(NAME_xFrom, "=*", IV_BOTH,
+     NAME_position, "X of reference at `from' (XYHW -> xref)"),
+  IV(NAME_yFrom, "=*", IV_BOTH,
+     NAME_position, "Y of reference at `from' (XYHW -> yref)"),
+  IV(NAME_xTo, "=*", IV_BOTH,
+     NAME_position, "X of reference at `to' (XYHW -> xref)"),
+  IV(NAME_yTo, "=*", IV_BOTH,
+     NAME_position, "Y of reference at `to' (XYHW -> yref)"),
+  IV(NAME_wTo, "=*", IV_BOTH,
+     NAME_dimension, "Equation between `w' and `w2'"),
+  IV(NAME_hTo, "=*", IV_BOTH,
+     NAME_dimension, "Equation between `h' and `h2'")
+};
+
+/* Send Methods */
+
+static const senddecl send_spatial[] =
+{ SM(NAME_backwards, 2, T_fromAgraphical_toAgraphical, backwardsSpatial,
+     DEFAULT, "Maintain after `from' has changed"),
+  SM(NAME_create, 2, T_create, createSpatial,
+     DEFAULT, "Establish spatial relation"),
+  SM(NAME_forwards, 2, T_fromAgraphical_toAgraphical, forwardsSpatial,
+     DEFAULT, "Maintain after `to' has changed"),
+  SM(NAME_initialise, 6, T_initialise, initialiseSpatial,
+     DEFAULT, "Create from equations x1, y1, x2, y2, w, h")
+};
+
+/* Get Methods */
+
+static const getdecl get_spatial[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_spatial[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name spatial_termnames[] =
+	{ NAME_xFrom, NAME_yFrom, NAME_xTo, NAME_yTo, NAME_wTo, NAME_hTo };
+
+ClassDecl(spatial_decls,
+          var_spatial, send_spatial, get_spatial, rc_spatial,
+          6, spatial_termnames,
+          "$Rev$");
+
 status
 makeClassSpatial(Class class)
-{ sourceClass(class, makeClassSpatial, __FILE__, "$Revision$");
-
-  localClass(class, NAME_xFrom, NAME_position, "=*", NAME_both,
-	     "X of reference at `from' (XYHW -> xref)");
-  localClass(class, NAME_yFrom, NAME_position, "=*", NAME_both,
-	     "Y of reference at `from' (XYHW -> yref)");
-  localClass(class, NAME_xTo, NAME_position, "=*", NAME_both,
-	     "X of reference at `to' (XYHW -> xref)");
-  localClass(class, NAME_yTo, NAME_position, "=*", NAME_both,
-	     "Y of reference at `to' (XYHW -> yref)");
-  localClass(class, NAME_wTo, NAME_dimension, "=*", NAME_both,
-	     "Equation between `w' and `w2'");
-  localClass(class, NAME_hTo, NAME_dimension, "=*", NAME_both,
-	     "Equation between `h' and `h2'");
-
-  termClass(class, "spatial", 6, NAME_xFrom, NAME_yFrom, 
-			         NAME_xTo, NAME_yTo, 
-			         NAME_wTo, NAME_hTo);
-  sendMethod(class, NAME_initialise, DEFAULT, 6,
-	     "x1=[=]*", "y1=[=]*", "x2=[=]*", "y2=[=]*",
-	     "width=[=]*", "height=[=]*",
-	     "Create from equations x1, y1, x2, y2, w, h",
-	     initialiseSpatial);
-
-  sendMethod(class, NAME_create, DEFAULT, 2,
-	     "from=graphical*", "to=graphical*",
-	     "Establish spatial relation",
-	     createSpatial);
-  sendMethod(class, NAME_forwards, DEFAULT, 2,
-	     "from=graphical", "to=graphical",
-	     "Maintain after `to' has changed",
-	     forwardsSpatial);
-  sendMethod(class, NAME_backwards, DEFAULT, 2,
-	     "from=graphical", "to=graphical",
-	     "Maintain after `from' has changed",
-	     backwardsSpatial);
-
-  succeed;
+{ return declareClass(class, &spatial_decls);
 }
 

@@ -1678,129 +1678,139 @@ getViewTextImage(TextImage ti)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_center[] =
+        { "index=int", "line=[int]" };
+static const char *T_start[] =
+        { "start=[int]", "skip_lines=[int]" };
+static const char *T_initialise[] =
+        { "text=object", "width=int", "height=int" };
+static const char *T_geometry[] =
+        { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_textImage[] =
+{ IV(NAME_text, "object", IV_GET,
+     NAME_storage, "Source of the text"),
+  IV(NAME_background, "[colour|pixmap]", IV_GET,
+     NAME_appearance, "Background colour"),
+  IV(NAME_start, "int", IV_NONE,
+     NAME_scroll, "Index of first character displayed"),
+  IV(NAME_end, "int", IV_GET,
+     NAME_scroll, "Index of last character displayed"),
+  SV(NAME_wrap, "{none,character,word}", IV_GET|IV_STORE, wrapTextImage,
+     NAME_appearance, "Wrap mode for long lines"),
+  SV(NAME_tabDistance, "int", IV_GET|IV_STORE, tabDistanceTextImage,
+     NAME_appearance, "Pixel distance between tab stops"),
+  SV(NAME_tabStops, "vector*", IV_GET|IV_STORE, tabStopsTextImage,
+     NAME_appearance, "Vector of tab-stops in pixels"),
+  IV(NAME_eofInWindow, "bool", IV_GET,
+     NAME_repaint, "Is end-of-file inside window?"),
+  IV(NAME_width, "alien:int", IV_NONE,
+     NAME_area, "Width of the image"),
+  IV(NAME_height, "alien:int", IV_NONE,
+     NAME_area, "Height of the image"),
+  IV(NAME_changeStart, "alien:int", IV_NONE,
+     NAME_repaint, "Start of changes (character index)"),
+  IV(NAME_changeEnd, "alien:int", IV_NONE,
+     NAME_repaint, "End of changes (character index)"),
+  IV(NAME_inserted, "alien:int", IV_NONE,
+     NAME_repaint, "How much text was inserted/deleted"),
+  IV(NAME_seek, "alien:SeekFunction", IV_NONE,
+     NAME_internal, "C-Function to seek to a position"),
+  IV(NAME_scan, "alien:ScanFunction", IV_NONE,
+     NAME_internal, "C-Function to scan for a syntactical category"),
+  IV(NAME_fetch, "alien:FetchFunction", IV_NONE,
+     NAME_internal, "C-function to fetch next character from source"),
+  IV(NAME_MarginFunction, "alien:MarginFunction", IV_NONE,
+     NAME_internal, "C-function to fetch margins from source"),
+  IV(NAME_RewindFunction, "alien:RewindFunction", IV_NONE,
+     NAME_internal, "C-function to rewind input"),
+  IV(NAME_map, "alien:TextScreen", IV_NONE,
+     NAME_cache, "2-dimensional map of source")
+};
+
+/* Send Methods */
+
+static const senddecl send_textImage[] =
+{ SM(NAME_compute, 0, NULL, computeTextImage,
+     DEFAULT, "Recompute text-image if necessary"),
+  SM(NAME_event, 1, "event", eventTextImage,
+     DEFAULT, "Forward event to included graphicals"),
+  SM(NAME_geometry, 4, T_geometry, geometryTextImage,
+     DEFAULT, "Change image geometry"),
+  SM(NAME_initialise, 3, T_initialise, initialiseTextImage,
+     DEFAULT, "Create from source, width and height"),
+  SM(NAME_unlink, 0, NULL, unlinkTextImage,
+     DEFAULT, "Reclaim private allocated data"),
+  SM(NAME_dumpMap, 0, NULL, dumpMapTextImage,
+     NAME_debugging, "Dump map of the screen"),
+  SM(NAME_center, 2, T_center, centerTextImage,
+     NAME_scroll, "Scroll to place index at given line"),
+  SM(NAME_start, 2, T_start, startTextImage,
+     NAME_scroll, "Set start of screen and screenlines to skip")
+};
+
+/* Get Methods */
+
+static const getdecl get_textImage[] =
+{ GM(NAME_height, 0, "int", NULL, getHeightTextImage,
+     NAME_area, "Height of the image"),
+  GM(NAME_width, 0, "int", NULL, getWidthTextImage,
+     NAME_area, "Width of the image"),
+  GM(NAME_index, 1, "int", "event", getIndexTextImage,
+     NAME_event, "Character index from event (position)"),
+  GM(NAME_line, 1, "int", "int", getLineTextImage,
+     NAME_scroll, "Window line (row) from character index"),
+  GM(NAME_lines, 0, "int", NULL, getLinesTextImage,
+     NAME_scroll, "Number of lines visible"),
+  GM(NAME_start, 1, "line=int", "index=[int]", getStartTextImage,
+     NAME_scroll, "Character index for start of screenline"),
+  GM(NAME_view, 0, "int", NULL, getViewTextImage,
+     NAME_scroll, "Number of characters visible")
+};
+
+/* Resources */
+
+static const resourcedecl rc_textImage[] =
+{ RC(NAME_background, "[colour|pixmap]", "white",
+     "Background colour for the text"),
+  RC(NAME_elevation, "elevation*", "@nil",
+     "Elevation from the background"),
+  RC(NAME_tabDistance, "int", "64",
+     "Tabstop interval (pixels)"),
+  RC(NAME_wrap, "{none,character,word}", "character",
+     "Wrap unit for long lines")
+};
+
+/* Class Declaration */
+
+static Name textImage_termnames[] = { NAME_text, NAME_width, NAME_height };
+
+ClassDecl(textImage_decls,
+          var_textImage, send_textImage, get_textImage, rc_textImage,
+          3, textImage_termnames,
+          "$Rev$");
+
+
 status
 makeClassTextImage(Class class)
-{ sourceClass(class, makeClassTextImage, __FILE__, "$Revision$");
+{ declareClass(class, &textImage_decls);
 
   setCloneFunctionClass(class, cloneTextImage);
   setLoadStoreFunctionClass(class, loadTextImage, storeTextImage);
-
-  localClass(class, NAME_text, NAME_storage, "object", NAME_get,
-	     "Source of the text");
-  localClass(class, NAME_background, NAME_appearance,
-	     "[colour|pixmap]", NAME_get,
-	     "Background colour");
-  localClass(class, NAME_start, NAME_scroll, "int", NAME_none,
-	     "Index of first character displayed");
-  localClass(class, NAME_end, NAME_scroll, "int", NAME_get,
-	     "Index of last character displayed");
-  localClass(class, NAME_wrap, NAME_appearance,
-	     "{none,character,word}", NAME_get,
-	     "Wrap mode for long lines");
-  localClass(class, NAME_tabDistance, NAME_appearance, "int", NAME_get,
-	     "Pixel distance between tab stops");
-  localClass(class, NAME_tabStops, NAME_appearance, "vector*", NAME_get,
-	     "Vector of tab-stops in pixels");
-  localClass(class, NAME_eofInWindow, NAME_repaint, "bool", NAME_get,
-	     "Is end-of-file inside window?");
-
-  localClass(class, NAME_width, NAME_area, "alien:int", NAME_none,
-	     "Width of the image");
-  localClass(class, NAME_height, NAME_area, "alien:int", NAME_none,
-	     "Height of the image");
-  localClass(class, NAME_changeStart, NAME_repaint, "alien:int", NAME_none,
-	     "Start of changes (character index)");
-  localClass(class, NAME_changeEnd, NAME_repaint, "alien:int", NAME_none,
-	     "End of changes (character index)");
-  localClass(class, NAME_inserted, NAME_repaint, "alien:int", NAME_none,
-	     "How much text was inserted/deleted");
-  localClass(class, NAME_seek, NAME_internal, "alien:SeekFunction", NAME_none,
-	     "C-Function to seek to a position");
-  localClass(class, NAME_scan, NAME_internal, "alien:ScanFunction", NAME_none,
-	     "C-Function to scan for a syntactical category");
-  localClass(class, NAME_fetch, NAME_internal,
-	     "alien:FetchFunction", NAME_none,
-	     "C-function to fetch next character from source");
-  localClass(class, NAME_MarginFunction, NAME_internal,
-	     "alien:MarginFunction", NAME_none,
-	     "C-function to fetch margins from source");
-  localClass(class, NAME_RewindFunction, NAME_internal,
-	     "alien:RewindFunction", NAME_none,
-	     "C-function to rewind input");
-  localClass(class, NAME_map, NAME_cache, "alien:TextScreen", NAME_none,
-	     "2-dimensional map of source");
-
-  termClass(class, "text_image", 3, NAME_text, NAME_width, NAME_height);
   setRedrawFunctionClass(class, RedrawAreaTextImage);
   solidClass(class, ON);
-
   cloneStyleVariableClass(class, NAME_image, NAME_nil);
   cloneStyleVariableClass(class, NAME_changedArea, NAME_nil);
   saveStyleVariableClass(class, NAME_image, NAME_nil);
   saveStyleVariableClass(class, NAME_changedArea, NAME_nil);
-
-  storeMethod(class, NAME_wrap,        wrapTextImage);
-  storeMethod(class, NAME_tabDistance, tabDistanceTextImage);
-  storeMethod(class, NAME_tabStops,    tabStopsTextImage);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 3,
-	     "text=object", "width=int", "height=int",
-	     "Create from source, width and height",
-	     initialiseTextImage);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Reclaim private allocated data",
-	     unlinkTextImage);
-  sendMethod(class, NAME_compute, DEFAULT, 0,
-	     "Recompute text-image if necessary",
-	     computeTextImage);
-  sendMethod(class, NAME_geometry, DEFAULT, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Change image geometry",
-	     geometryTextImage);
-  sendMethod(class, NAME_event, DEFAULT, 1, "event",
-	     "Forward event to included graphicals",
-	     eventTextImage);
-  sendMethod(class, NAME_start, NAME_scroll, 2,
-	     "start=[int]", "skip_lines=[int]",
-	     "Set start of screen and screenlines to skip",
-	     startTextImage);
-  sendMethod(class, NAME_center, NAME_scroll, 2, "index=int", "line=[int]",
-	     "Scroll to place index at given line",
-	     centerTextImage);
-  sendMethod(class, NAME_dumpMap, NAME_debugging, 0,
-	     "Dump map of the screen",
-	     dumpMapTextImage);
-	
-  getMethod(class, NAME_width, NAME_area, "int", 0,
-	    "Width of the image",
-	    getWidthTextImage);
-  getMethod(class, NAME_height, NAME_area, "int", 0,
-	    "Height of the image",
-	    getHeightTextImage);
-  getMethod(class, NAME_view, NAME_scroll, "int", 0,
-	    "Number of characters visible",
-	    getViewTextImage);
-  getMethod(class, NAME_lines, NAME_scroll, "int", 0,
-	    "Number of lines visible",
-	    getLinesTextImage);
-  getMethod(class, NAME_line, NAME_scroll, "int", 1, "int",
-	    "Window line (row) from character index",
-	    getLineTextImage);
-  getMethod(class, NAME_index, NAME_event, "int", 1, "event",
-	    "Character index from event (position)",
-	    getIndexTextImage);
-  getMethod(class, NAME_start, NAME_scroll, "line=int", 1, "index=[int]",
-	    "Character index for start of screenline",
-	    getStartTextImage);
-
-  attach_resource(class, "wrap", "{none,character,word}", "character",
-		  "Wrap unit for long lines");
-  attach_resource(class, "tab_distance", "int", "64",
-		  "Tabstop interval (pixels)");
-  attach_resource(class, "background", "[colour|pixmap]", "white",
-		  "Background colour for the text");
-  attach_resource(class, "elevation", "elevation*", "@nil",
-		  "Elevation from the background");
 
   succeed;
 }

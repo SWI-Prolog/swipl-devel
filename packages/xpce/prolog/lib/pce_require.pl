@@ -11,29 +11,39 @@
 	  [ pce_require/1		% file
 	  , pce_require/3		% file x directive x message
 	  , emacs_require/1		% from GNU-Emacs
-	  , pce_require_all/1		% from file wildcard
 	  ]).
 
 :- use_module(library(pce)).
-:- consult('xref/quintus').		% built-in's
-:- require([ append/3
-	   , concat_atom/2
-	   , exists_file/1
-	   , expand_file_name/2
+:- require([ absolute_file_name/3
+	   , append/3
+	   , call_emacs/2
 	   , forall/2
 	   , ignore/1
 	   , is_list/1
 	   , member/2
+	   , pce_error/1
 	   , sformat/3
 	   ]).
 
-target_prolog(quintus).
+target_prolog(common).			% Common between QP 3.2 and SICStus 3
 
 :- dynamic
 	called/1,			% called head
 	defined/1,			% defined head
 	output_to/2,			% output is emacs buffer
 	current_require_declaration/1.	% Current declaration
+
+		 /*******************************
+		 *	     BUILT-INS		*
+		 *******************************/
+
+:- multifile
+	built_in/1.
+
+built_in(require(_)).			% from PCE compatibility
+built_in(discontiguous(_)).		% directive
+:- consult('xref/common').		% Common built-in's
+
 
 		/********************************
 		*            TOPLEVEL		*
@@ -62,14 +72,6 @@ emacs_require(File) :-
 	->  call_emacs('(message "~w")', Message)
 	;   true
 	).
-
-
-pce_require_all(Pattern) :-
-	expand_file_name(Pattern, Files),
-	member(File, Files),
-	format('*** ~w ***~n', File),
-	pce_require(File),
-	fail ; true.
 
 
 clean :-
@@ -373,35 +375,6 @@ do_find_source_file(Spec, File) :-
 			     access(read),
 			     file_errors(fail)
 			   ], File), !.
-do_find_source_file(library(Spec), Path) :- !,
-	user:library_directory(Dir),
-	extension(Extension),
-	concat_atom([Dir, /, Spec, Extension], Path),
-	exists_file(Path), !.
-do_find_source_file(Spec, Path) :-
-	atom(Spec),
-	name(Spec, [0'/|_]), !,			  % absolute path
-	extension(Extension),
-	concat_atom([Spec, Extension], Path),
-	exists_file(Path), !.
-do_find_source_file(Spec, Path) :-
-	atom(Spec),
-	source_directory(Dir),
-	extension(Extension),
-	concat_atom([Dir, '/', Spec, Extension], Path),
-	exists_file(Path), !.
-
-extension('.pl').
-extension('').
-
-source_directory(Dir) :-
-	seeing(File),
-	name(File, S0),
-	append(S1, S2, S0),
-	\+ member(0'/, S2),
-	append(S3, "/", S1), !,
-	name(Dir, S3).
-source_directory('.').
 
 
 		/********************************

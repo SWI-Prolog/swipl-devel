@@ -13,14 +13,6 @@
 #include <memory.h>
 #endif
 
-#if !defined(XMalloc)
-#define XMalloc(size)	malloc(size)
-#endif
-
-#if !defined(XFree)
-#define XFree(ptr)	free(ptr)
-#endif
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Read various bitmap-formats and  convert them into  an X11 bitmap-data
 string to be used with XCreateBitmapFromData().  Functions provided:
@@ -166,7 +158,7 @@ read_x11_bitmap_file(FILE *fd, int *w, int *h)
   if (initialized == FALSE)
     initHexTable();
 
-#define	RETURN_ERROR { if (data) XFree(data); return NULL; }
+#define	RETURN_ERROR { if (data) pceFree(data); return NULL; }
 
   while (fgets(line, LINESIZE, fd))
   { if ( sscanf(line,"#define %s %d",name_and_type,&value) == 2)
@@ -218,7 +210,7 @@ read_x11_bitmap_file(FILE *fd, int *w, int *h)
     bytes_per_line = (ww+7)/8 + padding;
 
     size = bytes_per_line * hh;
-    data = (unsigned char *) XMalloc(size);
+    data = (unsigned char *) pceMalloc(size);
 
     if (version10p)
     { unsigned char *ptr;
@@ -274,7 +266,7 @@ read_sun_icon_file(FILE *fd, int *width, int *height)
     initHexTable();
 
   size = Round(w, 8) * h;
-  dst = data = (unsigned char *) XMalloc(size);
+  dst = data = (unsigned char *) pceMalloc(size);
   
   skip_last = (w % 16) <= 8 && (w % 16) > 0;
 
@@ -317,7 +309,7 @@ read_sun_image_file(FILE *fd, int *width, int *height)
 
   w = pr->pr_size.x;
   h = pr->pr_size.y;
-  data = dst = (unsigned char *) XMalloc(((w + 7) / 8) * h);
+  data = dst = (unsigned char *) pceMalloc(((w + 7) / 8) * h);
 
   skip_last = (w % 16) <= 8 && (w % 16) > 0;
 

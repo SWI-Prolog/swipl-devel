@@ -164,6 +164,7 @@ again:
 
       Trace(TRACE_NEVER,
 	    writef(" ? ");
+	    Cflush();
 	    s = Cgetline(buf, sizeof(buf)));
 
       if ( s )

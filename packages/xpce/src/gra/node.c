@@ -767,113 +767,119 @@ getContainedInNode(Node n)
 { answer(n->tree);
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_computeLevel[] =
+        { "int", "[bool]" };
+static const char *T_computeLayout[] =
+        { "int", "int", "int" };
+
+/* Instance Variables */
+
+static const vardecl var_node[] =
+{ SV(NAME_image, "graphical", IV_GET|IV_STORE, imageNode,
+     NAME_appearance, "Graphical image of the node"),
+  IV(NAME_tree, "tree", IV_GET,
+     NAME_organisation, "Tree the node is in"),
+  IV(NAME_level, "int", IV_GET,
+     NAME_hierarchy, "Distance from the root"),
+  IV(NAME_sons, "chain", IV_GET,
+     NAME_hierarchy, "Sub nodes of this node"),
+  IV(NAME_parents, "chain", IV_GET,
+     NAME_hierarchy, "Parent nodes of this node"),
+  SV(NAME_collapsed, "bool", IV_GET|IV_STORE, collapsedNode,
+     NAME_scroll, "Sub nodes are invisible"),
+  IV(NAME_displayed, "[bool]", IV_GET,
+     NAME_scroll, "Node is visible (@default used by update)"),
+  IV(NAME_sonsSize, "int", IV_NONE,
+     NAME_update, "Height of the combined sons"),
+  IV(NAME_mySize, "int", IV_NONE,
+     NAME_update, "Height of myself"),
+  IV(NAME_computed, "{level,size,layout}*", IV_NONE,
+     NAME_update, "Stage of the layout process")
+};
+
+/* Send Methods */
+
+static const senddecl send_node[] =
+{ SM(NAME_initialise, 1, "image=graphical", initialiseNode,
+     DEFAULT, "Create from graphical"),
+  SM(NAME_unlink, 0, NULL, unlinkNode,
+     DEFAULT, "Unlink from tree"),
+  SM(NAME_delete, 0, NULL, deleteNode,
+     NAME_edit, "Delete, reconnect sons to parents"),
+  SM(NAME_deleteTree, 0, NULL, deleteTreeNode,
+     NAME_edit, "Delete node and all subnodes"),
+  SM(NAME_move, 1, "node", moveNode,
+     NAME_edit, "Move argument to become a son of me"),
+  SM(NAME_moveAfter, 1, "[node]*", moveAfterNode,
+     NAME_edit, "Move node to be just after (below) arg"),
+  SM(NAME_son, 1, "node", sonNode,
+     NAME_edit, "Add argument to my sons"),
+  SM(NAME_swap, 1, "node", swapNode,
+     NAME_edit, "Swap images of two nodes"),
+  SM(NAME_swapTree, 1, "node", swapTreeNode,
+     NAME_edit, "Swap positions of two entire trees"),
+  SM(NAME_unrelate, 1, "node", unrelateNode,
+     NAME_edit, "Delete (direct) relation to argument"),
+  SM(NAME_isParent, 1, "node", isParentNode,
+     NAME_hierarchy, "Test if node is a parent (recursively)"),
+  SM(NAME_isSon, 1, "node", isSonNode,
+     NAME_hierarchy, "Test if node is a son (recursively)"),
+  SM(NAME_computeLevel, 2, T_computeLevel, computeLevelNode,
+     NAME_internal, "Recursively assign each node a <-level"),
+  SM(NAME_forAll, 1, "code", forAllNode,
+     NAME_iterate, "Run code on all sons; demand acceptance"),
+  SM(NAME_forSome, 1, "code", forSomeNode,
+     NAME_iterate, "Run code on all sons"),
+  SM(NAME_unzoom, 0, NULL, unzoomNode,
+     NAME_scroll, "Unzoom tree back to its root"),
+  SM(NAME_zoom, 0, NULL, zoomNode,
+     NAME_scroll, "Zoom the tree to this node"),
+  SM(NAME_computeLayout, 3, T_computeLayout, computeLayoutNode,
+     NAME_update, "Recursively place each node (level, x, y)")
+};
+
+/* Get Methods */
+
+static const getdecl get_node[] =
+{ GM(NAME_containedIn, 0, "tree", NULL, getContainedInNode,
+     DEFAULT, "Visual I'm contained in (tree)"),
+  GM(NAME_contains, 0, "chain", NULL, getContainsNode,
+     DEFAULT, "New chain with visuals I manage (holding <-image)"),
+  GM(NAME_convert, 1, "node", "graphical", getConvertNode,
+     DEFAULT, "Convert graphical object"),
+  GM(NAME_find, 1, "node", "code", getFindNode,
+     NAME_iterate, "Find node that accepts code"),
+  GM(NAME_findNode, 1, "node", "graphical", getFindNodeNode,
+     NAME_iterate, "Find node that has ->image graphical"),
+  GM(NAME_computeSize, 1, "int", "int", getComputeSizeNode,
+     NAME_update, "Recursively compute the sub-tree-size (level)")
+};
+
+/* Resources */
+
+static const resourcedecl rc_node[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name node_termnames[] = { NAME_image };
+
+ClassDecl(node_decls,
+          var_node, send_node, get_node, rc_node,
+          1, node_termnames,
+          "$Rev$");
 
 status
 makeClassNode(Class class)
-{ sourceClass(class, makeClassNode, __FILE__, "$Revision$");
-
-  localClass(class, NAME_image, NAME_appearance, "graphical", NAME_get,
-	     "Graphical image of the node");
-  localClass(class, NAME_tree, NAME_organisation, "tree", NAME_get,
-	     "Tree the node is in");
-  localClass(class, NAME_level, NAME_hierarchy, "int", NAME_get,
-	     "Distance from the root");
-  localClass(class, NAME_sons, NAME_hierarchy, "chain", NAME_get,
-	     "Sub nodes of this node");
-  localClass(class, NAME_parents, NAME_hierarchy, "chain", NAME_get,
-	     "Parent nodes of this node");
-  localClass(class, NAME_collapsed, NAME_scroll, "bool", NAME_get,
-	     "Sub nodes are invisible");
-  localClass(class, NAME_displayed, NAME_scroll, "[bool]", NAME_get,
-	     "Node is visible (@default used by update)");
-  localClass(class, NAME_sonsSize, NAME_update, "int", NAME_none,
-	     "Height of the combined sons");
-  localClass(class, NAME_mySize, NAME_update, "int", NAME_none,
-	     "Height of myself");
-  localClass(class, NAME_computed, NAME_update, "{level,size,layout}*",
-	     NAME_none,
-	     "Stage of the layout process");
-
-  termClass(class, "node", 1, NAME_image);
+{ declareClass(class, &node_decls);
   delegateClass(class, NAME_image);
-
-  storeMethod(class, NAME_collapsed, collapsedNode);
-  storeMethod(class, NAME_image, imageNode);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "image=graphical",
-	     "Create from graphical",
-	     initialiseNode);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Unlink from tree",
-	     unlinkNode);
-  sendMethod(class, NAME_delete, NAME_edit, 0,
-	     "Delete, reconnect sons to parents",
-	     deleteNode);
-  sendMethod(class, NAME_deleteTree, NAME_edit, 0,
-	     "Delete node and all subnodes",
-	     deleteTreeNode);
-  sendMethod(class, NAME_isParent, NAME_hierarchy, 1, "node",
-	     "Test if node is a parent (recursively)",
-	     isParentNode);
-  sendMethod(class, NAME_isSon, NAME_hierarchy, 1, "node",
-	     "Test if node is a son (recursively)",
-	     isSonNode);
-  sendMethod(class, NAME_move, NAME_edit, 1, "node",
-	     "Move argument to become a son of me",
-	     moveNode);
-  sendMethod(class, NAME_son, NAME_edit, 1, "node",
-	     "Add argument to my sons",
-	     sonNode);
-  sendMethod(class, NAME_swap, NAME_edit, 1, "node",
-	     "Swap images of two nodes",
-	     swapNode);
-  sendMethod(class, NAME_swapTree, NAME_edit, 1, "node",
-	     "Swap positions of two entire trees",
-	     swapTreeNode);
-  sendMethod(class, NAME_zoom, NAME_scroll, 0,
-	     "Zoom the tree to this node",
-	     zoomNode);
-  sendMethod(class, NAME_unzoom, NAME_scroll, 0,
-	     "Unzoom tree back to its root",
-	     unzoomNode);
-  sendMethod(class, NAME_forAll, NAME_iterate, 1, "code",
-	     "Run code on all sons; demand acceptance",
-	     forAllNode);
-  sendMethod(class, NAME_forSome, NAME_iterate, 1, "code",
-	     "Run code on all sons",
-	     forSomeNode);
-  sendMethod(class, NAME_unrelate, NAME_edit, 1, "node",
-	     "Delete (direct) relation to argument",
-	     unrelateNode);
-  sendMethod(class, NAME_moveAfter, NAME_edit, 1, "[node]*",
-	     "Move node to be just after (below) arg",
-	     moveAfterNode);
-  sendMethod(class, NAME_computeLevel, NAME_internal, 2, "int", "[bool]",
-	     "Recursively assign each node a <-level",
-	     computeLevelNode);
-  sendMethod(class, NAME_computeLayout, NAME_update, 3, "int", "int", "int",
-	     "Recursively place each node (level, x, y)",
-	     computeLayoutNode);
-
-
-  getMethod(class, NAME_findNode, NAME_iterate, "node", 1, "graphical",
-	    "Find node that has ->image graphical",
-	    getFindNodeNode);
-  getMethod(class, NAME_find, NAME_iterate, "node", 1, "code",
-	    "Find node that accepts code",
-	    getFindNode);
-  getMethod(class, NAME_containedIn, DEFAULT, "tree", 0,
-	    "Visual I'm contained in (tree)",
-	    getContainedInNode);
-  getMethod(class, NAME_contains, DEFAULT, "chain", 0,
-	    "New chain with visuals I manage (holding <-image)",
-	    getContainsNode);
-  getMethod(class, NAME_convert, DEFAULT, "node", 1, "graphical",
-	    "Convert graphical object",
-	    getConvertNode);
-  getMethod(class, NAME_computeSize, NAME_update, "int", 1, "int",
-	    "Recursively compute the sub-tree-size (level)",
-	    getComputeSizeNode);
 
   succeed;
 }

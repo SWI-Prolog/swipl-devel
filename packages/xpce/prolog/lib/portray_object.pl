@@ -30,8 +30,7 @@
 %   standard portray mechanism of your Prolog.  In that case:
 %
 %	portray(Object) :-
-%		nonvar(Object), 
-%		Object = @_, !, 
+%		object(Object), !,
 %		portray_object(Object).
 
 

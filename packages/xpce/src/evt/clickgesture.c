@@ -102,62 +102,85 @@ terminateClickGesture(ClickGesture g, EventObj ev)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "button=[button_name]", "modifier=[modifier]", "multiple=[{single,double,triple}]", "message=[code]*", "preview=[code]*", "cancel=[code]*" };
+
+/* Instance Variables */
+
+static const vardecl var_clickGesture[] =
+{ IV(NAME_multiclick, "[{single,double,triple}]", IV_BOTH,
+     NAME_modifier, "Demand single, double or triple click"),
+  IV(NAME_downPosition, "point", IV_GET,
+     NAME_internal, "Position of the down event"),
+  IV(NAME_executeMessage, "code*", IV_BOTH,
+     NAME_action, "Message sent on up inside area"),
+  IV(NAME_previewMessage, "code*", IV_BOTH,
+     NAME_feedback, "Message sent on down"),
+  IV(NAME_cancelMessage, "code*", IV_BOTH,
+     NAME_feedback, "Message sent on up outside area"),
+  IV(NAME_executeCursor, "cursor*", IV_BOTH,
+     NAME_feedback, "Cursor displayed while message is executed"),
+  IV(NAME_maxDragDistance, "int*", IV_BOTH,
+     NAME_cancel, "Cancel after dragging this far")
+};
+
+/* Send Methods */
+
+static const senddecl send_clickGesture[] =
+{ SM(NAME_cancel, 1, "event", cancelClickGesture,
+     DEFAULT, "Cancel this gesture and try the next"),
+  SM(NAME_drag, 1, "event", dragClickGesture,
+     DEFAULT, "Does nothing"),
+  SM(NAME_initialise, 6, T_initialise, initialiseClickGesture,
+     DEFAULT, "Create from button, modifier, multi, ..."),
+  SM(NAME_initiate, 1, "event", initiateClickGesture,
+     DEFAULT, "Send preview message"),
+  SM(NAME_terminate, 1, "event", terminateClickGesture,
+     DEFAULT, "Send execute or cancel message"),
+  SM(NAME_verify, 1, "event", verifyClickGesture,
+     DEFAULT, "Verify modifier and multiclick")
+};
+
+/* Get Methods */
+
+static const getdecl get_clickGesture[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_clickGesture[] =
+{ RC(NAME_button, "button_name", "left",
+     "Active on which button (left)"),
+  RC(NAME_cursor, "[cursor]", "@default",
+     "Cursor while active"),
+  RC(NAME_executeCursor, "cursor*", "watch",
+     "Cursor while running execute_message"),
+  RC(NAME_maxDragDistance, "int*", "5",
+     "Cancel after dragging this far"),
+  RC(NAME_modifier, "modifier", "",
+     "Condition on shift, control and meta")
+};
+
+/* Class Declaration */
+
+static Name clickGesture_termnames[] =
+	{ NAME_button, NAME_modifier, NAME_multiclick,
+	  NAME_executeMessage, NAME_previewMessage, NAME_cancelMessage };
+
+ClassDecl(clickGesture_decls,
+          var_clickGesture, send_clickGesture,
+	  get_clickGesture, rc_clickGesture,
+          6, clickGesture_termnames,
+          "$Rev$");
+
 status
 makeClassClickGesture(Class class)
-{ sourceClass(class, makeClassClickGesture, __FILE__, "$Revision$");
-
-  localClass(class, NAME_multiclick, NAME_modifier,
-	     "[{single,double,triple}]", NAME_both,
-	     "Demand single, double or triple click");
-  localClass(class, NAME_downPosition, NAME_internal, "point", NAME_get,
-	     "Position of the down event");
-  localClass(class, NAME_executeMessage, NAME_action, "code*", NAME_both,
-	     "Message sent on up inside area");
-  localClass(class, NAME_previewMessage, NAME_feedback, "code*", NAME_both,
-	     "Message sent on down");
-  localClass(class, NAME_cancelMessage, NAME_feedback, "code*", NAME_both,
-	     "Message sent on up outside area");
-  localClass(class, NAME_executeCursor, NAME_feedback, "cursor*", NAME_both,
-	     "Cursor displayed while message is executed");
-  localClass(class, NAME_maxDragDistance, NAME_cancel, "int*", NAME_both,
-	     "Cancel after dragging this far");
-
-  termClass(class, "click_gesture",
-	    6, NAME_button, NAME_modifier, NAME_multiclick,
-	    NAME_executeMessage, NAME_previewMessage, NAME_cancelMessage);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 6,
-	     "button=[button_name]", "modifier=[modifier]",
-	     "multiple=[{single,double,triple}]",
-	     "message=[code]*", "preview=[code]*", "cancel=[code]*",
-	     "Create from button, modifier, multi, ...",
-	     initialiseClickGesture);
-  sendMethod(class, NAME_verify, DEFAULT, 1, "event",
-	     "Verify modifier and multiclick",
-	     verifyClickGesture);
-  sendMethod(class, NAME_initiate, DEFAULT, 1, "event",
-	     "Send preview message",
-	     initiateClickGesture);
-  sendMethod(class, NAME_drag, DEFAULT, 1, "event",
-	     "Does nothing",
-	     dragClickGesture);
-  sendMethod(class, NAME_terminate, DEFAULT, 1, "event",
-	     "Send execute or cancel message",
-	     terminateClickGesture);
-  sendMethod(class, NAME_cancel, DEFAULT, 1, "event",
-	     "Cancel this gesture and try the next",
-	     cancelClickGesture);
-
-  attach_resource(class, "modifier", "modifier", "",
-		  "Condition on shift, control and meta");
-  attach_resource(class, "button", "button_name", "left",
-		  "Active on which button (left)");
-  attach_resource(class, "cursor", "[cursor]", "@default",
-		  "Cursor while active");
-  attach_resource(class, "execute_cursor", "cursor*", "watch",
-		  "Cursor while running execute_message");
-  attach_resource(class, "max_drag_distance", "int*", "5",
-		  "Cancel after dragging this far");
-
-  succeed;
+{ return declareClass(class, &clickGesture_decls);
 }

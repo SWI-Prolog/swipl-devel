@@ -187,59 +187,78 @@ forSomeSheet(Sheet sh, Code msg)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_value[] =
+        { "key=any", "value=any" };
+static const char *T_catchAll[] =
+        { "key=name", "value=any" };
+
+/* Instance Variables */
+
+static const vardecl var_sheet[] =
+{ IV(NAME_members, "chain", IV_GET,
+     NAME_storage, "Attributes of the sheet")
+};
+
+/* Send Methods */
+
+static const senddecl send_sheet[] =
+{ SM(NAME_initialise, 1, "member=attribute ...", initialiseSheet,
+     DEFAULT, "Create sheet from attributes"),
+  SM(NAME_append, 1, "attribute", appendSheet,
+     NAME_attributes, "Append attribute"),
+  SM(NAME_delete, 1, "name=any", deleteSheet,
+     NAME_attributes, "Delete named attribute"),
+  SM(NAME_forAll, 1, "action=code", forAllSheet,
+     NAME_iterate, "Run code on all attributes (demand acceptance)"),
+  SM(NAME_forSome, 1, "action=code", forSomeSheet,
+     NAME_iterate, "Run code on all attributes"),
+  SM(NAME_isAttribute, 1, "name=any", isAttributeSheet,
+     NAME_meta, "Test if object is name of an attribute"),
+  SM(NAME_catchAll, 2, T_catchAll, catchAllSheet,
+     NAME_value, "Set attribute named selector"),
+  SM(NAME_value, 2, T_value, valueSheet,
+     NAME_value, "Set named attribute to value")
+};
+
+/* Get Methods */
+
+static const getdecl get_sheet[] =
+{ GM(NAME_Arg, 1, "attribute", "int", getArgSheet,
+     DEFAULT, "Nth-1 argument of term"),
+  GM(NAME_Arity, 0, "int", NULL, getAritySheet,
+     DEFAULT, "Arity of term"),
+  GM(NAME_attributeNames, 0, "chain", NULL, getAttributeNamesSheet,
+     NAME_meta, "New chain with attribute names"),
+  GM(NAME_member, 1, "attribute", "key=any", getMemberSheet,
+     NAME_meta, "Attribute object with name"),
+  GM(NAME_catchAll, 1, "value=any", "key=name", getCatchAllSheet,
+     NAME_value, "Get value associated with selector"),
+  GM(NAME_value, 1, "any", "any", getValueSheet,
+     NAME_value, "Get value associated with name")
+};
+
+/* Resources */
+
+static const resourcedecl rc_sheet[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(sheet_decls,
+          var_sheet, send_sheet, get_sheet, rc_sheet,
+          ARGC_UNKNOWN, NULL,
+          "$Rev$");
+
+
 status
 makeClassSheet(Class class)
-{ sourceClass(class, makeClassSheet, __FILE__, "$Revision$");
-
-  localClass(class, NAME_members, NAME_storage, "chain", NAME_get,
-	     "Attributes of the sheet");
-
-  termClass(class, "sheet", ARGC_UNKNOWN);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "member=attribute ...",
-	     "Create sheet from attributes",
-	     initialiseSheet);
-  sendMethod(class, NAME_append, NAME_attributes, 1, "attribute",
-	     "Append attribute",
-	     appendSheet);
-  sendMethod(class, NAME_value, NAME_value, 2, "key=any", "value=any",
-	     "Set named attribute to value",
-	     valueSheet);
-  sendMethod(class, NAME_delete, NAME_attributes, 1, "name=any",
-	     "Delete named attribute",
-	     deleteSheet);
-  sendMethod(class, NAME_isAttribute, NAME_meta, 1, "name=any",
-	     "Test if object is name of an attribute",
-	     isAttributeSheet);
-  sendMethod(class, NAME_forAll, NAME_iterate, 1, "action=code",
-	     "Run code on all attributes (demand acceptance)",
-	     forAllSheet);
-  sendMethod(class, NAME_forSome, NAME_iterate, 1, "action=code",
-	     "Run code on all attributes",
-	     forSomeSheet);
-  sendMethod(class, NAME_catchAll, NAME_value, 2, "key=name", "value=any",
-	     "Set attribute named selector",
-	     catchAllSheet);
-
-  getMethod(class, NAME_Arity, DEFAULT, "int", 0,
-	    "Arity of term",
-	    getAritySheet);
-  getMethod(class, NAME_Arg, DEFAULT, "attribute", 1, "int",
-	    "Nth-1 argument of term",
-	    getArgSheet);
-  getMethod(class, NAME_value, NAME_value, "any", 1, "any",
-	    "Get value associated with name",
-	    getValueSheet);
-  getMethod(class, NAME_member, NAME_meta, "attribute", 1, "key=any",
-	    "Attribute object with name",
-	    getMemberSheet);
-  getMethod(class, NAME_attributeNames, NAME_meta, "chain", 0,
-	    "New chain with attribute names",
-	    getAttributeNamesSheet);
-  getMethod(class, NAME_catchAll, NAME_value, "value=any", 1, "key=name",
-	    "Get value associated with selector",
-	    getCatchAllSheet);
-
-  succeed;
+{ return declareClass(class, &sheet_decls);
 }
 

@@ -2126,20 +2126,20 @@ layoutGraphical(Graphical gr, Real argC1, Real argC2, Real argC3, Int argC4, Int
 
   n = valInt(getSizeChain(network));
 
-  x = malloc(n*sizeof(int *));
-  y = malloc(n*sizeof(int *));
-  r = malloc(n*sizeof(int *));
+  x = pceMalloc(n*sizeof(int *));
+  y = pceMalloc(n*sizeof(int *));
+  r = pceMalloc(n*sizeof(int *));
   for (i=0; i<n; i++)
-  { x[i] = malloc(sizeof(int)*n);
-    y[i] = malloc(sizeof(int)*n);
-    r[i] = malloc(sizeof(int)*n);
+  { x[i] = pceMalloc(sizeof(int)*n);
+    y[i] = pceMalloc(sizeof(int)*n);
+    r[i] = pceMalloc(sizeof(int)*n);
   }
-  g  = malloc(sizeof(Graphical)*n);
-  fx = malloc(sizeof(int)*n);
-  fy = malloc(sizeof(int)*n);
-  fh = malloc(sizeof(int)*n);
-  fw = malloc(sizeof(int)*n);
-  m  = malloc(sizeof(int)*n);
+  g  = pceMalloc(sizeof(Graphical)*n);
+  fx = pceMalloc(sizeof(int)*n);
+  fy = pceMalloc(sizeof(int)*n);
+  fh = pceMalloc(sizeof(int)*n);
+  fw = pceMalloc(sizeof(int)*n);
+  m  = pceMalloc(sizeof(int)*n);
 
   for (cell=network->head, i=0; notNil(cell); i++, cell=cell->next)
   { g[i] = cell->value;
@@ -2207,19 +2207,19 @@ layoutGraphical(Graphical gr, Real argC1, Real argC2, Real argC3, Int argC4, Int
     send(g[i], NAME_set, toInt(fx[i]), toInt(fy[i]), DEFAULT, DEFAULT, 0);
 
   for(i=0; i<n; i++)
-  { free(r[i]);
-    free(x[i]);
-    free(y[i]);
+  { pceFree(r[i]);
+    pceFree(x[i]);
+    pceFree(y[i]);
   }
-  free(r);
-  free(x);
-  free(y);
-  free(g);
-  free(fx);
-  free(fy);
-  free(fw);
-  free(fh);
-  free(m);
+  pceFree(r);
+  pceFree(x);
+  pceFree(y);
+  pceFree(g);
+  pceFree(fx);
+  pceFree(fy);
+  pceFree(fw);
+  pceFree(fh);
+  pceFree(m);
 
   succeed;
 }
@@ -2810,542 +2810,416 @@ drawTextGraphical(Graphical gr, CharArray txt, FontObj font,
 }
 
 
+/* Type declaractions */
+
+static const char *T_layout[] =
+	{ "attract=[real]", "nominal=[real]", "repel=[real]",
+	  "adapt=[int]", "iterations=[int]" };
+static const char *T_resize[] =
+	{ "factor_x=real", "factor_y=[real]", "origin=[point]" };
+static const char *T_drawImage[] =
+	{ "image", "x=int", "y=int", "sx=[int]", "sy=[int]",
+	  "sw=[int]", "sh=[int]", "transparent=bool" };
+static const char *T_postscript[] =
+	{ "landscape=[bool]", "maximum_area=[area]" };
+static const char *T_network[] =
+	{ "link=[link]", "from_kind=[name]", "to_kind=[name]" };
+static const char *T_handlePosition[] =
+	{ "name=name", "device=[device]" };
+static const char *T_handles[] =
+	{ "near=[point]", "kind=[name]", "distance=[int]" };
+static const char *T_draw[] =
+	{ "offset=[point]", "area=[area]" };
+static const char *T_graphicsState[] =
+	{ "pen=[0..]", "texture=[texture_name]", "colour=[colour|pixmap]",
+	  "background=[colour|pixmap]" };
+static const char *T_drawPoly[] =
+	{ "points=chain|vector", "closed=[bool]", "fill=[colour|image]*" };
+static const char *T_focus[] =
+	{ "recogniser=[recogniser]", "cursor=[cursor]", "button=[name]" };
+static const char *T_drawText[] =
+	{ "string=char_array", "font", "x=int", "y=int", "w=[0..]", "h=[0..]",
+	  "hadjust=[{left,center,right}]", "vadjust=[{top,center,bottom}]" };
+static const char *T_connections[] =
+	{ "to=[graphical]", "link=[link]",
+	  "from_kind=[name]", "to_kind=[name]" };
+static const char *T_link[] =
+	{ "to=[graphical]", "link=[link]",
+	  "to_kind=[name]", "from_kind=[name]" };
+static const char *T_drawLine[] =
+	{ "x1=[int]", "y1=[int]", "x2=[int]", "y2=[int]" };
+static const char *T_geometry[] =
+	{ "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+static const char *T_inEventArea[] =
+	{ "x=int", "y=int" };
+static const char *T_drawArc[] =
+	{ "x=int", "y=int", "w=int", "h=int",
+	  "angle1=[real]", "angle2=[real]", "fill=[colour|image]*" };
+static const char *T_drawFill[] =
+	{ "x=int", "y=int", "w=int", "h=int", "fill=[colour|image]*" };
+static const char *T_drawBox[] =
+	{ "x=int", "y=int", "w=int", "h=int", "radius=[0..]",
+	  "fill=[image|colour|elevation]", "up=[bool]" };
+
+/* Instance Variables */
+
+static const vardecl var_graphical[] =
+{ SV(NAME_device, "device*", IV_GET|IV_STORE, deviceGraphical,
+     NAME_organisation, "Device I'm displayed on"),
+  SV(NAME_area, "area", IV_NONE|IV_STORE, areaGraphical,
+     NAME_area, "Bounding box of affected pixels"),
+  SV(NAME_displayed, "bool", IV_GET|IV_STORE, displayedGraphical,
+     NAME_visibility, "If @on, graphical is visible"),
+  SV(NAME_pen, "0..", IV_GET|IV_STORE, penGraphical,
+     NAME_appearance, "Thickness of drawing pen"),
+  SV(NAME_texture, "texture_name", IV_GET|IV_STORE, textureGraphical,
+     NAME_appearance, "Stipple pattern of drawing pen"),
+  SV(NAME_colour, "[colour|pixmap]", IV_GET|IV_STORE, colourGraphical,
+     NAME_appearance, "Colour of drawing pen"),
+  IV(NAME_handles, "chain*", IV_NONE,
+     NAME_relation, "Connection points for connections"),
+  IV(NAME_connections, "chain*", IV_NONE,
+     NAME_relation, "Connections (links) to other graphicals"),
+  IV(NAME_name, "name", IV_BOTH,
+     NAME_name, "Name of graphical"),
+  SV(NAME_selected, "bool", IV_GET|IV_STORE, selectedGraphical,
+     NAME_selection, "If @on, I'm selected"),
+  SV(NAME_inverted, "bool", IV_GET|IV_STORE, invertedGraphical,
+     NAME_appearance, "If @on, invert bounding box after painting"),
+  SV(NAME_active, "bool", IV_GET|IV_STORE, activeGraphical,
+     NAME_event, "If @off, greyed out and insensitive"),
+  SV(NAME_cursor, "cursor*", IV_GET|IV_STORE, cursorGraphical,
+     NAME_cursor, "Cursor when in focus of events"),
+  IV(NAME_requestCompute, "any*", IV_GET,
+     NAME_update, "Graphical requests recomputing")
+};
+
+/* Send Methods */
+
+static const senddecl send_graphical[] =
+{ SM(NAME_initialise, 4, T_geometry, initialiseGraphical,
+     DEFAULT, "Create from XYWH"),
+  SM(NAME_unlink, 0, NULL, unlinkGraphical,
+     DEFAULT, "Erase from device"),
+  SM(NAME_key, 1, "name", keyGraphical,
+     NAME_accelerator, "Accelerator-key pressed (fail)"),
+  SM(NAME_flush, 0, NULL, flushGraphical,
+     NAME_animate, "Flush changes to the display"),
+  SM(NAME_synchronise, 1, "[always=bool]", synchroniseGraphical,
+     NAME_animate, "->flush and process all events"),
+  SM(NAME_apply, 1, "[bool]", virtualObject,
+     NAME_apply, "Virtual method"),
+  SM(NAME_restore, 0, NULL, virtualObject,
+     NAME_apply, "Virtual method"),
+  SM(NAME_bottomSide, 1, "int", bottomSideGraphical,
+     NAME_area, "Resize graphical to set bottom-side"),
+  SM(NAME_center, 1, "point", centerGraphical,
+     NAME_area, "Move to make point the center"),
+  SM(NAME_centerX, 1, "int", centerXGraphical,
+     NAME_area, "Move horizontal to make int the <-x_center"),
+  SM(NAME_centerY, 1, "int", centerYGraphical,
+     NAME_area, "Move vertical to make int the <-y_center"),
+  SM(NAME_corner, 1, "point", cornerGraphical,
+     NAME_area, "Resize to make opposite of origin point"),
+  SM(NAME_cornerX, 1, "int", cornerXGraphical,
+     NAME_area, "Resize to set X of ->corner"),
+  SM(NAME_cornerY, 1, "int", cornerYGraphical,
+     NAME_area, "Resize to set Y of ->corner"),
+  SM(NAME_doSet, 4, T_geometry, doSetGraphical,
+     NAME_area, "Set X, Y, W and H for graphical"),
+  SM(NAME_height, 1, "int", heightGraphical,
+     NAME_area, "Set height"),
+  SM(NAME_leftSide, 1, "int", leftSideGraphical,
+     NAME_area, "Resize graphical to set left-side"),
+  SM(NAME_move, 1, "point", positionGraphical,
+     NAME_area, "Move origin to argument"),
+  SM(NAME_normalise, 0, NULL, normaliseGraphical,
+     NAME_area, "Make top-left corner the origin"),
+  SM(NAME_orientation, 1, "{north_west,south_east,north_east,south_east}", orientationGraphical,
+     NAME_area, "Put origin at {north,south}_{west,east}"),
+  SM(NAME_position, 1, "point", positionGraphical,
+     NAME_area, "Move origin to argument (as ->move)"),
+  SM(NAME_relativeMove, 1, "point", relativeMoveGraphical,
+     NAME_area, "Move origin by argument"),
+  SM(NAME_resize, 3, T_resize, resizeGraphical,
+     NAME_area, "Resize graphical with specified factor"),
+  SM(NAME_rightSide, 1, "int", rightSideGraphical,
+     NAME_area, "Resize graphical to set right-side"),
+  SM(NAME_set, 4, T_geometry, setGraphical,
+     NAME_area, "Request new X, Y, W and H for graphical"),
+  SM(NAME_size, 1, "size", sizeGraphical,
+     NAME_area, "Resize to specified size"),
+  SM(NAME_topSide, 1, "int", topSideGraphical,
+     NAME_area, "Resize graphical to set top-side"),
+  SM(NAME_width, 1, "int", widthGraphical,
+     NAME_area, "Width of graphical"),
+  SM(NAME_x, 1, "int", xGraphical,
+     NAME_area, "Move graphical horizontally"),
+  SM(NAME_y, 1, "int", yGraphical,
+     NAME_area, "Move graphical vertically"),
+  SM(NAME_clip, 1, "[area]", clipGraphical,
+     NAME_draw, "Clip subsequent drawing actions to area"),
+  SM(NAME_drawArc, 7, T_drawArc, drawArcGraphical,
+     NAME_draw, "Draw a ellipse-part"),
+  SM(NAME_drawBox, 7, T_drawBox, drawBoxGraphical,
+     NAME_draw, "Draw rectangular (rounded) box"),
+  SM(NAME_drawFill, 5, T_drawFill, drawFillGraphical,
+     NAME_draw, "Fill rectangle with specified pattern"),
+  SM(NAME_drawImage, 8, T_drawImage, drawImageGraphical,
+     NAME_draw, "Draw a bitmap or pixmap image"),
+  SM(NAME_drawLine, 4, T_drawLine, drawLineGraphical,
+     NAME_draw, "Draw line segment from (X1,Y1) to (X2,Y2)"),
+  SM(NAME_drawPoly, 3, T_drawPoly, drawPolyGraphical,
+     NAME_draw, "Draw/fill a polyfon"),
+  SM(NAME_drawText, 8, T_drawText, drawTextGraphical,
+     NAME_draw, "Draw text-string"),
+  SM(NAME_graphicsState, 4, T_graphicsState, graphicsStateGraphical,
+     NAME_draw, "Modify the graphics state"),
+  SM(NAME_restoreGraphicsState, 0, NULL, restoreGraphicsStateGraphical,
+     NAME_draw, "Restore saved pen, texture, colours and font"),
+  SM(NAME_saveGraphicsState, 0, NULL, saveGraphicsStateGraphical,
+     NAME_draw, "Save current pen, texture, colours and font"),
+  SM(NAME_unclip, 0, NULL, unclipGraphical,
+     NAME_draw, "Undo previous ->clip"),
+  SM(NAME_deleteRecogniser, 1, "recogniser", deleteRecogniserGraphical,
+     NAME_event, "Delete a recogniser"),
+  SM(NAME_event, 1, "event", eventGraphical,
+     NAME_event, "Handle a user-event"),
+  SM(NAME_generateEvent, 1, "event_id", generateEventGraphical,
+     NAME_event, "Generate named event for graphical"),
+  SM(NAME_inEventArea, 2, T_inEventArea, inEventAreaGraphical,
+     NAME_event, "Test if (X,Y) is in the sensitive area for events"),
+  SM(NAME_keyboardFocus, 1, "[bool]", keyboardFocusGraphical,
+     NAME_event, "Get <-window's keyboard_focus if ->_wants_keyboard_focus"),
+  SM(NAME_prependRecogniser, 1, "recogniser", prependRecogniserGraphical,
+     NAME_event, "Add recogniser for user events (first)"),
+  SM(NAME_recogniser, 1, "recogniser", recogniserGraphical,
+     NAME_event, "Add recogniser for user events (last)"),
+  SM(NAME_initialiseNewSlot, 1, "new=variable", initialiseNewSlotGraphical,
+     NAME_file, "Assigns <-shadow to ZERO, active to @off"),
+  SM(NAME_WantsKeyboardFocus, 0, NULL, WantsKeyboardFocusGraphical,
+     NAME_focus, "Test if graphicals wants keyboard events (fail)"),
+  SM(NAME_focus, 3, T_focus, focusGraphical,
+     NAME_focus, "Set window focus to this graphical"),
+  SM(NAME_focusCursor, 1, "cursor*", focusCursorGraphical,
+     NAME_focus, "Set cursor until focus in released"),
+  SM(NAME_above, 1, "graphical*", belowGraphical,
+     NAME_layout, "Put me above argument"),
+  SM(NAME_alignment, 1, "{left,center,right,column}", alignmentGraphical,
+     NAME_layout, "Dialog item integration"),
+  SM(NAME_autoAlign, 1, "bool", autoAlignGraphical,
+     NAME_layout, "Dialog_item integration"),
+  SM(NAME_autoLabelAlign, 1, "bool", autoLabelAlignGraphical,
+     NAME_layout, "Dialog item integration"),
+  SM(NAME_autoValueAlign, 1, "bool", autoValueAlignGraphical,
+     NAME_layout, "Dialog item integration"),
+  SM(NAME_below, 1, "graphical*", aboveGraphical,
+     NAME_layout, "Put me below argument"),
+  SM(NAME_layout, 5, T_layout, layoutGraphical,
+     NAME_layout, "Make graph-layout for connected graphicals"),
+  SM(NAME_left, 1, "graphical*", rightGraphical,
+     NAME_layout, "Put me left of argument"),
+  SM(NAME_reference, 1, "point", referenceGraphical,
+     NAME_layout, "Dialog item integration"),
+  SM(NAME_right, 1, "graphical*", leftGraphical,
+     NAME_layout, "Put me right of argument"),
+  SM(NAME_popup, 1, "popup", popupGraphical,
+     NAME_menu, "Associate a popup menu with the graphical"),
+  SM(NAME_displayOn, 1, "device*", displayOnGraphical,
+     NAME_organisation, "Set device and ensure ->displayed: @on"),
+  SM(NAME_reparent, 0, NULL, reparentGraphical,
+     NAME_organisation, "Graphicals parent-chain has changed"),
+  SM(NAME_pointer, 1, "point", pointerGraphical,
+     NAME_pointer, "Warp pointer relative to graphical"),
+  SM(NAME_DrawPostScript, 0, NULL, drawPostScriptGraphical,
+     NAME_postscript, "Create PostScript using intermediate image object"),
+  SM(NAME_Postscript, 0, NULL, postscriptGraphical,
+     NAME_postscript, "Create PostScript"),
+  SM(NAME_connect, 4, T_link, connectGraphical,
+     NAME_relation, "Create a connection to another graphical"),
+  SM(NAME_connected, 4, T_link, connectedGraphical,
+     NAME_relation, "Test if graphical has specified connection"),
+  SM(NAME_disconnect, 4, T_link, disconnectGraphical,
+     NAME_relation, "Delete matching connections"),
+  SM(NAME_handle, 1, "handle", handleGraphical,
+     NAME_relation, "Add connection point for connection"),
+  SM(NAME_draw, 2, T_draw, drawGraphical,
+     NAME_repaint, "Draw specified area"),
+  SM(NAME_paintSelected, 0, NULL, paintSelectedGraphical,
+     NAME_repaint, "Paint selection feedback"),
+  SM(NAME_redraw, 1, "[area]", redrawGraphical,
+     NAME_repaint, "Request to repaint indicated area"),
+  SM(NAME_alert, 0, NULL, alertGraphical,
+     NAME_report, "Alert visual or using the bell"),
+  SM(NAME_bell, 1, "[int]", bellGraphical,
+     NAME_report, "Ring the bell on associated display"),
+  SM(NAME_flash, 0, NULL, flashGraphical,
+     NAME_report, "Alert visual by temporary inverting"),
+  SM(NAME_geometry, 4, T_geometry, geometryGraphical,
+     NAME_resize, "Resize graphical"),
+  SM(NAME_requestGeometry, 4, T_geometry, requestGeometryGraphical,
+     NAME_resize, "Request resize for graphical"),
+  SM(NAME_rotate, 1, "int", rotateGraphical,
+     NAME_rotate, "Rotate (multiple of 90) degrees"),
+  SM(NAME_toggleSelected, 0, NULL, toggleSelectedGraphical,
+     NAME_selection, "Change selected status"),
+  SM(NAME_expose, 1, "[graphical]", exposeGraphical,
+     NAME_stacking, "Place graphical on top or above argument"),
+  SM(NAME_hide, 1, "[graphical]", hideGraphical,
+     NAME_stacking, "Place in background or below argument"),
+  SM(NAME_overlap, 1, "graphical|area", overlapGraphical,
+     NAME_stacking, "Succeeds if graphical overlaps with argument"),
+  SM(NAME_swap, 1, "graphical", swapGraphical,
+     NAME_stacking, "Swap stacking order of graphicals"),
+  SM(NAME_compute, 0, NULL, computeGraphical,
+     NAME_update, "Update status of graphical"),
+  SM(NAME_requestCompute, 1, "[any]*", requestComputeGraphical,
+     NAME_update, "Request a ->compute on next repaint")
+};
+
+/* Get Methods */
+
+static const getdecl get_graphical[] =
+{ GM(NAME_containedIn, 0, "device|node", NULL, getContainedInGraphical,
+     DEFAULT, "Device I'm contained in"),
+  GM(NAME_displayColour, 0, "colour|pixmap", NULL, getDisplayColourGraphical,
+     NAME_appearance, "Colour graphical is displayed in"),
+  GM(NAME_absolutePosition, 1, "point", "[device]", getAbsolutePositionGraphical,
+     NAME_area, "Get position relative to device (or window)"),
+  GM(NAME_absoluteX, 1, "int", "[device]", getAbsoluteXGraphical,
+     NAME_area, "Get X-position relative to device"),
+  GM(NAME_absoluteY, 1, "int", "[device]", getAbsoluteYGraphical,
+     NAME_area, "Get Y-position relative to device"),
+  GM(NAME_area, 0, "area", NULL, getAreaGraphical,
+     NAME_area, "->compute and return area slot"),
+  GM(NAME_bottomSide, 0, "int", NULL, getBottomSideGraphical,
+     NAME_area, "Bottom-side of graphical"),
+  GM(NAME_center, 0, "point", NULL, getCenterGraphical,
+     NAME_area, "New point representing center"),
+  GM(NAME_centerX, 0, "int", NULL, getCenterXGraphical,
+     NAME_area, "X-coordinate of center"),
+  GM(NAME_centerY, 0, "int", NULL, getCenterYGraphical,
+     NAME_area, "Y-coordinate of center"),
+  GM(NAME_corner, 0, "point", NULL, getCornerGraphical,
+     NAME_area, "New point from point opposite origin"),
+  GM(NAME_cornerX, 0, "int", NULL, getCornerXGraphical,
+     NAME_area, "X-coordinate of corner"),
+  GM(NAME_cornerY, 0, "int", NULL, getCornerYGraphical,
+     NAME_area, "Y-coordinate of corner"),
+  GM(NAME_displayPosition, 0, "point", NULL, getDisplayPositionGraphical,
+     NAME_area, "Position relative to display"),
+  GM(NAME_height, 0, "int", NULL, getHeightGraphical,
+     NAME_area, "Height of graphical"),
+  GM(NAME_leftSide, 0, "int", NULL, getLeftSideGraphical,
+     NAME_area, "Left-side of graphical"),
+  GM(NAME_orientation, 0, "{north_west,south_east,north_east,south_east}", NULL, getOrientationGraphical,
+     NAME_area, "Current orientation"),
+  GM(NAME_position, 0, "point", NULL, getPositionGraphical,
+     NAME_area, "New point representing origin"),
+  GM(NAME_rightSide, 0, "int", NULL, getRightSideGraphical,
+     NAME_area, "Right-side of graphical"),
+  GM(NAME_size, 0, "size", NULL, getSizeGraphical,
+     NAME_area, "New size representing size"),
+  GM(NAME_topSide, 0, "int", NULL, getTopSideGraphical,
+     NAME_area, "Top-side of graphical"),
+  GM(NAME_width, 0, "int", NULL, getWidthGraphical,
+     NAME_area, "Width of graphical"),
+  GM(NAME_x, 0, "int", NULL, getXGraphical,
+     NAME_area, "X or origin"),
+  GM(NAME_y, 0, "int", NULL, getYGraphical,
+     NAME_area, "Y of origin"),
+  GM(NAME_convert, 1, "graphical", "object", getConvertGraphical,
+     NAME_conversion, "Convert using <-image"),
+  GM(NAME_keyboardFocus, 0, "bool", NULL, getKeyboardFocusGraphical,
+     NAME_focus, "@on if graphical is in focus of the keyboard"),
+  GM(NAME_above, 0, "graphical", NULL, getFailObject,
+     NAME_layout, "Dialog_item integration; fails"),
+  GM(NAME_alignment, 0, "name", NULL, getAlignmentGraphical,
+     NAME_layout, "Dialog_item integration"),
+  GM(NAME_autoAlign, 0, "bool", NULL, getAutoAlignGraphical,
+     NAME_layout, "Dialog_item integration"),
+  GM(NAME_autoLabelAlign, 0, "bool", NULL, getAutoLabelAlignGraphical,
+     NAME_layout, "Dialog_item integration"),
+  GM(NAME_autoValueAlign, 0, "bool", NULL, getAutoValueAlignGraphical,
+     NAME_layout, "Dialog_item integration"),
+  GM(NAME_below, 0, "graphical", NULL, getFailObject,
+     NAME_layout, "Dialog_item integration; fails"),
+  GM(NAME_left, 0, "graphical", NULL, getFailObject,
+     NAME_layout, "Dialog_item integration; fails"),
+  GM(NAME_reference, 0, "point", NULL, getFailObject,
+     NAME_layout, "Dialog_item integration; fails"),
+  GM(NAME_right, 0, "graphical", NULL, getFailObject,
+     NAME_layout, "Dialog_item integration; fails"),
+  GM(NAME_popup, 0, "popup", NULL, getPopupGraphical,
+     NAME_menu, "Associated ->popup"),
+  GM(NAME_allRecognisers, 1, "chain", "create=[bool]", getAllRecognisersGraphical,
+     NAME_meta, "Chain with all recognisers"),
+  GM(NAME_node, 0, "node", NULL, getNodeGraphical,
+     NAME_nodes, "When image of node in tree, find the node"),
+  GM(NAME_commonDevice, 1, "device", "with=graphical", getCommonDeviceGraphical,
+     NAME_organisation, "Deepest device both are displayed on"),
+  GM(NAME_display, 0, "display", NULL, getDisplayGraphical,
+     NAME_organisation, "Display graphical is displayed on"),
+  GM(NAME_distance, 1, "int", "graphical", getDistanceGraphical,
+     NAME_organisation, "Closest distance between areas"),
+  GM(NAME_distanceX, 1, "int", "graphical", getDistanceXGraphical,
+     NAME_organisation, "Distance between graphicals's in X-direction"),
+  GM(NAME_distanceY, 1, "int", "graphical", getDistanceYGraphical,
+     NAME_organisation, "Distance between graphicals's in Y-direction"),
+  GM(NAME_frame, 0, "frame", NULL, getFrameGraphical,
+     NAME_organisation, "Frame graphical is displayed on"),
+  GM(NAME_window, 0, "window", NULL, getWindowGraphical,
+     NAME_organisation, "Window graphical is displayed on"),
+  GM(NAME_boundingBox, 0, "area", NULL, getBoundingBoxGraphical,
+     NAME_postscript, "Same as <-area; used for PostScript"),
+  GM(NAME_postscript, 2, "string", T_postscript, getPostscriptObject,
+     NAME_postscript, "New string holding PostScript description"),
+  GM(NAME_connections, 4, "chain", T_connections, getConnectionsGraphical,
+     NAME_relation, "New chain with matching connections"),
+  GM(NAME_handle, 1, "handle", "name", getHandleGraphical,
+     NAME_relation, "Find handle with given name"),
+  GM(NAME_handlePosition, 2, "point", T_handlePosition, getHandlePositionGraphical,
+     NAME_relation, "New point with position of handle"),
+  GM(NAME_handles, 3, "chain", T_handles, getHandlesGraphical,
+     NAME_relation, "New chain with matching handles"),
+  GM(NAME_network, 3, "chain", T_network, getNetworkGraphical,
+     NAME_relation, "New chain with connected graphicals"),
+  GM(NAME_isDisplayed, 1, "bool", "[device]", getIsDisplayedGraphical,
+     NAME_visibility, "@on if graphical is visible on device")
+};
+
+/* Resources */
+
+static const resourcedecl rc_graphical[] =
+{ RC(NAME_colour, "[colour|pixmap]", "@default",
+     "Default colour for this object"),
+  RC(NAME_inactiveColour, "colour|pixmap*", "grey",
+     "Colour when <-active == @off"),
+  RC(NAME_selectionHandles, "{corners,sides,corners_and_sides,line}*",
+     "corners_and_sides",
+     "Visual feedback of <->selected"),
+  RC(NAME_visualBell, "bool", "@on",
+     "@on: flash; @off: ring bell on ->alert"),
+  RC(NAME_visualBellDuration, "int", "100",
+     "Length of flash in milliseconds")
+};
+
+/* Class Declaration */
+
+static Name graphical_termnames[] = { NAME_x, NAME_y, NAME_width, NAME_height };
+
+ClassDecl(graphical_decls,
+          var_graphical, send_graphical, get_graphical, rc_graphical,
+          4, graphical_termnames,
+          "$Rev$");
 
 status
 makeClassGraphical(Class class)
-{ sourceClass(class, makeClassGraphical, __FILE__, "$Revision$");
+{ declareClass(class, &graphical_decls);
 
-  localClass(class, NAME_device, NAME_organisation, "device*", NAME_get,
-	     "Device I'm displayed on");
-  localClass(class, NAME_area, NAME_area, "area", NAME_none,
-	     "Bounding box of affected pixels");
-  localClass(class, NAME_displayed, NAME_visibility, "bool", NAME_get,
-	     "If @on, graphical is visible");
-  localClass(class, NAME_pen, NAME_appearance, "0..", NAME_get,
-	     "Thickness of drawing pen");
-  localClass(class, NAME_texture, NAME_appearance, "texture_name", NAME_get,
-	     "Stipple pattern of drawing pen");
-  localClass(class, NAME_colour, NAME_appearance, "[colour|pixmap]", NAME_get,
-	     "Colour of drawing pen");
-  localClass(class, NAME_handles, NAME_relation, "chain*", NAME_none,
-	     "Connection points for connections");
-  localClass(class, NAME_connections, NAME_relation, "chain*", NAME_none,
-	     "Connections (links) to other graphicals");
-  localClass(class, NAME_name, NAME_name, "name", NAME_both,
-	     "Name of graphical");
-  localClass(class, NAME_selected, NAME_selection, "bool", NAME_get,
-	     "If @on, I'm selected");
-  localClass(class, NAME_inverted, NAME_appearance, "bool", NAME_get,
-	     "If @on, invert bounding box after painting");
-  localClass(class, NAME_active, NAME_event, "bool", NAME_get,
-	     "If @off, greyed out and insensitive");
-  localClass(class, NAME_cursor, NAME_cursor, "cursor*", NAME_get,
-	     "Cursor when in focus of events");
-  localClass(class, NAME_requestCompute, NAME_update, "any*", NAME_get,
-	     "Graphical requests recomputing");
-
-  termClass(class, "graphical", 4, NAME_x, NAME_y, NAME_width, NAME_height);
   saveStyleVariableClass(class, NAME_device, NAME_nil);
   cloneStyleVariableClass(class, NAME_device, NAME_nil);
   setRedrawFunctionClass(class, RedrawAreaGraphical);
-
-  storeMethod(class, NAME_area, areaGraphical);
-  storeMethod(class, NAME_colour, colourGraphical);
-  storeMethod(class, NAME_cursor, cursorGraphical);
-  storeMethod(class, NAME_device, deviceGraphical);
-  storeMethod(class, NAME_displayed, displayedGraphical);
-  storeMethod(class, NAME_pen, penGraphical);
-  storeMethod(class, NAME_texture, textureGraphical);
-  storeMethod(class, NAME_selected, selectedGraphical);
-  storeMethod(class, NAME_inverted, invertedGraphical);
-  storeMethod(class, NAME_active, activeGraphical);
-
-  sendMethod(class, NAME_initialise, DEFAULT,
-	     4, "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Create from XYWH",
-	     initialiseGraphical);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Erase from device",
-	     unlinkGraphical);
-  sendMethod(class, NAME_geometry, NAME_resize, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Resize graphical",
-	     geometryGraphical);
-  sendMethod(class, NAME_requestGeometry, NAME_resize, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Request resize for graphical",
-	     requestGeometryGraphical);
-  sendMethod(class, NAME_paintSelected, NAME_repaint, 0,
-	     "Paint selection feedback",
-	     paintSelectedGraphical);
-  sendMethod(class, NAME_center, NAME_area, 1, "point",
-	     "Move to make point the center",
-	     centerGraphical);
-  sendMethod(class, NAME_centerX, NAME_area, 1, "int",
-	     "Move horizontal to make int the <-x_center",
-	     centerXGraphical);
-  sendMethod(class, NAME_centerY, NAME_area, 1, "int",
-	     "Move vertical to make int the <-y_center",
-	     centerYGraphical);
-  sendMethod(class, NAME_corner, NAME_area, 1, "point",
-	     "Resize to make opposite of origin point",
-	     cornerGraphical);
-  sendMethod(class, NAME_cornerX, NAME_area, 1, "int",
-	     "Resize to set X of ->corner",
-	     cornerXGraphical);
-  sendMethod(class, NAME_cornerY, NAME_area, 1, "int",
-	     "Resize to set Y of ->corner",
-	     cornerYGraphical);
-  sendMethod(class, NAME_focus, NAME_focus, 3,
-	     "recogniser=[recogniser]", "cursor=[cursor]", "button=[name]",
-	     "Set window focus to this graphical",
-	     focusGraphical);
-  sendMethod(class, NAME_focusCursor, NAME_focus, 1, "cursor*",
-	     "Set cursor until focus in released",
-	     focusCursorGraphical);
-  sendMethod(class, NAME_WantsKeyboardFocus, NAME_focus, 0,
-	     "Test if graphicals wants keyboard events (fail)",
-	     WantsKeyboardFocusGraphical);
-  sendMethod(class, NAME_displayOn, NAME_organisation, 1, "device*",
-	     "Set device and ensure ->displayed: @on",
-	     displayOnGraphical);
-  sendMethod(class, NAME_expose, NAME_stacking, 1, "[graphical]",
-	     "Place graphical on top or above argument",
-	     exposeGraphical);
-  sendMethod(class, NAME_handle, NAME_relation, 1, "handle",
-	     "Add connection point for connection",
-	     handleGraphical);
-  sendMethod(class, NAME_height, NAME_area, 1, "int",
-	     "Set height",
-	     heightGraphical);
-  sendMethod(class, NAME_hide, NAME_stacking, 1, "[graphical]",
-	     "Place in background or below argument",
-	     hideGraphical);
-  sendMethod(class, NAME_flush, NAME_animate, 0,
-	     "Flush changes to the display",
-	     flushGraphical);
-  sendMethod(class, NAME_synchronise, NAME_animate, 1, "[always=bool]",
-	     "->flush and process all events",
-	     synchroniseGraphical);
-  sendMethod(class, NAME_move, NAME_area, 1, "point",
-	     "Move origin to argument",
-	     positionGraphical);
-  sendMethod(class, NAME_position, NAME_area, 1, "point",
-	     "Move origin to argument (as ->move)",
-	     positionGraphical);
-  sendMethod(class, NAME_relativeMove, NAME_area, 1, "point",
-	     "Move origin by argument",
-	     relativeMoveGraphical);
-  sendMethod(class, NAME_rotate, NAME_rotate, 1, "int",
-	     "Rotate (multiple of 90) degrees",
-	     rotateGraphical);
-  sendMethod(class, NAME_resize, NAME_area, 3,
-	     "factor_x=real", "factor_y=[real]", "origin=[point]",
-	     "Resize graphical with specified factor",
-	     resizeGraphical);
-  sendMethod(class, NAME_toggleSelected, NAME_selection, 0,
-	     "Change selected status",
-	     toggleSelectedGraphical);
-  sendMethod(class, NAME_set, NAME_area, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Request new X, Y, W and H for graphical",
-	     setGraphical);
-  sendMethod(class, NAME_doSet, NAME_area, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Set X, Y, W and H for graphical",
-	     doSetGraphical);
-  sendMethod(class, NAME_size, NAME_area, 1, "size",
-	     "Resize to specified size",
-	     sizeGraphical);
-  sendMethod(class, NAME_leftSide, NAME_area, 1, "int",
-	     "Resize graphical to set left-side",
-	     leftSideGraphical);
-  sendMethod(class, NAME_topSide, NAME_area, 1, "int",
-	     "Resize graphical to set top-side",
-	     topSideGraphical);
-  sendMethod(class, NAME_bottomSide, NAME_area, 1, "int",
-	     "Resize graphical to set bottom-side",
-	     bottomSideGraphical);
-  sendMethod(class, NAME_rightSide, NAME_area, 1, "int",
-	     "Resize graphical to set right-side",
-	     rightSideGraphical);
-  sendMethod(class, NAME_swap, NAME_stacking, 1, "graphical",
-	     "Swap stacking order of graphicals",
-	     swapGraphical);
-  sendMethod(class, NAME_width, NAME_area, 1, "int",
-	     "Width of graphical",
-	     widthGraphical);
-  sendMethod(class, NAME_x, NAME_area, 1, "int",
-	     "Move graphical horizontally",
-	     xGraphical);
-  sendMethod(class, NAME_y, NAME_area, 1, "int",
-	     "Move graphical vertically",
-	     yGraphical);
-  sendMethod(class, NAME_Postscript, NAME_postscript, 0,
-	     "Create PostScript",
-	     postscriptGraphical);
-  sendMethod(class, NAME_layout, NAME_layout, 5,
-	     "attract=[real]", "nominal=[real]",
-	     "repel=[real]", "adapt=[int]", "iterations=[int]",
-	     "Make graph-layout for connected graphicals",
-	     layoutGraphical);
-  sendMethod(class, NAME_normalise, NAME_area, 0,
-	     "Make top-left corner the origin",
-	     normaliseGraphical);
-  sendMethod(class, NAME_orientation, NAME_area,
-	     1, "{north_west,south_east,north_east,south_east}",
-	     "Put origin at {north,south}_{west,east}",
-	     orientationGraphical);
-  sendMethod(class, NAME_bell, NAME_report, 1, "[int]",
-	     "Ring the bell on associated display",
-	     bellGraphical);
-  sendMethod(class, NAME_alert, NAME_report, 0,
-	     "Alert visual or using the bell",
-	     alertGraphical);
-  sendMethod(class, NAME_flash, NAME_report, 0,
-	     "Alert visual by temporary inverting",
-	     flashGraphical);
-  sendMethod(class, NAME_keyboardFocus, NAME_event, 1, "[bool]",
-	     "Get <-window's keyboard_focus if ->_wants_keyboard_focus",
-	     keyboardFocusGraphical);
-  sendMethod(class, NAME_generateEvent, NAME_event, 1, "event_id",
-	     "Generate named event for graphical",
-	     generateEventGraphical);
-  sendMethod(class, NAME_event, NAME_event, 1, "event",
-	     "Handle a user-event",
-	     eventGraphical);
-  sendMethod(class, NAME_recogniser, NAME_event, 1, "recogniser",
-	     "Add recogniser for user events (last)",
-	     recogniserGraphical);
-  sendMethod(class, NAME_prependRecogniser, NAME_event, 1, "recogniser",
-	     "Add recogniser for user events (first)",
-	     prependRecogniserGraphical);
-  sendMethod(class, NAME_deleteRecogniser, NAME_event, 1, "recogniser",
-	     "Delete a recogniser",
-	     deleteRecogniserGraphical);	     
-  getMethod(class, NAME_allRecognisers, NAME_meta, "chain", 1,
-	    "create=[bool]",
-	    "Chain with all recognisers",
-	    getAllRecognisersGraphical);
-  sendMethod(class, NAME_popup, NAME_menu, 1, "popup",
-	     "Associate a popup menu with the graphical",
-	     popupGraphical);
-  sendMethod(class, NAME_connect, NAME_relation, 4,
-	     "to=[graphical]", "link=[link]",
-	     "to_kind=[name]", "from_kind=[name]",
-	     "Create a connection to another graphical",
-	     connectGraphical);
-  sendMethod(class, NAME_connected, NAME_relation, 4,
-	     "to=[graphical]", "link=[link]",
-	     "to_kind=[name]", "from_kind=[name]",
-	     "Test if graphical has specified connection",
-	     connectedGraphical);
-  sendMethod(class, NAME_disconnect, NAME_relation, 4,
-	     "to=[graphical]", "link=[link]",
-	     "to_kind=[name]", "from_kind=[name]",
-	     "Delete matching connections",
-	     disconnectGraphical);
-  sendMethod(class, NAME_pointer, NAME_pointer, 1, "point",
-	     "Warp pointer relative to graphical",
-	     pointerGraphical);
-  sendMethod(class, NAME_inEventArea, NAME_event, 2, "x=int", "y=int",
-	     "Test if (X,Y) is in the sensitive area for events",
-	     inEventAreaGraphical);
-  sendMethod(class, NAME_requestCompute, NAME_update, 1, "[any]*",
-	     "Request a ->compute on next repaint",
-	     requestComputeGraphical);
-  sendMethod(class, NAME_compute, NAME_update, 0,
-	     "Update status of graphical",
-	     computeGraphical);
-  sendMethod(class, NAME_reparent, NAME_organisation, 0,
-	     "Graphicals parent-chain has changed",
-	     reparentGraphical);
-  sendMethod(class, NAME_redraw, NAME_repaint, 1, "[area]",
-	     "Request to repaint indicated area",
-	     redrawGraphical);
-  sendMethod(class, NAME_overlap, NAME_stacking, 1, "graphical|area",
-	     "Succeeds if graphical overlaps with argument",
-	     overlapGraphical);
-  sendMethod(class, NAME_key, NAME_accelerator, 1, "name",
-	     "Accelerator-key pressed (fail)",
-	     keyGraphical);
-  sendMethod(class, NAME_autoAlign, NAME_layout, 1, "bool",
-	     "Dialog_item integration",
-	     autoAlignGraphical);
-  sendMethod(class, NAME_reference, NAME_layout, 1, "point",
-	     "Dialog item integration",
-	     referenceGraphical);
-  sendMethod(class, NAME_alignment, NAME_layout, 1,
-	     "{left,center,right,column}",
-	     "Dialog item integration",
-	     alignmentGraphical);
-  sendMethod(class, NAME_autoLabelAlign, NAME_layout, 1, "bool",
-	     "Dialog item integration",
-	     autoLabelAlignGraphical);
-  sendMethod(class, NAME_autoValueAlign, NAME_layout, 1, "bool",
-	     "Dialog item integration",
-	     autoValueAlignGraphical);
-
-  sendMethod(class, NAME_initialiseNewSlot, NAME_file, 1, "new=variable",
-	     "Assigns <-shadow to ZERO, active to @off",
-	     initialiseNewSlotGraphical);
-
-  sendMethod(class, NAME_below, NAME_layout, 1, "graphical*",
-	     "Put me below argument",
-	     aboveGraphical);
-  sendMethod(class, NAME_above, NAME_layout, 1, "graphical*",
-	     "Put me above argument",
-	     belowGraphical);
-  sendMethod(class, NAME_left, NAME_layout, 1, "graphical*",
-	     "Put me left of argument",
-	     rightGraphical);
-  sendMethod(class, NAME_right, NAME_layout, 1, "graphical*",
-	     "Put me right of argument",
-	     leftGraphical);
-  sendMethod(class, NAME_apply, NAME_apply, 1, "[bool]",
-	     "Virtual method",
-	     virtualObject);
-  sendMethod(class, NAME_restore, NAME_apply, 0,
-	     "Virtual method",
-	     virtualObject);
-  sendMethod(class, NAME_draw, NAME_repaint, 2,
-	     "offset=[point]", "area=[area]",
-	     "Draw specified area",
-	     drawGraphical);
-  sendMethod(class, NAME_DrawPostScript, NAME_postscript, 0,
-	     "Create PostScript using intermediate image object",
-	     drawPostScriptGraphical);
-
-  sendMethod(class, NAME_clip, NAME_draw, 1, "[area]",
-	     "Clip subsequent drawing actions to area",
-	     clipGraphical);
-  sendMethod(class, NAME_unclip, NAME_draw, 0,
-	     "Undo previous ->clip",
-	     unclipGraphical);
-  sendMethod(class, NAME_saveGraphicsState, NAME_draw, 0,
-	     "Save current pen, texture, colours and font",
-	     saveGraphicsStateGraphical);
-  sendMethod(class, NAME_restoreGraphicsState, NAME_draw, 0,
-	     "Restore saved pen, texture, colours and font",
-	     restoreGraphicsStateGraphical);
-  sendMethod(class, NAME_graphicsState, NAME_draw, 4,
-	     "pen=[0..]", "texture=[texture_name]",
-	     "colour=[colour|pixmap]", "background=[colour|pixmap]",
-	     "Modify the graphics state",
-	     graphicsStateGraphical);
-
-  sendMethod(class, NAME_drawLine, NAME_draw, 4,
-	     "x1=[int]", "y1=[int]", "x2=[int]", "y2=[int]",
-	     "Draw line segment from (X1,Y1) to (X2,Y2)",
-	     drawLineGraphical);
-  sendMethod(class, NAME_drawBox, NAME_draw, 7,
-	     "x=int", "y=int", "w=int", "h=int",
-	     "radius=[0..]", "fill=[image|colour|elevation]", "up=[bool]",
-	     "Draw rectangular (rounded) box",
-	     drawBoxGraphical);
-  sendMethod(class, NAME_drawText, NAME_draw, 8,
-	     "string=char_array", "font",
-	     "x=int", "y=int", "w=[0..]", "h=[0..]",
-	     "hadjust=[{left,center,right}]", "vadjust=[{top,center,bottom}]",
-	     "Draw text-string",
-	     drawTextGraphical);
-  sendMethod(class, NAME_drawFill, NAME_draw, 5,
-	     "x=int", "y=int", "w=int", "h=int", "fill=[colour|image]*",
-	     "Fill rectangle with specified pattern",
-	     drawFillGraphical);
-  sendMethod(class, NAME_drawPoly, NAME_draw, 3,
-	     "points=chain|vector", "closed=[bool]", "fill=[colour|image]*",
-	     "Draw/fill a polyfon",
-	     drawPolyGraphical);
-  sendMethod(class, NAME_drawImage, NAME_draw, 8,
-	     "image", "x=int", "y=int",
-	     "sx=[int]", "sy=[int]", "sw=[int]", "sh=[int]",
-	     "transparent=bool",
-	     "Draw a bitmap or pixmap image",
-	     drawImageGraphical);
-  sendMethod(class, NAME_drawArc, NAME_draw, 7,
-	     "x=int", "y=int", "w=int", "h=int",
-	     "angle1=[real]", "angle2=[real]", "fill=[colour|image]*",
-	     "Draw a ellipse-part",
-	     drawArcGraphical);
-
-  getMethod(class, NAME_absolutePosition, NAME_area, "point", 1, "[device]",
-	    "Get position relative to device (or window)",
-	    getAbsolutePositionGraphical);
-  getMethod(class, NAME_absoluteX, NAME_area, "int", 1, "[device]",
-	    "Get X-position relative to device",
-	    getAbsoluteXGraphical);
-  getMethod(class, NAME_absoluteY, NAME_area, "int", 1, "[device]",
-	    "Get Y-position relative to device",
-	    getAbsoluteYGraphical);
-  getMethod(class, NAME_area, NAME_area, "area", 0,
-	    "->compute and return area slot",
-	    getAreaGraphical);
-  getMethod(class, NAME_boundingBox, NAME_postscript, "area", 0,
-	    "Same as <-area; used for PostScript",
-	    getBoundingBoxGraphical);
-  getMethod(class, NAME_center, NAME_area, "point", 0,
-	    "New point representing center",
-	    getCenterGraphical);
-  getMethod(class, NAME_corner, NAME_area, "point", 0,
-	    "New point from point opposite origin",
-	    getCornerGraphical);
-  getMethod(class, NAME_leftSide, NAME_area, "int", 0,
-	    "Left-side of graphical",
-	    getLeftSideGraphical);
-  getMethod(class, NAME_rightSide, NAME_area, "int", 0,
-	    "Right-side of graphical",
-	    getRightSideGraphical);
-  getMethod(class, NAME_topSide, NAME_area, "int", 0,
-	    "Top-side of graphical",
-	    getTopSideGraphical);
-  getMethod(class, NAME_bottomSide, NAME_area, "int", 0,
-	    "Bottom-side of graphical",
-	    getBottomSideGraphical);
-  getMethod(class, NAME_cornerX, NAME_area, "int", 0,
-	    "X-coordinate of corner",
-	    getCornerXGraphical);
-  getMethod(class, NAME_cornerY, NAME_area, "int", 0,
-	    "Y-coordinate of corner",
-	    getCornerYGraphical);
-  getMethod(class, NAME_centerX, NAME_area, "int", 0,
-	    "X-coordinate of center",
-	    getCenterXGraphical);
-  getMethod(class, NAME_centerY, NAME_area, "int", 0,
-	    "Y-coordinate of center",
-	    getCenterYGraphical);
-  getMethod(class, NAME_handle, NAME_relation, "handle", 1, "name",
-	    "Find handle with given name",
-	    getHandleGraphical);
-  getMethod(class, NAME_handles, NAME_relation, "chain", 3,
-	    "near=[point]", "kind=[name]", "distance=[int]",
-	    "New chain with matching handles",
-	    getHandlesGraphical);
-  getMethod(class, NAME_height, NAME_area, "int", 0,
-	    "Height of graphical",
-	    getHeightGraphical);
-  getMethod(class, NAME_window, NAME_organisation, "window", 0,
-	    "Window graphical is displayed on",
-	    getWindowGraphical);
-  getMethod(class, NAME_frame, NAME_organisation, "frame", 0,
-	    "Frame graphical is displayed on",
-	    getFrameGraphical);
-  getMethod(class, NAME_display, NAME_organisation, "display", 0,
-	    "Display graphical is displayed on",
-	    getDisplayGraphical);
-  getMethod(class, NAME_position, NAME_area, "point", 0,
-	    "New point representing origin",
-	    getPositionGraphical);
-  getMethod(class, NAME_size, NAME_area, "size", 0,
-	    "New size representing size",
-	    getSizeGraphical);
-  getMethod(class, NAME_width, NAME_area, "int", 0,
-	    "Width of graphical",
-	    getWidthGraphical);
-  getMethod(class, NAME_x, NAME_area, "int", 0,
-	    "X or origin",
-	    getXGraphical);
-  getMethod(class, NAME_y, NAME_area, "int", 0,
-	    "Y of origin",
-	    getYGraphical);
-  getMethod(class, NAME_commonDevice, NAME_organisation, "device", 1,
-	    "with=graphical",
-	    "Deepest device both are displayed on",
-	    getCommonDeviceGraphical);
-  getMethod(class, NAME_distance, NAME_organisation, "int", 1, "graphical",
-	    "Closest distance between areas",
-	    getDistanceGraphical);
-  getMethod(class, NAME_distanceX, NAME_organisation, "int", 1, "graphical",
-	    "Distance between graphicals's in X-direction",
-	    getDistanceXGraphical);
-  getMethod(class, NAME_distanceY, NAME_organisation, "int", 1, "graphical",
-	    "Distance between graphicals's in Y-direction",
-	    getDistanceYGraphical);
-  getMethod(class, NAME_postscript, NAME_postscript, "string", 2,
-	    "landscape=[bool]", "maximum_area=[area]",
-	    "New string holding PostScript description",
-	    getPostscriptObject);
-  getMethod(class, NAME_network, NAME_relation, "chain", 3,
-	    "link=[link]", "from_kind=[name]", "to_kind=[name]",
-	    "New chain with connected graphicals",
-	    getNetworkGraphical);
-  getMethod(class, NAME_isDisplayed, NAME_visibility, "bool", 1, "[device]",
-	    "@on if graphical is visible on device",
-	    getIsDisplayedGraphical);
-  getMethod(class, NAME_displayPosition, NAME_area, "point", 0,
-	    "Position relative to display",
-	    getDisplayPositionGraphical);
-  getMethod(class, NAME_orientation, NAME_area,
-	    "{north_west,south_east,north_east,south_east}", 0,
-	    "Current orientation",
-	    getOrientationGraphical);
-  getMethod(class, NAME_displayColour, NAME_appearance, "colour|pixmap", 0,
-	    "Colour graphical is displayed in",
-	    getDisplayColourGraphical);
-  getMethod(class, NAME_node, NAME_nodes, "node", 0,
-	    "When image of node in tree, find the node",
-	    getNodeGraphical);
-  getMethod(class, NAME_connections, NAME_relation, "chain", 4,
-	    "to=[graphical]", "link=[link]",
-	    "from_kind=[name]", "to_kind=[name]",
-	    "New chain with matching connections",
-	    getConnectionsGraphical);
-  getMethod(class, NAME_handlePosition, NAME_relation, "point", 2,
-	    "name=name", "device=[device]",
-	    "New point with position of handle",
-	    getHandlePositionGraphical);
-  getMethod(class, NAME_containedIn, DEFAULT, "device|node", 0,
-	    "Device I'm contained in",
-	    getContainedInGraphical);
-  getMethod(class, NAME_convert, NAME_conversion, "graphical", 1, "object",
-	    "Convert using <-image",
-	    getConvertGraphical);
-  getMethod(class, NAME_popup, NAME_menu, "popup", 0,
-	    "Associated ->popup",
-	    getPopupGraphical);
-  getMethod(class, NAME_keyboardFocus, NAME_focus, "bool", 0,
-	    "@on if graphical is in focus of the keyboard");
-
-  getMethod(class, NAME_autoAlign, NAME_layout, "bool", 0,
-	    "Dialog_item integration",
-	    getAutoAlignGraphical);
-  getMethod(class, NAME_alignment, NAME_layout, "name", 0,
-	    "Dialog_item integration",
-	    getAlignmentGraphical);
-  getMethod(class, NAME_autoLabelAlign, NAME_layout, "bool", 0,
-	    "Dialog_item integration",
-	    getAutoLabelAlignGraphical);
-  getMethod(class, NAME_autoValueAlign, NAME_layout, "bool", 0,
-	    "Dialog_item integration",
-	    getAutoValueAlignGraphical);
-  getMethod(class, NAME_reference, NAME_layout, "point", 0,
-	    "Dialog_item integration; fails",
-	    getFailObject);
-  getMethod(class, NAME_left, NAME_layout, "graphical", 0,
-	    "Dialog_item integration; fails",
-	    getFailObject);
-  getMethod(class, NAME_right, NAME_layout, "graphical", 0,
-	    "Dialog_item integration; fails",
-	    getFailObject);
-  getMethod(class, NAME_above, NAME_layout, "graphical", 0,
-	    "Dialog_item integration; fails",
-	    getFailObject);
-  getMethod(class, NAME_below, NAME_layout, "graphical", 0,
-	    "Dialog_item integration; fails",
-	    getFailObject);
-
-  attach_resource(class, "visual_bell", "bool", "@on",
-		  "@on: flash; @off: ring bell on ->alert");
-  attach_resource(class, "visual_bell_duration", "int", "100",
-		  "Length of flash in milliseconds");
-  attach_resource(class, "selection_handles",
-		  "{corners,sides,corners_and_sides,line}*",
-		  "corners_and_sides",
-		  "Visual feedback of <->selected");
-  attach_resource(class, "colour", "[colour|pixmap]", "@default",
-		  "Default colour for this object");
-  attach_resource(class, "inactive_colour", "colour|pixmap*", "grey",
-		  "Colour when <-active == @off");
 
   ChangedWindows = globalObject(NAME_changedWindows, ClassChain, 0);
 

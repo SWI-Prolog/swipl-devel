@@ -1,4 +1,4 @@
-/*extern char *malloc(), *realloc();*/
+extern char *malloc(), *realloc();
 
 # line 2 "../src/gnu/getdate.y"
 /* 1.8
@@ -16,6 +16,14 @@
 */
 /* SUPPRESS 287 on yaccpar_sccsid *//* Unused static variable */
 /* SUPPRESS 288 on yyerrlab *//* Label unused */
+
+#define malloc(n)	pceMalloc(n)
+#define free(p)		pceFree(p)
+#define realloc(p, n)	pceRealloc(p, n)
+
+extern void *pceMalloc(int n);
+extern void *pceRealloc(void *p, int n);
+extern void *pceFree(void *p);
 
 #include "md.h"
 #include "system.h"
@@ -100,7 +108,7 @@ static time_t	yyRelMonth;
 static time_t	yyRelSeconds;
 
 
-# line 102 "../src/gnu/getdate.y"
+# line 110 "../src/gnu/getdate.y"
 typedef union  {
     time_t		Number;
     enum _MERIDIAN	Meridian;
@@ -128,7 +136,7 @@ extern int yyerrflag;
 YYSTYPE yylval, yyval;
 # define YYERRCODE 256
 
-# line 303 "../src/gnu/getdate.y"
+# line 311 "../src/gnu/getdate.y"
 
 
 /* Month and day table. */
@@ -1301,32 +1309,32 @@ yyparse()
 	{
 		
 case 3:
-# line 120 "../src/gnu/getdate.y"
+# line 128 "../src/gnu/getdate.y"
 {
 	    yyHaveTime++;
 	} break;
 case 4:
-# line 123 "../src/gnu/getdate.y"
+# line 131 "../src/gnu/getdate.y"
 {
 	    yyHaveZone++;
 	} break;
 case 5:
-# line 126 "../src/gnu/getdate.y"
+# line 134 "../src/gnu/getdate.y"
 {
 	    yyHaveDate++;
 	} break;
 case 6:
-# line 129 "../src/gnu/getdate.y"
+# line 137 "../src/gnu/getdate.y"
 {
 	    yyHaveDay++;
 	} break;
 case 7:
-# line 132 "../src/gnu/getdate.y"
+# line 140 "../src/gnu/getdate.y"
 {
 	    yyHaveRel++;
 	} break;
 case 9:
-# line 138 "../src/gnu/getdate.y"
+# line 146 "../src/gnu/getdate.y"
 {
 	    yyHour = yypvt[-1].Number;
 	    yyMinutes = 0;
@@ -1334,7 +1342,7 @@ case 9:
 	    yyMeridian = yypvt[-0].Meridian;
 	} break;
 case 10:
-# line 144 "../src/gnu/getdate.y"
+# line 152 "../src/gnu/getdate.y"
 {
 	    yyHour = yypvt[-3].Number;
 	    yyMinutes = yypvt[-1].Number;
@@ -1342,7 +1350,7 @@ case 10:
 	    yyMeridian = yypvt[-0].Meridian;
 	} break;
 case 11:
-# line 150 "../src/gnu/getdate.y"
+# line 158 "../src/gnu/getdate.y"
 {
 	    yyHour = yypvt[-3].Number;
 	    yyMinutes = yypvt[-1].Number;
@@ -1351,7 +1359,7 @@ case 11:
 	    yyTimezone = - (yypvt[-0].Number % 100 + (yypvt[-0].Number / 100) * 60);
 	} break;
 case 12:
-# line 157 "../src/gnu/getdate.y"
+# line 165 "../src/gnu/getdate.y"
 {
 	    yyHour = yypvt[-5].Number;
 	    yyMinutes = yypvt[-3].Number;
@@ -1359,7 +1367,7 @@ case 12:
 	    yyMeridian = yypvt[-0].Meridian;
 	} break;
 case 13:
-# line 163 "../src/gnu/getdate.y"
+# line 171 "../src/gnu/getdate.y"
 {
 	    yyHour = yypvt[-5].Number;
 	    yyMinutes = yypvt[-3].Number;
@@ -1369,133 +1377,133 @@ case 13:
 	    yyTimezone = - (yypvt[-0].Number % 100 + (yypvt[-0].Number / 100) * 60);
 	} break;
 case 14:
-# line 173 "../src/gnu/getdate.y"
+# line 181 "../src/gnu/getdate.y"
 {
 	    yyTimezone = yypvt[-0].Number;
 	    yyDSTmode = DSToff;
 	} break;
 case 15:
-# line 177 "../src/gnu/getdate.y"
+# line 185 "../src/gnu/getdate.y"
 {
 	    yyTimezone = yypvt[-0].Number;
 	    yyDSTmode = DSTon;
 	} break;
 case 16:
-# line 182 "../src/gnu/getdate.y"
+# line 190 "../src/gnu/getdate.y"
 {
 	    yyTimezone = yypvt[-1].Number;
 	    yyDSTmode = DSTon;
 	} break;
 case 17:
-# line 188 "../src/gnu/getdate.y"
+# line 196 "../src/gnu/getdate.y"
 {
 	    yyDayOrdinal = 1;
 	    yyDayNumber = yypvt[-0].Number;
 	} break;
 case 18:
-# line 192 "../src/gnu/getdate.y"
+# line 200 "../src/gnu/getdate.y"
 {
 	    yyDayOrdinal = 1;
 	    yyDayNumber = yypvt[-1].Number;
 	} break;
 case 19:
-# line 196 "../src/gnu/getdate.y"
+# line 204 "../src/gnu/getdate.y"
 {
 	    yyDayOrdinal = yypvt[-1].Number;
 	    yyDayNumber = yypvt[-0].Number;
 	} break;
 case 20:
-# line 202 "../src/gnu/getdate.y"
+# line 210 "../src/gnu/getdate.y"
 {
 	    yyMonth = yypvt[-2].Number;
 	    yyDay = yypvt[-0].Number;
 	} break;
 case 21:
-# line 206 "../src/gnu/getdate.y"
+# line 214 "../src/gnu/getdate.y"
 {
 	    yyMonth = yypvt[-4].Number;
 	    yyDay = yypvt[-2].Number;
 	    yyYear = yypvt[-0].Number;
 	} break;
 case 22:
-# line 211 "../src/gnu/getdate.y"
+# line 219 "../src/gnu/getdate.y"
 {
 	    yyMonth = yypvt[-1].Number;
 	    yyDay = yypvt[-0].Number;
 	} break;
 case 23:
-# line 215 "../src/gnu/getdate.y"
+# line 223 "../src/gnu/getdate.y"
 {
 	    yyMonth = yypvt[-3].Number;
 	    yyDay = yypvt[-2].Number;
 	    yyYear = yypvt[-0].Number;
 	} break;
 case 24:
-# line 220 "../src/gnu/getdate.y"
+# line 228 "../src/gnu/getdate.y"
 {
 	    yyMonth = yypvt[-0].Number;
 	    yyDay = yypvt[-1].Number;
 	} break;
 case 25:
-# line 224 "../src/gnu/getdate.y"
+# line 232 "../src/gnu/getdate.y"
 {
 	    yyMonth = yypvt[-1].Number;
 	    yyDay = yypvt[-2].Number;
 	    yyYear = yypvt[-0].Number;
 	} break;
 case 26:
-# line 231 "../src/gnu/getdate.y"
+# line 239 "../src/gnu/getdate.y"
 {
 	    yyRelSeconds = -yyRelSeconds;
 	    yyRelMonth = -yyRelMonth;
 	} break;
 case 28:
-# line 238 "../src/gnu/getdate.y"
+# line 246 "../src/gnu/getdate.y"
 {
 	    yyRelSeconds += yypvt[-1].Number * yypvt[-0].Number * 60L;
 	} break;
 case 29:
-# line 241 "../src/gnu/getdate.y"
+# line 249 "../src/gnu/getdate.y"
 {
 	    yyRelSeconds += yypvt[-1].Number * yypvt[-0].Number * 60L;
 	} break;
 case 30:
-# line 244 "../src/gnu/getdate.y"
+# line 252 "../src/gnu/getdate.y"
 {
 	    yyRelSeconds += yypvt[-0].Number * 60L;
 	} break;
 case 31:
-# line 247 "../src/gnu/getdate.y"
+# line 255 "../src/gnu/getdate.y"
 {
 	    yyRelSeconds += yypvt[-1].Number;
 	} break;
 case 32:
-# line 250 "../src/gnu/getdate.y"
+# line 258 "../src/gnu/getdate.y"
 {
 	    yyRelSeconds += yypvt[-1].Number;
 	} break;
 case 33:
-# line 253 "../src/gnu/getdate.y"
+# line 261 "../src/gnu/getdate.y"
 {
 	    yyRelSeconds++;
 	} break;
 case 34:
-# line 256 "../src/gnu/getdate.y"
+# line 264 "../src/gnu/getdate.y"
 {
 	    yyRelMonth += yypvt[-1].Number * yypvt[-0].Number;
 	} break;
 case 35:
-# line 259 "../src/gnu/getdate.y"
+# line 267 "../src/gnu/getdate.y"
 {
 	    yyRelMonth += yypvt[-1].Number * yypvt[-0].Number;
 	} break;
 case 36:
-# line 262 "../src/gnu/getdate.y"
+# line 270 "../src/gnu/getdate.y"
 {
 	    yyRelMonth += yypvt[-0].Number;
 	} break;
 case 37:
-# line 267 "../src/gnu/getdate.y"
+# line 275 "../src/gnu/getdate.y"
 {
 	    if (yyHaveTime && yyHaveDate && !yyHaveRel)
 		yyYear = yypvt[-0].Number;
@@ -1523,12 +1531,12 @@ case 37:
 	    }
 	} break;
 case 38:
-# line 295 "../src/gnu/getdate.y"
+# line 303 "../src/gnu/getdate.y"
 {
 	    yyval.Meridian = MER24;
 	} break;
 case 39:
-# line 298 "../src/gnu/getdate.y"
+# line 306 "../src/gnu/getdate.y"
 {
 	    yyval.Meridian = yypvt[-0].Meridian;
 	} break;

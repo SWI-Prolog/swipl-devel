@@ -19,7 +19,7 @@ checkwd:
 		@if cmp -s .pwd% .pwd; then rm .pwd%; else mv .pwd% .pwd; fi
 
 pce.qlf:	.pwd pce.pl ../boot/pce_expand.pl ../boot/pce_pl.pl \
-		../boot/english/pce_messages.pl ../boot/pce_principal.pl \
+		english/pce_messages.pl ../boot/pce_principal.pl \
 		../boot/pce_error.pl ../boot/pce_operator.pl \
 		../boot/pce_global.pl ../boot/pce_expansion.pl \
 		../boot/pce_realise.pl ../boot/pce_autoload.pl \

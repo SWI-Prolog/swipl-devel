@@ -39,28 +39,59 @@ ExecuteIf(If i)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "condition=code", "then=[code]*", "else=[code]*" };
+
+/* Instance Variables */
+
+static const vardecl var_if[] =
+{ IV(NAME_condition, "code", IV_BOTH,
+     NAME_statement, "Condition to be tested"),
+  IV(NAME_then, "code*", IV_BOTH,
+     NAME_statement, "Executed if condition is true"),
+  IV(NAME_else, "code*", IV_BOTH,
+     NAME_statement, "Executed if condition is false")
+};
+
+/* Send Methods */
+
+static const senddecl send_if[] =
+{ SM(NAME_Execute, 0, NULL, ExecuteIf,
+     DEFAULT, "Test condition and branch"),
+  SM(NAME_initialise, 3, T_initialise, initialiseIf,
+     DEFAULT, "Create from condition, if- and else")
+};
+
+/* Get Methods */
+
+static const getdecl get_if[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_if[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name if_termnames[] = { NAME_condition, NAME_then, NAME_else };
+
+ClassDecl(if_decls,
+          var_if, send_if, get_if, rc_if,
+          3, if_termnames,
+          "$Rev$");
+
 status
 makeClassIf(Class class)
-{ sourceClass(class, makeClassIf, __FILE__, "$Revision$");
-
-  localClass(class, NAME_condition, NAME_statement, "code", NAME_both,
-	     "Condition to be tested");
-  localClass(class, NAME_then, NAME_statement, "code*", NAME_both,
-	     "Executed if condition is true");
-  localClass(class, NAME_else, NAME_statement, "code*", NAME_both,
-	     "Executed if condition is false");
-
-  termClass(class, "if", 3, NAME_condition, NAME_then, NAME_else);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 3,
-	     "condition=code", "then=[code]*", "else=[code]*",
-	     "Create from condition, if- and else",
-	     initialiseIf);
-  sendMethod(class, NAME_Execute, DEFAULT, 0,
-	     "Test condition and branch",
-	     ExecuteIf);
-
-  succeed;
+{ return declareClass(class, &if_decls);
 }
 
 

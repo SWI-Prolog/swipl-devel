@@ -398,89 +398,103 @@ getSelectionButton(Button b)
 { answer(b->label);
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "name=name", "message=[code]*", "label=[name]" };
+
+/* Instance Variables */
+
+static const vardecl var_button[] =
+{ SV(NAME_radius, "int", IV_GET|IV_STORE, radiusButton,
+     NAME_appearance, "Rounding radius for corners"),
+  SV(NAME_shadow, "int", IV_GET|IV_STORE, shadowButton,
+     NAME_appearance, "Shadow shown around the box"),
+  SV(NAME_labelFont, "font", IV_GET|IV_STORE, labelFontButton,
+     NAME_appearance, "Font of command text"),
+  IV(NAME_accelerator, "key=name*", IV_BOTH,
+     NAME_accelerator, "Activate when ->key: name is received"),
+  SV(NAME_popupImage, "image*", IV_GET|IV_STORE, popupImageButton,
+     NAME_appearance, "Indication that button has a popup menu")
+};
+
+/* Send Methods */
+
+static const senddecl send_button[] =
+{ SM(NAME_compute, 0, NULL, computeButton,
+     DEFAULT, "Compute desired size (from command)"),
+  SM(NAME_event, 1, "event", eventButton,
+     DEFAULT, "Process an event"),
+  SM(NAME_initialise, 3, T_initialise, initialiseButton,
+     DEFAULT, "Create from name and command"),
+  SM(NAME_status, 1, "{inactive,active,preview,execute}", statusButton,
+     DEFAULT, "Status for event-processing"),
+  SM(NAME_popup, 1, "popup*", popupButton,
+     DEFAULT, "Associated popup menu"),
+  SM(NAME_defaultButton, 1, "bool", defaultButtonButton,
+     NAME_accelerator, "@on sets <-accelerator to `RET'"),
+  SM(NAME_key, 1, "key=name", keyButton,
+     NAME_accelerator, "Handle accelerator key `name'"),
+  SM(NAME_execute, 0, NULL, executeButton,
+     NAME_action, "Execute associated command"),
+  SM(NAME_font, 1, "font", labelFontButton,
+     NAME_appearance, "same as ->label_font"),
+  SM(NAME_WantsKeyboardFocus, 0, NULL, WantsKeyboardFocusButton,
+     NAME_event, "Test if ready to accept input"),
+  SM(NAME_selection, 1, "name", labelDialogItem,
+     NAME_label, "Equivalent to ->label")
+};
+
+/* Get Methods */
+
+static const getdecl get_button[] =
+{ GM(NAME_popup, 1, "popup*", "create=[bool]", getPopupButton,
+     DEFAULT, "Associated popup (make one if create = @on)"),
+  GM(NAME_reference, 0, "point", NULL, getReferenceButton,
+     DEFAULT, "Left, baseline of label"),
+  GM(NAME_defaultButton, 0, "bool", NULL, getDefaultButtonButton,
+     NAME_accelerator, "@on iff <-accelerator == `RET'"),
+  GM(NAME_selection, 0, "name", NULL, getSelectionButton,
+     NAME_label, "Equivalent to <-label")
+};
+
+/* Resources */
+
+static const resourcedecl rc_button[] =
+{ RC(NAME_alignment, "{column,left,center,right}", "left",
+     "Alignment in the row"),
+  RC(NAME_labelSuffix, "name", "",
+     "Ensured suffix of label"),
+  RC(NAME_pen, "int", "2",
+     "Thickness of box"),
+  RC(NAME_popupImage, "image*", "@nil",
+     "Image to indicate presence of popup menu"),
+  RC(NAME_radius, "int", "4",
+     "Rounding radius of box"),
+  RC(NAME_shadow, "int", "0",
+     "Shadow shown around the box"),
+  RC(NAME_size, "size", "size(80,20)",
+     "Minimum size in pixels")
+};
+
+/* Class Declaration */
+
+static Name button_termnames[] = { NAME_label, NAME_message, NAME_accelerator };
+
+ClassDecl(button_decls,
+          var_button, send_button, get_button, rc_button,
+          3, button_termnames,
+          "$Rev$");
+
 
 status
 makeClassButton(Class class)
-{ sourceClass(class, makeClassButton, __FILE__, "$Revision$");
-
-  localClass(class, NAME_radius, NAME_appearance, "int", NAME_get,
-	     "Rounding radius for corners");
-  localClass(class, NAME_shadow, NAME_appearance, "int", NAME_get,
-	     "Shadow shown around the box");
-  localClass(class, NAME_labelFont, NAME_appearance, "font", NAME_get,
-	     "Font of command text");
-  localClass(class, NAME_accelerator, NAME_accelerator, "key=name*", NAME_both,
-	     "Activate when ->key: name is received");
-  localClass(class, NAME_popupImage, NAME_appearance, "image*", NAME_get,
-	     "Indication that button has a popup menu");
-
-  termClass(class, "button", 3, NAME_label, NAME_message, NAME_accelerator);
+{ declareClass(class, &button_decls);
   setRedrawFunctionClass(class, RedrawAreaButton);
-
-  storeMethod(class, NAME_status,      statusButton);
-  storeMethod(class, NAME_radius,      radiusButton);
-  storeMethod(class, NAME_labelFont,   labelFontButton);
-  storeMethod(class, NAME_popup,       popupButton);
-  storeMethod(class, NAME_shadow,      shadowButton);
-  storeMethod(class, NAME_popupImage,  popupImageButton);
-
-  sendMethod(class, NAME_initialise, DEFAULT,
-	     3, "name=name", "message=[code]*", "label=[name]",
-	     "Create from name and command",
-	     initialiseButton);
-  sendMethod(class, NAME_font, NAME_appearance, 1, "font",
-	     "same as ->label_font",
-	     labelFontButton);
-  sendMethod(class, NAME_compute, DEFAULT, 0,
-	     "Compute desired size (from command)",
-	     computeButton);
-  sendMethod(class, NAME_event, DEFAULT, 1, "event",
-	     "Process an event",
-	     eventButton);
-  sendMethod(class, NAME_WantsKeyboardFocus, NAME_event, 0,
-	     "Test if ready to accept input",
-	     WantsKeyboardFocusButton);
-  sendMethod(class, NAME_selection, NAME_label, 1, "name",
-	     "Equivalent to ->label",
-	     labelDialogItem);
-  sendMethod(class, NAME_execute, NAME_action, 0,
-	     "Execute associated command",
-	     executeButton);
-  sendMethod(class, NAME_key, NAME_accelerator, 1, "key=name",
-	     "Handle accelerator key `name'",
-	     keyButton);
-  sendMethod(class, NAME_defaultButton, NAME_accelerator, 1, "bool",
-	     "@on sets <-accelerator to `RET'",
-	     defaultButtonButton);
-
-  getMethod(class, NAME_selection, NAME_label, "name", 0,
-	    "Equivalent to <-label",
-	    getSelectionButton);
-  getMethod(class, NAME_defaultButton, NAME_accelerator, "bool", 0,
-	    "@on iff <-accelerator == `RET'",
-	    getDefaultButtonButton);
-  getMethod(class, NAME_popup, DEFAULT, "popup*", 1, "create=[bool]",
-	    "Associated popup (make one if create = @on)",
-	    getPopupButton);
-  getMethod(class, NAME_reference, DEFAULT, "point", 0,
-	    "Left, baseline of label",
-	    getReferenceButton);
-
-
-  attach_resource(class, "size", "size", "size(80,20)",
-		  "Minimum size in pixels");
-  attach_resource(class, "pen", "int", "2",
-		  "Thickness of box");
-  attach_resource(class, "radius", "int", "4",
-		  "Rounding radius of box");
-  attach_resource(class, "shadow", "int", "0",
-		  "Shadow shown around the box");
-  attach_resource(class, "popup_image", "image*", "@nil",
-		  "Image to indicate presence of popup menu");
-  attach_resource(class, "label_suffix", "name", "",
-		  "Ensured suffix of label");
-  attach_resource(class, "alignment", "{column,left,center,right}", "left",
-		  "Alignment in the row");
 
   succeed;
 }

@@ -161,40 +161,68 @@ imageTextCursor(TextCursor c, Image image, Point hot)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_set[] =
+        { "x=int", "y=int", "width=int", "height=int", "baseline=int" };
+
+/* Instance Variables */
+
+static const vardecl var_textCursor[] =
+{ SV(NAME_style, "{arrow,image,block,open_look}", IV_GET|IV_STORE,
+     styleTextCursor,
+     NAME_appearance, "How the text_cursor object is visualised"),
+  SV(NAME_image, "image*", IV_GET|IV_STORE, imageTextCursor,
+     NAME_appearance, "Image when <->style is image"),
+  IV(NAME_hotSpot, "point*", IV_GET,
+     NAME_appearance, "The `hot-spot' of the image")
+};
+
+/* Send Methods */
+
+static const senddecl send_textCursor[] =
+{ SM(NAME_initialise, 1, "for=[font]", initialiseTextCursor,
+     DEFAULT, "Create for specified font"),
+  SM(NAME_font, 1, "font", fontTextCursor,
+     NAME_appearance, "Set ->style according to font"),
+  SM(NAME_set, 5, T_set, setTextCursor,
+     NAME_area, "Set x, y, w, h and baseline")
+};
+
+/* Get Methods */
+
+static const getdecl get_textCursor[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_textCursor[] =
+{ RC(NAME_fixedFontStyle, "name", "block",
+     "->style for fixed fonts"),
+  RC(NAME_proportionalFontStyle, "name", "open_look",
+     "->style for proportional fonts"),
+  RC(NAME_style, NULL, "open_look",
+     NULL)
+};
+
+/* Class Declaration */
+
+static Name textCursor_termnames[] = { NAME_style };
+
+ClassDecl(textCursor_decls,
+          var_textCursor, send_textCursor, get_textCursor, rc_textCursor,
+          1, textCursor_termnames,
+          "$Rev$");
+
 status
 makeClassTextCursor(Class class)
-{ sourceClass(class, makeClassTextCursor, __FILE__, "$Revision$");
-
-  localClass(class, NAME_style, NAME_appearance,
-	     "{arrow,image,block,open_look}", NAME_get,
-	     "How the text_cursor object is visualised");
-  localClass(class, NAME_image, NAME_appearance, "image*", NAME_get,
-	     "Image when <->style is image");
-  localClass(class, NAME_hotSpot, NAME_appearance, "point*", NAME_get,
-	     "The `hot-spot' of the image");
-
-  termClass(class, "text_cursor", 1, NAME_style);
+{ declareClass(class, &textCursor_decls);
   setRedrawFunctionClass(class, RedrawAreaTextCursor);
-
-  storeMethod(class, NAME_image,  imageTextCursor);
-  storeMethod(class, NAME_style,  styleTextCursor);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "for=[font]",
-	     "Create for specified font",
-	     initialiseTextCursor);
-  sendMethod(class, NAME_set, NAME_area, 5,
-	     "x=int", "y=int", "width=int", "height=int", "baseline=int",
-	     "Set x, y, w, h and baseline",
-	     setTextCursor);
-  sendMethod(class, NAME_font, NAME_appearance, 1, "font",
-	     "Set ->style according to font",
-	     fontTextCursor);
-
-  variable_resource(class, NAME_style, "open_look");
-  attach_resource(class, "fixed_font_style", "name", "block",
-		  "->style for fixed fonts");
-  attach_resource(class, "proportional_font_style", "name", "open_look",
-		  "->style for proportional fonts");
 
   succeed;
 }

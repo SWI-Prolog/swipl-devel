@@ -78,41 +78,68 @@ maxSizeResizeOulineGesture(ResizeOutlineGesture g, Size sz)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "button=[button_name]", "modifier=[modifier]" };
+
+/* Instance Variables */
+
+static const vardecl var_resizeOutlineGesture[] =
+{ IV(NAME_outline, "box", IV_GET,
+     NAME_feedback, "The outline resized"),
+  IV(NAME_outlineGesture, "resize_gesture", IV_GET,
+     NAME_internal, "The outline resized")
+};
+
+/* Send Methods */
+
+static const senddecl send_resizeOutlineGesture[] =
+{ SM(NAME_initialise, 2, T_initialise, initialiseResizeOutlineGesture,
+     DEFAULT, "Create from button and modifier"),
+  SM(NAME_drag, 1, "event", dragResizeOutlineGesture,
+     NAME_event, "Drag outline to next position"),
+  SM(NAME_initiate, 1, "event", initiateResizeOutlineGesture,
+     NAME_event, "Display outline and change cursor"),
+  SM(NAME_terminate, 1, "event", terminateResizeOutlineGesture,
+     NAME_event, "Resize object and undisplay outline"),
+  SM(NAME_maxSize, 1, "size*", maxSizeResizeOulineGesture,
+     NAME_constraint, "Specify maximum size of the graphical"),
+  SM(NAME_minSize, 1, "size*", minSizeResizeOulineGesture,
+     NAME_constraint, "Specify minimum size of the graphical")
+};
+
+/* Get Methods */
+
+static const getdecl get_resizeOutlineGesture[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_resizeOutlineGesture[] =
+{ RC(NAME_button, "button_name", "middle",
+     "Active on which button (middle)"),
+  RC(NAME_texture, "texture_name", "dotted",
+     "Texture of the outline box")
+};
+
+/* Class Declaration */
+
+static Name resizeOutlineGesture_termnames[] = { NAME_button, NAME_modifier };
+
+ClassDecl(resizeOutlineGesture_decls,
+          var_resizeOutlineGesture, send_resizeOutlineGesture,
+	  get_resizeOutlineGesture, rc_resizeOutlineGesture,
+          2, resizeOutlineGesture_termnames,
+          "$Rev$");
+
+
 status
 makeClassResizeOutlineGesture(Class class)
-{ sourceClass(class, makeClassResizeOutlineGesture, __FILE__,
-	      "1.1.1.1");
-
-  localClass(class, NAME_outline, NAME_feedback,
-	     "box", NAME_get,
-	     "The outline resized");
-  localClass(class, NAME_outlineGesture, NAME_internal,
-	     "resize_gesture", NAME_get,
-	     "The outline resized");
-
-  termClass(class, "resize_outline_gesture", 2, NAME_button, NAME_modifier);
-
-  storeMethod(class, NAME_minSize, minSizeResizeOulineGesture);
-  storeMethod(class, NAME_maxSize, maxSizeResizeOulineGesture);
-
-  sendMethod(class, NAME_initialise, DEFAULT,
-	     2, "button=[button_name]", "modifier=[modifier]",
-	     "Create from button and modifier",
-	     initialiseResizeOutlineGesture);
-  sendMethod(class, NAME_initiate, NAME_event, 1, "event",
-	     "Display outline and change cursor",
-	     initiateResizeOutlineGesture);
-  sendMethod(class, NAME_drag, NAME_event, 1, "event",
-	     "Drag outline to next position",
-	     dragResizeOutlineGesture);
-  sendMethod(class, NAME_terminate, NAME_event, 1, "event",
-	     "Resize object and undisplay outline",
-	     terminateResizeOutlineGesture);
-
-  attach_resource(class, "texture", "texture_name", "dotted",
-		  "Texture of the outline box");
-  attach_resource(class, "button", "button_name", "middle",
-		  "Active on which button (middle)");
-
-  succeed;
+{ return declareClass(class, &resizeOutlineGesture_decls);
 }

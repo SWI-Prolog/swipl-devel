@@ -78,52 +78,71 @@ geometryCircle(Circle c, Int x, Int y, Int w, Int h)
 }
 
 
-extern drawPostScriptCircle(Circle c);
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_geometry[] =
+        { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_circle[] =
+{ SV(NAME_fillPattern, "image|colour*", IV_GET|IV_STORE, fillPatternGraphical,
+     NAME_appearance, "Fill pattern for internals")
+};
+
+/* Send Methods */
+
+static const senddecl send_circle[] =
+{ SM(NAME_initialise, 1, "diameter=[int]", initialiseCircle,
+     DEFAULT, "Create circle from diameter"),
+  SM(NAME_diameter, 1, "int", diameterCircle,
+     NAME_area, "Set diameter"),
+  SM(NAME_geometry, 4, T_geometry, geometryCircle,
+     NAME_area, "Force width and height to be equal"),
+  SM(NAME_radius, 1, "int", radiusCircle,
+     NAME_area, "Set radius (= half diameter)"),
+  SM(NAME_DrawPostScript, 0, NULL, drawPostScriptCircle,
+     NAME_postscript, "Create PostScript"),
+  SM(NAME_rotate, 1, "int", rotateCircle,
+     NAME_rotate, "Rotate (does nothing)")
+};
+
+/* Get Methods */
+
+static const getdecl get_circle[] =
+{ GM(NAME_diameter, 0, "int", NULL, getDiameterCircle,
+     NAME_area, "Diameter (= twice radius)"),
+  GM(NAME_radius, 0, "int", NULL, getRadiusCircle,
+     NAME_area, "Radius (= half diameter")
+};
+
+/* Resources */
+
+static const resourcedecl rc_circle[] =
+{ RC(NAME_selectionHandles, "name", "side_handles",
+     "Visual feedback of <->selected")
+};
+
+/* Class Declaration */
+
+static Name circle_termnames[] = { NAME_diameter };
+
+ClassDecl(circle_decls,
+          var_circle, send_circle, get_circle, rc_circle,
+          1, circle_termnames,
+          "$Rev$");
+
 
 status
 makeClassCircle(Class class)
-{ sourceClass(class, makeClassCircle, __FILE__, "$Revision$");
-
-  localClass(class, NAME_fillPattern, NAME_appearance,
-	     "image|colour*", NAME_get,
-	     "Fill pattern for internals");
+{ declareClass(class, &circle_decls);
 
   cloneStyleVariableClass(class, NAME_fillPattern, NAME_reference);
-
-  termClass(class, "circle", 1, NAME_diameter);
   setRedrawFunctionClass(class, RedrawAreaCircle);
-
-  storeMethod(class, NAME_fillPattern, fillPatternGraphical);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "diameter=[int]",
-	     "Create circle from diameter",
-	     initialiseCircle);
-  sendMethod(class, NAME_geometry, NAME_area, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Force width and height to be equal",
-	     geometryCircle);
-  sendMethod(class, NAME_radius, NAME_area, 1, "int",
-	     "Set radius (= half diameter)",
-	     radiusCircle);
-  sendMethod(class, NAME_rotate, NAME_rotate, 1, "int",
-	     "Rotate (does nothing)",
-	     rotateCircle);
-  sendMethod(class, NAME_diameter, NAME_area, 1, "int",
-	     "Set diameter",
-	     diameterCircle);
-  sendMethod(class, NAME_DrawPostScript, NAME_postscript, 0,
-	     "Create PostScript",
-	     drawPostScriptCircle);
-
-  getMethod(class, NAME_radius, NAME_area, "int", 0,
-	    "Radius (= half diameter",
-	    getRadiusCircle);
-  getMethod(class, NAME_diameter, NAME_area, "int", 0,
-	    "Diameter (= twice radius)",
-	    getDiameterCircle);
-
-  attach_resource(class, "selection_handles", "name", "side_handles",
-		  "Visual feedback of <->selected");
 
   succeed;
 }

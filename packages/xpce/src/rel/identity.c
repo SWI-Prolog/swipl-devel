@@ -56,35 +56,64 @@ backwardsIdentity(Identity id, Any from, Any to)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_create[] =
+        { "from=object*", "to=object*" };
+static const char *T_fromAobject_toAobject[] =
+        { "from=object", "to=object" };
+static const char *T_initialise[] =
+        { "selector1=name", "selector2=[name]" };
+
+/* Instance Variables */
+
+static const vardecl var_identity[] =
+{ IV(NAME_from, "selector1=name", IV_BOTH,
+     NAME_selector, "Attribute at the `From' side"),
+  IV(NAME_to, "selector2=name", IV_BOTH,
+     NAME_selector, "Attribute at the `To' side")
+};
+
+/* Send Methods */
+
+static const senddecl send_identity[] =
+{ SM(NAME_backwards, 2, T_fromAobject_toAobject, backwardsIdentity,
+     DEFAULT, "Update after `from' object has changed"),
+  SM(NAME_create, 2, T_create, createIdentity,
+     DEFAULT, "Update after instantiation"),
+  SM(NAME_forwards, 2, T_fromAobject_toAobject, forwardsIdentity,
+     DEFAULT, "Update after `to' object has changed"),
+  SM(NAME_initialise, 2, T_initialise, initialiseIdentity,
+     DEFAULT, "Create from attribute names")
+};
+
+/* Get Methods */
+
+static const getdecl get_identity[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_identity[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name identity_termnames[] = { NAME_from, NAME_to };
+
+ClassDecl(identity_decls,
+          var_identity, send_identity, get_identity, rc_identity,
+          2, identity_termnames,
+          "$Rev$");
+
 status
 makeClassIdentity(Class class)
-{ sourceClass(class, makeClassIdentity, __FILE__, "$Revision$");
-
-  localClass(class, NAME_from, NAME_selector, "selector1=name", NAME_both,
-	     "Attribute at the `From' side");
-  localClass(class, NAME_to, NAME_selector, "selector2=name", NAME_both,
-	     "Attribute at the `To' side");
-
-  termClass(class, "identity", 2, NAME_from, NAME_to);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2,
-	     "selector1=name", "selector2=[name]",
-	     "Create from attribute names",
-	     initialiseIdentity);
-
-  sendMethod(class, NAME_backwards, DEFAULT, 2,
-	     "from=object", "to=object",
-	     "Update after `from' object has changed",
-	     backwardsIdentity);
-  sendMethod(class, NAME_create, DEFAULT, 2,
-	     "from=object*", "to=object*",
-	     "Update after instantiation",
-	     createIdentity);
-  sendMethod(class, NAME_forwards, DEFAULT, 2,
-	     "from=object", "to=object",
-	     "Update after `to' object has changed",
-	     forwardsIdentity);
-
-  succeed;
+{ return declareClass(class, &identity_decls);
 }
 

@@ -724,135 +724,153 @@ standardImages(void)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_load[] =
+        { "from=[file]", "path=[char_array]" };
+static const char *T_drawIn[] =
+        { "graphical", "at=[point]" };
+static const char *T_fill[] =
+        { "image", "[area]" };
+static const char *T_initialise[] =
+	{ "name=[name]*", "width=[int]", "height=[int]",
+	  "kind=[{bitmap,pixmap}]" };
+static const char *T_image_atADpointD[] =
+        { "image", "at=[point]" };
+static const char *T_save[] =
+        { "in=[file]", "format=[{xbm,pnm,pbm,pgm,ppm}]" };
+static const char *T_postscript[] =
+        { "landscape=[bool]", "maximum_area=[area]" };
+static const char *T_resize[] =
+        { "width=int", "height=int" };
+static const char *T_xAint_yAint[] =
+        { "x=int", "y=int" };
+static const char *T_pixel[] =
+        { "x=int", "y=int", "value=bool|colour" };
+
+/* Instance Variables */
+
+static const vardecl var_image[] =
+{ IV(NAME_name, "name*", IV_GET,
+     NAME_name, "Name of the image"),
+  IV(NAME_kind, "{bitmap,pixmap}", IV_GET,
+     NAME_colour, "`bitmap' (0 and 1's) or `pixmap' (coloured)"),
+  IV(NAME_file, "file*", IV_GET,
+     NAME_file, "File from which to load"),
+  IV(NAME_access, "{read,both}", IV_GET,
+     NAME_permission, "One of {read, both}"),
+  IV(NAME_background, "[colour|pixmap]", IV_BOTH,
+     NAME_colour, "Colour of background (pixmap)"),
+  IV(NAME_foreground, "[colour|pixmap]", IV_BOTH,
+     NAME_colour, "Colour of foreground (pixmap)"),
+  IV(NAME_depth, "[int]", IV_GET,
+     NAME_colour, "Number of bits/pixel"),
+  IV(NAME_size, "size", IV_GET,
+     NAME_dimension, "Size of the image in pixels"),
+  IV(NAME_display, "display*", IV_GET,
+     NAME_organisation, "X-Display this image belongs to"),
+  IV(NAME_bitmap, "bitmap*", IV_GET,
+     NAME_organisation, "Access both and displayed on this bitmap"),
+  IV(NAME_wsRef, "alien:WsRef", IV_NONE,
+     NAME_storage, "Window System Reference")
+};
+
+/* Send Methods */
+
+static const senddecl send_image[] =
+{ SM(NAME_initialise, 4, T_initialise, initialiseImage,
+     DEFAULT, "Create from name, [width, height, kind]"),
+  SM(NAME_unlink, 0, NULL, unlinkImage,
+     DEFAULT, "Destroy private memory and X-resources"),
+  SM(NAME_copy, 1, "from=image", copyImage,
+     NAME_copy, "Copy contents of argument in image"),
+  SM(NAME_drawIn, 2, T_drawIn, drawInImage,
+     NAME_copy, "Paint graphical in image [at point]"),
+  SM(NAME_resize, 2, T_resize, resizeImage,
+     NAME_dimension, "Resize image to width, height"),
+  SM(NAME_and, 2, T_image_atADpointD, andImage,
+     NAME_edit, "Bitwise and with argument"),
+  SM(NAME_clear, 0, NULL, clearImage,
+     NAME_edit, "Clear all pixels to 0 or <-background"),
+  SM(NAME_fill, 2, T_fill, fillImage,
+     NAME_edit, "Fill rectangular area of image with pattern"),
+  SM(NAME_invert, 0, NULL, invertImage,
+     NAME_edit, "Invert all pixels in image"),
+  SM(NAME_or, 2, T_image_atADpointD, orImage,
+     NAME_edit, "Bitwise or with argument"),
+  SM(NAME_xor, 2, T_image_atADpointD, xorImage,
+     NAME_edit, "Bitwise xor with argument"),
+  SM(NAME_load, 2, T_load, loadImage,
+     NAME_file, "Load image from file (searching in path)"),
+  SM(NAME_save, 2, T_save, saveImage,
+     NAME_file, "Save bits in standard X11 format"),
+  SM(NAME_clearPixel, 2, T_xAint_yAint, clearPixelImage,
+     NAME_pixel, "Clear pixel at x-y (to 0 or background)"),
+  SM(NAME_invertPixel, 2, T_xAint_yAint, invertPixelImage,
+     NAME_pixel, "Invert pixel at x-y"),
+  SM(NAME_pixel, 3, T_pixel, pixelImage,
+     NAME_pixel, "Set pixel at x-y to bool or colour"),
+  SM(NAME_setPixel, 2, T_xAint_yAint, setPixelImage,
+     NAME_pixel, "Set pixel at x-y (to 1 or foreground)"),
+  SM(NAME_DrawPostScript, 0, NULL, drawPostScriptImage,
+     NAME_postscript, "Create PostScript"),
+  SM(NAME_Xclose, 1, "display", XcloseImage,
+     NAME_x, "Closedown resources at server"),
+  SM(NAME_Xopen, 1, "display", XopenImage,
+     NAME_x, "Open X-image")
+};
+
+/* Get Methods */
+
+static const getdecl get_image[] =
+{ GM(NAME_containedIn, 0, "bitmap", NULL, getContainedInImage,
+     DEFAULT, "Equivalent to <-bitmap if ot @nil"),
+  GM(NAME_convert, 1, "image", "bitmap|name|graphical", getConvertImage,
+     DEFAULT, "Convert bitmap or (file-)name"),
+  GM(NAME_clip, 1, "image", "[area]", getClipImage,
+     NAME_copy, "Get a subimage"),
+  GM(NAME_lookup, 1, "image", "name", getLookupImage,
+     NAME_oms, "Lookup in @images table"),
+  GM(NAME_pixel, 2, "value=bool|colour", T_xAint_yAint, getPixelImage,
+     NAME_pixel, "Get 0-1 (image) or colour for x-y"),
+  GM(NAME_boundingBox, 0, "area", NULL, getBoundingBoxImage,
+     NAME_postscript, "BoundingBox for PostScript generation"),
+  GM(NAME_postscript, 2, "string", T_postscript, getPostscriptObject,
+     NAME_postscript, "New string holding PostScript description"),
+  GM(NAME_postscriptDepth, 0, "int", NULL, getPostscriptDepthImage,
+     NAME_postscript, "Depth for PostScript image to be generated")
+};
+
+/* Resources */
+
+static const resourcedecl rc_image[] =
+{ RC(NAME_path, "string",
+     "\".:bitmaps:~/lib/bitmaps:$PCEHOME/bitmaps:" /* concat */
+     "/usr/include/X11/bitmaps\"",
+     "Search path for loading images")
+};
+
+/* Class Declaration */
+
+static Name image_termnames[] = { NAME_name };
+
+ClassDecl(image_decls,
+          var_image, send_image, get_image, rc_image,
+          1, image_termnames,
+          "$Rev$");
+
+
 status
 makeClassImage(Class class)
-{ sourceClass(class, makeClassImage, __FILE__, "$Revision$");
+{ declareClass(class, &image_decls);
 
-  localClass(class, NAME_name, NAME_name, "name*", NAME_get,
-	     "Name of the image");
-  localClass(class, NAME_kind, NAME_colour, "{bitmap,pixmap}", NAME_get,
-	     "`bitmap' (0 and 1's) or `pixmap' (coloured)");
-  localClass(class, NAME_file, NAME_file, "file*", NAME_get,
-	     "File from which to load");
-  localClass(class, NAME_access, NAME_permission, "{read,both}", NAME_get,
-	     "One of {read, both}");
-  localClass(class, NAME_background, NAME_colour, "[colour|pixmap]", NAME_both,
-	     "Colour of background (pixmap)");
-  localClass(class, NAME_foreground, NAME_colour, "[colour|pixmap]", NAME_both,
-	     "Colour of foreground (pixmap)");
-  localClass(class, NAME_depth, NAME_colour, "[int]", NAME_get,
-	     "Number of bits/pixel");
-  localClass(class, NAME_size, NAME_dimension, "size", NAME_get,	
-	     "Size of the image in pixels");
-  localClass(class, NAME_display, NAME_organisation, "display*", NAME_get,
-	     "X-Display this image belongs to");
-  localClass(class, NAME_bitmap, NAME_organisation, "bitmap*", NAME_get,
-	     "Access both and displayed on this bitmap");
-  localClass(class, NAME_wsRef, NAME_storage, "alien:WsRef", NAME_none,
-	     "Window System Reference");
-
-  termClass(class, "image", 1, NAME_name);
   saveStyleClass(class, NAME_external);
   setLoadStoreFunctionClass(class, loadFdImage, storeImage);
   cloneStyleClass(class, NAME_none);	/* just copy reference */
-
-  sendMethod(class, NAME_initialise, DEFAULT, 4,
-	     "name=[name]*", "width=[int]", "height=[int]",
-	     "kind=[{bitmap,pixmap}]",
-	     "Create from name, [width, height, kind]",
-	     initialiseImage);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Destroy private memory and X-resources",
-	     unlinkImage);
-  sendMethod(class, NAME_Xopen, NAME_x, 1, "display",
-	     "Open X-image",
-	     XopenImage);
-  sendMethod(class, NAME_Xclose, NAME_x, 1, "display",
-	     "Closedown resources at server",
-	     XcloseImage);
-  sendMethod(class, NAME_clear, NAME_edit, 0,
-	     "Clear all pixels to 0 or <-background",
-	     clearImage);
-  sendMethod(class, NAME_resize, NAME_dimension, 2, "width=int", "height=int",
-	     "Resize image to width, height",
-	     resizeImage);
-  sendMethod(class, NAME_copy, NAME_copy, 1, "from=image",
-	     "Copy contents of argument in image",
-	     copyImage);
-  sendMethod(class, NAME_drawIn, NAME_copy, 2, "graphical", "at=[point]",
-	     "Paint graphical in image [at point]",
-	     drawInImage);
-  sendMethod(class, NAME_save, NAME_file, 2,
-	     "in=[file]", "format=[{xbm,pnm,pbm,pgm,ppm}]",
-	     "Save bits in standard X11 format",
-	     saveImage);
-  sendMethod(class, NAME_fill, NAME_edit, 2, "image", "[area]",
-	     "Fill rectangular area of image with pattern",
-	     fillImage);
-  sendMethod(class, NAME_clearPixel, NAME_pixel, 2, "x=int", "y=int",
-	     "Clear pixel at x-y (to 0 or background)",
-	     clearPixelImage);
-  sendMethod(class, NAME_setPixel, NAME_pixel, 2, "x=int", "y=int",
-	     "Set pixel at x-y (to 1 or foreground)",
-	     setPixelImage);
-  sendMethod(class, NAME_pixel, NAME_pixel, 3,
-	     "x=int", "y=int", "value=bool|colour",
-	     "Set pixel at x-y to bool or colour",
-	     pixelImage);
-  sendMethod(class, NAME_invert, NAME_edit, 0,
-	     "Invert all pixels in image",
-	     invertImage);
-  sendMethod(class, NAME_invertPixel, NAME_pixel, 2, "x=int", "y=int",
-	     "Invert pixel at x-y",
-	     invertPixelImage);
-  sendMethod(class, NAME_or, NAME_edit, 2, "image", "at=[point]",
-	     "Bitwise or with argument",
-	     orImage);
-  sendMethod(class, NAME_and, NAME_edit, 2, "image", "at=[point]",
-	     "Bitwise and with argument",
-	     andImage);
-  sendMethod(class, NAME_xor, NAME_edit, 2, "image", "at=[point]",
-	     "Bitwise xor with argument",
-	     xorImage);
-  sendMethod(class, NAME_DrawPostScript, NAME_postscript, 0,
-	     "Create PostScript",
-	     drawPostScriptImage);
-  sendMethod(class, NAME_load, NAME_file, 2,
-	     "from=[file]", "path=[char_array]",
-	     "Load image from file (searching in path)",
-	     loadImage);
-
-  getMethod(class, NAME_convert, DEFAULT, "image", 1, "bitmap|name|graphical",
-	    "Convert bitmap or (file-)name",
-	    getConvertImage);
-  getMethod(class, NAME_lookup, NAME_oms, "image", 1, "name",
-	    "Lookup in @images table",
-	    getLookupImage);
-  getMethod(class, NAME_clip, NAME_copy, "image", 1, "[area]",
-	    "Get a subimage",
-	    getClipImage);
-  getMethod(class, NAME_pixel, NAME_pixel, "value=bool|colour", 2,
-	    "x=int", "y=int",
-	    "Get 0-1 (image) or colour for x-y",
-	    getPixelImage);
-  getMethod(class, NAME_boundingBox, NAME_postscript, "area", 0,
-	    "BoundingBox for PostScript generation",
-	    getBoundingBoxImage);
-  getMethod(class, NAME_postscript, NAME_postscript, "string", 2,
-	    "landscape=[bool]", "maximum_area=[area]",
-	    "New string holding PostScript description",
-	    getPostscriptObject);
-  getMethod(class, NAME_postscriptDepth, NAME_postscript, "int", 0,
-	    "Depth for PostScript image to be generated",
-	    getPostscriptDepthImage);
-  getMethod(class, NAME_containedIn, DEFAULT, "bitmap", 0,
-	    "Equivalent to <-bitmap if ot @nil",
-	    getContainedInImage);
-
-  attach_resource(class, "path", "string",
-		  "\".:bitmaps:~/lib/bitmaps:$PCEHOME/bitmaps:" /* concat */
-		  "/usr/include/X11/bitmaps\"",
-		  "Search path for loading images");
 
   ImageTable = globalObject(NAME_images, ClassHashTable, toInt(32), 0);
   standardImages();

@@ -396,7 +396,7 @@ sortDict(Dict dict, Any code_or_ign_case, Bool ign_blanks, Bool reverse)
   }
 
   count = valInt(dict->members->size);
-  items = malloc((count*sizeof(DictItem)));
+  items = pceMalloc((count*sizeof(DictItem)));
   for_cell(cell, dict->members)
     items[i++] = cell->value;
 
@@ -411,7 +411,7 @@ sortDict(Dict dict, Any code_or_ign_case, Bool ign_blanks, Bool reverse)
       break;
   }
   if ( i == count )			/* no change */
-  { free(items);
+  { pceFree(items);
     succeed;
   }
 
@@ -431,7 +431,7 @@ sortDict(Dict dict, Any code_or_ign_case, Bool ign_blanks, Bool reverse)
   { assign(items[i], dict, NIL);
     appendDict(dict, items[i]);
   }
-  free(items);
+  pceFree(items);
 
   freeObject(old);
 
@@ -539,100 +539,106 @@ getContainsDict(Dict d)
 { answer(d->members);
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
 
+/* Type declaractions */
+
+static const char *T_sort[] =
+        { "[bool|code|function]", "ignore_blanks=[bool]", "reverse=[bool]" };
+static const char *T_actionAcode_safeADboolD[] =
+        { "action=code", "safe=[bool]" };
+static const char *T_insertAfter[] =
+        { "after=dict_item", "item=any|dict_item*" };
+static const char *T_findPrefix[] =
+        { "for=string", "from=[int]", "no_exact_case=[bool]" };
+
+/* Instance Variables */
+
+static const vardecl var_dict[] =
+{ IV(NAME_browser, "list_browser*", IV_NONE,
+     NAME_visualisation, "Associated browser (visualisation)"),
+  IV(NAME_members, "chain", IV_GET,
+     NAME_organisation, "Objects in the dictionary"),
+  IV(NAME_table, "hash_table*", IV_NONE,
+     NAME_hashing, "Hashtable for access on key"),
+  SV(NAME_sortBy, "[code]*", IV_GET|IV_STORE, sortByDict,
+     NAME_order, "Sorting rule to apply")
+};
+
+/* Send Methods */
+
+static const senddecl send_dict[] =
+{ SM(NAME_initialise, 1, "member=dict_item ...", initialiseDictv,
+     DEFAULT, "Create a dict and append the arguments"),
+  SM(NAME_unlink, 0, NULL, unlinkDict,
+     DEFAULT, "Destroy hash-table and unlink from browser"),
+  SM(NAME_append, 1, "item=dict_item", appendDict,
+     NAME_add, "Append dict_item at the end"),
+  SM(NAME_insert, 1, "item=dict_item", insertDict,
+     NAME_add, "Insert dict_item according to <-sort_by"),
+  SM(NAME_insertAfter, 2, T_insertAfter, insertAfterDict,
+     NAME_add, "Insert item after 2nd (or prepend)"),
+  SM(NAME_clear, 0, NULL, clearDict,
+     NAME_delete, "Delete all members"),
+  SM(NAME_delete, 1, "any|dict_item", deleteDict,
+     NAME_delete, "Delete dict_item or name"),
+  SM(NAME_forAll, 2, T_actionAcode_safeADboolD, forAllDict,
+     NAME_iterate, "Run code on all dict_items, demand acceptance ([safe])"),
+  SM(NAME_forSome, 2, T_actionAcode_safeADboolD, forSomeDict,
+     NAME_iterate, "Run code on all dict_items ([safe])"),
+  SM(NAME_sort, 3, T_sort, sortDict,
+     NAME_order, "Sort contents"),
+  SM(NAME_member, 1, "any|dict_item", memberDict,
+     NAME_set, "Test if dict_item or name is member"),
+  SM(NAME_members, 1, "chain", membersDict,
+     NAME_set, "->clear and ->append elements of chain")
+};
+
+/* Get Methods */
+
+static const getdecl get_dict[] =
+{ GM(NAME_containedIn, 0, "list_browser|browser", NULL, getBrowserDict,
+     DEFAULT, "Equivalent to <-browser"),
+  GM(NAME_contains, 0, "chain", NULL, getContainsDict,
+     DEFAULT, "Equivalent to <-members"),
+  GM(NAME_table, 0, "hash_table", NULL, getTableDict,
+     NAME_hashing, "Return hash-table key --> dict_item"),
+  GM(NAME_member, 1, "dict_item", "any|dict_item", getMemberDict,
+     NAME_lookup, "Find dict_item from <-key"),
+  GM(NAME_find, 1, "dict_item", "test=code", getFindDict,
+     NAME_search, "First dict_item accepted by code"),
+  GM(NAME_findAll, 1, "chain", "test=code", getFindAllDict,
+     NAME_search, "New chain with dict_items accepted"),
+  GM(NAME_findPrefix, 3, "dict_item", T_findPrefix, getFindPrefixDict,
+     NAME_search, "First item from index int that matches"),
+  GM(NAME_match, 1, "chain", "char_array", getMatchDict,
+     NAME_search, "New chain with items that match argument"),
+  GM(NAME_browser, 0, "list_browser|browser", NULL, getBrowserDict,
+     NAME_visualisation, "ListBrowser or Browser associated")
+};
+
+/* Resources */
+
+static const resourcedecl rc_dict[] =
+{ RC(NAME_sortIgnoreBlanks, "bool", "@off",
+     "@on: ignore leading blanks when sorting"),
+  RC(NAME_sortIgnoreCase, "bool", "@off",
+     "@on: ignore case when sorting")
+};
+
+/* Class Declaration */
+
+ClassDecl(dict_decls,
+          var_dict, send_dict, get_dict, rc_dict,
+          0, NULL,
+          "$Rev$");
 
 status
 makeClassDict(Class class)
-{ sourceClass(class, makeClassDict, __FILE__, "$Revision$");
-
-  localClass(class, NAME_browser, NAME_visualisation, "list_browser*",
-	     NAME_none,
-	     "Associated browser (visualisation)");
-  localClass(class, NAME_members, NAME_organisation, "chain", NAME_get,
-	     "Objects in the dictionary");
-  localClass(class, NAME_table, NAME_hashing, "hash_table*", NAME_none,
-	     "Hashtable for access on key");
-  localClass(class, NAME_sortBy, NAME_order, "[code]*", NAME_get,
-	     "Sorting rule to apply");
-
-  termClass(class, "dict", 0);
+{ declareClass(class, &dict_decls);
   saveStyleVariableClass(class, NAME_table, NAME_nil);
-
-  storeMethod(class, NAME_sortBy, sortByDict);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "member=dict_item ...",
-	     "Create a dict and append the arguments",
-	     initialiseDictv);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Destroy hash-table and unlink from browser",
-	     unlinkDict);
-  sendMethod(class, NAME_insert, NAME_add, 1, "item=dict_item",
-	     "Insert dict_item according to <-sort_by",
-	     insertDict);
-  sendMethod(class, NAME_append, NAME_add, 1, "item=dict_item",
-	     "Append dict_item at the end",
-	     appendDict);
-  sendMethod(class, NAME_insertAfter, NAME_add, 2,
-	     "after=dict_item", "item=any|dict_item*",
-	     "Insert item after 2nd (or prepend)",
-	     insertAfterDict);
-  sendMethod(class, NAME_delete, NAME_delete, 1, "any|dict_item",
-	     "Delete dict_item or name",
-	     deleteDict);
-  sendMethod(class, NAME_members, NAME_set, 1, "chain",
-	     "->clear and ->append elements of chain",
-	     membersDict);
-  sendMethod(class, NAME_member, NAME_set, 1, "any|dict_item",
-	     "Test if dict_item or name is member",
-	     memberDict);
-  sendMethod(class, NAME_sort, NAME_order, 3,
-	     "[bool|code|function]", "ignore_blanks=[bool]", "reverse=[bool]",
-	     "Sort contents",
-	     sortDict);
-  sendMethod(class, NAME_clear, NAME_delete, 0,
-	     "Delete all members",
-	     clearDict);
-  sendMethod(class, NAME_forAll, NAME_iterate, 2, "action=code", "safe=[bool]",
-	     "Run code on all dict_items, demand acceptance ([safe])",
-	     forAllDict);
-  sendMethod(class, NAME_forSome, NAME_iterate, 2,
-	     "action=code", "safe=[bool]",
-	     "Run code on all dict_items ([safe])",
-	     forSomeDict);
-
-  getMethod(class, NAME_match, NAME_search, "chain", 1, "char_array",
-	    "New chain with items that match argument",
-	    getMatchDict);
-  getMethod(class, NAME_member, NAME_lookup, "dict_item", 1, "any|dict_item",
-	    "Find dict_item from <-key",
-	    getMemberDict);
-  getMethod(class, NAME_findPrefix, NAME_search, "dict_item", 3,
-	    "for=string", "from=[int]", "no_exact_case=[bool]",
-	    "First item from index int that matches",
-	    getFindPrefixDict);
-  getMethod(class, NAME_find, NAME_search, "dict_item", 1, "test=code",
-	    "First dict_item accepted by code",
-	    getFindDict);
-  getMethod(class, NAME_findAll, NAME_search, "chain", 1, "test=code",
-	    "New chain with dict_items accepted",
-	    getFindAllDict);
-  getMethod(class, NAME_browser, NAME_visualisation, "list_browser|browser", 0,
-	    "ListBrowser or Browser associated",
-	    getBrowserDict);
-  getMethod(class, NAME_contains, DEFAULT, "chain", 0,
-	    "Equivalent to <-members",
-	    getContainsDict);
-  getMethod(class, NAME_containedIn, DEFAULT, "list_browser|browser", 0,
-	    "Equivalent to <-browser",
-	    getBrowserDict);
-  getMethod(class, NAME_table, NAME_hashing, "hash_table", 0,
-	    "Return hash-table key --> dict_item",
-	    getTableDict);
-
-  attach_resource(class, "sort_ignore_case",   "bool", "@off",
-		  "@on: ignore case when sorting");
-  attach_resource(class, "sort_ignore_blanks", "bool", "@off",
-		  "@on: ignore leading blanks when sorting");
 
   succeed;
 }

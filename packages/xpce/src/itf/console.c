@@ -18,11 +18,15 @@ based systems you may redefine these functions to use a window.
 
     void
     vCprintf(const char *fmt, va_list args)
-	Behaves like: vprintf(fmt, args); fflush(stdout);
+	Behaves like: vprintf(fmt, args);
 
     int
     Cputchar(int chr)
 	Behaves like: putchar(chr);
+
+    void
+    Cflush(void)
+	Behaves like fflush(stdout);
 
     char *
     Cgetline(char *buf, int size)
@@ -32,7 +36,6 @@ based systems you may redefine these functions to use a window.
 void
 Stub__vCprintf(const char *fmt, va_list args)
 { vprintf(fmt, args);
-  fflush(stdout);
 }
 
 
@@ -45,4 +48,10 @@ Stub__Cputchar(int chr)
 char *
 Stub__Cgetline(char *line, int size)
 { return fgets(line, size, stdin);
+}
+
+
+void
+Stub__Cflush()
+{ fflush(stdout);
 }

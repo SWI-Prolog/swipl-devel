@@ -16,6 +16,7 @@
 
 :- use_module(library(pce)).
 :- require([ atom_to_term/3
+	   , strip_module/3
 	   , term_to_atom/2
 	   ]).
 

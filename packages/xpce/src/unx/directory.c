@@ -384,76 +384,91 @@ getPrintNameDirectory(Directory dir)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_scan[] =
+        { "files=chain*", "directories=chain*", "pattern=[regex]", "hidden_too=[bool]" };
+static const char *T_patternADregexD_hidden_tooADboolD[] =
+        { "pattern=[regex]", "hidden_too=[bool]" };
+
+/* Instance Variables */
+
+static const vardecl var_directory[] =
+{ IV(NAME_name, "name", IV_GET,
+     NAME_name, "Name of the directory"),
+  IV(NAME_path, "name", IV_GET,
+     NAME_name, "Full path name"),
+  IV(NAME_modified, "alien:ulong", IV_NONE,
+     NAME_time, "Time stamp for ->changed")
+};
+
+/* Send Methods */
+
+static const senddecl send_directory[] =
+{ SM(NAME_initialise, 1, "path=name", initialiseDirectory,
+     DEFAULT, "Create from name"),
+  SM(NAME_scan, 4, T_scan, scanDirectory,
+     NAME_contents, "Get member files and directories"),
+  SM(NAME_make, 0, NULL, makeDirectory,
+     NAME_edit, "Create the OS counterpart"),
+  SM(NAME_remove, 0, NULL, removeDirectory,
+     NAME_edit, "Delete the OS counterpart"),
+  SM(NAME_access, 1, "{read,write}", accessDirectory,
+     NAME_test, "Test if directory has access {read, write}"),
+  SM(NAME_exists, 0, NULL, existsDirectory,
+     NAME_test, "Test if directory exists"),
+  SM(NAME_modified, 0, NULL, changedDirectory,
+     NAME_time, "Succeed if directory has changed since last test"),
+  SM(NAME_cd, 0, NULL, cdDirectory,
+     NAME_workingDirectory, "Change to this directory"),
+  SM(NAME_pop, 0, NULL, popDirectory,
+     NAME_workingDirectory, "->cd back to old directory"),
+  SM(NAME_push, 0, NULL, pushDirectory,
+     NAME_workingDirectory, "->cd until ->pop")
+};
+
+/* Get Methods */
+
+static const getdecl get_directory[] =
+{ GM(NAME_printName, 0, "text=char_array", NULL, getPrintNameDirectory,
+     DEFAULT, "Equivalent to <-path"),
+  GM(NAME_directories, 2, "names=chain", T_patternADregexD_hidden_tooADboolD, getDirectoriesDirectory,
+     NAME_contents, "New chain with names of member directories"),
+  GM(NAME_directory, 1, "directory", "name", getDirectoryDirectory,
+     NAME_contents, "New directory object with name in directory"),
+  GM(NAME_file, 1, "file", "name", getFileDirectory,
+     NAME_contents, "New file object with name in directory"),
+  GM(NAME_files, 2, "names=chain", T_patternADregexD_hidden_tooADboolD, getFilesDirectory,
+     NAME_contents, "New chain with names of member files"),
+  GM(NAME_convert, 1, "directory", "name", getConvertDirectory,
+     NAME_conversion, "Convert directory name"),
+  GM(NAME_parent, 0, "directory", NULL, getParentDirectory,
+     NAME_hierarchy, "New directory for parent directory")
+};
+
+/* Resources */
+
+static const resourcedecl rc_directory[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name directory_termnames[] = { NAME_name };
+
+ClassDecl(directory_decls,
+          var_directory, send_directory, get_directory, rc_directory,
+          1, directory_termnames,
+          "$Rev$");
+
 status
 makeClassDirectory(Class class)
-{ sourceClass(class, makeClassDirectory, __FILE__, "$Revision$");
-
-  localClass(class, NAME_name, NAME_name, "name", NAME_get,
-	     "Name of the directory");
-  localClass(class, NAME_path, NAME_name, "name", NAME_get,
-	     "Full path name");
-  localClass(class, NAME_modified, NAME_time, "alien:ulong", NAME_none,
-	     "Time stamp for ->changed");
-
-  termClass(class, "directory", 1, NAME_name);
+{ declareClass(class, &directory_decls);
   setLoadStoreFunctionClass(class, loadDirectory, storeDirectory);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "path=name",
-	     "Create from name",
-	     initialiseDirectory);
-  sendMethod(class, NAME_exists, NAME_test, 0,
-	     "Test if directory exists",
-	     existsDirectory);
-  sendMethod(class, NAME_access, NAME_test, 1, "{read,write}",
-	     "Test if directory has access {read, write}",
-	     accessDirectory);
-  sendMethod(class, NAME_make, NAME_edit, 0,
-	     "Create the OS counterpart",
-	     makeDirectory);
-  sendMethod(class, NAME_remove, NAME_edit, 0,
-	     "Delete the OS counterpart",
-	     removeDirectory);
-  sendMethod(class, NAME_cd, NAME_workingDirectory, 0,
-	     "Change to this directory",
-	     cdDirectory);
-  sendMethod(class, NAME_push, NAME_workingDirectory, 0,
-	     "->cd until ->pop",
-	     pushDirectory);
-  sendMethod(class, NAME_pop, NAME_workingDirectory, 0,
-	     "->cd back to old directory",
-	     popDirectory);
-  sendMethod(class, NAME_scan, NAME_contents, 4,
-	     "files=chain*", "directories=chain*",
-	     "pattern=[regex]", "hidden_too=[bool]",
-	     "Get member files and directories",
-	     scanDirectory);
-  sendMethod(class, NAME_modified, NAME_time, 0,
-	     "Succeed if directory has changed since last test",
-	     changedDirectory);
-
-  getMethod(class, NAME_parent, NAME_hierarchy, "directory", 0,
-	    "New directory for parent directory",
-	    getParentDirectory);
-  getMethod(class, NAME_files, NAME_contents, "names=chain", 2,
-	    "pattern=[regex]", "hidden_too=[bool]",
-	    "New chain with names of member files",
-	    getFilesDirectory);
-  getMethod(class, NAME_file, NAME_contents, "file", 1, "name",
-	    "New file object with name in directory",
-	    getFileDirectory);
-  getMethod(class, NAME_directory, NAME_contents, "directory", 1, "name",
-	    "New directory object with name in directory",
-	    getDirectoryDirectory);
-  getMethod(class, NAME_directories, NAME_contents, "names=chain", 2,
-	    "pattern=[regex]", "hidden_too=[bool]",
-	    "New chain with names of member directories",
-	    getDirectoriesDirectory);
-  getMethod(class, NAME_convert, NAME_conversion, "directory", 1, "name",
-	    "Convert directory name",
-	    getConvertDirectory);
-  getMethod(class, NAME_printName, DEFAULT, "text=char_array", 0,
-	    "Equivalent to <-path",
-	    getPrintNameDirectory);
 
   DirectoryStack = globalObject(NAME_directoryStack, ClassChain, 0);
   DEBUG(NAME_directory, Cprintf("DirectoryStack = %s\n", pp(DirectoryStack)));

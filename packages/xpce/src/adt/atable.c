@@ -284,47 +284,71 @@ getMatchATable(Atable t, Vector v)
   }
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_vectors[] =
+        { "column=name", "value=any" };
+static const char *T_initialise[] =
+        { "names=vector", "keys=vector" };
+
+/* Instance Variables */
+
+static const vardecl var_atable[] =
+{ IV(NAME_keys, "vector", IV_GET,
+     NAME_hashing, "Vector to determine key columns"),
+  IV(NAME_names, "vector", IV_GET,
+     NAME_name, "Vector to determine column names"),
+  IV(NAME_tables, "vector", IV_GET,
+     NAME_storage, "Hashtables for key entries")
+};
+
+/* Send Methods */
+
+static const senddecl send_atable[] =
+{ SM(NAME_initialise, 2, T_initialise, initialiseAtablev,
+     DEFAULT, "Create table, given names and keys"),
+  SM(NAME_unlink, 0, NULL, unlinkAtable,
+     DEFAULT, "Clear the tables"),
+  SM(NAME_append, 1, "association=vector", appendAtable,
+     NAME_add, "Add association"),
+  SM(NAME_clear, 0, NULL, clearAtable,
+     NAME_delete, "Remove all vectors from the table"),
+  SM(NAME_delete, 1, "association=vector", deleteAtable,
+     NAME_delete, "Delete association")
+};
+
+/* Get Methods */
+
+static const getdecl get_atable[] =
+{ GM(NAME_match, 1, "associations=chain", "pattern=vector", getMatchATable,
+     NAME_lookup, "New chain with vectors matching arg-1"),
+  GM(NAME_members, 0, "chain", NULL, getMembersATable,
+     NAME_lookup, "New chain with all member-vectors"),
+  GM(NAME_vectors, 2, "chain|vector", T_vectors, getVectorsAtable,
+     NAME_lookup, "Chain with vectors matching named field")
+};
+
+/* Resources */
+
+static const resourcedecl rc_atable[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name atable_termnames[] = { NAME_names, NAME_keys };
+
+ClassDecl(atable_decls,
+          var_atable, send_atable, get_atable, rc_atable,
+          2, atable_termnames,
+          "$Rev$");
+
 
 status
 makeClassAtable(Class class)
-{ sourceClass(class, makeClassAtable, __FILE__, "$Revision$");
-
-  localClass(class, NAME_keys, NAME_hashing, "vector", NAME_get,
-	     "Vector to determine key columns");
-  localClass(class, NAME_names, NAME_name, "vector", NAME_get,
-	     "Vector to determine column names");
-  localClass(class, NAME_tables, NAME_storage, "vector", NAME_get,
-	     "Hashtables for key entries");
-
-  termClass(class, "table", 2, NAME_names, NAME_keys);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2, "names=vector", "keys=vector",
-	     "Create table, given names and keys",
-	     initialiseAtablev);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Clear the tables",
-	     unlinkAtable);
-  sendMethod(class, NAME_clear, NAME_delete, 0,
-	     "Remove all vectors from the table",
-	     clearAtable);
-  sendMethod(class, NAME_append, NAME_add, 1, "association=vector",
-	     "Add association",
-	     appendAtable);
-  sendMethod(class, NAME_delete, NAME_delete, 1, "association=vector",
-	     "Delete association",
-	     deleteAtable);
-
-  getMethod(class, NAME_vectors, NAME_lookup, "chain|vector", 2,
-	    "column=name", "value=any",
-	    "Chain with vectors matching named field",
-	    getVectorsAtable);
-  getMethod(class, NAME_match, NAME_lookup, "associations=chain", 1,
-	    "pattern=vector",
-	    "New chain with vectors matching arg-1",
-	    getMatchATable);
-  getMethod(class, NAME_members, NAME_lookup, "chain", 0,
-	    "New chain with all member-vectors",
-	    getMembersATable);
-
-  succeed;
+{ return declareClass(class, &atable_decls);
 }

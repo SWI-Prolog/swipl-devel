@@ -72,28 +72,55 @@ getGetGetMethod(GetMethod m, Any receiver, int argc, const Any argv[])
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_initialise[] =
+        { "name=name", "return=[type]", "types=[vector]", "implementation=function|c_pointer", "summary=[string]*", "source=[source_location]*", "group=[name]*" };
+static const char *T_get[] =
+        { "receiver=object", "argument=unchecked ..." };
+
+/* Instance Variables */
+
+static const vardecl var_getMethod[] =
+{ IV(NAME_returnType, "type", IV_GET,
+     NAME_type, "Type of value returned")
+};
+
+/* Send Methods */
+
+static const senddecl send_getMethod[] =
+{ SM(NAME_initialise, 7, T_initialise, initialiseGetMethod,
+     DEFAULT, "->selector, return_type, types, msg, doc, location")
+};
+
+/* Get Methods */
+
+static const getdecl get_getMethod[] =
+{ GM(NAME_get, 2, "value=unchecked", T_get, getGetGetMethod,
+     NAME_execute, "Invoke get-method")
+};
+
+/* Resources */
+
+static const resourcedecl rc_getMethod[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name getMethod_termnames[] = { NAME_name, NAME_returnType, NAME_types, NAME_message, NAME_summary, NAME_source };
+
+ClassDecl(getMethod_decls,
+          var_getMethod, send_getMethod, get_getMethod, rc_getMethod,
+          6, getMethod_termnames,
+          "$Rev$");
+
+
 status
 makeClassGetMethod(Class class)
-{ sourceClass(class, makeClassGetMethod, __FILE__, "$Revision$");
-
-  localClass(class, NAME_returnType, NAME_type, "type", NAME_get,
-	     "Type of value returned");
-
-  termClass(class, "get_method",
-	    6, NAME_name, NAME_returnType, NAME_types,
-	       NAME_message, NAME_summary, NAME_source);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 7,
-	     "name=name", "return=[type]", "types=[vector]",
-	     "implementation=function|c_pointer", "summary=[string]*",
-	     "source=[source_location]*", "group=[name]*",
-	     "->selector, return_type, types, msg, doc, location",
-	     initialiseGetMethod);
-
-  getMethod(class, NAME_get, NAME_execute, "value=unchecked", 2,
-	    "receiver=object", "argument=unchecked ...",
-	    "Invoke get-method",
-	    getGetGetMethod);
-
-  succeed;
+{ return declareClass(class, &getMethod_decls);
 }

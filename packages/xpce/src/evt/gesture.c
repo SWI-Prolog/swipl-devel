@@ -84,52 +84,76 @@ cancelGesture(Gesture g, EventObj ev)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "button=[button_name]", "modifier=[modifier]" };
+
+/* Instance Variables */
+
+static const vardecl var_gesture[] =
+{ IV(NAME_button, "button_name", IV_GET,
+     NAME_event, "Mouse button to initiate on"),
+  IV(NAME_modifier, "modifier", IV_BOTH,
+     NAME_event, "Key modifiers (shift, control and/or meta)"),
+  IV(NAME_condition, "code*", IV_BOTH,
+     NAME_event, "Additional conditions"),
+  IV(NAME_status, "{active,inactive}", IV_BOTH,
+     NAME_status, "Current status"),
+  IV(NAME_cursor, "[cursor]", IV_BOTH,
+     NAME_cursor, "Cursor while active")
+};
+
+/* Send Methods */
+
+static const senddecl send_gesture[] =
+{ SM(NAME_initialise, 2, T_initialise, initialiseGesture,
+     DEFAULT, "Create from button and modifier"),
+  SM(NAME_cancel, 1, "event", cancelGesture,
+     NAME_cancel, "Cancel this gesture and try the next"),
+  SM(NAME_drag, 1, "event", succeedGesture,
+     NAME_event, "Mouse has been dragged (just succeeds)"),
+  SM(NAME_event, 1, "event", eventGesture,
+     NAME_event, "Handle an event"),
+  SM(NAME_initiate, 1, "event", succeedGesture,
+     NAME_event, "Initiate the gesture (just succeeds)"),
+  SM(NAME_terminate, 1, "event", succeedGesture,
+     NAME_event, "Mouse button went up (just succeeds)"),
+  SM(NAME_verify, 1, "event", succeedGesture,
+     NAME_event, "Verify additional conditions (just succeeds)")
+};
+
+/* Get Methods */
+
+static const getdecl get_gesture[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_gesture[] =
+{ RC(NAME_button, "button_name", "left",
+     "Active on which button?"),
+  RC(NAME_cursor, "[cursor]", "@default",
+     "Cursor while active"),
+  RC(NAME_modifier, "modifier", "",
+     "Condition on shift, control and meta")
+};
+
+/* Class Declaration */
+
+static Name gesture_termnames[] = { NAME_button, NAME_modifier };
+
+ClassDecl(gesture_decls,
+          var_gesture, send_gesture, get_gesture, rc_gesture,
+          2, gesture_termnames,
+          "$Rev$");
+
 status
 makeClassGesture(Class class)
-{ sourceClass(class, makeClassGesture, __FILE__, "$Revision$");
-
-  localClass(class, NAME_button, NAME_event, "button_name", NAME_get,
-	     "Mouse button to initiate on");
-  localClass(class, NAME_modifier, NAME_event, "modifier", NAME_both,
-	     "Key modifiers (shift, control and/or meta)");
-  localClass(class, NAME_condition, NAME_event, "code*", NAME_both,
-	     "Additional conditions");
-  localClass(class, NAME_status, NAME_status, "{active,inactive}", NAME_both,
-	     "Current status");
-  localClass(class, NAME_cursor, NAME_cursor, "[cursor]", NAME_both,
-	     "Cursor while active");
-
-  termClass(class, "gesture", 2, NAME_button, NAME_modifier);
-
-  sendMethod(class, NAME_initialise, DEFAULT,
-	     2, "button=[button_name]", "modifier=[modifier]",
-	     "Create from button and modifier",
-	     initialiseGesture);
-  sendMethod(class, NAME_event, NAME_event, 1, "event",
-	     "Handle an event",
-	     eventGesture);
-  sendMethod(class, NAME_verify, NAME_event, 1, "event",
-	     "Verify additional conditions (just succeeds)",
-	     succeedGesture);
-  sendMethod(class, NAME_initiate, NAME_event, 1, "event",
-	     "Initiate the gesture (just succeeds)",
-	     succeedGesture);
-  sendMethod(class, NAME_drag, NAME_event, 1, "event",
-	     "Mouse has been dragged (just succeeds)",
-	     succeedGesture);
-  sendMethod(class, NAME_terminate, NAME_event, 1, "event",
-	     "Mouse button went up (just succeeds)",
-	     succeedGesture);
-  sendMethod(class, NAME_cancel, NAME_cancel, 1, "event",
-	     "Cancel this gesture and try the next",
-	     cancelGesture);
-
-  attach_resource(class, "modifier", "modifier", "",
-		  "Condition on shift, control and meta");
-  attach_resource(class, "button", "button_name", "left",
-		  "Active on which button?");
-  attach_resource(class, "cursor", "[cursor]", "@default",
-		  "Cursor while active");
-
-  succeed;
+{ return declareClass(class, &gesture_decls);
 }

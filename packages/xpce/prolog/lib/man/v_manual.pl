@@ -13,7 +13,8 @@
 
 :- use_module(library(pce)).
 :- use_module(util).
-:- require([ checkpce/0
+:- require([ absolute_file_name/3
+	   , auto_call/1
 	   , default/3
 	   , forall/2
 	   , ignore/1
@@ -599,7 +600,7 @@ start_demo(M) :->
 		********************************/
 
 check_object_base(_M) :->
-	(   checkpce
+	(   auto_call(checkpce)
 	->  send(@display, inform, 'Object base is consistent')
 	;   send(@display, inform, '%s\n%s',
 		 'Object base is corrupted',

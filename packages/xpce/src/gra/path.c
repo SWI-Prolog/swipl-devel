@@ -740,109 +740,118 @@ initialiseNewSlotPath(Path p, Variable var)
 }
 
 
-extern drawPostScriptPath(Path p);
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_resize[] =
+        { "factor_x=real", "factor_y=[real]", "origin=[point]" };
+static const char *T_initialise[] =
+        { "kind=[{poly,smooth}]", "intervals=[int]" };
+static const char *T_point[] =
+        { "near=point|event", "max_distance=[int]" };
+static const char *T_setPoint[] =
+        { "point=point", "x=[int]", "y=[int]" };
+static const char *T_insert[] =
+        { "point", "point*" };
+static const char *T_geometry[] =
+        { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_path[] =
+{ IV(NAME_offset, "point", IV_GET,
+     NAME_dimension, "Offset to origin"),
+  SV(NAME_kind, "{poly,smooth}", IV_GET|IV_STORE, kindPath,
+     NAME_interpolation, "Whether path is interpolated over points"),
+  SV(NAME_radius, "int", IV_GET|IV_STORE, radiusPath,
+     NAME_appearance, "Rounding radius for `poly' type"),
+  SV(NAME_intervals, "0..100", IV_GET|IV_STORE, intervalsPath,
+     NAME_interpolation, "Interpolation intervals between points"),
+  IV(NAME_points, "chain", IV_GET,
+     NAME_points, "Chain of points"),
+  SV(NAME_fillPattern, "image|colour*", IV_GET|IV_STORE, fillPatternGraphical,
+     NAME_appearance, "Fill pattern"),
+  SV(NAME_mark, "image*", IV_GET|IV_STORE, markPath,
+     NAME_appearance, "Mark used for points"),
+  SV(NAME_closed, "bool", IV_GET|IV_STORE, closedPath,
+     NAME_appearance, "Draw line from last to first point"),
+  IV(NAME_interpolation, "chain*", IV_GET,
+     NAME_interpolation, "Derived interpolated points")
+};
+
+/* Send Methods */
+
+static const senddecl send_path[] =
+{ SM(NAME_compute, 0, NULL, computePath,
+     DEFAULT, "Recompute interpolation and area"),
+  SM(NAME_geometry, 4, T_geometry, geometryPath,
+     DEFAULT, "Move and/or resize the path"),
+  SM(NAME_initialise, 2, T_initialise, initialisePath,
+     DEFAULT, "Create from kind and intervals/radius"),
+  SM(NAME_resize, 3, T_resize, resizePath,
+     DEFAULT, "Resize path with specified factor"),
+  SM(NAME_paintSelected, 0, NULL, paintSelectedPath,
+     NAME_appearance, "Paint inverted drops on control-points"),
+  SM(NAME_reference, 1, "reference=[point]", referencePath,
+     NAME_area, "Move <-offset while retaining points"),
+  SM(NAME_initialiseNewSlot, 1, "variable", initialiseNewSlotPath,
+     NAME_compatibility, "Initialise <-offset"),
+  SM(NAME_append, 1, "point", appendPath,
+     NAME_points, "Append a point"),
+  SM(NAME_clear, 0, NULL, clearPath,
+     NAME_points, "Delete all points"),
+  SM(NAME_delete, 1, "point", deletePath,
+     NAME_points, "Delete a point"),
+  SM(NAME_insert, 2, T_insert, insertPath,
+     NAME_points, "Insert after 2nd argument (@nil: prepend)"),
+  SM(NAME_setPoint, 3, T_setPoint, setPointPath,
+     NAME_points, "Move (member) point to (X, Y)"),
+  SM(NAME_DrawPostScript, 0, NULL, drawPostScriptPath,
+     NAME_postscript, "Create PostScript")
+};
+
+/* Get Methods */
+
+static const getdecl get_path[] =
+{ GM(NAME_point, 2, "point", T_point, getPointPath,
+     NAME_event, "Find closest point"),
+  GM(NAME_segment, 1, "point", "near=point|event", getSegmentPath,
+     NAME_event, "Return start-point of closest line-segment"),
+  GM(NAME_radiusOrInterval, 0, "int", NULL, getRadiusOrIntervalPath,
+     NAME_term, "Radius (`poly') or intervals (`smooth')"),
+  GM(NAME_end, 0, "point", NULL, getEndPath,
+     NAME_tip, "End-point of path"),
+  GM(NAME_start, 0, "point", NULL, getStartPath,
+     NAME_tip, "Start-point of path")
+};
+
+/* Resources */
+
+static const resourcedecl rc_path[] =
+{ RC(NAME_intervals, "int", "10",
+     "Number of interpolated points"),
+  RC(NAME_selectionHandles, RC_REFINE, "@nil",
+     NULL)
+};
+
+/* Class Declaration */
+
+static Name path_termnames[] = { NAME_kind, NAME_radiusOrInterval };
+
+ClassDecl(path_decls,
+          var_path, send_path, get_path, rc_path,
+          2, path_termnames,
+          "$Rev$");
 
 status
 makeClassPath(Class class)
-{ sourceClass(class, makeClassPath, __FILE__, "$Revision$");
+{ declareClass(class, &path_decls);
 
-  localClass(class, NAME_offset, NAME_dimension, "point", NAME_get,
-	     "Offset to origin");
-  localClass(class, NAME_kind, NAME_interpolation, "{poly,smooth}", NAME_get,
-	     "Whether path is interpolated over points");
-  localClass(class, NAME_radius, NAME_appearance, "int", NAME_get,
-	     "Rounding radius for `poly' type");
-  localClass(class, NAME_intervals, NAME_interpolation, "0..100", NAME_get,
-	     "Interpolation intervals between points");
-  localClass(class, NAME_points, NAME_points, "chain", NAME_get,
-	     "Chain of points");
-  localClass(class, NAME_fillPattern, NAME_appearance,
-	     "image|colour*", NAME_get,
-	     "Fill pattern");
-  localClass(class, NAME_mark, NAME_appearance, "image*", NAME_get,
-	     "Mark used for points");
-  localClass(class, NAME_closed, NAME_appearance, "bool", NAME_get,
-	     "Draw line from last to first point");
-  localClass(class, NAME_interpolation, NAME_interpolation, "chain*", NAME_get,
-	     "Derived interpolated points");
-
-  termClass(class, "path", 2, NAME_kind, NAME_radiusOrInterval);
   cloneStyleVariableClass(class, NAME_fillPattern, NAME_reference);
   setRedrawFunctionClass(class, RedrawAreaPath);
-
-  storeMethod(class, NAME_kind,        kindPath);
-  storeMethod(class, NAME_radius,      radiusPath);
-  storeMethod(class, NAME_intervals,   intervalsPath);
-  storeMethod(class, NAME_closed,      closedPath);
-  storeMethod(class, NAME_fillPattern, fillPatternGraphical);
-  storeMethod(class, NAME_mark,        markPath);
-
-  sendMethod(class, NAME_initialise, DEFAULT,
-	     2, "kind=[{poly,smooth}]", "intervals=[int]",
-	     "Create from kind and intervals/radius",
-	     initialisePath);
-  sendMethod(class, NAME_geometry, DEFAULT, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Move and/or resize the path",
-	     geometryPath);
-  sendMethod(class, NAME_initialiseNewSlot, NAME_compatibility, 1, "variable",
-	     "Initialise <-offset",
-	     initialiseNewSlotPath);
-  sendMethod(class, NAME_compute, DEFAULT, 0,
-	     "Recompute interpolation and area",
-	     computePath);
-  sendMethod(class, NAME_append, NAME_points, 1, "point",
-	     "Append a point",
-	     appendPath);
-  sendMethod(class, NAME_delete, NAME_points, 1, "point",
-	     "Delete a point",
-	     deletePath);
-  sendMethod(class, NAME_insert, NAME_points, 2, "point", "point*",
-	     "Insert after 2nd argument (@nil: prepend)",
-	     insertPath);
-  sendMethod(class, NAME_clear, NAME_points, 0,
-	     "Delete all points",
-	     clearPath);
-  sendMethod(class, NAME_resize, DEFAULT, 3,
-	     "factor_x=real", "factor_y=[real]", "origin=[point]",
-	     "Resize path with specified factor",
-	     resizePath);
-  sendMethod(class, NAME_reference, NAME_area, 1, "reference=[point]",
-	     "Move <-offset while retaining points",
-	     referencePath);
-  sendMethod(class, NAME_setPoint, NAME_points, 3,
-	     "point=point", "x=[int]", "y=[int]",
-	     "Move (member) point to (X, Y)",
-	     setPointPath);
-  
-  sendMethod(class, NAME_paintSelected, NAME_appearance, 0,
-	     "Paint inverted drops on control-points",
-	     paintSelectedPath);
-
-  sendMethod(class, NAME_DrawPostScript, NAME_postscript, 0,
-	     "Create PostScript",
-	     drawPostScriptPath);
-
-  getMethod(class, NAME_radiusOrInterval, NAME_term, "int", 0,
-	    "Radius (`poly') or intervals (`smooth')",
-	    getRadiusOrIntervalPath);
-  getMethod(class, NAME_point, NAME_event, "point", 2,
-	    "near=point|event", "max_distance=[int]",
-	    "Find closest point",
-	    getPointPath);
-  getMethod(class, NAME_segment, NAME_event, "point", 1, "near=point|event",
-	    "Return start-point of closest line-segment",
-	    getSegmentPath);
-  getMethod(class, NAME_start, NAME_tip, "point", 0,
-	    "Start-point of path",
-	    getStartPath);
-  getMethod(class, NAME_end, NAME_tip, "point", 0,
-	    "End-point of path",
-	    getEndPath);
-
-  refine_resource(class, "selection_handles", "@nil");
-  attach_resource(class, "intervals", "int", "10",
-		  "Number of interpolated points");
 
   succeed;
 }

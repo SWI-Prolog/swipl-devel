@@ -146,68 +146,85 @@ getHiddenStyle(Style s)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "icon=[image]*", "font=[font]", "colour=[colour]", "highlight=[bool]", "underline=[bool]", "bold=[bool]", "grey=[bool]", "background=[colour|pixmap|elevation]", "hidden=[bool]", "left_margin=[int]", "right_margin=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_style[] =
+{ IV(NAME_font, "[font]", IV_BOTH,
+     NAME_appearance, "Font of characters"),
+  IV(NAME_colour, "[colour]", IV_BOTH,
+     NAME_appearance, "Colour of the characters"),
+  IV(NAME_background, "[colour|pixmap|elevation]", IV_BOTH,
+     NAME_appearance, "Background for the characters"),
+  IV(NAME_icon, "image*", IV_BOTH,
+     NAME_appearance, "Image for annotation margin"),
+  IV(NAME_leftMargin, "int", IV_BOTH,
+     NAME_appearance, "Left margin for wrapping (relative to current)"),
+  IV(NAME_rightMargin, "int", IV_BOTH,
+     NAME_appearance, "Right margin for wrapping (relative to current)"),
+  IV(NAME_attributes, "alien:long", IV_NONE,
+     NAME_appearance, "Character attributes")
+};
+
+/* Send Methods */
+
+static const senddecl send_style[] =
+{ SM(NAME_initialise, 11, T_initialise, initialiseStyle,
+     DEFAULT, "Create from icon, font, colour and attributes"),
+  SM(NAME_bold, 1, "bool", boldStyle,
+     NAME_appearance, "Bold text"),
+  SM(NAME_grey, 1, "bool", greyStyle,
+     NAME_appearance, "Greyed-out text"),
+  SM(NAME_hidden, 1, "bool", hiddenStyle,
+     NAME_appearance, "Make text invisible"),
+  SM(NAME_highlight, 1, "bool", highlightStyle,
+     NAME_appearance, "Inverse video"),
+  SM(NAME_underline, 1, "bool", underlineStyle,
+     NAME_appearance, "Underlined text")
+};
+
+/* Get Methods */
+
+static const getdecl get_style[] =
+{ GM(NAME_bold, 0, "bool", NULL, getBoldStyle,
+     NAME_appearance, "Boolean to indicate bold"),
+  GM(NAME_grey, 0, "bool", NULL, getGreyStyle,
+     NAME_appearance, "Boolean to indicate grey"),
+  GM(NAME_hidden, 0, "bool", NULL, getHiddenStyle,
+     NAME_appearance, "Boolean to indicate invisible text"),
+  GM(NAME_highlight, 0, "bool", NULL, getHighlightStyle,
+     NAME_appearance, "Boolean to indicate inverse video"),
+  GM(NAME_underline, 0, "bool", NULL, getUnderlineStyle,
+     NAME_appearance, "Boolean to indicate underline")
+};
+
+/* Resources */
+
+static const resourcedecl rc_style[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name style_termnames[] = { NAME_icon, NAME_font };
+
+ClassDecl(style_decls,
+          var_style, send_style, get_style, rc_style,
+          2, style_termnames,
+          "$Rev$");
+
 status
 makeClassStyle(Class class)
-{ sourceClass(class, makeClassStyle, __FILE__, "$Revision$");
-
-  localClass(class, NAME_font, NAME_appearance, "[font]", NAME_both,
-	     "Font of characters");
-  localClass(class, NAME_colour, NAME_appearance, "[colour]", NAME_both,
-	     "Colour of the characters");
-  localClass(class, NAME_background, NAME_appearance,
-	     "[colour|pixmap|elevation]", NAME_both,
-	     "Background for the characters");
-  localClass(class, NAME_icon, NAME_appearance, "image*", NAME_both,
-	     "Image for annotation margin");
-  localClass(class, NAME_leftMargin, NAME_appearance, "int", NAME_both,
-	     "Left margin for wrapping (relative to current)");
-  localClass(class, NAME_rightMargin, NAME_appearance, "int", NAME_both,
-	     "Right margin for wrapping (relative to current)");
-  localClass(class, NAME_attributes, NAME_appearance, "alien:long", NAME_none,
-	     "Character attributes");
-
-  termClass(class, "style", 2, NAME_icon, NAME_font);
+{ declareClass(class, &style_decls);
   setLoadStoreFunctionClass(class, loadStyle, storeStyle);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 11,
-	     "icon=[image]*", "font=[font]", "colour=[colour]",
-	     "highlight=[bool]", "underline=[bool]",
-	     "bold=[bool]", "grey=[bool]",
-	     "background=[colour|pixmap|elevation]", "hidden=[bool]",
-	     "left_margin=[int]", "right_margin=[int]",
-	     "Create from icon, font, colour and attributes",
-	     initialiseStyle);
-  sendMethod(class, NAME_highlight, NAME_appearance, 1, "bool",
-	     "Inverse video",
-	     highlightStyle);
-  sendMethod(class, NAME_underline, NAME_appearance, 1, "bool",
-	     "Underlined text",
-	     underlineStyle);
-  sendMethod(class, NAME_grey, NAME_appearance, 1, "bool",
-	     "Greyed-out text",
-	     greyStyle);
-  sendMethod(class, NAME_bold, NAME_appearance, 1, "bool",
-	     "Bold text",
-	     boldStyle);
-  sendMethod(class, NAME_hidden, NAME_appearance, 1, "bool",
-	     "Make text invisible",
-	     hiddenStyle);
-
-  getMethod(class, NAME_highlight, NAME_appearance, "bool", 0,
-	    "Boolean to indicate inverse video",
-	    getHighlightStyle);
-  getMethod(class, NAME_underline, NAME_appearance, "bool", 0,
-	    "Boolean to indicate underline",
-	    getUnderlineStyle);
-  getMethod(class, NAME_grey, NAME_appearance, "bool", 0,
-	    "Boolean to indicate grey",
-	    getGreyStyle);
-  getMethod(class, NAME_bold, NAME_appearance, "bool", 0,
-	    "Boolean to indicate bold",
-	    getBoldStyle);
-  getMethod(class, NAME_hidden, NAME_appearance, "bool", 0,
-	    "Boolean to indicate invisible text",
-	    getHiddenStyle);
 
   succeed;
 }

@@ -50,27 +50,54 @@ getNodeEventTree(EventTreeObj t, Any value)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+
+/* Instance Variables */
+
+static const vardecl var_eventTree[] =
+{ SV(NAME_root, "event_node", IV_GET|IV_STORE, rootEventTree,
+     NAME_hierarchy, "Root node of the hierarchy"),
+  IV(NAME_table, "hash_table", IV_NONE,
+     NAME_hashing, "Hashtable to find nodes by value")
+};
+
+/* Send Methods */
+
+static const senddecl send_eventTree[] =
+{ SM(NAME_initialise, 1, "root=[event_node]", initialiseEventTree,
+     DEFAULT, "Create from root node")
+};
+
+/* Get Methods */
+
+static const getdecl get_eventTree[] =
+{ GM(NAME_node, 1, "event_node", "event_id", getNodeEventTree,
+     NAME_lookup, "Find a node from it's associated value")
+};
+
+/* Resources */
+
+static const resourcedecl rc_eventTree[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name eventTree_termnames[] = { NAME_root };
+
+ClassDecl(eventTree_decls,
+          var_eventTree, send_eventTree, get_eventTree, rc_eventTree,
+          1, eventTree_termnames,
+          "$Rev$");
+
+
 status
 makeClassEventTree(Class class)
-{ sourceClass(class, makeClassEventTree, __FILE__, "$Revision$");
-
-  localClass(class, NAME_root, NAME_hierarchy, "event_node", NAME_get,
-	     "Root node of the hierarchy");
-  localClass(class, NAME_table, NAME_hashing, "hash_table", NAME_none,
-	     "Hashtable to find nodes by value");
-
-  termClass(class, "event_tree", 1, NAME_root);
-
-  storeMethod(class, NAME_root, rootEventTree);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "root=[event_node]",
-	     "Create from root node",
-	     initialiseEventTree);
-	
-  getMethod(class, NAME_node, NAME_lookup, "event_node", 1, "event_id",
-	    "Find a node from it's associated value",
-	    getNodeEventTree);
-
-  succeed;
+{ return declareClass(class, &eventTree_decls);
 }
 

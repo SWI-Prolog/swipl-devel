@@ -18,19 +18,53 @@ initialiseQuoteFunction(QuoteFunction q, Function f)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+
+/* Instance Variables */
+
+static const vardecl var_quoteFunction[] =
+{ IV(NAME_function, "function", IV_BOTH,
+     NAME_storage, "Quoted function")
+};
+
+/* Send Methods */
+
+static const senddecl send_quoteFunction[] =
+{ SM(NAME_initialise, 1, "function=function", initialiseQuoteFunction,
+     DEFAULT, "Initialise")
+};
+
+/* Get Methods */
+
+static const getdecl get_quoteFunction[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_quoteFunction[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name quoteFunction_termnames[] = { NAME_function };
+
+ClassDecl(quoteFunction_decls,
+          var_quoteFunction, send_quoteFunction,
+	  get_quoteFunction, rc_quoteFunction,
+          1, quoteFunction_termnames,
+          "$Rev$");
+
 status
 makeClassQuoteFunction(Class class)
-{ sourceClass(class, makeClassQuoteFunction, __FILE__, "$Revision$");
-
-  localClass(class, NAME_function, NAME_storage, "function", NAME_both,
-	     "Quoted function");
-
-  termClass(class, "quote_function", 1, NAME_function);
+{ declareClass(class, &quoteFunction_decls);
   delegateClass(class, NAME_function);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "function=function",
-	     "Initialise",
-	     initialiseQuoteFunction);
 
   succeed;
 }

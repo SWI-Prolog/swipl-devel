@@ -211,33 +211,60 @@ scan_fragment_icons(TextMargin m, SendFunc func, Name how, Any ctx)
 }
 
 
-extern drawPostScriptTextMargin();
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "editor=editor", "width=int", "height=int" };
+
+/* Instance Variables */
+
+static const vardecl var_textMargin[] =
+{ IV(NAME_editor, "editor", IV_GET,
+     NAME_storage, "Editor I'm part of"),
+  SV(NAME_gap, "size", IV_GET|IV_STORE, gapTextMargin,
+     NAME_layout, "Distance between icons in X and Y")
+};
+
+/* Send Methods */
+
+static const senddecl send_textMargin[] =
+{ SM(NAME_initialise, 3, T_initialise, initialiseTextMargin,
+     DEFAULT, "Create from editor, width and height")
+};
+
+/* Get Methods */
+
+static const getdecl get_textMargin[] =
+{ GM(NAME_fragment, 1, "fragment", "event", getFragmentTextMargin,
+     NAME_fragment, "Find the fragment at the event-position")
+};
+
+/* Resources */
+
+static const resourcedecl rc_textMargin[] =
+{ RC(NAME_gap, "size", "size(5,2)",
+     "Distance between icons in X and Y")
+};
+
+/* Class Declaration */
+
+static Name textMargin_termnames[] = { NAME_editor, NAME_width, NAME_height };
+
+ClassDecl(textMargin_decls,
+          var_textMargin, send_textMargin, get_textMargin, rc_textMargin,
+          3, textMargin_termnames,
+          "$Rev$");
+
+
 
 status
 makeClassTextMargin(Class class)
-{ sourceClass(class, makeClassTextMargin, __FILE__, "$Revision$");
-
-  localClass(class, NAME_editor, NAME_storage, "editor", NAME_get,
-	     "Editor I'm part of");
-  localClass(class, NAME_gap, NAME_layout, "size", NAME_get,
-	     "Distance between icons in X and Y");
-
-  termClass(class, "text_margin", 3, NAME_editor, NAME_width, NAME_height);
+{ declareClass(class, &textMargin_decls);
   setRedrawFunctionClass(class, RedrawAreaTextMargin);
-
-  storeMethod(class, NAME_gap, gapTextMargin);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 3,
-	     "editor=editor", "width=int", "height=int",
-	     "Create from editor, width and height",
-	     initialiseTextMargin);
-
-  getMethod(class, NAME_fragment, NAME_fragment, "fragment", 1, "event",
-	    "Find the fragment at the event-position",
-	    getFragmentTextMargin);
-
-  attach_resource(class, "gap", "size", "size(5,2)",
-		  "Distance between icons in X and Y");
 
   succeed;
 }

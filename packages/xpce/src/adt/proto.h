@@ -126,7 +126,6 @@ status		makeClassPoint(Class class);
 /* adt/real.c */
 Real		CtoReal(float f);
 Real		getConvertReal(Class class, Any obj);
-status		equalReal(Real r, Real r2);
 status		valueReal(Real r, Real v);
 status		makeClassReal(Class class);
 

@@ -80,7 +80,7 @@ unlinkTextBuffer(TextBuffer tb)
     freeObject(tb->first_fragment);
 
   if ( tb->tb_buffer8 != NULL )		/* deallocate the buffer */
-  { free(tb->tb_buffer8);
+  { pceFree(tb->tb_buffer8);
     tb->tb_buffer8 = NULL;
   }
 
@@ -130,7 +130,7 @@ loadTextBuffer(TextBuffer tb, FILE *fd, ClassDef def)
   tb->size = loadWord(fd);
   tb->allocated = ROUND(tb->size, ALLOC);
   str_cphdr(&tb->buffer, str_nl(NULL));	/* ASCII */
-  tb->tb_buffer8 = malloc(tb->allocated);
+  tb->tb_buffer8 = pceMalloc(tb->allocated);
   fread(Address(tb, 0), sizeof(char), tb->size, fd); /* TBD */
   tb->gap_start = tb->size;
   tb->gap_end = tb->allocated - 1;
@@ -148,7 +148,7 @@ cloneTextBuffer(TextBuffer tb, TextBuffer clone)
 { clonePceSlots(tb, clone);
 
   clone->undo_buffer = NULL;
-  clone->tb_buffer8 = malloc(clone->allocated);
+  clone->tb_buffer8 = pceMalloc(clone->allocated);
   memcpy(clone->tb_buffer8, tb->tb_buffer8, clone->allocated);
   clone->changed_start = clone->size;
   clone->changed_end = 0;
@@ -1655,7 +1655,7 @@ insert_textbuffer(TextBuffer tb, int where, int times, String s)
 static status
 clear_textbuffer(TextBuffer tb)
 { if ( tb->tb_buffer8 != NULL )
-    free(tb->tb_buffer8);
+    pceFree(tb->tb_buffer8);
 
   register_delete_textbuffer(tb, 0, tb->size);
   start_change(tb, 0);
@@ -1663,7 +1663,7 @@ clear_textbuffer(TextBuffer tb)
 
   tb->size = 0;
   tb->allocated = ALLOC;
-  tb->tb_buffer8 = malloc(istb8(tb) ? ALLOC : ALLOC*2);
+  tb->tb_buffer8 = pceMalloc(istb8(tb) ? ALLOC : ALLOC*2);
 
   tb->gap_start = 0;
   tb->gap_end = tb->allocated - 1;
@@ -1814,7 +1814,7 @@ room(TextBuffer tb, int where, int grow)
     int ag = tb->allocated - tb->gap_end - 1;
 
     shift = s - tb->allocated;
-    tb->tb_buffer8 = realloc(tb->tb_buffer8, istb8(tb) ? s : s*2);
+    tb->tb_buffer8 = pceRealloc(tb->tb_buffer8, istb8(tb) ? s : s*2);
     tb->allocated = s;
     
     memmove(Address(tb, tb->gap_end + 1 + shift),
@@ -1871,217 +1871,210 @@ getReadAsFileTextBuffer(TextBuffer tb, Int from, Int size)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_writeAsFile[] =
+        { "at=[int]", "text=char_array" };
+static const char *T_character[] =
+        { "at=int", "character=char" };
+static const char *T_delete[] =
+        { "at=int", "characters=[int]" };
+static const char *T_insertFile[] =
+        { "at=int", "data=file", "times=[int]" };
+static const char *T_insert[] =
+        { "at=int", "text=char_array", "times=[int]" };
+static const char *T_format[] =
+        { "format=char_array", "argument=any ..." };
+static const char *T_transpose[] =
+        { "from1=int", "to1=int", "from2=int", "to2=int" };
+static const char *T_contents[] =
+        { "from=[int]", "size=[int]" };
+static const char *T_fromADintD_toADintD[] =
+        { "from=[int]", "to=[int]" };
+static const char *T_matchingBracket[] =
+        { "from=int", "bracket=[char]" };
+static const char *T_matchingQuote[] =
+        { "from=int", "direction={forward,backward}" };
+static const char *T_find[] =
+        { "from=int", "for=string", "times=[int]", "return=[{start,end}]", "exact_case=[bool]", "word=[bool]" };
+static const char *T_fromAint_sizeAint[] =
+        { "from=int", "size=int" };
+static const char *T_skipComment[] =
+        { "from=int", "to=[int]", "skip_layout=[bool]" };
+static const char *T_scan[] =
+        { "from=int", "unit={character,word,line,sentence,paragraph,term}", "times=[int]", "return=[{start,end}]" };
+static const char *T_save[] =
+        { "in=file", "from=[int]", "size=[int]" };
+static const char *T_indexAint_startADintD[] =
+        { "index=int", "start=[int]" };
+static const char *T_report[] =
+        { "kind={status,inform,progress,done,warning,error}", "format=[char_array]", "argument=any ..." };
+static const char *T_append[] =
+        { "text=char_array", "times=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_textBuffer[] =
+{ IV(NAME_firstFragment, "fragment*", IV_GET,
+     NAME_fragment, "First fragment (lowest start index)"),
+  IV(NAME_lastFragment, "fragment*", IV_GET,
+     NAME_fragment, "Last fragment (highest start index)"),
+  IV(NAME_editors, "chain", IV_GET,
+     NAME_organisation, "Editors displaying this buffer"),
+  SV(NAME_modified, "bool", IV_GET|IV_STORE, modifiedTextBuffer,
+     NAME_modified, "Has buffer been modified"),
+  SV(NAME_undoBufferSize, "bytes=int", IV_GET|IV_STORE, undoBufferSizeTextBuffer,
+     NAME_modified, "Size of the undo-buffer in characters"),
+  IV(NAME_syntax, "syntax_table", IV_BOTH,
+     NAME_language, "Description of the used syntax"),
+  IV(NAME_changedStart, "alien:int", IV_NONE,
+     NAME_repaint, "Start of changes since last repaint"),
+  IV(NAME_changedEnd, "alien:int", IV_NONE,
+     NAME_repaint, "End of changes since last repaint"),
+  IV(NAME_gapStart, "alien:int", IV_NONE,
+     NAME_storage, "Start of gap in buffer"),
+  IV(NAME_gapEnd, "alien:int", IV_NONE,
+     NAME_storage, "End of gap in buffer"),
+  IV(NAME_size, "alien:int", IV_NONE,
+     NAME_cardinality, "Number of valid characters in buffer"),
+  IV(NAME_allocated, "alien:int", IV_NONE,
+     NAME_storage, "Total size of buffer"),
+  IV(NAME_undoBuffer, "alien:UndoBuffer", IV_NONE,
+     NAME_storage, "Record undo information here"),
+  IV(NAME_stringHeader, "alien:str_h", IV_NONE,
+     NAME_storage, "Encoding description"),
+  IV(NAME_buffer, "alien:char *", IV_NONE,
+     NAME_storage, "Actual storage bin")
+};
+
+/* Send Methods */
+
+static const senddecl send_textBuffer[] =
+{ SM(NAME_initialise, 1, "contents=[char_array]", initialiseTextBuffer,
+     DEFAULT, "Create from initial contents"),
+  SM(NAME_unlink, 0, NULL, unlinkTextBuffer,
+     DEFAULT, "Destroy the text"),
+  SM(NAME_capitalise, 2, T_fromAint_sizeAint, capitaliseTextBuffer,
+     NAME_case, "Capitalise (start, length)"),
+  SM(NAME_downcase, 2, T_fromAint_sizeAint, downcaseTextBuffer,
+     NAME_case, "Bring (start, length) to lowercase"),
+  SM(NAME_upcase, 2, T_fromAint_sizeAint, upcaseTextBuffer,
+     NAME_case, "Bring (start, length) to uppercase"),
+  SM(NAME_append, 2, T_append, appendTextBuffer,
+     NAME_edit, "Append string (n-times)"),
+  SM(NAME_character, 2, T_character, characterTextBuffer,
+     NAME_edit, "Change character at index to ASCII value"),
+  SM(NAME_clear, 0, NULL, clearTextBuffer,
+     NAME_edit, "Delete all contents (and fragments)"),
+  SM(NAME_contents, 1, "char_array", contentsTextBuffer,
+     NAME_edit, "Set the contents (deletes fragments)"),
+  SM(NAME_delete, 2, T_delete, deleteTextBuffer,
+     NAME_edit, "Delete characters from index"),
+  SM(NAME_insert, 3, T_insert, insertTextBuffer,
+     NAME_edit, "Insert string at index (n-times)"),
+  SM(NAME_transpose, 4, T_transpose, transposeTextBuffer,
+     NAME_edit, "Transpose [from1, to1) with [from2, to2)"),
+  SM(NAME_insertFile, 3, T_insertFile, insertFileTextBuffer,
+     NAME_file, "Insert file at index (n-times)"),
+  SM(NAME_save, 3, T_save, saveTextBuffer,
+     NAME_file, "Save (from, length) to file"),
+  SM(NAME_format, 2, T_format, formatTextBuffer,
+     NAME_format, "Append formatted text"),
+  SM(NAME_forAllFragments, 1, "code", forAllFragmentsTextBuffer,
+     NAME_iterate, "Iterate code over all fragments"),
+  SM(NAME_inComment, 2, T_indexAint_startADintD, inCommentTextBuffer,
+     NAME_language, "Test if first index is in comment"),
+  SM(NAME_inString, 2, T_indexAint_startADintD, inStringTextBuffer,
+     NAME_language, "Test if first index is in string constant"),
+  SM(NAME_checkPointUndo, 0, NULL, checkpointUndoTextBuffer,
+     NAME_modified, "Set `no-change' checkpoint in undo buffer"),
+  SM(NAME_markUndo, 0, NULL, markUndoTextBuffer,
+     NAME_modified, "Mark undo point"),
+  SM(NAME_resetUndo, 0, NULL, resetUndoTextBuffer,
+     NAME_modified, "Clear the undo-buffer"),
+  SM(NAME_undo, 0, NULL, undoTextBuffer,
+     NAME_modified, "Undo operations backto last mark"),
+  SM(NAME_attach, 1, "editor", attachTextBuffer,
+     NAME_organisation, "Attach the given editor"),
+  SM(NAME_detach, 1, "editor", detachTextBuffer,
+     NAME_organisation, "Detach the given editor"),
+  SM(NAME_report, 3, T_report, reportTextBuffer,
+     NAME_report, "Report message (send to <-editors)"),
+  SM(NAME_sort, 2, T_fromADintD_toADintD, sortTextBuffer,
+     NAME_sort, "Sort [from, to) alphabetically by line"),
+  SM(NAME_truncateAsFile, 0, NULL, truncateAsFileTextBuffer,
+     NAME_stream, "Implements handling a buffer as a file"),
+  SM(NAME_writeAsFile, 2, T_writeAsFile, writeAsFileTextBuffer,
+     NAME_stream, "Implements handling a buffer as a file")
+};
+
+/* Get Methods */
+
+static const getdecl get_textBuffer[] =
+{ GM(NAME_convert, 1, "text_buffer", "editor", getConvertTextBuffer,
+     DEFAULT, "Return `editor <-text_buffer'"),
+  GM(NAME_length, 0, "int", NULL, getSizeTextBuffer,
+     NAME_cardinality, "Equivalent to <-size (# characters)"),
+  GM(NAME_size, 0, "int", NULL, getSizeTextBuffer,
+     NAME_cardinality, "Number of characters in buffer"),
+  GM(NAME_findAllFragments, 1, "matching=chain", "test=[code]", getFindAllFragmentsTextBuffer,
+     NAME_fragment, "New chain holding fragments accepted by code"),
+  GM(NAME_findFragment, 1, "fragment", "test=code", getFindFragmentTextBuffer,
+     NAME_fragment, "First fragment that accepts code"),
+  GM(NAME_matchingBracket, 2, "index=int", T_matchingBracket, getMatchingBracketTextBuffer,
+     NAME_language, "Find bracket matching bracket at index"),
+  GM(NAME_matchingQuote, 2, "index=int", T_matchingQuote, getMatchingQuoteTextBuffer,
+     NAME_language, "Find matching string-quote"),
+  GM(NAME_skipComment, 3, "index=int", T_skipComment, getSkipCommentTextBuffer,
+     NAME_language, "Skip comments and optionally white space"),
+  GM(NAME_lineNumber, 1, "line=int", "index=[int]", getLineNumberTextBuffer,
+     NAME_line, "Get line number (1-based) for character index"),
+  GM(NAME_scan, 4, "index=int", T_scan, getScanTextBuffer,
+     NAME_parse, "Scan textual units"),
+  GM(NAME_character, 1, "char", "at=int", getCharacterTextBuffer,
+     NAME_read, "ASCII value of character at index"),
+  GM(NAME_contents, 2, "string", T_contents, getContentsTextBuffer,
+     NAME_read, "New string holding text (from, length)"),
+  GM(NAME_sub, 2, "string", T_fromADintD_toADintD, getSubTextBuffer,
+     NAME_read, "New string holding text [from, to)"),
+  GM(NAME_find, 6, "index=int", T_find, getFindTextBuffer,
+     NAME_search, "Search for a string"),
+  GM(NAME_readAsFile, 2, "string", T_fromAint_sizeAint, getReadAsFileTextBuffer,
+     NAME_stream, "Implement reading as a file"),
+  GM(NAME_sizeAsFile, 0, "characters=int", NULL, getSizeAsFileTextBuffer,
+     NAME_stream, "Implement seek when using as a file")
+};
+
+/* Resources */
+
+static const resourcedecl rc_textBuffer[] =
+{ RC(NAME_syntax, "[syntax_table]", "default",
+     "Syntax definition"),
+  RC(NAME_undoBufferSize, "int", "10000",
+     "Memory allocated to store undo")
+};
+
+/* Class Declaration */
+
+static Name textBuffer_termnames[] = { NAME_string };
+
+ClassDecl(textBuffer_decls,
+          var_textBuffer, send_textBuffer, get_textBuffer, rc_textBuffer,
+          0, textBuffer_termnames,
+          "$Rev$");
+
 status
 makeClassTextBuffer(Class class)
-{ sourceClass(class, makeClassTextBuffer, __FILE__, "$Revision$");
+{ declareClass(class, &textBuffer_decls);
 
-  localClass(class, NAME_firstFragment, NAME_fragment, "fragment*", NAME_get,
-	     "First fragment (lowest start index)");
-  localClass(class, NAME_lastFragment, NAME_fragment, "fragment*", NAME_get,
-	     "Last fragment (highest start index)");
-  localClass(class, NAME_editors, NAME_organisation, "chain", NAME_get,
-	     "Editors displaying this buffer");
-  localClass(class, NAME_modified, NAME_modified, "bool", NAME_get,
-	     "Has buffer been modified");
-  localClass(class, NAME_undoBufferSize, NAME_modified, "bytes=int", NAME_get,
-	     "Size of the undo-buffer in characters");
-  localClass(class, NAME_syntax, NAME_language, "syntax_table", NAME_both,
-	     "Description of the used syntax");
-  localClass(class, NAME_changedStart, NAME_repaint, "alien:int", NAME_none,
-	     "Start of changes since last repaint");
-  localClass(class, NAME_changedEnd, NAME_repaint, "alien:int", NAME_none,
-	     "End of changes since last repaint");
-  localClass(class, NAME_gapStart, NAME_storage, "alien:int", NAME_none,
-	     "Start of gap in buffer");
-  localClass(class, NAME_gapEnd, NAME_storage, "alien:int", NAME_none,
-	     "End of gap in buffer");
-  localClass(class, NAME_size, NAME_cardinality, "alien:int", NAME_none,
-	     "Number of valid characters in buffer");
-  localClass(class, NAME_allocated, NAME_storage, "alien:int", NAME_none,
-	     "Total size of buffer");
-  localClass(class, NAME_undoBuffer, NAME_storage, "alien:UndoBuffer",
-	     NAME_none,
-	     "Record undo information here");
-  localClass(class, NAME_stringHeader, NAME_storage, "alien:str_h",
-	     NAME_none,
-	     "Encoding description");
-  localClass(class, NAME_buffer, NAME_storage, "alien:char *", NAME_none,
-	     "Actual storage bin");
-
-  termClass(class, "text_buffer", 0, NAME_string);
   setLoadStoreFunctionClass(class, loadTextBuffer, storeTextBuffer);
   saveStyleVariableClass(class, NAME_editors, NAME_nil);
   setCloneFunctionClass(class, cloneTextBuffer);
   cloneStyleVariableClass(class, NAME_editors, NAME_referenceChain);
-
-  storeMethod(class, NAME_undoBufferSize, undoBufferSizeTextBuffer);
-  storeMethod(class, NAME_modified, modifiedTextBuffer);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "contents=[char_array]",
-	     "Create from initial contents",
-	     initialiseTextBuffer);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Destroy the text",
-	     unlinkTextBuffer);
-  sendMethod(class, NAME_attach, NAME_organisation, 1, "editor",
-	     "Attach the given editor",
-	     attachTextBuffer);
-  sendMethod(class, NAME_detach, NAME_organisation, 1, "editor",
-	     "Detach the given editor",
-	     detachTextBuffer);
-  sendMethod(class, NAME_clear, NAME_edit, 0,
-	     "Delete all contents (and fragments)",
-	     clearTextBuffer);
-  sendMethod(class, NAME_contents, NAME_edit, 1, "char_array",
-	     "Set the contents (deletes fragments)",
-	     contentsTextBuffer);
-  sendMethod(class, NAME_insert, NAME_edit, 3,
-	     "at=int", "text=char_array", "times=[int]",
-	     "Insert string at index (n-times)",
-	     insertTextBuffer);
-  sendMethod(class, NAME_insertFile, NAME_file, 3,
-	     "at=int", "data=file", "times=[int]",
-	     "Insert file at index (n-times)",
-	     insertFileTextBuffer);
-  sendMethod(class, NAME_append, NAME_edit, 2,
-	     "text=char_array", "times=[int]",
-	     "Append string (n-times)",
-	     appendTextBuffer);
-  sendMethod(class, NAME_format, NAME_format, 2,
-	     "format=char_array", "argument=any ...",
-	     "Append formatted text",
-	     formatTextBuffer);
-  sendMethod(class, NAME_delete, NAME_edit, 2, "at=int", "characters=[int]",
-	     "Delete characters from index",
-	     deleteTextBuffer);
-  sendMethod(class, NAME_character, NAME_edit, 2, "at=int", "character=char",
-	     "Change character at index to ASCII value",
-	     characterTextBuffer);
-  sendMethod(class, NAME_downcase, NAME_case, 2, "from=int", "size=int",
-	     "Bring (start, length) to lowercase",
-	     downcaseTextBuffer);
-  sendMethod(class, NAME_upcase, NAME_case, 2, "from=int", "size=int",
-	     "Bring (start, length) to uppercase",
-	     upcaseTextBuffer);
-  sendMethod(class, NAME_capitalise, NAME_case, 2, "from=int", "size=int",
-	     "Capitalise (start, length)",
-	     capitaliseTextBuffer);
-  sendMethod(class, NAME_transpose, NAME_edit, 4,
-	     "from1=int", "to1=int", "from2=int", "to2=int",
-	     "Transpose [from1, to1) with [from2, to2)",
-	     transposeTextBuffer);
-  sendMethod(class, NAME_save, NAME_file, 3,
-	     "in=file", "from=[int]", "size=[int]",
-	     "Save (from, length) to file",
-	     saveTextBuffer);
-  sendMethod(class, NAME_sort, NAME_sort, 2, "from=[int]", "to=[int]",
-	     "Sort [from, to) alphabetically by line",
-	     sortTextBuffer);
-  sendMethod(class, NAME_undo, NAME_modified, 0,
-	     "Undo operations backto last mark",
-	     undoTextBuffer);
-  sendMethod(class, NAME_markUndo, NAME_modified, 0,
-	     "Mark undo point",
-	     markUndoTextBuffer);
-  sendMethod(class, NAME_resetUndo, NAME_modified, 0,
-	     "Clear the undo-buffer",
-	     resetUndoTextBuffer);
-  sendMethod(class, NAME_checkPointUndo, NAME_modified, 0,
-	     "Set `no-change' checkpoint in undo buffer",
-	     checkpointUndoTextBuffer);
-  sendMethod(class, NAME_inString, NAME_language, 2,
-	     "index=int", "start=[int]",
-	     "Test if first index is in string constant",
-	     inStringTextBuffer);
-  sendMethod(class, NAME_inComment, NAME_language, 2,
-	     "index=int", "start=[int]",
-	     "Test if first index is in comment",
-	     inCommentTextBuffer);
-  sendMethod(class, NAME_report, NAME_report, 3,
-	     "kind={status,inform,progress,done,warning,error}",
-	     "format=[char_array]", "argument=any ...",
-	     "Report message (send to <-editors)",
-	     reportTextBuffer);
-  sendMethod(class, NAME_forAllFragments, NAME_iterate, 1, "code",
-	     "Iterate code over all fragments",
-	     forAllFragmentsTextBuffer);
-
-  sendMethod(class, NAME_writeAsFile, NAME_stream, 2,
-	     "at=[int]", "text=char_array",
-	     "Implements handling a buffer as a file",
-	     writeAsFileTextBuffer);
-  sendMethod(class, NAME_truncateAsFile, NAME_stream, 0,
-	     "Implements handling a buffer as a file",
-	     truncateAsFileTextBuffer);
-
-
-  getMethod(class, NAME_convert, DEFAULT, "text_buffer", 1, "editor",
-	    "Return `editor <-text_buffer'",
-	    getConvertTextBuffer);
-  getMethod(class, NAME_length, NAME_cardinality, "int", 0,
-	    "Equivalent to <-size (# characters)",
-	    getSizeTextBuffer);
-  getMethod(class, NAME_size, NAME_cardinality, "int", 0,
-	    "Number of characters in buffer",
-	    getSizeTextBuffer);
-  getMethod(class, NAME_findAllFragments, NAME_fragment, "matching=chain", 1,
-	    "test=[code]",
-	    "New chain holding fragments accepted by code",
-	    getFindAllFragmentsTextBuffer);
-  getMethod(class, NAME_findFragment, NAME_fragment, "fragment", 1,
-	    "test=code",
-	    "First fragment that accepts code",
-	    getFindFragmentTextBuffer);
-  getMethod(class, NAME_contents, NAME_read, "string", 2,
-	    "from=[int]", "size=[int]",
-	    "New string holding text (from, length)",
-	    getContentsTextBuffer);
-  getMethod(class, NAME_sub, NAME_read, "string", 2,
-	    "from=[int]", "to=[int]",
-	    "New string holding text [from, to)",
-	    getSubTextBuffer);
-  getMethod(class, NAME_character, NAME_read, "char", 1, "at=int",
-	    "ASCII value of character at index",
-	    getCharacterTextBuffer);
-  getMethod(class, NAME_scan, NAME_parse, "index=int", 4,
-	    "from=int", "unit={character,word,line,sentence,paragraph,term}",
-	    "times=[int]", "return=[{start,end}]",
-	    "Scan textual units",
-	    getScanTextBuffer);
-  getMethod(class, NAME_find, NAME_search, "index=int", 6,
-	    "from=int", "for=string", "times=[int]",
-	    "return=[{start,end}]", "exact_case=[bool]", "word=[bool]",
-	    "Search for a string",
-	    getFindTextBuffer);
-  getMethod(class, NAME_lineNumber, NAME_line, "line=int", 1, "index=[int]",
-	    "Get line number (1-based) for character index",
-	    getLineNumberTextBuffer);
-  getMethod(class, NAME_matchingBracket, NAME_language, "index=int", 2,
-	    "from=int", "bracket=[char]",
-	    "Find bracket matching bracket at index",
-	    getMatchingBracketTextBuffer);
-  getMethod(class, NAME_matchingQuote, NAME_language, "index=int", 2,
-	    "from=int", "direction={forward,backward}",
-	    "Find matching string-quote",
-	    getMatchingQuoteTextBuffer);
-  getMethod(class, NAME_skipComment, NAME_language, "index=int", 3,
-	    "from=int", "to=[int]", "skip_layout=[bool]",
-	    "Skip comments and optionally white space",
-	    getSkipCommentTextBuffer);
-
-  getMethod(class, NAME_sizeAsFile, NAME_stream, "characters=int", 0,
-	    "Implement seek when using as a file",
-	    getSizeAsFileTextBuffer);
-  getMethod(class, NAME_readAsFile, NAME_stream, "string", 2,
-	    "from=int", "size=int",
-	    "Implement reading as a file",
-	    getReadAsFileTextBuffer);
-
-  attach_resource(class, "undo_buffer_size", "int", "10000",
-		  "Memory allocated to store undo");
-  attach_resource(class, "syntax", "[syntax_table]",
-		  "default",
-		  "Syntax definition");
 
   succeed;
 }

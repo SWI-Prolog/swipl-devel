@@ -10,11 +10,13 @@
 :- module(emacs_prolog_mode, []).
 :- use_module(library(pce)).
 :- require([ make/0
+	   , auto_call/1
 	   , concat/3
 	   , default/3
 	   , forall/2
 	   , list_to_set/2
 	   , member/2
+	   , strip_module/3
 	   , tmp_file/2
 	   ]).
 
@@ -401,8 +403,7 @@ pce_check_require(M, File:file) :->
 	send(M, report, status, 'Checking %s', Name),
 	send(M, synchronise),
 	ensure_loaded(library(pce_require)),
-	Goal = pce_require(Name, _Directive, Message), % fool xref :-)
-	Goal,
+	auto_call(pce_require(Name, _Directive, Message)),
 	(   send(Message, sub, 'up-to-date')
 	->  true
 	;   new(B, emacs_buffer(File)),

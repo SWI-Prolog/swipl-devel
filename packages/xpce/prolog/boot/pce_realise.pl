@@ -95,11 +95,16 @@ pce_realise_class(ClassName) :-
 		     Resources,
 		     Directives),
 	create_class(ClassName, MetaClassName, SuperName, Class),
+	get(Class, realised, Realised),
 	resolve_method_message(Msg),
 	send(Class, resolve_method_message, Msg),
 	attach_variables(Variables, Class),
 	attach_resources(Resources, Class),
-	run_directives(Directives, Class, Module).
+	run_directives(Directives, Class, Module),
+	(   Realised == @on
+	->  delete_prolog_methods(Class, Module)
+	;   true
+	).
 
 %	pce_prolog_class(?ClassName, [?SuperName])
 %
@@ -188,6 +193,17 @@ run_directives([H|T], Module) :-
 	call(Module:H),
 	run_directives(T, Module).
 	
+delete_prolog_methods(Class, Module) :-
+	get(Class, name, ClassName),
+	(   find_data(Module:lazy_send_method(Selector, ClassName, Binder)),
+	    send(Class, delete_send_method, Selector),
+	    fail
+	;   find_data(Module:lazy_get_method(Selector, ClassName, Binder)),
+	    send(Class, delete_get_method, Selector),
+	    fail
+	;   true
+	).
+
 
 		 /*******************************
 		 *	METHOD REGISTRATION	*

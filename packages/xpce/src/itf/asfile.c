@@ -47,10 +47,10 @@ allocFileHandle()
 
     if ( max_handles == 0 )
     { n = 16;
-      newhandles = malloc(sizeof(PceFileHandle) * n);
+      newhandles = pceMalloc(sizeof(PceFileHandle) * n);
     } else
     { n = max_handles*2;
-      newhandles = realloc(handles, sizeof(PceFileHandle) * n);
+      newhandles = pceRealloc(handles, sizeof(PceFileHandle) * n);
     }
 
     if ( newhandles )
@@ -145,10 +145,9 @@ pceWrite(int handle, const char *buf, int size)
     status rval;
     Int where = (h->flags & PCE_APPEND ? (Int) DEFAULT : toInt(h->point));
 
-    s.s_text8  = (char *)buf;
-    s.b16      = FALSE;
+    str_inithdr(&s, ENC_ASCII);
     s.size     = size;
-    s.encoding = ENC_ASCII;
+    s.s_text8  = (char *)buf;
 
     ca = StringToScratchCharArray(&s);
     if ( (rval = send(h->object, NAME_writeAsFile, where, ca, 0)) )

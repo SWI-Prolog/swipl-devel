@@ -19,20 +19,53 @@ initialisePicture(Picture p, Name name, Size size, DisplayObj display)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "label=[name]", "size=[size]", "display=[display]" };
+
+/* Instance Variables */
+
+static const vardecl var_picture[] =
+{ 
+};
+
+/* Send Methods */
+
+static const senddecl send_picture[] =
+{ SM(NAME_initialise, 3, T_initialise, initialisePicture,
+     DEFAULT, "Create from label, size and display")
+};
+
+/* Get Methods */
+
+static const getdecl get_picture[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_picture[] =
+{ RC(NAME_size, "size", "size(400,200)",
+     "Default size in pixels")
+};
+
+/* Class Declaration */
+
+static Name picture_termnames[] = { NAME_label, NAME_displaySize, NAME_display };
+
+ClassDecl(picture_decls,
+          var_picture, send_picture, get_picture, rc_picture,
+          1, picture_termnames,
+          "$Rev$");
+
+
 status
 makeClassPicture(Class class)
-{ sourceClass(class, makeClassPicture, __FILE__, "$Revision$");
-
-  termClass(class, "picture", 1, NAME_label, NAME_displaySize, NAME_display);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 3,
-	     "label=[name]", "size=[size]", "display=[display]",
-	     "Create from label, size and display",
-	     initialisePicture);
-
-  attach_resource(class, "size", "size", "size(400,200)",
-		  "Default size in pixels");
-
-  succeed;
+{ return declareClass(class, &picture_decls);
 }
 

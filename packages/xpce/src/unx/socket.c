@@ -659,60 +659,86 @@ closeSocket(Socket s)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_listen[] =
+        { "[code]*", "[{1..5}]" };
+static const char *T_initialise[] =
+        { "address=file|tuple|int*", "domain=[{unix,inet}]" };
+
+/* Instance Variables */
+
+static const vardecl var_socket[] =
+{ IV(NAME_address, "file|tuple|int*", IV_GET,
+     NAME_address, "Address for the connection end-point"),
+  IV(NAME_domain, "{unix,inet}", IV_GET,
+     NAME_address, "Domain for the connection"),
+  IV(NAME_status, "{idle,listen,accepted,connected}", IV_GET,
+     NAME_status, "Status of the associated socket"),
+  IV(NAME_acceptMessage, "code*", IV_BOTH,
+     NAME_connect, "Message to accept new client"),
+  IV(NAME_clients, "chain*", IV_GET,
+     NAME_server, "Chain with accepted connections"),
+  IV(NAME_master, "socket*", IV_GET,
+     NAME_server, "Socket I accepted a connection for"),
+  IV(NAME_authority, "file*", IV_GET,
+     NAME_authority, "Name of authority-file (if any)")
+};
+
+/* Send Methods */
+
+static const senddecl send_socket[] =
+{ SM(NAME_initialise, 2, T_initialise, initialiseSocket,
+     DEFAULT, "Create socket from address and domain"),
+  SM(NAME_unlink, 0, NULL, unlinkSocket,
+     DEFAULT, "Cleanup socket"),
+  SM(NAME_connect, 0, NULL, connectSocket,
+     NAME_connect, "Connect with server socket"),
+  SM(NAME_listen, 2, T_listen, listenSocket,
+     NAME_connect, "Listen for connection requests]"),
+  SM(NAME_brokenPipe, 0, NULL, brokenPipeSocket,
+     NAME_control, "Attempt to write on broken connection"),
+  SM(NAME_endOfFile, 0, NULL, eofSocket,
+     NAME_input, "EOF read"),
+  SM(NAME_close, 0, NULL, closeSocket,
+     NAME_output, "Close communication to socket")
+};
+
+/* Get Methods */
+
+static const getdecl get_socket[] =
+{ GM(NAME_printName, 0, "string", NULL, getPrintNameSocket,
+     DEFAULT, "returns <classname>(<address>)"),
+  GM(NAME_peerName, 0, "name|tuple", NULL, getPeerNameSocket,
+     NAME_address, "Description of the other-sides address")
+};
+
+/* Resources */
+
+static const resourcedecl rc_socket[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name socket_termnames[] = { NAME_address };
+
+ClassDecl(socket_decls,
+          var_socket, send_socket, get_socket, rc_socket,
+          1, socket_termnames,
+          "$Rev$");
+
 status
 makeClassSocket(Class class)
-{ sourceClass(class, makeClassSocket, __FILE__, "$Revision$");
+{ declareClass(class, &socket_decls);
 
-  localClass(class, NAME_address, NAME_address, "file|tuple|int*", NAME_get,
-	     "Address for the connection end-point");
-  localClass(class, NAME_domain, NAME_address, "{unix,inet}", NAME_get,
-	     "Domain for the connection");
-  localClass(class, NAME_status, NAME_status,
-	     "{idle,listen,accepted,connected}", NAME_get,
-	     "Status of the associated socket");
-  localClass(class, NAME_acceptMessage, NAME_connect, "code*", NAME_both,
-	     "Message to accept new client");
-  localClass(class, NAME_clients, NAME_server, "chain*", NAME_get,
-	     "Chain with accepted connections");
-  localClass(class, NAME_master, NAME_server, "socket*", NAME_get,
-	     "Socket I accepted a connection for");
-  localClass(class, NAME_authority, NAME_authority, "file*", NAME_get,
-	     "Name of authority-file (if any)");
-
-  termClass(class, "socket", 1, NAME_address);
   setCloneFunctionClass(class, cloneSocket);
   cloneStyleVariableClass(class, NAME_clients, NAME_nil);
   cloneStyleVariableClass(class, NAME_master, NAME_nil);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2,
-	     "address=file|tuple|int*", "domain=[{unix,inet}]",
-	     "Create socket from address and domain",
-	     initialiseSocket);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Cleanup socket",
-	     unlinkSocket);
-  sendMethod(class, NAME_listen, NAME_connect, 2, "[code]*", "[{1..5}]",
-	     "Listen for connection requests]",
-	     listenSocket);
-  sendMethod(class, NAME_connect, NAME_connect, 0,
-	     "Connect with server socket",
-	     connectSocket);
-  sendMethod(class, NAME_close, NAME_output, 0,
-	     "Close communication to socket",
-	     closeSocket);
-  sendMethod(class, NAME_brokenPipe, NAME_control, 0,
-	     "Attempt to write on broken connection",
-	     brokenPipeSocket);
-  sendMethod(class, NAME_endOfFile, NAME_input, 0,
-	     "EOF read",
-	     eofSocket);
-
-  getMethod(class, NAME_printName, DEFAULT, "string", 0,
-	    "returns <classname>(<address>)",
-	    getPrintNameSocket);
-  getMethod(class, NAME_peerName, NAME_address, "name|tuple", 0,
-	    "Description of the other-sides address",
-	    getPeerNameSocket);
 
 #ifdef HAVE_SOCKET
   featureClass(class, NAME_unixDomain, ON);

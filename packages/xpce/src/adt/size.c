@@ -86,43 +86,69 @@ offsetSize(Size s, Int w, Int h)
   succeed;
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_widthADintD_heightADintD[] =
+        { "width=[int]", "height=[int]" };
+static const char *T_offset[] =
+        { "width=int", "height=int" };
+
+/* Instance Variables */
+
+static const vardecl var_size[] =
+{ IV(NAME_width, "int", IV_BOTH,
+     NAME_dimension, "Width (W) of the size"),
+  IV(NAME_height, "int", IV_BOTH,
+     NAME_dimension, "Height (H) of the size")
+};
+
+/* Send Methods */
+
+static const senddecl send_size[] =
+{ SM(NAME_initialise, 2, T_widthADintD_heightADintD, initialiseSize,
+     DEFAULT, "Create size from width and height"),
+  SM(NAME_offset, 2, T_offset, offsetSize,
+     NAME_calculate, "Add 1st argument to W, 2nd to H"),
+  SM(NAME_set, 2, T_widthADintD_heightADintD, setSize,
+     NAME_calculate, "Set W and H from arguments"),
+  SM(NAME_union, 1, "size", unionSize,
+     NAME_calculate, "set W and H to maximum of the two"),
+  SM(NAME_equal, 1, "size", equalSize,
+     NAME_compare, "Test if equal to argument"),
+  SM(NAME_copy, 1, "size", copySize,
+     NAME_copy, "Copy W and H from argument")
+};
+
+/* Get Methods */
+
+static const getdecl get_size[] =
+{ GM(NAME_convert, 1, "size", "name", getConvertSize,
+     NAME_textual, "Convert text `WxH'"),
+  GM(NAME_printName, 0, "string", NULL, getPrintNameSize,
+     NAME_textual, "Printed representation as %dx%d")
+};
+
+/* Resources */
+
+static const resourcedecl rc_size[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name size_termnames[] = { NAME_width, NAME_height };
+
+ClassDecl(size_decls,
+          var_size, send_size, get_size, rc_size,
+          2, size_termnames,
+          "$Rev$");
+
 
 status
 makeClassSize(Class class)
-{ sourceClass(class, makeClassSize, __FILE__, "$Revision$");
-
-  localClass(class, NAME_width, NAME_dimension, "int", NAME_both,
-	     "Width (W) of the size");
-  localClass(class, NAME_height, NAME_dimension, "int", NAME_both,
-	     "Height (H) of the size");
-
-  termClass(class, "size", 2, NAME_width, NAME_height);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2, "width=[int]", "height=[int]",
-	     "Create size from width and height",
-	     initialiseSize);
-  sendMethod(class, NAME_copy, NAME_copy, 1, "size",
-	     "Copy W and H from argument",
-	     copySize);
-  sendMethod(class, NAME_equal, NAME_compare, 1, "size",
-	     "Test if equal to argument",
-	     equalSize);
-  sendMethod(class, NAME_offset, NAME_calculate, 2, "width=int", "height=int",
-	     "Add 1st argument to W, 2nd to H",
-	     offsetSize);
-  sendMethod(class, NAME_set, NAME_calculate, 2, "width=[int]", "height=[int]",
-	     "Set W and H from arguments",
-	     setSize);
-  sendMethod(class, NAME_union, NAME_calculate, 1, "size",
-	     "set W and H to maximum of the two",
-	     unionSize);
-
-  getMethod(class, NAME_printName, NAME_textual, "string", 0,
-	    "Printed representation as %dx%d",
-	    getPrintNameSize);
-  getMethod(class, NAME_convert, NAME_textual, "size", 1, "name",
-	    "Convert text `WxH'",
-	    getConvertSize);
-
-  succeed;
+{ return declareClass(class, &size_decls);
 }

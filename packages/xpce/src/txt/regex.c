@@ -190,7 +190,7 @@ compileRegex(Regex re, Bool optimize)
   { char *error;
 
     re->compiled->allocated = 0;
-    re->compiled->fastmap   = (optimize == ON ? malloc(FASTMAPSIZE) : NULL);
+    re->compiled->fastmap   = (optimize == ON ? pceMalloc(FASTMAPSIZE) : NULL);
 
     re_set_syntax(RE_SYNTAX_EMACS);
     if ( (error = (char *) re_compile_pattern(re->pattern->data.s_text,
@@ -646,102 +646,106 @@ getQuoteRegex(Regex re, CharArray ca)
 
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_forAll[] =
+        { "in=char_array|text_buffer|fragment", "action=code", "from=[int]", "to=[int]" };
+static const char *T_inAchar_arrayOtext_bufferOfragment_startADintD_endADintD[] =
+        { "in=char_array|text_buffer|fragment", "start=[int]", "end=[int]" };
+static const char *T_gregisterValue[] =
+        { "in=object", "register=[0..9]", "type=[type]" };
+static const char *T_replace[] =
+        { "in=object", "value=char_array" };
+static const char *T_sregisterValue[] =
+        { "in=object", "value=char_array", "register=[0..9]" };
+
+/* Instance Variables */
+
+static const vardecl var_regex[] =
+{ IV(NAME_pattern, "char_array", IV_GET,
+     NAME_pattern, "Pattern to search for"),
+  IV(NAME_compiled, "alien:struct re_pattern_buffer *", IV_NONE,
+     NAME_compilation, "Buffer holding compiled pattern"),
+  IV(NAME_registers, "alien:struct re_registers *", IV_NONE,
+     NAME_registers, "Registers for (sub-)matches")
+};
+
+/* Send Methods */
+
+static const senddecl send_regex[] =
+{ SM(NAME_initialise, 1, "pattern=char_array", initialiseRegex,
+     DEFAULT, "Create regex from pattern"),
+  SM(NAME_unlink, 0, NULL, unlinkRegex,
+     DEFAULT, "Deallocate private storage"),
+  SM(NAME_compile, 1, "optimise=[bool]", compileRegex,
+     NAME_compilation, "Compile expression (optimized)"),
+  SM(NAME_forAll, 4, T_forAll, forAllRegex,
+     NAME_iterate, "Run code on each match"),
+  SM(NAME_ignoreCase, 1, "ignore=bool", ignoreCaseRegex,
+     NAME_pattern, "@on: case is ignored during match"),
+  SM(NAME_pattern, 1, "pattern=char_array", patternRegex,
+     NAME_pattern, "Set pattern searched for"),
+  SM(NAME_registerValue, 3, T_sregisterValue, registerValueRegex,
+     NAME_registers, "Replace indicated register"),
+  SM(NAME_replace, 2, T_replace, replaceRegex,
+     NAME_registers, "Replace last match which char_array"),
+  SM(NAME_match, 3, T_inAchar_arrayOtext_bufferOfragment_startADintD_endADintD, matchRegex,
+     NAME_search, "Match regex at indicated position"),
+  SM(NAME_search, 3, T_inAchar_arrayOtext_bufferOfragment_startADintD_endADintD, searchRegex,
+     NAME_search, "Search regex in object in range [start,end)")
+};
+
+/* Get Methods */
+
+static const getdecl get_regex[] =
+{ GM(NAME_convert, 1, "regex", "char_array", getConvertRegex,
+     NAME_conversion, "Converts char_array to regex(pattern)"),
+  GM(NAME_ignoreCase, 0, "ignore=bool", NULL, getIgnoreCaseRegex,
+     NAME_pattern, "@on if case is ignored during match"),
+  GM(NAME_quote, 1, "quoted=string", "pattern=char_array", getQuoteRegex,
+     NAME_pattern, "Quoted version of argument"),
+  GM(NAME_registerEnd, 1, "index=int", "register=[0..9]", getRegisterEndRegex,
+     NAME_registers, "End index of register or match"),
+  GM(NAME_registerSize, 1, "characters=int", "register=[0..9]", getRegisterSizeRegex,
+     NAME_registers, "# characters in register or match"),
+  GM(NAME_registerStart, 1, "index=int", "register=[0..9]", getRegisterStartRegex,
+     NAME_registers, "Start index of register or match"),
+  GM(NAME_registerValue, 3, "register=any", T_gregisterValue, getRegisterValueRegex,
+     NAME_registers, "String of specified register or match"),
+  GM(NAME_registers, 0, "registers=int", NULL, getRegistersRegex,
+     NAME_registers, "Number of \\( ... \\) pairs in pattern"),
+  GM(NAME_match, 3, "length=int", T_inAchar_arrayOtext_bufferOfragment_startADintD_endADintD, getMatchRegex,
+     NAME_search, "Length of match at indicated position"),
+  GM(NAME_search, 3, "start=int", T_inAchar_arrayOtext_bufferOfragment_startADintD_endADintD, getSearchRegex,
+     NAME_search, "->search and return start-position of match"),
+  GM(NAME_printName, 0, "char_array", NULL, getPrintNameRegex,
+     NAME_textual, "Same as <-pattern (support text_item)")
+};
+
+/* Resources */
+
+static const resourcedecl rc_regex[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name regex_termnames[] = { NAME_pattern };
+
+ClassDecl(regex_decls,
+          var_regex, send_regex, get_regex, rc_regex,
+          1, regex_termnames,
+          "$Rev$");
+
 status
 makeClassRegex(Class class)
-{ sourceClass(class, makeClassRegex, __FILE__, "$Revision$");
-
-  localClass(class, NAME_pattern, NAME_pattern, "char_array", NAME_get,
-	     "Pattern to search for");
-  localClass(class, NAME_compiled, NAME_compilation,
-	     "alien:struct re_pattern_buffer *",
-	     NAME_none,
-	     "Buffer holding compiled pattern");
-  localClass(class, NAME_registers, NAME_registers,
-	     "alien:struct re_registers *",
-	     NAME_none,
-	     "Registers for (sub-)matches");
-
-  termClass(class, "regex", 1, NAME_pattern);
+{ declareClass(class, &regex_decls);
   setLoadStoreFunctionClass(class, loadRegex, storeRegex);
   setCloneFunctionClass(class, cloneRegex);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "pattern=char_array",
-	     "Create regex from pattern",
-	     initialiseRegex);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Deallocate private storage",
-	     unlinkRegex);
-  sendMethod(class, NAME_pattern, NAME_pattern, 1, "pattern=char_array",
-	     "Set pattern searched for",
-	     patternRegex);
-  sendMethod(class, NAME_compile, NAME_compilation, 1, "optimise=[bool]",
-	     "Compile expression (optimized)",
-	     compileRegex);
-  sendMethod(class, NAME_search, NAME_search, 3,
-	     "in=char_array|text_buffer|fragment", "start=[int]", "end=[int]",
-	     "Search regex in object in range [start,end)",
-	     searchRegex);
-  sendMethod(class, NAME_match, NAME_search, 3,
-	     "in=char_array|text_buffer|fragment", "start=[int]", "end=[int]",
-	     "Match regex at indicated position",
-	     matchRegex);
-  sendMethod(class, NAME_forAll, NAME_iterate, 4,
-	     "in=char_array|text_buffer|fragment", "action=code",
-	     "from=[int]", "to=[int]",
-	     "Run code on each match",
-	     forAllRegex);
-  sendMethod(class, NAME_ignoreCase, NAME_pattern, 1, "ignore=bool",
-	     "@on: case is ignored during match",
-	     ignoreCaseRegex);
-  sendMethod(class, NAME_registerValue, NAME_registers, 3,
-	     "in=object", "value=char_array", "register=[0..9]",
-	     "Replace indicated register",
-	     registerValueRegex);
-  sendMethod(class, NAME_replace, NAME_registers, 2,
-	     "in=object", "value=char_array",
-	     "Replace last match which char_array",
-	     replaceRegex);
-
-  getMethod(class, NAME_convert, NAME_conversion, "regex", 1, "char_array",
-	    "Converts char_array to regex(pattern)",
-	    getConvertRegex);
-  getMethod(class, NAME_registerStart, NAME_registers, "index=int", 1,
-	    "register=[0..9]",
-	    "Start index of register or match",
-	    getRegisterStartRegex);
-  getMethod(class, NAME_registerEnd, NAME_registers, "index=int", 1,
-	    "register=[0..9]",
-	    "End index of register or match",
-	    getRegisterEndRegex);
-  getMethod(class, NAME_registerSize, NAME_registers, "characters=int", 1,
-	    "register=[0..9]",
-	    "# characters in register or match",
-	    getRegisterSizeRegex);
-  getMethod(class, NAME_registerValue, NAME_registers, "register=any", 3,
-	    "in=object", "register=[0..9]", "type=[type]",
-	    "String of specified register or match",
-	    getRegisterValueRegex);
-  getMethod(class, NAME_registers, NAME_registers, "registers=int", 0,
-	    "Number of \\( ... \\) pairs in pattern",
-	    getRegistersRegex);
-  getMethod(class, NAME_ignoreCase, NAME_pattern, "ignore=bool", 0,
-	    "@on if case is ignored during match",
-	    getIgnoreCaseRegex);
-  getMethod(class, NAME_quote, NAME_pattern, "quoted=string", 1,
-	    "pattern=char_array",
-	    "Quoted version of argument",
-	    getQuoteRegex);
-  getMethod(class, NAME_printName, NAME_textual, "char_array", 0,
-	    "Same as <-pattern (support text_item)",
-	    getPrintNameRegex);
-  getMethod(class, NAME_match, NAME_search, "length=int", 3,
-	    "in=char_array|text_buffer|fragment", "start=[int]", "end=[int]",
-	    "Length of match at indicated position",
-	    getMatchRegex);
-  getMethod(class, NAME_search, NAME_search, "start=int", 3,
-	    "in=char_array|text_buffer|fragment", "start=[int]", "end=[int]",
-	    "->search and return start-position of match",
-	    getSearchRegex);
 
   succeed;
 }

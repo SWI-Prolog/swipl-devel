@@ -47,34 +47,63 @@ radiusBox(Box b, Int r)
 }
 
 
-extern drawPostScriptBox(Box b);
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "width=[int]", "height=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_box[] =
+{ SV(NAME_radius, "int", IV_GET|IV_STORE, radiusBox,
+     NAME_appearance, "Rounding radius for corners"),
+  SV(NAME_shadow, "int", IV_GET|IV_STORE, shadowGraphical,
+     NAME_appearance, "Shadow at bottom-right of box"),
+  SV(NAME_fillPattern, "image|colour*", IV_GET|IV_STORE, fillPatternGraphical,
+     NAME_appearance, "Fill pattern for internals")
+};
+
+/* Send Methods */
+
+static const senddecl send_box[] =
+{ SM(NAME_initialise, 2, T_initialise, initialiseBox,
+     DEFAULT, "Create box from width and height"),
+  SM(NAME_DrawPostScript, 0, NULL, drawPostScriptBox,
+     NAME_postscript, "Create PostScript")
+};
+
+/* Get Methods */
+
+static const getdecl get_box[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_box[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name box_termnames[] = { NAME_width, NAME_height };
+
+ClassDecl(box_decls,
+          var_box, send_box, get_box, rc_box,
+          2, box_termnames,
+          "$Rev$");
+
 
 status
 makeClassBox(Class class)
-{ sourceClass(class, makeClassBox, __FILE__, "$Revision$");
+{ declareClass(class, &box_decls);
 
-  localClass(class, NAME_radius, NAME_appearance, "int", NAME_get,
-	     "Rounding radius for corners");
-  localClass(class, NAME_shadow, NAME_appearance, "int", NAME_get,
-	     "Shadow at bottom-right of box");
-  localClass(class, NAME_fillPattern, NAME_appearance,
-	     "image|colour*", NAME_get,
-	     "Fill pattern for internals");
-
-  termClass(class, "box", 2, NAME_width, NAME_height);
   cloneStyleVariableClass(class, NAME_fillPattern, NAME_reference);
   setRedrawFunctionClass(class, RedrawAreaBox);
-
-  storeMethod(class, NAME_fillPattern, fillPatternGraphical);
-  storeMethod(class, NAME_radius,      radiusBox);
-  storeMethod(class, NAME_shadow,      shadowGraphical);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2, "width=[int]", "height=[int]",
-	     "Create box from width and height",
-	     initialiseBox);
-  sendMethod(class, NAME_DrawPostScript, NAME_postscript, 0,
-	     "Create PostScript",
-	     drawPostScriptBox);
 
   succeed;
 }

@@ -293,90 +293,104 @@ paintArrow(Arrow a, Int tx, Int ty, Int rx, Int ry)
   succeed;
 }
 
-extern drawPostScriptArrow(Arrow a);
+
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_initialise[] =
+        { "length=[int]", "wing=[int]" };
+static const char *T_points[] =
+        { "tip_x=[int]", "tip_y=[int]", "reference_x=[int]", "reference_y=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_arrow[] =
+{ SV(NAME_tip, "point", IV_GET|IV_STORE, tipArrow,
+     NAME_area, "Tip of the arrow"),
+  SV(NAME_reference, "point", IV_GET|IV_STORE, referenceArrow,
+     NAME_area, "Where arrow points to"),
+  SV(NAME_length, "int", IV_GET|IV_STORE, lengthArrow,
+     NAME_area, "Distance tip to base"),
+  SV(NAME_wing, "int", IV_GET|IV_STORE, wingArrow,
+     NAME_area, "Length of base"),
+  SV(NAME_fillPattern, "image|colour*", IV_GET|IV_STORE, fillPatternGraphical,
+     NAME_appearance, "How it is filled"),
+  SV(NAME_style, "{open,closed}", IV_GET|IV_STORE, styleArrow,
+     NAME_appearance, "If `closed', the triangle is closed"),
+  IV(NAME_left, "point", IV_NONE,
+     NAME_internal, "Left-end of base"),
+  IV(NAME_right, "point", IV_NONE,
+     NAME_internal, "Right-end of base")
+};
+
+/* Send Methods */
+
+static const senddecl send_arrow[] =
+{ SM(NAME_compute, 0, NULL, computeArrow,
+     DEFAULT, "Compute <-tip, <-left and <-right"),
+  SM(NAME_initialise, 2, T_initialise, initialiseArrow,
+     DEFAULT, "Create from length and wing"),
+  SM(NAME_points, 4, T_points, pointsArrow,
+     NAME_area, "Set XY of tip and reference"),
+  SM(NAME_referenceX, 1, "int", referenceXArrow,
+     NAME_area, "Set X of reference"),
+  SM(NAME_referenceY, 1, "int", referenceYArrow,
+     NAME_area, "Set Y of reference"),
+  SM(NAME_tipX, 1, "int", tipXArrow,
+     NAME_area, "Set X of tip"),
+  SM(NAME_tipY, 1, "int", tipYArrow,
+     NAME_area, "Set Y of tip"),
+  SM(NAME_DrawPostScript, 0, NULL, drawPostScriptArrow,
+     NAME_postscript, "Create PostScript")
+};
+
+/* Get Methods */
+
+static const getdecl get_arrow[] =
+{ GM(NAME_referenceX, 0, "int", NULL, getReferenceXArrow,
+     NAME_area, "X of reference point"),
+  GM(NAME_referenceY, 0, "int", NULL, getReferenceYArrow,
+     NAME_area, "Y of reference point"),
+  GM(NAME_tipX, 0, "int", NULL, getTipXArrow,
+     NAME_area, "X of tip point"),
+  GM(NAME_tipY, 0, "int", NULL, getTipYArrow,
+     NAME_area, "Y of tip  point")
+};
+
+/* Resources */
+
+static const resourcedecl rc_arrow[] =
+{ RC(NAME_fillPattern, "image|colour", "@black_image",
+     "Fill pattern for the triangle"),
+  RC(NAME_length, "int", "10",
+     "Distance tip to base (10)"),
+  RC(NAME_style, "{open,closed}", "closed",
+     "Whether or not the wing is closed"),
+  RC(NAME_selectionHandles, RC_REFINE, "corner_handles",
+     NULL),
+  RC(NAME_wing, "int", "7",
+     "Width of wing (7)")
+};
+
+/* Class Declaration */
+
+static Name arrow_termnames[] = { NAME_length, NAME_wing };
+
+ClassDecl(arrow_decls,
+          var_arrow, send_arrow, get_arrow, rc_arrow,
+          2, arrow_termnames,
+          "$Rev$");
+
 
 status
 makeClassArrow(Class class)
-{ sourceClass(class, makeClassArrow, __FILE__, "$Revision$");
-
-  localClass(class, NAME_tip, NAME_area, "point", NAME_get,
-	     "Tip of the arrow");
-  localClass(class, NAME_reference, NAME_area, "point", NAME_get,
-	     "Where arrow points to");
-  localClass(class, NAME_length, NAME_area, "int", NAME_get,
-	     "Distance tip to base");
-  localClass(class, NAME_wing, NAME_area, "int", NAME_get,
-	     "Length of base");
-  localClass(class, NAME_fillPattern, NAME_appearance,
-	     "image|colour*", NAME_get,
-	     "How it is filled");
-  localClass(class, NAME_style, NAME_appearance, "{open,closed}", NAME_get,
-	     "If `closed', the triangle is closed");
-  localClass(class, NAME_left, NAME_internal, "point", NAME_none,
-	     "Left-end of base");
-  localClass(class, NAME_right, NAME_internal, "point", NAME_none,
-	     "Right-end of base");
+{ declareClass(class, &arrow_decls);
 
   cloneStyleVariableClass(class, NAME_fillPattern, NAME_reference);
-  termClass(class, "arrow", 2, NAME_length, NAME_wing);
   setRedrawFunctionClass(class, RedrawAreaArrow);
-
-  storeMethod(class, NAME_fillPattern, fillPatternGraphical);
-  storeMethod(class, NAME_length, lengthArrow);
-  storeMethod(class, NAME_reference, referenceArrow);
-  storeMethod(class, NAME_style, styleArrow);
-  storeMethod(class, NAME_tip, tipArrow);
-  storeMethod(class, NAME_wing, wingArrow);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2, "length=[int]", "wing=[int]",
-	     "Create from length and wing",
-	     initialiseArrow);
-  sendMethod(class, NAME_points, NAME_area,
-	     4, "tip_x=[int]", "tip_y=[int]",
-	        "reference_x=[int]", "reference_y=[int]",
-	     "Set XY of tip and reference",
-	     pointsArrow);
-  sendMethod(class, NAME_referenceX, NAME_area, 1, "int",
-	     "Set X of reference",
-	     referenceXArrow);
-  sendMethod(class, NAME_referenceY, NAME_area, 1, "int",
-	     "Set Y of reference",
-	     referenceYArrow);
-  sendMethod(class, NAME_tipX, NAME_area, 1, "int",
-	     "Set X of tip",
-	     tipXArrow);
-  sendMethod(class, NAME_tipY, NAME_area, 1, "int",
-	     "Set Y of tip",
-	     tipYArrow);
-  sendMethod(class, NAME_DrawPostScript, NAME_postscript, 0,
-	     "Create PostScript",
-	     drawPostScriptArrow);
-  sendMethod(class, NAME_compute, DEFAULT, 0,
-	     "Compute <-tip, <-left and <-right",
-	     computeArrow);
-
-  getMethod(class, NAME_referenceX, NAME_area, "int", 0,
-	    "X of reference point",
-	    getReferenceXArrow);
-  getMethod(class, NAME_referenceY, NAME_area, "int", 0,
-	    "Y of reference point",
-	    getReferenceYArrow);
-  getMethod(class, NAME_tipX, NAME_area, "int", 0,
-	    "X of tip point",
-	    getTipXArrow);
-  getMethod(class, NAME_tipY, NAME_area, "int", 0,
-	    "Y of tip  point",
-	    getTipYArrow);
-
-  refine_resource(class, "selection_handles", "corner_handles");
-  attach_resource(class, "length", "int", "10",
-		  "Distance tip to base (10)");
-  attach_resource(class, "wing", "int", "7",
-		  "Width of wing (7)");
-  attach_resource(class, "fill_pattern", "image|colour", "@black_image",
-		  "Fill pattern for the triangle");
-  attach_resource(class, "style", "{open,closed}", "closed",
-		  "Whether or not the wing is closed");
 
   succeed;
 }

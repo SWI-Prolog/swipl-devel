@@ -24,6 +24,7 @@
 	   , memberchk/2
 	   , random/3
 	   , send_list/3
+	   , strip_module/3
 	   , term_to_atom/2
 	   ]).
 
@@ -83,6 +84,7 @@ proto_class(Class, ProtoClass) :-
 
 proto_name(label(reporter, _),	reporter) :- !.
 proto_name(label(_, image(_)),	image) :- !.
+proto_name(label(_, _), label) :- !.	% Lourens van de Meij.  Thanks
 proto_name(menu(_, choice),	choice) :- !.
 proto_name(menu(_, toggle),	toggle) :- !.
 proto_name(menu(_, cycle),	cycle) :- !.

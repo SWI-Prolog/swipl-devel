@@ -34,7 +34,6 @@
 	get_object(+, :, +, +, +, +, +, +, +, +, -),
 	get_object(+, :, +, +, +, +, +, +, +, +, +, -),
 	get_object(+, :, +, +, +, +, +, +, +, +, +, +, -),
-	pce_get_object(+, :, +, -),
 
 	send_list(:, +),
 	send_list(:, +, +),
@@ -48,19 +47,6 @@
 :- require([ pce_error/1
 	   ]).
 
-pce_ifhostproperty(prolog(quintus),
-		   (   pce_get_object(Obj, Sel, Args, Rval) :-
-		       pce_principal:'$pce_get_object'(Obj, Sel, Args, Rval)),
-		   [
-
-(:- use_module(library('../boot/pce_principal'),
-	       [ '$pce_get_object'/4
-	       ])),
-
-(pce_get_object(Obj, Sel, Args, Rval) :-
-	'$pce_get_object'(Obj, Sel, Args, Rval))]).
-
-
 %   get_object(+@Object, +Selector, ...+Argument, ..., -Output)
 %
 %   Succeeds once if Output is the value returned by invoking get method
@@ -69,39 +55,44 @@ pce_ifhostproperty(prolog(quintus),
 %   object descriptions and object names.
 
 get_object(Obj, Sel, Out) :-
-	pce_get_object(Obj, Sel,
-		       arguments, Out).
+	get(Obj, Sel, R),
+	get_to_object(R, Out).
 get_object(Obj, Sel, A1, Out) :-
-	pce_get_object(Obj, Sel,
-		       arguments(A1), Out).
+	get(Obj, Sel, A1, R),
+	get_to_object(R, Out).
 get_object(Obj, Sel, A1, A2, Out) :-
-	pce_get_object(Obj, Sel,
-		       arguments(A1, A2), Out).
+	get(Obj, Sel, A1, A2, R),
+	get_to_object(R, Out).
 get_object(Obj, Sel, A1, A2, A3, Out) :-
-	pce_get_object(Obj, Sel,
-		       arguments(A1, A2, A3), Out).
+	get(Obj, Sel, A1, A2, A3, R),
+	get_to_object(R, Out).
 get_object(Obj, Sel, A1, A2, A3, A4, Out) :-
-	pce_get_object(Obj, Sel,
-		       arguments(A1, A2, A3, A4), Out).
+	get(Obj, Sel, A1, A2, A3, A4, R),
+	get_to_object(R, Out).
 get_object(Obj, Sel, A1, A2, A3, A4, A5, Out) :-
-	pce_get_object(Obj, Sel,
-		       arguments(A1, A2, A3, A4, A5), Out).
+	get(Obj, Sel, A1, A2, A3, A4, A5, R),
+	get_to_object(R, Out).
 get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, Out) :-
-	pce_get_object(Obj, Sel,
-		       arguments(A1, A2, A3, A4, A5, A6), Out).
+	get(Obj, Sel, A1, A2, A3, A4, A5, A6, R),
+	get_to_object(R, Out).
 get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, Out) :-
-	pce_get_object(Obj, Sel,
-		       arguments(A1, A2, A3, A4, A5, A6, A7), Out).
+	get(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, R),
+	get_to_object(R, Out).
 get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, Out) :-
-	pce_get_object(Obj, Sel,
-		       arguments(A1, A2, A3, A4, A5, A6, A7, A8), Out).
+	get(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, R),
+	get_to_object(R, Out).
 get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, A9, Out) :-
-	pce_get_object(Obj, Sel,
-		       arguments(A1, A2, A3, A4, A5, A6, A7, A8, A9), Out).
+	get(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, A9, R),
+	get_to_object(R, Out).
 get_object(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, Out) :-
-	pce_get_object(Obj, Sel,
-		       arguments(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10),
-		       Out).
+	get(Obj, Sel, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, R),
+	get_to_object(R, Out).
+
+get_to_object(Ref, Object) :-
+	(   atomic(Ref)
+	->  Object = Ref
+	;   object(Ref, Object)
+	).
 
 
 %	send_list(+ListOfObjs, +ListOfSels)

@@ -96,42 +96,64 @@ getExecuteCreate(Create c)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "class=name|class", "argument=any|function ..." };
+static const char *T_argument[] =
+        { "index=int", "value=any|function" };
+
+/* Instance Variables */
+
+static const vardecl var_create[] =
+{ IV(NAME_class, "name|class", IV_BOTH,
+     NAME_class, "Class (name) to create instance of"),
+  IV(NAME_argument, "code_vector*", IV_BOTH,
+     NAME_argument, "Arguments used to create instance")
+};
+
+/* Send Methods */
+
+static const senddecl send_create[] =
+{ SM(NAME_initialise, 2, T_initialise, initialiseCreatev,
+     DEFAULT, "Create from class (name) and arguments"),
+  SM(NAME_argument, 2, T_argument, argumentCreate,
+     NAME_argument, "Set nth-1 argument")
+};
+
+/* Get Methods */
+
+static const getdecl get_create[] =
+{ GM(NAME_Arg, 1, "any|function", "int", getArgCreate,
+     DEFAULT, "Nth-1 argument for term description"),
+  GM(NAME_Arity, 0, "int", NULL, getArityCreate,
+     DEFAULT, "Arity for term description"),
+  GM(NAME_Execute, 0, "unchecked", NULL, getExecuteCreate,
+     DEFAULT, "Create instance and return it"),
+  GM(NAME_argument, 1, "value=any|function", "index=int", getArgumentCreate,
+     NAME_argument, "Nth-1 argument")
+};
+
+/* Resources */
+
+static const resourcedecl rc_create[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(create_decls,
+          var_create, send_create, get_create, rc_create,
+          ARGC_UNKNOWN, NULL,
+          "$Rev$");
+
 status
 makeClassCreate(Class class)
-{ sourceClass(class, makeClassCreate, __FILE__, "$Revision$");
-
-  localClass(class, NAME_class, NAME_class, "name|class", NAME_both,
-	     "Class (name) to create instance of");
-  localClass(class, NAME_argument, NAME_argument, "code_vector*", NAME_both,
-	     "Arguments used to create instance");
-
-  termClass(class, "create", ARGC_UNKNOWN);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2,
-	     "class=name|class", "argument=any|function ...",
-	     "Create from class (name) and arguments",
-	     initialiseCreatev);
-  sendMethod(class, NAME_argument, NAME_argument, 2,
-	     "index=int", "value=any|function",
-	     "Set nth-1 argument",
-	     argumentCreate);
-
-  getMethod(class, NAME_Arg, DEFAULT, "any|function", 1, "int",
-	    "Nth-1 argument for term description",
-	    getArgCreate);
-  getMethod(class, NAME_Arity, DEFAULT, "int", 0,
-	    "Arity for term description",
-	    getArityCreate);
-  getMethod(class, NAME_argument, NAME_argument, "value=any|function", 1,
-	    "index=int",
-	    "Nth-1 argument",
-	    getArgumentCreate);
-
-  getMethod(class, NAME_Execute, DEFAULT, "unchecked", 0,
-	     "Create instance and return it",
-	     getExecuteCreate);
-
-  succeed;
+{ return declareClass(class, &create_decls);
 }
 
 

@@ -1796,285 +1796,232 @@ applyMenu(Menu m, Bool always)
   fail;
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_activeItem[] =
+        { "item=member:menu_item", "active=bool" };
+static const char *T_selected[] =
+        { "item=member:menu_item", "selected=bool" };
+static const char *T_initialise[] =
+        { "name=[name]", "kind=[name]", "message=[code]*" };
+
+/* Instance Variables */
+
+static const vardecl var_menu[] =
+{ IV(NAME_selection, "values=any|chain", IV_NONE,
+     NAME_selection, "Value(s) of currently selected menu_items"),
+  IV(NAME_members, "items=chain", IV_GET,
+     NAME_organisation, "Menu items (alternatives)"),
+  IV(NAME_default, "value=any|chain|function*", IV_NONE,
+     NAME_apply, "Default value"),
+  SV(NAME_kind, "kind={cycle,marked,choice,toggle,popup,cycle_popup}", IV_GET|IV_STORE, kindMenu,
+     NAME_appearance, "Kind of menu"),
+  SV(NAME_preview, "item=menu_item*", IV_GET|IV_STORE, previewMenu,
+     NAME_event, "Item in `preview' state"),
+  IV(NAME_previewFeedback, "feedback={box,rounded_box,inverted_rounded_box,invert}", IV_BOTH,
+     NAME_appearance, "Feedback given to item in preview state"),
+  SV(NAME_feedback, "feedback={box,invert,image,show_selection_only}", IV_GET|IV_STORE, feedbackMenu,
+     NAME_appearance, "Type of feedback for selection"),
+  SV(NAME_multipleSelection, "multiple=bool", IV_GET|IV_STORE, multipleSelectionMenu,
+     NAME_selection, "If @on, more than one item may be selected"),
+  SV(NAME_showLabel, "show=bool", IV_GET|IV_STORE, showLabelMenu,
+     NAME_appearance, "Whether label is visible"),
+  SV(NAME_labelFont, "font=font*", IV_GET|IV_STORE, labelFontMenu,
+     NAME_appearance, "Font for label"),
+  SV(NAME_valueFont, "font=font", IV_GET|IV_STORE, valueFontMenu,
+     NAME_appearance, "Font for value"),
+  SV(NAME_valueWidth, "width=0..", IV_GET|IV_STORE, valueWidthMenu,
+     NAME_layout, "Minimum width for values"),
+  SV(NAME_layout, "orientation={horizontal,vertical}", IV_GET|IV_STORE, layoutMenu,
+     NAME_appearance, "Horizontal or vertical layout"),
+  SV(NAME_columns, "number=1..", IV_GET|IV_STORE, columnsMenu,
+     NAME_appearance, "Number of columns"),
+  SV(NAME_format, "alignment={left,center,right}", IV_GET|IV_STORE, formatMenu,
+     NAME_appearance, "Horizontal alignment of items in box"),
+  SV(NAME_verticalFormat, "alignment={top,center,bottom}", IV_GET|IV_STORE, verticalFormatMenu,
+     NAME_appearance, "Vertical alignment of items (and decorations) in box"),
+  SV(NAME_gap, "size", IV_GET|IV_STORE, gapMenu,
+     NAME_layout, "Gap between items"),
+  SV(NAME_border, "width=0..", IV_GET|IV_STORE, borderMenu,
+     NAME_appearance, "Width of border around item"),
+  SV(NAME_onImage, "image=image|{marked}*", IV_GET|IV_STORE, onImageMenu,
+     NAME_appearance, "Left mark if selected equals @on"),
+  SV(NAME_offImage, "image=image|{marked}*", IV_GET|IV_STORE, offImageMenu,
+     NAME_appearance, "Left mark if selected equals @off"),
+  SV(NAME_popupImage, "image=image*", IV_GET|IV_STORE, popupImageMenu,
+     NAME_appearance, "Right mark if popup not equal @nil"),
+  IV(NAME_acceleratorFont, "font=font*", IV_GET,
+     NAME_appearance, "When not @nil, font for accelerators"),
+  SV(NAME_margin, "margin=0..", IV_GET|IV_STORE, marginMenu,
+     NAME_appearance, "Extra margin at left and right side of values (for popup)"),
+  IV(NAME_leftOffset, "offset=0..", IV_GET,
+     NAME_update, "Offset of item in its box (left-side)"),
+  IV(NAME_rightOffset, "offset=0..", IV_GET,
+     NAME_update, "Offset of item in its box (right-side)"),
+  IV(NAME_itemOffset, "offset=point", IV_GET,
+     NAME_update, "Offset of the first item"),
+  IV(NAME_itemSize, "size=size", IV_GET,
+     NAME_update, "Size of item-box"),
+  IV(NAME_labelArea, "area=area*", IV_GET,
+     NAME_update, "Area for the label (if show_label equals @on)")
+};
+
+/* Send Methods */
+
+static const senddecl send_menu[] =
+{ SM(NAME_compute, 0, NULL, computeMenu,
+     DEFAULT, "Compute desired size"),
+  SM(NAME_status, 1, "{inactive,active,preview,execute}", statusMenu,
+     DEFAULT, "Status for event-processing"),
+  SM(NAME_event, 1, "event", eventMenu,
+     DEFAULT, "Process an event"),
+  SM(NAME_initialise, 3, T_initialise, initialiseMenu,
+     DEFAULT, "Create from label, kind and message"),
+  SM(NAME_unlink, 0, NULL, unlinkMenu,
+     DEFAULT, "Unlink from menu-items"),
+  SM(NAME_activeAllItems, 1, "active=bool", activeAllItemsMenu,
+     NAME_active, "(De)activate all items in the menu"),
+  SM(NAME_activeItem, 2, T_activeItem, activeItemMenu,
+     NAME_active, "(De)activate item in menu"),
+  SM(NAME_allOff, 0, NULL, allOffMenu,
+     NAME_active, "Deactivate all menu_items"),
+  SM(NAME_allOn, 0, NULL, allOnMenu,
+     NAME_active, "Activate all menu_items"),
+  SM(NAME_isOff, 1, "item=member:menu_item", isOffMenu,
+     NAME_active, "Test if item is off"),
+  SM(NAME_isOn, 1, "item=member:menu_item", isOnMenu,
+     NAME_active, "Test if item is on"),
+  SM(NAME_off, 1, "item=member:menu_item", offMenu,
+     NAME_active, "Deactivate a menu_item or value"),
+  SM(NAME_on, 1, "item=member:menu_item", onMenu,
+     NAME_active, "Activate a menu_item or value"),
+  SM(NAME_update, 1, "context=[any]", updateMenu,
+     NAME_active, "Evaluate each item's condition"),
+  SM(NAME_apply, 1, "always=[bool]", applyMenu,
+     NAME_apply, "->execute if <-modified or @on"),
+  SM(NAME_default, 1, "value=int|function", defaultMenu,
+     NAME_apply, "Set variable -default and ->selection"),
+  SM(NAME_modified, 1, "modified=bool", modifiedMenu,
+     NAME_apply, "Reset modified flag"),
+  SM(NAME_restore, 0, NULL, restoreMenu,
+     NAME_apply, "Set ->selection to <-default"),
+  SM(NAME_execute, 1, "event=[event]", executeMenu,
+     NAME_execute, "Change selection and forward message"),
+  SM(NAME_append, 1, "item=menu_item", appendMenu,
+     NAME_items, "Append a menu_item, value or popup"),
+  SM(NAME_clear, 0, NULL, clearMenu,
+     NAME_items, "Delete all menu_items"),
+  SM(NAME_delete, 1, "item=member:menu_item", deleteMenu,
+     NAME_items, "Delete a menu_item or value"),
+  SM(NAME_member, 1, "item=member:menu_item", memberMenu,
+     NAME_items, "Test if menu_item or value is member"),
+  SM(NAME_members, 1, "chain", membersMenu,
+     NAME_items, "->clear and ->append members of chain"),
+  SM(NAME_prepend, 1, "item=menu_item", prependMenu,
+     NAME_items, "Prepend a menu_item, value or popup"),
+  SM(NAME_sort, 1, "[code]", sortMenu,
+     NAME_items, "Sort members (see `chain ->sort')"),
+  SM(NAME_labelWidth, 1, "width=[int]", labelWidthMenu,
+     NAME_layout, "Set width in pixels used for label"),
+  SM(NAME_ChangedItem, 1, "changed=menu_item", ChangedItemMenu,
+     NAME_repaint, "Handle change of item"),
+  SM(NAME_clearSelection, 0, NULL, clearSelectionMenu,
+     NAME_selection, "Clear the selection"),
+  SM(NAME_next, 0, NULL, nextMenu,
+     NAME_selection, "Set selection to next (`cycle')"),
+  SM(NAME_selected, 2, T_selected, selectedMenu,
+     NAME_selection, "(De)select a single menu_item or value"),
+  SM(NAME_selection, 1, "selection=member:menu_item|chain*", selectionMenu,
+     NAME_selection, "Select menu_item or value (or chain)")
+};
+
+/* Get Methods */
+
+static const getdecl get_menu[] =
+{ GM(NAME_contains, 0, "items=chain", NULL, getContainsMenu,
+     DEFAULT, "Chain with menu_items contained"),
+  GM(NAME_reference, 0, "point", NULL, getReferenceMenu,
+     DEFAULT, "Baseline of label"),
+  GM(NAME_activeItem, 1, "active=bool", "item=member:menu_item", getActiveItemMenu,
+     NAME_active, "Active value if indicated item"),
+  GM(NAME_default, 0, "value=any|chain", NULL, getDefaultMenu,
+     NAME_apply, "Current default value"),
+  GM(NAME_modified, 0, "modified=bool", NULL, getModifiedMenu,
+     NAME_apply, "If @on, menu has been modified"),
+  GM(NAME_itemFromEvent, 1, "item=menu_item", "event=event", getItemFromEventMenu,
+     NAME_event, "Find item on which event occurred"),
+  GM(NAME_member, 1, "member=menu_item", "value=any", getMemberMenu,
+     NAME_items, "Find menu_item with given value"),
+  GM(NAME_labelWidth, 0, "width=int", NULL, getLabelWidthMenu,
+     NAME_layout, "Minimum width for label in pixels"),
+  GM(NAME_valueWidth, 0, "width=int", NULL, getValueWidthMenu,
+     NAME_layout, "Minimum width for value in pixels"),
+  GM(NAME_selected, 1, "selected=bool", "item=member:menu_item", getSelectedMenu,
+     NAME_selection, "Find out if menu_item or value is selected"),
+  GM(NAME_selection, 0, "values=any|chain*", NULL, getSelectionMenu,
+     NAME_selection, "Get current selection (menu_item<-value or chain)")
+};
+
+/* Resources */
+
+static const resourcedecl rc_menu[] =
+{ RC(NAME_acceleratorFont, "font*", "@nil",
+     "Show the accelerators"),
+  RC(NAME_border, "int", "0",
+     "Border around each item"),
+  RC(NAME_cycleIndicator, "image|elevation", "@cycle_image",
+     "Indication of a ->kind: cycle menu"),
+  RC(NAME_feedback, "name", "image",
+     "Type of feedback for selection"),
+  RC(NAME_format, "{left,center,right}", "left",
+     "Adjust items {left,center,right} in their box"),
+  RC(NAME_gap, "size", "size(0,0)",
+     "Gap between items (XxY)"),
+  RC(NAME_itemElevation, "elevation*", "0",
+     "Elevation of items in the menu"),
+  RC(NAME_kind, "name", "marked",
+     "Default menu kind"),
+  RC(NAME_layout, "name", "horizontal",
+     "Layout of the menu: {horizontal,vertical}"),
+  RC(NAME_margin, "0..", "0",
+     "Margin to the left and right"),
+  RC(NAME_offImage, "image|{marked}*", "@nomark_image",
+     "Marker for items not in selection"),
+  RC(NAME_onImage, "image|{marked}*", "@mark_image",
+     "Marker for items in selection"),
+  RC(NAME_pen, "int", "0",
+     "Thickness of pen around items"),
+  RC(NAME_popupImage, "image*", "@nil",
+     "Marker for items with popup"),
+  RC(NAME_previewElevation, "elevation*", "0",
+     "Elevation of item in preview mode"),
+  RC(NAME_previewFeedback, "name", "box",
+     "Indication item is in preview state"),
+  RC(NAME_showLabel, "bool", "@on",
+     "Show the label"),
+  RC(NAME_valueWidth, "int", "0",
+     "Minimum width for popup menu"),
+  RC(NAME_verticalFormat, "{top,center,bottom}", "center",
+     "Adjust items {top,center,bottom} in their box")
+};
+
+/* Class Declaration */
+
+static Name menu_termnames[] = { NAME_label, NAME_kind, NAME_message };
+
+ClassDecl(menu_decls,
+          var_menu, send_menu, get_menu, rc_menu,
+          3, menu_termnames,
+          "$Rev$");
 
 status
 makeClassMenu(Class class)
-{ sourceClass(class, makeClassMenu, __FILE__, "$Revision$");
-
-  localClass(class, NAME_selection, NAME_selection,
-	     "values=any|chain", NAME_none,
-	     "Value(s) of currently selected menu_items");
-  localClass(class, NAME_members, NAME_organisation,
-	     "items=chain", NAME_get,
-	     "Menu items (alternatives)");  
-  localClass(class, NAME_default, NAME_apply,
-	     "value=any|chain|function*", NAME_none,
-	     "Default value");
-  localClass(class, NAME_kind, NAME_appearance,
-	     "kind={cycle,marked,choice,toggle,popup,cycle_popup}",
-	     NAME_get,
-	     "Kind of menu");
-  localClass(class, NAME_preview, NAME_event, "item=menu_item*", NAME_get,
-	     "Item in `preview' state");
-  localClass(class, NAME_previewFeedback, NAME_appearance,
-	     "feedback={box,rounded_box,inverted_rounded_box,invert}",
-	     NAME_both,
-	     "Feedback given to item in preview state");
-  localClass(class, NAME_feedback, NAME_appearance,
-	     "feedback={box,invert,image,show_selection_only}",
-	     NAME_get,
-	     "Type of feedback for selection");
-  localClass(class, NAME_multipleSelection, NAME_selection,
-	     "multiple=bool", NAME_get,
-	     "If @on, more than one item may be selected");
-  localClass(class, NAME_showLabel, NAME_appearance, "show=bool", NAME_get,
-	     "Whether label is visible");  
-  localClass(class, NAME_labelFont, NAME_appearance, "font=font*", NAME_get,
-	     "Font for label");  
-  localClass(class, NAME_valueFont, NAME_appearance, "font=font", NAME_get,
-	     "Font for value");  
-  localClass(class, NAME_valueWidth, NAME_layout, "width=0..", NAME_get,
-	     "Minimum width for values");
-  localClass(class, NAME_layout, NAME_appearance,
-	     "orientation={horizontal,vertical}", NAME_get,
-	     "Horizontal or vertical layout");  
-  localClass(class, NAME_columns, NAME_appearance, "number=1..", NAME_get,
-	     "Number of columns");
-  localClass(class, NAME_format, NAME_appearance,
-	     "alignment={left,center,right}", NAME_get,
-	     "Horizontal alignment of items in box");
-  localClass(class, NAME_verticalFormat, NAME_appearance,
-	     "alignment={top,center,bottom}", NAME_get,
-	     "Vertical alignment of items (and decorations) in box");
-  localClass(class, NAME_gap, NAME_layout, "size", NAME_get,
-	     "Gap between items");
-  localClass(class, NAME_border, NAME_appearance, "width=0..", NAME_get,
-	     "Width of border around item");
-  localClass(class, NAME_onImage, NAME_appearance,
-	     "image=image|{marked}*", NAME_get,
-	     "Left mark if selected equals @on");  
-  localClass(class, NAME_offImage, NAME_appearance,
-	     "image=image|{marked}*", NAME_get,
-	     "Left mark if selected equals @off");  
-  localClass(class, NAME_popupImage, NAME_appearance,
-	     "image=image*", NAME_get,
-	     "Right mark if popup not equal @nil");  
-  localClass(class, NAME_acceleratorFont, NAME_appearance,
-	     "font=font*", NAME_get,
-	     "When not @nil, font for accelerators");
-  localClass(class, NAME_margin, NAME_appearance, "margin=0..", NAME_get,
-	     "Extra margin at left and right side of values (for popup)");
-
-  localClass(class, NAME_leftOffset, NAME_update, "offset=0..", NAME_get,
-	     "Offset of item in its box (left-side)");
-  localClass(class, NAME_rightOffset, NAME_update, "offset=0..", NAME_get,
-	     "Offset of item in its box (right-side)");
-  localClass(class, NAME_itemOffset, NAME_update, "offset=point", NAME_get,
-	     "Offset of the first item");
-  localClass(class, NAME_itemSize, NAME_update, "size=size", NAME_get,
-	     "Size of item-box");
-  localClass(class, NAME_labelArea, NAME_update, "area=area*", NAME_get,
-	     "Area for the label (if show_label equals @on)");
-
-  termClass(class, "menu", 3, NAME_label, NAME_kind, NAME_message);
+{ declareClass(class, &menu_decls);
   setRedrawFunctionClass(class, RedrawAreaMenu);
-
-  storeMethod(class, NAME_status,	     statusMenu);
-  storeMethod(class, NAME_kind,		     kindMenu);
-  storeMethod(class, NAME_showLabel,	     showLabelMenu);
-  storeMethod(class, NAME_labelFont,	     labelFontMenu);
-  storeMethod(class, NAME_valueFont,	     valueFontMenu);
-  storeMethod(class, NAME_valueWidth,        valueWidthMenu);
-  storeMethod(class, NAME_columns,	     columnsMenu);
-  storeMethod(class, NAME_offImage,	     offImageMenu);
-  storeMethod(class, NAME_onImage,	     onImageMenu);
-  storeMethod(class, NAME_popupImage,	     popupImageMenu);
-  storeMethod(class, NAME_layout,	     layoutMenu);
-  storeMethod(class, NAME_border,	     borderMenu);
-  storeMethod(class, NAME_gap,               gapMenu);
-  storeMethod(class, NAME_format,            formatMenu);
-  storeMethod(class, NAME_verticalFormat,    verticalFormatMenu);
-  storeMethod(class, NAME_multipleSelection, multipleSelectionMenu);
-  storeMethod(class, NAME_preview,           previewMenu);
-  storeMethod(class, NAME_feedback,	     feedbackMenu);
-  storeMethod(class, NAME_margin,	     marginMenu);
-
-  sendMethod(class, NAME_initialise, DEFAULT,
-	     3, "name=[name]", "kind=[name]", "message=[code]*",
-	     "Create from label, kind and message",
-	     initialiseMenu);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Unlink from menu-items",
-	     unlinkMenu);
-  sendMethod(class, NAME_event, DEFAULT, 1, "event",
-	     "Process an event",
-	     eventMenu);
-  sendMethod(class, NAME_execute, NAME_execute, 1, "event=[event]",
-	     "Change selection and forward message",
-	     executeMenu);
-  sendMethod(class, NAME_compute, DEFAULT, 0,
-	     "Compute desired size",
-	     computeMenu);
-  sendMethod(class, NAME_ChangedItem, NAME_repaint, 1, "changed=menu_item",
-	     "Handle change of item",
-	     ChangedItemMenu);
-
-  sendMethod(class, NAME_labelWidth, NAME_layout, 1, "width=[int]",
-	     "Set width in pixels used for label",
-	     labelWidthMenu);
-
-  sendMethod(class, NAME_append, NAME_items, 1, "item=menu_item",
-	     "Append a menu_item, value or popup",
-	     appendMenu);
-  sendMethod(class, NAME_prepend, NAME_items, 1, "item=menu_item",
-	     "Prepend a menu_item, value or popup",
-	     prependMenu);
-  sendMethod(class, NAME_delete, NAME_items, 1, "item=member:menu_item",
-	     "Delete a menu_item or value",
-	     deleteMenu);
-  sendMethod(class, NAME_clear, NAME_items, 0,
-	     "Delete all menu_items",
-	     clearMenu);
-  sendMethod(class, NAME_sort, NAME_items, 1, "[code]",
-	     "Sort members (see `chain ->sort')",
-	     sortMenu);
-  sendMethod(class, NAME_update, NAME_active, 1, "context=[any]",
-	     "Evaluate each item's condition",
-	     updateMenu);
-  sendMethod(class, NAME_activeItem, NAME_active, 2,
-	     "item=member:menu_item", "active=bool",
-	     "(De)activate item in menu",
-	     activeItemMenu);
-  sendMethod(class, NAME_on, NAME_active, 1, "item=member:menu_item",
-	     "Activate a menu_item or value",
-	     onMenu);
-  sendMethod(class, NAME_off, NAME_active, 1, "item=member:menu_item",
-	     "Deactivate a menu_item or value",
-	     offMenu);
-  sendMethod(class, NAME_isOn, NAME_active, 1, "item=member:menu_item",
-	     "Test if item is on",
-	     isOnMenu);
-  sendMethod(class, NAME_isOff, NAME_active, 1, "item=member:menu_item",
-	     "Test if item is off",
-	     isOffMenu);
-  sendMethod(class, NAME_allOn, NAME_active, 0,
-	     "Activate all menu_items",
-	     allOnMenu);
-  sendMethod(class, NAME_allOff, NAME_active, 0,
-	     "Deactivate all menu_items",
-	     allOffMenu);
-  sendMethod(class, NAME_activeAllItems, NAME_active, 1, "active=bool",
-	     "(De)activate all items in the menu",
-	     activeAllItemsMenu);
-  sendMethod(class, NAME_next, NAME_selection, 0,
-	     "Set selection to next (`cycle')",
-	     nextMenu);
-  sendMethod(class, NAME_selection, NAME_selection, 1,
-	     "selection=member:menu_item|chain*",
-	     "Select menu_item or value (or chain)",
-	     selectionMenu);
-  sendMethod(class, NAME_clearSelection, NAME_selection, 0,
-	     "Clear the selection",
-	     clearSelectionMenu);
-  sendMethod(class, NAME_selected, NAME_selection, 2,
-	     "item=member:menu_item", "selected=bool",
-	     "(De)select a single menu_item or value",
-	     selectedMenu);
-  sendMethod(class, NAME_member, NAME_items, 1, "item=member:menu_item",
-	     "Test if menu_item or value is member",
-	     memberMenu);
-  sendMethod(class, NAME_members, NAME_items, 1, "chain",
-	     "->clear and ->append members of chain",
-	     membersMenu);
-  sendMethod(class, NAME_restore, NAME_apply, 0,
-	     "Set ->selection to <-default",
-	     restoreMenu);
-  sendMethod(class, NAME_default, NAME_apply, 1, "value=int|function",
-	     "Set variable -default and ->selection",
-	     defaultMenu);
-  sendMethod(class, NAME_apply, NAME_apply, 1, "always=[bool]",
-	     "->execute if <-modified or @on",
-	     applyMenu);
-  sendMethod(class, NAME_modified, NAME_apply, 1, "modified=bool",
-	     "Reset modified flag",
-	     modifiedMenu);
-
-  getMethod(class, NAME_selection, NAME_selection, "values=any|chain*", 0,
-	    "Get current selection (menu_item<-value or chain)",
-	    getSelectionMenu);
-  getMethod(class, NAME_selected, NAME_selection, "selected=bool", 1,
-	    "item=member:menu_item",
-	    "Find out if menu_item or value is selected",
-	    getSelectedMenu);
-  getMethod(class, NAME_labelWidth, NAME_layout, "width=int", 0,
-	    "Minimum width for label in pixels",
-	    getLabelWidthMenu);
-  getMethod(class, NAME_valueWidth, NAME_layout, "width=int", 0,
-	    "Minimum width for value in pixels",
-	    getValueWidthMenu);
-  getMethod(class, NAME_member, NAME_items, "member=menu_item", 1, "value=any",
-	    "Find menu_item with given value",
-	    getMemberMenu);
-  getMethod(class, NAME_activeItem, NAME_active, "active=bool", 1,
-	    "item=member:menu_item",
-	    "Active value if indicated item",
-	    getActiveItemMenu);
-  getMethod(class, NAME_contains, DEFAULT, "items=chain", 0,
-	    "Chain with menu_items contained",
-	    getContainsMenu);
-  getMethod(class, NAME_itemFromEvent, NAME_event, "item=menu_item", 1,
-	    "event=event",
-	    "Find item on which event occurred",
-	    getItemFromEventMenu);
-  getMethod(class, NAME_modified, NAME_apply, "modified=bool", 0,
-	    "If @on, menu has been modified",
-	    getModifiedMenu);
-  getMethod(class, NAME_default, NAME_apply, "value=any|chain", 0,
-	    "Current default value",
-	    getDefaultMenu);
-  getMethod(class, NAME_reference, DEFAULT, "point", 0,
-	    "Baseline of label",
-	    getReferenceMenu);
-
-
-  attach_resource(class, "kind",       "name",    "marked",
-		  "Default menu kind");
-  attach_resource(class, "preview_feedback", "name", "box",
-		  "Indication item is in preview state");
-  attach_resource(class, "feedback",   "name",    "image",
-		  "Type of feedback for selection");
-  attach_resource(class, "pen",	       "int",	  "0",
-		  "Thickness of pen around items");
-  attach_resource(class, "show_label", "bool",	  "@on",
-		  "Show the label");
-  attach_resource(class, "accelerator_font", "font*", "@nil",
-		  "Show the accelerators");
-  attach_resource(class, "value_width", "int",     "0",
-		  "Minimum width for popup menu");
-  attach_resource(class, "layout",     "name",	  "horizontal",
-		  "Layout of the menu: {horizontal,vertical}");
-  attach_resource(class, "format",     "{left,center,right}",	  "left",
-		  "Adjust items {left,center,right} in their box");
-  attach_resource(class, "vertical_format", "{top,center,bottom}", "center",
-		  "Adjust items {top,center,bottom} in their box");
-  attach_resource(class, "gap",	       "size",    "size(0,0)",
-		  "Gap between items (XxY)");
-  attach_resource(class, "border",     "int",	  "0",
-		  "Border around each item");
-  attach_resource(class, "on_image",   "image|{marked}*", "@mark_image",
-		  "Marker for items in selection");
-  attach_resource(class, "off_image",  "image|{marked}*", "@nomark_image",
-		  "Marker for items not in selection");
-  attach_resource(class, "popup_image", "image*",  "@nil",
-		  "Marker for items with popup");
-  attach_resource(class, "cycle_indicator", "image|elevation", "@cycle_image",
-		  "Indication of a ->kind: cycle menu");
-  attach_resource(class, "margin", "0..",  "0",
-		  "Margin to the left and right");
-  attach_resource(class, "item_elevation", "elevation*",  "0",
-		  "Elevation of items in the menu");
-  attach_resource(class, "preview_elevation", "elevation*",  "0",
-		  "Elevation of item in preview mode");
 
   succeed;
 }

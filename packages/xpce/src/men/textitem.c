@@ -883,179 +883,162 @@ WantsKeyboardFocusTextItem(TextItem ti)
   fail;
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "name=[name]", "default=[any|function]", "message=[code]*" };
+static const char *T_delegate[] =
+        { "program_object", "text", "unchecked ..." };
+static const char *T_selectCompletion[] =
+        { "value_set=chain", "prefix=[char_array]" };
+static const char *T_geometry[] =
+        { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_textItem[] =
+{ SV(NAME_selection, "any", IV_NONE|IV_STORE, selectionTextItem,
+     NAME_selection, "Current value"),
+  IV(NAME_default, "any|function", IV_NONE,
+     NAME_apply, "The default value"),
+  IV(NAME_printName, "char_array", IV_NONE,
+     NAME_textual, "Text-representation of <->selection"),
+  IV(NAME_type, "type", IV_BOTH,
+     NAME_type, "Value-type of the selection"),
+  IV(NAME_valueSet, "[chain|function]*", IV_BOTH,
+     NAME_complete, "Set of possible values"),
+  IV(NAME_advance, "{next,clear,none}", IV_BOTH,
+     NAME_action, "If `next', proceed to next in window"),
+  SV(NAME_length, "int", IV_GET|IV_STORE, lengthTextItem,
+     NAME_area, "Length of entry field in characters"),
+  SV(NAME_valueFont, "font", IV_GET|IV_STORE, valueFontTextItem,
+     NAME_appearance, "Font for entry field"),
+  SV(NAME_labelFont, "font", IV_GET|IV_STORE, labelFontTextItem,
+     NAME_appearance, "Font for label"),
+  SV(NAME_showLabel, "bool", IV_GET|IV_STORE, showLabelTextItem,
+     NAME_appearance, "Whether label is visible"),
+  SV(NAME_valueText, "text", IV_GET|IV_SUPER, NAME_delegate,
+     NAME_visualisation, "Graphical text object for selection"),
+  SV(NAME_editable, "bool", IV_GET|IV_STORE, editableTextItem,
+     NAME_event, "TextItem may be edited"),
+  IV(NAME_valueWidth, "[int]", IV_NONE,
+     NAME_layout, "Width of the value-part in pixels")
+};
+
+/* Send Methods */
+
+static const senddecl send_textItem[] =
+{ SM(NAME_compute, 0, NULL, computeTextItem,
+     DEFAULT, "Compute desired size"),
+  SM(NAME_geometry, 4, T_geometry, geometryTextItem,
+     DEFAULT, "Resize the image"),
+  SM(NAME_initialise, 3, T_initialise, initialiseTextItem,
+     DEFAULT, "Create from label, selection and message"),
+  SM(NAME_status, 1, "{inactive,active,preview,execute}", statusTextItem,
+     DEFAULT, "Status for event-processing"),
+  SM(NAME_quitCompleter, 0, NULL, quitCompleterTextItem,
+     NAME_abort, "Remove completer"),
+  SM(NAME_reset, 0, NULL, quitCompleterTextItem,
+     NAME_abort, "Remove completer"),
+  SM(NAME_enter, 1, "[event_id]", enterTextItem,
+     NAME_action, "Default handling for RETURN"),
+  SM(NAME_execute, 0, NULL, executeTextItem,
+     NAME_action, "Execute related message"),
+  SM(NAME_apply, 1, "[bool]", applyTextItem,
+     NAME_apply, "->execute if <-modified or @on"),
+  SM(NAME_default, 1, "any|function", defaultTextItem,
+     NAME_apply, "Set variable -default and ->selection"),
+  SM(NAME_modified, 1, "bool", modifiedTextItem,
+     NAME_apply, "Reset modified flag"),
+  SM(NAME_restore, 0, NULL, restoreTextItem,
+     NAME_apply, "Set ->selection to <-default"),
+  SM(NAME_valueWidth, 1, "int", valueWidthTextItem,
+     NAME_area, "Set width of value-part in pixels"),
+  SM(NAME_width, 1, "characters=int", lengthTextItem,
+     NAME_area, "Equivalent to ->length"),
+  SM(NAME_next, 0, NULL, nextTextItem,
+     NAME_caret, "Advance to next item in same <-device"),
+  SM(NAME_complete, 1, "[event_id]", completeTextItem,
+     NAME_complete, "Complete current value"),
+  SM(NAME_indicateDirectory, 1, "text=string", indicateDirectoryTextItem,
+     NAME_complete, "Indicate current value is a `directory'"),
+  SM(NAME_keyboardQuit, 0, NULL, keyboardQuitTextItem,
+     NAME_complete, "Remove completer and ->alert"),
+  SM(NAME_selectCompletion, 2, T_selectCompletion, selectCompletionTextItem,
+     NAME_complete, "Select candidate expansion using browser"),
+  SM(NAME_selectedCompletion, 1, "dict_item", selectedCompletionTextItem,
+     NAME_complete, "Handle selection from browser"),
+  SM(NAME_delegate, 3, T_delegate, delegateTextItem,
+     NAME_delegate, "Delegate to <-value_text and update"),
+  SM(NAME_WantsKeyboardFocus, 0, NULL, WantsKeyboardFocusTextItem,
+     NAME_event, "Test if ready to accept input"),
+  SM(NAME_event, 1, "event", eventTextItem,
+     NAME_event, "Process user event"),
+  SM(NAME_typed, 1, "event_id", typedTextItem,
+     NAME_event, "Process event with given id"),
+  SM(NAME_labelWidth, 1, "[int]", labelWidthTextItem,
+     NAME_layout, "Width of label in pixels"),
+  SM(NAME_clear, 0, NULL, clearTextItem,
+     NAME_selection, "Clear entry field"),
+  SM(NAME_paste, 1, "[int]", pasteTextItem,
+     NAME_selection, "Paste value of cut-buffer"),
+  SM(NAME_displayedValue, 1, "char_array", displayedValueTextItem,
+     NAME_textual, "Visible (typed) textual value")
+};
+
+/* Get Methods */
+
+static const getdecl get_textItem[] =
+{ GM(NAME_reference, 0, "point", NULL, getReferenceTextItem,
+     DEFAULT, "Baseline of label"),
+  GM(NAME_default, 0, "any", NULL, getDefaultTextItem,
+     NAME_apply, "Current default value"),
+  GM(NAME_modified, 0, "bool", NULL, getModifiedTextItem,
+     NAME_apply, "Test if item has been modified"),
+  GM(NAME_completions, 1, "chain", "char_array|tuple", getCompletionsTextItem,
+     NAME_complete, "Chain of `files' for dir/file"),
+  GM(NAME_splitCompletion, 1, "char_array|tuple", "value=char_array", getSplitCompletionTextItem,
+     NAME_complete, "Split value in `directory'- and `file' part"),
+  GM(NAME_labelWidth, 0, "int", NULL, getLabelWidthTextItem,
+     NAME_layout, "Width required to display label"),
+  GM(NAME_selection, 0, "any", NULL, getSelectionTextItem,
+     NAME_selection, "Current value of the selection"),
+  GM(NAME_displayedValue, 0, "char_array", NULL, getDisplayedValueTextItem,
+     NAME_textual, "Visible (typed) textual value"),
+  GM(NAME_printNameOfValue, 1, "char_array", "any", getPrintNameOfValueTextItem,
+     NAME_textual, "Determine printable representation")
+};
+
+/* Resources */
+
+static const resourcedecl rc_textItem[] =
+{ RC(NAME_border, "0..", "0",
+     "Border around <-value_text"),
+  RC(NAME_length, "int", "25",
+     "Width of area for selection (chars)"),
+  RC(NAME_pen, "int", "1",
+     "Thickness of line below selection"),
+  RC(NAME_searchIgnoreCase, "bool", "@on",
+     "@on: ignore case for completion")
+};
+
+/* Class Declaration */
+
+static Name textItem_termnames[] = { NAME_label, NAME_selection, NAME_message };
+
+ClassDecl(textItem_decls,
+          var_textItem, send_textItem, get_textItem, rc_textItem,
+          3, textItem_termnames,
+          "$Rev$");
 
 status
 makeClassTextItem(Class class)
-{ sourceClass(class, makeClassTextItem, __FILE__, "$Revision$");
-
-  localClass(class, NAME_selection, NAME_selection, "any", NAME_none,
-	     "Current value");
-  localClass(class, NAME_default, NAME_apply, "any|function", NAME_none,
-	     "The default value");
-  localClass(class, NAME_printName, NAME_textual, "char_array", NAME_none,
-	     "Text-representation of <->selection");
-  localClass(class, NAME_type, NAME_type, "type", NAME_both,
-	     "Value-type of the selection");
-  localClass(class, NAME_valueSet, NAME_complete, "[chain|function]*",
-	     NAME_both,
-	     "Set of possible values");
-  localClass(class, NAME_advance, NAME_action, "{next,clear,none}", NAME_both,
-	     "If `next', proceed to next in window");
-  localClass(class, NAME_length, NAME_area, "int", NAME_get,
-	     "Length of entry field in characters");
-  localClass(class, NAME_valueFont, NAME_appearance, "font", NAME_get,
-	     "Font for entry field");
-  localClass(class, NAME_labelFont, NAME_appearance, "font", NAME_get,
-	     "Font for label");
-  localClass(class, NAME_showLabel, NAME_appearance, "bool", NAME_get,
-	     "Whether label is visible");
-  superClass(class, NAME_valueText, NAME_visualisation, "text",
-	     NAME_get, NAME_delegate,
-	     "Graphical text object for selection");
-  localClass(class, NAME_editable, NAME_event, "bool", NAME_get,
-	     "TextItem may be edited");
-  localClass(class, NAME_valueWidth, NAME_layout, "[int]", NAME_none,
-	     "Width of the value-part in pixels");
-
-  termClass(class, "text_item", 3, NAME_label, NAME_selection, NAME_message);
+{ declareClass(class, &textItem_decls);
   setRedrawFunctionClass(class, RedrawAreaTextItem);
-
-  storeMethod(class, NAME_selection, selectionTextItem);
-  storeMethod(class, NAME_labelFont, labelFontTextItem);
-  storeMethod(class, NAME_showLabel, showLabelTextItem);
-  storeMethod(class, NAME_valueFont, valueFontTextItem);
-  storeMethod(class, NAME_status,    statusTextItem);
-  storeMethod(class, NAME_length,    lengthTextItem);
-  storeMethod(class, NAME_editable,  editableTextItem);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 3,
-	     "name=[name]", "default=[any|function]", "message=[code]*",
-	     "Create from label, selection and message",
-	     initialiseTextItem);
-  sendMethod(class, NAME_compute, DEFAULT, 0,
-	     "Compute desired size",
-	     computeTextItem);
-  sendMethod(class, NAME_geometry, DEFAULT, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Resize the image",
-	     geometryTextItem);
-  sendMethod(class, NAME_clear, NAME_selection, 0,
-	     "Clear entry field",
-	     clearTextItem);
-  sendMethod(class, NAME_restore, NAME_apply, 0,
-	     "Set ->selection to <-default",
-	     restoreTextItem);
-  sendMethod(class, NAME_default, NAME_apply, 1, "any|function",
-	     "Set variable -default and ->selection",
-	     defaultTextItem);
-  sendMethod(class, NAME_apply, NAME_apply, 1, "[bool]",
-	     "->execute if <-modified or @on",
-	     applyTextItem);
-  sendMethod(class, NAME_enter, NAME_action, 1, "[event_id]",
-	     "Default handling for RETURN",
-	     enterTextItem);
-  sendMethod(class, NAME_displayedValue, NAME_textual, 1, "char_array",
-	     "Visible (typed) textual value",
-	     displayedValueTextItem);
-
-  sendMethod(class, NAME_keyboardQuit, NAME_complete, 0,
-	     "Remove completer and ->alert",
-	     keyboardQuitTextItem);
-  sendMethod(class, NAME_selectCompletion, NAME_complete, 2,
-	     "value_set=chain", "prefix=[char_array]",
-	     "Select candidate expansion using browser",
-	     selectCompletionTextItem);
-  sendMethod(class, NAME_selectedCompletion, NAME_complete, 1, "dict_item",
-	     "Handle selection from browser",
-	     selectedCompletionTextItem);
-  sendMethod(class, NAME_complete, NAME_complete, 1, "[event_id]",
-	     "Complete current value",
-	     completeTextItem);
-  sendMethod(class, NAME_indicateDirectory, NAME_complete, 1, "text=string",
-	     "Indicate current value is a `directory'",
-	     indicateDirectoryTextItem);
-  sendMethod(class, NAME_reset, NAME_abort, 0,
-	     "Remove completer",
-	     quitCompleterTextItem);
-  sendMethod(class, NAME_quitCompleter, NAME_abort, 0,
-	     "Remove completer",
-	     quitCompleterTextItem);
-
-  sendMethod(class, NAME_event, NAME_event, 1, "event",
-	     "Process user event",
-	     eventTextItem);
-  sendMethod(class, NAME_typed, NAME_event, 1, "event_id",
-	     "Process event with given id",
-	     typedTextItem);
-  sendMethod(class, NAME_execute, NAME_action, 0,
-	     "Execute related message",
-	     executeTextItem);
-  sendMethod(class, NAME_width, NAME_area, 1, "characters=int",
-	     "Equivalent to ->length",
-	     lengthTextItem);
-  sendMethod(class, NAME_WantsKeyboardFocus, NAME_event, 0,
-	     "Test if ready to accept input",
-	     WantsKeyboardFocusTextItem);
-  sendMethod(class, NAME_next, NAME_caret, 0,
-	     "Advance to next item in same <-device",
-	     nextTextItem);
-  sendMethod(class, NAME_labelWidth, NAME_layout, 1, "[int]",
-	     "Width of label in pixels",
-	     labelWidthTextItem);
-  sendMethod(class, NAME_paste, NAME_selection, 1, "[int]",
-	     "Paste value of cut-buffer",
-	     pasteTextItem);
-  sendMethod(class, NAME_modified, NAME_apply, 1, "bool",
-	     "Reset modified flag",
-	     modifiedTextItem);
-  sendMethod(class, NAME_delegate, NAME_delegate,
-	     3, "program_object", "text", "unchecked ...",
-	     "Delegate to <-value_text and update",
-	     delegateTextItem);
-  sendMethod(class, NAME_valueWidth, NAME_area, 1, "int",
-	     "Set width of value-part in pixels",
-	     valueWidthTextItem);
-
-  getMethod(class, NAME_labelWidth, NAME_layout, "int", 0,
-	    "Width required to display label",
-	    getLabelWidthTextItem);
-  getMethod(class, NAME_selection, NAME_selection, "any", 0,
-	    "Current value of the selection",
-	    getSelectionTextItem);
-  getMethod(class, NAME_modified, NAME_apply, "bool", 0,
-	    "Test if item has been modified",
-	    getModifiedTextItem);
-  getMethod(class, NAME_printNameOfValue, NAME_textual, "char_array", 1, "any",
-	    "Determine printable representation",
-	    getPrintNameOfValueTextItem);
-  getMethod(class, NAME_default, NAME_apply, "any", 0,
-	    "Current default value",
-	    getDefaultTextItem);
-  getMethod(class, NAME_displayedValue, NAME_textual, "char_array", 0,
-	    "Visible (typed) textual value",
-	    getDisplayedValueTextItem);
-
-  getMethod(class, NAME_splitCompletion, NAME_complete, "char_array|tuple", 1,
-	    "value=char_array",
-	    "Split value in `directory'- and `file' part",
-	    getSplitCompletionTextItem);
-  getMethod(class, NAME_completions, NAME_complete, "chain", 1,
-	    "char_array|tuple",
-	    "Chain of `files' for dir/file",
-	    getCompletionsTextItem);
-  getMethod(class, NAME_reference, DEFAULT, "point", 0,
-	    "Baseline of label",
-	    getReferenceTextItem);
-
-
-  attach_resource(class, "length",     "int", "25",
-		  "Width of area for selection (chars)");
-  attach_resource(class, "pen",        "int", "1",
-		  "Thickness of line below selection");
-  attach_resource(class, "search_ignore_case", "bool", "@on",
-		  "@on: ignore case for completion");
-  attach_resource(class, "border", "0..", "0",
-		  "Border around <-value_text");
 
   succeed;
 }

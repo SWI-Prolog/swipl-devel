@@ -43,10 +43,9 @@ XPCESO= 	$(LIBDIR)/pl2xpce.$(SO)
 SOEXTR=		$(addprefix $(OBJDIR)/, $(SOEXTRAOBJ))
 
 CFLAGS= 	$(COFLAGS) $(CMFLAGS) $(CPLIFLAGS)
-ITF=		../../prolog/c/interface.c ../../prolog/c/interface.h
 SOOBJ=		$(SOITF) $(SOEXTR)
 
-PCEPLS=		pce_expand.pl english/pce_messages.pl pce_pl.pl \
+PCEPLS=		pce_expand.pl ../lib/english/pce_messages.pl pce_pl.pl \
 		pce_principal.pl pce_error.pl pce_autoload.pl pce_global.pl \
 		pce_operator.pl pce_expansion.pl pce_realise.pl pce_editor.pl
 BOOTQLF=	pce.qlf
@@ -66,8 +65,8 @@ soall:		$(PLBASE)/plrc $(PLBASE)/xpce $(PLBASE)/Makefile \
 # Objects for $(OBJDIR)
 ################################################################
 
-$(OBJDIR)/interface.o:	interface.c $(ITF) 
-		$(CC) -c $(CFLAGS) $< -o $@
+$(OBJDIR)/interface.o:	interface.c
+		$(CC) -c $(CFLAGS) -DSWI $< -o $@
 $(OBJDIR)/link.o:	link.c
 		$(CC) -c $(CFLAGS) $< -o $@
 
@@ -89,7 +88,7 @@ $(QLF):		$(XPCE)
 ################################################################
 
 $(SOITF):	interface.c
-		$(CC) -DO_SHAREDLIBRARY $(CFLAGS) -c $< -o $@
+		$(CC) -DO_SHAREDLIBRARY $(CFLAGS) -DSWI -c $< -o $@
 		
 $(OBJDIR)/Initialize.o:	
 		ar x $(XLIB)/libXt.a $@

@@ -50,6 +50,7 @@ changequote([,])dnl
 swipl=yes
 runtime=no
 
+
 AC_ARG_ENABLE(syslibh, [  --enable-syslibh	  Prototype file to enable gcc -Wall],
 	      [case "$enableval" in
 	          yes)	AC_DEFINE(SYSLIB_H, <h/syslib.h>)
@@ -63,6 +64,11 @@ AC_ARG_WITH(pl, [  --without-pl		  Donot include SWI-Prolog],
 		yes)	swipl=yes ;;
 		no)     swipl=no ;;
 	     esac])
+AC_ARG_ENABLE(shared, [  --enable-shared	  Prepare for shared lib],
+	      [case "$enableval" in
+		   yes) MAKE_SHARED_OBJECT=yes ;;
+		   no)  MAKE_SHARED_OBJECT=no ;;
+	       esac])
 AC_ARG_ENABLE(runtime, [  --enable-runtime	  Runtime system only],
 	      [case "$enableval" in
 		   yes) AC_DEFINE(O_RUNTIME)
@@ -157,8 +163,6 @@ changequote([,])dnl
   fi
   
   case "$PLARCH" in
-      *-solaris | *-sunos5)	STATICLIBS="/usr/lib/libc.a" ;;
-      *-linux)			STATICLIBS="/usr/lib/libc.a" ;;
       *)			STATICLIBS="$PLSTATICLIBS"
 				LDFLAGS="$PLLDFLAGS" ;;
   esac
@@ -173,8 +177,15 @@ dnl other dynamic linkable object.  This isn't easy and and is mostly
 dnl done on the basis what I know to work for specific operating systems.
 dnl How to make this any better?
 dnl
-dnl Only the sunos and solaris version are supposed to really work. Rest
-dnl needs to be validated.
+dnl Only the sunos, solaris and linux version are supposed to really work.
+dnl Rest needs to be validated.
+
+if test -z "$MAKE_SHARED_OBJECT"; then
+  case "$OS" in
+    *solaris* | *sunos* | *linux* | *irix*)
+      MAKE_SHARED_OBJECT=yes;;
+  esac
+fi
 
 if test "$MAKE_SHARED_OBJECT" = "yes"; then
   if test ! -z "$GCC"; then
@@ -201,20 +212,19 @@ EOF
   PLTARGET=soall
 
   case "$OS" in
-    *solaris* | *sunos5*)	LDSOFLAGS="-G"
+    *solaris* | *sunos5*)	LD=gcc
+				LDSOFLAGS="-shared"
     				;;
     *sunos*)			LDSOFLAGS=""
 				SOEXTRAOBJ=Initialize.o
 				;;
-    *linux*)			SO="so"
-				LD=gcc
+    *linux*)			LD=gcc
 				LDSOFLAGS="-shared"
 				;;
-    *irix*)			SO="so"
-				LDSOFLAGS="-shared"
+    *irix*)			LD=gcc
+    				LDSOFLAGS="-shared"
 				;;
-    *osf1*)			SO="so"
-				LDSOFLAGS="-shared"
+    *osf1*)			LDSOFLAGS="-shared"
 				;;
     *aix*)			SO="o"
 				LDSOFLAGS="-bI:$PLBASE/include/SWI-Exports"

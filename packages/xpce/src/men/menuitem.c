@@ -260,85 +260,94 @@ getContainedInMenuItem(MenuItem mi)
 { answer(mi->menu);
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_value[] =
+        { "value=any", "label=[name|image]" };
+static const char *T_initialise[] =
+        { "value=any", "message=[code]*", "label=[name|image]", "end_group=[bool]", "condition=[code]*", "accelerator=[name]" };
+
+/* Instance Variables */
+
+static const vardecl var_menuItem[] =
+{ IV(NAME_menu, "menu*", IV_GET,
+     NAME_organisation, "Menu I'm part of"),
+  IV(NAME_value, "any", IV_GET,
+     NAME_value, "Value of the item"),
+  SV(NAME_message, "[code]*", IV_BOTH|IV_STORE, messageMenuItem,
+     NAME_action, "Message sent when selected"),
+  SV(NAME_label, "[name|image]", IV_GET|IV_STORE, labelMenuItem,
+     NAME_appearance, "Image or string displayed"),
+  SV(NAME_font, "[font]", IV_GET|IV_STORE, fontMenuItem,
+     NAME_appearance, "Font for label"),
+  SV(NAME_colour, "[colour]", IV_GET|IV_STORE, colourMenuItem,
+     NAME_appearance, "Colour for label"),
+  SV(NAME_selected, "bool", IV_GET|IV_STORE, selectedMenuItem,
+     NAME_selection, "Member of menu-selection"),
+  SV(NAME_active, "bool", IV_GET|IV_STORE, activeMenuItem,
+     NAME_active, "Can be selected by user"),
+  IV(NAME_condition, "code*", IV_BOTH,
+     NAME_active, "If true, item becomes active"),
+  SV(NAME_endGroup, "bool", IV_GET|IV_STORE, endGroupMenuItem,
+     NAME_group, "Popup: add separation-line"),
+  SV(NAME_popup, "popup*", IV_GET|IV_STORE, popupMenuItem,
+     NAME_menu, "Associated popup (pull-right)"),
+  IV(NAME_accelerator, "name*", IV_BOTH,
+     NAME_accelerator, "Activate when ->key: name is received")
+};
+
+/* Send Methods */
+
+static const senddecl send_menuItem[] =
+{ SM(NAME_initialise, 6, T_initialise, initialiseMenuItem,
+     DEFAULT, "Create from value, message, label, end and cond"),
+  SM(NAME_unlink, 0, NULL, unlinkMenuItem,
+     DEFAULT, "Unlink from menu"),
+  SM(NAME_value, 2, T_value, valueMenuItem,
+     DEFAULT, "Set value and recompute label"),
+  SM(NAME_off, 0, NULL, offMenuItem,
+     NAME_active, "Deactivate item"),
+  SM(NAME_on, 0, NULL, onMenuItem,
+     NAME_active, "Activate item")
+};
+
+/* Get Methods */
+
+static const getdecl get_menuItem[] =
+{ GM(NAME_containedIn, 0, "menu", NULL, getContainedInMenuItem,
+     DEFAULT, "Menu I'm contained in"),
+  GM(NAME_convert, 1, "menu_item", "value=any", getConvertMenuItem,
+     DEFAULT, "Convert value"),
+  GM(NAME_printName, 0, "char_array", NULL, getPrintNameMenuItem,
+     DEFAULT, "<-print_name of <-value"),
+  GM(NAME_message, 0, "message=[code]*", NULL, getMessageMenuItem,
+     NAME_action, "Message that will be executed"),
+  GM(NAME_defaultLabel, 1, "label=name|image", "value=any", getDefaultLabelMenuItem,
+     NAME_label, "Compute default label from value")
+};
+
+/* Resources */
+
+static const resourcedecl rc_menuItem[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name menuItem_termnames[] = { NAME_value, NAME_message, NAME_label, NAME_endGroup, NAME_condition, NAME_accelerator };
+
+ClassDecl(menuItem_decls,
+          var_menuItem, send_menuItem, get_menuItem, rc_menuItem,
+          6, menuItem_termnames,
+          "$Rev$");
+
 
 status
 makeClassMenuItem(Class class)
-{ sourceClass(class, makeClassMenuItem, __FILE__, "$Revision$");
-
-  localClass(class, NAME_menu, NAME_organisation, "menu*", NAME_get,
-	     "Menu I'm part of");
-  localClass(class, NAME_value, NAME_value, "any", NAME_get,
-	     "Value of the item");
-  localClass(class, NAME_message, NAME_action, "[code]*", NAME_both,
-	     "Message sent when selected");
-  localClass(class, NAME_label, NAME_appearance, "[name|image]", NAME_get,
-	     "Image or string displayed");
-  localClass(class, NAME_font, NAME_appearance, "[font]", NAME_get,
-	     "Font for label");
-  localClass(class, NAME_colour, NAME_appearance, "[colour]", NAME_get,
-	     "Colour for label");
-  localClass(class, NAME_selected, NAME_selection, "bool", NAME_get,
-	     "Member of menu-selection");
-  localClass(class, NAME_active, NAME_active, "bool", NAME_get,
-	     "Can be selected by user");
-  localClass(class, NAME_condition, NAME_active, "code*", NAME_both,
-	     "If true, item becomes active");
-  localClass(class, NAME_endGroup, NAME_group, "bool", NAME_get,
-	     "Popup: add separation-line");
-  localClass(class, NAME_popup, NAME_menu, "popup*", NAME_get,
-	     "Associated popup (pull-right)");
-  localClass(class, NAME_accelerator, NAME_accelerator, "name*", NAME_both,
-	     "Activate when ->key: name is received");
-
-
-  termClass(class, "menu_item",
-	    6, NAME_value, NAME_message, NAME_label,
-	       NAME_endGroup, NAME_condition, NAME_accelerator);
-				   
-  storeMethod(class, NAME_message,  messageMenuItem);
-  storeMethod(class, NAME_active,   activeMenuItem);
-  storeMethod(class, NAME_label,    labelMenuItem);
-  storeMethod(class, NAME_font,     fontMenuItem);
-  storeMethod(class, NAME_colour,   colourMenuItem);
-  storeMethod(class, NAME_endGroup, endGroupMenuItem);
-  storeMethod(class, NAME_popup,    popupMenuItem);
-  storeMethod(class, NAME_selected, selectedMenuItem);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 6,
-	     "value=any", "message=[code]*", "label=[name|image]",
-	     "end_group=[bool]", "condition=[code]*", "accelerator=[name]",
-	     "Create from value, message, label, end and cond",
-	     initialiseMenuItem);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Unlink from menu",
-	     unlinkMenuItem);
-  sendMethod(class, NAME_on, NAME_active, 0,
-	     "Activate item",
-	     onMenuItem);
-  sendMethod(class, NAME_off, NAME_active, 0,
-	     "Deactivate item",
-	     offMenuItem);
-  sendMethod(class, NAME_value, DEFAULT, 2, "value=any", "label=[name|image]",
-	     "Set value and recompute label",
-	     valueMenuItem);
-
-  getMethod(class, NAME_message, NAME_action, "message=[code]*", 0,
-	    "Message that will be executed",
-	    getMessageMenuItem);
-  getMethod(class, NAME_defaultLabel, NAME_label, "label=name|image", 1,
-	    "value=any",
-	    "Compute default label from value",
-	    getDefaultLabelMenuItem);
-  getMethod(class, NAME_printName, DEFAULT, "char_array", 0,
-	    "<-print_name of <-value",
-	    getPrintNameMenuItem);
-  getMethod(class, NAME_containedIn, DEFAULT, "menu", 0,
-	    "Menu I'm contained in",
-	    getContainedInMenuItem);
-  getMethod(class, NAME_convert, DEFAULT, "menu_item", 1, "value=any",
-	    "Convert value",
-	    getConvertMenuItem);
-
-  succeed;
+{ return declareClass(class, &menuItem_decls);
 }
 

@@ -18,6 +18,7 @@
 	   , member/2
 	   , memberchk/2
 	   , send_list/3
+	   , strip_module/3
 	   ]).
 
 

@@ -13,11 +13,20 @@
 
 static status
 initialiseMessagev(Message msg, Any rec, Name sel, int argc, Any *argv)
-{ assign(msg, receiver, rec);
-  assign(msg, selector, sel);
+{ assign(msg, receiver,  rec);
+  assign(msg, selector,  sel);
+  assign(msg, arg_count, toInt(argc));
 
-  if ( argc )
-    assign(msg, arguments, newObjectv(ClassCodeVector, argc, argv));
+  switch(argc)
+  { case 0:
+      break;
+    case 1:
+      assign(msg, arguments, argv[0]);
+      break;
+    default:
+      assign(msg, arguments, newObjectv(ClassCodeVector, argc, argv));
+      break;
+  }
 
   return initialiseCode((Code) msg);
 }
@@ -25,10 +34,7 @@ initialiseMessagev(Message msg, Any rec, Name sel, int argc, Any *argv)
 
 static Int
 getArityMessage(Message msg)
-{ if ( isNil(msg->arguments) )
-    answer(TWO);
-  else
-    answer(add(msg->arguments->size, TWO));
+{ answer(add(TWO, msg->arg_count));
 }
 
 
@@ -41,18 +47,23 @@ getArgMessage(Message msg, Int arg)
     case 2:	answer((Any) msg->selector);
     default:	if ( n < 1 || n > valInt(getArityMessage(msg)) )
 		  fail;
-                answer(msg->arguments->elements[n-3]);
+    		if ( msg->arg_count == ONE )
+		  answer(msg->arguments);
+		else
+		  answer(msg->arguments->elements[n-3]);
   }
 }
 
 
 static status
 argumentMessage(Message msg, Int n, Any val)
-{ if ( valInt(n) < 1 )
+{ int i = valInt(n);
+
+  if ( i < 1 || i > valInt(getArityMessage(msg)) )
     fail;
 
-  if ( isNil(msg->arguments) )
-    assign(msg, arguments, newObject(ClassVector, 0));
+  if ( msg->arg_count == ONE )
+    assign(msg, arguments, val);
 
   return elementVector(msg->arguments, n, val);
 }
@@ -60,13 +71,15 @@ argumentMessage(Message msg, Int n, Any val)
 
 static Any
 getArgumentMessage(Message msg, Int n)
-{ if ( valInt(n) < 1 )
+{ int i = valInt(n);
+
+  if ( i < 1 || i > valInt(getArityMessage(msg)) )
     fail;
 
-  if ( isNil(msg->arguments) )
-    fail;
+  if ( msg->arg_count == ONE )
+    answer(msg->arguments);
 
-  return getElementVector(msg->arguments, n);
+   answer(msg->arguments->elements[i-1]);
 }
 
 
@@ -76,8 +89,14 @@ ExecuteMessage(Message msg)
 
   TRY(receiver = expandCodeArgument(msg->receiver));
 
-  if ( isNil(msg->arguments) )
+  if ( msg->arg_count == ZERO )
   { return sendv(receiver, msg->selector, 0, NULL);
+  } else if ( msg->arg_count == ONE )
+  { Any arg;
+
+    TRY(arg = expandCodeArgument(msg->arguments));
+
+    return sendv(receiver, msg->selector, 1, &arg);
   } else
   { int n;
     int argc = valInt(msg->arguments->size);
@@ -93,44 +112,67 @@ ExecuteMessage(Message msg)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_argument[] =
+        { "index=int", "value=any|function" };
+static const char *T_initialise[] =
+        { "receiver=object|function", "selector=name|function",
+	  "argument=any|function ..." };
+
+/* Instance Variables */
+
+static const vardecl var_message[] =
+{ IV(NAME_receiver, "object|function", IV_BOTH,
+     NAME_storage, "Receiver of the operation"),
+  IV(NAME_selector, "name|function", IV_BOTH,
+     NAME_storage, "Name of the operation"),
+  IV(NAME_argCount, "0..", IV_GET,
+     NAME_storage, "Argument-count"),
+  IV(NAME_arguments, "code_vector|any|function*", IV_GET,
+     NAME_storage, "Vector of arguments")
+};
+
+/* Send Methods */
+
+static const senddecl send_message[] =
+{ SM(NAME_Execute, 0, NULL, ExecuteMessage,
+     DEFAULT, "Send the message"),
+  SM(NAME_initialise, 3, T_initialise, initialiseMessagev,
+     DEFAULT, "Create from receiver, selector and args"),
+  SM(NAME_argument, 2, T_argument, argumentMessage,
+     NAME_argument, "Set nth-1 argument")
+};
+
+/* Get Methods */
+
+static const getdecl get_message[] =
+{ GM(NAME_Arg, 1, "any|function", "int", getArgMessage,
+     DEFAULT, "Nth-1 argument for term description"),
+  GM(NAME_Arity, 0, "int", NULL, getArityMessage,
+     DEFAULT, "Arity for term description"),
+  GM(NAME_argument, 1, "value=any|function", "index=int", getArgumentMessage,
+     NAME_argument, "Nth-1 argument")
+};
+
+/* Resources */
+
+static const resourcedecl rc_message[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(message_decls,
+          var_message, send_message, get_message, rc_message,
+          ARGC_UNKNOWN, NULL,
+          "$Rev$");
+
 status
 makeClassMessage(Class class)
-{ sourceClass(class, makeClassMessage, __FILE__, "$Revision$");
-  termClass(class, "message", ARGC_UNKNOWN);
-
-  localClass(class, NAME_receiver, NAME_storage, "object|function", NAME_both,
-	     "Receiver of the operation");
-  localClass(class, NAME_selector, NAME_storage, "name|function", NAME_both,
-	     "Name of the operation");
-  localClass(class, NAME_arguments, NAME_storage, "code_vector*", NAME_get,
-	     "Vector of arguments");
-
-  sendMethod(class, NAME_initialise, DEFAULT, 3,
-	     "receiver=object|function", "selector=name|function",
-	     "argument=any|function ...",
-	     "Create from receiver, selector and args",
-	     initialiseMessagev);
-  sendMethod(class, NAME_Execute, DEFAULT, 0,
-	     "Send the message",
-	     ExecuteMessage);
-  sendMethod(class, NAME_argument, NAME_argument, 2,
-	     "index=int", "value=any|function",
-	     "Set nth-1 argument",
-	     argumentMessage);
-
-  getMethod(class, NAME_Arg, DEFAULT, "any|function", 1, "int",
-	    "Nth-1 argument for term description",
-	    getArgMessage);
-  getMethod(class, NAME_Arity, DEFAULT, "int", 0,
-	    "Arity for term description",
-	    getArityMessage);
-  getMethod(class, NAME_argument, NAME_argument, "value=any|function", 1,
-	    "index=int",
-	    "Nth-1 argument",
-	    getArgumentMessage);
-
-  succeed;
+{ return declareClass(class, &message_decls);
 }
-
-
-

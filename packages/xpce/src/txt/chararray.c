@@ -19,7 +19,10 @@ status
 initialiseCharArray(CharArray n, CharArray value)
 { str_cphdr(&n->data, &value->data);
   str_alloc(&n->data);
-  memcpy(n->data.s_text8, value->data.s_text8, str_datasize(&n->data));
+  if ( value->data.readonly )
+    n->data.s_text8 = value->data.s_text8;
+  else
+    memcpy(n->data.s_text8, value->data.s_text8, str_datasize(&n->data));
 
   succeed;
 }
@@ -59,10 +62,8 @@ loadCharArray(CharArray s, FILE *fd, ClassDef def)
   if ( (data = loadCharp(fd)) )
   { String str = &s->data;
     
+    str_inithdr(str, ENC_ASCII);
     str->size     = strlen(data);
-    str->encoding = ENC_ASCII;
-    str->b16	  = 0;
-    str->pad	  = 0;
     str->s_text8  = data;
   }
 
@@ -519,10 +520,10 @@ CtoScratchCharArray(const char *s)
 
   for(n = 0; n < SCRATCH_CHAR_ARRAYS; n++, name++)
     if ( name->data.s_text8 == NULL )
-    { name->data.s_text8 = (char *) s;
-      name->data.b16 = FALSE;
+    { str_inithdr(&name->data, ENC_ASCII);
       name->data.size = strlen(s);
-      name->data.encoding = ENC_ASCII;
+      name->data.s_text8 = (char *) s;
+
       return name;
     }
 
@@ -574,118 +575,119 @@ stringToCharArray(String s)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_compare[] =
+        { "char_array", "ignore_case=[bool]" };
+static const char *T_ofAchar_fromADintD[] =
+        { "of=char", "from=[int]" };
+static const char *T_gsub[] =
+        { "start=int", "end=[int]" };
+static const char *T_ssub[] =
+        { "sub=char_array", "ignore_case=[bool]" };
+
+/* Instance Variables */
+
+static const vardecl var_charArray[] =
+{ IV(NAME_header, "alien:str_h", IV_NONE,
+     NAME_internal, "Header info (packed)"),
+  IV(NAME_text, "alien:wchar *", IV_NONE,
+     NAME_internal, "Text represented (8- or 16-bits chars)")
+};
+
+/* Send Methods */
+
+static const senddecl send_charArray[] =
+{ SM(NAME_initialise, 1, "text=char_array", initialiseCharArray,
+     DEFAULT, "Create from other char_array"),
+  SM(NAME_unlink, 0, NULL, unlinkCharArray,
+     DEFAULT, "Free the char *"),
+  SM(NAME_equal, 1, "char_array", equalCharArray,
+     NAME_compare, "Test if names represent same text"),
+  SM(NAME_larger, 1, "than=char_array", largerCharArray,
+     NAME_compare, "Test if I'm alphabetically after arg"),
+  SM(NAME_smaller, 1, "than=char_array", smallerCharArray,
+     NAME_compare, "Test if I'm alphabetically before arg"),
+  SM(NAME_prefix, 1, "prefix=char_array", prefixCharArray,
+     NAME_test, "Test if receiver has prefix argument"),
+  SM(NAME_sub, 2, T_ssub, subCharArray,
+     NAME_test, "Test if argument is a substring"),
+  SM(NAME_suffix, 1, "suffix=char_array", suffixCharArray,
+     NAME_test, "Test if receiver has suffix argument")
+};
+
+/* Get Methods */
+
+static const getdecl get_charArray[] =
+{ GM(NAME_printName, 0, "char_array", NULL, getSelfObject,
+     DEFAULT, "Equivalent to <-self"),
+  GM(NAME_size, 0, "int", NULL, getSizeCharArray,
+     NAME_cardinality, "Number of characters in the text"),
+  GM(NAME_capitalise, 0, "char_array", NULL, getCapitaliseCharArray,
+     NAME_case, "Capitalised version of name"),
+  GM(NAME_downcase, 0, "char_array", NULL, getDowncaseCharArray,
+     NAME_case, "Map all uppercase letters to lowercase"),
+  GM(NAME_labelName, 0, "char_array", NULL, getLabelNameCharArray,
+     NAME_case, "Default name used for labels"),
+  GM(NAME_upcase, 0, "char_array", NULL, getUpcaseCharArray,
+     NAME_case, "Map all lowercase letters to uppercase"),
+  GM(NAME_compare, 2, "{smaller,equal,larger}", T_compare, getCompareCharArray,
+     NAME_compare, "Alphabetical comparison"),
+  GM(NAME_append, 1, "char_array", "char_array ...", getAppendCharArrayv,
+     NAME_content, "Concatenation of me and the argument(s)"),
+  GM(NAME_character, 1, "char", "int", getCharacterCharArray,
+     NAME_content, "ASCII value of 0-based nth character"),
+  GM(NAME_deletePrefix, 1, "char_array", "prefix=char_array", getDeletePrefixCharArray,
+     NAME_content, "Delete specified prefix"),
+  GM(NAME_deleteSuffix, 1, "char_array", "suffix=char_array", getDeleteSuffixCharArray,
+     NAME_content, "Delete specified suffix"),
+  GM(NAME_ensureSuffix, 1, "char_array", "suffix=char_array", getEnsureSuffixCharArray,
+     NAME_content, "Append suffix if not already there"),
+  GM(NAME_sub, 2, "char_array", T_gsub, getSubCharArray,
+     NAME_content, "Get substring from 0-based start and end"),
+  GM(NAME_convert, 1, "char_array", "any", getConvertCharArray,
+     NAME_conversion, "Convert `text-convertible'"),
+  GM(NAME_value, 0, "name", NULL, getValueCharArray,
+     NAME_conversion, "Value as a name"),
+  GM(NAME_copy, 0, "char_array", NULL, getCopyCharArray,
+     NAME_copy, "Copy representing the same text"),
+  GM(NAME_modify, 1, "char_array", "char_array", getModifyCharArray,
+     NAME_internal, "New instance of my class"),
+  GM(NAME_lineNo, 1, "line=int", "index=[int]", getLineNoCharArray,
+     NAME_line, "Get 1-based line number at which index is"),
+  GM(NAME_index, 2, "int", T_ofAchar_fromADintD, getIndexCharArray,
+     NAME_parse, "Get 0-based index starting at pos (forwards)"),
+  GM(NAME_rindex, 2, "int", T_ofAchar_fromADintD, getRindexCharArray,
+     NAME_parse, "Get 0-based index starting at pos (backwards)"),
+  GM(NAME_scan, 1, "vector", "format=char_array", getScanCharArray,
+     NAME_parse, "C-scanf like parsing of string")
+};
+
+/* Resources */
+
+static const resourcedecl rc_charArray[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name charArray_termnames[] = { NAME_value };
+
+ClassDecl(charArray_decls,
+          var_charArray, send_charArray, get_charArray, rc_charArray,
+          1, charArray_termnames,
+          "$Rev$");
+
 status
 makeClassCharArray(Class class)
-{ sourceClass(class, makeClassCharArray, __FILE__, "$Revision$");
+{ declareClass(class, &charArray_decls);
 
   setCloneFunctionClass(class, cloneCharArray);
   setLoadStoreFunctionClass(class, loadCharArray, storeCharArray);
-
-  localClass(class, NAME_header, NAME_internal, "alien:str_h", NAME_none,
-	     "Header info (packed)");
-  localClass(class, NAME_text, NAME_internal, "alien:wchar *", NAME_none,
-	     "Text represented (8- or 16-bits chars)");
-
-  termClass(class, "char_array", 1, NAME_value);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "text=char_array",
-	     "Create from other char_array",
-	     initialiseCharArray);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Free the char *",
-	     unlinkCharArray);
-  sendMethod(class, NAME_equal, NAME_compare, 1, "char_array",
-	     "Test if names represent same text",
-	     equalCharArray);
-
-  sendMethod(class, NAME_suffix, NAME_test, 1, "suffix=char_array",
-	     "Test if receiver has suffix argument",
-	     suffixCharArray);
-  sendMethod(class, NAME_prefix, NAME_test, 1, "prefix=char_array",
-	     "Test if receiver has prefix argument",
-	     prefixCharArray);
-  sendMethod(class, NAME_larger, NAME_compare, 1, "than=char_array",
-	     "Test if I'm alphabetically after arg",
-	     largerCharArray);
-  sendMethod(class, NAME_smaller, NAME_compare, 1, "than=char_array",
-	     "Test if I'm alphabetically before arg",
-	     smallerCharArray);
-  sendMethod(class, NAME_sub, NAME_test, 2,
-	     "sub=char_array", "ignore_case=[bool]",
-	     "Test if argument is a substring",
-	     subCharArray);
-
-  getMethod(class, NAME_convert, NAME_conversion, "char_array", 1, "any",
-	    "Convert `text-convertible'",
-	    getConvertCharArray);
-  getMethod(class, NAME_value, NAME_conversion, "name", 0,
-	    "Value as a name",
-	    getValueCharArray);
-  getMethod(class, NAME_modify, NAME_internal, "char_array", 1, "char_array",
-	    "New instance of my class",
-	    getModifyCharArray);
-
-  getMethod(class, NAME_size, NAME_cardinality, "int", 0,
-	    "Number of characters in the text",
-	    getSizeCharArray);
-  getMethod(class, NAME_compare, NAME_compare, "{smaller,equal,larger}", 2,
-	    "char_array", "ignore_case=[bool]",
-	    "Alphabetical comparison",
-	    getCompareCharArray);
-  getMethod(class, NAME_character, NAME_content, "char", 1, "int",
-	    "ASCII value of 0-based nth character",
-	    getCharacterCharArray);
-  getMethod(class, NAME_index, NAME_parse, "int", 2, "of=char", "from=[int]",
-	    "Get 0-based index starting at pos (forwards)",
-	    getIndexCharArray);
-  getMethod(class, NAME_rindex, NAME_parse, "int", 2, "of=char", "from=[int]",
-	    "Get 0-based index starting at pos (backwards)",
-	    getRindexCharArray);
-  getMethod(class, NAME_lineNo, NAME_line, "line=int", 1, "index=[int]",
-	    "Get 1-based line number at which index is",
-	    getLineNoCharArray);
-  getMethod(class, NAME_scan, NAME_parse, "vector", 1, "format=char_array",
-	    "C-scanf like parsing of string",
-	    getScanCharArray);
-  getMethod(class, NAME_append, NAME_content, "char_array", 1,
-	    "char_array ...",
-	    "Concatenation of me and the argument(s)",
-	    getAppendCharArrayv);
-  getMethod(class, NAME_sub, NAME_content, "char_array", 2,
-	    "start=int", "end=[int]",
-	    "Get substring from 0-based start and end",
-	    getSubCharArray);
-
-  getMethod(class, NAME_downcase, NAME_case, "char_array", 0,
-	    "Map all uppercase letters to lowercase",
-	    getDowncaseCharArray);
-  getMethod(class, NAME_upcase, NAME_case, "char_array", 0,
-	    "Map all lowercase letters to uppercase",
-	    getUpcaseCharArray);
-  getMethod(class, NAME_capitalise, NAME_case, "char_array", 0,
-	    "Capitalised version of name",
-	    getCapitaliseCharArray);
-  getMethod(class, NAME_labelName, NAME_case, "char_array", 0,
-	    "Default name used for labels",
-	    getLabelNameCharArray);
-  getMethod(class, NAME_deleteSuffix, NAME_content, "char_array", 1,
-	    "suffix=char_array",
-	    "Delete specified suffix",
-	    getDeleteSuffixCharArray);
-  getMethod(class, NAME_deletePrefix, NAME_content, "char_array", 1,
-	    "prefix=char_array",
-	    "Delete specified prefix",
-	    getDeletePrefixCharArray);
-  getMethod(class, NAME_ensureSuffix, NAME_content, "char_array", 1,
-	    "suffix=char_array",
-	    "Append suffix if not already there",
-	    getEnsureSuffixCharArray);
-  getMethod(class, NAME_copy, NAME_copy, "char_array", 0,
-	    "Copy representing the same text",
-	    getCopyCharArray);
-  getMethod(class, NAME_printName, DEFAULT, "char_array", 0,
-	    "Equivalent to <-self",
-	    getSelfObject);
 
   initCharArrays();
 

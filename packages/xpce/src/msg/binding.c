@@ -20,22 +20,54 @@ initialiseBinding(Binding att, Any name, Any value)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "name=name", "value=any|function" };
+
+/* Instance Variables */
+
+static const vardecl locals_binding[] =
+{ IV(NAME_name, "name", IV_BOTH,
+     NAME_argument, "Name of the binding"),
+  IV(NAME_value, "any|function", IV_BOTH,
+     NAME_value, "Value of the binding")
+};
+
+/* Send Methods */
+
+static const senddecl send_binding[] =
+{ SM(NAME_initialise, 2, T_initialise, initialiseBinding,
+     DEFAULT, "Create binding from name and value")
+};
+
+/* Get Methods */
+
+static const getdecl get_binding[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_binding[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name binding_termnames[] = { NAME_name, NAME_value };
+
+ClassDecl(binding_decls,
+          locals_binding, send_binding, get_binding, rc_binding,
+          2, binding_termnames,
+          "$Rev$");
+
 status
 makeClassBinding(Class class)
-{ sourceClass(class, makeClassBinding, __FILE__, "$Revision$");
-
-  localClass(class, NAME_name, NAME_argument, "name", NAME_both,
-	     "Name of the binding");
-  localClass(class, NAME_value, NAME_value, "any|function", NAME_both,
-	     "Value of the binding");
-
-  termClass(class, ":=", 2, NAME_name, NAME_value);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2,
-	     "name=name", "value=any|function",
-	     "Create binding from name and value",
-	     initialiseBinding);
-
-  succeed;
+{ return declareClass(class, &binding_decls);
 }
 

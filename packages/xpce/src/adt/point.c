@@ -173,66 +173,78 @@ getMirrorPoint(Point p1, Point p2)
 }
 
 
+/* Type declaractions */
+
+static const char *T_offset[] = { "dx=int", "dy=int" };
+static const char *T_xADintD_yADintD[] = { "x=[int]", "y=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_point[] =
+{ IV(NAME_x, "int", IV_BOTH,
+     NAME_dimension, "x-coordinate of point"),
+  IV(NAME_y, "int", IV_BOTH,
+     NAME_dimension, "y-coordinate of point")
+};
+
+/* Send Methods */
+
+static const senddecl send_point[] =
+{ SM(NAME_initialise, 2, T_xADintD_yADintD, initialisePoint,
+     DEFAULT, "Create point from x- and y-value"),
+  SM(NAME_minus, 1, "point", minusPoint,
+     NAME_calculate, "Subtract x and y of argument point"),
+  SM(NAME_mirror, 1, "origin=[point]", mirrorPoint,
+     NAME_calculate, "Mirror point around argument or (0,0)"),
+  SM(NAME_offset, 2, T_offset, offsetPoint,
+     NAME_calculate, "Move the point by given x and y"),
+  SM(NAME_plus, 1, "point", plusPoint,
+     NAME_calculate, "Add x- and y-values of argument point"),
+  SM(NAME_set, 2, T_xADintD_yADintD, setPoint,
+     NAME_calculate, "Set x- and y-values"),
+  SM(NAME_equal, 1, "to=point", equalPoint,
+     NAME_compare, "Test if argument is same position"),
+  SM(NAME_copy, 1, "from=point", copyPoint,
+     NAME_copy, "Copy x- and y values from the argument")
+};
+
+/* Get Methods */
+
+static const getdecl get_point[] =
+{ GM(NAME_difference, 1, "point", "to=point", getDifferencePoint,
+     NAME_calculate, "New point that reflects distance"),
+  GM(NAME_distance, 1, "int", "to=point", getDistancePoint,
+     NAME_calculate, "Integer for distance between points"),
+  GM(NAME_minus, 1, "point", "point", getMinusPoint,
+     NAME_calculate, "New point p1 - p2"),
+  GM(NAME_mirror, 1, "point", "origin=[point]", getMirrorPoint,
+     NAME_calculate, "New point mirrored over argument"),
+  GM(NAME_plus, 1, "point", "point", getPlusPoint,
+     NAME_calculate, "New point p1 + p2"),
+  GM(NAME_copy, 0, "point", NULL, getCopyPoint,
+     NAME_copy, "New point with same <-x and <-y"),
+  GM(NAME_convert, 1, "point", "event|char_array", getConvertPoint,
+     NAME_textual, "Event <-position or the text `x,y'"),
+  GM(NAME_printName, 0, "string", NULL, getPrintNamePoint,
+     NAME_textual, "Printed representation as %d,%d")
+};
+
+/* Resources */
+
+static const resourcedecl rc_point[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name point_termnames[] = { NAME_x, NAME_y };
+
+ClassDecl(point_decls,
+          var_point, send_point, get_point, rc_point,
+          2, point_termnames,
+          "$Rev$");
+
 status
 makeClassPoint(Class class)
-{ sourceClass(class, makeClassPoint, __FILE__, "$Revision$");
-
-  localClass(class, NAME_x, NAME_dimension, "int", NAME_both,
-	     "x-coordinate of point");
-  localClass(class, NAME_y, NAME_dimension, "int", NAME_both,
-	     "y-coordinate of point");
-
-  termClass(class, "point", 2, NAME_x, NAME_y);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2, "x=[int]", "y=[int]",
-	     "Create point from x- and y-value",
-	     initialisePoint);
-  sendMethod(class, NAME_copy, NAME_copy, 1, "from=point",
-	     "Copy x- and y values from the argument",
-	     copyPoint);
-  sendMethod(class, NAME_equal, NAME_compare, 1, "to=point",
-	     "Test if argument is same position",
-	     equalPoint);
-  sendMethod(class, NAME_offset, NAME_calculate, 2, "dx=int", "dy=int",
-	     "Move the point by given x and y",
-	     offsetPoint);
-  sendMethod(class, NAME_set, NAME_calculate, 2, "x=[int]", "y=[int]",
-	     "Set x- and y-values",
-	     setPoint);
-  sendMethod(class, NAME_plus, NAME_calculate, 1, "point",
-	     "Add x- and y-values of argument point",
-	     plusPoint);
-  sendMethod(class, NAME_minus, NAME_calculate, 1, "point",
-	     "Subtract x and y of argument point",
-	     minusPoint);
-  sendMethod(class, NAME_mirror, NAME_calculate, 1, "origin=[point]",
-	     "Mirror point around argument or (0,0)",
-	     mirrorPoint);
-
-  getMethod(class, NAME_printName, NAME_textual, "string", 0,
-	    "Printed representation as %d,%d",
-	    getPrintNamePoint);
-  getMethod(class, NAME_difference, NAME_calculate, "point", 1, "to=point",
-	    "New point that reflects distance",
-	    getDifferencePoint);
-  getMethod(class, NAME_distance, NAME_calculate, "int", 1, "to=point",
-	    "Integer for distance between points",
-	    getDistancePoint);
-  getMethod(class, NAME_convert, NAME_textual, "point", 1, "event|char_array",
-	    "Event <-position or the text `x,y'",
-	    getConvertPoint);
-  getMethod(class, NAME_copy, NAME_copy, "point", 0,
-	    "New point with same <-x and <-y",
-	    getCopyPoint);
-  getMethod(class, NAME_plus, NAME_calculate, "point", 1, "point",
-	    "New point p1 + p2",
-	    getPlusPoint);
-  getMethod(class, NAME_minus, NAME_calculate, "point", 1, "point",
-	    "New point p1 - p2",
-	    getMinusPoint);
-  getMethod(class, NAME_mirror, NAME_calculate, "point", 1, "origin=[point]",
-	    "New point mirrored over argument",
-	    getMirrorPoint);
-
-  succeed;
+{ return declareClass(class, &point_decls);
 }

@@ -16,6 +16,7 @@
 :- use_module(library(pce)).
 :- require([ append/3
 	   , maplist/3
+	   , unix/1
 	   ]).
 
 :- pce_autoload(emacs_buffer_menu, library('emacs/emacs')).

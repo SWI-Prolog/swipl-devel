@@ -60,36 +60,64 @@ terminateMoveOutlineGesture(MoveOutlineGesture g, EventObj ev)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "button=[button_name]", "modifier=[modifier]" };
+
+/* Instance Variables */
+
+static const vardecl var_moveOutlineGesture[] =
+{ IV(NAME_outline, "box", IV_GET,
+     NAME_feedback, "The outline moved")
+};
+
+/* Send Methods */
+
+static const senddecl send_moveOutlineGesture[] =
+{ SM(NAME_drag, 1, "event", dragMoveOutlineGesture,
+     DEFAULT, "Drag outline to next position"),
+  SM(NAME_initialise, 2, T_initialise, initialiseMoveOutlineGesture,
+     DEFAULT, "Create from button and modifier"),
+  SM(NAME_initiate, 1, "event", initiateMoveOutlineGesture,
+     DEFAULT, "Display outline and change cursor"),
+  SM(NAME_terminate, 1, "event", terminateMoveOutlineGesture,
+     DEFAULT, "Move object and undisplay outline")
+};
+
+/* Get Methods */
+
+static const getdecl get_moveOutlineGesture[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_moveOutlineGesture[] =
+{ RC(NAME_button, "button_name", "middle",
+     "Active on which button (middle)"),
+  RC(NAME_cursor, "cursor", "fleur",
+     "Cursor while active"),
+  RC(NAME_texture, "texture_name", "dotted",
+     "Texture of the outline box")
+};
+
+/* Class Declaration */
+
+static Name moveOutlineGesture_termnames[] = { NAME_button, NAME_modifier };
+
+ClassDecl(moveOutlineGesture_decls,
+          var_moveOutlineGesture, send_moveOutlineGesture,
+	  get_moveOutlineGesture, rc_moveOutlineGesture,
+          2, moveOutlineGesture_termnames,
+          "$Rev$");
+
 status
 makeClassMoveOutlineGesture(Class class)
-{ sourceClass(class, makeClassMoveOutlineGesture, __FILE__, "1.2");
-
-  localClass(class, NAME_outline, NAME_feedback, "box", NAME_get,
-	     "The outline moved");
-
-  termClass(class, "move_outline_gesture", 2, NAME_button, NAME_modifier);
-
-  sendMethod(class, NAME_initialise, DEFAULT,
-	     2, "button=[button_name]", "modifier=[modifier]",
-	     "Create from button and modifier",
-	     initialiseMoveOutlineGesture);
-  sendMethod(class, NAME_initiate, DEFAULT, 1, "event",
-	     "Display outline and change cursor",
-	     initiateMoveOutlineGesture);
-  sendMethod(class, NAME_drag, DEFAULT, 1, "event",
-	     "Drag outline to next position",
-	     dragMoveOutlineGesture);
-  sendMethod(class, NAME_terminate, DEFAULT, 1, "event",
-	     "Move object and undisplay outline",
-	     terminateMoveOutlineGesture);
-
-  attach_resource(class, "texture", "texture_name", "dotted",
-		  "Texture of the outline box");
-  attach_resource(class, "button", "button_name", "middle",
-		  "Active on which button (middle)");
-  attach_resource(class, "cursor", "cursor", "fleur",
-		  "Cursor while active");
-
-  succeed;
+{ return declareClass(class, &moveOutlineGesture_decls);
 }
 

@@ -173,47 +173,71 @@ TheDisplayManager()
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_dispatch[] =
+        { "file_descriptor=[int]", "milliseconds=[int]*" };
+
+/* Instance Variables */
+
+static const vardecl var_displayManager[] =
+{ IV(NAME_members, "chain", IV_GET,
+     NAME_display, "Available displays"),
+  IV(NAME_current, "chain", IV_NONE,
+     NAME_current, "Stack with current displays")
+};
+
+/* Send Methods */
+
+static const senddecl send_displayManager[] =
+{ SM(NAME_initialise, 0, NULL, initialiseDisplayManager,
+     DEFAULT, "Create the display manager"),
+  SM(NAME_current, 1, "display", currentDisplayManager,
+     NAME_current, "Make display the current display"),
+  SM(NAME_popCurrent, 0, NULL, popCurrentDisplayManager,
+     NAME_current, "Pop the current stack"),
+  SM(NAME_append, 1, "display", appendDisplayManager,
+     NAME_display, "Attach a new display to the manager"),
+  SM(NAME_dispatch, 2, T_dispatch, dispatchDisplayManager,
+     NAME_event, "Dispatch events for 1/4th second")
+};
+
+/* Get Methods */
+
+static const getdecl get_displayManager[] =
+{ GM(NAME_contains, 0, "chain", NULL, getContainsDisplayManager,
+     DEFAULT, "Contained displays"),
+  GM(NAME_current, 0, "display", NULL, getCurrentDisplayManager,
+     NAME_current, "Get the current display"),
+  GM(NAME_member, 1, "display", "name", getMemberDisplayManager,
+     NAME_display, "Find display for specified address")
+};
+
+/* Resources */
+
+static const resourcedecl rc_displayManager[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(displayManager_decls,
+          var_displayManager, send_displayManager,
+	  get_displayManager, rc_displayManager,
+          0, NULL,
+          "$Rev$");
+
+
 status
 makeClassDisplayManager(Class class)
-{ sourceClass(class, makeClassDisplayManager, __FILE__, "$Revision$");
-
-  localClass(class, NAME_members, NAME_display, "chain", NAME_get,
-	     "Available displays");
-  localClass(class, NAME_current, NAME_current, "chain", NAME_none,
-	     "Stack with current displays");
-
-  termClass(class, "display_manager", 0);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 0,
-	     "Create the display manager",
-	     initialiseDisplayManager);
-  sendMethod(class, NAME_current, NAME_current, 1, "display",
-	     "Make display the current display",
-	     currentDisplayManager);
-  sendMethod(class, NAME_popCurrent, NAME_current, 0,
-	     "Pop the current stack",
-	     popCurrentDisplayManager);
-  sendMethod(class, NAME_append, NAME_display, 1, "display",
-	     "Attach a new display to the manager",
-	     appendDisplayManager);
-  sendMethod(class, NAME_dispatch, NAME_event, 2,
-	     "file_descriptor=[int]", "milliseconds=[int]*",
-	     "Dispatch events for 1/4th second",
-	     dispatchDisplayManager);
-
-  getMethod(class, NAME_current, NAME_current, "display", 0,
-	    "Get the current display",
-	    getCurrentDisplayManager);
-  getMethod(class, NAME_member, NAME_display, "display", 1, "name",
-	    "Find display for specified address",
-	    getMemberDisplayManager);
-  getMethod(class, NAME_contains, DEFAULT, "chain", 0,
-	    "Contained displays",
-	    getContainsDisplayManager);
+{ declareClass(class, &displayManager_decls);
 
   globalObject(NAME_displayManager, ClassDisplayManager, 0);
   DispatchEvents = dispatch_events;
-  realiseClass(ClassDisplay);
 
   succeed;
 }

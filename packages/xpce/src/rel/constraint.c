@@ -176,36 +176,62 @@ toConstraint(Constraint c, Any obj)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "from=object", "to=object", "relation=relation", "propagate=[{forwards,backwards}]" };
+
+/* Instance Variables */
+
+static const vardecl var_constraint[] =
+{ SV(NAME_from, "object", IV_GET|IV_STORE, fromConstraint,
+     NAME_client, "`From' side of the constraint"),
+  SV(NAME_to, "object", IV_GET|IV_STORE, toConstraint,
+     NAME_client, "`To' side of the constraint"),
+  SV(NAME_relation, "relation", IV_GET|IV_STORE, relationConstraint,
+     NAME_relation, "Relation that describes the constraint"),
+  IV(NAME_locked, "{none,forwards,front,backwards,back}", IV_NONE,
+     NAME_internal, "Avoid looping of propagation")
+};
+
+/* Send Methods */
+
+static const senddecl send_constraint[] =
+{ SM(NAME_initialise, 4, T_initialise, initialiseConstraint,
+     DEFAULT, "Create from objects, relation and direction"),
+  SM(NAME_unlink, 0, NULL, unlinkConstraint,
+     DEFAULT, "Remove from to- and from-object")
+};
+
+/* Get Methods */
+
+static const getdecl get_constraint[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_constraint[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name constraint_termnames[] = { NAME_from, NAME_to, NAME_relation, NAME_locked };
+
+ClassDecl(constraint_decls,
+          var_constraint, send_constraint, get_constraint, rc_constraint,
+          3, constraint_termnames,
+          "$Rev$");
+
 status
 makeClassConstraint(Class class)
-{ sourceClass(class, makeClassConstraint, __FILE__, "$Revision$");
-
-  localClass(class, NAME_from, NAME_client, "object", NAME_get,
-	     "`From' side of the constraint");
-  localClass(class, NAME_to, NAME_client, "object", NAME_get,
-	     "`To' side of the constraint");
-  localClass(class, NAME_relation, NAME_relation, "relation", NAME_get,
-	     "Relation that describes the constraint");
-  localClass(class, NAME_locked, NAME_internal,
-	     "{none,forwards,front,backwards,back}", NAME_none,
-	     "Avoid looping of propagation");
-
-  termClass(class, "constraint",
-	    3, NAME_from, NAME_to, NAME_relation, NAME_locked);
+{ declareClass(class, &constraint_decls);
   cloneStyleClass(class, NAME_relation);
-
-  storeMethod(class, NAME_from, fromConstraint);
-  storeMethod(class, NAME_relation, relationConstraint);
-  storeMethod(class, NAME_to, toConstraint);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 4,
-	     "from=object", "to=object", "relation=relation",
-	     "propagate=[{forwards,backwards}]",
-	     "Create from objects, relation and direction",
-	     initialiseConstraint);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Remove from to- and from-object",
-	     unlinkConstraint);
 
   succeed;
 }

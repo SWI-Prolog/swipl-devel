@@ -21,6 +21,7 @@
 	   , maplist/3
 	   , member/2
 	   , sublist/3
+	   , subset/2
 	   , subtract/3
 	   ]).
 

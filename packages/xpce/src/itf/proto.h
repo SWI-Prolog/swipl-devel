@@ -50,14 +50,14 @@ Host		HostObject(void);
 /* itf/interface.c */
 Any		cToPceInteger(long int i);
 Any		cToPceReal(double f);
-Any		cToPceString(char *assoc, char *s);
+Any		cToPceString(Name assoc, char *s);
 Any		cToPceName(const char *text);
 Any		cToPcePointer(void *ptr);
 void *		pcePointerToC(PceObject obj);
 Any		cToPceAssoc(char *s);
 Any		cToPceReference(ulong val);
 int		pceExistsReference(ulong ref);
-int		pceExistsAssoc(char *assoc);
+int		pceExistsAssoc(PceName assoc);
 PceObject	cToPceTmpCharArray(char *s);
 void		donePceTmpCharArray(Any ca);
 status		pceInstanceOf(Any obj, Any classspec);
@@ -72,7 +72,7 @@ void		pceRegisterName(int n, hostHandle handle, Name name);
 void		pceRegisterAssoc(int n, hostHandle handle, Any obj);
 status		pceSend(Any receiver, Name selector, int argc, Any *argv);
 Any		pceGet(Any receiver, Name selector, int argc, Any *argv);
-Any		pceNew(char *assoc, Any class, int argc, Any *argv);
+Any		pceNew(Name assoc, Any class, int argc, Any *argv);
 int		pceDispatch(int fd, int time);
 void		pceRedraw(void);
 char *		getHostSymbolTable(void);
@@ -89,6 +89,7 @@ int		hostAction(int what, ...);
 void		Cprintf(const char *fmt, ...);
 void		Cvprintf(const char *fmt, va_list args);
 int		Cputchar(int chr);
+void		Cflush(void);
 char *		Cgetline(char *line, int size);
 
 /* itf/cpointer.c */
@@ -107,6 +108,7 @@ const char *	pceOsError(void);
 void		Stub__vCprintf(const char *fmt, va_list args);
 int		Stub__Cputchar(int chr);
 char *		Stub__Cgetline(char *line, int size);
+void		Stub__Cflush(void);
 
 /* itf/stub.c */
 int		Stub__HostActionv(int action, va_list args);

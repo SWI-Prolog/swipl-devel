@@ -376,105 +376,113 @@ getContainsTree(Tree t)
   answer(ch);
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+
+/* Instance Variables */
+
+static const vardecl var_tree[] =
+{ IV(NAME_root, "node*", IV_GET,
+     NAME_nodes, "Root-node of the tree"),
+  IV(NAME_displayRoot, "node*", IV_GET,
+     NAME_scroll, "Root of visible subtree"),
+  SV(NAME_autoLayout, "bool", IV_GET|IV_STORE, autoLayoutTree,
+     NAME_layout, "Enforce automatic layout?"),
+  SV(NAME_levelGap, "int", IV_GET|IV_STORE, levelGapTree,
+     NAME_layout, "Distance between levels"),
+  SV(NAME_neighbourGap, "int", IV_GET|IV_STORE, neighbourGapTree,
+     NAME_layout, "Distance between neighbours"),
+  SV(NAME_linkGap, "int", IV_GET|IV_STORE, linkGapTree,
+     NAME_layout, "Distance between line and image"),
+  SV(NAME_direction, "{horizontal,vertical,list}", IV_GET|IV_STORE,
+     directionTree,
+     NAME_layout, "Layout of the tree"),
+  IV(NAME_link, "link", IV_GET,
+     NAME_layout, "Generic connection between graphicals"),
+  IV(NAME_parentHandle, "handle", IV_GET,
+     NAME_relation, "Connection point to parent"),
+  IV(NAME_sonHandle, "handle", IV_GET,
+     NAME_relation, "Connection point to sons"),
+  IV(NAME_rootHandlers, "chain", IV_GET,
+     NAME_event, "Event handlers for root"),
+  IV(NAME_leafHandlers, "chain", IV_GET,
+     NAME_event, "Event handlers for leafs"),
+  IV(NAME_nodeHandlers, "chain", IV_GET,
+     NAME_event, "Event handlers for any type of node"),
+  IV(NAME_collapsedHandlers, "chain", IV_GET,
+     NAME_event, "Event handlers for collapsed nodes")
+};
+
+/* Send Methods */
+
+static const senddecl send_tree[] =
+{ SM(NAME_compute, 0, NULL, computeTree,
+     DEFAULT, "Recompute the tree layout"),
+  SM(NAME_event, 1, "event", eventTree,
+     DEFAULT, "Process an event"),
+  SM(NAME_initialise, 1, "root=[node]*", initialiseTree,
+     DEFAULT, "Create a tree from a root node"),
+  SM(NAME_unlink, 0, NULL, unlinkTree,
+     DEFAULT, "Removes all the nodes"),
+  SM(NAME_collapsedHandler, 1, "recogniser", collapsedHandlerTree,
+     NAME_event, "Add recogniser for collapsed node"),
+  SM(NAME_leafHandler, 1, "recogniser", leafHandlerTree,
+     NAME_event, "Add recogniser for leaf node"),
+  SM(NAME_nodeHandler, 1, "recogniser", nodeHandlerTree,
+     NAME_event, "Add recogniser for any node node"),
+  SM(NAME_rootHandler, 1, "recogniser", rootHandlerTree,
+     NAME_event, "Add recogniser for root node"),
+  SM(NAME_forAll, 1, "code", forAllTree,
+     NAME_iterate, "Run code on all nodes (demand acceptance)"),
+  SM(NAME_forSome, 1, "code", forSomeTree,
+     NAME_iterate, "Run code on all nodes"),
+  SM(NAME_root, 1, "node*", rootTree,
+     NAME_nodes, "Set root node"),
+  SM(NAME_unzoom, 0, NULL, unzoomTree,
+     NAME_scroll, "Make the visible root the real root"),
+  SM(NAME_zoom, 1, "node", zoomTree,
+     NAME_scroll, "Zoom to a particular node"),
+  SM(NAME_layout, 0, NULL, layoutTree,
+     NAME_update, "Recompute layout")
+};
+
+/* Get Methods */
+
+static const getdecl get_tree[] =
+{ GM(NAME_contains, 0, "chain", NULL, getContainsTree,
+     DEFAULT, "New chain with nodes I manage")
+};
+
+/* Resources */
+
+static const resourcedecl rc_tree[] =
+{ RC(NAME_direction, "name", "horizontal",
+     "Default style {horizontal,vertical,list}"),
+  RC(NAME_levelGap, "int", "50",
+     "Gap between levels"),
+  RC(NAME_linkGap, "int", "2",
+     "Gap between link-line and image"),
+  RC(NAME_neighbourGap, "int", "0",
+     "Gap between neighbours")
+};
+
+/* Class Declaration */
+
+static Name tree_termnames[] = { NAME_root };
+
+ClassDecl(tree_decls,
+          var_tree, send_tree, get_tree, rc_tree,
+          1, tree_termnames,
+          "$Rev$");
 
 status
 makeClassTree(Class class)
-{ sourceClass(class, makeClassTree, __FILE__, "$Revision$");
-
-  localClass(class, NAME_root, NAME_nodes, "node*", NAME_get,
-	     "Root-node of the tree");
-  localClass(class, NAME_displayRoot, NAME_scroll, "node*", NAME_get,
-	     "Root of visible subtree");
-  localClass(class, NAME_autoLayout, NAME_layout, "bool", NAME_get,
-	     "Enforce automatic layout?");
-  localClass(class, NAME_levelGap, NAME_layout, "int", NAME_get,
-	     "Distance between levels");
-  localClass(class, NAME_neighbourGap, NAME_layout, "int", NAME_get,
-	     "Distance between neighbours");
-  localClass(class, NAME_linkGap, NAME_layout, "int", NAME_get,
-	     "Distance between line and image");
-  localClass(class, NAME_direction, NAME_layout,
-	     "{horizontal,vertical,list}", NAME_get,
-	     "Layout of the tree");
-  localClass(class, NAME_link, NAME_layout, "link", NAME_get,
-	     "Generic connection between graphicals");
-  localClass(class, NAME_parentHandle, NAME_relation, "handle", NAME_get,
-	     "Connection point to parent");
-  localClass(class, NAME_sonHandle, NAME_relation, "handle", NAME_get,
-	     "Connection point to sons");
-  localClass(class, NAME_rootHandlers, NAME_event, "chain", NAME_get,
-	     "Event handlers for root");
-  localClass(class, NAME_leafHandlers, NAME_event, "chain", NAME_get,
-	     "Event handlers for leafs");
-  localClass(class, NAME_nodeHandlers, NAME_event, "chain", NAME_get,
-	     "Event handlers for any type of node");
-  localClass(class, NAME_collapsedHandlers, NAME_event, "chain", NAME_get,
-	     "Event handlers for collapsed nodes");
-
-  termClass(class, "tree", 1, NAME_root);
+{ declareClass(class, &tree_decls);
   delegateClass(class, NAME_root);
-
-  storeMethod(class, NAME_levelGap,     levelGapTree);
-  storeMethod(class, NAME_neighbourGap, neighbourGapTree);
-  storeMethod(class, NAME_direction,    directionTree);
-  storeMethod(class, NAME_linkGap,      linkGapTree);
-  storeMethod(class, NAME_autoLayout,	autoLayoutTree);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "root=[node]*",
-	     "Create a tree from a root node",
-	     initialiseTree);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Removes all the nodes",
-	     unlinkTree);
-  sendMethod(class, NAME_compute, DEFAULT, 0,
-	     "Recompute the tree layout",
-	     computeTree);
-  sendMethod(class, NAME_unzoom, NAME_scroll, 0,
-	     "Make the visible root the real root",
-	     unzoomTree);
-  sendMethod(class, NAME_zoom, NAME_scroll, 1, "node",
-	     "Zoom to a particular node",
-	     zoomTree);
-  sendMethod(class, NAME_root, NAME_nodes, 1, "node*",
-	     "Set root node",
-	     rootTree);
-  sendMethod(class, NAME_event, DEFAULT, 1, "event",
-	     "Process an event",
-	     eventTree);
-  sendMethod(class, NAME_rootHandler, NAME_event, 1, "recogniser",
-	     "Add recogniser for root node",
-	     rootHandlerTree);
-  sendMethod(class, NAME_leafHandler, NAME_event, 1, "recogniser",
-	     "Add recogniser for leaf node",
-	     leafHandlerTree);
-  sendMethod(class, NAME_nodeHandler, NAME_event, 1, "recogniser",
-	     "Add recogniser for any node node",
-	     nodeHandlerTree);
-  sendMethod(class, NAME_collapsedHandler, NAME_event, 1, "recogniser",
-	     "Add recogniser for collapsed node",
-	     collapsedHandlerTree);
-  sendMethod(class, NAME_forAll, NAME_iterate, 1, "code",
-	     "Run code on all nodes (demand acceptance)",
-	     forAllTree);
-  sendMethod(class, NAME_forSome, NAME_iterate, 1, "code",
-	     "Run code on all nodes",
-	     forSomeTree);
-  sendMethod(class, NAME_layout, NAME_update, 0,
-	     "Recompute layout",
-	     layoutTree);
-
-  getMethod(class, NAME_contains, DEFAULT, "chain", 0,
-	    "New chain with nodes I manage",
-	    getContainsTree);
-
-  attach_resource(class, "direction",     "name",    "horizontal",
-		  "Default style {horizontal,vertical,list}");
-  attach_resource(class, "link_gap",      "int", "2",
-		  "Gap between link-line and image");
-  attach_resource(class, "level_gap",     "int", "50",
-		  "Gap between levels");
-  attach_resource(class, "neighbour_gap", "int", "0",
-		  "Gap between neighbours");
 
   succeed;
 }

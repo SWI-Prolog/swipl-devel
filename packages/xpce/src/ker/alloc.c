@@ -90,7 +90,7 @@ allocate(int size)
 #endif
   }
 
-  if ( !(p = malloc(ALLOCSIZE)) )
+  if ( !(p = pceMalloc(ALLOCSIZE)) )
   { Cprintf("[PCE FATAL ERROR: malloc(%d) failed.  Swap space full?]\n",
 	    ALLOCSIZE);
     exit(1);
@@ -165,12 +165,12 @@ alloc(register int n)
   }
 
 #if ALLOC_DEBUG > 1
-{ Any p = malloc(n);
+{ Any p = pceMalloc(n);
   memset(p, ALLOC_MAGIC_BYTE, n);
   return p;
 }
 #else
-  return malloc(n);			/* malloc() it */
+  return pceMalloc(n);			/* malloc() it */
 #endif
 }
 
@@ -212,7 +212,7 @@ unalloc(register int n, Any p)
   memset(p, ALLOC_MAGIC_BYTE, n);
 #endif
 
-  free(z);
+  pceFree(z);
 }
 
 

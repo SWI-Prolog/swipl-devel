@@ -9,6 +9,9 @@
 
 
 :- module(swi_prolog_emacs_binding, []).
+:- use_module(library(pce)).
+:- require([ start_emacs/0
+	   ]).
 
 :- multifile
 	user:edit_source/1,

@@ -56,10 +56,6 @@ used in saved object (object ->save_in_file).
 #define FALSE 0
 #endif
 
-#ifndef XMalloc
-#define XMalloc malloc
-#endif
-
 #define Symbol PixSymbol		/* name-clash with kernel */
 #define symbol pix_symbol
 
@@ -90,7 +86,7 @@ struct table
 
 static Table
 newTable(int size)
-{ Table t = (Table)malloc(sizeof(struct table) + (size-1) * sizeof(Symbol));
+{ Table t = (Table)pceMalloc(sizeof(struct table) + (size-1) * sizeof(Symbol));
   int i;
   Symbol *s;
 
@@ -112,18 +108,18 @@ freeTable(Table t)
 
     for( ; m; m = n)
     { n = m->next;
-      free(m);
+      pceFree(m);
     }
   }
 
-  free(t);
+  pceFree(t);
 }
 
 
 static void
 addTable(Table t, ulong name, ulong value)
 { Symbol *l = &t->symbols[hashvalue(t->size, name)];
-  Symbol s = (Symbol)malloc(sizeof(struct symbol));
+  Symbol s = (Symbol)pceMalloc(sizeof(struct symbol));
 
   s->name = name;
   s->value = value;
@@ -264,7 +260,7 @@ read_ppm_file(Display *disp, Colormap cmap, int depth, FILE *fd)
     goto errout;
 
   bytes_per_line = roundup((width*depth+7)/8, pad/8);
-  data = (char *)XMalloc(height * bytes_per_line);
+  data = (char *)pceMalloc(height * bytes_per_line);
 
   img = XCreateImage(disp,
 		     v,

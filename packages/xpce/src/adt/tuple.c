@@ -18,22 +18,55 @@ initialiseTuple(Tuple t, Any first, Any second)
   succeed;
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_initialise[] =
+        { "first=any", "second=any" };
+
+/* Instance Variables */
+
+static const vardecl var_tuple[] =
+{ IV(NAME_first, "any", IV_BOTH,
+     NAME_storage, "First of the tuple"),
+  IV(NAME_second, "any", IV_BOTH,
+     NAME_storage, "Second of the tuple")
+};
+
+/* Send Methods */
+
+static const senddecl send_tuple[] =
+{ SM(NAME_initialise, 2, T_initialise, initialiseTuple,
+     DEFAULT, "Create tuple from first and second")
+};
+
+/* Get Methods */
+
+static const getdecl get_tuple[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_tuple[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name tuple_termnames[] = { NAME_first, NAME_second };
+
+ClassDecl(tuple_decls,
+          var_tuple, send_tuple, get_tuple, rc_tuple,
+          2, tuple_termnames,
+          "$Rev$");
+
 
 status
 makeClassTuple(Class class)
-{ sourceClass(class, makeClassTuple, __FILE__, "$Revision$");
-
-  localClass(class, NAME_first, NAME_storage, "any", NAME_both,
-	     "First of the tuple");
-  localClass(class, NAME_second, NAME_storage, "any", NAME_both,
-	     "Second of the tuple");
-
-  termClass(class, "tuple", 2, NAME_first, NAME_second);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2, "first=any", "second=any",
-	     "Create tuple from first and second",
-	     initialiseTuple);
-
-  succeed;
+{ return declareClass(class, &tuple_decls);
 }
 

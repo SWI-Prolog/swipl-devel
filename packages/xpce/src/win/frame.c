@@ -1194,323 +1194,270 @@ getContainsFrame(FrameObj fr)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_report[] =
+        { "{status,inform,progress,done,warning,error}", "format=[char_array]", "argument=any ..." };
+static const char *T_centerADpointD_grabADboolD[] =
+        { "center=[point]", "grab=[bool]" };
+static const char *T_busyCursor[] =
+        { "cursor=[cursor]*", "block_input=[bool]" };
+static const char *T_icon[] =
+        { "image=image", "icon_label=[name]" };
+static const char *T_initialise[] =
+        { "label=[name]", "kind=[{toplevel,transient,popup}]", "display=[display]" };
+static const char *T_label[] =
+        { "label=name", "icon_label=[name]" };
+static const char *T_postscript[] =
+        { "landscape=[bool]", "scale_in=[area]" };
+static const char *T_positionADpointD_grabADboolD_normaliseADboolD[] =
+        { "position=[point]", "grab=[bool]", "normalise=[bool]" };
+static const char *T_wmProtocol[] =
+        { "protocol=name", "action=code" };
+static const char *T_convertOldSlot[] =
+        { "slot=name", "value=any" };
+static const char *T_set[] =
+        { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_frame[] =
+{ IV(NAME_label, "name", IV_GET,
+     NAME_label, "Label of the frame"),
+  SV(NAME_iconLabel, "name*", IV_NONE|IV_STORE, iconLabelFrame,
+     NAME_icon, "Label in the iconic representation"),
+  IV(NAME_iconImage, "image*", IV_GET,
+     NAME_icon, "Image used for the iconic representation"),
+  SV(NAME_iconPosition, "point*", IV_GET|IV_STORE, iconPositionFrame,
+     NAME_icon, "Position of the iconic image"),
+  IV(NAME_display, "display", IV_BOTH,
+     NAME_organisation, "Display the frame resides on"),
+  IV(NAME_border, "[int]", IV_GET,
+     NAME_appearance, "Width of border"),
+  SV(NAME_background, "colour|pixmap", IV_GET|IV_STORE, backgroundFrame,
+     NAME_appearance, "Background of the frame"),
+  SV(NAME_area, "area", IV_GET|IV_STORE, areaFrame,
+     NAME_area, "Area of the opened frame on the display"),
+  SV(NAME_geometry, "name*", IV_NONE|IV_STORE, geometryFrame,
+     NAME_area, "X-window geometry specification"),
+  IV(NAME_members, "chain", IV_NONE,
+     NAME_organisation, "Windows in the frame"),
+  IV(NAME_destroying, "bool", IV_NONE,
+     NAME_internal, "Handle destruction gracefully"),
+  SV(NAME_kind, "{toplevel,transient,popup}", IV_GET|IV_STORE, kindFrame,
+     NAME_appearance, "Tool, support or popup"),
+  SV(NAME_transientFor, "frame*", IV_GET|IV_STORE, transientForFrame,
+     NAME_transient, "Frame I'm transient for (i.e. support for)"),
+  IV(NAME_transients, "chain*", IV_GET,
+     NAME_transient, "Back pointer for transient frames"),
+  IV(NAME_returnValue, "any", IV_NONE,
+     NAME_modal, "Bin for value of ->return"),
+  SV(NAME_inputFocus, "bool", IV_GET|IV_STORE, inputFocusFrame,
+     NAME_event, "Frame has focus for keyboard events"),
+  SV(NAME_status, "{unmapped,hidden,iconic,open}", IV_GET|IV_STORE, statusFrame,
+     NAME_visibility, "Current visibility of the frame"),
+  IV(NAME_canDelete, "bool", IV_BOTH,
+     NAME_permission, "Frame can be deleted by user"),
+  IV(NAME_confirmDone, "bool", IV_BOTH,
+     NAME_permission, "Ask confirmation on user-delete"),
+  IV(NAME_wmProtocols, "sheet", IV_GET,
+     NAME_windowManager, "Protocol-name --> message"),
+  IV(NAME_wmProtocolsAttached, "bool", IV_GET,
+     NAME_internal, "Have we registered the protocols"),
+  IV(NAME_wsRef, "alien:WsRef", IV_NONE,
+     NAME_windowSystem, "Window-System reference")
+};
+
+/* Send Methods */
+
+static const senddecl send_frame[] =
+{ SM(NAME_convertOldSlot, 2, T_convertOldSlot, convertOldSlotFrame,
+     DEFAULT, "Convert old `show' slot"),
+  SM(NAME_initialise, 3, T_initialise, initialiseFrame,
+     DEFAULT, "Create from label, kind and display"),
+  SM(NAME_initialiseNewSlot, 1, "var=variable", initialiseNewSlotFrame,
+     DEFAULT, "Initialise <-background"),
+  SM(NAME_reset, 0, NULL, resetFrame,
+     DEFAULT, "Remove ->busy_cursor"),
+  SM(NAME_unlink, 0, NULL, unlinkFrame,
+     DEFAULT, "Destroy windows and related X-window"),
+  SM(NAME_typed, 1, "event_id", typedFrame,
+     NAME_accelerator, "Dispatch over available windows"),
+  SM(NAME_flush, 0, NULL, flushFrame,
+     NAME_animate, "Flush X-server"),
+  SM(NAME_synchronise, 0, NULL, synchroniseFrame,
+     NAME_animate, "->flush and process pending events"),
+  SM(NAME_border, 1, "thickness=int", borderFrame,
+     NAME_appearance, "X-border width"),
+  SM(NAME_showLabel, 1, "show=bool", showLabelFrame,
+     NAME_appearance, "If @off, sets <->kind to `transient'"),
+  SM(NAME_center, 1, "center=[point]", centerFrame,
+     NAME_area, "Move the frame to make point its center"),
+  SM(NAME_height, 1, "height=int", heightFrame,
+     NAME_area, "Set height of frame"),
+  SM(NAME_move, 1, "position=point", positionFrame,
+     NAME_area, "Move the frame on the display"),
+  SM(NAME_position, 1, "position=point", positionFrame,
+     NAME_area, "Move the frame on the display"),
+  SM(NAME_set, 4, T_set, setFrame,
+     NAME_area, "Set XYWH of frame on display"),
+  SM(NAME_size, 1, "size=size", sizeFrame,
+     NAME_area, "Resize the frame"),
+  SM(NAME_width, 1, "width=int", widthFrame,
+     NAME_area, "Set width of frame"),
+  SM(NAME_x, 1, "x=int", xFrame,
+     NAME_area, "Set X-coordinate of frame"),
+  SM(NAME_y, 1, "x=int", yFrame,
+     NAME_area, "Set Y-coordinate of frame"),
+  SM(NAME_busyCursor, 2, T_busyCursor, busyCursorFrame,
+     NAME_event, "Define (temporary) cursor for all windows in the frame"),
+  SM(NAME_inputWindow, 1, "window", inputWindowFrame,
+     NAME_focus, "Input is directed to this window"),
+  SM(NAME_keyboardFocus, 1, "[window]*", keyboardFocusFrame,
+     NAME_focus, "Redirect (default) keyboard input here"),
+  SM(NAME_closed, 1, "open=bool", closedFrame,
+     NAME_icon, "Open/iconify frame"),
+  SM(NAME_icon, 2, T_icon, iconFrame,
+     NAME_icon, "Set image and icon_label"),
+  SM(NAME_label, 2, T_label, labelFrame,
+     NAME_label, "Set label of the frame"),
+  SM(NAME_fit, 0, NULL, fitFrame,
+     NAME_layout, "Recompute windows and resize the frame"),
+  SM(NAME_resize, 0, NULL, resizeFrame,
+     NAME_layout, "Recompute layout of sub-windows"),
+  SM(NAME_return, 1, "any", returnFrame,
+     NAME_modal, "Return after a <-confirm"),
+  SM(NAME_create, 0, NULL, createFrame,
+     NAME_open, "Establish window-system counterpart"),
+  SM(NAME_mapped, 1, "bool", mappedFrame,
+     NAME_open, "Inform transients using ->show"),
+  SM(NAME_open, 3, T_positionADpointD_grabADboolD_normaliseADboolD, openFrame,
+     NAME_open, "->create and map on the display"),
+  SM(NAME_openCentered, 2, T_centerADpointD_grabADboolD, openCenteredFrame,
+     NAME_open, "Open centered around point"),
+  SM(NAME_uncreate, 0, NULL, uncreateFrame,
+     NAME_open, "Destroy window-system counterpart"),
+  SM(NAME_wait, 0, NULL, waitFrame,
+     NAME_open, "Wait till <-status is `open'"),
+  SM(NAME_append, 1, "subwindow=window", appendFrame,
+     NAME_organisation, "Append a window to the frame"),
+  SM(NAME_delete, 1, "member:window", deleteFrame,
+     NAME_organisation, "Delete window from the frame"),
+  SM(NAME_Postscript, 0, NULL, postscriptFrame,
+     NAME_postscript, "Create PostScript for interior"),
+  SM(NAME_bell, 1, "volume=[int]", bellFrame,
+     NAME_report, "Ring the bell on display"),
+  SM(NAME_report, 3, T_report, reportFrame,
+     NAME_report, "Report message (send to <-members)"),
+  SM(NAME_expose, 0, NULL, exposeFrame,
+     NAME_stacking, "Put frame above all others on the display"),
+  SM(NAME_exposed, 0, NULL, exposedFrame,
+     NAME_stacking, "Inform transient windows to expose"),
+  SM(NAME_hidden, 0, NULL, hiddenFrame,
+     NAME_stacking, "Inform transient windows to hide"),
+  SM(NAME_hide, 0, NULL, hideFrame,
+     NAME_stacking, "Put frame below all others on the display"),
+  SM(NAME_show, 1, "show=bool", showFrame,
+     NAME_visibility, "(Un)show the frame on the display"),
+  SM(NAME_deleteWmProtocol, 1, "protocol=name", deleteWmProtocolFrame,
+     NAME_windowManager, "Delete window manager protocol"),
+  SM(NAME_doneMessage, 1, "action=code", doneMessageFrame,
+     NAME_windowManager, "Trap window manager WM_DELETE_WINDOW"),
+  SM(NAME_saveMessage, 1, "action=code", saveMessageFrame,
+     NAME_windowManager, "Trap window manager WM_SAVE_YOURSELF"),
+  SM(NAME_wmDelete, 0, NULL, wmDeleteFrame,
+     NAME_windowManager, "Default handling for WM_DELETE_WINDOW"),
+  SM(NAME_wmProtocol, 2, T_wmProtocol, wmProtocolFrame,
+     NAME_windowManager, "Register window manager protocol")
+};
+
+/* Get Methods */
+
+static const getdecl get_frame[] =
+{ GM(NAME_containedIn, 0, "display", NULL, getContainedInFrame,
+     DEFAULT, "Display that contains me"),
+  GM(NAME_contains, 0, "chain", NULL, getContainsFrame,
+     DEFAULT, "Chain with windows contained"),
+  GM(NAME_convert, 1, "frame", "window", getConvertFrame,
+     DEFAULT, "Frame of the window"),
+  GM(NAME_geometry, 0, "name", NULL, getGeometryFrame,
+     NAME_area, "X-geometry specification"),
+  GM(NAME_position, 0, "point", NULL, getPositionFrame,
+     NAME_area, "Position on the display"),
+  GM(NAME_size, 0, "size", NULL, getSizeFrame,
+     NAME_area, "Size on the display"),
+  GM(NAME_image, 1, "image", "[{bitmap,pixmap}]", getImageFrame,
+     NAME_conversion, "Image with the pixels of the frame"),
+  GM(NAME_keyboardFocus, 0, "window", NULL, getKeyboardFocusFrame,
+     NAME_focus, "Window for default keyboard input"),
+  GM(NAME_closed, 0, "bool", NULL, getClosedFrame,
+     NAME_icon, "Open (@off) or iconic (@on)"),
+  GM(NAME_iconLabel, 0, "name", NULL, getIconLabelFrame,
+     NAME_icon, "Name of the icon"),
+  GM(NAME_iconPosition, 0, "point*", NULL, getIconPositionFrame,
+     NAME_icon, "(Current) position of the icon"),
+  GM(NAME_tile, 0, "tile", NULL, getTileFrame,
+     NAME_layout, "Find tile managing object"),
+  GM(NAME_confirm, 3, "return_value=any", T_positionADpointD_grabADboolD_normaliseADboolD, getConfirmFrame,
+     NAME_modal, "Start sub-eventloop until ->return"),
+  GM(NAME_confirmCentered, 2, "return_value=any", T_centerADpointD_grabADboolD, getConfirmCenteredFrame,
+     NAME_modal, "As <-confirm, but centered around point"),
+  GM(NAME_catchAll, 1, "window", "window_name=name", getCatchAllFramev,
+     NAME_organisation, "Get named window"),
+  GM(NAME_frame, 0, "frame", NULL, getFrameFrame,
+     NAME_organisation, "Returns itself"),
+  GM(NAME_member, 1, "window", "name", getMemberFrame,
+     NAME_organisation, "Find member window by name"),
+  GM(NAME_members, 0, "chain", NULL, getMembersFrame,
+     NAME_organisation, "New chain holding all member windows"),
+  GM(NAME_boundingBox, 0, "area", NULL, getBoundingBoxFrame,
+     NAME_postscript, "Bounding for PostScript"),
+  GM(NAME_postscript, 2, "postscript=string", T_postscript, getPostscriptObject,
+     NAME_postscript, "Get PostScript representation of frame"),
+  GM(NAME_show, 0, "bool", NULL, getShowFrame,
+     NAME_visibility, "@on iff <-status = open; @off otherwise")
+};
+
+/* Resources */
+
+static const resourcedecl rc_frame[] =
+{ RC(NAME_background, "colour|pixmap", "white",
+     "Default background colour"),
+  RC(NAME_busyCursor, "cursor*", "watch",
+     "Default cursor displayed by ->busy_cursor"),
+  RC(NAME_confirmDone, "bool", "@on",
+     "Show confirmer on `Delete'"),
+  RC(NAME_geometry, "name*", "@nil",
+     "Position/size of the frame"),
+  RC(NAME_iconImage, "image*", "\"pce.bm\"",
+     "Image displayed for an icon"),
+  RC(NAME_iconLabel, "name*", "@nil",
+     "Label displayed in the icon")
+};
+
+/* Class Declaration */
+
+static Name frame_termnames[] = { NAME_label, NAME_kind, NAME_display };
+
+ClassDecl(frame_decls,
+          var_frame, send_frame, get_frame, rc_frame,
+          3, frame_termnames,
+          "$Rev$");
+
+
 status
 makeClassFrame(Class class)
-{ sourceClass(class, makeClassFrame, __FILE__, "$Revision$");
-
+{ declareClass(class, &frame_decls);
   setLoadStoreFunctionClass(class, loadFrame, storeFrame);
-
-  localClass(class, NAME_label, NAME_label, "name", NAME_get,
-	     "Label of the frame");
-  localClass(class, NAME_iconLabel, NAME_icon, "name*", NAME_none,
-	     "Label in the iconic representation");
-  localClass(class, NAME_iconImage, NAME_icon, "image*", NAME_get,
-	     "Image used for the iconic representation");
-  localClass(class, NAME_iconPosition, NAME_icon, "point*", NAME_get,
-	     "Position of the iconic image");
-  localClass(class, NAME_display, NAME_organisation, "display", NAME_both,
-	     "Display the frame resides on");
-  localClass(class, NAME_border, NAME_appearance, "[int]", NAME_get,
-	     "Width of border");
-  localClass(class, NAME_background, NAME_appearance, "colour|pixmap",
-	     NAME_get,
-	     "Background of the frame");
-  localClass(class, NAME_area, NAME_area, "area", NAME_get,
-	     "Area of the opened frame on the display");
-  localClass(class, NAME_geometry, NAME_area, "name*", NAME_none,
-	     "X-window geometry specification");
-  localClass(class, NAME_members, NAME_organisation, "chain", NAME_none,
-	     "Windows in the frame");
-  localClass(class, NAME_destroying, NAME_internal, "bool", NAME_none,
-	     "Handle destruction gracefully");
-  localClass(class, NAME_kind, NAME_appearance,
-	     "{toplevel,transient,popup}", NAME_get,
-	     "Tool, support or popup");
-  localClass(class, NAME_transientFor, NAME_transient, "frame*", NAME_get,
-	     "Frame I'm transient for (i.e. support for)");
-  localClass(class, NAME_transients, NAME_transient, "chain*", NAME_get,
-	     "Back pointer for transient frames");
-  localClass(class, NAME_returnValue, NAME_modal, "any", NAME_none,
-	     "Bin for value of ->return");
-  localClass(class, NAME_inputFocus, NAME_event, "bool", NAME_get,
-	     "Frame has focus for keyboard events");
-  localClass(class, NAME_status, NAME_visibility,
-	     "{unmapped,hidden,iconic,open}", NAME_get,
-	     "Current visibility of the frame");
-  localClass(class, NAME_canDelete, NAME_permission, "bool", NAME_both,
-	     "Frame can be deleted by user");
-  localClass(class, NAME_confirmDone, NAME_permission, "bool", NAME_both,
-	     "Ask confirmation on user-delete");
-  localClass(class, NAME_wmProtocols, NAME_windowManager, "sheet", NAME_get,
-	     "Protocol-name --> message");
-  localClass(class, NAME_wmProtocolsAttached, NAME_internal, "bool", NAME_get,
-	     "Have we registered the protocols");
-  localClass(class, NAME_wsRef, NAME_windowSystem, "alien:WsRef", NAME_none,
-	     "Window-System reference");
-
-  termClass(class, "frame", 3, NAME_label, NAME_kind, NAME_display);
-
-  storeMethod(class, NAME_kind, kindFrame);
-  storeMethod(class, NAME_status, statusFrame);
-  storeMethod(class, NAME_transientFor, transientForFrame);
-  storeMethod(class, NAME_geometry, geometryFrame);
-  storeMethod(class, NAME_area, areaFrame);
-  storeMethod(class, NAME_iconLabel, iconLabelFrame);
-  storeMethod(class, NAME_iconPosition, iconPositionFrame);
-  storeMethod(class, NAME_background, backgroundFrame);
-  storeMethod(class, NAME_inputFocus, inputFocusFrame);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 3,
-	     "label=[name]", "kind=[{toplevel,transient,popup}]",
-	     "display=[display]",
-	     "Create from label, kind and display",
-	     initialiseFrame);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Destroy windows and related X-window",
-	     unlinkFrame);
-  sendMethod(class, NAME_convertOldSlot, DEFAULT, 2,
-	     "slot=name", "value=any",
-	     "Convert old `show' slot",
-	     convertOldSlotFrame);
-  sendMethod(class, NAME_initialiseNewSlot, DEFAULT, 1, "var=variable",
-	     "Initialise <-background",
-	     initialiseNewSlotFrame);
-  sendMethod(class, NAME_bell, NAME_report, 1, "volume=[int]",
-	     "Ring the bell on display",
-	     bellFrame);
-  sendMethod(class, NAME_create, NAME_open, 0,
-	     "Establish window-system counterpart",
-	     createFrame);
-  sendMethod(class, NAME_uncreate, NAME_open, 0,
-	     "Destroy window-system counterpart",
-	     uncreateFrame);
-  sendMethod(class, NAME_open, NAME_open, 3,
-	     "position=[point]", "grab=[bool]", "normalise=[bool]",
-	     "->create and map on the display",
-	     openFrame);
-  sendMethod(class, NAME_openCentered, NAME_open, 2,
-	     "center=[point]", "grab=[bool]",
-	     "Open centered around point",
-	     openCenteredFrame);
-  sendMethod(class, NAME_closed, NAME_icon, 1, "open=bool",
-	     "Open/iconify frame",
-	     closedFrame);
-  sendMethod(class, NAME_set, NAME_area, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Set XYWH of frame on display",
-	     setFrame);
-  sendMethod(class, NAME_x, NAME_area, 1, "x=int",
-	     "Set X-coordinate of frame",
-	     xFrame);
-  sendMethod(class, NAME_y, NAME_area, 1, "x=int",
-	     "Set Y-coordinate of frame",
-	     yFrame);
-  sendMethod(class, NAME_width, NAME_area, 1, "width=int",
-	     "Set width of frame",
-	     widthFrame);
-  sendMethod(class, NAME_height, NAME_area, 1, "height=int",
-	     "Set height of frame",
-	     heightFrame);
-  sendMethod(class, NAME_size, NAME_area, 1, "size=size",
-	     "Resize the frame",
-	     sizeFrame);
-  sendMethod(class, NAME_position, NAME_area, 1, "position=point",
-	     "Move the frame on the display",
-	     positionFrame);
-  sendMethod(class, NAME_move, NAME_area, 1, "position=point",
-	     "Move the frame on the display",
-	     positionFrame);
-  sendMethod(class, NAME_center, NAME_area, 1, "center=[point]",
-	     "Move the frame to make point its center",
-	     centerFrame);
-  sendMethod(class, NAME_append, NAME_organisation, 1, "subwindow=window",
-	     "Append a window to the frame",
-	     appendFrame);
-  sendMethod(class, NAME_delete, NAME_organisation, 1, "member:window",
-	     "Delete window from the frame",
-	     deleteFrame);
-  sendMethod(class, NAME_flush, NAME_animate, 0,
-	     "Flush X-server",
-	     flushFrame);
-  sendMethod(class, NAME_synchronise, NAME_animate, 0,
-	     "->flush and process pending events",
-	     synchroniseFrame);
-  sendMethod(class, NAME_show, NAME_visibility, 1, "show=bool",
-	     "(Un)show the frame on the display",
-	     showFrame);
-  sendMethod(class, NAME_busyCursor, NAME_event, 2,
-	     "cursor=[cursor]*", "block_input=[bool]",
-	     "Define (temporary) cursor for all windows in the frame",
-	     busyCursorFrame);
-  sendMethod(class, NAME_reset, DEFAULT, 0,
-	     "Remove ->busy_cursor",
-	     resetFrame);
-  sendMethod(class, NAME_border, NAME_appearance, 1, "thickness=int",
-	     "X-border width",
-	     borderFrame);
-  sendMethod(class, NAME_showLabel, NAME_appearance, 1, "show=bool",
-	     "If @off, sets <->kind to `transient'",
-	     showLabelFrame);
-  sendMethod(class, NAME_label, NAME_label, 2,
-	     "label=name", "icon_label=[name]",
-	     "Set label of the frame",
-	     labelFrame);
-  sendMethod(class, NAME_icon, NAME_icon, 2,
-	     "image=image", "icon_label=[name]",
-	     "Set image and icon_label",
-	     iconFrame);
-  sendMethod(class, NAME_expose, NAME_stacking, 0,
-	     "Put frame above all others on the display",
-	     exposeFrame);
-  sendMethod(class, NAME_hide, NAME_stacking, 0,
-	     "Put frame below all others on the display",
-	     hideFrame);
-  sendMethod(class, NAME_exposed, NAME_stacking, 0,
-	     "Inform transient windows to expose",
-	     exposedFrame);
-  sendMethod(class, NAME_hidden, NAME_stacking, 0,
-	     "Inform transient windows to hide",
-	     hiddenFrame);
-  sendMethod(class, NAME_return, NAME_modal, 1, "any",
-	     "Return after a <-confirm",
-	     returnFrame);
-  sendMethod(class, NAME_Postscript, NAME_postscript, 0,
-	     "Create PostScript for interior",
-	     postscriptFrame);
-  sendMethod(class, NAME_wmProtocol, NAME_windowManager, 2,
-	     "protocol=name", "action=code",
-	     "Register window manager protocol",
-	     wmProtocolFrame);
-  sendMethod(class, NAME_deleteWmProtocol, NAME_windowManager, 1,
-	     "protocol=name",
-	     "Delete window manager protocol",
-	     deleteWmProtocolFrame);
-  sendMethod(class, NAME_doneMessage, NAME_windowManager, 1, "action=code",
-	     "Trap window manager WM_DELETE_WINDOW",
-	     doneMessageFrame);
-  sendMethod(class, NAME_saveMessage, NAME_windowManager, 1, "action=code",
-	     "Trap window manager WM_SAVE_YOURSELF",
-	     saveMessageFrame);
-  sendMethod(class, NAME_wmDelete, NAME_windowManager, 0,
-	     "Default handling for WM_DELETE_WINDOW",
-	     wmDeleteFrame);
-  sendMethod(class, NAME_fit, NAME_layout, 0,
-	     "Recompute windows and resize the frame",
-	     fitFrame);
-  sendMethod(class, NAME_resize, NAME_layout, 0,
-	     "Recompute layout of sub-windows",
-	     resizeFrame);
-  sendMethod(class, NAME_inputWindow, NAME_focus, 1, "window",
-	     "Input is directed to this window",
-	     inputWindowFrame);
-  sendMethod(class, NAME_keyboardFocus, NAME_focus, 1, "[window]*",
-	     "Redirect (default) keyboard input here",
-	     keyboardFocusFrame);
-/*sendMethod(class, NAME_event, NAME_event, 1, "event",
-	     "Handle frame-level event (mostly keyboard)",
-	     eventFrame); */
-  sendMethod(class, NAME_mapped, NAME_open, 1, "bool",
-	     "Inform transients using ->show",
-	     mappedFrame);
-  sendMethod(class, NAME_wait, NAME_open, 0,
-	     "Wait till <-status is `open'",
-	     waitFrame);
-  sendMethod(class, NAME_typed, NAME_accelerator, 1, "event_id",
-	     "Dispatch over available windows",
-	     typedFrame);
-  sendMethod(class, NAME_report, NAME_report, 3,
-	     "{status,inform,progress,done,warning,error}",
-	     "format=[char_array]", "argument=any ...",
-	     "Report message (send to <-members)",
-	     reportFrame);
-  
-  getMethod(class, NAME_size, NAME_area, "size", 0,
-	    "Size on the display",
-	    getSizeFrame);
-  getMethod(class, NAME_position, NAME_area, "point", 0,
-	    "Position on the display",
-	    getPositionFrame);
-  getMethod(class, NAME_closed, NAME_icon, "bool", 0,
-	    "Open (@off) or iconic (@on)",
-	    getClosedFrame);
-  getMethod(class, NAME_show, NAME_visibility, "bool", 0,
-	    "@on iff <-status = open; @off otherwise",
-	    getShowFrame);
-  getMethod(class, NAME_image, NAME_conversion, "image", 1,
-	    "[{bitmap,pixmap}]",
-	    "Image with the pixels of the frame",
-	    getImageFrame);
-  getMethod(class, NAME_confirm, NAME_modal, "return_value=any", 3,
-	    "position=[point]", "grab=[bool]", "normalise=[bool]",
-	    "Start sub-eventloop until ->return",
-	    getConfirmFrame);
-  getMethod(class, NAME_confirmCentered, NAME_modal, "return_value=any", 2,
-	    "center=[point]", "grab=[bool]",
-	    "As <-confirm, but centered around point",
-	    getConfirmCenteredFrame);
-  getMethod(class, NAME_keyboardFocus, NAME_focus, "window", 0,
-	    "Window for default keyboard input",
-	    getKeyboardFocusFrame);
-  getMethod(class, NAME_member, NAME_organisation, "window", 1, "name",
-	    "Find member window by name",
-	    getMemberFrame);
-  getMethod(class, NAME_members, NAME_organisation, "chain", 0,
-	    "New chain holding all member windows",
-	    getMembersFrame);
-  getMethod(class, NAME_tile, NAME_layout, "tile", 0,
-	    "Find tile managing object",
-	    getTileFrame);
-  getMethod(class, NAME_boundingBox, NAME_postscript, "area", 0,
-	    "Bounding for PostScript",
-	    getBoundingBoxFrame);
-  getMethod(class, NAME_postscript, NAME_postscript, "postscript=string", 2,
-	    "landscape=[bool]", "scale_in=[area]",
-	    "Get PostScript representation of frame",
-	    getPostscriptObject);
-  getMethod(class, NAME_frame, NAME_organisation, "frame", 0,
-	    "Returns itself",
-	    getFrameFrame);
-  getMethod(class, NAME_containedIn, DEFAULT, "display", 0,
-	    "Display that contains me",
-	    getContainedInFrame);
-  getMethod(class, NAME_contains, DEFAULT, "chain", 0,
-	    "Chain with windows contained",
-	    getContainsFrame);
-  getMethod(class, NAME_convert, DEFAULT, "frame", 1, "window",
-	    "Frame of the window",
-	    getConvertFrame);
-  getMethod(class, NAME_iconLabel, NAME_icon, "name", 0,
-	    "Name of the icon",
-	    getIconLabelFrame);
-  getMethod(class, NAME_geometry, NAME_area, "name", 0,
-	    "X-geometry specification",
-	    getGeometryFrame);
-  getMethod(class, NAME_iconPosition, NAME_icon, "point*", 0,
-	    "(Current) position of the icon",
-	    getIconPositionFrame);
-  getMethod(class, NAME_catchAll, NAME_organisation, "window", 1,
-	    "window_name=name",
-	    "Get named window",
-	    getCatchAllFramev);
-
-  attach_resource(class, "confirm_done", "bool", "@on",
-		  "Show confirmer on `Delete'");
-  attach_resource(class, "icon_image", "image*", "\"pce.bm\"",
-		  "Image displayed for an icon");
-  attach_resource(class, "icon_label", "name*", "@nil",
-		  "Label displayed in the icon");
-  attach_resource(class, "geometry", "name*", "@nil",
-		  "Position/size of the frame");
-  attach_resource(class, "busy_cursor", "cursor*", "watch",
-		  "Default cursor displayed by ->busy_cursor");
-  attach_resource(class, "background", "colour|pixmap", "white",
-		  "Default background colour");
 
   ConstantNotReturned = globalObject(NAME_NotReturned, ClassConstant,
 				     NAME_NotReturned,
 				     CtoString("Used for `frame <-confirm'"),
 				     0);
-
   succeed;
 }
 

@@ -208,47 +208,74 @@ terminateResizeGesture(ResizeGesture g, EventObj ev)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "button=[button_name]", "modifier=[modifier]" };
+
+/* Instance Variables */
+
+static const vardecl var_resizeGesture[] =
+{ IV(NAME_hMode, "{left,keep,right}", IV_BOTH,
+     NAME_mode, "Horizontal resize mode"),
+  IV(NAME_vMode, "{top,keep,bottom}", IV_BOTH,
+     NAME_mode, "Vertical resize mode"),
+  IV(NAME_minSize, "size*", IV_BOTH,
+     NAME_constraint, "Specify minimum size of the graphical"),
+  IV(NAME_maxSize, "size*", IV_BOTH,
+     NAME_constraint, "Specify maximum size of the graphical")
+};
+
+/* Send Methods */
+
+static const senddecl send_resizeGesture[] =
+{ SM(NAME_initialise, 2, T_initialise, initialiseResizeGesture,
+     DEFAULT, "Create from button and modifier"),
+  SM(NAME_drag, 1, "event", dragResizeGesture,
+     NAME_event, "Changes the appropriate edges"),
+  SM(NAME_initiate, 1, "event", initiateResizeGesture,
+     NAME_event, "Set cursor and warp pointer"),
+  SM(NAME_terminate, 1, "event", terminateResizeGesture,
+     NAME_event, "Equivalent to ->drag"),
+  SM(NAME_verify, 1, "event", verifyResizeGesture,
+     NAME_event, "Test margins and set modes")
+};
+
+/* Get Methods */
+
+static const getdecl get_resizeGesture[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_resizeGesture[] =
+{ RC(NAME_button, "button_name", "middle",
+     "Active on which button (middle)"),
+  RC(NAME_marginFraction, "int", "4",
+     "Cursor must be within 1/fraction from edge"),
+  RC(NAME_marginWidth, "int", "15",
+     "Cursor must be within <max> from edge"),
+  RC(NAME_minSize, "size", "size(3,3)",
+     "Minimum size of graphical")
+};
+
+/* Class Declaration */
+
+static Name resizeGesture_termnames[] = { NAME_button, NAME_modifier };
+
+ClassDecl(resizeGesture_decls,
+          var_resizeGesture, send_resizeGesture,
+	  get_resizeGesture, rc_resizeGesture,
+          2, resizeGesture_termnames,
+          "$Rev$");
+
 status
 makeClassResizeGesture(Class class)
-{ sourceClass(class, makeClassResizeGesture, __FILE__, "$Revision$");
-
-  localClass(class, NAME_hMode, NAME_mode, "{left,keep,right}", NAME_both,
-	     "Horizontal resize mode");
-  localClass(class, NAME_vMode, NAME_mode, "{top,keep,bottom}", NAME_both,
-	     "Vertical resize mode");
-  localClass(class, NAME_minSize, NAME_constraint, "size*", NAME_both,
-	     "Specify minimum size of the graphical");
-  localClass(class, NAME_maxSize, NAME_constraint, "size*", NAME_both,
-	     "Specify maximum size of the graphical");
-
-  termClass(class, "resize_gesture", 2, NAME_button, NAME_modifier);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2,
-	     "button=[button_name]", "modifier=[modifier]",
-	     "Create from button and modifier",
-	     initialiseResizeGesture);
-  sendMethod(class, NAME_verify, NAME_event, 1, "event",
-	     "Test margins and set modes",
-	     verifyResizeGesture);
-  sendMethod(class, NAME_initiate, NAME_event, 1, "event",
-	     "Set cursor and warp pointer",
-	     initiateResizeGesture);
-  sendMethod(class, NAME_drag, NAME_event, 1, "event",
-	     "Changes the appropriate edges",
-	     dragResizeGesture);
-  sendMethod(class, NAME_terminate, NAME_event, 1, "event",
-	     "Equivalent to ->drag",
-	     terminateResizeGesture);
-
-  attach_resource(class, "button", "button_name", "middle",
-		  "Active on which button (middle)");
-  attach_resource(class, "margin_fraction", "int", "4",
-		  "Cursor must be within 1/fraction from edge");
-  attach_resource(class, "margin_width", "int", "15",
-		  "Cursor must be within <max> from edge");
-  attach_resource(class, "min_size", "size", "size(3,3)",
-		  "Minimum size of graphical");
-
-  succeed;
+{ return declareClass(class, &resizeGesture_decls);
 }
 

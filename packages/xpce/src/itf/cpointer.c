@@ -40,25 +40,53 @@ equalCPointer(CPointer p1, CPointer p2)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+
+/* Instance Variables */
+
+static const vardecl var_cPointer[] =
+{ IV(NAME_pointer, "alien:void *", IV_NONE,
+     NAME_storage, "Address of the pointer")
+};
+
+/* Send Methods */
+
+static const senddecl send_cPointer[] =
+{ SM(NAME_initialise, 1, "alien:void *", initialiseCPointer,
+     DEFAULT, "Create c_pointer from alien pointer"),
+  SM(NAME_equal, 1, "to=c_pointer", equalCPointer,
+     NAME_compare, "Test if argument is same position")
+};
+
+/* Get Methods */
+
+static const getdecl get_cPointer[] =
+{ GM(NAME_printName, 0, "string", NULL, getPrintNameCPointer,
+     NAME_textual, "Printed representation as 0x%lx")
+};
+
+/* Resources */
+
+static const resourcedecl rc_cPointer[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name cPointer_termnames[] = { NAME_printName };
+
+ClassDecl(cPointer_decls,
+          var_cPointer, send_cPointer, get_cPointer, rc_cPointer,
+          1, cPointer_termnames,
+          "$Rev$");
+
+
 status
 makeClassCPointer(Class class)
-{ sourceClass(class, makeClassCPointer, __FILE__, "$Revision$");
-
-  localClass(class, NAME_pointer, NAME_storage, "alien:void *", NAME_none,
-	     "Address of the pointer");
-
-  termClass(class, "c_pointer", 1, NAME_printName);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "alien:void *",
-	     "Create c_pointer from alien pointer",
-	     initialiseCPointer);
-  sendMethod(class, NAME_equal, NAME_compare, 1, "to=c_pointer",
-	     "Test if argument is same position",
-	     equalCPointer);
-
-  getMethod(class, NAME_printName, NAME_textual, "string", 0,
-	    "Printed representation as 0x%lx",
-	    getPrintNameCPointer);
-
-  succeed;
+{ return declareClass(class, &cPointer_decls);
 }

@@ -32,27 +32,57 @@ ExecuteNonEqual(NonEqual c)
   fail;
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "left=any|function", "right=any|function" };
+
+/* Instance Variables */
+
+static const vardecl var_nonEqual[] =
+{ IV(NAME_left, "any|function", IV_BOTH,
+     NAME_operant, "Left-hand side"),
+  IV(NAME_right, "any|function", IV_BOTH,
+     NAME_operant, "Right-hand side")
+};
+
+/* Send Methods */
+
+static const senddecl send_nonEqual[] =
+{ SM(NAME_Execute, 0, NULL, ExecuteNonEqual,
+     DEFAULT, "Evaluate both sides and test on non-equal"),
+  SM(NAME_initialise, 2, T_initialise, initialiseNonEqual,
+     DEFAULT, "Create from left- and right-hand")
+};
+
+/* Get Methods */
+
+static const getdecl get_nonEqual[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_nonEqual[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name nonEqual_termnames[] = { NAME_left, NAME_right };
+
+ClassDecl(nonEqual_decls,
+          var_nonEqual, send_nonEqual, get_nonEqual, rc_nonEqual,
+          2, nonEqual_termnames,
+          "$Rev$");
+
 
 status
 makeClassNonEqual(Class class)
-{ sourceClass(class, makeClassNonEqual, __FILE__, "$Revision$");
-
-  localClass(class, NAME_left, NAME_operant, "any|function", NAME_both,
-	     "Left-hand side");
-  localClass(class, NAME_right, NAME_operant, "any|function", NAME_both,
-	     "Right-hand side");
-
-  termClass(class, "\\==", 2, NAME_left, NAME_right);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2,
-	     "left=any|function", "right=any|function",
-	     "Create from left- and right-hand",
-	     initialiseNonEqual);
-  sendMethod(class, NAME_Execute, DEFAULT, 0,
-	     "Evaluate both sides and test on non-equal",
-	     ExecuteNonEqual);
-
-  succeed;
+{ return declareClass(class, &nonEqual_decls);
 }
-
 

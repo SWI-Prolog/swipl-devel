@@ -140,60 +140,77 @@ getManIndicatorClass(ClassStub cstub)
 
 #endif /*O_RUNTIME*/
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_nameAname_superADclass_stubDN_summaryADstringDN[] =
+        { "name=name", "super=[class_stub]*", "summary=[string]*" };
+
+/* Instance Variables */
+
+static const vardecl var_classStub[] =
+{ IV(NAME_name, "name", IV_GET,
+     NAME_name, "Name of the class"),
+  IV(NAME_summary, "string*", IV_BOTH,
+     NAME_manual, "Summary documentation for class"),
+  IV(NAME_creator, "{built_in,host}", IV_BOTH,
+     NAME_manual, "Who created the class: {built_in,host}"),
+  IV(NAME_superClass, "class_stub*", IV_GET,
+     NAME_type, "Immediate super class"),
+  IV(NAME_subClasses, "chain*", IV_NONE,
+     NAME_type, "Sub classes")
+};
+
+/* Send Methods */
+
+static const senddecl send_classStub[] =
+{ SM(NAME_initialise, 3, T_nameAname_superADclass_stubDN_summaryADstringDN, initialiseClassStub,
+     DEFAULT, "Create Class Stub object"),
+  SM(NAME_catchAll, 1, "unchecked ...", catchAllClassStubv,
+     NAME_delegate, "Convert to class and delegate message to the class")
+};
+
+/* Get Methods */
+
+static const getdecl get_classStub[] =
+{ GM(NAME_convert, 1, "class_stub", "name=name", getConvertClassStub,
+     DEFAULT, "Reuse predefined stub"),
+  GM(NAME_lookup, 3, "class_stub", T_nameAname_superADclass_stubDN_summaryADstringDN, getLookupClassStub,
+     DEFAULT, "Reuse predefined stub"),
+  GM(NAME_realise, 0, "class", NULL, getRealiseClassStub,
+     NAME_autoload, "Create the actual class"),
+  GM(NAME_catchAll, 1, "unchecked", "unchecked ...", getCatchAllClassStubv,
+     NAME_delegate, "Convert to class and delegate message to the class"),
+#ifndef O_RUNTIME
+  GM(NAME_manId, 0, "name", NULL, getManIdClass,
+     NAME_manual, "Card Id for method"),
+  GM(NAME_manIndicator, 0, "name", NULL, getManIndicatorClass,
+     NAME_manual, "Manual type indicator (`C')"),
+#endif /*O_RUNTIME*/
+  GM(NAME_subClasses, 0, "chain", NULL, getSubClassesClassStub,
+     NAME_type, "Sub classes (fails if none available)")
+};
+
+/* Resources */
+
+static const resourcedecl rc_classStub[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name classStub_termnames[] = { NAME_name, NAME_super, NAME_summary };
+
+ClassDecl(classStub_decls,
+          var_classStub, send_classStub, get_classStub, rc_classStub,
+          3, classStub_termnames,
+          "$Rev$");
 
 status
 makeClassClassStub(Class class)
-{ localClass(class, NAME_name, NAME_name, "name", NAME_get,
-	     "Name of the class");
-  localClass(class, NAME_summary, NAME_manual, "string*", NAME_both,
-	     "Summary documentation for class");
-  localClass(class, NAME_creator, NAME_manual, "{built_in,host}", NAME_both,
-	     "Who created the class: {built_in,host}");
-  localClass(class, NAME_superClass, NAME_type, "class_stub*", NAME_get,
-	     "Immediate super class");
-  localClass(class, NAME_subClasses, NAME_type, "chain*", NAME_none,
-	     "Sub classes");
-
-  sourceClass(class, makeClassClassStub, __FILE__, "$Revision$");
-  termClass(class, "class_stub", 3, NAME_name, NAME_super, NAME_summary);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 3,
-	     "name=name", "super=[class_stub]*", "summary=[string]*",
-	     "Create Class Stub object",
-	     initialiseClassStub);
-
-  getMethod(class, NAME_lookup, DEFAULT, "class_stub", 3,
-	    "name=name", "super=[class_stub]*", "summary=[string]*",
-	    "Reuse predefined stub",
-	    getLookupClassStub);
-  getMethod(class, NAME_convert, DEFAULT, "class_stub", 1,
-	    "name=name",
-	    "Reuse predefined stub",
-	    getConvertClassStub);
-  sendMethod(class, NAME_catchAll, NAME_delegate, 1, "unchecked ...",
-	     "Convert to class and delegate message to the class",
-	     catchAllClassStubv);
-
-#ifndef O_RUNTIME
-  getMethod(class, NAME_manId, NAME_manual, "name", 0,
-	    "Card Id for method",
-	    getManIdClass);
-  getMethod(class, NAME_manIndicator, NAME_manual, "name", 0,
-	    "Manual type indicator (`C')",
-	    getManIndicatorClass);
-#endif /*O_RUNTIME*/
-  getMethod(class, NAME_subClasses, NAME_type, "chain", 0,
-	    "Sub classes (fails if none available)",
-	    getSubClassesClassStub);
-
-  getMethod(class, NAME_realise, NAME_autoload, "class", 0,
-	    "Create the actual class",
-	    getRealiseClassStub);
-  getMethod(class, NAME_catchAll, NAME_delegate, "unchecked", 1,
-	    "unchecked ...",
-	    "Convert to class and delegate message to the class",
-	    getCatchAllClassStubv);
-
-  succeed;
+{ return declareClass(class, &classStub_decls);
 }
 

@@ -87,7 +87,7 @@ closeInputStream(Stream s)
   s->rdfd = -1;
 
   if ( s->input_buffer )
-  { free(s->input_buffer);
+  { pceFree(s->input_buffer);
     s->input_buffer = NULL;
   }
 
@@ -138,11 +138,11 @@ add_data_stream(Stream s, char *data, int len)
 
   if ( !s->input_buffer )
   { s->input_allocated = Round(len+1, ALLOCSIZE);
-    s->input_buffer = malloc(s->input_allocated);
+    s->input_buffer = pceMalloc(s->input_allocated);
     s->input_p = 0;
   } else if ( s->input_p + len >= s->input_allocated )
   { s->input_allocated = Round(s->input_p + len + 1, ALLOCSIZE);
-    s->input_buffer = realloc(s->input_buffer, s->input_allocated);
+    s->input_buffer = pceRealloc(s->input_buffer, s->input_allocated);
   }
 
   q = &s->input_buffer[s->input_p];
@@ -166,9 +166,8 @@ handleInputStream(Stream s)
       AnswerMark mark;
       markAnswerStack(mark);
 
+      str_inithdr(&q, ENC_ASCII);
       q.size = n;
-      q.b16 = FALSE;
-      q.encoding = ENC_ASCII;
       q.s_text8 = buf;
       str = StringToString(&q);
       addCodeReference(s);
@@ -307,107 +306,152 @@ recordSeparatorStream(Stream s, Regex re)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_format[] =
+        { "format=char_array", "argument=any ..." };
+static const char *T_initialise[] =
+        { "rfd=[int]", "wfd=[int]", "input_message=[code]", "record_separator=[regex]" };
+
+/* Instance Variables */
+
+static const vardecl var_stream[] =
+{ IV(NAME_inputMessage, "code*", IV_BOTH,
+     NAME_input, "Forwarded on input from the stream"),
+  SV(NAME_recordSeparator, "regex*", IV_GET|IV_STORE, recordSeparatorStream,
+     NAME_input, "Regex that describes the record separator"),
+  IV(NAME_wrfd, "alien:int", IV_NONE,
+     NAME_internal, "File-handle to write to stream"),
+  IV(NAME_rdfd, "alien:int", IV_NONE,
+     NAME_internal, "File-handle to read from stream"),
+  IV(NAME_rdstream, "alien:FILE *", IV_NONE,
+     NAME_internal, "Stream used for <-read_line"),
+  IV(NAME_wsRef, "alien:WsRef", IV_NONE,
+     NAME_internal, "Window system synchronisation"),
+  IV(NAME_inputBuffer, "alien:char *", IV_NONE,
+     NAME_internal, "Buffer for collecting input-data"),
+  IV(NAME_inputAllocated, "alien:int", IV_NONE,
+     NAME_internal, "Allocated size of input_buffer"),
+  IV(NAME_inputP, "alien:int", IV_NONE,
+     NAME_internal, "Number of characters in input_buffer")
+};
+
+/* Send Methods */
+
+static const senddecl send_stream[] =
+{ SM(NAME_initialise, 4, T_initialise, initialiseStream,
+     DEFAULT, "Create stream"),
+  SM(NAME_unlink, 0, NULL, unlinkStream,
+     DEFAULT, "Cleanup stream"),
+  SM(NAME_wait, 0, NULL, waitStream,
+     NAME_control, "Wait for the complete output"),
+  SM(NAME_endOfFile, 0, NULL, endOfFileStream,
+     NAME_input, "Send when end-of-file is reached"),
+  SM(NAME_closeInput, 0, NULL, closeInputStream,
+     NAME_open, "Close input section of stream"),
+  SM(NAME_closeOutput, 0, NULL, closeOutputStream,
+     NAME_open, "Close output section of stream"),
+  SM(NAME_input, 1, "fd=[int]*", inputStream,
+     NAME_open, "Enable input from file-descriptor"),
+  SM(NAME_append, 1, "data=char_array", appendStream,
+     NAME_output, "Send data to stream"),
+  SM(NAME_appendLine, 1, "data=char_array", appendLineStream,
+     NAME_output, "->append and ->newline"),
+  SM(NAME_format, 2, T_format, formatStream,
+     NAME_output, "Format arguments and send to stream"),
+  SM(NAME_newline, 0, NULL, newlineStream,
+     NAME_output, "Send a newline to the stream")
+};
+
+/* Get Methods */
+
+static const getdecl get_stream[] =
+{ GM(NAME_readLine, 1, "string", "[int]", getReadLineStream,
+     NAME_input, "Read line with optional timeout (milliseconds)")
+};
+
+/* Resources */
+
+static const resourcedecl rc_stream[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(stream_decls,
+          var_stream, send_stream, get_stream, rc_stream,
+          0, NULL,
+          "$Rev$");
+
 status
 makeClassStream(Class class)
-{ sourceClass(class, makeClassStream, __FILE__, "$Revision$");
-
-  localClass(class, NAME_inputMessage, NAME_input, "code*", NAME_both,
-	     "Forwarded on input from the stream");
-  localClass(class, NAME_recordSeparator, NAME_input, "regex*", NAME_get,
-	     "Regex that describes the record separator");
-  localClass(class, NAME_wrfd, NAME_internal, "alien:int", NAME_none,
-	     "File-handle to write to stream");
-  localClass(class, NAME_rdfd, NAME_internal, "alien:int", NAME_none,
-	     "File-handle to read from stream");
-  localClass(class, NAME_rdstream, NAME_internal, "alien:FILE *", NAME_none,
-	     "Stream used for <-read_line");
-  localClass(class, NAME_wsRef, NAME_internal, "alien:WsRef", NAME_none,
-	     "Window system synchronisation");
-  localClass(class, NAME_inputBuffer, NAME_internal, "alien:char *", NAME_none,
-	     "Buffer for collecting input-data");
-  localClass(class, NAME_inputAllocated, NAME_internal, "alien:int", NAME_none,
-	     "Allocated size of input_buffer");
-  localClass(class, NAME_inputP, NAME_internal, "alien:int", NAME_none,
-	     "Number of characters in input_buffer");
-
-  termClass(class, "stream", 0);
-
-  storeMethod(class, NAME_recordSeparator, recordSeparatorStream);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 4,
-	     "rfd=[int]", "wfd=[int]",
-	     "input_message=[code]", "record_separator=[regex]",
-	     "Create stream",
-	     initialiseStream);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Cleanup stream",
-	     unlinkStream);
-
-  sendMethod(class, NAME_closeInput, NAME_open, 0,
-	     "Close input section of stream",
-	     closeInputStream);
-  sendMethod(class, NAME_closeOutput, NAME_open, 0,
-	     "Close output section of stream",
-	     closeOutputStream);
-  sendMethod(class, NAME_input, NAME_open, 1, "fd=[int]*",
-	     "Enable input from file-descriptor",
-	     inputStream);
-
-  sendMethod(class, NAME_append, NAME_output, 1, "data=char_array",
-	     "Send data to stream",
-	     appendStream);
-  sendMethod(class, NAME_appendLine, NAME_output, 1, "data=char_array",
-	     "->append and ->newline",
-	     appendLineStream);
-  sendMethod(class, NAME_newline, NAME_output, 0,
-	     "Send a newline to the stream",
-	     newlineStream);
-  sendMethod(class, NAME_format, NAME_output, 2,
-	     "format=char_array", "argument=any ...",
-	     "Format arguments and send to stream",
-	     formatStream);
-  sendMethod(class, NAME_wait, NAME_control, 0,
-	     "Wait for the complete output",
-	     waitStream);
-  sendMethod(class, NAME_endOfFile, NAME_input, 0,
-	     "Send when end-of-file is reached",
-	     endOfFileStream);
-
-  getMethod(class, NAME_readLine, NAME_input, "string", 1, "[int]",
-	    "Read line with optional timeout (milliseconds)",
-	    getReadLineStream);
-
-  succeed;
+{ return declareClass(class, &stream_decls);
 }
 
 #else /*O_NO_PROCESS && O_NO_SOCKET*/
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+
+/* Instance Variables */
+
+static const vardecl var_stream[] =
+{ IV(NAME_inputMessage, "code*", IV_BOTH,
+     NAME_input, "Forwarded on input from the stream"),
+  IV(NAME_recordSeparator, "regex*", IV_GET,
+     NAME_input, "Regex that describes the record separator"),
+  IV(NAME_wrfd, "alien:int", IV_NONE,
+     NAME_internal, "File-handle to write to stream"),
+  IV(NAME_rdfd, "alien:int", IV_NONE,
+     NAME_internal, "File-handle to read from stream"),
+  IV(NAME_rdstream, "alien:FILE *", IV_NONE,
+     NAME_internal, "Stream used for <-read_line"),
+  IV(NAME_inputBuffer, "alien:char *", IV_NONE,
+     NAME_internal, "Buffer for collecting input-data"),
+  IV(NAME_inputAllocated, "alien:int", IV_NONE,
+     NAME_internal, "Allocated size of input_buffer"),
+  IV(NAME_inputP, "alien:int", IV_NONE,
+     NAME_internal, "Number of characters in input_buffer"),
+  IV(NAME_wsRef, "alien:WsRef", IV_NONE,
+     NAME_internal, "Window System synchronisation")
+};
+
+/* Send Methods */
+
+static const senddecl send_stream[] =
+{ 
+};
+
+/* Get Methods */
+
+static const getdecl get_stream[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_stream[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(stream_decls,
+          var_stream, send_stream, get_stream, rc_stream,
+          0, NULL,
+          "$Rev$");
+
 status
 makeClassStream(Class class)
-{ sourceClass(class, makeClassStream, __FILE__, "$Revision$");
-
-  localClass(class, NAME_inputMessage, NAME_input, "code*", NAME_both,
-	     "Forwarded on input from the stream");
-  localClass(class, NAME_recordSeparator, NAME_input, "regex*", NAME_get,
-	     "Regex that describes the record separator");
-  localClass(class, NAME_wrfd, NAME_internal, "alien:int", NAME_none,
-	     "File-handle to write to stream");
-  localClass(class, NAME_rdfd, NAME_internal, "alien:int", NAME_none,
-	     "File-handle to read from stream");
-  localClass(class, NAME_rdstream, NAME_internal, "alien:FILE *", NAME_none,
-	     "Stream used for <-read_line");
-  localClass(class, NAME_inputBuffer, NAME_internal, "alien:char *", NAME_none,
-	     "Buffer for collecting input-data");
-  localClass(class, NAME_inputAllocated, NAME_internal, "alien:int", NAME_none,
-	     "Allocated size of input_buffer");
-  localClass(class, NAME_inputP, NAME_internal, "alien:int", NAME_none,
-	     "Number of characters in input_buffer");
-  localClass(class, NAME_wsRef, NAME_internal, "alien:WsRef", NAME_none,
-	     "Window System synchronisation");
-
-  termClass(class, "stream", 0);
-
-  succeed;
+{ return declareClass(class, &stream_decls);
 }
 
 #endif /*O_NO_PROCESS && O_NO_SOCKET*/

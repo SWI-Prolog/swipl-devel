@@ -1,3 +1,31 @@
+* PceEmacs: changed fundamental, language and text mode to use the supported
+  begin_emacs_mode/end_emacs_mode rather than the low-level equivalents. This
+  ensures the display is not opened when PceEmacs is compiled, enabling the
+  SICStus-3 save_program to be able to save XPCE with both the manual tools
+  as well as PceEmacs compiled.
+
+* INTERFACE: Deleted HostAction(HOST_WRITE/HOST_FLUSH, ...).  Added Cflush()
+  to the interface callback structure.  Also added malloc, realloc and
+  free to this structure to allow for embedding in environments where
+  the standard functions may not be used.
+
+* MODIFIED: renamed exception redecared_reference to redeclared_reference.
+  Same with the error.
+
+* ADDED: class->delete_send_method and class->delete_get_method to ensure
+  proper handling of the exception-based method binding.
+
+* INTERFACE: 1-st argument of pceNew() (assoc) is now a PceName instead of
+  a plain char *.  Same for cToPceString() and pceExistsAssoc();
+
+* PERFORMANCE: Speedup of handling message objects having exactly one argument.
+
+* INTERNAL: Modified class-definition structure for built-in classes.  Also
+  built-in methods are now bound `lazy', reducing startup-time and memory
+  usage.  
+
+* FIXED: `graphical <-keyboard_focus'.
+
 * FIXED: various problems in the dialog editor: horizontal alignment detection,
   code generation for objects with explicit position and some minor problems
   in the look of the dialog editor itself.

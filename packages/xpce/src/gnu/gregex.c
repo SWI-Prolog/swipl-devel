@@ -24,6 +24,9 @@
 */
 
 #ifdef pce_source
+#define malloc(n)	pceMalloc(n)
+#define free(p)		pceFree(p)
+#define realloc(p, n)	pceRealloc(p, n)
 #define string PCEstring
 #include <h/kernel.h>
 #undef string
@@ -75,8 +78,10 @@
 #ifdef STDC_HEADERS
 #include <stdlib.h>
 #else
+#ifndef malloc
 char *malloc ();
 char *realloc ();
+#endif
 #endif
 
 

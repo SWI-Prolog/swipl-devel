@@ -219,7 +219,7 @@ postscriptXImage(XImage *im,
       return errorPce(NIL, NAME_maxDepth, toInt(16));
 
     psbright = (1<<depth) - 1;
-    psmap = (unsigned char *)malloc(entries * sizeof(unsigned char));
+    psmap = (unsigned char *)pceMalloc(entries * sizeof(unsigned char));
     psmap_alloced++;
     if ( (cinfo = makeSparceCInfo(disp, cmap, im, NULL)) )
     { XColor **xc = cinfo;
@@ -252,7 +252,7 @@ postscriptXImage(XImage *im,
   }
 
   if ( psmap_alloced )
-    free(psmap);
+    pceFree(psmap);
 
   succeed;
 }
@@ -390,7 +390,7 @@ XColor **makeSparceCInfo(Display *d, Colormap cm, XImage *i, int *nc)
 XColor **
 makeSparceCInfo(Display *disp, Colormap cmap, XImage *img, int *ncolours)
 { int entries = 1L<<img->depth;
-  XColor **info = (XColor **)malloc(sizeof(XColor *) * entries);
+  XColor **info = (XColor **)pceMalloc(sizeof(XColor *) * entries);
   XColor *data;
   int width = img->width;
   int height = img->height;
@@ -417,7 +417,7 @@ makeSparceCInfo(Display *disp, Colormap cmap, XImage *img, int *ncolours)
 
   if ( ncolours )
     *ncolours = colours;
-  data = (XColor *)malloc(sizeof(XColor) * colours);
+  data = (XColor *)pceMalloc(sizeof(XColor) * colours);
   colours=0;
   for(i=0; i<entries; i++)
   { if ( info[i] )
@@ -468,12 +468,12 @@ freeSparceCInfo(XColor **table, int depth)
 
   for(i=0; i<entries; i++)
   { if ( table[i] )
-    { free(table[i]);
+    { pceFree(table[i]);
       break;
     }
   }
 
-  free(table);
+  pceFree(table);
 }
 
 

@@ -33,27 +33,59 @@ getNegateBool(Bool b)
 { answer(b == ON ? OFF : ON);
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+
+/* Instance Variables */
+
+static const vardecl var_bool[] =
+{ 
+};
+
+/* Send Methods */
+
+static const senddecl send_bool[] =
+{ SM(NAME_initialise, 0, NULL, initialiseBool,
+     DEFAULT, "Create bool (cannot be created)"),
+  SM(NAME_unlink, 0, NULL, unlinkBool,
+     DEFAULT, "Destroy boolean (cannot be done)")
+};
+
+/* Get Methods */
+
+static const getdecl get_bool[] =
+{ GM(NAME_convert, 1, "bool", "any", getConvertBool,
+     DEFAULT, "Converts true, false and integer"),
+  GM(NAME_negate, 0, "bool", NULL, getNegateBool,
+     NAME_calculate, "Maps @on <-> @off")
+};
+
+/* Resources */
+
+static const resourcedecl rc_bool[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name bool_termnames[] = { NAME_self };
+
+ClassDecl(bool_decls,
+          var_bool, send_bool, get_bool, rc_bool,
+          1, bool_termnames,
+          "$Rev$");
+
 
 status
 makeClassBool(Class class)
-{ sourceClass(class, makeClassBool, __FILE__, "$Revision$");
-  termClass(class, "bool", 1, NAME_self);
+{ declareClass(class, &bool_decls);
+
   saveStyleClass(class, NAME_external);
   cloneStyleClass(class, NAME_none);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 0,
-	     "Create bool (cannot be created)",
-	     initialiseBool);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Destroy boolean (cannot be done)",
-	     unlinkBool);
-
-  getMethod(class, NAME_convert, DEFAULT, "bool", 1, "any",
-	    "Converts true, false and integer",
-	    getConvertBool);
-  getMethod(class, NAME_negate, NAME_calculate, "bool", 0,
-	    "Maps @on <-> @off",
-	    getNegateBool);
 
   ON->class = OFF->class = class;
   newAssoc(NAME_on,  ON);
@@ -63,8 +95,8 @@ makeClassBool(Class class)
   ON->summary = OFF->summary = NIL;
   assign(ON, name, NAME_on);
   assign(OFF, name, NAME_off);
-  assign(ON, summary, CtoString("Boolean true"));
-  assign(OFF, summary, CtoString("Boolean false"));
+  assign(ON, summary, staticCtoString("Boolean true"));
+  assign(OFF, summary, staticCtoString("Boolean false"));
 
   succeed;
 }

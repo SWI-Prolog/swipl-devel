@@ -287,71 +287,90 @@ reportLabel(Label lb, Name kind, CharArray fmt, int argc, Any *argv)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
 
+/* Type declarations */
+
+static const char *T_report[] =
+        { "kind={status,inform,progress,done,warning,error}", "format=[char_array]", "argument=any ..." };
+static const char *T_initialise[] =
+        { "name=[name]", "selection=[string|image]", "font=[font]" };
+static const char *T_format[] =
+        { "name", "any ..." };
+static const char *T_catchAll[] =
+        { "name", "unchecked ..." };
+
+/* Instance Variables */
+
+static const vardecl var_label[] =
+{ SV(NAME_font, "font", IV_GET|IV_STORE, fontLabel,
+     NAME_appearance, "Font for selection"),
+  SV(NAME_length, "int", IV_GET|IV_STORE, lengthLabel,
+     NAME_area, "Length in characters (with text)"),
+  SV(NAME_selection, "char_array|image", IV_GET|IV_STORE, selectionLabel,
+     NAME_selection, "Text or image displayed"),
+  SV(NAME_border, "0..", IV_GET|IV_STORE, borderLabel,
+     NAME_appearance, "Space around the image")
+};
+
+/* Send Methods */
+
+static const senddecl send_label[] =
+{ SM(NAME_compute, 0, NULL, computeLabel,
+     DEFAULT, "Recompute layout"),
+  SM(NAME_status, 1, "{inactive,active,preview,execute}", statusLabel,
+     DEFAULT, "Status for event-processing"),
+  SM(NAME_event, 1, "event", eventLabel,
+     DEFAULT, "Act as button if <-message not @nil"),
+  SM(NAME_initialise, 3, T_initialise, initialiseLabel,
+     DEFAULT, "Create from name, selection and font"),
+  SM(NAME_catchAll, 2, T_catchAll, catchAllLabelv,
+     NAME_delegate, "Delegate to <->selection"),
+  SM(NAME_execute, 0, NULL, executeLabel,
+     NAME_execute, "Execute associated message"),
+  SM(NAME_format, 2, T_format, formatLabel,
+     NAME_format, "Create string from format and make it the selection"),
+  SM(NAME_report, 3, T_report, reportLabel,
+     NAME_report, "Report message"),
+  SM(NAME_clear, 0, NULL, clearLabel,
+     NAME_selection, "Equivalent to ->selection: ''")
+};
+
+/* Get Methods */
+
+static const getdecl get_label[] =
+{ GM(NAME_reference, 0, "point", NULL, getReferenceLabel,
+     DEFAULT, "Baseline or bottom (image)")
+};
+
+/* Resources */
+
+static const resourcedecl rc_label[] =
+{ RC(NAME_border, "0..", "0",
+     "Space around image/string"),
+  RC(NAME_font, "font", "normal",
+     "Default font for selection"),
+  RC(NAME_length, "int", "25",
+     "Default length in characters"),
+  RC(NAME_length, "int", "25",
+     "Default length in characters")
+};
+
+/* Class Declaration */
+
+static Name label_termnames[] = { NAME_name, NAME_selection, NAME_font };
+
+ClassDecl(label_decls,
+          var_label, send_label, get_label, rc_label,
+          3, label_termnames,
+          "$Rev$");
 
 status
 makeClassLabel(Class class)
-{ sourceClass(class, makeClassLabel, __FILE__, "$Revision$");
-
-  localClass(class, NAME_font, NAME_appearance, "font", NAME_get,
-	     "Font for selection");
-  localClass(class, NAME_length, NAME_area, "int", NAME_get,
-	     "Length in characters (with text)");
-  localClass(class, NAME_selection, NAME_selection, "char_array|image",
-	     NAME_get,
-	     "Text or image displayed");
-  localClass(class, NAME_border, NAME_appearance, "0..", NAME_get,
-	     "Space around the image");
-
-  termClass(class, "label", 3, NAME_name, NAME_selection, NAME_font);
+{ declareClass(class, &label_decls);
   setRedrawFunctionClass(class, RedrawAreaLabel);
-
-  storeMethod(class, NAME_status,    statusLabel);
-  storeMethod(class, NAME_font,      fontLabel);
-  storeMethod(class, NAME_length,    lengthLabel);
-  storeMethod(class, NAME_selection, selectionLabel);
-  storeMethod(class, NAME_border,    borderLabel);
-
-  sendMethod(class, NAME_initialise, DEFAULT,
-	     3, "name=[name]", "selection=[string|image]", "font=[font]",
-	     "Create from name, selection and font",
-	     initialiseLabel);
-  sendMethod(class, NAME_catchAll, NAME_delegate, 2, "name", "unchecked ...",
-	     "Delegate to <->selection",
-	     catchAllLabelv);
-  sendMethod(class, NAME_compute, DEFAULT, 0,
-	     "Recompute layout",
-	     computeLabel);
-  sendMethod(class, NAME_event, DEFAULT, 1, "event",
-	     "Act as button if <-message not @nil",
-	     eventLabel);
-  sendMethod(class, NAME_format, NAME_format, 2, "name", "any ...",
-	     "Create string from format and make it the selection",
-	     formatLabel);
-  sendMethod(class, NAME_execute, NAME_execute, 0,
-	     "Execute associated message",
-	     executeLabel);
-  sendMethod(class, NAME_clear, NAME_selection, 0,
-	     "Equivalent to ->selection: ''",
-	     clearLabel);
-  sendMethod(class, NAME_report, NAME_report, 3,
-	     "kind={status,inform,progress,done,warning,error}",
-	     "format=[char_array]", "argument=any ...",
-	     "Report message",
-	     reportLabel);
-
-  getMethod(class, NAME_reference, DEFAULT, "point", 0,
-	    "Baseline or bottom (image)",
-	    getReferenceLabel);
-
-  attach_resource(class, "font", "font", "normal",
-		  "Default font for selection");
-  attach_resource(class, "length", "int", "25",
-		  "Default length in characters");
-  attach_resource(class, "length", "int", "25",
-		  "Default length in characters");
-  attach_resource(class, "border", "0..", "0",
-		  "Space around image/string");
 
   succeed;
 }

@@ -262,61 +262,79 @@ ulong mask;
 #endif /*TAGGED_LVALUE*/
 #endif /*O_RUNTIME*/
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_debug[] =
+        { "value=[bool]", "ports=[{full,enter,exit,fail}]", "condition=[code]" };
+
+/* Instance Variables */
+
+static const vardecl var_programObject[] =
+{ IV(NAME_dflags, "int", IV_BOTH,
+     NAME_debugging, "Debugging-flags of the program_object")
+};
+
+/* Send Methods */
+
+static const senddecl send_programObject[] =
+{ SM(NAME_initialise, 0, NULL, initialiseProgramObject,
+     DEFAULT, "Create program_object"),
+  SM(NAME_initialiseNewSlot, 1, "variable", initialiseNewSlotProgramObject,
+     NAME_compatibility, "Initialise <-dflags"),
+#ifndef O_RUNTIME
+  SM(NAME_break, 3, T_debug, breakProgramObject,
+     NAME_debugging, "set/clear break-point on object"),
+  SM(NAME_breakCondition, 1, "code*", breakConditionProgramObject,
+     NAME_debugging, "Condition associated with this break-point"),
+  SM(NAME_trace, 3, T_debug, traceProgramObject,
+     NAME_debugging, "set/clear trace-point on object"),
+  SM(NAME_traceCondition, 1, "code*", traceConditionProgramObject,
+     NAME_debugging, "Condition associated with this trace-point"),
+#endif /*O_RUNTIME*/
+  SM(NAME_system, 1, "bool", systemProgramObject,
+     NAME_meta, "System defined object?")
+};
+
+/* Get Methods */
+
+static const getdecl get_programObject[] =
+{
+#ifndef O_RUNTIME
+  GM(NAME_break, 1, "bool", "port=[{enter,exit,fail}]", getBreakProgramObject,
+     NAME_debugging, "Current setting of break-point"),
+  GM(NAME_breakCondition, 0, "code", NULL, getBreakConditionProgramObject,
+     NAME_debugging, "Associated break-condition"),
+  GM(NAME_trace, 1, "bool", "port=[{enter,exit,fail}]", getTraceProgramObject,
+     NAME_debugging, "Current setting of trace-point"),
+  GM(NAME_traceCondition, 0, "code", NULL, getTraceConditionProgramObject,
+     NAME_debugging, "Associated trace-condition"),
+#endif /*O_RUNTIME*/
+  GM(NAME_system, 0, "bool", NULL, getSystemProgramObject,
+     NAME_meta, "System defined object?")
+};
+
+/* Resources */
+
+static const resourcedecl rc_programObject[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(programObject_decls,
+          var_programObject, send_programObject,
+	  get_programObject, rc_programObject,
+          0, NULL,
+          "$Rev$");
+
+
 status
 makeClassProgramObject(Class class)
-{ localClass(class, NAME_dflags, NAME_debugging, "int", NAME_both,
-	     "Debugging-flags of the program_object");
-
-  sourceClass(class, makeClassProgramObject, __FILE__, "$Revision$");
-  termClass(class, "program_object", 0);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 0,
-	     "Create program_object",
-	     initialiseProgramObject);
-#ifndef O_RUNTIME
-  sendMethod(class, NAME_trace, NAME_debugging, 3,
-	     "value=[bool]", "ports=[{full,enter,exit,fail}]",
-	     "condition=[code]",
-	     "set/clear trace-point on object",
-	     traceProgramObject);
-  sendMethod(class, NAME_break, NAME_debugging, 3,
-	     "value=[bool]", "ports=[{full,enter,exit,fail}]",
-	     "condition=[code]",
-	     "set/clear break-point on object",
-	     breakProgramObject);
-  sendMethod(class, NAME_traceCondition, NAME_debugging, 1, "code*",
-	     "Condition associated with this trace-point",
-	     traceConditionProgramObject);
-  sendMethod(class, NAME_breakCondition, NAME_debugging, 1, "code*",
-	     "Condition associated with this break-point",
-	     breakConditionProgramObject);
-#endif /*O_RUNTIME*/
-  sendMethod(class, NAME_system, NAME_meta, 1, "bool",
-	     "System defined object?",
-	     systemProgramObject);
-  sendMethod(class, NAME_initialiseNewSlot, NAME_compatibility, 1, "variable",
-	     "Initialise <-dflags",
-	     initialiseNewSlotProgramObject);
-
-#ifndef O_RUNTIME
-  getMethod(class, NAME_trace, NAME_debugging, "bool", 1,
-	    "port=[{enter,exit,fail}]",
-	    "Current setting of trace-point",
-	    getTraceProgramObject);
-  getMethod(class, NAME_break, NAME_debugging, "bool", 1,
-	    "port=[{enter,exit,fail}]",
-	    "Current setting of break-point",
-	    getBreakProgramObject);
-  getMethod(class, NAME_traceCondition, NAME_debugging, "code", 0,
-	    "Associated trace-condition",
-	    getTraceConditionProgramObject);
-  getMethod(class, NAME_breakCondition, NAME_debugging, "code", 0,
-	    "Associated break-condition",
-	    getBreakConditionProgramObject);
-#endif /*O_RUNTIME*/
-  getMethod(class, NAME_system, NAME_meta, "bool", 0,
-	    "System defined object?",
-	    getSystemProgramObject);
+{ declareClass(class, &programObject_decls);
 
 #ifndef O_RUNTIME
   TraceConditionTable = globalObject(NAME_traceConditions, ClassHashTable, 0);

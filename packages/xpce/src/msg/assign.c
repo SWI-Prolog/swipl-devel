@@ -35,29 +35,58 @@ ExecuteAssignment(Assignment b)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "variable=var", "value=any|function", "scope=[{local,outer,global}]" };
+
+/* Instance Variables */
+
+static const vardecl var_assign[] =
+{ IV(NAME_var, "var", IV_BOTH,
+     NAME_storage, "Variable to be bound"),
+  IV(NAME_value, "any|function", IV_BOTH,
+     NAME_storage, "Value to give to the assignment"),
+  IV(NAME_scope, "{local,outer,global}", IV_BOTH,
+     NAME_scope, "Scope of assignment")
+};
+
+/* Send Methods */
+
+static const senddecl send_assign[] =
+{ SM(NAME_Execute, 0, NULL, ExecuteAssignment,
+     DEFAULT, "Bind the variable"),
+  SM(NAME_initialise, 3, T_initialise, initialiseAssignment,
+     DEFAULT, "Create assignment from var and value")
+};
+
+/* Get Methods */
+
+static const getdecl get_assign[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_assign[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name assign_termnames[] = { NAME_var, NAME_value, NAME_scope };
+
+ClassDecl(assign_decls,
+          var_assign, send_assign, get_assign, rc_assign,
+          3, assign_termnames,
+          "$Rev$");
+
 status
 makeClassAssign(Class class)
-{ sourceClass(class, makeClassAssign, __FILE__, "$Revision$");
-
-  localClass(class, NAME_var, NAME_storage, "var", NAME_both,
-	     "Variable to be bound");
-  localClass(class, NAME_value, NAME_storage, "any|function", NAME_both,
-	     "Value to give to the assignment");
-  localClass(class, NAME_scope, NAME_scope, "{local,outer,global}", NAME_both,
-	     "Scope of assignment");
-  
-  termClass(class, "assign", 3, NAME_var, NAME_value, NAME_scope);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 3,
-	     "variable=var", "value=any|function",
-	     "scope=[{local,outer,global}]",
-	     "Create assignment from var and value",
-	     initialiseAssignment);
-
-  sendMethod(class, NAME_Execute, DEFAULT, 0,
-	     "Bind the variable",
-	     ExecuteAssignment);
-
-  succeed;
+{ return declareClass(class, &assign_decls);
 }
 

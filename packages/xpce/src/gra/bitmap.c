@@ -197,55 +197,82 @@ getContainsBitmap(BitmapObj bm)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_load[] =
+        { "file", "path=[char_array]" };
+static const char *T_initialise[] =
+        { "image=[image]", "transparent=[bool]" };
+static const char *T_geometry[] =
+        { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_bitmap[] =
+{ SV(NAME_image, "image", IV_GET|IV_STORE, imageBitmap,
+     NAME_appearance, "The pixel collection managed"),
+  SV(NAME_transparent, "bool", IV_GET|IV_STORE, transparentBitmap,
+     NAME_appearance, "When @on, 0-pixels are not painted")
+};
+
+/* Send Methods */
+
+static const senddecl send_bitmap[] =
+{ SM(NAME_geometry, 4, T_geometry, geometryBitmap,
+     DEFAULT, "Bitmaps can only be moved"),
+  SM(NAME_initialise, 2, T_initialise, initialiseBitmap,
+     DEFAULT, "Create from image"),
+  SM(NAME_unlink, 0, NULL, unlinkBitmap,
+     DEFAULT, "Unlink from <-image"),
+  SM(NAME_redraw, 1, "[area]", redrawBitmap,
+     NAME_change, "Update size and repaint indicated area"),
+  SM(NAME_load, 2, T_load, loadBitmap,
+     NAME_file, "Load file (in path) into bitmap"),
+  SM(NAME_DrawPostScript, 0, NULL, drawPostScriptBitmap,
+     NAME_postscript, "Create PostScript")
+};
+
+/* Get Methods */
+
+static const getdecl get_bitmap[] =
+{ GM(NAME_contains, 0, "chain", NULL, getContainsBitmap,
+     DEFAULT, "New chain with <-image"),
+  GM(NAME_convert, 1, "bitmap", "name", getConvertBitmap,
+     DEFAULT, "Convert image-names"),
+  GM(NAME_copy, 0, "bitmap", NULL, getCopyBitmap,
+     NAME_copy, "Make a copy that shares the image")
+};
+
+/* Resources */
+
+static const resourcedecl rc_bitmap[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name bitmap_termnames[] = { NAME_image };
+
+ClassDecl(bitmap_decls,
+          var_bitmap, send_bitmap, get_bitmap, rc_bitmap,
+          1, bitmap_termnames,
+          "$Rev$");
+
+
+
 status
 makeClassBitmap(Class class)
-{ sourceClass(class, makeClassBitmap, __FILE__, "$Revision$");
-
-  localClass(class, NAME_image, NAME_appearance, "image", NAME_get,
-	     "The pixel collection managed");
-  localClass(class, NAME_transparent, NAME_appearance, "bool", NAME_get,
-	     "When @on, 0-pixels are not painted");
+{ declareClass(class, &bitmap_decls);
 
   solidClass(class, ON);
-  termClass(class, "bitmap", 1, NAME_image);
   setRedrawFunctionClass(class, RedrawAreaBitmap);
   setLoadStoreFunctionClass(class, loadFdBitmap, storeBitmap);
   cloneStyleVariableClass(class, NAME_image, NAME_reference);
-
-  storeMethod(class, NAME_image, imageBitmap);
-  storeMethod(class, NAME_transparent, transparentBitmap);
   delegateClass(class, NAME_image);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2,
-	     "image=[image]", "transparent=[bool]",
-	     "Create from image",
-	     initialiseBitmap);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Unlink from <-image",
-	     unlinkBitmap);
-  sendMethod(class, NAME_geometry, DEFAULT, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Bitmaps can only be moved",
-	     geometryBitmap);
-  sendMethod(class, NAME_DrawPostScript, NAME_postscript, 0,
-	     "Create PostScript",
-	     drawPostScriptBitmap);
-  sendMethod(class, NAME_load, NAME_file, 2, "file", "path=[char_array]",
-	     "Load file (in path) into bitmap",
-	     loadBitmap);
-  sendMethod(class, NAME_redraw, NAME_change, 1, "[area]",
-	     "Update size and repaint indicated area",
-	     redrawBitmap);
-  
-  getMethod(class, NAME_convert, DEFAULT, "bitmap", 1, "name",
-	    "Convert image-names",
-	    getConvertBitmap);
-  getMethod(class, NAME_copy, NAME_copy, "bitmap", 0,
-	    "Make a copy that shares the image",
-	    getCopyBitmap);
-  getMethod(class, NAME_contains, DEFAULT, "chain", 0,
-	    "New chain with <-image",
-	    getContainsBitmap);
 
   succeed;
 }

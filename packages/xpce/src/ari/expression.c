@@ -129,34 +129,61 @@ get_var_in_binary_expression(Any e, Var var, int n)
   return n;
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "left=expression", "right=expression" };
+
+/* Instance Variables */
+
+static const vardecl var_binaryExpression[] =
+{ IV(NAME_left, "expression", IV_BOTH,
+     NAME_operant, "Left-hand side of expression"),
+  IV(NAME_right, "expression", IV_BOTH,
+     NAME_operant, "Right-hand side of expression")
+};
+
+/* Send Methods */
+
+static const senddecl send_binaryExpression[] =
+{ SM(NAME_initialise, 2, T_initialise, initialiseBinaryExpression,
+     DEFAULT, "Create binary expression")
+};
+
+/* Get Methods */
+
+static const getdecl get_binaryExpression[] =
+{ GM(NAME_Execute, 0, "int", NULL, getExecuteExpression,
+     DEFAULT, "Evaluate, given variable bindings"),
+  GM(NAME_value, 1, "value=int", "binding== ...", getValueExpressionv,
+     NAME_calculate, "Evaluate, given variable bindings"),
+  GM(NAME_varIn, 1, "number=int", "variable=var", getVarInBinaryExpression,
+     NAME_meta, "Count occurrences of (named) variable")
+};
+
+/* Resources */
+
+static const resourcedecl rc_binaryExpression[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name binaryExpression_termnames[] = { NAME_left, NAME_right };
+
+ClassDecl(binaryExpression_decls,
+          var_binaryExpression, send_binaryExpression,
+	  get_binaryExpression, rc_binaryExpression,
+          2, binaryExpression_termnames,
+          "$Rev$");
 
 status
 makeClassBinaryExpression(Class class)
-{ sourceClass(class, makeClassBinaryExpression, __FILE__, "$Revision$");
-
-  localClass(class, NAME_left, NAME_operant, "expression", NAME_both,
-	     "Left-hand side of expression");
-  localClass(class, NAME_right, NAME_operant, "expression", NAME_both,
-	     "Right-hand side of expression");
-
-  termClass(class, "binary_expression", 2, NAME_left, NAME_right);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2,
-	     "left=expression", "right=expression",
-	     "Create binary expression",
-	     initialiseBinaryExpression);
-
-  getMethod(class, NAME_value, NAME_calculate, "value=int", 1, "binding== ...",
-	    "Evaluate, given variable bindings",
-	    getValueExpressionv);
-  getMethod(class, NAME_Execute, DEFAULT, "int", 0,
-	    "Evaluate, given variable bindings",
-	    getExecuteExpression);
-  getMethod(class, NAME_varIn, NAME_meta, "number=int", 1, "variable=var",
-	    "Count occurrences of (named) variable",
-	    getVarInBinaryExpression);
-
-  succeed;
+{ return declareClass(class, &binaryExpression_decls);
 }
 
 
@@ -192,16 +219,51 @@ initialiseMinus(Minus m, Expression left, Expression right)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Types */
+
+static const char *T_minitialise[] =
+        { "left=expression", "right=[expression]" };
+
+/* Instance Variables */
+
+static const vardecl var_minus[] =
+{ 
+};
+
+/* Send Methods */
+
+static const senddecl send_minus[] =
+{ SM(NAME_initialise, 2, T_minitialise, initialiseMinus,
+     DEFAULT, "Create unary or binary `-'")
+};
+
+/* Get Methods */
+
+static const getdecl get_minus[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_minus[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(minus_decls,
+          var_minus, send_minus, get_minus, rc_minus,
+          ARGC_INHERIT, NULL,
+          "$Rev$");
+
+
 status
 makeClassMinus(Class class)
-{ sourceClass(class, makeClassMinus, __FILE__, "$Revision$");
-
-  sendMethod(ClassMinus, NAME_initialise, DEFAULT,
-	     2, "left=expression", "right=[expression]",
-	     "Create unary or binary `-'",
-	     initialiseMinus);
-
-  succeed;
+{ return declareClass(class, &minus_decls);
 }
 
 

@@ -259,8 +259,8 @@ initEnvironment(Process p)
     Cell cell;
     Name fmt = CtoName("%s=%s");
 
-    environ = malloc(sizeof(char *) *
-		     (valInt(p->environment->attributes->size) + 1));
+    environ = pceMalloc(sizeof(char *) *
+			(valInt(p->environment->attributes->size) + 1));
 
     for_cell(cell, p->environment->attributes)
     { Attribute a = cell->value;
@@ -628,75 +628,96 @@ directoryProcess(Process p, Directory dir)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_open[] =
+        { "command=[char_array]", "argument=char_array ..." };
+static const char *T_initialise[] =
+        { "command=char_array", "argument=char_array ..." };
+static const char *T_environment[] =
+        { "name=name", "value=char_array" };
+
+/* Instance Variables */
+
+static const vardecl var_process[] =
+{ IV(NAME_name, "char_array", IV_GET,
+     NAME_command, "Name of command executed"),
+  IV(NAME_arguments, "vector", IV_GET,
+     NAME_command, "Vector with arguments"),
+  IV(NAME_status, "name", IV_GET,
+     NAME_status, "Status of the associated process"),
+  IV(NAME_code, "name|int*", IV_GET,
+     NAME_status, "Signal name or exit status"),
+  SV(NAME_useTty, "bool", IV_GET|IV_STORE, useTtyProcess,
+     NAME_tty, "Use pseudo-tty (@on) or pipes (@off)"),
+  IV(NAME_tty, "name*", IV_GET,
+     NAME_tty, "Pseudo-tty used for communication"),
+  IV(NAME_terminateMessage, "code*", IV_BOTH,
+     NAME_input, "Forwarded when the process terminates"),
+  IV(NAME_pid, "int*", IV_GET,
+     NAME_status, "Process id of child process"),
+  IV(NAME_directory, "[directory]", IV_GET,
+     NAME_environment, "Directory to start the child"),
+  IV(NAME_environment, "sheet*", IV_NONE,
+     NAME_environment, "Environment for the process")
+};
+
+/* Send Methods */
+
+static const senddecl send_process[] =
+{ SM(NAME_initialise, 2, T_initialise, initialiseProcess,
+     DEFAULT, "Create process from command and arguments"),
+  SM(NAME_unlink, 0, NULL, unlinkProcess,
+     DEFAULT, "Cleanup process"),
+  SM(NAME_kill, 1, "signal=[1..31|name]", killProcess,
+     NAME_control, "Send signal to the [term] process"),
+  SM(NAME_open, 2, T_open, openProcess,
+     NAME_control, "Start the process [with new command]"),
+  SM(NAME_directory, 1, "[directory]", directoryProcess,
+     NAME_environment, "Start process in this directory"),
+  SM(NAME_environment, 2, T_environment, environmentProcess,
+     NAME_environment, "Set environment variable"),
+  SM(NAME_endOfFile, 0, NULL, endOfFileProcess,
+     NAME_input, "Send when end-of-file is reached"),
+  SM(NAME_exited, 1, "status=int", exitedProcess,
+     NAME_input, "Process has exited with status"),
+  SM(NAME_killed, 1, "signal=name", killedProcess,
+     NAME_input, "Process has terminated on named signal"),
+  SM(NAME_stopped, 1, "signal=name", stoppedProcess,
+     NAME_input, "Process has stopped on named signal"),
+  SM(NAME_close, 0, NULL, closeOutputStream,
+     NAME_output, "Same as ->close_output")
+};
+
+/* Get Methods */
+
+static const getdecl get_process[] =
+{ GM(NAME_environment, 0, "sheet", NULL, getEnvironmentProcess,
+     NAME_environment, "Sheet with process' environment")
+};
+
+/* Resources */
+
+static const resourcedecl rc_process[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name process_termnames[] = { NAME_name };
+
+ClassDecl(process_decls,
+          var_process, send_process, get_process, rc_process,
+          1, process_termnames,
+          "$Rev$");
+
 status
 makeClassProcess(Class class)
-{ sourceClass(class, makeClassProcess, __FILE__, "$Revision$");
-
-  localClass(class, NAME_name, NAME_command, "char_array", NAME_get,
-	     "Name of command executed");
-  localClass(class, NAME_arguments, NAME_command, "vector", NAME_get,
-	     "Vector with arguments");
-  localClass(class, NAME_status, NAME_status, "name", NAME_get,
-	     "Status of the associated process");
-  localClass(class, NAME_code, NAME_status, "name|int*", NAME_get,
-	     "Signal name or exit status");
-  localClass(class, NAME_useTty, NAME_tty, "bool", NAME_get,
-	     "Use pseudo-tty (@on) or pipes (@off)");
-  localClass(class, NAME_tty, NAME_tty, "name*", NAME_get,
-	     "Pseudo-tty used for communication");
-  localClass(class, NAME_terminateMessage, NAME_input, "code*", NAME_both,
-	     "Forwarded when the process terminates");
-  localClass(class, NAME_pid, NAME_status, "int*", NAME_get,
-	     "Process id of child process");
-  localClass(class, NAME_directory, NAME_environment, "[directory]", NAME_get,
-	     "Directory to start the child");
-  localClass(class, NAME_environment, NAME_environment, "sheet*", NAME_none,
-	     "Environment for the process");
-
-  termClass(class, "process", 1, NAME_name);
-
-  storeMethod(class, NAME_useTty, useTtyProcess);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2,
-	     "command=char_array", "argument=char_array ...",
-	     "Create process from command and arguments",
-	     initialiseProcess);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Cleanup process",
-	     unlinkProcess);
-  sendMethod(class, NAME_open, NAME_control, 2,
-	     "command=[char_array]", "argument=char_array ...",
-	     "Start the process [with new command]",
-	     openProcess);
-  sendMethod(class, NAME_kill, NAME_control, 1, "signal=[1..31|name]",
-	     "Send signal to the [term] process",
-	     killProcess);
-  sendMethod(class, NAME_close, NAME_output, 0,
-	     "Same as ->close_output",
-	     closeOutputStream);
-  sendMethod(class, NAME_stopped, NAME_input, 1, "signal=name",
-	     "Process has stopped on named signal",
-	     stoppedProcess);
-  sendMethod(class, NAME_killed, NAME_input, 1, "signal=name",
-	     "Process has terminated on named signal",
-	     killedProcess);
-  sendMethod(class, NAME_exited, NAME_input, 1, "status=int",
-	     "Process has exited with status",
-	     exitedProcess);
-  sendMethod(class, NAME_endOfFile, NAME_input, 0,
-	     "Send when end-of-file is reached",
-	     endOfFileProcess);
-  sendMethod(class, NAME_directory, NAME_environment, 1, "[directory]",
-	     "Start process in this directory",
-	     directoryProcess);
-  sendMethod(class, NAME_environment, NAME_environment, 2,
-	     "name=name", "value=char_array",
-	     "Set environment variable",
-	     environmentProcess);
-
-  getMethod(class, NAME_environment, NAME_environment, "sheet", 0,
-	    "Sheet with process' environment",
-	    getEnvironmentProcess);
+{ declareClass(class, &process_decls);
 
   ProcessChain = globalObject(NAME_runningProcesses, ClassChain, 0);
 

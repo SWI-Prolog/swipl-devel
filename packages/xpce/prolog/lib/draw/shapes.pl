@@ -136,7 +136,7 @@ rather then the default
 	get(Super, sub_class(Class), _)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-associate_recognisers(Recognisers) :-	% qpc callback!
+associate_recognisers(Recognisers) :-
 	(   send(@class, has_send_method, draw_shape_template)
 	->  true
 	;   use_class_template(draw_shape)

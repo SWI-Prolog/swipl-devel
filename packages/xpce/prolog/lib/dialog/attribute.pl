@@ -10,9 +10,9 @@
 :- module(dia_attribute, []).
 :- use_module(library(pce)).
 :- use_module(proto, [dependency/3]).
-:- require([ forall/2
+:- require([ auto_call/1
+	   , forall/2
 	   ]).
-
 
 :- pce_autoload(dia_menu_item_editor, library('dialog/menuitem')).
 :- pce_autoload(dia_label_item, library('dialog/label')).
@@ -193,7 +193,7 @@ help(DE) :->
 	new(Methods, chain),
 	send(DE?graphicals, for_some,
 	     message(Methods, append, ?(DE, method_from_item, @arg1))),
-	manpce,
+	auto_call(manpce),
 	send(@manual, request_selection, @nil, Methods, @on).
 	     
 	

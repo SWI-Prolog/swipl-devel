@@ -95,7 +95,7 @@ event(DI, Ev:event) :->
 
 help_ui(DI) :->
 	"Provide simple help"::
-	send(DI, report, status,
+	send(DI?frame, report, status,	% Lourens van der Meij.  Thanks
 	     'Use double-left-click to edit; left-drag to move or copy').
 
 
@@ -106,6 +106,7 @@ behaviour_model(DI, Model:object) :<-
 
 edit_attributes(DI) :->
 	"Start attribute editor"::
+	trace,
 	get(DI?window, attribute_editor, Ed),
 	get(DI?window, mode, Mode),
 	get(DI, proto, Proto),

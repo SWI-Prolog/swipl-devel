@@ -101,7 +101,7 @@ loadReal(Real r, FILE *fd, ClassDef def)
 }
 
 
-status
+static status
 equalReal(Real r, Real r2)
 { if (r->value == r2->value)
     succeed;
@@ -211,70 +211,87 @@ getValueReal(Real r)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_catchAll[] =
+        { "selector=name", "argument=unchecked ..." };
+
+/* Instance Variables */
+
+static const vardecl var_real[] =
+{ IV(NAME_value, "alien:float", IV_NONE,
+     NAME_storage, "C float value")
+};
+
+/* Send Methods */
+
+static const senddecl send_real[] =
+{ SM(NAME_initialise, 1, "value=any", initialiseReal,
+     DEFAULT, "Create real by converting argument"),
+  SM(NAME_divide, 1, "real", divideReal,
+     NAME_calculate, "Divide value by argument"),
+  SM(NAME_minus, 1, "real", minusReal,
+     NAME_calculate, "Subtract argument from value"),
+  SM(NAME_plus, 1, "real", plusReal,
+     NAME_calculate, "Add argument to value"),
+  SM(NAME_times, 1, "real", timesReal,
+     NAME_calculate, "Multiply value by argument"),
+  SM(NAME_equal, 1, "real", equalReal,
+     NAME_compare, "Test if equal to argument"),
+  SM(NAME_larger, 1, "real", largerReal,
+     NAME_compare, "Test if larger than argument"),
+  SM(NAME_largerEqual, 1, "real", largerEqualReal,
+     NAME_compare, "Test if larger-or-equal than argument"),
+  SM(NAME_lessEqual, 1, "real", lessEqualReal,
+     NAME_compare, "Test if less-or-equal than argument"),
+  SM(NAME_notEqual, 1, "real", notEqualReal,
+     NAME_compare, "Test if not-equal to argument"),
+  SM(NAME_smaller, 1, "real", smallerReal,
+     NAME_compare, "Test if less than argument"),
+  SM(NAME_value, 1, "real", valueReal,
+     NAME_value, "Set the value to argument")
+};
+
+/* Get Methods */
+
+static const getdecl get_real[] =
+{ GM(NAME_convert, 1, "real", "any", getConvertReal,
+     DEFAULT, "Converts int, number and char_array"),
+  GM(NAME_compare, 1, "{smaller,equal,larger}", "real", getCompareReal,
+     NAME_compare, "Compare with argument"),
+  GM(NAME_catchAll, 2, "copy=real", T_catchAll, getCatchAllReal,
+     NAME_copy, "Create copy and run method on it"),
+  GM(NAME_printName, 0, "string", NULL, getPrintNameReal,
+     NAME_textual, "Formatted version (%f) of value"),
+  GM(NAME_value, 0, "real", NULL, getValueReal,
+     NAME_value, "Returns itself")
+};
+
+/* Resources */
+
+static const resourcedecl rc_real[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name real_termnames[] = { NAME_value };
+
+ClassDecl(real_decls,
+          var_real, send_real, get_real, rc_real,
+          1, real_termnames,
+          "$Rev$");
+
+
 status
 makeClassReal(Class class)
-{ sourceClass(class, makeClassReal, __FILE__, "$Revision$");
+{ declareClass(class, &real_decls);
 
-  localClass(class, NAME_value, NAME_storage, "alien:float", NAME_none,
-	     "C float value");
-
-  termClass(class, "real", 1, NAME_value);
   setLoadStoreFunctionClass(class, loadReal, storeReal);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "value=any",
-	     "Create real by converting argument",
-	     initialiseReal);
-  sendMethod(class, NAME_divide, NAME_calculate, 1, "real",
-	     "Divide value by argument",
-	     divideReal);
-  sendMethod(class, NAME_equal, NAME_compare, 1, "real",
-	     "Test if equal to argument",
-	     equalReal);
-  sendMethod(class, NAME_larger, NAME_compare, 1, "real",
-	     "Test if larger than argument",
-	     largerReal);
-  sendMethod(class, NAME_largerEqual, NAME_compare, 1, "real",
-	     "Test if larger-or-equal than argument",
-	     largerEqualReal);
-  sendMethod(class, NAME_lessEqual, NAME_compare, 1, "real",
-	     "Test if less-or-equal than argument",
-	     lessEqualReal);
-  sendMethod(class, NAME_minus, NAME_calculate, 1, "real",
-	     "Subtract argument from value",
-	     minusReal);
-  sendMethod(class, NAME_notEqual, NAME_compare, 1, "real",
-	     "Test if not-equal to argument",
-	     notEqualReal);
-  sendMethod(class, NAME_plus, NAME_calculate, 1, "real",
-	     "Add argument to value",
-	     plusReal);
-  sendMethod(class, NAME_smaller, NAME_compare, 1, "real",
-	     "Test if less than argument",
-	     smallerReal);
-  sendMethod(class, NAME_times, NAME_calculate, 1, "real",
-	     "Multiply value by argument",
-	     timesReal);
-  sendMethod(class, NAME_value, NAME_value, 1, "real",
-	     "Set the value to argument",
-	     valueReal);
-
-  getMethod(class, NAME_value, NAME_value, "real", 0,
-	    "Returns itself",
-	    getValueReal);
-  getMethod(class, NAME_printName, NAME_textual, "string", 0,
-	    "Formatted version (%f) of value",
-	    getPrintNameReal);
-  getMethod(class, NAME_convert, DEFAULT, "real", 1, "any",
-	    "Converts int, number and char_array",
-	    getConvertReal);
-  getMethod(class, NAME_compare, NAME_compare, "{smaller,equal,larger}", 1,
-	    "real",
-	    "Compare with argument",
-	    getCompareReal);
-  getMethod(class, NAME_catchAll, NAME_copy, "copy=real", 2,
-	    "selector=name", "argument=unchecked ...",
-	    "Create copy and run method on it",
-	    getCatchAllReal);
 
   succeed;
 }

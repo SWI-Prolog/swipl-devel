@@ -40,7 +40,8 @@
 #undef String
 
 #ifndef XMalloc
-#define XMalloc(size) malloc(size)
+#define XMalloc(size) pceMalloc(size)
+#define XFree(ptr)    pceFree(ptr)
 #endif
 
 #if XT_VERSION == 10

@@ -248,63 +248,124 @@ doneCodeVector(Vector v)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_element[] =
+        { "index=int", "value=any|function" };
+static const char *T_fill[] =
+        { "value=any|function", "from=[int]", "to=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_codeVector[] =
+{ 
+};
+
+/* Send Methods */
+
+static const senddecl send_codeVector[] =
+{ SM(NAME_append, 1, "value=any|function ...", appendVector,
+     DEFAULT, NULL),
+  SM(NAME_element, 2, T_element, elementVector,
+     DEFAULT, NULL),
+  SM(NAME_fill, 3, T_fill, fillVector,
+     DEFAULT, NULL),
+  SM(NAME_initialise, 1, "element=any|function ...", initialiseVectorv,
+     DEFAULT, NULL),
+  SM(NAME_unlink, 0, NULL, unlinkCodeVector,
+     DEFAULT, NULL)
+};
+
+/* Get Methods */
+
+static const getdecl get_codeVector[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_codeVector[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(codeVector_decls,
+          var_codeVector, send_codeVector, get_codeVector, rc_codeVector,
+          ARGC_INHERIT, NULL,
+          "$Rev$");
+
 status
 makeClassCodeVector(Class class)
-{ assign(class, un_answer, OFF);
+{ return declareClass(class, &codeVector_decls);
+
+  assign(class, un_answer, OFF);
   assign(class, summary, CtoString("Argument vector"));
-
-  sourceClass(class, makeClassCodeVector, __FILE__, "$Revision$");
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "element=any|function ...",
-	     "",
-	     initialiseVectorv);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "",
-	     unlinkCodeVector);
-  sendMethod(class, NAME_fill, DEFAULT, 3,
-	     "value=any|function", "from=[int]", "to=[int]",
-	     "",
-	     fillVector);
-  sendMethod(class, NAME_element, DEFAULT, 2,
-	     "index=int", "value=any|function",
-	     "",
-	     elementVector);
-  sendMethod(class, NAME_append, DEFAULT, 1,
-	     "value=any|function ...",
-	     "",
-	     appendVector);
 
   succeed;
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+
+/* Instance Variables */
+
+static const vardecl var_code[] =
+{ 
+};
+
+/* Send Methods */
+
+static const senddecl send_code[] =
+{ SM(NAME_execute, 0, NULL, executeCode,
+     NAME_execute, "Execute code"),
+  SM(NAME_forward, 1, "any ...", forwardCodev,
+     NAME_execute, "Push @arg1, ... and execute"),
+  SM(NAME_forwardVars, 1, "assign ...", forwardVarsCodev,
+     NAME_execute, "Push vars and execute"),
+  SM(NAME_forwardVector, 1, "any ...", forwardVectorCodev,
+     NAME_execute, "Push @arg1, ... from a vector and execute"),
+  SM(NAME_Execute, 0, NULL, ExecuteCode,
+     NAME_internal, "Execute the code object (redefined)")
+};
+
+/* Get Methods */
+
+static const getdecl get_code[] =
+{ GM(NAME_Execute, 0, "unchecked", NULL, getExecuteCode,
+     NAME_internal, "Execute the function object (error)")
+};
+
+/* Resources */
+
+static const resourcedecl rc_code[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(code_decls,
+          var_code, send_code, get_code, rc_code,
+          0, NULL,
+          "$Rev$");
+
+
 status
 makeClassCode(Class class)
-{ sourceClass(class, makeClassCode, __FILE__, "$Revision$");
+{ declareClass(class, &code_decls);
+
   setTraceFunctionClass(class, traceCode);
-  termClass(class, "code", 0);
   cloneStyleClass(class, NAME_none);
   assign(class, un_answer, OFF);
-
-  sendMethod(class, NAME_forward, NAME_execute, 1, "any ...",
-	     "Push @arg1, ... and execute",
-	     forwardCodev);
-  sendMethod(class, NAME_forwardVars, NAME_execute, 1, "assign ...",
-	     "Push vars and execute",
-	     forwardVarsCodev);
-  sendMethod(class, NAME_forwardVector, NAME_execute, 1, "any ...",
-	     "Push @arg1, ... from a vector and execute",
-	     forwardVectorCodev);
-  sendMethod(class, NAME_execute, NAME_execute, 0,
-	     "Execute code",
-	     executeCode);
-  sendMethod(class, NAME_Execute, NAME_internal, 0,
-	     "Execute the code object (redefined)",
-	     ExecuteCode);
-
-  getMethod(class, NAME_Execute, NAME_internal, "unchecked", 0,
-	     "Execute the function object (error)",
-	     getExecuteCode);
 
   succeed;
 }

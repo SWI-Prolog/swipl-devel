@@ -81,33 +81,55 @@ getArgProgn(Progn p, Int n)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+
+/* Instance Variables */
+
+static const vardecl var_progn[] =
+{ IV(NAME_members, "chain", IV_GET,
+     NAME_statement, "Statements and return function")
+};
+
+/* Send Methods */
+
+static const senddecl send_progn[] =
+{ SM(NAME_initialise, 1, "statement=code|any ...", initialisePrognv,
+     DEFAULT, "Create progn from statements and return"),
+  SM(NAME_append, 1, "code|any", appendProgn,
+     NAME_list, "Append a statement")
+};
+
+/* Get Methods */
+
+static const getdecl get_progn[] =
+{ GM(NAME_Arg, 1, "code", "int", getArgProgn,
+     DEFAULT, "Nth-1 argument for term description"),
+  GM(NAME_Arity, 0, "int", NULL, getArityProgn,
+     DEFAULT, "Arity for term description"),
+  GM(NAME_Execute, 0, "unchecked", NULL, getExecuteProgn,
+     DEFAULT, "Execute the progn")
+};
+
+/* Resources */
+
+static const resourcedecl rc_progn[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(progn_decls,
+          var_progn, send_progn, get_progn, rc_progn,
+          ARGC_UNKNOWN, NULL,
+          "$Rev$");
+
 status
 makeClassProgn(Class class)
-{ sourceClass(class, makeClassProgn, __FILE__, "$Revision$");
-
-  localClass(class, NAME_members, NAME_statement, "chain", NAME_get,
-	     "Statements and return function");
-
-  termClass(class, "progn", ARGC_UNKNOWN);
-  /* delegateClass(class, NAME_members);	Functions Can't delegate! */
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "statement=code|any ...",
-	     "Create progn from statements and return",
-	     initialisePrognv);
-  sendMethod(class, NAME_append, NAME_list, 1, "code|any",
-	     "Append a statement",
-	     appendProgn);
-
-  getMethod(class, NAME_Arg, DEFAULT, "code", 1, "int",
-	    "Nth-1 argument for term description",
-	    getArgProgn);
-  getMethod(class, NAME_Arity, DEFAULT, "int", 0,
-	    "Arity for term description",
-	    getArityProgn);
-  getMethod(class, NAME_Execute, DEFAULT, "unchecked", 0,
-	    "Execute the progn",
-	    getExecuteProgn);
-
-  succeed;
+{ return declareClass(class, &progn_decls);
 }
 

@@ -1,18 +1,18 @@
 
-/* constraint.c */
+/* rel/constraint.c */
 status		lockConstraint(Constraint c, Any obj);
 status		unlockConstraint(Constraint c, Any obj);
 status		executeConstraint(Constraint c, Any obj);
 status		makeClassConstraint(Class class);
 
-/* hyper.c */
+/* rel/hyper.c */
 status		makeClassHyper(Class class);
 
-/* identity.c */
+/* rel/identity.c */
 status		makeClassIdentity(Class class);
 
-/* relation.c */
+/* rel/relation.c */
 status		makeClassRelation(Class class);
 
-/* spatial.c */
+/* rel/spatial.c */
 status		makeClassSpatial(Class class);

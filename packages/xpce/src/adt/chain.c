@@ -931,8 +931,9 @@ getCompleteNameChain(Chain ch, CharArray prefix, Function map,
   }
 
   if ( notNil(matches) )
+  { str_pad(common);
     answer(answerObject(ClassTuple, matches, StringToString(common), 0));
-  else
+  } else
     fail;
 }
 
@@ -1279,214 +1280,200 @@ changedChain(Chain ch, Any *field)
 { succeed;
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_actionAcode_safeADboolD[] =
+        { "action=code", "safe=[bool]" };
+static const char *T_cellValue[] =
+        { "cell_reference=int", "value=any" };
+static const char *T_firstAany_secondAany[] =
+        { "first=any", "second=any" };
+static const char *T_indexAint_valueAany[] =
+        { "index=int", "value=any" };
+static const char *T_replace[] =
+        { "old=any", "new=any" };
+static const char *T_completeName[] =
+        { "prefix=char_array", "extract_name=[function]*",
+	  "ignore_case=[bool]" };
+static const char *T_moveAfter[] =
+        { "value=any", "after=[any]" };
+static const char *T_insertAfter[] =
+        { "value=any", "after=any*" };
+static const char *T_moveBefore[] =
+        { "value=any", "before=any" };
+static const char *T_swap[] =
+        { "value_1=any", "value_2=any" };
+
+/* Instance Variables */
+
+static const vardecl var_chain[] =
+{ IV(NAME_size, "int", IV_GET,
+     NAME_cardinality, "Number of elements"),
+  IV(NAME_head, "alien:Cell", IV_NONE,
+     NAME_internal, "Pointer to first cell"),
+  IV(NAME_tail, "alien:Cell", IV_NONE,
+     NAME_internal, "Pointer to last cell"),
+  IV(NAME_current, "alien:Cell", IV_NONE,
+     NAME_internal, "Pointer to current cell")
+};
+
+/* Send Methods */
+
+static const senddecl send_chain[] =
+{ SM(NAME_initialise, 1, "member=any ...", initialiseChainv,
+     DEFAULT, "Create a chain with initial elements"),
+  SM(NAME_unlink, 0, NULL, unlinkChain,
+     DEFAULT, "Clear the chain"),
+  SM(NAME_empty, 0, NULL, emptyChain,
+     NAME_cardinality, "Test if chain has no elements"),
+  SM(NAME_cellValue, 2, T_cellValue, cellValueChain,
+     NAME_cell, "Change value of cell"),
+  SM(NAME_equal, 1, "[chain]*", equalChain,
+     NAME_compare, "Test if both chains have the same objects"),
+  SM(NAME_current, 1, "value=any*", currentChain,
+     NAME_current, "Make cell with `value' the current cell"),
+  SM(NAME_currentNo, 1, "index=int", currentNoChain,
+     NAME_current, "Set current cell to nth-1 (0: no current)"),
+  SM(NAME_deleteCurrent, 0, NULL, deleteCurrentChain,
+     NAME_current, "Delete current cell"),
+  SM(NAME_find, 1, "test=code", findChain,
+     NAME_current, "Set current to first cell accepted by code"),
+  SM(NAME_insert, 1, "value=any", insertChain,
+     NAME_current, "Insert argument before current"),
+  SM(NAME_nth0, 2, T_indexAint_valueAany, nth0Chain,
+     NAME_index, "Change content of nth (0-based) cell"),
+  SM(NAME_nth1, 2, T_indexAint_valueAany, nth1Chain,
+     NAME_index, "Change content of nth (1-based) cell"),
+  SM(NAME_forAll, 2, T_actionAcode_safeADboolD, forAllChain,
+     NAME_iterate, "Run code on all elements, demand acceptance ([safe])"),
+  SM(NAME_forSome, 2, T_actionAcode_safeADboolD, forSomeChain,
+     NAME_iterate, "Run code on all elements ([safe])"),
+  SM(NAME_Append, 1, "value=any|function", appendChain,
+     NAME_list, "Append argument to chain (not expanding obtainers)"),
+  SM(NAME_append, 1, "value=any", appendChain,
+     NAME_list, "Append argument to chain"),
+  SM(NAME_clear, 0, NULL, clearChain,
+     NAME_list, "Remove all elements from chain"),
+  SM(NAME_delete, 1, "value=any", deleteChain,
+     NAME_list, "Delete first occurrence of argument"),
+  SM(NAME_deleteAll, 1, "value=any", deleteAllChain,
+     NAME_list, "Delete all occurrences of argument"),
+  SM(NAME_deleteHead, 0, NULL, deleteHeadChain,
+     NAME_list, "Delete first element"),
+  SM(NAME_deleteTail, 0, NULL, deleteTailChain,
+     NAME_list, "Delete last element"),
+  SM(NAME_insertAfter, 2, T_insertAfter, insertAfterChain,
+     NAME_list, "Insert first after second object (@nil: prepend)"),
+  SM(NAME_merge, 1, "chain", mergeChain,
+     NAME_list, "Append all elements from argument"),
+  SM(NAME_prepend, 1, "value=any", prependChain,
+     NAME_list, "Add argument as first element"),
+  SM(NAME_replace, 2, T_replace, replaceChain,
+     NAME_list, "Replace all occurrences"),
+  SM(NAME_after, 2, T_firstAany_secondAany, afterChain,
+     NAME_order, "Test if first argument is after second"),
+  SM(NAME_before, 2, T_firstAany_secondAany, beforeChain,
+     NAME_order, "Test if first argument is before second"),
+  SM(NAME_moveAfter, 2, T_moveAfter, moveAfterChain,
+     NAME_order, "Move 1st object just after second"),
+  SM(NAME_moveBefore, 2, T_moveBefore, moveBeforeChain,
+     NAME_order, "Move 1st object just before second"),
+  SM(NAME_sort, 1, "compare=[code|function]", sortChain,
+     NAME_order, "Sort according to code's return-value (or name)"),
+  SM(NAME_swap, 2, T_swap, swapChain,
+     NAME_order, "Swap position of arguments"),
+  SM(NAME_add, 1, "value=any", addChain,
+     NAME_set, "Prepend object if not already ->member"),
+  SM(NAME_intersection, 1, "chain", intersectionChain,
+     NAME_set, "Delete elements not in argument"),
+  SM(NAME_intersects, 1, "chain", intersectsChain,
+     NAME_set, "Test if both chains have a common member"),
+  SM(NAME_member, 1, "value=any", memberChain,
+     NAME_set, "Test if argument is an element"),
+  SM(NAME_subtract, 1, "chain", subtractChain,
+     NAME_set, "Delete all elements in argument"),
+  SM(NAME_union, 1, "chain", unionChain,
+     NAME_set, "Append only new elements from argument"),
+  SM(NAME_unique, 0, NULL, uniqueChain,
+     NAME_set, "Remove all duplicates from chain")
+};
+
+/* Get Methods */
+
+static const getdecl get_chain[] =
+{ GM(NAME_cellValue, 1, "any", "cell_reference=int", getCellValueChain,
+     NAME_cell, "Value for cell-reference"),
+  GM(NAME_headCell, 0, "int", NULL, getHeadCellChain,
+     NAME_cell, "Reference (int) to first cell"),
+  GM(NAME_nextCell, 1, "cell_reference=int", "cell_reference=int", getNextCellChain,
+     NAME_cell, "Reference to next cell at reference"),
+  GM(NAME_completeName, 3, "tuple", T_completeName, getCompleteNameChain,
+     NAME_completion, "New tuple with matches and common prefix"),
+  GM(NAME_copy, 0, "chain", NULL, getCopyChain,
+     NAME_copy, "New chain with same elements"),
+  GM(NAME_current, 0, "any", NULL, getCurrentChain,
+     NAME_current, "Value for the current cell"),
+  GM(NAME_currentNo, 0, "int", NULL, getCurrentNoChain,
+     NAME_current, "Index number of current cell (1-based)"),
+  GM(NAME_index, 1, "index=int", "value=any", getIndexChain,
+     NAME_index, "Index (1-based) at which argument is"),
+  GM(NAME_next, 1, "any", "[any]", getNextChain,
+     NAME_index, "Element after given value"),
+  GM(NAME_nth0, 1, "value=any", "index=int", getNth0Chain,
+     NAME_index, "Element at 0-based index"),
+  GM(NAME_nth1, 1, "value=any", "index=int", getNth1Chain,
+     NAME_index, "Element at 1-based index"),
+  GM(NAME_previous, 1, "any", "[any]", getPreviousChain,
+     NAME_index, "Element before given value"),
+  GM(NAME_find, 1, "any", "test=code", getFindChain,
+     NAME_iterate, "First element accepted by code"),
+  GM(NAME_findAll, 1, "chain", "test=code", getFindAllChain,
+     NAME_iterate, "New chain with elements accepted by code"),
+  GM(NAME_map, 1, "chain", "function", getMapChain,
+     NAME_iterate, "New chain with result of applying function"),
+  GM(NAME_deleteHead, 0, "any", NULL, getDeleteHeadChain,
+     NAME_list, "First element and delete it"),
+  GM(NAME_head, 0, "any", NULL, getHeadChain,
+     NAME_list, "First element"),
+  GM(NAME_merge, 1, "chain", "chain", getMergeChain,
+     NAME_list, "New chain holding concatenation"),
+  GM(NAME_tail, 0, "value=any", NULL, getTailChain,
+     NAME_list, "Last element"),
+  GM(NAME_intersection, 1, "chain", "chain", getIntersectionChain,
+     NAME_set, "New chain holding common elements"),
+  GM(NAME_union, 1, "chain", "chain", getUnionChain,
+     NAME_set, "New chain with union of elements"),
+  GM(NAME_Arg, 1, "any", "index=int", getArgChain,
+     NAME_term, "Nth-1 argument for object description"),
+  GM(NAME_Arity, 0, "int", NULL, getArityChain,
+     NAME_term, "Number of arguments for object description")
+};
+
+/* Resources */
+
+static const resourcedecl rc_chain[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(chain_decls,
+          var_chain, send_chain, get_chain, rc_chain,
+          ARGC_UNKNOWN, NULL,
+          "$Rev$");
+
 
 status
 makeClassChain(Class class)
-{ sourceClass(class, makeClassChain, __FILE__, "$Revision$");
-  
-  localClass(class, NAME_size, NAME_cardinality, "int", NAME_get,
-	     "Number of elements");
-  localClass(class, NAME_head, NAME_internal, "alien:Cell", NAME_none,
-	     "Pointer to first cell");
-  localClass(class, NAME_tail, NAME_internal, "alien:Cell", NAME_none,
-	     "Pointer to last cell");
-  localClass(class, NAME_current, NAME_internal, "alien:Cell", NAME_none,
-	     "Pointer to current cell");
-  
-  termClass(class, "chain", ARGC_UNKNOWN);
+{ declareClass(class, &chain_decls);
 
   setLoadStoreFunctionClass(class, loadChain, storeChain);
   setCloneFunctionClass(class, cloneChain);
   setChangedFunctionClass(class, changedChain);
-  
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "member=any ...",
-	     "Create a chain with initial elements",
-	     initialiseChainv);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Clear the chain",
-	     unlinkChain);
-  sendMethod(class, NAME_after, NAME_order, 2, "first=any", "second=any",
-	     "Test if first argument is after second",
-	     afterChain);
-  sendMethod(class, NAME_add, NAME_set, 1, "value=any",
-	     "Prepend object if not already ->member",
-	     addChain);
-  sendMethod(class, NAME_append, NAME_list, 1, "value=any",
-	     "Append argument to chain",
-	     appendChain);
-  sendMethod(class, NAME_Append, NAME_list, 1, "value=any|function",
-	     "Append argument to chain (not expanding obtainers)",
-	     appendChain);
-  sendMethod(class, NAME_before, NAME_order, 2, "first=any", "second=any",
-	     "Test if first argument is before second",
-	     beforeChain);
-  sendMethod(class, NAME_cellValue, NAME_cell, 2,
-	     "cell_reference=int", "value=any",
-	     "Change value of cell",
-	     cellValueChain);
-  sendMethod(class, NAME_nth0, NAME_index, 2, "index=int", "value=any",
-	     "Change content of nth (0-based) cell",
-	     nth0Chain);
-  sendMethod(class, NAME_nth1, NAME_index, 2, "index=int", "value=any",
-	     "Change content of nth (1-based) cell",
-	     nth1Chain);
-  sendMethod(class, NAME_clear, NAME_list, 0,
-	     "Remove all elements from chain",
-	     clearChain);
-  sendMethod(class, NAME_current, NAME_current, 1, "value=any*",
-	     "Make cell with `value' the current cell",
-	     currentChain);
-  sendMethod(class, NAME_currentNo, NAME_current, 1, "index=int",
-	     "Set current cell to nth-1 (0: no current)",
-	     currentNoChain);
-  sendMethod(class, NAME_delete, NAME_list, 1, "value=any",
-	     "Delete first occurrence of argument",
-	     deleteChain);
-  sendMethod(class, NAME_deleteAll, NAME_list, 1, "value=any",
-	     "Delete all occurrences of argument",
-	     deleteAllChain);
-  sendMethod(class, NAME_deleteCurrent, NAME_current, 0,
-	     "Delete current cell",
-	     deleteCurrentChain);
-  sendMethod(class, NAME_deleteHead, NAME_list, 0,
-	     "Delete first element",
-	     deleteHeadChain);
-  sendMethod(class, NAME_deleteTail, NAME_list, 0,
-	     "Delete last element",
-	     deleteTailChain);
-  sendMethod(class, NAME_find, NAME_current, 1, "test=code",
-	     "Set current to first cell accepted by code",
-	     findChain);
-  sendMethod(class, NAME_forAll, NAME_iterate, 2, "action=code", "safe=[bool]",
-	     "Run code on all elements, demand acceptance ([safe])",
-	     forAllChain);
-  sendMethod(class, NAME_forSome, NAME_iterate, 2, "action=code", "safe=[bool]",
-	     "Run code on all elements ([safe])",
-	     forSomeChain);
-  sendMethod(class, NAME_insert, NAME_current, 1, "value=any",
-	     "Insert argument before current",
-	     insertChain);
-  sendMethod(class, NAME_insertAfter, NAME_list, 2, "value=any", "after=any*",
-	     "Insert first after second object (@nil: prepend)",
-	     insertAfterChain);
-  sendMethod(class, NAME_intersection, NAME_set, 1, "chain",
-	     "Delete elements not in argument",
-	     intersectionChain);
-  sendMethod(class, NAME_intersects, NAME_set, 1, "chain",
-	     "Test if both chains have a common member",
-	     intersectsChain);
-  sendMethod(class, NAME_subtract, NAME_set, 1, "chain",
-	     "Delete all elements in argument",
-	     subtractChain);
-  sendMethod(class, NAME_member, NAME_set, 1, "value=any",
-	     "Test if argument is an element",
-	     memberChain);
-  sendMethod(class, NAME_merge, NAME_list, 1, "chain",
-	     "Append all elements from argument",
-	     mergeChain);
-  sendMethod(class, NAME_prepend, NAME_list, 1, "value=any",
-	     "Add argument as first element",
-	     prependChain);
-  sendMethod(class, NAME_swap, NAME_order, 2, "value_1=any", "value_2=any",
-	     "Swap position of arguments",
-	     swapChain);
-  sendMethod(class, NAME_union, NAME_set, 1, "chain",
-	     "Append only new elements from argument",
-	     unionChain);
-  sendMethod(class, NAME_unique, NAME_set, 0,
-	     "Remove all duplicates from chain",
-	     uniqueChain);
-  sendMethod(class, NAME_replace, NAME_list, 2, "old=any", "new=any",
-	     "Replace all occurrences",
-	     replaceChain);
-  sendMethod(class, NAME_empty, NAME_cardinality, 0,
-	     "Test if chain has no elements",
-	     emptyChain);
-  sendMethod(class, NAME_equal, NAME_compare, 1, "[chain]*",
-	     "Test if both chains have the same objects",
-	     equalChain);
-  sendMethod(class, NAME_moveAfter, NAME_order, 2, "value=any", "after=[any]",
-	     "Move 1st object just after second",
-	     moveAfterChain);
-  sendMethod(class, NAME_moveBefore, NAME_order, 2, "value=any", "before=any",
-	     "Move 1st object just before second",
-	     moveBeforeChain);
-  sendMethod(class, NAME_sort, NAME_order, 1, "compare=[code|function]",
-	     "Sort according to code's return-value (or name)",
-	     sortChain);
-  
-  getMethod(class, NAME_Arg, NAME_term, "any", 1, "index=int",
-	    "Nth-1 argument for object description",
-	    getArgChain);
-  getMethod(class, NAME_Arity, NAME_term, "int", 0,
-	    "Number of arguments for object description",
-	    getArityChain);
-  getMethod(class, NAME_cellValue, NAME_cell, "any", 1, "cell_reference=int",
-	    "Value for cell-reference",
-	    getCellValueChain);
-  getMethod(class, NAME_copy, NAME_copy, "chain", 0,
-	    "New chain with same elements",
-	    getCopyChain);
-  getMethod(class, NAME_current, NAME_current, "any", 0,
-	    "Value for the current cell",
-	    getCurrentChain);
-  getMethod(class, NAME_currentNo, NAME_current, "int", 0,
-	    "Index number of current cell (1-based)",
-	    getCurrentNoChain);
-  getMethod(class, NAME_map, NAME_iterate, "chain", 1, "function",
-	    "New chain with result of applying function",
-	    getMapChain);
-  getMethod(class, NAME_find, NAME_iterate, "any", 1, "test=code",
-	    "First element accepted by code",
-	    getFindChain);
-  getMethod(class, NAME_findAll, NAME_iterate, "chain", 1, "test=code",
-	    "New chain with elements accepted by code",
-	    getFindAllChain);
-  getMethod(class, NAME_head, NAME_list, "any", 0,
-	    "First element",
-	    getHeadChain);
-  getMethod(class, NAME_deleteHead, NAME_list, "any", 0,
-	    "First element and delete it",
-	    getDeleteHeadChain);
-  getMethod(class, NAME_headCell, NAME_cell, "int", 0,
-	    "Reference (int) to first cell",
-	    getHeadCellChain);
-  getMethod(class, NAME_intersection, NAME_set, "chain", 1, "chain",
-	    "New chain holding common elements",
-	    getIntersectionChain);
-  getMethod(class, NAME_index, NAME_index, "index=int", 1, "value=any",
-	    "Index (1-based) at which argument is",
-	    getIndexChain);
-  getMethod(class, NAME_merge, NAME_list, "chain", 1, "chain",
-	    "New chain holding concatenation",
-	    getMergeChain);
-  getMethod(class, NAME_next, NAME_index, "any", 1, "[any]",
-	    "Element after given value",
-	    getNextChain);
-  getMethod(class, NAME_previous, NAME_index, "any", 1, "[any]",
-	    "Element before given value",
-	    getPreviousChain);
-  getMethod(class, NAME_nextCell, NAME_cell, "cell_reference=int",
-	    1, "cell_reference=int",
-	    "Reference to next cell at reference",
-	    getNextCellChain);
-  getMethod(class, NAME_nth1, NAME_index, "value=any", 1, "index=int",
-	    "Element at 1-based index",
-	    getNth1Chain);
-  getMethod(class, NAME_nth0, NAME_index, "value=any", 1, "index=int",
-	    "Element at 0-based index",
-	    getNth0Chain);
-  getMethod(class, NAME_tail, NAME_list, "value=any", 0,
-	    "Last element",
-	    getTailChain);
-  getMethod(class, NAME_union, NAME_set, "chain", 1, "chain",
-	    "New chain with union of elements",
-	    getUnionChain);
-  getMethod(class, NAME_completeName, NAME_completion, "tuple", 3,
-	    "prefix=char_array", "extract_name=[function]*",
-	    "ignore_case=[bool]",
-	    "New tuple with matches and common prefix",
-	    getCompleteNameChain);
 
   succeed;
 }

@@ -53,29 +53,55 @@ getArgAnd(And a, Int n)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+
+/* Instance Variables */
+
+static const vardecl var_and[] =
+{ IV(NAME_members, "chain", IV_GET,
+     NAME_statement, "Tests that must succeed")
+};
+
+/* Send Methods */
+
+static const senddecl send_and[] =
+{ SM(NAME_Execute, 0, NULL, ExecuteAnd,
+     DEFAULT, "Evaluate and"),
+  SM(NAME_initialise, 1, "test=code ...", initialiseAndv,
+     DEFAULT, "Create and from tests")
+};
+
+/* Get Methods */
+
+static const getdecl get_and[] =
+{ GM(NAME_Arg, 1, "code", "int", getArgAnd,
+     DEFAULT, "Nth-1 argument for term description"),
+  GM(NAME_Arity, 0, "int", NULL, getArityAnd,
+     DEFAULT, "Arity for term description")
+};
+
+/* Resources */
+
+static const resourcedecl rc_and[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(and_decls,
+          var_and, send_and, get_and, rc_and,
+          ARGC_UNKNOWN, NULL,
+          "$Rev$");
+
 status
 makeClassAnd(Class class)
-{ sourceClass(class, makeClassAnd, __FILE__, "$Revision$");
-
-  localClass(class, NAME_members, NAME_statement, "chain", NAME_get,
-	     "Tests that must succeed");
-
-  termClass(class, "and", ARGC_UNKNOWN);
+{ declareClass(class, &and_decls);
   delegateClass(class, NAME_members);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "test=code ...",
-	     "Create and from tests",
-	     initialiseAndv);
-  sendMethod(class, NAME_Execute, DEFAULT, 0,
-	     "Evaluate and",
-	     ExecuteAnd);
-
-  getMethod(class, NAME_Arg, DEFAULT, "code", 1, "int",
-	    "Nth-1 argument for term description",
-	    getArgAnd);
-  getMethod(class, NAME_Arity, DEFAULT, "int", 0,
-	    "Arity for term description",
-	    getArityAnd);
 
   succeed;
 }

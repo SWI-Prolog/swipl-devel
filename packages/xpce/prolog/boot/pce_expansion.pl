@@ -1,4 +1,4 @@
-/*  $Id$
+/*  $Id pce_expansion.pl,v 1.6 1995/09/25 15:33:02 jan Exp $
 
     Part of XPCE
     Designed and implemented by Anjo Anjewierden and Jan Wielemaker
@@ -19,6 +19,7 @@
 	   , concat/3
 	   , concat_atom/2
 	   , delete/3
+	   , append/3
 	   , flatten/2
 	   , forall/2
 	   , genarg/3
@@ -36,7 +37,8 @@
 	compiling/1,			% -ClassName
 	attribute/3,			% ClassName, Attribute, Value
 	verbose/0,
-	recording/2.			% items recorded
+	recording/2,			% items recorded
+	dynamic_declared/2.		% +Head, +Path
 
 pce_ifhostproperty(prolog(swi), (:- index(attribute(1,1,0)))).
 
@@ -132,8 +134,8 @@ head_arg(_, A) :-
 %	First step of the XPCE class compiler, calling the supported
 %	hook pce_pre_expansion_hook/2.
 
-:- dynamic user:pce_pre_expansion_hook/2.
 :- multifile user:pce_pre_expansion_hook/2.
+:- dynamic user:pce_pre_expansion_hook/2.
 
 pce_pre_expand(X, Y) :-
 	user:pce_pre_expansion_hook(X, X1), !,
@@ -183,6 +185,7 @@ pce_expandable(handle(_X, _Y, _Kind, _Name)) :-
 	pce_compiling.
 pce_expandable((_Head :-> _Body)).
 pce_expandable((_Head :<- _Body)).
+pce_expandable(end_of_file).
 
 
 %	do_expand(In, Out)
@@ -215,8 +218,10 @@ do_expand((:- pce_end_class), Result) :-
 		      Decl1, SMS,
 		      Decl2, SGS,
 		      ClassDecl,
-		      (:- initialization(pce_extended_class(ClassName)))
-		    ], Result)
+		      ExtendDecl
+		    ], Result),
+	    term_expand((:- initialization(pce_extended_class(ClassName))),
+			ExtendDecl)
 	;   retract(attribute(ClassName, super, Super)),
 	    retract(attribute(ClassName, meta, MetaClass)),
 	    findall(V, retract(attribute(ClassName, variable, V)),  Variables),
@@ -231,8 +236,10 @@ do_expand((:- pce_end_class), Result) :-
 		      Decl1,	 SMS,
 		      Decl2,	 SGS,
 		      ClassDecl, ClassFact,
-		      (:- initialization(pce_register_class(ClassName)))
-		    ], Result)
+		      RegisterDecl
+		    ], Result),
+	    term_expand((:- initialization(pce_register_class(ClassName))),
+			RegisterDecl)
 	),
 	pop_class.
 do_expand((:- pce_group(Group)), []) :-
@@ -292,6 +299,13 @@ do_expand((Head :<- DocBody), []) :-
 	add_attribute(ClassName, get_method,
 		      lazy_get_method(Selector, ClassName, LGM)),
 	feedback(expand_get(ClassName, Selector)).
+do_expand(end_of_file, end_of_file) :-
+	prolog_load_context(file, Path),
+	retractall(dynamic_declared(_, Path)).
+
+term_expand(T0, T) :-
+	user:term_expansion(T0, T), !.
+term_expand(T0, T0).
 
 %	method_clauses(+ClassName, -Clauses)
 %
@@ -354,13 +368,31 @@ break_class_specification(Term, ClassName, @default, TermArgs) :-
 		 *******************************/
 
 dynamic_declaration([], []).
-dynamic_declaration([Head|_],
+dynamic_declaration([Head|_], []) :-
+	functor(Head, Name, Arity),
+	declared(Name, Arity), !.
+pce_ifhostproperty(no_discontiguous,
+(   dynamic_declaration([Head|_],
+		    [ (:- multifile(Name/Arity)),
+		      (:- dynamic(Name/Arity))
+		    ]) :-
+	functor(Head, Name, Arity)),
+(   dynamic_declaration([Head|_],
 		    [ (:- multifile(Name/Arity)),
 		      (:- dynamic(Name/Arity)),
 		      (:- discontiguous(Name/Arity))
 		    ]) :-
-	functor(Head, Name, Arity).
+	functor(Head, Name, Arity))).
 
+declared(Name, Arity) :-
+	functor(Head, Name, Arity),
+	prolog_load_context(file, Path),
+	(   dynamic_declared(Head, Path)
+	->  true
+	;   assert(dynamic_declared(Head, Path)),
+	    fail
+	).
+		   
 
 		 /*******************************
 		 *   PUSH/POP CLASS STRUCTURE	*
@@ -518,12 +550,33 @@ to_atom(Atom, Atom) :-
 	atom(Atom), !.
 to_atom(Term, Atom) :-
 	ground(Term), !,
-	term_to_atom(Term, RawAtom),
-	atom_chars(RawAtom, L0),
-	delete(L0, 0' , L1),
-	atom_chars(Atom, L1).
+	phrase(pce_type_description(Term), Chars, []),
+	atom_chars(Atom, Chars).
 to_atom(Term, any) :-
 	pce_error(type_error(to_atom(Term, any), 1, ground, Term)).
+
+pce_type_description(Atom, Chars, Tail) :-
+	atomic(Atom), !,
+	name(Atom, C0),
+	append(C0, Tail, Chars).
+pce_type_description([X]) -->
+	"[", pce_type_description(X), "]".
+pce_type_description([X|Y]) -->
+	"[", pce_type_description(X), "|", pce_type_description(Y), "]".
+pce_type_description({}(Words)) -->
+	"{", word_list(Words), "}".
+pce_type_description(=(Name, Type)) -->
+	pce_type_description(Name), "=", pce_type_description(Type).
+pce_type_description(*(T)) -->
+	pce_type_description(T), "*".
+pce_type_description(...(T)) -->
+	pce_type_description(T), " ...".
+
+word_list((A,B)) --> !,
+	pce_type_description(A), ",", word_list(B).
+word_list(A) -->
+	pce_type_description(A).
+
 
 var_type(Type := Initial, PceType, Initial) :- !,
 	pce_type(Type, PceType).

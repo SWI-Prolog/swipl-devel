@@ -21,6 +21,9 @@ This file may be used together with PceDraw's `Import Frame' option to
 created annotated screendumps.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+:- module(stayup_popup, []).
+:- use_module(library(pce)).
+
 :- pce_extend_class(popup).
 
 close(P) :->

@@ -495,87 +495,103 @@ getShiftsHashTable(HashTable ht)
 
 #endif /* O_COUNT */
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_actionAcode_safeADboolD[] =
+        { "action=code", "safe=[bool]" };
+static const char *T_append[] =
+        { "key=any", "value=any" };
+static const char *T_convertOldSlot[] =
+        { "name", "any" };
+
+/* Instance Variables */
+
+static const vardecl var_hashTable[] =
+{ IV(NAME_refer, "bool", IV_NONE,
+     NAME_oms, "If @off, registers no references (internal)"),
+  IV(NAME_size, "int", IV_GET,
+     NAME_cardinality, "Number of symbols in table"),
+  IV(NAME_buckets, "alien:int", IV_NONE,
+     NAME_cardinality, "Number of buckets in the table"),
+  IV(NAME_symbols, "alien:Symbol", IV_NONE,
+     NAME_storage, "Array of symbols")
+};
+
+/* Send Methods */
+
+static const senddecl send_hashTable[] =
+{ SM(NAME_initialise, 1, "buckets=[int]", initialiseHashTable,
+     DEFAULT, "Create from buckets"),
+  SM(NAME_unlink, 0, NULL, unlinkHashTable,
+     DEFAULT, "Clear table"),
+  SM(NAME_append, 2, T_append, appendHashTable,
+     NAME_add, "Append association to table"),
+  SM(NAME_convertOldSlot, 2, T_convertOldSlot, convertOldSlotHashTable,
+     NAME_compatibility, "File <-object conversion"),
+  SM(NAME_clear, 0, NULL, clearHashTable,
+     NAME_delete, "Delete all entries"),
+  SM(NAME_delete, 1, "key=any", deleteHashTable,
+     NAME_delete, "Delete all matching symbol"),
+  SM(NAME_forAll, 2, T_actionAcode_safeADboolD, forAllHashTable,
+     NAME_iterate, "Run code on all values; demand acceptance ([safe])"),
+  SM(NAME_forSome, 2, T_actionAcode_safeADboolD, forSomeHashTable,
+     NAME_iterate, "Run code on all values ([safe])"),
+#ifndef O_RUNTIME
+  SM(NAME_info, 0, NULL, infoHashTable,
+     NAME_statistics, "Check consistency and print statistics"),
+#endif
+#if O_COUNT
+  SM(NAME_printStatistics, 0, NULL, printStatisticsHashTable,
+     NAME_statistics, "Print statistics on all tables"),
+#endif
+  SM(NAME_buckets, 1, "int", bucketsHashTable,
+     NAME_storage, "Number of buckets in the table"),
+  SM(NAME_empty, 0, NULL, emptyHashTable,
+     NAME_test, "Test if hash_table has no elements")
+};
+
+/* Get Methods */
+
+static const getdecl get_hashTable[] =
+{ GM(NAME_member, 1, "value=any", "key=any", getMemberHashTable,
+     NAME_lookup, "Get associated value"),
+  GM(NAME_findKey, 1, "key=any", "test=code", getFindKeyHashTable,
+     NAME_search, "Find key accepted by code"),
+  GM(NAME_findValue, 1, "value=any", "test=code", getFindValueHashTable,
+     NAME_search, "Find value accepted by code"),
+#if O_COUNT
+  GM(NAME_shifts, 0, "int", NULL, getShiftsHashTable,
+     NAME_statistics, "Number of shifted entries"),
+#endif
+  GM(NAME_buckets, 0, "buckets=int", NULL, getBucketsHashTable,
+     NAME_storage, "Number of buckets in the table")
+};
+
+/* Resources */
+
+static const resourcedecl rc_hashTable[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name hashTable_termnames[] = { NAME_buckets };
+
+ClassDecl(hashTable_decls,
+          var_hashTable, send_hashTable, get_hashTable, rc_hashTable,
+          1, hashTable_termnames,
+          "$Rev$");
+
+
 status
 makeClassHashTable(Class class)
-{ sourceClass(class, makeClassHashTable, __FILE__, "$Revision$");
+{ declareClass(class, &hashTable_decls);
 
-  localClass(class, NAME_refer, NAME_oms, "bool", NAME_none,
-	     "If @off, registers no references (internal)");
-  localClass(class, NAME_size, NAME_cardinality,  "int", NAME_get,
-	     "Number of symbols in table");
-  localClass(class, NAME_buckets, NAME_cardinality, "alien:int", NAME_none,
-	     "Number of buckets in the table");
-  localClass(class, NAME_symbols, NAME_storage, "alien:Symbol", NAME_none,
-	     "Array of symbols");
-
-  termClass(class, "hash_table", 1, NAME_buckets);
   setLoadStoreFunctionClass(class, loadHashTable, storeHashTable);
-/*setCloneFunctionClass(class, cloneHashTable);
-  setChangedFunctionClass(class, changedHashTable);
-*/
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "buckets=[int]",
-	     "Create from buckets",
-	     initialiseHashTable);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Clear table",
-	     unlinkHashTable);
-  sendMethod(class, NAME_append, NAME_add, 2, "key=any", "value=any",
-	     "Append association to table",
-	     appendHashTable);
-  sendMethod(class, NAME_clear, NAME_delete, 0,
-	     "Delete all entries",
-	     clearHashTable);
-  sendMethod(class, NAME_empty, NAME_test, 0,
-	     "Test if hash_table has no elements",
-	     emptyHashTable);
-  sendMethod(class, NAME_delete, NAME_delete, 1, "key=any",
-	     "Delete all matching symbol",
-	     deleteHashTable);
-  sendMethod(class, NAME_buckets, NAME_storage, 1, "int",
-	     "Number of buckets in the table",
-	     bucketsHashTable);
-  sendMethod(class, NAME_convertOldSlot, NAME_compatibility, 2, "name", "any",
-	     "File <-object conversion",
-	     convertOldSlotHashTable);
-#if O_COUNT
-  sendMethod(class, NAME_printStatistics, NAME_statistics, 0,
-	     "Print statistics on all tables",	
-	     printStatisticsHashTable);
-#endif
-#ifndef O_RUNTIME
-  sendMethod(class, NAME_info, NAME_statistics, 0,
-	     "Check consistency and print statistics",
-	     infoHashTable);
-#endif
-
-
-  sendMethod(class, NAME_forAll, NAME_iterate, 2, "action=code", "safe=[bool]",
-	     "Run code on all values; demand acceptance ([safe])",
-	     forAllHashTable);
-  sendMethod(class, NAME_forSome, NAME_iterate, 2,
-	     "action=code", "safe=[bool]",
-	     "Run code on all values ([safe])",
-	     forSomeHashTable);
-
-  getMethod(class, NAME_member, NAME_lookup, "value=any", 1, "key=any",
-	    "Get associated value",
-	    getMemberHashTable);
-  getMethod(class, NAME_buckets, NAME_storage, "buckets=int", 0,
-	    "Number of buckets in the table",
-	    getBucketsHashTable);
-  getMethod(class, NAME_findKey, NAME_search, "key=any", 1, "test=code",
-	    "Find key accepted by code",
-	    getFindKeyHashTable);
-  getMethod(class, NAME_findValue, NAME_search, "value=any", 1, "test=code",
-	    "Find value accepted by code",
-	    getFindValueHashTable);
-
-#if O_COUNT
-  getMethod(class, NAME_shifts, NAME_statistics, "int", 0,
-	    "Number of shifted entries",
-	    getShiftsHashTable);
-#endif
 
   succeed;
 }

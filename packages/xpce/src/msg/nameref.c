@@ -35,27 +35,57 @@ ExecuteAssoc(Assoc a)
 { return nameReferenceObject(a->object, a->reference);
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "reference=name", "object=object|function" };
+
+/* Instance Variables */
+
+static const vardecl var_assoc[] =
+{ IV(NAME_reference, "name", IV_BOTH,
+     NAME_reference, "Reference to give to the object"),
+  IV(NAME_object, "object|function", IV_BOTH,
+     NAME_reference, "Object to assign reference")
+};
+
+/* Send Methods */
+
+static const senddecl send_assoc[] =
+{ SM(NAME_Execute, 0, NULL, ExecuteAssoc,
+     DEFAULT, "Assign the reference"),
+  SM(NAME_initialise, 2, T_initialise, initialiseAssoc,
+     DEFAULT, "Create from reference and object")
+};
+
+/* Get Methods */
+
+static const getdecl get_assoc[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_assoc[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name assoc_termnames[] = { NAME_reference, NAME_object };
+
+ClassDecl(assoc_decls,
+          var_assoc, send_assoc, get_assoc, rc_assoc,
+          2, assoc_termnames,
+          "$Rev$");
+
 
 status
 makeClassAssoc(Class class)
-{ sourceClass(class, makeClassAssoc, __FILE__, "$Revision$");
-
-  localClass(class, NAME_reference, NAME_reference, "name", NAME_both,
-	     "Reference to give to the object");
-  localClass(class, NAME_object, NAME_reference, "object|function", NAME_both,
-	     "Object to assign reference");
-  
-  termClass(class, "@=", 2, NAME_reference, NAME_object);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 2,
-	     "reference=name", "object=object|function",
-	     "Create from reference and object",
-	     initialiseAssoc);
-
-  sendMethod(class, NAME_Execute, DEFAULT, 0,
-	     "Assign the reference",
-	     ExecuteAssoc);
-
-  succeed;
+{ return declareClass(class, &assoc_decls);
 }
 

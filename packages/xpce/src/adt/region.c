@@ -85,47 +85,72 @@ getAreaRegion(RegionObj r, Area a)
     0));
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_inside[] =
+        { "area", "point" };
+static const char *T_initialise[] =
+        { "x=expression", "y=expression", "width=expression", "height=expression" };
+
+/* Instance Variables */
+
+static const vardecl var_region[] =
+{ IV(NAME_x, "expression", IV_BOTH,
+     NAME_dimension, "X of area expressed in XYWH of area"),
+  IV(NAME_y, "expression", IV_BOTH,
+     NAME_dimension, "Y of area expressed in XYWH of area"),
+  IV(NAME_width, "expression", IV_BOTH,
+     NAME_dimension, "W of area expressed in XYWH of area"),
+  IV(NAME_height, "expression", IV_BOTH,
+     NAME_dimension, "H of area expressed in XYWH of area")
+};
+
+/* Send Methods */
+
+static const senddecl send_region[] =
+{ SM(NAME_initialise, 4, T_initialise, initialiseRegion,
+     DEFAULT, "Create region from XYWH-expressions"),
+  SM(NAME_inside, 2, T_inside, insideRegion,
+     NAME_compare, "Test if point is inside region of area")
+};
+
+/* Get Methods */
+
+static const getdecl get_region[] =
+{ GM(NAME_area, 1, "area", "area", getAreaRegion,
+     NAME_calculate, "New area describing region of argument"),
+  GM(NAME_areaHeight, 1, "int", "area", getAreaHRegion,
+     NAME_calculate, "H of region of argument"),
+  GM(NAME_areaWidth, 1, "int", "area", getAreaWRegion,
+     NAME_calculate, "W of region of argument"),
+  GM(NAME_areaX, 1, "int", "area", getAreaXRegion,
+     NAME_calculate, "X of region of argument"),
+  GM(NAME_areaY, 1, "int", "area", getAreaYRegion,
+     NAME_calculate, "Y of region of argument")
+};
+
+/* Resources */
+
+static const resourcedecl rc_region[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name region_termnames[] = { NAME_x, NAME_y, NAME_width, NAME_height };
+
+ClassDecl(region_decls,
+          var_region, send_region, get_region, rc_region,
+          4, region_termnames,
+          "$Rev$");
+
 
 status
 makeClassRegion(Class class)
-{ sourceClass(class, makeClassRegion, __FILE__, "$Revision$");
-
-  localClass(class, NAME_x, NAME_dimension, "expression", NAME_both,
-	     "X of area expressed in XYWH of area");
-  localClass(class, NAME_y, NAME_dimension, "expression", NAME_both,
-	     "Y of area expressed in XYWH of area");
-  localClass(class, NAME_width, NAME_dimension, "expression", NAME_both,
-	     "W of area expressed in XYWH of area");
-  localClass(class, NAME_height, NAME_dimension, "expression", NAME_both,
-	     "H of area expressed in XYWH of area");
-
-  termClass(class, "region", 4, NAME_x, NAME_y, NAME_width, NAME_height);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 4,
-	     "x=expression", "y=expression",
-	     "width=expression", "height=expression",
-	     "Create region from XYWH-expressions",
-	     initialiseRegion);
-  sendMethod(class, NAME_inside, NAME_compare, 2, "area", "point",
-	     "Test if point is inside region of area",
-	     insideRegion);
-
-  getMethod(class, NAME_area, NAME_calculate, "area", 1, "area",
-	    "New area describing region of argument",
-	    getAreaRegion);
-  getMethod(class, NAME_areaX, NAME_calculate, "int", 1, "area",
-	    "X of region of argument",
-	    getAreaXRegion);
-  getMethod(class, NAME_areaY, NAME_calculate, "int", 1, "area",
-	    "Y of region of argument",
-	    getAreaYRegion);
-  getMethod(class, NAME_areaWidth, NAME_calculate, "int", 1, "area",
-	    "W of region of argument",
-	    getAreaWRegion);
-  getMethod(class, NAME_areaHeight, NAME_calculate, "int", 1, "area",
-	    "H of region of argument",
-	    getAreaHRegion);
-
-  succeed;
+{ return declareClass(class, &region_decls);
 }
 

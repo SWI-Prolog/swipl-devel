@@ -61,12 +61,15 @@ status		setLoadStoreFunctionClass(Class class, SendFunc load, SendFunc store);
 status		solidClass(Class class, Bool val);
 status		sourceClass(Class class, SendFunc f, char *file, char *rcs);
 void		localClass(Class class, Name name, Name group, char *type, Name access, char *doc);
+status		declareClass(Class class, const classdecl *decls);
 void		superClass(Class class, Name name, Name group, char *type, Name access, Name wrapper, char *doc);
 status		delegateClass(Class class, Name name);
 status		prependDelegateClass(Class class, Name name);
 Variable	getInstanceVariableClass(Class class, Any which);
 Any		getResolveSendMethodClass(Class class, Name name);
 Any		getResolveGetMethodClass(Class class, Name name);
+status		deleteSendMethodClass(Class class, Name selector);
+status		deleteGetMethodClass(Class class, Name selector);
 Int		getNoCreatedClass(Class class);
 Int		getNoFreedClass(Class class);
 status		createdClass(Class class, Any instance, Name how);
@@ -316,7 +319,7 @@ status		catchErrorSignalsPce(Pce pce, Bool val);
 status		resetPce(Pce pce);
 Any		getObjectFromReferencePce(Pce pce, Any ref);
 status		makeClassPce(Class class);
-export status	pceInitialise(int handles, char *home, int argc, char **argv);
+export status	pceInitialise(int handles, const char *home, int argc, char **argv);
 int		check_licence(void);
 
 /* ker/sendmethod.c */

@@ -45,14 +45,15 @@ str_pad(String s)			/* only 8-bit strings */
 
 void
 str_alloc(String s)
-{ s->s_text8 = alloc(str_allocsize(s));
+{ s->s_text8  = alloc(str_allocsize(s));
+  s->readonly = FALSE;
   str_pad(s);
 }
 
 
 void
 str_unalloc(String s)
-{ if ( s->s_text8 )
+{ if ( s->s_text8 && !s->readonly )
   { unalloc(str_allocsize(s), s->s_text8);
     s->s_text8 = NULL;
   }
@@ -70,18 +71,30 @@ str_init(String s, String proto, char8 *data)
 
 void
 str_set_ascii(String str, char *text)
-{ str->size = strlen(text);
-  str->encoding = ENC_ASCII;
-  str->b16 = FALSE;
+{ str_inithdr(str, ENC_ASCII);
+
+  str->size = strlen(text);
   str->s_text8 = (char8 *) text;
 }
 
 
 void
 str_set_n_ascii(String str, int len, char *text)
-{ str->size = len;
-  str->encoding = ENC_ASCII;
-  str->b16 = FALSE;
+{ str_inithdr(str, ENC_ASCII);
+  str->size = len;
+  str->s_text8 = (char8 *) text;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+str_set_static(): initialise a string from a static C-string
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+str_set_static(String str, const char *text)
+{ str_inithdr(str, ENC_ASCII);
+  str->readonly = TRUE;
+  str->size = strlen(text);
   str->s_text8 = (char8 *) text;
 }
 
@@ -485,11 +498,9 @@ str_from_char(String s, char c)
   text[0] = c;
   text[1] = '\0';
 
+  str_inithdr(s, ENC_ASCII);
   s->s_text8  = text;
-  s->encoding = ENC_ASCII;
-  s->b16      = 0;
   s->size     = 1;
-  s->pad      = 0;
 }
 
 
@@ -499,11 +510,9 @@ str_from_char16(String s, int c)
   text[0] = c;
   text[1] = '\0';
 
+  str_inithdr(s, ENC_UNICODE);
   s->s_text16 = text;
-  s->encoding = ENC_UNICODE;
-  s->b16      = 1;
   s->size     = 1;
-  s->pad      = 0;
 }
 
 

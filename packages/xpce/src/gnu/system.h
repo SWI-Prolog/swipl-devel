@@ -176,9 +176,11 @@ int utime ();
 #include <stdlib.h>
 #else
 char *getenv ();
+#ifndef malloc
 char *malloc ();
 char *realloc ();
 char *calloc ();
+#endif
 extern int errno;
 #endif
 

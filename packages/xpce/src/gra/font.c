@@ -317,94 +317,109 @@ getPointsFont(FontObj f)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "family=name", "style=name", "points=[int]", "x_name=[name]" };
+static const char *T_lookup[] =
+        { "name", "name", "[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_font[] =
+{ IV(NAME_family, "name", IV_GET,
+     NAME_name, "Family the font belongs to (times, etc.)"),
+  IV(NAME_style, "name", IV_GET,
+     NAME_name, "Style of the font (bold, italic, etc.)"),
+  IV(NAME_points, "[int]", IV_NONE,
+     NAME_name, "Point-size of the font"),
+  IV(NAME_ex, "int*", IV_NONE,
+     NAME_dimension, "Width of the letter `x' in this font"),
+  IV(NAME_xName, "[name]", IV_GET,
+     NAME_x, "Window-system name for the font"),
+  IV(NAME_fixedWidth, "[bool]", IV_NONE,
+     NAME_property, "If @off, font is proportional"),
+  IV(NAME_b16, "[bool]", IV_NONE,
+     NAME_property, "If @on, font is a 16-bit font"),
+  IV(NAME_postscriptFont, "name", IV_BOTH,
+     NAME_postscript, "PostScript-name of the font"),
+  IV(NAME_postscriptSize, "int", IV_BOTH,
+     NAME_postscript, "PostScript point-size of the font")
+};
+
+/* Send Methods */
+
+static const senddecl send_font[] =
+{ SM(NAME_initialise, 4, T_initialise, initialiseFont,
+     DEFAULT, "Create from fam, style, points, name"),
+  SM(NAME_member, 1, "char", memberFont,
+     NAME_set, "Test if font defines character"),
+  SM(NAME_Xclose, 1, "display", XcloseFont,
+     NAME_x, "Destroy associated X-resources"),
+  SM(NAME_Xopen, 1, "display", XopenFont,
+     NAME_x, "Open the associated X-resources")
+};
+
+/* Get Methods */
+
+static const getdecl get_font[] =
+{ GM(NAME_points, 0, "int", NULL, getPointsFont,
+     DEFAULT, "Specified point-size or <-height"),
+  GM(NAME_convert, 1, "font", "name", getConvertFont,
+     NAME_conversion, "Convert logical font-name and @family_style_points"),
+  GM(NAME_ascent, 0, "int", NULL, getAscentFont,
+     NAME_dimension, "Highest point above baseline"),
+  GM(NAME_descent, 0, "int", NULL, getDescentFont,
+     NAME_dimension, "Lowest point below baseline"),
+  GM(NAME_ex, 0, "int", NULL, getExFont,
+     NAME_dimension, "Width of the letter `x'"),
+  GM(NAME_height, 0, "int", NULL, getHeightFont,
+     NAME_dimension, "Height of highest character in font"),
+  GM(NAME_size, 0, "size", NULL, getSizeFont,
+     NAME_dimension, "New size from <-width and <-height"),
+  GM(NAME_width, 1, "int", "[char_array]", getWidthFont,
+     NAME_dimension, "Width of string (default \"x\")"),
+  GM(NAME_b16, 0, "bool", NULL, getB16Font,
+     NAME_encoding, "Boolean to indicate font is 16-bits"),
+  GM(NAME_lookup, 3, "font", T_lookup, getLookupFont,
+     NAME_oms, "Lookup in @fonts table"),
+  GM(NAME_defaultCharacter, 0, "char", NULL, getDefaultCharacterFont,
+     NAME_property, "Character painted for non-existing entries"),
+  GM(NAME_domain, 1, "tuple", "[{x,y}]", getDomainFont,
+     NAME_property, "Range of valid characters"),
+  GM(NAME_fixedWidth, 0, "bool", NULL, getFixedWidthFont,
+     NAME_property, "Boolean to indicate font is fixed-width")
+};
+
+/* Resources */
+
+static const resourcedecl rc_font[] =
+{ RC(NAME_scale, "real", "1.4",
+     "Multiplication factor for all fonts")
+};
+
+/* Class Declaration */
+
+static Name font_termnames[] = { NAME_family, NAME_style, NAME_points };
+
+ClassDecl(font_decls,
+          var_font, send_font, get_font, rc_font,
+          3, font_termnames,
+          "$Rev$");
+
 
 status
 makeClassFont(Class class)
-{ sourceClass(class, makeClassFont, __FILE__, "$Revision$");
+{ declareClass(class, &font_decls);
 
-  localClass(class, NAME_family, NAME_name, "name", NAME_get,
-	     "Family the font belongs to (times, etc.)");
-  localClass(class, NAME_style, NAME_name, "name", NAME_get,
-	     "Style of the font (bold, italic, etc.)");
-  localClass(class, NAME_points, NAME_name, "[int]", NAME_none,
-	     "Point-size of the font");
-  localClass(class, NAME_ex, NAME_dimension, "int*", NAME_none,
-	     "Width of the letter `x' in this font");
-  localClass(class, NAME_xName, NAME_x, "[name]", NAME_get,
-	     "Window-system name for the font");
-  localClass(class, NAME_fixedWidth, NAME_property, "[bool]", NAME_none,
-	     "If @off, font is proportional");
-  localClass(class, NAME_b16, NAME_property, "[bool]", NAME_none,
-	     "If @on, font is a 16-bit font");
-  localClass(class, NAME_postscriptFont, NAME_postscript, "name", NAME_both,
-	     "PostScript-name of the font");
-  localClass(class, NAME_postscriptSize, NAME_postscript, "int", NAME_both,
-	     "PostScript point-size of the font");
-
-  termClass(class, "font", 3, NAME_family, NAME_style, NAME_points);
   saveStyleClass(class, NAME_external);
   cloneStyleClass(class, NAME_none);
 
-  sendMethod(class, NAME_initialise, DEFAULT, 4,
-	     "family=name", "style=name", "points=[int]", "x_name=[name]",
-	     "Create from fam, style, points, name",
-	     initialiseFont);
-  sendMethod(class, NAME_Xopen, NAME_x, 1, "display",
-	     "Open the associated X-resources",
-	     XopenFont);
-  sendMethod(class, NAME_Xclose, NAME_x, 1, "display",
-	     "Destroy associated X-resources",
-	     XcloseFont);
-  sendMethod(class, NAME_member, NAME_set, 1, "char",
-	     "Test if font defines character",
-	     memberFont);
-
-  getMethod(class, NAME_width, NAME_dimension, "int", 1, "[char_array]",
-	    "Width of string (default \"x\")",
-	    getWidthFont);
-  getMethod(class, NAME_ex, NAME_dimension, "int", 0,
-	    "Width of the letter `x'",
-	    getExFont);
-  getMethod(class, NAME_height, NAME_dimension, "int", 0,
-	    "Height of highest character in font",
-	    getHeightFont);
-  getMethod(class, NAME_size, NAME_dimension, "size", 0,
-	    "New size from <-width and <-height",
-	    getSizeFont);
-  getMethod(class, NAME_ascent, NAME_dimension, "int", 0,
-	    "Highest point above baseline",
-	    getAscentFont);
-  getMethod(class, NAME_descent, NAME_dimension, "int", 0,
-	    "Lowest point below baseline",
-	    getDescentFont);
-  getMethod(class, NAME_fixedWidth, NAME_property, "bool", 0,
-	    "Boolean to indicate font is fixed-width",
-	    getFixedWidthFont);
-  getMethod(class, NAME_b16, NAME_encoding, "bool", 0,
-	    "Boolean to indicate font is 16-bits",
-	    getB16Font);
-  getMethod(class, NAME_convert, NAME_conversion, "font", 1, "name",
-	    "Convert logical font-name and @family_style_points",
-	    getConvertFont);
-  getMethod(class, NAME_lookup, NAME_oms, "font", 3, "name", "name", "[int]",
-	    "Lookup in @fonts table",
-	    getLookupFont);
-  getMethod(class, NAME_defaultCharacter, NAME_property, "char", 0,
-	    "Character painted for non-existing entries",
-	    getDefaultCharacterFont);
-  getMethod(class, NAME_domain, NAME_property, "tuple", 1, "[{x,y}]",
-	    "Range of valid characters",
-	    getDomainFont);
-  getMethod(class, NAME_points, DEFAULT, "int", 0,
-	    "Specified point-size or <-height",
-	    getPointsFont);
-
   FontTable = globalObject(NAME_fonts, ClassHashTable, toInt(101), 0);
-
-#ifdef __WINDOWS__
-  attach_resource(class, "scale", "real", "1.4",
-                "Multiplication factor for all fonts");
-#endif
 
   succeed;
 }

@@ -426,92 +426,106 @@ changedVector(Vector v, Any *field)
   succeed;
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_element[] =
+        { "index=int", "value=any" };
+static const char *T_swap[] =
+        { "index_1=int", "index_2=int" };
+static const char *T_fill[] =
+        { "value=any", "from=[int]", "to=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_vector[] =
+{ IV(NAME_offset, "int", IV_GET,
+     NAME_range, "Offset relative to 1-based"),
+  IV(NAME_size, "int", IV_GET,
+     NAME_range, "Number of elements"),
+  IV(NAME_elements, "alien:Any *", IV_NONE,
+     NAME_storage, "The elements themselves")
+};
+
+/* Send Methods */
+
+static const senddecl send_vector[] =
+{ SM(NAME_initialise, 1, "element=any ...", initialiseVectorv,
+     DEFAULT, "Create vector with elements at 1, ..."),
+  SM(NAME_unlink, 0, NULL, unlinkVector,
+     DEFAULT, "Deallocates -elements"),
+  SM(NAME_element, 2, T_element, elementVector,
+     NAME_element, "Set specified element"),
+  SM(NAME_fill, 3, T_fill, fillVector,
+     NAME_element, "Fill index range with one value"),
+  SM(NAME_forAll, 1, "action=code", forAllVector,
+     NAME_iterate, "Run code on all elements; demand acceptance"),
+  SM(NAME_forSome, 1, "action=code", forSomeVector,
+     NAME_iterate, "Run code on all elements"),
+  SM(NAME_append, 1, "value=any ...", appendVector,
+     NAME_list, "Append element at <-high_index+1"),
+  SM(NAME_sort, 1, "compare=code", sortVector,
+     NAME_order, "Sort according to code exit status"),
+  SM(NAME_swap, 2, T_swap, swapVector,
+     NAME_order, "Swap two elements"),
+  SM(NAME_shift, 1, "places=int", shiftVector,
+     NAME_range, "Shift contents by n places")
+};
+
+/* Get Methods */
+
+static const getdecl get_vector[] =
+{ GM(NAME_Arg, 1, "any", "int", getArgVector,
+     DEFAULT, "Get argument for term"),
+  GM(NAME_Arity, 0, "int", NULL, getArityVector,
+     DEFAULT, "Get arity for term"),
+  GM(NAME_copy, 0, "vector", NULL, getCopyVector,
+     NAME_copy, "Create a copy of a vector"),
+  GM(NAME_element, 1, "any", "index=int", getElementVector,
+     NAME_element, "Get element at index"),
+  GM(NAME_head, 0, "any", NULL, getHeadVector,
+     NAME_element, "First element (as class chain)"),
+  GM(NAME_tail, 0, "any", NULL, getTailVector,
+     NAME_element, "Last element (as class chain)"),
+  GM(NAME_highIndex, 0, "int", NULL, getHighIndexVector,
+     NAME_range, "Get highest valid index"),
+  GM(NAME_lowIndex, 0, "int", NULL, getLowIndexVector,
+     NAME_range, "Get lowest valid index"),
+  GM(NAME_find, 1, "unchecked", "code", getFindVector,
+     NAME_search, "First element accepted by code"),
+  GM(NAME_findAll, 1, "unchecked", "code", getFindAllVector,
+     NAME_search, "Chain of elements accepted by code"),
+  GM(NAME_index, 1, "int", "any", getIndexVector,
+     NAME_search, "Get first index holding argument"),
+  GM(NAME_rindex, 1, "int", "any", getRindexVector,
+     NAME_search, "Get last index holding argument")
+};
+
+/* Resources */
+
+static const resourcedecl rc_vector[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(vector_decls,
+          var_vector, send_vector, get_vector, rc_vector,
+          ARGC_UNKNOWN, NULL,
+          "$Rev$");
+
+
 
 status
 makeClassVector(Class class)
-{ sourceClass(class, makeClassVector, __FILE__, "$Revision$");
-
-  localClass(class, NAME_offset, NAME_range, "int", NAME_get,
-	     "Offset relative to 1-based");
-  localClass(class, NAME_size, NAME_range, "int", NAME_get,
-	     "Number of elements");
-  localClass(class, NAME_elements, NAME_storage, "alien:Any *", NAME_none,
-	     "The elements themselves");
-
-  termClass(class, "vector", ARGC_UNKNOWN);
+{ declareClass(class, &vector_decls);
 
   setLoadStoreFunctionClass(class, loadVector, storeVector);
   setCloneFunctionClass(class, cloneVector);
   setChangedFunctionClass(class, changedVector);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "element=any ...",
-	     "Create vector with elements at 1, ...",
-	     initialiseVectorv);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Deallocates -elements",
-	     unlinkVector);
-  sendMethod(class, NAME_fill, NAME_element, 3,
-	     "value=any", "from=[int]", "to=[int]",
-	     "Fill index range with one value",
-	     fillVector);
-  sendMethod(class, NAME_element, NAME_element, 2, "index=int", "value=any",
-	     "Set specified element",
-	     elementVector);
-  sendMethod(class, NAME_append, NAME_list, 1, "value=any ...",
-	     "Append element at <-high_index+1",
-	     appendVector);
-  sendMethod(class, NAME_swap, NAME_order, 2, "index_1=int", "index_2=int",
-	     "Swap two elements",
-	     swapVector);
-  sendMethod(class, NAME_sort, NAME_order, 1, "compare=code",
-	     "Sort according to code exit status",
-	     sortVector);
-  sendMethod(class, NAME_forAll, NAME_iterate, 1, "action=code",
-	     "Run code on all elements; demand acceptance",
-	     forAllVector);
-  sendMethod(class, NAME_forSome, NAME_iterate, 1, "action=code",
-	     "Run code on all elements",
-	     forSomeVector);
-  sendMethod(class, NAME_shift, NAME_range, 1, "places=int",
-	     "Shift contents by n places",
-	     shiftVector);
-
-  getMethod(class, NAME_element, NAME_element, "any", 1, "index=int",
-	    "Get element at index",
-	    getElementVector);
-  getMethod(class, NAME_Arg, DEFAULT, "any", 1, "int",
-	    "Get argument for term",
-	    getArgVector);
-  getMethod(class, NAME_Arity, DEFAULT, "int", 0,
-	    "Get arity for term",
-	    getArityVector);
-  getMethod(class, NAME_tail, NAME_element, "any", 0,
-	    "Last element (as class chain)",
-	    getTailVector);
-  getMethod(class, NAME_head, NAME_element, "any", 0,
-	    "First element (as class chain)",
-	    getHeadVector);
-  getMethod(class, NAME_index, NAME_search, "int", 1, "any",
-	    "Get first index holding argument",
-	    getIndexVector);
-  getMethod(class, NAME_rindex, NAME_search, "int", 1, "any",
-	    "Get last index holding argument",
-	    getRindexVector);
-  getMethod(class, NAME_find, NAME_search, "unchecked", 1, "code",
-	    "First element accepted by code",
-	    getFindVector);
-  getMethod(class, NAME_findAll, NAME_search, "unchecked", 1, "code",
-	    "Chain of elements accepted by code",
-	    getFindAllVector);
-  getMethod(class, NAME_lowIndex, NAME_range, "int", 0,
-	    "Get lowest valid index",
-	    getLowIndexVector);
-  getMethod(class, NAME_highIndex, NAME_range, "int", 0,
-	    "Get highest valid index",
-	    getHighIndexVector);
-  getMethod(class, NAME_copy, NAME_copy, "vector", 0,
-	    "Create a copy of a vector",
-	    getCopyVector);
 
   succeed;
 }

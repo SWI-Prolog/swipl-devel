@@ -140,10 +140,14 @@ syntax(sentence_end(Regex), ST) :-
 
 emacs_mode_class(ModeName, ClassName) :-
 	atom(ModeName), !,
-	concat_atom([emacs_, ModeName, '_mode'], ClassName).
+	(   ModeName == []
+	->  ClassName = emacs_mode
+	;   concat_atom([emacs_, ModeName, '_mode'], ClassName)
+	).
 emacs_mode_class(ModeName, ClassName) :-
 	concat(emacs_, M0, ClassName),
-	concat(ModeName, '_mode', M0).
+	concat(ModeName, '_mode', M0), !.
+emacs_mode_class(@default, emacs_mode).
 
 
 		 /*******************************

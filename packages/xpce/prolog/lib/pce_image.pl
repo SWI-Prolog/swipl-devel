@@ -11,10 +11,10 @@
 	  [ pce_image_directory/1
 	  ]).
 :- use_module(library(pce)).
-:- require([ concat_atom/2
+:- require([ absolute_file_name/3
+	   , concat_atom/2
 	   , is_absolute_file_name/1
 	   ]).
-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Prepend the given directory  to  the   image  search-path.   Useful  for

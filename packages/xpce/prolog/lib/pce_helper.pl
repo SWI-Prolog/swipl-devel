@@ -10,7 +10,9 @@
 :- module(pce_help, []).
 :- use_module(library(pce)).
 :- use_module(library(pce_prompter)).
-:- require([ atom_to_term/3
+:- require([ absolute_file_name/3
+	   , atom_to_term/3
+	   , auto_call/1
 	   , concat/3
 	   , default/3
 	   , forall/2

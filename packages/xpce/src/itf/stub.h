@@ -10,6 +10,7 @@
 /* console.c */
 void		Stub__vCprintf(const char *fmt, va_list args);
 int		Stub__Cputchar(int chr);
+void		Stub__Cflush(void);
 char *		Stub__Cgetline(char *line, int size);
 
 /* stub.c */

@@ -124,7 +124,7 @@ rehashNames(void)
 
   buckets = nextBucketSize(buckets);
   DEBUG((Name)NAME_name, Cprintf("Rehashing names ... "));
-  name_table = malloc(buckets * sizeof(Name));
+  name_table = pceMalloc(buckets * sizeof(Name));
   for(n=buckets, nm = name_table; n-- > 0; nm++)
     *nm = NULL;
 
@@ -135,7 +135,7 @@ rehashNames(void)
 
   DEBUG((Name)NAME_name, Cprintf("done\n"));
 
-  free(old_table);
+  pceFree(old_table);
 }
 
 
@@ -209,9 +209,8 @@ initNamesPass1(void)
   allocRange(builtin_names, sizeof(builtin_names));
 
   for( name=(Name)builtin_names; name->data.s_text != NULL; name++)
-  { name->data.size = strlen(name->data.s_text);
-    name->data.encoding = ENC_ASCII;
-    name->data.b16 = FALSE;
+  { str_inithdr(&name->data, ENC_ASCII);
+    name->data.size = strlen(name->data.s_text);
   }
 }
 
@@ -222,7 +221,7 @@ initNamesPass2(void)
   Name name;
 
   buckets = nextBucketSize(buckets);	/* initialise to first valid value */
-  name_table = malloc(buckets * sizeof(Name));
+  name_table = pceMalloc(buckets * sizeof(Name));
   for(n=0; n < buckets; n++)
     name_table[n] = NULL;
 
@@ -596,60 +595,82 @@ GetBenchName(Name name, Int count)
 
 #endif /*BENCHNAMES*/
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_syntax[] =
+        { "{uppercase}", "char" };
+
+/* Instance Variables */
+
+static const vardecl var_name[] =
+{ 
+};
+
+/* Send Methods */
+
+static const senddecl send_name[] =
+{ SM((Name)NAME_initialise, 1, "text=char_array", initialiseName,
+     DEFAULT, "Create a name from name"),
+  SM((Name)NAME_unlink, 0, NULL, unlinkName,
+     DEFAULT, "Trap error"),
+  SM((Name)NAME_equal, 1, "name", equalObject,
+     (Name)NAME_compare, "Test if names represent same text"),
+  SM((Name)NAME_Value, 1, "char_array", ValueName,
+     (Name)NAME_internal, "Modify name, preserving identity"),
+  SM((Name)NAME_syntax, 2, T_syntax, syntaxName,
+     (Name)NAME_internal, "Upcase and map word separator"),
+  SM((Name)NAME_register, 0, NULL, registerName,
+     (Name)NAME_oms, "Register in unique table")
+};
+
+/* Get Methods */
+
+static const getdecl get_name[] =
+{ GM((Name)NAME_copy, 0, "name", NULL, getCopyName,
+     DEFAULT, "The name itself"),
+  GM((Name)NAME_modify, 1, "name", "char_array", getModifyName,
+     DEFAULT, "Lookup or create argument name"),
+  GM((Name)NAME_convert, 1, "name", "any", getConvertName,
+     (Name)NAME_conversion, "Convert `text-convertable'"),
+  GM((Name)NAME_lookup, 1, "name", "char_array", getLookupName,
+     (Name)NAME_oms, "Perform lookup in current name-table"),
+#ifdef BENCHNAMES
+  GM((Name)NAME_Bench, 1, "int", "int", GetBenchName,
+     (Name)NAME_statistics, "Lookup text of this name <n> times"),
+  GM((Name)NAME_Buckets, 0, "int", NULL, GetBucketsName,
+     (Name)NAME_statistics, "Number of buckets in name-table"),
+#endif
+  GM((Name)NAME_bucketValue, 1, "name", "0..", getBucketValueName,
+     (Name)NAME_statistics, "Name at indicated bucket"),
+  GM((Name)NAME_hashValue, 0, "int", NULL, getHashValueName,
+     (Name)NAME_statistics, "Its hash-value")
+};
+
+/* Resources */
+
+static const resourcedecl rc_name[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name name_termnames[] = { (Name)NAME_value };
+
+ClassDecl(name_decls,
+          var_name, send_name, get_name, rc_name,
+          1, name_termnames,
+          "$Rev$");
+
+
 status
 makeClassName(Class class)
-{ sourceClass(class, makeClassName, __FILE__, "$Revision$");
+{ declareClass(class, &name_decls);
 
-  termClass(class, "name", 1, NAME_value);
   cloneStyleClass(class, (Name) NAME_none);
-
-  sendMethod(class, (Name)NAME_initialise, DEFAULT, 1, "text=char_array",
-	     "Create a name from name",
-	     initialiseName);
-  sendMethod(class, (Name)NAME_unlink, DEFAULT, 0,
-	     "Trap error",
-	     unlinkName);
-  sendMethod(class, (Name)NAME_register, (Name)NAME_oms, 0,
-	     "Register in unique table",
-	     registerName);
-  sendMethod(class, (Name)NAME_equal, (Name)NAME_compare, 1, "name",
-	     "Test if names represent same text",
-	     equalObject);
-  sendMethod(class, (Name)NAME_Value, (Name)NAME_internal, 1, "char_array",
-	     "Modify name, preserving identity",
-	     ValueName);
-  sendMethod(class, (Name)NAME_syntax, (Name)NAME_internal, 2, "{uppercase}", "char",
-	     "Upcase and map word separator",
-	     syntaxName);
-
-  getMethod(class, (Name)NAME_lookup, (Name)NAME_oms, "name", 1, "char_array",
-	    "Perform lookup in current name-table",
-	    getLookupName);
-  getMethod(class, (Name)NAME_convert, (Name)NAME_conversion, "name", 1, "any",
-	    "Convert `text-convertable'",
-	    getConvertName);
-  getMethod(class, (Name)NAME_modify, DEFAULT, "name", 1, "char_array",
-	    "Lookup or create argument name",
-	    getModifyName);
-  getMethod(class, (Name)NAME_copy, DEFAULT, "name", 0,
-	    "The name itself",
-	    getCopyName);
-
-  getMethod(class, (Name)NAME_hashValue, (Name)NAME_statistics, "int", 0,
-	    "Its hash-value",
-	    getHashValueName);
-  getMethod(class, (Name)NAME_bucketValue, (Name)NAME_statistics, "name", 1, "0..",
-	    "Name at indicated bucket",
-	    getBucketValueName);
-
-#ifdef BENCHNAMES
-  getMethod(class, (Name)NAME_Buckets, (Name)NAME_statistics, "int", 0,
-	    "Number of buckets in name-table",
-	    GetBucketsName);
-  getMethod(class, (Name)NAME_Bench, (Name)NAME_statistics, "int", 1, "int",
-	     "Lookup text of this name <n> times",	
-	     GetBenchName);
-#endif /*BENCHNAMES*/
 
   succeed;
 }

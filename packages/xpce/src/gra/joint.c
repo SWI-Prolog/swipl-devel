@@ -122,39 +122,60 @@ getArrowsJoint(Joint jt)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "x=[int]", "y=[int]", "width=[int]",
+	  "height=[int]", "arrows=[{none,first,second,both}]" };
+
+/* Instance Variables */
+
+static const vardecl var_joint[] =
+{ SV(NAME_firstArrow, "arrow*", IV_GET|IV_STORE, firstArrowJoint,
+     NAME_appearance, "Arrow on start-point"),
+  SV(NAME_secondArrow, "arrow*", IV_GET|IV_STORE, secondArrowJoint,
+     NAME_appearance, "Arrow on end-point")
+};
+
+/* Send Methods */
+
+static const senddecl send_joint[] =
+{ SM(NAME_initialise, 5, T_initialise, initialiseJoint,
+     DEFAULT, "Create joint with bounding-box and arrows"),
+  SM(NAME_arrows, 1, "arrows={none,first,second,both}", arrowsJoint,
+     NAME_appearance, "Default arrows on {none,first,second,both}")
+};
+
+/* Get Methods */
+
+static const getdecl get_joint[] =
+{ GM(NAME_arrows, 0, "arrows={none,first,second,both}", NULL, getArrowsJoint,
+     NAME_appearance, "Which arrows are defined"),
+  GM(NAME_defaultArrow, 0, "arrow", NULL, getDefaultArrowJoint,
+     NAME_appearance, "Create default arrow for ->arrows")
+};
+
+/* Resources */
+
+static const resourcedecl rc_joint[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name joint_termnames[] = { NAME_arrows };
+
+ClassDecl(joint_decls,
+          var_joint, send_joint, get_joint, rc_joint,
+          1, joint_termnames,
+          "$Rev$");
+
+
 status
 makeClassJoint(Class class)
-{ sourceClass(class, makeClassJoint, __FILE__, "$Revision$");
-
-  localClass(class, NAME_firstArrow, NAME_appearance, "arrow*", NAME_get,
-	     "Arrow on start-point");
-  localClass(class, NAME_secondArrow, NAME_appearance, "arrow*", NAME_get,
-	     "Arrow on end-point");
-
-  termClass(class, "joint", 1, NAME_arrows);
-
-  storeMethod(class, NAME_firstArrow, firstArrowJoint);
-  storeMethod(class, NAME_secondArrow, secondArrowJoint);
-
-  sendMethod(class, NAME_initialise, DEFAULT,
-	     5, "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	        "arrows=[{none,first,second,both}]",
-	     "Create joint with bounding-box and arrows",
-	     initialiseJoint);
-
-  sendMethod(class, NAME_arrows, NAME_appearance, 1,
-	     "arrows={none,first,second,both}",
-	     "Default arrows on {none,first,second,both}",
-	     arrowsJoint);
-
-  getMethod(class, NAME_arrows, NAME_appearance,
-	    "arrows={none,first,second,both}", 0,
-	    "Which arrows are defined",
-	    getArrowsJoint);
-  getMethod(class, NAME_defaultArrow, NAME_appearance,
-	    "arrow", 0,
-	    "Create default arrow for ->arrows",
-	    getDefaultArrowJoint);
-
-  succeed;
+{ return declareClass(class, &joint_decls);
 }

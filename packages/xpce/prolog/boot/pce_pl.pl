@@ -10,18 +10,9 @@
 
 :- module(pce_host,
 	[ '$load_pce'/0
-	, strip_module/3
 	, require/1
-	, auto_call/1
 	, (meta_predicate)/1
-	, 'pceloadc++'/1
-	, 'pceloadc++'/2
-	, 'pceloadcxx'/1
-	, 'pceloadcxx'/2
 	, '$call_atom'/1
-	, pce_error/1
-	, pce_warn/1
-	, pce_info/1
 	]).
 
 
@@ -55,31 +46,6 @@ strip_module(Raw, Module, Term) :-
 	'$strip_module'(Raw, Module, Term).
 
 
-		 /*******************************
-		 *	  PCELOAD/[1,2]		*
-		 *******************************/
-
-:- module_transparent
-	pceloadcxx/1,
-	pceloadcxx/2,
-	'pceloadc++'/1,
-	'pceloadc++'/2.
-
-'pceloadc++'(File) :-
-	'pceloadc++'(File, []).
-
-'pceloadc++'(File, Libs) :-
-	get(@(pce), home, Home),
-	get(@(pce), machine, Machine),
-	concat_atom([Home, '/pl/', Machine, '/pl-crt0.o'], Crt0),
-	load_foreign(File, '__pl_start', '', [Crt0, '-lg++' | Libs], 0).
-
-pceloadcxx(File) :-
-	'pceloadc++'(File).
-
-pceloadcxx(File, Libs) :-
-	'pceloadc++'(File, Libs).
-
 
 		/********************************
 		*            REQUIRE		*
@@ -93,28 +59,6 @@ require(_Name/_Arity) :- !.
 require(Term) :-
 	'$warning'('require/1: malformed argument: ~w', [Term]).
 
-		 /*******************************
-		 *	   AUTO_CALL/2		*
-		 *******************************/
-
-%	auto_call(+Goal).
-%
-%	In some cases, you donot want to load the (library) module required
-%	to make some call at loadtime.  Examples in XPCE are common
-%	references to emacs/[0,1], show_key_bindings/1, the help system,
-%	etc.
-%
-%	SWI-Prolog defines autoloading and does not require this mechanism.
-%	for many Prologs, the definition
-%
-%		autoloading(Goal) :-
-%			functor(Goal, Name, Arity),
-%			require([Name/Arity]),
-%			Goal.
-
-auto_call(Goal) :-
-	Goal.
-
 
 		/********************************
 		*      DEBUGGER SUPPORT		*
@@ -127,59 +71,6 @@ auto_call(Goal) :-
 '$call_atom'(Atom) :-
 	term_to_atom(Term, Atom),
 	user:Term.
-
-
-		 /*******************************
-		 *	     MESSAGES		*
-		 *******************************/
-
-:- consult('english/pce_messages').
-
-xpce_message(Spec, Lines, Rest) :-
-	pce_message(Spec, Lines, Rest).
-xpce_message(context_error(Goal, Context, What)) -->
-	[ '~w: ~w '-[Goal, What] ],
-	pce_message_context(Context).
-xpce_message(type_error(Goal, ArgN, Type, _Value)) -->
-	[ '~w: argument ~w must be a ~w'-[Goal, ArgN, Type], nl ].
-xpce_message(Spec, [Spec|Tail], Tail).
-
-pce_error(Term) :-
-	source_location(File, Line), !,
-	message_to_string(Term, Str),
-	(   user:exception(warning, warning(File, Line, Str), _)
-	->  true
-	;   format(user_error,
-		   '[PCE/Prolog: (~w:~d)~n~t~8|~w]~n',
-		   [File, Line, Str])
-        ).
-pce_error(Term) :-
-	message_to_string(Term, Str),
-        format(user_error, '[PCE/Prolog: ~w]~n', [Str]).
-
-pce_warn(Term) :-
-	pce_error(Term).
-
-pce_info(Term) :-
-	message_to_string(Term, Str),
-	format(user_output, '~w~n', [Str]).
-
-message_to_string(Term, Str) :-
-	xpce_message(Term, Actions, []),
-	actions_to_format(Actions, Fmt, Args),
-	sformat(Str, Fmt, Args).
-
-actions_to_format([], '', []) :- !.
-actions_to_format([nl], '', []) :- !.
-actions_to_format([Fmt-Args,nl], Fmt, Args) :- !.
-actions_to_format([Fmt0-Args0,nl|Tail], Fmt, Args) :- !,
-	actions_to_format(Tail, Fmt1, Args1),
-	concat_atom([Fmt0, '~n', Fmt1], Fmt),
-	append(Args0, Args1, Args).
-actions_to_format([Fmt0-Args0|Tail], Fmt, Args) :-
-	actions_to_format(Tail, Fmt1, Args1),
-	concat(Fmt0, Fmt1, Fmt),
-	append(Args0, Args1, Args).
 
 
 		/********************************

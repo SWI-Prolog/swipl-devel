@@ -82,39 +82,67 @@ getYHandle(Handle h, Graphical gr, Device dev)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_relative_toAgraphical_coordinate_system_ofADdeviceD[] =
+        { "relative_to=graphical", "coordinate_system_of=[device]" };
+static const char *T_initialise[] =
+        { "x=expression", "y=expression", "kind=[name]", "name=[name]" };
+
+/* Instance Variables */
+
+static const vardecl var_handle[] =
+{ IV(NAME_xPosition, "expression", IV_BOTH,
+     NAME_location, "Expression for X in variable `w'"),
+  IV(NAME_yPosition, "expression", IV_BOTH,
+     NAME_location, "Expression for Y in variable `h'"),
+  IV(NAME_kind, "name", IV_BOTH,
+     NAME_relation, "Kind of valid connection end-point"),
+  IV(NAME_name, "name", IV_BOTH,
+     NAME_name, "Logical name of handle")
+};
+
+/* Send Methods */
+
+static const senddecl send_handle[] =
+{ SM(NAME_initialise, 4, T_initialise, initialiseHandle,
+     DEFAULT, "Create from X-, Y expression, kind and name")
+};
+
+/* Get Methods */
+
+static const getdecl get_handle[] =
+{ GM(NAME_position, 2, "point", T_relative_toAgraphical_coordinate_system_ofADdeviceD, getPositionHandle,
+     NAME_location, "New point with position on graphical relative to device"),
+  GM(NAME_x, 2, "int", T_relative_toAgraphical_coordinate_system_ofADdeviceD, getXHandle,
+     NAME_location, "X-position on graphical relative to device"),
+  GM(NAME_y, 2, "int", T_relative_toAgraphical_coordinate_system_ofADdeviceD, getYHandle,
+     NAME_location, "Y-position on graphical relative to device")
+};
+
+/* Resources */
+
+static const resourcedecl rc_handle[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name handle_termnames[] =
+	{ NAME_xPosition, NAME_yPosition, NAME_kind, NAME_name };
+
+ClassDecl(handle_decls,
+          var_handle, send_handle, get_handle, rc_handle,
+          4, handle_termnames,
+          "$Rev$");
+
 status
 makeClassHandle(Class class)
-{ sourceClass(class, makeClassHandle, __FILE__, "$Revision$");
-
-  localClass(class, NAME_xPosition, NAME_location, "expression", NAME_both,
-	     "Expression for X in variable `w'");
-  localClass(class, NAME_yPosition, NAME_location, "expression", NAME_both,
-	     "Expression for Y in variable `h'");
-  localClass(class, NAME_kind, NAME_relation, "name", NAME_both,
-	     "Kind of valid connection end-point");
-  localClass(class, NAME_name, NAME_name, "name", NAME_both,
-	     "Logical name of handle");
-
-  termClass(class, "handle",
-	    4, NAME_xPosition, NAME_yPosition, NAME_kind, NAME_name);
-
-  sendMethod(class, NAME_initialise, DEFAULT,
-	     4, "x=expression", "y=expression", "kind=[name]", "name=[name]",
-	     "Create from X-, Y expression, kind and name",
-	     initialiseHandle);
-
-  getMethod(class, NAME_x, NAME_location, "int", 2,
-	    "relative_to=graphical", "coordinate_system_of=[device]",
-	    "X-position on graphical relative to device",
-	    getXHandle);
-  getMethod(class, NAME_y, NAME_location, "int", 2,
-	    "relative_to=graphical", "coordinate_system_of=[device]",
-	    "Y-position on graphical relative to device",
-	    getYHandle);
-  getMethod(class, NAME_position, NAME_location, "point", 2,
-	    "relative_to=graphical", "coordinate_system_of=[device]",
-	    "New point with position on graphical relative to device",
-	    getPositionHandle);
+{ declareClass(class, &handle_decls);
 
   succeed;
 }

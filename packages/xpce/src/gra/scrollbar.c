@@ -1283,105 +1283,121 @@ convertLoadedObjectScrollBar(ScrollBar sb, Int ov, Int nv)
 }
 
  
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_convertLoadedObject[] =
+        { "int", "int" };
+static const char *T_bubble[] =
+        { "length=int", "start=int", "view=int" };
+static const char *T_initialise[] =
+        { "object=object", "orientation={horizontal,vertical}", "message=[code]*" };
+
+/* Instance Variables */
+
+static const vardecl var_scrollBar[] =
+{ IV(NAME_message, "[code]*", IV_BOTH,
+     NAME_action, "Message used to inform object"),
+  IV(NAME_object, "graphical*", IV_BOTH,
+     NAME_client, "Graphical to be scrolled scrolled"),
+  IV(NAME_placement, "chain", IV_GET,
+     NAME_layout, "Relative automatic placement"),
+  IV(NAME_distance, "int", IV_GET,
+     NAME_layout, "Relative distance (pixels)"),
+  IV(NAME_status, "name", IV_GET,
+     NAME_event, "Current status for event parsing"),
+  SV(NAME_orientation, "{horizontal,vertical}", IV_GET|IV_STORE, orientationScrollBar,
+     NAME_appearance, "Scroll object horizontal or vertical"),
+  SV(NAME_view, "int", IV_GET|IV_STORE, viewScrollBar,
+     NAME_scroll, "Length of visible part"),
+  SV(NAME_start, "int", IV_GET|IV_STORE, startScrollBar,
+     NAME_scroll, "Start of visible part"),
+  SV(NAME_length, "int", IV_GET|IV_STORE, lengthScrollBar,
+     NAME_scroll, "Total length of object"),
+  IV(NAME_bubbleStart, "int", IV_NONE,
+     NAME_internal, "Pixel position of bubble"),
+  IV(NAME_bubbleLength, "int", IV_NONE,
+     NAME_internal, "Pixel size of bubble"),
+  SV(NAME_look, "{x,open_look,motif,win}", IV_GET|IV_STORE, lookScrollBar,
+     NAME_appearance, "Look-and-feel (only `x')"),
+  IV(NAME_drag, "bool", IV_BOTH,
+     NAME_event, "If @on, messages are sent continuously"),
+  IV(NAME_amount, "int", IV_NONE,
+     NAME_internal, "Amount to scroll"),
+  IV(NAME_direction, "{forwards,backwards,goto}", IV_NONE,
+     NAME_internal, "Direction in which to scroll or jump"),
+  IV(NAME_unit, "{line,page,file}", IV_NONE,
+     NAME_internal, "Unit to scroll")
+};
+
+/* Send Methods */
+
+static const senddecl send_scrollBar[] =
+{ SM(NAME_compute, 0, NULL, computeScrollBar,
+     DEFAULT, "Recompute the scrollbar values"),
+  SM(NAME_convertLoadedObject, 2, T_convertLoadedObject, convertLoadedObjectScrollBar,
+     DEFAULT, "Convert placement attribute"),
+  SM(NAME_event, 1, "event", eventScrollBar,
+     DEFAULT, "Process a user event"),
+  SM(NAME_initialise, 3, T_initialise, initialiseScrollBar,
+     DEFAULT, "Create from object, orientation and message"),
+  SM(NAME_unlink, 0, NULL, unlinkScrollBar,
+     DEFAULT, "Stop/disconnect repeat timer"),
+  SM(NAME_place, 1, "[graphical]", placeScrollBar,
+     NAME_area, "Position scrollbar relative to object"),
+  SM(NAME_bubble, 3, T_bubble, bubbleScrollBar,
+     NAME_scroll, "Set length, start and view"),
+  SM(NAME_repeat, 0, NULL, repeatScrollBar,
+     NAME_scroll, "Repeat last action (->look: open_look)")
+};
+
+/* Get Methods */
+
+static const getdecl get_scrollBar[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_scrollBar[] =
+{ RC(NAME_background, "[elevation|colour|pixmap]", "white",
+     "Colour of background parts"),
+  RC(NAME_distance, "int", "-1",
+     "Distance to graphical"),
+  RC(NAME_elevation, "elevation*", "@nil",
+     "3-D effect elevation"),
+  RC(NAME_look, "{x,open_look,motif,win}", "x",
+     "Look-and-feel"),
+  RC(NAME_pen, "int", "1",
+     "Thickness of surrounding box"),
+  RC(NAME_placement, "chain", "[top,left]",
+     "Relative placement"),
+  RC(NAME_repeatDelay, "real", "0.35",
+     "OpenLook: time to wait until start of repeat"),
+  RC(NAME_repeatInterval, "real", "0.06",
+     "OpenLook: interval between repeats"),
+  RC(NAME_width, "[int]", "16",
+     "Width of the scroll_bar")
+};
+
+/* Class Declaration */
+
+static Name scrollBar_termnames[] =
+	{ NAME_object, NAME_orientation, NAME_message };
+
+ClassDecl(scrollBar_decls,
+          var_scrollBar, send_scrollBar, get_scrollBar, rc_scrollBar,
+          3, scrollBar_termnames,
+          "$Rev$");
+
 
 status
 makeClassScrollBar(Class class)
-{ sourceClass(class, makeClassScrollBar, __FILE__, "$Revision$");
-
-  localClass(class, NAME_message, NAME_action, "[code]*", NAME_both,
-	     "Message used to inform object");
-  localClass(class, NAME_object, NAME_client, "graphical*", NAME_both,
-	     "Graphical to be scrolled scrolled");
-  localClass(class, NAME_placement, NAME_layout, "chain", NAME_get,
-	     "Relative automatic placement");
-  localClass(class, NAME_distance, NAME_layout, "int", NAME_get,
-	     "Relative distance (pixels)");
-  localClass(class, NAME_status, NAME_event, "name", NAME_get,
-	     "Current status for event parsing");
-  localClass(class, NAME_orientation, NAME_appearance,
-	     "{horizontal,vertical}", NAME_get,
-	     "Scroll object horizontal or vertical");
-  localClass(class, NAME_view, NAME_scroll, "int", NAME_get,
-	     "Length of visible part");
-  localClass(class, NAME_start, NAME_scroll, "int", NAME_get,
-	     "Start of visible part");
-  localClass(class, NAME_length, NAME_scroll, "int", NAME_get,
-	     "Total length of object");
-  localClass(class, NAME_bubbleStart, NAME_internal, "int", NAME_none,
-	     "Pixel position of bubble");
-  localClass(class, NAME_bubbleLength, NAME_internal, "int", NAME_none,
-	     "Pixel size of bubble");
-  localClass(class, NAME_look, NAME_appearance,
-	     "{x,open_look,motif,win}", NAME_get,
-	     "Look-and-feel (only `x')");
-  localClass(class, NAME_drag, NAME_event, "bool", NAME_both,
-	     "If @on, messages are sent continuously");
-  localClass(class, NAME_amount, NAME_internal, "int", NAME_none,
-	     "Amount to scroll");
-  localClass(class, NAME_direction, NAME_internal,
-	     "{forwards,backwards,goto}", NAME_none,
-	     "Direction in which to scroll or jump");
-  localClass(class, NAME_unit, NAME_internal, "{line,page,file}", NAME_none,
-	     "Unit to scroll");
-  
-  termClass(class, "scroll_bar",
-	    3, NAME_object, NAME_orientation, NAME_message);
+{ declareClass(class, &scrollBar_decls);
   setRedrawFunctionClass(class, RedrawAreaScrollBar);
-
-  storeMethod(class, NAME_orientation, orientationScrollBar);
-  storeMethod(class, NAME_view,        viewScrollBar);
-  storeMethod(class, NAME_start,       startScrollBar);
-  storeMethod(class, NAME_length,      lengthScrollBar);
-  storeMethod(class, NAME_look,        lookScrollBar);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 3,
-	     "object=object", "orientation={horizontal,vertical}",
-	     "message=[code]*",
-	     "Create from object, orientation and message",
-	     initialiseScrollBar);
-  sendMethod(class, NAME_compute, DEFAULT, 0,
-	     "Recompute the scrollbar values",
-	     computeScrollBar);
-  sendMethod(class, NAME_place, NAME_area, 1, "[graphical]",
-	     "Position scrollbar relative to object",
-	     placeScrollBar);
-  sendMethod(class, NAME_bubble, NAME_scroll, 3,
-	     "length=int", "start=int", "view=int",
-	     "Set length, start and view",
-	     bubbleScrollBar);
-  sendMethod(class, NAME_event, DEFAULT, 1, "event",
-	     "Process a user event",
-	     eventScrollBar);
-#if OPENLOOK
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Stop/disconnect repeat timer",
-	     unlinkScrollBar);
-  sendMethod(class, NAME_repeat, NAME_scroll, 0,
-	     "Repeat last action (->look: open_look)",
-	     repeatScrollBar);
-#endif
-  sendMethod(class, NAME_convertLoadedObject, DEFAULT, 2, "int", "int",
-	     "Convert placement attribute",
-	     convertLoadedObjectScrollBar);
-
-  attach_resource(class, "width", "[int]", "16",
-		  "Width of the scroll_bar");
-  attach_resource(class, "look", "{x,open_look,motif,win}", "x",
-		  "Look-and-feel");
-  attach_resource(class, "placement", "chain", "[top,left]",
-		  "Relative placement");
-  attach_resource(class, "distance", "int", "-1",
-		  "Distance to graphical");
-  attach_resource(class, "pen", "int", "1",
-		  "Thickness of surrounding box");
-  attach_resource(class, "repeat_delay", "real", "0.35",
-		  "OpenLook: time to wait until start of repeat");
-  attach_resource(class, "repeat_interval", "real", "0.06",
-		  "OpenLook: interval between repeats");
-  attach_resource(class, "elevation", "elevation*", "@nil",
-		  "3-D effect elevation");
-  attach_resource(class, "background", "[elevation|colour|pixmap]", "white",
-		  "Colour of background parts");
 
   succeed;
 }

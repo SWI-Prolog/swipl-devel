@@ -49,7 +49,7 @@ addCSymbol(Pce pce, char *name, long int value)
 { if ( nsymbols == allocated )
   { CSymbol new;
 
-    if ( !(new = realloc(symbols, (allocated+500)*sizeof(c_symbol))) )
+    if ( !(new = pceRealloc(symbols, (allocated+500)*sizeof(c_symbol))) )
     { return errorPce(pce, NAME_notEnoughMemory);
     } else
     { symbols = new;
@@ -89,7 +89,7 @@ initCSymbolsPce(Pce pce)
     char line[LINESIZE];
     FILE *fd;
 
-    symbols = malloc(500*sizeof(c_symbol));
+    symbols = pceMalloc(500*sizeof(c_symbol));
     allocated = 500;
 
     if ( !(symbolfile = get(pce, NAME_cSymbolFile, 0)) )

@@ -64,6 +64,7 @@ void		str_unalloc(String s);
 String		str_init(String s, String proto, char8 *data);
 void		str_set_ascii(String str, char *text);
 void		str_set_n_ascii(String str, int len, char *text);
+void		str_set_static(String str, const char *text);
 void		str_ncpy(String dest, int at, String src, int from, int len);
 void		str_cpy(String dest, String src);
 char8 *		str_textp(String s, int i);
@@ -95,6 +96,7 @@ int		str_icase_common_length(String s1, String s2);
 /* txt/string.c */
 StringObj	StringToString(String s);
 StringObj	CtoString(char *s);
+StringObj	staticCtoString(const char *s);
 StringObj	CtoTempString(char *s);
 status		initialiseStringv(StringObj str, CharArray fmt, int argc, Any *argv);
 status		valueString(StringObj s1, CharArray s2);

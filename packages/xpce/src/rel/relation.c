@@ -20,24 +20,52 @@ ignoreReleation(Relation r, Any from, Any to)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_fromAobject_toAobject[] =
+        { "from=object", "to=object" };
+
+/* Instance Variables */
+
+static const vardecl var_relation[] =
+{ 
+};
+
+/* Send Methods */
+
+static const senddecl send_relation[] =
+{ SM(NAME_backwards, 2, T_fromAobject_toAobject, ignoreReleation,
+     NAME_constraint, "Called to update after a change of `to'"),
+  SM(NAME_create, 2, T_fromAobject_toAobject, createRelation,
+     NAME_constraint, "Called to initiate the relation"),
+  SM(NAME_forwards, 2, T_fromAobject_toAobject, ignoreReleation,
+     NAME_constraint, "Called to update after a change of `from'")
+};
+
+/* Get Methods */
+
+static const getdecl get_relation[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_relation[] =
+{ 
+};
+
+/* Class Declaration */
+
+ClassDecl(relation_decls,
+          var_relation, send_relation, get_relation, rc_relation,
+          0, NULL,
+          "$Rev$");
+
 status
 makeClassRelation(Class class)
-{ sourceClass(class, makeClassRelation, __FILE__, "$Revision$");
-
-  termClass(class, "relation", 0);
-
-  sendMethod(class, NAME_create, NAME_constraint, 2,
-	     "from=object", "to=object",
-	     "Called to initiate the relation",
-	     createRelation);
-  sendMethod(class, NAME_forwards, NAME_constraint, 2,
-	     "from=object", "to=object",
-	     "Called to update after a change of `from'",
-	     ignoreReleation);
-  sendMethod(class, NAME_backwards, NAME_constraint, 2,
-	     "from=object", "to=object",
-	     "Called to update after a change of `to'",
-	     ignoreReleation);
-
-  succeed;
+{ return declareClass(class, &relation_decls);
 }

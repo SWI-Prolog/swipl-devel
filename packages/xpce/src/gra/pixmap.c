@@ -136,39 +136,68 @@ getReplacementColourPixmap(PixmapObj pm)
 #endif /*__WINDOWS__*/
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_fill[] =
+        { "image|colour", "[area]" };
+static const char *T_initialise[] =
+        { "source=[image|file]*", "foreground=[colour]",
+	  "background=[colour]", "width=[int]", "height=[int]" };
+static const char *T_lookup[] =
+        { "source=image", "foreground=[colour]", "background=[colour]" };
+
+/* Instance Variables */
+
+static const vardecl var_pixmap[] =
+{ 
+};
+
+/* Send Methods */
+
+static const senddecl send_pixmap[] =
+{ SM(NAME_initialise, 5, T_initialise, initialisePixmap,
+     DEFAULT, "Create image of <-kind pixmap"),
+  SM(NAME_fill, 2, T_fill, fillImage,
+     NAME_edit, "Fill rectangular area of image with pattern")
+};
+
+/* Get Methods */
+
+static const getdecl get_pixmap[] =
+{ GM(NAME_convert, 1, "pixmap", "source=image", getConvertPixmap,
+     NAME_oms, "Lookup already made conversion"),
+  GM(NAME_lookup, 3, "pixmap", T_lookup, getLookupPixmap,
+     NAME_oms, "Lookup already made conversion"),
+  GM(NAME_source, 0, "image|file*", NULL, getSourcePixmap,
+     NAME_term, "Determine source for term representation")
+};
+
+/* Resources */
+
+static const resourcedecl rc_pixmap[] =
+{ RC(NAME_background, "colour", "white",
+     "Default background colour"),
+  RC(NAME_foreground, "colour", "black",
+     "Default foreground colour")
+};
+
+/* Class Declaration */
+
+static Name pixmap_termnames[] =
+	{ NAME_source, NAME_foreground, NAME_background };
+
+ClassDecl(pixmap_decls,
+          var_pixmap, send_pixmap, get_pixmap, rc_pixmap,
+          3, pixmap_termnames,
+          "$Rev$");
+
+
 status
 makeClassPixmap(Class class)
-{ sourceClass(class, makeClassPixmap, __FILE__, "$Revision$");
-
-  termClass(class, "pixmap",
-	    3, NAME_source, NAME_foreground, NAME_background);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 5,
-	     "source=[image|file]*",
-	     "foreground=[colour]", "background=[colour]",
-	     "width=[int]", "height=[int]",
-	     "Create image of <-kind pixmap",
-	     initialisePixmap);
-  sendMethod(class, NAME_fill, NAME_edit, 2, "image|colour", "[area]",
-	     "Fill rectangular area of image with pattern",
-	     fillImage);
-
-  getMethod(class, NAME_lookup, NAME_oms, "pixmap", 3,
-	     "source=image", "foreground=[colour]", "background=[colour]",
-	     "Lookup already made conversion",
-	     getLookupPixmap);
-  getMethod(class, NAME_convert, NAME_oms, "pixmap", 1, "source=image",
-	     "Lookup already made conversion",
-	     getConvertPixmap);
-  getMethod(class, NAME_source, NAME_term, "image|file*", 0,
-	     "Determine source for term representation",
-	     getSourcePixmap);
-
-  attach_resource(class, "foreground", "colour", "black",
-		  "Default foreground colour");
-  attach_resource(class, "background", "colour", "white",
-		  "Default background colour");
-
-  succeed;
+{ return declareClass(class, &pixmap_decls);
 }
 

@@ -624,109 +624,118 @@ forAllTile(TileObj t, Code msg)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "object=object*", "width=[int]", "height=[int]" };
+static const char *T_xADintD_yADintD_widthADintD_heightADintD[] =
+        { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_tile[] =
+{ IV(NAME_idealWidth, "int", IV_BOTH,
+     NAME_dimension, "Desired width of the tile"),
+  IV(NAME_idealHeight, "int", IV_BOTH,
+     NAME_dimension, "Desired height of the tile"),
+  IV(NAME_horStretch, "int", IV_BOTH,
+     NAME_resize, "Encouragement to get wider"),
+  IV(NAME_horShrink, "int", IV_BOTH,
+     NAME_resize, "Encouragement to get smaller"),
+  IV(NAME_verStretch, "int", IV_BOTH,
+     NAME_resize, "Encouragement to get higher"),
+  IV(NAME_verShrink, "int", IV_BOTH,
+     NAME_resize, "Encouragement to get lower"),
+  IV(NAME_border, "int", IV_BOTH,
+     NAME_appearance, "Distance between areas"),
+  IV(NAME_orientation, "{none,horizontal,vertical}", IV_GET,
+     NAME_layout, "Direction of adjacent sub-tiles"),
+  IV(NAME_members, "chain*", IV_GET,
+     NAME_organisation, "Managed tiles (subtiles)"),
+  IV(NAME_super, "tile*", IV_GET,
+     NAME_organisation, "Tile that manages me"),
+  IV(NAME_object, "object*", IV_GET,
+     NAME_client, "Object managed"),
+  SV(NAME_area, "area", IV_GET|IV_STORE, areaTile,
+     NAME_dimension, "Area of the object"),
+  IV(NAME_enforced, "bool", IV_GET,
+     NAME_layout, "If @on, the tile's layout will be enforced")
+};
+
+/* Send Methods */
+
+static const senddecl send_tile[] =
+{ SM(NAME_initialise, 3, T_initialise, initialiseTile,
+     DEFAULT, "Create from object, width and height"),
+  SM(NAME_unlink, 0, NULL, unlinkTile,
+     DEFAULT, "Unlink sub and super-tiles"),
+  SM(NAME_center, 1, "point", centerTile,
+     NAME_dimension, "Set center by moving tile"),
+  SM(NAME_corner, 1, "point", cornerTile,
+     NAME_dimension, "Set point opposite to origin"),
+  SM(NAME_height, 1, "int", heightTile,
+     NAME_dimension, "Set H of tile"),
+  SM(NAME_position, 1, "point", positionTile,
+     NAME_dimension, "Set XY of the tile"),
+  SM(NAME_set, 4, T_xADintD_yADintD_widthADintD_heightADintD, setTile,
+     NAME_dimension, "Set XYWH of entire tile"),
+  SM(NAME_size, 1, "size", sizeTile,
+     NAME_dimension, "Set WH of the tile"),
+  SM(NAME_width, 1, "int", widthTile,
+     NAME_dimension, "Set W of tile"),
+  SM(NAME_x, 1, "int", xTile,
+     NAME_dimension, "Set X of the tile"),
+  SM(NAME_y, 1, "int", yTile,
+     NAME_dimension, "Set Y of the tile"),
+  SM(NAME_forAll, 1, "code", forAllTile,
+     NAME_iterate, "Iterate over all <-object's"),
+  SM(NAME_above, 1, "object", aboveTile,
+     NAME_layout, "Place a tile above me"),
+  SM(NAME_below, 1, "object", belowTile,
+     NAME_layout, "Place a tile below me"),
+  SM(NAME_enforce, 0, NULL, enforceTile,
+     NAME_layout, "Enforce the tile layout"),
+  SM(NAME_layout, 4, T_xADintD_yADintD_widthADintD_heightADintD, layoutTile,
+     NAME_layout, "Compute subtile layout and adjust objects"),
+  SM(NAME_left, 1, "object", leftTile,
+     NAME_layout, "Place a tile to my left"),
+  SM(NAME_right, 1, "object", rightTile,
+     NAME_layout, "Place a tile to my right"),
+  SM(NAME_compute, 0, NULL, computeTile,
+     NAME_update, "Compute ideal sizes from sub-tiles")
+};
+
+/* Get Methods */
+
+static const getdecl get_tile[] =
+{ GM(NAME_root, 0, "tile", NULL, getRootTile,
+     NAME_organisation, "Root of the tile-hierarchy")
+};
+
+/* Resources */
+
+static const resourcedecl rc_tile[] =
+{ RC(NAME_border, "int", "3",
+     "Border between subtiles")
+};
+
+/* Class Declaration */
+
+static Name tile_termnames[] =
+	{ NAME_object, NAME_idealWidth, NAME_idealHeight };
+
+ClassDecl(tile_decls,
+          var_tile, send_tile, get_tile, rc_tile,
+          1, tile_termnames,
+          "$Rev$");
+
+
 status
 makeClassTile(Class class)
-{ sourceClass(class, makeClassTile, __FILE__, "$Revision$");
-
-  localClass(class, NAME_idealWidth, NAME_dimension, "int", NAME_both,
-	     "Desired width of the tile");
-  localClass(class, NAME_idealHeight, NAME_dimension, "int", NAME_both,
-	     "Desired height of the tile");
-  localClass(class, NAME_horStretch, NAME_resize, "int", NAME_both,
-	     "Encouragement to get wider");
-  localClass(class, NAME_horShrink, NAME_resize, "int", NAME_both,
-	     "Encouragement to get smaller");
-  localClass(class, NAME_verStretch, NAME_resize, "int", NAME_both,
-	     "Encouragement to get higher");
-  localClass(class, NAME_verShrink, NAME_resize, "int", NAME_both,
-	     "Encouragement to get lower");
-  localClass(class, NAME_border, NAME_appearance, "int", NAME_both,
-	     "Distance between areas");
-  localClass(class, NAME_orientation, NAME_layout,
-	     "{none,horizontal,vertical}", NAME_get,
-	     "Direction of adjacent sub-tiles");
-  localClass(class, NAME_members, NAME_organisation, "chain*", NAME_get,
-	     "Managed tiles (subtiles)");
-  localClass(class, NAME_super, NAME_organisation, "tile*", NAME_get,
-	     "Tile that manages me");
-  localClass(class, NAME_object, NAME_client, "object*", NAME_get,
-	     "Object managed");
-  localClass(class, NAME_area, NAME_dimension, "area", NAME_get,
-	     "Area of the object");
-  localClass(class, NAME_enforced, NAME_layout, "bool", NAME_get,
-	     "If @on, the tile's layout will be enforced");
-
-  termClass(class, "tile", 1, NAME_object, NAME_idealWidth, NAME_idealHeight);
-
-  storeMethod(class, NAME_area, areaTile);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 3,
-	     "object=object*", "width=[int]", "height=[int]",
-	     "Create from object, width and height",
-	     initialiseTile);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Unlink sub and super-tiles",
-	     unlinkTile);
-  sendMethod(class, NAME_enforce, NAME_layout, 0,
-	     "Enforce the tile layout",
-	     enforceTile);
-  sendMethod(class, NAME_set, NAME_dimension, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Set XYWH of entire tile",
-	     setTile);
-  sendMethod(class, NAME_compute, NAME_update, 0,
-	     "Compute ideal sizes from sub-tiles",
-	     computeTile);
-  sendMethod(class, NAME_position, NAME_dimension, 1, "point",
-	     "Set XY of the tile",
-	     positionTile);
-  sendMethod(class, NAME_size, NAME_dimension, 1, "size",
-	     "Set WH of the tile",
-	     sizeTile);
-  sendMethod(class, NAME_x, NAME_dimension, 1, "int",
-	     "Set X of the tile",
-	     xTile);
-  sendMethod(class, NAME_y, NAME_dimension, 1, "int",
-	     "Set Y of the tile",
-	     yTile);
-  sendMethod(class, NAME_corner, NAME_dimension, 1, "point",
-	     "Set point opposite to origin",
-	     cornerTile);
-  sendMethod(class, NAME_center, NAME_dimension, 1, "point",
-	     "Set center by moving tile",
-	     centerTile);
-  sendMethod(class, NAME_width, NAME_dimension, 1, "int",
-	     "Set W of tile",
-	     widthTile);
-  sendMethod(class, NAME_height, NAME_dimension, 1, "int",
-	     "Set H of tile",
-	     heightTile);
-  sendMethod(class, NAME_left, NAME_layout, 1, "object",
-	     "Place a tile to my left",
-	     leftTile);
-  sendMethod(class, NAME_right, NAME_layout, 1, "object",
-	     "Place a tile to my right",
-	     rightTile);
-  sendMethod(class, NAME_above, NAME_layout, 1, "object",
-	     "Place a tile above me",
-	     aboveTile);
-  sendMethod(class, NAME_below, NAME_layout, 1, "object",
-	     "Place a tile below me",
-	     belowTile);
-  sendMethod(class, NAME_layout, NAME_layout, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Compute subtile layout and adjust objects",
-	     layoutTile);
-  sendMethod(class, NAME_forAll, NAME_iterate, 1, "code",
-	     "Iterate over all <-object's",
-	     forAllTile);
-
-  getMethod(class, NAME_root, NAME_organisation, "tile", 0,
-	    "Root of the tile-hierarchy",
-	    getRootTile);
-
-  attach_resource(class, "border", "int", "3", "Border between subtiles");
-
-  succeed;
+{ return declareClass(class, &tile_decls);
 }
 

@@ -163,47 +163,69 @@ alertReporteeVisual(Any v)
   succeed;
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_report[] =
+	{ "kind={status,inform,progress,done,warning,error}",
+	  "format=[char_array]", "argument=any ..." };
+
+/* Instance Variables */
+
+static const vardecl var_visual[] =
+{ 
+};
+
+/* Send Methods */
+
+static const senddecl send_visual[] =
+{ SM(NAME_reset, 0, NULL, resetVisual,
+     NAME_abort, "Send a ->reset to all contained objects"),
+  SM(NAME_destroy, 0, NULL, destroyVisual,
+     NAME_oms, "Destroy consists-of tree of visual objects"),
+  SM(NAME_containedIn, 1, "visual", containedInVisual,
+     NAME_organisation, "Test if I'm contained in argument"),
+  SM(NAME_report, 3, T_report, reportVisual,
+     NAME_report, "Report message (send to <-contained_in)")
+};
+
+/* Get Methods */
+
+static const getdecl get_visual[] =
+{ GM(NAME_master, 0, "visual", NULL, getMasterVisual,
+     NAME_event, "Principal visual I'm part of (self)"),
+  GM(NAME_containedIn, 0, "visual", NULL, getContainedInVisual,
+     NAME_organisation, "Visual I'm contained in (parent)"),
+  GM(NAME_container, 1, "condition=visual", "class|code", getContainerVisual,
+     NAME_organisation, "Innermost visual that satisfies condition"),
+  GM(NAME_contains, 0, "chain", NULL, getContainsVisual,
+     NAME_organisation, "Chain with visuals I manage"),
+  GM(NAME_frame, 0, "frame", NULL, getFrameVisual,
+     NAME_organisation, "Frame I'm part of (when existing)"),
+  GM(NAME_reportTo, 0, "visual", NULL, getReportToVisual,
+     NAME_report, "Object for ->report (equivalent to <-containe_in")
+};
+
+/* Resources */
+
+static const resourcedecl rc_visual[] =
+{ 
+};
+
+/* Class Declaration */
+
+
+ClassDecl(visual_decls,
+          var_visual, send_visual, get_visual, rc_visual,
+          0, NULL,
+          "$Rev$");
 
 status
 makeClassVisual(Class class)
-{ sourceClass(class, makeClassVisual, __FILE__, "$Revision$");
-
-  termClass(class, "visual", 0);
-
-  sendMethod(class, NAME_containedIn, NAME_organisation, 1, "visual",
-	     "Test if I'm contained in argument",
-	     containedInVisual);
-  sendMethod(class, NAME_reset, NAME_abort, 0,
-	     "Send a ->reset to all contained objects",
-	     resetVisual);
-  sendMethod(class, NAME_destroy, NAME_oms, 0,
-	     "Destroy consists-of tree of visual objects",
-	     destroyVisual);
-  sendMethod(class, NAME_report, NAME_report, 3,
-	     "kind={status,inform,progress,done,warning,error}",
-	     "format=[char_array]", "argument=any ...",
-	     "Report message (send to <-contained_in)",
-	     reportVisual);
-
-  getMethod(class, NAME_containedIn, NAME_organisation, "visual", 0,
-	    "Visual I'm contained in (parent)",
-	    getContainedInVisual);
-  getMethod(class, NAME_contains, NAME_organisation, "chain", 0,
-	    "Chain with visuals I manage",
-	    getContainsVisual);
-  getMethod(class, NAME_container, NAME_organisation, "condition=visual",
-	    1, "class|code", 
-	    "Innermost visual that satisfies condition",
-	    getContainerVisual);
-  getMethod(class, NAME_master, NAME_event, "visual", 0,
-	    "Principal visual I'm part of (self)",
-	    getMasterVisual);
-  getMethod(class, NAME_frame, NAME_organisation, "frame", 0,
-	    "Frame I'm part of (when existing)",
-	    getFrameVisual);
-  getMethod(class, NAME_reportTo, NAME_report, "visual", 0,
-	    "Object for ->report (equivalent to <-containe_in",
-	    getReportToVisual);
+{ return declareClass(class, &visual_decls);
 
   succeed;
 }

@@ -474,104 +474,112 @@ getPrintNameVariable(Variable var)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_initialise[] =
+        { "name=name", "type=[type]", "access=[{none,send,get,both}]", "summary=[string]*", "group=[name]", "initial_value=[any|function]" };
+static const char *T_get[] =
+        { "receiver=object", "unchecked ..." };
+static const char *T_send[] =
+        { "receiver=object", "value=unchecked ..." };
+
+/* Instance Variables */
+
+static const vardecl var_variable[] =
+{ IV(NAME_group, "[name]", IV_NONE,
+     NAME_manual, "Conceptual group of variable"),
+  IV(NAME_access, "{none,send,get,both}", IV_GET,
+     NAME_behaviour, "Read/write access"),
+  SV(NAME_type, "type", IV_GET|IV_STORE, typeVariable,
+     NAME_type, "Type check"),
+  IV(NAME_offset, "int", IV_GET,
+     NAME_storage, "Offset in instance structure"),
+  IV(NAME_summary, "string*", IV_BOTH,
+     NAME_manual, "Summary documentation"),
+  SV(NAME_initFunction, "any*", IV_BOTH|IV_STORE, initFunctionVariable,
+     NAME_oms, "Function to initialise the variable"),
+  IV(NAME_allocValue, "alien:void *", IV_BOTH,
+     NAME_oms, "Value used to when allocating")
+};
+
+/* Send Methods */
+
+static const senddecl send_variable[] =
+{ SM(NAME_initialise, 6, T_initialise, initialiseVariable,
+     DEFAULT, "Create from name, type, access, doc, group and initial value"),
+  SM(NAME_cloneStyle, 1, "{recursive,reference,reference_chain,value,alien,nil}", cloneStyleVariable,
+     NAME_copy, "Clone-style for this slot"),
+  SM(NAME_send, 2, T_send, sendVariable,
+     NAME_execute, "Invoke (write) variable in object"),
+  SM(NAME_saveStyle, 1, "{normal,nil}", saveStyleVariable,
+     NAME_file, "Slot saved as @nil or its value"),
+  SM(NAME_getAccess, 0, NULL, getAccessVariable,
+     NAME_meta, "Test if variable has read access"),
+  SM(NAME_sendAccess, 0, NULL, sendAccessVariable,
+     NAME_meta, "Test if variable has write access"),
+  SM(NAME_allocValue, 1, "any|function", initialValueVariable,
+     NAME_oms, "Value after allocation when instantiated"),
+  SM(NAME_initialValue, 1, "any|function", initialValueVariable,
+     NAME_oms, "Initial value for this variable")
+};
+
+/* Get Methods */
+
+static const getdecl get_variable[] =
+{ GM(NAME_cloneStyle, 0, "name", NULL, getCloneStyleVariable,
+     NAME_copy, "Clone style for this slot"),
+  GM(NAME_get, 2, "unchecked", T_get, getGetVariable,
+     NAME_execute, "Invoke (read) variable in object"),
+  GM(NAME_saveStyle, 0, "{normal,nil}", NULL, getSaveStyleVariable,
+     NAME_file, "Save style for this slot"),
+  GM(NAME_accessArrow, 0, "{-,<-,->,<->}", NULL, getAccessArrowVariable,
+     NAME_manual, "Arrow indicating access-rights"),
+  GM(NAME_contextName, 0, "name", NULL, getContextNameVariable,
+     NAME_manual, "Name of context class"),
+  GM(NAME_group, 0, "name", NULL, getGroupVariable,
+     NAME_manual, "(Possible inherited) group-name"),
+#ifndef O_RUNTIME
+  GM(NAME_manId, 0, "name", NULL, getManIdVariable,
+     NAME_manual, "Card Id for variable"),
+  GM(NAME_manIndicator, 0, "name", NULL, getManIndicatorVariable,
+     NAME_manual, "Manual type indicator (`V')"),
+  GM(NAME_manSummary, 0, "string", NULL, getManSummaryVariable,
+     NAME_manual, "New string with summary"),
+#endif /*O_RUNTIME*/
+  GM(NAME_argumentType, 1, "type", "index=[int]", getArgumentTypeVariable,
+     NAME_meta, "Type of n-th1 argument if <-access includes `send'"),
+  GM(NAME_returnType, 0, "type", NULL, getReturnTypeVariable,
+     NAME_meta, "Return type if <-access includes `get'"),
+  GM(NAME_allocValue, 0, "any|function", NULL, getAllocValueVariable,
+     NAME_oms, "Initial value when instantiated"),
+  GM(NAME_printName, 0, "name", NULL, getPrintNameVariable,
+     NAME_textual, "Class <->Name")
+};
+
+/* Resources */
+
+static const resourcedecl rc_variable[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name variable_termnames[] = { NAME_name, NAME_type, NAME_access };
+
+ClassDecl(variable_decls,
+          var_variable, send_variable, get_variable, rc_variable,
+          3, variable_termnames,
+          "$Rev$");
+
+
 status
 makeClassVariable(Class class)
-{ sourceClass(class, makeClassVariable, __FILE__, "$Revision$");
-
-  localClass(class, NAME_group, NAME_manual, "[name]", NAME_none,
-	     "Conceptual group of variable");
-  localClass(class, NAME_access, NAME_behaviour,
-	     "{none,send,get,both}", NAME_get,
-	     "Read/write access");
-  localClass(class, NAME_type, NAME_type, "type", NAME_get,
-	     "Type check");
-  localClass(class, NAME_offset, NAME_storage, "int", NAME_get,
-	     "Offset in instance structure");
-  localClass(class, NAME_summary, NAME_manual, "string*", NAME_both,
-	     "Summary documentation");
-  localClass(class, NAME_initFunction, NAME_oms, "any*", NAME_both,
-	     "Function to initialise the variable");
-  localClass(class, NAME_allocValue, NAME_oms, "alien:void *", NAME_both,
-	     "Value used to when allocating");
-
-  termClass(class, "variable", 3, NAME_name, NAME_type, NAME_access);
+{ declareClass(class, &variable_decls);
   setTraceFunctionClass(class, traceVariable);
-
-  storeMethod(class, NAME_type, typeVariable);
-  storeMethod(class, NAME_initFunction, initFunctionVariable);
-
-  sendMethod(class, NAME_initialise, DEFAULT,
-	     6, "name=name", "type=[type]", "access=[{none,send,get,both}]",
-	     "summary=[string]*", "group=[name]",
-	     "initial_value=[any|function]",
-	     "Create from name, type, access, doc, group and initial value",
-	     initialiseVariable);
-  sendMethod(class, NAME_send, NAME_execute, 2, "receiver=object",
-	     "value=unchecked ...",
-	     "Invoke (write) variable in object",
-	     sendVariable);
-  sendMethod(class, NAME_getAccess, NAME_meta, 0,
-	     "Test if variable has read access",
-	     getAccessVariable);
-  sendMethod(class, NAME_sendAccess, NAME_meta, 0,
-	     "Test if variable has write access",
-	     sendAccessVariable);
-  sendMethod(class, NAME_cloneStyle, NAME_copy,
-	     1, "{recursive,reference,reference_chain,value,alien,nil}",
-	     "Clone-style for this slot",
-	     cloneStyleVariable);
-  sendMethod(class, NAME_saveStyle, NAME_file, 1, "{normal,nil}",
-	     "Slot saved as @nil or its value",
-	     saveStyleVariable);
-  sendMethod(class, NAME_allocValue, NAME_oms, 1, "any|function",
-	     "Value after allocation when instantiated",
-	     initialValueVariable);
-  sendMethod(class, NAME_initialValue, NAME_oms, 1, "any|function",
-	     "Initial value for this variable",
-	     initialValueVariable);
-
-  getMethod(class, NAME_get, NAME_execute, "unchecked", 2,
-	    "receiver=object", "unchecked ...",
-	    "Invoke (read) variable in object",
-	    getGetVariable);
-#ifndef O_RUNTIME
-  getMethod(class, NAME_manId, NAME_manual, "name", 0,
-	    "Card Id for variable",
-	    getManIdVariable);
-  getMethod(class, NAME_manIndicator, NAME_manual, "name", 0,
-	    "Manual type indicator (`V')",
-	    getManIndicatorVariable);
-  getMethod(class, NAME_manSummary, NAME_manual, "string", 0,
-	    "New string with summary",
-	    getManSummaryVariable);
-#endif /*O_RUNTIME*/
-  getMethod(class, NAME_argumentType, NAME_meta, "type", 1, "index=[int]",
-	    "Type of n-th1 argument if <-access includes `send'",
-	    getArgumentTypeVariable);
-  getMethod(class, NAME_returnType, NAME_meta, "type", 0,
-	    "Return type if <-access includes `get'",
-	    getReturnTypeVariable);
-  getMethod(class, NAME_cloneStyle, NAME_copy, "name", 0,
-	    "Clone style for this slot",
-	    getCloneStyleVariable);
-  getMethod(class, NAME_saveStyle, NAME_file, "{normal,nil}", 0,
-	    "Save style for this slot",
-	    getSaveStyleVariable);
-  getMethod(class, NAME_contextName, NAME_manual, "name", 0,
-	    "Name of context class",
-	    getContextNameVariable);
-  getMethod(class, NAME_accessArrow, NAME_manual, "{-,<-,->,<->}", 0,
-	    "Arrow indicating access-rights",
-	    getAccessArrowVariable);
-  getMethod(class, NAME_printName, NAME_textual, "name", 0,
-	    "Class <->Name",
-	    getPrintNameVariable);
-  getMethod(class, NAME_group, NAME_manual, "name", 0,
-	    "(Possible inherited) group-name",
-	    getGroupVariable);
-  getMethod(class, NAME_allocValue, NAME_oms, "any|function", 0,
-	    "Initial value when instantiated",
-	     getAllocValueVariable);
 
   succeed;
 }
@@ -592,24 +600,58 @@ initialiseDelegateVariable(DelegateVariable var, Name name, Type type,
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_initialise_delegate[] =
+        { "name=name", "type=[type]", "access=[{none,send,get,both}]",
+	  "wrapper=name", "summary=[string]*", "group=[name]*",
+	  "initial_value=[any|function]" };
+
+/* Instance Variables */
+
+static const vardecl var_delegateVariable[] =
+{ IV(NAME_wrapper, "name*", IV_BOTH,
+     NAME_change, "Wrapper to take care of side-effects")
+};
+
+/* Send Methods */
+
+static const senddecl send_delegateVariable[] =
+{ SM(NAME_initialise, 7, T_initialise_delegate, initialiseDelegateVariable,
+     DEFAULT, "Create from name, type, access and doc")
+};
+
+/* Get Methods */
+
+static const getdecl get_delegateVariable[] =
+{ 
+};
+
+/* Resources */
+
+static const resourcedecl rc_delegateVariable[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name delegateVariable_termnames[] =
+	{ NAME_name, NAME_type, NAME_access, NAME_wrapper };
+
+ClassDecl(delegateVariable_decls,
+          var_delegateVariable, send_delegateVariable,
+	  get_delegateVariable, rc_delegateVariable,
+          4, delegateVariable_termnames,
+          "$Rev$");
+
+
 status
 makeClassDelegateVariable(Class class)
-{ sourceClass(class, makeClassDelegateVariable, __FILE__, "$Revision$");
-
-  localClass(class, NAME_wrapper, NAME_change, "name*", NAME_both,
-	     "Wrapper to take care of side-effects");
-
-  termClass(class, "delegate_variable",
-	    4, NAME_name, NAME_type, NAME_access, NAME_wrapper);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 7,
-	     "name=name", "type=[type]", "access=[{none,send,get,both}]",
-	     "wrapper=name", "summary=[string]*", "group=[name]*",
-	     "initial_value=[any|function]",
-	     "Create from name, type, access and doc",
-	     initialiseDelegateVariable);
-
-  succeed;
+{ return declareClass(class, &delegateVariable_decls);
 }
 
 

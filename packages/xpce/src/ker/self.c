@@ -77,21 +77,20 @@ initialisePce(Pce pce)
 static status
 writePcev(Pce pce, int argc, Any *argv)
 { int i;
-  static char space[] = " ";
 
   for(i=0; i<argc; i++)
   { if ( i > 0 )
-      hostAction(HOST_WRITE, space);
+      Cputchar(' ');
 
     if ( instanceOfObject(argv[i], ClassCharArray) )
-      hostAction(HOST_WRITE, strName(argv[i]));
+      Cprintf("%s", strName(argv[i]));
     else if ( isInteger(argv[i]) )
-    { char buf[50];
-      sprintf(buf, "%ld", valInt(argv[i]));
-      hostAction(HOST_WRITE, buf);
-    } else
+      Cprintf("%ld", valInt(argv[i]));
+    else if ( instanceOfObject(argv[i], ClassReal) )
+      Cprintf("%f", ((Real)argv[i])->value);
+    else
     { char *s = pp(argv[i]);
-      hostAction(HOST_WRITE, s);
+      Cprintf("%s", s);
       free_string(s);
     }
   }
@@ -102,10 +101,8 @@ writePcev(Pce pce, int argc, Any *argv)
 
 static status
 writeLnPcev(Pce pce, int argc, Any *argv)
-{ static char nl[] = "\n";
-
-  writePcev(pce, argc, argv);
-  hostAction(HOST_WRITE, nl);
+{ writePcev(pce, argc, argv);
+  Cputchar('\n');
 
   succeed;
 }
@@ -116,7 +113,7 @@ formatPcev(Pce pce, CharArray fmt, int argc, Any *argv)
 { char buf[FORMATSIZE];
 
   TRY(swritefv(buf, fmt, argc, argv));
-  hostAction(HOST_WRITE, buf);
+  Cprintf("%s", buf);
   
   succeed;
 }
@@ -833,8 +830,7 @@ informPce(Pce pce, CharArray fmt, int argc, Any *argv)
     return informDisplay(d, fmt, argc, argv);
 
   TRY(swritefv(buf, fmt, argc, argv));
-  strcat(buf, "\n");
-  hostAction(HOST_WRITE, buf);
+  Cprintf("%s\n", buf);
 
   succeed;
 }
@@ -855,8 +851,8 @@ confirmPce(Pce pce, CharArray fmt, int argc, Any *argv)
   for(try = 0; try < 3; try++)
   { char line[256];
 
-    hostAction(HOST_WRITE, buf);
-    hostAction(HOST_FLUSH);
+    Cprintf("%s", buf);
+    Cflush();
 
     if ( Cgetline(line, sizeof(line)) )
     { char *s = line;
@@ -1143,283 +1139,236 @@ getVersionPce(Pce pce, Name how)
   }
 }
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declaractions */
+
+static const char *T_instance[] =
+        { "class=class", "argument=unchecked ..." };
+static const char *T_printStack[] =
+        { "depth=[int]", "always=[bool]" };
+static const char *T_userInfo[] =
+        { "field={name,password,user_id,group_id,gecos,home,shell}",
+	  "user=[name]" };
+static const char *T_formatAchar_array_argumentAany_XXX[] =
+        { "format=char_array", "argument=any ..." };
+static const char *T_exception[] =
+        { "identifier=name", "context=any ..." };
+static const char *T_bench[] =
+        { "message=message", "times=int",
+	  "how={forward,execute,qad,send,invoke}" };
+static const char *T_defineClass[] =
+        { "name=name", "super=name", "summary=[string]", "realise=code" };
+static const char *T_convert[] =
+        { "object=unchecked", "type=type" };
+static const char *T_renameReference[] =
+        { "old=name", "new=name" };
+static const char *T_syntax[] =
+	{ "syntax={uppercase}", "word_separator=[char]" };
+
+/* Instance Variables */
+
+static const vardecl var_pce[] =
+{
+#ifndef O_RUNTIME
+  SV(NAME_debugging, "bool", IV_GET|IV_STORE, debuggingPce,
+     NAME_debugging, "Add consistency checks"),
+  IV(NAME_trace, "{never,user,always}", IV_GET,
+     NAME_debugging, "Trace message passing"),
+#endif
+  IV(NAME_lastError, "name*", IV_BOTH,
+     NAME_exception, "Id of last occurred error"),
+  IV(NAME_catchedErrors, "chain", IV_GET,
+     NAME_exception, "Errors are expected by code"),
+  SV(NAME_catchErrorSignals, "bool", IV_GET|IV_STORE, catchErrorSignalsPce,
+     NAME_debugging, "Trap Unix signals to deal with errors"),
+  IV(NAME_exitMessages, "chain", IV_GET,
+     NAME_quit, "Executed when the process terminates"),
+  IV(NAME_exceptionHandlers, "sheet", IV_GET,
+     NAME_exception, "Exception-name -> handler mapping"),
+  IV(NAME_home, "[name]", IV_SEND,
+     NAME_environment, "PCE's home directory"),
+  IV(NAME_version, "name", IV_NONE,
+     NAME_version, "Version indication"),
+  IV(NAME_machine, "name", IV_GET,
+     NAME_version, "Name of this machine/architecture"),
+  IV(NAME_operatingSystem, "name", IV_GET,
+     NAME_version, "Name of operating system"),
+  IV(NAME_xtVersion, "int", IV_GET,
+     NAME_version, "Version of Xt library used to compile xpce"),
+  IV(NAME_xtRevision, "int", IV_GET,
+     NAME_version, "Revision of Xt library used to compile xpce"),
+  IV(NAME_features, "chain", IV_GET,
+     NAME_version, "List of installed features")
+};
+
+/* Send Methods */
+
+static const senddecl send_pce[] =
+{ SM(NAME_initialise, 0, NULL, initialisePce,
+     DEFAULT, "Create @pce (done only once)"),
+  SM(NAME_syntax, 2, T_syntax, syntaxPce,
+     NAME_host, "Specify language compatible syntax"),
+  SM(NAME_defineClass, 4, T_defineClass, defineClassPce,
+     NAME_class, "Declare a class without details"),
+  SM(NAME_consoleLabel, 1, "char_array", consoleLabelPce,
+     NAME_console, "Set the label for the console window"),
+  SM(NAME_exposeConsole, 0, NULL, exposeConsolePce,
+     NAME_console, "Expose the PCE/host console window"),
+  SM(NAME_iconifyConsole, 0, NULL, iconifyConsolePce,
+     NAME_console, "Make PCE/host console window an icon"),
+  SM(NAME_fail, 0, NULL, failPce,
+     NAME_control, "Simply fails"),
+  SM(NAME_succeed, 0, NULL, succeedPce,
+     NAME_control, "Simply succeeds"),
+  SM(NAME_info, 0, NULL, infoPce,
+     NAME_debugging, "Write statistics/info to terminal"),
+  SM(NAME_maxGoalDepth, 1, "[int]*", maxGoalDepthPce,
+     NAME_debugging, "Set maximum recursion level"),
+#ifndef O_RUNTIME
+  SM(NAME_listWastedCore, 1, "list_content=[bool]", listWastedCorePce,
+     NAME_debugging, "List wasted core map"),
+  SM(NAME_nodebugSubject, 1, "subject=name", nodebugSubjectPce,
+     NAME_debugging, "Don't Report internal event on terminal"),
+  SM(NAME_printStack, 2, T_printStack, printStackPce,
+     NAME_debugging, "Print PCE message stack to host-window"),
+  SM(NAME_trace, 1, "level=[{never,user,always}]", tracePce,
+     NAME_debugging, "Set trace mode (default = user)"),
+  SM(NAME_debugSubject, 1, "subject=name", debugSubjectPce,
+     NAME_debugging, "Report internal event on terminal"),
+  SM(NAME_bench, 3, T_bench, benchPce,
+     NAME_statistics, "Benchmark for message passing"),
+#endif
+  SM(NAME_catchError, 1, "identifier=name|chain", catchErrorPce,
+     NAME_exception, "Indicate code is prepared to handle errors"),
+  SM(NAME_catchPop, 0, NULL, catchPopPce,
+     NAME_exception, "Pop pushed error handlers"),
+  SM(NAME_catched, 1, "identifier=name", catchedErrorPce,
+     NAME_exception, "Test if error_id is catched"),
+  SM(NAME_exception, 2, T_exception, exceptionPcev,
+     NAME_exception, "Raise an exception"),
+  SM(NAME_banner, 0, NULL, bannerPce,
+     NAME_initialise, "Write standard banner to terminal"),
+  SM(NAME_forName, 1, "message=code", forNamePce,
+     NAME_name, "Execute code on all defined names"),
+  SM(NAME_die, 1, "status=[int]", diePce,
+     NAME_quit, "Exit this (Unix) process with status"),
+  SM(NAME_exitMessage, 1, "message=code", exitMessagePce,
+     NAME_quit, "Execute code while dying"),
+  SM(NAME_forNameReference, 1, "message=code", forNameReferencePce,
+     NAME_reference, "Run code on all name references (global objects)"),
+  SM(NAME_renameReference, 2, T_renameReference, renameReferencePce,
+     NAME_reference, "Rename global reference"),
+  SM(NAME_confirm, 2, T_formatAchar_array_argumentAany_XXX, confirmPce,
+     NAME_report, "Test if the user confirms string"),
+  SM(NAME_format, 2, T_formatAchar_array_argumentAany_XXX, formatPcev,
+     NAME_report, "Formatted like C's printf"),
+  SM(NAME_inform, 2, T_formatAchar_array_argumentAany_XXX, informPce,
+     NAME_report, "Inform the user of something"),
+  SM(NAME_write, 1, "argument=any ...", writePcev,
+     NAME_report, "Write arguments, separated by spaces"),
+  SM(NAME_writeLn, 1, "argument=any ...", writeLnPcev,
+     NAME_report, "Write arguments, separated by spaces, add nl"),
+  SM(NAME_feature, 1, "any", featurePce,
+     NAME_version, "Define new feature"),
+  SM(NAME_hasFeature, 1, "any", hasFeaturePce,
+     NAME_version, "Test if feature is defined")
+};
+
+/* Get Methods */
+
+static const getdecl get_pce[] =
+{ GM(NAME_home, 0, "name", NULL, getHomePce,
+     DEFAULT, "Find XPCE's home directory"),
+  GM(NAME_convert, 2, "converted=unchecked", T_convert, getConvertPce,
+     NAME_conversion, "Convert anything to specified type"),
+#ifndef O_RUNTIME
+  GM(NAME_cFunctionName, 1, "function=name",
+     "address=int", getCFunctionNamePce,
+     NAME_debugging, "Translate address into C-function name"),
+  GM(NAME_cSymbolFile, 0, "path=name", NULL, getCSymbolFilePce,
+     NAME_debugging, "Name of Unix format symbol-file"),
+  GM(NAME_unresolvedTypes, 0, "chain", NULL, getUnresolvedTypesPce,
+     NAME_debugging, "New chain with unresolved types"),
+#endif
+  GM(NAME_maxGoalDepth, 0, "int*", NULL, getMaxGoalDepthPce,
+     NAME_debugging, "Maximum recursion level"),
+  GM(NAME_environmentVariable, 1, "value=name", "name=name",
+     getEnvironmentVariablePce,
+     NAME_environment, "Unix environment variable (getenv)"),
+  GM(NAME_hostname, 0, "host=name", NULL, getHostnamePce,
+     NAME_environment, "Name of host on which PCE runs"),
+  GM(NAME_user, 0, "user=name", NULL, getUserPce,
+     NAME_environment, "Login name of user"),
+  GM(NAME_userInfo, 2, "value=name|int", T_userInfo, getUserInfoPce,
+     NAME_environment, "Get information on user (from the passwd file)"),
+  GM(NAME_fd, 0, "number=int", NULL, getFdPce,
+     NAME_file, "Number of free file descriptors"),
+  GM(NAME_maxInteger, 0, "value=int", NULL, getMaxIntegerPce,
+     NAME_limit, "Highest representable integer"),
+  GM(NAME_minInteger, 0, "value=int", NULL, getMinIntegerPce,
+     NAME_limit, "Lowest representable integer"),
+  GM(NAME_instance, 2, "created=object|function", T_instance, getInstancePcev,
+     NAME_oms, "Create instance of any class"),
+  GM(NAME_objectFromReference, 1, "object=unchecked", "reference=int|name",
+     getObjectFromReferencePce,
+     NAME_oms, "Convert object-name or integer reference into object"),
+  GM(NAME_postscriptHeader, 0, "path=name", NULL, getPostscriptHeaderPce,
+     NAME_postscript, "Find path-name of PostScript header"),
+  GM(NAME_pid, 0, "identifier=int", NULL, getPidPce,
+     NAME_process, "Process id of this process"),
+  GM(NAME_osError, 0, "identifier=name", NULL, getOsErrorPce,
+     NAME_report, "Name of last operating system error"),
+  GM(NAME_isRuntimeSystem, 0, "bool", NULL, getIsRuntimeSystemPce,
+     NAME_runtime, "@on if this is the runtime library"),
+  GM(NAME_answerStackSize, 0, "cells=int", NULL, getAnswerStackSizePce,
+     NAME_statistics, "Number of cells (objects) in `answer' state"),
+  GM(NAME_coreUsage, 0, "bytes=int", NULL, getCoreUsagePce,
+     NAME_statistics, "Total core in active use"),
+  GM(NAME_coreWasted, 0, "bytes=int", NULL, getWastedCorePce,
+     NAME_statistics, "Core requested from system, but not in use"),
+  GM(NAME_cpuTime, 1, "seconds=real", "kind=[{user,system}]", getCpuTimePce,
+     NAME_statistics, "Total CPU time for this process"),
+  GM(NAME_deferredUnalloced, 0, "number=int", NULL, getDeferredUnallocedPce,
+     NAME_statistics, "# freed referenced objects"),
+  GM(NAME_methodCalls, 0, "calls=int", NULL, getMethodCallsPce,
+     NAME_statistics, "Number of methods called"),
+  GM(NAME_objectsAllocated, 0, "number=int", NULL, getNoCreatedPce,
+     NAME_statistics, "Total number of objects created"),
+  GM(NAME_objectsFreed, 0, "number=int", NULL, getNoFreedPce,
+     NAME_statistics, "Total number of objects freed"),
+  GM(NAME_date, 0, "string", NULL, getDatePce,
+     NAME_time, "Unix's standard time string for now"),
+  GM(NAME_mclock, 0, "int", NULL, getMclockPce,
+     NAME_time, "#Elapsed milliseconds since XPCE was started"),
+  GM(NAME_version, 1, "name|int", "how=[{string,name,number}]", getVersionPce,
+     NAME_version, "Representation of the version number")
+};
+
+/* Resources */
+
+static const resourcedecl rc_pce[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name pce_termnames[] = { NAME_version };
+
+ClassDecl(pce_decls,
+          var_pce, send_pce, get_pce, rc_pce,
+          1, pce_termnames,
+          "$Rev$");
+
 
 status
 makeClassPce(Class class)
-{ sourceClass(class, makeClassPce, __FILE__, "$Revision$");
+{ declareClass(class, &pce_decls);
 
-#ifndef O_RUNTIME
-  localClass(class, NAME_debugging, NAME_debugging, "bool", NAME_get,
-	     "Add consistency checks");
-  localClass(class, NAME_trace,NAME_debugging, "{never,user,always}", NAME_get,
-	     "Trace message passing");
-#endif
-  localClass(class, NAME_lastError, NAME_exception, "name*", NAME_both,
-	     "Id of last occurred error");
-  localClass(class, NAME_catchedErrors, NAME_exception, "chain", NAME_get,
-	     "Errors are expected by code");
-  localClass(class, NAME_catchErrorSignals, NAME_debugging, "bool", NAME_get,
-	     "Trap Unix signals to deal with errors");
-
-  localClass(class, NAME_exitMessages, NAME_quit, "chain", NAME_get,
-	     "Executed when the process terminates");
-  localClass(class, NAME_exceptionHandlers, NAME_exception, "sheet", NAME_get,
-	     "Exception-name -> handler mapping");
-  localClass(class, NAME_home, NAME_environment, "[name]", NAME_send,
-	     "PCE's home directory");
-
-  localClass(class, NAME_version, NAME_version, "name", NAME_none,
-	     "Version indication");
-  localClass(class, NAME_machine, NAME_version, "name", NAME_get,
-	     "Name of this machine/architecture");
-  localClass(class, NAME_operatingSystem, NAME_version, "name", NAME_get,
-	     "Name of operating system");
-  localClass(class, NAME_xtVersion, NAME_version, "int", NAME_get,
-	     "Version of Xt library used to compile xpce");
-  localClass(class, NAME_xtRevision, NAME_version, "int", NAME_get,
-	     "Revision of Xt library used to compile xpce");
-  localClass(class, NAME_features, NAME_version, "chain", NAME_get,
-	     "List of installed features");
-
-  termClass(class, "pce", 1, NAME_version);
   saveStyleClass(class, NAME_external);
   cloneStyleClass(class, NAME_none);
-
-  storeMethod(class, NAME_catchErrorSignals, catchErrorSignalsPce);
-#ifndef O_RUNTIME
-  storeMethod(class, NAME_debugging, debuggingPce);
-#endif
-
-  sendMethod(class, NAME_initialise, DEFAULT, 0,
-	     "Create @pce (done only once)",
-	     initialisePce);
-#ifndef O_RUNTIME
-  sendMethod(class, NAME_trace, NAME_debugging, 1,
-	     "level=[{never,user,always}]",
-	     "Set trace mode (default = user)",
-	     tracePce);
-  sendMethod(class, NAME_printStack, NAME_debugging, 2,
-	     "depth=[int]", "always=[bool]",
-	     "Print PCE message stack to host-window",
-	     printStackPce);
-  sendMethod(class, NAME_debugSubject, NAME_debugging, 1, "subject=name",
-	     "Report internal event on terminal",
-	     debugSubjectPce);
-  sendMethod(class, NAME_nodebugSubject, NAME_debugging, 1, "subject=name",
-	     "Don't Report internal event on terminal",
-	     nodebugSubjectPce);
-#endif
-  sendMethod(class, NAME_banner, NAME_initialise, 0,
-	     "Write standard banner to terminal",
-	     bannerPce);
-  sendMethod(class, NAME_die, NAME_quit, 1, "status=[int]",
-	     "Exit this (Unix) process with status",
-	     diePce);
-  sendMethod(class, NAME_info, NAME_debugging, 0,
-	     "Write statistics/info to terminal",
-	     infoPce);
-  sendMethod(class, NAME_confirm, NAME_report, 2,
-	     "format=char_array", "argument=any ...",
-	     "Test if the user confirms string",
-	     confirmPce);
-  sendMethod(class, NAME_inform, NAME_report, 2,
-	     "format=char_array", "argument=any ...",
-	     "Inform the user of something",
-	     informPce);
-  sendMethod(class, NAME_write, NAME_report, 1, "argument=any ...",
-	     "Write arguments, separated by spaces",
-	     writePcev);
-  sendMethod(class, NAME_writeLn, NAME_report, 1, "argument=any ...",
-	     "Write arguments, separated by spaces, add nl",
-	     writeLnPcev);
-  sendMethod(class, NAME_format, NAME_report, 2,
-	     "format=char_array", "argument=any ...",
-	     "Formatted like C's printf",
-	     formatPcev);
-  sendMethod(class, NAME_exposeConsole, NAME_console, 0,
-	     "Expose the PCE/host console window",
-	     exposeConsolePce);
-  sendMethod(class, NAME_iconifyConsole, NAME_console, 0,
-	     "Make PCE/host console window an icon",
-	     iconifyConsolePce);
-  sendMethod(class, NAME_consoleLabel, NAME_console, 1, "char_array",
-	     "Set the label for the console window",
-	     consoleLabelPce);
-  sendMethod(class, NAME_exception, NAME_exception, 2,
-	     "identifier=name", "context=any ...",
-	     "Raise an exception",
-	     exceptionPcev);
-  sendMethod(class, NAME_exitMessage, NAME_quit, 1, "message=code",
-	     "Execute code while dying",
-	     exitMessagePce);
-  sendMethod(class, NAME_defineClass, NAME_class, 4,
-	     "name=name", "super=name", "summary=[string]", "realise=code",
-	     "Declare a class without details",
-	     defineClassPce);
-
-{ extern listWastedCorePce(Pce pce, Bool ppcells);
-  extern forNamePce(Pce pce, Code code);
-
-#ifndef O_RUNTIME
-  sendMethod(class, NAME_listWastedCore, NAME_debugging, 1,
-	     "list_content=[bool]",
-	     "List wasted core map",
-	     listWastedCorePce);
-#endif
-  sendMethod(class, NAME_forName, NAME_name, 1, "message=code",
-	     "Execute code on all defined names",
-	     forNamePce);
-}
-
-  sendMethod(class, NAME_syntax, NAME_host, 2,
-	     "syntax={uppercase}", "word_separator=[char]",
-	     "Specify language compatible syntax",
-	     syntaxPce);
-
-#ifndef O_RUNTIME
-  sendMethod(class, NAME_bench, NAME_statistics, 3,
-	     "message=message", "times=int",
-	     "how={forward,execute,qad,send,invoke}",
-	     "Benchmark for message passing",
-	     benchPce);
-#endif
-  sendMethod(class, NAME_fail, NAME_control, 0,
-	     "Simply fails",
-	     failPce);	
-  sendMethod(class, NAME_succeed, NAME_control, 0,
-	     "Simply succeeds",
-	     succeedPce);
-
-  sendMethod(class, NAME_catchError, NAME_exception, 1, "identifier=name|chain",
-	     "Indicate code is prepared to handle errors",
-	     catchErrorPce);
-  sendMethod(class, NAME_catchPop, NAME_exception, 0,
-	     "Pop pushed error handlers",
-	     catchPopPce);
-  sendMethod(class, NAME_catched, NAME_exception, 1, "identifier=name",
-	     "Test if error_id is catched",
-	     catchedErrorPce);
-  sendMethod(class, NAME_forNameReference, NAME_reference, 1, "message=code",
-	     "Run code on all name references (global objects)",
-	     forNameReferencePce);
-  sendMethod(class, NAME_renameReference, NAME_reference, 2,
-	     "old=name", "new=name",
-	     "Rename global reference",
-	     renameReferencePce);
-  sendMethod(class, NAME_maxGoalDepth, NAME_debugging, 1, "[int]*",
-	     "Set maximum recursion level",
-	     maxGoalDepthPce);
-  sendMethod(class, NAME_feature, NAME_version, 1, "any",
-	     "Define new feature",
-	     featurePce);
-  sendMethod(class, NAME_hasFeature, NAME_version, 1, "any",
-	     "Test if feature is defined",
-	     hasFeaturePce);
-  
-  getMethod(class, NAME_coreUsage, NAME_statistics, "bytes=int", 0,
-	    "Total core in active use",
-	    getCoreUsagePce);
-  getMethod(class, NAME_deferredUnalloced, NAME_statistics, "number=int", 0,
-	    "# freed referenced objects",
-	    getDeferredUnallocedPce);
-  getMethod(class, NAME_coreWasted, NAME_statistics, "bytes=int", 0,
-	    "Core requested from system, but not in use",
-	    getWastedCorePce);
-  getMethod(class, NAME_cpuTime, NAME_statistics, "seconds=real", 1,
-	    "kind=[{user,system}]",
-	    "Total CPU time for this process",
-	    getCpuTimePce);
-  getMethod(class, NAME_objectsAllocated, NAME_statistics, "number=int", 0,
-	    "Total number of objects created",
-	    getNoCreatedPce);
-  getMethod(class, NAME_objectsFreed, NAME_statistics, "number=int", 0,
-	    "Total number of objects freed",
-	    getNoFreedPce);
-  getMethod(class, NAME_answerStackSize, NAME_statistics, "cells=int", 0,
-	    "Number of cells (objects) in `answer' state",
-	    getAnswerStackSizePce);
-  getMethod(class, NAME_methodCalls, NAME_statistics, "calls=int", 0,
-	    "Number of methods called",
-	    getMethodCallsPce);
-  getMethod(class, NAME_version, NAME_version, "name|int", 1,
-	    "how=[{string,name,number}]",
-	    "Representation of the version number",
-	    getVersionPce);
-  getMethod(class, NAME_home, DEFAULT, "name", 0,
-	    "Find XPCE's home directory",
-	    getHomePce);
-
-  getMethod(class, NAME_date, NAME_time, "string", 0,
-	    "Unix's standard time string for now",
-	    getDatePce);
-  getMethod(class, NAME_mclock, NAME_time, "int", 0,
-	    "#Elapsed milliseconds since XPCE was started",
-	    getMclockPce);
-  getMethod(class, NAME_fd, NAME_file, "number=int", 0,
-	    "Number of free file descriptors",
-	    getFdPce);
-  getMethod(class, NAME_maxInteger, NAME_limit, "value=int", 0,
-	    "Highest representable integer",
-	    getMaxIntegerPce);
-  getMethod(class, NAME_minInteger, NAME_limit, "value=int", 0,
-	    "Lowest representable integer",
-	    getMinIntegerPce);
-  getMethod(class, NAME_pid, NAME_process, "identifier=int", 0,
-	    "Process id of this process",
-	    getPidPce);
-  getMethod(class, NAME_user, NAME_environment, "user=name", 0,
-	    "Login name of user",
-	    getUserPce);
-  getMethod(class, NAME_hostname, NAME_environment, "host=name", 0,
-	    "Name of host on which PCE runs",
-	    getHostnamePce);
-  getMethod(class, NAME_postscriptHeader, NAME_postscript, "path=name", 0,
-	    "Find path-name of PostScript header",
-	    getPostscriptHeaderPce);
-  getMethod(class, NAME_osError, NAME_report, "identifier=name", 0,
-	    "Name of last operating system error",
-	    getOsErrorPce);
-  getMethod(class, NAME_instance, NAME_oms, "created=object|function", 2,
-	    "class=class", "argument=unchecked ...",
-	    "Create instance of any class",
-	    getInstancePcev);
-  getMethod(class, NAME_convert, NAME_conversion, "converted=unchecked", 2,
-	    "object=unchecked", "type=type",
-	    "Convert anything to specified type",
-	    getConvertPce);
-  getMethod(class, NAME_environmentVariable, NAME_environment, "value=name", 1,
-	    "name=name",
-	    "Unix environment variable (getenv)",
-	    getEnvironmentVariablePce);
-  getMethod(class, NAME_objectFromReference, NAME_oms, "object=unchecked", 1,
-	    "reference=int|name",
-	    "Convert object-name or integer reference into object",
-	    getObjectFromReferencePce);
-  getMethod(class, NAME_userInfo, NAME_environment, "value=name|int", 2,
-	    "field={name,password,user_id,group_id,gecos,home,shell}",
-	    "user=[name]",
-	    "Get information on user (from the passwd file)",
-	    getUserInfoPce);
-
-#ifndef O_RUNTIME
-  getMethod(class, NAME_cSymbolFile, NAME_debugging, "path=name", 0,
-	    "Name of Unix format symbol-file",
-	    getCSymbolFilePce);
-  getMethod(class, NAME_cFunctionName, NAME_debugging, "function=name", 1,
-	    "address=int",
-	    "Translate address into C-function name",
-	    getCFunctionNamePce);
-  getMethod(class, NAME_unresolvedTypes, NAME_debugging, "chain", 0,
-	    "New chain with unresolved types",
-	    getUnresolvedTypesPce);
-#endif
-
-  getMethod(class, NAME_maxGoalDepth, NAME_debugging, "int*", 0,
-	    "Maximum recursion level",
-	    getMaxGoalDepthPce);
-  getMethod(class, NAME_isRuntimeSystem, NAME_runtime, "bool", 0,
-	    "@on if this is the runtime library",
-	    getIsRuntimeSystemPce);
 
   PCE = globalObject(NAME_pce, ClassPce, 0);
   protectObject(PCE);
@@ -1433,7 +1382,7 @@ makeClassPce(Class class)
 		 *******************************/
 
 export status
-pceInitialise(int handles, char *home, int argc, char **argv)
+pceInitialise(int handles, const char *home, int argc, char **argv)
 { AnswerMark mark;
 
   if ( XPCE_initialised )
@@ -1721,7 +1670,16 @@ pceInitialise(int handles, char *home, int argc, char **argv)
   inBoot = FALSE;
 
   ws_initialise(argc, argv);
-  hostAction(HOST_ATEXIT, run_pce_exit_hooks);
+  if ( !hostAction(HOST_ATEXIT, run_pce_exit_hooks) )
+  {
+#ifdef HAVE_ATEXIT
+     atexit(run_pce_exit_hooks);
+#else
+#ifdef HAVE_ON_EXIT
+     on_exit(run_pce_exit_hooks, NULL);
+#endif
+#endif
+  }
 
 #ifdef O_LICENCE
   if ( check_licence() != LICENCE_MAGIC )

@@ -1753,60 +1753,239 @@ catchAllWindowv(PceWindow sw, Name selector, int argc, Any *argv)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_open[] =
+        { "[point]", "normalise=[bool]" };
+static const char *T_LforwardsObackwardsOgotoL_LpageOfileOlineL_int[] =
+        { "{forwards,backwards,goto}", "{page,file,line}", "int" };
+static const char *T_decorate[] =
+        { "area=[{grow,shrink}]", "left_margin=[int]", "right_margin=[int]", "top_margin=[int]", "bottom_margin=[int]", "decorator=[window]" };
+static const char *T_confirmCentered[] =
+        { "center=[point]", "grab=[bool]" };
+static const char *T_typed[] =
+        { "event_id", "delegate=[bool]" };
+static const char *T_focus[] =
+        { "graphical*", "[recogniser]*", "[cursor]*", "[name]*" };
+static const char *T_initialise[] =
+        { "label=[name]", "size=[size]", "display=[display]" };
+static const char *T_catchAll[] =
+        { "name", "unchecked ..." };
+static const char *T_changedUnion[] =
+        { "ox=int", "oy=int", "ow=int", "oh=int" };
+static const char *T_confirm[] =
+        { "position=[point]", "grab=[bool]", "normalise=[bool]" };
+static const char *T_geometry[] =
+        { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+
+/* Instance Variables */
+
+static const vardecl var_window[] =
+{ IV(NAME_frame, "frame*", IV_NONE,
+     NAME_organisation, "Frame the window is member of"),
+  IV(NAME_decoration, "window_decorator*", IV_GET,
+     NAME_appearance, "Window displaying me and my decorations"),
+  IV(NAME_boundingBox, "area", IV_NONE,
+     NAME_area, "Union of graphicals"),
+  IV(NAME_tile, "tile*", IV_NONE,
+     NAME_layout, "Tile that manages my area"),
+  SV(NAME_resizeMessage, "code*", IV_GET|IV_STORE, resizeMessageWindow,
+     NAME_resize, "Executed after window has resized"),
+  IV(NAME_displayedCursor, "cursor*", IV_NONE,
+     NAME_internal, "Currently displayed cursor"),
+  SV(NAME_inputFocus, "bool", IV_GET|IV_STORE, inputFocusWindow,
+     NAME_focus, "Window has input focus"),
+  SV(NAME_keyboardFocus, "graphical*", IV_GET|IV_STORE, keyboardFocusWindow,
+     NAME_focus, "Graphical in focus of keyboard events"),
+  IV(NAME_focus, "graphical*", IV_GET,
+     NAME_focus, "Graphical in focus"),
+  IV(NAME_focusRecogniser, "recogniser*", IV_GET,
+     NAME_focus, "Recogniser in focus"),
+  SV(NAME_focusCursor, "cursor*", IV_GET|IV_STORE, focusCursorWindow,
+     NAME_cursor, "Cursor while there is a focus"),
+  IV(NAME_focusButton, "[button_name]*", IV_GET,
+     NAME_focus, "Button that should terminate focus"),
+  IV(NAME_focusEvent, "event*", IV_GET,
+     NAME_focus, "<-current_event when ->focus was set"),
+  IV(NAME_scrollOffset, "point", IV_NONE,
+     NAME_internal, "How much the window is scrolled"),
+  IV(NAME_popup, "popup*", IV_BOTH,
+     NAME_menu, "Popup-menu of the window"),
+  IV(NAME_currentEvent, "event*", IV_GET,
+     NAME_event, "Event being processed now"),
+  IV(NAME_sensitive, "bool", IV_BOTH,
+     NAME_event, "Window accepts events"),
+  SV(NAME_background, "colour|pixmap", IV_GET|IV_STORE, backgroundWindow,
+     NAME_appearance, "Background colour or pattern"),
+  IV(NAME_hasPointer, "bool", IV_BOTH,
+     NAME_event, "If @on, pointer (mouse) is in window"),
+  SV(NAME_selectionFeedback, "{invert,handles}|elevation|colour*",
+     IV_GET|IV_STORE, selectionFeedbackWindow,
+     NAME_appearance, "How <-selected graphicals are visualised"),
+  IV(NAME_changesData, "alien:UpdateArea", IV_NONE,
+     NAME_repaint, "Summary info for redraw"),
+  IV(NAME_wsRef, "alien:WsRef", IV_NONE,
+     NAME_windowSystem, "Window-System reference")
+};
+
+/* Send Methods */
+
+static const senddecl send_window[] =
+{ SM(NAME_destroy, 0, NULL, destroyWindow,
+     DEFAULT, "->destroy associated frame"),
+  SM(NAME_device, 1, "device*", deviceWindow,
+     DEFAULT, "Display window on device, take care of <-decoration"),
+  SM(NAME_displayed, 1, "bool", displayedWindow,
+     DEFAULT, "(Un)display window, take care of <-decoration"),
+  SM(NAME_flush, 0, NULL, flushWindow,
+     DEFAULT, "Update graphicals in this window immediately"),
+  SM(NAME_free, 0, NULL, freeWindow,
+     DEFAULT, "->free associated frame"),
+  SM(NAME_geometry, 4, T_geometry, geometryWindow,
+     DEFAULT, "Resize window inside its frame"),
+  SM(NAME_initialise, 3, T_initialise, initialiseWindow,
+     DEFAULT, "Create from label, size and display"),
+  SM(NAME_move, 1, "point", positionGraphical,
+     DEFAULT, "Move origin to argument"),
+  SM(NAME_reparent, 0, NULL, reparentWindow,
+     DEFAULT, "If no longer related to the window, ->uncreate"),
+  SM(NAME_requestGeometry, 4, T_geometry, requestGeometryWindow,
+     DEFAULT, "Resize window inside its frame"),
+  SM(NAME_reset, 0, NULL, resetWindow,
+     DEFAULT, "Reset window after an abort"),
+  SM(NAME_unlink, 0, NULL, unlinkWindow,
+     DEFAULT, "Destroy related X-resources"),
+  SM(NAME_x, 1, "int", xGraphical,
+     DEFAULT, "Move graphical horizontally"),
+  SM(NAME_y, 1, "int", yGraphical,
+     DEFAULT, "Move graphical vertically"),
+  SM(NAME_colour, 1, "[colour|pixmap]", colourWindow,
+     DEFAULT, "Default colour of graphicals"),
+  SM(NAME_pen, 1, "0..", penWindow,
+     DEFAULT, "Thickness of line around window"),
+  SM(NAME_position, 1, "point", positionGraphical,
+     DEFAULT, "Position in <-frame"),
+  SM(NAME_typed, 2, T_typed, typedWindow,
+     NAME_accelerator, "Handle accelerator (delegate to <-frame)"),
+  SM(NAME_decorate, 6, T_decorate, decorateWindow,
+     NAME_appearance, "Embed window for scrollbars, etc."),
+  SM(NAME_foreground, 1, "colour", colourWindow,
+     NAME_appearance, "Set foreground colour"),
+  SM(NAME_resize, 0, NULL, resizeWindow,
+     NAME_area, "Execute <-resize_message"),
+  SM(NAME_catchAll, 2, T_catchAll, catchAllWindowv,
+     NAME_delegate, "Handle frame methods when no frame is present"),
+  SM(NAME_event, 1, "event", eventWindow,
+     NAME_event, "Handle event"),
+  SM(NAME_grabKeyboard, 1, "bool", grabKeyboardWindow,
+     NAME_event, "Grab keyboard events"),
+  SM(NAME_grabPointer, 1, "bool", grabPointerWindow,
+     NAME_event, "Grab pointer (mouse) events"),
+  SM(NAME_focus, 4, T_focus, focusWindow,
+     NAME_focus, "Forward events to graphical"),
+  SM(NAME_ComputeDesiredSize, 0, NULL, ComputeDesiredSizeWindow,
+     NAME_layout, "Compute the desired size (no-op)"),
+  SM(NAME_above, 1, "window", aboveWindow,
+     NAME_layout, "Put me above argument"),
+  SM(NAME_below, 1, "window", belowWindow,
+     NAME_layout, "Put me below argument"),
+  SM(NAME_left, 1, "window", leftWindow,
+     NAME_layout, "Put me left of argument"),
+  SM(NAME_right, 1, "window", rightWindow,
+     NAME_layout, "Put me right of argument"),
+  SM(NAME_create, 1, "[window]", createWindow,
+     NAME_open, "Create associated X-window structure"),
+  SM(NAME_open, 2, T_open, openWindow,
+     NAME_open, "Open associated frame on the display"),
+  SM(NAME_openCentered, 1, "[point]", openCenteredWindow,
+     NAME_open, "Open frame centered around point"),
+  SM(NAME_uncreate, 0, NULL, uncreateWindow,
+     NAME_open, "Destroy associated X-window structure"),
+  SM(NAME_pointer, 1, "point", pointerWindow,
+     NAME_pointer, "Move the pointer relative to window"),
+  SM(NAME_redraw, 1, "[area]", redrawWindow,
+     NAME_repaint, "Redraw (area of) the window"),
+  SM(NAME_flash, 0, NULL, flashWindow,
+     NAME_report, "Flash the window"),
+  SM(NAME_bubbleScrollBar, 1, "scroll_bar", bubbleScrollBarWindow,
+     NAME_scroll, "Update bubble of given scroll_bar object"),
+  SM(NAME_changedUnion, 4, T_changedUnion, changedUnionWindow,
+     NAME_scroll, "Request scroll_bar update"),
+  SM(NAME_normalise, 1, "area|graphical|chain", normaliseWindow,
+     NAME_scroll, "Ensure area|graphical|chain is visible"),
+  SM(NAME_scrollHorizontal, 3, T_LforwardsObackwardsOgotoL_LpageOfileOlineL_int, scrollHorizontalWindow,
+     NAME_scroll, "Trap message from horizontal scrollbar"),
+  SM(NAME_scrollTo, 1, "point", scrollToWindow,
+     NAME_scroll, "Make point top-left of window"),
+  SM(NAME_scrollVertical, 3, T_LforwardsObackwardsOgotoL_LpageOfileOlineL_int, scrollVerticalWindow,
+     NAME_scroll, "Trap message from vertical scrollbar"),
+  SM(NAME_expose, 0, NULL, exposeWindow,
+     NAME_stacking, "Expose (raise) related frame"),
+  SM(NAME_hide, 0, NULL, hideWindow,
+     NAME_stacking, "Hide (lower) related frame"),
+  SM(NAME_compute, 0, NULL, computeWindow,
+     NAME_update, "Recompute window")
+};
+
+/* Get Methods */
+
+static const getdecl get_window[] =
+{ GM(NAME_containedIn, 0, "frame|device", NULL, getContainedInWindow,
+     DEFAULT, "Frame/graphical device I'm contained in"),
+  GM(NAME_convert, 1, "window", "graphical", getConvertWindow,
+     DEFAULT, "Return graphical's <-window"),
+  GM(NAME_frame, 0, "frame", NULL, getFrameWindow,
+     DEFAULT, "Frame of window (create if not there)"),
+  GM(NAME_tile, 0, "tile", NULL, getTileWindow,
+     DEFAULT, "Tile of window (create if not there)"),
+  GM(NAME_foreground, 0, "colour", NULL, getForegroundWindow,
+     NAME_appearance, "Get foreground colour"),
+  GM(NAME_boundingBox, 0, "area", NULL, getBoundingBoxWindow,
+     NAME_area, "Union of graphicals"),
+  GM(NAME_visible, 0, "area", NULL, getVisibleWindow,
+     NAME_area, "New area representing visible part"),
+  GM(NAME_confirm, 3, "any", T_confirm, getConfirmWindow,
+     NAME_modal, "Run sub event-loop until ->return"),
+  GM(NAME_confirmCentered, 2, "any", T_confirmCentered, getConfirmCenteredWindow,
+     NAME_modal, "->confirm with frame centered around point")
+};
+
+/* Resources */
+
+static const resourcedecl rc_window[] =
+{ RC(NAME_background, "colour|pixmap", "white",
+     "Colour/fill pattern of the background"),
+  RC(NAME_cursor, "cursor", "top_left_arrow",
+     "Default window cursor"),
+  RC(NAME_pen, "int", "1",
+     "Thickness of outside line"),
+  RC(NAME_selectionFeedback, NULL, "handles",
+     NULL),
+  RC(NAME_selectionHandles, RC_REFINE, "@nil",
+     NULL),
+  RC(NAME_size, "size", "size(200,100)",
+     "Default size (pixels)")
+};
+
+/* Class Declaration */
+
+static Name window_termnames[] = { NAME_label, NAME_size, NAME_display };
+
+ClassDecl(window_decls,
+          var_window, send_window, get_window, rc_window,
+          3, window_termnames,
+          "$Rev$");
+
+
 status
 makeClassWindow(Class class)
-{ sourceClass(class, makeClassWindow, __FILE__, "$Revision$");
-
+{ declareClass(class, &window_decls);
   setLoadStoreFunctionClass(class, loadWindow, storeWindow);
 
-  localClass(class, NAME_frame, NAME_organisation, "frame*", NAME_none,
-	     "Frame the window is member of");
-  localClass(class, NAME_decoration, NAME_appearance, "window_decorator*",
-	     NAME_get,
-	     "Window displaying me and my decorations");
-  localClass(class, NAME_boundingBox, NAME_area, "area", NAME_none,
-	     "Union of graphicals");
-  localClass(class, NAME_tile, NAME_layout, "tile*", NAME_none,
-	     "Tile that manages my area");
-  localClass(class, NAME_resizeMessage, NAME_resize, "code*", NAME_get,
-	     "Executed after window has resized");
-  localClass(class, NAME_displayedCursor, NAME_internal, "cursor*", NAME_none,
-	     "Currently displayed cursor");
-  localClass(class, NAME_inputFocus, NAME_focus, "bool", NAME_get,
-	     "Window has input focus");
-  localClass(class, NAME_keyboardFocus, NAME_focus, "graphical*", NAME_get,
-	     "Graphical in focus of keyboard events");
-  localClass(class, NAME_focus, NAME_focus, "graphical*", NAME_get,
-	     "Graphical in focus");
-  localClass(class, NAME_focusRecogniser, NAME_focus, "recogniser*", NAME_get,
-	     "Recogniser in focus");
-  localClass(class, NAME_focusCursor, NAME_cursor, "cursor*", NAME_get,
-	     "Cursor while there is a focus");
-  localClass(class, NAME_focusButton, NAME_focus, "[button_name]*", NAME_get,
-	     "Button that should terminate focus");
-  localClass(class, NAME_focusEvent, NAME_focus, "event*", NAME_get,
-	     "<-current_event when ->focus was set");
-  localClass(class, NAME_scrollOffset, NAME_internal, "point", NAME_none,
-	     "How much the window is scrolled");
-  localClass(class, NAME_popup, NAME_menu, "popup*", NAME_both,
-	     "Popup-menu of the window");
-  localClass(class, NAME_currentEvent, NAME_event, "event*", NAME_get,
-	     "Event being processed now");
-  localClass(class, NAME_sensitive, NAME_event, "bool", NAME_both,
-	     "Window accepts events");
-  localClass(class, NAME_background, NAME_appearance, "colour|pixmap",NAME_get,
-	     "Background colour or pattern");
-  localClass(class, NAME_hasPointer, NAME_event, "bool", NAME_both,
-	     "If @on, pointer (mouse) is in window");
-  localClass(class, NAME_selectionFeedback, NAME_appearance,
-	     "{invert,handles}|elevation|colour*", NAME_get,
-	     "How <-selected graphicals are visualised");
-  localClass(class, NAME_changesData, NAME_repaint, "alien:UpdateArea",
-	     NAME_none, "Summary info for redraw");
-  localClass(class, NAME_wsRef, NAME_windowSystem, "alien:WsRef", NAME_none,
-	     "Window-System reference");
-
-  termClass(class, "window", 3, NAME_label, NAME_size, NAME_display);
   delegateClass(class, NAME_frame);
   delegateClass(class, NAME_tile);
   delegateClass(class, NAME_decoration); /* label, scrollbars */
@@ -1816,212 +1995,7 @@ makeClassWindow(Class class)
   saveStyleVariableClass(class, NAME_focusEvent, NAME_nil);
   setRedrawFunctionClass(class, redrawAreaWindow);
 
-  storeMethod(class, NAME_resizeMessage, resizeMessageWindow);
-  storeMethod(class, NAME_pen, penWindow);
-  storeMethod(class, NAME_colour, colourWindow);
-  storeMethod(class, NAME_background, backgroundWindow);
-  storeMethod(class, NAME_keyboardFocus, keyboardFocusWindow);
-  storeMethod(class, NAME_focusCursor, focusCursorWindow);
-  storeMethod(class, NAME_selectionFeedback, selectionFeedbackWindow);
-  storeMethod(class, NAME_inputFocus, inputFocusWindow);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 3,
-	     "label=[name]", "size=[size]", "display=[display]",
-	     "Create from label, size and display",
-	     initialiseWindow);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Destroy related X-resources",
-	     unlinkWindow);
-  sendMethod(class, NAME_catchAll, NAME_delegate, 2, "name", "unchecked ...",
-	     "Handle frame methods when no frame is present",
-	     catchAllWindowv);
-  sendMethod(class, NAME_geometry, DEFAULT, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Resize window inside its frame",
-	     geometryWindow);
-  sendMethod(class, NAME_requestGeometry, DEFAULT, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Resize window inside its frame",
-	     requestGeometryWindow);
-  sendMethod(class, NAME_resize, NAME_area, 0,
-	     "Execute <-resize_message",
-	     resizeWindow);
-  sendMethod(class, NAME_device, DEFAULT, 1, "device*",
-	     "Display window on device, take care of <-decoration",
-	     deviceWindow);
-  sendMethod(class, NAME_displayed, DEFAULT, 1, "bool",
-	     "(Un)display window, take care of <-decoration",
-	     displayedWindow);
-  sendMethod(class, NAME_free, DEFAULT, 0,
-	     "->free associated frame",
-	     freeWindow);
-  sendMethod(class, NAME_destroy, DEFAULT, 0,
-	     "->destroy associated frame",
-	     destroyWindow);
-  sendMethod(class, NAME_compute, NAME_update, 0,
-	     "Recompute window",
-	     computeWindow);
-  sendMethod(class, NAME_reparent, DEFAULT, 0,
-	     "If no longer related to the window, ->uncreate",
-	     reparentWindow);
-  sendMethod(class, NAME_create, NAME_open, 1, "[window]",
-	     "Create associated X-window structure",
-	     createWindow);
-  sendMethod(class, NAME_uncreate, NAME_open, 0,
-	     "Destroy associated X-window structure",
-	     uncreateWindow);
-  sendMethod(class, NAME_open, NAME_open, 2, "[point]", "normalise=[bool]",
-	     "Open associated frame on the display",
-	     openWindow);
-  sendMethod(class, NAME_openCentered, NAME_open, 1, "[point]",
-	     "Open frame centered around point",
-	     openCenteredWindow);
-  sendMethod(class, NAME_ComputeDesiredSize, NAME_layout, 0,
-	     "Compute the desired size (no-op)",
-	     ComputeDesiredSizeWindow);
-  sendMethod(class, NAME_reset, DEFAULT, 0,
-	     "Reset window after an abort",
-	     resetWindow);
-  sendMethod(class, NAME_flush, DEFAULT, 0,
-	     "Update graphicals in this window immediately",
-	     flushWindow);
-
-  sendMethod(class, NAME_foreground, NAME_appearance, 1, "colour",
-	     "Set foreground colour",
-	     colourWindow);
-  sendMethod(class, NAME_redraw, NAME_repaint, 1, "[area]",
-	     "Redraw (area of) the window",
-	     redrawWindow);
-  sendMethod(class, NAME_flash, NAME_report, 0,
-	     "Flash the window",
-	     flashWindow);
-  sendMethod(class, NAME_grabKeyboard, NAME_event, 1, "bool",
-	     "Grab keyboard events",
-	     grabKeyboardWindow);
-  sendMethod(class, NAME_grabPointer, NAME_event, 1, "bool",
-	     "Grab pointer (mouse) events",
-	     grabPointerWindow);
-  sendMethod(class, NAME_pointer, NAME_pointer, 1, "point",
-	     "Move the pointer relative to window",
-	     pointerWindow);
-  sendMethod(class, NAME_focus, NAME_focus,
-	     4, "graphical*", "[recogniser]*", "[cursor]*", "[name]*",
-	     "Forward events to graphical",
-	     focusWindow);
-  sendMethod(class, NAME_event, NAME_event, 1, "event",
-	     "Handle event",
-	     eventWindow);
-  sendMethod(class, NAME_typed, NAME_accelerator, 2,
-	     "event_id", "delegate=[bool]",
-	     "Handle accelerator (delegate to <-frame)",
-	     typedWindow);
-
-					/* redefined by device.  We need */
-					/* the garphical one's */
-  sendMethod(class, NAME_position, DEFAULT, 1, "point",
-	     "Move origin to argument",
-	     positionGraphical);
-  sendMethod(class, NAME_move, DEFAULT, 1, "point",
-	     "Move origin to argument",
-	     positionGraphical);
-  sendMethod(class, NAME_x, DEFAULT, 1, "int",
-	     "Move graphical horizontally",
-	     xGraphical);
-  sendMethod(class, NAME_y, DEFAULT, 1, "int",
-	     "Move graphical vertically",
-	     yGraphical);
-
-
-  sendMethod(class, NAME_above, NAME_layout, 1, "window",
-	     "Put me above argument",
-	     aboveWindow);
-  sendMethod(class, NAME_below, NAME_layout, 1, "window",
-	     "Put me below argument",
-	     belowWindow);
-  sendMethod(class, NAME_left, NAME_layout, 1, "window",
-	     "Put me left of argument",
-	     leftWindow);
-  sendMethod(class, NAME_right, NAME_layout, 1, "window",
-	     "Put me right of argument",
-	     rightWindow);
-  sendMethod(class, NAME_expose, NAME_stacking, 0,
-	     "Expose (raise) related frame",
-	     exposeWindow);
-  sendMethod(class, NAME_hide, NAME_stacking, 0,
-	     "Hide (lower) related frame",
-	     hideWindow);
-
-  sendMethod(class, NAME_scrollTo, NAME_scroll, 1, "point",
-	     "Make point top-left of window",
-	     scrollToWindow);
-  sendMethod(class, NAME_normalise, NAME_scroll, 1, "area|graphical|chain",
-	     "Ensure area|graphical|chain is visible",
-	     normaliseWindow);
-  sendMethod(class, NAME_scrollHorizontal, NAME_scroll,
-	     3, "{forwards,backwards,goto}", "{page,file,line}", "int",
-	     "Trap message from horizontal scrollbar",
-	     scrollHorizontalWindow);
-  sendMethod(class, NAME_scrollVertical, NAME_scroll,
-	     3, "{forwards,backwards,goto}", "{page,file,line}", "int",
-	     "Trap message from vertical scrollbar",
-	     scrollVerticalWindow);
-  sendMethod(class, NAME_bubbleScrollBar, NAME_scroll, 1, "scroll_bar",
-	     "Update bubble of given scroll_bar object",
-	     bubbleScrollBarWindow);
-  sendMethod(class, NAME_changedUnion, NAME_scroll, 4,
-	     "ox=int", "oy=int", "ow=int", "oh=int",
-	     "Request scroll_bar update",
-	     changedUnionWindow);
-  sendMethod(class, NAME_decorate, NAME_appearance, 6,
-	     "area=[{grow,shrink}]", "left_margin=[int]", "right_margin=[int]",
-	     "top_margin=[int]", "bottom_margin=[int]", "decorator=[window]",
-	     "Embed window for scrollbars, etc.",
-	     decorateWindow);
-
-  getMethod(class, NAME_convert, DEFAULT, "window", 1, "graphical",
-	    "Return graphical's <-window",
-	    getConvertWindow);
-  getMethod(class, NAME_confirm, NAME_modal, "any", 3,
-	    "position=[point]", "grab=[bool]", "normalise=[bool]",
-	    "Run sub event-loop until ->return",
-	    getConfirmWindow);
-  getMethod(class, NAME_confirmCentered, NAME_modal, "any", 2,
-	    "center=[point]", "grab=[bool]",
-	    "->confirm with frame centered around point",
-	    getConfirmCenteredWindow);
-  getMethod(class, NAME_foreground, NAME_appearance, "colour", 0,
-	    "Get foreground colour",
-	    getForegroundWindow);
-  getMethod(class, NAME_visible, NAME_area, "area", 0,
-	    "New area representing visible part",
-	    getVisibleWindow);
-  getMethod(class, NAME_boundingBox, NAME_area, "area", 0,
-	    "Union of graphicals",
-	    getBoundingBoxWindow);
-  getMethod(class, NAME_tile, DEFAULT, "tile", 0,
-	    "Tile of window (create if not there)",
-	    getTileWindow);
-  getMethod(class, NAME_frame, DEFAULT, "frame", 0,
-	    "Frame of window (create if not there)",
-	    getFrameWindow);
-
-  getMethod(class, NAME_containedIn, DEFAULT, "frame|device", 0,
-	    "Frame/graphical device I'm contained in",
-	    getContainedInWindow);
-
-
   WindowTable = createHashTable(toInt(32), OFF);
-
-  refine_resource(class, "selection_handles", "@nil");
-  attach_resource(class, "selection_feedback", NULL, "handles", NULL);
-  attach_resource(class, "size", "size", "size(200,100)",
-		  "Default size (pixels)");
-  attach_resource(class, "pen", "int", "1",
-		  "Thickness of outside line");
-  attach_resource(class, "cursor", "cursor", "top_left_arrow",
-		  "Default window cursor");
-  attach_resource(class, "background", "colour|pixmap", "white",
-		  "Colour/fill pattern of the background");
 
   succeed;
 }

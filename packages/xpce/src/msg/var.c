@@ -75,43 +75,71 @@ getValueVar(Var v)
 }
 
 
+		 /*******************************
+		 *	 CLASS DECLARATION	*
+		 *******************************/
+
+/* Type declarations */
+
+static const char *T_initialise[] =
+        { "type=[type]", "name=[name]", "value=[any]" };
+static const char *T_assign[] =
+        { "value=any", "scope=[{local,outer,global}]" };
+
+/* Instance Variables */
+
+static const vardecl var_var[] =
+{ IV(NAME_Name, "name*", IV_GET,
+     NAME_name, "Name of the var"),
+  IV(NAME_Type, "type", IV_BOTH,
+     NAME_type, "Type of the <-_value"),
+  IV(NAME_Value, "alien:Any", IV_NONE,
+     NAME_value, "Value of the var"),
+  IV(NAME_GlobalValue, "any", IV_GET,
+     NAME_abort, "Global value of the var")
+};
+
+/* Send Methods */
+
+static const senddecl send_var[] =
+{ SM(NAME_initialise, 3, T_initialise, initialiseVar,
+     DEFAULT, "Create var from name and value"),
+  SM(NAME_unlink, 0, NULL, unlinkVar,
+     DEFAULT, "Release code reference of value"),
+  SM(NAME_assign, 2, T_assign, assignVar,
+     NAME_value, "Assign value to variable (with scope)")
+};
+
+/* Get Methods */
+
+static const getdecl get_var[] =
+{ GM(NAME_convert, 1, "var", "name", getConvertVar,
+     NAME_conversion, "Converts name to var from @variables"),
+  GM(NAME_Execute, 0, "unchecked", NULL, getValueVar,
+     NAME_execute, "Current value of the variable"),
+  GM(NAME_Value, 0, "unchecked", NULL, getValueVar,
+     NAME_value, "Current value of the variable")
+};
+
+/* Resources */
+
+static const resourcedecl rc_var[] =
+{ 
+};
+
+/* Class Declaration */
+
+static Name var_termnames[] = { NAME_Value };
+
+ClassDecl(var_decls,
+          var_var, send_var, get_var, rc_var,
+          1, var_termnames,
+          "$Rev$");
+
 status
 makeClassVar(Class class)
-{ sourceClass(class, makeClassVar, __FILE__, "$Revision$");
-
-  localClass(class, NAME_Name, NAME_name, "name*", NAME_get,
-	     "Name of the var");
-  localClass(class, NAME_Type, NAME_type, "type", NAME_both,
-	     "Type of the <-_value");
-  localClass(class, NAME_Value, NAME_value, "alien:Any", NAME_none,
-	     "Value of the var");
-  localClass(class, NAME_GlobalValue, NAME_abort, "any", NAME_get,
-	     "Global value of the var");
-
-  termClass(class, "var", 1, NAME_Value);
+{ declareClass(class, &var_decls);
   saveStyleClass(class, NAME_external);
-
-  sendMethod(class, NAME_initialise, DEFAULT, 3,
-	     "type=[type]", "name=[name]", "value=[any]",
-	     "Create var from name and value",
-	     initialiseVar);
-  sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Release code reference of value",
-	     unlinkVar);
-  sendMethod(class, NAME_assign, NAME_value, 2,
-	     "value=any", "scope=[{local,outer,global}]",
-	     "Assign value to variable (with scope)",
-	     assignVar);
-
-  getMethod(class, NAME_convert, NAME_conversion, "var", 1, "name",
-	    "Converts name to var from @variables",
-	    getConvertVar);
-  getMethod(class, NAME_Execute, NAME_execute, "unchecked", 0,
-	    "Current value of the variable",
-	    getValueVar);
-  getMethod(class, NAME_Value, NAME_value, "unchecked", 0,
-	    "Current value of the variable",
-	    getValueVar);
 
   VarTable = globalObject(NAME_variables, ClassHashTable, 0);
   initVars();
