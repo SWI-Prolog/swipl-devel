@@ -258,22 +258,27 @@ do_select_location([Location-_Spec], _, Location) :- !.
 %	N > 20, !,
 do_select_location(Pairs, _, Location) :-
 	print_message(help, edit(select)),
-	list_pairs(Pairs, 1),
+	list_pairs(Pairs, 0, N),
 	print_message(help, edit(prompt_select)),
-	read_number(N),
-	nth1(N, Pairs, Location-_Spec), !.
+	read_number(N, I),
+	nth1(I, Pairs, Location-_Spec), !.
 
-list_pairs([], _).
-list_pairs([H|T], N) :-
-	list_pair(H, N),
-	NN is N + 1,
-	list_pairs(T, NN).
+list_pairs([], N, N).
+list_pairs([H|T], N0, N) :-
+	NN is N0 + 1,
+	list_pair(H, NN),
+	list_pairs(T, NN, N).
 
 list_pair(Pair, N) :-
 	print_message(help, edit(target(Pair, N))).
 
 	
-read_number(X) :-
+read_number(Max, X) :-
+	Max < 10, !,
+	get_single_char(C),
+	between(0'0, 0'9, C),
+	X is C - 0'0.
+read_number(_, X) :-
 	read_line(Chars),
 	name(X, Chars),
 	integer(X).
