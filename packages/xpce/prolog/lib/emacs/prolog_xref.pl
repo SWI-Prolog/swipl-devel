@@ -272,6 +272,8 @@ process_directive(consult(Modules), Src) :-
 	process_use_module(Modules, Src).
 process_directive(ensure_loaded(Modules), Src) :-
 	process_use_module(Modules, Src).
+process_directive(load_files(Files, _Options), Src) :-
+	process_use_module(Files, Src).
 process_directive(dynamic(Dynamic), Src) :-
 	assert_dynamic(Src, Dynamic).
 process_directive(multifile(Dynamic), Src) :-

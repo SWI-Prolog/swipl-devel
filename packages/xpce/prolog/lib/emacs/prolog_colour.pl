@@ -785,6 +785,7 @@ goal_colours(volatile(_),	     built_in-[predicates]).
 goal_colours(consult(_),	     built_in-[file]).
 goal_colours(include(_),	     built_in-[file]).
 goal_colours(ensure_loaded(_),	     built_in-[file]).
+goal_colours(load_files(_,_),	     built_in-[file,classify]).
 goal_colours(pce_autoload(_,_),	     classify-[classify,file]).
 goal_colours(pce_image_directory(_), classify-[file]).
 goal_colours(new(_, _),		     built_in-[classify,pce_new]).
