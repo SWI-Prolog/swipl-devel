@@ -1,9 +1,9 @@
 \documentclass[11pt,a4paper]{article}
-\usepackage[T1]{fontenc}
 \usepackage{times}
 \sloppy
 
 \usepackage{pl}
+\usepackage{xpce}
 \usepackage{html}
 
 \onefile
