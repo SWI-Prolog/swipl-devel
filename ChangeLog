@@ -3,6 +3,8 @@
 VERSION 3.2.4
 =============
 
+  * FIXED: protocolling the input-stream on the Windows version.
+
   * ADDED: 'm' command in tracer to examine details of the currently
     pending exception.
 
@@ -10,6 +12,9 @@ VERSION 3.2.4
     socket package.
 
   * FIXED: wait_for_input/3 correct reporting of anonymous streams.
+  
+  * ADDED: Port of wait_for_input/3 to Windows.  Only works for streams
+    referring to sockets!
 
   * FIXED: Get MAXPATHLEN ok for some more platforms (SCO_SV 3.2), reported
     by Clive Cox.  Thanks.
