@@ -215,12 +215,6 @@ remove_condition(From, To, Style,
 		 *	GLOBAL UTILITIES	*
 		 *******************************/
 
-keyboard_quit(M) :->
-	"Quit current operation"::
-	send(M?editor, keyboard_quit),
-	send(M, selection, 0, 0).
-
-
 quit(M) :->
 	"Destroy the editor"::
 	ignore(send(M?text_buffer, save_if_modified)),
@@ -521,7 +515,7 @@ query_replace_regex(M,
 		    From:'replace=regex',
 		    To:'into=string') :->
 	"Query replace regular expression"::
-	send(M, set_mark),
+	send(M, internal_mark),
 	send(M, attribute, attribute(replace_search_pattern, From)),
 	send(M, attribute, attribute(replace_replace_pattern, To)),
 	replace_find_and_mark(M),
@@ -533,15 +527,11 @@ replace_find_and_mark(M) :-
 	(   send(Regex, search, M?text_buffer, M?caret)
 	->  get(Regex, register_start, Start),
 	    get(Regex, register_end, End),
-	    send(M, selection, Start, End),
-	    send(M?text_cursor, displayed, @off),
-	    send(M, caret, End),
+	    send(M, selection, Start, End, highlight),
 	    send(M, report, status,
 		 'Commands: "y" = replace-and-next; "." = replace; "n" = next; "!" = non-interactive; "ESC" = stop')
 	;   send(M, report, status, 'Done.'),
-	    send(M, focus_function, @nil),
-	    send(M, selection, 0, 0),
-	    send(M?text_cursor, displayed, @on),
+	    send(M, replace_end),
 	    fail
 	).
 
@@ -552,16 +542,16 @@ replace_match(M) :-
 	send(Regex, replace, M?text_buffer, Replace),
 	get(Regex, register_end, End),
 	get(Regex, register_start, Start),
-	(   End == Start		% 0-lenght search string!
+	(   End == Start		% 0-length search string!
 	->  send(M, caret, End+1)
 	;   send(M, caret, End)
 	).
 
 
-replace_end(M) :-
+replace_end(M) :->
 	send(M, focus_function, @nil),
-	send(M, selection, 0, 0),
-	send(M?text_cursor, displayed, @on).
+	get(M, internal_mark, Mark),
+	send(M, selection, Mark, @default, inactive).
 
 
 '_query_replace_regex'(M, Id:event_id) :->
@@ -571,7 +561,7 @@ replace_end(M) :-
 	    ignore(replace_find_and_mark(M))
 	;   Id == 0'.				% replace and done
 	->  replace_match(M),
-	    replace_end(M),
+	    send(M, replace_end),
 	    send(M, report, status, 'Done.')
 	;   Id == 0'n				% donot replace and continue
 	->  (   replace_find_and_mark(M)
@@ -579,14 +569,13 @@ replace_end(M) :-
 	    ;	get(M, focus_function, @nil)
 	    )
 	;   Id == 27				% exit
-	->  replace_end(M)
+	->  send(M, replace_end)
 	;   Id == 0'!				% replace no-query
 	->  repeat,
 		send(M, '_query_replace_regex', 0'y),
 		get(M, focus_function, @nil),
 	    !
-	;   send(M, selection, 0, 0),		% anything else: cancel
-	    send(M?text_cursor, displayed, @on),
+	;   send(M, replace_end),		% anything else: cancel
 	    fail
 	).
 

@@ -2362,3 +2362,5 @@
 #define NAME_yref (&builtin_names[2361])
 #define NAME_yrefVar (&builtin_names[2362])
 #define NAME_zoom (&builtin_names[2363])
+#define NAME_markRing (&builtin_names[2364])
+#define NAME_markStatus (&builtin_names[2365])

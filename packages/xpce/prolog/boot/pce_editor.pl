@@ -51,10 +51,13 @@ Parts of the specs by Uwe Lesta.
 
 variable(selecting,	bool := @off,	get, "Are we making a selection").
 variable(down_position, point*,		get, "Position of down-event").
+variable(origin,        int*,		get, "Index of down event").
+variable(unit,		{character,word,line}, get, "Selection unit").
 variable(editor,	editor*,	get, "Client object").
 
 initialise(G) :->
 	send_super(G, initialise),
+	send(G, slot, unit, character),
 	send(G, drag_scroll, self).
 	
 
@@ -67,18 +70,29 @@ initiate(G, Ev:event) :->
 	get(Image, index, Ev, Index),
 	send(Editor, caret, Index),
 	get(Ev, multiclick, Multi),
-	(   Multi == single
-	->  send(G, slot, selecting, @off)
-	;   send(G, slot, selecting, @on)
-	),
 	selection_unit(Multi, Unit),
-	send(Editor, selection_unit, Unit),
-	send(Editor, selection_origin, Index),
-	send(G, place_caret, Index).
+	send(G, slot, unit, Unit),
+	(   Multi == single
+	->  send(G, slot, origin, Index),
+	    send(G, selecting, @off)
+	;   send(G, selecting, @on)
+	).
 
 selection_unit(single, character).
 selection_unit(double, word).
 selection_unit(triple, line).
+
+
+selecting(G, Val:bool) :->
+	"Start/stop selecting"::
+	send(G, slot, selecting, Val),
+	get(G, editor, Editor),
+	(   Val == @on
+	->  send(Editor, selection_unit, G?unit),
+	    send(Editor, selection_origin, G?origin)
+	;   send(Editor, mark_status, inactive)
+	).
+
 
 drag(G, Ev:event) :->
 	"Extend the selection if selecting"::
@@ -88,13 +102,12 @@ drag(G, Ev:event) :->
 		get(Ev, position, EvPos),
 		get(DownPos, distance, EvPos, D),
 		D > 25
-	    ->  send(G, slot, selecting, @on)
+	    ->  send(G, selecting, @on)
 	    )
 	->  get(Ev, receiver, Editor),
 	    get(Editor, image, Image),
 	    (	get(Image, index, Ev, Index)
-	    ->  send(Editor, selection_extend, Index),
-		send(G, place_caret, Index)
+	    ->  send(Editor, selection_extend, Index)
 	    ;	true
 	    )
 	;   true
@@ -107,21 +120,6 @@ terminate(G, _Ev:event) :->
 	(   get(G, selecting, @on),
 	    get(Editor, class_variable_value, auto_copy, @on)
 	->  send(Editor, copy)
-	;   true
-	).
-
-:- pce_group(util).
-
-place_caret(G, Index:int) :->
-	"Place caret at start of selection"::
-	(   get(G, selecting, @on)
-	->  get(G, editor, Editor),
-	    get(Editor, selection_start, Start),
-	    get(Editor, selection_end, End),
-	    (	abs(Start-Index) < abs(End-Index)
-	    ->  send(Editor, caret, Start)
-	    ;	send(Editor, caret, End)
-	    )
 	;   true
 	).
 

@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* MODIFIED: Editor selection management, unifying the `region' and `selection',
+  which is now defined by <-mark and <-caret.  This is a first step towards
+  better compatibility to GNU-Emacs as well as MS-Windows editing commands.
+
 * ADDED: Published `editor<->internal_mark', a mark for program use.
 
 * FIXED: Throw exception of Prolog defined get-method returns a
@@ -12,7 +16,7 @@
 * FIXED: `Image->mask' in windows now sets the masked parts to black for
   proper display.
 
-* FIXED: writing GIF in windows version if 3*width mod 4 =\= 0 it reversed
+* FIXED: writing GIF in windows version if 3*width mod 4 =\= 0 it swapped
   the blue and red colors.
 
 * FIXED: writing XPM in Windows version.  This includes a patch to the Windows

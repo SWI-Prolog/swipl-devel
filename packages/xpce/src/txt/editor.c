@@ -56,7 +56,7 @@ static status		insertSelfFillEditor(Editor, Int, Int);
 static status		scrollDownEditor(Editor, Int);
 static status		selectionOriginEditor(Editor, Int);
 static status		selectionExtendEditor(Editor, Int);
-static status		selection_editor(Editor, Int, Int);
+static status		selection_editor(Editor, Int, Int, Name);
 static status		selectionToCutBufferEditor(Editor, Int);
 static status		insertCutBufferEditor(Editor, Int);
 static status		insertEditor(Editor e, CharArray str);
@@ -72,6 +72,7 @@ static status		deleteEditor(Editor e, Int from, Int to);
 static status		deleteSelectionEditor(Editor e);
 static status		abortIsearchEditor(Editor e);
 static status		scrollUpEditor(Editor e, Int arg);
+static Int		getColumnLocationEditor(Editor e, Int c, Int from);
 
 static Timer	ElectricTimer;
 
@@ -82,7 +83,8 @@ static Timer	ElectricTimer;
 			  { Int _tmp = t; t = f; f = _tmp; \
 			  } \
 			}
-#define HasSelection(e) ((e)->selection_start != (e)->selection_end)
+#define HasSelection(e) ((e)->mark != (e)->caret && \
+			 (e)->mark_status == NAME_active)
 #define Fetch(e, i)		fetch_textbuffer((e)->text_buffer, (i))
 #define InRegion(i, l, h)	( (l < h && i >= l && i < h) || \
 				  (l > h && i >= h && i < l) )
@@ -128,6 +130,9 @@ initialiseEditor(Editor e, TextBuffer tb, Int w, Int h, Int tmw)
   send(e->text_cursor, NAME_active, OFF, EAV);
   assign(e, caret, ZERO);
   assign(e, mark, toInt(tb->size));
+  assign(e, mark_status, NAME_inactive);
+  assign(e, mark_ring, newObject(ClassVector, EAV));
+  fillVector(e->mark_ring, NIL, ONE, toInt(16));
   assign(e, selected_fragment, NIL);
   assign(e, selected_fragment_style, newObject(ClassStyle, EAV));
   boldStyle(e->selected_fragment_style, ON);
@@ -156,7 +161,6 @@ initialiseEditor(Editor e, TextBuffer tb, Int w, Int h, Int tmw)
   assign(e, dabbrev_origin, NIL);
   assign(e, styles, newObject(ClassSheet, EAV));
 
-  e->selection_start = e->selection_end = 0;
   e->fragment_cache = newFragmentCache(e);
 
   send(e->image, NAME_cursor, getClassVariableValueObject(e, NAME_cursor), EAV);
@@ -277,7 +281,6 @@ static status
 loadFdEditor(Editor e, IOSTREAM *fd, ClassDef def)
 { TRY(loadSlotsObject(e, fd, def));
 
-  e->selection_start = e->selection_end = 0;
   e->fragment_cache = newFragmentCache(e);
   e->internal_mark = 0;
 
@@ -310,7 +313,7 @@ textBufferEditor(Editor e, TextBuffer tb)
     assign(e, text_buffer, tb);
     assign(e, caret, ZERO);
     assign(e, mark, toInt(tb->size));
-    e->selection_start = e->selection_end = 0;
+    assign(e, mark_status, NAME_inactive);
     if ( e->fragment_cache )
       resetFragmentCache(e->fragment_cache, e->text_buffer);
 
@@ -989,7 +992,8 @@ fetch_editor(Any obj, TextChar tc)
     }
   }
 
-  if ( InRegion(index, e->selection_start, e->selection_end) )
+  if ( e->mark_status != NAME_inactive &&
+       InRegion(index, valInt(e->mark), valInt(e->caret)) )
   { Style s = (isisearchingEditor(e)
 	       ? getClassVariableValueObject(e, NAME_isearchStyle)
 	       : e->selection_style);
@@ -1569,14 +1573,37 @@ caretEditor(Editor e, Int c)
 { if ( isDefault(c) )
     c = toInt(e->text_buffer->size);
 
-  assign(e, caret, c);
+  selection_editor(e, DEFAULT, c, DEFAULT);
   return requestComputeGraphical(e, DEFAULT);
 }
 
 
 static status
 CaretEditor(Editor e, Int c)
-{ return qadSendv(e, NAME_caret, 1, (Any *)&c);
+{ if ( e->caret != c )
+    return qadSendv(e, NAME_caret, 1, (Any *)&c);
+
+  succeed;
+}
+
+
+static status
+markEditor(Editor e, Int mark, Name status)
+{ if ( isDefault(mark) )
+    mark = e->caret;
+
+					/* TBD: push in mark-ring */
+  selection_editor(e, mark, DEFAULT, status);
+  return requestComputeGraphical(e, DEFAULT);
+}
+
+
+static status
+markStatusEditor(Editor e, Name status)
+{ if ( e->mark_status != status )
+    selection_editor(e, DEFAULT, DEFAULT, status);
+
+  succeed;
 }
 
 
@@ -1767,9 +1794,7 @@ nextLineEditor(Editor e, Int arg, Int column)
     return send(e, NAME_newline, ONE, EAV);
   }
 
-  assign(e, caret, caret);
-  
-  return columnEditor(e, column);
+  return CaretEditor(e, getColumnLocationEditor(e, column, caret));
 }
 
 
@@ -1798,7 +1823,7 @@ static status
 cutOrDeleteCharEditor(Editor e, Int arg)
 { MustBeEditable(e);
 
-  if ( isDefault(arg) && e->selection_start != e->selection_end )
+  if ( isDefault(arg) && HasSelection(e) )
     return send(e, NAME_cut, EAV);
   else
     return send(e, NAME_deleteChar, arg, EAV);
@@ -1809,7 +1834,7 @@ static status
 cutOrBackwardDeleteCharEditor(Editor e, Int arg)
 { MustBeEditable(e);
 
-  if ( isDefault(arg) && e->selection_start != e->selection_end )
+  if ( isDefault(arg) && HasSelection(e) )
     return send(e, NAME_cut, EAV);
   else
     return send(e, NAME_backwardDeleteChar, arg, EAV);
@@ -1873,9 +1898,9 @@ buttons()
 
 static status
 caretMoveExtendSelectionEditor(Editor e, Int oldcaret)
-{ if ( e->selection_start == e->selection_end )
+{ if ( e->mark_status != NAME_active )
   { assign(e, selection_unit, NAME_character);
-    selectionOriginEditor(e, oldcaret);
+    assign(e, selection_origin, oldcaret);
   }
 
   selectionExtendEditor(e, e->caret);
@@ -1904,7 +1929,7 @@ cursorUpEditor(Editor e, Int arg, Int column)
     arg = ONE;
 
   if ( !(bts & BUTTON_shift) )
-    send(e, NAME_selection, ZERO, ZERO, EAV);
+    markStatusEditor(e, NAME_inactive);
 
   if ( bts & BUTTON_control )
     backwardParagraphEditor(e, arg);
@@ -1933,7 +1958,7 @@ cursorDownEditor(Editor e, Int arg, Int column)
     arg = ONE;
 
   if ( !(bts & BUTTON_shift) )
-    send(e, NAME_selection, ZERO, ZERO, EAV);
+    markStatusEditor(e, NAME_inactive);
 
   if ( bts & BUTTON_control )
     forwardParagraphEditor(e, arg);
@@ -1958,7 +1983,7 @@ cursorLeftEditor(Editor e, Int arg)
   Int caret = e->caret;
 
   if ( !(bts & BUTTON_shift) )
-    send(e, NAME_selection, ZERO, ZERO, EAV);
+    markStatusEditor(e, NAME_inactive);
 
   if ( bts & BUTTON_control )
     backwardWordEditor(e, arg);
@@ -1978,7 +2003,7 @@ cursorRightEditor(Editor e, Int arg)
   Int caret = e->caret;
 
   if ( !(bts & BUTTON_shift) )
-    send(e, NAME_selection, ZERO, ZERO, EAV);
+    markStatusEditor(e, NAME_inactive);
 
   if ( bts & BUTTON_control )
     forwardWordEditor(e, arg);
@@ -1998,7 +2023,7 @@ cursorEndEditor(Editor e, Int arg)
   Int caret = e->caret;
 
   if ( !(bts & BUTTON_shift) )
-    send(e, NAME_selection, ZERO, ZERO, EAV);
+    markStatusEditor(e, NAME_inactive);
 
   if ( bts & BUTTON_control )
     pointToBottomOfFileEditor(e, arg);
@@ -2018,7 +2043,7 @@ cursorHomeEditor(Editor e, Int arg)
   Int caret = e->caret;
 
   if ( !(bts & BUTTON_shift) )
-    send(e, NAME_selection, ZERO, ZERO, EAV);
+    markStatusEditor(e, NAME_inactive);
 
   if ( bts & BUTTON_control )
     pointToTopOfFileEditor(e, arg);
@@ -2038,7 +2063,7 @@ cursorPageUpEditor(Editor e, Int arg)
   Int caret = e->caret;
 
   if ( !(bts & BUTTON_shift) )
-    send(e, NAME_selection, ZERO, ZERO, EAV);
+    markStatusEditor(e, NAME_inactive);
 
   scrollDownEditor(e, arg);
 
@@ -2055,7 +2080,7 @@ cursorPageDownEditor(Editor e, Int arg)
   Int caret = e->caret;
 
   if ( !(bts & BUTTON_shift) )
-    send(e, NAME_selection, ZERO, ZERO, EAV);
+    markStatusEditor(e, NAME_inactive);
 
   scrollUpEditor(e, arg);
 
@@ -2245,7 +2270,8 @@ undefinedEditor(Editor e)
 static status
 keyboardQuitEditor(Editor e, Int arg)
 { assign(e, focus_function, NIL);
-  send(e->text_cursor, NAME_displayed, ON, EAV);
+  abortIsearchEditor(e);
+  markStatusEditor(e, NAME_inactive);
   send(e, NAME_report, NAME_warning, CtoName("Quit"), EAV);
 
   succeed;
@@ -2269,9 +2295,9 @@ undoEditor(Editor e)
 static status
 setMarkEditor(Editor e, Int arg)
 { if ( isDefault(arg) )
-    assign(e, mark, e->caret);
-  else
-    assign(e, mark, normalise_index(e, arg));
+    arg = e->caret;
+
+  markEditor(e, arg, NAME_active);
 
   send(e, NAME_report, NAME_status, CtoName("Mark set"), EAV);
   succeed;
@@ -2300,13 +2326,8 @@ pointToMarkEditor(Editor e)
 
 static status
 exchangePointAndMarkEditor(Editor e)
-{ Int tmp;
-
-  if ( notDefault(e->mark) )
-  { tmp = e->mark;
-    assign(e, mark,  e->caret);
-    return CaretEditor(e, tmp);
-  }
+{ if ( notNil(e->mark) )
+    return selection_editor(e, e->caret, e->mark, NAME_active);
 
   send(e, NAME_report, NAME_warning, CtoName("No mark"), EAV);
   fail;
@@ -3126,7 +3147,10 @@ findCutBufferEditor(Editor e, Int arg)
     fail;
   }
     
-  selection_editor(e, toInt(hit_start), toInt(hit_start + str->data.size));
+  selection_editor(e,
+		   toInt(hit_start),
+		   toInt(hit_start + str->data.size),
+		   NAME_highlight);
   ensureVisibleEditor(e, toInt(hit_start), toInt(hit_start + str->data.size));
   succeed;
 }
@@ -3161,8 +3185,7 @@ beginIsearchEditor(Editor e, Name direction)
   assign(e, search_base,      e->caret);
   assign(e, search_origin,    e->caret);
   assign(e, focus_function,   NAME_StartIsearch);
-  attributeObject(e, NAME_SavedDisplayedCaret, e->text_cursor->displayed);
-  selection_editor(e, e->caret, e->caret); /* clear the selection */
+  selection_editor(e, e->caret, e->caret, NAME_highlight);
   send(e, NAME_report, NAME_status, CtoName("isearch %s"), direction, EAV);
 
   succeed;
@@ -3172,15 +3195,8 @@ beginIsearchEditor(Editor e, Name direction)
 static status
 abortIsearchEditor(Editor e)
 { if ( isisearchingEditor(e) )
-  { Bool old = getAttributeObject(e, NAME_SavedDisplayedCaret);
-
-    if ( !old )
-      old = ON;
-
-    deleteAttributeObject(e, NAME_SavedDisplayedCaret);
-    assign(e, focus_function, NIL);
-    selection_editor(e, ZERO, ZERO);
-    DisplayedGraphical(e->text_cursor, old);
+  { assign(e, focus_function, NIL);
+    selection_editor(e, DEFAULT, DEFAULT, NAME_inactive);
   }
   
   succeed;
@@ -3190,10 +3206,10 @@ abortIsearchEditor(Editor e)
 static status
 endIsearchEditor(Editor e)
 { if ( isisearchingEditor(e) )
-  { int caret = (e->search_direction == NAME_forward ? e->selection_end
+  { /*int caret = (e->search_direction == NAME_forward ? e->selection_end
 						     : e->selection_start);
 
-    CaretEditor(e, toInt(caret));
+    CaretEditor(e, toInt(caret)); TBD */
     abortIsearchEditor(e);
     send(e, NAME_report, NAME_status, NAME_, EAV);
   }
@@ -3217,13 +3233,13 @@ isearchBackwardEditor(Editor e)
 static status
 extendSearchStringToWordEditor(Editor e)
 { TextBuffer tb = e->text_buffer;
-  Int start = toInt(e->selection_start);
-  Int end   = toInt(e->selection_end);
+  Int start = e->mark;			/* TBD */
+  Int end   = e->caret;
 
   end = getScanTextBuffer(tb, end, NAME_word, ZERO, NAME_end);
 
   assign(e, search_string, getContentsTextBuffer(tb, start, sub(end, start)));
-  selection_editor(e, start, end);
+  selection_editor(e, start, end, DEFAULT);
   return ensureVisibleEditor(e, start, end);
 }
 
@@ -3258,8 +3274,13 @@ executeSearchEditor(Editor e, Int chr)
   }
 
   l     = valInt(getSizeCharArray(e->search_string));
-  times = (fwd ? 1 : -1);
-  start = e->selection_start;
+  if ( fwd )
+  { times = 1;
+    start = valInt(e->mark);
+  } else
+  { times = -1;
+    start = valInt(e->caret);
+  }
 
   if ( isNil(e->search_string) || l == 0 )
   { send(e, NAME_report, NAME_warning, CtoName("No search string"), EAV);
@@ -3267,7 +3288,7 @@ executeSearchEditor(Editor e, Int chr)
     succeed;
   }
 
-  if ( isDefault(chr) && e->selection_start != e->selection_end )
+  if ( isDefault(chr) && e->mark != e->caret )
     start += times;
 
   hit_start = find_textbuffer(e->text_buffer,
@@ -3281,8 +3302,6 @@ executeSearchEditor(Editor e, Int chr)
     if ( notDefault(chr) )
       backwardDeleteCharSearchStringEditor(e);
 
-    DisplayedGraphical(e->text_cursor,
-		       e->selection_start != e->selection_end ? OFF : ON);
     succeed;
   }
   hit_end = hit_start + l;
@@ -3290,9 +3309,33 @@ executeSearchEditor(Editor e, Int chr)
   if ( isDefault(chr) )
     assign(e, search_base, toInt(fwd ? hit_start : hit_end-1));
 
-  selection_editor(e, toInt(hit_start), toInt(hit_end));
+  if ( !fwd )				/* backward: swap */
+  { int tmp = hit_end;
+    hit_end = hit_start;
+    hit_start = tmp;
+  }
+  selection_editor(e, toInt(hit_start), toInt(hit_end), NAME_highlight);
   ensureVisibleEditor(e, toInt(hit_start), toInt(hit_end));
-  DisplayedGraphical(e->text_cursor, OFF);
+
+  succeed;
+}
+
+
+static status
+searchDirectionEditor(Editor e, Name dir)
+{ if ( dir != e->search_direction )
+  { assign(e, search_direction, dir);
+
+    if ( dir == NAME_forward )
+    { if ( valInt(e->caret) < valInt(e->mark) )
+	selection_editor(e, e->caret, e->mark, DEFAULT);
+      assign(e, search_base, e->mark);
+    } else
+    { if ( valInt(e->mark) < valInt(e->caret) )
+	selection_editor(e, e->caret, e->mark, DEFAULT);
+      assign(e, search_base, e->mark);
+    }
+  }
 
   succeed;
 }
@@ -3303,31 +3346,27 @@ IsearchEditor(Editor e, EventId id)
 { Int chr = id;				/* TBD: test for character */
   Name cmd = getKeyBindingEditor(e, characterName(id));
 
-  if ( equalName(cmd, NAME_keyboardQuit) ) /* abort the search */
-  { selection_editor(e, e->search_origin, e->search_origin);
+  if ( cmd == NAME_keyboardQuit )	/* abort the search */
+  { selection_editor(e, e->search_origin, e->search_origin, NAME_inactive);
     assign(e, search_string, NIL);
     keyboardQuitEditor(e, DEFAULT);
     endIsearchEditor(e);
 
     succeed;
   }
-  if ( equalName(cmd, NAME_isearchForward) )
-  { assign(e, search_base, e->caret);
-    assign(e, search_direction, NAME_forward);
-
+  if ( cmd == NAME_isearchForward )
+  { searchDirectionEditor(e, NAME_forward);
     return executeSearchEditor(e, DEFAULT);
   }
-  if ( equalName(cmd, NAME_isearchBackward) )
-  { assign(e, search_base, e->caret);
-    assign(e, search_direction, NAME_backward);
-
+  if ( cmd == NAME_isearchBackward )
+  { searchDirectionEditor(e, NAME_backward);
     return executeSearchEditor(e, DEFAULT);
   }
   if ( cmd == NAME_backwardDeleteChar ||
        cmd == NAME_cutOrBackwardDeleteChar )
   { backwardDeleteCharSearchStringEditor(e);
     if ( notNil(e->search_string) )
-    { selection_editor(e, e->search_base, e->search_base);
+    { selection_editor(e, e->search_base, e->search_base, DEFAULT);
       executeSearchEditor(e, DEFAULT);
     } else
       endIsearchEditor(e);
@@ -3702,7 +3741,10 @@ showScrollBarEditor(Editor e, Bool show, ScrollBar sb)
 
 static status
 internalMarkEditor(Editor e, Int mark)
-{ e->internal_mark = valInt(normalise_index(e, mark));
+{ if ( isDefault(mark) )
+    mark = e->caret;
+
+  e->internal_mark = valInt(normalise_index(e, mark));
 
   succeed;
 }
@@ -3757,25 +3799,33 @@ selectionExtendEditor(Editor e, Int where)
 #undef WordKind
 #undef LineKind
 
-  return selection_editor(e, toInt(from), toInt(to));
+  if ( valInt(where) < valInt(e->selection_origin) ) /* swap */
+  { int tmp = from;
+    from = to;
+    to = tmp;
+  }
+  return selection_editor(e, toInt(from), toInt(to), NAME_active);
 }
 
 
 static status
-selection_editor(Editor e, Int from, Int to)
-{ if ( isDefault(from) ) from = toInt(e->selection_start);
-  if ( isDefault(to) )   to   = toInt(e->selection_end);
+selection_editor(Editor e, Int from, Int to, Name status)
+{ if ( isDefault(from) )   from   = e->mark;
+  if ( isDefault(to) )     to     = e->caret;
+  if ( isDefault(status) ) status = e->mark_status;
 
-  if ( valInt(from) != e->selection_start ||
-       valInt(to)   != e->selection_end )
-  { if ( e->selection_end != e->selection_start )
-      ChangedRegionEditor(e, toInt(e->selection_start),
-			     toInt(e->selection_end));
+  from = normalise_index(e, from);
+  to   = normalise_index(e, to);
 
-    e->selection_start = valInt(from);
-    e->selection_end   = valInt(to);
+  if ( from != e->mark || to != e->caret || status != e->mark_status )
+  { if ( e->caret != e->mark )
+      ChangedRegionEditor(e, e->mark, e->caret);
 
-    if ( e->selection_end != e->selection_start )
+    assign(e, mark, from);
+    assign(e, caret, to);	/* TBD: allow redefinition of ->caret */
+    assign(e, mark_status, status);
+
+    if ( from != to )
       ChangedRegionEditor(e, from, to);
   }
 
@@ -3797,16 +3847,15 @@ selectLineEditor(Editor e, Int line, Bool newline)
   if ( newline == ON )
     to = add(to, ONE);
 
-  selection_editor(e, from, to);
+  selection_editor(e, from, to, NAME_highlight);
   return ensureVisibleEditor(e, from, to);
 }
 
 
 status
-selectionEditor(Editor e, Int from, Int to)
-{ selection_editor(e, from, to);
-  if ( e->selection_start != e->selection_end )
-    normaliseEditor(e, toInt(e->selection_start), toInt(e->selection_end));
+selectionEditor(Editor e, Int from, Int to, Name status)
+{ selection_editor(e, from, to, status);
+  normaliseEditor(e, e->mark, e->caret);
 
   succeed;
 }
@@ -3814,8 +3863,8 @@ selectionEditor(Editor e, Int from, Int to)
 
 Point
 getSelectionEditor(Editor e)
-{ Int f = toInt(e->selection_start);
-  Int t = toInt(e->selection_end);
+{ Int f = e->mark;
+  Int t = e->caret;
 
   if ( f != t )
   { Before(f, t);
@@ -3828,8 +3877,8 @@ getSelectionEditor(Editor e)
 
 static Int
 getSelectionStartEditor(Editor e)
-{ if ( e->selection_start != e->selection_end )
-    answer(toInt(e->selection_start));
+{ if ( e->mark != e->caret )
+    answer(e->mark);
 
   fail;
 }
@@ -3837,8 +3886,8 @@ getSelectionStartEditor(Editor e)
 
 static Int
 getSelectionEndEditor(Editor e)
-{ if ( e->selection_start != e->selection_end )
-    answer(toInt(e->selection_end));
+{ if ( e->mark != e->caret )
+    answer(e->caret);
 
   fail;
 }
@@ -3846,8 +3895,8 @@ getSelectionEndEditor(Editor e)
 
 StringObj
 getSelectedEditor(Editor e)
-{ Int f = toInt(e->selection_start);
-  Int t = toInt(e->selection_end);
+{ Int f = e->mark;
+  Int t = e->caret;
 
   if ( f != t )
   { Before(f, t);
@@ -3862,12 +3911,12 @@ getSelectedEditor(Editor e)
 		********************************/
 
 #define SelectionRegion(e, from, to) \
-  { if ( e->selection_start == e->selection_end ) \
+  { if ( !HasSelection(e) ) \
     { send(e, NAME_report, NAME_warning, CtoName("No selection"), EAV); \
       fail; \
     } \
-    from = toInt(e->selection_start); \
-    to   = toInt(e->selection_end); \
+    from = e->mark; \
+    to   = e->caret; \
     Before(from, to); \
   }
 
@@ -3879,7 +3928,7 @@ deleteSelectionEditor(Editor e)
   MustBeEditable(e);
   SelectionRegion(e, from, to);
   if ( (rval = deleteTextBuffer(e->text_buffer, from, sub(to, from))) )
-    e->selection_start = e->selection_end = 0;
+    selection_editor(e, from, from, NAME_inactive);
 
   return rval;
 }
@@ -3933,7 +3982,7 @@ selectionToCutBufferEditor(Editor e, Int arg)
     fail;
   }
 
-  if ( e->selection_start == e->selection_end )
+  if ( !HasSelection(e) )
     fail;				/* no selection */
 
   return send(getDisplayGraphical((Graphical) e), NAME_cutBuffer,
@@ -4026,8 +4075,7 @@ printEditor(Editor e, CharArray str)
 status
 clearEditor(Editor e)
 { clearTextBuffer(e->text_buffer);
-  CaretEditor(e, ZERO);
-  e->selection_start = e->selection_end = 0;
+  selection_editor(e, ZERO, ZERO, NAME_inactive);
   assign(e, file, NIL);
 
   succeed;
@@ -4151,28 +4199,38 @@ getColumnEditor(Editor e, Int where)
 }
 
 
-static status
-columnEditor(Editor e, Int c)
+static Int
+getColumnLocationEditor(Editor e, Int c, Int from)
 { TextBuffer tb = e->text_buffer;
   int size = tb->size;
-  long pos = valInt(getScanTextBuffer(tb, e->caret, NAME_line, 0, NAME_start));
+  long pos;
   int dcol = valInt(c);
   int col;
+
+  if ( isDefault(from) )
+    from = e->caret;
+  pos = valInt(getScanTextBuffer(tb, from, NAME_line, 0, NAME_start));
 
   for(col = 0; col < dcol && pos < size; pos++)
   { switch( fetch_textbuffer(tb, pos) )
     { case '\n':
-        return CaretEditor(e, toInt(pos));
+	return toInt(pos);
       case '\t':
-        col++;
+	col++;
 	col = Round(col, valInt(e->tab_distance));
 	break;
       default:
-        col++;
+	col++;
     }
   }
-    
-  return CaretEditor(e, toInt(pos));
+
+  answer(toInt(pos));
+}
+
+
+static status
+columnEditor(Editor e, Int c)
+{ return CaretEditor(e, getColumnLocationEditor(e, c, e->caret));
 }
 
 
@@ -4328,8 +4386,6 @@ InsertEditor(Editor e, Int where, Int amount)
 #define UPDATE_C_INDEX(e, idx) \
   e->idx = update_index_on_insert(e->idx, w, a);
 
-  UPDATE_C_INDEX(e, selection_start);
-  UPDATE_C_INDEX(e, selection_end);
   UPDATE_C_INDEX(e, internal_mark);
 
 #undef UPDATE_C_INDEX
@@ -4449,6 +4505,13 @@ static char *T_timesADintD_characterADcharD[] =
         { "times=[int]", "character=[char]" };
 static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+static char *T_selection[] =
+        { "mark=[int]", "caret=[int]",
+	  "status=[{active,inactive,highlight}]"
+	};
+static char *T_mark[] =
+        { "mark=[int]", "status=[{active,inactive,highlight}]"
+	};
 
 /* Instance Variables */
 
@@ -4471,8 +4534,13 @@ static vardecl var_editor[] =
      NAME_area, "Size of editor in character units"),
   IV(NAME_caret, "int", IV_GET,
      NAME_caret, "0-based caret index"),
-  IV(NAME_mark, "int", IV_BOTH,
+  IV(NAME_mark, "int", IV_GET,
      NAME_caret, "0-based mark index"),
+  SV(NAME_markStatus, "{active,inactive,highlight}", IV_GET|IV_STORE,
+     markStatusEditor,
+     NAME_caret, "Status of the mark/region"),
+  IV(NAME_markRing, "vector", IV_GET,
+     NAME_caret, "Ring of old marks"),
   SV(NAME_tabDistance, "characters=int", IV_GET|IV_STORE, tabDistanceEditor,
      NAME_appearance, "Distance between tabs"),
   IV(NAME_selectionStyle, "[style]", IV_GET,
@@ -4533,10 +4601,6 @@ static vardecl var_editor[] =
      NAME_internal, "Caret index of start of target"),
   IV(NAME_internalMark, "alien:int", IV_NONE,
      NAME_internal, "Additional mark for internal use"),
-  IV(NAME_selectionStart, "alien:int", IV_NONE,
-     NAME_selection, "Start of selection"),
-  IV(NAME_selectionEnd, "alien:int", IV_NONE,
-     NAME_selection, "End of selection"),
   IV(NAME_fragmentCache, "alien:FragmentCache", IV_NONE,
      NAME_cache, "Cache to compute fragment attributes")
 };
@@ -4820,12 +4884,14 @@ static senddecl send_editor[] =
      NAME_search, "Start incremental search backward"),
   SM(NAME_isearchForward, 0, NULL, isearchForwardEditor,
      NAME_search, "Start incremental search forward"),
-  SM(NAME_internalMark, 1, "int", internalMarkEditor,
+  SM(NAME_internalMark, 1, "[int]", internalMarkEditor,
      NAME_caret, "Mark for program-use"),
   SM(NAME_selectLine, 2, T_selectLine, selectLineEditor,
      NAME_selection, "Select given line number"),
-  SM(NAME_selection, 2, T_fromADintD_toADintD, selectionEditor,
+  SM(NAME_selection, 3, T_selection, selectionEditor,
      NAME_selection, "Make [from, to) the selection"),
+  SM(NAME_mark, 2, T_mark, markEditor,
+     NAME_selection, "Set mark and region-status"),
   SM(NAME_selectionExtend, 1, "to=int", selectionExtendEditor,
      NAME_selection, "Extend the selection"),
   SM(NAME_selectionToCutBuffer, 1, "buffer=[0..9]", selectionToCutBufferEditor,

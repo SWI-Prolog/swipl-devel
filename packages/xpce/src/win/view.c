@@ -130,8 +130,8 @@ clearView(View v)
 
 
 static status
-selectionView(View v, Int from, Int to)
-{ return selectionEditor(v->editor, from, to);
+selectionView(View v, Int from, Int to, Name status)
+{ return selectionEditor(v->editor, from, to, status);
 }
 
 
@@ -173,6 +173,10 @@ static char *T_initialise[] =
         { "label=[name]", "size=[size]", "display=[display]", "editor=[editor]" };
 static char *T_requestGeometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+static char *T_selection[] =
+        { "mark=[int]", "caret=[int]",
+	  "status=[{active,inactive,highlight}]"
+	};
 
 /* Instance Variables */
 
@@ -200,7 +204,7 @@ static senddecl send_view[] =
      NAME_scroll, "Overrule window behaviour"),
   SM(NAME_scrollTo, 1, "int", scrollToView,
      NAME_scroll, "Overrule window behaviour"),
-  SM(NAME_selection, 2, T_fromAint_toAint, selectionView,
+  SM(NAME_selection, 3, T_selection, selectionView,
      NAME_selection, "Overrule window behaviour")
 };
 

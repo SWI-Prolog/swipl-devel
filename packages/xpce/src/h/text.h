@@ -118,6 +118,8 @@ NewClass(editor)
   Size		size;			/* Size in characters */
   Int		caret;			/* position of the caret */
   Int		mark;			/* position of the marker */
+  Name		mark_status;		/* active,inactive,highlight */
+  Vector	mark_ring;		/* ring of old marks */
   Int		tab_distance;		/* distance between tabs */
   Style		selection_style;	/* style for the <-selection */
   Fragment	selected_fragment;	/* Currently selected fragment */
@@ -148,8 +150,6 @@ NewClass(editor)
   Int		dabbrev_origin;		/* Start of dabbrev word */
 					/* Private data */
   long		internal_mark;		/* Internally used mark */
-  long		selection_start;	/* Start of selection */
-  long		selection_end;		/* End of selection */
   FragmentCache fragment_cache;		/* Cache to compute frament overlap */
 End;
 

@@ -25,7 +25,7 @@ status		normaliseEditor(Editor e, Int start, Int end);
 Any		ReceiverOfEditor(Editor e);
 status		forwardModifiedEditor(Editor e, Bool val);
 status		scrollToEditor(Editor e, Int pos);
-status		selectionEditor(Editor e, Int from, Int to);
+status		selectionEditor(Editor e, Int from, Int to, Name how);
 Point		getSelectionEditor(Editor e);
 StringObj	getSelectedEditor(Editor e);
 status		formatEditor(Editor e, CharArray fmt, int argc, Any *argv);
