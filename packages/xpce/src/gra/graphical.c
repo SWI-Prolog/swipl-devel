@@ -26,7 +26,6 @@
 #include <h/graphics.h>
 #include <math.h>
 
-static int	distance_area(int, int, int, int, int, int, int, int);
 static status	orientationGraphical(Graphical gr, Name orientation);
 static Point	getCenterGraphical(Graphical gr);
 static status	updateHideExposeConnectionsGraphical(Graphical gr);
@@ -2302,22 +2301,73 @@ forceRepel(int d, float C3)
 }
 
 
-static void
-placeGraphical(Graphical gr, int x, int y)
-{ Any av[2];
-
-  av[0] = toInt(x);
-  av[1] = toInt(y);
-
-  qadSendv(gr, NAME_set, 2, av);
-}
-
-
 typedef struct
 { int		fx;			/* force in X-direction */
   int		fy;			/* force in Y-direction */
   Connection 	c;			/* the connection */
 } lg_relation;
+
+
+typedef struct
+{ Graphical	gr;			/* the graphical */
+  iarea		area;			/* its current area */
+  unsigned 	update : 1;		/* update position */
+  unsigned	moved : 1;		/* we moved it */
+} lg_object;
+
+
+static inline int
+cx_object(lg_object *o)
+{ return o->area.x + o->area.w/2;
+}
+
+
+static inline int
+cy_object(lg_object *o)
+{ return o->area.y + o->area.h/2;
+}
+
+
+static void
+place_object(lg_object *o)
+{ Any av[2];
+
+  av[0] = toInt(o->area.x);
+  av[1] = toInt(o->area.y);
+
+  qadSendv(o->gr, NAME_set, 2, av);
+}
+
+
+static int
+distance_area(IArea a, IArea b)
+{ int bx = b->x - a->x;		/* normalise on (ax,ay) == (0,0) */
+  int by = b->y - a->y;
+
+  if (a->h < by)				/* a above b */
+  { if (bx+b->w < 0)				/* b left a */
+      return(distance(bx+b->w, by, 0, a->h));
+    if (bx > a->w)				/* a left b */
+      return(distance(a->w, a->h, bx, by));
+    return(by-(a->h));
+  }
+
+  if (by+b->h < 0)				/* b above a */
+  { if (a->w < bx)
+      return(distance(a->w, 0, bx, by+b->h));
+    if (bx+b->w < 0)
+      return(distance(bx+b->w, by+b->h, 0, 0));
+    return(-(by+b->h));
+  }
+
+  if (a->w < bx)				/* a and b equal height */
+    return(bx-(a->w));
+
+  if (bx+b->w < 0)
+    return(-(bx+b->w));
+
+  return(0);					/* overlap */
+}
 
 
 static status
@@ -2328,10 +2378,9 @@ layoutGraphical(Graphical gr,
 		Int  argC4,		/* addaption-speed */
 		Int  argC5)		/* max iterations */
 { lg_relation **r;	/* relation matrix */
-  Graphical *g;		/* g[i] = graphicals in the graph */
-  char *u;		/* graphicals that need update */
+  lg_object *objects;	/* object array */
+  lg_object *op;	/* current object */
   int un;		/* # in u[] */
-  int *fx, *fy, *fw, *fh, *m;
   int force;
   int dx, dy, d;
   int n, l, i, j;
@@ -2354,28 +2403,28 @@ layoutGraphical(Graphical gr,
   for (i=0; i<n; i++)
   { r[i] = pceMalloc(sizeof(lg_relation)*n);
   }
-  g  = pceMalloc(sizeof(Graphical)*n);
-  fx = pceMalloc(sizeof(int)*n);
-  fy = pceMalloc(sizeof(int)*n);
-  fh = pceMalloc(sizeof(int)*n);
-  fw = pceMalloc(sizeof(int)*n);
-  m  = pceMalloc(sizeof(int)*n);
-  u  = pceMalloc(sizeof(char)*n);
+  objects = pceMalloc(sizeof(lg_object)*n);
 
-  for (cell=network->head, i=0; notNil(cell); i++, cell=cell->next)
-  { g[i] = cell->value;
-    fx[i] = valInt(g[i]->area->x);
-    fy[i] = valInt(g[i]->area->y);
-    fw[i] = valInt(g[i]->area->w);
-    fh[i] = valInt(g[i]->area->h);
+  for (cell=network->head, op=objects; notNil(cell); op++, cell=cell->next)
+  { Graphical gr = cell->value;
+
+    op->gr = gr;
+    op->area.x = valInt(gr->area->x);
+    op->area.y = valInt(gr->area->y);
+    op->area.w = valInt(gr->area->w);
+    op->area.h = valInt(gr->area->h);
+    op->moved  = TRUE;
+    op->update = FALSE;
   }
 
-  for (i=0; i<n; i++)
-  { for (j=0; j<i; j++)
-      r[i][j].c = getConnectedGraphical(g[i], g[j], DEFAULT, DEFAULT, DEFAULT);
-    m[i] = TRUE;
+  for (i=0, op=objects; i<n; i++, op++)
+  { lg_object *op2;
+    lg_relation *rp;
+
+    for (j=0, op2=objects, rp = r[i]; j<i; j++, op2++, rp++)
+    { rp->c = getConnectedGraphical(op->gr, op2->gr, DEFAULT, DEFAULT, DEFAULT);
+    }
     r[i][i].fx = r[i][i].fy = 0;	/* clean diagonal */
-    u[i] = FALSE;
   }
 
   un = 0;
@@ -2383,11 +2432,11 @@ layoutGraphical(Graphical gr,
 
   for (l=1; l<=C5 && moved; l++)
   { for (i=0; i<n; i++)
-    { int mi = m[i];
+    { int mi = objects[i].moved;
       for (j=0; j<i; j++)
-      { if (mi == FALSE && m[j] == FALSE)
+      { if (mi == FALSE && objects[j].moved == FALSE)
 	  continue;
-	d = distance_area(fx[i],fy[i],fw[i],fh[i],fx[j],fy[j],fw[j],fh[j]);
+	d = distance_area(&objects[i].area, &objects[j].area);
 	if (d == 0)
 	{ int f = ((int)C2<<10)/6;
 
@@ -2396,8 +2445,8 @@ layoutGraphical(Graphical gr,
 
 	  continue;
 	}
-	dx = ((fx[j] + fw[j]/2) - (fx[i] + fw[i]/2)) << 10;
-	dy = ((fy[j] + fh[j]/2) - (fy[i] + fh[i]/2)) << 10;
+	dx = (cx_object(&objects[j]) - cx_object(&objects[i])) << 10;
+	dy = (cy_object(&objects[j]) - cy_object(&objects[i])) << 10;
 
 	if ( r[i][j].c )
 	{ Int len;
@@ -2408,13 +2457,13 @@ layoutGraphical(Graphical gr,
 
 	  if ( len )
 	  { c2 = (float)valInt(len);
-	    if ( !u[i] )
+	    if ( !objects[i].update )
 	    { un++;
-	      u[i] = TRUE;
+	      objects[i].update = TRUE;
 	    }
-	    if ( !u[j] )
+	    if ( !objects[j].update )
 	    { un++;
-	      u[j] = TRUE;
+	      objects[j].update = TRUE;
 	    }
 	  } else
 	    c2 = C2;
@@ -2429,7 +2478,7 @@ layoutGraphical(Graphical gr,
     }
 
     moved = FALSE;
-    for (i=0; i<n; i++)
+    for (i=0, op=objects; i<n; i++, op++)
     { dx = dy = 0;
       for (j=0; j<n; j++)
       { dx += r[i][j].fx;
@@ -2438,23 +2487,23 @@ layoutGraphical(Graphical gr,
       dx = (((dx * C4) / n) + 512) >> 10;
       dy = (((dy * C4) / n) + 512) >> 10;
       if (dx == 0 && dy == 0)
-      { m[i] = FALSE;
+      { op->moved = FALSE;
 	continue;
       }
-      m[i] = moved = TRUE;
-      fx[i] += dx;
-      fy[i] += dy;
-      if (fx[i] < 5)			/* bounce on Window */
-	fx[i] = 5;
-      if (fy[i] < 5)
-	fy[i] = 5;
+      op->moved = moved = TRUE;
+      op->area.x += dx;
+      op->area.y += dy;
+      if ( op->area.x < 5 )			/* bounce on Window */
+	op->area.x = 5;
+      if ( op->area.y < 5 )
+	op->area.y = 5;
     }
 
     if ( un )
-    { for (i=0; i<n; i++)
-      { if ( u[i] )
-	{ placeGraphical(g[i], fx[i], fy[i]);
-	  u[i] = FALSE;
+    { for (i=0, op=objects; i<n; i++, op++)
+      { if ( op->update )
+	{ place_object(op);
+	  op->update = FALSE;
 	  un--;
 	}
       }
@@ -2463,52 +2512,17 @@ layoutGraphical(Graphical gr,
   }
 
   for (i=0; i<n; i++)	/* update display */
-    placeGraphical(g[i], fx[i], fy[i]);
+    place_object(&objects[i]);
 
   for(i=0; i<n; i++)
   { pceFree(r[i]);
   }
   pceFree(r);
-  pceFree(g);
-  pceFree(fx);
-  pceFree(fy);
-  pceFree(fw);
-  pceFree(fh);
-  pceFree(m);
+  pceFree(objects);
 
   succeed;
 }
 
-
-static int
-distance_area(int ax, int ay, int aw, int ah, int bx, int by, int bw, int bh)
-{ bx -= ax;				/* normalise on (ax,ay) == (0,0) */
-  by -= ay;
-
-  if (ah < by)					/* a above b */
-  { if (bx+bw < 0)				/* b left a */
-      return(distance(bx+bw, by, 0, ah));
-    if (bx > aw)				/* a left b */
-      return(distance(aw, ah, bx, by));
-    return(by-(ah));
-  }
-
-  if (by+bh < 0)				/* b above a */
-  { if (aw < bx)
-      return(distance(aw, 0, bx, by+bh));
-    if (bx+bw < 0)
-      return(distance(bx+bw, by+bh, 0, 0));
-    return(-(by+bh));
-  }
-
-  if (aw < bx)					/* a and b equal height */
-    return(bx-(aw));
-
-  if (bx+bw < 0)
-    return(-(bx+bw));
-
-  return(0);					/* overlap */
-}
 
 		/********************************
 		*              EVENTS		*
