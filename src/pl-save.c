@@ -616,7 +616,11 @@ main(int argc, char **argv, char **env)
 #else /* !O_SAVE */
 
 int
+#ifdef __NT__
+ntmain(argc, argv, env)
+#else
 main(argc, argv, env)
+#endif
 int argc;
 char **argv;
 char **env;

@@ -811,3 +811,132 @@ Word file, entry, options, libraries, size;
 #endif /* O_MACH_FOREIGN */
 #endif /* O_AIX_FOREIGN */
 #endif /* O_FOREIGN */
+
+		 /*******************************
+		 *     DLOPEN() AND FRIENDS	*
+		 *******************************/
+
+#if O_DLOPEN
+
+#include <dlfcn.h>
+typedef int (*dl_funcptr)();
+
+typedef struct dl_entry *DlEntry;
+struct dl_entry
+{ int	  id;				/* Prolog's identifier */
+  void   *dlhandle;			/* DL libraries identifier */
+  Atom	  file;				/* Loaded filed */
+  DlEntry next;				/* Next in table */
+};
+
+int	dl_plid;			/* next id to give */
+DlEntry dl_head;			/* loaded DL's */
+DlEntry dl_tail;			/* end of this chain */
+
+word
+pl_open_shared_object(Word file, Word plhandle)
+{ void *dlhandle;
+  DlEntry e;
+
+  if ( !isAtom(*file) )
+    return warning("open_shared_object/2: instantiation fault");
+  if ( !(dlhandle = dlopen(stringAtom(*file), RTLD_LAZY)) )
+    return warning("load_shared_object/2: %s", dlerror());
+  e = allocHeap(sizeof(struct dl_entry));
+  e->id       = ++dl_plid;
+  e->dlhandle = dlhandle;
+  e->file     = (Atom) *file;
+  e->next     = NULL;
+  if ( !dl_tail )
+    dl_head = dl_tail = e;
+  else
+    dl_tail->next = e;
+
+  return unifyAtomic(plhandle, consNum(e->id));
+}
+
+
+static DlEntry
+find_dl_entry(word h)
+{ DlEntry e;
+
+  if ( isInteger(h) )
+  { int id = valNum(h);
+
+    for(e = dl_head; e; e = e->next)
+      if ( e->id == id )
+	return e;
+  }
+
+  return NULL;
+}
+
+
+word
+pl_close_shared_object(Word plhandle)
+{ DlEntry e = find_dl_entry(*plhandle);
+
+  if ( e && e->dlhandle) 
+  { dlclose(e->dlhandle);
+    e->dlhandle = NULL;
+
+    succeed;
+  }
+
+  fail;
+}
+
+
+word
+pl_call_shared_object_function(Word plhandle, Word name)
+{ DlEntry e = find_dl_entry(*plhandle);
+  char *fname;
+  dl_funcptr ef;
+
+  if ( !e || !e->dlhandle )
+    return warning("call_shared_object_function/2: bad handle");
+  if ( !(fname = primitiveToString(*name, FALSE)) )
+    return warning("call_shared_object_function/2: instantiation fault");
+  
+  if ( !(ef = (dl_funcptr) dlsym(e->dlhandle, fname)) )
+    return warning("load_shared_object/2: %s", dlerror());
+
+  if ( (*ef)() )
+    succeed;
+  fail;
+}
+
+#if 0
+word
+pl_load_shared_object(Word file, Word entry)
+{ char *fn, *e, fnb[256], eb[256];
+  void *dlhandle;
+  dl_funcptr ef = NULL;
+
+  initAllocLocal();
+  if ( (fn = primitiveToString(*file, TRUE)) == NULL ||
+       (e  = primitiveToString(*entry, TRUE)) == NULL )
+  { stopAllocLocal();
+    return warning("load_shared_object/2: instantiation fault");
+  }
+
+  strcpy(eb, e);
+  strcpy(fnb, fn);
+  stopAllocLocal();			/* can have call-back! */
+
+  if ( !(dlhandle = dlopen(fnb, RTLD_LAZY)) )
+  { stopAllocLocal();
+    return warning("load_shared_object/2: %s", dlerror());
+  }
+  printf("Handle = 0x%p\n", dlhandle);
+
+  if ( !(ef = (dl_funcptr) dlsym(dlhandle, eb)) )
+    return warning("load_shared_object/2: %s", dlerror());
+
+  (*ef)();
+
+  succeed;
+}
+#endif
+
+#endif /*O_DLOPEN*/

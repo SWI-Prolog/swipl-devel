@@ -5,6 +5,14 @@
     jan@swi.psy.uva.nl
 */
 
+#if defined(__WINDOWS__) || defined(__NT__)
+#include "windows.h"
+#undef TRANSPARENT
+#undef FD_SET
+#undef FD_ISSET
+#undef FD_ZERO
+#endif
+
 #include "pl-incl.h"
 
 word

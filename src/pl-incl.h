@@ -580,7 +580,7 @@ the range of integers to +- 2^25.  (Macros have to be rewritten))
 
 #if O_DATA_AT_0X4
 #define INDIRECT_MASK	0x20000000L	/* Indirect constant */
-#define INT_MASK	0x10000000L	/* Indirect constant */
+#define INT_MASK	0x10000000L	/* Integer constant */
 #define SIGN_MASK	0x40000000L     /* Sign of an integer */
 #define MASK_BITS	3		/* high order mask bits */
 #define SIGN_OFFSET     1               /* Offset of sign bit from M.S. bit */
@@ -598,6 +598,35 @@ the range of integers to +- 2^25.  (Macros have to be rewritten))
 #define STRING_MASK	0x60000000L	/* Header mask on global stack */
 #endif /* O_DATA_AT_0X2 */
 #endif /* O_DATA_AT_0X4 */
+
+#define makeRef(p)	((word)(-(long)(p)))
+#define unRef(w)	((Word)(-(long)(w)))
+#define isRef(w)	((long)(w) < 0)
+
+#if O_DATA_AT_0X8
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Masking schema for system which have their malloc()-area in the negative
+addresses (>= 0x80000000L).  We basically use  the same masking strategy
+as for low addresses (< 0x20000000L), but  we place the reference tag on
+0x10000000L.  NOT TESTED!!!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#undef REF_MASK				/* redefine! */
+#undef MASK_BITS
+#undef REAL_MASK
+#undef makeRef
+#undef unRef
+#undef isRef
+
+#define REF_MASK	0x10000000L	/* put here */
+#define MASK_BITS	4
+#define REAL_MASK	0xe0000000L	/* real on indirect value */
+
+#define makeRef(p)	((word)(p) | REF_MASK)
+#define unRef(w)	((Word)((word)(w) & ~REF_MASK))
+#define isRef(w)	((word)(w) & REF_MASK)
+#endif /* O_DATA_AT_0X8 */
 
 #define LMASK_BITS	2		/* low order mask bits */
 #define DMASK_BITS	4		/* DATA_TAG_MASK bits */
@@ -773,9 +802,6 @@ for a pointer.
 Handling references.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define makeRef(p)	((word)(-(long)(p)))
-#define unRef(w)	((Word)(-(long)(w)))
-#define isRef(w)	((long)(w) < 0)
 #define deRef(p)	{ while(isRef(*(p))) (p) = unRef(*(p)); }
 #define deRef2(p, d)	{ (d) = (p); deRef((d)); }
 

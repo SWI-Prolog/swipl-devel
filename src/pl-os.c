@@ -859,7 +859,7 @@ SizeFile(char *path)
   return buf.st_size;
 }
 
-
+#if !defined(__NT__)
 bool
 DeleteFile(char *path)
 {
@@ -871,6 +871,7 @@ DeleteFile(char *path)
   return remove(OsPath(path)) == 0 ? TRUE : FALSE;
 #endif
 }
+#endif
 
 
 bool
@@ -2655,7 +2656,7 @@ real time;                      /* granularity only. */
 #endif /* OS2 */
 
 
-#if defined(__WATCOMC__)
+#if defined(__WATCOMC__) && !defined(__NT__)
 void
 Sleep(real t)
 { if ( t <= 0.0 )

@@ -18,6 +18,14 @@ If time is there I will have a look at all this to  clean  it.   Notably
 handling times must be cleaned, but that not only holds for this module.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#if defined(__WINDOWS__) || defined(__NT__)
+#include "windows.h"
+#undef TRANSPARENT
+#undef FD_SET
+#undef FD_ISSET
+#undef FD_ZERO
+#endif
+
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #if unix || EMX
@@ -791,9 +799,9 @@ pl_wait_for_input(Word streams, Word available, Word timeout)
     to = NULL;
 
 #if hpux
-  select(max, (int*) &fds, NULL, NULL, to);
+  select(max+1, (int*) &fds, NULL, NULL, to);
 #else
-  select(max, &fds, NULL, NULL, to);
+  select(max+1, &fds, NULL, NULL, to);
 #endif
 
   for(n=0; n <= max; n++)

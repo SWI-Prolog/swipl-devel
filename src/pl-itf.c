@@ -26,37 +26,37 @@ is linked this way.
 		*********************************/
 
 constf int
-PL_is_var(register Word t)
+PL_is_var(const Word t)
 { return isVar(*t);
 }
 
 constf int
-PL_is_int(register Word t)
+PL_is_int(const Word t)
 { return isInteger(*t);
 }
 
 constf int
-PL_is_atom(register Word t)
+PL_is_atom(const Word t)
 { return isAtom(*t);
 }
 
 constf int
-PL_is_float(register Word t)
+PL_is_float(const Word t)
 { return isReal(*t);
 }
 
 constf int
-PL_is_string(register Word t)
+PL_is_string(const Word t)
 { return isString(*t);
 }
 
 constf int
-PL_is_term(register Word t)
+PL_is_term(const Word t)
 { return isTerm(*t);
 }
 
 constf int
-PL_type(register Word t)
+PL_type(const Word t)
 { if ( isVar(*t) )		return PL_VARIABLE;
   if ( isInteger(*t) )		return PL_INTEGER;
   if ( isReal(*t) )		return PL_FLOAT;
@@ -70,25 +70,27 @@ PL_type(register Word t)
 }
 
 double					/* double for standard arg passing */
-PL_float_value(register word t)
+PL_float_value(const word t)
 { return valReal(t);
 }
 
 #if O_STRING
 char *
-PL_string_value(register word t)
+PL_string_value(const word t)
 { return valString(t);
 }
 #endif /* O_STRING */
 
 char *
-PL_list_string_value(register Word t)
-{ deRef(t);
-  return listToString(*t);
+PL_list_string_value(const Word t)
+{ Word t2 = t;
+
+  deRef(t2);
+  return listToString(*t2);
 }
 
 constf long
-PL_integer_value(register word t)
+PL_integer_value(const word t)
 { return valNum(t);
 }
 
@@ -98,17 +100,17 @@ PL_atom_value(const atomic t)
 }
 
 constf functor
-PL_functor(register Word t)
+PL_functor(const Word t)
 { return isTerm(*t) ? (functor) functorTerm(*t) : (functor) NULL;
 }
 
 constf atomic
-PL_functor_name(register FunctorDef f)
+PL_functor_name(const FunctorDef f)
 { return (atomic) f->name;
 }
 
 constf int
-PL_functor_arity(register FunctorDef f)
+PL_functor_arity(const FunctorDef f)
 { return f->arity;
 }
 
@@ -161,22 +163,22 @@ PL_new_float(double f)
 }
 
 functor
-PL_new_functor(register atomic f, register int a)
+PL_new_functor( atomic f,  int a)
 { return (functor) lookupFunctorDef((Atom)f, a);
 }
 
 bool
-PL_unify(register Word t1, register Word t2)
+PL_unify( Word t1,  Word t2)
 { return (bool) pl_unify(t1, t2);
 }
 
 bool
-PL_unify_atomic(register Word t, register word w)
+PL_unify_atomic( Word t,  word w)
 { return unifyAtomic(t, w);
 }
 
 bool
-PL_unify_functor(register Word t, register FunctorDef f)
+PL_unify_functor( Word t,  FunctorDef f)
 { return unifyFunctor(t, f);
 }
 

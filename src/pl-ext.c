@@ -243,6 +243,13 @@ static struct foreign {
 #else
   ADD("$load_foreign",		5, pl_load_foreign,	TRANSPARENT|TRACE_ME),
 #endif
+#if O_DLOPEN
+  ADD("open_shared_object",	2, pl_open_shared_object,	TRACE_ME),
+  ADD("close_shared_object",	1, pl_close_shared_object,	TRACE_ME),
+  ADD("call_shared_object_function",
+				2, pl_call_shared_object_function,
+							TRANSPARENT|TRACE_ME),
+#endif /*O_DLOPEN*/
 
 #if O_STRING
   ADD("string",			1, pl_string,			TRACE_ME),

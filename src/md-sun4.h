@@ -14,13 +14,13 @@ SunOS cc.
 
 #define M_CC			gcc
 #define M_OPTIMIZE	        -O2
-#define M_LDFLAGS		-static
+#define M_LDFLAGS		
 /*#define M_CFLAGS		-ansi -pedantic -Wall -funsigned-char*/
 #define M_CFLAGS		-Wall -funsigned-char
 
 /*#define M_OPTIMIZE		-g -DO_DEBUG*/
 
-#define M_LIBS			-lm -ltermcap -lreadline
+#define M_LIBS			-lm -ltermcap -lreadline -ldl /usr/lib/libc.a
 
 /* #define O_VMCODE_IS_ADDRESS	0	temporary */
 
@@ -38,6 +38,7 @@ SunOS cc.
 #define O_NO_SEGV_ADDRESS	0
 #define MAX_VIRTUAL_ADDRESS	(512 * 1024 *1024)
 #define O_FOREIGN		1
+#define O_DLOPEN		1
 #ifndef USE_CC				/* just the default ld for cc */
 #define LD_COMMAND		"gcc"
 #endif

@@ -10,6 +10,11 @@
 /*#define O_DEBUG 1*/
 /*#define O_SECURE 1*/
 #include "pl-incl.h"
+#include <memory.h>
+
+#ifdef __sun__
+#define memmove(t, f, s) bcopy(t, f, s)
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module is based on
@@ -1799,7 +1804,6 @@ int l, g, t;
     long gsize = sizeStack(global);
     long tsize = sizeStack(trail);
     real time = CpuTime();
-    word key;
 
     DEBUG(0,
 	  printf("growStacks(0x%x, 0x%x, %c%c%c) l+g+t = %ld %ld %ld ...",

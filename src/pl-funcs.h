@@ -115,7 +115,7 @@ word		Putf();
 #else 
 word		Putf(char *, ...);
 #endif
-word		vPutf(char *, va_list),
+word		vPutf(char *, char *),
 		pl_tty(void),
 		pl_tty_fold(Word, Word),
 		pl_put(Word),
@@ -315,15 +315,20 @@ bool		getSymbols(void);
 void		resetLoader(void);
 word		pl_load_foreign(Word, Word, Word, Word, Word);
 word		pl_load_foreign1(Word);
+#if O_DLOPEN
+word		pl_open_shared_object(Word file, Word plhandle),
+		pl_close_shared_object(Word plhandle),
+		pl_call_shared_object_function(Word plhandle, Word name);
+#endif /*O_DLOPEN*/
 
 		/* pl-main.c */
 
 bool		sysError(char *fm , ...),
 		fatalError(char *fm , ...),
 		warning(char *fm , ...),
-		vsysError(char *fm , va_list args ),
-		vfatalError(char *fm , va_list args ),
-		vwarning(char *fm , va_list args );
+		vsysError(char *fm , char *),
+		vfatalError(char *fm , char *),
+		vwarning(char *fm , char *);
 int		startProlog(int, char **, char **);
 
 		/* pl-modul.c */
