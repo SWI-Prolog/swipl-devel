@@ -414,6 +414,8 @@ pl_set_sgml_parser(term_t parser, term_t option)
       p->dtd->space_mode = SP_DEFAULT;
     else if ( streq(s, "remove") )
       p->dtd->space_mode = SP_REMOVE;
+    else if ( streq(s, "sgml") )
+      p->dtd->space_mode = SP_SGML;
 
     else
       return sgml2pl_error(ERR_DOMAIN, "space", a);

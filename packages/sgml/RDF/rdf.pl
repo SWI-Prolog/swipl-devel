@@ -37,7 +37,7 @@ load_rdf(File, Triples, Options) :-
 		       [ RDFElement
 		       ],
 		       [ dialect(xmlns),
-			 space(remove)
+			 space(sgml)
 		       ]),
 	xml_to_rdf(RDFElement, BaseURI, Triples).
 

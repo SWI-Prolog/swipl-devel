@@ -1,6 +1,6 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="iso-8859-1"?>
 
-<!-- Definition of RDF-schema in inself -->
+<!-- Definition of RDF-schema in itself -->
 <!-- From http://www.w3.org/TR/rdf-schema/ -->
 
 <rdf:RDF

@@ -54,7 +54,8 @@ test_file(File) :-
 	cat(File),
 	load_structure(File,
 		       XMLTerm,
-		       [ dialect(xmlns)
+		       [ dialect(xmlns),
+			 space(remove)
 		       ]),
 	find_rdf(XMLTerm, RDFElement),
 	xml_to_plrdf(RDFElement, [], RDF),
@@ -72,7 +73,8 @@ time_file(File) :-
 rdf_parse(File, Triples) :-
 	load_structure(File,
 		       XMLTerm,
-		       [ dialect(xmlns)
+		       [ dialect(xmlns),
+			 space(sgml)
 		       ]),
 	find_rdf(XMLTerm, RDFElement),
 	xml_to_plrdf(RDFElement, [], RDF),
