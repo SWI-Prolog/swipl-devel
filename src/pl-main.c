@@ -176,22 +176,23 @@ findState(char *symbols)
 }
 
 
+#ifndef O_RUNTIME
 static void
 warnNoFile(char *file)
 { AccessFile(file, ACCESS_READ);	/* just to set errno */
 
   Sfprintf(Serror, "    no `%s': %s\n", file, OsError());
 }
-
+#endif
 
 static void
 warnNoState()
 {
 #ifdef O_RUNTIME
-  Sfprintf(Serror, "[FATAL ERROR: Can not find a state to run\n");
-  Sfprintf(Serror, "\tUsage: %s -x state\n");
-  Sfprintf(Serror, "\twhere <state> is created using qsave_program/[1,2]"\n);
-  Sfprintf(Serror, "\tusing the development system]\n");
+  Sfprintf(Serror, "[FATAL ERROR: Runtime system: can not find a state to run\n");
+  Sfprintf(Serror, "\tUsage: %s -x state\n", mainArgv[0]);
+  Sfprintf(Serror, "\t\twhere <state> is created using qsave_program/[1,2]\n");
+  Sfprintf(Serror, "\t\tin the development system]\n");
 #else
   char state[MAXPATHLEN];
   char *full;
