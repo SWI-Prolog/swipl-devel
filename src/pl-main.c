@@ -551,9 +551,6 @@ PL_initialise(int argc, char **argv)
     succeed;
   }
 
-  memset(GD, 0, sizeof(*GD));
-  memset(LD, 0, sizeof(*LD));
-
   SinitStreams();			/* before anything else */
 
   GD->cmdline.argc = argc;
@@ -897,7 +894,9 @@ PL_cleanup(int rval)
   cleanupExtensions();
   cleanupOs();
   Scleanup();
-  GD->initialised = FALSE;
+
+  memset(GD, 0, sizeof(*GD));
+  memset(LD, 0, sizeof(*LD));
 
   UNLOCK();
 
