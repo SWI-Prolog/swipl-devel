@@ -1290,8 +1290,17 @@ Removes all clauses of a predicate with functor \arg{Functor} and arity
 \arg{Arity} from the database. All predicate attributes (dynamic,
 multifile, index, etc.) are reset to their defaults. Abolishing an
 imported predicate only removes the import link; the predicate will keep
-its old definition in its definition module. For `cleanup' of the
-dynamic database, one should use retractall/1 rather than abolish/2.
+its old definition in its definition module.
+
+According to the ISO standard, abolish/1 can only be applied to dynamic
+procedures.  This is odd, as for dealing with dynamic procedures there
+is already retract/1 and retractall/1.  The abolish/1 predicate has been
+introduced in DEC-10 Prolog precisely for dealing with static procedures.
+In SWI-Prolog, abolish/1 works on static procedures, unless the prolog
+flag \const{iso} is set to \const{true}.
+
+It is adviced to use retractall/1 for erasing all clauses of a dynamic
+predicate.
     \predicate{abolish}{2}{+Name, +Arity}
 Same as \exam{abolish(Name/Arity)}.  The predicate abolish/2 conforms to
 the Edinburgh standard, while abolish/1 is ISO compliant.

@@ -182,9 +182,8 @@ an atomic value. It is intended for foreign language functions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
-unifyAtomic(term_t t, word w)
-{ GET_LD
-  Word p = valHandleP(t);
+unifyAtomic(term_t t, word w ARG_LD)
+{ Word p = valHandleP(t);
 
   for(;;)
   { if ( isVar(*p) )
@@ -985,6 +984,16 @@ _PL_get_arg(int index, term_t t, term_t a)
 }
 
 
+void
+_PL_get_arg_ld(int index, term_t t, term_t a ARG_LD)
+{ word w = valHandle(t);
+  Functor f = (Functor)valPtr(w);
+  Word p = &f->arguments[index-1];
+
+  setHandle(a, linkVal(p));
+}
+
+
 int
 PL_get_arg(int index, term_t t, term_t a)
 { GET_LD
@@ -1208,16 +1217,18 @@ PL_is_string(term_t t)
 
 int
 PL_unify_string_chars(term_t t, const char *s)
-{ word str = globalString((char *)s);
+{ GET_LD
+  word str = globalString((char *)s);
 
-  return unifyAtomic(t, str);
+  return unifyAtomic(t, str PASS_LD);
 }
 
 int
 PL_unify_string_nchars(term_t t, unsigned int len, const char *s)
-{ word str = globalNString(len, s);
+{ GET_LD
+  word str = globalNString(len, s);
 
-  return unifyAtomic(t, str);
+  return unifyAtomic(t, str PASS_LD);
 }
 
 #endif
@@ -1438,7 +1449,8 @@ _PL_put_xpce_reference_a(term_t t, atom_t name)
 
 int
 PL_unify_atom(term_t t, atom_t a)
-{ return unifyAtomic(t, a);
+{ GET_LD
+  return unifyAtomic(t, a PASS_LD);
 }
 
 
@@ -1492,9 +1504,10 @@ PL_unify_functor(term_t t, functor_t f)
 
 int
 PL_unify_atom_chars(term_t t, const char *chars)
-{ atom_t a = lookupAtom(chars, strlen(chars));
+{ GET_LD
+  atom_t a = lookupAtom(chars, strlen(chars));
+  int rval = unifyAtomic(t, a PASS_LD);
 
-  int rval = unifyAtomic(t, a);
   PL_unregister_atom(a);
 
   return rval;
@@ -1503,9 +1516,10 @@ PL_unify_atom_chars(term_t t, const char *chars)
 
 int
 PL_unify_atom_nchars(term_t t, unsigned int len, const char *chars)
-{ atom_t a = lookupAtom(chars, len);
+{ GET_LD
+  atom_t a = lookupAtom(chars, len);
+  int rval = unifyAtomic(t, a PASS_LD);
 
-  int rval = unifyAtomic(t, a);
   PL_unregister_atom(a);
 
   return rval;
@@ -1595,32 +1609,26 @@ PL_unify_list_chars(term_t l, const char *chars)
 
 int
 PL_unify_integer(term_t t, long i)
-{ return unifyAtomic(t, makeNum(i));
-}
-
-
-int
-_PL_unify_number(term_t t, Number n)
-{ if ( intNumber(n) )
-    return PL_unify_integer(t, n->value.i);
-  else
-    return PL_unify_float(t, n->value.f);
+{ GET_LD
+  return unifyAtomic(t, makeNum(i) PASS_LD);
 }
 
 
 int
 PL_unify_pointer(term_t t, void *ptr)
-{ word w = makeNum(pointerToLong(ptr));
+{ GET_LD
+  word w = makeNum(pointerToLong(ptr));
 
-  return unifyAtomic(t, w);
+  return unifyAtomic(t, w PASS_LD);
 }
 
 
 int
 PL_unify_float(term_t t, double f)
-{ word w = globalReal(f);
+{ GET_LD
+  word w = globalReal(f);
 
-  return unifyAtomic(t, w);
+  return unifyAtomic(t, w PASS_LD);
 }
 
 
@@ -1686,7 +1694,8 @@ PL_unify_list(term_t l, term_t h, term_t t)
 
 int
 PL_unify_nil(term_t l)
-{ return unifyAtomic(l, ATOM_nil);
+{ GET_LD
+  return unifyAtomic(l, ATOM_nil PASS_LD);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1886,7 +1895,8 @@ _PL_get_atomic(term_t t)
 
 int
 _PL_unify_atomic(term_t t, atomic_t a)
-{ return unifyAtomic(t, a);
+{ GET_LD
+  return unifyAtomic(t, a PASS_LD);
 }
 
 

@@ -191,7 +191,7 @@ visibleClause(Clause cl, unsigned long gen)
 
 ClauseRef
 findClause(ClauseRef cref, Word argv,
-	   LocalFrame fr, Definition def, bool *deterministic)
+	   LocalFrame fr, Definition def, ClauseRef *next)
 {
 #ifdef O_LOGICAL_UPDATE
   unsigned long gen = fr->generation;
@@ -204,7 +204,7 @@ findClause(ClauseRef cref, Word argv,
     for(;;cref = cref->next)
     { if ( cref )
       { if ( visibleClause(cref->clause, gen) )
-	{ *deterministic = !cref->next;
+	{ *next = cref->next;
 	  return cref;
 	}
       } else
@@ -228,12 +228,12 @@ findClause(ClauseRef cref, Word argv,
 	{ clause = cref->clause;
 	  if ( (key&clause->index.varmask) == clause->index.key &&
 	       visibleClause(clause, gen))
-	  { *deterministic = FALSE;
+	  { *next = cref;
 
 	    return result;
 	  }
 	}
-	*deterministic = TRUE;
+	*next = NULL;
 
 	return result;
       }
@@ -241,7 +241,7 @@ findClause(ClauseRef cref, Word argv,
     return NULL;
   } else if ( def->indexPattern & NEED_REINDEX )
   { reindexDefinition(def);
-    return findClause(cref, argv, fr, def, deterministic);
+    return findClause(cref, argv, fr, def, next);
   } else
   { struct index argIndex;
     GET_LD
@@ -256,12 +256,12 @@ findClause(ClauseRef cref, Word argv,
 	for( cref = cref->next; cref; cref = cref->next )
 	{ if ( matchIndex(argIndex, cref->clause->index) &&
 	       visibleClause(cref->clause, gen))
-	  { *deterministic = FALSE;
+	  { *next = cref;
 
 	    return result;
 	  }
 	}
-	*deterministic = TRUE;
+	*next = NULL;
 
 	return result;
       }
@@ -272,7 +272,8 @@ findClause(ClauseRef cref, Word argv,
 
 
 static ClauseRef
-nextClause(ClauseRef cref, unsigned long generation, bool *det, Index ctx)
+nextClause(ClauseRef cref, unsigned long generation,
+	   ClauseRef *next, Index ctx ARG_LD)
 { if ( ctx->varmask == ~0x0L )		/* first argument only */
   { word key = ctx->key;
 
@@ -287,12 +288,12 @@ nextClause(ClauseRef cref, unsigned long generation, bool *det, Index ctx)
 	{ clause = cref->clause;
 	  if ( (key&clause->index.varmask) == clause->index.key &&
 	       visibleClause(clause, generation))
-	  { *det = FALSE;
+	  { *next = cref;
 
 	    return result;
 	  }
 	}
-	*det = TRUE;
+	*next = NULL;
 
 	return result;
       }
@@ -300,7 +301,7 @@ nextClause(ClauseRef cref, unsigned long generation, bool *det, Index ctx)
   } else if ( ctx->varmask == 0x0L )	/* no indexing */
   { for(; cref; cref = cref->next)
     { if ( visibleClause(cref->clause, generation) )
-      { *det = !cref->next;
+      { *next = cref->next;
         return cref;
       }
     }
@@ -315,14 +316,14 @@ nextClause(ClauseRef cref, unsigned long generation, bool *det, Index ctx)
 	for( cref = cref->next; cref; cref = cref->next )
 	{ if ( matchIndex(*ctx, cref->clause->index) &&
 	       visibleClause(cref->clause, generation))
-	  { *det = FALSE;
+	  { *next = cref;
 
 	    DEBUG(2, Sdprintf("ndet\n"));
 	    return result;
 	  }
 	}
         DEBUG(2, Sdprintf("det\n"));
-	*det = TRUE;
+	*next = NULL;
 
 	return result;
       }
@@ -335,7 +336,7 @@ nextClause(ClauseRef cref, unsigned long generation, bool *det, Index ctx)
 
 
 ClauseRef
-firstClause(Word argv, LocalFrame fr, Definition def, bool *det ARG_LD)
+firstClause(Word argv, LocalFrame fr, Definition def, ClauseRef *next ARG_LD)
 { ClauseRef cref;
   struct index buf;
   Index ctx = &buf;
@@ -352,7 +353,7 @@ again:
   noindex:
     for(cref = def->definition.clauses; cref; cref = cref->next)
     { if ( visibleClause(cref->clause, gen) )
-      { *det = !cref->next;
+      { *next = cref->next;
         return cref;
       }
     }
@@ -379,7 +380,7 @@ again:
     cref = def->definition.clauses;
   }
 
-  return nextClause(cref, gen, det, ctx);
+  return nextClause(cref, gen, next, ctx PASS_LD);
 }
 
 

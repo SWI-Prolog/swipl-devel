@@ -375,7 +375,7 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 #define MODULEHASHSIZE		16	/* global module table */
 #define PUBLICHASHSIZE		8	/* Module export table */
 #define FLAGHASHSIZE		16	/* global flag/3 table */
-#define ARITHHASHSIZE		16	/* arithmetic function table */
+#define ARITHHASHSIZE		32	/* arithmetic function table */
 
 #define pointerHashValue(p, size) ((((long)(p) >> LMASK_BITS) ^ \
 				    ((long)(p) >> (LMASK_BITS+5)) ^ \
@@ -1130,17 +1130,18 @@ struct definition
 };
 
 struct localFrame
-{ Code		programPointer;	/* pointer into program */
-  LocalFrame	parent;		/* parent local frame */
-  ClauseRef	clause;		/* Current clause of frame */
-  LocalFrame	backtrackFrame;	/* Frame for backtracking */
-  Definition	predicate;	/* Predicate we are running */
-  mark		mark;		/* data backtrack mark */
-  Module	context;	/* context module of frame */
+{ Code		programPointer;		/* pointer into program */
+  LocalFrame	parent;			/* parent local frame */
+  ClauseRef	clause;			/* Current clause of frame */
+  ClauseRef	backtrack_clause;	/* Next candidate clause */
+  LocalFrame	backtrackFrame;		/* Frame for backtracking */
+  Definition	predicate;		/* Predicate we are running */
+  mark		mark;			/* data backtrack mark */
+  Module	context;		/* context module of frame */
 #ifdef O_LOGICAL_UPDATE
-  unsigned long generation;	/* generation of the database */
+  unsigned long generation;		/* generation of the database */
 #endif
-  unsigned long flags;		/* packet long holding: */
+  unsigned long flags;			/* packed long holding: */
 		/*	LEVEL	   recursion level (28 bits) */
 		/*	FR_CUT     has frame been cut ? */
 		/*	FR_NODEBUG don't debug this frame ? */

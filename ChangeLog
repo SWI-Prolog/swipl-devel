@@ -1,6 +1,17 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: PL_agc_hook() to register a hook into the atom garbage
+    collector.
+
+  * PERFORMANCE: Changed clause/2 to fully exploit clause-indexing.
+
+  * PERFORMANCE: Changed interface of firstClause()/findClause() for
+    somewhat faster indexing.
+
+  * MODIFIED: Allow for abolish of static procedures, unless the iso
+    prolog flag is set to true.
+
 VERSION 3.3.0 (release-10)
 =========================
 

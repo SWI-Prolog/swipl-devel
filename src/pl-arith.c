@@ -280,6 +280,7 @@ isCurrentArithFunction(functor_t f, Module m)
       { if ( m2 == a->module && l < level )
 	{ r = a;
 	  level = l;
+	  break;
 	}
       }
     }
@@ -438,7 +439,7 @@ valueExpression(term_t t, Number r ARG_LD)
       { term_t a = PL_new_term_ref();
 	number n1;
 
-	_PL_get_arg(1, t, a);
+	_PL_get_arg_ld(1, t, a PASS_LD);
 	if ( valueExpression(a, &n1 PASS_LD) )
 	  rval = (*f->function)(&n1, r);
 	else
@@ -451,9 +452,9 @@ valueExpression(term_t t, Number r ARG_LD)
       { term_t a = PL_new_term_ref();
 	number n1, n2;
 
-	_PL_get_arg(1, t, a);
+	_PL_get_arg_ld(1, t, a PASS_LD);
 	if ( valueExpression(a, &n1 PASS_LD) )
-	{ _PL_get_arg(2, t, a);
+	{ _PL_get_arg_ld(2, t, a PASS_LD);
 	  if ( valueExpression(a, &n2 PASS_LD) )
 	    rval = (*f->function)(&n1, &n2, r);
 	  else
@@ -1082,7 +1083,11 @@ pl_is(term_t v, term_t e)
 
   if ( valueExpression(e, &arg PASS_LD) )
   { canoniseNumber(&arg);
-    return _PL_unify_number(v, &arg);
+
+    if ( intNumber(&arg) )
+      return PL_unify_integer(v, arg.value.i);
+    else
+      return PL_unify_float(v, arg.value.f);
   }
 
   fail;

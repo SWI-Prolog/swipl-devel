@@ -391,7 +391,8 @@ collectAtoms()
       continue;
     }
 
-    if ( a->references == 0 )
+    if ( a->references == 0 &&
+	 (!GD->atoms.gc_hook || (*GD->atoms.gc_hook)(a->atom)) )
     { Atom *ap2 = &atomTable[a->hash_value & (atom_buckets-1)];
 
 					/* delete from hash-table */
@@ -428,6 +429,14 @@ pl_garbage_collect_atoms()
   long oldcollected = GD->atoms.collected;
   real t;
 
+  LOCK();
+  if ( GD->atoms.gc_active )
+  { UNLOCK();
+    succeed;
+  }
+  GD->atoms.gc_active = TRUE;
+  UNLOCK();				/* for the printMessage() */
+
   if ( verbose )
   {
 #ifdef O_DEBUG_ATOMGC
@@ -454,6 +463,7 @@ pl_garbage_collect_atoms()
   t = CpuTime() - t;
   GD->atoms.gc_time += t;
   GD->atoms.gc++;
+  GD->atoms.gc_active = FALSE;
   UNLOCK();
 
   
@@ -469,10 +479,25 @@ pl_garbage_collect_atoms()
 }
 
 
+PL_agc_hook_t
+PL_agc_hook(PL_agc_hook_t new)
+{ PL_agc_hook_t old = GD->atoms.gc_hook;
+  GD->atoms.gc_hook = new;
+
+  return old;
+}
+
+
 #endif /*O_ATOMGC*/
 
 #undef PL_register_atom
 #undef PL_unregister_atom
+
+void
+resetAtoms()
+{ GD->atoms.gc_active = FALSE;
+}
+
 
 void
 PL_register_atom(atom_t a)

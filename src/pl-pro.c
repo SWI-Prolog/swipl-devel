@@ -206,6 +206,7 @@ pl_abort()
   resetTracer();
   resetSignals();
   resetForeign();
+  resetAtoms();
 
   longjmp(abort_context, 1);
   /*NOTREACHED*/

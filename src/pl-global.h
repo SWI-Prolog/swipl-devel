@@ -121,6 +121,7 @@ typedef struct
     int		lookups;		/* # atom lookups */
     int		cmps;			/* # string compares for lookup */
 #ifdef O_ATOMGC
+    int		gc_active;		/* Atom-GC is in progress */
     int		builtin;		/* Locked atoms (atom-gc) */
     int		no_hole_before;		/* You won't find a hole before here */
     int		margin;			/* # atoms to grow before collect */
@@ -128,6 +129,7 @@ typedef struct
     int		collected;		/* # collected atoms */
     int		gc;			/* # atom garbage collections */
     real	gc_time;		/* Time spent on atom-gc */
+    PL_agc_hook_t gc_hook;		/* Current hook */
 #endif
     atom_t	for_code[256];		/* code --> one-char-atom */
   } atoms;

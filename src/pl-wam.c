@@ -1431,7 +1431,6 @@ PL_next_solution(qid_t qid)
   Code	     PC;			/* program counter */
 //LocalFrame BFR = NULL;		/* last backtrack frame */
   Definition DEF = NULL;		/* definition of current procedure */
-  bool	     deterministic;		/* clause found deterministically */
   Word *     aFloor = aTop;		/* don't overwrite old arguments */
 #define	     CL (FR->clause)		/* clause of current frame */
 #define	     BFR (LD->choicepoints)	/* choicepoint registration */
@@ -3193,8 +3192,8 @@ first call of $alt/1 simply succeeds.
 
 #ifdef O_INLINE_FOREIGNS
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-I_CALL_FV[012] Call a deterministics foreign procedures  with a 0, 1, or
-2 arguments that appear as variables in   the  clause. This covers true,
+I_CALL_FV[012] Call a deterministic foreign procedures with a 0, 1, or 2
+arguments that appear as variables  in   the  clause.  This covers true,
 fail, var(X) and other type-checking  predicates,   =/2  in  a number of
 cases (i.e. X = Y, not X = 5).
 
@@ -3669,21 +3668,24 @@ values found in the clause,  give  a   reference  to  the clause and set
 #endif
 	DEBUG(9, Sdprintf("Searching clause ... "));
 
+      { ClauseRef next;
+	Clause clause;
+
 	lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
-	if ( !(CL = firstClause(ARGP, FR, DEF, &deterministic PASS_LD)) )
+	if ( !(CL = firstClause(ARGP, FR, DEF, &next PASS_LD)) )
 	{ DEBUG(9, Sdprintf("No clause matching index.\n"));
 	  FRAME_FAILED;
 	}
 	DEBUG(9, Sdprintf("Clauses found.\n"));
 
-	if ( deterministic )
+	FR->backtrack_clause = next;
+	if ( !next )			/* TBD: use this */
 	  set(FR, FR_CUT);
 
-	{ Clause clause = CL->clause;
-
-	  PC = clause->codes;
-	  lTop = (LocalFrame)(ARGP + clause->variables);
-	}
+	clause = CL->clause;
+	PC = clause->codes;
+	lTop = (LocalFrame)(ARGP + clause->variables);
+      }
 
 	SECURE(
 	int argc; int n;
@@ -3930,7 +3932,7 @@ body_failed:				MARK(BKTRK);
   }
 
 clause_failed:
-  CL = CL->next;
+  CL = FR->backtrack_clause;
   if ( !CL || true(FR, FR_CUT) )
     goto frame_failed;
 
@@ -3944,11 +3946,15 @@ resume_frame:
   ARGP = argFrameP(FR, 0);
   Undo(FR->mark);			/* backtrack before clause indexing */
 
-  if ( !(CL = findClause(CL, ARGP, FR, DEF, &deterministic)) )
-    goto frame_failed;
+  { ClauseRef next;
 
-  if ( deterministic )
-    set(FR, FR_CUT);
+    if ( !(CL = findClause(CL, ARGP, FR, DEF, &next)) )
+      goto frame_failed;
+
+    FR->backtrack_clause = next;
+    if ( !next )
+      set(FR, FR_CUT);
+  }
 
   SetBfr(FR->backtrackFrame);
   aTop = aFloor;			/* reset to start, for interrupts */
@@ -4007,7 +4013,7 @@ visited for dereferencing.
 #endif
 
     if ( !FR->backtrackFrame )			/* top goal failed */
-    { register LocalFrame fr = FR->parent;
+    { LocalFrame fr = FR->parent;
 
       for(; fr; fr = fr->parent)
         leaveFrame(fr);
@@ -4018,7 +4024,7 @@ visited for dereferencing.
       fail;
     }
 
-    { register LocalFrame fr = FR->parent;
+    { LocalFrame fr = FR->parent;
 
       environment_frame = FR = FR->backtrackFrame;
 
@@ -4037,7 +4043,7 @@ resume_from_body:
     DEF = FR->predicate;
     if ( true(FR, FR_CUT) )
       continue;
-    if ( false(DEF, FOREIGN) && !(CL = CL->next) )
+    if ( false(DEF, FOREIGN) && !(CL = FR->backtrack_clause) )
       continue;
 
 #if O_DEBUGGER

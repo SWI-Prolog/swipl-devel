@@ -1479,6 +1479,9 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
            o clause/[2,3]  raises  a  permission  error  when  accessing
              static predicates.
 
+           o abolish/[1,2]  raises  a permission  error  when  accessing
+             static predicates.
+
     ooppttiimmiissee _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
          If true, compile in optimised mode.  The initial  value is true
          if Prolog was started with the -O commandline option.
@@ -3278,9 +3281,17 @@ aabboolliisshh((_:_P_r_e_d_i_c_a_t_e_I_n_d_i_c_a_t_o_
     _A_r_i_t_y  from  the  database.    All  predicate  attributes  (dynamic,
     multifile,  index, etc.)  are  reset to their defaults.   Abolishing
     an  imported predicate only removes  the import link; the  predicate
-    will  keep  its  old definition  in  its  definition module.     For
-    `cleanup'  of  the dynamic  database,  one should  use  retractall/1
-    rather than abolish/2.
+    will keep its old definition in its definition module.
+
+    According  to the  ISO standard,  abolish/1 can only  be applied  to
+    dynamic  procedures.    This is  odd, as  for  dealing with  dynamic
+    procedures  there  is  already  retract/1 and  retractall/1.     The
+    abolish/1  predicate has been introduced in DEC-10  Prolog precisely
+    for dealing with  static procedures.  In SWI-Prolog, abolish/1 works
+    on static procedures, unless the prolog flag iso is set to true.
+
+    It  is adviced  to use  retractall/1 for  erasing all  clauses of  a
+    dynamic predicate.
 
 
 aabboolliisshh((_+_N_a_m_e_, _+_A_r_i_t_y))
@@ -4766,6 +4777,11 @@ cchhaarr__ttyyppee((_?_C_h_a_r_, _?_T_y_p_e))
     ddiiggiitt((_W_e_i_g_t_h))
          _C_h_a_r is a digit with value  _W_e_i_g_t_h.  I.e. char_type(X, digit(6)
          yields _X = '6'.  Useful for parsing numbers.
+
+    xxddiiggiitt((_W_e_i_g_t_h))
+         _C_h_a_r  is  a  haxe-decimal  digit  with  value  _W_e_i_g_t_h.     I.e.
+         char_type(a, xdigit(X) yields _X  = '10'.    Useful for  parsing
+         numbers.
 
     ggrraapphh
          _C_h_a_r produces  a visible mark  on a  page when printed.    Note
@@ -9707,6 +9723,41 @@ void PPLL__oonn__hhaalltt(_v_o_i_d _(_*_f_)_(_i_n_t_, _v
     at_halt/1.
 
 
+PL_agc_hook_t PPLL__aaggcc__hhooookk(_P_L___a_g_c___h_o_o_k___t _n_e_w)
+    Register    a   hook   with   the   atom-garbage    collector   (see
+    garbage_collect_atoms/0  that  is   called  on  any  atom  that   is
+    reclaimed.    The old hook  is returned.   If  no hook is  currently
+    defined,  NULL is returned.  The argument of the called hook  is the
+    atom  that is to be garbage collected.  The return value  is an int.
+    If  the return value is zero, the  atom is nnoott reclaimed.   The hook
+    may invoke any Prolog predicate.
+
+    The  example  below  defines  a foreign  library  for  printing  the
+    garbage collected atoms for debugging purposes.
+
+    #include <SWI-Stream.h>
+    #include <SWI-Prolog.h>
+
+    static int
+    atom_hook(atom_t a)
+    { Sdprintf("AGC: deleting %s\n", PL_atom_chars(a));
+
+      return TRUE;
+    }
+
+    static PL_agc_hook_t old;
+
+    install_t
+    install()
+    { old = PL_agc_hook(atom_hook);
+    }
+
+    install_t
+    uninstall()
+    { PL_agc_hook(old);
+    }
+
+
 55..66..1188 SSttoorriinngg ffoorreeiiggnn ddaattaa
 
 This section  provides some hints for  handling foreign data in  Prolog.
@@ -11193,12 +11244,11 @@ suggest predicates from a keyword.
  flush_output/0                Output pending characters on current stream
  flush_output/1                Output pending characters on specified stream
  forall/2                      Prove goal for all solutions of another goal
- foreign_file/1                Examine loaded foreign files
  format/1                      Formatted output
  format/2                      Formatted output with arguments
  format/3                      Formatted output on a stream
-
  format_predicate/2            Program format/[1,2]
+
  free_variables/2              Find unbound variables in a term
  functor/3                     Get name and arity of a term or construct a term
  garbage_collect/0             Invoke the garbage collector
@@ -11206,16 +11256,16 @@ suggest predicates from a keyword.
  gensym/2                      Generate unique atoms from a base
  get/1                         Read first non-blank character
  get/2                         Read first non-blank character from a stream
-
  get0/1                        Read next character
+
  get0/2                        Read next character from a stream
  get_byte/1                    Read next byte (ISO)
  get_byte/2                    Read next byte from a stream (ISO)
  get_char/1                    Read next character as an atom (ISO)
  get_char/2                    Read next character from a stream (ISO)
  get_code/1                    Read next character (ISO)
-
  get_code/2                    Read next character from a stream (ISO)
+
  get_single_char/1             Read next character from the terminal
  get_time/1                    Get current time
  getenv/2                      Get shell environment variable
@@ -11223,16 +11273,16 @@ suggest predicates from a keyword.
  ground/1                      Verify term holds no unbound variables
  halt/0                        Exit from Prolog
  halt/1                        Exit from Prolog with status
-
  hash_term/2                   Hash-value of ground term
+
  help/0                        Give help on help
  help/1                        Give help on predicates and show parts of manual
  ignore/1                      Call the argument, but always succeed
  import/1                      Import a predicate from a module
  include/1                     Include a file with declarations
  index/1                       Change clause indexing
-
  initialization/1              Initialization directive
+
  int_to_atom/2                 Convert from integer to atom
  int_to_atom/3                 Convert from integer to atom (non-decimal)
  integer/1                     Type check for integer
@@ -11240,16 +11290,16 @@ suggest predicates from a keyword.
  intersection/3                Set intersection
  is/2                          Evaluate arithmetic expression
  is_absolute_file_name/1       True if arg defines an absolute path
-
  is_list/1                     Type check for a list
+
  is_set/1                      Type check for a set
  keysort/2                     Sort, using a key
  last/2                        Last element of a list
  leash/1                       Change ports visited by the tracer
  length/2                      Length of a list
  library_directory/1           (hook) Directories holding Prolog libraries
-
  limit_stack/2                 Limit stack expansion
+
  line_count/2                  Line number on stream
  line_position/2               Character position in line on stream
  list_to_set/2                 Remove duplicates
@@ -11257,16 +11307,16 @@ suggest predicates from a keyword.
  listing/1                     List predicate
  load_files/2                  Load source files with options
  load_foreign_library/1        library(shlib) Load shared library (.so file)
-
  load_foreign_library/2        library(shlib) Load shared library (.so file)
+
  make/0                        Reconsult all changed source files
  make_fat_filemap/1            Win32:  Create file containing non-FAT filenames
  make_library_index/1          Create autoload file INDEX.pl
  maplist/3                     Transform all elements of a list
  member/2                      Element is member of a list
  memberchk/2                   Deterministic member/2
-
  merge/3                       Merge two sorted lists
+
  merge_set/3                   Merge two sorted sets
  message_hook/3                Intercept print_message/2
  meta_predicate/1              Quintus compatibility
@@ -11274,16 +11324,16 @@ suggest predicates from a keyword.
  module/2                      Declare a module
  module_transparent/1          Indicate module based meta predicate
  msort/2                       Sort, do not remove duplicates
-
  multifile/1                   Indicate distributed definition of predicate
+
  mutex_create/1                Create a thread-synchronisation device
  mutex_destroy/1               Destroy a mutex
  mutex_lock/1                  Become owner of a mutex
  mutex_trylock/1               Become owner of a mutex (non-blocking)
  mutex_unlock/1                Release ownership of mutex
  mutex_unlock_all/0            Release ownership of all mutexes
-
  name/2                        Convert between atom and list of ASCII characters
+
  nl/0                          Generate a newline
  nl/1                          Generate a newline on a stream
  nodebug/0                     Disable debugging
@@ -11291,16 +11341,16 @@ suggest predicates from a keyword.
  noprotocol/0                  Disable logging of user interaction
  nospy/1                       Remove spy point
  nospyall/0                    Remove all spy points
-
  not/1                         Negation by failure (argument not provable).  Same as \+/1
+
  notrace/0                     Stop tracing
  notrace/1                     Do not debug argument goal
  nth0/3                        N-th element of a list (0-based)
  nth1/3                        N-th element of a list (1-based)
  nth_clause/3                  N-th clause of a predicate
  number/1                      Type check for integer or float
-
  number_chars/2                Convert between number and one-char atoms
+
  number_codes/2                Convert between number and ASCII values
  numbervars/4                  Enumerate unbound variables of a term using a given base
  on_signal/3                   Handle a software signal
@@ -11308,16 +11358,16 @@ suggest predicates from a keyword.
  op/3                          Declare an operator
  open/3                        Open a file (creating a stream)
  open/4                        Open a file (creating a stream)
-
  open_dde_conversation/3       Win32:  Open DDE channel
+
  open_null_stream/1            Open a stream to discard output
  open_resource/3               Open a program resource as a stream
  open_shared_object/2          UNIX: Open shared library (.so file)
  open_shared_object/3          UNIX: Open shared library (.so file)
  peek_byte/1                   Read byte without removing
  peek_byte/2                   Read byte without removing
-
  peek_char/1                   Read character without removing
+
  peek_char/2                   Read character without removing
  peek_code/1                   Read character-code without removing
  peek_code/2                   Read character-code without removing
@@ -11325,16 +11375,16 @@ suggest predicates from a keyword.
  phrase/3                      Activate grammar-rule set (returning rest)
  please/3                      Query/change environment parameters
  plus/3                        Logical integer addition
-
  portray/1                     (hook) Modify behaviour of print/1
+
  portray_clause/1              Pretty print a clause
  predicate_property/2          Query predicate attributes
  predsort/3                    Sort, using a predicate to determine the order
  preprocessor/2                Install a preprocessor before the compiler
  print/1                       Print a term
  print/2                       Print a term on a stream
-
  print_message/2               Print message from (exception) term
+
  print_message_lines/3         Print message to stream
  profile/3                     Obtain execution statistics
  profile_count/3               Obtain profile results on a predicate
@@ -11342,16 +11392,16 @@ suggest predicates from a keyword.
  prolog/0                      Run interactive toplevel
  prolog_current_frame/1        Reference to goal's environment stack
  prolog_edit:locate/2          Locate targets for edit/1
-
  prolog_edit:locate/3          Locate targets for edit/1
+
  prolog_edit:edit_source/1     Call editor for edit/1
  prolog_edit:edit_command/2    Specify editor activation
  prolog_edit:load/0            Load edit/1 extensions
  prolog_file_type/2            Define meaning of file extension
  prolog_frame_attribute/3      Obtain information on a goal environment
  prolog_list_goal/1            Hook.  Intercept tracer 'L' command
-
  prolog_load_context/2         Context information for directives
+
  prolog_skip_level/2           Indicate deepest recursion to trace
  prolog_to_os_filename/2       Convert between Prolog and OS filenames
  prolog_trace_interception/4   library(user) Intercept the Prolog tracer
@@ -11359,16 +11409,16 @@ suggest predicates from a keyword.
  prompt/2                      Change the prompt used by read/1
  proper_list/1                 Type check for list
  protocol/1                    Make a log of the user interaction
-
  protocola/1                   Append log of the user interaction to file
+
  protocolling/1                On what file is user interaction logged
  put/1                         Write a character
  put/2                         Write a character on a stream
  put_byte/1                    Write a byte
  put_byte/2                    Write a byte on a stream
  put_char/1                    Write a character
-
  put_char/2                    Write a character on a stream
+
  put_code/1                    Write a character-code
  put_code/2                    Write a character-code on a stream
  qcompile/1                    Compile source to Quick Load File
@@ -11376,16 +11426,16 @@ suggest predicates from a keyword.
  qsave_program/2               Create runtime application
  read/1                        Read Prolog term
  read/2                        Read Prolog term from stream
-
  read_clause/1                 Read clause
+
  read_clause/2                 Read clause from stream
  read_history/6                Read using history substitution
  read_link/3                   Read a symbolic link
  read_term/2                   Read term with options
  read_term/3                   Read term with options from stream
  recorda/2                     Record term in the database (first)
-
  recorda/3                     Record term in the database (first)
+
  recorded/2                    Obtain term from the database
  recorded/3                    Obtain term from the database
  recordz/2                     Record term in the database (last)
@@ -11393,16 +11443,16 @@ suggest predicates from a keyword.
  redefine_system_predicate/1   Abolish system definition
  rename_file/2                 Change name of file
  repeat/0                      Succeed, leaving infinite backtrack points
-
  require/1                     This file requires these predicates
+
  reset_profiler/0              Clear statistics obtained by the profiler
  resource/3                    Declare a program resource
  retract/1                     Remove clause from the database
  retractall/1                  Remove unifying clauses from the database
  reverse/2                     Inverse the order of the elements in a list
  same_file/2                   Succeeds if arguments refer to same file
-
  see/1                         Change the current input stream
+
  seeing/1                      Query the current input stream
  seek/4                        Modify the current position in a stream
  seen/0                        Close the current input stream
@@ -11410,16 +11460,16 @@ suggest predicates from a keyword.
  set_input/1                   Set current input stream from a stream
  set_output/1                  Set current output stream from a stream
  set_prolog_flag/2             Define a system feature
-
  set_stream/2                  Set stream attribute
+
  set_stream_position/2         Seek stream to position
  set_tty/2                     Set `tty' stream
  setarg/3                      Destructive assignment on term
  setenv/2                      Set shell environment variable
  setof/3                       Find all unique solutions to a goal
  sformat/2                     Format on a string
-
  sformat/3                     Format on a string
+
  shell/0                       Execute interactive subshell
  shell/1                       Execute OS command
  shell/2                       Execute OS command
@@ -11427,16 +11477,16 @@ suggest predicates from a keyword.
  size_file/2                   Get size of a file in characters
  skip/1                        Skip to character in current input
  skip/2                        Skip to character on stream
-
  rl_add_history/1              Add line to readline(3) history
+
  rl_read_init_file/1           Read readline(3) init file
  sleep/1                       Suspend execution for specified time
  sort/2                        Sort elements in a list
  source_file/1                 Examine currently loaded source files
  source_file/2                 Obtain source file of predicate
  source_location/2             Location of last read term
-
  spy/1                         Force tracer on specified predicate
+
  stack_parameter/4             Some systems:  Query/Set runtime stack parameter
  statistics/0                  Show execution statistics
  statistics/2                  Obtain collected statistics
@@ -11444,16 +11494,16 @@ suggest predicates from a keyword.
  string/1                      Type check for string
  string_concat/3               atom_concat/3for strings
  string_length/2               Determine length of a string
-
  string_to_atom/2              Conversion between string and atom
+
  string_to_list/2              Conversion between string and list of ASCII
  style_check/1                 Change level of warnings
  sub_atom/5                    Take a substring from an atom
  sublist/3                     Determine elements that meet condition
  subset/2                      Generate/check subset relation
  sub_string/5                  Take a substring from a string
-
  subtract/3                    Delete elements that do not meet condition
+
  succ/2                        Logical integer successor relation
  swritef/2                     Formatted write on a string
  swritef/3                     Formatted write on a string
@@ -11461,16 +11511,16 @@ suggest predicates from a keyword.
  tab/2                         Output number of spaces on a stream
  tell/1                        Change current output stream
  telling/1                     Query current output stream
-
  term_expansion/2              (hook) Convert term before compilation
+
  term_to_atom/2                Convert between term and atom
  thread_at_exit/1              Register goal to be called at exit
  thread_create/3               Create a new Prolog task
  thread_exit/1                 Terminate Prolog task with value
  thread_get_message/1          Wait for message
  thread_join/2                 Wait for Prolog task-completion
-
  thread_peek_message/1         Test for message in queue
+
  thread_self/1                 Get identifier of current thread
  thread_send_message/2         Send message to another thread
  thread_signal/2               Execute goal in another thread
@@ -11478,16 +11528,16 @@ suggest predicates from a keyword.
  throw/1                       Raise an exception (see catch/3)
  time/1                        Determine time needed to execute goal
  time_file/2                   Get last modification time of file
-
  tmp_file/2                    Create a temporary filename
+
  told/0                        Close current output
  trace/0                       Start the tracer
  trace/1                       Set trace-point on predicate
  trace/2                       Set/Clear trace-point on ports
  tracing/0                     Query status of the tracer
  trim_stacks/0                 Release unused memory resources
-
  true/0                        Succeed
+
  tty_get_capability/3          Get terminal parameter
  tty_goto/2                    Goto position on screen
  tty_put/2                     Write control string to terminal
@@ -11495,16 +11545,16 @@ suggest predicates from a keyword.
  union/3                       Union of two sets
  unify_with_occurs_check/2     Logically sound unification
  unix/1                        OS interaction
-
  unknown/2                     Trap undefined predicates
+
  unload_foreign_library/1      library(shlib) Detach shared library (.so file)
  unsetenv/1                    Delete shell environment variable
  use_module/1                  Import a module
  use_module/2                  Import predicates from a module
  var/1                         Type check for unbound variable
  visible/1                     Ports that are visible in the tracer
-
  volatile/1                    Predicates that are not saved
+
  wait_for_input/3              Wait for input with optional timeout
  wildcard_match/2              Csh(1) style wildcard match
  win_exec/2                    Win32:  spawn Windows task
@@ -11512,15 +11562,14 @@ suggest predicates from a keyword.
  write/1                       Write term
  write/2                       Write term to stream
  write_ln/1                    Write term, followed by a newline
-
  write_canonical/1             Write a term with quotes, ignore operators
+
  write_canonical/2             Write a term with quotes, ignore operators on a stream
  write_term/2                  Write term with options
  write_term/3                  Write term with options to stream
  writef/1                      Formatted write
  writef/2                      Formatted write on stream
  writeq/1                      Write term, insert quotes
-
  writeq/2                      Write term, insert quotes on stream
 
 
@@ -11699,4 +11748,4 @@ Bibliography
                                   New York, 1983.  Major revision  March
                                   1984.
 
-                                  833
+                                  834

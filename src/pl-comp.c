@@ -2376,12 +2376,13 @@ word
 pl_clause4(term_t head, term_t body, term_t ref, term_t bindings, word ctx)
 { Procedure proc;
   Definition def;
-  ClauseRef cref;
+  ClauseRef cref, next;
   Word argv;
   Module module = NULL;
   term_t term = PL_new_term_ref();
   term_t h    = PL_new_term_ref();
   term_t b    = PL_new_term_ref();
+  LocalFrame fr = environment_frame;
   mark m;
 
   switch( ForeignControl(ctx) )
@@ -2419,7 +2420,7 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings, word ctx)
 	return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 			ATOM_access, ATOM_private_procedure, def);
 
-      cref = def->definition.clauses;
+      cref = NULL;			/* see below */
       enterDefinition(def);		/* reference the predicate */
       break;
     }
@@ -2449,27 +2450,30 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings, word ctx)
   } else
     argv = NULL;
 
+  if ( !cref )
+  { cref = firstClause(argv, fr, def, &next PASS_LD);
+  } else
+  { cref = findClause(cref, argv, fr, def, &next);
+  }
+
   Mark(m);
-  for(; cref; cref = cref->next, Undo(m))
-  { bool det;
+  while(cref)
+  { if ( decompile(cref->clause, term, bindings) )
+    { get_head_and_body_clause(term, h, b, NULL);
+      if ( PL_unify(head, h) &&
+	   PL_unify(b, body) &&
+	   (!ref || PL_unify_pointer(ref, cref->clause)) )
+      { if ( !next )
+	{ leaveDefinition(def);
+	  succeed;
+	}
 
-    if ( !(cref = findClause(cref, argv, environment_frame, def, &det)) )
-      break;
-    if ( !decompile(cref->clause, term, bindings) )
-      continue;
-    get_head_and_body_clause(term, h, b, NULL);
-    if ( !PL_unify(head, h) || !PL_unify(b, body) )
-      continue;
-
-    if ( ref )
-      PL_unify_pointer(ref, cref->clause);
-
-    if ( det == TRUE )
-    { leaveDefinition(def);
-      succeed;
+	ForeignRedoPtr(next);
+      }
     }
 
-    ForeignRedoPtr(cref->next);
+    Undo(m);
+    cref = findClause(next, argv, fr, def, &next);
   }
 
   leaveDefinition(def);

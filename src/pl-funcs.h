@@ -57,6 +57,7 @@ word		pl_complete_atom(term_t prefix, term_t common, term_t unique);
 word		pl_atom_completions(term_t prefix, term_t alts);
 void		markAtom(atom_t a);
 foreign_t	pl_garbage_collect_atoms(void);
+void		resetAtoms(void);
 #ifdef O_DEBUG_ATOMGC
 word		pl_track_atom(term_t which, term_t stream);
 void		_PL_debug_register_atom(atom_t a,
@@ -148,9 +149,9 @@ void		getIndex(Word argv, unsigned long pattern, int card,
 			 struct index *
 			 ARG_LD);
 ClauseRef	firstClause(Word argv, LocalFrame fr, Definition def,
-			    bool *det ARG_LD);
+			    ClauseRef *next ARG_LD);
 ClauseRef	findClause(ClauseRef cl, Word argv,
-			   LocalFrame fr, Definition def, bool *deterministic);
+			   LocalFrame fr, Definition def, ClauseRef *next);
 bool		reindexClause(Clause clause);
 bool		unify_index_pattern(Procedure proc, term_t value);
 bool		hashDefinition(Definition def, int buckets);
@@ -307,7 +308,6 @@ void		initFeatures(void);
 word		makeNum(long i);
 void		finish_foreign_frame(ARG1_LD);
 void		_PL_put_number(term_t t, Number n);
-int		_PL_unify_number(term_t t, Number n);
 predicate_t	_PL_predicate(const char *name, int arity, const char *module,
 			      predicate_t *bin);
 void		initialiseForeign(int argc, char **argv);
@@ -316,6 +316,7 @@ atom_t		codeToAtom(int code);
 extern record_t PL_duplicate_record(record_t r);
 int		PL_unify_termv(term_t t, va_list args);
 term_t		wordToTermRef(Word p);
+void		_PL_get_arg_ld(int index, term_t t, term_t a ARG_LD);
 
 /* pl-fmt.c */
 word		pl_format_predicate(term_t chr, term_t descr);

@@ -1930,6 +1930,41 @@ function is called with two arguments: the exit code of the process (0
 if this cannot be determined on your operating system) and the
 \arg{closure} argument passed to the PL_on_halt() call.  See also
 at_halt/1.
+    \cfunction{PL_agc_hook_t}{PL_agc_hook}{PL_agc_hook_t new}
+Register a hook with the atom-garbage collector (see
+garbage_collect_atoms/0 that is called on any atom that is reclaimed.
+The old hook is returned.  If no hook is currently defined, \const{NULL}
+is returned. The argument of the called hook is the atom that is to be
+garbage collected.  The return value is an \ctype{int}.  If the return
+value is zero, the atom is {\bf not} reclaimed.
+The hook may invoke any Prolog predicate.
+
+The example below defines a foreign library for printing the garbage
+collected atoms for debugging purposes.
+
+\begin{code}
+#include <SWI-Stream.h>
+#include <SWI-Prolog.h>
+
+static int
+atom_hook(atom_t a)
+{ Sdprintf("AGC: deleting %s\n", PL_atom_chars(a));
+
+  return TRUE;
+}
+
+static PL_agc_hook_t old;
+
+install_t
+install()
+{ old = PL_agc_hook(atom_hook);
+}
+
+install_t
+uninstall()
+{ PL_agc_hook(old);
+}
+\end{code}
 \end{description}
 
 

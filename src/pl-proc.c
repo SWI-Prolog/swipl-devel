@@ -1226,7 +1226,7 @@ pl_retract(term_t term, word h)
     term_t head = PL_new_term_ref();
     term_t body = PL_new_term_ref();
     Word argv;
-    bool det;
+    ClauseRef next;
     atom_t b;
     mark mrk;
 
@@ -1270,7 +1270,7 @@ pl_retract(term_t term, word h)
 		       _PL_PREDICATE_INDICATOR, proc);
 
       enterDefinition(def);			/* reference the predicate */
-      cref = firstClause(argv, environment_frame, def, &det PASS_LD);
+      cref = firstClause(argv, environment_frame, def, &next PASS_LD);
       if ( !cref )
       { leaveDefinition(def);
 	fail;
@@ -1279,7 +1279,7 @@ pl_retract(term_t term, word h)
     { cref = ForeignContextPtr(h);
       proc = cref->clause->procedure;
       def  = proc->definition;
-      cref = findClause(cref, argv, environment_frame, def, &det);
+      cref = findClause(cref, argv, environment_frame, def, &next);
     }
 
     Mark(mrk);
@@ -1288,18 +1288,18 @@ pl_retract(term_t term, word h)
 
       if ( decompile(cref->clause, cl, 0) )
       { retractClauseProcedure(proc, cref->clause);
-	if ( det == TRUE )
+	if ( !next )
 	{ leaveDefinition(def);
 	  succeed;
 	}
 
-	ForeignRedoPtr(cref->next);
+	ForeignRedoPtr(next);
       }
 
       PL_reset_term_refs(r0);
       Undo(mrk);
 
-      cref = findClause(cref->next, argv, environment_frame, def, &det);
+      cref = findClause(next, argv, environment_frame, def, &next);
     }
 
     leaveDefinition(def);
@@ -1315,7 +1315,7 @@ pl_retractall(term_t head)
   Procedure proc;
   Definition def;
   ClauseRef cref;
-  bool det;
+  ClauseRef next;
   Word argv;
   LocalFrame fr = environment_frame;
   mark m;
@@ -1344,10 +1344,10 @@ pl_retractall(term_t head)
   enterDefinition(def);
 
 #if 1
-  if ( !(cref = firstClause(argv, fr, def, &det PASS_LD)) )
+  if ( !(cref = firstClause(argv, fr, def, &next PASS_LD)) )
 #else					/* debugging (HACK) */
   if ( !(cref = findClause(def->definition.clauses,
-			   argv, fr, def, &det)) )
+			   argv, fr, def, &next)) )
 #endif
   { leaveDefinition(def);
     succeed;
@@ -1356,13 +1356,13 @@ pl_retractall(term_t head)
   while( cref )
   { term_t r0 = PL_new_term_ref();
     
-    if ( det )
+    if ( !next )
       leaveDefinition(def);
 
     if ( decompileHead(cref->clause, thehead) )
       retractClauseProcedure(proc, cref->clause);
 
-    if ( det )
+    if ( !next )
     { Undo(m);
       succeed;
     }
@@ -1370,7 +1370,7 @@ pl_retractall(term_t head)
     PL_reset_term_refs(r0);
     Undo(m);
 
-    cref = findClause(cref->next, argv, fr, def, &det);
+    cref = findClause(next, argv, fr, def, &next);
   }
   leaveDefinition(def);
 
@@ -1397,10 +1397,12 @@ do_abolish(Module m, term_t atom, term_t arity)
 
   if ( !(f = isCurrentFunctor(name, a)) )
     succeed;
+  if ( !checkModifySystemProc(f) )
+    fail;
   if ( !(proc = isCurrentProcedure(f, m)) )
-    return checkModifySystemProc(f);
+    succeed;
 
-  if ( false(proc->definition, DYNAMIC) )
+  if ( trueFeature(ISO_FEATURE) && false(proc->definition, DYNAMIC) )
     return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
 
   return abolishProcedure(proc, m);

@@ -937,6 +937,8 @@ SWI-Prolog behaviour.  Currently it has the following effect:
           argument is a number.
     \item clause/[2,3] raises a permission error when accessing static
           predicates.
+    \item abolish/[1,2] raises a permission error when accessing static
+          predicates.
 \end{itemize}
     \prologflagitem{optimise}{bool}{rw}
 If \const{true}, compile in optimised mode. The initial value is
