@@ -22,6 +22,28 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Someday (well, mostly this is still true   in XPCE 6.0.6), we translated
+all image formats into the internal structure   of  an XPM image to make
+XPM handle color-spaces and other complicated   stuff.  This works nice,
+but has two drawbacks. XPM is a colormapped format, thus we loose detail
+if the source is not colormapped or has a richer colormap (>256 entries)
+and there is a not of unnecessary computation going on.
+
+This is the first module (PPM and  GIF   to  go)  that bypasses this for
+`static' visuals. For static visuals  we   can  create  a ZPixmap format
+XImage structure that has mask and shift   for  the color components, so
+all we need to do is to create   the  XImage, get the pixels one-by-one,
+map the brightness values and call XPutPixel(). 
+
+It would be nice to avoid the indirect  call to XPutPixel() as well, but
+this depends on the byte-order. Maybe we   should do so for some popular
+formats and use XPutPixel() as backup.
+
+We could also try to use three  arrays for mapping the brightness values
+from the common 256 input scale to the visual output.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #include <h/kernel.h>
 #include <h/graphics.h>
 #include "include.h"
@@ -155,7 +177,9 @@ staticColourReadJPEGFile(Image image, IOSTREAM *fd, XImage **return_image)
   jpeg_read_header(&cinfo, TRUE);
   jpeg_start_decompress(&cinfo);
 
-  if ( !(line = pceMalloc(3*cinfo.output_width*sizeof(JSAMPLE))) )
+  if ( !(line = pceMalloc(cinfo.output_components *
+			  cinfo.output_width *
+			  sizeof(JSAMPLE))) )
   { rval = IMG_NOMEM;
     goto out;
   }
@@ -180,17 +204,39 @@ staticColourReadJPEGFile(Image image, IOSTREAM *fd, XImage **return_image)
 
     jpeg_read_scanlines(&cinfo, &line, 1);
 
-    for(x=0, i=line; x<cinfo.output_width; x++)
-    { unsigned long pixel;
-      unsigned long r = *i++;
-      unsigned long g = *i++;
-      unsigned long b = *i++;
-
-      pixel = ( (RESCALE(r, 255, r_bright) << r_shift) |
-		(RESCALE(g, 255, g_bright) << g_shift) |
-		(RESCALE(b, 255, b_bright) << b_shift) );
+    switch(cinfo.output_components)
+    { case 1:
+	for(x=0, i=line; x<cinfo.output_width; x++)
+	{ unsigned long pixel;
+	  unsigned long g = *i++;
+	  
+	  pixel = ( (RESCALE(g, 255, r_bright) << r_shift) |
+		    (RESCALE(g, 255, g_bright) << g_shift) |
+		    (RESCALE(g, 255, b_bright) << b_shift) );
       
-      XPutPixel(img, x, y, pixel);
+	  XPutPixel(img, x, y, pixel);
+	}
+	break;
+      case 3:
+	for(x=0, i=line; x<cinfo.output_width; x++)
+	{ unsigned long pixel;
+	  unsigned long r = *i++;
+	  unsigned long g = *i++;
+	  unsigned long b = *i++;
+	  
+	  pixel = ( (RESCALE(r, 255, r_bright) << r_shift) |
+		    (RESCALE(g, 255, g_bright) << g_shift) |
+		    (RESCALE(b, 255, b_bright) << b_shift) );
+      
+	  XPutPixel(img, x, y, pixel);
+	}
+
+	break;
+      default:
+	Cprintf("JPEG: Unsupported: %d output components\n",
+		cinfo.output_components);
+        rval = IMG_INVALID;
+	goto out;
     }
   }
 
