@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 3.3.8
+=============
+
+  * FIXED: exception-handling problem.
+
   * MODIFIED: Run at_halt/1 hooks in *reverse* order of registration.  This
     behaviour makes scheduling hooks generally easier and is more consistent
     to (for example) POSIX atexit().  Also properly handle exceptions from
