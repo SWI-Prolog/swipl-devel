@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Win32: Loading X11 .BM files (broken due with new DIB-based jpeg
+  loading).
+
 * ADDED: `segment' argument to `line<-distance' to compute the distance
   from a point to the line-segment.
 

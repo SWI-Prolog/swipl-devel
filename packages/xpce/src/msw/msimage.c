@@ -439,6 +439,7 @@ static int
 readXpmImage(IOSTREAM *fd, Image image, XpmImage *img, XpmInfo *info)
 { int rval;
   int size;
+  long offset = Stell(fd);
 
 #ifdef O_GIF
   if ( (rval=XpmReadGIF(fd, img)) == XpmSuccess )
@@ -466,10 +467,13 @@ readXpmImage(IOSTREAM *fd, Image image, XpmImage *img, XpmInfo *info)
 
     buffer[size] = '\0';
     rval = XpmCreateXpmImageFromBuffer(buffer, img, info);
+    if ( rval != XpmSuccess )
+      Sseek(fd, offset, 0);
     if ( malloced )
       pceFree(buffer);
   } else
-    rval = XpmFileInvalid;
+  { rval = XpmFileInvalid;
+  }
 
   return rval;
 }
