@@ -59,10 +59,9 @@ int outStringDepth = 0;			/* depth of nesting */
 static char *inString;			/* string for reading */
 
 static int   maxfiles;			/* maximum file index */
-static int   ttyLinePos;			/* current column on tty */
+static int   ttyLinePos;		/* current column on tty */
 static int   ttyLineNo;			/* terminal line number count */
 static int   ttyCharNo;			/* terminal character count */
-static bool  fileerrors = TRUE;		/* give warning on open errors? */
 #if O_FOLD
 static int   fold = O_FOLD;		/* default line folding */
 #else
@@ -98,6 +97,7 @@ void
 initIO()
 { int n;
 
+  fileerrors = TRUE;
   if ( maxfiles != GetDTableSize() )
   { if ( fileTable != (PlFile) NULL )
       freeHeap(fileTable, (PlFile) allocHeap(sizeof(struct plfile) * maxfiles));

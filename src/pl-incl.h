@@ -1167,6 +1167,7 @@ GLOBAL LocalFrame environment_frame;	/* current context frame */
 GLOBAL bool	  novice;		/* novice user */
 GLOBAL Atom	  source_file_name;	/* Current source file_name */
 GLOBAL int	  source_line_no;	/* Current source line_no */
+GLOBAL bool	  fileerrors;		/* Report file errors? */
 
 #define ReadingSource (source_line_no > 0 && source_file_name != NULL)
 

@@ -32,7 +32,7 @@ and libraries.  If you are not sure, run `which cc' which should yield
 #define M_CFLAGS		-funsigned-char
 #endif
 
-/*#define M_OPTIMIZE		-g -DO_SECURE*/
+/*#define M_OPTIMIZE		-g*/
 
 #define M_LIBS			-lm -ltermcap -lreadline
 

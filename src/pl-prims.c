@@ -1081,18 +1081,20 @@ Word a1, a2, a3;
   }
 
   if (s2)
-  { char end;
-    int rval;
+  { int ld;				/* fixed 13/09/93 for: */
+    char *q;				/* concat(X, ' ', 'xxx  ') */
 
     l2 = strlen(s2);
     l3 = strlen(s3);
-    if (l2 > l3 || !streq(s3+l3-l2, s2) )
+    ld = l3 - l2;
+    if (l2 > l3 || !streq(s3+ld, s2) )
       fail;
-    end = s3[l3-l2], s3[l3-l2] = EOS;
-    rval = unifyAtomic(a1, lookupAtom(s3));
-    s3[l3-l2] = end;
-    
-    return rval;
+    initAllocLocal();
+    q = allocLocal(ld+1);
+    strncpy(q, s3, ld);
+    q[ld] = EOS;
+    stopAllocLocal();
+    return unifyAtomic(a1, lookupAtom(q));
   }
 
   return warning("concat/3: instantiation fault");

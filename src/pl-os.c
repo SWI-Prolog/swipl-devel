@@ -1171,7 +1171,10 @@ char *pattern, *expanded;
 
       if ( !streq(fred, user) )
       { if ( (pwent = getpwnam(user)) == (struct passwd *) NULL )
-	  return warning("%s: Unknown user");
+	{ if ( fileerrors )
+	    warning("%s: Unknown user");
+	  fail;
+	}
 	strcpy(fred, user);
 	strcpy(fredLogin, pwent->pw_dir);
       }
@@ -1202,7 +1205,10 @@ char *pattern, *expanded;
 	  int l;
 
 	  if ( value == (char *) NULL )
-	    return warning("%s: Undefined variable", var);
+	  { if ( fileerrors )
+	      warning("%s: Undefined variable", var);
+	    fail;
+	  }
 	  size += (l = (int)strlen(value));
 	  if ( size >= MAXPATHLEN )
 	    return warning("Path name too long");

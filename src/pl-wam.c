@@ -199,8 +199,8 @@ Procedure proc;
 LocalFrame frame;
 { int argc = proc->functor->arity;
   word result;
-  Word argv[20]; /* this must be as big as the number args we sutff in it 
-                * (switch() below can handle upto case : 15) */
+  Word argv[20]; /* this must be as big as the number args we stuff in it 
+                  * (switch() below can handle upto case : 15) */
   Func function;
   Lock top = pTop;
   bool gc_save;
@@ -1958,8 +1958,15 @@ Leave the clause:
 	{ leaveClause(CL);
     top_exit:
 	  if (debugstatus.debugging)
-	  { CL = (Clause) NULL;
-	    switch(tracePort(FR, EXIT_PORT) )
+	  { LocalFrame lTopSave = lTop;
+	    int action;
+
+	    lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
+	    CL = (Clause) NULL;
+	    action = tracePort(FR, EXIT_PORT);
+	    lTop = lTopSave;
+
+	    switch(action)
 	    { case ACTION_RETRY:	goto retry;
 	      case ACTION_FAIL:		set(FR, FR_CUT);
 					goto frame_failed;
@@ -1982,7 +1989,13 @@ Leave the clause:
 
     normal_exit:
 	if (debugstatus.debugging)
-	{ switch(tracePort(FR, EXIT_PORT) )
+	{ LocalFrame lTopSave = lTop;
+	  int action;
+
+	  lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
+	  action = tracePort(FR, EXIT_PORT);
+	  lTop = lTopSave;
+	  switch(action)
 	  { case ACTION_RETRY:	goto retry;
 	    case ACTION_FAIL:	set(FR, FR_CUT);	/* references !!! */
 				goto frame_failed;
@@ -2134,7 +2147,7 @@ frame_failed:				MARK(FAIL);
 #if O_PROFILE
 	if (statistics.profiling)
 	  FR->procedure->definition->profile_fails++;
-#endif /* O_PROFILE */
+#endif
 
     if ( debugstatus.debugging )
     { switch( tracePort(FR, FAIL_PORT) )
