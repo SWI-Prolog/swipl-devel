@@ -38,11 +38,11 @@
 
 <!-- TITLEPAGE STRUCTURE -->
 
-<!ELEMENT titlepage o o (title&author&abstract?)>
+<!ELEMENT titlepage - - (title&author&abstract?)>
 
 <!ELEMENT title   o o (%Title)>
 
-<!ELEMENT author  - o (name,address,email?)>
+<!ELEMENT author  - - (name,address,email?)>
 <!ELEMENT address - o (%Title|br)*>
 <!ELEMENT email   - o (%Title)>
 
