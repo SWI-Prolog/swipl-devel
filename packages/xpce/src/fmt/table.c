@@ -581,10 +581,10 @@ deleteRowsTable(Table tab, Int from, Int to, Bool keep)
 
 
 static status
-insertRowTable(Table tab, Int at)
+insertRowTable(Table tab, Int at, TableRow newrow)
 { int y, ymin, ymax;
   int here = valInt(at);
-  TableRow newrow, movedrow;
+  TableRow movedrow;
 
   table_row_range(tab, &ymin, &ymax);
   for(y=ymax; y>=here; y--)
@@ -598,7 +598,24 @@ insertRowTable(Table tab, Int at)
   }
 
   elementVector(tab->rows, at, NIL);
-  newrow = getRowTable(tab, at, ON);
+  if ( isDefault(newrow) )
+    newrow = get(tab, NAME_row, at, ON, EAV);
+  else
+  { elementVector(tab->rows, at, newrow);
+    assign(newrow, table, tab);
+    assign(newrow, index, at);
+    indexTableRow(newrow, at);
+    
+    for_vector(newrow, TableCell cell,
+	       if ( notNil(cell) )
+	       { assign(cell, layout_manager, tab);
+		 assign(cell, row, at);
+
+		 if ( notNil(tab->device) && notNil(cell->image) &&
+		      cell->image->device != tab->device )
+		   send(tab->device, NAME_display, cell->image, EAV);
+	       });
+  }
 
   if ( (movedrow = getRowTable(tab, toInt(here+1), OFF)) )
   { for_vector_i(movedrow, TableCell cell, i,
@@ -1793,6 +1810,8 @@ static char *T_delete[] =
 	{ "what=table_cell|table_row|table_column",
 	  "keep=[bool]"
 	};
+static char *T_insertRow[] =
+	{ "at=int", "row=[table_row]" };
 
 /* Instance Variables */
 
@@ -1833,8 +1852,8 @@ static senddecl send_table[] =
      NAME_cell, "Append a cell"),
   SM(NAME_nextRow, 1, "end_group=[bool]", nextRowTable,
      NAME_cell, "Start next row (group)"),
-  SM(NAME_insertRow, 1, "at=int", insertRowTable,
-     NAME_cell, "Insert new row at the specified index"),
+  SM(NAME_insertRow, 2, T_insertRow, insertRowTable,
+     NAME_cell, "Insert row at the specified index"),
   SM(NAME_insertColumn, 2, T_insert_column, insertColumnTable,
      NAME_cell, "Insert new column at the specified index"),
   SM(NAME_delete, 2, T_delete, deleteTable,

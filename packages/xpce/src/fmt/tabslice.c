@@ -641,6 +641,25 @@ computeRubberTableRow(TableRow row)
 }
 
 
+static status
+appendTableRow(TableRow r, TableCell cell)
+{ int i = valInt(getHighIndexVector((Vector)r));
+  
+  if ( notNil(r->table) )
+  { return send(r->table, NAME_append, cell, toInt(i+1), r->index, EAV);
+  } else
+  { int cs = valInt(cell->col_span);
+
+    i++;
+    assign(cell, column, toInt(i));
+    for( ; cs-- > 0; i++)
+      cellTableRow(r, toInt(i), cell);
+
+    succeed;
+  }
+}
+
+
 /* Type declarations */
 
 static char T_valign[] = "{top,bottom,center,reference,stretch}";
@@ -669,7 +688,9 @@ static senddecl send_table_row[] =
   SM(NAME_compute, 0, NULL, computeTableRow,
      NAME_layout, "Compute dimensions of the row"),
   SM(NAME_height, 1, "[int]", widthTableSlice,
-     NAME_layout, "Set (fixed) height of the table row")
+     NAME_layout, "Set (fixed) height of the table row"),
+  SM(NAME_append, 1, "table_cell", appendTableRow,
+     NAME_cell, "Append cell to row")
 };
 
 /* Get Methods */
