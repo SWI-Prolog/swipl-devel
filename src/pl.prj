@@ -1,0 +1,49 @@
+pl.ttp
+= 
+TCSTART.O          ; startup code
+
+pl-dwim.c	; DWIM support
+pl-glob.c	; file name wildchart expansion
+pl-op.c		; Operator Declaractions
+pl-setup.c	; Start up
+pl-alloc.c	; Memory allocation
+pl-ext.c	; linking foreign functions
+pl-os.c		; Operating system connection
+pl-sys.c	; More system interaction
+pl-arith.c	; Arithmetic
+pl-file.c	; File manipulation, primitive i/o
+pl-index.c	; clause indexing
+pl-table.c	; Hash Tables
+pl-atom.c	; Atom table
+pl-flag.c	; flag/3
+pl-itf.c	; Foreign Language Interface
+pl-pce.c	; PCE dummy interface
+pl-trace.c	; Prolog Tracer
+pl-fmt.c	; format/2
+pl-prims.c	; Many primitive predicates
+pl-util.c	; Utilities
+pl-funct.c	; Functor table
+pl-list.c	; List Manipulation Predicates
+pl-pro.c	; Prolog toplevel stuff
+pl-wic.c	; Intermediate code reading and writing
+pl-bag.c	; Bag Predicates Support
+pl-load.c	; Foreign Language Linker
+pl-proc.c	; Procedure Manipulation
+pl-write.c	; write/1 and Derivates
+pl-comp.c	; Compiler
+pl-main.c	; Main Program
+pl-prof.c	; Prolog Profiler
+pl-read.c	; read/1 and Derivates
+pl-dump.c	; save_program/5
+pl-rec.c	; record/3, etc.
+pl-wam.c	; WAM code interpreter
+pl-modul.c	; Module mangement
+pl-term.c	; Terminal support
+pl-gc.c		; Garbage Collector
+
+TCFLTLIB.LIB       ; floating point library
+TCSTDLIB.LIB       ; standard library
+TCEXTLIB.LIB       ; extended library
+TCTOSLIB.LIB       ; TOS library
+TCGEMLIB.LIB       ; AES and VDI library
+TCLNALIB.LIB       ; LINE-A library

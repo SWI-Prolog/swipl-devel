@@ -1,0 +1,23 @@
+Remaining problems in SWI-Prolog
+
+* The standard loaded library facilities get a bit of a mess.  A
+  better idea might be to take out many of the functions and use dynamic
+  library loading instead.  Another idea is to put the entire system in
+  a module called system, so the user can abolish it whenever appropriate,
+  without cripling the system itself.
+
+* Still, we have to search for a solution to garbage collection
+  while foreign code is active.
+
+* Read/1 is buggy.  Operator resolution still does not solve all problems
+  correctly.
+
+  See:
+
+  	?- op(900, fy, cd).
+	
+	cd :- cd ~.
+
+  is read as cd (:- cd ~).
+
+  

@@ -1,0 +1,48 @@
+#!/bin/csh -f
+# Set up SWI-Prolog for a specific machine/operating system
+
+if ( $#argv != 1 ) then
+    echo "Usage: SETUP architecture"
+    echo ""
+    echo "Where architecture is one of:"
+    ls src/md-*.h | sed -e '/src\/md-gener.h/d' \
+                        -e 's/src\/md-\(.*\)\.h/	\1/'
+    exit 1
+endif
+
+set arch=$1
+
+if ( -e $arch ) then
+    echo "Directory $arch already exists; setup aborted"
+    exit 1
+endif
+
+if ( ! -e src/md-$arch.h ) then
+    echo "Machine description file md-$arch.h does not exists."
+    echo "I will copy the generic md file into md-$arcg.h"
+    (cd src; cp md-gener.h md-$arch)
+endif
+
+mkdir $arch
+cd $arch
+ln -s ../src/pl-*.[ch] .
+ln -s ../src/pl-*.i[ch] .
+ln -s ../src/pl-export .
+ln -s ../src/{ATOMS,defatom,gnu,dump,make.sed} .
+
+switch ( $arch )
+    case atari:
+        ln -s ../src/pl.prj .
+	ln -s ../src/tc.cfg .
+	breaksw
+endsw
+
+if ( -e ../src/Makefile.$arch ) then
+    ln -s ../src/Makefile.$arch Makefile
+else
+    ln -s ../src/Makefile Makefile
+endif
+
+ln -s ../src/md-$arch.h md.h
+
+echo "Setup for $arch completed in directory $arch"

@@ -1,0 +1,220 @@
+  SCCS: @(#)README	2.8 2/7/91
+  SCCS: @(#)89/12/11 README    2.4
+  README: Quintus Prolog Gnu Emacs interface documentation
+  Date  : 1/8/91
+
+  The following is a brief introduction to the Quintus Prolog Gnu Emacs
+  interface. Refer to the Quintus Prolog manual for further details.
+
+  This directory contains the files: 
+     qpaux.el, qpcommands.el, qpfile-compl.el, qprolog.el, qptokens.el,
+     qpshell-command-ring.el, qprocess.el, qprolog-mode.el, qpfindpred.el,
+     qphelp-functions.el, qphelp.el, qprolog-indent.el, qpdelete.el, 
+     quintaux.el, qpstart.el qui.el, qui_filter.el, qui_cmds.el,
+     qui_aux.el and README. 
+
+  The interface can be invoked in two ways; 1) From the shell command
+  line by typing "prolog +" or 2) From within GNU Emacs by typing the
+  command M-x run-prolog. For invoking the interface from the shell
+  command line refer to the Quintus Prolog manual. If the latter
+  method of firing up the interface is to be used, you must specify
+  the directory in which the Quintus Prolog - GNU emacs interface
+  files are stored. To do so, add this directory to your load-path,
+  which is a list of directories that GNU Emacs searches to load lisp
+  files. This can be best achieved by placing the following in your
+  ~/.emacs file:
+  
+		      (setq load-path ("pathname"
+				       "lispdir1"
+					   ...))
+  
+  where "pathname" is the directory in which Quintus Prolog - Gnu Emacs
+  interface lisp files are stored, lispdir1 is the pathname where the
+  lisp code for emacs itself is stored. Note that the inverted commas
+  are needed, pathnames being strings.
+
+  The environment variable QUINTUS_PROLOG_PATH should be initialized
+  to the full pathname of the Quintus prolog executable.
+
+  Once you have told Gnu Emacs where to look for the lisp files, you
+  need to load them. This for convenience can also be placed in the
+  ~/.emacs initialization file,
+
+  (autoload 'run-prolog "qprolog-mode" "Run an inferior prolog process"
+  t) 
+
+  This causes the required lisp files to be autoloaded only when you
+  desire to run a prolog session.
+
+  Here is an example of how ~/.emacs can be set up:
+  ;---------------------------------------------------------------------
+  ;; load-path for all functions
+	(setq load-path '("/ports/emacs/GNU/el3.1/"
+			  "/hughes/gnu/local-lisp"))
+  ;; autoload gnu-prolog interface library
+	(autoload 'run-prolog "prolog-mode" 
+		  "Run an inferior prolog process" t)
+  ;---------------------------------------------------------------------
+
+  In the example the directory "/ports/emacs/GNU/el3.1/" is where the
+  Quintus Prolog - GNU Emacs lisp files are and
+  "/hughes/gnu/local-lisp" contains the standard GNU Emacs lisp files.  
+
+  The existing GNU Emacs lisp directories (standard distribution)
+  contains a file "prolog.el" which defines a version of the Prolog
+  interface. In order to avoid any clash, place the Quintus Prolog -
+  GNU Emacs interface library pathname before all others in the
+  load-path. Note that no clash can occur if the autoload function
+  described above is used.
+
+  From within Gnu Emacs to achieve the same result use the command
+  "M-x load-file" qprolog-mode.el. At this stage all the emacs lisp code
+  necessary for the interface has been loaded.
+
+  To run prolog you may then type "M-x run-prolog", which causes the
+  current buffer to display the Quintus Prolog logo and the prolog
+  prompt.
+
+  KEY BINDINGS
+  ------------
+  Within the prolog buffer (called *prolog*) a certain set of key
+  bindings are in effect. They are:
+
+                 "\t"          prolog-indent-command
+                 "ESC  \C-f"   forward-term
+                 "ESC  \C-b"   backward-term
+                 "ESC  d"      kill-prolog-word
+                 "ESC   DEL"   backward-kill-prolog-word
+                 "ESC  ."      find-definition
+                 "ESC  ,"      find-more-definition
+                 "\C-c\C-c"    interrupt-prolog
+                 "\C-x\C-e"    goal-history
+                 "\C-x\C-y"    repeat-matching-goal-command
+		 "ESC #"       shell-filename-complete
+  (\C-u # or ESC # provides a numeric argument # to \C-x\C-e) 
+
+  In the prolog buffer the command "ESC-x cd" changes the directory of
+  both the buffer and the prolog process. Equivalently, a unix(cd(+Path)),
+  changes both default directories as well.
+
+  GOAL HISTORY
+  ------------ 
+  The "\C-x\C-e" command requires a little more explanation. There are
+  two possibilities:
+	a) Typing the command at the current prolog prompt,
+	   causes the last query typed to be displayed in the
+	   minibuffer. This query can be modified using the usual
+	   editing keys, or one can go to the previous item in the
+	   goal-history by typing "ESC-p". Actually within the
+	   minibuffer the following key bindings exist, in addition to
+	   the usual ones:
+		ESC-p	   previous item in goal-history
+		ESC-n	   next item in goal-history
+	        LFD,RET    Select query displayed in the minibuffer.
+	
+ 	b) If the cursor (point) is at any position above the current
+	   end-of-buffer, the last valid query, searching backwards from
+	   "point" is selected, and a copy placed at the prolog prompt. 
+	   
+  In either case the selected query is placed at the prolog prompt, and
+  is executed by prolog only when a RET is hit again. Therefore, the
+  query can be edited even after being placed at the prolog prompt. The
+  query just executed is then added to the goal-history.
+
+  Multiline queries are displayed in the minibuffer one line at a time,
+  and one can display the next or the previous line of such a query with
+  the usual C-n or C-p key sequence.
+
+  The command "\C-x\C-y" provides a mechanism whereby a goal matching
+  a regular expression can be retrieved from the prolog-goal-history.
+  When you type in the said key-sequence, you are first prompted for a
+  regular expression; the most recent query matching this regular
+  expression is displayed in the minibuffer. If you type "y" then you
+  can either edit the query or simply type return to place it in the
+  prolog buffer. If you respond with "n" the next query which matches
+  the regular expression (if any) is displayed. 
+
+  Within a buffer in prolog-mode, the following key bindings are
+  available:
+
+                 "ESC  \C-a"   beginning-of-clause
+		 "ESC  \C-e"   end-of-clause
+                 "ESC  \C-k"   kill-clause
+                 "ESC  h"      mark-clause	   
+                 "ESC  f"      forward-prolog-word
+	         "ESC  b"      backward-prolog-word
+                 "ESC  k"      prolog-compile
+                 "ESC  i"      prolog-compile (for backward compatibility)  
+		 "ESC  d"      kill-prolog-word
+                 "ESC  DEL"    backward-kill-prolog-word
+                 "ESC  ."      find-definition
+                 "ESC  ,"      find-more-definition
+		 "ESC C-b"     backward-term
+		 "ESC C-f"     forward-term
+		 "ESC C-q"     prolog-indent-clause
+		 "\t"          prolog-indent-line
+		 "ESC #"       shell-filename-complete
+
+  This mode is automatically entered when a prolog file is visited (with
+  a filename extension of .pl) 
+
+  FILENAME COMPLETION
+  -------------------
+  Within either the prolog buffer or any buffer in prolog-mode, the key
+  sequence "ESC #" provides filename completion. For example when typing
+  in the query unix(cd(+Path)), "ESC #" can be used to provide filename
+  completion for "Path".
+
+  In a nutshell, the following steps should be followed to install the
+  interface:
+
+  1) Create or update your ~/.emacs file as described above.
+     Specifically, add the directory where the emacs lisp files are
+     located to the load-path variable. Note that you don't have to do
+     this if you plan to invoke the Quintus Prolog - GNU Emacs
+     interface from the command line.
+
+  2) Set the environment variable QUINTUS_PROLOG_PATH to the full
+     pathname desired prolog executable. 
+
+
+  INDENTATION
+  ----------- 
+  In prolog-mode the TAB and Linefeed keys provide a method of
+  indenting user prolog code according to a few rules. There are two
+  variables which control indentation in prolog mode. They are:
+
+  1) body-predicate-indent: Default value 8. The column at which the
+     body of a predicate is to begin. 
+  
+  2) if-then-else-indent: Default value 4. Offset within an
+     if-then-else statement. This offset is measured beginning at the
+     column of the first term in the condition. All subsequent lines
+     are indented according to the previous line. ';' and '|' are
+     indented according to the column of the corresponding '('. Nested
+     if-then-else constructs are handled in the same way. Note that
+     this variable refers to the offset for clauses in the "then" part
+     alone. Within the "else" part indentation depends on the
+     indentation of the previous line. 
+
+
+  QUI-EMACS INTERFACE
+  -------------------
+  
+  For Quintus Prolog 3.1 a QUI Gnu Emacs interface has been added.
+  This allows users to invoke Gnu Emacs from QUI (Quintus User
+  Interface) and from the debugger. The interface when invoked from
+  the QUI main window comes up with a scratch buffer - "*qui-emacs*"
+  in qui-mode. When invoked from the debugger the file containing the
+  predicate you are currently debugging is displayed and the scratch
+  buffer "*qui-emacs*" is hidden. Qui-mode is equivalent to
+  prolog-mode in the regular Prolog/Emacs interface. This is the mode
+  that all files with ".pl" extension are placed in when first edited.
+  The only key bindings which have been disabled are the ones which
+  allow for manipulating queries sent to Prolog. This function is
+  handled by the QUI main window. The files that define this interface
+  are qui.el, qui_filter.el, qui_cmds.el and qui_aux.el.  Please refer
+  to the QUI manual for further details about this interface and on
+  how to invoke it.
+
+

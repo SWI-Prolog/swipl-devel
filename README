@@ -1,0 +1,184 @@
+		    SWI-Prolog Distribution Directory
+
+** Last update: Tue Apr 14 10:26:42 1992; version 1.5.9
+
+AUTHOR:
+	Jan Wielemaker
+	SWI
+	University of Amsterdam
+	Roetersstraat 15
+	1018 WB  Amsterdam
+	The Netherlands
+	E-mail: jan@swi.psy.uva.nl
+
+DIRECTORIES
+
+The SWI-Prolog source tree consists of the following directories:
+
+./src		C sources
+./src/gnu	GNU-Emacs unexec() sources (MODIFIED VERSION)
+./boot		Prolog system predicates defined in Prolog
+./library	Prolog user's library
+./include	Include files.  Mostly for handling foreign-code
+./man		Manual (LaTeX)
+./lisp		GNU-Emacs Lisp sources for a better Prolog-mode
+./dld-3.2	Wilson Ho's `dynamic link editor' (SUN and VAX only)
+		(MODIFIED VERSION)
+
+
+BUILDING SWI-Prolog
+
+First,  make a  directory for  the  specified machine  using the SETUP
+script.  The argument to SETUP describes the machine you  are running.
+This machine is described in the file src/md-MACHINE.h.  To get a list
+of architectures run SETUP without arguments.
+
+Next, edit config.h:
+
+M_SYSTEMHOME	absolute path pointing to this directory
+M_DEFSTARTUP	Personal startup file basename
+M_BINDIR	Installation directory for executables
+M_PROLOG	Name of the resulting program
+
+Next:
+	1) cd ./MACHINE
+	2) make
+
+INSTALLATION:
+
+	1) cd ./MACHINE
+	2) make install
+
+CLEANUP
+
+	1) cd ./MACHINE
+	2) make clean
+
+GCC
+
+When available,   please use the GNU-C  compiler  gcc.  SWI-Prolog has
+been developed  with this compiler.    Donot use version  2.0, as this
+compiler crashes on  pl-wam.c.  Version  2.1 is ok.   SWI-Prolog makes
+use  of  GCC-2's  facilities to deal  with  label addresses, improving
+performance with about 10%.
+
+
+GNU-EMACS INTERFACE
+
+In the directory ./lisp, you'll find  an interface to  GNU-EMACS.  The
+file README.SWI provides installation directives.  In  consists of the
+Quintus  Prolog  gnu-emacs  interface    with   an   additional   file
+swi-prolog.el that redefines and adds some things.
+
+
+NOTES
+
+SunOs 3.x
+
+Ancient users  of  SunOs  3.x  should  set  the  corresponding  flag  in
+md-sun3.h. Dynamic stacks are not provided under SunOs 3.x.
+
+
+DLD (Dynamic Link Editor)
+
+The current distribution entails  a  limited interface to Wilson  Ho's
+dynamic link editor for C called dld.   Dld can be loaded via Prolog's
+own foreign interface and can be used to link C-packages.  Notably, it
+is used to connect X-PCE; the X-window version of  the object oriented
+user interface   toolkit   PCE.    See  also    ./library/dld.pl   and
+./library/dld.c.
+
+Dld is a library.  It is installed as follows:
+
+	% cd dld
+	% make install
+
+Which    creates    /usr/lib/libdld.a,     /usr/man/man3/dld.3     and
+/usr/include/dld.h (you must be super-user to do this installation).
+
+
+PORTING/CHANGING SWI-PROLOG
+
+Below  are some  notes meant for  those who decide  to modify  or port
+SWI-Prolog.  It is by no means complete.
+
+
+CODE USED ATOMS OR FUNCTORS
+
+Atoms needed by the  C sources are addressed using  macros of the form
+ATOM_<name>.  Functors  have the  form FUNCTOR_<name><arity>.  See the
+file ATOMS.  The awk script defatoms is  invoked by make to create the
+necessary C source and header files.  These files are named *.i[ch].
+
+DEBUGGING SWI-Prolog ON A NEW MACHINE
+
+1. Machine Description file.
+
+Create a md- file for the new architecture.  You can use a  similar  one
+as  starting  point and look at md-gener.h for a full description of the
+options.  For the first port, I advice to set the following flags to 0:
+
+	- O_ASM_SWITCH
+	- O_FOREIGN
+	- O_PCE
+	- O_STORE_PROGRAM
+	- O_SHARED_MEMORY
+	- O_CAN_MAP
+
+During debugging, make sure to give -g and -DO_DEBUG to the C  compiler,
+so  you can debug the resulting prolog system using the -d level option.
+-DO_DEBUG also includes some consistency checks.  For final installation
+use -O and drop -DO_DEBUG (which makes the system about 20% slower).
+
+If you are very lucky the system will compile and perform the  bootstrap
+compilation  in one go.  Normally you are not.  On how to get it through
+the C compiler, you are on your own.  If the system does not want to  do
+the  bootstrap  compilation,  write  a  small prolog program that can be
+handled by the bootstrap compiler and work on that.  Normally, I use
+
+:- write('Hello World!').
+:- nl.
+
+You can compile this using `pl -d level -b file'.  If this finally writes
+`Hello World' on your terminal you are getting close.  Next test program
+can be:
+
+test :-
+	write('Hello World'),
+	nl.
+
+$init :-
+	test,
+	halt.
+
+If you can compile this and you can run the result by typing `a.out'  or
+`pl  -x  a.out  -d level' you can try to do the entire boot compilation.
+If you decide to write more elaborate test programs you  should  realise
+many  things  are  not  yet  defined.   Initially  you can only call the
+foreign language predicates, defined in pl-ext.c. Constructs handles  by
+the compiler (,/2, !, ->/2, ;/2, etc.)  cannot be called via metacall or
+directives (but can be used in program text).
+
+MODIFYING SWI-Prolog
+
+You are free to modify SWI-Prolog under the licence terms  specified  in
+the  file  LICENCE.   You  may  wish  the  other  users  can  share your
+improvements.   For  code  to  be  accepted  as  part  of  the  official
+distribution,  it should be written in the same style as the rest of the
+SWI-Prolog sources.  I do not claim this style to be the best available,
+but I want the  entire  source  to  have  a  consistent  style.   Please
+document  the  modifications  and  if  reasonably possible indicate them
+using #if ... #endif.  Please do not send `diff' files to me, I probably
+do not have the same version of the sources, so complete files, with the
+changes indicated with #if ... #endif are easier to incorporate.
+
+If your change is accepted, you will be  appropriately  acknowledged  in
+the distribution.
+
+PROLOG PROGRAMS
+
+Additions to the library and other stand alone Prolog programs have less
+strick conditions.  Add comments such that other  users  can  understand
+the  program  or  library module and ensure the files provide sufficient
+documentation on its origin, waranty and distribution conditions.   Such
+contributions are copied verbatim and not maintained by me.
