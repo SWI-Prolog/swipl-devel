@@ -361,7 +361,7 @@ showPullrightMenuPopup(PopupObj p, MenuItem mi, EventObj ev, Any context)
     pos = tempObject(ClassPoint, toInt(rx), toInt(iy), EAV);
 	    
     assign(p, pullright, mi->popup);
-    assign(p, pullright->default_item, NIL); /* Initialise do not select */
+    assign(p->pullright, default_item, NIL); /* Initialy do not select */
     send(p->pullright, NAME_open, p, pos, OFF, OFF, ON, EAV);
     considerPreserveObject(pos);
     assign(p->pullright, button, p->button);

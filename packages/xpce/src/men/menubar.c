@@ -157,6 +157,7 @@ showPopupMenuBar(MenuBar mb, PopupObj p)
     send(mb->current, NAME_close, EAV);
   currentMenuBar(mb, p);
   send(mb->current, NAME_update, mb, EAV);
+  assign(mb->current, default_item, NIL); /* Initialy do not select */
   send(mb->current, NAME_open, mb, pos, OFF, OFF, ON, EAV);
   considerPreserveObject(pos);
 
