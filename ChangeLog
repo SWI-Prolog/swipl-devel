@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+
+VERSION 5.2.5 (Aug 15, 2003)
+============================
+
   * FIXED: Cleanup problem in threads.
 
   * FIXED: Memory management problem in message_queue create/destroy.

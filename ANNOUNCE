@@ -1,47 +1,44 @@
-SWI-Prolog 5.2.5/XPCE 6.2.5 stable release
+SWI-Prolog 5.2.6/XPCE 6.2.6 stable release
 
 Status
 ======
   
   * Stable release integrating shared-database multi-threaded execution.
 
-Brief summary of changes since 5.2.4
+Brief summary of changes since 5.2.5
 ====================================
 
 SWI-Prolog
 ----------
 
-  * Serious bug using \+ inside ; or if-then-else causing undefined behaviour
-    (crash/loop/wrong result).
+  * Various memory management problems in threaded code, notably associated
+    with message queues and frequent creation of detached threads.
 
-  * Fixed memory leak in creating and destroying streams.  This notably
-    affects sformat/3, swritef/3, atom_to_term/3 and similar predicates
-    that create a temporary stream and may be called very frequently.
-    Affects MS-Windows version, not Linux.  Other platforms may be affected.
+  * Office interaction problem in Windows NT4
 
-  * Fixed deadlock in see/1 if the file does not exist.
+  * Foreign code garbage collector interaction in some rare scenarios,
+    notably associated with foreign callback and the autoloader.
 
-  * Portability issues: platforms that do not support the profiler, platforms
-    that require the stack-shifter.  Fixed Solaris detection of profiler
-    capabilities.
+  * Portability and other minor issues in the profiler.
 
 Packages
 --------
 
-  * XPCE: fix to process->close (could crash in Unix/X11 version).
+  * XPCE: Improved PostScript generation in some minor areas, added cursor
+    feedback to editable barcharts.
+
+  * SemWeb: Fixed and improved generation of RDF in rdf_db.pl
 
 Development environment
 -----------------------
 
-  * Improved exception handling in the graphical debugger.
-
-  * Fixed some minor problems
-
+  (none)
 
 INCOMPATIBILITIES
 =================
 
-  (none)
+  * New GC interaction to foreign code may give problems with incorrect
+    but previously foreign code.  Please report experiences.
 
 
 Donations
