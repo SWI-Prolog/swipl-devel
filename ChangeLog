@@ -1,6 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 1.8.8.  Fix  in  the  parser   to  avoid  some  bad syntax-error
+messages.  Also fixed spurious crashes   trying to read bad-syntax-terms
+of the form ?- atom,.
+
+New in the quintus.pl library:  initialization/1, random/3, numbervars/3
+and absolute_file_name/3.
+
 Version  1.8.7  includes   the    catch/throw-like   control  structures
 block(+Label,  +Goal,  -Rval),  fail(+Label),  exit(+Label,  +Rval)  and
 !(+Label).  Also new is explain(+Anything) which will  try to tell you a
