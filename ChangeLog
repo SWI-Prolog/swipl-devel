@@ -1,6 +1,16 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.0.8
+=============
+
+  * FIXED: loading shared objects using dlopen() for solaris 2.x
+  
+  * FIXED: shlib.pl current_foreign_library/2 administration.
+
+Version 2.0.7
+=============
+
   * FIXED: compilation (boot and .qlf) now donot look for compiled
     (.qlf) files.
 
