@@ -1,11 +1,11 @@
-SWI-Prolog 5.2.7/XPCE 6.2.7 stable release
+SWI-Prolog 5.2.8/XPCE 6.2.8 stable release
 
 Status
 ======
   
   * Stable release integrating shared-database multi-threaded execution.
 
-Brief summary of changes since 5.2.6
+Brief summary of changes since 5.2.7
 ====================================
 
 SWI-Prolog
@@ -18,31 +18,37 @@ SWI-Prolog
   * Bugfix in thread_local dynamic predicates (multi-threaded applications)
     No real bug, but automatic indexing fails, leaving predicates unindexed.
 
-  * Bugfix in exception handling that sometimes crashes the debugger.
+  * Some more sanity checks in module declarations.  Avoids loading a
+    module file from silently overruling a dynamically created module.
 
   * The usual small and/or obscure stuff.
 
 Packages
 --------
 
-  * XPCE: Various minor improvements. Notably affecting trees,
-    library(tabular), library(dragdrop).
+  * XPCE: Various extensions and fixes.  Notably involved are trees,
+    event-focus handling, drag-and-drop (inside the application), tooltips
+    (windows: avoid loosing focus of underlying window) and the new `unclip'
+    windows used by library(pce_toc): also focus and other coorperation
+    issues with event-handling.  Fixed RPM binary compatibility issues with
+    Mandrake Linux (dispite, I advice to recompile if you want to be sure).
 
-  * Semweb: various improvements, notably in rdf_edit.pl (transaction and
-    undo management).  Also duplicate handling in rdf_db.
+  * Semweb: various improvements.  rdf_db.c can now handle properties with
+    multiple super-properties and duplicate handling on delete is fixed.
+    Various patches to rdf_edit.pl (transaction and undo management).
 
   * SGML: fixed memory leak.
 
 Development environment
 -----------------------
 
-  (none)
+  * Bugfix in exception handling that sometimes crashes the debugger.
 
 INCOMPATIBILITIES
 =================
 
-  (none)
-
+  * Some issues in XPCE class tree and event-handling.  Unlikely to affect
+    applications.  For details see XPCE ChangeLog.
 
 Donations
 =========
