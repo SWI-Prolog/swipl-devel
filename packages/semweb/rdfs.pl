@@ -166,7 +166,8 @@ rdfs_label(Resource, Label) :-
 
 rdfs_ns_label(Resource, Label) :-
 	rdfs_label(Resource, Label0),
-	(   rdf_global_id(NS:_, Resource)
+	(   rdf_global_id(NS:_, Resource),
+	    Label0 \== ''
 	->  concat_atom([NS, Label0], :, Label)
 	;   \+ rdf_has(Resource, rdfs:label, _)
 	->  Label = Resource
