@@ -461,11 +461,11 @@ pcePushNamedArgument(PceGoal g, PceName name, Any arg)
   if ( g->argn >= g->argc && g->va_type )
     return pcePushArgument(g, answerObject(ClassBinding, name, arg, EAV));
 
-  g->argn = -1;
-
   for(i=0; i<g->argc; i++)
   { if ( g->types[i]->argument_name == name )
     { Any v = checkType(arg, g->types[i], g->receiver);
+
+      g->argn = -1;
 
       if ( v )
       { g->argv[i] = v;
@@ -876,7 +876,15 @@ vm_send(Any receiver, Name selector, Class class, int argc, const Any argv[])
 
       if ( getNamedArgument(argv[i], &an, &av) )
       { if ( !pcePushNamedArgument(&g, an, av) )
+	{ if ( g.errcode == PCE_ERR_NO_NAMED_ARGUMENT )
+	  { if ( pcePushArgument(&g, argv[i]) )
+	    { g.errcode = PCE_ERR_OK;
+	      continue;
+	    }
+	    pceSetErrorGoal(&g, PCE_ERR_NO_NAMED_ARGUMENT, an);
+	  }
 	  goto error;
+	}
       } else
       { if ( !pcePushArgument(&g, argv[i]) )
 	  goto error;

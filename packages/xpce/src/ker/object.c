@@ -2636,7 +2636,7 @@ static senddecl send_object[] =
 #endif
   SM(NAME_InstanceOf, 1, "class", instanceOfObject,
      NAME_function, "Equivalent to ->instance_of"),
-  SM(NAME_SameReference, 1, "to=any|function", sameReferenceObject,
+  SM(NAME_SameReference, 1, "to=unchecked", sameReferenceObject,
      NAME_function, "Equivalent to ->same_reference"),
   SM(NAME_hasGetMethod, 1, "selector=name", hasGetMethodObject,
      NAME_meta, "Test if object defines get_method"),
