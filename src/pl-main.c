@@ -745,6 +745,9 @@ properly on Linux. Don't bother with it.
   initDefaults();			/* Initialise global defaults */
   initPaths();				/* fetch some useful paths */
   setupGNUEmacsInferiorMode();		/* Detect running under EMACS */
+#ifdef HAVE_SIGNAL
+  setFeatureMask(SIGNALS_FEATURE);	/* default: handle signals */
+#endif
 
   if ( (GD->resourceDB = rc_open_archive(GD->paths.executable, RC_RDONLY)) )
   { rcpath = ((RcArchive)GD->resourceDB)->path;
@@ -772,9 +775,6 @@ properly on Linux. Don't bother with it.
 
     DEBUG(1, if (GD->bootsession) Sdprintf("Boot session\n"););
 
-#ifdef HAVE_SIGNAL
-    setFeatureMask(SIGNALS_FEATURE);	/* default: handle signals */
-#endif
     if ( !GD->resourceDB )
     { if ( !(GD->resourceDB = openResourceDB(argc, argv)) )
       { UNLOCK();
