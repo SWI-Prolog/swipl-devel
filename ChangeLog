@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Serious error in saved states dealing with multifile predicates
+    and modules.  Jocelyn Paine.
+
   * FIXED: Possible deadlock in set_prolog_flag/2.
 
   * ADDED: Various new predicates to the ordsets compatibility library,

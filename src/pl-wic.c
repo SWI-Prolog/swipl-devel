@@ -668,7 +668,9 @@ loadQlfTerm(term_t term, IOSTREAM *fd ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Load intermediate code state from the specified stream.
+Load intermediate code state from the   specified  stream. This function
+loads the initial saved state, either  boot32.prc, the state attached to
+the executable or the argument of pl -x <state>.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -1038,6 +1040,16 @@ qlfFixSourcePath(const char *raw)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(**) Note. When loading a qlf  file   we  must do the possible reconsult
+stuff associated with loading sourcefiles. If we are loading a state all
+is nice and fresh, so we can skip that. Actually, we *must* skip that as
+a state is  created  based  on   modules  rather  then  files. Multifile
+predicates are stored with the module. If   we  take no measures loading
+the file from which a clause originates  will remove the one loaded with
+the module where it is a multifile one.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static bool
 qlfLoadSource(IOSTREAM *fd)
 { char *str = getString(fd, NULL);
@@ -1053,7 +1065,10 @@ qlfLoadSource(IOSTREAM *fd)
   currentSource = lookupSourceFile(fname);
   currentSource->time = time;
   currentSource->system = issys;
-  startConsult(currentSource);
+  if ( GD->bootsession )		/* (**) */
+    currentSource->count++;
+  else
+    startConsult(currentSource);
   PL_unregister_atom(fname);		/* locked with sourceFile */
 
   succeed;
