@@ -19,8 +19,15 @@ all:		$(PKGDLL).dll
 $(PKGDLL).dll:	$(OBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(OBJ) $(PLLIB) $(LIBS)
 
-install::
-		copy $(PKGDLL).dll $(PLBASE)\bin
+!IF "$(CFG)" == "rt"
+install:	idll
+!ELSE
+install:	idll ilib
+!ENDIF
+
+idll::
+		copy $(PKGDLL).dll $(BINDIR)
+ilib::
 		copy table.pl $(PLBASE)\library
 		copy table_util.pl $(PLBASE)\library
 		$(MAKEINDEX)

@@ -13,8 +13,12 @@ PLHOME=..\..
 
 all:		
 
+!IF "$(CFG)" == "rt"
+install::
+!ELSE
 install::
 		copy SWI-cpp.h $(PLBASE)\include
+!ENDIF
 
 uninstall::
 		del $(PLBASE)\include\SWI-cpp.h

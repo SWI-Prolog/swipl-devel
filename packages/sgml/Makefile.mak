@@ -23,13 +23,20 @@ all:		$(PKGDLL).dll
 $(PKGDLL).dll:	$(OBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(OBJ) $(PLLIB) $(LIBS)
 
-install:	install-dtd
+!IF "$(CFG)" == "rt"
+install:	idll
+!ELSE
+install:	idtd idll ilib
+!ENDIF
+
+idll::
 		copy $(PKGDLL).dll $(PLBASE)\bin
+ilib::
 		copy sgml.pl $(PLBASE)\library
 		$(MAKEINDEX)
 
-install-dtd:	$(DTDDIR)
-		@echo "Installing DTD files in $DTDDIR"
+idtd:		$(DTDDIR)
+		@echo "Installing DTD files in $(DTDDIR)"
 		@for %f in ($(DTDFILES)) do \
 		   @copy DTD\%f $(DTDDIR)
 		@echo "done"

@@ -12,13 +12,24 @@
 # prefix=C:\Program Files
 prefix=E:\jan\installed
 PLBASE=$(prefix)\pl
+BINDIR=$(PLBASE)\bin
+LIBDIR=$(PLBASE)\lib
 
-# Setup the environment.  Uset this to additional libraries and include
+# Setup the environment.  Use this to additional libraries and include
 # files to the path.  In particular provide access to the jpeg and xpm
 # libraries required to build XPCE
 
 INCLUDE=$(INCLUDE);E:\jan\include;..\include
 LIB=$(LIB);E:\jan\lib
+
+# Configuration selection
+
+CFG=dev
+
+!IF "$(CFG)" == "rt"
+CMFLAGS=/DO_RUNTIME
+BINDIR=$(PLBASE)\runtime
+!ENDIF
 
 # Define the packages to be installed automatically.  Note that the
 # Makefile also checks whether the package directory exists.
@@ -44,7 +55,7 @@ INSTALL=copy
 INSTALL_PROGRAM=$(INSTALL)
 INSTALL_DATA=$(INSTALL)
 MKDIR=mkdir
-MAKE=nmake /nologo /f Makefile.mak
+MAKE=nmake CFG="$(CFG)" /nologo /f Makefile.mak
 
 # Architecture identifier for Prolog's current_prolog_flag(arch, Arch)
 
@@ -56,7 +67,7 @@ PLLIB=$(PLHOME)\lib\libpl.lib
 TERMLIB=$(PLHOME)\lib\plterm.lib
 UXLIB=$(PLHOME)\lib\uxnt.lib
 
-CFLAGS=/MD /W3 /O2 /GX /DNDEBUG /DWIN32 /D_WINDOWS /nologo /c
+CFLAGS=/MD /W3 /O2 /GX /DNDEBUG /DWIN32 /D_WINDOWS $(CMFLAGS) /nologo /c
 LDFLAGS=
 
 .c.obj:

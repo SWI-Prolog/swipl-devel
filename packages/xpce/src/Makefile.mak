@@ -254,12 +254,25 @@ $(PL2XPCE):	$(PLOBJ)
 		@$(LD) $(LDFLAGS) /out:$@ /dll $(PLOBJ) $(LIBS) $(XLIBS)
 
 ################################################################
+# Stand-alone toplevel (xpce.exe)
+################################################################
+
+xpce.exe:	xpce.res xpce.obj
+		$(LD) $(LDFLAGS) /subsystem:windows /out:$@ xpce.obj $(PLLIB) xpce.res $(LIBS)
+
+xpce.res:	..\pl\src\xpce.rc ..\pl\src\xpce.ico
+		$(RSC) /fo$@ ..\pl\src\xpce.rc
+
+xpce.obj:	..\pl\src\xpce.c
+		@$(CC) -I $(PLHOME)\include $(CFLAGS) /Fo$@ ..\pl\src\xpce.c
+
+################################################################
 # Installation program
 ################################################################
 
 xpce-install:	xpce-install.exe
 
-# NOTE: setargv ensures main() is fet with expanded arguments (see
+# NOTE: setargv.obj ensures main() is fet with expanded arguments (see
 # MSVC documentation).
 
 xpce-install.exe: xpce-install.obj
@@ -309,16 +322,28 @@ README=	ChangeLog \
 
 INSTALL=xpce-install.exe -n
 
-install:	xpce-install.exe idirs idll ilib irc iindex imanidx ireadme
+!IF "$(CFG)" == "rt"
+ITRG=	xpce-install.exe $(BINDIR) idll ixpce
+!ELSE
+ITRG=	xpce-install.exe $(BINDIR) idirs idll ilib irc iindex imanidx ireadme
+!ENDIF
+
+install:	$(ITRG)
 		
 html-install::
+
+$(BINDIR):
+		mkdir "$@"
 
 idirs::
 		@for %d in ($(IDIRS)) do \
 		  @if not exist "$(IBASE)\%d\$(NULL)" mkdir "$(IBASE)\%d"
 
 idll:		$(PL2XPCE)
-		$(INSTALL) $(PL2XPCE) $(PLBASE)\bin
+		$(INSTALL) $(PL2XPCE) "$(BINDIR)"
+
+ixpce:		xpce.exe
+		$(INSTALL) xpce.exe "$(BINDIR)"
 
 ilib::
 		@for %d in ($(IDIRS)) do \

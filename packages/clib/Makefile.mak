@@ -19,13 +19,20 @@ all:		$(PKGDLL).dll
 $(PKGDLL).dll:	$(OBJ)
 		$(LD) /dll /out:$@ $(LDFLAGS) $(OBJ) $(PLLIB) $(LIBS)
 
-install::
-		copy $(PKGDLL).dll $(PLBASE)\bin
+!IF "$(CFG)" == "rt"
+install:	idll
+!ELSE
+install:	idll ilib
+!ENDIF
+
+idll::
+		copy $(PKGDLL).dll $(BINDIR)
+ilib::
 		copy socket.pl $(PLBASE)\library
 		$(MAKEINDEX)
 
 uninstall::
-		del $(PLBASE)\bin\$(PKGDLL).dll
+		del $(BINDIR)\$(PKGDLL).dll
 		del $(PLBASE)\library\socket.pl
 		$(MAKEINDEX)
 

@@ -14,6 +14,9 @@ PLHOME=..\..\..
 
 all:		
 
+!IF "$(CFG)" == "rt"
+install::
+!ELSE
 install::
 		copy rdf.pl $(PLBASE)\library
 		copy rdf_parser.pl $(PLBASE)\library
@@ -21,6 +24,7 @@ install::
 		copy rewrite.pl $(PLBASE)\library
 		copy uri.pl $(PLBASE)\library
 		$(MAKEINDEX)
+!ENDIF
 
 html-install::
 		copy rdf2pl.html $(PKGDOC)

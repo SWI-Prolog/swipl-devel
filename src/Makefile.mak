@@ -166,21 +166,25 @@ check:
 # normal development version
 ################################################################
 
-install:	dv-install
+!IF "$(CFG)" == "rt"
+install:	$(BINDIR) iprog install_packages
+!ELSE
+install:	install-arch install-libs install-readme install_packages
+!ENDIF
 
-dv-install:	install-arch install-libs install-readme install_packages
+install-arch:	idirs iprog
+		$(INSTALL_PROGRAM) $(PLLD)  "$(BINDIR)"
+		$(INSTALL_PROGRAM) $(PLRC)  "$(BINDIR)"
+		$(INSTALL_PROGRAM) ..\bin\plregtry.dll  "$(BINDIR)"
+		$(INSTALL_PROGRAM) ..\bin\dlltest.dll  "$(BINDIR)"
+		$(INSTALL_DATA) $(PLLIB) "$(LIBDIR)"
+		$(INSTALL_DATA) $(TERMLIB) "$(LIBDIR)"
 
-install-arch:	idirs
-		$(INSTALL_PROGRAM) $(PLWIN) "$(PLBASE)\bin"
-		$(INSTALL_PROGRAM) $(PLCON) "$(PLBASE)\bin"
-		$(INSTALL_PROGRAM) $(PLDLL) "$(PLBASE)\bin"
-		$(INSTALL_PROGRAM) $(PLLD)  "$(PLBASE)\bin"
-		$(INSTALL_PROGRAM) $(PLRC)  "$(PLBASE)\bin"
-		$(INSTALL_PROGRAM) ..\bin\plregtry.dll  "$(PLBASE)\bin"
-		$(INSTALL_PROGRAM) ..\bin\dlltest.dll  "$(PLBASE)\bin"
-		$(INSTALL_PROGRAM) $(TERMDLL) "$(PLBASE)\bin"
-		$(INSTALL_DATA) $(PLLIB) "$(PLBASE)\lib"
-		$(INSTALL_DATA) $(TERMLIB) "$(PLBASE)\lib"
+iprog::
+		$(INSTALL_PROGRAM) $(PLWIN) "$(BINDIR)"
+		$(INSTALL_PROGRAM) $(PLCON) "$(BINDIR)"
+		$(INSTALL_PROGRAM) $(PLDLL) "$(BINDIR)"
+		$(INSTALL_PROGRAM) $(TERMDLL) "$(BINDIR)"
 
 install-libs:	idirs iinclude iboot ilib
 		$(INSTALL_DATA) $(STARTUPPATH) "$(PLBASE)\$(BOOTFILE)"
@@ -191,7 +195,7 @@ install-libs:	idirs iinclude iboot ilib
 			-g make_library_index('.') \
 			-t halt
 
-IDIRS=		$(PLBASE)\bin $(PLBASE)\lib $(PLBASE)\include \
+IDIRS=		$(BINDIR) $(LIBDIR) $(PLBASE)\include \
 		$(PLBASE)\boot $(PLBASE)\library $(PKGDOC)
 
 $(IDIRS):
@@ -227,18 +231,20 @@ dlldemos::
 ################################################################
 
 packages:
-		for %p in ($(PKGS)) do \
-		   if exist "$(PKGDIR)\%p" \
+		@for %p in ($(PKGS)) do \
+		   @if exist "$(PKGDIR)\%p" \
 		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE)"
 
 install_packages:
 		@for %p in ($(PKGS)) do \
 		   @if exist "$(PKGDIR)\%p" \
 		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE) install"
+!IF "$(CFG)" == "dev"
 		@for %p in ($(PKGS)) do \
 		   if exist "$(PKGDIR)\%p" \
 		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE) html-install"
 		copy $(PKGDIR)\index.html $(PKGDOC)
+!ENDIF
 
 clean_packages:
 		for %p in ($(PKGS)) do \
