@@ -1,3 +1,7 @@
+Oct 18, 2004 (version 2.2.0)
+
+  * ADDED: rdf_transaction/1
+
 Oct 13, 2004
 
   * FIXED: Total reorganisation of the multi-threaded access using 
