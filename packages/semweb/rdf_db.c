@@ -1413,7 +1413,8 @@ rdf_sources(term_t list)
   term_t head = PL_new_term_ref();
   rdf_db *db = DB;
 
-  RDLOCK(db);
+  if ( !RDLOCK(db) )
+    return FALSE;
   for(i=0; i<db->source_table_size; i++)
   { source *src;
 
@@ -2165,7 +2166,8 @@ save_db(rdf_db *db, IOSTREAM *out, atom_t src)
 { triple *t;
   save_context ctx;
 
-  RDLOCK(db);
+  if ( !RDLOCK(db) )
+    return FALSE;
   init_saved(db, &ctx);
 
   Sfprintf(out, "%s", SAVE_MAGIC);
@@ -2582,7 +2584,8 @@ rdf_md5(term_t file, term_t md5)
   if ( src )
   { source *s;
 
-    RDLOCK(db);
+    if ( !RDLOCK(db) )
+      return FALSE;
     if ( (s = lookup_source(db, src, FALSE)) )
     { rc = md5_unify_digest(md5, s->digest);
     } else
@@ -2599,7 +2602,8 @@ rdf_md5(term_t file, term_t md5)
     
     memset(&digest, 0, sizeof(digest));
 
-    RDLOCK(db);
+    if ( !RDLOCK(db) )
+      return FALSE;
 
     for(i=0,ht = db->source_table; i<db->source_table_size; i++, ht++)
     { source *s;
@@ -3222,7 +3226,8 @@ rdf(term_t subject, term_t predicate, term_t object,
       if ( !get_partial_triple(db, subject, predicate, object, src, &t) )
 	return FALSE;
 
-      RDLOCK(db);
+      if ( !RDLOCK(db) )
+	return FALSE;
       if ( !update_hash(db) )
       { UNLOCK(db);
 	return FALSE;
@@ -3384,7 +3389,8 @@ rdf_estimate_complexity(term_t subject, term_t predicate, term_t object,
   if ( !get_partial_triple(db, subject, predicate, object, 0, &t) )
     return FALSE;
   
-  RDLOCK(db);
+  if ( !RDLOCK(db) )
+    return FALSE;
   if ( !update_hash(db) )			/* or ignore this problem? */
   { UNLOCK(db);
     return FALSE;
