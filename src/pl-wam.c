@@ -3997,7 +3997,9 @@ values found in the clause,  give  a   reference  to  the clause and set
 	if ( depth > depth_reached )
 	  depth_reached = depth;
 	if ( depth > depth_limit )
-	   FRAME_FAILED;
+	{ Sdprintf("depth-limit\n");
+	  FRAME_FAILED;
+	}
       }
 #endif
 	DEBUG(9, Sdprintf("Searching clause ... "));

@@ -171,13 +171,11 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
       break;
     }
     case ERR_FAILED:
-    { Procedure proc = va_arg(args, Procedure);
-      term_t pred = PL_new_term_ref();
+    { term_t goal = va_arg(args, term_t);
 
-      unify_definition(pred, proc->definition, 0, GP_NAMEARITY);
       PL_unify_term(formal,
 		    PL_FUNCTOR, FUNCTOR_failure_error1,
-		      PL_TERM, pred);
+		      PL_TERM, goal);
 
       break;
     }

@@ -146,7 +146,6 @@ static const PL_extension foreigns[] = {
 #ifdef O_LIMIT_DEPTH
   FRG("$depth_limit",		3, pl_depth_limit,		0),
   FRG("$depth_limit_true",	5, pl_depth_limit_true,	     NDET),
-  FRG("$depth_limit_false",	4, pl_depth_limit_false,	0),
 #endif
 
   FRG("write_canonical",	1, pl_write_canonical,		0),

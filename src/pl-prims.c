@@ -2293,18 +2293,18 @@ pl_halt(term_t code)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The    predicates    below    provide      the     infrastructure    for
-call_with_depth_limit/3. This predicate was included  on request by ...,
-for improving the implementation of a theorem prover.
+call_with_depth_limit/3. This predicate was included on request by Steve
+Moyle, for improving the implementation of a theorem prover.
 
 The implementation of call_with_depth_limit/3 in pl-prims.pl is
 
 ================================================================
 call_with_depth_limit(G, Limit, Result) :-
-	'$depth_limit'(Limit, OLimit, OReached),
-	(   G,
-	    '$depth_limit_true'(Limit, OLimit, OReached, Result, Cut),
+	$depth_limit(Limit, OLimit, OReached),
+	(   catch(G, E, depth_limit_except(OLimit, OReached, E)),
+	    $depth_limit_true(Limit, OLimit, OReached, Result, Cut),
 	    Cut
-	;   '$depth_limit_false'(Limit, OLimit, OReached, Result)
+	;   $depth_limit_false(OLimit, OReached, Result)
 	).
 ================================================================
 
@@ -2330,19 +2330,17 @@ pl_depth_limit(term_t limit, term_t olimit, term_t oreached)
 { long levels;
   long clevel = levelFrame(environment_frame) - 1;
 
-  if ( PL_get_long(limit, &levels) )
+  if ( PL_get_long_ex(limit, &levels) )
   { if ( PL_unify_integer(olimit, depth_limit) &&
 	 PL_unify_integer(oreached, depth_reached) )
-    { depth_limit   = clevel + levels;
-      depth_reached = 0;
+    { depth_limit   = clevel + levels + 1; /* 1 for the catch/3 */
+      depth_reached = clevel;
     
       succeed;
     }
-
-    fail;
   }
 
-  return PL_warning("call_with_depth_limit/3: instantiation fault");
+  fail;
 }
 
 
@@ -2353,28 +2351,37 @@ pl_depth_limit_true(term_t limit, term_t olimit, term_t oreached,
   { case FRG_FIRST_CALL:
     { long l, ol, or;
 
-      if ( PL_get_long(limit, &l) &&
-	   PL_get_long(olimit, &ol) &&
-	   PL_get_long(oreached, &or) )
+      if ( PL_get_long_ex(limit, &l) &&
+	   PL_get_long_ex(olimit, &ol) &&
+	   PL_get_long_ex(oreached, &or) )
       { long clevel = levelFrame(environment_frame) - 1;
-	long used = depth_reached - clevel;
+	long used = depth_reached - clevel - 1;
+	Choice ch;
 
-	depth_limit   = olimit;
-	depth_reached = oreached;
+	depth_limit   = ol;
+	depth_reached = or;
 
 	if ( used < 1 )
 	  used = 1;
 	if ( !PL_unify_integer(res, used) )
 	  fail;
     
-#if 0					/* CHP_* */
-	if ( environment_frame->backtrackFrame->predicate ==
-	     PROCEDURE_alt0->definition &&
-	     environment_frame->parent ==
-	     environment_frame->backtrackFrame->parent )
-	{ return PL_unify_atom(cut, ATOM_cut);
+	for(ch=LD->choicepoints; ch; ch = ch->parent)
+	{ switch(ch->type)
+	  { case CHP_CATCH:
+	    case CHP_DEBUG:
+	    case CHP_NONE:
+	      continue;
+	    default:
+	      break;
+	  }
+	  break;
+	}
+
+	if ( ch && ch->frame == environment_frame->parent )
+	{ Sdprintf("CUT\n");
+	  return PL_unify_atom(cut, ATOM_cut);
 	} else
-#endif
 	{ if ( PL_unify_atom(cut, ATOM_true) )
 	    ForeignRedoInt(1);
 	}
@@ -2386,9 +2393,9 @@ pl_depth_limit_true(term_t limit, term_t olimit, term_t oreached,
     { long levels;
       long clevel = levelFrame(environment_frame) - 1;
 
-      PL_get_long(limit, &levels);
-      depth_limit   = clevel + levels;
-      depth_reached = 0;
+      PL_get_long_ex(limit, &levels);
+      depth_limit   = clevel + levels + 1; /* 1 for catch/3 */
+      depth_reached = clevel;
 
       fail;				/* backtrack to goal */
     }
@@ -2400,26 +2407,40 @@ pl_depth_limit_true(term_t limit, term_t olimit, term_t oreached,
 }
 
 
+static
+PRED_IMPL("$depth_limit_false", 3, depth_limit_false, 0)
+{ long ol, or;
 
-word
-pl_depth_limit_false(term_t limit, term_t olimit, term_t oreached, term_t res)
-{ long l, ol, or;
+  if ( PL_get_long_ex(A1, &ol) &&
+       PL_get_long_ex(A2, &or) )
+  { int exceeded = (depth_reached > depth_limit);
 
-  if ( PL_get_long(limit, &l) &&
-       PL_get_long(olimit, &ol) &&
-       PL_get_long(oreached, &or) )
-  { unsigned long clevel = (unsigned long)levelFrame(environment_frame)	- 1;
-    int exceeded = (depth_reached > clevel + l);
-
-    depth_limit   = olimit;
-    depth_reached = oreached;
+    depth_limit   = ol;
+    depth_reached = or;
 
     if ( exceeded )
-      return PL_unify_atom(res, ATOM_depth_limit_exceeded);
+      return PL_unify_atom(A3, ATOM_depth_limit_exceeded);
   }
 
   fail;
 }
+
+
+static
+PRED_IMPL("$depth_limit_except", 3, depth_limit_except, 0)
+{ long ol, or;
+
+  if ( PL_get_long_ex(A1, &ol) &&
+       PL_get_long_ex(A2, &or) )
+  { depth_limit   = ol;
+    depth_reached = or;
+
+    return PL_raise_exception(A3);
+  }
+
+  fail;
+}
+
 
 #endif /*O_LIMIT_DEPTH*/
 
@@ -2840,5 +2861,9 @@ BeginPredDefs(prims)
   PRED_DEF("functor", 3, functor, 0)
 #ifdef O_HASHTERM
   PRED_DEF("hash_term", 2, hash_term, 0)
+#endif
+#ifdef O_LIMIT_DEPTH
+  PRED_DEF("$depth_limit_except", 3, depth_limit_except, 0)
+  PRED_DEF("$depth_limit_false",  3, depth_limit_false, 0)
 #endif
 EndPredDefs

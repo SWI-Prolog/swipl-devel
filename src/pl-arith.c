@@ -369,11 +369,18 @@ prologFunction(ArithFunction f, term_t av, Number r)
   { term_t except;
 
     if ( (except = PL_exception(qid)) )
-    { rval = PL_throw(except);		/* pass exception */
+    { rval = PL_raise_exception(except);		/* pass exception */
     } else
-    { char *name = stringAtom(f->proc->definition->functor->name);
+    {
+      term_t goal = PL_new_term_ref();
+#ifdef O_LIMIT_DEPTH
+       
+#endif
+      PL_cons_functor(goal, f->proc->definition->functor->functor, av);
 
-      rval = PL_error(name, arity-1, NULL, ERR_FAILED, f->proc);
+      rval = PL_error(NULL, 0,
+		      "Aritmetic function must succeed or throw exception",
+		      ERR_FAILED, goal);
     }
 
     PL_cut_query(qid);			/* donot destroy data */

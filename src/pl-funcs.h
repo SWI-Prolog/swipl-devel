@@ -574,9 +574,6 @@ word		pl_depth_limit(term_t limit, term_t olimit, term_t oreached);
 word		pl_depth_limit_true(term_t limit,
 				    term_t olimit, term_t oreached,
 				    term_t res, term_t cut, control_t b);
-word		pl_depth_limit_false(term_t limit,
-				     term_t olimit, term_t oreached,
-				     term_t res);
 #endif /*O_LIMIT_DEPTH*/
 int		callProlog(Module module, term_t goal, int flags, term_t *ex);
 word		pl_abort(abort_type type);
