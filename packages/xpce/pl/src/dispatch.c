@@ -55,7 +55,11 @@ typedef struct
 
 typedef struct
 { int		     owner;		/* owning thread */
+#ifdef WIN32
+  HWND		     window;		/* Window for pce_call/1 */
+#else
   int		     pipe[2];		/* pipe to talk to main process */
+#endif
   int		     flags;		/* general options */
   PL_dispatch_hook_t hook;		/* saved Prolog dispatch hook */
   PL_thread_attr_t   thread_options;	/* options for the thread */
@@ -76,6 +80,12 @@ undispatch(void *closure)
   if ( ctx->owner )
   { ctx->hook = NULL;
 
+#ifdef WIN32
+    if ( ctx->window )
+    { DestroyWindow(ctx->window);
+      ctx->window = 0;
+    }
+#else
     if ( ctx->pipe[0] >= 0 )
     { close(ctx->pipe[0]);
       ctx->pipe[0] = -1;
@@ -84,6 +94,7 @@ undispatch(void *closure)
     { close(ctx->pipe[1]);
       ctx->pipe[1] = -1;
     }
+#endif
 
     ctx->owner = 0;
   }
@@ -147,6 +158,24 @@ domain_error(term_t actual, const char *expected)
   return PL_raise_exception(ex);
 }
 
+#ifdef WIN32
+
+static void
+dispatch(dispatch_context *context)
+{
+}
+
+static foreign_t
+pl_pce_end_dispatch()
+{
+}
+
+static foreign_t
+pl_pce_call(term_t goal)
+{
+}
+
+#else /*WIN32*/
 
 static int
 input_on_fd(int fd)
@@ -196,6 +225,68 @@ dispatch(dispatch_context *context)
 
   pthread_cleanup_pop(0);
   undispatch(context);
+}
+
+
+static foreign_t
+pl_pce_call(term_t goal)
+{ DLOCK();
+
+  if ( context.pipe[1] >= 0 )
+  { term_t plain = PL_new_term_ref();
+    prolog_goal g;
+    g.module = NULL;
+
+    PL_strip_module(goal, &g.module, plain);
+    if ( !(PL_is_compound(plain) || PL_is_atom(plain)) )
+    { DUNLOCK();
+      return type_error(goal, "callable");
+    }
+    g.goal = PL_record(plain);
+
+    if ( write(context.pipe[1], &g, sizeof(g)) == sizeof(g) )
+    { DUNLOCK();
+      return TRUE;
+    }
+  }
+  DUNLOCK();
+
+  return FALSE;
+}
+
+
+static foreign_t
+pl_pce_end_dispatch()
+{ int fd;
+
+  DLOCK();
+  if ( (fd=context.pipe[1]) >= 0 )
+  { context.pipe[1] = -1;
+    DUNLOCK();
+
+    PL_dispatch_hook(context.hook);
+    close(fd);
+
+    return TRUE;
+  }
+  DUNLOCK();
+
+  return FALSE;
+}
+
+#endif /*WIN32*/
+
+
+static int
+end_dispatch(int id)
+{ DEBUG(Sdprintf("Close down %d\n", id));
+
+  pl_pce_end_dispatch();
+#ifdef HAVE_SCHED_YIELD
+  sched_yield();
+#endif
+
+  return TRUE;
 }
 
 
@@ -274,16 +365,20 @@ pl_pce_dispatch(term_t options)
   if ( !set_options(&context, options) )
     return FALSE;
 
+#ifndef WIN32
   if ( pipe(context.pipe) == -1 )
     return resource_error("open_files");
+#endif
 
   context.owner = PL_thread_self();
   context.hook = PL_dispatch_hook(NULL);
   DUNLOCK();
 
 				/* force creation of application context */
+#ifndef WIN32
   pceXtAppContext(NULL);
   pceExistsAssoc(cToPceName("display_manager"));
+#endif
 
   if ( context.owner > 0 )		/* threaded environment */
   { pthread_t tid;
@@ -301,70 +396,13 @@ pl_pce_dispatch(term_t options)
 }
 
 
-static foreign_t
-pl_pce_call(term_t goal)
-{ DLOCK();
-
-  if ( context.pipe[1] >= 0 )
-  { term_t plain = PL_new_term_ref();
-    prolog_goal g;
-    g.module = NULL;
-
-    PL_strip_module(goal, &g.module, plain);
-    if ( !(PL_is_compound(plain) || PL_is_atom(plain)) )
-    { DUNLOCK();
-      return type_error(goal, "callable");
-    }
-    g.goal = PL_record(plain);
-
-    if ( write(context.pipe[1], &g, sizeof(g)) == sizeof(g) )
-    { DUNLOCK();
-      return TRUE;
-    }
-  }
-  DUNLOCK();
-
-  return FALSE;
-}
-
-
-static foreign_t
-pl_pce_end_dispatch()
-{ int fd;
-
-  DLOCK();
-  if ( (fd=context.pipe[1]) >= 0 )
-  { context.pipe[1] = -1;
-    DUNLOCK();
-
-    PL_dispatch_hook(context.hook);
-    close(fd);
-
-    return TRUE;
-  }
-  DUNLOCK();
-
-  return FALSE;
-}
-
-
-static int
-end_dispatch(int id)
-{ DEBUG(Sdprintf("Close down %d\n", id));
-
-  pl_pce_end_dispatch();
-#ifdef HAVE_SCHED_YIELD
-  sched_yield();
-#endif
-
-  return TRUE;
-}
-
-
 install_t
 pce_install_dispatch()
-{ context.pipe[0] = -1;
+{
+#ifndef WIN32
+  context.pipe[0] = -1;
   context.pipe[1] = -1;
+#endif
 
   PL_register_foreign("pce_dispatch",     1, pl_pce_dispatch, 0);
   PL_register_foreign("pce_end_dispatch", 0, pl_pce_end_dispatch, 0);
