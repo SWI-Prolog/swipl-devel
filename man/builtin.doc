@@ -2314,12 +2314,16 @@ capabilities of the system.
 
 .BD
 .C access_file 2 +File, +Mode
-Succeeds when {\em File} exists and can be accessed by this prolog
+Succeeds if {\em File} exists and can be accessed by this prolog
 process under mode {\em Mode}.  {\em Mode} is one of the atoms
 \tty{read}, \tty{write}, \tty{append}, \tty{exist}, \tty{none} or
 \tty{execute}. {\em File} may also be the name of a directory. Fails
 silently otherwise.  \tty{access_file(File, none)} simply succeeds
 without testing anything.
+
+If `Mode' is \tty{write} or \tty{append}, this predicate also succeeds
+if the file does not exist and the user has write-access to the
+directory of the specified location.
 .C exists_file 1 +File
 Succeeds when {\em File} exists. This does not imply the user has read
 and/or write permission for the file.
