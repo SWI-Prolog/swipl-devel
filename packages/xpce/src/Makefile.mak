@@ -28,7 +28,7 @@ XPCEDLL=xpce.dll
 PL2XPCE=pl2xpce
 LDFLAGS=$(LDFLAGS) /BASE:0x1010000
 
-all:	$(PL2XPCE).dll
+all:	$(PL2XPCE).dll xpce-stub.exe
 
 ################################################################
 # XPCE's modules
@@ -259,7 +259,7 @@ $(PL2XPCE).dll:	$(PLOBJ)
 # Stand-alone toplevel (xpce.exe)
 ################################################################
 
-xpce.exe:	xpce.res xpce.obj
+xpce-stub.exe:	xpce.res xpce.obj
 		$(LD) $(LDFLAGS) /subsystem:windows /out:$@ xpce.obj $(PLLIB) xpce.res $(LIBS)
 
 xpce.res:	..\pl\src\xpce.rc ..\pl\src\xpce.ico
@@ -330,9 +330,11 @@ README=	ChangeLog \
 INSTALL=xpce-install.exe -n
 
 !IF "$(CFG)" == "rt"
-ITRG=	xpce-install.exe ibindir idll ixpce
+ITRG=	xpce-install.exe \
+	ibindir idll ixpce-stub
 !ELSE
-ITRG=	xpce-install.exe ibindir idirs idll ilib irc iindex imanidx ireadme
+ITRG=	xpce-install.exe \
+	ibindir idirs idll ilib irc iindex imanidx ireadme ixpce-stub
 !ENDIF
 
 install:	$(ITRG)
@@ -353,8 +355,8 @@ idll:		$(PL2XPCE).dll
 !ENDIF
 
 
-ixpce:		xpce.exe
-		$(INSTALL) xpce.exe "$(BINDIR)"
+ixpce-stub:	xpce-stub.exe
+		$(INSTALL) xpce-stub.exe "$(BINDIR)"
 
 ilib::
 		@for %d in ($(IDIRS)) do \
