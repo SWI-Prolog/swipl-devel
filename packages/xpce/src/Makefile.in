@@ -723,6 +723,8 @@ dv-lib:
 		    fi; \
 		    echo done; \
 		done
+		$(PL) -f none -F none -g true \
+			-t "make_library_index('$(DVHOME)/prolog/lib')"
 		$(INSTALL_DATA) ../prolog/lib/Overview $(DVHOME)/prolog/lib
 		@if [ ! -d $(DVHOME)/prolog/lib/dialog/bitmaps ]; then \
 		    mkdir $(DVHOME)/prolog/lib/dialog/bitmaps; \
