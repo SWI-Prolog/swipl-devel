@@ -4,6 +4,9 @@
 VERSION 6.2.8, distributed with SWI-Prolog 5.2.8
 ================================================
 
+* FIXED: MS-Windows: displaying of large cursor for drag-and-drop while the
+  underlying window updates.
+
 * ADDED: `frame->sensitive'.  Use this to avoid tooltip (balloon) and the 
   `unclip' windows of library(pce_unclip) to grab the focus from the
   application window.

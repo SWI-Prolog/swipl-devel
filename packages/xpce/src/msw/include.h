@@ -157,6 +157,10 @@ PceWindow	get_window_holding_point(FrameObj fr, POINT *pt);
 status		move_big_cursor(void);
 status		exit_big_cursor(void);
 status		start_big_cursor(CursorObj c);
+status		restore_big_cursor_background();
+status		paint_big_cursor();
+status		save_big_cursor_background();
+status		has_big_cursor();
 void		PceWhDeleteWindow(HWND win);
 void		PceEventInWindow(HWND win);
 

@@ -656,10 +656,11 @@ XPCE's drag-and-drop gestures require BIG cursors.  We'll try to fake these
 below.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static HBITMAP	saved_bits;		/* saved background */
+static HBITMAP	saved_bits = NULL;	/* saved background */
 static HBITMAP  image;			/* the image bits */
 static HBITMAP  mask;			/* the mask bits */
 static HCURSOR  hcursorsave;		/* saved cursor */
+static int	is_saved;		/* have we been saved? */
 static int	saved_x;		/* x-position of the background */
 static int	saved_y;		/* y-position of the background */
 static int	hot_x;			/* x-hot-spot */
@@ -667,7 +668,13 @@ static int	hot_y;			/* y-hot-spot */
 static int	big_cursor_width;	/* width of our giant */
 static int	big_cursor_height;	/* height of our giant */
 
-static status
+status
+has_big_cursor()
+{ return saved_bits ? SUCCEED : FAIL;
+}
+
+
+status
 save_big_cursor_background()
 { HDC hdc = GetDC(NULL);
   HDC bmhdc = CreateCompatibleDC(hdc);
@@ -685,6 +692,10 @@ save_big_cursor_background()
       fail;
   }
 
+  DEBUG(NAME_cursor,
+	Cprintf("BIG: save from %d,%d (%dx%d)\n",
+		saved_x, saved_y, big_cursor_width, big_cursor_height));
+
   obm = ZSelectObject(bmhdc, saved_bits);
   BitBlt(bmhdc, 0, 0, big_cursor_width, big_cursor_height,
 	 hdc, saved_x, saved_y, SRCCOPY);
@@ -692,16 +703,20 @@ save_big_cursor_background()
   DeleteDC(bmhdc);
   ReleaseDC(NULL, hdc);
 
+  is_saved = TRUE;
+
   succeed;
 }
 
 
-static status
+status
 restore_big_cursor_background()
-{ if ( saved_bits )
+{ if ( saved_bits && is_saved )
   { HDC hdc = GetDC(NULL);
     HDC bmhdc = CreateCompatibleDC(hdc);
     HBITMAP obm;
+
+    DEBUG(NAME_cursor, Cprintf("BIG: restore at %d,%d\n", saved_x, saved_y));
 
     obm = ZSelectObject(bmhdc, saved_bits);
     BitBlt(hdc, saved_x, saved_y, big_cursor_width, big_cursor_height,
@@ -709,21 +724,22 @@ restore_big_cursor_background()
     ZSelectObject(bmhdc, obm);
     DeleteDC(bmhdc);
     ReleaseDC(NULL, hdc);
+
+    is_saved = FALSE;
   }
 
   succeed;
 }  
 
 
-static status
+status
 paint_big_cursor()
 { if ( image && mask )
   { HDC hdc = GetDC(NULL);
     HDC bmhdc = CreateCompatibleDC(hdc);
     HBITMAP obm;
 
-    DEBUG(NAME_image, Cprintf("Painting BIG cursor at %d, %d\n",
-			      saved_x, saved_y));
+    DEBUG(NAME_image, Cprintf("BIG: paint at %d,%d\n", saved_x, saved_y));
 
     obm = ZSelectObject(bmhdc, mask);
     BitBlt(hdc, saved_x, saved_y, big_cursor_width, big_cursor_height,
@@ -792,8 +808,8 @@ start_big_cursor(CursorObj c)
   
   image = mask_image(img, mask, big_cursor_width, big_cursor_height);
 
-  DEBUG(NAME_image, Cprintf("Started BIG cursor of %dx%d\n",
-			    big_cursor_width, big_cursor_height));
+  DEBUG(NAME_cursor, Cprintf("Started BIG cursor of %dx%d\n",
+			     big_cursor_width, big_cursor_height));
 
 /*hcursorsave = SetCursor(LoadCursor(NULL, IDC_ICON));  empty cursor */
   save_big_cursor_background();
@@ -818,7 +834,7 @@ move_big_cursor()
 status
 exit_big_cursor()
 { if ( saved_bits )
-  { DEBUG(NAME_image, Cprintf("exit_big_cursor()\n"));
+  { DEBUG(NAME_cursor, Cprintf("BIG: exit\n"));
     restore_big_cursor_background();
     ZDeleteObject(saved_bits);
     saved_bits = NULL;

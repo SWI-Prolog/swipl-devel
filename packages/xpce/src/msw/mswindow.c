@@ -239,6 +239,7 @@ do_window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 		  { DEBUG(NAME_redraw,
 			  Cprintf("Redrawing %d %d %d %d\n",
 				  a.x, a.y, a.w, a.h));
+
 		    RedrawAreaWindow(sw, &a, clearing_update);
 		  } else
 		  { DEBUG(NAME_redraw,
@@ -610,10 +611,16 @@ ws_redraw_window(PceWindow sw, IArea a, int clear)
     rect.top    = a->y      + valInt(sw->scroll_offset->y);
     rect.bottom = rect.top  + a->h;
 
+    if ( has_big_cursor() )
+      restore_big_cursor_background();
     InvalidateRect(wsw->hwnd, &rect, FALSE);
     clearing_update = clear;
     UpdateWindow(wsw->hwnd);		/* will start WM_PAINT */
     clearing_update = FALSE;		/* ok for normal WM_PAINT call */
+    if ( has_big_cursor() )
+    { save_big_cursor_background();
+      paint_big_cursor();
+    }
   } else
   { DEBUG(NAME_redraw, Cprintf("ws_redraw_window(%s): invisible\n", pp(sw)));
   } 
