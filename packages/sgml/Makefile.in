@@ -103,6 +103,7 @@ clean::
 		rm -f $(PLOBJ) *~ *.o *% a.out core config.log
 
 distclean:	clean
-		rm -f $(TARGETS) config.cache config.h config.status Makefile
+		rm -f $(TARGETS) $(PROGRAMS)
+		rm -f config.cache config.h config.status Makefile
 		rm -f .coflags
 
