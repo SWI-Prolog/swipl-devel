@@ -429,8 +429,14 @@ printMessage(atom_t severity, ...)
   PL_unify_termv(av+1, args);
   va_end(args);
 
-  PL_call_predicate(NULL, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION, pred, av);
-  
+  if ( isDefinedProcedure(pred) )
+    PL_call_predicate(NULL, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION, pred, av);
+  else
+  { Sfprintf(Serror, "Message: ");
+    PL_write_term(Serror, av+1, 1200, 0);
+    Sfprintf(Serror, "\n");
+  }
+
   PL_discard_foreign_frame(fid);
 }
 

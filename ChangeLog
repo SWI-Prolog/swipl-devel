@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Path-handling problem loading Quick Load Files from a different
+    location then they were created.  Notably affects handling of
+    discontiguous.
+
   * FIXED: File association in Windows to allow for additional arguments
     (notably stack-expansion).
 

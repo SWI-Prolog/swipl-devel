@@ -277,7 +277,7 @@ scan_options(term_t options, int flags, atom_t optype,
 
 
 bool
-strprefix(register char *string, register char *prefix)
+strprefix(const char *string, const char *prefix)
 { while(*prefix && *string == *prefix)
     prefix++, string++;
   if (*prefix == EOS )
@@ -287,7 +287,7 @@ strprefix(register char *string, register char *prefix)
 
 
 bool
-strpostfix(char *string, char *postfix)
+strpostfix(const char *string, const char *postfix)
 { long offset = strlen(string) - strlen(postfix);
 
   if ( offset < 0 )

@@ -40,7 +40,7 @@ static bool	loadPart(IOSTREAM *fd, Module *module, int skip);
 static bool	loadInModule(IOSTREAM *fd, int skip);
 static int	qlfVersion(IOSTREAM *s);
 static void	openProcedureWic(Procedure proc, IOSTREAM *fd, atom_t sclass);
-
+static atom_t	qlfFixSourcePath(const char *raw);
 
 #define Qgetc(s) Snpgetc(s)		/* ignore position recording */
 
@@ -523,10 +523,11 @@ loadXRc(int c, IOSTREAM *fd)
       switch( (c=Qgetc(fd)) )
       { case 'u':
 	case 's':
-	{ atom_t name = loadXR(fd);
-	  word   time = getstdw(fd);
-	  
-	  SourceFile sf = lookupSourceFile(name);
+	{ atom_t name   = loadXR(fd);
+	  word   time   = getstdw(fd);
+	  const char *s = stringAtom(name);
+	  SourceFile sf = lookupSourceFile(qlfFixSourcePath(s));
+
 	  if ( !sf->time )
 	  { sf->time   = time;
 	    sf->system = (c == 's' ? TRUE : FALSE);
@@ -948,6 +949,32 @@ loadImport(IOSTREAM *fd, int skip)
 }
 
 
+static atom_t
+qlfFixSourcePath(const char *raw)
+{ char buf[MAXPATHLEN];
+    
+  if ( qlf_has_moved && strprefix(raw, qlf_save_dir) )
+  { char *s;
+    int lensave = strlen(qlf_save_dir);
+    const char *tail = &raw[lensave];
+
+    if ( strlen(qlf_load_dir)+1+strlen(tail)+1 > MAXPATHLEN )
+      fatalError("Path name too long: %s", raw);
+
+    strcpy(buf, qlf_load_dir);
+    s = &buf[strlen(buf)];
+    *s++ = '/';
+    strcpy(s, tail);
+  } else
+  { if ( strlen(raw)+1 > MAXPATHLEN )
+      fatalError("Path name too long: %s", raw);
+    strcpy(buf, raw);
+  }
+
+  return PL_new_atom(canonisePath(buf));
+}
+
+
 static bool
 qlfLoadSource(IOSTREAM *fd)
 { char *str = getString(fd);
@@ -955,17 +982,7 @@ qlfLoadSource(IOSTREAM *fd)
   int issys = (Qgetc(fd) == 's') ? TRUE : FALSE;
   atom_t fname;
 
-  if ( qlf_has_moved && strprefix(str, qlf_save_dir) )
-  { char buf[MAXPATHLEN];
-    char *s;
-
-    strcpy(buf, qlf_load_dir);
-    s = &buf[strlen(buf)];
-    *s++ = '/';
-    strcpy(s, &str[strlen(qlf_save_dir)]);
-    fname = PL_new_atom(canonisePath(buf));
-  } else
-    fname = PL_new_atom(canonisePath(str));
+  fname = qlfFixSourcePath(str);
 
   DEBUG(1, if ( !streq(stringAtom(fname), str) )
 	     Sdprintf("Replaced path %s --> %s\n", str, stringAtom(fname)));

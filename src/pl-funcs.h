@@ -717,8 +717,8 @@ word		notImplemented(char *name, int arity);
 word		setBoolean(int *flag, const char *name, term_t o, term_t n);
 word		setInteger(int *val, const char *name, term_t old, term_t new);
 word		setLong(long *val, const char *name, term_t old, term_t new);
-bool		strprefix(char *string, char *prefix);
-bool		strpostfix(char *string, char *postfix);
+bool		strprefix(const char *string, const char *prefix);
+bool		strpostfix(const char *string, const char *postfix);
 bool		stripostfix(const char *string, const char *postfix);
 bool		scan_options(term_t list, int flags, atom_t name,
 			     const opt_spec *specs, ...);
