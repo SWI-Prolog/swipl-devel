@@ -174,6 +174,8 @@ static int verbose = TRUE;		/* verbose operation */
 static int fake = FALSE;		/* don't really do anything */
 
 static void	removeTempFiles();
+static void	parseOptions(int argc, char **argv);
+
 
 		 /*******************************
 		 *	       ERROR		*
@@ -273,6 +275,12 @@ strdup(const char *in)
 }
 
 
+static char *
+strndup(const char *in, int len)
+{ return memcpy(xmalloc(len+1), in, len);
+}
+
+
 void
 appendArgList(arglist *list, const char *arg)
 { if ( list->size == 0 )
@@ -318,45 +326,48 @@ concatArgList(arglist *to, const char *prefix, arglist *from)
 }
 
 
-void
-addArgs(const char *s, arglist *list)
-{ const char *f;
-  char tmp[1024];
+static int
+breakargs(const char *line, char **argv)
+{ int argc = 0;
 
-  while(*s)
-  { while(*s && isspace(CTOI(*s)))
-      s++;
-    f = s;
-    while(*s && !isspace(CTOI(*s)))
-      s++;
-    if ( s > f )
-    { strncpy(tmp, f, s-f);
-      tmp[s-f] = '\0';
-      appendArgList(list, tmp);
+  while(*line)
+  { while(*line && isspace(*line))
+      line++;
+
+    if ( *line == '"' )			/* Windows-95 quoted arguments */
+    { const char *start = line+1;
+      const char *end = start;
+
+      while( *end && *end != '"' )
+	end++;
+      if ( *end == '"' )
+      { argv[argc++] = strndup(start, end-start);
+	line = end+1;
+	continue;
+      }
+    }
+
+    if ( *line )
+    { const char *start = line;
+
+      while(*line && !isspace(*line))
+	line++;
+      argv[argc++] = strndup(start, line-start);
     }
   }
-}
+  argv[argc] = NULL;			/* add trailing NULL pointer to argv */
+
+  return argc;
+}      
+
 
 
 void
-addLibs(const char *s, arglist *list)
-{ const char *f;
-  char tmp[1024];
+addOptionString(const char *s)
+{ char *argv[256];
+  int argc = breakargs(s, argv);
 
-  while(*s)
-  { while(*s && isspace(CTOI(*s)))
-      s++;
-    f = s;
-    while(*s && !isspace(CTOI(*s)))
-      s++;
-    if ( s > f )
-    { if ( s > f+2 && strprefix(f, "-l") )
-	f += 2;
-      strncpy(tmp, f, s-f);
-      tmp[s-f] = '\0';
-      appendArgList(list, tmp);
-    }
-  }
+  parseOptions(argc, argv);
 }
 
 
@@ -863,7 +874,7 @@ getPrologOptions()
 	else if ( streq(name, "PLARCH") )
 	  defaultPath(&plarch, v);
 	else if ( streq(name, "PLLIBS") && !shared )
-	  addLibs(v, &libs);
+	  addOptionString(v);
 	else if ( streq(name, "PLLDFLAGS") && !shared )
 	  appendArgList(&ldoptions, v);
 	else if ( streq(name, "PLSOEXT") )
