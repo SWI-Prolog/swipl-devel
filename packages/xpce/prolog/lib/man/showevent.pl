@@ -152,8 +152,12 @@ initialise(EH) :->
 	send(EH, expand_root).
 
 expand_node(W, Node:event_node) :->
-	send(Node?sons, for_all,
-	     message(W, add_node, Node, @arg1)).
+	(   get(Node, sons, Sons),
+	    Sons \== @nil
+	->  send(Node?sons, for_all,
+		 message(W, add_node, Node, @arg1))
+	;   true
+	).
 
 add_node(W, Parent:event_node, Son:event_node) :->
 	(   (   get(Son, sons, Sons),
