@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Avoid crash in concat_atom/2 when called with a list holding
+    variables (Lourens van de Meij).
+
   * FIXED: avoid using alloca() in recorded terms with many variables.  Found
     by Lyosha Ilyukhin.
 
