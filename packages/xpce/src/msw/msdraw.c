@@ -2724,7 +2724,7 @@ s_height(FontObj f)
 
 
 int
-c_width(unsigned int c, FontObj font)
+c_width(wint_t c, FontObj font)
 { INT w[1];
 
   s_font(font);
@@ -3035,7 +3035,7 @@ str_draw_text_lines(int acc, FontObj font,
       int cn;
 
       for(cn=0; cn<line->text.size; cn++)
-      { int c  = str_fetch(&line->text, cn);
+      { wint_t c  = str_fetch(&line->text, cn);
 	int cw = c_width(c, font);
 
 	if ( tolower(c) == acc )

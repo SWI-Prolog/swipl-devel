@@ -2895,7 +2895,7 @@ lbearing(wint_t c)
 
 
 int
-c_width(unsigned int c, FontObj font)
+c_width(wint_t c, FontObj font)
 { s_font(font);
 
   if ( context.gcs->char_widths )
