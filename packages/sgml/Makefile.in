@@ -5,6 +5,7 @@
 ################################################################
 
 PL=@PL@
+LD=@LD@
 PLLD=@PLLD@
 PLBASE=@PLBASE@
 PLARCH=@PLARCH@
