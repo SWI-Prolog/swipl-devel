@@ -1,3 +1,5 @@
+* FIXED: close file after reading DTD from a file.  (Anjo Anjewierden)
+
 * FIXED: handling of (a) +(b) element declaraction (Richard O'Keefe)
 
 * ADDED: Warning when redefining (parameter) entities.

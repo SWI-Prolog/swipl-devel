@@ -4766,6 +4766,8 @@ load_dtd_from_file(dtd_parser *p, const char *file)
     while( (chr = getc(fd)) != EOF )
       putchar_dtd_parser(p, chr);
 
+    fclose(fd);
+
     p->dtd->implicit = FALSE;
     rval = TRUE;
   } else
