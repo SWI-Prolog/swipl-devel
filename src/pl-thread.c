@@ -436,6 +436,7 @@ free_prolog_thread(void *data)
   DEBUG(1, Sdprintf("Freeing prolog thread %d\n", info-threads));
 
   run_thread_exit_hooks();
+  cleanupLocalDefinitions(ld);
   
   DEBUG(2, Sdprintf("Destroying data\n"));
   ld->magic = 0;
@@ -447,7 +448,6 @@ free_prolog_thread(void *data)
   /*PL_unregister_atom(ld->prompt.current);*/
 
   freeThreadSignals(ld);
-  cleanupLocalDefinitions(ld);
 
   LOCK();
   destroy_message_queue(&ld->thread.messages);

@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: destroying thread-local clauses with the GUI debugger loaded.
+    Fabien Todescato.
+
   * DOCUMENTATION: Typo in term_expansion/2 docs.  Márcio Mazza.
 
   * INTERNAL: changed tag schema freeing up an entry for attributed
