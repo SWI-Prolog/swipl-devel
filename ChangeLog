@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: current_prolog_flag(pid, Pid) to get the process identifier.
+
   * ADDED: gtrace/0 as alias for guitracer,trace.
 
   * ADDED: PL_get_file_name() to fetch the name of files from Prolog

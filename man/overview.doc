@@ -914,6 +914,10 @@ directory to find its startup file as
 Path-name of the running executable. Used by qsave_program/2 as
 default emulator.
 
+    \prologflagitem{pid}{int}{r}
+Process identifier of the running Prolog process.  Existence of this
+flag is implementation dependent.
+
     \prologflagitem{argv}{list}{r}
 List is a list of atoms representing the command-line arguments used to
 invoke SWI-Prolog.  Please note that {\bf all} arguments are included

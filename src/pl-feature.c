@@ -661,7 +661,9 @@ initFeatures()
     defFeature("home", FT_ATOM|FF_READONLY, systemDefaults.home);
   if ( GD->paths.executable )
     defFeature("executable", FT_ATOM|FF_READONLY, GD->paths.executable);
-
+#ifdef HAVE_GETPID
+  defFeature("pid", FT_INTEGER|FF_READONLY, getpid());
+#endif
   defFeature("optimise", FT_BOOL, GD->cmdline.optimise, OPTIMISE_FEATURE);
   defFeature("tail_recursion_optimisation", FT_BOOL,
 	     TRUE, TAILRECURSION_FEATURE);

@@ -232,6 +232,9 @@
 /* Define if you have the `getpagesize' function. */
 #undef HAVE_GETPAGESIZE
 
+/* Define if you have the `getpid' function. */
+#undef HAVE_GETPID
+
 /* Define if you have the `getpwnam' function. */
 #undef HAVE_GETPWNAM
 

@@ -5685,7 +5685,7 @@ EOF
 fi
 done
 
-for ac_func in rint aint floor ceil isnan tcsetattr cfmakeraw
+for ac_func in rint aint floor ceil isnan tcsetattr cfmakeraw getpid
 do
 as_ac_var=`echo "ac_cv_func_$ac_func" | $as_tr_sh`
 echo "$as_me:5691: checking for $ac_func" >&5
