@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: filter-name in Unix file-dialog when using tuple(Name, Ext)
+
 * ENHANCED: PceEmacs help-page on Prolog Mode.  Martin Sondergaard.
 
 * FIXED: X11 version: make filling monochrome context with colour-images

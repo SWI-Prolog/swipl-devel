@@ -538,8 +538,8 @@ to_regex(Tuple, Regex) :-
 	get(Tuple, first, LabelName),
 	get(Tuple, second, Exts),
 	new(Regex, regex),
-	send(Regex, attribute, print_name, LabelName?label_name),
-	alt_regex(Exts, Regex).
+	alt_regex(Exts, Regex),
+	send(Regex, attribute, print_name, LabelName?label_name).
 to_regex(Atom, Regex) :-
 	new(Regex, regex),
 	send(Regex, attribute, print_name, string('*.%s', Atom)),
