@@ -580,7 +580,7 @@ script_argv(int argc, char **argv)
        strpostfix(argv[1], "-f") &&
        (fd = fopen(argv[2], "r")) )	/* ok, this is a script invocation */
 #else
-  if ( argv >= 2 &&
+  if ( argc >= 2 &&
        (fd = fopen(argv[1], "r")) )
 #endif
   { char buf[MAXLINE];
@@ -630,9 +630,14 @@ script_argv(int argc, char **argv)
     if ( an+argc-2+2 > MAXARGV )	/* skip 2, add -- and NULL */
       fatalError("Too many script arguments");
 
-    av[an++] = argv[2];			/* the script file */
+#ifdef __unix__
+    i = 2;
+#else
+    i = 1;
+#endif
+    av[an++] = argv[i++];		/* the script file */
     av[an++] = "--";			/* separate arguments */
-    for(i=3; i<argc; i++)
+    for(; i<argc; i++)
       av[an++] = argv[i];
     GD->cmdline.argc = an;
     av[an++] = NULL;
