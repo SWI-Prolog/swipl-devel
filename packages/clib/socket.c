@@ -143,6 +143,7 @@ static atom_t ATOM_dispatch;		/* "dispatch" */
 #define SOCK_NONBLOCK	0x40		/* Set to non-blocking mode */
 #define SOCK_DISPATCH   0x80		/* do not dispatch events */
 #define SOCK_CLOSE_SEEN	0x100		/* FD_CLOSE seen */
+#define SOCK_EOF_SEEN   0x200		/* Seen end-of-file */
 
 #define set(s, f)   ((s)->flags |= (f))
 #define clear(s, f) ((s)->flags &= ~(f))
@@ -435,8 +436,17 @@ freeSocket(int socket)
 
 #ifdef WIN32
   { plsocket *s = lookupSocket(socket);
-    if ( false(s, (SOCK_LISTEN|SOCK_CLOSE_SEEN)) )
-      waitMsg(s, FD_CLOSE);
+
+    if ( false(s, SOCK_LISTEN) )
+    { if ( false(s, SOCK_CLOSE_SEEN) )
+	waitMsg(s, FD_CLOSE);
+      if ( false(s, SOCK_EOF_SEEN) )
+      { char tmp[1024];
+
+	while( recv(socket, tmp, sizeof(tmp), 0) > 0 )
+	  ;
+      }
+    }
   }
 #endif
 
@@ -749,7 +759,8 @@ tcp_close_socket(term_t Socket)
     return FALSE;
 
 #ifdef WIN32
-  shutdown(socket, SD_BOTH);
+  if ( false(lookupSocket(socket), SOCK_LISTEN) )
+    shutdown(socket, SD_SEND);
 #endif
 
   freeSocket(socket);
@@ -1131,6 +1142,9 @@ tcp_read(void *handle, char *buf, int bufSize)
   n = recv(socket, buf, bufSize, 0);
 
 #endif /*WIN32*/
+
+  if ( n == 0 )
+    set(s, SOCK_EOF_SEEN);
 
   return n;
 }
