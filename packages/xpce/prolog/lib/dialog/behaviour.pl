@@ -545,8 +545,9 @@ documentation(P) :->
 
 
 event(P, Ev:event) :->
-	(   send(P, send_super, event, Ev)
-	;   send(@msg_port_recogniser, event, Ev)
+	(   send(@msg_port_recogniser, event, Ev)
+	->  true
+	;   send(P, send_super, event, Ev)
 	).
 
 
@@ -966,7 +967,7 @@ edit(P) :->
 	    get(Set, head, ArgC),
 	    (	functor(Head, Selector, ArgC),
 		callable_predicate(user:Head)
-	    ->	user:ed(Head)
+	    ->	edit(user:Selector/ArgC)
 	    ;	get(Object, file, File),
 		new(B, emacs_buffer(File)),
 		send(B, open),
