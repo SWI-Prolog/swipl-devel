@@ -383,7 +383,7 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 		  rewindAnswerStack(mark, NIL);
 
 		  if ( ev )		/* rval will not update on failing */
-		    RedrawDisplayManager(TheDisplayManager())
+		    RedrawDisplayManager(TheDisplayManager());
 		});
 
     move_big_cursor();			/* only if we have one */
