@@ -3396,7 +3396,7 @@ PL_get_file_name(term_t n, char **namep, int flags)
     if ( !PL_call_predicate(NULL, cflags, pred, av) )
       fail;
     
-    return PL_get_chars(av+1, namep, CVT_ATOMIC|BUF_RING|REP_MB);
+    return PL_get_chars_ex(av+1, namep, CVT_ATOMIC|BUF_RING|REP_MB);
   }
 
   if ( flags & PL_FILE_NOERRORS )
