@@ -717,10 +717,20 @@ preview_drop(M, Obj:object*) :->
 		 'Please drop to switch to %s', Obj?absolute_path)
 	).
 
+
+drop_files(M, Files:chain) :->
+	"Drop chain of files"::
+	send(Files, for_all, message(M, drop, create(file, @arg1))).
+
+
 drop(M, Obj:object) :->
 	"Import source-code from object"::
 	(   send(Obj, instance_of, file)
 	->  send(M, find_file, Obj)
+	;   send(Obj, instance_of, chain)
+	->  send(Obj, for_all,
+		 if(message(@arg1, instance_of, object),
+		    message(M, drop, @arg1)))
 	).
 
 :- emacs_end_mode.

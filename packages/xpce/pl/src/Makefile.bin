@@ -33,7 +33,7 @@ mandir=$(prefix)/man/man$(mansec)
 
 PL=pl
 XPCE=xpce
-PLARCH=i686-linux
+PLARCH=i486-linux
 BOOTPL=pl
 
 BPL=		bin/$(PLARCH)/$(BOOTPL)

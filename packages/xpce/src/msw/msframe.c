@@ -109,7 +109,9 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 
   switch(message)
   { case WM_CREATE:
+    { DragAcceptFiles(hwnd, TRUE);
       break;
+    }
 
     case WM_SIZE:			/* frame resized */
     { int w = LOWORD(lParam);
@@ -334,7 +336,8 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       DEBUG(NAME_window, Cprintf("WM_DESTROY on %s, hwnd 0x%x\n",
 				 pp(fr), hwnd)); 
       if ( hwnd )
-      { setHwndFrame(fr, 0);
+      { DragAcceptFiles(hwnd, FALSE);
+	setHwndFrame(fr, 0);
 	freeObject(fr);
       }
 

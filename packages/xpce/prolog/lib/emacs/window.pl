@@ -37,6 +37,10 @@ resource(size,		size,	size(80,32), "Size of text-field").
 variable(sticky_window, bool,   get,  "When @on, window won't be killed").
 variable(pool,		[name], both, "Window pool I belong too").
 
+:- pce_global(@emacs_drop_files,
+	      new(send_method(drop_files, vector(chain, point),
+			      message(@receiver?editor, drop_files, @arg1)))).
+
 initialise(F, B:emacs_buffer) :->
 	"Create window for buffer"::
 	send(F, send_super, initialise, B?name),
@@ -51,6 +55,7 @@ initialise(F, B:emacs_buffer) :->
 	send(new(V, view(@default, @default, @default,
 			 new(E, emacs_editor(B, Size?width, Size?height)))),
 	     below, MBD),
+	send(V, send_method, @emacs_drop_files),
 	send(new(MW, emacs_mini_window), below, V),
 	send(E?image,  recogniser, @emacs_image_recogniser),
 	send(E, recogniser, handler(keyboard, message(MW, event, @arg1))),

@@ -30,6 +30,11 @@ initialise(BM, BufferList:dict) :->
 	"Create menu for buffer-list"::
 	send(BM, send_super, initialise, 'PCE Emacs Buffers'),
 	send(BM, append, new(B, browser)),
+	send(B, send_method,
+	     send_method(drop_files, vector(chain, point),
+			 message(@arg1, for_all,
+				 message(BM, open_file, @arg1)))),
+			 
 	send(B, tab_stops, vector(150)),
 	send(new(D, dialog), below, B),
 	send(D, gap, size(10, 0)),
@@ -112,12 +117,16 @@ selection(BM, B:emacs_buffer*) :->
 	).
 
 
-find_file(_BM, Dir:[directory]) :->
-	"Find and edit file"::
-	get(@finder, file, @off, @default, Dir, FileName),
-	new(B, emacs_buffer(FileName)),
+open_file(_BM, File:file) :->
+	"Open a file"::
+	new(B, emacs_buffer(File)),
 	send(B, open).
 
+
+find_file(BM, Dir:[directory]) :->
+	"Find and edit file"::
+	get(@finder, file, @off, @default, Dir, FileName),
+	send(BM, open_file, FileName).
 
 goto_source_location(_BM, Location:source_location) :->
 	"Visit the indicated source-location"::

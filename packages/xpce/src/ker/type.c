@@ -191,12 +191,19 @@ specialisedType(Type t1, Type t2)	/* t1 is specialised regarding to t2 */
   while(t2->kind == NAME_alias)
     t2 = t2->context;
 
+					/* normal subclassing */
   if ( t1 == t2 ||
        (t1->context == t2->context && t1->kind == t2->kind) ||
        (isClassType(t1) && isClassType(t2) &&
 	isAClass(t1->context, t2->context)) )
     succeed;
 
+					/* relative to any */
+  if ( t2->kind == NAME_any &&
+       !(t1->kind == NAME_class && isAClass(t1->context, ClassFunction)) )
+    succeed;
+
+					/* special types. */
   if ( t1->kind == NAME_nameOf )
     return specialisedType(TypeName, t2);
   if ( t1->kind == NAME_intRange )

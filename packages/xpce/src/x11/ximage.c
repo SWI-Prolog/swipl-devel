@@ -657,3 +657,13 @@ ws_create_image_from_x11_data(Image image,
   i = CreateXImageFromData(data, w, h);
   setXImageImage(image, i);
 }
+
+
+		 /*******************************
+		 *	     COLOUR-MAP		*
+		 *******************************/
+
+ColourMap
+ws_colour_map_for_image(Image image)
+{ fail;
+}

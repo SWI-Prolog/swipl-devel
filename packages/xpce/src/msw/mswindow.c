@@ -17,6 +17,11 @@ static int clearing_update;		/* from ws_redraw_window() */
 static int invert_window = FALSE;	/* invert the window */
 static int drawnest;			/* Draw nesting */
 
+#ifndef MAXPATHLEN
+#define MAXPATHLEN 512			/* drag-and-drop */
+#endif
+
+
 static char *
 WinWindowClass()
 { static Name winclassname = NULL;
@@ -75,7 +80,43 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 
   switch(message)
   { case WM_CREATE:
+      if ( hasSendMethodObject(sw, NAME_dropFiles) )
+	DragAcceptFiles(hwnd, TRUE);
       break;
+
+    case WM_DROPFILES:
+    { HDROP hdrop = (HDROP) wParam;
+      POINT pt;
+      int nfiles;
+
+      if ( DragQueryPoint(hdrop, &pt)  &&
+	   (nfiles = DragQueryFile(hdrop, (UINT)-1, NULL, 0)) >= 0 )
+      { Chain files;
+      	Point pos;
+	char buf[MAXPATHLEN];
+	AnswerMark mark;
+	int i;
+
+	markAnswerStack(mark);
+	files =	answerObject(ClassChain, 0);
+	pos   = answerObject(ClassPoint, toInt(pt.x), toInt(pt.y), 0);
+
+	for(i=0; i<nfiles; i++)
+	{ int namlen;
+
+	  namlen = DragQueryFile(hdrop, i, buf, sizeof(buf)-1);
+	  buf[namlen] = EOS;
+	  appendChain(files, CtoName(buf));
+	}
+	
+	DragFinish(hdrop);		/* reclaims memory */
+	
+	send(sw, NAME_dropFiles, files, pos, 0);
+	rewindAnswerStack(mark, NIL);
+      }
+
+      return 0;
+    }
 
     case WM_SIZE:			/* window changed size */
     { int w = LOWORD(lParam);
@@ -182,7 +223,9 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       DEBUG(NAME_window, Cprintf("WM_DESTROY on %s, hwnd 0x%x\n",
 				 pp(sw), hwnd)); 
       if ( hwnd )
-      { PceWhDeleteWindow(hwnd);
+      { if ( hasSendMethodObject(sw, NAME_dropFiles) )
+	  DragAcceptFiles(hwnd, FALSE);
+	PceWhDeleteWindow(hwnd);
 	setHwndWindow(sw, 0);
 	assign(sw, displayed, OFF);
       }
@@ -190,30 +233,7 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       return 0;
     }
 
-    case WM_QUERYNEWPALETTE:
-    { HWND hwnd = getHwndWindow(sw);
-      WsWindow w = sw->ws_ref;
-
-      if ( hwnd && w->haspalette )
-      { w->haspalette = FALSE;		/* will be set to true if still true */
-	InvalidateRect(hwnd, (LPRECT)NULL, FALSE);
-      }
-
-      break;
-    }
-
-    case WM_PALETTECHANGED:
-    { HWND hwnd = getHwndWindow(sw);
-      WsWindow w = sw->ws_ref;
-
-      if ( hwnd && w->haspalette && wParam != (UINT) hwnd )
-      { w->haspalette = FALSE;		/* will be set to true if still true */
-	InvalidateRect(hwnd, (LPRECT)NULL, FALSE);
-      }
-
-      break;
-    }
-
+ 
     case WM_SETCURSOR:
     { WsWindow w;
       WsFrame wfr;

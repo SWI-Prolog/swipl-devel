@@ -64,13 +64,15 @@ gui_setup_ :-
 pce_setup_ :-
 	feature(xpce, true), !.
 pce_setup_ :-
-	'$argv'([Proc|Args]),
+	'$argv'([Argv0|Args]),
 	\+ member('-nopce', Args),	% explicitely no XPCE
 	pcehome_(PceHome),
 	exists_directory(PceHome),
 	gui_setup_,
 	(   member('-pce', Args)
-	;   '$apropos_match'(pce, Proc)
+	;   prolog_to_os_filename(Path, Argv0),
+	    file_base_name(Path, Base),
+	    '$apropos_match'(pce, Base)
 	), !,
 	object(@pce),			% silent autoload loading
 	use_module(library(pce)),	% import all
