@@ -570,7 +570,7 @@ proc(retract-2) :-
 	retract((test(A, B) :- Body)),
 	Body == (A is B + 3).
 proc(current_predicate-1) :-
-	findall(X, current_predicate(cpxx/X), L),
+	setof(X, current_predicate(cpxx/X), L), % order is not defined!
 	L == [0, 2].
 
 		 /*******************************
