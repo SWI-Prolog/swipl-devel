@@ -1,0 +1,783 @@
+\documentclass[11pt]{article}
+\usepackage{times}
+\usepackage{pl}
+\usepackage{html}
+\usepackage{verbatim}
+\sloppy
+\makeindex
+
+\onefile
+\htmloutput{.}			% Output directory
+\htmlmainfile{semweb}		% Main document file
+\bodycolor{white}		% Page colour
+
+\renewcommand{\runningtitle}{SWI-Prolog/XPCE Semantic Web Library}
+
+\newcommand{\elem}[1]{{\tt\string<#1\string>}}
+
+\begin{document}
+
+\title{SWI-Prolog/XPCE Semantic Web Library}
+\author{Jan Wielemaker \\
+	SWI, \\
+	University of Amsterdam \\
+	The Netherlands \\
+	E-mail: \email{jan@swi.psy.uva.nl}}
+
+\maketitle
+
+\begin{abstract}
+This document describes a library for dealing with standards from the
+\url[W3C]{http://www.w3c.org/} standard for the \emph{Semantic Web}.
+Like the standards themselves (RDF, RDFS and OWL) this infrastructure
+is modular.  It consists of Prolog packages for reading, querying and
+storing semantic web documents as well as XPCE libraries that provide
+visualisation and editing.  The Prolog libraries can be used without
+the XPCE GUI modules.  The library can handle upto about 2 million
+\emph{RDF triples} on current commonly used hardware (256MB memory,
+Pentium 1.5Ghz).
+\end{abstract}
+
+\vfill
+\pagebreak
+\tableofcontents
+
+\newpage
+
+
+\section{Introduction}
+
+SWI-Prolog has started support for web-documents with the development of
+a small and fast SGML/XML parser, followed by an RDF parser (early
+2000). With the \file{semweb} library we provide more high level support
+for manipulating semantic web documents.  The semantic web is a likely
+point of orientation for knowledge representation in the future, making
+a library designed in its spirit promising.
+
+
+\section{Modules}
+
+Central to this library is the module \file{rdf_db.pl}, providing
+storage and basic querying for RDF triples. This triple store is filled
+using the RDF parser realised by \file{rdf.pl}. The storage module can
+quickly save and load (partial) databases. The modules \file{rdfs.pl}
+and \file{owl.pl} add querying in terms of the more powerful RDFS and
+OWL languages. Module \file{rdf_edit.pl} adds editing, undo, journaling
+and change-forwarding. Finally, a variety of XPCE modules visualise and
+edit the database. Figure \figref{modules} summarised the modular
+design.
+
+\postscriptfig[width=0.8\linewidth]{modules}
+	{Modules for the Semantic Web library}
+
+
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		 %	      RDF_DB		%
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\section{Module rdf_db}
+
+The central module is called \file{rdf_db}.  It provides storage and
+indexed querying of RDF triples.  Triples are stored as a quintuple.
+The first three elements denote the RDF triple. \arg{File} and
+\arg{Line} provide information about the origin of the triple.
+
+\begin{quote}
+\{\arg{Subject} \arg{Predicate} \arg{Object} \arg{File} \arg{Line}\}
+\end{quote}
+
+The actual storage is provided by the \jargon{foreign language (C)}
+module \file{rdf_db.c}.  Using a dedicated C-based implementation we
+can reduced memory usage and improve indexing capabilities.%
+	\footnote{The orginal implementation was in Prolog.  This
+		  version was implemented in 3 hours, where the C-based
+		  implementation costed a full week.  The C-based
+		  implementation requires about half the memory and
+		  provides about twice the performance.}
+Currently the following indexing is provided.
+
+\begin{itemize}
+    \item Any of the 3 fields of the triple
+    \item \arg{Subject} + \arg{Predicate} and \arg{Predicate} + \arg{Object}
+    \item \arg{Predicates} are indexed on the \jargon{highest property}.  In
+          other words, if predicates are related through
+	  \const{subPropertyOf} predicates indexing happens on the most
+	  abstract predicate. This makes calls to rdf_has/4 very
+	  efficient.
+    \item Literal \arg{Objects} are indexed case-insensitive to make
+          case-insensitive queries fully indexed.  See rdf/3.
+\end{itemize}
+
+\subsection{Query the RDF database}
+
+\begin{description}
+    \predicate{rdf}{3}{?Subject, ?Predicate, ?Object}
+Elementary query for triples.  \arg{Subject} and \arg{Predicate} are
+atoms representing the fully qualified URL of the resource. \arg{Object}
+is either an atom representing a resource or \term{literal}{Text} if the
+object is a literal value.%
+	\footnote{The current implementation has no provisions for
+		  XML-Schema typed literals.}
+If a value of the form \infixterm{:}{NameSpaceID}{LocalName} is provided
+it is expanded to a ground atom using expand_goal/2. This implies you
+can use this construct in compiled code without paying a preformance
+penalty.  See also \secref{rdfns}. 
+For querying purposes, \arg{Object} can be of the form
+\term{literal}{+Query, -Value}, where \arg{Query} is one of
+    \begin{description}
+	\termitem{exact}{+Text}
+    	    Perform exact, but case-insensitive match.  This query is
+	    fully indexed.
+	\termitem{substring}{+Text}
+	    Match any literal that contains \arg{Text} as a case-insensitive
+	    substring.  The query is not indexed on \arg{Object}.
+	\termitem{word}{+Text}
+	    Match any literal that contains \arg{Text} delimited by
+	    a non alpha-numeric character, the start or end of the
+	    string.  The query is not indexed on \arg{Object}.
+	\termitem{prefix}{+Text}
+	    Match any literal that starts with \arg{Text}.  This call
+	    is intended for \jargon{completion}.  The query is not
+	    indexed on \arg{Object}.
+    \end{description}
+
+    \predicate{rdf}{4}{?Subject, ?Predicate, ?Object, ?Source}
+As rdf/3 but in addition return the source-location of the triple.  The
+source is either a plain atom or a term of the format
+\infixterm{:}{Atom}{Integer} where \arg{Atom} is intended to be used as
+filename or URL and \arg{Integer} for representing the line-number.
+
+    \predicate{rdf_has}{4}{?Subject, ?Predicate, ?Object, -TriplePred}
+This query exploits the RDFS \const{subPropertyOf} relation.  It 
+returns any triple whose stored predicate equals \arg{Predicate} or
+can reach this by following the recursive \arg{subPropertyOf} relation.
+The actual stored predicate is returned in \arg{TriplePred}. The example
+below gets all subclasses of an RDFS (or OWL) class, even if the
+relation used is not \const{rdfs:subClassOf}, but a user-defined
+sub-property thereof.%
+	\footnote{This predicate realises semantics defined in
+		  RDF-Schema rather than RDF.  It is part of the
+		  \pllib{rdf_db} module because the indexing of
+		  this module incorporates the  \const{rdfs:subClassOf}
+		  predicate.}
+
+\begin{code}
+subclasses(Class, SubClasses) :-
+	findall(S, rdf_has(S, rdfs:subClassOf, Class), SubClasses).
+\end{code}
+
+    \predicate{rdf_has}{3}{?Subject, ?Predicate, ?Object}
+Same as \term{rdf_has}{Subject, Predicate, Object, _}.
+
+    \predicate{rdf_reachable}{3}{?Subject, +Predicate, ?Object}
+Is true if \arg{Object} can be reached from \arg{Subject} following
+the transitive predicate \arg{Predicate} or a sub-property thereof.
+When used with either \arg{Subject} or \arg{Object} unbound, it first
+returns the origin, followed by the reachable nodes in breath-first
+search-order.  It never generates the same node twice and is robust
+against cycles in the transitive relation. With all arguments
+instantiated it succeeds deterministically of the relation if a
+path can be found from \arg{Subject} to \arg{Object}.  Searching
+starts at \arg{Subject}, assuming the branching factor is normally
+lower.  A call with both \arg{Subject} and \arg{Object} unbound
+raises an instantiation error.  The following example generates
+all subclasses of \const{rdfs:Resource}:
+
+\begin{code}
+?- rdf_reachable(X, rdfs:subClassOf, rdfs:'Resource').
+
+X = 'http://www.w3.org/2000/01/rdf-schema#Resource' ;
+
+X = 'http://www.w3.org/2000/01/rdf-schema#Class' ;
+
+X = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property' ;
+
+...
+\end{code}
+
+    \predicate{rdf_subject}{1}{?Subject}
+Enumerate resources appearing as a subject in a triple.  The main reason
+for this predicate is to generate the known subjects \emph{without
+duplicates} as one gets using \term{rdf}{Subject, _, _}.
+\end{description}
+
+
+\subsection{Modifying the database}		\label{sec:rdfmodify}
+
+As depicted in \figref{modules}, there are two levels of modification.
+The \file{rdf_db} module simply modifies, where the \file{rdf_edit}
+library provides transactions and undo on top of this.  Applications
+that wish to use the \file{rdf_edit} layer must \emph{never} use the
+predicates from this section directly.
+
+\begin{description}
+    \predicate{rdf_assert}{3}{+Subject, +Predicate, +Object}
+Assert a new triple into the database. This is equivalent to
+rdf_assert/4 using \arg{SourceRef} \const{user}. \arg{Subject} and
+\arg{Predicate} are resources. \arg{Object} is either a resource or a
+term \term{literal}{Value}. All arguments are subject to name-space
+expansion (see \secref{rdfns}).
+
+    \predicate{rdf_assert}{4}{+Subject, +Predicate, +Object, +SourceRef}
+As rdf_assert/3, adding \arg{SourceRef} to specify the orgin of the
+triple.  \arg{SourceRef} is either an atom or a term of the format
+\arg{Atom}:\arg{Int} where \arg{Atom} normally refers to a filename
+and \arg{Int} to the line-number where the description starts.
+
+    \predicate{rdf_retractall}{3}{?Subject, ?Predicate, ?Object}
+Removes all matching triples from the database.  Previous Prolog
+implementations also provided a backtracking \predref{rdf_retract}{3},
+but this proved to be rarely used and could always be replaced with
+rdf_retractall/3. As rdf_retractall/4 using an unbound \arg{SourceRef}.
+
+    \predicate{rdf_retractall}{4}{?Subject, ?Predicate, ?Object, ?SourceRef}
+As rdf_retractall/4, also matching on the \arg{SourceRef}.  This is
+particulary useful to update all triples coming from a loaded file.
+
+    \predicate{rdf_update}{4}{+Subject, +Predicate, +Object, +Action}
+Replaces one of the three fields on the matching triples depending
+on \arg{Action}:
+
+\begin{description}
+    \termitem{subject}{Resource}
+Changes the first field of the triple.
+    \termitem{predicate}{Resource}
+Changes the second field of the triple.
+    \termitem{object}{Object}
+Changes the last field of the triple to the given resource or
+\term{literal}{Value}.
+\end{description}
+\end{description}
+
+
+\subsection{Loading and saving to file}		\label{sec:rdffile}
+
+The \file{rdf_db} module can read and write RDF-XML for import and
+export as well as a binary format built for quick load and save
+described in \secref{rdffastfile}.  Here are the predicates
+for portable RDF load and save.
+
+\begin{description}
+    \predicate{rdf_load}{1}{+In}
+Load triples from \arg{In}, which is either a stream opened for
+reading or an atom specifying a filename.  This predicate calls
+process_rdf/3 to read the source one description at a time, avoiding
+limits to the size of the input.  If \arg{In} is a file, rdf_load/1
+provides for caching the results for quick-load using rdf_load_db/1
+described below.  Caching is activated by creating a directory
+\file{.cache} (or \file{_cache} on Windows) in the directory holding
+the \fileext{rdf} files.  Cached RDF files are loaded at approx.\
+25 times the speed of RDF-XML files.
+
+    \predicate{rdf_save}{1}{+File}
+Save all known triples to the given \arg{File}.
+
+    \predicate{rdf_save}{2}{+File, +FileRef}
+Save all triples whose file-part of their \arg{SourceRef} matches
+\arg{FileRef} to the given \arg{File}.   Saving arbitrary selections
+is possible using predicates from \secref{partsave}.
+
+    \predicate{rdf_source}{1}{?File}
+Test or enumerate the files loaded using rdf_load/1.
+
+    \predicate{rdf_make}{0}{}
+Re-load all RDF sourcefiles (see rdf_source/1) that have changed since
+they were loaded the last time.  This implies all triples that originate
+from the file are removed and the file is re-loaded.  If the file is
+cached a new cache-file is written.  Please note that the new triples
+are added at the end of the database, possibly changing the order of
+(conflicting) triples.
+\end{description}
+
+\subsubsection{Partial save}			\label{sec:partsave}
+
+Sometimes it is necessary to make more arbitrary selections of material
+to be saved or exchange RDF descriptions over an open network link. The
+predicates in this section provide for this.
+
+\begin{description}
+    \predicate{rdf_save_header}{2}{+Stream, ?FileRef}
+Save an RDF header, with the XML header, \const{DOCTYPE},
+\const{ENTITY} and opening the \const{rdf:RDF} element with appropriate
+namespace declarations.  It uses the primitives from \secref{rdfns} to
+generate the required namespaces and desired short-name.
+
+    \predicate{rdf_save_footer}{1}{+Stream}
+Close the work opened with rdf_save_header/2.
+
+    \predicate{rdf_save_subject}{3}{+Stream, +Subject, +FileRef}
+Save everything known about \arg{Subject} that matches \arg{FileRef}.
+Using an variable for \arg{FileRef} saves all triples with
+\arg{Subject}.
+\end{description}
+
+
+\subsubsection{Fast loading and saving}		\label{sec:rdffastfile}
+
+Loading and saving RDF format is relatively slow.  For this reason we
+designed a binary format that is more compact, avoids the complications
+of the RDF parser and avoids repetitive lookup of (URL) identifiers.
+Especially the speed improvement of about 25 times is worth-while when
+loading large databases.  These predicates are used for caching by
+rdf_load/1 under certain conditions.
+
+\begin{description}
+    \predicate{rdf_save_db}{1}{+File}
+Save all known triples into \arg{File}.  The saved version includes the
+\arg{SourceRef} information.
+
+    \predicate{rdf_save_db}{1}{+File, +FileRef}
+Save all triples with \arg{SourceRef} \arg{FileRef}, regardless of the
+line-number. For example, using \const{user} all information added
+using rdf_assert/3 is stored in the database.
+
+    \predicate{rdf_load_db}{1}{+File}
+Load triples from \arg{File}.  
+\end{description}
+
+
+\subsection{Namespace Handling}			\label{sec:rdfns}
+
+Prolog code often contains references to constant resources in a known
+XML namespace. For example,
+\const{http://www.w3.org/2000/01/rdf-schema\#Class} refers to the most
+general notion of a class. Readability and maintability concerns require
+for abstraction here.  The dynamic and multifile predicate rdf_db:ns/2
+maintains a mapping between short meaningful names and namespace
+locations very much like the XML \const{xmlns} construct.  The initial
+mapping contains the namespaces required for the semantic web languages
+themselves:
+
+\begin{code}
+ns(rdf,  'http://www.w3.org/1999/02/22-rdf-syntax-ns#').
+ns(rdfs, 'http://www.w3.org/2000/01/rdf-schema#').
+ns(owl,  'http://www.w3.org/2002/7/owl#').
+ns(xsd,  'http://www.w3.org/2000/10/XMLSchema#').
+ns(dc,   'http://purl.org/dc/elements/1.1/').
+ns(eor,  'http://dublincore.org/2000/03/13/eor#').
+\end{code}
+
+All predicates for the semweb libraries use goal_expansion/2 rules to
+make the SWI-Prolog compiler rewrite terms of the form
+\infixterm{:}{Id}{Local} into the fully qualified URL.  In addition,
+the following predicates are supplied:
+
+\begin{description}
+    \predicate{rdf_equal}{2}{Resource1, Resource2}
+Defined as \infixterm{=}{Resource1, Resource2}.  As this predicate is
+subject to goal-expansion it can be used to obtain or test global URL
+values to readable values. The following goal unifies \arg{X} with
+\const{http://www.w3.org/2000/01/rdf-schema\#Class} without more
+runtime overhead than normal Prolog unification.
+
+\begin{code}
+	rdf_equal(rdfs:'Class', X)
+\end{code}
+
+    \predicate{rdf_register_ns}{2}{+Alias, +URL}
+Register \arg{Alias} as a shorthand for \arg{URL}.  Note that the
+registration must be done before loading any files using them as
+namespace aliases are handled at compiletime through goal_expansion/2.
+
+    \predicate{rdf_global_id}{2}{?Alias:Local, ?Global}
+Runtime translation between \arg{Alias} and \arg{Local} and a
+\arg{Global} URL.  Expansion is normally done at compiletime.  This
+predicate is often used to turn a global URL into a more readable
+term.
+
+    \predicate{rdf_global_term}{2}{+Term0, -Term}
+Expands all \arg{Alias}:\arg{Local} in \arg{Term0} and return the
+result in \arg{Term}.  Use infrequently for runtime expansion of
+namespace identifiers.
+
+    \predicate{rdf_split_url}{3}{?Base, ?Local, ?URL}
+Split a URL into a prefix and local part if used in mode -,-,+
+or simply behave as atom_concat/3 in other modes.  The \arg{URL}
+is split on the last \chr{\#} or \chr{/} character.
+\end{description}
+
+
+\subsection{Miscellaneous predicates}
+
+This section describes the remaining predicates of the \file{rdf_db}
+module.
+
+\begin{description}
+    \predicate{rdf_node}{1}{-Id}
+Generate a unique reference.  The returned atom is guaranteed not to
+occur in the current database in any field of any triple.
+
+    \predicate{rdf_source_location}{2}{+Subject, -SourceRef}
+Return the source-location as \arg{File}:\arg{Line} of the first triple
+that is about \arg{Subject}.
+
+    \predicate{rdf_statistics}{1}{?Statistics}
+Report statistics collected by the \file{rdf_db} module.  Defined
+values for \arg{Statistics} are:
+
+    \begin{description}
+	\termitem{lookup}{?Index, -Count}
+Number of lookups using a pattern of instantiated fields.  \arg{Index}
+is a term \term{rdf}{S,P,O}, where \arg{S}, \arg{P} and \arg{O} are
+either \const{+} or \const{-}.  For example \term{rdf}{+,+,-} returns
+the lookups with subject and predicate specified and object unbound.
+
+	\termitem{properties}{-Count}
+Number of unique values for the second field of the triple set.
+
+	\termitem{sources}{-Count}
+Number of files loaded through rdf_load/1.
+
+	\termitem{subjects}{-Count}
+Number of unique values for the first field of the triple set.
+
+	\termitem{triples}{-Count}
+Total number of triples in the database.
+        \end{description}
+
+    \predicate{rdf_match_label}{3}{+Method, +Search, +Atom}
+True if \arg{Search} matches \arg{Atom} as defined by \arg{Method}.
+All matching is performed case-insensitive.  Defines methods are:
+    \begin{description}
+	\termitem{exact}{}
+    	    Perform exact, but case-insensitive match.
+	\termitem{substring}{}
+	    \arg{Search} is a sub-string of \arg{Text}.
+	\termitem{word}{}
+	    \arg{Search} appears as a whole-word in \arg{Text}.
+	\termitem{prefix}{}
+	    \arg{Text} start with \arg{Search}.
+    \end{description}
+\end{description}
+
+
+\subsection{Issues with rdf_db}				\label{sec:rdfissues}
+
+This RDF low-level module has been created after two year experimenting
+with a plain Prolog based module and a brief evaluation of a second
+generation pure Prolog implementation. The was to be able to handle upto
+aboud 2 million triples on standard (notebook) hardware and deal
+efficiently with \const{subPropertyOf} which was identified as a
+crucial feature of RDFS to realise fusion of different data-sets.
+
+The following issues are identified and not solved in suitable manner.
+
+\begin{description}
+    \item [Logical update] as provided by Prolog means that active queries
+are not affected by subsequent modification of the database. The current
+C-based implementation adheres the \jargon{immediate} update model,
+mainly because the current foreign language interface does not provide
+the required information to realise logical updates in C.
+
+    \item [Property hierarchy] 
+The system currently cannot deal with properties that have multiple
+parents if not all parents ultimately have the save root.  I.e.\ there
+must be a single root property for each property hierarchy.  Although
+the design accomodates for this case, it has not yet been implemented.
+
+    \item [\const{subPropertyOf} of \const{subPropertyOf}] is not
+supported.
+\end{description}
+
+
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		 %	       RDFS		%
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Module rdfs}				\label{sec:rdfs}
+
+\index{RDF-Schema}%
+The \pllib{rdfs} library adds interpretation of the triple store in
+terms of concepts from RDF-Schema (RDFS).  
+
+\subsection{Hierarchy and class-individual relations}
+
+The predicates in this section explore the \const{rdfs:subPropertyOf},
+\const{rdfs:subClassOf} and \const{rdf:type} relations.  Note that the
+most fundamental of these, \const{rdfs:subPropertyOf}, is also used 
+by rdf_has/[3,4].
+
+\begin{description}
+    \predicate{rdfs_subproperty_of}{2}{?SubProperty, ?Property}
+True if \arg{SubProperty} is equal to \arg{Property} or \arg{Property}
+can be reached from \arg{SubProperty} following the
+\const{rdfs:subPropertyOf} relation. It can be used to test as well as
+generate sub-properties or super-properties. Note that the commonly used
+semantics of this predicate is wired into rdf_has/[3,4].%
+	\bug{The current implementation cannot deal with
+	     cycles}.%
+	\bug{The current implementation cannot deal with predicates
+	     that are an \const{rdfs:subPropertyOf} of
+	     \const{rdfs:subPropertyOf}, such as
+	     \const{owl:samePropertyAs}.}
+
+    \predicate{rdfs_subclass_of}{2}{?SubClass, ?Class}
+True if \arg{SubClass} is equal to \arg{Class} or \arg{Class}
+can be reached from \arg{SubClass} following the
+\const{rdfs:subClassOf} relation. It can be used to test as
+well as generate sub-classes or super-classes.%
+	\bug{The current implementation cannot deal with
+	     cycles}.
+
+    \predicate{rdfs_class_property}{2}{+Class, ?Property}
+True if the domain of \arg{Property} includes \arg{Class}.  Used to
+generate all properties that apply to a class.
+
+    \predicate{rdfs_individual_of}{2}{?Resource, ?Class}
+True if \arg{Resource} is an indivisual of \arg{Class}.  This implies
+\arg{Resource} has an \const{rdf:type} property that refers to
+\arg{Class} or a sub-class thereof.  Can be used to test, generate
+classes \arg{Resource} belongs to or generate individuals described
+by \arg{Class}.
+\end{description}
+
+\subsection{Collections and Containers}
+
+\index{parseType,Collection}%
+\index{Collection,parseType}%
+The RDF construct \const{rdf:parseType}=\const{Collection} constructs
+a list using the \const{rdf:first} and \const{rdf:next} relations.
+
+\begin{description}
+    \predicate{rdfs_member}{2}{?Resource, +Set}
+Test or generate the members of \arg{Set}.  \arg{Set} is either an
+individual of \const{rdf:List} or \const{rdf:Container}.
+
+    \predicate{rdfs_list_to_prolog_list}{2}{+Set, -List}
+Convert \arg{Set}, which must be an individual of \const{rdf:List} into
+a Prolog list of objects.
+\end{description}
+
+\subsection{Labels and textual search}
+
+Textual search is partly handled by the predicates from the
+\pllib{rdf_db} module and its underlying C-library.  For example,
+literal objects are hashed case-insensitive to speed up the commonly
+used case-insensitive search.
+
+\begin{description}
+    \predicate{rdfs_label}{2}{?Resource, ?Label}
+Extract the label from \arg{Resource} or generate all resources with
+the given \arg{Label}. The label is either associated using
+a sub-property of \const{rdfs:label} or it is extracted from the URL
+using rdf_split_url/3.
+
+    \predicate{rdfs_ns_label}{2}{?Resource, ?Label}
+Similar to rdfs_label/2, but prefixes the result using the declared
+namespace alias (see \secref{rdfns}) to facilitate user-friendly labels
+in applications using multiple namespaces that may lead to confusion.
+
+    \predicate{rdfs_find}{5}{+String, +Description, +Properties, +Method, -Subject}
+\index{search}%
+Find (on backtracking) \arg{Subject}s that satisfy a search
+specification for textual attributes.  \arg{String} is the string
+searched for. \arg{Description} is an OWL description (see \secref{owl})
+specifying candidate resources. \arg{Properties} is a list of properties
+to search for literal objects where \arg{rdfs:label} is replaced by a
+call to rdfs_label/2 and finally, \arg{Method} defines the textual
+matching algorithm.  All textual mapping is performed case-insensitive.
+The matching-methods are described with rdf_match_label/3.
+\end{description}
+
+
+\begin{comment}
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		 %	       OWL		%
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Module owl}				\label{sec:owl}
+
+\index{OWL}%
+This module provides a \emph{very} limited interpretation to some
+OWL concepts used in the current visualisation tools.  Its main task
+is to describe an evaluate restrictions on properties. OWL is
+interpreted as OWL-Full, the OWL dialect that is a superset of
+RDF-Schema.
+
+\index{Description, OWL}%
+Central to this library is the Prolog representation for a
+\jargon{Description}.  Predicates from this library produce these
+descriptions, owl_satisfies/2 tests whether a resource satisfies
+a description.  The Prolog description is a nested term with the
+following syntax.
+
+
+\end{comment}
+
+
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		 %	     RDF-EDIT		%
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Module rdf_edit}			\label{sec:rdfedit}
+
+\index{undo}\index{journal}\index{transactions}
+The module \file{rdf_edit.pl} is a layer than encasulates the
+modification predicates from \secref{rdfmodify} for use from
+a (graphical) editor of the triple store.  It adds the
+following features:
+
+\begin{itemlist}
+    \item [Transaction management]
+Modifications are grouped into \emph{transactions} to safeguard
+the system from failing operations as well as provide meaningfull
+chunks for undo and journalling.
+
+    \item [Undo]
+Undo and redo-transactions using a single mechanism to support
+user-friendly editing.
+
+    \item [Journalling]
+Record all actions to support analysis, versioning, crash-recovery
+and an alternative to saving.
+\end{itemlist}
+
+\subsection{Transaction management}
+
+Transactions group low-level modification actions together.
+
+\begin{description}
+    \predicate{rdfe_transaction}{1}{:Goal}
+Run \arg{Goal}, recording all modifications to the triple store made
+through \secref{rdfeencap}.  Execution is performed as in once/1.  If
+\arg{Goal} succeeds the changes are committed.  If \arg{Goal} fails 
+or throws an exception the changes are reverted.
+
+Transactions may be nested.  A failing nested transaction only reverts
+the actions performed inside the nested transaction.  If the outer
+transaction succeeds it is committed normally.  Contrary, if the
+outer transaction fails, comitted nested transactions are reverted
+as well.
+
+A successful outer transaction (`level-0') may be undone using
+rdfe_undo/0.
+\end{description}
+
+
+\subsection{Encapsulated predicates}		\label{sec:rdfeencap}
+
+The following predicates encapsulate predicates from the \file{rdf_db}
+module that modify the triple store. These predicates can only be called
+when inside a \emph{transaction}.  See rdfe_transaction/1.
+
+\begin{description}
+    \predicate{rdfe_assert}{3}{+Subject, +Predicate, +Object}
+Encapsulates rdf_assert/3.
+    \predicate{rdfe_retractall}{3}{?Subject, ?Predicate, ?Object}
+Encapsulates rdf_retractall/3.
+    \predicate{rdfe_update}{4}{+Subject, +Predicate, +Object, +Action}
+Encapsulates rdf_update/4.
+    \predicate{rdf_load}{1}{+In}
+Encapsulates rdf_load/1.
+\end{description}
+
+\subsection{High-level modification predicates}	\label{sec:rdfeedit}
+
+This section describes a (yet very incomplete) set of more high-level
+operations one would like to be able to perform.  Eventually this set
+may include operations based on RDFS and OWL.
+
+\begin{description}
+    \predicate{rdfe_delete}{1}{+Resource}
+Delete all traces of \arg{resource}.  This implies all triples where
+\arg{Resource} appears as \emph{subject}, \emph{predicate} or
+\emph{object}.  This predicate starts a transation.
+\end{description}
+
+\subsection{Undo}
+
+\index{undo}%
+Undo aims at user-level undo operations from a (graphical) editor.
+
+\begin{description}
+    \predicate{rdfe_undo}{0}{}
+Revert the last outermost (`level 0') transaction (see
+rdfe_transaction/1). Successive calls go further back in history. Fails
+if there is no more undo information.
+
+    \predicate{rdfe_redo}{0}{}
+Revert the last rdfe_undo/0.  Successive calls revert more rdfe_undo/0
+operations.   Fails if there is no more redo information.
+
+    \predicate{rdfe_can_undo}{0}{}
+Test if there is another transaction that can be reverted.  Used for
+activating menus in a graphical environment.
+
+    \predicate{rdfe_can_redo}{0}{}
+Test if there is another undo that can be reverted.  Used for
+activating menus in a graphical environment.
+\end{description}
+
+\subsection{Journalling}
+
+\index{journal}%
+Optionally, every action through this module is immediately send to a
+\jargon{journal-file}. The journal provides a full log of all actions
+with a time-stamp that may be used for inspection of behaviour, version
+management, crash-recovery or an alternative to regular save operations.
+
+\begin{description}
+    \predicate{rdfe_open_journal}{2}{+File, +Mode}
+Open a existing or new journal.  If \arg{Mode} equala \const{append}
+and \arg{File} exists, the journal is first replayed. See
+rdfe_replay_journal/1.  If \arg{Mode} is \const{write} the journal is
+truncated if it exists.
+
+    \predicate{rdfe_close_journal}{0}{}
+Close the currently open journal.
+
+    \predicate{rdfe_current_journal}{1}{-Path}
+Test whether there is a journal and to which file the actions are
+journalled.
+
+    \predicate{rdfe_replay_journal}{1}{+File}
+Read a jorunal, replaying all actions in it.  To do so, the system
+reads the journal a transaction at a time.  If the transaction is
+closed with a \emph{commit} it executes the actions inside the journal.
+If it is closed with a \emph{rollback} or not closed at all due to a
+crash the actions inside the journal are discarded.  Using this
+predicate only makes sense to inspect the state at the end of a journal
+without modifying the journal.  Normally a journal is replayed using the
+\const{append} mode of rdfe_open_journal/2.
+\end{description}
+
+
+\subsection{Broadcasting change events}
+
+\index{event}\index{broadcast}%
+To realise a modular graphical interface for editing the triple store,
+the system must use some sort of \emph{event} mechanism. This is
+implemented by the XPCE library \pllib{broadcast} which is described
+in the \url[XPCE User
+Guide]{http://www.swi.psy.uva.nl/projects/xpce/UserGuide/libbroadcast.html}.
+In this section we describe the terms brodcasted by the library.
+
+\begin{description}
+    \termitem{rdf_transaction}{+Id}
+A `level-0' transaction has been committed. The system passes the
+identifier of the transaction in \arg{Id}. In the current implementation
+there is no way to find out what happened inside the transaction.  This
+is likely to change in time.
+
+If a transaction is reverted due to failure or exception \emph{no} event
+is broadcasted.  The initiating GUI element is supposed to handle this
+possibility itself and other components are not affected as the triple
+store is not changed.
+
+    \termitem{rdf_undo}{+Type, +Id}
+This event is broadcasted after an rdfe_undo/0 or rdfe_redo/0.
+\arg{Type} is one of \const{undo} or \const{redo} and \arg{Id}
+identifies the transaction as above.
+\end{description}
+
+
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		 %	      FOOTER		%
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\printindex
+
+\end{document}
+
+

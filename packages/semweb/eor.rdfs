@@ -1,0 +1,95 @@
+<?xml version="1.0"?>
+
+<!-- 
+  RDF Schema declaration for the EOR Toolkit Vocabulary
+ 2001/03/28
+  comments, etc. to webteam <dcmi-feedback@dublincore.org>
+-->
+
+<!DOCTYPE rdf:RDF [
+        <!ENTITY rdfns 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
+        <!ENTITY rdfsns 'http://www.w3.org/2000/01/rdf-schema#'>
+        <!ENTITY dcns 'http://purl.org/dc/elements/1.1/'>
+        <!ENTITY eorns 'http://dublincore.org/2000/03/13/eor#'>
+   ]>
+
+<rdf:RDF xmlns:rdf="&rdfns;"
+         xmlns:rdfs="&rdfsns;"
+         xmlns:dc="&dcns;"
+         xmlns:eor="&eorns;">
+
+<eor:Schema rdf:about="&eorns;">
+  <!-- dumb down rule... use rdf:value for a simple default name -->	
+  <rdf:value>The EOR Vocabulary v1.0</rdf:value> 
+  <dc:title>The EOR Vocabulary v1.0</dc:title>
+  <dc:creator>Eric Miller, emiller@oclc.org</dc:creator>
+  <dc:contributor>Tod Matola, matola@oclc.org</dc:contributor>
+  <dc:contributor>Harry Wagner, wagnerh@oclc.org</dc:contributor>
+  <dc:description>The EOR vocabulary is a simple vocabulary intended
+  to support the EOR Toolkit and provides an additional level of
+  conformance, validation and general description beyond the
+  base-level RDF specifications specifically defined for RDF-based,
+  Dublin Core metadata applications.</dc:description>
+  <dc:date>2000-03-13</dc:date>
+</eor:Schema>
+
+<!-- Data Type declaration -->
+
+<rdfs:Class rdf:about = "&eorns;DataType">
+  <rdfs:label>Data Type</rdfs:label>
+  <rdfs:comment>A data type.</rdfs:comment>
+  <rdfs:subClassOf rdf:resource =
+  "http://www.w3.org/2000/01/rdf-schema#Literal" />
+  <rdfs:isDefinedBy rdf:resource = "&eorns;" />
+</rdfs:Class>
+
+<!-- Class declarations -->
+
+<rdfs:Class rdf:about = "&eorns;Schema">
+  <rdfs:label>RDF Schema</rdfs:label>
+  <rdfs:comment>A RDF schema</rdfs:comment>
+  <rdfs:subClassOf rdf:resource =
+  "http://purl.org/dc/dcmitype/Text" />
+  <rdfs:isDefinedBy rdf:resource = "&eorns;" />
+</rdfs:Class>
+
+<rdfs:Class rdf:about = "&eorns;Profile">
+  <rdfs:label>Profile</rdfs:label>
+  <rdfs:comment>An application profile</rdfs:comment>
+  <rdfs:subClassOf rdf:resource = "Schema" />
+  <rdfs:isDefinedBy rdf:resource = "&eorns;" />
+</rdfs:Class>
+
+<rdfs:Class rdf:about = "&eorns;WebPage">
+  <rdfs:label>Web Page</rdfs:label>
+  <rdfs:comment>A web page</rdfs:comment>
+  <rdfs:subClassOf rdf:resource =
+  "http://purl.org/dc/dcmitype/Text" />
+  <rdfs:isDefinedBy rdf:resource = "&eorns;" />
+</rdfs:Class>
+
+<!-- Additional Class relations -->
+
+<rdf:Property rdf:about = "&eorns;alias">
+  <rdfs:label>alias</rdfs:label>
+  <rdfs:comment>An alias.</rdfs:comment>
+  <rdfs:isDefinedBy rdf:resource = "&eorns;" />
+</rdf:Property>
+
+
+<!-- Additional Property declarations -->
+
+<rdf:Property rdf:about = "&eorns;label">
+  <rdfs:label>label</rdfs:label>
+  <rdfs:comment>A application-specific label.</rdfs:comment>
+  <rdfs:isDefinedBy rdf:resource = "&eorns;" />
+</rdf:Property>
+
+<rdf:Property rdf:about = "&eorns;comment">
+  <rdfs:label>Comment</rdfs:label>
+  <rdfs:comment>A comment or note providing additional
+  application-specific information.</rdfs:comment>
+  <rdfs:isDefinedBy rdf:resource = "&eorns;" />
+</rdf:Property>
+
+</rdf:RDF>

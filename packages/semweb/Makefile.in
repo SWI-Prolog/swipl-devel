@@ -1,0 +1,118 @@
+################################################################
+# Makefile template for SWI-Prolog RDF-DB package
+#
+# This template is used by configure to create Makefile.  See
+# the file INSTALL for further installation instructions.
+#
+# License: LGPL
+#
+# Author: Jan Wielemaker (jan@swi.psy.uva.nl)
+################################################################
+
+.SUFFIXES: .tex .dvi .doc .pl
+
+PL=@PL@
+PLBASE=@PLBASE@
+PLARCH=@PLARCH@
+PLINCL=@PLINCL@
+PKGDOC=$(PLBASE)/doc/packages
+PCEHOME=$(PLBASE)/xpce
+LIBDIR=$(PLBASE)/library/semweb
+
+CC=@CC@
+COFLAGS=@COFLAGS@
+CWFLAGS=@CWFLAGS@
+CMFLAGS=@CMFLAGS@
+CIFLAGS=-I.
+CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
+LIBS=@LIBS@
+NETLIBS=@NETLIBS@
+
+DOCTOTEX=$(PCEHOME)/bin/doc2tex
+PLTOTEX=$(PCEHOME)/bin/pl2tex
+DOC=semweb
+TEX=$(DOC).tex
+DVI=$(DOC).dvi
+PDF=$(DOC).pdf
+RUNTEX=@RUNTEX@
+
+LD=@LD@
+LDFLAGS=@LDSOFLAGS@
+
+INSTALL=@INSTALL@
+INSTALL_PROGRAM=@INSTALL_PROGRAM@
+INSTALL_DATA=@INSTALL_DATA@
+
+LIBPL=		rdf_db.pl rdfs.pl rdf_edit.pl
+DATA=		rdfs.rdfs dc.rdfs eor.rdfs
+TARGETS=	rdf_db.@SO@
+
+RDFDBOBJ=	rdf_db.o
+
+all:		$(TARGETS)
+
+rdf_db.@SO@:	$(RDFDBOBJ)
+		$(LD) $(LDFLAGS) -o $@ $(RDFDBOBJ) $(LIBS)
+
+install:	$(TARGETS) $(LIBPL)
+		mkdir -p $(LIBDIR)
+		mkdir -p $(PLBASE)/lib/$(PLARCH)
+		for f in $(TARGETS); do \
+		  $(INSTALL) -m 755 $$f $(PLBASE)/lib/$(PLARCH); \
+		done
+		for f in $(DATA); do \
+		  $(INSTALL) -m 644 $$f $(LIBDIR); \
+		done
+		for f in $(LIBPL); do \
+		  $(INSTALL) -m 644 $$f $(LIBDIR); \
+		done
+		$(PL) -f none -g make -t halt
+
+rpm-install:	install
+
+html-install::
+		mkdir -p $(PKGDOC)
+		$(INSTALL) -m 644 $(DOC).html $(PKGDOC)
+
+pdf-install::
+		mkdir -p $(PKGDOC)
+		$(INSTALL) -m 644 $(DOC).pdf $(PKGDOC)
+
+uninstall::
+		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))
+		(cd $(PLBASE)/library && rm -f $(LIBPL))
+		$(PL) -f none -g make -t halt
+
+################################################################
+# Documentation
+################################################################
+
+pdf:		$(PDF)
+
+$(DVI):		$(TEX)
+		$(RUNTEX) $(DOC)
+
+$(PDF):		$(TEX)
+		$(RUNTEX) --pdf $(DOC)
+
+html:		$(TEX)
+		latex2html $(DOC)
+
+$(TEX):		$(DOCTOTEX)
+
+.doc.tex:
+		$(DOCTOTEX) $*.doc > $*.tex
+.pl.tex:
+		$(PLTOTEX) $*.pl > $*.tex
+
+################################################################
+# Clean
+################################################################
+
+clean:
+		rm -f $(OBJ) *~ *.o *% a.out core config.log
+
+distclean:	clean
+		rm -f $(TARGETS) config.cache config.h config.status Makefile
+		rm -f $(DOC).tex $(DOC).aux $(DOC).log $(DOC).out $(DOC).toc \
+		      $(DOC).ilg

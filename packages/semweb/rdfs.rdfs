@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<!DOCTYPE rdf:RDF [
+	 <!ENTITY rdfs 'http://www.w3.org/2000/01/rdf-schema#'>
+	 <!ENTITY rdf  'http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
+]>
+
+<rdf:RDF
+   xmlns:rdf="&rdf;"
+   xmlns:rdfs="&rdfs;">
+
+<rdfs:Class rdf:about="&rdfs;Resource">
+  <rdfs:isDefinedBy rdf:resource="&rdfs;"/>
+  <rdfs:label xml:lang="en">Resource</rdfs:label>
+  <rdfs:comment>The class resource, everything.</rdfs:comment>
+</rdfs:Class>
+
+<rdf:Property rdf:about="&rdf;type">
+  <rdfs:isDefinedBy rdf:resource="&rdf;"/>
+  <rdfs:label xml:lang="en">type</rdfs:label>
+  <rdfs:comment>Indicates membership of a class</rdfs:comment>
+  <rdfs:range rdf:resource="&rdfs;Class"/>
+  <rdfs:domain rdf:resource="&rdfs;Resource"/>
+</rdf:Property>
+
+<rdfs:Class rdf:about="&rdfs;Class">
+  <rdfs:isDefinedBy rdf:resource="&rdfs;"/>
+  <rdfs:label xml:lang="en">Class</rdfs:label>
+  <rdfs:comment>The concept of Class</rdfs:comment>
+  <rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+
+<rdf:Property rdf:about="&rdfs;subClassOf">
+  <rdfs:isDefinedBy rdf:resource="&rdfs;"/>
+  <rdfs:label xml:lang="en">subClassOf</rdfs:label>
+  <rdfs:comment>Indicates membership of a class</rdfs:comment>
+  <rdfs:range rdf:resource="&rdfs;Class"/>
+  <rdfs:domain rdf:resource="&rdfs;Class"/>
+</rdf:Property>
+
+<rdf:Property rdf:about="&rdfs;subPropertyOf">
+  <rdfs:isDefinedBy rdf:resource="&rdfs;"/>
+  <rdfs:label xml:lang="en">subPropertyOf</rdfs:label>
+  <rdfs:comment>Indicates specialization of properties</rdfs:comment>
+  <rdfs:range rdf:resource="&rdf;Property"/>
+  <rdfs:domain rdf:resource="&rdf;Property"/>
+</rdf:Property>
+
+<rdfs:Class rdf:about="&rdf;Property">
+  <rdfs:isDefinedBy rdf:resource="&rdf;"/>
+  <rdfs:label xml:lang="en">Property</rdfs:label>
+  <rdfs:comment>The concept of a property.</rdfs:comment>
+  <rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+</rdfs:Class>
+
+<rdf:Property rdf:about="&rdfs;comment">
+  <rdfs:isDefinedBy rdf:resource="&rdfs;"/>
+  <rdfs:label xml:lang="en">comment</rdfs:label>
+  <rdfs:comment>Use this for descriptions</rdfs:comment>
+  <rdfs:domain rdf:resource="&rdfs;Resource"/>
+  <rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+
+<rdf:Property rdf:about="&rdfs;label">
+  <rdfs:isDefinedBy rdf:resource="&rdfs;"/>
+  <rdfs:label xml:lang="en">label</rdfs:label>
+  <rdfs:comment>Provides a human-readable version of a resource name.</rdfs:comment>
+  <rdfs:domain rdf:resource="&rdfs;Resource"/>
+  <rdfs:range rdf:resource="&rdfs;Literal"/>
+</rdf:Property>
+
+<rdf:Property rdf:about="&rdfs;domain">
+  <rdfs:isDefinedBy rdf:resource="&rdfs;"/>
+  <rdfs:label xml:lang="en">domain</rdfs:label>
+  <rdfs:comment>A domain class for a property type</rdfs:comment>
+ <rdfs:range rdf:resource="&rdfs;Class"/>
+  <rdfs:domain rdf:resource="&rdf;Property"/>
+</rdf:Property>
+
+<rdf:Property rdf:about="&rdfs;range">
+  <rdfs:isDefinedBy rdf:resource="&rdfs;"/>
+  <rdfs:label xml:lang="en">range</rdfs:label>
+  <rdfs:comment>A range class for a property type</rdfs:comment>
+  <rdfs:range rdf:resource="&rdfs;Class"/>
+  <rdfs:domain rdf:resource="&rdf;Property"/>
+</rdf:Property>
+
+<rdf:Property rdf:about="&rdfs;seeAlso">
+  <rdfs:isDefinedBy rdf:resource="&rdfs;"/>
+  <rdfs:label xml:lang="en">seeAlso</rdfs:label>
+  <rdfs:comment>A resource that provides information about the subject resource</rdfs:comment>
+  <rdfs:range rdf:resource="&rdfs;Resource"/>
+  <rdfs:domain   rdf:resource="&rdfs;Resource"/>
+</rdf:Property>
+
+<rdf:Property rdf:about="&rdfs;isDefinedBy">
+  <rdfs:isDefinedBy rdf:resource="&rdfs;"/>
+  <rdfs:subPropertyOf rdf:resource="&rdfs;seeAlso"/>
+  <rdfs:label xml:lang="en">isDefinedBy</rdfs:label>
+  <rdfs:comment>Indicates the namespace of a resource</rdfs:comment>
+  <rdfs:range rdf:resource="&rdfs;Resource"/>
+  <rdfs:domain rdf:resource="&rdfs;Resource"/>
+</rdf:Property>
+
+<rdfs:Class rdf:about="&rdfs;Literal">
+  <rdfs:isDefinedBy rdf:resource="&rdfs;"/>
+  <rdfs:label xml:lang="en">Literal</rdfs:label>
+  <rdfs:comment>This represents the set of atomic values, eg. textual strings.</rdfs:comment>
+</rdfs:Class>
+
+<rdfs:Class rdf:about="&rdf;Statement">
+  <rdfs:isDefinedBy rdf:resource="&rdf;"/>
+  <rdfs:label xml:lang="en">Statement</rdfs:label>
+  <rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+  <rdfs:comment>The class of RDF statements.</rdfs:comment>
+</rdfs:Class>
+
+<rdf:Property about="&rdf;subject">
+  <rdfs:isDefinedBy rdf:resource="&rdf;"/>
+  <rdfs:label xml:lang="en">subject</rdfs:label>
+  <rdfs:comment>The subject of an RDF statement.</rdfs:comment>
+  <rdfs:domain rdf:resource="&rdf;Statement"/>
+  <rdfs:range rdf:resource="&rdfs;Resource"/>
+</rdf:Property>
+
+<rdf:Property about="&rdf;predicate">
+  <rdfs:isDefinedBy rdf:resource="&rdf;"/>
+  <rdfs:label xml:lang="en">predicate</rdfs:label>
+  <rdfs:comment>the predicate of an RDF statement.</rdfs:comment>
+  <rdfs:domain rdf:resource="&rdf;Statement"/>
+  <rdfs:range rdf:resource="&rdf;Property"/>
+</rdf:Property>
+
+<rdf:Property about="&rdf;object">
+  <rdfs:isDefinedBy rdf:resource="&rdf;"/>
+  <rdfs:label xml:lang="en">object</rdfs:label>
+  <rdfs:comment>The object of an RDF statement.</rdfs:comment>
+  <rdfs:domain rdf:resource="&rdf;Statement"/>
+</rdf:Property>
+
+<rdfs:Class rdf:about="&rdfs;Container">
+  <rdfs:isDefinedBy rdf:resource="&rdfs;"/>
+  <rdfs:label xml:lang="en">Container</rdfs:label>
+  <rdfs:subClassOf rdf:resource="&rdfs;Resource"/>
+  <rdfs:comment>This represents the set Containers.</rdfs:comment>
+</rdfs:Class>
+
+<rdfs:Class rdf:about="&rdf;Bag">
+  <rdfs:isDefinedBy rdf:resource="&rdf;"/>
+  <rdfs:label xml:lang="en">Bag</rdfs:label>
+  <rdfs:comment xml:lang="en">An unordered collection.</rdfs:comment>
+  <rdfs:subClassOf rdf:resource="&rdfs;Container"/>
+</rdfs:Class>
+
+<rdfs:Class rdf:about="&rdf;Seq">
+  <rdfs:isDefinedBy rdf:resource="&rdf;"/>
+  <rdfs:label xml:lang="en">Seq</rdfs:label>
+  <rdfs:comment xml:lang="en">An ordered collection.</rdfs:comment>
+  <rdfs:subClassOf rdf:resource="&rdfs;Container"/>
+</rdfs:Class>
+
+<rdfs:Class rdf:about="&rdf;Alt">
+  <rdfs:isDefinedBy rdf:resource="&rdf;"/>
+  <rdfs:label xml:lang="en">Alt</rdfs:label>
+  <rdfs:comment xml:lang="en">A collection of alternatives.</rdfs:comment>
+  <rdfs:subClassOf rdf:resource="&rdfs;Container"/>
+</rdfs:Class>
+
+<rdfs:Class rdf:about="&rdfs;ContainerMembershipProperty">
+  <rdfs:isDefinedBy rdf:resource="&rdfs;"/>
+  <rdfs:label xml:lang="en">ContainerMembershipProperty</rdfs:label>
+  <rdfs:comment>The container membership properties, rdf:1, rdf:2, ..., all of which are sub-properties of 'member'.</rdfs:comment>
+  <rdfs:subClassOf rdf:resource="&rdf;Property"/>
+</rdfs:Class>
+
+<rdf:Property rdf:about="&rdfs;member">
+  <rdfs:isDefinedBy rdf:resource="&rdfs;"/>
+  <rdfs:label xml:lang="en">member</rdfs:label>
+  <rdfs:comment>a member of a container</rdfs:comment>
+  <rdfs:domain rdf:resource="&rdfs;Container"/>
+</rdf:Property>
+
+<rdf:Property rdf:about="&rdf;value">
+  <rdfs:isDefinedBy rdf:resource="&rdf;"/>
+  <rdfs:label xml:lang="en">value</rdfs:label>
+  <rdfs:comment>Identifies the principal value (usually a string) of a property when the property value is a structured resource</rdfs:comment>
+  <rdfs:domain rdf:resource="&rdfs;Resource"/>
+</rdf:Property>
+
+<!-- the following are new additions, Nov 2002 -->
+
+<rdfs:Class rdf:about="&rdf;List">
+  <rdfs:isDefinedBy rdf:resource="&rdf;"/>
+  <rdfs:label xml:lang="en">List</rdfs:label>
+  <rdfs:comment xml:lang="en">The class of RDF Lists</rdfs:comment>
+</rdfs:Class>
+
+<rdf:List rdf:about="&rdf;nil">
+  <rdfs:isDefinedBy rdf:resource="&rdf;"/>
+  <rdfs:label xml:lang="en">nil</rdfs:label>
+  <rdfs:comment xml:lang="en">The empty list, with no items in it. If the rest of a list is nil then the list has no more items in it.</rdfs:comment>
+</rdf:List>
+
+<rdf:Property rdf:about="&rdf;first">
+  <rdfs:isDefinedBy rdf:resource="&rdf;"/>
+  <rdfs:label xml:lang="en">first</rdfs:label>
+  <rdfs:comment xml:lang="en">The first item in an RDF list. Also often called the head.</rdfs:comment>
+  <rdfs:domain rdf:resource="&rdf;List"/>
+</rdf:Property>
+
+<rdf:Property rdf:about="&rdf;rest">
+  <rdfs:isDefinedBy rdf:resource="&rdf;"/>
+  <rdfs:label xml:lang="en">rest</rdfs:label>
+  <rdfs:comment xml:lang="en">The rest of an RDF list after the first item. Also often called the tail.</rdfs:comment>
+  <rdfs:domain rdf:resource="&rdf;List"/>
+  <rdfs:range rdf:resource="&rdf;List"/>
+</rdf:Property>
+
+<rdfs:Class rdf:about="&rdfs;Datatype">
+  <rdfs:isDefinedBy rdf:resource="&rdfs;"/>
+  <rdfs:label xml:lang="en">Datatype</rdfs:label>
+  <rdfs:comment xml:lang="en">The class of datatypes.</rdfs:comment>
+</rdfs:Class>
+	
+<rdfs:Class rdf:about="&rdfs;XMLLiteral">
+  <rdfs:isDefinedBy rdf:resource="&rdfs;"/>
+  <rdfs:label xml:lang="en">XMLLiteral</rdfs:label>
+  <rdfs:comment>The class of XML literals.</rdfs:comment>
+</rdfs:Class>
+
+
+<rdf:Description rdf:about="&rdfs;">
+  <rdfs:seeAlso rdf:resource="http://www.w3.org/2000/01/rdf-schema-more"/>
+</rdf:Description>
+
+</rdf:RDF>
