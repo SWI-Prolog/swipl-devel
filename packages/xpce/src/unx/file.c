@@ -249,15 +249,7 @@ sameOsPath(const char *s1, const char *s2)
     succeed;
 
 #if O_XOS
-					/* verylongfilename == verylong !!! */
-  { char b1[MAXPATHLEN];
-    char b2[MAXPATHLEN];
-
-    _xos_limited_os_filename(s1, b1);
-    _xos_limited_os_filename(s2, b2);
-    if ( streq(b1, b2) )
-      succeed;
-  }
+  return _xos_same_file(s1, s2);
 #endif
 
 #if __unix__
