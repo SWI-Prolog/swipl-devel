@@ -345,23 +345,24 @@ Char
 getSingleChar()
 { Char c;
   int OldIn = Input;
-
+  ttybuf buf;
+    
   Input = 0;
   debugstatus.suspendTrace++;
   
   if ( status.notty )
   { Char c2;
 
+    PushTty(&buf, TTY_RAW);		/* just donot prompt */
     c2 = Get0();
     while( c2 == ' ' || c2 == '\t' )	/* skip blanks */
       c2 = Get0();
     c = c2;
     while( c2 != EOF && c2 != '\n' )	/* read upto newline */
       c2 = Get0();
+    PopTty(&buf);
   } else
-  { ttybuf buf;
-    
-    PushTty(&buf, TTY_RAW);		/* switch to raw mode */
+  { PushTty(&buf, TTY_RAW);		/* switch to raw mode */
     c = Get0();
     PopTty(&buf);			/* restore tty */
   }
@@ -466,10 +467,13 @@ char *buf;
 int stream;
 { int oldin = Input;
   Char c;
+  ttybuf tbuf;
 
   Input = stream;
+  PushTty(&tbuf, TTY_RAW);		/* donot prompt! */
   while( (c=Get0()) != EOF && c != '\n' && c != '\r' )
     *buf++ = c;
+  PopTty(&tbuf);
 
   *buf++ = EOS;
   Input = oldin;
