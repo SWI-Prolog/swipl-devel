@@ -6,7 +6,14 @@ Version 2.0.2
 
   * Fixed pl [options] -c file ...
   * Improved VMI implementation for (if -> then ; else), \+ and (a;b).
-    Reduces overhead of these to about half.
+    Reduces overhead of these to about 1/3th.
+  * Added VMI support for fast calling of foreign system predicates that
+    are called with only variable arguments (i.e. `test(X) :- integer(X)'
+    is optimised; `test(X) :- integer(3)' is not).  Provides big speedup
+    for fail, true, integer/1 (etc.), and many other commonly called
+    foreign predicates.
+  * Support for mmap() using MAP_ANON.  Avoids a file-descriptor and hopefully
+    improves portability of dynamic stacks.
   * Fix for Solaris 2.4 mmap() detection.
 
 
