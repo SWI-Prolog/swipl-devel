@@ -187,7 +187,10 @@ rlc_get_data(rlc_console c)
   { RlcData b = c;
 
     assert(b->magic == RLC_MAGIC);
-    return b;
+    if ( b->magic == RLC_MAGIC )
+    { return b;
+    }
+    return NULL;
   }
 
   return _rlc_stdio;

@@ -3086,6 +3086,9 @@ int
 rlc_flush_output(rlc_console c)
 { RlcData b = rlc_get_data(c);
 
+  if ( !b )
+    return -1;
+
   if ( b->output_queued )
   { rlc_do_write(b, b->output_queue, b->output_queued);
 
@@ -3101,6 +3104,9 @@ rlc_write(rlc_console c, char *buf, unsigned int count)
 { DWORD result;
   char *e, *s;
   RlcData b = rlc_get_data(c);
+
+  if ( !b )
+    return -1;
 
   for(s=buf, e=&buf[count]; s<e; s++)
   { if ( *s == '\n' )
