@@ -828,7 +828,7 @@ getSelectionTable(Table tab)
 		 *	       EVENT		*
 		 *******************************/
 
-static Any
+Any
 getCellFromPositionTable(Table tab, Any pos)
 { Point pt;
   int x, y;
@@ -1173,7 +1173,7 @@ computeRowsTable(Table tab)
     freeObject(spanned);
   }
 
-  for(cy=tborder+rowspacing, y=ymin; y<=ymax; y++)
+  for(cy=tborder+max(0,rowspacing), y=ymin; y<=ymax; y++)
   { TableRow row = getRowTable(tab, toInt(y), OFF);
 
     if ( row && row->width != ZERO && row->displayed == ON )
@@ -1187,6 +1187,8 @@ computeRowsTable(Table tab)
     }
   }
   cy += bborder;
+  if ( rowspacing < 0 )
+    cy -= rowspacing;
 
   if ( cy != valInt(tab->area->h) )
   { changedTable(tab);
@@ -1244,7 +1246,7 @@ computeColsTable(Table tab)
     freeObject(spanned);
   }
 
-  for(cx=lborder+colspacing, x=xmin; x<=xmax; x++)
+  for(cx=lborder+max(0,colspacing), x=xmin; x<=xmax; x++)
   { TableColumn col = getColumnTable(tab, toInt(x), ON);
 
     if ( col->displayed == ON )
@@ -1257,6 +1259,8 @@ computeColsTable(Table tab)
     }
   }
   cx += rborder;
+  if ( colspacing < 0 )
+    cx -= colspacing;
 
   if ( cx != valInt(tab->area->w) )
   { changedTable(tab);
