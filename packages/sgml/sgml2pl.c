@@ -16,6 +16,7 @@
 
 #define DTD_MINOR_ERRORS 1		/* get detailed errors */
 
+#include <stdio.h>
 #include "dtd.h"
 #include "catalog.h"
 #include "model.h"
@@ -27,7 +28,6 @@
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
-#include <stdio.h>
 
 #define streq(s1, s2) (strcmp(s1, s2) == 0)
 

@@ -10,8 +10,9 @@
     Copyright (C) 1990-2000 SWI, University of Amsterdam. All rights reserved.
 */
 
-#include "dtd.h"
+#include <stdio.h>
 #include <stdlib.h>
+#include "dtd.h"
 
 static void
 char_range(dtd_charclass *map, int from, int to, int msk)

@@ -10,11 +10,11 @@
     Copyright (C) 1990-2000 SWI, University of Amsterdam. All rights reserved.
 */
 
-#include "dtd.h"
-#include "prolog.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "dtd.h"
+#include "prolog.h"
 
 #define streq(s,q) strcmp((s), (q)) == 0
 

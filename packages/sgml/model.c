@@ -10,11 +10,11 @@
     Copyright (C) 1990-2000 SWI, University of Amsterdam. All rights reserved.
 */
 
-#include "dtd.h"
-#include "model.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include "dtd.h"
+#include "model.h"
 
 #define MAX_VISITED 256
 #define MAX_ALLOWED 64

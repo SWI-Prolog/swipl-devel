@@ -10,9 +10,9 @@
     Copyright (C) 1990-2000 SWI, University of Amsterdam. All rights reserved.
 */
 
+#include <stdio.h>
 #include "dtd.h"
 #include "util.h"
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -365,9 +365,7 @@ main(int argc, char **argv)
       return 0;
     }
     case 0:
-    { int chr;
-
-      set_functions(p, output);
+    { set_functions(p, output);
       set_src_dtd_parser(p, IN_FILE, "stdin");
       set_mode_dtd_parser(p, DM_DATA);
       sgml_process_stream(p, stdin);

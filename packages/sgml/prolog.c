@@ -10,14 +10,14 @@
     Copyright (C) 1990-2000 SWI, University of Amsterdam. All rights reserved.
 */
 
-#include "dtd.h"
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
+#include "dtd.h"
 #include "util.h"
 #include "prolog.h"
-#include <time.h>
 
 static int errors;
 

@@ -11,6 +11,7 @@
 */
 
 #define DTD_IMPLEMENTATION 1
+#include <stdio.h>
 #include "dtd.h"
 #include "model.h"
 #include "util.h"
@@ -19,7 +20,6 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <stdarg.h>
-#include <stdio.h>
 #include <ctype.h>
 #include <string.h>
 #include "utf8.h"
@@ -4705,15 +4705,49 @@ file_to_dtd(const char *file, const char *doctype, dtd_dialect dialect)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+SGML sees a file as
+
+[<LF>]Line 1<CR>
+<LF>Line 2<CR>
+
+I.e. the newline  appearing  just  before   the  end-of-file  should  be
+ignored. In addition, Unix-style files are   mapped  to CR-LF. Thanks to
+Richard O'Keefe.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 sgml_process_stream(dtd_parser *p, FILE *fd)
-{ int chr;
+{ int p0, p1;
 
-  while( (chr = getc(fd)) != EOF )
-  { putchar_dtd_parser(p, chr);
+  if ( (p0 = getc(fd)) == EOF )
+    return TRUE;
+  if ( (p1 = getc(fd)) == EOF )
+  { putchar_dtd_parser(p, p0);
+    return end_document_dtd_parser(p);
   }
 
-  return end_document_dtd_parser(p);
+  for(;;)
+  { int p2 = getc(fd);
+    
+    if ( p2 == LF )
+    { if ( p1 != CR )
+      { putchar_dtd_parser(p, p0);
+	p0 = p1;
+	p1 = CR;
+      }
+    } else if ( p2 == EOF )
+    { putchar_dtd_parser(p, p0);
+      if ( p1 != LF )
+	putchar_dtd_parser(p, p1);
+
+      return end_document_dtd_parser(p);
+    }
+
+    putchar_dtd_parser(p, p0);
+    p0 = p1;
+    p1 = p2;
+  } 
 }
 
 
