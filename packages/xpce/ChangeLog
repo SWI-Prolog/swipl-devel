@@ -1,3 +1,7 @@
+* PORT: Fixed handling of --with-jpeg=<dir> and --with-xpm=<dir>. 
+  Thanks to Brad Knotwell.
+
+
 VERSION 5.1.3
 =============
 

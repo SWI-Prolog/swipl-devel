@@ -16,6 +16,7 @@ AC_SUBST(XINCLUDES)
 AC_SUBST(XLIBS)
 AC_SUBST(CXXLIBHACK)
 AC_SUBST(PCEHOME)
+AC_SUBST(CIFLAGS)
 AC_SUBST(COFLAGS)
 AC_SUBST(CWFLAGS)
 AC_SUBST(CMFLAGS)
@@ -109,6 +110,8 @@ AC_ARG_ENABLE(mt, [  --enable-mt		  Enable Multi-threading],
 		   *)  ;;
 	       esac])
 
+
+if test ! -z "$CIFLAGS"; then CFLAGS="$CIFLAGS $CFLAGS"; fi
 
 # Sometimes this is wrong !
 PWD=`pwd`
@@ -725,23 +728,20 @@ AC_ARG_WITH(xpm,[  --with-xpm=<dir>	  Location of Xpm include/lib],
 	[case $withval in 
 		no|yes)	echo 'Specify dir for XPM please';
 			exit 1 ;;
-		*)	[LIBS="-L${withval}/lib ${LIBS}"
-			XLIB="${XLIB} -L${withval}/lib"
-			x_libraries="$x_libraries -L${withval}/lib"
-			XINCLUDES="$XINCLUDES -I${withval}/include"
-			echo "${XINCLUDES} ${LIBS}"
-			]
+		*)	LIBS="-L${withval}/lib ${LIBS}"
+		        XLIBS="-L${withval}/lib ${XLIBS}"
+			CFLAGS="-I${withval}/include ${CFLAGS}"
+			CIFLAGS="-I${withval}/include ${CIFLAGS}"
+			echo "LIBS=${LIBS}"
 	esac])
 AC_ARG_WITH(jpeg,[  --with-jpeg=<dir>	  Location of JPEG include/lib],
 	[case $withval in 
 		no|yes)	echo 'Specify dir for JPEG please';
 			exit 1 ;;
-		*)	[LIBS="-L${withval}/lib ${LIBS}"
-			XLIB="${XLIB} -L${withval}/lib"
-			x_libraries="$x_libraries -L${withval}/lib"
-			XINCLUDES="$XINCLUDES -I${withval}/include"
-			echo "${XINCLUDES} ${LIBS}"
-			]
+		*)	LIBS="-L${withval}/lib ${LIBS}"
+		        XLIBS="-L${withval}/lib ${XLIBS}"
+			CIFLAGS="-I${withval}/include ${CIFLAGS}"
+			echo "LIBS=${LIBS}"
 	esac])
 
 dnl Clear the cache if the answer is no so re-running configure
