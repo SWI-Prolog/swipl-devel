@@ -2450,24 +2450,41 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	}
 #endif /*O_DEBUGGER*/
 
-	for( ; FR && FR > catchfr; FR = FR->parent )
-	{ discardChoicesAfter(FR PASS_LD);
-
 #if O_DEBUGGER
-	  if ( debugstatus.debugging )
-	  { *valTermRef(LD->exception.pending) = except;
+        if ( debugstatus.debugging )
+	{ for( ; FR && FR > catchfr; FR = FR->parent )
+	  { Choice ch = findStartChoice(FR, LD->choicepoints);
 
-	    switch(tracePort(FR, NULL, EXCEPTION_PORT, PC))
-	    { case ACTION_RETRY:
-		*valTermRef(exception_printed) = 0;
-		goto retry;
+	    if ( ch )
+	    { *valTermRef(LD->exception.pending) = except;
+
+	      Undo(ch->mark);
+	      switch(tracePort(FR, ch, EXCEPTION_PORT, PC))
+	      { case ACTION_RETRY:
+		  *valTermRef(exception_printed) = 0;
+		  discardChoicesAfter(FR PASS_LD);
+		  DEF = FR->predicate;
+#ifdef O_LOGICAL_UPDATE
+		  if ( false(DEF, DYNAMIC) )
+		    FR->generation = GD->generation;
+#endif
+		  goto retry_continue;
+	      }
+
+	      *valTermRef(LD->exception.pending) = 0;
 	    }
 
-	    *valTermRef(LD->exception.pending) = 0;
+	    discardChoicesAfter(FR PASS_LD);
+	    discardFrame(FR);
 	  }
+	} else
 #endif
-	  discardFrame(FR);
+	{ for( ; FR && FR > catchfr; FR = FR->parent )
+	  { discardChoicesAfter(FR PASS_LD);
+	    discardFrame(FR);
+	  }
 	}
+
 
 	if ( catchfr )
 	{ static code exit_instruction;		/* may be gone otherwise */
