@@ -11,7 +11,8 @@
 PLHOME=..\..
 !include $(PLHOME)\src\rules.mk
 
-LIBDIR=		$(PLBASE)/library/http
+LIBDIR=		$(PLBASE)\library\http
+EXDIR=		$(PKGDOC)\examples\http
 LIBPL=		html_write.pl http_client.pl http_header.pl \
 		http_mime_plugin.pl http_sgml_plugin.pl \
 		mimepack.pl mimetype.pl dcg_basics.pl \
@@ -27,21 +28,25 @@ all:
 install::
 !ELSE
 install::
-		if not exist $(LIBDIR)/$(NULL) $(MKDIR) $(LIBDIR)
-		$(INSTALL_DATA) $(LIBPL) $(LIBDIR)
+		if not exist "$(LIBDIR)/$(NULL)" $(MKDIR) "$(LIBDIR)"
+		@echo Copying $(LIBPL)
+		@for %f in ($(LIBPL)) do @copy %f "$(LIBDIR)"
 		$(MAKEINDEX)
 !ENDIF
 
 html-install:	install-examples
-		$(INSTALL_DATA) http.html httpserver.gif "$(PKGDOC)"
+		copy http.html "$(PKGDOC)"
+		copy httpserver.gif "$(PKGDOC)"
 
 pdf-install:	install-examples
-		$(INSTALL_DATA) http.pdf "$(PKGDOC)"
+		copy http.pdf "$(PKGDOC)"
 
 install-examples::
-		if not exist $(EXDIR)/$(NULL) $(MKDIR) $(EXDIR)
-		cd examples & $(INSTALL_DATA) $(EXAMPLES) $(EXDIR)
-		cd examples & $(INSTALL_PROGRAM) $(EXAMPLEEXE) $(EXDIR)
+		if not exist "$(EXDIR)/$(NULL)" $(MKDIR) "$(EXDIR)"
+		cd examples & @for %f in ($(EXAMPLES)) do @copy %f "$(EXDIR)"
+		cd examples & copy $(EXAMPLEEXE) "$(EXDIR)"
+
+xpce-install::
 
 uninstall::
 		cd $(LIBDIR) & del $(LIBPL)
