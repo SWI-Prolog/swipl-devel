@@ -1366,6 +1366,16 @@ select(Elem, [Head|Tail], [Head|Rest]) :-
 
 
 		 /*******************************
+		 *   HANDLE TRACER 'L'-COMMAND	*
+		 *******************************/
+
+'$prolog_list_goal'(Goal) :-
+	catch(user:prolog_list_goal(Goal), _, fail), !.
+'$prolog_list_goal'(Goal) :-
+	user:listing(Goal).
+
+
+		 /*******************************
 		 *	       HALT		*
 		 *******************************/
 

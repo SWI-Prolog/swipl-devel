@@ -3,6 +3,9 @@
 VERSION 4.0.3
 =============
 
+  * ENHANCED: Moved boot/listing.pl to the library, reducing the
+    footprint and startup time.
+
   * FIXED: tracer not to trap cut-port in system predicates (GUI).
 
   * FIXED: Atom-GC problem: global options structured used pointers

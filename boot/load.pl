@@ -7,7 +7,6 @@
 :- [ syspred
    , messages
    , toplevel
-   , listing
    , make
    , sort
    , bags

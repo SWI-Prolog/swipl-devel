@@ -67,7 +67,7 @@ SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c) $(EXT:.o=.c) $(INCSRC)
 HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h pl-itf.h pl-main.h \
 	pl-os.h pl-data.h
 
-PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/listing.pl \
+PLSRC=	../boot/syspred.pl ../boot/toplevel.pl \
 	../boot/make.pl ../boot/sort.pl ../boot/bags.pl ../boot/apply.pl \
 	../boot/list.pl ../boot/writef.pl ../boot/history.pl \
 	../boot/profile.pl ../boot/dwim.pl ../boot/rc.pl \
@@ -76,7 +76,7 @@ PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/listing.pl \
 PLWINLIBS=	wise.pl dde.pl progman.pl registry.pl
 PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 	qsave.pl shlib.pl statistics.pl system.pl \
-	backcomp.pl gensym.pl \
+	backcomp.pl gensym.pl listing.pl \
 	bim.pl quintus.pl edinburgh.pl ctypes.pl files.pl \
 	edit.pl emacs_interface.pl shell.pl check.pl \
 	tty.pl readln.pl \

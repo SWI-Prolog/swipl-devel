@@ -1,6 +1,9 @@
 VERSION 5.1.3
 =============
 
+* ADDED: `Edit preferences' item in XPCE manual tool for direct access to
+  various preferences files
+
 * ADDED: Make class dialog_group react properly on the existence of a
   <-layout_manager.
 
