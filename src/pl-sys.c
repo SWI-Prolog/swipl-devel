@@ -32,13 +32,13 @@ word
 pl_shell(term_t command, term_t status)
 { char *cmd;
 
-  if ( PL_get_chars(command, &cmd, CVT_ALL) )
+  if ( PL_get_chars_ex(command, &cmd, CVT_ALL) )
   { int rval = System(cmd);
 
     return PL_unify_integer(status, rval);
   }
-  
-  return warning("shell/1: instantiation fault");
+    
+  fail;
 }
 
 
@@ -46,7 +46,7 @@ word
 pl_getenv(term_t var, term_t value)
 { char *n;
 
-  if ( PL_get_chars(var, &n, CVT_ALL) )
+  if ( PL_get_chars_ex(var, &n, CVT_ALL) )
   { int len = getenvl(n);
 
     if ( len >= 0 )
@@ -64,7 +64,7 @@ pl_getenv(term_t var, term_t value)
     fail;
   }
 
-  return warning("getenv/2: instantiation fault");
+  fail;
 }  
 
 
@@ -72,13 +72,13 @@ word
 pl_setenv(term_t var, term_t value)
 { char *n, *v;
 
-  if ( PL_get_chars(var, &n, CVT_ALL|BUF_RING) &&
-       PL_get_chars(value, &v, CVT_ALL) )
+  if ( PL_get_chars_ex(var, &n, CVT_ALL|BUF_RING) &&
+       PL_get_chars_ex(value, &v, CVT_ALL) )
   { Setenv(n, v);
     succeed;
   }
 
-  return warning("setenv/2: instantiation fault");
+  fail;
 }
 
 
@@ -86,13 +86,13 @@ word
 pl_unsetenv(term_t var)
 { char *n;
 
-  if ( PL_get_chars(var, &n, CVT_ALL) )
+  if ( PL_get_chars_ex(var, &n, CVT_ALL) )
   { Unsetenv(n);
 
     succeed;
   }
 
-  return warning("unsetenv/1: instantiation fault");
+  fail;
 }
 
 

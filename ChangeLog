@@ -8,6 +8,9 @@
 					--------------------------------------
 
 
+  * ENHANCED: Make some system calls (shell/1, getenv/2, etc.) raise
+    exceptions instead of printing a message.
+
   * FIXED: Bug#210. reporting of encoding of console streams in Windows.
     Holger Kanwischer.
 
