@@ -138,6 +138,12 @@ font_attribute(size=Size) -->
 	->  [ \setfont(font_size, Diff)
 	    ]
 	).
+%font_attribute(face=Face) -->
+%	[ \setfont(face, Face)
+%	].
+font_attribute(encoding=Enc) -->	% not really HTML, but handy anyway
+	[ \setfont(encoding, Enc)
+	].
 font_attribute(colour=Colour) -->
 	[ \colour(Colour)
 	].
