@@ -1777,11 +1777,9 @@ PL_exception(qid_t qid)
 #endif /*O_SHIFT_STACKS*/
 
 #ifndef ASM_NOP
-#define ASM_NOP _PL_nop_counter++
-#endif
-
-#ifdef ASM_NOP
 int _PL_nop_counter;
+
+#define ASM_NOP _PL_nop_counter++
 #endif
 
 int
