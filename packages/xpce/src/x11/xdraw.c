@@ -468,6 +468,10 @@ d_screen(DisplayObj d)
   XGetWindowAttributes(r->display_xref, root, &atts);
 
   iw = atts.width; ih = atts.height;
+
+  DEBUG(NAME_draw,
+	Cprintf("d_xwindow(%s, %ld, %dx%d\n", pp(d), root, iw, ih));
+
   d_xwindow(d, root, 0, 0, iw, ih);
 }
 
@@ -991,7 +995,7 @@ r_invert_mode(Bool val)
     
     if ( val == ON )
     { values.function   = GXinvert;
-      values.plane_mask = 1;
+      values.plane_mask = AllPlanes;
     } else
     { values.function   = GXcopy;
       values.plane_mask = AllPlanes;
@@ -1043,6 +1047,9 @@ r_box(int x, int y, int w, int h, int r, Any fill)
 
   if ( mwh == 0 )
     return;
+
+  DEBUG(NAME_redraw,
+	Cprintf("r_box(%d, %d, %d, %d)\n", x, y, w, h));
 
   if ( r > mwh / 2 - pen)
     r = mwh / 2 - pen;
