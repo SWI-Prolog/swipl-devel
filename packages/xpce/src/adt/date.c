@@ -61,7 +61,7 @@ initialiseDate(Date d, Int s, Int m, Int h, Int D, Int M, Int Y)
 
   if ( notDefault(s) || notDefault(m) || notDefault(h) ||
        notDefault(D) || notDefault(M) || notDefault(Y) )
-    setDate(d, s, m, h, D, M, Y);
+    return setDate(d, s, m, h, D, M, Y);
 
   succeed;
 }
@@ -200,7 +200,9 @@ setDate(Date d, Int s, Int m, Int h, Int D, Int M, Int Y)
   if ( notDefault(D) && (v=valInt(D)) >= 1    && v <= 31   ) tm->tm_mday = v;
   if ( notDefault(M) && (v=valInt(M)-1) >= 0  && v <= 11   ) tm->tm_mon  = v;
   if ( notDefault(Y) && (v=valInt(Y)-1900) >= 70 && v <= 1050 ) tm->tm_year = v;
-  d->unix_date = mktime(tm);
+  if ( (d->unix_date = mktime(tm)) == (time_t)-1 )
+    return errorPce(d->class, NAME_representation,
+		    CtoName("POSIX timestamp representation"));
 
   succeed;
 }
