@@ -142,11 +142,11 @@ make_isp_value_text_popup(P) :-
 	VT = @arg1,
 	new(Obj, VT?object),
 	send_list(P, append, 
-		  [ menu_item(flash,
+		  [ menu_item(flash_visual,
 			      message(Obj, flash),
 			      condition := message(Obj, has_send_method,
 						   flash)),
-		    menu_item(expand,
+		    menu_item(show_card,
 			      message(VT, expand),
 			      condition := Obj,
 			      end_group := @on),
@@ -357,6 +357,7 @@ make_isp_attribute_value_sheet_handler(H) :-
 	new(H, handler_group(popup_gesture(new(P, popup)),
 			     new(move_outline_gesture))),
 	new(IsObjectSheet, message(@arg1, instance_of, isp_object_sheet)),
+	new(Obj, @arg1?object),
 	send_list(P, append,
 		  [ menu_item(expose,
 			      message(@arg1, expose)),
@@ -369,8 +370,13 @@ make_isp_attribute_value_sheet_handler(H) :-
 			      condition := IsObjectSheet),
 		    menu_item(class_source,
 			      message(@arg1, class_source),
+			      end_group := @on,
 			      condition := and(IsObjectSheet,
-					       @arg1?object?'_class'?creator \== built_in))
+					       Obj?'_class'?creator \== built_in)),
+		    menu_item(find_referees,
+			      message(@arg1, referees),
+			      condition := and(Obj,
+					       Obj?'_references' > 0))
 		  ]).
 
 
@@ -557,6 +563,22 @@ class_source(OS) :->
 	get(Object, '_class', Class),
 	send(OS?frame, request_source, Class).
 
+referees(OS) :->
+	"Add objects refering to me"::
+	get(OS, object, Object),
+	pce_global_objects(Globals),
+	send(Globals, for_slot_reference,
+	     if(message(Object, '_same_reference', @arg4),
+		message(OS, add_referee, @arg1, Globals))),
+	send(Globals, done).
+
+add_referee(OS, From:unchecked, Globals:chain) :->
+	(   From \== Globals
+	->  get(OS, window, Inspector),
+	    send(Inspector, inspect, From)
+	;   true
+	).
+
 :- pce_end_class.
 
 		/********************************
@@ -625,15 +647,15 @@ inspect(MP, Object:'object|function', Pos:[point]) :->
 	).
 	
 
-check_not_self(_, Display) :-
+check_not_self(MP, Display) :-
 	send(Display, '_instance_of', display), !,
-	send(@display, inform, 'Can''t inspect the display'),
+	send(MP, report, error, 'Can''t inspect the display'),
 	fail.
 check_not_self(Pict, Obj) :-
 	send(Obj, '_instance_of', graphical),
 	get(Obj, frame, Frame),
 	get(Pict, frame, Frame), !,
-	send(@display, inform, 'Can''t inspect myself'),
+	send(Pict, report, error, 'Can''t inspect myself'),
 	fail.
 check_not_self(_, _).
 
@@ -662,7 +684,8 @@ unregister(MP) :->
 
 
 clear(MP) :->
-	send(MP, for_some, @default, message(@arg1, quit)).
+	"Send ->quit to all object-sheets"::
+	send(MP, for_some, isp_object_sheet, message(@arg1, quit)).
 
 
 inspect_atom(MP, What:string) :->
@@ -673,9 +696,9 @@ inspect_atom(MP, What:string) :->
 	    )
 	->  (   object(@Ref)
 	    ->  send(MP, inspect, @Ref)
-	    ;   send(@display, inform, 'No such object: %s', What)
+	    ;   send(MP, report, error, 'No such object: %s', What)
 	    )
-	;   send(@display, inform, 'Bad object reference syntax: %s', What)
+	;   send(MP, report, error, 'Bad object reference syntax: %s', What)
 	).
 
 		/********************************
