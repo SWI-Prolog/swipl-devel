@@ -1010,7 +1010,8 @@ thread(join-1) :-
 	Exit == true,
 	th_check_done.
 thread(message-1) :-
-	thread_create(thread_send_message(main, hello), Id, []),
+	thread_self(Me),
+	thread_create(thread_send_message(Me, hello), Id, []),
 	thread_get_message(hello),
 	thread_join(Id, true).
 thread(signal-1) :-
