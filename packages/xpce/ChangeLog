@@ -1,6 +1,8 @@
 VERSION 5.1.4
 =============
 
+* ADDED: Wheel-mouse handling for Windows (tested on '98)
+
 * FIXED: Install the GUI tracer 16x16 icons (Unix version), reported by
   Frank Schilder.
 
