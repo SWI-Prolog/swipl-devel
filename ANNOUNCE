@@ -1,38 +1,81 @@
-SWI-Prolog 4.0.11/XPCE 5.0.10 Summary of changes
+SWI-Prolog 5.0.0/XPCE 6.0.0 Summary of changes
 
-SWI-Prolog 4.0.11
-=================
+Organisation: License, home and plans
+=====================================
+
+  * LICENSE
+
+    SWI-Prolog/XPCE and all our packages are now licensed according to the
+    LGPL for the C-parts and GPL + exception to allow linking into non-GPL
+    applications for the Prolog libraries.
+
+    The new rights make it much easier for us to integrate contributions
+    into the system as we no longer need the copyright to them.
+
+    The old proprietary license provided more rights.  We anticipate most
+    holders will have no problem switching to the new conditions.  If there
+    are problems, please contact jan@swi-prolog.org and we will try to find
+    a solution.  Of course you are free to stick with the old version under
+    the old proprietary license.
+
+  * HOME
+
+    The official home of SWI-Prolog is now
+
+  	http://www.swi-prolog.org
+
+    Especially the heavy used download page and pages that need facilities
+    not provide with the hosting ISP stay on the SWI site.  The above however
+    should be a once and forall stable URL, so
+
+        PLEASE UPDATE YOUR LINKS
+
+  * PLANS
+
+    I have decided to try and arrange things such that I can spend much more
+    time to XPCE/SWI-Prolog.  In due time, this means the project should
+    become fully self-supporting.  The above new license agreement places
+    SWI-Prolog firmly in the Free and Open Source Initiative and therefore
+    allow us only to make money on related activities.  We are working on
+    the details, but these will include support, sponsored development and
+    general sponsoring.  Please help us build a community that is profitable
+    for all of us!
+
+    Further announcements will follow.
+
+
+SWI-Prolog 5.0.0
+================
 
   * BUGS FIXED
-     + Exception-handling with findall/3, setof/3, and bagof/3.
-     + Improved syntax checking (passed errornous term)
-     + Writef('\\X') where X is not a digit
-     + Crash in concat_atom/2 on bad instantiation
-     + Out-of-stack handling (could leave system unstable)
-     + Handling really big terms in recorded database
+     + sub_atom/5 crash on backtracking
+     + random/3 from Quintus compatibility library
+     + Permission problem in make/0
+     + Type-checking in code/character lists
 
   * PORTABILITY
-     + Many patches for notably BSD systems to get the packages
-       compiled.
+     + Renamed write_ln to writeln (write_ln still in library(backcomp))
 
   * ADDED
-     + fnctl() based locks on files (see open/4)
-      
-  * Beauty
-     + Many contributed patches to the manual
-     + Better (error) messages.
+     + Menus to PLWIN.EXE console
+     + Many improvements on to the development and manual tools.
 
-XPCE 5.0.10
+      
+XPCE 6.0.0
 ===========
 
   * BUGS FIXED
-     + Load .ICO files (windows)
-     + Remove size limits on ->format
+     + Save images on 24 and 32 bit machines (X11)
+     + Many frame geometry management problems
 
-  * PORTABILITY
-     + Many patches for notably BSD systems to get the packages
-       compiled.
+  * MODIFIED:
+     + Default look-and-feel now incorporates many Gtk (GNOME) elements.
+
+  * PORTABILITY:
+     + Prefer mkstemp() over tmpnam() (security).
 
   * ADDED
-     + Delay opening X11 display to first graphics operation, so
-       you can use the non-graphics things without X11 (Unix).
+     + Library(persistent_frame) to make it easy to write applications that
+       remember their window location.  Use this for many of the standard
+       tools from the manual and Prolog environment.
+
