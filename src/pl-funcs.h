@@ -535,6 +535,7 @@ bool		isUserSystemProcedure(Procedure proc);
 word		notImplemented(char *name, int arity);
 bool		strprefix(char *string, char *prefix);
 bool		strpostfix(char *string, char *postfix);
+bool		stripostfix(char *string, char *postfix);
 bool		strsub(char *string, char *sub);
 void		systemMode(bool accept);
 
@@ -586,5 +587,5 @@ bool		vwarning(char *fm, va_list args);
 word		pl_open_dde_conversation(Word service, Word topic, Word hdl);
 word		pl_close_dde_conversation(Word handle);
 word		pl_dde_request(Word handle, Word item, Word value);
-
+word		pl_dde_execute(Word handle, Word cmd);
 

@@ -60,6 +60,7 @@ else
 fi
 CFLAGS="$CMFLAGS"
 AC_C_INLINE
+AC_C_BIGENDIAN
 
 dnl ****************************************************************
 dnl Finding libraries

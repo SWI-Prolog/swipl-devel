@@ -55,6 +55,7 @@ GLOBAL struct
   int		arithmetic;		/* inside arithmetic code ? */
   bool		io_initialised;		/* I/O initoalisation has finished */
   bool		initialised;		/* Initialisation completed */
+  bool		autoload;		/* autoloading traps enabled */
 } status;
 
 

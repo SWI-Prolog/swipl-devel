@@ -201,7 +201,27 @@ on machines that donot offer operating-system support for implementing
 dynamic stacks.
 
 
-1.7 Acknowledgements
+1.7 Version 1.9 Release Notes
+
+Version 1.9 offers better portability including an MS-Windows 3.1 version.
+Changes to the Prolog system include:
+
+    Redefinition of system predicates
+    Redefinition of system predicates was allowed silently in older
+    versions.  Version 1.9 only allows it if the new definition is headed
+    by a :- redefine_system_predicate/1 directive.
+
+    `Answer' reuse
+    The toplevel maintains a table of bindings returned by toplevel goals
+    and allows for reuse of these bindings by prefixing the variables
+    with the $ sign.  See section 2.5.
+
+    Better sourcecode administration
+    Allows for proper updating of multifile predicates and finding the
+    sources of individual clauses.
+
+
+1.8 Acknowledgements
 
 Some small parts of the Prolog code of SWI-Prolog are modified versions of
 the corresponding Edinburgh C-Prolog code:  grammar rule compilation and
@@ -222,7 +242,7 @@ Chapter  2
 
 Overview
 
-                                 9
+                                10
 
 
 2.1 Starting SWI-Prolog from the Unix Shell
@@ -234,12 +254,12 @@ necessary initialisations and then enter the interactive top level.
 
 After the necessary system initialisation the system consults (see
 consult/1) the user's initialisation file.  This initialisation file
-should be named `.plrc' and reside either in the current directory or in
-the user's home directory.  If both exist the initialisation file from the
-current directory is loaded.  The name of the initialisation file can be
-changed with the `-f file' option.  After loading the initialisation file
-SWI-Prolog executes a user initialisation goal.  The default goal is a
-system predicate that prints the banner message.  The default can be
+should be named `verb:plrc' and reside either in the current directory or
+in the user's home directory.  If both exist the initialisation file from
+the current directory is loaded.  The name of the initialisation file can
+be changed with the `-f file' option.  After loading the initialisation
+file SWI-Prolog executes a user initialisation goal.  The default goal is
+a system predicate that prints the banner message.  The default can be
 modified with the `-g goal' option.  Next the toplevel goal is started.
 Default is the interactive Prolog loop (see prolog/0).  The user can
 overwrite this default with the `-t toplevel' option.
@@ -271,7 +291,7 @@ The full set of command line options is given below:
         Mbytes.  See -L for more details.
     -c file ...
         Compile files into an `intermediate code file'.  See
-        section 2.6.
+        section 2.7.
     -o output
         Used in combination with -c or -b to determine output file
         for compilation.
@@ -478,7 +498,40 @@ From the above it follows that it is hard or impossible to correct
 quotation with single or double quotes, comment delimiters and spacing.
 
 
-2.5 Overview of the Debugger
+2.5 Reuse of toplevel bindings
+
+Bindings resulting from the successfull execution of a toplevel goal are
+asserted in a database.  These values may be reused in further toplevel
+queries as $Var.  Only the latest binding is available.  Example:
+
+    1 ?- maplist(plus(1), "hello", X).
+
+    X = [105,102,109,109,112]
+
+    2 ?- format('~s~n', [$X]).
+    ifmmp
+
+                Figure 2.2:  Reusing toplevel bindings
+
+Note that variables may be set by executing =/2:
+
+    6 ?- X = statistics.
+
+    X = statistics
+
+    7 ?- $X.
+    28.00 seconds cpu time for 183,128 inferences
+    4,016 atoms, 1,904 functors, 2,042 predicates, 52 modules
+    55,915 byte codes; 11,239 external references
+
+                        Limit    Allocated       In use
+    Heap        :                             624,820 Bytes
+    Local  stack :    2,048,000       8,192         404 Bytes
+    Global stack :    4,096,000       16,384         968 Bytes
+    Trail  stack :    4,096,000       8,192         432 Bytes
+
+
+2.6 Overview of the Debugger
 
 SWI-Prolog has a standard 4-port tracer  with an optional fifth port.
 This fifth port, called unify allows the user to inspect the result after
@@ -490,7 +543,7 @@ toplevel goal trace/0 means ``trace the next query''.  The tracer shows
 the port, displaying the port name, the current depth of the recursion and
 the goal.  The goal is printed using the Prolog predicate print/1
 (default), write/1 or display/1.  An example using all five ports is shown
-in figure 2.2.
+in figure 2.3.
 
     Yes
     2 ?- visible(+all), leash(-exit).
@@ -510,7 +563,7 @@ in figure 2.2.
       Exit:  ( 4) min(3, 2, 2)
       Exit:  ( 3) min([3, 2], 2)
 
-                     Figure 2.2:  Example trace
+                     Figure 2.3:  Example trace
 
 On leashed ports (set with the predicate leash/1, default are call, exit,
 redo and fail) the user is prompted for an action.  All actions are single
@@ -619,7 +672,7 @@ destroyed when removed by the cut.  In debug mode tail recursion
 optimisation is switched off.
 
 
-2.6 Compilation
+2.7 Compilation
 
 Collections of SWI-Prolog source files can be compiled into an
 intermediate code file.  An intermediate code file is a data file from
@@ -658,7 +711,7 @@ Directives are executed both when compiling the program and when loading
 the intermediate code file.
 
 
-2.7 Environment Control
+2.8 Environment Control
 
 
 please(+Key, -Old, +New)
@@ -684,7 +737,7 @@ please(+Key, -Old, +New)
 
     autoload on/off (default:  on)
         If on autoloading of library functions is enabled.  If off
-        autoloading is disabled.  See section 2.9.
+        autoloading is disabled.  See section 2.10.
 
     verbose_autoload on/off (default:  off)
         If on the normal consult message will be printed if a library is
@@ -759,10 +812,10 @@ feature(?Key, ?Value)
         system.
 
 
-2.8 Saved States
+2.9 Saved States
 
 
-2.8.1 Types of Saved States and Portability
+2.9.1 Types of Saved States and Portability
 
 On some architectures, SWI-Prolog allows for the creation of saved states.
 Currently, the C-sources define two alternative implementations for them.
@@ -775,7 +828,7 @@ restore/1.  The state-file depends entirely on exactly the Unix
 program-file used to create it.
 
 
-2.8.2 Save Predicates
+2.9.2 Save Predicates
 
 
 save_program(+NewProgram, +ListOfOptions)
@@ -803,7 +856,7 @@ save_program(+NewProgram, +ListOfOptions)
     is first to compile the program using the -c option.  If this is not
     possible try to find the smallest possible stack sizes to compile the
     program.  On machines with dynamic stack allocation the stacks are
-    not written to file and so their size does not matter.  Figure 2.3
+    not written to file and so their size does not matter.  Figure 2.4
     shows a possible session.  Note the use of `initialise', which is
     supposed to be a predicate of the application doing time consuming
     initialisation.
@@ -832,7 +885,7 @@ save_program(+NewProgram, +ListOfOptions)
    2 ?- halt.
    sun%
 
-             Figure 2.3:  Create a stand-alone executable
+             Figure 2.4:  Create a stand-alone executable
 
     The resulting program can be used for incremental compilation using
     -c or another save_program/2.
@@ -871,7 +924,7 @@ restore(+State)
     Equivalent to restarting State.
 
 
-2.9 Automatic loading of libraries
+2.10 Automatic loading of libraries
 
 If ---at runtime--- an undefined predicate is trapped the system will
 first try to import the predicate from the module's default module.  If
@@ -920,7 +973,7 @@ make_library_index(+Directory)
     directory does not exist or is write protected.
 
 
-2.9.1 Notes on Automatic Loading
+2.10.1 Notes on Automatic Loading
 
 The autoloader is a new feature to SWI-Prolog.  Its aim is to simplify
 program development and program management.  Common lisp has a similar
@@ -936,7 +989,7 @@ trace(default).  A more appropriate interaction with this flag will be
 considered.
 
 
-2.10 Garbage Collection
+2.11 Garbage Collection
 
 SWI-Prolog version 1.4 was the first release to support garbage
 collection.  Together with tail-recursion optimisation this guaranties
@@ -955,7 +1008,7 @@ collection when handling call-backs from ---for example--- the PCE
 package.
 
 
-2.11 Syntax Notes
+2.12 Syntax Notes
 
 SWI-Prolog uses standard `Edinburgh' syntax.  A description of this syntax
 can be found in the Prolog books referenced in the introduction.  Below
@@ -974,10 +1027,10 @@ SWI-Prolog:
     out.
 
 
-2.12 System Limits
+2.13 System Limits
 
 
-2.12.1 Limits on Memory Areas
+2.13.1 Limits on Memory Areas
 
 SWI-Prolog has a number of memory areas which are not enlarged at run
 time, unless you have a version with dynamic stack allocation.  The
@@ -1033,7 +1086,7 @@ SWI-Prolog.
                       Table 2.3:  Memory areas
 
 
-2.12.2 Other Limits
+2.13.2 Other Limits
 
 ClausesCurrently the following limitations apply to clauses.  The arity
     may not be more than 128, the number of links to the `outside world'
@@ -1056,7 +1109,7 @@ FloatsFloating point numbers are C-doubles with a 12 bit reduction of the
     implies the range is about 10308and the accurracy about 10 digits.
 
 
-2.12.3 Reserved Names
+2.13.3 Reserved Names
 
 The boot compiler (see -b option) does not support the module system
 (yet).  As large parts of the system are written in Prolog itself we need
@@ -1074,7 +1127,7 @@ Chapter  3
 
 Built-In  Predicates
 
-                                42
+                                44
 
 
 3.1 Notation of Predicate Descriptions
@@ -3904,7 +3957,28 @@ stack_parameter(+Stack, +Key, -Old, +New)
 3.40 Windows DDE client interface
 
 The predicates in this section deal with MS-Windows `Dynamic Data
-Exchange' or DDE protocol.
+Exchange' or DDE protocol.  A Windows DDE conversation is a form of
+interprocess communication based on sending reserved window-events between
+the communicating processes.  We will demonstrate the use of the DDE
+interface using the Windows PROGMAN (Program Manager) application:
+
+    1 ?- open_dde_conversation(progman, progman, C).
+
+    C = 0
+    2 ?- dde_request(0, groups, X)
+
+    --> Unifies X with description of groups
+
+    3 ?- dde_execute(0, '[CreateGroup("DDE Demo")]').
+
+    Yes
+
+    4 ?- close_dde_conversation(0).
+
+    Yes
+
+For details on interacting with PROGMAN, use the SDK online manual section
+on the Shell DDE interface.
 
 
 open_dde_conversation(+Service, +Topic, -Handle)
@@ -3929,6 +4003,12 @@ dde_request(+Handle, +Item, -Value)
     error(reason), identifying the problem.
 
     BUG: It could be argued that the atoms above should be strings.
+
+
+dde_execute(+Handle, +Command)
+    Request the DDE server to execute the given command-string.  Succeeds
+    if the command could be executed and fails with error message
+    otherwise.
 
 
 3.41 Miscellaneous
@@ -4002,7 +4082,7 @@ Chapter  4
 
 Using  Modules
 
-                                414
+                                417
 
 
 4.1 Why Using Modules?
@@ -4511,7 +4591,7 @@ trade-off the user is responsible for type checking and should be careful
 not to violate consistency rules as Prolog provides access to its internal
 data structures.
 
-                                437
+                                440
 
 
 5.1 Overview of the Interface
@@ -5538,7 +5618,7 @@ debugging tools for Prolog.  The predicates described here should be
 handled with some care as it is easy to corrupt the consistency of the
 Prolog system by misusing them.
 
-                                525
+                                528
 
 
 6.1 Examining the Environment Stack
@@ -5781,6 +5861,7 @@ current_op/3                Examine current operator declaractions
 current_output/1             Get the current output stream
 current_predicate/2          Examine existing predicates
 current_stream/3             Examine open streams
+dde_execute/2                Execute command on DDE server
 dde_request/3                Make an MS-Windows DDE request
 debug/0                     Test for debugging mode
 debugging/0                 Show debugger status
@@ -6041,4 +6122,4 @@ writeq/2                    Write term, insert quotes on stream
 xor/2                       Arithmetic:  exclusive or
 |/2                         Disjunction of goals
 
-                                534
+                                537

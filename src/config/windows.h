@@ -52,6 +52,10 @@
 /* Define if BSD compatible signals (i.e. no reset when fired) */
 /* #undef BSD_SIGNALS */
 
+/* Define if your processor stores words with the most significant
+   byte first (like Motorola and SPARC, unlike Intel and VAX).  */
+/* #undef WORDS_BIGENDIAN */
+
 /* Define if malloc()'ed data is in 0x10000000L .. 0x20000000L */
 /* #undef DATA_AT_0X1 */
 

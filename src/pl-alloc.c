@@ -263,7 +263,7 @@ Fixed for GCC 2.2 with the help of Giovanni Malnati.
 static void
 pack_real(double f, Word r)
 {
-#if i386
+#ifndef WORDS_BIGENDIAN
   unsigned long m64 = *((unsigned long *)&f + 1);
   unsigned long l64 = *((unsigned long *)&f);
 #else
@@ -303,7 +303,7 @@ unpack_real(Word p)
   m64 |= (l64 & 0x0fc00000L) >> 22;
   l64 <<= 10;
   l64 &= ~0x000003ffL;
-#if i386
+#ifndef WORDS_BIGENDIAN
   rp[0] = l64;
   rp[1] = m64;
 #else

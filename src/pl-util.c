@@ -155,6 +155,19 @@ strpostfix(char *string, char *postfix)
   return streq(&string[offset], postfix);
 }
 
+
+bool
+stripostfix(char *s, char *e)
+{ int ls = strlen(s);
+  int le = strlen(e);
+
+  if ( ls >= le )
+    return stricmp(&s[ls-le], e) == 0;
+
+  return FALSE;
+} 
+
+
 bool
 strsub(register char *string, register char *sub)
 { register char *s, *sb;

@@ -739,7 +739,7 @@ integers to pointers.
 #    ifdef DATA_AT_0X2
 #      define PTR_TO_NUM_OFFSET	  0x20000000L
 #    else
-#      ifdef DATA_AT_OX1
+#      ifdef DATA_AT_0X1
 #        define PTR_TO_NUM_OFFSET 0x10000000L
 #      else
 #        define PTR_TO_NUM_OFFSET 0x0L

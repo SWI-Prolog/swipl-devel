@@ -37,6 +37,10 @@
 /* Define vfork as fork if vfork does not work.  */
 /* #undef vfork */
 
+/* Define if your processor stores words with the most significant
+   byte first (like Motorola and SPARC, unlike Intel and VAX).  */
+#define WORDS_BIGENDIAN 1
+
 /* Define if BSD compatible signals (i.e. no reset when fired) */
 #define BSD_SIGNALS 1
 

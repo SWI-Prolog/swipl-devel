@@ -34,6 +34,10 @@ forwards bool	importWic(Procedure, FILE *fd);
 forwards word	directiveClause(word, char *);
 forwards bool	compileFile(char *);
 forwards bool	putStates(FILE *);
+forwards word	loadXR(FILE *);
+forwards word   loadXRc(int c, FILE *fd);
+forwards void	putstdw(word w, FILE *fd);
+forwards word	getstdw(FILE *fd);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog can compile Prolog source files into intermediate code files, 
@@ -91,9 +95,11 @@ Below is an informal description of the format of a `.qlf' file:
 			's' <string>			% string
 			'f' <XR/name> <num>		% functor
 			'p' <XR/fdef> <XR/modulename>	% predicate
-<term>		::=	<XR/atomic>			% atomic data
+<term>		::=	<num>				% # variables in term
+			<theterm>
+<theterm>	::=	<XR/atomic>			% atomic data
 		      | 'v' <num>			% variable
-		      | 't' <XR/functor> {<term>}	% compound
+		      | 't' <XR/functor> {<theterm>}	% compound
 <system>	::=	's'				% system source file
 		      | 'u'				% user source file
 <time>		::=	<word>				% time file was loaded
@@ -114,7 +120,7 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define VERSION 13			/* save version number */
+#define VERSION 14			/* save version number */
 
 static char saveMagic[] = "SWI-Prolog (c) 1990 Jan Wielemaker\n";
 static char *wicFile;			/* name of output file */
@@ -212,25 +218,52 @@ getNum(FILE *fd)
   return (first << shift) >> shift;
 }
 
+
+static word
+getstdw(FILE *fd)
+{
+#ifndef WORDS_BIGENDIAN
+  union
+  { word         l;
+    unsigned char c[4];
+  } cvrt;
+  long rval;
+
+  cvrt.l = getw(fd);
+  rval = (cvrt.c[0] << 24) |
+         (cvrt.c[1] << 16) |
+	 (cvrt.c[2] << 8) |
+	  cvrt.c[3];
+  return rval;
+#else
+  return getw(fd);
+#endif
+}
+
+
 static real
 getReal(FILE *fd)
 { real f;
-  char *s = (char *)&f;
-  int n;
+  word *s = (word *) &f;
 
-  for(n=0; n<sizeof(f); n++)
-    *s++ = Getc(fd);
+#ifndef WORDS_BIGENDIAN
+  s[0] = getstdw(fd);
+  s[1] = getstdw(fd);
+#else
+  s[1] = getstdw(fd);
+  s[0] = getstdw(fd);
+#endif
 
   return f;
 }
 
 
 static word
-loadXR(FILE *fd)
+loadXRc(int c, FILE *fd)
 { word xr;
-  int c, id;
+  int id;
 
-  switch( (c = getc(fd)) )
+  switch( c )
   { case 'x':
     { int id = getNum(fd);
       Symbol s = lookupHTable(loadedXRTable, (void *)id);
@@ -275,12 +308,18 @@ loadXR(FILE *fd)
     }
     default:
     { xr = 0;				/* make gcc happy */
-      assert(0);
+      fatalError("Illegal XR entry at index %d: %c", ftell(fd)-1, c);
     }
   }
 
   addHTable(loadedXRTable, (void *)id, (void *)xr);
   return xr;
+}
+
+
+static word
+loadXR(FILE *fd)
+{ return loadXRc(getc(fd), fd);
 }
 
 
@@ -301,8 +340,7 @@ do_load_qlf_term(FILE *fd, Word *vars, Word term)
     for(n=0; n < arity; n++)
       do_load_qlf_term(fd, vars, argTermP(*term, n));
   } else
-  { ungetc(c, fd);
-    *term = loadXR(fd);
+  { *term = loadXRc(c, fd);
   }
 }
 
@@ -480,7 +518,8 @@ loadWicFd(char *file, FILE *fd, bool toplevel, bool load_options)
 
 	  currentSource = lookupSourceFile(fname);
 	  currentSource->system = (Getc(fd) == 's' ? TRUE : FALSE);
-	  currentSource->time = Getw(fd);
+	  currentSource->time = getstdw(fd);
+	  DEBUG(2, printf("Loading %s\n", stringAtom(fname)));
 	  continue;
 	}
       case 'M':
@@ -588,7 +627,7 @@ loadImport(FILE *fd)
   FunctorDef functor = proc->functor;
   Procedure old;
 
-  DEBUG(2, printf("loadImport(): %s into %s\n",
+  DEBUG(3, printf("loadImport(): %s into %s\n",
 		  procedureName(proc), stringAtom(modules.source->name)));
 
   if ( (old = isCurrentProcedure(functor, modules.source)) )
@@ -673,12 +712,39 @@ putNum(long int n, FILE *fd)
 
 
 static void
+putstdw(word w, FILE *fd)
+{
+#ifndef WORDS_BIGENDIAN
+  union
+  { word         l;
+    unsigned char c[4];
+  } cvrt;
+  word rval;
+
+  cvrt.l = w;
+  rval = (cvrt.c[0] << 24) |
+         (cvrt.c[1] << 16) |
+	 (cvrt.c[2] << 8) |
+	  cvrt.c[3];
+  putw(rval, fd);
+#else
+  putw(w, fd);
+#endif
+}
+
+
+static void
 putReal(real f, FILE *fd)
-{ char *s = (char *)&f;
+{ word *s = (word *)&f;
   int n;
 
-  for(n=0; n < sizeof(f); n++)
-    Putc(*s++, fd);
+#ifndef WORDS_BIGENDIAN
+  putstdw(s[0], fd);
+  putstdw(s[1], fd);
+#else
+  putstdw(s[1], fd);
+  putstdw(s[0], fd);
+#endif
 }
 
 
@@ -825,7 +891,7 @@ checkSource(Atom file)
     Putc('F', wicFd);
     saveXR((word) file, wicFd);
     Putc(sf->system ? 's' : 'u', wicFd);
-    Putw(sf->time, wicFd);
+    putstdw(sf->time, wicFd);
   }
 }
 
@@ -1127,6 +1193,11 @@ compileFileList(char *out, int argc, char **argv)
       break;
     compileFile(argv[0]);
   }
+
+  status.autoload = TRUE;
+  callGoal(MODULE_user,
+	   (word)lookupAtom("$load_additional_boot_files"),
+	   FALSE);
 
   return closeWic();
 }

@@ -16,7 +16,7 @@
 ################################################################
 
 PL=pl
-prefix=/staff/jan
+prefix=/usr/local
 exec_prefix=${prefix}
 bindir=$(exec_prefix)/bin
 PLBASE=$(prefix)/lib/$(PL)
@@ -68,11 +68,6 @@ EXT=	pl-extend.o
 ALLOBJ= $(OBJ) $(DEPOBJ) $(EXT)
 
 PLINIT=	$(PB)/init.pl
-PLBOOT= $(PB)/syspred.pl $(PB)/toplevel.pl $(PB)/listing.pl \
-	$(PB)/edit.pl $(PB)/sort.pl $(PB)/bags.pl $(PB)/apply.pl \
-	$(PB)/list.pl $(PB)/writef.pl $(PB)/history.pl $(PB)/portray.pl \
-	$(PB)/profile.pl $(PB)/dwim.pl $(PB)/$(PLFOREIGN) $(PB)/parms.pl \
-	$(PB)/autoload.pl $(PB)/topvars.pl
 
 SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c) $(EXT:.o=.c)
 HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h pl-itf.h pl-main.h \
@@ -96,8 +91,8 @@ $(PL):		$(ALLOBJ)
 		$(CC) $(LDFLAGS) -o $(PL) $(ALLOBJ) $(LIBS) $(STATICLIBS) 
 
 
-$(STARTUPPATH):	$(PLBOOT) $(PLINIT) pl-wam.o pl-wic.o
-		./$(PL) -O -o $(STARTUPPATH) -b $(PLINIT) -c $(PLBOOT)
+$(STARTUPPATH):	$(PLINIT) pl-wam.o pl-wic.o
+		./$(PL) -O -o $(STARTUPPATH) -b $(PLINIT)
 
 
 $(RUNTIME):	$(OBJ) $(DEPOBJ)

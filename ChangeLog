@@ -4,6 +4,8 @@
 Version 1.9.6:
 ==============
 
+  * Fixed for BIN_ENDIAN machines (Intel, VAX, ...)
+  * Windows version: added dde_execute/2
   * Added Quintus compatible foreign-language (C) interface.
   * Changed .qlf (former .wic) format drastically.  The current
     format gives about 30% shorter files and loads twice as fast.

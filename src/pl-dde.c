@@ -52,6 +52,10 @@
 #include "pl-itf.h"
 #include "string.h"
 
+#ifdef __WATCOMC__			/* at least version 9.5 */
+#define WATCOM_DDEACCESS_BUG 1
+#endif
+
 #define MAX_CONVERSATIONS 10   /* Max. number of simultaneous conversations */
 static HCONV conv_handle[MAX_CONVERSATIONS];  /* I assume initialized to 0 */
 
@@ -207,6 +211,59 @@ pl_dde_request(Word handle, Word item, Word value)
     unifyAtomic(PL_arg(errterm, 1), lookupAtom(errmsg));
     return pl_unify(value, errterm);
   }
+}
+
+
+static word
+dde_warning(char *cmd)
+{ char *err;
+
+  switch( DdeGetLastError(ddeInst) )
+  { case DMLERR_ADVACKTIMEOUT:
+    case DMLERR_DATAACKTIMEOUT:		
+    case DMLERR_EXECACKTIMEOUT:
+    case DMLERR_POKEACKTIMEOUT:
+    case DMLERR_UNADVACKTIMEOUT:	err = "Timeout";		break;
+    case DMLERR_BUSY:			err = "Service busy";		break;
+    case DMLERR_DLL_NOT_INITIALIZED:	err = "DDL not initialised";	break;
+    case DMLERR_INVALIDPARAMETER:	err = "Invalid parameter";	break;
+    case DMLERR_MEMORY_ERROR:		err = "Memory error";		break;
+    case DMLERR_NO_CONV_ESTABLISHED:	err = "No conversation";	break;
+    case DMLERR_NO_ERROR:		err = "No error???";		break;
+    case DMLERR_NOTPROCESSED:		err = "Not processed";		break;
+    case DMLERR_POSTMSG_FAILED:		err = "PostMessage() failed";	break;
+    case DMLERR_REENTRANCY:		err = "Reentrance";		break;
+    case DMLERR_SERVER_DIED:		err = "Server died";		break;
+  }
+
+  return warning("%s: DDE operation failed: %s", cmd, err);
+}
+
+
+word
+pl_dde_execute(Word handle, Word command)
+{ int hdl = valNum(*handle);
+  char *cmdstr;
+  HDDEDATA Hvalue, data;
+  DWORD result;
+
+  if ( !isInteger(*handle) ||
+       (cmdstr = primitiveToString(*command, FALSE)) == NULL )
+    return warning("dde_execute/2: instantiation fault");
+  if ( !conv_handle[hdl] )
+    return warning("dde_execute/2: invalid handle");
+
+  if ( !(data = DdeCreateDataHandle(ddeInst, cmdstr, strlen(cmdstr)+1,
+				    0, 0, CF_TEXT, 0)) )
+    return dde_warning("dde_execute/2");
+
+  Hvalue = DdeClientTransaction(data, -1,
+				conv_handle[hdl], 0L, 0,
+				XTYP_EXECUTE, REQ_TIMEOUT, &result);
+  if ( Hvalue )
+    succeed;
+  
+  return dde_warning("dde_execute/2");
 }
 
 #endif /*O_DDE*/

@@ -38,9 +38,9 @@ OBJ1=	pl-wam.obj pl-save.obj &
 	pl-load.obj pl-modul.obj pl-op.obj pl-os.obj pl-prims.obj &
 	pl-pro.obj pl-proc.obj pl-prof.obj pl-read.obj pl-rec.obj &
 	pl-setup.obj pl-sys.obj pl-table.obj pl-trace.obj pl-util.obj &
-	pl-wic.obj pl-write.obj pl-term.obj pl-buffer.obj pl-dde.obj
+	pl-wic.obj pl-write.obj pl-term.obj pl-buffe.obj pl-dde.obj
 OBJ2=	pl-main.obj
-EXT=	pl-extend.obj
+EXT=	pl-exten.obj
 
 OBJS=	$(OBJ1) $(OBJ2) $(EXT)
 HDRS=	pl-buffer.h pl-ctype.h pl-funcs.h pl-incl.h pl-itf.h &
@@ -69,6 +69,10 @@ parms.h:	makefile
 		@echo $#define C_CC	    "$(CC)"            >> $@
 		@echo $#define C_LDFLAGS    ""                 >> $@
 
+setup.exe:	setup.obj
+		$(LD) NAME setup DEBUG all OPTION quiet FILE setup.obj
+		wbind setup -n -q
+		
 
 clean:
 		del *.obj

@@ -519,7 +519,7 @@ trapUndefined(Procedure proc)
        false(proc->definition->module, UNKNOWN) )
     return;
 					/* Trap via exception/3 */
-  if ( status.boot == FALSE )
+  if ( status.autoload )
   { word goal;
     mark m;
     bool rval;

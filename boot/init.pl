@@ -1025,41 +1025,42 @@ halt :-
 
 
 		/********************************
-		*            EXPORTS            *
-		*********************************/
-
-/*
-:- boot((
-	Public = [
-		op/3, (dynamic)/1, (multifile)/1, (module_transparent)/1,
-		';'/2, '|'/2, ','/2, call/1, (not)/1, (\+)/1, (->)/2,
-		once/1, ignore/1, apply/2,
-		true,
-		library_directory/1,
-		compiling/0,
-		ensure_loaded/1, '.'/2, consult/1, use_module/1, use_module/2,
-		$system_feedback/1,
-		$check_file/2,
-		member/2, append/3
-	],
-	$export_list($init, Public),
-	$import_list(user, $init, Public)
-  )).
-*/
-
-		/********************************
 		*      LOAD OTHER MODULES       *
 		*********************************/
 
-'$:-'
-	format('Loading Prolog startup files~n', []),
-	$style_check(_, 2'1111),
+:- module_transparent
+	$load_wic_files/2,
+	$load_additional_boot_files/0.
+
+$load_wic_files(Module, Files) :-
+	$execute_directive($set_source_module(OldM, Module)),
+	$style_check(OldS, 2'1111),
+	flag($compiling, OldC, wic),
+	consult(Files),
+	$execute_directive($set_source_module(_, OldM)),
+	$execute_directive($style_check(_, OldS)),
+	flag($compiling, _, OldC).
+
+
+$load_additional_boot_files :-
 	$argv(Argv),
 	$get_files_argv(Argv, Files),
-	flag($compiling, Old, wic),
-	consult(Files),
-	$execute_directive($set_source_module(_, user)),
+	(   Files \== []
+	->  format('Loading additional boot files~n'),
+	    $load_wic_files(user, Files),
+	    format('additional boot files loaded~n')
+	;   true
+        ).
+
+
+'$:-'	format('Loading Prolog startup files~n', []),
+	source_location(File, _Line),
+	$file_dir_name(File, Dir),
+	concat(Dir, '/load.pl', LoadFile),
+	$load_wic_files(system, [LoadFile]),
+	format('SWI-Prolog boot files loaded~n', []),
 	$execute_directive($style_check(_, 2'1011)),
-	flag($compiling, _, Old),
-	format('Boot compilation completed~n', []).
+	$execute_directive($set_source_module(_, user)).
+
+
 

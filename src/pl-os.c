@@ -2558,17 +2558,6 @@ okToExec(char *s)
 #endif
 
 #ifdef EXEC_EXTENSIONS
-static int
-stripostfix(char *s, char *e)
-{ int ls = strlen(s);
-  int le = strlen(e);
-
-  if ( ls >= le )
-    return stricmp(&s[ls-le], e) == 0;
-
-  return FALSE;
-} 
-
 
 static char *
 okToExec(s)

@@ -270,6 +270,7 @@ startProlog(int argc, char **argv, char **env)
   status.notty			= systemDefaults.notty;
   status.boot			= FALSE;
   status.extendMode		= TRUE;
+  status.autoload		= TRUE;
 
   argc--; argv++;
 
@@ -303,8 +304,12 @@ startProlog(int argc, char **argv, char **env)
   { state = argv[1];
     argc -= 2, argv += 2;
     DEBUG(1, printf("Startup file = %s\n", state));
+  } else if ( argc >= 1 && stripostfix(argv[0], ".qlf") )
+  { state = argv[0];
+    argc--, argv++;
+    DEBUG(1, printf("Startup file = %s\n", state));
   }
-
+  
   if ( argc >= 1 && streq(argv[0], "-help") )
     usage();
 
@@ -397,6 +402,7 @@ startProlog(int argc, char **argv, char **env)
   { if ( !explicit_compile_out )
       options.compileOut = proposeStartupFile(NULL);
 
+    status.autoload = FALSE;
     if ( compileFileList(options.compileOut, argc, argv) == TRUE )
     {
 #ifdef __WINDOWS__
