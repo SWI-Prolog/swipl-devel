@@ -4493,7 +4493,7 @@ reprocess:
       { p->cdata->size -= 3;		/* Delete chars for ]] */
 	pop_marked_section(p);
 	p->state = S_PCDATA;
-      } else
+      } else if ( f[CF_DSC] != chr )	/* if ]]], stay in this state */
         p->state = S_MSCDATA;
       return;
     }

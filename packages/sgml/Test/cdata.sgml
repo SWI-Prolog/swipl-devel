@@ -1,0 +1,8 @@
+<!DOCTYPE test [
+<!ELEMENT test - - (#PCDATA)>
+]>
+
+<test>
+<![CDATA[[Ora Lassila]]]>
+</test>
+

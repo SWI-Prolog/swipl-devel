@@ -1,3 +1,6 @@
+* FIXED: Correctly handle marked sections ending in ]]]> rather than ]]>
+  Spotted by Adrian Boyko.
+
 * ADDED: xml_quote_attribute/2 and xml_quote_cdata/2, providing simple
   quote-support.
 
