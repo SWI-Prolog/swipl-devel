@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Properly throw exception when compiling arithmetic with
+    unbound (but not anonymous) variable.  Reported by Leo (leo@solvo.ru)
+
 VERSION 3.4.2
 =============
 
