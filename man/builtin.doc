@@ -3679,15 +3679,16 @@ relative vs. absolute paths).
 Succeeds if \arg{Directory} exists. This does not imply the user has read,
 search and or write permission for the directory.
     \predicate{delete_file}{1}{+File}
-Unlink \arg{File} from the Unix file system.
+Remove \arg{File} from the file system.
     \predicate{rename_file}{2}{+File1, +File2}
 Rename \arg{File1} into \arg{File2}. Currently files cannot be moved
 across devices.
     \predicate{size_file}{2}{+File, -Size}
 Unify \arg{Size} with the size of \arg{File} in characters.
     \predicate{time_file}{2}{+File, -Time}
-Unify the last modification time of \arg{File} with \arg{Time}. \arg{Time} is a floating point number expressing the seconds elapsed since
-Jan~1, 1970.
+Unify the last modification time of \arg{File} with \arg{Time}.
+\arg{Time} is a floating point number expressing the seconds elapsed
+since Jan~1, 1970. See also convert_time/[2,8] and get_time/1.
     \predicate{absolute_file_name}{2}{+File, -Absolute}
 Expand Unix file specification into an absolute path. User home
 directory expansion (\file{~} and \file{~<user>}) and
@@ -3737,6 +3738,7 @@ main reason for its introduction is to deal with different filename
 properties in a portable manner.  If the file system is case-insensitive,
 testing for an extension will be done case-insensitive too. \arg{Extension} may be specified with or without a leading dot (\chr{.}).
 If an \arg{Extension} is generated, it will not have a leading dot.
+
     \predicate{expand_file_name}{2}{+WildCard, -List}
 Unify \arg{List} with a sorted list of files or directories matching
 \arg{WildCard}. The normal Unix wildcard constructs `\const{?}',
@@ -3746,6 +3748,10 @@ different from the C shell (csh(1)). The comma separated argument can be
 arbitrary patterns, including `\const{\{\ldots\}}' patterns. The empty
 pattern is legal as well: `\file{\{.pl,\}}' matches either `\file{.pl}'
 or the empty string.
+
+If the pattern does contains wildcard characters, only existing files
+and directories are returned.  Expanding a `pattern' without wildcard
+characters returns the argument, regardless on whether or not it exists.
 
 Before expanding wildchards, the construct \file{\$\arg{var}} is expanded
 to the value of the environment variable \var{var} and a possible
@@ -3784,7 +3790,6 @@ Change working directory to \arg{Path}.%
 	\bug{Some of the file-I/O predicates use local filenames.  
 	     Using chdir/1 while file-bound streams are open causes
 	     wrong results on telling/1, seeing/1 and current_stream/3}
-
 \end{description}
 
 \section{Multi-threading (alpha code)}		\label{sec:threads}
