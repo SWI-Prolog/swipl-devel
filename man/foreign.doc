@@ -1561,9 +1561,9 @@ If \arg{t} holds a blob or atom get the data and type and return
 may be \const{NULL}, in which case the requested information is 
 ignored.
 
-    \cfunction{int}{PL_blob_data}{atom_t a,
-				  unsigned int *len,
-				  PL_blob_t **type}
+    \cfunction{void *}{PL_blob_data}{atom_t a,
+				     unsigned int *len,
+				     PL_blob_t **type}
 Get the data and type associated to a blob.  This function is mainly
 used from the callback functions described in \secref{blobtype}.
 \end{description}
