@@ -136,6 +136,7 @@ do_term_expand((Head :- Body), _) :-	% check for :- instead of :-> or :<-
 	fail.
 
 	
+is_string(0) :- !, fail.		% catch variables
 is_string([]).
 is_string([H|T]) :-
 	integer(H),

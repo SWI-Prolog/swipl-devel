@@ -95,6 +95,12 @@ thread_local((Spec, More)) :- !,
 thread_local(Spec) :-
 	$set_predicate_attribute(Spec, (thread_local), 1).
 
+noprofile((Spec, More)) :- !,
+	noprofile(Spec),
+	noprofile(More).
+noprofile(Spec) :-
+	'$set_predicate_attribute'(Spec, (noprofile), 1).
+
 :- module_transparent
 	(dynamic)/1,
 	(multifile)/1,
@@ -102,6 +108,7 @@ thread_local(Spec) :-
 	(discontiguous)/1,
 	(volatile)/1,
 	(thread_local)/1,
+	(noprofile)/1,
 	$hide/2,
 	$show_childs/2.
 
@@ -126,6 +133,12 @@ $show_childs(Name, Arity) :-
 		/********************************
 		*       CALLING, CONTROL        *
 		*********************************/
+
+:- noprofile((call/1,
+	      catch/3,
+	      once/1,
+	      ignore/1,
+	      call_cleanup/3)).
 
 :- module_transparent
 	';'/2,

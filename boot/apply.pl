@@ -88,5 +88,7 @@ sublist(Goal, [_|T], R) :-
 %	True if Action if true for all variable bindings for which Condition
 %	if true.
 
+:- noprofile(forall/2).
+
 forall(Cond, Action) :-
 	\+ (Cond, \+ Action).

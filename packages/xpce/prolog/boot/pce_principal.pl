@@ -119,6 +119,11 @@ pce_ifhostproperty(prolog(sicstus), [
 	pce_host:new(Object, Term, 1))
 ]).
 
+:- noprofile((send_implementation/3,
+	     (get_implementation/4),
+	     send/2,
+	     get/3)).
+
 
 		/********************************
 		*          PROLOG LAYER		*

@@ -58,6 +58,13 @@ certain parts of the program.
     \predicate{reset_profiler}{0}{}
 Switches the profiler to \const{false} and clears all collected
 statistics.
+
+    \predicate{noprofile}{1}{+Name/+Arity, \ldots}
+Declares the predicate \arg{Name}/\arg{Arity} to be invisible to the
+profiler. The time spend in the named predicate is added to the caller
+and the callees are linked directly to the caller.  This is particulary
+useful for simple meta-predicates such as call/1, ignore/1, catch/3,
+etc.
 \end{description}
 
 

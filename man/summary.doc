@@ -286,6 +286,7 @@ suggest predicates from a keyword.
 \predicatesummary{nodebug}{1}{Disable debug-topic}
 \predicatesummary{noguitracer}{0}{Disable the graphical debugger}
 \predicatesummary{nonvar}{1}{Type check for bound term}
+\predicatesummary{noprofile}{1}{Hide (meta) predicate for the profiler}
 \predicatesummary{noprotocol}{0}{Disable logging of user interaction}
 \predicatesummary{nospy}{1}{Remove spy point}
 \predicatesummary{nospyall}{0}{Remove all spy points}
