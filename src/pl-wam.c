@@ -1355,7 +1355,7 @@ leaveFrame(LocalFrame fr)
 { Definition def = fr->predicate;
 
   if ( false(def, FOREIGN) )
-    leaveDefinitionCL(def, fr->clause);
+    leaveDefinition(def);
 
 #if O_DEBUGGER
   if ( true(fr, FR_WATCHED) )
@@ -1366,15 +1366,17 @@ leaveFrame(LocalFrame fr)
 
 static void
 discardFrame(LocalFrame fr)
-{ DEBUG(3, Sdprintf("discard #%d running %s\n",
+{ Definition def = fr->predicate;
+
+  DEBUG(3, Sdprintf("discard #%d running %s\n",
 		    loffset(fr),
 		    predicateName(fr->predicate)));
 
-  if ( true(fr->predicate, FOREIGN) )
+  if ( true(def, FOREIGN) )
   { if ( fr->clause )
       discardForeignFrame(fr);
   } else
-    leaveDefinitionCL(fr->predicate, fr->clause);
+    leaveDefinition(def);
 
 #ifdef O_DEBUGGER
   if ( true(fr, FR_WATCHED) )
@@ -1390,8 +1392,8 @@ Discard all choice-points created after  the   creation  of the argument
 environment. See also discardFrame().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef O_DEBUG
-static char *
+#if defined(O_DEBUG) || defined(SECURE_GC)
+char *
 chp_chars(Choice ch)
 { static char buf[256];
 
@@ -3149,29 +3151,18 @@ BUG: have to find out how to proceed in case of failure (I am afraid the
 Determine the functor definition associated with the goal as well as the
 arity and a pointer to the argument vector of the goal.
 
-If the goal is not a simple goal, the   body is compiled to a new clause
-for system:$call($call(<free vars>)) :-  body,   which  is  subsequently
-called. The created clause  is  erased   immediately,  relying  on  true
-erasure as soon as the clause finishes executing.
+If the goal is not a  simple  goal,   the  body  is  compiled to `local'
+clause. The compilation mode is presented to compileClause() by the NULL
+`head'. This compilation-mode  constructs  a   stack-frame  whose  first
+argument is the  goal-term,  followed   by  large  structures (compound,
+string) from the arguments, followed  by   the  normal  local variables,
+followed by the VM codes and, the   clause structure and finally a dummy
+list for the clause-chain  (ClauseRef)  used   for  the  frames ->clause
+field.
 
-If the goal  constains  control-structures,   the  problem  becomes much
-harder. Basically there is the choice   between  direct meta-calling and
-make the definition of the control-structures   handle the call, compile
-the  goal  or  build  an  interpreter.  Discarding  the  latter  as  too
-complicated, we must consider meta-calling. This   was  the solution for
-pre-ISO versions of SWI-Prolog, but it is   next to impossible to handle
-the cur correctly. You  may  consider   mapping  (a,!,c)  to (a->c), but
-nested handling using if-then-else, etc gets really nasty.
-
-Compilation seems to be the right option, BUT the arguments to goals may
-hold very large calls that will be   compiled.  This is wasting time and
-memory (possibly a LOT) and  some  constructs   may  even  be too big to
-compile. 
-
-The solution outlined  here  compiles  the   clause  while  placing  all
-compound terms in local  variables,  allocated   from  the  current lTop
-value. In a further step, we could   also  allocate the clause itself on
-the local stack, avoiding fragmentation.
+The clause data is discarded automatically  if the frame is invalidated.
+Note that compilation does not give contained   atoms a reference as the
+atom is referenced by the goal-term anyway.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 	if ( isAtom(goal = *a) )
@@ -3181,39 +3172,31 @@ the local stack, avoiding fragmentation.
 	  arity   = 0;
 	  args    = NULL;
 	} else if ( isTerm(goal) )
-	{ if ( isSimpleGoal(a PASS_LD) /*|| 1*/)
+	{ if ( isSimpleGoal(a PASS_LD)
+#if O_DEBUG
+	       || GD->bootsession || !GD->initialised
+#endif
+	     )
 	  { args    = argTermP(goal, 0);
 	    functor = functorTerm(goal);
 	    arity   = arityFunctor(functor);
 	  } else
 	  { Clause cl;
-	    Word head, ht;
-  
-	    ht    = allocGlobal(3);
-	    ht[0] = FUNCTOR_dcall1;
-	    ht[1] = ATOM_dcall;		/* used for ground goal */
-	    ht[2] = ATOM_nil;		/* harmless data */
-	    arity = g_free_variables(a, gTop, 0);
-	    if ( arity > 0 )
-	    { ht[1] = consPtr(&ht[2], TAG_COMPOUND|STG_GLOBAL);
-	      ht[2] = lookupFunctorDef(ATOM_dcall, arity);
-	    }
-	    head = argFrameP(next, 1);	/* @0 is the goal */
-	    *head = consPtr(ht, TAG_COMPOUND|STG_GLOBAL);
-	    lTop = (LocalFrame)head+1;
-  
-	    if ( !(cl = compileClause(head, a, PROCEDURE_dcall1, module)) )
+	    
+	    a = &goal;			/* we're going to overwrite */
+	    deRef(a);
+	    DEBUG(1, { term_t g = a - (Word)lBase;
+		       LocalFrame ot = lTop;
+		       lTop += 100;
+		       pl_write(g); pl_nl();
+		       lTop = ot;
+		     });
+	    lTop = next;
+	    if ( !(cl = compileClause(NULL, a, PROCEDURE_dcall1, module)) )
 	      goto b_throw;
-  
-	    cl->index.key = cl->index.varmask = 0L;
-	    DEF = PROCEDURE_dcall1->definition;
-	    enterDefinition(DEF);
-	    next->clause         = assertProcedure(PROCEDURE_dcall1,
-						   cl, CL_END);
-  
+
+	    DEF			 = FR->predicate;
 	    next->flags	         = FR->flags;
-	    next->context	 = FR->context;
-	    next->predicate      = DEF;
 	    next->parent	 = FR;
 	    next->programPointer = PC;
 #ifdef O_LOGICAL_UPDATE
@@ -3222,15 +3205,9 @@ the local stack, avoiding fragmentation.
 	    incLevel(next);
 	    PC = cl->codes;
   
+	    enterDefinition(DEF);
 	    environment_frame = FR = next;
-	    ARGP = argFrameP(FR, 0);
-	    *ARGP = ht[1];		/* copy the head here */
-	    lTop = (LocalFrame)(ARGP + cl->variables);
-	    requireStack(local, (int)argFrameP((LocalFrame)NULL, MAXARITY));
- 	    set(cl, ERASED);
-	    DEF->number_of_clauses--;
-	    DEF->erased_clauses++;
-	    set(DEF, NEEDSCLAUSEGC);	/* only `now and then'? */
+	    ARGP = argFrameP(lTop, 0);
 
 	    NEXT_INSTRUCTION;
 	  }
@@ -3705,9 +3682,11 @@ execution can continue at `next_instruction'
 	  if ( true(FR, FR_WATCHED) )
 	    frameFinished(FR);
 #endif
-	  if ( true(DEF, HIDE_CHILDS) )
-	    set(FR, FR_NODEBUG);
-	  leaveDefinitionCL(DEF, CL);
+	  if ( DEF )
+	  { if ( true(DEF, HIDE_CHILDS) )
+	      set(FR, FR_NODEBUG);
+	    leaveDefinition(DEF);
+	  }
 	  FR->predicate = DEF = ndef;
 
 	  copyFrameArguments(lSave, FR, arity PASS_LD);
@@ -3720,7 +3699,7 @@ execution can continue at `next_instruction'
       VMI(I_CALL)					MARK(CALL);
         next = lTop;
         next->flags = FR->flags;
-	if ( true(DEF, HIDE_CHILDS) )		/* parent has hide_childs */
+	if ( true(DEF, HIDE_CHILDS) ) /* parent has hide_childs */
 	  set(next, FR_NODEBUG);
 	DEF = ((Procedure) *PC++)->definition;
 	next->context = FR->context;
@@ -4022,7 +4001,7 @@ bit more careful.
     exit_builtin:			/* tracer already by callForeign() */
 	if ( (void *)BFR <= (void *)FR ) /* deterministic */
 	{ if ( false(DEF, FOREIGN) )
-	    leaveDefinitionCL(DEF, CL);
+	    leaveDefinition(DEF);
 	  lTop = FR;
 	  DEBUG(3, Sdprintf("Deterministic exit of %s, lTop = #%ld\n",
 			    predicateName(FR->predicate), loffset(lTop)));

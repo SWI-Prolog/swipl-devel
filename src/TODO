@@ -31,6 +31,32 @@ CO-ROUTING AND CALL/1
 	    - including the use as `setarg' to restore on backtracking
 	    
 	
+LOCAL-STACK-CODE (Compiling call/1 control-structures)
+======================================================
+
+Input is a goal-term.  First create a new stack-frame holding:
+
+	1) Pseudo-arguments
+	2) Clause and compiled-code data
+
+Pseudo arguments are everything encountered in  the goal (= clause body)
+that is either a variable or a  compound   term.  We can consider to add
+strings  or  doubles  to  this,  but  it    won't  change  much  in  the
+implementation.
+
+Affected (check)
+
+	* Stack shifter
+	* Tracer (goals, etc).
+
+
+
+
+
+
+
+
+
 	
 
 

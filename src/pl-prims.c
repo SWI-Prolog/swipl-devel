@@ -919,48 +919,6 @@ pl_numbervars(term_t t, term_t f,
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-g_free_variables(Word t, Word p0, int n)
-    Determines the unbound variables in t and locates them on the global
-    stack, starting at p0 (which should be initialised to gTop.  It returns
-    the total number of found free variables.  Used by I_USERCALL0 to analyse
-    the variables of the goal.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-int
-g_free_variables(Word t, Word p0, int n)
-{
-right_recursion:
-  deRef(t);
-
-  if ( isVar(*t) )
-  { int i;
-    Word new;
-
-    for(i=0; i<n; i++)
-    { Word p2 = p0+i;			/* see whether we got this one! */
-
-      deRef(p2);
-      if ( p2 == t )
-	return n;
-    }
-    new = allocGlobal(1);
-    *new = makeRef(t);
-
-    return n+1;
-  }
-  if ( isTerm(*t) )
-  { int arity = arityFunctor(functorTerm(*t));
-
-    for(t = argTermP(*t, 0); --arity > 0; t++)
-      n = g_free_variables(t, p0, n);
-    goto right_recursion;
-  }
-    
-  return n;
-}
-
-
 static int
 free_variables(Word t, term_t l, int n)
 {

@@ -1,6 +1,23 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ENHANCED: handling of call/1.  Instead of doing a full compilation of
+    the clause the temporary clause now shares terms from the goal and
+    is stored in the stack-frame itself.  In general call/1 will be faster
+    when used on a term holding control-structures (,/2, ;/2, ->/2, etc)
+    and does not suffice from getting slower when argument-terms get bigger.
+    In addition, no unsolicitated copying of terms takes place.
+
+    PLEASE TEST AND BE CAREFUL ON PRODUCTION SYSTEMS!!
+
+  * FIXED: Stack overflow detection in PL_unify_list() and
+    PL_unify_functor() on machines without mapped stacks (i.e. using the
+    stack-shifter).
+
+  * FIXED: current_predicate/1 using the pattern A:B/C (i.e. generating
+    modules).  Also added current_predicate/1 to the manual.  
+    Reported by Tolga Konik.
+
   * FIXED: Updated pl-term.c to fit with multi-threaded code as well as
     behave properly on PL_cleanup() followed by re-initialisation.
 

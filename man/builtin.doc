@@ -1543,21 +1543,31 @@ sub_type(horse, animal).
 Successively unifies \arg{Atom} with all atoms known to the system.
 Note that current_atom/1 always succeeds if \arg{Atom} is instantiated to
 an atom.
+
     \predicate{current_functor}{2}{?Name, ?Arity}
 Successively unifies \arg{Name} with the name and \arg{Arity} with the
 arity of functors known to the system.
+
     \predicate{current_flag}{1}{-FlagKey}
 Successively unifies \arg{FlagKey} with all keys used for flags (see
 flag/3).
+
     \predicate{current_key}{1}{-Key}
 Successively unifies \arg{Key} with all keys used for records (see
 recorda/3, etc.).
+
     \predicate{current_predicate}{2}{?Name, ?Head}
 Successively unifies \arg{Name} with the name of predicates currently
 defined and \arg{Head} with the most general term built from \arg{Name}
 and the arity of the predicate. This predicate succeeds for all
 predicates defined in the specified module, imported to it, or in one of
 the modules from which the predicate will be imported if it is called.
+
+    \predicate{current_predicate}{1}{:Name/Arity}
+ISO compliant implementation of current_predicate/2.  Unlike
+current_predicate/2, the current implementation of current_predicate/1
+does not consider predicates that can be autoloaded `current'.
+
     \predicate{predicate_property}{2}{?Head, ?Property}
 Succeeds if \arg{Head} refers to a predicate that has property
 \arg{Property}. Can be used to test whether a predicate has a certain

@@ -1768,10 +1768,14 @@ the specified offset.
 Memory management description.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef O_DEBUG
+extern char *chp_chars(Choice ch);
+#endif
+
 static inline void
 update_pointer(void *p, long offset)
 { GET_LD
-  char **ptr = ((char **)p);
+  char **ptr = (char **)p;
 
   if ( *ptr )
     *ptr += offset;
@@ -1791,6 +1795,21 @@ update_mark(mark *m, long gs, long ts)
 }
 
 
+/* Update pointer if it contains a pointer in the local stack.  Used for
+   updating PC, as this might point to a locally compiled clause by
+   I_USERCALL0.
+*/
+
+static inline void
+update_local_pointer(void *p, long ls)
+{ char **ptr = (char **)p;
+
+  if ( inShiftedArea(local, ls, *ptr) )
+  { update_pointer(p, ls);
+  }
+}
+
+
 static QueryFrame
 update_environments(LocalFrame fr, Code PC, long ls, long gs, long ts)
 { GET_LD
@@ -1798,10 +1817,7 @@ update_environments(LocalFrame fr, Code PC, long ls, long gs, long ts)
     return NULL;
 
   for(;;)
-  { int slots;
-    Word sp;
-    
-    assert(inShiftedArea(local, ls, fr));
+  { assert(inShiftedArea(local, ls, fr));
 
     if ( true(fr, FR_MARKED) )
       return NULL;			/* from choicepoints only */
@@ -1816,15 +1832,27 @@ update_environments(LocalFrame fr, Code PC, long ls, long gs, long ts)
     { update_pointer(&fr->parent, ls);
       clearUninitialisedVarsFrame(fr, PC);
 
-      slots = (PC == NULL ? fr->predicate->functor->arity : slotsFrame(fr));
-      sp = argFrameP(fr, slots);
+      update_local_pointer(&fr->programPointer, ls);
+					/* I_USERCALL0 compiled clause */
+      if ( fr->predicate == PROCEDURE_dcall1->definition )
+      { update_pointer(&fr->clause, ls);
+	update_pointer(&fr->clause->clause, ls);
+	update_pointer(&fr->clause->clause->codes, ls);
+      }
+
 					/* update saved BFR's from C_MARK */
-      if ( ls && PC && false(fr->predicate, FOREIGN) )
+      if ( PC && false(fr->predicate, FOREIGN) )
       { Clause cl = fr->clause->clause;
-	int saved_bfrs = cl->variables - cl->prolog_vars;
+	unsigned int marks;
+
+	if ( (marks = cl->marks) )
+	{ Word sp = argFrameP(fr, cl->prolog_vars);
 	
-	for( ; saved_bfrs-- > 0; sp++ )
-	  update_pointer(sp, ls);
+	  DEBUG(2, Sdprintf("(%d marks)", marks));
+
+	  for( ; marks-- > 0; sp++ )
+	    update_pointer(sp, ls);
+	}
       }
     }
 
@@ -1853,20 +1881,22 @@ update_choicepoints(Choice ch, long ls, long gs, long ts)
 { GET_LD
 
   for( ; ch; ch = ch->parent )
-  { DEBUG(1, Sdprintf("Updating choicepoints from 0x%p [%ld] %s ... ",
-		      ch,
-		      levelFrame(ch->frame),
+  { DEBUG(1, Sdprintf("Updating choicepoint %s for %s ... ",
+		      chp_chars(ch),
 		      predicateName(ch->frame->predicate)));
 
     if ( ls )
     { update_pointer(&ch->frame, ls);
       update_pointer(&ch->parent, ls);
+      if ( ch->type == CHP_JUMP )
+	update_local_pointer(&ch->value.PC, ls);
     }
     update_mark(&ch->mark, gs, ts);
     update_environments(ch->frame,
 		        ch->type == CHP_JUMP ? ch->value.PC : NULL,
 			ls, gs, ts);
     choice_count++;
+    DEBUG(1, Sdprintf("ok\n"));
   }
 }
 
@@ -2045,7 +2075,13 @@ Entry point from interpret()
 int
 growStacks(LocalFrame fr, Choice ch, Code PC, int l, int g, int t)
 { GET_LD
-  if ( fr == NULL || PC != NULL )	/* for now, only at the call-port */
+  
+  if ( !fr )
+    fr = environment_frame;
+  if ( !ch )
+    ch = LD->choicepoints;
+
+  if ( PC != NULL )			/* for now, only at the call-port */
     fail;
 
   if ( (l || g || t) && !shift_status.blocked )

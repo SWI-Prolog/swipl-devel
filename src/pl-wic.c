@@ -864,6 +864,9 @@ loadPredicate(IOSTREAM *fd, int skip)
 	clearFlags(clause);
 	clause->prolog_vars = (short) getNum(fd);
 	clause->variables = (short) getNum(fd);
+#ifdef O_SHIFT_STACKS
+	clause->marks = clause->variables - clause->prolog_vars;
+#endif
 	if ( getNum(fd) == 0 )		/* 0: fact */
 	  set(clause, UNIT_CLAUSE);
 	clause->procedure = proc;

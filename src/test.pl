@@ -5,8 +5,8 @@
     Copyright (C) 1996 University of Amsterdam. All rights reserved.
 */
 
-:- set_feature(optimise, true).
-%:- set_feature(trace_gc, true).
+:- set_prolog_flag(optimise, true).
+%:- set_prolog_flag(trace_gc, true).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog test file.  A test is a clause of the form:
@@ -194,6 +194,8 @@ arithmetic_functions(func-3) :-
 		 *	   META CALLING		*
 		 *******************************/
 
+foo:hello(world).
+
 meta(call-1) :-
 	call(ten(X)),
 	X == 10.
@@ -202,8 +204,18 @@ meta(call-2) :-
 meta(call-3) :-
 	\+ call((between(0,3,X), !, X = 2)).
 meta(call-4) :-
-	blocked('Doesn\'t work right now!'),
-	length(X, 100000), call((list(X) -> true ; false)).
+	length(X, 100000), call((is_list(X) -> true ; fail)).
+meta(call-5) :-
+	call((X=a;X=b)), X = b.
+meta(call-5) :-
+	call((foo:hello(X)->true)), X = world.
+meta(call-6) :-
+	call((X=a,x(X)=Y)), Y == x(a).
+meta(call-7) :-
+	string_to_list(S, "hello world"),
+	call((string(S), true)).
+meta(call-8) :-
+	call((foo:true, true)).
 meta(apply-1) :-
 	apply(=, [a,a]).
 meta(apply-2) :-

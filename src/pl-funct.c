@@ -183,12 +183,32 @@ registerControlFunctors()
     FUNCTOR_ifthen2,
     FUNCTOR_softcut2,
     FUNCTOR_not_provable1,
-	(functor_t) 0
+    (functor_t) 0
   };
   functor_t *f;
   
   for(f	= control; *f; f++)
   { valueFunctor(*f)->flags |= CONTROL_F;
+  }
+}
+
+
+static void
+registerArithFunctors()
+{ static functor_t arith[] =
+  { FUNCTOR_ar_equals2,
+    FUNCTOR_ar_not_equal2,
+    FUNCTOR_smaller2,
+    FUNCTOR_larger2,
+    FUNCTOR_smaller_equal2,
+    FUNCTOR_larger_equal2,
+    FUNCTOR_is2,
+    (functor_t) 0
+  };
+  functor_t *f;
+  
+  for(f	= arith; *f; f++)
+  { valueFunctor(*f)->flags |= ARITH_F;
   }
 }
 
@@ -203,6 +223,7 @@ initFunctors(void)
     allocFunctorTable();
     registerBuiltinFunctors();
     registerControlFunctors();
+    registerArithFunctors();
   }
   UNLOCK();
 }

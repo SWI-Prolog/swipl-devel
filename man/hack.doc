@@ -64,6 +64,10 @@ parent-goal if the parent-goal is not owned by a foreign predicate.
 1 is the first argument of the goal. Arguments above the arity
 refer to local variables. Fails silently if \arg{N} is out of range.
 \end{description}
+
+    \predicate{deterministic}{0}{}
+Succeeds if there are no choicepoints that are more recent than the
+parent frame.
 \end{description}
 
 

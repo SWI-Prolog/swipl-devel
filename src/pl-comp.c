@@ -10,6 +10,7 @@
     Copyright (C) 1990-2000 SWI, University of Amsterdam. All rights reserved.
 */
 
+/*#define O_DEBUG 1*/
 #include "pl-incl.h"
 
 #define setHandle(h, w)		(*valTermRef(h) = (w))
@@ -246,18 +247,8 @@ really into an array of variables.
 			ANALYSING VARIABLES
 
 First of all the clause is scanned and all  variables  are  instantiated
-with  a  structure  that  mimics  a term, but isn't one.  For historical
-reasons this is the term $VAR$/1.  Future versions will  use  a  functor
-which  is  impossible  to  conflict  with  the user's program.  For each
-variable it's address is stored, as well  as  the  number  of  times  it
-occurred in the clause.
+with  a  structure  that  mimics  a term, but isn't one.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#if O_COMPILE_ARITH
-#define A_NOTARITH	0
-#define A_OK		1
-#define A_ERROR		2
-#endif /* O_COMPILE_ARITH */
 
 typedef struct _varDef
 { word		functor;		/* mimic a functor (FUNCTOR_var1) */
@@ -286,7 +277,9 @@ typedef struct
   int		vartablesize;		/* size of the vartable */
   int		cutvar;			/* Variable for local cuts */
   int		islocal;		/* Temporary local clause */
-  int		argvars;		/* islocal argument psuedo vars */
+  int		subclausearg;		/* processing subclausearg */
+  int		argvars;		/* islocal argument pseudo vars */
+  int		argvar;			/* islocal current pseudo var */
   tmp_buffer	codes;			/* scratch code table */
   VarTable	used_var;		/* boolean array of used variables */
 } compileInfo, *CompileInfo;
@@ -374,6 +367,10 @@ offsets  and delete singleton variables.  We cannot leave out singletons
 that are sharing with the argument block.  Offset `0' is the first entry
 of the argument block, offset `arity' of the variable block.  Singletons
 are made variables again.
+
+When compiling in `islocal' mode, we  count the compound terms appearing
+as arguments to subclauses in ci->argvars and   there is no need to look
+inside these terms.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -391,13 +388,13 @@ right_recursion:
     vd = getVarDef(index);
     vd->address = head;
     vd->times = 1;
-    *head = (index<<7)|TAG_ATOM|STG_GLOBAL; /* special mark */
+    *head = (index<<LMASK_BITS)|TAG_ATOM|STG_GLOBAL; /* special mark */
 
     return nvars;
   }
 
   if ( tagex(*head) == (TAG_ATOM|STG_GLOBAL) )
-  { VarDef vd = vardefs[(*head) >> 7];
+  { VarDef vd = vardefs[(*head) >> LMASK_BITS];
 
     vd->times++;
     return nvars;
@@ -407,9 +404,27 @@ right_recursion:
   { Functor f = valueTerm(*head);
     FunctorDef fd = valueFunctor(f->definition);
 
-    if ( ci->islocal && false(fd, CONTROL_F) )
-    { ci->argvars++;
-    } else
+    if ( ci->islocal )
+    { if ( ci->subclausearg )
+      { ci->argvars++;
+
+	return nvars;
+      } else if ( false(fd, CONTROL_F) )
+      { if ( f->definition == FUNCTOR_module2 )	/* A:B --> I_USERCALL0 */
+	{ ci->argvars++;
+	} else
+	{ int ar = fd->arity;
+
+	  ci->subclausearg++;
+	  for(head = f->arguments, argn = arity; --ar >= 0; head++, argn++)
+	    nvars = analyseVariables2(head, nvars, arity, argn, ci);
+	  ci->subclausearg--;
+	}
+
+	return nvars;
+      } /* else fall through to normal case */
+    }
+
     { int ar = fd->arity;
 
       head = f->arguments;
@@ -421,6 +436,9 @@ right_recursion:
       goto right_recursion;
     }
   }
+
+  if ( ci->subclausearg && isString(*head) )
+    ci->argvars++;
 
   return nvars;
 }
@@ -436,7 +454,8 @@ analyse_variables(Word head, Word body, CompileInfo ci)
   for(n=0; n<arity; n++)
     getVarDef(n)->address = NULL;
 
-  nvars = analyseVariables2(head, 0, arity, -1, ci);
+  if ( head )
+    nvars = analyseVariables2(head, 0, arity, -1, ci);
   if ( body )
     nvars = analyseVariables2(body, nvars, arity, arity, ci);
 
@@ -444,21 +463,22 @@ analyse_variables(Word head, Word body, CompileInfo ci)
   { VarDef vd = vardefs[n];
 
     assert(vd->functor == FUNCTOR_var1);
-    if (vd->address == (Word) NULL)
+    if ( !vd->address )
       continue;
-    if (vd->times == 1)				/* ISVOID */
+    if ( vd->times == 1 && !ci->islocal ) /* ISVOID */
     { setVar(*(vd->address));
       vd->address = (Word) NULL;
       if (n >= arity)
 	body_voids++;
     } else
-      vd->offset = n - body_voids;
+      vd->offset = n + ci->argvars - body_voids;
   }
 
   filledVars = arity + nvars;
 
-  ci->clause->prolog_vars = ci->clause->variables = nvars - body_voids + arity;
-  ci->vartablesize = (nvars + arity + BITSPERINT-1)/BITSPERINT;
+  ci->clause->prolog_vars = nvars + arity + ci->argvars - body_voids;
+  ci->clause->variables   = ci->clause->prolog_vars;
+  ci->vartablesize = (ci->clause->prolog_vars + BITSPERINT-1)/BITSPERINT;
 }
 
 
@@ -518,7 +538,7 @@ forwards bool	compileArithArgument(Word, compileInfo *);
 static inline int
 isIndexedVarTerm(word w)
 { if ( tagex(w) == (TAG_ATOM|STG_GLOBAL) )
-  { VarDef v = vardefs[w>>7];
+  { VarDef v = vardefs[w>>LMASK_BITS];
     return v->offset;
   }
 
@@ -630,28 +650,71 @@ resetVars()
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Note: `head' and `body' are dereferenced!
+Clause	compileClause(Word head, Word body, Procedure proc, Module module)
+
+This is the entry-point of the compiler. The `head' and `body' arguments
+are dereferenced pointers to terms. `proc' is the procedure to which the
+clause should be added and `module' the compilation context module. This
+may be different from the definition-module of `proc' if a clause of the
+form `module1:head :- body' is compiled,  `module1' is used to determine
+`proc', while the currently loading module is in `module' and is used to
+relate terms to procedures in the body.
+
+A special consideration is the compilation   of  goals to support call/1
+(see I_USERCALL0 in pl-wam.c). When compiling  such clauses, lTop points
+to the location to build the new   clause and `head' is the NULL-pointer
+to indicate our clause has no head.   After compilation, the stack looks
+as below:
+
+	Old lTop --> LocalFrame
+		     Pseudo arguments
+		     Normal body variables
+		     VM instructions
+		     Clause structure
+		     ClauseRef struct
+	lTop     -->
+
+This routine fills all from  the  `Pseudo   arguments'  and  part of the
+LocalFrame structure:
+
+	FR->clause	Point to the ClauseRef struct
+	FR->context	Module argument
+        FR->predicate	proc->definition
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Clause
 compileClause(Word head, Word body, Procedure proc, Module module)
 { compileInfo ci;			/* data base for the compiler */
+  struct clause local_clause;
   Clause clause;
 
-  ci.islocal = FALSE;
-  ci.argvars = 0;
+  if ( head )
+  { ci.islocal      = FALSE;
+    ci.subclausearg = 0;
+    ci.arity        = proc->definition->functor->arity;
+    ci.argvars      = 0;
+    clause          = allocHeap(sizeof(struct clause));
+  } else
+  { Word g = varFrameP(lTop, VAROFFSET(1));
+
+    ci.islocal      = TRUE;
+    ci.subclausearg = 0;
+    ci.argvars	    = 1;
+    ci.argvar       = 1;
+    ci.arity        = 0;
+    clause          = &local_clause;
+    *g		    = *body;
+  }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Allocate the clause and fill initialise the field we already know.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  clause = (Clause) allocHeap(sizeof(struct clause));
   clause->procedure  = proc;
   clause->flags      = 0;
   clause->code_size  = 0;
   clause->source_no  = clause->line_no = 0;
 
-  ci.arity = proc->definition->functor->arity;
   ci.clause = clause;
   ci.module = module;
 
@@ -670,6 +733,7 @@ left-to-right. `lastnonvoid' is maintained to delete void variables just
 before the I_ENTER instructions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+  if ( head )
   { int n;
     int lastnonvoid = 0;
     Word arg;
@@ -693,11 +757,14 @@ automatic update if a predicate is later defined as meta-predicate.
   if ( body && *body != ATOM_true )
   { int rv;
 
-    Output_0(&ci, I_ENTER);
-    if ( ci.module != proc->definition->module &&
-	 false(proc->definition, METAPRED) )
-    { Output_1(&ci, I_CONTEXT, (code)ci.module);
+    if ( head )
+    { Output_0(&ci, I_ENTER);
+      if ( ci.module != proc->definition->module &&
+	   false(proc->definition, METAPRED) )
+      { Output_1(&ci, I_CONTEXT, (code)ci.module);
+      }
     }
+
     if ( (rv=compileBody(body, I_DEPART, &ci)) != TRUE )
     { if ( rv == NOT_CALLABLE )
 	PL_error(NULL, 0, NULL, ERR_TYPE,
@@ -716,15 +783,53 @@ automatic update if a predicate is later defined as meta-predicate.
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Finish up the clause.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+#ifdef O_SHIFT_STACKS
+  clause->marks = clause->variables - clause->prolog_vars;
+#endif
 
+  clause->code_size = entriesBuffer(&ci.codes, code);
+
+  if ( head )
   { clause->codes = (Code) allocHeap(sizeOfBuffer(&ci.codes));
-    memcpy(clause->codes,baseBuffer(&ci.codes, code),sizeOfBuffer(&ci.codes));
-    clause->code_size = entriesBuffer(&ci.codes, code);
-
-    discardBuffer(&ci.codes);
 
     GD->statistics.codes += clause->code_size;
+  } else
+  { int size = sizeOfBuffer(&ci.codes);
+    LocalFrame fr = lTop;
+    Word p0 = argFrameP(fr, clause->variables);
+    Word p = p0;
+    ClauseRef cref;
+
+    DEBUG(1, Sdprintf("%d argvars; %d prolog vars; %d vars",
+		      ci.argvars, clause->prolog_vars, clause->variables));
+    assert(ci.argvars == ci.argvar);
+
+    clause->codes = (Code) p;
+    p = addPointer(p, size);
+    clause = (Clause)p;
+    memcpy(clause, &local_clause, sizeof(*clause));
+    p = addPointer(p, sizeof(*clause));
+    cref = (ClauseRef)p;
+    p = addPointer(p, sizeof(*cref));
+    cref->next = NULL;
+    cref->clause = clause;
+    clause->variables += p-p0;
+
+    fr->clause = cref;
+    fr->context = module;
+    fr->predicate = proc->definition;
+
+    DEBUG(1, Sdprintf("; now %d vars\n", clause->variables));
+    lTop = (LocalFrame)p;
   }
+
+  memcpy(clause->codes,baseBuffer(&ci.codes, code),sizeOfBuffer(&ci.codes));
+  discardBuffer(&ci.codes);
+
+  DEBUG(1,
+	if ( !head )
+	{ wamListClause(clause);
+	});
 
   return clause;
 
@@ -912,6 +1017,33 @@ compileArgument() returns ISVOID if a void instruction resulted from the
 compilation.  This is used to detect  the  ...ISVOID,  [I_ENTER,  I_POPF]
 sequences,  in  which  case  we  can leave out the VOIDS just before the
 I_ENTER or I_POPF instructions.
+
+When doing `islocal' compilation,  compound  terms   are  copied  to the
+current localframe and a B_VAR instruction is generated for it.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef O_DEBUG
+static char *
+vName(Word adr)
+{ static char name[32];
+
+  deRef(adr);
+
+  if (adr > (Word) lBase)
+    Ssprintf(name, "_L%ld", (Word)adr - (Word)lBase);
+  else
+    Ssprintf(name, "_G%ld", (Word)adr - (Word)gBase);
+
+  return name;
+} 
+#endif
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Compile argument to a goal in the   clause. The `islocal' compilation is
+one of the complicating factors: atoms   should not be registered (there
+is no need as they are  held  by   the  term  anyway). For `big' objects
+(strings and compounds) the system should create `argvar' references.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -953,7 +1085,8 @@ be a variable, and thus cannot be removed if it is before an I_POPF.
       if ( isNil(*arg) )
       {	Output_0(ci, (where & A_BODY) ? B_NIL : H_NIL);
       } else
-      { PL_register_atom(*arg);
+      { if ( !ci->islocal )
+	  PL_register_atom(*arg);
 	Output_1(ci, (where & A_BODY) ? B_CONST : H_CONST, *arg);
       }
       return NONVOID;
@@ -964,6 +1097,9 @@ be a variable, and thus cannot be removed if it is before an I_POPF.
       return NONVOID;
     }
     case TAG_STRING:
+    if ( ci->islocal )
+    { goto argvar;
+    } else
     { Word p = addressIndirect(*arg);
 
       int n  = wsizeofInd(*p);
@@ -979,7 +1115,26 @@ Non-void variables. There are many cases for this.
 
 isvar:
   if ( (index = isIndexedVarTerm(*arg)) >= 0 )
-  { first = isFirstVar(ci->used_var, index);
+  { if ( ci->islocal )
+    { VarDef v = vardefs[*arg>>LMASK_BITS];
+      int voffset = VAROFFSET(index);
+      Word k = varFrameP(lTop, voffset);
+
+      DEBUG(1, Sdprintf("Linking b_var(%d) to %s\n",
+			index, vName(v->address)));
+
+      *k = makeRef(v->address);
+
+      if ( index < 3 )
+      { Output_0(ci, B_VAR0 + index);
+      } else
+      { Output_1(ci, B_VAR, voffset);
+      }
+
+      return NONVOID;
+    }
+
+    first = isFirstVar(ci->used_var, index);
 
     if ( index < ci->arity )		/* variable on its own in the head */
     { if ( where & A_BODY )
@@ -1026,6 +1181,24 @@ isvar:
 
   assert(isTerm(*arg));
     
+  if ( ci->islocal )
+  { int voffset;
+    Word k;
+
+  argvar:
+    voffset = VAROFFSET(ci->argvar);
+    k = varFrameP(lTop, voffset);
+
+    *k = *arg;
+    if ( ci->argvar < 3 )
+    { Output_0(ci, B_VAR0 + ci->argvar);
+    } else
+    { Output_1(ci, B_VAR, voffset);
+    }
+    ci->argvar++;
+
+    return NONVOID;
+  } else
   { int ar;
     int lastnonvoid;
     functor_t fdef;
@@ -1110,7 +1283,9 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
   }
 
   if ( isTerm(*arg) )
-  {
+  { functor_t functor = functorTerm(*arg);
+    FunctorDef fdef = valueFunctor(functor);
+      
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 If the argument is of the form <Module>:<Goal>, <Module> is an atom  and
 <Goal>  is  nonvar  then compile to the specified module.  Otherwise use
@@ -1122,8 +1297,10 @@ baz/0  into module foo.  In general: the context module should be set to
 the appropriate value.  This needs a  new  virtual  machine  instruction
 that  handles  calls  with  specified context module.  For the moment we
 will use the meta-call mechanism for all these types of calls.
+
+[Tue Dec 18 2001] Now we do have I_CONTEXT.  Time to reconsider!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    if ( functorTerm(*arg) == FUNCTOR_module2 )
+    if ( functor == FUNCTOR_module2 )
     {
   /*							SEE COMMENT ABOVE
       Word mp, g;
@@ -1146,12 +1323,10 @@ will use the meta-call mechanism for all these types of calls.
 /*  cont: */
 
 #if O_COMPILE_ARITH
-    if ( trueFeature(OPTIMISE_FEATURE) )
-    { switch( compileArith(arg, ci) )
-      { case A_OK:	succeed;
-	case A_ERROR:	fail;
-      }
-    }
+    if ( true(fdef, ARITH_F) &&
+	 trueFeature(OPTIMISE_FEATURE) &&
+	 !ci->islocal )			/* no use for local compilation */
+      return compileArith(arg, ci);
 #endif /* O_COMPILE_ARITH */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1159,9 +1334,7 @@ Term, not a variable and not a module call.  Compile the  arguments  and
 generate  the  call  instruction.   Note  this  codes traps the $apply/2
 operator.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    { functor_t functor = functorTerm(*arg);
-      FunctorDef fdef = valueFunctor(functor);
-      Procedure proc = lookupProcedure(functor, tm);
+    { Procedure proc = lookupProcedure(functor, tm);
       int ar = fdef->arity;
 
 #ifdef O_INLINE_FOREIGNS
@@ -1281,10 +1454,13 @@ mapping  between  the  term  and  the arithmetic function is done by the
 compiler rather than the evaluation routine.
 
 OUT-OF-DATE: now pushes *numbers* rather then tagged Prolog data structures.
+
+Note. This function assumes the functors   of  all arithmetic predicates
+are tagged using the functor ARITH_F. See registerArithFunctors().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if O_COMPILE_ARITH
-static int
+static bool
 compileArith(Word arg, compileInfo *ci)
 { code a_func;
   functor_t fdef = functorTerm(*arg);
@@ -1297,23 +1473,25 @@ compileArith(Word arg, compileInfo *ci)
   else if ( fdef == FUNCTOR_larger_equal2 )	a_func = A_GE;	/* >= */
   else if ( fdef == FUNCTOR_is2 )				/* is */
   { if ( !compileArgument(argTermP(*arg, 0), A_BODY, ci) )
-      return A_ERROR;
+      fail;
     Output_0(ci, A_ENTER);
     if ( !compileArithArgument(argTermP(*arg, 1), ci) )
-      return A_ERROR;
+      fail;
     Output_0(ci, A_IS);
-    return A_OK;
-  } else
-    return A_NOTARITH;			/* not arith function */
+    succeed;
+  } else	
+  { assert(0);			/* see pl-func.c, registerArithFunctors() */
+    fail;
+  }
 
   Output_0(ci, A_ENTER);
   if ( !compileArithArgument(argTermP(*arg, 0), ci) ||
        !compileArithArgument(argTermP(*arg, 1), ci) )
-    return A_ERROR;
+    fail;
 
   Output_0(ci, a_func);
 
-  return A_OK;
+  succeed;
 }
 
 

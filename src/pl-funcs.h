@@ -545,7 +545,6 @@ word		pl_option(term_t key, term_t old, term_t new, control_t h);
 int		set_pl_option(const char *name, const char *value);
 word		pl_style_check(term_t old, term_t new);
 word		pl_novice(term_t old, term_t new);
-int		g_free_variables(Word t, Word p0, int n);
 
 /* pl-feature.c */
 void		defFeature(const char *name, int flags, ...);

@@ -888,6 +888,7 @@ with one operation, it turns out to be faster as well.
 
 #define INLINE_F		(0x0001) /* functor (inline foreign) */
 #define CONTROL_F		(0x0002) /* functor (compiled controlstruct) */
+#define ARITH_F			(0x0004) /* functor (arithmetic operator) */
 
 #define R_DIRTY			(0x0001) /* recordlist */
 #define R_EXTERNAL		(0x0002) /* record: inline atoms */
@@ -962,16 +963,6 @@ of garbage on this clause.
 #define leaveDefinition(def) \
 	{ PL_LOCK(L_PREDICATE); \
           leaveDefinitionNOLOCK(def); \
-	  PL_UNLOCK(L_PREDICATE); \
-	}
-#define leaveDefinitionCL(def, cl) \
-	{ PL_LOCK(L_PREDICATE); \
-          if ( --def->references == 0 ) \
-	  { if ( true(def, NEEDSCLAUSEGC|NEEDSREHASH) ) \
-              gcClausesDefinition(def); \
-	  } else if ( def == PROCEDURE_dcall1->definition ) \
-	    retractClauseDefinition(def, cl->clause); \
-	  DEBUG(0, assert(def->references >= 0)); \
 	  PL_UNLOCK(L_PREDICATE); \
 	}
 
@@ -1094,18 +1085,21 @@ struct functorDef
 
 
 struct clause
-{ Procedure	procedure;	/* procedure we belong to */
-  Code		codes;		/* byte codes of clause */
-  struct index	index;		/* index key of clause */
+{ Procedure	procedure;		/* procedure we belong to */
+  Code		codes;			/* VM codes of clause */
+  struct index	index;			/* index key of clause */
 #ifdef O_LOGICAL_UPDATE
   struct
-  { unsigned long created;	/* Generation that created me */
-    unsigned long erased;	/* Generation I was erased */
+  { unsigned long created;		/* Generation that created me */
+    unsigned long erased;		/* Generation I was erased */
   } generation;
 #endif /*O_LOGICAL_UPDATE*/
-  short		code_size;	/* size of byte code array */
-  short		variables;		/* # of variables for frame */
-  short		prolog_vars;		/* # real Prolog variables */
+  unsigned short	code_size;	/* size of ->codes */
+  unsigned short	variables;	/* # of variables for frame */
+  unsigned short	prolog_vars;	/* # real Prolog variables */
+#ifdef O_SHIFT_STACKS
+  unsigned short	marks;		/* C_MARK reserved */
+#endif
   unsigned short	line_no;	/* Source line-number */
   unsigned short	source_no;	/* Index of source-file */
   unsigned short	flags;		/* Flag field holding: */

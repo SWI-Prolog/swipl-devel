@@ -509,10 +509,10 @@ allocGlobal(int n)
 { GET_LD
   Word result;
 
-  if ( roomStack(global)/sizeof(word) < (long) n )
+  if ( roomStack(global) < (long) n * sizeof(word) )
   { growStacks(NULL, NULL, NULL, FALSE, TRUE, FALSE);
 
-    if ( roomStack(global)/sizeof(word) < (long) n )
+    if ( roomStack(global) < (long) n * sizeof(word) )
       outOfStack((Stack) &LD->stacks.global, STACK_OVERFLOW_FATAL);
   }
 

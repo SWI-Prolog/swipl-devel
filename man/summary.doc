@@ -125,6 +125,7 @@ suggest predicates from a keyword.
 \predicatesummary{current_mutex}{3}{Examine existing mutexes}
 \predicatesummary{current_op}{3}{Examine current operator declarations}
 \predicatesummary{current_output}{1}{Get the current output stream}
+\predicatesummary{current_predicate}{1}{Examine existing predicates (ISO)}
 \predicatesummary{current_predicate}{2}{Examine existing predicates}
 \predicatesummary{current_signal}{3}{Current software signal mapping}
 \predicatesummary{current_stream}{3}{Examine open streams}
@@ -144,6 +145,7 @@ suggest predicates from a keyword.
 \predicatesummary{delete_directory}{1}{Remove a folder from the file system}
 \predicatesummary{delete_file}{1}{Remove a file from the file system}
 \oppredsummary{discontiguous}{1}{fx}{1150}{Indicate distributed definition of a predicate}
+\predicatesummary{deterministic}{0}{Test deterministicy of current goal}
 \predicatesummary{dwim_match}{2}{Atoms match in ``Do What I Mean'' sense}
 \predicatesummary{dwim_match}{3}{Atoms match in ``Do What I Mean'' sense}
 \predicatesummary{dwim_predicate}{2}{Find predicate in ``Do What I Mean'' sense}
