@@ -83,14 +83,6 @@ ws_revision(void)
 }
 
 
-int
-iswin32s()
-{ if( GetVersion() & 0x80000000 && (GetVersion() & 0xFF) == 3 )
-    return TRUE;
-  return FALSE;
-}
-
-
 os_platform
 ws_platform(void)
 { static int done = FALSE;

@@ -1259,16 +1259,13 @@ makeClassFile(Class class)
   setLoadStoreFunctionClass(class, loadFile, storeFile);
 
 #if defined(__WIN32__)
-{ int w32s = iswin32s();
-
-  featureClass(class, NAME_caseSensitive, OFF);
-  featureClass(class, NAME_casePreserving, w32s ? OFF : ON);
-  featureClass(class, NAME_8plus3names, w32s ? ON : OFF);
-}
-#else
-  featureClass(class, NAME_caseSensitive, ON);
+  featureClass(class, NAME_caseSensitive,  OFF);
   featureClass(class, NAME_casePreserving, ON);
-  featureClass(class, NAME_8plus3names, OFF);
+  featureClass(class, NAME_8plus3names,    OFF);
+#else
+  featureClass(class, NAME_caseSensitive,  ON);
+  featureClass(class, NAME_casePreserving, ON);
+  featureClass(class, NAME_8plus3names,    OFF);
 #endif
 
   FileFilters = globalObject(NAME_compressionFilters, ClassSheet,

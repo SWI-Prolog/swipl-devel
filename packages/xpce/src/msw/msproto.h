@@ -39,7 +39,6 @@ void	ws_redraw_window(PceWindow sw, IArea a, int clear);
 int	ws_emulate_three_buttons(int time);
 int	ws_mousebuttons(void);
 void	ws_kill_process(Process p, int sig);
-int	iswin32s(void);
 char *	ws_os(void);
 Name	WinStrError(int error, ...);
 status	makeClassWinMF(Class class);

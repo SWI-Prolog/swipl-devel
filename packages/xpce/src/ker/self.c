@@ -1697,13 +1697,7 @@ pceInitialise(int handles, const char *home, int argc, char **argv)
 
   DEBUG_BOOT(Cprintf("Defining features\n"));
 
-#ifdef __unix__
   featurePce(PCE, NAME_process);
-#endif
-#ifdef __WIN32__
-  if ( !iswin32s() )
-    featurePce(PCE, NAME_process);
-#endif
 #if defined(HAVE_SOCKET) || defined(HAVE_WINSOCK)
   featurePce(PCE, NAME_socket);
 #endif
