@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#28: error messages of class tokenizer.  Jiri Spitz.
+
 * FIXED: Bug#26: make accelerators in menus work.  Holger Kanwischer.
 
 

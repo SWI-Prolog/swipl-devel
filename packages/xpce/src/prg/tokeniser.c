@@ -306,7 +306,7 @@ getTokenTokeniser(Tokeniser t)
     if ( tiscommentstart(s, c) )	/* 1 character comment */
     { do
       { if ( IsEof(c = GETC(t)) )
-	{ send(t, NAME_syntaxError, CtoName("End of file in comment"));
+	{ send(t, NAME_syntaxError, CtoName("End of file in comment"), EAV);
 	  fail;
 	}
       } while( !tiscommentend(s, c) );
@@ -322,7 +322,7 @@ getTokenTokeniser(Tokeniser t)
 	while( !tiscommentend1(s, c1) || !tiscommentend2(s, c2) )
 	{ c1 = c2;
 	  if ( IsEof(c2 = GETC(t)) )
-	  { send(t, NAME_syntaxError, CtoName("End of file in comment"));
+	  { send(t, NAME_syntaxError, CtoName("End of file in comment"), EAV);
 	    fail;
 	  }
 	}
@@ -349,7 +349,7 @@ getTokenTokeniser(Tokeniser t)
 
     for(;;)
     { if ( IsEof(c = GETC(t)) )
-      { send(t, NAME_syntaxError, CtoName("End of file in string"));
+      { send(t, NAME_syntaxError, CtoName("End of file in string"), EAV);
 	fail;
       }
 	
@@ -369,7 +369,7 @@ getTokenTokeniser(Tokeniser t)
 	{ int c2;
 
 	  if ( IsEof(c2 = GETC(t)) )
-	  { send(t, NAME_syntaxError, CtoName("End of file in string"));
+	  { send(t, NAME_syntaxError, CtoName("End of file in string"), EAV);
 	    fail;
 	  }
 	  if ( c2 != open )
@@ -451,7 +451,7 @@ getTokenTokeniser(Tokeniser t)
       { DEBUG(NAME_tokeniser, 
 	      Cprintf("Num = '%s' (%ld), e = %d, q = %d\n",
 		      buf, f, e-buf, q-buf));
-	send(t, NAME_syntaxError, CtoName("Illegal number"));
+	send(t, NAME_syntaxError, CtoName("Illegal number"), EAV);
 	fail;
       }
       answer(toInt(f));
@@ -462,7 +462,7 @@ getTokenTokeniser(Tokeniser t)
       { DEBUG(NAME_tokeniser,
 	      Cprintf("Num = '%s' (%f), e = %d, q = %d\n",
 		      buf, f, e-buf, q-buf));
-	send(t, NAME_syntaxError, CtoName("Illegal number"));
+	send(t, NAME_syntaxError, CtoName("Illegal number"), EAV);
 	fail;
       }
       answer(CtoReal(f));
