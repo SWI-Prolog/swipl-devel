@@ -123,7 +123,8 @@ initialise(F) :->
 	send(new(dialog), below, E),
 	send(F, slot, history, new(chain)),
 	send(F, fill_menu_bar),
-	send(F, fill_dialog).
+	send(F, fill_dialog),
+	send(F, table_of_contents).
 
 give_help(F, What:name, Clear:[bool], ScrollToStart:[bool]) :->
 	get(F, display, Display),
@@ -160,7 +161,7 @@ go(F, What:name) :->
 about(_F) :->
 	send(@display, inform,
 	     '%s\n\n%s\n%s',
-	     'SWI-Prolog manual browser version 2.0',
+	     'SWI-Prolog manual browser version 3.0',
 	     'Jan Wielemaker',
 	     'E-mail: jan@swi-prolog.org').
 
@@ -172,7 +173,6 @@ fill_menu_bar(F) :->
 	send(D, append, new(MB, menu_bar)),
 	send(MB, append, new(File, popup(file))),
 	send(MB, append, new(Settings, popup(settings))),
-	send(MB, append, new(View, popup(view))),
 	send(MB, append, new(Hist, popup(go, message(F, go, @arg1)))),
 	send(MB, append, new(Help, popup(help))),
 
@@ -184,14 +184,6 @@ fill_menu_bar(F) :->
 	send_list(Settings, append,
 		  [ menu_item('User init file ...',
 			      message(F, edit_preferences, prolog))
-		  ]),
-
-	send_list(View, append,
-		  [ menu_item(table_of_contents,
-			      message(F, table_of_contents),
-			      end_group := @on),
-		    menu_item(whole_section,
-			      message(F, scope, section))
 		  ]),
 
 	send(Hist, update_message,
@@ -306,31 +298,6 @@ table_of_contents(F) :->
 	    send(PT, expand_node, manual)
 	).
 
-scope(F, _Scope:name) :->
-	"Enlarge the scope"::
-	get(F?history, head, Current),
-	atom_codes(Current, Chars),
-	(   phrase(pl_function(Name), Chars)
-	->  findall(Sec, plain_function_in_section(Sec, Name), Secs)
-	;   phrase(name_and_arity(Name, Arity), Chars)
-	->  findall(Sec, plain_predicate_in_section(Sec, Name/Arity), Secs)
-	;   findall(Sec, plain_predicate_in_section(Sec, Current/_), Secs)
-	),
-	longest_list(Secs, Section),
-	concat_atom(Section, '.', Id),
-	send(F, give_help, Id).
-	
-longest_list([H|T], L) :-
-	length(H, Len),
-	longest_list(T, Len, H, L).
-longest_list([], _, L, L).
-longest_list([H|T], Len0, L0, L) :-
-	length(H, Len1),
-	(   Len1 > Len0
-	->  longest_list(T, Len1, H, L)
-	;   longest_list(T, Len0, L0, L)
-	).
-
 :- pce_end_class.
 
 
@@ -341,8 +308,10 @@ longest_list([H|T], Len0, L0, L) :-
 :- pce_begin_class(pui_editor, view,
 		   "Editor for PUI help text").
 
+variable(displayed_ranges, prolog, get, "Currently displayed ranges").
+
 initialise(V) :->
-	send(V, send_super, initialise),
+	send_super(V, initialise),
 	get(V, editor, Editor),
 	send(V, setup_isearch),
 	send(Editor?text_cursor, displayed, @off),
@@ -382,9 +351,16 @@ setup_isearch(V) :->
 				    @arg1)))).
 	
 
-clear(_, @off) :- !.
-clear(V, _) :-
-	send(V, clear).
+displayed_ranges(V, Displayed:prolog) :->
+	send(V, slot, displayed_ranges, Displayed),
+	(   get(V?frame, member, pui_toc, TocTree)
+	->  send(TocTree, select_range, Displayed)
+	;   true
+	).
+
+clear(V) :->
+	send_super(V, clear),
+	send(V, displayed_ranges, []).
 
 give_help(V, What:name,
      Clear:[bool], ScrollToStart:[bool],
@@ -392,7 +368,10 @@ give_help(V, What:name,
 	"Display help message"::
 	send(V, editable, @on),
 	(   manual_range(What, Ranges)
-	->  clear(V, Clear),
+	->  (   Clear == @off
+	    ->	true
+	    ;	send(V, clear)
+	    ),
 	    manual_file(ManFile),
 	    new(F, file(ManFile)),
 	    get(V, caret, Start),
@@ -408,10 +387,14 @@ give_help(V, What:name,
 	    ->  send(V, caret, Start),
 		send(V, scroll_to, Start)
 	    ;   true
-	    )
+	    ),
+	    send(V, displayed_ranges, Ranges)
 	;   FailOnError == @on
 	->  fail
-	;   clear(V, Clear),
+	;   (   Clear == @off
+	    ->	true
+	    ;	send(V, clear)
+	    ),
 	    send(V, format, 'Could not find help for "%s".\n', What),
 	    send(V, caret, 0)
 	),
@@ -883,16 +866,15 @@ initialise(PT) :->
 	send(PT, root,
 	     toc_folder('Manual', manual, resource(manual), resource(book))).
 
+
 		 /*******************************
 		 *	       OPEN		*
 		 *******************************/
 
 select_node(PT, Id:name) :->
-	(   atom_codes(Id, S),
-	    phrase(section([_]), S)
-	->  true			% entire chapter
-	;   send(PT?frame, give_help, Id)
-	).
+	"Show selected section"::
+	send(PT?frame, give_help, Id).
+
 
 		 /*******************************
 		 *	      EXPAND		*
@@ -903,34 +885,18 @@ expand_node(PT, Node:any) :->
 	send(PT, send_super, expand_node, Node).
 
 expand_node(PT, manual) :- !,
-	forall(section([N], Title, _, _),
-	       add_section(PT, manual, Title, [N])).
+	forall(section([N], _, _, _),
+	       send(PT, son, manual, pui_section_node([N]))).
 expand_node(PT, Section) :-
 	atom_codes(Section, S),
 	phrase(section(List), S),
 	subsection(List, I),
-	forall(section(I, Title, _, _),
-	       add_section(PT, Section, Title, I)),
+	forall(section(I, _, _, _),
+	       send(PT, son, Section, pui_section_node(I))),
 	forall(predicate_in_section(List, Name/Arity),
-	       (   concat_atom([Name, /, Arity], Id),
-		   send(PT, son, Section,
-			toc_file(Id, Id, resource(predicate)))
-	       )),
+	       send(PT, son, Section, pui_predicate_node(Name, Arity))),
 	forall(function_in_section(List, Name),
-	       send(PT, son, Section,
-		    toc_file(Name, Name, resource(cfunction)))).
-
-add_section(PT, Parent, Title, Son) :-
-	(   can_expand(Son)
-	->  CanExpand = @on
-	;   CanExpand = @off
-	),
-	concat_atom(Son, '.', Id),
-	send(PT, son, Parent,
-	     toc_folder(Title, Id,
-			resource(manual), resource(book),
-			CanExpand)).
-
+	       send(PT, son, Section, pui_function_node(Name))).
 
 can_expand(Section) :-
 	subsection(Section, Sub),
@@ -966,6 +932,117 @@ function_in_section(Section, Func) :-
 subsection(Sec, Sub) :-
 	append(Sec, [_], Sub).
 	
+select_range(PT, Ranges:prolog) :->
+	"Select selections in range"::
+	(   Ranges == []
+	->  send(PT, selection, @nil)
+	;   get(PT, node, manual, Root),
+	    send(Root, collapsed, @off),
+	    send(Root?sons, for_all,
+		 message(@arg1, select_range, prolog(Ranges))),
+	    get(PT, selection, Nodes),
+	    send(PT, normalise, Nodes, y)
+	).
+	    
+in_range(F-T, Node, How) :-
+	get(Node, start, S),
+	get(Node, end, E),
+	\+  (   F>=E
+	    ;   T=<S
+	    ),
+	(   S>=F,E=<T
+	->  How = all
+	;   How = partial
+	).
+in_range([H|_], Node, How) :-
+	in_range(H, Node, How).
+in_range([_|T], Node, How) :-
+	in_range(T, Node, How).
 
 
 :- pce_end_class.
+
+:- pce_begin_class(pui_section_node, toc_folder,
+		   "Represent section of the manual").
+
+variable(start,	int, get, "Start index").
+variable(end,	int, get, "End index").
+
+initialise(N, Index:prolog) :->
+	section(Index, Title, Start, End),
+	(   can_expand(Index)
+	->  CanExpand = @on
+	;   CanExpand = @off
+	),
+	concat_atom(Index, '.', Id),
+	send_super(N, initialise, Title?capitalise, Id,
+		   resource(manual), resource(book),
+		   CanExpand),
+	(   font(Index, Font)
+	->  send(N, font, Font)
+	;   true
+	),
+	send(N, slot, start, Start),
+	send(N, slot, end, End).
+
+font([_], bold).
+
+select_range(N, Ranges:prolog) :->
+	"Select nodes in given ranges"::
+	(   in_range(Ranges, N, all)
+	->  send(N, selected, @on)
+	;   in_range(Ranges, N, partial)
+	->  send(N, collapsed, @off),
+	    send(N?sons, for_all,
+		 message(@arg1, select_range, prolog(Ranges)))
+	;   true
+	).
+
+:- pce_end_class(pui_section_node). 
+
+
+:- pce_begin_class(pui_predicate_node, toc_file,
+		   "Represent a single predicate").
+
+variable(start,	int, get, "Start index").
+variable(end,	int, get, "End index").
+
+initialise(N, Name:name, Arity:int) :->
+	predicate(Name, Arity, _Summary, Start, End),
+	concat_atom([Name, Arity], '/', Id),
+	send_super(N, initialise, Id, Id, resource(predicate)),
+	send(N, slot, start, Start),
+	send(N, slot, end, End).
+
+select_range(N, Ranges:prolog) :->
+	"Select nodes in given ranges"::
+	(   in_range(Ranges, N, _)
+	->  send(N, selected, @on)
+	;   true
+	).
+
+:- pce_end_class.
+
+
+:- pce_begin_class(pui_function_node, toc_file,
+		   "Represent a single C-function").
+
+variable(start,	int, get, "Start index").
+variable(end,	int, get, "End index").
+
+initialise(N, Name:name) :->
+	function(Name, Start, End),
+	send_super(N, initialise, Name, Name, resource(cfunction)),
+	send(N, slot, start, Start),
+	send(N, slot, end, End).
+
+select_range(N, Ranges:prolog) :->
+	"Select nodes in given ranges"::
+	(   in_range(Ranges, N, _)
+	->  send(N, selected, @on)
+	;   true
+	).
+
+:- pce_end_class.
+
+
