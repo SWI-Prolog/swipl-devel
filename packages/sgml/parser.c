@@ -2566,7 +2566,7 @@ open_element(dtd_parser *p, dtd_element *e, int warn)
 
 
 static int
-close_element(dtd_parser *p, dtd_element *e)
+close_element(dtd_parser *p, dtd_element *e, int conref)
 { sgml_environment *env;
 
   for(env = p->environments; env; env=env->parent)
@@ -2576,7 +2576,8 @@ close_element(dtd_parser *p, dtd_element *e)
       for(env = p->environments; ; env=parent)
       {	dtd_element *ce	= env->element;
 
-	validate_completeness(env);
+	if ( !(conref && env == p->environments) )
+	  validate_completeness(env);
 	parent = env->parent;
 	
 	p->first = FALSE;
@@ -2606,7 +2607,7 @@ close_current_element(dtd_parser *p)
   { dtd_element *e = p->environments->element;
     
     emit_cdata(p, TRUE);
-    return close_element(p, e);
+    return close_element(p, e, FALSE);
   }
 
   return gripe(ERC_SYNTAX_ERROR, "No element to close", "");
@@ -2820,6 +2821,7 @@ process_begin_element(dtd_parser *p, const ichar *decl)
     int natts;
     dtd_element *e = find_element(dtd, id);
     int empty = FALSE;
+    int conref = FALSE;
 
     if ( !e->structure )
     { dtd_edef *def;
@@ -2846,6 +2848,15 @@ process_begin_element(dtd_parser *p, const ichar *decl)
 #endif
       if ( dtd->dialect != DL_SGML )
 	update_space_mode(p, e, natts, atts);
+    } else
+    { int i;
+
+      for(i=0; i<natts; i++)
+      { if ( atts[i].definition->def == AT_CONREF )
+	{ empty = TRUE;
+	  conref = TRUE;
+	}
+      }
     }
     if ( *decl )
       gripe(ERC_SYNTAX_ERROR, "Bad attribute list", decl);
@@ -2860,7 +2871,7 @@ process_begin_element(dtd_parser *p, const ichar *decl)
 	  e->structure &&
 	  e->structure->type == C_EMPTY &&
 	  !e->undefined) )
-      close_element(p, e);
+      close_element(p, e, conref);
 
     return TRUE;
   }
@@ -2877,7 +2888,7 @@ process_end_element(dtd_parser *p, const ichar *decl)
   
   emit_cdata(p, TRUE);
   if ( (s=itake_name(dtd, decl, &id)) && *s == '\0' )
-    return close_element(p, find_element(dtd, id));
+    return close_element(p, find_element(dtd, id), FALSE);
 
   if ( p->dtd->shorttag && *decl == '\0' )
     return close_current_element(p);
@@ -3481,7 +3492,7 @@ prepare_cdata(dtd_parser *p)
     { dtd_element *e = p->environments->element;
 
       if ( e->structure && e->structure->type == C_EMPTY && !e->undefined )
-	close_element(p, e);
+	close_element(p, e, FALSE);
     }
 
     if ( p->blank_cdata == TRUE )
@@ -3641,7 +3652,7 @@ end_document_dtd_parser(dtd_parser *p)
 	  e = env->element;
 	  if ( e->structure && !e->structure->omit_close )
 	    gripe(ERC_OMITTED_CLOSE, e->name->name);
-	  close_element(p, e);
+	  close_element(p, e, FALSE);
 	}
       }
       return TRUE;
