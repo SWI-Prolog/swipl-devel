@@ -1,9 +1,11 @@
+Jun 3, 2003
+
+* PORT: Provide support for BerkeleyDB 4.1
+
 May 29, 2002
-============
 
 * PORT: Added Win32 Makefile.mak
 
 Mar 18, 2002
-============
 
 * PORT: Extend configure to check for ->set_rpc_server() from BerkeleyDB 4.0

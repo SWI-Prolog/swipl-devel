@@ -39,10 +39,10 @@
 #include <assert.h>
 #include <signal.h>
 
-#if 1
-#define DEBUG(g) (void)0
-#else
+#ifdef O_DEBUG
 #define DEBUG(g) g
+#else
+#define DEBUG(g) (void)0
 #endif
 
 static atom_t ATOM_read;
@@ -76,7 +76,8 @@ static atom_t ATOM_client_timeout;
 static functor_t FUNCTOR_db1;
 static functor_t FUNCTOR_type1;
 
-DB_ENV *db_env;				/* default environment */
+static DB_ENV *db_env;			/* default environment */
+static int     opt_transactions;	/* are transactions enabled? */
 
 #define mkfunctor(n, a) PL_new_functor(PL_new_atom(n), a)
 
@@ -508,11 +509,13 @@ pl_db_open(term_t file, term_t mode, term_t handle, term_t options)
     return FALSE;
   
 #ifdef DB41
-  NOSIG(rval=dbh->db->open(dbh->db, NULL, fname,
-			   subdb, type, flags|DB_AUTO_COMMIT, m));
+  if ( opt_transactions )
+    flags |= DB_AUTO_COMMIT;
+  NOSIG(rval=dbh->db->open(dbh->db, NULL, fname, subdb, type, flags, m));
 #else
   NOSIG(rval=dbh->db->open(dbh->db, fname, subdb, type, flags, m));
 #endif
+
   if ( rval )
   { dbh->db->close(dbh->db, 0);
     return db_status(rval);
@@ -1243,7 +1246,9 @@ pl_db_init(term_t option_list)
 	if ( !get_bool_ex(a, &v) )
 	  return FALSE;
 	if ( v )
-	  flags |= (DB_INIT_TXN|DB_INIT_MPOOL|DB_INIT_LOCK|DB_INIT_LOG);
+	{ flags |= (DB_INIT_TXN|DB_INIT_MPOOL|DB_INIT_LOCK|DB_INIT_LOG);
+	  opt_transactions = TRUE;
+	}
       } else if ( name == ATOM_create )	/* Create files */
       {	int v;
 
