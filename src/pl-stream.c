@@ -21,6 +21,7 @@
 #define _MAKE_DLL
 #undef _export
 #include "pl-stream.h"
+#include <sys/types.h>
 #include <errno.h>
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>

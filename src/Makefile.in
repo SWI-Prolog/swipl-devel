@@ -112,9 +112,12 @@ index:
 $(INCLUDEDIR):
 		if [ ! -d $@ ]; then mkdir $@; fi
 
-$(EXPORTS):	Makefile pl-export $(INCLUDEDIR)
+$(EXPORTS):	Makefile pl-itf.h $(INCLUDEDIR)
 		echo \#\!$(bindir)/$(PL) > $(EXPORTS)
-		cat pl-export >> $(EXPORTS)
+		grep '^__pl_export' pl-itf.h | \
+			$(SED) 's/.*\(PL_[a-zA-Z0-9_]*\).*/\1/' | \
+			grep -v '_t$$' | \
+			sort -u >> $(EXPORTS)
 
 $(CINCLUDE):	pl-itf.h $(INCLUDEDIR)
 		cp pl-itf.h $(CINCLUDE)

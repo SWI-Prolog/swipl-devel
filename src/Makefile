@@ -15,7 +15,7 @@
 #
 ################################################################
 
-PLVERSION=2.0.8
+PLVERSION=2.0.9
 
 PL=pl
 prefix=/staff/jan
@@ -26,7 +26,7 @@ mansec=1
 mandir=$(prefix)/man/man$(mansec)
 
 CC=gcc
-LIBS= -lreadline -ltermcap -lm -ldl
+LIBS= -lreadline -ltermcap -lm -ldl -ldl
 STATICLIBS=/usr/lib/libc.a
 AWK=nawk
 SED=sed
@@ -113,9 +113,12 @@ index:
 $(INCLUDEDIR):
 		if [ ! -d $@ ]; then mkdir $@; fi
 
-$(EXPORTS):	Makefile pl-export $(INCLUDEDIR)
+$(EXPORTS):	Makefile pl-itf.h $(INCLUDEDIR)
 		echo \#\!$(bindir)/$(PL) > $(EXPORTS)
-		cat pl-export >> $(EXPORTS)
+		grep '^__pl_export' pl-itf.h | \
+			$(SED) 's/.*\(PL_[a-zA-Z0-9_]*\).*/\1/' | \
+			grep -v '_t$$' | \
+			sort -u >> $(EXPORTS)
 
 $(CINCLUDE):	pl-itf.h $(INCLUDEDIR)
 		cp pl-itf.h $(CINCLUDE)

@@ -191,6 +191,9 @@
 /* Define if you have the select function.  */
 #define HAVE_SELECT 1
 
+/* Define if you have the shl_load function.  */
+/* #undef HAVE_SHL_LOAD */
+
 /* Define if you have the signal function.  */
 #define HAVE_SIGNAL 1
 
@@ -271,6 +274,9 @@
 
 /* Define if you have the dl library (-ldl).  */
 #define HAVE_LIBDL 1
+
+/* Define if you have the dld library (-ldld).  */
+/* #undef HAVE_LIBDLD */
 
 /* Define if you have the elf library (-lelf).  */
 /* #undef HAVE_LIBELF */

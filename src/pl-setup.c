@@ -153,7 +153,7 @@ initFeatures()
 #if defined(O_FOREIGN) || defined(O_MACH_FOREIGN) || defined(O_AIX_FOREIGN)
   CSetFeature("load_foreign",  "true");
 #endif
-#ifdef HAVE_DLOPEN
+#if defined(HAVE_DLOPEN) || defined(HAVE_SLH_LOAD)
   CSetFeature("open_shared_object", "true");
 #endif
 #ifdef O_DLL

@@ -1868,7 +1868,7 @@ pl_qlf_assert_clause(Word ref)
     clause = (Clause) numToPointer(*ref);
   
     if ( !inCore(clause) || !isClause(clause) )
-      return warning("$qlf_assert_claue/1: Invalid reference");
+      return warning("$qlf_assert_clause/1: Invalid reference");
 
     if ( clause->procedure != currentProc )
     { closeProcedureWic(s);

@@ -804,9 +804,40 @@ Word file, entry, options, libraries, size;
 		 *     DLOPEN() AND FRIENDS	*
 		 *******************************/
 
-#ifdef HAVE_DLOPEN
+#ifdef HAVE_DLOPEN			/* sysvr4, elf binaries */
 
 #include <dlfcn.h>
+
+#ifndef RTLD_GLOBAL			/* solaris defines this */
+#define RTLD_GLOBAL 0
+#endif
+
+#endif HAVE_DLOPEN
+
+#ifdef HAVE_SHL_LOAD			/* HPUX */
+
+#include <dl.h>
+#define dlopen(path, flags) shl_load((path), (flags), 0L)
+#define dlclose(handle)	    shl_unload((handle))
+#define dlerror() OsError()
+
+void *
+dlsym(shl_t handle, const char *name)
+{ void *value;
+
+  if ( shl_findsym(&handle, name, TYPE_PROCEDURE, &value) < 0 )
+    return NULL;
+
+  return value;
+}
+
+#define RTLD_LAZY	BIND_DEFERRED
+#define RTLD_GLOBAL	0
+
+#endif
+
+#if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD)
+
 typedef int (*dl_funcptr)();
 
 typedef struct dl_entry *DlEntry;
@@ -820,10 +851,6 @@ struct dl_entry
 int	dl_plid;			/* next id to give */
 DlEntry dl_head;			/* loaded DL's */
 DlEntry dl_tail;			/* end of this chain */
-
-#ifndef RTLD_GLOBAL			/* solaris defines this */
-#define RTLD_GLOBAL 0
-#endif
 
 word
 pl_open_shared_object(Word file, Word plhandle)
