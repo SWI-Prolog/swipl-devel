@@ -496,7 +496,7 @@ bindExtensions(const PL_extension *e)
   for(; e->predicate_name; e++)
   { short flags = TRACE_ME;
     Module m;
-    atom_t name = PL_new_atom(e->predicate_name);
+    atom_t name;
     char *s;
 
     for(s=e->predicate_name; isAlpha(*s); s++)

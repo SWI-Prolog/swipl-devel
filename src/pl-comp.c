@@ -3795,6 +3795,7 @@ pl_break_pc(term_t ref, term_t pc, term_t nextpc, control_t h)
       succeed;
     case FRG_FIRST_CALL:
       offset = 0;
+      break;
     case FRG_REDO:
     default:
       offset = ForeignContextInt(h);
