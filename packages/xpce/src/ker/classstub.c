@@ -96,7 +96,8 @@ static status
 catchAllClassStubv(ClassStub cstub, int argc, Any *argv)
 { Class class;
 
-  if ( (class = getConvertClass(ClassClass, cstub)) )
+  if ( classOfObject(cstub) == ClassClassStub &&
+       (class = getConvertClass(ClassClass, cstub)) )
     return sendv(class, argv[0], argc-1, argv+1);
 
   fail;
@@ -107,7 +108,8 @@ static Any
 getCatchAllClassStubv(ClassStub cstub, int argc, Any *argv)
 { Class class;
 
-  if ( (class = getConvertClass(ClassClass, cstub)) )
+  if ( classOfObject(cstub) == ClassClassStub &&
+       (class = getConvertClass(ClassClass, cstub)) )
     return getv(class, argv[0], argc-1, argv+1);
 
   fail;
