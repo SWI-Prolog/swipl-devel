@@ -9,14 +9,17 @@
 */
 
 
+:- module(link_xpce, []).
+:- use_module(library(lists), [member/2]).
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This file is loaded  on  startup.  Use   it  for  local  (not  personal)
 configuration purposes.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- initialization op(100, fx,  @).
-:- initialization op(150, yfx, ?).
-:- initialization op(990, xfx, :=).
+:- initialization op(100, fx,  user:(@)).
+:- initialization op(150, yfx, user:(?)).
+:- initialization op(990, xfx, user:(:=)).
 
 :- multifile
 	file_search_path/2.
@@ -41,25 +44,25 @@ pcehome_(Home) :-
 	absolute_file_name(RawHome, Home),
 	asserta(pcehomestore_(Home)).
 
-file_search_path(pce, PceHome) :-
+user:file_search_path(pce, PceHome) :-
 	pcehome_(PceHome).
-file_search_path(library, pce('/prolog/lib')).
-file_search_path(foreign, pce(ArchLib)) :-
+user:file_search_path(library, pce('/prolog/lib')).
+user:file_search_path(foreign, pce(ArchLib)) :-
 	current_prolog_flag(arch, Arch),
 	atom_concat('lib/', Arch, ArchLib).
-file_search_path(foreign, pce(lib)).
+user:file_search_path(foreign, pce(lib)).
 
 gui_setup_ :-
 	current_prolog_flag(gui, true), !.
 gui_setup_ :-
 	getenv('DISPLAY', _), !,
 	set_prolog_flag(gui, true),
-	use_module(library(swi_hooks)).	% help, etc.
+	use_module(user:library(swi_hooks)).	% help, etc.
 gui_setup_ :-
 	current_prolog_flag(windows, true),
 	set_prolog_flag(gui, true),
-	use_module(library(win_menu)),
-	use_module(library(swi_hooks)).	% help, etc.
+	use_module(user:library(win_menu)),
+	use_module(user:library(swi_hooks)).	% help, etc.
 
 pce_setup_ :-
 	current_prolog_flag(xpce, true), !.
@@ -74,7 +77,7 @@ pce_setup_ :-
 	    file_base_name(Path, Base),
 	    '$apropos_match'(pce, Base)
 	), !,
-	load_files(library(pce), [silent(true)]),
+	load_files(user:library(pce), [silent(true)]),
 	flag('$banner_goal', _, pce_welcome).
 pce_setup_.
 
