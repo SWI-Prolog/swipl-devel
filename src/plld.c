@@ -831,6 +831,13 @@ tmpPath(char **store, const char *base)
 }
 
 
+#ifndef SO_LD
+#define SO_LD cc
+#endif
+#ifndef PROG_LD
+#define PROG_LD cc
+#endif
+
 static void
 fillDefaultOptions()
 { char tmp[1024];
@@ -842,19 +849,10 @@ fillDefaultOptions()
   defaultProgram(&cxx, defcxx);
 
   if ( !ld )				/* not specified */
-  { if ( shared )
-    {
-#ifndef SO_LD
-       ld = (cppfiles.size > 0 ? cxx : cc);
-#else
-       ld = SO_LD;
-#endif
-    } else
-#ifndef PROG_LD
-       ld = (cppfiles.size > 0 ? cxx : cc);
-#else
-       ld = PROG_LD;
-#endif
+  { ld = (shared ? SO_LD : PROG_LD);
+
+    if ( cppfiles.size > 0 && streq(ld, cc) )
+      ld = cxx;
   }
 
 #ifdef WIN32
