@@ -35,8 +35,11 @@
 	    ord_del_element/3,		% +Set, +Element, -NewSet
 	    ord_intersect/2,		% +Set1, +Set2 (test non-empty)
 	    ord_intersect/3,		% +Set1, +Set2, -Intersection
+	    ord_intersection/3,		% +Set1, +Set2, -Intersection
+	    ord_disjoint/2,		% +Set1, +Set2
 	    ord_subtract/3,		% +Set, +Delete, -Remaining
 	    ord_union/3,		% +Set1, +Set2, -Union
+	    ord_union/4,		% +Set1, +Set2, -Union, -New
 	    ord_subset/2,		% +Sub, +Super (test Sub is in Super)
 					% Non-Quintus extensions
 	    ord_empty/1,		% ?Set
@@ -89,11 +92,28 @@ ord_intersect__(>, H1, T1,  _H2, T2) :-
 	ord_intersect_(T2, H1, T1).
 
 
+%	ord_disjoint(+Set1, +Set2)
+%	
+%	True if Set1 and Set2 have no common elements
+
+ord_disjoint(Set1, Set2) :-
+	\+ ord_intersect(Set1, Set2).
+
+
 %	ord_intersect(+Set1, +Set2, -Intersection)
+%	
+%	Intersection  holds  the  common  elements  of  Set1  and  Set2.
+%	Depreciated. Please use ord_intersection/3 in new code.
+
+ord_intersect(Set1, Set2, Intersection) :-
+	oset_int(Set1, Set2, Intersection).
+
+
+%	ord_intersection(+Set1, +Set2, -Intersection)
 %	
 %	Intersection holds the common elements of Set1 and Set2.
 
-ord_intersect(Set1, Set2, Intersection) :-
+ord_intersection(Set1, Set2, Intersection) :-
 	oset_int(Set1, Set2, Intersection).
 
 
@@ -155,3 +175,31 @@ ord_subtract(InOSet, NotInOSet, Diff) :-
 
 ord_union(Set1, Set2, Union) :-
 	oset_union(Set1, Set2, Union).
+
+
+%	ord_union(+Set1, +Set2, -Union,	-New)
+%	
+%	True if Union iff ord_union(Set1, Set2, Union) and
+%	ord_subtract(Set2, Set1, New).
+
+ord_union([], Set2, Set2, Set2).
+ord_union([H|T], Set2, Union, New) :-
+	ord_union_1(Set2, H, T, Union, New).
+
+ord_union_1([], H, T, [H|T], []).
+ord_union_1([H2|T2], H, T, Union, New) :-
+	compare(Order, H, H2),
+	ord_union(Order, H, T, H2, T2, Union, New).
+
+ord_union(<, H, T, H2, T2, [H|Union], New) :-
+	ord_union_2(T, H2, T2, Union, New).
+ord_union(>, H, T, H2, T2, [H2|Union], [H2|New]) :-
+	ord_union_1(T2, H, T, Union, New).
+ord_union(=, H, T, _, T2, [H|Union], New) :-
+	ord_union(T, T2, Union, New).
+
+ord_union_2([], H2, T2, [H2|T2], [H2|T2]).
+ord_union_2([H|T], H2, T2, Union, New) :-
+	compare(Order, H, H2),
+	ord_union(Order, H, T, H2, T2, Union, New).
+

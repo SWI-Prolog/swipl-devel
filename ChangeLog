@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: More library(ordsets) primitives to support library clp(R).
+
   * FIXED: Allow for errornous parse_url('http://2004.bloggies.com/', X).
     Anjo Anjewierden.
 
