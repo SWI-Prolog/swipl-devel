@@ -89,7 +89,7 @@ static int ctx_idx;
 
 
 static void
-ssl_error(SSL *ssl, int ssl_ret)
+ssl_error(SSL *ssl, int ssl_ret, int code)
 /*
  * Report about errors occuring in the SSL layer
  */
@@ -97,9 +97,23 @@ ssl_error(SSL *ssl, int ssl_ret)
     char  buf[256];
     char *component[5];
     char *colon;
+    int   error = ERR_get_error();
     int   n;
 
-    (void) ERR_error_string(ERR_get_error(), buf);
+    ssl_deb(1, "ssl_error() ret=%d, code=%d, err=%d\n", ssl_ret, code, error);
+
+    if ( code == SSL_ERROR_SYSCALL && error == 0 )
+    { if ( ssl_ret == 0 )
+      {	/* normal if peer just hangs up the line */
+	ssl_deb(1, "SSL error report: unexpected end-of-file\n");
+	return;
+      } else if ( ssl_ret == -1 )
+      { ssl_deb(0, "SSL error report: syscall error: %s\n", strerror(errno));
+	return;
+      }
+    }
+
+    (void) ERR_error_string(error, buf);
 
     /*
      * Disect the following error string:
@@ -112,8 +126,9 @@ ssl_error(SSL *ssl, int ssl_ret)
         *colon++ = 0;
     }
 
-    ssl_deb(1,
-	    "SSL error report:\n\t%8s: %s\n\t%8s: %s\n\t%8s: %s\n"
+    ssl_deb(0,
+	    "SSL error report:\n\t%8s: %s\n\t%8s: %s\n\t%8s: %s\n\t%8s: %s\n"
+	   ,     "code", component[1]
 	   ,  "library", component[2]
 	   , "function", component[3]
 	   ,   "reason", component[4]
@@ -122,51 +137,51 @@ ssl_error(SSL *ssl, int ssl_ret)
 
 static SSL_SOCK_STATUS
 ssl_inspect_status(SSL *ssl, int sock, int ssl_ret)
-{
+{   int code;
+
     if (ssl_ret > 0) {
         return SSL_SOCK_OK;
     }
 
-    if (ssl_ret == 0) {
-        /* SSL controlled failure, see below */
-        switch (SSL_get_error(ssl, ssl_ret)) {
-            case SSL_ERROR_WANT_READ:
-                if (nbio_wait(sock, REQ_READ) == 0) {
-                    return SSL_SOCK_RETRY;
-                }
-                break;
+    code=SSL_get_error(ssl, ssl_ret);
 
-            case SSL_ERROR_WANT_WRITE:
-                if (nbio_wait(sock, REQ_WRITE) == 0) {
-                    return SSL_SOCK_RETRY;
-                }
-                break;
+    switch (code) {
+	case SSL_ERROR_WANT_READ:
+	    if (nbio_wait(sock, REQ_READ) == 0) {
+		return SSL_SOCK_RETRY;
+	    }
+	    break;
+
+	case SSL_ERROR_WANT_WRITE:
+	    if (nbio_wait(sock, REQ_WRITE) == 0) {
+		return SSL_SOCK_RETRY;
+	    }
+	    break;
 
 #ifdef SSL_ERROR_WANT_CONNECT
-            case SSL_ERROR_WANT_CONNECT:
-                if (nbio_wait(sock, REQ_CONNECT) == 0) {
-                    return SSL_SOCK_RETRY;
-                }
-                break;
+	case SSL_ERROR_WANT_CONNECT:
+	    if (nbio_wait(sock, REQ_CONNECT) == 0) {
+		return SSL_SOCK_RETRY;
+	    }
+	    break;
 #endif
 
 #ifdef SSL_ERROR_WANT_ACCEPT
-            case SSL_ERROR_WANT_ACCEPT:
-                if (nbio_wait(sock, REQ_ACCEPT) == 0) {
-                    return SSL_SOCK_RETRY;
-                }
-                break;
+	case SSL_ERROR_WANT_ACCEPT:
+	    if (nbio_wait(sock, REQ_ACCEPT) == 0) {
+		return SSL_SOCK_RETRY;
+	    }
+	    break;
 #endif
 
-            case SSL_ERROR_ZERO_RETURN:
-                return SSL_SOCK_OK;
+	case SSL_ERROR_ZERO_RETURN:
+	    return SSL_SOCK_OK;
 
-            default:
-                break;
-        }
+	default:
+	    break;
     }
 
-    ssl_error(ssl, ssl_ret);
+    ssl_error(ssl, ssl_ret, code);
     return SSL_SOCK_ERROR;
 }
 
