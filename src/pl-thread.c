@@ -1173,7 +1173,7 @@ threadLocalHeapUsed(void)
 static
 PRED_IMPL("thread_setconcurrency", 2, thread_setconcurrency, 0)
 {
-#ifdef HAVE_PTHREAD_GETCONCURRENCY
+#ifdef HAVE_PTHREAD_SETCONCURRENCY
   int val = pthread_getconcurrency();
   int rc;
 
