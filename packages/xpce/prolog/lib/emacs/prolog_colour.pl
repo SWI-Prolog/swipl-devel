@@ -1544,7 +1544,7 @@ identify_fragment(module(Module), _, Summary) :-
 	new(Summary, string('Module %s loaded from %s', Module, Path)).
 identify_fragment(method(send), _, 'XPCE send method').
 identify_fragment(method(get), _, 'XPCE get method').
-identify_fragment(head(unreferenced), _, 'Unreferenced predicate').
+identify_fragment(head(unreferenced), _, 'Unreferenced predicate (from this file)').
 identify_fragment(head(exported), _, 'Exported (Public) predicate').
 identify_fragment(prolog_data, _, 'Pass Prolog term unmodified').
 identify_fragment(Class, _, Summary) :-
