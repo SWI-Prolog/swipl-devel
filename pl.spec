@@ -15,8 +15,10 @@ Provides:	pl-%{version}
 %description
 ISO/Edinburgh-style Prolog compiler including modules, autoload, libraries,
 Garbage-collector, stack-expandor, C/C++-interface, GNU-readline interface,
-very fast compiler, X11 interface using XPCE
-(http://swi.psy.uva.nl/projects/xpce/)
+very fast compiler.  Including packages clib (Unix process control and
+sockets), cpp (C++ interface), sgml (reading XML/SGML), sgml/RDF (reading
+RDF into triples) and XPCE (Graphics UI toolkit, integrated editor
+(Emacs-clone) and graphical debugger).
 
 %prep
 %setup
