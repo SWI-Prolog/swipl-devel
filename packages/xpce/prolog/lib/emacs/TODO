@@ -1,0 +1,22 @@
+			PceEmacs/Prolog IDE TODO list
+
+* Check M-x comment_column
+
+* Show line numbers/provide easy way to get to a line
+
+* Show key-bindings in menu
+
+* Distinguish interactive and system commands
+
+* Fix bookmark handling
+	- save/restore
+	- only show current directory and provide `up' button as navigator
+
+* Prolog mode and Colouring
+	- Provide menu on calls for definition/documentation
+	- Colour redefined global/system predicates
+	- Base goto-definition on colour-xref database
+
+* Prolog navigator
+	- Silent handling of parsing errors (as colouring does).
+	- Graphical indication on the presence of errors (also for prolog mode)

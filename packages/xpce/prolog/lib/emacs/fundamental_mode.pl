@@ -409,6 +409,19 @@ kill_buffer(M) :->
 
 
 		 /*******************************
+		 *	     SETTINGS		*
+		 *******************************/
+
+comment_column(M, Col:[int]) :->
+	"Set comment column to current column"::
+	(   Col == @default
+	->  get(M, column, Column)
+	;   Column = Col
+	),
+	send(M?editor, comment_column, Column).
+
+
+		 /*******************************
 		 *	       PRINT		*
 		 *******************************/
 
