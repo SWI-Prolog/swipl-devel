@@ -49,10 +49,14 @@ Options:
 
 	Name			Type				Default
 	===================================================================
-	output			Stream				user_output
-	right_margin		Integer				72
-	indent_arguments	{auto,true,false}|Integer	auto
-	operators,		{true,false},			true
+	output			Stream			   user_output
+	right_margin		Integer			   72
+	indent_arguments	{auto,true,false}|Integer  auto
+	operators,		{true,false},		   true
+	write_options,		Option List		 [ numbervars(true),
+							   quoted(true),
+							   portray(true)
+							 ]
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 print_term(Term, Options0) :-
@@ -62,8 +66,12 @@ print_term(Term, Options0) :-
 
 defaults([ output(user_output),
 	   right_margin(72),
-	   indent_arguments(2),
-	   operators(true)
+	   indent_arguments(auto),
+	   operators(true),
+	   write_options([ quoted(true),
+			   numbervars(true),
+			   portray(true)
+			 ])
 	 ]).
 
 		 /*******************************
@@ -110,25 +118,25 @@ modify_context(I, Arity, Ctx0, Mapping, Ctx) :-
 pp(Atom, _Ctx, Options) :-
 	atomic(Atom), !,
 	option(Options, output(Out)),
-	print(Out, Atom).
+	write_term(Out, Atom, [quoted(true)]).
 pp(Var, _Ctx, Options) :-
 	var(Var), !,
 	option(Options, output(Out)),
-	print(Out, Var).
+	write_term(Out, Var, [numbervars(true)]).
 pp(List, Ctx, Options) :-
 	List = [_|_], !,
 	context(Ctx, indent, Indent),
 	context(Ctx, depth, Depth),
 	option(Options, output(Out)),
 	option(Options, indent_arguments(IndentStyle)),
-	(   IndentStyle == false
-	->  sformat(Out, '~p', [List])
-	;   IndentStyle == auto,
-	    sformat(Buf, '~p', [List]),
-	    atom_length(Buf, AL),
-	    option(Options, right_margin(RM)),
-	    Indent + AL < RM		% fits on a line, simply write
-	->  write(Out, Buf)
+	(   (   IndentStyle == false
+	    ->	true
+	    ;	IndentStyle == auto,
+		print_width(List, Options, Width),
+		option(Options, right_margin(RM)),
+		Indent + Width < RM
+	    )
+	->  pprint(List, Ctx, Options)
 	;   format(Out, '[ ', []),
 	    Nindent is Indent + 2,
 	    NDepth is Depth + 1,
@@ -195,18 +203,17 @@ pp(Term, Ctx, Options) :-		% handle operators
 		format(Out, ')', [])
 	    )
 	).
-pp(Term, Ctx, Options) :-
+pp(Term, Ctx, Options) :-		% compound
 	option(Options, output(Out)),
 	option(Options, indent_arguments(IndentStyle)),
 	context(Ctx, indent, Indent),
 	(   IndentStyle == false
-	->  sformat(Out, '~p', [Term])
+	->  pprint(Term, Ctx, Options)
 	;   IndentStyle == auto,
-	    sformat(Buf, '~p', [Term]),
-	    atom_length(Buf, AL),
+	    print_width(Term, Options, Width),
 	    option(Options, right_margin(RM)),
-	    Indent + AL < RM		% fits on a line, simply write
-	->  write(Out, Buf)
+	    Indent + Width < RM		% fits on a line, simply write
+	->  pprint(Term, Ctx, Options)
 	;   Term =.. [Name|Args],
 	    sformat(Buf2, '~q(', [Name]),
 	    write(Out, Buf2),
@@ -227,25 +234,25 @@ pp(Term, Ctx, Options) :-
 	).
 	    
 
-pp_list_elements([X|T], Ctx, Options) :-
-	\+ is_list(T), !,
-	pp(X, Ctx, Options),
-	option(Options, output(Out)),
-	context(Ctx, indent, Indent),
-	indent(Out, Indent-2),
-	write(Out, '| '),
-	pp(T, Ctx, Options).
-pp_list_elements([X], Ctx, Options) :- !,
-	pp(X, Ctx, Options).
 pp_list_elements([H|T], Ctx, Options) :-
 	pp(H, Ctx, Options),
-	option(Options, output(Out)),
-	write(Out, ','),
-	context(Ctx, indent, Indent),
-	indent(Out, Indent),
-	pp_list_elements(T, Ctx, Options).
+	(   T == []
+	->  true
+	;   T = [_|_]
+	->  option(Options, output(Out)),
+	    write(Out, ','),
+	    context(Ctx, indent, Indent),
+	    indent(Out, Indent),
+	    pp_list_elements(T, Ctx, Options)
+	;   option(Options, output(Out)),
+	    context(Ctx, indent, Indent),
+	    indent(Out, Indent-2),
+	    write(Out, '| '),
+	    pp(T, Ctx, Options)
+	).
 
-%	match_op(+Type, +Arity, +Precedence, -LeftPrecedence, -RightPrecedence
+
+%	match_op(+Type, +Arity, +Precedence, -LeftPrec, -RightPrec
 
 match_op(fx,	1, prefix,  P, _, R) :- R is P - 1.
 match_op(fy,	1, prefix,  P, _, P).
@@ -256,6 +263,10 @@ match_op(xfy,	2, infix,   P, L, P) :- L is P - 1.
 match_op(yfx,	2, infix,   P, P, R) :- R is P - 1.
 
 
+%	indent(+Out, +Indent)
+%	
+%	Newline and indent to the indicated column.
+
 indent(Out, Indent) :-
 	nl(Out),
 	Tabs is Indent // 8,
@@ -264,5 +275,22 @@ indent(Out, Indent) :-
 	tab(Out, Spaces).
 	
 
-	    
-	
+%	print_width(+Term, +Options, -W)
+%	
+%	Width required when printing `normally' left-to-right.
+
+print_width(Term, Options, W) :-
+	option(Options, write_options(WriteOptions)),
+	open_null_stream(Out),
+	write_term(Out, Term, WriteOptions),
+	line_position(Out, W),
+	close(Out).
+
+%	pprint(+Term, +Context, +Options)
+%	
+%	The bottom-line print-routine.
+
+pprint(Term, _Ctx, Options) :-
+	option(Options, output(Out)),
+	option(Options, write_options(WriteOptions)),
+	write_term(Out, Term, WriteOptions).
