@@ -1,6 +1,18 @@
 [VERSION 4.8.2]
 
-* FIX: @display ->dispatch if the display is not yet opened.
+* INSTALLATION: XPCE is now configured using GNU's autoconf toolkit, simplifying
+  installation.  Requires SWI-Prolog 1.9.2 or later (also configured using
+  autoconf) for automatic linking to SWI-Prolog.
+
+* ADDED: PceEmacs: `@emacs->check_saved_at_exit', called at `@pce->die'.
+  Allows you to stay in XPCE if you leave any unsaved buffers.
+
+* ADDED: PceEmacs: `emacs_buffer->check_modified_file' to check whether
+  the file was modified.  Used to be part of ->modified only.  Now the
+  check is also called from ->open, avoiding you viewing an out-of-date
+  file.
+
+* FIX: `@display ->dispatch' if the display is not yet opened.
 
 * CHANGED: PceDraw now exploits class templates for a much more compact
   definition of its shape classes.  Public schema for extending PceDraw
@@ -26,7 +38,7 @@
   the history accessible for all commands.
 
   A formal PceEmacs extension protocol is added.  See Help/Customise
-  in the PceEmacs manu-bar.
+  in the PceEmacs menu-bar.
 
 * FIX: `meta-class' refinement through subclassing class `class' works
   again.
@@ -44,7 +56,7 @@
 
 * CHANGED: PceDraw and PceEmacs now uses @helper to display help.
 
-* CHANGED: Many changes the the online-help library: automitic generation
+* CHANGED: Many changes to the online-help library: automitic generation
   of table of contents and concept index, menus, automatic recognition
   of @colour_display, etc.  File format and programmatic access is
   compatible.

@@ -234,7 +234,7 @@ evalBreakConditionProgramObject(ProgramObject obj, Goal g)
 }
 
 
-#if O_NO_TAGGED_LVALUE
+#ifndef TAGGED_LVALUE
 void
 setDFlagProgramObject(obj, mask)
 Any obj;

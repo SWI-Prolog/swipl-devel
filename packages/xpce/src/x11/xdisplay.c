@@ -622,7 +622,7 @@ ws_own_selection(DisplayObj d, Name selection)
 Name
 ws_window_manager(DisplayObj d)
 {
-#if _AIX
+#if O_MOTIF
   DisplayWsXref r = d->ws_ref;
 
   if ( XmIsMotifWMRunning(r->shell_xref) )

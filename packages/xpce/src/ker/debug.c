@@ -65,7 +65,7 @@ catchErrorSignals(Bool yes)
   hostAction(HOST_SIGNAL, SIGFPE,  handler);
 }
 
-#if sun && !solaris
+#if defined(sun) && defined(HAVE_FRAME_H)
 
 static int	printFrame(long pc, int an, long *av, long sigpc);
 static void	printArgument(int arg);

@@ -24,8 +24,8 @@ PCEHOME=	/staff/jan/src/xpce
 
 
 CC=gcc
-C++=g++
-C++FLAGS=	-I$(PCEHOME)/include -O
+CXX=g++
+CXXFLAGS=	-I$(PCEHOME)/include -O
 CFLAGS=		-O
 PCELIBS=	$(PCEHOME)/src/XPCE.a -lXt -lX11 -lm
 LDFLAGS=	$(PCELIBS)
@@ -36,4 +36,4 @@ clean:
 # default rules for non GNU-make
 
 .C.o:
-		$(C++) -c $(C++FLAGS) $*.C
+		$(CXX) -c $(CXXFLAGS) $*.C

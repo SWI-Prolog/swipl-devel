@@ -13,12 +13,35 @@
 #include <h/graphics.h>
 #include <unx/proto.h>
 
+
+		 /*******************************
+		 *	   AUTOCONF STUFF	*
+		 *******************************/
+
+#ifdef TIME_WITH_SYS_TIME
+#include <sys/time.h>
+#include <time.h>
+#else
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#else
+#include <time.h>
+#endif
+#endif
+
+		 /*******************************
+		 *	 DOS/UNIX PROBLEMS	*
+		 *******************************/
+
 #if defined(O_DOSFILENAMES) && O_DOSFILENAMES
 #define IsDirSep(c) ((c) == '/' || (c) == '\\')
 #else
 #define IsDirSep(c) ((c) == '/')
 #endif
 
+		 /*******************************
+		 *     AND THE NEAT STUFF!	*
+		 *******************************/
 
 #define ABSTRACT_STREAM \
   Code		input_message;		/* Message forwarded on input */ \

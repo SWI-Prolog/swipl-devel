@@ -454,7 +454,9 @@ Status XSetWMProtocols (dpy, w, protocols, count)
 
 #endif
 
-#if O_NO_XT_POPUP_SPRING_LOADED
+#if !defined(HAVE_XTPOPUPSPRINGLOADED) && !defined(sun)
+					/* sun's X11R5 fails on AC_HAVE_FUNC */
+					/* for X11 functions */
 
 void XtPopupSpringLoaded (widget)
     Widget widget;

@@ -18,6 +18,12 @@ extern char *malloc(), *realloc();
 /* SUPPRESS 288 on yyerrlab *//* Label unused */
 
 #include "md.h"
+#ifdef _POSIX_SOURCE
+#define POSIX
+#endif
+#ifndef HAVE_FTIME
+#define FTIME_MISSING
+#endif
 #include "system.h"
 #include <ctype.h>
 

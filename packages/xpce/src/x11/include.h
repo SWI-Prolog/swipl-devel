@@ -10,6 +10,10 @@
 #ifndef _PCE_X11_INCLUDED
 #define _PCE_X11_INCLUDED
 
+#ifdef HAVE_XMISMOTIFWMRUNNING
+#define O_MOTIF 1
+#endif
+
 #define String XString
 #include <X11/Intrinsic.h>
 #include <X11/IntrinsicP.h>		/* XtConfigureWidget() prototype */

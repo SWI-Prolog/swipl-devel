@@ -7,7 +7,8 @@
     Copyright (C) 1992 University of Amsterdam. All rights reserved.
 */
 
-#if !O_NO_SOCKET
+#include <md.h>				/* get HAVE_'s */
+#if HAVE_SOCKET
 
 #include <sys/types.h>
 #include <memory.h>
@@ -16,7 +17,7 @@
 #include <netdb.h>			/* conflict ... */
 #include <netinet/in.h>
 				
-#define create PCEcreate
+#define create PCEcreate		/* avoid conflict */
 
 #include <h/kernel.h>
 #include <h/unix.h>
@@ -28,7 +29,7 @@
 
 extern int errno;
 
-#if sun && !solaris
+#ifdef SOME_MISSING_LIB_PROTOTYPES
 extern int socket(int domain, int type, int protocol);
 extern int bind(int s, struct sockaddr *name, int namelen);
 extern int accept(int s, struct sockaddr *addr, int *addrlen);
@@ -450,7 +451,7 @@ makeClassSocket(Class class)
   succeed;
 }
 
-#else /*O_NO_SOCKET*/
+#else /*HAVE_SOCKET*/
 
 #include <h/kernel.h>
 
@@ -479,4 +480,4 @@ makeClassSocket(Class class)
   succeed;
 }
 
-#endif /*O_NO_SOCKET*/
+#endif /*HAVE_SOCKET*/

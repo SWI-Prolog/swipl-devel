@@ -14,7 +14,7 @@
 
 extern time_t get_date(char *p, struct timeb *now);
 
-#if O_NOTIMELOCAL
+#ifndef HAVE_TIMELOCAL
 static long timelocal P((struct tm *));
 #endif
 
@@ -415,7 +415,7 @@ makeClassDate(Class class)
 }
 
 
-#if O_NOTIMELOCAL
+#ifndef HAVE_TIMELOCAL
 #define MINUTE	60
 #define HOUR	(60 * MINUTE)
 #define DAY	(24 * HOUR)

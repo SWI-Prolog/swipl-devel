@@ -17,6 +17,8 @@
 	, initialization/1
 	, 'pceloadc++'/1
 	, 'pceloadc++'/2
+	, 'pceloadcxx'/1
+	, 'pceloadcxx'/2
 	, '$call_atom'/1
 	]).
 
@@ -25,7 +27,7 @@
 	strip_module/3,
 	'$load_pce'/0,
 	require/1,
-	auto_call/2.
+	auto_call/1.
 
 
 :- use_module(library(quintus), [(meta_predicate)/1, initialization/1]).
@@ -51,6 +53,8 @@ strip_module(Raw, Module, Term) :-
 		 *******************************/
 
 :- module_transparent
+	pceloadcxx/1,
+	pceloadcxx/2,
 	'pceloadc++'/1,
 	'pceloadc++'/2.
 
@@ -62,6 +66,12 @@ strip_module(Raw, Module, Term) :-
 	get(@(pce), machine, Machine),
 	concat_atom([Home, '/pl/', Machine, '/pl-crt0.o'], Crt0),
 	load_foreign(File, '__pl_start', '', [Crt0, '-lg++' | Libs], 0).
+
+pceloadcxx(File) :-
+	'pceloadc++'(File).
+
+pceloadcxx(File, Libs) :-
+	'pceloadc++'(File, Libs).
 
 
 		/********************************

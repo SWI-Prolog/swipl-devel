@@ -16,7 +16,7 @@
 #include <sys/select.h>
 #endif
 
-#if sun && !solaris
+#ifdef SOME_MISSING_LIB_PROTOTYPES
 extern int select (int width,
 		   fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 		   struct timeval *timeout);

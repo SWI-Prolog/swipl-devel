@@ -22,7 +22,7 @@ all:		$(TARGET) pl-crt0.o
 interface.o:	$(ITF) interface.c
 
 xpce.base:	$(OBJ)
-		$(CC) $(LDFLAGS) -o $@ $(OBJ) $(LIBS) $(STATICLIBS)
+		$(CC) $(LDFLAGS) -o $@ $(OBJ) $(LIBS)
 
 printcmd:
 		@echo $(CC) $(LDFLAGS) -o xpce.base \

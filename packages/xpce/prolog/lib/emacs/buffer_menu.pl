@@ -63,7 +63,7 @@ initialise(BM, BufferList:dict) :->
 		  , menu_item(kill_buffer,
 			      message(Buffer, kill))
 		  ]),
-	send(@pce, exit_message, message(BM, save_some_buffers)),
+	send(@pce, exit_message, message(BM, check_saved_at_exit)),
 	send(BM, create),
 	ignore(send(BM, server_start)),
 	ignore(send(BM, load_user_init_file)).
@@ -164,6 +164,25 @@ save_some_buffers(BM, Confirm:[bool]) :->
 	).
 
 	
+check_saved_at_exit(BM) :->
+	"Check for unsaved buffers when called from exit"::
+	send(BM, save_some_buffers, @on),
+	new(ModifiedItem,
+	    and(@arg1?object?file \== @nil,
+		@arg1?object?modified == @on)),
+	(   get(BM?buffer_list, find, ModifiedItem, _)
+	->  (   send(@display, confirm, 'Discard modified buffers?')
+	    ->	true
+	    ;	repeat,
+			send(@display, dispatch),
+			format('Dispatch running; discarding input~n'),
+			get0(_),
+			fail
+	    )
+	;   true
+	).
+
+
 free_window(BM, Pool:[name], Frame:emacs_window) :<-
 	"Return the first non-sticky window"::
 	(   send(@event, instance_of, event),

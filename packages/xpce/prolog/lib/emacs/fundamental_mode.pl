@@ -99,7 +99,7 @@ show_key_bindings(M) :->
 
 quit(M) :->
 	"Destroy the editor"::
-	send(M?text_buffer, save_if_modified),
+	ignore(send(M?text_buffer, save_if_modified)),
 	send(M?frame, destroy).
 
 		 /*******************************

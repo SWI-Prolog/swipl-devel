@@ -8,6 +8,8 @@
 */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
@@ -16,10 +18,6 @@
 #include <netdb.h>
 #include <errno.h>
 #include <string.h>
-
-#if sun && !solaris
-extern char *strchr();
-#endif
 
 #define MAX_UN_ADDRESS_LEN 108
 
@@ -38,6 +36,7 @@ char *program;				/* my name */
 #define TRUE  1
 #endif
 
+static void usage(void);		/* print usage information */
 
 		 /*******************************
 		 *	      CONNECT		*
@@ -115,6 +114,8 @@ int f, t;
 }
 
 
+
+void
 copy2(f1, t1, f2, t2)
 int f1, t1, f2, t2;
 { int eof = FALSE;
@@ -159,11 +160,11 @@ int f1, t1, f2, t2;
 	}
 	  
 
+int
 main(argc, argv)
 int argc;
 char **argv;
 { char *address;
-  char *domainname = "unix";
   char *command = NULL;
   int block = FALSE;
   int quiet = FALSE;
@@ -222,7 +223,7 @@ char **argv;
   exit(0);				/* TBD  */
 }
 
-
+static void
 usage()
 { fprintf(stderr, "Usage: %s file|host:port [-q] [-[b]c message]\n", program);
   exit(1);

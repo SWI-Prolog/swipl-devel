@@ -20,7 +20,7 @@
 #include <h/unix.h>
 #include <errno.h>
 
-#if defined(__linux__)			/* we don't want BSD defined */
+#if defined(__linux__) || (defined(__sun__) && !STDC_HEADERS)
 extern int gethostname(char *__name, size_t __len);
 #endif
 
@@ -132,7 +132,7 @@ consoleLabelPce(Pce pce, CharArray title)
 Name
 getOsErrorPce(Pce pce)
 {
-#if O_STRERROR
+#if HAVE_STRERROR
   return CtoName(strerror(errno));
 #else
   static char errmsg[64];
@@ -145,7 +145,7 @@ getOsErrorPce(Pce pce)
 
   sprintf(errmsg, "Unknown OS Error (%d)", errno);
   return CtoName(errmsg);
-#endif /*O_STRERROR*/
+#endif /*HAVE_STRERROR*/
 }
 
 
@@ -341,8 +341,11 @@ exceptionPce(Pce pce, Name kind, ...)
 		*           STATISTICS		*
 		********************************/
 
-#if USG
+#if defined(HAVE_SYS_RESOURCE_H) && !defined(HAVE_GETDTABLESIZE)
 #include <sys/resource.h>
+#if defined(__sun__) && !defined(STDC_HEADERS)
+extern int getrlimit(int resource, struct rlimit *rlp);
+#endif
 
 int
 getdtablesize(void)
@@ -422,12 +425,13 @@ bannerPce(Pce pce)
 { Name host = get(HostObject(), NAME_system, 0);
 
 #ifdef __WINDOWS__
-  writef("PCE Release %s for %IMS-Windows %d.%d\n",
+  writef("PCE Release %s for %I%IMS-Windows %d.%d\n",
 #else
-  writef("PCE Release %s for %s and X%dR%d\n",
+  writef("PCE Release %s for %s-%s and X%dR%d\n",
 #endif
 	 pce->version,
 	 pce->machine,
+	 pce->operating_system,
 	 pce->xt_version,
 	 pce->xt_revision);
 
@@ -579,9 +583,8 @@ _dosemu_gethostname(char *buf, int len)
 
 #endif /*__msdos__*/
 
-#if !defined(HAVE_PWD_H) || HAVE_PWD_H
+#ifdef HAVE_PWD_H
 #include <pwd.h>
-#define O_PWD 1
 #endif
 
 static Name
@@ -590,7 +593,7 @@ getUserPce(Pce pce)
 
   if ( (s = getlogin()) )
     answer(CtoName(s));
-#if O_PWD
+#if HAVE_PWD_H
   { struct passwd *pwd;
 
     if ( (pwd = getpwuid(getuid())) )
@@ -605,7 +608,7 @@ getUserPce(Pce pce)
 static Any
 getUserInfoPce(Pce pce, Name what, Name user)
 { 
-#if O_PWD
+#if HAVE_PWD_H
   struct passwd *pwd;
 
   if ( isDefault(user) )
@@ -629,7 +632,7 @@ getUserInfoPce(Pce pce, Name what, Name user)
     else if ( what == NAME_shell )
       answer(CtoName(pwd->pw_shell));
   }
-#endif /*O_PWD*/
+#endif /*HAVE_PWD_H*/
 
   fail;
 } 

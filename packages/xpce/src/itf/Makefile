@@ -21,7 +21,7 @@ clean:
 		rm -f *~ a.out core $(ITFOBJS) addlib
 
 .cxx.o:
-		$(CPlusPlus) -c $(CFLAGS) -I../../include $*.cxx
+		$(CXX) -c $(CFLAGS) -I../../include $*.cxx
 
 action.o:	stub.c
 		rm -f $(@:.o=.c)

@@ -87,7 +87,7 @@ off_t lseek ();
 #include <time.h>
 #endif
 
-#ifdef TIMEB_H_MISSING
+#ifndef HAVE_SYS_TIMEB_H
 struct timeb {
     time_t		time;		/* Seconds since the epoch	*/
     unsigned short	millitm;	/* Field not used		*/

@@ -10,13 +10,13 @@ set emulator = $1
 set xpce     = $2
 
 $emulator -f none << _EOS_
-retract(library_directory('/usr/local/lib/pl/library')).
+retractall(library_directory('/usr/local/lib/pl/library')).
 
 ['../../prolog/boot/pce_expand'].
 use_module('../../prolog/boot/pce_pl').
 use_module('../../prolog/lib/pce').
 
-'\$version'(PlVersion),
+feature(version, PlVersion),
 send(@pce, catch_error_signals, @on),
 concat('SWI-Prolog version ', PlVersion, PlId),
 send(@prolog, system, PlId).

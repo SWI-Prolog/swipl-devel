@@ -33,7 +33,7 @@ initialiseFigure(Figure f)
 
 static status
 RedrawAreaFigure(Figure f, Area area)
-{ if ( f->pen != ZERO || notNil(f->background) )
+{ if ( f->pen != ZERO || notNil(f->background) || notNil(f->elevation) )
   { int x, y, w, h;
 
     initialiseDeviceGraphical(f, &x, &y, &w, &h);

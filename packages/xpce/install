@@ -1,23 +1,89 @@
 #!/bin/sh
 # Create xpce executable
 
+PLBASE=/staff/jan/lib/pl
+LN_S="ln -s"
 emulator=bin/xpce.base
 xpce=bin/xpce
 
 if [ $# = 1 ]; then xpce=$1; fi
 
 for d in library boot include; do
-    if [ ! -d pl/$d ]; then (cd pl; ln -s ../../pl/$d .); fi
+    if [ ! -d pl/$d ]; then (cd pl; $LN_S $PLBASE/$d .); fi
 done
 
-SWIPL=$PWD/pl; export SWIPL
-CANONICAL_PATHS=$PWD; export CANONICAL_PATHS
+if test -r $PWD/Pce; then
+    PCEHOME=""
+    topdirs="$HOME /usr/local /home /opt"
+    for top in $topdirs; do
+	if [ -r $top ]; then
+	    can="$PWD"
+	    topinode=`ls -di $top | awk '{print $1}'`
+	    base=""
+	    while test "$can" != "/" && test "$PCEHOME" = ""; do
+		caninode=`ls -di $can | awk '{print $1}'`
+		if test "$caninode" = "$topinode"; then
+		    PCEHOME=`echo $top/$base | sed 's@/$@@'`
+		fi
+		base=`basename $can`/$base
+		can=`dirname $can`
+	    done
+	fi
+    done
+    if test "$PCEHOME" = ""; then
+	PCEHOME="$PWD"
+    else
+	if test ! -r $PCEHOME/Pce; then PCEHOME="$PWD"; fi
+    fi
+else
+    echo "$0 should be run from the XPCE home directory"
+    exit 1
+fi
 
-$emulator -o bin/pl.qfl -b pl/boot/init.pl -c pl/boot/load.pl
+SWIPL=$PCEHOME/pl; export SWIPL
+CANONICAL_PATHS=$PCEHOME; export CANONICAL_PATHS
+cat <<EOF
+Using the following paths:
 
-$emulator -x bin/pl.qfl -f none << _EOS_
-retract(library_directory('/usr/local/lib/pl/library')).
+        PCEHOME=$PCEHOME
+        SWIPL=$SWIPL
+        CANONICAL_PATHS=$CANONICAL_PATHS
 
+EOF
+
+$emulator -o bin/pl.qlf -b pl/boot/init.pl -c pl/boot/load.pl
+
+$emulator -x bin/pl.qlf -f none -g true >.plparms << _EOS_
+(   feature(save_program, V), V == true
+->  format('O_SAVE=yes~n')
+;   true
+),
+halt.
+_EOS_
+. .plparms
+
+if [ "$O_SAVE" != "yes" ]; then
+    echo "SWI-Prolog cannot save on this system.  Will create quick"
+    echo "load file"
+    echo ""
+    target=`basename $xpce`
+    prefix=`dirname $xpce`
+    prefix=`dirname $prefix`
+    echo "Linking $prefix/bin/$target to $PCEHOME/bin/xpce.base"
+    (cd $prefix/bin; rm -f $target; $LN_S $PCEHOME/bin/xpce.base $target)
+    echo "Creating quick load file"
+    $xpce -b $PCEHOME/pl/boot/init.pl \
+          -c $PCEHOME/pl/boot/load.pl \
+	     $PCEHOME/pl/load.pl
+    echo "Done"
+    rm -f bin/pl.qlf
+    exit 0
+fi
+
+
+
+
+$emulator -x bin/pl.qlf -f none << _EOS_
 ['prolog/boot/pce_expand'].
 use_module('prolog/boot/pce_pl').
 use_module('prolog/lib/pce').
@@ -54,5 +120,5 @@ make_library_index(PceLib).
 halt.
 _EOS_
 
-rm -f bin/pl.qfl
+rm -f bin/pl.qlf
 

@@ -348,33 +348,37 @@ update_label(B) :->
 modified(B, Val:bool) :->
 	"Check the file; mark buffer-menu"::
 	send(B, send_super, modified, Val),
-	(   Val == @on,
-	    get(B, file, File), File \== @nil
-	->  (	\+ send(File, exists)
-	    ->	true
-	    ;   get(B, time_stamp, Stamp),
-	        get(File, time, FileStamp),
-		send(Stamp, equal, FileStamp)
-	    ->	true
-	    ;	object(@emacs_reverting)
-	    ->	true
-	    ;	new(D, dialog('Modified file')),
-		send(D, append,
-		     label(title,  string('File %N was modified', File))),
-		send(D, append,
-		     button(reload_file, message(D, return, reload_file))),
-		send(D, append,
-		     button(edit_buffer, message(D, return, edit_buffer))),
-		get(D, confirm_centered, RVal),
-		send(D, destroy),
-		(   RVal == reload_file
-		->  send(B, revert)
-		;   true
-		)
-	    )
+	(   Val == @on
+	->  send(B, check_modified_file)
 	;   send(B, delete_auto_save_file)
 	),
 	send(B, update_label).
+
+
+check_modified_file(B) :->
+	"Check if file has been modified after buffer"::
+	(   get(B, file, File),
+	    File \== @nil,
+	    send(File, exists),
+	    get(B, time_stamp, Stamp),
+	    get(File, time, FileStamp),
+	    \+ send(Stamp, equal, FileStamp),
+	    \+ object(@emacs_reverting)
+	->  new(D, dialog('Modified file')),
+	    send(D, append,
+		 label(title,  string('File %N was modified', File))),
+	    send(D, append,
+		 button(reload_file, message(D, return, reload_file))),
+	    send(D, append,
+		 button(edit_buffer, message(D, return, edit_buffer))),
+	    get(D, confirm_centered, RVal),
+	    send(D, destroy),
+	    (   RVal == reload_file
+	    ->  send(B, revert)
+	    ;   true
+	    )
+	;   true
+	).
 
 
 		 /*******************************
@@ -392,7 +396,8 @@ open(B, New:[bool], Window:emacs_window) :<-
 	    ->	send(Window, buffer, B)
 	    ;	send(new(Window, emacs_window(B)), open)
 	    )
-	).
+	),
+	send(B, check_modified_file).
 
 open(B, New:[bool]) :->
 	"Create window for buffer"::

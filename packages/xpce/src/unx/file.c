@@ -112,7 +112,7 @@ closeFile(FileObj f)
 { if ( f->status != NAME_closed )
   { status rval = checkErrorFile(f);
 
-#if !O_NO_POPEN
+#ifdef HAVE_POPEN
     if ( notNil(f->filter) )
       pclose(f->fd);
     else
@@ -462,7 +462,7 @@ openFile(FileObj f, Name mode, Name filter, CharArray extension)
       f->fd = fopen(strName(path), fdmode);
     }
   } else
-#if O_NO_POPEN
+#ifdef HAVE_POPEN
   { return errorPce(f, CtoName("no_popen"));
   }
 #else
@@ -477,7 +477,7 @@ openFile(FileObj f, Name mode, Name filter, CharArray extension)
 	    strName(path));
     f->fd = popen(cmd, fdmode);
   }
-#endif /*O_NO_POPEN*/
+#endif /*HAVE_POPEN*/
 
   if ( f->fd == NULL )
   { if ( isNil(filter) && mode == NAME_read && errno == ENOENT )

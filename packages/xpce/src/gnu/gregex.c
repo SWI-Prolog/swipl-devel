@@ -28,7 +28,7 @@
 
 #ifdef pce_source
 #include <h/kernel.h>
-#if !defined(SIGN_EXTEND_CHAR) && defined(__GNUC__)
+#if !defined(SIGN_EXTEND_CHAR) && (defined(__GNUC__) || defined(__CHAR_UNSIGNED__))
 #define SIGN_EXTEND_CHAR(c)	((int)((signed char)(c)))
 #endif
 #define Sword		AN

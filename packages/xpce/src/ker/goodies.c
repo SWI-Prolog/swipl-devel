@@ -11,10 +11,10 @@
 #include <h/trace.h>
 #include "alloc.h"
 #include <h/graphics.h>
-#include TIME_H
+#include <h/unix.h>
 #include <unistd.h>
 
-#if sun && !solaris
+#ifdef SOME_MISSING_LIB_PROTOTYPES
 extern int select (int width,
 		   fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 		   struct timeval *timeout);
@@ -548,6 +548,9 @@ str_writefv(String s, CharArray format, int argc, Any *argv)
 #define L_SHORT    16
 #define L_LONG     32
 
+#ifdef __linux__			/* delete if conflict arrises */
+extern int vsscanf(const char *, const char *, va_list);
+#endif
 
 Int scanstr(char *str, char *fmt, Any *r)
 { int types[SCAN_MAX_ARGS];
@@ -655,7 +658,7 @@ Int scanstr(char *str, char *fmt, Any *r)
   }
 
   DEBUG(NAME_scan, printf("argn = %d\n", argn));
-#if O_NOVSSCANF
+#ifndef HAVE_VSSCANF
   switch(argn)
   { case 0:	ar = sscanf(str, fmt); break;
     case 1:	ar = sscanf(str, fmt, ptrs[0]); break;
@@ -869,7 +872,11 @@ msleep(int time)
     delay(time);
 }
 
-#else 
+#else  /* !defined(__WATCOMC__) */
+
+#ifdef HAVE_SYS_SELECT_H
+#include <sys/select.h>
+#endif
 
 void
 msleep(int time)
@@ -880,8 +887,7 @@ msleep(int time)
   DEBUG(NAME_flash,
 	printf("waiting %d milliseconds ...", time); fflush(stdout));
 
-#if O_SYSTEM_V && !_AIX
-#include <sys/select.h>
+#ifdef SELLIST
   { SELLIST(1,1) readbits = {0, 0};
     SELLIST(1,1) writebits = {0, 0};
     SELLIST(1,1) exceptbits = {0, 0};

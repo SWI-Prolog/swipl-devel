@@ -9,7 +9,7 @@
 
 #include <h/kernel.h>
 
-#if !O_NO_PROCESS
+#ifdef HAVE_FORK
 
 #include <h/unix.h>
 #include <h/interface.h>
@@ -32,17 +32,17 @@ extern char **environ;
 #include <termio.h>
 #endif
 
-#if solaris
+#if HAVE_STROPTS_H && HAVE_GRANTPT
+#define USE_GRANTPT 1
 #include <stropts.h>
 #endif
-
 
 static status	closeInputProcess P((Process));
 static status	killProcess(Process p, Any sig);
 
 #define OsError() getOsErrorPce(PCE)
 
-#if !solaris
+#ifndef USE_GRANTPT
 forwards int		getSlave(Process p, char *line);
 forwards int		getMaster P((Process, char *));
 #endif
@@ -88,16 +88,12 @@ static Name signames[] =
 };
 
 
-#if !defined(O_WAIT_UNION) && O_SYSTEM_V
-#define O_WAIT_UNION 0
-#endif
-
 
 static void
 child_changed(int sig)
 { Process p;
 
-#if O_WAIT_UNION
+#ifdef UNION_WAIT
 #define wait_t union wait
 #else
 #define wait_t int
@@ -118,7 +114,7 @@ child_changed(int sig)
 		  send(p, NAME_exited, toInt(WEXITSTATUS(status)), 0);
 	      }
 	    });
-#if O_SIG_AUTO_RESET
+#ifndef BSD_SIGNALS
   signal(sig, child_changed);
 #endif
 }
@@ -277,18 +273,18 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
   { if ( p->use_tty == ON )
     { int master;
       int pid;
-#if solaris
+#if USE_GRANTPT
       char *line = NULL;
 #else
       char line[100];
 #endif
 
-#if solaris
+#if USE_GRANTPT
       if ( (master = open("/dev/ptmx", O_RDWR)) < 0 )
 #else
       if ( (master = getMaster(p, line)) < 0 )
 #endif
-      { fprintf(stderr, "[PCE: Failed to get pseaudo tty: %s]\n",
+      { fprintf(stderr, "[PCE: Failed to get pseudo tty: %s]\n",
 		strName(OsError()));
 	fail;
       }
@@ -303,7 +299,7 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 	  cdDirectory(p->directory);
 	initEnvironment(p);
 	DEBUG(NAME_process, fprintf(stderr, "Environment initialised\n"));
-#if __linux__ || hpux || USG
+#ifdef HAVE_SETSID
 	if ( setsid() < 0 )
 	  fprintf(stderr, "[PCE: setsid() failed: %s]\n",
 		  strName(OsError()));
@@ -317,7 +313,7 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
       }
 #endif
 
-#if solaris
+#ifdef USE_GRANTPT
 	if ( grantpt(master) < 0 ||
 	     unlockpt(master) < 0 ||
 	     (line = ptsname(master)) == NULL ||
@@ -367,7 +363,7 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 	}
       } else				/* parent process  */
       {
-#if solaris
+#if USE_GRANTPT
 	if ( (line = ptsname(master)) != NULL )
 #endif
 	  assign(p, tty, CtoName(line));
@@ -604,7 +600,7 @@ makeClassProcess(Class class)
   succeed;
 }
 
-#if !solaris
+#ifndef USE_GRANTPT
 		/********************************
 		*        PROCESS/TTY STUFF	*
 		********************************/
@@ -675,7 +671,7 @@ getSlave(Process p, char *line)
   return open(line, 2);
 }
 
-#endif /* !solaris */
+#endif /* !USE_GRANTPT */
 
 static status
 copyTty(Process p, char *pty, int fd)
@@ -703,7 +699,7 @@ copyTty(Process p, char *pty, int fd)
     buf.c_oflag = 0;
     buf.c_cflag = CLOCAL|HUPCL|CREAD|CS8|B38400;
     buf.c_lflag = ISIG|ICANON|ECHOCTL;
-#if !_AIX && !hpux && !solaris && !sgi
+#ifdef TERMIOS_HAS_C_LINE
     buf.c_line  = 0;
 #endif
 
@@ -752,7 +748,7 @@ copyTty(Process p, char *pty, int fd)
   succeed;
 }
 
-#else /*O_NO_PROCESS*/
+#else /*HAVE_FORK*/
 
 void
 killAllProcesses(void)
@@ -789,4 +785,4 @@ makeClassProcess(Class class)
   succeed;
 }
 
-#endif
+#endif /*HAVE_FORK*/

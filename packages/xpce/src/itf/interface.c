@@ -12,13 +12,13 @@
 #include <h/trace.h>
 #include <h/interface.h>
 #include <h/graphics.h>
-#include TIME_H
+#include <h/unix.h>
 
-#if !defined(FD_ZERO) && !O_NO_SELECT
+#if !defined(FD_ZERO) && HAVE_SELECT
 #include <sys/select.h>
 #endif
 
-#if sun && !solaris
+#ifdef SOME_MISSING_LIB_PROTOTYPES
 extern int select (int width,
 		   fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 		   struct timeval *timeout);
@@ -302,7 +302,7 @@ pceNew(char *assoc, Any class, int argc, Any *argv)
 #define FD_SET(n, x)	{(x)->fds_bits[0] |= 1<<(n); }
 #endif
 
-#if O_NO_SELECT
+#ifndef HAVE_SELECT
 #include <conio.h>
 #endif
 
@@ -316,7 +316,7 @@ pceDispatch(int fd, int time)
     return (rval == SUCCEED ? PCE_DISPATCH_INPUT : PCE_DISPATCH_TIMEOUT);
   } else
   {
-#if O_NO_SELECT
+#ifndef HAVE_SELECT
     while( !kbhit() )
       ;
     return PCE_DISPATCH_INPUT;
@@ -341,7 +341,7 @@ pceDispatch(int fd, int time)
       select(32, &readfds, NULL, NULL, NULL);
       return PCE_DISPATCH_INPUT;
     }
-#endif /*O_NO_SELECT*/
+#endif /*HAVE_SELECT*/
   }
 }
 

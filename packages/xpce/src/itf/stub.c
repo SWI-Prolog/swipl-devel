@@ -12,14 +12,15 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
-
-#ifdef O_EXTRA_SYSTEM_TYPES
-#include O_EXTRA_SYSTEM_TYPES
-#endif
+#include <signal.h>
 
 #ifndef FALSE
 #define FALSE 0
 #define TRUE 1
+#endif
+
+#ifdef O_EXTRA_SYSTEM_TYPES
+#include O_EXTRA_SYSTEM_TYPES
 #endif
 
 typedef void (*VoidFunc)();
@@ -72,7 +73,7 @@ hostAction(int action, ...)
   
   switch(action)
   { case HOST_ONEXIT:
-#if HAVE_on_exit
+#if HAVE_ON_EXIT
     { OnExitFunction func = va_arg(args, OnExitFunction);
       char *s = va_arg(args, char *);
 
@@ -156,6 +157,8 @@ hostGet(PceObject prolog, PceObject sel, int argc, PceObject argv[])
 #endif /*HOSTGET*/
 
 #if MAIN
+
+extern int pceInitApplication(int argc, char **argv);
 
 int
 main(int argc, char* argv[])

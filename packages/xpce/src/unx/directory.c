@@ -10,16 +10,31 @@
 #include <h/kernel.h>
 #include <h/unix.h>
 
+#ifdef HAVE_UNISTD_H
 #include <sys/types.h>
-#ifdef DIRECT
-#include <direct.h>
-#else
-#include <dirent.h>
-#endif
-#include <sys/stat.h>
 #include <unistd.h>
+#endif
+          
+#if HAVE_DIRENT_H
+# include <dirent.h>
+# define NAMLEN(dirent) strlen((dirent)->d_name)
+#else
+# define dirent direct
+# define NAMLEN(dirent) (dirent)->d_namlen
+# if HAVE_SYS_NDIR_H
+#  include <sys/ndir.h>
+# endif
+# if HAVE_SYS_DIR_H
+#  include <sys/dir.h>
+# endif
+# if HAVE_NDIR_H
+#  include <ndir.h>
+# endif
+#endif
 
-#if !defined(HAVE_SYS_PARAM_H) || HAVE_SYS_PARAM_H
+#include <sys/stat.h>
+
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #else
 #ifndef MAXPATHLEN
@@ -27,9 +42,8 @@
 #endif
 #endif
 
-#if !defined(HAVE_PWD_H) || HAVE_PWD_H
+#ifdef HAVE_PWD_H
 #include <pwd.h>
-#define O_PWD 1
 #endif
 
 static Chain DirectoryStack;
@@ -479,7 +493,7 @@ getWorkingDirectoryPce(Pce pce)
   {
 #endif
 
-#if USG || O_GETCWD || defined(_POSIX_SOURCE)
+#if HAVE_GETCWD
     if ( !getcwd(CWDdir, sizeof(CWDdir)) )
       return NULL;
 #else
@@ -578,7 +592,7 @@ expandFileName(char *pattern)
 
     if ( user[0] != EOS || (value = GETENV("HOME")) == (char *) NULL )
     {
-#if O_PWD
+#if HAVE_PWD_H
       struct passwd *pwent;
 
       if ( !streq(fred, user) )
@@ -593,7 +607,7 @@ expandFileName(char *pattern)
 #else
       ExpandProblem = CtoName("Unknown user");
       return NULL;
-#endif /*O_PWD*/
+#endif /*HAVE_PWD_H*/
     }	  
     size += (l = (int) strlen(value));
     if ( size >= MAXPATHLEN )

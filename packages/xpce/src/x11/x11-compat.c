@@ -22,7 +22,7 @@ thus cannot be loaded through many foreign  language interfaces.  What
 to do????
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if sun && XT_REVISION == 5 && !solaris
+#if !defined(HAVE_LIBDL) && defined(sun) && XT_REVISION == 5
 
 void *
 dlopen(char *path, int mode)

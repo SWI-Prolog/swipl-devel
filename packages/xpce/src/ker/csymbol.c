@@ -79,7 +79,7 @@ static status
 initCSymbolsPce(Pce pce)
 { if ( !symbols )
   {
-#if O_NO_POPEN
+#ifndef HAVE_POPEN
     return errorPce(pce, NAME_cannotLoadCSymbols, CtoName("No popen()"));
 #else
     long offset = 0;
@@ -119,7 +119,7 @@ initCSymbolsPce(Pce pce)
       DEBUG(NAME_cSymbols, printf("found %ld text symbols", nsymbols));
     } else
       errorPce(pce, NAME_cannotLoadCSymbols, getOsErrorPce(pce));
-#endif /*O_NO_POPEN*/
+#endif /*HAVE_POPEN*/
   }
 
   succeed;

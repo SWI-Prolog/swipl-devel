@@ -21,12 +21,8 @@
 #include <xos/xos.h>
 #endif
 
-#if !defined(HAVE_SYS_FILE_H) || HAVE_SYS_FILE_H
+#ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
-#endif
-
-#ifndef TIME_H
-#define TIME_H <sys/time.h>
 #endif
 
 #define PCE_INCLUDED
@@ -35,6 +31,14 @@
 #define GLOBAL extern			/* global variables */
 #endif
 
+
+		 /*******************************
+		 *	SOME SYSTEM STUFF	*
+		 *******************************/
+
+#ifdef O_EXTRA_SYSTEM_TYPES
+#include O_EXTRA_SYSTEM_TYPES
+#endif
 		/********************************
 		*             LIMITS		*
 		********************************/
@@ -90,7 +94,7 @@
 #endif
 
 #if __STRICT_ANSI__
-#define O_NO_TAGGED_LVALUE 1
+#undef TAGGED_LVALUE 1
 #endif
 
 #ifdef __GNUC__
@@ -165,7 +169,7 @@
 		 *	    BASIC TYPES		*
 		 *******************************/
 
-#if !O_ULONG_PREDEFINED
+#if NEED_ULONG
 typedef unsigned long		ulong;
 #endif
 
@@ -300,7 +304,7 @@ provided.
 
 #define makeDFlag(n)		(1L << ((n) - 1 + TAG_BITS))
 #define DFlags(obj)		(((ProgramObject)(obj))->dflags)
-#if O_NO_TAGGED_LVALUE
+#ifndef TAGGED_LVALUE
 void	setDFlagProgramObject P((Any, ulong));
 void	clearDFlagProgramObject P((Any, ulong));
 #define setDFlag(obj, mask)     setDFlagProgramObject((obj), (mask))

@@ -15,7 +15,6 @@
 #pragma alloca				/* Use built-in alloca */
 #define O_NO_TAGGED_LVALUE	1	/* No (tag)var = value */
 #endif
-#define O_SYSTEM_V		1	/* System-V calls (?) */
 #define O_ULONG_PREDEFINED	1	/* ulong is built-in */
 #define O_UCHAR_PREDEFINED	1	/* uchar is built-in */
 #define SIGN_EXTEND_CHAR(x) ((((int)(x)) << 24) >> 24) /* gnu-regex.c */
