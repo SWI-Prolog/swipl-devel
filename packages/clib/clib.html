@@ -31,7 +31,21 @@ E-mail: <A HREF="mailto:jan@swi.psy.uva.nl">jan@swi.psy.uva.nl</A></I>
 <TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>
 This document describes commonly used foreign language extensions to
 <A HREF="http://www.swi.psy.uva.nl/projects/SWI-Prolog">SWI-Prolog</A> 
-distributed as a package known under the name <EM>clib</EM>
+distributed as a package known under the name <EM>clib</EM>. The package 
+actually defines four libraries with accompagnying foreign libraries.
+
+<P>The <CODE>library(unix)</CODE> library provides Unix process control 
+using fork(), exec(), pipe(), etc. The <CODE>library(cgi)</CODE> library 
+provides access to CGI form-data if Prolog is used for CGI-scripting, 
+the <CODE>library(crypt)</CODE> library provides access to Unix password 
+encryption and finally, the
+<CODE>library(socket)</CODE> library provides access to TCP/IP 
+communication.
+
+<P>Currently only the <CODE>library(socket)</CODE> library is available 
+on MS-Windows based systems. Providing <CODE>library(cgi)</CODE> would 
+be a trivial exercise. The <CODE>library(unix)</CODE> and <CODE>library(crypt)</CODE> 
+are very Unix-specific.
 </TABLE>
 
 <H1><A NAME="document-contents">Table of Contents</A></H1>
@@ -190,7 +204,8 @@ This predicate is intended to create Unix deamon-processes. It preforms
 two actions. First of all, the I/O streams <CODE>user_input</CODE>,
 <CODE>user_output</CODE> and <CODE>user_error</CODE> are closed and 
 rebound to a Prolog stream that returns end-of-file on any attempt to 
-read and starts writing to a file named <CODE>/tmp/pl-out.\bnfmeta{pid}</CODE> 
+read and starts writing to a file named <CODE>/tmp/pl-out.pid</CODE> 
+(where &lt;<VAR>pid</VAR>&gt; is the process-id of the calling Prolog) 
 on any attempt to write. This file is opened only if there is data 
 available. This is intended for debugging purposes.<A NAME=back-to-note-2 HREF="index.html#note-2"> (2)</A> 
 Finally, the process is detached from the current process-group and its 

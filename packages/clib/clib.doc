@@ -23,7 +23,18 @@
 \begin{abstract}
 This document describes commonly used foreign language extensions to
 \url[SWI-Prolog]{http://www.swi.psy.uva.nl/projects/SWI-Prolog}
-distributed as a package known under the name {\em clib}
+distributed as a package known under the name {\em clib}.  The package
+actually defines four libraries with accompagnying foreign libraries.
+
+The \pllib{unix} library provides Unix process control using fork(),
+exec(), pipe(), etc.  The \pllib{cgi} library provides access to CGI
+form-data if Prolog is used for CGI-scripting, the \pllib{crypt}
+library provides access to Unix password encryption and finally, the
+\pllib{socket} library provides access to TCP/IP communication.
+
+Currently only the \pllib{socket} library is available on MS-Windows
+based systems.  Providing \pllib{cgi} would be a trivial exercise.
+The \pllib{unix} and \pllib{crypt} are very Unix-specific.
 \end{abstract}
 
 \vfill
@@ -151,7 +162,8 @@ This predicate is intended to create Unix deamon-processes. It preforms
 two actions.  First of all, the I/O streams \const{user_input}, 
 \const{user_output} and \const{user_error} are closed and rebound to
 a Prolog stream that returns end-of-file on any attempt to read and
-starts writing to a file named \file{/tmp/pl-out.<pid>} on any attempt
+starts writing to a file named \file{/tmp/pl-out.pid} (where <pid> is
+the process-id of the calling Prolog) on any attempt
 to write.  This file is opened only if there is data available.  This is
 intended for debugging purposes.%
     \footnote{More subtle handling of I/O, especially for debugging is
