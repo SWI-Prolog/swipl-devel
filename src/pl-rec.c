@@ -215,11 +215,11 @@ addFloat(CompileInfo info, void *val)
   { unsigned char *cl = val;
     int i;
 
-    addOpCode(info, PL_TYPE_FLOAT);
+    addOpCode(info, PL_TYPE_EXT_FLOAT);
     for(i=0; i<sizeof(double); i++)
       addBuffer(&info->code, cl[double_byte_order[i]], uchar);
   } else
-  { addOpCode(info, PL_TYPE_EXT_FLOAT);
+  { addOpCode(info, PL_TYPE_FLOAT);
 
 #ifdef NON_ALIGNED_ACCESS
     { double f = *(double *)val;
@@ -496,7 +496,7 @@ fetchWord(CopyInfo b)
 #ifdef NON_ALIGNED_ACCESS
   fetchBuf(b, &val, word);
 #else
-  fetchMultipleBuf(b, &val, sizeof(word), char)
+  fetchMultipleBuf(b, (char *)&val, sizeof(word), char);
 #endif
 
   return val;
