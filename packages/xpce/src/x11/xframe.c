@@ -140,7 +140,7 @@ ws_create_frame(FrameObj fr)
   DisplayObj d = fr->display;
   DisplayWsXref r = d->ws_ref;
 
-  XtSetArg(args[n], XtNtitle,		  strName(fr->label));    n++;
+  XtSetArg(args[n], XtNtitle,		  nameToMB(fr->label));   n++;
   XtSetArg(args[n], XtNmappedWhenManaged, False);                 n++;
   XtSetArg(args[n], XtNwidth,      	  valInt(fr->area->w));   n++;
   XtSetArg(args[n], XtNheight,      	  valInt(fr->area->h));   n++;
@@ -155,7 +155,7 @@ ws_create_frame(FrameObj fr)
   }		
 
   if ( notNil(fr->icon_label) )
-  { XtSetArg(args[n], XtNiconName, strName(getIconLabelFrame(fr)));
+  { XtSetArg(args[n], XtNiconName, nameToMB(getIconLabelFrame(fr)));
     n++;
   }
   if ( fr->kind == NAME_popup )
@@ -181,14 +181,14 @@ ws_create_frame(FrameObj fr)
 #endif
 
   if ( fr->kind == NAME_toplevel )
-    w = XtAppCreateShell(strName(fr->label),
+    w = XtAppCreateShell(nameToMB(fr->label),
 			 "Pce",		/* Resource Class */
 			 topLevelFrameWidgetClass,
 			 r->display_xref,
 			 args, n);
   else
     w = XtCreatePopupShell(
-		    strName(fr->label),
+		    nameToMB(fr->label),
 		    fr->kind == NAME_popup     ? overrideFrameWidgetClass  :
 		    fr->kind == NAME_transient ? transientFrameWidgetClass :
 					         topLevelFrameWidgetClass,
@@ -241,8 +241,8 @@ ws_realise_frame(FrameObj fr)
 		    XA_WM_TRANSIENT_FOR);
   }
 #endif
-  clhint.res_name  = strName(fr->label);
-  clhint.res_class = strName(get(fr->class->name, NAME_labelName, EAV));
+  clhint.res_name  = nameToMB(fr->label);
+  clhint.res_class = nameToMB(get(fr->class->name, NAME_labelName, EAV));
   XSetClassHint(r->display_xref, XtWindow(w), & clhint);
 
 
@@ -1199,7 +1199,7 @@ ws_set_icon_frame(FrameObj fr)
       n++;
     }
     XtSetArg(args[n], XtNiconName,
-	     strName(getIconLabelFrame(fr)));
+	     nameToMB(getIconLabelFrame(fr)));
     n++;
 
     XtSetValues(w, args, n);
@@ -1215,7 +1215,7 @@ ws_set_icon_label_frame(FrameObj fr)
   { Arg args[1];
 
     XtSetArg(args[0], XtNiconName,
-	     strName(getIconLabelFrame(fr)));
+	     nameToMB(getIconLabelFrame(fr)));
 
     XtSetValues(w, args, 1);
   }
@@ -1375,7 +1375,11 @@ ws_set_label_frame(FrameObj fr)
   DisplayWsXref r = fr->display->ws_ref;
 
   if ( w )
-    XStoreName(r->display_xref, XtWindow(w), strName(fr->label));
+  { Arg args[1];
+
+    XtSetArg(args[0], XtNtitle, nameToMB(fr->label));
+    XtSetValues(w, args, 1);
+  }
 }
 
 

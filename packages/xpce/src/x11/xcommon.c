@@ -100,13 +100,9 @@ pceXtAppContext(void * ctx)
 	XPCE_mt = -1;
 #endif
 
-      if ( !XSupportsLocale() )
+      if ( !XtSetLanguageProc(NULL, NULL, NULL) )
       { errorPce(TheDisplayManager(), NAME_noLocaleSupport,
 		 CtoName(setlocale(LC_ALL, NULL)));
-	fail;
-      }
-      if ( XSetLocaleModifiers("") == NULL )
-      { errorPce(TheDisplayManager(), NAME_cannotSetLocale);
 	fail;
       }
 

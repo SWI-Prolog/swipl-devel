@@ -1,7 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
-* ADDED: Support for UNICODE in cut/paste.
+* ADDED: X11: Support UNICODE in window titles.
+
+* ADDED: Win32: Support for UNICODE in cut/paste.
 
 * PORT: adopt new SWI-Prolog `xos' layer around MS-Windows, providing access
   to files using UNICODE names.
