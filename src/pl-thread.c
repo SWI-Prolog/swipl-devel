@@ -706,6 +706,9 @@ start_thread(void *closure)
   PL_initialise_thread(info);
   set_system_thread_id(info);
 
+  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+  pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
+
   goal = PL_new_term_ref();
   
   PL_recorded(info->goal, goal);

@@ -47,9 +47,9 @@ deamon and therefore providing a thread-safe interface.
 #ifdef _REENTRANT
 #include <pthread.h>
 
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-#define LOCK() pthread_mutex_lock(&mutex)
-#define UNLOCK() pthread_mutex_unlock(&mutex)
+static pthread_mutex_t crypt_mutex = PTHREAD_MUTEX_INITIALIZER;
+#define LOCK() pthread_mutex_lock(&crypt_mutex)
+#define UNLOCK() pthread_mutex_unlock(&crypt_mutex)
 #else
 #define LOCK()
 #define UNLOCK()

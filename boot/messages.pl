@@ -171,7 +171,7 @@ dwim_message([Head|T]) -->
 
 
 swi_message(io_error(Op, Stream)) -->
-	[ 'I/O error in ~w on stream ~w'-[Op, Stream] ].
+	[ 'I/O error in ~w on stream ~p'-[Op, Stream] ].
 swi_message(shell(execute, Cmd)) -->
 	[ 'Could not execute `~w'''-[Cmd] ].
 swi_message(shell(signal(Sig), Cmd)) -->
@@ -191,6 +191,9 @@ swi_message(system_error) -->
 	].
 swi_message(failure_error(Goal)) -->
 	[ 'Goal failed: ~p'-[Goal] ].
+swi_message(timeout_error(Op, Stream)) -->
+	[ 'Timeout in ~w from ~p'-[Op, Stream] ].
+
 
 swi_context(X) -->
 	{ var(X)
