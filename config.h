@@ -54,7 +54,7 @@
 #    define M_SYSTEMHOME "/usr/local/lib/pl"
 #endif
 #ifndef M_BINDIR
-#    define M_BINDIR "/usr/local/bin/pl"
+#    define M_BINDIR "/usr/local/bin"
 #endif
 #ifndef M_PROLOG
 #    define M_PROLOG "pl"
