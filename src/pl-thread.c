@@ -1801,6 +1801,7 @@ dispatch_cond_wait(message_queue *queue)
     { switch( LD->thread.info->ldata_status )
       { case LDATA_IDLE:
 	case LDATA_ANSWERED:
+	case LDATA_SIGNALLED:
 	  break;
 	default:
 	  Sdprintf("%d: ldata_status = %d\n",
