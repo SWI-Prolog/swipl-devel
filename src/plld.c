@@ -32,6 +32,8 @@ The    file    pl-extend.c,    copied    by    the    installation    to
 embedded application.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define UNQUOTED_PREFIX "\1"
+
 #ifdef WIN32
 #include <process.h>
 #include <io.h>
@@ -49,10 +51,10 @@ embedded application.
 #endif
 #define PROG_LD "link.exe"
 #define SO_LD "link.exe"
-#define PROG_CC "cl.exe /MD"
-#define PROG_CXX "cl.exe /MD /GX"
+#define PROG_CC UNQUOTED_PREFIX "cl.exe /MD"
+#define PROG_CXX UNQUOTED_PREFIX "cl.exe /MD /GX"
 #define PROG_OUT "plout.exe"
-#define PROG_CPP "cl.exe -P"
+#define PROG_CPP UNQUOTED_PREFIX "cl.exe -P"
 #define LIB_PL	 "libpl.lib"
 #define LIB_PLMT LIB_PL
 #define LIB_PL_DEBUG "libplD.lib"
@@ -146,6 +148,11 @@ typedef struct
 { char **list;
   int  size;
 } arglist;
+
+					/* prefix strings with ^A to signal */
+					/* it must be passed unquoted */
+#define UNQUOTED	UNQUOTED_PREFIX[0]
+
 
 static arglist tmpfiles;		/* list of temporary files */
 
@@ -951,10 +958,14 @@ shell_quote(char *to, const char *arg)
   const char *s;
   int needquote = FALSE;
 
-  for(s=arg; *s; s++)
-  { if ( strchr(needq, *s) )
-    { needquote = TRUE;
-      break;
+  if ( arg[0] == UNQUOTED )
+  { arg++;				/* skip the not-quote marker */
+  } else
+  { for(s=arg; *s; s++)
+    { if ( strchr(needq, *s) )
+      { needquote = TRUE;
+	break;
+      }
     }
   }
 
@@ -1162,7 +1173,8 @@ linkSharedObject()
 #else /*__CYGWIN32__*/
 #ifdef SO_FORMAT_LDFLAGS			/* must specify output too */
   { char tmp[MAXPATHLEN];
-    sprintf(tmp, SO_FORMAT_LDFLAGS);
+    tmp[0] = UNQUOTED;
+    sprintf(&tmp[1], SO_FORMAT_LDFLAGS);
     prependArgList(&ldoptions, tmp);
   }
 #else

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Quoting rules for plld.c.  Failed to link packages on MacOS X
+    (Kuniaki Mukai)
+
   * ADDED: HTTP package for dealing with HTTP server and client software
     from Prolog.
 
