@@ -19,6 +19,9 @@ Packages
   * XPCE: Many small fixes.  The most important ones affect trees using the
     `list' visualisation (layout and redraw problems).
 
+    Added in_pce_thread(:Goal) to allow background threads making calls 
+    synchronous to the XPCE event-loop.
+
   * Semweb: various extensions.  Generation of MD5 digests on triple sets.
 
   * ODBC: Some driver errors could crash the interface.  Bug in
