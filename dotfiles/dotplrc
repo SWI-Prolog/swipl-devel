@@ -58,7 +58,8 @@ hooks, file_search_path/2, set_prolog_flag/2 and portray/1.
 %	The value pce_emacs (or built_in) causes the system to use the
 %	built-in editor PceEmacs if the environment provides for a GUI.
 %	
-%	The se
+%	The second entry defines an arbitrary editor and how to tell
+%	SWI-Prolog to open a file with it on a specified line-number.
 
 % :- set_prolog_flag(editor, pce_emacs).
 % :- set_prolog_flag(editor, pico).
