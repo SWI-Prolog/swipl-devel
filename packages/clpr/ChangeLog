@@ -1,3 +1,6 @@
 Dec 15, 2004
 
-   * Added version to CVS, updated copyright notices, etc.
+   * JW: Added version to CVS, updated copyright notices, etc.
+   * TS: Added automatic printing of constraints on variables
+	 in toplevel query.
+         

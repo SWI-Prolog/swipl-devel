@@ -78,3 +78,38 @@ user:portray_message(warning,import(_,_,clpr,private)).
 :- use_module('clpr/bb').
 :- use_module('clpr/dump').
 
+		 /*******************************
+		 *	 TOPLEVEL PRINTING	*	
+		 *******************************/
+
+:- multifile
+	prolog:message/3.
+
+% prolog:message(query(YesNo)) --> !,
+% 	['~@'-[chr:print_all_stores]],
+%         '$messages':prolog_message(query(YesNo)).
+
+prolog:message(query(YesNo,Bindings)) --> !,
+	{ dump_toplevel_bindings(Bindings,Constraints)},
+	{ dump_format(Constraints,Format) },
+	Format,
+        '$messages':prolog_message(query(YesNo,Bindings)).
+
+dump_toplevel_bindings(Bindings,Constraints) :-
+	dump_vars_names(Bindings,Vars,Names),
+	dump(Vars,Names,Constraints).
+
+dump_vars_names([],[],[]).
+dump_vars_names([Name=Term|Rest],Vars,Names) :-
+	( var(Term) ->
+		Vars = [Term|RVars],
+		Names = [Name|RNames]
+	;
+		Vars = RVars,
+		Names = RNames
+	),
+	dump_vars_names( Rest,RVars,RNames).
+
+dump_format([],[]).
+dump_format([X|Xs],['{~w}'-[X],nl|Rest]) :-
+	dump_format(Xs,Rest).
