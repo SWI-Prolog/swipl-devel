@@ -1,0 +1,253 @@
+			SWI-Prolog for Windows
+			    Jan Wielemaker
+			       06/06/94
+
+			  (Updated: 16/06/94)
+
+
+This distribution contains SWI-Prolog for  Windows.    It  is  a port of
+version 1.9.0 of SWI-Prolog.  SWI-Prolog  runs   in  a  simple MS-Window
+providing traditional stream-based interaction.
+
+
+Status:
+=======
+
+Second beta test  version.   First   beta-test  version  reported mostly
+installation problems due to filename  representation problems.  No bugs
+in the Prolog engine  have  been   reported  (sofar  :-).  Please report
+problems to jan@swi.psy.uva.nl.
+
+
+Fixed after first release (1.8.11):
+===================================
+
+	* Filename conversion and finding the home-directory is
+	  fixed.
+	* The drive's root directory is now handled properly.
+	* Fatal errors will now often :-( show a Windows message-box
+	  instead of just quiting Prolog.  This allows you to read
+	  the message :-)
+	* Control-C break is tested in the main virtual machine loop.
+	  A few procent slower, but it does allow you to break a
+	  looping program ...
+	* Cut-and-paste is implemented in the console-window, allowing
+	  for xterm-like cut-and-paste (left/right to start/extend the
+	  selection and middle to paste it).
+	* Improved error reporting.
+	* Now Writes files in DOS text-format rather then using binary
+	  mode.
+	* Installation has changed a bit.  Read it!
+	  ============
+
+
+Copyright:
+==========
+
+SWI-Prolog may be  distributed  freely   for  non-commercial  use.   See
+pl\licence for a more complete description of your rights.
+
+
+Requirements:
+=============
+
+386/486/pentium based PC running MS-Windows 3.1.  SWI-Prolog is compiled
+using the WATCOM 32-bit C/C++ compiler and   should run on machines with
+and with or without floating point   coprocessor.   Minimum memory usage
+will be about 1  MB.   You'll  probably  need   at  least  4  MB  to run
+SWI-Prolog under Windows.  Please report your experiences.
+
+
+Parts:
+======
+
+The system consists of four parts:
+
+	bin/pl.exe	32-bits Windows Executable.
+
+	bin/pl.qlf	Quick-Load-File containing procompiled Prolog
+			code, defining various essential parts of the
+			Prolog system.
+
+			Should be installed in the same directory as
+			pl.exe and have the same base-name.
+	
+			Other places where it will be looking for this
+			file are: startup/startup.pc and startup/startup
+			(both relative to the `home' directory).
+
+	library\	The Prolog library file.  Holds the Prolog
+			library and help system.
+
+	boot\		Contains the Prolog source for building pl.qlf.
+			You don't need this if you don't want to look
+			at this or modify it.
+
+
+Installation:
+=============
+
+Unpack the zip file from C:, creating a directory c:\pl.  If you want to
+install in another directory, there are   various  possibilities to make
+the system find its home directory.  It will be looking for these in the
+following places (in this order:
+
+	1) Trying the environment variable `SWI_HOME_DIR'
+	2) Trying the environment variable `SWIPL'
+	3) Trying the parent directory of the directory from
+	   which the executable was loaded.  Thus, if pl.exe
+	   is in bin/pl.exe from the home directory this should
+	   work.
+	4) Trying <drive>:\pl where drive is one of `cdefghijklmnopab'
+
+3) is the new and  preferred  way   of  finding  the home directory.  It
+implies that you just have to make  a new `program instance', specifying
+an absolute path to the pl.exe executable.
+
+Create a `New Program Object' using the Window Program Manager's `new...'
+option.  The fields should be:
+
+	Description:		SWI-Prolog
+	Command Line:		c:\pl\bin\pl.exe
+	Working Directory:	The place you work
+
+Modify `Command Line' if you installed SWI-Prolog into another directory.
+
+
+Configuration of the Console:
+=============================
+
+The stream-based console window is a  completely separate library, using
+its own configuration info.  It will  look at two environment variables:
+"CONSOLE" and the base-name of the running  program ("PL" if you use the
+default configuration).  Options in "PL"   overrule  those in "CONSOLE".
+Options in "CONSOLE" apply to any application compiled using the console
+library.  The options variable should contain a string of the form
+
+	<name>:<value>{,<name>:<value>}
+
+Where <name> is one of:
+
+	<name>	default		description
+	sl	200		Number of lines you can scroll back.
+				There is no limit, but the more you
+				specify the more memory will be used.
+				Memory is allocated when data becomes
+				available.
+	rows	24		Initial number of lines
+	cols	80		Initial number of columns
+	x	CW_USEDEFAULT	X-coordinate of the top-left corner.
+	y	CW_USEDEFAULT	Y-coordinate of the top-left corner.
+				
+You will normally specify this in your autoexec.bat file.  Here is
+what I use:
+
+	set CONSOLE=sl:600,x:400,y:400
+
+
+Windowing and Graphics
+======================
+
+SWI-Prolog itself has  no  graphical   capabilities.   Graphics  can  be
+provided by the XPCE toolkit, for which   an MS-Windows version is under
+development and will soon be  available   for  public  release.  XPCE is
+*not* free software.  The licence conditions   neither the price for the
+Windows version is decided yet.   Contact xpce-request@swi.psy.uva.nl if
+you are interrested.
+
+
+Filenames:
+==========
+
+All filenames are internally handled in   a Unix compatible format: they
+are lowercase, the directories are  separated   with  a '/' and absolute
+files are of the form  /<drive>:/...    Filenames  will  be converted to
+DOS/Windows format just before invoking the C-library functions.
+
+Filename expansion will translate `~' to  the environment variable HOME.
+Constructs  of  the  form  $VAR  in    filenames  are  expanded  to  the
+corresponding environment variable.  DOS %VAR% is not recognised.
+
+The user may specify filenames either using   DOS format or Unix format.
+Unix format should be used in source-files that   need to be run both on
+the Unix and DOS/Windows version.
+
+	
+Features and bugs specific to this version:
+===========================================
+
+	* Dynamically expanding runtime stacks using a stack-shifter.
+
+	* Garbage collection works.
+
+	* Fixed C-stack of 128 KB (limits depth of unification and
+	  various other recursive tasks; does not limit normal Prolog
+          recursion).
+
+	* GNU-Readline 1.2 based input editor that allows for GNU-EMACS
+	  like editing of the command line.  This input editor runs on
+	  top of a simple, still incomplete I/O window.	 Features:
+
+	  	* Command history using ^P, ^N
+		* Cursor movement using ^B, ^F, etc.
+		* Many more; just try the GNU-Emacs bindings!
+		* End-of-file is ^D.
+		* Completion on files and atoms using TAB, viewing
+		  alternatives using ESC-?
+
+		* Window may be resized and scrolled.
+		* Cut-and-paste is similar to X11's xterm:
+		  left-button starts a selection, right-button extends
+		  it and middle-button pastes.
+
+	  Bugs:
+
+		* Showing matching bracket does not work
+		* Resizing the window while the line is wrapped gives
+		  bad results.
+
+	* save/[1,2] and save_program/[1,2] do not work.
+
+	* profile/1 does not work.
+
+	* load_foreign/[2,5] does not work.
+
+	* The statistics/[0.2] reported CPU-time also includes idle time.
+
+	* help/1 just dumps it output in the console window.  Should be
+	  a separate window some day ...
+
+
+Boot compilation:
+=================
+
+The file pl\startup\startup.pc is  a   `Prolog  Intermediate  Code' file
+created from the Prolog sources in the   boot subdirectory.  If you want
+to change anything there, you can recreate   the  startup file using the
+command:
+
+	pl.exe -o startup/startup.pc -b boot/init.pl -c boot/load.pl
+
+For this command-line the working directory should be the home directory
+of Prolog.  If not, you should absolute paths.
+
+
+Sources:
+========
+
+The common source for all platforms is  available using anonymous ftp to
+swi.psy.uva.nl,  directory  pub/SWI-Prolog.   The   Windows  version  is
+compiled using the 32-bit WATCOM C/C++   compiler (version 9.5).  If you
+decide to port it to another compiler  (for example GCC), please forward
+me the changes.
+
+It uses two libraries, both of which may be found at ftp.swi.psy.uva.nl:
+Library xos.lib redefines the WATCOM file  access library to handle both
+Unix and DOS format files and make   the direcory operations work on the
+root-direcories of a drive.  Library   readline.lib provides the console
+window and readline command-editor.  Both libraries are assumed to be
+installed next to the Prolog sources:
+
+	..../xos/...		XOS library
+	..../readline/...	Readline and console library
+	..../pl/...		SWI-Prolog source

@@ -1,6 +1,16 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 1.9.0.  Incorporation of various  ports: md-netbsd.h, md-mswin.h
+and  md-msdos.h.   There  is  a  binary   distribution  for  Windows  in
+win-pl.tgz of the main ftp server (swi.psy.uva.nl).  The DOS and Windows
+versions are created using the WATCOM-C/32 toolkit.
+
+
+=======================================================================
+Version 1.8.12.  Fixed tracer option `f' (fail) used on the exit port of
+a goal.  Thanks to Thomas Hoppe.
+
 Version 1.8.8.  Fix  in  the  parser   to  avoid  some  bad syntax-error
 messages.  Also fixed spurious crashes   trying to read bad-syntax-terms
 of the form ?- atom,.
