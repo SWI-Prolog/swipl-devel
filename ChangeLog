@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: plwin.exe: console placement to use
+    SystemParametersInfo(SPI_GETWORKAREA, ...) to determine the boundary.
+
   * MODIFIED: Prolog Navigator now calls default edit/1 interface (suggested
     by Tolga Konik).
 

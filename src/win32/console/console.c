@@ -70,9 +70,7 @@ NULL to use the default console for this thread.
 Menus
 -----
 
-Another important improvement would be  to   add  a  menu-bar for common
-operations, such as showing the common File and Edit operations, as well
-as an extensible menu with callbacks to Prolog.
+The current console provides a menu that can be extended from Prolog.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef _DEBUG
@@ -719,16 +717,30 @@ rlc_get_options(const char *prog)
   if ( !(key = reg_open_key(address)) )
     return;
 
-{ HDC hdc = GetDC(NULL);
-  int maxx = GetDeviceCaps(hdc, HORZRES) - 20;
-  int maxy = GetDeviceCaps(hdc, VERTRES) - 20;
+{ int minx, miny, maxx, maxy;
+
+#if 1
+  RECT rect;
+
+  SystemParametersInfo(SPI_GETWORKAREA, 0, &rect, 0);
+  minx = rect.top;
+  miny = rect.left;
+  maxx = rect.right  - 40;
+  maxy = rect.bottom - 40;
+#else
+  HDC hdc = GetDC(NULL);
+
+  minx = miny = 0;
+  maxx = GetDeviceCaps(hdc, HORZRES) - 40;
+  maxy = GetDeviceCaps(hdc, VERTRES) - 60; /* must be above the task-bar */
   ReleaseDC(NULL, hdc);
+#endif
 
   reg_get_int(key, "SaveLines",   200, 100000, &rlc_savelines);
   reg_get_int(key, "Width",        20,	  300, &rlc_cols);
   reg_get_int(key, "Height",        5,	  100, &rlc_rows);
-  reg_get_int(key, "X",	            0,	 maxx, &rlc_x);
-  reg_get_int(key, "Y",	            0,   maxy, &rlc_y);
+  reg_get_int(key, "X",		 minx,	 maxx, &rlc_x);
+  reg_get_int(key, "Y",	         miny,   maxy, &rlc_y);
 }
 
   reg_get_str(key, "FaceName",                 &rlc_face_name);

@@ -834,6 +834,8 @@ ws_frame_bb(FrameObj fr, int *x, int *y, int *w, int *h)
 }
 
 
+#define MIN_VISIBLE 32			/* pixels that must be visible */
+
 void
 ws_x_geometry_frame(FrameObj fr, Name spec)
 { char *s = strName(spec);
@@ -843,8 +845,19 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
   int ok=0;
   WsFrame f = fr->ws_ref;
   int ew, eh;
-  int dw = valInt(getWidthDisplay(fr->display));
-  int dh = valInt(getHeightDisplay(fr->display));
+  int dx, dy, dw, dh;
+  RECT rect;
+
+  if ( SystemParametersInfo(SPI_GETWORKAREA, 0, &rect, 0) )
+  { dx = rect.left;
+    dy = rect.top;
+    dw = rect.right - rect.left;
+    dh = rect.bottom - rect.top;
+  } else
+  { dx = dy = 0;
+    dw = valInt(getWidthDisplay(fr->display));
+    dh = valInt(getHeightDisplay(fr->display));
+  }
 
   if ( !ws_frame_bb(fr, &x, &y, &w0, &h0) )
     return;
@@ -901,17 +914,18 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
   if ( f && ok )
   { if ( y < 0 )			/* above the screen */
       y = 0;
-    if ( y > dh-40 )			/* below the screen */
-      y = dh - 40;
-    if ( x+w < 20 )			/* left of the screen */
-      x = 40-w;
-    if ( x > dw-20 )			/* right of the screen */
-      x = dw - 40;
+    if ( y > dh-MIN_VISIBLE )		/* below the screen */
+      y = dh - MIN_VISIBLE;
+    if ( x+w < MIN_VISIBLE )		/* left of the screen */
+      x = MIN_VISIBLE-w;
+    if ( x > dw-MIN_VISIBLE )		/* right of the screen */
+      x = dw - MIN_VISIBLE;
     
     SetWindowPos(f->hwnd,
-		 HWND_TOP,	/* ignored */
-		 x, y, w, h,	/* Specifies outer area (with border) */
+		 HWND_TOP,	   /* ignored */
+		 dx+x, dy+y, w, h, /* Specifies outer area (with border) */
 		 flags);
+
     f->placed = TRUE;
   }
 }
