@@ -8,7 +8,6 @@
 
 :- module($history,
 	[ read_history/6
-	, history_depth/1
 	, $clean_history/0
 	]).
 
