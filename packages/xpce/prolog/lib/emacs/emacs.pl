@@ -91,7 +91,7 @@ pce_ifhostproperty(prolog(swi),
 %:- declare_emacs_mode(language,library('emacs/language_mode')).
 :- declare_emacs_mode(prolog,	library('emacs/prolog_mode')).
 :- declare_emacs_mode(latex,	library('emacs/latex_mode')).
-:- declare_emacs_mode(html,	library('emacs/html_mode')).
+%:- declare_emacs_mode(html,	library('emacs/html_mode')).
 :- declare_emacs_mode(c,	library('emacs/c_mode')).
 :- declare_emacs_mode(cpp,	library('emacs/cpp_mode')).
 :- declare_emacs_mode(script,	library('emacs/script_mode')).
