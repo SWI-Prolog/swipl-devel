@@ -661,6 +661,9 @@ registerBuiltinAtoms()
 
     a->name       = (char *)*s;
     a->length     = len;
+#ifdef O_ATOMGC
+    a->references = 0;
+#endif
 #ifdef O_HASHTERM
     a->hash_value = v0;
 #endif

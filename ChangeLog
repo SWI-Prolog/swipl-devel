@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Atom-reference corruption problem for the `built-in' atoms.
+    With many thanks to David Schumann who found the problem, sometimes
+    trapping the assertion assert(p->references >= 0); in
+    PL_unregister_atom().
+
   * MODIFIED: moved list-processing primitives to library(lists), where
     most Prolog systems have these.  Using the autoloader this should
     have no consequences for most applications.
