@@ -2962,15 +2962,18 @@ pl_put_column(context *c, int nth, term_t col)
 		       buf, sizeof(buf), &len);
     if ( c->rc == SQL_SUCCESS || c->rc == SQL_SUCCESS_WITH_INFO )
     { if ( len >= sizeof(buf) )
-      { data = odbc_malloc(len+1);
+      { SDWORD len2;
+
+	data = odbc_malloc(len+1);
 	memcpy(data, buf, sizeof(buf));	/* you don't get the data twice! */
 	c->rc = SQLGetData(c->hstmt, (UWORD)(nth+1), p->cTypeID,
-			   data+sizeof(buf)-1, len-sizeof(buf)+2, &len);
+			   data+sizeof(buf)-1, len-sizeof(buf)+2, &len2);
 	if ( c->rc != SQL_SUCCESS )
 	{ free(data);
 	  report_status(c);
 	  return FALSE;
 	}
+	assert(len == len2 + sizeof(buf) - 1);
       }
     } else if ( !report_status(c) )
       return FALSE;
