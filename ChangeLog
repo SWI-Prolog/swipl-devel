@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Windows: make double-clicking possible on filenames holding
+    special characters.  Reported by Graham Thomason.
+
   * ADDED: downcase_atom/2 and upcase_atom/2 to do quick case-conversion
     on atoms.
 

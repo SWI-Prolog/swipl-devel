@@ -1,6 +1,12 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: `tree->event' to call new method `node->event' to allow for
+  refinement of node event-processing.
+
+* ADDED: `dialog<->border' to allow setting the border independent from the
+  <->gap.
+
 * FIXED: `term-names' of text_item to use <-value rather then <-selection
   to avoid resetting <-modified (and other side-effects).
 
