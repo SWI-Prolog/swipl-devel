@@ -161,7 +161,7 @@ source(V, Source:'name|emacs_buffer*') :->
 	"Attach to indicated file"::
 	debug('Attaching source ~p ...', [Source]),
 	(   get(V, source, Source)
-	->  true
+	->  send(V, check_modified)
 	;   (   Source == @nil
 	    ->  send(V, text_buffer, emacs_buffer(@nil, '<no source>'))
 	    ;   send(Source, instance_of, emacs_buffer)

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: GUI tracer: check whether file is modified outside the built-in
+    editor.  (Jakub Jiricek).
+
   * FIXED: Properly compile A *-> B (without else-branche) to a normal
     conjunction.  (Jakub Jiricek).
 
