@@ -821,6 +821,10 @@ int	dl_plid;			/* next id to give */
 DlEntry dl_head;			/* loaded DL's */
 DlEntry dl_tail;			/* end of this chain */
 
+#ifndef RTLD_GLOBAL			/* solaris defines this */
+#define RTLD_GLOBAL 0
+#endif
+
 word
 pl_open_shared_object(Word file, Word plhandle)
 { void *dlhandle;
@@ -828,7 +832,7 @@ pl_open_shared_object(Word file, Word plhandle)
 
   if ( !isAtom(*file) )
     return warning("open_shared_object/2: instantiation fault");
-  if ( !(dlhandle = dlopen(stringAtom(*file), RTLD_LAZY)) )
+  if ( !(dlhandle = dlopen(stringAtom(*file), RTLD_LAZY|RTLD_GLOBAL)) )
     return warning("load_shared_object/2: %s", dlerror());
   e = allocHeap(sizeof(struct dl_entry));
   e->id       = ++dl_plid;
