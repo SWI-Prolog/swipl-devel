@@ -53,7 +53,8 @@ getConvertError(Class class, Name id)
   { if ( inBoot )
       fail;
     realiseClass(ClassError);
-    assert(ErrorTable);
+    if ( !ErrorTable )
+      fail;
   }
 
   if ( (e=getMemberHashTable(ErrorTable, id)) )

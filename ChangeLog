@@ -7,6 +7,14 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.4.2 (October 02, 2004)
+================================
+
+  * FIXED: Garbage collector bug in handling trailed assignments.  This
+    code is used by attributed variables, setarg/3 and backtrackable
+    global variables.
+
+
 VERSION 5.4.1 (September 30, 2004)
 ==================================
 
