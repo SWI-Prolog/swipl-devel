@@ -422,7 +422,7 @@ collectAtoms()
 
 					/* delete from hash-table */
       for( ; ; ap2 = &(*ap2)->next )
-      { assert(*ap2);
+      { assert(*ap2);			/* MT: TBD: failed a few times!? */
 	
 	if ( *ap2 == a )
 	{ *ap2 = a->next;

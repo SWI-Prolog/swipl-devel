@@ -1149,9 +1149,7 @@ pl_is(term_t v, term_t e)
 #if O_PROLOG_FUNCTIONS
 word
 pl_arithmetic_function(term_t descr)
-{ GET_LD
-
-  Procedure proc;
+{ Procedure proc;
   functor_t fd;
   FunctorDef fdef;
   ArithFunction f;
