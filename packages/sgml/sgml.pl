@@ -46,6 +46,7 @@ load_foreign :-
 :- initialization
 	load_foreign.
 	
+
 		 /*******************************
 		 *	   DTD HANDLING		*
 		 *******************************/
