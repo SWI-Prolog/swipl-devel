@@ -279,8 +279,8 @@ socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	  { set(s, SOCK_CLOSE_SEEN);
 	  } else
 	  { if ( closesocket(sock) == SOCKET_ERROR )
-	      Sdprintf("FD_CLOSE: closesocket(%d) failed: %s\n",
-		       sock, WinSockError(WSAGetLastError()));
+	    DEBUG(Sdprintf("FD_CLOSE: closesocket(%d) failed: %s\n",
+			   sock, WinSockError(WSAGetLastError())));
 	  }
 	  break;
 	case FD_WRITE:
