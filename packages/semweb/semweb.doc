@@ -716,7 +716,9 @@ Transactions may be nested.  A failing nested transaction only reverts
 the actions performed inside the nested transaction.  If the outer
 transaction succeeds it is committed normally.  Contrary, if the
 outer transaction fails, comitted nested transactions are reverted
-as well.
+as well.  If any of the modifications inside the transaction modifies
+a protected file (see rdfe_set_file_property/2) the transaction is
+reverted and rdfe_transaction/1 throws a permission error.
 
 A successful outer transaction (`level-0') may be undone using
 rdfe_undo/0.
@@ -747,6 +749,41 @@ loop.  \arg{Action} is one of:
 \end{description}
 \end{description}
 
+\subsection{File management}			\label{sec:file}
+
+\begin{description}
+    \predicate{rdfe_is_modified}{1}{?File}
+Enumerate/test whether \arg{File} is modified sinds it was loaded or
+sinds the last call to rdfe_clear_modified/1.  Whether or not a file
+is modified is determined by the MD5 checksum of all triples belonging
+to the file.
+
+    \predicate{rdfe_clear_modified}{1}{+File}
+Set the \emph{unmodified-MD5} to the current MD5 checksum.  See also
+rdfe_is_modified/1.
+
+    \predicate{rdfe_set_file_property}{2}{+File, +Property}
+Control access right and default destination of new triples.
+\arg{Property} is one of
+
+    \begin{description}
+	\termitem{access}{+Access}
+    Where access is one of \const{ro} or \const{rw}.  Access \const{ro}
+    is default when a file is loaded for which the user has no write
+    access.  If a transaction (see rdfe_transaction/1) modifies a file
+    with access \const{ro} the transaction is reversed.
+
+	\termitem{default}{+Default}
+    Set this file to be the default destination of triples.  If
+    \arg{Default} is \const{fallback} it is only the default for
+    triples that have no clear default destination. If it is \const{all}
+    all new triples are added to this file.
+    \end{description}
+
+    \predicate{rdfe_get_file_property}{2}{?File, ?Property}
+Query properties set with rdfe_set_file_property/2.
+\end{description}
+
 
 \subsection{Encapsulated predicates}		\label{sec:rdfeencap}
 
@@ -761,8 +798,10 @@ Encapsulates rdf_assert/3.
 Encapsulates rdf_retractall/3.
     \predicate{rdfe_update}{4}{+Subject, +Predicate, +Object, +Action}
 Encapsulates rdf_update/4.
-    \predicate{rdf_load}{1}{+In}
+    \predicate{rdfe_load}{1}{+In}
 Encapsulates rdf_load/1.
+    \predicate{rdfe_unload}{1}{+In}
+Encapsulates rdf_unload/1.
 \end{description}
 
 \subsection{High-level modification predicates}	\label{sec:rdfeedit}

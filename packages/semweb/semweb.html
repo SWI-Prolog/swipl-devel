@@ -68,11 +68,12 @@ Pentium 1.5Ghz).
 <LI><A HREF="#sec:5"><B>5 Module rdf_edit</B></A>
 <UL>
 <LI><A HREF="#sec:5.1">5.1 Transaction management</A>
-<LI><A HREF="#sec:5.2">5.2 Encapsulated predicates</A>
-<LI><A HREF="#sec:5.3">5.3 High-level modification predicates</A>
-<LI><A HREF="#sec:5.4">5.4 Undo</A>
-<LI><A HREF="#sec:5.5">5.5 Journalling</A>
-<LI><A HREF="#sec:5.6">5.6 Broadcasting change events</A>
+<LI><A HREF="#sec:5.2">5.2 File management</A>
+<LI><A HREF="#sec:5.3">5.3 Encapsulated predicates</A>
+<LI><A HREF="#sec:5.4">5.4 High-level modification predicates</A>
+<LI><A HREF="#sec:5.5">5.5 Undo</A>
+<LI><A HREF="#sec:5.6">5.6 Journalling</A>
+<LI><A HREF="#sec:5.7">5.7 Broadcasting change events</A>
 </UL>
 </UL>
 
@@ -857,7 +858,7 @@ an alternative to saving.
 <P>
 <DT><A NAME="rdfe_transaction/1"><STRONG>rdfe_transaction</STRONG>(<VAR>:Goal</VAR>)</A><DD>
 Run <VAR>Goal</VAR>, recording all modifications to the triple store 
-made through <A HREF="#sec:rdfeencap">section 5.2</A>. Execution is 
+made through <A HREF="#sec:rdfeencap">section 5.3</A>. Execution is 
 performed as in <A NAME="idx:once1:47"></A><B>once/1</B>. If
 <VAR>Goal</VAR> succeeds the changes are committed. If <VAR>Goal</VAR> 
 fails or throws an exception the changes are reverted.
@@ -865,19 +866,23 @@ fails or throws an exception the changes are reverted.
 <P>Transactions may be nested. A failing nested transaction only reverts 
 the actions performed inside the nested transaction. If the outer 
 transaction succeeds it is committed normally. Contrary, if the outer 
-transaction fails, comitted nested transactions are reverted as well.
+transaction fails, comitted nested transactions are reverted as well. If 
+any of the modifications inside the transaction modifies a protected 
+file (see <A NAME="idx:rdfesetfileproperty2:48"></A><A HREF="#rdfe_set_file_property/2">rdfe_set_file_property/2</A>) 
+the transaction is reverted and <A NAME="idx:rdfetransaction1:49"></A><A HREF="#rdfe_transaction/1">rdfe_transaction/1</A> 
+throws a permission error.
 
 <P>A successful outer transaction (`level-0') may be undone using
-<A NAME="idx:rdfeundo0:48"></A><A HREF="#rdfe_undo/0">rdfe_undo/0</A>.
+<A NAME="idx:rdfeundo0:50"></A><A HREF="#rdfe_undo/0">rdfe_undo/0</A>.
 
 <P>
 <DT><A NAME="rdfe_transaction/2"><STRONG>rdfe_transaction</STRONG>(<VAR>:Goal, 
 +Name</VAR>)</A><DD>
-As <A NAME="idx:rdfetransaction1:49"></A><A HREF="#rdfe_transaction/1">rdfe_transaction/1</A>, 
+As <A NAME="idx:rdfetransaction1:51"></A><A HREF="#rdfe_transaction/1">rdfe_transaction/1</A>, 
 naming the transaction <VAR>Name</VAR>. Transaction naming is intended 
-for the GUI to give the user an idea of the next undo action. See also <A NAME="idx:rdfesettransactionname1:50"></A><A HREF="#rdfe_set_transaction_name/1">rdfe_set_transaction_name/1</A> 
+for the GUI to give the user an idea of the next undo action. See also <A NAME="idx:rdfesettransactionname1:52"></A><A HREF="#rdfe_set_transaction_name/1">rdfe_set_transaction_name/1</A> 
 and
-<A NAME="idx:rdfetransactionname2:51"></A><A HREF="#rdfe_transaction_name/2">rdfe_transaction_name/2</A>.
+<A NAME="idx:rdfetransactionname2:53"></A><A HREF="#rdfe_transaction_name/2">rdfe_transaction_name/2</A>.
 
 <P>
 <DT><A NAME="rdfe_set_transaction_name/1"><STRONG>rdfe_set_transaction_name</STRONG>(<VAR>+Name</VAR>)</A><DD>
@@ -915,37 +920,88 @@ is one of:
 
 </DL>
 
-<H3><A NAME="sec:5.2">5.2 Encapsulated predicates</A></H3>
+<H3><A NAME="sec:5.2">5.2 File management</A></H3>
+
+<A NAME="sec:file"></A>
+
+<DL>
+
+<P>
+<DT><A NAME="rdfe_is_modified/1"><STRONG>rdfe_is_modified</STRONG>(<VAR>?File</VAR>)</A><DD>
+Enumerate/test whether <VAR>File</VAR> is modified sinds it was loaded 
+or sinds the last call to <A NAME="idx:rdfeclearmodified1:54"></A><A HREF="#rdfe_clear_modified/1">rdfe_clear_modified/1</A>. 
+Whether or not a file is modified is determined by the MD5 checksum of 
+all triples belonging to the file.
+
+<P>
+<DT><A NAME="rdfe_clear_modified/1"><STRONG>rdfe_clear_modified</STRONG>(<VAR>+File</VAR>)</A><DD>
+Set the <EM>unmodified-MD5</EM> to the current MD5 checksum. See also
+<A NAME="idx:rdfeismodified1:55"></A><A HREF="#rdfe_is_modified/1">rdfe_is_modified/1</A>.
+
+<P>
+<DT><A NAME="rdfe_set_file_property/2"><STRONG>rdfe_set_file_property</STRONG>(<VAR>+File, 
++Property</VAR>)</A><DD>
+Control access right and default destination of new triples.
+<VAR>Property</VAR> is one of
+
+<DL>
+
+<P>
+<DT><STRONG>access</STRONG>(<VAR>+Access</VAR>)<DD>
+Where access is one of <CODE>ro</CODE> or <CODE>rw</CODE>. Access <CODE>ro</CODE> 
+is default when a file is loaded for which the user has no write access. 
+If a transaction (see <A NAME="idx:rdfetransaction1:56"></A><A HREF="#rdfe_transaction/1">rdfe_transaction/1</A>) 
+modifies a file with access <CODE>ro</CODE> the transaction is reversed.
+
+<P>
+<DT><STRONG>default</STRONG>(<VAR>+Default</VAR>)<DD>
+Set this file to be the default destination of triples. If
+<VAR>Default</VAR> is <CODE>fallback</CODE> it is only the default for 
+triples that have no clear default destination. If it is <CODE>all</CODE> 
+all new triples are added to this file.
+</DL>
+
+<P>
+<DT><A NAME="rdfe_get_file_property/2"><STRONG>rdfe_get_file_property</STRONG>(<VAR>?File, 
+?Property</VAR>)</A><DD>
+Query properties set with <A NAME="idx:rdfesetfileproperty2:57"></A><A HREF="#rdfe_set_file_property/2">rdfe_set_file_property/2</A>.
+</DL>
+
+<H3><A NAME="sec:5.3">5.3 Encapsulated predicates</A></H3>
 
 <A NAME="sec:rdfeencap"></A>
 
 <P>The following predicates encapsulate predicates from the <CODE>rdf_db</CODE> 
 module that modify the triple store. These predicates can only be called 
-when inside a <EM>transaction</EM>. See <A NAME="idx:rdfetransaction1:52"></A><A HREF="#rdfe_transaction/1">rdfe_transaction/1</A>.
+when inside a <EM>transaction</EM>. See <A NAME="idx:rdfetransaction1:58"></A><A HREF="#rdfe_transaction/1">rdfe_transaction/1</A>.
 
 <DL>
 
 <P>
 <DT><A NAME="rdfe_assert/3"><STRONG>rdfe_assert</STRONG>(<VAR>+Subject, 
 +Predicate, +Object</VAR>)</A><DD>
-Encapsulates <A NAME="idx:rdfassert3:53"></A><A HREF="#rdf_assert/3">rdf_assert/3</A>.
+Encapsulates <A NAME="idx:rdfassert3:59"></A><A HREF="#rdf_assert/3">rdf_assert/3</A>.
 
 <P>
 <DT><A NAME="rdfe_retractall/3"><STRONG>rdfe_retractall</STRONG>(<VAR>?Subject, 
 ?Predicate, ?Object</VAR>)</A><DD>
-Encapsulates <A NAME="idx:rdfretractall3:54"></A><A HREF="#rdf_retractall/3">rdf_retractall/3</A>.
+Encapsulates <A NAME="idx:rdfretractall3:60"></A><A HREF="#rdf_retractall/3">rdf_retractall/3</A>.
 
 <P>
 <DT><A NAME="rdfe_update/4"><STRONG>rdfe_update</STRONG>(<VAR>+Subject, 
 +Predicate, +Object, +Action</VAR>)</A><DD>
-Encapsulates <A NAME="idx:rdfupdate4:55"></A><A HREF="#rdf_update/4">rdf_update/4</A>.
+Encapsulates <A NAME="idx:rdfupdate4:61"></A><A HREF="#rdf_update/4">rdf_update/4</A>.
 
 <P>
-<DT><A NAME="rdf_load/1"><STRONG>rdf_load</STRONG>(<VAR>+In</VAR>)</A><DD>
-Encapsulates <A NAME="idx:rdfload1:56"></A><A HREF="#rdf_load/1">rdf_load/1</A>.
+<DT><A NAME="rdfe_load/1"><STRONG>rdfe_load</STRONG>(<VAR>+In</VAR>)</A><DD>
+Encapsulates <A NAME="idx:rdfload1:62"></A><A HREF="#rdf_load/1">rdf_load/1</A>.
+
+<P>
+<DT><A NAME="rdfe_unload/1"><STRONG>rdfe_unload</STRONG>(<VAR>+In</VAR>)</A><DD>
+Encapsulates <A NAME="idx:rdfunload1:63"></A><A HREF="#rdf_unload/1">rdf_unload/1</A>.
 </DL>
 
-<H3><A NAME="sec:5.3">5.3 High-level modification predicates</A></H3>
+<H3><A NAME="sec:5.4">5.4 High-level modification predicates</A></H3>
 
 <A NAME="sec:rdfeedit"></A>
 
@@ -962,9 +1018,9 @@ Delete all traces of <VAR>resource</VAR>. This implies all triples where
 <EM>object</EM>. This predicate starts a transation.
 </DL>
 
-<H3><A NAME="sec:5.4">5.4 Undo</A></H3>
+<H3><A NAME="sec:5.5">5.5 Undo</A></H3>
 
-<P><A NAME="idx:undo:57"></A>Undo aims at user-level undo operations 
+<P><A NAME="idx:undo:64"></A>Undo aims at user-level undo operations 
 from a (graphical) editor.
 
 <DL>
@@ -972,14 +1028,14 @@ from a (graphical) editor.
 <P>
 <DT><A NAME="rdfe_undo/0"><STRONG>rdfe_undo</STRONG></A><DD>
 Revert the last outermost (`level 0') transaction (see
-<A NAME="idx:rdfetransaction1:58"></A><A HREF="#rdfe_transaction/1">rdfe_transaction/1</A>). 
+<A NAME="idx:rdfetransaction1:65"></A><A HREF="#rdfe_transaction/1">rdfe_transaction/1</A>). 
 Successive calls go further back in history. Fails if there is no more 
 undo information.
 
 <P>
 <DT><A NAME="rdfe_redo/0"><STRONG>rdfe_redo</STRONG></A><DD>
-Revert the last <A NAME="idx:rdfeundo0:59"></A><A HREF="#rdfe_undo/0">rdfe_undo/0</A>. 
-Successive calls revert more <A NAME="idx:rdfeundo0:60"></A><A HREF="#rdfe_undo/0">rdfe_undo/0</A> 
+Revert the last <A NAME="idx:rdfeundo0:66"></A><A HREF="#rdfe_undo/0">rdfe_undo/0</A>. 
+Successive calls revert more <A NAME="idx:rdfeundo0:67"></A><A HREF="#rdfe_undo/0">rdfe_undo/0</A> 
 operations. Fails if there is no more redo information.
 
 <P>
@@ -995,9 +1051,9 @@ menus in a graphical environment. <VAR>TID</VAR> is unified to the
 transaction id of the action that will be reverted.
 </DL>
 
-<H3><A NAME="sec:5.5">5.5 Journalling</A></H3>
+<H3><A NAME="sec:5.6">5.6 Journalling</A></H3>
 
-<P><A NAME="idx:journal:61"></A>Optionally, every action through this 
+<P><A NAME="idx:journal:68"></A>Optionally, every action through this 
 module is immediately send to a
 <EM>journal-file</EM>. The journal provides a full log of all actions 
 with a time-stamp that may be used for inspection of behaviour, version 
@@ -1010,7 +1066,7 @@ management, crash-recovery or an alternative to regular save operations.
 +Mode</VAR>)</A><DD>
 Open a existing or new journal. If <VAR>Mode</VAR> equala <CODE>append</CODE> 
 and <VAR>File</VAR> exists, the journal is first replayed. See
-<A NAME="idx:rdfereplayjournal1:62"></A><A HREF="#rdfe_replay_journal/1">rdfe_replay_journal/1</A>. 
+<A NAME="idx:rdfereplayjournal1:69"></A><A HREF="#rdfe_replay_journal/1">rdfe_replay_journal/1</A>. 
 If <VAR>Mode</VAR> is <CODE>write</CODE> the journal is truncated if it 
 exists.
 
@@ -1032,12 +1088,12 @@ or not closed at all due to a crash the actions inside the journal are
 discarded. Using this predicate only makes sense to inspect the state at 
 the end of a journal without modifying the journal. Normally a journal 
 is replayed using the
-<CODE>append</CODE> mode of <A NAME="idx:rdfeopenjournal2:63"></A><A HREF="#rdfe_open_journal/2">rdfe_open_journal/2</A>.
+<CODE>append</CODE> mode of <A NAME="idx:rdfeopenjournal2:70"></A><A HREF="#rdfe_open_journal/2">rdfe_open_journal/2</A>.
 </DL>
 
-<H3><A NAME="sec:5.6">5.6 Broadcasting change events</A></H3>
+<H3><A NAME="sec:5.7">5.7 Broadcasting change events</A></H3>
 
-<P><A NAME="idx:event:64"></A><A NAME="idx:broadcast:65"></A>To realise 
+<P><A NAME="idx:event:71"></A><A NAME="idx:broadcast:72"></A>To realise 
 a modular graphical interface for editing the triple store, the system 
 must use some sort of <EM>event</EM> mechanism. This is implemented by 
 the XPCE library <CODE>library(broadcast)</CODE> which is described in 
@@ -1061,8 +1117,8 @@ triple store is not changed.
 
 <P>
 <DT><STRONG>rdf_undo</STRONG>(<VAR>+Type, +Id</VAR>)<DD>
-This event is broadcasted after an <A NAME="idx:rdfeundo0:66"></A><A HREF="#rdfe_undo/0">rdfe_undo/0</A> 
-or <A NAME="idx:rdferedo0:67"></A><A HREF="#rdfe_redo/0">rdfe_redo/0</A>.
+This event is broadcasted after an <A NAME="idx:rdfeundo0:73"></A><A HREF="#rdfe_undo/0">rdfe_undo/0</A> 
+or <A NAME="idx:rdferedo0:74"></A><A HREF="#rdfe_redo/0">rdfe_redo/0</A>.
 <VAR>Type</VAR> is one of <CODE>undo</CODE> or <CODE>redo</CODE> and <VAR>Id</VAR> 
 identifies the transaction as above.
 </DL>
@@ -1104,13 +1160,13 @@ BUG: The current implementation cannot deal with cycles
 <A HREF="#idx:atomconcat3:31">3.4</A>
 <DT><STRONG>B</STRONG><DD>
 <DT>broadcast<DD>
-<A HREF="#idx:broadcast:65">5.6</A>
+<A HREF="#idx:broadcast:72">5.7</A>
 <DT><STRONG>C</STRONG><DD>
 <DT>Collection,parseType<DD>
 <A HREF="#idx:CollectionparseType:37">4.2</A>
 <DT><STRONG>E</STRONG><DD>
 <DT>event<DD>
-<A HREF="#idx:event:64">5.6</A>
+<A HREF="#idx:event:71">5.7</A>
 <DT>expand_goal/2<DD>
 <A HREF="#idx:expandgoal2:3">3.1</A>
 <DT><STRONG>G</STRONG><DD>
@@ -1118,7 +1174,7 @@ BUG: The current implementation cannot deal with cycles
 <A HREF="#idx:goalexpansion2:29">3.4</A> <A HREF="#idx:goalexpansion2:30">3.4</A>
 <DT><STRONG>J</STRONG><DD>
 <DT>journal<DD>
-<A HREF="#idx:journal:45">5</A> <A HREF="#idx:journal:61">5.5</A>
+<A HREF="#idx:journal:45">5</A> <A HREF="#idx:journal:68">5.6</A>
 <DT><STRONG>O</STRONG><DD>
 <DT>once/1<DD>
 <A HREF="#idx:once1:47">5.1</A>
@@ -1133,7 +1189,7 @@ BUG: The current implementation cannot deal with cycles
 <DT><A HREF="#rdf/4">rdf/4</A><DD>
 <A HREF="#idx:rdf4:4">3.1</A>
 <DT><A HREF="#rdf_assert/3">rdf_assert/3</A><DD>
-<A HREF="#idx:rdfassert3:10">3.2</A> <A HREF="#idx:rdfassert3:23">3.3.2</A> <A HREF="#idx:rdfassert3:53">5.2</A>
+<A HREF="#idx:rdfassert3:10">3.2</A> <A HREF="#idx:rdfassert3:23">3.3.2</A> <A HREF="#idx:rdfassert3:59">5.3</A>
 <DT><A HREF="#rdf_assert/4">rdf_assert/4</A><DD>
 <A HREF="#idx:rdfassert4:9">3.2</A>
 <DT>rdf_assert/[3,4]<DD>
@@ -1143,27 +1199,36 @@ BUG: The current implementation cannot deal with cycles
 <DT><A HREF="#rdfe_assert/3">rdfe_assert/3</A><DD>
 <DT><A HREF="#rdfe_can_redo/1">rdfe_can_redo/1</A><DD>
 <DT><A HREF="#rdfe_can_undo/1">rdfe_can_undo/1</A><DD>
+<DT><A HREF="#rdfe_clear_modified/1">rdfe_clear_modified/1</A><DD>
+<A HREF="#idx:rdfeclearmodified1:54">5.2</A>
 <DT><A HREF="#rdfe_close_journal/0">rdfe_close_journal/0</A><DD>
 <DT><A HREF="#rdfe_current_journal/1">rdfe_current_journal/1</A><DD>
 <DT><A HREF="#rdfe_delete/1">rdfe_delete/1</A><DD>
+<DT><A HREF="#rdfe_get_file_property/2">rdfe_get_file_property/2</A><DD>
+<DT><A HREF="#rdfe_is_modified/1">rdfe_is_modified/1</A><DD>
+<A HREF="#idx:rdfeismodified1:55">5.2</A>
+<DT><A HREF="#rdfe_load/1">rdfe_load/1</A><DD>
 <DT><A HREF="#rdfe_open_journal/2">rdfe_open_journal/2</A><DD>
-<A HREF="#idx:rdfeopenjournal2:63">5.5</A>
+<A HREF="#idx:rdfeopenjournal2:70">5.6</A>
 <DT><A HREF="#rdf_equal/2">rdf_equal/2</A><DD>
 <DT><A HREF="#rdfe_redo/0">rdfe_redo/0</A><DD>
-<A HREF="#idx:rdferedo0:67">5.6</A>
+<A HREF="#idx:rdferedo0:74">5.7</A>
 <DT><A HREF="#rdfe_replay_journal/1">rdfe_replay_journal/1</A><DD>
-<A HREF="#idx:rdfereplayjournal1:62">5.5</A>
+<A HREF="#idx:rdfereplayjournal1:69">5.6</A>
 <DT><A HREF="#rdfe_retractall/3">rdfe_retractall/3</A><DD>
+<DT><A HREF="#rdfe_set_file_property/2">rdfe_set_file_property/2</A><DD>
+<A HREF="#idx:rdfesetfileproperty2:48">5.1</A> <A HREF="#idx:rdfesetfileproperty2:57">5.2</A>
 <DT><A HREF="#rdfe_set_transaction_name/1">rdfe_set_transaction_name/1</A><DD>
-<A HREF="#idx:rdfesettransactionname1:50">5.1</A>
+<A HREF="#idx:rdfesettransactionname1:52">5.1</A>
 <DT><A HREF="#rdfe_transaction/1">rdfe_transaction/1</A><DD>
-<A HREF="#idx:rdfetransaction1:49">5.1</A> <A HREF="#idx:rdfetransaction1:52">5.2</A> <A HREF="#idx:rdfetransaction1:58">5.4</A>
+<A HREF="#idx:rdfetransaction1:49">5.1</A> <A HREF="#idx:rdfetransaction1:51">5.1</A> <A HREF="#idx:rdfetransaction1:56">5.2</A> <A HREF="#idx:rdfetransaction1:58">5.3</A> <A HREF="#idx:rdfetransaction1:65">5.5</A>
 <DT><A HREF="#rdfe_transaction/2">rdfe_transaction/2</A><DD>
 <DT><A HREF="#rdfe_transaction_member/2">rdfe_transaction_member/2</A><DD>
 <DT><A HREF="#rdfe_transaction_name/2">rdfe_transaction_name/2</A><DD>
-<A HREF="#idx:rdfetransactionname2:51">5.1</A>
+<A HREF="#idx:rdfetransactionname2:53">5.1</A>
 <DT><A HREF="#rdfe_undo/0">rdfe_undo/0</A><DD>
-<A HREF="#idx:rdfeundo0:48">5.1</A> <A HREF="#idx:rdfeundo0:59">5.4</A> <A HREF="#idx:rdfeundo0:60">5.4</A> <A HREF="#idx:rdfeundo0:66">5.6</A>
+<A HREF="#idx:rdfeundo0:50">5.1</A> <A HREF="#idx:rdfeundo0:66">5.5</A> <A HREF="#idx:rdfeundo0:67">5.5</A> <A HREF="#idx:rdfeundo0:73">5.7</A>
+<DT><A HREF="#rdfe_unload/1">rdfe_unload/1</A><DD>
 <DT><A HREF="#rdfe_update/4">rdfe_update/4</A><DD>
 <DT><A HREF="#rdf_generation/1">rdf_generation/1</A><DD>
 <A HREF="#idx:rdfgeneration1:14">3.2</A>
@@ -1176,7 +1241,7 @@ BUG: The current implementation cannot deal with cycles
 <DT>rdf_has/[3,4]<DD>
 <A HREF="#idx:rdfhas34:34">4.1</A> <A HREF="#idx:rdfhas34:35">4.1</A>
 <DT><A HREF="#rdf_load/1">rdf_load/1</A><DD>
-<A HREF="#idx:rdfload1:17">3.3</A> <A HREF="#idx:rdfload1:19">3.3</A> <A HREF="#idx:rdfload1:22">3.3.2</A> <A HREF="#idx:rdfload1:32">3.5</A> <A HREF="#idx:rdfload1:56">5.2</A>
+<A HREF="#idx:rdfload1:17">3.3</A> <A HREF="#idx:rdfload1:19">3.3</A> <A HREF="#idx:rdfload1:22">3.3.2</A> <A HREF="#idx:rdfload1:32">3.5</A> <A HREF="#idx:rdfload1:62">5.3</A>
 <DT>rdf_load/[1,2]<DD>
 <A HREF="#idx:rdfload12:24">3.3.3</A> <A HREF="#idx:rdfload12:28">3.3.3</A>
 <DT><A HREF="#rdf_load_db/1">rdf_load_db/1</A><DD>
@@ -1190,7 +1255,7 @@ BUG: The current implementation cannot deal with cycles
 <DT><A HREF="#rdf_register_ns/2">rdf_register_ns/2</A><DD>
 <DT><A HREF="#rdf_reset_db/0">rdf_reset_db/0</A><DD>
 <DT><A HREF="#rdf_retractall/3">rdf_retractall/3</A><DD>
-<A HREF="#idx:rdfretractall3:11">3.2</A> <A HREF="#idx:rdfretractall3:54">5.2</A>
+<A HREF="#idx:rdfretractall3:11">3.2</A> <A HREF="#idx:rdfretractall3:60">5.3</A>
 <DT><A HREF="#rdf_retractall/4">rdf_retractall/4</A><DD>
 <A HREF="#idx:rdfretractall4:12">3.2</A> <A HREF="#idx:rdfretractall4:13">3.2</A>
 <DT>rdf_retractall/[3,4]<DD>
@@ -1223,8 +1288,9 @@ BUG: The current implementation cannot deal with cycles
 <DT><A HREF="#rdf_statistics/1">rdf_statistics/1</A><DD>
 <DT><A HREF="#rdf_subject/1">rdf_subject/1</A><DD>
 <DT><A HREF="#rdf_unload/1">rdf_unload/1</A><DD>
+<A HREF="#idx:rdfunload1:63">5.3</A>
 <DT><A HREF="#rdf_update/4">rdf_update/4</A><DD>
-<A HREF="#idx:rdfupdate4:15">3.2</A> <A HREF="#idx:rdfupdate4:55">5.2</A>
+<A HREF="#idx:rdfupdate4:15">3.2</A> <A HREF="#idx:rdfupdate4:61">5.3</A>
 <DT><A HREF="#rdf_update/5">rdf_update/5</A><DD>
 <DT><STRONG>S</STRONG><DD>
 <DT>search<DD>
@@ -1234,7 +1300,7 @@ BUG: The current implementation cannot deal with cycles
 <A HREF="#idx:transactions:46">5</A>
 <DT><STRONG>U</STRONG><DD>
 <DT>undo<DD>
-<A HREF="#idx:undo:44">5</A> <A HREF="#idx:undo:57">5.4</A>
+<A HREF="#idx:undo:44">5</A> <A HREF="#idx:undo:64">5.5</A>
 </DL>
 
 </BODY></HTML>

@@ -57,6 +57,9 @@
 	    rdfe_can_undo/1,		% -TID
 	    rdfe_can_redo/1,		% -TID
 
+	    rdfe_set_file_property/2,	% +File, +Property
+	    rdfe_get_file_property/2,	% ?File, ?Property
+
 	    rdfe_is_modified/1,		% ?File
 	    rdfe_clear_modified/1,	% +File
 
@@ -170,10 +173,7 @@ rdfe_retractall(Subject, Predicate, Object, PayLoad) :-
 %		subject(+Subject)
 %		predicate(+Predicate)
 %		object(+Object)
-%		
-%	Broadcast message:
-%	
-%		rdf(+Action, +Subject, +Predicate, Object)
+%		source(+Source)
 
 rdfe_update(Subject, Predicate, Object, Action) :-
 	rdfe_current_transaction(TID),
@@ -398,7 +398,12 @@ rdfe_transaction(Goal, Name) :-
 	rdfe_begin_transaction(Name),
 	(   catch(Goal, E, true)
 	->  (   var(E)
-	    ->	rdfe_commit
+	    ->	check_file_protection(Error),
+		(   var(Error)
+		->  rdfe_commit
+		;   rdfe_rollback,
+		    throw(Error)
+		)
 	    ;	rdfe_rollback,
 		throw(E)
 	    )
@@ -637,6 +642,66 @@ user_transaction_member(unload_file(Path), -, -, -,
 			file(unload(Path))) :- !.
 user_transaction_member(Update, Subject, Predicate, Object,
 			update(Subject, Predicate, Object, Update)).
+
+
+		 /*******************************
+		 *	     PROTECTION		*
+		 *******************************/
+
+:- dynamic
+	rdf_source_permission/2,	% file, ro/rw
+	rdf_current_default_file/2.	% file, all/fallback
+
+%	rdfe_set_file_property(+File, +Options)
+%	
+%	Set properties on the file.  Options is one of
+%	
+%		access(ro/rw)
+%		default(all/fallback)
+
+rdfe_set_file_property(File, access(Access)) :- !,
+	retractall(rdf_source_permission(File, _)),
+	assert(rdf_source_permission(File, Access)),
+	broadcast(rdf_file_property(File, access(Access))).
+rdfe_set_file_property(File, default(Type)) :-
+	rdfe_set_file_property(File, access(rw)), % must be writeable
+	retractall(rdf_current_default_file(_,_)),
+	assert(rdf_current_default_file(File, Type)),
+	broadcast(rdf_file_property(File, default(Type))).
+
+
+%	rdfe_get_file_property(?File, ?Option)
+%	
+%	Fetch file properties set with rdf_set_file_property/2.
+
+rdfe_get_file_property(File, access(Access)) :-
+	rdf_source(File),
+	(   rdf_source_permission(File, Access0)
+	->  Access0 = Access
+	;   access_file(File, write)
+	->  assert(rdf_source_permission(File, rw)),
+	    Access = rw
+	;   assert(rdf_source_permission(File, ro)),
+	    Access = ro
+	).
+rdfe_get_file_property(File, default(Default)) :-
+	(   rdf_current_default_file(File, Default)
+	->  true
+	;   File = user,
+	    Default = fallback
+	).
+
+
+%	check_file_protection(-Error)
+%	
+%	Check modification of all protected files
+
+check_file_protection(Error) :-
+	(   rdfe_get_file_property(File, access(ro)),
+	    rdfe_is_modified(File)
+	->  Error = error(permission_error(modify, source, File), triple20)
+	;   true
+	).
 
 
 		 /*******************************
