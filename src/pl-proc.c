@@ -58,8 +58,6 @@ resetProcedure(Procedure proc)
 { register Definition def = proc->definition;
 
   def->flags ^= def->flags & ~SPY_ME;	/* Preserve the spy flag */
-  def->source = (SourceFile) NULL;
-  def->source_count = 0;
   set(def, TRACE_ME);
   if ( proc->functor->arity == 0 )
   { def->indexPattern = 0x0;
@@ -309,28 +307,41 @@ abolishProcedure(Procedure proc, Module module)
     succeed;
   }
 
-  removeClausesProcedure(proc);
+  removeClausesProcedure(proc, 0);
   resetProcedure(proc);
 
   succeed;
 }
 
 void
-removeClausesProcedure(Procedure proc)
+removeClausesProcedure(Procedure proc, int sfindex)
 { Definition def = proc->definition;
   Clause c, next;
 
   startCritical;
-  for(c = def->definition.clauses; c; c = next)
+  c = def->definition.clauses;
+  def->definition.clauses = def->lastClause = (Clause) NULL;
+
+  for(; c; c = next)
   { next = c->next;
-    if (c->references == 0)
-    { freeClause(c);
-    } else
-    { set(c, ERASED);
-      c->next = (Clause) NULL;
+
+    if ( sfindex == 0 || sfindex == c->source_no )
+    { if (c->references == 0)
+      { freeClause(c);
+      } else
+      { set(c, ERASED);
+	c->next = (Clause) NULL;
+      }
+    } else				/* keep this clause (multifile) */
+    { if ( !def->lastClause )
+      { def->definition.clauses = def->lastClause = c;
+      } else
+      { def->lastClause->next = c;
+	def->lastClause = c;
+      }
+      c->next = NULL;
     }
   }
-  def->definition.clauses = def->lastClause = (Clause) NULL;
 
   endCritical;
 }
@@ -800,8 +811,12 @@ pl_get_predicate_attribute(Word pred, Word what, Word value)
   { return unifyAtomic(value, consNum(true(def, FOREIGN) ||
 				      def->definition.clauses ? 1 : 0));
   } else if (key == ATOM_line_count)
-  { if ( def->line_no > 0 )
-      return unifyAtomic(value, consNum(def->line_no));
+  { int line;
+
+    if ( false(def, FOREIGN) &&
+	 def->definition.clauses &&
+	 (line=def->definition.clauses->line_no) )
+      return unifyAtomic(value, consNum(line));
     else
       fail;
   } else if (key == ATOM_foreign)
@@ -853,9 +868,11 @@ pl_set_predicate_attribute(Word pred, Word what, Word value)
   { clear(def, att);
   } else
   { set(def, att);
+/*  Bad choice I think
     if ( (att == DYNAMIC || att == MULTIFILE) && SYSTEM_MODE )
     { set(def, SYSTEM|HIDE_CHILDS);
     }
+*/
   }
 
   succeed;
@@ -915,6 +932,37 @@ pl_index(Word pred)
   succeed;
 }
 
+
+word
+pl_get_clause_attribute(Word ref, Word att, Word value)
+{ Clause clause;
+  Atom a = (Atom) *att;
+  word result;
+
+  if ( !isInteger(*ref) ||
+       !(clause = (Clause) numToPointer(*ref)) ||
+       !inCore(clause) || !isClause(clause) )
+    return warning("$clause_attribute/3: illegal reference");
+
+  if ( a == ATOM_line_count )
+  { if ( !clause->line_no )
+      fail;
+    else
+      result = (word) consNum(clause->line_no);
+  } else if ( a == ATOM_file )
+  { SourceFile sf = indexToSourceFile(clause->source_no);
+    
+    if ( sf )
+      result = (word) sf->name;
+    else
+      fail;
+  } else
+    fail;
+
+  return unifyAtomic(value, result);
+}
+
+
 		/********************************
 		*         SOURCE FILE           *
 		*********************************/
@@ -922,19 +970,23 @@ pl_index(Word pred)
 SourceFile
 lookupSourceFile(Atom name)
 { SourceFile file;
+  static int index = 0;
 
   for(file=sourceFileTable; file; file=file->next)
   { if (file->name == name)
       return file;
   }
+
   file = (SourceFile) allocHeap(sizeof(struct sourceFile) );
   file->name = name;
   file->count = 0;
   file->time = 0L;
+  file->index = ++index;
   file->system = status.boot;
-  file->next = (SourceFile) NULL;
+  file->procedures = NULL;
+  file->next = NULL;
 
-  if ( sourceFileTable == (SourceFile) NULL )
+  if ( sourceFileTable == NULL )
   { sourceFileTable = tailSourceFileTable = file;
   } else
   { tailSourceFileTable->next = file;
@@ -943,6 +995,7 @@ lookupSourceFile(Atom name)
 
   return file;
 }
+
 
 SourceFile
 isCurrentSourceFile(Atom name)
@@ -955,6 +1008,37 @@ isCurrentSourceFile(Atom name)
 
   return (SourceFile) NULL;
 }
+
+
+SourceFile
+indexToSourceFile(int index)
+{ SourceFile file;
+
+  for(file=sourceFileTable; file; file=file->next)
+  { if (file->index == index)
+      return file;
+  }
+
+  return NULL;
+}
+
+
+void
+addProcedureSourceFile(SourceFile sf, Procedure proc)
+{ ListCell cell;
+
+  for(cell=sf->procedures; cell; cell = cell->next)
+    if ( cell->value == proc )
+      return;
+
+  startCritical;
+  cell = allocHeap(sizeof(struct list_cell));
+  cell->value = proc;
+  cell->next = sf->procedures;
+  sf->procedures = cell;
+  endCritical;
+}
+
 
 word
 pl_make_system_source_files(void)
@@ -969,13 +1053,17 @@ pl_make_system_source_files(void)
 word
 pl_source_file(Word descr, Word file)
 { Procedure proc;
+  Clause clause;
+  SourceFile sf;
 
-  if ((proc = findProcedure(descr)) == (Procedure) NULL)
-    fail;
-  if (proc->definition->source == (SourceFile) NULL)
+  if ( !(proc = findProcedure(descr)) ||
+       !proc->definition ||
+       true(proc->definition, FOREIGN) ||
+       !(clause = proc->definition->definition.clauses) ||
+       !(sf = indexToSourceFile(clause->source_no)) )
     fail;
 
-  return unifyAtomic(file, proc->definition->source->name);
+  return unifyAtomic(file, sf->name);
 }
 
 word
@@ -1016,8 +1104,23 @@ pl_start_consult(Word file)
   if (!isAtom(*file) )
     fail;
   f = lookupSourceFile((Atom)*file);
-  f->count++;
   f->time = LastModifiedFile(stringAtom(*file));
+
+  if ( f->count++ > 0 )
+  { ListCell cell, next;
+
+    for(cell = f->procedures; cell; cell = next)
+    { Procedure proc = cell->value;
+
+      next = cell->next;
+      if ( proc->definition )
+	removeClausesProcedure(proc, true(proc->definition, MULTIFILE)
+						? f->index : 0);
+      freeHeap(cell, sizeof(struct list_cell));
+    }
+    f->procedures = NULL;
+  }
+  f->current_procedure = NULL;
 
   succeed;
 }

@@ -209,6 +209,8 @@ A block			"block"
 A dcut			"$cut"
 A dexit			"$exit"
 A locked		"locked"
+A clause		"clause"
+A file			"file"
 
 F apply			2
 F call			1

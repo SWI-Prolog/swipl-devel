@@ -198,3 +198,5 @@
 { (Atom)NULL, ATOM_TYPE, "$cut" },
 { (Atom)NULL, ATOM_TYPE, "$exit" },
 { (Atom)NULL, ATOM_TYPE, "locked" },
+{ (Atom)NULL, ATOM_TYPE, "clause" },
+{ (Atom)NULL, ATOM_TYPE, "file" },

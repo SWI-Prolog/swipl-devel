@@ -939,6 +939,11 @@ pl_prolog_frame_attribute(Word frame, Word what, Word value)
   { result = consNum(fr->parent == (LocalFrame) NULL ? 1 : 0);
   } else if (key == ATOM_context_module)
   { result = (word) contextModule(fr)->name;
+  } else if (key == ATOM_clause)
+  { if ( false(fr->procedure->definition, FOREIGN) && fr->clause )
+      result = pointerToNum(fr->clause);
+    else
+      fail;
   } else if (key == ATOM_goal)
   { int arity, n;
     Word arg;

@@ -244,10 +244,9 @@ registerForeign(char *name, int arity, Func f, va_list args)
 	    procedureName(proc));
     fail;
   }
-  if ( def->source != (SourceFile) NULL && def->source != sf )
-    warning("PL_register_foreign(): redefined %s", procedureName(proc));
-  def->source = sf;
 
+  if ( def->definition.function )
+    warning("PL_register_foreign(): redefined %s", procedureName(proc));
   if ( false(def, FOREIGN) && def->definition.clauses != (Clause) NULL )
     abolishProcedure(proc, m);
 

@@ -646,6 +646,7 @@ typedef struct record *		Record;		/* recorda/3, etc. */
 typedef struct recordList *	RecordList;	/* list of these */
 typedef struct module *		Module;		/* predicate modules */
 typedef struct sourceFile *	SourceFile;	/* file adminitration */
+typedef struct list_cell *	ListCell;	/* Anonymous list */
 typedef struct table *		Table;		/* (numeric) hash table */
 typedef struct symbol *		Symbol;		/* symbol of hash table */
 typedef struct localFrame *	LocalFrame;	/* environment frame */
@@ -716,7 +717,7 @@ Handling environment (or local stack) frames.
 					     : (LocalFrame)varFrame((f), -1))
 #define slotsFrame(f)		(true((f)->procedure->definition, FOREIGN) ? \
 				      (f)->procedure->functor->arity : \
-				      (f)->clause->slots)
+				      (f)->clause->variables)
 #define contextModule(f)	((f)->context)
 
 #define leaveClause(clause) { if ( --clause->references == 0 && \
@@ -903,7 +904,8 @@ struct clause
   short		subclauses;	/* number of subclauses in body (decompiler) */
   code		XR_size;	/* size of external reference table */
   code		variables;	/* number of variables */
-  code		slots;		/* # variables holding Prolog data */
+  unsigned short	line_no;	/* Source line-number */
+  unsigned short	source_no;	/* Index of source-file */
   unsigned short	flags;		/* Flag field holding: */
 		/* ERASED	   Clause is retracted, but referenced */
 };
@@ -944,7 +946,6 @@ struct definition
   } definition;
   Clause	lastClause;		/* last clause of list */
   Module	module;			/* module of the predicate */
-  SourceFile	source;			/* source file of predicate */
 #ifdef O_PROFILE
   int		profile_ticks;		/* profiler: call times active */
   int		profile_calls;		/* profiler: number of calls */
@@ -970,8 +971,6 @@ struct definition
 		/*	TRACE_EXIT	   Trace exit-port */
 		/*	TRACE_FAIL	   Trace fail-port */
   char		indexCardinality;	/* cardinality of index pattern */
-  char		source_count;		/* times (re)consulted */
-  short		line_no;		/* Line number for the predicate */
 };
 
 struct localFrame
@@ -1009,8 +1008,18 @@ struct sourceFile
   SourceFile	next;		/* next of chain */
   int		count;		/* number of times loaded */
   long		time;		/* load time of file */
+  ListCell	procedures;	/* List of associated procedures */
+  Procedure	current_procedure;	/* currently loading one */
+  int		index;		/* index number (1,2,...) */
   bool		system;		/* system sourcefile: do not reload */
 };
+
+
+struct list_cell
+{ void *	value;		/* object in the cell */
+  ListCell	next;		/* next in chain */
+};
+
 
 struct module
 { Atom		name;		/* name of module */

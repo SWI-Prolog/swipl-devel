@@ -74,14 +74,14 @@ Below is an informal description of the format of a `wic' file:
 <magic code>	::=	<string>			% normally #!<path>
 <version number>::=	<word>
 <statement>	::=	'W' <string>			% include wic file
-		      | 'P' <line_no> <num> <string>
+		      | 'P' <num> <string>
 			    {<clause>} <pattern>	% predicate
 		      | 'D' <string>			% directive
 		      | 'F' <string> <system> <time>	% source file
 		      | 'M' <string> <string>		% start module in file
 		      | 'E' <num> <string>		% export predicate
 		      | 'I' <string> <num> <string>	% import predicate
-<clause>	::=	'C' <n var> <n slots> <n clause> <externals> <codes>	% clause
+<clause>	::=	'C' <line_no> <n var> <n clause> <externals> <codes>	% clause
 		      | 'X' 				% end of list
 <externals>	::=	<num> {<external>}
 <external>	::=	'a' <string>			% atom
@@ -111,7 +111,7 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define VERSION 11			/* save version number */
+#define VERSION 12			/* save version number */
 
 static char saveMagic[] = "SWI-Prolog (c) 1990 Jan Wielemaker\n";
 static char *wicFile;			/* name of output file */
@@ -350,7 +350,7 @@ loadWicFd(char *file, FILE *fd, bool toplevel, bool load_options)
 	  continue;
 	}	  
       case 'F':
-	{ currentSource = lookupSourceFile(lookupAtom(getString(fd) ));
+	{ currentSource = lookupSourceFile(lookupAtom(getString(fd)));
 	  currentSource->system = (Getc(fd) == 's' ? TRUE : FALSE);
 	  currentSource->time = Getw(fd);
 	  continue;
@@ -380,7 +380,7 @@ loadWicFd(char *file, FILE *fd, bool toplevel, bool load_options)
 
 static bool
 loadPredicate(FILE *fd)
-{ int line, arity, n;
+{ int arity, n;
   char *name;
   Procedure proc;
   Definition def;
@@ -388,7 +388,6 @@ loadPredicate(FILE *fd)
   Word xp;
   Code bp;
 
-  line  = (int) getNum(fd);
   arity = (int) getNum(fd);
   if ((name = getString(fd)) == (char *) NULL)
     sysError("bad string in wic file");
@@ -396,8 +395,6 @@ loadPredicate(FILE *fd)
   proc = lookupProcedure(lookupFunctorDef(lookupAtom(name), arity), 
 			  modules.source);
   def = proc->definition;
-  def->source = currentSource;
-  def->line_no = line;
   if ( SYSTEM_MODE &&
        false(def, DYNAMIC) &&
        false(def, MULTIFILE) )
@@ -420,13 +417,14 @@ loadPredicate(FILE *fd)
       }
       case 'C':
 	clause = (Clause) allocHeap(sizeof(struct clause));
+	clause->line_no = getNum(fd);
 	clause->next = (Clause) NULL;
 	clause->references = 0;
 	clearFlags(clause);
 	clause->variables = getNum(fd);
-	clause->slots = getNum(fd);
 	clause->subclauses = getNum(fd);
 	clause->procedure = proc;
+	clause->source_no = currentSource->index;
 
 	clause->XR_size = getNum(fd);
 	statistics.externals += clause->XR_size;
@@ -523,7 +521,8 @@ loadImport(FILE *fd)
   Procedure proc = lookupProcedure(functor, source);
   Procedure old;
 
-  DEBUG(2, printf("loadImport(): %s/%d into %s\n", name, arity, stringAtom(modules.source->name)));
+  DEBUG(2, printf("loadImport(): %s/%d into %s\n",
+		  name, arity, stringAtom(modules.source->name)));
 
   if ((old = isCurrentProcedure(functor, modules.source)) != (Procedure) NULL)
   { if ( old->definition == proc->definition )
@@ -614,10 +613,9 @@ saveWicClause(Clause clause, FILE *fd)
   int n;
 
   Putc('C', fd);
+  putNum(clause->line_no, fd);
   putNum(clause->variables, fd);
-  putNum(clause->slots, fd);
   putNum(clause->subclauses, fd);
-
   putNum(clause->XR_size, fd);
   xp = clause->externals;
   for(n=0; n<clause->XR_size; n++, xp++)
@@ -764,7 +762,6 @@ addClauseWic(Word term, Atom file)
       checkSource(file);
       currentProc = clause->procedure;
       Putc('P', wicFd);
-      putNum(currentProc->definition->line_no, wicFd);
       putNum(currentProc->functor->arity, wicFd);
       putAtom(currentProc->functor->name, wicFd);
     }

@@ -1413,9 +1413,9 @@ could be compiled out, but this is a bit more neath.
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 C_MARK saves the value of BFR  (current   backtrack  frame) into a local
 frame slot reserved by the compiler.  Note that the variable to hold the
-local-frame pointer is *not* reserved in   clause->slots, so the garbage
-collector won't see it.  With the   introduction  of stack-shifting this
-slot has been made relative to lBase.
+local-frame pointer is  *not*  reserved   in  clause->variables,  so the
+garbage collector won't see it.  With the introduction of stack-shifting
+this slot has been made relative to lBase.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
    VMI(C_MARK, COUNT_N(c_mark), ("c_mark %d\n", *PC)) MARK(C_MARK);
       { varFrame(FR, *PC++) = (word) ((char *) BFR - (char *) lBase);
@@ -2025,7 +2025,7 @@ Testing is suffices to find out that the predicate is defined.
 
 	if ( debugstatus.debugging )
 	{ lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
-	  CL = (Clause) NULL;
+	  CL = DEF->definition.clauses;
 	  switch(tracePort(FR, CALL_PORT))
 	  { case ACTION_FAIL:	goto frame_failed;
 	    case ACTION_IGNORE: goto exit_builtin;

@@ -44,7 +44,7 @@ LDFLAGS= -static
 
 PLFOREIGN=foreign.pl
 
-PLVERSION=1.9.4
+PLVERSION=1.9.5
 DEFSTARTUP=.plrc
 
 PB=../boot

@@ -550,6 +550,7 @@ Allocate the clause and fill initialise the field we already know.
   clause->XR_size = clause->code_size = 0;
   clause->subclauses = 0;
   clause->procedure = proc;
+  clause->source_no = clause->line_no = 0;
 
   DEBUG(9, printf("clause struct initialised\n"));
 
@@ -563,7 +564,7 @@ Allocate the clause and fill initialise the field we already know.
   }
 
   TRY( analyse_variables(head, body, ci.arity, &nvars) );
-  clause->variables = clause->slots = nvars + ci.arity;
+  clause->variables = nvars + ci.arity;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Initialise the `compileInfo' structure.
@@ -1251,9 +1252,8 @@ assert_term(Word term, char where, Atom file)
 { Clause clause;
   Procedure proc;
   Definition def;
-  Module source_module = (file != (Atom) NULL ? modules.source : (Module) NULL);
+  Module source_module = (file ? modules.source : (Module) NULL);
   Module module = source_module;
-  static Procedure current = (Procedure) NULL;
 
   term = stripModule(term, &module);
 
@@ -1261,6 +1261,7 @@ assert_term(Word term, char where, Atom file)
   if ((clause = compile(term, module)) == (Clause) NULL)
     return (Clause) NULL;
   DEBUG(9, printf("ok\n"));
+  clause->line_no = source_line_no;
   proc = clause->procedure;
   def = proc->definition;
 
@@ -1269,20 +1270,12 @@ If file is defined, we are called from record_clause/2.  This code takes
 care of reconsult, redefinition, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  if (file != (Atom) NULL)
+  if ( file )
   { SourceFile sf;
 
     sf = lookupSourceFile(file);
-
-    if ( true(def, MULTIFILE) )
-    { if ( sf->count != 1 )
-      { warning("Multifile predicate %s not updated", procedureName(proc) );
-	freeClause(clause);
-	return (Clause) NULL;
-      }
-      return assertProcedure(proc, clause, where) == FALSE ? (Clause) NULL
-							   : clause;
-    }
+    clause->line_no   = source_line_no;
+    clause->source_no = sf->index;
 
     if ( def->module != module )
     { if ( true(def->module, SYSTEM) )
@@ -1294,68 +1287,58 @@ care of reconsult, redefinition, etc.
 				proc->functor->arity, 
 				stringAtom(proc->definition->module->name) );
       freeClause(clause);
-      return (Clause) NULL;
+      return NULL;
     }
 
-    if (def->source == sf && def->source_count == sf->count)
-    { if (proc != current)
-      { if ( (debugstatus.styleCheck & DISCONTIGUOUS_STYLE) &&
-	     false(def, DISCONTIGUOUS) )
-	  warning("Clauses of %s are not together in the source file", 
-				procedureName(proc) );
-	current = proc;
+    if ( proc == sf->current_procedure )
+      return assertProcedure(proc, clause, where) ? clause : NULL;
+
+    if ( def->definition.clauses )	/* i.e. is defined */
+    { Clause first;
+
+      if ( true(def, LOCKED) && !SYSTEM_MODE )
+      { warning("Attempt to redefine a system predicate: %s",
+		procedureName(proc));
+	freeClause(clause);
+	return NULL;
       }
 
-      return assertProcedure(proc, clause, where) == FALSE ? (Clause) NULL
-							   : clause;
-    } else
-      def->line_no = source_line_no;
+      if ( true(def, FOREIGN) )
+      { abolishProcedure(proc, module);
+	warning("Redefined: foreign predicate %s", procedureName(proc));
+      }
 
-    current = proc;
+      if ( false(def, MULTIFILE) )
+      { Clause first = def->definition.clauses;
+
+	if ( first && first->source_no == sf->index )
+	{ if ( (debugstatus.styleCheck & DISCONTIGUOUS_STYLE) &&
+	       false(def, DISCONTIGUOUS) )
+	    warning("Clauses of %s are not together in the source file", 
+		    procedureName(proc));
+	} else
+	{ abolishProcedure(proc, module);
+	  warning("Redefined: %s", procedureName(proc));
+	}
+      }
+
+      addProcedureSourceFile(sf, proc);
+      sf->current_procedure = proc;
+      
+      return assertProcedure(proc, clause, where) ? clause : NULL;
+    }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This `if' locks predicates as system predicates  if  we  are  in  system
 mode, the predicate is still undefined and is not dynamic or multifile.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    if ( SYSTEM_MODE &&
-	 false(def, SYSTEM) &&
-	 false(def, DYNAMIC) &&
-	 false(def, MULTIFILE) &&
-	 def->definition.clauses == (Clause) NULL)
-    { set(def, SYSTEM|HIDE_CHILDS|LOCKED);
+    if ( SYSTEM_MODE && false(def, SYSTEM|DYNAMIC|MULTIFILE) )
+      set(def, SYSTEM|HIDE_CHILDS|LOCKED);
 
-      def->source = sf;
-      def->source_count = sf->count;
-
-      return assertProcedure(proc, clause, where) == FALSE ? (Clause) NULL
-							   : clause;
-    }
-
-    if ( true(def, LOCKED) && !SYSTEM_MODE )
-    { warning("Attempt to redefine a system predicate: %s", 
-	      procedureName(proc));
-      freeClause(clause);
-      return (Clause) NULL;
-    }
-
-    if (def->source != sf)
-    { if (def->definition.clauses != (Clause) NULL)
-      {	abolishProcedure(proc, module);
-	warning("Redefined: %s", procedureName(proc) );
-      }
-      def->source = sf;
-      def->source_count = sf->count;
-    } else
-    { if (def->source_count < sf->count)	/* reconsult */
-      { removeClausesProcedure(proc);
-	def->line_no = source_line_no;
-        def->source = sf;
-      	def->source_count = sf->count;
-      }
-    }
-    return assertProcedure(proc, clause, where) == FALSE ? (Clause) NULL
-							 : clause;
+    addProcedureSourceFile(sf, proc);
+    sf->current_procedure = proc;
+    return assertProcedure(proc, clause, where) ? clause : NULL;
   }
 
   /* assert[az]/1 */

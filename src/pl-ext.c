@@ -145,6 +145,7 @@ static struct foreign {
   ADD("$c_current_predicate",	2, pl_current_predicate,  NONDETERMINISTIC|TRANSPARENT|TRACE_ME),
   ADD("$set_predicate_attribute", 3, pl_set_predicate_attribute,TRANSPARENT|TRACE_ME),
   ADD("$get_predicate_attribute", 3, pl_get_predicate_attribute,TRANSPARENT|TRACE_ME),
+  ADD("$get_clause_attribute",  3, pl_get_clause_attribute,	TRACE_ME),
   ADD("$source_file",		2, pl_source_file,	  TRANSPARENT|TRACE_ME),
   ADD("$time_source_file",	2, pl_time_source_file,	  NONDETERMINISTIC|TRACE_ME),
   ADD("$start_consult",		1, pl_start_consult,		TRACE_ME),
