@@ -58,7 +58,7 @@ initialise(W) :->
 owner(W, Owner:[any]*) :->
 	"Maintain hyperlink to the owner"::
 	(   Owner == @nil
-	->  send(W, delete_hypers, help_balloon)
+	->  send(W, delete_hypers, owner)
 	;   Owner == @default
 	->  true			% no change
 	;   new(_, help_hyper(Owner, W, help_baloon, owner))
@@ -69,7 +69,8 @@ owner(W, Owner:any) :<-
 
 try_hide(W, Ev:event) :->
 	get(W, owner, Owner),
-	(   (   send(Ev, is_a, loc_move)
+	(   send(Ev, inside, Owner),
+	    (   send(Ev, is_a, loc_move)
 	    ;	send(Ev, is_a, loc_still)
 	    )
 	->  %send(@pce, format, '%O: Move/still event\n', Owner),
@@ -176,7 +177,7 @@ help_message(Gr, What:{tag,summary}, Ev:[event], Msg:string) :<-
 
 
 :- pce_begin_class(help_hyper, hyper,
-		   "Hyper between help-balloon and ownder").
+		   "Hyper between help-balloon and owner").
 
 unlink_from(H) :->
 	"->hide the <-to part"::
