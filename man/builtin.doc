@@ -425,9 +425,12 @@ order they were registered.  A warning message is issued if \arg{Goal}
 fails, but execution continues.  See also at_halt/1
 
     \predicate{at_halt}{1}{+Goal}
-Register \arg{Goal} to be run when the system halts. The hooks are run
-in the order they were registered.  Success or failure executing a hook
-is ignored.  These hooks may not call halt/[0,1].
+Register \arg{Goal} to be run from PL_cleanup(), which is called when
+the system halts. The hooks are run in the reverse order they were
+registered (FIFO). Success or failure executing a hook is ignored. If
+the hook raises an exception this is printed using print_message/2. An
+attempt to call halt/[0,1] from a hook is ignored.
+
     \predicate{initialization}{1}{+Goal}
 Call \arg{Goal} and register it using at_initialization/1.  Directives
 that do other things than creating clauses, records, flags or setting
