@@ -19,6 +19,9 @@ install::
 uninstall::
 		del $(PLBASE)\include\SWI-cpp.h
 
+html-install::
+		copy pl2cpp.html $(PKGDOC)
+
 clean::
 		DEL *.obj *~
 

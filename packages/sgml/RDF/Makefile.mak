@@ -22,6 +22,9 @@ install::
 		copy uri.pl $(PLBASE)\library
 		$(MAKEINDEX)
 
+html-install::
+		copy rdf2pl.html $(PKGDOC)
+
 uninstall::
 		del $(PLBASE)\library\rdf.pl
 		del $(PLBASE)\library\rdf_parser.pl

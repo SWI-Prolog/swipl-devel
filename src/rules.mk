@@ -5,7 +5,9 @@
 # destination path, compiler, library search-path, etc.
 ################################################################
 
-# Installation target directory
+# Installation target directory.  At the moment, the build will probably
+# fail if there is whitespace in the $prefix directory.  You can however
+# copy the result to wherever you want.
 
 # prefix=C:\Program Files
 prefix=E:\jan\installed
@@ -23,6 +25,7 @@ LIB=$(LIB);E:\jan\lib
 
 PKGS=	table cpp clib sgml sgml\RDF xpce
 PKGDIR=..\packages
+PKGDOC=$(PLBASE)\doc\packages
 
 # Define programs.  The setup here is for standard Microsoft MSVC tools
 # on Windows-NT or Windows-2000

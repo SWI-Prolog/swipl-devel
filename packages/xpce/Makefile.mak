@@ -12,13 +12,16 @@ all::
 	@chdir src & $(MAKE)
 
 install::
-	@chdir src & $(MAKE) install
+	@chdir src & $(MAKE) $@
+
+html-install::
+	@chdir src & $(MAKE) $@
 
 uninstall::
-	@chdir src & $(MAKE) uninstall
+	@chdir src & $(MAKE) $@
 
 clean::
-	@chdir src & $(MAKE) clean
+	@chdir src & $(MAKE) $@
 
 distclean::
-	@chdir src & $(MAKE) distclean
+	@chdir src & $(MAKE) $@

@@ -30,6 +30,9 @@ uninstall::
 		del $(PLBASE)\library\sgml.pl
 		$(MAKEINDEX)
 
+html-install::
+		copy doc\sgml2pl.html $(PKGDOC)
+
 clean::
 		DEL *.obj *~
 

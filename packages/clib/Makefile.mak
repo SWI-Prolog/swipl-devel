@@ -29,6 +29,9 @@ uninstall::
 		del $(PLBASE)\library\socket.pl
 		$(MAKEINDEX)
 
+html-install::
+		copy clib.html $(PKGDOC)
+
 clean::
 		DEL *.obj *~
 

@@ -190,7 +190,7 @@ install-libs:	idirs iinclude iboot ilib
 			-t halt
 
 IDIRS=		$(PLBASE)\bin $(PLBASE)\lib $(PLBASE)\include \
-		$(PLBASE)\boot $(PLBASE)\library
+		$(PLBASE)\boot $(PLBASE)\library $(PKGDOC)
 
 $(IDIRS):
 		if not exist "$@/$(NULL)" $(MKDIR) "$@"
@@ -223,9 +223,13 @@ packages:
 		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE)"
 
 install_packages:
-		for %p in ($(PKGS)) do \
-		   if exist "$(PKGDIR)\%p" \
+		@for %p in ($(PKGS)) do \
+		   @if exist "$(PKGDIR)\%p" \
 		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE) install"
+		@for %p in ($(PKGS)) do \
+		   if exist "$(PKGDIR)\%p" \
+		      $(CMD) /c "chdir $(PKGDIR)\%p & $(MAKE) html-install"
+		copy $(PKGDIR)\index.html $(PKGDOC)
 
 clean_packages:
 		for %p in ($(PKGS)) do \

@@ -25,6 +25,9 @@ install::
 		copy table_util.pl $(PLBASE)\library
 		$(MAKEINDEX)
 
+html-install::
+		copy table.html $(PKGDOC)
+
 uninstall::
 		del $(PLBASE)\bin\$(PKGDLL).dll
 		del $(PLBASE)\library\table.pl

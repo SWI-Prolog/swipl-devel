@@ -30,6 +30,13 @@ PL2XPCE=pl2xpce.dll
 all:	$(PL2XPCE)
 
 ################################################################
+# XPCE's modules
+################################################################
+
+MODULES=	adt ari evt gnu gra itf ker men fmt msg prg rel \
+		txt unx win img box msw
+
+################################################################
 # ADT 		--- Abstract Data Types
 ################################################################
 
@@ -300,6 +307,8 @@ INSTALL=xpce-install.exe -n
 
 install:	xpce-install.exe idirs idll ilib irc iindex ireadme
 		
+html-install::
+
 idirs::
 		@for %d in ($(IDIRS)) do \
 		  @if not exist "$(IBASE)\%d\$(NULL)" mkdir "$(IBASE)\%d"
@@ -339,7 +348,10 @@ uninstall::
 ################################################################
 
 clean::
-		del *~ $(PLOBJ) *.obj xpce-install.exe
+		for %d in ($(MODULES)) do \
+		  $(CMD) /c "chdir %p & del *~ *.obj"
+		$(CMD) /c "chdir ..\pl\src & del *~ *.obj"
+		del *~ *.obj xpce-install.exe
 
 distclean:	clean
 		del pl2xpce.dll pl2xpce.lib pl2xpce.exp
