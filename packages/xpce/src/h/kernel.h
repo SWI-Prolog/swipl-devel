@@ -19,6 +19,9 @@
 #include <stdarg.h>
 #include <h/stream.h>			/* IOSTREAM interface */
 
+#ifdef HAVE_DMALLOC_H
+#include <dmalloc.h>			/* Use www.dmalloc.com debugger */
+#endif
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #endif
