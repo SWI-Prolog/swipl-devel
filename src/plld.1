@@ -1,4 +1,4 @@
-.TH SWI 1 "April 3 1996"
+.TH SWI 1 "May 18 1996"
 .SH NAME
 plld \- Create a SWI-Prolog embedded executable
 .SH SYNOPSIS
@@ -58,7 +58,8 @@ default, the runtime directory for the current architecture is passed.
 .TP
 .BI \-g|-I*|-D*
 Passed to the compiler as c-flags.  By default, the SWI-Prolog include
-directory is passed as additional include directory.
+directory is passed as additional include directory.  The following -D
+flags are added by plld: -D__SWI_PROLOG__ and -D__SWI_EMBEDDED__.
 .TP
 .BI *.o|*.c|*.C|*.cxx|*.cpp
 Passed as C-input files.
