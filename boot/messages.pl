@@ -327,8 +327,8 @@ prolog_message(welcome) -->
 	  Patch is Version mod 100
 	},
 	[ 'Welcome to SWI-Prolog (Version ~w.~w.~w)'-[Major, Minor, Patch], nl,
-	  'Copyright (c) 1990-2000 University of Amsterdam. ',
-	  'All rights reserved.', nl, nl,
+	  'Copyright (c) 1990-2000 University of Amsterdam. ', nl,
+	  'Copy policy: GPL-2 (see www.gnu.org)', nl, nl,
 	  'For help, use ?- help(Topic). or ?- apropos(Word).', nl, nl
 	].
 prolog_message(halt) -->
