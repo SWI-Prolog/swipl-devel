@@ -36,6 +36,7 @@ divided into the following categories:
     \item Returning control information to Prolog
     \item Registering foreign predicates with Prolog
     \item Calling Prolog from C
+    \item Recorded database interactions
     \item Global actions on Prolog (halt, break, abort, etc.)
 \end{shortlist}
 
@@ -792,6 +793,9 @@ module},.
 \cfunction{int}{PL_get_arg}{int index, term_t +t, term_t -a}
 If \arg{t} is compound and index is between 1 and arity (including),
 assign \arg{a} with a term-reference to the argument.
+\cfunction{int}{_PL_get_arg}{int index, term_t +t, term_t -a}
+Same as PL_get_arg(), but no checking is performed, nor whether \arg{t}
+is actually a term, nor whether \arg{index} is a valid argument-index.
 \end{description}
 
 
@@ -1517,10 +1521,33 @@ raised, or 0 if the Prolog goal simply failed.%
 
 \subsection{Miscellaneous}
 
+\subsubsection{Term Comparison}
+
 \begin{description}
 \cfunction{int}{PL_compare}{term_t t1, term_t t2}
-Compares two terms using the standard order of terms and returns -1, 0
-or 1.  See also compare/3.
+    Compares two terms using the standard order of terms and returns -1,
+    0 or 1. See also compare/3.
+\end{description}
+
+\subsubsection{Recorded database}
+
+The interface functions below provide for efficient management of Prolog
+terms in the Prolog database. They provide an alternative to calling
+asserta/1 or recorda/3 or friends.
+
+\begin{description}
+\cfunction{record_t}{PL_record}{term_t +t}
+    Record the term \arg{t} into the Prolog database as recorda/3 and
+    return an opaque handle to the term.  The returned handle remains
+    valid until PL_erase() is called on it.  PL_recorded() is used to
+    copy recorded terms back to the Prolog stack.
+\cfunction{void}{PL_recorded}{record_t record, term_t -t}
+    Copy a recorded term back to the Prolog stack.  The same record
+    may be used to copy multiple instances at any time to the Prolog
+    stack.  See also PL_record() and PL_erase().
+\cfunction{void}{PL_erase}{record_t record}
+    Remove the recorded term from the Prolog database, reclaiming all
+    associated memory resources.
 \end{description}
 
 

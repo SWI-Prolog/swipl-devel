@@ -361,9 +361,13 @@ function_type -->
 	skip_blanks.
 
 function_name(Name) -->
-	"PL_",
+	"PL_", !,
 	atom(Rest),
 	{ concat('PL_', Rest, Name) }.
+function_name(Name) -->
+	"_PL_",
+	atom(Rest),
+	{ concat('_PL_', Rest, Name) }.
 
 %	Identify line as starting a section
 

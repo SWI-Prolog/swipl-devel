@@ -23,10 +23,10 @@
 \pagestyle{fancyplain}
 
 \newcommand{\vmajor}{3}
-\newcommand{\vminor}{1}
-\newcommand{\vpatch}{2}
-\newcommand{\vmonth}{November}
-\newcommand{\vyear}{1998}
+\newcommand{\vminor}{2}
+\newcommand{\vpatch}{0}
+\newcommand{\vmonth}{January}
+\newcommand{\vyear}{1999}
 
 \newcommand{\versionshort}{\vmajor.\vminor}
 \newcommand{\versionlong}{\vmajor.\vminor.\vpatch, \vmonth~\vyear}

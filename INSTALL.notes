@@ -5,10 +5,8 @@
 			(jan@swi.psy.uva.nl)
 
 
-Configuration, compilation and installation is  now   based  on  the GNU
-autoconf package.  It is my hope that   this, together with many updates
-to the source code will  make  the   installation  much  easier  on most
-machines.
+Configuration, compilation and installation is based on the GNU autoconf
+package.
 
 In normal cases, the following should do:
 
@@ -62,27 +60,6 @@ much like the bash and tcsh shells do.
 
 SWI-Prolog has been linked  with  versions  1.1,   1.2  and  2.0  of the
 readline library.
-
-# Foreign language interface (dynamic linker)
-
-Incremental linking may be based on several mechanisms provided by the
-operating system:
-
-	1) dlopen() and friends.
-	2) HPUX shl_load() and friends.
-	3) Win32 (Windows-NT, '95 and win32s) .DLL interface
-	4) AIX load() and friends
-	5) MACH rld_load() and friends
-	6) BSD Unix `ld -A' combined with reading BSD a.out file
-
-By default, SWI-Prolog will guess whether  it   can  use  any of 1-3. to
-support the library(shlib) predicates. On failure, it will try to detect
-the others, supporting the load_foreign/[2,5]   dynamic  loader. On some
-machines, using 1-3 will conflict with using 4-6.  If you want on of 4-6
-anyway (this would only be for  obscure backward compatibility reasons),
-you may configure using:
-
-	./configure --disable-shared
 
 # Memory mapped stacks.  Segmentation faults during the installation.
 

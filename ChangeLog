@@ -1,15 +1,18 @@
 			SWI-Prolog ChangeLog
 			====================
  
-VERSION 3.1.3
+VERSION 3.2.0
 =============
 
   * WIN32: moved to MSVC 5.0 platform.  Added win32 specific source
     (console, uxnt libraries) to the main source-tree.  Added MSVC
     workspace to manage the whole building process.  Good news is
-    the MSVC 5.0 produces considerably faster code.  The Windows
+    that MSVC 5.0 produces considerably faster code.  The Windows
     and Linux versions now perform about equally on the same hardware
     (SuSE 5.3 linux using egcc 1.03 vs. NT 4.0/SP4 using MSVC 5.0).
+
+  * WIN32: Console version of SWI-Prolog (plcon.exe) no longer shows
+    a message-box on errors, completion of the boot-compilation, etc.
 
   * FIXED: Win32 console (plwin.exe), various patches: a startup
     threat-synchronisation problem which might explain why SWI-Prolog
@@ -48,8 +51,8 @@ VERSION 3.1.3
     individual goals.
 
   * MODIFIED: _PL_get_xpce_reference() dropped object-qualifier
-    argument, which was needed for Alpha XPCE 5.0.0, but will not
-    be required by subsequent XPCE versions.
+    argument, which was needed for Alpha XPCE 5.0.0, but not
+    for subsequent XPCE versions.
 
 
 VERSION 3.1.2
