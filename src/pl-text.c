@@ -26,6 +26,9 @@
 #include "pl-ctype.h"
 #include "pl-utf8.h"
 #include <stdio.h>
+#ifdef __WIN32__
+#include "pl-mswchar.h"			/* Terrible hack */
+#endif
 
 #undef LD
 #define LD LOCAL_LD
@@ -516,13 +519,13 @@ wctobuffer(wchar_t c, mbstate_t *mbs, Buffer buf)
 static void
 utf8tobuffer(wchar_t c, Buffer buf)
 { if ( c <= 0x7f )
-  { addBuffer(buf, c, char);
+  { addBuffer(buf, (char)c, char);
   } else
   { char b[6];
     char *e = b;
     const char *s;
     
-    utf8_put_char(e, c);
+    utf8_put_char(e, (char)c);
     for(s=b; s<e; s++)
       addBuffer(buf, *s, char);
   }

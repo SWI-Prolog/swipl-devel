@@ -30,6 +30,7 @@
 #include <uxnt.h>
 #define MD "config/win32.h"
 #include <winsock2.h>
+#include "pl-mswchar.h"
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -606,7 +607,7 @@ Sputcode(int c, IOSTREAM *s)
       }
       goto simple;
     case ENC_ANSI:
-    { char b[MB_CUR_MAX];
+    { char b[MB_LEN_MAX];
       int n;
 
       if ( !s->mbstate )
@@ -615,7 +616,7 @@ Sputcode(int c, IOSTREAM *s)
 	memset(s->mbstate, 0, sizeof(*s->mbstate));
       }
 
-      if ( (n = wcrtomb(b, c, s->mbstate)) < 0 )
+      if ( (n = wcrtomb(b, (wchar_t)c, s->mbstate)) < 0 )
       { if ( reperror(c, s) < 0 )
 	  return -1;
       } else
@@ -846,7 +847,7 @@ Sungetcode(int c, IOSTREAM *s)
 	return -1;			/* illegal */
       goto simple;
     case ENC_ANSI:			/* (*) See above */
-    { char b[MB_CUR_MAX];
+    { char b[MB_LEN_MAX];
       int n;
 
       if ( !s->mbstate )		/* do we need a seperate state? */
@@ -855,7 +856,7 @@ Sungetcode(int c, IOSTREAM *s)
 	memset(s->mbstate, 0, sizeof(*s->mbstate));
       }
 
-      if ( (n = wcrtomb(b, c, s->mbstate)) > 0  &&
+      if ( (n = wcrtomb(b, (wchar_t)c, s->mbstate)) > 0  &&
 	   s->bufp - s->unbuffer >= n )
       { int i;
 
