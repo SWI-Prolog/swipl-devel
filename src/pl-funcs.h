@@ -799,13 +799,20 @@ COMMON(bool) 		strpostfix(const char *string, const char *postfix);
 COMMON(bool) 		stripostfix(const char *string, const char *postfix);
 COMMON(bool) 		scan_options(term_t list, int flags, atom_t name,
 				     const opt_spec *specs, ...);
-COMMON(const char *)  atom_summary(atom_t name, unsigned int maxlen);
-#ifndef HAVE_STRICMP
-COMMON(int) 		stricmp(const char *s1, const char *s2);
+COMMON(const char *)	atom_summary(atom_t name, unsigned int maxlen);
+#ifndef HAVE_STRCASECMP
+COMMON(int) 		strcasecmp(const char *s1, const char *s2);
 #endif
 #ifndef HAVE_STRLWR
 COMMON(char *) 		strlwr(char *s);
 #endif
+#ifndef HAVE_MBSCOLL
+COMMON(int)		mbscoll(const char *s1, const char *s2);
+#endif
+#ifndef HAVE_MBSCASECOLL
+COMMON(int)		mbscasecoll(const char *s1, const char *s2);
+#endif
+
 
 /* pl-wic.c */
 COMMON(bool) 		loadWicFromStream(IOSTREAM *fd);

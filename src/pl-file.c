@@ -2126,7 +2126,7 @@ openStream(term_t file, term_t mode, term_t options)
   }
 
   *h = EOS;
-  if ( PL_get_chars(file, &path, CVT_ATOM|CVT_STRING|CVT_INTEGER) )
+  if ( PL_get_chars(file, &path, CVT_ATOM|CVT_STRING|CVT_INTEGER|REP_MB) )
   { if ( !(s = Sopen_file(path, how)) )
     { PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
 	       ATOM_open, ATOM_source_sink, file);
@@ -2140,7 +2140,7 @@ openStream(term_t file, term_t mode, term_t options)
     char *cmd;
 
     PL_get_arg(1, file, a);
-    if ( !PL_get_chars(a, &cmd, CVT_ATOM|CVT_STRING) )
+    if ( !PL_get_chars(a, &cmd, CVT_ATOM|CVT_STRING|REP_MB) )
     { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, a);
       return NULL;
     }
@@ -3690,7 +3690,7 @@ pl_absolute_file_name(term_t name, term_t expanded)
 
   if ( PL_get_file_name(name, &n, 0) &&
        (n = AbsoluteFile(n, tmp)) )
-    return PL_unify_atom_chars(expanded, n);
+    return PL_unify_chars(expanded, PL_ATOM|REP_MB, -1, n);
 
   fail;
 }
@@ -3716,7 +3716,7 @@ pl_working_directory(term_t old, term_t new)
   if ( !(wd = PL_cwd()) )
     fail;
 
-  if ( PL_unify_atom_chars(old, wd) )
+  if ( PL_unify_chars(old, PL_ATOM|REP_MB, -1, wd) )
   { if ( PL_compare(old, new) != 0 )
     { char *n;
 
@@ -3725,7 +3725,7 @@ pl_working_directory(term_t old, term_t new)
 	  succeed;
 
 	if ( fileerrors )
-	  return PL_error("working_directory", 2, NULL, ERR_FILE_OPERATION,
+	  return PL_error(NULL, 0, NULL, ERR_FILE_OPERATION,
 			  ATOM_chdir, ATOM_directory, new);
 	fail;
       }
@@ -3742,10 +3742,10 @@ word
 pl_file_base_name(term_t f, term_t b)
 { char *n;
 
-  if ( !PL_get_chars(f, &n, CVT_ALL) )
-    return PL_error("file_base_name", 2, NULL, ERR_TYPE, ATOM_atom, f);
+  if ( !PL_get_chars_ex(f, &n, CVT_ALL) )
+    fail;
 
-  return PL_unify_atom_chars(b, BaseName(n));
+  return PL_unify_chars(b, PL_ATOM|REP_MB, -1, BaseName(n));
 }
 
 
@@ -3754,10 +3754,10 @@ pl_file_dir_name(term_t f, term_t b)
 { char *n;
   char tmp[MAXPATHLEN];
 
-  if ( !PL_get_chars(f, &n, CVT_ALL) )
-    return PL_error("file_dir_name", 2, NULL, ERR_TYPE, ATOM_atom, f);
+  if ( !PL_get_chars_ex(f, &n, CVT_ALL) )
+    fail;
 
-  return PL_unify_atom_chars(b, DirName(n, tmp));
+  return PL_unify_chars(b, PL_ATOM|REP_MB, -1, DirName(n, tmp));
 }
 
 
@@ -3777,7 +3777,7 @@ has_extension(const char *name, const char *ext)
     if ( trueFeature(FILE_CASE_FEATURE) )
       return strcmp(&s[1], ext) == 0;
     else
-      return stricmp(&s[1], ext) == 0;
+      return strcasecmp(&s[1], ext) == 0;
   }
 
   fail;
@@ -3790,29 +3790,29 @@ pl_file_name_extension(term_t base, term_t ext, term_t full)
   char *b = NULL, *e = NULL, *f;
   char buf[MAXPATHLEN];
 
-  if ( PL_get_chars(full, &f, CVT_ALL) )
+  if ( PL_get_chars(full, &f, CVT_ALL|REP_MB) )
   { char *s = f + strlen(f);		/* ?base, ?ext, +full */
 
     while(*s != '.' && *s != '/' && s > f)
       s--;
     if ( *s == '.' )
-    { if ( PL_get_chars(ext, &e, CVT_ALL) )
+    { if ( PL_get_chars(ext, &e, CVT_ALL|REP_MB) )
       { if ( e[0] == '.' )
 	  e++;
 	if ( trueFeature(FILE_CASE_FEATURE) )
 	{ TRY(strcmp(&s[1], e) == 0);
 	} else
-	{ TRY(stricmp(&s[1], e) == 0);
+	{ TRY(strcasecmp(&s[1], e) == 0);
 	}
       } else
-      { TRY(PL_unify_atom_chars(ext, &s[1]));
+      { TRY(PL_unify_chars(ext, PL_ATOM|REP_MB, -1, &s[1]));
       }
       if ( s-f > MAXPATHLEN )
 	goto maxpath;
       strncpy(buf, f, s-f);
       buf[s-f] = EOS;
 
-      return PL_unify_atom_chars(base, buf);
+      return PL_unify_chars(base, PL_ATOM|REP_MB, -1, buf);
     }
     if ( PL_unify_atom_chars(ext, "") &&
 	 PL_unify(full, base) )
@@ -3823,8 +3823,8 @@ pl_file_name_extension(term_t base, term_t ext, term_t full)
     return PL_error("file_name_extension", 3, NULL, ERR_TYPE,
 		    ATOM_atom, full);
 
-  if ( PL_get_chars(base, &b, CVT_ALL|BUF_RING) &&
-       PL_get_chars(ext, &e, CVT_ALL) )
+  if ( PL_get_chars_ex(base, &b, CVT_ALL|BUF_RING|REP_MB) &&
+       PL_get_chars_ex(ext, &e, CVT_ALL|REP_MB) )
   { char *s;
 
     if ( e[0] == '.' )		/* +Base, +Extension, -full */
@@ -3838,14 +3838,9 @@ pl_file_name_extension(term_t base, term_t ext, term_t full)
     *s++ = '.';
     strcpy(s, e);
 
-    return PL_unify_atom_chars(full, buf);
-  }
-
-  if ( !b )
-    return PL_error("file_name_extension", 3, NULL, ERR_TYPE,
-		    ATOM_atom, base);
-  return PL_error("file_name_extension", 3, NULL, ERR_TYPE,
-		  ATOM_atom, ext);
+    return PL_unify_chars(full, PL_ATOM|REP_MB, -1, buf);
+  } else
+    fail;
 
 maxpath:
   return PL_error("file_name_extension", 3, NULL, ERR_REPRESENTATION,
@@ -3860,24 +3855,23 @@ pl_prolog_to_os_filename(term_t pl, term_t os)
   char *n;
   char buf[MAXPATHLEN];
 
-  if ( PL_get_chars(pl, &n, CVT_ALL) )
-  { _xos_os_filename(n, buf);
-    return PL_unify_atom_chars(os, buf);
-  }
   if ( !PL_is_variable(pl) )
-    return PL_error("prolog_to_os_filename", 2, NULL, ERR_TYPE,
-		    ATOM_atom, pl);
+  { if ( PL_get_chars_ex(pl, &n, CVT_ALL|REP_MB) )
+    { _xos_os_filename(n, buf);
+      return PL_unify_chars(os, PL_ATOM|REP_MB, -1, buf);
+    }
+    fail;
+  }
 
-  if ( PL_get_chars(os, &n, CVT_ALL) )
+  if ( PL_get_chars_ex(os, &n, CVT_ALL|REP_MB) )
   { char lbuf[MAXPATHLEN];
 
     _xos_long_file_name(n, lbuf);
     _xos_canonical_filename(lbuf, buf);
-    return PL_unify_atom_chars(pl, buf);
+    return PL_unify_chars(pl, PL_ATOM|REP_MB, -1, buf);
   }
 
-  return PL_error("prolog_to_os_filename", 2, NULL, ERR_TYPE,
-		  ATOM_atom, os);
+  fail;
 #else /*O_XOS*/
   return PL_unify(pl, os);
 #endif /*O_XOS*/

@@ -268,6 +268,10 @@ typedef int mode_t;
 /* Define if you have the stricmp() function. */
 #define HAVE_STRICMP 1
 
+/* Define if you have the mbscasecoll() function. */
+#define mbcasescoll mbsicoll
+#define HAVE_MBCASESCOLL 1
+
 /* Define if you have the strlwr() function */
 #define HAVE_STRLWR 1
 

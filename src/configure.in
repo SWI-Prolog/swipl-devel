@@ -506,7 +506,7 @@ AC_CHECK_FUNCS(memmove stricmp strlwr sigaction sigsetmask siggetmask sigblock)
 AC_CHECK_FUNCS(rint aint floor ceil isnan tcsetattr cfmakeraw getpid)
 AC_CHECK_FUNCS(strerror tgetent times unsetenv grantpt nanosleep)
 AC_CHECK_FUNCS(setlocale fpgetmask fpresetsticky mtrace localtime_r)
-AC_CHECK_FUNCS(mmap confstr)
+AC_CHECK_FUNCS(mmap confstr strcasecmp mbscoll mbscasecoll)
 AC_HEADER_TIME
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT

@@ -544,9 +544,9 @@ compareBagEntries(const void *a1, const void *a2)
   s2 = expand_str(info, i2);
   
   if ( trueFeature(FILE_CASE_FEATURE) )
-    return strcmp(s1, s2);
+    return mbscoll(s1, s2);
   else
-    return stricmp(s1, s2);
+    return mbscasecoll(s1, s2);
 }
 
 

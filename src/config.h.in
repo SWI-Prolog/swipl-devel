@@ -181,6 +181,12 @@
 /* Define if MAP_ANON is defined and works ok */
 #undef HAVE_MAP_ANON
 
+/* Define to 1 if you have the `mbscasecoll' function. */
+#undef HAVE_MBSCASECOLL
+
+/* Define to 1 if you have the `mbscoll' function. */
+#undef HAVE_MBSCOLL
+
 /* Define to 1 if you have the `memmove' function. */
 #undef HAVE_MEMMOVE
 
@@ -342,6 +348,9 @@
 
 /* Define to 1 if you have the <stdlib.h> header file. */
 #undef HAVE_STDLIB_H
+
+/* Define to 1 if you have the `strcasecmp' function. */
+#undef HAVE_STRCASECMP
 
 /* Define to 1 if you have the `strerror' function. */
 #undef HAVE_STRERROR

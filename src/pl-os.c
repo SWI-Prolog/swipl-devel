@@ -933,7 +933,7 @@ SameFile(const char *f1, const char *f2)
   { if ( streq(f1, f2) )
       succeed;
   } else
-  { if ( stricmp(f1, f2) == 0 )
+  { if ( strcasecmp(f1, f2) == 0 )
       succeed;
   }
 
@@ -967,7 +967,7 @@ SameFile(const char *f1, const char *f2)
       { if ( streq(p1, p2) )
 	  succeed;
       } else
-      { if ( stricmp(p1, p2) == 0 )
+      { if ( strcasecmp(p1, p2) == 0 )
 	  succeed;
       }
     }

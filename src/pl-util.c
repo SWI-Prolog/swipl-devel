@@ -339,15 +339,21 @@ strpostfix(const char *string, const char *postfix)
 }
 
 
-#ifndef HAVE_STRICMP
+#ifndef HAVE_STRCASECMP
 int
-stricmp(const char *s1, const char *s2)
-{ while(*s1 && makeLower(*s1) == makeLower(*s2))
+strcasecmp(const char *s1, const char *s2)
+{
+#ifdef HAVE_STRICMP
+  return stricmp(s1, s2);
+#else
+  while(*s1 && makeLower(*s1) == makeLower(*s2))
     s1++, s2++;
   
   return makeLower(*s1) - makeLower(*s2);
+#endif
 }
 #endif
+
 
 #ifndef HAVE_STRLWR
 char *
@@ -368,9 +374,92 @@ stripostfix(const char *s, const char *e)
   int le = strlen(e);
 
   if ( ls >= le )
-    return stricmp(&s[ls-le], e) == 0;
+    return strcasecmp(&s[ls-le], e) == 0;
 
   return FALSE;
 } 
 
+
+		 /*******************************
+		 *	MULTIBYTE STRINGS	*
+		 *******************************/
+
+typedef struct 
+{ wchar_t *wcp;
+  int	   len;
+  int	   malloced;
+} wbuf;
+
+
+#if !defined(HAVE_MBSCOLL) || !defined(HAVE_MBCASESCOLL)
+static void
+wstolower(wchar_t *w, int len)
+{ wchar_t *e = &w[len];
+
+  for( ; w<e; w++ )
+    *w = towlower(*w);
+}
+
+static int
+int_mbscoll(const char *s1, const char *s2, int icase)
+{ int l1 = strlen(s1);
+  int l2 = strlen(s2);
+  wchar_t *w1;
+  wchar_t *w2;
+  int ml1, ml2;
+  mbstate_t mbs;
+  int rc;
+
+  if ( l1 < 1024 && (w1 = alloca(sizeof(wchar_t)*(l1+1))) )
+  { ml1 = FALSE;
+  } else
+  { w1 = PL_malloc(sizeof(wchar_t)*(l1+1));
+    ml1 = TRUE;
+  }
+  if ( l2 < 1024 && (w2 = alloca(sizeof(wchar_t)*(l2+1))) )
+  { ml2 = FALSE;
+  } else
+  { w2 = PL_malloc(sizeof(wchar_t)*(l2+1));
+    ml2 = TRUE;
+  }
+
+  memset(&mbs, 0, sizeof(mbs));
+  if ( mbsrtowcs(w1, &s1, l1, &mbs) < 0 )
+  { rc = -2;
+    goto out;
+  }
+  if ( mbsrtowcs(w2, &s2, l2, &mbs) < 0 )
+  { rc = 2;
+    goto out;
+  }
+  if ( icase )
+  { wstolower(w1, l1);
+    wstolower(w2, l2);
+  }
+
+  rc = wcscoll(w1, w2);
+
+out:
+  if ( ml1 ) PL_free(w1);
+  if ( ml2 ) PL_free(w2);
+
+  return rc;
+}
+#endif
+
+
+#ifndef HAVE_MBSCOLL
+int
+mbscoll(const char *s1, const char *s2)
+{ return int_mbscoll(s1, s2, FALSE);
+}
+#endif
+
+
+#ifndef HAVE_MBSCASECOLL
+int
+mbscasecoll(const char *s1, const char *s2)
+{ return int_mbscoll(s1, s2, TRUE);
+}
+#endif
 
