@@ -223,6 +223,7 @@ meta_goal(bagof(_V, G, _L),	[G]).
 meta_goal(forall(A, B),		[A, B]).
 meta_goal(maplist(G, _L1, _L2),	[G+2]).
 meta_goal(checklist(G, _L),	[G+1]).
+meta_goal(sublist(G, _, _),	[G+1]).
 meta_goal(call(G),		[G]).
 meta_goal(call(G, _),		[G+1]).
 meta_goal(call(G, _, _),	[G+2]).
