@@ -1783,6 +1783,7 @@ extern char *T_report[];		/* ->report: kind, format, args... */
 		********************************/
 
 #include <h/syntax.h>
+#include <h/utf8.h>
 
 		 /*******************************
 		 *	 SPEEDUP MACROS		*

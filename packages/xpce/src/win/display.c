@@ -549,16 +549,25 @@ copyDisplay(DisplayObj d, StringObj data)
 
 static StringObj
 getPasteDisplay(DisplayObj d)
-{ StringObj s;
-  status rval;
+{ static Name formats[] = { NAME_utf8_string,
+			    NAME_text,
+			    NAME_string,
+			    NULL
+			  };
+  StringObj s = NULL;
+  Name *fmt;
 
   catchErrorPce(PCE, NAME_getSelection);
-  rval = ((s=get(d, NAME_selection, EAV)) ||
-	  (s=get(d, NAME_selection, DEFAULT, NAME_string, EAV)) ||
-	  (s=get(d, NAME_cutBuffer, ZERO, EAV)));
+  for(fmt = formats; *fmt; fmt++)
+  { if ( (s=get(d, NAME_selection, DEFAULT, *fmt, EAV)) )
+      break;
+  }
+  if ( ! (*fmt) )
+    s = get(d, NAME_cutBuffer, ZERO, EAV);
+
   catchPopPce(PCE);
 
-  if ( rval )
+  if ( s )
     answer(s);
 
   fail;

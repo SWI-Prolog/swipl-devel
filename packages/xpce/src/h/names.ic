@@ -2258,6 +2258,7 @@
   BUILTIN_NAME("usr1")
   BUILTIN_NAME("usr2")
   BUILTIN_NAME("utf8")
+  BUILTIN_NAME("utf8_string")
   BUILTIN_NAME("v_mode")
   BUILTIN_NAME("vadjust_tile_image")
   BUILTIN_NAME("validate")

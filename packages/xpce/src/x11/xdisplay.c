@@ -525,19 +525,16 @@ static void
 collect_selection_display(Widget w, XtPointer xtp,
 			  Atom *selection, Atom *type,
 			  XtPointer value, unsigned long *len, int *format)
-{ if ( *type == XA_STRING )
-  { string s;
+{ DisplayObj d = xtp;
+  string s;
 
-    if ( *format == 8 )
+  if ( *type == XA_STRING )
+  { if ( *format == 8 )
     { if ( !str_set_n_ascii(&s, *len, (char *)value) )
       { selection_error = CtoName("String too long");
 	selection_complete = TRUE;
 	return;
       }
-    } else if ( *format == 16 )
-    { str_inithdr(&s, ENC_WCHAR);
-      s.size = *len / 2;
-      s.s_text = (unsigned char *)value;
     } else
     { selection_error = CtoName("Bad format");
       selection_complete = TRUE;
@@ -546,10 +543,62 @@ collect_selection_display(Widget w, XtPointer xtp,
 
     selection_value = StringToString(&s);
     XtFree(value);
+  } else if ( *type == DisplayAtom(d, CtoName("UTF8_STRING")) )
+  { if ( *format == 8 )
+    { unsigned long l = *len;
+      charA *bufA, *outA;
+      const charA *in = value;
+      const charA *end = &in[*len];
+      wint_t chr;
+
+      if ( l > 8*1024*2024 )		/* sanity check */
+      { selection_error = CtoName("Selection too long");
+	selection_complete = TRUE;
+	return;
+      }
+
+      outA = bufA = malloc(l);
+      while(in<end)
+      { in = utf8_get_char(in, &chr);
+
+	if ( chr <= 0xff )
+	  *outA++ = chr;
+	else
+	  break;
+      }
+
+      if ( in >= end )
+      { str_set_n_ascii(&s, outA-bufA, bufA);
+	selection_value = StringToString(&s);
+	pceFree(bufA);
+      } else
+      { charW *bufW = pceRealloc(bufA, l*sizeof(charW));
+	charW *out = bufW;
+	
+	for(in = value; in<end; )
+	{ in = utf8_get_char(in, &chr);
+
+	  *out++ = chr;
+	}
+
+	str_set_n_wchar(&s, out-bufW, bufW);
+	selection_value = StringToString(&s);
+	pceFree(bufW);
+      }
+    } else
+    { selection_error = CtoName("UTF8_STRING Selection: bad format");
+    }
+
+    XtFree(value);
   } else if ( *type == XT_CONVERT_FAIL )
-    selection_error = NAME_timeout;
-  else
-    selection_error = CtoName("Bad type");
+  { selection_error = NAME_timeout;
+  } else
+  { char buf[256];
+
+    sprintf(buf, "Bad type: %s", DisplayAtomToString(d, *type));
+
+    selection_error = CtoName(buf);
+  }
 
   selection_complete = TRUE;
 }
