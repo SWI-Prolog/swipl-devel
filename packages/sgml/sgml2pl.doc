@@ -28,7 +28,7 @@ Markup languages are an increasingly important method for
 data-representation and exchange.  This article documents the package
 {\em sgml2pl}, a foreign library for SWI-Prolog to parse SGML
 and XML documents, returning information on both the document and the
-documents DTD.  The parser is designed to be small, fast and flexible.
+document's DTD.  The parser is designed to be small, fast and flexible.
 \end{abstract}
 
 \vfill
@@ -52,13 +52,12 @@ version of SGML.
 James Clark's SP parser is a flexible SGML and XML parser. Unfortunately
 it has some drawbacks. It is very big, not very fast, cannot work under
 event-driven input and is generally hard to program beyond the scope of
-the very well documented generic interface. The generic interface
-however does not provide access to the DTD, does not allow for flexible
-handling of input or parsing the DTD independently of a document
-instance.
+the well designed generic interface. The generic interface however does
+not provide access to the DTD, does not allow for flexible handling of
+input or parsing the DTD independently of a document instance.
 
-The parser described in this document is small (less then 50 Kbytes
-executable on a Pentium), fast (between 2 and 5 times faster then
+The parser described in this document is small (less than 50 Kbytes
+executable on a Pentium), fast (between 2 and 5 times faster than
 SP), provides access to the DTD and flexible input handling.
 
 The document output is equal to the output produced by \jargon{xml2pl},
@@ -72,7 +71,7 @@ data structure. The high-level interface defined in \pllib{sgml}
 provides access at the file-level, while the low-level interface defined
 in the foreign module works with Prolog streams.  Please use the source
 of \file{sgml.pl} as a starting point for dealing with data from other
-sources then files, such as SWI-Prolog resources, network-sockets,
+sources than files, such as SWI-Prolog resources, network-sockets,
 character strings, etc.  In the first example below loads an HTML file.
 
 \begin{code}
@@ -128,7 +127,7 @@ character strings, etc.  In the first example below loads an HTML file.
 ].
 \end{code}
 
-As you see, the document is a list, each element being an atom to
+The document is represented as a list, each element being an atom to
 represent \const{CDATA} or a term \term{element}{Name, Attributes,
 Content}. Entities (e.g.\ \verb$&lt$) are returned as part of
 \const{CDATA}, unless they cannot be represented. See load_sgml_file/2
@@ -152,7 +151,10 @@ Load \arg{File} and parse as HTML.  Implemented as:
 \begin{code}
 load_html_file(File, Term) :-
 	dtd(html, DTD),
-	load_sgml_file(File, Term, DTD).
+	load_structure(File, Term,
+		       [ dtd(DTD),
+			 dialect(sgml)
+		       ]).
 \end{code}
 \end{description}
 
@@ -230,7 +232,7 @@ DTD is returned.  See \secref{implicitdtd}.
 
     \termitem{dialect}{+Dialect}
 Specify the parsing dialect.  Supported are \const{sgml} (default)
-and \arg{xml}. See \secref{xml} for details on the differences.
+and \const{xml}. See \secref{xml} for details on the differences.
 
     \termitem{file}{+Name}
 Sets the name of the file on which errors are reported. Sets the
@@ -404,7 +406,7 @@ defined entities.
 \subsection{Extracting a DTD}		\label{sec:implicitdtd}
 
 Some documents have no DTD.  One of the neat facilities of this library
-is that is builds a DTD while parsing a document with an
+is that it builds a DTD while parsing a document with an
 \jargon{implicit} DTD.  The resulting DTD contains all elements
 encountered in the document.  For each element the content model is a
 disjunction of elements and possibly \verb$#PCDATA$ that can be
@@ -673,6 +675,36 @@ rdf_element(Id, Term) :-
 			 parse(element)
 		       ]).
 \end{code}
+
+
+\section{External entities}
+
+While processing an SGML document the document may refer to external
+data.  This occurs in three places: external parameter entities, 
+normal external entities and the \const{DOCTYPE} declaration. The
+current version of these tools deal rather primitively with external
+data.  External entities can only be loaded from a file and the mapping
+between the entity names and the file is done using a \jargon{catalog}
+file in a format compatible to that used by James Clark's SP Parser.
+
+Catalog files are found by inspecting the environment variable
+\env{SGML_CATALOG_FILES}, which contains a colon (:) separated list
+of catalog files.  Two types of lines are using by this package. 
+
+\begin{quote}
+\const{DOCTYPE} \arg{doctype} \arg{file}\\
+\const{PUBLIC}  \const{"}\arg{Id}\const{"} \arg{file}
+\end{quote}
+
+The specified \arg{file} path is taken relative to the location of
+the catolog file. For the \const{DOCTYPE} declaraction, \const{sgml2pl}
+first makes an attempt to resolve the \const{SYSTEM} or \const{PUBLIC}
+identifier. If this fails it tries to resolve the \arg{doctype} using
+the provided catalog files.
+
+In the future we will design a call-back mechanism for locating and
+processing external entities, so Prolog-based file-location and Prolog
+resources can be used to store external entities.
 
 
 \section{Installation}

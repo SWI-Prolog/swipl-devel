@@ -56,6 +56,9 @@ typedef enum
   S_UTF8,				/* Loading UTF-8 character */
 #endif
   S_CDATA,				/* non-parsed data */
+  S_MSCDATA,				/* <![CDATA[...]]> */
+  S_EMSCDATA1,				/* Seen ] in S_MSCDATA */
+  S_EMSCDATA2,				/* Seen ]] in S_MSCDATA */
   S_ECDATA1,				/* Seen < in CDATA */
   S_ECDATA2,				/* Seen </ in CDATA */
   S_DECL,				/* inside a declaration */

@@ -683,7 +683,7 @@ new_dtd(const ichar *doctype)
 
 void
 free_dtd(dtd *dtd)
-{ if ( --dtd->references <= 0 )
+{ if ( --dtd->references == 0 )
   { if ( dtd->doctype )
       free(dtd->doctype);
   
@@ -2040,7 +2040,10 @@ process_marked_section(dtd_parser *p)
 	m->type = MS_INCLUDE;		/* default */
 
       empty_icharbuf(p->buffer);
-      p->state = S_PCDATA;
+      if ( m->type == MS_CDATA )
+	p->state = S_MSCDATA;
+      else
+	p->state = S_PCDATA;
       if ( p->mark_state != MS_IGNORE )
 	p->mark_state = m->type;
     }
@@ -2054,6 +2057,18 @@ process_marked_section(dtd_parser *p)
     }
   }
 }
+
+
+static void
+pop_marked_section(dtd_parser *p)
+{ dtd_marked *m = p->marked;
+
+  if ( m )
+  { p->marked = m->parent;
+    free(m);
+    p->mark_state = (p->marked ? p->marked->type : MS_INCLUDE);
+  }
+} 
 
 
 static int
@@ -2195,11 +2210,18 @@ end_document_dtd_parser(dtd_parser *p)
     case S_CLOSEMARK:
     case S_PENT:
     case S_ENT:
-      gripe(ERC_SYNTAX_ERROR, "Unexpected end-of-file", "");
+      return gripe(ERC_SYNTAX_ERROR,
+		   "Unexpected end-of-file", "");
 #ifdef UTF8
     case S_UTF8:
-      gripe(ERC_SYNTAX_ERROR, "Unexpected end-of-file in UTF-8 sequence", "");
+      return gripe(ERC_SYNTAX_ERROR,
+		   "Unexpected end-of-file in UTF-8 sequence", "");
 #endif
+    case S_MSCDATA:
+    case S_EMSCDATA1:
+    case S_EMSCDATA2:
+      return gripe(ERC_SYNTAX_ERROR,
+		   "Unexpected end-of-file in CDATA marked section", "");
   }
 
   return FALSE;				/* ?? */
@@ -2309,14 +2331,8 @@ putchar_dtd_parser(dtd_parser *p, int chr)
       }
       if ( f[CF_DSC] == chr )		/* ] */
       { if ( prev == chr )
-	{ dtd_marked *m = p->marked;
-
-	  if ( m )
-	  { p->marked = m->parent;
-	    free(m);
-	    p->mark_state = (p->marked ? p->marked->type : MS_INCLUDE);
-	    p->state = S_CLOSEMARK;
-	  }
+	{ pop_marked_section(p);
+	  p->state = S_CLOSEMARK;
 	}
 	return;				/* TBD: error if only one ] */
       }
@@ -2374,6 +2390,30 @@ putchar_dtd_parser(dtd_parser *p, int chr)
     { add_ocharbuf(p->cdata, dtd->charmap->map[chr]);
       if ( f[CF_MDO1] == chr )		/* < */
 	p->state = S_ECDATA1;
+      return;
+    }
+    case S_MSCDATA:
+    { add_ocharbuf(p->cdata, dtd->charmap->map[chr]);
+      if ( f[CF_DSC] == chr )		/* ] */
+        p->state = S_EMSCDATA1;
+      return;
+    }
+    case S_EMSCDATA1:
+    { add_ocharbuf(p->cdata, dtd->charmap->map[chr]);
+      if ( f[CF_DSC] == chr )		/* ]] */
+        p->state = S_EMSCDATA2;
+      else
+        p->state = S_MSCDATA;
+      return;
+    }
+    case S_EMSCDATA2:
+    { add_ocharbuf(p->cdata, dtd->charmap->map[chr]);
+      if ( f[CF_MDC] == chr )		/* ]]> */
+      { p->cdata->size -= 3;		/* Delete chars for ]] */
+	pop_marked_section(p);
+	p->state = S_PCDATA;
+      } else
+        p->state = S_MSCDATA;
       return;
     }
     case S_CLOSEMARK:

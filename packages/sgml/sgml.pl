@@ -36,11 +36,15 @@
 :- dynamic   user:file_search_path/2.
 
 user:file_search_path(dtd, '.').
+user:file_search_path(dtd, swi('library/DTD')).
 
+load_foreign :-
+	current_predicate(_, _:sgml_parse(_,_)), !.
 load_foreign :-
 	load_foreign_library(foreign(sgml2pl)).
 
-:- initialization load_foreign.
+:- initialization
+	load_foreign.
 	
 		 /*******************************
 		 *	   DTD HANDLING		*
@@ -51,11 +55,20 @@ load_foreign :-
 :- volatile
 	current_dtd/2.
 
+:- multifile
+	dtd_alias/2.
+
+dtd_alias(html, 'HTML4').
+
 dtd(Type, DTD) :-
 	current_dtd(Type, DTD), !.
 dtd(Type, DTD) :-
 	new_dtd(Type, DTD),
-	absolute_file_name(dtd(Type),
+	(   dtd_alias(Type, Base)
+	->  true
+	;   Base = Type
+	),
+	absolute_file_name(dtd(Base),
 			   [ extensions([dtd]),
 			     access(read)
 			   ], DtdFile),
@@ -173,7 +186,10 @@ load_xml_file(File, Term) :-
 
 load_html_file(File, Term) :-
 	dtd(html, DTD),
-	load_sgml_file(File, Term, DTD).
+	load_structure(File, Term,
+		       [ dtd(DTD),
+			 dialect(sgml)
+		       ]).
 
 
 		 /*******************************

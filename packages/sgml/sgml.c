@@ -87,11 +87,23 @@ print_cdata(dtd_parser *p, int len, const ochar *data)
 }
 
 
+static int
+on_entity(dtd_parser *p, dtd_entity *e, int chr)
+{ if ( e )
+  { printf("&%s;", e->name->name);
+  } else
+    printf("&#%d;", chr);
+
+  return TRUE;
+}
+
+
 static void
 set_functions(dtd_parser *p)
 { p->on_end_element = print_close;
   p->on_begin_element = print_open;
   p->on_cdata = print_cdata;
+  p->on_entity = on_entity;
 }
 
 #define shift (argc--, argv++)
@@ -154,7 +166,6 @@ main(int argc, char **argv)
   { if ( output )
       set_functions(p);
     sgml_process_file(p, argv[0]);
-    free_dtd(p->dtd);
     free_dtd_parser(p);
     return 0;
   } else

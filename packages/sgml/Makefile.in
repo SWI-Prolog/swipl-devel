@@ -1,11 +1,7 @@
 ################################################################
 # SWI-Prolog `sgml2pl' package
 # Author:    Jan Wielemaker. jan@swi.psy.uva.nl
-# Copyright: Same as SWI-Prolog
-################################################################
-
-################################################################
-#
+# Copyright: LGPL (see COPYING or www.gnu.org
 ################################################################
 
 .SUFFIXES: .tex .dvi .doc .pl
@@ -47,17 +43,25 @@ DTD2PLOBJ=	$(LIBOBJ) dtd2pl.o prolog.o
 LIBPL=		sgml.pl
 TARGETS=	sgml2pl.so
 PROGRAMS=	dtd2pl sgml
+DTDFILES=	HTML4.dcl HTML4.dtd HTML4.soc \
+		HTMLlat1.ent HTMLspec.ent HTMLsym.ent
 
 all:		$(TARGETS) $(PROGRAMS)
 
 sgml2pl.so:	$(PLOBJ)
 		$(LD) $(LDSOFLAGS) -o $@ $(PLOBJ)
 
-install:	$(TARGETS) $(LIBPL)
+install:	$(TARGETS) $(LIBPL) install-dtd
 		mkdir -p $(PLBASE)/lib/$(PLARCH)
 		$(INSTALL) -m 755 $(TARGETS) $(PLBASE)/lib/$(PLARCH)
 		$(INSTALL) -m 644 $(LIBPL) $(PLBASE)/library
 		$(PL) -f none -g make -t halt
+
+install-dtd:
+		mkdir -p $(PLBASE)/library/DTD
+		for f in $(DTDFILES); do \
+		   $(INSTALL_DATA) DTD/$$f $(PLBASE)/library/DTD; \
+		done
 
 uninstall:
 		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))
