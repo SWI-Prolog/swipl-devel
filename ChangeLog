@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED/MODIFIED: The toplevel calls expand_goal/2 before actually
+    executing the typed goal.
+
   * FIXED/ENHANCED: Allow goal_expansion/2 to return the same term, in
     which case recursion is stopped.
 

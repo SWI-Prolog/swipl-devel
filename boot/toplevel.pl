@@ -496,7 +496,8 @@ $execute_goal(trace, []) :-
 	fail.
 $execute_goal(Goal, Bindings) :-
 	$module(TypeIn, TypeIn), 
-	(   TypeIn:Goal,
+	(   expand_goal(Goal, Expanded), % warn if expanded?
+	    TypeIn:Expanded,
 	    flush_output(user_output),
 	    call_expand_answer(Bindings, NewBindings),
 	    (	write_bindings(NewBindings)
