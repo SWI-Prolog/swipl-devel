@@ -810,11 +810,15 @@ expandFileName(char *pattern, char *bin)
 #endif
     char *user;
     char *value;
+    char *s = pattern+1;		/* after ~ */
     int l;
 
     pattern++;
-    if ( (user = takeWord(&pattern)) == NULL )
-      return NULL;
+    if ( (user = takeWord(&s)) == NULL )
+      return NULL;			/* ~toolongname */
+    if ( *s && !IsDirSep(*s) )		/* ~shhs[^/] */
+      goto nouser;
+    pattern = s;
 
     if ( user[0] == EOS )		/* ~/bla */
     {
@@ -860,8 +864,14 @@ expandFileName(char *pattern, char *bin)
     }
     strcpy(expanded, value);
     expanded += l;
+
+    if ( IsDirSep(pattern[0]) )		/* try to get one / */
+    { while(expanded > bin && IsDirSep(expanded[-1]))
+	expanded--;
+    }
   }
 
+nouser:
   for( ;; )
   { switch( c = *pattern++ )
     { case EOS:

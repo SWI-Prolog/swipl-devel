@@ -124,6 +124,9 @@
 /* Define if you have the rename function.  */
 #define HAVE_RENAME 1
 
+/* Define if you have the accessd function.  */
+#define HAVE_ACCESS 1
+
 /* Define if you have the getdtablesize function.  */
 #undef HAVE_GETDTABLESIZE
 

@@ -156,7 +156,15 @@ existsFile(FileObj f, Bool mustbefile)
   Name name;
 
   if ( (name = getOsNameFile(f)) )
-  { if ( stat(strName(name), &buf) == -1 )
+  { DEBUG(NAME_file, Cprintf("name=\"%s\"\n", strName(name)));
+#ifdef HAVE_ACCESS
+    if ( mustbefile != ON )
+    { if ( access(strName(name), F_OK) == 0 )
+	succeed;
+      fail;
+    }
+#endif
+    if ( stat(strName(name), &buf) == -1 )
       fail;
     if ( mustbefile != OFF && (buf.st_mode & S_IFMT) != S_IFREG )
       fail;
