@@ -334,7 +334,7 @@ LOCKOUT_READERS(rdf_db *db)
 
 
 static int
-UNLOCK(rdf_db *db)
+UNLOCK(rdf_db *db, int rd)
 { int self = PL_thread_self();
   enum { NONE, READ, WRITE } waiting;
 
@@ -343,9 +343,8 @@ UNLOCK(rdf_db *db)
     return TRUE;
   }
 
-
   EnterCriticalSection(&db->mutex);
-  if ( db->writer == -1 )		/* must be a read lock */
+  if ( rd )				/* must be a read lock */
   { db->readers--;
     db->read_by_thread[self]--;
     signal = (db->readers == 0);
@@ -474,10 +473,10 @@ RDLOCK(rdf_db *db)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 WRLOCK() and LOCKOUT_READERS() can be  used   in  two ways. Conventional
-write locks are established using WRLOCK(db,  FALSE) ... UNLOCK(db). For
-transactions, we allow concurrent readers until  we are ready to commit,
-in which case  we  use  WRLOCK(db,   FALSE)  ...  LOCKOUT_READERS()  ...
-UNLOCK(db)
+write locks are established using   WRLOCK(db,  FALSE) ... WRUNLOCK(db).
+For transactions, we allow concurrent  readers   until  we  are ready to
+commit, in which case we use  WRLOCK(db, TRUE) ... LOCKOUT_READERS() ...
+WRUNLOCK(db)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -569,7 +568,7 @@ LOCKOUT_READERS(rdf_db *db)
 
 
 static int
-UNLOCK(rdf_db *db)
+UNLOCK(rdf_db *db, int rd)		/* TRUE: read lock */
 { int self = PL_thread_self();
   int signal;
 
@@ -579,7 +578,7 @@ UNLOCK(rdf_db *db)
   }
 
   pthread_mutex_lock(&db->mutex);
-  if ( db->writer == -1 )		/* must be a read lock */
+  if ( rd )				/* read lock */
   { db->readers--;
     db->read_by_thread[self]--;
     signal = (db->readers == 0);
@@ -718,6 +717,8 @@ INIT_LOCK(rdf_db *db)
 
 #endif /*_REENTRANT*/
 
+#define WRUNLOCK(db)	UNLOCK(db, FALSE)
+#define RDUNLOCK(db)	UNLOCK(db, TRUE)
 
 
 		 /*******************************
@@ -1592,12 +1593,12 @@ rdf_sources(term_t list)
     for(src=db->source_table[i]; src; src = src->next)
     { if ( !PL_unify_list(tail, head, tail) ||
 	   !PL_unify_atom(head, src->name) )
-      { UNLOCK(db);
+      { RDUNLOCK(db);
 	return FALSE;
       }
     }
   }
-  UNLOCK(db);
+  RDUNLOCK(db);
 
   return PL_unify_nil(tail);
 }
@@ -2349,7 +2350,7 @@ save_db(rdf_db *db, IOSTREAM *out, atom_t src)
     write_md5(db, out, src);
   }
   if ( Sferror(out) )
-  { UNLOCK(db);
+  { RDUNLOCK(db);
     return FALSE;
   }
 
@@ -2363,12 +2364,12 @@ save_db(rdf_db *db, IOSTREAM *out, atom_t src)
   }
   Sputc('E', out);
   if ( Sferror(out) )
-  { UNLOCK(db);
+  { RDUNLOCK(db);
     return FALSE;
   }
 
   destroy_saved(&ctx);
-  UNLOCK(db);
+  RDUNLOCK(db);
 
   return TRUE;
 }
@@ -2599,7 +2600,7 @@ load_db(rdf_db *db, IOSTREAM *in)
   { switch(c)
     { case 'T':
 	if ( !load_triple(db, in, &ctx) )
-	{ UNLOCK(db);
+	{ WRUNLOCK(db);
 	  return FALSE;
 	}
         break;
@@ -2639,14 +2640,14 @@ load_db(rdf_db *db, IOSTREAM *in)
 	}
 
 	db->generation += (db->created-created0);
-	UNLOCK(db);
+	WRUNLOCK(db);
 	return TRUE;
       default:
 	break;
     }
   }
   
-  UNLOCK(db);
+  WRUNLOCK(db);
   return PL_warning("Illegal RDF triple file");
 }
 
@@ -2780,7 +2781,7 @@ rdf_md5(term_t file, term_t md5)
       memset(digest, 0, sizeof(digest));
       rc = md5_unify_digest(md5, digest);
     }
-    UNLOCK(db);
+    RDUNLOCK(db);
   } else
   { md5_byte_t digest[16];
     source **ht;
@@ -2799,7 +2800,7 @@ rdf_md5(term_t file, term_t md5)
     }
 
     rc = md5_unify_digest(md5, digest);
-    UNLOCK(db);
+    RDUNLOCK(db);
   }
 
   return rc;
@@ -3613,7 +3614,7 @@ rdf_transaction(term_t goal)
   { discard:
     discard_transaction(db);
   }
-  UNLOCK(db);
+  WRUNLOCK(db);
 
   return rc;
 }
@@ -3658,7 +3659,7 @@ rdf_assert4(term_t subject, term_t predicate, term_t object, term_t src)
   { link_triple(db, t);
     db->generation++;
   }
-  UNLOCK(db);
+  WRUNLOCK(db);
 
   return TRUE;
 }
@@ -3687,7 +3688,7 @@ rdf(term_t subject, term_t predicate, term_t object,
       if ( !RDLOCK(db) )
 	return FALSE;
       if ( !update_hash(db) )
-      { UNLOCK(db);
+      { RDUNLOCK(db);
 	return FALSE;
       }
 
@@ -3718,14 +3719,14 @@ rdf(term_t subject, term_t predicate, term_t object,
 	  { p = db->table[t.indexed][triple_hash(db, &t, t.indexed)];
 	    goto inv_alt;
 	  }
-	  UNLOCK(db);
+	  RDUNLOCK(db);
           return TRUE;
 	}
       }
 
       if ( (flags & MATCH_INVERSE) && inverse_partial_triple(&t) )
 	goto inverse;
-      UNLOCK(db);
+      RDUNLOCK(db);
       return FALSE;
     }
     case PL_REDO:
@@ -3760,7 +3761,7 @@ rdf(term_t subject, term_t predicate, term_t object,
 
           PL_free(t);
 	  db->active_queries--;
-	  UNLOCK(db);
+	  RDUNLOCK(db);
           return TRUE;
 	}
       }
@@ -3770,7 +3771,7 @@ rdf(term_t subject, term_t predicate, term_t object,
       }
       PL_free(t);
       db->active_queries--;
-      UNLOCK(db);
+      RDUNLOCK(db);
       return FALSE;
     }
     case PL_CUTTED:
@@ -3778,11 +3779,11 @@ rdf(term_t subject, term_t predicate, term_t object,
 
       db->active_queries--;
       PL_free(t);
-      UNLOCK(db);
+      RDUNLOCK(db);
       return TRUE;
     }
     default:
-      UNLOCK(db);
+      RDUNLOCK(db);
       assert(0);
       return FALSE;
   }
@@ -3850,7 +3851,7 @@ rdf_estimate_complexity(term_t subject, term_t predicate, term_t object,
   if ( !RDLOCK(db) )
     return FALSE;
   if ( !update_hash(db) )			/* or ignore this problem? */
-  { UNLOCK(db);
+  { RDUNLOCK(db);
     return FALSE;
   }
 
@@ -3861,7 +3862,7 @@ rdf_estimate_complexity(term_t subject, term_t predicate, term_t object,
   }
 
   rc = PL_unify_integer(complexity, c);
-  UNLOCK(db);
+  RDUNLOCK(db);
 
   return rc;
 }
@@ -3983,7 +3984,7 @@ rdf_update5(term_t subject, term_t predicate, term_t object, term_t src,
   if ( !WRLOCK(db, FALSE) )
     return FALSE;
   if ( !update_hash(db) )
-  { UNLOCK(db);
+  { WRUNLOCK(db);
     return FALSE;
   }
   p = db->table[indexed][triple_hash(db, &t, indexed)];
@@ -3994,7 +3995,7 @@ rdf_update5(term_t subject, term_t predicate, term_t object, term_t src,
       done++;
     }
   }
-  UNLOCK(db);
+  WRUNLOCK(db);
 
   return done ? TRUE : FALSE;
 }
@@ -4018,7 +4019,7 @@ rdf_retractall4(term_t subject, term_t predicate, term_t object, term_t src)
   if ( !WRLOCK(db, FALSE) )
     return FALSE;
   if ( !update_hash(db) )
-  { UNLOCK(db);
+  { WRUNLOCK(db);
     return FALSE;
   }
   p = db->table[t.indexed][triple_hash(db, &t, t.indexed)];
@@ -4033,7 +4034,7 @@ rdf_retractall4(term_t subject, term_t predicate, term_t object, term_t src)
     }
   }
 
-  UNLOCK(db);
+  WRUNLOCK(db);
 
   return TRUE;
 }
@@ -4773,7 +4774,7 @@ rdf_reset_db()
   else
     reset_db(db);
 
-  UNLOCK(db);
+  WRUNLOCK(db);
 
   return TRUE;
 }

@@ -294,6 +294,10 @@ transaction(nest-2) :-
 	findall(rdf(S,P,O), rdf(S,P,O), L),
 	L == [ rdf(x, a, v)
 	     ].
+transaction(deadlock-1) :-
+	rdf_assert(x,y,z,g),
+	rdf_assert(x,y,z,g),
+	rdf_transaction(rdf(_S, _P, _O, _G)).
 
 
 		 /*******************************

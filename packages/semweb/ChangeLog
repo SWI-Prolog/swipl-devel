@@ -1,6 +1,9 @@
 Oct 19, 2004
 
-  * Do goal expansion on the argument of rdf_transaction/1.  Sandro
+  * FIXED: Bug#194: Locking problem using read access inside a
+    tranaction. Sandro Hawke.
+
+  * ADDED: Do goal expansion on the argument of rdf_transaction/1. Sandro
     Hawke.
 
 Oct 18, 2004 (version 2.2.0)
