@@ -1,3 +1,5 @@
+* FIXED: reading hot-spot info from XPM images in the Windows version.
+
 * PORT: Support -D_REENTRANT on Solaris 2.5 (Patch by Frank Cornelissen).
 
 * FIXED: Various details around event processing of text_item objects.
