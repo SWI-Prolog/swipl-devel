@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: MT: not releasing XPCE mutex in event_window() if the window
+  was destroyed while processing the event (leads to lockup after using
+  a popup).
+
 * ADDED: `path->relative_move' for better performance and flexibility.
 
 * ADDED: optional argument to `device->clear' to force destruction of the

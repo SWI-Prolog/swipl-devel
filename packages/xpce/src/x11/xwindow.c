@@ -272,7 +272,9 @@ event_window(Widget w, XtPointer xsw, XtPointer xevent)
 			    event->xany.type, pp(sw)));
 
   if ( isFreeingObj(sw) || isFreedObj(sw) || sw->sensitive == OFF )
+  { pceMTUnlock(LOCK_PCE);
     return;
+  }
 
   ServiceMode(is_service_window(sw),
 	      { AnswerMark mark;
