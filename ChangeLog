@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Various problems in the manual (Ørjan Johansen).
+
   * FIXED: expand_file_name/2 handling of ~fred (Ørjan Johansen).
 
   * DEBUGGER: Modified the trace-hooks to examine choice-points as first

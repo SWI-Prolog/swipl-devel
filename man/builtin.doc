@@ -10,6 +10,11 @@ and `?' denotes `either input or output'.%
     \footnote{These marks do \strong{not} suggest instantiation (e.g.\
     var(+Var)).} Constructs like `op/3' refer to the predicate `op' with
     arity `3'.
+Finally, arguments may have the `:' specifier, which implies the
+argument is module-sensitive. Normally the argument is a
+\jargon{callable} term refering to a predicate in a specific module.
+See \secref{modules} for more information on module-handing.
+
 
 \section{Character representation}		\label{sec:chars}
 
@@ -846,8 +851,7 @@ while for normal calls this search is done at compile time.
 \begin{description}
     \predicate{call}{1}{+Goal}
 Invoke \arg{Goal} as a goal. Note that clauses may have variables as
-subclauses, which is identical to call/1, except when the argument is
-bound to the cut. See \predref{!}{0}.
+subclauses, which is identical to call/1.
 
     \predicate{call}{2}{+Goal, +ExtraArg1, \ldots}		% 2..
 Append \arg{ExtraArg1, ExtraArg2, \ldots} to the argument list of
@@ -2274,7 +2278,7 @@ Alias for put/2
     \predicate{put_char}{1}{+Char}
 Alias for put/1.
 
-    \predicate{put}{2}{+Stream, +Char}
+    \predicate{put_char}{2}{+Stream, +Char}
 Alias for put/2
 
     \predicate{put_code}{1}{+Code}
@@ -2312,8 +2316,8 @@ Read the next byte from \arg{Stream}.
 
     \predicate{get_code}{1}{-Code}
 Read the current input stream and unify \arg{Code} with the character
-code of the next character.  \arg{Char} is unified with -1 on end of file.
-See also get_char/1.
+code of the next character. \arg{Code} is unified with -1 on end of
+file. See also get_char/1.
 
     \predicate{get_code}{2}{+Stream, -Code}
 Read the next character-code from \arg{Stream}.

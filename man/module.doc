@@ -264,7 +264,7 @@ invoke(I, S, Args) :-
 
 The construct <Module>:<Goal> explicitly calls \arg{Goal} in
 module \arg{Module}.  It is discussed in more detail in
-\secref{metacall}.
+\secref{metainmodule}.
 
 
 \section{Meta-Predicates in Modules}	\label{sec:metainmodule}

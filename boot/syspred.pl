@@ -127,6 +127,8 @@ style_check(+string) :- !,
 	set_prolog_flag(double_quotes, string).
 style_check(-string) :- !,
 	set_prolog_flag(double_quotes, codes).
+style_check(?string) :- !,
+	current_prolog_flag(double_quotes, string).
 style_check(Spec) :-
 	$style_check(Old, Old),
 	$map_bits($map_style_check, Spec, Old, New),
