@@ -81,48 +81,54 @@ http_open(Parts, Stream, Options) :-
 	       [Location, Host]),
 	close(Out),
 					% read the reply header
-	read_header(In, Code, Comment, Size),
-					% check the status
-	report_status(Code, Id, Comment),
-					% fill options
-	(   memberchk(size(ReqSize), Options)
-	->  (   ReqSize = Size
-	    ->	true
-	    ;	close(Out),
-		fail
-	    )
-	;   true
-	),
+	read_header(In, Code, Comment, Lines),
+	do_open(Code, Comment, Lines, Options, Parts, In, Stream).
+
+
+do_open(200, _, Lines, Options, Parts, In, In) :- !,
+	return_size(Options, Lines),
 					% properly re-initialise the stream
 	parse_url(Id, Parts),
 	set_stream(In, file_name(Id)),
-	set_stream(In, record_position(true)),
-	Stream = In.
-
-
-report_status(200, _, _) :- !.
-report_status(_, Id, Comment) :-
+	set_stream(In, record_position(true)).
+					% Handle redirections
+do_open(302, _, Lines, Options, _Parts, In, Stream) :-
+	location(Lines, Location), !,
+	close(In),
+	http_open(Location, Stream, Options).
+					% report anything else as error
+do_open(Code, Comment, _, _, Parts, In, In) :-
+	parse_url(Id, Parts),
 	throw(error(existence_error(url, Id),
-		    context(_, Comment))).
+		    context(_, status(Code, Comment)))).
 
 
-read_header(In, Code, Comment, Size) :-
+return_size(Options, Lines) :-
+	memberchk(size(Size), Options), !,
+	content_length(Lines, Size).
+return_size(_, _).
+
+
+read_header(In, Code, Comment, Lines) :-
 	read_line_to_codes(In, Line),
 	phrase(first_line(Code, Comment), Line),
 	read_line_to_codes(In, Line2),
-	rest_header(Line2, In, 0, Size).
+	rest_header(Line2, In, Lines).
 
 
-rest_header("", _, Size, Size).
-rest_header(Line, In, _, Size) :-
-	phrase(content_length(Size0), Line), !,
-	read_line_to_codes(In, Line2),
-	rest_header(Line2, In, Size0, Size).
-rest_header(_, In, Size0, Size) :-
-	read_line_to_codes(In, Line2),
-	rest_header(Line2, In, Size0, Size).
+rest_header("", _, []).
+rest_header(L0, In, [L0|L]) :-
+	read_line_to_codes(In, L1),
+	rest_header(L1, In, L).
 
+content_length(Lines, Length) :-
+	member(Line, Lines),
+	phrase(content_length(Length0), Line), !,
+	Length = Length0.
 
+location(Lines, Location) :-
+	member(Line, Lines),
+	phrase(atom_field("location", Location), Line), !.
 
 first_line(Code, Comment) -->
 	"HTTP/", [_], ".", [_],
@@ -131,6 +137,9 @@ first_line(Code, Comment) -->
 	skip_blanks,
 	rest(Comment).
 
+atom_field(Name, Value) -->
+	field(Name),
+	rest(Value).
 
 content_length(Len) -->
 	field("content-length"),

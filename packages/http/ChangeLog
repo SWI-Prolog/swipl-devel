@@ -1,0 +1,3 @@
+Jan 8, 2003
+ 
+  * ADDED: Support for 302 (document moved) reply in http_open/3.
