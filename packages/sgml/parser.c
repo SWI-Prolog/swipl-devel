@@ -1578,7 +1578,6 @@ get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
 { ichar buf[MAXSTRINGLEN];
   ochar cdata[MAXSTRINGLEN];
   dtd *dtd = p->dtd;
-  const ichar *s;
   const ichar *end;
 
   if ( !(end=itake_string(dtd, decl, buf, sizeof(buf))) )
@@ -1588,9 +1587,19 @@ get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
 
   switch(att->definition->type)
   { case AT_NUMBER:			/* number */
-      if ( (s=itake_number(dtd, decl, &att->value.number)) )
-	return s;
-      return NULL;
+    { long v;
+
+      if ( buf[0] )
+      { char *e;
+	
+	v = strtol((const char *)buf, &e, 10);
+	if ( !e[0] )
+	{ att->value.number = v;
+	  return end;
+	}
+      }
+      gripe(ERC_SYNTAX_WARNING, "Attribute value is not numeric", decl);
+    }
     case AT_CDATA:			/* CDATA attribute */
       expand_entities(p, buf, cdata, MAXSTRINGLEN);
       att->value.cdata = ostrdup(cdata);
