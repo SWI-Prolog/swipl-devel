@@ -51,6 +51,7 @@ qsave_program(File, Options0) :-
 	save_flags,
 	save_imports,
 	save_features,
+	save_operators,
 %	save_foreign_libraries,
 	system_mode(off),
 	$close_wic,
@@ -197,6 +198,14 @@ c_feature(c_libs).
 c_feature(home).
 c_feature(version).
 c_feature(arch).
+
+		 /*******************************
+		 *	     OPERATORS		*
+		 *******************************/
+
+save_operators :-
+	true.				% TBD
+
 
 		 /*******************************
 		 *       FOREIGN LIBRARIES	*
