@@ -1,41 +1,45 @@
-SWI-Prolog 5.0.5/XPCE 6.0.5 Summary of changes
+SWI-Prolog 5.0.6/XPCE 6.0.6 Summary of changes
 
 SWI-Prolog
 ==========
 
-    * ENGINE: fix to call_cleanup/[2,3]: avoid GC when running cleanup
-      handler.  PL_cons_functor_v() now does proper dereferencing, avoiding
-      some weird errors on specific use of the C/C++ interface.
+    * Added downcase_atom/2 and upcase_atom/2.
 
-    * COMPATIBILITY:   Added, depending on the flag backquoted_string,
-      support for LPA-Prolog string syntax (`hello world`).  Again allow
-      for `interleaved I/O' using Edinburgh tell/1 and see/1.  See manual.
+    * Fixed writing 0-bytes as first byte in write/1 and friends
 
-    * PORTABILITY: BeOS and Compaq C-compiler, various minor improvements
-      to configure and build-suite.
+    * Fixed stack-size handling in qsave_program.
 
-    * WINDOWS: support wheel-mouse in plwin.exe, make home/end keys work
-      properly.  Provide support for UNC filenames (\\host\share\...,
-      preferably written as //host/share/...).
+    * Fixed crashing PLWIN.EXE on page up/down
 
-    * MULTI-THREADING: Various patches avoiding corruption and deadlocks.
-      Lots of work done by Sergey Tikhonov.  Thanks!
-
-    * DOCS: Various updates.
+    * Huge performance boost retracting from predicates with many
+      clauses.
+    
+    * Make the system compile on GCC-3
 
 
 Development Environment
 =======================
 
-    * Modified interface for choice-points, paving the route for further
-      improvements and for now avoiding a crash on some specific code.
+    * Fixed editor-selection based on $EDITOR
+
+    * Fixed GUI-Tracer and PceEmacs problems wasting stream-handles that
+      ultimately make the environment stop functioning.
+
+    * Fixed some GUI-Tracer source-handling issues.
+
+    * Fixed GUI-Tracer choice-point view.
+
 
 XPCE
 ====
 
-    * Allow exchanging atoms and strings betweem XPCE and Prolog containing
-      0-bytes.
+    * Fixed window-placement (Windows)
 
-    * Windows: provide support for UNC filenames (see Prolog).
+    * Added `menu->insert_before' for easy insertion in existing
+      menus
 
-    * Various minor patches and enhancements
+    * Added `dialog<->border' (default is <-gap)
+
+    * Big performance improvement loading JPEG in the X11 version.
+
+    * Many small improvements and additiona.  Check ChangeLog.
