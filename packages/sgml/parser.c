@@ -63,7 +63,7 @@ static const ichar *	isee_text(dtd *dtd, const ichar *in, char *id);
 static const ichar *	iskip_layout(dtd *dtd, const ichar *in);
 static dtd_parser *	clone_dtd_parser(dtd_parser *p);
 static void		free_model(dtd_model *m);
-static int		process_entity_declaraction(dtd_parser *p,
+static int		process_entity_declaration(dtd_parser *p,
 						    const ichar *decl);
 static void		free_notations(dtd_notation *n);
 static void		free_shortrefs(dtd_shortref *sr);
@@ -1166,7 +1166,7 @@ set_dialect_dtd(dtd *dtd, dtd_dialect dialect)
       memset(&p, 0, sizeof(p));
       p.dtd = dtd;
       for(el = xml_entities; *el; el++)
-	process_entity_declaraction(&p, *el);
+	process_entity_declaration(&p, *el);
 
       break;
     }
@@ -1255,7 +1255,7 @@ string_expected:
 
 
 static int
-process_entity_declaraction(dtd_parser *p, const ichar *decl)
+process_entity_declaration(dtd_parser *p, const ichar *decl)
 { dtd *dtd = p->dtd;
   const ichar *s;
   dtd_symbol *id;
@@ -3595,7 +3595,7 @@ process_declaration(dtd_parser *p, const ichar *decl)
       (*p->on_decl)(p, decl);
 
     if ( (s = isee_identifier(dtd, decl, "entity")) )
-      process_entity_declaraction(p, s);
+      process_entity_declaration(p, s);
     else if ( (s = isee_identifier(dtd, decl, "element")) )
       process_element_declaraction(p, s);
     else if ( (s = isee_identifier(dtd, decl, "attlist")) )
