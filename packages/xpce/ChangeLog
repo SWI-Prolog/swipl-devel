@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* MODIFIED: PceEmacs command M-x insert_date to insert just the date, not
+  the time.
+
+
 VERSION 6.0.6, distributed with SWI-Prolog 5.0.6
 ================================================
 

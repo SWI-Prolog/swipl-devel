@@ -831,8 +831,12 @@ save_and_kill(M) :->
 
 
 insert_date(M) :->
-	"Insert current time"::
-	send(M, insert, @pce?date).
+	"Insert current date"::
+	new(Date, date),
+	get(Date, year, Y),
+	get(Date, month_name, @on, Mon),
+	get(Date, day, D),
+	send(M, insert, string('%s %s, %s', Mon, D, Y)).
 
 
 what_cursor_position(M) :->
