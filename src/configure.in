@@ -756,14 +756,20 @@ main()
   value.it_interval.tv_usec = 1;
   value.it_value.tv_sec  = 0;
   value.it_value.tv_usec = 1;
+  time_t t0 = time(NULL);
+  int i;
   
   set_sighandler(SIGPROF, prof);
 
   if (setitimer(ITIMER_PROF, &value, &ovalue) != 0)
     exit(1);
 
-  for(n=0; n<50000000; n++)
-    ;
+  for(;;)
+  { for(n=0; n<50000000; n++)
+      ;
+    if ( time(NULL) > t0+1 )
+      break;
+  }
   if ( done )
   { printf("(%d interrupts) ", done);
     exit(0);

@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: make sure the profiler-support autoconf test runs at least 1 sec.
+    This makes the test work regardless of the speed of the machine.
+
   * FIXED: profiler/2 and '$prof_procedure_data'/7 to deal with sibling
     ticks accounting.  Direct use of profile/1 was ok.  Also fixed getting
     details from predicates in the user module.  David Reitter.
