@@ -13,8 +13,20 @@ have been developed to test  and   illustrate  the  functionality of the
 interface; not to be pretty  looking   programs.   Please try the Prolog
 demos to get an overview of the functionality of XPCE.
 
-This  is  an  alpha   version   of    the   C++   interface.   See  also
-$PCEHOME/README.CXX and the LaTeX documentation in $PCEHOME/man/CXX/
+Documentation:
+==============
+
+You will find the documentation in PostScript at:
+
+	ftp://swi.psy.uva.nl/pub/xpce/doc/CXX/pce2cxx.ps.gz (22 pages)
+
+Or as HTML at
+
+	http://swi.psy.uva.nl/projects/xpce/CXX/Title.html
+
+Or as packaged set of HTML files at:
+
+	ftp://swi.psy.uva.nl/pub/xpce/HTML/CXX.tgz
 
 
 Preparation
