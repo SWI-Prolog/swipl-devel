@@ -22,7 +22,8 @@ AC_SUBST(RUNTEX)
 
 AC_ARG_ENABLE(mt, [  --enable-mt		  Enable Multi-threading],
 	      [case "$enableval" in
-		   yes) AC_DEFINE(_REENTRANT)
+		   yes) AC_DEFINE([_REENTRANT], 1,
+				  [Define to support threads])
 			;;
 		   *)  ;;
 	       esac])
@@ -79,7 +80,7 @@ fi
 
 AC_CHECK_LIB(odbc, SQLAllocEnv)
 AC_CHECK_HEADERS(malloc.h sql.h time.h)
-AC_CHECK_FUNCS(localtime mktime gmtime)
+AC_CHECK_FUNCS(localtime mktime gmtime timegm)
 
 if test "$ac_cv_lib_odbc_SQLAllocEnv" = yes &&
    test "$ac_cv_header_sql_h" = yes; then

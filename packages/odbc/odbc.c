@@ -93,6 +93,12 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 #define UNLOCK()
 #endif
 
+#if !defined(HAVE_TIMEGM) && defined(HAVE_MKTIME)
+#define EMULATE_TIMEGM
+static time_t timegm(struct tm *tm);
+#define HAVE_TIMEGM
+#endif
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Work around bug in MS SQL Server that reports NumCols of SQLColumns()
 as 19, while there are only 12.  Grrr!
@@ -2695,7 +2701,7 @@ get_timestamp(term_t t, SQL_TIMESTAMP_STRUCT* stamp)
   } else if ( PL_get_float(t, &tf) && tf <= LONG_MAX && tf >= LONG_MIN )
   { time_t t = (time_t) tf;
     long  us = (long)((tf - (double) t) * 1000.0);
-#ifdef HAVE_GMTIME
+#if defined(HAVE_GMTIME) && defined USE_UTC
     struct tm *tm = gmtime(&t);
 #else
     struct tm *tm = localtime(&t);
@@ -3453,28 +3459,36 @@ pl_put_column(context *c, int nth, term_t col)
 	  }
 	  case SQL_PL_INTEGER:
 	  case SQL_PL_FLOAT:
-#ifdef HAVE_MKTIME
+#ifdef HAVE_TIMEGM
 	  { struct tm tm;
-	    time_t time;
+	    time_t t;
 
+#ifndef USE_UTC
+	    t = time(NULL);
+	    tm = *localtime(&t);
+#else
 	    memset(&tm, 0, sizeof(tm));
+#endif
 	    tm.tm_year  = ts->year - 1900;
 	    tm.tm_mon   = ts->month-1;
 	    tm.tm_mday  = ts->day;
 	    tm.tm_hour  = ts->hour;
 	    tm.tm_min   = ts->minute;
 	    tm.tm_sec   = ts->second;
-	    tm.tm_isdst = -1;		/* do not know */
 
-	    time = mktime(&tm);
+#ifdef USE_UTC
+	    t = timegm(&tm);
+#else
+	    t = mktime(&tm);
+#endif
 
 	    if ( p->plTypeID == SQL_PL_INTEGER )
-	      PL_put_integer(val, time);
+	      PL_put_integer(val, t);
 	    else
-	      PL_put_float(val, (double)time); /* TBD: fraction */
+	      PL_put_float(val, (double)t); /* TBD: fraction */
 	  }
 #else
-	    return PL_warning("System doesn't support mktime()");
+	    return PL_warning("System doesn't support mktime()/timegm()");
 #endif
 	    break;
 	  default:
@@ -3516,3 +3530,36 @@ pl_put_row(term_t row, context *c)
 
   return TRUE;
 }
+
+
+#ifdef EMULATE_TIMEGM
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+timegm() is provided by glibc and the inverse of gmtime().  The glibc
+library suggests using mktime with TZ=UTC as alternative.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static time_t
+timegm(struct tm *tm)
+{ char *otz = getenv("TZ");
+  time_t t;
+  char oenv[20];
+
+  if ( otz && strlen(otz) < 10 )	/* avoid buffer overflow */
+  { putenv("TZ=UTC");
+    t = mktime(tm);
+    strcpy(oenv, "TZ=");
+    strcat(oenv, otz);
+    putenv(oenv);
+  } else if ( otz )
+  { Cprintf("Too long value for TZ: %s", otz);
+    t = mktime(tm);
+  } else				/* not set, what to do? */
+  { t = mktime(tm);
+  }
+
+  return t;
+}
+
+
+#endif
