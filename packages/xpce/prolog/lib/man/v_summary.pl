@@ -99,12 +99,11 @@ initialise(S, Att:name, Size:size) :->
 			      @default, @on,
 			      and(message(Obj, has_send_method, trace),
 				  Obj?trace == @on))
-		  , new(CM, menu_item(class,
-				     end_group := @on))
-			      
 		  ]),
-	ifmaintainer(send_list(P, append,
-		  [ menu_item(relate,
+	ifmaintainer((send_list(P, append,
+		  [ new(CM, menu_item(class,
+				      end_group := @on)),
+		    menu_item(relate,
 			      message(Tool, request_relate, Obj),
 			      @default, @off,
 			      and(Manual?edit_mode == @on,
@@ -136,7 +135,7 @@ initialise(S, Att:name, Size:size) :->
 				  Selection \== @nil,
 				  message(Obj, man_related,
 					  inherit, Selection)))
-		  ])),
+		  ]),
 
 	ClassifyTab = @man_classification,
 
@@ -150,7 +149,7 @@ initialise(S, Att:name, Size:size) :->
 		    menu_item(T,
 			      and(message(ClassifyTab, append, Obj?man_id, T),
 				  message(ClassifyTab, modified, @on)),
-			      L))).
+			      L))))).
 
 
 		/********************************
