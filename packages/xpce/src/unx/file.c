@@ -88,19 +88,39 @@ initialiseFile(FileObj f, Name name, Name kind)
 #else					/* use unsafe tmpnam */
 #ifdef HAVE_TMPNAM
     char namebuf[L_tmpnam];
+    char *s = tmpnam(namebuf);
 
-    name = CtoName(tmpnam(namebuf));
+    if ( s )
+    { name = CtoName(s);
+      /*Cprintf("tmpnam() returns %s\n", s);*/
+    } else
+    { return errorPce(f, NAME_noTempFile, getOsErrorPce(PCE));
+    }
+#else
+#ifdef HAVE_TEMPNAM			/* Prefer this on WIN32 */
+    char *s = tempnam("c:\\tmp", "xpce");
+
+    if ( s )
+    { name = CtoName(s);
+      /*Cprintf("tempnam() returns %s\n", s);*/
+      free(s);
+    } else
+    { return errorPce(f, NAME_noTempFile, getOsErrorPce(PCE));
+    }
 #else
     Cprintf("No temporary files on this platform");
     fail;
+#endif
 #endif
 #endif
   }
 
 #if O_XOS
   { char buf[MAXPATHLEN];
+    char lng[MAXPATHLEN];
     
-    _xos_canonical_filename(strName(name), buf);
+    _xos_long_file_name(strName(name), lng);
+    _xos_canonical_filename(lng, buf);
     assign(f, name, CtoName(buf));
   }
 #else

@@ -257,6 +257,8 @@ static const error_def errors[] =
     "%N: Cannot find. Path = \"%s\"" },
   { NAME_noFile,		EF_REPORT,
     "%N: No associated file" },
+  { NAME_noTempFile,		EF_REPORT,
+    "%I: Cannot create temporary file: %s" },
   { NAME_notOpenFile,		0,
     "%N: Not open in mode %s" },
   { NAME_cannotStartProcess,	EF_REPORT,

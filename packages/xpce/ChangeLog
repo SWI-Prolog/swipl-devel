@@ -5,6 +5,8 @@
 VERSION 6.2.7, distributed with SWI-Prolog 5.2.7
 ================================================
 
+* FIXED: temporary filename generation (new(X, file)).  Dave Hankinson.
+
 * ADDED: Documentation for pce_autoload_all/0.  Lourens van der Meij and
   Piet Mertens.
 

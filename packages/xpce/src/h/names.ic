@@ -2378,3 +2378,4 @@
   BUILTIN_NAME("yref")
   BUILTIN_NAME("yref_var")
   BUILTIN_NAME("zoom")
+  BUILTIN_NAME("no_temp_file")

@@ -151,8 +151,11 @@
 /* Define if you have the memmove function.  */
 #define HAVE_MEMMOVE 1
 
+/* Define if you have the tempnam function */
+#define HAVE_TEMPNAM 1
+
 /* Define if you have the tmpnam function */
-#define HAVE_TMPNAM 1
+/*#define HAVE_TMPNAM 1*/
 
 /* Define if you have the on_exit function.  */
 #undef HAVE_ON_EXIT 
