@@ -23,7 +23,7 @@ char *program;
 
 static void
 usage()
-{ fprintf(stderr, "Usage: %s [-xml] [-s] [file.dtd] file\n", program);
+{ fprintf(stderr, "Usage: %s [-xml] [-s] [file.dtd] [file]\n", program);
   exit(1);
 }
 
@@ -251,7 +251,7 @@ set_functions(dtd_parser *p, int output)
 int
 main(int argc, char **argv)
 { dtd_parser *p = NULL;
-  char *s, *ext;
+  char *s;
   int xml = FALSE;
   int output = TRUE;
 
@@ -276,50 +276,67 @@ main(int argc, char **argv)
       usage();
   }
 
-  if ( argc == 0 )
-    usage();
-
-					/* fixed (ok) */
+  if ( argc > 0 )
   { char *slash = strchr(argv[0], '/');
     char *dot   = strchr(argv[0], '.');
-    ext = dot == NULL || (slash != 0 && slash > dot) ? "." : dot;
-  }
+    char *ext   = (dot == NULL || (slash != 0 && slash > dot)) ? "." : dot;
 
-  if ( istrcaseeq(ext, ".dtd") )
-  { char doctype[256];
-    
-    strncpy(doctype, argv[0], ext-argv[0]);
-    doctype[ext-argv[0]] = '\0';
+    if ( istrcaseeq(ext, ".dtd") )
+    { char doctype[256];
       
-    p = new_dtd_parser(new_dtd(doctype));
-    load_dtd_from_file(p, argv[0]);
-    argc--; argv++;
-  } else if ( istrcaseeq(ext, ".html") ||
-	      istrcaseeq(ext, ".htm" ) )
-  { p = new_dtd_parser(new_dtd("html"));
-
-    load_dtd_from_file(p, "html.dtd");
-  } else if ( xml || istrcaseeq(ext, ".xml") )
-  { dtd *dtd = new_dtd(NULL);
-
-    set_dialect_dtd(dtd, DL_XML);
-    p = new_dtd_parser(dtd);
+      strncpy(doctype, argv[0], ext-argv[0]);
+      doctype[ext-argv[0]] = '\0';
+	
+      p = new_dtd_parser(new_dtd(doctype));
+      load_dtd_from_file(p, argv[0]);
+      argc--; argv++;
+    } else if ( istrcaseeq(ext, ".html") ||
+		istrcaseeq(ext, ".htm" ) )
+    { p = new_dtd_parser(new_dtd("html"));
+  
+      load_dtd_from_file(p, "html.dtd");
+    } else if ( xml || istrcaseeq(ext, ".xml") )
+    { dtd *dtd = new_dtd(NULL);
+  
+      set_dialect_dtd(dtd, DL_XML);
+      p = new_dtd_parser(dtd);
+    } else
+    { p = new_dtd_parser(new_dtd(NULL));
+    }
   } else
-  { p = new_dtd_parser(new_dtd(NULL));
-  }
+    p = new_dtd_parser(new_dtd(NULL));
 
-  if ( argc == 1 )
-  { set_functions(p, output);
-    sgml_process_file(p, argv[0]);
-    free_dtd_parser(p);
-    if ( output )
-      printf("C\n");
-    return 0;
-  } else
-  { usage();
-    return 1;
+  switch(argc)
+  { case 1:
+    { set_functions(p, output);
+      sgml_process_file(p, argv[0]);
+      free_dtd_parser(p);
+      if ( output )
+	printf("C\n");
+      return 0;
+    }
+    case 0:
+    { int chr;
+
+      set_functions(p, output);
+      set_src_dtd_parser(p, IN_FILE, "stdin");
+      set_mode_dtd_parser(p, DM_DATA);
+      while( (chr = getchar()) != EOF )
+	putchar_dtd_parser(p, chr);
+
+      end_document_dtd_parser(p);
+      free_dtd_parser(p);
+      if ( output )
+	printf("C\n");
+      return 0;
+    }
+    default:
+    { usage();
+      return 1;
+    }
   }
 }
+
 
 
 

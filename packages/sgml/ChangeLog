@@ -1,3 +1,5 @@
+* ADDED: sgml utility allow for parsing stdin.
+
 * PERFORMANCE: Improved expand_[p]entities(), providing about 10%
   overall improvement.
 
