@@ -601,7 +601,7 @@ popen(cat-2) :-
 	;   E = error(signal(pipe, _), context(copy_stream_data/2, _))
 	->  true
 					% otherwise
-	;   E = error(existence_error(stream, _), context(_, 'Broken pipe'))
+	;   E = error(io_error(write, _), context(_, 'Broken pipe'))
 	->  true
 	;   format(user_error, 'Wrong exception: ~p~n', [E]),
 	    fail
