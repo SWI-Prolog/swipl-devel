@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 3.3.3
+=============
+
+  * WIN32: Added support in the installation for alternative file-extension.
+    Added win_registry_get_value/3 to fetch registry values.
+
   * FIXED: PL_cons_functor_v() to read before writing, so it can overwrite
     one of the input term-references like similar functions.
 

@@ -3576,6 +3576,26 @@ Win32 systems only. Spawns a Windows task without waiting for its
 completion.  \arg{Show} is either \const{iconic} or \const{normal} and
 dictates the initial status of the window.  The \const{iconic} option
 is notably handy to start (DDE) servers.
+    \predicate{win_registry_get_value}{3}{+Key, +Name, -Value}
+Win32 systems only. Fetches the value of a Win32 registry key.
+\arg{Key} is an atom formed as a path-name describing the desired
+registry key. \arg{Name} is the desired attribute name of the key.
+\arg{Value} is unified with the value. If the value is of type
+\type{DWORD}, the value is returned as an integer. If the value is a
+string it is returned as a Prolog atom. Other types are currently not
+supported. The default `root' is \const{HKEY_CURRENT_USER}. Other roots
+can be specified explicitely as \const{HKEY_CLASSES_ROOT},
+\const{HKEY_CURRENT_USER}, \const{HKEY_LOCAL_MACHINE} or
+\const{HKEY_USERS}.  The example below fetches the extension to use
+for Prolog files (see \file{README.TXT} on the Windows version):
+
+\begin{code}
+?- win_registry_get_value('HKEY_LOCAL_MACHINE/Software/SWI/Prolog',
+			  fileExtension,
+			  Ext).
+
+Ext = pl
+\end{code}
     \predicate{getenv}{2}{+Name, -Value}
 Get environment variable. Fails silently if the variable does not exist.
 Please note that environment variable names are case-sensitive on Unix
