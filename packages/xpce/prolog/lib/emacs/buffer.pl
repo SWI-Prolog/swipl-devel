@@ -64,15 +64,20 @@ class_variable(undo_buffer_size, int, 40000).
 initialise(B, File:file*, Name:[name]) :->
 	"Create from file and name"::
 	send(B, send_super, initialise),
+	send(B, saved_caret, 0),
 
 	(   File == @nil
 	->  send(B, undo_buffer_size, 0),
 	    send(B, auto_save_mode, @off),
 	    default(Name, '*scratch*', BufBaseName),
-	    send(B, slot, mode, fundamental),
 	    (	BufBaseName == '*scratch*'
-	    ->	send(B, pool, @default)
-	    ;	send(B, pool, other)
+	    ->	send(B, slot, mode, prolog),
+	        send(B, pool, @default),
+		scratch_text(Text),
+		send(B, insert, 0, Text),
+		send(B, saved_caret, B?size)
+	    ;	send(B, slot, mode, fundamental),
+		send(B, pool, other)
 	    ),
 	    send(B, directory, directory('.'))
 	;   send(File, absolute_path),
@@ -90,7 +95,6 @@ initialise(B, File:file*, Name:[name]) :->
 	),
 
 	send(B, slot, auto_save_count, number(300)),
-	send(B, saved_caret, 0),
 	send(B, saved_fill, @off),
 	send(B, ensure_newline, @on),
 	send(B, name, BufBaseName).
@@ -104,6 +108,10 @@ unlink(B) :->
 	;   true
 	),
 	send(B, send_super, unlink).
+
+scratch_text('% This buffer is for notes you don\'t want to save.\n\
+	     % If you want to create a file, visit that file with C-x C-f,\n\
+	     % then enter the text in that file\'s own buffer.\n\n').
 
 :- pce_global(@emacs_interpreter_regex,
 	      new(regex('#!\\(\\S +\\)\\s '))).
