@@ -715,6 +715,7 @@ make_draw_create_text_recogniser(R) :-
 			     Canvas?(mode) == draw_text)).
 
 create_text(Canvas, Pos) :-
+	send(Canvas, keyboard_focus, @nil), % close open text if there
 	get(Canvas?proto, clone, Text),
 	send(Canvas, open_undo_group),
 	send(Canvas, display, Text, Pos),
@@ -1038,7 +1039,7 @@ verify(G, Ev:event) :->
 connect(_G, From:graphical, To:graphical, Link:link,
 	    FH:[name], TH:[name]) :->
 	"Connect the graphicals (using a draw_connection)"::
-	(   get(Link, attribute, connection_class, ClassName)
+	(   get(Link, attribute, draw_connection_class, ClassName)
 	->  true
 	;   ClassName = draw_connection
 	),

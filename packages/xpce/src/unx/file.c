@@ -218,18 +218,26 @@ getAbsolutePathFile(FileObj f)
 }
 
 
+static int
+is_absolute_name(const char *s)
+{
+#ifdef __WIN32__
+  if ( isletter(s[0]) && s[1] == ':' )
+    succeed;
+#endif
+  if ( s[0] == '/' )
+    succeed;
+
+  fail;
+}
+
 status
 isAbsoluteFile(FileObj f)
 { char *name = strName(f->name);
   int n;
 
   for(n=0; n < 2; n++)
-  {
-#ifdef __WIN32__
-    if ( isletter(name[0]) && name[1] == ':' )
-      succeed;
-#endif
-    if ( name[0] == '/' )
+  { if ( is_absolute_name(name) )
       succeed;
 
     name = expandFileName(name);
@@ -948,6 +956,14 @@ findFile(FileObj f, CharArray path, Name mode)
     succeed;
 
   strcpy(base, exp);
+  if ( is_absolute_name(base) )
+  { if ( access(base, m) == 0 )
+    { assign(f, path, CtoName(base));
+      succeed;
+    }
+
+    goto nofind;
+  }
 
   if ( isDefault(path) )
     pathstr = ".";
@@ -978,12 +994,15 @@ findFile(FileObj f, CharArray path, Name mode)
     strcat(name, "/");
     strcat(name, base);
 
+    DEBUG(NAME_find, Cprintf("%s->find: trying %s\n", pp(f), name));
+
     if ( access(name, m) == 0 )
     { assign(f, path, CtoName(name));
       succeed;
     }
   }
 
+nofind:
   return errorPce(f, NAME_cannotFindFile, path);
 }
 

@@ -1,7 +1,7 @@
 This is makeindex, portable version 2.12 [26-May-1993].
 Scanning style file ../../TeX/makeindex.sty..done (2 attributes redefined, 0 ignored).
 Scanning input file doc.idx.....done (1398 entries accepted, 0 rejected).
-Sorting entries..............done (15669 comparisons).
+Sorting entries..............done (15715 comparisons).
 Generating output file doc.ind.....done (802 lines written, 0 warnings).
 Output written in doc.ind.
 Transcript written in doc.ilg.

@@ -35,7 +35,7 @@ r_fill_triangle(x1, y1, x2, y2, x3, y3)
 
 r_thickness(pen)		Set line width.
 r_dash(dash)			Set dash pattern.
-r_fillpattern(image)		Set fill pattern
+r_fillpattern(image, Name which)Set fill pattern
 r_andpattern(image)		Set andpattern for greying
 r_default_colour(colour)	Set default foreground colour
 r_colour(colour)		Set foreground colour
@@ -109,6 +109,7 @@ static struct d_context
   int		offset_y;		/* Paint offset in Y direction */
   int		origin_x;		/* Origin-X relative to drawable */
   int		origin_y;
+  int		fixed_colours;		/* The colours are fixed */
 					/* Save over d_image()/d_done() */
   Any		colour;
   Any		background;
@@ -130,6 +131,8 @@ resetDraw(void)
     e->level = i;
 
   env = environments;
+
+  context.fixed_colours = 0;
 }
 
 
@@ -138,7 +141,7 @@ d_push_context(void)
 { DContext ctx = alloc(sizeof(struct d_context));
   
   if ( env->level > 0 )
-  { context.colour = context.gcs->colour;
+  { context.colour     = context.gcs->colour;
     context.background = context.gcs->background;
   }
 
@@ -651,13 +654,18 @@ d_pen(Pen pen)
 
 
 void
-r_fillpattern(Any fill)		/* image or colour */
-{ DEBUG(NAME_fillPattern, Cprintf("r_fillpattern(%s) ", pp(fill)));
+r_fillpattern(Any fill, Name which)	/* image or colour */
+{ DEBUG(NAME_fillPattern,
+	Cprintf("r_fillpattern(%s, %s) ", pp(fill), pp(which)));
 
   if ( isDefault(fill) )
     fill = context.gcs->colour;
   else if ( fill == NAME_current )
     return;
+
+  if ( context.fixed_colours && !instanceOfObject(fill, ClassImage) )
+    fill = (which == NAME_foreground ? context.gcs->colour
+				     : context.gcs->background);
 
   if ( fill != context.gcs->fill )
   { XGCValues values;
@@ -683,7 +691,7 @@ r_fillpattern(Any fill)		/* image or colour */
 	values.fill_style = FillTiled;
 	mask		  = (GCTile|GCFillStyle);
       }
-    } else
+    } else				/* solid colour */
     { mask = GCForeground|GCFillStyle;
       values.foreground = getPixelColour(fill, context.pceDisplay);
       values.fill_style = FillSolid;
@@ -733,14 +741,44 @@ r_andpattern(Image i)
 }
 
 
+void
+r_fix_colours(Any fg, Any bg, ColourContext ctx)
+{ ctx->foreground = context.gcs->colour;
+  ctx->background = context.gcs->background;
+  ctx->lock	  = context.fixed_colours;
+
+  if ( !context.fixed_colours )
+  { if ( !fg || isNil(fg) ) fg = DEFAULT;
+    if ( !bg || isNil(bg) ) bg = DEFAULT;
+
+    r_default_colour(fg);
+    r_background(bg);
+  }
+
+  context.fixed_colours++;
+}
+
+
+void
+r_unfix_colours(ColourContext ctx)
+{ if ( (context.fixed_colours = ctx->lock) == 0 )
+  { r_default_colour(ctx->foreground);
+    r_background(ctx->background);
+  }
+}
+
+
+
 Any
 r_default_colour(Any c)
 { Any old = context.default_colour;
   
-  if ( notDefault(c) )
-    context.default_colour = c;
+  if ( !context.fixed_colours )
+  { if ( notDefault(c) )
+      context.default_colour = c;
 
-  r_colour(context.default_colour);
+    r_colour(context.default_colour);
+  }
   
   return old;
 }
@@ -749,6 +787,9 @@ r_default_colour(Any c)
 Any
 r_colour(Any c)
 { Colour old = context.gcs->colour;
+
+  if ( context.fixed_colours )
+    return old;
 
   if ( isDefault(c) )
     c = context.default_colour;
@@ -791,9 +832,8 @@ Any
 r_background(Any c)
 { Any ob = context.gcs->background;
 
-  if ( isDefault(c) )
+  if ( isDefault(c) || context.fixed_colours )
     return ob;
-/*  c = context.default_background; */
 
   if ( c != context.gcs->background )
   { if ( context.gcs->kind != NAME_bitmap )
@@ -933,7 +973,7 @@ r_box(int x, int y, int w, int h, int r, Any fill)
   h -= drawpen;
 
   if ( notNil(fill) )
-    r_fillpattern(fill);
+    r_fillpattern(fill, NAME_background);
 
   if ( r <= 0 )
   { int n;
@@ -1124,8 +1164,8 @@ r_elevation_fillpattern(Elevation e, int up)
     } else
       fail;
   }
-
-  r_fillpattern(fill);
+  
+  r_fillpattern(fill, NAME_background);
 
   succeed;
 }
@@ -1590,7 +1630,7 @@ r_arc(int x, int y, int w, int h, int s, int e, Any fill)
   h -= drawpen;
 
   if ( notNil(fill) )
-  { r_fillpattern(fill);
+  { r_fillpattern(fill, NAME_background);
     XFillArc(context.display, context.drawable, context.gcs->fillGC,
 	     x, y, w, h, s, e);
   }
@@ -1734,7 +1774,7 @@ r_path(Chain points, int ox, int oy, int radius, int closed, Image fill)
     }
 
     if ( notNil(fill) )
-    { r_fillpattern(fill);
+    { r_fillpattern(fill, NAME_background);
       XFillPolygon(context.display, context.drawable, context.gcs->fillGC,
 		   pts, i, Complex, CoordModeOrigin);  
     }
@@ -1878,7 +1918,7 @@ r_image(Image image,
 	  if ( !tmp )
 	    return;
 
-	  r_fillpattern(context.gcs->colour);
+	  r_fillpattern(context.gcs->colour, NAME_foreground);
 	  XFillRectangle(context.display, tmp, context.gcs->fillGC,
 			 0, 0, w, h);
 
@@ -1985,7 +2025,7 @@ r_fill(int x, int y, int w, int h, Any pattern)
 { Translate(x, y);
   Clip(x, y, w, h);
   if ( w > 0 && h > 0 )
-  { r_fillpattern(pattern);
+  { r_fillpattern(pattern, NAME_foreground);
     XFillRectangle(context.display, context.drawable, context.gcs->fillGC,
 		   x, y, w, h);
   }
@@ -2039,7 +2079,7 @@ r_caret(int cx, int cy, FontObj font)
   pts[2].x = cx;
   pts[2].y = cb-ah;
 
-  r_fillpattern(BLACK_IMAGE);
+  r_fillpattern(BLACK_IMAGE, NAME_foreground);
   r_fill_polygon(pts, 3);
 }
 

@@ -46,6 +46,7 @@ typedef struct
   int		offset_y;		/* same */
   int		r_offset_x;		/* r_offset() */
   int		r_offset_y;		/* r_offset() */
+  int		fixed_colours;		/* The colours are fixed */
 
   int		open;			/* is context opened? */
   int		invert;			/* paint inverted */
@@ -137,6 +138,7 @@ reset_context()
   context.depth		     = display_depth;
   context.r_offset_x	     = 0;
   context.r_offset_y	     = 0;
+  context.fixed_colours	     = 0;
 }
 
 
@@ -833,7 +835,8 @@ Any
 r_colour(Any colour)
 { Any old = context.colour;
 
-  DEBUG(NAME_colour, Cprintf("r_colour(%s)\n", pp(colour)));
+  if ( context.fixed_colours )
+    return old;
 
   if ( isDefault(colour) )
   { assert(notDefault(context.default_colour));
@@ -989,8 +992,12 @@ r_fillbrush(Any fill)
 
 
 void
-r_fillpattern(Any fill)			/* colour or image */
-{ if ( context.fill_pattern != fill )
+r_fillpattern(Any fill, Name which)			/* colour or image */
+{ if ( context.fixed_colours && !instanceOfObject(fill, ClassImage) )
+    fill = (which == NAME_foreground ? context.colour
+				     : context.background);
+
+  if ( context.fill_pattern != fill )
   { HBRUSH new, old;
     
     DEBUG(NAME_fill, Cprintf("Selecting fill-pattern %s\n", pp(fill)));
@@ -1011,20 +1018,47 @@ r_arcmode(Name mode)
 }
 
 
+void
+r_fix_colours(Any fg, Any bg, ColourContext ctx)
+{ ctx->foreground = context.colour;
+  ctx->background = context.background;
+  ctx->lock	  = context.fixed_colours;
+
+  if ( !context.fixed_colours )
+  { if ( !fg || isNil(fg) ) fg = DEFAULT;
+    if ( !bg || isNil(bg) ) bg = DEFAULT;
+
+    r_default_colour(fg);
+    r_background(bg);
+  }
+
+  context.fixed_colours++;
+}
+
+
+void
+r_unfix_colours(ColourContext ctx)
+{ if ( (context.fixed_colours = ctx->lock) == 0 )
+  { r_default_colour(ctx->foreground);
+    r_background(ctx->background);
+  }
+}
+
+
 Any
 r_default_colour(Any c)
 { Any old = context.default_colour;
   
-  DEBUG(NAME_colour, Cprintf("r_default_colour(%s)\n", pp(c)));
-  if ( notDefault(c) )
-  { if ( !instanceOfObject(c, ClassColour) )
-      c = getReplacementColourPixmap(c);
+  if ( !context.fixed_colours )
+  { if ( notDefault(c) )
+    { if ( !instanceOfObject(c, ClassColour) )
+	c = getReplacementColourPixmap(c);
 
-    context.default_colour = c;
+      context.default_colour = c;
+    }
+
+    r_colour(context.default_colour);
   }
-
-  assert(notDefault(context.default_colour));
-  r_colour(context.default_colour);
   
   return old;
 }
@@ -1033,6 +1067,9 @@ r_default_colour(Any c)
 Any
 r_background(Any c)
 { Any old = context.background;
+
+  if ( context.fixed_colours )
+    return old;
 
   if ( isDefault(c) )
   { c = context.default_background;
@@ -1105,7 +1142,7 @@ r_box(int x, int y, int w, int h, int r, Any fill)
       if ( w < 2 || h < 2 )
 	return;				/* TBD: too small (make line) */
 
-      r_fillpattern(fill);
+      r_fillpattern(fill, NAME_background);
       r_update_pen();
 
       if ( r == 0 )
@@ -1679,7 +1716,7 @@ r_3d_diamond(int x, int y, int w, int h, Elevation e, int up)
     p[2].x = eax; p[2].y = eay;
     p[3].x = sox; p[3].y = soy;
 
-    r_fillpattern(up ? e->colour : e->background);
+    r_fillpattern(up ? e->colour : e->background, NAME_background);
     Polygon(context.hdc, p, 4);
     ZSelectObject(context.hdc, oldpen);
   }
@@ -1750,10 +1787,10 @@ r_msarc(int x, int y, int w, int h,	/* bounding box */
 { if ( close == NAME_none )
   { Arc(context.hdc, x, y, x+w, y+h, sx, sy, ex, ey);
   } else if ( close == NAME_pieSlice )
-  { r_fillpattern(fill);
+  { r_fillpattern(fill, NAME_background);
     Pie(context.hdc, x, y, x+w, y+h, sx, sy, ex, ey);
   } else /* if ( close == NAME_chord ) */
-  { r_fillpattern(fill);
+  { r_fillpattern(fill, NAME_background);
     Chord(context.hdc, x, y, x+w, y+h, sx, sy, ex, ey);
   }
 }
@@ -1761,7 +1798,7 @@ r_msarc(int x, int y, int w, int h,	/* bounding box */
 
 void
 r_ellipse(int x, int y, int w, int h, Any fill)
-{ r_fillpattern(fill);
+{ r_fillpattern(fill, NAME_background);
   r_update_pen();
 
   DEBUG(NAME_redraw, Cprintf("r_ellipse(%d, %d, %d, %d, %s)\n",
@@ -1817,7 +1854,7 @@ r_path(Chain points, int ox, int oy, int radius, int closed, Image fill)
 
     r_update_pen();
     if ( closed || notNil(fill) )
-    { r_fillpattern(fill);
+    { r_fillpattern(fill, NAME_background);
       Polygon(context.hdc, pts, i);
     } else
       Polyline(context.hdc, pts, i);
@@ -2031,7 +2068,7 @@ r_caret(int cx, int cy, FontObj font)
   pts[2].x = cx;
   pts[2].y = cb-ah;
 
-  r_fillpattern(BLACK_IMAGE);
+  r_fillpattern(BLACK_IMAGE, NAME_foreground);
   r_fill_polygon(pts, 3);
 }
 
@@ -2061,7 +2098,7 @@ r_triangle(int x1, int y1, int x2, int y2, int x3, int y3)
   pts[2].x = x3;
   pts[2].y = y3;
 
-  r_fillpattern(BLACK_COLOUR);
+  r_fillpattern(BLACK_COLOUR, NAME_foreground);
   Polygon(context.hdc, pts, sizeof(pts)/sizeof(POINT));
 }
 

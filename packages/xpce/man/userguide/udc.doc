@@ -45,44 +45,43 @@ the skeleton is optional and may be repeated multiple times. The order
 of declarations is not important, but the order of the skeleton is the
 proposed order.  An exception to this rule is the pce_group/1 directive,
 that may be placed anywhere and defines the group-identifier for the
-declarations that follow.
+declarations that follow.  The skeleton is given in \figref{udcskeleton}.
 
-\begin{boxed}
-\tt
-\newcommand{\cbo}{{\it \{}}
-\newcommand{\cbc}{{\it \}}}
-\newcommand{\sbo}{{\it [}}
-\newcommand{\sbc}{{\it ]}}
-\begin{tabbing}
-xxxxxxxx\=\kill
-:- pce_begin_class(\sbo<Meta>:\sbc<Class>\sbo(\cbo<TermName>\cbc)\sbc, <Super> \sbo, <Summary>\sbc).\\[2ex]
+\begin{figure}
+\begin{quote}
+\parindent0pt
+\newcommand{\opt}[1]{{\it [#1]}}		% optional
+\newcommand{\zom}[1]{{\it \{#1\}}}		% zero-or-more
+\newcommand{\tab}{\makebox[6ex]{}}
+:- pce_begin_class(\opt{<Meta>:}<Class>\opt{(\zom{<TermName>})}, <Super>\opt{, <Summary>}).
 
 :- use_class_template(<TemplateClass>).\\
-:- send(@class, <Selector>\cbo, <Arg>\cbc).\\
-:- pce_class_directive(<Goal>).\\[2ex]
+:- send(@class, <Selector>\zom{, <Arg>}).\\
+:- pce_class_directive(<Goal>).
 
-variable(<Name>, <Type>\sbo:= <Value>\sbc, <Access> \sbo, <Summary>\sbc).
-\\[2ex]
+variable(<Name>, <Type>\opt{:= <Value>}, <Access> \opt{, <Summary>}).
 
-delegate_to(<VarName>).\\[2ex]
+delegate_to(<VarName>).
 
-resource(<Name>, <Type>, <Default> \sbo, <Summary>\sbc).\\[2ex]
+resource(<Name>, <Type>, <Default> \opt{, <Summary>}).
 
-handle(<X>, <Y>, <Kind>, <Name>).\\[2ex]
+handle(<X>, <Y>, <Kind>, <Name>).
 
-:- pce_group(<Group>).\\[2ex]
+:- pce_group(<Group>).
 
-<SendSelector>(<Rec>\cbo, <Arg>\sbo:\sbo<AName>=\sbc<Type>\sbc\cbc) \verb$:->$\\\relax
-	\>\sbo<Summary>::\sbc\\
-	\><PrologBody>.\\[2ex]
+<SendSelector>(<Rec>\zom{, <Arg>\opt{:\opt{<AName>=}<Type>}}) \verb$:->$\\
+	\tab\opt{<Summary>::}\\
+	\tab<PrologBody>.
 
-<GetSelector>(<Rec>\cbo, <Arg>\sbo:\sbo<AName>=\sbc<Type>\sbc\cbc, <RVal>\sbo:<Type>\sbc) \verb$:<-$\\\relax
-	\>\sbo<Summary>::\sbc\\
-	\><PrologBody>.\\[2ex]
+<GetSelector>(<Rec>\zom{, <Arg>\opt{:\opt{<AName>=}<Type>}}, <RVal>\opt{:<Type>}) \verb$:<-$\\
+	\tab\opt{<Summary>::}\\
+	\tab<PrologBody>.
 
 :- pce_end_class.
-\end{tabbing}
-\end{boxed}
+\end{quote}
+\caption{Skeleton for user-defined classes}
+\label{fig:udcskeleton}
+\end{figure}
 
 \subsection{Definition of the template elements}
 
@@ -167,54 +166,54 @@ the above skeleton in more detail. The notation is an incomplete BNF
 notation.
 
 \begin{table}
-\newcommand{\isa}{\>::=~}
-\newcommand{\cmt}[1]{\>\parbox[t]{3in}{#1}}
-\begin{boxed}\begin{tabbing}
-xxxxxxxxxxxxxxxx\=xxxxxxxxxxxxxxxxxx\=\kill
-<Meta>		\isa <Name>	\cmt{Name of the class this class
+\newcommand{\isa}{& ::= &}
+\begin{tabular}{|lrl|p{3in}|}
+\hline
+<Meta>		\isa <Name>	&    Name of the class this class
 				     will be an instance of.  Default
 				     is the meta-class of the
-				     super-class} \\
-<Class>		\isa <Name>	\cmt{Name of the class to be defined} \\
-<TermName>	\isa <Name>	\cmt{Selector name to fetch object/2
+				     super-class \\
+<Class>		\isa <Name>	&    Name of the class to be defined \\
+<TermName>	\isa <Name>	&    Selector name to fetch object/2
 				     argument.  For example, a point
 				     is translated into point(<X>, <Y>) and
-				     the description is {\tt point(x,y)}} \\
-<Super>		\isa <Name>	\cmt{Name of the super-class.  {\tt object}
-				     refers to the most general class} \\
+				     the description is {\tt point(x,y)} \\
+<Super>		\isa <Name>	&    Name of the super-class.  {\tt object}
+				     refers to the most general class \\
 <Summary>	\isa {\tt "}\{<Char>\}{\tt "}
-				\cmt{Summary description as appearing in
+				&    Summary description as appearing in
 				     the online manual.  $< 40$ characters,
-				     no newlines, Prolog string} \\
-<TemplateClass>	\isa <Name>	\cmt{Import a template class.  See
-				     section~\ref{sec:template}} \\
-<Selector>	\isa <Name>	\cmt{Name of a method} \\
-<X>		\isa <IntExpr>	\cmt{See class \class{handle}} \\
-<Y>		\isa <IntExpr>	\cmt{See class \class{handle}} \\
-<Kind>		\isa <Name>	\cmt{Category indicator.  See class
-				     \class{handle}} \\
-<Access>	\isa \parbox{1in}{\tt both|get|\\send|none}
-				\cmt{Defines the access right to this
-				     variable} \\
-<VarName>	\isa <Name>	\cmt{Name of variable used for
-				     delegation} \\
-<Group>		\isa <Name>	\cmt{Functional group of the following
+				     no newlines, Prolog string \\
+<TemplateClass>	\isa <Name>	&    Import a template class.  See
+				     section~\ref{sec:template} \\
+<Selector>	\isa <Name>	&    Name of a method \\
+<X>		\isa <IntExpr>	&    See class \class{handle} \\
+<Y>		\isa <IntExpr>	&    See class \class{handle} \\
+<Kind>		\isa <Name>	&    Category indicator.  See class
+				     \class{handle} \\
+<Access>	\isa \verb$both|get|send|none$
+				&    Defines the access right to this
+				     variable \\
+<VarName>	\isa <Name>	&    Name of variable used for
+				     delegation \\
+<Group>		\isa <Name>	&    Functional group of the following
 				     methods or variables.  Used to
-				     organise the ClassBrowser} \\
-<SendSelector>	\isa <Name>	\cmt{Name of send-method to define} \\
-<GetSelector>	\isa <Name>	\cmt{Name of get-method to define} \\
-<Rec>		\isa <Variable>	\cmt{Prolog variable bound to the receiver} \\
-<Arg>		\isa <Variable> \cmt{Prolog variable bound to argument} \\
-<RVal>		\isa <Variable>	\cmt{Prolog variable that should be bound
-				     to the return value} \\
-<AName>		\isa <Name>	\cmt{XPCE name for named argument} \\
-<Type>		\>		\cmt{See section~\ref{sec:atype} and
-				     \ref{sec:moretypes}} \\
-<PrologBody>	\>		\cmt{Ordinary Prolog code} \\ 
-<Value>		\>		\cmt{Initial value for the instance variable.
+				     organise the ClassBrowser \\
+<SendSelector>	\isa <Name>	&    Name of send-method to define \\
+<GetSelector>	\isa <Name>	&    Name of get-method to define \\
+<Rec>		\isa <Variable>	&    Prolog variable bound to the receiver \\
+<Arg>		\isa <Variable> &    Prolog variable bound to argument \\
+<RVal>		\isa <Variable>	&    Prolog variable that should be bound
+				     to the return value \\
+<AName>		\isa <Name>	&    XPCE name for named argument \\
+<Type>		&&		&    See section~\ref{sec:atype} and
+				     \ref{sec:moretypes} \\
+<PrologBody>	&&		&    Ordinary Prolog code \\ 
+<Value>		&&		&    Initial value for the instance variable.
 				     At this moment, only using constants
-				     is supported (int, name, bool)} \\
-\end{tabbing}\end{boxed}
+				     is supported (int, name, bool) \\
+\hline
+\end{tabular}
 \caption{Syntax details for User Defined Classes} \label{tab:udcsyntax}
 \end{table}
 

@@ -3,10 +3,8 @@
 In this chapter we list a number of commonly encountered problems
 in using PCE/Prolog.  
 
-\newcommand{\problem}[1]{\tick{#1}}
-
 \begin{description}
-    \problem{Cannot open display}
+    \tick{Cannot open display}
 PCE tries to open the display from the address specified by the DISPLAY
 environment variable.  It ignores the `--display' command line option.  The
 display might also be specified explicitly using `display <->address'.
@@ -22,7 +20,7 @@ PCE after a fatal or system error as the system might be corrupted.
 
 This problem is not possible in the Win32 implementation.
 
-    \problem{Failed to convert resource value}
+    \tick{Failed to convert resource value}
 This implies PCE could not translate a default specified in
 \file{\string~/.Xdefaults}, \file{/usr/lib/X11/app-defaults/Pce} or the PCE
 class resource specification (see `resource <-default') into a PCE
@@ -31,20 +29,20 @@ defined default value and generate a fatal error if this fails as well.
 Try to locate the resource that causes the trouble and where it is
 defined.
 
-    \problem{Bad integer reference}
+    \tick{Bad integer reference}
 This is a PCE/Prolog interface warning.  It implies the integer
 object reference given to send/[2-12], etc.\ is not valid.  The most
 common reason is that the object has already be freed, either explicitly
 or by PCE's incremental garbage collector.  See section~\ref{sec:memory}.
 
-    \problem{Unknown class}
+    \tick{Unknown class}
 Attempt to create an instance of a non-existing class.  Apart from the
 common mistakes like mistyped class-names, etc.\ this might be caused by
 1) giving a list argument to a send- or get- operation (class `.')
 or 2) trying to pass a term through send/[2-12] or get/[3-13].  See
 section~\ref {sec:notprolog}.   
 
-    \problem{Illegal PCE object description}
+    \tick{Illegal PCE object description}
 This implies a non-translatable Prolog datum was passed to the interface.
 Normally this will be a non-ground%
     \footnote{A `ground' term is a Prolog term that has no

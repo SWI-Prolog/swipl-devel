@@ -57,10 +57,10 @@ syntax is inspired by Prolog.  Below is a partial BNF description.
 
 \def\isa{}
 \def\ora{}
-\renewcommand{\isa}{& ::=~}
-\renewcommand{\ora}{&  ~~$\mid$~}
+\renewcommand{\isa}{&    ::= &}
+\renewcommand{\ora}{& $\mid$ &}
 \begin{quote}
-\begin{tabular}{|ll|}
+\begin{tabular}{|lrl|}
 \hline
 <Any>			\isa <int>		\\
 			\ora <float>		\\
@@ -94,7 +94,7 @@ influence XPCE.  XPCE has no variables, thus {\tt Fred} refers to the
 name {\em Fred} rather then defining a variable.  If an instance has
 to be created without arguments, such as and empty \class{chain} object,
 this is specified as {\tt chain()} rather than {\tt new(chain)}.  The
-latter will try to make an instance of class \class{new} (and fail).
+latter will try to make an instance of class \noclass{new} (and fail).
 
 
 \subsection{Long lines in resource files}

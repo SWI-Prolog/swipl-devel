@@ -1347,7 +1347,7 @@ nameToType(Name name)
     { if ( (type = name_of_type(&str)) )
     	return type;
 
-      if ( (isdigit(*str.start) || *str.start == '.') &&
+      if ( (isdigit(*str.start) || *str.start == '.' || *str.start == '-') &&
 	   (isdigit(*str.end) || *str.end == '.') )
       { if ( (type = int_range_type(&str)) )
 	  return type;

@@ -29,10 +29,14 @@
 
 Any
 cToPceInteger(long int i)
-{ if (i < PCE_MIN_INT || i > PCE_MAX_INT)
-    return PCE_FAIL;
+{ Int n = toInt(i);
 
-  return toInt(i);
+  if ( valInt(n) != i )
+  { errorPce(PCE, NAME_intRange);
+    fail;
+  }
+
+  return n;
 }
 
 

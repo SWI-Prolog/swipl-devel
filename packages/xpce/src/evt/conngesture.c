@@ -113,7 +113,7 @@ static status
 terminateConnectGesture(ConnectGesture g, EventObj ev)
 { Cell cell;
 
-  dragConnectGesture(g, ev);
+  send(g, NAME_drag, ev, 0);
 
   DeviceGraphical(g->line, NIL);
   for_cell(cell, g->to_indicators)
@@ -128,6 +128,9 @@ terminateConnectGesture(ConnectGesture g, EventObj ev)
     assign(g, device, NIL);
   }
 
+  assign(g, from_handle, DEFAULT);
+  assign(g, to_handle,   DEFAULT);
+
   succeed;
 }
 
@@ -141,19 +144,23 @@ indicateConnectGesture(ConnectGesture g, Graphical gr, EventObj ev,
 { Cell cell;
   Chain handles;
   Point pos = getPositionEvent(ev, gr->device);
+  Handle h;
 
   for_cell(cell, chain)
     nameGraphical(cell->value, NAME_unused);
 
-  if ( (handles = getHandlesGraphical(gr, pos, kind, toInt(10))) )
-  { Handle h = getHeadChain(handles);
+  if ( chain == g->from_indicators && notDefault(g->from_handle) &&
+       (h = getHandleGraphical(gr, g->from_handle)) )
+  { send(g, NAME_indicateHandle, gr, h->name, chain, 0);
+  } else if ( (handles = getHandlesGraphical(gr, pos, kind, toInt(10))) )
+  { h = getHeadChain(handles);
 
     send(g, NAME_indicateHandle, gr, h->name, chain, 0);
     slotObject(g, slot, h->name);
     doneObject(handles);
   } else if ( (handles = getHandlesGraphical(gr, pos, kind, DEFAULT)) )
   { for_cell(cell, handles)
-    { Handle h = cell->value;
+    { h = cell->value;
 
       send(g, NAME_indicateHandle, gr, h->name, chain, 0);
     }

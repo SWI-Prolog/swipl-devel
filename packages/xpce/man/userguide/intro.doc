@@ -160,13 +160,315 @@ Solaris, AIX, HPUX, IRIX, OSF/1 and Linux.  Platform configuration is
 realised using GNU autoconf with an extensive test-suite.
 
 
-\subsection{Win32}
+\subsection{Win32 (Windows 95 and NT}
 
-The Win32 API provided the required 32-bit flat memory model, making a
-port of XPCE feasible. Currently XPCE/Prolog for Win32 is only available
-with the SWI-Prolog host language. A Quintus port will be available
-shortly.
+\index{Windows 95}\index{Windows NT}
+XPCE runs on both Windows~95 and NT.  Its functionality is very close
+to the Unix/X11 version, making applications for 99\% source-code
+compatible between the two platforms.  
 
+The XPCE GUI toolkit has originally been developed for for SUN's SunView
+package. The Unix version of XPCE is currently based on the Unix
+standard X11 windowing system. This readme file describes the Win32 port
+of XPCE.
+
+XPCE does not build on top of the hosting window-systems GUI library.
+Instead, the primitive windowing and graphics facilities of the host are
+used to implement `XPCE's Virtual Window System'. All of XPCE's
+graphical functionality is build on top of this `Virtual Window System'.
+This approach guarantees full portability of applications between the
+platforms.
+
+All good things come with a price-tag and portability based on a virtual
+environment is no exception to this rule. XPCE builds high-level
+controllers (called dialog-items in its jargon) on top of the virtual
+machine and therefore bypasses the graphical libraries of the hosting
+system.
+
+The look-and-feel of XPCE is tailured  by   a  resource  file located in
+\file{<pcehome>/Pce}. The Win32 version is shipped with a resource file
+that makes the system look nice in the Windows'95 environment. Currently
+the main limitations of the look-and-feel emulation are:
+
+\begin{itemize}
+    \tick{Keyboard Binding}
+XPCE does not yet define a generic schema for keyboard-controlled menus.
+This will almost surely change in the future.
+
+    \tick{Popups}
+When using the `click' style to open and click again to select, hovering
+above an item with a pullright menu will not show the menu. You have to
+click the item.
+\end{itemize}
+
+
+\subsubsection{Currently unsupported features in the Win32 version}
+
+\begin{itemize}
+    \tick{Class socket}
+No support of file-based addressing (Unix domain sockets). Inet-domain
+sockets are provided (interfacing to WinSock). Only Windows-NT supports
+server sockets. All versions support client sockets however.
+
+    \tick{Application icons (frame ->icon)}
+Are always scaled to the supported icon-size. On Windows'95, all icons
+show using the default Windows icon.
+\end{itemize}
+
+
+\subsubsection{Interprocess communication, extensions and interaction}
+
+\begin{itemize}
+    \tick{DDE}			\index{DDE}
+Not (yet) supported by XPCE. SWI-Prolog supports it though, making DDE a
+feasible interprocess communication approach.
+
+    \tick{WinSock}		\index{WinSock}
+On Windows-NT this could be used to connect XPCE/Prolog with other
+applications on the same machine. Not on '95 and win32s as
+server-sockets are not provided.
+
+    \tick{Named Pipes}		\index{named pipes}
+Not (yet) supported.
+	
+    \tick{OLE}			\index{OLE}
+Not considered yet. This might prove very hard as XPCE doesn't use any
+of the higher-level primitives of the Windows API.
+
+    \tick{Drag-And-Drop}	\index{drag-and-drop}
+XPCE can accept dropped files from other applications. Inside the
+application, drag-and-drop is fully compatible to the Unix version.
+See \pllib{dragdrop}.
+
+    \tick{Cut/Paste}		\index{cut-and-paste}
+Supported for exchanging text.
+
+    \tick{DLL}			\index{DLL}
+Not supported by XPCE. Both SWI-Prolog and Quintus provide it though,
+making DLL available to XPCE/Prolog applications.
+\end{itemize}
+
+
+\subsubsection{Accessing Windows Graphics Resources}
+
+XPCE on Win32 defines the same cursor, colour and font-names as the
+Unix/X11 version to guarantee portability. It is desirable to have
+access to all the native Windows graphical resources. This allows the
+application to maintain better look-and-feel compatibility to other
+Win32 applications. Therefore the classes colour, cursor and font
+provide access to related Window resources. The details are in the
+following sections.
+
+
+\strong{It is NOT adviced to use these objects in your application code
+directly as this will stop the application to run on the Unix/X11
+version of XPCE. We advice using these objects in the XPCE resource file
+only.}
+
+
+\subsubsection{Accessing Windows Colours}
+
+Colours may be created from their X11   names.  The X11 name-table is in
+\file{<pcehome>/lib/rgb.txt}. In the Windows API, all colours described
+as RGB 1(Red, Green, Blue) tuples. This is no problem as XPCE also
+provides RGB colors. Note however that Win32 intensity is ranged 0..255,
+where the XPCE intensity is ranged 0..65535. This is true on all XPCE's
+platforms.
+
+To provide access to the window-system colours   as they can be obtained
+using the Win32 API function GetSysColor(),  XPCE binds these colours to
+named colour objects.  These colour  objects   are  normally used in the
+XPCE resource file (\file{<pcehome>/Pce}) to colour XPCE's controller
+objects acording to the user's preferences.
+
+If the name of the Windows API colours are COLOR_SOMETHING, the XPCE
+name will be win_something. Below is the full list:
+
+\begin{center}
+\begin{tabular}{ll}
+\const{win_activeborder}	& Active window border.\\
+\const{win_activecaption}	& Active window caption.\\
+\const{win_appworkspace}	& Background color of (MDI) applications.\\
+\const{win_background}		& Desktop.\\
+\const{win_btnface}		& Face shading on push buttons.\\
+\const{win_btnshadow}		& Edge shading on push buttons.\\
+\const{win_btntext}		& Text on push buttons.\\
+\const{win_captiontext}		& Text in caption and size box\\
+\const{win_graytext}		& Grayed (disabled) text.\\
+\const{win_highlight}		& Item(s) selected in a control.\\
+\const{win_highlighttext}	& Text of item(s) selected in a control.\\
+\const{win_inactiveborder}	& Inactive window border.\\
+\const{win_inactivecaption}	& Inactive window caption.\\
+\const{win_inactivecaptiontext}	& Color of text in an inactive caption.\\
+\const{win_menu}		& Menu background.\\
+\const{win_menutext}		& Text in menus.\\
+\const{win_scrollbar}		& Scroll bar gray area.\\
+\const{win_shadow}		& Color of automatic window shadows.\\
+\const{win_window}		& Window background.\\
+\const{win_windowframe}		& Window frame.\\
+\const{win_windowtext}		& Text in windows.\\
+\end{tabular}
+\end{center}
+
+
+\subsubsection{Accessing Windows Fonts}
+
+The normal screen, helvetica, roman and times font families available in
+the Unix/X11 version are available using the same names. The system will
+try to use an as close as possible equivalent Windows TrueType font for
+these.
+
+The Windows `stock' fonts as available from the GetStockObject() API are
+available under the special `family' "win".   They are listed below:
+
+\begin{center}
+\begin{tabular}{ll}
+\tt font(win, ansi_fixed)	& Default ANSI encoded fixed font\\
+\tt font(win, ansi_var)		& Default ANSI encoded variable font\\
+\tt font(win, device_default)	& Default device font\\
+\tt font(win, oem_fixed)	& Computers `native' fixed font (PC)\\
+\tt font(win, system)		& Variable pitched system font\\
+\tt font(win, system_fixed)	& Fixed system font\\
+\end{tabular}
+\end{center}
+
+
+Note that these  fonts  do  not   have  a  specified  point-size.  Their
+point-size depends on the Windows installation.  The get-method <-points
+will return the <-height of the font.
+
+Other Windows fonts may be accessed using a similar method as in
+Unix/X11: provide a fourth argument describing the font using the hosts
+conventions. For the Win32 API, this is a textual description of the
+Windows API structure LOGFONT passed to CreateFontIndirect(). The
+description is a `:' (colon) separated list of attributes of the
+structure. The attributes need not be specified in the order of the
+structure-layout. Omited attributes are set to their default.
+
+Attributes come in four types: numeric, boolean, enumerated and string.
+In general, an attribute is specified as: \line{<name>(<value>)} <name>
+is matches case-insensitive against the name of the structure field
+without the leading `lf' string. For numeric types, the argument is
+interpreted as a decimal number (spaces are not allowed). For a boolean
+argument, the (value) part is omited. By default the boolean attributes
+are FALSE. Including the attribute name in the specification sets the
+field to TRUE. Enumerated fields are specified using their symbolic
+name. Name-matching is case-insensitive. Common parts of the API
+identifier to make the symbol unique (for example _CHARSET in
+ANSI_CHARSET) are removed. String arguments simply take the value
+between the brackets. Spaces are included in the output, case is not
+changed and there is no escape for the closing-brace.
+
+The following defaults are  set  in   the  LOGFONT  structure before the
+attribute-string in parsed:
+	
+\begin{center}
+\begin{tabular}{lp{4in}}
+\const{charset}:	& ansi \\
+\const{height}:		& $<points> \times Pce.Font.scale$ \\
+\const{weigth}:		& bold if <style> is bold, normal otherwise \\
+\const{italic}:		& TRUE if <style> is italic or oblique \\
+\const{pitch}:		& fixed if <family> is screen \\
+\const{family}:		& swiss if <family> is helvetica, 
+			  roman if <family> is times,
+			  modern if <family> is screen
+			  dontcare otherwise. \\
+\const{face}:		& <family> \\
+\end{tabular}
+\end{center}
+
+The full list of attributes:
+
+\begin{center}
+\begin{tabular}{lp{4in}}
+\const{height}(int)	& point-size of the requested font \\
+\const{width}(int)	& average width of the characters \\
+\const{escapement}(int) & angle in 1/10 degrees of the baseline \\
+\const{orientation}(int)& angle for each character \\
+\const{weigth}(int)	& 0..1000 scale for thickness \\
+\const{italic}		& request italic look \\
+\const{underline}	& underline all characters \\
+\const{strikeout}	& use strikeout-fonts \\
+\const{charset}(enum)	& character encoding
+			\nameof{ansi,oem,symbol} \\
+\const{outprecision}(enum)& accurate aspects
+			\nameof{character,default,string,stroke} \\
+\const{clipprecision}(enum)& how the characters clip
+			\nameof{character,default,stroke} \\
+\const{quality}(enum)	& Quality of output
+			\nameof{default,draft,proof} \\
+\const{pitch}(enum)	& Spacing attributes
+			\nameof{default,fixed,variable} \\
+\const{family}(enum)	& Style of the characters
+		\nameof{decorative,dontcare,modern,roman,script,swiss}\\
+\const{face}(string)	& Use specific font database \\
+\end{tabular}
+\end{center}
+
+
+The following example binds the Windows'95 `WingDings' symbol-font:
+
+\begin{code}
+	new(F, font(wingdings, roman, 20, 'charset(symbol)')).
+\end{code}
+
+The following example uses this  font  to   create  an  image from such a
+character:
+
+\begin{code}
+	:- send(@display, font_alias, wingdings,
+	        font(wingdings, roman, 20, 'charset(symbol)')).
+
+	wingding_image(Index, Image) :-
+		new(Image, image(@nil, 32, 32)),
+		new(T, text(string('%c', Index), center, wingdings)),
+		send(T, center, point(16, 16)),
+		send(Image, draw_in, T),
+		send(T, done).
+
+	test :-
+		wingding_image(60, Floppy),
+		send(label(test, Floppy), open).
+\end{code}
+
+
+\subsubsection{Accessing Windows Cursors}
+
+The Win32 version of XPCE supports all the X11 cursors. It also supports
+the definition of cursors from images. Note that such cursors are
+generally limited to $32 \times 32$ pixels on Windows (formally there is
+no limit in X11, but many (colour) servers exhibit strange behaviour
+when given cursors larger than this size).
+
+To provide access to the  built-in   cursors  of  Windows, the following
+additional cursor names are available:
+
+\begin{center}
+\begin{tabular}{ll}
+\const{win_arrow}	& Default Windows arrow\\
+\const{win_ibeam}	& Like xterm\\
+\const{win_wait}	& hour-class (good replacement of `watch')\\
+\const{win_cross}	& like crosshair\\
+\const{win_uparrow}	& long up arrow (no good X11 replacement)\\
+\const{win_size}	& A bit like `fleur'\\
+\const{win_icon}	& (see icon and icon_cross)\\
+\const{win_sizenwse}	& NorthWest - SouthEast arrow (no X11 replacement)\\
+\const{win_sizenesw}	& NorthEast - SouthWest arrow\\
+\const{win_sizewe}	& West - East arrow\\
+\const{win_sizens}	& North - South arrow\\
+\const{win_sizeall}	& as win_size\\
+\const{win_no}		& Stop-sign\\
+\const{win_appstarting}	& Arrow with hour-class\\
+\end{tabular}
+\end{center}
+
+Use the File/Demo/Cursors entry from the PCE Manual to inspect all
+available cursors.
+
+The default \file{Pce} resource file assigns \const{win_arrow} as the
+default cursor under Windows. win_ibeam is the default editor cursor and
+\const{win_wait} is the default wait cursor.
+  
 
 \section{Look-and-feel}
 

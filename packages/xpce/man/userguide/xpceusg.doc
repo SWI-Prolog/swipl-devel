@@ -1,0 +1,147 @@
+\documentclass[11pt]{book}
+\usepackage{pce}
+\def\booktitle{Programming in XPCE/Prolog}
+\author{\email[Jan Wielemaker]{jan@swi.psy.uva.nl} \\
+	\email[Anjo Anjewierden]{anjo@swi.psy.uva.nl} \\
+	SWI, University of Amsterdam \\
+	Roetersstraat 15 \\
+	1018 WB  Amsterdam}
+
+%\psdraft
+
+\makeindex
+
+%\includeonly{techniques}
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%		HTML TitlePage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{htmlversion}
+
+\maketitle
+
+\begin{abstract}
+XPCE/Prolog is a hybrid environment integrating logic programming and
+object-oriented programming for Graphical User Interfaces.  Applications
+in XPCE/Prolog are fully compatible across the supported X11 and
+Win32 (Windows 95 and Windows NT) platforms.
+
+XPCE has been connected to the following Prolog systems.
+
+\begin{itemize}
+    \item \url[SWI-Prolog]{http://www.swi.psy.uva.nl/usr/jan/SWI-Prolog.html}
+    \item \url[Quintus Prolog]{http://www.aiil.co.uk/prolog/frames_home.htm}
+    \item \url[SICStus Prolog]{http://www.sics.se/isl/sicstus.html}
+\end{itemize}
+
+\paragraph{Note.} Although this document is created december 1996, it is
+not in sync with the current system (XPCE 4.9.0).  Everything documented
+here is still valid, but some new features should shortly find a place
+in this document.  They include new facilities for handling colour,
+using XPCE objects as a Prolog {\em stream} and more advanced
+organisation of applications using class \class{application}.
+
+{\it Last updated January 30, 1996 for XPCE version 4.8.16}
+
+Copyright \copyright\ 1992-1996 University of Amsterdam
+\end{abstract}
+
+\hr
+\subsubsection*{About this document}
+
+This document is maintained in the LaTeX document processing system. It
+was converted to HTML format using a latex2html written in SWI-Prolog
+which, unlike
+\url[latex2html]{http://www-dsed.llnl.gov/files/programs/unix/latex2html/sources/},
+concentrates on extensibility, rather then making the HTML document
+look as closely as possible the same as the LaTeX version.  The document
+is maintained using macros dedicated to describe its content.  These
+macros are defined both for LaTeX to arrive at a proper typeset version,
+and for the latex2html translator to arrive at a proper hypertext
+document. For further information, please contact \email[Jan
+Wielemaker]{jan@swi.psy.uva.nl}
+
+Each section in the document is translated into an HTML page.  Each
+page contains links to the \strong{table of contents}, \strong{Index},
+and \strong{Class Summary}.  Subsections contain links to their
+super-section, and sections that have subsections contain a
+\strong{`local' index} at the end of the page.
+\end{htmlversion}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%		Normal document titlepage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{titlepage}
+\mbox{}
+\vfil
+\centerline{\psfig{figure=figs/title.ps,width=\textwidth}}
+\vfil\vfil\vfil
+\end{titlepage}
+
+\begin{titlepage}
+\titlepageheader
+\vfil\vfil
+
+\noindent
+{\bf Programming in XPCE/Prolog} \\[2cm]
+Jan Wielemaker \\
+Anjo Anjewierden \\[1cm]
+\email{jan@swi.psy.uva.nl} \\
+\email{anjo@swi.psy.uva.nl}
+\vfil
+\noindent
+XPCE/Prolog is a hybrid environment integrating logic programming and
+object-oriented programming for Graphical User Interfaces.  Applications
+in XPCE/Prolog are fully compatible across the supported X11 and
+Win32 platforms.
+\vfil\vfil
+\noindent
+Last updated January 30, 1996 for XPCE version 4.8.16
+\vfil
+\noindent
+Copyright \copyright\ 1992-1996 University of Amsterdam
+\end{titlepage}
+
+\pagestyle{fancyplain}
+\renewcommand{\chaptermark}[1]{\markboth{#1}{#1}} % remember chapter title
+\renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}}
+                                                % section number and title
+\lhead[\fancyplain{}{\bf\thepage}]{\fancyplain{}{\bf\rightmark}}
+\rhead[\fancyplain{}{\bf\leftmark}]{\fancyplain{}{\bf\thepage}}
+\footrulewidth 0.2pt
+\lfoot[\tiny XPCE \pceversion]{}
+\rfoot[]{\tiny XPCE \pceversion}
+\cfoot{}
+
+{\parskip 0pt
+\tableofcontents
+}
+
+\include{intro}
+\include{starting}
+\include{globalarch}
+\include{online}
+\include{dialog}
+\include{graphics}
+\include{diaedit}
+\include{pceprolog}
+\include{udc}
+\include{resource}
+\include{techniques}
+\include{debug}
+\bibliographystyle{name}
+\bibliography{pce}
+\appendix
+\include{interface}
+\include{memory}
+\include{trouble}
+\include{glossary}
+\include{summary}
+
+\printindex
+
+\end{document}

@@ -48,8 +48,8 @@ Name		ws_window_manager(DisplayObj d);
 void		ws_synchronous(DisplayObj d);
 void		ws_asynchronous(DisplayObj d);
 status		ws_postscript_display(DisplayObj d);
+Image		ws_grab_image_display(DisplayObj d, int x, int y, int width, int height);
 StringObj	ws_get_resource_value(DisplayObj d, Name cc, Name cn, Name rc, Name rn, int accept_default);
-Image		ws_grab_image_display(DisplayObj d, int x, int y, int w, int h);
 
 /* x11/xdraw.c */
 void		resetDraw(void);
@@ -71,8 +71,10 @@ void		r_and(int x, int y, int w, int h, Image pattern);
 void		r_thickness(int pen);
 void		r_dash(Name name);
 void		d_pen(Pen pen);
-void		r_fillpattern(Any fill);
+void		r_fillpattern(Any fill, Name which);
 void		r_arcmode(Name mode);
+void		r_fix_colours(Any fg, Any bg, ColourContext ctx);
+void		r_unfix_colours(ColourContext ctx);
 Any		r_default_colour(Any c);
 Any		r_colour(Any c);
 Any		r_background(Any c);

@@ -187,6 +187,11 @@ computeArc(Arc a)
       maxy = max(maxy, py);
     }
 
+    minx--;
+    miny--;
+    maxy++;
+    maxx++;
+
     CHANGING_GRAPHICAL(a,
 		       { setArea(a->area, toInt(minx), toInt(miny),
 			       	          toInt(maxx-minx), toInt(maxy-miny));

@@ -7,7 +7,7 @@ sub printTeX
   s/<->(\w+)/\\both{\1}/g;
   s/<-(\w+)/\\get{\1}/g;
   s/->(\w+)/\\send{\1}/g;
-  s/(\w+)\/((\d+|\[\d+(-|,)\d+\]))/\\index{\1\/\2}\\predrefer{\1}{\2}/g;
+  s/(\w+)\/((\d+|\[\d+(-|,)\d+\]))/\\index{\1\/\2}\\predref{\1}{\2}/g;
   s/(\w\.\w)\.(\s+[a-z])/\1.\\\2/g;
   s/(^|[^\w}])@(\w+)/\1\\index{@\2}\\objectname{\2}/g;
   s/<(\w[-~\w]*)>/\\bnfmeta{\1}/g;
@@ -66,7 +66,8 @@ sub printPceCode
     { print;
       return;
     }
-    print "\\lineno{$line}\\verb`$_`";
+    chomp;
+    print "\\lineno{$line}\\verb`$_`\n";
   }
 }
 

@@ -26,7 +26,7 @@ The online manual consists of a large set of tools to examine
 different aspects of the XPCE/Prolog environment and to navigate
 through the available material from different view-points.
 
-\begin{itemize}
+\begin{description}
 \newcommand{\manualtool}[2]{\item\makebox[\linewidth][l]{\em #1\hfill\sf #2}}
     \manualtool{The inheritance hierarchy}{Browsers/Class Hierarchy}
 \index{class,hierarchy}%
@@ -79,7 +79,7 @@ Note that the DemoBrowser allows to view the sources of the main file
 of a demo application immediately. Also consider using the
 VisualHierarchy and ClassBrowser to analyse the structure of the demo
 programs.
-\end{itemize}
+\end{description}
 
 
 \section{Notational conventions}

@@ -71,7 +71,7 @@ P = @772024
 
 The first example creates an instance of class point from the
 arguments `10' and `20'.  The reference is represented in Prolog using
-the prefix operator \predrefer{@}{1}.  For XPCE generated references
+the prefix operator \functor{@}{1}.  For XPCE generated references
 the argument of this term is a XPCE generated integer value.  These
 integers are guaranteed to be unique.  The second example creates a
 dialog object.  A dialog is a window that is specialised for

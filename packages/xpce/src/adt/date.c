@@ -20,11 +20,13 @@ static long timelocal(struct tm *);
 
 static status	setDate(Date d, Int s, Int m, Int h, Int D, Int M, Int Y);
 
+#define unix_date date.date
+
 Date
 CtoDate(long int time)
 { Date d = newObject(ClassDate, 0);
 
-  d->date = time;
+  d->unix_date = time;
 
   answer(d);
 }
@@ -32,7 +34,7 @@ CtoDate(long int time)
 
 static status
 initialiseDate(Date d, Int s, Int m, Int h, Int D, Int M, Int Y)
-{ d->date = time(0);
+{ d->unix_date = time(0);
 
   if ( notDefault(s) || notDefault(m) || notDefault(h) ||
        notDefault(D) || notDefault(M) || notDefault(Y) )
@@ -46,7 +48,7 @@ static status
 storeDate(Date d, FileObj file)
 { TRY(storeSlotsObject(d, file));
 
-  return storeWordFile(file, (Any) d->date);
+  return storeWordFile(file, (Any) d->unix_date);
 }
 
 
@@ -54,7 +56,7 @@ static status
 loadDate(Date d, FILE *fd, ClassDef def)
 { if ( restoreVersion != 2 )
     TRY(loadSlotsObject(d, fd, def));
-  d->date = loadWord(fd);
+  d->unix_date = loadWord(fd);
 
   succeed;
 }
@@ -67,7 +69,7 @@ getConvertDate(Class class, StringObj str)
 
     if ( t != -1 )
     { Date d = answerObject(ClassDate, 0);
-      d->date = t;
+      d->unix_date = t;
 
       answer(d);
     }
@@ -79,7 +81,7 @@ getConvertDate(Class class, StringObj str)
 
 static status
 equalDate(Date d1, Date d2)
-{ if (d1->date == d2->date)
+{ if (d1->unix_date == d2->unix_date)
     succeed;
   fail;
 }
@@ -90,14 +92,14 @@ setDate(Date d, Int s, Int m, Int h, Int D, Int M, Int Y)
 { struct tm *tm;
   int v;
 
-  tm = localtime(&d->date);
+  tm = localtime(&d->unix_date);
   if ( notDefault(s) && (v=valInt(s)) >= 0    && v <= 59   ) tm->tm_sec  = v;
   if ( notDefault(m) && (v=valInt(m)) >= 0    && v <= 59   ) tm->tm_min  = v;
   if ( notDefault(h) && (v=valInt(h)) >= 0    && v <= 23   ) tm->tm_hour = v;
   if ( notDefault(D) && (v=valInt(D)) >= 1    && v <= 31   ) tm->tm_mday = v;
   if ( notDefault(M) && (v=valInt(M)-1) >= 0  && v <= 11   ) tm->tm_mon  = v;
   if ( notDefault(Y) && (v=valInt(Y)-1900) >= 70 && v <= 1050 ) tm->tm_year = v;
-  d->date = timelocal(tm);
+  d->unix_date = timelocal(tm);
 
   succeed;
 }
@@ -110,7 +112,7 @@ convertDate(Date d, CharArray s)
 
     if ( t == -1 )
       return errorPce(d, NAME_syntaxError, s);
-    d->date = t;
+    d->unix_date = t;
     succeed;
   }
   
@@ -120,7 +122,15 @@ convertDate(Date d, CharArray s)
 
 static status
 currentDate(Date d)
-{ d->date = time(0);
+{ d->unix_date = time(0);
+
+  succeed;
+}
+
+
+static status
+copyDate(Date d, Date d2)
+{ d->unix_date = d2->unix_date;
 
   succeed;
 }
@@ -128,7 +138,7 @@ currentDate(Date d)
 
 static status
 beforeDate(Date d1, Date d2)
-{ if ( d1->date < d2->date )
+{ if ( d1->unix_date < d2->unix_date )
     succeed;
   fail;
 }
@@ -136,7 +146,7 @@ beforeDate(Date d1, Date d2)
 
 static status
 afterDate(Date d1, Date d2)
-{ if ( d1->date > d2->date )
+{ if ( d1->unix_date > d2->unix_date )
     succeed;
   fail;
 }
@@ -180,49 +190,49 @@ yearDate(Date d, Int Y)
 
 static Int
 getSecondDate(Date d)
-{ struct tm *tm = localtime(&d->date);
+{ struct tm *tm = localtime(&d->unix_date);
   answer(toInt(tm->tm_sec));
 }
 
 
 static Int
 getMinuteDate(Date d)
-{ struct tm *tm = localtime(&d->date);
+{ struct tm *tm = localtime(&d->unix_date);
   answer(toInt(tm->tm_min));
 }
 
 
 static Int
 getHourDate(Date d)
-{ struct tm *tm = localtime(&d->date);
+{ struct tm *tm = localtime(&d->unix_date);
   answer(toInt(tm->tm_hour));
 }
 
 
 static Int
 getDayDate(Date d)
-{ struct tm *tm = localtime(&d->date);
+{ struct tm *tm = localtime(&d->unix_date);
   answer(toInt(tm->tm_mday));
 }
 
 
 static Int
 getMonthDate(Date d)
-{ struct tm *tm = localtime(&d->date);
+{ struct tm *tm = localtime(&d->unix_date);
   answer(toInt(tm->tm_mon + 1));
 }
 
 
 static Int
 getYearDate(Date d)
-{ struct tm *tm = localtime(&d->date);
+{ struct tm *tm = localtime(&d->unix_date);
   answer(toInt(tm->tm_year + 1900));
 }
 
 
 static Int
 getWeekDayDate(Date d)
-{ struct tm *tm = localtime(&d->date);
+{ struct tm *tm = localtime(&d->unix_date);
   answer(toInt(tm->tm_wday));
 }
 
@@ -247,7 +257,7 @@ static char * shortMonthName[] =
 
 static Name
 getDayNameDate(Date d, Bool shrt)
-{ struct tm *tm = localtime(&d->date);
+{ struct tm *tm = localtime(&d->unix_date);
 
   answer(shrt == ON ? CtoName(shortDayName[tm->tm_wday])
 		    : CtoName(dayName[tm->tm_wday]));
@@ -256,7 +266,7 @@ getDayNameDate(Date d, Bool shrt)
 
 static Name
 getMonthNameDate(Date d, Bool shrt)
-{ struct tm *tm = localtime(&d->date);
+{ struct tm *tm = localtime(&d->unix_date);
 
   answer(shrt == ON ? CtoName(shortMonthName[tm->tm_mon])
 	            : CtoName(monthName[tm->tm_mon]));
@@ -265,7 +275,7 @@ getMonthNameDate(Date d, Bool shrt)
 
 static StringObj
 getStringDate(Date d)
-{ char *s = ctime(&d->date);
+{ char *s = ctime(&d->unix_date);
   s[24] = '\0';
 
   answer(CtoString(s));
@@ -274,20 +284,20 @@ getStringDate(Date d)
 
 static Name
 getCompareDate(Date d1, Date d2)
-{ answer(d1->date < d2->date ? NAME_smaller :
-	 d1->date > d2->date ? NAME_larger :
-			       NAME_equal);
+{ answer(d1->unix_date < d2->unix_date ? NAME_smaller :
+	 d1->unix_date > d2->unix_date ? NAME_larger :
+					 NAME_equal);
 }
 
 
 static Int
 getDifferenceDate(Date d1, Date d2, Name units)
-{ long t = isDefault(d2) ? 0 : d2->date;
+{ long t = isDefault(d2) ? 0 : d2->unix_date;
   
   if ( isDefault(units) )
     units = NAME_second;
 
-  t = d1->date - t;
+  t = d1->unix_date - t;
 
   if ( units == NAME_second )
   { if ( (t > 0 && t > PCE_MAX_INT) || (t < 0 && t < PCE_MIN_INT) )
@@ -353,6 +363,8 @@ static senddecl send_date[] =
      NAME_dateComponent, "Set year"),
   SM(NAME_current, 0, NULL, currentDate,
      NAME_set, "Change date to be `now'"),
+  SM(NAME_copy, 1, "date", copyDate,
+     NAME_set, "Copy time from argment date object"),
   SM(NAME_set, 6, T_initialise, setDate,
      NAME_set, "Set date from smhDMY"),
   SM(NAME_convert, 1, "description=char_array", convertDate,
@@ -415,7 +427,7 @@ ClassDecl(date_decls,
 
 status
 makeClassDate(Class class)
-{ assert(sizeof(time_t) == sizeof(Any));
+{ assert(sizeof(time_t) <= sizeof(Any));
   declareClass(class, &date_decls);
 
   setLoadStoreFunctionClass(class, loadDate, storeDate);

@@ -153,7 +153,7 @@ drawArrow(int x1, int y1, int x2, int y2, int x3, int y3,
     pts[2].x = x3;
     pts[2].y = y3;
   
-    r_fillpattern(fill);
+    r_fillpattern(fill, NAME_foreground);
     r_fill_polygon(pts, 3);
   } else
   { r_dash(texture);

@@ -720,8 +720,9 @@ instanceVariableClass(Class class, Variable var)
     unallocInstanceProtoClass(class);
 					/* redefinition of a variable */
   if ( (old = getInstanceVariableClass(class, var->name)) )
-  { if ( old->context != class )
-      errorPce(class, NAME_cannotRefineVariable, var->name);
+  { if ( old->context != class &&
+	 !specialisedType(var->type, old->type) )
+      return errorPce(class, NAME_cannotRefineVariable, var->name);
 
     offset = old->offset;
   } else

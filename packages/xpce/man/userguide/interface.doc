@@ -59,7 +59,7 @@ invoking `Class <-instance: InitArgs ...'.  The arguments needed
 to instantiate a class are defined by the ->initialise method
 of this class.  See also section~\ref{sec:classbrowser}.
 
-    \predicate{send}{2-12}{+Receiver, +Selector, +Argument...}
+    \predicate{send}{2}{+Receiver, +Selector, +Argument...}
 Invoke a send-method on the \arg{Receiver}.  \arg{Receiver} is
 processed as the \arg{InitArgs} described with new/2.  This implies
 that a complex term is translated into an object before the method is
@@ -85,7 +85,7 @@ the named argument convention may be preferred.  For example:
 	send(Graphical, graphics_state, colour := red),
 	...,
 \end{code}
-    \predicate{get}{[3-13]}{+Receiver, +Selector, +Argument..., -Result}
+    \predicate{get}{3}{+Receiver, +Selector, +Argument..., -Result}
 Invoke a get-method on \arg{Receiver}.  \arg{Receiver}, \arg{Selector}
 and \arg{Argument...} are processed as with send/[2-12].  If the method
 fails, this predicate fails too.  Otherwise the PCE result of invoking
@@ -327,18 +327,18 @@ Start tracing PCE's virtual machine instructions.  Equivalent to
 send(class(vmi), trace, @on).
     \noargpredicate{notracepce}
 Switch the interactive tracer off.  Equivalent to send(@pce, trace, never).
-    \predicate{tracepce}{1}{+Class \verb$<-|->|-$ Selector}
-Find send- (\verb$->$), get- (\verb$<-$) method or variable
-(\verb$-$) and invokes `->trace: @on' on this \class{behaviour} object.
+    \predicate{tracepce}{1}{+Class {\tt \string<-|->|-} Selector}
+Find send- (\verb!->!), get- (\verb!<-!) method or variable
+(\verb!-!) and invokes `->trace: @on' on this \class{behaviour} object.
 Prints the method on which it has set the trace-point.
 
-Syntax note:  (\verb$->$) is a standard Prolog operator with
+Syntax note:  (\verb!->!) is a standard Prolog operator with
 $priority > 1000$.  Therefore many Prolog systems require additional
 brackets:
 \line{?- tracepce((graphical ->selected))}
 In SWI-Prolog this is not necessary.  To be able to trace get-methods
-with this predicate (\verb$<-$) must be declared as an infix operator.
-    \predicate{notracepce}{1}{+Class \verb$<-|->|-$ Selector}
+with this predicate (\verb!<-!) must be declared as an infix operator.
+    \predicate{notracepce}{1}{+Class {\tt \string<-|->|-} Selector}
 Disables trace-point set with tracepce/1.
     \noargpredicate{checkpce}
 Collect all global (named-) objects and run `object ->_check' on them.

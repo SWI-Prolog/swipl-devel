@@ -142,7 +142,7 @@ is being destroyed.  May be refined.
 \subsubsection{Methods on class object}
 
 Below are the two most commonly used methods dealing with hypers and
-defined on class \class{objects}.  XPCE defines various other methods
+defined on class \class{object}.  XPCE defines various other methods
 for deleting and inspecting the hyper structure.  Use the online manual
 for details.
 

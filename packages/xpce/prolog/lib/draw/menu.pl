@@ -326,7 +326,7 @@ paint_proto(MI, Proto:'link|graphical*') :->
 	    send(Dev, display, new(B2, box(0,0)), point(27, 20)),
 	    send(B1, handle, handle(0, 0, Proto?from)),
 	    send(B2, handle, handle(0, 0, Proto?to)),
-	    (	get(Proto, attribute, connection_class, Class)
+	    (	get(Proto, attribute, draw_connection_class, Class)
 	    ->	true
 	    ;	Class = draw_connection
 	    ),

@@ -927,7 +927,10 @@ NewClass(constraint)
 End;
  
 NewClass(date)
-  time_t	date;			/* Unix view of time */
+  union
+  { time_t	date;			/* Unix view of time */
+    Any		slot;			/* dummy */
+  } date;
 End;
 
 NewClass(dict)

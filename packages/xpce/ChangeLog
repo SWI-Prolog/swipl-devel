@@ -1,5 +1,19 @@
 [VERSION 4.9.0]
 
+* MODIFIED: Some details in class connect_gesture to allow for more
+  advanced redefinition: ->terminate now invokes ->drag through the
+  message-passer, making redefinitions of drag work properly.
+  ->indicate has been modified to allow ->initiate to set the <-from_handle.
+
+* ADDED: Class->instance_variable to allow for redefinition of variables
+  with a more restricted type.
+
+* FIXED: Area computation of class arc, sometimes missing a pixel.
+
+* FIXED: `image ->save: file, pnm'.
+
+* ADDED: `date ->copy'.
+
 * ADDED: Multilevel undo in PceDraw.
 
 * ADDED: Modal operation of frames.  See `frame ->modal'.

@@ -13,6 +13,7 @@
 #define MAX_WRAP_LINES	100		/* line-wraps in text-objects */
 
 typedef struct update_area *UpdateArea;	/* Window changes data  */
+typedef struct colour_context *ColourContext; /* for selection/inactive */
 
 #define ABSTRACT_GRAPHICAL \
   ABSTRACT_VISUAL \
@@ -886,6 +887,12 @@ struct update_area
   int		clear;			/* needs to be cleared */
   int		deleted;		/* area is deleted */
   UpdateArea    next;			/* next in chain */
+};
+
+struct colour_context
+{ Any		foreground;		/* saved foreground */
+  Any		background;		/* saved background */
+  int		lock;			/* lock nesting count */
 };
 
 

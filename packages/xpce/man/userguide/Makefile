@@ -6,7 +6,7 @@ CORRECTINDEX=../../bin/correctindex
 MAKEINDEX=makeindex -s ../../TeX/makeindex.sty
 
 
-TEX=	doc.tex \
+TEX=	xpceusg.tex \
 	intro.tex starting.tex globalarch.tex online.tex debug.tex \
 	interface.tex graphics.tex pceprolog.tex chess.tex \
 	trouble.tex memory.tex glossary.tex techniques.tex \
@@ -18,15 +18,17 @@ TEX=	doc.tex \
 LOGO=	figs/uva.ps figs/swi.ps
 
 all:	$(TEX) $(LOGO)
-	-$(CORRECTINDEX) doc.idx
-	-$(MAKEINDEX) doc
-	touch doc.ind
-	(TEXINPUTS=../../TeX:$$TEXINPUTS; export TEXINPUTS; latex doc)
+	-$(CORRECTINDEX) xpceusg.idx
+	-$(MAKEINDEX) xpceusg
+	touch xpceusg.ind
+	(TEXINPUTS=../../TeX:$$TEXINPUTS; export TEXINPUTS; latex xpceusg)
 
-bib:	doc.aux
+tex:	$(TEX)
+
+bib:	xpceusg.aux
 	(TEXINPUTS=../../TeX:$$TEXINPUTS; \
 	 BIBINPUTS=$$TEXINPUTS; \
-	 export TEXINPUTS BIBINPUTS; bibtex doc)
+	 export TEXINPUTS BIBINPUTS; bibtex xpceusg)
 
 figs/uva.ps:	../../TeX/figs/uva.ps
 	cp ../../TeX/figs/uva.ps figs/uva.ps

@@ -79,6 +79,7 @@ cancelGesture(Gesture g, EventObj ev)
   assign(g, active, ON);
   delCodeReference(fe);
   freeableObj(fe);
+  assign(g, status, NAME_inactive);
 
   succeed;
 }

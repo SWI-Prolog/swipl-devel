@@ -619,49 +619,45 @@ drawGraphical(Graphical gr, Point offset, Area area)
 status
 RedrawArea(Any obj, Area area)
 { Graphical gr = obj;
-  Any c, oc = NULL;
-  Any bg = NULL, obg = NULL;
+  Any ofg;
+  int fix = 0;
+  int clearbg = 0;
+  struct colour_context ctx;
   status rval;
 
   ComputeGraphical(obj);		/* should not be necessary: */
 
-  c = gr->colour;
-  if ( gr->selected == ON )
+  if ( gr->active == OFF )
+  { Any c2 = getResourceValueObject(gr, NAME_inactiveColour);
+
+    fix++;
+    r_fix_colours(c2, DEFAULT, &ctx);
+  } else if ( gr->selected == ON )
   { PceWindow sw = getWindowGraphical(gr);
 
     if ( sw )
     { Any feedback = sw->selection_feedback;
 
       if ( instanceOfObject(feedback, ClassColour) )
-	c = feedback;
-      else if ( feedback == NAME_colour )
-      { Any x;
+      { fix++;
+	r_fix_colours(feedback, DEFAULT, &ctx);
+      } else if ( feedback == NAME_colour )
+      { Any c1, c2;
 
-	x = getResourceValueObject(obj, NAME_selectedForeground);
-	if ( x && notNil(x) && notDefault(x) )
-	  c = x;
-	x = getResourceValueObject(obj, NAME_selectedBackground);
-	if ( x && notNil(x) && notDefault(x) )
-	  bg = x;
+	c1 = getResourceValueObject(obj, NAME_selectedForeground);
+	c2 = getResourceValueObject(obj, NAME_selectedBackground);
+
+	fix++;
+	clearbg++;
+	r_fix_colours(c1, c2, &ctx);
       }
     }
   }
-  if ( gr->active == OFF )
-  { Any c2;
 
-    if ( (c2 = getResourceValueObject(gr, NAME_inactiveColour)) && notNil(c2) )
-      c = c2;
-  }
-
-  if ( notDefault(c) )
-    oc = r_default_colour(c);
-  if ( bg )
-  { int x, y, w, h;
-
-    obg = r_background(bg);
-    initialiseDeviceGraphical(obj, &x, &y, &w, &h);
-    r_clear(x, y, w, h);
-  }
+  if ( !fix && notDefault(gr->colour) )
+    ofg = r_default_colour(gr->colour);
+  else
+    ofg = NULL;
 
   if ( instanceOfObject(gr, ClassWindow) ) /* Must be quicker */
   { PceWindow sw = (PceWindow) gr;
@@ -671,12 +667,20 @@ RedrawArea(Any obj, Area area)
 
     rval = RedrawAreaGraphical(sw, area);
   } else
-    rval = qadSendv(gr, NAME_RedrawArea, 1, (Any *)&area);
+  { if ( clearbg )
+    { int x, y, w, h;
 
-  if ( oc )
-    r_default_colour(oc);
-  if ( obg )
-    r_background(obg);
+      initialiseDeviceGraphical(obj, &x, &y, &w, &h);
+      r_clear(x, y, w, h);
+    }
+
+    rval = qadSendv(gr, NAME_RedrawArea, 1, (Any *)&area);
+  }
+
+  if ( fix )
+    r_unfix_colours(&ctx);
+  else if ( ofg )
+    r_default_colour(ofg);
 
   return rval;
 }
@@ -2769,7 +2773,7 @@ drawPolyGraphical(Graphical gr, Any points, Bool closed, Any fill)
 
   r_polygon(pts, npts, closed == ON);
   if ( notDefault(fill) && notNil(fill) )
-  { r_fillpattern(fill);
+  { r_fillpattern(fill, NAME_foreground);
     r_fill_polygon(pts, npts);
   }
 

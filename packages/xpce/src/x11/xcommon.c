@@ -396,7 +396,6 @@ makeSparceCInfo(Display *disp, Colormap cmap, XImage *img, int *ncolours)
   int height = img->height;
   int x, y, i;
   int colours = 0;
-  int rval;
 
   DEBUG(NAME_pnm, Cprintf("makeSparceCInfo(): depth = %d, %d entries\n",
 			  img->depth, entries));
@@ -431,10 +430,7 @@ makeSparceCInfo(Display *disp, Colormap cmap, XImage *img, int *ncolours)
   }
   assert(ncolours ? *ncolours == colours : TRUE);
 
-  if ( !(rval=XQueryColors(disp, cmap, data, colours)) )
-  { Cprintf("PNM: XQueryColors() failed: %d\n", rval);
-    return NULL;
-  }
+  XQueryColors(disp, cmap, data, colours);
 
   return info;
 }

@@ -461,6 +461,7 @@ getModeGoal(Any obj)
 }
 
 
+#ifndef O_RUNTIME
 int
 pceDebugging(Name subject)
 { if ( ServiceMode == PCE_EXEC_SERVICE )
@@ -468,3 +469,4 @@ pceDebugging(Name subject)
 
   return memberChain(PCEdebugSubjects, subject);
 }
+#endif

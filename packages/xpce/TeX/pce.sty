@@ -1,6 +1,6 @@
 %			PCE DOCUMENTATION STYLE
 
-\newcommand{\pceversion}{4.8.18, January 1996}
+\newcommand{\pceversion}{4.9.0, December 1996}
 
 %	Other styles
 
@@ -38,6 +38,10 @@
 
 \newcommand{\tm}{$^{tm}$}
 
+%	Rules
+
+\newcommand{\hr}{\centerline{\rule{\textwidth}{0.2pt}}}
+
 %	Running text indication of behaviour
 
 \newcommand{\send}[1]{%                 % send behaviour
@@ -49,8 +53,12 @@
 \newcommand{\both}[1]{%                 % both behaviour
         \ifmmode\mbox{\botharrow\!\!\it #1\:}%
         \else\mbox{\botharrow\it #1}\fi}
-\newcommand{\predrefer}[2]{%		% functor/arity
+\newcommand{\predref}[2]{%		% functor/arity
 	\mbox{\tt #1/#2}}
+\newcommand{\functor}[2]{%		% functor/arity
+	\mbox{\tt #1/#2}}
+\newcommand{\pllib}[1]{\file{library(#1)}}
+\newcommand{\nameof}[1]{\{{\tt #1}\}}
 
 %	Descriptions (definitions) of various things
 
@@ -62,16 +70,16 @@
 \newcommand{\emptydescription}{\vspace{-.8cm}}
 
 \newcommand{\directive}[3]{%
-	\definition{:- #1(\it #3)}%
+	\definition{:- #1({\it #3})}%
 	\index{#1/#2}}
 \newcommand{\predicate}[3]{%
-	\definition{#1(\it #3)}%
+	\definition{#1({\it #3})}%
 	\index{#1/#2}}
 \newcommand{\noargpredicate}[1]{%
 	\definition{#1}%
 	\index{#1/0}}
 \newcommand{\expanded}[3]{%
-	\definition{#1(\it #3)}%
+	\definition{#1({\it #3})}%
 	\index{#1/#2}}
 \def\bothmethod{\@ifstar{\@emptybothmethod}{\@bothmethod}}
 \def\sendmethod{\@ifstar{\@emptysendmethod}{\@sendmethod}}
@@ -128,10 +136,14 @@
 
 \renewcommand{\line}[1]{\begin{quote}\tt #1\end{quote}}
 
+%	notes
+
 \newenvironment{note}{%
   \begin{description}
       \item[note]\mbox{}\\ \it}{%
   \end{description}}
+
+\newcommand{\fnm}[1]{\makebox[0pt][l]{$^{\mbox{\footnotesize $#1$}}$}}
 
 %	Index handling
 
