@@ -315,14 +315,15 @@ free_prolog_thread(void *data)
   GD->statistics.thread_cputime += CpuTime(CPU_USER);
   UNLOCK();
 
-  if ( info->status == PL_THREAD_CANCELED )
-  { sem_post(&sem_canceled);
-  }
+  info->thread_data = NULL;
+  mergeAllocPool(&GD->alloc_pool, &ld->alloc_pool);
+  freeHeap(ld, sizeof(*ld));
 
   if ( info->detached )
     free_thread_info(info);
-					/* give memory back */
-  mergeAllocPool(&GD->alloc_pool, &ld->alloc_pool);
+
+  if ( info->status == PL_THREAD_CANCELED )
+    sem_post(&sem_canceled);
 }
 
 
@@ -426,7 +427,7 @@ aliasThread(int tid, atom_t name)
 
   if ( (rval = addHTable(threadAliases, (void *)name, (void *)tid)) )
   { PL_register_atom(name);
-    threads[tid].thread_data->thread.name = name;
+    threads[tid].name = name;
   }
   UNLOCK();
 
@@ -533,8 +534,8 @@ threadName(int id)
 
   info = &threads[id];
 
-  if ( info->thread_data->thread.name )
-    return PL_atom_chars(info->thread_data->thread.name);
+  if ( info->name )
+    return PL_atom_chars(info->name);
 
   sprintf(tmp, "%d", id);
   return buffer_string(tmp, BUF_RING);
@@ -722,8 +723,8 @@ get_thread(term_t t, PL_thread_info_t **info, int warn)
 
 static int
 unify_thread(term_t id, PL_thread_info_t *info)
-{ if ( info->thread_data->thread.name )
-    return PL_unify_atom(id, info->thread_data->thread.name);
+{ if ( info->name )
+    return PL_unify_atom(id, info->name);
 
   return PL_unify_integer(id, info->pl_tid);
 }
@@ -772,18 +773,15 @@ pl_thread_self(term_t self)
 
 static void
 free_thread_info(PL_thread_info_t *info)
-{ PL_local_data_t *data = info->thread_data;
-
-  if ( info->return_value )
+{ if ( info->return_value )
     PL_erase(info->return_value);
   if ( info->goal )
     PL_erase(info->goal);
 
-  if ( info->thread_data->thread.name )
-    unaliasThread(info->thread_data->thread.name);
+  if ( info->name )
+    unaliasThread(info->name);
 
   memset(info, 0, sizeof(*info));
-  freeHeap(data, sizeof(*data));
 }
 
 
@@ -1862,12 +1860,14 @@ doThreadLocalData(int sig)
     { PL_local_data_t *ld = t->thread_data;
 
       (*ldata_function)(ld);
-      sem_post(&sem_mark);
 
       if ( ld->thread.forall_flags & PL_THREAD_SUSPEND_AFTER_WORK )
       { t->status = PL_THREAD_SUSPENDED;
+	sem_post(&sem_mark);
 	wait_resume(t);
-      }
+      } else
+	sem_post(&sem_mark);
+
       break;
     }
   }

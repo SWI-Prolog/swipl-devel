@@ -185,7 +185,7 @@ leftoverToChains(AllocPool pool)
 
 #if ALLOC_DEBUG
     assert(m <= ALLOCFAST/ALIGN_SIZE);
-    memset(ch, ALLOC_FREE_MAGIC, spacefree);
+    memset(ch, ALLOC_FREE_MAGIC, pool->free);
 #endif
 
     ch->next = pool->free_chains[m];
@@ -219,6 +219,33 @@ allocate(AllocPool pool, size_t n)
   }
 
   leftoverToChains(pool);
+#ifdef O_PLMT
+  if ( GD->left_over_pool )
+  { FreeChunk *fp, ch;
+
+    LOCK();
+    for( fp = &GD->left_over_pool; (ch=*fp); fp = &ch->next )
+    { if ( ch->size >= n )
+      { *fp = ch->next;
+        UNLOCK();
+	
+	if ( ch->size - n >= sizeof(struct chunk) )
+	{ int m = (ch->size - n)/ALIGN_SIZE;
+	  Chunk c = addPointer(ch, n);
+
+	  c->next = pool->free_chains[m];
+	  pool->free_chains[m] = c;
+	}
+
+#ifdef ALLOC_DEBUG
+	memset(ch, ALLOC_MAGIC, n);
+#endif
+	return ch;
+      }
+    }
+    UNLOCK();
+  }
+#endif
   if ( !(p = allocBigHeap(ALLOCSIZE)) )
     outOfCore();
 
@@ -227,7 +254,7 @@ allocate(AllocPool pool, size_t n)
   pool->allocated += n;
 
 #if ALLOC_DEBUG
-  memset(spaceptr, ALLOC_VIRGIN_MAGIC, spacefree);
+  memset(pool->space, ALLOC_VIRGIN_MAGIC, pool->free);
   memset(p, ALLOC_MAGIC, n);
 #endif
 
@@ -249,7 +276,7 @@ allocFromPool(AllocPool pool, size_t m)
 #if ALLOC_DEBUG
     { int i;
       char *s = (char *) f;
-      int n * ALIGN_SIZE;
+      int n = m * ALIGN_SIZE;
 
       for(i=sizeof(struct chunk); i<(int)n; i++)
 	assert(s[i] == ALLOC_FREE_MAGIC);
@@ -330,6 +357,7 @@ cleanupMemAlloc(void)
 		 *	 EXCHANGING POOLS	*
 		 *******************************/
 
+#ifdef O_PLMT
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 mergeAllocPool(to, from)
     Merge all chain from `from' into `to'.  Used to move the pool of a
@@ -342,9 +370,17 @@ mergeAllocPool(AllocPool to, AllocPool from)
   int i;
 
   assert(to == &GD->alloc_pool);	/* for now */
-  leftoverToChains(from);
 
   LOCK();
+  if ( from->free > ALLOCFAST )
+  { FreeChunk p = (FreeChunk)from->space;
+    p->size = from->free;
+    from->free = 0;
+    p->next = GD->left_over_pool;
+    GD->left_over_pool = p;
+  } else
+    leftoverToChains(from);
+
   for(i=0, t=to->free_chains, f = from->free_chains;
       i < (ALLOCFAST/ALIGN_SIZE);
       i++, t++, f++)
@@ -366,6 +402,7 @@ mergeAllocPool(AllocPool to, AllocPool from)
   to->allocated += from->allocated;
 }
 
+#endif /*O_PLMT*/
 
 		 /*******************************
 		 *	   LARGE CHUNKS		*

@@ -54,6 +54,7 @@ typedef struct _PL_thread_info_t
   module_t	    module;		/* Module for starting goal */
   record_t	    goal;		/* Goal to start thread */
   record_t	    return_value;	/* Value (term) returned */
+  atom_t	    name;		/* Name of the thread */
 } PL_thread_info_t;
 
 

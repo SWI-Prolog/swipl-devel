@@ -235,6 +235,9 @@ typedef struct
 #endif
 
   struct alloc_pool alloc_pool;		/* Main allocation pool */
+#ifdef O_PLMT
+  FreeChunk	    left_over_pool;	/* Left-over from threads */
+#endif
 } PL_global_data_t;
 
 
@@ -391,7 +394,6 @@ typedef struct PL_local_data
 #ifdef O_PLMT
   struct
   { long   magic;			/* PL_THREAD_MAGIC (checking) */
-    atom_t name;			/* name of the thread (if any) */
     struct _PL_thread_info_t *info;	/* info structure */
     unsigned forall_flags;		/* forThreadLocalData() flags */
 					/* Message queues */

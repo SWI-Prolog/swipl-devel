@@ -806,6 +806,8 @@ abolishProcedure(Procedure proc, Module module)
 }
 
 
+/* MT: Must be locked by caller */
+
 static void
 removeClausesProcedure(Procedure proc, int sfindex)
 { Definition def = proc->definition;

@@ -1454,11 +1454,17 @@ struct table_enum
 #define ALLOCSIZE	(1<<15)	/* size of allocation chunks (64K) */
 #define ALLOCFAST	512	/* big enough for all structures */
 
+typedef struct free_chunk *FreeChunk;	/* left-over chunk */
 typedef struct chunk *Chunk;		/* Allocation-chunk */
 typedef struct alloc_pool *AllocPool;	/* Allocation pool */
 
 struct chunk
 { Chunk next;				/* next of chain */
+};
+
+struct free_chunk
+{ FreeChunk next;			/* next of chain */
+  int   size;				/* size of free bit */
 };
 
 struct alloc_pool
