@@ -94,11 +94,11 @@ rpm-install:	install
 
 html-install::
 		mkdir -p $(PKGDOC)
-		$(INSTALL) -m 644 clib.html $(PKGDOC)
+		$(INSTALL) -m 644 clib.html $(DESTDIR)/$(PKGDOC)
 
 pdf-install::
 		mkdir -p $(PKGDOC)
-		$(INSTALL) -m 644 clib.pdf $(PKGDOC)
+		$(INSTALL) -m 644 clib.pdf $(DESTDIR)/$(PKGDOC)
 
 uninstall::
 		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))

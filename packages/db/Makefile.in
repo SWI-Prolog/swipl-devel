@@ -10,6 +10,7 @@ PL=@PL@
 PLBASE=@PLBASE@
 PLARCH=@PLARCH@
 PCEHOME=/staff/jan/src/xpce
+DESTDIR=
 
 CC=@CC@
 COFLAGS=@COFLAGS@
@@ -50,9 +51,9 @@ db4pl.so:	$(DBOBJ)
 		env LD_RUN_PATH=$(LD_RUN_PATH) $(LD) $(LDFLAGS) -o $@ $(DBOBJ) $(LIBS)
 
 install:	$(LIBPL)
-		mkdir -p $(PLBASE)/lib/$(PLARCH)
-		$(INSTALL) -m 755 $(TARGETS) $(PLBASE)/lib/$(PLARCH)
-		$(INSTALL) -m 644 $(LIBPL) $(PLBASE)/library
+		mkdir -p $(DESTDIR)/$(PLBASE)/lib/$(PLARCH)
+		$(INSTALL) -m 755 $(TARGETS) $(DESTDIR)/$(PLBASE)/lib/$(PLARCH)
+		$(INSTALL) -m 644 $(LIBPL) $(DESTDIR)/$(PLBASE)/library
 		$(PL) -f none -g make -t halt
 
 uninstall:

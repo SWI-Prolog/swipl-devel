@@ -36,10 +36,10 @@ install::
 rpm-install:	install
 
 pdf-install::
-		$(INSTALL_DATA) $(DOC).pdf $(PKGDOC)
+		$(INSTALL_DATA) $(DOC).pdf $(DESTDIR)/$(PKGDOC)
 
 html-install::
-		$(INSTALL_DATA) $(DOC).html $(PKGDOC)
+		$(INSTALL_DATA) $(DOC).html $(DESTDIR)/$(PKGDOC)
 
 uninstall::
 		rm -f $(PLBASE)/include/SWI-cpp.h
