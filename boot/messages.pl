@@ -391,6 +391,12 @@ prolog_message(version) -->
 	  Patch is Version mod 100
 	},
 	[ '~w.~w.~w'-[Major, Minor, Patch] ].
+prolog_message(threads) -->
+	{ current_prolog_flag(threads, true)
+	}, !,
+	[ 'Multi-threaded, ' ].
+prolog_message(threads) -->
+	[].
 prolog_message(copyright) -->
 	[ 'Copyright (c) 1990-2002 University of Amsterdam.', nl,
 	  'SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software,', nl,
@@ -400,7 +406,9 @@ prolog_message(copyright) -->
 prolog_message(author) -->
 	[ 'Jan Wielemaker (jan@swi-prolog.org)' ].
 prolog_message(welcome) -->
-	[ 'Welcome to SWI-Prolog (Version ' ],
+	[ 'Welcome to SWI-Prolog (' ],
+	prolog_message(threads),
+	['Version ' ],
 	prolog_message(version),
 	[ ')', nl ],
 	prolog_message(copyright),
