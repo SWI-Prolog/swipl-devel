@@ -61,8 +61,8 @@ domangle:	mangle mlist xpce.base
 		touch domangle
 
 clean:		
-		$(RM) -f *.o core a.out *~
+		$(RM) -f *.o core a.out shitf.c *~
 
 realclean:	clean
-		$(RM) -f xpce$(RTSUFFIX).base mangle domangle ctr0.o
+		$(RM) -f xpce$(RTSUFFIX) *.qlf mangle domangle ctr0.o xpce4pl.*
 		
