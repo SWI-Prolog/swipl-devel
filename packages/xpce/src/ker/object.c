@@ -2484,8 +2484,10 @@ static senddecl send_object[] =
      NAME_file, "Save object and it's context in a file"),
   SM(NAME_Free, 0, NULL, freeObject,
      NAME_function, "Equivalent to ->free"),
+#ifndef O_RUNTIME
   SM(NAME_Inspect, 1, "bool", inspectObject,
      NAME_function, "Equivalent to ->inspect"),
+#endif
   SM(NAME_InstanceOf, 1, "class", instanceOfObject,
      NAME_function, "Equivalent to ->instance_of"),
   SM(NAME_SameReference, 1, "to=any|function", sameReferenceObject,

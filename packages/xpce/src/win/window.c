@@ -1921,7 +1921,7 @@ static vardecl var_window[] =
      NAME_appearance, "Background colour or pattern"),
   IV(NAME_hasPointer, "bool", IV_BOTH,
      NAME_event, "If @on, pointer (mouse) is in window"),
-  SV(NAME_selectionFeedback, "{invert,handles}|elevation|colour*",
+  SV(NAME_selectionFeedback, "{invert,handles,colour}|elevation|colour*",
      IV_GET|IV_STORE, selectionFeedbackWindow,
      NAME_appearance, "How <-selected graphicals are visualised"),
   IV(NAME_changesData, "alien:UpdateArea", IV_NONE,

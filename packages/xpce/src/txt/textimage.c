@@ -1737,7 +1737,8 @@ getStartTextImage(TextImage ti, Int line)
       answer(ZERO);			/* start of buffer */
     }
   } else if ( ln >= map->length )
-  { long idx = map->lines[map->skip + map->length - 1].start;
+  { int li = map->skip + map->length - 1;
+    long idx = (li >= 0 ? map->lines[li].start : 0);
 
     for( ln -= map->length - 1; ln > 0; ln-- )
     { DEBUG(NAME_start, Cprintf("ln = %d; idx = %ld\n", ln, idx));

@@ -538,6 +538,7 @@ geometryEditor(Editor e, Int x, Int y, Int w, Int h)
 { int ix, iy, iw, ih, mx, mw, sw;
   int pen = valInt(e->pen);
   Area a = e->area;
+  Any sbobj = e->image;
   
   if ( e->badBoundingBox == ON && (isDefault(w) || isDefault(h)) )
   { Cell cell;
@@ -593,13 +594,19 @@ geometryEditor(Editor e, Int x, Int y, Int w, Int h)
   ix = (sw < 0 ? -sw : 0);
   mx = ix + iw - pen;
 
+  if ( notNil(e->margin) )
+  { if ( getResourceValueObject(e->margin, NAME_placement) == NAME_left )
+    { mx = ix;
+      ix += mw;
+    } else
+      sbobj = e->margin;
+  }
+
   send(e->image, NAME_set, toInt(ix), toInt(iy), toInt(iw), toInt(ih-iy), 0);
   if ( notNil(e->margin) )
     send(e->margin, NAME_set, toInt(mx), toInt(iy), DEFAULT, toInt(ih-iy), 0);
   if ( notNil(e->scroll_bar) )
-    placeScrollBar(e->scroll_bar, (sw > 0 && notNil(e->margin))
-					? (Graphical) e->margin
-					: (Graphical) e->image);
+    placeScrollBar(e->scroll_bar, sbobj);
 
   return geometryDevice((Device) e, x, y, DEFAULT, DEFAULT);
 }

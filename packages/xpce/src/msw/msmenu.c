@@ -171,10 +171,21 @@ init_button_colours()
 
 
 COLORREF
-ws_3d_grey()
+ws_3d_grey_rgb()
 { init_sb_thumb_colours();
 
   return thumb_colours[3];
+}
+
+
+Colour
+ws_3d_grey()
+{ static Colour c = NULL;
+
+  if ( !c )
+    c = newObject(ClassColour, CtoKeyword("_win_3d_grey"), 0);
+
+  return c;
 }
 
 

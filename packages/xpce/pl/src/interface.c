@@ -12,11 +12,11 @@
 #define HAVE_SIGNAL_H 1
 #endif
 
+#include <stdio.h>
 #include <stdarg.h>
 #include <assert.h>
-#include <sys/types.h>			/* size_t */
+#include <sys/types.h>
 #include <h/interface.h>
-#include <stdio.h>
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #endif

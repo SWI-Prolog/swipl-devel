@@ -16,13 +16,9 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-#define O_IMGLIB 1
-#define O_GIFREAD 1
-
 #define OsError() getOsErrorPce(PCE)
 
 #ifdef O_IMGLIB
-
 #include "imglib.h"
 
 #ifdef HAVE_SYS_PARAM_H
@@ -37,6 +33,11 @@
 #ifdef O_GIFREAD
 extern LPVOID CALLBACK gifLoad(char *);
 #endif /*O_GIFREAD*/
+
+#ifdef O_XPM
+#define FOR_MSW 1
+#include <msw/xpm.h>
+#endif
 
 /* Using ws_ref for storing the bits and the xref mechanism for storing
    the Windows HBITMAP handle
@@ -320,6 +321,62 @@ ws_load_image_file(Image image)
 { status rval = FAIL;
 
   assign(image->file, kind, NAME_binary);
+
+#ifdef O_XPM
+{ XImage *img, *shape;
+  HDC hdc  = CreateCompatibleDC(NULL);
+  int rval;
+  DisplayObj d;
+
+  DEBUG(NAME_xpm, Cprintf("Reading XPM file using DC = 0x%x\n", hdc));
+  rval = XpmReadFileToImage(&hdc, strName(getOsNameFile(image->file)),
+			    &img, &shape, NULL);
+  DeleteDC(hdc);
+  switch(rval)
+  { case XpmOpenFailed:
+      return errorPce(image->file, NAME_openFile,
+		      NAME_read, getOsErrorPce(PCE));
+    case XpmFileInvalid:
+      goto noxpm;
+    case XpmNoMemory:
+      return sysPce("Not enough memory");
+    case XpmSuccess:
+      break;
+    default:
+      return errorPce(image, NAME_unknownError, toInt(rval));
+  }
+
+  d = image->display;
+  if ( isNil(d) )
+  { d = CurrentDisplay(image);
+    assign(image, display, d);
+  }
+
+  assign(image, kind, img->depth == 1 ? NAME_bitmap : NAME_pixmap);
+  assign(image->size, w, toInt(img->width));
+  assign(image->size, h, toInt(img->height));
+  assign(image, depth, toInt(img->depth));
+  registerXrefObject(image, d, img->bitmap);
+  XImageFree(img);
+
+  if ( shape )
+  { assign(image, mask, newObject(ClassImage, NIL,
+				  toInt(shape->width),
+				  toInt(shape->height),
+				  NAME_bitmap, 0));
+    registerXrefObject(image->mask, d, shape->bitmap);
+    XImageFree(shape);
+  }
+
+  DEBUG(NAME_xpm, Cprintf("%s: loaded XPM file%s\n",
+			  pp(image), shape ? " with shape" : ""));
+
+  succeed;
+
+  noxpm:
+    ;
+}
+#endif /*O_XPM*/
 
 #ifdef O_IMGLIB
 { char fname[MAXPATHLEN];
@@ -1057,6 +1114,7 @@ static struct system_image window_images[] =
   { "win_lfarrowd",	OBM_LFARROWD },	
   { "win_lfarrowi",	OBM_LFARROWI },	
   { "win_mnarrow",	OBM_MNARROW },	
+/* Not supported in NT 4.0
   { "win_old_close",	OBM_OLD_CLOSE },	
   { "win_old_dnarrow",	OBM_OLD_DNARROW },	
   { "win_old_lfarrow",	OBM_OLD_LFARROW },	
@@ -1065,6 +1123,7 @@ static struct system_image window_images[] =
   { "win_old_rgarrow",	OBM_OLD_RGARROW },
   { "win_old_uparrow",	OBM_OLD_UPARROW },
   { "win_old_zoom",	OBM_OLD_ZOOM }, 
+*/
   { "win_reduce",	OBM_REDUCE },
   { "win_reduced",	OBM_REDUCED },
   { "win_restore",	OBM_RESTORE },

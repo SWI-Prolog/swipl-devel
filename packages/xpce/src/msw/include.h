@@ -7,6 +7,10 @@
     Copyright (C) 1994 University of Amsterdam. All rights reserved.
 */
 
+#define O_IMGLIB  1			/* Generic IMGLIB support */
+#define O_GIFREAD 1			/* The GIF library */
+#define O_XPM	  1			/* use Xpm library */
+
 #define RedrawWindow WinRedrawWindow
 #include <windows.h>
 #undef RedrawWindow
@@ -125,7 +129,8 @@ void		r_3d_rectangle(int x, int y, int w, int h,
 status		ws_on_clipboard_metafile(WinMF mf, Name type);
 WinMF		CtoWinMetafile(HENHMETAFILE hmf);
 COLORREF	cref_colour(Colour c);
-COLORREF	ws_3d_grey();
+COLORREF	ws_3d_grey_rgb();
+Colour		ws_3d_grey();
 
 		 /*******************************
 		 *	    PNM FORMATS		*

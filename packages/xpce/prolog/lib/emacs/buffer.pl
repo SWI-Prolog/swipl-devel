@@ -393,8 +393,10 @@ open(B, New:[bool], Window:emacs_window) :<-
 	"Create window for buffer"::
 	(   New == @on
 	->  send(new(Window, emacs_window(B)), open)
-	;   (	\+ send(B?editors, empty)
-	    ->	get(B?editors?head, frame, Window),
+	;   (   get(B?editors, find,
+		    message(@arg1?frame, instance_of, emacs_window),
+		    Editor)
+	    ->  get(Editor, frame, Window),
 		send(Window, expose)
 	    ;	get(@emacs, free_window, B?pool, Window)
 	    ->	send(Window, buffer, B)

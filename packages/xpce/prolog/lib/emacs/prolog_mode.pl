@@ -35,6 +35,7 @@ pce_ifhostproperty(prolog(quintus),
 	  insert_if_then_else	       = key('(') + key(';') + key('>'),
 
 	  prolog_manual		       = button(prolog),
+	  break_at		       = key('\C-cb') + button(prolog),
 	  check_clause		       = key('\C-c\C-s') + button(prolog),
 	  insert_full_stop	       = key(.),
 	  find_definition	       = key('\e.') + button(prolog),
@@ -720,6 +721,24 @@ pce_ifhostproperty(prolog(swi),		% should become built-in
 	stream_position(Fd,
 			'$stream_position'(Old, _, _),
 			'$stream_position'(Pos, 0, 0)))).
+
+		 /*******************************
+		 *       SOURCE DEBUGGER	*
+		 *******************************/
+
+break_at(M) :->
+	"Set a Prolog break-point at this location"::
+	send(M, save_buffer),
+	get(M, text_buffer, TB),
+	get(TB, file, File),
+	(   source_file(Source),
+	    send(File, same, Source)
+	->  get(M, caret, Caret),
+	    get(M, line_number, M?caret, Line),
+	    user:break_at(Source, Line, Caret) % for now!
+	;   send(M, report, error, 'Source file is not loaded')
+	).
+
 
 		 /*******************************
 		 *	      HELP		*

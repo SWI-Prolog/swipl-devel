@@ -641,12 +641,13 @@ ws_place_frame(FrameObj fr)
   if ( last_x + fw > dw - PLACE_MARGIN )
   { last_x = PLACE_MARGIN;
     if ( last_x + fw > dw )
-      last_x = 0;
+      last_x = GetSystemMetrics(SM_CXBORDER);
   }
   if ( last_y + fh > dh - PLACE_MARGIN )
   { last_y = PLACE_MARGIN;
     if ( last_y + fh > dh )
-      last_y = 0;
+      last_y = GetSystemMetrics(SM_CYCAPTION) +
+	       GetSystemMetrics(SM_CYBORDER);
   }
 
   send(fr, NAME_set, toInt(last_x), toInt(last_y), 0);
@@ -741,17 +742,20 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
 	y = valInt(getHeightDisplay(fr->display)) - y - h;
       ok++;
       break;
-    default:
-      switch(sscanf(s, "%[+-]%d%[+-]%d", signx, &x, signy, &y))
-      { case 4:
-	  flags |= SWP_NOSIZE;
-	  if ( signx[0] == '-' )
-	    x = valInt(getWidthDisplay(fr->display)) - x - w;
-	  if ( signy[0] == '-' )
-	    y = valInt(getHeightDisplay(fr->display)) - y - h;
-	  ok++;
+    default:				/* [<Sign>]X<Sign>Y */
+      if ( sscanf(s, "%[+-]%d%[+-]%d", signx, &x, signy, &y) != 4 )
+      { signx[0] = '+';
+	if ( sscanf(s, "%d%[+-]%d", signx, &x, signy, &y) != 3 )
 	  break;
       }
+
+      flags |= SWP_NOSIZE;
+      if ( signx[0] == '-' )
+	x = valInt(getWidthDisplay(fr->display)) - x - w;
+      if ( signy[0] == '-' )
+	y = valInt(getHeightDisplay(fr->display)) - y - h;
+      ok++;
+      break;
   }
   
   if ( f && ok )

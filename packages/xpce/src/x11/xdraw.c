@@ -1903,10 +1903,17 @@ r_image(Image image,
 	  XFreeGC(context.display, GCtmp);
 	}
       } else				/* pixmap on bitmap */
-      { ulong fpixel = getPixelColour(image->foreground, context.pceDisplay);
-	ulong bpixel = getPixelColour(image->background, context.pceDisplay);
+      { ulong fpixel, bpixel;
 	ulong plane = 1L;
 	int i;
+	
+	if ( isDefault(image->foreground) )
+	  assign(image, foreground, context.pceDisplay->foreground);
+	if ( isDefault(image->background) )
+	  assign(image, background, context.pceDisplay->background);
+
+	fpixel = getPixelColour(image->foreground, context.pceDisplay);
+	bpixel = getPixelColour(image->background, context.pceDisplay);
 
 	if ( fpixel != bpixel )
 	{ for(i=1; i++ <= (sizeof(ulong) * 8); plane <<= 1)

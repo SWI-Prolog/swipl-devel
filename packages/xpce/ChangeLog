@@ -1,5 +1,28 @@
 [VERSION 4.9.0]
 
+* FIXED: Win32 `file->copy' (actually, worked around Win32 bug).
+
+* FIXED: ListBrowser event handling to use the {left,middle} up events for
+  their message, rather than the down event.  Fixes focus handling problems
+  around cycle-menu's using the combo-box feedback (Windows).
+
+* FIXED: Properly greying the accelerator underlining.
+
+* FIXED: Windows 95 `socket ->append' implementation.  Thanks to Donald
+  Kwakkel!
+
+* FIXED: Win32: `display ->cut' memory allocation error if there were
+  more than 1 line in the cut-buffer.
+
+* FIXED: `host ->catch_all' to handle multiple arguments correctly
+  if <-call_back is @off (message(@prolog, foo, arg1, arg2)), not using
+  call-back.
+
+* FIXED: `frame <-confirm' to return failure if the frame is destroyed.
+
+* FIXED: Image ->draw_in: Bitmap, where Image is monochrome and Bitmap
+  is coloured to avoid a crash (proper dithering still to be implemented).
+
 * ADDED: `editor ->lost_text_buffer' to program the behaviour if the
   text-buffer of an editor is deleted.
 

@@ -19,6 +19,7 @@ static status
 initialiseTextMargin(TextMargin m, Editor e, Int w, Int h)
 { initialiseGraphical(m, ZERO, ZERO, w, h);
   assign(m, editor, e);
+  assign(m, background, getResourceValueObject(m, NAME_background));
   assign(m, gap, newObject(ClassSize, 0));
   copySize(m->gap, getResourceValueObject(m, NAME_gap));
 
@@ -64,18 +65,29 @@ paint_fragment(TextMargin m, int x, int y, Fragment fragment)
 static status
 RedrawAreaTextMargin(TextMargin m, Area a)
 { int x, y, w, h;
+  Elevation z = getResourceValueObject(m, NAME_elevation);
+  Any obg;
 
   initialiseDeviceGraphical(m, &x, &y, &w, &h);
 
   margin_x = x;
   margin_y = y;
 
-  r_thickness(valInt(m->pen));
-  r_dash(m->texture);
-  r_box(x, y, w, h, 0, WHITE_IMAGE);
-  scan_fragment_icons(m, paint_fragment, NAME_forSome, NIL);
+  obg = r_background(m->background);
+  r_clear(x, y, w, h);
+  if ( z && notNil(z) )
+    r_3d_box(x, y, w, h, 0, z, FALSE);
+  else
+  { r_thickness(valInt(m->pen));
+    r_dash(m->texture);
+    r_box(x, y, w, h, 0, NIL);
+  }
 
-  return RedrawAreaGraphical(m, a);
+  scan_fragment_icons(m, paint_fragment, NAME_forSome, NIL);
+  RedrawAreaGraphical(m, a);
+  r_background(obg);
+
+  succeed;
 }
 
 
@@ -85,12 +97,16 @@ RedrawAreaTextMargin(TextMargin m, Area a)
 
 static status
 gapTextMargin(TextMargin m, Size size)
-{ CHANGING_GRAPHICAL(m,
-	assign(m, gap, size);
-	changedEntireImageGraphical(m));
-
-  succeed;    
+{ return assignGraphical(m, NAME_gap, size);
 }
+
+
+static status
+backgroundTextMargin(TextMargin m, Any bg)
+{ return assignGraphical(m, NAME_background, bg);
+}
+
+
 
 		/********************************
 		*        EVENT HANDLING		*
@@ -226,7 +242,9 @@ static vardecl var_textMargin[] =
 { IV(NAME_editor, "editor", IV_GET,
      NAME_storage, "Editor I'm part of"),
   SV(NAME_gap, "size", IV_GET|IV_STORE, gapTextMargin,
-     NAME_layout, "Distance between icons in X and Y")
+     NAME_layout, "Distance between icons in X and Y"),
+  SV(NAME_background, "[colour|pixmap]", IV_GET|IV_STORE, backgroundTextMargin,
+     NAME_appearance, "Background colour")
 };
 
 /* Send Methods */
@@ -247,7 +265,13 @@ static getdecl get_textMargin[] =
 
 static resourcedecl rc_textMargin[] =
 { RC(NAME_gap, "size", "size(5,2)",
-     "Distance between icons in X and Y")
+     "Distance between icons in X and Y"),
+  RC(NAME_placement, "{left,right}", "left",
+     "Placement relative to the image"),
+  RC(NAME_elevation, "elevation*", "@nil",
+     "Elevation from the background"),
+  RC(NAME_background, "[colour|pixmap]", "white",
+     "Background colour for the text")
 };
 
 /* Class Declaration */

@@ -10,7 +10,9 @@
 #include "include.h"
 #include <h/unix.h>
 #include <h/interface.h>
+#undef send
 #include <winsock.h>
+#define send sendPCE
 #include "pcewh.h"			/* TBD */
 #include <process.h>
 
@@ -260,30 +262,19 @@ ws_input_stream(Stream s)
   }
 }
 
-
-VOID WINAPI
-write_completed(DWORD error, DWORD bytes, LPOVERLAPPED context)
-{ if ( error )
-  { Stream s = (Stream)context->hEvent;
-
-    errorPce(s, NAME_ioError, WinStrError(error));
-  }
-
-  unalloc(sizeof(OVERLAPPED), context);
-}
-
-
 status
 ws_write_stream_data(Stream s, void *data, int len)
 { if ( instanceOfObject(s, ClassSocket) )
-  { HANDLE h = (HANDLE) s->ws_ref;
-    LPOVERLAPPED context = alloc(sizeof(OVERLAPPED));
-
-    memset(context, 0, sizeof(context));
-    context->hEvent = (HANDLE)s;
-
-    if ( !WriteFileEx(h, data, len, context, write_completed) )
-      return errorPce(s, NAME_ioError, APIError());
+  { char *str = data;
+#undef send
+    while( len > 0 )
+    { int n = send((SOCKET)s->ws_ref, str, len, 0);
+      if ( n < 0 )
+	return errorPce(s, NAME_ioError, SockError());
+      len -= n;
+      str += n;
+    }
+#define send sendPCE
   } else				/* process */
   { int written;
     HANDLE fd = (HANDLE) s->wrfd;

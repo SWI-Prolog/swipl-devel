@@ -1868,7 +1868,8 @@ r_image(Image image,
 	Bool transparent)
 { if ( w > 0 && h > 0 &&
        image->size->w != ZERO && image->size->h != ZERO )
-  { if ( image->ws_ref && ((WsImage)image->ws_ref)->msw_info )
+  { if ( image->ws_ref && ((WsImage)image->ws_ref)->msw_info &&
+	 isNil(image->mask) && transparent == ON )
     { WsImage wsi = image->ws_ref;
 
       if ( transparent == ON /*&& image->kind == NAME_bitmap*/ )
@@ -1912,6 +1913,16 @@ r_image(Image image,
   
 	ZSelectObject(context.hdc, oldbrush);
 	ZDeleteObject(hbrush);
+      } else if ( notNil(image->mask) )
+      { HBITMAP msk = (HBITMAP) getXrefObject(image->mask, context.display);
+
+	MaskBlt(context.hdc,
+		x, y, w, h,
+		mhdc,
+		sx, sy,
+		msk,
+		sx, sy,
+		MAKEROP4(SRCPAINT, SRCCOPY));
       } else
       { BitBlt(context.hdc, x, y, w, h, mhdc, sx, sy, SRCCOPY);
       }
@@ -2506,7 +2517,8 @@ str_draw_text_lines(int acc, FontObj font,
 	int cw = c_width(c, font);
 
 	if ( tolower(c) == acc )
-	{ r_line(cx+ox, line->y+baseline+1+oy, cx+cw, line->y+baseline+1);
+	{ r_line(cx+ox, line->y+baseline+1+oy,
+		 cx+cw+ox, line->y+baseline+1+oy);
 	  acc = 0;
 	  break;
 	}
@@ -2535,12 +2547,12 @@ str_label(String s, int acc, FontObj font, int x, int y, int w, int h,
   oalign = SetTextAlign(context.hdc, TA_BASELINE|TA_LEFT|TA_NOUPDATECP);
 
   if ( flags & LABEL_INACTIVE )
-  { COLORREF old = SetTextColor(context.hdc, RGB(255,255,255));
+  { Any old = r_colour(WHITE_COLOUR);
 
     str_draw_text_lines(acc, font, nlines, lines, 1, 1);
-    SetTextColor(context.hdc, ws_3d_grey());
+    r_colour(ws_3d_grey());
     str_draw_text_lines(acc, font, nlines, lines, 0, 0);
-    SetTextColor(context.hdc, old);
+    r_colour(old);
   } else
     str_draw_text_lines(acc, font, nlines, lines, 0, 0);
 

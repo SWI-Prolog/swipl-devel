@@ -931,6 +931,9 @@ eventListBrowser(ListBrowser lb, EventObj ev)
 	succeed;
     } else if ( isAEvent(ev, NAME_msLeftDown) ||
 	        isAEvent(ev, NAME_msMiddleDown) )
+    { succeed;
+    } else if ( isAEvent(ev, NAME_msLeftUp) ||
+	        isAEvent(ev, NAME_msMiddleUp) )
     { Name multi = getMulticlickEvent(ev);
 
       if ( di == FAIL )

@@ -17,8 +17,7 @@
 
 :- module_transparent
 	strip_module/3,
-	'$load_pce'/0,
-	auto_call/1.
+	'$load_pce'/0.
 
 
 :- use_module(library(quintus), [(meta_predicate)/1]).

@@ -241,35 +241,83 @@ isAbsoluteFile(FileObj f)
 
 #define CPBUFSIZE 4096
 
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
+#ifdef __WIN32__
+#include <fcntl.h>
+#endif
+
+#ifndef O_RDONLY
+#define O_RDONLY _O_RDONLY
+#define O_WRONLY _O_WRONLY
+#endif
+
+static int
+open_file(FileObj f, int access, ...)
+{ va_list args;
+  int mode;
+  int fd = -1;
+  Name name;
+  
+  va_start(args, access);
+  mode = va_arg(args, int);
+  va_end(args);
+
+  if ( (name = getOsNameFile(f)) )
+  { fd = open(strName(name), access, mode);
+
+    if ( fd < 0 )
+      errorPce(f, NAME_openFile,
+	       (access & O_RDONLY) ? NAME_read : NAME_write,
+	       getOsErrorPce(PCE));
+  }
+
+  return fd;
+}
+
+
 static status
 copyFile(FileObj to, FileObj from)
-{ if ( openFile(from, NAME_read, DEFAULT, DEFAULT) &&
-       openFile(to, NAME_write, DEFAULT, DEFAULT) )
-  { char buf[CPBUFSIZE];
-    int fdfrom = fileno(from->fd);
-    int fdto   = fileno(to->fd);
-    status rval;
-    int n;
+{ int fdfrom, fdto;
+  char buf[CPBUFSIZE];
+  status rval;
+  int n;
+  
+  if ( (fdfrom = open_file(from, O_RDONLY|O_BINARY)) < 0 )
+    fail;
+  if ( (fdto = open_file(to, O_WRONLY|O_BINARY, 0666)) < 0 )
+  { close(fdfrom);
+    fail;
+  }
 
-    while( (n = read(fdfrom, buf, CPBUFSIZE)) > 0 )
-      if ( write(fdto, buf, n) != n )
+  while( (n = read(fdfrom, buf, CPBUFSIZE)) > 0 )
+  { char *b = buf;
+
+    while(n > 0)
+    { int n2;
+
+      if ( (n2=write(fdto, b, n)) < 0 )
       { errorPce(to, NAME_ioError, getOsErrorPce(PCE));
 	rval = FAIL;
 	goto out;
       }
-    if ( n < 0 )
-    { errorPce(from, NAME_ioError, getOsErrorPce(PCE));
-      rval = FAIL;
-    } else
-      rval = SUCCEED;
-out:
-    closeFile(from);
-    closeFile(to);
-
-    return rval;
+      b += n2;
+      n -= n2;
+    }
   }
+  if ( n < 0 )
+  { errorPce(from, NAME_ioError, getOsErrorPce(PCE));
+    rval = FAIL;
+  } else
+    rval = SUCCEED;
 
-  fail;
+out:
+  close(fdfrom);
+  close(fdto);
+
+  return rval;
 }
 
 

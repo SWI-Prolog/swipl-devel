@@ -1470,7 +1470,7 @@ appendDialogItemDevice(Device d, Graphical item, Name where)
 
 
 		/********************************
-		*         MISCELENEOUS		*
+		*         MISCELLANEOUS		*
 		********************************/
 
 

@@ -84,6 +84,8 @@ foreign(setup_input, c,
 	setup_input(+integer, +integer, [-integer])).
 foreign(qp_pce_reset, c, 
 	pce_reset).
+foreign(qp_pce_exit, c,
+	pce_exit).
 foreign(qp_pce_open, c,
 	qp_pce_open(+term, +term, -integer, [-address])).
 
@@ -97,10 +99,23 @@ foreign_file(system(libpce),
 	       setup_input,
 	       qp_pce_open,
 	       qp_pce_reset,
+	       qp_pce_exit,
 	       pce_xt_appcontext,
 	       xt_create_app_context
 	     ]).
 :- load_foreign_executable(system(libpce)).
+
+		 /*******************************
+		 *	  EXIT/HALT HOOK	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Undocumented: Hook into halt/0 to call the XPCE exit handling.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- initialization
+   si:'$Quintus: hook'(assert, exit, permanent, pce_principal:pce_exit).
+
 
 		 /*******************************
 		 *	     NEW/FREE		*
@@ -248,7 +263,7 @@ user:(:- extern(call(+term))).
 		 *******************************/
 
 :- initialization
-	(   (prolog_flag(system_type, development))
+	(   (prolog_flag(system_type, development), fail) % no check
 	->  pce_host:pwversion(PwVersion),
 	    '$Quintus: check_license'(prowindows, PwVersion)
 	;   true  % no checking in runtimes
@@ -256,13 +271,15 @@ user:(:- extern(call(+term))).
 
 
 add_input_callback :-
-	(   predicate_property(qui:init_qui, _)
-	->  xt_create_app_context(App),
-	    pce_appcontext(App, App)
-	;   send(@display, open),
-	    get(@display, connection_fd, FD),
-	    setup_input(FD, 0, 0)
-	).
+	get(@pce, window_system, windows), !.
+add_input_callback :-
+	predicate_property(qui:init_qui, _), !,
+	xt_create_app_context(App),
+	pce_appcontext(App, App).
+add_input_callback :-
+	send(@display, open),
+	get(@display, connection_fd, FD),
+	setup_input(FD, 0, 0).
 
 :- dynamic pw_version_done/0.
 

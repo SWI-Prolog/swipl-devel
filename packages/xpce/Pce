@@ -121,11 +121,15 @@ Pce.Browser.pen:			0
 Pce.View.background:			@_dialog_bg
 Pce.Window.pen:				@_win_pen
 Pce.Window.background:			white
-Pce.Window.selection_feedback:		when(@colour_display, \
-					     colour(red), \
-					     invert)
 Pce.Frame.background:			@_dialog_bg
 Pce.WindowDecorator.background:		@_dialog_bg
+
+Pce.Graphical.selected_foreground:	white
+Pce.Graphical.selected_background:	black
+Pce.Window.selection_feedback:		when(@colour_display, \
+					     colour, \
+					     invert)
+
 
 Pce.TextImage.background:		@default
 Pce.TextImage.colour:			black

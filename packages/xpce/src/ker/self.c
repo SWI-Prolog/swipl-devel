@@ -275,7 +275,9 @@ exitMessagePce(Pce pce, Code code)
 
 static void
 callExitMessagesPce(int stat, Pce pce)
-{ if ( pce && notNil(pce) )
+{ static int done = FALSE;
+
+  if ( !done++ && pce && notNil(pce) )
   { Cell cell;
 
     for_cell(cell, pce->exit_messages)
@@ -1029,9 +1031,10 @@ diePce(Pce pce, Int rval)
 { if ( isDefault(rval) )
     rval = ZERO;
 
+  callExitMessagesPce(valInt(rval), pce);
+
   hostAction(HOST_HALT, valInt(rval));
 					/* should not get here */
-  callExitMessagesPce(valInt(rval), pce);
   killAllProcesses();			/* should be done by above */
   exit(valInt(rval));
   fail;					/* should not be reached */

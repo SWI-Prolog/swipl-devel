@@ -238,6 +238,7 @@ evalBreakConditionProgramObject(ProgramObject obj, Goal g)
   succeed;
 }
 
+#endif /*O_RUNTIME*/
 
 #ifndef TAGGED_LVALUE
 void
@@ -260,7 +261,6 @@ ulong mask;
 }
 
 #endif /*TAGGED_LVALUE*/
-#endif /*O_RUNTIME*/
 
 		 /*******************************
 		 *	 CLASS DECLARATION	*

@@ -76,10 +76,10 @@ catchAllHostv(Host h, Name selector, int argc, Any *argv)
     int ac;
 
     av[0] = h; av[1] = (Any) selector;
-    for(ac=2; ac <= argc; ac++)
-      av[ac] = argv[ac-2];
+    for(ac=0; ac < argc; ac++)
+      av[ac+2] = argv[ac];
 
-    return appendChain(h->messages, newObjectv(ClassMessage, ac, av));
+    return appendChain(h->messages, newObjectv(ClassMessage, argc+2, av));
   }
 }
 

@@ -132,6 +132,7 @@ NewClass(text_margin)
   ABSTRACT_GRAPHICAL			/* Abstract class graphical */
   Editor	editor;			/* Editor we are associated with */
   Size		gap;			/* X and Y distance between icons */
+  Any		background;		/* background of the margin */
 End;
 
 

@@ -152,10 +152,14 @@ getConfirmFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
 
   assign(fr, return_value, ConstantNotReturned);
   synchroniseDisplay(fr->display);
-  while( fr->return_value == ConstantNotReturned )
+  while( offFlag(fr, F_FREED|F_FREEING) &&
+	 fr->return_value == ConstantNotReturned )
   { if ( dispatchDisplay(fr->display) )
       ws_discard_input("Confirmer running");
   }
+
+  if ( onFlag(fr, F_FREED|F_FREEING) )
+    fail;
 
   rval = fr->return_value;
   if ( isObject(rval) )

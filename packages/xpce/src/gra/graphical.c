@@ -606,6 +606,7 @@ status
 RedrawArea(Any obj, Area area)
 { Graphical gr = obj;
   Any c, oc = NULL;
+  Any bg = NULL, obg = NULL;
   status rval;
 
   ComputeGraphical(obj);		/* should not be necessary: */
@@ -619,6 +620,16 @@ RedrawArea(Any obj, Area area)
 
       if ( instanceOfObject(feedback, ClassColour) )
 	c = feedback;
+      else if ( feedback == NAME_colour )
+      { Any x;
+
+	x = getResourceValueObject(obj, NAME_selectedForeground);
+	if ( x && notNil(x) && notDefault(x) )
+	  c = x;
+	x = getResourceValueObject(obj, NAME_selectedBackground);
+	if ( x && notNil(x) && notDefault(x) )
+	  bg = x;
+      }
     }
   }
   if ( gr->active == OFF )
@@ -630,6 +641,13 @@ RedrawArea(Any obj, Area area)
 
   if ( notDefault(c) )
     oc = r_default_colour(c);
+  if ( bg )
+  { int x, y, w, h;
+
+    obg = r_background(bg);
+    initialiseDeviceGraphical(obj, &x, &y, &w, &h);
+    r_clear(x, y, w, h);
+  }
 
   if ( instanceOfObject(gr, ClassWindow) ) /* Must be quicker */
   { PceWindow sw = (PceWindow) gr;
@@ -643,6 +661,8 @@ RedrawArea(Any obj, Area area)
 
   if ( oc )
     r_default_colour(oc);
+  if ( obg )
+    r_background(obg);
 
   return rval;
 }
@@ -3220,6 +3240,10 @@ static resourcedecl rc_graphical[] =
      "Default colour for this object"),
   RC(NAME_inactiveColour, "colour|pixmap*", "grey",
      "Colour when <-active == @off"),
+  RC(NAME_selectedForeground, "colour*", "white",
+     "Colour when <-selected == @on"),
+  RC(NAME_selectedBackground, "colour*", "black",
+     "Background when <-selected == @on"),
   RC(NAME_selectionHandles, "{corners,sides,corners_and_sides,line}*",
      "corners_and_sides",
      "Visual feedback of <->selected"),

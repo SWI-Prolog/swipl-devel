@@ -22,6 +22,7 @@
 	   ]).
 
 verbose(off).
+%verbose(on).
 
 satisfies(threshold,    H) :- H < 50.
 satisfies(displacement, D) :- abs(D) < 15.
@@ -176,6 +177,11 @@ alignment(What, Gr1, Gr2, Request) :-
 	    ),
 	    Request = request(Gr2, _, connection, _, Handicap, _, DiffX, _)
 	).
+alignment(handle, Gr1, Gr2, Request) :-
+	setof(T, close_handle(Gr1, Gr2, T), [t(D,DX,DY)|_]),
+	max_attribute([Gr1?width, Gr1?height, Gr2?width, Gr2?height], Max),
+	handicap(D, Max, 1, Hc),
+	Request = request(Gr2, Gr2, handle, handle, Hc, Hc, DX, DY).
 alignment(center, Gr1, Gr2, Request) :-
 	get(Gr1, center, C1),
 	get(Gr2, center, C2),
@@ -255,7 +261,23 @@ max_attribute([Obj?Att|Rest], Value) :- !,
 	max_attribute(Rest, V1),
 	Value is max(V0, V1).
 
-
+close_handle(Gr1, Gr2, t(D, DX, DY)) :-
+	get(Gr1, common_device, Gr2, Dev),
+	get(Gr1, handles, CH1),
+	chain_list(CH1, L1),
+	member(H1, L1),
+	get(H1, kind, Kind),
+	get(H1, position, Gr1, Dev, Pos1),
+	get(Gr2, handles, Pos1, Kind, 15, CH2),
+	chain_list(CH2, L2),
+	member(H2, L2),
+	get(H2, position, Gr2, Dev, Pos2),
+	get(Pos1, distance, Pos2, D),
+	object(Pos2, point(X2, Y2)),
+	object(Pos1, point(X1, Y1)),
+	DX is X1 - X2,
+	DY is Y1 - Y2.
+	
 		/********************************
 		*        SIZE ADJUSTMENT	*
 		********************************/

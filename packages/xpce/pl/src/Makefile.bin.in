@@ -61,9 +61,9 @@ xpce-qlfs:
 install:	all
 		PLBASE=$(PWD); \
 		for f in chpl pl-bite; do \
-		    (cd $(bindir); rm -f $$f; ln -s $$PLBASE/bin/$$f .); \
+		    (cd $(bindir); rm -f $$f; ln -s $$PLBASE/bin/$(PLARCH)/$$f .); \
 		done ; \
-		(cd $(bindir); rm -f $(PL); ln -s $$PLBASE/bin/pl $(PL)) ; \
+		(cd $(bindir); rm -f $(PL); ln -s $$PLBASE/bin/$(PLARCH)/pl $(PL)) ; \
 		if [ -d xpce ]; then \
 		  (cd $(bindir);rm -f $(XPCE);ln -s $$PLBASE/$(BPL) $(XPCE));\
 		fi

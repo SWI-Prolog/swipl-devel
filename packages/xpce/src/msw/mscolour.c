@@ -60,6 +60,39 @@ LoadColourNames()
 }
 
 
+#if O_XPM
+int
+xpmGetRGBfromName(char *inname, int *r, int *g, int *b)
+{ char name[256];
+  char *q = name, *s = inname;
+  Name cname;
+  Int pcergb;
+
+  for( ;*s; s++, q++)
+  { if ( isupper(*s) )
+      *q = tolower(*s);
+    else if ( *s == ' ' )
+      *q = '_';
+    else
+      *q = *s;
+  }
+  *q = EOS;
+
+  cname = CtoKeyword(name);
+  if ( (pcergb = getMemberHashTable(LoadColourNames(), cname)) )
+  { COLORREF rgb = valInt(pcergb);
+
+    *r = GetRValue(rgb);
+    *g = GetGValue(rgb);
+    *b = GetBValue(rgb);
+  } else
+  { *r = 255;
+    *g = *b = 0;
+  }
+
+  return 1;				/* we have it */
+}
+#endif
 
 status
 ws_colour_name(DisplayObj d, Name name)
@@ -162,33 +195,36 @@ static struct system_colour window_colours[] =
 };
 
 
+static void
+ws_system_colour(DisplayObj d, const char *name, COLORREF rgb)
+{ Name ref = CtoKeyword(name);
+  int r = GetRValue(rgb);
+  int g = GetGValue(rgb);
+  int b = GetBValue(rgb);
+  Colour c;
+
+  r = r*256 + r;
+  g = g*256 + g;
+  b = b*256 + b;
+
+  if ( (c = newObject(ClassColour, ref, toInt(r), toInt(g), toInt(b), 0)) )
+  { lockObject(c, ON);
+    registerXrefObject(c, d, (void *)rgb);
+  }
+}
+
+
 void
 ws_system_colours(DisplayObj d)
 { struct system_colour *sc = window_colours;
 
   for( ; sc->name; sc++ )
-  { Name ref = CtoKeyword(sc->name);
-    DWORD rgb = GetSysColor(sc->id);
-    int r = GetRValue(rgb);
-    int g = GetGValue(rgb);
-    int b = GetBValue(rgb);
-    Colour c;
+  { DWORD rgb = GetSysColor(sc->id);
 
-    DEBUG(NAME_win, Cprintf("Colour %s = %d %d %d\n", sc->name, r, g, b));
-    
-    r = r*256 + r;
-    g = g*256 + g;
-    b = b*256 + b;
-
-#if 0
-    rgb |= EXACT_COLOUR_MASK;	/* Avoid GetNearestColor() */
-#endif
-
-    if ( (c = newObject(ClassColour, ref, toInt(r), toInt(g), toInt(b), 0)) )
-    { lockObject(c, ON);
-      registerXrefObject(c, d, (void *)rgb);
-    }
+    ws_system_colour(d, sc->name, rgb);
   }
+
+  ws_system_colour(d, "_win_3d_grey", ws_3d_grey_rgb());
 }
 
 

@@ -345,8 +345,8 @@ ws_init_graphics_display(DisplayObj d)
 #endif
   initDraw();
 
-  ws_system_colours(d);
   ws_system_images(d);
+  ws_system_colours(d);
 
   init_area_enter_exit_handling(d);
 
@@ -418,8 +418,9 @@ ws_events_queued_display(DisplayObj d)
 
 static HGLOBAL
 ws_string_to_global_mem(String s)
-{ int bytes = str_datasize(s) + str_count_chr(s, 0, s->size, '\n');
-  HGLOBAL mem = GlobalAlloc(GMEM_MOVEABLE, bytes + 1);
+{ int size  = str_datasize(s);
+  int bytes = size + str_count_chr(s, 0, s->size, '\n');
+  HGLOBAL mem = GlobalAlloc(GMEM_MOVEABLE|GMEM_DDESHARE, bytes + 1);
   char far *data;
   int i;
 
@@ -429,7 +430,7 @@ ws_string_to_global_mem(String s)
   }
   data = GlobalLock(mem);
 
-  for(i=0; i<bytes; i++)
+  for(i=0; i<size; i++)
   { if ( s->s_text8[i] == '\n' )
       *data++ = '\r';
     *data++ = s->s_text8[i];
