@@ -130,7 +130,9 @@ $(TEX):		$(DOCTOTEX)
 
 clean:
 		rm -f *~ *% config.log
-		rm -f chr.pl chr_translate.pl chr_translate_bootstrap1.pl
+		rm -f chr.pl chr_translate.pl
+		rm -f chr_translate_bootstrap1.pl chr_translate_bootstrap2.pl
+		rm -f guard_entailment.pl
 
 distclean:	clean
 		rm -f $(TARGETS) config.h config.cache config.status Makefile

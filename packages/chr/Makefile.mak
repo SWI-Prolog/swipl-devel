@@ -94,7 +94,9 @@ uninstall::
 
 clean::
 		if exist *~ del *~
-		-del chr.pl chr_translate.pl chr_translate_bootstrap1.pl
+		-del chr.pl chr_translate.pl
+		-del chr_translate_bootstrap1.pl chr_translate_bootstrap2.pl
+		-del guard_entailment.pl
 
 distclean:	clean
 
