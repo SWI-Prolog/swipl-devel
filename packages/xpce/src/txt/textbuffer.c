@@ -43,6 +43,7 @@ forwards status insert_file_textbuffer(TextBuffer, int, int, SourceSink);
 forwards status shift_fragments(TextBuffer, long, long);
 forwards void	start_change(TextBuffer, int);
 forwards status insert_textbuffer_shift(TextBuffer, int, int, String, int);
+forwards status promoteTextBuffer(TextBuffer tb);
 
 #define ALLOC (256)		/* increment allocation by this amount */
 #define ROUND(n, r)		( (((n) + (r)-1) / (r)) * (r) )
@@ -1716,6 +1717,9 @@ store_textbuffer(TextBuffer tb, int where, wint_t c)
   if ( where < 0 || where >= tb->size )
     fail;
   idx = Index(tb, where);
+
+  if ( istbA(tb) && c > 0xff )
+    promoteTextBuffer(tb);
 
   if ( istbA(tb) )
     old = tb->tb_bufferA[idx];

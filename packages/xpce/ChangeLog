@@ -1,7 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
-* FIXED: wide character support for `editor->insert_self'
+* FIXED: wide character support for `editor->insert_self' and `editor->
+  transpose'.
 
 * ADDED: (very simple) make check
 
