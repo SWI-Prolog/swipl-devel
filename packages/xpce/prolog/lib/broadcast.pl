@@ -36,7 +36,7 @@ called. Success or failure of this is ignored. The listener can not bind
 arguments.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%	listen([+Listener], +Templ, +Goal)
+%	listen([+Listener], +Templ, :Goal)
 %
 %	Open a channel for listening for events of the given `Templ'.
 
@@ -50,7 +50,7 @@ listen(Templ, Goal) :-
 	assert_listener(Templ, Module, Module, TheGoal).
 
 
-%	unlisten(+Listener, [+Templ, [+Goal]])
+%	unlisten(+Listener, [+Templ, [:Goal]])
 %
 %	Destroy a channel.  Arguments may be variables
 
