@@ -75,7 +75,10 @@ sgml_write(Stream, Data, Options) :-
 
 
 html_write(Stream, Data, Options) :-
-	sgml_write(Stream, Data, [dtd(html)|Options]).
+	sgml_write(Stream, Data,
+		   [ dtd(html)
+		   | Options
+		   ]).
 
 
 init_state([], _).
@@ -91,6 +94,7 @@ update_state(dtd(DTD), State) :- !,
 	set_state(State, dtd, DTDObj),
 	dtd_character_entities(DTDObj, EntityMap),
 	set_state(State, entity_map, EntityMap).
+update_state(doctype(_), _) :- !.
 update_state(Option, _) :-
 	throw(error(domain_error(xml_write_option, Option), _)).
 
@@ -116,13 +120,19 @@ emit_xml_encoding(Out) :-
 %	Emit the document-type declaration.  We also need a way to add
 %	public and/or system identifiers here.
 
+emit_doctype(_Options, Data, Out) :-
+	(   Data = [element(html,Att,_)]
+	;   Data = element(html,Att,_)
+	),
+	memberchk(version=Version, Att), !,
+	format(Out, '<!DOCTYPE HTML PUBLIC "~w">~n~n', [Version]).
 emit_doctype(Options, Data, Out) :-
 	(   memberchk(doctype(Doctype), Options)
 	;   Data = [element(Doctype,_,_)]
 	;   Data = element(Doctype)
 	), !,
 	upcase_atom(Doctype, DOCTYPE),
-	format(Out, '<!DOCTYPE ~w>~n~n', [DOCTYPE]).
+	format(Out, '<!DOCTYPE ~w []>~n~n', [DOCTYPE]).
 emit_doctype(_, _, _).
 
 

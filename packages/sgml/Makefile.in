@@ -77,7 +77,8 @@ html-install::
 		$(INSTALL_DATA) doc/sgml2pl.html $(PKGDOC)
 
 check::
-		cd Test && $(PL) -f test.pl -g test,halt.
+		(cd Test && $(PL) -f test.pl -g test,halt)
+		(cd Test && $(PL) -f wrtest.pl -g test,halt)
 
 uninstall::
 		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))
