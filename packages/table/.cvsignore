@@ -3,6 +3,11 @@ tapefiles
 table.exp
 table.lib
 table.dll
+table.aux
+table.log
+table.tex
+table.out
+table.pdf
 Makefile
 config.status
 config.cache
