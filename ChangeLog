@@ -4,6 +4,8 @@
 VERSION 4.0.10
 ==============
 
+  * FIXED/ENHANCED: Win32: Various issues around installation.
+
   * FIXED: Prefer %HOMEDRIVE%\%HOMEPATH% over %USERPROFILE% for expanding
     ~ on Windows.
 

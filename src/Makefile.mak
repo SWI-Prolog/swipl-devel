@@ -171,7 +171,7 @@ check:
 install:	$(BINDIR) iprog install_packages
 !ELSE
 install:	install-arch install-libs install-readme install_packages \
-		install-dotfiles
+		install-dotfiles install-demo
 !ENDIF
 
 install-arch:	idirs iprog
@@ -205,7 +205,7 @@ install-libs:	idirs iinclude iboot ilib
 
 IDIRS=		$(BINDIR) $(LIBDIR) $(PLBASE)\include \
 		$(PLBASE)\boot $(PLBASE)\library $(PKGDOC) \
-		$(PLCUSTOM)
+		$(PLCUSTOM) $(PLBASE)\demo
 
 $(IDIRS):
 		if not exist "$@/$(NULL)" $(MKDIR) "$@"
@@ -234,6 +234,10 @@ install-dotfiles::
 		$(INSTALL_DATA) ..\dotfiles\dotplrc "$(PLCUSTOM)\pl.ini"
 		$(INSTALL_DATA) ..\dotfiles\dotxpcerc "$(PLCUSTOM)\xpce.ini"
 		$(INSTALL_DATA) ..\dotfiles\README "$(PLCUSTOM)\README.TXT"
+
+install-demo::
+		$(INSTALL_DATA) ..\demo\likes.pl "$(PLBASE)\demo\likes.pl"
+		$(INSTALL_DATA) ..\demo\README "$(PLBASE)\demo\README.TXT"
 
 ################################################################
 # DLL DEMOS
