@@ -32,15 +32,21 @@ initialiseError(Error e, Name id, StringObj format, Name kind, Name feedback)
 
 Error
 getConvertError(Class class, Name id)
-{ if ( ErrorTable )
-    return getMemberHashTable(ErrorTable, id);
+{ Error e;
 
-  if ( !inBoot )
+  if ( !ErrorTable )
+  { if ( inBoot )
+      fail;
     realiseClass(ClassError);
-  if ( ErrorTable )
-    return getMemberHashTable(ErrorTable, id);
+    assert(ErrorTable);
+  }
 
-  fail;
+  if ( (e=getMemberHashTable(ErrorTable, id)) )
+    answer(e);
+
+  exceptionPce(PCE, NAME_undefinedError, id, 0);
+
+  return getMemberHashTable(ErrorTable, id);
 }
 
 

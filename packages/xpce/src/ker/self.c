@@ -535,12 +535,6 @@ getNoFreedPce(Pce pce)
 }
 
 
-static Int
-getMethodCallsPce(Pce pce)
-{ answer(toInt(ExecuteCalls));
-}
-
-
 static status
 licenceInfoPce(Pce pce)
 { Name holder    = getAttributeObject(pce, NAME_licenceHolder);
@@ -631,10 +625,6 @@ infoPce(Pce pce)
   writef("	Objects in use:	    %d\n",       sub(getNoCreatedPce(pce),
 						     getNoFreedPce(pce)));
   writef("\n");
-  writef("Statistics:\n");
-  writef("	Messages sent:	    %d\n",	 toInt(ExecuteCalls));
-
-  writef("\n");
   writef("Other info:\n");
   writef("	Classes:            %d\n", toInt(classes));
   writef("\n");
@@ -643,7 +633,7 @@ infoPce(Pce pce)
   writef("	Jan Wielemaker\n");
   writef("\n");
 
-  writef("Copyright (C) 1993-1998 University of Amsterdam.  All rights reserved.");
+  writef("Copyright (C) 1993-1999 University of Amsterdam.  All rights reserved.");
   writef("\n\n");
 
   succeed;
@@ -1372,8 +1362,6 @@ static getdecl get_pce[] =
      NAME_statistics, "Total CPU time for this process"),
   GM(NAME_deferredUnalloced, 0, "number=int", NULL, getDeferredUnallocedPce,
      NAME_statistics, "# freed referenced objects"),
-  GM(NAME_methodCalls, 0, "calls=int", NULL, getMethodCallsPce,
-     NAME_statistics, "Number of methods called"),
   GM(NAME_objectsAllocated, 0, "number=int", NULL, getNoCreatedPce,
      NAME_statistics, "Total number of objects created"),
   GM(NAME_objectsFreed, 0, "number=int", NULL, getNoFreedPce,

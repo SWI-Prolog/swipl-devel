@@ -743,7 +743,7 @@ pceReportErrorGoal(PceGoal g)
 	       g->errc1, g->return_type);
       break;
     case PCE_ERR_TOO_MANY_ARGS:
-      errorPce(g->implementation, NAME_argumentCount, g->argc);
+      errorPce(g->implementation, NAME_argumentCount, toInt(g->argc));
       break;
     case PCE_ERR_ANONARG_AFTER_NAMED:
       errorPce(g->implementation, NAME_unboundAfterBoundArgument);

@@ -471,8 +471,8 @@ getCapitaliseName(Name n)
 
 
 Name
-getLabelNameName(Name n)
-{ return (Name) getLabelNameCharArray((CharArray) n);
+GetLabelNameName(Name n)
+{ return qadGetv(n, (Name)NAME_labelName, 0, NULL);
 }
 
 
