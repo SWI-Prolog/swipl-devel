@@ -11,6 +11,7 @@
 :- use_module(library(pce)).
 :- use_module(library(pce_report)).
 :- use_module(library('trace/clause')).
+:- use_module(library(prolog_predicate_item)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This  module  defines  the  class   prolog_debug_status,  a  status  dialog
