@@ -66,14 +66,15 @@ istrcpy(ichar *d, const ichar *s)
 
 
 int
-istrcaseeq(const ichar *s1, const ichar *s2)
-{ while(*s1 && tolower(*s1) == tolower(*s2))
-    s1++, s2++;
-  
-  if ( *s1 == 0 && *s2 == 0 )
-    return TRUE;
-  
-  return FALSE;
+icstrcaseeq(ichar const *s1, char const *s2)
+{ ichar c;
+
+  while ((c = *s1++) != '\0')
+  { if (tolower(*(ichar const *)s2++) != tolower(c))
+      return FALSE;
+  }
+
+  return *s2 == '\0';
 }
 
 
@@ -392,16 +393,18 @@ char *ringallo(size_t size)
                *******************************/
 
 char const *
-str_summary(char const *s, int len) {
-    char *buf;
-    int l = strlen(s);
+str_summary(char const *s, int len)
+{ char *buf;
+  size_t l = strlen(s);
 
-    if (l < len) return s;
-    buf = ringallo(len + 10);
-    strncpy(buf, s, len-5);
-    strcpy(&buf[len-5], " ... ");
-    strcpy(&buf[len], &s[l-5]);
-    return buf;
+  if ( l < len )
+    return s;
+  buf = ringallo(len + 10);
+  strncpy(buf, s, len-5);
+  strcpy(&buf[len-5], " ... ");
+  strcpy(&buf[len], &s[l-5]);
+
+  return buf;
 }
 
 

@@ -39,6 +39,7 @@ ichar *		istrlower(ichar *s);
 int             istrprefix(const ichar *pref, const ichar *s);
 int             istreq(const ichar *s1, const ichar *s2);
 int             istrcaseeq(const ichar *s1, const ichar *s2);
+int		icstrcaseeq(ichar const *s1, char const *s2);
 int		istrncaseeq(const ichar *s1, const ichar *s2, int len);
 int             istrhash(const ichar *t, int tsize);
 int             istrcasehash(const ichar *t, int tsize);
@@ -82,12 +83,13 @@ void		empty_ocharbuf(ocharbuf *buf);
 
 const char *	str_summary(const char *s, int len);
 char *		str2ring(const char *in);
-char *                ringallo(size_t);
+char *		ringallo(size_t);
 char *		load_file_to_charp(const char *file, int *len);
 
 #if defined(USE_STRING_FUNCTIONS) && !defined(UTIL_H_IMPLEMENTATION)
 
-#define istreq(s1,s2) (strcmp(s1,s2)==0)
+#define istrlen(s1) strlen((char const *)(s1))
+#define istreq(s1,s2) (strcmp((char const *)(s1),(char const *)(s2))==0)
 
 #endif
 
