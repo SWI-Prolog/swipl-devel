@@ -30,7 +30,7 @@
 \newcommand{\product}{XPCE/SICStus}
 \newcommand{\productpl}{XPCE/Prolog}
 \newcommand{\productversion}{0.5}
-\newcommand{\xpceversion}{5.0.5}
+\newcommand{\xpceversion}{5.0.6}
 \newcommand{\sicsversion}{3.7.1}
 \newcommand{\productdate}{July 1999}
 
