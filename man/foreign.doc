@@ -1020,19 +1020,18 @@ If {\em t} is a compound term with the given functor, just succeed.
 If it is unbound, create a term and bind the variable, else fails.
 Not that this function does not create a term if the argument is
 already instantiated.
-.F int PL_unify_list 2 term_t ?l, term_t +h, term_t -t
-Unify {\em l} with a list-cell (\tty{./2}) and {\em h} with
-the head of the list.  Finally write a reference to the tail
-of the list in {\em t}.  This reference may be used for subsequent
-calls to this function.  Suppose we want to return a list of atoms
-from a {\tt char **}. We could use the example described by
-PL_put_list(), followed by a call to PL_unify(), or we can use the
-code below.  If the predicate argument is unbound, the difference
-is minimal (the code based on PL_put_list() is probably slightly
-faster).  If the argument is bound, the code below may fail before
-reaching the end of the word-list, but even if the unification
-succeeds, this code avoids a duplicate (garbage) list and an
-expensive deep unification.
+.F int PL_unify_list 2 term_t ?l, term_t -h, term_t -t
+Unify {\em l} with a list-cell (\tty{./2}). If successful, write a
+reference to the head of the list to {\em h} and a reference
+to the tail of the list in {\em t}. This reference may be used for
+subsequent calls to this function. Suppose we want to return a list of
+atoms from a {\tt char **}. We could use the example described by
+PL_put_list(), followed by a call to PL_unify(), or we can use the code
+below. If the predicate argument is unbound, the difference is minimal
+(the code based on PL_put_list() is probably slightly faster). If the
+argument is bound, the code below may fail before reaching the end of
+the word-list, but even if the unification succeeds, this code avoids a
+duplicate (garbage) list and a deep unification.
 
 \begin{boxed}\begin{code}
 foreign_t
@@ -1042,9 +1041,9 @@ pl_get_environ(term_t env)
   extern char **environ;
 
   while(*environ)
-  { PL_put_atom_chars(a, *environ);
-    if ( !PL_unify_list(l, a, l) )
-      fail;
+  { if ( !PL_unify_list(l, a, l) ||
+	 !PL_unify_atom_chars(a, *environ) )
+      PL_fail;
   }
 
   return PL_unify_nil(l);

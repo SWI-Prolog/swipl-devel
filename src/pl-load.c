@@ -556,7 +556,7 @@ resetLoader()
 word
 pl_load_foreign1(term_t file)
 { char *sfile;
-  Atom name;
+  atom_t name;
   long rval;
   Func entry;
   char *libpath = (getenv("LIBPATH") == NULL ? "/lib:/usr/lib" : NULL);

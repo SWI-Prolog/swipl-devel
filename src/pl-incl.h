@@ -14,7 +14,7 @@
 #define MD	     "config/win32.h"
 #define PLHOME       "c:/pl"
 #define DEFSTARTUP   ".plrc"
-#define PLVERSION    "2.7.8"
+#define PLVERSION    "2.7.9"
 #define ARCH	     "i386-win32"
 #define C_LIBS	     "-lreadline -lconsole -luxnt"
 #define C_STATICLIBS ""
@@ -1150,9 +1150,11 @@ struct symbol
 		 *	   FLI INTERNALS	*
 		 *******************************/
 
-typedef unsigned long term_t;	/* external term-reference */
+typedef unsigned long term_t;		/* external term-reference */
 typedef unsigned long qid_t;		/* external query-id */
-typedef unsigned long fid_t;		/* external foreign context-id */
+typedef unsigned long PL_fid_t;		/* external foreign context-id */
+
+#define fid_t PL_fid_t			/* avoid AIX name-clash */
 
 #define consTermRef(p)	((Word)(p) - (Word)(lBase))
 #define valTermRef(r)	(&((Word)(lBase))[r])

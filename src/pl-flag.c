@@ -11,10 +11,19 @@
 
 typedef struct flag *	Flag;
 
+#define FLG_ATOM	0
+#define FLG_INTEGER	1
+#define FLG_REAL	2
+
 struct flag
 { Flag  next;
-  word	key;			/* key to the flag */
-  word	value;			/* value of the flag */
+  word	key;				/* key to the flag */
+  int	type;				/* type (atom, int, real */
+  union
+  { atom_t a;				/* atom */
+    long   i;				/* integer */
+    double f;				/* float */
+  } value;				/* value of the flag */
 };
 
 static Flag flagTable[FLAGHASHSIZE];
@@ -43,7 +52,8 @@ lookupFlag(word key)
   f->next = flagTable[v];
   flagTable[v] = f;
   f->key = key;
-  f->value = consInt(0);
+  f->type = FLG_INTEGER;
+  f->value.i = 0;
 
   return f;
 }
@@ -52,28 +62,44 @@ word
 pl_flag(term_t name, term_t old, term_t new)
 { Flag f;
   word key;
-  Word n;
+  atom_t a;
+  number n;
 
   if ( !(key = getKey(name)) )
     return warning("flag/2: illegal key");
 
   f = lookupFlag(key);
-  TRY(_PL_unify_atomic(old, f->value));
+  switch(f->type)
+  { case FLG_ATOM:
+      TRY(PL_unify_atom(old, f->value.a));
+      break;
+    case FLG_INTEGER:
+      TRY(PL_unify_integer(old, f->value.i));
+      break;
+    case FLG_REAL:
+      TRY(PL_unify_float(old, f->value.f));
+      break;
+    default:
+      assert(0);
+  }
 
-  n = valTermRef(new);
-  deRef(n);
-  if ( isAtom(*n) || isTaggedInt(*n) )
-  { f->value = *n;
+  if ( PL_get_atom(new, &a) )
+  { f->type = FLG_ATOM;
+    f->value.a = a;
+
     succeed;
-  } else
-  { number n;
+  } else if ( valueExpression(new, &n) )
+  { canoniseNumber(&n);
 
-    if ( valueExpression(new, &n) &&
-	 toIntegerNumber(&n) &&
-	 inTaggedNumRange(n.value.i) )
-    { f->value = consInt(n.value.i);
-      succeed;
+    if ( n.type == V_INTEGER )
+    { f->type = FLG_INTEGER;
+      f->value.i = n.value.i;
+    } else
+    { f->type = FLG_REAL;
+      f->value.f = n.value.f;
     }
+
+    succeed;
   }
 
   return warning("flag/2: value should be an atom, integer or expression");

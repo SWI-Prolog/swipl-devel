@@ -320,22 +320,8 @@ $(INTDIR)/"pl-term.obj" :  $(SOURCE)  $(INTDIR)
 # Begin Source File
 
 SOURCE=".\pl-file.c"
-DEP_PL_FI=\
-	".\pl-incl.h"\
-	".\pl-ctype.h"\
-	C:\jan\pl\include\console.h\
-	C:\jan\pl\include\uxnt.h\
-	".\pl-stream.h"\
-	".\pl-data.h"\
-	".\pl-itf.h"\
-	".\pl-os.h"\
-	".\pl-funcs.h"\
-	".\pl-main.h"\
-	".\pl-atom.ih"\
-	".\pl-funct.ih"\
-	".\pl-buffer.h"
 
-$(INTDIR)/"pl-file.obj" :  $(SOURCE)  $(DEP_PL_FI) $(INTDIR)
+$(INTDIR)/"pl-file.obj" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
@@ -390,20 +376,8 @@ $(INTDIR)/"pl-nt.obj" :  $(SOURCE)  $(INTDIR)
 # Begin Source File
 
 SOURCE=".\pl-ext.c"
-DEP_PL_EX=\
-	".\pl-incl.h"\
-	C:\jan\pl\include\uxnt.h\
-	".\pl-stream.h"\
-	".\pl-data.h"\
-	".\pl-itf.h"\
-	".\pl-os.h"\
-	".\pl-funcs.h"\
-	".\pl-main.h"\
-	".\pl-atom.ih"\
-	".\pl-funct.ih"\
-	".\pl-buffer.h"
 
-$(INTDIR)/"pl-ext.obj" :  $(SOURCE)  $(DEP_PL_EX) $(INTDIR)
+$(INTDIR)/"pl-ext.obj" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
@@ -450,21 +424,8 @@ $(INTDIR)/"pl-load.obj" :  $(SOURCE)  $(INTDIR)
 # Begin Source File
 
 SOURCE=".\pl-os.c"
-DEP_PL_OS=\
-	".\pl-incl.h"\
-	".\pl-ctype.h"\
-	C:\jan\pl\include\uxnt.h\
-	".\pl-stream.h"\
-	".\pl-data.h"\
-	".\pl-itf.h"\
-	".\pl-os.h"\
-	".\pl-funcs.h"\
-	".\pl-main.h"\
-	".\pl-atom.ih"\
-	".\pl-funct.ih"\
-	".\pl-buffer.h"
 
-$(INTDIR)/"pl-os.obj" :  $(SOURCE)  $(DEP_PL_OS) $(INTDIR)
+$(INTDIR)/"pl-os.obj" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################
@@ -591,20 +552,8 @@ $(INTDIR)/"pl-arith.obj" :  $(SOURCE)  $(INTDIR)
 # Begin Source File
 
 SOURCE=".\pl-fli.c"
-DEP_PL_FL=\
-	".\pl-incl.h"\
-	C:\jan\pl\include\uxnt.h\
-	".\pl-stream.h"\
-	".\pl-data.h"\
-	".\pl-itf.h"\
-	".\pl-os.h"\
-	".\pl-funcs.h"\
-	".\pl-main.h"\
-	".\pl-atom.ih"\
-	".\pl-funct.ih"\
-	".\pl-buffer.h"
 
-$(INTDIR)/"pl-fli.obj" :  $(SOURCE)  $(DEP_PL_FL) $(INTDIR)
+$(INTDIR)/"pl-fli.obj" :  $(SOURCE)  $(INTDIR)
 
 # End Source File
 ################################################################################

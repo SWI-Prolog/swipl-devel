@@ -815,7 +815,7 @@ pl_retract(term_t term, word h)
 
       { fid_t cid = PL_open_foreign_frame();
 
-	if ( decompile(cref->clause, head) )
+	if ( decompile(cref->clause, term) )
 	{ retractClauseProcedure(proc, cref->clause);
 	  PL_close_foreign_frame(cid);	/* necessary? */
 	  if ( det == TRUE )

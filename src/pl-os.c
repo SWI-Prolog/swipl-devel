@@ -271,15 +271,15 @@ CpuTime(void)
 #ifdef HAVE_TIMES
   struct tms t;
   static int got_hz = FALSE;
-  static real hz;
+  static real _hz;
 
   if ( !got_hz )
-  { hz = (real) Hz;
+  { _hz = (real) Hz;
     got_hz++;
   }
   times(&t);
 
-  return (real) t.tms_utime / hz;
+  return (real) t.tms_utime / _hz;
 #endif
 
 #if OS2 && EMX
@@ -2084,6 +2084,9 @@ related I/O in the child process.
 
 #ifdef unix
 #define SPECIFIC_SYSTEM 1
+#if defined(HAVE_SYS_RESOURCE_H)
+#include <sys/resource.h>
+#endif
 #if defined(HAVE_SYS_WAIT_H) || defined(UNION_WAIT)
 #include <sys/wait.h>
 #endif

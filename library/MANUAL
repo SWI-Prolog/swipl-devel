@@ -6718,18 +6718,18 @@ int PL_unify_functor(term_t ?t, functor_t f)
     already instantiated.
 
 
-int PL_unify_list(term_t ?l, term_t +h, term_t -t)
-    Unify l with a list-cell (./2 ) and h with the head of the list.
-    Finally write a reference to the tail of the list in t. This reference
-    may be used for subsequent calls to this function. Suppose we
-    want to return a list of atoms from a char **. We could use the
-    example described by PL_put_list(), followed by a call to
-    PL_unify(), or we can use the code below. If the predicate
+int PL_unify_list(term_t ?l, term_t -h, term_t -t)
+    Unify l with a list-cell (./2 ). If successful, write a reference to the
+    head of the list to h and a reference to the tail of the list in t.
+    This reference may be used for subsequent calls to this function.
+    Suppose we want to return a list of atoms from a char **. We
+    could use the example described by PL_put_list(), followed by a
+    call to PL_unify(), or we can use the code below. If the predicate
     argument is unbound, the difference is minimal (the code based on
     PL_put_list() is probably slightly faster). If the argument is bound,
     the code below may fail before reaching the end of the word-list,
     but even if the unification succeeds, this code avoids a duplicate
-    (garbage) list and an expensive deep unification.
+    (garbage) list and a deep unification.
 
         foreign_t
         pl_get_environ(term_t env)
@@ -6738,9 +6738,9 @@ int PL_unify_list(term_t ?l, term_t +h, term_t -t)
            extern char **environ;
 
            while(*environ)
-           { PL_put_atom_chars(a, *environ);
-             if ( !PL_unify_list(l, a, l) )
-               fail;
+           { if ( !PL_unify_list(l, a, l) ||
+                  !PL_unify_atom_chars(a, *environ) )
+               PL_fail;
            }
 
            return PL_unify_nil(l);

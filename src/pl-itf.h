@@ -26,7 +26,7 @@ before loading this file.  See end of this file.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef PLVERSION
-#define PLVERSION "2.7.8, June 1996"
+#define PLVERSION "2.7.9, July 1996"
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -73,12 +73,14 @@ typedef void *		module_t;	/* Prolog module */
 typedef void *		predicate_t;	/* Prolog procedure */
 typedef unsigned long	term_t;		/* opaque term handle */
 typedef unsigned long	qid_t;		/* opaque query handle */
-typedef unsigned long	fid_t;		/* opaque foreign context handle */
+typedef unsigned long	PL_fid_t;	/* opaque foreign context handle */
 #endif
 typedef unsigned long	atomic_t;	/* same a word */
 typedef unsigned long	control_t;	/* non-deterministic control arg */
 typedef unsigned long	foreign_t;	/* return type of foreign functions */
 typedef foreign_t	(*pl_function_t)(); /* foreign language functions */
+
+#define fid_t PL_fid_t			/* avoid AIX name-clash */
 
 #ifndef TRUE
 #define TRUE	(1)

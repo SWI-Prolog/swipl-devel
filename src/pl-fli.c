@@ -1119,8 +1119,10 @@ PL_unify_atom_chars(term_t t, const char *chars)
 
 
 int
-PL_unify_list_chars(term_t t, const char *chars)
+PL_unify_list_chars(term_t l, const char *chars)
 { term_t head = PL_new_term_ref();
+  term_t t    = PL_copy_term_ref(l);
+  int rval;
 
   for( ; *chars; chars++ )
   { if ( !PL_unify_list(t, head, t) ||
@@ -1128,7 +1130,10 @@ PL_unify_list_chars(term_t t, const char *chars)
       fail;
   }
 
-  return PL_unify_nil(t);
+  rval = PL_unify_nil(t);
+  PL_reset_term_refs(head);
+
+  return rval;
 }
 
 
@@ -1199,32 +1204,29 @@ PL_unify_nil(term_t l)
 }
 
 
-static int
-unify_termVP(term_t t, va_list *ap)
-{ va_list args = *ap;
-  int rval;
-
-  switch(va_arg(args, int))
+static va_list
+unify_termVP(term_t t, int *rval, va_list args)
+{ switch(va_arg(args, int))
   { case PL_VARIABLE:
-      rval = TRUE;
+      *rval = TRUE;
       break;
     case PL_ATOM:
-      rval = PL_unify_atom(t, va_arg(args, atom_t));
+      *rval = PL_unify_atom(t, va_arg(args, atom_t));
       break;
     case PL_INTEGER:
-      rval = PL_unify_integer(t, va_arg(args, long));
+      *rval = PL_unify_integer(t, va_arg(args, long));
       break;
     case PL_FLOAT:
-      rval = PL_unify_float(t, va_arg(args, double));
+      *rval = PL_unify_float(t, va_arg(args, double));
       break;
     case PL_STRING:
-      rval = PL_unify_string_chars(t, va_arg(args, const char *));
+      *rval = PL_unify_string_chars(t, va_arg(args, const char *));
       break;
     case PL_TERM:
-      rval = PL_unify(t, va_arg(args, term_t));
+      *rval = PL_unify(t, va_arg(args, term_t));
       break;
     case PL_CHARS:
-      rval = PL_unify_atom_chars(t, va_arg(args, const char *));
+      *rval = PL_unify_atom_chars(t, va_arg(args, const char *));
       break;
     case PL_FUNCTOR:
     { functor_t ft = va_arg(args, functor_t);
@@ -1234,20 +1236,18 @@ unify_termVP(term_t t, va_list *ap)
       if ( !PL_unify_functor(t, ft) )
 	goto failout;
 
-      *ap = args;
       for(n=1; n<=ft->arity; n++)
       {	_PL_get_arg(n, t, tmp);
 	
-	if ( !unify_termVP(tmp, ap) )
+	args = unify_termVP(tmp, rval, args);
+	if ( !(*rval) )
 	  goto failout;
       }
-      args = *ap;
 
-      rval = TRUE;
+      *rval = TRUE;
       PL_reset_term_refs(tmp);
       break;
     failout:
-      rval = FALSE;
       PL_reset_term_refs(tmp);
       break;
     }
@@ -1256,19 +1256,17 @@ unify_termVP(term_t t, va_list *ap)
       term_t tmp = PL_copy_term_ref(t);
       term_t h   = PL_new_term_ref();
 
-      *ap = args;
       for( ; length-- > 0; )
       { PL_unify_list(tmp, h, tmp);
-	if ( !unify_termVP(h, ap) )
+	args = unify_termVP(h, rval, args);
+	if ( !(*rval) )
 	  goto listfailout;
       }
-      args = *ap;
 
-      rval = PL_unify_nil(tmp);
+      *rval = PL_unify_nil(tmp);
       PL_reset_term_refs(tmp);
       break;
     listfailout:
-      rval = FALSE;
       PL_reset_term_refs(tmp);
       break;
     }
@@ -1277,9 +1275,7 @@ unify_termVP(term_t t, va_list *ap)
       rval = FALSE;
   }
 
-  *ap = args;
-
-  return rval;
+  return args;
 }
 
 int
@@ -1288,7 +1284,7 @@ PL_unify_term(term_t t, ...)
   int rval;
 
   va_start(args, t);
-  rval = unify_termVP(t, &args);
+  args = unify_termVP(t, &rval, args);
   va_end(args);
 
   return rval;

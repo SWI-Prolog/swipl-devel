@@ -1683,10 +1683,14 @@ backtrack without showing the fail ports explicitely.
 #if O_DEBUGGER
 	if ( debugstatus.debugging )
 	{ tracePort(FR, UNIFY_PORT);
-	  SetBfr(FR);
+	  if ( FR->mark.trailtop == INVALID_TRAILTOP || true(FR, FR_CUT) )
+	  { SetBfr(FR->backtrackFrame);
+	  } else
+	  { SetBfr(FR);
+	  }
 	} else
 #endif /*O_DEBUGGER*/
-	{ if ( true(FR, FR_CUT ) )
+	{ if ( true(FR, FR_CUT) )
 	  { SetBfr(FR->backtrackFrame);
 	  } else
 	  { SetBfr(FR);
@@ -1720,10 +1724,14 @@ exit(Block, RVal).  First does !(Block).
 	  }
 	}
 #ifdef O_DEBUGGER
-	SetBfr(debugstatus.debugging ? blockfr : blockfr->backtrackFrame);
-#else
-	SetBfr(blockfr->backtrackFrame);
+        if ( debugstatus.debugging )
+	{ SetBfr(blockfr->mark.trailtop != INVALID_TRAILTOP ?
+		 blockfr : blockfr->backtrackFrame);
+	} else
 #endif
+	{ SetBfr(blockfr->backtrackFrame);
+	}
+
 	for(fr = FR; fr > blockfr; fr = fr->parent)
 	{ set(fr, FR_CUT);
 	  fr->backtrackFrame = BFR;
@@ -1768,10 +1776,14 @@ exit(Block, RVal).  First does !(Block).
 	}
 	
 #ifdef O_DEBUGGER
-	SetBfr(debugstatus.debugging ? cutfr : cutfr->backtrackFrame);
-#else
-	SetBfr(cutfr->backtrackFrame);
+	if ( debugstatus.debugging )
+	{ SetBfr(cutfr->mark.trailtop != INVALID_TRAILTOP ?
+		 cutfr : cutfr->backtrackFrame);
+	} else
 #endif
+	{ SetBfr(cutfr->backtrackFrame);
+	}
+
 	for(fr = FR; fr > cutfr; fr = fr->parent)
 	{ set(fr, FR_CUT);
 	  fr->backtrackFrame = BFR;
@@ -1830,10 +1842,13 @@ backtrack that makes it difficult to understand the tracer's output.
 	  }
 	}
 #ifdef O_DEBUGGER
-	SetBfr(debugstatus.debugging ? FR : FR->backtrackFrame);
-#else
-	SetBfr(FR->backtrackFrame);
+        if ( debugstatus.debugging )
+	{ SetBfr(FR->mark.trailtop != INVALID_TRAILTOP ?
+		 FR : FR->backtrackFrame);
+	} else
 #endif
+        { SetBfr(FR->backtrackFrame);
+	}
 
 	DEBUG(3, Sdprintf("BFR = %d\n", (Word)BFR - (Word)lBase) );
 	lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);

@@ -710,17 +710,17 @@ simple heuristics are used to determine whether a reference is valid.}
 {\em Key} is an atom, integer or term.  Unify {\em Old} with the old
 value associated with {\em Key}.  If the key is used for the first time
 {\em Old} is unified with the integer 0.  Then store the value of {\em
-New}, which should be an integer, atom or arithmetic integer
+New}, which should be an integer, float, atom or arithmetic 
 expression, under {\em Key}.  flag/3 is a very fast mechanism for
 storing simple facts in the database.  Example:
 \begin{code}
 :- module_transparent succeeds_n_times/2.
 
 succeeds_n_times(Goal, Times) :-
-	flag(succeeds_n_times, _, 0),
+	flag(succeeds_n_times, Old, 0),
 	Goal,
 	flag(succeeds_n_times, N, N+1),
-	fail ; flag(succeeds_n_times, Times, Times).
+	fail ; flag(succeeds_n_times, Times, Old).
 \end{code}
 .ED
 

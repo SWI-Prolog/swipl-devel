@@ -1,6 +1,32 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.7.9
+=============
+
+  * FIXED: interaction between tracer and garbage-collector, sometimes
+    causing an assertion-failure in the garbage collector when tracing.
+    Reported by Lourens van der Meij.
+
+  * CHANGED: flag/3 now handles full 32-bit integers and double
+    float values.  Old version was limited to tagged ints and didn't
+    do floats.
+
+  * PORT: Rewrote PL_unify_term() to avoid using va_list *.  May or
+    may not help.  Problem arises on the PowerMac version of Linux
+    when compiling pl-fli.c.  Reported by Franklin Chen.
+
+  * PORT: Portability patches for AIX 3.2/4.1: avoid name-clash with
+    hz and fid_t.  Contributed by Kay Roemer.
+
+  * FIXED: documentation of PL_unify_list() interface function.
+
+  * FIXED: name/2 to behave correctly in the tracer.  This problem
+    may appear with more foreign predicates and maybe requires a
+    more fundamental solution.  Reported by Chan Kam Fai.
+	
+  * FIXED: retract/1 on non-unit-clauses.  Thanks to Liviu Badea.
+
 Version 2.7.8
 =============
 

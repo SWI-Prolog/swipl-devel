@@ -7,10 +7,10 @@
     Purpose: Binding to the GNU readline library
 */
 
-#include "pl-stream.h"
-#include "pl-itf.h"
 #include <string.h>
 #include <stdlib.h>
+#include "pl-stream.h"
+#include "pl-itf.h"
 
 #ifdef __WIN32__
 #include "config/win32.h"
