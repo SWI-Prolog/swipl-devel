@@ -71,9 +71,12 @@ emacs_tag(Name, File, LineNo) :-
 
 emacs_complete_tag(Name, Goal) :-
 	tag_string(String), !,
-	new(Re, regex('')),
-	get(Re, quote, Name, QName),
-	send(Re, pattern, string('\\\\b%s\\\\w*', QName)),
+	(   Name == ''
+	->  new(Re, regex('\\b[a-zA-Z_]\\w*'))
+	;   new(Re, regex('')),
+	    get(Re, quote, Name, QName),
+	    send(Re, pattern, string('\\\\b%s\\\\w*', QName))
+	),
 	new(Here, number(0)),
 	repeat,
 	    (	send(Re, search, String, Here)
@@ -128,10 +131,28 @@ emacs_tag_file(File) :-
 
 :- pce_begin_class(emacs_tag_item, text_item).
 
-completions(_TI, Text:name, Symbols:chain) :<-
+initialise(TI, Label:name, Default:[name], Message:[code]*) :->
+	send_super(TI, initialise, Label, Default, Message),
+	send(TI, style, combo_box).
+
+completions(TI, Text:name, Symbols:chain) :<-
 	"Complete symbol from current TAGS-table"::
-	new(Symbols, chain),
-	emacs_complete_tag(Text, send(Symbols, append)),
-	send(Symbols, sort).
+	(   tag_string(_)
+	->  new(Symbols, chain),
+	    catch(emacs_complete_tag(Text, add_completion(Symbols)),
+		  too_many_matches,
+		  send(TI, report, error, 'Too many matches')),
+	    send(Symbols, sort)
+	;   send(TI, report, warning, 'No tag-table loaded'),
+	    fail
+	).
+
+add_completion(Chain, _Match) :-
+	get(Chain, size, 5000),
+	send(Chain, sort, @default, @on),
+	get(Chain, size, 5000),
+	throw(too_many_matches).
+add_completion(Chain, Match) :-
+	send(Chain, append, Match).
 
 :- pce_end_class.

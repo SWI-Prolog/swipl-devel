@@ -1,6 +1,11 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: PceEmacs: various dangling issues around using GNU emacs tag-tables.
+
+* ADDED: library(pce_type) providing pce_define_type/2 for defining your own
+  types.
+
 * FIXED: Win32: `file->exists' succeeded on directories, where this is only
   supposed to be the case if the optional must_be_file argument is @off.
 

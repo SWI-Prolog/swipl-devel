@@ -35,7 +35,6 @@
 	  paragraph_end(regex('\\s *$\\|/\\* - - -\\|- - -.*\\*/$'))
 	]).
 
-:- pce_autoload(emacs_tag_item, library(emacs_tags)).
 
 variable(comment_column,	int,	both, "Column for line comment").
 
@@ -313,6 +312,9 @@ backward_delete_char_untabify(M, Times:[int]) :->
 		 *	      TAGS		*
 		 *******************************/
 
+:- initialization
+   pce_define_type(emacs_tag, name).
+
 visit_tag_table(M, Table:tag_file='file|directory') :->
 	"Load specified GNU-Emacs (etags) tag-table"::
 	(   send(Table, instance_of, directory)
@@ -334,8 +336,8 @@ find_tag_from_dir(Dir, File) :-
 	get(Dir, parent, Parent),
 	find_tag_from_dir(Parent, File).
 
-expand_tag(M, Tag:[name], TheTag:name) :<-
-	"Expand tag using tag-table"::
+ensure_loaded_tags(M) :->
+	"Make sure we have a tag-table loaded"::
 	(   auto_call(emacs_tag_file(_))
 	->  true
 	;   get(M, directory, Dir),
@@ -344,7 +346,20 @@ expand_tag(M, Tag:[name], TheTag:name) :<-
 		auto_call(emacs_init_tags(Path))
 	    ;	send(M, noarg_call, visit_tag_table)
 	    )
-	),
+	).
+
+default_tag(M, DefTag:name) :<-
+	"Return default tag from current word"::
+	(   get(M, word, Word),
+	    send(regex('[a-zA-Z0-9_]*$'), match, Word)
+	->  DefTag = Word
+	;   DefTag = ''
+	).
+
+
+expand_tag(M, Tag:[name], TheTag:name) :<-
+	"Expand tag using tag-table"::
+	send(M, ensure_loaded_tags),
 	(   Tag == @default
 	->  get(M, word, DefTag),
 	    new(I, emacs_tag_item('Find tag', DefTag)),
@@ -354,22 +369,21 @@ expand_tag(M, Tag:[name], TheTag:name) :<-
 	).
 
 
-find_tag(M, Tag:[name], Editor:editor) :<-
+find_tag(M, Tag:emacs_tag, Editor:editor) :<-
 	"Jump to indicated tag entry"::
-	get(M, expand_tag, Tag, TheTag),
-	(   auto_call(emacs_tag(TheTag, File, Line)),
+	(   auto_call(emacs_tag(Tag, File, Line)),
 	    new(B, emacs_buffer(File)),
 	    send(B, open),
 	    get(B?editors, head, Editor),
 	    send(Editor, line_number, Line),
-	    adjust_tag(Editor, TheTag)
-	;   send(M, report, warning, 'Cannot find tag %s', TheTag),
+	    adjust_tag(Editor, Tag)
+	;   send(M, report, warning, 'Cannot find tag %s', Tag),
 	    fail
 	).
 
 
-find_tag(M, Tag:[name]) :->
-	"Jump to indicated tag entry"::
+find_tag(M, Tag:emacs_tag) :->
+	"Jump to entry from TAG table"::
 	ignore(get(M, find_tag, Tag, _)). % avoid delegation to menu-bar
 
 

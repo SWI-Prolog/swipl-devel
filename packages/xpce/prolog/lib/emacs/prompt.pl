@@ -15,6 +15,7 @@
 :- pce_autoload(behaviour_item,	       library('man/behaviour_item')).
 :- pce_autoload(directory_item,	       library('file_item')).
 :- pce_autoload(prolog_predicate_item, library(prolog_predicate_item)).
+:- pce_autoload(emacs_tag_item,	       library(emacs_tags)).
 
 resource(back,	image, image('16x16/fatleft_arrow.xpm')).
 resource(forw,	image, image('16x16/fatright_arrow.xpm')).
@@ -48,7 +49,11 @@ make_item(Mode, Label, Default, Type, _History, Item) :-
 	;   new(DefPath, string('%s', Mode?directory?path)),
 	    send(DefPath, ensure_suffix, /)
 	),
-	(   send(Type, includes, file)
+	(   (   send(Type, includes, file),
+		send(Type, includes, directory)
+	    )
+	->  new(Item, emacs_file_or_directory_item(Label, DefPath))
+	;   send(Type, includes, file)
 	->  new(Item, file_item(Label, DefPath))
 	;   new(Item, directory_item(Label, DefPath))
 	),
@@ -87,6 +92,16 @@ make_item(_Mode, Label, Default, Type, _History, Item) :-
 	send(Type, includes, prolog_predicate), !,
 	default(Default, '', Selection),
 	new(Item, prolog_predicate_item(Label, Selection)).
+					% Emacs tags
+make_item(Mode, Label, _Default, Type, History, Item) :-
+	get(Type, name, emacs_tag), !,
+	send(Mode, ensure_loaded_tags),
+	get(Mode, default_tag, DefTag),
+	new(Item, emacs_tag_item(Label, DefTag)),
+	(   History \== @default
+	->  send(Item, value_set, History)
+	;   true
+	).
 					% Anything else
 make_item(_Mode, Label, Default, Type, History, Item) :-
 	default(Default, '', Selection),
@@ -97,6 +112,23 @@ make_item(_Mode, Label, Default, Type, History, Item) :-
 	->  send(Item, value_set, History)
 	;   true
 	).
+
+
+:- pce_begin_class(emacs_file_or_directory_item, file_item,
+		   "Return file or directory object").
+
+selection(I, Sel:'file|directory') :<-
+	get_super(I, selection, Name),
+	new(Dir, directory(Name)),
+	(   send(Name, suffix, /)
+	->  Sel = Dir
+	;   send(Dir, exists)
+	->  Sel = Dir
+	;   free(Dir),
+	    new(Sel, file(Name))
+	).
+
+:- pce_end_class.
 
 
 		 /*******************************
