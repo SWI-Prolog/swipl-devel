@@ -145,6 +145,8 @@ main()
 },
 	     AC_MSG_RESULT(yes),
 	     AC_MSG_RESULT(no)
+	     LDFLAGS="$old_ldflags",
+	     AC_MSG_RESULT(no)
 	     LDFLAGS="$old_ldflags")
 else
   configloadforeign=yes
