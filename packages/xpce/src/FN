@@ -41,6 +41,23 @@ else
   fi
 fi
 
+
+function replace()
+{ if [ -e $2 ]; then
+    if cmp $1 $2 2>/dev/null; then
+      echo "$2: no change"
+      rm $1
+    else
+      mv $1 $2
+    fi
+  else
+    mv $1 $2
+  fi
+}
+
+
 if [ "$all" = true -o ! -z names/new ]; then
-  ./Names.Gen h/names.ic h/names.ih < names/all
+  ./Names.Gen h/names.ic.new h/names.ih.new < names/all
+  replace h/names.ic.new h/names.ic
+  replace h/names.ih.new h/names.ih
 fi

@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* MAINTAIN: Fixed src/FN not to touch the name database it it wasn't changed.
+
 VERSION 5.1.9, distributed with SWI-Prolog 4.0.10
 =================================================
 
