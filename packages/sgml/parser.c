@@ -3122,9 +3122,11 @@ update_space_mode(dtd_parser *p, dtd_element *e,
 
 static void
 empty_cdata(dtd_parser *p)
-{ empty_ocharbuf(p->cdata);
-  p->blank_cdata = TRUE;
-  p->cdata_must_be_empty = FALSE;
+{ if ( p->dmode == DM_DATA )
+  { empty_ocharbuf(p->cdata);
+    p->blank_cdata = TRUE;
+    p->cdata_must_be_empty = FALSE;
+  }
 }
 
 
@@ -3263,10 +3265,12 @@ prepare_cdata(dtd_parser *p)
 
       p->blank_cdata = blank;
       if ( !blank )
-	open_element(p, CDATA_ELEMENT, TRUE);
+      { if ( p->dmode == DM_DTD )
+	  gripe(ERC_SYNTAX_ERROR, "CDATA in DTD", p->cdata->data);
+	else
+	  open_element(p, CDATA_ELEMENT, TRUE);
+      }
     }
-  } else
-  { empty_cdata(p);
   }
 
   return TRUE;
@@ -3413,11 +3417,12 @@ end_document_dtd_parser(dtd_parser *p)
     case S_CDATA:
     case S_ECDATA1:
     case S_ECDATA2:
+    case S_EMSC1:
+    case S_EMSC2:
     case S_DECL:
     case S_STRING:
     case S_COMMENT:
     case S_GROUP:
-    case S_CLOSEMARK:
     case S_PENT:
     case S_ENT:
       return gripe(ERC_SYNTAX_ERROR,
@@ -3482,22 +3487,24 @@ a single \n for Windows newline conventions.
 
 static void
 add_cdata(dtd_parser *p, int chr, int verbatim)
-{ ocharbuf *buf = p->cdata;
+{ if ( p->mark_state == MS_INCLUDE )
+  { ocharbuf *buf = p->cdata;
 
-  if ( chr == '\n' && buf->size > 0 )
-  { if ( p->map && buf->data[buf->size-1] != '\r' )
-    { add_ocharbuf(buf, '\r');
-      match_shortref(p);
+    if ( chr == '\n' && buf->size > 0 )
+    { if ( p->map && buf->data[buf->size-1] != '\r' )
+      { add_ocharbuf(buf, '\r');
+	match_shortref(p);
+      }
+  
+      if ( buf->data[buf->size-1] == '\r' )
+	buf->size--;
     }
-
-    if ( buf->data[buf->size-1] == '\r' )
-      buf->size--;
+  
+    add_ocharbuf(buf, chr);
+  
+    if ( p->map && !verbatim )
+      match_shortref(p);
   }
-
-  add_ocharbuf(buf, chr);
-
-  if ( p->map && !verbatim )
-    match_shortref(p);
 }
 
 
@@ -3562,33 +3569,26 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	  return;
 	}
       }
-      if ( f[CF_DSC] == chr )		/* ] */
-      { if ( prev == chr )
-	{ pop_marked_section(p);
-	  p->state = S_CLOSEMARK;
-	}
-	return;				/* TBD: error if only one ] */
+      
+      if ( p->marked && f[CF_DSC] == chr ) /* ] in marked section */
+      { empty_icharbuf(p->buffer);
+	p->state = S_EMSC1;
+	p->saved = chr;			/* for recovery */
+	return;
       }
 					/* Real character data */
-      switch(p->dmode)
-      { case DM_DTD:
-	  if ( !HasClass(dtd, chr, CH_BLANK) )
-	    gripe(ERC_SYNTAX_ERROR, "Character data in DTD", "");
-	  return;
-	case DM_DATA:
-	  if ( p->blank_cdata == TRUE && !HasClass(dtd, chr, CH_BLANK) )
-	  { p->cdata_must_be_empty = !open_element(p, CDATA_ELEMENT, FALSE);
-	    p->blank_cdata = FALSE;
-	  }
-#ifdef UTF8
-	  if ( p->utf8_decode && ISUTF8_MB(chr) )
-	  { process_utf8(p, chr);
-	    return;
-	  }
-#endif
-	  add_cdata(p, dtd->charmap->map[chr], FALSE);
-	  return;
+      if ( p->blank_cdata == TRUE && !HasClass(dtd, chr, CH_BLANK) )
+      { p->cdata_must_be_empty = !open_element(p, CDATA_ELEMENT, FALSE);
+	p->blank_cdata = FALSE;
       }
+#ifdef UTF8
+      if ( p->utf8_decode && ISUTF8_MB(chr) )
+      { process_utf8(p, chr);
+	return;
+      }
+#endif
+      add_cdata(p, dtd->charmap->map[chr], FALSE);
+      return;
     }
     case S_ECDATA2:			/* Seen </ in CDATA */
     { if ( p->etaglen == p->buffer->size &&
@@ -3601,9 +3601,9 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	{ WITH_PUBLIC_PARSER(p,
 			     process_cdata(p, TRUE);
 			     process_end_element(p, p->buffer->data));
+	  empty_cdata(p);
 	}
 	empty_icharbuf(p->buffer);
-	empty_cdata(p);
 	p->state = S_PCDATA;
       } else
       { add_cdata(p, dtd->charmap->map[chr], TRUE);
@@ -3654,14 +3654,26 @@ putchar_dtd_parser(dtd_parser *p, int chr)
         p->state = S_MSCDATA;
       return;
     }
-    case S_CLOSEMARK:
-    { if ( f[CF_MDC] == chr )
-      { p->state = S_PCDATA;
+    case S_EMSC1:
+    { if ( f[CF_DSC] == chr )		/* ]] in marked section */
+      { p->state = S_EMSC2;
+	return;
+      } else
+      { add_icharbuf(p->buffer, chr);
+	recover_parser(p);
 	return;
       }
-      if ( !HasClass(dtd, chr, CH_BLANK) )
-	gripe(ERC_SYNTAX_ERROR, "Character data in DTD", "");
-      return;
+    }
+    case S_EMSC2:
+    { if ( f[CF_MDC] == chr )		/* ]]> in marked section */
+      { pop_marked_section(p);
+	p->state = S_PCDATA;
+	return;
+      } else
+      { add_icharbuf(p->buffer, chr);
+	recover_parser(p);
+	return;
+      }
     }
     case S_PENT:			/* %parameter entity; */
     { if ( f[CF_ERC] == chr )
@@ -3704,7 +3716,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
       break;
     }
     case S_DECL:			/* <...> */
-    { if ( f[CF_MDC] == chr )
+    { if ( f[CF_MDC] == chr )		/* > */
       { prepare_cdata(p);
 	p->state = S_PCDATA;
 	terminate_icharbuf(p->buffer);

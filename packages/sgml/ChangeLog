@@ -1,4 +1,6 @@
-* ADDED: Lead error reporting of sgml application through callback for
+* FIXED: Some issues in marked-section handling
+
+* ADDED: Direct error reporting of sgml application through callback for
   demo purposes.  Message now includes the current dialect.
 
 * FIXED: sgml application: do not convert case in XML mode.

@@ -66,13 +66,14 @@ typedef enum
   S_EMSCDATA2,				/* Seen ]] in S_MSCDATA */
   S_ECDATA1,				/* Seen < in CDATA */
   S_ECDATA2,				/* Seen </ in CDATA */
+  S_EMSC1,				/* Seen ] in marked section */
+  S_EMSC2,				/* Seen ]] in marked section */
   S_PI,					/* Seen <? */
   S_PI2,				/* Seen <?...? */
   S_DECL,				/* inside a declaration */
   S_STRING,				/* inside a "string" or 'string' */
   S_COMMENT,				/* inside a --comment-- */
   S_GROUP,				/* inside [...] */
-  S_CLOSEMARK,				/* seen ]] */
   S_PENT,				/* Seen % */
   S_ENT,				/* Seen & */
   S_SHORTTAG_CDATA			/* Seen <tag/ */
