@@ -183,7 +183,6 @@ char *		DisplayAtomToString(DisplayObj d, Atom a);
 Atom		FrameAtom(FrameObj fr, Name name);
 char *		FrameAtomToString(FrameObj fr, Atom a);
 Atom		WmProtocols(FrameObj fr);
-XtAppContext	pceXtAppContext(XtAppContext ctx);
 EventObj	CtoEvent(Any window, XEvent *event);
 unsigned long   getPixelColour(Colour c, DisplayObj d);
 void		setXImageImage(Image image, XImage *i);

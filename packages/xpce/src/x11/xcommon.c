@@ -82,8 +82,8 @@ extern XtAppContext _XtDefaultAppContext(void);
 #endif
 
 
-XtAppContext
-pceXtAppContext(XtAppContext ctx)
+void *
+pceXtAppContext(void * ctx)
 { if ( ThePceXtAppContext == NULL )
   { if ( ctx != NULL )
     { ThePceXtAppContext = ctx;
