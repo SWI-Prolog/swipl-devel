@@ -2351,12 +2351,14 @@ variable, compare the numbers otherwise.
 
 	deRef2(ARGP++, k);
 	if ( canBind(*k) )
-	{ Word p = allocGlobal(3);
+	{ Word p = allocGlobal(2+WORDS_PER_INT64);
 	  word c = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+	  int64_t val = (int64_t)(long)*PC++;
+	  Word vp = (Word)&val;
 
-	  p[0] = mkIndHdr(1, TAG_INTEGER);
-	  p[1] = (long)*PC++;
-	  p[2] = mkIndHdr(1, TAG_INTEGER);
+	  *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
+	  cpInt64Data(p, vp);
+	  *p = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
 	  bindConst(k, c);
 	  NEXT_INSTRUCTION;
 	} else if ( isBignum(*k) && valBignum(*k) == (long)*PC++ )
@@ -2457,12 +2459,14 @@ global stack and assign the pointer to *ARGP.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
     VMI(B_INTEGER) MARK(BINT)
-      { Word p = allocGlobal(3);
+      { Word p = allocGlobal(2+WORDS_PER_INT64);
+	int64_t val = (int64_t)(long)*PC++;
+	Word vp = (Word)&val;
 
 	*ARGP++ = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-	*p++ = mkIndHdr(1, TAG_INTEGER);
-	*p++ = (word)*PC++;
-	*p++ = mkIndHdr(1, TAG_INTEGER);
+	*p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
+	cpInt64Data(p, vp);
+	*p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
 	NEXT_INSTRUCTION;
       }  
 

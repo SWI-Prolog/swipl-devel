@@ -2347,7 +2347,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 	  continue;
 	}
       case H_INTEGER:
-        { word copy = globalLong(XR(*PC++) PASS_LD);
+        { word copy = globalLong((long)XR(*PC++) PASS_LD);
 	  TRY(_PL_unify_atomic(argp, copy));
 	  NEXTARG;
 	  continue;
@@ -2593,7 +2593,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    continue;
 	case B_INTEGER:
 	case A_INTEGER:
-			    *ARGP++ = makeNum(*PC++);
+			    *ARGP++ = makeNum((long)*PC++);
 			    continue;
 	case B_INT64:
 	case A_INT64:

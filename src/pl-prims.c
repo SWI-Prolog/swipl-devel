@@ -527,8 +527,8 @@ tail_recursion:
     cmpvars:
       return p1 < p2 ? LESS : p1 == p2 ? EQUAL : GREATER;
     case TAG_INTEGER:
-    { long l1 = valInteger(w1);
-      long l2 = valInteger(w2);
+    { int64_t l1 = valInteger(w1);
+      int64_t l2 = valInteger(w2);
 
       return l1 < l2 ? LESS : l1 == l2 ? EQUAL : GREATER;
     }

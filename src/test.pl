@@ -746,12 +746,16 @@ mkterm(T) :-
 	current_prolog_flag(max_tagged_integer, X),
 	BigNum is X * 3,
 	NegBigNum is -X*5,
+	current_prolog_flag(max_integer, MaxInt),
+	current_prolog_flag(min_integer, MinInt),
 	T = term(atom,			% an atom
 		 S,			% a string
 		 1,			% an integer
 		 BigNum,		% large integer
 		 -42,			% small negative integer
 		 NegBigNum,		% large negative integer
+		 MaxInt,
+		 MinInt,
 		 3.4,			% a float
 		 _,			% a singleton
 		 A, A,			% a shared variable
@@ -806,6 +810,36 @@ record(erase-2) :-
 	erase(Ref),
 	findall(X, a(X), Xs),
 	Xs = [].
+
+
+		 /*******************************
+		 *	    ASSERT/RETRACT	*
+		 *******************************/
+
+:- dynamic
+	compiler_test/1.
+
+compiler(assert-1) :-
+	mkterm(T0),
+	assert(compiler_test(T0)),
+	compiler_test(T),
+	T0 =@= T,
+	retractall(compiler_test(_)).
+compiler(assert-2) :-
+	mkterm(T0),
+	assert((compiler_test(X) :- X = T0)),
+	compiler_test(T),
+	T0 =@= T,
+	retractall(compiler_test(_)).
+compiler(assert-3) :-
+	mkterm(T0),
+	assert(compiler_test(T0)),
+	retract(compiler_test(T)),
+	T0 =@= T.
+compiler(assert-4) :-
+	mkterm(T0),
+	assert(compiler_test(T0)),
+	retract(compiler_test(T0)).
 
 
 		 /*******************************
@@ -1748,6 +1782,7 @@ testset(string_handling).
 testset(proc).
 testset(cl).
 testset(record).
+testset(compiler).
 testset(flag).
 testset(update).
 testset(gc).
