@@ -50,7 +50,7 @@ static atom_t	operatorTypeToAtom(int type);
 		 *******************************/
 
 typedef struct _operator		/* storage in tables */
-{ char	type[3];
+{ unsigned char	type[3];
   short priority[3];
 } operator;
 

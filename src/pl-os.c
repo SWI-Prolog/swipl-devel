@@ -1798,8 +1798,11 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 	tio.c_lflag |= ISIG;
 #else
 	tio.c_lflag &= ~(ECHO|ICANON);
-	tio.c_cc[VTIME] = 0, tio.c_cc[VMIN] = 1;
 #endif
+					/* OpenBSD requires this anyhow!? */
+					/* Bug in OpenBSD or must we? */
+					/* Could this do any harm? */
+	tio.c_cc[VTIME] = 0, tio.c_cc[VMIN] = 1;
 	break;
     case TTY_OUTPUT:
 	tio.c_oflag |= (OPOST|ONLCR);
