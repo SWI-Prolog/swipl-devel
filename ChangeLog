@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.7.13
+==============
+
+  * ADDED: mode update for open/[3,4] to write at any location in an
+    existing file. 
+
 Version 2.7.12
 ==============
 
