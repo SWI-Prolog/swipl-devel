@@ -1,3 +1,6 @@
+* ENHANCED: Win32: Use same bitmap-scaling as the X11 version.  This produces
+  much better results than the MS BitBlt() operations.
+
 * FIXED: Win32: Various issues in colour-handling.  Properly distinguish
   between palette usage and direct RGB, fixing colour distortion on
   high- and true-colour displays and added proper colormap support to

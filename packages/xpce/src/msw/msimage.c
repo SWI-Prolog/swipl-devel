@@ -486,6 +486,7 @@ ws_attach_xpm_image(Image image, XpmImage* xpmimg, XpmInfo* xpminfo)
   { d = CurrentDisplay(image);
     assign(image, display, d);
   }
+  openDisplay(d);
 
   memset(atts, 0, as);
   
@@ -1085,6 +1086,13 @@ ws_scale_image(Image image, int w, int h)
 
 #else /*USE_MS_ZOOM*/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Using BitBlt() based zoom looks simple, but  in fact produces really bad
+results. The below algorithm is ported   from ../x11/ximage.c, where the
+original source is documented. It  is  not   perfect,  but  surely a lot
+better.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static unsigned int *
 buildIndex(unsigned width, unsigned rwidth)
 { float         fzoom;
@@ -1129,31 +1137,33 @@ ws_scale_image(Image image, int w, int h)
 
     if ( sbm )
     { HPALETTE ohpalsrc=0, ohpaldst=0, hpal;
-      HDC hdcsrc   = CreateCompatibleDC(NULL);
-      HDC hdcdst   = CreateCompatibleDC(hdcsrc);
+      HDC hdcsrc, hdcdst;
       HBITMAP osbm, dbm, odbm;
-
-      osbm = ZSelectObject(hdcsrc, sbm);
-       dbm = ZCreateCompatibleBitmap(hdcsrc, w, h);
-      odbm = ZSelectObject(hdcdst, dbm);
 
       if ( instanceOfObject(d->colour_map, ClassColourMap) )
 	hpal = getPaletteColourMap(d->colour_map);
       else
 	hpal = NULL;
-    
+
+      hdcsrc = CreateCompatibleDC(NULL);
+      osbm   = ZSelectObject(hdcsrc, sbm);
       if ( hpal )
       { ohpalsrc = SelectPalette(hdcsrc, hpal, FALSE);
-	ohpaldst = SelectPalette(hdcdst, hpal, FALSE);
 	RealizePalette(hdcsrc);
+      }
+      hdcdst = CreateCompatibleDC(hdcsrc);
+      dbm    = ZCreateCompatibleBitmap(hdcsrc, w, h);
+      odbm   = ZSelectObject(hdcdst, dbm);
+      if ( hpal )
+      { ohpaldst = SelectPalette(hdcdst, hpal, FALSE);
 	RealizePalette(hdcdst);
       }
       
       { unsigned int *xindex, *yindex;
 	unsigned int  x, y, xsrc, ysrc;
 
-	xindex = buildIndex(valInt(image->size->width),  w);
-	yindex = buildIndex(valInt(image->size->height), h);
+	xindex = buildIndex(valInt(image->size->w),  w);
+	yindex = buildIndex(valInt(image->size->h), h);
 
 	for(y = 0; y < (unsigned int) h; y++)
 	{ ysrc = yindex[y];
@@ -1163,7 +1173,17 @@ ws_scale_image(Image image, int w, int h)
 	    xsrc = xindex[x];
 
 	    value = GetPixel(hdcsrc, xsrc, ysrc);
-	    PutPixel(hdcdst, x, y, value);
+	    if ( hpal )
+	    { int r = GetRValue(value);
+	      int g = GetGValue(value);
+	      int b = GetBValue(value);
+
+	      value = PALETTERGB(r, g, b);
+	      /* value |= 0x02000000; is the same, but there is no
+	         significant improvement, so lets keep it portable
+	       */
+	    }
+	    SetPixel(hdcdst, x, y, value);
 	  }
 	}
 
