@@ -268,6 +268,7 @@ void *alloca ();
 #include <string.h>
 #include <stddef.h>
 #include <stdarg.h>
+#include <limits.h>
 
 #ifdef HAVE_SIGNAL
 #include <signal.h>
