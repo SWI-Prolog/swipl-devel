@@ -102,10 +102,15 @@ AC_ARG_ENABLE(mapped-stacks, [  --disable-mapped-stacks Do not use mmap for stac
 	      configmmappedstacks="$enableval",
 	      configmmappedstacks=yes)
 
-AC_ARG_ENABLE(segv-handling, [  --disable-segv-handling Do not use SIGSEGV to guard stacks],
-	      if test "$enableval" = "no"; then
-	          AC_DEFINE(NO_SEGV_HANDLING)
+segvhandling=no
+AC_ARG_ENABLE(segv-handling, [  --enable-segv-handling Use SIGSEGV to guard stacks],
+	      if test "$enableval" = "yes"; then
+	          segvhandling=yes
 	      fi)
+
+if test "$segvhandling" = "no"; then
+  AC_DEFINE(NO_SEGV_HANDLING)
+fi
 
 dnl ****************************************************************
 dnl Checking for GNU make vpath construct
