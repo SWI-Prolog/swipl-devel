@@ -42,15 +42,15 @@
 %	rid of them.
 
 threads :-
-	format('~*t~40|~n', "-"),
-	format('~t~w~8|  ~w~32|~n', ['Thread', 'Status']),
-	format('~*t~40|~n', "-"),
+	format('~*t~60|~n', "-"),
+	format('~t~w~20|  ~w~32|~n', ['Thread', 'Status']),
+	format('~*t~60|~n', "-"),
 	current_thread(Id, Status),
-	format('~t~w~8|  ~p~32|~n', [Id, Status]),
+	format('~t~w~20|  ~p~32|~n', [Id, Status]),
 	rip_thread(Status, Id),
 	fail.
 threads :-
-	format('~*t~40|~n', "-").
+	format('~*t~60|~n', "-").
 
 rip_thread(running, _) :- !.
 rip_thread(_Status, Id) :-
