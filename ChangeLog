@@ -1,6 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 3.3.0 (release-3)
+=========================
+
+  * PORT: HTML Manual: renamed Index.html to DocIndex.html and place
+    the titlepage in index.html.  Should fix problems with systems 
+    with case-insensitive files and without links (e.i. Windows).
+
   * ADDED: ISO predicates close/2, unify_with_occurs_check/2,
     stream_property/2, sub_atom/5.  Moved stream_position/3 and
     current_stream/3 from built-in to library(quintus).
