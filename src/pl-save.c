@@ -121,6 +121,7 @@ extern long _heap_end;
 #endif /* OS2 */
 
 extern char **environ;
+extern char **etext;
 
 #ifndef DATA_START
 #ifndef FIRST_DATA_SYMBOL

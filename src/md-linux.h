@@ -36,16 +36,15 @@ Wed Jun 30 22:03:41 1993
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define M_CC			gcc
-#define M_OPTIMIZE	        -O6
+#define M_OPTIMIZE	        -O2
 /*#define M_OPTIMIZE		-g*/
-#define M_LDFLAGS		
+#define M_LDFLAGS		-static
 #define M_CFLAGS		-funsigned-char
 #define M_LIBS			-lm -ltermcap -lreadline
 
-#define v7			1	/* Mostly v7 unix */
-
 			/* compiler */
 #define ANSI			1
+#define USG			1
 #define O_NO_LEFT_CAST		0
 #define O_NO_VOID_POINTER	0
 #define O_SHORT_SYMBOLS		0
@@ -63,7 +62,8 @@ Wed Jun 30 22:03:41 1993
 #define O_FOREIGN		1
 #define LD_OPT_ADDR		"-T 0x%x"
 #define O_SAVE			1
-#define FIRST_DATA_SYMBOL	etext
+#define DATA_START		((long) &etext + sizeof(long))
+/*#define FIRST_DATA_SYMBOL	etext*/
 #define DEFAULT_PATH		":.:/bin:/usr/bin:/usr/local/bin:";
 #define SIGNAL_HANDLER_TYPE	void
 #define O_STRUCT_DIRECT		0
@@ -73,7 +73,7 @@ Wed Jun 30 22:03:41 1993
 #define O_GETCWD		1
 
 			/* terminal driver */
-#define O_READLINE		0
+#define O_READLINE		1
 #define O_TERMIOS 		1
 #define O_FOLD 			0
 
