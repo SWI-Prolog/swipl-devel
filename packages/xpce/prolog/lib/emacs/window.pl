@@ -184,15 +184,19 @@ prompt_using(F, Item:dialog_item, Rval:unchecked) :<-
 	get(F, confirm, Return),
 	object(F),			% may be freed!
 
+	(   Return == ok
+	->  get(Item, selection, Rval)
+	;   true
+	),
+
 	send(Item, message, @nil),
-	send(W, prompter, @nil),
+	send(Item, lock_object, @on),	% Tricky, but we should leave the
+	send(W, prompter, @nil),	% lifetime to the caller
+	get(Item, unlock, Item),
 	get(F, member, view, View),
 	send(F, keyboard_focus, View),
 	send(MB, active, @on),
-
-	Return \== canceled,
-
-	get(Item, selection, Rval).
+	Return == ok.
 
 reset(F) :->
 	"Remove prompter"::
