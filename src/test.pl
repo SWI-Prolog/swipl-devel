@@ -313,10 +313,7 @@ cl(clause-4) :-
 cl(clause-5) :-
 	clause(tcl(H), b(a)), H == a(a).
 cl(clause-6) :-
-	clause(mtcl:tcl(H), a), H == a.
-
-
-
+	clause(mtcl:tcl(H), user:a), H == a.
 
 
 		 /*******************************

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 3.3.0 (release-6)
+=========================
+
   * FIXED: Problem in the debugger, leading to a possible crash on the exit
     port (very complicated conditions).
 
