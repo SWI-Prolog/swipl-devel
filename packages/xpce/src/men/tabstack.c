@@ -150,8 +150,9 @@ layoutDialogTabStack(TabStack ts, Size s)
   Tab first;
   Cell cell;
 
-  if ( !(first = getHeadChain(ts->graphicals)) ||
-       !instanceOfObject(first, ClassTab) )
+  if ( !(first = getHeadChain(ts->graphicals)) )
+    succeed;				/* empty stack */
+  if ( !instanceOfObject(first, ClassTab) )
     fail;
 
   if ( isDefault(s) )

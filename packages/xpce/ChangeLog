@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* MODIFIED: `tab_stack->layout_dialog' to succeed if the stack is empty.
+
 * ADDED: Allow non-editing interaction (select, scroll) on text_items that
   handle editable: @off.  By Amir ?
 
