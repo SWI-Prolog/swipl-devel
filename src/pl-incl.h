@@ -1352,6 +1352,7 @@ typedef struct
 #define OPT_STRING	(2)
 #define OPT_ATOM	(3)
 #define OPT_TERM	(4)		/* arbitrary term */
+#define OPT_LONG	(5)
 
 #define OPT_ALL		0x1		/* flags */
 

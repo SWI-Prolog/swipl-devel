@@ -152,6 +152,7 @@ Variable argument list:
 
 	atom_t	name
 	int	type	OPT_ATOM, OPT_STRING, OPT_BOOL, OPT_INT
+	long            OPT_LONG
 	pointer	value
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -159,7 +160,8 @@ Variable argument list:
 
 typedef union
 { bool *b;				/* boolean value */
-  long *i;				/* integer value */
+  long *l;				/* integer value */
+  int  *i;				/* integer value */
   char **s;				/* string value */
   word *a;				/* atom value */
   term_t *t;				/* term-reference */
@@ -225,7 +227,13 @@ scan_options(term_t options, int flags, atom_t optype,
 	    break;
 	  }
 	  case OPT_INT:
-	  { if ( !PL_get_long(val, values[n].i) )
+	  { if ( !PL_get_integer(val, values[n].i) )
+	      goto itemerror;
+
+	    break;
+	  }
+	  case OPT_LONG:
+	  { if ( !PL_get_long(val, values[n].l) )
 	      goto itemerror;
 
 	    break;

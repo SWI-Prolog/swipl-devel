@@ -375,10 +375,10 @@ threadName(int id)
 
 
 static const opt_spec make_thread_options[] = 
-{ { ATOM_local,		OPT_INT },
-  { ATOM_global,	OPT_INT },
-  { ATOM_trail,	        OPT_INT },
-  { ATOM_argument,	OPT_INT },
+{ { ATOM_local,		OPT_LONG },
+  { ATOM_global,	OPT_LONG },
+  { ATOM_trail,	        OPT_LONG },
+  { ATOM_argument,	OPT_LONG },
   { ATOM_alias,		OPT_ATOM },
   { ATOM_detached,	OPT_BOOL },
   { NULL_ATOM,		0 }
