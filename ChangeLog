@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: crash if a complex goal-argument to a meta-calling predicate
+    (call/1, findall/3, etc.) is deterministic upto the last call (so
+    this is executed tail-recursively).  This patch also applies to
+    executing and removed dynamic predicates.  Thanks to Uwe Lesta.
+
 VERSION 3.3.4
 =============
 
