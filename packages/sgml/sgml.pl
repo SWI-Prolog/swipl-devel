@@ -49,17 +49,18 @@ load_foreign :-
 load_foreign :-
 	load_foreign_library(foreign(sgml2pl)).
 
-init :-
-	load_foreign,
-	(   absolute_file_name(dtd('HTML'),
+register_catalog(Base) :-
+	absolute_file_name(dtd(Base),
 			       [ extensions([soc]),
 				 access(read),
 				 file_errors(fail)
 			       ],
-			       SocFile)
-	->  sgml_register_catalog_file(SocFile, end)
-	;   true
-	).
+			       SocFile),
+	sgml_register_catalog_file(SocFile, end).
+
+init :-
+	load_foreign,
+	ignore(register_catalog('HTML4')).
 
 :- initialization
 	init.
