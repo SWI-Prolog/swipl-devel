@@ -58,7 +58,7 @@ parse_url(+URL, -Parts)
         protocol	All protocols
 	host		Network based protocols
 	port		Network based protocols
-	path		file,http,ftp
+	path		file<,http,ftp
 	search		http
         fragment	http
 
@@ -144,7 +144,10 @@ curl(A0) -->
 	curl(Protocol, A1).
 
 curl(file, A) -->
-	cpart(path, "", A).
+	(   "//"
+	->  cpart(path, "", A)
+	;   cpart(path, "", A)
+	).
 curl(http, A) -->
 	"//",
 	cpart(host, "", A),
