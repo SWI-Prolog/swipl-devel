@@ -1488,6 +1488,7 @@
   BUILTIN_NAME("not_equal")
   BUILTIN_NAME("not_has_value")
   BUILTIN_NAME("not_implemented")
+  BUILTIN_NAME("not_initialised")
   BUILTIN_NAME("not_obtained")
   BUILTIN_NAME("not_open")
   BUILTIN_NAME("not_open_file")

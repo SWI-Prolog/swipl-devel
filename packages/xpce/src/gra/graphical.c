@@ -122,6 +122,9 @@ status
 deviceGraphical(Any obj, Device dev)
 { Graphical gr = obj;
 
+  if ( isNil(dev->graphicals) )
+    return errorPce(dev, NAME_notInitialised);
+
   if ( notNil(gr->device) )
     eraseDevice(gr->device, gr);
 

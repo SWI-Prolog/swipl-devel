@@ -657,6 +657,9 @@ static const error_def errors[] =
   { NAME_runtimeVersion,	0,
     "%N: operation not supported in runtime system"
   },
+  { NAME_notInitialised,	0,
+    "%O: Object is not initialised"
+  },
 
 					/* Tables/layout managament */
   { NAME_spannedRow,	0,	/* tables */
