@@ -1704,7 +1704,9 @@ set_dynamic_procedure(Procedure proc, bool isdyn)
 
   if ( isdyn )				/* static --> dynamic */
   { if ( def->definition.clauses )
+    { UNLOCK();
       return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
+    }
     set(def, DYNAMIC);
     if ( SYSTEM_MODE )
       set(def, SYSTEM|HIDE_CHILDS);
@@ -2370,28 +2372,6 @@ checkDefinition(Definition def)
     }
   }
 }
-
-
-#if 0
-void
-check_t5rdb()
-{ Procedure proc = PL_predicate("t5rdb", 7, "user");
-  Definition def = proc->definition;
-  static struct clause_index ci;
-
-  if ( def->hash_info )
-  { if ( ci.buckets != def->hash_info->buckets ||
-         ci.entries != def->hash_info->entries )
-    { Sdprintf("%d buckets at %p\n",
-	       def->hash_info->buckets,
-	       def->hash_info->entries);
-      ci = *def->hash_info;
-    }
-  }
-
-  checkDefinition(def);
-}
-#endif
 
 
 foreign_t
