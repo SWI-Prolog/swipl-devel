@@ -89,6 +89,8 @@ $run_at_initialisation.
 		*        TOPLEVEL GOALS         *
 		*********************************/
 
+:- flag($banner_goal, _, $welcome).
+
 $init :-
 	$init_return,
 	$toplevel.
@@ -96,14 +98,18 @@ $init :-
 $init_return :-
 	$check_novice, 
 	$clean_history,
+	$load_system_init_file,
 	$load_gnu_emacs_interface,
 	$option(init_file, File, File), 
 	$load_init_file(File), 
-	$load_system_init_file,
 	$run_at_initialisation,
 	$option(goal, GoalAtom, GoalAtom), 
 	term_to_atom(Goal, GoalAtom), 
-	ignore(user:Goal).
+	(   Goal == $welcome
+	->  flag($banner_goal, TheGoal, TheGoal)
+	;   TheGoal = Goal
+	),
+	ignore(user:TheGoal).
 
 $abort :-
 	see(user), 

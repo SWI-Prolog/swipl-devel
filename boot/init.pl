@@ -408,7 +408,10 @@ $make_path(Dir, File, Path) :-
 $check_file(0, _) :- !, fail.			% deal with variables
 $check_file(user, user) :- !.
 $check_file(File, Absolute) :-
+	flag($compiling, database, database), !,
 	$chk_file(File, ['.qlf', '.pl', ''], Absolute).
+$check_file(File, Absolute) :-
+	$chk_file(File, ['.pl', ''], Absolute).
 
 $chk_file(Spec, Extensions, FullName) :-
 	functor(Spec, Alias, 1),
