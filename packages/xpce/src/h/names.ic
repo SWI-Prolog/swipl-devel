@@ -2327,3 +2327,5 @@
   BUILTIN_NAME("yref_var")
   BUILTIN_NAME("zoom")
   BUILTIN_NAME("is_apply")
+  BUILTIN_NAME("prompt")
+  BUILTIN_NAME("win_file_name")
