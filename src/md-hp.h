@@ -40,6 +40,7 @@ Integrated O_FOREIGN support sent to me by Dave	Sherratt.
 
 #define MACHINE			"hp"
 #define OPERATING_SYSTEM	"hpux"
+#define O_SAVE			1
 
 #if MAKE_SECTION
 #ifndef __GNUC__
@@ -85,7 +86,6 @@ Integrated O_FOREIGN support sent to me by Dave	Sherratt.
 #define STACK_BASE_ALIGN	1	/* i.e. do not align */
 #define O_FOREIGN		1
 #endif
-#define O_SAVE			1
 #define O_GETCWD		1
 #define DEFAULT_PATH		":/usr/ucb:/bin:/usr/bin:/usr/local:.:";
 			/* terminal driver */

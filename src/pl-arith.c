@@ -306,7 +306,11 @@ realExceptionHandler(sig, type, scp, addr)
 int sig, type;
 SIGNAL_CONTEXT_TYPE scp;
 char *addr;
-{ if ( status.arithmetic > 0 )
+{
+#if O_SIG_AUTO_RESET
+  signal(sig, realExceptionHandler);
+#endif
+  if ( status.arithmetic > 0 )
   { warning("Floating point exception");
 
     pl_abort();
@@ -419,15 +423,15 @@ Number r;
     return V_INTEGER;
   }
   if (isReal(*t) )
-  { long i;
+  { r->f = valReal(*t);
+    if ( r->f >= PLMININT && r->f <= PLMAXINT )
+    { long i = (long) r->f;
 
-    r->f = valReal(*t);
-    i = (long) r->f;
-    if ( r->f == (real)i && r->f >= (real)PLMININT && r->f <= (real)PLMAXINT )
-    { r->i = i;
+      if ( r->f == (real)i )
+      { r->i = i;
       return V_INTEGER;
+      }
     }
-
     return V_REAL;
   }
 
@@ -469,11 +473,13 @@ Number r;
     status.arithmetic--;
 
     if ( type == V_REAL )
-    { long i = (long) r->f;
+    { if ( r->f >= PLMININT && r->f <= PLMAXINT )
+      { long i = (long) r->f;
 
-      if ( r->f == (real)i && r->f >= (real)PLMININT && r->f <= (real)PLMAXINT )
-      { r->i = i;
-	return V_INTEGER;
+	if ( r->f == (real)i )
+	{ r->i = i;
+	  return V_INTEGER;
+	}
       }
     }
 
