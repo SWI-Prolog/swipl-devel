@@ -1064,15 +1064,18 @@ resetPce(Pce pce)
 
 static status
 diePce(Pce pce, Int rval)
-{ if ( isDefault(rval) )
-    rval = ZERO;
-
-  callExitMessagesPce(valInt(rval), pce);
-
-  hostAction(HOST_HALT, valInt(rval));
+{ static int dying = FALSE;
+  int rv = isDefault(rval) ? 0 : valInt(rval);
+    
+  if ( !dying++ )			/* avoid loops */
+  { callExitMessagesPce(rv, pce);
+    
+    hostAction(HOST_HALT, rv);
 					/* should not get here */
-  killAllProcesses();			/* should be done by above */
-  exit(valInt(rval));
+    killAllProcesses(rv);		/* should be done by above */
+  }
+
+  exit(rv);
   fail;					/* should not be reached */
 }
 
@@ -1685,6 +1688,7 @@ pceInitialise(int handles, const char *home, int argc, char **argv)
   ObjectHyperTable      = objectAttributeTable(NAME_objectHyperTable);
 
   name_procent_s	= CtoName("%s");
+  name_cxx		= CtoName("C++");
 
   DEBUG_BOOT(Cprintf("Building class definitions"));
   initClassDefs();
@@ -1734,10 +1738,8 @@ pceInitialise(int handles, const char *home, int argc, char **argv)
   featurePce(PCE, NAME_socket);
 #endif
 
-  DEBUG_BOOT(Cprintf("C++ global objects\n"));
-#if O_CPLUSPLUS
-  initCPlusPlusGlobals();
-#endif
+  DEBUG_BOOT(Cprintf("C/C++ global objects\n"));
+  initCGlobals();
   if ( home )
     send(PCE, NAME_home, CtoName(home), 0);
 

@@ -300,6 +300,12 @@ XPCE_to_real(float value)
 
 
 XPCE_Object
+XPCE_to_pointer(void *ptr)
+{ return answerObjectv(ClassCPointer, 1, &ptr);
+}
+
+
+XPCE_Object
 XPCE_to_object(XPCE_Object name)
 { if ( isName(name) )
     return getObjectFromReferencePce(PCE, name);
@@ -347,6 +353,18 @@ XPCE_float_of(XPCE_Object real)
 
   errorPce(CtoType("real"), NAME_cannotConvert, real);
   return 0.0;	/*NaN;*/
+}
+
+
+void *
+XPCE_pointer_of(XPCE_Object cptr)
+{ if ( instanceOfObject(cptr, ClassCPointer) )
+  { CPointer ptr = (CPointer)cptr;
+
+    return ptr->pointer;
+  }
+
+  return NULL;
 }
 
 
@@ -594,6 +612,24 @@ XPCE_defclass(XPCE_Object name, XPCE_Object super, XPCE_Object summary,
 }
 
 
+XPCE_Object
+XPCE_defcxxclass(XPCE_Object name, XPCE_Object super, XPCE_Object summary,
+		 XPCE_Procedure makefunc)
+{ if ( name && super && summary && makefunc )
+  { Class class;
+
+    if ( (class = defineClass(name, super, summary, (SendFunc)makefunc)) )
+    { setDFlag(class, D_CXX);
+      assign(class, creator, name_cxx);
+      numberTreeClass(ClassObject, 0);
+      answer(class);
+    }
+  }
+
+  fail;
+}
+
+
 
 XPCE_Object				/* class */
 XPCE_makeclass(XPCE_Object name, XPCE_Object super, XPCE_Object summary)
@@ -649,8 +685,6 @@ NoCode()
 }
 
 
-#define CPLUSPLUS_MASK 01L
-
 XPCE_status
 XPCE_defsendmethodv(XPCE_Object class,
 		    XPCE_Object name, XPCE_Object group, XPCE_Object summary,
@@ -668,7 +702,8 @@ XPCE_defsendmethodv(XPCE_Object class,
 		     NoCode(),		/* hack to avoid type-conflict */
 		     summary, DEFAULT, group, 0);
   assign(method, message, NIL);
-  method->function = (Func) ((ulong)implementation | CPLUSPLUS_MASK);
+  setDFlag(method, D_CXX);
+  method->function = (Func)implementation;
 
   return sendMethodClass(class, method);
 }
@@ -691,7 +726,8 @@ XPCE_defgetmethodv(XPCE_Object class,
 		     Arg(1),		/* hack to avoid type-conflict */
 		     summary, DEFAULT, group, 0);
   assign(method, message, NIL);
-  method->function = (Func) ((ulong)implementation | CPLUSPLUS_MASK);
+  setDFlag(method, D_CXX);
+  method->function = (Func)implementation;
 
   return getMethodClass(class, method);
 }
@@ -750,6 +786,50 @@ XPCE_cell_value(XPCE_Object cell)
   fail;
 }
 
+		 /*******************************
+		 *	       GLOBALS		*
+		 *******************************/
+
+Any XPCE_on;
+Any XPCE_off;
+Any XPCE_nil;
+Any XPCE_default;
+Any XPCE_arg1;
+Any XPCE_arg2;
+Any XPCE_arg3;
+Any XPCE_arg4;
+Any XPCE_arg5;
+Any XPCE_arg6;
+Any XPCE_arg7;
+Any XPCE_arg8;
+Any XPCE_arg9;
+Any XPCE_arg10;
+Any XPCE_event;
+Any XPCE_receiver;
+Any XPCE_pce;
+Any XPCE_display;
+
+void
+initCGlobals()
+{ XPCE_on	= ON;
+  XPCE_off	= OFF;
+  XPCE_nil	= NIL;
+  XPCE_default	= DEFAULT;
+  XPCE_arg1	= Arg(1);
+  XPCE_arg2	= Arg(2);
+  XPCE_arg3	= Arg(3);
+  XPCE_arg4	= Arg(4);
+  XPCE_arg5	= Arg(5);
+  XPCE_arg6	= Arg(6);
+  XPCE_arg7	= Arg(7);
+  XPCE_arg8	= Arg(8);
+  XPCE_arg9	= Arg(9);
+  XPCE_arg10	= Arg(10);
+  XPCE_event	= EVENT;
+  XPCE_receiver = RECEIVER;
+  XPCE_pce	= PCE;
+  XPCE_display  = findGlobal(NAME_display);
+}
 
 		 /*******************************
 		 *	    C++ SUPPORT		*

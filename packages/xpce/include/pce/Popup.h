@@ -4,13 +4,13 @@
     Designed and implemented by Anjo Anjewierden and Jan Wielemaker
     E-mail: jan@swi.psy.uva.nl
 
-    Copyright (C) 1993 University of Amsterdam. All rights reserved.
+    Copyright (C) 1993-1997 University of Amsterdam. All rights reserved.
 */
 
 #ifndef _PCE_POPUP_H
 #define _PCE_POPUP_H
 
-extern Any ClassPopup;
+PceExternalClass(ClassPopup);
 class PcePopup :public PceObject
 {
 public:

@@ -4,13 +4,13 @@
     Designed and implemented by Anjo Anjewierden and Jan Wielemaker
     E-mail: jan@swi.psy.uva.nl
 
-    Copyright (C) 1993 University of Amsterdam. All rights reserved.
+    Copyright (C) 1993-1997 University of Amsterdam. All rights reserved.
 */
 
 #ifndef _PCE_LINE_H
 #define _PCE_LINE_H
 
-extern Any ClassLine;
+PceExternalClass(ClassLine);
 class PceLine :public PceObject
 {
 public:

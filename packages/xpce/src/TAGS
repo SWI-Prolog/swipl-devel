@@ -4113,23 +4113,23 @@ succeedPce(982,18649
 benchPce(989,18716
 resetPce(1039,19956
 diePce(1066,20351
-getPostscriptHeaderPce(1081,20665
-getInstancePcev(1092,20838
-getConvertPce(1098,20956
-makeClassUsingCode(1104,21054
-defineClassPce(1113,21223
-getObjectFromReferencePce(1138,21862
-forNameReferencePce(1157,22142
-renameReferencePce(1163,22227
-getVersionPce(1169,22322
-#define rc_pce 1421,33371
-makeClassPce(1439,33633
-objectAttributeTable(1457,33970
-pceInitialise(1466,34123
-  if ( !iswin32s(1730,41135
-  if 1760,41739
-#define MAXPATHLEN 1776,42072
-#define check_passwd 1780,42116
+getPostscriptHeaderPce(1085,20725
+getInstancePcev(1096,20898
+getConvertPce(1102,21016
+makeClassUsingCode(1108,21114
+defineClassPce(1117,21283
+getObjectFromReferencePce(1142,21922
+forNameReferencePce(1161,22202
+renameReferencePce(1167,22287
+getVersionPce(1173,22382
+#define rc_pce 1425,33431
+makeClassPce(1443,33693
+objectAttributeTable(1461,34030
+pceInitialise(1470,34183
+  if ( !iswin32s(1734,41195
+  if 1764,41799
+#define MAXPATHLEN 1780,42132
+#define check_passwd 1784,42176
 
 ker/sendmethod.c,233
 #define INLINE_UTILITIES 10,249
@@ -5945,34 +5945,34 @@ child_changed(171,4655
 #define wait_t 178,4775
 #define wait_t 180,4807
 killAllProcesses(233,6084
-setupProcesses(247,6299
-initialiseProcess(274,6871
-unlinkProcess(292,7272
-pidProcess(305,7532
-doneProcess(316,7669
-closeInputProcess(327,7793
-initEnvironment(342,8044
-getEnvironmentProcess(364,8539
-environmentProcess(389,9100
-#define CHILD_BASE	405,9601
-#define CHILD_NOPTY	406,9625
-#define CHILD_NOEXEC	407,9661
-openProcess(410,9713
-killProcess(596,14005
-stoppedProcess(629,14518
-killedProcess(640,14737
-exitedProcess(656,15122
-endOfFileProcess(692,15938
-useTtyProcess(702,16098
-directoryProcess(713,16263
-#define rc_process 796,19188
-makeClassProcess(813,19482
-getMaster(829,19789
-getSlave(881,20653
-copyTty(897,21049
-#define ECHOCTL 916,21458
-#define TCSETS 955,22408
-#define TCSETS 957,22455
+setupProcesses(247,6305
+initialiseProcess(274,6877
+unlinkProcess(292,7278
+pidProcess(305,7538
+doneProcess(316,7675
+closeInputProcess(327,7799
+initEnvironment(342,8050
+getEnvironmentProcess(364,8545
+environmentProcess(389,9106
+#define CHILD_BASE	405,9607
+#define CHILD_NOPTY	406,9631
+#define CHILD_NOEXEC	407,9667
+openProcess(410,9719
+killProcess(596,14011
+stoppedProcess(629,14524
+killedProcess(640,14743
+exitedProcess(656,15128
+endOfFileProcess(692,15944
+useTtyProcess(702,16104
+directoryProcess(713,16269
+#define rc_process 796,19194
+makeClassProcess(813,19488
+getMaster(829,19795
+getSlave(881,20659
+copyTty(897,21055
+#define ECHOCTL 916,21464
+#define TCSETS 955,22414
+#define TCSETS 957,22461
 
 unx/socket.c,898
 #define HAVE_SYS_UN_H 25,528
@@ -5987,26 +5987,26 @@ SockError(125,3348
 #define SocketHandle(SocketHandle145,3717
 #define SockError(SockError146,3753
 closeAllSockets(152,3886
-sigPipeSocket(164,4021
-setupSockets(170,4094
-initialiseSocket(209,5081
-unlinkSocket(235,5668
-cloneSocket(243,5760
-getPrintNameSocket(263,6155
-createSocket(295,6739
-unix_address_socket(331,7491
-inet_address_socket(352,7976
-bindSocket(384,9045
-acceptSocket(427,10160
-listenSocket(487,11608
-#define RANDOM(RANDOM503,12067
-connectSocket(535,12835
-getPeerNameSocket(572,13664
-eofSocket(620,14930
-brokenPipeSocket(629,15035
-closeSocket(635,15091
-#define rc_socket 725,17754
-makeClassSocket(742,18042
+sigPipeSocket(164,4027
+setupSockets(170,4100
+initialiseSocket(209,5087
+unlinkSocket(235,5674
+cloneSocket(243,5766
+getPrintNameSocket(263,6161
+createSocket(295,6745
+unix_address_socket(331,7497
+inet_address_socket(352,7982
+bindSocket(384,9051
+acceptSocket(427,10166
+listenSocket(487,11614
+#define RANDOM(RANDOM503,12073
+connectSocket(535,12841
+getPeerNameSocket(572,13670
+eofSocket(620,14936
+brokenPipeSocket(629,15041
+closeSocket(635,15097
+#define rc_socket 725,17760
+makeClassSocket(742,18048
 
 unx/stream.c,794
 #define OsError(OsError31,646

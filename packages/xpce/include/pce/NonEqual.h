@@ -4,13 +4,13 @@
     Designed and implemented by Anjo Anjewierden and Jan Wielemaker
     E-mail: jan@swi.psy.uva.nl
 
-    Copyright (C) 1993 University of Amsterdam. All rights reserved.
+    Copyright (C) 1993-1997 University of Amsterdam. All rights reserved.
 */
 
 #ifndef _PCE_NONEQUAL_H
 #define _PCE_NONEQUAL_H
 
-extern Any ClassNonEqual;
+PceExternalClass(ClassNonEqual);
 class PceNonEqual :public PceObject
 {
 public:

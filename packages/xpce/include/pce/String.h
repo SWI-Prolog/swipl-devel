@@ -16,7 +16,7 @@ Any	XPCE_to_tmp_char_array(const char *text);
 void	XPCE_done_tmp_char_array(Any ca);
 }
 
-extern Any ClassString;
+PceExternalClass(ClassString);
 class PceString :public PceObject
 {
 public:

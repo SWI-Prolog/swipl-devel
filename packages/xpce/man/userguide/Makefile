@@ -3,7 +3,7 @@
 DOCTOTEX=../../bin/doc2tex
 PLTOTEX=../../bin/pl2tex
 CORRECTINDEX=../../bin/correctindex
-MAKEINDEX=makeindex -s ../../TeX/makeindex.sty
+MAKEINDEX=makeindex -s ../../TeX/makeindex.ist
 
 
 TEX=	xpceusg.tex \

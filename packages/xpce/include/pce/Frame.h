@@ -4,13 +4,13 @@
     Designed and implemented by Anjo Anjewierden and Jan Wielemaker
     E-mail: jan@swi.psy.uva.nl
 
-    Copyright (C) 1993 University of Amsterdam. All rights reserved.
+    Copyright (C) 1993-1997 University of Amsterdam. All rights reserved.
 */
 
 #ifndef _PCE_FRAME_H
 #define _PCE_FRAME_H
 
-extern Any ClassFrame;
+PceExternalClass(ClassFrame);
 class PceFrame :public PceObject
 {
 public:
@@ -28,6 +28,10 @@ public:
   }
   PceFrame(PceArg label, PceArg kind, PceArg display) :
     PceObject(ClassFrame, label, kind, display)
+  {
+  }
+  PceFrame(PceArg label, PceArg kind, PceArg display, PceArg application) :
+    PceObject(ClassFrame, label, kind, display, application)
   {
   }
 };

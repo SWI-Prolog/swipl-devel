@@ -683,7 +683,8 @@ in_scope(M, Obj:object) :->
 	    ->	send(Scope, member, Type)
 	    ;	send(Scope, member, obscure)
 	    )
-	;   get(Obj, man_creator, host),
+	;   get(Obj, man_creator, Creator),
+	    Creator \== built_in,
 	    send(Scope, member, user)
 	).
 

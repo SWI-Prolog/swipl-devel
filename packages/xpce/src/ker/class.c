@@ -178,11 +178,9 @@ call_make_function(SendFunc f, Class class)
 { status rval;
 
 #if O_CPLUSPLUS
-  if ( isCppFunctionPointer(f) )
-  { void *fcpp = valCppFunctionPointer(f);
-    
-    rval = callCPlusPlusProc(fcpp, 1, (Any *)&class);
-  } else 
+  if ( onDFlag(class, D_CXX) )
+    rval = callCPlusPlusProc(f, 1, (Any *)&class);
+  else 
 #endif
     rval = (*f)(class);
 
@@ -241,6 +239,10 @@ fill_slots_class(Class class, Class super)
   initialiseProgramObject(class);
 
   setDFlag(class, DC_LAZY_GET|DC_LAZY_SEND);
+#ifdef O_CPLUSPLUS
+  if ( class->creator == name_cxx )
+    setDFlag(class, D_CXX);
+#endif
 
   assign(class, realised,        ON);
   assign(class, send_methods,    newObject(ClassChain, 0));

@@ -87,7 +87,7 @@ unlinkWinMF(WinMF mf)
 
 
 static void
-closeAllWinMF(void)
+closeAllWinMF(int rval)
 { if ( WinMetaFiles )
   { Cell cell;
 

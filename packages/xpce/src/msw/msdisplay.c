@@ -116,7 +116,7 @@ ws_open_display(DisplayObj d)
 
 void
 ws_quit_display(DisplayObj d)
-{ exitDraw();
+{ exitDraw(0);
 }
 
 #ifdef HOOK_BASED_MOUSE_HANDLING

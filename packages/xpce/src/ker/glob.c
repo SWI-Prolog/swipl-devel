@@ -8,6 +8,11 @@
 */
 
 #define GLOBAL
+#if defined(WIN32) || defined(__WIN32__)
+#define PUBLIC_GLOBAL _declspec(dllexport)
+#else
+#define PUBLIC_GLOBAL
+#endif
 #include <h/kernel.h>
 #include <h/trace.h>
 #include <h/interface.h>

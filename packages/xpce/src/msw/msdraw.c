@@ -198,7 +198,7 @@ remove_default_context()
 
 
 void
-exitDraw()
+exitDraw(int rval)
 { DisplayObj d = TheDisplay;
 
   remove_default_context();

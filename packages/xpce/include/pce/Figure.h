@@ -4,13 +4,13 @@
     Designed and implemented by Anjo Anjewierden and Jan Wielemaker
     E-mail: jan@swi.psy.uva.nl
 
-    Copyright (C) 1993 University of Amsterdam. All rights reserved.
+    Copyright (C) 1993-1997 University of Amsterdam. All rights reserved.
 */
 
 #ifndef _PCE_FIGURE_H
 #define _PCE_FIGURE_H
 
-extern Any ClassFigure;
+PceExternalClass(ClassFigure);
 class PceFigure :public PceObject
 {
 public:

@@ -28,11 +28,10 @@ from_pce('Global',		'Pce').
 from_pce('Status',		'Pce').
 
 from_pce('Funcall',		'Call').
-from_pce('MethodCall',		'Call').
-from_pce('MethodFuncall',	'Call').
 from_pce('Variable',		'Class').
 from_pce('Receiver',		'Class').
 from_pce('Cell',		'Chain').
+from_pce('Pointer',		'Pointer').
 
 canonise(Headers) :-
 	forall(from_pce(F, T), ignore(send(Headers, replace, F, T))),

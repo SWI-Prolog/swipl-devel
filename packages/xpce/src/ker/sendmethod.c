@@ -76,11 +76,9 @@ sendSendMethod(SendMethod m, Any receiver, int argc, const Any argv[])
       { SendFunc f = (SendFunc) m->function;
 
 #if O_CPLUSPLUS
-        if ( isCppFunctionPointer(f) )
-	{ void *cppf = valCppFunctionPointer(f);
-
-	  withReceiver(receiver, m->context,
-		       rval = callCPlusPlusPceMethodProc(receiver,cppf,0,NULL));
+        if ( onDFlag(m, D_CXX) )
+	{ withReceiver(receiver, m->context,
+		       rval = callCPlusPlusPceMethodProc(receiver,f,0,NULL));
 	} else
 #endif/*O_CPLUSPLUS*/
         { rval = (*f)(receiver);
@@ -130,11 +128,9 @@ sendSendMethod(SendMethod m, Any receiver, int argc, const Any argv[])
     { SendFunc f = (SendFunc) m->function;
 
 #if O_CPLUSPLUS
-      if ( isCppFunctionPointer(f) )
-      { void *cppf = valCppFunctionPointer(f);
-
-	withReceiver(receiver, m->context,
-		     rval = callCPlusPlusPceMethodProc(receiver,cppf,1,&arg));
+      if ( onDFlag(m, D_CXX) )
+      { withReceiver(receiver, m->context,
+		     rval = callCPlusPlusPceMethodProc(receiver, f, 1, &arg));
       } else
 #endif /*O_CPLUSPLUS*/
       { rval = (*f)(receiver, arg);

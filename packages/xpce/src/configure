@@ -2238,7 +2238,7 @@ else
 fi
 done
 
-for ac_hdr in sys/socketvar.h
+for ac_hdr in sys/socketvar.h conio.h sys/access.h
 do
 ac_safe=`echo "$ac_hdr" | tr './\055' '___'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6

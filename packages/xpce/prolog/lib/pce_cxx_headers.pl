@@ -25,27 +25,10 @@
 
 itf_max_arg(9).
 
-:- dynamic
-	m4_stream/1.
-
-m4_file(M4) :-
-	get(string('%s/include/pce-cpp.m4', @pce?home), value, M4).
 cpp_header_dir(Dir) :-
 	get(string('%s/include/pce', @pce?home), value, Dir).
 
 generate_cpp_class_header_file :-
-	m4_file(M4), current_output(Old),
-	open(M4, write, M4Stream),
-	retractall(m4_stream(_)),
-	assert(m4_stream(M4Stream)),
-	set_output(M4Stream),
-	output('divert(-1)\n'),
-	m4('Global'),
-	m4('Object'),
-	m4('Chain'),
-	m4('Class'),
-	set_output(Old),
-
 	new(X, chain),
 	send(@classes, for_all, if(@arg2?creator == built_in,
 				   message(X, append, @arg1))),
@@ -57,30 +40,28 @@ generate_cpp_class_header_file :-
 	send(X, delete, pce),
 	send(X, delete, string),
 	send(X, sort),
-	send(X, for_all, message(@prolog, cpp_class, @arg1)),
-
-	set_output(M4Stream),
-	output('divert(0)\n'),
-	close(M4Stream), set_output(Old).
+	send(X, for_all, message(@prolog, cpp_class, @arg1)).
 
 cpp_class(ClassName) :-
 	cpp_header_dir(Dir),
 	cpp_class_name(ClassName, CppName),
 	concat_atom([Dir, /, CppName, '.h'], File),
-	telling(Old), tell(File),
+	new(@output, file(File)),
+	send(@output, open, write),
 	xpce_file_header(CppName),
 	generate_class_def(ClassName),
 	generate_as(ClassName),
 	xpce_file_footer(CppName),
-	told, tell(Old).
-
+	send(@output, close),
+	free(@output).
 
 xpce_file_header(ClassName) :-
-	output('/*  $Id$\n\n'),
+	output('/*  $Id'),		% break to fool CVS
+	output('$\n\n'),
 	output('    Part of XPCE\n'),
 	output('    Designed and implemented by Anjo Anjewierden and Jan Wielemaker\n'),
 	output('    E-mail: jan@swi.psy.uva.nl\n\n'),
-	output('    Copyright (C) 1993 University of Amsterdam. All rights reserved.\n*/\n\n'),
+	output('    Copyright (C) 1993-1997 University of Amsterdam. All rights reserved.\n*/\n\n'),
 	output('#ifndef _PCE_%s_H\n', ClassName?upcase),
 	output('#define _PCE_%s_H\n\n', ClassName?upcase).
 
@@ -101,7 +82,7 @@ generate_class_def(ClassName) :-
 	get(Class, send_method, initialise, InitMethod),
 	get(Class, name, Name),
 	once(cpp_class_name(Name, CppName)),
-	output('extern Any Class%s;\n', CppName),
+	output('PceExternalClass(Class%s);\n', CppName),
 	output('class Pce%s :public PceObject\n{\npublic:\n', CppName),
 	get(InitMethod, types, Types),
 	argument_range(Types, Low, High),
@@ -109,17 +90,6 @@ generate_class_def(ClassName) :-
 	       constructor(InitMethod, CppName, Arity)),
 	output('};\n\n').
 
-m4(CppName) :-
-	output('define(`Pce%s'', `ifelse($#, 1, ``$0(PceArg($1))'''', $#, 0, ``$0'''', ``$0($*)'''')'')\n', CppName).
-
-constructor(_, CppName, 1) :-
-	m4_stream(Stream),
-	(   current_output(Old),
-	    set_output(Stream),
-	    m4(CppName),
-	    set_output(Old)
-	->  fail
-	).
 constructor(InitMethod, CppName, N) :-
 	arg_names(InitMethod, 1, N, [], ArgNames),
 	output('  Pce%s(', CppName),
@@ -200,7 +170,7 @@ output(Fmt, Atom) :-
 	\+ is_list(Atom), !,
 	output(Fmt, [Atom]).
 output(Fmt, Args) :-
-	apply(send(@pce, format, Fmt), Args).
+	apply(send(@output, format, Fmt), Args).
 
 cpp_class_name(*,	'Times').
 cpp_class_name(-,	'Minus').
@@ -215,5 +185,6 @@ cpp_class_name(>,	'Greater').
 cpp_class_name(>=,	'GreaterEqual').
 cpp_class_name(?,	'Obtain').
 cpp_class_name(\==,	'NonEqual').
+cpp_class_name(@=,	'NameObject').
 cpp_class_name(Name, CppName) :-
 	get(Name, capitalise, CppName).

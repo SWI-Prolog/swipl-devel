@@ -395,15 +395,12 @@ simpleSendv(Any receiver, Name selector, int argc, Any *argv)
 status					/* QuickAndDirtySend */
 qadSendv(Any r, Name selector, int ac, Any *av)
 { if ( !TraceMode)
-  { Any implementation = getSendMethodClass(classOfObject(r), selector);
+  { SendMethod implementation = getSendMethodClass(classOfObject(r), selector);
 
-#define F (((SendMethod)implementation)->function)
-#if O_CPLUSPLUS
-#define PlainC(f) !isCppFunctionPointer(f)
-#else
-#define PlainC(f) 1
-#endif
-    if ( instanceOfObject(implementation, ClassSendMethod) && F && PlainC(F))
+#define F (implementation->function)
+    if ( instanceOfObject(implementation, ClassSendMethod) &&
+	 F &&
+	 offDFlag(implementation, D_CXX))
     { switch(ac)
       { case 0: return (status)(*F)(r);
 	case 1: return (status)(*F)(r, av[0]);
@@ -522,15 +519,12 @@ getv(Any receiver, Name selector, int argc, Any *argv)
 Any					/* QuickAndDirtyGet */
 qadGetv(Any r, Name selector, int ac, Any *av)
 { if ( !TraceMode)
-  { Any implementation = getGetMethodClass(classOfObject(r), selector);
+  { GetMethod implementation = getGetMethodClass(classOfObject(r), selector);
 
-#define F (((GetMethod)implementation)->function)
-#if O_CPLUSPLUS
-#define PlainC(f) !isCppFunctionPointer(f)
-#else
-#define PlainC(f) 1
-#endif
-    if ( instanceOfObject(implementation, ClassGetMethod) && F && PlainC(F))
+#define F (implementation->function)
+    if ( instanceOfObject(implementation, ClassGetMethod) &&
+	 F &&
+	 offDFlag(implementation, D_CXX) )
     { switch(ac)
       { case 0: return (*F)(r);
 	case 1: return (*F)(r, av[0]);

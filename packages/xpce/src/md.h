@@ -23,6 +23,15 @@ autoconf/config.h based machine-binding file.
 # include <config.h>
 # endif
 #endif
+
+		 /*******************************
+		 *	    DEFINE UNIX?	*
+		 *******************************/
+
+#if !defined(__unix__) && defined(_AIX)
+#define __unix__ 1
+#endif
+
 		 /*******************************
 		 *	      ALLOCA		*
 		 *******************************/

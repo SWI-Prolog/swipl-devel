@@ -16,12 +16,21 @@
 
 #if __GNUC__
 #define __constf const
+typedef void (*func_ptr) ();		/* for the ctor handling */
+typedef void*	Any;			/* Anonymous handle */
 #else
 #define __constf			/* constant function only for gcc */
+#define Any void *			/* Well, at least MSVC 4.2 is broken */
 #endif
 
-typedef void*	Any;			/* Anonymous handle */
-typedef void (*func_ptr) ();		/* for the ctor handling */
+#ifdef WIN32
+#define __external_var _declspec(dllimport)
+#else
+#define __external_var extern
+#endif
+
+#define PceExternalClass(ptr) extern "C" { __external_var Any ptr; }
+
 enum PceStatus				/* Pce procedure return */
 { FAIL = 0,
   SUCCEED = 1
@@ -41,6 +50,7 @@ __constf Any 	XPCE_to_class(const Any name);
 char *		XPCE_charp_of(const Any string);
 float		XPCE_float_of(const Any real);
 __constf long	XPCE_int_of(const Any integer);
+void *		XPCE_pointer_of(const Any integer);
 
 
 					/* VMI */
@@ -57,8 +67,10 @@ PceStatus	XPCE_free(Any);
 PceStatus	pceInitApplication(int argc, char *argv[]);
 void		initCPlusPlusGlobals(void); /* make @pce, @arg1, ... */
 void		XPCE_initialise(void);
+#ifdef __GNUC__
 extern 		func_ptr __CTOR_LIST__[];
 void		do_ctors(func_ptr *p);
+#endif
 
 					/* DEBUGGING */
 char *		pcePP(const Any datum);
@@ -118,20 +130,24 @@ public:
   {
   }
 
+  PceArg(Any a)
+  { self = a;
+  }
+#ifndef __GNUC__
   PceArg(const Any a)
   { self = (Any)a;
   }
-
+#endif
 
 					/* C --> PceArg */
   PceArg(char *text)
   { self = (Any)XPCE_to_name(text);
   }
   PceArg(long i)
-  { self = (Any)PceToInt(i);
+  { self = PceToInt(i);
   }
   PceArg(int i)
-  { self = (Any)PceToInt(i);
+  { self = PceToInt(i);
   }
   PceArg(float f)
   { self = XPCE_to_real(f);
@@ -167,21 +183,28 @@ public:
   operator Any (void)
   { return self;
   }
+  operator const Any (void)
+  { return (const Any)self;
+  }
+#ifdef __GNUC__
   operator bool (void)
   { return self ? TRUE : FALSE;
   }
+#endif
 
   PceStatus send(const PceArg& sel)
-  { return XPCE_sendv(self, sel.self, 0, NULL);
+  { return XPCE_sendv(self, sel.self, 0, (const Any *)NULL);
   }
   PceStatus send(const PceArg& sel, const PceArg& a1)
-  { return XPCE_sendv(self, sel.self, 1, &a1.self); 
+  { Any av[1];
+    av[0] = a1.self;
+    return XPCE_sendv(self, sel.self, 1, (const Any *)av); 
   }
   PceStatus send(const PceArg& sel, const PceArg& a1, const PceArg& a2)
   { Any av[2];
     av[0] = a1.self;
     av[1] = a2.self;
-    return XPCE_sendv(self, sel.self, 2, av);
+    return XPCE_sendv(self, sel.self, 2, (const Any *)av);
   }
   PceStatus send(const PceArg& sel,
 		 const PceArg& a1, const PceArg& a2, const PceArg& a3)
@@ -189,7 +212,7 @@ public:
     av[0] = a1.self;
     av[1] = a2.self;
     av[2] = a3.self;
-    return XPCE_sendv(self, sel.self, 3, av);
+    return XPCE_sendv(self, sel.self, 3, (const Any *)av);
   }
   PceStatus send(const PceArg& sel,
 		 const PceArg& a1, const PceArg& a2,
@@ -199,7 +222,7 @@ public:
     av[1] = a2.self;
     av[2] = a3.self;
     av[3] = a4.self;
-    return XPCE_sendv(self, sel.self, 4, av);
+    return XPCE_sendv(self, sel.self, 4, (const Any *)av);
   }
   PceStatus send(const PceArg& sel,
 		 const PceArg& a1, const PceArg& a2,
@@ -211,20 +234,22 @@ public:
     av[2] = a3.self;
     av[3] = a4.self;
     av[4] = a5.self;
-    return XPCE_sendv(self, sel.self, 5, av);
+    return XPCE_sendv(self, sel.self, 5, (const Any *)av);
   }
 					/* GET */
   PceArg get(const PceArg& sel)
-  { return PceArg(XPCE_getv(self, sel.self, 0, NULL));
+  { return PceArg(XPCE_getv(self, sel.self, 0, (const Any *)NULL));
   }
   PceArg get(const PceArg& sel, const PceArg& a1)
-  { return PceArg(XPCE_getv(self, sel.self, 1, &a1.self));
+  { Any av[1];
+    av[0] = a1.self;
+    return PceArg(XPCE_getv(self, sel.self, 1, (const Any *)av));
   }
   PceArg get(const PceArg& sel, const PceArg& a1, const PceArg& a2)
   { Any av[2];
     av[0] = a1.self;
     av[1] = a2.self;
-    return PceArg(XPCE_getv(self, sel.self, 2, av));
+    return PceArg(XPCE_getv(self, sel.self, 2, (const Any *)av));
   }
   PceArg get(const PceArg& sel,
 	     const PceArg& a1, const PceArg& a2, const PceArg& a3)
@@ -232,14 +257,13 @@ public:
     av[0] = a1.self;
     av[1] = a2.self;
     av[2] = a3.self;
-    return PceArg(XPCE_getv(self, sel.self, 3, av));
+    return PceArg(XPCE_getv(self, sel.self, 3, (const Any *)av));
   }
 
-  PceArg operator [](const PceArg &sel)
-  { return PceArg(XPCE_getv(self, sel.self, 0, NULL));
+  PceStatus free(void)			/* FREE */
+  { return XPCE_free(self);
   }
-
-
+  
 					/* (Integer) Arithmetic */
   PceArg operator +(long i)		/* x + y */
   { return PceArg(PceValInt(self) + i);
@@ -320,6 +344,9 @@ public:
   char *pp()				/* pretty-print */
   { return pcePP(self);
   }
+  void *pointer()			/* PcePointer support */
+  { return XPCE_pointer_of(self);
+  }
 };
 
 
@@ -332,31 +359,36 @@ public:					/* NEW */
   PceObject(const PceObject&q)
   { self = q.self;
   }
-  PceObject(PceArg cl) : PceArg(XPCE_newv(cl.self, NULL, 0, NULL))
+  PceObject(PceArg cl) : PceArg(XPCE_newv(cl.self, NULL,
+					  0, (const Any *)NULL))
   { 
   }
   PceObject(const char *classname) :
-    PceArg(XPCE_newv((Any)XPCE_to_name(classname), NULL, 0, NULL))
+    PceArg(XPCE_newv((Any)XPCE_to_name(classname), NULL,
+		     0, (const Any *)NULL))
   {
   }
-  PceObject(Any cl) : PceArg(XPCE_newv(cl, NULL, 0, NULL))
+  PceObject(Any cl) : PceArg(XPCE_newv(cl, NULL,
+				       0, (const Any *)NULL))
   {
   }
   PceObject(PceArg cl, PceArg a1)
-  { self = XPCE_newv(cl.self, NULL, 1, &a1.self);
+  { Any av[1];
+    av[0] = a1.self;
+    self = XPCE_newv(cl.self, NULL, 1, (const Any *)av);
   }
   PceObject(PceArg cl, PceArg a1, PceArg a2)
   { Any av[2];
     av[0] = a1.self;
     av[1] = a2.self;
-    self = XPCE_newv(cl.self, NULL, 2, av);
+    self = XPCE_newv(cl.self, NULL, 2, (const Any *)av);
   }
   PceObject(PceArg cl, PceArg a1, PceArg a2, PceArg a3)
   { Any av[3];
     av[0] = a1.self;
     av[1] = a2.self;
     av[2] = a3.self;
-    self = XPCE_newv(cl.self, NULL, 3, av);
+    self = XPCE_newv(cl.self, NULL, 3, (const Any *)av);
   }
   PceObject(PceArg cl, PceArg a1, PceArg a2, PceArg a3, PceArg a4)
   { Any av[4];
@@ -364,7 +396,7 @@ public:					/* NEW */
     av[1] = a2.self;
     av[2] = a3.self;
     av[3] = a4.self;
-    self = XPCE_newv(cl.self, NULL, 4, av);
+    self = XPCE_newv(cl.self, NULL, 4, (const Any *)av);
   }
   PceObject(PceArg cl, PceArg a1, PceArg a2, PceArg a3, PceArg a4,
 	    PceArg a5)
@@ -374,7 +406,7 @@ public:					/* NEW */
     av[2] = a3.self;
     av[3] = a4.self;
     av[4] = a5.self;
-    self = XPCE_newv(cl.self, NULL, 5, av);
+    self = XPCE_newv(cl.self, NULL, 5, (const Any *)av);
   }
   PceObject(PceArg cl, PceArg a1, PceArg a2, PceArg a3, PceArg a4,
 	    PceArg a5, PceArg a6)
@@ -385,7 +417,7 @@ public:					/* NEW */
     av[3] = a4.self;
     av[4] = a5.self;
     av[5] = a6.self;
-    self = XPCE_newv(cl.self, NULL, 6, av);
+    self = XPCE_newv(cl.self, NULL, 6, (const Any *)av);
   }
   PceObject(PceArg cl, PceArg a1, PceArg a2, PceArg a3, PceArg a4,
 	    PceArg a5, PceArg a6, PceArg a7)
@@ -397,7 +429,7 @@ public:					/* NEW */
     av[4] = a5.self;
     av[5] = a6.self;
     av[6] = a7.self;
-    self = XPCE_newv(cl.self, NULL, 7, av);
+    self = XPCE_newv(cl.self, NULL, 7, (const Any *)av);
   }
   PceObject(PceArg cl, PceArg a1, PceArg a2, PceArg a3, PceArg a4,
 	    PceArg a5, PceArg a6, PceArg a7, PceArg a8)
@@ -410,7 +442,7 @@ public:					/* NEW */
     av[5] = a6.self;
     av[6] = a7.self;
     av[7] = a8.self;
-    self = XPCE_newv(cl.self, NULL, 8, av);
+    self = XPCE_newv(cl.self, NULL, 8, (const Any *)av);
   }
   PceObject(PceArg cl, PceArg a1, PceArg a2, PceArg a3, PceArg a4,
 	    PceArg a5, PceArg a6, PceArg a7, PceArg a8, PceArg a9)
@@ -424,7 +456,7 @@ public:					/* NEW */
     av[6] = a7.self;
     av[7] = a8.self;
     av[8] = a9.self;
-    self = XPCE_newv(cl.self, NULL, 9, av);
+    self = XPCE_newv(cl.self, NULL, 9, (const Any *)av);
   }
 };
 
@@ -448,23 +480,25 @@ public:
   PceGlobal(PceArg name) :
     PceArg(XPCE_to_object(name)) {}
   PceGlobal(PceArg name, PceArg cl)
-  { self = XPCE_newv(cl.self, name.self, 0, NULL);
+  { self = XPCE_newv(cl.self, name.self, 0, (const Any *)NULL);
   }
   PceGlobal(PceArg name, PceArg cl, PceArg a1)
-  { self = XPCE_newv(cl.self, name.self, 1, &a1.self);
+  { Any av[1];
+    av[0] = a1.self;
+    self = XPCE_newv(cl.self, name.self, 1, (const Any *)av);
   }
   PceGlobal(PceArg name, PceArg cl, PceArg a1, PceArg a2)
   { Any av[2];
     av[0] = a1.self;
     av[1] = a2.self;
-    self = XPCE_newv(cl.self, name.self, 2, av);
+    self = XPCE_newv(cl.self, name.self, 2, (const Any *)av);
   }
   PceGlobal(PceArg name, PceArg cl, PceArg a1, PceArg a2, PceArg a3)
   { Any av[3];
     av[0] = a1.self;
     av[1] = a2.self;
     av[2] = a3.self;
-    self = XPCE_newv(cl.self, name.self, 3, av);
+    self = XPCE_newv(cl.self, name.self, 3, (const Any *)av);
   }
   PceGlobal(PceArg name, PceArg cl, PceArg a1, PceArg a2, PceArg a3, PceArg a4)
   { Any av[4];
@@ -472,28 +506,52 @@ public:
     av[1] = a2.self;
     av[2] = a3.self;
     av[3] = a4.self;
-    self = XPCE_newv(cl.self, name.self, 4, av);
+    self = XPCE_newv(cl.self, name.self, 4, (const Any *)av);
   }
 };
 
+		 /*******************************
+		 *	       GLOBALS		*
+		 *******************************/
 
-__GLOBAL PceGlobal TheOn;
-__GLOBAL PceGlobal TheOff;
-__GLOBAL PceGlobal TheNil;
-__GLOBAL PceGlobal TheDefault;
-__GLOBAL PceGlobal TheArg1;
-__GLOBAL PceGlobal TheArg2;
-__GLOBAL PceGlobal TheArg3;
-__GLOBAL PceGlobal TheArg4;
-__GLOBAL PceGlobal TheArg5;
-__GLOBAL PceGlobal TheArg6;
-__GLOBAL PceGlobal TheArg7;
-__GLOBAL PceGlobal TheArg8;
-__GLOBAL PceGlobal TheArg9;
-__GLOBAL PceGlobal TheArg10;
-__GLOBAL PceGlobal TheEvent;
-__GLOBAL PceGlobal TheReceiver;
-__GLOBAL PceGlobal ThePce;
-__GLOBAL PceGlobal TheDisplay;
+extern "C" {
+__external_var Any XPCE_on;
+__external_var Any XPCE_off;
+__external_var Any XPCE_nil;
+__external_var Any XPCE_default;
+__external_var Any XPCE_arg1;
+__external_var Any XPCE_arg2;
+__external_var Any XPCE_arg3;
+__external_var Any XPCE_arg4;
+__external_var Any XPCE_arg5;
+__external_var Any XPCE_arg6;
+__external_var Any XPCE_arg7;
+__external_var Any XPCE_arg8;
+__external_var Any XPCE_arg9;
+__external_var Any XPCE_arg10;
+__external_var Any XPCE_event;
+__external_var Any XPCE_receiver;
+__external_var Any XPCE_pce;
+__external_var Any XPCE_display;
+}
+
+#define TheOn		PceArg(XPCE_on)
+#define TheOff		PceArg(XPCE_off)
+#define TheNil		PceArg(XPCE_nil)
+#define TheDefault	PceArg(XPCE_default)
+#define TheArg1		PceArg(XPCE_arg1)
+#define TheArg2		PceArg(XPCE_arg2)
+#define TheArg3		PceArg(XPCE_arg3)
+#define TheArg4		PceArg(XPCE_arg4)
+#define TheArg5		PceArg(XPCE_arg5)
+#define TheArg6		PceArg(XPCE_arg6)
+#define TheArg7		PceArg(XPCE_arg7)
+#define TheArg8		PceArg(XPCE_arg8)
+#define TheArg9		PceArg(XPCE_arg9)
+#define TheArg10	PceArg(XPCE_arg10)
+#define TheEvent	PceArg(XPCE_event)
+#define TheReceiver	PceArg(XPCE_receiver)
+#define ThePce		PceArg(XPCE_pce)
+#define TheDisplay	PceArg(XPCE_display)
 
 #endif /*!_PCE_H*/

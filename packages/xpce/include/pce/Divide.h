@@ -4,13 +4,13 @@
     Designed and implemented by Anjo Anjewierden and Jan Wielemaker
     E-mail: jan@swi.psy.uva.nl
 
-    Copyright (C) 1993 University of Amsterdam. All rights reserved.
+    Copyright (C) 1993-1997 University of Amsterdam. All rights reserved.
 */
 
 #ifndef _PCE_DIVIDE_H
 #define _PCE_DIVIDE_H
 
-extern Any ClassDivide;
+PceExternalClass(ClassDivide);
 class PceDivide :public PceObject
 {
 public:

@@ -27,7 +27,7 @@ static StringObj
 getPrintNameCPointer(CPointer p)
 { char buf[20];
 
-  sprintf(buf, "0x%lx", (ulong)p->pointer);
+  sprintf(buf, "%p", p->pointer);
   answer(CtoString(buf));
 }
 

@@ -4,13 +4,13 @@
     Designed and implemented by Anjo Anjewierden and Jan Wielemaker
     E-mail: jan@swi.psy.uva.nl
 
-    Copyright (C) 1993 University of Amsterdam. All rights reserved.
+    Copyright (C) 1993-1997 University of Amsterdam. All rights reserved.
 */
 
 #ifndef _PCE_CREATE_H
 #define _PCE_CREATE_H
 
-extern Any ClassCreate;
+PceExternalClass(ClassCreate);
 class PceCreate :public PceObject
 {
 public:

@@ -15,15 +15,15 @@
 #include <unistd.h>
 #endif
           
-#ifdef __WATCOMC__
-#include <direct.h>
-#else /*__WATCOMC__*/
 #if HAVE_DIRENT_H
 # include <dirent.h>
 # define NAMLEN(dirent) strlen((dirent)->d_name)
 #else
 # define dirent direct
 # define NAMLEN(dirent) (dirent)->d_namlen
+# if HAVE_SYS_ACCESS_H
+#  include <sys/access.h>
+# endif
 # if HAVE_SYS_NDIR_H
 #  include <sys/ndir.h>
 # endif
@@ -34,7 +34,6 @@
 #  include <ndir.h>
 # endif
 #endif
-#endif /*__WATCOMC__*/
 
 #include <sys/stat.h>
 

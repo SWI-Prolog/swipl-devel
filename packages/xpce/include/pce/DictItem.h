@@ -4,16 +4,20 @@
     Designed and implemented by Anjo Anjewierden and Jan Wielemaker
     E-mail: jan@swi.psy.uva.nl
 
-    Copyright (C) 1993 University of Amsterdam. All rights reserved.
+    Copyright (C) 1993-1997 University of Amsterdam. All rights reserved.
 */
 
 #ifndef _PCE_DICTITEM_H
 #define _PCE_DICTITEM_H
 
-extern Any ClassDictItem;
+PceExternalClass(ClassDictItem);
 class PceDictItem :public PceObject
 {
 public:
+  PceDictItem() :
+    PceObject(ClassDictItem)
+  {
+  }
   PceDictItem(PceArg key) :
     PceObject(ClassDictItem, key)
   {

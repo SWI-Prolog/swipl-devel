@@ -8,20 +8,38 @@
 */
 
 #include "md.h"
+
+#ifndef __pce_export
+#ifdef WIN32
+#define __pce_export _declspec(dllexport)
+#else
+#define __pce_export extern
+#endif
+#endif /*__pce_export*/
+
 #if O_CPLUSPLUS
+#ifdef WIN32
+#define __GLOBAL __pce_export
+#else
 #define __GLOBAL
+#endif
 #include <pce/Pce.h>
 #include <pce/Call.h>
 #include <pce/Class.h>
-#include <stdio.h>
+#include <stdarg.h>
 
 extern "C" {
-PceStatus callCPlusPlusProc(Any f, int ac, const Any av[]);
-Any	  callCPlusPlusFunc(Any f, int ac, const Any av[]);
-PceStatus callCPlusPlusPceMethodProc(Any o, Any f, int ac, const Any av[]);
-Any 	  callCPlusPlusPceMethodFunc(Any o, Any f, int ac, const Any av[]);
-PceStatus callCPlusPlusMethodProc(Any o, Any f, int ac, const Any av[]);
-Any 	  callCPlusPlusMethodFunc(Any o, Any f, int ac, const Any av[]);
+void Cprintf(const char *fmt, ...);
+__pce_export PceStatus callCPlusPlusProc(Any f, int ac, const Any av[]);
+__pce_export Any       callCPlusPlusFunc(Any f, int ac, const Any av[]);
+__pce_export PceStatus callCPlusPlusPceMethodProc(Any o, Any f,
+						  int ac, const Any av[]);
+__pce_export Any       callCPlusPlusPceMethodFunc(Any o, Any f,
+						  int ac, const Any av[]);
+__pce_export PceStatus callCPlusPlusMethodProc(Any o, Any f,
+					       int ac, const Any av[]);
+__pce_export Any       callCPlusPlusMethodFunc(Any o, Any f,
+					       int ac, const Any av[]);
 }
 
 
@@ -45,7 +63,7 @@ callCPlusPlusProc(Any f, int ac, const Any av[])
     case 9: return (*(PceProc9)f)(A(0), A(1), A(2), A(3), A(4), A(6), A(7),
 				  A(7), A(8));
     default:
-      fprintf(stderr, "[PCE: Too many C++ arguments]\n");
+      Cprintf("[PCE: Too many C++ arguments]\n");
       return FALSE;
   }
 }
@@ -54,20 +72,21 @@ callCPlusPlusProc(Any f, int ac, const Any av[])
 Any 
 callCPlusPlusFunc(Any f, int ac, const Any av[])
 { switch(ac)
-  { case 0: return (*(PceFunc0)f)();
-    case 1: return (*(PceFunc1)f)(A(0));
-    case 2: return (*(PceFunc2)f)(A(0), A(1));
-    case 3: return (*(PceFunc3)f)(A(0), A(1), A(2));
-    case 4: return (*(PceFunc4)f)(A(0), A(1), A(2), A(3));
-    case 5: return (*(PceFunc5)f)(A(0), A(1), A(2), A(3), A(4));
-    case 6: return (*(PceFunc6)f)(A(0), A(1), A(2), A(3), A(4), A(5));
-    case 7: return (*(PceFunc7)f)(A(0), A(1), A(2), A(3), A(4), A(5), A(6));
-    case 8: return (*(PceFunc8)f)(A(0), A(1), A(2), A(3), A(4), A(5), A(6),
-				  A(7));
-    case 9: return (*(PceFunc9)f)(A(0), A(1), A(2), A(3), A(4), A(6), A(7),
-				  A(7), A(8));
+  { case 0: return (*(PceFunc0)f)().self;
+    case 1: return (*(PceFunc1)f)(A(0)).self;
+    case 2: return (*(PceFunc2)f)(A(0), A(1)).self;
+    case 3: return (*(PceFunc3)f)(A(0), A(1), A(2)).self;
+    case 4: return (*(PceFunc4)f)(A(0), A(1), A(2), A(3)).self;
+    case 5: return (*(PceFunc5)f)(A(0), A(1), A(2), A(3), A(4)).self;
+    case 6: return (*(PceFunc6)f)(A(0), A(1), A(2), A(3), A(4), A(5)).self;
+    case 7: return (*(PceFunc7)f)(A(0), A(1), A(2), A(3), A(4), A(5),
+				  A(6)).self;
+    case 8: return (*(PceFunc8)f)(A(0), A(1), A(2), A(3), A(4), A(5),
+				  A(6), A(7)).self;
+    case 9: return (*(PceFunc9)f)(A(0), A(1), A(2), A(3), A(4), A(5),
+				  A(6), A(7), A(8)).self;
     default:
-      fprintf(stderr, "[PCE: Too many C++ arguments]\n");
+      Cprintf("[PCE: Too many C++ arguments]\n");
       return NULL;
   }
 }
@@ -100,7 +119,7 @@ callCPlusPlusMethodProc(Any obj, Any f, int ac, const Any av[])
       return (*(CppMethodProc9)f)(C(obj), A(0), A(1), A(2), A(3), A(4), A(5),
 				  A(6), A(7), A(8));
     default:
-      fprintf(stderr, "[PCE: Too many C++ arguments]\n");
+      Cprintf("[PCE: Too many C++ arguments]\n");
       return FALSE;
   }
 }
@@ -110,30 +129,31 @@ Any
 callCPlusPlusMethodFunc(Any obj, Any f, int ac, const Any av[])
 { switch(ac)
   { case 0:
-      return (*(CppMethodFunc0)f)(C(obj));
+      return (*(CppMethodFunc0)f)(C(obj)).self;
     case 1:
-      return (*(CppMethodFunc1)f)(C(obj), A(0));
+      return (*(CppMethodFunc1)f)(C(obj), A(0)).self;
     case 2:
-      return (*(CppMethodFunc2)f)(C(obj), A(0), A(1));
+      return (*(CppMethodFunc2)f)(C(obj), A(0), A(1)).self;
     case 3:
-      return (*(CppMethodFunc3)f)(C(obj), A(0), A(1), A(2));
+      return (*(CppMethodFunc3)f)(C(obj), A(0), A(1), A(2)).self;
     case 4:
-      return (*(CppMethodFunc4)f)(C(obj), A(0), A(1), A(2), A(3));
+      return (*(CppMethodFunc4)f)(C(obj), A(0), A(1), A(2), A(3)).self;
     case 5:
-      return (*(CppMethodFunc5)f)(C(obj), A(0), A(1), A(2), A(3), A(4));
+      return (*(CppMethodFunc5)f)(C(obj), A(0), A(1), A(2), A(3), A(4)).self;
     case 6:
-      return (*(CppMethodFunc6)f)(C(obj), A(0), A(1), A(2), A(3), A(4), A(5));
+      return (*(CppMethodFunc6)f)(C(obj), A(0), A(1), A(2), A(3), A(4),
+				  A(5)).self;
     case 7:
-      return (*(CppMethodFunc7)f)(C(obj), A(0), A(1), A(2), A(3), A(4), A(5),
-				  A(6));
+      return (*(CppMethodFunc7)f)(C(obj), A(0), A(1), A(2), A(3), A(4),
+				  A(5), A(6)).self;
     case 8:
-      return (*(CppMethodFunc8)f)(C(obj), A(0), A(1), A(2), A(3), A(4), A(5),
-				  A(6), A(7));
+      return (*(CppMethodFunc8)f)(C(obj), A(0), A(1), A(2), A(3), A(4),
+				  A(5), A(6), A(7)).self;
     case 9:
-      return (*(CppMethodFunc9)f)(C(obj), A(0), A(1), A(2), A(3), A(4), A(5),
-				  A(6), A(7), A(8));
+      return (*(CppMethodFunc9)f)(C(obj), A(0), A(1), A(2), A(3), A(4),
+				  A(5), A(6), A(7), A(8)).self;
     default:
-      fprintf(stderr, "[PCE: Too many C++ arguments]\n");
+      Cprintf("[PCE: Too many C++ arguments]\n");
       return NULL;
   }
 }
@@ -170,7 +190,7 @@ callCPlusPlusPceMethodProc(Any obj, Any f, int ac, const Any av[])
       return (*(PceMethodProc9)f)(R(obj), A(0), A(1), A(2), A(3), A(4), A(5),
 				  A(6), A(7), A(8));
     default:
-      fprintf(stderr, "[PCE: Too many C++ arguments]\n");
+      Cprintf("[PCE: Too many C++ arguments]\n");
       return FALSE;
   }
 }
@@ -180,58 +200,33 @@ Any
 callCPlusPlusPceMethodFunc(Any obj, Any f, int ac, const Any av[])
 { switch(ac)
   { case 0:
-      return (*(PceMethodFunc0)f)(R(obj));
+      return (*(PceMethodFunc0)f)(R(obj)).self;
     case 1:
-      return (*(PceMethodFunc1)f)(R(obj), A(0));
+      return (*(PceMethodFunc1)f)(R(obj), A(0)).self;
     case 2:
-      return (*(PceMethodFunc2)f)(R(obj), A(0), A(1));
+      return (*(PceMethodFunc2)f)(R(obj), A(0), A(1)).self;
     case 3:
-      return (*(PceMethodFunc3)f)(R(obj), A(0), A(1), A(2));
+      return (*(PceMethodFunc3)f)(R(obj), A(0), A(1), A(2)).self;
     case 4:
-      return (*(PceMethodFunc4)f)(R(obj), A(0), A(1), A(2), A(3));
+      return (*(PceMethodFunc4)f)(R(obj), A(0), A(1), A(2), A(3)).self;
     case 5:
-      return (*(PceMethodFunc5)f)(R(obj), A(0), A(1), A(2), A(3), A(4));
+      return (*(PceMethodFunc5)f)(R(obj), A(0), A(1), A(2), A(3), A(4)).self;
     case 6:
-      return (*(PceMethodFunc6)f)(R(obj), A(0), A(1), A(2), A(3), A(4), A(5));
+      return (*(PceMethodFunc6)f)(R(obj), A(0), A(1), A(2), A(3), A(4),
+				  A(5)).self;
     case 7:
-      return (*(PceMethodFunc7)f)(R(obj), A(0), A(1), A(2), A(3), A(4), A(5),
-				  A(6));
+      return (*(PceMethodFunc7)f)(R(obj), A(0), A(1), A(2), A(3), A(4),
+				  A(5), A(6)).self;
     case 8:
-      return (*(PceMethodFunc8)f)(R(obj), A(0), A(1), A(2), A(3), A(4), A(5),
-				  A(6), A(7));
+      return (*(PceMethodFunc8)f)(R(obj), A(0), A(1), A(2), A(3), A(4),
+				  A(5), A(6), A(7)).self;
     case 9:
-      return (*(PceMethodFunc9)f)(R(obj), A(0), A(1), A(2), A(3), A(4), A(5),
-				  A(6), A(7), A(8));
+      return (*(PceMethodFunc9)f)(R(obj), A(0), A(1), A(2), A(3), A(4),
+				  A(5), A(6), A(7), A(8)).self;
     default:
-      fprintf(stderr, "[PCE: Too many C++ arguments]\n");
+      Cprintf("[PCE: Too many C++ arguments]\n");
       return NULL;
   }
-}
-
-
-				/* fix g++ bug; remove if g++ is fixed */
-#define PceGlobal(arg) PceGlobal(PceArg(arg))
-
-void
-initCPlusPlusGlobals(void)
-{ TheOn	      = PceGlobal("on");
-  TheOff      = PceGlobal("off");
-  TheNil      = PceGlobal("nil");
-  TheDefault  = PceGlobal("default");
-  TheArg1     = PceGlobal("arg1");
-  TheArg2     = PceGlobal("arg2");
-  TheArg3     = PceGlobal("arg3");
-  TheArg4     = PceGlobal("arg4");
-  TheArg5     = PceGlobal("arg5");
-  TheArg6     = PceGlobal("arg6");
-  TheArg7     = PceGlobal("arg7");
-  TheArg8     = PceGlobal("arg8");
-  TheArg9     = PceGlobal("arg9");
-  TheArg10    = PceGlobal("arg10");
-  TheEvent    = PceGlobal("event");
-  TheReceiver = PceGlobal("receiver");
-  ThePce      = PceGlobal("pce");
-  TheDisplay  = PceGlobal("display");
 }
 
 #endif /*O_CPLUSPLUS*/

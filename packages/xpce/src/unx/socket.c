@@ -149,7 +149,7 @@ SockError()
 static Chain	SocketChain;		/* Available open sockets */
 
 static void
-closeAllSockets(void)
+closeAllSockets(int status)
 { Socket s;
 
   for_chain(SocketChain, s, closeSocket(s));

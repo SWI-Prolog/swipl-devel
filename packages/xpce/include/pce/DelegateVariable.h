@@ -4,13 +4,13 @@
     Designed and implemented by Anjo Anjewierden and Jan Wielemaker
     E-mail: jan@swi.psy.uva.nl
 
-    Copyright (C) 1993 University of Amsterdam. All rights reserved.
+    Copyright (C) 1993-1997 University of Amsterdam. All rights reserved.
 */
 
 #ifndef _PCE_DELEGATEVARIABLE_H
 #define _PCE_DELEGATEVARIABLE_H
 
-extern Any ClassDelegateVariable;
+PceExternalClass(ClassDelegateVariable);
 class PceDelegateVariable :public PceObject
 {
 public:
@@ -36,6 +36,10 @@ public:
   }
   PceDelegateVariable(PceArg name, PceArg type, PceArg access, PceArg wrapper, PceArg summary, PceArg group) :
     PceObject(ClassDelegateVariable, name, type, access, wrapper, summary, group)
+  {
+  }
+  PceDelegateVariable(PceArg name, PceArg type, PceArg access, PceArg wrapper, PceArg summary, PceArg group, PceArg initial_value) :
+    PceObject(ClassDelegateVariable, name, type, access, wrapper, summary, group, initial_value)
   {
   }
 };

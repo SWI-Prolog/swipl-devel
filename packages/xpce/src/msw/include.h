@@ -99,7 +99,7 @@ EventObj	messageToEvent(HWND hwnd, UINT msg, UINT wParam, LONG lParam);
 status		d_mswindow(PceWindow sw, IArea a, int clear);
 void		d_hdc(HDC hdc, Colour fg, Colour bg);
 void		initDraw(void);
-void		exitDraw(void);
+void		exitDraw(int rval);
 void *		ws_image_bits(Image image);
 void *		ws_image_bits_for_cursor(Image image, Name kind, int w, int h);
 HICON		ws_icon_from_image(Image img);

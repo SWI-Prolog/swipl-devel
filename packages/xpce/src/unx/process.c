@@ -230,7 +230,7 @@ child_changed(int sig)
 #endif /*USE_SIGCHLD*/
 
 void
-killAllProcesses(void)
+killAllProcesses(int status)
 { Cell cell;
 
   for_cell(cell, ProcessChain)

@@ -164,7 +164,7 @@ HiddenFrameClass()
 static HWND pce_hidden_window;
 
 static void
-destroyHiddenWindow(void)
+destroyHiddenWindow(int rval)
 { if ( pce_hidden_window )
   { DestroyWindow(pce_hidden_window);
     pce_hidden_window = 0;

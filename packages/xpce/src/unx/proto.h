@@ -34,7 +34,7 @@ status		checkObjectFile(FileObj f);
 status		makeClassFile(Class class);
 
 /* unx/process.c */
-void		killAllProcesses(void);
+void		killAllProcesses(int status);
 status		pidProcess(Process p, Int pid);
 status		closeInputProcess(Process p);
 status		makeClassProcess(Class class);

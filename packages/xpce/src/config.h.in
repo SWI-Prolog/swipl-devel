@@ -183,6 +183,9 @@
 /* Define if you have the <bstring.h> header file.  */
 #undef HAVE_BSTRING_H
 
+/* Define if you have the <conio.h> header file.  */
+#undef HAVE_CONIO_H
+
 /* Define if you have the <dirent.h> header file.  */
 #undef HAVE_DIRENT_H
 
@@ -209,6 +212,9 @@
 
 /* Define if you have the <stropts.h> header file.  */
 #undef HAVE_STROPTS_H
+
+/* Define if you have the <sys/access.h> header file.  */
+#undef HAVE_SYS_ACCESS_H
 
 /* Define if you have the <sys/dir.h> header file.  */
 #undef HAVE_SYS_DIR_H

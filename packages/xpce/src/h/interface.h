@@ -16,7 +16,7 @@
 		********************************/
 
 #ifndef PCE_VERSION
-#define PCE_VERSION "4.9.3, March 1997"
+#define PCE_VERSION "4.9.3, April 1997"
 #endif
 
 #ifndef OS_VERSION
@@ -49,7 +49,7 @@
 typedef void *		PceObject;	/* PCE's view of an object */
 typedef void *		PceName;	/* PCE's view of a name */
 
-#define INT_MASK_SHIFT	2
+#define INT_MASK_SHIFT	1
 #define PCE_MAX_INT	((1 << (32 - INT_MASK_SHIFT - 1)) - 1)
 #define PCE_MIN_INT	(-PCE_MAX_INT - 1)
 

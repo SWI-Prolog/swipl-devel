@@ -11,7 +11,7 @@
 #define _PCE_CALL_H
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-PceFunc(f) is used to pass arguments to PceMethodCall().
+PceFunc(f) is used to pass arguments to PceMemberCall().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define PceFunc(f) ((Any)(f))
@@ -52,7 +52,6 @@ typedef PceArg (*PceFunc8)(PceArg, PceArg, PceArg, PceArg, PceArg, PceArg,
 			   PceArg, PceArg);
 typedef PceArg (*PceFunc9)(PceArg, PceArg, PceArg, PceArg, PceArg, PceArg,
 			   PceArg, PceArg, PceArg);
-
 typedef PceStatus (*CppMethodProc0)(Any);
 typedef PceStatus (*CppMethodProc1)(Any, PceArg);
 typedef PceStatus (*CppMethodProc2)(Any, PceArg, PceArg);
@@ -96,23 +95,25 @@ class PceCall :public PceArg
 {
 public:
   PceCall(PceProc0 f)
-  { self = XPCE_callCPlusPlusv((Any)f, 0, NULL);
+  { self = XPCE_callCPlusPlusv((Any)f, 0, (const Any *)NULL);
   }
   PceCall(PceProc1 f, PceArg a1)
-  { self = XPCE_callCPlusPlusv((Any)f, 1, &a1.self);
+  { Any av[1];
+    av[0] = a1.self;
+    self = XPCE_callCPlusPlusv((Any)f, 1, (const Any *)av);
   }
   PceCall(PceProc2 f, PceArg a1, PceArg a2)
   { Any av[2];
     av[0] = a1.self;
     av[1] = a2.self;
-    self = XPCE_callCPlusPlusv((Any)f, 2, av);
+    self = XPCE_callCPlusPlusv((Any)f, 2, (const Any *)av);
   }
   PceCall(PceProc3 f, PceArg a1, PceArg a2, PceArg a3)
   { Any av[3];
     av[0] = a1.self;
     av[1] = a2.self;
     av[2] = a3.self;
-    self = XPCE_callCPlusPlusv((Any)f, 3, av);
+    self = XPCE_callCPlusPlusv((Any)f, 3, (const Any *)av);
   }
   PceCall(PceProc4 f, PceArg a1, PceArg a2, PceArg a3, PceArg a4)
   { Any av[4];
@@ -120,7 +121,7 @@ public:
     av[1] = a2.self;
     av[2] = a3.self;
     av[3] = a4.self;
-    self = XPCE_callCPlusPlusv((Any)f, 4, av);
+    self = XPCE_callCPlusPlusv((Any)f, 4, (const Any *)av);
   }
   PceCall(PceProc5 f, PceArg a1, PceArg a2, PceArg a3, PceArg a4, PceArg a5)
   { Any av[5];
@@ -129,7 +130,7 @@ public:
     av[2] = a3.self;
     av[3] = a4.self;
     av[4] = a5.self;
-    self = XPCE_callCPlusPlusv((Any)f, 5, av);
+    self = XPCE_callCPlusPlusv((Any)f, 5, (const Any *)av);
   }
 };
 
@@ -138,23 +139,25 @@ class PceFuncall :public PceArg
 {
 public:
   PceFuncall(PceFunc0 f)
-  { self = XPCE_funcallCPlusPlusv((Any)f, 0, NULL);
+  { self = XPCE_funcallCPlusPlusv((Any)f, 0, (const Any *)NULL);
   }
   PceFuncall(PceFunc1 f, PceArg a1)
-  { self = XPCE_funcallCPlusPlusv((Any)f, 1, &a1.self);
+  { Any av[1];
+    av[0] = a1.self;
+    self = XPCE_funcallCPlusPlusv((Any)f, 1, (const Any *)av);
   }
   PceFuncall(PceFunc2 f, PceArg a1, PceArg a2)
   { Any av[2];
     av[0] = a1.self;
     av[1] = a2.self;
-    self = XPCE_funcallCPlusPlusv((Any)f, 2, av);
+    self = XPCE_funcallCPlusPlusv((Any)f, 2, (const Any *)av);
   }
   PceFuncall(PceFunc3 f, PceArg a1, PceArg a2, PceArg a3)
   { Any av[3];
     av[0] = a1.self;
     av[1] = a2.self;
     av[2] = a3.self;
-    self = XPCE_funcallCPlusPlusv((Any)f, 3, av);
+    self = XPCE_funcallCPlusPlusv((Any)f, 3, (const Any *)av);
   }
   PceFuncall(PceFunc4 f, PceArg a1, PceArg a2, PceArg a3, PceArg a4)
   { Any av[4];
@@ -162,7 +165,7 @@ public:
     av[1] = a2.self;
     av[2] = a3.self;
     av[3] = a4.self;
-    self = XPCE_funcallCPlusPlusv((Any)f, 4, av);
+    self = XPCE_funcallCPlusPlusv((Any)f, 4, (const Any *)av);
   }
   PceFuncall(PceFunc5 f, PceArg a1, PceArg a2, PceArg a3, PceArg a4, PceArg a5)
   { Any av[5];
@@ -171,44 +174,9 @@ public:
     av[2] = a3.self;
     av[3] = a4.self;
     av[4] = a5.self;
-    self = XPCE_funcallCPlusPlusv((Any)f, 5, av);
+    self = XPCE_funcallCPlusPlusv((Any)f, 5, (const Any *)av);
   }
 };
 
-		 /*******************************
-		 *	 CALLING METHODS	*
-		 *******************************/
-
-class PceMethodCall :public PceArg
-{
-public:
-  PceMethodCall(Any obj, Any f)
-  { self = XPCE_callCPlusPlusMethodv(f, obj, 0, NULL);
-  }
-  PceMethodCall(Any obj, Any f, PceArg a1)
-  { self = XPCE_callCPlusPlusMethodv(f, obj, 1, &a1.self);
-  }
-  PceMethodCall(Any obj, Any f, PceArg a1, PceArg a2)
-  { Any av[2];
-    av[0] = a1.self;
-    av[1] = a2.self;
-    self = XPCE_callCPlusPlusMethodv(f, obj, 2, av);
-  }
-  PceMethodCall(Any obj, Any f, PceArg a1, PceArg a2, PceArg a3)
-  { Any av[3];
-    av[0] = a1.self;
-    av[1] = a2.self;
-    av[2] = a3.self;
-    self = XPCE_callCPlusPlusMethodv(f, obj, 3, av);
-  }
-  PceMethodCall(Any obj, Any f, PceArg a1, PceArg a2, PceArg a3, PceArg a4)
-  { Any av[4];
-    av[0] = a1.self;
-    av[1] = a2.self;
-    av[2] = a3.self;
-    av[3] = a4.self;
-    self = XPCE_callCPlusPlusMethodv(f, obj, 4, av);
-  }
-};
 
 #endif /*!_PCE_CALL_H*/

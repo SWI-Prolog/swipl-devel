@@ -263,9 +263,8 @@ invokeMethod(Method m, Name c, Any receiver, int argc, const Any argv[])
     Any rec = receiver;
 
 #if O_CPLUSPLUS
-    if ( isCppFunctionPointer(f) )
-    { void *cppf = valCppFunctionPointer(f);
-      Any receiver_save;
+    if ( onDFlag(m, D_CXX) )
+    { Any receiver_save;
       Class receiver_class_save;
 
       if ( vararg >= 0 )
@@ -281,9 +280,9 @@ invokeMethod(Method m, Name c, Any receiver, int argc, const Any argv[])
       RECEIVER_CLASS->value = m->context;
 
       if ( c == NAME_send )
-	rval = (Any) callCPlusPlusPceMethodProc(rec, cppf, ac, av);
+	rval = (Any) callCPlusPlusPceMethodProc(rec, f, ac, av);
       else
-	rval = callCPlusPlusPceMethodFunc(rec, cppf, ac, av);
+	rval = callCPlusPlusPceMethodFunc(rec, f, ac, av);
 
       RECEIVER_CLASS->value = receiver_class_save;
       RECEIVER->value = receiver_save;

@@ -4,13 +4,13 @@
     Designed and implemented by Anjo Anjewierden and Jan Wielemaker
     E-mail: jan@swi.psy.uva.nl
 
-    Copyright (C) 1993 University of Amsterdam. All rights reserved.
+    Copyright (C) 1993-1997 University of Amsterdam. All rights reserved.
 */
 
 #ifndef _PCE_ATTRIBUTE_H
 #define _PCE_ATTRIBUTE_H
 
-extern Any ClassAttribute;
+PceExternalClass(ClassAttribute);
 class PceAttribute :public PceObject
 {
 public:

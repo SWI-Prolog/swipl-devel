@@ -1,11 +1,37 @@
 [VERSION 4.9.3]
 
-* FIXED: if the system defines on_exit(), this preferenced over atexit()
+* IMPROVED: integer range increased to +- 2**30 (was +- 2**29).
+
+* PORT: Various minor issues for AIX 4.1 (using gcc 2.7.2).
+
+* UPDATED: Updated the XPCE/C++ and XPCE/Prolog/C++ installation.  Many
+  improvements:
+
+	+ Fixed and fixed for MSVC 4.2 (Win32 version)
+	+ Deleted PceMethodCall (non-portable)
+	+ C-interface based handling of TheDisplay, etc., to avoid
+	  exporting mangled symbols (better C++ compiler independency).
+	+ Replaced masking of function pointers by using a flag on
+	  class method and class class to find the type of pointer
+	  used to improve portability.
+	+ Autoconf based configuration for the C++ interface
+	+ Added installation of the interface tools to make dv-install
+	+ Fixed some C++ compatibility issues in Chain.h and Pce.h
+	+ Tested all demos.  Removed a few that cover issues covered
+	  extensively by others.  Improved a few to look better and
+	  fix C++ compatibility issues.
+	+ Extended CXX/demo/README and README.CXX.  Added CXX/demo/DEMOS,
+	  providing a brief overview of the demos.
+	+ Changed libXPCEmain.a, now implemented in C++ by src/itf/main.cxx.
+	  Exits the application if there are no more frames for which
+	  events can be dispatched.
+
+* FIXED: if the system defines on_exit(), this is preferred over atexit()
   to be able to pass the exit code to messages registered using
   @pce->exit_message.
 
 * PORT: Linux libc 5.4.23 defines sysinfo(), which errornously is mistaken
-  for Solaris (compatible) sysinfo() by configure.  Fixed in ker/self.c by
+  for Solaris (incompatible) sysinfo() by configure.  Fixed in ker/self.c by
   explicitely testing for not-linux.
 
 * MODIFIED: `directory->scan' to send ->ignore_case to the pattern if the

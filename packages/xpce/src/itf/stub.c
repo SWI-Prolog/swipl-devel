@@ -39,7 +39,9 @@ static char * host_action_names[] =
   "HOST_ABORT",
   "HOST_SIGNAL",
   "HOST_RECOVER_FROM_FATAL_ERROR",
-  "HOST_ATEXIT"
+  "HOST_ATEXIT",
+  "HOST_CONSOLE",
+  "HOST_CHECK_INTERRUPT"
 };
 
 #define HIGHEST_HOST_ACTION_NAME (sizeof(host_action_names) / sizeof(char *))
@@ -70,8 +72,7 @@ Stub__HostActionv(int action, va_list args)
     case HOST_BREAK:
     case HOST_ABORT:
     case HOST_RECOVER_FROM_FATAL_ERROR:
-      fprintf(stderr,
-	      "hostAction(%d (=%s)) not supported for C++-interface\n",
+      Cprintf("hostAction(%d (=%s)) not supported for C++-interface\n",
 	      action, host_action_names[action]);
       rval = PCE_FAIL;
       break;
@@ -81,8 +82,10 @@ Stub__HostActionv(int action, va_list args)
     case HOST_SIGNAL:
       signal(va_arg(args, int), va_arg(args, sig_handler_t));
       break;
+    case HOST_CHECK_INTERRUPT:
+      return PCE_FAIL;
     default:
-      fprintf(stderr, "Unknown action request from PCE: %d", action);
+      Cprintf("Unknown action request from PCE: %d\n", action);
       rval = PCE_FAIL;
   }
 
@@ -91,22 +94,22 @@ Stub__HostActionv(int action, va_list args)
 
 
 int
-Stub__HostQuery(what, value)
-int what;
-PceCValue *value;
+Stub__HostQuery(int what, PceCValue *value)
 { switch(what)
   { case HOST_SYMBOLFILE:
-	return PCE_FAIL;
+      return PCE_FAIL;
+    case HOST_CONSOLE:
+      return PCE_FAIL;
     default:
-	fprintf(stderr, "Unknown query from PCE: %d", what);
-	return PCE_FAIL;
+      Cprintf("Unknown query from PCE: %d\n", what);
+      return PCE_FAIL;
   }
 }
 
 
 int
 Stub__HostSend(PceObject prolog, PceName sel, int argc, PceObject *argv)
-{ fprintf(stderr, "hostSend() not implemented.  See class `c'\n");
+{ Cprintf("hostSend() not implemented.  See class `c'\n");
 
   return PCE_FAIL;
 }
@@ -114,7 +117,7 @@ Stub__HostSend(PceObject prolog, PceName sel, int argc, PceObject *argv)
 
 PceObject
 Stub__HostGet(PceObject prolog, PceName sel, int argc, PceObject *argv)
-{ fprintf(stderr, "hostGet() not implemented.  See class `c'\n");
+{ Cprintf("hostGet() not implemented.  See class `c'\n");
 
   return PCE_FAIL;
 }

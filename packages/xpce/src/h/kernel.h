@@ -32,6 +32,7 @@
 
 #ifndef GLOBAL
 #define GLOBAL extern			/* global variables */
+#define PUBLIC_GLOBAL extern		/* exported global variables */
 #endif
 
 #ifdef __WINDOWS__
@@ -260,9 +261,9 @@ GLOBAL unsigned long pce_data_pointer_offset;
 		*           TAG MASKS		*
 		********************************/
 
-#define INT_MASK	0x00000002	/* 10 mask for Int (integers) */
-#define MASK_MASK	0x00000003	/* 11 Mask Mask */
-#define TAG_BITS	2		/* number of mask bits for INT */
+#define INT_MASK	0x00000001	/* 10 mask for Int (integers) */
+#define MASK_MASK	0x00000001	/* 11 Mask Mask */
+#define TAG_BITS	1		/* number of mask bits for INT */
 
 #define MaskOf(obj)		((ulong)(obj) & MASK_MASK)
 #define UnMask(obj)		((ulong)(obj) & ~MASK_MASK)
@@ -295,11 +296,10 @@ GLOBAL unsigned long pce_data_pointer_offset;
 		********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-PCE uses    tagged   integers  rather   than    C integers.  The   top
-TAG_BITS bits hold the MASK whereas the remaining  bits hold the
-integer itself.  A PCE integer is declared as of type Int (for casting
-purposes).  The following test, conversion and computation macro's are
-provided.
+PCE uses tagged integers rather than C   integers. The top TAG_BITS bits
+hold the MASK whereas the remaining bits  hold the integer itself. A PCE
+integer is declared as of type Int (for casting purposes). The following
+test, conversion and computation macro's are provided.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #undef max
@@ -393,7 +393,7 @@ void	clearDFlagProgramObject(Any, ulong);
 					/* Class attributes */
 #define DC_LAZY_GET	   makeDFlag(24) /* bind get-behaviour lazy */
 #define DC_LAZY_SEND	   makeDFlag(25) /* bind send-behaviour lazy */
-
+#define D_CXX		   makeDFlag(26) /* C++ defined method/class */
 
 		/********************************
 		*    CHAR_ARRAY, STRING, NAME	*
@@ -1452,7 +1452,6 @@ status		attach_resource(Class cl, char *name, char *type,
 				char *def, char *doc);
 
 #if O_CPLUSPLUS
-void	initCPlusPlusGlobals(void);
 status 	callCPlusPlusProc(void *f, int ac, const Any av[]);
 Any	callCPlusPlusFunc(void *f, int ac, const Any av[]);
 status 	callCPlusPlusPceMethodProc(Any o, void *f, int ac, const Any av[]);
@@ -1460,6 +1459,7 @@ Any 	callCPlusPlusPceMethodFunc(Any o, void *f, int ac, const Any av[]);
 status 	callCPlusPlusMethodProc(Any o, void *f, int ac, const Any av[]);
 Any 	callCPlusPlusMethodFunc(Any o, void *f, int ac, const Any av[]);
 #endif
+void	initCGlobals(void);
 
 		/********************************
 		*       GLOBAL VARIABLES	*
@@ -1528,6 +1528,7 @@ GLOBAL HashTable ObjectRecogniserTable;	/* object-level recognisers */
 GLOBAL HashTable ObjectHyperTable;	/* object-level hypers */
 
 GLOBAL Name	name_procent_s;		/* "%s" */
+GLOBAL Name	name_cxx;		/* "C++" */
 GLOBAL Code	qsortCompareCode;	/* used by qsortCompareObjects() */
 GLOBAL int	qsortReverse;		/* used by qsortCompareObjects() */
 

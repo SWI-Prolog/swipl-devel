@@ -2,30 +2,31 @@
 
 DOCTOTEX=../../bin/doc2tex
 PLTOTEX=../../bin/pl2tex
-CORRECTINDEX=../../bin/correctindex
-MAKEINDEX=makeindex -s ../../TeX/makeindex.sty
+MAKEINDEX=makeindex -s ../../TeX/makeindex.ist
 
 
 TEX=	doc.tex pce2cpp.tex
 
-LOGO=	figs/uva.ps figs/swi.ps
+LOGO=	figs/uva.eps figs/swi.eps
 
 all:	$(TEX) $(LOGO)
-	-$(CORRECTINDEX) doc.idx
-	-$(MAKEINDEX) doc
+	-$(MAKEINDEX) doc.idx
 	touch doc.ind
 	(TEXINPUTS=../../TeX:$$TEXINPUTS; export TEXINPUTS; latex doc)
+
+html:	$(TEX)
+	latex2html doc
 
 bib:	doc.aux
 	(TEXINPUTS=../../TeX:$$TEXINPUTS; \
 	 BIBINPUTS=$$TEXINPUTS; \
 	 export TEXINPUTS BIBINPUTS; bibtex doc)
 
-figs/uva.ps:	../../TeX/figs/uva.ps
-	cp ../../TeX/figs/uva.ps figs/uva.ps
+figs/uva.eps:	../../TeX/figs/uva.eps
+	cp ../../TeX/figs/uva.eps figs/uva.eps
 
-figs/swi.ps:	../../TeX/figs/swi.ps
-	cp ../../TeX/figs/swi.ps figs/swi.ps
+figs/swi.eps:	../../TeX/figs/swi.eps
+	cp ../../TeX/figs/swi.eps figs/swi.eps
 
 $(TEX):	$(DOCTOTEX)
 

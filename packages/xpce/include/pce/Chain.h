@@ -16,7 +16,7 @@ Any	XPCE_next_cell(Any);
 Any	XPCE_cell_value(Any);
 }
 
-extern Any ClassChain;
+PceExternalClass(ClassChain);
 
 class PceCell
 { Any self;
