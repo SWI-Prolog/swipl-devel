@@ -106,7 +106,6 @@ typedef struct
   int	     nvars;			/* # variables */
 } compile_info, *CompileInfo;
 
-#define WORDS_PER_DOUBLE ((sizeof(double)+sizeof(word)-1)/sizeof(word))
 
 typedef struct
 { word w[WORDS_PER_DOUBLE];
@@ -407,7 +406,7 @@ right_recursion:
   fetchBuf(b, &tag, long);
   switch(tag)
   { case PL_TYPE_VARIABLE:
-    { skipBuf(b, int);
+    { skipBuf(b, long);
       return;
     }
     case PL_TYPE_ATOM:

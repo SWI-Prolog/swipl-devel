@@ -120,6 +120,35 @@ arithmetic(cmp-1) :-
 
 
 		 /*******************************
+		 *	      FLOATS		*
+		 *******************************/
+
+ftest(4.5).
+ftest :-
+	ftest(4.5).
+
+floattest(float-1) :-
+	ftest(X),
+	X == 4.5.
+floattest(float-2) :-
+	ftest.
+floattest(float-3) :-
+	erase_all(f),
+	recorda(f, 6.7),
+	recorded(f, X),
+	X == 6.7.
+floattest(float-4) :-
+	X is 10.67,
+	X == 10.67.
+floattest(float-5) :-
+	clause(ftest(X), true),
+	X == 4.5.
+floattest(float-5) :-
+	clause(ftest, ftest(X)),
+	X == 4.5.
+
+
+		 /*******************************
 		 *	 PROLOG FUNCTIONS	*
 		 *******************************/
 
@@ -605,6 +634,7 @@ collect_data(C, Fd, [C|T]) :-
 testset(syntax).
 testset(arithmetic).
 testset(arithmetic_functions).
+testset(floattest).
 testset(type).
 testset(meta).
 testset(term).

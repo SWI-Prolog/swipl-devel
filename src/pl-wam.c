@@ -1703,7 +1703,7 @@ variable, compare the numbers otherwise.
       }  
 
     VMI(H_FLOAT) MARK(HFLOAT)
-      { register Word k;
+      { Word k;
 
 	deRef2(ARGP++, k);
 	if (isVar(*k))
@@ -1711,10 +1711,9 @@ variable, compare the numbers otherwise.
 
 	  *k   = consPtr(p, TAG_FLOAT|STG_GLOBAL);
 	  Trail(k, FR);
-	  *p++ = mkIndHdr(2, TAG_FLOAT);
-	  *p++ = (long)*PC++;
-	  *p++ = (long)*PC++;
-	  *p++ = mkIndHdr(2, TAG_FLOAT);
+	  *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
+	  cpDoubleData(p, (Word)PC);
+	  *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 	  NEXT_INSTRUCTION;
 	} else if ( isReal(*k) )
 	{ Word p = valIndirectP(*k);
@@ -1783,10 +1782,9 @@ globalReal().
       { Word p = allocGlobal(4);
 
 	*ARGP++ = consPtr(p, TAG_FLOAT|STG_GLOBAL);
-	*p++ = mkIndHdr(2, TAG_FLOAT);
-	*p++ = (long)*PC++;
-	*p++ = (long)*PC++;
-	*p++ = mkIndHdr(2, TAG_FLOAT);
+	*p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
+	cpDoubleData(p, (Word)PC);
+	*p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 	NEXT_INSTRUCTION;
       }  
 
@@ -2621,9 +2619,9 @@ to give the compiler a hint to put ARGP not into a register.
 
     VMI(A_DOUBLE) MARK(ADOUBLE);
       {	Number n = (Number)ARGP;
+	Word p = &n->value.w[0];
 
-	n->value.w[0] = *PC++;
-	n->value.w[1] = *PC++;
+	cpDoubleData(p, (Word)PC);
 	n->type       = V_REAL;
 	ARGP          = (Word)(n+1);
 	NEXT_INSTRUCTION;

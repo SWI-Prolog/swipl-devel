@@ -36,8 +36,8 @@ const code_info codeTable[] = {
   CODE(H_INDIRECT,	"h_indirect",	0, CA1_STRING),
   CODE(B_INTEGER,	"b_integer",	1, CA1_INTEGER),
   CODE(H_INTEGER,	"h_integer",	1, CA1_INTEGER),
-  CODE(B_FLOAT,		"b_float",	2, CA1_FLOAT),
-  CODE(H_FLOAT,		"h_float",	2, CA1_FLOAT),
+  CODE(B_FLOAT,		"b_float",	WORDS_PER_DOUBLE, CA1_FLOAT),
+  CODE(H_FLOAT,		"h_float",	WORDS_PER_DOUBLE, CA1_FLOAT),
   CODE(B_FIRSTVAR,	"b_firstvar",	1, CA1_VAR),
   CODE(H_FIRSTVAR,	"h_firstvar",	1, CA1_VAR),
   CODE(B_VOID,		"b_void",	0, 0),
@@ -59,7 +59,7 @@ const code_info codeTable[] = {
   CODE(I_APPLY,		"i_apply",	0, 0),
   CODE(A_ENTER,		"a_enter",	0, 0),
   CODE(A_INTEGER,	"a_integer",	1, CA1_INTEGER),
-  CODE(A_DOUBLE,	"a_double",	2, CA1_FLOAT),
+  CODE(A_DOUBLE,	"a_double",	WORDS_PER_DOUBLE, CA1_FLOAT),
   CODE(A_VAR0,		"a_var0",	0, 0),
   CODE(A_VAR1,		"a_var1",	0, 0),
   CODE(A_VAR2,		"a_var2",	0, 0),
@@ -946,7 +946,8 @@ be a variable, and thus cannot be removed if it is before an I_POPF.
       return NONVOID;
     case TAG_FLOAT:
     { Word p = valIndirectP(*arg);
-      Output_2(ci, (where & A_BODY) ? B_FLOAT : H_FLOAT, p[0], p[1]);
+      Output_0(ci, (where & A_BODY) ? B_FLOAT : H_FLOAT);
+      Output_n(ci, p, WORDS_PER_DOUBLE);
       return NONVOID;
     }
     case TAG_STRING:
@@ -1846,10 +1847,9 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
 	  word w;
 
 	  w = consPtr(p, TAG_FLOAT|STG_GLOBAL);
-	  *p++ = mkIndHdr(2, TAG_FLOAT);
-	  *p++ = (long)XR(*PC++);
-	  *p++ = (long)XR(*PC++);
-	  *p++ = mkIndHdr(2, TAG_FLOAT);
+	  *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
+	  cpDoubleData(p, (Word)PC);
+	  *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 	  TRY(_PL_unify_atomic(argp, w));
 	  NEXTARG;
 	  continue;
@@ -2058,13 +2058,12 @@ decompileBody(decompileInfo *di, code end, Code until)
 			    continue;
 	case B_FLOAT:
 	case A_DOUBLE:
-		  	  { union
-			    { unsigned long w[2];
-			      double f;
-			    } v;
-			    v.w[0] = *PC++;
-			    v.w[1] = *PC++;
-			    *ARGP++ = globalReal(v.f);
+		  	  { Word p = allocGlobal(2+WORDS_PER_DOUBLE);
+			    
+			    *ARGP++ = consPtr(p, TAG_FLOAT|STG_GLOBAL);
+			    *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
+			    cpDoubleData(p, (Word)PC);
+			    *p   = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 			    continue;
 			  }
 	case B_INDIRECT:
@@ -2902,12 +2901,13 @@ wamListClause(Clause clause)
 	    break;
 	  }
 	  case CA1_FLOAT:
-	  { union { word w[2];
-		    double f;
-		  } v;
+	  { union
+	    { word w[WORDS_PER_DOUBLE];
+	      double f;
+	    } v;
+	    Word p = v.w;
 	    n += 2;
-	    v.w[0] = *bp++;
-	    v.w[1] = *bp++;
+	    cpDoubleData(p, bp);
 	    Sfprintf(out, " %g", v.f);
 	    break;
 	  }

@@ -340,6 +340,7 @@ them.  Descriptions:
 #define WORDBITSIZE		(8 * sizeof(word))
 #define LONGBITSIZE		(8 * sizeof(long))
 #define INTBITSIZE		(8 * sizeof(int))
+#define WORDS_PER_DOUBLE        ((sizeof(double)+sizeof(word)-1)/sizeof(word))
 
 				/* Prolog's integer range */
 #define PLMINTAGGEDINT		(-(long)(1L<<(WORDBITSIZE - LMASK_BITS - 1)))
@@ -756,7 +757,7 @@ typedef struct
 { int	type;				/* type of number */
   union { real  f;			/* value as real */
 	  long  i;			/* value as integer */
-	  word  w[2];			/* for packing/unpacking the double */
+	  word  w[WORDS_PER_DOUBLE];	/* for packing/unpacking the double */
 	} value;
 } number, *Number;
 
@@ -963,6 +964,21 @@ LIST processing macros.
 #define TailList(p)	(argTermP(*(p), 1) )
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Doubles.  Assume the compiler with optise this properly.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define cpDoubleData(to, from) \
+	switch(WORDS_PER_DOUBLE) \
+	{ case 2: \
+	    *(to)++ = *(from)++; \
+	  case 1: \
+	    *(to)++ = *(from)++; \
+	    break; \
+	  default: \
+	    assert(0); \
+	}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Structure declarations that must be shared across multiple files.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -1047,7 +1063,7 @@ struct clause_ref
 #define CA1_FUNC	2	/* code arg 1 is functor */
 #define CA1_DATA	3	/* code arg 2 is prolog data */
 #define CA1_INTEGER	4	/* long value */
-#define CA1_FLOAT	5	/* next 2 are double */
+#define CA1_FLOAT	5	/* next WORDS_PER_DOUBLE are double */
 #define CA1_STRING	6	/* inlined string */
 #define CA1_MODULE	7	/* a module */
 #define CA1_VAR		8	/* a variable(-offset) */

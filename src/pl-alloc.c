@@ -459,8 +459,6 @@ assignment is used here  to  avoid  a   loop  for  different  values  of
 WORDS_PER_DOUBLE.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define WORDS_PER_DOUBLE ((sizeof(double)+sizeof(word)-1)/sizeof(word))
-
 typedef struct
 { word w[WORDS_PER_DOUBLE];
 } fword;

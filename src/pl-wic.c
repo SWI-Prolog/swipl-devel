@@ -36,8 +36,6 @@ static bool	importWic(Procedure, IOSTREAM *fd);
 static bool	compileFile(char *);
 static word	loadXR(IOSTREAM *);
 static word	loadXRc(int c, IOSTREAM *fd);
-static void	putstdw(word w, IOSTREAM *fd);
-static word	getstdw(IOSTREAM *fd);
 static bool	loadStatement(int c, IOSTREAM *fd, int skip);
 static bool	loadPart(IOSTREAM *fd, Module *module, int skip);
 static bool	loadInModule(IOSTREAM *fd, int skip);
@@ -123,8 +121,7 @@ Below is an informal description of the format of a `.qlf' file:
 <XR>		::=	XR_REF     <num>		% XR id from table
 			XR_ATOM    <string>		% atom
 			XR_INT     <num>		% number
-			XR_BIGNUM  <word>		% big-number
-			XR_FLOAT   <word><word>		% real (double)
+			XR_FLOAT   <word>*		% real (double)
 			XR_STRING  <string>		% string
 			XR_FUNCTOR <XR/name> <num>	% functor
 			XR_PRED    <XR/fdef> <XR/module>% predicate
@@ -156,8 +153,8 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 33			/* load all versions later >= 30 */
-#define VERSION 33			/* save version number */
+#define LOADVERSION 34			/* load all versions later >= 30 */
+#define VERSION 34			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF     0			/* reference to previous */
@@ -165,11 +162,10 @@ bits) as well as machines with different byte order.
 #define XR_FUNCTOR 2			/* functor */
 #define XR_PRED	   3			/* procedure */
 #define XR_INT     4			/* int */
-#define XR_BIGNUM  5			/* 32-bit integer */
-#define XR_FLOAT   6			/* float */
-#define XR_STRING  7			/* string */
-#define XR_FILE	   8			/* source file */
-#define XR_MODULE  9			/* a module */
+#define XR_FLOAT   5			/* float */
+#define XR_STRING  6			/* string */
+#define XR_FILE	   7			/* source file */
+#define XR_MODULE  8			/* a module */
 
 #define PRED_SYSTEM	 0x01		/* system predicate */
 #define PRED_HIDE_CHILDS 0x02		/* hide my childs */
@@ -417,41 +413,28 @@ getNum(IOSTREAM *fd)
 }
 
 
-static word
-getstdw(IOSTREAM *fd)
-{
-#ifndef WORDS_BIGENDIAN
-  union
-  { word         l;
-    unsigned char c[4];
-  } cvrt;
-  long rval;
-
-  cvrt.l = Sgetw(fd);
-  rval = (cvrt.c[0] << 24) |
-         (cvrt.c[1] << 16) |
-	 (cvrt.c[2] << 8) |
-	  cvrt.c[3];
-  return rval;
+#ifdef WORDS_BIGENDIAN
+static const int double_byte_order[] = { 7,6,5,4,3,2,1,0 };
 #else
-  return Sgetw(fd);
+static const int double_byte_order[] = { 0,1,2,3,4,5,6,7 };
 #endif
-}
 
+#define BYTES_PER_DOUBLE (sizeof(double_byte_order)/sizeof(int))
 
 static real
 getReal(IOSTREAM *fd)
 { real f;
-  word *s = (word *) &f;
+  unsigned char *cl = (char *)&f;
+  int i;
 
-#ifndef WORDS_BIGENDIAN
-  s[0] = getstdw(fd);
-  s[1] = getstdw(fd);
-#else
-  s[1] = getstdw(fd);
-  s[0] = getstdw(fd);
-#endif
-
+  for(i=0; i<BYTES_PER_DOUBLE; i++)
+  { int c = Sgetc(fd);
+    
+    if ( c == -1 )
+      fatalError("Unexpected end-of-file in QLT file");
+    cl[double_byte_order[i]] = c;
+  }
+  
   DEBUG(3, Sdprintf("getReal() --> %f\n", f));
 
   return f;
@@ -509,9 +492,7 @@ loadXRc(int c, IOSTREAM *fd)
       break;
     }
     case XR_INT:
-      return consInt(getNum(fd));
-    case XR_BIGNUM:
-      return globalLong(getstdw(fd));
+      return makeNum(getNum(fd));
     case XR_FLOAT:
       return globalReal(getReal(fd));
 #if O_STRING
@@ -527,7 +508,7 @@ loadXRc(int c, IOSTREAM *fd)
       { case 'u':
 	case 's':
 	{ atom_t name   = loadXR(fd);
-	  word   time   = getstdw(fd);
+	  word   time   = getNum(fd);
 	  const char *s = stringAtom(name);
 	  SourceFile sf = lookupSourceFile(qlfFixSourcePath(s));
 
@@ -880,15 +861,18 @@ loadPredicate(IOSTREAM *fd, int skip)
 	      n++;
 	      break;
 	    case CA1_INTEGER:
-	      *bp++ = getstdw(fd);
+	      *bp++ = getNum(fd);
 	      n++;
 	      break;
 	    case CA1_FLOAT:
-	    { union { word w[2]; double f; } v;
+	    { union
+	      { word w[WORDS_PER_DOUBLE];
+		double f;
+	      } v;
+	      Word p = v.w;
 	      v.f = getReal(fd);
-	      *bp++ = v.w[0];
-	      *bp++ = v.w[1];
-	      n += 2;
+	      cpDoubleData(bp, p);
+	      n += WORDS_PER_DOUBLE;
 	      break;
 	    }
 	    case CA1_STRING:		/* <n> chars */
@@ -981,7 +965,7 @@ qlfFixSourcePath(const char *raw)
 static bool
 qlfLoadSource(IOSTREAM *fd)
 { char *str = getString(fd);
-  long time = getstdw(fd);
+  long time = getNum(fd);
   int issys = (Qgetc(fd) == 's') ? TRUE : FALSE;
   atom_t fname;
 
@@ -1216,40 +1200,14 @@ putNum(long n, IOSTREAM *fd)
 
 
 static void
-putstdw(word w, IOSTREAM *fd)
-{
-#ifndef WORDS_BIGENDIAN
-  union
-  { word         l;
-    unsigned char c[4];
-  } cvrt;
-  word rval;
-
-  cvrt.l = w;
-  rval = (cvrt.c[0] << 24) |
-         (cvrt.c[1] << 16) |
-	 (cvrt.c[2] << 8) |
-	  cvrt.c[3];
-  Sputw(rval, fd);
-#else
-  Sputw(w, fd);
-#endif
-}
-
-
-static void
 putReal(real f, IOSTREAM *fd)
-{ word *s = (word *)&f;
+{ unsigned char *cl = (char *)&f;
+  int i;
 
   DEBUG(3, Sdprintf("putReal(%f)\n", f));
 
-#ifndef WORDS_BIGENDIAN
-  putstdw(s[0], fd);
-  putstdw(s[1], fd);
-#else
-  putstdw(s[1], fd);
-  putstdw(s[0], fd);
-#endif
+  for(i=0; i<BYTES_PER_DOUBLE; i++)
+    Sputc(cl[double_byte_order[i]], fd);
 }
 
 
@@ -1280,8 +1238,8 @@ saveXR(word xr, IOSTREAM *fd)
     putNum(valInt(xr), fd);
     return;
   } else if ( isBignum(xr) )
-  { Sputc(XR_BIGNUM, fd);
-    putstdw(valBignum(xr), fd);
+  { Sputc(XR_INT, fd);
+    putNum(valBignum(xr), fd);
     return;
   } else if ( isReal(xr) )
   { Sputc(XR_FLOAT, fd);
@@ -1360,7 +1318,7 @@ saveXRSourceFile(SourceFile f, IOSTREAM *fd)
   { DEBUG(3, Sdprintf("XR(%d) = file %s\n", savedXRTableId, stringAtom(f->name)));
     Sputc(f->system ? 's' : 'u', fd);
     saveXR(f->name, fd);
-    putstdw(f->time, fd);
+    putNum(f->time, fd);
   } else
   { DEBUG(3, Sdprintf("XR(%d) = <no file>\n", savedXRTableId));
     Sputc('-', fd);  
@@ -1473,15 +1431,18 @@ saveWicClause(Clause clause, IOSTREAM *fd)
 	break;
       }
       case CA1_INTEGER:
-      { putstdw(*bp++, fd);
+      { putNum(*bp++, fd);
 	n++;
 	break;
       }
       case CA1_FLOAT:
-      { union { word w[2]; double f; } v;
-	v.w[0] = *bp++;
-	v.w[1] = *bp++;
-	n += 2;
+      { union
+	{ word w[WORDS_PER_DOUBLE];
+	  double f;
+	} v;
+	Word p = v.w;
+	cpDoubleData(p, bp);
+	n += WORDS_PER_DOUBLE;
 	putReal(v.f, fd);
 	break;
       }
@@ -1691,13 +1652,13 @@ writeSourceMarks(IOSTREAM *s)
   { pn = pm->next;
 
     DEBUG(1, Sdprintf(" %d", pm->file_index));
-    putstdw(pm->file_index, s);
+    putNum(pm->file_index, s);
     freeHeap(pm, sizeof(*pm));
     n++;
   }
   
   DEBUG(1, Sdprintf("Written %d marks\n", n));
-  putstdw(n, s);
+  putNum(n, s);
 
   return 0;
 }
@@ -1745,12 +1706,12 @@ qlfInfo(const char *file,
 
   if ( Sseek(s, -(int)sizeof(long), SIO_SEEK_END) < 0 )
     return warning("qlf_info/3: seek failed: %s", OsError());
-  nqlf = getstdw(s);
+  nqlf = getNum(s);
   DEBUG(1, Sdprintf("Found %d sources at %d starting at", nqlf, rval));
   qlfstart = (long *)allocHeap(sizeof(long) * nqlf);
   Sseek(s, -(int)sizeof(long) * (nqlf+1), SIO_SEEK_END);
   for(i=0; i<nqlf; i++)
-  { qlfstart[i] = getstdw(s);
+  { qlfstart[i] = getNum(s);
     DEBUG(1, Sdprintf(" %d", qlfstart[i]));
   }
   DEBUG(1, Sdprintf("\n"));
@@ -1908,7 +1869,7 @@ qlfSaveSource(SourceFile f, IOSTREAM *fd)
 { sourceMark(fd);
   Sputc('F', fd);
   putAtom(f->name, fd);
-  putstdw(f->time, fd);
+  putNum(f->time, fd);
   Sputc(f->system ? 's' : 'u', fd);
 
   currentSource = f;

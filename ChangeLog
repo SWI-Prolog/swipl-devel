@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORTABILITY: Fixed assumption that a double is twice as big as a long.
+    This causes an incompatibility in the .QLF format.  All .QLF files should
+    be recompiled to deal with this version.
+
   * INTERNAL: recorded database to to avoid unaligned retrieval using
     memcpy().  Provides a little extra speed notably in findall, setof
     and friends, at the cost of some memory.
