@@ -889,7 +889,7 @@ expandFileName(char *pattern, char *bin)
     expanded += l;
 
 					/* avoid ~/ --> // */
-    if ( IsDirSep(expanded[-1]) && isDefault(pattern[0]) )
+    if ( IsDirSep(expanded[-1]) && IsDirSep(pattern[0]) )
       pattern++;
   }
 
