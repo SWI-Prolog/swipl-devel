@@ -1,5 +1,5 @@
 
-/* gnu/gregex.c */
+/* ../src/gnu/gregex.c */
 void		print_fastmap(char *fastmap);
 void		print_partial_compiled_pattern(unsigned char *start, unsigned char *end);
 void		print_compiled_pattern(struct re_pattern_buffer *bufp);
@@ -19,8 +19,8 @@ int		regexec(const regex_t *preg, const char *string, size_t nmatch, regmatch_t 
 size_t		regerror(int errcode, const regex_t *preg, char *errbuf, size_t errbuf_size);
 void		regfree(regex_t *preg);
 
-/* gnu/getdate.c */
-int		yyparse(int YYPARSE_PARAM);
+/* ../src/gnu/getdate.c */
+YYPARSE_RETURN_TYPEyyparse(int YYPARSE_PARAM_ARG);
 int		yyerror(char *s);
 int		yylex(void);
 time_t		get_date(char *p, struct timeb *now);

@@ -1,5 +1,5 @@
 
-/* adt/area.c */
+/* ../src/adt/area.c */
 status		intersectionArea(Area a, Area b);
 status		unionNormalisedArea(Area a, Area b);
 status		sizeArea(Area a, Size s);
@@ -21,16 +21,16 @@ status		orientationArea(Area a, Name orientation);
 Name		getOrientationArea(Area a);
 status		makeClassArea(Class class);
 
-/* adt/atable.c */
+/* ../src/adt/atable.c */
 status		makeClassAtable(Class class);
 
-/* adt/attribute.c */
+/* ../src/adt/attribute.c */
 status		makeClassAttribute(Class class);
 
-/* adt/bool.c */
+/* ../src/adt/bool.c */
 status		makeClassBool(Class class);
 
-/* adt/chain.c */
+/* ../src/adt/chain.c */
 status		initialiseChainv(Chain ch, int argc, Any *argv);
 status		clearChain(Chain ch);
 Int		getSizeChain(Chain ch);
@@ -75,18 +75,18 @@ Int		getArityChain(Chain ch);
 Any		getArgChain(Chain ch, Int arg);
 status		makeClassChain(Class class);
 
-/* adt/chaintable.c */
+/* ../src/adt/chaintable.c */
 status		appendChainTable(ChainTable ct, Any name, Any value);
 status		makeClassChainTable(Class class);
 
-/* adt/constant.c */
+/* ../src/adt/constant.c */
 status		makeClassConstant(Class class);
 
-/* adt/date.c */
+/* ../src/adt/date.c */
 Date		CtoDate(long int time);
 status		makeClassDate(Class class);
 
-/* adt/dict.c */
+/* ../src/adt/dict.c */
 DictItem	getMemberDict(Dict dict, Any obj);
 status		deleteDict(Dict dict, Any obj);
 status		appendDict(Dict dict, DictItem di);
@@ -95,11 +95,11 @@ DictItem	getFindPrefixDict(Dict dict, StringObj str, Int from, Bool ign_case);
 status		clearDict(Dict dict);
 status		makeClassDict(Class class);
 
-/* adt/dictitem.c */
+/* ../src/adt/dictitem.c */
 CharArray	getLabelDictItem(DictItem di);
 status		makeClassDictItem(Class class);
 
-/* adt/hashtable.c */
+/* ../src/adt/hashtable.c */
 HashTable	createHashTable(Int buckets, Name refer);
 status		freeHashTable(HashTable ht);
 status		initialiseHashTable(HashTable ht, Int buckets);
@@ -108,11 +108,11 @@ status		deleteHashTable(HashTable ht, Any name);
 status		clearHashTable(HashTable ht);
 status		makeClassHashTable(Class class);
 
-/* adt/number.c */
+/* ../src/adt/number.c */
 Number		CtoNumber(long i);
 status		makeClassNumber(Class class);
 
-/* adt/point.c */
+/* ../src/adt/point.c */
 status		equalPoint(Point p1, Point p2);
 status		copyPoint(Point p1, Point p2);
 status		setPoint(Point pt, Int x, Int y);
@@ -123,7 +123,7 @@ status		plusPoint(Point p, Point q);
 status		minusPoint(Point p, Point q);
 status		makeClassPoint(Class class);
 
-/* adt/real.c */
+/* ../src/adt/real.c */
 void		setReal(Real r, double f);
 double		valReal(Real r);
 Real		CtoReal(double f);
@@ -131,11 +131,11 @@ Real		getConvertReal(Class class, Any obj);
 status		valueReal(Real r, Real v);
 status		makeClassReal(Class class);
 
-/* adt/region.c */
+/* ../src/adt/region.c */
 status		insideRegion(RegionObj r, Area a, Point p);
 status		makeClassRegion(Class class);
 
-/* adt/sheet.c */
+/* ../src/adt/sheet.c */
 Sheet		getCopySheet(Sheet sh);
 status		isAttributeSheet(Sheet sh, Any name);
 Attribute	getMemberSheet(Sheet sh, register Any name);
@@ -144,17 +144,17 @@ Any		getValueSheet(Sheet sh, Any name);
 status		valueSheet(Sheet sh, Any name, Any value);
 status		makeClassSheet(Class class);
 
-/* adt/size.c */
+/* ../src/adt/size.c */
 status		equalSize(Size s, Size s2);
 status		copySize(Size s, Size s2);
 status		setSize(Size s, Int w, Int h);
 status		makeClassSize(Class class);
 
-/* adt/tuple.c */
+/* ../src/adt/tuple.c */
 status		initialiseTuple(Tuple t, Any first, Any second);
 status		makeClassTuple(Class class);
 
-/* adt/vector.c */
+/* ../src/adt/vector.c */
 status		initialiseVectorv(Vector v, int argc, Any *argv);
 Vector		createVectorv(int argc, Any *argv);
 status		unlinkVector(Vector v);

@@ -1,11 +1,11 @@
 
-/* evt/clickgesture.c */
+/* ../src/evt/clickgesture.c */
 status		makeClassClickGesture(Class class);
 
-/* evt/conngesture.c */
+/* ../src/evt/conngesture.c */
 status		makeClassConnectGesture(Class class);
 
-/* evt/event.c */
+/* ../src/evt/event.c */
 void		considerLocStillEvent(void);
 PceWindow	WindowOfLastEvent(void);
 void		unlinkedWindowEvent(Any sw);
@@ -36,51 +36,51 @@ Any		getMasterEvent(EventObj ev);
 DisplayObj	getDisplayEvent(EventObj ev);
 status		makeClassEvent(Class class);
 
-/* evt/eventnode.c */
+/* ../src/evt/eventnode.c */
 status		isAEventNode(EventNodeObj sb, EventNodeObj super);
 status		makeClassEventNode(Class class);
 
-/* evt/eventtree.c */
+/* ../src/evt/eventtree.c */
 status		addNodeEventTree(EventTreeObj t, EventNodeObj n);
 EventNodeObj	getNodeEventTree(EventTreeObj t, Any value);
 status		makeClassEventTree(Class class);
 
-/* evt/gesture.c */
+/* ../src/evt/gesture.c */
 status		initialiseGesture(Gesture g, Name button, Modifier modifier);
 status		eventGesture(Any obj, EventObj ev);
 status		cancelGesture(Gesture g, EventObj ev);
 status		makeClassGesture(Class class);
 
-/* evt/handler.c */
+/* ../src/evt/handler.c */
 status		makeClassHandler(Class class);
 
-/* evt/handlergroup.c */
+/* ../src/evt/handlergroup.c */
 status		makeClassHandlerGroup(Class class);
 
-/* evt/modifier.c */
+/* ../src/evt/modifier.c */
 status		makeClassModifier(Class class);
 
-/* evt/movegesture.c */
+/* ../src/evt/movegesture.c */
 status		initialiseMoveGesture(MoveGesture g, Name button, Modifier modifier);
 status		makeClassMoveGesture(Class class);
 
-/* evt/mvolgesture.c */
+/* ../src/evt/mvolgesture.c */
 status		makeClassMoveOutlineGesture(Class class);
 
-/* evt/popupgesture.c */
+/* ../src/evt/popupgesture.c */
 status		makeClassPopupGesture(Class class);
 Recogniser	popupGesture(void);
 
-/* evt/recogniser.c */
+/* ../src/evt/recogniser.c */
 status		initialiseRecogniser(Recogniser r);
 status		makeClassRecogniser(Class class);
 
-/* evt/resizegesture.c */
+/* ../src/evt/resizegesture.c */
 status		initialiseResizeGesture(ResizeGesture g, Name button, Modifier modifier);
 status		makeClassResizeGesture(Class class);
 
-/* evt/rzolgesture.c */
+/* ../src/evt/rzolgesture.c */
 status		makeClassResizeOutlineGesture(Class class);
 
-/* evt/edittextgest.c */
+/* ../src/evt/edittextgest.c */
 status		makeClassEditTextGesture(Class class);

@@ -1,17 +1,17 @@
 
-/* msg/and.c */
+/* ../src/msg/and.c */
 status		makeClassAnd(Class class);
 
-/* msg/assign.c */
+/* ../src/msg/assign.c */
 status		makeClassAssign(Class class);
 
-/* msg/binding.c */
+/* ../src/msg/binding.c */
 status		makeClassBinding(Class class);
 
-/* msg/block.c */
+/* ../src/msg/block.c */
 status		makeClassBlock(Class class);
 
-/* msg/code.c */
+/* ../src/msg/code.c */
 status		initialiseCode(Code c);
 status		forwardReceiverCodev(Code c, Any receiver, int argc, const Any argv []);
 status		forwardCode(Code c, ...);
@@ -21,13 +21,13 @@ void		doneCodeVector(Vector v);
 status		makeClassCodeVector(Class class);
 status		makeClassCode(Class class);
 
-/* msg/create.c */
+/* ../src/msg/create.c */
 status		makeClassCreate(Class class);
 
-/* msg/equal.c */
+/* ../src/msg/equal.c */
 status		makeClassEqual(Class class);
 
-/* msg/function.c */
+/* ../src/msg/function.c */
 status		initialiseFunction(Function f);
 Any		getForwardFunctionv(Function f, int argc, const Any argv []);
 Any		getForwardReceiverFunctionv(Function f, Any receiver, int argc, const Any argv []);
@@ -37,42 +37,42 @@ Any		getSendMethodFunction(Function f, Name selector);
 Any		getGetMethodFunction(Function f, Name selector);
 status		makeClassFunction(Class class);
 
-/* msg/if.c */
+/* ../src/msg/if.c */
 status		makeClassIf(Class class);
 
-/* msg/message.c */
+/* ../src/msg/message.c */
 status		ExecuteMessage(Message msg);
 status		makeClassMessage(Class class);
 
-/* msg/nonequal.c */
+/* ../src/msg/nonequal.c */
 status		makeClassNonEqual(Class class);
 
-/* msg/not.c */
+/* ../src/msg/not.c */
 status		makeClassNot(Class class);
 
-/* msg/obtain.c */
+/* ../src/msg/obtain.c */
 status		makeClassObtain(Class class);
 
-/* msg/or.c */
+/* ../src/msg/or.c */
 status		makeClassOr(Class class);
 
-/* msg/progn.c */
+/* ../src/msg/progn.c */
 status		makeClassProgn(Class class);
 
-/* msg/quote.c */
+/* ../src/msg/quote.c */
 status		makeClassQuoteFunction(Class class);
 
-/* msg/var.c */
+/* ../src/msg/var.c */
 status		makeClassVar(Class class);
 void		resetVars(void);
 void		popVarEnvironment(void);
 status		assignVar(Var v, Any value, Name scope);
 
-/* msg/when.c */
+/* ../src/msg/when.c */
 status		makeClassWhen(Class class);
 
-/* msg/while.c */
+/* ../src/msg/while.c */
 status		makeClassWhile(Class class);
 
-/* msg/nameref.c */
+/* ../src/msg/nameref.c */
 status		makeClassAssoc(Class class);

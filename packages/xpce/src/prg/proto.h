@@ -1,11 +1,11 @@
 
-/* prg/operator.c */
+/* ../src/prg/operator.c */
 status		makeClassOperator(Class class);
 
-/* prg/parser.c */
+/* ../src/prg/parser.c */
 status		makeClassParser(Class class);
 
-/* prg/tokeniser.c */
+/* ../src/prg/tokeniser.c */
 Tokeniser	getOpenTokeniser(Tokeniser t, Any source);
 Int		getPeekTokeniser(Tokeniser t);
 status		symbolTokeniser(Tokeniser t, Name symb);

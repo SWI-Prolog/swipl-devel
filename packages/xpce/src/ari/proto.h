@@ -1,5 +1,5 @@
 
-/* ari/equation.c */
+/* ../src/ari/equation.c */
 status		makeClassBinaryCondition(Class class);
 status		evaluateEquation(Equation e, Var var, NumericValue result);
 status		makeClassEquation(Class class);
@@ -8,7 +8,7 @@ status		makeClassLessEqual(Class class);
 status		makeClassGreater(Class class);
 status		makeClassGreaterEqual(Class class);
 
-/* ari/expression.c */
+/* ../src/ari/expression.c */
 PseudoFloat	getPseudoFloatExpression(Any e);
 void		promoteToRealNumericValue(NumericValue n);
 status		ar_add(NumericValue n1, NumericValue n2, NumericValue r);
