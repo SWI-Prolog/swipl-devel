@@ -1315,24 +1315,18 @@ resulting code is simply the same), I've removed that.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 $translate_rule((LP-->List), H) :-
-	nonvar(List),
-	(   List == []
+	is_list(List), !,
+	(   List = []
 	->  $t_head(LP, S, S, H)
-	;   List = [X|T],
-	    (	T == []
-	    ->	$t_head(LP, [X|S], S, H)
-	    ;	append(List, SR, S),
-		$extend([S, SR], LP, H)
-	    )
-	), !.
+        ;   List = [X]
+        ->  $t_head(LP, [X|S], S, H)
+        ;   append(List, SR, S),
+            $extend([S, SR], LP, H)
+        ).
 $translate_rule((LP-->RP), (H:-B)):-
 	$t_head(LP, S, SR, H),
 	$t_body(RP, S, SR, B).
 
-$tailvar(X, X) :-
-	var(X), !.
-$tailvar([_|T], V) :-
-	$tailvar(T, V).
 
 $t_head((LP, List), S, SR, H) :-
 	append(List, SR, List2), !,
