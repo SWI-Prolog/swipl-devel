@@ -771,14 +771,23 @@ REFERENCES
 #include "pl-data.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Common Prolog objects typedefs.
+Common Prolog objects typedefs.  Note that code is word-aligned for two
+reasons.  First of all, we want to get the maximum speed and second, we
+must ensure that sizeof(struct clause) is a multiple of sizeof(word) to
+place them on the stack (see I_USERCALL).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef __GNUC__
+#define WORD_ALIGNED __attribute__ ((aligned (sizeof(word))))
+#else
+#define WORD_ALIGNED
+#endif
 
 typedef unsigned long		term_t;		/* external term-reference */
 typedef unsigned long		word;		/* Anonymous 4 byte object */
 typedef word *			Word;		/* a pointer to anything */
 typedef word			atom_t;		/* encoded atom */
-typedef unsigned long		code;		/* bytes codes */
+typedef unsigned long		code WORD_ALIGNED; /* bytes codes */
 typedef code *			Code;		/* pointer to byte codes */
 typedef int			Char;		/* char that can pass EOF */
 typedef word			(*Func)();	/* foreign functions */
@@ -1122,7 +1131,7 @@ struct functorDef
   word		name;		/* Name of functor */
   unsigned	arity;		/* arity of functor */
   unsigned      flags;		/* Flag field holding: */
-		/* INLINE_F	   Inlined foreign (system) predicate */
+  /* INLINE_F	   Inlined foreign (system) predicate */
 };
 
 
@@ -1134,6 +1143,16 @@ struct functorDef
 #define visibleClause(cl, gen) false(cl, ERASED)
 #endif
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Because struct clause must be a multiple of sizeof(word) for compilation
+on behalf of I_USERCALL the number of shorts should be even.  When compiling
+for the stack-shifter we use shorts for the marks slot and the line-number,
+otherwise we use an int for the line-number.  See also WORD_ALIGNED at
+the declaration of `code'.  Demanding word-alignment is a machine independent
+way to achieve proper alignment, but unfortunately it does not port to other
+C compilers.  Hence the trick with data sizes to avoid problems for most
+platforms.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define sizeofClause(n) ((int)&((Clause)NULL)->codes[n])
 
@@ -1151,8 +1170,10 @@ struct clause
   unsigned short	prolog_vars;	/* # real Prolog variables */
 #ifdef O_SHIFT_STACKS
   unsigned short	marks;		/* C_MARK reserved */
-#endif
   unsigned short	line_no;	/* Source line-number */
+#else
+  unsigned int		line_no; 	/* Source line-number */
+#endif
   unsigned short	source_no;	/* Index of source-file */
   unsigned short	flags;		/* Flag field holding: */
 		/* ERASED	   Clause is retracted, but referenced */

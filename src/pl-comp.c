@@ -771,6 +771,9 @@ compileClause(Word head, Word body, Procedure proc, Module module ARG_LD)
   struct clause clause;
   Clause cl;
 
+  					/* See declaration of struct clause */
+  DEBUG(0, assert(sizeof(clause) % sizeof(word) == 0));
+
   if ( head )
   { ci.islocal      = FALSE;
     ci.subclausearg = 0;
