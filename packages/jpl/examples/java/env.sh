@@ -61,7 +61,9 @@ fi
 eval `$PL -dump-runtime-variables`
 
 PLLIBDIR="$PLBASE/lib/$PLARCH"
-JPLJAR="$PLBASE/lib/jpl.jar"
+if [ -z "$JPLJAR" ]; then
+  JPLJAR="$PLBASE/lib/jpl.jar"
+fi
 
 if [ -z "$LD_LIBRARY_PATH" ]; then
    LD_LIBRARY_PATH="$PLLIBDIR";

@@ -55,11 +55,13 @@ LIBPL=		jpl.pl
 TARGETS=	libjpl.@SO@
 OBJ=		src/c/jpl.o
 
-all:		$(TARGETS)
-		(cd src/java && $(MAKE) all)
+all:		$(TARGETS) jpl.jar exjava-compile
 
 libjpl.@SO@:	$(OBJ)
 		$(LD) $(LDFLAGS) -o $@ $(OBJ) $(JAVALIBS)
+
+jpl.jar::
+		(cd src/java && $(MAKE) all)
 
 ################################################################
 # Verify the package
@@ -133,7 +135,14 @@ expl-install::
 		    $(INSTALL_DATA) examples/prolog/$$f $(DESTDIR)/$(EXPL)/$$f; \
 		done
 
-exjava-install::
+exjava-compile::
+		echo "Compiling Java examples"
+		JPLJAR=`pwd`/jpl.jar; export JPLJAR; \
+		for d in $(EXJAVAS); do \
+		    (cd examples/java/$$d && env JPL_COMPILE_ONLY=yes ./run.sh); \
+		done
+
+exjava-install:	exjava-compile
 		echo "Installing Java examples"
 		mkdir -p $(DESTDIR)/$(EXJAVA)
 		$(INSTALL_DATA) examples/java/README $(DESTDIR)/$(EXJAVA)
@@ -147,7 +156,7 @@ exjava-install::
 		    if [ -f examples/java/$$d/$$plfile ]; then \
 			$(INSTALL_DATA) examples/java/$$d/$$plfile $(DESTDIR)/$(EXJAVA)/$$d ;\
 		    fi; \
-		    (cd $(DESTDIR)/$(EXJAVA)/$$d && env JPL_COMPILE_ONLY=yes ./run.sh); \
+		    $(INSTALL_DATA) examples/java/$$d/$$d.class $(DESTDIR)/$(EXJAVA)/$$d ;\
 		done
 		$(INSTALL_DATA) examples/java/SemWeb/test.rdf $(DESTDIR)/$(EXJAVA)/SemWeb
 
