@@ -311,6 +311,8 @@ typedef struct PL_local_data
     ulong	last_cputime;		/* milliseconds last CPU time */
     ulong	last_systime;		/* milliseconds last SYSTEM time */
     ulong	last_walltime;		/* milliseconds last Wall time */
+    double	user_cputime;		/* User saved CPU time */
+    double	system_cputime;		/* Kernel saved CPU time */
   } statistics;
 
   struct

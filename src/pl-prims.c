@@ -2475,6 +2475,9 @@ PRED_IMPL("$depth_limit_except", 3, depth_limit_except, 0)
 		*          STATISTICS           *
 		*********************************/
 
+#undef LD
+#define LD LOCAL_LD			/* must be an argument! */
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Fetch runtime statistics. There are two standards  here. One is based on
 old C-Prolog compatibility, exended as required   by  SWI-Prolog and the
@@ -2497,8 +2500,8 @@ heapUsed(void)
 
 #define QP_STATISTICS 1
 
-word
-pl_statistics(term_t k, term_t value)
+int
+pl_statistics_ld(term_t k, term_t value ARG_LD)
 { word result = 0;			/* make compiler happy */
   atom_t key;
 #ifdef QP_STATISTICS
@@ -2510,7 +2513,7 @@ pl_statistics(term_t k, term_t value)
     fail;
 
   if      (key == ATOM_cputime)				/* time */
-    result = globalReal(CpuTime(CPU_USER));
+    result = globalReal(LD->statistics.user_cputime);
   else if (key == ATOM_inferences)			/* inferences */
     result = makeNum(LD->statistics.inferences);
   else if (key == ATOM_local)				/* local stack */
@@ -2585,12 +2588,12 @@ pl_statistics(term_t k, term_t value)
 #endif
 #ifdef QP_STATISTICS
   else if ( key == ATOM_runtime )
-  { v[0] = (long)(CpuTime(CPU_USER) * 1000.0);
+  { v[0] = (long)(LD->statistics.user_cputime * 1000.0);
     v[1] = v[0] - LD->statistics.last_cputime;
     LD->statistics.last_cputime = v[0];
     vn = 2;
   } else if ( key == ATOM_system_time )
-  { v[0] = (long)(CpuTime(CPU_SYSTEM) * 1000.0);
+  { v[0] = (long)(LD->statistics.system_cputime * 1000.0);
     v[1] = v[0] - LD->statistics.last_systime;
     LD->statistics.last_systime = v[0];
     vn = 2;
@@ -2680,16 +2683,32 @@ pl_statistics(term_t k, term_t value)
 }
 
 
+static
+PRED_IMPL("statistics", 2, statistics, 0)
+{ GET_LD
+  atom_t k;
+
+  if ( PL_get_atom(A1, &k) )
+  { if ( k == ATOM_cputime || k == ATOM_runtime )
+      LD->statistics.user_cputime = CpuTime(CPU_USER);
+    else if ( k == ATOM_system_time )
+      LD->statistics.system_cputime = CpuTime(CPU_SYSTEM);
+  }
+
+  return pl_statistics_ld(A1, A2 PASS_LD);
+}
+
+
+
 		/********************************
 		*            OPTIONS            *
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-pl_option() realises $option/3, providing access to the option structure
-from Prolog. This is halfway a generic  structure package ... Anyway, it
-is better then direct coded access, as   the indirect approach allows us
-to enumerate the options and generalise   the option processing from the
-saved-states.
+$option/3, provides access to the option  structure from Prolog. This is
+halfway a generic structure package ... Anyway, it is better then direct
+coded access, as the  indirect  approach   allows  us  to  enumerate the
+options and generalise the option processing from the saved-states.
 
 See also pl-main.c, which exploits set_pl_option()  to parse the options
 resource  member.  Please  note  this   code   doesn't   use   atoms  as
@@ -2726,11 +2745,17 @@ static const optdef optdefs[] =
   { NULL,		0,		NULL }
 };
 
-word
-pl_option(term_t key, term_t old, term_t new, control_t h)
-{ char *k;
 
-  switch( ForeignControl(h) )
+static
+PRED_IMPL("$option", 3, option, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+  char *k;
+
+  term_t key = A1;
+  term_t old = A2;
+  term_t new = A3;
+
+  switch( CTX_CNTRL )
   { int index;
 
     case FRG_FIRST_CALL:
@@ -2763,7 +2788,7 @@ pl_option(term_t key, term_t old, term_t new, control_t h)
       }
       break;
     case FRG_REDO:
-      index = ForeignContextInt(h);
+      index = CTX_INT;
       goto next;
     case FRG_CUTTED:
       succeed;
@@ -2848,9 +2873,13 @@ set_pl_option(const char *name, const char *value)
 		*         STYLE CHECK           *
 		*********************************/
 
-word
-pl_style_check(term_t old, term_t new)
-{ int n;
+static
+PRED_IMPL("$style_check", 2, style_check, 0)
+{ PRED_LD
+  int n;
+
+  term_t old = A1;
+  term_t new = A2;
 
   if ( PL_unify_integer(old, debugstatus.styleCheck) &&
        PL_get_integer(new, &n) )
@@ -2894,4 +2923,7 @@ BeginPredDefs(prims)
   PRED_DEF("$depth_limit_false",  3, depth_limit_false, 0)
 #endif
   PRED_DEF("atom_number", 2, atom_number, 0)
+  PRED_DEF("statistics", 2, statistics, 0)
+  PRED_DEF("$option", 3, option, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$style_check", 2, style_check, 0)
 EndPredDefs

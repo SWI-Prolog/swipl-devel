@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: thread_statistics/3: get statistics on other threads.
+
   * PORT: MacOS X: check for both plain symbol and _symbol on
     call_shared_object_function/2 to deal with different versions of
     the dlcompat library.

@@ -136,7 +136,6 @@ static const PL_extension foreigns[] = {
   FRG("wildcard_match",		2, pl_wildcard_match,		0),
   FRG("$apropos_match",		2, pl_apropos_match,		0),
   FRG("sub_atom",		5, pl_sub_atom,		     NDET),
-  FRG("$option",		3, pl_option,		     NDET),
   FRG("convert_time",		2, pl_convert_time2,		0),
   FRG("convert_time",		8, pl_convert_time,		0),
   FRG("sleep",			1, pl_sleep,			0),
@@ -278,8 +277,6 @@ static const PL_extension foreigns[] = {
   FRG("$fail",			0, pl_fail,		  NOTRACE),
   FRG("abort",			0, pl_abort,			0),
 
-  FRG("statistics",		2, pl_statistics,		0),
-
   FRG("between",		3, pl_between,		     NDET),
   FRG("succ",			2, pl_succ,			0),
   FRG("plus",			3, pl_plus,			0),
@@ -292,7 +289,6 @@ static const PL_extension foreigns[] = {
   FRG("$leash",			2, pl_leash,		  NOTRACE),
   FRG("$visible",		2, pl_visible,		  NOTRACE),
   FRG("$debuglevel",		2, pl_debuglevel,		0),
-  FRG("$style_check",		2, pl_style_check,		0),
 
 #if COUNTING
   FRG("$count",			0, pl_count,			0),
@@ -621,6 +617,7 @@ DECL_PLIST(module);
 DECL_PLIST(prims);
 DECL_PLIST(read);
 DECL_PLIST(wam);
+DECL_PLIST(thread);
 
 void
 initBuildIns(void)
@@ -637,6 +634,7 @@ initBuildIns(void)
   REG_PLIST(prims);
   REG_PLIST(read);
   REG_PLIST(wam);
+  REG_PLIST(thread);
 
   PROCEDURE_garbage_collect0 = lookupProcedure(FUNCTOR_dgarbage_collect1, m);
   PROCEDURE_block3	     = lookupProcedure(FUNCTOR_block3, 		  m);

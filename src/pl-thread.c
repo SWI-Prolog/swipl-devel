@@ -91,8 +91,22 @@ typedef sema_t sem_t;
 
 #endif /*HAVE_SEMA_INIT*/
 
+#ifndef WIN32
+#include <signal.h>
+
 static sem_t sem_mark;			/* used for atom-gc */
 static sem_t sem_canceled;		/* used on halt */
+
+#ifndef SA_RESTART
+#define SA_RESTART 0
+#endif
+
+#define SIG_FORALL SIGHUP
+#define SIG_RESUME SIG_FORALL
+#endif
+
+
+
 
 
 		 /*******************************
@@ -1925,6 +1939,123 @@ PL_thread_destroy_engine()
   return FALSE;				/* we had no thread */
 }
 
+
+		 /*******************************
+		 *	     STATISTICS		*
+		 *******************************/
+
+static void	sync_statistics(PL_thread_info_t *info, atom_t key);
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+thread_statistics(+Thread, +Key, -Value)
+    Same as statistics(+Key, -Value) but operates on another thread.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static
+PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
+{ PL_thread_info_t *info;
+  int rval;
+
+  LOCK();
+  if ( !get_thread(A1, &info, TRUE) )
+  { UNLOCK();
+    fail;
+  }
+
+  if ( LD != info->thread_data )
+  { atom_t k;
+
+    if ( !PL_get_atom(A2, &k) )
+      k = 0;
+
+    sync_statistics(info, k);
+  }
+
+  rval = pl_statistics_ld(A2, A3, info->thread_data);
+  UNLOCK();
+
+  return rval;
+}
+
+
+#ifdef WIN32
+
+/* How to make the memory visible?
+*/
+
+static void
+sync_statistics(PL_thread_info_t *info, atom_t key)
+{ if ( key == ATOM_cputime || k == ATOM_runtime || key == ATOM_system_time )
+  { double t;
+    FILETIME created, exited, kerneltime, usertime;
+
+    if ( GetThreadTimes(info->w32id,
+			&created, &exited, &kerneltime, &usertime) )
+    { FILETIME *p;
+
+      if ( key == ATOM_system_time )
+	p = &kerneltime;
+      else
+	p = &usertime;
+
+      t = (double)p->dwHighDateTime * (4294967296.0 * ntick nano);
+      t += (double)p->dwLowDateTime  * (ntick nano);
+
+      if ( key == ATOM_system_time )
+	info->statistics.system_cputime = t;
+      else
+	info->statistics.user_cputime = t;
+    }
+  }
+}
+
+#else /*WIN32*/
+
+static void
+SyncUserCPU(int sig)
+{ LD->statistics.user_cputime = CpuTime(CPU_USER);
+  sem_post(&sem_mark);
+}
+
+
+static void
+SyncSystemCPU(int sig)
+{ LD->statistics.system_cputime = CpuTime(CPU_SYSTEM);
+  sem_post(&sem_mark);
+}
+
+
+static void
+SyncData(int sig)
+{ sem_post(&sem_mark);
+}
+
+
+static void
+sync_statistics(PL_thread_info_t *info, atom_t key)
+{ struct sigaction old;
+  struct sigaction new;
+
+  sem_init(&sem_mark, USYNC_THREAD, 0);
+  memset(&new, 0, sizeof(new));
+  if ( key == ATOM_cputime || key == ATOM_runtime )
+    new.sa_handler = SyncUserCPU;
+  else if ( key == ATOM_system_time )
+    new.sa_handler = SyncSystemCPU;
+  else
+    new.sa_handler = SyncData;
+  new.sa_flags   = SA_RESTART;
+  sigaction(SIG_FORALL, &new, &old);
+  if ( pthread_kill(info->tid, SIG_FORALL) == 0 )
+  { sem_wait(&sem_mark);
+  }
+  sem_destroy(&sem_mark);
+  sigaction(SIG_FORALL, &old, NULL);
+}
+
+#endif /*WIN32*/
+
+
 		 /*******************************
 		 *	      ATOM-GC		*
 		 *******************************/
@@ -2009,17 +2140,7 @@ resumeThreads(void)
 
 #else /*WIN32*/
 
-#include <signal.h>
-
-#ifndef SA_RESTART
-#define SA_RESTART 0
-#endif
-
 static void (*ldata_function)(PL_local_data_t *data);
-
-#define SIG_FORALL SIGHUP
-#define SIG_RESUME SIG_FORALL
-//#define SIG_RESUME SIGINT
 
 static void
 wait_resume(PL_thread_info_t *t)
@@ -2267,3 +2388,11 @@ pl_with_mutex(term_t mutex, term_t goal)
   return rval;
 }
 
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(thread)
+PRED_DEF("thread_statistics", 3, thread_statistics, 0)
+EndPredDefs

@@ -550,10 +550,8 @@ word		pl_repeat(control_t h);
 word		pl_fail(void);
 word		pl_true(void);
 word		pl_halt(term_t code);
-word		pl_statistics(term_t k, term_t value);
-word		pl_option(term_t key, term_t old, term_t new, control_t h);
+int		pl_statistics_ld(term_t k, term_t value ARG_LD);
 int		set_pl_option(const char *name, const char *value);
-word		pl_style_check(term_t old, term_t new);
 word		pl_novice(term_t old, term_t new);
 
 /* pl-feature.c */
