@@ -140,10 +140,10 @@ subCharArray(CharArray n1, CharArray n2, Bool ign_case)
 { if ( ign_case != ON )
   { if ( str_sub(&n1->data, &n2->data) )
       succeed;
-  } /*else
+  } else
   { if ( str_icasesub(&n1->data, &n2->data) )
       succeed;
-  }*/
+  }
 
   fail;
 }

@@ -77,6 +77,7 @@ int		str_icase_prefix(String s1, String s2);
 int		str_suffix(String s1, String s2);
 int		str_icase_suffix(String s1, String s2);
 int		str_sub(String s1, String s2);
+int		str_icasesub(String s1, String s2);
 int		str_next_index(String s, int from, wchar chr);
 int		str_next_rindex(String s, int from, wchar chr);
 int		str_index(String s, wchar chr);

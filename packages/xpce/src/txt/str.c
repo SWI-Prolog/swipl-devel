@@ -426,6 +426,49 @@ str_sub(String s1, String s2)		/* s2 is substring of s1 */
 
 
 int
+str_icasesub(String s1, String s2)		/* s2 is substring of s1 */
+{ sameEncoding(s1, s2);
+
+  if ( s2->size <= s1->size )
+  { int n = 0;
+    int m = s1->size - s2->size;
+    
+    if ( isstr8(s1) )
+    { for(; n <= m; n++)
+      { char8 *d1 = &s1->s_text8[n];
+	char8 *d2 = s2->s_text8;
+	int i;
+
+	for(i=s2->size; i-- > 0; d1++, d2++ )
+	{ if ( tolower(*d1) != tolower(*d2) )
+	    goto next8;
+	}
+
+	return TRUE;
+      next8:;
+      }
+    } else
+    { for(; n <= m; n++)
+      { char16 *d1 = &s1->s_text16[n];
+	char16 *d2 = s2->s_text16;
+	int i;
+
+	for(i=s2->size; i-- > 0; d1++, d2++ )
+	{ if ( tolower(*d1) != tolower(*d2) )
+	    goto next16;
+	}
+
+	return TRUE;
+      next16:;
+      }
+    } 
+  }
+
+  return FALSE;
+}
+
+
+int
 str_next_index(String s, int from, wchar chr)
 { int i, n = s->size;
 
