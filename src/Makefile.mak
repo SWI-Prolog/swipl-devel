@@ -211,6 +211,7 @@ iprog::
 !ENDIF
 !IF "$(MT)" == "true"
 		$(INSTALL_PROGRAM) "$(WINDLLDIR)\pthreadVC.dll" "$(BINDIR)"
+		$(INSTALL_DATA) "$(PTHREADLIBDIR)\pthreadVC.lib" "$(LIBDIR)"
 !ENDIF
 
 install-libs:	idirs iinclude iboot ilib
@@ -243,6 +244,11 @@ iinclude:
 		$(INSTALL_DATA) $(PLHOME)\include\SWI-Prolog.h "$(PLBASE)\include"
 		$(INSTALL_DATA) $(PLHOME)\include\SWI-Stream.h "$(PLBASE)\include"
 		$(INSTALL_DATA) $(PLHOME)\include\console.h "$(PLBASE)\include\plterm.h"
+!IF "$(MT)" == "true"
+		$(INSTALL_DATA) "$(PTHREADINCDIR)\pthread.h" "$(PLBASE)\include"
+		$(INSTALL_DATA) "$(PTHREADINCDIR)\sched.h" "$(PLBASE)\include"
+		$(INSTALL_DATA) "$(PTHREADINCDIR)\semaphore.h" "$(PLBASE)\include"
+!ENDIF
 
 install-readme::
 		$(INSTALL_DATA) ..\README "$(PLBASE)\README.TXT"
