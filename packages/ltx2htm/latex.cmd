@@ -176,6 +176,7 @@
 \copyright
 \year
 \LaTeX
+\TeX
 
 % Arithmetic (math mode)
 

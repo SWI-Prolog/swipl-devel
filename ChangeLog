@@ -1,6 +1,20 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: (Hopefully at least) include __register_frame_info and friends
+    into the executable (egcs 1.1.1 exception handling stuff).  Should
+    make SWI-Prolog binaries work on other platforms.
+
+  * FIXED: Exception generation for optimized arithmetic code.  Reported
+    by Robert van Engelen.  Thanks.
+
+  * FIXED: qload/1 to check for predicate redefinition just as normal
+    loading does.
+
+  * FIXED: qload/1 to load unqualified code (i.e. if the compiled file
+    is not a module-file) into the context module of the qload/1 call.
+    Reported by Paul Sephton.
+
 VERSION 3.2.7
 =============
 
@@ -27,7 +41,7 @@ VERSION 3.2.7
 
   * ADDED: user:prolog_file_type/2 hook.  This can be used to define the
     meaning of filename extensions to Prolog.  All extension handling is
-    based on this predicate.
+    now based on this predicate.
 
   * MODIFIED: absolute_file_name/3 default for file_errors option is
     now `error'.  Used to be fail.  file_errors(error) now throws an

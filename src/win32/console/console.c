@@ -16,6 +16,27 @@ version 2 licence terms.
 The SWI-Prolog source is at ftp://swi.psy.uva.nl/pub/SWI-Prolog/
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Thread design:
+
+<written as a mail to Lutz Wohlrab>
+
+There are two threads. The Prolog engine   runs  in the main thread. The
+other thread deals with the window.   Basically, it processes events and
+if anything is typed it puts it into a queue.
+
+The main thread  at  some  stage   forks  the  display  thread,  running
+window_loop().  This  thread  initialises  the   input  and  then  sends
+WM_RLC_READY to the main thread to indicate it is ready to accept data.
+
+If data is to be written,  Prolog   calls  rlc_write(),  which posts the
+WM_RLC_WRITE to the display thread, waiting  on the termination. If data
+is to be read, rlc_read() posts  a   WM_RLC_FLUSH,  and then waits while
+dispatching events, for the display-thread to   fill the buffer and send
+WM_RLC_INPUT (which is just sent  to   make  GetMessage()  in rlc_read()
+return).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #ifdef _DEBUG
 #define O_DEBUG 1
 static void initHeapDebug(void);
@@ -837,16 +858,9 @@ rlc_destroy()
 
 static int
 IsDownKey(code)
-{ int mask = GetKeyState(code);
+{ short mask = GetKeyState(code);
 
-  return mask & ~0xff;
-}
-
-
-static int
-IsDownMeta(LONG lParam)
-{ return lParam & (1L << (30-1));	/* bit-29 is 1 if ALT is depressed */
-					/* test tells me it is bit 30 ??? */
+  return mask & 0x8000;
 }
 
 

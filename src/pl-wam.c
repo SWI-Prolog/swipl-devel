@@ -2393,37 +2393,46 @@ to give the compiler a hint to put ARGP not into a register.
       goto a_var_n;
     }
 
+  { int an;
+    code fn;
+
     VMI(A_FUNC0, COUNT_N(a_func0), ("a_func0 %d\n", *PC)) MARK(A_FUNC0);
-      {	Number n = (Number) ARGP;
-	if ( !ar_func_n(*PC++, 0, &n) )
-	  BODY_FAILED;
-	ARGP = (Word) n;
-	NEXT_INSTRUCTION;
+      {	an = 0;
+	fn = *PC++;
+	goto common_an;
       }
 
     VMI(A_FUNC1, COUNT_N(a_func1), ("a_func1 %d\n", *PC)) MARK(A_FUNC1);
-      {	Number n = (Number) ARGP;
-	if ( !ar_func_n(*PC++, 1, &n) )
-	  BODY_FAILED;
-	ARGP = (Word) n;
-	NEXT_INSTRUCTION;
+      {	an = 1;
+	fn = *PC++;
+	goto common_an;
       }
 
     VMI(A_FUNC2, COUNT_N(a_func2), ("a_func2 %d\n", *PC)) MARK(A_FUNC2);
-      {	Number n = (Number) ARGP;
-	if ( !ar_func_n(*PC++, 2, &n) )
-	  BODY_FAILED;
-	ARGP = (Word) n;
-	NEXT_INSTRUCTION;
+      {	an = 2;
+	fn = *PC++;
+	goto common_an;
       }
 
     VMI(A_FUNC, COUNT_N(a_func), ("a_func %d %d\n",*PC,PC[1])) MARK(A_FUNC);
-      {	Number n = (Number) ARGP;
-	if ( !ar_func_n(*PC++, *PC++, &n) )
+      {	Number n;
+
+	fn = *PC++;
+	an = (int) *PC++;
+
+      common_an:
+	n = (Number) ARGP;
+
+	if ( !ar_func_n(fn, an, &n) )
+	{ if ( exception_term )
+	    goto b_throw;
 	  BODY_FAILED;
+	}
+
 	ARGP = (Word) n;
 	NEXT_INSTRUCTION;
       }
+  }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Translation of the arithmic comparison predicates (<, >, =<,  >=,  =:=).

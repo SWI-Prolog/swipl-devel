@@ -99,3 +99,6 @@
 
 /* Define to 1 not to use SIGSEGV for guarding stack-overflows */
 #undef NO_SEGV_HANDLING 
+
+/* Define if you have a working dlopen() */
+#undef HAVE_DLOPEN

@@ -114,7 +114,8 @@ tex_load_commands(File) :-
 	(   member(Term, [tex(File), library(File)]),
 	    absolute_file_name(Term,
 			       [ extensions([cmd]),
-				 access(read)
+				 access(read),
+				 file_errors(fail)
 			       ],
 			       CmdFile)
 	->  tex_read_commands(CmdFile),
@@ -188,8 +189,7 @@ latex2html(Spec) :-
 	file_name_extension(Spec, tex,  TeXFile),
 	file_name_extension(Base, tex,  TeXFile),
 	absolute_file_name(tex(TeXFile),
-			   [ access(read),
-			     file_errors(true)
+			   [ access(read)
 			   ],
 			   TheTeXFile),
 	asserta(html_output_dir(Base)),
@@ -481,7 +481,7 @@ language_map(table,	'Table').
 	       [Name, Arity]).
 	 
 add_td([], []).
-add_td([H|T0], [html('<TD>'), H|T]) :-
+add_td([H|T0], [html('<TD>'), H, html('</TD>')|T]) :-
 	add_td(T0, T).
 
 cite_references(KeyIn, Functor, Refs) :-
@@ -752,7 +752,8 @@ prolog_function(\(usepackage, [_,{File},_])) :-
 	(   member(Term, [tex(File), library(File)]),
 	    absolute_file_name(Term,
 			       [ extensions([pl, qlf]),
-				 access(read)
+				 access(read),
+				 file_errors(fail)
 			       ],
 			       PlFile)
 	->  ensure_loaded(user:PlFile)
@@ -782,7 +783,8 @@ cmd(onefile, preamble, []) :-
 cmd(htmlpackage({File}), preamble, []) :-
 	(   absolute_file_name(tex(File),
 			       [ extensions([pl, qlf]),
-				 access(read)
+				 access(read),
+				 file_errors(fail)
 			       ],
 			       PlFile)
 	->  ensure_loaded(user:PlFile)
@@ -948,7 +950,8 @@ cmd(opencite({Key}),	#opencite(Key)).	% \opencite
 cmd(bibliography({_}), HTML) :-			% \bibliography
 	tex_file_base(File),
 	(   absolute_file_name(tex(File), [ extensions([bbl]),
-					    access(read)
+					    access(read),
+					    file_errors(fail)
 					  ],
 			       BiBFile)
 	->  tex_tokens(BiBFile, TeXTokens),
@@ -965,6 +968,7 @@ cmd(year,	Year) :-			% \year
 	get_time(Time),
 	convert_time(Time, Year, _, _, _, _, _, _).
 cmd('LaTeX',	'LaTeX').			% \LaTeX
+cmd('TeX',	'TeX').				% \TeX
 
 cmd(index({Term}), #label(RefName, [])) :-	% \index
 	translate_index(Term, RefName).
@@ -1021,6 +1025,7 @@ cmd('$', nospace('$')).
 cmd('&', nospace('&')).
 cmd('{', nospace('{')).
 cmd('}', nospace('}')).
+cmd('"'({'\i'}), html('&iuml;')).	% \"\i
 cmd('"'({C}), html(Cmd)) :-		% \"[ouey...]
 	concat_atom([&, C, 'uml;'], Cmd).
 cmd(''''({C}), html(Cmd)) :-		% \'[ouey...]
@@ -2008,7 +2013,7 @@ table_row([\(multicolumn, [{N}, {A}, {Tokens}])|R0], C, ColAtts, R,
 	C2 is C + N2,
 	table_cell(R0, R1, _),		% discard tokens upto &
 	table_row(R1, C2, ColAtts, R, THtml).
-table_row(L, C, ColAtts, R,  [html(CellHeader), Chtml|THtml]) :-
+table_row(L, C, ColAtts, R,  [html(CellHeader), Chtml, html('</TD>')|THtml]) :-
 	cell_header(C, ColAtts, CellHeader),
 	table_cell(L, T, Tokens),
 	translate_group(Tokens, Chtml),
@@ -2237,7 +2242,8 @@ ps2gif(In, Out) :-
 
 ps2gif(In, Out, _Options) :-
 	absolute_file_name(In, [ access(read),
-				 extensions([gif])
+				 extensions([gif]),
+				 file_errors(fail)
 			       ],
 			   InFile), !,
 	concat_atom(['cp ', InFile, ' ', Out], Cmd),
@@ -2246,7 +2252,8 @@ ps2gif(In, Out, Options) :-
 	get_option(Options, tmp(Tmp)),
 	get_option(Options, res(Res0)),
 	(   absolute_file_name(In, [ access(read),
-				     extensions([ps, eps])
+				     extensions([ps, eps]),
+				     file_errors(fail)
 				   ],
 			       InFile)
 	->  true

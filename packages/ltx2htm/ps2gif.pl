@@ -24,7 +24,8 @@ ps2gif(In, Out, Options) :-
 	get_option(Options, tmp(Tmp)),
 	get_option(Options, res(Res0)),
 	absolute_file_name(In, [ access(read),
-				 extensions([ps, eps])
+				 extensions([ps, eps]),
+				 file_errors(fail)
 			       ],
 			   InFile),
 	get_ps_parameters(InFile, EPS, bb(X1,Y1,X2,Y2)),

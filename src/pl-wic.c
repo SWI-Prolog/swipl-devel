@@ -797,10 +797,13 @@ loadPredicate(IOSTREAM *fd, int skip)
   proc = lookupProcedure(f, LD->modules.source);
   DEBUG(3, Putf("Loading %s ", procedureName(proc)));
   def = proc->definition;
+  if ( !skip && currentSource )
+  { if ( def->definition.clauses )
+      redefineProcedure(proc, currentSource);
+    addProcedureSourceFile(currentSource, proc);
+  }
   def->indexPattern |= NEED_REINDEX;
   loadPredicateFlags(def, fd, skip);
-  if ( !skip && currentSource )
-    addProcedureSourceFile(currentSource, proc);
 
   for(;;)
   { switch(Getc(fd) )
@@ -2011,11 +2014,13 @@ pl_qlf_load(term_t file, term_t module)
   bool rval;
   term_t name = PL_new_term_ref();
 
+  m = oldsrc;
   if ( !PL_strip_module(file, &m, name) )
     fail;
   if ( !(fn = PL_get_filename(name, fbuf, sizeof(fbuf))) )
     return warning("$qlf_load/2: instantiation fault");
 
+  LD->modules.source = m;
   rval = qlfLoad(fn, &m);
   LD->modules.source = oldsrc;
 

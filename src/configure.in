@@ -21,7 +21,9 @@ AC_SUBST(VPATH)
 AC_SUBST(COUTOPT)
 AC_SUBST(INSTALLTARGET)
 AC_SUBST(INSTALLRLMAN)
+AC_SUBST(EXTRAOBJ)
 
+EXTRAOBJ=""
 INSTALLTARGET=dv-install
 PL=pl
 RT=""
@@ -340,6 +342,22 @@ AC_HEADER_TIME
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
 AC_FUNC_VFORK
+
+if test "$GCC" = "yes"; then
+dnl See whether we need to force __register_frame_info to be included.
+dnl This is a glibc/egcs portability problem for binaries accross
+dnl installations.
+
+AC_MSG_CHECKING("Static include of __register_frame_info")
+if ar x `${CC-cc} -print-libgcc-file-name` frame.o &&
+   nm frame.o | grep  __register_frame_info 2>&1 > /dev/null; then
+   AC_MSG_RESULT(yes)
+   EXTRAOBJ="$EXTRAOBJ frame.o"
+else
+   AC_MSG_RESULT(no)
+fi
+rm -f frame.o
+fi
 
 AC_MSG_CHECKING("alignment restrictions on doubles")
 AC_TRY_RUN(

@@ -1443,6 +1443,34 @@ addProcedureSourceFile(SourceFile sf, Procedure proc)
 }
 
 
+void
+redefineProcedure(Procedure proc, SourceFile sf)
+{ Definition def = proc->definition;
+
+  if ( true(def, FOREIGN) )
+  { abolishProcedure(proc, def->module);
+    warning("Redefined: foreign predicate %s", procedureName(proc));
+  }
+
+  if ( false(def, MULTIFILE) )
+  { ClauseRef first = def->definition.clauses;
+
+    while ( first && true(first->clause, ERASED) )
+      first = first->next;
+
+    if ( first && first->clause->source_no == sf->index )
+    { if ( (debugstatus.styleCheck & DISCONTIGUOUS_STYLE) &&
+	   false(def, DISCONTIGUOUS) )
+	warning("Clauses of %s are not together in the source file", 
+		procedureName(proc));
+    } else
+    { abolishProcedure(proc, def->module);
+      warning("Redefined: %s", procedureName(proc));
+    }
+  }
+}
+
+
 word
 pl_make_system_source_files(void)
 { int i, n = entriesBuffer(&GD->files.source_files, SourceFile);

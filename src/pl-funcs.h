@@ -531,6 +531,7 @@ word		pl_get_clause_attribute(term_t ref, term_t att, term_t value);
 word		pl_get_predicate_attribute(term_t pred, term_t k, term_t v);
 word		pl_set_predicate_attribute(term_t pred, term_t k, term_t v);
 void		reindexDefinition(Definition def);
+void		redefineProcedure(Procedure proc, SourceFile sf);
 void		startConsult(SourceFile f);
 word		pl_index(term_t pred);
 SourceFile	lookupSourceFile(atom_t name);

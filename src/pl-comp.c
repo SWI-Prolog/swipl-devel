@@ -1386,34 +1386,8 @@ care of reconsult, redefinition, etc.
     if ( proc == sf->current_procedure )
       return assertProcedure(proc, clause, where) ? clause : NULL;
 
-    if ( def->definition.clauses )	/* i.e. is defined */
-    { if ( true(def, FOREIGN) )
-      { abolishProcedure(proc, mhead);
-	warning("Redefined: foreign predicate %s", procedureName(proc));
-      }
-
-      if ( false(def, MULTIFILE) )
-      { ClauseRef first = def->definition.clauses;
-
-	while ( first && true(first->clause, ERASED) )
-	  first = first->next;
-
-	if ( first && first->clause->source_no == sf->index )
-	{ if ( (debugstatus.styleCheck & DISCONTIGUOUS_STYLE) &&
-	       false(def, DISCONTIGUOUS) )
-	    warning("Clauses of %s are not together in the source file", 
-		    procedureName(proc));
-	} else
-	{ abolishProcedure(proc, mhead);
-	  warning("Redefined: %s", procedureName(proc));
-	}
-      }
-
-      addProcedureSourceFile(sf, proc);
-      sf->current_procedure = proc;
-      
-      return assertProcedure(proc, clause, where) ? clause : NULL;
-    }
+    if ( def->definition.clauses )	/* i.e. is (might be) defined */
+      redefineProcedure(proc, sf);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This `if' locks predicates as system predicates  if  we  are  in  system
