@@ -217,15 +217,18 @@ dnl ****************************************************************
 if test "$MT" = "yes"; then
   cat << _EOM_
 
-    #################################################################
-    # You have requested support for MULTI-THREADING.  This feature #
-    # highly experimental and for developers only.  If you are a    #
-    # normal SWI-Prolog user, please rerun configure without the    #
-    # --enable-mt option					    #
-    #                                                               #
-    # Currently multi-threading is developed using SuSE Linux 6.2   #
-    # (glibc 2.1.1) and ported to Solaris 2.7 (egcs 1.1)            #
-    #################################################################
+    ##################################################################
+    # You have requested support for MULTI-THREADING.  This feature  #
+    # is BETA and about 30% SLOWER then single-threaded operation.   #
+    # It should compile on any system providing POSIX threads.       #
+    #                                                                #
+    # Do not forget to add --enable-mt when configuring PACKAGES.    #
+    # Packages compiled with MT can be used with the single-threaded #
+    # version as well.                                               #
+    #                                                                # 
+    # If MT is not intended, please rerun configure without the      #
+    # --enable-mt option					     #
+    ##################################################################
 
 _EOM_
   PLLIB=libplmt.a
