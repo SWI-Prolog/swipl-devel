@@ -47,6 +47,7 @@ initialiseTile(TileObj t, Any object, Int w, Int h)
   assign(t, horShrink,   toInt(100));
   assign(t, verStretch,  toInt(100));
   assign(t, verShrink,   toInt(100));
+  assign(t, canResize,   DEFAULT);
   assign(t, orientation, NAME_none);
   assign(t, members, NIL);		/* subtiles */
   assign(t, super,   NIL);		/* super-tile */
@@ -956,19 +957,76 @@ forAllTile(TileObj t, Code msg)
 Find the tile in a tile-stack that  is above/left-of the separation line
 in which `pos' lies.  This is used by resizeTileEventFrame() to find the
 tile to resize.
+
+A tile is considered only a candidate for  resizing if it can be resized
+and there is at least one tile below/right of it that can be resized.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static status
+ICanResizeTile(TileObj t, Name dir)
+{ if ( dir == NAME_horizontal )
+  { if ( t->horShrink != ZERO || t->horStretch != ZERO )
+      succeed;
+  } else
+  { if ( t->verShrink != ZERO || t->verStretch != ZERO )
+      succeed;
+  }
+
+  fail;
+}
+
+
+static Bool
+getCanResizeTile(TileObj t)
+{ if ( isDefault(t->canResize) )
+  { if ( notNil(t->super) )
+    { if ( ICanResizeTile(t, t->super->orientation) )
+      { Cell cell;
+	int before = TRUE;
+	
+	for_cell(cell, t->super->members)
+	{ TileObj t2 = cell->value;
+	  
+	  if ( before )
+	  { if ( t == t2 )
+	      before = FALSE;
+	  } else
+	  { if ( ICanResizeTile(t2, t->super->orientation) )
+	    { assign(t, canResize, ON);
+	      goto out;
+	    }
+	  }
+	}
+      }
+    }
+
+    assign(t, canResize, OFF);
+  }
+
+out:
+  answer(t->canResize);
+}
+
 
 TileObj
 getSubTileToResizeTile(TileObj t, Point pos)
 { if ( pointInArea(t->area, pos) && notNil(t->members) )
   { Cell cell;
     
+    DEBUG(NAME_tile, Cprintf("getSubTileToResizeTile() at %s, %s: ",
+			     pp(pos->x), pp(pos->y)));
+
+
 					/* in the area of a sub-tile */
     for_cell(cell, t->members)
     { TileObj t2 = cell->value;
       
-      if ( pointInArea(t2->area, pos) )
-	return getSubTileToResizeTile(t2, pos);
+      if ( pointInArea(t2->area, pos) && notNil(t2->members) )
+      { TileObj t2 = getSubTileToResizeTile(t2, pos);
+
+	if ( t2 )
+	  answer(t2);
+      }
     }
 
     for_cell(cell, t->members)
@@ -984,15 +1042,27 @@ getSubTileToResizeTile(TileObj t, Point pos)
       if ( t->orientation == NAME_horizontal )
       { if ( valInt(pos->x) >= valInt(t2->area->x) + valInt(t2->area->w) - 1 &&
 	     valInt(pos->x) <= valInt(t3->area->x) + 1 )
-	  answer(t2);
+	{ if ( getCanResizeTile(t2) == ON )
+	  { DEBUG(NAME_tile, Cprintf("%s\n", pp(t2)));
+	    answer(t2);
+	  } else
+	    goto no;
+	}
       } else
       { if ( valInt(pos->y) >= valInt(t2->area->y) + valInt(t2->area->h) - 1 &&
 	     valInt(pos->y) <= valInt(t3->area->y) + 1 )
-	  answer(t2);
+	{ if ( getCanResizeTile(t2) == ON )
+	  { DEBUG(NAME_tile, Cprintf("%s\n", pp(t2)));
+	    answer(t2);
+	  } else
+	    goto no;
+	}
       }
     }
   }
 
+no:
+  DEBUG(NAME_tile, Cprintf("NONE\n"));
   fail;
 }
 
@@ -1024,6 +1094,8 @@ static vardecl var_tile[] =
      NAME_resize, "Encouragement to get higher"),
   IV(NAME_verShrink, "int", IV_BOTH,
      NAME_resize, "Encouragement to get lower"),
+  IV(NAME_canResize, "[bool]", IV_BOTH,
+     NAME_resize, "Can be resized by user?"),
   IV(NAME_border, "int", IV_BOTH,
      NAME_appearance, "Distance between areas"),
   IV(NAME_orientation, "{none,horizontal,vertical}", IV_GET,

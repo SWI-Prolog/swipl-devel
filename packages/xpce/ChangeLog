@@ -1,6 +1,15 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Many issues to subwindow layout handling for the user.
+
+* FIXED: Proper handling of class-variable inheritence for class-variables
+  associated with normal variables.
+
+* ADDED: `stream ->input_message' to check whether the stream is already
+  open and then attach asynchronous input handling.
+
+
 VERSION 5.1.10, distributed with SWI-Prolog 4.0.11
 ==================================================
 

@@ -185,6 +185,7 @@ NewClass(tileobj)
   Int	     horShrink;			/* Horizontal shrinkability */
   Int	     verStretch;		/* Vertical stretchability */
   Int	     verShrink;			/* Vertical shrinkability */
+  Bool	     canResize;			/* Can be resized by user? */
   Int	     border;			/* Border between subtiles */
   Name       orientation;		/* none, horizontal, vertical */
   Chain	     members;			/* subtiles */
