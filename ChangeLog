@@ -1,7 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
-  * PORT: Compile cleanly with readline-4.2.
+  * ENHANCED: GNU-readline interface.  Detect unful additions from readline
+    4.2, avoid type-conflicts and handle re-entrance through XPCE much more
+    cleanly as well as aborts.
 
   * PORT: Many C-compiler warnings, making the native IRIX cc compile
     SWI-Prolog silently.  Improved detection of wait() variations.
