@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: deadlock when loading a file with a module-name conflict.
+
+  * FIXED: Removed size-limit on clauses of 256Kbytes compiled code.
+    Spotted by Wouter Jansweijer.
+
   * ADDED: atom_number/2 as a contraction of atom_codes and number_codes/2
 
   * PERFORMANCE: switched to use -O3 on GCC.  Seems to be about 5-10%
