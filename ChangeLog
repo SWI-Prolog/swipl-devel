@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.1.12
+==============
+
+  * FIXED: unification order in translating grammar --> {goal}.  Noted
+    by Andreas Steiner.
+
 Version 2.1.11
 ==============
 
