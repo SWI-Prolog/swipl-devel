@@ -1,3 +1,6 @@
+VERSION 1.0.4
+=============
+
 * FIXED: file_to_dtd() not to free the created DTD.  This makes dtd2pl work
   again. (Richard O'Keefe)
 
@@ -5,7 +8,6 @@
 
 * FIXED: Allow for quoted nmtoken, etc. in ATTLIST declaration.
   (Andrew Dadakov)
-
 
 VERSION 1.0.3
 =============
