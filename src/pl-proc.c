@@ -280,7 +280,7 @@ assertProcedure(Procedure proc, Clause clause, int where)
   startCritical;
   if ( !def->lastClause )
   { def->definition.clauses = def->lastClause = cref;
-  } else if ( where == 'a' )
+  } else if ( where == CL_START )
   { cref->next = def->definition.clauses;
     def->definition.clauses = cref;
   } else

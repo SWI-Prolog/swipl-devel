@@ -17,7 +17,8 @@ Version 2.1.5
     has changed in various ways.
 
   * INSTALL: Changed various things to the configure options and detection,
-    to the defaults make more sence.
+    to the defaults make more sence.  Upgraded to autoconf 2.4, fixed for
+    cross-compilation.
 
   * PORT: Fixed various things for the Linux/ELF port.  Tested on
     Linux 1.2.13 running libc-5.0.9.  Compiled with gcc-2.7.0.

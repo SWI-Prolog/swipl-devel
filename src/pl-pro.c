@@ -71,7 +71,6 @@ pl_break1(Word goal)
 word
 pl_notrace1(Word goal)
 { bool rval;
-  mark m;
 
   long	     skipSave  = debugstatus.skiplevel;
   bool	     traceSave = debugstatus.tracing;
