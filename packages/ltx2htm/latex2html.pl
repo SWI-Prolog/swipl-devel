@@ -51,13 +51,11 @@
 	    tex_load_commands/1,	% +BaseName
 	    add_to_index/1,		% +Term
 	    add_to_index/2,		% +Term, +Tag
-	    clean_tt/2,			% +Raw, -Clean
-	    downcase_atom/2,		% +Atom, -LowerCase
-	    upcase_atom/2		% +Atom, -UpperCase
+	    clean_tt/2			% +Raw, -Clean
 	  ]).
 :- use_module(library(quintus)).
 
-version('0.95').			% for SWI-Prolog 4.1
+version('0.96').			% for SWI-Prolog 5.0.6
 page_header('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">\n\n').
 
 :- dynamic			
@@ -1371,16 +1369,6 @@ upcase_html([H0|T0], [H|T]) :-
 	upcase_html(T0, T).
 upcase_html([H|T0], [H|T]) :-
 	upcase_html(T0, T).
-
-upcase_atom(Low, Up) :-
-	atom_codes(Low, S0),
-	maplist(to_upper, S0, S1),
-	atom_codes(Up, S1).
-
-downcase_atom(Up, Low) :-
-	atom_codes(Up, S0),
-	maplist(to_lower, S0, S1),
-	atom_codes(Low, S1).
 
 capitalise_atom(In, Out) :-
 	atom_codes(In, S0),

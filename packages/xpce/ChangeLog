@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* MODIFIED: moved image greying from library(toolbar) to new
+  library(imageops), which is included from library(toolbar).
+
 * ADDED: `tree->event' to call new method `node->event' to allow for
   refinement of node event-processing.
 

@@ -755,7 +755,6 @@ ExistsFile(const char *path)
   fail;
 #endif
 #endif
-#endif
 }
 
 
