@@ -789,7 +789,7 @@ rdf_save_subject(Out, Subject, DefNS, Atts, Indent, DB) :-
 	rdf_equal(rdf:type, RdfType),
 	select(RdfType=Type, Atts, Atts1),
 	rdf_id(Type, DefNS, TypeId),
-	xml_name(TypeId), !,
+	xml_is_name(TypeId), !,
 	format(Out, '~*|<~w', [Indent, TypeId]),
 	save_about(Out, Subject, Indent),
 	save_attributes(Atts1, DefNS, Out, TypeId, Indent, DB).
@@ -797,6 +797,11 @@ rdf_save_subject(Out, Subject, _DefNS, Atts, Indent, DB) :-
 	format(Out, '~*|<rdf:Description', [Indent]),
 	save_about(Out, Subject, Indent),
 	save_attributes(Atts, rdf, Out, rdf:'Description', Indent, DB).
+
+xml_is_name(_NS:Atom) :- !,
+	xml_name(Atom).
+xml_is_name(Atom) :-
+	xml_name(Atom).
 
 save_about(_Out, Subject, Indent) :-
 	Indent > 0,
