@@ -1466,6 +1466,9 @@ make_draw_shape_popup_gesture(G) :-
 			      and(message(Canvas, selection, Gr),
 				  message(Canvas, edit_selection)),
 			      @default, @on),
+		    new(Alignment, popup(alignment,
+					 message(Gr, format, @arg1))),
+		    gap,
 		    menu_item(send_to_foreground,
 			      message(Canvas, edit,
 				      message(@arg1, expose), Gr),
@@ -1474,6 +1477,10 @@ make_draw_shape_popup_gesture(G) :-
 			      message(Canvas, edit,
 				      message(@arg1, hide), Gr))
 		  ]),
+	get(P, member, alignment, Item),
+	send(Item, condition, message(Gr, instance_of, text)),
+	send_list(Alignment, append,
+		  [ left, center, right ]),
 
 	new(G, draw_draw_shape_popup_gesture(P)).
 

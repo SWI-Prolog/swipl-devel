@@ -4,6 +4,8 @@
 VERSION 6.2.9, distributed with SWI-Prolog 5.2.9
 ================================================
 
+* ADDED: PceDraw: Alignment sub-menu for text objects
+
 * FIXED: Frame area computation in MS-Windows to use AdjustWindowRectEx(). 
   Fixes layout problems in Windows XP.
 
