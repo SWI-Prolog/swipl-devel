@@ -278,7 +278,14 @@ ws_event_in_subwindow(EventObj ev, Any root)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+We would like to wait for at   most  0.25 seconds to distinguish between
+C-x  (cut)  and  C-xC-x  (exchange-point-and-mark)    commands  for  the
+emulation of the  CUA  mode.  This  isn't   really  ideal  as  it  waits
+unconditionally  without  handling  any  messages.   We  inprove  a  bit
+splitting it into a couple of shorter waits.
 
+XCheckIfEvent() removes the  matching  event.   Hence  we  always return
+FALSE, but set a flag if we find the target event.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Bool
