@@ -1728,6 +1728,9 @@ frameWindow(PceWindow sw, FrameObj frame)
       succeed;
   }
 
+  if ( isNil(frame->members) )
+    return errorPce(frame, NAME_notInitialised);
+
   tileWindow(sw, DEFAULT);
   for_all_tile(getRootTile(sw->tile), frame_window, frame);
   if ( frame->status == NAME_open )
