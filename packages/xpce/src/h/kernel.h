@@ -559,9 +559,6 @@ extern struct name builtin_names[];	/* object-array of built-in's */
 #define noRefsObj(obj)		(((Instance)obj)->references == 0L)
 #define addRefObj(obj)		(((Instance)obj)->references++)
 #define delRefObj(obj)		(((Instance)obj)->references--)
-#define addCodeReference(obj)	(((Instance)obj)->references += ONE_CODE_REF)
-#define delCodeReference(obj)	if ( !isFreedObj(obj) ) \
-				  (((Instance)obj)->references -= ONE_CODE_REF)
 #define lockObj(obj)		setFlag(obj, F_LOCKED)
 #define unlockObj(obj)		clearFlag(obj, F_LOCKED)
 #define lockedObj(obj)		onFlag(obj, F_LOCKED)

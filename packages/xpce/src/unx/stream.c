@@ -212,18 +212,26 @@ write_buffer(char *buf, int size)
 
 
 static void
-dispatch_stream(Stream s, int size)
+dispatch_stream(Stream s, int size, int discard)
 { string q;
   AnswerMark mark;
   Any str;
 
+  assert(size <= s->input_p);
+
   markAnswerStack(mark);
   str_set_n_ascii(&q, size, s->input_buffer);
   str = StringToString(&q);
-  memcpy((char *)s->input_buffer,
-	  (char *)&s->input_buffer[size],
-	  s->input_p - size);
-  s->input_p -= size;
+  if ( discard )
+  { pceFree(s->input_buffer);
+    s->input_buffer = NULL;
+    s->input_allocated = s->input_p = 0;
+  } else
+  { memcpy((char *)s->input_buffer,
+	   (char *)&s->input_buffer[size],
+	   s->input_p - size);
+    s->input_p -= size;
+  }
 
   DEBUG(NAME_input,
 	{ int n = valInt(getSizeCharArray(str));
@@ -237,7 +245,9 @@ dispatch_stream(Stream s, int size)
   
   if ( notNil(s->input_message) )
   { addCodeReference(s);
+    assert(isProperObject(s));
     forwardReceiverCodev(s->input_message, s, 1, &str);
+    assert(isProperObject(s));
     delCodeReference(s);
   }
 
@@ -249,11 +259,7 @@ static void
 dispatch_input_stream(Stream s)
 { while( !onFlag(s, F_FREED|F_FREEING) && s->input_buffer && s->input_p > 0 )
   { if ( isNil(s->record_separator) )
-    { dispatch_stream(s, s->input_p);
-      if ( s->input_buffer )
-      { pceFree(s->input_buffer);
-	s->input_buffer = NULL;
-      }
+    { dispatch_stream(s, s->input_p, TRUE);
 
       return;
     }
@@ -262,7 +268,7 @@ dispatch_input_stream(Stream s)
     { int bsize = valInt(s->record_separator);
 
       if ( bsize <= s->input_p )
-      {	dispatch_stream(s, bsize);
+      {	dispatch_stream(s, bsize, FALSE);
 	continue;
       }
 
@@ -274,7 +280,7 @@ dispatch_input_stream(Stream s)
 		      NULL, 0, 0, s->input_p) )
     { int size = valInt(getRegisterEndRegex(s->record_separator, ZERO));
 
-      dispatch_stream(s, size);
+      dispatch_stream(s, size, FALSE);
       continue;
     }
 

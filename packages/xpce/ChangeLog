@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: memory-management problem in `code-referenced' objects.  This
+  can be the cause of some hard-to-reproduce crashes.
+
 * FIXED/ENHANCED: Max size of a string is increased from 16MB to 128MB
   and the system handles attempts to create larger strings gracefully.
 

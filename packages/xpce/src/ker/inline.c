@@ -103,6 +103,43 @@ getMemberHashTable(const HashTable ht, const Any name)
 }
 
 
+		 /*******************************
+		 *     REFERENCES FROM CODE	*
+		 *******************************/
+
+INLINE void
+unallocObject(Any obj)
+{ unalloc(valInt(classOfObject(obj)->instance_size), obj);
+}
+
+
+INLINE void
+addCodeReference(Any obj)
+{ Instance i = obj;
+
+  i->references += ONE_CODE_REF;
+}
+
+
+INLINE void
+delCodeReference(Any obj)
+{ Instance i = obj;
+
+  i->references -= ONE_CODE_REF;
+  if ( i->references <= 0 )
+  { if ( noRefsObj(i) )
+    { if ( isFreedObj(i) )
+      { DEBUG(NAME_free,
+	      Cprintf("Doing (code-)deferred unalloc on %s\n", pp(i)));
+	unallocObject(i);
+	deferredUnalloced--;
+      }
+    } else
+    { errorPce(PCE, NAME_negativeRefCount, i);
+    }
+  }
+}
+
 		/********************************
 		*             CODE		*
 		********************************/
@@ -251,6 +288,9 @@ checkSelector(Any sel)
 
 #else /*USE_INLINE*/
 
+void		unallocObject(Any obj);
+void		addCodeReference(Any obj);
+void		delCodeReference(Any obj);
 status	 constf instanceOfObject(const Any, const Class);
 status   constf objectIsInstanceOf(const Any obj, const Class super);
 status		isProperObject(const Any);

@@ -35,12 +35,6 @@ static status	makeTempObject(Any obj);
 		*        SLOT ASSIGNMENT	*
 		********************************/
 
-static inline void
-unallocObject(Any obj)
-{ unalloc(valInt(classOfObject(obj)->instance_size), obj);
-}
-
-
 inline void
 addRefObject(Any from, Any to)
 { if ( inBoot || classOfObject(from)->un_answer == ON )
@@ -625,7 +619,7 @@ freeObject(Any obj)
   unlinkObject(inst);
   setFreedObj(inst);			/* freeing finished */
 
-  if ( refsObject(inst) == 0 )
+  if ( noRefsObj(inst) )
     unallocObject(inst);
   else
   { deferredUnalloced++;
