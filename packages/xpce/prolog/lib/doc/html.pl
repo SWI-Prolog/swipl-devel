@@ -304,9 +304,8 @@ element(tbody, Attr, Content) -->	% <TBODY>
 element(thead, Attr, Content) -->	% <THEAD>
 	[ \thead(Attr, Content)
 	].
-element(tr, _, Content) -->		% <TR>
-	[ \tr 
-	| Content
+element(tr, Attr, Content) -->		% <TR>
+	[ \tr(Attr, Content) 
 	].
 element(td, Attr, Content) -->		% <TD>
 	[ \td(Attr, Content) 

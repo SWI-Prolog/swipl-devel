@@ -17,11 +17,17 @@
 
 get_url_to_file(URL, File) :-
 	parse_url(URL, Parts),
-	get_data(Parts, File).
+	get_data(Parts, File), !.
+get_url_to_file(URL, _) :-
+	print_message(warning, url_load_failed(URL)),
+	fail.
 
 get_url_to_file(Base, URL, File) :-
 	parse_url(Base, URL, Parts),
-	get_data(Parts, File).
+	get_data(Parts, File), !.
+get_url_to_file(Base, URL, _) :-
+	print_message(warning, url_load_failed(Base, URL)),
+	fail.
 
 
 		 /*******************************
@@ -76,3 +82,11 @@ ensure_dir(Dir) :-
 	file_directory_name(Dir, Parent),
 	ensure_dir(Parent),
 	send(directory(Dir), make).	% should be Prolog
+
+:- multifile
+	prolog:message/3.
+
+prolog:message(url_load_failed(Base, URL)) -->
+	[ 'Failed to get data from ~p (base=~p)'-[URL,Base] ].
+prolog:message(url_load_failed(URL)) -->
+	[ 'Failed to get data from ~p'-[URL] ].

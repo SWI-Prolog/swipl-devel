@@ -54,17 +54,24 @@ make_cell(T, Options:prolog, PB:parbox) :<-
 	    ;   send(PB, alignment, Align)
 	    )
 	;   get(T, def_alignment, Align),
-	    send(PB, alignment, Align)
+	    send(PB, alignment, Align),
+	    Options1 = Options
 	),
 	send(Table, append, Cell),
 	apply_options(Options1, cell_option, Cell).
 
-next_row(T) :->
+next_row(T, Options:prolog) :->
 	"Move to the next row"::
 	get(T, layout_manager, Table),
 	(   get(Table, current, point(1, _))
 	->  true			% is at start of row
 	;   send(T?layout_manager, next_row)
+	),
+	(   Options == []
+	->  true
+	;   get(Table, current, point(_, Y)),
+	    get(Table, row, Y, @on, Row),
+	    apply_options(Options, row_option, Row)
 	).
 
 compute_cell_rubber(_T, PB:parbox) :->
@@ -191,6 +198,13 @@ valign(middle,   center) :- !.
 valign(baseline, bottom) :- !.		% for now
 valign(X, X).
 
+%	row_option/2
+%
+%	Incomplete handling of options on table-rows
+
+row_option(bgcolor(Colour), O) :-
+	catch(new(C, colour(Colour)), _, fail),
+	send(O, background, C).
 
 		 /*******************************
 		 *	GEOMETRY HANDLING	*

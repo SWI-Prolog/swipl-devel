@@ -271,12 +271,19 @@ action(table(Options, Content), PB, Mode) :-
 	),
 	send(TB, compute),		% initial dimensions
 	send(Table, compute_dimensions).
-action(tr, Table, _Mode) :-
+action(tr, Table, _Mode) :-		% compatibility
 	(   send(Table, instance_of, doc_table)
-	->  send(Table, next_row)
+	->  send(Table, next_row, [])
 	;   print_message(warning, doc(expected_context(tr, table))),
 	    send(Table, append, @br)
 	).
+action(tr(Options, Content), Table, Mode) :-
+	(   send(Table, instance_of, doc_table)
+	->  send(Table, next_row, Options)
+	;   print_message(warning, doc(expected_context(tr, table))),
+	    send(Table, append, @br)
+	),
+	emit(Content, Table, Mode).
 action(td(Options, Content), Table, Mode) :-
 	(   send(Table, instance_of, doc_table)
 	->  get(Mode, clone, Clone),
