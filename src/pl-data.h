@@ -199,13 +199,24 @@ and while loading .wic files.  It comes at no price.
 		 *	      INDIRECTS		*
 		 *******************************/
 
-#define mkIndHdr(n, t)	(((n)<<9) | (t) | STG_LOCAL)
-#define wsizeofInd(iw)	((iw)>>9)
+#if SIZEOF_LONG == 4			/* extend as needed */
+#define PADBITS 2
+#else
+#if SIZEOF_LONG == 8
+#define PADBITS 3
+#endif
+#endif
+
+#define PADMASK (sizeof(word)-1)
+
+#define mkIndHdr(n, t)	(((n)<<(LMASK_BITS+PADBITS)) | (t) | STG_LOCAL)
+#define wsizeofInd(iw)	((iw)>>(LMASK_BITS+PADBITS))
 #define addressIndirect(w) valPtr(w)
 #define valIndirectP(w)	(((Word)valPtr(w))+1)
 
-#define padHdr(iw)	(((iw)>>7 & 0x3) ? ((iw)>>7 & 0x3) : 4)
-#define mkPadHdr(n)	(((n)&(sizeof(word)-1)) << 7)
+#define padHdr(iw)	(((iw)>>LMASK_BITS & PADMASK) ? \
+			 ((iw)>>LMASK_BITS & PADMASK) : sizeof(long))
+#define mkPadHdr(n)	(((n)&PADMASK) << LMASK_BITS)
 #define mkStrHdr(n,p)	(mkIndHdr(n, TAG_STRING)|mkPadHdr(pad))
 
 #define valString(w)	((char *)valIndirectP(w))
