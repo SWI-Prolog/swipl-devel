@@ -1,0 +1,37 @@
+			XPCE Document rendering library
+			-------------------------------
+
+
+Created:	Tue Feb  8 2000
+History:
+----------------------------------------------------------------
+
+Description
+-----------
+
+This library provides a high-level interface   to the document rendering
+primitives of XPCE. Please consult  the   XPCE  UserGuide for a detailed
+overview of the primitives as well as this library.
+
+
+Primitives defined
+------------------
+
+XPCE Primitive	File       	Description
+-------------------------------------------------------------------
+<objects>	objects.pl	Reusable objects used for rendering
+vfont		vfont.pl	Virtual (logical) font
+doc_mode	layout.pl	Rendering mode parameters
+pbox		layout.pl	Parbox with event-handling
+button_box	layout.pl	Mark begin/end active area
+anchor_box	layout.pl	Mark begin/end link-target
+bullet_list	layout.pl	Unordered list environment
+enum_list	layout.pl	Ordered list environment
+definition_list	layout.pl	Definition list environment
+doc_table	table.pl	Table rendering
+doc_window	window.pl	Window holding a pbox
+doc_browser	browser.pl	Simple WWW browser
+
+Predicates	File       	Description
+-------------------------------------------------------------------
+html_tokens/2	html/2		Translate HTML file into Prolog term
