@@ -382,51 +382,47 @@ void	clearDFlagProgramObject(Any, ulong);
 #define offDFlag(obj, mask)	(!onDFlag(obj, mask))
 
 					/* Debugging flags */
-#define D_TRACE_ENTER	   makeDFlag(1)	/* Trace enter port of method */
-#define D_TRACE_EXIT	   makeDFlag(2)	/* Trace exit port of method */
-#define D_TRACE_FAIL	   makeDFlag(3)	/* Trace fail port of method */
-#define D_TRACE		   (D_TRACE_ENTER|D_TRACE_EXIT|D_TRACE_FAIL)
-#define D_TRACE_INHERIT	   makeDFlag(4)	/* Inherit trace attribute */
-#define D_TRACE_CONDITION  makeDFlag(5)	/* Object has trace-condition */
+#define D_TRACE_ENTER	  makeDFlag(1)	/* Trace enter port of method */
+#define D_TRACE_EXIT	  makeDFlag(2)	/* Trace exit port of method */
+#define D_TRACE_FAIL	  makeDFlag(3)	/* Trace fail port of method */
+#define D_TRACE		  (D_TRACE_ENTER|D_TRACE_EXIT|D_TRACE_FAIL)
 
-#define D_BREAK_ENTER	   makeDFlag(6)	/* Break enter port of method */
-#define D_BREAK_EXIT	   makeDFlag(7)	/* Break exit port of method */
-#define D_BREAK_FAIL	   makeDFlag(8)	/* Break fail port of method */
-#define D_BREAK		   (D_BREAK_ENTER|D_BREAK_EXIT|D_BREAK_FAIL)
-#define D_BREAK_INHERIT	   makeDFlag(9)	/* Inherit trace attribute */
-#define D_BREAK_CONDITION  makeDFlag(10) /* Inherit trace attribute */
+#define D_BREAK_ENTER	  makeDFlag(4)	/* Break enter port of method */
+#define D_BREAK_EXIT	  makeDFlag(5)	/* Break exit port of method */
+#define D_BREAK_FAIL	  makeDFlag(6)	/* Break fail port of method */
+#define D_BREAK		  (D_BREAK_ENTER|D_BREAK_EXIT|D_BREAK_FAIL)
 
-#define D_SYSTEM	   makeDFlag(11) /* Generate system trace frame */
+#define D_SYSTEM	  makeDFlag(7) /* Generate system trace frame */
 
 					/* Variable attributes */
-#define D_SAVE_NORMAL	   makeDFlag(12) /* Save normally */
-#define D_SAVE_NIL	   makeDFlag(13) /* Save as NIL */
-#define D_SAVE 		   (D_SAVE_NORMAL|D_SAVE_NIL)
-#define D_DELEGATE_SIDE_EFFECTS makeDFlag(14) /* Delegation has side-effects */
+#define D_SAVE_NORMAL	  makeDFlag(8) /* Save normally */
+#define D_SAVE_NIL	  makeDFlag(9) /* Save as NIL */
+#define D_SAVE 		  (D_SAVE_NORMAL|D_SAVE_NIL)
 
-#define D_CLONE_RECURSIVE  makeDFlag(15) /* Clone object recursively */
-#define D_CLONE_REFERENCE  makeDFlag(16) /* Clone object reference */
-#define D_CLONE_NIL	   makeDFlag(17) /* Cloned value is @nil */
-#define D_CLONE_VALUE	   makeDFlag(18) /* Clone the plain PCE value */
-#define D_CLONE_ALIEN	   makeDFlag(19) /* Clone alien values */
-#define D_CLONE_REFCHAIN   makeDFlag(22) /* Value is a reference chain */
-#define D_CLONE		   (D_CLONE_RECURSIVE|D_CLONE_REFERENCE|\
-			    D_CLONE_NIL|D_CLONE_VALUE|D_CLONE_ALIEN|\
-			    D_CLONE_REFCHAIN)
+#define D_CLONE_RECURSIVE makeDFlag(10) /* Clone object recursively */
+#define D_CLONE_REFERENCE makeDFlag(11) /* Clone object reference */
+#define D_CLONE_NIL	  makeDFlag(12) /* Cloned value is @nil */
+#define D_CLONE_VALUE	  makeDFlag(13) /* Clone the plain PCE value */
+#define D_CLONE_ALIEN	  makeDFlag(14) /* Clone alien values */
+#define D_CLONE_REFCHAIN  makeDFlag(15) /* Value is a reference chain */
+#define D_CLONE		  (D_CLONE_RECURSIVE|D_CLONE_REFERENCE|\
+			   D_CLONE_NIL|D_CLONE_VALUE|D_CLONE_ALIEN|\
+			   D_CLONE_REFCHAIN)
 
-#define D_ALIEN		   makeDFlag(20) /* Variable is alien */
-#define D_TYPENOWARN	   makeDFlag(21) /* Methods: donot warn */
+#define D_ALIEN		  makeDFlag(16) /* Variable is alien */
+#define D_TYPENOWARN	  makeDFlag(17) /* Methods: donot warn */
 
 					 /* Class attributes */
-#define DC_LAZY_GET	   makeDFlag(24) /* bind get-behaviour lazy */
-#define DC_LAZY_SEND	   makeDFlag(25) /* bind send-behaviour lazy */
-#define D_CXX		   makeDFlag(26) /* C++ defined method/class */
+#define DC_LAZY_GET	  makeDFlag(18) /* bind get-behaviour lazy */
+#define DC_LAZY_SEND	  makeDFlag(19) /* bind send-behaviour lazy */
+#define D_CXX		  makeDFlag(20) /* C++ defined method/class */
 
 					 /* ClassVariable attributes */
-#define DCV_TEXTUAL	   makeDFlag(27) /* Default is textual */
+#define DCV_TEXTUAL	  makeDFlag(21) /* Default is textual */
 
 					/* Method */
-#define D_HOSTMETHOD	   makeDFlag(28) /* Implementation is in the host */
+#define D_HOSTMETHOD	  makeDFlag(22) /* Implementation is in the host */
+					/* Types */
 
 
 		/********************************
