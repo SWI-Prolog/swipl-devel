@@ -13,6 +13,7 @@ In normal cases, the following should do:
 	% cd src
 	% ./configure
 	% make
+	% make test
 	% make install
 
 By default, the system  is  installed   as  /usr/local/bin/pl,  with the
@@ -32,6 +33,7 @@ requires GNU-MAKE.  For example:
 	% cd rs6000
 	% ../src/configure
 	% make
+	% make test
 	% make install
 
 Building a runtime version
@@ -58,7 +60,7 @@ system. It provides editing of previously  entered commands (history) as
 well as completion on Prolog  atoms   and  filenames (for consult, etc.)
 much like the bash and tcsh shells do.
 
-SWI-Prolog has been linked  with  versions  1.1,   1.2  and  2.0  of the
+SWI-Prolog has been linked with versions 1.1,   1.2,  2.0 and 4.0 of the
 readline library.
 
 # Memory mapped stacks.  Segmentation faults during the installation.
