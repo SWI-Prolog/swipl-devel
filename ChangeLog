@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: Windows: mkboot.bat script to the bin-directory to easily redo
+    the boot-compilation.
+
   * FIXED: Windows: make double-clicking possible on filenames holding
     special characters.  Reported by Graham Thomason.
 

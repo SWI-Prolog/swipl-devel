@@ -119,6 +119,10 @@ _export int	_xos_mkdir(const char *path, int mode);
 _export int	_xos_rmdir(const char *path);
 _export char *	_xos_getcwd(char *buf, int len);
 _export int	_xos_errno(void);
+_export int	_xos_exists(const char *path, int flags);
+
+#define _XOS_ISFILE	0x01
+#define _XOS_ISDIR	0x02
 
 		 /*******************************
 		 *   WIN32 LONG FILENAME MAPS	*

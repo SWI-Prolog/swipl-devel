@@ -470,6 +470,31 @@ _xos_stat(const char *path, struct stat *sbuf)
   return stat(buf, (struct stat *) sbuf);
 }
 
+
+int
+_xos_exists(const char *path, int flags)
+{ char buf[PATH_MAX];
+  DWORD a;
+
+  _xos_os_existing_filename(path, buf);
+
+  if ( (a=GetFileAttributes(buf)) != 0xFFFFFFFF )
+  { if ( flags & _XOS_DIR )
+    { if ( a & FILE_ATTRIBUTE_DIRECTORY )
+	return TRUE;
+    }
+    if ( flags & _XOS_FILE )
+    { if ( a & FILE_ATTRIBUTE_DIRECTORY )
+	return FALSE;
+    }
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 		 /*******************************
 		 *	    DIRECTORIES		*
 		 *******************************/

@@ -218,6 +218,8 @@ idirs:		$(IDIRS)
 
 iboot:		
 		chdir $(PLHOME)\boot & copy *.pl "$(PLBASE)\boot"
+		copy win32\misc\mkboot.bat $(PLBASE)\bin\mkboot.bat
+
 ilib:		
 		chdir $(PLHOME)\library & \
 			for %f in ($(PLLIBS)) do copy %f "$(PLBASE)\library"

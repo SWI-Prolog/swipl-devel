@@ -789,9 +789,14 @@ AccessFile(const char *path, int mode)
 #endif
 }
 
+
 bool
 ExistsDirectory(const char *path)
-{ char tmp[MAXPATHLEN];
+{
+#ifdef O_XOS
+  return _xos_exists(path, _XOS_DIR);
+#else
+  char tmp[MAXPATHLEN];
   char *ospath = OsPath(path, tmp);
 
 #if defined(HAVE_STAT) || defined(__unix__)
@@ -816,6 +821,7 @@ ExistsDirectory(const char *path)
     succeed;
   fail;
 #endif
+#endif /*O_XOS*/
 }
 
 
