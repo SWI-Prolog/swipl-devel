@@ -388,7 +388,7 @@ William\ F.\ Clocksin & Christopher\ S.\ Mellish,
 .IR "Programming in Prolog" ,
 fourth edition, Springer Verlag, Berlin 1994.
 .PP
-.IR plrc(1) " and " plld(1) " and " xpce(1)
+.BR plrc "(1) and " plld "(1)  and " xpce "(1)"
 .SH WARRANTY
 The software is provided
 .B as is,
