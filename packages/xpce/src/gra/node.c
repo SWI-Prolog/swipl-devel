@@ -46,7 +46,14 @@ unlinkNode(Node n)
   Cell cell1, cell2;
 
   if ( notNil(tree) )
-  { if ( onFlag(tree, F_FREED|F_FREEING) ) /* destroying the tree */
+  { if ( tree->displayRoot == n )
+    { if ( tree->root == n )
+	assign(tree, displayRoot, NIL);
+      else
+	assign(tree, displayRoot, tree->root);
+    }
+
+    if ( onFlag(tree, F_FREED|F_FREEING) ) /* destroying the tree */
     { Node son;
 
       for_chain(n->sons, son, freeObject(son));
