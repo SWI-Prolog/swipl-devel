@@ -1820,10 +1820,12 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
     lTop = addPointer(lTop, sizeof(word));
 #endif
 
-  qf	= (QueryFrame) lTop;
-  fr    = &qf->frame;
-  def   = getProcDefinedDefinition(fr, NULL, proc PASS_LD);
-  arity	= def->functor->arity;
+  qf	     = (QueryFrame) lTop;
+  fr         = &qf->frame;
+  fr->parent = NULL;
+  fr->flags  = FR_INBOX;
+  def        = getProcDefinedDefinition(fr, NULL, proc PASS_LD);
+  arity	     = def->functor->arity;
 
   requireStack(local, sizeof(struct queryFrame)+arity*sizeof(word));
 
@@ -1844,8 +1846,6 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   qf->aSave             = aTop;
   qf->solutions         = 0;
   qf->exception		= 0;
-
-  fr->parent = NULL;
 					/* fill frame arguments */
   ap = argFrameP(fr, 0);
   { int n;
@@ -1858,7 +1858,6 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   lTop = (LocalFrame)ap;
 
 					/* initialise flags and level */
-  fr->flags = FR_INBOX;
   if ( qf->saved_environment )
   { setLevelFrame(fr, levelFrame(qf->saved_environment)+1);
     if ( true(qf->saved_environment, FR_NODEBUG) )
