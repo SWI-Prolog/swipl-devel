@@ -26,6 +26,7 @@
 #include <h/unix.h>
 #include <errno.h>
 
+#undef ENC_WCHAR			/* conflict str.h/stream.h */
 
 		 /*******************************
 		 *      OBJECT --> IOSTREAM	*
@@ -41,6 +42,7 @@ n/sizeof(wchar_t) and do the translation to/from the buffer here.
 typedef struct
 { Any	object;				/* The client (opened) object */
   long	point;				/* Current location */
+  IOENC encoding;			/* used encoding */
 } open_object, *OpenObject;
 
 
@@ -50,33 +52,54 @@ Sread_object(void *handle, char *buf, int size)
   Any argv[2];
   CharArray sub;
   int chread;
+  int advance;
 
   if ( isFreedObj(h->object) )
   { errno = EIO;
     return -1;
   }
 
+  if ( h->encoding == ENC_WCHAR )
+  { advance = size/sizeof(wchar_t);
+  } else if ( h->encoding == ENC_NONE )
+  { advance = size;
+  } else
+  { assert(0);
+    errno = EIO;
+    return -1;
+  }
+
   argv[0] = toInt(h->point);
-  argv[1] = toInt(size/sizeof(wchar_t));
+  argv[1] = toInt(advance);
 
   if ( (sub = getv(h->object, NAME_readAsFile, 2, argv)) &&
        instanceOfObject(sub, ClassCharArray) )
   { String s = &sub->data;
 
-    assert(s->size <= size/sizeof(wchar_t));
+    assert(s->size <= advance);
 
-    if ( isstrA(s) )
-    { charW *dest = (charW*)buf;
-      const charA *f = s->s_textA;
-      const charA *e = &f[s->size];
+    if ( h->encoding == ENC_WCHAR )
+    { if ( isstrA(s) )
+      { charW *dest = (charW*)buf;
+	const charA *f = s->s_textA;
+	const charA *e = &f[s->size];
       
-      while(f<e)
-	*dest++ = *f++;
+	while(f<e)
+	  *dest++ = *f++;
+      } else
+      { memcpy(buf, s->s_textW, s->size*sizeof(charW));
+      }
+      chread = s->size * sizeof(wchar_t);
     } else
-    { memcpy(buf, s->s_textW, s->size*sizeof(charW));
+    { if ( isstrA(s) )
+      { memcpy(buf, s->s_textA, s->size);
+      } else
+      { errno = EIO;
+	chread = -1;
+      }
+      chread = s->size;
     }
 
-    chread = s->size * sizeof(wchar_t);
     h->point += s->size;
   } else
   { errno = EIO;
@@ -94,38 +117,50 @@ Swrite_object(void *handle, char *buf, int size)
   CharArray ca;
   status rval;
   Int where = toInt(h->point);
-  const wchar_t *wbuf = (const wchar_t*)buf;
-  const wchar_t *end = (const wchar_t*)&buf[size];
-  const wchar_t *f;
+  int advance;
 
   if ( isFreedObj(h->object) )
   { errno = EIO;
     return -1;
   }
 
-  assert(size%sizeof(wchar_t) == 0);
+  if ( h->encoding == ENC_WCHAR )
+  { const wchar_t *wbuf = (const wchar_t*)buf;
+    const wchar_t *end = (const wchar_t*)&buf[size];
+    const wchar_t *f;
+
+    assert(size%sizeof(wchar_t) == 0);
+    advance = size/sizeof(wchar_t);
+
+    for(f=wbuf; f<end; f++)
+    { if ( *f > 0xff )
+	break;
+    }
   
-  for(f=wbuf; f<end; f++)
-  { if ( *f > 0xff )
-      break;
-  }
-
-  if ( f == end )
-  { charA *asc = alloca(size);
-    charA *t = asc;
-
-    for(f=wbuf; f<end; )
-      *t++ = (charA)*f++;
-
-    str_set_n_ascii(&s, size, asc);
+    if ( f == end )
+    { charA *asc = alloca(size);
+      charA *t = asc;
+  
+      for(f=wbuf; f<end; )
+	*t++ = (charA)*f++;
+  
+      str_set_n_ascii(&s, advance, asc);
+    } else
+    { str_set_n_wchar(&s, advance, (wchar_t*)wbuf);
+    }
+  } else if ( h->encoding == ENC_NONE )
+  { advance = size;
+    str_set_n_ascii(&s, size, buf);
   } else
-  { str_set_n_wchar(&s, size/sizeof(wchar_t), (wchar_t*)wbuf);
+  { assert(0);
+    errno = EIO;
+    return -1;
   }
 
   ca = StringToScratchCharArray(&s);
 
   if ( (rval = send(h->object, NAME_writeAsFile, where, ca, EAV)) )
-    h->point += size/sizeof(wchar_t);
+    h->point += advance;
   doneScratchCharArray(ca);
 
   if ( rval )
@@ -282,7 +317,12 @@ Sopen_object(Any obj, const char *mode)
     addCodeReference(obj);
 
     stream = Snew(h, flags, &Sobjectfunctions);
-    stream->encoding = ENC_WCHAR;	/* see comment above */
+
+    if ( (flags&SIO_TEXT) )
+      stream->encoding = ENC_WCHAR;	/* see comment above */
+    else
+      stream->encoding = ENC_NONE;
+    h->encoding = stream->encoding;
 
     return stream;
   }
