@@ -2,7 +2,7 @@
 static char * graph_xpm[] = {
 /* columns rows colors chars-per-pixel */
 "16 16 6 1",
-" 	c gray100",
+" 	c None",
 ".	c #600000",
 "X	c red",
 "o	c green",
