@@ -143,6 +143,7 @@
 \textbf{+}
 \textit{+}
 \textsf{+}
+\textsc{+}
 
 % BibTeX support
 

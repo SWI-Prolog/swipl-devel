@@ -446,6 +446,8 @@ language_map(table,	'Table').
 #(b(Text),		[html('<B>'),      Text, html('</B>')]).
 #(i(Text),		[html('<I>'),      Text, html('</I>')]).
 #(tt(Text),		[html('<TT>'),	   Text, html('</TT>')]).
+#(sc(Text),		[html('<font size=-1>'), % TBD: upcase Text
+					   Text, html('</font>')]).
 #(center(Text),		[html('<CENTER>'), Text, html('</CENTER>')]).
 #(right(Text),		[html('<RIGHT>'),  Text, html('</RIGHT>')]).
 #(quote(Text),		[html('<BLOCKQUOTE>'), Text, html('</BLOCKQUOTE>')]).
@@ -1021,6 +1023,7 @@ cmd(texttt({Tex}), #tt(+Tex)).			% \texttt{text}
 cmd(textbf({Tex}), #b(+Tex)).			% \textbf{text}
 cmd(textit({Tex}), #i(+Tex)).			% \textit{text}
 cmd(textsf({Tex}), #b(+Tex)).			% \textsf{text}
+cmd(textsc({Tex}), #sc(+Tex)).			% \textsc{text}
 
 cmd(year,	Year) :-			% \year
 	get_time(Time),
