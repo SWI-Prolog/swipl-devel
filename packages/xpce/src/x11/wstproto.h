@@ -235,6 +235,7 @@ void		ws_window_background(PceWindow sw, Any c);
 void		ws_raise_window(PceWindow sw);
 void		ws_lower_window(PceWindow sw);
 Int		ws_window_thread(PceWindow sw);
+int		ws_delayed_redraw_window(PceWindow sw);
 
 /* ../src/x11/x11.c */
 void		ws_initialise(int argc, char **argv);

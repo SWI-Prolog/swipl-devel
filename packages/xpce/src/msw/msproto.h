@@ -44,4 +44,3 @@ Name	WinStrError(int error, ...);
 status	makeClassWinMF(Class class);
 status	makeClassWinPrinter(Class class);
 void	ws_frame_border(FrameObj fr, int *xb, int *yb, int *ycap);
-int	ws_delayed_redraw_window(PceWindow sw);
