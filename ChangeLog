@@ -7,6 +7,12 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#66: thread_statistics/2 returning illegal values on floats
+    and large integers.  Mike Elston.
+
+VERSION 5.2.1 (Jun 13, 2003)
+============================
+
   * FIXED: Bug#63: exception-term lost (reported as unbound).  Mike Elston.
 
   * ENHANCED: Bug#64: make ground/1 do last-argument optimisation.

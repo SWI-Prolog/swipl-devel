@@ -2635,7 +2635,7 @@ PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
     sync_statistics(info, k);
   }
 
-  rval = pl_statistics_ld(A2, A3, info->thread_data);
+  rval = pl_statistics_ld(A2, A3, info->thread_data PASS_LD);
   UNLOCK();
 
   return rval;

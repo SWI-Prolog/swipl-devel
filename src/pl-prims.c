@@ -2530,94 +2530,17 @@ heapUsed(void)
 
 #define QP_STATISTICS 1
 
-int
-pl_statistics_ld(term_t k, term_t value ARG_LD)
-{ word result = 0;			/* make compiler happy */
-  atom_t key;
 #ifdef QP_STATISTICS
-  long v[3];
-  int vn = -1;
-#endif
 
-  if ( !PL_get_atom_ex(k, &key) )
-    fail;
-
-  if      (key == ATOM_cputime)				/* time */
-    result = globalReal(LD->statistics.user_cputime);
-  else if (key == ATOM_inferences)			/* inferences */
-    result = makeNum(LD->statistics.inferences);
-  else if (key == ATOM_local)				/* local stack */
-    result = makeNum(sizeStack(local));
-  else if (key == ATOM_localused)
-    result = makeNum(usedStack(local));
-  else if (key == ATOM_locallimit)
-    result = makeNum(limitStack(local));
-  else if (key == ATOM_heaplimit)			/* heap */
-    fail;
-  else if (key == ATOM_heap)
-    fail;
-  else if (key == ATOM_heapused)			/* heap usage */
-    result = makeNum(heapUsed());
-  else if (key == ATOM_trail)				/* trail */
-    result = makeNum(sizeStack(trail));
-  else if (key == ATOM_trailused)	
-    result = makeNum(usedStack(trail));
-  else if (key == ATOM_traillimit)
-    result = makeNum(limitStack(trail));
-  else if (key == ATOM_global)				/* global */
-    result = makeNum(sizeStack(global));
-  else if (key == ATOM_globalused )
-    result = makeNum(usedStack(global));
-  else if (key == ATOM_globallimit)
-    result = makeNum(limitStack(global));
-  else if (key == ATOM_atoms && !PL_is_list(value))	/* atoms */
-    result = makeNum(GD->statistics.atoms);
-  else if (key == ATOM_functors)			/* functors */
-    result = makeNum(GD->statistics.functors);
-  else if (key == ATOM_predicates)			/* predicates */
-    result = makeNum(GD->statistics.predicates);
-  else if (key == ATOM_modules)				/* modules */
-    result = makeNum(GD->statistics.modules);
-  else if (key == ATOM_codes)				/* codes */
-    result = makeNum(GD->statistics.codes);
-  else if (key == ATOM_gctime)
-    result = globalReal(gc_status.time);
-  else if (key == ATOM_collections)
-    result = makeNum(gc_status.collections);
-  else if (key == ATOM_collected)
-    result = makeNum(gc_status.trail_gained + gc_status.global_gained);
-#ifdef O_ATOMGC
-  else if (key == ATOM_agc)
-    result = makeNum(GD->atoms.gc);
-  else if (key == ATOM_agc_gained)
-    result = makeNum(GD->atoms.collected);
-  else if (key == ATOM_agc_time)
-    result = globalReal(GD->atoms.gc_time);
-#endif
-#if O_SHIFT_STACKS
-  else if (key == ATOM_global_shifts)
-    result = makeNum(shift_status.global_shifts);
-  else if (key == ATOM_local_shifts)
-    result = makeNum(shift_status.local_shifts);
-  else if (key == ATOM_trail_shifts)
-    result = makeNum(shift_status.trail_shifts);
-#else
-  else if ( key == ATOM_global_shifts ||
-	    key == ATOM_local_shifts ||
-	    key == ATOM_trail_shifts )
-    fail;
-#endif
+static int
 #ifdef O_PLMT
-  else if ( key == ATOM_threads )
-    result = consInt(GD->statistics.threads_created -
-		     GD->statistics.threads_finished);
-  else if ( key == ATOM_threads_created )
-    result = consInt(GD->statistics.threads_created);
-  else if ( key == ATOM_thread_cputime )
-    result = globalReal(GD->statistics.thread_cputime);
+qp_statistics__LD(atom_t key, long v[], PL_local_data_t *LD)
+#else
+qp_statistics__LD(atom_t key, long v[], PL_local_data_t *ld)
 #endif
-#ifdef QP_STATISTICS
-  else if ( key == ATOM_runtime )
+{ int vn;
+
+  if ( key == ATOM_runtime )
   { v[0] = (long)(LD->statistics.user_cputime * 1000.0);
     v[1] = v[0] - LD->statistics.last_cputime;
     LD->statistics.last_cputime = v[0];
@@ -2684,22 +2607,144 @@ pl_statistics_ld(term_t k, term_t value ARG_LD)
     v[2] = (long)(GD->atoms.gc_time * 1000.0);
     vn = 3;
 #else
-    fail;
+    vn = 0;				/* no values */
 #endif
-  } 
+  } else
+    vn = -1;				/* unknown key */
+
+  return vn;
+}
 
 #endif /*QP_STATISTICS*/
+
+static int
+#ifdef O_PLMT
+swi_statistics__LD(atom_t key, Number v, PL_local_data_t *LD)
+#else
+swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
+#endif
+{ v->type = V_INTEGER;			/* most of them */
+
+  if      (key == ATOM_cputime)				/* time */
+  { v->type = V_REAL;
+    v->value.f    = LD->statistics.user_cputime;
+  } else if (key == ATOM_inferences)			/* inferences */
+    v->value.i = LD->statistics.inferences;
+  else if (key == ATOM_local)				/* local stack */
+    v->value.i = sizeStack(local);
+  else if (key == ATOM_localused)
+    v->value.i = usedStack(local);
+  else if (key == ATOM_locallimit)
+    v->value.i = limitStack(local);
+  else if (key == ATOM_heaplimit)			/* heap */
+    fail;
+  else if (key == ATOM_heap)
+    fail;
+  else if (key == ATOM_heapused)			/* heap usage */
+    v->value.i = heapUsed();
+  else if (key == ATOM_trail)				/* trail */
+    v->value.i = sizeStack(trail);
+  else if (key == ATOM_trailused)	
+    v->value.i = usedStack(trail);
+  else if (key == ATOM_traillimit)
+    v->value.i = limitStack(trail);
+  else if (key == ATOM_global)				/* global */
+    v->value.i = sizeStack(global);
+  else if (key == ATOM_globalused )
+    v->value.i = usedStack(global);
+  else if (key == ATOM_globallimit)
+    v->value.i = limitStack(global);
+  else if (key == ATOM_atoms)				/* atoms */
+    v->value.i = GD->statistics.atoms;
+  else if (key == ATOM_functors)			/* functors */
+    v->value.i = GD->statistics.functors;
+  else if (key == ATOM_predicates)			/* predicates */
+    v->value.i = GD->statistics.predicates;
+  else if (key == ATOM_modules)				/* modules */
+    v->value.i = GD->statistics.modules;
+  else if (key == ATOM_codes)				/* codes */
+    v->value.i = GD->statistics.codes;
+  else if (key == ATOM_gctime)
+  { v->type = V_REAL;
+    v->value.f = gc_status.time;
+  } else if (key == ATOM_collections)
+    v->value.i = gc_status.collections;
+  else if (key == ATOM_collected)
+    v->value.i = gc_status.trail_gained + gc_status.global_gained;
+#ifdef O_ATOMGC
+  else if (key == ATOM_agc)
+    v->value.i = GD->atoms.gc;
+  else if (key == ATOM_agc_gained)
+    v->value.i = GD->atoms.collected;
+  else if (key == ATOM_agc_time)
+  { v->type = V_REAL;
+    v->value.f = GD->atoms.gc_time;
+  }
+#endif
+#if O_SHIFT_STACKS
+  else if (key == ATOM_global_shifts)
+    v->value.i = shift_status.global_shifts;
+  else if (key == ATOM_local_shifts)
+    v->value.i = shift_status.local_shifts;
+  else if (key == ATOM_trail_shifts)
+    v->value.i = shift_status.trail_shifts;
+#else
+  else if ( key == ATOM_global_shifts ||
+	    key == ATOM_local_shifts ||
+	    key == ATOM_trail_shifts )
+    fail;
+#endif
+#ifdef O_PLMT
+  else if ( key == ATOM_threads )
+    v->value.i = GD->statistics.threads_created -
+      		 GD->statistics.threads_finished;
+  else if ( key == ATOM_threads_created )
+    v->value.i = GD->statistics.threads_created;
+  else if ( key == ATOM_thread_cputime )
+  { v->type = V_REAL;
+    v->value.f = GD->statistics.thread_cputime;
+  }
+#endif
   else
-    return PL_error("statistics", 2, NULL, ERR_DOMAIN,
-		    PL_new_atom("statistics_key"), k);
+    return -1;				/* unknown key */
+
+  succeed;
+}
+
+
+int
+pl_statistics_ld(term_t k, term_t value, PL_local_data_t *ld ARG_LD)
+{ number result;			/* make compiler happy */
+  atom_t key;
+  int rc;
+#ifdef QP_STATISTICS
+  long v[3];
+#endif
+
+  if ( !PL_get_atom_ex(k, &key) )
+    fail;
+
+  if ( !PL_is_list(value) )
+  { switch(swi_statistics__LD(key, &result, ld))
+    { case TRUE:
+	if ( intNumber(&result) )
+	  return PL_unify_integer(value, result.value.i);
+	else
+	  return PL_unify_float(value, result.value.f);
+      case FALSE:
+	fail;
+      case -1:
+	break;
+    }
+  }
 
 #ifdef QP_STATISTICS
-  if ( vn >= 0 )
+  if ( (rc=qp_statistics__LD(key, v, ld)) >= 0 )
   { long *p;
     term_t tail = PL_copy_term_ref(value);
     term_t head = PL_new_term_ref();
 
-    for(p = v; vn-- > 0; p++)
+    for(p = v; rc-- > 0; p++)
     { if ( !PL_unify_list(tail, head, tail) ||
 	   !PL_unify_integer(head, *p) )
 	fail;
@@ -2707,9 +2752,10 @@ pl_statistics_ld(term_t k, term_t value ARG_LD)
 
     return PL_unify_nil(tail);
   }
-#endif
+#endif /*QP_STATISTICS*/
 
-  return _PL_unify_atomic(value, result);
+  return PL_error("statistics", 2, NULL, ERR_DOMAIN,
+		  PL_new_atom("statistics_key"), k);
 }
 
 
@@ -2725,7 +2771,7 @@ PRED_IMPL("statistics", 2, statistics, 0)
       LD->statistics.system_cputime = CpuTime(CPU_SYSTEM);
   }
 
-  return pl_statistics_ld(A1, A2 PASS_LD);
+  return pl_statistics_ld(A1, A2, LD PASS_LD);
 }
 
 
