@@ -77,7 +77,7 @@ makeClassGetMethod(Class class)
 { sourceClass(class, makeClassGetMethod, __FILE__, "$Revision$");
 
   localClass(class, NAME_returnType, NAME_type, "type", NAME_get,
-	     "Tupe of value returned");
+	     "Type of value returned");
 
   termClass(class, "get_method",
 	    6, NAME_name, NAME_returnType, NAME_types,

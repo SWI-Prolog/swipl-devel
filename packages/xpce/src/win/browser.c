@@ -92,6 +92,15 @@ normaliseBrowser(Browser b, Any obj)
 
 
 static status
+typedBrowser(Browser b, EventId id, Bool delegate)
+{ if ( delegate == ON )
+    return typedWindow((PceWindow) b, id, delegate);
+
+  return typedListBrowser(b->list_browser, id);
+}
+
+
+static status
 clearBrowser(Browser b)
 { return clearDict(b->list_browser->dict);
 }
@@ -166,6 +175,10 @@ makeClassBrowser(Class class)
   sendMethod(class, NAME_clear, NAME_delete, 0,
 	     "Delete all items",
 	     clearBrowser);
+  sendMethod(class, NAME_typed, NAME_accelerator, 2,
+	     "event_id", "delegate=[bool]",
+	     "Handle typed character",
+	     typedBrowser);
   sendMethod(class, NAME_selection, NAME_selection, 1,
 	     "member:dict_item|chain*",
 	     "Set selected items",

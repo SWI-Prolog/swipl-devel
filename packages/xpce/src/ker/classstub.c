@@ -150,7 +150,7 @@ makeClassClassStub(Class class)
   localClass(class, NAME_creator, NAME_manual, "{built_in,host}", NAME_both,
 	     "Who created the class: {built_in,host}");
   localClass(class, NAME_superClass, NAME_type, "class_stub*", NAME_get,
-	     "Imediate super class");
+	     "Immediate super class");
   localClass(class, NAME_subClasses, NAME_type, "chain*", NAME_none,
 	     "Sub classes");
 

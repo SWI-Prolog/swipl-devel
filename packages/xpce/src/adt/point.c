@@ -203,7 +203,7 @@ makeClassPoint(Class class)
 	     "Add x- and y-values of argument point",
 	     plusPoint);
   sendMethod(class, NAME_minus, NAME_calculate, 1, "point",
-	     "Substract x and y of argument point",
+	     "Subtract x and y of argument point",
 	     minusPoint);
   sendMethod(class, NAME_mirror, NAME_calculate, 1, "origin=[point]",
 	     "Mirror point around argument or (0,0)",

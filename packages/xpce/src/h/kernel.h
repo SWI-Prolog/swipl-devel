@@ -966,7 +966,6 @@ NewClass(pce)
   Name		last_error;		/* Last error occured */
   Chain		catched_errors;		/* Stack of catched error-id's */
   Bool		catch_error_signals;	/* Catch Unix signals */
-  Bool		print_c_stack;		/* Try to dump the C-stack? */
 
   Chain		exit_messages;		/* Called on exit */
   Sheet		exception_handlers;	/* exception-name --> code */

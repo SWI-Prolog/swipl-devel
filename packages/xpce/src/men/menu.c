@@ -1793,7 +1793,7 @@ makeClassMenu(Class class)
   localClass(class, NAME_valueFont, NAME_appearance, "font=font", NAME_get,
 	     "Font for value");  
   localClass(class, NAME_valueWidth, NAME_layout, "width=0..", NAME_get,
-	     "Miminum width for values");
+	     "Minimum width for values");
   localClass(class, NAME_layout, NAME_appearance,
 	     "orientation={horizontal,vertical}", NAME_get,
 	     "Horizontal or vertical layout");  
@@ -1966,10 +1966,10 @@ makeClassMenu(Class class)
 	    "Find out if menu_item or value is selected",
 	    getSelectedMenu);
   getMethod(class, NAME_labelWidth, NAME_layout, "width=int", 0,
-	    "Mimimum width for label in pixels",
+	    "Minimum width for label in pixels",
 	    getLabelWidthMenu);
   getMethod(class, NAME_valueWidth, NAME_layout, "width=int", 0,
-	    "Mimimum width for value in pixels",
+	    "Minimum width for value in pixels",
 	    getValueWidthMenu);
   getMethod(class, NAME_member, NAME_items, "member=menu_item", 1, "value=any",
 	    "Find menu_item with given value",
@@ -2009,7 +2009,7 @@ makeClassMenu(Class class)
   attach_resource(class, "accelerator_font", "font*", "@nil",
 		  "Show the accelerators");
   attach_resource(class, "value_width", "int",     "0",
-		  "Mimimum width for popup menu");
+		  "Minimum width for popup menu");
   attach_resource(class, "layout",     "name",	  "horizontal",
 		  "Layout of the menu: {horizontal,vertical}");
   attach_resource(class, "format",     "{left,center,right}",	  "left",

@@ -616,7 +616,7 @@ makeClassCharArray(Class class)
 	     subCharArray);
 
   getMethod(class, NAME_convert, NAME_conversion, "char_array", 1, "any",
-	    "Convert `text-convertable'",
+	    "Convert `text-convertible'",
 	    getConvertCharArray);
   getMethod(class, NAME_value, NAME_conversion, "name", 0,
 	    "Value as a name",
@@ -657,7 +657,7 @@ makeClassCharArray(Class class)
 	    getSubCharArray);
 
   getMethod(class, NAME_downcase, NAME_case, "char_array", 0,
-	    "Map all upercase letters to lowercase",
+	    "Map all uppercase letters to lowercase",
 	    getDowncaseCharArray);
   getMethod(class, NAME_upcase, NAME_case, "char_array", 0,
 	    "Map all lowercase letters to uppercase",

@@ -124,7 +124,7 @@ actionHelp(void)
   writef(" c[nua]\t\tcontinue\tContinue to next break-point in trace-mode\n");
   writef("\t\t\t\t[never/user/always]\n");
   writef(" e[iwef] [id]\terror kind\tSet kind to [ignored/warning/error/fatal]\n");
-  writef(" g[ahC] [depth]\tgoals\t\tPrint stack [always/host/C]\n");
+  writef(" g[ah] [depth]\tgoals\t\tPrint stack [always/host]\n");
   writef(" q\t\tquit\t\tQuit XPCE\n");
   writef(" s [level]\tskip\t\tSkip to the exit/fail of goal at [level]\n");
   writef(" t\t\ttrace\t\tSwitch to host language tracer\n");
@@ -193,9 +193,7 @@ again:
 	switch(argv[0][0])
 	{ case 'g':
 	    Trace(TRACE_NEVER,
-		  if ( argv[0][1] == 'C' )
-		    pcePrintStack(isDefault(numarg) ? 5 : valInt(numarg));
-		  else if ( argv[0][1] == 'h' )
+		  if ( argv[0][1] == 'h' )
 		    hostAction(HOST_BACKTRACE,
 			       isDefault(numarg) ? 5 : valInt(numarg));
 		  else

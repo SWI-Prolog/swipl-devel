@@ -457,7 +457,7 @@ static struct class_definition classdefs[] =
     &ClassWhile, "While-loop control structure" },
 
   { NAME_window, NAME_device, makeClassWindow,
-    &ClassWindow, "Inferface between X-window and device" },
+    &ClassWindow, "Interface between X-window and device" },
 
   { NAME_windowDecorator, NAME_window, makeClassWindowDecorator,
     &ClassWindowDecorator, "Attach scrollbars and label to a window" },
@@ -475,7 +475,7 @@ initClassDefs()
   defClass(CtoName("*"), NAME_binaryExpression, makeClassTimes,
 	   ClassTimes, "Multiplication expression");
   defClass(CtoName("-"), NAME_binaryExpression, makeClassMinus,
-	   ClassMinus, "Substraction expression");
+	   ClassMinus, "Subtraction expression");
   defClass(CtoName("+"), NAME_binaryExpression, makeClassPlus,
 	   ClassPlus, "Addition expression");
   defClass(CtoName("/"), NAME_binaryExpression, makeClassDivide,

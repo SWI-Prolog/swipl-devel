@@ -762,7 +762,7 @@ makeClassImage(Class class)
 	     "Create from name, [width, height, kind]",
 	     initialiseImage);
   sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Destroy private memeory and X-resources",
+	     "Destroy private memory and X-resources",
 	     unlinkImage);
   sendMethod(class, NAME_Xopen, NAME_x, 1, "display",
 	     "Open X-image",

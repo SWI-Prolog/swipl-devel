@@ -1,4 +1,29 @@
+* MODIFIED: Deleted @pce <->print_c_stack and the gC option to the tracer
+  to do so.  This didn't work on most machines anymore and shouldn't harm
+  users.
+
+* FIXED: Default button layout on 2-D openlook mode.
+
+* FIXED: browser->typed to delegate to its <-list_browser.
+
+* FIXED: area->set: misspelled argument name height.
+
+* ADDED: Manual search tool.  See Browsers/search.
+
+* FIXED: `frame ->wait' now waits till the frame is not only mapped, but
+  also all windows in it have been painted properly.
+
+* FIXED: Redraw problem on colour screens in menu-bar, notably appearing
+  on Solaris!! 
+
+* FIXED: Readline interface library, avoiding crash on illegal instruction
+  after ^Z and repeated repaint of the first line on resize.  See
+  ftp://swi.psy.uva.nl/pub/SWI-Prolog/readline
+
 * FIXED: `path->geometry' for paths containing no points.
+
+* FIXED: `path<-segment' to avoid division by zero when there is a zero-
+  length segment in the path.
 
 * BUILD: Removed obsolete xversion.h stuff from Makefiles and x11 directory.
 

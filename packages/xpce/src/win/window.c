@@ -583,7 +583,7 @@ out:
 }
 
 
-static status
+status
 typedWindow(PceWindow sw, EventId id, Bool delegate)
 {  if ( delegate == ON )
    { if ( notNil(sw->frame) )
@@ -1791,7 +1791,7 @@ makeClassWindow(Class class)
   localClass(class, NAME_popup, NAME_menu, "popup*", NAME_both,
 	     "Popup-menu of the window");
   localClass(class, NAME_currentEvent, NAME_event, "event*", NAME_get,
-	     "Event beeing processed now");
+	     "Event being processed now");
   localClass(class, NAME_sensitive, NAME_event, "bool", NAME_both,
 	     "Window accepts events");
   localClass(class, NAME_background, NAME_appearance, "colour|pixmap",NAME_get,
@@ -1862,7 +1862,7 @@ makeClassWindow(Class class)
 	     "Recompute window",
 	     computeWindow);
   sendMethod(class, NAME_reparent, DEFAULT, 0,
-	     "If no longr related to the window, ->uncreate",
+	     "If no longer related to the window, ->uncreate",
 	     reparentWindow);
   sendMethod(class, NAME_create, NAME_open, 1, "[window]",
 	     "Create associated X-window structure",
@@ -1896,7 +1896,7 @@ makeClassWindow(Class class)
 	     "Flash the window",
 	     flashWindow);
   sendMethod(class, NAME_grabKeyboard, NAME_event, 1, "bool",
-	     "Grap keyboard events",
+	     "Grab keyboard events",
 	     grabKeyboardWindow);
   sendMethod(class, NAME_grabPointer, NAME_event, 1, "bool",
 	     "Grab pointer (mouse) events",

@@ -240,7 +240,7 @@ makeClassReal(Class class)
 	     "Test if less-or-equal than argument",
 	     lessEqualReal);
   sendMethod(class, NAME_minus, NAME_calculate, 1, "real",
-	     "Substract argument from value",
+	     "Subtract argument from value",
 	     minusReal);
   sendMethod(class, NAME_notEqual, NAME_compare, 1, "real",
 	     "Test if not-equal to argument",

@@ -100,6 +100,8 @@ variable(exit_message,		code*,		get,
 	 "Message called on exit").
 variable(user_scope,		chain,		get,
 	 "Types in user's scope").
+variable(search_patterns,	chain*,		both,
+	 "Search patterns to be highlighted").
 
 
 		/********************************
@@ -240,6 +242,7 @@ fill_dialog(M, D) :->
 	     , menu_item(library_overview,
 			 message(M, library_overview),
 			 end_group := @on)
+	     , menu_item(search)
 	     , menu_item(keywords)
 	     , menu_item(group_overview)
 	     , menu_item(examples,	    end_group := @on)
@@ -325,6 +328,7 @@ tool_class(class_browser,	M, man_class_browser(M)).
 tool_class(class_finder,	M, man_class_browser(M)).
 tool_class(class_hierarchy,	M, man_class_hierarchy(M)).
 tool_class(keywords,		M, man_keyword_browser(M)).
+tool_class(search,		M, man_search_tool(M)).
 tool_class(topics,		M, man_topic_browser(M)).
 tool_class(card_viewer,		M, man_card_editor(M)).
 tool_class(statistics,		M, man_statistics(M)).

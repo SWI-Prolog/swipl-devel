@@ -342,7 +342,7 @@ makeClassLine(Class class)
 	     "Reconfigure line (X1,Y1) - (X2,Y2)",
 	     pointsLine);
   sendMethod(class, NAME_start, NAME_tip, 1, "point",
-	     "Set start-point of line segement",
+	     "Set start-point of line segment",
 	     startLine);
   sendMethod(class, NAME_startX, NAME_tip, 1, "int",
 	     "Set X of start-point",

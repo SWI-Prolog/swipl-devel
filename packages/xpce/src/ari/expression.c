@@ -153,7 +153,7 @@ makeClassBinaryExpression(Class class)
 	    "Evaluate, given variable bindings",
 	    getExecuteExpression);
   getMethod(class, NAME_varIn, NAME_meta, "number=int", 1, "variable=var",
-	    "Count occurences of (named) variable",
+	    "Count occurrences of (named) variable",
 	    getVarInBinaryExpression);
 
   succeed;

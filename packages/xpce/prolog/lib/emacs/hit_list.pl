@@ -32,6 +32,7 @@ initialise(L, Label:[string]) :->
 	send(B, open_message, message(L, goto, @arg1?object)),
 	send(new(D, dialog), below, B),
 	send(D, gap, size(10, 0)),
+	send(D, append, button(quit, message(L, destroy))),
 	send(D, append, label(reporter)),
 	send(L, open).
 

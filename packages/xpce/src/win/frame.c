@@ -429,11 +429,29 @@ statusFrame(FrameObj fr, Name stat)
 
 
 static status
+frame_is_upto_date(FrameObj fr)
+{ Cell cell;
+
+  if ( fr->status == NAME_hidden )
+    fail;
+  
+  for_cell(cell, fr->members)
+  { PceWindow sw = cell->value;
+    
+    if ( ChangedWindows && memberChain(ChangedWindows, sw) )
+      fail;
+  }
+
+  succeed;
+}
+
+
+static status
 waitFrame(FrameObj fr)
 { if ( fr->status == NAME_unmapped )
     TRY(send(fr, NAME_open, 0));
 
-  while( fr->status == NAME_hidden )
+  while( !frame_is_upto_date(fr) )
   { if ( dispatchDisplay(fr->display) )
       ws_discard_input("Waiting for frame to open");
   }

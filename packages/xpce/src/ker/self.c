@@ -55,8 +55,6 @@ initialisePce(Pce pce)
 #endif
   assign(pce, catched_errors,	  newObject(ClassChain, 0));
   assign(pce, catch_error_signals,OFF);
-  assign(pce, print_c_stack,	  OFF);
-  DEBUG_BOOT(assign(pce, print_c_stack, ON));
 
   assign(pce, exit_messages,	  newObject(ClassChain, 0));
   assign(pce, exception_handlers, newObject(ClassSheet, 0));
@@ -609,7 +607,7 @@ infoPce(Pce pce)
   writef("	Jan Wielemaker\n");
   writef("\n");
 
-  writef("Copyright (c) 1993,1994 University of Amsterdam.  All rights reserved.");
+  writef("Copyright (c) 1993-1995 University of Amsterdam.  All rights reserved.");
   writef("\n\n");
 
   succeed;
@@ -1162,8 +1160,6 @@ makeClassPce(Class class)
 	     "Errors are expected by code");
   localClass(class, NAME_catchErrorSignals, NAME_debugging, "bool", NAME_get,
 	     "Trap Unix signals to deal with errors");
-  localClass(class, NAME_printCStack, NAME_debugging, "bool", NAME_both,
-	     "Print C-stack on fatal error");
 
   localClass(class, NAME_exitMessages, NAME_quit, "chain", NAME_get,
 	     "Executed when the process terminates");

@@ -644,7 +644,7 @@ makeClassTile(Class class)
 	     "Distance between areas");
   localClass(class, NAME_orientation, NAME_layout,
 	     "{none,horizontal,vertical}", NAME_get,
-	     "Direction of adjecent sub-tiles");
+	     "Direction of adjacent sub-tiles");
   localClass(class, NAME_members, NAME_organisation, "chain*", NAME_get,
 	     "Managed tiles (subtiles)");
   localClass(class, NAME_super, NAME_organisation, "tile*", NAME_get,
@@ -665,7 +665,7 @@ makeClassTile(Class class)
 	     "Create from object, width and height",
 	     initialiseTile);
   sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Unlink sub and suoer-tiles",
+	     "Unlink sub and super-tiles",
 	     unlinkTile);
   sendMethod(class, NAME_enforce, NAME_layout, 0,
 	     "Enforce the tile layout",
@@ -715,7 +715,7 @@ makeClassTile(Class class)
 	     belowTile);
   sendMethod(class, NAME_layout, NAME_layout, 4,
 	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
-	     "Compute subtile layout and ajust objects",
+	     "Compute subtile layout and adjust objects",
 	     layoutTile);
   sendMethod(class, NAME_forAll, NAME_iterate, 1, "code",
 	     "Iterate over all <-object's",

@@ -211,7 +211,7 @@ makeClassElevation(Class class)
 	     "colour=[colour|pixmap]",
 	     "relief=[colour|pixmap]", "shadow=[colour|pixmap]",
 	     "kind=[{3d,shadow}]", "background=[colour|pixmap]",
-	     "Create elevation from name, heigth and colours",
+	     "Create elevation from name, height and colours",
 	     initialiseElevation);
   sendMethod(class, NAME_unlink, DEFAULT, 0,
 	     "Delete from @elevations",

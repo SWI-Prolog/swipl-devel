@@ -2986,7 +2986,7 @@ makeClassGraphical(Class class)
 	     postscriptGraphical);
   sendMethod(class, NAME_layout, NAME_layout, 5,
 	     "attract=[real]", "nominal=[real]",
-	     "repell=[real]", "adapt=[int]", "iterations=[int]",
+	     "repel=[real]", "adapt=[int]", "iterations=[int]",
 	     "Make graph-layout for connected graphicals",
 	     layoutGraphical);
   sendMethod(class, NAME_normalise, NAME_area, 0,
@@ -3337,7 +3337,7 @@ makeClassGraphical(Class class)
   attach_resource(class, "visual_bell", "bool", "@on",
 		  "@on: flash; @off: ring bell on ->alert");
   attach_resource(class, "visual_bell_duration", "int", "100",
-		  "Lenght of flash in milliseconds");
+		  "Length of flash in milliseconds");
   attach_resource(class, "selection_handles",
 		  "{corners,sides,corners_and_sides,line}*",
 		  "corners_and_sides",

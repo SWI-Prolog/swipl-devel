@@ -842,11 +842,6 @@ sysPce(char *fm, ...)
   pceTraceBack(20);
   Cprintf("]\n");
 
-  if ( PCE->print_c_stack == ON )
-  { Cprintf("Dumping C stack ...\n");
-    pcePrintStack(50);
-  }
-
   catchErrorSignalsPce(PCE, ON);
   Cprintf("Requesting host to dump stack ...\n");
   hostAction(HOST_BACKTRACE, 10);

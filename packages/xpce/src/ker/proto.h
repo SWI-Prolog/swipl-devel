@@ -95,7 +95,6 @@ Name		getCFunctionNamePce(Pce pce, Int address);
 
 /* ker/debug.c */
 void		catchErrorSignals(Bool yes);
-export void	pcePrintStack(int depth);
 status		confirmTerminal(char *question, char *def);
 
 /* ker/declarations.c */

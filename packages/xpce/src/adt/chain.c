@@ -1340,10 +1340,10 @@ makeClassChain(Class class)
 	     "Set current cell to nth-1 (0: no current)",
 	     currentNoChain);
   sendMethod(class, NAME_delete, NAME_list, 1, "value=any",
-	     "Delete first occurence of argument",
+	     "Delete first occurrence of argument",
 	     deleteChain);
   sendMethod(class, NAME_deleteAll, NAME_list, 1, "value=any",
-	     "Delete all occurences of argument",
+	     "Delete all occurrences of argument",
 	     deleteAllChain);
   sendMethod(class, NAME_deleteCurrent, NAME_current, 0,
 	     "Delete current cell",
@@ -1397,7 +1397,7 @@ makeClassChain(Class class)
 	     "Remove all duplicates from chain",
 	     uniqueChain);
   sendMethod(class, NAME_replace, NAME_list, 2, "old=any", "new=any",
-	     "Replace all occurences",
+	     "Replace all occurrences",
 	     replaceChain);
   sendMethod(class, NAME_empty, NAME_cardinality, 0,
 	     "Test if chain has no elements",

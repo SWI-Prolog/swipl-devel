@@ -99,6 +99,7 @@ void		offset_window(PceWindow sw, int *x, int *y);
 void		compute_window(PceWindow sw, int *x, int *y, int *w, int *h);
 status		frame_offset_window(PceWindow w, FrameObj *fr, int *X, int *Y);
 void		offset_windows(PceWindow w1, PceWindow w2, int *X, int *Y);
+status		typedWindow(PceWindow sw, EventId id, Bool delegate);
 status		inputFocusWindow(PceWindow sw, Bool val);
 status		keyboardFocusWindow(PceWindow sw, Graphical gr);
 status		focusWindow(PceWindow sw, Graphical gr, Recogniser recogniser, CursorObj cursor, Name button);

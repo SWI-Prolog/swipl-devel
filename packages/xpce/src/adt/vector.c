@@ -448,7 +448,7 @@ makeClassVector(Class class)
 	     "Create vector with elements at 1, ...",
 	     initialiseVectorv);
   sendMethod(class, NAME_unlink, DEFAULT, 0,
-	     "Dealocates -elements",
+	     "Deallocates -elements",
 	     unlinkVector);
   sendMethod(class, NAME_fill, NAME_element, 3,
 	     "value=any", "from=[int]", "to=[int]",

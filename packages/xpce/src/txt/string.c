@@ -592,7 +592,7 @@ makeClassString(Class class)
 	     downcaseString);
   sendMethod(class, NAME_translate, NAME_content, 2,
 	     "from=char", "into=char*",
-	     "Map occurences of 1-st arg into 2-nd arg",
+	     "Map occurrences of 1-st arg into 2-nd arg",
 	     translateString);
   sendMethod(class, NAME_untabify, NAME_indentation, 1, "tabs=[int|vector]",
 	     "Replace tab characters by spaces",

@@ -322,7 +322,7 @@ makeClassStream(Class class)
   localClass(class, NAME_rdstream, NAME_internal, "alien:FILE *", NAME_none,
 	     "Stream used for <-read_line");
   localClass(class, NAME_wsRef, NAME_internal, "alien:WsRef", NAME_none,
-	     "Window system synchornisation");
+	     "Window system synchronisation");
   localClass(class, NAME_inputBuffer, NAME_internal, "alien:char *", NAME_none,
 	     "Buffer for collecting input-data");
   localClass(class, NAME_inputAllocated, NAME_internal, "alien:int", NAME_none,

@@ -2483,7 +2483,7 @@ makeClassObject(Class class)
 	     "Test if Obj <-name returns @off",
 	     isOffObject);
   sendMethod(class, NAME_instanceOf, NAME_type, 1, "class",
-	     "Test of object is an intance of class",
+	     "Test of object is an instance of class",
 	     instanceOfObject);
   sendMethod(class, NAME_hasValue, NAME_test, 2, "name", "any",
 	     "Test if Obj <-name equals 2nd argument",

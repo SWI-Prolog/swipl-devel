@@ -108,7 +108,7 @@ makeClassClickGesture(Class class)
 
   localClass(class, NAME_multiclick, NAME_modifier,
 	     "[{single,double,triple}]", NAME_both,
-	     "Demand single, double or tripple click");
+	     "Demand single, double or triple click");
   localClass(class, NAME_downPosition, NAME_internal, "point", NAME_get,
 	     "Position of the down event");
   localClass(class, NAME_executeMessage, NAME_action, "code*", NAME_both,

@@ -562,7 +562,7 @@ makeClassSlider(Class class)
 	     modifiedSlider);
 
   getMethod(class, NAME_labelWidth, NAME_layout, "int", 0,
-	    "Get mimimal width required for label",
+	    "Get minimal width required for label",
 	    getLabelWidthSlider);
   getMethod(class, NAME_width, NAME_area, "int", 0,
 	    "Get width of bar",

@@ -213,6 +213,7 @@ status		makeClassLink(Class class);
 /* gra/listbrowser.c */
 Name		getLabelListBrowser(ListBrowser lb);
 Size		getSizeListBrowser(ListBrowser lb);
+status		typedListBrowser(ListBrowser lb, EventId id);
 status		selectedListBrowser(ListBrowser lb, DictItem di);
 status		selectionListBrowser(ListBrowser lb, Any obj);
 Any		getSelectionListBrowser(ListBrowser lb);

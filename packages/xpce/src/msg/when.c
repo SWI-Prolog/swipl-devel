@@ -53,7 +53,7 @@ makeClassWhen(Class class)
 	     succeedObject);
 
   getMethod(class, NAME_Execute, DEFAULT, "unchecked", 0,
-	     "Test condition and eveluate <-then or <-else",
+	     "Test condition and evaluate <-then or <-else",
 	     getExecuteWhen);
 
   succeed;

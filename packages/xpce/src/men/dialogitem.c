@@ -382,7 +382,7 @@ makeClassDialogItem(Class class)
 	    "Virtual method (return @off)",
 	    getModifiedDialogItem);
   getMethod(class, NAME_reference, NAME_layout, "point", 0,
-	    "Reference point for alingment",
+	    "Reference point for alignment",
 	    getReferenceDialogItem);
 
   refine_resource(class, "selection_handles", "@nil");

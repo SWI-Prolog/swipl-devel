@@ -183,7 +183,7 @@ makeClassTextCursor(Class class)
 	     "Create for specified font",
 	     initialiseTextCursor);
   sendMethod(class, NAME_set, NAME_area, 5,
-	     "x=int", "y=int", "width=int", "height=int", "baselin=int",
+	     "x=int", "y=int", "width=int", "height=int", "baseline=int",
 	     "Set x, y, w, h and baseline",
 	     setTextCursor);
   sendMethod(class, NAME_font, NAME_appearance, 1, "font",

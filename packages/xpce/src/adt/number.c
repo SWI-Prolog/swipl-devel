@@ -185,7 +185,7 @@ makeClassNumber(Class class)
 	     "Test if less-or-equal than argument",
 	     lessEqualNumber);
   sendMethod(class, NAME_minus, NAME_calculate, 1, "int",
-	     "Substract argument from value",
+	     "Subtract argument from value",
 	     minusNumber);
   sendMethod(class, NAME_notEqual, NAME_compare, 1, "int",
 	     "Test if not-equal to argument",

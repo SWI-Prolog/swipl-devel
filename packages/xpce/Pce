@@ -124,6 +124,7 @@ Pce.Editor.selection_style:		when(@colour_display, \
 					     style(background := yellow), \
 					     style(highlight := @on))
 Pce.ListBrowser.font:			normal
+Pce.ListBrowser.pen:			1
 Pce.ListBrowser.selection_style:	when(@colour_display, \
 					     style(background := black, \
 						   colour := white), \

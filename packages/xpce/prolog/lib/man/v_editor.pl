@@ -67,6 +67,9 @@ resource(jump_style,   style,  when(@colour_display,
 					  underline := @on),
 				    style(font := bold)),
 	 "Style for `jump' fragment").
+resource(search_style, style,  when(@colour_display,
+				    style(background := green),
+				    style(highlight := @on))).
 resource(size,	       size,   size(80,15),	"Size in chars").
 
 
@@ -78,6 +81,7 @@ initialise(E) :->
 	get(E, resource_value, code_font, CodeFont),
 	get(E, resource_value, tag_font, TagFont),
 	get(E, resource_value, jump_style, JumpStyle),
+	get(E, resource_value, search_style, SearchStyle),
 
 	send(E, send_super, initialise),
 	send(E, font, OutFont),
@@ -97,6 +101,7 @@ initialise(E) :->
 	send(E, style, jump, JumpStyle),
 	send(E, style, example_code, style(font := CodeFont)),
 	send(E, style, mark, style(underline := @on)),
+	send(E, style, search_hit, SearchStyle),
 
 	send(E, key_binding, '\C-x\C-s', save_if_modified),
 	send(E, key_binding, '\C-c\C-f', jump_on_caret),
@@ -256,7 +261,8 @@ selection(E, Objects:'chain|object') :->
 		 message(E, display_group, @arg1?name, @arg1?value))
 	;   send(E, display_cluster, chain(Objects))
 	),	    
-	send(E, mark_jumpable).
+	send(E, mark_jumpable),
+	send(E, mark_search).
 
 
 display_group(E, Group:name, Members:chain) :->
@@ -339,8 +345,10 @@ display_object_title(E, Obj:object, Source:[object]) :->
 display_object_description(E, Obj:object) :->
 	"Display the description of Obj"::
 	get(Obj, man_description, Descr),
-	send(E, append_fragment, Obj, description,
-	     string('%s\n\n', Descr)).
+	new(S, string('%s', Descr)),
+	send(S, append, string('\n\n')),
+	send(E, append_fragment, Obj, description, S).
+
 
 attribute(user_interface).
 attribute(code).
@@ -374,6 +382,35 @@ append_fragment(E, Obj:object*, Kind:name, Text:char_array) :->
 	send(TB, append, Text),
 	new(F, man_fragment(TB, Start, Length, Kind)),
 	send(F, object, Obj).
+
+
+		 /*******************************
+		 *	   SEARCH MARKS		*
+		 *******************************/
+
+mark_search(E) :->
+	"Mark hits for the search patterns"::
+	get(E, frame, Frame),
+	get(Frame, manual, Manual),
+	get(Manual, search_patterns, Patterns),
+	(   Patterns == @nil
+	->  true
+	;   send(Patterns, for_all, message(E, mark_search_pattern, @arg1))
+	).
+
+
+mark_search_pattern(E, Pattern:regex) :->
+	get(E, text_buffer, TB),
+	send(Pattern, for_all, TB,
+	     message(E, mark_search_hit, Pattern)).
+
+	     
+mark_search_hit(E, Pattern:regex) :->
+	get(E, text_buffer, TB),
+	get(Pattern, register_start, Start),
+	get(Pattern, register_end, End),
+	Len is End - Start,
+	new(_, man_fragment(TB, Start, Len, search_hit)).
 
 
 		/********************************

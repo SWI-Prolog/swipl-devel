@@ -11,6 +11,8 @@
 #include <h/text.h>
 #include <h/unix.h>
 
+#define O_STATISTICS 0			/* statistics functions */
+
 static int	unlink_fragment(Fragment);
 static int	link_fragment(Fragment);
 static status	normaliseFragment(Fragment f);
@@ -126,6 +128,7 @@ to their start-index to speedup repaint management.  If the start index is
 equal, the largest fragment is first to ensure optimal `nesting'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#if O_STATISTICS
 static int mis;
 
 static status
@@ -134,6 +137,8 @@ dumpMisFragment(Fragment f)
 
   succeed;
 }
+
+#endif
 
 static int
 link_fragment(Fragment f)
@@ -164,7 +169,10 @@ link_fragment(Fragment f)
       for( ; notNil(b); b = b->prev )
       { if ( b->start > f->start ||
 	     (b->start == f->start && b->length < f->length) )
-	{ mis++;
+	{
+#if O_STATISTICS
+	  mis++;
+#endif
 	  continue;			/* f must be before b */
 	}
 	
@@ -189,7 +197,10 @@ link_fragment(Fragment f)
     { for( ; notNil(b->next); b = b->next)
       { if ( b->next->start < f->start ||
 	     (b->next->start == f->start && b->next->length > f->length) )
-	{ mis++;
+	{
+#if O_STATISTICS
+	  mis++;
+#endif
 	  continue;
 	}
 
@@ -612,9 +623,11 @@ makeClassFragment(Class class)
 	     "what={start,end}",
 	     "Test whether start or end is included",
 	     doesIncludeFragment);
+#if O_STATISTICS
   sendMethod(class, NAME_dumpMap, NAME_internal, 0,
-	     "dumo `mis' info",
+	     "Debugging: dump `mis' info",
 	     dumpMisFragment);
+#endif
 
   getMethod(class, NAME_string, NAME_contents, "string", 0,
 	    "New string with contents",

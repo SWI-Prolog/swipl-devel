@@ -535,7 +535,7 @@ makeClassMenuBar(Class class)
   attach_resource(class, "label_font", "font",    "normal",
 		  "Default font for labels");
   attach_resource(class, "size",       "size",    "size(80,20)",
-		  "Mimimum size for labels");
+		  "Minimum size for labels");
   attach_resource(class, "pen",	       "int", "1",
 		  "Thickness of line around labels");
   attach_resource(class, "format",     "name", "center",

@@ -84,7 +84,7 @@ makeClassHandlerGroup(Class class)
 	     "Append a recogniser",
 	     appendHandlerGroup);
   sendMethod(class, NAME_delete, NAME_list, 1, "recogniser",
-	     "Delete first occurence of recogniser",
+	     "Delete first occurrence of recogniser",
 	     deleteHandlerGroup);
   sendMethod(class, NAME_event, NAME_event, 1, "event",
 	     "Process an event",

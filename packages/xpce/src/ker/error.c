@@ -668,8 +668,6 @@ _errorPce(Any obj, Name id, va_list args)
       Cprintf("\n\tin: ");
       pceWriteErrorGoal();
       Cprintf("]\n");
-      Cprintf("Dumping C-stack ...\n");
-      pcePrintStack(20);
       hostAction(HOST_RECOVER_FROM_FATAL_ERROR);
       hostAction(HOST_HALT);
       exit(1);
@@ -680,10 +678,7 @@ _errorPce(Any obj, Name id, va_list args)
       {
 #ifndef O_RUNTIME
 	if ( id != NAME_noXServer )	/* little hack ... */
-	{ traceBackPce(toInt(20), NAME_always);
-	  if ( PCE->print_c_stack == ON )
-	    pcePrintStack(20);
-	}
+          traceBackPce(toInt(20), NAME_always);
 #endif
 	hostAction(HOST_RECOVER_FROM_FATAL_ERROR);
 	hostAction(HOST_HALT);

@@ -138,8 +138,11 @@ RedrawAreaButton(Button b, Area a)
       r_swap_background_and_foreground();
   
     if ( defb && b->look == NAME_openLook )
-      r_box(x+pen+1, y+pen+1, w-2*pen-2-shadow, h-2*pen-2-shadow, radius, NIL);
-  
+    { int g = 0;			/* ??? */
+      r_box(x+pen+g, y+pen+g, w-2*pen-2*g-shadow, h-2*pen-2*g-shadow,
+	    radius, NIL);
+    }
+
     if ( notNil(b->popup) && notNil(b->popup_image) )
     { int iw = valInt(b->popup_image->size->w);
       int ih = valInt(b->popup_image->size->h);
@@ -460,7 +463,7 @@ makeClassButton(Class class)
 
 
   attach_resource(class, "size", "size", "size(80,20)",
-		  "Mimimum size in pixels");
+		  "Minimum size in pixels");
   attach_resource(class, "pen", "int", "2",
 		  "Thickness of box");
   attach_resource(class, "radius", "int", "4",

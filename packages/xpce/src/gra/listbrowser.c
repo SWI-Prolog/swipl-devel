@@ -859,7 +859,7 @@ enterListBrowser(ListBrowser lb)
 		********************************/
 
 
-static status
+status
 typedListBrowser(ListBrowser lb, EventId id)
 { return typedKeyBinding(lb->key_binding, id, lbReceiver(lb));
 }

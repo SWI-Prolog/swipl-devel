@@ -1959,13 +1959,13 @@ makeClassTextBuffer(Class class)
 	     "Change character at index to ASCII value",
 	     characterTextBuffer);
   sendMethod(class, NAME_downcase, NAME_case, 2, "from=int", "size=int",
-	     "Bring (start, lenght) to lowercase",
+	     "Bring (start, length) to lowercase",
 	     downcaseTextBuffer);
   sendMethod(class, NAME_upcase, NAME_case, 2, "from=int", "size=int",
-	     "Bring (start, lenght) to uppercase",
+	     "Bring (start, length) to uppercase",
 	     upcaseTextBuffer);
   sendMethod(class, NAME_capitalise, NAME_case, 2, "from=int", "size=int",
-	     "Capitalise (start, lenght)",
+	     "Capitalise (start, length)",
 	     capitaliseTextBuffer);
   sendMethod(class, NAME_transpose, NAME_edit, 4,
 	     "from1=int", "to1=int", "from2=int", "to2=int",

@@ -336,11 +336,11 @@ Find the position of an  event.  The `x'  and `y' fields  of the event
 indicate  the   position  relative  to the   receiving  window.  These
 functions allow you to find the position relative to:
 
-	Display		The display on which the event occured
+	Display		The display on which the event occurred
 	Frame		The frame of the window
 	Device		Relative to the origin of the device
 	Graphical	Some graphical in the window in which the
-			event occured
+			event occurred
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -688,7 +688,7 @@ makeClassEvent(Class class)
   localClass(class, NAME_position, NAME_position, "point*", NAME_none,
 	     "Last calculated position");
   localClass(class, NAME_time, NAME_timing, "alien:Time", NAME_none,
-	     "Window Stystem Time stamp");
+	     "Window System Time stamp");
 
   sendMethod(class, NAME_initialise, DEFAULT, 6,
 	     "id=event_id", "origin=[window]",
@@ -722,7 +722,7 @@ makeClassEvent(Class class)
 	    "The <-master of <-receiver",
 	    getMasterEvent);
   getMethod(class, NAME_name, NAME_name, "event_id", 0,
-	    "Name of the event (synomym for <-id)",
+	    "Name of the event (synonym for <-id)",
 	    getIdEvent);
   getMethod(class, NAME_position, NAME_position, "point", 1,
 	    "relative_to=[graphical|frame|display]",
@@ -759,7 +759,7 @@ makeClassEvent(Class class)
 	    "Key(-binding) description of event",
 	    getKeyEvent);
   getMethod(class, NAME_display, NAME_context, "display", 0,
-	    "Display on which the event occured",
+	    "Display on which the event occurred",
 	    getDisplayEvent);
   getMethod(class, NAME_convert, DEFAULT, "event", 1, "[any]",
 	    "Convert @default into current event (@event)",

@@ -124,7 +124,12 @@ $(PLBASE)/xpce/lib/$(PLARCH):
 	(cd ../../lib; rm -f $(PLARCH); ln -s ../$(builddir) $(PLARCH))
 
 $(PLBASE)/Makefile:	Makefile.bin
-	cp $< $@
+	if [ -r $(XPCESO) ]; then \
+	    sed 's.@BPL@.bin/pl.' Makefile.bin > $@; \
+	else \
+	    sed 's.@BPL@.bin/xpce.' Makefile.bin > $@; \
+	fi
+
 
 ################################################################
 # C++ Name mangling.  Not used right now

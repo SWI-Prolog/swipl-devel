@@ -758,7 +758,7 @@ makeClassArea(Class class)
 	     "Move origin relative by point",
 	     relativeMoveArea);
   sendMethod(class, NAME_set, NAME_resize, 4,
-	     "x=[int]", "y=[int]", "width=[int]", "heigth=[int]",
+	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
 	     "Set X, Y, W and H values",
 	     setArea);
   sendMethod(class, NAME_size, NAME_resize, 1, "size",
