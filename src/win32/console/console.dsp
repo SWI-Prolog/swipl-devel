@@ -56,7 +56,8 @@ LINK32=link.exe
 # SUBTRACT LINK32 /pdb:none
 # Begin Special Build Tool
 SOURCE=$(InputPath)
-PostBuild_Cmds=copy console.h ..\..\..\include
+PostBuild_Cmds=if not exists ..\..\..\include mkdir ..\..\..\include	copy\
+ console.h ..\..\..\include
 # End Special Build Tool
 
 !ELSEIF  "$(CFG)" == "console - Win32 Debug"
@@ -86,7 +87,8 @@ LINK32=link.exe
 # SUBTRACT LINK32 /pdb:none
 # Begin Special Build Tool
 SOURCE=$(InputPath)
-PostBuild_Cmds=copy console.h ..\..\..\include
+PostBuild_Cmds=if not exists ..\..\..\include mkdir ..\..\..\include	copy\
+ console.h ..\..\..\include
 # End Special Build Tool
 
 !ENDIF 
