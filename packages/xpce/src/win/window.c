@@ -1788,7 +1788,7 @@ makeClassWindow(Class class)
   localClass(class, NAME_selectionFeedback, NAME_appearance,
 	     "{invert,handles}|elevation|colour*", NAME_get,
 	     "How <-selected graphicals are visualised");
-  localClass(class, NAME_changesData, NAME_redraw, "alien:UpdateArea",
+  localClass(class, NAME_changesData, NAME_repaint, "alien:UpdateArea",
 	     NAME_none, "Summary info for redraw");
   localClass(class, NAME_wsRef, NAME_windowSystem, "alien:WsRef", NAME_none,
 	     "Window-System reference");
