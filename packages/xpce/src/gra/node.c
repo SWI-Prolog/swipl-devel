@@ -37,6 +37,7 @@ static status	unrelateImagesNode(Node n);
 static status	relateImagesNode(Node n);
 static status	isSonNode(Node n, Node n2);
 static status	isParentNode(Node n, Node n2);
+static void	changedLink(Node n, Node n2);
 
 static status
 initialiseNode(Node n, Graphical gr)
@@ -197,8 +198,10 @@ getComputeSizeNode(Node n, Int l)
 static status
 computeLayoutNode(Node n, Int l, Int x, Int y)
 { Int y2, x2;
-  int hor = n->tree->direction != NAME_vertical;
-  int list = n->tree->direction == NAME_list;
+  Tree t = n->tree;
+  Graphical gr = n->image;
+  int hor = t->direction != NAME_vertical;
+  int list = t->direction == NAME_list;
   Int size = maxInt(n->my_size,n->sons_size);
   Int nextLevel;
   Cell cell;
@@ -215,30 +218,38 @@ computeLayoutNode(Node n, Int l, Int x, Int y)
   x2 = ( hor || list ? x : add(x, div(sub(size,n->my_size), TWO)));
   y2 = (!hor || list ? y : add(y, div(sub(size,n->my_size), TWO)));
 
-  if ( (Tree) n->image->device != n->tree ||
-       n->image->displayed == OFF )
-    send(n->tree, NAME_display, n->image, EAV);
-  if ( n->image->area->x != x2 || n->image->area->y != y2 )
+  if ( (Tree) gr->device != t ||
+       gr->displayed == OFF )
+    send(t, NAME_display, gr, EAV);
+  if ( gr->area->x != x2 || gr->area->y != y2 )
   { Int av[4];
 
     av[0] = x2; av[1] = y2; av[2] = DEFAULT; av[3] = DEFAULT;
-    qadSendv(n->image, NAME_geometry, 4, av);
+    qadSendv(gr, NAME_geometry, 4, av);
+
+    if ( list )
+    { Cell cell;
+
+      for_cell(cell, n->parents)
+      { changedLink(cell->value, n);
+      }
+    }
   }
 
   if ( n->collapsed == ON )
     succeed;
 
   if ( list )
-  { x2 = add(x2, n->tree->levelGap);
-    y2 = add(y2, add(get(n->image, NAME_height, EAV), n->tree->neighbourGap));
+  { x2 = add(x2, t->levelGap);
+    y2 = add(y2, add(get(gr, NAME_height, EAV), t->neighbourGap));
   } else if ( hor )
-  { x2 = add(x, add(get(n->image, NAME_width, EAV), n->tree->levelGap));
+  { x2 = add(x, add(get(gr, NAME_width, EAV), t->levelGap));
     if ( valInt(n->sons_size) > valInt(size) )
       y2 = y;
     else
       y2 = add(y, div(sub(size, n->sons_size), TWO));
   } else
-  { y2 = add(y, add(get(n->image, NAME_height, EAV), n->tree->levelGap));
+  { y2 = add(y, add(get(gr, NAME_height, EAV), t->levelGap));
     if ( valInt(n->sons_size) > valInt(size) )
       x2 = x;
     else
@@ -255,13 +266,13 @@ computeLayoutNode(Node n, Int l, Int x, Int y)
       if ( list )
       { y2 = toInt(valInt(y2) +
 		   valInt(son->sons_size) + valInt(son->my_size) +
-		   valInt(n->tree->neighbourGap));
+		   valInt(t->neighbourGap));
       } else
       { size = maxInt(son->my_size, son->sons_size);
 	if ( hor )
-	  y2 = add(y2, add(size, n->tree->neighbourGap));
+	  y2 = add(y2, add(size, t->neighbourGap));
 	else
-	  x2 = add(x2, add(size, n->tree->neighbourGap));
+	  x2 = add(x2, add(size, t->neighbourGap));
       }
     }
   }
@@ -652,7 +663,7 @@ unrelateNode(Node n, Node n2)
 
   if ( memberChain(n->sons, n2) == SUCCEED )
   { unrelate_node(n, n2);
-    delete_tree_node(n2);	/* trow away unconnected subtree */
+    delete_tree_node(n2);	/* throw away unconnected subtree */
   } else if ( memberChain(n2->sons, n) == SUCCEED )
   { unrelate_node(n2, n);
     delete_tree_node(n);
@@ -666,8 +677,9 @@ unrelateNode(Node n, Node n2)
 
 
 static status
-unrelateImageNode(Node n, Node n2)
+unrelateImageNode(Node n, Node n2)	/* parent, son */
 { disconnectGraphical(n->image, n2->image, n->tree->link, DEFAULT, DEFAULT);
+  changedLink(n, n2);
 
   succeed;
 }
@@ -683,6 +695,24 @@ unrelateImagesNode(Node n)
     unrelateImageNode(cell->value, n);
 
   succeed;
+}
+
+
+static void
+changedLink(Node n, Node n2)		/* parent, son */
+{ Tree t = n->tree;
+  int list = t->direction == NAME_list;
+
+  if ( list )
+  { int lg = valInt(t->levelGap);
+    int lx = valInt(n->image->area->x) + lg/2;
+    int fy = valInt(getBottomSideGraphical(n->image));
+    int ty = valInt(n2->image->area->y) + valInt(n2->image->area->h)/2;
+
+    changedImageGraphical(t,
+			  toInt(lx-5), toInt(fy),
+			  toInt(7+lg/2), toInt(3+ty-fy));
+  }
 }
 
 

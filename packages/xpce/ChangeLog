@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: redraw problems in class tree (using ->direction: list) when moving
+  nodes between branches.
+
 * FIXED: keyboard focus handling in class frame to use ->post_event.  Also
   the source-view of the GUI tracer requires redefining ->post_event rather
   then event (doesn't forward trace-commands).
