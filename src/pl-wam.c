@@ -2340,19 +2340,22 @@ the global stack (should we check?  Saves trail! How often?).
     VMI(H_RLIST) MARK(HRLIST);
 	deRef(ARGP);
 	if ( isVar(*ARGP) )
-	{ 
+	{ Word ap = gTop;
 #if O_SHIFT_STACKS
-  	  if ( gTop + 3 > gMax )
-	    growStacks(FR, BFR, PC, FALSE, TRUE, FALSE);
+  	  if ( ap + 3 > gMax )
+	  { growStacks(FR, BFR, PC, FALSE, TRUE, FALSE);
+	    ap = gTop;
+	  }
 #else
 	  requireStack(global, 3*sizeof(word));
 #endif
-	  *ARGP = consPtr(gTop, TAG_COMPOUND|STG_GLOBAL);
+	  *ARGP = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
 	  Trail(ARGP);
-	  *gTop++ = FUNCTOR_dot2;
-	  ARGP = gTop;
-	  setVar(*gTop++);
-	  setVar(*gTop++);
+	  *ap++ = FUNCTOR_dot2;
+	  ARGP = ap;
+	  setVar(*ap++);
+	  setVar(*ap++);
+	  gTop = ap;
 	  NEXT_INSTRUCTION;
 	}
 	if ( isList(*ARGP) )

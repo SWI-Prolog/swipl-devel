@@ -122,7 +122,7 @@ hashIndex(word key, int buckets)
 }
 
 
-static word
+static inline word
 indexOfWord(word w ARG_LD)
 { for(;;)
   { switch(tag(w))
@@ -180,169 +180,66 @@ getIndex(Word argv, unsigned long pattern, int card, struct index *index
 }
 
 
-#if 0
-#undef visibleClause
-static int
-visibleClause(Clause cl, unsigned long gen)
-{ int rval = (cl->generation.created <= gen &&
-	      cl->generation.erased   > gen);
-
-  if ( !rval )
-  { if ( false(cl, ERASED) )
-    { DEBUG(2, Sdprintf("Ignored clause %p from %s "
-			"(created %lu, erased %lu, gen %lu)\n",
-			cl, procedureName(cl->procedure),
-			cl->generation.created,
-			cl->generation.erased,
-			gen));
-    }
-    trap_gdb();
-  }
-
-  return rval;
-}
-#endif
-
-
-ClauseRef
-findClause(ClauseRef cref, Word argv,
-	   LocalFrame fr, Definition def, ClauseRef *next ARG_LD)
-{
-#ifdef O_LOGICAL_UPDATE
-  unsigned long gen = fr->generation;
-#else
-  #define gen 0L
-#endif
-
-  if ( def->indexPattern == 0x0L )	/* not indexed */
-  { noindex:
-    for(;;cref = cref->next)
-    { if ( cref )
-      { if ( visibleClause(cref->clause, gen) )
-	{ *next = cref->next;
-	  return cref;
-	}
-      } else
-	return NULL;
-    }
-  } else if ( def->indexPattern == 0x1L ) /* first-argument indexing */
-  { word key = indexOfWord(*argv PASS_LD);
-
-    if ( !key )
-      goto noindex;
-
-    for(;cref ; cref = cref->next)
-    { Clause clause = cref->clause;
-
-      if ( (key & clause->index.varmask) == clause->index.key &&
-	   visibleClause(clause, gen))
-      { ClauseRef result = cref;
-      
-	for( cref = cref->next; cref; cref = cref->next )
-	{ clause = cref->clause;
-	  if ( (key&clause->index.varmask) == clause->index.key &&
-	       visibleClause(clause, gen))
-	  { *next = cref;
-
-	    return result;
-	  }
-	}
-	*next = NULL;
-
-	return result;
-      }
-    }
-    return NULL;
-  } else if ( def->indexPattern & NEED_REINDEX )
-  { assert(def->hash_info == NULL);
-    reindexDefinition(def);
-    return findClause(cref, argv, fr, def, next PASS_LD);
-  } else
-  { struct index argIndex;
-
-    getIndex(argv, def->indexPattern, def->indexCardinality, &argIndex
-	     PASS_LD);
-    for(; cref; cref = cref->next)
-    { if ( matchIndex(argIndex, cref->clause->index) &&
-	   visibleClause(cref->clause, gen))
-      { ClauseRef result = cref;
-      
-	for( cref = cref->next; cref; cref = cref->next )
-	{ if ( matchIndex(argIndex, cref->clause->index) &&
-	       visibleClause(cref->clause, gen))
-	  { *next = cref;
-
-	    return result;
-	  }
-	}
-	*next = NULL;
-
-	return result;
-      }
-    }
-    return NULL;
-  }
-}
-
-
 static ClauseRef
-nextClause(ClauseRef cref, unsigned long generation,
-	   ClauseRef *next, Index ctx ARG_LD)
-{ if ( ctx->varmask == ~0x0L )		/* first argument only */
-  { word key = ctx->key;
+nextClauseMultiIndexed(ClauseRef cref, unsigned long generation,
+		       Word argv, Definition def,
+		       ClauseRef *next ARG_LD)
+{ struct index idx;
 
-    for(;cref ; cref = cref->next)
-    { Clause clause = cref->clause;
+  getIndex(argv, def->indexPattern, def->indexCardinality, &idx PASS_LD);
 
-      if ( (key & clause->index.varmask) == clause->index.key &&
-	   visibleClause(clause, generation))
-      { ClauseRef result = cref;
-      
-	for( cref = cref->next; cref; cref = cref->next )
-	{ clause = cref->clause;
-	  if ( (key&clause->index.varmask) == clause->index.key &&
-	       visibleClause(clause, generation))
-	  { *next = cref;
+  DEBUG(2, Sdprintf("Multi-argument indexing on %s ...",
+		    cref ? procedureName(cref->clause->procedure) : "?"));
 
-	    return result;
-	  }
+  for(; cref; cref = cref->next)
+  { if ( matchIndex(idx, cref->clause->index) &&
+	 visibleClause(cref->clause, generation))
+    { ClauseRef result = cref;
+    
+      for( cref = cref->next; cref; cref = cref->next )
+      { if ( matchIndex(idx, cref->clause->index) &&
+	     visibleClause(cref->clause, generation))
+	{ *next = cref;
+
+	  DEBUG(2, Sdprintf("ndet\n"));
+	  return result;
 	}
-	*next = NULL;
+      }
+      DEBUG(2, Sdprintf("det\n"));
+      *next = NULL;
 
-	return result;
-      }
+      return result;
     }
-  } else if ( ctx->varmask == 0x0L )	/* no indexing */
-  { for(; cref; cref = cref->next)
-    { if ( visibleClause(cref->clause, generation) )
-      { *next = cref->next;
-        return cref;
-      }
-    }
-  } else				/* general (multi-arg) indexing */
-  { DEBUG(2, Sdprintf("Multi-argument indexing on %s ...",
-		      cref ? procedureName(cref->clause->procedure) : "?"));
-    for(; cref; cref = cref->next)
-    { if ( matchIndex(*ctx, cref->clause->index) &&
-	   visibleClause(cref->clause, generation))
-      { ClauseRef result = cref;
+  }
+  DEBUG(2, Sdprintf("NULL\n"));
+
+  return NULL;
+}
+
+
+static inline ClauseRef
+nextClauseArg1(ClauseRef cref, unsigned long generation,
+	       ClauseRef *next, word key ARG_LD)
+{ for(;cref ; cref = cref->next)
+  { Clause clause = cref->clause;
+
+    if ( (key & clause->index.varmask) == clause->index.key &&
+	 visibleClause(clause, generation))
+    { ClauseRef result = cref;
       
-	for( cref = cref->next; cref; cref = cref->next )
-	{ if ( matchIndex(*ctx, cref->clause->index) &&
-	       visibleClause(cref->clause, generation))
-	  { *next = cref;
-
-	    DEBUG(2, Sdprintf("ndet\n"));
-	    return result;
-	  }
+      for( cref = cref->next; cref; cref = cref->next )
+      { clause = cref->clause;
+	if ( (key&clause->index.varmask) == clause->index.key &&
+	     visibleClause(clause, generation))
+	{ *next = cref;
+	
+	  return result;
 	}
-        DEBUG(2, Sdprintf("det\n"));
-	*next = NULL;
-
-	return result;
       }
+      *next = NULL;
+
+      return result;
     }
-    DEBUG(2, Sdprintf("NULL\n"));
   }
 
   return NULL;
@@ -352,11 +249,9 @@ nextClause(ClauseRef cref, unsigned long generation,
 ClauseRef
 firstClause(Word argv, LocalFrame fr, Definition def, ClauseRef *next ARG_LD)
 { ClauseRef cref;
-  struct index buf;
-  Index ctx = &buf;
 
 #ifdef O_LOGICAL_UPDATE
-  unsigned long gen = fr->generation;
+# define gen (fr->generation)
 #else
 # define gen 0L
 #endif
@@ -378,23 +273,67 @@ again:
     if ( key == 0L )
       goto noindex;
 
-    ctx->key     = key;
-    ctx->varmask = (unsigned long) ~0x0L;
     if ( def->hash_info )
     { int hi = hashIndex(key, def->hash_info->buckets);
 
       cref = def->hash_info->entries[hi].head;
     } else
       cref = def->definition.clauses;
+
+    return nextClauseArg1(cref, gen, next, key PASS_LD);
   } else if ( def->indexPattern & NEED_REINDEX )
   { reindexDefinition(def);
     goto again;
   } else
-  { getIndex(argv, def->indexPattern, def->indexCardinality, ctx PASS_LD);
-    cref = def->definition.clauses;
+  { return nextClauseMultiIndexed(def->definition.clauses,
+				  gen,
+				  argv,
+				  def,
+				  next
+				  PASS_LD);
   }
 
-  return nextClause(cref, gen, next, ctx PASS_LD);
+#undef gen
+}
+
+
+ClauseRef
+findClause(ClauseRef cref, Word argv,
+	   LocalFrame fr, Definition def, ClauseRef *next ARG_LD)
+{
+#ifdef O_LOGICAL_UPDATE
+  #define gen (fr->generation)
+#else
+  #define gen 0L
+#endif
+
+  if ( def->indexPattern == 0x0L )	/* not indexed */
+  { noindex:
+    for(;;cref = cref->next)
+    { if ( cref )
+      { if ( visibleClause(cref->clause, gen) )
+	{ *next = cref->next;
+	  return cref;
+	}
+      } else
+	return NULL;
+    }
+  } else if ( def->indexPattern == 0x1L ) /* first-argument indexing */
+  { word key = indexOfWord(*argv PASS_LD);
+
+    if ( !key )
+      goto noindex;
+
+    return nextClauseArg1(cref, gen, next, key PASS_LD);
+  } else if ( def->indexPattern & NEED_REINDEX )
+  { assert(def->hash_info == NULL);
+    reindexDefinition(def);
+    return findClause(cref, argv, fr, def, next PASS_LD);
+  } else
+  { return nextClauseMultiIndexed(cref, gen, argv, def, next PASS_LD);
+  }
+
+#undef gen
 }
 
 
