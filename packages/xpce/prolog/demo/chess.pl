@@ -6,7 +6,7 @@ In         chapters~\ref{sec:starting},~\ref{sec:graphics}         and
 \ref{sec:pceprolog} we have explained  the fundamentals of programming
 PCE/Prolog.  In this section we will combine  much of this material in
 a realistic  example.  The  domain   is a graphics  front-end for  the
-terminal oriented program /usr/games/chess.
+terminal oriented program gnuchessc.
 
 The  interface  presented  in    this chapter  is rather primitive: no
 administration of taken pieces, no time management, no  indication who
@@ -82,7 +82,10 @@ PCE/SWI-Prolog   processes the   use_module/1 declaration similar   to
 SICStus Prolog and ignores the require/1 directive.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- module(pcechess, [chess/0]).
+:- module(pcechess,
+	  [ chess/0,
+	    chess/1			% +Program
+	  ]).
 :- use_module(library(pce)).
 :- require([ between/3
 	   , call/2
@@ -401,7 +404,7 @@ methods call a Prolog predicate.
 :- pce_global(@move_piece_gesture, make_move_piece_gesture).
 
 make_move_piece_gesture(G) :-
-	new(G, move_outline_gesture),
+	new(G, move_outline_gesture(left)),
 	send(G, send_method,
 	     send_method(verify, vector(event),
 			 message(@prolog, verify, @receiver, @arg1))),
@@ -493,23 +496,22 @@ attach_recognisers(Board) :-
 		********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-In  this section  we  will connect our  interface  to the Unix program
-/usr/games/chess.   To interface with  an  external Unix process,  PCE
-defines the class  \class{process}.   A process  object  allows us  to
-start and control a \idx{Unix process}.  The method `process ->format'
-sends  (formatted) text to the  process' standard  input.  Output from
-the process is cut into records (default a  line).  For  each complete
-record  the  `process <->input_message'  attribute of   the process in
-invoked.
+In this section we will connect  our   interface  to  the Unix program
+gnuchessc. To interface with an external Unix process, PCE defines the
+class \class{process}. A process object allows us to start and control
+a \idx{Unix process}. The method  `process ->format' sends (formatted)
+text to the process' standard input. Output   from  the process is cut
+into records (default a line). For   each complete record the `process
+<->input_message' attribute of the process in invoked.
 
-The   predicate   attach_chess_program/1     creates  a  process   for
-/usr/games/chess and attaches it  as an attribute  to the chess-board.
-The message `process ->open' starts the Unix process.
+The predicate attach_chess_program/1 creates a   process for gnuchessc
+and attaches it as  an  attribute   to  the  chess-board.  The message
+`process ->open' starts the Unix process.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-attach_chess_program(Board) :-
+attach_chess_program(Board, Program) :-
 	send(Board, attribute,
-	     attribute(process, new(P, process('/usr/games/chess')))),
+	     attribute(process, new(P, process(Program)))),
 	send(P, use_tty, @off),		  % use pipes to communicate
 	send(P, input_message,
 	     message(@prolog, chess_utterance, Board, @arg1)),
@@ -531,6 +533,7 @@ not_open} is raised by `process ->format', the call will fail silently.
 
 user_move(Board, Piece, FromLocation, ToLocation) :-
 	chess_move_name(Piece, FromLocation, ToLocation, Move),
+	format('Sending ~w~n', Move),
 	get(Board, process, ChessProcess),
 	(   pce_catch_error(not_open,
 			    send(ChessProcess, format, '%s\n', Move))
@@ -539,11 +542,10 @@ user_move(Board, Piece, FromLocation, ToLocation) :-
 	).
 	     
 
-chess_move_name(Piece, F, T, Move) :-
-	image_name(Piece, Id, _),
+chess_move_name(_Piece, F, T, Move) :-
 	chess_coordinate(F, CF),
 	chess_coordinate(T, CT),
-	concat_atom([Id, /, CF, -, CT], Move).
+	concat_atom([CF, CT], Move).
 
 
 chess_coordinate(Where, C) :-
@@ -552,14 +554,14 @@ chess_coordinate(Where, C) :-
 	chess_x(X, CX),
 	atom_concat(CX, CY, C).
 
-chess_x(0, qr).
-chess_x(1, qn).
-chess_x(2, qb).
-chess_x(3, q).
-chess_x(4, k).
-chess_x(5, kb).
-chess_x(6, kn).
-chess_x(7, kr).
+chess_x(0, a).
+chess_x(1, b).
+chess_x(2, c).
+chess_x(3, d).
+chess_x(4, e).
+chess_x(5, f).
+chess_x(6, g).
+chess_x(7, h).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The predicate chess_utterance/2 is called from the  <-input_message of
@@ -576,6 +578,7 @@ square_image/4 in maintaining a database of reusable objects.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 chess_utterance(Board, Utterance) :-
+	send(@pce, format, 'Got %s\n', Utterance),
 	utterance(Pattern, Goal),
 	make_regex(Pattern, RegEx),
 	send(RegEx, search, Utterance), !,
@@ -608,17 +611,17 @@ The main difference  to standard Unix  (egrep)  regular expressions is
 clause catches anything unrecognised.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-utterance('[0-9]+\\. \\w/\\(\\w+\\)\\([1-8]\\)-\\(\\w+\\)\\([1-8]\\)',
+utterance('[0-9]+\\. \\(\\w\\)\\([1-8]\\)\\(\\w\\)\\([1-8]\\)',
 	  player_move(_FX, _FY, _TX, _TY)).
-utterance('[0-9]+\\. \\w/\\(\\w+\\)\\([1-8]\\)x\\w/\\(\\w+\\)\\([1-8]\\)',
+utterance('[0-9]+\\. \\(\\w\\)\\([1-8]\\)x\\(\\w\\)\\([1-8]\\)',
 	  player_move(_FX, _FY, _TX, _TY)).
 utterance('[0-9]+\\. \\(o-o\\(-o\\)?\\)',
 	  player_oo(_OO)).
-utterance('[0-9]+\\. \\.\\.\\. \\w/\\(\\w+\\)\\([1-8]\\)x\\w/\\(\\w+\\)\\([1-8]\\)',
+utterance('[0-9]+\\. \\.\\.\\. \\(\\w+\\)\\([1-8]\\)x\\w/\\(\\w+\\)\\([1-8]\\)',
 	  opponent_move(_FX, _FY, _TX, _TY)).
 utterance('[0-9]+\\. \\.\\.\\. \\(o-o\\(-o\\)?\\)',
 	  opponent_oo(_OO)).
-utterance('[0-9]+\\. \\.\\.\\. \\w/\\(\\w+\\)\\([1-8]\\)-\\(\\w+\\)\\([1-8]\\)',
+utterance('[0-9]+\\. \\.\\.\\. \\(\\w\\)\\([1-8]\\)\\(\\w\\)\\([1-8]\\)',
 	  opponent_move(_FX, _FY, _TX, _TY)).
 utterance('Chess',	banner).
 utterance('\\(.*\\)',	warn(_Message)).
@@ -650,13 +653,7 @@ player_oo('o-o-o', Board) :-
 	move(Board, a1, d1).
 
 opponent_move(CFX, CFY, CTX, CTY, Board) :-
-	chess_x(FX, CFX),
-	chess_x(TX, CTX),
-	get(8 - CFY, value, FY),
-	get(8 - CTY, value, TY),
-	xy_where(FX, FY, F),
-	xy_where(TX, TY, T),
-	move(Board, F, T).
+	player_move(CFX, CFY, CTX, CTY, Board).
 
 opponent_oo('o-o', Board) :-
 	move(Board, e8, g8),
@@ -689,13 +686,16 @@ success of the message.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 chess :-
+	chess(gnuchessc).		% chesstool compatible GNU-chess
+
+chess(Program) :-
 	new(Window, window('ChessBoard 0.1', size(8*32, 8*32))),
 	make_chess_board(Board),
 	send(Window, display, Board),
 	attach_recognisers(Board),
 	initial_position(Board),
 	send(Window, open),
-	attach_chess_program(Board),
+	attach_chess_program(Board, Program),
 	send(Window, done_message,
 	     and(if(message(Board?process, kill)),
 		 message(Window, destroy))).
