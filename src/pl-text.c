@@ -25,6 +25,7 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
+#include <stdio.h>
 
 #undef LD
 #define LD LOCAL_LD

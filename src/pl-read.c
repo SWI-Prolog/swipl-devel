@@ -338,7 +338,7 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
 		    PL_ATOM, source_file_name,
 		    PL_INT, source_line_no,
 		    PL_INT, source_line_pos,
-		    PL_LONG, source_char_no);
+		    PL_INT64, source_char_no);
   } else if ( isStringStream(rb.stream) )
   { int pos;
 
@@ -357,7 +357,7 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
 		    PL_TERM, stream,
 		    PL_INT, source_line_no,
 		    PL_INT, source_line_pos,
-		    PL_LONG, source_char_no);
+		    PL_INT64, source_char_no);
   }
 
   _PL_rd->has_exception = TRUE;
@@ -2678,7 +2678,7 @@ retry:
   { if ( tpos && source_line_no > 0 )
       rval = PL_unify_term(tpos,
 			   PL_FUNCTOR, FUNCTOR_stream_position3,
-			   PL_LONG, source_char_no,
+			   PL_INT64, source_char_no,
 			   PL_INT,  source_line_no,
 			   PL_INT,  0); /* should be charpos! */
   } else
