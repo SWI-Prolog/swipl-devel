@@ -292,7 +292,7 @@ _xos_canonical_filenameW(const wchar_t *spec, char *xname, size_t len)
     s += 2;
   }
 
-  for(; *s; s++, p++)
+  for(; *s; s++)
   { int c = *s;
     
     if ( c == '\\' )
