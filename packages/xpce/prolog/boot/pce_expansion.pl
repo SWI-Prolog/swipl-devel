@@ -513,7 +513,10 @@ use_template_class_attributes(Template) :-
 assert_attributes([], _).
 assert_attributes([H|T], Att) :-
 	pce_compiling(ClassName),
-	add_attribute(ClassName, Att, H),
+	(   H = send(@class, source, _Source)
+	->  true
+	;   add_attribute(ClassName, Att, H)
+	),
 	assert_attributes(T, Att).
 
 use_template_send_methods(Template, Clauses) :-
