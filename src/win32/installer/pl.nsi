@@ -282,6 +282,9 @@ SectionEnd
 Section "Start Menu shortcuts"
   SetOutPath ${CWD}
   CreateDirectory "$SMPROGRAMS\${GRP}"
+  IfFileExists "$SMPROGRAMS\${GRP}\XPCE.lnk" 0 NoOldXPCE
+    Delete "$SMPROGRAMS\${GRP}\XPCE.lnk"
+  NoOldXPCE:
   CreateShortCut "$SMPROGRAMS\${GRP}\Prolog.lnk" \
 		 "$INSTDIR\bin\plwin.exe" \
 		 "" \
