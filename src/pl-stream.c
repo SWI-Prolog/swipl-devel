@@ -801,6 +801,16 @@ Sclose(IOSTREAM *s)
   }
 
   s->flags |= SIO_CLOSING;
+#ifdef __WIN32__
+  if ( (s->flags & SIO_ADVLOCK) )
+  { OVERLAPPED ov;
+    HANDLE h = (HANDLE)_get_osfhandle((int)s->handle);
+
+    memset(&ov, 0, sizeof(ov));
+    UnlockFileEx(h, 0, 0, 0xffffffff, &ov);
+    s->flags &= ~SIO_ADVLOCK;
+  }
+#endif
   if ( s->functions->close && (*s->functions->close)(s->handle) < 0 )
     rval = -1;
   run_close_hooks(s);
@@ -1618,6 +1628,7 @@ Sopen_file(const char *path, const char *how)
   int op = *how++;
   long lfd;
   enum {lnone=0,lread,lwrite} lock = lnone;
+  IOSTREAM *s;
 
   for( ; *how; how++)
   { switch(*how)
@@ -1684,14 +1695,33 @@ Sopen_file(const char *path, const char *how)
       return NULL;
     }
 #else					/* we don't have locking */
+#if __WIN32__
+    HANDLE h = (HANDLE)_get_osfhandle(fd);
+    OVERLAPPED ov;
+
+    memset(&ov, 0, sizeof(ov));
+    if ( !LockFileEx(h, (lock == lread ? 0 : LOCKFILE_EXCLUSIVE_LOCK),
+		     0,
+		     0, 0xfffffff,
+		     &ov) )
+    { close(fd);
+      errno = EACCES;			/* TBD: proper error */
+      return NULL;
+    }
+#else
     close(fd);
     errno = EINVAL;
     return NULL;
 #endif
+#endif
   }
 
   lfd = (long)fd;
-  return Snew((void *)lfd, flags, &Sfilefunctions);
+  s = Snew((void *)lfd, flags, &Sfilefunctions);
+  if ( lock )
+    s->flags |= SIO_ADVLOCK;
+
+  return s;
 }
 
 

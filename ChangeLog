@@ -7,6 +7,11 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Bug#107 (Enhancement request): added advisory lock interface
+    (lock(Type) argument to open/4) for MS-Windows based on LockFileEx()
+    as suggested by Holger Kanwischer.  Thanks!
+
+
 VERSION 5.2.11 (Nov 29, 2003)
 =============================
 	
