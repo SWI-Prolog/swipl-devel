@@ -22,6 +22,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#include <stdio.h>
 #include <SWI-Stream.h>
 #include <SWI-Prolog.h>
 #include <h/interface.h>
@@ -212,7 +213,6 @@ setup()
 static foreign_t
 pl_pce_call(term_t goal)
 { prolog_goal *g = PL_malloc(sizeof(*g));
-  int rc;
 
   if ( !init_prolog_goal(g, goal) )
   { PL_free(g);
