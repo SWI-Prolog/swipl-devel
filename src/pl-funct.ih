@@ -149,3 +149,4 @@
 #define FUNCTOR_foreign_function1 MK_FUNCTOR(148, 1)
 #define FUNCTOR_asserta1     MK_FUNCTOR(149, 1)
 #define FUNCTOR_assert1      MK_FUNCTOR(150, 1)
+#define FUNCTOR_shared_object2 MK_FUNCTOR(151, 2)

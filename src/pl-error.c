@@ -273,6 +273,16 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
 		      PL_CHARS, err);
       break;
     }
+    case ERR_SHARED_OBJECT_OP:
+    { atom_t action = va_arg(args, atom_t);
+      const char *err = va_arg(args, const char *);
+
+      PL_unify_term(formal,
+		    PL_FUNCTOR, FUNCTOR_shared_object2,
+		      PL_ATOM,  action,
+		      PL_CHARS, err);
+      break;
+    }
     case ERR_NOTIMPLEMENTED:		/* non-ISO */
     { atom_t what = va_arg(args, atom_t);
 

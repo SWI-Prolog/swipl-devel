@@ -158,6 +158,8 @@ swi_message(limit_exceeded(Limit, MaxVal)) -->
 	[ 'Exceeded ~w limit (~w)'-[Limit, MaxVal] ].
 swi_message(goal_failed(Goal)) -->
 	[ 'goal (~p) failed'-[Goal] ].
+swi_message(shared_object(_Action, Message)) --> % Message = dlerror() 
+	[ '~w'-[Message] ].
 
 
 swi_context(X) -->

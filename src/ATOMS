@@ -471,6 +471,7 @@ A signal_handler	"signal_handler"
 A asserta		"asserta"
 A assert		"assert"
 A export		"export"
+A shared_object		"shared_object"
 
 F abs			1
 F acos			1
@@ -623,3 +624,4 @@ F trace			1
 F foreign_function	1
 F asserta		1
 F assert		1
+F shared_object		2

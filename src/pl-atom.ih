@@ -460,3 +460,4 @@
 #define ATOM_asserta      MK_ATOM(459)
 #define ATOM_assert       MK_ATOM(460)
 #define ATOM_export       MK_ATOM(461)
+#define ATOM_shared_object MK_ATOM(462)

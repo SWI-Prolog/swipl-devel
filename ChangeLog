@@ -4,6 +4,9 @@
 VERSION 3.4.2
 =============
 
+  * FIXED: open_shared_object() to raise exception instead of old printing
+    message and trapping the tracer.  Reported by Leo (leo@solvo.ru).
+
   * PORTABILITY: Autoconf to produce suitable linking options for AIX.
     Tested on AIX 4.3.3.  Also a change in the Makefile to produce a correct
     SWI-Exports file in the include directory.

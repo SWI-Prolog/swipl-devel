@@ -126,10 +126,11 @@ pl_open_shared_object(term_t file, term_t plhandle,
   } else
     dlflags = RTLD_LAZY;
 
-  if ( !PL_get_atom(file, &afile) )
-    return warning("open_shared_object/2: instantiation fault");
+  if ( !PL_get_atom_ex(file, &afile) )
+    fail;
   if ( !(dlhandle = dlopen(stringAtom(afile), dlflags)) )
-    return warning("open_shared_object/2: %s", dlerror());
+    return PL_error(NULL, 0, NULL, ERR_SHARED_OBJECT_OP,
+		    ATOM_open, dlerror());
   e = allocHeap(sizeof(struct dl_entry));
   e->id       = ++dl_plid;
   e->dlhandle = dlhandle;
