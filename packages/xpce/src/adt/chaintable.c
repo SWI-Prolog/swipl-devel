@@ -23,6 +23,19 @@ appendChainTable(ChainTable ct, Any name, Any value)
 }
 
 
+status
+addChainTable(ChainTable ct, Any name, Any value)
+{ Chain ch;
+
+  if ( (ch = getMemberHashTable((HashTable) ct, name)) )
+    addChain(ch, value);
+  else
+    appendHashTable((HashTable) ct, name, newObject(ClassChain, value, 0));
+
+  succeed;
+}
+
+
 static status
 prependChainTable(ChainTable ct, Any name, Any value)
 { Chain ch;
@@ -79,7 +92,7 @@ static vardecl var_chainTable[] =
 static senddecl send_chainTable[] =
 { SM(NAME_append, 2, T_keyAany_valueAany, appendChainTable,
      DEFAULT, "Append association to table"),
-  SM(NAME_add, 2, T_keyAany_valueAany, appendChainTable,
+  SM(NAME_add, 2, T_keyAany_valueAany, addChainTable,
      NAME_add, "Add association to table"),
   SM(NAME_prepend, 2, T_keyAany_valueAany, prependChainTable,
      NAME_add, "Prepend association to table"),
