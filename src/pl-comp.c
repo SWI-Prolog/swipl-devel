@@ -2304,7 +2304,21 @@ decompile(Clause clause, term_t term, term_t bindings)
 #endif
 
   if ( true(clause, UNIT_CLAUSE) )	/* fact */
-  { return decompile_head(clause, term, di PASS_LD);
+  { if ( decompile_head(clause, term, di PASS_LD) )
+      succeed;
+
+					/* deal with a :- A */
+    if ( PL_is_functor(term, FUNCTOR_prove2) )
+    { term_t b = PL_new_term_ref();
+      _PL_get_arg(2, term, b);
+
+      if ( PL_unify_atom(b, ATOM_true) )
+      { _PL_get_arg(1, term, term);
+	return decompile_head(clause, term, di PASS_LD);
+      }
+    }
+
+    fail;
   } else
   { term_t a = PL_new_term_ref();
 

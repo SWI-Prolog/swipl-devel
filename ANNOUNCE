@@ -11,6 +11,8 @@ Status
 SWI-Prolog
 ==========
 
+  * MODIFIED: retract((a :- _)) now also retracts the fact a.
+
   * Provide message-queues as first class objects, so one queue can
     serve multiple threads for simple realisation of the `worker pool'
     design.
