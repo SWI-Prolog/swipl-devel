@@ -220,6 +220,7 @@
 #group control		"Control autonomous processes"
 #group unix		"Controlling Unix processes"
 #group environment	"Handling the process' environment"
+#group runtime		"Runtime version relate methods"
 #group working_directory"Process' or PCE working directory"
 #group quit		"Exiting from PCE"
 #group console		"Controlling the host-language console"
@@ -228,6 +229,7 @@
 
 #group class		"Defining classes"
 #group programming	"Methods to write methods"
+#group template		"Template support methods"
 #group callback		"Calling the host-language"
 
 #group function		"Object management for functions"
@@ -238,6 +240,7 @@
 #group encoding		"Character-set related behaviour"
 
 #group postscript	"Generating PostScript for printing"
+#group grey		"Colour to greylevel transformation"
 
 #group current		"Operations on `current' object"
 #group cell		"Direct operations on chain cells"
@@ -250,6 +253,7 @@
 #group read_ahead	"Reading data and tokens ahead (parser)"
 #group cache		"Caching information (speed up)"
 #group hashing		"Caching information (speed up)"
+#group autoload		"Autoloading classes and methods"
 #group realise		"Realising class definitions"
 #group compilation	"Compiling representations"
 #group version		"Versions of XPCE, OS, X, ..."

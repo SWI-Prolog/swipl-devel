@@ -1,3 +1,18 @@
+* FIXED: class <-send_method and class <-get_method to handle the cache
+  properly.  The error was harmless for normal message passing, but could
+  lead to a serious performance degradation.  It crashed the ClassBrowser
+  on some methods.
+
+* INSTALL and C++: Defined creation of versions-controlled libXPCE.so
+  and only a small shared object to load this to SWI-Prolog.  This is
+  cleaner and allows the usage of the same XPCE shared object with both
+  the C++ and Prolog versions.  Also allows for creating XPCE/C++ shared
+  objects and linking them to XPCE/SWI-Prolog.  Developed and tested on
+  PC/Linux using ELF.
+
+* MODIFIED: `@pce <-home' to initialise as default and set from $PCEHOME
+  when needed.
+
 * WIN32: Programmed around MSVC++ 2.0 optimizer bug for ker/goodies.c.
 
 * FIXED: Input handling in class stream to avoid a crash if executing the

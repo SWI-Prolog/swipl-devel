@@ -1,8 +1,52 @@
+			XPCE/C++ and XPCE/Prolog/C++
+			============================
+
+Auther:		Jan Wielemaker, SWI, University of Amsterdam
+
+Last updated:	Sep 24, 1995
+		Updated for gcc 2.7.0 and dynamically loaded shared
+		objects.
+
+Bugs:		gcc-2.7.0 crashes on some files.  2.6.3 had the same
+		problem.  2.5.8 was able to compile all these demos.
+
 This directory contains demos for the   XPCE/C++ interface.  These demos
 have been developed to test  and   illustrate  the  functionality of the
 interface; not to be pretty  looking   programs.   Please try the Prolog
 demos to get an overview of the functionality of XPCE.
 
 This  is  an  alpha   version   of    the   C++   interface.   See  also
-$PCEHOME/README.C++.
+$PCEHOME/README.C++ and the LaTeX documentation in $PCEHOME/man/C++/
+
+
+Shared libraries
+================
+
+This version has been updated and   tested  using PC/Linux 2.1.3 running
+the ELF binary format.  It is  fully   based  on shared libraries.  Both
+XPCE/Prolog and XPCE/C++ objects now share the same XPCE shared library:
+libXPCE.so.4.<minor>.<patch>
+
+
+Compiling to shared objects and loading in SWI-Prolog
+=====================================================
+
+Programs may be loaded on top of   Prolog  by linking them together with
+pcerc.o and -lXPCE to a shared object.  See Makefile for details.  After
+the shared object has been created, just do:
+
+	?- load_foreign_library(mylib).
+
+to attach the shared object to  Prolog   and  call the entry-point.  The
+entry-point will be passed the command-line options from Prolog.
+
+
+Creating a stand-alone version of the XPCE/C++ Program
+======================================================
+
+Just link the program to  -lXPCEmain   and  -lXPCE.  -lXPCEmain provides
+main(): XPCE is initialised, the applications  entry-point is called and
+then the system enters an endless event-loop.
+
+
 

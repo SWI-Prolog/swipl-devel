@@ -14,7 +14,6 @@
 :- use_module(library(pce)).
 :- use_module(util).
 :- require([ checkpce/0
-	   , concat/3
 	   , default/3
 	   , ignore/1
 	   , pce_help_file/2

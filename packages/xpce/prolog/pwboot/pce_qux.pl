@@ -20,6 +20,7 @@
 	  sformat/3,
 	  call_emacs/2,
 	  is_absolute_file_name/1,
+	  file_directory_name/2,
 	  expand_file_name/2	% added for QP3.2
 	]).
 
@@ -36,6 +37,7 @@
 :- use_module(library(freevars), [free_variables/4]).
 :- use_module(library(arg), [genarg/3]).
 :- use_module(library(call), [call/2]).
+:- use_module(library(basics), [member/2]).
 
 % strip_module(+RawTerm, -Term, -Module).
 %
@@ -66,6 +68,20 @@ source_location(File, Line) :-
 
 is_absolute_file_name(Atom) :-
 	atom_chars(Atom, [0'/|_]).
+
+%	file_directory_name(+Path, +Dir)
+%	Finds directory-name from path-name
+
+file_directory_name(Path, Dir) :-
+	atom_chars(Path, PathChars),
+	(   append(DirChars, BaseChars, PathChars),
+	    \+ member(0'/, BaseChars),
+	    BaseChars \== []
+	->  atom_chars(Dir, DirChars)
+	;   PathChars = [0'/|_]
+	->  Dir = /
+	;   Dir = ''
+	).
 
 
 % term_to_atom(+Term, ?Atom)

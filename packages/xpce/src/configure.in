@@ -30,6 +30,9 @@ AC_SUBST(GCCLIB)
 AC_SUBST(SOEXTRAOBJ)
 AC_SUBST(PLTARGET)
 AC_SUBST(builddir)
+AC_SUBST(VMAJOR)
+AC_SUBST(VMINOR)
+AC_SUBST(VPATCH)
 
 RTSUFFIX=""
 
@@ -39,6 +42,9 @@ AC_CANONICAL_HOST
 changequote(,)dnl
 ARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-[^-]*/\1/'`
 OS=`echo $host | sed 's/[^-]*-[^-]*-\([^-]*\)/\1/'`
+VMAJOR=`sed 's/\([0-9]*\).*/\1/' ../VERSION`
+VMINOR=`sed 's/[0-9]*\.\([0-9]*\).*/\1/' ../VERSION`
+VPATCH=`sed 's/[0-9]*\.[0-9]*\.\([0-9]*\).*/\1/' ../VERSION`
 changequote([,])dnl
 
 swipl=yes
@@ -444,5 +450,8 @@ else
 fi
 rm -rf conftest*
 
-
-AC_OUTPUT(Makefile)
+if test -r ../quintus/src/Makefile.in; then
+  AC_OUTPUT(Makefile ../CXX/demo/Makefile ../quintus/src/Makefile)
+else
+  AC_OUTPUT(Makefile ../CXX/demo/Makefile)
+fi

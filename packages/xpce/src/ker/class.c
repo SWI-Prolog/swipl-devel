@@ -1422,6 +1422,13 @@ getResolveSendMethodClass(Class class, Name name)
 
   for(super = class; notNil(super); super = super->super_class)
   { Code c;
+    Any sm;
+
+    if ( (sm = getMemberHashTable(super->send_table, name)) )
+    { if ( class != super )
+	appendHashTable(class->send_table, name, sm);
+      answer(sm);
+    }
 
     if ( notNil((c=super->resolve_method_message)) && notDefault(c) )
       forwardReceiverCode(c,
@@ -1463,6 +1470,13 @@ getResolveGetMethodClass(Class class, Name name)
 
   for(super = class; notNil(super); super = super->super_class)
   { Code c;
+    Any gm;
+
+    if ( (gm = getMemberHashTable(super->get_table, name)) )
+    { if ( class != super )
+	appendHashTable(class->get_table, name, gm);
+      answer(gm);
+    }
 
     if ( notNil(c=super->resolve_method_message) && notDefault(c) )
       forwardReceiverCode(c,

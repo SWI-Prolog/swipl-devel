@@ -16,15 +16,14 @@
 
 :- use_module(library(pce)).
 :- consult('xref/quintus').		% built-in's
-:- require([ exists_file/1
-	   , ignore/1
-	   , is_list/1
-	   , pce_error/1
+:- require([ append/3
 	   , concat_atom/2
+	   , exists_file/1
 	   , expand_file_name/2
 	   , forall/2
+	   , ignore/1
+	   , is_list/1
 	   , member/2
-	   , append/3
 	   , sformat/3
 	   ]).
 
@@ -140,6 +139,9 @@ process(Head) :-
 		 *           DIRECTIVES		*
 		 ********************************/
 
+process_directive(List) :-
+	is_list(List), !,
+	process_directive(consult(List)).
 process_directive(use_module(_Module, Import)) :-
 	assert_import(Import).
 process_directive(require(Import)) :-		 % Include if report only
@@ -242,7 +244,8 @@ process_use_module(library(pce)) :- !,	% bit special
 	file_public_list(library(pce), Public),
 	forall(member(Name/Arity, Public),
 	       (   functor(Term, Name, Arity),
-		   \+ built_in(Term)
+		   \+ built_in(Term),
+		   \+ Term = pce_error(_) % hack!?
 	       ->  assert_defined(Term)
 	       ;   true
 	       )).
@@ -273,6 +276,7 @@ assert_called(Goal) :-
 	functor(Term, Name, Arity),
 	asserta(called(Term)).
 
+assert_defined(_Module:_Head) :- !.	% defining in another module.  Bah!
 assert_defined(Goal) :-
 	defined(Goal), !.
 assert_defined(Goal) :-

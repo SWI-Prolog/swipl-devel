@@ -57,7 +57,7 @@ initialisePce(Pce pce)
   assign(pce, exit_messages,	  newObject(ClassChain, 0));
   assign(pce, exception_handlers, newObject(ClassSheet, 0));
 
-  assign(pce, home,		  CtoName("/usr/local/lib/xpce"));
+  assign(pce, home,		  DEFAULT);
 
   assign(pce, version,            CtoName(PCE_VERSION));
   assign(pce, machine,            CtoName(MACHINE));
@@ -227,6 +227,21 @@ catchedErrorPce(Pce pce, Name id)
   }
 
   fail;
+}
+
+
+static Name
+getHomePce(Pce pce)
+{ if ( isDefault(pce->home) )
+  { char *h;
+
+    if ( (h=getenv("PCEHOME")) )
+      assign(pce, home, CtoName(h));
+    else
+      assign(pce, home, CtoName("/usr/local/lib/xpce"));
+  }
+
+  answer(pce->home);
 }
 
 
@@ -1112,7 +1127,7 @@ makeClassPce(Class class)
 	     "Executed when the process terminates");
   localClass(class, NAME_exceptionHandlers, NAME_exception, "sheet", NAME_get,
 	     "Exception-name -> handler mapping");
-  localClass(class, NAME_home, NAME_environment, "name", NAME_both,
+  localClass(class, NAME_home, NAME_environment, "[name]", NAME_send,
 	     "PCE's home directory");
 
   localClass(class, NAME_version, NAME_version, "name", NAME_none,
@@ -1292,6 +1307,9 @@ makeClassPce(Class class)
 	    "how=[{string,name,number}]",
 	    "Representation of the version number",
 	    getVersionPce);
+  getMethod(class, NAME_home, DEFAULT, "name", 0,
+	    "Find XPCE's home directory",
+	    getHomePce);
 
   getMethod(class, NAME_date, NAME_time, "string", 0,
 	    "Unix's standard time string for now",

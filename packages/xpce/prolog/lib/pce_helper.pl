@@ -10,14 +10,17 @@
 :- module(pce_help, []).
 :- use_module(library(pce)).
 :- use_module(library(pce_prompter)).
-:- require([ concat/3
+:- require([ atom_to_term/3
+	   , concat/3
 	   , default/3
 	   , forall/2
 	   , ignore/1
 	   , manpce/1
+	   , member/2
 	   , pce_help_file/2
 	   , pce_registered_help_file/2
 	   , send_list/3
+	   , sformat/3
 	   , term_to_atom/2
 	   ]).
 

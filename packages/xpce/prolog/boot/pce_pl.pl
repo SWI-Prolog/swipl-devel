@@ -191,13 +191,38 @@ actions_to_format([Fmt0-Args0|Tail], Fmt, Args) :-
 	pce_principal:'$pce_init',
 	set_feature(xpce, true).
 '$load_pce' :-
-	feature(dll, true), !,
-	pce_principal:load_foreign_library(pl2xpce),
+	(   feature(dll, true)
+	;   feature(open_shared_object, true),
+	    push_library_dir
+	), !,
+	pce_principal:load_foreign_library(foreign(pl2xpce)),
 	set_feature(xpce, true).
-'$load_pce' :-
-	feature(open_shared_object, true), !,
-	load_foreign_library(pce_principal:foreign(xpce4pl)),
-	set_feature(xpce, true).
+
+%	Pushes LD_LIBRARY_PATH, so -lXPCE will be resolved correctly.
+%	The LD_ELF_LIBRARY_PATH is preferred on Linux systems.  It is
+%	unlikely to give problems on other systems.
+
+push_library_dir :-
+	(   getenv('LD_ELF_LIBRARY_PATH', OldPath)
+	->  Var = 'LD_ELF_LIBRARY_PATH'
+	;   (   getenv('LD_LIBRARY_PATH', OldPath)
+	    ->	true
+	    ;	OldPath = ''
+	    )
+	->  Var = 'LD_LIBRARY_PATH'
+	),
+	absolute_file_name(foreign(pl2xpce), LibFile),
+	file_directory_name(LibFile, LibDirSlash),
+	(   concat(LibDir, /, LibDirSlash)
+	->  true
+	;   LibDir = LibDirSlash
+	),
+	(   OldPath \== ''
+	->  concat_atom([LibDir, :, OldPath], Path)
+	;   Path = LibDir
+	),
+	setenv(Var, Path).
+%	format(~w=~w~n', [Var, Path]).
 
 
 		 /*******************************

@@ -67,7 +67,9 @@ may also be specified as (for example):
 
 ** Get Method
 
+#end chapter
+
+#texinfo
 After the list follows a list of argument as with the send method,
 followed by `@result{Return Type}'.  
-
-#end chapter
+#end texinfo

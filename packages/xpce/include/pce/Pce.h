@@ -155,6 +155,9 @@ public:
   operator long(void)
   { return PceIsInt(self) ? PceValInt(self) : (long)self;
   }
+  operator int(void)
+  { return PceIsInt(self) ? PceValInt(self) : (int)self;
+  }
   operator double(void)
   { return (double)XPCE_float_of(self);
   }
@@ -229,7 +232,7 @@ public:
     return PceArg(XPCE_getv(self, sel.self, 3, av));
   }
 
-  PceArg operator [](PceArg &sel)
+  PceArg operator [](const PceArg &sel)
   { return PceArg(XPCE_getv(self, sel.self, 0, NULL));
   }
 

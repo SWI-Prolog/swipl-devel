@@ -3,7 +3,7 @@
 
 #includealways group.def header.def titlepage.def summary.def footer.def
 
-%#includeonly code.def
+%#includeonly notation.def
 
 %	The file group.def defines the order and descriptions of functional
 %	groups

@@ -383,7 +383,7 @@ distribute_stretches(stretch *s, int n, int w)
 					/* distribute outside --> inside */
       per_stretchable = (grow - growed + stretchables - 1) / stretchables;
 
-      for( i=0, m=n; growed < grow, m-- > 0; i++ )
+      for( i=0, m=n; growed < grow && m-- > 0; i++ )
       { int j = (i%2 ? i : n - i - 1);
 
 	if ( stretchall ||

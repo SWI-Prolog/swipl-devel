@@ -14,3 +14,12 @@ identifyPce()
 { TheDisplay.send("inform", "I am XPCE version %s",
 		  ThePce.get("version"));
 }
+
+
+PceStatus
+pceInitApplication(int argc, char *argv[])
+{ identifyPce();
+
+  return SUCCEED;
+}
+

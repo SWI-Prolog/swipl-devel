@@ -65,6 +65,7 @@ index((source_warning), 2, pce_qux, pce_qux).
 index((sformat), 3, pce_qux, pce_qux).
 index((call_emacs), 2, pce_qux, pce_qux).
 index((is_absolute_file_name), 1, pce_qux, pce_qux).
+index((file_directory_name), 2, pce_qux, pce_qux).
 index((expand_file_name), 2, pce_qux, pce_qux).
 index((pce_renew), 1, pce_renew, pce_renew).
 index((pce_require), 1, pce_require, pce_require).

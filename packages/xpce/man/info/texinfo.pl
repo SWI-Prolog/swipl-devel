@@ -16,6 +16,7 @@
 	    texi/1
 	  ]).
 :- use_module(library(pce)).
+:- use_module(library(pce_manual)).
 :- require([ flush/0
 	   , start_emacs/0
 	   , append/3
@@ -154,19 +155,21 @@ description(Obj) :-
 	texinfo_description(S1),
 	output('%s\n', S1).
 
-to_regex(Pattern, Regex) :-
-	get(@pce, convert, string(Pattern), regex, Regex).
+%	to_regex(+Pattern, -Regex)
+%
+%	Convert pattern to regex, maintaining a store of regex objects
+%	to avoid unnecessary recompilation.  We cannot blindly reuse
+%	the regex as they are used recursively.
 
-/*	Dangerous: reantrance in subloops!
 to_regex(Pattern, Regex) :-
-	regex(Pattern, Regex), !.
+	retract(regex(Pattern, Regex)), !.
 to_regex(Pattern, Regex) :-
-	get(@pce, convert, string(Pattern), regex, Regex),
+ 	get(@pce, convert, string(Pattern), regex, Regex),
 	send(Regex, lock_object, @on),
-	send(Regex, compile, @on),	% optimised
-	assert(regex(Pattern, Regex)).
-*/
+	send(Regex, compile, @on).
 
+done_regex(Pattern, Regex) :-
+	assert(regex(Pattern, Regex)).
 
 substitute(_, []) :- !.
 substitute(S, [Search, Replace | Rest]) :-
@@ -179,7 +182,7 @@ substitute(S, [Search, Replace | Rest]) :-
 	;   send(Re, for_all, S,
 		 message(@arg1, replace, @arg2, string(Replace)))
 	),
-%	done_regex(Re),
+	done_regex(Search, Re),
 	substitute(S, Rest).
 	
 
@@ -191,7 +194,7 @@ texinfo_description(S) :-
 	substitute(S,
 		   [ %   HEADING
 		     '\n\n\\s *\\([A-Z ?!._-]+\\)\\s *\n\n',
-		     	call(header),
+		     	call(header),	% uses \1
  		     %   ** SubHeader
 		     '\n\n\\*\\*+\\s +\\(.*\\)\n\n',
  			'\n\n@subsubheading \\1\n\n',
@@ -221,14 +224,15 @@ texinfo_lists(S) :-
 		     '\n\n+\\(\t#.*\\(\n\t.*\\|\n *\\)*\\)',
 		     	call(description),
 		     %   Indented by tabs
-		     '\n\n+\\(\\(\n*\t.*\\)+\\)',
+%		     '\n\n+\\(\\(\n*\t.*\\)+\\)',	% fails on regex 0.12
+		     '\n+\\(\\(\n+\t.*\\)+\\)',
 		     	call(example)
 		   ]).
 	
 
 example(Re, String) :-
 	get(Re, register_value, String, 1, S2),
-	substitute(S2, ['^\t', '#X#', '^#X#',  '']), % HACK!
+	substitute(S2, ['^\t\\(.*\\)', '\\1']),
 	send(S2, untabify, 4),
 	send(S2, prepend, string('\n\n@example\n')),
 	send(S2, append, string('@end example\n\n')),
@@ -1080,7 +1084,10 @@ compare_group_members(O1, O2, Result) :-
 
 object_summary(Obj) :-
 	get(Obj, man_indicator, Id),
-	get(Obj, summary, Summary),
+	(   get(Obj, summary, Summary)
+	->  true
+	;   Summary = '(undocumented)'
+	),
 	get(Obj, name, Name),
 	get(Obj, access_arrow, Arrow),
 	get(Obj?context, name, ClassName),

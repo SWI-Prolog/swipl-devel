@@ -12,6 +12,9 @@
 	  ]).
 :- use_module(library(pce)).
 :- require([ checklist/2
+	   , delete/3
+	   , maplist/3
+	   , term_to_atom/2
 	   ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

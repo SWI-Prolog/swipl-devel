@@ -49,7 +49,7 @@ file_search_path(foreign, pce(ArchLib)) :-
 file_search_path(foreign, pce(lib)).
 
 :-  initialization
-    (   \+ feature(saved_program, true),
+    (   \+ feature(xpce, true),
 	pcehome_(PceHome),
 	exists_directory(PceHome),
 	'$argv'([Proc|Args]),

@@ -145,7 +145,9 @@ init_syntax_once ()
 
 #endif /* not SYNTAX_TABLE */
 
-#define SYNTAX(c) re_syntax_table[c]
+#ifndef HASSYNTAX
+#define HASSYNTAX(c, s) (re_syntax_table[c] == s)
+#endif
 
 #endif /* not emacs */
 
@@ -508,6 +510,10 @@ extract_number_and_incr (destination, source)
 
 #ifdef DEBUG
 
+#ifndef pce_source
+#define Cprintf printf
+#endif
+
 /* We use standard I/O for debugging.  */
 #include <stdio.h>
 
@@ -527,7 +533,7 @@ static int debug = 0;
   if (debug) print_double_string (w, s1, sz1, s2, sz2)
 
 
-extern void printchar ();
+extern void printchar();
 
 /* Print the fastmap in human-readable form.  */
 

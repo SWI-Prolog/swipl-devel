@@ -19,6 +19,9 @@ by the `source' facility of the online manual.  Note the restrictions on
 #end description
 #end class
 
+#class class_stub
+#end class
+
 #class behaviour
 #end class
 

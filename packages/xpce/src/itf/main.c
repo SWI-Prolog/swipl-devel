@@ -18,16 +18,15 @@ extern int pceInitApplication(int argc, char **argv);
 int
 main(int argc, char* argv[])
 { if ( !pceInitialise(0, argc, argv) )
-  { fprintf(stderr, "Sorry, failed to initialise XPCE\n");
+  { Cprintf("Sorry, failed to initialise XPCE\n");
     exit(1);
   }
   
   if ( !pceInitApplication(argc, argv) )
-  { fprintf(stderr, "Failed to run pceInitApplication()\n");
+  { Cprintf("Failed to run pceInitApplication()\n");
     exit(1);
   }
 
   for(;;)
     pceDispatch(0, 1000);
 }
-

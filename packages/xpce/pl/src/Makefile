@@ -19,7 +19,7 @@
 # $(PLARCH)	SWI-Prolog's architecture identifier
 # $(builddir)	Path from XPCE home to build directory
 # $(C?FLAGS)	The various C-compiler flags
-# $(SOEXTRAOBJ)	Possibly non-standard .o files for creating xpce4pl.so
+# $(SOEXTRAOBJ)	Possibly non-standard .o files for creating pl2xpce.so
 # $(GCCLIB)	The path to -lgcc
 # $(SO)		Extension for shared libraries
 ################################################################
@@ -27,25 +27,24 @@
 .SUFFIXES: .qlf .pl
 
 libXPCE=	../../$(builddir)/libXPCE.a
-LIBDIR=		../../$(builddir)/lib
-BINDIR=		../../$(builddir)/bin
+LIBDIR=		../../$(builddir)
+BINDIR=		../../$(builddir)
 OBJDIR=		../../$(builddir)/pl
 
 CPLIFLAGS=	-I$(PLINCLUDE) -I../../$(builddir) -I../../src
 PL=     	pl
 ITFOBJ= 	$(addprefix $(OBJDIR)/, interface.o link.o)
 SOITF=		$(OBJDIR)/so-interface.o
-OBJ=		$(PLRUNTIME)/$(PLOBJ) $(ITFOBJ) $(libXPCE)
-XPCE=		$(BINDIR)/xpce$(RTSUFFIX)
-QLF=    	$(BINDIR)/xpce$(RTSUFFIX).qlf
-#XLIBS=		-lXt -lX11
-XPCESO= 	$(LIBDIR)/xpce4pl.$(SO)
-CRT0=   	$(LIBDIR)/pl-crt0.o
+OBJ=		$(PLRUNTIME)/$(PLOBJ) $(ITFOBJ)
+XPCE=		$(BINDIR)/xpce
+QLF=    	$(BINDIR)/xpce.qlf
+XLIBS=		-lXt -lX11
+XPCESO= 	$(LIBDIR)/pl2xpce.$(SO)
 SOEXTR=		$(addprefix $(OBJDIR)/, $(SOEXTRAOBJ))
 
 CFLAGS= 	$(COFLAGS) $(CMFLAGS) $(CPLIFLAGS)
 ITF=		../../prolog/c/interface.c ../../prolog/c/interface.h
-SOOBJ=		$(SOITF) $(libXPCE) $(SOEXTR) $(GCCLIB)
+SOOBJ=		$(SOITF) $(SOEXTR) $(GCCLIB)
 
 PCEPLS=		pce_expand.pl english/pce_messages.pl pce_pl.pl \
 		pce_principal.pl pce_error.pl pce_autoload.pl pce_global.pl \
@@ -57,10 +56,11 @@ LIBQLFS=	pce_manual.qlf dialog/dialog.qlf emacs/emacs.qlf pcedraw.qlf
 # The main targets
 ################################################################
 
-nosoall:	$(QLF) $(CRT0)
+nosoall:	$(QLF)
 
-soall:		$(PLBASE)/plrc $(PLBASE)/xpce $(PLBASE)/xpce/lib/$(PLARCH) \
-		$(XPCESO) $(CRT0) bootqlf
+soall:		$(PLBASE)/plrc $(PLBASE)/xpce $(PLBASE)/Makefile \
+		$(PLBASE)/xpce/lib/$(PLARCH) \
+		$(XPCESO) bootqlf
 
 ################################################################
 # Objects for $(OBJDIR)
@@ -70,15 +70,13 @@ $(OBJDIR)/interface.o:	interface.c $(ITF)
 		$(CC) -c $(CFLAGS) $< -o $@
 $(OBJDIR)/link.o:	link.c
 		$(CC) -c $(CFLAGS) $< -o $@
-$(CRT0):	pl-crt0.c
-		$(CC) -c $(CFLAGS) $< -o $@
 
 ################################################################
 # Creating statically linked xpce and its xpce.qlf bootfile
 ################################################################
 
-$(XPCE):	$(OBJ)
-		$(CC) $(LDFLAGS) -o $@ $(OBJ) $(LIBS)
+$(XPCE):	$(OBJ) $(libXPCE)
+		$(CC) $(LDFLAGS) -o $@ $(OBJ) -L$(LIBDIR) -lXPCE $(LIBS)
 
 $(QLF):		$(XPCE)
 		$(XPCE) -O -o $(QLF) \
@@ -87,7 +85,7 @@ $(QLF):		$(XPCE)
 			-c load.pl
 
 ################################################################$
-# Creating xpce4pl.so
+# Creating pl2xpce.so
 ################################################################
 
 $(SOITF):	interface.c
@@ -97,7 +95,7 @@ $(OBJDIR)/Initialize.o:
 		ar x $(XLIB)/libXt.a $@
 
 $(XPCESO):	$(SOITF) $(libXPCE) $(SOEXTR)
-		$(LD) $(LDSOFLAGS) $(SOOBJ) $(XLIBS) -o $@
+		$(LD) $(LDSOFLAGS) $(SOOBJ) -L$(LIBDIR) -lXPCE $(XLIBS) -o $@
 
 ################################################################$
 # QLF generation
@@ -123,8 +121,10 @@ $(PLBASE)/xpce:
 	(cd $(PLBASE); rm -f xpce; ln -s $(PCEHOME) xpce)
 
 $(PLBASE)/xpce/lib/$(PLARCH):
-	cd ../../lib; rm -f $(PLARCH); ln -s ../$(builddir)/lib $(PLARCH)
+	(cd ../../lib; rm -f $(PLARCH); ln -s ../$(builddir) $(PLARCH))
 
+$(PLARCH)/Makefile:	Makefile.bin
+	cp $< $@
 
 ################################################################
 # C++ Name mangling.  Not used right now
@@ -145,4 +145,4 @@ clean:
 		$(RM) -f *.o core a.out shitf.c *~
 
 distclean:	clean
-		$(RM) -f xpce$(RTSUFFIX) *.qlf mangle domangle ctr0.o xpce4pl.*
+		$(RM) -f xpce *.qlf mangle domangle ctr0.o *.so

@@ -8,7 +8,6 @@
 */
 
 #include <stdlib.h>
-#include <iostream.h>
 #include <pce/Pce.h>
 #include <pce/Chain.h>
 #include <pce/Directory.h>
@@ -26,5 +25,5 @@ pceInitApplication(int argc, char *argv[])
     ch.send("for_all", PceMessage(ThePce, "write_ln", TheArg1));
   }
 
-  return SUCCEED;
+  ThePce.send("die");
 }

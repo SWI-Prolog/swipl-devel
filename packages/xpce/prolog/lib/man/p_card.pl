@@ -14,6 +14,7 @@
 :- use_module(util).
 :- require([ concat/3
 	   , concat_atom/2
+	   , file_directory_name/2
 	   , forall/2
 	   , member/2
 	   ]).

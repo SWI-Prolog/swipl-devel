@@ -12,6 +12,8 @@
 	    use_class_template/2
 	  ]).
 :- use_module(library(pce)).
+:- require([ pce_error/1
+	   ]).
 
 :- pce_begin_class(template, object, "use_class_template/1 super-class").
 :- pce_end_class.

@@ -38,7 +38,7 @@ management have been improved considerably.
 
 @subheading The XPCE Reference Manual
 
-This manual is a @b{reference} manual of the XPCE.  That is, all
+This manual is a @b{reference} manual of XPCE.  That is, all
 material in this manual is arranged such that finding the
 @b{definitions} of things already globally known to the user.  If you
 are new to XPCE start with one of the introductions ``Programming in

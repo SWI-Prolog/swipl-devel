@@ -10,6 +10,12 @@
 #ifndef _PCE_CALL_H
 #define _PCE_CALL_H
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PceFunc(f) is used to pass arguments to PceMethodCall().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define PceFunc(f) ((Any)(f))
+
 extern "C" {
 Any  		XPCE_callCPlusPlusv(Any f, int argc, const Any argv[]);
 Any  		XPCE_funcallCPlusPlusv(Any f, int argc, const Any argv[]);

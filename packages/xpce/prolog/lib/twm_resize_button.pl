@@ -9,6 +9,8 @@
 
 :- module(twm_resize_button, []).
 :- use_module(library(pce)).
+:- require([ default/3
+	   ]).
 
 :- pce_autoload(twm_geometry_box, library(twm_geometry_box)).
 

@@ -184,7 +184,6 @@ DIALOGPLS=	dialog/attribute.pl \
 		dialog/pretty_print.pl \
 		dialog/proto.pl \
 		dialog/util.pl \
-		dialog/prompter.pl \
 		dialog/sub_dialog.pl
 
 LANGPLS=	english/pce_messages.pl

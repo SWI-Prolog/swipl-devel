@@ -11,6 +11,20 @@
 #include <pce/Call.h>
 #include <stdlib.h>
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Very tricky demo to illustrating how a C++  function may be wrapped in a
+XPCE function object. It creates the XPCE object @getenv, that evaluates
+to the value of @arg1 in the environment.
+
+You can test it like this:
+
+	% make getenv.so
+	% xpce
+	?- load_foreign_library(getenv).
+	?- get(@getenv, '_forward', 'HOME', Home).
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 PceArg
 PceGetenv(PceArg name)
 { char *s = getenv(name);

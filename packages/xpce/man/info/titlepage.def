@@ -21,12 +21,12 @@ better organisation, etc.  Please E-mail such suggestions to
 jan@@swi.psy.uva.nl
 
 @vskip 0pt plus 1filll
-Copyright @copyright{} 1993, 1994 University of Amsterdam
+Copyright @copyright{} 1993-1995 University of Amsterdam
 
 @sp 2
-This is the second edition of the XPCE-4 reference documentation. @*
+This is the @value{edition}-th edition of the XPCE-4 reference documentation. @*
 Typeset using Texinfo version 3.0.  @*
-Texinfo generated using an XPCE/SWI-Prolog program from the online
+Texinfo generated using an XPCE/Prolog program from the online
 reference manual. @*
 @sp 1
 An electronic version of this manual is available using anonymous

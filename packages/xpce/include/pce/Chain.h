@@ -22,7 +22,7 @@ class PceCell
 { Any self;
 
 public:
-  PceCell(Any cell)
+  PceCell(const Any cell)
   { self = cell;
   }
 

@@ -59,17 +59,24 @@ public:
     PceObject m;
     
     d.send("append", PceTextItem("name", name,
-				 PceMethodCall(this, &person::setName, TheArg1)));
+				 PceMethodCall(this,
+					       PceFunc(&person::setName),
+					       TheArg1)));
     d.send("append",
 	   m = PceMenu("sex", "cycle",
-		       PceMethodCall(this, &person::setSex, TheArg1)));
+		       PceMethodCall(this,
+				     PceFunc(&person::setSex),
+				     TheArg1)));
     m.send("append", "male");
     m.send("append", "female");
     m.send("selection", sex);
     d.send("append", PceTextItem("age",  age,
-				 PceMethodCall(this, &person::setAge, TheArg1)));
+				 PceMethodCall(this,
+					       PceFunc(&person::setAge),
+					       TheArg1)));
     d.send("append", PceButton(PceArg("apply")));
-    d.send("append", PceButton("print", PceMethodCall(this, &person::print)));
+    d.send("append", PceButton("print",
+			       PceMethodCall(this, PceFunc(&person::print))));
     d.send("append", PceButton("hello", PceCall(hello, "gnu")));
     d.send("append", PceButton("quit", PceMessage(d, "destroy")));
     d.send("default_button", "apply");

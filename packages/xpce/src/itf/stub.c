@@ -27,7 +27,7 @@
 typedef void (*VoidFunc)();
 typedef void (*sig_handler_t)(int);
 typedef void (*atexit_hook_t)(void);
-typedef void (*onexit_hook_t)(void *);
+typedef void (*onexit_hook_t)(int, void *);
 
 static char * host_action_names[] =
 { "HOST_QUERY",
@@ -58,13 +58,14 @@ Stub__HostActionv(int action, va_list args)
       atexit(func);
       break;
     }
-#endif
+#else
 #if HAVE_ON_EXIT
     { onexit_hook_t func = va_arg(args, onexit_hook_t);
 
-      on_exit(func);
+      on_exit(func, NULL);
       break;
     }
+#endif
 #endif
     case HOST_TRACE:
     case HOST_BACKTRACE:

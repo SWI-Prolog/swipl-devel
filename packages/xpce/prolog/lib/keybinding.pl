@@ -11,8 +11,7 @@
 	  [ show_key_bindings/1
 	  ]).
 :- use_module(library(pce)).
-:- require([ auto_call/1
-	   , concat_atom/2
+:- require([ concat_atom/2
 	   , portray_object/2
 	   , send_list/3
 	   , term_to_atom/2
