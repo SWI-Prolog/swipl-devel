@@ -52,7 +52,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386
-# ADD LINK32 ..\lib\uxnt.lib user32.lib wsock32.lib advapi32.lib shell32.lib /nologo /subsystem:windows /dll /map:"..\bin/libpl.map" /machine:I386 /out:"..\bin/libpl.dll"
+# ADD LINK32 ..\lib\uxnt.lib user32.lib wsock32.lib advapi32.lib shell32.lib winmm.lib msvcrt.lib /nologo /subsystem:windows /dll /map:"..\bin/libpl.map" /machine:I386 /out:"..\bin/libpl.dll"
 # SUBTRACT LINK32 /pdb:none
 # Begin Special Build Tool
 SOURCE=$(InputPath)
@@ -73,7 +73,7 @@ PostBuild_Cmds=if not exist ..\include mkdir ..\include	copy pl-itf.h\
 # PROP Intermediate_Dir "..\objects\debug\libpl"
 # PROP Ignore_Export_Lib 0
 # ADD BASE CPP /nologo /MT /W3 /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /c
-# ADD CPP /nologo /MD /W3 /Gm /GX /Zi /Od /I "win32\uxnt" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "MAKE_PL_DLL" /YX /FD /ZI /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /Zi /Od /I "win32\uxnt" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "MAKE_PL_DLL" /YX /FD /ZI /c
 # SUBTRACT CPP /Fr
 # ADD BASE MTL /nologo /D "_DEBUG" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
@@ -84,7 +84,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /debug /machine:I386
-# ADD LINK32 ..\lib\uxntD.lib msvcrtd.lib user32.lib wsock32.lib advapi32.lib shell32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /nodefaultlib:"msvcrt.lib" /out:"..\bin/libplD.dll"
+# ADD LINK32 ..\lib\uxntD.lib msvcrtd.lib user32.lib wsock32.lib advapi32.lib shell32.lib winmm.lib /nologo /subsystem:windows /dll /debug /machine:I386 /nodefaultlib:"msvcrt.lib" /out:"..\bin/libplD.dll"
 # SUBTRACT LINK32 /pdb:none
 # Begin Special Build Tool
 SOURCE=$(InputPath)
