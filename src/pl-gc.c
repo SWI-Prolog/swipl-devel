@@ -143,6 +143,8 @@ char tmp[256];				/* for calling print_val(), etc. */
 #define offset(s, f) ((int)(&((struct s *)NULL)->f))
 #endif
 
+#define ttag(x)		(((word)(x))&TAG_TRAILMASK)
+
 		 /*******************************
 		 *     FUNCTION PROTOTYPES	*
 		 *******************************/
@@ -203,6 +205,7 @@ static Table check_table = NULL;	/* relocation address table */
 static void
 needsRelocation(void *addr)
 { GET_LD
+
   needs_relocation++;
 
   addHTable(check_table, addr, (Void) TRUE);
@@ -684,17 +687,20 @@ mark_choicepoints(Choice ch, GCTrailEntry te)
     }
 
     for( ; te >= tm; te-- )		/* early reset of vars */
-    { if ( tag(te->address) == TAG_TRAILADDR )
+    { 
+#if O_DESTRUCTIVE_ASSIGNMENT
+      if ( ttag(te->address) != TAG_TRAILVAL )
+#endif
       { Word tard = val_ptr(te->address);
 
-	if ( tard >= top )
-	{ te->address = 0;
+	if ( tard >= top )		/* above local stack */
+	{ SECURE(assert(ttag(te[1].address) != TAG_TRAILVAL));
+	  te->address = 0;
 	  trailcells_deleted++;
-	} else if ( !marked(tard) )
+	} else if ( !marked(tard) )	/* garbage */
 	{ setVar(*tard);
-#if O_SECURE
-	  assert(*tard != QID_MAGIC);
-#endif
+	  SECURE(assert(*tard != QID_MAGIC));
+	  SECURE(assert(ttag(te[1].address) != TAG_TRAILVAL));
 	  DEBUG(3, Sdprintf("Early reset of 0x%p\n", te->address));
 	  te->address = 0;
 	  trailcells_deleted++;
@@ -752,14 +758,17 @@ mark_trail()
   for( ; te >= (GCTrailEntry)tBase; te-- )
   { Word gp;
 
-    if ( tag(te->address) == TAG_TRAILVAL )
+    if ( ttag(te->address) == TAG_TRAILVAL )
     { gp = val_ptr(te->address);
+
+      DEBUG(2, Sdprintf("mark_trail(): trailed value from %p at %p (*=%p)\n",
+			&te->address, gp, *gp));
 
       assert(onGlobal(gp));
       if ( !marked(gp) )
-      { local_marked--;			/* fix counters */
-	total_marked++;
-	mark_variable(gp);
+      { mark_variable(gp);
+	total_marked++;			/* fix counters */
+	local_marked--;
       }
     }
   }
@@ -785,11 +794,14 @@ mark_phase(LocalFrame fr, Choice ch)
   total_marked = 0;
 
   mark_term_refs();
+#ifdef O_DESTRUCTIVE_ASSIGNMENT
+  mark_trail();
+#endif
   mark_stacks(fr, ch);
   mark_foreign_trail_refs();
 #if O_SECURE
   if ( !scan_global(TRUE) )
-    sysError("Global stack currupted after GC mark-phase");
+    sysError("Global stack corrupted after GC mark-phase");
   qsort(mark_base, mark_top - mark_base, sizeof(Word), cmp_address);
 #endif
 
@@ -938,7 +950,7 @@ tag_trail()
 
   for(te = tBase; te < tTop; te++)
   { if ( te->address )
-    { word mask = (word)te->address & TAG_TRAILMASK;
+    { word mask = ttag(te->address);
       int stg;
 
       if ( onLocal(te->address) )
@@ -959,7 +971,7 @@ untag_trail()
 
   for(te = tBase; te < tTop; te++)
   { if ( te->address )
-    { word mask = (word)te->address & TAG_TRAILMASK;
+    { word mask = ttag(te->address);
 
       te->address = (Word)((word)valPtr((word)te->address)|mask);
     }
@@ -1093,7 +1105,7 @@ sweep_trail(void)
   { if ( te->address )
     {
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
-      if ( tag(te->address) == TAG_TRAILVAL )
+      if ( ttag(te->address) == TAG_TRAILVAL )
       { needsRelocation(&te->address);
 	into_relocation_chain(&te->address, STG_TRAIL);
       } else
@@ -1508,6 +1520,29 @@ check_foreign()
 }
 
 
+#ifdef O_DESTRUCTIVE_ASSIGNMENT
+static word
+check_trail()
+{ GET_LD
+  TrailEntry te = tTop - 1;
+  word key = 0;
+
+  for( ; te >= tBase; te-- )
+  { Word gp;
+
+    if ( isTrailVal(te->address) )
+    { gp = trailValP(te->address);
+
+      assert(onGlobal(gp));
+      key += checkData(gp);
+    }
+  }
+
+  return key;
+}
+#endif /*O_DESTRUCTIVE_ASSIGNMENT*/
+
+
 word
 checkStacks(LocalFrame frame, Choice choice)
 { GET_LD
@@ -1541,6 +1576,9 @@ checkStacks(LocalFrame frame, Choice choice)
   assert(choice_count == 0);
 
   key += check_foreign();
+#ifdef O_DESTRUCTIVE_ASSIGNMENT
+  key += check_trail();
+#endif
 
   return key;
 }
@@ -1601,9 +1639,6 @@ garbageCollect(LocalFrame fr, Choice ch)
 
   tag_trail();
   mark_phase(fr, ch);
-#ifdef O_DESTRUCTIVE_ASSIGNMENT
-  mark_trail();
-#endif
   tgar = trailcells_deleted * sizeof(struct trail_entry);
   ggar = (gTop - gBase - total_marked) * sizeof(word);
   gc_status.trail_gained  += tgar;
