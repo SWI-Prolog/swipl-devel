@@ -90,7 +90,11 @@ write_test(q-2) :-
 write_test(q-3) :-
 	term_to_atom(+(a), X), X == '+a'.
 write_test(q-4) :-
-	term_to_atom('*/*', X), X == '\'*/*\''.
+	term_to_atom('/*', X), X == '\'/*\''.
+write_test(q-5) :-
+	term_to_atom('/**', X), X == '\'/**\''.
+write_test(q-6) :-
+	term_to_atom('*/*', X), X == '*/*'.
 
 
 		 /*******************************

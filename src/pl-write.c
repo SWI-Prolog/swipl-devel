@@ -112,10 +112,12 @@ atomType(atom_t a)
     return AT_FULLSTOP;
   
   if ( isSymbol(*s) )
-  { for(++s; --len > 0 && isSymbol(*s); s++)
-    { if ( *s == '/' && len > 0 && s[1] == '*' )
-	return AT_QUOTE;
-    }
+  { if ( len >= 2 && s[0] == '/' && s[1] == '*' )
+      return AT_QUOTE;
+
+    for(++s; --len > 0 && isSymbol(*s); s++)
+      ;
+
     return len == 0 ? AT_SYMBOL : AT_QUOTE;
   }
 

@@ -10,7 +10,7 @@
 VERSION 5.4.1 (September 28, 2004)
 ==================================
 
-  * FIXED: Bug#193: writeq('*/*').  Sandro Hawke.
+  * FIXED: Bug#193: reading */* .  Sandro Hawke.
 
   * FIXED: nb_setarg/3 using compound terms.
 

@@ -716,7 +716,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		      c = getchr();
 		      if ( c == '`' && _PL_rd->backquoted_string )
 			break;
-		    } while( c != EOF && isSymbol(c) == SY );
+		    } while( c != EOF && isSymbol(c) );
 		    dotseen = FALSE;
 		    goto handle_c;
 		  case LC:
