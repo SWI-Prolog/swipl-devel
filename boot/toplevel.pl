@@ -259,9 +259,17 @@ $toplevel :-
 	print_message(query, query(eof)),
 	print_message(informational, halt).
 
+%	Actually run the toplevel.  If there is a syntax error in the
+%	goal there is no reason to persue.  Something like that should
+%	happen to repetitive exceptions in the toplevel as well, but
+%	how do we distinguish between a stupid user and a program
+%	crashing in a loop?
+
 $runtoplevel :-
 	$option(toplevel, TopLevelAtom, TopLevelAtom), 
-	term_to_atom(TopLevel, TopLevelAtom), 
+	catch(term_to_atom(TopLevel, TopLevelAtom), E,
+	      (print_message(error, E),
+	       halt(1))),
 	user:TopLevel.
 
 %	$compile
