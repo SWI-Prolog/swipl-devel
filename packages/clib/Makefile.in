@@ -74,6 +74,7 @@ install:	$(TARGETS) $(LIBPL)
 		for f in $(TARGETS); do \
 		  $(INSTALL) -m 755 $$f $(PLBASE)/lib/$(PLARCH); \
 		done
+		mkdir -p $(PLBASE)/library
 		for f in $(LIBPL); do \
 		  $(INSTALL) -m 644 $$f $(PLBASE)/library; \
 		done

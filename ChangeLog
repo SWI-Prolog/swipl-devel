@@ -8,6 +8,9 @@
 					--------------------------------------
 
 
+  * PORT: A few minor glitches for clean build as Debian package.
+    Michael Piefel.
+
   * FIXED: Mutex initialisation in abolishProcedure().  Notably affects
     redefine_system_predicate and abolish on imported predciates.
     Sergey Tikhonov.
