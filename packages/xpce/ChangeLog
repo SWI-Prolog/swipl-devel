@@ -1,7 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
-* FIXED: Memory problem in `display->inspect', used by the balloon system.
+* FIXED: Avoid loop in textimage redraw if it is 0-pixels wide.
+
+* FIXED: Access of freed memory in `display->inspect', used by the
+  balloon system (probably harmless, but spotted in allocation debug-mode).
 
 * FIXED: Disable drabbrev_expand in read-only editor.
 
