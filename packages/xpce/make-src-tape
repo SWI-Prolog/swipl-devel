@@ -35,9 +35,9 @@ fi
 
 # Include generated files for building on MS-Windows.
 
-(echo src/gnu/getdate.c &&
- echo src/h/names.ic &&
- echo src/h/named.ih &&
+(echo ./src/gnu/getdate.c &&
+ echo ./src/h/names.ic &&
+ echo ./src/h/names.ih &&
  cat cvsfiles ) | \
   $exclude1 | \
   grep -v sicstus/ | \
