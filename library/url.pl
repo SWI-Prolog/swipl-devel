@@ -567,7 +567,7 @@ fragment_chars([]) -->
 
 
 ialpha(Atom) -->
-	alpha(C0),
+	alphanum(C0),			% JW: official URL demands alpha here
 	xalphas(S),
 	{ atom_codes(Atom, [C0|S])
 	}.

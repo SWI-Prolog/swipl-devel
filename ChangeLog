@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Allow for errornous parse_url('http://2004.bloggies.com/', X).
+    Anjo Anjewierden.
+
+
 VERSION 5.5.7 (Februari 21, 2005)
 =================================
 
