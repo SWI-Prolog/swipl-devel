@@ -553,17 +553,20 @@ sum_stretches(stretch *sp, int len, stretch *r)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Join a sequence of stretches that have to be forced to be the same width.
+Join a sequence of stretches that  have  to   be  forced  to be the same
+width. Minimum and maximum are easy. The ideal is deduced by starting at
+the average and then using the applicable   stretch or schrink to arrive
+at a new weighted average. This process is iterated for at most 4 times.
 
-
-
+The shrink and stretchability of the join  should be a weighted average,
+where low values have more weight.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
 join_stretches(stretch *stretches, int len, stretch *r)
 { stretch *sp;
   int i;
-  int avg, stretchavg, shrinkavg;
+  int avg;
   int maxloop;
 
   r->minimum = 0;
@@ -601,7 +604,7 @@ join_stretches(stretch *stretches, int len, stretch *r)
       wavg += sp->ideal*w0;
       tw   += w0;
     }
-    wavg /= tw;
+    wavg = (wavg+tw/2)/tw;
     if ( wavg == avg )
       break;
     avg = wavg;
@@ -609,15 +612,24 @@ join_stretches(stretch *stretches, int len, stretch *r)
 
   r->ideal = avg;
 
-  for(stretchavg=shrinkavg=0, sp=stretches, i=len; i-- > 0; sp++)
-  { stretchavg += sp->stretch;
-    shrinkavg  += sp->shrink;
-  }
-  stretchavg /= len;
-  shrinkavg  /= len;
+  { int stretchavg = 0, shrinkavg = 0;
+    int twstretch = 0, twshrink = 0;
 
-  r->shrink  = shrinkavg;
-  r->stretch = stretchavg;
+    for(sp=stretches, i=len; i-- > 0; sp++)
+    { int w0;
+
+      w0 = (sp->stretch ? max(1000/sp->stretch, 1) : 100000);
+      stretchavg += sp->stretch*w0;
+      twstretch += w0;
+  
+      w0 = (sp->shrink ? max(1000/sp->shrink, 1) : 100000);
+      shrinkavg += sp->shrink*w0;
+      twshrink += w0;
+    }
+    
+    r->shrink  = (stretchavg+twstretch/2)/twstretch;
+    r->stretch = (shrinkavg+twshrink/2)/twshrink;
+  }
 
   DEBUG(NAME_stretch, Cprintf("--> %d %d..%d <-%d ->%d\n",
 			      r->ideal,
