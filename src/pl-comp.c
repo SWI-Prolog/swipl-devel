@@ -24,6 +24,7 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include <limits.h>
 
 #undef LD			/* Get at most once per function */
 #define LD LOCAL_LD
