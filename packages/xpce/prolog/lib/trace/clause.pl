@@ -594,7 +594,7 @@ hidden_module(user).
 hidden_module(system).
 hidden_module(pce_principal).		% should be config
 hidden_module(Module) :-		% SWI-Prolog specific
-	'$default_module'(Module, system, system).
+	import_module(Module, system).
 
 thaffix(1, st) :- !.
 thaffix(2, nd) :- !.
