@@ -681,6 +681,10 @@ loadWicFd(IOSTREAM *fd)
   { qlf_has_moved = TRUE;
     qlf_save_dir = store_string(savedhome);
     qlf_load_dir = systemDefaults.home;
+
+    DEBUG(1, Sdprintf("QLF file has moved; replacing %s --> %s\n",
+		      qlf_save_dir, qlf_load_dir));
+
   }
 
   for(;;)
@@ -1019,16 +1023,21 @@ loadPart(IOSTREAM *fd, Module *module, int skip ARG_LD)
   { case 'M':
     { atom_t mname = loadXR(fd);
 
+      DEBUG(1, Sdprintf("Loading module %s\n", PL_atom_chars(mname)));
+
       switch( Qgetc(fd) )
       { case '-':
 	{ LD->modules.source = lookupModule(mname);
 					/* TBD: clear module? */
+	  DEBUG(1, Sdprintf("\tNo source\n"));
 	  break;
 	}
 	case 'F':
 	{ Module m;
 
 	  qlfLoadSource(fd);
+	  DEBUG(1, Sdprintf("\tSource = %s\n",
+			    PL_atom_chars(currentSource->name)));
 
 	  m = lookupModule(mname);
 	  if ( m->file && m->file != currentSource )
@@ -1907,10 +1916,27 @@ qlfLoad(char *file, Module *module ARG_LD)
   { qlf_has_moved = FALSE;
     qlf_load_dir = qlf_save_dir = NULL;
   } else
-  { char tmp[MAXPATHLEN];
+  { char load[MAXPATHLEN];
+    char save[MAXPATHLEN];
+    char *l, *s, *le, *se; 
     qlf_has_moved = TRUE;
-    qlf_load_dir = stringAtom(PL_new_atom(DirName(absloadname, tmp)));
-    qlf_save_dir = stringAtom(PL_new_atom(DirName(abssavename, tmp)));
+
+    l = DirName(absloadname, load);
+    s = DirName(abssavename, save);
+    le = l+strlen(l);
+    se = s+strlen(s);
+    for( ;le>l && se>s && le[-1] == se[-1]; le--, se--)
+    { if ( le[-1] == '/' )
+      { *le = EOS;
+        *se = EOS;
+      }
+    }
+
+    qlf_load_dir = store_string(l);
+    qlf_save_dir = store_string(s);
+    DEBUG(1, Sdprintf("QLF file has moved; replacing %s --> %s\n",
+		      qlf_save_dir, qlf_load_dir));
+
   }
 
   if ( Qgetc(fd) != 'Q' )
@@ -1919,6 +1945,12 @@ qlfLoad(char *file, Module *module ARG_LD)
   pushXrIdTable(PASS_LD1);
   rval = loadPart(fd, module, FALSE PASS_LD);
   popXrIdTable(PASS_LD1);
+  if ( qlf_has_moved )
+  { remove_string(qlf_load_dir);
+    remove_string(qlf_save_dir);
+    qlf_has_moved = FALSE;
+    qlf_load_dir = qlf_save_dir = NULL;
+  }
 
   Sclose(fd);
 

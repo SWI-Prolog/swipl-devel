@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Handling QLF file if their location has changed.  Various
+    posters to the mailing list.
+
   * FIXED: autoloader bug in multi-threaded code.
 
   * FIXED: Bug#41: Syntax error with backquoted strings and no
