@@ -13,7 +13,7 @@
 	, draw/1				  % Start editing file
 	]).
 
-version(3.1).
+draw_version(3.1).
 
 		/********************************
 		*      LINKING OTHER FILES	*
@@ -580,7 +580,7 @@ package.
 
 about(_Draw) :->
 	"Print `about' message"::
-	version(Version),
+	draw_version(Version),
 	send(@display, inform, '%s%.1f\n\n%s\n%s\n',
 	     'PceDraw version ',
 	     Version,

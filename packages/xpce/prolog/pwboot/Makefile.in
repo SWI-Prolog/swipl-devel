@@ -6,7 +6,7 @@
 # To change PWVERSION, also modify pwversion/1 in pce_qp.pl!
 
 MAKE=@MAKE@
-SHELL=@SHELL@
+SHELL=@MAKESHELL@
 BIN=@QPBIN@
 SO=@SO@
 builddir=@builddir@

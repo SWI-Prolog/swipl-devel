@@ -7,10 +7,10 @@
 # To change PWVERSION, also modify pwversion/1 in pce_qp.pl!
 
 MAKE=make
-SHELL=@SHELL@
+SHELL=bash
 BIN=sun4-5
 SO=so
-builddir=linux
+builddir=solaris
 PCEMAJOR=4
 PCEMINOR=9
 PCEPATCH=2

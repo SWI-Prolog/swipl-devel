@@ -1,7 +1,9 @@
+[VERSION 4.9.2]
+
+* ADDED: Documentation for pce_open/3 (see Predicate Browser).
+
 * PERFORMANCE: Improved change combination algorithm, providing less
   unnecessary redraw operations.
-
-[VERSION 4.9.2]
 
 * FIXED: `text_buffer <-sub', first argument didn't properly default to 0.
 
