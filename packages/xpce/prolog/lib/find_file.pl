@@ -23,6 +23,10 @@ finder in an application is:
 	...,
 	get(@finder, file, FileName),
 	...,
+
+On Windows systems, this  class   exploits  `display <-win_file_name' to
+display the standard Windows file browser. On  other systems it does the
+job using XPCE primitives.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- use_module(library(pce)).
@@ -32,6 +36,16 @@ finder in an application is:
 	   , ignore/1
 	   , send_list/3
 	   ]).
+
+		 /*******************************
+		 *     DEFAULT GLOBAL OBJECT	*
+		 *******************************/
+
+:- pce_global(@finder, new(finder)).
+
+		 /*******************************
+		 *	      ICONS		*
+		 *******************************/
 
 resource(dir,	image,	image('16x16/closedir.xpm')).
 resource(file,	image,	image('16x16/doc.xpm')).
