@@ -1694,16 +1694,21 @@ Sread_terminal(void *handle, char *buf, int size)
 void
 ResetTty()
 { static IOFUNCTIONS funcs;
+  static int done = 0;
 
   ResetStdin();
 
-  funcs = *Sinput->functions;
-  funcs.read = Sread_terminal;
-  funcs.write = Swrite_protocol;
+  if ( !done )
+  { done++;
 
-  Sinput->functions  = &funcs;
-  Soutput->functions = &funcs;
-  Serror->functions  = &funcs;
+    funcs = *Sinput->functions;		/* maybe in a new initTty()? */
+    funcs.read = Sread_terminal;
+    funcs.write = Swrite_protocol;
+
+    Sinput->functions  = &funcs;
+    Soutput->functions = &funcs;
+    Serror->functions  = &funcs;
+  }
 
   prompt_next = TRUE;
 }

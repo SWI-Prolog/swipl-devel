@@ -14,7 +14,7 @@
 #define MD	     "config/win32.h"
 #define PLHOME       "c:/pl"
 #define DEFSTARTUP   ".plrc"
-#define PLVERSION    "2.7.0"
+#define PLVERSION    "2.7.1"
 #define ARCH	     "i386-win32"
 #define C_LIBS	     "-lreadline -lconsole -luxnt"
 #define C_STATICLIBS ""
@@ -1461,10 +1461,11 @@ GLOBAL struct debuginfo
   int		suspendTrace;		/* tracing is suspended now */
 } debugstatus;
 
-#define CHARESCAPE_FEATURE	0x1	/* handle \ in atoms */
-#define GC_FEATURE		0x2	/* do GC */
-#define TRACE_GC_FEATURE	0x4	/* verbose gc */
-#define TTY_CONTROL_FEATURE	0x8	/* allow for tty control */
+#define CHARESCAPE_FEATURE	0x01	/* handle \ in atoms */
+#define GC_FEATURE		0x02	/* do GC */
+#define TRACE_GC_FEATURE	0x04	/* verbose gc */
+#define TTY_CONTROL_FEATURE	0x08	/* allow for tty control */
+#define READLINE_FEATURE	0x10	/* readline is loaded */
 
 GLOBAL struct _feature
 { unsigned long flags;			/* the feature flags */

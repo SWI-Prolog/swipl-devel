@@ -4,7 +4,7 @@
     See ../LICENCE to find out about your rights.
     jan@swi.psy.uva.nl
 
-    Purpose: Windows (NT) specific stuff
+    Purpose: Provide plwin.exe
 */
 
 #include <windows.h>
@@ -12,11 +12,26 @@
 #include "pl-itf.h"
 #include "pl-stream.h"
 #include <console.h>
+#include <signal.h>
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Main program for running SWI-Prolog from   a window. The window provides
+X11-xterm like features: scrollback for a   predefined  number of lines,
+cut/paste and the GNU readline library for command-line editing.
+
+Basically, this module  combines   libpl.dll,  console.dll, readline.lib
+with some glue to produce the final executable plwin.exe.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
 		 /*******************************
 		 *	BIND STREAM STUFF	*
 		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+First step: bind the  console  I/O   to  the  Sinput/Soutput  and Serror
+streams.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 Srlc_read(void *handle, char *buffer, int size)
@@ -62,6 +77,45 @@ pl_window_title(term_t old, term_t new)
 }
 
 		 /*******************************
+		 *	      SIGNALS		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Capturing fatal signals doesn't appear to work   inside  a DLL, hence we
+cpature them in the application and tell   Prolog to print the stack and
+abort.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+fatalSignal(int sig)
+{ char *name;
+
+  switch(sig)
+  { case SIGABRT:	name = "abort"; break;
+    case SIGFPE:	name = "floating point exeception"; break;
+    case SIGILL:	name = "illegal instruction"; break;
+    case SIGSEGV:	name = "general protection fault"; break;
+    default:		name = "(unknown)"; break;
+  }
+
+  PL_warning("Trapped signal %d (%s), aborting ...", sig, name);
+
+  PL_action(PL_ACTION_BACKTRACE, (void *)10);
+  signal(sig, fatalSignal);
+  PL_action(PL_ACTION_ABORT, NULL);
+
+}
+
+
+static void
+initSignals()
+{ signal(SIGABRT, fatalSignal);
+  signal(SIGFPE,  fatalSignal);
+  signal(SIGILL,  fatalSignal);
+  signal(SIGSEGV, fatalSignal);
+}
+
+		 /*******************************
 		 *	       MAIN		*
 		 *******************************/
 
@@ -84,6 +138,11 @@ PL_extension extensions[] =
 };
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This function is called back from the   console.dll main loop to provide
+the main for the application.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 win32main(int argc, char **argv, char **env)
 { set_window_title();
@@ -96,11 +155,17 @@ win32main(int argc, char **argv, char **env)
   PL_install_readline();
   PL_async_hook(4000, rlc_check_intr);
   rlc_interrupt_hook(PL_interrupt);
+  initSignals();
   PL_halt(PL_toplevel() ? 0 : 1);
 
   return 0;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+And this is the  real  application's  main   as  Windows  sees  it.  See
+console.c for further details.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int PASCAL
 WinMain(HANDLE hInstance, HANDLE hPrevInstance,

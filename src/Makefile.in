@@ -33,8 +33,8 @@ LIBS=@LIBS@
 STATICLIBS=@STATICLIBS@
 AWK=@AWK@
 SED=sed
-LD_R=@LD_R@
 ETAGS=@ETAGS@
+RANLIB=@RANLIB@
 ARCH=@ARCH@
 INSTALL=@INSTALL@
 INSTALL_PROGRAM=@INSTALL_PROGRAM@
@@ -110,7 +110,8 @@ $(RUNTIME):	$(OBJ) $(DEPOBJ)
 		if [ ! -d ../runtime ]; then mkdir ../runtime; fi
 		if [ ! -d $(RUNTIMEDIR) ]; then mkdir $(RUNTIMEDIR); fi
 		rm -f $@
-		$(AR) -r $@ $(OBJ) $(DEPOBJ)
+		$(AR) r $@ $(OBJ) $(DEPOBJ)
+		$(RANLIB) $@
 
 index:
 		./$(PL) -x $(STARTUPPATH) \

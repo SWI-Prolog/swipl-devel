@@ -34,8 +34,8 @@ LIBS=-ldl -lelf -lreadline -ltermcap -lm
 STATICLIBS=
 AWK=nawk
 SED=sed
-LD_R=ld -r
 ETAGS=etags
+RANLIB=ranlib
 ARCH=sparc-solaris2.5
 INSTALL=/usr/gnu/bin/install -c
 INSTALL_PROGRAM=${INSTALL}
@@ -111,7 +111,8 @@ $(RUNTIME):	$(OBJ) $(DEPOBJ)
 		if [ ! -d ../runtime ]; then mkdir ../runtime; fi
 		if [ ! -d $(RUNTIMEDIR) ]; then mkdir $(RUNTIMEDIR); fi
 		rm -f $@
-		$(AR) -r $@ $(OBJ) $(DEPOBJ)
+		$(AR) r $@ $(OBJ) $(DEPOBJ)
+		$(RANLIB) $@
 
 index:
 		./$(PL) -x $(STARTUPPATH) \

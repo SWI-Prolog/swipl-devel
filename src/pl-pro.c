@@ -157,9 +157,8 @@ pl_abort()
   { aborted = TRUE;
     succeed;
   }
-#if !O_READLINE
-  PopTty(&ttytab);
-#endif
+  if ( !trueFeature(READLINE_FEATURE) )
+    PopTty(&ttytab);
   resetRead();
   closeFiles();
   resetReferences();

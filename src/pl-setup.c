@@ -75,12 +75,20 @@ setupProlog(void)
 
   { void *hbase = allocHeap(sizeof(word));
 
-    base_addresses[STG_HEAP]   = (ulong)hbase & 0xff80000L;
+    base_addresses[STG_HEAP]   = (ulong)hbase & 0xff800000L;
     freeHeap(hbase, sizeof(word));
   }
   base_addresses[STG_LOCAL]  = (unsigned long)lBase;
   base_addresses[STG_GLOBAL] = (unsigned long)gBase;
   base_addresses[STG_TRAIL]  = (unsigned long)tBase;
+  DEBUG(1, Sdprintf("base_addresses[STG_HEAP] = %p\n",
+		    base_addresses[STG_HEAP]));
+  DEBUG(1, Sdprintf("base_addresses[STG_LOCAL] = %p\n",
+		    base_addresses[STG_LOCAL]));
+  DEBUG(1, Sdprintf("base_addresses[STG_GLOBAL] = %p\n",
+		    base_addresses[STG_GLOBAL]));
+  DEBUG(1, Sdprintf("base_addresses[STG_TRAIL] = %p\n",
+		    base_addresses[STG_TRAIL]));
 
   PL_open_foreign_frame();
 
@@ -243,6 +251,12 @@ some day.
 
 #if HAVE_SIGNAL
 
+#ifdef __WIN32__
+#define HAVE_SIGNALS !iswin32s()
+#else
+#define HAVE_SIGNALS 1
+#endif
+
 static void
 fatal_signal_handler(int sig, int type, SignalContext scp, char *addr)
 { DEBUG(1, Sdprintf("Fatal signal %d\n", sig));
@@ -302,19 +316,25 @@ resetSignals()
 
 handler_t
 pl_signal(int sig, handler_t func)
-{ handler_t old = signal(sig, func);
+{ if ( HAVE_SIGNALS )
+  { handler_t old = signal(sig, func);
+
+    DEBUG(1, Sdprintf("pl_signal(%d, %p) --> %p\n", sig, func, old));
 
 #ifdef SIG_ERR
-  if ( old == SIG_ERR )
-    warning("PL_signal(%d, 0x%x) failed: %s",
-	    sig, (unsigned long)func, OsError());
+    if ( old == SIG_ERR )
+      warning("PL_signal(%d, 0x%x) failed: %s",
+	      sig, (unsigned long)func, OsError());
 #endif
 
-  signalHandlers[sig].os = func;
-  signalHandlers[sig].catched = (func == SIG_DFL ? FALSE : TRUE);
+    signalHandlers[sig].os = func;
+    signalHandlers[sig].catched = (func == SIG_DFL ? FALSE : TRUE);
 
-  return old;
+    return old;
+  } else
+    return SIG_DFL;
 }
+
 
 void
 deliverSignal(int sig, int type, SignalContext scp, char *addr)

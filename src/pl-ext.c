@@ -7,7 +7,27 @@
     Purpose: link built_in predicates
 */
 
+/*#define O_DEBUG 1*/			/* include crash/0 */
 #include "pl-incl.h"
+
+#if O_DEBUG
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+See how the system reacts on segmentation faults.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static word
+pl_crash()
+{ long *lp = NULL;
+
+  Sdprintf("You asked for it ... Writing to address 0\n");
+
+  *lp = 5;
+
+  Sdprintf("Oops, this doesn't appear to be a protected OS\n");
+
+  fail;
+}
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Link all foreign language predicates.  The arguments to FRG are:
@@ -31,6 +51,9 @@ static struct foreign {
   unsigned long flags;
   int		arity;
 } foreigns[] = {
+#if O_DEBUG
+  FRG("crash",			0, pl_crash,			TRACE_ME),
+#endif
   FRG("nl",			0, pl_nl,			TRACE_ME),
   FRG("put",			1, pl_put,			TRACE_ME),
   FRG("get0",			1, pl_get0,			TRACE_ME),

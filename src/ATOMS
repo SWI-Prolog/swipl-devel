@@ -248,6 +248,7 @@ A xpceref		"@"
 A float_format		"float_format"
 A stand_alone		"stand_alone"
 A tty_control		"tty_control"
+A readline		"readline"
 
 F abs			1
 F acos			1

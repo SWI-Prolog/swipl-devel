@@ -1783,6 +1783,17 @@ PL_action(int action, void *arg)
       return (bool) pl_debug();
     case PL_ACTION_BACKTRACE:
 #ifdef O_DEBUGGER
+      if ( gc_status.active )
+      { Sfprintf(Serror,
+		 "\n[Cannot print stack while in %ld-th garbage collection]\n",
+		 gc_status.collections);
+	fail;
+      }
+      if ( status.boot || !status.initialised )
+      { Sfprintf(Serror,
+		 "\n[Cannot print stack while initialising]\n");
+	fail;
+      }
       backTrace(environment_frame, (int) arg);
       succeed;
 #else

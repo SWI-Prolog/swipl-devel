@@ -14,7 +14,6 @@ AC_SUBST(LDFLAGS)
 AC_SUBST(STATICLIBS)
 AC_SUBST(ARCH)
 AC_SUBST(PLFOREIGN)
-AC_SUBST(LD_R)
 AC_SUBST(PL)
 AC_SUBST(RT)
 AC_SUBST(PLVERSION)
@@ -26,6 +25,7 @@ RT=""
 PLVERSION=`cat ../VERSION`
 
 AC_PROG_CC
+AC_PROG_RANLIB
 AC_CANONICAL_HOST
 changequote(,)dnl
 ARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-\([^-]*\)/\1-\2/'`
@@ -283,23 +283,6 @@ if touch conftest.x && ln -s conftest.x conftest.lns && cmp conftest.x conftest.
 else
     AC_MSG_RESULT(no)
 fi
-
-AC_MSG_CHECKING("for ld -r")
-cat > conftest1.c <<EOF
-f1(){}
-EOF
-cat > conftest2.c <<EOF
-f2(){}
-EOF
-${CC-cc} $CFLAGS -c conftest1.c
-${CC-cc} $CFLAGS -c conftest2.c
-if ld -r -o conftest3.o conftest1.o conftest2.o >/dev/null 2>&1; then
-	LD_R="ld -r"
-else
-	LD_R=:
-fi
-AC_MSG_RESULT("$LD_R")
-rm -rf conftest*
 
 AC_TYPE_SIGNAL
 AC_MSG_CHECKING("for BSD signal handlers")

@@ -213,6 +213,11 @@ install_t
 PL_install_readline()
 { static IOFUNCTIONS funcs;
 
+#ifndef __WIN32__
+  if ( !isatty(0) )
+    return;
+#endif
+
   rl_readline_name = "Prolog";
   rl_attempted_completion_function = prolog_completion;
 #ifdef __WIN32__

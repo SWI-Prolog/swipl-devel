@@ -12,6 +12,10 @@
 
 #include <stdarg.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This interface has been changed considerable  between version 2.1.14 and
 2.5.0. You may get most old code to work using
@@ -22,7 +26,7 @@ before loading this file.  See end of this file.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef PLVERSION
-#define PLVERSION "2.7.0, April 1996"
+#define PLVERSION "2.7.1, April 1996"
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -542,5 +546,9 @@ __pl_export int		_PL_unify_atomic(term_t t, atomic_t a);
 __pl_export term_t	_PL_strip_module(term_t t, module_t *m);
 
 #endif /*PL_OLD_INTERFACE*/
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*_FLI_H_INCLUDED*/

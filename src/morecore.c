@@ -24,7 +24,9 @@ version, allocating from 0x80000000L.
 #include <string.h>
 extern int getpagesize(void);		/* no prototype */
 
+#if 0					/* include if not defined (old libc) */
 extern void * (*__morecore)(long size);
+#endif
 
 static void *base;			/* base */
 static void *top;			/* external top */

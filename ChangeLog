@@ -1,6 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.7.1
+=============
+
+  * FIXED: ar/ranlib configuration (notably for BSD systems, such as
+    SunOs 4.1).
+
+  * FIXED: do not load readline interface if the input is not a terminal.
+    This bug prevented constructs in shell-scripts such as pl << _EOS_ ...
+
 Version 2.7.0
 =============
 
