@@ -793,14 +793,16 @@ void
 ws_x_geometry_frame(FrameObj fr, Name spec)
 { char *s = strName(spec);
   UINT flags = SWP_NOACTIVATE|SWP_NOZORDER;
-  int x, y, w, h;
+  int x, y, w, h, w0, h0;
   char signx[10], signy[10];
   int ok=0;
   WsFrame f = fr->ws_ref;
   int ew, eh;
 
-  if ( !ws_frame_bb(fr, &x, &y, &w, &h) )
+  if ( !ws_frame_bb(fr, &x, &y, &w0, &h0) )
     return;
+  w = w0;
+  h = h0;
   ew = w - valInt(fr->area->w);		/* width/height of decorations */
   eh = h - valInt(fr->area->h);
 
@@ -827,11 +829,16 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
 	  break;
       }
 
+      DEBUG(NAME_frame,
+	    Cprintf("signx = %s, x = %d, signy = %s,"
+		    "y = %d, w0 = %d, h0 = %d\n",
+		    signx, x, signy, y, w0, h0));
+
       flags |= SWP_NOSIZE;
       if ( signx[0] == '-' )
-	x = valInt(getWidthDisplay(fr->display)) - x - w;
+	x = valInt(getWidthDisplay(fr->display)) - x - w0;
       if ( signy[0] == '-' )
-	y = valInt(getHeightDisplay(fr->display)) - y - h;
+	y = valInt(getHeightDisplay(fr->display)) - y - h0;
       ok++;
       break;
   }
