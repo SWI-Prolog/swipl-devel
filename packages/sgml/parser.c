@@ -3739,32 +3739,6 @@ add_cdata(dtd_parser *p, int chr, int verbatim)
 }
 
 
-static void
-process_rcdata_entity(dtd_parser *p)
-{ const ichar *s = (const ichar *) &p->cdata->data[p->cdata->size-2];
-  const ichar *f = (const ichar *) p->cdata->data;
-  dtd *dtd = p->dtd;
-
-  while(s>f && HasClass(dtd, *s, CH_NAME))
-    s--;
-  if ( dtd->charfunc->func[CF_ERO] == *s ) /* & */
-  { dtd_symbol *en;
-
-    itake_entity_name(dtd, s+1, &en);
-    if ( en->entity )
-    { int len, clen = s-f;
-
-      if ( (s=entity_value(p, en->entity, &len)) )
-      { p->cdata->size = clen;		/* truncate */
-	while(len-- > 0)
-	  add_cdata(p, *s++, TRUE);
-      } else
-	gripe(ERC_EXISTENCE, "entity", en->name);
-    }
-  }
-}
-
-
 /* We discovered illegal markup and now process it as normal CDATA
 */
 
@@ -3794,9 +3768,9 @@ putchar_dtd_parser(dtd_parser *p, int chr)
   p->location.linepos++;
   p->location.charpos++;
 
+reprocess:
   switch(p->state)
   { case S_PCDATA:
-    s_pcdata:
     { if ( f[CF_MDO1] == chr )		/* < */
       { sgml_cplocation(&p->startloc, &old);
 	p->state = S_DECL0;
@@ -3836,9 +3810,9 @@ putchar_dtd_parser(dtd_parser *p, int chr)
       return;
     }
     case S_ECDATA2:			/* Seen </ in CDATA */
-    { if ( p->etaglen == p->buffer->size &&
-	   istrncaseeq(p->buffer->data, p->etag, p->etaglen) &&
-	   f[CF_MDC] == chr )
+    { if ( f[CF_MDC] == chr &&
+	   p->etaglen == p->buffer->size &&
+	   istrncaseeq(p->buffer->data, p->etag, p->etaglen) )
       { p->cdata->size -= p->etaglen+2;	/* 2 for </ */
 	terminate_ocharbuf(p->cdata);
 	terminate_icharbuf(p->buffer);
@@ -3870,14 +3844,21 @@ putchar_dtd_parser(dtd_parser *p, int chr)
       return;
     }
     case S_RCDATA:
+    { if ( f[CF_ERO] == chr ) /* & */
+      { sgml_cplocation(&p->startloc, &old);
+	p->state = S_ENT0;
+	return;
+      }
+      /*FALLTHROUGH*/
+    }
     case S_CDATA:
     { add_cdata(p, dtd->charmap->map[chr], TRUE);
+
       if ( f[CF_MDO1] == chr )		/* < */
       { sgml_cplocation(&p->startloc, &old);
 	p->state = S_ECDATA1;
-      } else if ( p->state == S_RCDATA && f[CF_ERC] == chr ) /* ; */
-      { WITH_PARSER(p, process_rcdata_entity(p));
-      }
+      } 
+
       return;
     }
     case S_MSCDATA:
@@ -3952,7 +3933,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
       } else
       { add_cdata(p, f[CF_ERO], FALSE);
 	add_cdata(p, chr,       FALSE);
-	p->state = S_PCDATA;
+	p->state = p->cdata_state;
       }
 
       return;
@@ -3964,14 +3945,14 @@ putchar_dtd_parser(dtd_parser *p, int chr)
       }
 
       terminate_icharbuf(p->buffer);
+      p->state = p->cdata_state;
       if ( p->mark_state == MS_INCLUDE )
       { WITH_PARSER(p, process_entity(p, p->buffer->data));
       }
       empty_icharbuf(p->buffer);
       
-      p->state = S_PCDATA;
       if ( f[CF_ERC] != chr )
-	goto s_pcdata;
+	goto reprocess;
 
       break;
     }
