@@ -91,12 +91,12 @@ typedef sema_t sem_t;
 
 #endif /*HAVE_SEMA_INIT*/
 
+static sem_t sem_canceled;		/* used on halt */
+
 #ifndef WIN32
 #include <signal.h>
 
 static sem_t sem_mark;			/* used for atom-gc */
-static sem_t sem_canceled;		/* used on halt */
-
 #ifndef SA_RESTART
 #define SA_RESTART 0
 #endif
@@ -2008,13 +2008,18 @@ PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
 /* How to make the memory visible?
 */
 
+					/* see also pl-nt.c */
+#define nano * 0.0000001
+#define ntick 1.0			/* manual says 100.0 ??? */
+
 static void
 sync_statistics(PL_thread_info_t *info, atom_t key)
-{ if ( key == ATOM_cputime || k == ATOM_runtime || key == ATOM_system_time )
+{ if ( key == ATOM_cputime || key == ATOM_runtime || key == ATOM_system_time )
   { double t;
     FILETIME created, exited, kerneltime, usertime;
+    HANDLE win_thread = pthread_getw32threadhandle_np(info->tid);
 
-    if ( GetThreadTimes(info->w32id,
+    if ( GetThreadTimes(win_thread,
 			&created, &exited, &kerneltime, &usertime) )
     { FILETIME *p;
 
@@ -2027,9 +2032,9 @@ sync_statistics(PL_thread_info_t *info, atom_t key)
       t += (double)p->dwLowDateTime  * (ntick nano);
 
       if ( key == ATOM_system_time )
-	info->statistics.system_cputime = t;
+	info->thread_data->statistics.system_cputime = t;
       else
-	info->statistics.user_cputime = t;
+	info->thread_data->statistics.user_cputime = t;
     }
   }
 }
