@@ -466,7 +466,7 @@ atom_handling(current-1) :-
 :- set_prolog_flag(backquoted_string, true).
 
 string_handling(sub-1) :-
-	\+ sub_string(`HTTP/1.1 404 Not Found`, Start, Length, Rest, `OK`).
+	\+ sub_string(`HTTP/1.1 404 Not Found`, _, _, _, `OK`).
 
 :- set_prolog_flag(backquoted_string, false).
 
@@ -1060,6 +1060,73 @@ thread(at_exit-1) :-
 	
 
 		 /*******************************
+		 *	      SCRIPTS		*
+		 *******************************/
+
+
+:- dynamic
+	script_dir/1.
+
+set_script_dir :-
+	script_dir(_), !.
+set_script_dir :-
+	find_script_dir(Dir),
+	assert(script_dir(Dir)).
+
+find_script_dir(Dir) :-
+	prolog_load_context(file, File),
+	follow_links(File, RealFile),
+	file_directory_name(RealFile, Dir).
+
+follow_links(File, RealFile) :-
+	read_link(File, _, RealFile), !.
+follow_links(File, File).
+
+
+:- set_script_dir.
+
+run_test_script(Script) :-
+	file_base_name(Script, Base),
+	file_name_extension(Pred, _, Base),
+	load_files(Script, [silent(true)]),
+	Pred.
+
+run_test_scripts(Directory) :-
+	(   script_dir(ScriptDir),
+	    concat_atom([ScriptDir, /, Directory], Dir),
+	    exists_directory(Dir)
+	->  true
+	;   Dir = Directory
+	),
+	atom_concat(Dir, '/*.pl', Pattern),
+	expand_file_name(Pattern, Files),
+	file_base_name(Dir, BaseDir),
+	format('Running scripts from ~w ', [BaseDir]), flush,
+	run_scripts(Files),
+	format(' done~n').
+
+run_scripts([]).
+run_scripts([H|T]) :-
+	(   catch(run_test_script(H), Except, true)
+	->  (   var(Except)
+	    ->  put(.), flush
+	    ;   Except = blocked(Reason)
+	    ->  assert(blocked(H, Reason)),
+		put(!), flush
+	    ;   script_failed(R, Except)
+	    )
+	;   script_failed(R, fail)
+	),
+	run_scripts(T).
+
+script_failed(File, fail) :-
+	format('~NScript ~w failed~n', [File]).
+script_failed(File, Except) :-
+	message_to_string(Except, Error),
+	format('~NScript ~w failed: ~w~n', [File, Error]).
+
+
+		 /*******************************
 		 *        TEST MAIN-LOOP	*
 		 *******************************/
 
@@ -1098,6 +1165,9 @@ testset(thread) :-
 	current_prolog_flag(threads, true).
 testset(resource).
 
+testdir('Tests/thread') :-
+	current_prolog_flag(threads, true).
+
 :- dynamic
 	failed/1,
 	blocked/2.
@@ -1106,6 +1176,7 @@ test :-
 	retractall(failed(_)),
 	retractall(blocked(_,_)),
 	forall(testset(Set), runtest(Set)),
+	forall(testdir(Dir), run_test_scripts(Dir)),
 	report_blocked,
 	report_failed.
 

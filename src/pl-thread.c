@@ -449,8 +449,6 @@ like the following to happen:
 
 There are a lot of problems however.
 
-    * Cancellation is not safe, as mutexes are not guarded by
-      pthread_cleanup_push()
     * Somehow Halt() should always be called from the main thread
       to have the process working properly.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1401,6 +1399,7 @@ get_message(message_queue *queue, term_t msg)
 
   Mark(m);
 
+  pthread_cleanup_push((void *)pthread_mutex_unlock, (void *)&queue->mutex);
   pthread_mutex_lock(&queue->mutex);
   msgp = queue->head;
 
@@ -1418,8 +1417,7 @@ get_message(message_queue *queue, term_t msg)
 	}
 	PL_erase(msgp->message);
 	freeHeap(msgp, sizeof(*msgp));
-	pthread_mutex_unlock(&queue->mutex);
-	succeed;
+	goto out;
       }
       Undo(m);				/* reclaim term */
     }
@@ -1427,6 +1425,10 @@ get_message(message_queue *queue, term_t msg)
 
     msgp = (prev ? prev->next : queue->head);
   }
+out:
+
+  pthread_cleanup_pop(1);
+  succeed;
 }
 
 
