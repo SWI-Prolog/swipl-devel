@@ -2233,12 +2233,16 @@ rather than truncating an existing file. The pipe construct is not
 accepted by this predicate.
 
     \predicate{seeing}{1}{?SrcDest}
-Same as current_input/1.  See the introduction of \secref{edinburghIO}
-for details.
+Same as current_input/1, except that \const{user} is returned if the
+current input is the stream \const{user_input} to improve compatibility
+with traditional Edinburgh I/O. See the introduction of
+\secref{edinburghIO} for details.
 
     \predicate{telling}{1}{?SrcDest}
-Same as current_output/1.  See the introduction of \secref{edinburghIO}
-for details.
+Same as current_output/1, except that \const{user} is returned if the
+current output is the stream \const{user_output} to improve compatibility
+with traditional Edinburgh I/O. See the introduction of
+\secref{edinburghIO} for details.
 
     \predicate{seen}{0}{}
 Close the current input stream. The new input stream becomes
