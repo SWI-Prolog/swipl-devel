@@ -253,6 +253,10 @@ parse_expression(Expr,Result) :-
 	; Expr = abs(E) ->
 		parse_expression(E,RE),
 		myabs(RE,Result)
+	; Expr = (L / R) ->
+		parse_expression(L,RL),
+		parse_expression(R,RR),
+		mydiv(RL,RR,Result,yes)
 	).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -482,7 +486,11 @@ neq(X,Y,New) :-
 			; U == X ->
 				NU is U - 1,
 				put(Y,L,NU,Exp)
-			;
+		        ; L > X ->
+		                true
+		        ; U < X ->
+		                true
+		        ;
 				( New == yes ->
 					active_state(State),
 					put(Y,L,U,[neq(X,State)|Exp])
@@ -712,6 +720,7 @@ mytimes(X,Y,Z,New) :-
 			NZU is min(ZU2,TZU),
 			put(Z,NZL,NZU,ZExp2)
 		;
+
 			true
 		)	
 	).
@@ -732,6 +741,102 @@ min_divide(L1,U1,L2,U2,Min) :-
 	;	
 		Min is min(min(div(L1,L2),div(L1,U2)),min(div(U1,L2),div(U1,U2)))
 	).
+
+
+mydiv(X,Y,Z,New) :-
+	( Y == 0 -> fail ; true	),
+	( nonvar(X) ->
+		( nonvar(Y) ->
+			Z is X // Y
+		;
+			get(Y,YL,YU,YExp),
+			( New == yes ->
+				put(Y,YL,YU,[mydiv3(X,Z)|YExp])
+			;
+				true
+			),
+			( nonvar(Z) ->
+				true
+			;	
+				get(Z,ZL,ZU,ZExp),
+				( YL =< 0, YU >= 0 ->
+					NZL is max(-abs(X),ZL),
+					NZU is min(abs(X),ZU)
+				; X >= 0, YL > 0 ->
+					NZL is max(X // YU, ZL),
+					NZU is min(X // YL, ZU)
+				;	% TODO: cover more cases
+					NZL = ZL,
+					NZU = ZU
+				),
+				( New == yes ->
+					put(Z,NZL,NZU,[mydiv2(X,Y)|ZExp])
+				;
+					put(Z,NZL,NZU,ZExp)
+				)
+			)
+		)
+	; nonvar(Y) ->
+		get(X,XL,XU,XExp),
+		( nonvar(Z) ->
+			(Z >= 0, Y >= 0 ->
+				NXL is max(Z*Y,XL),
+				NXU is min((Z+1)*Y - 1,XU)
+			;
+				% TODO: cover more cases
+				NXL = XL,
+				NXU = XU
+			),
+			( New == yes ->
+				put(X,NXL,NXU,[mydiv(Y,Z)|XExp])
+			;
+				put(X,NXL,NXU,XExp)
+			)
+		;
+			get(Z,ZL,ZU,ZExp),
+			( XL >= 0, Y >= 0 ->
+				NZL is max(XL // Y,ZL),
+				NZU is min(XU // Y,ZU)
+			; % TODO: cover more cases
+				NZL is max(-max(abs(XL),abs(XU)),ZL),
+				NZU is min(max(abs(XL),abs(XU)),ZU)
+			),
+			( New == yes ->
+				put(X,XL,XU,[mydiv(Y,Z)|XExp]),
+				put(Z,NZL,NZU,[mydiv2(X,Y)|ZExp])
+			;
+				put(Z,NZL,NZU,ZExp)
+			)
+		)
+	; nonvar(Z) ->
+		get(X,XL,XU,XExp),
+		get(Y,YL,YU,YExp),
+		(YL >= 0, XL >= 0 ->
+			NXL is max(YL*Z,XL),
+			NXU is min(YU*(Z + 1) - 1,XU)
+		; % TODO: cover more cases
+			NXL = XL,
+			NXU = XU
+		),
+		( New == yes ->
+			put(X,NXL,NXU,[mydiv(Y,Z)|XExp]),
+			put(Y,YL,YU,[mydiv3(X,Z)|YExp])
+		;
+			put(X,NXL,NXU,XExp)
+		)
+	;
+		get(X,XL,XU,XExp),
+		get(Y,YL,YU,YExp),
+		get(Z,ZL,ZU,ZExp),
+		( New == yes ->
+			put(Y,YL,YU,[mydiv3(X,Z)|YExp]),
+			put(Z,ZL,ZU,[mydiv2(X,Y)|ZExp]),
+			put(X,XL,XU,[mydiv(Y,Z)|XExp])
+		;
+			true
+		)
+	).
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 mymax(X,Y,Z,New) :-
@@ -1555,6 +1660,13 @@ trigger_exp(mymod2(X,Z),Y) :-
 	mymod(X,Y,Z).
 trigger_exp(mymod3(X,Y),Z) :-
 	mymod(X,Y,Z).
+
+trigger_exp(mydiv(Y,Z),X) :-
+	mydiv(X,Y,Z,no).
+trigger_exp(mydiv2(A,B),X) :-
+	mydiv(A,B,X,no).
+trigger_exp(mydiv3(A,B),X) :-
+	mydiv(A,X,B,no).
 
 memberchk_eq(X,[Y|Ys],Z) :-
    (   X == Y ->
