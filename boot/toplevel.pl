@@ -350,7 +350,7 @@ $system_prompt(Module, BrekLev, Prompt) :-
 	),
 	(    tracing
 	->   $substitute("%d", ["[trace] "], P2, P3)
-	;    $debugging
+	;    current_prolog_flag(debug, true)
 	->   $substitute("%d", ["[debug] "], P2, P3)
 	;    $substitute("%d", [], P2, P3)
 	),
@@ -397,27 +397,18 @@ $execute_goal(trace, []) :-
 	fail.
 $execute_goal(Goal, Bindings) :-
 	$module(TypeIn, TypeIn), 
-	flag($qid, Qid, Qid+1),
-	TypeIn:asserta(($user_query(Qid, Bindings) :- Goal), Ref),
-	$set_user_goal_attributes(TypeIn),
-	(   TypeIn:$user_query(Qid, Bindings),
+	(   TypeIn:Goal,
 	    flush_output(user_output),
 	    call_expand_answer(Bindings, NewBindings),
 	    (	write_bindings(NewBindings)
 	    ->	!,
 	        notrace,
-		erase(Ref),
 		fail
 	    )
 	;   notrace, 
 	    print_message(query, query(no)),
-	    erase(Ref),
 	    fail
 	).
-
-$set_user_goal_attributes(TypeIn) :-
-	TypeIn:(($hide($user_query, 2),
-		 $show_childs($user_query, 2))).
 
 write_bindings([]) :- !, 
 	print_message(query, query(yes)).

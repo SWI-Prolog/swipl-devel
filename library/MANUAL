@@ -455,13 +455,18 @@ Finally, an  alpha version of a  multi-threaded SWI-Prolog for Linux  is
 added.    This version  is still  much slower  than the  single-threaded
 version due  to frequent access to  `thread-local-data' as well as  some
 too detailed  mutex locks.   The basic thread  API is ready for  serious
-use and testing however.  See section 3.38.
+use and testing however.  See section 3.39.
 
 
 11..66..1111..11 IInnccoommppaattiibbllee cchhaannggeess
 
 A number  of incompatible changes  result from this upgrade.   They  are
 all easily fixed however.
+
+  o !/0_, call/1
+    The  cut now behaves  according to the ISO  standard.  This  implies
+    it  works in compound  goals passed  to call/1 and  is local to  the
+    _c_o_n_d_i_t_i_o_n part of if-then-else as well as the argument of \+/1.
 
   o atom_chars/2
     This  predicate  is now  ISO  compliant and  thus generates  a  list
@@ -1457,8 +1462,17 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
              convert  floats  to integers  if  the float  represents  an
              integer.
 
+           o The  /(_2) (float division) _a_l_w_a_y_s  return a float, even  if
+             applied to integers that can be divided.
+
            o In  the standard order  of terms (see  section 3.6.1),  all
              floats are before all integers.
+
+           o atom_length/2 yields  an instantiation  error if the  first
+             argument is a number.
+
+           o clause/[2,3]  raises  a  permission  error  when  accessing
+             static predicates.
 
     ooppttiimmiissee _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
          If true, compile in optimised mode.  The initial  value is true
@@ -1473,6 +1487,13 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          constant expressions and other predictable constructs.   Source
          code  optimisation is  never  applied  to predicates  that  are
          declared dynamic (see dynamic/1).
+
+    cchhaarr__ccoonnvveerrssiioonn _(_b_o_o_l_)
+         Determines  whether  character-conversion  takes   place  while
+         reading terms.   Though the  flag and predicates are  provided,
+         the current  release of SWI-Prolog  does not support  character
+         conversion.   Hence this prolog  flag is read-only.   See  also
+         char_conversion/2.
 
     aauuttoollooaadd _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
          If true (default) autoloading of library functions  is enabled.
@@ -1504,6 +1525,25 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          Determines whether  the terminal  is switched to  raw mode  for
          get_single_char/1,  which also  reads the  user-actions for  the
          trace.  May be set.  See also the +/-tty command-line option.
+
+    uunnkknnoowwnn _(_f_a_i_l_,_w_a_r_n_i_n_g_,_e_r_r_o_r_, _c_h_a_n_g_e_a_b_l_e_)
+         Determines  the   behaviour  if  an   undefined  procedure   is
+         encountered.   If  fail,  the predicates  fails silently.    If
+         warn,  a warning  is printed,  and  execution continues  as  if
+         the  predicate was  not  defined  and if  error  (default),  an
+         existence_error exception is  raised.   This flag  is local  to
+         each module.
+
+    ddeebbuugg _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
+         Switch on/off  debugging  mode.   If  debug  mode is  activated
+         the  system  traps  encountered  spy-points  (see   spy/1)  and
+         trace-points  (see  trace/1).     In  addition,  tail-recursion
+         optimisation is  disabled and the  system is more  conservative
+         in destroying choice-points to simplify debugging.
+
+         Disabling these optimisations can  cause the system to run  out
+         of memory on  programs that behave  correctly if debug mode  is
+         off.
 
     ddeebbuugg__oonn__eerrrroorr _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
          If  true,  start  the  tracer  after   an  error  is  detected.
@@ -2013,7 +2053,7 @@ manipulating ordered sets).
 
 :- use_module(library(oset)).
 
-SWI-Prolog   recognises   grammar   rules   ((DCG))   as    defined   in
+SWI-Prolog   recognises    grammar   rules    (DCG)   as   defined    in
 [Clocksin & Melish, 1987].     The  user  may   define  additional  com-
 pilation  of  the   source  file  by  defining  the  dynamic   predicate
 term_expansion/2.    Transformations  by  this  predicate  overrule  the
@@ -2657,21 +2697,23 @@ rreeppeeaatt
 
 !
     Cut.    Discard choice  points of  parent frame  and frames  created
-    after  the parent  frame.   Note  that the  control structures  ;/2,
-    |/2,  ->/2  and \+/1  are normally handled  by the  compiler and  do
-    not  create a frame,  which implies the  cut operates through  these
-    predicates.   Some  examples are given below.   Note the  difference
-    between t3/1 and t4/1.   Also note the effect of call/1 in t5/0.  As
-    the  argument of call/1 is  evaluated by predicates rather than  the
-    compiler the cut has no effect.
+    after the parent frame.   As of SWI-Prolog 3.3, the semantics of the
+    cut are compliant with  the ISO standard.  This implies that the cut
+    is  transparent to  ;/2, ->/2  and  *->/2.   Cuts  appearing in  the
+    _c_o_n_d_i_t_i_o_n  part of ->/2 and  *->/2 as well  as in \+/1 are local  to
+    the condition.
+
+    As an extension, a  variable goal that is bound the the ! is handled
+    as  a true cut.   This is the  only difference between call/1 and  a
+    variable appearing as subgoal.
 
        t1 :- (a, !, fail ; b).        % cuts a/0 and t1/0
        t2 :- (a -> b, !  ; c).        % cuts b/0 and t2/0
        t3(G) :- a, G, fail.           % if `G = !'  cuts a/0 and t1/1
        t4(G) :- a, call(G), fail.     % if `G = !'  cut has no effect
-       t5 :- call((a, !, fail ; b)).  % Cut has no effect
+       t5 :- call((a, !, fail ; b)).  % cuts a/0
 
-       t6 :- \+(a, !, fail ; b).      % cuts a/0 and t6/0
+       t6 :- \+(a, !, fail ; b).      % cuts a/0
 
 
 _+_G_o_a_l_1 , _+_G_o_a_l_2
@@ -3788,8 +3830,8 @@ ooppeenn((_+_S_r_c_D_e_s_t_, _+_M_o_d_e_, _-_S_t_r_e_a
          full buffering, line buffering  by line, and false implies  the
          stream is  fully unbuffered.   Smaller  buffering is useful  if
          another process or the user is waiting for the output  as it is
-         being produced.   See  also flush/0 and  flush_output/1.   This
-         option is not an ISO option.
+         being produced.   See also flush_output/[0,1].  This option  is
+         not an ISO option.
 
     cclloossee__oonn__aabboorrtt((_B_o_o_l))
          If  true (default),  the  stream is  closed  on an  abort  (see
@@ -4036,15 +4078,15 @@ ppuutt__ccooddee((_+_S_t_r_e_a_m_, _+_C_o_d_e))
 ttaabb((_+_A_m_o_u_n_t))
     Writes  _A_m_o_u_n_t  spaces  on  the  current  output  stream.     _A_m_o_u_n_t
     should  be an expression that  evaluates to a positive integer  (see
-    section 3.25).
+    section 3.26).
 
 
 ttaabb((_+_S_t_r_e_a_m_, _+_A_m_o_u_n_t))
     Writes _A_m_o_u_n_t spaces to _S_t_r_e_a_m.
 
 
-fflluusshh
-    Flush  pending  output  on  current  output  stream.     flush/0  is
+fflluusshh__oouuttppuutt
+    Flush  pending output on current  output stream.   flush_output/0 is
     automatically  generated by  read/1 and derivatives  if the  current
     input stream is user and the cursor is not at the left margin.
 
@@ -4055,7 +4097,7 @@ fflluusshh__oouuttppuutt((_+_S_t_r_e_a_m))
 
 
 ttttyyfflluusshh
-    Flush pending output on stream _u_s_e_r.  See also flush/0.
+    Flush pending output on stream _u_s_e_r.  See also flush_output/[0,1].
 
 
 ggeett__bbyyttee((_-_B_y_t_e))
@@ -4330,6 +4372,11 @@ rreeaadd__tteerrmm((_-_T_e_r_m_, _+_O_p_t_i_o_n_s))
     read/1.   The options are upward compatible to Quintus Prolog.   The
     argument order is  according to the ISO standard.  Syntax-errors are
     always reported using exception-handling (see catch/3).  Options:
+
+    vvaarriiaabblleess((_V_a_r_s))
+         Unify  _V_a_r_s  with a  list  of  variables  in the  term.     The
+         variables appear in  the order they have  been read.  See  also
+         free_variables/2.  (ISO).
 
     vvaarriiaabbllee__nnaammeess((_V_a_r_s))
          Unify _V_a_r_s with a list  of `_N_a_m_e = _V_a_r', where _N_a_m_e is  an atom
@@ -4800,7 +4847,7 @@ differences:
     efficient.
 
   o _d_e_s_t_r_u_c_t_i_o_n
-    Backtracking  destroys  atoms at  no cost.    They  cheap to  handle
+    Backtracking destroys strings at  no cost.  They are cheap to handle
     by  the garbage  collector, but  it should be  noted that  extensive
     use  of strings will cause many  garbage collections.  Atom  garbage
     collection is generally faster.
@@ -4918,7 +4965,26 @@ ccuurrrreenntt__oopp((_?_P_r_e_c_e_d_e_n_c_e_, _?_T_y_
     with precedence _P_r_e_c_e_d_e_n_c_e.  See also op/3.
 
 
-33..2255 AArriitthhmmeettiicc
+33..2255 CChhaarraacctteerr CCoonnvveerrssiioonn
+
+Although I  wouldn't really know  for what you would  like to use  these
+features, they are provided for ISO complicancy.
+
+
+cchhaarr__ccoonnvveerrssiioonn((_+_C_h_a_r_I_n_, _+_C_h_a_r_O_u_t))
+    Define  that term-input (see  read_term/3)  maps each character  read
+    as  _C_h_a_r_I_n to the character _C_h_a_r_O_u_t.   Character conversion is  only
+    executed  if the prolog-flag char_conversion is set to true  and not
+    inside  quoted  atoms or  strings.    The  initial table  maps  each
+    character onto itself.  See also current_char_conversion/2.
+
+
+ccuurrrreenntt__cchhaarr__ccoonnvveerrssiioonn((_?_C_h_a_r_I_n_, _?_C_h_a_r_O_u_t))
+    Queries    the   current   character   conversion-table.         See
+    char_conversion/2 for details.
+
+
+33..2266 AArriitthhmmeettiicc
 
 Arithmetic can be  divided into some special purpose integer  predicates
 and  a series  of  general predicates  for  floating point  and  integer
@@ -4934,7 +5000,7 @@ optional.
 
 The  general  arithmetic   predicates  all  handle  _e_x_p_r_e_s_s_i_o_n_s.      An
 expression is either a simple number or a _f_u_n_c_t_i_o_n.   The arguments of a
-function are expressions.  The functions are described in section 3.26.
+function are expressions.  The functions are described in section 3.27.
 
 
 bbeettwweeeenn((_+_L_o_w_, _+_H_i_g_h_, _?_V_a_l_u_e))
@@ -5005,7 +5071,7 @@ _-_N_u_m_b_e_r iiss _+_E_x_p_r
          ?- 1.0 =:= sin(pi/2).        Succeeds as expected.
 
 
-33..2266 AArriitthhmmeettiicc FFuunnccttiioonnss
+33..2277 AArriitthhmmeettiicc FFuunnccttiioonnss
 
 Arithmetic functions  are terms  which are evaluated  by the  arithmetic
 predicates described  above.   SWI-Prolog tries  to hide the  difference
@@ -5236,7 +5302,7 @@ ccppuuttiimmee
     time/1.
 
 
-33..2277 AAddddiinngg AArriitthhmmeettiicc FFuunnccttiioonnss
+33..2288 AAddddiinngg AArriitthhmmeettiicc FFuunnccttiioonnss
 
 Prolog predicates  can be given  the role of arithmetic  function.   The
 last  argument is  used  to  return the  result,  the  arguments  before
@@ -5278,7 +5344,7 @@ ccuurrrreenntt__aarriitthhmmeettiicc__ffuunnccttiioon
     the context module with _H_e_a_d.
 
 
-33..2288 LLiisstt MMaanniippuullaattiioonn
+33..2299 LLiisstt MMaanniippuullaattiioonn
 
 
 iiss__lliisstt((_+_T_e_r_m))
@@ -5365,7 +5431,7 @@ mmeerrggee((_+_L_i_s_t_1_, _+_L_i_s_t_2_, _-_L_i_s_t_3
     removed.
 
 
-33..2299 SSeett MMaanniippuullaattiioonn
+33..3300 SSeett MMaanniippuullaattiioonn
 
 
 iiss__sseett((_+_S_e_t))
@@ -5409,7 +5475,7 @@ mmeerrggee__sseett((_+_S_e_t_1_, _+_S_e_t_2_, _-_S_e_t
     duplicates holding the union of the elements of _S_e_t_1 and _S_e_t_2.
 
 
-33..3300 SSoorrttiinngg LLiissttss
+33..3311 SSoorrttiinngg LLiissttss
 
 
 ssoorrtt((_+_L_i_s_t_, _-_S_o_r_t_e_d))
@@ -5443,7 +5509,7 @@ pprreeddssoorrtt((_+_P_r_e_d_, _+_L_i_s_t_, _-_S_o_r_t
     the result is the same as sort/2.  See also keysort/2.
 
 
-33..3311 FFiinnddiinngg aallll SSoolluuttiioonnss ttoo aa GGooaall
+33..3322 FFiinnddiinngg aallll SSoolluuttiioonnss ttoo aa GGooaall
 
 
 ffiinnddaallll((_+_V_a_r_, _+_G_o_a_l_, _-_B_a_g))
@@ -5496,7 +5562,7 @@ sseettooff((_+_V_a_r_, _+_G_o_a_l_, _-_S_e_t))
     sorted list of alternatives without duplicates.
 
 
-33..3322 IInnvvookkiinngg PPrreeddiiccaatteess oonn aallll MMeemmbbeerrss ooff aa LLiisstt
+33..3333 IInnvvookkiinngg PPrreeddiiccaatteess oonn aallll MMeemmbbeerrss ooff aa LLiisstt
 
 All the predicates in this section call a predicate on  all members of a
 list or until the  predicate called fails.  The predicate is  called via
@@ -5527,7 +5593,7 @@ ssuubblliisstt((_+_P_r_e_d_, _+_L_i_s_t_1_, _?_L_i_s_t
     applies.
 
 
-33..3333 FFoorraallll
+33..3344 FFoorraallll
 
 
 ffoorraallll((_+_C_o_n_d_, _+_A_c_t_i_o_n))
@@ -5539,7 +5605,7 @@ ffoorraallll((_+_C_o_n_d_, _+_A_c_t_i_o_n))
                      Result =:= Formula).
 
 
-33..3344 FFoorrmmaatttteedd WWrriittee
+33..3355 FFoorrmmaatttteedd WWrriittee
 
 The  current  version   of  SWI-Prolog  provides  two  formatted   write
 predicates.    The  first  is writef/[1,2],  which  is  compatible  with
@@ -5550,7 +5616,7 @@ format/[1,2] as this predicate is defined in  C. Otherwise compatibility
 reasons might tell you which predicate to use.
 
 
-33..3344..11 WWrriitteeff
+33..3355..11 WWrriitteeff
 
 
 wwrriittee__llnn((_+_T_e_r_m))
@@ -5636,7 +5702,7 @@ sswwrriitteeff((_-_S_t_r_i_n_g_, _+_F_o_r_m_a_t))
     Equivalent to swritef(String, Format, []).
 
 
-33..3344..22 FFoorrmmaatt
+33..3355..22 FFoorrmmaatt
 
 
 ffoorrmmaatt((_+_F_o_r_m_a_t))
@@ -5771,7 +5837,7 @@ ssffoorrmmaatt((_-_S_t_r_i_n_g_, _+_F_o_r_m_a_t))
     Equivalent to `sformat(String, Format, []).'
 
 
-33..3344..33 PPrrooggrraammmmiinngg FFoorrmmaatt
+33..3355..33 PPrrooggrraammmmiinngg FFoorrmmaatt
 
 
 ffoorrmmaatt__pprreeddiiccaattee((_+_C_h_a_r_, _+_H_e_a_d))
@@ -5802,7 +5868,7 @@ ccuurrrreenntt__ffoorrmmaatt__pprreeddiiccaattee((_?_
     the definition module of the predicate.
 
 
-33..3355 TTeerrmmiinnaall CCoonnttrrooll
+33..3366 TTeerrmmiinnaall CCoonnttrrooll
 
 The  following  predicates  form  a  simple  access   mechanism  to  the
 Unix  termcap library  to provide  terminal independent  I/O for  screen
@@ -5839,7 +5905,7 @@ sseett__ttttyy((_-_O_l_d_S_t_r_e_a_m_, _+_N_e_w_S_t_r_
     specific stream.  Default is user_output.
 
 
-33..3366 OOppeerraattiinngg SSyysstteemm IInntteerraaccttiioonn
+33..3377 OOppeerraattiinngg SSyysstteemm IInntteerraaccttiioonn
 
 
 sshheellll((_+_C_o_m_m_a_n_d_, _-_S_t_a_t_u_s))
@@ -5922,7 +5988,7 @@ uunniixx((_+_C_o_m_m_a_n_d))
          application arguments are separated  by --.  Integer  arguments
          are  passed as  Prolog  integers,  float arguments  and  Prolog
          floating  point  numbers and  all  other  arguments  as  Prolog
-         atoms.
+         atoms.  New applications should use the prolog-flag argv.
 
          A  stand-alone program  could  use  the following  skeleton  to
          handle command-line arguments.  See also section 2.10.2.3.
@@ -5934,9 +6000,9 @@ uunniixx((_+_C_o_m_m_a_n_d))
 
 
 ggeett__ttiimmee((_-_T_i_m_e))
-    Return  the number of seconds that elapsed since the epoch  of Unix,
-    1  January 1970, 0  hours.  _T_i_m_e  is a floating  point number.   Its
-    granularity is system dependent.  On sun, this is 1/60 of a second.
+    Return  the number of  seconds that elapsed  since the epoch of  the
+    POSIX,  tim representation:   January  1970,  0 hours.    _T_i_m_e is  a
+    floating point number.  The granularity is system dependent.
 
 
 ccoonnvveerrtt__ttiimmee((_+_T_i_m_e_, _-_Y_e_a_r_, _-_M_o_n_t_h_, _-_D_a_y_, _-_H_o_u_r_, _-_M_i_n_u_t_e_, _-_S_e_c_o_n_d_, _-_M_i_l_l_i_S_e_c_o_n_d_s))
@@ -5958,7 +6024,7 @@ ccoonnvveerrtt__ttiimmee((_+_T_i_m_e_, _-_S_t_r_i_n_g)
     also convert_time/8.
 
 
-33..3377 FFiillee SSyysstteemm IInntteerraaccttiioonn
+33..3388 FFiillee SSyysstteemm IInntteerraaccttiioonn
 
 
 aacccceessss__ffiillee((_+_F_i_l_e_, _+_M_o_d_e))
@@ -6122,7 +6188,7 @@ cchhddiirr((_+_P_a_t_h))
     Change working directory to _P_a_t_h.
 
 
-33..3388 MMuullttii--tthhrreeaaddiinngg ((aallpphhaa ccooddee))
+33..3399 MMuullttii--tthhrreeaaddiinngg ((aallpphhaa ccooddee))
 
 TThhee ffeeaattuurreess ddeessccrriibbeedd iinn tthhiiss sseeccttiioonn aarree oonnllyy eennaabblleedd  oonn UUnniixx ssyysstteemmss
 pprroovviiddiinngg  PPOOSSIIXX tthhrreeaaddss  aanndd  iiff tthhee  ssyysstteemm  iiss ccoonnffiigguurreedd  uussiinngg  tthhee
@@ -6263,7 +6329,7 @@ tthhrreeaadd__aatt__eexxiitt((_:_G_o_a_l))
     already available through current_thread/2.
 
 
-33..3388..11 TThhrreeaadd ccoommmmuunniiccaattiioonn
+33..3399..11 TThhrreeaadd ccoommmmuunniiccaattiioonn
 
 Prolog  threads can  exchange data  using dynamic  predicates,  database
 records, and  other globally shared  data.  In  addition, they can  send
@@ -6326,7 +6392,7 @@ tthhrreeaadd__ssiiggnnaall((_+_T_h_r_e_a_d_I_d_, _:_G_
     the receiving thread.
 
 
-33..3388..22 TThhrreeaadd ssyynncchhrroonniissaattiioonn
+33..3399..22 TThhrreeaadd ssyynncchhrroonniissaattiioonn
 
 All  internal Prolog  operations  are thread-safe.    This  implies  two
 Prolog  threads  can  operate on  the  same  dynamic  predicate  without
@@ -6421,7 +6487,7 @@ wwiitthh__mmuutteexx((_+_M_u_t_e_x_I_d_, _:_G_o_a_l))
     as once/1.
 
 
-33..3388..33 TThhrreeaadd--ssuuppppoorrtt lliibbrraarryy((tthhrreeaadduuttiill))
+33..3399..33 TThhrreeaadd--ssuuppppoorrtt lliibbrraarryy((tthhrreeaadduuttiill))
 
 This library  defines a  couple of useful  predicates for  demonstrating
 and debugging  multi-threaded applications.   This library is  certainly
@@ -6455,14 +6521,14 @@ aattttaacchh__ccoonnssoollee
     ?- thread_signal(10, (attach_console, trace)).
 
 
-33..3388..44 SSttaattuuss ooff tthhee tthhrreeaadd iimmpplleemmeennttaattiioonn
+33..3399..44 SSttaattuuss ooff tthhee tthhrreeaadd iimmpplleemmeennttaattiioonn
 
 It is assumed that  the basic Prolog execution is thread-safe.   Various
 problems  are  to  be  expected  though,  both  dead-locks  as  well  as
 not-thread-safe code in builtin-predicates.
 
 
-33..3399 UUsseerr TToopplleevveell MMaanniippuullaattiioonn
+33..4400 UUsseerr TToopplleevveell MMaanniippuullaattiioonn
 
 
 bbrreeaakk
@@ -6536,7 +6602,7 @@ eexxppaanndd__aannsswweerr((_+_B_i_n_d_i_n_g_s_, _-_E_
     be unified with the bindings the toplevel should print.
 
 
-33..4400 CCrreeaattiinngg aa PPrroottooccooll ooff tthhee UUsseerr IInntteerraaccttiioonn
+33..4411 CCrreeaattiinngg aa PPrroottooccooll ooff tthhee UUsseerr IInntteerraaccttiioonn
 
 SWI-Prolog offers the  possibility to log the interaction with  the user
 on  a file.    All  Prolog interaction,  including warnings  and  tracer
@@ -6563,7 +6629,7 @@ pprroottooccoolllliinngg((_-_F_i_l_e))
     and unifies _F_i_l_e with the current protocol output file.
 
 
-33..4411 DDeebbuuggggiinngg aanndd TTrraacciinngg PPrrooggrraammss
+33..4422 DDeebbuuggggiinngg aanndd TTrraacciinngg PPrrooggrraammss
 
 
 ttrraaccee
@@ -6615,15 +6681,20 @@ nnoottrraaccee((_+_G_o_a_l))
 
 
 ddeebbuugg
-    Start debugger (stop at spy points).
+    Start  debugger.     In  debug  mode,   Prolog  stops  at  spy-  and
+    trace-points,  disables tail-recursion  optimisation and  aggressive
+    destruction   of   choice-points  to   make  debugging   information
+    accessible.  Implemented by the Prolog flag debug.
 
 
 nnooddeebbuugg
-    Stop debugger (do not trace, nor stop at spy points).
+    Stop  debugger.  Implementated by the  prolog flag debug.   See also
+    debug/0.
 
 
 ddeebbuuggggiinngg
-    Print debug status and spy points on current output stream.
+    Print  debug status and  spy points on current  output stream.   See
+    also the prolog flag debug.
 
 
 ssppyy((_+_P_r_e_d))
@@ -6656,21 +6727,10 @@ vviissiibbllee((_+_P_o_r_t_s))
 
 
 uunnkknnoowwnn((_-_O_l_d_, _+_N_e_w))
-    Unify  _O_l_d  with  the current  value  of  the unknown  system  flag.
-    On  success  _N_e_w  will be  used  to specify  the  new  value.    _N_e_w
-    should  be  instantiated  to either  fail  or trace  and  determines
-    the  interpreters action  when an undefined  predicate which is  not
-    declared  dynamic  is encountered  (see dynamic/1).    fail  implies
-    the  predicate  just  fails silently.     trace implies  the  tracer
-    is  started.    Default is  trace.   The  unknown flag  is local  to
-    each  module and unknown/2  is module  transparent.   Using it as  a
-    directive  in a module  file will only  change the unknown flag  for
-    that  module.   Using the  :/2 construct  the behaviour on  trapping
-    an  undefined predicate can  be changed for any  module.  Note  that
-    if  the unknown flag  for a module equals  fail the system will  not
-    call  exception/3 and will nnoott try to resolve the predicate  via the
-    dynamic  library system.   The system will  still try to import  the
-    predicate from the public module.
+    Edinburgh-prolog  compatibility predicate,  interfacing  to the  ISO
+    prolog  flag unknown.   Values are  trace (meaning error) and  fail.
+    If  the unknown flag is set to warning, unknown/2 reports  the value
+    as trace.
 
 
 ssttyyllee__cchheecckk((_+_S_p_e_c))
@@ -6710,7 +6770,7 @@ ssttyyllee__cchheecckk((_+_S_p_e_c))
     |_______________|________|(current_prolog_flag/2).__________________|
 
 
-33..4422 OObbttaaiinniinngg RRuunnttiimmee SSttaattiissttiiccss
+33..4433 OObbttaaiinniinngg RRuunnttiimmee SSttaattiissttiiccss
 
 
 ssttaattiissttiiccss((_+_K_e_y_, _-_V_a_l_u_e))
@@ -6771,7 +6831,7 @@ ttiimmee((_+_G_o_a_l))
     theoretical 4-port model.
 
 
-33..4433 FFiinnddiinngg PPeerrffoorrmmaannccee BBoottttlleenneecckkss
+33..4444 FFiinnddiinngg PPeerrffoorrmmaannccee BBoottttlleenneecckkss
 
 SWI-Prolog  offers  a  statistical  program  profiler  similar  to  Unix
 prof(1) for C  and some other languages.   A profiler is used as  an aid
@@ -6837,7 +6897,7 @@ pprrooffiillee__ccoouunntt((_+_H_e_a_d_, _-_C_a_l_l_s_
     stack (plain).  _P_r_o_m_i_l_a_g_e is an integer between 0 and 1000.
 
 
-33..4444 MMeemmoorryy MMaannaaggeemmeenntt
+33..4455 MMeemmoorryy MMaannaaggeemmeenntt
 
 Note:    limit_stack/2 and  trim_stacks/0 have  no  effect  on  machines
 that do  not offer  dynamic stack expansion.    On these machines  these
@@ -6902,7 +6962,7 @@ ssttaacckk__ppaarraammeetteerr((_+_S_t_a_c_k_, _+_K_e_
     definition is subject to change.
 
 
-33..4455 WWiinnddoowwss DDDDEE iinntteerrffaaccee
+33..4466 WWiinnddoowwss DDDDEE iinntteerrffaaccee
 
 The  predicates in  this  section  deal with  MS-Windows  `Dynamic  Data
 Exchange'  or DDE  protocol.    A Windows  DDE  conversation is  a  form
@@ -6912,7 +6972,7 @@ between the communicating processes.
 See also section 5.4 for loading Windows DLL's into SWI-Prolog.
 
 
-33..4455..11 DDDDEE cclliieenntt iinntteerrffaaccee
+33..4466..11 DDDDEE cclliieenntt iinntteerrffaaccee
 
 The DDE client interface  allows Prolog to talk to DDE  server programs.
 We  will demonstrate  the use  of the  DDE interface  using the  Windows
@@ -6975,7 +7035,7 @@ ddddee__ppookkee((_+_H_a_n_d_l_e_, _+_I_t_e_m_, _+_C_o
     is passed as data of type CF_TEXT.
 
 
-33..4455..22 DDDDEE sseerrvveerr mmooddee
+33..4466..22 DDDDEE sseerrvveerr mmooddee
 
 The (autoload)  library(dde) defines  primitives to  realise simple  DDE
 server applications in  SWI-Prolog.  These  features are provided as  of
@@ -7034,7 +7094,7 @@ ddddee__ccuurrrreenntt__ccoonnnneeccttiioonn((_-_S_e_
     Find currently open conversations.
 
 
-33..4466 MMiisscceellllaanneeoouuss
+33..4477 MMiisscceellllaanneeoouuss
 
 
 ddwwiimm__mmaattcchh((_+_A_t_o_m_1_, _+_A_t_o_m_2))
@@ -8215,7 +8275,7 @@ With  the introduction  of  atom-garbage  collection in  version  3.3.0,
 atoms  no longer  have live  as long  as the  process.   Instead,  their
 lifetime is  guaranteed only as  long as  they are referenced.   In  the
 single-threaded version,  atom garbage collections  are only invoked  at
-the _c_a_l_l_-_p_o_r_t.   In the multi-threaded  version (see section 3.38,  they
+the _c_a_l_l_-_p_o_r_t.   In the multi-threaded  version (see section 3.39,  they
 appear asynchronously, except for the invoking thread.
 
 For dealing with  atom garbage collection, two additional  functions are
@@ -9313,7 +9373,7 @@ term_t PPLL__eexxcceeppttiioonn(_q_i_d___t _q_i_d)
 55..66..1100 FFoorreeiiggnn ccooddee aanndd PPrroolloogg tthhrreeaaddss
 
 If  SWI-Prolog   has  been   build  to   support  multi-threading   (see
-section 3.38), all  foreign-code linked to Prolog should  be thread-safe
+section 3.39), all  foreign-code linked to Prolog should  be thread-safe
 (_r_e_e_n_t_r_a_n_t) or  guarded in Prolog  using with_mutex/2 from  simultaneous
 access from multiple  Prolog threads.   On Unix systems, this  generally
 implies the  code should be compiled  with the -D_REENTRANT flag  passed
@@ -9810,7 +9870,7 @@ netmask/4, holding the 4 submasks as integer arguments.
 
 As the implementation is trivial, we will omit this here.
 
-TThhee DDDDEE  iinntteerrffaaccee (see section  3.45) represents  another common  usage
+TThhee DDDDEE  iinntteerrffaaccee (see section  3.46) represents  another common  usage
 of  the foreign  interface:   providing communication  to new  operating
 system features.  The DDE interface requires knowledge  about active DDE
 server and  client channels.   These  channels contains various  foreign
@@ -10842,7 +10902,7 @@ pprroolloogg__ttrraaccee__iinntteerrcceeppttiioonn((_
     or fail (force the  current goal to fail).  Leaving it a variable is
     identical to continue.
 
-    Together  with  the predicates  described in  section  3.41 and  the
+    Together  with  the predicates  described in  section  3.42 and  the
     other  predicates of this chapter this predicate enables  the Prolog
     user  to define a complete new debugger in Prolog.  Besides  this it
     enables  the Prolog programmer monitor  the execution of a  program.
@@ -10940,541 +11000,544 @@ CChhaapptteerr 88..  SSUUMMMMAARRYY
 The  predicate summary  is used  by the  Prolog  predicate apropos/1  to
 suggest predicates from a keyword.
 
- !/0                      Cut (discard choicepoints)
- !/1                      Cut block.  See block/3
- ,/2                      Conjunction of goals
- ->/2                     If-then-else
- *->/2                    Soft-cut
- ./2                      Consult.  Also list constructor
- ;/2                      Disjunction of goals.  Same as |/2
- </2                      Arithmetic smaller
+ !/0                           Cut (discard choicepoints)
+ !/1                           Cut block.  See block/3
+ ,/2                           Conjunction of goals
+ ->/2                          If-then-else
+ *->/2                         Soft-cut
+ ./2                           Consult.  Also list constructor
+ ;/2                           Disjunction of goals.  Same as |/2
+ </2                           Arithmetic smaller
 
- =/2                      Unification
- =../2                    ``Univ.''  Term to list conversion
- =:=/2                    Arithmetic equal
- =</2                     Arithmetic smaller or equal
- ==/2                     Identical
- =@=/2                    Structural identical
- =\=/2                    Arithmetic not equal
+ =/2                           Unification
+ =../2                         ``Univ.''  Term to list conversion
+ =:=/2                         Arithmetic equal
+ =</2                          Arithmetic smaller or equal
+ ==/2                          Identical
+ =@=/2                         Structural identical
+ =\=/2                         Arithmetic not equal
 
- >/2                      Arithmetic larger
- >=/2                     Arithmetic larger or equal
- @</2                     Standard order smaller
- @=</2                    Standard order smaller or equal
- @>/2                     Standard order larger
- @>=/2                    Standard order larger or equal
- \+/1                     Negation by failure.  Same as not/1
- \=/2                     Not unifyable
+ >/2                           Arithmetic larger
+ >=/2                          Arithmetic larger or equal
+ @</2                          Standard order smaller
+ @=</2                         Standard order smaller or equal
+ @>/2                          Standard order larger
+ @>=/2                         Standard order larger or equal
+ \+/1                          Negation by failure.  Same as not/1
+ \=/2                          Not unifyable
 
- \==/2                    Not identical
- \=@=/2                   Not structural identical
- ^/2                      Existential quantification (bagof/3, setof/3)
- |/2                      Disjunction of goals.  Same as ;/2
- abolish/1                Remove predicate definition from the database
- abolish/2                Remove predicate definition from the database
- abort/0                  Abort execution, return to top level
+ \==/2                         Not identical
+ \=@=/2                        Not structural identical
+ ^/2                           Existential quantification (bagof/3, setof/3)
+ |/2                           Disjunction of goals.  Same as ;/2
+ abolish/1                     Remove predicate definition from the database
+ abolish/2                     Remove predicate definition from the database
+ abort/0                       Abort execution, return to top level
 
- absolute_file_name/2     Get absolute path name
- absolute_file_name/3     Get absolute path name with options
- access_file/2            Check access permissions of a file
- append/1                 Append to a file
- append/3                 Concatenate lists
- apply/2                  Call goal with additional arguments
- apropos/1                library(online_help) Show related predicates and manual sections
- arg/3                    Access argument of a term
+ absolute_file_name/2          Get absolute path name
+ absolute_file_name/3          Get absolute path name with options
+ access_file/2                 Check access permissions of a file
+ append/1                      Append to a file
+ append/3                      Concatenate lists
+ apply/2                       Call goal with additional arguments
+ apropos/1                     library(online_help) Show related predicates and manual sections
+ arg/3                         Access argument of a term
 
- arithmetic_function/1    Register an evaluable function
- assert/1                 Add a clause to the database
- assert/2                 Add a clause to the database, give reference
- asserta/1                Add a clause to the database (first)
- asserta/2                Add a clause to the database (first)
- assertz/1                Add a clause to the database (last)
- assertz/2                Add a clause to the database (last)
+ arithmetic_function/1         Register an evaluable function
+ assert/1                      Add a clause to the database
+ assert/2                      Add a clause to the database, give reference
+ asserta/1                     Add a clause to the database (first)
+ asserta/2                     Add a clause to the database (first)
+ assertz/1                     Add a clause to the database (last)
+ assertz/2                     Add a clause to the database (last)
 
- attach_console/0         Attach I/O console to thread
- at_end_of_stream/0       Test for end of file on input
- at_end_of_stream/1       Test for end of file on stream
- at_halt/1                Register goal to run at halt/1
- at_initialization/1      Register goal to run at start-up
- atom/1                   Type check for an atom
- atom_chars/2             Convert between atom and list of characters
- atom_codes/2             Convert between atom and list of ASCII values
+ attach_console/0              Attach I/O console to thread
+ at_end_of_stream/0            Test for end of file on input
+ at_end_of_stream/1            Test for end of file on stream
+ at_halt/1                     Register goal to run at halt/1
+ at_initialization/1           Register goal to run at start-up
+ atom/1                        Type check for an atom
+ atom_chars/2                  Convert between atom and list of characters
+ atom_codes/2                  Convert between atom and list of ASCII values
 
- atom_length/2            Determine length of an atom
- atom_prefix/2            Test for start of atom
- atom_to_term/3           Convert between atom and term
- atomic/1                 Type check for primitive
- autoload/0               Autoload all predicates now
- bagof/3                  Find all solutions to a goal
- between/3                Integer range checking/generating
+ atom_length/2                 Determine length of an atom
+ atom_prefix/2                 Test for start of atom
+ atom_to_term/3                Convert between atom and term
+ atomic/1                      Type check for primitive
+ autoload/0                    Autoload all predicates now
+ bagof/3                       Find all solutions to a goal
+ between/3                     Integer range checking/generating
 
- block/3                      Start a block (`catch'/`throw')
- break/0                      Start interactive toplevel
- call/1                       Call a goal
- call/[2..]                   Call with additional arguments
- call_shared_object_function/2UNIX: Call C-function in shared (.so) file
- call_with_depth_limit/3      Prove goal with bounded depth
- catch/3                      Call goal, watching for exceptions
- char_code/2                  Convert between atom and ASCII value
+ block/3                       Start a block (`catch'/`throw')
+ break/0                       Start interactive toplevel
+ call/1                        Call a goal
+ call/[2..]                    Call with additional arguments
+ call_shared_object_function/2 UNIX: Call C-function in shared (.so) file
+ call_with_depth_limit/3       Prove goal with bounded depth
+ catch/3                       Call goal, watching for exceptions
+ char_code/2                   Convert between atom and ASCII value
 
- char_type/2                  Classify characters
- character_count/2            Get character index on a stream
- chdir/1                      Change working directory
- checklist/2                  Invoke goal on all members of a list
- clause/2                     Get clauses of a predicate
- clause/3                     Get clauses of a predicate
- clause_property/2            Get properties of a clause
+ char_conversion/2             Provide mapping of input characters
+ char_type/2                   Classify characters
+ character_count/2             Get character index on a stream
+ chdir/1                       Change working directory
+ checklist/2                   Invoke goal on all members of a list
+ clause/2                      Get clauses of a predicate
+ clause/3                      Get clauses of a predicate
 
- close/1                      Close stream
- close/2                      Close stream (forced)
- close_dde_conversation/1     Win32:  Close DDE channel
- close_shared_object/1        UNIX: Close shared library (.so file)
- compare/3                    Compare, using a predicate to determine the order
+ clause_property/2             Get properties of a clause
+ close/1                       Close stream
+ close/2                       Close stream (forced)
+ close_dde_conversation/1      Win32:  Close DDE channel
+ close_shared_object/1         UNIX: Close shared library (.so file)
+ compare/3                     Compare, using a predicate to determine the order
  compiling/0                   Is this a compilation run?
  compound/1                    Test for compound term
- atom_concat/3                 Append two atoms
 
+ atom_concat/3                 Append two atoms
  code_type/2                   Classify a character-code
  concat_atom/2                 Append a list of atoms
  concat_atom/3                 Append a list of atoms with separator
  consult/1                     Read (compile) a Prolog source file
  context_module/1              Get context module of current goal
  convert_time/8                Break time stamp into fields
- convert_time/2                Convert time stamp to string
 
+ convert_time/2                Convert time stamp to string
  copy_stream_data/2            Copy all data from stream to stream
  copy_stream_data/3            Copy n bytes from stream to stream
  copy_term/2                   Make a copy of a term
  current_arithmetic_function/1 Examine evaluable functions
  current_atom/1                Examine existing atoms
+ current_char_conversion/2     Query input character mapping
  current_flag/1                Examine existing flags
+
  current_foreign_library/2     library(shlib) Examine loaded shared libraries (.so files)
  current_format_predicate/2    Enumerate user-defined format codes
-
  current_functor/2             Examine existing name/arity pairs
  current_input/1               Get current input stream
  current_key/1                 Examine existing database keys
  current_module/1              Examine existing modules
  current_module/2              Examine existing modules
+
  current_mutex/3               Examine existing mutexes
  current_op/3                  Examine current operator declarations
-
  current_output/1              Get the current output stream
  current_predicate/2           Examine existing predicates
  current_signal/3              Current software signal mapping
  current_stream/3              Examine open streams
  current_thread/2              Examine Prolog threads
  dde_current_connection/2      Win32:  Examine open DDE connections
+
  dde_current_service/2         Win32:  Examine DDE services provided
  dde_execute/2                 Win32:  Execute command on DDE server
-
  dde_register_service/2        Win32:  Become a DDE server
  dde_request/3                 Win32:  Make a DDE request
  dde_poke/3                    Win32:  POKE operation on DDE server
  dde_unregister_service/1      Win32:  Terminate a DDE service
  debug/0                       Test for debugging mode
+
  debugging/0                   Show debugger status
  default_module/2              Get the default modules of a module
-
  delete/3                      Delete all matching members from a list
  delete_file/1                 Remove a file from the file system
  discontiguous/1               Indicate distributed definition of a predicate
  dwim_match/2                  Atoms match in ``Do What I Mean'' sense
  dwim_match/3                  Atoms match in ``Do What I Mean'' sense
  dwim_predicate/2              Find predicate in ``Do What I Mean'' sense
+
  dynamic/1                     Indicate predicate definition may change
  edit/1                        Edit a file
-
  ensure_loaded/1               Consult a file if that has not yet been done
  erase/1                       Erase a database record or clause
  exception/3                   (hook) Handle runtime exceptions
  exists_directory/1            Check existence of directory
  exists_file/1                 Check existence of file
+
  exit/2                        Exit from named block.  See block/3
  expand_answer/2               Expand answer of query
-
  expand_file_name/2            Wildcard expansion of file names
  expand_file_search_path/2     Wildcard expansion of file paths
  expand_goal/2                 Compiler:  expand goal in clause-body
  expand_query/4                Expanded entered query
  expand_term/2                 Compiler:  expand read term into clause(s)
  explain/1                     library(explain) Explain argument
+
  explain/2                     library(explain) 2nd argument is explanation of first
  export/1                      Export a predicate from a module
-
  export_list/2                 List of public predicates of a module
  fail/0                        Always false
  fail/1                        Immediately fail named block.  See block/3
  current_prolog_flag/2         Get system configuration parameters
  file_base_name/2              Get file part of path
+
  file_directory_name/2         Get directory part of path
  file_name_extension/3         Add, remove or test file extensions
-
  file_search_path/2            Define path-aliases for locating files
  fileerrors/2                  Do/Don't warn on file errors
  findall/3                     Find all solutions to a goal
  flag/3                        Simple global variable system
  flatten/2                     Transform nested list into flat list
  float/1                       Type check for a floating point number
- flush/0                       Output pending characters on current stream
- flush_output/1                Output pending characters on specified stream
 
+ flush_output/0                Output pending characters on current stream
+ flush_output/1                Output pending characters on specified stream
  forall/2                      Prove goal for all solutions of another goal
  foreign_file/1                Examine loaded foreign files
  format/1                      Formatted output
  format/2                      Formatted output with arguments
  format/3                      Formatted output on a stream
+
  format_predicate/2            Program format/[1,2]
  free_variables/2              Find unbound variables in a term
-
  functor/3                     Get name and arity of a term or construct a term
  garbage_collect/0             Invoke the garbage collector
  garbage_collect_atoms/0       Invoke the atom garbage collector
  gensym/2                      Generate unique atoms from a base
  get/1                         Read first non-blank character
  get/2                         Read first non-blank character from a stream
+
  get0/1                        Read next character
  get0/2                        Read next character from a stream
-
  get_byte/1                    Read next byte (ISO)
  get_byte/2                    Read next byte from a stream (ISO)
  get_char/1                    Read next character as an atom (ISO)
  get_char/2                    Read next character from a stream (ISO)
  get_code/1                    Read next character (ISO)
+
  get_code/2                    Read next character from a stream (ISO)
  get_single_char/1             Read next character from the terminal
-
  get_time/1                    Get current time
  getenv/2                      Get shell environment variable
  goal_expansion/2              Hook for macro-expanding goals
  ground/1                      Verify term holds no unbound variables
  halt/0                        Exit from Prolog
  halt/1                        Exit from Prolog with status
+
  hash_term/2                   Hash-value of ground term
  help/0                        Give help on help
-
  help/1                        Give help on predicates and show parts of manual
  ignore/1                      Call the argument, but always succeed
  import/1                      Import a predicate from a module
  include/1                     Include a file with declarations
  index/1                       Change clause indexing
+
  initialization/1              Initialization directive
  int_to_atom/2                 Convert from integer to atom
-
  int_to_atom/3                 Convert from integer to atom (non-decimal)
  integer/1                     Type check for integer
  interactor/0                  Start new thread with console and toplevel
  intersection/3                Set intersection
  is/2                          Evaluate arithmetic expression
  is_absolute_file_name/1       True if arg defines an absolute path
+
  is_list/1                     Type check for a list
  is_set/1                      Type check for a set
-
  keysort/2                     Sort, using a key
  last/2                        Last element of a list
  leash/1                       Change ports visited by the tracer
  length/2                      Length of a list
  library_directory/1           (hook) Directories holding Prolog libraries
+
  limit_stack/2                 Limit stack expansion
  line_count/2                  Line number on stream
-
  line_position/2               Character position in line on stream
  list_to_set/2                 Remove duplicates
  listing/0                     List program in current module
  listing/1                     List predicate
  load_files/2                  Load source files with options
  load_foreign_library/1        library(shlib) Load shared library (.so file)
+
  load_foreign_library/2        library(shlib) Load shared library (.so file)
  make/0                        Reconsult all changed source files
-
  make_fat_filemap/1            Win32:  Create file containing non-FAT filenames
  make_library_index/1          Create autoload file INDEX.pl
  maplist/3                     Transform all elements of a list
  member/2                      Element is member of a list
  memberchk/2                   Deterministic member/2
+
  merge/3                       Merge two sorted lists
  merge_set/3                   Merge two sorted sets
-
  message_hook/3                Intercept print_message/2
  meta_predicate/1              Quintus compatibility
  module/1                      Query/set current type-in module
  module/2                      Declare a module
  module_transparent/1          Indicate module based meta predicate
  msort/2                       Sort, do not remove duplicates
+
  multifile/1                   Indicate distributed definition of predicate
  mutex_create/1                Create a thread-synchronisation device
-
  mutex_destroy/1               Destroy a mutex
  mutex_lock/1                  Become owner of a mutex
  mutex_trylock/1               Become owner of a mutex (non-blocking)
  mutex_unlock/1                Release ownership of mutex
  mutex_unlock_all/0            Release ownership of all mutexes
+
  name/2                        Convert between atom and list of ASCII characters
  nl/0                          Generate a newline
-
  nl/1                          Generate a newline on a stream
  nodebug/0                     Disable debugging
  nonvar/1                      Type check for bound term
  noprotocol/0                  Disable logging of user interaction
  nospy/1                       Remove spy point
  nospyall/0                    Remove all spy points
+
  not/1                         Negation by failure (argument not provable).  Same as \+/1
  notrace/0                     Stop tracing
-
  notrace/1                     Do not debug argument goal
  nth0/3                        N-th element of a list (0-based)
  nth1/3                        N-th element of a list (1-based)
  nth_clause/3                  N-th clause of a predicate
  number/1                      Type check for integer or float
+
  number_chars/2                Convert between number and one-char atoms
  number_codes/2                Convert between number and ASCII values
-
  numbervars/4                  Enumerate unbound variables of a term using a given base
  on_signal/3                   Handle a software signal
  once/1                        Call a goal deterministically
  op/3                          Declare an operator
  open/3                        Open a file (creating a stream)
  open/4                        Open a file (creating a stream)
+
  open_dde_conversation/3       Win32:  Open DDE channel
  open_null_stream/1            Open a stream to discard output
-
  open_resource/3               Open a program resource as a stream
  open_shared_object/2          UNIX: Open shared library (.so file)
  open_shared_object/3          UNIX: Open shared library (.so file)
  peek_byte/1                   Read byte without removing
  peek_byte/2                   Read byte without removing
+
  peek_char/1                   Read character without removing
  peek_char/2                   Read character without removing
-
  peek_code/1                   Read character-code without removing
  peek_code/2                   Read character-code without removing
  phrase/2                      Activate grammar-rule set
  phrase/3                      Activate grammar-rule set (returning rest)
  please/3                      Query/change environment parameters
  plus/3                        Logical integer addition
+
  portray/1                     (hook) Modify behaviour of print/1
  portray_clause/1              Pretty print a clause
-
  predicate_property/2          Query predicate attributes
  predsort/3                    Sort, using a predicate to determine the order
  preprocessor/2                Install a preprocessor before the compiler
  print/1                       Print a term
  print/2                       Print a term on a stream
+
  print_message/2               Print message from (exception) term
  print_message_lines/3         Print message to stream
-
  profile/3                     Obtain execution statistics
  profile_count/3               Obtain profile results on a predicate
  profiler/2                    Obtain/change status of the profiler
  prolog/0                      Run interactive toplevel
  prolog_current_frame/1        Reference to goal's environment stack
  prolog_edit:locate/2          Locate targets for edit/1
+
  prolog_edit:locate/3          Locate targets for edit/1
  prolog_edit:edit_source/1     Call editor for edit/1
-
  prolog_edit:edit_command/2    Specify editor activation
  prolog_edit:load/0            Load edit/1 extensions
  prolog_file_type/2            Define meaning of file extension
  prolog_frame_attribute/3      Obtain information on a goal environment
  prolog_list_goal/1            Hook.  Intercept tracer 'L' command
+
  prolog_load_context/2         Context information for directives
  prolog_skip_level/2           Indicate deepest recursion to trace
-
  prolog_to_os_filename/2       Convert between Prolog and OS filenames
  prolog_trace_interception/4   library(user) Intercept the Prolog tracer
  prompt1/1                     Change prompt for 1 line
  prompt/2                      Change the prompt used by read/1
  proper_list/1                 Type check for list
  protocol/1                    Make a log of the user interaction
+
  protocola/1                   Append log of the user interaction to file
  protocolling/1                On what file is user interaction logged
-
  put/1                         Write a character
  put/2                         Write a character on a stream
  put_byte/1                    Write a byte
  put_byte/2                    Write a byte on a stream
  put_char/1                    Write a character
+
  put_char/2                    Write a character on a stream
  put_code/1                    Write a character-code
-
  put_code/2                    Write a character-code on a stream
  qcompile/1                    Compile source to Quick Load File
  qsave_program/1               Create runtime application
  qsave_program/2               Create runtime application
  read/1                        Read Prolog term
  read/2                        Read Prolog term from stream
+
  read_clause/1                 Read clause
  read_clause/2                 Read clause from stream
-
  read_history/6                Read using history substitution
  read_link/3                   Read a symbolic link
  read_term/2                   Read term with options
  read_term/3                   Read term with options from stream
  recorda/2                     Record term in the database (first)
+
  recorda/3                     Record term in the database (first)
  recorded/2                    Obtain term from the database
-
  recorded/3                    Obtain term from the database
  recordz/2                     Record term in the database (last)
  recordz/3                     Record term in the database (last)
  redefine_system_predicate/1   Abolish system definition
  rename_file/2                 Change name of file
  repeat/0                      Succeed, leaving infinite backtrack points
+
  require/1                     This file requires these predicates
  reset_profiler/0              Clear statistics obtained by the profiler
-
  resource/3                    Declare a program resource
  retract/1                     Remove clause from the database
  retractall/1                  Remove unifying clauses from the database
  reverse/2                     Inverse the order of the elements in a list
  same_file/2                   Succeeds if arguments refer to same file
+
  see/1                         Change the current input stream
  seeing/1                      Query the current input stream
-
  seek/4                        Modify the current position in a stream
  seen/0                        Close the current input stream
  select/3                      Select element of a list
  set_input/1                   Set current input stream from a stream
  set_output/1                  Set current output stream from a stream
  set_prolog_flag/2             Define a system feature
+
  set_stream/2                  Set stream attribute
  set_stream_position/2         Seek stream to position
-
  set_tty/2                     Set `tty' stream
  setarg/3                      Destructive assignment on term
  setenv/2                      Set shell environment variable
  setof/3                       Find all unique solutions to a goal
  sformat/2                     Format on a string
+
  sformat/3                     Format on a string
  shell/0                       Execute interactive subshell
-
  shell/1                       Execute OS command
  shell/2                       Execute OS command
  show_profile/1                Show results of the profiler
  size_file/2                   Get size of a file in characters
  skip/1                        Skip to character in current input
  skip/2                        Skip to character on stream
+
  rl_add_history/1              Add line to readline(3) history
  rl_read_init_file/1           Read readline(3) init file
-
  sleep/1                       Suspend execution for specified time
  sort/2                        Sort elements in a list
  source_file/1                 Examine currently loaded source files
  source_file/2                 Obtain source file of predicate
  source_location/2             Location of last read term
+
  spy/1                         Force tracer on specified predicate
  stack_parameter/4             Some systems:  Query/Set runtime stack parameter
-
  statistics/0                  Show execution statistics
  statistics/2                  Obtain collected statistics
  stream_property/2             Get stream properties
  string/1                      Type check for string
  string_concat/3               atom_concat/3for strings
  string_length/2               Determine length of a string
+
  string_to_atom/2              Conversion between string and atom
  string_to_list/2              Conversion between string and list of ASCII
-
  style_check/1                 Change level of warnings
  sub_atom/5                    Take a substring from an atom
  sublist/3                     Determine elements that meet condition
  subset/2                      Generate/check subset relation
  sub_string/5                  Take a substring from a string
+
  subtract/3                    Delete elements that do not meet condition
  succ/2                        Logical integer successor relation
-
  swritef/2                     Formatted write on a string
  swritef/3                     Formatted write on a string
  tab/1                         Output number of spaces
  tab/2                         Output number of spaces on a stream
  tell/1                        Change current output stream
  telling/1                     Query current output stream
+
  term_expansion/2              (hook) Convert term before compilation
  term_to_atom/2                Convert between term and atom
-
  thread_at_exit/1              Register goal to be called at exit
  thread_create/3               Create a new Prolog task
  thread_exit/1                 Terminate Prolog task with value
  thread_get_message/1          Wait for message
  thread_join/2                 Wait for Prolog task-completion
+
  thread_peek_message/1         Test for message in queue
  thread_self/1                 Get identifier of current thread
-
  thread_send_message/2         Send message to another thread
  thread_signal/2               Execute goal in another thread
  threads/0                     List running threads
  throw/1                       Raise an exception (see catch/3)
  time/1                        Determine time needed to execute goal
  time_file/2                   Get last modification time of file
+
  tmp_file/2                    Create a temporary filename
  told/0                        Close current output
-
  trace/0                       Start the tracer
  trace/1                       Set trace-point on predicate
  trace/2                       Set/Clear trace-point on ports
  tracing/0                     Query status of the tracer
  trim_stacks/0                 Release unused memory resources
+
  true/0                        Succeed
  tty_get_capability/3          Get terminal parameter
-
  tty_goto/2                    Goto position on screen
  tty_put/2                     Write control string to terminal
  ttyflush/0                    Flush output on terminal
  union/3                       Union of two sets
  unify_with_occurs_check/2     Logically sound unification
  unix/1                        OS interaction
+
  unknown/2                     Trap undefined predicates
  unload_foreign_library/1      library(shlib) Detach shared library (.so file)
-
  unsetenv/1                    Delete shell environment variable
  use_module/1                  Import a module
  use_module/2                  Import predicates from a module
  var/1                         Type check for unbound variable
  visible/1                     Ports that are visible in the tracer
+
  volatile/1                    Predicates that are not saved
  wait_for_input/3              Wait for input with optional timeout
-
  wildcard_match/2              Csh(1) style wildcard match
  win_exec/2                    Win32:  spawn Windows task
  with_mutex/2                  Run goal while holding mutex
  write/1                       Write term
  write/2                       Write term to stream
  write_ln/1                    Write term, followed by a newline
+
  write_canonical/1             Write a term with quotes, ignore operators
  write_canonical/2             Write a term with quotes, ignore operators on a stream
-
  write_term/2                  Write term with options
  write_term/3                  Write term with options to stream
  writef/1                      Formatted write
  writef/2                      Formatted write on stream
  writeq/1                      Write term, insert quotes
+
  writeq/2                      Write term, insert quotes on stream
 
 
 88..22 AArriitthhmmeettiicc FFuunnccttiioonnss
 
- */2                Multiplication
- **/2               Power function
+ */2                     Multiplication
+ **/2                    Power function
 
- +/2                Addition
- -/1                Unary minus
- -/2                Subtraction
- //2                Division
- ///2               Integer division
- /\/2               Bitwise and
- <</2               Bitwise left shift
- >>/2               Bitwise right shift
+ +/2                     Addition
+ -/1                     Unary minus
+ -/2                     Subtraction
+ //2                     Division
+ ///2                    Integer division
+ /\/2                    Bitwise and
+ <</2                    Bitwise left shift
+ >>/2                    Bitwise right shift
 
- ./2                List of one character:  character code
- \/1                Bitwise negation
- \//2               Bitwise or
- ^/2                Power function
- abs/1              Absolute value
- acos/1             Inverse (arc) cosine
- asin/1             Inverse (arc) sine
+ ./2                     List of one character:  character code
+ \/1                     Bitwise negation
+ \//2                    Bitwise or
+ ^/2                     Power function
+ abs/1                   Absolute value
+ acos/1                  Inverse (arc) cosine
+ asin/1                  Inverse (arc) sine
 
- atan/1             Inverse (arc) tangent
- atan/2             Rectangular to polar conversion
- ceil/1             Smallest integer larger than arg
+ atan/1                  Inverse (arc) tangent
+ atan/2                  Rectangular to polar conversion
+ ceil/1                  Smallest integer larger than arg
  ceiling/1               Smallest integer larger than arg
  cos/1                   Cosine
  cputime/0               Get CPU time
@@ -11507,51 +11570,51 @@ suggest predicates from a keyword.
 
 88..33 OOppeerraattoorrss
 
- $                   1    fx  Bind toplevel variable
- ^                 200   xfy  Predicate
- ^                 200   xfy  Arithmetic function
- mod               300   xfx  Arithmetic function
- *                 400   yfx  Arithmetic function
- /                 400   yfx  Arithmetic function
- //                400   yfx  Arithmetic function
- <<                400   yfx  Arithmetic function
+ $                     1    fx   Bind toplevel variable
+ ^                   200   xfy   Predicate
+ ^                   200   xfy   Arithmetic function
+ mod                 300   xfx   Arithmetic function
+ *                   400   yfx   Arithmetic function
+ /                   400   yfx   Arithmetic function
+ //                  400   yfx   Arithmetic function
+ <<                  400   yfx   Arithmetic function
 
- >>                400   yfx  Arithmetic function
- xor               400   yfx  Arithmetic function
- +                 500    fx  Arithmetic function
- -                 500    fx  Arithmetic function
- ?                 500    fx  XPCE: obtainer
- \                 500    fx  Arithmetic function
- +                 500   yfx  Arithmetic function
+ >>                  400   yfx   Arithmetic function
+ xor                 400   yfx   Arithmetic function
+ +                   500    fx   Arithmetic function
+ -                   500    fx   Arithmetic function
+ ?                   500    fx   XPCE: obtainer
+ \                   500    fx   Arithmetic function
+ +                   500   yfx   Arithmetic function
 
- -                 500   yfx  Arithmetic function
- /\                500   yfx  Arithmetic function
- \/                500   yfx  Arithmetic function
- :                 600   xfy  module:term separator
- <                 700   xfx  Predicate
- =                 700   xfx  Predicate
- =..               700   xfx  Predicate
- =:=               700   xfx  Predicate
+ -                   500   yfx   Arithmetic function
+ /\                  500   yfx   Arithmetic function
+ \/                  500   yfx   Arithmetic function
+ :                   600   xfy   module:term separator
+ <                   700   xfx   Predicate
+ =                   700   xfx   Predicate
+ =..                 700   xfx   Predicate
+ =:=                 700   xfx   Predicate
 
- <                 700   xfx  Predicate
- ==                700   xfx  Predicate
- =@=               700   xfx  Predicate
- =\=               700   xfx  Predicate
- >                 700   xfx  Predicate
- >=                700   xfx  Predicate
- @<                700   xfx  Predicate
+ <                   700   xfx   Predicate
+ ==                  700   xfx   Predicate
+ =@=                 700   xfx   Predicate
+ =\=                 700   xfx   Predicate
+ >                   700   xfx   Predicate
+ >=                  700   xfx   Predicate
+ @<                  700   xfx   Predicate
 
- @=<               700   xfx  Predicate
- @>                700   xfx  Predicate
- @>=               700   xfx  Predicate
- is                700   xfx  Predicate
- \=                700   xfx  Predicate
- \==               700   xfx  Predicate
- =@=               700   xfx  Predicate
- not               900    fy  Predicate
+ @=<                 700   xfx   Predicate
+ @>                  700   xfx   Predicate
+ @>=                 700   xfx   Predicate
+ is                  700   xfx   Predicate
+ \=                  700   xfx   Predicate
+ \==                 700   xfx   Predicate
+ =@=                 700   xfx   Predicate
+ not                 900    fy   Predicate
 
- \+                900    fy  Predicate
- ,                1000   xfy  Predicate
+ \+                  900    fy   Predicate
+ ,                  1000   xfy   Predicate
  ->                 1050   xfy   Predicate
  *->                1050   xfy   Predicate
  ;                  1100   xfy   Predicate
@@ -11625,4 +11688,4 @@ Bibliography
                                   New York, 1983.  Major revision  March
                                   1984.
 
-                                  830
+                                  833

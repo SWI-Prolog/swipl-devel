@@ -178,6 +178,9 @@ scan_options(term_t options, int flags, atom_t optype,
   term_t val  = PL_new_term_ref();
   int n;
 
+  if ( trueFeature(ISO_FEATURE) )
+    flags |= OPT_ALL;
+
   va_start(args, specs);
   for( n=0, s = specs; s->name; s++, n++ )
     values[n].ptr = va_arg(args, void *);
@@ -252,6 +255,7 @@ scan_options(term_t options, int flags, atom_t optype,
 	    assert(0);
 	    fail;
 	}
+	break;
       }
     }
     
@@ -260,7 +264,7 @@ scan_options(term_t options, int flags, atom_t optype,
   }
 
   if ( !PL_get_nil(list) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, options);
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, list);
   
   succeed;
 }

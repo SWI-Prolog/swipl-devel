@@ -450,6 +450,13 @@ A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
 A pattern		"pattern"
+A dcall			"$call"
+A variables		"variables"
+A not_empty_list	"not_empty_list"
+A access		"access"
+A private_procedure	"private_procedure"
+A unknown		"unknown"
+A debug			"debug"
 
 F abs			1
 F acos			1
@@ -597,3 +604,4 @@ F var			1
 F warning		3
 F xor			2
 F xpceref		1
+F dcall			1

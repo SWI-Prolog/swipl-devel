@@ -95,6 +95,7 @@ setupProlog(void)
   initWamTable();
   DEBUG(1, Sdprintf("IO ...\n"));
   initIO();
+  initCharConversion();
   DEBUG(1, Sdprintf("Term ...\n"));
   resetTerm();
   GD->io_initialised = TRUE;

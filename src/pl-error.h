@@ -37,6 +37,7 @@
 #define ERR_BUSY	       27	/* mutexes */
 #define ERR_PERMISSION_PROC    28	/* op, type, Definition */
 #define ERR_DDE_OP	       29	/* op, error */
+#define ERR_SYNTAX	       30	/* what */
 
 #define MSG_ERRNO		((char *)(-1))
 

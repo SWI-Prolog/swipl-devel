@@ -411,8 +411,10 @@ current_op(Module m, int inherit,
       PL_get_atom(name, &nm);
       PL_get_integer(prec, &p);
       if ( PL_get_atom(type, &a) )
-	t = atomToOperatorType(a);
-
+      { if ( !(t = atomToOperatorType(a)) )
+	  return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			  ATOM_operator_specifier, type);
+      }
       if ( m->operators )
 	addOpsFromTable(m->operators, nm, p, t, b);
 	

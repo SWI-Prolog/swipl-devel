@@ -12,6 +12,7 @@
 #define LOCK()   PL_LOCK(L_FEATURE)
 #define UNLOCK() PL_UNLOCK(L_FEATURE)
 
+
 		 /*******************************
 		 *	 FEATURE HANDLING	*
 		 *******************************/
@@ -197,12 +198,38 @@ setDoubleQuotes(atom_t a, unsigned int *flagp)
 }
 
 
+static int
+setUnknown(atom_t a, unsigned int *flagp)
+{ unsigned int flags;
+
+  if ( a == ATOM_error )
+    flags = UNKNOWN_ERROR;
+  else if ( a == ATOM_warning )
+    flags = UNKNOWN_WARNING;
+  else if ( a == ATOM_fail )
+    flags = 0;
+  else
+  { term_t value = PL_new_term_ref();
+
+    PL_put_atom(value, a);
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_unknown, value);
+  }
+
+  *flagp &= ~(UNKNOWN_ERROR|UNKNOWN_WARNING);
+  *flagp |= flags;
+
+  succeed;
+}
+
+
 word
 pl_set_feature(term_t key, term_t value)
 { atom_t k;
   Symbol s;
   feature *f;
-  
+  Module m = MODULE_parse;
+
+  PL_strip_module(key, &m, key);
   if ( !PL_get_atom(key, &k) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, key);
 
@@ -247,7 +274,7 @@ pl_set_feature(term_t key, term_t value)
 
     f->index = -1;
     if ( PL_get_atom(value, &a) )
-    { if ( a == ATOM_true || a == ATOM_false )
+    { if ( a == ATOM_true || a == ATOM_false || a == ATOM_on || a == ATOM_off )
 	f->flags = FT_BOOL;
       else
 	f->flags = FT_ATOM;
@@ -280,27 +307,31 @@ pl_set_feature(term_t key, term_t value)
 
   switch(f->flags & FT_MASK)
   { case FT_BOOL:
-    { atom_t a;
+    { int val;
 
-      if ( !PL_get_atom(value, &a) ||
-	   !(a == ATOM_true || a == ATOM_false) )
+      if ( !PL_get_bool(value, &val) )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_bool, value);
-      f->value.a = a;
+      f->value.a = (val ? ATOM_true : ATOM_false);
       if ( f->index > 0 )
       { unsigned long mask = 1L << (f->index-1);
 
-	if ( a == ATOM_true )
+	if ( val )
 	  setFeatureMask(mask);
 	else
 	  clearFeatureMask(mask);
       }
       if ( k == ATOM_character_escapes )
-      { Module m = MODULE_parse;
-
-	if ( a == ATOM_true )
+      { if ( val )
 	  set(m, CHARESCAPE);
 	else
 	  clear(m, CHARESCAPE);
+      } else if ( k == ATOM_debug )
+      { if ( val )
+	{ debugmode(TRUE, NULL);
+	} else
+	{ tracemode(FALSE, NULL);
+	  debugmode(FALSE, NULL);
+	}
       }
 
       break;
@@ -317,9 +348,12 @@ pl_set_feature(term_t key, term_t value)
       { PL_register_atom(a);		/* so it will never be lost! */
 	LD->float_format = PL_atom_chars(a);
       } else if ( k == ATOM_double_quotes )
-      { Module m = MODULE_parse;
-
-	if ( !setDoubleQuotes(a, &m->flags) )
+      { if ( !setDoubleQuotes(a, &m->flags) )
+	{ UNLOCK();
+	  fail;
+	}
+      } else if ( k == ATOM_unknown )
+      { if ( !setUnknown(a, &m->flags) )
 	{ UNLOCK();
 	  fail;
 	}
@@ -354,14 +388,13 @@ pl_set_feature(term_t key, term_t value)
 
 
 static int
-unify_feature_value(atom_t key, feature *f, term_t val)
+unify_feature_value(Module m, atom_t key, feature *f, term_t val)
 { if ( key == ATOM_character_escapes )
-  { atom_t v = (true(MODULE_parse, CHARESCAPE) ? ATOM_true : ATOM_false);
+  { atom_t v = (true(m, CHARESCAPE) ? ATOM_true : ATOM_false);
 
     return PL_unify_atom(val, v);
   } else if ( key == ATOM_double_quotes )
-  { Module m = MODULE_parse;
-    atom_t v;
+  { atom_t v;
 
     if ( true(m, DBLQ_CHARS) )
       v = ATOM_chars;
@@ -373,6 +406,19 @@ unify_feature_value(atom_t key, feature *f, term_t val)
       v = ATOM_codes;
 
     return PL_unify_atom(val, v);
+  } else if ( key == ATOM_unknown )
+  { atom_t v;
+
+    if ( true(m, UNKNOWN_ERROR) )
+      v = ATOM_error;
+    else if ( true(m, UNKNOWN_WARNING) )
+      v = ATOM_warning;
+    else
+      v = ATOM_fail;
+
+    return PL_unify_atom(val, v);
+  } else if ( key == ATOM_debug )
+  { return PL_unify_atom(val, debugstatus.debugging ? ATOM_true : ATOM_false);
   }
 
   switch(f->flags & FT_MASK)
@@ -433,6 +479,7 @@ typedef struct
 { TableEnum table_enum;
   atom_t scope;
   int explicit_scope;
+  Module module;
 } feature_enum;
 
 word
@@ -442,10 +489,14 @@ pl_feature5(term_t key, term_t value,
 { feature_enum *e;
   Symbol s;
   mark m;
+  Module module;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
     { atom_t k;
+
+      module = MODULE_parse;
+      PL_strip_module(key, &module, key);
 
       if ( PL_get_atom(key, &k) )
       { Symbol s;
@@ -453,14 +504,16 @@ pl_feature5(term_t key, term_t value,
 #ifdef O_PLMT
 	if ( LD->feature.table &&
 	     (s = lookupHTable(LD->feature.table, (void *)k)) )
-	  return unify_feature_value(k, s->value, value);
+	  return unify_feature_value(module, k, s->value, value);
 #endif
 	if ( (s = lookupHTable(GD->feature.table, (void *)k)) )
-	  return unify_feature_value(k, s->value, value);
+	  return unify_feature_value(module, k, s->value, value);
 	else
 	  fail;
       } else if ( PL_is_variable(key) )
       { e = allocHeap(sizeof(*e));
+
+	e->module = module;
 
 	if ( scope && PL_get_atom(scope, &e->scope) )
 	{ e->explicit_scope = TRUE;
@@ -513,7 +566,7 @@ pl_feature5(term_t key, term_t value,
 	continue;
 
       if ( PL_unify_atom(key, fn) &&
-	   unify_feature_value(fn, s->value, value) &&
+	   unify_feature_value(e->module, fn, s->value, value) &&
 	   (!scope  || PL_unify_atom(scope, e->scope)) &&
 	   (!access || unify_feature_access(s->value, access)) &&
 	   (!type   || unify_feature_type(s->value, type)) )
@@ -557,7 +610,7 @@ void
 initFeatures()
 { GD->feature.table = newHTable(32);
 
-  defFeature("iso",  FT_BOOL, TRUE, ISO_FEATURE);
+  defFeature("iso",  FT_BOOL, FALSE, ISO_FEATURE);
   defFeature("arch", FT_ATOM|FF_READONLY, ARCH);
 #if __WIN32__
   if ( iswin32s() )
@@ -608,8 +661,7 @@ initFeatures()
   defFeature("debug_on_error",	FT_BOOL, TRUE, DEBUG_ON_ERROR_FEATURE);
   defFeature("report_error",	FT_BOOL, TRUE, REPORT_ERROR_FEATURE);
 #endif
-  defFeature("autoload",	   FT_BOOL,		   TRUE,
-	     AUTOLOAD_FEATURE);
+  defFeature("autoload",  FT_BOOL, TRUE,  AUTOLOAD_FEATURE);
   defFeature("max_integer",	   FT_INTEGER|FF_READONLY, PLMAXINT);
   defFeature("min_integer",	   FT_INTEGER|FF_READONLY, PLMININT);
   defFeature("max_tagged_integer", FT_INTEGER|FF_READONLY, PLMAXTAGGEDINT);
@@ -623,7 +675,10 @@ initFeatures()
   defFeature("float_format", FT_ATOM, "%g");
   defFeature("answer_format", FT_ATOM, "~p");
   defFeature("character_escapes", FT_BOOL, TRUE, CHARESCAPE_FEATURE);
+  defFeature("char_conversion", FT_BOOL, FALSE, CHARCONVERSION_FEATURE);
   defFeature("double_quotes", FT_ATOM, "codes");
+  defFeature("unknown", FT_ATOM, "error");
+  defFeature("debug", FT_BOOL, FALSE, 0);
   defFeature("allow_variable_name_as_functor", FT_BOOL, FALSE,
 	     ALLOW_VARNAME_FUNCTOR);
   defFeature("toplevel_var_size", FT_INTEGER, 1000);

@@ -7,7 +7,7 @@ First the predicate name is printed in bold face, followed by the
 arguments in italics.  Arguments are preceded by a `+', `-' or `?' sign.
 `+' indicates the argument is input to the predicate, `-' denotes output
 and `?' denotes `either input or output'.%
-    \footnote{These marks do \strong{notx} suggest instantiation (e.g.\
+    \footnote{These marks do \strong{not} suggest instantiation (e.g.\
     var(+Var)).} Constructs like `op/3' refer to the predicate `op' with
     arity `3'.
 
@@ -114,7 +114,7 @@ sets).
 :- use_module(library(oset)).
 \end{code}
 
-SWI-Prolog recognises grammar rules (\idx(DCG)) as defined in
+SWI-Prolog recognises grammar rules (\idx{DCG}) as defined in
 \cite{Clocksin:87}. The user may define additional compilation of the
 source file by defining the dynamic predicate term_expansion/2.
 Transformations by this predicate overrule the systems grammar rule
@@ -714,21 +714,25 @@ machine instruction.
 Always succeed, provide an infinite number of choice points.
     \predicate{!}{0}{}
 Cut. Discard choice points of parent frame and frames created after the
-parent frame. Note that the control structures \predref{;}{2},
-\predref{|}{2}, \predref{->}{2} and \predref{\+}{1} are
-normally handled by the compiler and do not create a frame, which
-implies the cut operates through these predicates. Some examples are
-given below. Note the difference between {t3}/1 and {t4}/1. Also note
-the effect of call/1 in {t5}/0. As the argument of call/1 is evaluated
-by predicates rather than the compiler the cut has no effect.
+parent frame. As of SWI-Prolog 3.3, the semantics of the cut are
+compliant with the ISO standard.  This implies that the cut is
+transparent to \predref{;}{2}, \predref{->}{2} and \predref{*->}{2}.
+Cuts appearing in the {\em condition} part of \predref{->}{2} and
+\predref{*->}{2} as well as in \predref{\+}{1} are local to the
+condition.
+
+\index{call/1, cut in}%
+As an extension, a variable goal that is bound the the \const{!} is
+handled as a true cut. This is the only difference between call/1 and a
+variable appearing as subgoal.
 
 \begin{center}\begin{tabular}{ll}
 \exam{t1 :- (a, !, fail ; b).}          & \% cuts {a}/0 and {t1}/0 \\
 \exam{t2 :- (a -> b, ! ; c).}           & \% cuts {b}/0 and {t2}/0 \\
 \exam{t3(G) :- a, G, fail.}             & \% if `G = !' cuts {a}/0 and {t1}/1 \\
 \exam{t4(G) :- a, call(G), fail.}       & \% if `G = !' cut has no effect \\
-\exam{t5 :- call((a, !, fail ; b)).}    & \% Cut has no effect \\
-\exam{t6 :- \Snot (a, !, fail ; b).}& \% cuts {a}/0 and {t6}/0 \\
+\exam{t5 :- call((a, !, fail ; b)).}    & \% cuts {a}/0 \\
+\exam{t6 :- \Snot (a, !, fail ; b).}    & \% cuts {a}/0 \\
 \end{tabular}\end{center}
 \infixop{,}{+Goal1}{+Goal2}
 Conjunction.  Succeeds if both `Goal1' and `Goal2' can be proved.  It is
@@ -1199,8 +1203,8 @@ Definite Clause Grammar (DCG) handling is not part of the Prolog
 standard.  Most Prolog engines implement DCG, but the details differ
 slightly.
 
-Grammar rules look like ordinary clauses using \funcref{-->}{2} for
-separating the head and body rather then \funcref{:-}{2}. Expanding
+Grammar rules look like ordinary clauses using \functor{-->}{2} for
+separating the head and body rather then \functor{:-}{2}. Expanding
 grammar rules is done by expand_term/2, which adds two additional
 argument to each term for representing the difference list. We will
 illustrate the behaviour by defining a rule-set for parsing an integer.
@@ -1228,8 +1232,8 @@ The body of a grammar rule can contain three types of terms.  A compound
 term interpreted as a reference to a grammar-rule.  Code between
 \verb${$\ldots\verb$}$ is interpreted as a reference to ordinary Prolog
 code and finally, a list is interpreted as a sequence of literals. The
-Prolog control-constructs (\funcref{\+}{1}, \funcref{->}{2},
-\funcref{;}/2, \funcref{,}{2} and \funcref{!}{0}) can be used in grammar
+Prolog control-constructs (\functor{\+}{1}, \functor{->}{2},
+\functor{;}/2, \functor{,}{2} and \functor{!}{0}) can be used in grammar
 rules.
 
 Grammar rule-sets are called using the builtin predicates phrase/2
@@ -2183,6 +2187,11 @@ argument order is according to the ISO standard.  Syntax-errors are
 always reported using exception-handling (see catch/3). Options:
 
 \begin{description}
+    \termitem{variables}{Vars}
+Unify \arg{Vars} with a list of variables in the term. The variables
+appear in the order they have been read. See also free_variables/2.
+(ISO).
+
     \termitem{variable_names}{Vars}
 Unify \arg{Vars} with a list of `\arg{Name} = \arg{Var}', where \arg{Name} is an atom describing the variable name and \arg{Var} is a
 variable that shares with the corresponding variable in \arg{Term}.
@@ -2609,9 +2618,9 @@ stack.  Atoms are unique and therefore more expensive in terms of
 memory and time to create.  On the other hand, if the same text has
 to be represented multiple times, atoms are more efficient.
     \item [destruction]
-Backtracking destroys atoms at no cost.  They cheap to handle by the
-garbage collector, but it should be noted that extensive use of strings
-will cause many garbage collections. Atom garbage collection is
+Backtracking destroys strings at no cost. They are cheap to handle by
+the garbage collector, but it should be noted that extensive use of
+strings will cause many garbage collections. Atom garbage collection is
 generally faster.
 \end{itemlist}
 
@@ -2730,6 +2739,24 @@ all operators can be redefined by the user.
 Succeeds when \arg{Name} is currently defined as an operator of type \arg{Type}
 with precedence \arg{Precedence}. See also op/3.
 \end{description}
+
+\section{Character Conversion}
+
+Although I wouldn't really know for what you would like to use these
+features, they are provided for ISO complicancy.
+
+\begin{description}
+    \predicate{char_conversion}{2}{+CharIn, +CharOut}
+Define that term-input (see read_term/3) maps each character read as
+\arg{CharIn} to the character \arg{CharOut}. Character conversion is
+only executed if the prolog-flag \const{char_conversion} is set to
+\const{true} and not inside quoted atoms or strings. The initial table
+maps each character onto itself. See also current_char_conversion/2.
+    \predicate{current_char_conversion}{2}{?CharIn, ?CharOut}
+Queries the current character conversion-table.  See char_conversion/2
+for details.
+\end{description}
+
 
 \section{Arithmetic}				\label{sec:arith}
 
@@ -3554,7 +3581,8 @@ Unify \arg{Argv} with the list of commandline arguments provides to
 this Prolog run. Please note that Prolog system-arguments and
 application arguments are separated by \const{--}.  Integer arguments
 are passed as Prolog integers, float arguments and Prolog floating
-point numbers and all other arguments as Prolog atoms.
+point numbers and all other arguments as Prolog atoms.  New applications
+should use the prolog-flag \const{argv}.
 
 A stand-alone program could use the following skeleton to handle
 command-line arguments. See also \secref{cmdlinecomp}.
@@ -3566,14 +3594,14 @@ main :-
 	main(AppArgs).
 \end{code}
 
-
 \end{description}
 
     \predicate{get_time}{1}{-Time}
-Return the number of seconds that elapsed since the epoch of Unix,
-1 January 1970, 0 hours.  \arg{Time} is a floating point number. Its
-granularity is system dependent.  On {\sc sun}, this is 1/60 of a second.
-    \predicate{convert_time}{8}{+Time, -Year, -Month, -Day, -Hour, -Minute, -Second, -MilliSeconds}
+Return the number of seconds that elapsed since the epoch of the POSIX,
+tim representation: January 1970, 0 hours. \arg{Time} is a floating
+point number.  The granularity is system dependent.
+    \predicate{convert_time}{8}{+Time, -Year, -Month, -Day,
+				-Hour, -Minute, -Second, -MilliSeconds}
 Convert a time stamp, provided by get_time/1, time_file/2, etc.  \arg{Year} is unified with the year, \arg{Month} with the month number
 (January is 1), \arg{Day} with the day of the month (starting with 1),
 \arg{Hour} with the hour of the day (0--23), \arg{Minute} with the
@@ -4179,11 +4207,16 @@ The current implementation cuts the choicepoints of \arg{Goal} after
 successful completion. See once/1.  Later implementations may have the
 same semantics as call/1.
     \predicate{debug}{0}{}
-Start debugger (stop at spy points).
+Start debugger. In debug mode, Prolog stops at spy- and trace-points,
+disables tail-recursion optimisation and aggressive destruction of
+choice-points to make debugging information accessible.  Implemented
+by the Prolog flag \plflag{debug}.
     \predicate{nodebug}{0}{}
-Stop debugger (do not trace, nor stop at spy points).
+Stop debugger.  Implementated by the prolog flag \plflag{debug}.  See
+also debug/0.
     \predicate{debugging}{0}{}
-Print debug status and spy points on current output stream.
+Print debug status and spy points on current output stream.  See also
+the prolog flag \plflag{debug}.
     \predicate{spy}{1}{+Pred}
 Put a spy point on all predicates meeting the predicate specification
 \arg{Pred}. See \secref{listing}.
@@ -4206,20 +4239,10 @@ port.
 Set the ports shown by the debugger. See leash/1 for a description of
 the port specification. Default is \const{full}.
     \predicate{unknown}{2}{-Old, +New}
-Unify \arg{Old} with the current value of the unknown system flag.  On
-success \arg{New} will be used to specify the new value. \arg{New} should be
-instantiated to either \const{fail} or \const{trace} and determines the
-interpreters action when an undefined predicate which is not declared
-dynamic is encountered (see dynamic/1). \const{fail} implies the predicate
-just fails silently. \const{trace} implies the tracer is started. Default is
-\const{trace}.  The unknown flag is local to each module and unknown/2
-is module transparent.  Using it as a directive in a module file will
-only change the unknown flag for that module.  Using the :/2 construct
-the behaviour on trapping an undefined predicate can be changed for
-any module.  Note that if the unknown flag for a module equals \const
-{fail} the system will not call exception/3 and will {\bf not} try
-to resolve the predicate via the dynamic library system.  The system
-will still try to import the predicate from the public module.
+Edinburgh-prolog compatibility predicate, interfacing to the ISO prolog
+flag \plflag{unknown}. Values are \const{trace} (meaning \const{error})
+and \const{fail}. If the \plflag{unknown} flag is set to
+\const{warning}, unknown/2 reports the value as \const{trace}.
     \predicate{style_check}{1}{+Spec}
 Set style checking options.  \arg{Spec} is either \mbox{\tt +<option>}, 
 \mbox{\tt -<option>}, \mbox{\tt ?<option>} or a list of such options.

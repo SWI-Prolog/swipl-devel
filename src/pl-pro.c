@@ -267,7 +267,8 @@ prologToplevel(volatile atom_t goal)
       if ( !rval && (except = PL_exception(qid)) )
       { atom_t a;
 	
-	pl_nodebug();
+	tracemode(FALSE, NULL);
+	debugmode(FALSE, NULL);
 	if ( PL_get_atom(except, &a) && a == ATOM_aborted )
 	{ printMessage(ATOM_informational, PL_ATOM, ATOM_aborted);
 	} else if ( !PL_is_functor(except, FUNCTOR_error2) )

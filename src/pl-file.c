@@ -329,8 +329,11 @@ PL_release_stream(IOSTREAM *s)
 }
 
 
+#define SH_ERRORS 0x1			/* generate errors */
+#define SH_ALIAS  0x2			/* allow alias */
+
 static int
-get_stream_handle(term_t t, IOSTREAM **s, int errors)
+get_stream_handle(term_t t, IOSTREAM **s, int flags)
 { atom_t alias;
 
   if ( PL_is_functor(t, FUNCTOR_dstream1) )
@@ -346,7 +349,7 @@ get_stream_handle(term_t t, IOSTREAM **s, int errors)
         return TRUE;
       } else
       { UNLOCK();
-	if ( errors )
+	if ( flags & SH_ERRORS )
 	  return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stream, t);
 	fail;
       }
@@ -373,13 +376,14 @@ get_stream_handle(term_t t, IOSTREAM **s, int errors)
     }
     UNLOCK();
 
-    if ( errors )
+    if ( flags & SH_ERRORS )
       return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_stream, t);
     fail;
   }
       
-  if ( errors )
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_stream_or_alias, t);
+  if ( flags & SH_ERRORS )
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		    (flags&SH_ALIAS) ? ATOM_stream_or_alias : ATOM_stream, t);
 
   fail;
 }
@@ -387,12 +391,12 @@ get_stream_handle(term_t t, IOSTREAM **s, int errors)
 
 int
 PL_get_stream_handle(term_t t, IOSTREAM **s)
-{ return get_stream_handle(t, s, TRUE);
+{ return get_stream_handle(t, s, SH_ERRORS|SH_ALIAS);
 }
 
 
 int
-PL_unify_stream(term_t t, IOSTREAM *s)
+PL_unify_stream_or_alias(term_t t, IOSTREAM *s)
 { int rval;
   stream_context *ctx;
   int i;
@@ -415,6 +419,22 @@ PL_unify_stream(term_t t, IOSTREAM *s)
   UNLOCK();
 
   return rval;
+}
+
+
+int
+PL_unify_stream(term_t t, IOSTREAM *s)
+{ term_t a = PL_new_term_ref();
+
+  PL_put_pointer(a, s);
+  PL_cons_functor(a, FUNCTOR_dstream1, a);
+
+  if ( PL_unify(t, a) )
+    succeed;
+  if ( PL_is_functor(t, FUNCTOR_dstream1) )
+    fail;
+
+  return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_stream, t);
 }
 
 
@@ -522,7 +542,7 @@ streamStatus(IOSTREAM *s)
   { atom_t op;
     term_t stream = PL_new_term_ref();
 
-    PL_unify_stream(stream, s);
+    PL_unify_stream_or_alias(stream, s);
 
     if ( s->flags & SIO_INPUT )
     { if ( Sfpasteof(s) )
@@ -1256,7 +1276,7 @@ pl_protocolling(term_t file)
     if ( (a = fileNameStream(s)) )
       return PL_unify_atom(file, a);
     else
-      return PL_unify_stream(file, s);
+      return PL_unify_stream_or_alias(file, s);
   }
 
   fail;
@@ -1365,7 +1385,7 @@ IOSTREAM *
 openStream(term_t file, term_t mode, term_t options)
 { atom_t mname;
   atom_t type           = ATOM_text;
-  bool   reposition     = FALSE;
+  bool   reposition     = TRUE;
   atom_t alias	        = NULL_ATOM;
   atom_t eof_action     = ATOM_eof_code;
   atom_t buffer         = ATOM_full;
@@ -1407,7 +1427,7 @@ openStream(term_t file, term_t mode, term_t options)
   if ( PL_get_chars(file, &path, CVT_ATOM|CVT_STRING|CVT_INTEGER) )
   { if ( !(s = Sopen_file(path, how)) )
     { PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
-	       ATOM_open, ATOM_file, file);
+	       ATOM_open, ATOM_source_sink, file);
       return NULL;
     }
     setFileNameStream(s, PL_new_atom(path));
@@ -1425,7 +1445,7 @@ openStream(term_t file, term_t mode, term_t options)
 
     if ( !(s = Sopen_pipe(cmd, how)) )
     { PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
-	       ATOM_open, ATOM_file, file);
+	       ATOM_open, ATOM_source_sink, file);
       return NULL;
     }
   }
@@ -1457,6 +1477,8 @@ openStream(term_t file, term_t mode, term_t options)
 
   if ( alias != NULL_ATOM )
     aliasStream(s, alias);
+  if ( !reposition )
+    s->position = NULL;
 
   return s;
 }
@@ -1467,7 +1489,7 @@ pl_open4(term_t file, term_t mode, term_t stream, term_t options)
 { IOSTREAM *s = openStream(file, mode, options);
 
   if ( s )
-    return PL_unify_stream(stream, s);
+    return PL_unify_stream_or_alias(stream, s);
 
   fail;
 }
@@ -1488,7 +1510,7 @@ pl_see(term_t f)
   atom_t a;
   term_t mode;
 
-  if ( get_stream_handle(f, &s, FALSE) )
+  if ( get_stream_handle(f, &s, SH_ALIAS) )
   { Scurin = s;
     releaseStream(s);
     succeed;
@@ -1628,7 +1650,7 @@ pl_open_null_stream(term_t stream)
 { int sflags = SIO_NBUF|SIO_RECORDPOS;
   IOSTREAM *s = Snew((void *)NULL, sflags, (IOFUNCTIONS *)&nullFunctions);
 
-  return PL_unify_stream(stream, s);
+  return PL_unify_stream_or_alias(stream, s);
 }
 
 
@@ -1888,14 +1910,28 @@ pl_stream_property(term_t stream, term_t property, word h)
       a1 = PL_new_term_ref();
       
       if ( PL_is_variable(stream) )	/* generate */
-      {	pe = allocHeap(sizeof(*pe));
+      {	functor_t f;
+
+	if ( PL_get_functor(property, &f) ) /* test for defined property */
+	{ const sprop *p = sprop_list;
+
+	  for( ; p->functor; p++ )
+	  { if ( f == p->functor )
+	      break;
+	  }
+	  if ( !p->functor )
+	    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			    ATOM_stream_property, property);
+	}
+
+	pe = allocHeap(sizeof(*pe));
 
 	pe->e = newTableEnum(streamContext);
 	pe->s = NULL;
 	pe->p = sprop_list;
 
 	break;
-      } else if ( PL_get_stream_handle(stream, &s) )
+      } else if ( get_stream_handle(stream, &s, SH_ERRORS) )
       { functor_t f;
 
 	if ( PL_is_variable(property) )	/* generate properties */
@@ -1934,7 +1970,7 @@ pl_stream_property(term_t stream, term_t property, word h)
 	    }
 	  }
 	} else
-	  return PL_error(NULL, 0, NULL, ERR_TYPE,
+	  return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 			  ATOM_stream_property, property);
       } else
 	fail;				/* bad stream handle */
@@ -2039,7 +2075,7 @@ pl_flush_output1(term_t out)
     return streamStatus(s);
   }
 
-  succeed;
+  fail;
 }
 
 
@@ -2069,12 +2105,34 @@ getStreamWithPosition(term_t stream, IOSTREAM **sp)
 }
 
 
+static int
+getRepositionableStream(term_t stream, IOSTREAM **sp)
+{ IOSTREAM *s;
+
+  if ( get_stream_handle(stream, &s, SH_ERRORS) )
+  { if ( !s->position || !s->functions || !s->functions->seek )
+    { PL_error(NULL, 0, NULL, ERR_PERMISSION,
+	       ATOM_reposition, ATOM_stream, stream);
+      releaseStream(s);
+      return FALSE;
+    }
+
+    *sp = s;
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 word
 pl_set_stream_position(term_t stream, term_t pos)
 { IOSTREAM *s;
   long charno, linepos, lineno;
   term_t a = PL_new_term_ref();
 
+  if ( !(getRepositionableStream(stream, &s)) )
+    fail;
 
   if ( !PL_is_functor(pos, FUNCTOR_stream_position3) ||
        !PL_get_arg(1, pos, a) ||
@@ -2083,15 +2141,14 @@ pl_set_stream_position(term_t stream, term_t pos)
        !PL_get_long(a, &lineno) ||
        !PL_get_arg(3, pos, a) ||
        !PL_get_long(a, &linepos) )
+  { releaseStream(s);
     return PL_error("stream_position", 3, NULL,
 		    ERR_DOMAIN, ATOM_stream_position, pos);
-
-  if ( !(getStreamWithPosition(stream, &s)) )
-    fail;
+  }
 
   if ( Sseek(s, charno, SIO_SEEK_SET) != charno )
     return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
-		    ATOM_position, ATOM_stream, stream);
+		    ATOM_reposition, ATOM_stream, stream);
 
   s->position->charno  = charno;
   s->position->lineno  = lineno;

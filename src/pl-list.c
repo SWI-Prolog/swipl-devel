@@ -24,7 +24,7 @@ pl_is_list(term_t list)
 
 word
 pl_proper_list(term_t list)
-{ if ( lengthList(list) >= 0 )
+{ if ( lengthList(list, FALSE) >= 0 )
     succeed;
 
   fail;
@@ -52,7 +52,7 @@ pl_length(term_t list, term_t l)
   if ( PL_is_variable(l) )
   { long n;
   
-    if ( (n=lengthList(list)) >= 0 )
+    if ( (n=lengthList(list, FALSE)) >= 0 )
       return PL_unify_integer(l, n);
 
     fail;			/* both variables: generate in Prolog */
@@ -84,7 +84,7 @@ qsort_compare_standard(const void *p1, const void *p2)
 
 static term_t
 list_to_sorted_array(term_t List, int *size)
-{ int n = lengthList(List);
+{ int n = lengthList(List, TRUE);
   term_t rval;
   term_t list = PL_copy_term_ref(List);
   term_t head = PL_new_term_ref();
@@ -112,7 +112,7 @@ pl_msort(term_t list, term_t sorted)
   int n, i;
 
   if ( !(array = list_to_sorted_array(list, &n)) )
-    return warning("msort/1: first argument is not a proper list");
+    fail;
   for(i=0; i < n; i++)
   { if ( !PL_unify_list(l, h, l) ||
 	 !PL_unify(h, array+i) )

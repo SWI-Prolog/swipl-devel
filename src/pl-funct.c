@@ -115,8 +115,9 @@ isCurrentFunctor(atom_t atom, int arity)
   v = pointerHashValue(atom, functor_buckets);
   for(f = functorDefTable[v]; f; f = f->next)
   { if ( atom == f->name && f->arity == arity )
-      UNLOCK();
+    { UNLOCK();
       return f->functor;
+    }
   }
   UNLOCK();
 

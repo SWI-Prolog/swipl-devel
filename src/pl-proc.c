@@ -18,10 +18,10 @@ finding source files, etc.
 #define LOCK()   PL_LOCK(L_PREDICATE)
 #define UNLOCK() PL_UNLOCK(L_PREDICATE)
 
-forwards void		resetReferencesModule(Module);
-forwards void		resetProcedure(Procedure proc);
-
+static void	resetReferencesModule(Module);
+static void	resetProcedure(Procedure proc);
 static void	removeClausesProcedure(Procedure proc, int sfindex);
+static atom_t	autoLoader(atom_t name, int arity, atom_t mname);
 
 Procedure
 lookupProcedure(functor_t f, Module m)
@@ -141,6 +141,21 @@ Find a procedure for defining it.  Here   we check whether the procedure
 to be defined is a system predicate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static int
+checkModifySystemProc(functor_t fd)
+{ Procedure proc;
+
+  if ( !SYSTEM_MODE &&
+       MODULE_system &&
+       (proc=isCurrentProcedure(fd, MODULE_system)) &&
+       true(proc->definition, LOCKED) &&
+       false(proc->definition, DYNAMIC) )
+    return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
+
+  succeed;
+}
+
+
 Procedure
 lookupProcedureToDefine(functor_t def, Module m)
 { Procedure proc;
@@ -148,19 +163,10 @@ lookupProcedureToDefine(functor_t def, Module m)
   if ( (proc = isCurrentProcedure(def, m)) && false(proc->definition, SYSTEM) )
     return proc;
 
-  if ( !SYSTEM_MODE &&
-       MODULE_system &&
-       (proc=isCurrentProcedure(def, MODULE_system)) &&
-       true(proc->definition, LOCKED) &&
-       false(proc->definition, DYNAMIC) )
-  { PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-	     ATOM_redefine, PL_new_atom("built_in_procedure"),
-	     proc->definition);
+  if ( checkModifySystemProc(def) )
+    return lookupProcedure(def, m);
 
-    return NULL;
-  }
- 
-  return lookupProcedure(def, m);
+  fail;
 }
 
 
@@ -177,11 +183,34 @@ is defined, and 0 if an error was raised.
 #define GF_PROCEDURE	2		/* check for max arity */
 
 static int
+get_arity(term_t t, int maxarity, int *arity)
+{ int a;
+
+  if ( !PL_get_integer_ex(t, &a) )
+    fail;
+  if ( a < 0 )
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		    ATOM_not_less_than_zero, a);
+  if ( maxarity >= 0 && a > maxarity )
+  { char buf[100];
+
+    return PL_error(NULL, 0,
+		    tostr(buf, "limit is %d, request = %d",
+			  maxarity, arity),
+		    ERR_REPRESENTATION, ATOM_max_arity);
+  }
+
+  *arity = a;
+
+  return TRUE;
+}
+
+
+static int
 get_functor(term_t descr, functor_t *fdef, Module *m, term_t h, int how)
 { term_t head = PL_new_term_ref();
 
-  if ( !PL_strip_module(descr, m, head) )
-    fail;
+  PL_strip_module(descr, m, head);
 
   if ( PL_is_functor(head, FUNCTOR_divide2) )
   { term_t a = PL_new_term_ref();
@@ -189,52 +218,24 @@ get_functor(term_t descr, functor_t *fdef, Module *m, term_t h, int how)
     int arity;
 
     PL_get_arg(1, head, a);
-    if ( PL_get_atom(a, &name) )
-    { PL_get_arg(2, head, a);
-      if ( PL_get_integer(a, &arity) )
-      { if ( arity < 0 )
-	{ return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-			  ATOM_not_less_than_zero, a);
-	} else if ( (how&GF_PROCEDURE) && arity > MAXARITY )
-	{ char buf[100];
-
-	  return PL_error(NULL, 0,
-			  tostr(buf, "limit is %d, request = %d",
-				MAXARITY, arity),
-			  ERR_REPRESENTATION, ATOM_max_arity);
-	} else
-	{ *fdef = PL_new_functor(name, arity);
-	  
-	  if ( h )
-	    PL_put_term(h, head);
-	  
-	  succeed;
-	}
-      } else
-      { if ( PL_is_variable(a) )
-	  goto ierror;
-
-	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, a);
-      }
-    } else
-    { if ( PL_is_variable(a) )
-	goto ierror;
-
-      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, a);
-    }
+    if ( !PL_get_atom_ex(a, &name) )
+      fail;
+    PL_get_arg(2, head, a);
+    if ( !get_arity(a, (how&GF_PROCEDURE) ? MAXARITY : -1, &arity ) )
+      fail;
+    *fdef = PL_new_functor(name, arity);
+    if ( h )
+      PL_put_term(h, head);
+          
+    succeed;
   } else if ( PL_get_functor(head, fdef) )
   { if ( h )
       PL_put_term(h, head);
 	  
     succeed;
   } else
-  { if ( PL_is_variable(head) )
-    { ierror:
-      return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
-    } else
-      return PL_error(NULL, 0, NULL, ERR_TYPE,
-		      ATOM_predicate_indicator, head);
-  }
+    return PL_error(NULL, 0, NULL, ERR_TYPE,
+		    ATOM_predicate_indicator, head);
 }
 
       
@@ -243,8 +244,7 @@ get_head_functor(term_t head, functor_t *fdef)
 { int arity;
 
   if ( !PL_get_functor(head, fdef) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE,
-		    ATOM_predicate_indicator, head);
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, head);
   if ( (arity=arityFunctor(*fdef)) > MAXARITY )
   { char buf[100];
     return PL_error(NULL, 0,
@@ -397,6 +397,231 @@ pl_current_predicate(term_t name, term_t spec, word h)
   fail;
 }
 
+		 /*******************************
+		 *    ISO CURRENT-PREDICATE/1	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Patterns: ?Name/?Arity
+	  ?Module:(?Name/?Arity)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct
+{ functor_t	functor;		/* Functor we are looking for */
+  atom_t	name;			/* Name of target pred */
+  int		arity;			/* arity of target pred */
+  Module	module;			/* Module to search in */
+  Module	super;			/* Walking along super-chain */
+  TableEnum	epred;			/* Predicate enumerator */
+  TableEnum	emod;			/* Module enumerator */
+} cur_enum;
+
+
+static int
+visibleProcedure(functor_t f, Module m)
+{ for(; m ; m = m->super)
+  { Procedure p;
+
+    if ( (p = isCurrentProcedure(f, m)) && isDefinedProcedure(p) )
+      succeed;
+  }
+
+  fail;
+}
+
+
+foreign_t
+pl_current_predicate1(term_t spec, word ctx)
+{ cur_enum e0;
+  cur_enum *e;
+  Symbol sp, sm;
+  int rval = FALSE;
+  term_t mt = 0;			/* module-term */
+  term_t nt = 0;			/* name-term */
+  term_t at = 0;			/* arity-term */
+
+  if ( ForeignControl(ctx) != FRG_CUTTED )
+  { term_t pi = PL_copy_term_ref(spec);
+
+    nt = PL_new_term_ref();
+    at = PL_new_term_ref();
+
+    while( PL_is_functor(pi, FUNCTOR_module2) )
+    { if ( !mt )
+	mt = PL_new_term_ref();
+      _PL_get_arg(1, pi, mt);
+      _PL_get_arg(2, pi, pi);
+    }
+
+    if ( PL_is_functor(pi, FUNCTOR_divide2) )
+    { _PL_get_arg(1, pi, nt);
+      _PL_get_arg(2, pi, at);
+
+    } else if ( PL_is_variable(pi) )
+    { term_t a = PL_new_term_ref();
+
+      PL_cons_functor(a, FUNCTOR_divide2, nt, at);
+      PL_unify(pi, a);
+    } else
+    { typeerror:
+      return PL_error(NULL, 0, NULL, ERR_TYPE,
+		      ATOM_predicate_indicator, spec);
+    }
+  }
+
+  switch( ForeignControl(ctx) )
+  { case FRG_FIRST_CALL:
+    { e = &e0;
+      memset(e, 0, sizeof(*e));
+
+      if ( !PL_get_atom(nt, &e->name) )
+      { if ( !PL_is_variable(nt) )
+	  goto typeerror;
+      }
+      if ( !PL_get_integer(at, &e->arity) )
+      { if ( !PL_is_variable(at) )
+	  goto typeerror;
+	e->arity = -1;
+      }
+
+      if ( e->name && e->arity >= 0 )
+	e->functor = PL_new_functor(e->name, e->arity);
+
+      if ( mt )
+      { atom_t mname;
+
+	if ( PL_get_atom(mt, &mname) )
+	{ e->module = isCurrentModule(mname);
+	  if ( !e->module )
+	    fail;
+	} else if ( PL_is_variable(mt) )
+	{ e->emod = newTableEnum(GD->tables.modules);
+
+	  if ( (sm = advanceTableEnum(e->emod)) )
+	    e->module = sm->value;
+	  else
+	    fail;			/* no modules!? */
+	}
+      } else
+      { if ( environment_frame )
+	  e->module = contextModule(environment_frame);
+	else
+	  e->module = MODULE_user;
+	e->super = e->module;
+      }
+
+      if ( e->functor )
+      { if ( !e->emod )			/* fully specified */
+	{ int retry_times = 0;
+
+	  while(retry_times++ < 3)
+	  { if ( visibleProcedure(e->functor, e->module) )
+	      succeed;
+	    else
+	    { FunctorDef fd = valueFunctor(e->functor);
+
+	      if ( autoLoader(fd->name,
+			      fd->arity,
+			      e->module->name) != ATOM_retry )
+		break;
+	    }
+	  }
+	  fail;
+	}
+      } else
+      { e->epred = newTableEnum(e->module->procedures);
+      }
+
+      e = allocHeap(sizeof(*e));
+      *e = e0;
+      break;
+    }
+    case FRG_REDO:
+      e = ForeignContextPtr(ctx);
+      break;
+    case FRG_CUTTED:
+    { e = ForeignContextPtr(ctx);
+      rval = TRUE;
+      goto clean;
+    }
+    default:
+    { e = NULL;
+      assert(0);
+    }
+  }
+
+  for(;;)
+  { if ( e->functor )			/* _M:foo/2 */
+    { if ( visibleProcedure(e->functor, e->module) )
+      { PL_unify_atom(mt, e->module->name);
+	
+	if ( (sm = advanceTableEnum(e->emod)) )
+	{ e->module = sm->value;
+	  ForeignRedoPtr(e);
+	} else
+	  succeed;
+      }
+    } else
+    { while( (sp = advanceTableEnum(e->epred)) )
+      { FunctorDef fd = valueFunctor((functor_t)sp->name);
+	Procedure proc = sp->value;
+    
+	if ( (!e->name     || e->name == fd->name) &&
+	     (e->arity < 0 || e->arity == fd->arity) &&
+	     isDefinedProcedure(proc) )
+	{ if ( mt )
+	    PL_unify_atom(mt, e->module->name);
+	  if ( !e->name )
+	    PL_unify_atom(nt, fd->name);
+	  if ( e->arity < 0 )
+	    PL_unify_integer(at, fd->arity);
+
+	  ForeignRedoPtr(e);
+	}
+      }
+    }
+
+    if ( !e->functor && e->super->super )
+    { e->super = e->super->super;	/* advance to userp-modules */
+    } else if ( e->emod && (sm = advanceTableEnum(e->emod)) )
+    { e->super = e->module = sm->value;	/* advance to next real module */
+    } else
+      break;				/* finished all modules */
+
+    if ( !e->functor )
+    { freeTableEnum(e->epred);
+      e->epred = newTableEnum(e->super->procedures);
+    }
+  }
+
+clean:
+  if ( e )
+  { if ( e->epred )
+      freeTableEnum(e->epred);
+    if ( e->emod )
+      freeTableEnum(e->emod);
+    freeHeap(e, sizeof(*e));
+  }
+
+  return rval;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+		 /*******************************
+		 *	 CLAUSE REFERENCES	*
+		 *******************************/
+
 
 ClauseRef
 newClauseRef(Clause clause)
@@ -420,7 +645,7 @@ freeClauseRef(ClauseRef cref)
 
  ** Fri Apr 29 12:44:08 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
-bool
+ClauseRef
 assertProcedure(Procedure proc, Clause clause, int where)
 { Definition def = proc->definition;
   ClauseRef cref = newClauseRef(clause);
@@ -458,7 +683,7 @@ assertProcedure(Procedure proc, Clause clause, int where)
   }
   UNLOCK();
 
-  succeed;
+  return cref;
 }
 
 /*  Abolish a procedure.  Referenced  clauses  are   unlinked  and left
@@ -834,7 +1059,37 @@ autoImport(functor_t f, Module m)
   return def;
 }
 
-static int undefined_nesting;
+
+static atom_t
+autoLoader(atom_t name, int arity, atom_t mname)
+{ fid_t  cid  = PL_open_foreign_frame();
+  term_t argv = PL_new_term_refs(4);
+  static predicate_t MTOK_pred;
+  qid_t qid;
+  atom_t sfn = source_file_name;	/* needs better solution! */
+  int  sln = source_line_no;
+  atom_t answer = ATOM_nil;
+
+  if ( !MTOK_pred )
+    MTOK_pred = PL_pred(FUNCTOR_undefinterc4, MODULE_system);
+
+  PL_put_atom(    argv+0, mname);
+  PL_put_atom(    argv+1, name);
+  PL_put_integer( argv+2, arity);
+  
+  LD->autoload_nesting++;
+  qid = PL_open_query(MODULE_system, PL_Q_NODEBUG, MTOK_pred, argv);
+  if ( PL_next_solution(qid) )
+    PL_get_atom(argv+3, &answer);
+  PL_close_query(qid);
+  LD->autoload_nesting--;
+  source_file_name = sfn;
+  source_line_no   = sln;
+  PL_discard_foreign_frame(cid);
+
+  return answer;
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 According to Paulo Moura, predicates defined either dynamic, multifile or
@@ -853,52 +1108,30 @@ trapUndefined(Definition def)
   if ( (newdef = autoImport(functor->functor, module)) )
     return newdef;
 					/* Pred/Module does not want to trap */
-  if ( true(def, PROC_DEFINED) || false(module, UNKNOWN) )
+  if ( true(def, PROC_DEFINED) ||
+       false(module, UNKNOWN_WARNING|UNKNOWN_ERROR) )
     return def;
 
   DEBUG(5, Sdprintf("trapUndefined(%s)\n", predicateName(def)));
 
 					/* Trap via exception/3 */
   if ( trueFeature(AUTOLOAD_FEATURE) && !GD->bootsession )
-  { if ( undefined_nesting > 100 )
-    { undefined_nesting = 1;
+  { if ( LD->autoload_nesting > 100 )
+    { LD->autoload_nesting = 1;
       sysError("trapUndefined(): undefined: %s", predicateName(def));
 
       return def;
     } else
-    { fid_t  cid  = PL_open_foreign_frame();
-      term_t argv = PL_new_term_refs(4);
-      static predicate_t MTOK_pred;
-      qid_t qid;
-      atom_t sfn = source_file_name;	/* needs better solution! */
-      int  sln = source_line_no;
-      atom_t answer = ATOM_nil;
-
-      if ( !MTOK_pred )
-	MTOK_pred = PL_pred(FUNCTOR_undefinterc4, MODULE_system);
-
-      PL_put_atom(    argv+0, def->module->name);
-      PL_put_atom(    argv+1, def->functor->name);
-      PL_put_integer( argv+2, def->functor->arity);
-      PL_put_variable(argv+3);
-
-      undefined_nesting++;
-      qid = PL_open_query(MODULE_system, PL_Q_NODEBUG, MTOK_pred, argv);
-      if ( PL_next_solution(qid) )
-	PL_get_atom(argv+3, &answer);
-      PL_close_query(qid);
-      undefined_nesting--;
-      source_file_name = sfn;
-      source_line_no   = sln;
-      PL_discard_foreign_frame(cid);
+    { atom_t answer = autoLoader(def->functor->name,
+				 def->functor->arity,
+				 def->module->name);
 
       def = lookupProcedure(functor->functor, module)->definition;
 
       if ( answer == ATOM_fail )
       { return def;
       } else if ( answer == ATOM_error )
-      { PL_error(NULL, 0, NULL, ERR_UNDEFINED_PROC, def);
-	return def;
+      { goto error;
       } else if ( answer == ATOM_retry )
       { if ( retry_times++ )
 	{ warning("exception handler failed to define predicate %s\n",
@@ -910,10 +1143,26 @@ trapUndefined(Definition def)
     }
   }
 				/* No one wants to intercept */
+error:
   if ( GD->bootsession )
     sysError("Undefined predicate: %s", predicateName(def));
+  else if ( true(module, UNKNOWN_ERROR) )
+    PL_error(NULL, 0, NULL, ERR_UNDEFINED_PROC, def);
   else
-    warning("Undefined predicate: %s", predicateName(def));
+  { fid_t fid = PL_open_foreign_frame();
+    term_t pred = PL_new_term_ref();
+
+    unify_definition(pred, def, 0, GP_NAMEARITY);
+
+    printMessage(ATOM_warning,
+		 PL_FUNCTOR, FUNCTOR_error2,
+		   PL_FUNCTOR, FUNCTOR_existence_error2,
+		     PL_ATOM, ATOM_procedure,
+		     PL_TERM, pred,
+		   PL_VARIABLE);
+
+    PL_discard_foreign_frame(fid);
+  }
 
   return def;
 }
@@ -965,19 +1214,19 @@ pl_retract(term_t term, word h)
     { functor_t fd;
 
       if ( !PL_get_functor(head, &fd) )
-	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, term);
+	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, head);
       if ( !(proc = isCurrentProcedure(fd, m)) )
+      { checkModifySystemProc(fd);
 	fail;
+      }
 
       def = proc->definition;
 
       if ( true(def, FOREIGN) )
-	return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-			ATOM_modify, PL_new_atom("foreign_procedure"), def);
+	return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
       if ( false(def, DYNAMIC) )
       { if ( isDefinedProcedure(proc) )
-	  return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-			  ATOM_modify, PL_new_atom("static_procedure"), def);
+	  return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
 	set(def, DYNAMIC);		/* implicit */
 	fail;				/* no clauses */
       }
@@ -1099,57 +1348,54 @@ pl_retractall(term_t head)
 		*       PROLOG PREDICATES       *
 		*********************************/
 
-word
-pl_abolish(term_t atom, term_t arity)
+static word
+do_abolish(Module m, term_t atom, term_t arity)
 { functor_t f;
   Procedure proc;
-  Module m = (Module) NULL;
-  term_t tmp = PL_new_term_ref();
   atom_t name;
   int a;
 
-  PL_strip_module(atom, &m, tmp);
+  if ( !PL_get_atom_ex(atom, &name) ||
+       !get_arity(arity, MAXARITY, &a) )
+    fail;
 
-  if ( !PL_get_atom(tmp, &name) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, atom);
-  if ( !PL_get_integer(arity, &a) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, arity);
-
-  if ( !(f = isCurrentFunctor(name, a)) ||
-       !(proc = isCurrentProcedure(f, m)) )
+  if ( !(f = isCurrentFunctor(name, a)) )
     succeed;
+  if ( !(proc = isCurrentProcedure(f, m)) )
+    return checkModifySystemProc(f);
 
-  if ( true(proc->definition, LOCKED) && !SYSTEM_MODE && m == MODULE_system )
-    return PL_error("abolish", 2, NULL, ERR_MODIFY_STATIC_PROC, proc);
+  if ( false(proc->definition, DYNAMIC) )
+    return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
 
   return abolishProcedure(proc, m);
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-abolish(Name/Arity)
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+word
+pl_abolish(term_t name, term_t arity)	/* Name, Arity */
+{ Module m = NULL;
+
+  PL_strip_module(name, &m, name);
+  
+  return do_abolish(m, name, arity);
+}
+
 
 word
-pl_abolish1(term_t spec)
-{ Procedure proc;
-  functor_t f;
+pl_abolish1(term_t spec)		/* Name/Arity */
+{ term_t name  = PL_new_term_ref();
+  term_t arity = PL_new_term_ref();
   Module m = NULL;
 
-  switch( get_functor(spec, &f, &m, 0, GF_PROCEDURE|GF_EXISTING) )
-  { case FALSE:				/* exception */
-      fail;
-    case -1:				/* no functor */
-      succeed;
-  }
+  PL_strip_module(spec, &m, spec);
 
-  if ( !(proc = isCurrentProcedure(f, m)) )
-    succeed;
+  if ( !PL_is_functor(spec, FUNCTOR_divide2) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_predicate_indicator, spec);
 
-  if ( true(proc->definition, LOCKED) && !SYSTEM_MODE && m == MODULE_system )
-    return PL_error("abolish", 1, NULL, ERR_MODIFY_STATIC_PROC, proc);
-
-  return abolishProcedure(proc, m);
+  _PL_get_arg(1, spec, name);
+  _PL_get_arg(2, spec, arity);
+  
+  return do_abolish(m, name, arity);
 }
 
 

@@ -926,12 +926,14 @@ SWI-Prolog behaviour.  Currently it has the following effect:
 \begin{itemize}
     \item is/2 and evaluation under flag/3 do not automatically convert
           floats to integers if the float represents an integer.
-    \item The \funcref{/}{2} (float division) {\em always} yields a
-          float, even when applied to integers that can be divided.
+    \item The \functor{/}{2} (float division) {\em always} return a
+          float, even if applied to integers that can be divided.
     \item In the standard order of terms (see \secref{standardorder}),
           all floats are before all integers.
     \item atom_length/2 yields an instantiation error if the first
           argument is a number.
+    \item clause/[2,3] raises a permission error when accessing static
+          predicates.
 \end{itemize}
     \prologflagitem{optimise}{bool}{rw}
 If \const{true}, compile in optimised mode. The initial value is
@@ -946,6 +948,11 @@ integrating small predicates into their callers, eliminating constant
 expressions and other predictable constructs. Source code optimisation
 is never applied to predicates that are declared dynamic (see
 dynamic/1).
+    \prologflagitem{char_conversion}{bool}{r}
+Determines whether character-conversion takes place while reading terms.
+Though the flag and predicates are provided, the current release of
+SWI-Prolog does not support character conversion.  Hence this prolog
+flag is read-only. See also char_conversion/2.
     \prologflagitem{autoload}{bool}{rw}
 If \const{true} (default) autoloading of library functions is enabled.
 See \secref{autoload}.
@@ -968,6 +975,20 @@ ISO prolog-flag describing integer representation is bound by
 Determines whether the terminal is switched to raw mode for
 get_single_char/1, which also reads the user-actions for the trace.  May
 be set.  See also the \cmdlineoption{+/-tty} command-line option.
+    \prologflagitem{unknown}{fail,warning,error}{rw}
+Determines the behaviour if an undefined procedure is encountered.  If
+\const{fail}, the predicates fails silently.  If \const{warn}, a warning
+is printed, and execution continues as if the predicate was not defined
+and if \const{error} (default), an \except{existence_error} exception
+is raised.  This flag is local to each module.
+    \prologflagitem{debug}{bool}{rw}
+Switch on/off debugging mode.  If debug mode is activated the system
+traps encountered spy-points (see spy/1) and trace-points (see trace/1).
+In addition, tail-recursion optimisation is disabled and the system is
+more conservative in destroying choice-points to simplify debugging.
+
+Disabling these optimisations can cause the system to run out of memory
+on programs that behave correctly if debug mode is off.
     \prologflagitem{debug_on_error}{bool}{rw}
 If {\tt true}, start the tracer after an error is detected.  Otherwise
 just continue execution.  The goal that raised the error will normally

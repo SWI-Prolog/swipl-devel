@@ -1034,6 +1034,26 @@ isCatchedInOuterQuery(QueryFrame qf, Word catcher)
 
 #endif /*O_CATCHTHROW*/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+isSimpleGoal(Word g)
+    Determines whether we need to compile a call (as call/1) to the
+    specified term (see I_USERCALL0) or we can call it directly.  The
+    choice is based on optimisation.  Compilation is slower, but almost
+    required to deal with really complicated cases.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+isSimpleGoal(Word a ARG_LD)		/* a is dereferenced and compound */
+{ functor_t f = functorTerm(*a);
+
+  if ( f == FUNCTOR_comma2 ||
+       f == FUNCTOR_semicolon2 ||
+       f == FUNCTOR_bar2 )
+    fail;
+
+  succeed;
+}
+
 		 /*******************************
 		 *	  TAIL-RECURSION	*
 		 *******************************/
@@ -1509,6 +1529,7 @@ pl-comp.c
     &&B_THROW_LBL,
 #endif
     &&I_CONTEXT_LBL,
+    &&C_LCUT_LBL,
     NULL
   };
 
@@ -2388,7 +2409,7 @@ backtrack that makes it difficult to understand the tracer's output.
     i_cut:			/* from I_USERCALL0 */
     VMI(I_CUT, COUNT(i_cut), ("cut frame %d\n", REL(FR))) MARK(CUT);
       { LocalFrame fr;
-	register LocalFrame fr2;
+	LocalFrame fr2;
 
 #ifdef O_DEBUGGER
 	if ( debugstatus.debugging )
@@ -2504,6 +2525,14 @@ and older than this frame.
 All frames created since what becomes now the  backtrack  point  can  be
 discarded.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    VMI(C_LCUT, {}, ("c_lcut %d\n", *PC)) MARK(C_LCUT);
+#if VMCODE_IS_ADDRESS
+#ifdef ASM_NOP
+      ASM_NOP;
+#else
+      asm("nop");
+#endif
+#endif
     VMI(C_CUT, COUNT_N(c_cut), ("c_cut %d\n", *PC)) MARK(C_CUT);
       { LocalFrame obfr = (LocalFrame) varFrame(FR, *PC);
 	LocalFrame cbfr = obfr;
@@ -2842,7 +2871,7 @@ BUG: have to find out how to proceed in case of failure (I am afraid the
 	int arity;
 	Word args, a;
 	int n;
-	register LocalFrame next;
+	LocalFrame next;
 	Module module;
 	functor_t functor;
 	int callargs;
@@ -2857,6 +2886,11 @@ BUG: have to find out how to proceed in case of failure (I am afraid the
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Determine the functor definition associated with the goal as well as the
 arity and a pointer to the argument vector of the goal.
+
+If the goal is not a simple goal, the   body is compiled to a new clause
+for system:$call($call(<free vars>)) :-  body,   which  is  subsequently
+called. The created clause  is  erased   immediately,  relying  on  true
+erasure as soon as the clause finishes executing.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 	if ( isAtom(goal = *a) )
@@ -2866,9 +2900,59 @@ arity and a pointer to the argument vector of the goal.
 	  arity   = 0;
 	  args    = NULL;
 	} else if ( isTerm(goal) )
-	{ args    = argTermP(goal, 0);
-	  functor = functorTerm(goal);
-	  arity   = arityFunctor(functor);
+	{ if ( isSimpleGoal(a PASS_LD) )
+	  { args    = argTermP(goal, 0);
+	    functor = functorTerm(goal);
+	    arity   = arityFunctor(functor);
+	  } else
+	  { Clause cl;
+	    Word head, ht;
+  
+	    ht    = allocGlobal(3);
+	    ht[0] = FUNCTOR_dcall1;
+	    arity = g_free_variables(a, gTop, 0);
+	    if ( arity > 0 )
+	    { ht[1] = consPtr(&ht[2], TAG_COMPOUND|STG_GLOBAL);
+	      ht[2] = lookupFunctorDef(ATOM_dcall, arity);
+	    } else
+	    { ht[1] = ATOM_dcall;
+	      gTop -= 1;
+	    }
+	    head = argFrameP(next, 1);
+	    *head = consPtr(ht, TAG_COMPOUND|STG_GLOBAL);
+	    lTop = (LocalFrame)argFrameP(next, 2);
+  
+	    if ( !(cl = compileClause(head, a, PROCEDURE_dcall1, module)) )
+	      goto b_throw;
+  
+	    DEF = PROCEDURE_dcall1->definition;
+	    enterDefinition(DEF);
+	    next->clause         = assertProcedure(PROCEDURE_dcall1,
+						   cl, CL_END);
+  
+	    next->flags	         = FR->flags;
+	    next->context	 = FR->context;
+	    next->predicate      = DEF;
+	    next->parent	 = FR;
+	    next->programPointer = PC;
+	    next->backtrackFrame = BFR;
+#ifdef O_LOGICAL_UPDATE
+	    next->generation     = GD->generation;
+#endif
+	    incLevel(next);
+	    Mark(next->mark);
+	    set(next, FR_CUT);		/* there is only one clause */
+	    PC = cl->codes;
+  
+	    environment_frame = FR = next;
+	    ARGP = argFrameP(FR, 0);
+	    *ARGP = ht[1];		/* copy the head here */
+	    lTop = (LocalFrame)(ARGP + cl->variables);
+ 	    set(cl, ERASED);
+	    set(DEF, NEEDSCLAUSEGC);
+
+	    NEXT_INSTRUCTION;
+	  }
 	} else
 	{ PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, wordToTermRef(a));
 	  goto b_throw;
@@ -2882,8 +2966,8 @@ arity and a pointer to the argument vector of the goal.
 	deRef(a);			/* variable */
 
 	module = NULL;
-	if ((a = stripModule(a, &module)) == (Word) NULL)
-	  FRAME_FAILED;
+	a = stripModule(a, &module);
+
 	if ( isAtom(goal = *a) )
 	{ arity   = 0;
 	  functor = lookupFunctorDef(goal, callargs);
@@ -3186,8 +3270,8 @@ increase lTop too to prepare for asynchronous interrupts.
 	    if ( LD->statistics.profiling )
 	      def->profile_calls++;
 #endif /* O_PROFILE */
-	    environment_frame = next;
 	    Mark(next->mark);
+	    environment_frame = next;
 
 	    exception_term = 0;
 	    SAVE_REGISTERS(qid);
@@ -3464,7 +3548,7 @@ be able to access these!
 
 	  if ( !DEF->definition.clauses &&
 	       false(DEF, PROC_DEFINED) &&
-	       true(DEF->module, UNKNOWN) )
+	       true(DEF->module, UNKNOWN_ERROR) )
 	  { FR->clause = NULL;
 	    if ( exception_term )
 	      goto b_throw;
@@ -3676,11 +3760,7 @@ bit more careful.
 	  LocalFrame lSave = lTop;
 	  environment_frame = FR;
 
-	  if ( false(DEF, FOREIGN) && CL )
-	    mintop = (LocalFrame) argFrameP(FR, CL->clause->variables);
-	  else
-	    mintop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
-
+	  mintop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
 	  if ( lTop < mintop )
 	    lTop = mintop;
 

@@ -586,14 +586,17 @@ pl_functor(term_t t, term_t f, term_t a)
 
     succeed;
   }
+  if ( !PL_is_atomic(f) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atomic, f);
 
-  if ( !PL_get_integer(a, &arity) )
+  if ( !PL_get_integer_ex(a, &arity) )
     fail;
-  if ( arity == 0 && PL_is_atomic(f) )
+  if ( arity == 0 )
     return PL_unify(t, f);
   if ( arity < 0 )
-    return PL_warning("functor/3: illegal arity");
-  if ( PL_get_atom(f, &name) )
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		    ATOM_not_less_than_zero, a);
+  if ( PL_get_atom_ex(f, &name) )
     return PL_unify_functor(t, PL_new_functor(name, arity));
 
   fail;
@@ -613,7 +616,7 @@ pl_arg(term_t n, term_t term, term_t arg, word b)
       deRef(p);
       if ( isTerm(*p) )
 	arity = arityTerm(*p);
-      else if ( isAtom(*p) )
+      else if ( isAtom(*p) && !trueFeature(ISO_FEATURE) )
 	arity = 0;
       else
 	return PL_error("arg", 3, NULL, ERR_TYPE, ATOM_compound, term);
@@ -716,7 +719,7 @@ pl_setarg(term_t n, term_t term, term_t value)
  ** Mon Apr 18 16:29:01 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 int
-lengthList(term_t list)
+lengthList(term_t list, int errors)
 { GET_LD
 #undef LD
 #define LD LOCAL_LD
@@ -725,17 +728,19 @@ lengthList(term_t list)
 
   deRef(l);
 
-  while(!isNil(*l) )
-  { if (!isList(*l) )
-      return -1;			/* not a proper list */
-    length++;
+  while(isList(*l) )
+  { length++;
     l = TailList(l);
     deRef(l);
   }
-  if (isNil(*l) )
+
+  if ( isNil(*l) )
     return length;
 
-  return -1;
+  if ( errors )
+    PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, wordToTermRef(l));
+
+  return isVar(*l) ? -2 : -1;
 #undef LD
 #define LD GLOBAL_LD
 }
@@ -744,55 +749,68 @@ word
 pl_univ(term_t t, term_t list)
 { int arity;
   atom_t name;
-  term_t l = PL_new_term_ref();
+  int n;
 
-  arity = lengthList(list) - 1;
+  if ( PL_is_variable(t) )
+  { term_t tail = PL_copy_term_ref(list);
+    term_t head = PL_new_term_ref();
 
-  if ( arity >= 0 )			/* 2nd argument is a proper list */
-  { term_t head = PL_new_term_ref();
-    int n;
-
-    PL_get_list(list, head, l);
-    if ( arity == 0 )			/* X =.. [Head] */
-      return PL_unify(t, head);
-
-    if ( PL_get_atom(head, &name) )
-    { if ( !PL_unify_functor(t, PL_new_functor(name, arity)) )
-	fail;
-
-      for(n=1; PL_get_list(l, head, l); n++)
-      { if ( !PL_unify_arg(n, t, head) )
-	  fail;
-      }
-
-      succeed;
+    if ( !PL_get_list(tail, head, tail) )
+    { if ( PL_get_nil(tail) )
+	return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			ATOM_not_empty_list, tail);
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, tail);
     }
+
+    if ( PL_get_nil(tail) )		/* A =.. [H] */
+      return PL_unify(t, head);
+    if ( !PL_get_atom_ex(head, &name) )
+      fail;
+    
+    if ( (arity = lengthList(tail, FALSE)) < 0 )
+    { if ( arity == -1 )
+	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, list);
+      else
+	return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+    }
+
+    if ( !PL_unify_functor(t, PL_new_functor(name, arity)) )
+      fail;
+
+    for(n=1; PL_get_list(tail, head, tail); n++)
+    { if ( !PL_unify_arg(n, t, head) )
+	fail;
+    }
+
+    succeed;
   }
-  
+
 					/* 1st arg is term or atom */
   if ( PL_get_name_arity(t, &name, &arity) )
   { term_t head = PL_new_term_ref();
-    int n;
+    term_t l = PL_new_term_ref();
 
-    if ( !PL_unify_list(list, head, l) ||
-	 !PL_unify_atom(head, name) )
+    if ( !PL_unify_list_ex(list, head, l) )
+      fail;
+    if ( !PL_unify_atom(head, name) )
       fail;
 
     for(n = 1; n <= arity; n++)
-    { if ( !PL_unify_list(l, head, l) ||
+    { if ( !PL_unify_list_ex(l, head, l) ||
 	   !PL_unify_arg(n, t, head) )
 	fail;
     }
 
-    return PL_unify_nil(l);
+    return PL_unify_nil_ex(l);
   }
 
   if ( PL_is_atomic(t) )		/* 3 =.. X, 3.4 =.. X, "foo" =.. X */
   { term_t head = PL_new_term_ref();
+    term_t l = PL_new_term_ref();
 
-    if ( PL_unify_list(list, head, l) &&
+    if ( PL_unify_list_ex(list, head, l) &&
 	 PL_unify(head, t) &&
-	 PL_unify_nil(l) )
+	 PL_unify_nil_ex(l) )
       succeed;
   }
 
@@ -868,9 +886,53 @@ pl_numbervars(term_t t, term_t f,
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+g_free_variables(Word t, Word p0, int n)
+    Determines the unbound variables in t and locates them on the global
+    stack, starting at p0 (which should be initialised to gTop.  It returns
+    the total number of found free variables.  Used by I_USERCALL0 to analyse
+    the variables of the goal.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+g_free_variables(Word t, Word p0, int n)
+{
+right_recursion:
+  deRef(t);
+
+  if ( isVar(*t) )
+  { int i;
+    Word new;
+
+    for(i=0; i<n; i++)
+    { Word p2 = p0+i;			/* see whether we got this one! */
+
+      deRef(p2);
+      if ( p2 == t )
+	return n;
+    }
+    new = allocGlobal(1);
+    *new = makeRef(t);
+
+    return n+1;
+  }
+  if ( isTerm(*t) )
+  { int arity = arityFunctor(functorTerm(*t));
+
+    for(t = argTermP(*t, 0); --arity > 0; t++)
+      n = g_free_variables(t, p0, n);
+    goto right_recursion;
+  }
+    
+  return n;
+}
+
+
 static int
 free_variables(Word t, term_t l, int n)
-{ deRef(t);
+{
+right_recursion:
+  deRef(t);
 
   if ( isVar(*t) )
   { int i;
@@ -891,8 +953,9 @@ free_variables(Word t, term_t l, int n)
   if ( isTerm(*t) )
   { int arity = arityFunctor(functorTerm(*t));
 
-    for(t = argTermP(*t, 0); arity > 0; arity--, t++)
+    for(t = argTermP(*t, 0); --arity > 0; t++)
       n = free_variables(t, l, n);
+    goto right_recursion;
   }
     
   return n;
@@ -976,9 +1039,9 @@ pl_e_free_variables(term_t t, term_t vars)
 { mark m;
 
   Mark(m);
-  { Word t2          = bind_existential_vars(valTermRef(t));
-    term_t v0   = PL_new_term_refs(0);
-    int i, n	     = free_variables(t2, v0, 0);
+  { Word t2   = bind_existential_vars(valTermRef(t));
+    term_t v0 = PL_new_term_refs(0);
+    int i, n  = free_variables(t2, v0, 0);
     Undo(m);
 
     if ( PL_unify_functor(vars, PL_new_functor(ATOM_v, n)) )
@@ -1469,7 +1532,7 @@ x_chars(const char *pred, term_t atom, term_t string, int how)
       if ( how == X_AUTO )
 	return PL_unify_atom_nchars(atom, len, s);
       else
-	return PL_error(pred, 2, NULL, ERR_REPRESENTATION, ATOM_number);
+	return PL_error(pred, 2, NULL, ERR_SYNTAX, "illegal_number");
     }
   }
 }

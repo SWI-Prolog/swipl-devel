@@ -84,6 +84,7 @@ suggest predicates from a keyword.
 \predicatesummary{call_with_depth_limit}{3}{Prove goal with bounded depth}
 \predicatesummary{catch}{3}{Call goal, watching for exceptions}
 \predicatesummary{char_code}{2}{Convert between atom and ASCII value}
+\predicatesummary{char_conversion}{2}{Provide mapping of input characters}
 \predicatesummary{char_type}{2}{Classify characters}
 \predicatesummary{character_count}{2}{Get character index on a stream}
 \predicatesummary{chdir}{1}{Change working directory}
@@ -111,6 +112,7 @@ suggest predicates from a keyword.
 \predicatesummary{copy_term}{2}{Make a copy of a term}
 \predicatesummary{current_arithmetic_function}{1}{Examine evaluable functions}
 \predicatesummary{current_atom}{1}{Examine existing atoms}
+\predicatesummary{current_char_conversion}{2}{Query input character mapping}
 \predicatesummary{current_flag}{1}{Examine existing flags}
 \predicatesummary{current_foreign_library}{2}{\pllib{shlib} Examine loaded shared libraries (.so files)}
 \predicatesummary{current_format_predicate}{2}{Enumerate user-defined format codes}

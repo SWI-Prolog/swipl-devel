@@ -25,7 +25,7 @@
 time(Goal) :-
 	statistics(cputime, OldTime), 
 	statistics(inferences, OldInferences), 
-	(   catch(Goal, E, fail)
+	(   catch(Goal, E, true)
 	->  Result = yes
 	;   Result = no
 	),

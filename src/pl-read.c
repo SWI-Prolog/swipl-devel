@@ -10,6 +10,78 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 
+		 /*******************************
+		 *	   CHAR-CONVERSION	*
+		 *******************************/
+
+static int  char_table[257];	/* also map -1 (EOF) */
+static int *char_conversion_table = &char_table[1];
+
+void
+initCharConversion()
+{ int i;
+
+  for(i=-1; i< 256; i++)
+    char_conversion_table[i] = i;
+}
+
+
+foreign_t
+pl_char_conversion(term_t in, term_t out)
+{ int cin, cout;
+
+  if ( !PL_get_char(in, &cin) ||
+       !PL_get_char(out, &cout) )
+    fail;
+
+  char_conversion_table[cin] = cout;
+
+  succeed;
+}
+
+
+foreign_t
+pl_current_char_conversion(term_t in, term_t out, word h)
+{ int ctx;
+  mark m;
+
+  switch( ForeignControl(h) )
+  { case FRG_FIRST_CALL:
+    { int cin;
+
+      if ( !PL_is_variable(in) )
+      { if ( PL_get_char(in, &cin) )
+	  return PL_unify_char(out, char_conversion_table[cin], CHAR_MODE);
+	fail;
+      }
+      ctx = 0;
+      break;
+    }
+    case FRG_REDO:
+      ctx = ForeignContextInt(h);
+      break;
+    case FRG_CUTTED:
+    default:
+      ctx = 0;				/* for compiler */
+      succeed;
+  }
+
+  Mark(m);
+  for( ; ctx < 256; ctx++)
+  { if ( PL_unify_char(in, ctx, CHAR_MODE) &&
+	 PL_unify_char(out, char_conversion_table[ctx], CHAR_MODE) )
+      ForeignRedoInt(ctx+1);
+    Undo(m);
+  }
+
+  fail;
+}
+
+
+		 /*******************************
+		 *	   TERM-READING		*
+		 *******************************/
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module defines the Prolog parser.  Reading a term takes two passes:
 
@@ -103,7 +175,8 @@ typedef struct
   unsigned int	flags;			/* Module syntax flags */
 
   term_t	exception;		/* raised exception */
-  term_t	varnames;		/* Report variables */
+  term_t	variables;		/* report variables */
+  term_t	varnames;		/* Report variables+names */
   term_t	singles;		/* Report singleton variables */
   term_t	subtpos;		/* Report Subterm positions */
 } read_data, *ReadData;
@@ -208,7 +281,7 @@ errorWarning(const char *id_str, ReadData _PL_rd)
   } else				/* any stream */
   { term_t stream = PL_new_term_ref();
 
-    PL_unify_stream(stream, rb.stream);
+    PL_unify_stream_or_alias(stream, rb.stream);
     PL_unify_term(loc,
 		  PL_FUNCTOR, FUNCTOR_stream3,
 		    PL_TERM, stream,
@@ -324,7 +397,8 @@ setCurrentSourceLocation(IOSTREAM *s)
 }
 
 
-#define getchr() Sgetc(rb.stream)
+#define getchr()  char_conversion_table[Sgetc(rb.stream)]
+#define getchrq() Sgetc(rb.stream)
 
 #define ensure_space(c) { if ( something_read && \
 			       (c == '\n'|| !isBlank(rb.here[-1])) ) \
@@ -451,10 +525,10 @@ raw_read2(ReadData _PL_rd)
 		set_start_line;
 		newlines = 0;
 		addToBuffer(c, _PL_rd);
-		while((c=getchr()) != EOF && c != '\'')
+		while((c=getchrq()) != EOF && c != '\'')
 		{ if ( c == '\\' && DO_CHARESCAPE )
 		  { addToBuffer(c, _PL_rd);
-		    if ( (c = getchr()) == EOF )
+		    if ( (c = getchrq()) == EOF )
 		      goto eofinquoted;
 		  } else if (c == '\n' &&
 			     newlines++ > MAXNEWLINES &&
@@ -473,10 +547,10 @@ raw_read2(ReadData _PL_rd)
       case '"':	set_start_line;
 		newlines = 0;
 		addToBuffer(c, _PL_rd);
-		while((c=getchr()) != EOF && c != '"')
+		while((c=getchrq()) != EOF && c != '"')
 		{ if ( c == '\\' && DO_CHARESCAPE )
 		  { addToBuffer(c, _PL_rd);
-		    if ( (c = getchr()) == EOF )
+		    if ( (c = getchrq()) == EOF )
 		      goto eofinstr;
 		  } else if (c == '\n' &&
 			     newlines++ > MAXNEWLINES &&
@@ -621,11 +695,13 @@ lookupVariable(const char *name, ReadData _PL_rd)
   Variable var;
   int nv;
 
-  for_vars(v,
-	   if ( streq(name, v->name) )
-	   { v->times++;
-	     return v;
-	   })
+  if ( name[0] != '_' || name[1] != EOS ) /* anonymous: always add */
+  { for_vars(v,
+	     if ( streq(name, v->name) )
+	     { v->times++;
+	       return v;
+	     })
+  }
        
   nv = entriesBuffer(&var_buffer, variable);
   next.name      = save_var_name(name, _PL_rd);
@@ -675,7 +751,7 @@ check_singletons(ReadData _PL_rd)
 
 
 static bool
-bind_variables(ReadData _PL_rd)
+bind_variable_names(ReadData _PL_rd)
 { term_t list = PL_copy_term_ref(_PL_rd->varnames);
   term_t head = PL_new_term_ref();
   term_t a    = PL_new_term_ref();
@@ -690,6 +766,21 @@ bind_variables(ReadData _PL_rd)
 		  !PL_unify(a, var->variable) )
 	       fail;
 	   });
+
+  return PL_unify_nil(list);
+}
+
+
+static bool
+bind_variables(ReadData _PL_rd)
+{ term_t list = PL_copy_term_ref(_PL_rd->variables);
+  term_t head = PL_new_term_ref();
+
+  for_vars(var,
+	   if ( !PL_unify_list(list, head, list) ||
+		!PL_unify(head, var->variable) )
+	     fail;
+	   );
 
   return PL_unify_nil(list);
 }
@@ -1004,7 +1095,9 @@ get_token(bool must_be_op, ReadData _PL_rd)
 		    *rdhere = c;
 		    break;
 		  }
-		  if (start[0] == '_' && rdhere == start + 1)
+		  if ( start[0] == '_' &&
+		       rdhere == start + 1 &&
+		       !_PL_rd->variables ) /* report them */
 		  { DEBUG(9, Sdprintf("VOID\n"));
 		    cur_token.type = T_VOID;
 		  } else
@@ -1850,7 +1943,9 @@ read_term(term_t term, ReadData rd)
 
   if ( !PL_unify(term, result) )
     goto failed;
-  if ( rd->varnames && !bind_variables(rd) )
+  if ( rd->varnames && !bind_variable_names(rd) )
+    goto failed;
+  if ( rd->variables && !bind_variables(rd) )
     goto failed;
   if ( rd->singles && !check_singletons(rd) )
     goto failed;
@@ -1961,6 +2056,7 @@ pl_read_clause(term_t term)
 
 static const opt_spec read_term_options[] = 
 { { ATOM_variable_names,    OPT_TERM },
+  { ATOM_variables,         OPT_TERM },
   { ATOM_singletons,        OPT_TERM },
   { ATOM_term_position,     OPT_TERM },
   { ATOM_subterm_positions, OPT_TERM },
@@ -1987,6 +2083,7 @@ pl_read_term3(term_t from, term_t term, term_t options)
 
   if ( !scan_options(options, 0, ATOM_read_option, read_term_options,
 		     &rd.varnames,
+		     &rd.variables,
 		     &rd.singles,
 		     &tpos,
 		     &rd.subtpos,

@@ -51,7 +51,7 @@ offers a number of primitive predicates compatible with Quintus Prolog%
 \cite{BIMPROLOG:manual}.
 
 ISO compliant predicates are based on ``Prolog: The Standard'',
-\cite{Deransart:96}.
+\cite{Deransart:96}, validated using \cite{stdprolog:98}.
 
 \section{Status}
 
@@ -348,6 +348,10 @@ A number of incompatible changes result from this upgrade.  They
 are all easily fixed however.
 
 \begin{itemlist}
+    \item [\predref{!}{0}, call/1]
+The cut now behaves according to the ISO standard. This implies it works
+in compound goals passed to call/1 and is local to the {\em condition}
+part of if-then-else as well as the argument of \predref{\+}{1}.
     \item [atom_chars/2]
 This predicate is now ISO compliant and thus generates a list of
 one-character atoms.  The behaviour of the old predicate is available

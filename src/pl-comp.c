@@ -103,6 +103,7 @@ const code_info codeTable[] = {
   CODE(B_THROW,		"b_throw",	0, 0),
 #endif
   CODE(I_CONTEXT,	"i_context",	1, CA1_MODULE),
+  CODE(C_LCUT,		"c_lcut",	1, 0),
 /*List terminator */
   CODE(0,		NULL,		0, 0)
 };
@@ -447,11 +448,12 @@ calculation at runtime.
 
 #define ISVOID 0			/* compileArgument produced H_VOID */
 #define NONVOID 1			/* ... anything else */
+#define NOT_CALLABLE -1			/* return value for not-callable */
 
 #define BLOCK(s) do { s; } while (0)
 
-#define Output_0(ci, c)		addBuffer(&(ci)->codes, encode(c), code);
-#define Output_a(ci, c)		addBuffer(&(ci)->codes, c, code);
+#define Output_0(ci, c)		addBuffer(&(ci)->codes, encode(c), code)
+#define Output_a(ci, c)		addBuffer(&(ci)->codes, c, code)
 #define Output_1(ci, c, a)	BLOCK(Output_0(ci, c); Output_a(ci, a))
 #define Output_2(ci, c, a0, a1)	BLOCK(Output_1(ci, c, a0); Output_a(ci, a1))
 #define Output_n(ci, p, n)	addMultipleBuffer(&(ci)->codes, p, n, word)
@@ -477,6 +479,7 @@ typedef struct
   int		arity;			/* arity of top-goal */
   Clause	clause;			/* clause we are constructing */
   int		vartablesize;		/* size of the vartable */
+  int		cutvar;			/* Variable for local cuts */
   tmp_buffer	codes;			/* scratch code table */
   VarTable	used_var;		/* boolean array of used variables */
 } compileInfo;
@@ -485,9 +488,9 @@ typedef struct
 Variable table operations.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-forwards bool	compileBody(Word, code, compileInfo *);
+forwards int	compileBody(Word, code, compileInfo *);
 forwards int	compileArgument(Word, int, compileInfo *);
-forwards bool	compileSubClause(Word, code, compileInfo *);
+forwards int	compileSubClause(Word, code, compileInfo *);
 forwards bool	isFirstVar(VarTable vt, int n);
 forwards void	balanceVars(VarTable, VarTable, compileInfo *);
 forwards void	orVars(VarTable, VarTable);
@@ -646,6 +649,7 @@ Initialise the `compileInfo' structure.
   ci.module = module;
   ci.clause = clause;
 
+  ci.cutvar = 0;
   ci.vartablesize = (nvars + ci.arity + BITSPERINT-1)/BITSPERINT;
   ci.used_var = alloca(sizeofVarTable(ci.vartablesize));
   clearVarTable(&ci);
@@ -677,13 +681,20 @@ automatic update if a predicate is later defined as meta-predicate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   if ( body && *body != ATOM_true )
-  { Output_0(&ci, I_ENTER);
+  { int rv;
+
+    Output_0(&ci, I_ENTER);
     if ( ci.module != proc->definition->module &&
 	 false(proc->definition, METAPRED) )
     { Output_1(&ci, I_CONTEXT, (code)ci.module);
     }
-    if ( !compileBody(body, I_DEPART, &ci) )
+    if ( (rv=compileBody(body, I_DEPART, &ci)) != TRUE )
+    { if ( rv == NOT_CALLABLE )
+	PL_error(NULL, 0, NULL, ERR_TYPE,
+		 ATOM_callable, wordToTermRef(body));
+      
       goto exit_fail;
+    }
     Output_0(&ci, I_EXIT);
   } else
   { set(clause, UNIT_CLAUSE);		/* fact (for decompiler) */
@@ -752,7 +763,7 @@ A ; B, A -> B, A -> B ; C, \+ A
     balanceVars();
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static bool
+static int
 compileBody(Word body, code call, register compileInfo *ci)
 { deRef(body);
 
@@ -760,12 +771,15 @@ compileBody(Word body, code call, register compileInfo *ci)
   { functor_t fd = functorTerm(*body);
 
     if ( fd == FUNCTOR_comma2 )			/* A , B */
-    { TRY( compileBody(argTermP(*body, 0), I_CALL, ci) );
+    { int rv;
+
+      if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci)) != TRUE )
+	return rv;
       return compileBody(argTermP(*body, 1), call, ci);
 #if O_COMPILE_OR
     } else if ( fd == FUNCTOR_semicolon2 ||
 		fd == FUNCTOR_bar2 )		/* A ; B and (A -> B ; C) */
-    { register Word a0 = argTermP(*body, 0);
+    { Word a0 = argTermP(*body, 0);
       VarTable vsave = mkCopiedVarTable(ci->used_var);
       VarTable valt1 = mkCopiedVarTable(ci->used_var);
       VarTable valt2 = mkCopiedVarTable(ci->used_var);
@@ -779,32 +793,42 @@ compileBody(Word body, code call, register compileInfo *ci)
 	   hasFunctor(*a0, FUNCTOR_softcut2) )        /* A *-> B ; C */
       { int var = VAROFFSET(ci->clause->variables++);
 	int tc_or, tc_jmp;
+	int rv;
+	int cutsave = ci->cutvar;
 
 	Output_2(ci, hard ? C_IFTHENELSE : C_SOFTIF, var, (code)0);
 	tc_or = PC(ci);
-	TRY( compileBody(argTermP(*a0, 0), I_CALL, ci) );	
+	ci->cutvar = var;		/* Cut locally in the condition */
+	if ( (rv=compileBody(argTermP(*a0, 0), I_CALL, ci)) != TRUE )
+	  return rv;
+	ci->cutvar = cutsave;
 	Output_1(ci, hard ? C_CUT : C_SOFTCUT, var);
-	TRY( compileBody(argTermP(*a0, 1), call, ci) );	
+	if ( (rv=compileBody(argTermP(*a0, 1), call, ci)) != TRUE )
+	  return rv;
 	balanceVars(valt1, valt2, ci);
 	Output_1(ci, C_JMP, (code)0);
 	tc_jmp = PC(ci);
 	OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
 	copyVarTable(ci->used_var, vsave);
-	TRY( compileBody(argTermP(*body, 1), call, ci) );
+	if ( (rv=compileBody(argTermP(*body, 1), call, ci)) != TRUE )
+	  return rv;
 	balanceVars(valt2, valt1, ci);
 	OpCode(ci, tc_jmp-1) = (code)(PC(ci) - tc_jmp);
       } else					/* A ; B */
       { int tc_or, tc_jmp;
+	int rv;
 
 	Output_1(ci, C_OR, (code)0);
 	tc_or = PC(ci);
-	TRY( compileBody(argTermP(*body, 0), I_CALL, ci) );
+	if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci)) != TRUE )
+	  return rv;
 	balanceVars(valt1, valt2, ci);
 	Output_1(ci, C_JMP, (code)0);
 	tc_jmp = PC(ci);
 	OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
 	copyVarTable(ci->used_var, vsave);
-	TRY( compileBody(argTermP(*body, 1), call, ci) );
+	if ( (rv=compileBody(argTermP(*body, 1), call, ci)) != TRUE )
+	  return rv;
 	balanceVars(valt2, valt1, ci);
 	OpCode(ci, tc_jmp-1) = (code)(PC(ci) - tc_jmp);
       }
@@ -815,12 +839,14 @@ compileBody(Word body, code call, register compileInfo *ci)
       succeed;
     } else if ( fd == FUNCTOR_ifthen2 )		/* A -> B */
     { int var = VAROFFSET(ci->clause->variables++);
+      int rv;
 
       Output_1(ci, C_MARK, var);
-      TRY( compileBody(argTermP(*body, 0), I_CALL, ci) );
+      if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci)) != TRUE )
+	return rv;
       Output_1(ci, C_CUT, var);
-
-      TRY( compileBody(argTermP(*body, 1), call, ci) );
+      if ( (rv=compileBody(argTermP(*body, 1), call, ci)) != TRUE )
+	return rv;
       Output_0(ci, C_END);
       
       succeed;
@@ -828,10 +854,15 @@ compileBody(Word body, code call, register compileInfo *ci)
     { int var = VAROFFSET(ci->clause->variables++);
       int tc_or;
       VarTable vsave = mkCopiedVarTable(ci->used_var);
+      int rv;
+      int cutsave = ci->cutvar;
 
       Output_2(ci, C_NOT, var, (code)0);
       tc_or = PC(ci);
-      TRY( compileBody(argTermP(*body, 0), I_CALL, ci) );	
+      ci->cutvar = var;
+      if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci)) != TRUE )
+	return rv;
+      ci->cutvar = cutsave;
       Output_1(ci, C_CUT, var);
       Output_0(ci, C_FAIL);
       OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
@@ -842,9 +873,7 @@ compileBody(Word body, code call, register compileInfo *ci)
     }
   }
 
-  TRY( compileSubClause(body, call, ci) );
-
-  succeed;
+  return compileSubClause(body, call, ci);
 }
 
 
@@ -1030,7 +1059,7 @@ an instruction to call the procedure is added.  Before doing all this it
 will check for the subclause just beeing a variable or the cut.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static bool
+static int
 compileSubClause(Word arg, code call, compileInfo *ci)
 { GET_LD
 #undef LD
@@ -1064,7 +1093,7 @@ will use the meta-call mechanism for all these types of calls.
     if ( functorTerm(*arg) == FUNCTOR_module2 )
     {
   /*							SEE COMMENT ABOVE
-      register Word mp, g;
+      Word mp, g;
 
       mp = argTermP(*arg, 0); deRef(mp);
       if ( isAtom(*mp) )
@@ -1136,7 +1165,7 @@ operator.
       for(arg = argTermP(*arg, 0); ar > 0; ar--, arg++)
 	compileArgument(arg, A_BODY, ci);
 
-      if ( fdef->name == ATOM_call )
+      if ( fdef->name == ATOM_call && fdef->arity > 1 )
       { Output_1(ci, I_USERCALLN, (code)(fdef->arity - 1));
 	succeed;
       } else if ( functor == FUNCTOR_apply2 )
@@ -1164,7 +1193,10 @@ operator.
 
   if ( isAtom(*arg) )
   { if ( *arg == ATOM_cut )
-    { Output_0(ci, I_CUT);
+    { if ( ci->cutvar )			/* local cut for \+ */
+	Output_1(ci, C_LCUT, ci->cutvar);
+      else
+	Output_0(ci, I_CUT);
     } else if ( *arg == ATOM_true )
     { Output_0(ci, I_TRUE);
     } else if ( *arg == ATOM_fail )
@@ -1185,7 +1217,7 @@ operator.
     succeed;
   }
     
-  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, wordToTermRef(arg));
+  return NOT_CALLABLE;
 #undef LD
 #define LD GLOBAL_LD
 }
@@ -1486,15 +1518,13 @@ mode, the predicate is still undefined and is not dynamic or multifile.
   /* assert[az]/1 */
 
   if ( false(def, DYNAMIC) && isDefinedProcedure(proc) )
-  { PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
-	     ATOM_modify, ATOM_static_procedure, def);
+  { PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
     freeClause(clause);
-    return (Clause) NULL;
+    return NULL;
   }
   set(def, DYNAMIC);			/* Make dynamic on first assert */
 
-  return assertProcedure(proc, clause, where) == FALSE ? (Clause) NULL
-						       : clause;
+  return assertProcedure(proc, clause, where) ? clause : (Clause)NULL;
 }
 
 word
@@ -1658,6 +1688,7 @@ typedef struct
   int	 nvars;				/* size of var block */
   term_t *variables;			/* variable table */
   term_t bindings;			/* [Offset = Var, ...] */
+  Module body_context;			/* I_CONTEXT module (if any) */
 } decompileInfo;
 
 forwards bool	decompile_head(Clause, term_t, decompileInfo *);
@@ -1881,9 +1912,10 @@ decompile(Clause clause, term_t term, term_t bindings)
   decompileInfo *di = &dinfo;
   Word body;
 
-  di->nvars     = VAROFFSET(1) + clause->prolog_vars;
-  di->variables = alloca(di->nvars * sizeof(term_t));
-  di->bindings  = bindings;
+  di->nvars        = VAROFFSET(1) + clause->prolog_vars;
+  di->variables    = alloca(di->nvars * sizeof(term_t));
+  di->bindings     = bindings;
+  di->body_context = NULL;
 
 #ifdef O_RUNTIME
   if ( false(clause->procedure->definition, DYNAMIC) )
@@ -1904,18 +1936,29 @@ decompile(Clause clause, term_t term, term_t bindings)
   }
 
   ARGP = (Word) lTop;
-
   decompileBody(di, I_EXIT, (Code) NULL);
 
-  { Word b;
+  { Word b, ba;
     int var;
 
     b = newTerm();
+
+    if ( di->body_context )
+    { Word b2 = allocGlobal(3);
+      b2[0] = FUNCTOR_module2;
+      b2[1] = di->body_context->name;
+      setVar(b2[2]);
+      ba = &b2[2];
+      *b = consPtr(b2, TAG_COMPOUND|STG_GLOBAL);
+    } else
+    { ba = b;
+    }
+
     ARGP--;
     if ( (var = isVarRef(*ARGP)) >= 0 )
-      unifyVar(b, di->variables, var);
+      unifyVar(ba, di->variables, var);
     else
-      *b = *ARGP;
+      *ba = *ARGP;
 
     return unify_ptrs(body, b);
   }
@@ -2098,10 +2141,12 @@ decompileBody(decompileInfo *di, code end, Code until)
       case I_TRUE:	    *ARGP++ = ATOM_true;
 			    pushed++;
 			    continue;
+      case C_LCUT:	    PC++;
+			    /*FALLTHROUGH*/
       case I_CUT:	    *ARGP++ = ATOM_cut;
 			    pushed++;
 			    continue;
-      case I_CONTEXT:	    PC++;	/* what to do?? */
+      case I_CONTEXT:	    di->body_context = (Module) *PC++;
       			    continue;
       case I_DEPART:
       case I_CALL:        { Procedure proc = (Procedure)XR(*PC++);
@@ -2308,64 +2353,65 @@ unify_definition(term_t head, Definition def, term_t thehead, int how)
 
 
 word
-pl_clause4(term_t p, term_t term, term_t ref, term_t bindings, word h)
+pl_clause4(term_t head, term_t body, term_t ref, term_t bindings, word ctx)
 { Procedure proc;
   Definition def;
   ClauseRef cref;
   Word argv;
   Module module = NULL;
+  term_t term = PL_new_term_ref();
+  term_t h    = PL_new_term_ref();
+  term_t b    = PL_new_term_ref();
+  mark m;
 
-  switch( ForeignControl(h) )
+  switch( ForeignControl(ctx) )
   { case FRG_FIRST_CALL:
     { Clause clause;
 
-      if ( PL_get_pointer(ref, (void **)&clause) ) /* clause(H, B, 2733843) */
-      { Module defModule;
-	term_t tmp  = PL_new_term_ref();
-	term_t head = PL_new_term_ref();
-	term_t body = PL_new_term_ref();
-	functor_t f;
-    
-	if ( !inCore(clause) || !isClause(clause) )
-	  PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_clause_reference, ref);
-	    
-	if ( !decompile(clause, term, bindings) )
-	  fail;
-    
-	proc = clause->procedure;
-	def = proc->definition;
-	defModule = def->module;
-    
-	if ( PL_get_functor(term, &f) && f == FUNCTOR_module2 )
-	{ PL_strip_module(p, &module, tmp);
-	  if ( module != defModule )
+      if ( ref )
+      { if ( PL_get_pointer(ref, (void **)&clause) )
+	{ term_t tmp  = PL_new_term_ref();
+      
+	  if ( !inCore(clause) || !isClause(clause) )
+	    PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_clause_reference, ref);
+	      
+	  decompile(clause, term, bindings);
+	  proc = clause->procedure;
+	  def = proc->definition;
+	  if ( !unify_definition(head, def, tmp, 0) )
 	    fail;
-	}
-    
-	if ( !unify_definition(p, def, tmp, 0) )
+	  get_head_and_body_clause(term, h, b, NULL);
+	  if ( PL_unify(tmp, h) && PL_unify(body, b) )
+	    succeed;
 	  fail;
-    
-	get_head_and_body_clause(term, head, body, NULL);
-    
-	return PL_unify(tmp, head);
+	}
+	if ( !PL_is_variable(ref) )
+	  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_clause_reference, ref);
       }
-      if ( !get_procedure(p, &proc, 0, GP_FIND) ||
-	   true(proc->definition, FOREIGN) )
+      if ( !get_procedure(head, &proc, 0, GP_FIND) )
 	fail;
       def = proc->definition;
+
+      if ( true(def, FOREIGN) ||
+	   (   trueFeature(ISO_FEATURE) &&
+	       false(def, DYNAMIC)
+	   ) )
+	return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+			ATOM_access, ATOM_private_procedure, def);
+
       cref = def->definition.clauses;
       enterDefinition(def);		/* reference the predicate */
       break;
     }
     case FRG_REDO:
-    { cref = ForeignContextPtr(h);
+    { cref = ForeignContextPtr(ctx);
       proc = cref->clause->procedure;
       def  = proc->definition;
       break;
     }
     case FRG_CUTTED:
     default:
-    { cref = ForeignContextPtr(h);
+    { cref = ForeignContextPtr(ctx);
 
       if ( cref )
       { def  = cref->clause->procedure->definition;
@@ -2376,16 +2422,15 @@ pl_clause4(term_t p, term_t term, term_t ref, term_t bindings, word h)
   }
 
   if ( def->functor->arity > 0 )
-  { term_t head = PL_new_term_ref();
-
-    PL_strip_module(p, &module, head);
+  { PL_strip_module(head, &module, head);
     argv = valTermRef(head);
     deRef(argv);
     argv = argTermP(*argv, 0);
   } else
     argv = NULL;
 
-  for(; cref; cref = cref->next)
+  Mark(m);
+  for(; cref; cref = cref->next, Undo(m))
   { bool det;
 
     if ( !(cref = findClause(cref, argv, environment_frame, def, &det)) )
@@ -2395,8 +2440,12 @@ pl_clause4(term_t p, term_t term, term_t ref, term_t bindings, word h)
 
     if ( !decompile(cref->clause, term, bindings) )
       continue;
-    if ( !PL_unify_pointer(ref, cref->clause) )
+    get_head_and_body_clause(term, h, b, NULL);
+    if ( !PL_unify(head, h) || !PL_unify(b, body) )
       continue;
+
+    if ( ref )
+      PL_unify_pointer(ref, cref->clause);
 
     if ( det == TRUE )
     { leaveDefinition(def);
@@ -2411,8 +2460,14 @@ pl_clause4(term_t p, term_t term, term_t ref, term_t bindings, word h)
 
 
 word
-pl_clause(term_t p, term_t term, term_t ref, word h)
+pl_clause3(term_t p, term_t term, term_t ref, word h)
 { return pl_clause4(p, term, ref, 0, h);
+}
+
+
+word
+pl_clause2(term_t p, term_t term, word h)
+{ return pl_clause4(p, term, 0, 0, h);
 }
 
 
@@ -2556,7 +2611,7 @@ wouldBindToDefinition(Definition from, Definition to)
 
       if ( def->definition.clauses ||	/* defined and not the same */
 	   true(def, PROC_DEFINED) ||
-	   false(def->module, UNKNOWN) )
+	   false(def->module, UNKNOWN_ERROR|UNKNOWN_WARNING) )
 	fail;
     }
 

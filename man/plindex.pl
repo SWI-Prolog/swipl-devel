@@ -223,8 +223,10 @@ predicate_line(Name, Arity) -->
 	optional_directive,
 	atom(Name),
 	arguments(Arity), !,
-	{   (   functor(T, Name, Arity),
+	{   (   integer(Arity),
+		functor(T, Name, Arity),
 		user:current_predicate(_, T)
+	    ;	user:current_predicate(Name, _)
 	    ;   current_arithmetic_function(T)
 	    )
 	->  true

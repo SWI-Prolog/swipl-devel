@@ -2634,7 +2634,8 @@ PL_action(int action, ...)
       rval = pl_trace();
       break;
     case PL_ACTION_DEBUG:
-      rval = pl_debug();
+      debugmode(TRUE, NULL);
+      rval = TRUE;
       break;
     case PL_ACTION_BACKTRACE:
 #ifdef O_DEBUGGER

@@ -1,6 +1,33 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Problem in the debugger, leading to a possible crash on the exit
+    port (very complicated conditions).
+
+  * ISO: Added the Prolog flags unknown and debug.  Moved unknown/2, debug
+    and nodebug predicates to new library(edinburgh).
+
+  * ISO: Added current_predicate/1
+
+  * ISO: clause/2 errors.
+
+  * FIXED: clause/2: clauses for which the body executes in a different
+    module as the head to tag the body with the body-context module.
+
+  * ISO: Added exceptions to =../2 and functor/3.  In old SWI-Prolog,
+    these predicates failed silently on all errors.
+
+  * ADDED: ISO char_conversion/2 and friends.  They are not really enforced
+    though.
+
+  * ADDED: ISO option variables(-Vars) to read_term/[2,3]
+
+  * FIXED: number_chars/2 exception on illegal number-syntax.
+
+  * FIXED: handling ! in call/1, \+/1 and condition-part of if-then-else
+
+  * FIXED: time/1 library predicate to pass exceptions correctly.
+
   * ISO: renamed misnamed close2/2 to close/2.
 
   * ISO: Renamed flush/0 to flush_output/0.  Added backward compatibility

@@ -37,7 +37,7 @@ _lookupModule(atom_t name)
   m->file = (SourceFile) NULL;
   m->operators = NULL;
   clearFlags(m);
-  set(m, CHARESCAPE|UNKNOWN);
+  set(m, CHARESCAPE|UNKNOWN_ERROR);
 
   if ( name == ATOM_user || name == ATOM_system )
     m->procedures = newHTable(PROCEDUREHASHSIZE);
@@ -76,7 +76,7 @@ lookupModule(atom_t name)
 }
 
 
-static Module
+Module
 isCurrentModule(atom_t name)
 { Symbol s;
   

@@ -42,6 +42,7 @@ cmd(file(		{A1}), #code(A1)).
 cmd(clib(		{A1}), #code(+A1)).
 cmd(cglobalvar(		{A1}), #code(+A1)).
 cmd(ctype(		{A1}), #code(+A1)).
+cmd(type(		{A1}), #code(+A1)).
 cmd(pllib(		{A1}), #code([library, #embrace(+A1)])).
 cmd(hook(		{_A1}), #i(#embrace(hook))).
 cmd(env(		{A1}), #code(+A1)).
@@ -50,6 +51,7 @@ cmd(exam(		{A1}), #code(+A1)).
 cmd(jargon(		{A1}), #em(+A1)).
 cmd(chr(		{A1}), #code(+A1)).
 cmd(const(		{A1}), #code(+A1)).
+cmd(plflag(		{A1}), #code(+A1)).
 cmd(module(		{A1}), #code(+A1)).
 cmd(except(		{A1}), #code(+A1)).
 cmd(op(			{A1}), #strong(+A1)).
@@ -87,7 +89,7 @@ cmd(manref({RawName}, {Section}),
 	clean_tt(RawName, Name).
 cmd(funcref({RawName}, {Args}),
     #lref(RefName, [Name, #embrace(+Args)])) :-
-	clean_tt(RawName, Name),
+	clean_name(RawName, Name),
 	sformat(RefName, '~w()', [Name]).
 cmd(definition({Tag}),
     #defitem(+Tag)).

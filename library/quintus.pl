@@ -29,7 +29,9 @@
 	  statistics/2,
 
 	  current_stream/3,		% ?File, ?Mode, ?Stream
-	  stream_position/3		% +Stream, -Old, +New
+	  stream_position/3,		% +Stream, -Old, +New
+
+	  atom_char/2
 	]).
 
 		/********************************
@@ -239,3 +241,15 @@ stream_mode(update, write).
 stream_position(Stream, Old, New) :-
 	stream_property(Stream, position(Old)),
 	set_stream_position(Stream, New).
+
+
+		 /*******************************
+		 *	   ATOM-HANDLING	*
+		 *******************************/
+
+%	atom_char/2
+
+atom_char(Char, Code) :-
+	char_code(Char, Code).
+
+

@@ -572,8 +572,9 @@ codes.
 #endif
 
 #define I_CONTEXT	((code)78)		/* Push context module */
+#define C_LCUT		((code)79)		/* ! local in \+ and -> */
 
-#define I_HIGHEST	((code)78)		/* largest WAM code !!! */
+#define I_HIGHEST	((code)79)		/* largest WAM code !!! */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Arithmetic comparison
@@ -831,13 +832,14 @@ with one operation, it turns out to be faster as well.
 #define UNIT_CLAUSE		(0x0002) /* clause */
 #define HAS_BREAKPOINTS		(0x0004) /* clause */
 
-#define UNKNOWN			(0x0002) /* module */
 #define CHARESCAPE		(0x0004) /* module */
 #define DBLQ_CHARS		(0x0008) /* "ab" --> ['a', 'b'] */
 #define DBLQ_ATOM		(0x0010) /* "ab" --> 'ab' */
 #define DBLQ_STRING		(0x0020) /* "ab" --> "ab" */
 #define DBLQ_MASK 		(DBLQ_CHARS|DBLQ_ATOM|DBLQ_STRING)
 #define MODULE_COPY_FLAGS	(DBLQ_MASK|CHARESCAPE)
+#define UNKNOWN_ERROR		(0x0040) /* module */
+#define UNKNOWN_WARNING		(0x0080) /* module */
 
 #define INLINE_F		(0x0001) /* functor */
 
@@ -1228,10 +1230,11 @@ struct module
   Module	super;		/* Import predicates from here */
   unsigned int  flags;		/* booleans: */
 		/*	SYSTEM	   system module */
-		/*	UNKNOWN	   trap unknown predicates */
   		/*	DBLQ_INHERIT inherit from default module */
 		/*	DBLQ_CHARS "ab" --> ['a', 'b'] */
 		/*	DBLQ_ATOM  "ab" --> 'ab' */
+		/*	UNKNOWN_WARNING Warn on unknown pred */
+		/*	UNKNOWN_ERROR Error on unknown pred */
 };
 
 struct trail_entry
@@ -1552,6 +1555,7 @@ typedef struct
 #define PROCEDURE_fail0			(GD->procedures.fail0)
 #define PROCEDURE_event_hook1		(GD->procedures.event_hook1)
 #define PROCEDURE_print_message2	(GD->procedures.print_message2)
+#define PROCEDURE_dcall1		(GD->procedures.dcall1)
 
 extern const code_info codeTable[]; /* Instruction info (read-only) */
 
@@ -1625,6 +1629,7 @@ typedef struct debuginfo
 #define OPTIMISE_FEATURE	0x1000	/* -O: optimised compilation */
 #define FILEVARS_FEATURE	0x2000	/* Expand $var and ~ in filename */
 #define AUTOLOAD_FEATURE	0x4000	/* do autoloading */
+#define CHARCONVERSION_FEATURE	0x8000	/* do character-conversion */
 
 typedef struct
 { unsigned long flags;			/* the feature flags */

@@ -564,7 +564,9 @@ canoniseNumber(Number n)
 
 static int
 ar_add(Number n1, Number n2, Number r)
-{ if ( intNumber(n1) && intNumber(n2) ) 
+{ GET_LD
+
+  if ( intNumber(n1) && intNumber(n2) ) 
   { r->value.i = n1->value.i + n2->value.i; 
     
     if ( n1->value.i > 0 && n2->value.i > 0 && r->value.i <= 0 )
@@ -592,7 +594,9 @@ overflow:
 
 static int
 ar_minus(Number n1, Number n2, Number r)
-{ if ( intNumber(n1) && intNumber(n2) ) 
+{ GET_LD
+
+  if ( intNumber(n1) && intNumber(n2) ) 
   { r->value.i = n1->value.i - n2->value.i; 
     
     if ( n1->value.i > 0 && n2->value.i < 0 && r->value.i <= 0 )
@@ -783,7 +787,9 @@ ar_rem(Number n1, Number n2, Number r)
 
 static int
 ar_divide(Number n1, Number n2, Number r)
-{ if ( !trueFeature(ISO_FEATURE) && (intNumber(n1) && intNumber(n2)) )
+{ GET_LD
+
+  if ( !trueFeature(ISO_FEATURE) && (intNumber(n1) && intNumber(n2)) )
   { if ( n2->value.i == 0 )
       return PL_error("/", 2, NULL, ERR_DIV_BY_ZERO);
 
@@ -840,6 +846,9 @@ ar_max(Number n1, Number n2, Number r)
 
   r->value.f = (n1->value.f > n2->value.f ? n1->value.f : n2->value.f);
   r->type = V_REAL;
+
+  (void)toIntegerNumber(r);
+
   succeed;
 }
 
@@ -857,6 +866,9 @@ ar_min(Number n1, Number n2, Number r)
 
   r->value.f = (n1->value.f < n2->value.f ? n1->value.f : n2->value.f);
   r->type = V_REAL;
+
+  (void)toIntegerNumber(r);
+
   succeed;
 }
 
@@ -968,7 +980,7 @@ ar_ceil(Number n1, Number r)
     r->value.f = ceil(n1->value.f);
     r->type = V_REAL;
     if ( !toIntegerNumber(r) )
-      return PL_error("floor", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
+      return PL_error("ceil", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
 #else
     r->value.i = (long)n1->value.f;
     if ( (real)r->value.i < n1->value.f )
@@ -990,8 +1002,7 @@ ar_float_fractional_part(Number n1, Number r)
   { if ( n1->value.f > 0 )
     { r->value.f = n1->value.f - floor(n1->value.f);
     } else
-    { TRY(ar_ceil(n1, r));
-      r->value.f = n1->value.f - ceil(n1->value.f);
+    { r->value.f = n1->value.f - ceil(n1->value.f);
     }
     r->type = V_REAL;
   }

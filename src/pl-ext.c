@@ -152,6 +152,8 @@ static const struct foreign {
   FRG("$complete_atom",		3, pl_complete_atom,		TRACE_ME),
   FRG("$atom_completions",	2, pl_atom_completions,		TRACE_ME),
   FRG("op",			3, pl_op,		   META|TRACE_ME),
+  FRG("char_conversion",	2, pl_char_conversion,		TRACE_ME),
+  FRG("current_char_conversion",2, pl_current_char_conversion,	NDET|TRACE_ME),
 
   FRG("!",			0, pl_metacut,			TRACE_ME),
   FRG("functor",		3, pl_functor,			TRACE_ME),
@@ -205,7 +207,8 @@ static const struct foreign {
 
   FRG("abolish",    		1, pl_abolish1,		   META|TRACE_ME),
   FRG("abolish",    		2, pl_abolish,		   META|TRACE_ME),
-  FRG("$clause",    		3, pl_clause,	      NDET|META|TRACE_ME),
+  FRG("clause",    		2, pl_clause2,	      NDET|META|TRACE_ME),
+  FRG("clause",    		3, pl_clause3,	      NDET|META|TRACE_ME),
   FRG("$clause",	        4, pl_clause4,	      NDET|META|TRACE_ME),
   FRG("nth_clause", 		3, pl_nth_clause,     NDET|META|TRACE_ME),
   FRG("retract",    		1, pl_retract,        NDET|META|TRACE_ME),
@@ -237,6 +240,7 @@ static const struct foreign {
 							   META|TRACE_ME),
 
   FRG("$c_current_predicate",	2, pl_current_predicate,  NDET|META|TRACE_ME),
+  FRG("current_predicate",	1, pl_current_predicate1, NDET|META|TRACE_ME),
   FRG("$set_predicate_attribute", 3, pl_set_predicate_attribute,META|TRACE_ME),
   FRG("$get_predicate_attribute", 3, pl_get_predicate_attribute,META|TRACE_ME),
   FRG("$get_clause_attribute",  3, pl_get_clause_attribute,	TRACE_ME),
@@ -293,15 +297,11 @@ static const struct foreign {
   FRG("trace",			0, pl_trace,			0),
   FRG("notrace",		0, pl_notrace,			0),
   FRG("tracing",		0, pl_tracing,			0),
-  FRG("debug",			0, pl_debug,			0),
-  FRG("nodebug",		0, pl_nodebug,			0),
-  FRG("$debugging",		0, pl_debugging,		0),
   FRG("$spy",			1, pl_spy,		   META|TRACE_ME),
   FRG("$nospy",			1, pl_nospy,		   META|TRACE_ME),
   FRG("$leash",			2, pl_leash, 			0),
   FRG("$visible",		2, pl_visible,			0),
   FRG("$debuglevel",		2, pl_debuglevel,		TRACE_ME),
-  FRG("unknown",		2, pl_unknown,		   META|TRACE_ME),
   FRG("$style_check",		2, pl_style_check,		TRACE_ME),
 
 #if COUNTING
@@ -594,6 +594,7 @@ initBuildIns(void)
   PROCEDURE_true0            = lookupProcedure(FUNCTOR_true0, 		  m);
   PROCEDURE_fail0            = lookupProcedure(FUNCTOR_fail0, 		  m);
   PROCEDURE_print_message2   = lookupProcedure(FUNCTOR_print_message2, 	  m);
+  PROCEDURE_dcall1	     = lookupProcedure(FUNCTOR_dcall1,		  m);
 
   for( ecell = ext_head; ecell; ecell = ecell->next )
     bindExtensions(ecell->extensions);

@@ -98,7 +98,12 @@ arithmetic(arith-9) :-
 arithmetic(arith-10) :-
 	-4000 =:= integer(10000 * float_fractional_part(-1e10 - 0.4)).
 arithmetic(arith-11) :-
-	\+ 1.0 is sin(pi/2).
+	current_prolog_flag(iso, ISO),
+	set_prolog_flag(iso, true),
+	1.0 is sin(pi/2),
+	set_prolog_flag(iso, false),
+	1   is sin(pi/2),
+	set_prolog_flag(iso, ISO).
 arithmetic(arith-12) :-
 	1.0 is float(sin(pi/2)).
 arithmetic(arith-13) :-
@@ -109,9 +114,10 @@ arithmetic(arith-13) :-
 		 *******************************/
 
 arithmetic(int-1) :-
-	A is 2^31-1, integer(A).
+	A is 1<<31, integer(A).
 arithmetic(cmp-1) :-
 	A is 100e6, 67 < A.
+
 
 		 /*******************************
 		 *	 PROLOG FUNCTIONS	*
@@ -128,11 +134,11 @@ mean(X1, X2, R) :-
 	R is (X1 + X2)/2.
 
 arithmetic_functions(func-1) :-
-	A is ten, A == 10.
+	A is ten, A =:= 10.
 arithmetic_functions(func-2) :-
-	A is twice(5), A == 10.
+	A is twice(5), A =:= 10.
 arithmetic_functions(func-3) :-
-	A is mean(0, 20), A == 10.
+	A is mean(0, 20), A =:= 10.
 
 		 /*******************************
 		 *	    TYPE TESTS		*
@@ -278,6 +284,39 @@ proc(retract-2) :-
 	assert((test(X, Y) :- X is Y + 3)),
 	retract((test(A, B) :- Body)),
 	Body == (A is B + 3).
+
+
+		 /*******************************
+		 *	       CLAUSE		*
+		 *******************************/
+
+:- dynamic
+	tcl/1.
+
+tcl(a).
+tcl(b) :- true.
+tcl(c) :- write(hello).
+tcl(a(X)) :- b(X).
+
+mtcl:tcl(a) :- a.
+mtcl:tcl(b) :- a, b.
+mtcl:(tcl(c) :- a, b).
+
+cl(clause-1) :-
+	clause(tcl(a), X), X == true.
+cl(clause-2) :-
+	clause(tcl(b), X), X == true.
+cl(clause-3) :-
+	clause(tcl(c), X), X == write(hello).
+cl(clause-4) :-
+	clause(tcl(a(X)), B), B == b(X).
+cl(clause-5) :-
+	clause(tcl(H), b(a)), H == a(a).
+cl(clause-6) :-
+	clause(mtcl:tcl(H), a), H == a.
+
+
+
 
 
 		 /*******************************
@@ -447,13 +486,13 @@ gc(agc-2) :-
 floatconv(float-1) :-
 	A is 5.5/5.5, integer(A).
 floatconv(float-2) :-
-	feature(max_integer, MI),
+	current_prolog_flag(max_integer, MI),
 	ToHigh is MI + 1,
 	float(ToHigh).
 floatconv(float-3) :-
-	(   feature(max_integer, 2147483647)
+	(   current_prolog_flag(max_integer, 2147483647)
 	->  term_to_atom(X, 2147483648)
-	;   feature(max_integer, 9223372036854775807)
+	;   current_prolog_flag(max_integer, 9223372036854775807)
 	->  term_to_atom(X, 9223372036854775808)
 	),
 	float(X).
@@ -556,15 +595,17 @@ testset(list).
 testset(sets).
 testset(atom_handling).
 testset(proc).
+testset(cl).
 testset(record).
 testset(update).
 testset(gc).
-testset(floatconv).
+testset(floatconv) :-
+	current_prolog_flag(iso, false).
 testset(control).
 testset(exception).
 testset(term_atom).
 testset(popen) :-
-	feature(pipe, true).
+	current_prolog_flag(pipe, true).
 
 test :-
 	forall(testset(Set), runtest(Set)).

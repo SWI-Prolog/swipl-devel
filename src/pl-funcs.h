@@ -115,7 +115,8 @@ bool		decompileHead(Clause clause, term_t head);
 int		arg1Key(Clause clause, word *key);
 bool		decompile(Clause clause, term_t term, term_t bindings);
 word		pl_clause4(term_t p, term_t t, term_t ref, term_t b, word h);
-word		pl_clause(term_t p, term_t term, term_t ref, word h);
+word		pl_clause3(term_t p, term_t term, term_t ref, word h);
+word		pl_clause2(term_t p, term_t term, word h);
 word		pl_nth_clause(term_t p, term_t n, term_t ref, word h);
 word		pl_xr_member(term_t ref, term_t term, word h);
 void		wamListClause(Clause clause);
@@ -177,6 +178,8 @@ int		PL_get_chars_ex(term_t t, char **s, unsigned int flags);
 int		PL_get_atom_ex(term_t t, atom_t *a);
 int		PL_get_integer_ex(term_t t, int *i);
 int		PL_get_long_ex(term_t t, long *i);
+int		PL_unify_list_ex(term_t l, term_t h, term_t t);
+int		PL_unify_nil_ex(term_t l);
 
 
 /* pl-file.c */
@@ -288,6 +291,7 @@ word		pl_copy_stream_data3(term_t in, term_t out, term_t len);
 word		pl_copy_stream_data2(term_t in, term_t out);
 int		PL_get_char(term_t c, int *p);
 int		PL_unify_char(term_t chr, int c, int mode);
+int		PL_unify_stream_or_alias(term_t t, IOSTREAM *s);
 void		pushOutputContext(void);
 void		popOutputContext(void);
 
@@ -360,6 +364,7 @@ word		pl_load_shared_object(term_t file, term_t entry);
 
 /* pl-modul.c */
 Module		lookupModule(atom_t name);
+Module		isCurrentModule(atom_t name);
 void		initModules(void);
 int		isSuperModule(Module s, Module m);
 Word		stripModule(Word term, Module *module);
@@ -463,7 +468,7 @@ word		pl_structural_nonequal(term_t t1, term_t t2);
 word		pl_functor(term_t t, term_t f, term_t a);
 word		pl_arg(term_t n, term_t t, term_t a, word b);
 word		pl_setarg(term_t n, term_t term, term_t arg);
-int		lengthList(term_t list);
+int		lengthList(term_t list, int errors);
 word		pl_univ(term_t t, term_t l);
 int		numberVars(term_t t, functor_t functor, int n);
 word		pl_numbervars(term_t t, term_t atom,
@@ -510,6 +515,7 @@ word		pl_option(term_t key, term_t old, term_t new, control_t h);
 int		set_pl_option(const char *name, const char *value);
 word		pl_style_check(term_t old, term_t new);
 word		pl_novice(term_t old, term_t new);
+int		g_free_variables(Word t, Word p0, int n);
 
 /* pl-feature.c */
 void		defFeature(const char *name, int flags, ...);
@@ -548,7 +554,8 @@ bool		isDefinedProcedure(Procedure proc);
 int		get_head_functor(term_t head, functor_t *fdef);
 int		get_procedure(term_t descr, Procedure *proc, term_t he, int f);
 word		pl_current_predicate(term_t name, term_t functor, word h);
-bool		assertProcedure(Procedure proc, Clause clause, int where);
+foreign_t	pl_current_predicate1(term_t spec, word ctx);
+ClauseRef	assertProcedure(Procedure proc, Clause clause, int where);
 bool		abolishProcedure(Procedure proc, Module module);
 bool		retractClauseProcedure(Procedure proc, Clause clause);
 void		freeClause(Clause c);
@@ -605,6 +612,10 @@ word		pl_read_clause2(term_t stream, term_t term);
 word		pl_read_term(term_t term, term_t pos);
 word		pl_read_term3(term_t stream, term_t term, term_t pos);
 word		pl_atom_to_term(term_t term, term_t atom, term_t bindings);
+void		initCharConversion(void);
+foreign_t	pl_char_conversion(term_t in, term_t out);
+foreign_t	pl_current_char_conversion(term_t in, term_t out, word h);
+
 
 /* pl-rec.c */
 void		initRecords(void);
@@ -687,16 +698,12 @@ int		debugmode(int new, int *old);
 word		pl_trace(void);
 word		pl_notrace(void);
 word		pl_tracing(void);
-word		pl_debug(void);
-word		pl_nodebug(void);
-word		pl_debugging(void);
 word		pl_skip_level(term_t old, term_t new);
 word		pl_spy(term_t p);
 word		pl_nospy(term_t p);
 word		pl_leash(term_t old, term_t new);
 word		pl_visible(term_t old, term_t new);
 word		pl_debuglevel(term_t old, term_t new);
-word		pl_unknown(term_t old, term_t new);
 word		pl_prolog_current_frame(term_t fr);
 word		pl_prolog_frame_attribute(term_t fr, term_t key, term_t val);
 void		callEventHook(int ev, ...);

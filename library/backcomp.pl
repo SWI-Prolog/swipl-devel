@@ -11,13 +11,10 @@
 	    '$version'/1,
 	    '$home'/1,
 	    '$argv'/1,
-	    display/1,
-	    display/2,
 	    displayq/1,
 	    displayq/2,
 	    (ed)/1,
 	    concat/3,
-	    atom_char/2,
 	    read_variables/2,
 	    read_variables/3,
 	    feature/2,
@@ -25,6 +22,16 @@
 	    substring/4,
 	    flush/0
 	  ]).
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This library defines predicates that used to   exist in older version of
+SWI-Prolog, but are considered obsolete as there functionality is neatly
+covered by new features. Most often, these constructs are superceeded by
+ISO-standard compliant predicates.
+
+Please   also   note   the    existence     of    library(quintus)   and
+library(edinburgh) for more compatibility predicates.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 '$arch'(Arch, unknown) :-
 	current_prolog_flag(arch, Arch).
@@ -34,11 +41,6 @@
 	current_prolog_flag(home, Home).
 '$argv'(Argv) :-
 	current_prolog_flag(argv, Argv).
-
-display(Term) :-
-	write_term(Term, [ignore_ops(true)]).
-display(Stream, Term) :-
-	write_term(Stream, Term, [ignore_ops(true)]).
 
 %	or write_canonical/[1,2]
 
@@ -79,12 +81,6 @@ feature(Key, Value) :-
 set_feature(Key, Value) :-
 	set_prolog_flag(Key, Value).
 
-%	atom_char/2
-
-atom_char(Char, Code) :-
-	char_code(Char, Code).
-
-
 %	substring(+String, +Offset, +Length, -Sub)
 
 substring(String, Offset, Length, Sub) :-
@@ -95,3 +91,4 @@ substring(String, Offset, Length, Sub) :-
 
 flush :-
 	flush_output.
+

@@ -1275,6 +1275,8 @@ translate_reference(Name, Tag, Label,
 %	Cleans the TeX escapes to write down weird predicate names from
 %	the input.
 
+clean_tt([Atom], Atom) :-
+	atomic(Atom), !.
 clean_tt(Raw, Clean) :-
 	atom_codes(Raw, S0),
 	(   append("{", S1, S0),

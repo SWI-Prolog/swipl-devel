@@ -191,6 +191,7 @@ typedef struct
     Procedure	foreign_registered2;	/* $foreign_registered/2 */
     Procedure	prolog_trace_interception4;
     Procedure	portray;		/* portray/1 */
+    Procedure   dcall1;			/* $call/1 */
   } procedures;
 
   struct
@@ -215,6 +216,7 @@ typedef struct
   Stack		outofstack;		/* thread is out of stack */
   int		trim_stack_requested;	/* perform a trim-stack */
   int		in_arithmetic;		/* doing arithmetic */
+  int		autoload_nesting;	/* Nesting level in autoloader */
 
   struct
   { int		active;			/* doing pipe I/O */

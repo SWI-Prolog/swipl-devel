@@ -28,8 +28,6 @@
 	, predicate_property/2
 	, $predicate_property/2
 	, clause_property/2
-	, clause/2
-	, clause/3
 	, recorda/2
 	, recordz/2
 	, recorded/2
@@ -127,7 +125,7 @@ trace([H|T], Ps) :- !,
 	trace(H, Ps),
 	trace(T, Ps).
 trace(Pred, Ports) :-
-	debug,
+	set_prolog_flag(debug, true),
 	$find_predicate(Pred, Preds),
 	Preds \== [],
 	(   member(Head, Preds),
@@ -207,7 +205,7 @@ nospyall :-
 nospyall.
 
 debugging :-
-	$debugging, !,
+	current_prolog_flag(debug, true), !,
 	print_message(informational, debugging(on)),
 	findall(H, spy_point(H), SpyPoints),
 	print_message(informational, spying(SpyPoints)),
@@ -433,30 +431,6 @@ clause_property(Clause, fact) :-
 clause_property(Clause, erased) :-
 	$get_clause_attribute(Clause, erased, true).
 
-
-:- module_transparent
-	clause/2,
-	clause/3.
-
-clause(Head, Body, Ref) :-
-	nonvar(Ref), !,
-	$clause(Head, Clause, Ref),
-	$strip_module(Head, _, H),
-	$clause2(H, Body, Clause).
-clause(Head, Body, Ref) :-
-	current_predicate(_, Head),
-	$clause(Head, Clause, Ref),
-	$strip_module(Head, _, H),
-	$clause2(H, Body, Clause).
-
-clause(Head, Body) :-
-	current_predicate(_, Head),
-	$clause(Head, Clause, _),
-	$strip_module(Head, _, H),
-	$clause2(H, Body, Clause).
-
-$clause2(Head, Body, (Head :- Body)) :- !.
-$clause2(Head, true, Head).
 
 recorda(Key, Value) :-
 	recorda(Key, Value, _).

@@ -921,8 +921,9 @@ traceInterception(LocalFrame frame, LocalFrame bfr, int port, Code PC)
     PL_discard_foreign_frame(cid);
 
     if ( nodebug )
-      pl_nodebug();
-
+    { tracemode(FALSE, NULL);
+      debugmode(FALSE, NULL);
+    }
   }
 
   return rval;
@@ -1134,24 +1135,6 @@ pl_tracing()
 }
 
 word
-pl_debug()
-{ return debugmode(TRUE, NULL);
-}
-
-word
-pl_nodebug()
-{ tracemode(FALSE, NULL);
-  debugmode(FALSE, NULL);
-
-  succeed;
-}
-
-word
-pl_debugging()
-{ return debugstatus.debugging;
-}
-
-word
 pl_skip_level(term_t old, term_t new)
 { atom_t a;
   long sl;
@@ -1180,7 +1163,8 @@ pl_spy(term_t p)
 
   if ( get_procedure(p, &proc, 0, GP_FIND) )
   { set(proc->definition, SPY_ME);
-    return pl_debug();
+    debugmode(TRUE, NULL);
+    succeed;
   }
 
   fail;
@@ -1212,28 +1196,6 @@ pl_visible(term_t old, term_t new)
 word
 pl_debuglevel(term_t old, term_t new)
 { return setInteger(&GD->debug_level, "$debuglevel", old, new);
-}
-
-
-
-word
-pl_unknown(term_t old, term_t new)
-{ Module m = contextModule(environment_frame);
-  atom_t a = (true(m, UNKNOWN) ? ATOM_trace : ATOM_fail);
-
-  if ( !PL_unify_atom(old, a) )
-    fail;
-  if ( PL_get_atom(new, &a) )
-  { if ( a == ATOM_fail ) 
-    { clear(m, UNKNOWN);
-      succeed;
-    } else if ( a == ATOM_trace )
-    { set(m, UNKNOWN);
-      succeed;
-    }
-  }
-  
-  return warning("unknown/2: instantiation fault");
 }
 
 

@@ -44,6 +44,8 @@
 \url[+]{-}
 \email[+]{-}
 \const{+}
+\plflag{+}
+\type{+}
 \except{+}
 \module{+}
 \infixterm{+}{+}{+}

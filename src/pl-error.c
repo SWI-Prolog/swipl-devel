@@ -116,7 +116,7 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
     { Procedure proc = va_arg(args, Procedure);
       term_t pred = PL_new_term_ref();
 
-      unify_definition(pred, proc->definition, 0, GP_NAMEARITY);
+      unify_definition(pred, proc->definition, 0, GP_NAMEARITY|GP_HIDESYSTEM);
       PL_unify_term(formal,
 		    PL_FUNCTOR, FUNCTOR_permission_error3,
 		      PL_ATOM, ATOM_modify,
@@ -141,7 +141,7 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
       Definition def = va_arg(args, Definition);
       term_t pred = PL_new_term_ref();
 
-      unify_definition(pred, def, 0, GP_NAMEARITY);
+      unify_definition(pred, def, 0, GP_NAMEARITY|GP_HIDESYSTEM);
       PL_unify_term(formal,
 		    PL_FUNCTOR, FUNCTOR_permission_error3,
 		    PL_ATOM, op,
@@ -279,6 +279,14 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
       PL_unify_term(formal,
 		    PL_FUNCTOR, FUNCTOR_resource_error1,
 		      PL_ATOM, what);
+      break;
+    }
+    case ERR_SYNTAX:
+    { const char *what = va_arg(args, const char *);
+
+      PL_unify_term(formal,
+		    PL_FUNCTOR, FUNCTOR_syntax_error1,
+		      PL_CHARS, what);
       break;
     }
     case ERR_NOMEM:
@@ -479,6 +487,30 @@ PL_get_long_ex(term_t t, long *i)
     succeed;
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
+}
+
+
+int
+PL_unify_list_ex(term_t l, term_t h, term_t t)
+{ if ( PL_unify_list(l, h, t) )
+    succeed;
+
+  if ( PL_get_nil(l) )
+    fail;
+  
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
+}
+
+
+int
+PL_unify_nil_ex(term_t l)
+{ if ( PL_unify_nil(l) )
+    succeed;
+
+  if ( PL_is_list(l) )
+    fail;
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
 }
 
 
