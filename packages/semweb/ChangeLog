@@ -1,3 +1,7 @@
+Mar 22, 2005
+
+  * ADDED: rdfs_assert_list/3 (adding DB argument)
+
 Mar 8, 2005
 
   * FIXED: rdf_unload/1: allow for deleting non-files.
