@@ -87,6 +87,7 @@ pce_ifhostproperty(prolog(swi),
 %:- declare_emacs_mode(language,	library('emacs/language_mode')).
 :- declare_emacs_mode(prolog,		library('emacs/prolog_mode')).
 :- declare_emacs_mode(latex,		library('emacs/latex_mode')).
+:- declare_emacs_mode(html,		library('emacs/html_mode')).
 :- declare_emacs_mode(c,		library('emacs/c_mode')).
 :- declare_emacs_mode(cpp,		library('emacs/cpp_mode')).
 :- declare_emacs_mode(script,		library('emacs/script_mode')).
@@ -129,6 +130,7 @@ default_emacs_mode('.*\.pl~?$',   		   	prolog).
 default_emacs_mode('\.\(pl\|xpce\|pceemacs\)rc~?', 	prolog).
 default_emacs_mode('.*\.\(tex\|sty\)~?$', 		latex).
 default_emacs_mode('.*\.doc~?$',	 		latex).
+default_emacs_mode('.*\.html~?$',	 		html).
 default_emacs_mode('.*\.ann~?$',	 		annotate).
 default_emacs_mode('.*\.[ch]~?$', 			c).
 default_emacs_mode('.*\.C$',				cpp).
@@ -138,4 +140,5 @@ default_emacs_mode('.*\.idl$',				cpp).
 default_emacs_mode('[Cc]ompose\|README',		text).
 
 :- free(@loading_emacs).
+
 
