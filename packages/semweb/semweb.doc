@@ -454,6 +454,11 @@ module.
 Generate a unique reference.  The returned atom is guaranteed not to
 occur in the current database in any field of any triple.
 
+    \predicate{rdf_bnode}{1}{-Id}
+Generate a unique blank node reference. The returned atom is guaranteed
+not to occur in the current database in any field of any triple and
+starts with '__bnode'.
+
     \predicate{rdf_source_location}{2}{+Subject, -SourceRef}
 Return the source-location as \arg{File}:\arg{Line} of the first triple
 that is about \arg{Subject}.
@@ -605,6 +610,11 @@ individual of \const{rdf:List} or \const{rdf:Container}.
     \predicate{rdfs_list_to_prolog_list}{2}{+Set, -List}
 Convert \arg{Set}, which must be an individual of \const{rdf:List} into
 a Prolog list of objects.
+
+    \predicate{rdfs_assert_list}{2}{+List, -Resource}
+If \arg{List} is a list of resources, create an RDF list \arg{Resource}
+that reflects these resources.  \arg{Resource} and the sublist resources
+are generated with rdf_bnode/1.
 \end{description}
 
 \subsection{Labels and textual search}

@@ -3,6 +3,10 @@ Nov 17, 2003
   * FIXED: rdf_save/[1,2] to handle XML escapes `value'
     in rdf:resource="value".
 
+  * ADDED: rdf_bnode/1 to generate a blank node identifier as __bnode<N>
+
+  * ADDED: rdfs_assert_list/2 to create an rdf list from resources.
+
 Nov 7, 2003
 
   * ADDED: Allows rdf_load/[1,2] to process a stream.  Maarten Menken.
