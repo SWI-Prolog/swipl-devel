@@ -477,7 +477,13 @@ print(M, From:[int], To:[int]) :->
 	(   get(M, file, File),
 	    File \== @nil
 	->  get(File, absolute_path, Path),
-	    prolog_to_os_filename(Path, Job)
+	    prolog_to_os_filename(Path, File),
+	    (	From \== @default, To \== @default
+	    ->	get(M, line_number, From, FL),
+		get(M, line_number, To, TL),
+		sformat(Job, '~w (lines ~w..~w)', [File, FL, TL])
+	    ;	Job = File
+	    )
 	;   Job = @default
 	),
 	send(TB, print, From, To,
