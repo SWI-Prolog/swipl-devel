@@ -15,10 +15,10 @@
 #
 ################################################################
 
-PLVERSION=2.1.5
+PLVERSION=2.1.6
 
 PL=pl
-prefix=/staff/jan
+prefix=/usr/local
 exec_prefix=${prefix}
 srcdir=.
 vpath %.c .
@@ -179,18 +179,22 @@ install:	idirs iboot ilib iinclude iruntime iman
 		$(INSTALL_DATA) README.bin $(PLBASE)
 		$(INSTALL_DATA) ../LICENCE $(PLBASE)
 		if [ -r $(bindir)/$(PL) ]; then \
-			mv $(bindir)/$(PL) $(bindir)/$(PL).old; \
+		    mv $(bindir)/$(PL) $(bindir)/$(PL).old; \
 		fi
-		$(INSTALL_PROGRAM) $(PL) $(bindir)
-		$(INSTALL_PROGRAM) pl-bite $(bindir)
-		-$(INSTALL_PROGRAM) chpl $(bindir)
+		for f in $(PL) pl-bite chpl; do \
+		    $(INSTALL_PROGRAM) $$f $(PLBASE)/bin; \
+		done
 		cd $(PLBASE)/library; \
-		   $(bindir)/$(PL) \
+		   ../bin/$(PL) \
 			-f none \
 			-g make_library_index\('.'\) \
 			-t halt
+		-for f in $(PL) pl-bite chpl; do \
+		    ( cd $(bindir); rm -f $$f; ln -s $(PLBASE)/bin/$$f . ); \
+		done
 
-installdirs=	boot library startup include runtime runtime/$(ARCH)
+installdirs=	bin lib lib/$(ARCH) man boot library startup include \
+		runtime runtime/$(ARCH)
 
 iruntime:
 		if [ ! -d $(PLBASE)/runtime/$(ARCH) ]; then \
@@ -230,8 +234,10 @@ iinclude:
 		$(INSTALL_DATA) ../include/SWI-Prolog.h $(prefix)/include
 
 iman:
-		-$(SED) 's/PL/$(PL)/' pl.1 > $(mandir)/$(PL).$(mansec)
-		-$(INSTALL_DATA) chpl.1 $(mandir)/chpl.$(mansec)
+		$(SED) 's/PL/$(PL)/' $(srcdir)/pl.1 > $(PLBASE)/man/$(PL).$(mansec)
+		$(INSTALL_DATA) $(srcdir)/chpl.1 $(PLBASE)/man/chpl.$(mansec)
+		-$(INSTALL_DATA) $(PLBASE)/man/$(PL).$(mansec) $(mandir)
+		-$(INSTALL_DATA) $(PLBASE)/man/chpl.$(mansec) $(mandir)
  
 #
 # runtime-only environment installation

@@ -1,6 +1,17 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.1.6
+=============
+
+  * INSTALL: installs pl in the SWI-Prolog tree and just creates a link
+    from the binary directory
+
+  * CHPL.c: fixed conflict for basename()
+  
+  * FIXED: file-searching cache returning alternate answers in different
+    order.
+
 Version 2.1.5
 =============
 
