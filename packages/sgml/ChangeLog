@@ -1,3 +1,7 @@
+* LIMIT: Make maximum string length 2048 to allow parsing HTML4 DTD.
+  Maybe we should remove comments while fetching parameter-entity
+  values?
+
 * FIXED: Include #FIXED and defaulted arguments for omitted tags
   (reported by Richard O'Keefe).
 

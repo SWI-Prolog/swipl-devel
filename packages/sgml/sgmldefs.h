@@ -51,7 +51,7 @@ typedef unsigned char ichar;		/* input character */
 #define INPUT_CHARSET_SIZE	(1<<(sizeof(ichar)*8))
 #define OUTPUT_CHARSET_SIZE	(1<<(sizeof(ochar)*8))
 #define SYMBOLHASHSIZE		256
-#define MAXSTRINGLEN		1024
+#define MAXSTRINGLEN		2048
 #define MAXNMLEN		256
 #define MAXDECL			10240
 #define MAXATTELEM		256	/* #elements in one ATTLIST */
