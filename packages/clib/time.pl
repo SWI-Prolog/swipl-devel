@@ -72,9 +72,7 @@
 :- initialization
    load_foreign_library(foreign(time)).
 
-:- initialization
-   meta_predicate((call_with_time_limit(+, :),
-		   schedule_timeout(+,:,-))).
+:- meta_predicate(call_with_time_limit(+, :)).
 
 %	call_with_time_limit(+Time, :Goal)
 %	
@@ -82,11 +80,6 @@
 %	limit is exceeded, the exception time_limit_exceeded is raised.
 
 call_with_time_limit(Time, Goal) :-
-	call_cleanup(time:schedule_timeout(Time, Goal, Id),
-		     remove_alarm(Id)).
-		      
-		     
-schedule_timeout(Time, Goal, Id) :-
 	alarm(Time, throw(time_limit_exceeded), Id),
-	Goal, !.
+	call_cleanup(once(Goal), remove_alarm(Id)).
 		     
