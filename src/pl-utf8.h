@@ -43,7 +43,7 @@
 		     ISUTF8_FB4(c) ? 3 : \
 		     ISUTF8_FB5(c) ? 4 : \
 		     ISUTF8_FB6(c) ? 5 : -1)
-#define UTF8_FBV(c,n) ( n == 0 ? c : (c & ((0x01<<(5-n))-1)) )
+#define UTF8_FBV(c,n) ( n == 0 ? c : (c & ((0x01<<(6-n))-1)) )
 
 #define utf8_get_char(in, chr) \
 	(*(in) & 0x80 ? __utf8_get_char(in, chr) : *chr=*in, ++in)
