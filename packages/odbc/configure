@@ -2858,7 +2858,7 @@ EOF
 fi
 done
 
-for ac_func in localtime mktime
+for ac_func in localtime mktime gmtime
 do
 as_ac_var=`echo "ac_cv_func_$ac_func" | $as_tr_sh`
 echo "$as_me:2864: checking for $ac_func" >&5
