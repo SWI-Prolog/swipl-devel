@@ -644,9 +644,9 @@ libXPCE:	version.h $(OBJECTS) dowsobjs
 
 dowsobjs:
 ifeq ($(VWS),x11)
-		$(MAKE) CIFLAGS="$(CIFLAGS) -I$(XINCLUDES)" xobjs
+		$(MAKE) CIFLAGS="$(CIFLAGS) -I$(XINCLUDES)" wsobjs
 else
-		$(MAKE) CIFLAGS="$(CIFLAGS) -I$(XINCLUDES) -DWIN32" msobjs
+		$(MAKE) CIFLAGS="$(CIFLAGS) -I$(XINCLUDES) -DWIN32" wsobjs
 endif
 
 wsobjs:		$(WSOBJECTS)
