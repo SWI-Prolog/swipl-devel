@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: `@pce->show-console' to deal with new SWI-Prolog console code.
+
 * PORT: Upgraded XPCE configure suite to use autoconf 2.5.3 (distributed
   with SuSE 8.1).  Configure gives some warnings on cd to non-existent
   directories, but appears to work fine.

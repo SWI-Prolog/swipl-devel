@@ -598,10 +598,10 @@ indirect_rlc_update_hook(RlcUpdateHook hook)
 
 static HWND
 indirect_rlc_hwnd()
-{ HWND (*f)(void);
+{ HWND (*f)(void *console);
 
   if ( (f = getConsoleFunction("rlc_hwnd")) )
-    return (*f)();
+    return (*f)(NULL);
   
   return 0;
 }
