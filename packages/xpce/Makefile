@@ -49,7 +49,7 @@ LDFLAGS=-static
 
 LIBS=	$(XLIBS) $(PLLIBS) $(NETLIBS) $(STATICLIBS)
 COFLAGS=-O2
-CWFLAGS=-Wall
+CWFLAGS=
 CIFLAGS=-I..
 CMFLAGS=-funsigned-char -DHAVE_CONFIG_H
 
@@ -73,7 +73,7 @@ ARFLAGS=ru
 ETAGS=etags
 SED=sed
 
-VERSION=4.8.4, Nov 1994
+VERSION=4.8.5, Dec. 1994
 ARCH=sparc
 OS=sunos4.1.3
 RESOURCE_CLASS=Pce
@@ -142,7 +142,7 @@ install-pl: xpce-pl
 
 bin/xpce.qlf:
 	bin/xpce.base \
-		-g pce_host:pce_reinitialise \
+		-g pce_host:pce_banner \
 		-b $(PLBASE)/boot/init.pl \
 		-c $(PLBASE)/boot/load.pl \
 		   pl/load.pl

@@ -262,6 +262,15 @@ space(C, Space) :<-
 	get(C?module, space, Space).
 
 
+identifier(C, Id:name) :->
+	"Set named identifier"::
+	get(C, identifier, Old),
+	get(C?module, id_table, Table),
+	send(Table, append, Id, C),
+	send(C, slot, identifier, Id),
+	send(Table, delete, Old).
+
+
 	/* SLOTS */
 
 store(C, Slot:name, Value:any) :->

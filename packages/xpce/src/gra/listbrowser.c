@@ -86,6 +86,8 @@ initialiseListBrowser(ListBrowser lb, Dict dict, Int w, Int h)
        lb->scroll_bar->area->w, ZERO, DEFAULT, toInt(ih), 0);
   displayDevice(lb, lb->scroll_bar, DEFAULT);
   displayDevice(lb, lb->image, DEFAULT);
+  if ( notNil(lb->scroll_bar) )
+    iw += valInt(getMarginScrollBar(lb->scroll_bar));
 
   doSetGraphical(lb, DEFAULT, DEFAULT, toInt(iw), toInt(ih));
 
@@ -275,8 +277,12 @@ geometryListBrowser(ListBrowser lb, Int x, Int y, Int w, Int h)
   sw = isNil(lb->scroll_bar) ? 0 : valInt(getMarginScrollBar(lb->scroll_bar));
   iw = valInt(w) - abs(sw);
 
-  assign(lb->size, w, div(toInt(iw), getExFont(lb->font)));
-  assign(lb->size, h, div(h, getHeightFont(lb->font)));
+  { int fw = valInt(getExFont(lb->font));
+    int fh = valInt(getHeightFont(lb->font));
+    
+    assign(lb->size, w, toInt((iw - 2 * TXT_X_MARGIN)/fw));
+    assign(lb->size, h, toInt((valInt(h) - 2 * TXT_Y_MARGIN)/fh));
+  }
   
   ix = (sw < 0 ? -sw : 0);
   if ( getShowLabelListBrowser(lb) == ON )
@@ -306,9 +312,16 @@ requestGeometryListBrowser(ListBrowser lb, Int x, Int y, Int w, Int h)
 { Any v;
 
   if ( notDefault(w) )
-    w = mul(w, getExFont(lb->font));
+  { w = mul(w, getExFont(lb->font));
+    if ( notNil(lb->scroll_bar) )
+      w = add(w, getMarginScrollBar(lb->scroll_bar));
+    w = add(w, toInt(2 * TXT_X_MARGIN));
+  }
+
   if ( notDefault(h) )
-    h = mul(h, getHeightFont(lb->font));
+  { h = mul(h, getHeightFont(lb->font));
+    h = add(h, toInt(2 * TXT_Y_MARGIN));
+  }
 
   if ( instanceOfObject(v = lbReceiver(lb), ClassWindow) )
     requestGeometryWindow(v, x, y, w, h);
@@ -732,7 +745,7 @@ insertSelfListBrowser(ListBrowser lb, Int times, Int chr)
   } else
     c = valInt(chr);
     
-  { LocalString(s, str_nl(), valInt(times)); /* TBD */
+  { LocalString(s, str_nl(NULL), valInt(times)); /* TBD */
     int i;
 
     for(i=0; i<valInt(times); )

@@ -284,7 +284,13 @@ static struct error_def errors[] =
   { NAME_xError,		0,
     "%N: X-error" },
   { NAME_noXServer,		ET_FATAL,
-    "%N: Failed to connect to X-server at %s: %s" },
+    "%N: Failed to connect to X-server at `%s': %s\n"
+    "*********************************************************************\n"
+    "* You MUST be running the X11 Windowing environment.  If you are,   *\n"
+    "* check the setting of your DISPLAY environment variable as well    *\n"
+    "* the access rights to your X11 server.  See xauth(1) and xhost(1). *\n"
+    "*********************************************************************"
+  },
   { NAME_xMovedDisplay,		ET_STATUS,
     "%N: Moved to display %s" },
   { NAME_cannotGrabPointer,	ET_WARNING,
@@ -659,9 +665,11 @@ _errorPce(Any obj, Name id, va_list args)
       if ( e->kind == NAME_fatal )
       {
 #ifndef O_RUNTIME
-	traceBackPce(toInt(20), NAME_always);
-	if ( PCE->print_c_stack == ON )
-	  pcePrintStack(20);
+	if ( id != NAME_noXServer )	/* little hack ... */
+	{ traceBackPce(toInt(20), NAME_always);
+	  if ( PCE->print_c_stack == ON )
+	    pcePrintStack(20);
+	}
 #endif
 	hostAction(HOST_RECOVER_FROM_FATAL_ERROR);
 	hostAction(HOST_HALT);

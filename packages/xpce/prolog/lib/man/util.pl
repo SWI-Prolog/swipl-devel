@@ -21,6 +21,9 @@
 	, ifmaintainer/1
 	, group_objects/2
 	, indent/2
+	, man_classification/2
+	, super_or_delegate_class/2	% +Class, -SuperOrDelegate
+	, class_of_type/2		% +Type, -Class
 	]).
 
 :- meta_predicate
@@ -142,6 +145,50 @@ has_relation_value(Obj, Selector) :-
 	\+ send(Val, empty).
 
 
+		 /*******************************
+		 *    INHERITANCE/DELEGATION	*
+		 *******************************/
+
+%	super_or_delegate_class(+Class, -Super)
+%
+%	Successively unifies `Super' with class objects this `Class' inherits
+%	from or delegates too.
+
+:- dynamic done_class/1.
+	
+super_or_delegate_class(Class, Super) :-
+	retractall(done_class(_)),
+	super_or_delegate_class_(Class, Super).
+super_or_delegate_class(_, _) :-
+	retractall(done_class(_)),
+	fail.
+
+super_or_delegate_class_(Class, _) :-
+	done_class(Class), !,
+	fail.
+super_or_delegate_class_(Class, Class) :-
+	asserta(done_class(Class)).
+super_or_delegate_class_(Class, Super) :-
+	get(Class, super_class, ThisSuper),
+	ThisSuper \== @nil,
+	super_or_delegate_class_(ThisSuper, Super).
+super_or_delegate_class_(Class, Delegate) :-
+	get_chain(Class, delegate, List),
+	member(Var, List),
+	get(Var, type, Type),
+	class_of_type(Type, DelClass),
+	\+ done_class(DelClass),
+	super_or_delegate_class_(DelClass, Delegate).
+
+class_of_type(Type, Class) :-
+	get(Type, kind, class),
+	get(Type, context, Class).
+class_of_type(Type, Class) :-
+	get_chain(Type, supers, Supers),
+	member(Super, Supers),
+	class_of_type(Super, Class).
+
+
 		/********************************
 		*           FIND OBJECTS	*
 		********************************/
@@ -149,16 +196,22 @@ has_relation_value(Obj, Selector) :-
 %	apropos_class(+Class, +Inherit, +Types, +Fields, +Keyword, -Matches)
 
 apropos_class(Class, Inherit, Types, Fields, Keyword, Match) :- !,
-	new(Match, chain),
-	new(Regex, regex(Keyword)),
-	send(Regex, ignore_case, @off),
-	send(Regex, compile, @on),
+	(   Keyword == '' ; Keyword = '.*'
+	->  Regex = @nil
+	;   new(Regex, regex(Keyword)),
+	    send(Regex, ignore_case, @off),
+	    send(Regex, compile, @on)
+	),
 	new(Flds, chain),
 	forall(member(Field, Fields),
 	       (   map_field(Field, Selector),
 		   send(Flds, append, Selector)
 	       )),
-	apropos_class_(Inherit, Class, Types, Flds, Regex, Match),
+	new(Match0, chain),
+	apropos_class_(Inherit, Class, Types, Flds, Regex, Match0),
+	get(Match0, find_all,
+	    message(@manual, in_scope, @arg1), Match),
+	send(Match0, done),
 	send(Flds, done).
 
 map_field(description, man_description) :- !.
@@ -174,25 +227,37 @@ apropos_class_(sub, Class, Types, Flds, Regex, Match) :- !,
 		   apropos_class_(sub, Sub, Types, Flds, Regex, Match))
 	;   true
 	).
-apropos_class_(super, Class, Types, Flds, Regex, Match) :-
-	apropos_super_class(Class, Types, Flds, Regex, Match),
-	delete_overruled(Class, Match).
+apropos_class_(super, Class, Types, Flds, Regex, Match) :- !,
+	apropos_class_(@object_class, Class, Types, Flds, Regex, Match).
 
-apropos_super_class(Class, Types, Flds, Regex, Match) :-
-	apropos_class_(own, Class, Types, Flds, Regex, Match),
-	(   get(Class, super_class, Super), Super \== @nil
-	->  apropos_super_class(Super, Types, Flds, Regex, Match)
-	;   true
-	).
+apropos_class_(Scope, Class, Types, Flds, Regex, Match) :-
+	forall((super_or_delegate_class(Class, Super),
+		send(Scope, member, Super)),
+	       apropos_class_(own, Super, Types, Flds, Regex, Match)),
+	cleanup(Match).
 
-delete_overruled(Class, Match) :-
+cleanup(Match) :-
+	new(Done, chain_table),
+	new(Tmp, chain),
+
+	new(AppendMatch, message(Tmp, append, @arg1)),
+	new(Selector, @arg1?name),
+	new(DoneSelector, ?(Done, member, Selector)),
+
 	send(Match, for_all,
-	     if(or(and(message(@arg1, instance_of, send_method),
-		       ?(Class, send_method, @arg1?name) \== @arg1),
-		   and(message(@arg1, instance_of, get_method),
-		       ?(Class, get_method, @arg1?name) \== @arg1)),
-		message(Match, delete, @arg1))).
-
+	     if(message(@arg1, instance_of, send_method),
+		if(not(message(DoneSelector, member, send)),
+		   and(AppendMatch,
+		       message(Done, append, Selector, send))),
+		if(message(@arg1, instance_of, get_method),
+		   if(not(message(DoneSelector, member, get)),
+		   and(AppendMatch,
+		       message(Done, append, Selector, get))),
+		   AppendMatch)),
+	     @off),
+	send(Match, clear),
+	send(Match, merge, Tmp),
+	send(Done, done).
 
 apropos_type_attribute(self, Class, Fields, Keyword, Match) :- !,
 	(   match_apropos(Class, Fields, Keyword)
@@ -224,6 +289,9 @@ type_to_class_attribute(sub_class,   sub_classes).
 %	apropos_class_attribute(+Class, +Att, +Flds, +Kwd, +Match)
 %	Append matching objects of Class to Match
 
+apropos_class_attribute(Class, Att, _Fields, @nil, Matches) :- !,
+	get(Class, Att, Chain),
+	send(Matches, merge, Chain).
 apropos_class_attribute(Class, Att, Fields, Regex, Matches) :-
 	get(Class, Att, Chain),
 	pce_catch_error(argument_type,
@@ -237,6 +305,7 @@ apropos_class_attribute(Class, Att, Fields, Regex, Matches) :-
 %	match_apropos(+Object, +Fields, +Regex)
 %	Test if Object contains Regex in one of the specified fields
 
+match_apropos(_Object, _Fields, @nil) :- !.
 match_apropos(Object, Fields, Regex) :-
 	pce_catch_error(argument_type,
 			get(Fields, find,
@@ -327,3 +396,15 @@ ifmaintainer(Goal) :-
 	Goal.
 ifmaintainer(_).
 
+
+		 /*******************************
+		 *	  CLASSIFICATION	*
+		 *******************************/
+
+man_classification(basic,			'Basic').
+man_classification(advanced,			'Advanced').
+man_classification(obscure,			'Rare').
+man_classification(internal,			'Internal').
+man_classification(basic_programming,		'Basic OO').
+man_classification(advanced_programming,	'Advanced OO').
+man_classification(user,			'Application').

@@ -1042,7 +1042,7 @@ openLineText(TextObj t, Int arg)
 { int tms = UArg(t);
 
   if ( tms > 0 )
-  { String nl = str_nl();
+  { String nl = str_nl(&t->string->data);
     LocalString(buf, &t->string->data, nl->size * tms);
     int i;
 

@@ -12,6 +12,8 @@
 :- require([ member/2
 	   ]).
 
+:- pce_begin_class(emacs_man_mode, emacs_fundamental_mode).
+
 :- initialization
 	new(KB, emacs_key_binding(man, fundamental)),
 	send(KB, function, '\C-c\C-f',	goto_man_page).
@@ -28,8 +30,6 @@
 	new(MM, emacs_mode_menu(man, fundamental)),
 	send(MM, append, man, goto_man_page).
 
-
-:- pce_begin_class(emacs_man_mode, emacs_fundamental_mode).
 
 		 /*******************************
 		 *	       CLICKS		*

@@ -558,27 +558,27 @@ drawPostScriptFigure(Figure f)
 
 status
 drawPostScriptBox(Box b)
-{ 
-/*
+{ int rmax = min(valInt(b->area->w), valInt(b->area->h))/2;
+  Int r = (valInt(b->radius) > rmax ? toInt(rmax) : b->radius);
+
   if ( b->shadow != ZERO )
   { Area a = b->area;
     Int s = b->shadow;
 
     ps_output("gsave nodash 0 ~d ~d ~d ~d ~d boxpath\n",
-	   add(a->x, s), add(a->y, s), sub(a->w, s), sub(a->h, s),
-	   b->radius);
+	      add(a->x, s), add(a->y, s), sub(a->w, s), sub(a->h, s),
+	      r);
     ps_output("0.0 setgray fill grestore\n");
     ps_output("gsave ~T ~p ~x ~y ~d ~d ~d boxpath\n", b, b,
-	   b, b, sub(a->w, s), sub(a->h, s), b->radius);
+	      b, b, sub(a->w, s), sub(a->h, s), r);
     if ( notNil(b->fill_pattern) )
       fill(b, NAME_fillPattern);
     else
       ps_output("gsave 1.0 setgray fill grestore\n");
     ps_output("draw grestore\n");
   } else
-*/
   { ps_output("gsave ~T ~p ~x ~y ~w ~h ~d boxpath\n",
-	   b, b, b, b, b, b, b->radius);
+	      b, b, b, b, b, b, r);
     fill(b, NAME_fillPattern);
     ps_output("draw grestore\n");
   }

@@ -10,6 +10,7 @@
 :- module(emacs_script_mode, []).
 :- use_module(library(pce)).
 
+:- pce_begin_class(emacs_script_mode, emacs_language_mode).
 
 :- initialization
 	new(_KB, emacs_key_binding(script, language)).
@@ -21,8 +22,6 @@
 
 	send(X, syntax,     '#',  comment_start),
 	send(X, add_syntax, '\n', comment_end).
-
-:- pce_begin_class(emacs_script_mode, emacs_language_mode).
 
 :- pce_end_class.
 

@@ -371,7 +371,10 @@ Int
 ws_display_connection_number(DisplayObj d)
 { DisplayWsXref r = d->ws_ref;
 
-  return toInt(ConnectionNumber(r->display_xref));
+  if ( r && r->display_xref )
+    return toInt(ConnectionNumber(r->display_xref));
+  else
+    fail;
 }
 
 
@@ -379,9 +382,11 @@ status
 ws_events_queued_display(DisplayObj d)
 { DisplayWsXref r = d->ws_ref;
 
-  XSync(r->display_xref, False);
-  if ( XtAppPending(pceXtAppContext(NULL)) & XtIMAll )
+  if ( r && r->display_xref )
+  { XSync(r->display_xref, False);
+    if ( XtAppPending(pceXtAppContext(NULL)) & XtIMAll )
       succeed;
+  }
 
   fail;
 }

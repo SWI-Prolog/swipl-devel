@@ -13,17 +13,20 @@
 	   , ignore/1
 	   ]).
 
-:-	new(_KB, emacs_key_binding('c++', c)).
+:- pce_begin_class('emacs_c++_mode', emacs_c_mode).
 
-:-	new(_X, syntax_table('c++', c)).
+:- initialization
+	new(_KB, emacs_key_binding('c++', c)).
 
-:-	new(MM, emacs_mode_menu('c++', c)),
+:- initialization
+	new(_X, syntax_table('c++', c)).
+
+:- initialization
+	new(MM, emacs_mode_menu('c++', c)),
 	send(MM, append, pce, pce_insert_include_files),
 	send(MM, append, pce, pce_collect_selectors),
 	send(MM, append, pce, pce_replace_selectors),
 	send(MM, append, pce, pce_unreplace_selectors).
-
-:- pce_begin_class('emacs_c++_mode', emacs_c_mode).
 
 from_pce('Arg',			'Pce').
 from_pce('Object',		'Pce').

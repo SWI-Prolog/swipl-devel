@@ -59,59 +59,68 @@ extern ushort char_flags[];		/* Initial flags table */
 extern ushort syntax_spec_code[];	/* Char --> syntax (for \sC regex) */
 extern char  char_context[];		/* Initial context table */
 
-#define islower(c)		(char_flags[(unsigned int)(c)] & LC)
-#define isupper(c)		(char_flags[(unsigned int)(c)] & UC)
-#define isdigit(c)		(char_flags[(unsigned int)(c)] & DI)
-#define isopenbrace(c)		(char_flags[(unsigned int)(c)] & OB)
-#define isclosebrace(c)		(char_flags[(unsigned int)(c)] & CB)
-#define isendsline(c)		(char_flags[(unsigned int)(c)] & EL)
-#define isblank(c)		(char_flags[(unsigned int)(c)] & BL)
-#define islayout(c)		(char_flags[(unsigned int)(c)] & (BL|EL))
-#define isquote(c)		(char_flags[(unsigned int)(c)] & QT)
-#define issymbol(c)		(char_flags[(unsigned int)(c)] & SY)
-#define iswordsep(c)		(char_flags[(unsigned int)(c)] & WS)
+#define Is8char(c)		((unsigned int)(c) < 256)
+#define HasSyntax(c, f)		(Is8char(c) && \
+				 (char_flags[(unsigned int)(c)] & (f)))
 
-#define isalnum(c)		(char_flags[(unsigned int)(c)] & AN)
-#define isletter(c)		(char_flags[(unsigned int)(c)] & (LC|UC))
-#define ischtype(c, tp)		(char_flags[(unsigned int)(c)] & (tp))
+#define islower(c)		HasSyntax((c), LC)
+#define isupper(c)		HasSyntax((c), UC)
+#define isdigit(c)		HasSyntax((c), DI)
+#define isopenbrace(c)		HasSyntax((c), OB)
+#define isclosebrace(c)		HasSyntax((c), CB)
+#define isendsline(c)		HasSyntax((c), EL)
+#define isblank(c)		HasSyntax((c), BL)
+#define islayout(c)		HasSyntax((c), BL|EL)
+#define isquote(c)		HasSyntax((c), QT)
+#define issymbol(c)		HasSyntax((c), SY)
+#define iswordsep(c)		HasSyntax((c), WS)
 
-#define ismatching(c1, c2)      (char_context[(unsigned int)(c1)] == (c2))
-#define isstringescape(q, e)	(char_context[q] == (e))
+#define isalnum(c)		HasSyntax((c), AN)
+#define isletter(c)		HasSyntax((c), LC|UC)
+#define ischtype(c, tp)		HasSyntax((c), tp)
+
+#define ismatching(c1, c2)      (Is8char(c1) && \
+				 (char_context[(unsigned int)(c1)] == (c2))
+#define isstringescape(q, e)	(Is8char(q) && \
+				 char_context[((unsigned int))(q)] == (e))
 
 		/********************************
 		*         TABLE VERSIONS	*
 		********************************/
 
-#define tislower(t, c)		((t)->table[(unsigned int)(c)] & LC)
-#define tisupper(t, c)		((t)->table[(unsigned int)(c)] & UC)
-#define tisdigit(t, c)		((t)->table[(unsigned int)(c)] & DI)
-#define tisopenbrace(t, c)	((t)->table[(unsigned int)(c)] & OB)
-#define tisclosebrace(t, c)	((t)->table[(unsigned int)(c)] & CB)
-#define tisendsline(t, c)	((t)->table[(unsigned int)(c)] & EL)
-#define tisblank(t, c)		((t)->table[(unsigned int)(c)] & BL)
-#define tislayout(t, c)		((t)->table[(unsigned int)(c)] & (BL|EL))
-#define tisquote(t, c)		((t)->table[(unsigned int)(c)] & QT)
-#define tissymbol(t, c)		((t)->table[(unsigned int)(c)] & SY)
-#define tiswordsep(t, c)	((t)->table[(unsigned int)(c)] & WS)
+#define THasSyntax(t, c, f)	(Is8char(c) && \
+				 ((t)->table[(unsigned int)(c)] & (f)))
 
-#define tisalnum(t, c)		((t)->table[(unsigned int)(c)] & AN)
-#define tisletter(t, c)		((t)->table[(unsigned int)(c)] & (LC|UC))
-#define tischtype(t, c, tp)	((t)->table[(unsigned int)(c)] & (tp))
+#define tislower(t, c)		THasSyntax(t, c, LC)
+#define tisupper(t, c)		THasSyntax(t, c, UC)
+#define tisdigit(t, c)		THasSyntax(t, c, DI)
+#define tisopenbrace(t, c)	THasSyntax(t, c, OB)
+#define tisclosebrace(t, c)	THasSyntax(t, c, CB)
+#define tisendsline(t, c)	THasSyntax(t, c, EL)
+#define tisblank(t, c)		THasSyntax(t, c, BL)
+#define tislayout(t, c)		THasSyntax(t, c, BL|EL)
+#define tisquote(t, c)		THasSyntax(t, c, QT)
+#define tissymbol(t, c)		THasSyntax(t, c, SY)
+#define tiswordsep(t, c)	THasSyntax(t, c, WS)
 
-#define tismatching(t, c1, c2)  ((t)->context[c1] == (c2))
-#define tisstringescape(t,q,e)	((t)->context[q] == (e))
+#define tisalnum(t, c)		THasSyntax(t, c, AN)
+#define tisletter(t, c)		THasSyntax(t, c, LC|UC)
+#define tischtype(t, c, tp)	THasSyntax(t, c, (tp))
 
-#define tiscommentstart(t, c)	((t)->table[(unsigned int)(c)] & CS && \
+#define tismatching(t, c1, c2)  (Is8char(c1) && (t)->context[c1] == (c2))
+#define tisstringescape(t,q,e)	(Is8char(q) && (t)->context[q] == (e))
+
+#define tiscommentstart(t, c)	(THasSyntax(t, c, CS) && \
 				 !(t)->context[(unsigned int)(c)])
-#define tiscommentend(t, c)	((t)->table[(unsigned int)(c)] & CE && \
+#define tiscommentend(t, c)	(THasSyntax(t, c, CE) && \
 				 !(t)->context[(unsigned int)(c)])
-#define tiscommentstart1(t, c)	((t)->table[(unsigned int)(c)] & CS && \
+#define tiscommentstart1(t, c)	(THasSyntax(t, c, CS) && \
 				 (t)->context[(unsigned int)(c)] & 1)
-#define tiscommentend1(t, c)	((t)->table[(unsigned int)(c)] & CE && \
+#define tiscommentend1(t, c)	(THasSyntax(t, c, CE) && \
 				 (t)->context[(unsigned int)(c)] & 4)
-#define tiscommentstart2(t, c)	((t)->table[(unsigned int)(c)] & CS && \
+#define tiscommentstart2(t, c)	(THasSyntax(t, c, CS) && \
 				 (t)->context[(unsigned int)(c)] & 2)
-#define tiscommentend2(t, c)	((t)->table[(unsigned int)(c)] & CE && \
+#define tiscommentend2(t, c)	(THasSyntax(t, c, CE) && \
 				 (t)->context[(unsigned int)(c)] & 8)
 
 
@@ -122,8 +131,10 @@ extern char  char_context[];		/* Initial context table */
 extern char  char_lower[];
 extern char  char_upper[];
 
-#define tolower(c)		(char_lower[(unsigned int)(c)])
-#define toupper(c)		(char_upper[(unsigned int)(c)])
+#define tolower(c)		(Is8char(c) ? char_lower[(unsigned int)(c)] \
+					    : (c))
+#define toupper(c)		(Is8char(c) ? char_upper[(unsigned int)(c)] \
+				 	    : (c))
 
 		/********************************
 		*     HOST-LANGUAGE SYMBOLS	*

@@ -16,6 +16,7 @@
 	   , member/2
 	   ]).
 
+:- pce_begin_class(emacs_language_mode, emacs_fundamental_mode).
 
 :- initialization
 	new(KB, emacs_key_binding(language,	fundamental)),
@@ -42,8 +43,6 @@
 
 
 :- pce_autoload(emacs_tag_item, library(emacs_tags)).
-
-:- pce_begin_class(emacs_language_mode, emacs_fundamental_mode).
 
 variable(comment_column,	int,	both, "Column for line comment").
 

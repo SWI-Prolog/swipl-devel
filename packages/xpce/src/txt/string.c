@@ -172,7 +172,7 @@ prependString(StringObj s1, StringObj s2)
 static status
 ensureNlString(StringObj s1, CharArray s2)
 { if ( s1->data.size > 0 && str_fetch(&s1->data, s1->data.size-1) != '\n' )
-    str_insert_string(s1, DEFAULT, str_nl());
+    str_insert_string(s1, DEFAULT, str_nl(&s1->data));
 
   if ( notDefault(s2) )
     return appendString(s1, s2);
@@ -198,7 +198,7 @@ newlineString(StringObj s, Int times)
     times = ONE;
   tms = valInt(times);
 
-  { String nl = str_nl();
+  { String nl = str_nl(&s->data);
     LocalString(buf, &s->data, nl->size * tms);
     int i;
 

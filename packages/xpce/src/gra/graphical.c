@@ -70,6 +70,7 @@ copyGraphical(Any obj1, Any obj2)
   assign(gr1, selected,  gr2->selected);
   assign(gr1, inverted,  gr2->inverted);
   assign(gr1, displayed, gr2->displayed);
+  assign(gr1, colour,	 gr2->colour);
   assign(gr1, cursor,    gr2->cursor);
   assign(gr1, name,      gr2->name);
 

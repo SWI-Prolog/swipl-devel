@@ -15,6 +15,7 @@
 
 :- use_module(library(pce)).
 :- use_module(util).
+:- use_module(v_inherit).
 :- require([ concat/3
 	   , get_chain/3
 	   , send_list/3
@@ -22,6 +23,10 @@
 
 :- pce_begin_class(man_class_browser(label), man_frame,
 		   "Online manual for a class").
+
+resource(value_font,	font,	'font(helvetica, roman, 12)').
+resource(label_font,	font,	'font(helvetica, bold, 12)').
+resource(active_font,	font,	'font(helvetica, oblique, 12)').
 
 variable(tool_focus,	 class,		get,
 	 "Currently displayed class").
@@ -33,14 +38,13 @@ variable(tool_focus,	 class,		get,
 initialise(CB, Manual:man_manual) :->
 	"Create from manual"::
 	send(CB, send_super, initialise, Manual, 'Class Browser'),
-
-	dialog(Dialog),
-	picture(Pict),
-	new(Browser, man_summary_browser(man_summary, size(90, 15))),
-
-	send(CB, append, Dialog),
-	send(Pict, above, Browser),
+	send(CB, append, new(Dialog, dialog)),
+	new(Browser, man_summary_browser(man_summary, size(100, 15))),
+	send(new(Pict, dialog), above, Browser),
 	send(Browser, right, Dialog),
+
+	fill_dialog(Dialog),
+	fill_picture(Pict),
 
 	get(Manual, tool_focus, Focus),
 	(   get(@pce, convert, Focus, class, Class)
@@ -54,34 +58,48 @@ initialise(CB, Manual:man_manual) :->
 %
 %	Create the dialog window
 
-dialog(D) :-
-	new(D, dialog),
+fill_dialog(D) :-
+	get(D, frame, CB),
 
-	new(CB, D?frame),		       % the class browser
+	send(D, append, label(reporter)),
 
-	send(D, append, new(label)),	       % reporter
-	send(D, append, new(DM, menu(display, toggle))),
 	send(D, append, new(CI, text_item(class, '',
 					  and(message(CB, show_class_name,
 						      @arg1),
 					      message(@receiver, clear))))),
 	send(CI, value_set, ?(@prolog, expand_classname, @arg1)),
-	send(D, append, new(SM, menu(field, toggle))),
+
+	send(D, append, new(FM, menu(filter, toggle))),
+	new(FmMsg, message(@manual, user_scope, FM?selection)),
+	forall(man_classification(T, L),
+	       send(FM, append, menu_item(T, @default, L))),
+	send(FM, append,
+	     menu_item(all,
+		       if(@arg2 == @on,
+			  and(message(FM, attribute, saved_selection,
+				      FM?selection),
+			      message(FM, selection, FM?members),
+			      message(FM, modified, @on),
+			      FmMsg),
+			  and(message(FM, selection,
+				      ?(FM, attribute, saved_selection)),
+			      message(FM, selected, all, @off),
+			      message(FM, modified, @on),
+			      FmMsg)))),
+	send(FM, message, FmMsg),
+	send(FM, columns, 4),
+	send(FM, selection, @manual?user_scope),
+
+	send(D, append, new(DM, menu(display, toggle))),
 	send(D, append, new(KI, text_item(search, ''))),
-	send(D, append, new(graphical(height := 15))), % just add some space
-	send(D, append, new(IM, menu(scope, marked))),
-	send(D, append, new(graphical(height := 15))), % and once more
+	send(D, append, new(SM, menu(field, toggle))),
+	send(SM, label, '... In:'),
 	send(D, append, button(apply,
 			       and(message(D, apply),
-				   message(CB, fill_browser)))),
+				   message(CB, apply)))),
 
 	send(KI, advance, none),
 	send(CI, advance, none),
-
-	send(IM, layout, horizontal),
-	send_list(IM, append, [super, own, sub]),
-	send(IM, auto_value_align, @off),
-	send(IM, selection, own),
 
 	send(DM, layout, horizontal),
 	send(DM, columns, 3),
@@ -89,7 +107,8 @@ dialog(D) :-
 			      , variable, resource
 			      , send_method, get_method
 			      ]),
-	send(DM, selection, chain(self, variable)),
+	send(DM, selection,
+	     chain(self, variable, send_method, get_method)),
 
 	send(SM, layout, horizontal),
 	send(SM, columns, 2),
@@ -110,23 +129,19 @@ expand_classname(Prefix, Classes) :-
 	     if(message(@arg2?name, prefix, Prefix),
 		message(Classes, append, @arg2))).
 
-picture(P) :-
-	new(P, dialog),
+fill_picture(P) :-
 	send(P, name, window),
-	send(P, gap, size(15, 3)),
+	send(P, gap, when(@colour_display, size(0, 3), size(5,3))),
 	send(P, hor_stretch, 100),
 	send(P, hor_shrink, 100),
-	send(P, append, new(T, label(title, '', font(helvetica, bold, 14)))),
+	get(P?frame, resource_value, label_font, Font),
+	send(P, append, new(T, label(title, '', Font))),
 	send(T, recogniser,
 	     click_gesture(left, '', double,
 			   message(P?frame, show_initisation_method))),
-	send(P, append, new(F, figure)),
-	send(F, name, inheritance),
-	send(F, display, text(inheritance)), % for layout
-	send(F, format, format(vertical, 1, @on)),
-	send(F, format, adjustment, vector(center)),
-	send(F, format, row_sep, 0),
-	send(P, append, label(delegation, '', font(helvetica, roman, 14))).
+
+	send(P, append, new(I, man_inheritance_tree)),
+	send(I, name, inheritance).
 	
 
 show_initisation_method(CB) :->
@@ -150,47 +165,30 @@ show_header(CB) :->
 show_inheritance(CB) :->
 	"Show inheritance path in picture"::
 	get(CB, member, window, P),
-	get(P, member, inheritance, Fig),
-	send(Fig, clear),
+	get(P, member, inheritance, Tree),
 	get(CB, tool_focus, Class),
-	super_chain(Class, Fig).
-
-
-show_delegation(CB) :->
-	"Show delegation slots in picture"::
-	get(CB, member, window, Win),
-	get(Win, member, delegation, Label),
-	get(CB, tool_focus, Class),
-	get(Class, man_delegate_header, Str),
-	(   get(Str, size, 0)
-	->  send(Label, selection, '(No delegation)')
-	;   send(Label, selection, string('Delegation: %s', Str))
+	send(Tree, show, Class),
+	send(P, layout),
+	send(P, compute),
+	get(P, bounding_box, area(_X, Y, _W, H)),
+	get(P, gap, size(_GW, GH)),
+	get(P, pen, Pen),
+	IH is Y+H+GH+2*Pen,
+	(   get(P?tile, ideal_height, OIH),
+	    OIH < IH
+	->  send(P?tile, ideal_height, IH),
+	    send(CB, resize)
+	;   send(P?tile, ideal_height, IH)
 	).
 
 
-:- pce_global(@man_class_text_handler, make_class_text_handler).
+scope(CB, Scope:chain) :<-
+	"Inheritance scope"::
+	get(CB, member, window, P),
+	get(P, member, inheritance, Fig),
+	get(Fig, scope, Scope).
 
-make_class_text_handler(H) :-
-	new(H, click_gesture(left, '', double,
-			     and(message(@receiver, inverted, @on),
-				 message(@receiver, flush),
-				 message(@receiver?frame,
-					 request_tool_focus,
-					 ?(@pce, convert,
-					   @receiver?string, class))))).
 
-%	super_chain(+Class, +Fig)
-
-super_chain(@nil, _) :- !.
-super_chain(Class, Fig) :-
-	get(Class, super_class, Super),
-	super_chain(Super, Fig),
-	send(Fig, display, line(0, 5, 20, 5, second)),
-	send(Fig, display, new(T, text(Class?name, left,
-				       font(helvetica, roman, 14)))),
-	send(T, recogniser, @man_class_text_handler).
-
-	
 		/********************************
 		*         COMMUNICATION		*
 		********************************/
@@ -215,8 +213,7 @@ tool_focus(CB, Obj:object*) :->
 	send(CB, label, Label, ClassName),
 	send(CB, show_header),
 	send(CB, show_inheritance),
-	send(CB, show_delegation),
-	send(CB, fill_browser).
+	send(CB, apply).
 
 
 selected(CB, Obj:object*) :->
@@ -233,7 +230,7 @@ release_selection(CB) :->
 		*            BROWSER		*
 		********************************/
 
-fill_browser(CB) :->
+apply(CB) :->
 	"Fill the browser window"::
 	get(CB, dialog_member, Dialog),
 	get(CB, tool_focus, Class),
@@ -241,15 +238,22 @@ fill_browser(CB) :->
 	get_chain(Dialog?display_member, selection, Types),
 	get_chain(Dialog?field_member, selection, Fields),
 	get(Dialog?search_member, selection, Keyword),
-	get(Dialog?scope_member, selection, Inherit),
+	get(CB, scope, Scope),
 
 	send(Browser, clear),
 	send(CB, report, progress, 'Searching ...'),
-	apropos_class(Class, Inherit, Types, Fields, Keyword, Matches),
+	apropos_class(Class, Scope, Types, Fields, Keyword, Matches),
 	send(CB, report, done),
 	send(Browser, members, Matches),
 	send(Dialog?apply_member, active, @off).
 	
+
+activate_apply(CB) :->
+	"Activate the apply button"::
+	get(CB, member, dialog, Dialog),
+	get(Dialog, member, apply, Button),
+	send(Button, active, @on).
+
 
 show_class_name(CB, Name:name) :->
 	"Switch to named class"::

@@ -217,7 +217,7 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
   key = getAppendName(kb->prefix, characterName(id));
   DEBUG(NAME_keyBinding, writef("Key = %s\n", key));
 
-  if ( (cmd = getFunctionKeyBinding(kb, key)) )
+  if ( (cmd = get(kb, NAME_function, key, 0)) )
   { Any argv[MAX_ARGS];
     int argc = 0;
     status rval = FAIL;

@@ -1041,6 +1041,12 @@ event_editor(Editor e, EventObj ev)
 
     succeed;
   }
+
+					/* delete mode on button down */
+  if ( isDownEvent(ev) )
+  { endIsearchEditor(e);
+    assign(e, focus_function, NIL);
+  }
 					/* @editor_recogniser is a hook */
 					/* to allow for host-language */
 					/* level redefinition */
@@ -1057,7 +1063,7 @@ event_editor(Editor e, EventObj ev)
     Modifier select_modifier = getResourceValueObject(e, NAME_selectModifier);
     Modifier caret_modifier = getResourceValueObject(e, NAME_caretModifier);
 
-    endIsearchEditor(e);
+/*  endIsearchEditor(e); */
 
     if ( isDownEvent(ev) )
     { status rval = FAIL;
@@ -1164,6 +1170,7 @@ insertSelfEditor(Editor e, Int times, Int chr)
     c = valInt(chr);
     
   str_store(s, 0, c);
+  s->size = 1;
   insert_textbuffer(e->text_buffer, Caret(e), valInt(times), s);
 
   if ( tisclosebrace(e->text_buffer->syntax, c) &&
@@ -1229,7 +1236,8 @@ QuotedInsertEditor(Editor e, EventId id)
 static status
 newlineEditor(Editor e, Int arg)
 { MustBeEditable(e);
-  return insert_textbuffer(e->text_buffer, Caret(e), UArg(arg), str_nl());
+  return insert_textbuffer(e->text_buffer, Caret(e), UArg(arg),
+			   str_nl(&e->text_buffer->buffer));
 }
 
 
@@ -1238,7 +1246,8 @@ openLineEditor(Editor e, Int arg)
 { Int caret = e->caret;
 
   MustBeEditable(e);
-  insert_textbuffer(e->text_buffer, Caret(e), UArg(arg), str_nl());
+  insert_textbuffer(e->text_buffer, Caret(e), UArg(arg),
+		    str_nl(&e->text_buffer->buffer));
   return caretEditor(e, caret);		/* do not move the caret */
 }
 
@@ -1742,6 +1751,7 @@ deleteHorizontalSpaceEditor(Editor e, Int arg)
 { int f, t;
   int spaces = (isDefault(arg) ? 0 : valInt(arg));
   SyntaxTable syntax = e->text_buffer->syntax;
+  TextBuffer tb = e->text_buffer;
 
   MustBeEditable(e);
   f = t = valInt(e->caret);
@@ -1750,10 +1760,10 @@ deleteHorizontalSpaceEditor(Editor e, Int arg)
     f--, t--;
   for( ; f > 0 && tisblank(syntax, Fetch(e, f-1)); f-- )
     ;
-  for( ; t < e->text_buffer->size && tisblank(syntax, Fetch(e, t)); t++ )
+  for( ; t < tb->size && tisblank(syntax, Fetch(e, t)); t++ )
     ;
-  delete_textbuffer(e->text_buffer, f, t-f);
-  insert_textbuffer(e->text_buffer, f, spaces, str_spc());
+  delete_textbuffer(tb, f, t-f);
+  insert_textbuffer(tb, f, spaces, str_spc(&tb->buffer));
 
   return caretEditor(e, toInt(f+spaces));
 }
@@ -2113,8 +2123,8 @@ alignEditor(Editor e, Int column, Int where)
 
 					/* delete old indent */
   delete_textbuffer(tb, txt, here-txt);
-  insert_textbuffer(tb, txt, tabs, str_tab());
-  insert_textbuffer(tb, txt+tabs, spaces, str_spc());
+  insert_textbuffer(tb, txt, tabs, str_tab(&tb->buffer));
+  insert_textbuffer(tb, txt+tabs, spaces, str_spc(&tb->buffer));
 
   succeed;
 }
@@ -2134,14 +2144,16 @@ alignOneLineEditor(Editor e, Int where, Int column)
   if ( col < 0 )
     col = 0;
 
-  for(sot = sol; tisblank(tb->syntax, fetch_textbuffer(tb, sot)) ; sot++)
+  for(sot = sol;
+      sot < tb->size && tisblank(tb->syntax, fetch_textbuffer(tb, sot));
+      sot++)
     ;
 					/* delete old indent */
   delete_textbuffer(tb, sol, sot-sol);
   tabs   = col / valInt(e->tab_distance);
   spaces = col % valInt(e->tab_distance);
-  insert_textbuffer(tb, sol, tabs, str_tab());
-  insert_textbuffer(tb, sol+tabs, spaces, str_spc());
+  insert_textbuffer(tb, sol, tabs, str_tab(&tb->buffer));
+  insert_textbuffer(tb, sol+tabs, spaces, str_spc(&tb->buffer));
 
   succeed;
 }
@@ -2408,6 +2420,7 @@ insertSelfFillEditor(Editor e, Int times, Int chr)
     c = valInt(chr);
 
   str_store(s, 0, c);
+  s->size = 1;
   insert_textbuffer(e->text_buffer, Caret(e), valInt(times), s);
   le = getScanTextBuffer(tb, e->caret, NAME_line, ZERO, NAME_end);
   if ( valInt(getColumnEditor(e, le)) > valInt(e->right_margin) )
@@ -2721,6 +2734,7 @@ dabbrevExpandEditor(Editor e)
     clearChain(e->dabbrev_reject);
   else
     assign(e, dabbrev_reject, newObject(ClassChain, 0));
+  appendChain(e->dabbrev_reject, target);
 
   assign(e, dabbrev_pos, sub(e->caret, toInt(target->data.size+1)));
   assign(e, focus_function, NAME_DabbrevExpand);

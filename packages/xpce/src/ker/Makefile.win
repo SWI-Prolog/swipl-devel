@@ -7,7 +7,8 @@ KER1OBJS=	alloc.obj assoc.obj behaviour.obj class.obj conversion.obj &
 		getmethod.obj glob.obj global.obj goodies.obj passing.obj &
 		method.obj name.obj object.obj programobject.obj save.obj &
 		self.obj sendmethod.obj sourcelocation.obj timer.obj &
-		trace.obj type.obj variable.obj vmi.obj xref.obj error.obj
+		trace.obj type.obj variable.obj vmi.obj xref.obj error.obj &
+		classstub.obj
 KER2OBJS=	inline.obj
 KEROBJS=	$(KER1OBJS) $(KER2OBJS)
 

@@ -89,7 +89,7 @@ initialise(E) :->
 	send(E, style, last_modified, style(font := ManFont)),
 	send(E, style, defaults, style(font := ManFont)),
 	send(E, style, jump, style(bold := @on)),
-	send(E, style, example, style(font := CodeFont)),
+	send(E, style, example_code, style(font := CodeFont)),
 	send(E, style, mark, style(underline := @on)),
 
 	send(E, key_binding, '\C-x\C-s', save_if_modified),
@@ -166,7 +166,8 @@ make_editor_recogniser(G) :-
 		  , menu_item(consult,
 			      message(E, consult, AF),
 			      @default, @on,
-			      and(AF \== @nil, AF?style == code))
+			      and(AF \== @nil, or(AF?style == code,
+						  AF?style == example_code)))
 		  , menu_item(show_key_bindings,
 			      message(E, show_key_bindings),
 			      @default, @on)
@@ -255,7 +256,7 @@ display_group(E, Group:name, Members:chain) :->
 
 %	Display a cluster of objects with the same description.  First
 %	The cluster is expanded with the source of the description.  If
-%	the cluster contains variables that hav resources, these are
+%	the cluster contains variables that have resources, these are
 %	appended too.
 
 display_cluster(E, Members:chain) :->
@@ -378,8 +379,12 @@ jump_pattern('\W\(<?->?\w+\)').
 	      new(regex('\b[Cc]lass\s +\(\w+\|[-+*/?\=]\)'))).
 :- pce_global(@man_objectclass_regex,
 	      new(regex('\(\w+\|[-+*/?\=]\)[ \t\n]object'))).
-:- pce_global(@man_example_regex,
+:- pce_global(@man_example_code_regex,
 	      new(regex(string('\n\t?\\(\n\t\t[^#*].*\\|\n *\\)+\n')))).
+:- pce_global(@man_example_regex,
+	      new(regex(string('[Ee]xample\\s +`\\([^'']+\\)''')))).
+:- pce_global(@man_predicate_regex,
+	      new(regex(string('\\(\\w+\\)/\\(\\sd+\\|\\[[0-9,-]+\\]\\)')))).
 
 mark_jumpable(E) :->
 	"Mark possible active fragments"::
@@ -397,15 +402,33 @@ mark_jumpable(E) :->
 	     if(message(E, mark_class, @arg1))),
 	send(@man_local_method_regex, for_all, TB,
 	     if(message(E, mark_local_method, @arg1))),
+	send(@man_example_code_regex, for_all, TB,
+	     if(message(E, mark_example_code, @arg1))),
 	send(@man_example_regex, for_all, TB,
-	     if(message(E, mark_example, @arg1))).
+	     if(message(E, mark_example, @arg1))),
+	send(@man_predicate_regex, for_all, TB,
+	     if(message(E, mark_predicate, @arg1))).
 
 
-mark_example(E, Re:regex) :->
+mark_example_code(E, Re:regex) :->
 	get(Re, register_start, 1, Start),
 	get(Re, register_size,  1, Size),
 	get(E, text_buffer, TB),
-	new(_, fragment(TB, Start, Size, example)).
+	new(_, fragment(TB, Start, Size, example_code)).
+
+
+mark_predicate(E, Re:regex) :->
+	get(Re, register_value, E, 1, PredName),
+	get(string('$predicates$%s', PredName), value, Id),
+	new(_, man_button_fragment(E, Re, 0, Id)).
+
+
+mark_example(E, Re:regex) :->
+	get(Re, register_value, E, 1, Example),
+	send(Example, translate, ' ', '_'),
+	send(Example, downcase),
+	get(string('$examples$%s', Example), value, Id),
+	new(_, man_button_fragment(E, Re, 0, Id)).
 
 
 mark_object(E, Re:regex) :->
@@ -473,7 +496,17 @@ jump_on_caret(E, _Arg:[int]) :->
 jump_on_fragment(E, Frag:fragment) :->
 	"Select argument fragment"::
 	get(Frag, object, Obj),
-	send(E?frame, request_selection, Obj, @on).
+	(   atom(Obj)
+	->  (   get(Obj, scan, '$%[^$]$%s', vector(ModuleName, LocalId)),
+	        get(E?frame?manual, space, Space),
+		get(Space, module, ModuleName, @on, Module),
+		get(Module, card, LocalId, Target)
+	    ;	send(E, report, warning, 'Cannot find card from id %s', Obj),
+		fail
+	    )
+	;   Target = Obj
+	),
+	send(E?frame, request_selection, Target, @on).
 
 
 jump_fragment_from_caret(E, Frag:fragment) :<-

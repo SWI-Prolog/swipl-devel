@@ -23,8 +23,13 @@ if ( ! -d pl/include ) then
     ( cd pl; ln -s ../../pl/include . )
 endif
 
+if ( ! -x bin/xpce.base ) then
+    ( cd bin; ln -s ../pl/src/xpce.base . )
+endif
+
 cd ..
-ln -sf xpce xpce-$version
+rm -f xpce-$version
+ln -s xpce xpce-$version
 tar cvhf - \
 	xpce-$version/bin/xpce.base \
 	xpce-$version/bin/xpce-client \

@@ -302,10 +302,11 @@ do_expand(variable(Name, Type := Initial, Acs, Doc),
 	type(Type, PceType).
 do_expand(variable(Name, Type, Acs, Doc),
 	(?- send(Class, instance_variable,
-		 variable(Name, PceType, Acs, TheDoc)))) :- !,
+		 variable(Name, PceType, Acs, TheDoc, Group)))) :- !,
 	do_doc(Doc, TheDoc),
 	access(Acs),
 	current_class(Class),
+	current_group(Group),
 	type(Type, PceType).
 
 do_expand(resource(Name, Type, Def),
@@ -366,7 +367,7 @@ extract_documentation((DocText::Body), string(DocText), Body) :- !.
 extract_documentation((DocText,Body), string(DocText), Body) :-
 	is_string(DocText), !,
 	pce_error('Summary not closed by "::"', []).
-extract_documentation(Body, @nil, Body).
+extract_documentation(Body, @default, Body).
 
 
 return_type(Term, RType) :-

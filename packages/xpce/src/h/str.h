@@ -32,6 +32,7 @@ typedef struct _string
 #define s_text16	text_union.text16
 
 #define ENC_ASCII (0)			/* standard 7-bits ASCII encoding */
+#define ENC_UNICODE (1)			/* 16-bits unicode encoding */
 
 #define isstr8(s) ((s)->b16 == 0)	/* 8-bit string */
 #define isstr16(s) ((s)->b16 == 1)	/* 16-bit string */

@@ -36,6 +36,10 @@ for d in library boot include; do
     if [ ! -d pl/$d ]; then (cd pl; ln -s ../../pl/$d .); fi
 done
 
+if [ ! -r bin/xpce.base ]; then
+    (cd bin; ln -s ../pl/src/xpce.base .);
+fi
+
 # collect necessary files and directories
 
 echo ""

@@ -126,7 +126,12 @@ update_order(Ref) :-
 %	Fix the alignments of the dialog items.
 
 make_alignments(Rows) :-
-	forall(item(Item, Rows), send(Item, alignment, left)),
+	forall(item(Item, Rows),
+	       (   get(Item, resource_value, alignment, Alignment),
+		   Alignment \== column
+	       ->  send(Item, alignment, Alignment)
+	       ;   send(Item, alignment, left)
+	       )),
 	forall(item(Item, Rows),
 	       (   get(Item, auto_label_align, @on)
 	       ->  ignore(send(Item, label_width, @default))
@@ -139,13 +144,26 @@ make_alignments(Rows) :-
 make_column_alignments([]).
 make_column_alignments([_]).
 make_column_alignments([R1, R2|Rows]) :-
-	forall(member(I1, R1),
-	       (   member(I2, R2),
-		   above(I1, I2)
-	       ->  align_above(I1, I2)
-	       ;   true
-	       )),
+	(   R1 \== [], R2 \== [],
+	    has_column_alignment(R1, R2)
+	->  align_columns(R1, R2)
+	;   true
+	),
 	make_column_alignments([R2|Rows]).
+
+
+has_column_alignment([], _) :- !.
+has_column_alignment(_, []) :- !.
+has_column_alignment([H1|T1], [H2|T2]) :-
+	above(H1, H2),
+	has_column_alignment(T1, T2).
+	
+align_columns([], _) :- !.
+align_columns(_, []) :- !.
+align_columns([H1|T1], [H2|T2]) :-
+	align_above(H1, H2),
+	align_columns(T1, T2).
+
 
 align_above(I1, I2) :-
 	send(I1, above, I2),
@@ -153,6 +171,10 @@ align_above(I1, I2) :-
 	send(I2, alignment, column).
 
 
+above(Gr1, Gr2) :-
+	(   \+ can_be_in_column(Gr1)
+	;   \+ can_be_in_column(Gr2)
+	), !, fail.
 above(Gr1, Gr2) :-
 	get(Gr1, auto_label_align, @on),
 	get(Gr2, auto_label_align, @on),
@@ -169,45 +191,73 @@ above(Gr1, Gr2) :-
 	abs(L1 - L2) < 15.
 
 
+can_be_in_column(Gr) :-
+	get(Gr, alignment, column), !.
+can_be_in_column(Gr) :-
+	get(Gr, fixed_alignment, @off).
+
 make_row_alignment(Row) :-
-	\+ (member(I, Row), get(I, alignment, column)),
-	left_to_right(Row),
-	Row = [Head|_],
-	last(Tail, Row),
+	first(First, Row),
+	get(First, device, Device),
+	append(Before, R0, Row),
+	left(Before, Device, LeftEdge),
+	append(Sub, After, R0),
+	Sub \== [],
+	right(After, Device, RightEdge),
+	\+((member(X, Sub), get(X, alignment, column))),
+	left_to_right(Sub),
+format('Sub is ~p~n', [Sub]),
+	first(Head, Sub),
+	last(Tail, Sub),
 	get(Head, left_side, Left),
 	get(Tail, right_side, Right),
-	get(Head?device, bounding_box, area(X, _, W, _)),
-	left_aligned(X, W, Left, Right, LH),
-	right_aligned(X, W, Left, Right, RH),
-	center_aligned(X, W, Left, Right, CH),
+	left_aligned(LeftEdge, RightEdge, Left, Right, LH),
+	right_aligned(LeftEdge, RightEdge, Left, Right, RH),
+	center_aligned(LeftEdge, RightEdge, Left, Right, CH),
 	(   LH < RH, LH < CH
 	->  Alignment = left
 	;   RH < CH
 	->  Alignment = right
 	;   Alignment = center
 	),
-	align_row(Row, Alignment).
+	align_row(Sub, Alignment),
+	fail.
 make_row_alignment(_).
+
+left([], Device, Left) :-
+	get(Device?bounding_box, left_side, Left).
+left(L, _, Left) :-
+	last(T, L),
+%	get(T, alignment, column),
+	get(T, right_side, Left).
+
+right([], Device, Right) :-
+	get(Device?bounding_box, right_side, Right).
+right(L, _, Right) :-
+	first(H, L),
+%	get(H, alignment, column),
+	get(H, left_side, Right).
+
+first(H, [H|_]).
 
 align_row(Row, Alignment) :-
 	forall(member(Gr, Row), send(Gr, alignment, Alignment)).
-
 
 left_to_right([]).
 left_to_right([_]).
 left_to_right([H1, H2|T]) :-
 	get(H1, right_side, R),
 	get(H2, left_side, L),
-	R - L < 30,
+	L - R < 30,
 	left_to_right([H2|T]).
 
 
 left_aligned(X, _W, Left, _Right, H) :-
 	H is abs(X-Left).
-right_aligned(X, W, _Left, Right, H) :-
-	H is abs(Right - (X+W)).
+right_aligned(_X, W, _Left, Right, H) :-
+	H is abs(Right - W).
 center_aligned(X, W, Left, Right, H) :-
-	H is abs((Left+Right)//2 - (X + W//2)).
+	H is abs((Left+Right)//2 - ((X + W)//2)).
 
 %	make_y_references/1
 %	Fix the (Y)-coordinate of the reference points

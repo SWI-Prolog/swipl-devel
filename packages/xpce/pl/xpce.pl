@@ -28,8 +28,9 @@
 		*           SET PCE HOME	*
 		********************************/
 
-:- feature(home, PlHome),
-   '$file_dir_name'(PceHome, PlHome),
+:- feature(symbol_file, Exec),
+   '$file_dir_name'(Exec, BinDir),
+   '$file_dir_name'(BinDir, PceHome),
    send(@pce, home, PceHome).
 
 
@@ -37,7 +38,7 @@
 		 *	     CONSOLE		*
 		 *******************************/
 
-:- send(@pce, console_label, 'XPCE/SWI-Prolog').
+%:- send(@pce, console_label, 'XPCE/SWI-Prolog').
 
 
 		/********************************
@@ -48,7 +49,8 @@ library_directory(PceLib) :-
 	get(@pce, home, Home),
 	concat(Home, '/prolog/lib', PceLib).
 
-%:- ensure_loaded(library(pce_manual)).
+:- '$autoload':clear_library_index.
+:- ensure_loaded(library(pce_manual)).
 
 
 		/********************************
@@ -57,3 +59,9 @@ library_directory(PceLib) :-
 
 :- '$make_system_source_files'.
 :- '$autoload':clear_library_index.
+
+
+
+
+
+

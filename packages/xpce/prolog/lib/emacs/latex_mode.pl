@@ -12,6 +12,8 @@
 :- require([ send_list/3
 	   ]).
 
+:- pce_begin_class(emacs_latex_mode, emacs_language_mode).
+
 :- initialization
 	new(KB, emacs_key_binding(latex, language)),
 
@@ -42,8 +44,6 @@
 	send(MM, append, 'LaTeX', make_command),
 	send(MM, append, 'LaTeX', make_environment).
 
-
-:- pce_begin_class(emacs_latex_mode, emacs_language_mode).
 
 :- pce_global(@latex_env_regex, new(regex('\\\(begin\|end\){\(\w+\)}'))).
 

@@ -5,7 +5,8 @@ KER1OBJS=	alloc.o assoc.o behaviour.o class.o conversion.o \
 		getmethod.o glob.o global.o goodies.o passing.o \
 		method.o name.o object.o programobject.o save.o \
 		self.o sendmethod.o sourcelocation.o timer.o \
-		trace.o type.o variable.o vmi.o xref.o error.o
+		trace.o type.o variable.o vmi.o xref.o error.o \
+		classstub.o
 KER2OBJS=	inline.o
 KEROBJS=	$(KER1OBJS) $(KER2OBJS)
 KER1SRC=	$(KER1OBJS:.o=.c)

@@ -1753,7 +1753,8 @@ makeClassWindow(Class class)
 
   localClass(class, NAME_frame, NAME_organisation, "frame*", NAME_none,
 	     "Frame the window is member of");
-  localClass(class, NAME_decoration, NAME_appearance, "window*", NAME_get,
+  localClass(class, NAME_decoration, NAME_appearance, "window_decorator*",
+	     NAME_get,
 	     "Window displaying me and my decorations");
   localClass(class, NAME_boundingBox, NAME_area, "area", NAME_none,
 	     "Union of graphicals");

@@ -7,6 +7,5 @@
     Copyright (C) 1994 University of Amsterdam. All rights reserved.
 */
 
-:- ['../../pl/boot/load'].
 :- [user:xpce].
 

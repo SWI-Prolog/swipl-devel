@@ -24,6 +24,7 @@ standard XPCE library directory.
 :- use_module(generate).
 :- use_module(pretty_print).
 :- use_module(load).
+:- use_module(util).
 :- use_module(library('dialog/lib/template')).
 :- require([ between/3
 	   , forall/2
@@ -45,7 +46,7 @@ standard XPCE library directory.
 :- pce_global(@finder, new(finder)).
 :- pce_autoload(msg_model_editor, library('dialog/behaviour')).
 
-dia_version('0.3').
+dia_version('0.4').
 
 :- initialization pce_help_file(dialog, 'dialog.hlp').
 :- initialization pce_image_directory(bitmaps).
@@ -74,6 +75,8 @@ make_dia_proto_recogniser(R) :-
 	new(R, handler_group(
 		new(RG, resize_gesture(@default, c)),
 		new(_DG, drag_and_drop_gesture(middle, '', @off)),
+		new(_,  click_gesture(left, '', single,
+				      message(DI, help_ui))),
 		new(EG, click_gesture(left, '', double,
 				      message(DI, edit_attributes))))),
 	send(RG, condition, and(CanResize, IsTarget)),
@@ -86,6 +89,12 @@ event(DI, Ev:event) :->
 	->  send(DI, send_super, event, Ev)
 	;   send(@dia_proto_recogniser, event, Ev)
 	).
+
+
+help_ui(DI) :->
+	"Provide simple help"::
+	send(DI, report, status,
+	     'Use double-left-click to edit; middle to drag').
 
 
 behaviour_model(DI, Model:object) :<-
@@ -371,6 +380,15 @@ initialise(D, Label:[name], Size:[size]) :->
 	send(D, size, Sz).		% force explicit size
 
 
+unlink(D) :->
+	"Remove from editor"::
+	(   get(D, editor, Editor)
+	->  send(Editor, deleted_target, D)
+	;   true
+	),
+	send(D, send_super, unlink).
+
+
 report_to(D, Obj:visual) :<-
 	"Delegate errors to the editor"::
 	(   get(D, mode, run)
@@ -520,7 +538,7 @@ fix_layout_mode(D, Mode) :-
 
 
 attribute_editor(D, Ed:dia_attribute_editor) :->
-	new(_, hyper(D, Ed, attribute_editor, target_dialog)).
+	new(_, dia_transient_hyper(D, Ed, attribute_editor, target_dialog)).
 
 attribute_editor(D, Ed:dia_attribute_editor) :<-
 	"Lookup existing or create editor"::
@@ -560,7 +578,8 @@ restore_dialog_layout(D) :->
 			message(@arg1, below, @nil),
 			message(@arg1, left,  @nil),
 			message(@arg1, right, @nil),
-			if(message(@arg1, label_width, @default)),
+			if(message(@arg1, has_send_method, label_width),
+			   if(message(@arg1, label_width, @default))),
 			if(message(@arg1, position,
 				   ?(@arg1, attribute, undo_position))))))
 	;   send(D, report, warning, 'No undo information')
@@ -637,7 +656,10 @@ make_dia_proto_icon_recogniser(G) :-
 		       message(@receiver, report, status, ''))),
 	new(D, drag_and_drop_gesture(middle, @default, @off)),
 	send(D, get_source, @arg1?prototype),
-	new(G, handler_group(I, O, D)).
+	new(H, click_gesture(left, '', single,
+			     message(@event?receiver, report, status,
+				     'Use middle button to drag object to dialog'))),
+	new(G, handler_group(I, O, D, H)).
 
 event(I, Ev:event) :->
 	(   send(I, send_super, event, Ev)
@@ -867,12 +889,18 @@ target(DE, D:dia_target_dialog) :->
 	send(B, selection, DI),
 	(   get(DE, target, Name, _)
 	->  true
-	;   new(H, hyper(DE, D, target, editor)),
-	    send(H, send_method,
-		 send_method(unlink_to, new(vector),
-			     and(message(B, delete, Name),
-				 message(H, send_class, unlink_to))))
+	;   new(_, dia_transient_hyper(DE, D, target, editor))
 	).
+
+deleted_target(DE, D:dia_target_dialog) :->
+	"Update browser after target has been deleted"::
+	(   send(DE, unlinking)
+	->  true
+	;   get(DE, member, browser, B),
+	    get(D, name, Name),
+	    send(B, delete, Name)
+	).
+		
 
 target(DE, Name:[name], D:dia_target_dialog) :<-
 	(   Name == @default

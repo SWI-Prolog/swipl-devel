@@ -10,11 +10,11 @@
 :- module(emacs_text_mode, []).
 :- use_module(library(pce)).
 
+:- pce_begin_class(emacs_text_mode, emacs_fundamental_mode).
+
 :-  new(_KB, emacs_key_binding(emacs_text, fundamental)).
 
 :- new(_, syntax_table(text)).
-
-:- pce_begin_class(emacs_text_mode, emacs_fundamental_mode).
 
 setup_mode(E) :->
 	"Switch editor into fill-mode"::

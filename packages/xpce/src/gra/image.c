@@ -11,6 +11,7 @@
 #include <h/graphics.h>
 #include <h/unix.h>
 
+static status drawInImage(Image image, Graphical gr, Point pos);
 
 		/********************************
 		*         CREATE/DESTROY	*
@@ -100,12 +101,25 @@ getConvertImage(Class class, Any obj)
   if ( instanceOfObject(obj, ClassBitmap) )
     answer(((BitmapObj)obj)->image);
 
-  TRY(name = checkType(obj, TypeName, class));
+  if ( (name = checkType(obj, TypeName, class)) )
+  { if ( (image = getMemberHashTable(ImageTable, name)) )
+      answer(image);
+    else
+      answer(answerObject(ClassImage, name, 0));
+  }
 
-  if ( (image = getMemberHashTable(ImageTable, name)) )
-    answer(image);
+  if ( instanceOfObject(obj, ClassGraphical) )
+  { Graphical gr = obj;
+    Image img;
+    
+    ComputeGraphical(gr);
+    if ( (img = newObject(ClassImage, NIL, gr->area->w, gr->area->h, 0)) )
+    { drawInImage(img, gr, answerObject(ClassPoint, 0));
+      answer(img);
+    }
+  }
 
-  answer(answerObject(ClassImage, name, 0));
+  fail;
 }
 
 
@@ -783,7 +797,7 @@ makeClassImage(Class class)
 	     "Load image from file (searching in path)",
 	     loadImage);
 
-  getMethod(class, NAME_convert, DEFAULT, "image", 1, "bitmap|name",
+  getMethod(class, NAME_convert, DEFAULT, "image", 1, "bitmap|name|graphical",
 	    "Convert bitmap or (file-)name",
 	    getConvertImage);
   getMethod(class, NAME_lookup, NAME_oms, "image", 1, "name",

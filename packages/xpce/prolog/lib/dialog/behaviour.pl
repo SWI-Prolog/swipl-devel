@@ -1035,7 +1035,7 @@ simulate_message(Port, Msg) :-
 ui_object(O, Self:object) :->
 	"Associate object"::
 	forall(get(O, find_hyper, ui_object, Hyper), send(Hyper, free)),
-	new(_, hyper(O, Self, ui_object, behaviour_model)),
+	new(_, dia_transient_hyper(Self, O, behaviour_model, ui_object)),
 	send(O?graphicals, for_all,
 	     if(and(message(@arg1, instance_of, msg_port),
 		    @arg1?type == event),
@@ -1082,6 +1082,16 @@ documentation(O) :->
 	    class_of_type(Type, Class),
 	    manpce(Class)
 	).
+
+
+expansion_class_name(O, ClassName:name) :<-
+	"Return class-name of expanded object"::
+	get(O, connections, Cs),
+	get(Cs, find, @arg1?type == expansion, C),
+	get(C, from, Port),
+	get(Port, value_type, Type),
+	class_of_type(Type, Class),
+	get(Class, name, ClassName).
 
 
 identify(O) :->
@@ -1286,12 +1296,16 @@ make_add_port_popup(Popup, Port) :-
 
 update_port_menu(Popup, Port, Model) :-
 	send(Popup, clear),
-	get(Model, ui_object, Object),
-	(   send(Object, has_get_method, proto)
-	->  get(Object, proto, Proto),
-	    forall(port(Proto, _Kind, Name, Port),
-		   send(Popup, append, Name))
-	;   get(Object, class_name, Proto)
+	(   get(Model, ui_object, Object)
+	->  (   send(Object, has_get_method, proto)
+	    ->  get(Object, proto, Proto),
+		forall(port(Proto, _Kind, Name, Port),
+		       send(Popup, append, Name))
+	    ;   get(Object, class_name, Proto)
+	    ->  forall(port(Proto, _Kind, Name, Port),
+		       send(Popup, append, Name))
+	    )
+	;   get(Model, expansion_class_name, Proto)
 	->  forall(port(Proto, _Kind, Name, Port),
 		   send(Popup, append, Name))
 	).
@@ -1656,7 +1670,7 @@ initialise(F, UI:visual) :->
 	send(new(M, msg_model), below, D),
 	send(M, name, model),
 	fill_editor_dialog(D),
-	new(_, hyper(UI, M, behaviour_model, ui_object)).
+	new(_, dia_transient_hyper(UI, M, behaviour_model, ui_object)).
 
 
 initialise_new_slot(F, Var:variable) :-> % temporary

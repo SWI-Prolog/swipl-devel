@@ -58,7 +58,10 @@ deleteAssoc(Any obj)
 void
 newAssoc(Name name, Any obj)
 { PceITFSymbol symbol;
+  Any old;
 
+  if ( (old = getObjectAssoc(name)) )
+    deleteAssoc(old);
   deleteAssoc(obj);
 
   if ( onFlag(name, F_ITFNAME) )

@@ -9,6 +9,7 @@
 
 :- module(pce_behaviour_item, []).
 :- use_module(library(pce)).
+:- use_module(util).
 :- require([ forall/2
 	   , get_chain/3
 	   , member/2
@@ -35,11 +36,11 @@ completions(_MI, Spec:'char_array|tuple', Matches:chain) :<-
 	    (	Arrow == (-)
 	    ->	send(Class?instance_variables, for_all, Code)
 	    ;	Arrow == (->)
-	    ->	forall(super_class(Class, TheClass),
+	    ->	forall(super_or_delegate_class(Class, TheClass),
 		       (send(TheClass?send_methods, for_all, Code),
 			send(TheClass?instance_variables, for_all,
 			     if(message(@arg1, send_access), Code))))
-	    ;	forall(super_class(Class, TheClass),
+	    ;	forall(super_or_delegate_class(Class, TheClass),
 		       (send(TheClass?get_methods, for_all, Code),
 			send(TheClass?instance_variables, for_all,
 			     if(message(@arg1, get_access), Code))))
@@ -47,41 +48,6 @@ completions(_MI, Spec:'char_array|tuple', Matches:chain) :<-
 	),
 	send(Matches, unique),
 	send(Matches, sort).
-
-:- dynamic done_class/1.
-	
-super_class(Class, Super) :-
-	retractall(done_class(_)),
-	super_class_(Class, Super).
-super_class(_, _) :-
-	retractall(done_class(_)),
-	fail.
-
-super_class_(Class, _) :-
-	done_class(Class), !,
-	fail.
-super_class_(Class, Class) :-
-	asserta(done_class(Class)).
-super_class_(Class, Super) :-
-	get(Class, super_class, ThisSuper),
-	ThisSuper \== @nil,
-	super_class_(ThisSuper, Super).
-super_class_(Class, Delegate) :-
-	get_chain(Class, delegate, List),
-	member(Var, List),
-	get(Var, type, Type),
-	class_of_type(Type, DelClass),
-	\+ done_class(DelClass),
-	super_class_(DelClass, Delegate).
-
-class_of_type(Type, Class) :-
-	get(Type, kind, class),
-	get(Type, context, Class).
-class_of_type(Type, Class) :-
-	get_chain(Type, supers, Supers),
-	member(Super, Supers),
-	class_of_type(Super, Class).
-
 
 split_completion(_MI, Value:char_array, RVal:'char_array|tuple') :<-
 	new(Re, regex('\s *\(\w+\s *\(->\|<-\|-\)\)\(\w*\)')),
@@ -105,7 +71,7 @@ selection(MI, S:'behaviour|class*') :<-
 		->  get(Re, register_value, Text, 1, class, Class),
 		    get(Re, register_value, Text, 2, name, Access),
 		    get(Re, register_value, Text, 3, name, Selector),
-		    super_class(Class, TheClass),
+		    super_or_delegate_class(Class, TheClass),
 		    (	Access == (-)
 		    ->	get(TheClass, instance_variable, Selector, S)
 		    ;	Access == (->)

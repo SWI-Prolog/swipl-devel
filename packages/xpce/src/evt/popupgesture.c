@@ -64,7 +64,30 @@ updatePopupGesture(PopupGesture g, EventObj ev)
 
 static status
 eventPopupGesture(PopupGesture g, EventObj ev)
-{ if ( eventGesture(g, ev) )
+{ if ( g->status == NAME_active && isUpEvent(ev) )
+  { PceWindow sw = ev->window;
+
+    if ( valInt(getClickTimeEvent(ev)) < 400 &&
+	 valInt(getClickDisplacementEvent(ev)) < 10 &&
+	 getAttributeObject(g, NAME_Stayup) != ON )
+    { attributeObject(g, NAME_Stayup, ON);
+      grabPointerWindow(sw, ON);
+      focusWindow(sw, ev->receiver, (Recogniser) g, g->cursor, NIL);
+    } else
+    { send(g, NAME_terminate, 0);
+      if ( isNil(g->current) )
+      { grabPointerWindow(sw, OFF);
+	focusWindow(sw, NIL, NIL, NIL, NIL);
+	deleteAttributeObject(g, NAME_Stayup);
+	assign(g, status, NAME_inactive);
+      }
+    }
+
+    succeed;
+  } else if ( notNil(g->current) )
+    return postEvent(ev, (Graphical) g->current, DEFAULT);
+      
+  if ( eventGesture(g, ev) )
     succeed;
 
   if ( isAEvent(ev, NAME_keyboard) )
@@ -128,11 +151,16 @@ terminatePopupGesture(PopupGesture g, EventObj ev)
 { Any context = g->context;
   PopupObj current = g->current;
 
-  assign(g, context, NIL);
-  assign(g, current, NIL);
+  if ( notNil(current) )
+  { postEvent(ev, (Graphical) current, DEFAULT);
+  
+    if ( current->displayed == OFF )	/* for stayup */
+    { assign(g, context, NIL);
+      assign(g, current, NIL);
 
-  postEvent(ev, (Graphical) current, DEFAULT);
-  send(current, NAME_execute, context, 0);
+      send(current, NAME_execute, context, 0);
+    }
+  }
 
   succeed;
 }

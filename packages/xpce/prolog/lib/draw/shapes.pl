@@ -505,8 +505,11 @@ resize_factor(W1, C, S, F) :-
 
 event(C, Ev:event) :->
 	"Handle <-class recognisers"::
-	get(C?class, recognisers, Chain),
-	get(Chain, find, message(@arg1, event, Ev), _).
+	(   get(C, all_recognisers, InstanceRecognisers),
+	    get(InstanceRecognisers, find, message(@arg1, event, Ev), _)
+	;   get(C?class, recognisers, Chain),
+	    get(Chain, find, message(@arg1, event, Ev), _)
+	).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -211,7 +211,7 @@ appendChain(register Chain ch, Any obj)
 
 status
 addChain(register Chain ch, Any obj)
-{ if ( memberChain(ch, obj) != SUCCEED )
+{ if ( !memberChain(ch, obj) )
     return prependChain(ch, obj);
 
   succeed;

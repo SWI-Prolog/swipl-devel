@@ -881,11 +881,8 @@ createClassType(Name name)
   if ( (type = getMemberHashTable(TypeTable, name)) )
     return type;
   else
-  { Class class = inBoot ? typeClass(name)
-      		         : (Class)getMemberHashTable(classTable, name);
-
-    return createType(name, NAME_class, class ? (Any) class : (Any) name);
-  }
+    return createType(name, NAME_class, inBoot ? (Any) typeClass(name)
+		      			       : (Any) name);
 }
 
 		/********************************

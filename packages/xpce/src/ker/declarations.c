@@ -82,7 +82,10 @@ static struct class_definition classdefs[] =
   { NAME_circle, NAME_graphical, makeClassCircle,
     &ClassCircle, "Circle" },
 
-  { NAME_class, NAME_programObject, makeClassClass,
+  { NAME_classStub, NAME_programObject, makeClassClassStub,
+    &ClassClassStub, "Autoload stub for a class" },
+
+  { NAME_class, NAME_classStub, makeClassClass,
     &ClassClass, "Represent classes" },
 
   { NAME_clickGesture, NAME_gesture, makeClassClickGesture,

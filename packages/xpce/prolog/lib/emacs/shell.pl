@@ -291,6 +291,8 @@ open(B, New:[bool]) :->
 		 *         SHELL MODE		*
 		 *******************************/
 
+:- pce_begin_class(emacs_shell_mode, emacs_fundamental_mode).
+
 :- initialization
 	new(KB, emacs_key_binding(shell, fundamental)),
 	send(KB, function, 'RET', send_input),
@@ -323,8 +325,6 @@ open(B, New:[bool]) :->
 	send(MM, append, shell, interrupt),
 	send(MM, append, shell, kill_subjob).
 	
-
-:- pce_begin_class(emacs_shell_mode, emacs_fundamental_mode).
 
 variable(current_history, number*, both, "Current history number").
 

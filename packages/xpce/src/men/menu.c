@@ -811,19 +811,25 @@ executeMenu(Menu m, EventObj ev)
   { toggleMenu(m, mi);
     flushGraphical(m);
     
-    if ( !modifiedMenu(m, ON) )
-    { if ( notDefault(mi->message) )
-      { if ( notNil(mi->message) )
-	  forwardReceiverCode(mi->message, m,
-			      mi, mi->selected, ev, 0);
-      } else if ( notNil(m->message) && notDefault(m->message) )
-	forwardReceiverCode(m->message, m,
-			    mi->value, mi->selected, ev, 0);
+    if ( notDefault(mi->message) )
+    { if ( notNil(mi->message) )
+	forwardReceiverCode(mi->message, m,
+			    mi, mi->selected, ev, 0);
+    } else if ( !modifiedMenu(m, ON) &&
+		notNil(m->message) &&
+		notDefault(m->message) )
+    { forwardReceiverCode(m->message, m,
+			  mi->value, mi->selected, ev, 0);
     }
   } else
   { selectionMenu(m, mi);
     flushGraphical(m);
-    if ( !modifiedMenu(m, ON) )
+
+    if ( notDefault(mi->message) )
+    { if ( notNil(mi->message) )
+	forwardReceiverCode(mi->message, m,
+			    mi->value, ev, 0);
+    } else if ( !modifiedMenu(m, ON) )
       forwardMenu(m, m->message, ev);
   }
 

@@ -67,10 +67,18 @@ nameToTypeClass(Name name)
   if ( (type = nameToType(name)) )
   { if ( !isClassType(type) ||
 	 type->vector != OFF ||
-	 notNil(type->supers) ||
-	 !instanceOfObject(type->context, ClassClass) )
+	 notNil(type->supers) )
     { errorPce(type, NAME_notClassType);
       fail;
+    }
+
+    if ( !instanceOfObject(type->context, ClassClass) )
+    { if ( type->context == name )
+      { assign(type, context, typeClass(name));
+      } else
+      { errorPce(type, NAME_notClassType);
+	fail;
+      }
     }
     
     return type->context;
@@ -83,9 +91,25 @@ nameToTypeClass(Name name)
 static void
 linkSubClass(Class super, Class sub)
 { if ( isNil(super->sub_classes) )
-    assign(super, sub_classes, newObject(ClassChain, sub, 0));
-  else if ( !memberChain(super->sub_classes, sub) )
-    appendChain(super->sub_classes, sub);
+  { assign(super, sub_classes, newObject(ClassChain, sub, 0));
+  } else
+  { Cell cell;
+    int done = FALSE;
+
+    for_cell(cell, super->sub_classes)
+    { Class class = cell->value;
+
+      if ( class->name == sub->name )
+      { if ( class != sub )
+	  deleteChain(super->sub_classes, class);
+        else
+	  done = TRUE;
+      }
+    }
+
+    if ( !done )
+      appendChain(super->sub_classes, sub);
+  }
 
   assign(sub, super_class, super);
 }
@@ -401,7 +425,6 @@ lookupBootClass(Class class, Func func, int argc, ...)
 Class
 getConvertClass(Class class_class, Any obj)
 { Class class;
-  Name name;
 
   if ( instanceOfObject(obj, ClassClass) )
     return obj;
@@ -413,14 +436,23 @@ getConvertClass(Class class_class, Any obj)
       return t->context;
   }
 
-  if ( (name = toName(obj)) )
-  { if ( (class = getMemberHashTable(classTable, name)) == FAIL )
+  if ( isName(obj) )
+  { Name name = obj;
+
+    if ( !(class = getMemberHashTable(classTable, name)) )
     { exceptionPce(PCE, NAME_undefinedClass, name, 0);
-      class = getMemberHashTable(classTable, name);
+      if ( !(class = getMemberHashTable(classTable, name)) )
+	fail;
     }
+
+    if ( !instanceOfObject(class, ClassClass) )
+      return get(class, NAME_realise, 0);
 
     return class;
   }
+
+  if ( instanceOfObject(obj, ClassClassStub) )
+    return get(obj, NAME_realise, 0);
       
   fail;
 }
@@ -523,8 +555,10 @@ care of ceating new classes.
 static status
 initialiseClass(Class class, Name name, Class super)
 { Type type;
+  Class cl;
 
-  if ( getMemberHashTable(classTable, name) )
+  if ( (cl = getMemberHashTable(classTable, name)) &&
+       instanceOfObject(cl, ClassClass) )
     fail;				/* failure from getLookupClass() */
 
   resetSlotsClass(class, name);
@@ -558,7 +592,8 @@ static Class
 getLookupClass(Class class, Name name, Class super)
 { Class cl;
 
-  if ( (cl = getMemberHashTable(classTable, name)) )
+  if ( (cl = getMemberHashTable(classTable, name)) &&
+       instanceOfObject(cl, ClassClass) ) /* fail on class_stub objects */
   { if ( notNil(cl->super_class) )	/* no longer a typeClass() */
     { if ( isDefault(super) || cl->super_class == super )
 	answer(cl);
@@ -571,24 +606,6 @@ getLookupClass(Class class, Name name, Class super)
   }
 
   fail;
-#if 0
-  if ( isDefault(super) )
-    super = ClassObject;
-
-  if ( !inBoot && class != ClassClass )
-    fail;				/* leave to ->initialise */
-
-  TRY(cl = nameToTypeClass(name));
-  realiseClass(super);
-  fill_slots_class(cl, super);
-  assign(cl, creator, inBoot ? NAME_builtIn : NAME_host);
-  assign(cl, no_created, ZERO);
-  assign(cl, no_freed,   ZERO);
-  numberTreeClass(ClassObject, 0);
-  createdObject(cl, NAME_new);
-
-  answer(cl);
-#endif
 }
 
 
@@ -1367,15 +1384,6 @@ getNoFreedClass(Class class)
 }
 
 
-Chain
-getSubClassesClass(Class class)
-{ if ( notNil(class->sub_classes) )
-    answer(class->sub_classes);
-
-  fail;
-}
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			  KEEP TRACK OF INSTANCES
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1436,7 +1444,7 @@ recordInstancesClass(Class class, Bool keep, Bool recursive)
   { Cell cell;
 
     for_cell(cell, class->sub_classes)
-      recordInstancesClass(class, keep, recursive);
+      recordInstancesClass(cell->value, keep, recursive);
   }
 
   succeed;
@@ -1495,162 +1503,6 @@ getSuperClassNameClass(Class cl)
 		/********************************
 		*        MANUAL SUPPORT		*
 		********************************/
-
-
-static StringObj
-ppArguments(Vector types)
-{ char buf[LINESIZE];
-
-  if ( types->size == ZERO )
-    strcpy(buf, "--");
-  else
-  { int i;
-
-    buf[0] = EOS;
-    for(i = 1; i <= valInt(types->size); i++)
-    { Type type = getElementVector(types, toInt(i));
-
-      if ( i != 1 )
-	strcat(buf, ", ");
-      strcat(buf, strName(type->fullname));
-    }
-  }
-
-  return CtoString(buf);
-}
-
-
-static StringObj
-ppTermNames(Vector nms)
-{ char buf[LINESIZE];
-
-  if ( isNil(nms) )
-    return CtoString("...object...");
-  else
-  { int i;
-    
-    buf[0] = EOS;
-    for(i=1; i<=valInt(nms->size); i++)
-    { if ( i != 1 )
-    	strcat(buf, ", ");
-      strcat(buf, strName((Name) getElementVector(nms, toInt(i))));
-    }
-
-    return CtoString(buf);
-  }
-}
-
-
-static status
-infoClass(Class class)
-{ Cell cell;
-
-  realiseClass(class);
-
-  writef("** Class %s(%s): \"%s\"\n\n",
-	 class->name,
-	 ppTermNames(class->term_names),
-	 class->summary);
-
-  if ( notNil(class->super_class) )
-  { int i = 0;
-    Class super;
-
-    writef("Super classes: ");
-    for(super=class->super_class; notNil(super); super=super->super_class)
-    { if ( i++ > 0 )
-	writef(", ");
-      writef("%s", super->name);
-    }
-    writef("\n");
-  }
-
-  if ( !emptyChain(class->delegate) )
-  { int n = 0;
-
-    writef("Delegates to: ");
-    for_cell(cell, class->delegate)
-    { Variable var = cell->value;
-
-      if ( n++ > 0 )
-    	writef(", ");
-      writef("%s", var->type->fullname);
-    }
-    writef("\n");
-  }
-  writef("\n");
-
-  writef("%d Locals; %d Slots; Size = %d bytes\n", 
-					class->instance_variables->size, 
-					class->slots, 
-					class->instance_size);
-  writef("Created: %d; Freed: %d instances.\n\n",
-	 class->no_created, class->no_freed);
-
-  if ( class->instance_variables->size != ZERO )
-  { writef("Local variables:\n");
-    writef("  Name          Type      Access   Description\n");
-    writef("  ====          ====      ======   ===========\n");
-    
-    for_vector(class->instance_variables, Variable var,
-	       if ( var->context == class )
-	         writef("  %-14s%-10s%3s%3d   \"%s\"\n",
-			var->name,
-			var->type->fullname,
-			getAccessArrowVariable(var),
-			var->offset, 
-			var->summary));
-    writef("\n");
-  }
-
-  if ( emptyChain(class->send_methods) == FAIL )
-  { writef("Send methods:\n");
-    writef("  Name          Arguments          Description\n");
-    writef("  ====          =========          ===========\n");
-    for_cell(cell, class->send_methods)
-    { SendMethod m = cell->value;
-
-      writef("  %-14s%-18s \"%s\"\n",
-	     m->name,
-	     ppArguments(m->types),
-	     m->summary);
-    }
-    writef("\n");
-  }
-
-  if ( emptyChain(class->get_methods) == FAIL )
-  { writef("Get methods:\n");
-    writef("  Name          Arguments          Description\n");
-    writef("  ====          =========          ===========\n");
-    for_cell(cell, class->get_methods)
-    { GetMethod m = cell->value;
-
-      writef("  %-14s%-18s \"%s\"\n",
-	     m->name,
-	     ppArguments(m->types),
-	     m->summary);
-    }
-  }
-
-  succeed;
-}
-
-
-static Name
-getManIdClass(Class cl)
-{ char buf[LINESIZE];
-
-  sprintf(buf, "C.%s", strName(cl->name));
-
-  answer(CtoName(buf));
-}
-
-
-static Name
-getManIndicatorClass(Class cl)
-{ answer(CtoName("C"));
-}
-
 
 static StringObj
 getManHeaderClass(Class cl)
@@ -1733,8 +1585,11 @@ numberTreeClass(Class class, int n)
   DEBUG(NAME_class, printf("numberTreeClass(%s, %d)\n", pp(class->name), n));
   class->tree_index = n++;
   if ( notNil(class->sub_classes) )
-    for_cell(cell, class->sub_classes	)
-      n = numberTreeClass(cell->value, n);
+  { for_cell(cell, class->sub_classes	)
+    { if ( instanceOfObject(cell->value, ClassClass) ) /* stubs ... */
+	n = numberTreeClass(cell->value, n);
+    }
+  }
   class->neighbour_index = n;
 
   return n;
@@ -1744,12 +1599,6 @@ status
 makeClassClass(Class class)
 { sourceClass(class, makeClassClass, __FILE__, "$Revision$");
 
-  localClass(class, NAME_name, NAME_name, "name", NAME_get,
-	     "Name of the class");
-  localClass(class, NAME_superClass, NAME_type, "class*", NAME_get,
-	     "Imediate super class");
-  localClass(class, NAME_subClasses, NAME_type, "chain*", NAME_none,
-	     "Sub classes");
   localClass(class, NAME_instanceVariables, NAME_behaviour, "vector", NAME_get,
 	     "Vector object holding all instance variables");
   localClass(class, NAME_sendMethods, NAME_behaviour, "chain", NAME_get,
@@ -1786,16 +1635,12 @@ makeClassClass(Class class)
 	     "Size of an instance in bytes");
   localClass(class, NAME_slots, NAME_oms, "int", NAME_get,
 	     "Total number of instance variables");
-  localClass(class, NAME_summary, NAME_manual, "string*", NAME_both,
-	     "Summary documentation for class");
 #ifndef O_RUNTIME
   localClass(class, NAME_source, NAME_manual, "source_location*", NAME_both,
 	     "Location in the sources");
 #endif /*O_RUNTIME*/
   localClass(class, NAME_rcsRevision, NAME_version, "name*", NAME_get,
 	     "RCS revision of sourcefile");
-  localClass(class, NAME_creator, NAME_manual, "{built_in,host}", NAME_both,
-	     "Who created the class: {built_in,host}");
   localClass(class, NAME_changedMessages, NAME_change, "chain*", NAME_both,
 	     "Report (forward) changes to instances");
   localClass(class, NAME_createdMessages, NAME_change, "chain*", NAME_both,
@@ -1885,11 +1730,6 @@ makeClassClass(Class class)
   sendMethod(class, NAME_unlink, DEFAULT, 0,
 	     "Remove from tables",
 	     unlinkClass);
-#ifndef O_RUNTIME
-  sendMethod(class, NAME_info, NAME_manual, 0,
-	     "Dump class definition to the terminal",
-	     infoClass);
-#endif
   sendMethod(class, NAME_changedMessage, NAME_change, 1, "code",
 	     "Add message to trap changed slots",
 	     changedMessageClass);
@@ -1955,12 +1795,6 @@ makeClassClass(Class class)
 	    "Get instance variable from name of offset",
 	    getInstanceVariableClass);
 #ifndef O_RUNTIME
-  getMethod(class, NAME_manId, NAME_manual, "name", 0,
-	    "Card Id for method",
-	    getManIdClass);
-  getMethod(class, NAME_manIndicator, NAME_manual, "name", 0,
-	    "Manual type indicator (`C')",
-	    getManIndicatorClass);
   getMethod(class, NAME_manHeader, NAME_manual, "string", 0,
 	    "New string with with term description",
 	    getManHeaderClass);
@@ -1985,9 +1819,6 @@ makeClassClass(Class class)
 	    "name=name", "super=[class]",
 	    "Lookup in @classes and verify super",
 	    getLookupClass);
-  getMethod(class, NAME_subClasses, NAME_type, "chain", 0,
-	    "Sub classes (fails if none available)",
-	    getSubClassesClass);
 
   succeed;
 }

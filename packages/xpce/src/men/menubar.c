@@ -54,21 +54,27 @@ RedrawAreaMenuBar(MenuBar mb, Area a)
 }
 
 
+static Button
+getButtonMenuBar(MenuBar mb, PopupObj p)
+{ Cell cell;
+
+  for_cell(cell, mb->buttons)
+  { Button b = cell->value;
+    if ( b->popup == p )
+      answer(b);
+  }
+
+  fail;
+}
+
+
 static status
 changedMenuBarButton(MenuBar mb, Any obj)
 { Button b = DEFAULT;
 
   if ( instanceOfObject(obj, ClassPopup) )
-  { Cell cell;
-
-    for_cell(cell, mb->buttons)
-    { Button h = cell->value;
-      if ( h->popup == obj )
-      { b = h;
-	break;
-      }
-    }
-  } else
+    b = getButtonMenuBar(mb, obj);
+  else
     b = obj;
 
   if ( isDefault(b) )
@@ -125,12 +131,28 @@ getReferenceMenuBar(MenuBar mb)
 }
 
 
+static status
+showPopupMenuBar(MenuBar mb, PopupObj p)
+{ Button b = getButtonMenuBar(mb, p);
+  Point pos = tempObject(ClassPoint, b->area->x, mb->area->h, 0);
+  
+  if ( notNil(mb->current) && mb->current->displayed == ON )
+    send(mb->current, NAME_close, 0);
+  currentMenuBar(mb, p);
+  send(mb->current, NAME_update, mb, 0);
+  send(mb->current, NAME_open, mb, pos, OFF, OFF, ON, 0);
+  considerPreserveObject(pos);
+
+  succeed;
+}
+
+
 		/********************************
 		*            EVENTS		*
 		********************************/
 
 static PopupObj
-find_popup_menu_bar(MenuBar mb, EventObj ev, int *X, int *Y)
+getPopupFromEventMenuBar(MenuBar mb, EventObj ev)
 { int ex, ey;
   Int EX, EY;
   Cell cell;
@@ -146,11 +168,7 @@ find_popup_menu_bar(MenuBar mb, EventObj ev, int *X, int *Y)
 
     if ( ex >= valInt(b->area->x) &&
 	 ex <= valInt(b->area->x) + valInt(b->area->w) )
-    { *X = valInt(b->area->x);
-      *Y = valInt(b->area->h);
-
       return b->popup;
-    }
   }
 
   fail;
@@ -184,51 +202,74 @@ keyMenuBar(MenuBar mb, Name key)
 
 static status
 eventMenuBar(MenuBar mb, EventObj ev)
-{ int ix, iy;
-  PopupObj p;
+{ PopupObj p;
 
   if ( mb->active == OFF )
     fail;
 
+  if ( isDownEvent(ev) )
+    assign(mb, button, getButtonEvent(ev));
+
   if ( notNil(mb->current) )
-  { postEvent(ev, (Graphical) mb->current, DEFAULT);
+  { if ( isDragEvent(ev) )
+    { if ( (p = getPopupFromEventMenuBar(mb, ev)) && p != mb->current )
+	showPopupMenuBar(mb, p);
+      postEvent(ev, (Graphical) mb->current, DEFAULT);
+    } else if ( isUpEvent(ev) )
+    { PceWindow sw = ev->window;
+      PopupObj p;
 
-    if ( isDragEvent(ev) )
-    { if ( (p = find_popup_menu_bar(mb, ev, &ix, &iy)) &&
-	   p != mb->current )
-      { Point pos = tempObject(ClassPoint, toInt(ix), toInt(iy), 0);
+      if ( valInt(getClickTimeEvent(ev)) < 400 && /* CLICK: stay-up */
+	   valInt(getClickDisplacementEvent(ev)) < 10 &&
+	   getAttributeObject(mb, NAME_Stayup) != ON )
+      { attributeObject(mb, NAME_Stayup, ON);
+	grabPointerWindow(sw, ON);
+	focusWindow(sw, (Graphical) mb, DEFAULT, DEFAULT, NIL);
+      } else if ( (p = getPopupFromEventMenuBar(mb, ev)) &&
+		  mb->current != p &&
+		  getAttributeObject(mb, NAME_Stayup) == ON )
+      { showPopupMenuBar(mb, p);	/* stayup: open next */
+	generateEventGraphical((Graphical)mb, NAME_msLeftDrag);
+      } else
+      { int grabbed = (getAttributeObject(mb, NAME_Stayup) == ON);
 
-	send(mb->current, NAME_close, 0);
-	currentMenuBar(mb, p);
-	send(mb->current, NAME_update, mb, 0);
-	send(mb->current, NAME_open, mb, pos, OFF, OFF, ON, 0);
-	considerPreserveObject(pos);
+	if ( grabbed )
+	  grabPointerWindow(sw, OFF);
+
 	postEvent(ev, (Graphical) mb->current, DEFAULT);
-      }
-    } else if ( isUpEvent(ev) && mb->button == getButtonEvent(ev) )
-    { PopupObj current = mb->current;
 
-      assign(mb, current, NIL);
-      send(current, NAME_execute, mb, 0);
-      if ( !isFreedObj(mb) && !isFreeingObj(mb) )
-	changedMenuBarButton(mb, current);
-    }
+	if ( mb->current->displayed == OFF ) /* popup has closed */
+	{ PopupObj current = mb->current;
+
+	  assign(mb, current, NIL);
+	  send(current, NAME_execute, mb, 0);
+	  if ( !onFlag(mb, F_FREED|F_FREEING) )
+	    changedMenuBarButton(mb, current);
+	}
+
+	if ( !onFlag(mb, F_FREED|F_FREEING) &&
+	     !onFlag(sw, F_FREED|F_FREEING) )
+	{ if ( isNil(mb->current) )
+	  { focusWindow(sw, NIL, NIL, NIL, NIL);
+	    deleteAttributeObject(mb, NAME_Stayup);
+	  } else if ( grabbed )
+	  { grabPointerWindow(sw, ON);
+	  }
+	}
+      }
+    } else
+      postEvent(ev, (Graphical) mb->current, DEFAULT);
 
     succeed;
-  } else if ( isDownEvent(ev) )
-  { assign(mb, button, getButtonEvent(ev));
-
-    if ( (p = find_popup_menu_bar(mb, ev, &ix, &iy)) )
-    { Point pos = tempObject(ClassPoint, toInt(ix), toInt(iy), 0);
-      currentMenuBar(mb, p);
-      send(p, NAME_update, mb, 0);
-      send(p, NAME_open, mb, pos, OFF, OFF, ON, 0);
-      considerPreserveObject(pos);
-      postEvent(ev, (Graphical) mb->current, DEFAULT);
-      focusCursorGraphical((Graphical)mb,
-			   getResourceValueObject(p, NAME_cursor));
-
-      succeed;
+  } else
+  { if ( isDownEvent(ev) )
+    { if ( (p = getPopupFromEventMenuBar(mb, ev)) )
+      { showPopupMenuBar(mb, p);
+	postEvent(ev, (Graphical) mb->current, DEFAULT);
+	focusCursorGraphical((Graphical)mb,
+			     getResourceValueObject(p, NAME_cursor));
+	succeed;
+      }
     }
   }
 
@@ -374,7 +415,7 @@ currentMenuBar(MenuBar mb, PopupObj p)
 { if ( mb->current != p )
   { changedMenuBarButton(mb, mb->current);
     assign(mb, current, p);
-    if ( notNil(p) )
+    if ( notNil(p) && notNil(mb->button) )
       assign(mb->current, button, mb->button);
     changedMenuBarButton(mb, mb->current);
   }
@@ -414,7 +455,7 @@ makeClassMenuBar(Class class)
 	     "Format of labels in their box");
   localClass(class, NAME_labelFont, NAME_appearance, "font", NAME_get,
 	     "Font used to display the labels");
-  localClass(class, NAME_current, NAME_internal, "popup*", NAME_none,
+  localClass(class, NAME_current, NAME_event, "popup*", NAME_get,
 	     "Currently visible popup");
   localClass(class, NAME_button, NAME_event, "button_name*", NAME_none,
 	     "Button that caused me to start");
@@ -473,6 +514,9 @@ makeClassMenuBar(Class class)
   sendMethod(class, NAME_key, NAME_accelerator, 1, "key=name",
 	     "Execute (first) menu_item with accelerator",
 	     keyMenuBar);
+  sendMethod(class, NAME_showPopup, NAME_event, 1, "popup",
+	     "Make popup <-current and ->open it",
+	     showPopupMenuBar);
 
   getMethod(class, NAME_member, NAME_organisation, "popup", 1, "name|popup",
 	    "Find popup from name",
@@ -483,6 +527,9 @@ makeClassMenuBar(Class class)
   getMethod(class, NAME_reference, DEFAULT, "point", 0,
 	    "Reference of first button",
 	    getReferenceMenuBar);
+  getMethod(class, NAME_popupFromEvent, NAME_event, "popup", 1, "event",
+	    "Find popup to open from event on menu_bar",
+	    getPopupFromEventMenuBar);
 
 
   attach_resource(class, "label_font", "font",    "@helvetica_bold_14",

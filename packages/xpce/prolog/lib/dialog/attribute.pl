@@ -27,7 +27,7 @@ resource(activate, '{displayed,active}', active,
 client(DE, Client:object, Ats:'name|tuple ...') :->
 	"Prepare for editing object"::
 	send(DE, clear),
-	new(Hyper, hyper(DE, Client, client, attribute_editor)),
+	new(Hyper, dia_transient_hyper(Client, DE, attribute_editor, client)),
 	send(Hyper, send_method,
 	     send_method(unlink_to, new(vector),
 			 and(message(DE, clear),

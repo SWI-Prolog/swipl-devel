@@ -14,6 +14,7 @@
 	   , memberchk/2
 	   ]).
 
+:- pce_begin_class(emacs_c_mode, emacs_language_mode).
 
 :- initialization
 	new(KB, emacs_key_binding(c, language)),
@@ -36,8 +37,6 @@
 	new(MM, emacs_mode_menu(c, language)),
 	send(MM, append, gdb, gdb).
 
-
-:- pce_begin_class(emacs_c_mode, emacs_language_mode).
 
 :- pce_global(@c_indent, new(number(2))).
 :- pce_global(@c_undent_regex, new(regex('{\|else\|\w+:'))).

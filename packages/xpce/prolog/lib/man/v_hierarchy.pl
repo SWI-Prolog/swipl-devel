@@ -54,10 +54,18 @@ initialise(CH, Manual:man_manual) :->
 
 
 unlink(CH) :->
-	(   send(@class_class?created_messages, delete, CH?create_message)
-	;   true
-	), !,
+	get(CH, create_message, CM),
+	for_subclass(@class_class,
+		     message(@arg1?created_messages, delete_all, CM)),
 	send(CH, send_super, unlink).
+
+
+for_subclass(Class, Msg) :-
+	send(Msg, forward, Class),
+	(   get(Class, sub_classes, L),  L \== @nil
+	->  send(L, for_all, message(@prolog, for_subclass, @arg1, Msg))
+	;   true
+	).
 
 
 fill_dialog(D) :-
@@ -184,7 +192,7 @@ ensure_displayed(CH, Class, Node) :-
 ensure_displayed(CH, Class, Node) :-
 	get(Class, super_class, Super),
 	ensure_displayed(CH, Super, SuperNode),
-	send(CH, expand_node, SuperNode),
+	send(CH, expand_node, SuperNode, Class),
 	get(CH, node, Class, Node).
 
 
@@ -211,22 +219,32 @@ release_selection(CH) :->
 		*          EXPAND TREE		*
 		********************************/
 
-expand_node(_CH, Node:node) :->
+expand_node(_CH, Node:node, _Always:[class]) :->
 	"Expand node of the tree"::
-	(   send(Node?sons, empty)
-	->  node_to_class(Node, Class),
-	    (	get(Class, sub_classes, SubClasses)
-	    ->	new(Subs, chain),
-		send(Subs, merge, SubClasses),
-		send(Subs, sort),
-		send(Subs, for_all,
-		     message(@prolog, add_subnode, Node, @arg1))
-	    ;	true
-	    )
+	node_to_class(Node, Class),
+	(   get(Class, sub_classes, SubClasses)
+%	    get(SubClasses0, find_all,
+%		or(message(@prolog, in_scope, @arg1),
+%		   @arg1 == Always),
+%		SubClasses)
+	->  new(Subs, chain),
+	    send(Subs, merge, SubClasses),
+	    send(Subs, sort),
+	    send(Subs, for_all,
+		 message(@prolog, add_subnode, Node, @arg1))
 	;   true
 	).
 
 
+in_scope(Class) :-
+	send(@manual, in_scope, Class), !.
+in_scope(Class) :-
+	get(Class, sub_classes, Subs),
+	get(Subs, find, message(@prolog, in_scope, @arg1), _).
+
+
+add_subnode(Node, Class) :-
+	get(Node?sons, find, message(@arg1?string, equal, Class?name), _), !.
 add_subnode(Node, Class) :-
 	get(Node, frame, Tool),
 	create_node(Tool, Class, Sub),

@@ -62,6 +62,7 @@
 	send(MM, append, help, help),
 	send(MM, append, help, customise),
 	send(MM, append, help, show_key_bindings),
+	send(MM, append, help, manpce),
 	send(MM, append, help, manual_entry),
 
 	send(MM, append, edit, undo),

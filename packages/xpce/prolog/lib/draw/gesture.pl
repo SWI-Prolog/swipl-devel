@@ -103,6 +103,8 @@ recogniser.
 :- pce_global(@draw_text_recogniser,
 	      new(handler_group(@draw_shape_select_recogniser,
 				@draw_edit_text_recogniser,
+				click_gesture(middle, '', single,
+					      message(@receiver, paste)),
 				new(draw_resize_selection_gesture),
 				@draw_move_outline_gesture,
 				@draw_connect_gesture,

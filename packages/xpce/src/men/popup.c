@@ -233,6 +233,7 @@ closePopup(PopupObj p)
   { send(sw, NAME_show, OFF, 0);
     send(sw, NAME_sensitive, OFF, 0);
     send(sw, NAME_clear, 0);
+    assign(p, displayed, OFF);
   }
 
   succeed;
@@ -322,6 +323,77 @@ executePopup(PopupObj p, Any context)
 }
 
 
+static int
+pullright_x_offset(PopupObj p)
+{ int ix = valInt(p->item_offset->x) +
+	   valInt(p->item_size->w) -
+	   valInt(p->border);
+
+  if ( notNil(p->popup_image) )
+    ix -= valInt(p->popup_image->size->w);
+  else
+    ix -= 8;
+
+  return ix;
+}
+
+
+static status
+showPullrightMenuPopup(PopupObj p, MenuItem mi, EventObj ev, Any context)
+{ if ( isDefault(context) && validPceDatum(updateContext) )
+    context = updateContext;
+
+  send(mi->popup, NAME_update, context, 0);
+
+  if ( !emptyChain(mi->popup->members) )
+  { Point pos;		/* Create PULLRIGHT */
+    int ih = valInt(p->item_size->h);
+    int ic = valInt(getCenterYMenuItemMenu((Menu)p, mi));
+    int ix = pullright_x_offset(p);
+	    
+    previewMenu((Menu) p, mi);
+    pos = tempObject(ClassPoint, toInt(ix), toInt(ic - ih/2), 0);
+	    
+    assign(p, pullright, mi->popup);
+    send(p->pullright, NAME_open, p, pos, OFF, OFF, ON, 0);
+    considerPreserveObject(pos);
+    assign(p->pullright, button, p->button);
+    if ( notDefault(ev) )
+      postEvent(ev, (Graphical) p->pullright, DEFAULT);
+
+    succeed;
+  }
+
+  fail;
+}
+
+
+static status
+dragPopup(PopupObj p, EventObj ev, Bool check_pullright)
+{ MenuItem mi;
+
+  if ( !(mi = getItemFromEventMenu((Menu) p, ev)) )
+    previewMenu((Menu) p, NIL);
+  else
+  { if ( mi->active == ON )
+    { previewMenu((Menu) p, mi);
+
+      if ( notNil(mi->popup) && check_pullright != OFF )
+      { Int ex, ey;
+	int ix = pullright_x_offset(p);
+
+	get_xy_event(ev, p, ON, &ex, &ey);
+	if ( valInt(ex) > ix )
+	  send(p, NAME_showPullrightMenu, mi, ev, 0);
+      }
+    } else
+      previewMenu((Menu) p, NIL);
+  }
+
+  succeed;
+}
+
+
 static status
 eventPopup(PopupObj p, EventObj ev)
 { 					/* Showing PULLRIGHT menu */
@@ -335,12 +407,10 @@ eventPopup(PopupObj p, EventObj ev)
 	if ( (mi = getItemFromEventMenu((Menu) p, ev)) )
 	{ send(p->pullright, NAME_close, 0);
 	  assign(p, pullright, NIL);
-	  goto cont_drag;
+	  return send(p, NAME_drag, ev, 0);
 	}
       }
-    }
-
-    if ( isUpEvent(ev) && getButtonEvent(ev) == p->button )
+    } else if ( isUpEvent(ev) && getButtonEvent(ev) == p->pullright->button )
     { if ( notNil(p->pullright->selected_item) )
     	assign(p, selected_item, p->pullright);
       else
@@ -353,66 +423,29 @@ eventPopup(PopupObj p, EventObj ev)
   }
 
 					/* UP: execute */
-  if ( isUpEvent(ev) && getButtonEvent(ev) == p->button )
-  { assign(p, selected_item, p->preview);
-    send(p, NAME_close, 0);
-
-    succeed;
-  }
-
-  if ( isDownEvent(ev) )		/* DOWN: set button */
+  if ( isUpEvent(ev) )
+  { if ( notNil(p->preview) &&
+	 notNil(p->preview->popup) &&
+	 valInt(getClickTimeEvent(ev)) < 400 &&
+	 valInt(getClickDisplacementEvent(ev)) < 10 )
+      send(p, NAME_showPullrightMenu, p->preview, 0);
+    else if ( getButtonEvent(ev) == p->button )
+    { assign(p, selected_item, p->preview);
+      send(p, NAME_close, 0);
+      succeed;
+    }
+  } else if ( isDownEvent(ev) )		/* DOWN: set button */
   { assign(p, selected_item, NIL);
     assign(p, button, getButtonEvent(ev));
-    goto cont_drag;
-  }
-
-  if ( isDragEvent(ev) )		/* DRAG: highlight entry */
-  { MenuItem mi;
-
-cont_drag:
-    if ( !(mi = getItemFromEventMenu((Menu) p, ev)) )
-      previewMenu((Menu) p, NIL);
-    else
-    { if ( mi->active == ON )
-      { previewMenu((Menu) p, mi);
-
-	if ( notNil(mi->popup) )
-	{ Int ex, ey;
-	  int ix = valInt(p->item_offset->x) +
-	           valInt(p->item_size->w) -
-		   valInt(p->border);
-
-	  if ( notNil(p->popup_image) )
-	    ix -= valInt(p->popup_image->size->w);
-	  else
-	    ix -= 8;
-
-	  get_xy_event(ev, p, ON, &ex, &ey);
-	  if ( valInt(ex) > ix )
-	  { send(mi->popup, NAME_update,
-		 validPceDatum(updateContext) ? updateContext : p, 0);
-
-	    if ( !emptyChain(mi->popup->members) )
-	    { Point pos;		/* Create PULLRIGHT */
-	      int ih = valInt(p->item_size->h);
-	      int ic = valInt(getCenterYMenuItemMenu((Menu)p, mi));
-
-	      previewMenu((Menu) p, mi);
-	      pos = tempObject(ClassPoint, toInt(ix), toInt(ic - ih/2), 0);
-
-	      assign(p, pullright, mi->popup);
-	      send(p->pullright, NAME_open, p, pos, OFF, OFF, ON, 0);
-	      considerPreserveObject(pos);
-	      assign(p->pullright, button, p->button);
-	      postEvent(ev, (Graphical) p->pullright, DEFAULT);
-	    }
-	  }
-	}
-      } else
-	previewMenu((Menu) p, NIL);
-    }
-
+    send(p, NAME_drag, ev, OFF, 0);
     succeed;
+  } else if ( isDragEvent(ev) )		/* DRAG: highlight entry */
+  { send(p, NAME_drag, ev, 0);
+    succeed;
+  } else if ( isAEvent(ev, NAME_locMove) )
+  { MenuItem mi = getItemFromEventMenu((Menu) p, ev);
+
+    previewMenu((Menu) p, mi ? mi : NIL);
   }
 
   fail;
@@ -464,6 +497,14 @@ makeClassPopup(Class class)
   sendMethod(class, NAME_event, DEFAULT, 1, "event",
 	     "Handle an event",
 	     eventPopup);
+  sendMethod(class, NAME_drag, NAME_event, 2,
+	     "event", "check_pullright=[bool]",
+	     "Handle a drag event",
+	     dragPopup);
+  sendMethod(class, NAME_showPullrightMenu, NAME_event, 3,
+	     "item=menu_item", "event=[event]", "context=[any]",
+	     "Show pullright for this item",
+	     showPullrightMenuPopup);
   sendMethod(class, NAME_update, NAME_active, 1, "context=any",
 	     "Update entries using context object)",
 	     updatePopup);

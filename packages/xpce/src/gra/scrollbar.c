@@ -286,7 +286,7 @@ compute_bubble(ScrollBar s, struct bubble_info *bi,
 status
 RedrawAreaScrollBar(ScrollBar s, Area a)
 { Any bg = getResourceValueObject(s, NAME_background);
-  Any obg =  obg = r_background(bg);
+  Any obg = r_background(bg);
 
   if ( s->look == NAME_openLook )
     OpenLookRedrawAreaScrollBar(s, a);

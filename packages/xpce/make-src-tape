@@ -13,6 +13,9 @@ if [ ! "o$1" = "o-q" ]; then
       dir=`dirname $d`
       awk -F/ '{printf("%s/%s\n", "'$dir'", $2)}' $dir/CVS/Entries >> srcfiles
   done
+cat >> srcfiles << EOF
+./prolog/lib/man/classification.obj
+EOF
   echo "done"
 fi
 

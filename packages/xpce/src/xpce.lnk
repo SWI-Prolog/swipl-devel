@@ -118,6 +118,7 @@ FILE	ker\alloc.obj
 FILE	ker\assoc.obj      
 FILE	ker\behaviou.obj   
 FILE	ker\class.obj      
+FILE	ker\classstu.obj
 FILE	ker\conversi.obj   
 FILE	ker\csymbol.obj    
 FILE	ker\debug.obj      

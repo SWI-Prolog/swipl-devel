@@ -277,8 +277,21 @@ port(choice, Priority, Port, Type) :- port(menu, Priority, Port, Type).
 port(toggle, Priority, Port, Type) :- port(menu, Priority, Port, Type).
 port(cycle,  Priority, Port, Type) :- port(menu, Priority, Port, Type).
 
-
 port(Proto,	optional,	active,		send) :-
-	\+ memberchk(Proto, [pce, host, display]).
+	get(@pce, convert, Proto, class, Class),
+	get(Class, send_method, active, _).
 
 port(_,		optional,	self,		get).
+
+		 /*******************************
+		 *	COMMON EXPANSIONS	*
+		 *******************************/
+
+port(dict_item,	obligatory,	key,		get).
+port(dict_item,	optional,	label,		get).
+port(dict_item,	optional,	object,		get).
+
+port(directory, optional,	files,		get).
+port(directory, optional,	file,		get).
+port(directory, optional,	directories,	get).
+port(directory, optional,	directory,	get).

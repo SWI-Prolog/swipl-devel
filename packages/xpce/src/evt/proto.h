@@ -19,6 +19,8 @@ Name		getButtonEvent(EventObj e);
 status		isDragEvent(EventObj ev);
 status		hasModifierEvent(EventObj ev, Modifier m);
 Name		getMulticlickEvent(EventObj e);
+Int		getClickTimeEvent(EventObj e);
+Int		getClickDisplacementEvent(EventObj e);
 status		get_xy_event(EventObj ev, Any obj, Bool area, Int *rx, Int *ry);
 Point		getPositionEvent(EventObj ev, Any obj);
 Point		getAreaPositionEvent(EventObj ev, Graphical gr);

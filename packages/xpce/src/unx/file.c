@@ -602,7 +602,7 @@ append_file(FileObj f, String str)
 
 static status
 newlineFile(FileObj f)
-{ return append_file(f, str_nl());
+{ return append_file(f, str_nl(NULL));	/* only ASCII */
 }
 
 
@@ -988,7 +988,7 @@ makeClassFile(Class class)
   sendMethod(class, NAME_newline, NAME_write, 0,
 	     "Append newline to file",
 	     newlineFile);
-  sendMethod(class, NAME_format, NAME_format, 2,
+  sendMethod(class, NAME_format, NAME_write, 2,
 	     "format=char_array", "argument=any ...",
 	     "Format arguments and ->append",
 	     formatFile);

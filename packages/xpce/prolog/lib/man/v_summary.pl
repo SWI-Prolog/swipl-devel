@@ -87,6 +87,9 @@ initialise(S, Att:name, Size:size) :->
 			      message(Obj, trace, @off, full),
 			      @default, @on,
 			      message(Obj, has_send_method, trace))
+		  , new(CM, menu_item(class,
+				     end_group := @on))
+			      
 		  ]),
 	ifmaintainer(send_list(P, append,
 		  [ menu_item(relate,
@@ -121,7 +124,21 @@ initialise(S, Att:name, Size:size) :->
 				  Selection \== @nil,
 				  message(Obj, man_related,
 					  inherit, Selection)))
-		  ])).
+		  ])),
+
+	ClassifyTab = @man_classification,
+
+	send(CM, popup, new(CP, popup(class))),
+	send(CP, on_image, 'toggle_on.bm'),
+	send(CP, update_message,
+	     message(CP, selection,
+		     ?(ClassifyTab, member, Obj?man_id))),
+	forall(man_classification(T, L),
+	       send(CP, append,
+		    menu_item(T,
+			      and(message(ClassifyTab, append, Obj?man_id, T),
+				  message(ClassifyTab, modified, @on)),
+			      L))).
 
 
 		/********************************

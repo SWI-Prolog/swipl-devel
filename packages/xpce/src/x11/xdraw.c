@@ -111,6 +111,9 @@ static struct d_context
   int		offset_y;		/* Paint offset in Y direction */
   int		origin_x;		/* Origin-X relative to drawable */
   int		origin_y;
+					/* Save over d_image()/d_done() */
+  Any		colour;
+  Any		background;
 } context;
 
 #define X(x) ((x) + context.offset_x)
@@ -134,6 +137,11 @@ static void
 d_push_context(void)
 { DContext ctx = alloc(sizeof(struct d_context));
   
+  if ( env->level > 0 )
+  { context.colour = context.gcs->colour;
+    context.background = context.gcs->background;
+  }
+
   *ctx = context;			/* structure copy! */
   context.parent = ctx;
 }
@@ -444,10 +452,12 @@ d_done()
   env--;
   d_clip_done();
   if ( env->level > 0 )
-  { if ( context.parent->default_foreground )
-      r_default_colour(context.parent->default_foreground);
-    if ( context.parent->default_background )
-      r_background(context.parent->default_background);
+  { Any c;
+
+    if ( (c=context.parent->colour) && notNil(c) )
+      r_colour(c);
+    if ( (c=context.parent->background) && notNil(c) )
+      r_background(c);
   }
   d_pop_context();
   DEBUG(NAME_redraw, printf("After d_done(): env->level = %d\n", env->level));

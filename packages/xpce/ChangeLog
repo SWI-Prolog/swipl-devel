@@ -1,14 +1,103 @@
 [VERSION 4.8.5]
 
-* Added warning for some common class-compiler misusages.
+* EXTENDED/FIXED: 16-bit character support:
 
-* Implemented pce_error/2 in pce_pl.pl (SWI-Prolog binding) to exploit the
-  generic source-location an warning system of SWI-Prolog.
+	* Fixed `editor ->insert_self' for 16-bit values
+	* Fixed character classification for 16-bit characters
+	* Fixed methods using newline, tab and space constants
+	* `key_binding ->typed' calls <-function, so this may be
+	  redefined.
 
+* ADDED: Defined load/save format to load/save plain char_array objects
+  using ->save_in_file and `file <-object'.
+
+* DIALOG EDITOR:
+	- Improved guessing of horizontal layout intentions
+	- Fixed destruction of various parts
+	- Added optional port system for `expansions' in the behaviour
+
+* FIXED: `editor ->dabrev_expand': first hit didn't expand if the same word
+  occurred as first hit before the word to expand.  Also, button-down
+  events now reset the `editor <-focus_function', canceling isearch,
+  dabrev and other `local' modes.
+
+* ADDED: `Stayup' popup handling style: clicking on an object with a popup
+  or menu-bar will open the popup and allow you to click on one of the items.
+
+* FIX: ClassHierarchy tool destruction.  Lead to a message to a freed object
+  if, while the tool is running, subclasses are created below class class
+  (tricky programming, but used by PceEmacs).
+
+* ADDED: `image <-convert' now converts graphical objects.
+
+* ADDED: `method <-summary' is now a real method.  It the slot is filled with
+  @default, this method will try to look up the summary from a variable or
+  refined method.
+
+* FIX: Activate pce_group/1 declarations in variable section.
+
+* FIX: Error handling if the display cannot be opened.  Now avoids generating
+  errors in a loop and prints an elaborate user-friendly error message.
+
+* FIX: PostScript generation for shadowed and rounded boxes.  Shadow was not
+  generated in the versions 4.8.[1-4].  Generating PostScript for boxes with
+  a too large radius gave `interresting' results.
+
+* FIX: `text_buffer <-scan' with `word' unit and a syntax table that defines
+  end-of-line as end-comment and the scanned word ends at the end of the file.
+
+* FIX: Colour handling (X11 binding) that could cause colours to appear
+  wrong when image related operations occurred while redrawing.
+
+* ONLINE MANUAL: Many changes.  Look at it and donot forget to read the new
+  help page.  Many manual cards have been updated.  Various cross links and
+  examples have been added.  hot-links to predicates and examples are now
+  provided.
+
+* PERFORMANCE: Lazy creation of `dict <-table'.  Many dicts never use this
+  table.  The table is now automatically created if the dict contains more
+  than 50 items and <-member is called.  The method <-table also creates
+  the table, so applications should not be affected by this change, even
+  is they address the table directly.
+
+* FIX: `graphical ->copy' did not copy the colour attribute.  Used when
+  instantiating links to connections.
+
+* ADDED `event <-click_time' and `event <-click_displacement' to simplify
+  detection of `neat' clicks.
+
+* INCOMPATIBILITY: Text objects (instances of class text) now have ZERO
+  WIDTH if they contain no text.  Non-zero width was used in old versions
+  to ensure the caret was inside the redraw-area.  All versions 4.8.x adopt
+  a different changes schema that takes care of the caret without extending
+  the area.  The current approach generally improves alignment and allows for
+  texts to be displayed immediately adjecent.
+
+  Most applications should improve.  Application that took care of this or
+  relied on the few extra pixels should be fixed.  Note the existence of
+  `text ->border'.
+
+  This modification should also fix PostScript scaling problems with short
+  text objects.
+
+* ADDED: `popup->drag' and `popup->show_pullright_menu', implementing parts
+  of the `popup->event' method.  The aim is to make this method easier to
+  understand and allow for redefinitions to realise different look-and-feel.
+  Same for `menu_bar <-popup_from_event' and `menu_bar ->show_popup'.
+
+* ADDED: `event->is_drag' to quickly test for any kind of drag event.
+
+* FIXED: immediate abort when there are failing make-runs in one of the
+  subdirs (maintenance/development only).
 
 [VERSION 4.8.4]
 
-* SYNCHRONISED MS-Windows 3.1 and Unix versions.
+* ADDED: warnings for some common class-compiler misusages.
+
+* ADDED: pce_error/2 in pce_pl.pl (SWI-Prolog binding) to exploit the
+  generic source-location an warning system of SWI-Prolog.
+
+* SYNCHRONISED: MS-Windows 3.1 and Unix versions.
 
 * FIXED: `editor ->kill' for `adjecent' kills that exceed more than 10K
   characters (crashed).
@@ -27,7 +116,7 @@
 * ADDED: `@pce->has_feature' to test for certain features supported in this
   version.
 
-* ADDED: `@pce->iconify_console' o iconify the console window, provided
+* ADDED: `@pce->iconify_console' to iconify the console window, provided
   this is possible.
 
 * FIXED: `window ->unlink' deletes the window from ChangedWindows.  Fixes

@@ -19,6 +19,9 @@
 	   , member/2
 	   ]).
 
+:- meta_predicate
+	emacs_begin_mode(:, +, +, +, +).
+
 %	declare_emacs_mode(+ModeName, +FileSpec).
 %
 %	Specifies that PceEmacs mode `ModeName' may be defined by
@@ -59,17 +62,23 @@ declare_emacs_mode(Mode, File, Extensions) :-
 %
 %		Char [=+] Category(Args)
 
-emacs_begin_mode(Mode, Super, Summary, Bindings, Syntax) :-
+emacs_begin_mode(Mode0, Super, Summary, Bindings, Syntax) :-
+	strip_module(Mode0, Module, Mode),
 	get(string('emacs_%s_mode', Mode), value, PceClass),
 	get(string('emacs_%s_mode', Super), value, PceSuperClass),
-	pce_begin_class(PceClass, PceSuperClass, Summary),
+	pce_begin_class(Module:PceClass, PceSuperClass, Summary),
 	new(KB, emacs_key_binding(Mode, Super)),
 	new(MM, emacs_mode_menu(Mode, Super)),
 	new(ST, syntax_table(Mode, Super)),
+	make_bindings(Bindings, KB, MM),
+	make_syntax(Syntax, ST).
+
+make_bindings(Bindings, KB, MM) :-
 	forall(member((Selector = Term), Bindings),
-	       bind(Term, Selector, KB, MM)),
-	forall(member(S, Syntax),
-	       syntax(S, ST)).
+	       bind(Term, Selector, KB, MM)).
+
+make_syntax(Syntax, ST) :-
+	forall(member(S, Syntax), syntax(S, ST)).
 
 
 bind(key(Key), Selector, KB, _) :-

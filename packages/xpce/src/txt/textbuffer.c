@@ -57,7 +57,7 @@ initialiseTextBuffer(TextBuffer tb, CharArray ca)
   if ( notDefault(ca) )
     str_cphdr(&tb->buffer, &ca->data);
   else
-    str_cphdr(&tb->buffer, str_nl());
+    str_cphdr(&tb->buffer, str_nl(NULL)); /* ASCII */
 
   clear_textbuffer(tb);			/* (re)initialise buffer */
 
@@ -129,7 +129,7 @@ loadTextBuffer(TextBuffer tb, FILE *fd, ClassDef def)
   assign(tb, editors, newObject(ClassChain, 0));
   tb->size = loadWord(fd);
   tb->allocated = ROUND(tb->size, ALLOC);
-  str_cphdr(&tb->buffer, str_nl());
+  str_cphdr(&tb->buffer, str_nl(NULL));	/* ASCII */
   tb->tb_buffer8 = malloc(tb->allocated);
   fread(Address(tb, 0), sizeof(char), tb->size, fd); /* TBD */
   tb->gap_start = tb->size;
@@ -596,12 +596,12 @@ scan_textbuffer(TextBuffer tb, int from, Name unit, int amount, char az)
     { if ( amount <= 0 )
       { for( ; here > 0 && amount <= 0; amount++ )
 	{ while( !tisalnum(syntax, fetch(here)) && here > 0 ) here--;
-	  while( tisalnum(syntax, fetch(here)) ) here--;
+	  while( tisalnum(syntax, fetch(here)) && here > 0 ) here--;
 	}
 	return (here == 0 ? here : here+1);
       } else
       { for( ; here < size && amount > 0; amount-- )
-	{ while( tisalnum(syntax, fetch(here)) ) here++;
+	{ while( tisalnum(syntax, fetch(here)) && here < size ) here++;
 	  while( !tisalnum(syntax, fetch(here)) && here < size ) here++;
 	}
 	return here;
@@ -610,12 +610,12 @@ scan_textbuffer(TextBuffer tb, int from, Name unit, int amount, char az)
     { if ( amount >= 0 )
       { for( ; here < size && amount >= 0; amount-- )
 	{ while( !tisalnum(syntax, fetch(here)) && here < size ) here++;
-	  while( tisalnum(syntax, fetch(here)) ) here++;
+	  while( tisalnum(syntax, fetch(here)) && here < size ) here++;
 	}
 	return here;
       } else
       { for( ; here > 0 && amount < 0; amount-- )
-	{ while( tisalnum(syntax, fetch(here)) ) here--;
+	{ while( tisalnum(syntax, fetch(here)) && here > 0 ) here--;
 	  while( !tisalnum(syntax, fetch(here)) && here > 0 ) here--;
 	}
 	return here == 0 ? here : here+1;
@@ -1122,7 +1122,7 @@ distribute_spaces(TextBuffer tb, int spaces, int nbreaks, long int *breaks)
 { int s = spaces / (nbreaks-1);
   int n, m;
   int *extra = alloca(nbreaks * sizeof(int));
-  String space = str_spc();
+  String space = str_spc(&tb->buffer);
 
   DEBUG(NAME_justify, printf("%d spaces (each %d)\n", spaces, s));
 
@@ -1158,8 +1158,8 @@ fill_line_textbuffer(TextBuffer tb, long int here, long int to,
   int nbreaks = 0;
   int last_break_col = 0;
   long i;
-  String nl = str_nl();
-  String space = str_spc();
+  String nl = str_nl(&tb->buffer);
+  String space = str_spc(&tb->buffer);
 
   DEBUG(NAME_fill, printf("fill_line(tb, %ld, %ld, %d, %d)\n",
 			  here, to, sc, rm));
@@ -1275,7 +1275,7 @@ sortTextBuffer(TextBuffer tb, Int from, Int to)
 
     delete_textbuffer(tb, f, t-f);
     for(n=0; n<ln; n++)
-    { String nl = str_nl();
+    { String nl = str_nl(&tb->buffer);
       string s;
 
       str_set_ascii(&s, lines[n]);

@@ -2,20 +2,13 @@
 
 [ Bugs ]
 
-*) Redrawing inverted nodes in trees???
-
 *) OpenWindows: completer() window properties!
-
-*) Scrollbar details (OpenWindows version)
-
 
 [ Introduction of 16-bit text issues ]
 
 *) Store/load 16-bit and encoding info for string, char_array and text_buffer
 
 *) Names: make them unique over encodings
-
-*) Displaying 8-bit text using 16-bit font and visa-versa
 
 Issue list:
 

@@ -302,6 +302,24 @@ getMulticlickEvent(EventObj e)
   }
 }
 
+
+Int
+getClickTimeEvent(EventObj e)
+{ answer(toInt(e->time - last_down_time));
+
+  fail;
+}
+
+
+Int
+getClickDisplacementEvent(EventObj e)
+{ int dx = valInt(e->x) - last_down_x;
+  int dy = valInt(e->y) - last_down_y;
+    
+  answer(toInt(isqrt(dx*dx + dy*dy)));
+}
+
+
 		/********************************
 		*            POSITIONS		*
 		********************************/
@@ -660,6 +678,9 @@ makeClassEvent(Class class)
   sendMethod(class, NAME_isDown, NAME_classify, 0,
 	     "Test if event is a button-down event",
 	     isDownEvent);
+  sendMethod(class, NAME_isDrag, NAME_classify, 0,
+	     "Test if event is a button-drag event",
+	     isDragEvent);
   sendMethod(class, NAME_hasModifier, NAME_classify, 1, "modifier",
 	     "Test if event meets modifier spec",
 	     hasModifierEvent);
@@ -698,6 +719,12 @@ makeClassEvent(Class class)
   getMethod(class, NAME_multiclick, NAME_classify, "{single,double,triple}", 0,
 	    "Click type",
 	    getMulticlickEvent);
+  getMethod(class, NAME_clickTime, NAME_classify, "milliseconds=int", 0,
+	    "`up' events: time since corresponding `down'",
+	    getClickTimeEvent);
+  getMethod(class, NAME_clickDisplacement, NAME_classify, "pixels=int", 0,
+	    "`up' events: distance since corresponding `down'",
+	    getClickDisplacementEvent);
   getMethod(class, NAME_key, NAME_classify, "name", 0,
 	    "Key(-binding) description of event",
 	    getKeyEvent);

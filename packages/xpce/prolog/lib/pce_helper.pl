@@ -31,7 +31,7 @@
 
 variable(buffers, sheet, get, "Sheet of open buffers").
 
-:- send(class(helper), save_style, external).
+:- send(@class, save_style, external).
 
 initialise(Helper) :->
 	send(Helper, send_super, initialise),

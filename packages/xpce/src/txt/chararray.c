@@ -43,6 +43,32 @@ cloneCharArray(CharArray str, CharArray clone)
 }
 
 
+static status
+storeCharArray(CharArray s, FileObj file)
+{ TRY(storeSlotsObject(s, file));
+  return storeCharpFile(file, s->data.s_text8); /* TBD: full store! */
+}
+
+
+static status
+loadCharArray(CharArray s, FILE *fd, ClassDef def)
+{ char *data;
+
+  TRY(loadSlotsObject(s, fd, def));
+  if ( (data = loadCharp(fd)) )
+  { String str = &s->data;
+    
+    str->size     = strlen(data);
+    str->encoding = ENC_ASCII;
+    str->b16	  = 0;
+    str->pad	  = 0;
+    str->s_text8  = data;
+  }
+
+  succeed;
+}
+
+
 static CharArray
 getConvertCharArray(Any ctx, Any val)
 { string s;
@@ -552,6 +578,7 @@ makeClassCharArray(Class class)
 { sourceClass(class, makeClassCharArray, __FILE__, "$Revision$");
 
   setCloneFunctionClass(class, cloneCharArray);
+  setLoadStoreFunctionClass(class, loadCharArray, storeCharArray);
 
   localClass(class, NAME_header, NAME_internal, "alien:str_h", NAME_none,
 	     "Header info (packed)");

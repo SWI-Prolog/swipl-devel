@@ -66,7 +66,6 @@ Any		getResolveSendMethodClass(Class class, Name name);
 Any		getResolveGetMethodClass(Class class, Name name);
 Int		getNoCreatedClass(Class class);
 Int		getNoFreedClass(Class class);
-Chain		getSubClassesClass(Class class);
 status		createdClass(Class class, Any instance, Name how);
 status		freedClass(Class class, Any instance);
 status		isAClass(Class class, Class super);
@@ -390,3 +389,6 @@ void		closeAllXrefs(void);
 Error		getConvertError(Class class, Name id);
 status		makeClassError(Class class);
 status		errorPce(Any obj, Name id, ...);
+
+/* classstub.c */
+status		makeClassClassStub(Class class);

@@ -47,9 +47,8 @@ RedrawAreaLabel(Label lb, Area a)
 
   if ( instanceOfObject(lb->selection, ClassCharArray) )
   { CharArray s = lb->selection;
-    int ex = valInt(getExFont(lb->font));
 
-    str_string(&s->data, lb->font, x+ex/2, y, w, h, NAME_left, NAME_top);
+    str_string(&s->data, lb->font, x, y, w, h, NAME_left, NAME_top);
   } else /*if ( instanceOfObject(lb->selection, ClassImage) )*/
   { Image image = (Image) lb->selection;
 
@@ -122,7 +121,7 @@ computeLabel(Label lb)
       int ex = valInt(getExFont(lb->font));
 
       str_size(&s->data, lb->font, &w, &h);
-      w = max(w+ex, valInt(lb->length) * ex);
+      w = max(w, valInt(lb->length) * ex);
     } else /*if ( instanceOfObject(lb->selection, ClassImage) )*/
     { Image image = (Image) lb->selection;
 

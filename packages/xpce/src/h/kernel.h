@@ -688,11 +688,20 @@ If you  add/delete slots, do  not forget to  change PCE_CLASS_SLOTS in
 pce-class.c
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-NewClass(class)
-  ABSTRACT_PROGRAM_OBJECT
-  Name		name;			/* name for this class */
-  Class		super_class;		/* (abstract) super-class */
+#define ABSTRACT_CLASS_STUB \
+  ABSTRACT_PROGRAM_OBJECT \
+  Name		name;			/* name for this class */ \
+  StringObj	summary;		/* Summary of the class */ \
+  Name		creator;		/* Created from where? */ \
+  Class		super_class;		/* (abstract) super-class */ \
   Chain		sub_classes;		/* list of sub-classes */
+  
+NewClass(class_stub)
+  ABSTRACT_CLASS_STUB
+End;
+
+NewClass(class)
+  ABSTRACT_CLASS_STUB
   Vector	instance_variables;	/* local variables */
   Chain		send_methods;		/* send methods for this class */
   Chain		get_methods;		/* get methods for this class */
@@ -709,12 +718,10 @@ NewClass(class)
   Chain		handles;		/* graphicals only: connection pts */
   Int		instance_size;		/* Instance size in bytes */
   Int		slots;			/* # instance variables */
-  StringObj	summary;		/* Summary of the class */
 #ifndef O_RUNTIME
   SourceLocation source;		/* Source location */
 #endif
   Name		rcs_revision;		/* Current rcs-revision of source */
-  Name		creator;		/* Created from where? */
   Chain		changed_messages;	/* Trap instance changes */
   Chain		created_messages;	/* Trap instance creation */
   Chain		freed_messages;		/* Trap instance destruction */

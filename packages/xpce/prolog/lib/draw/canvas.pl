@@ -146,14 +146,20 @@ make_draw_canvas_popup(P) :-
 		  ]).
 
 
-:- pce_global(@draw_canvas_recogniser,
-      new(handler_group(@draw_create_resize_gesture,
-			@draw_create_line_gesture,
-			@draw_create_path_gesture,
-			@draw_create_text_recogniser,
-			@draw_create_proto_recogniser,
-			@draw_warp_select_gesture,
-			popup_gesture(@draw_canvas_popup)))).
+:- pce_global(@draw_canvas_recogniser, make_draw_canvas_recogniser).
+
+make_draw_canvas_recogniser(G) :-
+	new(KBFocus, @event?window?keyboard_focus),
+	new(G, handler_group(@draw_create_resize_gesture,
+			     @draw_create_line_gesture,
+			     @draw_create_path_gesture,
+			     @draw_create_text_recogniser,
+			     @draw_create_proto_recogniser,
+			     @draw_warp_select_gesture,
+			     new(P, click_gesture(middle, '', single,
+						  message(KBFocus, paste))),
+			     popup_gesture(@draw_canvas_popup))),
+	send(P, condition, KBFocus \== @nil).
 
 
 		/********************************

@@ -46,8 +46,8 @@ status
 initialiseMethod(Method m, Name name, Vector types, Code msg, StringObj doc, SourceLocation loc, Name group)
 { initialiseBehaviour((Behaviour) m, name, NIL);
 
-  if ( isDefault(doc) )   doc   = NIL;
-  if ( isDefault(loc) )   loc   = NIL;
+  if ( isDefault(loc) )
+    loc = NIL;
 
   assign(m, group,   group);
   assign(m, message, msg);
@@ -484,6 +484,31 @@ getAccessArrowMethod(Method m)
 }
 
 
+static StringObj
+getSummaryMethod(Method m)
+{ if ( isNil(m->summary) )
+    fail;
+  if ( notDefault(m->summary) )
+    answer(m->summary);
+  else
+  { Class class = m->context;
+
+    if ( instanceOfObject(class, ClassClass) )
+    { Variable var;
+
+      if ( (var = getInstanceVariableClass(class, m->name)) &&
+	   instanceOfObject(var->summary, ClassCharArray) )
+	answer(var->summary);
+      while( (m = getInheritedFromMethod(m)) )
+	if ( instanceOfObject(m->summary, ClassCharArray) )
+	  answer(m->summary);
+    }
+  }
+
+  fail;
+}
+
+
 #ifndef O_RUNTIME
 static Name
 getManIdMethod(Method m)
@@ -508,6 +533,7 @@ static StringObj
 getManSummaryMethod(Method m)
 { char buf[LINESIZE];
   Vector types = m->types;
+  StringObj s;
   char *e;
 
   buf[0] = EOS;
@@ -541,11 +567,11 @@ getManSummaryMethod(Method m)
     strcat(e, strName(gm->return_type->fullname));
   }
 
-  if ( notNil(m->summary) )
+  if ( (s = getSummaryMethod(m)) )
   { strcat(buf, "\t");
-    strcat(buf, strName(m->summary));
+    strcat(buf, strName(s));
   }
-  if ( send(m, NAME_manDocumented, 0) != FAIL )
+  if ( send(m, NAME_manDocumented, 0) )
     strcat(buf, " (+)");
 
   answer(CtoString(buf));
@@ -606,7 +632,7 @@ makeClassMethod(Class class)
 	     "Conceptual group of method");
   localClass(class, NAME_types, NAME_type, "vector", NAME_get,
 	     "Argument type specification");
-  localClass(class, NAME_summary, NAME_manual, "string*", NAME_get,
+  localClass(class, NAME_summary, NAME_manual, "[string]*", NAME_none,
 	     "Summary documentation");
 #ifndef O_RUNTIME
   localClass(class, NAME_source, NAME_manual, "source_location*", NAME_both,
@@ -621,7 +647,7 @@ makeClassMethod(Class class)
 	    5, NAME_name, NAME_types, NAME_message, NAME_summary, NAME_source);
   setLoadStoreFunctionClass(class, loadMethod, storeFdMethod);
   setTraceFunctionClass(class, traceMethod);
-					/* for efficient sharing of templates */
+					/* for sharing of templates */
   cloneStyleVariableClass(class, NAME_types, NAME_reference);
   cloneStyleVariableClass(class, NAME_summary, NAME_reference);
   cloneStyleVariableClass(class, NAME_source, NAME_reference);
@@ -664,6 +690,9 @@ makeClassMethod(Class class)
 	    "New string with documentation summary",
 	    getManSummaryMethod);
 #endif /*O_RUNTIME*/
+  getMethod(class, NAME_summary, DEFAULT, "string", 0,
+	    "<-summary or try to infer summary",
+	    getSummaryMethod);
   getMethod(class, NAME_printName, NAME_textual, "name", 0,
 	    "Class <->Selector",
 	    getPrintNameMethod);

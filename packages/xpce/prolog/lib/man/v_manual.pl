@@ -75,6 +75,8 @@ and possible broadcasted by ManualTool.  These messages are:
 		   "PCE manual main object").
 
 resource(geometry,	geometry,		'+0+0').
+resource(user_scope,	chain,			'[basic, user]',
+	 "Default scoping of manual material").
 
 variable(selection,		object*,	get,
 	 "Currently selected object").
@@ -96,6 +98,8 @@ variable(maintainer,		bool,		get,
 	 "Indicates the user is a maintainer").
 variable(exit_message,		code*,		get,
 	 "Message called on exit").
+variable(user_scope,		chain,		get,
+	 "Types in user's scope").
 
 
 		/********************************
@@ -113,24 +117,21 @@ initialise(M, Dir:[directory]) :->
 	;   true
 	),
 	default(Dir, directory('$PCEHOME/man/reference'), Directory),
+	get(M, resource_value, user_scope, Scope),
 	send(M, check_directory, Directory),
 	send(M, slot, space, new(Space, man_space(reference, Directory))),
 	send(M, slot, tools, new(sheet)),
 	send(M, slot, edit_mode, @off),
 	send(M, slot, focus_history, new(chain)),
 	send(M, slot, selection_history, new(chain)),
+	send(M, slot, user_scope, Scope),
 
 	send(Space, attribute, attribute(report_to, M)),
 	send(M, append, new(D, dialog)),
 	fill_dialog(D),
 
 	ifmaintainer((
-	  send(@pce, exit_message,
-	       new(Msg,
-		   if(M?space?modified == @on,
-		      and(message(@pce, confirm,
-				  'Manual database has changed.  Save?'),
-			  message(M?space, save_some))))),
+	  send(@pce, exit_message, new(Msg, message(M, save_if_modified))),
           send(M, slot, exit_message, Msg))),
 
 	send(M, report, status, 'For help, see `File'' menu').
@@ -198,9 +199,9 @@ fill_dialog(D) :-
 		       , menu_item(list_all_modules,
 				   message(M, list_all_modules))
 		       , menu_item(save_manual,
-				   message(M?space, save_some),
+				   message(M, save_if_modified, @off),
 				   @default, @on,
-				   M?space?modified == @on)
+				   M?modified == @on)
 		       ])
 	;    true
 	),
@@ -347,7 +348,7 @@ destroy_tool(M, Tool:man_frame) :->
 
 quit(M) :->
 	"Quit Manual Tool"::
-	save_if_modified(M),
+	send(M, save_if_modified),
 	send(@display, confirm, 'Quit all manual tools?'),
 	send(M?tools, for_all, message(@arg1?value, quit)),
 	send(M, destroy).
@@ -355,15 +356,44 @@ quit(M) :->
 
 quit_pce(M) :->
 	"Exit from PCE process"::
-	save_if_modified(M),
+	send(M, save_if_modified),
 	send(@display, confirm, 'Really exit PCE?'),
 	send(@pce, die).
 
 
-save_if_modified(M) :-
-	(   get(M?space, modified, @on)
-	->  send(@display, confirm, 'Manual Database is modified. Save?'),
-	    send(M?space, save_some)
+		 /*******************************
+		 *	   SAVE/MODIFIED	*
+		 *******************************/
+
+modified(M, Modified:bool) :<-
+	"See if manual database has been modified"::
+	(   (   get(M?space, modified, @on)
+	    ;   object(@man_classification),
+		get(@man_classification, modified, @on)
+	    )
+	->  Modified = @on
+	;   Modified = @off
+	).
+	
+
+save_if_modified(M, Ask:[bool]) :->
+	"Save if some part has been modified"::
+	(   get(M, modified, @on)
+	->  (   Ask \== @on
+	    ;   send(@display, confirm, 'Manual Database is modified. Save?')
+	    ), !,
+	    send(M?space, save_some),
+	    ClassifyTab = @man_classification,
+	    (	object(ClassifyTab),
+		get(ClassifyTab, modified, @on)
+	    ->	send(M, report, progress,
+		     'Saving %s ...', ClassifyTab?file?base_name),
+		send(ClassifyTab?file, backup),
+	        send(ClassifyTab, save_in_file, ClassifyTab?file),
+		send(ClassifyTab, modified, @off),
+		send(M, report, done)
+	    ;	true
+	    )
 	;   true
 	).
 
@@ -561,9 +591,49 @@ manual(M, Object:'class|variable|method|resource') :->
 	).
 
 
+		 /*******************************
+		 *	    USER-SCOPING	*
+		 *******************************/
+
+:- pce_global(@man_classification, load_man_classification).
+
+load_man_classification(C) :-
+	library_directory(D),
+	concat(D, '/man/classification.obj', FileName),
+	new(F, file(FileName)),
+	send(F, access, read),
+	get(F, object, C),
+	send(C, attribute, file, file(F?absolute_path)),
+	send(C, attribute, modified, @off).
+
+
+in_scope(M, Obj:object) :->
+	"Test if object is in current scope"::
+	get(M, user_scope, Scope),
+	get(Obj, man_id, Id),
+	(   (   get(@man_classification, member, Id, Type)
+	    ->	send(Scope, member, Type)
+	    ;	send(Scope, member, obscure)
+	    )
+	;   get(Obj, man_creator, host),
+	    send(Scope, member, user)
+	).
+
+
+user_scope(M, Scope:chain) :->
+	"Modify scope and inform tools"::
+	(   send(M?user_scope, equal, Scope)
+	->  true
+	;   send(M, slot, user_scope, Scope),
+	    send(M?tools, for_some,
+		 message(@arg1?value, user_scope, Scope))
+	).
+
+
 		/********************************
 		*         COMMUNICATION		*
 		********************************/
+
 
 request_selection(M, Frame:man_frame*, Obj:any*, Open:[bool]) :->
 	"Request to become selection holder"::
@@ -805,6 +875,11 @@ initialise(F, Manual:man_manual, Label:[name]) :->
 	send(F, send_super, initialise, Label),
 	send(F, slot, manual, Manual),
 	send(F, done_message, message(F, quit)).
+
+
+user_scope(_F, _Scope:chain) :->
+	"Generic operation: fail"::
+	fail.
 
 
 tool_focus(_F, _Focus:object*) :->

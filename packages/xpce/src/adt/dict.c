@@ -11,6 +11,7 @@
 #include <h/graphics.h>
 
 #define displayDI(di) ( isDefault((di)->label) ? (di)->key : (di)->label )
+#define HASH_DICT_THRESHOLD 50
 
 static status
 initialiseDictv(Dict dict, int argc, Any *argv)
@@ -18,7 +19,7 @@ initialiseDictv(Dict dict, int argc, Any *argv)
 
   assign(dict, members, newObject(ClassChain, 0));
   assign(dict, browser, NIL);
-  assign(dict, table,   newObject(ClassHashTable, 0));
+  assign(dict, table,   NIL);
 
   for (i = 0; i < argc; i++)
     appendDict(dict, argv[i]);
@@ -42,37 +43,28 @@ unlinkDict(Dict dict)
   succeed;
 }
 
-
-		/********************************
-		*          STORE/LOAD		*
-		********************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Store/load dict from/to file.  Only PCE-data is stored,  hash  table  is
-rebuild after loading PCE-data.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static status
-storeDict(Dict dict, FileObj file)
-{ return storeSlotsObject(dict, file);
-}
-
-
-static status
-loadDict(Dict dict, FILE *fd, ClassDef def)
-{ Cell cell;
-
-  TRY( loadSlotsObject(dict, fd, def) );
-  assign(dict, table, newObject(ClassHashTable, 0));
   
-  for_cell(cell, dict->members)
-  { DictItem di = cell->value;
-    appendHashTable(dict->table, di->key, di);
+		 /*******************************
+		 *	      TABLE		*
+		 *******************************/
+
+static HashTable
+getTableDict(Dict dict)
+{ if ( isNil(dict->table) )
+  { Cell cell;
+
+    assign(dict, table, newObject(ClassHashTable, 0));
+    for_cell(cell, dict->members)
+    { DictItem di = cell->value;
+      appendHashTable(dict->table, di->key, di);
+    }
   }
 
-  succeed;
+  answer(dict->table);
 }
-  
+
+
+
 		/********************************
 		*            RENUMBER		*
 		********************************/
@@ -112,7 +104,23 @@ getMemberDict(Dict dict, Any obj)
   }
 
   if ( (name = checkType(obj, TypeName, dict)) )
-    answer(getMemberHashTable(dict->table, name));
+  { if ( notNil(dict->table) )
+      answer(getMemberHashTable(dict->table, name));
+    else if ( valInt(dict->members->size) > HASH_DICT_THRESHOLD )
+      answer(getMemberHashTable(getTableDict(dict), name));
+    else
+    { Cell cell;
+
+      for_cell(cell, dict->members)
+      { DictItem di = cell->value;
+	
+	if ( di->key == name )
+	  answer(di);
+      }
+
+      fail;
+    }
+  }
 
   fail;
 }
@@ -141,7 +149,8 @@ deleteDict(Dict dict, Any obj)
     addCodeReference(dict);
     if ( notNil(dict->browser) && !isFreeingObj(dict->browser) )
       send(dict->browser, NAME_DeleteItem, di, 0);
-    deleteHashTable(dict->table, di->key);
+    if ( notNil(dict->table) )
+      deleteHashTable(dict->table, di->key);
     assign(di, dict, NIL);
     deleteChain(dict->members, di);
     renumberDict(dict);
@@ -165,7 +174,8 @@ appendDict(Dict dict, DictItem di)
 
   assign(di, dict, dict);
   assign(di, index, dict->members->size);
-  appendHashTable(dict->table, di->key, di);
+  if ( notNil(dict->table) )
+    appendHashTable(dict->table, di->key, di);
   appendChain(dict->members, di);
 
   if ( notNil(dict->browser) )
@@ -204,7 +214,8 @@ insertAfterDict(Dict dict, DictItem di, Any after)
   }
 
   assign(di, dict, dict);
-  appendHashTable(dict->table, di->key, di);
+  if ( notNil(dict->table) )
+    appendHashTable(dict->table, di->key, di);
   insertAfterChain(dict->members, di, a);
   renumberDict(dict);
 
@@ -327,7 +338,11 @@ sortDict(Dict dict, Any code_or_ign_case, Bool ign_blanks, Bool reverse)
   qsortReverse = oldrev;
 
   assign(dict, members, newObject(ClassChain, 0));
-  clearHashTable(dict->table);
+  
+  if ( notNil(dict->table) )
+  { clearHashTable(dict->table);
+    assign(dict, table, NIL);
+  }
 
   if ( notNil(dict->browser) )
     send(dict->browser, NAME_Clear, 0);
@@ -373,7 +388,10 @@ clearDict(Dict dict)
   if ( notNil(dict->browser) && !isFreeingObj(dict->browser) )
     send(dict->browser, NAME_Clear, 0);
 
-  clearHashTable(dict->table);
+  if ( notNil(dict->table) )
+  { clearHashTable(dict->table);
+    assign(dict, table, NIL);
+  }
   for_cell(cell, dict->members)
   { DictItem di = cell->value;
     assign(di, dict, NIL);
@@ -442,11 +460,10 @@ makeClassDict(Class class)
 	     "Associated browser (visualisation)");
   localClass(class, NAME_members, NAME_organisation, "chain", NAME_get,
 	     "Objects in the dictionary");
-  localClass(class, NAME_table, NAME_hashing, "hash_table", NAME_get,
+  localClass(class, NAME_table, NAME_hashing, "hash_table*", NAME_none,
 	     "Hashtable for access on key");
 
   termClass(class, "dict", 0);
-  setLoadStoreFunctionClass(class, loadDict, storeDict);
   saveStyleVariableClass(class, NAME_table, NAME_nil);
 
   sendMethod(class, NAME_initialise, DEFAULT, 1, "member=dict_item ...",
@@ -511,6 +528,9 @@ makeClassDict(Class class)
   getMethod(class, NAME_containedIn, DEFAULT, "list_browser|browser", 0,
 	    "Equivalent to <-browser",
 	    getBrowserDict);
+  getMethod(class, NAME_table, NAME_hashing, "hash_table", 0,
+	    "Return hash-table key --> dict_item",
+	    getTableDict);
 
   attach_resource(class, "sort_ignore_case",   "bool", "@off",
 		  "@on: ignore case when sorting");

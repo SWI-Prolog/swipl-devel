@@ -230,14 +230,56 @@ object(C, O:man_global) :<-
 variable(diagnostics,	string*,	both,
 	 "Possible error conditions/messages").
 
+initialise(Card, M:man_module, Name:name) :->
+	"Define id to be the predicate name"::
+	send(Card, slot, name, Name),
+	get(Card, predicate_name, Id),
+	send(Card, send_super, initialise, M, Name, Id).
+
+
+store(Card, Slot:name, Value:any) :->
+	"Change id if name changes"::
+	send(Card, send_super, store, Slot, Value),
+	(   Slot == name
+	->  get(Card, predicate_name, Id),
+	    send(Card, identifier, Id)
+	;   true
+	).
+
+
 man_id(_Card, Id) :<-
 	"Identifier of card type"::
 	Id = 'P'.
+
+predicate_name(Card, PredName:name) :<-
+	get(Card, name, Name),
+	new(R, regex('\(\w+\)')),
+	send(R, search, Name),
+	get(R, register_value, Name, 1, name, PredName).
 
 :- pce_end_class.
 
 :- pce_begin_class(man_example_card(name), man_card,
 		   "Example code").
+
+initialise(Card, M:man_module, Name:name) :->
+	"Define id to be the predicate name"::
+	send(Card, slot, name, Name),
+	get(Card, id, Id),
+	send(Card, send_super, initialise, M, Name, Id),
+	send(Card, store, description, 'Enter description here'),
+	send(Card, store, code, 'Enter code here').
+
+
+store(Card, Slot:name, Value:any) :->
+	"Change id if name changes"::
+	send(Card, send_super, store, Slot, Value),
+	(   Slot == name
+	->  get(Card, id, Id),
+	    send(Card, identifier, Id)
+	;   true
+	).
+
 
 man_id(_Card, Id) :<-
 	"Identifier of card type"::
@@ -245,6 +287,13 @@ man_id(_Card, Id) :<-
 
 variable(code,		string*,	both,
 	 "Source code of example").
+
+id(Card, Id) :<-
+	get(Card, name, Name),
+	new(S, string('%s', Name)),
+	send(S, downcase),
+	send(S, translate, ' ', '_'),
+	get(S, value, Id).
 
 :- pce_end_class.
 
@@ -378,6 +427,7 @@ has_source(_G) :->
 		********************************/
 
 :- pce_extend_class(object).
+:- pce_group(manual).
 
 man_module_name(_Obj, Module) :<-
 	"Module name for global objects"::
@@ -482,9 +532,14 @@ man_name(Obj, Name) :<-
 	new(Name, string),
 	send(Name, format, 'O\t@%s', Obj?name_reference).
 
+man_creator(_Obj, _) :<-
+	"Global default"::
+	fail.
+
 :- pce_end_class.
 
 :- pce_extend_class(class).
+:- pce_group(manual).
 
 man_module_name(Class, Module) :<-
 	"Manual module name for class"::
@@ -557,8 +612,9 @@ append_arguments(Types, Names, Str) :-
 	->  (Idx \== 1 -> send(Str, append, ', ') ; true),
 	    get(Type, name, TypeName),
 	    (   get(Type, argument_name, ArgName),
+		ArgName \== @nil,
 		ArgName \== TypeName
-	    ->	send(Str, append, TypeName)
+	    ->	send(Str, append, string('%s=%s', ArgName, TypeName))
 	    ;   Names \== @nil,
 	        get(Names, element, Idx, ArgName)
 	    ->  send(Str, append, string('%s=%s', ArgName, TypeName))
@@ -583,9 +639,15 @@ man_delegate_header(Class, Str:string) :<-
 	;   true
 	).
 
+
+man_creator(Class, Creator:name) :<-
+	"Creator used by manual filters"::
+	get(Class, creator, Creator).
+
 :- pce_end_class.
 
 :- pce_extend_class(variable).
+:- pce_group(manual).
 
 man_module_name(Var, Module) :<-
 	"Manual module name for variable"::
@@ -612,15 +674,6 @@ man_header(Var, Header:string) :<-
 	get(Type, name, TypeName),
 	new(Header, string('V\t%s %s%s: %s',
 			   ClassName, Arrow, Name, TypeName)).
-/*
-	(   get(Var?context, resource, Name, Resource)
-	->  get(Resource, string_value, String),
-	    get(Resource, resource_class_name, Class),
-	    send(Header, append,
-		 string('\n\t[Pce.%s.%s: %s]', Class, Name, String))
-	;   true
-	).
-*/
 
 has_source(_Var) :->
 	"Test if object may have associated sources"::
@@ -636,6 +689,9 @@ man_inherit_object(Var, Att:name, R:resource) :<-
 	Att == defaults,
 	get(Var?context, resource, Var?name, R).
 
+man_creator(Var, Creator:name) :<-
+	"<-creator of the <-context"::
+	get(Var?context, creator, Creator).
 
 :- pce_end_class.
 
@@ -646,6 +702,7 @@ super_class(Class, Super) :-
 	super_class(Above, Super).
 
 :- pce_extend_class(method).
+:- pce_group(manual).
 
 man_module_name(M, Module) :<-
 	"Manual module name for method"::
@@ -715,9 +772,14 @@ man_documented(M) :->
 	).
 
 
+man_creator(M, Creator:name) :<-
+	"<-creator of the <-context"::
+	get(M?context, creator, Creator).
+
 :- pce_end_class.
 
 :- pce_extend_class(error).
+:- pce_group(manual).
 
 man_module_name(_E, Module:name) :<-
 	"Manual module name for method"::
@@ -753,6 +815,10 @@ man_name(E, Name:name) :<-
 	get(E, id, ErrId),
 	get('! ', append, ErrId, Name).
 
+man_creator(_E, Creator:name) :<-
+	"For now, always returns built_in"::
+	Creator = built_in.
+
 :- pce_end_class.
 
 %	Type pretty printing
@@ -776,6 +842,7 @@ method_types(M, Str) :-
 
 
 :- pce_extend_class(send_method).
+:- pce_group(manual).
 
 man_name(M, Name) :<-
 	"Name for relation browser"::
@@ -809,6 +876,7 @@ man_inherit_object(M, Att:name, Impl:'variable|method|resource') :<-
 :- pce_end_class.
 
 :- pce_extend_class(get_method).
+:- pce_group(manual).
 
 man_name(M, Name) :<-
 	"Name for relation browser"::
@@ -846,6 +914,7 @@ man_inherit_object(M, Att:name, Impl:'variable|method') :<-
 :- pce_end_class.
 
 :- pce_extend_class(resource).
+:- pce_group(manual).
 
 man_module_name(R, Module) :<-
 	"Manual module name for method"::
@@ -891,6 +960,11 @@ source(R, Src) :<-
 	"Find source (same as related class"::
 	get(R, context, Class), Class \== @nil,
 	get(Class, source, Src).
+
+
+man_creator(R, Creator:name) :<-
+	"<-creator of the <-context"::
+	get(R?context, creator, Creator).
 
 :- pce_end_class.
 

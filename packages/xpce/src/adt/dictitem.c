@@ -58,11 +58,12 @@ getLabelDictItem(DictItem di)
 
 static status
 keyDictItem(DictItem di, Name key)
-{ if (notNil(di->dict))
+{ if ( notNil(di->dict) && notNil(di->dict->table) )
   { deleteHashTable(di->dict->table, di->key);
     assign(di, key, key);
     appendHashTable(di->dict->table, di->key, di);
-  }
+  } else
+    assign(di, key, key);
 
   if (notNil(di->dict) && notNil(di->dict->browser) && isDefault(di->label))
     send(di->dict->browser, NAME_ChangeItem, di, 0);

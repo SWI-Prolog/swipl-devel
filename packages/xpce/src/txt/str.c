@@ -211,8 +211,8 @@ str_icase_cmp(String s1, String s2)
     char8 *d2 = s2->s_text8;
     int d;
 
-    while(n-- > 0)
-      if ( (d = (tolower(*d1++) - tolower(*d2++))) )
+    for(; n-- > 0; d1++, d2++)
+      if ( (d = (tolower(*d1) - tolower(*d2))) )
 	return d;
 
     return s1->size - s2->size;
@@ -221,8 +221,8 @@ str_icase_cmp(String s1, String s2)
     char16 *d2 = s2->s_text16;
     int d;
 
-    while(n-- > 0)
-      if ( (d = (tolower(*d1++) - tolower(*d2++))) )
+    for(; n-- > 0; d1++, d2++)
+      if ( (d = (tolower(*d1) - tolower(*d2))) )
 	return d;
 
     return s1->size - s2->size;
@@ -291,8 +291,8 @@ str_icase_prefix(String s1, String s2)	/* s2 is prefix of s1 */
     { char8 *d1 = s1->s_text8;
       char8 *d2 = s2->s_text8;
 
-      while(n-- > 0)
-	if ( tolower(*d1++) != tolower(*d2++) )
+      for(; n-- > 0; d1++, d2++)
+	if ( tolower(*d1) != tolower(*d2) )
 	  return FALSE;
 
       return TRUE;
@@ -300,8 +300,8 @@ str_icase_prefix(String s1, String s2)	/* s2 is prefix of s1 */
     { char16 *d1 = s1->s_text16;
       char16 *d2 = s2->s_text16;
 
-      while(n-- > 0)
-	if ( tolower(*d1++) != tolower(*d2++) )
+      for(; n-- > 0; d1++, d2++)
+	if ( tolower(*d1) != tolower(*d2) )
 	  return FALSE;
     }
 
@@ -494,43 +494,82 @@ str_from_char(String s, char c)
   text[0] = c;
   text[1] = '\0';
 
-  s->s_text8 = text;
+  s->s_text8  = text;
   s->encoding = ENC_ASCII;
-  s->size = strlen(s->s_text8);
-  s->pad = 0;
+  s->b16      = 0;
+  s->size     = 1;
+  s->pad      = 0;
+}
+
+
+static void
+str_from_char16(String s, int c)
+{ char16 *text = alloc(sizeof(char16)*2);
+  text[0] = c;
+  text[1] = '\0';
+
+  s->s_text16 = text;
+  s->encoding = ENC_UNICODE;
+  s->b16      = 1;
+  s->size     = 1;
+  s->pad      = 0;
 }
 
 
 String
-str_nl()
-{ static string nl;
+str_nl(String proto)
+{ static string nl8;
+  static string nl16;
 
-  if ( !nl.size )
-    str_from_char(&nl, '\n');
+  if ( !proto || !proto->b16 )
+  { if ( !nl8.size )
+      str_from_char(&nl8, '\n');
 
-  return &nl;
+    return &nl8;
+  } else
+  { if ( !nl16.size )
+      str_from_char16(&nl16, '\n');
+
+    return &nl16;
+  }
 }
 
 
 String
-str_spc()
-{ static string spc;
+str_spc(String proto)
+{ static string spc8;
+  static string spc16;
 
-  if ( !spc.size )
-    str_from_char(&spc, ' ');
+  if ( !proto || !proto->b16 )
+  { if ( !spc8.size )
+      str_from_char(&spc8, ' ');
 
-  return &spc;
+    return &spc8;
+  } else
+  { if ( !spc16.size )
+      str_from_char16(&spc16, ' ');
+
+    return &spc16;
+  }
 }
 
 
 String
-str_tab()
-{ static string tab;
+str_tab(String proto)
+{ static string tab8;
+  static string tab16;
 
-  if ( !tab.size )
-    str_from_char(&tab, '\t');
+  if ( !proto || !proto->b16 )
+  { if ( !tab8.size )
+      str_from_char(&tab8, '\t');
 
-  return &tab;
+    return &tab8;
+  } else
+  { if ( !tab16.size )
+      str_from_char16(&tab16, '\t');
+
+    return &tab16;
+  }
 }
 
 
@@ -594,8 +633,8 @@ str_icase_common_length(String s1, String s2)
     { char8 *t1 = s1->s_text8;
       char8 *t2 = s2->s_text8;
 
-      while( i <= size && tolower(*t1++) == tolower(*t2++) )
-	i++;
+      while( i <= size && tolower(*t1) == tolower(*t2) )
+	i++, t1++, t2++;
     } else
     { char16 *t1 = s1->s_text16;
       char16 *t2 = s2->s_text16;

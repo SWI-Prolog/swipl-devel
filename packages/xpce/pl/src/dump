@@ -33,6 +33,7 @@ assert((library_directory(PceLib) :-
 	get(@pce, home, Home),
 	concat(Home, '/prolog/lib', PceLib))).
 
+'\$autoload':clear_library_index.
 use_module(library(pce_manual)).
 
 
