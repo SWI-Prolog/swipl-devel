@@ -7897,6 +7897,9 @@ ooppeenn__sshhaarreedd__oobbjjeecctt((_+_F_i_l_e_, _-_
     current  process and _H_a_n_d_l_e is unified  with a handle to the  shared
     object.    Equivalent to open_shared_object(File, [global], Handle).
     See also load_foreign_library/[1,2].
+
+    On  errors, an  exception shared_object(_A_c_t_i_o_n_, _M_e_s_s_a_g_e) is  raised.
+    _M_e_s_s_a_g_e is the return value from dlerror().
 
 
 ooppeenn__sshhaarreedd__oobbjjeecctt((_+_F_i_l_e_, _+_O_p_t_i_o_n_s_, _-_H_a_n_d_l_e))

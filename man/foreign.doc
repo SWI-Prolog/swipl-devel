@@ -106,6 +106,9 @@ handle to the shared object. Equivalent to
 \exam{open_shared_object(File, [global], Handle)}. See also
 load_foreign_library/[1,2].
 
+On errors, an exception \term{shared_object}{Action, Message} is
+raised. \arg{Message} is the return value from \funcref{dlerror}{}.
+
     \predicate{open_shared_object}{3}{+File, +Options, -Handle}
 As open_shared_object/2, but allows for additional flags to be passed.
 \arg{Options} is a list of atoms. \const{now} implies the symbols are
