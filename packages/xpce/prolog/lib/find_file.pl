@@ -339,8 +339,12 @@ get_file(F, Exists, Ext, Dir, Default, File) :-
 	->  get(F, directory, DefDir)
 	;   DefDir = Dir
 	),
+	(   Default == @default
+	->  DefFile = Default
+	;   get(Default, name, DefFile)
+	),
 	get(@display, win_file_name, Mode, Filters,
-	    @default, Default, DefDir, File),
+	    @default, DefFile, DefDir, File),
 	file_directory_name(File, NewDir),
 	send(F, slot, directory, NewDir).
 get_file(F, Exists, Ext0, Dir, Default, File) :-

@@ -462,7 +462,7 @@ tcp_setopt(term_t Socket, term_t opt)
     { int val = 1;
 
       if( setsockopt(socket, SOL_SOCKET, SO_REUSEADDR,
-		     &val, sizeof(val)) == -1)
+		     (const char *)&val, sizeof(val)) == -1)
       { return tcp_error(h_errno, h_errno_codes);
       }
 
