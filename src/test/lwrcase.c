@@ -35,3 +35,9 @@ install_t
 install()
 { PL_register_foreign("lowercase", 2, pl_lowercase, 0);
 }
+
+
+install_t
+uninstall()
+{
+}
