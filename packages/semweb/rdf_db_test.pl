@@ -249,13 +249,21 @@ wide(utf8-object-literal) :-
 	wide_atom(A),
 	rdf_assert(aap, noot, literal(A)),
 	save_reload(utf8).
-wide(iso-predicate) :-
+%wide(iso-predicate) :-			Requires XML UTF-8 names.
+%	wide_atom(A),
+%	rdf_assert(aap, A, noot),
+%	save_reload(iso_latin_1).
+%wide(utf8-predicate) :-
+%	wide_atom(A),
+%	rdf_assert(aap, A, noot),
+%	save_reload(utf8).
+wide(iso-subject) :-
 	wide_atom(A),
-	rdf_assert(aap, A, noot),
+	rdf_assert(A, aap, noot),
 	save_reload(iso_latin_1).
-wide(utf8-predicate) :-
+wide(utf8-subject) :-
 	wide_atom(A),
-	rdf_assert(aap, A, noot),
+	rdf_assert(A, aap, noot),
 	save_reload(utf8).
 
 
