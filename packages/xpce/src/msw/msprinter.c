@@ -317,6 +317,7 @@ openWinPrinter(WinPrinter prt)
 				       filter,
 				       DEFAULT,
 				       DEFAULT,
+				       DEFAULT,
 				       DEFAULT)) )
       { _xos_os_filename(strName(to), fname);
 	di.lpszOutput = fname;
