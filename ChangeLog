@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: GCC 3.2/SPARC problems and Solaris 9 portability issues.
+    Thanks to Pieter Donche for providing access to their machine.
+
   * FIXED: Various MacOS 10.2 portability issues (Paulo Moura).
 
   * FIXED: portray_clause(q:-x*->y).  (Jakub Jiricek).

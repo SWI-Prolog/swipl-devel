@@ -463,7 +463,7 @@ AC_TRY_RUN(
     double *p;
     unsigned long x = (unsigned long) l;
 
-#if defined(__alpha__) || defined(__alpha) || defined(__ia64__)
+#if defined(__alpha__) || defined(__alpha) || defined(__ia64__) || defined(__sparc__)
     exit(1);
 #endif
 
@@ -497,7 +497,7 @@ AC_TRY_RUN(
   { char l[sizeof(long)*2];
     long *p;
 
-#if defined(__alpha__) || defined(__alpha) || defined(__ia64__)
+#if defined(__alpha__) || defined(__alpha) || defined(__ia64__) || defined(__sparc__)
     exit(1);
 #endif
 
@@ -689,20 +689,15 @@ main()
     true)
 
 AC_MSG_CHECKING("for union wait")
-if test "$GCC" = yes; then
-    ac_oldcflags="$CFLAGS"
-    CFLAGS="$CFLAGS -Werror"
-fi
 AC_TRY_COMPILE(
 [
 #include <sys/wait.h>
 ],
-[ int status;
+[ union wait status;
   waitpid(1, &status, WNOHANG);
-], AC_MSG_RESULT(yes),
-   AC_DEFINE(UNION_WAIT)
+], AC_MSG_RESULT(yes)
+   AC_DEFINE(UNION_WAIT),
    AC_MSG_RESULT(no))
-if test "$GCC" = "yes"; then CFLAGS="$ac_oldcflags"; fi
 
 AC_MSG_CHECKING("for tagged lvalues")
 AC_TRY_COMPILE(
