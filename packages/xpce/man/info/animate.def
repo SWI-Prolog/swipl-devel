@@ -19,11 +19,11 @@ After a while a window with a box displayed at (200, 0) will appear on
 the screen.  No animation ...  There are two problems with this code.
 First of all, after `send(new(P, picture), open)', a PCE window will be
 created and a request will be put in the communication channel to the
-X11 server.  This cannal buffers input until PCE flushes all pending
-output when waiting for the next event.  Next PCE diaplays the box and
+X11 server.  This channal buffers input until PCE flushes all pending
+output when waiting for the next event.  Next PCE displays the box and
 moves the box in 1 pixel steps to the right.  PCE however will only
 update the X-window when waiting for events.  So, PCE will first
-exectute the entire animation and then paint the final result when the
+execute the entire animation and then paint the final result when the
 idle loop is entered.
 
 The method `graphical ->flush' forces XPCE to flush modifications to
