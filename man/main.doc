@@ -10,13 +10,13 @@
 \htmloutput{Manual}				% Output directory
 \htmlmainfile{Title}				% Main document file
 \bodycolor{white}				% Page colour
-\linkimage{home}{icons/home.gif}		% Images for links
-\linkimage{index}{icons/yellow_pages.gif}
-\linkimage{contents}{icons/index.gif}
-\linkimage{up}{icons/up.gif}
-\linkimage{previous}{icons/prev.gif}
-\linkimage{next}{icons/next.gif}
-\linkimage{summary}{icons/info.gif}
+\linkimage{home}{home.gif}			% Images for links
+\linkimage{index}{yellow_pages.gif}
+\linkimage{contents}{index.gif}
+\linkimage{up}{up.gif}
+\linkimage{previous}{prev.gif}
+\linkimage{next}{next.gif}
+\linkimage{summary}{info.gif}
 
 %\includeonly{foreign}
 
