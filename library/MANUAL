@@ -1,45 +1,45 @@
 
-                     University of Amsterdam
+                                              University of Amsterdam
 
-                        Dept.  of Social
-                       Science Informatics
+                                                 Dept.  of Social
+                                                Science Informatics
 
-                              (SWI)
-                      Roeterstraat 15, 1018
-                          WB  Amsterdam
-                         The Netherlands
-                     Tel.  (+31) 20 5256121
+                                                       (SWI)
+                                               Roeterstraat 15, 1018
+                                                   WB  Amsterdam
+                                                  The Netherlands
+                                              Tel.  (+31) 20 5256121
 
-                          SSWWII--PPrroolloogg 55..00
+                         SSWWII--PPrroolloogg 55..00
+                        RReeffeerreennccee MMaannuuaall
 
-                         RReeffeerreennccee MMaannuuaall
-             _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._0_._0_, _F_e_b_r_u_a_r_y _2_0_0_2
+            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._0_._2_, _F_e_b_r_u_a_r_y _2_0_0_2
 
-                          _J_a_n _W_i_e_l_e_m_a_k_e_r
+                         _J_a_n _W_i_e_l_e_m_a_k_e_r
+                       jan@swi.psy.uva.nl
+                   http://www.swi-prolog.org
 
-jan@swi.psy.uva.nl  http://www.swi.psy.uva.nl/projects/SWI-Prolog/
+SWI-Prolog  is  a Prolog  implementation based  on a  subset of
+the  WAM (Warren Abstract  Machine).   SWI-Prolog was developed
+as  an  _o_p_e_n  Prolog  environment,  providing  a  powerful  and
+bi-directional  interface  to  C in  an  era  this was  unknown
+to   other  Prolog  implementations.      This  environment  is
+required  to  deal  with XPCE,  an  object-oriented  GUI system
+developed  at SWI. XPCE is  used at SWI for  the development of
+knowledge-intensive graphical applications.
 
- SWI-Prolog  is  a Prolog  implementation based  on a  subset of
- the  WAM (Warren Abstract  Machine).   SWI-Prolog was developed
- as  an  _o_p_e_n  Prolog  environment,  providing  a  powerful  and
- bi-directional  interface  to  C in  an  era  this was  unknown
- to   other  Prolog  implementations.      This  environment  is
- required  to  deal  with XPCE,  an  object-oriented  GUI system
- developed  at SWI. XPCE is  used at SWI for  the development of
- knowledge-intensive graphical applications.
+As  SWI-Prolog  became  more  popular,  a large  user-community
+provided  requirements that  guided its  development.   Compat-
+ibility,  portability,   scalability,  stability and  providing
+a   powerful  development   environment  have  been   the  most
+important  requirements.     Edinburgh,  Quintus,  SICStus  and
+the  ISO-standard  guide  the  development  of  the  SWI-Prolog
+primitives.
 
- As  SWI-Prolog  became  more  popular,  a large  user-community
- provided  requirements that  guided its  development.   Compat-
- ibility,  portability,   scalability,  stability and  providing
- a   powerful  development   environment  have  been   the  most
- important  requirements.     Edinburgh,  Quintus,  SICStus  and
- the  ISO-standard  guide  the  development  of  the  SWI-Prolog
- primitives.
+This  document gives an overview of the features, system limits
+and built-in predicates.
 
- This  document gives an overview of the features, system limits
- and built-in predicates.
-
- Copyright Oc 1990{2002,University of Amsterdam
+Copyright Oc 1990--2002, University of Amsterdam
 
 
 CChhaapptteerr 11..  IINNTTRROODDUUCCTTIIOONN
@@ -1406,10 +1406,9 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
     defined keys:
 
     aarrcchh _(_a_t_o_m_)
-         Identifier for the hardware and operating system  SWI-Prolog is
-         running on.  Used  to determine the startup file as well  as to
-         select foreign  files for  the right  architecture.   See  also
-         section 6.4.
+         Identifier for  the  hardware and  operating system  SWI-Prolog
+         is running  on.   Used to  select foreign files  for the  right
+         architecture.  See also section 6.4 and file_search_path/2.
 
     vveerrssiioonn _(_i_n_t_e_g_e_r_)
          The version identifier is an integer with value:
@@ -1424,8 +1423,8 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
     hhoommee _(_a_t_o_m_)
          SWI-Prolog's  notion  of   the  home-directory.      SWI-Prolog
          uses  it's  home  directory   to  find  its  startup  file   as
-         <_h_o_m_e>/startup/startup.<_a_r_c_h> and  to   find  its  library   as
-         <_h_o_m_e>/library.
+         <_h_o_m_e>/boot32.prc(32-bit machines) or <_h_o_m_e>/boot64.prc (64-bit
+         machines) and to find its library as <_h_o_m_e>/library.
 
     eexxeeccuuttaabbllee _(_a_t_o_m_)
          Path-name of the  running executable.  Used  by qsave_program/2
@@ -1732,9 +1731,9 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          If  true,   the  operating  system  is  an  implementation   of
          Microsoft Windows (3.1, 95, NT, etc.).
 
-hhwwnndd _(_i_n_t_e_g_e_r_)
-    In  plwin.exe, this  refers to the  MS-Windows window-handle of  the
-    console window.
+    hhwwnndd _(_i_n_t_e_g_e_r_)
+         In plwin.exe,  this refers to  the MS-Windows window-handle  of
+         the console window.
 
 
 sseett__pprroolloogg__ffllaagg((_+_K_e_y_, _+_V_a_l_u_e))
@@ -4690,15 +4689,15 @@ or destination of the data.
 
 ooppeenn((_+_S_r_c_D_e_s_t_, _+_M_o_d_e_, _-_S_t_r_e_a_m_, _+_O_p_t_i_o_n_s))
     ISO  compliant predicate  to open  a stream.   _S_r_c_D_e_s  is either  an
-    atom,  specifying  a  Unix file,  or  a term  `pipe(Command)',  just
-    like  see/1 and  tell/1.   _M_o_d_e  is one  of read,  write, append  or
-    update.   Mode  append opens the file  for writing, positioning  the
-    file-pointer  at the end.   Mode update opens the file for  writing,
-    positioning  the file-pointer at the  beginning of the file  without
-    truncating the  file.  See also stream_position/3.   _S_t_r_e_a_m is either
-    a variable, in which  case it is bound to an integer identifying the
-    stream,  or an  atom, in  which case  this atom will  be the  stream
-    identifier.  The _O_p_t_i_o_n_s list can contain the following options:
+    atom, specifying a  Unix file, or a term `pipe(Command)', like see/1
+    and  tell/1.  _M_o_d_e is  one of read, write,  append or update.   Mode
+    append  opens the file for writing, positioning the  file-pointer at
+    the  end.  Mode update  opens the file for writing,  positioning the
+    file-pointer  at the  beginning of the  file without truncating  the
+    file.  _S_t_r_e_a_m is  either a variable, in which case it is bound to an
+    integer identifying the stream,  or an atom, in which case this atom
+    will  be the stream  identifier.  The  _O_p_t_i_o_n_s list can contain  the
+    following options:
 
     ttyyppee((_T_y_p_e))
          Using type text (default), Prolog will write a  text-file in an
@@ -4812,7 +4811,7 @@ ssttrreeaamm__pprrooppeerrttyy((_?_S_t_r_e_a_m_, _?_S_
     ppoossiittiioonn((_T_e_r_m))
          Unify  _T_e_r_m  with the  current  stream-position.     A  stream-
          position  is  a  term   of  format  $stream_position(_C_h_a_r_I_n_d_e_x_,
-         _L_i_n_e_N_o_, _L_i_n_e_P_o_s).  See also term_position/3.
+         _L_i_n_e_N_o_, _L_i_n_e_P_o_s).  See also set_stream_position/3.
 
     eenndd__ooff__ssttrreeaamm((_E))
          If _S_t_r_e_a_m is  an input stream,  unify _E with  one of the  atoms
@@ -4870,7 +4869,7 @@ sseeeekk((_+_S_t_r_e_a_m_, _+_O_f_f_s_e_t_, _+_M_e_t_h
     If  the stream cannot be repostioned, a reposition error  is raised.
     The  predicate seek/4 is  compatible to  Quintus Prolog, though  the
     error  conditions  and  signalling  is  ISO compliant.     See  also
-    stream_position/3.
+    stream_property/2 and set_stream_position/3.
 
 
 sseett__ssttrreeaamm((_+_S_t_r_e_a_m_, _+_A_t_t_r_i_b_u_t_e))
@@ -5363,7 +5362,7 @@ rreeaadd__tteerrmm((_-_T_e_r_m_, _+_O_p_t_i_o_n_s))
 
     tteerrmm__ppoossiittiioonn((_P_o_s))
          Unifies _P_o_s with the starting  position of the term read.   _P_o_s
-         if of the same format as use by stream_position/3.
+         if of the same format as use by stream_property/3.
 
     ssuubbtteerrmm__ppoossiittiioonnss((_T_e_r_m_P_o_s))
          Describes the  detailed layout of  the term.   The formats  for
@@ -7200,10 +7199,10 @@ ffiillee__nnaammee__eexxtteennssiioonn((_?_B_a_s_e_, _
 eexxppaanndd__ffiillee__nnaammee((_+_W_i_l_d_C_a_r_d_, _-_L_i_s_t))
     Unify  _L_i_s_t with  a  sorted list  of files  or directories  matching
     _W_i_l_d_C_a_r_d.   The  normal Unix wildcard  constructs `?', `*',  `[...]'
-    and  `{...}'  are  recognised.    The interpretation  of  `{...}'  is
+    and  `{...}'  are recognised.    The  interpretation  of `{...}'  is
     interpreted  slightly different  from  the C  shell (csh(1)).    The
     comma  separated  argument  can  be  arbitrary  patterns,  including
-    `{...}'  patterns.  The empty pattern is  legal as well:  `\{.pl,\}'
+    `{...}'  patterns.  The empty pattern is legal as  well:  `\{.pl,\}'
     matches either `.pl' or the empty string.
 
     If  the pattern  does contains  wildcard  characters, only  existing
@@ -14161,84 +14160,84 @@ eval_license/0, 924                    set_feature/2, 21
 exception/3, 55, 910, 911              set_input/1, 262
 exceptions                             set_prolog_flag/2, 21, 41, 52, 374
    debugging, 183                      set_stream/2, 253
-exists_directory/1, 517                setarg/3, 337
-exists_file/1, 513                     setenv/2, 127, 501
-exists_file/1, 53                      setof/3, 464, 930
-exit/2, 195, 196                       sformat/2, 483
-exp/1, 385, 425                        sformat/3, 313, 482
-expand_answer/2, 567                   shell/0, 496, 503
-expand_file_name/2, 526                shell/1, 73, 128, 495, 503
-expand_file_search_path/2, 106         shell/2, 494
-expand_goal/2, 115                     shell/[0-2], 501
-expand_query/4, 566                    shell/[1
-expand_term/2, 113                        2], 494
-expand_answer/2, 566                   shell_register_dde/6, 894
-expand_file_name/2, 53,  501, 503,     shell_register_file_type/4, 893
-      522                              shell_register_prolog/1, 895
-expand_goal/2, 53, 112, 114            shell_register_file_type/4, 894
-expand_term/2, 112, 114, 119, 199      shlib _l_i_b_r_a_r_y, 930
-explain _l_i_b_r_a_r_y, 930                   show_profile/1, 598
-explain/1, 39                          show_profile/1, 597, 598
-explain/2, 40                          sign/1, 395
-export/1, 640, 648                     silent, 186
-export_list/2, 649                     sin/1, 385, 416
+exists_directory/1, 517                set_stream_position/3, 258, 261
+exists_file/1, 513                     setarg/3, 337
+exists_file/1, 53                      setenv/2, 127, 501
+exit/2, 195, 196                       setof/3, 464, 930
+exp/1, 385, 425                        sformat/2, 483
+expand_answer/2, 567                   sformat/3, 313, 482
+expand_file_name/2, 526                shell/0, 496, 503
+expand_file_search_path/2, 106         shell/1, 73, 128, 495, 503
+expand_goal/2, 115                     shell/2, 494
+expand_query/4, 566                    shell/[0-2], 501
+expand_term/2, 113                     shell/[1
+expand_answer/2, 566                      2], 494
+expand_file_name/2, 53,  501, 503,     shell_register_dde/6, 894
+      522                              shell_register_file_type/4, 893
+expand_goal/2, 53, 112, 114            shell_register_prolog/1, 895
+expand_term/2, 112, 114, 119, 199      shell_register_file_type/4, 894
+explain _l_i_b_r_a_r_y, 930                   shlib _l_i_b_r_a_r_y, 930
+explain/1, 39                          show_profile/1, 598
+explain/2, 40                          show_profile/1, 597, 598
+export/1, 640, 648                     sign/1, 395
+export_list/2, 649                     silent, 186
 
-fail/0, 160                            size_file/2,s520kip/1, 306, 307
-fail/1, 197                            skip/2, 307
-feature/2, 21                          sleep/1, 625
-file_base_name/2, 515                  socket _l_i_b_r_a_r_y, 269
-file_directory_name/2, 514             sort/2, 450, 457, 458, 460, 464
-file_name_extension/3, 525             source_file/1, 108
-file_search_path/2, 55, 105            source_file/2, 109
-file_search_path/2,  31,  33,  53,     source_location/2, 111
-      56,  74, 99, 105, 107, 665,      source_file/2, 122, 237
-      849, 862, 865, 868               source_file/[1
-fileerrors/2, 53, 273                     2], 646
-findall/3, 462, 652                    source_location/2, 110
-flag/3, 53, 221, 233                   spy/1, 44,  53, 55,  88, 89,  93,
-flatten/2, 445                               585, 914, 930
-float/1, 137, 384, 402                 sqrt/1, 415
-float_fractional_part/1, 403           stack
-float_integer_part/1, 404                 memory management, 66
-float_integer_part/1, 405              stack_parameter/4, 607
-floor/1, 406                           startup file, 31
-flush_output/0, 287                    statistics/0, 594
-flush_output/1, 288                    statistics/2, 430, 593
-flush_output/0, 287                    stream_property/2, 258
-flush_output/1, 187                    stream_position/3, 253, 261, 329
-flush_output/[0                        stream_property/2, 260, 262
-   1], 253, 289                        string/1, 140, 480
-foo/0, 919                             string_concat/3, 366
-foo/3, 919                             string_length/2, 365
-forall/2, 114, 470                     string_to_atom/2, 363
-format/1, 187, 479                     string_to_list/2, 364
-format/2, 480--482                     string_concat/3, 353
-format/3, 187, 481                     style_check/1, 591
-format/[1                              style_check/1, 67, 68, 228, 919
-   2], 53, 313, 471, 930               sub_atom/5, 358
-format/[2                              sub_string/5, 367
-   3], 62                              sub_atom/5, 367
-format_predicate/2, 485                sublist/3, 468
-free_variables/2, 340                  subset/2, 454
-free_variables/2, 329                  subtract/3, 452
-FTP, 896                               succ/2, 376
-functor/3, 6, 142, 143, 335            swi_edit _l_i_b_r_a_r_y, 129
+fail/0, 160                            sin/1,s385,i416ze_file/2, 520
+fail/1, 197                            skip/1, 306, 307
+feature/2, 21                          skip/2, 307
+file_base_name/2, 515                  sleep/1, 625
+file_directory_name/2, 514             socket _l_i_b_r_a_r_y, 269
+file_name_extension/3, 525             sort/2, 450, 457, 458, 460, 464
+file_search_path/2, 55, 105            source_file/1, 108
+file_search_path/2,  31,  33,  53,     source_file/2, 109
+      56,  74, 99, 105, 107, 665,      source_location/2, 111
+      849, 862, 865, 868               source_file/2, 122, 237
+fileerrors/2, 53, 273                  source_file/[1
+findall/3, 462, 652                       2], 646
+flag/3, 53, 221, 233                   source_location/2, 110
+flatten/2, 445                         spy/1, 44,  53, 55,  88, 89,  93,
+float/1, 137, 384, 402                       585, 914, 930
+float_fractional_part/1, 403           sqrt/1, 415
+float_integer_part/1, 404              stack
+float_integer_part/1, 405                 memory management, 66
+floor/1, 406                           stack_parameter/4, 607
+flush_output/0, 287                    startup file, 31
+flush_output/1, 288                    statistics/0, 594
+flush_output/0, 287                    statistics/2, 430, 593
+flush_output/1, 187                    stream_property/2, 258
+flush_output/[0                        stream_property/2, 260--262
+   1], 253, 289                        stream_property/3, 329
+foo/0, 919                             string/1, 140, 480
+foo/3, 919                             string_concat/3, 366
+forall/2, 114, 470                     string_length/2, 365
+format/1, 187, 479                     string_to_atom/2, 363
+format/2, 480--482                     string_to_list/2, 364
+format/3, 187, 481                     string_concat/3, 353
+format/[1                              style_check/1, 591
+   2], 53, 313, 471, 930               style_check/1, 67, 68, 228, 919
+format/[2                              sub_atom/5, 358
+   3], 62                              sub_string/5, 367
+format_predicate/2, 485                sub_atom/5, 367
+free_variables/2, 340                  sublist/3, 468
+free_variables/2, 329                  subset/2, 454
+FTP, 896                               subtract/3, 452
+functor/3, 6, 142, 143, 335            succ/2, 376
 
-garbage_collect/0, 603                 swi_helps_l_i_b_r_a_r_y,w35ritef/2, 477
-garbage_collect_atoms/0, 604           swritef/3, 476
-garbage_collect_atoms/0, 837
-gensym/2, 624                          TAB
-get/1, 298                                completion, 78
-get/2, 299                             tab/1, 285
-get0/1, 253, 296, 306, 308             tab/2, 286
-get0/2, 297                            tan/1, 418
-get_byte/1, 290                        tell/1, 20, 244, 246, 247, 253
-get_byte/2, 291                        telling/1, 244, 249
-get_char/1, 294                        term_expansion/2, 55, 112
-get_char/2, 295                        term_to_atom/2, 351
-get_code/1, 292                        term_expansion/2,  55,  97,  112--
-get_code/2, 293                              114, 122, 566
-get_single_char/1, 308                 term_position/3, 258
+garbage_collect/0, 603                 swi_edits_l_i_b_r_a_r_y,w129i_help _l_i_b_r_a_r_y, 35
+garbage_collect_atoms/0, 604           swritef/2, 477
+garbage_collect_atoms/0, 837           swritef/3, 476
+gensym/2, 624
+get/1, 298                             TAB
+get/2, 299                                completion, 78
+get0/1, 253, 296, 306, 308             tab/1, 285
+get0/2, 297                            tab/2, 286
+get_byte/1, 290                        tan/1, 418
+get_byte/2, 291                        tell/1, 20, 244, 246, 247, 253
+get_char/1, 294                        telling/1, 244, 249
+get_char/2, 295                        term_expansion/2, 55, 112
+get_code/1, 292                        term_to_atom/2, 351
+get_code/2, 293                        term_expansion/2,  55,  97,  112--
+get_single_char/1, 308                       114, 122, 566
 get_time/1, 505                        term_to_atom/2, 313, 777
 get_byte/1, 296, 300                   thread_at_exit/1, 540
 get_byte/2, 295, 297, 301              thread_create/3, 535
