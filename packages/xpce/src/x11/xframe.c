@@ -218,6 +218,7 @@ ws_realise_frame(FrameObj fr)
   Widget w = widgetFrame(fr);
   Cell cell;
   DisplayWsXref r = fr->display->ws_ref;
+  XClassHint clhint = {0};
 
   for_cell(cell, fr->members)
     children[n++] = widgetWindow(cell->value);
@@ -240,6 +241,10 @@ ws_realise_frame(FrameObj fr)
 		    XA_WM_TRANSIENT_FOR);
   }
 #endif
+  clhint.res_name  = strName(fr->label);
+  clhint.res_class = strName(get(fr->class->name, NAME_labelName, EAV));
+  XSetClassHint(r->display_xref, XtWindow(w), & clhint);
+
 
   ws_frame_background(fr, fr->background); /* Why is this necessary? */
 }
@@ -278,8 +283,15 @@ ws_raise_frame(FrameObj fr)
   DisplayWsXref r = fr->display->ws_ref;
 
   if ( w )
-  { XMapWindow(r->display_xref, XtWindow(w));
-    XRaiseWindow(r->display_xref, XtWindow(w));
+  { Window win = XtWindow(w);
+
+#if 0
+    XUnmapWindow(r->display_xref, win);
+    XMapWindow(r->display_xref, win);
+#else
+    XMapWindow(r->display_xref, win);
+    XRaiseWindow(r->display_xref, win);
+#endif
   }
 
   send(fr, NAME_exposed, EAV);		/* doesn't appear to generate a */
