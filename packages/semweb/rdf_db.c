@@ -1551,6 +1551,8 @@ unify_source(term_t src, triple *t)
 			 PL_FUNCTOR, FUNCTOR_colon2,
 			   PL_ATOM, t->source,
 			   PL_INTEGER, t->line);
+
+  return FALSE;				/* make compiler happy */
 }
 
 
