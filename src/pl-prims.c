@@ -924,7 +924,7 @@ start:
   { Word a;
 
 #ifdef O_SHIFT_STACKS
-    if ( roomStack(global) < 2 * sizeof(word) )
+    if ( roomStack(global) < 2 * (long)sizeof(word) )
     { growStacks(environment_frame, NULL, NULL, FALSE, TRUE, FALSE);
       p = valTermRef(t);
       deRef(p);

@@ -715,10 +715,10 @@ Word
 allocGlobal__LD(int n ARG_LD)
 { Word result;
 
-  if ( roomStack(global) < (long) n * sizeof(word) )
+  if ( roomStack(global) < (long) (n * sizeof(word)) )
   { growStacks(NULL, NULL, NULL, FALSE, TRUE, FALSE);
 
-    if ( roomStack(global) < (long) n * sizeof(word) )
+    if ( roomStack(global) < (long) (n * sizeof(word)) )
       outOfStack((Stack) &LD->stacks.global, STACK_OVERFLOW_FATAL);
   }
 

@@ -1838,8 +1838,7 @@ extern char *chp_chars(Choice ch);
 
 static inline void
 update_pointer(void *p, long offset)
-{ GET_LD
-  char **ptr = (char **)p;
+{ char **ptr = (char **)p;
 
   if ( *ptr )
     *ptr += offset;
@@ -1852,9 +1851,7 @@ update_pointer(void *p, long offset)
 
 static void
 update_mark(mark *m, long gs, long ts)
-{ GET_LD
-
-  if ( ts ) update_pointer(&m->trailtop, ts);
+{ if ( ts ) update_pointer(&m->trailtop, ts);
   if ( gs ) update_pointer(&m->globaltop, gs);
 }
 
@@ -1866,7 +1863,8 @@ update_mark(mark *m, long gs, long ts)
 
 static inline void
 update_local_pointer(void *p, long ls)
-{ char **ptr = (char **)p;
+{ GET_LD
+  char **ptr = (char **)p;
 
   if ( inShiftedArea(local, ls, *ptr) )
   { update_pointer(p, ls);
@@ -2108,8 +2106,7 @@ update_stacks(LocalFrame frame, Choice choice, Code PC,
 
 static long
 nextStackSize(Stack s, long minfree)
-{ GET_LD
-  long size  = diffPointers(s->max, s->base);
+{ long size  = diffPointers(s->max, s->base);
   long limit = diffPointers(s->limit, s->base);
   long grow;
 

@@ -1769,7 +1769,7 @@ typedef enum
 #if O_DYNAMIC_STACKS
 #ifdef NO_SEGV_HANDLING
 #define requireStack(s, n) \
-	{ if ( roomStack(s) < (int)(n) ) \
+	{ if ( roomStack(s) < (long)(n) ) \
  	    ensureRoomStack((Stack)&LD->stacks.s, n); \
 	}
 #else /*NO_SEGV_HANDLING*/
@@ -1777,7 +1777,7 @@ typedef enum
 #endif /*NO_SEGV_HANDLING*/
 #else
 #define requireStack(s, n) \
-	{ if ( roomStack(s) < (n) ) \
+	{ if ( roomStack(s) < (long)(n) ) \
  	    outOfStack((Stack)&LD->stacks.s, STACK_OVERFLOW_FATAL); \
 	}
 #endif

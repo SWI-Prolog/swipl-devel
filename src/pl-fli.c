@@ -1720,7 +1720,7 @@ PL_unify_functor(term_t t, functor_t f)
     } else
     { 
 #ifdef O_SHIFT_STACKS
-      if ( roomStack(global) < (1+arity) * sizeof(word) )
+      if ( roomStack(global) < (1+arity) * (long)sizeof(word) )
       { growStacks(environment_frame, NULL, NULL, FALSE, TRUE, FALSE);
 	p = valHandleP(t);
 	deRef(p);
