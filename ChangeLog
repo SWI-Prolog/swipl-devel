@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 4.0.10
+==============
+
+  * FIXED: MT version: cleanup mutex after closing a stream.  Memory leak
+    detected by Andrew V. Diatchkov.
+
   * PORT: On machines using FPE rather then IEEE754 math error reporting
     supporting the fpsetmask() interface, use this interface to make math
     errors IEEE754 compliant.  This applies to FreeBSD upto 3.x.  Thanks

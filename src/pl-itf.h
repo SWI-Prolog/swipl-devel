@@ -31,7 +31,7 @@ before loading this file.  See end of this file.
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
 
 #ifndef PLVERSION
-#define PLVERSION 40009
+#define PLVERSION 40010
 #endif
 
 		 /*******************************
