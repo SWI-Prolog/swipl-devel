@@ -9,7 +9,7 @@ PL=	pl
 QLF=	pce.qlf pce_manual.qlf pcedraw.qlf dialog/dialog.qlf \
 	emacs/emacs.qlf
 
-all:	checkwd $(QLF)
+all:	checkwd INDEX.pl $(QLF)
 
 clean:
 	rm -f $(QLF)
@@ -41,6 +41,9 @@ emacs/emacs.qlf:	.pwd emacs/emacs.pl emacs/window.pl emacs/buffer.pl \
 			emacs/buffer_menu.pl emacs/server.pl \
 			emacs/fundamental_mode.pl emacs/language_mode.pl \
 			emacs/outline_mode.pl emacs/application.pl
+
+INDEX.pl:	.
+	$(PL) -g "make_library_index('.')" -t halt
 
 .pl.qlf:	
 	$(PL) -O -g "qcompile('$*')" -t halt -- -nopce

@@ -755,6 +755,8 @@ _errorPce(Any obj, Name id, va_list args)
 #ifndef O_RUNTIME
 	if ( id != NAME_noXServer )	/* little hack ... */
           pceBackTrace(NULL, 20);
+        Cprintf("Host stack:\n");
+        hostAction(HOST_BACKTRACE, 5);
 #endif
 	hostAction(HOST_RECOVER_FROM_FATAL_ERROR);
 	hostAction(HOST_HALT);

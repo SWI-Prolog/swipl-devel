@@ -3789,7 +3789,7 @@ fi
 rm -rf conftest*
 
 
-Makefiles="Makefile"
+Makefiles="Makefile ../xpce.spec"
 Makedirs="../CXX/demo ../quintus/src ../prolog/pwboot"
 OptionalMakefiles="../pl/src/Makefile.bin"
 for d in $Makedirs; do

@@ -658,7 +658,7 @@ rm -rf conftest*
 dnl See which parts of the sources are there, and check the Makefiles we
 dnl need to update.  You cannot call AC_OUTPUT more then once!
 
-Makefiles="Makefile"
+Makefiles="Makefile ../xpce.spec"
 Makedirs="../CXX/demo ../quintus/src ../prolog/pwboot"
 OptionalMakefiles="../pl/src/Makefile.bin"
 for d in $Makedirs; do

@@ -1,3 +1,6 @@
+* ADDED: Support to create RPM (Redhat Package Manager) distribution:
+  make rpm-install and the RPM package specification file xpce.spec
+
 * MODIFIED: `device->selection: chain' now converts all members of the
   chain to type graphical.  This makes `tree->selection: chain-of-nodes'
   work as expected.

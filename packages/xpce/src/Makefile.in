@@ -7,7 +7,7 @@
 #
 # The XPCE project was started by Anjo Anjewierden, who developed version
 # 1 and 2.  Version 3 is result of joint effort from Anjo Anjewierden and
-# Jan Wielemaker.  Version 4 is written by Jan Wielemaker.
+# Jan Wielemaker.  Version 4 and 5 are written by Jan Wielemaker.
 #
 # Addresses:	Jan Wielemaker:		jan@swi.psy.uva.nl
 #		Anjo Anjewierden:	anjo@swi.psy.uva.nl
@@ -26,7 +26,7 @@
 #	+ If you want a licence, contact xpce-request@swi.psy.uva.nl
 #	+ Please inform us where you found the illegal copy.
 #
-# Copyright (C) 1998, University of Amsterdam
+# Copyright (C) 1999, University of Amsterdam
 ################################################################
 
 .EXPORT_ALL_VARIABLES:
@@ -147,6 +147,12 @@ ARCH=@ARCH@
 OS=@OS@
 
 ################################################################
+# OTHER PATHS
+################################################################
+
+MANINDEX=../man/reference/index.obj
+
+################################################################
 # IMPLICIT RULES
 ################################################################
 
@@ -200,6 +206,15 @@ pl-static:	pl
 
 pl:
 		mkdir $@
+
+man-index:	$(MANINDEX)
+
+$(MANINDEX):
+		$(PL) \
+		  -F none \
+		  -f ../pl/src/plrc \
+		  -g "[library('man/man_index')],pce_make_manual_index('$@')" \
+		  -t halt
 
 xpce-sicstus:	xpce
 		cd ../sicstus/src; \
@@ -285,7 +300,7 @@ h:
 		ln -s $(srcdir)/h .
 
 names:		
-		if [ ! -d $(srcdir)/names ]; then \
+		@if [ ! -d $(srcdir)/names ]; then \
 		    mkdir $(srcdir)/names; \
 		    if [ ! -d names ]; then ln -s $(srcdir)/names .; fi; \
 		    $(MAKE) names/built; \
@@ -607,7 +622,6 @@ RTINSTALLDIRS=	postscript
 RTHOME=		$(PLBASE)/xpce-$(PCEVERSION)
 PLBINDIR=	$(PLBASE)/bin/$(PLARCH)
 RTBINDIR=	$(RTHOME)/bin/$(PLARCH)
-RTFILES=	$(RTHOME)/rt-files
 DVHOME=		$(RTHOME)
 DVLIBDIRS=	lib lib/compatibility lib/dialog lib/draw lib/emacs lib/man \
 		lib/xref lib/english demo contrib contrib/rubik
@@ -615,30 +629,40 @@ DVBOOTDIRS=	boot
 DVMISCFILES=	ChangeLog LICENCE
 RTMISC=		Defaults RT-LICENCE README README.RT
 
-rt-install:	rt-home rt-files rt-misc rt-bitmaps rt-bins \
-		rt-link
-		-@touch $@
+rt-install:	rt-home rt-misc rt-bitmaps rt-bins rt-link
 
-dv-install:	rt-install dv-home dv-lib dv-boot dv-help dv-manual dv-man \
-		dv-misc cxx-install dv-link dv-qlf dv-bins
+dv-install:	rt-install dv-home dv-lib dv-boot dv-help \
+	        dv-link dv-pl-files dv-manual dv-man \
+		dv-misc cxx-install dv-qlf dv-bins
+
+rpm-install:	$(MANINDEX)
+		make RTHOME=$(libdir)/xpce-$(PCEVERSION) rpm-do-install
+
+rpm-do-install:	rt-home rt-misc rt-bitmaps rt-bins rpm-link \
+		dv-lib dv-boot dv-help dv-pl-files dv-manual dv-man \
+		dv-misc cxx-install rpm-bins
+
+rpm-bins:
+		(cd $(bindir); \
+		 rm -f xpce; ln -s $(PLBINDIR)/xpce xpce)
+		$(INSTALL_PROGRAM) xpce-client $(bindir)
+rpm-link:
+		cd $(PLBASE); rm -f xpce; ln -s $(RTHOME) xpce
 
 #	runtime only stuff
 
 RTBINS=		xpce xpce-client
 RTLIBS=		pl2xpce.$(SO) $(LIBXPCESOMM) $(LIBXPCEMAIN)
 
-rt-files:	
-		cp /dev/null $(RTFILES)
-
 rt-home:
 		if [ ! -d $(RTHOME) ]; then mkdir $(RTHOME); fi
 
 rt-bitmaps:
-	BMFS=`find ../bitmaps/ \( -name '*.bm' -o -name '*.xpm' -o -name '*.xbm' \) -print` && \
-	$(INSTALL_DATA) -vp1 ../bitmaps/README $$BMFS $(RTHOME) >> $(RTFILES)
+		BMFS=`find ../bitmaps/ \( -name '*.bm' -o -name '*.xpm' -o -name '*.xbm' \) -print` && \
+		$(INSTALL_DATA) -p1 ../bitmaps/README $$BMFS $(RTHOME)
 
 rt-misc:
-	$(INSTALL_DATA) -vC .. $(RTMISC) $(RTHOME) >> $(RTFILES)
+		$(INSTALL_DATA) -C .. $(RTMISC) $(RTHOME)
 
 rt-bins:
 		$(INSTALL_DATA) -dC $(RTHOME) bin/$(PLARCH) lib/$(PLARCH)
@@ -654,14 +678,12 @@ rt-bins:
 		    if [ -f $$f ]; then \
 			echo "$$f --> $(RTBINDIR)"; \
 		        $(INSTALL_PROGRAM) $$f $(RTBINDIR); \
-			echo bin/$(PLARCH)/$$f >> $(RTFILES); \
 		    fi; \
 		done
 		@for f in $(RTLIBS); do \
 		    if [ -f $$f ]; then \
 			echo "$$f --> $(RTHOME)/lib/$(PLARCH)"; \
 		        $(INSTALL_PROGRAM) $$f $(RTHOME)/lib/$(PLARCH); \
-			echo bin/$(PLARCH)/$$f >> $(RTFILES); \
 		    fi; \
 		done
 		if [ -f $(RTHOME)/lib/$(PLARCH)/$(LIBXPCESOMM) ]; then \
@@ -720,7 +742,8 @@ dv-misc:
 			     echo README.linux ;; \
 		esac
 
-dv-manual:
+dv-manual:	
+		-$(INSTALL_DATA) -p1 ../man/reference/index.obj $(DVHOME)
 		$(INSTALL_DATA) -p1 ../man/reference/*.doc $(DVHOME)
 		$(INSTALL_DATA) -p1 ../man/reference/class/*.doc $(DVHOME)
 		$(INSTALL_DATA) -p1 ../man/faq/*.html $(DVHOME)
@@ -740,6 +763,12 @@ dv-link:	rt-link
 		$(INSTALL_DATA) ../pl/src/plrc $(PLBASE)/pl.rc
 		$(INSTALL_DATA) ../pl/src/plrc $(PLBASE)/xpce.rc
 		$(INSTALL_DATA) ../pl/src/Makefile.bin $(PLBASE)/Makefile
+
+dv-pl-files:
+		if [ ! -d $(RTHOME)/pl ]; then mkdir $(RTHOME)/pl; fi
+		$(INSTALL_DATA) ../pl/src/plrc $(RTHOME)/pl/pl.rc
+		$(INSTALL_DATA) ../pl/src/plrc $(RTHOME)/pl/xpce.rc
+		$(INSTALL_DATA) ../pl/src/Makefile.bin $(RTHOME)/pl/Makefile
 
 dv-qlf:		
 		cd $(RTHOME)/prolog/lib; \
@@ -785,6 +814,7 @@ clean:
 		    fi; \
 		done
 		$(RM) -f *.o config.log
+		$(RM) -rf names $(srcdir)/names
 
 distclean:	clean
 		for d in ../pl/src; do (cd $$d; $(MAKE) distclean); done

@@ -8,23 +8,29 @@
 */
 
 :- module(man_word_index,
-	  [ pce_make_manual_index/1	% +File
+	  [ pce_make_manual_index/0,
+	    pce_make_manual_index/1	% +File
 	  , pce_make_manual_index/2	% +File, -Reference
 	  ]).
 :- use_module(library(pce)).
+:- use_module(library(pce_manual)).
 :- require([ concat_atom/2
 	   ]).
+
+:- dynamic
+	use_gui/0.
 
 :- pce_begin_class(man_index_manager, object,
 		   "Dummy object to exploit XPCE autoloader").
 
 make_index(_IM, IndexFile:name, Index:chain_table) :<-
+	asserta(use_gui),
 	pce_make_manual_index(IndexFile, Index).
 
 :- pce_end_class.
 
 
-%	make_manual_index(+File, [-Reference])
+%	make_manual_index([+File, [-Reference]])
 %
 %	Creates a word index for the manual system.  This index is a
 %	chain_table mapping all words that appear in the manual onto
@@ -38,9 +44,13 @@ pce_ifhostproperty(prolog(quintus),
 (   access_file(File, Mode) :-
 	can_open_file(File, Mode))).
 
+pce_make_manual_index :-
+	absolute_file_name(pce('man/reference/index.obj'), File),
+	pce_make_manual_index(File).
 pce_make_manual_index(File, @man_tmp_index) :-
 	pce_make_manual_index(File).
 pce_make_manual_index(File) :-
+	prepare_manual,
 	access_file(File, write), !,	% just make sure!
 	new(Ch, chain),			% gather all built-in classes
 	send(@man_tmp_view, format, 'Collecting built-in classes ... '),
@@ -119,6 +129,7 @@ make_index_regex(R) :-
 	send(R, compile, @on).
 
 make_man_tmp_view(V) :-
+	use_gui, !,
 	new(V, view('Build PCE manual index')),
 	send(new(D, dialog), below, V),
 	send(D, append, new(Quit, button(quit, message(D, destroy)))),
@@ -133,11 +144,47 @@ make_man_tmp_view(V) :-
 	send(V, wait),
 	send(V, format, 'Building PCE manual index.\n'),
 	send(V, format, 'This process will take several minutes.\n\n').
+make_man_tmp_view(V) :-
+	new(V, man_index_output).
 
 word_index(Text, Id) :-
 	send(@man_tmp_index_regex, for_all, Text,
 	     message(@man_tmp_index, append,
 		     ?(@arg1, register_value, @arg2, 0, name)?downcase, Id)).
+
+:- pce_begin_class(man_index_output, object,
+		   "Dummy drain to catch feedback in non-gui mode").
+
+synchronise(_) :->
+	true.
+
+column(_, C) :<-
+	C = 0.
+
+format(_, Fmt:char_array, Args:any ...) :->
+	Msg =.. [format, Fmt | Args],
+	send(@pce, Msg),
+	flush.
+
+frame(_, _) :<-
+	fail.
+
+:- pce_end_class.
+
+
+		 /*******************************
+		 *	       MANUAL		*
+		 *******************************/
+
+prepare_manual :-
+	use_gui, !,
+	manpce.
+prepare_manual :-
+	new(Directory, directory('$PCEHOME/man/reference')),
+	new(_, man_space(reference, Directory)),
+	send(@pce, send_method,		% make it silent
+	     send_method(report, vector('any ...'), new(and))).
+
 
 		 /*******************************
 		 *	  NON-CLASS CARDS	*

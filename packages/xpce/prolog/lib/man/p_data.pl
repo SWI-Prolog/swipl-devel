@@ -23,6 +23,20 @@
 	   , term_to_atom/2
 	   ]).
 
+%	find_module(+Name, +Create, -Module)
+%
+%	Find/create a manual module with the given name.  Bypasses
+%	@manual to avoid having to use the GUI.
+
+find_module(Name, Create, Module) :-
+	new(Space, man_space(reference)),
+	(   send(Space, ensure_loaded, Name)
+	->  get(Space, module, Name, Module)
+	;   Create == @on
+	->  new(Module, man_module(Space, Name))
+	;   fail
+	).
+
 
 		/********************************
 		*     SPECIFIC MANUAL CARDS	*
@@ -384,8 +398,7 @@ object_summary(Name, Summary) :-
 
 man_module(_G, Create:[bool], Module:man_module) :<-
 	"objects module"::
-	get(@manual, module, objects, Create, Module).
-
+	find_module(objects, Create, Module).
 
 man_id(G, Id:name) :<-
 	get('O.', append, G?reference, Id).
@@ -433,7 +446,7 @@ man_module_name(_Obj, Module) :<-
 
 man_module(Obj, Create:[bool], Module) :<-
 	"Module for global objects"::
-	get(@manual, space, Space),
+	new(Space, man_space(reference)),
 	get(Obj, man_module_name, ModuleName),
 	(   get(Space, module, ModuleName, @on, Module)
 	->  true

@@ -51,7 +51,7 @@ initialise(S, Name:name, Dir:directory) :->
 	).
 
 
-lookup(_, Name:name, _Dir:directory, S:man_space) :<-
+lookup(_, Name:name, _Dir:[directory], S:man_space) :<-
 	"Lookup existing manual space"::
 	get(@man_space_table, member, Name, S).
 

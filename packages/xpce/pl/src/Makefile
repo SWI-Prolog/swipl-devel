@@ -84,7 +84,7 @@ $(OBJDIR)/link.o:	link.c
 ################################################################
 
 $(XPCE):	$(ITFOBJ) $(libXPCE)
-		$(CC) $(LDFLAGS) -o $@ $(OBJ) -L$(LIBDIR) -lXPCE $(LIBS)
+		$(CC) $(LDFLAGS) $(COFLAGS) -o $@ $(OBJ) -L$(LIBDIR) -lXPCE $(LIBS)
 		echo $(PLBASE) > ../../swipl
 
 $(QLF):		$(XPCE)
