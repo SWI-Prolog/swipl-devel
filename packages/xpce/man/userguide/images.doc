@@ -11,6 +11,94 @@ platforms, in addition to the most popular formats for each individual
 platform.
 
 
+\subsection{Colour handling}
+
+\index{colour,images}%
+Colour handling is a hard task for todays computerprogrammer. There is a
+large variety in techniques, each providing their own advantages and
+disadvantages. \product{} doesn't aim for programmers that need to get
+the best performance and best results rendering colours, but for the
+programmer who wants a reasonable result at little effort.
+
+As long as you are not using many colours, which is normally the case
+as long as you do not handle full-colour images, there is no problem.
+This is why this general topic is handled in the section on images.
+
+Displays differ in the number of colours they can display simultaneously
+and whether this set can be changed or not. X11 defines 6 types of
+\idx{visuals}.  Luckily, these days only three models are popular.
+
+\index{colour,256}\index{colour,16-bits}\index{colour,true}%
+\begin{itemlist}
+    \item [8-bit colour-mapped]
+This is that hard one.  It allows displaying 256 colours at the same
+time.  Applications have to negotiate with each others and the windowing
+systems which colours are used at any given moment.
+
+It is hard to do this without some advice from the user. On the other
+hand, this format is popular because it leads to good graphical
+performance.
+
+    \item [16-bit `high-colour']
+This schema is a low-colour-resolution version of true-colour, normally
+using 5-bit on the red and blue channals and 6 on the green channal. It
+is not very good showing perfect colours, nor showing color gradients.
+
+It is as easy for the programmer as true-colour and still fairly
+efficient in terms of memory.
+
+    \item [24/32 bit true-colour]
+This uses the full 8-bit resolution supported by most hardware on all
+three channals.  The 32-bit version wastes one byte for each pixel,
+achieving comfortable alignment.  Depending on the hardware, 32 bit
+colour is sometimes much faster.
+\end{itemlist}
+
+
+We will further discuss 8-bit colour below.  As handling this is totally
+different in X11 and MS-Windows we do this in two seperate sections.
+
+
+\subsubsection{Colour-mapped displays on MS-Windows}
+
+In MS-Windows one has the choice to stick with the reserved 20 colours
+of the system palette or use a colourmap (palette, called by Microsoft).
+
+If an application chooses to use a colourmap switching to this
+application causes the entire screen to be repainted using the
+application's colourmap.  The idea is that the active application looks
+perfect and the other applications look a little distorted as they have
+to do their job using an imperfect colourmap.
+
+By default, \product{} makes a \class{colour_map} that holds a copy of
+the reserved colours.  As colours are required they are added to this
+map.  This schema is suitable for applications using (small) icons and
+solid colours for graphics.  When loading large colourful images the
+colourmap will get very big and optimising its mapping to the display
+slow and poor.  In this case it is a good idea to use a fixed colourmap.
+See class \class{colour_map} for details.
+
+When using \product{} with many full-colour images it is adviced to use
+high-colour or true-colour modes.
+
+
+\subsubsection{Colour-mapped displays on X11/Unix}
+
+X11 provides colourmap sharing between applications. This avoids the
+flickering when changing applications, but limits the number of
+available colours.  Even worse, depending on the other applications
+there can be a large difference in available colours.  The alternative
+is to use a \idx{private colourmap}, but unlike MS-Windows the other
+applications appear in totally random colours.  \product{} does not
+support the use of private colourmaps therefore.
+
+In practice, it is strongly adviced to run X11 in 16, 24 or 32 bit mode
+when running multiple applications presenting colourful images. For
+example \idx{Netscape} insists creating its own colourmap and starting
+Netscape after another application has consumed too many colours will
+simply fail.
+
+
 \subsection{Supported Image Formats}
 
 The table below illustrates the image format capabilities of each of the

@@ -36,15 +36,17 @@ Discusses a technique to relate objects.
 Discusses the definition of new graphical primitives.
 \end{itemize}
 
-\input{control.tex}
-\input{code.tex}
-\input{namedref.tex}
-\input{whoiswho.tex}
-\input{application.tex}
-\input{frame.tex}
-\input{report.tex}
-\input{error.tex}
-\input{font.tex}
-\input{images.tex}
-\input{hyper.tex}
-\input{ugraphics.tex}
+\newcommand{\techinput}[1]{\cleardoublepage\input{#1}}
+
+\techinput{control.tex}
+\techinput{code.tex}
+\techinput{namedref.tex}
+\techinput{whoiswho.tex}
+\techinput{application.tex}
+\techinput{frame.tex}
+\techinput{report.tex}
+\techinput{error.tex}
+\techinput{font.tex}
+\techinput{images.tex}
+\techinput{hyper.tex}
+\techinput{ugraphics.tex}
