@@ -1,5 +1,5 @@
 # Microsoft Developer Studio Project File - Name="xpce" - Package Owner=<4>
-# Microsoft Developer Studio Generated Build File, Format Version 5.00
+# Microsoft Developer Studio Generated Build File, Format Version 6.00
 # ** DO NOT EDIT **
 
 # TARGTYPE "Win32 (x86) Dynamic-Link Library" 0x0102
@@ -24,6 +24,7 @@ CFG=xpce - Win32 Release
 !MESSAGE 
 
 # Begin Project
+# PROP AllowPerConfigDependencies 0
 # PROP Scc_ProjName ""
 # PROP Scc_LocalPath ""
 CPP=cl.exe
@@ -68,7 +69,7 @@ LINK32=link.exe
 # PROP Intermediate_Dir "..\objects\debug\xpce"
 # PROP Ignore_Export_Lib 0
 # ADD BASE CPP /nologo /MT /W3 /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /c
-# ADD CPP /nologo /MD /W3 /Gm /GX /Zi /Od /I "." /I "..\..\pl\include" /I "..\include" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "pce_source" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /Gm /GX /ZI /Od /I "." /I "..\..\pl\include" /I "..\include" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "pce_source" /YX /FD /c
 # SUBTRACT CPP /Fr
 # ADD BASE MTL /nologo /D "_DEBUG" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32

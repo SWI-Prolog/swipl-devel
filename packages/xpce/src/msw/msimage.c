@@ -695,7 +695,6 @@ ws_save_image_file(Image image, FileObj file, Name fmt)
 
   if ( fmt == NAME_xbm )
   { return errorPce(image, NAME_noImageFormat, NAME_xbm);
-    fail;
   } else if ( fmt == NAME_xpm )
   {
 #ifdef O_XPM
@@ -783,6 +782,8 @@ ws_save_image_file(Image image, FileObj file, Name fmt)
 
     return rval;
   }
+  assert(0);
+  fail;
 }
 
 

@@ -14,7 +14,7 @@
 #define __WINDOWS__
 #endif
 
-#pragma warning(4:4244 4305 4018)
+#pragma warning(4:4244 4305 4018 4550)
 
 #define UXWIN(unx, win) win
 

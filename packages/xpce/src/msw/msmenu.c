@@ -46,6 +46,8 @@ sb_image(Name which, int up)
       return sd->img;
     }
   }
+  assert(0);
+  return NULL;
 }
 
 
