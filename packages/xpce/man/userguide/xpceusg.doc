@@ -56,18 +56,18 @@ object-oriented programming for Graphical User Interfaces. Applications
 in \productpl{} are portable across the supported X11 and Win32 (Windows
 95 and Windows NT) platforms.
 
-\product{} has been connected to the following Prolog systems.
-
-\begin{itemize}
-    \item \url[SWI-Prolog]{http://www.swi.psy.uva.nl/projects/SWI-Prolog/}
-    \item \url[Quintus Prolog]{http://www.sics.se/quintus/}
-    \item \url[SICStus Prolog]{http://www.sics.se/isl/sicstus.html}
-\end{itemize}
+%\product{} has been connected to the following Prolog systems.
+%
+%\begin{itemize}
+%    \item \url[SWI-Prolog]{http://www.swi.psy.uva.nl/projects/SWI-Prolog/}
+%    \item \url[Quintus Prolog]{http://www.sics.se/quintus/}
+%    \item \url[SICStus Prolog]{http://www.sics.se/isl/sicstus.html}
+%\end{itemize}
 
 {\it {\bf Partly} updated February 5, 1999 for \product{} version
  \productversion}
 
-Copyright \copyright\ 1992-1999 University of Amsterdam
+Copyright \copyright\ 1992-2001 University of Amsterdam
 \end{abstract}
 
 \hr

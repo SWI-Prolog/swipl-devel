@@ -18,9 +18,10 @@ Below we started \product{}/SWI-Prolog.
 % xpce
 ~/.xpcerc compiled, 0.09 sec, 10,636 bytes.
 .plrc compiled, 0.10 sec, 11,772 bytes.
-\product{} Development system (4.8.16, Jan 1996 for i486-linux and X11R6)
-Copyright 1993-1996, University of Amsterdam.  All rights reserved.
-The host-language is SWI-Prolog version 2.5.0.
+\product{} Development system (5.1.0, February 2001 for i686-linux and X11R6)
+Copyright 1993-2001, University of Amsterdam.
+Copying: GPL-2 (see file COPYING or www.gnu.org)
+The host-language is SWI-Prolog version 3.4.5
 
 For HELP on prolog, please type help. or apropos(topic).
          on xpce, please type manpce.
