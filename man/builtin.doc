@@ -4979,42 +4979,47 @@ time Prolog is blocked waiting for data.
 
 
 \begin{description}
-    \predicate{profile}{3}{+Goal, +Style, +Number} Execute \arg{Goal}
-just like time/1. Collect profiling statistics according to style (see
-profiler/2) and show the top \arg{Number} procedures on the current
-output stream (see show_profile/1). The results are kept in the database
-until reset_profiler/0 or profile/3 is called and can be displayed again
-with show_profile/1. profile/3 is the normal way to invoke the profiler.
-The predicates below are low-level predicates that can be used for
-special cases. \predicate{show_profile}{1}{+Number} Show the collected
-results of the profiler. Stops the profiler first to avoid interference
-from show_profile/1. It shows the top \arg{Number} predicates according
-the percentage {\sc cpu}-time used.% \footnote{show_profile/1 is defined
-in Prolog and takes a considerable amount of memory.}
-\predicate{profiler}{2}{-Old, +New} Query or change the status of the
-profiler. The status is one of \const{off}, \const{plain} or
-\const{cumulative}. \const{plain} implies the time used by children of a
-predicate is not added to the time of the predicate. For status
-\const{cumulative} the time of children is added (except for recursive
-calls). Cumulative profiling implies the stack is scanned up to the top
-on each time slice to find all active predicates. This implies the
-overhead grows with the number of active frames on the stack. Cumulative
-profiling starts debugging mode to disable tail recursion optimisation,
-which would otherwise remove the necessary parent environments.
-Switching status from \const{plain} to \const{cumulative} resets the
-profiler. Switching to and from status \const{off} does not reset the
-collected statistics, thus allowing to suspend profiling for certain
-parts of the program. \predicate{reset_profiler}{0}{} Switches the
-profiler to \const{off} and clears all collected statistics.
-\predicate{profile_count}{3}{+Head, -Calls, -Promilage} Obtain profile
-statistics of the predicate specified by \arg{Head}. \arg{Head} is an
-atom for predicates with arity 0 or a term with the same name and arity
-as the predicate required (see current_predicate/2). \arg{Calls} is
-unified with the number of `calls' and `redos' while the profiler was
-active. \arg{Promilage} is unified with the relative number of counts
-the predicate was active (\const{cumulative}) or on top of the stack
-(\const{plain}). \arg{Promilage} is an integer between 0 and 1000.
+    \predicate{profile}{3}{+Goal, +Style, +Number}
+Execute \arg{Goal} just like time/1. Collect profiling statistics
+according to style (see profiler/2) and show the top \arg{Number}
+procedures on the current output stream (see show_profile/1). The
+results are kept in the database until reset_profiler/0 or profile/3
+is called and can be displayed again with show_profile/1. profile/3
+is the normal way to invoke the profiler. The predicates below
+are low-level predicates that can be used for special cases.
+    \predicate{show_profile}{1}{+Number}
+Show the collected results of the profiler. Stops the profiler first to
+avoid interference from show_profile/1. It shows the top \arg{Number}
+predicates according the percentage {\sc cpu}-time used.%
+    \footnote{show_profile/1 is defined in Prolog and takes a
+              considerable amount of memory.}
+    \predicate{profiler}{2}{-Old, +New}
+Query or change the status of the profiler. The status is one of
+\const{off}, \const{plain} or \const{cumulative}. \const{plain} implies the
+time used by children of a predicate is not added to the time of the
+predicate. For status \const{cumulative} the time of children is added
+(except for recursive calls). Cumulative profiling implies the stack
+is scanned up to the top on each time slice to find all active
+predicates.  This implies the overhead grows with the number of active
+frames on the stack.  Cumulative profiling starts debugging mode
+to disable tail recursion optimisation, which would otherwise
+remove the necessary parent environments.  Switching status from
+\const{plain} to \const{cumulative} resets the profiler.  Switching to and
+from status \const{off} does not reset the collected statistics, thus
+allowing to suspend profiling for certain parts of the program.
+    \predicate{reset_profiler}{0}{}
+Switches the profiler to \const{off} and clears all collected statistics.
+    \predicate{profile_count}{3}{+Head, -Calls, -Promilage}
+Obtain profile statistics of the predicate specified by \arg{Head}.
+\arg{Head} is an atom for predicates with arity 0 or a term with the
+same name and arity as the predicate required (see
+current_predicate/2). \arg{Calls} is unified with the number of `calls'
+and `redos' while the profiler was active. \arg{Promilage} is unified
+with the relative number of counts the predicate was active
+(\const{cumulative}) or on top of the stack (\const{plain}). \arg{Promilage}
+is an integer between 0 and 1000.
 \end{description}
+
 
 \section{Memory Management}		\label{sec:memory}
 
