@@ -343,6 +343,17 @@ getIsRuntimeSystemPce(Pce pce)
 }
 
 
+static status
+debuggingSubjectPce(Pce pce, Name what)
+{
+#ifndef O_RUNTIME
+  if ( PCEdebugging && memberChain(PCEdebugSubjects, what) )
+    succeed;
+#endif
+  fail;
+}
+
+
 #ifndef O_RUNTIME
 
 static status
@@ -1304,6 +1315,8 @@ static senddecl send_pce[] =
   SM(NAME_bench, 3, T_bench, benchPce,
      NAME_statistics, "Benchmark for message passing"),
 #endif
+  SM(NAME_debuggingSubject, 1, "subject=name", debuggingSubjectPce,
+     NAME_debugging, "Succeed if we are debugging this subject"),
   SM(NAME_crash, 0, NULL, crashPce,
      NAME_debugging, "Write in an illegal address to force a crash"),
   SM(NAME_catchError, 1, "identifier=[name|chain]", catchErrorPce,
