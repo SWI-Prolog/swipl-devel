@@ -256,7 +256,7 @@ getLabelNameCharArray(CharArray n)
 
   { LocalString(buf, s->iswide, size);
     int o = 0;
-    int c = str_fetch(s, 0);
+    wint_t c = str_fetch(s, 0);
 
     i = 0;
     str_store(buf, o, towupper(c));
@@ -322,7 +322,7 @@ getStripCharArray(CharArray n, Name how)
       ;
   }
   for( ; i<size; i++)
-  { int c = str_fetch(s, i);
+  { wint_t c = str_fetch(s, i);
 
     str_store(buf, o++, c);
     if ( !iswspace(c) )

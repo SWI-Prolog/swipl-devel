@@ -2757,9 +2757,7 @@ s_width_(String s, int from, int to)
 
 int
 str_width(String s, int from, int to, FontObj f)
-{ string s2;
-
-  if ( from < 0 )
+{ if ( from < 0 )
     from = 0;
   if ( from >= s->size || to <= from )
     return 0;

@@ -411,7 +411,7 @@ getCharacterTextBuffer(TextBuffer tb, Int where)
 
 status
 characterTextBuffer(TextBuffer tb, Int where, Int c)
-{ TRY(store_textbuffer(tb, valInt(where), valInt(c)));
+{ TRY(store_textbuffer(tb, valInt(where), (wint_t)valInt(c)));
 
   return changedTextBuffer(tb);
 }
