@@ -2548,13 +2548,11 @@ discarded.
 	for(fr = BFR; fr > cbfr; fr = fr->backtrackFrame)
 	{ for(fr2 = fr; fr2->clause && fr2 > cbfr; fr2 = fr2->parent)
 	  { DEBUG(3, Sdprintf("discard %d: ", (Word)fr2 - (Word)lBase) );
-	    /*DEBUG(3, writeFrameGoal(fr2, 2); pl_nl() );*/
 	    leaveFrame(fr2);
 	    fr2->clause = NULL;
 	  }
 	}
 
-	/*DEBUG(3, Sdprintf("BFR at "); writeFrameGoal(BFR, 2); pl_nl() );*/
 	{ int nvar = (true(cbfr->predicate, FOREIGN)
 				? cbfr->predicate->functor->arity
 				: cbfr->clause->clause->variables);
@@ -2900,7 +2898,7 @@ erasure as soon as the clause finishes executing.
 	  arity   = 0;
 	  args    = NULL;
 	} else if ( isTerm(goal) )
-	{ if ( isSimpleGoal(a PASS_LD) )
+	{ if ( isSimpleGoal(a PASS_LD) || 1 )
 	  { args    = argTermP(goal, 0);
 	    functor = functorTerm(goal);
 	    arity   = arityFunctor(functor);
@@ -2910,14 +2908,13 @@ erasure as soon as the clause finishes executing.
   
 	    ht    = allocGlobal(3);
 	    ht[0] = FUNCTOR_dcall1;
+	    ht[1] = consPtr(&ht[2], TAG_COMPOUND|STG_GLOBAL);
 	    arity = g_free_variables(a, gTop, 0);
-	    if ( arity > 0 )
-	    { ht[1] = consPtr(&ht[2], TAG_COMPOUND|STG_GLOBAL);
-	      ht[2] = lookupFunctorDef(ATOM_dcall, arity);
-	    } else
+	    if ( arity == 0 )
 	    { ht[1] = ATOM_dcall;
-	      gTop -= 1;
-	    }
+	      ht[2] = ATOM_nil;		/* harmless data */
+	    } else
+	      ht[2] = lookupFunctorDef(ATOM_dcall, arity);
 	    head = argFrameP(next, 1);
 	    *head = consPtr(ht, TAG_COMPOUND|STG_GLOBAL);
 	    lTop = (LocalFrame)argFrameP(next, 2);
@@ -3264,6 +3261,9 @@ increase lTop too to prepare for asynchronous interrupts.
 	    next->programPointer = PC;
 	    next->parent         = FR;
 	    next->flags		 = FR->flags;
+#ifdef O_LOGICAL_UPDATE
+	    next->generation     = GD->generation;
+#endif
 	    incLevel(next);
 	    next->backtrackFrame = BFR;
 #ifdef O_PROFILE
@@ -3309,7 +3309,8 @@ increase lTop too to prepare for asynchronous interrupts.
 	    }
 
 	    if ( rval )
-	    { NEXT_INSTRUCTION;
+	    { assert(rval == TRUE);
+	      NEXT_INSTRUCTION;
 	    }
 
 	    Undo(next->mark);
@@ -3420,7 +3421,7 @@ execution can continue at `next_instruction'
 #if TAILRECURSION
 	if ( true(FR, FR_CUT) && BFR <= FR
 #if O_DEBUGGER
-	     && !debugstatus.debugging
+	     && trueFeature(TAILRECURSION_FEATURE)
 #endif
 	   )
 	{ 

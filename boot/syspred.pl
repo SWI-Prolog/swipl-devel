@@ -407,6 +407,8 @@ $predicate_property(line_count(LineNumber), Pred) :-
 	$get_predicate_attribute(Pred, line_count, LineNumber).
 $predicate_property(notrace, Pred) :-
 	$get_predicate_attribute(Pred, trace, 0).
+$predicate_property(spying, Pred) :-
+	$get_predicate_attribute(Pred, spy, 1).
 $predicate_property(show_childs, Pred) :-
 	$get_predicate_attribute(Pred, system, 1),
 	$get_predicate_attribute(Pred, hide_childs, 0).

@@ -624,6 +624,8 @@ initFeatures()
     defFeature("executable", FT_ATOM|FF_READONLY, GD->paths.executable);
 
   defFeature("optimise", FT_BOOL, GD->cmdline.optimise, OPTIMISE_FEATURE);
+  defFeature("tail_recursion_optimisation", FT_BOOL,
+	     TRUE, TAILRECURSION_FEATURE);
   defFeature("c_libs",	  FT_ATOM|FF_READONLY, C_LIBS);
   defFeature("c_cc",	  FT_ATOM|FF_READONLY, C_CC);
   defFeature("c_ldflags", FT_ATOM|FF_READONLY, C_LDFLAGS);

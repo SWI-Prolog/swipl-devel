@@ -10,10 +10,10 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 
-#define W_PRINT		1		/* print/1 for displaying goal */
-#define W_WRITE		2		/* write/1 */
-#define W_WRITEQ	3		/* writeq/1 */
-#define W_DISPLAY	4		/* display/1 */
+#define WFG_TRACE	0x01000
+#define WFG_TRACING	0x02000
+#define WFG_BACKTRACE	0x04000
+#define WFG_CHOICE	0x08000
 
 #define TRACE_FIND_NONE	0
 #define TRACE_FIND_ANY	1
@@ -103,8 +103,9 @@ forwards void		alternatives(LocalFrame);
 static void		exceptionDetails(void);
 forwards void		listGoal(LocalFrame frame);
 forwards int		traceInterception(LocalFrame, LocalFrame, int, Code);
-forwards void		writeFrameGoal(LocalFrame frame);
 forwards void		interruptHandler(int sig);
+static void		writeFrameGoal(LocalFrame frame, Code PC,
+				       unsigned int flags);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 redoFrame() returns the latest skipped frame or NULL if  no  such  frame
@@ -183,33 +184,9 @@ portPrompt(int port)
     case EXCEPTION_PORT: return " Exception: ";
     case CUT_CALL_PORT:	 return " Cut call: ";
     case CUT_EXIT_PORT:	 return " Cut exit: ";
-    default:		 return " What port???: ";
+    default:		 return "";
   }
 }
-
-
-#ifdef O_PLMT
-
-static void
-writeThread(IOSTREAM *s)
-{ int id;
-
-  if ( (id = PL_thread_self()) != 1 )
-  { const char *name = threadName(id);
-
-    if ( name )
-      Sfprintf(s, "{%s} ", name);
-    else
-      Sfprintf(s, "{%d} ", id);
-  }
-}
-
-#else
-
-#define writeThread(s)
-
-#endif
-
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -239,34 +216,9 @@ tracePort(LocalFrame frame, LocalFrame bfr, int port, Code PC)
 
 					/* trace/[1,2] */
   if ( true(def, TRACE_CALL|TRACE_REDO|TRACE_EXIT|TRACE_FAIL) &&
+       (port & (CALL_PORT|REDO_PORT|EXIT_PORT|FAIL_PORT)) &&
        !(port & (BREAK_PORT|CUT_PORT)) )
-  { char *fmt = NULL;
-
-    switch(port)
-    { case CALL_PORT:
-	if ( true(def, TRACE_CALL) )
-	  fmt = "T Call:  (%3ld) ";
-        break;
-      case REDO_PORT:
-	if ( true(def, TRACE_REDO) )
-	  fmt = "T Redo:  (%3ld) ";
-        break;
-      case EXIT_PORT:
-	if ( true(def, TRACE_EXIT) )
-	  fmt = "T Exit:  (%3ld) ";
-        break;
-      case FAIL_PORT:
-	if ( true(def, TRACE_FAIL) )
-	  fmt = "T Fail:  (%3ld) ";
-        break;
-    }
-    if ( fmt )
-    { writeThread(Sdout);
-      Sfprintf(Sdout, fmt, levelFrame(frame));
-      writeFrameGoal(frame);
-      Sputc('\n', Sdout);
-    }
-  }
+    writeFrameGoal(frame, PC, port|WFG_TRACE);
 
   if ( (port != BREAK_PORT) &&
        /*(port != EXCEPTION_PORT) &&*/
@@ -335,12 +287,7 @@ All failed.  Things now are upto the normal Prolog tracer.
   action = ACTION_CONTINUE;
 
 again:
-  writeThread(Sdout);
-  Sputc(true(def, SPY_ME)   ? '*' : ' ', Sdout);
-  Sputc(true(def, METAPRED) ? '^' : ' ', Sdout);
-  Sfputs(portPrompt(port), Sdout);
-  Sfprintf(Sdout, "(%3ld) ", levelFrame(frame));
-  writeFrameGoal(frame);
+  writeFrameGoal(frame, PC, port|WFG_TRACING);
 
   if (debugstatus.leashing & port)
   { char buf[LINESIZ];
@@ -683,27 +630,90 @@ For the above reason, the code  below uses low-level manipulation rather
 than normal unification, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+typedef struct
+{ unsigned int flags;			/* flag mask */
+  atom_t name;				/* name */
+} portname;
+
+static const portname portnames[] =
+{ { WFG_BACKTRACE,  ATOM_backtrace },
+  { WFG_CHOICE,     ATOM_choice },
+  { CALL_PORT,	    ATOM_call },
+  { EXIT_PORT,	    ATOM_exit },
+  { FAIL_PORT,	    ATOM_fail },
+  { REDO_PORT,	    ATOM_redo },
+  { UNIFY_PORT,	    ATOM_unify },
+  { BREAK_PORT,	    ATOM_break },
+  { CUT_CALL_PORT,  ATOM_cut_call },
+  { CUT_EXIT_PORT,  ATOM_cut_exit },
+  { EXCEPTION_PORT, ATOM_exception },
+  { 0,		    NULL_ATOM }
+};
+
+
 static void
-writeFrameGoal(LocalFrame frame)
-{ int debugSave;
-  fid_t cid = PL_open_foreign_frame();
-  term_t goal    = PL_new_term_ref();
-  term_t options = PL_new_term_ref();
-  term_t tmp     = PL_new_term_ref();
+writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
+{ fid_t cid = PL_open_foreign_frame();
+  Definition def = frame->predicate;
 
-  if ( debugstatus.showContext )
-    Sfprintf(Sdout, "[%s] ", stringAtom(contextModule(frame)->name));
-  put_frame_goal(goal, frame);
-  
-  debugSave = debugstatus.debugging;
-  debugstatus.debugging = FALSE;
+  if ( !GD->bootsession && GD->initialised )
+  { term_t fr   = PL_new_term_ref();
+    term_t port = PL_new_term_ref();
+    term_t pc   = PL_new_term_ref();
+    const portname *pn = portnames;
 
-  PL_put_atom(tmp, ATOM_debugger_print_options);
-  if ( !pl_feature(tmp, options, 0) )
-    PL_put_nil(options);
-  PL_put_atom(tmp, ATOM_user_output);
-  pl_write_term3(tmp, goal, options);
-  debugstatus.debugging = debugSave;
+    if ( true(def, FOREIGN) )
+      PL_put_atom(pc, ATOM_foreign);
+    else if ( PC && frame->clause )
+      PL_put_integer(pc, PC-frame->clause->clause->codes);
+    else
+      PL_put_nil(pc);
+    
+    PL_put_frame(fr, frame);
+
+    for(; pn->flags; pn++)
+    { if ( flags & pn->flags )
+      { PL_put_atom(port, pn->name);
+	break;
+      }
+    }
+    if ( flags & WFG_TRACE )
+      PL_cons_functor(port, FUNCTOR_trace1, port);
+
+    printMessage(ATOM_debug,
+		 PL_FUNCTOR, FUNCTOR_frame3,
+		   PL_TERM, fr,
+		   PL_TERM, port,
+		   PL_TERM, pc);
+  } else
+  { int debugSave = debugstatus.debugging;
+    term_t goal    = PL_new_term_ref();
+    term_t options = PL_new_term_ref();
+    term_t tmp     = PL_new_term_ref();
+    char msg[3];
+    const char *pp = portPrompt(flags&PORT_MASK);
+
+    put_frame_goal(goal, frame);
+    debugstatus.debugging = FALSE;
+    PL_put_atom(tmp, ATOM_debugger_print_options);
+    if ( !pl_feature(tmp, options, 0) )
+      PL_put_nil(options);
+    PL_put_atom(tmp, ATOM_user_output);
+
+    msg[0] = true(def, METAPRED) ? '^' : ' ';
+    msg[1] = (flags&WFG_TRACE) ? 'T' : true(def, SPY_ME) ? '*' : ' ';
+    msg[2] = EOS;
+
+    Sfprintf(Sdout, "%s%s(%d) ", msg, pp, levelFrame(frame));
+    if ( debugstatus.showContext )
+      Sfprintf(Sdout, "[%s] ", stringAtom(contextModule(frame)->name));
+
+    pl_write_term3(tmp, goal, options);
+    if ( flags & (WFG_BACKTRACE|WFG_CHOICE) )
+      Sfprintf(Sdout, "\n");
+
+    debugstatus.debugging = debugSave;
+  }
 
   PL_discard_foreign_frame(cid);
 }
@@ -717,10 +727,7 @@ alternatives(LocalFrame frame)
 { for(; frame; frame = frame->backtrackFrame)
   { if (hasAlternativesFrame(frame) &&
 	 (false(frame, FR_NODEBUG) || SYSTEM_MODE) )
-    { Sfprintf(Sdout, "    [%3ld] ", levelFrame(frame));
-      writeFrameGoal(frame);
-      Sputc('\n', Sdout);
-    }
+      writeFrameGoal(frame, NULL, WFG_CHOICE);
   }
 }    
 
@@ -782,12 +789,15 @@ backTrace(LocalFrame frame, int depth)
   Definition def = NULL;
   int same_proc = 0;
   int alien = FALSE;
+  Code PC = NULL;
 
   if ( frame == NULL )
      frame = environment_frame;
 
   for(; depth > 0 && frame;
-        alien = (frame->parent == NULL), frame = parentFrame(frame))
+        alien = (frame->parent == NULL),
+        PC = frame->programPointer,
+        frame = parentFrame(frame))
   { if ( alien )
       Sfputs("    <Alien goal>\n", Sdout);
 
@@ -801,10 +811,8 @@ backTrace(LocalFrame frame, int depth)
     } else
     { if ( same_proc_frame != NULL )
       { if ( false(same_proc_frame, FR_NODEBUG) || SYSTEM_MODE )
-        { Sfprintf(Sdout, "    [%3ld] ", levelFrame(same_proc_frame));
-	  writeFrameGoal(same_proc_frame);
+        { writeFrameGoal(same_proc_frame, PC, WFG_BACKTRACE);
 	  depth--;
-	  Sputc('\n', Sdout);
 	}
 	same_proc_frame = NULL;
 	same_proc = 0;
@@ -813,10 +821,8 @@ backTrace(LocalFrame frame, int depth)
     }
 
     if (false(frame, FR_NODEBUG) || SYSTEM_MODE)
-    { Sfprintf(Sdout, "    [%3ld] ", levelFrame(frame));
-      writeFrameGoal(frame);
+    { writeFrameGoal(frame, PC, WFG_BACKTRACE);
       depth--;
-      Sputc('\n', Sdout);
     }
   }
 }
@@ -1096,6 +1102,9 @@ debugmode(int doit, int *old)
   if ( debugstatus.debugging != doit )
   { if ( doit )
       debugstatus.skiplevel = VERY_DEEP;
+    defFeature("tail_recursion_optimisation", FT_BOOL,
+	       doit ? FALSE : TRUE,
+	       TAILRECURSION_FEATURE);
     debugstatus.debugging = doit;
     printMessage(ATOM_silent,
 		 PL_FUNCTOR_CHARS, "debug_mode", 1,

@@ -446,3 +446,7 @@
 #define ATOM_private_procedure MK_ATOM(445)
 #define ATOM_unknown      MK_ATOM(446)
 #define ATOM_debug        MK_ATOM(447)
+#define ATOM_frame        MK_ATOM(448)
+#define ATOM_help         MK_ATOM(449)
+#define ATOM_backtrace    MK_ATOM(450)
+#define ATOM_choice       MK_ATOM(451)

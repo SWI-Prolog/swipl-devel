@@ -1583,6 +1583,7 @@ Tracer communication declarations.
 #define CUT_EXIT_PORT   0x080
 #define EXCEPTION_PORT	0x100
 #define CUT_PORT	(CUT_CALL_PORT|CUT_EXIT_PORT)
+#define PORT_MASK	0x1ff
 #define VERY_DEEP	1000000000L	/* deep skiplevel */
 
 #define LONGATOM_CHECK	    0x01	/* read/1: error on long atoms */
@@ -1630,6 +1631,7 @@ typedef struct debuginfo
 #define FILEVARS_FEATURE	0x2000	/* Expand $var and ~ in filename */
 #define AUTOLOAD_FEATURE	0x4000	/* do autoloading */
 #define CHARCONVERSION_FEATURE	0x8000	/* do character-conversion */
+#define TAILRECURSION_FEATURE	0x10000	/* Tail recursion enabled? */
 
 typedef struct
 { unsigned long flags;			/* the feature flags */

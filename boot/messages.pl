@@ -12,11 +12,18 @@
 	    print_message_lines/3	% +Stream, +Prefix, +Lines
 	  ]).
 
+:- multifile
+	prolog:message/3.
+:- discontiguous
+	prolog_message/3.
+
 translate_message(Term) -->
 	{var(Term)}, !,
 	[ 'Unknown exception term: ~p'-[Term] ].
 translate_message(Term) -->
 	prolog:message(Term).
+translate_message(Term) -->
+	prolog_message(Term).
 translate_message(error(resource_error(stack), Name)) -->
 	[ 'Out of ~w stack'-[Name] ].
 translate_message(error(ISO, SWI)) -->
@@ -30,7 +37,10 @@ translate_message(message_lines(Lines), L, T) :- % deal with old C-warning()
 translate_message(format(Fmt, Args)) -->
 	[ Fmt-Args ].
 translate_message(Term) -->
-	[ 'Unknown exception term: ~p'-[Term] ].
+	{ Term = error(_, _) },
+	[ 'Unknown exception: ~p'-[Term] ].
+translate_message(Term) -->
+	[ 'Unknown message: ~p'-[Term] ].
 
 make_message_lines([], T, T) :- !.
 make_message_lines([Last],  ['~w'-[Last]|T], T) :- !.
@@ -177,66 +187,63 @@ swi_extra(_) -->
 		 *	  NORMAL MESSAGES	*
 		 *******************************/
 
-:- multifile
-	prolog:message/3.
-
-prolog:message(initialization_exception(Goal, E)) -->
+prolog_message(initialization_exception(Goal, E)) -->
 	[ 'Initialization goal ~p raised exception:'-[Goal], nl ],
 	translate_message(E).
-prolog:message(initialization_exception(E)) -->
+prolog_message(initialization_exception(E)) -->
 	[ 'Prolog initialisation failed:', nl ],
 	translate_message(E).
-prolog:message(unhandled_exception(E)) -->
+prolog_message(unhandled_exception(E)) -->
 	[ 'Unhandled exception: ~p~n'-[E] ].
-prolog:message(no_predicates_for(Spec)) -->
+prolog_message(no_predicates_for(Spec)) -->
 	[ 'No predicates for `~w'''-[Spec] ].
-prolog:message(goal_failed(Context, Goal)) -->
+prolog_message(goal_failed(Context, Goal)) -->
 	[ 'Goal (~w) failed: ~p'-[Context, Goal] ].
-prolog:message(no_current_module(Module)) -->
+prolog_message(no_current_module(Module)) -->
 	[ '~w is not a current module (created)'-[Module] ].
-prolog:message(commandline_arg_type(Flag, Arg)) -->
+prolog_message(commandline_arg_type(Flag, Arg)) -->
 	[ 'Bad argument to commandline option -~w: ~w'-[Flag, Arg] ].
-prolog:message(missing_feature(Name)) -->
+prolog_message(missing_feature(Name)) -->
 	[ 'This version of SWI-Prolog does not support ~w'-[Name] ].
 
 		 /*******************************
 		 *	   LOADING FILES	*
 		 *******************************/
 
-prolog:message(modify_active_procedure(Who, What)) -->
+prolog_message(modify_active_procedure(Who, What)) -->
 	[ '~p: modified active procedure ~p'-[Who, What] ].
-prolog:message(load_file(failed(user:File))) -->
+prolog_message(load_file(failed(user:File))) -->
 	[ 'Failed to load ~p'-[File] ].
-prolog:message(load_file(failed(Module:File))) -->
+prolog_message(load_file(failed(Module:File))) -->
 	[ 'Failed to load ~p into module ~p'-[File, Module] ].
-prolog:message(mixed_directive(Goal)) -->
+prolog_message(mixed_directive(Goal)) -->
 	[ 'Cannot pre-compile mixed load/call directive: ~p'-[Goal] ].
-prolog:message(cannot_redefine_comma) -->
+prolog_message(cannot_redefine_comma) -->
 	[ 'Full stop in clause-body?  Cannot redefine ,/2' ].
-prolog:message(illegal_autoload_index(Dir, Term)) -->
+prolog_message(illegal_autoload_index(Dir, Term)) -->
 	[ 'Illegal term in INDEX file of directory ~w: ~w'-[Dir, Term] ].
-prolog:message(redefined_procedure(Type, Proc)) -->
+prolog_message(redefined_procedure(Type, Proc)) -->
 	[ 'Redefined ~w procedure ~p'-[Type, Proc] ].
-prolog:message(discontiguous(Proc)) -->
+prolog_message(discontiguous(Proc)) -->
 	[ 'Clauses of ~p are not together in the source-file'-[Proc] ].
-prolog:message(load_file(start(Level, File))) -->
+prolog_message(load_file(start(Level, File))) -->
 	[ '~|~t~*+Loading '-[Level] ],
 	load_file(File),
 	[ ' ...' ].
-prolog:message(load_file(done(Level, File, Action, Module, Time, Heap))) -->
+prolog_message(load_file(done(Level, File, Action, Module, Time, Heap))) -->
 	[ '~|~t~*+'-[Level] ],
 	load_file(File),
 	[ ' ~w'-[Action] ],
 	load_module(Module),
 	[ ' ~2f sec, ~D bytes'-[Time, Heap] ].
-prolog:message(dwim_undefined(Goal, Alternatives)) -->
+prolog_message(dwim_undefined(Goal, Alternatives)) -->
 	{ goal_to_predicate_indicator(Goal, Pred)
 	},
 	[ 'Undefined procedure: ~p'-[Pred], nl, 
 	  '    However, there are definitions for:', nl
 	],
 	dwim_message(Alternatives).
-prolog:message(dwim_correct(Into)) -->
+prolog_message(dwim_correct(Into)) -->
 	[ 'Correct to: ~w? '-[Into], flush ].
 	
 load_file(file(Spec, _Path)) -->
@@ -268,16 +275,16 @@ hidden_module(system).
 		 *	        GC		*
 		 *******************************/
 
-prolog:message(gc(start)) -->
+prolog_message(gc(start)) -->
 	[ 'GC: ', flush ].
-prolog:message(gc(done(G, T, Time, UG, UT, RG, RT))) -->
+prolog_message(gc(done(G, T, Time, UG, UT, RG, RT))) -->
 	[ at_same_line,
 	  'gained ~D+~D in ~2f sec; used ~D+~D; free ~D+~D'-
 	  [G, T, Time, UG, UT, RG, RT]
 	].
-prolog:message(agc(start)) -->
+prolog_message(agc(start)) -->
 	[ 'AGC: ', flush ].
-prolog:message(agc(done(Collected, Remaining, Time))) -->
+prolog_message(agc(done(Collected, Remaining, Time))) -->
 	[ at_same_line,
 	  'reclaimed ~D atoms in ~2f sec. (remaining: ~D)'-
 	  [Collected, Time, Remaining]
@@ -289,17 +296,17 @@ prolog:message(agc(done(Collected, Remaining, Time))) -->
 		 *	  MAKE/AUTOLOAD		*
 		 *******************************/
 
-prolog:message(make(reload(Files))) -->
+prolog_message(make(reload(Files))) -->
 	{ length(Files, N)
 	},
 	[ 'Make: reloading ~D files'-[N] ].
-prolog:message(make(done)) -->
+prolog_message(make(done)) -->
 	[ 'Make: finished' ].
-prolog:message(make(library_index(Dir))) -->
+prolog_message(make(library_index(Dir))) -->
 	[ 'Updating index for library ~w'-[Dir] ].
-prolog:message(autoload(Pred, File)) -->
+prolog_message(autoload(Pred, File)) -->
 	[ 'Autoloading ~p from ~w'-[Pred, File] ].
-prolog:message(autoload(read_index(Dir))) -->
+prolog_message(autoload(read_index(Dir))) -->
 	[ 'Loading autoload index for ~w'-[Dir] ].
 
 
@@ -307,7 +314,7 @@ prolog:message(autoload(read_index(Dir))) -->
 		 *	TOPLEVEL MESSAGES	*
 		 *******************************/
 
-prolog:message(welcome) -->
+prolog_message(welcome) -->
 	{ current_prolog_flag(version, Version),
 	  Major is Version // 10000,
 	  Minor is (Version // 100) mod 100,
@@ -318,22 +325,22 @@ prolog:message(welcome) -->
 	  'All rights reserved.', nl, nl,
 	  'For help, use ?- help(Topic). or ?- apropos(Word).', nl, nl
 	].
-prolog:message(halt) -->
+prolog_message(halt) -->
 	[ 'halt' ].
-prolog:message(break(enter(Level))) -->
+prolog_message(break(enter(Level))) -->
 	[ 'Break level ~d'-[Level] ].
-prolog:message(break(exit(Level))) -->
+prolog_message(break(exit(Level))) -->
 	[ nl, 'Exit break level ~d'-[Level] ].
-prolog:message(var_query(_)) -->
+prolog_message(var_query(_)) -->
 	[ '... 1,000,000 ............ 10,000,000 years later', nl, nl,
 	  '~t~8|>> 42 << (last release gives the question)'
 	].
 
-prolog:message(query(no)) -->
+prolog_message(query(no)) -->
 	[ nl, 'No' ].
-prolog:message(query(yes)) -->
+prolog_message(query(yes)) -->
 	[ nl, 'Yes' ].
-prolog:message(query(yes, Bindings)) -->
+prolog_message(query(yes, Bindings)) -->
 	bindings(Bindings),
 	[ ' ', flush ].
 
@@ -345,28 +352,28 @@ bindings([Name = Value|T]) -->
 	[ nl, '~w = ~W'-[Name, Value, Options] ],
 	bindings(T).
 
-prolog:message(query(help)) -->
+prolog_message(query(help)) -->
 	[ nl, 'Actions:', nl, nl,
 	  '; (n, r):     redo    t:                 trace & redo', nl,
 	  'b:            break   c (a, RET, space): continue', nl,
 	  'w:            write   p                  print', nl,
 	  'h (?):        help', nl, nl
 	].
-prolog:message(query(action)) -->
+prolog_message(query(action)) -->
 	[ 'Action? ', flush ].
-prolog:message(if_tty(Text)) -->
+prolog_message(if_tty(Text)) -->
 	(   {current_prolog_flag(tty_control, true)}
 	->  [ at_same_line, '~w'-[Text] ]
 	;   []
 	).
-prolog:message(halt(Reason)) -->
+prolog_message(halt(Reason)) -->
 	[ '~w: halt'-[Reason] ].
-prolog:message(no_action(Char)) -->
+prolog_message(no_action(Char)) -->
 	[ 'Unknown action: ~c (h for help)'-[Char], nl ].
-prolog:message(query(confirm)) -->
+prolog_message(query(confirm)) -->
 	[ 'Please answer \'y\' or \'n\'? ', flush ].
 
-prolog:message(history(help(Show, Help))) -->
+prolog_message(history(help(Show, Help))) -->
 	[ 'History Commands:', nl, 
 	  '    !!.              Repeat last query', nl, 
 	  '    !nr.             Repeat query numbered <nr>', nl, 
@@ -379,13 +386,13 @@ prolog:message(history(help(Show, Help))) -->
 	  '    ~w.~21|Show history list'-[Show], nl, 
 	  '    ~w.~21|Show this list'-[Help], nl, nl
 	].
-prolog:message(history(no_event)) -->
+prolog_message(history(no_event)) -->
 	[ '! No such event' ].
-prolog:message(history(bad_substitution)) -->
+prolog_message(history(bad_substitution)) -->
 	[ '! Bad substitution' ].
-prolog:message(history(expanded(Event))) -->
+prolog_message(history(expanded(Event))) -->
 	[ '~w.'-[Event] ].
-prolog:message(history(history(Events))) -->
+prolog_message(history(history(Events))) -->
 	history_events(Events).
 
 history_events([]) -->
@@ -399,36 +406,36 @@ history_events([Nr/Event|T]) -->
 		 *       DEBUGGER MESSAGES	*
 		 *******************************/
 
-prolog:message(spy(Head)) -->
+prolog_message(spy(Head)) -->
 	{ goal_to_predicate_indicator(Head, Pred)
 	},
 	[ 'Spy point on ~p'-[Pred] ].
-prolog:message(nospy(Head)) -->
+prolog_message(nospy(Head)) -->
 	{ goal_to_predicate_indicator(Head, Pred)
 	},
 	[ 'Spy point removed from ~p'-[Pred] ].
-prolog:message(trace_mode(Bool)) -->
+prolog_message(trace_mode(Bool)) -->
 	[ 'Trace mode switched to ~w'-[Bool] ].
-prolog:message(debug_mode(Bool)) -->
+prolog_message(debug_mode(Bool)) -->
 	[ 'Debug mode switched to ~w'-[Bool] ].
-prolog:message(debugging(Bool)) -->
+prolog_message(debugging(Bool)) -->
 	[ 'Debug mode is ~w'-[Bool] ].
-prolog:message(spying([])) --> !,
+prolog_message(spying([])) --> !,
 	[ 'No spy points' ].
-prolog:message(spying(Heads)) -->
+prolog_message(spying(Heads)) -->
 	[ 'Spy points (see spy/1) on:', nl ],
 	predicate_list(Heads).
-prolog:message(trace(Head, [])) --> !,
+prolog_message(trace(Head, [])) --> !,
 	{ goal_to_predicate_indicator(Head, Pred)
 	},
 	[ '        ~p: Not tracing'-[Pred], nl].
-prolog:message(trace(Head, Ports)) -->
+prolog_message(trace(Head, Ports)) -->
 	{ goal_to_predicate_indicator(Head, Pred)
 	},
 	[ '        ~p: ~w'-[Pred, Ports], nl].
-prolog:message(tracing([])) --> !,
+prolog_message(tracing([])) --> !,
 	[ 'No spy points' ].
-prolog:message(tracing(Heads)) -->
+prolog_message(tracing(Heads)) -->
 	[ 'Trace points (see trace/1) on:', nl ],
 	tracing_list(Heads).
 
@@ -445,6 +452,60 @@ tracing_list([]) -->
 tracing_list([trace(Head, Ports)|T]) -->
 	translate_message(trace(Head, Ports)),
 	tracing_list(T).
+
+prolog_message(frame(Frame, backtrace, _PC)) --> !,
+	{ prolog_frame_attribute(Frame, level, Level)
+	},
+	[ at_same_line, '~t[~D] ~10|'-[Level] ],
+	frame_goal(Frame).
+prolog_message(frame(Frame, choice, PC)) --> !,
+	prolog_message(frame(Frame, backtrace, PC)).
+prolog_message(frame(Frame, trace(Port), _PC)) --> !,
+	[ at_same_line, ' T ' ],
+	port(Port),
+	frame_level(Frame),
+	frame_goal(Frame),
+	[ flush ].
+prolog_message(frame(Frame, Port, _PC)) -->
+	[ at_same_line ],
+	frame_flags(Frame),
+	port(Port),
+	frame_level(Frame),
+	frame_goal(Frame),
+	[ flush ].
+
+frame_goal(Frame) -->
+	{ prolog_frame_attribute(Frame, goal, Goal0),
+	  clean_goal(Goal0, Goal),
+	  current_prolog_flag(debugger_print_options, Options)
+	},
+	[ '~W'-[Goal, Options] ].
+
+frame_level(Frame) -->
+	{ prolog_frame_attribute(Frame, level, Level)
+	},
+	[ '(~D) '-[Level] ].
+
+frame_flags(Frame) -->
+	{ prolog_frame_attribute(Frame, goal, Goal),
+	  (   predicate_property(Goal, transparent)
+	  ->  T = '^'
+	  ;   T = ' '
+	  ),
+	  (   predicate_property(Goal, spying)
+	  ->  S = '*'
+	  ;   S = ' '
+	  )
+	},
+	[ '~w~w '-[T, S] ].
+	  
+port(Port) -->
+	[ '~w: '-[Port] ].
+
+clean_goal(M:Goal, Goal) :-
+	hidden_module(M), !.
+clean_goal(Goal, Goal).
+
 
 		 /*******************************
 		 *	PRINTING MESSAGES	*
@@ -487,6 +548,7 @@ prefix(warning,	      'Warning: (~w:~d):~n', '\t', '', user_error).
 
 prefix(help,	      '',          user_error).
 prefix(query,	      '',          user_error).
+prefix(debug,	      '',          user_output).
 prefix(warning,	      'Warning: ', user_error).
 prefix(error,	      'ERROR: ',   user_error).
 prefix(informational, '% ',        user_error).

@@ -1,6 +1,14 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Bug in call/1 on ground-calls and very specific control.
+
+  * FIXED: Incorrect verification in SECURE-mode in pl-bags.c (debugging
+    only).
+
+  * FIXED: Bug in handling logical-update view of assert/retract.  Thanks
+    to Paolo Moura.
+
 VERSION 3.3.0 (release-6)
 =========================
 

@@ -114,7 +114,7 @@ pl_collect_bag(term_t bindings, term_t bag)
       PL_unify(tmp, bindings);
       PL_get_arg(2, binding, tmp);
       PL_cons_list(list, tmp, list);
-      SECURE(checkData(&list));
+      SECURE(checkData(valTermRef(list)));
       freeAssoc(prev, a);
     }
   }

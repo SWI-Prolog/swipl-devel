@@ -145,3 +145,5 @@
 #define FUNCTOR_xor2         MK_FUNCTOR(144, 2)
 #define FUNCTOR_xpceref1     MK_FUNCTOR(145, 1)
 #define FUNCTOR_dcall1       MK_FUNCTOR(146, 1)
+#define FUNCTOR_frame3       MK_FUNCTOR(147, 3)
+#define FUNCTOR_trace1       MK_FUNCTOR(148, 1)
