@@ -7,6 +7,14 @@ BUGS:
 	* plcon.exe to delay Control-C in garbage collections.
 
 
+FOREIGN LINKING:
+
+	* Add info for compilation and linking to pl -dump-runtime-variables:
+
+		+ Compile-flag for position-independent
+		+ Link flag for making shared object
+		+ Use this in plld
+
 ISO:
 ----
 

@@ -230,6 +230,9 @@
 /* Define if you have the rint function.  */
 #undef HAVE_RINT
 
+/* Define if you have the rl_clear_pending_input function.  */
+#undef HAVE_RL_CLEAR_PENDING_INPUT
+
 /* Define if you have the rl_completion_matches function.  */
 #undef HAVE_RL_COMPLETION_MATCHES
 
@@ -238,6 +241,9 @@
 
 /* Define if you have the rl_readline_state function.  */
 #undef HAVE_RL_READLINE_STATE
+
+/* Define if you have the rl_set_prompt function.  */
+#undef HAVE_RL_SET_PROMPT
 
 /* Define if you have the select function.  */
 #undef HAVE_SELECT

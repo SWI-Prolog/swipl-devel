@@ -71,15 +71,23 @@ extern void add_history(char *);	/* should be in readline.h */
 extern int rl_begin_undo_group(void);	/* delete when conflict arrises! */
 extern int rl_end_undo_group(void);
 extern Function *rl_event_hook;
-extern char *filename_completion_function(const char *, int);
 
 #ifndef HAVE_RL_COMPLETION_MATCHES
 #define rl_completion_matches completion_matches
+extern char *filename_completion_function(char *, int);
 #endif
-#ifndef HAVE_RL_READLINE_STATE
+
+#ifndef HAVE_RL_READLINE_STATE		/* before version 4.2 */
 static int rl_readline_state = 0;
 #define RL_STATE_INITIALIZED 0
 #endif
+#ifndef HAVE_RL_SET_PROMPT
+#define rl_set_prompt(x) (void)0
+#endif
+#ifndef RL_CLEAR_PENDING_INPUT
+#define rl_clear_pending_input() (void)0
+#endif
+
 
 static foreign_t
 pl_rl_read_init_file(term_t file)
@@ -322,14 +330,12 @@ static char **
 prolog_completion(const char *text, int start, int end)
 { char **matches = NULL;
 
-  if ( (start == 1 && rl_line_buffer[0] == '[') )	/* [file */
-    matches = rl_completion_matches(text,
-				    (void *) filename_completion_function);
-  else if (start == 2 && strncmp(rl_line_buffer, "['", 2))
-    matches = rl_completion_matches(text,
-				    (void *) filename_completion_function);
+  if ( (start == 1 && rl_line_buffer[0] == '[') ||	/* [file */
+       (start == 2 && strncmp(rl_line_buffer, "['", 2)) )
+    matches = rl_completion_matches((char *)text,	/* for pre-4.2 */
+				    (void *)filename_completion_function);
   else
-    matches = rl_completion_matches(text,
+    matches = rl_completion_matches((char *)text,
 				    atom_generator);
 
   return matches;
