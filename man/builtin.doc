@@ -3524,7 +3524,7 @@ achieve compatibility to other Prolog systems:
 \end{code}
 
 Unlike what many users think, operators and quoted atoms have no
-relation: defining a atom as an operator does {\bf not} influence
+relation: defining an atom as an operator does {\bf not} influence
 parsing characters into atoms and quoting an atom does {\bf not} stop
 it from acting as an operator.  To stop an atom acting as an operator,
 enclose it in braces like this: (myop).
