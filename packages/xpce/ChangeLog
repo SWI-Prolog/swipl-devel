@@ -1,3 +1,14 @@
+VERSION 5.0.10
+==============
+
+* ADDED: Library 'http/httpd' for a HTTP deamon skeleton: make your XPCE
+  process drive your browser!
+
+* FIXED/MODIFIED: `node->for_some' and `node->for_all' to traverse the
+  node<-sons before executing the code on the node itself.  This allows
+  for removing nodes without breaking the consistency of the tree.
+  Thanks to Paul Holmes-Higgin.
+
 * ADDED: Class bezier_curve: both Quadradic and Cubic Bezier curves.
 
 * ADDED: `point<-mid: point -->point' to find the point in the middle between
