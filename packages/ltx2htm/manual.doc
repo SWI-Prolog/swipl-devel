@@ -1,0 +1,784 @@
+\documentclass[11pt]{article}
+\usepackage{pl}
+\makeindex
+
+\title{Converting LaTeX into HTML}
+\author{Jan Wielemaker\\
+	SWI, University of Amsterdam\\
+	Roetersstraat 15\\
+	1018 WB~~Amsterdam\\
+	E-mail: \email{jan@swi.psy.uva.nl}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This document describes a Prolog package for translating LaTeX into HTML
+documents. It is not a reimplementation of \program{latex2html} in
+Prolog. Instead of aiming at the production of a HTML document that
+looks as closely as possible to the original printed version with as
+little hassle as possible, it aims the simultaneous maintenance of a
+paper and WEB version of a document.
+
+The main virtue of this package is a simple, yet powerful, interface
+for extending the translator.
+\end{abstract}
+
+\tableofcontents
+
+\section{Introduction}
+
+Paper and a hypertext browser are different media. For various
+documents, it is desirable to have both a paper version and a version
+that can be consulted through the WEB as a hypertext document. For the
+latter, the document should be represented using HTML. HTML however is
+not the ideal language for maintaining a document:
+
+\begin{itemize}
+    \tick{Not extendable}
+It is not possible to define macros in HTML, which makes the maintenance
+of documents in HTML itself difficult. Highly structured documents, such
+as manuals and reports benefit from a description in the terminology of
+the domain, which are later translated into domain-independent
+formatting commands.  For example, when writing a Prolog manual, it
+is better to start the description of a predicate using a formatting
+command \const{predicate}, rather then directly using textual layout
+primitives such as list, item, font, etc.
+
+    \tick{Difficult-to-read syntax}
+This can always be debated, but lets say I don't like it.
+
+    \tick{Not sufficiently rich to specify a quality paper document}
+Notably spacing, alignment, mathematics and tables are less powerful
+than one would wish for generating a quality paper document.
+\end{itemize}
+
+
+\section{Maintaining a structured document}
+
+This toolkit aims first of all at structured documents: manuals,
+technical report are examples. Such documents tend to describe many
+instances of domain-specific data. This toolkit assumes the author
+defines a set of LaTeX macros to map the domain-specific frames into the
+general text terminology LaTeX uses. In parallel, the user defines
+translation of these frames into HTML commands.  This translation is
+not necessarily the same.  For example, when defining a syntax in BNF,
+it may be desirable to make links from the usage of BNF terms to their
+definition.  For the paper version, an index of the terms defined is
+probably the desired cross-referencing aid.
+
+
+\section{Overview}			\label{sec:overview}
+
+The translator consists of two parts.  The first part is a C-program
+that translates a LaTeX file or string into a Prolog list of TeX
+tokens.  This package also contains the larger part of a pretty-printer
+for HTML.  In between is a Prolog program that translates the LaTeX
+token list into an HTML token list. For this process, Prolog's
+unification and non-determinism allow for easy definition of the
+translator.  The translator itself is separated into a number of
+components, some of which may be extended by the user.
+
+\begin{description}
+    \item[Toplevel driver]
+This component maintains files, options, etc.  It is responsible for
+initialising and controlling the overall process. see latex2html/1.
+
+    \item[Command and environment translator]
+Maps individual commands and environments into either plain HTML tokens
+or HTML macros (see below).  This level is represented by the predicates
+cmd/[2-4] and env/2, which may be extended or redefined by the user.
+
+    \item[HTML macro expander]
+Generating plain HTML in one step is cumbersome.  The macro expander
+allows for parameterised expansion of terms into sequences of HTML
+commands.  Of course, macros may be expressed in macros.  The set
+of macros is represented by the \predref{\#}{2} predicate.  Macros
+are called using \functor{\#}{1} terms.
+
+    \item[Reference resolver]
+References to local (i.e.\ inside the document) labels are translated
+into the appropriate HTML commands.  Warnings are printed for undefined
+references.
+
+    \item[Pretty printer]
+The pretty-printer provides the final output.  It deletes, maps and
+translates blank space in the output to arrive at a reasonable looking
+HTML document.
+\end{description}
+
+
+\section{Installing the translator}
+
+To install the translator, edit first install
+\url[SWI-Prolog]{http://www.swi.psy.uva.nl/usr/jan/SWI-Prolog.home},
+version 2.7.18 or later. Next edit the \file{Makefile} and finally run
+\program{make} to install the system. Without modifications, the
+Makefile should work on any system on which SWI-Prolog supports an
+interface to shared objects and \program{gcc} supports the
+\cmdlineoption{-shared} option.
+
+After successful execution, the program may be run as:
+
+\begin{verbatim}
+% latex2html file
+\end{verbatim}
+
+
+\section{Running the translator}
+
+\subsection{Running LaTeX}
+
+If the documents contains \program{BibTeX} references, it should first
+be processed by \program{LaTeX} and \program{BibTeX} to create the
+\fileext{bbl} file holding the references. Section numbers, footnotes,
+cross-references, etc.\ are generated by the translator. Running
+\program{LaTeX} before using the translator is also useful for finding
+and fixing \program{LaTeX} syntax errors. The translator checks the
+syntax, but gives other difficult to understand error messages as
+\program{LaTeX}.
+
+
+\subsection{Translating to HTML}
+
+Normally, the command
+
+\begin{verbatim}
+% latex2html file
+\end{verbatim}
+
+should translate \file{file.tex} into \file{file/file.html}.  Separate
+\fileext{html} files are generated for each section, the table of
+contents, all (foot)notes and the index, unless the command
+\texcmd{onefile} appears in the preamble of the document, in which
+case the entire document is created in \file{file/file.html}.
+
+The translator handles \texcmd{include} and \texcmd{input} commands
+to process LaTeX included files.  If a \texcmd{usepackage} command is
+encountered, the system will look for a corresponding Prolog file to
+define additional translation rules.  The content of packages or
+\fileext{sty} files in not examined.  See \secref{extending}.
+
+
+\subsection{Running the translator from the Prolog toplevel}
+
+Notably when testing and extending the translator, it may be wise to
+run the translator from the Prolog toplevel.  The easiest way is to
+use:
+
+\begin{verbatim}
+% latex2html -pl
+\end{verbatim}
+
+which will start Prolog, set the appropriate library directory, load
+\pllib{latex2html} and finally enters the Prolog toplevel. After this,
+it is possible to load additional packages and/or initialise the
+debugger for debugging the translator. To run the translator, use
+latex2html/1:
+
+\begin{description}
+    \predicate{latex2html}{1}{+InputFile}
+\arg{InputFile} is the name of the toplevel LaTeX file, either with
+or without the \fileext{tex} extension.	  The translator will create
+a directory using the basename of the \arg{InputFile} for the output.
+The toplevel HTML output file is constructed from the same basename
+with the extension \fileext{html}.
+
+For example.  Suppose your toplevel document is called \file{gnat.tex}.
+This is translated into \file{gnat/gnat.html} using the following
+commands:
+
+\begin{verbatim}
+% latex gnat
+% bibtex gnat
+% latex2html -pl
+Welcome to LaTeX2HTML version 0.5
+
+1 ?- latex2thml(gnat).
+2 ?- halt.
+\end{verbatim}
+\end{description}
+
+
+\subsection{Warnings from the translator}
+
+Warnings from the translator come in three flavours. First of all, there
+are warnings from the tokeniser, either because it does not know about
+the argument syntax for a command or environment, or because it detects
+an error in the LaTeX document. For any command or environment it does
+not know, it assumes the command or environment has no arguments, and
+prints a warning:
+
+\begin{code}
+[WARNING: Unknown command: \gnat]
+[WARNING: undefined environment: gnu]
+\end{code}
+
+See \secref{extending} for defining these commands.
+
+Next, there are warnings issued by the translator.  If a command could
+nor be translated, it will print a message of the form:
+
+\begin{code}
+Failed to translate \gnat in mode "document"
+Term: "gnat"
+\end{code}
+
+If this happens, the definition of cmd/[2-4] should be debugged, or
+extended to deal with the command.  The command will be ignored.
+If an environment could not be processed the env/2 command should
+be debugged or extended.  The warning is:
+
+\begin{code}
+translate_2(env(gnu, [], [\par]), document, ...) failed
+\end{code}
+
+If an HTML macro could not be expanded, the definition of
+\predref{\#}{2} should be examined. The system will warn:
+
+\begin{code}
+Post-processing macro #gnus/1 could not be expanded.
+\end{code}
+
+Finally, if local labels could not be resolved, messages of the format
+below will be printed:
+
+\begin{code}
+No label for reference "sec:summary"
+\end{code}
+
+
+\section{Extending the translator}		\label{sec:extending}
+
+This section defines how the translator may be programmed.  It defines the
+hook predicates available to an extension module, as well as the generic
+translation predicates that may be called from user-defined hooks.  First,
+we explain how an extension is declared.
+
+Normally, a document requiring additional structuring LaTeX macros will
+start like this:
+
+\begin{verbatim}
+\documentclass[11pt]{article}
+\usepackage{mymacros}
+
+<preamble commands>
+
+\begin{document}
+
+<document contents>
+
+\end{document}
+\end{verbatim}
+
+The file \file{mymacros.sty} will include additional packages required,
+dedicated style settings, structuring macros, etc. The latex2thml
+translator will not examine the contents of this file. Instead, it will
+search for \file{mymacros.pl} to find a Prolog module defining the
+additional translation rules. It will first use the \const{tex} path
+alias, and then try the \const{library} path alias. If successful, this
+file will be loaded into the \const{user} module using the Prolog
+predicate ensure_loaded/1.  If the file cannot be located, it is
+silently ignored.
+
+The typical structure of the extension file is:
+
+\begin{verbatim}
+<file header>
+:- module(<Module Name>, []).
+:- use_module(library(latex2html)).
+
+:- latex2html_module.
+:- tex_load_commands(pl).
+
+<clauses for the extension hooks>
+
+\end{verbatim}
+
+The directive latex2html_module/0 registers the module as a module
+containing additional rules for latex2html. These rules will be tried
+{\em before} any other rules. Alternatives need not be cut on any of the
+hook predicates, as this is done immediately by the translators main
+control loop. If you want to redefine a rule only under specific
+circumstances, simply make sure the clause only succeeds in those cases
+that redefinition is desired. It is generally not (yet) possible to
+`wrap' the existing translation rule.
+
+It is not required to define clauses for all extension hooks.
+
+\subsection{Specifying the LaTeX syntax for the tokeniser} \label{sec:cmdspec}
+
+The C-defined LaTeX tokeniser needs to know about the argument syntax
+for each of the LaTeX commands used in the document.  The syntax of
+commands is defined in \fileext{cmd} files.  The initial definition
+is in the file \file{latex.cmd}.
+
+Blank space is ignored, and the \% sign starts a comment field that
+lasts till the end of the current line, just as with LaTeX itself.
+
+A command declared using a line of the form:
+
+\begin{tabular}{lrll}
+<command>	\isa \ttbackslash<name> { <arg> } [\const{=}<cmdfunc>] & \\
+<arg>		\isa \const{\{} <type> \const{\}} & \\
+		\ora \const{[}  <type> \const{]}  & \\
+<type>		\isa \const{-} & Do not tokenise \\
+		\ora \const{+} & Tokenise argument \\
+		\ora \const{d} & Argument is a dimension \\
+<cmdfunc>	\isa \const{verb} & Act as \texcmd{verb} \\
+		\ora \const{begin} & Act as \texcmd{begin} \\
+		\ora \const{end} & Act as \texcmd{end} \\
+		\ora \const{item} & Separate items in a list \\
+		\ora \const{prolog} & Call prolog_function/1 immediately \\
+\end{tabular}
+
+An environment declaration is of the form:
+
+\begin{tabular}{lrll}
+<environment>	\isa \const{\{} <name> \const{\}} [\const{=}<envfunc>] & \\
+<envfunc>	\isa \const{verbatim} & Act as a verbatim environment \\
+		\ora \const{list} & My body consists of items \\
+		\ora \const{float} & I am a floating environment
+\end{tabular}
+
+Command specification files are normally loaded from the Prolog extension
+files using the predicate tex_load_commands/1.
+
+
+\subsection{The HTML token list}		\label{sec:htmltokens}
+
+The output of the translator is a list of HTML tokens. This section
+describes the tokens that are recognised by the pretty printer.
+
+\begin{description}
+    \termitem{html}{Command}
+Literally outputs the given command. No spaces are inserted in the
+output, neither before nor after the command.
+    \termitem{ref}{Label}
+Expands to the number associated with \arg{Label}.  Thus, if \arg{Label}
+appeared in a section, this is the section number.  If \arg{Label}
+appeared in a figure or table, this is the number of the figure or
+table.
+    \termitem{label}{Label, Text, Ref}
+Outputs \exam{<A NAME="\arg{Label}">\arg{Text}</A>}.
+    \termitem{lref}{Label, Text}
+Outputs \exam{<A HREF="<File>\#\arg{Label}">\arg{Text}</A>}.  <File>
+is the file to which the section containing \arg{Label} has been (or
+will be) written.  See label/3.
+    \termitem{lref}{fileof(Label), Text}
+Outputs \exam{<A HREF="<File>">\arg{Text}</A>}.  <File>
+is the file to which the section containing \arg{Label} has been (or
+will be) written.  See label/3.
+    \termitem{iflref}{Arg}
+As \term{lref}{Arg}, but emits nothing if the label is not defined. For
+example, the page-header uses this construct to refer to to table of
+contents, the summary and the index. If one of these does not exist, the
+corresponding link is not created.
+    \termitem{lforw}{Label, Text}
+Creates an anchor, just like \functor{lref}{2}, but gives the anchor the
+attribute \exam{NAME="back-to-\arg{Label}"}. Together with
+\functor{lback}{2}, this forms a \idx{bi-directional link} between two
+anchors.
+    \termitem{lback}{Label, Text}
+The other end of the \functor{lforw}{2} link.  It is used for handling
+footnotes.
+    \termitem{cite}{Key}
+Translated from the LaTeX \texcmd{cite} command. It will lookup
+\arg{Key} in the cite/2 predicate, and emit the label for the key,
+rather then the key itself.  The output format depends on the BibTeX
+style used.
+    \termitem{yearcite}{Key}
+As \term{cite}{Key}, but only emits the year of the label.
+    \termitem{tableofcontents}{document}
+Emits the entire table of contents of the document in this place.
+    \termitem{tableofcontents}{section(\arg{Tag})}
+Emits the table of contents of all subsections of the indicated section.
+Normally used to create the footer for sections that have subsections.
+    \termitem{tell}{FileBaseName}
+Divert further output to the named file.  \arg{FileBaseName} is only
+the basename of the output file, i.e. without trailing \fileext{html}
+or leading directory.  This is the only way to switch output files.
+The output is scanned for functor{tell}{1} terms and \functor{label}{3}
+terms for building the label/3 predicate, which in turn is used for
+outputting the proper reference names for labels.
+    \termitem{verb}{Text}
+Output \arg{Text} without any interpretation of spaces and newlines.
+The HTML special characters (\verb$<>&$) are automatically mapped to
+the required escape sequences.
+    \termitem{verbatim}{Text}
+Same as \functor{verb}{1}.
+    \termitem{nospace}{Atom}
+Output atom, translating the HTML special characters.  Do not insert
+spaces before or after the word.
+    \termitem{<Atom>}{}
+Atoms or SWI-Prolog strings are treated as a {\em word}. HTML special
+characters are translated. If two words are emitted adjecently, a space
+or newline (for line-wrap) is inserted between them. No spaces are
+inserted between any of the other forms and a word.
+\end{description}
+
+
+\subsection{The macro expander}			\label{sec:htmlmacros}
+
+The macro expander is implemented by macro_expand/2 and is called by
+the toplevel driver after any successfully translated command or
+environment.
+
+\begin{description}
+    \predicate{macro_expand}{2}{+In, -Out}
+The input is a (nested) list or a single HTML token or a macro
+reference (terms of \functor{\#}{1}, \functor{+}{1} or \functor{+}{2}).
+The \arg{Out} is a (nested) list of HTML tokens as described in
+\secref{htmltokens}.
+\end{description}
+
+The translator translates terms using the following syntax:
+
+\begin{description}
+    \termitem{+}{Tokens}
+\arg{Tokens} is a list of raw LaTeX tokens, and the translator is
+called recursively as \exam{translate(\arg{Tokens}, normal, \arg{Out})}.
+    \termitem{+}{Mode, Tokens}
+As \functor{+}{1}, translating in mode \arg{Mode} rather then
+\const{normal}.
+    \termitem{\#}{MacroCall}
+Calls \predref{\#}{2} to expand the macro.
+\end{description}
+
+The following macros have been predefined:
+
+\begin{description}
+    \termitem{tell}{File}
+If \texcmd{onefile} is specified in the header, do nothing, else emit
+\term{tell}{File} to divert subsequent output to the named file.
+    \termitem{thetitle}{}
+Contains the document title defined by the LaTeX \texcmd{title}
+command.
+    \termitem{theauthor}{}
+Contains the document author defined by the LaTeX \texcmd{author}
+command.
+    \termitem{title}{Title}
+Defines the HTML document title using the \HTML{TITLE} tag.
+    \termitem{defitem}{Label}
+Definition-list item.  Translates to \exam{<P><DT>\arg{Label}<DD>}.
+    \termitem{var}{Var}
+Indicates a variable.  Translates to \exam{<VAR>\arg{Var}</VAR>}.
+    \termitem{code}{Text}
+Indicates code in running text. Translates to \exam{<CODE>\arg{Text}</CODE>}.
+    \termitem{pre}{Text}
+Preformatted multiline text. Translates to \exam{<PRED>\arg{Text}</PRE>}.
+    \termitem{xmp}{Text}
+Preformatted multiline example. Translates to \exam{<XMP>\arg{Text}</XMP>}.
+    \termitem{strong}{Text}
+Emit \arg{Text} as extra emphasized text (normally printed {\bf bold}).
+Translates to \exam{<STRONG>\arg{Text}</STRONG>}.
+    \termitem{em}{Text}
+Emit \arg{Text} as emphasized text (normally printed {\em italic}).
+Translates to \exam{<EM>\arg{Text}</EM>}.
+    \termitem{b}{Text}
+Emit \arg{Text} as bold text. Translates to \exam{<B>\arg{Text}</B>}.
+    \termitem{i}{Text}
+Emit \arg{Text} as italic text. Translates to \exam{<I>\arg{Text}</I>}.
+    \termitem{center}{Text}
+Emit \arg{Text} centered. Translates to \exam{<CENTER>\arg{Text}</CENTER>}.
+    \termitem{quote}{Text}
+Emit \arg{Text} as a quote. Translates to
+\exam{<BLOCKQUOTE>\arg{Text}</BLOCKQUOTE>}.
+    \termitem{embrace}{Text}
+Emit \arg{Text} between "()" braces. Translates to \exam{(\arg{Text})}.
+    \termitem{embrace}{"AZ", Text}
+Emit \arg{Text} between "AZ" braces. Translates to \exam{A\arg{Text}Z}.
+    \termitem{h}{Level, Text}
+Emit a header.  Translates to \exam{<H\arg{N}>\arg{Text}</H\arg{N}>},
+where \arg{N} is \arg{Level}.
+    \termitem{row}{Columns}
+Emits a row of a table.  Translates to \exam{<TR>\arg{C1}<TD>...</TR>}.
+\arg{Columns} is a list containing the HTML code for each column in the
+row.
+    \termitem{label}{Label, Text, Tag}
+Emits \term{label}{Label, Text, Tag}, but canonises the \arg{Label} and
+\arg{Text} fields first.  \arg{Tag} is the tag of the current section or
+float.
+    \termitem{label}{Label, Text}
+As \term{label}{Label, Text, Tag}, but emits a label not related to a
+section or float.
+    \termitem{lref}{Label, Text}
+Emits \term{lref}{Label, Text}, but canonises the \arg{Label} and
+\arg{Text} fields first.
+    \termitem{iflref}{Label, Text}
+Emits \term{iflref}{Label, Text}, but canonises the \arg{Label} and
+\arg{Text} fields first.
+    \termitem{lback}{Label, Text}
+Emits \term{lback}{Label, Text}, but canonises the \arg{Label} and
+\arg{Text} fields first.
+    \termitem{lforw}{Label, Text}
+Emits \term{lforw}{Label, Text}, but canonises the \arg{Label} and
+\arg{Text} fields first.
+    \termitem{url}{URL, Text}
+Emits an external URL: \exam{<A HREF="\arg{URL}">\arg{Text}</A>}.
+    \termitem{cite}{Keys}
+Handle a \texcmd{cite} command.  \arg{Keys} is translated into a
+sequence \mbox{\term{cite}{Key1}, ',', ' ', \ldots} and the whole
+is enclosed in \exam{<CITE> \ldots </CITE>}.
+    \termitem{opencite}{Keys}
+Currently as \term{cite}{Keys}
+    \termitem{yearcite}{Keys}
+As \term{cite}{Keys}, but emits \term{yearcite}{Key}.
+    \termitem{header}{Tag}
+Produce a header for the file containing section \arg{Tag}.
+This macro may be redefined to modify the section header.
+    \termitem{header}
+Produce a header for a file not defining a section.
+    \termitem{footer}{Arg}
+Produce a footer for the file containing section \arg{Tag}.
+This macro may be redefined to modify the section header.  Normally,
+this macro creates a `local' table of contents for all subsections of
+this section (or nothing if there are no subsections).
+\end{description}
+
+
+\subsection{User extension hook predicates}		\label{sec:extpreds}
+
+As discussed in \secref{overview}, the translator may be extended at
+various levels.  Normally, is should suffice to extend the definitions
+of cmd/[2-4], env/2, list_command/4 and \predref{\#}{2}. They are
+defines below.
+
+\begin{description}
+    \predicate{cmd}{4}{+Command, +ModeIn, -ModeOut, -HTML}
+Translate the given \arg{Command}.  A command is represented by
+a term of the format \term{<CommandName>}{<CommandArg>, \ldots}.
+Each <CommandArg> is a term of the form \exam{\{<Arg>\}} if it is
+an obligatory argument.  If it is an option argument and not
+specified, <CommandArg> is the empty list (\const{[]}).  Otherwise
+it is a list holding a single element representing the argument.
+
+If the command defines an optional modifier (as the
+\texcmd{section} command to suppress the section number), this
+is translated into the first argument to the \arg{Command}, which is
+either bound to the atom \const{*} if the modifier was specified, or
+\const{-} of not.
+
+If the command argument is specified as \const{-} or \const{d} (see
+\secref{cmdspec}), the tokeniser returns the verbatim text of the
+argument as a SWI-Prolog string. Otherwise, if the specifier is
+\const{+}, the argument is a list of LaTeX tokens.  For example,
+the \texcmd{url} command is defined as
+
+\begin{code}
+\url[+]{-}
+\end{code}
+
+and the command
+\verb$\url[SWI-Prolog]{ftp://swi.psy.uva.nl/pub/SWI-Prolog}$ will
+be handed to cmd/4 as:
+
+\begin{code}
+url([[SWI-Prolog]], {'ftp://swi.psy.uva.nl/pub/SWI-Prolog'})
+\end{code}
+
+\arg{ModeIn} specifies the mode of the translator.  Only a few values
+are defined and have defined behaviour:
+
+\begin{description}
+    \termitem{math}{}
+We are processing a LaTeX math environment.
+
+    \termitem{group}{Font}
+Used to translate \exam{\{\ldots\}}, possibly holding font switches, as
+well as other grouped environments, such as \texcmd{mbox} and
+the cells of a table (\texenv{tabular}).
+
+    \termitem{\arg{ListName}}{}
+When processing a list (see list_command/4), the mode is the name of the
+list environment.  This allows for the item commands to consider the
+list environment in which they are active.
+\end{description}
+
+\arg{ModeOut} defines the mode for further processing.  Currently,
+cmd/4 only implements the font-switches to manipulate the argument of
+the \functor{group}{1} mode term.
+
+    \predicate{cmd}{3}{+Command, +Mode, -HTML}
+Version of cmd/4 that does not need to change modes, but realises mode
+dependent commands. Example are the \texmode{math} commands. This
+translator will only be called {\bf after} cmd/4 fails.
+
+    \predicate{cmd}{2}{+Command, -HTML}
+Version of cmd/4 that does not change, nor verify the current mode.
+This translator will only be called {\bf after} cmd/3 fails.
+
+    \predicate{env}{2}{+Environment, -HTML}
+Expand an entire environment, i.e.\ from \texcmd{begin} upto and
+including the matching \texcmd{end} command.  \arg{Environment}
+is a term of the form \term{<EnvName>}{[<CommandArg>, \ldots],
+<Tokens>}.  <CommandArg> describes the environment arguments (as
+the column specifier for a \texenv{tabular} environment), while
+<Tokens> is a list of LaTeX tokens, describing the contents of the
+environment.  Note that \texenv{document} is an environment as
+well, containing the entire document.  Redefining the document
+environment provides the opportunity for pre- and post-processing
+of the entire document.
+
+Environments that are flagged with the \const{list} type (see
+\secref{cmdspec}) are handled by a default translator. See
+list_command/4.
+
+    \predicate{list_command}{4}{+ListName, +Mode, -OpenHTML, -CloseHTML}
+If env/2 traps an environment marked as \const{list}, it will break the
+environment into items by scanning for commands flagged as \const{item},
+output the \arg{OpenHTML} code, process the items and add the
+\arg{CloseHTML} code. Below is the default definition of this predicate.
+Note that, as always, the HTML output is either	a simple HTML token,
+an HTML macro, or a (nested) list of these.
+
+\begin{code}
+list_command(description,     _, html('<DL>'), html('</DL>')).
+list_command(itemize,         _, html('<UL>'), html('</UL>')).
+list_command(enumerate,       _, html('<OL>'), html('</OL>')).
+list_command(thebibliography, _, html('<DL>'), html('</DL>')).
+\end{code}
+
+    \predicate{\#}{2}{+Macro, -Expansion}
+This predicate defines the macro-expander as invoked through
+the macro_expand/2 command.  \arg{Macro} is an arbitrary Prolog
+term, possibly containing variables to act as macro arguments,
+\arg{Expansion} is the expansion.  The expansion is an arbitrary
+HTML token list, possibly containing references to other macros.
+Recursive processing of the same macro is possible, but there
+is no guarding against infinite loops.  See \secref{htmlmacros}
+for the default macro-definitions available.
+
+The usage of these macros is highly encouraged, both to keep the
+translator simple and to provide sharing of definitions.
+\end{description}
+
+
+\subsection{Translation support predicates}
+
+This section describes the public predicates of \pllib{latex2html}.
+These predicates are available to the extension hooks to realise the
+desired translation.
+
+\begin{description}
+    \predicate{welcome}{0}{}
+Simply prints the package banner message.
+    \predicate{translate}{4}{+In, +ModeIn, -ModeOut, -Out}
+Call the general translator for a list of LaTeX tokens.  \arg{ModeIn}
+is the starting mode, \arg{ModeOut} is the exit mode.  \arg{Out} is
+unified with a (nested) list of HTML tokens.  Note that the hook
+predicates can return \term{+}{TeXTokens}.  If this construct is
+detected in the output of cmd/[2-4] or env/2, the translator is
+called automatically.
+    \predicate{translate}{3}{+In, +ModeIn, -Out}
+As translate/4, but does not return the final mode.
+    \predicate{latex2html_module}{0}{}
+Register the calling module as an extension module module for the
+translator.  All hooks will be called in the reverse order of these
+registrations, ending with the built-in translation rules.
+    \predicate{tex_input_directory}{1}{+Dir}
+Register \arg{Dir} as a directory for finding LaTeX files.  The initial
+directory is \file{.}.  If the variable \env{TEXINPUTS} is defined, the
+initial directory list is read from this variable.  The definition of
+the input files is maintained using in the user:file_search_path/2
+alias \const{tex}.  Files are located using absolute_file_name/3.
+    \predicate{step_counter}{2}{+Name, -Value}
+Step the indicated counter.  Available counters are \const{figure} and
+\const{table}.  The returned value is the new value of the counter.  The
+first call returns 1.
+    \predicate{ps2gif}{3}{+In, +Out, +Options}
+Translate a \idx{PostScript} figure into a \idx{GIF} figure.  Incomplete.
+Please see the source for the current definition.
+    \predicate{translate_command}{4}{+In, +ModeIn, -ModeOut, -HTML}
+Translate an individual command in the form as passed to cmd/[2-4].  May
+be used to express the translation of a command in terms of the translation
+of another.
+    \predicate{translate_environment}{4}{+In, +ModeIn, -ModeOut, -HTML}
+As translate_command/4, but for the translation of environments.
+    \predicate{translate_reference}{4}{+TextLabel, +RefPrefix, +Label, -HTML}
+Used for the translation of \texcmd{secref}, etc. The output will be
+\arg{TextLabel}~\arg{Tag}, where \arg{Tag} is the tag-number of the
+section or float of the target label. The label searched for is
+\exam{\arg{RefPrefix}:\arg{Label}}.
+    \predicate{translate_footnote}{2}{+Text, -HTML}
+Create a footnote.  It will output a reference to the node and remember
+the \arg{Text} to emit the final footnote.
+    \predicate{current_setting}{1}{+Name(-Value, \ldots)}
+Request a setting for the translator.  Currently defined:
+    \begin{description}
+        \termitem{keep_figures}{}
+	For figure translation.  If this test succeeds, the old translation
+        should be kept.
+        \termitem{html_output_dir}{Dir}
+        Unifies \arg{Dir} with the directory to which the output files are
+        written.
+    \end{description}
+    \predicate{do_float}{2}{+FloatType(+Number), +Goal}
+Run \arg{Goal}, such that labels will refer to the number of the
+float environment (figure, table).  So, when processing the contents
+of a figure environment, step the figure counter, and process the
+body:
+
+\begin{verbatim}
+	...,
+	step_counter(figure, Fig),
+        do_float(figure(Fig), ( translate(...),
+				...
+			      )),
+	...
+\end{verbatim}
+    \predicate{tex_load_commands}{1}{CmdBaseName}
+Load a file holding LaTeX command declarations for the tokeniser.  See
+\secref{cmdspec}.  The file normally has extension \fileext{cmd} and is
+searched for in the same directories as extension Prolog files (\const{tex}
+and \const{library}).
+    \predicate{add_to_index}{2}{+Index, +Label}
+Add \arg{Index} to the index.  \arg{Label} is the place from which the
+item is referenced.  If \arg{Label} is a term \term{+}{Label}, it is
+considered the {\em principal} reference, and the word in the index
+itself will be rendered as a hyper-link to the principal location.
+    \predicate{clean_tt}{2}{+Raw, -CleanAtom}
+When writing manuals, it is often necessary to use TeX special commands
+for specifying the TeX special characters.  For example, to get a nice,
+not mathematical tilde, without using \texcmd{verb}, so it can be used
+as a command argument, one should use \verb${\tt\string~}$.  This predicate
+eliminates all these special constructs to arrive at an atom describing
+the plain character sequence.
+\end{description}
+
+
+\subsection{Dynamic predicates for maintaining cross-referencing}
+
+The predicates below are dynamic predicates maintained by the translator
+to deal with cross references. They are currently internal to the
+translator, but described anyhow as they are referenced in this
+document.
+
+\begin{description}
+    \predicate{label}{3}{Label, File, Tag}
+Built after the initial translation by scanning the output token list
+for terms of the form \functor{tell}{1} (for keeping track of the
+current file), \functor{label}{3} \functor{lback}{2} and
+\functor{lforw}{2}.  Used by the final output stage.
+    \predicate{cite}{2}{Key, Cite}
+Built from processing \texcmd{bibitem} commands from the \fileext{bbl}
+file.  Used by \texcmd{cite} to insert the proper reference to the
+bibliography.
+\end{description}
+
+
+\section{Problems and limitations}
+
+The current translator is not very complete. It is likely that HTML
+version 3 will allow us to complete the translation in many respects,
+notably handling more then just the very basic math symbols.
+
+Sofar the translator has been used to translate the
+\url[SWI-Prolog manual]{http://www.swi.psy.uva.nl/usr/jan/SWI-Prolog/Manual/Title.html} and the XPCE (GUI package for Prolog)
+\url[User Guide]{http://www.swi.psy.uva.nl/projects/xpce/UserGuide/Title.html}
+and the PHD thesis \url[Cognitive Tools]{/staff/jan/anja/main/main.html}.
+
+\printindex
+
+\end{document}

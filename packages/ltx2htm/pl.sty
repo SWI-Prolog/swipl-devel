@@ -1,0 +1,268 @@
+%			PCE DOCUMENTATION STYLE
+
+\newcommand{\pceversion}{4.9.0, December 1996}
+
+%	Other styles
+
+\usepackage{makeidx}
+
+\catcode`\^^A=8% downarrow are for subscripts
+\catcode`\_=\active
+\def_{\ifmmode\else\_\fi}
+\def\vobeyspaces{\@vobeyspaces}
+
+%	References
+
+\newcommand{\secref}[1]{section~\ref{sec:#1}}
+\newcommand{\appref}[1]{appendix~\ref{sec:#1}}
+\newcommand{\chapref}[1]{chapter~\ref{sec:#1}}
+\newcommand{\figref}[1]{figure~\ref{fig:#1}}
+\newcommand{\tabref}[1]{table~\ref{tab:#1}}
+
+\newcommand{\Secref}[1]{Section~\ref{sec:#1}}
+\newcommand{\Appref}[1]{Appendix~\ref{sec:#1}}
+\newcommand{\Chapref}[1]{Chapter~\ref{sec:#1}}
+\newcommand{\Figref}[1]{Figure~\ref{fig:#1}}
+\newcommand{\Tabref}[1]{Table~\ref{tab:#1}}
+
+\newcommand{\tick}[1]{\item {\em #1}\\}
+
+\newlength{\arrowwidth}
+\settowidth{\arrowwidth}{$\leftarrow$}
+\newcommand{\botharrow}{\raisebox{1pt}{$\leftarrow$}\hspace*{-\arrowwidth}\raisebox{-2pt}{$\rightarrow$}}
+
+\def\ttbackslash{\makebox[1ex][l]{\tt \string\ }}
+\newcommand{\tthat}{{\tt \string^}}
+\newcommand{\backslashx}[1]{\ttbackslash{\tt #1}}
+\newcommand{\tm}{$^{tm}$}
+
+%	Running text indication of behaviour
+
+\newcommand{\send}[1]{%                 % send behaviour
+        \ifmmode\rightarrow\!\!\it #1\:%
+        \else\mbox{$\rightarrow$\it #1}\fi}
+\newcommand{\get}[1]{%                  % get behaviour
+        \ifmmode\leftarrow\!\!\it #1\:%
+        \else\mbox{$\leftarrow$\it #1}\fi}
+\newcommand{\both}[1]{%                 % both behaviour
+        \ifmmode\mbox{\botharrow\!\!\it #1\:}%
+        \else\mbox{\botharrow\it #1}\fi}
+\newcommand{\predref}[2]{%		% functor/arity
+	\mbox{\tt #1/#2}}
+\newcommand{\functor}[2]{%		% functor/arity
+	\mbox{\tt #1/#2}}
+\newcommand{\term}[2]{%
+	\mbox{\tt #1({\it #2})}}
+
+%	Descriptions (definitions) of various things
+
+\newcommand{\definition}[1]{%
+	\item[\mbox{#1}]\hfill\mbox{}\linebreak}
+\newcommand{\emptydefinition}[1]{%
+	\makebox[-\leftmargin]{\mbox{}}\mbox{\bf #1}\\}
+
+\newcommand{\emptydescription}{\vspace{-.8cm}}
+
+\newcommand{\cmdlineoptionitem}[1]{\definition{#1}}
+\newcommand{\cmdlineoption}[1]{{\tt #1}}
+\newcommand{\traceoption}[3]{\definition{{\tt #1} (#2)}#3}
+\newcommand{\pleaseoption}[3]{\definition{#1 {\it #2} {\rm(default: \it #3)}}}
+\newcommand{\featureoption}[2]{\definition{#1 ({\it #2})}}
+\newcommand{\escapeitem}[1]{\definition{\ttbackslash{\tt #1}}}
+\newcommand{\ttdef}[1]{\definition{\tt #1}}
+\newcommand{\directive}[3]{%
+	\definition{:- #1({\it #3})}%
+	\index{#1/#2}}
+\newcommand{\predicate}[3]{%
+	\ifnum#2=0%
+	  \definition{#1}%
+	\else
+	  \definition{#1({\it #3})}%
+	\fi
+	\index{#1/#2}}
+\newcommand{\termitem}[2]{%
+	\definition{#1(\it #2)}}
+\newcommand{\infixop}[3]{%
+	\definition{{\it #2} #1 {\it #3}}%
+	\index{#1/2}}
+\newcommand{\ttinfixop}[3]{%
+	\definition{{\it #2} \tt #1 {\it #3}}%
+	\index{#1/2}}
+\newcommand{\prefixop}[2]{%
+	\definition{#1 {\it #2}}%
+	\index{#1/1}}
+\newcommand{\ttprefixop}[2]{%
+	\definition{{\tt #1} {\it #2}}%
+	\index{#1/1}}
+\newcommand{\optionarg}[2]{\definition{#1({\it #2})}}
+\newcommand{\optionnoarg}[1]{\definition{#1}}
+\newcommand{\optionval}[1]{\definition{#1}}
+
+\newcommand{\expanded}[3]{%
+	\definition{#1({\it #3})}%
+	\index{#1/#2}}
+\def\bothmethod{\@ifstar{\@emptybothmethod}{\@bothmethod}}
+\def\sendmethod{\@ifstar{\@emptysendmethod}{\@sendmethod}}
+\def\getmethod{\@ifstar{\@emptygetmethod}{\@getmethod}}
+
+\def\@emptybothmethod#1#2#3{%
+	\emptydefinition{#1 $\botharrow$ #2: #3}\index{#1,\string\both{#2}}}
+\def\@bothmethod#1#2#3{%
+	\definition{#1 $\botharrow$ #2: #3}\index{#1,\string\both{#2}}}
+\def\@emptysendmethod#1#2#3{%
+	\emptydefinition{#1 $\rightarrow$ #2: #3}\index{#1,\string\send{#2}}}
+\def\@sendmethod#1#2#3{%
+	\definition{#1 $\rightarrow$ #2: #3}\index{#1,\string\send{#2}}}
+\def\@emptygetmethod#1#2#3#4{%
+	\emptydefinition{#1 $\leftarrow$ #2: #3 $\rightarrow$ #4}\index{#1,\string\get{#2}}}
+\def\@getmethod#1#2#3#4{%
+	\definition{#1 $\leftarrow$ #2: #3 $\rightarrow$ #4}\index{#1,\string\get{#2}}}
+
+\newcommand{\cfunction}[3]{%
+	\definition{{\it #1} #2({\it #3})}%
+	\index{#2()}\label{func:#2}\relax}
+\newcommand{\cmacro}[3]{%
+	\definition{{\it #1} #2({\it #3})}%
+	\index{#2()}\label{macro:#2}\relax}
+
+\renewcommand{\arg}[1]{\ifmmode\mbox{\em #1}\else{\em #1}\fi}
+\newcommand{\bnfmeta}[1]{$\langle\mbox{\it #1}\rangle$}
+\newcommand{\isa}{& ::= &}
+\newcommand{\ora}{& $\mid$ &}
+
+\newcommand{\class}[1]{{\em #1}\index{#1 \string\idxtype{class}}}
+\newcommand{\classs}[1]{{\em #1s}\index{#1 \string\idxtype{class}}}
+\newcommand{\file}[1]{{\tt #1}\index{#1 \string\idxtype{file}}}
+\newcommand{\pllib}[1]{\mbox{library({\tt #1})}}
+\newcommand{\demo}[1]{{\sf #1}\index{#1 \string\idxtype{demo}}}
+\newcommand{\lib}[1]{library({\tt #1})\index{#1 \string\idxtype{library}}}
+\newcommand{\tool}[1]{{\em #1}\index{#1 \string\idxtype{tool}}}
+\newcommand{\constf}[1]{{\tt #1}}
+\newcommand{\const}[1]{{\tt #1}\index{#1 \string\idxtype{constant}}}
+\newcommand{\type}[1]{{\tt #1}}
+\newcommand{\idx}[1]{#1\index{#1}}
+\newcommand{\foreseen}[1]{\footnote{#1}}
+\newcommand{\email}[1]{\mbox{\tt #1}}
+\newcommand{\url}[1]{\mbox{\tt #1}}
+\newcommand{\env}[1]{\mbox{\tt #1}}
+\newcommand{\exam}[1]{\mbox{\tt #1}}
+\newcommand{\fileext}[1]{\mbox{\tt .#1}}
+\newcommand{\option}[1]{\mbox{\tt #1}}
+\newcommand{\argoption}[2]{\mbox{\tt #1 \em #2}}
+\newcommand{\ctype}[1]{{\tt #1}}
+\newcommand{\op}[1]{{\tt #1}}
+\newcommand{\program}[1]{{\tt #1}}
+\newcommand{\manpage}[2]{{\bf #1}(#2)}
+\newcommand{\chr}[1]{{\tt #1}}
+\newcommand{\jargon}[1]{{\em #1}}
+
+\newcommand{\bug}[1]{\footnote{BUG: #1}}
+
+\newlength{\clwidth}
+\newlength{\clhwidth}
+\newcommand{\classheader}[2]{%
+	\settowidth{\clwidth}{#1}%
+	\setlength{\clhwidth}{\textwidth}%
+	\addtolength{\clhwidth}{-\clwidth}%
+	#1\parbox[t]{\clhwidth}{\hyphenpenalty1000\raggedright({\em #2})}}
+
+\def\classsummary{\@ifstar{\xemptysummary}{\xsummary}}
+\def\xemptysummary#1#2#3{\emptydefinition{\classheader{#1}{#2}}}
+\def\xsummary#1#2#3{%
+    \definition{%
+	\parbox{\textwidth}{\rule{\linewidth}{2pt}\\%
+			    \psfig{figure=figs/class/#3.ps}\\[-12pt]%
+			    \rule{\linewidth}{0.5pt}}}%
+    \emptydefinition{\classheader{#1}{#2}}}
+
+\renewcommand{\line}[1]{\begin{quote}\tt #1\end{quote}}
+
+\newenvironment{note}{%
+  \begin{description}
+      \item[note]\mbox{}\\ \it}{%
+  \end{description}}
+
+%	Index handling
+
+\newcommand{\idxtype}[1]{{\small\em #1}}
+
+%	Running text indication of objects
+
+\newcommand{\objectname}[1]{\mbox{\tt @#1}}
+
+%	Code segments
+
+\newenvironment{pcecode}{%
+	\begin{trivlist}\parindent 0pt\listparindent 0pt\parsep 0pt%
+	\item[]\small\obeylines}{% 
+	\end{trivlist}}
+
+\newcommand{\lineno}[1]{\makebox[1cm][l]{\tiny #1}}
+
+
+%	headers
+
+\newcommand{\header}[1]{\subsubsection*{#1}}
+
+\newcommand{\texcmd}[1]{\ttbackslash{\tt #1}}
+\newcommand{\texenv}[1]{{\tt #1}}
+\newcommand{\texmode}[1]{{\tt #1}}
+\newcommand{\HTML}[1]{\ttbackslash{\tt #1}}
+
+
+%	PostScript figures
+%	\postscriptfig[width=5in]{label}{Title}
+
+\def\postscriptfig{\@ifnextchar[{\@scaledpostscriptfig}{\@postscriptfig}}
+\def\@scaledpostscriptfig[#1]#2#3{%
+	\begin{figure}%
+	    \centerline{\psfig{figure=figs/#2.ps,#1}}
+	    \caption{#3}
+	    \label{fig:#2}
+	\end{figure}}
+\def\@postscriptfig#1#2{%
+	\begin{figure}%
+	    \centerline{\psfig{figure=figs/#1.ps}}
+	    \caption{#2}
+	    \label{fig:#1}
+	\end{figure}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%			CODE environment			%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%	just like verbatim, but indents like quote.
+%	allows also the use of leading tabs
+
+{\catcode`\^^I=\active
+    \gdef^^I{\mbox{}\space\space\space\space\space\space\space\space}}
+
+\begingroup \catcode `|=0 \catcode `[= 1
+\catcode`]=2 \catcode `\{=12 \catcode `\}=12
+\catcode`\\=12
+|gdef|@xcode#1\end{code}[#1|end[code]]
+|endgroup
+
+\def\@code{\trivlist \item[]\if@minipage\else\vskip\parskip\fi
+\leftskip\@totalleftmargin\rightskip\z@
+\parindent\z@\parfillskip\@flushglue\parskip\z@
+\@tempswafalse \def\par{\if@tempswa\hbox{}\fi\@tempswatrue\@@par}
+\obeylines \catcode`\^^I=\active \tt \let\do\@makeother \dospecials}
+
+\def\code{\quote \@code \frenchspacing\@vobeyspaces \@xcode}
+\def\@endcode{\endtrivlist\mbox{}\endquote}
+\let\endcode=\@endcode
+
+
+%	PAGESTYLE PCE
+%
+%       Chapter                            date
+%       ---------------------------------------
+%
+%	bla, bla, bla, ...
+%	
+%       \bottomleft    - page -    \bottomright
+
+\def\arabicday{\number\year-\number\month-\number\day}
+

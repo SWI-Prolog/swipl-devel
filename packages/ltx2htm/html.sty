@@ -1,0 +1,49 @@
+% HTML.sty
+% 
+% Provide LaTeX definitions for the latex2html translator.
+% Requires LaTeX2e or later
+%
+% Author: Jan Wielemaker, SWI, University of Amsterdam
+
+%	\onefile
+%
+%       Do not section the output (i.e. put all output in the same HTML file).
+
+\newcommand{\onefile}{}
+
+%	\email[TextToShow]{URL}
+%	\url[TextToShow]{URL}
+%
+%	References to E-mail addresses and general URL's.  If the optional
+%	argument is provided, this is the text printed for the label.  Otherwise
+%	the address itself is printed.
+
+\def\url{\@ifnextchar[{\@url}{\@plainurl}}
+\def\@url[#1]#2{#1}
+\def\@plainurl#1{{\tt #1}}
+\let\email=\url
+
+%	\begin{shortlist} ... \end{shortlist}
+%
+%	As itemize environment, but do not include extra space between the
+%	items.
+
+\newenvironment{shortlist}{%
+	\begin{itemize}\setlength{\itemsep}{0pt}}{%
+	\end{itemize}}
+
+%	\begin{dlist} ... \end{dlist}
+%
+%	As description environment, but start a newline after the item
+
+\newenvironment{dlist}{%
+	\begin{description}%
+	\let\@ditem=\item%
+	\def\item[##1]{\@ditem[##1]\hfill\\}}{%
+	\end{description}}
+
+%	\var{Var}
+%
+%	Indicate Var is a variable or argument.
+
+\def\var#1{{\it #1}}
