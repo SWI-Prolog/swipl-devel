@@ -2872,6 +2872,7 @@ init_c_args()
 	  case 'g':
 	  case 'd':
 	  case 'f':
+	  case 's':
 	  case 't':
 	    i++;
 	    continue;
@@ -2881,6 +2882,7 @@ init_c_args()
 	  case 'O':
 	  case 'T':
 	  case 'A':
+	  case 'q':
 	    continue;
 	}
       }
