@@ -315,8 +315,8 @@ ws_input_stream(Stream s)
 
 void
 ws_no_input_stream(Stream s)
-{ if ( instanceOfObject(obj, ClassSocket) )
-  { SOCKET s = (SOCKET) obj->ws_ref;
+{ if ( instanceOfObject(s, ClassSocket) )
+  { SOCKET s = (SOCKET) s->ws_ref;
 
     if ( s != INVALID_SOCKET )
     { WSAAsyncSelect(s, PceHiddenWindow(), 0, 0);
