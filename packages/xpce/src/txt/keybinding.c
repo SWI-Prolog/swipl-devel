@@ -258,6 +258,7 @@ typedKeyBinding(KeyBinding kb, Any id, Graphical receiver)
   int reset = 0;
   status rval = FAIL;
   EventObj ev = id;
+  int clearstatus = (notDefault(kb->argument) || kb->prefix != NAME_);
         
   if ( notDefault(receiver) )
   { if ( receiver != crec )
@@ -370,10 +371,12 @@ typedKeyBinding(KeyBinding kb, Any id, Graphical receiver)
       { reset |= (RESET_ARGUMENT|RESET_COLUMN);
       }
 
-      send(receiver, NAME_report, NAME_status, NAME_, EAV);
+      if ( clearstatus )
+	send(receiver, NAME_report, NAME_status, NAME_, EAV);
       rval = sendv(kb, NAME_fillArgumentsAndExecute, argc, argv);
     } else if ( instanceOfObject(cmd, ClassCode) )
-    { send(receiver, NAME_report, NAME_status, NAME_, EAV);
+    { if ( clearstatus )
+	send(receiver, NAME_report, NAME_status, NAME_, EAV);
       rval = forwardReceiverCode(cmd, receiver, kb->argument, id, EAV);
     }
   } else
