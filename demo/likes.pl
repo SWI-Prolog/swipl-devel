@@ -1,5 +1,4 @@
 %% Demo coming from http://clwww.essex.ac.uk/course/LG519/2-facts/index_18.html
-%% Distributed with SWI-Prolog with permission from the author.
 %%
 %% Please load this file into SWI-Prolog
 %%
