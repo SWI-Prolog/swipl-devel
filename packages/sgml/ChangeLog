@@ -1,3 +1,7 @@
+Feb 24, 2005
+
+  * ADDED: handle encoding="US-ASCII" for XML documents.
+
 Feb 22, 2005
 
   * MODIFIED: Use Sgetcode() rather than Sgetc() to get data from a Prolog

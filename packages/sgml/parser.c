@@ -3667,6 +3667,8 @@ xml_set_encoding(dtd_parser *p, const char *enc)
 
   if ( istrcaseeq(enc, "iso-8859-1") )
   { dtd->encoding = SGML_ENC_ISO_LATIN1;
+  } else if ( istrcaseeq(enc, "us-ascii") )
+  { dtd->encoding = SGML_ENC_ISO_LATIN1; 	/* doesn't make a difference */
   } else if ( istrcaseeq(enc, "utf-8") )
   { dtd->encoding = SGML_ENC_UTF8;
   } else
