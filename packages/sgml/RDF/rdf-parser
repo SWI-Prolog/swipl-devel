@@ -25,7 +25,7 @@ _EOM_
 }
 
 cd $base > $tmp 2>&1
-/usr/bin/pl -f none -F none -t halt \
+@PL@ -f none -F none -t halt \
 	  -g "load_files(online,[silent(true)]),go" 2>$tmp
 
 case $? in
