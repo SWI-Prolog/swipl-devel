@@ -544,13 +544,23 @@ getDatePce(Pce pce)
 }
 
 #ifdef __msdos__
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Define getlogin() and gethostname() for the DOS/Windows version.
+These functions are renamed to fool mkproto adding a possibly
+conflicting prototype for them.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define gethostname _dosemu_gethostname
+#define getlogin _dosemu_getlogin
+
 char *
 getlogin()
 { return getenv("USER");
 }
 
 int
-gethostname(char *buf, int len)
+_dosemu_gethostname(char *buf, int len)
 { char *s;
   
   if ( (s = getenv("HOSTNAME")) != NULL )

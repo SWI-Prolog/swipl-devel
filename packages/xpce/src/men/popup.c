@@ -20,7 +20,6 @@ initialisePopup(PopupObj p, Name label, Code msg)
   assign(p, update_message, NIL);
   assign(p, button,	    NAME_right);
   assign(p, default_item,   DEFAULT);	/* resource */
-  assign(p, margin,	    DEFAULT);
   initialiseMenu((Menu) p, label, NAME_popup, msg);
 
   succeed;
@@ -153,7 +152,6 @@ openPopup(PopupObj p, Graphical gr, Point pos,
   dh = valInt(getHeightDisplay(d));
 
   sw = createPopupWindow(d);
-  setGraphical(p, p->margin, DEFAULT, DEFAULT, DEFAULT);
   send(sw, NAME_display, p, 0);
 
   if ( !(offset = getDisplayPositionGraphical(gr)) )
@@ -184,7 +182,7 @@ openPopup(PopupObj p, Graphical gr, Point pos,
   { dx = -4;
     previewMenu((Menu) p, NIL);
   }
-  pw = valInt(p->area->w) + 2*valInt(p->margin);
+  pw = valInt(p->area->w);
   ph = valInt(p->area->h);
 
   if ( pos_is_pointer == ON )
@@ -378,13 +376,16 @@ cont_drag:
     { if ( mi->active == ON )
       { previewMenu((Menu) p, mi);
 
-	if ( notNil(mi->popup) &&
-	     notNil(p->popup_image) )
+	if ( notNil(mi->popup) )
 	{ Int ex, ey;
 	  int ix = valInt(p->item_offset->x) +
 	           valInt(p->item_size->w) -
-		   valInt(p->border) -
-		   valInt(p->popup_image->size->w);
+		   valInt(p->border);
+
+	  if ( notNil(p->popup_image) )
+	    ix -= valInt(p->popup_image->size->w);
+	  else
+	    ix -= 8;
 
 	  get_xy_event(ev, p, ON, &ex, &ey);
 	  if ( valInt(ex) > ix )
@@ -450,8 +451,6 @@ makeClassPopup(Class class)
   localClass(class, NAME_defaultItem, NAME_appearance, 
 	     "{first,selection}|any*", NAME_both,
 	     "Initial previewed item");
-  localClass(class, NAME_margin, NAME_appearance, "int", NAME_both,
-	     "Left-and right margin in window");
 
   termClass(class, "popup", 2, NAME_name, NAME_message);
 
@@ -517,8 +516,6 @@ makeClassPopup(Class class)
 		  "Feedback style");
   attach_resource(class, "preview_feedback", "name", "invert",
 		  "Feedback on `preview' item");
-  attach_resource(class, "margin", "int", "0",
-		  "Left and right margin in window");
   attach_resource(class, "pen", "int", "0",
 		  "Thickness of the drawing-pen");
   attach_resource(class, "label_suffix", "name", "",

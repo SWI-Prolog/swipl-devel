@@ -24,6 +24,7 @@ initialiseLabel(Label lb, Name name, Any selection, FontObj font)
 
   assign(lb, font,      font);
   assign(lb, length,    DEFAULT);
+  assign(lb, border,    DEFAULT);
   selectionLabel(lb, selection);
   
   return requestComputeGraphical(lb, DEFAULT);
@@ -33,20 +34,32 @@ initialiseLabel(Label lb, Name name, Any selection, FontObj font)
 static status
 RedrawAreaLabel(Label lb, Area a)
 { int x, y, w, h;
+  int z = valInt(getResourceValueObject(lb, NAME_elevation));
+  int preview = (lb->status == NAME_preview && notNil(lb->message));
 
   initialiseDeviceGraphical(lb, &x, &y, &w, &h);
 
+  if ( z )
+  { if ( preview )
+      z = -z;
+    r_3d_box(x, y, w, h, abs(z), lb->background, z > 0);
+  }
+
+  x += valInt(lb->border);
+  y += valInt(lb->border);
+
   if ( instanceOfObject(lb->selection, ClassCharArray) )
   { CharArray s = lb->selection;
+    int ex = valInt(getExFont(lb->font));
 
-    str_string(&s->data, lb->font, x, y, w, h, NAME_left, NAME_top);
+    str_string(&s->data, lb->font, x+ex/2, y, w, h, NAME_left, NAME_top);
   } else /*if ( instanceOfObject(lb->selection, ClassImage) )*/
   { Image image = (Image) lb->selection;
 
     r_image(image, 0, 0, x, y, w, h, ON);
   }
 
-  if ( lb->status == NAME_preview && notNil(lb->message) )
+  if ( preview && !z )
     r_complement(x, y, w, h);    
 
   return RedrawAreaGraphical(lb, a);
@@ -109,15 +122,19 @@ computeLabel(Label lb)
 
     if ( instanceOfObject(lb->selection, ClassCharArray) )
     { CharArray s = (CharArray) lb->selection;
+      int ex = valInt(getExFont(lb->font));
 
       str_size(&s->data, lb->font, &w, &h);
-      w = max(w, valInt(lb->length) * valInt(getExFont(lb->font)));
+      w = max(w+ex, valInt(lb->length) * ex);
     } else /*if ( instanceOfObject(lb->selection, ClassImage) )*/
     { Image image = (Image) lb->selection;
 
       w = valInt(image->size->w);
       h = valInt(image->size->h);
     }
+
+    w += 2*valInt(lb->border);
+    h += 2*valInt(lb->border);
 
     CHANGING_GRAPHICAL(lb,
 	assign(lb->area, w, toInt(w));
@@ -208,6 +225,12 @@ lengthLabel(Label lb, Int length)
 
 
 static status
+borderLabel(Label lb, Int border)
+{ return assignGraphical(lb, NAME_border, border);
+}
+
+
+static status
 catchAllLabelv(Label lb, Name selector, int argc, Any *argv)
 { if ( hasSendMethodObject(lb->selection, selector) )
   { assign(PCE, last_error, NIL);
@@ -281,6 +304,8 @@ makeClassLabel(Class class)
   localClass(class, NAME_selection, NAME_selection, "char_array|image",
 	     NAME_get,
 	     "Text or image displayed");
+  localClass(class, NAME_border, NAME_appearance, "0..", NAME_get,
+	     "Space around the image");
 
   termClass(class, "label", 3, NAME_name, NAME_selection, NAME_font);
   setRedrawFunctionClass(class, RedrawAreaLabel);
@@ -289,6 +314,7 @@ makeClassLabel(Class class)
   storeMethod(class, NAME_font,      fontLabel);
   storeMethod(class, NAME_length,    lengthLabel);
   storeMethod(class, NAME_selection, selectionLabel);
+  storeMethod(class, NAME_border,    borderLabel);
 
   sendMethod(class, NAME_initialise, DEFAULT,
 	     3, "name=[name]", "selection=[string|image]", "font=[font]",
@@ -326,6 +352,10 @@ makeClassLabel(Class class)
 		  "Default font for selection");
   attach_resource(class, "length", "int", "25",
 		  "Default length in characters");
+  attach_resource(class, "length", "int", "25",
+		  "Default length in characters");
+  attach_resource(class, "border", "0..", "0",
+		  "Space around image/string");
 
   succeed;
 }

@@ -1088,7 +1088,8 @@ makeClassFrame(Class class)
 	     "Display the frame resides on");
   localClass(class, NAME_border, NAME_appearance, "[int]", NAME_get,
 	     "Width of border");
-  localClass(class, NAME_background, NAME_appearance, "colour|image", NAME_get,
+  localClass(class, NAME_background, NAME_appearance, "colour|pixmap",
+	     NAME_get,
 	     "Background of the frame");
   localClass(class, NAME_area, NAME_area, "area", NAME_get,
 	     "Area of the opened frame on the display");
@@ -1361,7 +1362,7 @@ makeClassFrame(Class class)
 		  "Position/size of the frame");
   attach_resource(class, "busy_cursor", "cursor*", "watch",
 		  "Default cursor displayed by ->busy_cursor");
-  attach_resource(class, "background", "colour|image", "white",
+  attach_resource(class, "background", "colour|pixmap", "white",
 		  "Default background colour");
 
   succeed;

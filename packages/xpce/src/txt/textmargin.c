@@ -52,7 +52,7 @@ paint_fragment(TextMargin m, int x, int y, Fragment fragment)
     w = valInt(icon->size->w);
     h = valInt(icon->size->h);
 
-    r_image(icon, 0, 0, x, y, w, h);
+    r_image(icon, 0, 0, x, y, w, h, ON);
     if ( m->editor->selected_fragment == fragment )
       r_complement(x, y, w, h);
   }

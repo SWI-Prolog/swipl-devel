@@ -914,9 +914,9 @@ makeClassDisplay(Class class)
 		  "Draw quick or correct");
   attach_resource(class, "window_manager", "[name]",  "@default",
 		  "Window manager running on this display");
-  attach_resource(class, "3d_shadow", "colour|image", "black",
+  attach_resource(class, "3d_shadow", "colour|pixmap", "black",
 		  "Shadow-part for 3-d objects");
-  attach_resource(class, "3d_relief", "colour|image", "white",
+  attach_resource(class, "3d_relief", "colour|pixmap", "white",
 		  "Relief-part for 3-d objects");
   attach_font_families(class);
 

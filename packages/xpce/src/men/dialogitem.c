@@ -27,6 +27,7 @@ createDialogItem(Any obj, Name name)
   nameDialogItem(di, name);
 
   assign(di, label_format,	 DEFAULT); /* resource */
+  assign(di, background,	 DEFAULT); /* resource */
   assign(di, status,		 NAME_inactive);
   assign(di, message,		 NIL);
   assign(di, popup,		 NIL);
@@ -107,6 +108,12 @@ nameDialogItem(DialogItem di, Name name)
 static status
 lookDialogItem(DialogItem di, Name look)
 { return assignGraphical(di, NAME_look, look);
+}
+
+
+static status
+backgroundDialogItem(DialogItem di, Any bg)
+{ return assignGraphical(di, NAME_background, bg);
 }
 
 
@@ -274,6 +281,9 @@ makeClassDialogItem(Class class)
   localClass(class, NAME_labelFormat, NAME_layout,
 	     "{left,center,right}", NAME_get,
 	     "Align labels in their box");
+  localClass(class, NAME_background, NAME_appearance, "image|colour*",
+	     NAME_get,
+	     "Opaque background for item");
   localClass(class, NAME_status, NAME_event,
 	     "{inactive,active,preview,execute}", NAME_get,
 	     "Status for event-processing");
@@ -315,6 +325,7 @@ makeClassDialogItem(Class class)
   storeMethod(class, NAME_status,      statusDialogItem);
   storeMethod(class, NAME_device,      deviceDialogItem);
   storeMethod(class, NAME_look,        lookDialogItem);
+  storeMethod(class, NAME_background,  backgroundDialogItem);
   storeMethod(class, NAME_labelFormat, labelFormatDialogItem);
 
   sendMethod(class, NAME_initialise, DEFAULT, 1, "name=name",
@@ -339,12 +350,6 @@ makeClassDialogItem(Class class)
   sendMethod(class, NAME_open, NAME_organisation, 0,
 	     "Create dialog with this item and ->open",
 	     openDialogItem);
-  sendMethod(class, NAME_apply, NAME_apply, 1, "[bool]",
-	     "Virtual method",
-	     virtualObject);
-  sendMethod(class, NAME_restore, NAME_apply, 0,
-	     "Virtual method",
-	     virtualObject);
   sendMethod(class, NAME_modified, NAME_apply, 1, "bool",
 	     "Forward modification to associated <-device",
 	     modifiedDialogItem);
@@ -390,6 +395,10 @@ makeClassDialogItem(Class class)
 		  "Alignment in the row");
   attach_resource(class, "selection_style", "name", "none",
 		  "Visual feedback of <->selected");
+  attach_resource(class, "background", "colour|pixmap*", "@nil",
+		  "Background of the item");
+  attach_resource(class, "elevation", "int", "0",
+		  "3-D elevation");
 
   succeed;
 }

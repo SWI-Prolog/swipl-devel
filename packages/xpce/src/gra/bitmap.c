@@ -12,18 +12,22 @@
 #include <h/unix.h>
 
 static status	imageBitmap(BitmapObj bm, Image image);
+static status	transparentBitmap(BitmapObj bm, Bool transparent);
 
 static status
-initialiseBitmap(BitmapObj b, Image image)
+initialiseBitmap(BitmapObj b, Image image, Bool transparent)
 { if ( isDefault(image) )
     TRY(image = newObject(ClassImage, NIL, 0));
   
   initialiseGraphical(b, ZERO, ZERO, image->size->w, image->size->h);
+
   assign(b, pen, ZERO);
   assign(b, transparent, OFF);
   assign(b, image, image);
   if ( image->access == NAME_both && isNil(image->bitmap) )
     assign(image, bitmap, b);
+  if ( transparent == ON )
+    transparentBitmap(b, ON);
 
   succeed;
 }
@@ -212,7 +216,8 @@ makeClassBitmap(Class class)
   storeMethod(class, NAME_transparent, transparentBitmap);
   delegateClass(class, NAME_image);
 
-  sendMethod(class, NAME_initialise, DEFAULT, 1, "image=[image]",
+  sendMethod(class, NAME_initialise, DEFAULT, 2,
+	     "image=[image]", "transparent=[bool]",
 	     "Create from image",
 	     initialiseBitmap);
   sendMethod(class, NAME_unlink, DEFAULT, 0,

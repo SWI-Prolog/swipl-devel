@@ -293,7 +293,11 @@ RedrawAreaScrollBar(ScrollBar s, Area a)
   if ( s->look == NAME_openLook )
     return OpenLookRedrawAreaScrollBar(s, a);
 
+{
 #define d 2
+  int z    = valInt(getResourceValueObject(s, NAME_elevation));
+  Any bg   = getResourceValueObject(s, NAME_background);
+  Any bc   = getResourceValueObject(s, NAME_barColour);
 
   initialiseDeviceGraphical(s, &x, &y, &w, &h);
   NormaliseArea(x, y, w, h);
@@ -303,19 +307,18 @@ RedrawAreaScrollBar(ScrollBar s, Area a)
   r_dash(s->texture);
 
   if ( equalName(s->orientation, NAME_vertical) )
-  { r_fill(x+p, y, w-2*p, bi.start, WHITE_IMAGE);
-    r_fill(x+d, y+bi.start, w-2*d, bi.length, GREY50_IMAGE);
-    r_fill(x+p, y+bi.start+bi.length,
-	   w-2*p, h-bi.start-bi.length, WHITE_IMAGE);
+  { r_fill(x+p, y, w-2*p, bi.start, bg);
+    r_3d_box(x+d, y+bi.start, w-2*d, bi.length, abs(z), bc, z > 0);
+    r_fill(x+p, y+bi.start+bi.length, w-2*p, h-bi.start-bi.length, bg);
   } else /* if ( equalName(s->orientation, NAME_horizontal) ) */
-  { r_fill(x, y+p, bi.start, h-2*p, WHITE_IMAGE);
-    r_fill(x+bi.start, y+d, bi.length, h-2*d, GREY50_IMAGE);
-    r_fill(x+bi.start+bi.length, y+p,
-	   w-bi.start-bi.length, h-2*p, WHITE_IMAGE);
+  { r_fill(x, y+p, bi.start, h-2*p, bg);
+    r_3d_box(x+bi.start, y+d, bi.length, h-2*d, abs(z), bc, z > 0);
+    r_fill(x+bi.start+bi.length, y+p, w-bi.start-bi.length, h-2*p, bg);
   }
 
   r_box(x, y, w, h, 0, NIL);
 #undef d
+}
 
   return RedrawAreaGraphical(s, a);
 }
@@ -871,7 +874,7 @@ makeClassScrollBar(Class class)
 
   attach_resource(class, "width", "int", "16",
 		  "Width of the scroll_bar");
-  attach_resource(class, "look", "name", "x",
+  attach_resource(class, "look", "{x,open_look,motif}", "x",
 		  "Look-and-feel");
   attach_resource(class, "placement", "chain", "[top,left]",
 		  "Relative placement");
@@ -881,6 +884,12 @@ makeClassScrollBar(Class class)
 		  "OpenLook: time to wait until start of repeat");
   attach_resource(class, "repeat_interval", "real", "0.08",
 		  "OpenLook: interval between repeats");
+  attach_resource(class, "elevation", "int", "0",
+		  "3-D effect elevation");
+  attach_resource(class, "background", "[colour|pixmap]", "white",
+		  "Colour of background parts");
+  attach_resource(class, "bar_colour", "[colour|pixmap]", "black",
+		  "Colour of the bar");
 
   succeed;
 }

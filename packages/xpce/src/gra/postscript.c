@@ -868,7 +868,7 @@ drawPostScriptText(TextObj t)
   y = valInt(t->area->y);
   w = valInt(t->area->w);
 
-  if ( t->transparent == OFF )
+  if ( isDefault(t->background) )
     ps_output("~x ~y ~w ~h clear\n", t, t, t, t);
   
   if ( t->wrap == NAME_wrap )

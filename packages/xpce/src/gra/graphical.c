@@ -221,6 +221,13 @@ initialiseDeviceGraphical(Any obj, int *x, int *y, int *w, int *h)
     dev = dev->device;
   }
 
+  if ( gr->active == OFF )
+  { Any c2;
+
+    if ( (c2 = getResourceValueObject(gr, NAME_inactiveColour)) && notNil(c2) )
+      c = c2;
+  }
+
   r_default_colour(c);
 
   succeed;
@@ -586,14 +593,6 @@ RedrawAreaGraphical(Any obj, Area area)
     r_complement(x, y, w, h);
   }
   
-  if ( gr->active == OFF )
-  { if ( !init )
-    { initialiseDeviceGraphical(gr, &x, &y, &w, &h);
-      init = TRUE;
-    }
-    r_and(x, y, w, h, GREY50_IMAGE);
-  }
-
   if ( gr->selected == ON )
   { Class class = classOfObject(gr);
 
@@ -2441,7 +2440,7 @@ makeClassGraphical(Class class)
 	     "Thickness of drawing pen");
   localClass(class, NAME_texture, NAME_appearance, "texture_name", NAME_get,
 	     "Stipple pattern of drawing pen");
-  localClass(class, NAME_colour, NAME_appearance, "[colour|image]", NAME_get,
+  localClass(class, NAME_colour, NAME_appearance, "[colour|pixmap]", NAME_get,
 	     "Colour of drawing pen");
   localClass(class, NAME_handles, NAME_relation, "chain*", NAME_none,
 	     "Connection points for connections");
@@ -2703,6 +2702,12 @@ makeClassGraphical(Class class)
   sendMethod(class, NAME_right, NAME_layout, 1, "graphical*",
 	     "Put me right of argument",
 	     leftGraphical);
+  sendMethod(class, NAME_apply, NAME_apply, 1, "[bool]",
+	     "Virtual method",
+	     virtualObject);
+  sendMethod(class, NAME_restore, NAME_apply, 0,
+	     "Virtual method",
+	     virtualObject);
 
   getMethod(class, NAME_absolutePosition, NAME_area, "point", 1, "[device]",
 	    "Get position relative to device (or window)",
@@ -2814,7 +2819,7 @@ makeClassGraphical(Class class)
 	    "{north_west,south_east,north_east,south_east}", 0,
 	    "Current orientation",
 	    getOrientationGraphical);
-  getMethod(class, NAME_displayColour, NAME_appearance, "colour|image", 0,
+  getMethod(class, NAME_displayColour, NAME_appearance, "colour|pixmap", 0,
 	    "Colour graphical is displayed in",
 	    getDisplayColourGraphical);
   getMethod(class, NAME_node, NAME_nodes, "node", 0,
@@ -2873,8 +2878,10 @@ makeClassGraphical(Class class)
 		  "Lenght of flash in milliseconds");
   attach_resource(class, "selection_style", "name", "corner_and_side_handles",
 		  "Visual feedback of <->selected");
-  attach_resource(class, "colour", "[colour|image]", "@default",
+  attach_resource(class, "colour", "[colour|pixmap]", "@default",
 		  "Default colour for this object");
+  attach_resource(class, "inactive_colour", "colour|pixmap*", "grey",
+		  "Colour when <-active == @off");
 
   ChangedWindows = globalObject(NAME_changedWindows, ClassChain, 0);
 

@@ -11,7 +11,7 @@
 #
 # 		SWI
 #		University of Amsterdam
-#		Roetersstraat 15
+#		Roetersstraat 15
 #		1018 WB  Amsterdam
 #		The Netherlands
 #		FAX: (+31) 20 5256896
@@ -67,8 +67,8 @@ PLARCH=sun4
 ################################################################
 
 LDFLAGS=-L$(XLIB) -static $(COFLAGS)
-#LDFLAGS=-L$(XLIB) $(COFLAGS)
-#STATICLIBS=/usr/lib/libc.a
+#LDFLAGS=-L$(XLIB)
+STATICLIBS=/usr/lib/libc.a
 PLLIBS=-ltermcap -lreadline
 
 ################################################################

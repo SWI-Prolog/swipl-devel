@@ -95,8 +95,7 @@ struct draw_context
   int		depth;			/* #bits per pixel */
   Name		dash;			/* Current dash pattern */
   Name		arcmode;		/* Current arc mode (filling arcs) */
-  Image		fill_pattern;		/* Current fillpattern */
-  Colour	fill_colour;		/* Current filling colour */
+  Any		fill;			/* Image or Colour */
   Image		and_pattern;		/* Current andpattern */
   FontObj	font;			/* Current font */
   XFontStruct * font_info;		/* X-font for this display */

@@ -369,10 +369,21 @@ getTokenTokeniser(Tokeniser t)
       } else
 	*q++ = c;
     }
-  } else if ( tisdigit(s, c) )		/* int, real */
+  } else if ( tisdigit(s, c) || c == '-' ) /* int, real */
   { char buf[LINESIZE];
     char *q = buf;
     int is_int = TRUE;
+
+    if ( c == '-' )
+    { char c2 = GETC(t);
+
+      if ( !tisdigit(s, c2) )
+      { UNGETC(t, c2);
+	goto nonum;
+      }
+      *q++ = c;
+      c = c2;
+    }
 
     do
     { *q++ = c;
@@ -440,7 +451,10 @@ getTokenTokeniser(Tokeniser t)
       }
       answer(CtoReal(f));
     }
-  } else if ( tisalnum(s, c) )		/* atom */
+  } 
+
+nonum:
+  if ( tisalnum(s, c) )		/* atom */
   { char buf[LINESIZE];
     char *q = buf;
 

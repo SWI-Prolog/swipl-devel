@@ -299,7 +299,7 @@ status		exceptionPcev(Pce pce, Name name, int argc, Any *argv);
 status		exceptionPce(Pce pce, Name kind, ...);
 int		getdtablesize(void);
 char *		getlogin(void);
-int		gethostname(char *buf, int len);
+int		_dosemu_gethostname(char *buf, int len);
 Name		getHostnamePce(Pce pce);
 status		catchErrorSignalsPce(Pce pce, Bool val);
 status		resetPce(Pce pce);

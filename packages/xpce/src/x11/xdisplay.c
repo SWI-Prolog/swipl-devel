@@ -256,8 +256,7 @@ new_draw_context(DisplayObj d, Drawable drawable, Name kind)
 
   ctx->pen	        = -1;
   ctx->dash	        = NAME_none;
-  ctx->fill_pattern     = NIL;
-  ctx->fill_colour      = NIL;
+  ctx->fill	        = NIL;
   ctx->arcmode		= NAME_pieSlice;
   ctx->and_pattern      = NIL;
   ctx->font	        = NIL;

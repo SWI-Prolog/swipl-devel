@@ -91,6 +91,8 @@ loadFile(FileObj f, FILE *fd, ClassDef def)
 
   if ( isNil(f->path) )
     assign(f, path, DEFAULT);		/* backward compatibility load */
+  if ( isNil(f->kind) )
+    assign(f, kind, NAME_binary);	/* same */
 
   assign(f, status, NAME_closed);
   f->fd = NULL;

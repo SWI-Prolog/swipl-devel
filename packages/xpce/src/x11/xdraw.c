@@ -216,8 +216,6 @@ d_window(PceWindow sw, int x, int y, int w, int h, int clear, int limit)
   context.drawable	     = (Drawable) XtWindow(widgetWindow(sw));
   context.kind		     = NAME_window;
 
-  r_background(sw->background);
-
   env++;
   if ( limit )
   { int dx, dy, dw, dh;
@@ -277,6 +275,9 @@ d_window(PceWindow sw, int x, int y, int w, int h, int clear, int limit)
   }
 
   d_clip(x, y, w, h);
+
+  r_background(sw->background);
+
   if ( clear )
     r_clear(x, y, w, h);
 }
@@ -326,7 +327,9 @@ d_image(Image i, int x, int y, int w, int h)
   context.default_colour = context.default_foreground;
 
   if ( i->kind == NAME_pixmap )
-    r_background(i->background);
+  { r_background(context.default_background);
+    r_default_colour(context.default_foreground);
+  }
 
   env++;
   env->area.x   = 0;
@@ -511,7 +514,10 @@ r_clear(int x, int y, int w, int h)
   Clip(x, y, w, h);
 
   if ( w > 0 && h > 0 )
-  { if ( context.kind == NAME_window )
+  { DEBUG(NAME_background, printf("r_clear(%d, %d, %d, %d) in %s context\n",
+				  x, y, w, h, pp(context.gcs->kind)));
+
+    if ( context.kind == NAME_window )
       XClearArea(context.display, context.drawable, x, y, w, h, False);
     else
       XFillRectangle(context.display, context.drawable, context.gcs->clearGC,
@@ -606,34 +612,33 @@ r_dash(Name name)
 
 void
 r_fillpattern(Any fill)		/* image or colour */
-{ int pattern = instanceOfObject(fill, ClassImage);
-  Image  i = (pattern ? (Image)fill : BLACK_IMAGE);
-  Colour c = (pattern ? context.gcs->colour : (Colour) fill);
-  Pixmap image;
-
-  if ( (i != context.gcs->fill_pattern ||
-	c != context.gcs->fill_colour) &&
-       (image = (Pixmap) getXrefObject(i, context.pceDisplay)) )
+{ if ( fill != context.gcs->fill )
   { XGCValues values;
     ulong mask;
-    
-    if ( context.kind != NAME_bitmap && i->kind == NAME_bitmap )
-    { values.stipple    = image;
-      values.fill_style = FillOpaqueStippled;
-      mask 		= (GCStipple|GCFillStyle);
+
+    if ( instanceOfObject(fill, ClassImage) )
+    { Image i = fill;
+      Pixmap pm = (Pixmap) getXrefObject(fill, context.pceDisplay);
+
+      if ( context.kind != NAME_bitmap && i->kind == NAME_bitmap )
+      { values.stipple    = pm;
+	values.fill_style = FillOpaqueStippled;
+	values.foreground = context.gcs->foreground_pixel;
+	values.background = context.gcs->background_pixel;
+	mask 		  = (GCStipple|GCFillStyle|GCForeground|GCBackground);
+      } else
+      { values.tile       = pm;
+	values.fill_style = FillTiled;
+	mask		  = (GCTile|GCFillStyle);
+      }
     } else
-    { values.tile       = image;
-      values.fill_style = FillTiled;
-      mask		= (GCTile|GCFillStyle);
+    { mask = GCForeground|GCFillStyle;
+      values.foreground = getPixelColour(fill, context.pceDisplay);
+      values.fill_style = FillSolid;
     }
-    values.foreground = (pattern ? context.gcs->foreground_pixel
-			 	 : getPixelColour(c, context.pceDisplay));
-    mask |= GCForeground;
 
     XChangeGC(context.display, context.gcs->fillGC, mask, &values);
-
-    context.gcs->fill_pattern = i;
-    context.gcs->fill_colour = c;
+    context.gcs->fill = fill;
   }
 }
 
@@ -717,7 +722,8 @@ r_colour(Any c)
 
       context.gcs->colour = c;
       XChangeGC(context.display, context.gcs->workGC, mask, &values);
-      XChangeGC(context.display, context.gcs->fillGC, mask, &values);
+      if ( instanceOfObject(context.gcs->fill, ClassImage) && instanceOfObject(c, ClassColour))
+	XChangeGC(context.display, context.gcs->fillGC, GCForeground, &values);
     } 
     context.gcs->colour = c;
   }
@@ -736,6 +742,9 @@ r_background(Any c)
     { XGCValues values;
       ulong mask;
 
+      DEBUG(NAME_background, printf("Setting clearGC of %s context to %s\n",
+				    pp(context.gcs->kind), pp(c)));
+
       if ( instanceOfObject(c, ClassColour) )
       { ulong pixel = getPixelColour(c, context.pceDisplay);
 	
@@ -745,11 +754,22 @@ r_background(Any c)
 
 	context.gcs->background_pixel = pixel;
       } else
-      { Pixmap pm   = (Pixmap) getXrefObject(c, context.pceDisplay);
+      { Image i   = (Image) c;
+	Pixmap pm = (Pixmap) getXrefObject(i, context.pceDisplay);
 
-	values.tile       = pm;
-	values.fill_style = FillTiled;
-	mask		  = (GCTile|GCFillStyle);
+	if ( i->kind == NAME_bitmap )
+	{ DisplayWsXref r = context.pceDisplay->ws_ref;
+
+	  values.stipple    = pm;
+	  values.fill_style = FillOpaqueStippled;
+	  values.foreground = r->black_pixel;
+	  values.background = r->white_pixel;
+	  mask		    = (GCStipple|GCFillStyle|GCForeground|GCBackground);
+	} else
+	{ values.tile       = pm;
+	  values.fill_style = FillTiled;
+	  mask		    = (GCTile|GCFillStyle);
+	}
       }
 
       context.gcs->background = c;
@@ -1033,6 +1053,66 @@ r_3d_box(int x, int y, int w, int h, int shadow, Any fill, int up)
   
   if ( notNil(fill) )
     r_fill(x+shadow, y+shadow, w-2*shadow, h-2*shadow, fill);
+}
+
+
+void
+r_3d_line(int x1, int y1, int x2, int y2, int pen)
+{ XSegment s[MAX_SHADOW];
+  int i;
+
+  Translate(x1, y1);
+  Translate(x2, y2);
+
+  if ( pen > MAX_SHADOW )
+    pen = MAX_SHADOW;
+
+  if ( y1 == y2 )
+  { y1 -= pen; y2 -= pen;
+  } else
+  { x1 -= pen; x2 -= pen;
+  }
+
+  for(i=0; i<pen; i++)
+  { s[i].x1 = x1, s[i].x2 = x2, s[i].y1 = y1, s[i].y2 = y2;
+    if ( y1 == y2 )
+      y1++, y2++;
+    else
+      x1++, x2++;
+  }
+  XDrawSegments(context.display, context.drawable,
+		context.gcs->shadowGC, s, i);
+  for(i=0; i<pen; i++)
+  { s[i].x1 = x1, s[i].x2 = x2, s[i].y1 = y1, s[i].y2 = y2;
+    if ( y1 == y2 )
+      y1++, y2++;
+    else
+      x1++, x2++;
+  }
+  XDrawSegments(context.display, context.drawable,
+		context.gcs->reliefGC, s, i);
+}
+
+
+void
+r_3d_triangle(int x1, int y1, int x2, int y2, int x3, int y3, int z)
+{ XSegment s[3];
+  GC topGC, botGC;
+
+  if ( z > 0 )
+  { topGC =    context.gcs->reliefGC;
+    botGC = context.gcs->shadowGC;
+  } else
+  { topGC =    context.gcs->shadowGC;
+    botGC = context.gcs->reliefGC;
+  }
+
+  s[0].x1 = X(x1);   s[0].y1 = Y(y1);   s[0].x2 = X(x2);   s[0].y2 = Y(y2);
+  s[1].x1 = s[0].x2; s[1].y1 = s[0].y2; s[1].x2 = X(x3);   s[1].y2 = Y(y3);
+  s[2].x1 = s[1].x2; s[2].y1 = s[1].y2; s[2].x2 = s[0].x1; s[2].y2 = s[0].y1;
+
+  XDrawSegments(context.display, context.drawable, topGC, s,     2);
+  XDrawSegments(context.display, context.drawable, botGC, &s[2], 1);
 }
 
 
@@ -1418,6 +1498,7 @@ r_triangle(int x1, int y1, int x2, int y2, int x3, int y3)
   XDrawSegments(context.display, context.drawable, context.gcs->workGC,
 		s, 3);
 }
+
 
 void
 r_pixel(int x, int y, Any val)

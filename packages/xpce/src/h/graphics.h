@@ -52,6 +52,7 @@ typedef struct update_area *UpdateArea;	/* Window changes data  */
   Name	     label;			/* Label of the item */ \
   Int	     label_width;		/* Width of the label */ \
   Name	     label_format;		/* Alignment of label in box */ \
+  Any	     background;		/* Colour or Image for background */ \
   Name	     status;			/* inactive, focus, preview, execute*/\
   Code	     message;			/* Execution message */ \
   PopupObj   popup;			/* Popup associated with item */ \
@@ -215,7 +216,8 @@ NewClass(textobj)
   Point	     position;		/* reference position of text */
   Int        caret;		/* current insertion/deletion point */
   Bool	     show_caret;	/* show the caret (default OFF) */
-  Bool	     transparent;	/* Print text transparent */
+  Any	     background;	/* Background of text */
+  Int	     border;		/* Border around actual text */
   Name	     wrap;		/* Clip to width */
   Int	     x_offset;		/* Shift in X-direction (length > 0) */
   Int	     x_caret;		/* Caret X, relative to graphical */
@@ -257,6 +259,7 @@ NewClass(label)
   FontObj    font;			/* Font of the text */
   Int	     length;			/* Length in characters */
   Any	     selection;			/* Currently displayed value */
+  Int	     border;			/* additional space */
 End;
 
 NewClass(button)
@@ -266,7 +269,6 @@ NewClass(button)
   FontObj    font;			/* Font of the button */
   Name	     accelerator;		/* activate on this key */
   Image	     popup_image;		/* Image to indicate popup */
-  Any	     fill_pattern;		/* Button's fill-pattern */
 End;
 
 NewClass(textitem)
@@ -324,14 +326,13 @@ End;
   Image	     off_image;			/* Image if selected == @off */ \
   Image	     popup_image;		/* Image if popup != @nil */ \
   FontObj    accelerator_font;		/* Font for accelerators */ \
+  Int	     margin;			/* Margin at the left/right */ \
   Int	     left_offset;		/* Space box and item-image */ \
   Int	     right_offset;		/* Same at right side */ \
   Point	     item_offset;		/* Offset of first item */ \
   Size	     item_size;			/* Size of each item */ \
   Area	     label_area;		/* Area for the label */
   
-
-
 #define PULLRIGHT_GAP 3			/* gap between item and => in popup */
 
 NewClass(menu)
@@ -346,7 +347,6 @@ NewClass(popupobj)
   Any	     selected_item;		/* What has been selected? */
   Name	     button;			/* Invoking button */
   Name	     default_item;		/* Initial previewed item */
-  Int	     margin;			/* Margin left-and right */
 End;
 
 NewClass(menu_bar)
@@ -536,19 +536,26 @@ End;
   UpdateArea	changes_data;		/* Recorded changes */ \
   WsRef		ws_ref;			/* Window system reference */
 
-NewClass(image)
-  ABSTRACT_VISUAL
-  Name		name;			/* Name of the image */
-  Name		kind;			/* {pixmap,bitmap} */
-  FileObj	file;			/* Resolved file */
-  Name		access;			/* {read,both} */
-  Colour	background;		/* Background-colour (pixmap) */
-  Colour	foreground;		/* Foreground-colour (pixmap) */
-  Int		depth;			/* Bits/pixel */
-  Size		size;			/* Size of the image */
-  DisplayObj	display;		/* Display of read-write's */
-  BitmapObj	bitmap;			/* Bitmap for read-write's */
+#define ABSTRACT_IMAGE \
+  ABSTRACT_VISUAL \
+  Name		name;			/* Name of the image */ \
+  Name		kind;			/* {pixmap,bitmap} */ \
+  FileObj	file;			/* Resolved file */ \
+  Name		access;			/* {read,both} */ \
+  Colour	background;		/* Background-colour (pixmap) */ \
+  Colour	foreground;		/* Foreground-colour (pixmap) */ \
+  Int		depth;			/* Bits/pixel */ \
+  Size		size;			/* Size of the image */ \
+  DisplayObj	display;		/* Display of read-write's */ \
+  BitmapObj	bitmap;			/* Bitmap for read-write's */ \
   WsRef		ws_ref;			/* Window system reference */
+
+NewClass(image)
+  ABSTRACT_IMAGE
+End;
+
+NewClass(pixmapobj)
+  ABSTRACT_IMAGE
 End;
 
 NewClass(bitmapobj)
@@ -575,6 +582,15 @@ NewClass(colour)
   Int		red;			/* Red intensity */
   Int		green;			/* Green intensity */
   Int		blue;			/* Blue intensity */
+End;
+
+
+NewClass(elevation)
+  Name		name;			/* logical name */
+  Int		height;			/* Height of the top */
+  Any		colour;			/* Colour of the top */
+  Any		relief;			/* Relief colour/pixmap */
+  Any		shadow;			/* Shadow colour/pixmap */
 End;
 
 

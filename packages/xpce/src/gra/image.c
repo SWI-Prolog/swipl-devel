@@ -16,7 +16,7 @@
 		*         CREATE/DESTROY	*
 		********************************/
 
-static status
+status
 initialiseImage(Image image, Name name, Int w, Int h, Name kind)
 { if ( isDefault(name) )
     name = (Name) NIL;
@@ -698,7 +698,7 @@ makeClassImage(Class class)
 	     "File from which to load");
   localClass(class, NAME_access, NAME_permission, "{read,both}", NAME_get,
 	     "One of {read, both}");
-  localClass(class, NAME_background, NAME_colour, "[colour|image]", NAME_both,
+  localClass(class, NAME_background, NAME_colour, "[colour]", NAME_both,
 	     "Colour of background (pixmap)");
   localClass(class, NAME_foreground, NAME_colour, "[colour]", NAME_both,
 	     "Colour of foreground (pixmap)");

@@ -472,7 +472,7 @@ loadWord(FILE *fd)
          (cvrt.c[1] << 16) |
 	 (cvrt.c[2] << 8) |
 	  cvrt.c[3];
-  DEBUG(NAME_byteOrder, printf("loadWord(0x%x) --> %d\n", cvrt.l, rval));
+  DEBUG(NAME_byteOrder, printf("loadWord(0x%lx) --> %ld\n", cvrt.l, rval));
   return rval;
 #else
   return getw(fd);

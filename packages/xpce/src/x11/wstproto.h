@@ -71,6 +71,8 @@ void		r_translate(int x, int y, int *ox, int *oy);
 void		r_box(int x, int y, int w, int h, int r, Image fill);
 void		r_shadow_box(int x, int y, int w, int h, int r, int shadow, Image fill);
 void		r_3d_box(int x, int y, int w, int h, int shadow, Any fill, int up);
+void		r_3d_line(int x1, int y1, int x2, int y2, int pen);
+void		r_3d_triangle(int x1, int y1, int x2, int y2, int x3, int y3, int z);
 void		r_arc(int x, int y, int w, int h, int s, int e, Image fill);
 void		r_ellipse(int x, int y, int w, int h, Image fill);
 void		r_line(int x1, int y1, int x2, int y2);

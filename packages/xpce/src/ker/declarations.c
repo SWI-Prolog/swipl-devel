@@ -148,6 +148,9 @@ static struct class_definition classdefs[] =
   { NAME_editor, NAME_device, makeClassEditor,
     &ClassEditor, "EMACS look-alike text editor" },
 
+  { NAME_elevation, NAME_object, makeClassElevation,
+    &ClassElevation, "Description of an elevation" },
+
   { NAME_ellipse, NAME_graphical, makeClassEllipse,
     &ClassEllipse, "Ellipse" },
 
@@ -294,6 +297,9 @@ static struct class_definition classdefs[] =
 
   { NAME_picture, NAME_window, makeClassPicture,
     &ClassPicture, "Graphics window" },
+
+  { NAME_pixmap, NAME_image, makeClassPixmap,
+    &ClassPixmap, "Coloured image" },
 
   { NAME_point, NAME_object, makeClassPoint,
     &ClassPoint, "Position in a two-dimensional space" },

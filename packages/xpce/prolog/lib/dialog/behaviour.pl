@@ -1217,7 +1217,7 @@ place_x(O, MinX, MaxX, Gr) :-
 :- pce_begin_class(msg_object, device, "Graphical programming object").
 :- initialization use_class_template(msg_object_template).
 
-resource(size,		size,	'100x50',	     "Default size of object").
+resource(size,		size,	'size(100,50)',	     "Default size of object").
 resource(label_font,	font,	'@helvetica_bold_10',"Default name-font").
 
 initialise(O, Name:name) :->

@@ -21,7 +21,6 @@ initialiseButton(Button b, Name name, Message msg, Name acc)
   assign(b, font,         DEFAULT);
   assign(b, shadow,       DEFAULT);
   assign(b, popup_image,  DEFAULT);
-  assign(b, fill_pattern, DEFAULT);
 
   assign(b, message, msg);
   if ( notDefault(acc) )
@@ -50,9 +49,12 @@ RedrawAreaButton(Button b, Area a)
   r_dash(b->texture);
 
   if ( b->look == NAME_motif )
-  { int up   = (b->status == NAME_inactive || b->status == NAME_active);
+  { int z  = valInt(getResourceValueObject(b, NAME_elevation));
 
-    r_3d_box(x, y, w, h, shadow, b->fill_pattern, up);
+    if ( !(b->status == NAME_inactive || b->status == NAME_active) )
+      z = -z;
+
+    r_3d_box(x, y, w, h, abs(z), b->background, z > 0);
   } else
   { if ( b->status == NAME_inactive || b->status == NAME_active )
     { r_shadow_box(x, y, w, h, radius, shadow, NIL);
@@ -70,12 +72,25 @@ RedrawAreaButton(Button b, Area a)
   if ( defb && b->look == NAME_openLook )
     r_box(x+pen+1, y+pen+1, w-2*pen-2-shadow, h-2*pen-2-shadow, radius, NIL);
   
-  if ( notNil(b->popup) && notNil(b->popup_image) )
-  { int iw = valInt(b->popup_image->size->w);
-    int ih = valInt(b->popup_image->size->h);
+  if ( notNil(b->popup) )
+  { if ( notNil(b->popup_image) )
+    { int iw = valInt(b->popup_image->size->w);
+      int ih = valInt(b->popup_image->size->h);
 
-    rm = iw+8;
-    r_image(b->popup_image, 0, 0, x+w-rm, y + (h-ih)/2, iw, ih, ON);
+      rm = iw+8;
+      r_image(b->popup_image, 0, 0, x+w-rm, y + (h-ih)/2, iw, ih, ON);
+    } else
+    { int z = 1;
+      int th = 8;
+      int tw = 9;
+      int tx, ty;
+
+      rm = tw+8;
+      tx = x+w-rm;
+      ty = y + (h-th)/2;
+
+      r_3d_triangle(tx+tw/2, ty+th, tx, ty, tx+tw, ty, z);
+    }
   }
 
   str_string(&b->label->data, b->font, x, y, w-rm, h,
@@ -98,8 +113,12 @@ computeButton(Button b)
 
     str_size(&b->label->data, b->font, &w, &h);
     h += 6; w += 10;
-    if ( notNil(b->popup) && notNil(b->popup->popup_image) )
-      w += valInt(b->popup->popup_image->size->w) + 5;
+    if ( notNil(b->popup) )
+    { if ( notNil(b->popup->popup_image) )
+	w += valInt(b->popup->popup_image->size->w) + 5;
+      else
+	w += 9 + 5;
+    }
 
     w = max(valInt(size->w), w);
     h = max(valInt(size->h), h);
@@ -297,9 +316,6 @@ makeClassButton(Class class)
 	     "Activate when ->key: name is received");
   localClass(class, NAME_popupImage, NAME_appearance, "image*", NAME_get,
 	     "Indication that button has a popup menu");
-  localClass(class, NAME_fillPattern, NAME_appearance, "image|colour*",
-	     NAME_get,
-	     "Fill interior using this");
 
   termClass(class, "button", 3, NAME_label, NAME_message, NAME_accelerator);
   setRedrawFunctionClass(class, RedrawAreaButton);
@@ -310,7 +326,6 @@ makeClassButton(Class class)
   storeMethod(class, NAME_popup,       popupButton);
   storeMethod(class, NAME_shadow,      shadowButton);
   storeMethod(class, NAME_popupImage,  popupImageButton);
-  storeMethod(class, NAME_fillPattern, fillPatternGraphical);
 
   sendMethod(class, NAME_initialise, DEFAULT,
 	     3, "name=name", "message=[code]*", "label=[name]",
@@ -365,8 +380,6 @@ makeClassButton(Class class)
 		  "Ensured suffix of label");
   attach_resource(class, "alignment", "{column,left,center,right}", "left",
 		  "Alignment in the row");
-  attach_resource(class, "fill_pattern", "image|colour*", "@nil",
-		  "Fill for interior");
 
   succeed;
 }

@@ -1,5 +1,4 @@
 /*  $Id$
-
     Part of XPCE
     Designed and implemented by Anjo Anjewierden and Jan Wielemaker
     E-mail: jan@swi.psy.uva.nl
@@ -44,6 +43,7 @@ initialiseMenu(Menu m, Name name, Name kind, Code msg)
   assign(m, vertical_format,	DEFAULT);
   assign(m, gap,		DEFAULT);
   assign(m, border,		DEFAULT);
+  assign(m, margin,		DEFAULT);
   
   assign(m, on_image,	        DEFAULT); /* Image for selected == @on */
   assign(m, off_image,		DEFAULT); /* Image for selected == @off */
@@ -118,7 +118,7 @@ area_menu_item(Menu m, MenuItem mi, int *x, int *y, int *w, int *h)
 { *w = valInt(m->item_size->w);
   *h = valInt(m->item_size->h);
 
-  *x = valInt(m->item_offset->x);
+  *x = valInt(m->item_offset->x) + valInt(m->margin);
   *y = valInt(m->item_offset->y);
 
   if ( m->feedback != NAME_showSelectionOnly )
@@ -214,8 +214,12 @@ computeItemsMenu(Menu m)
     w = max(w, iw);
     h = max(h, ih);
 
-    if ( notNil(mi->popup) && notNil(m->popup_image) )
-    { rm = valInt(m->popup_image->size->w);
+    if ( notNil(mi->popup) )
+    { if ( notNil(m->popup_image) )
+      { rm = valInt(m->popup_image->size->w);
+      } else
+      { rm += 8;
+      }
       rm += border;
     }
   }
@@ -304,6 +308,8 @@ computeMenu(Menu m)
       }
     }
 
+    iw += 2*valInt(m->margin);
+
     aw = max(x+w, ix+iw);
     ah = max(y+h, iy+ih);
 
@@ -352,7 +358,7 @@ ChangedItemMenu(Menu m, MenuItem mi)
 		********************************/
 
 static status
-RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h)
+RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, int z)
 { int b = valInt(m->border);
   int lm = valInt(m->left_offset);
   int rm = valInt(m->right_offset);
@@ -361,34 +367,16 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h)
   int ix, iy, iw, ih;
   int radius = 0;
   Image fill = NIL;
+  Any colour = mi->colour;
 
   DEBUG(NAME_menu, printf("Redraw %s at %d %d %d %d\n",
 			  pp(mi->value), x, y, w, h));
 
-  if ( (mi->selected == ON && m->feedback == NAME_box) )
-    pen++;
-  else if ( m->preview == mi )
-  { if ( m->preview_feedback == NAME_box )
-      pen++;
-    else if ( m->preview_feedback == NAME_roundedBox )
-    { radius = 10;
-      pen++;
-    } else if ( m->preview_feedback == NAME_invertedRoundedBox )
-    { fill = BLACK_IMAGE;
-      radius = 10;
-    }
+  if ( mi->active == OFF )
+  { Any c2 = getResourceValueObject(m, NAME_inactiveColour);
 
-    DEBUG(NAME_menu, printf("Feedback = %s, p = %d; r = %d, fill = %s\n",
-			    pp(m->preview_feedback), pen, radius, pp(fill)));
-  }
-
-  if ( mi->end_group == ON )
-  { r_thickness(pen+1);
-    r_dash(m->texture);
-    if ( m->layout == NAME_vertical )
-      r_line(x, y+h, x+w, y+h);
-    else
-      r_line(x+w, y, x+w, y+h);
+    if ( c2 && notNil(c2) )
+      colour = c2;
   }
 
   if ( mi->selected == ON && notNil(m->on_image) )
@@ -396,12 +384,57 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h)
   else if ( mi->selected == OFF && notNil(m->off_image) )
     leftmark = m->off_image;
 
-  if ( pen != 0 || notNil(fill) )
-  { r_thickness(pen);
-    r_dash(m->texture);
-    r_box(x, y, w, h, radius, fill);
-    if ( notNil(fill) )
-      r_swap_background_and_foreground();
+  if ( m->look == NAME_motif )
+  { int up = (mi->selected == OFF || m->preview == mi);
+
+    if ( pen > 0 || m->preview == mi )
+      r_3d_box(x, y, w, h, z, m->background, up); /* shadow? */
+
+    if ( mi->end_group == ON )
+    { int lz = z/2;
+      
+      if ( abs(lz) < 1 )
+	lz = z;
+
+      if ( m->layout == NAME_vertical )
+	r_3d_line(x, y+h, x+w, y+h, lz);
+      else
+	r_3d_line(x+w, y, x+w, y+h, lz);
+    }
+  } else
+  { if ( (mi->selected == ON && m->feedback == NAME_box) )
+      pen++;
+    else if ( m->preview == mi )
+    { if ( m->preview_feedback == NAME_box )
+	pen++;
+      else if ( m->preview_feedback == NAME_roundedBox )
+      { radius = 10;
+	pen++;
+      } else if ( m->preview_feedback == NAME_invertedRoundedBox )
+      { fill = BLACK_IMAGE;
+	radius = 10;
+      }
+	
+      DEBUG(NAME_menu, printf("Feedback = %s, p = %d; r = %d, fill = %s\n",
+			      pp(m->preview_feedback), pen, radius, pp(fill)));
+    }
+
+    if ( mi->end_group == ON )
+    { r_thickness(pen+1);
+      r_dash(m->texture);
+      if ( m->layout == NAME_vertical )
+	r_line(x, y+h, x+w, y+h);
+      else
+	r_line(x+w, y, x+w, y+h);
+    }
+
+    if ( pen != 0 || notNil(fill) )
+    { r_thickness(pen);
+      r_dash(m->texture);
+      r_box(x, y, w, h, radius, fill);
+      if ( notNil(fill) )
+	r_swap_background_and_foreground();
+    }
   }
 
   if ( notNil(leftmark) )
@@ -423,16 +456,28 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h)
 	       NAME_right, m->vertical_format);
   }
 
-  if ( notNil(mi->popup) && notNil(m->popup_image) )
-  { Image pi = m->popup_image;
-    int bw, bh, by;
+  if ( notNil(mi->popup) )
+  { if ( notNil(m->popup_image) )
+    { Image pi = m->popup_image;
+      int bw, bh, by;
     
-    bw = valInt(pi->size->w);
-    bh = valInt(pi->size->h);
-    by = (m->vertical_format == NAME_top    ? y :
-	  m->vertical_format == NAME_center ? y + (h-bh)/2 :
-					      y + h - bh);
-    r_image(pi, 0, 0, x+w-b-bw, by, bw, bh, ON);
+      bw = valInt(pi->size->w);
+      bh = valInt(pi->size->h);
+      by = (m->vertical_format == NAME_top    ? y :
+	    m->vertical_format == NAME_center ? y + (h-bh)/2 :
+	    					y + h - bh);
+      r_image(pi, 0, 0, x+w-b-bw, by, bw, bh, ON);
+    } else
+    { int z = 1;
+      int tw = 8;
+      int th = 7;
+      int ty = (m->vertical_format == NAME_top    ? y :
+		m->vertical_format == NAME_center ? y + (h-th)/2 :
+						    y + h - th);
+      int tx = x+w-b-tw;
+
+      r_3d_triangle(tx, ty+th, tx, ty, tx+tw, ty+th/2, z);
+    }
   }
 
   ix = x + valInt(m->left_offset) + valInt(m->border);
@@ -440,8 +485,8 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h)
   iy = y + b;
   ih = h - 2*b;
 
-  if ( notDefault(mi->colour) )
-    r_colour(mi->colour);
+  if ( notDefault(colour) )
+    r_colour(colour);
 
   if ( isName(mi->label) )
   { FontObj f = getFontMenuItemMenu(m, mi);
@@ -472,7 +517,7 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h)
   if ( (m->preview == mi && m->preview_feedback == NAME_invert) )
     r_complement(x, y, w, h);
 
-  if ( notDefault(mi->colour) )
+  if ( notDefault(colour) )
     r_colour(DEFAULT);
 
   succeed;
@@ -485,6 +530,8 @@ RedrawAreaMenu(Menu m, Area a)
   int bx, by, cx, cy, iw, ih;
   int gx = x_gap(m);
   int gy = y_gap(m);
+  int z  = valInt(getResourceValueObject(m, NAME_elevation));
+  int iz = valInt(getResourceValueObject(m, NAME_itemElevation));
 
   initialiseDeviceGraphical(m, &x, &y, &w, &h);
   NormaliseArea(x, y, w, h);
@@ -510,7 +557,7 @@ RedrawAreaMenu(Menu m, Area a)
   { MenuItem mi = getItemSelectionMenu(m);
     
     if ( mi != FAIL )
-      RedrawMenuItem(m, mi, cx, cy, iw, ih);
+      RedrawMenuItem(m, mi, cx, cy, iw, ih, iz);
   } else
   { int rows, cols;
     int n = 1;
@@ -523,19 +570,23 @@ RedrawAreaMenu(Menu m, Area a)
     ay += y - valInt(m->area->y);
     rows_and_cols(m, &rows, &cols);
     
+    if ( z )
+      r_3d_box(cx, cy, w-(cx-x), h-(cy-y), abs(z), m->background, z > 0);
+    cx += valInt(m->margin);
+
     if ( m->pen != ZERO )
     { iw += gx + 1; ih += gy + 1;
       gx = gy = -1;
+
+      if ( m->look == NAME_motif )
+	iw--, ih--, gx++, gy++;		/* don't overlap! */
     }
 
     for_cell(cell, m->members)
     { MenuItem mi = cell->value;
 
       if ( OverlapArea(ax, ay, aw, ah, cx, cy, iw, ih) )
-      { RedrawMenuItem(m, mi, cx, cy, iw, ih);
-	if ( mi->active == OFF )
-	  r_and(cx, cy, iw, ih, GREY50_IMAGE);
-      }
+	RedrawMenuItem(m, mi, cx, cy, iw, ih, iz);
 
       if ( m->layout == NAME_vertical )
       { if ( rows == 1 || (n > 1 && n % rows == 0) )
@@ -1162,12 +1213,12 @@ allOffMenu(Menu m)
 static status
 kindMenu(Menu m, Name kind)
 { if ( m->kind != kind )
-  { if ( m->look == NAME_openLook )
+  { if ( m->look == NAME_openLook || m->look == NAME_motif )
     { if ( kind == NAME_marked || kind == NAME_choice || kind == NAME_toggle )
       { assign(m, on_image, NIL);
 	assign(m, off_image, NIL);
 	assign(m, feedback, NAME_box);
-	assign(m, pen, ONE);
+	assign(m, pen, m->look == NAME_motif ? TWO : ONE);
 	assign(m, border, TWO);
 	assign(m, multiple_selection, kind == NAME_toggle ? ON : OFF);
 
@@ -1365,6 +1416,12 @@ feedbackMenu(Menu m, Name feedback)
 
 
 static status
+marginMenu(Menu m, Int margin)
+{ return assignGraphical(m, NAME_margin, margin);
+}
+
+
+static status
 sortMenu(Menu m, Code msg)
 { sortChain(m->members, msg);
 
@@ -1544,6 +1601,8 @@ makeClassMenu(Class class)
   localClass(class, NAME_acceleratorFont, NAME_appearance,
 	     "font=font*", NAME_get,
 	     "When not @nil, font for accelerators");
+  localClass(class, NAME_margin, NAME_appearance, "margin=0..", NAME_get,
+	     "Extra margin at left and right side of values (for popup)");
 
   localClass(class, NAME_leftOffset, NAME_update, "offset=0..", NAME_get,
 	     "Offset of item in its box (left-side)");
@@ -1577,6 +1636,7 @@ makeClassMenu(Class class)
   storeMethod(class, NAME_multipleSelection, multipleSelectionMenu);
   storeMethod(class, NAME_preview,           previewMenu);
   storeMethod(class, NAME_feedback,	     feedbackMenu);
+  storeMethod(class, NAME_margin,	     marginMenu);
 
   sendMethod(class, NAME_initialise, DEFAULT,
 	     3, "name=[name]", "kind=[name]", "message=[code]*",
@@ -1752,10 +1812,12 @@ makeClassMenu(Class class)
 		  "Marker for items not in selection");
   attach_resource(class, "popup_image","image*",  "@nil",
 		  "Marker for items with popup");
-  attach_resource(class, "popup_image","image*",  "@nil",
-		  "Marker for items with popup");
   attach_resource(class, "cycle_image","image*",  "@cycle_image",
 		  "Indication of a kind:cycle menu");
+  attach_resource(class, "margin", "0..",  "0",
+		  "Margin to the left and right");
+  attach_resource(class, "item_elevation", "0..",  "0",
+		  "Elevation of items in the menu");
 
   succeed;
 }

@@ -211,7 +211,7 @@ initialise(D) :->
 	send(D, slot, report_count, number(0)),
 	send(D, gap, size(10, 0)),
 	send(D, pen, 0),
-	send(D, display, new(StickyIndicator, bitmap('nosticky.bm'))),
+	send(D, display, new(StickyIndicator, bitmap('nosticky.bm', @on))),
 	send(StickyIndicator, name, sticky_indicator),
 	send(StickyIndicator, recogniser,
 	     click_gesture(left, '', single,

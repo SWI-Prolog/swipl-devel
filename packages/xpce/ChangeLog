@@ -1,7 +1,18 @@
 [VERSION 4.8.0]
 
+* Introduced class `pixmap'.  Basically an image of <-kind: pixmap.  The
+  explicit class facilates type specification and conversion.
+
+* Moved `dialog_item ->apply' and `dialog_item ->restore' to class graphical.
+
+* Added: `text <->border', providing additional space around a text object.
+
+* Replaced `text <->transparent' by `text <->background', allowing for
+  arbitrary background.  `text <->transparent' is mapped on this new
+  method for compatibility reasons.
+
 * Added: `bitmap <->transparent' to define bitmaps with non-rectangular
-  shape.
+  shape.  Added this as a second optional initialisation argument.
 
 * Modified resource-syntax.  Resources now use a syntax very similar to
   the Prolog syntax for objects.  For example:

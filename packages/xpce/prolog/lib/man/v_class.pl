@@ -68,9 +68,9 @@ dialog(D) :-
 	send(CI, value_set, ?(@prolog, expand_classname, @arg1)),
 	send(D, append, new(SM, menu(field, toggle))),
 	send(D, append, new(KI, text_item(search, ''))),
-	send(D, append, label(space, '')),
+	send(D, append, new(graphical(height := 15))), % just add some space
 	send(D, append, new(IM, menu(scope, marked))),
-	send(D, append, label(space, '')),
+	send(D, append, new(graphical(height := 15))), % and once more
 	send(D, append, button(apply,
 			       and(message(D, apply),
 				   message(CB, fill_browser)))),
@@ -111,22 +111,21 @@ expand_classname(Prefix, Classes) :-
 		message(Classes, append, @arg2))).
 
 picture(P) :-
-	new(P, window),
+	new(P, dialog),
+	send(P, name, window),
+	send(P, gap, size(15, 3)),
 	send(P, ver_stretch, 0),
-	send(P, display,
-	     new(T, text('', left, font(helvetica, bold, 14))),
-	     point(10, 10)),
+	send(P, append, new(T, label(title, '', font(helvetica, bold, 14)))),
 	send(T, recogniser,
 	     click_gesture(left, '', double,
 			   message(P?frame, show_initisation_method))),
-	send(P, display, new(F, figure), point(10, 32)),
+	send(P, append, new(F, figure)),
+	send(F, name, inheritance),
+	send(F, display, text(inheritance)), % for layout
 	send(F, format, format(vertical, 1, @on)),
 	send(F, format, adjustment, vector(center)),
 	send(F, format, row_sep, 0),
-	send(P, display, new(DT, text(font := font(helvetica, roman, 14))),
-	     point(10, 52)),
-	send(DT, name, delegation),
-	send(P, size, size(400, 70)).
+	send(P, append, label(delegation, '', font(helvetica, roman, 14))).
 	
 
 show_initisation_method(CB) :->
@@ -139,16 +138,18 @@ show_initisation_method(CB) :->
 show_header(CB) :->
 	"Show term description in picture window"::
 	get(CB, tool_focus, Class),
-	get(CB, window_member, P),
+	get(CB, member, window, P),
+	get(P, member, title, Title),
 	(   get(Class, man_header, DH), DH \== @nil
-	->  send(P?text_member, string, DH)
-	;   send(P?text_member, string, '??')
+	->  send(Title, selection, DH)
+	;   send(Title, selection, '??')
 	).
 
 
 show_inheritance(CB) :->
 	"Show inheritance path in picture"::
-	get(CB?window_member, figure_member, Fig),
+	get(CB, member, window, P),
+	get(P, member, inheritance, Fig),
 	send(Fig, clear),
 	get(CB, tool_focus, Class),
 	super_chain(Class, Fig).
@@ -157,12 +158,12 @@ show_inheritance(CB) :->
 show_delegation(CB) :->
 	"Show delegation slots in picture"::
 	get(CB, member, window, Win),
-	get(Win, member, delegation, Text),
+	get(Win, member, delegation, Label),
 	get(CB, tool_focus, Class),
 	get(Class, man_delegate_header, Str),
 	(   get(Str, size, 0)
-	->  send(Text, string, '(No delegation)')
-	;   send(Text, string, string('Delegation: %s', Str))
+	->  send(Label, selection, '(No delegation)')
+	;   send(Label, selection, string('Delegation: %s', Str))
 	).
 
 

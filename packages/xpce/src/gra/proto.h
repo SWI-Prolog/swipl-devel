@@ -168,6 +168,7 @@ Int		getYHandle(Handle h, Graphical gr, Device dev);
 status		makeClassHandle(Class class);
 
 /* image.c */
+status		initialiseImage(Image image, Name name, Int w, Int h, Name kind);
 Image		getConvertImage(Class class, Any obj);
 status		XopenImage(Image image, DisplayObj d);
 status		XcloseImage(Image image, DisplayObj d);
@@ -253,7 +254,9 @@ status		computeText(TextObj t);
 void		str_format(String out, const String in, const int width, const FontObj font);
 status		repaintText(TextObj t, int x, int y, int w, int h);
 status		transparentText(TextObj t, Bool val);
+Bool		getTransparentText(TextObj t);
 status		fontText(TextObj t, FontObj font);
+status		borderText(TextObj t, Int border);
 status		stringText(TextObj t, CharArray s);
 status		showCaretText(TextObj t, Bool val);
 status		caretText(TextObj t, Int where);
@@ -276,3 +279,9 @@ Any		getReportToVisual(VisualObj v);
 status		reportVisual(VisualObj v, Name kind, CharArray fmt, int argc, Any *argv);
 status		alertReporteeVisual(Any v);
 status		makeClassVisual(Class class);
+
+/* pixmap.c */
+status		makeClassPixmap(Class class);
+
+/* elevation.c */
+status		makeClassElevation(Class class);

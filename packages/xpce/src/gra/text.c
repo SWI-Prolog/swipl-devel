@@ -40,7 +40,8 @@ initialiseText(TextObj t, CharArray string, Name format, FontObj font)
   assign(t, position,     newObject(ClassPoint, 0));
   assign(t, caret,        getSizeCharArray(string));
   assign(t, show_caret,   OFF);
-  assign(t, transparent,  ON);
+  assign(t, background,   NIL);
+  assign(t, border,	  DEFAULT);
   assign(t, x_offset,	  ZERO);
   assign(t, x_caret,	  ZERO);
   assign(t, y_caret,	  ZERO);
@@ -187,9 +188,19 @@ status
 repaintText(TextObj t, int x, int y, int w, int h)
 { int cw = valInt(getExFont(t->font));
   String s = &t->string->data;
+  int b = valInt(t->border);
 
-  if ( t->transparent == OFF )
-    r_clear(x, y, w, h);
+  if ( notNil(t->background) )
+  { if ( isDefault(t->background) )
+      r_clear(x, y, w, h);
+    else
+      r_fill(x, y, w, h, t->background);
+  }
+
+  x += b;
+  y += b;
+  w -= 2*b;
+  h -= 2*b;
 
   if ( t->wrap == NAME_clip )
     d_clip(x, y, w, h);
@@ -207,8 +218,8 @@ repaintText(TextObj t, int x, int y, int w, int h)
 	       t->format, NAME_top);
 
   if ( t->show_caret == ON )
-  { r_caret(valInt(t->x_caret) + x,
-	    valInt(t->y_caret) + y,
+  { r_caret(valInt(t->x_caret) + x - b,
+	    valInt(t->y_caret) + y - b,
 	    t->font);
   }
 
@@ -233,10 +244,11 @@ initPositionText()	recomputes the position from the area after the
 
 static status
 initAreaText(TextObj t)
-{ int tw, w, h, fw;
+{ int tw, x, y, w, h, fw;
   Point pos = t->position;
   String s = &t->string->data;
   int size = s->size;
+  int b = valInt(t->border);
 
   if ( valInt(t->caret) < 0 )
     assign(t, caret, ZERO);
@@ -255,23 +267,27 @@ initAreaText(TextObj t)
     str_size(s, t->font, &tw, &h);
 
   if ( t->wrap == NAME_clip )
-  { w = valInt(t->area->w);
-  } else
-  { w = tw + fw;
-    assign(t->area, w, toInt(w));
-  }
-  assign(t->area, h, toInt(h));
+    w = valInt(t->area->w) - 2*b;
+  else
+    w = tw + fw;
 
   if ( equalName(t->format, NAME_right) )
-  { assign(t->area, y, pos->y);
-    assign(t->area, x, toInt(valInt(pos->x) - w + fw/2));
+  { x = valInt(pos->x) - w + fw/2;
+    y = valInt(pos->y);
   } else if ( equalName(t->format, NAME_center) )
-  { assign(t->area, x, dif(pos->x, toInt(w)));
-    assign(t->area, y, dif(pos->y, toInt(h)));
+  { x = valInt(pos->x) - w/2;
+    y = valInt(pos->y) - h/2;
   } else
-  { assign(t->area, y, pos->y);
-    assign(t->area, x, toInt(valInt(pos->x) - fw/2));
+  { x = valInt(pos->x) - fw/2;
+    y = valInt(pos->y);
   }
+
+  x -= b; y -= b; w += 2*b; h+= 2*b;
+
+  assign(t->area, x, toInt(x));
+  assign(t->area, y, toInt(y));
+  assign(t->area, w, toInt(w));
+  assign(t->area, h, toInt(h));
 
   return initOffsetText(t, tw);
 }
@@ -279,9 +295,10 @@ initAreaText(TextObj t)
 
 static status
 initPositionText(TextObj t)
-{ int tw, w, h, fw = valInt(getExFont(t->font)) ;
+{ int tw, x, y, w, h, fw = valInt(getExFont(t->font));
   Point pos = t->position;
   String s = &t->string->data;
+  int b = valInt(t->border);
 
   if ( Wrapped(t) )
   { LocalString(buf, s, s->size + MAX_WRAP_LINES);
@@ -294,23 +311,29 @@ initPositionText(TextObj t)
     str_size(s, t->font, &tw, &h);
 
   if ( t->wrap == NAME_clip )
-    w = valInt(t->area->w);
+    w = valInt(t->area->w) - 2*b;
   else
-  { w = tw + fw;
-    assign(t->area, w, toInt(w));
-  }
-  assign(t->area, h, toInt(h));
+    w = tw + fw;
 
   if ( equalName(t->format, NAME_left) )
-  { assign(pos, x, toInt(valInt(t->area->x) + fw/2));
-    assign(pos, y, t->area->y);
+  { x = valInt(t->area->x) + fw/2;
+    y = valInt(t->area->y) + b;
   } else if ( equalName(t->format, NAME_right) )
-  { assign(pos, x, toInt(valInt(t->area->x) + w - fw/2));
-    assign(pos, y, t->area->y);
+  { x = valInt(t->area->x) + w - fw/2;
+    y = valInt(t->area->y) + b;
   } else
-  { assign(pos, x, toInt(valInt(t->area->x) + w/2));
-    assign(pos, y, mid(t->area->y, t->area->h));
+  { x = valInt(t->area->x) + w/2;
+    y = valInt(t->area->y) + valInt(t->area->h)/2;
   }
+
+  x += b;
+  w += 2*b;
+  h += 2*b;
+
+  assign(pos, x, toInt(x));
+  assign(pos, y, toInt(y));
+  assign(t->area, w, toInt(w));
+  assign(t->area, h, toInt(h));
 
   return initOffsetText(t, tw);
 }
@@ -404,6 +427,7 @@ get_char_pos_text(TextObj t, Int chr, int *X, int *Y)
   int shift;
   String s = str_bits_as_font(&t->string->data, t->font, &shift);
   LocalString(buf, s, Wrapped(t) ? s->size + MAX_WRAP_LINES : 0);
+  int b = valInt(t->border);
 
   if ( shift )
     caret = (shift > 0 ? caret << shift : caret >> -shift);
@@ -421,6 +445,7 @@ get_char_pos_text(TextObj t, Int chr, int *X, int *Y)
   }
 
   lw = str_width(s, sl, caret, t->font);
+  w -= 2 * b;
 
   if ( t->format == NAME_left )
   { cx = cw2 + lw;
@@ -438,8 +463,8 @@ get_char_pos_text(TextObj t, Int chr, int *X, int *Y)
       cx = w - cw2 - rw;
   }
 
-  *X = cx + valInt(t->x_offset);
-  *Y = cy;
+  *X = cx + valInt(t->x_offset) + b;
+  *Y = cy + b;
 
   succeed;
 }
@@ -450,13 +475,16 @@ get_pointed_text(TextObj t, int x, int y)
 { String s = &t->string->data;
   int ch = valInt(getHeightFont(t->font));
   int cw2 = valInt(getExFont(t->font))/2;
+  int b = valInt(t->border);
   int cw, w;
   int caret = 0, el;
-  int line = y / ch;			/* line for caret */
+  int line = (y-b) / ch;			/* line for caret */
   int shift;
 
   if ( s->size == 0 )
     answer(ZERO);
+
+  x -= b;
 
   s = str_bits_as_font(s, t->font, &shift);
 
@@ -482,9 +510,9 @@ get_pointed_text(TextObj t, int x, int y)
   { int lw = str_width(s, caret, el, t->font);
 
     if ( t->format == NAME_center )
-      w = (valInt(t->area->w) - lw)/2;
+      w = (valInt(t->area->w) - lw)/2 - b;
     else
-      w = valInt(t->area->w) - lw - cw2;
+      w = valInt(t->area->w) - lw - cw2 - 2*b;
   }
   w += valInt(t->x_offset);
 
@@ -516,15 +544,31 @@ getPointedText(TextObj t, Point pos)
 		*          ATTRIBUTES		*
 		********************************/
 
-status
-transparentText(TextObj t, Bool val)
-{ if (t->transparent != val)
+static status
+backgroundText(TextObj t, Any bg)
+{ if ( t->background != bg)
   { CHANGING_GRAPHICAL(t,
-	assign(t, transparent, val);
-	changedEntireImageGraphical(t));
+		       assign(t, background, bg);
+		       changedEntireImageGraphical(t));
   }
+
   succeed;
 }
+
+
+status
+transparentText(TextObj t, Bool val)
+{ Any bg = (val == ON ? NIL : DEFAULT);
+
+  return backgroundText(t, bg);
+}
+
+
+Bool
+getTransparentText(TextObj t)
+{ answer(isNil(t->background) ? ON : OFF);
+}
+
 
 
 status
@@ -542,6 +586,16 @@ formatText(TextObj t, Name format)
 { if (t->format != format)
   { assign(t, format, format);
     recomputeText(t, NAME_position);
+  }
+  succeed;
+}
+
+
+status
+borderText(TextObj t, Int border)
+{ if (t->border != border)
+  { assign(t, border, border);
+    recomputeText(t, NAME_area);
   }
   succeed;
 }
@@ -1095,6 +1149,15 @@ loadText(TextObj t, FILE *fd, ClassDef def)
 }
 
 
+static status
+convertOldSlotText(TextObj t, Name slot, Any value)
+{ if ( slot == NAME_transparent && isNil(t->background) )
+    assign(t, background, (value == ON ? NIL : DEFAULT));
+
+  succeed;
+}
+
+
 extern drawPostScriptText(TextObj t);
 
 status
@@ -1117,8 +1180,11 @@ makeClassText(Class class)
 	     "Index (0-based) of caret");
   localClass(class, NAME_showCaret, NAME_appearance, "bool", NAME_get,
 	     "If @on, show the caret");
-  localClass(class, NAME_transparent, NAME_appearance, "bool", NAME_get,
-	     "If @on, do not clear background");
+  localClass(class, NAME_background, NAME_appearance, "[colour|pixmap]*",
+	     NAME_get,
+	     "@nil: transparent; @default: cleared");
+  localClass(class, NAME_border, NAME_appearance, "0..", NAME_get,
+	     "Border around actual text");
   localClass(class, NAME_wrap, NAME_appearance,
 	     "{extend,wrap,wrap_fixed_width,clip}", NAME_get,
 	     "How long text is handled");
@@ -1137,7 +1203,8 @@ makeClassText(Class class)
   storeMethod(class, NAME_format,      formatText);
   storeMethod(class, NAME_showCaret,   showCaretText);
   storeMethod(class, NAME_string,      stringText);
-  storeMethod(class, NAME_transparent, transparentText);
+  storeMethod(class, NAME_background,  backgroundText);
+  storeMethod(class, NAME_border,      borderText);
 
   sendMethod(class, NAME_initialise, DEFAULT,
 	     3, "string=[char_array]", "format=[{left,center,right}]",
@@ -1244,6 +1311,14 @@ makeClassText(Class class)
 	     "Move caret lines up (\\C-n)",
 	     previousLineText);
 
+  sendMethod(class, NAME_transparent, NAME_compatibility, 1, "bool",
+	     "Defines <-background",
+	     transparentText);
+  sendMethod(class, NAME_convertOldSlot, NAME_compatibility, 2,
+	     "slot=name", "value=unchecked",
+	     "Convert <-transparent to <-background",
+	     convertOldSlotText);
+
   getMethod(class, NAME_pointed, NAME_event, "index=int", 1, "at=point",
 	    "Convert position to character index",
 	    getPointedText);
@@ -1254,6 +1329,9 @@ makeClassText(Class class)
   getMethod(class, NAME_column, NAME_caret, "pixels=int", 0,
 	    "Current X-location of caret (pixels)",
 	    getColumnText);
+  getMethod(class, NAME_transparent, NAME_compatibility, "bool", 0,
+	    "Map <-background",
+	    getTransparentText);
 
   attach_resource(class, "font", "font", "@screen_roman_13",
 		  "Default font");
@@ -1263,6 +1341,8 @@ makeClassText(Class class)
 		  "Visual feedback of <->selected");
   attach_resource(class, "key_binding", "string", "",
 		  "`Key = selector' binding list");
+  attach_resource(class, "border", "0..", "0",
+		  "Space around the actual text");
 
   succeed;
 }

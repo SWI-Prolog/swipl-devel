@@ -68,11 +68,14 @@ RedrawAreaTextItem(TextItem ti, Area a)
   int lw, lh;
   String lb = &ti->label->data;
   int fw = valInt(getExFont(ti->value_text->font));
+  int z = valInt(getResourceValueObject(ti, NAME_elevation));
+  int tx, ty, tw, th;
+  TextObj vt = ti->value_text;
 
   initialiseDeviceGraphical(ti, &x, &y, &w, &h);
 
   al = valInt(getAscentFont(ti->label_font));
-  av = valInt(getAscentFont(ti->value_text->font));
+  av = valInt(getAscentFont(vt->font)) + valInt(vt->border);
   am = max(al, av);
 
   compute_label_text_item(ti, &lw, &lh);
@@ -81,11 +84,17 @@ RedrawAreaTextItem(TextItem ti, Area a)
 	       x, y+am-al, lw-fw, h,
 	       ti->label_format, NAME_top);
       
-  repaintText(ti->value_text, x+lw, y+am-av,
-	      valInt(ti->value_text->area->w),
-	      valInt(ti->value_text->area->h));
+  tx = x+lw;
+  ty = y+am-av;
+  tw = valInt(vt->area->w);
+  th = valInt(vt->area->h);
 
-  if ( ti->pen != ZERO )
+  if ( z )
+    r_3d_box(tx, ty, tw, th, abs(z), ti->background, z > 0);
+
+  repaintText(vt, tx, ty, tw, th);
+
+  if ( !z && ti->pen != ZERO )
   { int pen = valInt(ti->pen);
     int ly = y+am+1+pen/2;
     
@@ -139,6 +148,7 @@ computeTextItem(TextItem ti)
     obtainResourcesObject(ti);
     fontText(ti->value_text, ti->value_font);
     lengthText(ti->value_text, ti->length);
+    borderText(ti->value_text, getResourceValueObject(ti, NAME_border));
     ComputeGraphical(ti->value_text);
 
     compute_label_text_item(ti, &lw, &lh);
@@ -963,6 +973,8 @@ makeClassTextItem(Class class)
 		  "Thickness of line below selection");
   attach_resource(class, "search_ignore_case", "bool", "@on",
 		  "@on: ignore case for completion");
+  attach_resource(class, "border", "0..", "0",
+		  "Border around <-value_text");
 
   succeed;
 }
