@@ -2321,9 +2321,11 @@ System(char *cmd)
       rval = 1;
     } else if (WIFEXITED(status))
     { rval = WEXITSTATUS(status);
+#ifdef WIFSIGNALED
     } else if (WIFSIGNALED(status))
     { warning("Child %s catched signal %d\n", cmd, WTERMSIG(status));
       rval = 1;
+#endif
     } else
     { rval = 1;				/* make gcc happy */
       fatalError("Unknown return code from wait(3)");

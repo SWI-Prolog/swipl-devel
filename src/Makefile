@@ -16,7 +16,7 @@
 ################################################################
 
 PL=pl
-prefix=/staff/jan
+prefix=/usr/local
 exec_prefix=${prefix}
 bindir=$(exec_prefix)/bin
 PLBASE=$(prefix)/lib/$(PL)
