@@ -96,4 +96,3 @@ pce_ifhostproperty(repeat_meta_declaraction,
 :- use_module(pce_realise).
 :- use_module(require).
 :- use_module(pce_editor).
-:- use_module(pce_accelerator).

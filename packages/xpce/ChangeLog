@@ -1,3 +1,6 @@
+* FIXED: Memory leak in alloc()/unalloc(), causing considerable leakage on
+  some applications.  Also fixed a memory leak in the debugger.
+
 * WIN32: The library uxnt.dll is now linked as a static library into the
   xpce.dll kernel, to simplify the distribution of runtime systems.
 

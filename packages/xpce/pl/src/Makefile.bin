@@ -33,7 +33,8 @@ mandir=$(prefix)/man/man$(mansec)
 
 PL=pl
 XPCE=xpce
-PLARCH=sparc-sunos4.1.3
+CLIENT=xpce-client
+PLARCH=sparc-solaris2.5
 BOOTPL=pl
 
 BPL=		bin/$(PLARCH)/$(BOOTPL)
@@ -67,6 +68,7 @@ install:	all
 		(cd $(bindir); rm -f $(PL); ln -s $$PLBASE/bin/$(PLARCH)/pl $(PL)) ; \
 		if [ -d xpce ]; then \
 		  (cd $(bindir);rm -f $(XPCE);ln -s $$PLBASE/$(BPL) $(XPCE));\
+		  (cd $(bindir);rm -f $(CLIENT);ln -s $$PLBASE/xpce/bin/$(PLARCH)/xpce-client $(CLIENT)); \
 		fi
 		-for f in pl chpl; do \
 		    cp man/$$f.1 $(mandir)/$$f.$(mansec); \

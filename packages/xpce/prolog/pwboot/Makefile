@@ -8,9 +8,9 @@
 
 MAKE=make
 SHELL=/bin/bash
-BIN=sun4-4
+BIN=sun4-5
 SO=so
-builddir=sun4
+builddir=solaris
 PCEMAJOR=4
 PCEMINOR=9
 PCEPATCH=1
@@ -49,7 +49,6 @@ PCESHARE=	pce_editor.pl \
 		pce_expand.pl \
 		pce_global.pl \
 		pce_operator.pl \
-		pce_accelerator.pl \
 		pce_autoload.pl
 
 
@@ -62,7 +61,6 @@ PCEQOFS=	pce_boot.qof \
 		pce_realise.qof \
 		pce_expansion.qof \
 		pce_operator.qof \
-		pce_accelerator.qof \
 		pce_editor.qof \
 		pce_utils.qof \
 		require.qof
@@ -124,6 +122,7 @@ LIBPLS=		pce.pl \
 		pce_editable_text.pl \
 		pce_helper.pl \
 		pce_help_file.pl \
+		help_message.pl \
 		pce_image.pl \
 		pce_prompter.pl \
 		pce_template.pl \
@@ -347,8 +346,6 @@ pce_expand.pl: ../boot/pce_expand.pl
 pce_global.pl: ../boot/pce_global.pl
 	$(LN) $< $@
 pce_operator.pl: ../boot/pce_operator.pl
-	$(LN) $< $@
-pce_accelerator.pl: ../boot/pce_accelerator.pl
 	$(LN) $< $@
 pce_autoload.pl: ../boot/pce_autoload.pl
 	$(LN) $< $@

@@ -142,6 +142,38 @@ toType(Any obj)
 }
 
 
+		/********************************
+		*               PP		*
+		********************************/
+
+#include <setjmp.h>
+#include <signal.h>
+
+#define PPRINGSIZE 16
+
+static char *ppring[PPRINGSIZE];
+static int   ppindex = 0;
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Donot use (un)alloc() to faciliate debugging of the allocation routines.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static char *
+ppsavestring(const char *s)
+{ char *q = pceMalloc(strlen(s)+1);
+
+  strcpy(q, s);
+
+  if ( ppring[ppindex] )
+    pceFree(ppring[ppindex]);
+  ppring[ppindex] = q;
+
+  ppindex = (ppindex+1) % PPRINGSIZE;
+
+  return q;
+}
+
+
 /* (JW)	A special routine to ease debugging.  Type checking is done more
 	carefully to avoid core-dumps on any 4 byte value.
  */
@@ -153,13 +185,13 @@ do_pp(Any obj)
   char *s;
 
   switch((int) obj)
-  { case FAIL:			return save_string("FAIL");
-    case SUCCEED:		return save_string("SUCCEED");
+  { case FAIL:			return ppsavestring("FAIL");
+    case SUCCEED:		return ppsavestring("SUCCEED");
   }
 
   if ( isInteger(obj) && abs(valInt(obj)) < 10000000)
   { sprintf(tmp, "%ld", valInt(obj));
-    return save_string(tmp);
+    return ppsavestring(tmp);
   }
 
   if ( isProperObject(obj) )
@@ -192,20 +224,13 @@ do_pp(Any obj)
     else if ( isFreeingObj(obj) )
       strcat(tmp, " (unlinking)");
 
-    return save_string(tmp);
+    return ppsavestring(tmp);
   }
 
   sprintf(tmp, "0x%lx", (unsigned long) obj);
-  return save_string(tmp);
+  return ppsavestring(tmp);
 }
 
-
-		/********************************
-		*               PP		*
-		********************************/
-
-#include <setjmp.h>
-#include <signal.h>
 
 jmp_buf pp_env;
 
@@ -233,7 +258,7 @@ pcePP(Any obj)
   } else
   { char tmp[100];
     sprintf(tmp, "0x%lx", (unsigned long)obj);
-    s = save_string(tmp);
+    s = ppsavestring(tmp);
   }
 
 #ifndef O_RUNTIME

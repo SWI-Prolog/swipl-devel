@@ -36,6 +36,7 @@ LIBQOFS= area.qof \
         pce_editable_text.qof \
         pce_helper.qof \
 	pce_help_file.qof \
+	help_message.qof \
 	pce_shell.qof \
 	pce_main.qof \
 	pce_toc.qof \

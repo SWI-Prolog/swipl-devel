@@ -35,6 +35,5 @@ GLOBAL Zone freeChains[ALLOCFAST/sizeof(Zone)+1];
 #define MINALLOC    (sizeof(struct zone) - struct_offset(struct zone, start))
 #define ROUNDALLOC  (sizeof(void *))
 
-#define roundAlloc(n) ((n) < MINALLOC          ? MINALLOC : \
-		       ((n) % ROUNDALLOC) == 0 ? (n) : \
-					         ((n)|(ROUNDALLOC-1))+1)
+#define roundAlloc(n) ((n) <= MINALLOC ? MINALLOC : \
+		       (((n) + (ROUNDALLOC - 1)) & ~(ROUNDALLOC-1)))

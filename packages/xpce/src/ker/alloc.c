@@ -121,14 +121,23 @@ allocate(int size)
 }
 
 
+#if ALLOC_DEBUG
+static int
+count_zone_chain(Zone z)
+{ int n = 0;
+
+  for( ; z; z = z->next )
+    n++;
+
+  return n;
+}
+#endif
+
+
 Any
 alloc(register int n)
 { n = roundAlloc(n);
   allocbytes += n;
-
-#if ALLOC_DEBUG
-  DEBUG(NAME_allocate, Cprintf("alloc(%d)\n", n));
-#endif
 
   if ( n <= ALLOCFAST )
   { register Zone z;
@@ -144,6 +153,9 @@ alloc(register int n)
       z->in_use = TRUE;
 #endif
 
+      freeChains[m] = (Zone) z->next;
+      wastedbytes -= n;
+
 #if ALLOC_DEBUG > 1
       { char *p;
 	for(p = (char *)&z->start + n;
@@ -152,14 +164,21 @@ alloc(register int n)
 	  assert(*p == ALLOC_MAGIC_BYTE);
       }
 #else
-      memset(&z->start, 0, n);
+      memset(&z->start, 0, n);		/* should not be there */
 #endif
 
-      freeChains[m] = (Zone) z->next;
-      wastedbytes -= n;
+#if ALLOC_DEBUG
+      DEBUG(NAME_allocate,
+	    Cprintf("alloc(%d): reuse, left %d\n",
+		    n, count_zone_chain(freeChains[m])));
+#endif
 
       return &z->start;
     }
+
+#if ALLOC_DEBUG
+  DEBUG(NAME_allocate, Cprintf("alloc(%d): new\n", n));
+#endif
 
     return allocate(n);			/* new memory */
   }
@@ -181,10 +200,9 @@ unalloc(register int n, Any p)
   n = roundAlloc(n);
   allocbytes -= n;
   
-  DEBUG(NAME_allocate, Cprintf("unalloc(%d)\n", n));
-
   if ( n <= ALLOCFAST )
-  { assert((long)z >= allocBase && (long)z <= allocTop);
+  { int m = n / sizeof(Zone);
+    assert((long)z >= allocBase && (long)z <= allocTop);
 
 #if ALLOC_DEBUG
 #if ALLOC_DEBUG > 1
@@ -198,12 +216,14 @@ unalloc(register int n, Any p)
 #endif
 
     wastedbytes += n;
-    n /= sizeof(Zone);
-    z->next = freeChains[n];
-    freeChains[n] = z;
+    z->next = freeChains[m];
+    freeChains[m] = z;
 
+#if ALLOC_DEBUG
     DEBUG(NAME_allocate,
-	  Cprintf("unalloc for %s, m = %d\n", pp(z), n));
+	  Cprintf("unalloc %d bytes for %s, m = %d, now %d\n",
+		  n, pp(z), m, count_zone_chain(freeChains[m])));
+#endif
     
     return;
   }
@@ -269,24 +289,32 @@ status
 listWastedCorePce(Pce pce, Bool ppcells)
 { int n;
   Zone z;
+  int total = 0;
 
   Cprintf("Wasted core:\n");
   for(n=0; n <= ALLOCFAST/sizeof(Zone); n++)
   { if ( freeChains[n] != NULL )
-    { if ( ppcells == ON )
-      { Cprintf("    Size = %ld:\n", (ulong) n*sizeof(Zone));
+    { ulong size = (ulong) n*sizeof(Zone);
+
+      if ( ppcells == ON )
+      { Cprintf("    Size = %ld:\n", size);
 	for(z = freeChains[n]; z; z = z->next)
-	  Cprintf("\t%s\n", pp(z));
+	{ Cprintf("\t%s\n", pp(z));
+	  total += size;
+	}
       } else
       { int m;
 
 	for(z = freeChains[n], m = 0; z; z = z->next, m++)
 	  ;
-	Cprintf("\tSize = %3ld\t%4d cells:\n", (ulong) n*sizeof(Zone), m);
+	Cprintf("\tSize = %3ld\t%4d cells:\n", size, m);
+	total += size * m;
       }
     }
   }
   
+  Cprintf("Total wasted: %ld bytes\n", total);
+
   succeed;
 }
 
