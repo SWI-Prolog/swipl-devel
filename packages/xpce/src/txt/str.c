@@ -148,6 +148,23 @@ str_set_static(String str, const char *text)
 }
 
 
+status
+str_iswide(String s)
+{ if ( s->iswide )
+  { const charW *w = s->s_textW;
+    const charW *e = &w[s->size];
+
+    while(w<e)
+    { if ( *w++ > 0xff )
+	succeed;
+    }
+  }
+
+  fail;
+} 
+
+
+
 		 /*******************************
 		 *	     COPY STUFF		*
 		 *******************************/
@@ -243,26 +260,38 @@ int
 str_cmp(String s1, String s2)
 { int n = min(s1->size, s2->size);
 
-  sameEncoding(s1, s2);
+  if ( s1->iswide == s2->iswide )
+  { if ( isstrA(s1) )
+    { charA *d1 = s1->s_textA;
+      charA *d2 = s2->s_textA;
+      int d;
 
-  if ( isstrA(s1) )
-  { charA *d1 = s1->s_textA;
-    charA *d2 = s2->s_textA;
-    int d;
+      while(n-- > 0)
+	if ( (d = (*d1++ - *d2++)) )
+	  return d;
 
-    while(n-- > 0)
-      if ( (d = (*d1++ - *d2++)) )
-	return d;
+      return s1->size - s2->size;
+    } else
+    { charW *d1 = s1->s_textW;
+      charW *d2 = s2->s_textW;
+      int d;
+  
+      while(n-- > 0)
+	if ( (d = (*d1++ - *d2++)) )
+	  return d;
+  
+      return s1->size - s2->size;
+    }
+  } else				/* inconsistent encoding */
+  { int i;
 
-    return s1->size - s2->size;
-  } else
-  { charW *d1 = s1->s_textW;
-    charW *d2 = s2->s_textW;
-    int d;
+    for(i=0; i<n; i++)
+    { wint_t c1 = str_fetch(s1, i);
+      wint_t c2 = str_fetch(s2, i);
 
-    while(n-- > 0)
-      if ( (d = (*d1++ - *d2++)) )
-	return d;
+      if ( c1 != c2 )
+	return c1 -c2;
+    }
 
     return s1->size - s2->size;
   }
@@ -273,26 +302,38 @@ int
 str_icase_cmp(String s1, String s2)
 { int n = min(s1->size, s2->size);
 
-  sameEncoding(s1, s2);
-
-  if ( isstrA(s1) )
-  { charA *d1 = s1->s_textA;
-    charA *d2 = s2->s_textA;
-    int d;
-
-    for(; n-- > 0; d1++, d2++)
-      if ( (d = (tolower(*d1) - tolower(*d2))) )
-	return d;
-
-    return s1->size - s2->size;
+  if ( s1->iswide == s2->iswide )
+  { if ( isstrA(s1) )
+    { charA *d1 = s1->s_textA;
+      charA *d2 = s2->s_textA;
+      int d;
+  
+      for(; n-- > 0; d1++, d2++)
+	if ( (d = (tolower(*d1) - tolower(*d2))) )
+	  return d;
+  
+      return s1->size - s2->size;
+    } else
+    { charW *d1 = s1->s_textW;
+      charW *d2 = s2->s_textW;
+      int d;
+  
+      for(; n-- > 0; d1++, d2++)
+	if ( (d = (towlower(*d1) - towlower(*d2))) )
+	  return d;
+  
+      return s1->size - s2->size;
+    }
   } else
-  { charW *d1 = s1->s_textW;
-    charW *d2 = s2->s_textW;
-    int d;
+  { int i;
 
-    for(; n-- > 0; d1++, d2++)
-      if ( (d = (towlower(*d1) - towlower(*d2))) )
-	return d;
+    for(i=0; i<n; i++)
+    { wint_t c1 = towlower(str_fetch(s1, i));
+      wint_t c2 = towlower(str_fetch(s2, i));
+
+      if ( c1 != c2 )
+	return c1 -c2;
+    }
 
     return s1->size - s2->size;
   }
@@ -319,12 +360,10 @@ str_icase_eq(String s1, String s2)
 
 int					/* s2 is prefix of s1+offset */
 str_prefix_offset(String s1, unsigned int offset, String s2)
-{ sameEncoding(s1, s2);
-
-  if ( s2->size <= s1->size-offset )
+{ if ( s2->size <= s1->size-offset )
   { int n = s2->size;
 
-    if ( isstrA(s1) )
+    if ( isstrA(s1) && isstrA(s2) )
     { charA *d1 = s1->s_textA+offset;
       charA *d2 = s2->s_textA;
 
@@ -334,11 +373,10 @@ str_prefix_offset(String s1, unsigned int offset, String s2)
 
       return TRUE;
     } else
-    { charW *d1 = s1->s_textW+offset;
-      charW *d2 = s2->s_textW;
+    { int i;
 
-      while(n-- > 0)
-	if ( *d1++ != *d2++ )
+      for(i=0; i<n; i++)
+	if ( str_fetch(s1, i+offset) != str_fetch(s2, i) )
 	  return FALSE;
     }
 

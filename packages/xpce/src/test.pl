@@ -124,6 +124,22 @@ wstring(char-1) :-
 	get(S, size, 1),
 	get(S, character, 0, X),
 	X == 1000.
+wstring(tr-1) :-
+	new(S, string(abc)),
+	send(S, translate, b, 1060),
+	get(S, value, N),
+	atom_codes(N, [97,1060,99]).
+wstring(sub-1) :-
+	new(S, string([60,61,1060])),
+	get(S, sub, 0, 2, S2),
+	send(S2, equal, string([60,61])).
+wstring(split-1) :-
+	List = ["aap", [1060,1061], "noot"],
+	maplist(atom_codes, Atoms, List),
+	concat_atom(Atoms, -, Text),
+	get(Text, split, -, Chain),
+	chain_list(Chain, Splitted),
+	Splitted == Atoms.
 
 
 		 /*******************************

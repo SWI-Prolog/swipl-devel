@@ -68,6 +68,7 @@ COMMON(status)	str_set_n_ascii(String str, int len, char *text);
 COMMON(status)	str_set_n_wchar(String str, int len, wchar_t *text);
 COMMON(status)	str_set_ascii(String str, char *text);
 COMMON(status)	str_set_static(String str, const char *text);
+COMMON(status)	str_iswide(String s);
 COMMON(void)	str_ncpy(String dest, int at, String src, int from, int len);
 COMMON(void)	str_cpy(String dest, String src);
 COMMON(charA *)	str_textp(String s, int i);

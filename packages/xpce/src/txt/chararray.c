@@ -164,6 +164,13 @@ subCharArray(CharArray n1, CharArray n2, Bool ign_case)
   fail;
 }
 
+
+static status
+isWideCharArray(CharArray s)
+{ return str_iswide(&s->data);
+}
+
+
 		/********************************
 		*         MODIFICATIONS		*
 		********************************/
@@ -199,6 +206,10 @@ getCopyCharArray(CharArray n)
 }
 
 
+/* This assumes the capitalised version of an ISO Latin-1 string always
+   fits in an ISO Latin-1 string.  Is this true for all accented characters?
+ */
+
 CharArray
 getCapitaliseCharArray(CharArray n)
 { if ( n->data.size == 0 )
@@ -227,6 +238,11 @@ getCapitaliseCharArray(CharArray n)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Upcase first letter, downcase the rest  and replace word separators (-_)
+by spaces.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 CharArray
 getLabelNameCharArray(CharArray n)
 { String s = &n->data;
@@ -248,14 +264,8 @@ getLabelNameCharArray(CharArray n)
     { c = str_fetch(s, i);
 
       if ( iswordsep(c) )
-      { str_store(buf, o, ' ');
-#if 0
-	if ( ++i < size )
-	{ o++;
-	  str_store(buf, o, towupper(str_fetch(s, i)));
-	}
-#endif
-      } else
+	str_store(buf, o, ' ');
+      else
 	str_store(buf, o, c);
     }
     buf->size = o;
@@ -887,7 +897,9 @@ static senddecl send_charArray[] =
   SM(NAME_sub, 2, T_match, subCharArray,
      NAME_test, "Test if argument is a substring"),
   SM(NAME_suffix, 2, T_match, suffixCharArray,
-     NAME_test, "Test if receiver has suffix argument")
+     NAME_test, "Test if receiver has suffix argument"),
+  SM(NAME_isWide, 0, NULL, isWideCharArray,
+     NAME_encoding, "Test if text contains non ISO-Latin-1 characters")
 };
 
 /* Get Methods */
@@ -912,7 +924,7 @@ static getdecl get_charArray[] =
   GM(NAME_append, 1, "char_array", "char_array ...", getAppendCharArrayv,
      NAME_content, "Concatenation of me and the argument(s)"),
   GM(NAME_character, 1, "char", "int", getCharacterCharArray,
-     NAME_content, "ASCII value of 0-based nth character"),
+     NAME_content, "Character code of 0-based nth character"),
   GM(NAME_deletePrefix, 1, "char_array", "prefix=char_array", getDeletePrefixCharArray,
      NAME_content, "Delete specified prefix"),
   GM(NAME_deleteSuffix, 1, "char_array", "suffix=char_array", getDeleteSuffixCharArray,

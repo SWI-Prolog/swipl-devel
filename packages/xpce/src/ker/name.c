@@ -531,6 +531,7 @@ StringToName(String s)
     }
 
     str_inithdr(&s2, ENC_ISOL1);
+    s2.size = s->size;
     if ( !(s2.s_textA = alloca(s->size)) )
     { s2.s_textA = pceMalloc(s->size);
       do_free = s2.s_textA;

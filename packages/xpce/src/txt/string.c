@@ -30,23 +30,60 @@ static status	setString(StringObj str, String s);
 static status	CsetString(StringObj str, const char *txt);
 static status	CsetStringL(StringObj str, const char *txt, int len);
 
+
 StringObj
-StringToString(String s)
-{ CharArray c = StringToScratchCharArray(s);
-  StringObj str = answerObject(ClassString, name_procent_s, c, EAV);
+create_string_from_str(String s, int tmp)
+{ string s2;
+  CharArray c;
+  StringObj str;
+  charA *do_free = NULL;
+
+  if ( s->iswide )
+  { const charW *txt = s->s_textW;
+    const charW *end = &txt[s->size];
+    charA *p;
+
+    for( ; txt < end; txt++ )
+    { if ( *txt > 0xff )
+	goto canonical;
+    }
+
+    str_inithdr(&s2, ENC_ISOL1);
+    s2.size = s->size;
+    if ( !(s2.s_textA = alloca(s->size)) )
+    { s2.s_textA = pceMalloc(s->size);
+      do_free = s2.s_textA;
+    }
+    for(txt = s->s_textW, p = s2.s_textA; txt < end; )
+      *p++ = *txt++;
+
+    s = &s2;
+  }
+
+canonical:
+  c = StringToScratchCharArray(s);
+  if ( tmp )
+    str = tempObject(ClassString, name_procent_s, c, EAV);
+  else
+    str = answerObject(ClassString, name_procent_s, c, EAV);
   doneScratchCharArray(c);
+
+  if ( do_free )
+    pceFree(do_free);
 
   return str;
 }
 
 
 StringObj
-StringToTempString(String s)
-{ CharArray c = StringToScratchCharArray(s);
-  StringObj str = tempObject(ClassString, name_procent_s, c, EAV);
-  doneScratchCharArray(c);
+StringToString(String s)
+{ return create_string_from_str(s, FALSE);
+}
 
-  return str;
+
+StringObj
+StringToTempString(String s)
+{ return create_string_from_str(s, TRUE);
 }
 
 
@@ -258,12 +295,13 @@ newlineString(StringObj s, Int times)
 status
 insertCharacterString(StringObj str, Int chr, Int where, Int times)
 { int tms = isDefault(times) ? 1 : valInt(times);
+  wint_t c = valInt(chr);
 
-  { LocalString(buf, str->data.iswide, tms);
+  { LocalString(buf, c <= 0xff ? FALSE : TRUE, tms);
     int i;
 
     for(i=0; i<tms; i++)
-      str_store(buf, i, valInt(chr));
+      str_store(buf, i, c);
     buf->size = tms;
     str_insert_string(str, where, buf);
   }
@@ -424,10 +462,13 @@ translateString(StringObj str, Int c1, Int c2)
   int size = s->size;
   int i = 0;
 
-  prepareWriteString(str);
-
   if ( notNil(c2) )
   { wint_t t = valInt(c2);
+
+    if ( t > 0xff )
+      promoteString(str);
+    else
+      prepareWriteString(str);
 
     for(;;)
     { if ( (i = str_next_index(s, i, f)) >= 0 )
