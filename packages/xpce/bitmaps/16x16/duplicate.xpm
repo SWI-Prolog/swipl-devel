@@ -1,0 +1,26 @@
+/* XPM */
+static char * duplicate_xpm[] = {
+/* width height num_colors chars_per_pixel */
+"16 16 4 1",
+/* colors */
+" 	c None",
+".	c black",
+"X	c white",
+"o	c #000080",
+/* pixels */
+"                ",
+"     ...        ",
+"    .   . .     ",
+"         ..     ",
+"        ...     ",
+"                ",
+" ....  ....     ",
+" .XX.. .XX..    ",
+" .XXX. .XXX.    ",
+" .XXX. .XXoooo  ",
+" .XXX. .XXoXXoo ",
+" .XXX. .XXoXXXo ",
+" ..... ...oXXXo ",
+"          oXXXo ",
+"          oXXXo ",
+"          ooooo "};

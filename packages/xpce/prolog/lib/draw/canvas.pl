@@ -161,13 +161,17 @@ make_draw_canvas_popup(P) :-
 
 :- pce_global(@draw_canvas_keybinding, make_draw_canvas_keybinding).
 
-canvas_keybinding('DEL',  cut_selection).
-canvas_keybinding('\C-h', hide_selection).
-canvas_keybinding('\C-e', expose_selection).
-canvas_keybinding('\C-c', copy_selection).
-canvas_keybinding('\C-_', simple_undo).
-canvas_keybinding('\C-s', save).
-canvas_keybinding('TAB',  start_typing).
+canvas_keybinding('DEL',   cut_selection).
+canvas_keybinding('\\C-a', select_all).
+canvas_keybinding('\\C-h', hide_selection).
+canvas_keybinding('\\C-e', expose_selection).
+canvas_keybinding('\\C-c', copy_selection).
+canvas_keybinding('\\C-v', paste).
+canvas_keybinding('\\C-_', simple_undo).
+canvas_keybinding('\\C-z', simple_undo).
+canvas_keybinding('\\C-s', save).
+canvas_keybinding('\\C-p', print).
+canvas_keybinding('TAB',   start_typing).
 
 make_draw_canvas_keybinding(B) :-
 	new(B, key_binding),
@@ -252,6 +256,7 @@ unlink(Canvas) :->
 		/********************************
 		*         MODIFICATIONS		*
 		********************************/
+
 :- pce_group(modified).
 
 modified(C) :->
@@ -279,6 +284,10 @@ simple_undo(C) :->
 	send(UB, start_undo),
 	send(UB, undo),
 	send(UB, end_undo).
+
+undo(C) :->
+	"Start undo dialog"::
+	send(C?undo_buffer, open, C?frame).
 
 reset(C) :->
 	"Trap abort"::
@@ -572,11 +581,17 @@ duplicate_selection(Canvas, Offset:[point]) :->
 	"Duplicate the selection"::
 	default(Offset, point(10, 10), Off),
 	get(Canvas?selection, clone, Duplicate),
+	send(Canvas, open_undo_group),
 	send(Duplicate, for_all,
 	     and(message(Canvas, display, @arg1),
 		 message(@arg1, relative_move, Off))),
 	clean_duplicates(Duplicate),
 	send(Canvas, selection, Duplicate),
+	send(Canvas, clear_undo_group),
+	send(Duplicate, for_all,
+	     message(Canvas, undo_action,
+		     create(message, @arg1, cut))),
+	send(Canvas, close_undo_group),
 	send(Duplicate, done),
 	send(Canvas, modified).
 
@@ -724,6 +739,69 @@ auto_adjust(How, Gr, L0) :-
 auto_adjust(_, _, _).
 	
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Distribute spaces between graphicals evenly.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+distribute_selection(Canvas) :->
+	"Distribute selected objects"::
+	get(Canvas, selection, Selection),
+	send(Selection, for_all,
+	     if(message(@arg1, instance_of, connection),
+		message(Selection, delete, @arg1))),
+	get(Selection, size, Size),
+	(   Size < 3
+	->  send(Canvas, report, warning, 'Need at least 3 selected objects')
+	;   side_selector(Dir, Top, Bottom, Height),
+	    sequence_in_dir(Selection, Dir)
+	->  get(Selection?head, Top, Y0),
+	    get(Selection?tail, Bottom, Y1),
+	    H is Y1 - Y0,
+	    new(HTotal, number(0)),
+	    send(Selection, for_all, message(HTotal, plus, @arg1?Height)),
+	    get(HTotal, value, HT),
+	    Sep is (H - HT)/(Size-1),
+	    chain_list(Selection, List),
+	    send(Canvas, open_undo_group),
+	    distribute(List, Y0, Dir, 0, Sep),
+	    send(Canvas, close_undo_group)
+	;   send(Canvas, report, warning, 'Cannot determine direction')
+	).
+
+sequence_in_dir(Chain, Dir) :-
+	side_selector(Dir, Sel, _, _),
+	send(Chain, sort, ?(@arg1?Sel, compare, @arg2?Sel)),
+	chain_list(Chain, List),
+	sequence(List, Dir).
+
+side_selector(y, top_side, bottom_side, height).
+side_selector(x, left_side, right_side, width).
+
+
+sequence([_], _) :- !.
+sequence([H1,H2|T], y) :- !,
+	get(H1, bottom_side, Bottom),
+	get(H2, top_side, Top),
+	Top >= Bottom,
+	sequence([H2|T], y).
+sequence([H1,H2|T], x) :-
+	get(H1, right_side, R),
+	get(H2, left_side, L),
+	L >= R,
+	sequence([H2|T], x).
+
+distribute([], _, _, _, _).
+distribute([H|T], V0, Sel, N, Sep) :-
+	send(H, Sel, V0+N*Sep),
+	(   Sel == y
+	->  get(H?area, height, Me)
+	;   get(H?area, width, Me)
+	),
+	V1 is V0+Me,
+	NN is N + 1,
+	distribute(T, V1, Sel, NN, Sep).
+	
+
 	      /********************************
 	      *           LOAD/SAVE	      *
 	      ********************************/
@@ -779,22 +857,20 @@ save_as(Canvas) :->
 	get(File, absolute_path, Path),
 	register_recent_file(Path).
 
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Actual saving to file.  The  toplevel-object  saved  is a sheet.  This
 way we can easily add new  attributes without affecting compatibility.
-Future versions will probably also save the  name of the file on which
-the   prototypes  were stored, so  we   can   reload the corresponding
-prototypes.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 save(Canvas, File:[file]) :->
 	"Save canvas in named file"::
 	(   File == @default
-	->  get(Canvas, file, SaveFile),
-	    (   SaveFile == @nil
-	    ->  send(@display, inform, 'No current file'),
-	        fail
-	    ;   true
+	->  (   get(Canvas, file, SaveFile),
+	        SaveFile \== @nil
+	    ->	true
+	    ;	get(@finder, file, @off, '.pd', SaveFileName),
+		send(Canvas, file, new(SaveFile, file(SaveFileName)))
 	    )
 	;   send(Canvas, file, File),
 	    SaveFile = File
@@ -878,7 +954,8 @@ NOTE:	Currently PCE provides no way for the programmer to specify
 
 load(Canvas, File:file, Clear:[bool]) :->
 	"Load from named file and [clear]"::
-	(    Clear == @on
+	(    Clear == @on,
+	     \+ send(Canvas?graphicals, empty)
 	->   send(Canvas, save_if_modified),
 	     send(Canvas, clear)
 	;    true
@@ -903,6 +980,7 @@ load(Canvas, File:file, Clear:[bool]) :->
 	;   true
 	),
 	send(Canvas, convert_old_drawing, SaveVersion),
+	send(Canvas, slot, modified, @off),
 	send(Canvas, report, status, 'Loaded %s', File?base_name),
 	get(File, absolute_path, Path),
 	register_recent_file(Path),

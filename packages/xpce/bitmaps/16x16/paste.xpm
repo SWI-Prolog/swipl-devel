@@ -1,0 +1,29 @@
+/* XPM */
+static char * paste_xpm[] = {
+/* width height num_colors chars_per_pixel */
+"16 16 7 1",
+/* colors */
+" 	c None",
+".	c black",
+"X	c yellow",
+"o	c #808000",
+"O	c #c0c0c0",
+"+	c #000080",
+"@	c white",
+/* pixels */
+"                ",
+"      ....      ",
+"  .....XX.....  ",
+" .ooo.X..X.ooo. ",
+" .oo.OOOOOO.oo. ",
+" .oo........oo. ",
+" .oooooooooooo. ",
+" .ooooo+++++++. ",
+" .ooooo+@@@@@++ ",
+" .ooooo+@@@@@+@+",
+" .ooooo+@...@+++",
+" .ooooo+@@@@@@@+",
+" .ooooo+@.....@+",
+"  .....+@@@@@@@+",
+"       +++++++++",
+"                "};

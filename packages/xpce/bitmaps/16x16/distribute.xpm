@@ -1,0 +1,23 @@
+/* XPM */
+static char * distribute_xpm[] = {
+"16 16 4 1",
+" 	c None",
+".	c blue",
+"X	c grey60",
+"o	c black",
+"                ",
+"   .       .    ",
+"  ...      ..   ",
+" .............  ",
+"  ..XXXXXXX..X  ",
+"   .X      .X   ",
+"   .X      X    ",
+"   .X  oooooooX ",
+"   .X  oooooooX ",
+"   .X   XXXXXXX ",
+"   .X           ",
+" ..... oooooooX ",
+"  ...X oooooooX ",
+"   .X   XXXXXXX ",
+"   X            ",
+"                "};

@@ -39,6 +39,8 @@ as SWI-Prolog will  inherit the PCE system  predicates from the module
 
 :- use_module(library(pce)).
 :- use_module(library(pce_config)).
+:- use_module(library(pce_report)).
+:- use_module(library(toolbar)).
 :- ensure_loaded(library(help_message)).
 :- require([ default/3
 	   , file_base_name/2
@@ -124,6 +126,16 @@ draw(File) :-
 		*           CLASS DRAW		*
 		********************************/
 
+resource(open,	     image, image('16x16/open.xpm')).
+resource(save,	     image, image('16x16/save.xpm')).
+resource(print,	     image, image('16x16/print.xpm')).
+resource(undo,	     image, image('16x16/undo.xpm')).
+resource(cut,	     image, image('16x16/cut.xpm')).
+resource(copy,	     image, image('16x16/copy.xpm')).
+resource(paste,	     image, image('16x16/paste.xpm')).
+resource(duplicate,  image, image('16x16/duplicate.xpm')).
+resource(distribute, image, image('16x16/distribute.xpm')).
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Class `draw' defines and manages  the entire tool.  Its initialisation
 builds  the  entire  tool and the  resulting instance provide means of
@@ -192,7 +204,10 @@ initialise(Draw, Title:[name]) :->
 	send(Draw, append, new(Canvas, draw_canvas)),
 	send(new(Menu, draw_menu), left, Canvas),
 	send(new(D, dialog), above, Menu),
+	send(new(report_dialog), below, Menu),
 	send(Draw, fill_dialog, D),
+	send(D, append, new(TB, tool_bar(Canvas))),
+	send(Draw, fill_toolbar, TB),
 	send(Draw, fill_menu),
 	send(Menu, activate_select),
 	(   get_config(draw_config:history/geometry/main_window, Geometry)
@@ -285,6 +300,7 @@ initialisation arguments of class menu_item are:
 
 fill_dialog(Draw, D:dialog) :->
 	"Fill the top-dialog window"::
+	send(D, gap, size(10, 5)),
 	new(Canvas, Draw?canvas),
 	new(Menu, Draw?menu),
 	new(Selection, Canvas?selection),
@@ -298,8 +314,6 @@ fill_dialog(Draw, D:dialog) :->
 	new(HasMetaFile, ?(@pce, convert, win_metafile, class)),
 
 	send(D, append, new(MB, menu_bar(actions))),
-	send(D, append, new(RL, label(reporter, 'Welcome to PceDraw')), right),
-	send(RL, alignment, left),
 
 	send(MB, append, new(F, popup(file))),
 	send(MB, append, new(E, popup(edit))),
@@ -321,7 +335,7 @@ fill_dialog(Draw, D:dialog) :->
 			      message(Canvas, import),
 			      @default, @on,
 			      NonEmptyDrawing)
-		  , menu_item(save,
+		  , menu_item('save (Control+S)',
 			      message(Canvas, save),
 			      @default, @off,
 			      and(NonEmptyDrawing,
@@ -340,7 +354,7 @@ fill_dialog(Draw, D:dialog) :->
 			      @default, @off,
 			      NonEmptyDrawing)
 		  , new(SaveAsMetaFile, popup(save_as_metafile))
-		  , menu_item(print,
+		  , menu_item('print (Control+P)',
 			      message(Canvas, print),
 			      @default, @on,
 			      NonEmptyDrawing)
@@ -388,14 +402,14 @@ fill_dialog(Draw, D:dialog) :->
 		  ]),
 	new(UndoBuffer, Canvas?undo_buffer),
 	send_list(E, append,
-		  [ menu_item(undo,
+		  [ menu_item('Undo (Control+Z)',
 			      message(UndoBuffer, open, Draw),
 			      condition := message(UndoBuffer, can_undo))
-		  , menu_item(send_to_foreground,
+		  , menu_item('Send to foreground (Control+E)',
 			      message(Canvas, expose_selection),
 			      @default, @off,
 			      NonEmptySelection)
-		  , menu_item(send_to_background,
+		  , menu_item('Send to background (Control+H)',
 			      message(Canvas, hide_selection),
 			      @default, @on,
 			      NonEmptySelection)
@@ -407,22 +421,22 @@ fill_dialog(Draw, D:dialog) :->
 			      message(Canvas, edit_selection),
 			      @default, @on,
 			      NonEmptySelection)
-		  , menu_item(select_all,
+		  , menu_item('Select all (Control+A)',
 			      message(Canvas, select_all),
 			      condition := NonEmptyDrawing)
 		  , menu_item(duplicate,
 			      message(Canvas, duplicate_selection),
 			      @default, @off,
 			      NonEmptySelection)
-		  , menu_item(cut,
+		  , menu_item('Cut (DEL)',
 			      message(Canvas, cut_selection),
 			      @default, @off,
 			      NonEmptySelection)
-		  , menu_item(copy,
+		  , menu_item('Copy (Control+C)',
 			      message(Canvas, copy_selection),
 			      @default, @off,
 			      NonEmptySelection)
-		  , menu_item(paste,
+		  , menu_item('Paste (Control+V)',
 			      message(Canvas, paste),
 			      @default, @on,
 			      message(@prolog, exists_clipboard))
@@ -490,6 +504,44 @@ fill_dialog(Draw, D:dialog) :->
 
 exists_clipboard :-
 	object(@draw_clipboard).
+
+
+		 /*******************************
+		 *	     TOOLBAR		*
+		 *******************************/
+
+
+fill_toolbar(_D, TB:tool_bar) :->
+	"Fill the toolbar"::
+	send_list(TB, append,
+		  [ tool_button(load_from,
+				resource(open),
+				open),
+		    tool_button(save,
+				resource(save),
+				save),
+		    tool_button(print,
+				resource(print),
+				print),
+		    gap,
+		    tool_button(cut_selection,
+				resource(cut),
+				cut),
+		    tool_button(copy_selection,
+				resource(copy),
+				copy),
+		    tool_button(duplicate_selection,
+				resource(duplicate),
+				duplicate),
+		    gap,
+		    tool_button(distribute_selection,
+				resource(distribute),
+				distribute),
+		    gap,
+		    tool_button(undo,
+				resource(undo),
+				undo)
+		  ]).
 
 
 		/********************************
