@@ -179,7 +179,7 @@ allocate(size_t n)
 
   if ( n <= spacefree )
   { p = spaceptr;
-#ifdef ALLOC_DEBUG
+#if ALLOC_DEBUG
     { int i;
       char *s = p;
 
@@ -200,7 +200,7 @@ allocate(size_t n)
     if ( m <= (ALLOCFAST/ALIGN_SIZE) )	/* this is freeHeap(), but avoids */
     { Chunk ch = (Chunk)spaceptr;	/* recursive LOCK() */
 
-#ifdef ALLOC_DEBUG
+#if ALLOC_DEBUG
       memset(spaceptr, ALLOC_FREE_MAGIC, spacefree);
 #endif
       ch->next = freeChains[m];
@@ -215,7 +215,7 @@ allocate(size_t n)
   spaceptr = p + n;
   spacefree -= n;
 
-#ifdef ALLOC_DEBUG
+#if ALLOC_DEBUG
   memset(spaceptr, ALLOC_VIRGIN_MAGIC, spacefree);
   memset(p, ALLOC_MAGIC, n);
 #endif
