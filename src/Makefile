@@ -25,6 +25,8 @@ OPTIMIZE=M_OPTIMIZE
 CFLAGS=${OPTIMIZE} M_CFLAGS
 LDFLAGS=M_LDFLAGS
 LIBS=M_LIBS
+MANDIR=M_MANDIR
+MANSEC=M_MANSEC
 #ifdef UNEXEC_SOURCE
 UNEXEC=UNEXEC_SOURCE
 #else
@@ -209,7 +211,7 @@ pl-bite:	pl-bite.c
 		$(CC) -o pl-bite pl-bite.c
 
 install:	xmakefile
-		make -f xmakefile xinstall
+		make -f xmakefile xinstall xman
 
 xinstall:	$(RUNTIMEDIR) $(LIBRARYDIR)
 		@-mkdir $(BINDIR)
@@ -236,6 +238,13 @@ xinstall:	$(RUNTIMEDIR) $(LIBRARYDIR)
 $(LIBRARYDIR):
 		mkdir $(OS-LIBRARYDIR)
 		$(INSTALL) -r ..$(SEP)library$(SEP)* $(OS-LIBRARYDIR)
+
+man:		xmakefile
+		make -f xmakefile xman
+
+xman:		
+		sed 's/PL/$(PROLOG)/' ../src/pl.1 > \
+			$(MANDIR)$(SEP)man$(MANSEC)$(SEP)$(PROLOG).$(MANSEC)
 
 tags:		TAGS
 

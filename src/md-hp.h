@@ -61,19 +61,19 @@ NOTE:	I've been informedby Irek Karkowski (irek@donau.et.tudelft.nl)
 #define M_CFLAGS		
 #else					/* Use HP-UX cc */
 #define M_CC			cc
-#define M_OPTIMIZE	        +O3 +Obb650
+#define M_OPTIMIZE		+O1 +Obb650 /* In HP-UX 8.07, can use +O3 */
 #define M_LDFLAGS		-O -Wl,-a archive
-#define M_CFLAGS		-Aa -D_HPUX_SOURCE -Dunix -Dhpux
+#define M_CFLAGS		-Aa -D_HPUX_SOURCE -Dunix -Dhpux -I/usr/local/include -I/usr/local/include/readline
 #endif
 
-#define M_LIBS			-lm -ltermcap
+#define M_LIBS			-lm -ltermcap -L/usr/local/lib -lreadline -lPW
 
 /*#define M_OPTIMIZE	        -g -DO_DEBUG*/
 
 #else /* MAKE_SECTION */
 
 #define O_NO_ALLOCA		!__GNUC__
-#define ANSI			__GNUC__
+#define ANSI			1
 #define O_NO_LEFT_CAST		!__GNUC__
 #define O_NO_VOID_POINTER	0
 #define O_SHORT_SYMBOLS		0

@@ -302,7 +302,7 @@ caddr start;
 long length;
 { 
 #if O_C_STACK_GROWS_UP
-  if ( (ulong) &fd - MAXSTACKFRAMESIZE > (ulong) start )
+  if ( (ulong) &fd - MAXSTACKFRAMESIZE > (ulong) ( (unsigned) start + length ) )
 #else
   if ( (ulong) &fd + MAXSTACKFRAMESIZE < (ulong) start )
 #endif

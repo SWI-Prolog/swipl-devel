@@ -1845,7 +1845,7 @@ ttybuf *buf;
 { fail;
 }
 
-#endif O_TERMIOS
+#endif /* O_TERMIOS */
 
 
 		/********************************

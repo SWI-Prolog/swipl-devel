@@ -30,13 +30,14 @@ int	unexec P((char *, char *, char *, unsigned, unsigned, unsigned));
 word
 saveProgram(new)
 Word new;
-{ char *new_name, *sym_name;
+{ char *new_name, *sym_name, *dest;
   char tmp[MAXPATHLEN];
-  char dest[MAXPATHLEN];
   char old_name[MAXPATHLEN];
   
-  if ( !isAtom(*new) )
+  if ( (dest = primitiveToString(*new, FALSE)) == (char *)NULL )
     return warning("save_program/1: instantiation fault");
+  if ( (dest = ExpandOneFile(dest)) == (char *)NULL )
+    fail;
 
   if ( cannot_save_program != NULL )
     return warning("Cannot save the program: %s", cannot_save_program);
@@ -49,7 +50,6 @@ Word new;
   else
     sym_name = NULL;
   
-  strcpy(dest,OsPath(stringAtom(*new)));
   sprintf(tmp, "%s#%d", dest, getpid());
   new_name = tmp;
 
