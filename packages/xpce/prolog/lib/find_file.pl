@@ -366,7 +366,7 @@ get_file(F, Exists, Ext0, Dir, Default, File) :-
 	send(F, show, @off),
 	File \== @nil.
 
-win_filter(@default, @default).
+win_filter(@default, @default) :- !.
 win_filter(Atom, Filter) :-
 	atom(Atom), !,
 	new(C, chain(Atom)),

@@ -104,7 +104,7 @@ open_file(_Emacs, File:file, NewWindow:[bool]) :->
 
 find_file(Emacs, Dir:[directory]) :->
 	"Find and edit file"::
-	get(@finder, file, @off, @default, Dir, FileName),
+	get(@finder, file, @on, @default, Dir, FileName),
 	send(Emacs, open_file, FileName).
 
 goto_source_location(_Emacs, Location:source_location) :->

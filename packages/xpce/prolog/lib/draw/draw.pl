@@ -16,7 +16,7 @@
 	, draw/1				  % Start editing file
 	]).
 
-draw_version(4.1).
+draw_version(4.2).
 
 		/********************************
 		*      LINKING OTHER FILES	*

@@ -265,6 +265,15 @@ get_logical_drive_strings(int bufsize, char *buf)
 	  s += l; \
 	}
 
+static int
+allLetter(const char *s)
+{ for(; *s && isletter(*s); s++)
+    ;
+
+  return *s ? FALSE : TRUE;
+}
+
+
 Name
 getWinFileNameDisplay(DisplayObj d,
 		      Name mode,	/* open, save */
@@ -357,11 +366,30 @@ getWinFileNameDisplay(DisplayObj d,
     GetSaveFileName(&ofn);
 
   if ( buffer[0] )
+  { char *base = baseName(buffer);
+
+    if ( !strchr(base, '.') && ofn.nFilterIndex > 0 )
+    { char *pattern = filter;
+      char *ext;
+      int n;
+	
+      pattern = filter;
+      pattern += strlen(pattern)+1;	/* first pattern */
+      for(n=1; n<ofn.nFilterIndex; n++)
+      { pattern += strlen(pattern)+1;
+	pattern += strlen(pattern)+1;
+      }
+  
+      if ( (ext = strrchr(pattern, '.')) && allLetter(ext+1) )
+	strcat(buffer, ext);
+    }
+
 #ifdef O_XOS				/* should always be true */
     rval = CtoName(_xos_canonical_filename(buffer, filter));
 #else
     rval = CtoName(buffer);
 #endif
+  }
 
   return rval;
 }

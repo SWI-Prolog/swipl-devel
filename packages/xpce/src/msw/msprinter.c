@@ -41,6 +41,7 @@ NewClass(win_printer)			/* class structure */
   Name	    map_mode;			/* Mapping mode */
   Name	    job_name;			/* Job Name */
   Int	    job;			/* Job Id */
+  Tuple	    range;			/* Range of pages to print */
   Any	    resolution;			/* Resolution of the device */
   Point	    origin;			/* Origin of the coordinate system */
   Any	    device;			/* Output device */
@@ -134,9 +135,41 @@ setupWinPrinter(WinPrinter prt, FrameObj fr)
 
   psd->lStructSize = sizeof(PAGESETUPDLG); 
   psd->hwndOwner = hwnd;
-/*psd->hDevMode; 
+/*
+  psd->hDevMode; 
   psd->hDevNames; 
   psd->Flags; 
+*/
+#ifdef USE_PRINTDLG
+  psd->Flags = (PD_ALLPAGES|
+		PD_RETURNDC|
+		PD_NOSELECTION|
+		PD_USEDEVMODECOPIESANDCOLLATE);
+
+  if ( notNil(prt->range) )
+  { psd->nFromPage = valInt(prt->range->first);
+    psd->nToPage = valInt(prt->range->second);
+  } else
+    psd->Flags |= PD_NOPAGENUMS;
+
+  psd->hDC; 
+  psd->Flags; 
+  psd->nFromPage; 
+  psd->nToPage; 
+  psd->nMinPage; 
+  psd->nMaxPage; 
+  psd->nCopies; 
+  psd->hInstance; 
+  psd->lCustData; 
+  psd->lpfnPrintHook; 
+  psd->lpfnSetupHook; 
+  psd->lpPrintTemplateName; 
+  psd->lpSetupTemplateName; 
+  psd->hPrintTemplate; 
+  psd->hSetupTemplate; 
+  psd->nCopies = 1;
+#else
+/* 
   psd->ptPaperSize; 
   psd->rtMinMargin; 
   psd->rtMargin; 
@@ -147,11 +180,6 @@ setupWinPrinter(WinPrinter prt, FrameObj fr)
   psd->lpPageSetupTemplateName; 
   psd->hPageSetupTemplate;
 */
-#ifdef USE_PRINTDLG
-  psd->Flags = (PD_ALLPAGES|
-		PD_RETURNDC|
-		PD_USEDEVMODECOPIESANDCOLLATE);
-  psd->nCopies = 1;
 #endif
 
   if ( isName(prt->device) )		/* default printer name */
@@ -215,6 +243,10 @@ setupWinPrinter(WinPrinter prt, FrameObj fr)
   }
 #else
   prt->ws_ref->hdc = psd->hDC;
+  if ( notNil(prt->range) && (psd->Flags & PD_PAGENUMS) )
+  { assign(prt->range, first,  toInt(psd->nFromPage));
+    assign(prt->range, second, toInt(psd->nToPage));
+  }
 #endif
 
   if ( !prt->ws_ref->hdc )
@@ -469,6 +501,21 @@ windowWinPrinter(WinPrinter prt, Area ww)
   fail;
 }
 
+
+static status
+rangeWinPrinter(WinPrinter prt, Tuple range)
+{ if ( isNil(range) ||
+       (isInteger(range->first) &&
+	isInteger(range->second)) )
+  { assign(prt, range, range);
+
+    succeed;
+  }
+
+  return errorPce(range, NAME_unexpectedType, nameToType(NAME_tuple));
+}
+
+
 		 /*******************************
 		 *	       INFO		*
 		 *******************************/
@@ -672,6 +719,8 @@ static vardecl var_winprinter[] =
      NAME_name, "Public name of the print job"),
   IV(NAME_job, "int*", IV_GET,
      NAME_identifier, "Windows job-id for this print job"),
+  SV(NAME_range, "tuple*", IV_GET|IV_STORE, rangeWinPrinter,
+     NAME_selection, "Range of pages to print"),
   SV(NAME_resolution, "[int|size]", IV_GET|IV_STORE, resolutionWinPrinter,
      NAME_dimension, "Height/Size of the page in logical units"),
   SV(NAME_origin, "point", IV_GET|IV_STORE, originWinPrinter,

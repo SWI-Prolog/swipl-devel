@@ -69,8 +69,7 @@
 :- multifile user:file_search_path/2.
 :- dynamic   user:file_search_path/2.
 
-user:file_search_path(config, ConfigHome) :-
-        get(file('~/.xpce'), absolute_path, ConfigHome).
+user:file_search_path(config, user_profile('.xpce')).
 
 config_version(1).			% version of the config package
 
@@ -251,15 +250,7 @@ save_file(Key, File) :-
 	(   send(directory(Dir), exists)
 	->  send(@pce, report, error, 'Cannot write config directory %s', Dir),
 	    fail
-	;   new(D, dialog('Create config directory')),
-	    send(D, append,
-		 label(comment, string('Create config directory %s?', Dir))),
-	    send(D, append, button(ok, message(D, return, ok))),
-	    send(D, append, button(cancel, message(D, return, cancel))),
-	    get(D, confirm_centered, RVal),
-	    send(D, destroy),
-	    RVal == ok,
-	    send(directory(Dir), make)
+	;   send(directory(Dir), make)
 	).
 
 
