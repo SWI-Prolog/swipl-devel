@@ -1925,7 +1925,7 @@ pl_int_to_atom(term_t number, term_t base, term_t atom)
  ** Fri Aug 19 22:26:41 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 char *
-formatInteger(bool split, int div, int radix, bool small, long int n,
+formatInteger(bool split, int div, int radix, bool small, int64_t n,
 	      char *out)
 { char tmp[100];
   char *s = &tmp[sizeof(tmp)-1];	/* i.e. start at the end */

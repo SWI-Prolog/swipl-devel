@@ -546,7 +546,7 @@ COMMON(word) 		pl_atom_length(term_t w, term_t n);
 COMMON(word) 		pl_int_to_atom(term_t number, term_t base,
 			       term_t atom);
 COMMON(char *) 		formatInteger(bool split, int div, int radix,
-			      bool small, long n, char *out);
+			      bool small, int64_t n, char *out);
 COMMON(word) 		pl_format_number(term_t format, term_t number,
 				 term_t string);
 COMMON(word) 		pl_name(term_t atom, term_t string);

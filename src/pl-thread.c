@@ -931,7 +931,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
   ldnew = info->thread_data;
 
-  if ( !scan_options(options, 0,
+  if ( !scan_options(options, 0, /*OPT_ALL,*/
 		     ATOM_thread_option, make_thread_options,
 		     &info->local_size,
 		     &info->global_size,

@@ -465,11 +465,11 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv)
 	      case 'D':			/* grouped integer */
 	      case 'r':			/* radix number */
 	      case 'R':			/* Radix number */
-		{ int i;
+		{ int64_t i;
 		  char tmp[50];
 
 		  NEED_ARG;
-		  if ( !PL_get_integer(argv, &i) )
+		  if ( !PL_get_int64(argv, &i) )
 		  { char f[2];
 		    
 		    f[0] = c;
