@@ -1,13 +1,14 @@
 To install:
 
-1) Copy the desired .sty files to your favoriate LaTeX library (e.g.,
-   /usr/lib/tex/inputs).
+Modified for LaTeX2e, tested using teTeX installation b y Jan
+Wielemaker.  This read file has been updated.
+
+1) Copy the desired .sty files to your favoriate LaTeX library.
+   I created /usr/lib/teTeX/texmf/tex/latex/doc/ and copied the
+   .sty files below to this new directory.
 
    txt.sty      - Generates fixed-width font output from LaTeX input.
                   Does flush-right output if doc.tfm is installed.
-
-   txt-old.sty  - Older version of txt.sty that generates ragged-right
-                  output, but does not require doc.tfm
 
    txt.tex      - "Documentation" for the above.
 
@@ -17,15 +18,30 @@ To install:
 
    rfc.tex      - "Documentation" for the above.
 
-2) Copy the doc.tfm file to your favorite LaTeX font directory (e.g.,
-   /usr/lib/tex/fonts).  Make links or copies using the names
+2) Copy the doc.tfm file to your favorite LaTeX font directory.
+   I created /usr/lib/teTeX/texmf/fonts/tfm/doc/ and copied the
+   file there.  Make links or copies using the names docbf.tfm
+   and docul.tfm:
 
-   docbf.tfm
-   docul.tfm
+	% cd /usr/lib/teTeX/texmf/fonts/tfm/doc/
+	% ln doc.tfm docbf.tfm
+	% ln doc.tfm docul.tfm
+
+3) Update the kpathsea database.  On teTeX installation, run texconfig
+   and use the `REHASH' command.
 
 3) Make and install the new version of dvi2tty:
 
    cd dvi2tty
    make
    cp dvi2tty <your favorite binary directory>
+
+================================================================
+Usage:
+
+	1) Add \usepackage{ifthen}
+	   and \usepackage{txt}
+	   to your included packages
+	2) Run: latex file
+	3) Run: dvi2tty file.dvi > file.txt
 

@@ -25,6 +25,9 @@
 #if HAVE_SYS_STAT_H
 #include <sys/stat.h>
 #endif
+#if !O_XOS
+#define statfunc stat
+#endif
 #if HAVE_PWD_H
 #include <pwd.h>
 #endif
@@ -729,7 +732,7 @@ LastModifiedFile(char *f)
 #if defined(HAVE_STAT) || defined(__unix__)
   struct stat buf;
 
-  if ( stat(OsPath(f), &buf) < 0 )
+  if ( statfunc(OsPath(f), &buf) < 0 )
     return -1;
 
   return (long)buf.st_mtime;
@@ -783,7 +786,8 @@ ExistsFile(char *path)
 #if defined(HAVE_STAT) || defined(__unix__)
   struct stat buf;
 
-  if ( stat(OsPath(path), &buf) == -1 || (buf.st_mode & S_IFMT) != S_IFREG )
+  if ( statfunc(OsPath(path), &buf) == -1 ||
+       (buf.st_mode & S_IFMT) != S_IFREG )
     fail;
   succeed;
 #endif
@@ -838,7 +842,7 @@ ExistsDirectory(char *path)
 #if defined(HAVE_STAT) || defined(__unix__)
   struct stat buf;
 
-  if ( stat(ospath, &buf) < 0 )
+  if ( statfunc(ospath, &buf) < 0 )
     fail;
 
   if ( (buf.st_mode & S_IFMT) == S_IFDIR )
@@ -864,7 +868,7 @@ long
 SizeFile(char *path)
 { struct stat buf;
 #if defined(HAVE_STAT) || defined(__unix__)
-  if ( stat(OsPath(path), &buf) == -1 )
+  if ( statfunc(OsPath(path), &buf) == -1 )
     return -1;
 #endif
 
@@ -922,7 +926,8 @@ SameFile(char *f1, char *f2)
   { struct stat buf1;
     struct stat buf2;
 
-    if ( stat(OsPath(f1), &buf1) != 0 || stat(OsPath(f2), &buf2) != 0 )
+    if ( statfunc(OsPath(f1), &buf1) != 0 ||
+	 statfunc(OsPath(f2), &buf2) != 0 )
       fail;
     if ( buf1.st_ino == buf2.st_ino && buf1.st_dev == buf2.st_dev )
       succeed;
@@ -960,7 +965,7 @@ MarkExecutable(char *name)
 
   um = umask(0777);
   umask(um);
-  if ( stat(name, &buf) == -1 )
+  if ( statfunc(name, &buf) == -1 )
     return warning("Can't stat(2) `%s': %s", name, OsError());
 
   if ( (buf.st_mode & 0111) == (~um & 0111) )
@@ -1073,7 +1078,7 @@ canoniseDir(char *path)
     }
   }
 
-  if ( stat(OsPath(path), &buf) == 0 )
+  if ( statfunc(OsPath(path), &buf) == 0 )
   { CanonicalDir dn = allocHeap(sizeof(struct canonical_dir));
     char dirname[MAXPATHLEN];
     char *e = path + strlen(path);
@@ -1086,7 +1091,7 @@ canoniseDir(char *path)
     do
     { strncpy(dirname, path, e-path);
       dirname[e-path] = EOS;
-      if ( stat(OsPath(dirname), &buf) < 0 )
+      if ( statfunc(OsPath(dirname), &buf) < 0 )
 	break;
 
       DEBUG(2, Sdprintf("Checking %s (dev=%d,ino=%d)\n",
@@ -2410,7 +2415,7 @@ Symbols(void)
 
   return file;
 }
-#endif __WIN32__
+#endif /*__WIN32__*/
 
 
 #if unix
@@ -2418,7 +2423,7 @@ static char *
 okToExec(char *s)
 { struct stat stbuff;
 
-  if (stat(s, &stbuff) == 0 &&			/* stat it */
+  if (statfunc(s, &stbuff) == 0 &&			/* stat it */
      (stbuff.st_mode & S_IFMT) == S_IFREG &&	/* check for file */
      access(s, X_OK) == 0)			/* can be executed? */
     return s;

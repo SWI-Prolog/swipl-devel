@@ -87,3 +87,6 @@
 
 /* Define if doubles cannot be aligned as longs */
 #undef DOUBLE_ALIGNMENT
+
+/* Define top of heap.  See pl-setup.c */
+#undef TOPOFHEAP

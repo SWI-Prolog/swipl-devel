@@ -427,7 +427,9 @@ system-V shared memory primitives (if they meet certain criteria).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include <errno.h>
+#ifndef WIN32
 extern int errno;
+#endif
 
 static int size_alignment;	/* Stack sizes must be aligned to this */
 static int base_alignment;	/* Stack bases must be aligned to this */
@@ -515,9 +517,18 @@ get_map_fd()
 #endif /*HAVE_MAP_ANON*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Estimate the top if the heap.
+Estimate the top if the heap. The default is to get the size of the heap
+using getrlimit(), add this to the estimated  base and use the result as
+top address.
+
+This does not always appewar  to  work.   If  you  know the top, #define
+TOPOFHEAP in config.h. Othewise #define  it  to   0,  in  which case the
+system will allocate a default heap of 64 MB and the stacks above that.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef TOPOFHEAP
+#define topOfHeap() TOPOFHEAP
+#else /*TOPOFHEAP*/
 #ifdef HAVE_GETRLIMIT
 #ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
@@ -543,6 +554,7 @@ topOfHeap()
 #else
 #define topOfHeap() (0L)
 #endif /*HAVE_GETRLIMIT*/
+#endif /*TOPOFHEAP*/
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1170,11 +1182,15 @@ initStacks(long local, long global, long trail, long argument)
     base = align_base_down(base);
   } else				/* we don't know the top */
   {
+    if ( !options.heapSize )
+      options.heapSize = 64 MB;
+
 #ifdef MMAP_MIN_ADDRESS
     base = MMAP_MIN_ADDRESS;
 #else
     base = (ulong) align_base((ulong)sbrk(0) + options.heapSize);
 #endif
+
     if ( large > 0 )
     { large_size = 64 MB;		/* what about the Alpha? */
       DEBUG(1, Sdprintf("Large stacks are %ld\n", large_size));

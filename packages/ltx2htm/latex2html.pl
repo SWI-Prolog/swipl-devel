@@ -858,8 +858,6 @@ cmd(title({Title}), []) :-			% \title
 	retractall(title(_)),
 	translate(Title, normal, HTML),
 	assert(title(HTML)).
-cmd(booktitle(Title), HTML) :-			% \booktitle
-	cmd(title(Title), HTML).
 cmd(author({Author}), []) :-			% \author
 	retractall(author(_)),
 	translate(Author, normal, HTML),

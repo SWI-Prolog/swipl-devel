@@ -106,7 +106,7 @@ if [ "$makestate" = false ]; then
 fi
 
 LIBS="-L$pllibdir $clibdirs $clibs -lpl $PLLIBS"
-ccmd="$CC -o $cout -I$PLBASE/include $cflags $cfiles $LIBS"
+ccmd="$CC -o $cout -I$PLBASE/include $cflags $cfiles $ldflags $LIBS"
 plflags="-O -f none -F none -g true"
 
 if [ "$verbose" = true ]; then echo "%% $ccmd"; fi

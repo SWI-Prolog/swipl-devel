@@ -812,7 +812,7 @@ pl_load_foreign(term_t file, term_t entry, term_t options,
 #define RTLD_NOW 0
 #endif
 
-#endif HAVE_DLOPEN
+#endif /*HAVE_DLOPEN*/
 
 #ifdef HAVE_SHL_LOAD			/* HPUX */
 

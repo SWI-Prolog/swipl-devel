@@ -30,6 +30,7 @@ NULL=nul
 !ENDIF 
 ################################################################################
 # Begin Project
+# PROP Target_Last_Scanned "plcon - Win32 Debug"
 CPP=cl.exe
 RSC=rc.exe
 
@@ -60,9 +61,9 @@ CLEAN :
 
 $(OUTDIR)/plcon.bsc : $(OUTDIR)  $(BSC32_SBRS)
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /FR /YX /c
-# ADD CPP /nologo /W3 /GX /O2 /I "c:\jan\pl\include" /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D "__WIN32__" /YX /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "c:\jan\pl\include" /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D "__WIN32__" /YX /c
 # SUBTRACT CPP /Fr
-CPP_PROJ=/nologo /ML /W3 /GX /O2 /I "c:\jan\pl\include" /D "NDEBUG" /D "WIN32"\
+CPP_PROJ=/nologo /MD /W3 /GX /O2 /I "c:\jan\pl\include" /D "NDEBUG" /D "WIN32"\
  /D "_CONSOLE" /D "__WIN32__" /Fp"$(INTDIR)/plcon.pch" /YX /Fo"$(INTDIR)/" /c 
 CPP_OBJS=d:\development\objects\plcon/
 CPP_SBRS=.\.
@@ -120,9 +121,9 @@ CLEAN :
 
 $(OUTDIR)/plcon.bsc : $(OUTDIR)  $(BSC32_SBRS)
 # ADD BASE CPP /nologo /ML /W3 /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /FR /YX /c
-# ADD CPP /nologo /W3 /Gm /GX /Zi /Od /I "c:\jan\pl\include" /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "__WIN32__" /YX /c
+# ADD CPP /nologo /MD /W3 /Gm /GX /Zi /Od /I "c:\jan\pl\include" /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "__WIN32__" /YX /c
 # SUBTRACT CPP /Fr
-CPP_PROJ=/nologo /MLd /W3 /Gm /GX /Zi /Od /I "c:\jan\pl\include" /D "_DEBUG" /D\
+CPP_PROJ=/nologo /MD /W3 /Gm /GX /Zi /Od /I "c:\jan\pl\include" /D "_DEBUG" /D\
  "WIN32" /D "_CONSOLE" /D "__WIN32__" /Fp"$(INTDIR)/plcon.pch" /YX\
  /Fo"$(INTDIR)/" /Fd"$(INTDIR)/" /c 
 CPP_OBJS=d:\development\objects\plcon/

@@ -248,7 +248,7 @@ defaultSystemInitFile(char *a0)
 }
 
 
-#define MEMAREA_INVALID_SIZE (~0L)
+#define MEMAREA_INVALID_SIZE (unsigned long)(~0L)
 
 static unsigned long
 memarea_limit(const char *s)

@@ -5,7 +5,7 @@
 \usepackage[-]{-}[-]=prolog
 \makeindex
 \title{+}
-\booktitle{+}
+\booktitle
 \author{+}
 \maketitle
 \psdirectories{-}

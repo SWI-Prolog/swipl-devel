@@ -34,8 +34,8 @@ NULL=nul
 # Begin Project
 # PROP Target_Last_Scanned "libpl - Win32 Release"
 CPP=cl.exe
-MTL=mktyplib.exe
 RSC=rc.exe
+MTL=mktyplib.exe
 
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
@@ -108,9 +108,9 @@ CLEAN :
 
 $(OUTDIR)/libpl.bsc : $(OUTDIR)  $(BSC32_SBRS)
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FR /YX /c
-# ADD CPP /nologo /W3 /GX /O2 /I "d:\development\pl\include" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "MAKE_PL_DLL" /YX /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "d:\development\pl\include" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "MAKE_PL_DLL" /YX /c
 # SUBTRACT CPP /Fr
-CPP_PROJ=/nologo /W3 /GX /O2 /I "d:\development\pl\include" /D "NDEBUG" /D\
+CPP_PROJ=/nologo /MD /W3 /GX /O2 /I "d:\development\pl\include" /D "NDEBUG" /D\
  "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "MAKE_PL_DLL" /Fp"$(INTDIR)/libpl.pch"\
  /YX /Fo"$(INTDIR)/" /c 
 CPP_OBJS=d:\development\objects\pl/
@@ -128,12 +128,11 @@ BSC32_SBRS= \
 	
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386
-# ADD LINK32 uxnt.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386 /nodefaultlib:"libcmt.lib"
-LINK32_FLAGS=uxnt.lib kernel32.lib user32.lib gdi32.lib winspool.lib\
- comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib\
- odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /incremental:no\
- /pdb:"$(OUTDIR)/libpl.pdb" /machine:I386 /nodefaultlib:"libcmt.lib"\
- /out:"$(OUTDIR)/libpl.dll" /implib:"$(OUTDIR)/libpl.lib" 
+# ADD LINK32 uxnt.lib user32.lib /nodefaultlib:libc.lib /nologo /subsystem:windows /dll /machine:I386 /nodefaultlib:"libcmt.lib"
+LINK32_FLAGS=uxnt.lib user32.lib /nodefaultlib:libc.lib /nologo\
+ /subsystem:windows /dll /incremental:no /pdb:"$(OUTDIR)/libpl.pdb"\
+ /machine:I386 /nodefaultlib:"libcmt.lib" /out:"$(OUTDIR)/libpl.dll"\
+ /implib:"$(OUTDIR)/libpl.lib" 
 LINK32_OBJS= \
 	"$(INTDIR)\pl-arith.obj" \
 	"$(INTDIR)\pl-atom.obj" \
@@ -409,7 +408,7 @@ $(OUTDIR)/libpl.bsc : $(OUTDIR)  $(BSC32_SBRS)
 # SUBTRACT BASE CPP /Fr
 # ADD CPP /nologo /W3 /GX /O2 /I "d:\development\pl\include" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "MAKE_PL_DLL" /D "O_RUNTIME" /YX /c
 # SUBTRACT CPP /Fr
-CPP_PROJ=/nologo /W3 /GX /O2 /I "d:\development\pl\include" /D "NDEBUG" /D\
+CPP_PROJ=/nologo /ML /W3 /GX /O2 /I "d:\development\pl\include" /D "NDEBUG" /D\
  "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "MAKE_PL_DLL" /D "O_RUNTIME"\
  /Fp"$(INTDIR)/libpl.pch" /YX /Fo"$(INTDIR)/" /c 
 CPP_OBJS=d:\development\objects\pl\runtime/

@@ -141,7 +141,6 @@ if test ! "$runtime" = "yes"; then
     fi
   fi
 fi
-AC_CHECK_LIB(elf, main)
 AC_ARG_ENABLE(shared, [  --disable-shared	  No shared-lib interface],
 	      configshared="$enableval",
 	      configshared=yes)
@@ -149,6 +148,9 @@ AC_ARG_ENABLE(save, [  --enable-save		  Provide save/1 and friends],
 	      configsave="$enableval",
 	      configsave=no)
 
+if test "$configsave" = "yes"; then
+    AC_CHECK_LIB(elf, main)
+fi
 if test "$configshared" = "yes"; then
   AC_CHECK_LIB(dl, dlopen)
   AC_CHECK_LIB(dld, shl_load)
@@ -465,6 +467,9 @@ if test -s conftest && eval `./conftest`; then
     fi
     if test "$SIGNAL_HANDLER_PROVIDES_ADDRESS" = "1"; then
 	AC_DEFINE(SIGNAL_HANDLER_PROVIDES_ADDRESS)
+    fi
+    if test ! -z "$TOPOFHEAP"; then
+	AC_DEFINE_UNQUOTED(TOPOFHEAP, $TOPOFHEAP)
     fi
 else
     AC_MSG_RESULT("could not compile mmap test");

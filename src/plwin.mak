@@ -32,8 +32,8 @@ NULL=nul
 # Begin Project
 # PROP Target_Last_Scanned "plwin - Win32 Debug"
 CPP=cl.exe
-MTL=mktyplib.exe
 RSC=rc.exe
+MTL=mktyplib.exe
 
 !IF  "$(CFG)" == "plwin - Win32 Release"
 
@@ -63,9 +63,9 @@ CLEAN :
 
 $(OUTDIR)/plwin.bsc : $(OUTDIR)  $(BSC32_SBRS)
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /FR /YX /c
-# ADD CPP /nologo /W3 /GX /O2 /I "d:\development\pl\include" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "PL_WIN" /YX /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "d:\development\pl\include" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "PL_WIN" /YX /c
 # SUBTRACT CPP /Fr
-CPP_PROJ=/nologo /ML /W3 /GX /O2 /I "d:\development\pl\include" /D "NDEBUG" /D\
+CPP_PROJ=/nologo /MD /W3 /GX /O2 /I "d:\development\pl\include" /D "NDEBUG" /D\
  "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "PL_WIN" /Fp"$(INTDIR)/plwin.pch" /YX\
  /Fo"$(INTDIR)/" /c 
 CPP_OBJS=d:\development\objects\plwin/
@@ -130,9 +130,9 @@ CLEAN :
 
 $(OUTDIR)/plwin.bsc : $(OUTDIR)  $(BSC32_SBRS)
 # ADD BASE CPP /nologo /W3 /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /c
-# ADD CPP /nologo /W3 /Gm /GX /Zi /Od /I "d:\development\pl\include" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "PL_WIN" /YX /c
+# ADD CPP /nologo /MD /W3 /Gm /GX /Zi /Od /I "d:\development\pl\include" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "PL_WIN" /YX /c
 # SUBTRACT CPP /Fr
-CPP_PROJ=/nologo /MLd /W3 /Gm /GX /Zi /Od /I "d:\development\pl\include" /D\
+CPP_PROJ=/nologo /MD /W3 /Gm /GX /Zi /Od /I "d:\development\pl\include" /D\
  "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "PL_WIN"\
  /Fp"$(INTDIR)/plwin.pch" /YX /Fo"$(INTDIR)/" /Fd"$(INTDIR)/" /c 
 CPP_OBJS=d:\development\objects\plwin/

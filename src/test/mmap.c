@@ -19,6 +19,11 @@
 #include <unistd.h>
 #endif
 
+#ifndef FALSE
+#define FALSE 0
+#define TRUE 1
+#endif
+
 #if !defined(MAP_ANON) && defined(MAP_ANONYMOUS)
 #define MAP_ANON MAP_ANONYMOUS
 #endif
@@ -39,7 +44,7 @@ int	provides_address = 1;		/* assume */
 #define ulong unsigned long		/* avoid redefinition */
 
 #define K * 1024
-#define M K K
+#define MB K K
 
 #define RoundUp(x, y)	((x)%(y) == 0 ? (x) : ((x)|((y)-1))+1)
 #define RoundDown(p, n)	((p) & ~((n)-1))
@@ -116,7 +121,7 @@ segv_handler(int s, int type, void *scp, char *sigaddr)
 }
 
 
-void
+static int
 test_map(int *low)
 { int size = 40 K;
   int n;
@@ -134,12 +139,13 @@ test_map(int *low)
   for(n=0; n<size; n++)
   { if ( low[n] != n )
     { fprintf(stderr, "Read bad value at %d: %d\n", n, low[n]);
-      exit(1);
+      return FALSE;
     }
   }
 #ifdef VERBOSE
   printf("ok\n");
 #endif
+  return TRUE;
 }
 
 
@@ -167,30 +173,52 @@ getpagesize()
 #endif /*HAVE_GETPAGESIZE*/
 
 
-int
-main(int argc, char **argv)
-{ ulong thelow  = ~0;
-  ulong thehigh = 0;
-  ulong step    = (sizeof(void *) == 4 ? 4 M : 100 M);
-  ulong low, high;
-  ulong addr;
+		 /*******************************
+		 *	  TOP OF THE HEAP	*
+		 *******************************/
 
-  pagsiz = getpagesize();
-  mapfd  = get_map_fd();
-  low    = RoundUp((ulong)malloc(1) + 100 K, step);
-  high   = RoundDown((ulong)&argc - 32 M, step);
-  
-  if ( high < low )
-    high = low + 80*step;
-  else if ( low + 80*step < high )
-    high = low + 80*step;
-
-#ifdef VERBOSE
-  printf("pagesize = %ld, low = %p, high = %p\n",
-	 pagsiz, (void *)low, (void *)high);
+#ifdef HAVE_GETRLIMIT
+#ifdef HAVE_SYS_RESOURCE_H
+#include <sys/resource.h>
 #endif
 
-  for(addr=low; addr<=high; addr += step)
+#ifdef RLIMIT_DATA
+ulong
+topOfHeap()
+{ struct rlimit limit;
+  ulong heap_base = (ulong)sbrk(0);
+
+  heap_base = RoundDown(heap_base, 8 MB);
+
+  if ( getrlimit(RLIMIT_DATA, &limit) == 0 )
+  { ulong top = limit.rlim_cur + heap_base;
+
+#ifdef VERBOSE
+    printf("Heap: %p ... %p\n", (void *)heap_base, (void *)top);
+#endif
+    return top;
+  }
+
+  return 0L;
+}
+#else
+#define topOfHeap() (0L)
+#endif /*RLIMIT_DATA*/
+#else
+#define topOfHeap() (0L)
+#endif /*HAVE_GETRLIMIT*/
+
+
+		 /*******************************
+		 *	       MAIN		*
+		 *******************************/
+
+static int
+testarea(ulong base, ulong top)
+{ ulong step = 8 * pagsiz;
+  ulong addr;
+
+  for(addr=base; addr<top; addr += step)
   { if ( (ulong) mmap((void *) addr, pagsiz,
 		      PROT_READ|PROT_WRITE, STACK_MAP_TYPE,
 		      mapfd, 0L) == addr )
@@ -198,42 +226,65 @@ main(int argc, char **argv)
 #ifdef VERBOSE
       printf("."); fflush(stdout);
 #endif
-      if ( addr < thelow )
-	thelow = addr;
-      if ( addr > thehigh )
-	thehigh = addr;
       if ( munmap((void *) addr, pagsiz) != 0 )
       { perror("munmap");
-	exit(1);
+	return FALSE;
       }
     } else
-    { if ( thelow < thehigh )
-	break;
+    {
+#ifdef VERBOSE
+      char msg[1024];
+      sprintf(msg, "Failed to map at %p", addr);
+      perror(msg);
+#endif
+      return FALSE;
     }
   }
 
-#ifdef VERBOSE
-  printf("\nMap range is %p ... %p\n", (void *)thelow, (void *)thehigh);
-#endif
+  signal(SIGSEGV, (handler_t) segv_handler);
 
-  if ( thelow < thehigh )
-  { signal(SIGSEGV, (handler_t) segv_handler);
-    
-    test_map((void *)thelow);
+  return test_map((int *)base);
+}
 
-    printf("MMAP_STACK=1;\n");
-    if ( thelow > low )
-      printf("MMAP_MIN_ADDRESS=0x%08xL;\n", thelow);
-    printf("MMAP_MAX_ADDRESS=0x%08xL;\n", thehigh);
-    if ( provides_address )
-      printf("SIGNAL_HANDLER_PROVIDES_ADDRESS=1;\n");
-    if ( mapfd == -1 )
-      printf("HAVE_MAP_ANON=1;\n");
-#ifdef VERBOSE
-    printf("Space is %d MB\n", (thehigh-thelow)/(1 M));
-    printf("Using %s map\n", mapfd == -1 ? "MAP_ANON" : "MAP_PRIVATE");
-#endif
+
+static void
+ok()
+{ printf("MMAP_STACK=1;\n");
+
+  if ( provides_address )
+    printf("SIGNAL_HANDLER_PROVIDES_ADDRESS=1;\n");
+  if ( mapfd == -1 )
+    printf("HAVE_MAP_ANON=1;\n");
+}
+
+
+int
+main(int argc, char **argv)
+{ ulong top, htop = topOfHeap();
+  ulong base;
+
+  pagsiz = getpagesize();
+  mapfd  = get_map_fd();
+
+  if ( htop )
+  { top  = RoundDown(htop, pagsiz);
+    base = top - (64 MB * 3 + 8 MB);
+
+    if ( testarea(base, top) )
+    { ok();
+      exit(0);
+    }
+  }
+
+  base = RoundDown((ulong)sbrk(0) + 64 MB, pagsiz);
+  top = base + (64 MB * 3 + 8 MB);
+
+  if ( testarea(base, top) )
+  { if ( htop )
+      printf("TOPOFHEAP=0;\n");
+    ok();
     exit(0);
-  } else
-    exit(1);
+  }
+
+  exit(1);
 }
