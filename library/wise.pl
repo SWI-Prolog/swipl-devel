@@ -42,17 +42,15 @@ ensure_group(Group) :-
 wise_install :-
 	(   get_wise_variable('EXT', Ext),
 	    Ext \== ''
-	->  true
-	;   Ext = pl
+	->  shell_register_prolog(Ext),
+	    current_prolog_flag(argv, [Me|_]),
+	    format('Registered "~w" files to start ~w~n', [Ext, Me])
+	;   true
 	),
-	shell_register_prolog(Ext),
-	current_prolog_flag(argv, [Me|_]),
-	format('Registered "~w" files to start ~w~n', [Ext, Me]),
-	(   get_wise_variable('GROUP', GroupString),
-	    get_wise_variable('PLCWD', CwdString),
-	    string_to_atom(GroupString, Group),
-	    string_to_atom(CwdString, Cwd),
-	    Cwd \== ''
+	(   get_wise_variable('GROUP', Group),
+	    get_wise_variable('PLCWD', Cwd),
+	    Cwd \== '',
+	    Group \== ''
 	->  Item = 'SWI-Prolog',
 	    format('Installing icons in group ~w, for CWD=~w~n', [Group, Cwd]),
 	    ensure_group(Group),
@@ -64,6 +62,14 @@ wise_install :-
 	    progman_make_item(Group, Item, CmdLine, Cwd)
 	;   true
 	), !,
+	(   absolute_file_name(swi(xpce),
+			       [ access(exist),
+				 file_type(directory),
+				 file_errors(fail)
+			       ], _)
+	->  wise_install_xpce
+	;   true
+	),
 	format('~N~nAll done.', []),
 	sleep(2),
 	halt(0).
@@ -73,11 +79,10 @@ wise_install :-
 wise_install_xpce :-
 	qcompile_pce,
 	qcompile_lib,
-	(   get_wise_variable('GROUP', GroupString),
-	    get_wise_variable('PLCWD', CwdString),
-	    string_to_atom(GroupString, Group),
-	    string_to_atom(CwdString, Cwd),
-	    Cwd \== ''
+	(   get_wise_variable('GROUP', Group),
+	    get_wise_variable('PLCWD', Cwd),
+	    Cwd \== '',
+	    Group \== ''
 	->  Item = 'XPCE',
 	    format('Installing icons in group ~w, for CWD=~w~n', [Group, Cwd]),
 	    ensure_group(Group),
@@ -87,27 +92,10 @@ wise_install_xpce :-
 	    progman_make_item(Group, Item, CmdLine, Cwd, Prog:1)
 	;   true
 	), !,
-%	pce_manual_index,
 	halt(0).
 wise_install_xpce :-
 	halt(1).
 	
-pce_manual_index :-
-	send(@(display), confirm,
-	     'I can now create the index for the XPCE manual tools\n\n\
-	      This process takes several minutes and requires about 2MB\n\
-	      disk-space.\n\n\
-	      If you do not create the index now, you will be prompted\n\
-	      when you use the manual search tool for the first time.\n\n\
-	      Create the Index now?'),
-	manpce,
-	absolute_file_name(pce('/man/reference/index'),
-			   [ extensions([obj]),
-			     access(write)],
-			   IndexFile), !,
-	get(new(man_index_manager), make_index, IndexFile, _), !.
-pce_manual_index.
-
 		 /*******************************
 		 *	 PRECOMPILED PARTS	*
 		 *******************************/

@@ -9,7 +9,7 @@
 ################################################################
 
 PLHOME=..\..
-!include ..\..\src\rules.mk
+!include $(PLHOME)\src\rules.mk
 PKGDLL=socket
 
 OBJ=		socket.obj error.obj

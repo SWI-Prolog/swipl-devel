@@ -87,7 +87,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 all:	banner \
 	headers	swipl subdirs \
 	$(PLCON) startup index $(PLWIN) $(PLLD) \
-	packages
+	dlldemos packages
 
 system:		$(PLCON)
 startup:	$(STARTUPPATH)
@@ -176,6 +176,8 @@ install-arch:	idirs
 		$(INSTALL_PROGRAM) $(PLDLL) "$(PLBASE)\bin"
 		$(INSTALL_PROGRAM) $(PLLD)  "$(PLBASE)\bin"
 		$(INSTALL_PROGRAM) $(PLRC)  "$(PLBASE)\bin"
+		$(INSTALL_PROGRAM) ..\bin\plregtry.dll  "$(PLBASE)\bin"
+		$(INSTALL_PROGRAM) ..\bin\dlltest.dll  "$(PLBASE)\bin"
 		$(INSTALL_PROGRAM) $(TERMDLL) "$(PLBASE)\bin"
 		$(INSTALL_DATA) $(PLLIB) "$(PLBASE)\lib"
 		$(INSTALL_DATA) $(TERMLIB) "$(PLBASE)\lib"
@@ -214,6 +216,13 @@ install-readme::
 		$(INSTALL_DATA) ..\README.WIN "$(PLBASE)\READWIN.TXT"
 
 ################################################################
+# DLL DEMOS
+################################################################
+
+dlldemos::
+		chdir win32\foreign & $(MAKE)
+
+################################################################
 # Build and install packages
 ################################################################
 
@@ -250,10 +259,12 @@ clean:		clean_packages
 		chdir rc & $(MAKE) clean
 		chdir win32\uxnt & $(MAKE) clean
 		chdir win32\console & $(MAKE) clean
+		chdir win32\foreign & $(MAKE) clean
 		del *.obj *~ pl.res
 
 distclean:	clean distclean_packages
 		@cd rc & $(MAKE) distclean
+		chdir win32\foreign & $(MAKE) distclean
 		rm -rf $(INCLUDEDIR) $(RUNTIMEDIR)
 		rm -f ../library/INDEX.pl
 		rm -f swipl swiplbin pl.prc
