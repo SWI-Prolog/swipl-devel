@@ -1,0 +1,1324 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog HTTP support</TITLE>
+</HEAD>
+<BODY BGCOLOR="white">
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<CENTER>
+
+<H1>SWI-Prolog HTTP support</H1>
+
+</CENTER>
+<HR>
+<CENTER>
+<I>Jan Wielemaker <BR>
+SWI, <BR>
+University of Amsterdam <BR>
+The Netherlands <BR>
+E-mail: <A HREF="mailto:jan@swi.psy.uva.nl">jan@swi.psy.uva.nl</A></I>
+</CENTER>
+<HR>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+<CENTER><H3>Abstract</H3></Center>
+<TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>
+This article documents the http-package, a series of libraries for 
+accessing data on HTTP servers as well as provide HTTP server 
+capabilities from SWI-Prolog. Both server and client are modular 
+libraries. The server can be operated from the Unix <B>inetd</B> 
+super-daemon as well as as a stand-alone server.
+</TABLE>
+
+<H1><A NAME="document-contents">Table of Contents</A></H1>
+
+<UL>
+<LI><A HREF="#sec:1"><B>1 Introduction</B></A>
+<LI><A HREF="#sec:2"><B>2 The HTTP client libraries</B></A>
+<UL>
+<LI><A HREF="#sec:2.1">2.1 The <CODE>library(http/http_open)</CODE> 
+library</A>
+<LI><A HREF="#sec:2.2">2.2 The <CODE>library(http/http_client)</CODE> 
+library</A>
+<UL>
+<LI><A HREF="#sec:2.2.1">2.2.1 The MIME client plug-in</A>
+<LI><A HREF="#sec:2.2.2">2.2.2 The SGML client plug-in</A>
+</UL>
+</UL>
+<LI><A HREF="#sec:3"><B>3 The HTTP server libraries</B></A>
+<UL>
+<LI><A HREF="#sec:3.1">3.1 The `Body'</A>
+<LI><A HREF="#sec:3.2">3.2 Request format</A>
+<UL>
+<LI><A HREF="#sec:3.2.1">3.2.1 Handling POST requests</A>
+</UL>
+<LI><A HREF="#sec:3.3">3.3 Running the server</A>
+<UL>
+<LI><A HREF="#sec:3.3.1">3.3.1 Common server interface options</A>
+<LI><A HREF="#sec:3.3.2">3.3.2 From an interactive Prolog session using 
+XPCE</A>
+<LI><A HREF="#sec:3.3.3">3.3.3 Multi-threaded Prolog</A>
+<LI><A HREF="#sec:3.3.4">3.3.4 From (Unix) inetd</A>
+<LI><A HREF="#sec:3.3.5">3.3.5 MS-Windows</A>
+<LI><A HREF="#sec:3.3.6">3.3.6 As CGI script</A>
+</UL>
+<LI><A HREF="#sec:3.4">3.4 The wrapper library</A>
+<LI><A HREF="#sec:3.5">3.5 The <CODE>library(http/html_write)</CODE> 
+library</A>
+<UL>
+<LI><A HREF="#sec:3.5.1">3.5.1 Emitting HTML documents</A>
+<LI><A HREF="#sec:3.5.2">3.5.2 Adding rules for html/1</A>
+<LI><A HREF="#sec:3.5.3">3.5.3 Generating layout</A>
+<LI><A HREF="#sec:3.5.4">3.5.4 Examples</A>
+<LI><A HREF="#sec:3.5.5">3.5.5 Remarks on the <CODE>library(http/html_write)</CODE> 
+library</A>
+</UL>
+</UL>
+<LI><A HREF="#sec:4"><B>4 Security</B></A>
+<LI><A HREF="#sec:5"><B>5 Status</B></A>
+</UL>
+
+<P>
+
+<H2><A NAME="sec:1">1 Introduction</A></H2>
+
+<P>The HTTP (HyperText Transfer Protocol) is the W3C standard protocol 
+for transferring information between a web-client (browser) and a 
+web-server. The protocol is a simple <EM>envelope</EM> protocol where 
+standard name/value pairs in the header are used to split the stream 
+into messages and communicate about the connection-status. Many 
+languages have client and or server libraries to deal with the HTTP 
+protocol, making it a suitable candidate for general purpose 
+client-server applications. It is the basis of popular agent protocols 
+such as <A HREF="http://www.w3.org/TR/SOAP">SOAP</A> and
+<A HREF="http://www.fipa.org">FIPA</A>.
+
+<P>In this document we describe a modular infra-structure to access 
+web-servers from SWI-Prolog and turn Prolog into a web-server. The 
+server code is designed to allow the same `body' to be used from an 
+interactive server for debugging or providing services from otherwise 
+interactive applications, run the body from an <EM>inetd</EM> 
+super-server or as a CGI script behind a generic web-server.
+
+<P>The design of this module is different from the competing XPCE-based 
+HTTP server located in <CODE>library(http/httpd.pl)</CODE>. This library 
+intensively uses XPCE functionality to reach its goals. This is not very 
+suitable for CGI or inetd-driven servers due to required X11 connection 
+and much larger footprint.
+
+<H3>Acknowledgements</H3>
+
+<P>This work has been carried out under the following projects:
+<A HREF="http://web.swi.psy.uva.nl/projects/GARP/">GARP</A>,
+<A HREF="http://db.cwi.nl/projecten/project.php4?prjnr=129">MIA</A>,
+<A HREF="http://web.swi.psy.uva.nl/projects/ibrow/home.html">IBROW</A> 
+and
+<A HREF="http://kits.edte.utwente.nl/">KITS</A>. The following people 
+have pioneered parts of this library and contributed with bug-report and 
+suggestions for improvements: Anjo Anjewierden, Bert Bredeweg, Wouter 
+Jansweijer and Bob Wielinga.
+
+<H2><A NAME="sec:2">2 The HTTP client libraries</A></H2>
+
+<P>This package provides two packages for building HTTP clients. The 
+first,
+<CODE>library(http/http_open)</CODE> is a very lightweight library for 
+opening a HTTP URL address as a Prolog stream. It can only deal with the 
+HTTP GET protocol. The second, <CODE>library(http/http_client)</CODE> is 
+a more advanced library dealing with <EM>keep-alive</EM>, <EM>chunked 
+transfer</EM> and a plug-in mechanism providing conversions based on the 
+MIME content-type.
+
+<H3><A NAME="sec:2.1">2.1 The <CODE>library(http/http_open)</CODE> 
+library</A></H3>
+
+<A NAME="sec:httpopen"></A>
+
+<P>The library <CODE>library(http/http_open)</CODE> provides a very 
+simple mechanism to read data from an HTTP server using the HTTP 1.0 
+protocol and HTTP GET access method. It defines one predicate:
+
+<DL>
+
+<P>
+<DT><A NAME="http_open/3"><STRONG>http_open</STRONG>(<VAR>+URL, -Stream, 
++Options</VAR>)</A><DD>
+Open the data at the HTTP server as a Prolog stream. After this 
+predicate succeeds the data can be read from <VAR>Stream</VAR>. After 
+completion this stream must be closed using the built-in Prolog 
+predicate <A NAME="idx:close1:1"></A><B>close/1</B>. <VAR>Options</VAR> 
+provides additional options:
+
+<DL>
+
+<P>
+<DT><STRONG>timeout</STRONG>(<VAR>+Timeout</VAR>)<DD>
+If provided, set a timeout on the stream using <A NAME="idx:setstream2:2"></A><B>set_stream/2</B>. 
+With this option if no new data arrives within <VAR>Timeout</VAR> 
+seconds the stream raises an exception. Default is to wait forever (<CODE>infinite</CODE>).
+
+<P>
+<DT><STRONG>size</STRONG>(<VAR>-Size</VAR>)<DD>
+If provided <VAR>Size</VAR> is unified with the value of the
+<CODE>Content-Length</CODE> fields of the reply-header.
+</DL>
+
+<P>Here is a simple example:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+?- http_open('http://www.swi-prolog.org/news.html', In, []),
+   copy_stream_data(In, user_output),
+   close(In).
+&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"&gt;
+
+&lt;HTML&gt;
+&lt;HEAD&gt;
+&lt;TITLE&gt;News&lt;/TITLE&gt;
+&lt;/HEAD&gt;
+...
+</PRE>
+</TABLE>
+
+<P>
+</DL>
+
+<H3><A NAME="sec:2.2">2.2 The <CODE>library(http/http_client)</CODE> 
+library</A></H3>
+
+<A NAME="sec:httpclient"></A>
+
+<P>The <CODE>library(http/http_client)</CODE> library provides more 
+powerful access to reading HTTP resources, providing <EM>keep-alive</EM> 
+connections,
+<EM>chunked</EM> transfer and conversion of the content, such as 
+breaking down <EM>multipart</EM> data, parsing HTML, etc. The library 
+announces itself as providing <CODE>HTTP/1.1</CODE>.
+
+<DL>
+
+<P>
+<DT><A NAME="http_get/3"><STRONG>http_get</STRONG>(<VAR>+URL, -Reply, 
++Options</VAR>)</A><DD>
+Performs a HTTP GET request on the given URL and then reads the reply 
+using <A NAME="idx:httpreaddata3:3"></A><A HREF="#http_read_data/3">http_read_data/3</A>. 
+Defined options are:
+
+<DL>
+
+<P>
+<DT><STRONG>connection</STRONG>(<VAR>ConnectionType</VAR>)<DD>
+If <CODE>close</CODE> (default) a new connection is created for this 
+request and closed after the request has completed. If <CODE>'Keep-Alive'</CODE> 
+the library checks for an open connection on the requested host and port 
+and re-uses this connection. The connection is left open if the other 
+party confirms the keep-alive and closed otherwise.
+
+<P>
+<DT><STRONG>http_version</STRONG>(<VAR>Major-Minor</VAR>)<DD>
+Indicate the HTTP protocol version used for the connection. Default is
+<CODE>1.1</CODE>.
+</DL>
+
+<P>Remaining options are passed to <A NAME="idx:httpreaddata3:4"></A><A HREF="#http_read_data/3">http_read_data/3</A>.
+
+<P>
+<DT><A NAME="http_post/4"><STRONG>http_post</STRONG>(<VAR>+URL, +In, 
+-Reply, +Options</VAR>)</A><DD>
+Performs a HTTP POST request on the given URL. It is equivalent to
+<A NAME="idx:httpget3:5"></A><A HREF="#http_get/3">http_get/3</A>, 
+except for providing an <EM>input document</EM>, which is posted using <A NAME="idx:httppostdata3:6"></A><B>http_post_data/3</B>.
+
+<P>
+<DT><A NAME="http_read_data/3"><STRONG>http_read_data</STRONG>(<VAR>+Header, 
+-Data, +Options</VAR>)</A><DD>
+Read data from an HTTP stream. Normally called from <A NAME="idx:httpget3:7"></A><A HREF="#http_get/3">http_get/3</A> 
+or
+<A NAME="idx:httppost4:8"></A><A HREF="#http_post/4">http_post/4</A>. 
+When dealing with HTTP POST in a server this predicate can be used to 
+retrieve the posted data. <VAR>Header</VAR> is the parsed header.
+<VAR>Options</VAR> is a list of <CODE><VAR>Name</VAR>(Value)</CODE> 
+pairs to guide the translation of the data. The following options are 
+supported:
+
+<DL>
+
+<P>
+<DT><STRONG>to</STRONG>(<VAR>Target</VAR>)<DD>
+Do not try to interpret the data according to the MIME-type, but return 
+it literally according to <VAR>Target</VAR>, which is one of:
+
+<DL>
+
+<P>
+<DT><STRONG>stream</STRONG>(<VAR>Output</VAR>)<DD>
+Append the data to the given stream, which should be a Prolog stream 
+open for writing. This can be used to return save the data in a 
+(memory-)file, XPCE object, forward it to process using a pipe, etc.
+
+<P>
+<DT><STRONG>atom</STRONG><DD>
+Return the result as an atom. Though SWI-Prolog has no limit on the size 
+of atoms and provides atom-garbage collection, this options should be 
+used with care.<A NAME=back-to-note-1 HREF="index.html#note-1"> (1)</A>
+
+<P>
+<DT><STRONG>codes</STRONG><DD>
+Return the page as a list of character-codes. This is especially useful 
+for parsing it using grammar rules.
+</DL>
+
+</DL>
+
+<P>If no <CODE>to(Target)</CODE> option is provided the library tries 
+the registered plug-in conversion filters. If none of these succeed it 
+tries the built-in content-type handlers or returns the content as an 
+atom. The builtin content filters are described below. The provided 
+plug-ins are described in the following sections.
+
+<DL>
+
+<P>
+<DT><STRONG>application/x-www-form-urlencoded</STRONG><DD>
+This is the default encoding mechanism for POST requests issued by a 
+web-browser. It is broken down to a list of <VAR>Name</VAR> = <VAR>Value</VAR> 
+terms.
+</DL>
+
+<P>Finally, if all else fails the content is returned as an atom.
+</DL>
+
+<H4><A NAME="sec:2.2.1">2.2.1 The MIME client plug-in</A></H4>
+
+<A NAME="sec:httpmimeplugin"></A>
+
+<P>This plug-in library <CODE>library(http/http_mime_plugin)</CODE> 
+breaks multipart documents that are recognised by the <CODE>Content-Type: 
+multipart/form-data</CODE> or <CODE>Mime-Version: 1.0</CODE> in the 
+header into a list of <VAR>Name</VAR> = <VAR>Value</VAR> pairs. This 
+library deals with data from web-forms using the <CODE>multipart/form-data</CODE> 
+encoding as well as the <A HREF="http://www.fipa.org">FIPA</A> 
+agent-protocol messages.
+
+<H4><A NAME="sec:2.2.2">2.2.2 The SGML client plug-in</A></H4>
+
+<A NAME="sec:httpsgmlplugin"></A>
+
+<P>This plug-in library <CODE>library(http/http_sgml_plugin)</CODE> 
+provides a bridge between the SGML/XML/HTML parser provided by <CODE>library(sgml)</CODE> 
+and the http client library. After loading this hook the following 
+mime-types are automatically handled by the SGML parser.
+
+<DL>
+
+<P>
+<DT><STRONG>text/html</STRONG><DD>
+Handed to <CODE>library(sgml)</CODE> using W3C HTML 4.0 DTD, suppressing 
+and ignoring all HTML syntax errors. <VAR>Options</VAR> is passed to
+<A NAME="idx:loadstructure3:9"></A><B>load_structure/3</B>.
+
+<P>
+<DT><STRONG>text/xml</STRONG><DD>
+Handed to <CODE>library(sgml)</CODE> using dialect <CODE>xmlns</CODE> 
+(XML + namespaces).
+<VAR>Options</VAR> is passed to <A NAME="idx:loadstructure3:10"></A><B>load_structure/3</B>. 
+In particular,
+<CODE>dialect(xml)</CODE> may be used to suppress namespace handling.
+
+<P>
+<DT><STRONG>text/x-sgml</STRONG><DD>
+Handled to <CODE>library(sgml)</CODE> using dialect <CODE>sgml</CODE>. <VAR>Options</VAR> 
+is passed to <A NAME="idx:loadstructure3:11"></A><B>load_structure/3</B>.
+</DL>
+
+<H2><A NAME="sec:3">3 The HTTP server libraries</A></H2>
+
+<A NAME="sec:httpserver"></A>
+
+<P>The HTTP server library consists of two parts. The first deals with 
+connection management and has three different implementation depending 
+on the desired type of server. The second implements a generic wrapper 
+for decoding the HTTP request, calling user code to handle the request 
+and encode the answer. This design is summarised in <A HREF="#fig:httpserver">figure 
+1</A>.
+
+<P><A NAME="fig:httpserver"></A>
+<CENTER>
+<IMG SRC="httpserver.gif">
+</CENTER>
+
+<P>
+<CENTER>
+<B>Figure 1 : Design of the HTTP server</B>
+</CENTER>
+
+<P>The functional body of the user's code is independent from the 
+selected server-type, making it easy to switch between the supported 
+server types. Especially the XPCE-based event-driven server is 
+comfortable for debugging but less suitable for production servers. We 
+start the description with how the user must formulate the functionality 
+of the server.
+
+<H3><A NAME="sec:3.1">3.1 The `Body'</A></H3>
+
+<A NAME="sec:body"></A>
+
+<P>The server-body is the code that handles the request and formulates a 
+reply. To facilitate all mentioned setups, the body is driven by
+<A NAME="idx:httpwrapper3:12"></A><A HREF="#http_wrapper/3">http_wrapper/3</A>. 
+The goal is called with the parsed request (see
+<A HREF="#sec:request">section 3.2</A>) as argument and <CODE>current_output</CODE> 
+set to a temporary buffer. Its task is closely related to the task of a 
+CGI script; it must write a header declaring holding at least the
+<CODE>Content-type</CODE> field and a body. Here is a simple body 
+writing the request as an HTML table.
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+reply(Request) :-
+        format('Content-type: text/html~n~n', []),
+        format('&lt;html&gt;~n', []),
+        format('&lt;table border=1&gt;~n'),
+        print_request(Request),
+        format('~n&lt;/table&gt;~n'),
+        format('&lt;/html&gt;~n', []).
+
+print_request([]).
+print_request([H|T]) :-
+        H =.. [Name, Value],
+        format('&lt;tr&gt;&lt;td&gt;~w&lt;td&gt;~w~n', [Name, Value]),
+        print_request(T).
+</PRE>
+</TABLE>
+
+<H3><A NAME="sec:3.2">3.2 Request format</A></H3>
+
+<A NAME="sec:request"></A>
+
+<P>The body-code (see <A HREF="#sec:body">section 3.1</A>) is driven by 
+a <VAR>Request</VAR>. This request is generated from <A NAME="idx:httpreadrequest2:13"></A><A HREF="#http_read_request/2">http_read_request/2</A> 
+defined in
+<CODE>library(http/http_header)</CODE>.
+
+<DL>
+
+<P>
+<DT><A NAME="http_read_request/2"><STRONG>http_read_request</STRONG>(<VAR>+Stream, 
+-Request</VAR>)</A><DD>
+Reads an HTTP request from <VAR>Stream</VAR> and unify <VAR>Request</VAR> 
+with the parsed request. <VAR>Request</VAR> is a list of <CODE><VAR>Name</VAR>(Value)</CODE> 
+elements. It provides a number of predefined elements for the result of 
+parsing the first line of the request, followed by the additional 
+request parameters. The predefined fields are:
+
+<DL>
+
+<P>
+<DT><STRONG>input</STRONG>(<VAR>Stream</VAR>)<DD>
+The <VAR>Stream</VAR> is passed along, allowing to read more data or 
+requests from the same stream. This field is always present.
+
+<P>
+<DT><STRONG>method</STRONG>(<VAR>Method</VAR>)<DD>
+<VAR>Method</VAR> is one of <CODE>get</CODE>, <CODE>put</CODE> or <CODE>post</CODE>. 
+This field is present if the header has been parsed successfully.
+
+<P>
+<DT><STRONG>path</STRONG>(<VAR>Path</VAR>)<DD>
+Path associated to the request. This field is always present.
+
+<P>
+<DT><STRONG>search</STRONG>(<VAR>ListOfNameValue</VAR>)<DD>
+Search-specification of URI. This is the part after the <CODE>?</CODE>, 
+normally used to transfer data from HTML forms that use the `<CODE>GET</CODE>' 
+protocol. In the URL it consists of a www-form-encoded list of <VAR>Name</VAR>=<VAR>Value</VAR> 
+pairs. This is mapped to a list of Prolog <VAR>Name</VAR>=<VAR>Value</VAR> 
+terms with decoded names and values. This field is only present if the 
+location contains a search-specification.
+
+<P>
+<DT><STRONG>http_version</STRONG>(<VAR>Major-Minor</VAR>)<DD>
+If the first line contains the <CODE>HTTP/</CODE><VAR>Major</VAR>.<VAR>Minor</VAR> 
+version indicator this element indicate the HTTP version of the peer. 
+Otherwise this field is not present.
+</DL>
+
+<P>If the first line of the request is tagged with
+<CODE>HTTP/</CODE><VAR>Major</VAR>.<VAR>Minor</VAR>, <A NAME="idx:httpreadrequest2:14"></A><A HREF="#http_read_request/2">http_read_request/2</A> 
+reads all input upto the first blank line. This header consists of
+<VAR>Name</VAR>:<VAR>Value</VAR> fields. Each such field appears as a 
+term
+<CODE><VAR>Name</VAR>(Value)</CODE> in the <VAR>Request</VAR>, where <VAR>Name</VAR> 
+is canonised for use with Prolog. Canonisation implies that the
+<VAR>Name</VAR> is converted to lower case and all occurrences of the
+<CODE>-</CODE> are replaced by <CODE>_</CODE>. The value for the
+<CODE>Content-length</CODE> fields is translated into an integer.
+</DL>
+
+<P>Here is an example:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+?- http_read_request(user, X).
+|: GET /mydb?class=person HTTP/1.0
+|: Host: gollem
+|: 
+X = [ input(user),
+      method(get),
+      search([ class = person
+             ]),
+      path('/mydb'),
+      http_version(1-0),
+      host(gollem)
+    ].
+</PRE>
+</TABLE>
+
+<H4><A NAME="sec:3.2.1">3.2.1 Handling POST requests</A></H4>
+
+<P>Where the HTTP <CODE>GET</CODE> operation is intended to get a 
+document, using a <VAR>path</VAR> and possibly some additional search 
+information, the <CODE>POST</CODE> operation is intended to hand 
+potentially large amounts of data to the server for processing.
+
+<P>The <VAR>Request</VAR> parameter above contains the term <CODE>method(post)</CODE>. 
+The data posted is left on the input stream that is available through 
+the term <CODE>input(Stream)</CODE> from the <VAR>Request</VAR> header. 
+This data can be read using <A NAME="idx:httpreaddata3:15"></A><A HREF="#http_read_data/3">http_read_data/3</A> 
+from the HTTP client library. Here is a demo implementation simply 
+returning the parsed pasted data as plain 
+http://db.cwi.nl/projecten/project.php4?prjnr=129text (assuming <A NAME="idx:pp1:16"></A><B>pp/1</B> 
+pretty-prints the data).
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+reply(Request) :-
+        member(method(post), Request), !,
+        http_read_data(Request, Data, []),
+        format('Content-type: text/plain~n~n', []),
+        pp(Data).
+</PRE>
+</TABLE>
+
+<P>If the POST is initiated from a browser, content-type is generally 
+either <CODE>application/x-www-form-urlencoded</CODE> or
+<CODE>multipart/form-data</CODE>. The latter is broken down 
+automatically if the plug-in <CODE>library(http/http_mime_plugin)</CODE> 
+is loaded.
+
+<H3><A NAME="sec:3.3">3.3 Running the server</A></H3>
+
+<P>The functionality of the server should be defined in one Prolog file 
+(of course this file is allowed to load other files). Depending on the 
+wanted server setup this `body' is wrapped into a small Prolog file 
+combining the body with the appropriate server interface. There are 
+three supported server-setups:
+
+<P>
+<UL>
+<LI><I>Using <CODE>library(xpce_httpd)</CODE> for an event-driven server</I><BR>
+This approach provides a single-threaded event-driven application. The 
+clients talk to XPCE sockets that collect an HTTP request. The server 
+infra-structure can talk to multiple clients simultaneously, but once a 
+request is complete the wrappers call the user's goal and blocks all 
+further activity until the request is handled. Requests from multiple 
+clients are thus fully serialised in one Prolog process.
+
+<P>This server setup is very suitable for debugging as well as embedded 
+server in simple applications in a fairly controlled environment.
+
+<P>
+<LI><I>Using <CODE>library(thread_httpd)</CODE> for a multi-threaded 
+server</I><BR>
+This server exploits the multi-threaded version of SWI-Prolog, running 
+the users body code parallel from a pool of worker threads. As it avoids 
+the state engine and copying required in the event-driven server it is 
+generally faster and capable to handle multiple requests concurrently.
+
+<P>This server is a harder to debug due to the involved threading. It 
+can provide fast communication to multiple clients and can be used for 
+more demanding embedded servers, such as agent platforms.
+
+<P>
+<LI><I>Using <CODE>library(inetd_httpd)</CODE> for server-per-client</I><BR>
+In this setup the Unix <B>inetd</B> user-daemon is used to initialise a 
+server for each connection. This approach is especially suitable for 
+servers that have a limited startup-time. In this setup a crashing 
+client does not influence other requests.
+
+<P>This server is very hard to debug as the server is not connected to 
+the user environment. It provides a robust implementation for servers 
+that can be started quickly.
+</UL>
+
+<H4><A NAME="sec:3.3.1">3.3.1 Common server interface options</A></H4>
+
+<P>All the server interfaces provide <CODE>http_server(:Goal, +Options)</CODE> 
+to create the server. The list of options differ, but the servers share 
+common options:
+
+<DL>
+
+<P>
+<DT><STRONG>port</STRONG>(<VAR>?Port</VAR>)<DD>
+Specify the port to listen to for stand-alone servers. <VAR>Port</VAR> 
+is either an integer or unbound. If unbound, it is unified to the 
+selected free port.
+
+<P>
+<DT><STRONG>after</STRONG>(<VAR>:Goal</VAR>)<DD>
+Specify a goal to be run on the query just like the first argument of
+<A NAME="idx:httpserver2:17"></A><A HREF="#http_server/2">http_server/2</A>. 
+This goal however is started <EM>after</EM> the request has been 
+answered. It is called using <CODE>call(Goal, Request)</CODE>. This 
+extension was added to support the FIPA-HTTP protocol, which issues HTTP 
+POST requests on the server. The server answers these requests with an 
+empty document before starting processing. The <CODE>after</CODE>-option 
+is used for the processing:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+:- http_server(reply, [after(action), ...]).
+
+reply(Request) :-
+        format('Content-type: text/plain\r\n\r\n').
+
+action(Request) :-
+        &lt;start agent work on request&gt;
+</PRE>
+</TABLE>
+
+<P>
+</DL>
+
+<H4><A NAME="sec:3.3.2">3.3.2 From an interactive Prolog session using 
+XPCE</A></H4>
+
+<P>The <CODE>library(http/xpce_httpd.pl)</CODE> provides the 
+infrastructure to manage multiple clients with an event-driven 
+control-structure. This version can be started from an interactive 
+Prolog session, providing a comfortable infra-structure to debug the 
+body of your server. It also allows the combination of an (XPCE-based) 
+GUI with web-technology in one application.
+
+<DL>
+
+<P>
+<DT><A NAME="http_server/2"><STRONG>http_server</STRONG>(<VAR>:Goal, 
++Options</VAR>)</A><DD>
+Create an instance of <B>interactive_httpd</B>. <VAR>Options</VAR> must 
+provide the <CODE>port(?Port)</CODE> option to specify the port the 
+server should listen to. If <VAR>Port</VAR> is unbound an arbitrary free 
+port is selected and <VAR>Port</VAR> is unified to this port-number. The 
+only other option provided is the <CODE>after(:Goal)</CODE> option.
+</DL>
+
+<P>The file <CODE>demo_xpce</CODE> gives a typical example of this 
+wrapper, assuming <CODE>demo_body</CODE> defines the predicate <A NAME="idx:reply1:18"></A><B>reply/1</B>.
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+:- use_module(xpce_httpd).
+:- use_module(demo_body).
+
+server(Port) :-
+        http_server(reply, Port, []).
+</PRE>
+</TABLE>
+
+<P>The created server opens a server socket at the selected address and 
+waits for incoming connections. On each accepted connection it collects 
+input until an HTTP request is complete. Then it opens an input stream 
+on the collected data and using the output stream directed to the XPCE
+<B>socket</B> it calls <A NAME="idx:httpwrapper3:19"></A><A HREF="#http_wrapper/3">http_wrapper/3</A>. 
+This approach is fundamentally different compared to the other 
+approaches:
+
+<P>
+<UL>
+<LI><I>Server can handle multiple connections</I><BR>
+When <EM>inetd</EM> will start a server for each <EM>client</EM>, and 
+CGI starts a server for each <EM>request</EM>, this approach starts a 
+single server handling multiple clients.
+
+<P>
+<LI><I>Requests are serialised</I><BR>
+All calls to <VAR>Goal</VAR> are fully serialised, processing on behalf 
+of a new client can only start after all previous requests are answered. 
+This easier and quite acceptable if the server is mostly inactive and 
+requests take not very long to process.
+
+<P>
+<LI><I>Lifetime of the server</I><BR>
+The server lives as long as Prolog runs.
+</UL>
+
+<H4><A NAME="sec:3.3.3">3.3.3 Multi-threaded Prolog</A></H4>
+
+<A NAME="sec:mthttpd"></A>
+
+<P>The <CODE>library(http/thread_httpd.pl)</CODE> provides the 
+infrastructure to manage multiple clients using a pool of <EM>worker-threads</EM>. 
+This realises a popular server design, also seen in SUN JavaBeans and 
+Microsoft .NET. As a single persistent server process maintains 
+communication to all clients startup time is not an important issue and 
+the server can easily maintain state-information for all clients.
+
+<DL>
+
+<P>
+<DT><A NAME="http_server/3"><STRONG>http_server</STRONG>(<VAR>:Goal, 
++Options</VAR>)</A><DD>
+Create the server. <VAR>Options</VAR> must provide the <CODE>port(?Port)</CODE> 
+option to specify the port the server should listen to. If <VAR>Port</VAR> 
+is unbound an arbitrary free port is selected and <VAR>Port</VAR> is 
+unified to this port-number. The server consists of a small Prolog 
+thread accepting new connection on <VAR>Port</VAR> and dispatching these 
+to a pool of workers. Defined <VAR>Options</VAR> are:
+
+<DL>
+
+<P>
+<DT><STRONG>port</STRONG>(<VAR>?Port</VAR>)<DD>
+Port the server should listen to. If unbound <VAR>Port</VAR> is unified 
+with the selected free port.
+
+<P>
+<DT><STRONG>workers</STRONG>(<VAR>+N</VAR>)<DD>
+Defines the number of worker threads in the pool. Default is to use
+<VAR>two</VAR> workers. Choosing the optimal value for best performance 
+is a difficult task depending on the number of CPUs in your system and 
+how much resources are required for processing a request. Too high 
+numbers makes your system switch too often between threads or even swap 
+if there is not enough memory to keep all threads in memory, while a too 
+low number causes clients to wait unnecessary for other clients to 
+complete. See also <A NAME="idx:httpworkers2:20"></A><A HREF="#http_workers/2">http_workers/2</A>.
+
+<P>
+<DT><STRONG>timeout</STRONG>(<VAR>+SecondsOrInfinite</VAR>)<DD>
+Determines the maximum period of inactivity handling a request. If no 
+data arrives within the specified time since the last data arrived the 
+connection raises an exception, the worker discards the client and 
+returns to the pool-queue for a new client. Default is <CODE>infinite</CODE>, 
+making each worker wait forever for a request to complete. Without a 
+timeout, a worker may wait forever on an a client that doesn't complete 
+its request.
+
+<P>
+<DT><STRONG>local</STRONG>(<VAR>+KBytes</VAR>)<DD>
+Size of the local-stack for the workers. Default is taken from the 
+commandline option.
+
+<P>
+<DT><STRONG>global</STRONG>(<VAR>+KBytes</VAR>)<DD>
+Size of the global-stack for the workers. Default is taken from the 
+commandline option.
+
+<P>
+<DT><STRONG>trail</STRONG>(<VAR>+KBytes</VAR>)<DD>
+Size of the trail-stack for the workers. Default is taken from the 
+commandline option.
+
+<P>
+<DT><STRONG>after</STRONG>(<VAR>:Goal</VAR>)<DD>
+After replying a request, execute <VAR>Goal</VAR> providing the request 
+as argument.
+</DL>
+
+<P>
+<DT><A NAME="http_current_server/2"><STRONG>http_current_server</STRONG>(<VAR>?:Goal, 
+?Port</VAR>)</A><DD>
+Query the running servers. Note that <A NAME="idx:httpserver3:21"></A><A HREF="#http_server/3">http_server/3</A> 
+can be called multiple times to create multiple servers on different 
+ports.
+
+<P>
+<DT><A NAME="http_workers/2"><STRONG>http_workers</STRONG>(<VAR>:Port, 
+?Workers</VAR>)</A><DD>
+Query or manipulate the number of workers of the server identified by
+<VAR>Port</VAR>. If <VAR>Workers</VAR> is unbound it is unified with the 
+number of running servers. If it is an integer greater than the current 
+size of the worker pool new workers are created with the same 
+specification as the running workers. If the number is less than the 
+current size of the worker pool, this predicate inserts a number of 
+`quit' requests in the queue, discarding the excess workers as they 
+finish their jobs (i.e. no worker is abandoned while serving a client).
+
+<P>This can be used to tune the number of workers for performance. 
+Another possible application is to reduce the pool to one worker to 
+facilitate easier debugging.
+</DL>
+
+<H4><A NAME="sec:3.3.4">3.3.4 From (Unix) inetd</A></H4>
+
+<P>All modern Unix systems handle a large number of the services they 
+run through the super-server <EM>inetd</EM>. This program reads
+<CODE>/etc/inetd.conf</CODE> and opens server-sockets on all ports 
+defined in this file. As a request comes in it accepts it and starts the 
+associated server such that standard I/O refers to the socket. This 
+approach has several advantages:
+
+<P>
+<UL>
+<LI><I>Simplification of servers</I><BR>
+Servers don't have to know about sockets and -operations.
+
+<P>
+<LI><I>Centralised authorisation</I><BR>
+Using <EM>tcpwrappers</EM> simple and effective firewalling of all 
+services is realised.
+
+<P>
+<LI><I>Automatic start and monitor</I><BR>
+The inetd automatically starts the server `just-in-time' and starts 
+additional servers or restarts a crashed server according to the 
+specifications.
+</UL>
+
+<P>The very small generic script for handling inetd based connections is 
+in <CODE>inetd_httpd</CODE>, defining <A NAME="idx:httpserver1:22"></A><B>http_server/1</B>:
+
+<DL>
+
+<P>
+<DT><A NAME="http_server/2"><STRONG>http_server</STRONG>(<VAR>:Goal, 
++Options</VAR>)</A><DD>
+Initialises and runs <A NAME="idx:httpwrapper3:23"></A><A HREF="#http_wrapper/3">http_wrapper/3</A> 
+in a loop until failure or end-of-file. This server does not support the <VAR>Port</VAR> 
+option as the port is specified with the <B>inetd</B> configuration. The 
+only supported option is <VAR>After</VAR>.
+</DL>
+
+<P>Here is the example from <CODE>demo_inetd</CODE>
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+#!/usr/bin/pl -t main -q -f
+:- use_module(demo_body).
+:- use_module(inetd_httpd).
+
+main :-
+        http_server(reply).
+</PRE>
+</TABLE>
+
+<P>With the above file installed in <CODE>/home/jan/plhttp/demo_inetd</CODE>, 
+the following line in <CODE>/etc/inetd</CODE> enables the server at port 
+4001 guarded by <EM>tcpwrappers</EM>. After modifying inetd, send the 
+daemon the <CODE>HUP</CODE> signal to make it reload its configuration. 
+For more information, please check <STRONG>inetd.conf</STRONG>(5).
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+4001 stream tcp nowait nobody /usr/sbin/tcpd /home/jan/plhttp/demo_inetd
+</PRE>
+</TABLE>
+
+<H4><A NAME="sec:3.3.5">3.3.5 MS-Windows</A></H4>
+
+<P>There are rumours that <EM>inetd</EM> has been ported to Windows.
+
+<H4><A NAME="sec:3.3.6">3.3.6 As CGI script</A></H4>
+
+<P>To be done.
+
+<H3><A NAME="sec:3.4">3.4 The wrapper library</A></H3>
+
+<P>The body is called by the module <CODE>library(http/http_wrapper.pl)</CODE>. 
+This module realises the communication between the I/O streams and the 
+body described in <A HREF="#sec:body">section 3.1</A>. The interface is 
+realised by <A NAME="idx:httpwrapper3:24"></A><A HREF="#http_wrapper/3">http_wrapper/3</A>:
+
+<DL>
+
+<P>
+<DT><A NAME="http_wrapper/3"><STRONG>http_wrapper</STRONG>(<VAR>:Goal, 
++In, +Out, -Connection, +Options</VAR>)</A><DD>
+Handle an HTTP request where <VAR>In</VAR> is an input stream from the 
+client, <VAR>Out</VAR> is an output stream to the client and <VAR>Goal</VAR> 
+defines the goal realising the body. <VAR>Connection</VAR> is unified to
+<CODE>'Keep-alive'</CODE> if both ends of the connection want to 
+continue the connection or <CODE>close</CODE> if either side wishes to 
+close the connection. The only option provided is <CODE>request(-Request)</CODE>, 
+providing the executed request to the caller.
+
+<P>This predicate reads an HTTP request-header from <VAR>In</VAR>, 
+redirects current output to a memory file and then runs <CODE>call(Goal, 
+Request)</CODE>, watching for exceptions and failure. If <VAR>Goal</VAR> 
+executes successfully it generates a complete reply from the created 
+output. Otherwise it generates an HTTP server error with additional 
+context information derived from the exception.
+</DL>
+
+<H3><A NAME="sec:3.5">3.5 The <CODE>library(http/html_write)</CODE> 
+library</A></H3>
+
+<A NAME="sec:htmlwrite"></A>
+
+<P>Producing output for the web in the form of an HTML document is a 
+requirement for many Prolog programs. Just using <A NAME="idx:format2:25"></A><B>format/2</B> 
+is satisfactory as it leads to poorly readable programs generating poor 
+HTML. This library is based on using DCG rules.
+
+<P>The <CODE>library(http/html_write)</CODE> structures the generation 
+of HTML from a program. It is an extensible library, providing a <EM>DCG</EM> 
+framework for generating legal HTML under (Prolog) program control. It 
+is especially useful for the generation of structured pages (e.g. tables) 
+from Prolog data structures.
+
+<P>The normal way to use this library is through the DCG <A NAME="idx:html1:26"></A><A HREF="#html/1">html/1</A>. 
+This grammar-rule provides the central translation from a structured 
+term with embedded calls to additional translation rules to a list of 
+atoms that can then be printed using <A NAME="idx:printhtml12:27"></A><A HREF="#print_html/1">print_html/[1,2]</A>.
+
+<DL>
+
+<P>
+<DT><A NAME="html/1"><STRONG>html</STRONG>(<VAR>:Spec</VAR>)</A><CODE>--&gt;</CODE><DD>
+http://db.cwi.nl/projecten/project.php4?prjnr=129The DCG rule <A NAME="idx:html1:28"></A><A HREF="#html/1">html/1</A> 
+is the main predicate of this library. It translates the specification 
+for an HTML page into a list of atoms that can be written to a stream 
+using <A NAME="idx:printhtml12:29"></A><A HREF="#print_html/1">print_html/[1,2]</A>. 
+The expansion rules of this predicate may be extended by defining the 
+multifile DCG html_write:<A NAME="idx:expand1:30"></A><B>expand/1</B>. <VAR>Spec</VAR> 
+is either a single specification or a list of single specifications. 
+Using nested lists is not allowed to avoid ambiguity caused by the atom <CODE></CODE>
+
+<P>
+<UL>
+<LI><I>Atomic data</I><BR>
+Atomic data is quoted using the <A NAME="idx:htmlquoted1:31"></A><A HREF="#html_quoted/1">html_quoted/1</A> 
+DCG.
+
+<P>
+<LI><I><VAR>Fmt</VAR> - <VAR>Args</VAR></I><BR>
+<VAR>Fmt</VAR> and <VAR>Args</VAR> are used as format-specification and 
+argument list to <A NAME="idx:sformat3:32"></A><B>sformat/3</B>. The 
+result is quoted and added to the output list.
+
+<P>
+<LI><I><VAR><CODE>\</CODE></VAR><VAR>List</VAR></I><BR>
+Escape sequence to add atoms directly to the output list. This can be 
+used to embed external HTML code.
+
+<P>
+<LI><I><VAR><CODE>\</CODE></VAR><VAR>Term</VAR></I><BR>
+Invoke the grammar rule <VAR>Term</VAR> in the calling module. This is 
+the common mechanism to realise abstraction and modularisation in 
+generating HTML.
+
+<P>
+<LI><I><VAR>Module</VAR>:<VAR>Term</VAR></I><BR>
+Invoke the grammar rule &lt;<VAR>Module</VAR>&gt;:&lt;<VAR>Term</VAR>&gt;. 
+This is similar to
+<VAR><CODE>\</CODE></VAR><VAR>Term</VAR> but allows for invoking grammar 
+rules in external packages.
+
+<P>
+<LI><I>&amp;(Entity)</I><BR>
+Emit <TT>&amp;&lt;<VAR>Entity</VAR>&gt;;</TT>.
+
+<P>
+<LI><I><CODE>Tag(Content)</CODE></I><BR>
+Emit HTML element <VAR>Tag</VAR> using <VAR>Content</VAR> and no 
+attributes.
+<VAR>Content</VAR> is handled to <A NAME="idx:html1:33"></A><A HREF="#html/1">html/1</A>. 
+See <A HREF="#sec:htmllayout">section 3.5.3</A> for details on the 
+automatically generated layout.
+
+<P>
+<LI><I><CODE>Tag(Attributes, Content)</CODE></I><BR>
+Emit HTML element <VAR>Tag</VAR> using <VAR>Attributes</VAR> and <VAR>Content</VAR>.
+<VAR>Attributes</VAR> is either a single attribute of a list of 
+attributes. Each attributes is of the format <CODE>Name(Value)</CODE> or
+<CODE>Name(Value)</CODE>.
+</UL>
+
+<P>
+<DT><A NAME="page/2"><STRONG>page</STRONG>(<VAR>:HeadContent, 
+:BodyContent</VAR>)</A><CODE>--&gt;</CODE><DD>
+The DCG rule <A NAME="idx:page2:34"></A><A HREF="#page/2">page/2</A> 
+generated a complete page, including the SGML
+<CODE>DOCTYPE</CODE> declaration. <VAR>HeadContent</VAR> are elements to 
+be placed in the <CODE>head</CODE> element and <VAR>BodyContent</VAR> 
+are elements to be placed in the <CODE>body</CODE> element.
+
+<P>http://db.cwi.nl/projecten/project.php4?prjnr=129To achieve common 
+style (background, page header and footer), it is possible to define DCG 
+rules <A NAME="idx:head1:35"></A><B>head/1</B> and/or <A NAME="idx:body1:36"></A><B>body/1</B>. 
+The <A NAME="idx:page1:37"></A><A HREF="#page/1">page/1</A> rule checks 
+for the definition of these DCG rules in the module it is called from as 
+well as in the <CODE>user</CODE> module. If no definition is found, it 
+creates a head with only the <VAR>HeadContent</VAR> (note that the
+<CODE>title</CODE> is obligatory) and a <CODE>body</CODE> with <CODE>bgcolor</CODE> 
+set to <CODE>white</CODE> and the provided <VAR>BodyContent</VAR>.
+
+<P>Note that further customisation is easily achieved using <A NAME="idx:html1:38"></A><A HREF="#html/1">html/1</A> 
+directly as <A NAME="idx:page2:39"></A><A HREF="#page/2">page/2</A> is 
+(besides handling the hooks) defined as:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+page(Head, Body) --&gt;
+        html([ \['&lt;!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 4.0//EN"&gt;\n'],
+               html([ head(Head),
+                      body(bgcolor(white), Body)
+                    ])
+             ]).
+</PRE>
+</TABLE>
+
+<P>
+<DT><A NAME="page/1"><STRONG>page</STRONG>(<VAR>:Contents</VAR>)</A><CODE>--&gt;</CODE><DD>
+This version of the <A NAME="idx:page12:40"></A><A HREF="#page/1">page/[1,2]</A> 
+only gives you the SGML <CODE>DOCTYPE</CODE> and the <CODE>HTML</CODE> 
+element. <VAR>Contents</VAR> is used to generate both the head and body 
+of the page.
+
+<P>
+<DT><A NAME="html_begin/1"><STRONG>html_begin</STRONG>(<VAR>+Begin</VAR>)</A><CODE>--&gt;</CODE><DD>
+Just open the given element. <VAR>Begin</VAR> is either an atom or a 
+compound term, In the latter case the arguments are used as arguments to 
+the begin-tag. Some examples:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+        html_begin(table)
+        html_begin(table(border(2), align(center)))
+</PRE>
+</TABLE>
+
+<P>This predicate provides an alternative to using the
+<VAR><CODE>\</CODE></VAR><VAR>Command</VAR> syntax in the <A NAME="idx:html1:41"></A><A HREF="#html/1">html/1</A> 
+specification. The following two fragments are the same. The preferred 
+solution depends on your preferences as well as whether the 
+specification is generated or entered by the programmer.
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+table(Rows) --&gt;
+        html(table([border(1), align(center), width('80%')],
+                   [ \table_header,
+                     \table_rows(Rows)
+                   ])).
+
+% or
+
+table(Rows) --&gt;
+        html_begin(table(border(1), align(center), width('80%'))),
+        table_header,
+        table_rows,
+        html_end(table).
+</PRE>
+</TABLE>
+
+<P>
+<DT><A NAME="html_end/1"><STRONG>html_end</STRONG>(<VAR>+End</VAR>)</A><CODE>--&gt;</CODE><DD>
+End an element. See <A NAME="idx:htmlbegin1:42"></A><A HREF="#html_begin/1">html_begin/1</A> 
+for details.
+</DL>
+
+<H4><A NAME="sec:3.5.1">3.5.1 Emitting HTML documents</A></H4>
+
+<P>The <A NAME="idx:html1:43"></A><A HREF="#html/1">html/1</A> grammar 
+rules translates a specification into a list of atoms and layout 
+instructions. Currently the layout instructions are terms of the format <CODE>nl(N)</CODE>, 
+requesting at least <VAR>N</VAR> newlines. Multiple consequtive <CODE>nl(1)</CODE> 
+terms are combined to an atom containing the maximum of the requested 
+number of newline characters.
+
+<P>To simplify handing the data to a client or storing it into a file, 
+the following predicates are available from this library:
+
+<DL>
+
+<P>
+<DT><A NAME="print_html/1"><STRONG>print_html</STRONG>(<VAR>+List</VAR>)</A><DD>
+Print the token list to the Prolog current output stream.
+
+<P>
+<DT><A NAME="print_html/2"><STRONG>print_html</STRONG>(<VAR>+Stream, 
++List</VAR>)</A><DD>
+Print the token list to the specified output stream
+
+<P>
+<DT><A NAME="html_print_length/2"><STRONG>html_print_length</STRONG>(<VAR>+List, 
+-Length</VAR>)</A><DD>
+When calling <A NAME="idx:htmlprint12:44"></A><B>html_print/[1,2]</B> on <VAR>List</VAR>, <VAR>Length</VAR> 
+characters will be produced. Knowing the length is needed to provide the <CODE>Content-length</CODE> 
+field of an HTTP reply-header.
+</DL>
+
+<H4><A NAME="sec:3.5.2">3.5.2 Adding rules for html/1</A></H4>
+
+<P>In some cases it is practical to extend the translations imposed by
+<A NAME="idx:html1:46"></A><A HREF="#html/1">html/1</A>. When using XPCE 
+for example, it is comfortable to be able defining default translation 
+to HTML for objects. We also used this technique to define translation 
+rules for the output of the SWI-Prolog
+<CODE>library(sgml)</CODE> package.
+
+<P>The <A NAME="idx:html1:47"></A><A HREF="#html/1">html/1</A> rule 
+first calls the multifile ruleset html_write:<A NAME="idx:expand1:48"></A><B>expand/1</B>. 
+The other predicates contain commonly rules for defining new rules.
+
+<DL>
+
+<P>
+<DT><A NAME="html_write:expand/1"><STRONG>html_write:expand</STRONG>(<VAR>+Spec</VAR>)</A><CODE>--&gt;</CODE><DD>
+Hook to add additional translationrules for <A NAME="idx:html1:49"></A><A HREF="#html/1">html/1</A>.
+
+<P>
+<DT><A NAME="html_quoted/1"><STRONG>html_quoted</STRONG>(<VAR>+Atom</VAR>)</A><CODE>--&gt;</CODE><DD>
+Emit the text in <VAR>Atom</VAR>, inserting entity-references for the 
+SGML special characters <CODE>&lt;&amp;&gt;</CODE>.
+
+<P>
+<DT><A NAME="html_quoted_attribute/1"><STRONG>html_quoted_attribute</STRONG>(<VAR>+Atom</VAR>)</A><CODE>--&gt;</CODE><DD>
+Emit the text in <VAR>Atom</VAR> suitable for use as an SGML attribute, 
+inserting entity-references for the SGML special characters <CODE>&lt;&amp;&gt;'"</CODE>.
+</DL>
+
+<H4><A NAME="sec:3.5.3">3.5.3 Generating layout</A></H4>
+
+<A NAME="sec:htmllayout"></A>
+
+<P>Though not strictly necessary, the library attempts to generate 
+reasonable layout in SGML output. It does this only by inserting 
+newlines before and after tags. It does this on the basis of the 
+multifile predicate html_write:<A NAME="idx:layout3:50"></A><B>layout/3</B>
+
+<DL>
+
+<P>
+<DT><A NAME="html_write:layout/3"><STRONG>html_write:layout</STRONG>(<VAR>+Tag, 
+-Open, -Close</VAR>)</A><DD>
+Specify the layout conventions for the element <VAR>Tag</VAR>, which is 
+a lowercase atom. <VAR>Open</VAR> is a term <VAR>Pre</VAR>-<VAR>Post</VAR>. 
+It defines that the element should have at least <VAR>Pre</VAR> newline 
+characters before and <VAR>Post</VAR> after the tag. The <VAR>Close</VAR> 
+specification is similar, but in addition allows for the atom <CODE>-</CODE>, 
+requesting the output generator to omit the close-tag altogether or <CODE>empty</CODE>, 
+telling the library that the element has declared empty content. In this 
+case the close-tag is not emitted either, but in addition <A NAME="idx:html1:51"></A><A HREF="#html/1">html/1</A> 
+interprets <VAR>Arg</VAR> in <CODE>Tag(Arg)</CODE> as a list of 
+attributes rather than the content.
+
+<P>A tag that does not appear in this table is emitted without 
+additional layout. See also <A NAME="idx:printhtml12:52"></A><A HREF="#print_html/1">print_html/[1,2]</A>. 
+Please consult the library source for examples.
+</DL>
+
+<H4><A NAME="sec:3.5.4">3.5.4 Examples</A></H4>
+
+<P>In the following example we will generate a table of Prolog 
+predicates we find from the SWI-Prolog help system based on a keyword. 
+The primary database is defined by the predicate <A NAME="idx:predicate5:53"></A><B>predicate/5</B> 
+We will make hyperlinks for the predicates pointing to their 
+documentation.
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+html_apropos(Kwd) :-
+        findall(Pred, apropos_predicate(Kwd, Pred), Matches),
+        phrase(apropos_page(Kwd, Matches), Tokens),
+        print_html(Tokens).
+
+%       emit page with title, header and table of matches
+
+apropos_page(Kwd, Matches) --&gt;
+        page([ title(['Predicates for ', Kwd])
+             ],
+             [ h2(align(center),
+                  ['Predicates for ', Kwd]),
+               table([ align(center),
+                       border(1),
+                       width('80%')
+                     ],
+                     [ tr([ th('Predicate'),
+                            th('Summary')
+                          ])
+                     | \apropos_rows(Matches)
+                     ])
+             ]).
+
+%       emit the rows for the body of the table.
+
+apropos_rows([]) --&gt;
+        [].
+apropos_rows([pred(Name, Arity, Summary)|T]) --&gt;
+        html([ tr([ td(\predref(Name/Arity)),
+                    td(em(Summary))
+                  ])
+             ]),
+        apropos_rows(T).
+
+%       predref(Name/Arity)
+%
+%       Emit Name/Arity as a hyperlink to
+%
+%               /cgi-bin/plman?name=Name&amp;arity=Arity
+%
+%       we must do form-encoding for the name as it may contain illegal
+%       characters.  www_form_encode/2 is defined in library(url).
+
+predref(Name/Arity) --&gt;
+        { www_form_encode(Name, Encoded),
+          sformat(Href, '/cgi-bin/plman?name=~w&amp;arity=~w',
+                  [Encoded, Arity])
+        },
+        html(a(href(Href), [Name, /, Arity])).
+
+%       Find predicates from a keyword. '$apropos_match' is an internal
+%       undocumented predicate.
+
+apropos_predicate(Pattern, pred(Name, Arity, Summary)) :-
+        predicate(Name, Arity, Summary, _, _),
+        (   '$apropos_match'(Pattern, Name)
+        -&gt;  true
+        ;   '$apropos_match'(Pattern, Summary)
+        ).
+</PRE>
+</TABLE>
+
+<H4><A NAME="sec:3.5.5">3.5.5 Remarks on the <CODE>library(http/html_write)</CODE> 
+library</A></H4>
+
+<P>This library is the result of various attempts to reach at a more 
+satisfactory and Prolog-minded way to produce HTML text from a program. 
+We have been using Prolog for the generation of web pages in a number of 
+projects. Just using <A NAME="idx:format2:54"></A><B>format/2</B> never 
+was a real option, generating error-prone HTML from clumsy syntax. We 
+started with a layour on top of format, keeping track of the current 
+nesting and thus always capable of properly closing the environment.
+
+<P>DCG based translation however naturally exploits Prologs 
+term-rewriting primitives. If generation fails for whatever reason it is 
+easy to produce an alternative document (for example holding an error 
+message).
+
+<P>The approach presented in this library has been used in combination 
+with
+<CODE>library(http/httpd)</CODE> in three projects: viewing RDF in a 
+browser, selecting fragments from an analysed document and presenting 
+parts of the XPCE documentation using a browser. It has proven to be 
+able to deal with generating pages quickly and comfortably.
+
+<P>In a future version we will probably define a <A NAME="idx:goalexpansion2:55"></A><B>goal_expansion/2</B> 
+to do compile-time optimisation of the library. Quotation of known text 
+and invokation of sub-rules using the <VAR><CODE>\</CODE></VAR><VAR>RuleSet</VAR> 
+and
+&lt;<VAR>Module</VAR>&gt;:&lt;<VAR>RuleSet</VAR>&gt; operators are 
+costly operations in the analysis that can be done at compile-time.
+
+<H2><A NAME="sec:4">4 Security</A></H2>
+
+<P>Writing servers is an inherently dangerous job that should be carried 
+out with some considerations. You have basically started a program on a 
+public terminal and invited strangers to use it. When using the 
+interactive server or inetd based server the server runs under your 
+privileges. Using CGI scripted it runs with the privileges of your 
+web-server. Though it should not be possible to fatally compromise a 
+Unix machine using user privileges, getting unconstrained access to the 
+system is highly undesirable.
+
+<P>Symbolic languages have an additional handicap in their inherent 
+possibilities to modify the running program and dynamically create goals 
+(this also applies to the popular perl and java scripting languages). 
+Here are some guidelines.
+
+<P>
+<UL>
+<LI><I>Check your input</I><BR>
+Hardly anything can go wrong if you check the validity of 
+query-arguments before formulating an answer.
+
+<P>
+<LI><I>Check filenames</I><BR>
+If part of the query consists of filenames or directories, check them. 
+This also applies to files you only read. Passing names as
+<CODE>/etc/passwd</CODE>, but also <CODE>../../../../../etc/passwd</CODE> 
+are tried by experienced hackers to learn about the system they want to 
+attack. So, expand provided names using <A NAME="idx:absolutefilename23:56"></A><B>absolute_file_name/[2,3]</B> 
+and verify they are inside a folder reserved for the server. Avoid 
+symbolic links from this subtree to the outside world. The example below 
+checks validity of filenames. The first call ensures proper canonisation 
+of the paths to avoid an mismatch due to symbolic links or other 
+filesystem ambiguities.
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+check_file(File) :-
+        absolute_file_name('/path/to/reserved/area', Reserved),
+        absolute_file_name(File, Tried),
+        atom_concat(Reserved, _, Tried).
+</PRE>
+</TABLE>
+
+<P>
+<LI><I>Check scripts</I><BR>
+Should input in any way activate external scripts using <A NAME="idx:shell1:57"></A><B>shell/1</B> 
+or <CODE>open(pipe(Command), ...)</CODE>, verify the argument once more.
+
+<P>
+<LI><I>Check meta-calling</I><BR>
+<EM>The</EM> attractive situation for you and your attacker is below:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+reply(Query) :-
+        member(search(Args), Query),
+        member(action=Action, Query),
+        member(arg=Arg, Query),
+        call(Action, Arg).              % NEVER DO THIS
+</PRE>
+</TABLE>
+
+<P>All your attacker has to do is specify <VAR>Action</VAR> as <CODE>shell</CODE> 
+and <VAR>Arg</VAR> as <CODE>/bin/sh</CODE> and he has an uncontrolled 
+shell!
+</UL>
+
+<H2><A NAME="sec:5">5 Status</A></H2>
+
+<P>The current library has been developed and tested in a number of 
+internal and funded projects at the SWI department of the University of 
+Amsterdam. With this release we hope to streamline deployment within 
+these projects as well as let other profit from the possibilities to use 
+Prolog directly as a web-server.
+
+<P>This library is by no means complete and you are free to extend it. 
+Partially or completely lacking are notably session management and 
+authorisation.
+
+<H1><A NAME="document-notes">Footnotes</A></H1>
+
+<DL>
+
+<P>
+<DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A><DD>
+Currently atom-garbage collection is activated after the creation of 
+10,000 atoms.
+</DL>
+
+</BODY></HTML>

@@ -1,0 +1,105 @@
+################################################################
+# SWI-Prolog `HTTP' package
+# Author:    Jan Wielemaker. jan@swi.psy.uva.nl
+# Copyright: GPL (see COPYING or www.gnu.org
+################################################################
+
+.SUFFIXES: .tex .dvi .doc .pl
+
+SHELL=@SHELL@
+PLBASE=@PLBASE@
+PLARCH=@PLARCH@
+PL=@PL@
+XPCEBASE=$(PLBASE)/xpce
+PKGDOC=$(PLBASE)/doc/packages
+PCEHOME=../xpce
+LIBDIR=$(PLBASE)/library/http
+EXDIR=$(PKGDOC)/examples/http
+
+DOCTOTEX=$(PCEHOME)/bin/doc2tex
+PLTOTEX=$(PCEHOME)/bin/pl2tex
+LATEX=latex
+DOC=http
+TEX=$(DOC).tex
+DVI=$(DOC).dvi
+PDF=$(DOC).pdf
+HTML=$(DOC).html
+
+INSTALL=@INSTALL@
+INSTALL_PROGRAM=@INSTALL_PROGRAM@
+INSTALL_DATA=@INSTALL_DATA@
+
+LIBPL=		html_write.pl http_client.pl http_header.pl \
+		http_mime_plugin.pl http_sgml_plugin.pl \
+		mimepack.pl mimetype.pl dcg_basics.pl \
+		thread_httpd.pl xpce_httpd.pl inetd_httpd.pl \
+		http_wrapper.pl http_open.pl
+EXAMPLES=	demo_body.pl demo_client.pl demo_threads.pl demo_xpce.pl
+EXAMPLEEXE=	demo_inetd		
+XPCEPL=		http_image.pl
+
+all:		
+		@echo "Nothing to do for this package"
+
+install:	$(LIBPL)
+		mkdir -p $(LIBDIR)
+		$(INSTALL_DATA) $(LIBPL) $(LIBDIR)
+		$(PL) -f none -g make -t halt
+
+rpm-install:	install
+
+pdf-install:	install-examples
+		$(INSTALL_DATA) $(DOC).pdf $(PKGDOC)
+
+html-install:	install-examples
+		$(INSTALL_DATA) $(DOC).html httpserver.gif $(PKGDOC)
+
+install-examples::
+		mkdir -p $(EXDIR)
+		(cd examples && $(INSTALL_DATA) $(EXAMPLES) $(EXDIR))
+		(cd examples && $(INSTALL_PROGRAM) $(EXAMPLEEXE) $(EXDIR))
+
+uninstall::
+		(cd $(LIBDIR) && rm -f $(LIBPL))
+		$(PL) -f none -g make -t halt
+
+check::
+		true
+
+################################################################
+# Documentation
+################################################################
+
+doc:		$(PDF) $(HTML)
+pdf:		$(PDF)
+html:		$(HTML)
+
+$(HTML):	$(TEX)
+		latex2html $(DOC)
+		mv html/index.html $@
+		mv html/httpserver.gif .
+		rmdir html
+
+$(PDF):		$(TEX)
+		runtex --pdf $(DOC)
+
+$(TEX):		$(DOCTOTEX)
+
+.doc.tex:
+		$(DOCTOTEX) $*.doc > $*.tex
+.pl.tex:
+		$(PLTOTEX) $*.pl > $*.tex
+
+################################################################
+# Clean
+################################################################
+
+clean:
+		rm -f *~ *% config.log
+		rm -f $(TEX)
+		runtex --clean $(DOC)
+		rm -rf html
+
+distclean:	clean
+		rm -f $(TARGETS) config.cache config.status Makefile
+		
