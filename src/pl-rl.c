@@ -71,10 +71,10 @@ extern void add_history(char *);	/* should be in readline.h */
 extern int rl_begin_undo_group(void);	/* delete when conflict arrises! */
 extern int rl_end_undo_group(void);
 extern Function *rl_event_hook;
+extern char *filename_completion_function(char *, int);
 
 #ifndef HAVE_RL_COMPLETION_MATCHES
 #define rl_completion_matches completion_matches
-extern char *filename_completion_function(char *, int);
 #endif
 
 #ifndef HAVE_RL_READLINE_STATE		/* before version 4.2 */
