@@ -404,7 +404,7 @@ inlineItem(description(description, _, _, Properties), Base) ::=
 inlineItem(LI, Base) ::=
 	element(\rdf_or_unqualified(li),
 		[],
-		[\rdf_object(LI, Base)]), !.	% inlined object
+		[\nodeElement(LI, Base)]), !.	% inlined object
 inlineItem(literal(LI), _Base) ::=
 	element(\rdf_or_unqualified(li),
 		[],

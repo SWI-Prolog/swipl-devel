@@ -295,4 +295,5 @@ rdf_reset_ids :-
 	reset_gensym('Seq__'),
 	reset_gensym('Alt__'),
 	reset_gensym('Description__'),
-	reset_gensym('Statement__').
+	reset_gensym('Statement__'),
+	reset_gensym('List__').
