@@ -1397,7 +1397,7 @@ static classvardecl rc_pce[] =
 	   "    _mark_elevation   @= elevation(mark, 0),\n"
 	   "    _win_pen	  @= number(0))",
 	   /*WIN32*/
-           "and(_dialog_bg     @= colour(win_menu),\n"
+           "and(_dialog_bg     @= colour(win_btnface),\n"
 	   "    _graph_bg      @= colour(win_window),\n"
 	   "    _win_pen       @= number(1),\n"
 	   "    _isearch_style @= style(background := green),\n"
