@@ -700,7 +700,7 @@ Add #define O_VMCODE_IS_ADDRESS 0 to your md.h file.
   DEBUG(0, { int i;
 
 	     for(i=0; i<=I_HIGHEST; i++)
-	       assert((long) jmp_table[i] >= (1 << (sizeof(code)*8)));
+	       assert((long) jmp_table[i] < (1 << (sizeof(code)*8)));
 	   });
 #endif /* O_VMCODE_IS_ADDRESS */
 
@@ -770,7 +770,6 @@ Finally fill all the slots of  the  frame  and  initialise  the  machine
 registers.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    FR->context = (true(DEF, TRANSPARENT) ? module : DEF->module);
     clearFlags(FR);
     setLevelFrame(FR, !parentFrame(FR) ? 0L : levelFrame(parentFrame(FR)) + 1);
     if ( !debug )
@@ -783,10 +782,12 @@ registers.
     environment_frame = FR;
 
     if ( (CL = DEF->definition.clauses) == (Clause) NULL )
-    { trapUndefined(PROC);
+    { lTop = (LocalFrame) argFrameP(FR, functor->arity);
+      trapUndefined(PROC);
       DEF = PROC->definition;		/* may have changed! */
       CL = DEF->definition.clauses;
     }
+    FR->context = (true(DEF, TRANSPARENT) ? module : DEF->module);
 
     if ( debugstatus.debugging )
     { LocalFrame lTopSave = lTop;
@@ -1958,15 +1959,9 @@ Leave the clause:
 	{ leaveClause(CL);
     top_exit:
 	  if (debugstatus.debugging)
-	  { LocalFrame lTopSave = lTop;
-	    int action;
+	  { CL = (Clause) NULL;
 
-	    lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
-	    CL = (Clause) NULL;
-	    action = tracePort(FR, EXIT_PORT);
-	    lTop = lTopSave;
-
-	    switch(action)
+	    switch(tracePort(FR, EXIT_PORT))
 	    { case ACTION_RETRY:	goto retry;
 	      case ACTION_FAIL:		set(FR, FR_CUT);
 					goto frame_failed;
@@ -1989,12 +1984,14 @@ Leave the clause:
 
     normal_exit:
 	if (debugstatus.debugging)
-	{ LocalFrame lTopSave = lTop;
-	  int action;
+	{ int action;
+	  LocalFrame lSave = lTop;
 
-	  lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
+	  if ( lTop < (LocalFrame)argFrameP(FR, PROC->functor->arity) )
+	    lTop = (LocalFrame)argFrameP(FR, PROC->functor->arity);
 	  action = tracePort(FR, EXIT_PORT);
-	  lTop = lTopSave;
+	  lTop = lSave;
+
 	  switch(action)
 	  { case ACTION_RETRY:	goto retry;
 	    case ACTION_FAIL:	set(FR, FR_CUT);	/* references !!! */
