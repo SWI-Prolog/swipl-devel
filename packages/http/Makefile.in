@@ -57,7 +57,7 @@ html-install:	install-examples
 		$(INSTALL_DATA) $(DOC).html httpserver.gif $(DESTDIR)/$(PKGDOC)
 
 install-examples::
-		mkdir -p $(EXDIR)
+		mkdir -p $(DESTDIR)/$(EXDIR)
 		(cd examples && $(INSTALL_DATA) $(EXAMPLES) $(DESTDIR)/$(EXDIR))
 		(cd examples && $(INSTALL_PROGRAM) $(EXAMPLEEXE) $(DESTDIR)/$(EXDIR))
 

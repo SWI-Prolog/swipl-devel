@@ -66,12 +66,12 @@ install:	$(TARGETS) $(LIBPL)
 rpm-install:	install
 
 html-install::
-		mkdir -p $(PKGDOC)
-		$(INSTALL) -m 644 $(DOC).html $(PKGDOC)
+		mkdir -p $(DESTDIR)/$(PKGDOC)
+		$(INSTALL) -m 644 $(DOC).html $(DESTDIR)/$(PKGDOC)
 
 pdf-install::
-		mkdir -p $(PKGDOC)
-		$(INSTALL) -m 644 $(DOC).pdf $(PKGDOC)
+		mkdir -p $(DESTDIR)/$(PKGDOC)
+		$(INSTALL) -m 644 $(DOC).pdf $(DESTDIR)/$(PKGDOC)
 
 uninstall::
 		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))

@@ -32,13 +32,11 @@ EXAMPLES=
 all::
 		echo "Nothing to be done for this package"
 
-install:	$(CLPRDIR) $(LIBPL)
+install:	$(LIBPL)
+		mkdir -p $(DESTDIR)/$(CLPDIR)
 		$(INSTALL_DATA) $(LIBPL) $(DESTDIR)/$(CLPDIR)
 		(cd clpr && $(INSTALL_DATA) $(CLPRPRIV) $(DESTDIR)/$(CLPRDIR))
 		$(INSTALL_DATA) README $(DESTDIR)/$(CLPRDIR)
-
-$(CLPRDIR):
-		mkdir -p $@
 
 rpm-install:	install
 
@@ -47,7 +45,7 @@ pdf-install:	install-examples
 html-install:	install-examples
 
 install-examples::
-#		mkdir -p $(EXDIR)
+#		mkdir -p $(DESTDIR)/$(EXDIR)
 #		(cd Examples && $(INSTALL_DATA) $(EXAMPLES) $(DESTDIR)/$(EXDIR))
 
 uninstall:

@@ -61,14 +61,12 @@ chr_translate.pl: chr_translate.chr chr_translate_bootstrap1.pl
 chr.pl:		chr_swi.pl
 		cp $< $@
 
-install:	$(CHRDIR) $(LIBPL)
+install:	$(LIBPL)
+		mkdir -p $(DESTDIR)/$(CHRDIR)
 		$(INSTALL) -m 644 $(LIBPL) $(DESTDIR)/$(CHRDIR)
 		$(INSTALL) -m 644 $(CHRPL) $(DESTDIR)/$(LIBDIR)/chr.pl
 		$(INSTALL) -m 644 README   $(DESTDIR)/$(CHRDIR)
 		$(PL) -f none -g make -t halt
-
-$(CHRDIR):
-		mkdir -p $@
 
 rpm-install:	install
 
