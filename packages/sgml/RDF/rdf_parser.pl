@@ -197,7 +197,8 @@ an_rdf_object(Object) ::=
 
 blank ::=
 	A,
-	{ atom_chars(A, Chars),
+	{ atom(A),
+	  atom_chars(A, Chars),
 	  all_blank(Chars)
 	}.
 
