@@ -54,11 +54,13 @@ global(Ref, Module, Goal) :-
 	asserta('pce global goal'(Ref, Module, Goal)).
 global(Ref, _M1, new(Term)) :-			  % same definition
 	'pce global goal'(Ref, _M2, new(Term)), !.
-global(Ref, _M1, _G1) :-
-	'pce global goal'(Ref, M2, _G2), !,
+global(Ref, M1, G1) :-
+	'pce global goal'(Ref, M2, G2), !,
 	format(user_error,
 	       '[WARNING: Global object @~w already defined in module ~w]~n',
-	       [Ref, M2]).
+	       [Ref, M2]),
+	retractall('pce global goal'(Ref, M2, G2)),
+	asserta('pce global goal'(Ref, M1, G1)).
 global(Ref, Module, Goal) :-
 	asserta('pce global goal'(Ref, Module, Goal)).
 

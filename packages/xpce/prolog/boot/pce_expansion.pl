@@ -381,6 +381,9 @@ file a domain? How do we associate a unique domain to each file?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 gen_method_id(SG, Class, Selector, Id) :-
+	attribute(Class, extending, true), !,
+	concat_atom([Class, '$+$', SG, Selector], Id).
+gen_method_id(SG, Class, Selector, Id) :-
 	concat_atom([Class, SG, Selector], Id).
 
 %gen_method_id(_, _, _, Id) :-
@@ -490,7 +493,7 @@ use_template_send_method(Template, pce_principal:Clause) :-
 	pce_compiling(ClassName),
 	pce_lazy_send_method(Sel, Template, Binder),
 	Binder =.. [Functor, Id | RestBinder],
-	gen_method_id((->), ClassName, Sel, NewId),
+	gen_method_id('$T$->', ClassName, Sel, NewId),
 	(   Clause = pce_lazy_send_method(Sel, ClassName, NewBinder),
 	    NewBinder =.. [Functor, NewId | RestBinder]
 	;   Clause = (send_implementation(NewId, Msg, R) :-
@@ -512,7 +515,7 @@ use_template_get_method(Template, pce_principal:Clause) :-
 	pce_compiling(ClassName),
 	pce_lazy_get_method(Sel, Template, Binder),
 	Binder =.. [Functor, Id | RestBinder],
-	gen_method_id((->), ClassName, Sel, NewId),
+	gen_method_id('$T$<-', ClassName, Sel, NewId),
 	(   Clause = pce_lazy_get_method(Sel, ClassName, NewBinder),
 	    NewBinder =.. [Functor, NewId | RestBinder]
 	;   Clause = (get_implementation(NewId, Msg, R, V) :-

@@ -223,25 +223,39 @@ pce_ifhostproperty(prolog(swi),
 
 do_bind_lazy(send, ClassName, @default) :- !,
 	get(@pce, convert, ClassName, class, Class),
-	(   pce_lazy_send_method(Selector, ClassName, Binder),
+	(   send_binder(Selector, ClassName, Binder),
 	    \+ send(Class, bound_send_method, Selector),
 	    call_binder(ClassName, Selector, Binder),
 	    fail ; true
 	).
 do_bind_lazy(send, ClassName, Selector) :-
-	pce_lazy_send_method(Selector, ClassName, Binder),
+	send_binder(Selector, ClassName, Binder),
 	call_binder(ClassName, Selector, Binder).
 do_bind_lazy(get, ClassName, @default) :- !,
 	get(@pce, convert, ClassName, class, Class),
-	(   pce_lazy_get_method(Selector, ClassName, Binder),
+	(   get_binder(Selector, ClassName, Binder),
 	    \+ send(Class, bound_get_method, Selector),
 	    call_binder(ClassName, Selector, Binder),
 	    fail ; true
 	).
 do_bind_lazy(get, ClassName, Selector) :-
-	pce_lazy_get_method(Selector, ClassName, Binder),
+	get_binder(Selector, ClassName, Binder),
 	call_binder(ClassName, Selector, Binder).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This deals with possible redefined methods.  We distinguish two types of
+`legal' method redefinition: using pce_extend_class/1  and redefining an
+implementation inherited from a template.
+
+Other cases are reported by checkpce/0.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+send_binder(Class, Sel, Binder) :-
+	bagof(B, pce_lazy_send_method(Class, Sel, B), Binders),
+	last(Binder, Binders).
+get_binder(Class, Sel, Binder) :-
+	bagof(B, pce_lazy_get_method(Class, Sel, B), Binders),
+	last(Binder, Binders).
 
 call_binder(ClassName, Selector, Binder) :-
 	build_in_binder(Binder, ClassName, Selector), !.
