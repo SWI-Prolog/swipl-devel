@@ -333,7 +333,10 @@ rdfe_can_undo :-
 %	of visualisers.
 
 rdfe_transaction_member(TID, Member) :-
-	append(TID, _, Id),
+	(   integer(TID)
+	->  Id = [TID|_]
+	;   append(TID, _, Id)
+	),
 	undo_log(Id, Action, Subject, Predicate, Object),
 	user_transaction_member(Action, Subject, Predicate, Object, Member).
 
