@@ -69,7 +69,7 @@ eventPopupGesture(PopupGesture g, EventObj ev)
   { PceWindow sw = ev->window;
 
     if ( valInt(getClickTimeEvent(ev)) < 400 &&
-	 valInt(getClickDisplacementEvent(ev)) < 10 &&
+	 /*valInt(getClickDisplacementEvent(ev)) < 10 &&*/
 	 getAttributeObject(g, NAME_Stayup) != ON )
     { attributeObject(g, NAME_Stayup, ON);
       grabPointerWindow(sw, ON);
