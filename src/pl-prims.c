@@ -2517,6 +2517,7 @@ static const optdef optdefs[] =
   { "toplevel",		CMDOPT_STRING,	&GD->options.topLevel },
   { "init_file",	CMDOPT_STRING,	&GD->options.initFile },
   { "system_init_file",	CMDOPT_STRING,	&GD->options.systemInitFile },
+  { "script_file",	CMDOPT_STRING,	&GD->options.scriptFile },
   { "compileout",	CMDOPT_STRING,	&GD->options.compileOut },
   { "class",		CMDOPT_STRING,  &GD->options.saveclass },
   { "home",		CMDOPT_STRING,	&GD->defaults.home },

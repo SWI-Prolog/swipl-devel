@@ -139,6 +139,14 @@ convert_option(Stack, Val, NewVal) :-
 	NewVal is max(Min, Val*1024).
 convert_option(_, Val, Val).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Save the options in the $options resource.   The home directory is saved
+for development saves, so it keeps refering to the development home.
+
+The script-file (-s script) is not saved at all. I think this is fine to
+avoid a save-script loading itself.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 save_options(RC, Options) :-
 	$rc_open(RC, $options, $prolog, write, Fd),
 	(   $option(OptionName, OptionVal0, _),
@@ -146,6 +154,7 @@ save_options(RC, Options) :-
 		->  \+ memberchk(class(runtime), Options)
 		;   true
 		),
+	        \+ OptionName == script_file,
 	        option(Options, OptionName/_, OptionVal1, _),
 	        (   var(OptionVal1)	% used the default
 		->  OptionVal = OptionVal0

@@ -331,6 +331,7 @@ initDefaultOptions()
   GD->options.goal	    = store_string(systemDefaults.goal);
   GD->options.topLevel      = store_string(systemDefaults.toplevel);
   GD->options.initFile      = store_string(systemDefaults.startup);
+  GD->options.scriptFile    = store_string("");
   GD->options.saveclass	    = store_string("none");
 
   if ( !GD->bootsession && GD->resourceDB )
@@ -396,6 +397,8 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
 	case 'f':	optionString(GD->options.initFile);
 			break;
 	case 'F':	optionString(GD->options.systemInitFile);
+			break;
+	case 's':	optionString(GD->options.scriptFile);
 			break;
 	case 'g':	optionString(GD->options.goal);
 			break;
@@ -577,7 +580,7 @@ script_argv(int argc, char **argv)
 
 #ifdef __unix__
   if ( argc >= 3 &&
-       strpostfix(argv[1], "-f") &&
+       (strpostfix(argv[1], "-f") || strpostfix(argv[1], "-s")) &&
        (fd = fopen(argv[2], "r")) )	/* ok, this is a script invocation */
 #else
   if ( argc >= 2 &&
@@ -850,8 +853,9 @@ usage()
     "    -[LGTA]size[KM]  Specify {Local,Global,Trail,Argument} limits\n",
     "    -t toplevel      Toplevel goal\n",
     "    -g goal          Initialisation goal\n",
-    "    -f file          Initialisation file\n",
-    "    -F file          System Initialisation file\n",
+    "    -f file          User initialisation file\n",
+    "    -F file          System initialisation file\n",
+    "    -s file          Script source file\n",
     "    [+/-]tty         Allow tty control\n",
     "    -O               Optimised compilation\n",
     "    -q               Quiet operation\n",

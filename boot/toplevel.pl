@@ -60,11 +60,21 @@ $load_system_init_file :-
 	).
 $load_system_init_file.
 
+$load_script_file :-
+	loaded_init_file(script), !.
+$load_script_file :-
+	$option(script_file, OsFile, OsFile),
+	OsFile \== '',
+	prolog_to_os_filename(File, OsFile),
+	asserta(loaded_init_file(script)),
+	ensure_loaded(user:File).
+$load_script_file.
+
 $load_gnu_emacs_interface :-
 	getenv('EMACS', t),
 	current_prolog_flag(argv, Args),
 	memberchk('+C', Args), !,
-	user:ensure_loaded(library(emacs_interface)).
+	ensure_loaded(user:library(emacs_interface)).
 $load_gnu_emacs_interface.
 
 		 /*******************************
@@ -214,14 +224,15 @@ initialise_prolog :-
 	$option(init_file, OsFile, OsFile),
 	prolog_to_os_filename(File, OsFile),
 	$load_init_file(File), 
+	$load_script_file,
+	$load_associated_file,
 	$option(goal, GoalAtom, GoalAtom), 
 	term_to_atom(Goal, GoalAtom), 
 	(   Goal == $welcome
 	->  flag($banner_goal, TheGoal, TheGoal)
 	;   TheGoal = Goal
 	),
-	ignore(user:TheGoal),
-	$load_associated_file.
+	ignore(user:TheGoal).
 
 $abort :-
 	see(user), 

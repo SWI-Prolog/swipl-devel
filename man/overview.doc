@@ -123,9 +123,9 @@ the default startup file. Finally, if \arg{file} is
 \section{Initialisation files and goals}		\label{sec:initgoal}
 
 Using commandline arguments (see \secref{cmdline}), SWI-Prolog can be
-forced to load files and execute queries for initialisation purposes
-or non-interactive operation.  The most commonly used options
-are \argoption{-f}{file} to make Prolog load an initialisation file,
+forced to load files and execute queries for initialisation purposes or
+non-interactive operation. The most commonly used options are
+\argoption{-f}{file} or \argoption{-s}{file} to make Prolog load a file,
 \argoption{-g}{goal} to define an initialisation goal and
 \argoption{-t}{goal} to define the \jargon{toplevel goal}. The following
 is a typical example for starting an application directly from the
@@ -137,7 +137,8 @@ machine% pl -f load.pl -g go -t halt
 
 It tells SWI-Prolog to load \file{load.pl}, start the application using
 the \jargon{entry-point} go/0 and ---instead of entering the interactive
-toplevel--- exit after completing go/0.
+toplevel--- exit after completing go/0.  The \cmdlineoption{-q} may be
+used to supress all informational messages.
 
 In MS-Windows, the same can be achieved using a short-cut with
 appropriately defined commandline arguments. A typically seen
@@ -150,7 +151,8 @@ below. Double-clicking \file{run.pl} will start the application.
 :- halt.			% and exit
 \end{code}
 
-\Chapref{runtime} discusses the generation of runtime executables.
+\Secref{plscript} discusses further scripting options and
+\chapref{runtime} discusses the generation of runtime executables.
 Runtime executables are a mean to deliver executables that do not
 require the Prolog system. 
 
@@ -227,10 +229,19 @@ determine output file for compilation.
     \cmdlineoptionitem{-O}{}
 Optimised compilation. See current_prolog_flag/2.
 
+    \cmdlineoptionitem{-s}{file}
+Use \arg{file} as a script-file.  The script file is loaded after
+the initialisation file specified with the \argoption{-f}{file}
+option.  Unlike \argoption{-f}{file}, using \cmdlineoptionitem{-s}
+does not stop Prolog from loaded the personal initialisation file.
+
     \cmdlineoptionitem{-f}{file}
-Use \arg{file} as startup file instead of the default.
-`\argoption{-f}{none}' stops SWI-Prolog from searching for a
-startup file. See \secref{initfile}. 
+Use \arg{file} as initialisation file instead of the default
+\file{.plrc} (Unix) or \file{pl.ini} (Windows). `\argoption{-f}{none}'
+stops SWI-Prolog from searching for a startup file.  This option
+can be used as an alternative to \argoption{-s}{file} that stops
+Prolog from loading the personal initialisation file. See also
+\secref{initfile}. 
 
     \cmdlineoptionitem{-F}{script}
 Selects a startup-script from the SWI-Prolog home directory. The
@@ -706,15 +717,18 @@ threated as comment.%
 To create a Prolog script, make the first line start like this:
 
 \begin{quote}
-\verb$#!/path/to/pl$ <options> \verb$-f$
+\verb$#!/path/to/pl$ <options> \verb$-s$
 \end{quote}
 
 Prolog recognises this starting sequence and causes the interpreter
 to receive the following argument-list:
 
 \begin{quote}
-\verb$/path/to/pl$ <options> \verb$-f$ <script> \verb$--$ <ScriptArguments>
+\verb$/path/to/pl$ <options> \verb$-s$ <script> \verb$--$ <ScriptArguments>
 \end{quote}
+
+Instead of \cmdlineoption{-s}, the user may use \cmdlineoption{-f} to
+stop Prolog from looking for a personal initialisation file.  
 
 Here is a simple script doing expression evaluation:
 
@@ -757,7 +771,7 @@ defaults.  The following starts Prolog with unlimited stack-size on
 the given source-file:
 
 \begin{code}
-#!/usr/bin/pl -L0 -T0 -G0 -f
+#!/usr/bin/pl -L0 -T0 -G0 -s
 
 ....
 \end{code}

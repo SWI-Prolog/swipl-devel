@@ -39,6 +39,7 @@ typedef struct
   char *	topLevel;		/* toplevel goal */
   char *	initFile;		/* -f initialisation file */
   char *	systemInitFile;		/* -F initialisation file */
+  char *	scriptFile;		/* -s script file */
   char *	compileOut;		/* file to store compiler output */
   char *	saveclass;		/* Type of saved state */
   bool		silent;			/* -q: quiet operation */
