@@ -1023,11 +1023,9 @@ case "$ARCH" in
 	;;
   *hppa*|*hpux*)
 	SO_EXT="sl"
-	if test "$GCC" = "yes"; then
-	    LDFLAGS="$LDFLAGS -Wl,-E"
-	else
-	    LDFLAGS="$LDFLAGS -E"
-	    SO_LDFLAGS="-b"
+	LDFLAGS="$LDFLAGS -Wl,-E"
+	if test "$GCC" != "yes"; then
+	    SO_LDFLAGS="-Wl,-b"
 	fi
 	;;
   *osf*)
