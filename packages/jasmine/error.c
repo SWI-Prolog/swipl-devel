@@ -13,7 +13,7 @@
 #include <SWI-Prolog.h>
 #include <errno.h>
 #include <stdlib.h>
-#include "util.h"
+#include "error.h"
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>

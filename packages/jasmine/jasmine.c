@@ -13,7 +13,7 @@
 #include <SWI-Stream.h>			/* for printing messages */
 #include <SWI-Prolog.h>
 #include <codqlhdr.h>
-#include "util.h"
+#include "error.h"
 #include <assert.h>
 
 static functor_t FUNCTOR_odb1;
