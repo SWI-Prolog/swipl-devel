@@ -34,7 +34,10 @@ x_colour_name(Name name)
   char *s, *q;
 
   for( s = strName(name), q = buf; *s; s++, q++ )
-  { if ( *s == '_' || *s == syntax.word_separator )
+  { if ( q-buf-1 >= sizeof(buf) )	/* truncate, but avoid overrun */
+      break;
+
+    if ( *s == '_' || *s == syntax.word_separator )
       *q = ' ';
     else
       *q = tolower(*s);

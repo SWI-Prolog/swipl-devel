@@ -27,6 +27,7 @@
 
 #define O_XDND 1			/* include Gnome/KDE drag-and-drop */
 #define USE_XFONTSET 1			/* Use Xwc* functions */
+#undef  USE_XFT				/* Use Xft library */
 
 #ifdef HAVE_XMISMOTIFWMRUNNING
 #define O_MOTIF 1
@@ -68,6 +69,10 @@ error XPCE cannot be build for X version 10.  Sorry.
 
 #ifdef O_XDND
 #include "xdnd.h"
+#endif
+
+#ifdef USE_XFT
+#include <X11/Xft/Xft.h>
 #endif
 
 
@@ -128,6 +133,12 @@ typedef struct
 
 typedef struct xpce_font_info *XpceFontInfo;
 
+#ifdef USE_XFT
+struct xpce_font_info
+{ XftFont	 xft_font;		/* FontSet structure */
+};
+#endif
+
 #ifdef USE_XFONTSET
 
 struct xpce_font_info
@@ -177,6 +188,10 @@ struct draw_context
 #ifdef USE_XFONTSET
   XFontSet      font_set;		/* font-set description */
 #else
+#ifdef USE_XFT
+  XftDraw	xft_draw;		/* XFT drawable */
+  XftFont	xft_font;		/* XFT font representation */
+#endif
   XFontStruct * font_info;		/* X-font for this display */
   wint_t	maxchar;		/* max char value for font */
   cwidth      * char_widths;		/* array with widths of characters */

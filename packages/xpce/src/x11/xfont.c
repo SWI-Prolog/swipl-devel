@@ -26,6 +26,50 @@
 #include <h/graphics.h>
 #include "include.h"
 
+#ifdef USE_XFT
+
+status
+ws_create_font(FontObj f, DisplayObj d)
+{ XpceFontInfo xref;
+  DisplayWsXref r = d->ws_ref;
+  XftFont xft;
+  int screen = DefaultScreen(r->display_xref);
+
+  if ( !instanceOfObject(f->x_name, ClassCharArray) )
+    fail;
+  
+  xft = XftFontOpenXlfd(r->display_xref, screen, strName(f->x_name));
+  if ( !xft )
+    return replaceFont(f, d);
+
+  xref = alloc(sizeof(*xref));
+  xref->xft_font = xft;
+
+  return registerXrefObject(f, d, xref);
+}
+
+
+void
+ws_destroy_font(FontObj f, DisplayObj d)
+{ XpceFontInfo xref = getExistingXrefObject(f, d);
+  DisplayWsXref r = d->ws_ref;
+
+  if ( xref )
+  { /* TBD: cannot find the free function!? */
+
+    unregisterXrefObject(f, d);
+    unalloc(sizeof(*xref), xref);
+  }  
+}
+
+
+status
+ws_system_fonts(DisplayObj d)
+{ succeed;
+}
+
+#else /*USE_XFT*/
+
 #ifdef USE_XFONTSET
 
 status
@@ -86,7 +130,7 @@ ws_system_fonts(DisplayObj d)
 }
 
 
-#else /*USE_XFONTSET*/
+#else /*NO XFT and NO XFONTSET*/
 
 #define MAX_CHAR 256
 #define BOUNDS(v, l, m) if ( (v) < (l) || (v) >= (m) ) ((v) = (l))
@@ -217,3 +261,4 @@ ws_system_fonts(DisplayObj d)
 }
 
 #endif /*USE_XFONTSET*/
+#endif /*USE_XFT*/

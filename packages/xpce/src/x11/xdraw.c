@@ -110,6 +110,9 @@ static struct d_context
   DrawContext	gcs;			/* The X GC's */                  
   Display      *display;		/* Current drawing display */     
   Drawable	drawable;		/* X Object we are drawing on */  
+#ifdef USE_XFT
+  XftDraw	xft_draw;		/* XFT drawable */
+#endif
   Name		kind;			/* Drawable kind */               
   int		depth;			/* depth of drawable */           
   DisplayObj	pceDisplay;		/* PCE display object */          
@@ -190,7 +193,13 @@ d_push_context(void)
 
 static void
 d_pop_context()
-{ if ( context.parent != NULL )
+{
+#ifdef USE_XFT
+  if ( context.depth == 1 && context.xft_draw )
+    XftDrawDestroy(context.xft_draw);
+#endif
+
+  if ( context.parent != NULL )
   { DContext ctx = context.parent;
 
     context = *ctx;			/* structure copy! */
@@ -2421,6 +2430,168 @@ r_get_pixel(int x, int y)
 		/********************************
 		*       TEXT MANIPULATION	*
 		********************************/
+
+#ifdef USE_XFT
+		 /*******************************
+		 *	    XFT VERSION		*
+		 *******************************/
+
+static XftDraw *
+xftDraw()
+{ if ( !context.xft_draw )
+  { if ( content.depth == 1 )
+    { context.gcs->xft_draw = XftDrawCreateBitmap(context.display,
+						  (Pixmap)context.drawable);
+    } else if ( !context.gcs->xft_draw )
+    { Visual *v = XDefaultVisual(context.display,
+				 DefaultScreen(context.display));
+      Colormap cmap = DefaultColormap(disp, DefaultScreen(disp));
+      
+      context.gcs->xft_draw = XftDrawCreate(context.display,
+					    context.drawable,
+					    v, cmap);
+      context.xft_draw = context.gcs->xft_draw;
+    } else
+    { XftDrawChange(context.gcs->xft_draw, context.drawable);
+      context.xft_draw = context.gcs->xft_draw;
+    }
+  }
+}
+
+static void
+s_font(FontObj f)
+{ if ( f )
+  { d_ensure_display();
+
+    if ( context.gcs->font != f )
+    { XpceFontInfo info;
+      context.gcs->font = f;
+    
+      info = (XpceFontInfo) getXrefObject(f, context.pceDisplay);
+      context.gcs->xft_font = info->xft_font;
+    }
+  }
+}
+
+
+int
+s_has_char(FontObj f, wint_t c)
+{ s_font(f);
+
+  return XftCharExists(context.display, context.gcs->xft_font, c);
+}
+
+
+void
+f_domain(FontObj f, Name which, int *x, int *y)
+{ *x = 0;
+  *y = 0xffff;
+}
+
+
+int
+s_default_char(FontObj font)
+{ return 'X';				/* for now */
+}
+
+
+int
+s_ascent(FontObj font)
+{ s_font(font);
+
+  return context.gcs->xft_font->ascent;
+}
+
+
+int
+s_descent(FontObj font)
+{ s_font(font);
+
+  return context.gcs->xft_font->descent;
+}
+
+
+int
+c_width(wint_t c, FontObj font)
+{ FcChar32 s[1];
+  XGlyphInfo info;
+
+  s_font(font);
+  s[0] = c;
+
+  XftTextExtents32(context.display, context.gcs.xft_font, s, 1, &info);
+
+  return info.width;
+}
+
+
+static int
+s_advance(String s, int from, int to)
+{ int len = to-from;
+  XGlyphInfo info;
+
+  if ( len <= 0 )
+    return 0;
+
+  if ( isstrA(s) )
+  { XftTextExtents8(context.display. context.gcs->xft_font, 
+		    s->s_textA, s->size, &info);
+  } else if ( sizeof(charW) == 2 )
+  { XftTextExtents16(context.display. context.gcs->xft_font, 
+		    s->s_textW, s->size, &info);
+  } else if ( sizeof(charW) == 4 )
+  { XftTextExtents32(context.display. context.gcs->xft_font, 
+		     s->s_textW, s->size, &info);
+  }
+
+  return info.width;
+}
+
+
+static int
+lbearing(wint_t c)
+{ XGlyphInfo info;
+  FcChar32 s[1];
+
+  s[0] = c;
+  XftTextExtents32(context.display. context.gcs->xft_font, 
+		   s, 1, &info);
+
+  return -info.x;
+}
+
+
+void
+s_printA(charA *s, int l, int x, int y, FontObj f)
+{ if ( l > 0 )
+  { XftColor color;
+
+    color.pixel = getPixelColour(context.gcs->colour, context.pceDisplay);
+    color.color.red   = valInt(context.gcs->colour->red);
+    color.color.green = valInt(context.gcs->colour->green);
+    color.color.blue  = valInt(context.gcs->colour->blue);
+    color.color.alpha = 0;
+
+    Translate(x, y);
+    s_font(f);
+    XftDrawString8(&color, context.gcs->xft_font, x, y, 
+		   s->s_textA, l);
+  }
+}
+
+
+void
+s_printW(charW *s, int l, int x, int y, FontObj f)
+{ if ( l > 0 )
+  { 
+  }
+}
+
+#endif /*USE_XFT*/
+
+		 /*******************************
+		 *    Xwc* Function version	*
+		 *******************************/
 
 #ifdef USE_XFONTSET
 
