@@ -1,8 +1,12 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 5.1.8#2, distributed with SWI-Prolog 4.0.9#2
+====================================================
+
 * FIXED: `event<-key' to distinguish between RETURN and Control-M as well
-  as TAB and Control-I.
+  as TAB and Control-I.  Also fixed detection of control-key in Windows,
+  detected by Paul Holmes-Higgin.
 
 * FIXED: Class editor to handle editors with very small height (notably
   1 line or less) properly.  Reported by Paul Holmes-Higgin.

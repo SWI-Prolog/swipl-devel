@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * MAINTAIN: Added "nmake /f makefile.mak DBG=true" to Windows building
+    suite to make a version ready for debugging using MSVC.  Still to
+    to: install all .pdb during "nmake /f makefile.mak DBG=true" install.
+
 VERSION 4.0.9
 =============
 
