@@ -10,6 +10,11 @@
 VERSION 5.1.10 (Mar 14, 2003)
 =============================
 
+  * FIXED: Avoid thread_signal/2 to signal a just-exited thread.
+
+  * ADDED: New execution profiler providing much more readable and detailed
+    output.
+
   * FIXED: thread_setconcurrency/2 detection (Steve Moyle).
 
   * ENHANCED: Implementation of thread_signal() and friends on Windows.

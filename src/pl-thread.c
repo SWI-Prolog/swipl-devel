@@ -1336,16 +1336,21 @@ pl_thread_signal(term_t thread, term_t goal)
   PL_thread_info_t *info;
   PL_local_data_t *ld;
 
-  if ( !get_thread(thread, &info, TRUE) )
-    fail;
-
-  PL_strip_module(goal, &m, goal);
+					/* can be expensive; keep outside */
+  PL_strip_module(goal, &m, goal);	/* locked area */
   sg = allocHeap(sizeof(*sg));
   sg->next = NULL;
   sg->module = m;
   sg->goal = PL_record(goal);
 
   LOCK();
+  if ( !get_thread(thread, &info, TRUE) )
+  { UNLOCK();
+    PL_erase(sg->goal);			/* bad luck ... */
+    freeHeap(sg, sizeof(*sg));
+    fail;
+  }
+
   ld = info->thread_data;
   if ( !ld->thread.sig_head )
     ld->thread.sig_head = ld->thread.sig_tail = sg;
