@@ -2777,6 +2777,10 @@ representation as a list of one-character atoms. Fails with a
 As number_chars/2, but converts to a list of character codes (normally
 ASCII values) rather than one-character atoms.  In the mode -, +, both
 predicates behave identically to improve handling of non-ISO source.
+    \predicate{atom_number}{2}{?Atom, ?Number}
+Realises the popular combination of atom_codes/2 and number_codes/2 to
+convert between atom and number (integer or float) in one predicate,
+avoiding the intermediate list.
     \predicate{name}{2}{?AtomOrInt, ?String}
 \arg{String} is a list of ASCII values describing \arg{Atom}. Each of the
 arguments may be a variable, but not both. When \arg{String} is bound to an

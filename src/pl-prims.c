@@ -1645,6 +1645,32 @@ pl_char_code(term_t atom, term_t chr)
 }
 
 
+static
+PRED_IMPL("atom_number", 2, atom_number, 0)
+{ char *s;
+  unsigned len;
+
+  if ( PL_get_nchars(A1, &len, &s, CVT_ATOM|CVT_STRING) )
+  { number n;
+    unsigned char *q;
+
+    if ( get_number((unsigned char *)s, &q, &n) && *q == EOS )
+    { if ( intNumber(&n) )
+	return PL_unify_integer(A2, n.value.i);
+      else
+	return PL_unify_float(A3, n.value.f);
+    } else
+      return PL_error(NULL, 0, NULL, ERR_SYNTAX, "illegal_number");
+  } else if ( PL_get_nchars(A2, &len, &s, CVT_NUMBER) )
+    return PL_unify_atom_nchars(A1, len, s);
+  else if ( !PL_is_variable(A2) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_number, A2);
+  else
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, A1);
+}
+
+
+
 static bool
 isPrefix(char *s, char *q)		/* s is prefix of q */
 { while(*s && *s == *q)
@@ -2867,4 +2893,5 @@ BeginPredDefs(prims)
   PRED_DEF("$depth_limit_except", 3, depth_limit_except, 0)
   PRED_DEF("$depth_limit_false",  3, depth_limit_false, 0)
 #endif
+  PRED_DEF("atom_number", 2, atom_number, 0)
 EndPredDefs

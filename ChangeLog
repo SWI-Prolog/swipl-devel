@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: atom_number/2 as a contraction of atom_codes and number_codes/2
+
   * PERFORMANCE: switched to use -O3 on GCC.  Seems to be about 5-10%
     faster.  Also pass -O3 to ld to optimize function placement.
 

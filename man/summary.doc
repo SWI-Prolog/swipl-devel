@@ -71,6 +71,7 @@ suggest predicates from a keyword.
 \predicatesummary{atom_codes}{2}{Convert between atom and list of ASCII values}
 \predicatesummary{atom_length}{2}{Determine length of an atom}
 \predicatesummary{atom_prefix}{2}{Test for start of atom}
+\predicatesummary{atom_number}{2}{Convert between atom and number}
 \predicatesummary{atom_to_term}{3}{Convert between atom and term}
 \predicatesummary{atomic}{1}{Type check for primitive}
 \predicatesummary{autoload}{0}{Autoload all predicates now}
