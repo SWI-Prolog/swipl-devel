@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: reference-counting problem in exit(Block, Return).  Thanks
+    to Robert van Engelen.
+
   * FIXED: arithmetic to detect overflow of negative floats properly
     (Richard O'Keefe).
 
