@@ -176,13 +176,13 @@ prof_node(KeyOn, Node) :-
 get_prof_node(KeyOn, Key-Node) :-
 	Node = node(M:H,
 		    TicksSelf, TicksSiblings,
-		    Call, Redo, Recursive,
+		    Call, Redo,
 		    Parents, Siblings),
 	current_predicate(_, M:H),
 	\+ predicate_property(M:H, imported_from(_)),
 	'$prof_procedure_data'(M:H,
 			       TicksSelf, TicksSiblings,
-			       Call, Redo, Recursive,
+			       Call, Redo,
 			       Parents, Siblings),
 	value(KeyOn, Node, Key).
 
@@ -191,9 +191,8 @@ key(ticks_self,	    2).
 key(ticks_siblings, 3).
 key(call,	    4).
 key(redo,	    5).
-key(recursive,	    6).
-key(callers,	    7).
-key(callees,	    8).
+key(callers,	    6).
+key(callees,	    7).
 
 value(name, Data, Name) :- !,
 	arg(1, Data, Pred),

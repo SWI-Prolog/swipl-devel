@@ -105,7 +105,7 @@ show_statistics(F) :->
 details(F, From:prolog) :->
 	"Show details on node or predicate"::
 	get(F, member, prof_details, W),
-	(   functor(From, node, 8)
+	(   functor(From, node, 7)
 	->  send(W, node, From)
 	;   get(F, member, prof_browser, B),
 	    get(B?dict, find,
@@ -318,6 +318,13 @@ title(W) :->
 	send(T, append, 'Redo',   bold, center, BG),
 	send(T, next_row).
 
+cluster_title(W, Cycle:int) :->
+	get(W, tabular, T),
+	send(T, append, string('Cluster <%d>', Cycle),
+	     bold, center, colspan := 5,
+	     background := navyblue, colour := yellow),
+	send(T, next_row).
+
 refresh(W) :->
 	"Refresh to accomodate visualisation change"::
 	(   get(W, node, Data),
@@ -330,16 +337,88 @@ node(W, Data:prolog) :->
 	"Visualise a node"::
 	send(W, slot, node, Data),
 	send(W?tabular, clear),
+	send(W, scroll_to, point(0,0)),
 	send(W, title),
-	value(Data, callers, Callers0),
-	sort_relatives(Callers0, Callers),
-	send(W, show_recursive, Data),
-	show_relatives(Callers, parent, W),
-	send(W, show_predicate, Data),
-	value(Data, callees, Callees0),
-	sort_relatives(Callees0, Callees1),
-	reverse(Callees1, Callees),
-	show_relatives(Callees, sibling, W).
+	value(Data, callers, Callers),
+	value(Data, callees, Callees),
+	clusters(Callers, CallersCycles),
+	clusters(Callees, CalleesCycles),
+	(   CallersCycles = [_]
+	->  show_clusters(CallersCycles, CalleesCycles, Data, 0, W)
+	;   show_clusters(CallersCycles, CalleesCycles, Data, 1, W)
+	).
+
+show_clusters([], [], _, _, _) :- !.
+show_clusters([P|PT], [C|CT], Data, Cycle, W) :-
+	show_cluster(P, C, Data, Cycle, W),
+	Next is Cycle+1,
+	show_clusters(PT, CT, Data, Next, W).
+show_clusters([P|PT], [], Data, Cycle, W) :-
+	show_cluster(P, [], Data, Cycle, W),
+	Next is Cycle+1,
+	show_clusters(PT, [], Data, Next, W).
+show_clusters([], [C|CT], Data, Cycle, W) :-
+	show_cluster([], C, Data, Cycle, W),
+	Next is Cycle+1,
+	show_clusters([], CT, Data, Next, W).
+
+
+show_cluster(Callers, Callees, Data, Cycle, W) :-
+	(   Cycle == 0
+	->  true
+	;   send(W, cluster_title, Cycle)
+	),
+	sort_relatives(Callers, Callers1),
+	show_relatives(Callers1, parent, W),
+	ticks(Callers1, Self, Siblings, Call, Redo),
+	send(W, show_predicate, Data, Self, Siblings, Call, Redo),
+	sort_relatives(Callees, Callees1),
+	reverse(Callees1, Callees2),
+	show_relatives(Callees2, sibling, W).
+
+ticks(Callers, Self, Siblings, Call, Redo) :-
+	ticks(Callers, 0, Self, 0, Siblings, 0, Call, 0, Redo).
+
+ticks([], Self, Self, Sibl, Sibl, Call, Call, Redo, Redo).
+ticks([H|T],
+      Self0, Self, Sibl0, Sibl, Call0, Call, Redo0, Redo) :-
+	arg(1, H, '<recursive>'), !,
+	ticks(T, Self0, Self, Sibl0, Sibl, Call0, Call, Redo0, Redo).
+ticks([H|T], Self0, Self, Sibl0, Sibl, Call0, Call, Redo0, Redo) :-
+	arg(3, H, ThisSelf),
+	arg(4, H, ThisSibings),
+	arg(5, H, ThisCall),
+	arg(6, H, ThisRedo),
+	Self1 is ThisSelf + Self0,
+	Sibl1 is ThisSibings + Sibl0,
+	Call1 is ThisCall + Call0,
+	Redo1 is ThisRedo + Redo0,
+	ticks(T, Self1, Self, Sibl1, Sibl, Call1, Call, Redo1, Redo).
+
+
+%	clusters(+Relatives, -Cycles)
+%	
+%	Organise the relatives by cluster.
+
+clusters(Relatives, Cycles) :-
+	clusters(Relatives, 0, Cycles).
+
+clusters([], _, []).
+clusters(R, C, [H|T]) :-
+	cluster(R, C, H, T0),
+	C2 is C + 1,
+	clusters(T0, C2, T).
+
+cluster([], _, [], []).
+cluster([H|T0], C, [H|TC], R) :-
+	arg(2, H, C), !,
+	cluster(T0, C, TC, R).
+cluster([H|T0], C, TC, [H|T]) :-
+	cluster(T0, C, TC, T).
+
+%	sort_relatives(+Relatives, -Sorted)
+%	
+%	Sort relatives in ascending number of calls.
 
 sort_relatives(List, Sorted) :-
 	key_with_calls(List, Keyed),
@@ -347,6 +426,9 @@ sort_relatives(List, Sorted) :-
 	unkey(KeySorted, Sorted).
 
 key_with_calls([], []).
+key_with_calls([H|T0], [0-H|T]) :-	% get recursive on top
+	arg(1, H, '<recursive>'), !,
+	key_with_calls(T0, T).
 key_with_calls([H|T0], [K-H|T]) :-
 	arg(4, H, Calls),
 	arg(5, H, Redos),
@@ -357,31 +439,20 @@ unkey([], []).
 unkey([_-H|T0], [H|T]) :-
 	unkey(T0, T).
 
+%	show_relatives(+Relatives, +Rolw, +Window)
+%	
+%	Show list of relatives as table-rows.
+
 show_relatives([], _, _) :- !.
 show_relatives([H|T], Role, W) :-
 	send(W, show_relative, H, Role),
 	show_relatives(T, Role, W).
 
-show_recursive(W, Data:prolog) :->
-	"Show # resursive calls"::
-	(   value(Data, recursive, Recursive),
-	    Recursive \== 0
-	->  get(W, tabular, T),
-	    send(T, append, new(graphical), colspan := 2),
-	    send(T, append, Recursive, halign := right),
-	    send(T, append, new(graphical)),
-	    send(T, append, '<recursive calls>', italic),
-	    send(T, next_row)
-	;   true
-	).
-
-show_predicate(W, Data:prolog) :->
+show_predicate(W, Data:prolog,
+	       Ticks:int, SiblingTicks:int,
+	       Call:int, Redo:int) :->
 	"Show the predicate we have details on"::
 	value(Data, predicate, Pred),
-	value(Data, ticks_self, Ticks),
-	value(Data, ticks_siblings, SiblingTicks),
-	value(Data, call, Call),
-	value(Data, redo, Redo),
 	get(W, frame, Frame),
 	get(Frame, render_time, Ticks, Self),
 	get(Frame, render_time, SiblingTicks, Siblings),
@@ -396,18 +467,24 @@ show_predicate(W, Data:prolog) :->
 	send(T, next_row).
 
 show_relative(W, Caller:prolog, Role:name) :->
-	Caller = node(Pred, Ticks, SiblingTicks, Calls, Redos),
+	Caller = node(Pred, _Cluster, Ticks, SiblingTicks, Calls, Redos),
 	get(W, tabular, T),
 	get(W, frame, Frame),
-	get(Frame, render_time, Ticks, Self),
-	get(Frame, render_time, SiblingTicks, Siblings),
-	send(T, append, Self, halign := right),
-	send(T, append, Siblings, halign := right),
-	send(T, append, Calls, halign := right),
-	send(T, append, Redos, halign := right),
-	(   Pred == '<spontaneous>'
-	->  send(T, append, Pred, italic)
-	;   send(T, append, prof_predicate_text(Pred, Role))
+	(   Pred == '<recursive>'
+	->  send(T, append, new(graphical), colspan := 2),
+	    send(T, append, Calls, halign := right),
+	    send(T, append, new(graphical)),
+	    send(T, append, Pred, italic)
+	;   get(Frame, render_time, Ticks, Self),
+	    get(Frame, render_time, SiblingTicks, Siblings),
+	    send(T, append, Self, halign := right),
+	    send(T, append, Siblings, halign := right),
+	    send(T, append, Calls, halign := right),
+	    send(T, append, Redos, halign := right),
+	    (   Pred == '<spontaneous>'
+	    ->  send(T, append, Pred, italic)
+	    ;   send(T, append, prof_predicate_text(Pred, Role))
+	    )
 	),
 	send(T, next_row).
 
@@ -421,11 +498,18 @@ show_relative(W, Caller:prolog, Role:name) :->
 variable(predicate, prolog_predicate,	   get,	"Represented predicate").
 variable(role,	    {parent,self,sibling}, get,	"Represented role").
 
-initialise(T, Pred:prolog, Role:{parent,self,sibling}) :->
+initialise(T, Pred:prolog, Role:{parent,self,sibling}, Cycle:[int]) :->
 	send(T, slot, predicate, new(P, prolog_predicate(Pred))),
 	send(T, slot, role, Role),
 	get(P, print_name, Label),
-	send_super(T, initialise, Label),
+	(   (   Cycle == 0
+	    ;	Cycle == @default
+	    )
+	->  TheLabel = Label
+	;   N is Cycle+1,		% people like counting from 1
+	    TheLabel = string('%s <%d>', Label, N)
+	),
+	send_super(T, initialise, TheLabel),
 	send(T, colour, blue),
 	send(T, underline, @on),
 	(   Role == self
@@ -465,7 +549,7 @@ event(T, Ev:event) :->
 
 details(T) :->
 	"Show details of clicked predicate"::
-	get(T?predicate, head, Head),
+	get(T?predicate, head, @on, Head),
 	send(T?frame, details, Head).
 
 :- pce_end_class(prof_predicate_text).
@@ -480,9 +564,8 @@ key(ticks_self,	    2).
 key(ticks_siblings, 3).
 key(call,	    4).
 key(redo,	    5).
-key(recursive,	    6).
-key(callers,	    7).
-key(callees,	    8).
+key(callers,	    6).
+key(callees,	    7).
 
 value(Data, name, Name) :- !,
 	arg(1, Data, Pred),
@@ -543,11 +626,11 @@ prof_node(Node) :-
 
 get_prof_node(node(M:H,
 		   TicksSelf, TicksSiblings,
-		   Call, Redo, Recursive,
+		   Call, Redo,
 		   Parents, Siblings)) :-
 	current_predicate(_, M:H),
 	\+ predicate_property(M:H, imported_from(_)),
 	'$prof_procedure_data'(M:H,
 			       TicksSelf, TicksSiblings,
-			       Call, Redo, Recursive,
+			       Call, Redo,
 			       Parents, Siblings).

@@ -3874,6 +3874,7 @@ increase lTop too to prepare for asynchronous interrupts.
 
 	    if ( rval )
 	    { assert(rval == TRUE);
+	      Profile(profExit(FR->prof_node PASS_LD));
 	      NEXT_INSTRUCTION;
 	    }
 

@@ -371,6 +371,7 @@ prof_procedure_data(+Head,
 typedef struct prof_ref
 { struct prof_ref *next;		/* next in chain */
   Definition def;			/* predicate */
+  int   cycle;
   ulong ticks;
   ulong sibling_ticks;
   ulong calls;				/* calls to/from this predicate */
@@ -401,22 +402,23 @@ free_relatives(prof_ref *r ARG_LD)
 }
 
 
+#define DEF_SPONTANEOUS (Definition)0
+#define DEF_RECURSIVE   (Definition)1
+
+
 static void
-add_parent_ref(node_sum *sum, call_node *self, call_node *parent ARG_LD)
+add_parent_ref(node_sum *sum, call_node *self, Definition def, int cycle ARG_LD)
 { prof_ref *r;
-  Definition def = parent ? parent->def : NULL;
 
   sum->calls += self->calls;
   sum->redos += self->redos;
 
   for(r=sum->callers; r; r=r->next)
-  { if ( r->def == def )
+  { if ( r->def == def && r->cycle == cycle )
     { r->calls += self->calls;
       r->redos += self->redos;
-      if ( parent )
-      { r->ticks += self->ticks;
-	r->sibling_ticks += self->sibling_ticks;
-      }
+      r->ticks += self->ticks;
+      r->sibling_ticks += self->sibling_ticks;
 
       return;
     }
@@ -425,22 +427,43 @@ add_parent_ref(node_sum *sum, call_node *self, call_node *parent ARG_LD)
   r = allocHeap(sizeof(*r));
   r->calls = self->calls;
   r->redos = self->redos;
-  if ( parent )
-  { r->ticks = self->ticks;
-    r->sibling_ticks = self->sibling_ticks;
-  }
+  r->ticks = self->ticks;
+  r->sibling_ticks = self->sibling_ticks;
   r->def = def;
+  r->cycle = cycle;
   r->next = sum->callers;
   sum->callers = r;
 }
 
 
 static void
-add_sibling_ref(node_sum *sum, call_node *self, call_node *sibling ARG_LD)
+add_recursive_ref(node_sum *sum, call_node *self, ulong count, int cycle ARG_LD)
+{ prof_ref *r;
+
+  for(r=sum->callers; r; r=r->next)
+  { if ( r->def == DEF_RECURSIVE && r->cycle == cycle )
+    { r->calls += count;
+
+      return;
+    }
+  }
+
+  r = allocHeap(sizeof(*r));
+  memset(r, 0, sizeof(*r));
+  r->calls = count;
+  r->def = DEF_RECURSIVE;
+  r->cycle = cycle;
+  r->next = sum->callers;
+  sum->callers = r;
+}
+
+
+static void
+add_sibling_ref(node_sum *sum, call_node *self, call_node *sibling, int cycle ARG_LD)
 { prof_ref *r;
 
   for(r=sum->callees; r; r=r->next)
-  { if ( r->def == sibling->def )
+  { if ( r->def == sibling->def && r->cycle == cycle )
     { r->calls += sibling->calls;
       r->redos += sibling->redos;
       r->ticks += sibling->ticks;
@@ -456,6 +479,7 @@ add_sibling_ref(node_sum *sum, call_node *self, call_node *sibling ARG_LD)
   r->ticks = sibling->ticks;
   r->sibling_ticks = sibling->sibling_ticks;
   r->def = sibling->def;
+  r->cycle = cycle;
   r->next = sum->callees;
   sum->callees = r;
 }
@@ -474,10 +498,14 @@ sumProfile(call_node *n, Definition def, node_sum *sum, int seen ARG_LD)
     { sum->ticks         += n->ticks;
       sum->sibling_ticks += n->sibling_ticks;
     }
-    sum->recur         += n->recur;
-    add_parent_ref(sum, n, n->parent PASS_LD);
+
+    add_parent_ref(sum, n, n->parent ? n->parent->def : DEF_SPONTANEOUS, seen PASS_LD);
+    if ( n->recur )
+      add_recursive_ref(sum, n, n->recur, seen PASS_LD);
+
     for(s=n->siblings; s; s = s->next)
-      add_sibling_ref(sum, n, s PASS_LD);
+      add_sibling_ref(sum, n, s, seen PASS_LD);
+
     seen++;
   }
 
@@ -493,27 +521,33 @@ unify_relatives(term_t list, prof_ref *r ARG_LD)
 { term_t tail = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
   term_t tmp = PL_new_term_ref();
-  static functor_t FUNCTOR_node5;
+  static functor_t FUNCTOR_node6;
 
-  if ( !FUNCTOR_node5 )
-    FUNCTOR_node5 = PL_new_functor(PL_new_atom("node"), 5);
+  if ( !FUNCTOR_node6 )
+    FUNCTOR_node6 = PL_new_functor(PL_new_atom("node"), 6);
 
   for( ; r; r=r->next)
-  { if ( !PL_unify_list(tail, head, tail) )
+  { int rc;
+
+    if ( !PL_unify_list(tail, head, tail) )
       fail;
 
     PL_put_variable(tmp);
-    if ( r->def )
-      unify_definition(tmp, r->def, 0, 0);
+    if ( r->def == DEF_SPONTANEOUS )
+      rc=PL_unify_atom_chars(tmp, "<spontaneous>");
+    else if ( r->def == DEF_RECURSIVE )
+      rc=PL_unify_atom_chars(tmp, "<recursive>");
     else
-      PL_unify_atom_chars(tmp, "<spontaneous>");
+      rc=unify_definition(tmp, r->def, 0, 0);
 
-    if ( !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_node5,
-			  PL_TERM, tmp,
-			  PL_INTEGER, r->ticks,
-			  PL_INTEGER, r->sibling_ticks,
-			  PL_INTEGER, r->calls,
-			  PL_INTEGER, r->redos) )
+    if ( !rc ||
+	 !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_node6,
+			PL_TERM, tmp,
+			PL_INTEGER, r->cycle,
+			PL_INTEGER, r->ticks,
+			PL_INTEGER, r->sibling_ticks,
+			PL_INTEGER, r->calls,
+			PL_INTEGER, r->redos) )
       fail;
   }
 
@@ -523,7 +557,7 @@ unify_relatives(term_t list, prof_ref *r ARG_LD)
 
 
 static
-PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
+PRED_IMPL("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
 { PRED_LD
   Procedure proc;
   Definition def;
@@ -547,9 +581,8 @@ PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
 	 PL_unify_integer(A3, sum.sibling_ticks) &&
 	 PL_unify_integer(A4, sum.calls) &&
 	 PL_unify_integer(A5, sum.redos) &&
-	 PL_unify_integer(A6, sum.recur) &&
-	 unify_relatives(A7, sum.callers PASS_LD) &&
-	 unify_relatives(A8, sum.callees PASS_LD)
+	 unify_relatives(A6, sum.callers PASS_LD) &&
+	 unify_relatives(A7, sum.callees PASS_LD)
        );
 
   free_relatives(sum.callers PASS_LD);
@@ -890,7 +923,7 @@ PRED_IMPL("$profile", 1, profile, PL_FA_TRANSPARENT)
 }
 
 static
-PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
+PRED_IMPL("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
 { return notImplemented("$prof_procedure_data", 7);
 }
 
@@ -906,6 +939,6 @@ BeginPredDefs(profile)
   PRED_DEF("reset_profiler", 0, reset_profiler, 0)
   PRED_DEF("$prof_node", 7, prof_node, 0)
   PRED_DEF("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
-  PRED_DEF("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
+  PRED_DEF("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
   PRED_DEF("$prof_statistics", 4, prof_statistics, 0)
 EndPredDefs
