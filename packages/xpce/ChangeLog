@@ -1,4 +1,15 @@
-[VERSION 4.8.6]
+[VERSION 4.8.8]
+
+* ADDED: `style ->left_margin' and `style ->right_margin'.  Raised the maximum
+  number of arguments to C-defined methods from 10 to 16 for style->initialise.
+
+* FIXED: `editor ->selected_fragment_style' when defining the colour of the
+  characters.
+
+[VERSION 4.8.7]
+
+* FIXED: class -><undefined method> lead to a delegation loop.  Bug introduced
+  with class_stub (4.8.5)
 
 * MODIFIED: Class tree is now a subclass of class figure instead of class
   device.  Allows for use of ->background, ->border and ->pen.  As figure

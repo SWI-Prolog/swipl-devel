@@ -163,7 +163,7 @@ invokeMethod(Method m, Name c, Any receiver, int argc, const Any argv[])
 #ifdef __WINDOWS__
   { static int tick;
 
-    if ( ++tick & 0xf )
+    if ( !(++tick & 0xf) )
       ws_check_intr();			/* check for interrupt */
   }
 #endif
@@ -320,6 +320,9 @@ invokeMethod(Method m, Name c, Any receiver, int argc, const Any argv[])
       case 10:
 	rval = (*f)(rec,av[0],av[1],av[2],av[3],av[4],av[5],av[6],
 		    av[7],av[8],av[9]); break;
+      case 11:
+	rval = (*f)(rec,av[0],av[1],av[2],av[3],av[4],av[5],av[6],
+		    av[7],av[8],av[9],av[10]); break;
       default:
 	rval = FAIL;			/* keep compiler happy */
 	NOTREACHED;

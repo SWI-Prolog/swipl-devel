@@ -16,7 +16,7 @@ if [ ! -d $dir ]; then mkdir $dir; fi
 for d in library boot include; do
     rm -f pl/$d
     (cd pl; ln -s ../../pl/$d .)
-end
+done
 
 if [ ! -r bin/xpce.base ]; then
     ( cd bin; ln -s ../pl/src/xpce.base . )
@@ -32,28 +32,37 @@ tar cvhf - \
 	xpce-$version/pl/src/pl-crt0.o \
 	| $compress > $binout
 	
-if [ "$binonly" != "t"  then
+if [ "$binonly" != "t" ]; then
     tar cvhf - \
 	xpce-$version/INSTALL xpce-$version/README.linux \
 	xpce-$version/licence \
 	xpce-$version/INFO xpce-$version/README \
-	xpce-$version/install xpce-$version/src/{load,xpce}.pl \
-	xpce-$version/include xpce-$version/CXX/demo/{Makefile,README} \
+	xpce-$version/install \
+	xpce-$version/src/load.pl \
+	xpce-$version/src/xpce.pl \
+	xpce-$version/include \
+	xpce-$version/CXX/demo/Makefile \
+	xpce-$version/CXX/demo/README \
 	xpce-$version/CXX/demo/*.C xpce-$version/CXX/demo/*.bm \
 	xpce-$version/STAMP xpce-$version/VERSION xpce-$version/ChangeLog \
-	xpce-$version/src/{unx/client.c,h/interface.h} \
-	xpce-$version/pl/src/{Makefile,mlist,dump} \
+	xpce-$version/src/unx/client.c \
+	xpce-$version/src/h/interface.h \
+	xpce-$version/pl/src/Makefile \
+	xpce-$version/pl/src/mlist \
+	xpce-$version/pl/src/dump \
 	xpce-$version/pl/*.c xpce-$version/prolog/c \
 	xpce-$version/Pce xpce-$version/bitmaps xpce-$version/postscript \
-	xpce-$version/prolog/{boot,lib} \
-	xpce-$version/pl/{load.pl,library,boot,include} \
+	xpce-$version/prolog/lib \
+	xpce-$version/prolog/boot \
+	xpce-$version/pl/load.pl \
+	xpce-$version/pl/library \
+	xpce-$version/pl/boot \
+	xpce-$version/pl/include \
 	xpce-$version/man/reference \
 	xpce-$version/man/info \
 	| $compress > $libout
 fi
 rm xpce-$version
 
-cp xpce/INFO xpce/README.* xpce/INSTALL $dir
-
-rm -f xpce/pl/{library,boot,include}
+rm -f xpce/pl/{library,boot,include,startup}
 

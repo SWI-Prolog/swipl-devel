@@ -518,6 +518,8 @@ struct fragment_cache
   FontObj	font;			/* current (fragment) font */
   Colour	colour;			/* current (fragment) colour */
   Any		background;		/* curremt (fragment) background */
+  int		left_margin;		/* current left margin */
+  int		right_margin;		/* current right margin */
 };
 
 
@@ -549,13 +551,15 @@ resetFragmentCache(FragmentCache fc, TextBuffer tb)
     unalloc(sizeof(struct fragment_cell), c);
   }
 
-  fc->active     = NULL;
-  fc->current    = (isNil(tb) ? NIL : tb->first_fragment);
-  fc->index      = -1;
-  fc->attributes = 0;
-  fc->font	 = DEFAULT;
-  fc->colour	 = DEFAULT;
-  fc->background = DEFAULT;
+  fc->active       = NULL;
+  fc->current      = (isNil(tb) ? NIL : tb->first_fragment);
+  fc->index        = -1;
+  fc->attributes   = 0;
+  fc->font	   = DEFAULT;
+  fc->colour	   = DEFAULT;
+  fc->background   = DEFAULT;
+  fc->left_margin  = 0;
+  fc->right_margin = 0;
 }
 
 
@@ -607,15 +611,20 @@ indexFragmentCache(FragmentCache fc, Editor e, long int i)
   if ( changed )
   { FragmentCell cell;
     FontObj f = DEFAULT;
-    Any bg = DEFAULT;
-    Colour c = DEFAULT;
-    long fl = 0;			/* keep compiler happy */
-    long bgl = 0;
-    long cl = 0;
+    Any bg    = DEFAULT;
+    Colour c  = DEFAULT;
+    long fl   = 0;			/* keep compiler happy */
+    long bgl  = 0;
+    long cl   = 0;
+    int lm    = 0;
+    int rm    = 0;			/* margins */
     ulong attributes = 0L;
 
     for( cell = fc->active; cell; cell = cell->next )
     { Style s = cell->style;
+
+      lm += valInt(s->left_margin);
+      rm += valInt(s->right_margin);
 
       if ( s->attributes & TXT_HIDDEN )
       { Fragment fr = cell->fragment;
@@ -645,10 +654,12 @@ indexFragmentCache(FragmentCache fc, Editor e, long int i)
       }
     }
 
-    fc->font = f;
-    fc->colour = c;
-    fc->background = bg;
-    fc->attributes = attributes;
+    fc->font	     = f;
+    fc->colour       = c;
+    fc->background   = bg;
+    fc->attributes   = attributes;
+    fc->right_margin = rm;
+    fc->left_margin  = lm;
 
     DEBUG(NAME_fragment, printf("---> Font: %s; attributes: 0x%lx\n",
 				pp(f), attributes));
@@ -754,6 +765,8 @@ fetch_editor(Editor e, TextChar tc)
     { tc->attributes |= s->attributes;
       if ( notDefault(s->font) )
 	tc->font = s->font;
+      if ( notDefault(s->colour) )
+	tc->colour = s->colour;
       if ( notDefault(s->background) )
 	tc->background = s->background;
     }
@@ -765,6 +778,15 @@ fetch_editor(Editor e, TextChar tc)
   indexFragmentCache(e->fragment_cache, e, ++index);
 
   return fc->index;
+}
+
+
+static void
+margin_editor(Editor e, int *left, int *right)
+{ FragmentCache fc = e->fragment_cache;
+
+  *left  = fc->left_margin;
+  *right = fc->right_margin;
 }
 
 
@@ -783,6 +805,12 @@ getScanFunctionEditor(Editor e)
 static Int
 getFetchFunctionEditor(Editor e)
 { answer(TextPointerToInt(fetch_editor));
+}
+
+
+static Int
+getMarginFunctionEditor(Editor e)
+{ answer(TextPointerToInt(margin_editor));
 }
 
 
@@ -4174,6 +4202,9 @@ makeClassEditor(Class class)
   getMethod(class, NAME_FetchFunction, NAME_internal, "int", 0,
 	    "Pointer to C-function to fetch char",
 	    getFetchFunctionEditor);
+  getMethod(class, NAME_MarginFunction, NAME_internal, "int", 0,
+	    "Pointer to C-function to fetch margins",
+	    getMarginFunctionEditor);
   getMethod(class, NAME_size, NAME_area, "characters=size", 0,
 	    "Size in character units",
 	    getSizeEditor);

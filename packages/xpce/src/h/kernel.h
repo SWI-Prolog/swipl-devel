@@ -50,6 +50,7 @@
 
 #define PCE_MAX_RECURSION	1000	/* maximum send() recursion */
 #define VA_PCE_MAX_ARGS		10	/* send(), etc. */
+#define METHOD_MAX_ARGS		16	/* maximum # args for C-method */
 #define FWD_PCE_MAX_ARGS	10	/* @arg1 ... @arg10 */
 #define SCAN_MAX_ARGS 		32	/* scanstr maximum arguments */
 #define PCE_MAX_INT		((1 << (32 - TAG_BITS - 1)) - 1)

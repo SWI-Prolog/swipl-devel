@@ -928,7 +928,7 @@ termClass(Class class, char *name, int argc, ...)
 static inline status
 _sendMethod(Class class, Name name, Name group, int argc, va_list args)
 { SendMethod m;
-  Type types[VA_PCE_MAX_ARGS];
+  Type types[METHOD_MAX_ARGS];
   int i;
   SendFunc f;
   Vector tv;
@@ -938,6 +938,7 @@ _sendMethod(Class class, Name name, Name group, int argc, va_list args)
   for(i=0; i<argc; i++)
   { char *type = va_arg(args, char *);
 
+    assert(i < METHOD_MAX_ARGS);
     if ( !(types[i] = CtoType(type)) )
       sysPce("Bad type in sendMethod(): %s->%s: %s",
 	     pp(class->name), pp(name), type);
@@ -1011,7 +1012,7 @@ static inline status
 _getMethod(Class class, Name name, Name group, char *rtype, int argc, va_list args)
 { GetMethod m;
   Type rt;
-  Type types[VA_PCE_MAX_ARGS];
+  Type types[METHOD_MAX_ARGS];
   int i;
   Func f;
   Vector tv;
@@ -1024,6 +1025,7 @@ _getMethod(Class class, Name name, Name group, char *rtype, int argc, va_list ar
   for(i=0; i<argc; i++)
   { char *type = va_arg(args, char *);
 
+    assert(i<METHOD_MAX_ARGS);
     if ( !(types[i] = CtoType(type)) )
       sysPce("Bad type in getMethod(): %s<-%s: %s",
 	     pp(class->name), pp(name), type);

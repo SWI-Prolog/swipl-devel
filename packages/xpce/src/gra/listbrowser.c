@@ -533,6 +533,12 @@ getFetchFunctionListBrowser(ListBrowser lb)
 }
 
 
+static Int
+getMarginFunctionListBrowser(ListBrowser lb)
+{ answer(TextPointerToInt(NULL));
+}
+
+
 		/********************************
 		*            REDRAW		*
 		********************************/
@@ -1504,6 +1510,9 @@ makeClassListBrowser(Class class)
   getMethod(class, NAME_FetchFunction, NAME_internal, "int", 0,
 	    "Pointer to C-function to fetch char",
 	    getFetchFunctionListBrowser);
+  getMethod(class, NAME_MarginFunction, NAME_internal, "int", 0,
+	    "Pointer to C-function to fetch margins",
+	    getMarginFunctionListBrowser);
   getMethod(class, NAME_contains, DEFAULT, "chain", 0,
 	    "Dict visualised",
 	    getContainsListBrowser);

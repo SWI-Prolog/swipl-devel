@@ -19,14 +19,17 @@ static status	hiddenStyle(Style s, Bool on);
 static status
 initialiseStyle(Style s, Image icon, FontObj font, Colour colour,
 		Bool highlight, Bool underline, Bool bold, Bool grey,
-		Any background, Bool hidden)
-{ if ( isDefault(icon) )
-    icon = NIL;
+		Any background, Bool hidden, Int lm, Int rm)
+{ if ( isDefault(icon) ) icon = NIL;
+  if ( isDefault(lm) )   lm = ZERO;
+  if ( isDefault(rm) )   rm = ZERO;
 
-  assign(s, font,       font);
-  assign(s, icon,       icon);
-  assign(s, colour,     colour);
-  assign(s, background, background);
+  assign(s, font,         font);
+  assign(s, icon,         icon);
+  assign(s, colour,       colour);
+  assign(s, background,	  background);
+  assign(s, left_margin,  lm);
+  assign(s, right_margin, rm);
   s->attributes = 0;
 
   if ( notDefault(highlight) ) highlightStyle(s, highlight);
@@ -156,17 +159,22 @@ makeClassStyle(Class class)
 	     "Background for the characters");
   localClass(class, NAME_icon, NAME_appearance, "image*", NAME_both,
 	     "Image for annotation margin");
+  localClass(class, NAME_leftMargin, NAME_appearance, "int", NAME_both,
+	     "Left margin for wrapping (relative to current)");
+  localClass(class, NAME_rightMargin, NAME_appearance, "int", NAME_both,
+	     "Right margin for wrapping (relative to current)");
   localClass(class, NAME_attributes, NAME_appearance, "alien:long", NAME_none,
 	     "Character attributes");
 
   termClass(class, "style", 2, NAME_icon, NAME_font);
   setLoadStoreFunctionClass(class, loadStyle, storeStyle);
 
-  sendMethod(class, NAME_initialise, DEFAULT, 9,
+  sendMethod(class, NAME_initialise, DEFAULT, 11,
 	     "icon=[image]*", "font=[font]", "colour=[colour]",
 	     "highlight=[bool]", "underline=[bool]",
 	     "bold=[bool]", "grey=[bool]",
 	     "background=[colour|pixmap|elevation]", "hidden=[bool]",
+	     "left_margin=[int]", "right_margin=[int]",
 	     "Create from icon, font, colour and attributes",
 	     initialiseStyle);
   sendMethod(class, NAME_highlight, NAME_appearance, 1, "bool",

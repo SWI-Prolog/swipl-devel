@@ -61,6 +61,8 @@ NewClass(style)
   Colour	colour;			/* colour of fragment */
   Any		background;		/* Background for drawing */
   Image		icon;			/* margin marker */
+  Int		left_margin;		/* left margin in pixels */
+  Int		right_margin;		/* right margin in pixels */
   long		attributes;		/* style attributes */
 End;
 
@@ -143,6 +145,7 @@ typedef struct text_line	* TextLine;
 typedef void (*SeekFunction)(Any, long);
 typedef long (*ScanFunction)(Any, long, int, int, int, int *);
 typedef long (*FetchFunction)(Any, TextChar);
+typedef void (*MarginFunction)(Any, int *, int*);
 
 struct text_char
 { int		c;			/* The character at this position */
@@ -195,6 +198,7 @@ NewClass(text_image)			/* TBD: subclass of bitmap? */
   SeekFunction  seek;			/* Seek to position */
   ScanFunction	scan;			/* Scan for character type */
   FetchFunction fetch;			/* Function to fetch characters */
+  MarginFunction margin;		/* Function to fetch margins */
   TextScreen	map;			/* Describes the text object */
 End;
 

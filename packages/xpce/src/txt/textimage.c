@@ -210,9 +210,10 @@ reinitTextImage(TextImage ti)
   ti->change_end   = INFINITE;
   ti->inserted     = 0;
 
-  ti->seek  = (SeekFunction) IntToTextPointer(get(obj, NAME_SeekFunction, 0));
-  ti->scan  = (ScanFunction) IntToTextPointer(get(obj, NAME_ScanFunction, 0));
-  ti->fetch = (FetchFunction)IntToTextPointer(get(obj, NAME_FetchFunction,0));
+  ti->seek   = (SeekFunction) IntToTextPointer(get(obj, NAME_SeekFunction, 0));
+  ti->scan   = (ScanFunction) IntToTextPointer(get(obj, NAME_ScanFunction, 0));
+  ti->fetch  = (FetchFunction)IntToTextPointer(get(obj, NAME_FetchFunction,0));
+  ti->margin = (MarginFunction)IntToTextPointer(get(obj,NAME_MarginFunction,0));
   if ( !ti->seek || !ti->scan || !ti->fetch )
     return errorPce(ti, NAME_noFetchFunction, obj);
   DEBUG(NAME_SeekFunction, printf("ti->seek = 0x%lx\n", (ulong) ti->seek));
@@ -377,14 +378,23 @@ do_fill_line(TextImage ti, TextLine l, long int index)
 { short last_break = -1;
   int last_is_space = FALSE;
   TextChar tc;
-  short x = TXT_X_MARGIN;  
-  int i;
+  int x, i, left_margin, right_margin;  
   long start;
 
   l->ends_because = 0;
   start = l->start = index;
 
   (*ti->seek)(ti->text, index);
+  if ( ti->margin )
+    (*ti->margin)(ti->text, &left_margin, &right_margin);
+  else
+    left_margin = right_margin = 0;
+
+  x = TXT_X_MARGIN + left_margin;
+  if ( right_margin < 0 )
+    right_margin = ti->w - TXT_X_MARGIN;
+  else
+    right_margin = ti->w - TXT_X_MARGIN - right_margin;
 
   for( i = 0, tc = l->chars; ; i++, tc++)
   { if ( l->allocated <= i )
@@ -393,6 +403,7 @@ do_fill_line(TextImage ti, TextLine l, long int index)
     }
 
     index = (*ti->fetch)(ti->text, tc);
+    assert(index > 0);
     tc->index -= start;
     tc->x = x;
 
@@ -429,7 +440,7 @@ do_fill_line(TextImage ti, TextLine l, long int index)
 	break;
     }
     
-    if ( x >= ti->w - TXT_X_MARGIN )
+    if ( x >= right_margin )
     { l->ends_because |= END_WRAP;
 
       if ( ti->wrap == NAME_none )
@@ -489,7 +500,7 @@ fill_line(TextImage ti, int line, long int index, short int y)
   ensure_lines_screen(ti->map, line+1);
   l = &ti->map->lines[line];
 
-  if ( l->start == index &&
+  if ( l->start == index && l->changed < 0 &&
        (l->end < ti->change_start || l->start >= ti->change_end) )
   { if ( l->y != y )
     { l->y = y;
@@ -1143,8 +1154,16 @@ computeTextImage(TextImage ti)
 
     ml = &ti->map->lines[ti->map->skip];
     for(line = 0; line < ti->map->length; line++, ml++)
-    { if ( ml->changed >= 0 )
-      { int cx, cy = ml->y + ml->h;
+    { int cy = ml->y + ml->h;
+
+      if ( cy > ti->h - TXT_Y_MARGIN )
+      { if ( fy != ty )
+	  ty = cy;
+	break;
+      }
+	
+      if ( ml->changed >= 0 )
+      { int cx;
 
 	if ( line == ti->map->length - 1 ) /* last line */
 	  cy = ti->h - valInt(ti->pen);
@@ -1542,8 +1561,12 @@ makeClassTextImage(Class class)
 	     "C-Function to seek to a position");
   localClass(class, NAME_scan, NAME_internal, "alien:ScanFunction", NAME_none,
 	     "C-Function to scan for a syntactical category");
-  localClass(class, NAME_fetch, NAME_internal, "alien:FetchFunction", NAME_none,
+  localClass(class, NAME_fetch, NAME_internal,
+	     "alien:FetchFunction", NAME_none,
 	     "C-function to fetch next character from source");
+  localClass(class, NAME_MarginFunction, NAME_internal,
+	     "alien:MarginFunction", NAME_none,
+	     "C-function to fetch margins from source");
   localClass(class, NAME_map, NAME_cache, "alien:TextScreen", NAME_none,
 	     "2-dimensional map of source");
 
