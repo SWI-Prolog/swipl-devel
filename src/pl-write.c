@@ -455,6 +455,61 @@ unquoted:
 }
 
 
+#if O_STRING
+
+static inline int
+get_chr_from_text(const PL_chars_t *t, int index)
+{ switch(t->encoding)
+  { case ENC_ISO_LATIN_1:
+      return t->text.t[index]&0xff;
+    case ENC_WCHAR:
+      return t->text.w[index];
+    default:
+      assert(0);
+  }
+}
+
+
+static int
+writeString(term_t t, write_options *options)
+{ PL_chars_t txt;
+
+  PL_get_text(t, &txt, CVT_STRING);
+  
+  if ( true(options, PL_WRT_QUOTED) )
+  { int quote;
+    int i;
+
+    if ( true(options, PL_WRT_BACKQUOTED_STRING) )
+      quote = '`';
+    else
+      quote = '"';
+      
+    TRY(Putc(quote, options->out));
+
+    for(i=0; i<txt.length; i++)
+    { int chr = get_chr_from_text(&txt, i);
+
+      TRY(putQuoted(chr, quote, options->flags, options->out));
+    }
+
+    return Putc(quote, options->out);
+  } else
+  { int i;
+
+    for(i=0; i<txt.length; i++)
+    { int chr = get_chr_from_text(&txt, i);
+
+      TRY(Putc(chr, options->out));
+    }
+  }
+
+  succeed;
+}
+
+#endif /*O_STRING*/
+
+
 
 #if !defined(HAVE_ISNAN) && defined(NaN)
 #define isnan(f)  ((f) == NaN)
@@ -464,9 +519,7 @@ unquoted:
 static bool
 writePrimitive(term_t t, write_options *options)
 { double f;
-  char *s;
   atom_t a;
-  unsigned int n;
   char buf[16];
   IOSTREAM *out = options->out;
 
@@ -533,19 +586,8 @@ writePrimitive(term_t t, write_options *options)
   }
 
 #if O_STRING
-  if ( PL_get_string(t, &s, &n) )
-  { if ( true(options, PL_WRT_QUOTED) )
-    { int q;
-
-      if ( true(options, PL_WRT_BACKQUOTED_STRING) )
-	q = '`';
-      else
-	q = '"';
-      
-      return writeQuoted(out, s, n, q, options);
-    } else
-      return PutStringN(s, n, out);
-  }
+  if ( PL_is_string(t) )
+    return writeString(t, options);
 #endif /* O_STRING */
 
   assert(0);

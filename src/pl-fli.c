@@ -745,8 +745,12 @@ PL_get_string(term_t t, char **s, unsigned int *len)
   word w = valHandle(t);
 
   if ( isString(w) )
-  { *s = getCharsString(w, len);
-    succeed;
+  { char *tmp = getCharsString(w, len);
+
+    if ( tmp )
+    { *s = tmp;
+      succeed;
+    }					/* fails on wide-character string */
   }
   fail;
 }

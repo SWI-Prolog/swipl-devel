@@ -900,9 +900,12 @@ getCharsString__LD(word w, unsigned *len ARG_LD)
     *len = wn*sizeof(word) - pad - 1;	/* -1 for the 'B' */
   
   s = (char *)&p[1];
-  assert(*s == 'B');
-  
-  return s+1;
+
+  if ( *s == 'B' )
+    return s+1;
+
+  assert(*s == 'W');
+  return NULL;
 }
 
 

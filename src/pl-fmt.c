@@ -270,7 +270,7 @@ pl_format3(term_t stream, term_t format, term_t Args)
     fail;
 
   if ( !PL_get_text(format, &fmt, CVT_ALL|BUF_RING) )
-    return PL_error("format", 3, NULL, ERR_TYPE, ATOM_text, fmt);
+    return PL_error("format", 3, NULL, ERR_TYPE, ATOM_text, format);
 
   if ( (argc = lengthList(args, FALSE)) >= 0 )
   { term_t head = PL_new_term_ref();

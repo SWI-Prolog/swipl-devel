@@ -2769,29 +2769,32 @@ pl_write_on_string(term_t goal, term_t target)
 { char buf[1024];
   char *str = buf;
   int size = sizeof(buf);
-  IOSTREAM *fd = Sopenmem(&str, &size, "w");
-  term_t tmp = PL_new_term_ref();
   int rval;
   term_t ex = 0;
 
-  pushOutputContext();
-  Scurout = fd;
+  tellString(&str, &size, ENC_UTF8);
   rval = callProlog(MODULE_user, goal,
 		    PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION, &ex);
+  toldString();
+  
   if ( rval )
-  { Sflush(fd);
-    PL_put_string_nchars(tmp, size, str);
+  { PL_chars_t txt;
+
+    txt.text.t	  = str;
+    txt.length    = size;
+    txt.encoding  = ENC_UTF8;
+    txt.storage   = PL_CHARS_HEAP;
+    txt.canonical = FALSE;
+
+    rval = PL_unify_text(target, &txt, PL_STRING);
+  } else if ( ex )
+  { rval = PL_raise_exception(ex);
   }
-  Sclose(fd);
+
   if ( str != buf )
     free(str);
-  popOutputContext();
-
-  if ( rval )
-    return PL_unify(target, tmp);
-  if ( ex )
-    return PL_raise_exception(ex);
-  fail;
+  
+  return rval;
 }
 
 
