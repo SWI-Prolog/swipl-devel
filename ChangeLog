@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: PL_cons_functor_v() to read before writing, so it can overwrite
+    one of the input term-references like similar functions.
+
+  * FIXED: Summary description of subset/2.
+
   * FIXED: Actually look for pl.ini in the Prolog home directory (Windows
     version).
 
@@ -55,7 +60,7 @@ VERSION 3.3.1
 
   * FIXED: Portability problem for PPC chip (and possibly others) in
     PL_unify_term(), causing crashes at various places on affected
-    processors.  The new implementation is propably a litle faster too.
+    processors.  The new implementation is probably a litle faster too.
     With help of Paulo Moura.
 
   * FIXED: a few type conversions for the 64-bit versions. Just making
@@ -109,7 +114,7 @@ VERSION 3.3.0 (release-12)
 ==========================
 
   * PORT: MT version: provided support for systems lacking recursive
-    (UNIX98) mutexes, amoung with Solaris 2.5.  With patch received
+    (UNIX98) mutexes, amoung which Solaris 2.5.  With patch received
     from Frank Cornelissen.  Thanks!
 
 VERSION 3.3.0 (release-11)
