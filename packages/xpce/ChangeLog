@@ -1,3 +1,10 @@
+* ADDED: Mode help for Prolog mode in PceEmacs
+
+* FIXED: Some problems in `text_buffer<-skip_comment', operating backwards.
+
+* ENHANCED: Various Prolog Mode layout problems if there is comment in the
+  clause. 
+
 VERSION 5.1.1
 =============
 
