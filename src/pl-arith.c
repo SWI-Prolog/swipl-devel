@@ -273,37 +273,37 @@ compareNumbers(term_t n1, term_t n2, int what ARG_LD)
 }
 
 static
-PRED_IMPL("<", 2, lt, 0)
+PRED_IMPL("<", 2, lt, PL_FA_TRANSPARENT)
 { PRED_LD
   return compareNumbers(A1, A2, LT PASS_LD);
 }
 
 static
-PRED_IMPL(">", 2, gt, 0)
+PRED_IMPL(">", 2, gt, PL_FA_TRANSPARENT)
 { PRED_LD
   return compareNumbers(A1, A2, GT PASS_LD);
 }
 
 static
-PRED_IMPL("=<", 2, leq, 0)
+PRED_IMPL("=<", 2, leq, PL_FA_TRANSPARENT)
 { PRED_LD
   return compareNumbers(A1, A2, LE PASS_LD);
 }
 
 static
-PRED_IMPL(">=", 2, geq, 0)
+PRED_IMPL(">=", 2, geq, PL_FA_TRANSPARENT)
 { PRED_LD
   return compareNumbers(A1, A2, GE PASS_LD);
 }
 
 static
-PRED_IMPL("=\\=", 2, neq, 0)
+PRED_IMPL("=\\=", 2, neq, PL_FA_TRANSPARENT)
 { PRED_LD
   return compareNumbers(A1, A2, NE PASS_LD);
 }
 
 static
-PRED_IMPL("=:=", 2, eq, 0)
+PRED_IMPL("=:=", 2, eq, PL_FA_TRANSPARENT)
 { PRED_LD
   return compareNumbers(A1, A2, EQ PASS_LD);
 }
@@ -1134,7 +1134,7 @@ ar_cputime(Number r)
 		*********************************/
 
 static
-PRED_IMPL("is", 2, is, 0)		/* -Value is +Expr */
+PRED_IMPL("is", 2, is, PL_FA_TRANSPARENT)	/* -Value is +Expr */
 { PRED_LD
   number arg;
 
@@ -1509,11 +1509,11 @@ ar_func_n(code n, int argc, Number *stack)
 		 *******************************/
 
 BeginPredDefs(arith)
-  PRED_DEF("is", 2, is, 0)
-  PRED_DEF("<", 2, lt, 0)
-  PRED_DEF(">", 2, gt, 0)
-  PRED_DEF("=<", 2, leq, 0)
-  PRED_DEF(">=", 2, geq, 0)
-  PRED_DEF("=\\=", 2, neq, 0)
-  PRED_DEF("=:=", 2, eq, 0)
+  PRED_DEF("is",   2, is,  PL_FA_TRANSPARENT)
+  PRED_DEF("<",	   2, lt,  PL_FA_TRANSPARENT)
+  PRED_DEF(">",	   2, gt,  PL_FA_TRANSPARENT)
+  PRED_DEF("=<",   2, leq, PL_FA_TRANSPARENT)
+  PRED_DEF(">=",   2, geq, PL_FA_TRANSPARENT)
+  PRED_DEF("=\\=", 2, neq, PL_FA_TRANSPARENT)
+  PRED_DEF("=:=",  2, eq,  PL_FA_TRANSPARENT)
 EndPredDefs

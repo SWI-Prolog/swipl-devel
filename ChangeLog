@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: module-transparency of is/2, etc to make arithmetic function
+    declarations work again.  Steve Moyle.
+
   * ADDED: edit/0 to edit the default script- (-s file) or associated file.
 
   * LIBRARY: make read_line_to_codes return the atom end_of_file upon reaching
@@ -11,6 +14,10 @@
 
   * FIXED: preserve exceptions with the GUI-tracer over callbacks to the
     tracer.
+
+
+VERSION 5.1.0 (Oct 26, 2002)
+============================
 
   * FIXED: call_cleanup/3 when called directly from PL_next_solution()
     or tail-recursively from the initial goal.
