@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: possible deadlock when there are Prolog threads created using
+    PL_thread_attach_engine() (Unix implementation).
+
   * PORT: Cleanup windows makefiles for make clean and make distclean
 
   * ADDED: PL_action(PL_ACTION_ATTACH_CONSOLE) to simplify attaching a

@@ -22,7 +22,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-/*#define O_DEBUG 1*/
+#define O_DEBUG 1
 #include "pl-incl.h"
 #include <stdio.h>
 #ifdef O_PLMT
@@ -1944,9 +1944,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
 
   PL_initialise_thread(info); 
   info->tid = pthread_self();		/* we are complete now */
-#ifdef WIN32
-  info->w32id = GetCurrentThreadId();
-#endif
+  set_system_thread_id(info);
   if ( attr && attr->alias )
     aliasThread(info->pl_tid, PL_new_atom(attr->alias));
 
@@ -2262,39 +2260,23 @@ resumeThreads(void)
 
 static void
 doThreadLocalData(int sig)
-{ PL_thread_info_t *t;
-#ifdef __linux__
-  pid_t me = getpid();
-#else
-  pthread_t me = pthread_self();
-#endif
-  int i;
+{ PL_local_data_t *ld = LD;	/* assumes pthread_getspecific() works */
+				/* in a signal handler */
 
-  for(t=threads, i=0; i<MAX_THREADS; i++, t++)
-  {
-#ifdef __linux__
-    if ( t->pid == me )
-#else
-    if ( t->tid == me )
-#endif
-    { PL_local_data_t *ld = t->thread_data;
+  (*ldata_function)(ld);
 
-      (*ldata_function)(ld);
+  if ( ld->thread.forall_flags & PL_THREAD_SUSPEND_AFTER_WORK )
+  { PL_thread_info_t *info = ld->thread.info;
+    info->status = PL_THREAD_SUSPENDED;
 
-      if ( ld->thread.forall_flags & PL_THREAD_SUSPEND_AFTER_WORK )
-      { t->status = PL_THREAD_SUSPENDED;
-
-	DEBUG(1, Sdprintf("\n\tDone work on %d; suspending ...", t-threads));
-
-	sem_post(&sem_mark);
-	wait_resume(t);
-      } else
-      {	DEBUG(1, Sdprintf("\n\tDone work on %d", t-threads));
-	sem_post(&sem_mark);
-      }
-
-      break;
-    }
+    DEBUG(1, Sdprintf("\n\tDone work on %d; suspending ...",
+		      PL_thread_self()));
+    
+    sem_post(&sem_mark);
+    wait_resume(info);
+  } else
+  { DEBUG(1, Sdprintf("\n\tDone work on %d", PL_thread_self()));
+    sem_post(&sem_mark);
   }
 }
 
