@@ -51,7 +51,7 @@ status		EnterRedrawAreaDevice(Device dev, Area a, DeviceDrawContext ctx);
 void		ExitRedrawAreaDevice(Device dev, Area a, DeviceDrawContext ctx);
 status		RedrawAreaDevice(Device dev, Area a);
 status		flashDevice(Device dev, Area a, Int time);
-status		clearDevice(Device dev);
+status		clearDevice(Device dev, Name how);
 status		displayDevice(Any Dev, Any Gr, Point pos);
 status		appendDevice(Device dev, Graphical gr);
 status		subGraphical(Graphical gr, Graphical sub);

@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: optional argument to `device->clear' to force destruction of the
+  erased objects.
+
+
 VERSION 6.1.2, distributed with SWI-Prolog 5.1.2
 ================================================
 

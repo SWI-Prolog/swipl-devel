@@ -86,7 +86,7 @@ rootTree(Tree t, Node root, Bool relink)
       clearFlag(t, F_FREEING);
       assign(t, root, NIL);
       assign(t, displayRoot, NIL);
-      clearDevice((Device)t);
+     clearDevice((Device)t, NAME_erase);
     }
   } else
   { if ( notNil(t->root) )

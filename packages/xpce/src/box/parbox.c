@@ -65,7 +65,7 @@ static status
 clearParBox(ParBox pb)
 { clearVector(pb->content);
   
-  return clearDevice((Device)pb);
+  return clearDevice((Device)pb, NAME_erase);
 }
 
 

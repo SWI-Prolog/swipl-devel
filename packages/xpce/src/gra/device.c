@@ -739,11 +739,19 @@ flashDevice(Device dev, Area a, Int time)
 
 
 status
-clearDevice(Device dev)
+clearDevice(Device dev, Name how)
 { Chain ch = dev->graphicals;
 
-  while( !emptyChain(ch) )
-    eraseDevice(dev, getHeadChain(ch));
+  if ( how == NAME_destroy )
+  { while( !emptyChain(ch) )
+      qadSendv(getHeadChain(ch), NAME_destroy, 0, NULL);
+  } else if ( how == NAME_free )
+  { while( !emptyChain(ch) )
+      qadSendv(getHeadChain(ch), NAME_free, 0, NULL);
+  } else /* if ( how == NAME_erase ) */
+  { while( !emptyChain(ch) )
+      eraseDevice(dev, getHeadChain(ch));
+  }
 
   succeed;
 }
@@ -2286,7 +2294,7 @@ static senddecl send_device[] =
      NAME_layout, "Test if no graphicals are in area"),
   SM(NAME_appendDialogItem, 2, T_appendDialogItem, appendDialogItemDevice,
      NAME_organisation, "Append dialog_item {below,right,next_row} last"),
-  SM(NAME_clear, 0, NULL, clearDevice,
+  SM(NAME_clear, 1, "[{destroy,free,erase}]", clearDevice,
      NAME_organisation, "Erase all graphicals"),
   SM(NAME_display, 2, T_display, displayDevice,
      NAME_organisation, "Display graphical at point"),
