@@ -3298,7 +3298,7 @@ extendSearchStringToWordEditor(Editor e)
   end = getScanTextBuffer(tb, end, NAME_word, ZERO, NAME_end);
 
   assign(e, search_string, getContentsTextBuffer(tb, start, sub(end, start)));
-  selection_editor(e, start, end, DEFAULT);
+  selection_editor(e, start, end, NAME_highlight);
   return ensureVisibleEditor(e, start, end);
 }
 
@@ -3874,7 +3874,12 @@ static status
 selection_editor(Editor e, Int from, Int to, Name status)
 { if ( isDefault(from) )   from   = e->mark;
   if ( isDefault(to) )     to     = e->caret;
-  if ( isDefault(status) ) status = e->mark_status;
+  if ( isDefault(status) )
+  { if ( e->mark_status == NAME_highlight )
+      status = NAME_inactive;
+    else
+      status = e->mark_status;
+  }
 
   from = normalise_index(e, from);
   to   = normalise_index(e, to);
