@@ -32,7 +32,7 @@ all:	$(DVI)
 pdf:	$(PDF)
 ps:	$(PS)
 
-epsimages=	$(shell find . -name *.eps)
+epsimages=	$(shell find . -name '*.eps')
 pdfimages=	$(epsimages:.eps=.pdf)
 
 pdfimg:	$(pdfimages)
