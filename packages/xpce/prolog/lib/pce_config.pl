@@ -258,6 +258,10 @@ save_config(Spec) :-
 	;   true
 	),
 	save_file(Key, File),
+	catch(save_config(File, M), E,
+	      print_message(warning, E)).
+
+save_config(File, M) :-
 	open(File, write, Fd),
 	save_config_header(Fd, M),
 	save_config_body(Fd, M),
@@ -290,15 +294,17 @@ save_config_key(Fd, Key) :-
 	),
 	fail.
 save_config_key(Fd, Key) :-
-	get_config_term(Key, Value, _Type), !,
 	strip_module(Key, _, Path),
-	(   (   config_attribute(Key, default(Value0))
-	    ->	Value = Value0
-	    )
-	->  format(Fd, '%~q = ~t~32|~q.~n', [Path, Value])
-	;   format(Fd, '~q = ~t~32|~q.~n',  [Path, Value])
+	(   get_config_term(Key, Value, _Type),
+	    (   (   config_attribute(Key, default(Value0))
+		->  Value == Value0
+		)
+	    ->  format(Fd, '%~q = ~t~32|~q.~n', [Path, Value])
+	    ;   format(Fd, '~q = ~t~32|~q.~n',  [Path, Value])
+	    ),
+	    fail
+	;   true
 	).
-save_config_key(_,_).
 
 format_comment([], _).
 format_comment([H|T], Fd) :-
@@ -347,6 +353,10 @@ load_key(DB, Key) :-
 
 load_config(Spec) :-
 	strip_module(Spec, M, Key),
+	catch(pce_config:load_config(M, Key), E,
+	      print_message(warning, E)).
+
+load_config(M, Key) :-
 	load_key(M, Key),
 	load_file(Key, File), !,
 	open(File, read, Fd),
@@ -355,10 +365,9 @@ load_config(Spec) :-
 	load_config_keys(M, Bindings),
 	set_config_(M, config/file, File, file),
 	clear_modified(M).
-load_config(Spec) :-			% no config file, use defaults
+load_config(M, Spec) :-			% no config file, use defaults
 	strip_module(Spec, M, Key),
 	load_key(M, Key),
-%	load_config_keys(M, []),
 	set_config_(M, config/file, Key, file),
 	clear_modified(M).		% or not, so we save first time?
 
@@ -381,12 +390,13 @@ load_config_keys(DB, Bindings) :-
 load_config_key(Key, Bindings) :-
 	strip_module(Key, DB, Path),
 	config_attribute(Key, type(Type)),
-	(   memberchk(Path=Value, Bindings)
-	->  set_config_term(DB, Path, Value, Type)
+	(   member(Path=Value, Bindings)
+	*-> set_config_term(DB, Path, Value, Type),
+	    fail
 	;   config_attribute(Key, default(Value))
 	->  set_config_term(DB, Path, Value, Type)
-	;   true
-	).
+	), !.
+load_config_key(_, _).
 	
 
 		 /*******************************
