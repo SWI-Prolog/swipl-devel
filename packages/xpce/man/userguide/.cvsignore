@@ -1,1 +1,10 @@
+*.ind
+*.idx
+*.ilg
+*.out
+*.toc
+*.log
+*.tex
+*.aux
 *.pdf
+figs/class
