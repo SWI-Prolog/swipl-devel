@@ -3382,6 +3382,8 @@ static status
 dabbrevExpandEditor(Editor e)
 { Name target;
 
+  MustBeEditable(e);
+
   TRY( target = get_dabbrev_target(e) );
   assign(e, dabbrev_target, target);
   DEBUG(NAME_editor, Cprintf("dabbrev target = %s\n", pp(target)));
