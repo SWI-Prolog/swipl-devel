@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: GC bug related to destructive assignment in setarg/3 and GC
+    bug related to new choicepoint handling (since 3.3.6).
+
+  * ADDED: plld: if the default linker is the C-compiler and there are
+    C++ files, make the default linker the C++ compiler.
+
   * ADDED: PL_same_compound( to test whether two compound terms are
     the same term. 
 
