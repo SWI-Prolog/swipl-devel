@@ -2315,3 +2315,5 @@
 #define NAME_yref (&builtin_names[2314])
 #define NAME_yrefVar (&builtin_names[2315])
 #define NAME_zoom (&builtin_names[2316])
+#define NAME_bezier (&builtin_names[2317])
+#define NAME_bezierCurve (&builtin_names[2318])

@@ -328,3 +328,6 @@ void		r_3d_rectangular_polygon(int n, IPoint pts, Elevation e, int flags);
 
 /* ../src/gra/colourmap.c */
 status		makeClassColourMap(Class class);
+
+/* ../src/gra/bezier.c */
+status		makeClassBezier(Class class);

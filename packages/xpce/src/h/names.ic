@@ -2315,3 +2315,5 @@
   BUILTIN_NAME("yref")
   BUILTIN_NAME("yref_var")
   BUILTIN_NAME("zoom")
+  BUILTIN_NAME("bezier")
+  BUILTIN_NAME("bezier_curve")

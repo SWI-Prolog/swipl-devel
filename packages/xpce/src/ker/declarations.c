@@ -323,6 +323,9 @@ static struct class_definition classdefs[] =
   { NAME_path, NAME_joint, makeClassPath,
     &ClassPath, "(Smooth) line through chain of points" },
 
+  { NAME_bezierCurve, NAME_joint, makeClassBezier,
+    &ClassBezier, "Bezier curve" },
+
   { NAME_pce, NAME_object, makeClassPce,
     &ClassPce, "Environment control" },
 

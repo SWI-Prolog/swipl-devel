@@ -205,7 +205,6 @@ computeBoundingBoxPath(Path p)
   Chain points = (p->kind == NAME_smooth ? p->interpolation : p->points);
   int minx = 1000000, miny = 1000000, maxx = -1000000, maxy = -10000000;
 
-  clearArea(p->area);
   for_cell(cell, points)
   { Point p = cell->value;
     int px = valInt(p->x);

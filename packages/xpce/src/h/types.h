@@ -266,6 +266,7 @@ PUBLIC_GLOBAL Class ClassBinaryCondition;
 PUBLIC_GLOBAL Class ClassBinaryExpression;
 PUBLIC_GLOBAL Class ClassAssign;
 PUBLIC_GLOBAL Class ClassAssoc;
+PUBLIC_GLOBAL Class ClassBezier;
 PUBLIC_GLOBAL Class ClassBinding;
 PUBLIC_GLOBAL Class ClassBitmap;
 PUBLIC_GLOBAL Class ClassBlock;
