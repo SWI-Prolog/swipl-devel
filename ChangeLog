@@ -2,6 +2,9 @@
 			====================
 
 
+  * FIXED: More graceful handling if a thread cannot be created due to
+    lack of virtual memory (Wouter Jansweijer).
+
   * ADDED: first implementation of thread-local-predicates
 
   * REORGANISED: introduced abstraction between procedures and their

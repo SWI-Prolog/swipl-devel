@@ -48,7 +48,7 @@ access.   Finally  it holds the code to handle signals transparently for
 foreign language code or packages with which Prolog was linked together.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static   void allocStacks(long local, long global, long trail, long argument);
+static   int allocStacks(long local, long global, long trail, long argument);
 forwards void initSignals(void);
 
 #undef I
@@ -81,10 +81,11 @@ setupProlog(void)
     initSignals();
 #endif
   DEBUG(1, Sdprintf("Stacks ...\n"));
-  initPrologStacks(GD->options.localSize, 
-		   GD->options.globalSize, 
-		   GD->options.trailSize, 
-		   GD->options.argumentSize);
+  if ( !initPrologStacks(GD->options.localSize, 
+			 GD->options.globalSize, 
+			 GD->options.trailSize, 
+			 GD->options.argumentSize) )
+    fatalError("Not enough address space to allocate Prolog stacks");
   initPrologLocalData();
 
   DEBUG(1, Sdprintf("Atoms ...\n"));
@@ -866,7 +867,8 @@ initPrologStacks(long local, long global, long trail, long argument)
   enforce_limit(&trail,	   maxarea, "trail");
   enforce_limit(&argument, 16 MB,   "argument");
 
-  allocStacks(local, global, trail, argument);
+  if ( !allocStacks(local, global, trail, argument) )
+    fail;
 
   base_addresses[STG_LOCAL]  = (unsigned long)lBase;
   base_addresses[STG_GLOBAL] = (unsigned long)gBase;
@@ -880,7 +882,7 @@ initPrologStacks(long local, long global, long trail, long argument)
   DEBUG(1, Sdprintf("base_addresses[STG_TRAIL] = %p\n",
 		    base_addresses[STG_TRAIL]));
 
-  return TRUE;
+  succeed;
 }
 
 
@@ -1125,7 +1127,7 @@ unmap(Stack s)
 
 /* mmap() version */
 
-static void
+static int
 allocStacks(long local, long global, long trail, long argument)
 { caddress lbase, gbase, tbase, abase;
   long glsize;
@@ -1164,8 +1166,15 @@ allocStacks(long local, long global, long trail, long argument)
   lbase = addPointer(gbase, global + tsep);
 
   if ( tbase == MAP_FAILED || abase == MAP_FAILED || gbase == MAP_FAILED )
-    fatalError("Failed to allocate stacks for %d bytes: %s",
-	       trail+argument+glsize, OsError());
+  { if ( tbase != MAP_FAILED )
+      munmap(tbase, trail+tsep);
+    if ( abase != MAP_FAILED )
+      munmap(abase, argument+tsep);
+    if ( gbase != MAP_FAILED )
+      munmap(gbase, glsize);
+
+    fail;
+  }
 
   /*
   Sdprintf("Mapped:\n"
@@ -1188,6 +1197,8 @@ allocStacks(long local, long global, long trail, long argument)
 #ifndef NO_SEGV_HANDLING
   set_stack_guard_handler(SIGSEGV, _PL_segv_handler);
 #endif
+  
+  succeed;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1301,7 +1312,7 @@ unmap(Stack s)
 
 /* Windows VirtualAlloc() version */
 
-static void
+static int
 allocStacks(long local, long global, long trail, long argument)
 { caddress lbase, gbase, tbase, abase;
   long glsize;
@@ -1339,8 +1350,15 @@ allocStacks(long local, long global, long trail, long argument)
   lbase = addPointer(gbase, global + tsep);
 
   if ( !tbase || !abase || !gbase )
-    fatalError("Failed to allocate stacks for %d bytes: %d",
-	       trail+argument+glsize, GetLastError());
+  { if ( !tbase )
+      VirtualFree(tbase, 0, MEM_RELEASE);
+    if ( !abase )
+      VirtualFree(abase, 0, MEM_RELEASE);
+    if ( !gbase )
+      VirtualFree(gbase, 0, MEM_RELEASE);
+
+    fail;
+  }
 
 #define INIT_STACK(name, print, base, limit, minsize) \
   DEBUG(1, Sdprintf("%s stack at 0x%x; size = %ld\n", print, base, limit)); \
@@ -1355,6 +1373,8 @@ allocStacks(long local, long global, long trail, long argument)
 #ifndef NO_SEGV_HANDLING
   set_stack_guard_handler(SIGSEGV, _PL_segv_handler);
 #endif
+
+  succeed;
 }
 
 
@@ -1581,7 +1601,7 @@ init_stack(Stack s, char *name, long size, long limit, long minfree)
 
 /* malloc() version */
 
-static void
+static int
 allocStacks(long local, long global, long trail, long argument)
 { long old_heap = GD->statistics.heap;
   long minglobal   = 25*SIZEOF_LONG K;
@@ -1604,12 +1624,12 @@ allocStacks(long local, long global, long trail, long argument)
   trail    = max(trail,    mintrail);
   argument = max(argument, minargument);
 
-  gBase = (Word) malloc(iglobal + sizeof(word) +
+  gBase = (Word) PL_malloc(iglobal + sizeof(word) +
 			ilocal + sizeof(struct localFrame) +
 			MAXARITY * sizeof(word));
   lBase = (LocalFrame)	addPointer(gBase, iglobal+sizeof(word));
-  tBase = (TrailEntry)	malloc(itrail);
-  aBase = (Word *)	malloc(argument);
+  tBase = (TrailEntry)	PL_malloc(itrail);
+  aBase = (Word *)	PL_malloc(argument);
 
   init_stack((Stack)&LD->stacks.global,
 	     "global",   iglobal, global,  minglobal);
@@ -1621,14 +1641,16 @@ allocStacks(long local, long global, long trail, long argument)
 	     "argument", argument, argument, minargument);
 
   GD->statistics.heap = old_heap;
+
+  succeed;
 }
 
 
 void
 freeStacks(PL_local_data_t *ld)
-{ free(ld->stacks.global.base);
-  free(ld->stacks.trail.base);
-  free(ld->stacks.argument.base);
+{ PL_free(ld->stacks.global.base);
+  PL_free(ld->stacks.trail.base);
+  PL_free(ld->stacks.argument.base);
 }
 
 

@@ -327,10 +327,11 @@ initialise_thread(PL_thread_info_t *info)
   if ( !info->trail_size    ) info->trail_size    = GD->options.trailSize;
   if ( !info->argument_size ) info->argument_size = GD->options.argumentSize;
 
-  initPrologStacks(info->local_size,
-		   info->global_size,
-		   info->trail_size,
-		   info->argument_size);
+  if ( !initPrologStacks(info->local_size,
+			 info->global_size,
+			 info->trail_size,
+			 info->argument_size) )
+    fail;
 
   initPrologLocalData();
 #ifdef WIN32				/* For signals.  Do this always? */
@@ -707,22 +708,25 @@ start_thread(void *closure)
   term_t ex, goal;
   int rval;
 
-  pthread_cleanup_push(free_prolog_thread, info->thread_data);
-
   blockSignal(SIGINT);			/* only the main thread processes */
 					/* Control-C */
   LOCK();
   info->status = PL_THREAD_RUNNING;
   UNLOCK();
 
-  initialise_thread(info);
+  if ( !initialise_thread(info) )
+  { info->status = PL_THREAD_NOMEM;
+    return (void *)TRUE;
+  }
+    
   set_system_thread_id(info);
 
   pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
   pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
 
+  pthread_cleanup_push(free_prolog_thread, info->thread_data);
+
   goal = PL_new_term_ref();
-  
   PL_recorded(info->goal, goal);
   rval  = callProlog(info->module, goal, PL_Q_CATCH_EXCEPTION, &ex);
 
@@ -899,6 +903,14 @@ unify_thread_status(term_t status, PL_thread_info_t *info)
       return PL_unify_term(status,
 			   PL_FUNCTOR, FUNCTOR_exception1,
 			     PL_TERM, tmp);
+    }
+    case PL_THREAD_NOMEM:
+    { return PL_unify_term(status,
+			   PL_FUNCTOR, FUNCTOR_exception1,
+			     PL_FUNCTOR, FUNCTOR_error2,
+			       PL_FUNCTOR, FUNCTOR_resource_error1,
+			         PL_CHARS, "virtual_memory",
+			       PL_VARIABLE);
     }
     case PL_THREAD_CANCELED:
       return PL_unify_atom(status, ATOM_canceled);
@@ -2168,7 +2180,11 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
     PL_UNLOCK(L_FEATURE);
   }
 
-  initialise_thread(info); 
+  if ( !initialise_thread(info) )
+  { free_thread_info(info);
+    errno = ENOMEM;
+    return -1;
+  }
   info->tid = pthread_self();		/* we are complete now */
   set_system_thread_id(info);
   if ( attr && attr->alias )

@@ -75,10 +75,11 @@ typedef struct message_queue
 #define PL_THREAD_SUCCEEDED	3	/* finished with Yes */
 #define PL_THREAD_FAILED	4	/* finished with No */
 #define PL_THREAD_EXCEPTION	5	/* finished with exception */
-#define PL_THREAD_CANCELED	6	/* canceled */
-#define	PL_THREAD_CREATED	7	/* just created */
-#define	PL_THREAD_SUSPENDED	8	/* suspended */
-#define PL_THREAD_RESUMING	9	/* about to resume */
+#define PL_THREAD_NOMEM		6	/* couldn't start due no-memory */
+#define PL_THREAD_CANCELED	7	/* canceled */
+#define	PL_THREAD_CREATED	8	/* just created */
+#define	PL_THREAD_SUSPENDED	9	/* suspended */
+#define PL_THREAD_RESUMING     10	/* about to resume */
 
 extern simpleMutex _PL_mutexes[];	/* Prolog mutexes */
 
