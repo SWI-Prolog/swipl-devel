@@ -1,4 +1,3 @@
-# Generated automatically from Makefile.bin.in by configure.
 ################################################################
 # Makefile for preparing/moving/installing the binary distribution of
 # SWI-Prolog and/or XPCE
@@ -33,8 +32,8 @@ mandir=$(prefix)/man/man$(mansec)
 
 PL=pl
 XPCE=xpce
-PLARCH=i486-linux
-BOOTPL=pl
+PLARCH=@PLARCH@
+BOOTPL=@BOOTPL@
 
 BPL=		bin/$(PLARCH)/$(BOOTPL)
 PWD=`pwd`

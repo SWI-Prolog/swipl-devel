@@ -54,7 +54,8 @@ LIBQLFS=	pce_manual.qlf dialog/dialog.qlf emacs/emacs.qlf pcedraw.qlf
 # The main targets
 ################################################################
 
-nosoall:	$(QLF)
+nosoall:	$(PLBASE)/plrc $(PLBASE)/xpce $(PLBASE)/Makefile \
+		$(XPCE)
 
 soall:		$(PLBASE)/plrc $(PLBASE)/xpce $(PLBASE)/Makefile \
 		$(PLBASE)/xpce/lib/$(PLARCH) \
@@ -75,6 +76,7 @@ $(OBJDIR)/link.o:	link.c
 
 $(XPCE):	$(ITFOBJ) $(libXPCE)
 		$(CC) $(LDFLAGS) -o $@ $(OBJ) -L$(LIBDIR) -lXPCE $(LIBS)
+		echo $(PLBASE) > ../../swipl
 
 $(QLF):		$(XPCE)
 		$(XPCE) -O -o $(QLF) \

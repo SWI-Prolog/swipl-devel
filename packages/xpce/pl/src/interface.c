@@ -2110,6 +2110,7 @@ pl_Cgetline(char *buf, int size)
 		 *******************************/
 
 typedef void (*sighandler_t)(int);
+typedef void (*halthandler_t)(int, void *);
 
 static int
 PrologAction(int action, va_list args)
@@ -2151,7 +2152,7 @@ PrologAction(int action, va_list args)
 #ifdef O_SHAREDLIBRARY
       exitpce_hook = f;
 #else
-      PL_on_halt(f, NULL);
+      PL_on_halt((halthandler_t)f, NULL);
 #endif      
       return PCE_SUCCEED;
     }
