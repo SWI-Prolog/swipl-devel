@@ -3797,10 +3797,10 @@ Succeeds when \arg{File} exists. This does not imply the user has read
 and/or write permission for the file.
 
     \predicate{file_directory_name}{2}{+File, -Directory}
-Extracts the directory-part of \arg{File}. The resulting \arg{Directory}
-name ends with the directory separator character \chr{/}. If \arg{File}
-is an atom that does not contain any directory separator characters, the
-empty atom \const{''} is returned.  See also file_base_name/2.
+Extracts the directory-part of \arg{File}.  The returned \arg{Directory}
+name does not end in \const{/}.  There are two special cases.  The
+directory-name of \const{/} is \const{/} itself and the directory-name
+if \arg{File} does not contain any \const{/} characters is \const{.}.
 
     \predicate{file_base_name}{2}{+File, -BaseName}
 Extracts the filename part from a path specification. If \arg{File} does
