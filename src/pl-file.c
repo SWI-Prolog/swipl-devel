@@ -2856,7 +2856,10 @@ pl_prolog_to_os_filename(term_t pl, term_t os)
 		    ATOM_atom, pl);
 
   if ( PL_get_chars(os, &n, CVT_ALL) )
-  { _xos_canonical_filename(n, buf);
+  { char lbuf[MAXPATHLEN];
+
+    _xos_long_file_name(n, lbuf);
+    _xos_canonical_filename(lbuf, buf);
     return PL_unify_atom_chars(pl, buf);
   }
 

@@ -228,7 +228,22 @@ _xos_is_absolute_filename(const char *spec)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Get rid of possible 8+3 characters in the path
+Get rid of possible  8+3  characters   in  the  path.  The documentation
+suggests  you  can  do   that   using    a   single   FindFirstFile   or
+GetFullPathName, but it appears you canot.  If you like, here is the code
+that doesn't work:
+
+char *
+_xos_long_file_name(const char *file, char *longname)
+{ DWORD len;
+  LPTSTR fp;
+
+  if ( !(len=GetFullPathName(file, PATH_MAX, longname, &fp)) ||
+       len >= PATH_MAX )
+    strcpy(longname, file);
+
+  return longname;
+}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 char *
