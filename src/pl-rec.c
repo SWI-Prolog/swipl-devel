@@ -1460,7 +1460,8 @@ pl_recorded(term_t key, term_t term, term_t ref, word h)
 
 word
 pl_erase(term_t ref)
-{ RecordRef record;
+{ GET_LD
+  RecordRef record;
   RecordRef prev, r;
   RecordList l;
   word rval;
