@@ -55,7 +55,10 @@ resource(predicate,	image,  image('16x16/preddoc.xpm')).
 		 *******************************/
 
 prolog_help :-
-	prolog_help(help/1).
+	section(S, 'Getting started quickly', _, _),
+	concat_atom(S, -, Id),
+	term_to_atom(Spec, Id),
+	prolog_help(Spec).
 
 prolog_help(Topic) :-
 	help_atom(Topic, Atom),
@@ -70,16 +73,13 @@ prolog_help(Topic) :-
 	send(@pui_help_window?frame, expose).
 
 prolog_apropos(Keywd) :-
-	get(@pui_help_window, member, pui_editor, Editor),
-	give_apropos(Editor, Keywd),
+	send(@pui_help_window, apropos, Keywd),
 	send(@pui_help_window?frame, expose).
 
 
 prolog_explain(Term) :-
-	get(@pui_help_window, member, pui_editor, Editor),
-	send(Editor, editable, @on),
-	do_explain(Editor, Term),
-	send(Editor, editable, @off),
+	term_to_atom(Term, Atom),
+	send(@pui_help_window, explain, Atom),
 	send(@pui_help_window?frame, expose).
 
 
@@ -115,21 +115,36 @@ give_help(F, What:name, Clear:[bool], ScrollToStart:[bool]) :->
 	send(Display, busy_cursor, @nil).
 
 apropos(F, Atom:name) :->
+	"Search summary descriptions"::
+	send(F, add_history, string('apropos:%s', Atom)),
 	get(F, member, pui_editor, Editor),
 	give_apropos(Editor, Atom).
 
 explain(F, Text:name) :->
+	"Explain what we know about of term"::
+	send(F, add_history, string('explain:%s', Text)),
 	get(F, member, pui_editor, Editor),
 	send(Editor, editable, @on),
 	do_explain_text(Editor, Text),
 	send(Editor, editable, @off).
 
+go(F, What:name) :->
+	"Handle Go menu (history)"::
+	(   sub_atom(What, 0, _, A, 'apropos:')
+	->  sub_atom(What, _, A, 0, For),
+	    send(F, apropos, For)
+	;   sub_atom(What, 0, _, A, 'explain:')
+	->  sub_atom(What, _, A, 0, For),
+	    send(F, explain, For)
+	;   send(F, give_help, What)
+	).
+
 about(_F) :->
 	send(@display, inform,
 	     '%s\n\n%s\n%s',
-	     'SWI-Prolog manual browser version 1.0',
+	     'SWI-Prolog manual browser version 2.0',
 	     'Jan Wielemaker',
-	     'E-mail: jan@swi.psy.uva.nl').
+	     'E-mail: jan@swi-prolog.org').
 
 fill_menu_bar(F) :->
 	get(F, member, menu_bar_dialog, D),
@@ -138,24 +153,73 @@ fill_menu_bar(F) :->
 					% the menu-bar
 	send(D, append, new(MB, menu_bar)),
 	send(MB, append, new(File, popup(file))),
+	send(MB, append, new(Edit, popup(edit))),
 	send(MB, append, new(View, popup(view))),
-	send(MB, append, new(Hist, popup(history, message(F, give_help, @arg1)))),
+	send(MB, append, new(Hist, popup(go, message(F, go, @arg1)))),
+	send(MB, append, new(Help, popup(help))),
+
 	send_list(File, append,
-		  [ menu_item(about,
-			      message(F, about),
-			      end_group := @on),
-		    menu_item(quit,
+		  [ menu_item(exit,
 			      message(F, destroy))
 		  ]),
+
+	send_list(Edit, append,
+		  [ menu_item('User init file ...',
+			      message(F, edit_preferences, prolog))
+		  ]),
+
 	send_list(View, append,
 		  [ menu_item(table_of_contents,
 			      message(F, table_of_contents),
 			      end_group := @on),
-		    menu_item(section,
+		    menu_item(whole_section,
 			      message(F, scope, section))
 		  ]),
+
 	send(Hist, update_message,
-	     message(F, fill_history_popup, @receiver)).
+	     message(F, fill_history_popup, @receiver)),
+
+	send_list(Help, append,
+		  [ menu_item(about,
+			      message(F, about),
+			      end_group := @on),
+
+		    menu_item('SWI-Prolog WWW home (on www) ...',
+			      message(F, open_url, pl)),
+		    menu_item('SWI-Prolog FAQ (on www) ...',
+			      message(F, open_url, pl_faq)),
+		    menu_item('SWI-Prolog Quick Start (on www) ...',
+			      message(F, open_url, pl_quick)),
+		    menu_item('SWI-Prolog Manual (on www) ...',
+			      message(F, open_url, pl_man)),
+		    menu_item('SWI-Prolog Mailing list (on www) ...',
+			      message(F, open_url, pl_mail)),
+		    menu_item('SWI-Prolog Download (on www) ...',
+			      message(F, open_url, pl_download),
+			      end_group := @on),
+		    
+		    menu_item('XPCE (GUI) Manual ...',
+			      message(@prolog, manpce)),
+		    menu_item('XPCE User Guide (on www) ...',
+			      message(F, open_url, xpce_man),
+			      end_group := @on),
+
+		    menu_item('SWI-Prolog bug report (on www) ...',
+			      message(F, open_url, pl_bugs))
+		  ]).
+
+
+open_url(F, Id) :->
+	"Open WWW browser on url with given id"::
+	send(F, report, progress, 'Starting browser ...'),
+	Spec =.. [Id, '.'],
+	www_open_url(Spec),
+	send(F, report, done).
+
+
+edit_preferences(_F, Which:name) :->
+	"Edit preferences"::
+	prolog_edit_preferences(Which).
 
 
 fill_dialog(F) :->
@@ -167,7 +231,7 @@ fill_dialog(F) :->
 	send(TI, value_set, ValueSet),
 	send(D, append, button(help,
 			       message(F, give_help, TI?selection))),
-	send(D, append, button(apropos,
+	send(D, append, button(search,
 			       message(F, apropos, TI?selection)),
 	     right),
 	send(D, append, button(explain,
@@ -198,6 +262,16 @@ append_history_menu_item(Popup, What) :-
 	phrase(section(Section), S),
 	section(Section, Title, _, _), !,
 	send(Popup, append, menu_item(What, @default, Title)).
+append_history_menu_item(Popup, What) :-
+	sub_atom(What, 0, _, A, 'apropos:'), !,
+	sub_atom(What, _, A, 0, For),
+	send(Popup, append, menu_item(What, @default,
+				      string('Search %s', For))).
+append_history_menu_item(Popup, What) :-
+	sub_atom(What, 0, _, A, 'explain:'), !,
+	sub_atom(What, _, A, 0, For),
+	send(Popup, append, menu_item(What, @default,
+				      string('Explain %s', For))).
 append_history_menu_item(Popup, What) :-
 	send(Popup, append, menu_item(What, @default, What)).
 

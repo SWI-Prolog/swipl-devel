@@ -31,7 +31,7 @@ prolog:debug_control_hook(nospy(Method)) :-
 		 *******************************/
 
 prolog:help_hook(help) :- !,
-	call(prolog_help(help/1)).
+	call(prolog_help).
 prolog:help_hook(apropos(What)) :- !,
 	call(prolog_apropos(What)).
 prolog:help_hook(help(What)) :- !,

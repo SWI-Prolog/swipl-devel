@@ -16,15 +16,6 @@
 :- system_module.
 :- op(100, fx, @).
 
-url(home,     'http://www.swi-prolog.org').
-url(plfaq,    'http://gollem.swi.psy.uva.nl/twiki/pl/bin/view/FAQ/WebHome').
-url(manual,   'http://www.swi.psy.uva.nl/projects/SWI-Prolog/Manual/'). 
-url(download, 'http://www.swi.psy.uva.nl/projects/SWI-Prolog/download.html'). 
-url(plbugs,   'http://www.swi.psy.uva.nl/projects/SWI-Prolog/bugreport.html').
-url(plmail,   'http://www.swi.psy.uva.nl/projects/SWI-Prolog/#mailinglist').
-url(plquick,  'http://www.swi.psy.uva.nl/projects/SWI-Prolog/Manual/quickstart.html').
-url(pceman,   'http://www.swi.psy.uva.nl/projects/xpce/Manual/').
-
 menu('&File',
      [ '&Consult ...' = action(consult(+file(open, 'Load file into Prolog'))),
        '&Edit ...'    = action(edit(+file(open, 'Edit existing file'))),
@@ -57,17 +48,17 @@ menu('&Help',
      [ '&About ...' 				= about,
        '&Online manual ...' 			= help,
        --,
-       '&SWI-Prolog WWW home (on www) ...'	= www_open(home),
-       '&SWI-Prolog FAQ (on www) ...'		= www_open(plfaq),
-       '&SWI-Prolog Quick Start (on www) ...'	= www_open(plquick),
-       '&SWI-Prolog Manual (on www) ...'	= www_open(manual),
-       '&SWI-Prolog Mailing list (on www) ...'	= www_open(plmail),
-       '&SWI-Prolog Download (on www) ...'	= www_open(download),
+       '&SWI-Prolog WWW home (on www) ...'	= www_open(pl),
+       '&SWI-Prolog FAQ (on www) ...'		= www_open(pl_faq),
+       '&SWI-Prolog Quick Start (on www) ...'	= www_open(pl_quick),
+       '&SWI-Prolog Manual (on www) ...'	= www_open(pl_man),
+       '&SWI-Prolog Mailing list (on www) ...'	= www_open(pl_mail),
+       '&SWI-Prolog Download (on www) ...'	= www_open(pl_download),
        --,
        '&XPCE (GUI) Manual ...' 		= manpce,
-       '&XPCE User Guide (on www) ...'   	= www_open(pceman),
+       '&XPCE User Guide (on www) ...'   	= www_open(pce_man),
        --,
-       'Submit but report (on www) ...'  	= www_open(plbugs)
+       'Submit but report (on www) ...'  	= www_open(pl_bugs)
      ],
      [ before_menu(-)
      ]).
@@ -107,9 +98,9 @@ edit_new(File) :-
 	edit(file(File)).
 	
 www_open(Id) :-
-	url(Id, URL),
 	print_message(informational, opening_url(URL)),
-	www_open_url(URL),
+	Spec =.. [Id, '.'],
+	www_open_url(Spec),
 	print_message(informational, opened_url(URL)).
 	
 about :-
