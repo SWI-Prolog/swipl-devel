@@ -21,6 +21,8 @@ static struct class_definition boxdefs[] =
     &ClassGrBox, "Typesetting: horizontal box holding graphical" },
   { NAME_parbox, NAME_device, makeClassParBox,
     &ClassParBox, "Typesetting: paragraph" },
+  { NAME_lbox, NAME_device, makeClassLBox,
+    &ClassLBox, "Typesetting: list-box" },
   { NULL, NULL, NULL, NULL, NULL }
 };
 

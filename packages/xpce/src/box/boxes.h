@@ -72,6 +72,7 @@ End;
 
 NewClass(parbox)
   ABSTRACT_DEVICE			/* graphical device */
+  Int		line_width;		/* Max width of a line */
   Chain		content;		/* Contained hboxes */
   Name		alignment;		/* left,right,center,justify */
 End;

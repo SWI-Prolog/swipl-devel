@@ -18,6 +18,8 @@ static status
 initialiseParBox(ParBox pb, Int width, Name alignment, Chain content)
 { initialiseDevice((Device) pb);
 
+  if ( isDefault(width) )
+    width = getClassVariableValueObject(pb, NAME_lineWidth);
   if ( isDefault(alignment) )
     alignment = getClassVariableValueObject(pb, NAME_alignment);
 
@@ -35,8 +37,8 @@ initialiseParBox(ParBox pb, Int width, Name alignment, Chain content)
     assign(pb, content, content);
   }
 
-  assign(pb, alignment, alignment);
-  assign(pb->area, w, width);
+  assign(pb, alignment,  alignment);
+  assign(pb, line_width, width);
 
   succeed;
 }
@@ -48,6 +50,13 @@ initialiseParBox(ParBox pb, Int width, Name alignment, Chain content)
 static status
 appendParBox(ParBox pb, HBox hb)
 { appendChain(pb->content, hb);
+
+  if ( instanceOfObject(hb, ClassGrBox) )
+  { GrBox grb = (GrBox) hb;
+
+    deviceGraphical(grb->graphical, (Device)pb);
+    DisplayedGraphical(grb->graphical, ON);
+  }
 
   return requestComputeGraphical(pb, DEFAULT);
 }
@@ -69,6 +78,7 @@ typedef struct _parline
 { int		x;			/* X, relative to device */
   int		y;			/* Y, relative to device */
   int		w;			/* Total width of the line */
+  int		minx;			/* left side */
   int		nat_width;		/* Natural width */
   int		ascent;			/* Total ascent of the line */
   int		descent;		/* Total descent of the line */
@@ -97,7 +107,7 @@ drawHBox(HBox hb, int x, int y, int w)
 
 static status
 RedrawAreaParBox(ParBox pb, Area a)
-{ int w = valInt(pb->area->w);
+{ int w = valInt(pb->line_width);
   int y = 0;
   device_draw_context ctx;
   parline l;
@@ -108,8 +118,9 @@ RedrawAreaParBox(ParBox pb, Area a)
     int zy = ay + valInt(a->h);		/* end of it */
 
 					/* DEBUGGING */
-    r_fill(0, 0, valInt(pb->area->w), valInt(pb->area->h),
-	  newObject(ClassColour, CtoName("light_blue"), 0));
+    DEBUG(NAME_parbox,
+	  r_fill(0, 0, valInt(pb->area->w), valInt(pb->area->h),
+		 newObject(ClassColour, CtoName("light_blue"), 0)));
 
     for_cell(cell, pb->graphicals)
     { Graphical gr = cell->value;
@@ -223,91 +234,84 @@ justify_line(parline *line, Name alignment)
 }
 
 
+static void
+compute_line(parline *line)
+{ parcell *pc	 = line->hbox;
+  parcell *epc	 = &pc[line->size];
+  int cx	 = line->x;
+  int ascent	 = 0;
+  int descent	 = 0;
+  int graphicals = 0;
+  int rlevel	 = 0;
+  int minx	 = cx;
+  int maxx	 = cx;
+
+  for( pc = line->hbox; pc < epc; pc++ )
+  { HBox hb = pc->box;
+    int  bw = valInt(hb->width);
+
+    ascent  = max(ascent, valInt(hb->ascent));
+    descent = max(descent, valInt(hb->descent));
+    pc->x = cx;
+    pc->w = bw;
+    cx += bw;
+    minx = min(minx, cx);
+    maxx = max(maxx, cx);
+    if ( instanceOfObject(hb, ClassGrBox) )
+      graphicals++;
+    if ( notNil(hb->rubber) )
+      rlevel = max(rlevel, valInt(hb->rubber->level));
+  }
+
+  line->ascent	   = ascent;
+  line->descent	   = descent;
+  line->minx	   = minx;
+  line->nat_width  = maxx;
+  line->graphicals = graphicals;
+  line->rlevel	   = rlevel;
+}
+
+
 static Cell
 fill_line(Cell cell, parline *line)
 { int cx = line->x;
   int ex = cx + line->w;
   int n  = 0;				/* # hboxes */
-  int ascent = 0;
-  int descent = 0;
-  int graphicals = 0;
-  int rlevel = 0;
+  int  last_break =	 0;
+  Cell last_break_cell = cell; 
 
-  int  last_break_w =	       0;
-  int  last_break =	       0;
-  Cell last_break_cell =       cell; 
-  int  last_break_ascent =     0;
-  int  last_break_descent =    0;
-  int  last_break_graphicals = 0;
-  int  last_break_rlevel =     0;
-
-  for( ; cx < ex && notNil(cell); cell = cell->next )
+  for( ; notNil(cell); cell = cell->next )
   { HBox hb = cell->value;
     int  bw = valInt(hb->width);
 
-    if ( last_break > 0 && cx+bw > ex )
-      break;
-
-    if ( notNil(hb->rubber) )
-    { if ( notNil(hb->rubber->linebreak) )
-      { last_break	      = n;
-	last_break_cell	      = cell;
-	last_break_ascent     = ascent;
-	last_break_descent    = descent;
-	last_break_w          = cx;
-	last_break_graphicals = graphicals;
-	last_break_rlevel     = rlevel;
-  
-	if ( hb->rubber->linebreak == NAME_force )
-	  break;
+    if ( notNil(hb->rubber) && notNil(hb->rubber->linebreak) )
+    { if ( cx+bw > ex )
+      { if ( last_break )
+	{ n    = last_break;
+	  cell = last_break_cell;
+	}
+	break;
       }
+      if ( hb->rubber->linebreak == NAME_force )
+	break;
 
-      if ( valInt(hb->rubber->level) > rlevel )
-      { rlevel = valInt(hb->rubber->level);
-      }
+      last_break      = n;
+      last_break_cell = cell;
     }
-
-    if ( instanceOfObject(hb, ClassGrBox) )
-      graphicals++;
 
     if ( n < line->size )
-    { line->hbox[n].box = hb;
-      line->hbox[n].x   = cx;
-      line->hbox[n].w   = bw;
-    }
+      line->hbox[n].box = hb;
 
     cx += bw;
     n++;
-
-    ascent  = max(ascent,  valInt(hb->ascent));
-    descent = max(descent, valInt(hb->descent));
   }
 
-  if ( notNil(cell) )			/* we use a break */
-  { cell	     = last_break_cell->next;
-    line->ascent     = last_break_ascent;
-    line->descent    = last_break_descent;
-    line->nat_width  = last_break_w;
-    line->size       = last_break;
-    line->graphicals = last_break_graphicals;
-    line->rlevel     = last_break_rlevel;
-    line->end_of_par = FALSE;
-  } else
-  { line->nat_width  = cx;
-    line->ascent     = ascent;
-    line->descent    = descent;
-    line->size       = n;
-    line->graphicals = graphicals;
-    line->rlevel     = rlevel;
-    line->end_of_par = TRUE;
-  }
+  if ( notNil(cell) )
+    cell = cell->next;
 
-  if ( line->nat_width > line->w )
-  { DEBUG(NAME_parbox,
-	  Cprintf("Overful hbox (aw = %d, w = %d)\n",
-		  line->nat_width, line->w));
-    line->w = line->nat_width;
-  }
+  line->size       = n;
+  line->end_of_par = isNil(cell);
+  compute_line(line);
 
   return cell;
 }
@@ -348,9 +352,6 @@ PlaceGrBox(ParBox pb, GrBox grb, Int x, Int y, Int w)
     }
   }
 
-  if ( gr->device != (Device) pb )
-    send(pb, NAME_display, gr, 0);
-
   succeed;
 }
 
@@ -358,9 +359,11 @@ PlaceGrBox(ParBox pb, GrBox grb, Int x, Int y, Int w)
 static status
 computeParBox(ParBox pb)
 { if ( notNil(pb->request_compute) )
-  { int w = valInt(pb->area->w);
+  { int w = valInt(pb->line_width);
     int y = 0;
     int mw = w;
+    int lm = 0;				/* left margin */
+    int ax, aw;				/* area x/w */
     Cell cell = pb->content->head;
 
     computeGraphicalsDevice((Device)pb); /* TBD: BB of graphicals */
@@ -409,20 +412,20 @@ computeParBox(ParBox pb)
       }
 
       y += l.ascent + l.descent;	/* + skip? */
-      mw = max(mw, l.w);		/* things that don't fit */
+      mw = max(mw, l.nat_width);	/* things that don't fit */
+      lm = min(lm, l.minx);
     }
     
-    if ( toInt(y) != pb->area->h || mw != w )
-    { Int od[4];
+    ax = valInt(pb->offset->x) + lm;
+    aw = mw-lm;				/* valInt(pb->offset->x) + mw - ax */
 
-      od[0] = pb->area->x;
-      od[1] = pb->area->y;
-      od[2] = pb->area->w;
-      od[3] = pb->area->h;
-
-      CHANGING_GRAPHICAL(pb,
+    if ( toInt(y)  != pb->area->h ||
+	 toInt(aw) != pb->area->w ||
+	 toInt(ax) != pb->area->x )
+    { CHANGING_GRAPHICAL(pb,
       { assign(pb->area, h, toInt(y));
-	assign(pb->area, w, toInt(mw));
+	assign(pb->area, w, toInt(aw));
+	assign(pb->area, x, toInt(ax));
 	changedEntireImageGraphical(pb);
       });
     }
@@ -438,22 +441,72 @@ computeParBox(ParBox pb)
 		 *	     GEOMETRY		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Interpret ->width from the offset
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
+requestGeometryParBox(ParBox pb, Int x, Int y, Int w, Int h)
+{ Int av[4];
+  int lm = valInt(pb->area->x) - valInt(pb->offset->x);
+
+  if ( isDefault(x) )
+    av[0] = x;
+  else
+    av[0] = toInt(valInt(x) + lm);
+  if ( isDefault(w) )
+    av[2] = w;
+  else
+    av[2] = toInt(valInt(w) - lm);
+  av[1] = y;
+  av[3] = h;
+
+
+  return qadSendv(pb, NAME_geometry, 4, av);
+}
+
+
+static status
 geometryParBox(ParBox pb, Int x, Int y, Int w, Int h)
-{ if ( notDefault(w) && w != pb->area->w )
-  { CHANGING_GRAPHICAL(pb,
-		       assign(pb->area, w, w);
+{ Area a = pb->area;
+  Point o = pb->offset;
+
+  if ( isDefault(x) ) x = a->x;
+  if ( isDefault(y) ) y = a->y;
+  if ( isDefault(w) ) w = a->w;
+
+  if ( x != a->x || y != a->y || w != a->w )
+  { Int dx = sub(x, a->x);
+    Int dy = sub(y, a->y);
+
+    CHANGING_GRAPHICAL(pb,
+		       assign(o, x, add(o->x, dx));
+		       assign(o, y, add(o->y, dy));
+
+		       assign(a, w, w);
+		       assign(a, x, x);
+		       assign(a, y, y);
+		       assign(pb, line_width,
+			      toInt(valInt(a->x)+valInt(a->w)-valInt(o->x)));
 		       assign(pb, request_compute, DEFAULT);
 		       computeParBox(pb));
+
+    updateConnectionsDevice((Device) pb, sub(pb->level, ONE));
   }
 
-  return geometryDevice((Device)pb, x, y, DEFAULT, DEFAULT);
+  succeed;
 }
 
 
 static status
 alignmentParBox(ParBox pb, Name alignment)
 { return assignGraphical(pb, NAME_alignment, alignment);
+}
+
+
+static status
+lineWidthParBox(ParBox pb, Int w)
+{ return assignGraphical(pb, NAME_lineWidth, w);
 }
 
 
@@ -475,7 +528,9 @@ static char *T_geometry[] =
 /* Instance Variables */
 
 static vardecl var_parbox[] =
-{ IV(NAME_content, "chain", IV_GET, 
+{ SV(NAME_lineWidth, "0..", IV_GET|IV_STORE,
+     lineWidthParBox, NAME_area, "Maximum width of a textline"),
+  IV(NAME_content, "chain", IV_GET, 
      NAME_content, "Contained hbox objects"),
   SV(NAME_alignment, "{left,right,center,justify}", IV_GET|IV_STORE,
      alignmentParBox, NAME_layout, "Alignment of text in box")
@@ -488,6 +543,8 @@ static senddecl send_parbox[] =
      DEFAULT, "Create parbox from width and content"),
   SM(NAME_compute, 0, NULL, computeParBox,
      DEFAULT, "Compute heigth"),
+  SM(NAME_requestGeometry, 4, T_geometry, requestGeometryParBox,
+     DEFAULT, "Change parbox width"),
   SM(NAME_geometry, 4, T_geometry, geometryParBox,
      DEFAULT, "Change parbox width"),
   SM(NAME_append, 1, "hbox", appendParBox,
@@ -506,7 +563,8 @@ static getdecl get_parbox[] =
 /* Resources */
 
 static classvardecl rc_parbox[] =
-{ RC(NAME_alignment, NULL, "left", "Default alignment of text"),
+{ RC(NAME_lineWidth, NULL, "500",  NULL),
+  RC(NAME_alignment, NULL, "left", NULL)
 };
 
 /* Class Declaration */

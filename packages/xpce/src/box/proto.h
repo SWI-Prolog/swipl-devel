@@ -20,3 +20,6 @@ status		makeClassGrBox(Class class);
 
 /* ../src/box/rubber.c */
 status		makeClassRubber(Class class);
+
+/* ../src/box/lbox.c */
+status		makeClassLBox(Class class);
