@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: Updated MSVC project files (*.dsp and *.dsw) from MSVC 5 to
+    MSVC 6 and fixed to reflect the current build-system.  Contributed
+    by Radoslaw Scislo.
+
   * ADDED: Package semweb: semantic web operations
 
   * PORT: Some MSVC6 issues (Radoslaw Scislo).
