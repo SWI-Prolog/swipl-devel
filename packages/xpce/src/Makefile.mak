@@ -308,6 +308,7 @@ IDIRS=	appl-help \
 	prolog\lib\http \
 	prolog\lib\man \
 	prolog\lib\math \
+	prolog\lib\plot \
 	prolog\lib\xref \
 	prolog\lib\trace \
 	prolog\lib\trace\icons
