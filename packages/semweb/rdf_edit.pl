@@ -216,15 +216,12 @@ delete(Subject) :-
 %	
 %	Load an RDF file and record this action including version information
 %	to facilitate reliable reload.
-%
-%	TBD: Add this to undo mechanism
 
 rdfe_load(File) :-
 	rdfe_current_transaction(TID),
-	rdf_statistics(triples(Old)),
-	rdf_load(File),
-	rdf_statistics(triples(New)),
-	Loaded is New - Old,
+	rdf_load(File,
+		 [ result(_Action, Triples)
+		 ]),
 	absolute_file_name(File, Path),
 	absolute_file_name('.', PWD),
 	size_file(File, Size),
@@ -236,7 +233,7 @@ rdfe_load(File) :-
 			 [ pwd(PWD),
 			   size(Size),
 			   modified(SecTime),
-			   triples(Loaded)
+			   triples(Triples)
 			 ])).
 
 rdfe_unload(Path) :-
