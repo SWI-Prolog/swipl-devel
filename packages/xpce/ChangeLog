@@ -1,3 +1,6 @@
+* FIXED: `label_box->layout_dialog' corruption of @default<-name.  Mostly
+  harmless but unelligant bug.
+
 * FIXED: PceEmacs Prolog mode: typing a . at the end of the file inserts
   an additional newline after the cursor, so syntax checking can take place.
   (end-of-clause is .<blank>).
