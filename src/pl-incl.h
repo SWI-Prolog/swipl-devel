@@ -1437,7 +1437,7 @@ this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 	  bool		gc;		/* Can be GC'ed? */		    \
 	  long		gced_size;	/* size after last GC */	    \
 	  long		small;		/* Donot GC below this size */	    \
-	  unsigned int	factor;		/* How eager we are */		    \
+	  int		factor;		/* How eager we are */		    \
 	  int		policy;		/* Time, memory optimization */	    \
 	  char		*name;		/* Symbolic name of the stack */    \
 	}
