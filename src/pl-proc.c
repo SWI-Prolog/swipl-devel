@@ -644,7 +644,7 @@ pl_current_predicate1(term_t spec, control_t ctx)
 	Procedure proc = sp->value;
     
 	if ( (!e->name     || e->name == fd->name) &&
-	     (e->arity < 0 || e->arity == fd->arity) &&
+	     (e->arity < 0 || (unsigned int)e->arity == fd->arity) &&
 	     isDefinedProcedure(proc) )
 	{ if ( mt )
 	    PL_unify_atom(mt, e->module->name);
