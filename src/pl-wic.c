@@ -816,7 +816,8 @@ loadPredicate(IOSTREAM *fd, int skip)
 	clearFlags(clause);
 	clause->prolog_vars = (short) getNum(fd);
 	clause->variables = (short) getNum(fd);
-	clause->subclauses = (short) getNum(fd);
+	if ( getNum(fd) == 0 )		/* 0: fact */
+	  set(clause, UNIT_CLAUSE);
 	clause->procedure = proc;
 	clause->source_no = (currentSource ? currentSource->index : 0);
 	clause->code_size = (short) getNum(fd);
@@ -1345,7 +1346,7 @@ saveWicClause(Clause clause, IOSTREAM *fd)
   putNum(clause->line_no, fd);
   putNum(clause->prolog_vars, fd);
   putNum(clause->variables, fd);
-  putNum(clause->subclauses, fd);
+  putNum(true(clause, UNIT_CLAUSE) ? 0 : 1, fd);
   putNum(clause->code_size, fd);
 
   bp = clause->codes;

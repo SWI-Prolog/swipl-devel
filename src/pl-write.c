@@ -542,3 +542,5 @@ pl_print2(term_t stream, term_t term)
 
   return writeStreamTerm(stream, term, 1200, PORTRAY, g);
 }
+
+

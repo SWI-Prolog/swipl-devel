@@ -107,7 +107,8 @@ word		pl_record_clause(term_t term, term_t file, term_t ref);
 word		pl_redefine_system_predicate(term_t term);
 bool		decompileHead(Clause clause, term_t head);
 int		arg1Key(Clause clause, word *key);
-bool		decompile(Clause clause, term_t term);
+bool		decompile(Clause clause, term_t term, term_t bindings);
+word		pl_clause4(term_t p, term_t t, term_t ref, term_t b, word h);
 word		pl_clause(term_t p, term_t term, term_t ref, word h);
 word		pl_nth_clause(term_t p, term_t n, term_t ref, word h);
 word		pl_xr_member(term_t ref, term_t term, word h);
@@ -115,6 +116,7 @@ void		wamListClause(Clause clause);
 word		pl_wam_list(term_t ref);
 int		unify_definition(term_t head, Definition def,
 				 term_t thehead);
+word		pl_clause_term_position(term_t ref, term_t pc, term_t locterm);
 
 /* pl-dump.c */
 word		saveProgram(term_t new);
@@ -276,6 +278,7 @@ word		pl_garbage_collect(term_t d);
 void		resetGC(void);
 Word		findGRef(int n);
 int		growStacks(LocalFrame fr, Code PC, int l, int g, int t);
+void		clearUninitialisedVarsFrame(LocalFrame, Code);
 
 /* pl-glob.c */
 word		pl_wildcard_match(term_t pattern, term_t string);
@@ -588,7 +591,7 @@ void		clearHTable(Table ht);
 void		initTables();
 
 /* pl-trace.c */
-int		tracePort(LocalFrame frame, int port);
+int		tracePort(LocalFrame frame, int port, Code PC);
 void		backTrace(LocalFrame frame, int depth);
 word		pl_trace_continuation(term_t what);
 void		initTracer(void);

@@ -95,7 +95,7 @@ S__removebuf(IOSTREAM *s)
 
     if ( !(s->flags & SIO_USERBUF) )
       free(s->buffer);
-    s->buffer = 0;
+    s->bufp = s->limitp = s->buffer = NULL;
     s->bufsize = 0;
 
     return rval;

@@ -176,11 +176,13 @@ static struct foreign {
 
   FRG("abolish",    		2, pl_abolish,		   META|TRACE_ME),
   FRG("$clause",    		3, pl_clause,	      NDET|META|TRACE_ME),
+  FRG("$clause",	        4, pl_clause4,	      NDET|META|TRACE_ME),
   FRG("nth_clause", 		3, pl_nth_clause,     NDET|META|TRACE_ME),
   FRG("retract",    		1, pl_retract,        NDET|META|TRACE_ME),
   FRG("retractall",		1, pl_retractall,	   META|TRACE_ME),
   FRG("$xr_member",		2, pl_xr_member,      NDET|META|TRACE_ME),
   FRG("$wam_list",		1, pl_wam_list,			TRACE_ME),
+  FRG("$clause_term_position",	3, pl_clause_term_position,	TRACE_ME),
   
   FRG("flag",			3, pl_flag,			TRACE_ME),
   FRG("recorda",		3, pl_recorda,			TRACE_ME),

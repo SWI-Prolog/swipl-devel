@@ -1193,7 +1193,7 @@ depart_continue() to do the normal thing or to the backtrack point.
     { Undo(FR->mark);
 #if O_DEBUGGER
       if ( debugstatus.debugging )
-      { switch( tracePort(FR, REDO_PORT) )
+      { switch( tracePort(FR, REDO_PORT, NULL) )
 	{ case ACTION_FAIL:
 	    QF->deterministic = TRUE;
 	    fail;
@@ -1686,7 +1686,8 @@ backtrack without showing the fail ports explicitely.
 
 #if O_DEBUGGER
 	if ( debugstatus.debugging )
-	{ tracePort(FR, UNIFY_PORT);
+	{ clearUninitialisedVarsFrame(FR, PC);
+	  tracePort(FR, UNIFY_PORT, PC);
 	  if ( FR->mark.trailtop == INVALID_TRAILTOP )
 	  { SetBfr(FR->backtrackFrame);
 	  } else
@@ -2879,7 +2880,7 @@ Testing is suffices to find out that the predicate is defined.
 	if ( debugstatus.debugging )
 	{ lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
 	  CL = DEF->definition.clauses;
-	  switch(tracePort(FR, CALL_PORT))
+	  switch(tracePort(FR, CALL_PORT, NULL))
 	  { case ACTION_FAIL:	goto frame_failed;
 	    case ACTION_IGNORE: goto exit_builtin;
 	  }
@@ -3002,7 +3003,7 @@ Leave the clause:
 
 	  if ( lTop < (LocalFrame)argFrameP(FR, DEF->functor->arity) )
 	    lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
-	  action = tracePort(FR, EXIT_PORT);
+	  action = tracePort(FR, EXIT_PORT, PC);
 
 	  switch(action)
 	  { case ACTION_RETRY:	goto retry;
@@ -3070,7 +3071,7 @@ retry:					MARK(RETRY);
   lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
 #if O_DEBUGGER
   if ( debugstatus.debugging )
-  { tracePort(FR, CALL_PORT);
+  { tracePort(FR, CALL_PORT, NULL);
   }
 #endif /*O_DEBUGGER*/
   if ( false(DEF, FOREIGN) )
@@ -3184,7 +3185,7 @@ frame_failed:				MARK(FAIL);
 
 #if O_DEBUGGER
     if ( debugstatus.debugging )
-    { switch( tracePort(FR, FAIL_PORT) )
+    { switch( tracePort(FR, FAIL_PORT, PC) )
       { case ACTION_RETRY:	goto retry;
 	case ACTION_IGNORE:	Putf("ignore not (yet) implemented here\n");
       }
@@ -3240,7 +3241,7 @@ resume_from_body:
     { Undo(FR->mark);			/* data backtracking to get nice */
 					/* tracer output */
 
-      switch( tracePort(FR, REDO_PORT) )
+      switch( tracePort(FR, REDO_PORT, NULL) )
       { case ACTION_FAIL:	continue;
 	case ACTION_IGNORE:	CL = NULL;
 				goto exit_builtin;

@@ -36,7 +36,7 @@ user to intercept and redefine the tracer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 					/* Frame <-> Prolog integer */
-forwards LocalFrame	redoFrame(LocalFrame);
+forwards LocalFrame	redoFrame(LocalFrame, Code *PC);
 forwards int		traceAction(char *, int, LocalFrame, bool);
 forwards void		helpTrace(void);
 #ifdef O_INTERRUPT
@@ -45,7 +45,7 @@ forwards void		helpInterrupt(void);
 forwards bool		hasAlternativesFrame(LocalFrame);
 forwards void		alternatives(LocalFrame);
 forwards void		listProcedure(Definition);
-forwards int		traceInterception(LocalFrame, int);
+forwards int		traceInterception(LocalFrame, int, Code PC);
 forwards bool		canUnifyTermWithGoal(Word, LocalFrame);
 forwards void		writeFrameGoal(LocalFrame frame, int how);
 
@@ -56,9 +56,11 @@ than the redo port of some subgoal of this port.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static LocalFrame
-redoFrame(register LocalFrame fr)
-{ for( ; fr && false(fr, FR_SKIPPED); fr = parentFrame(fr) )
-    ;
+redoFrame(LocalFrame fr, Code *PC)
+{ while( fr && false(fr, FR_SKIPPED))
+  { *PC = fr->programPointer;
+    fr = parentFrame(fr);
+  }
 
   return fr;
 }
@@ -107,7 +109,7 @@ returns to the WAM interpreter how to continue the execution:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-tracePort(LocalFrame frame, int port)
+tracePort(LocalFrame frame, int port, Code PC)
 { int OldOut;
   extern int Output;
   int action = ACTION_CONTINUE;
@@ -163,19 +165,22 @@ tracePort(LocalFrame frame, int port)
 Give a trace on the skipped goal for a redo.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  if ( port == REDO_PORT && debugstatus.skiplevel == VERY_DEEP &&
-       (fr = redoFrame(frame)) != NULL )
-  { debugstatus.skiplevel--;				   /* avoid a loop */
-    switch( tracePort(fr, REDO_PORT) )
-    { case ACTION_CONTINUE:
-	if ( debugstatus.skiplevel < levelFrame(frame) )
-	  return ACTION_CONTINUE;
-	break;
-      case ACTION_RETRY:
-      case ACTION_IGNORE:
-      case ACTION_FAIL:
-	Putf("Action not yet implemented here\n");
-	break;
+  { Code pc2;
+
+    if ( port == REDO_PORT && debugstatus.skiplevel == VERY_DEEP &&
+	 (fr = redoFrame(frame, &pc2)) != NULL )
+    { debugstatus.skiplevel--;				   /* avoid a loop */
+      switch( tracePort(fr, REDO_PORT, pc2) )
+      { case ACTION_CONTINUE:
+	  if ( debugstatus.skiplevel < levelFrame(frame) )
+	    return ACTION_CONTINUE;
+	  break;
+	case ACTION_RETRY:
+	case ACTION_IGNORE:
+	case ACTION_FAIL:
+	  Putf("Action not yet implemented here\n");
+	  break;
+      }
     }
   }
 
@@ -197,7 +202,7 @@ We are in searching mode; should we actually give this port?
 Do the Prolog trace interception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  if ((action = traceInterception(frame, port)) >= 0)
+  if ((action = traceInterception(frame, port, PC)) >= 0)
     return action;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -643,7 +648,7 @@ This predicate is supposed to return one of the following atoms:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-traceInterception(LocalFrame frame, int port)
+traceInterception(LocalFrame frame, int port, Code PC)
 { int rval = -1;			/* Default C-action */
 
   if ( !status.boot && status.debugLevel == 0 )
@@ -652,6 +657,7 @@ traceInterception(LocalFrame frame, int port)
     term_t argv = PL_new_term_refs(3);
     atom_t portname;
     static Procedure proc;
+    int pcn;
 
     if ( !proc )
       proc = lookupProcedure(FUNCTOR_traceinterc3, MODULE_user);
@@ -664,6 +670,11 @@ traceInterception(LocalFrame frame, int port)
       default:
       case UNIFY_PORT:	portname = ATOM_unify;	break;
     }
+
+    if ( PC && false(frame->predicate, FOREIGN) && frame->clause )
+      pcn = PC - frame->clause->clause->codes;
+    else
+      pcn = 0;
 
     PL_put_atom(argv, portname);
     PL_put_integer(argv+1, PrologRef(frame));
@@ -991,15 +1002,38 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
 			  term_t value)
 { LocalFrame fr;
   atom_t key;
+  int arity;
   term_t result = PL_new_term_ref();
   long fri;
 
   if ( !PL_get_long(frame, &fri) ||
-       !PL_get_atom(what, &key) )
+       !PL_get_name_arity(what, &key, &arity) )
+  { ierr:
     return warning("prolog_frame_attribute/3: instantiation fault");
+  }
 
   if ((fr = FrameRef(fri)) < lBase || fr > lTop)
     return warning("prolog_frame_attribute/3: illegal frame reference");
+
+  if ( key == ATOM_argument && arity == 1 )
+  { term_t arg = PL_new_term_ref();
+    int argn;
+
+    if ( !PL_get_arg(1, what, arg) || !PL_get_integer(arg, &argn) || argn < 1 )
+      goto ierr;
+
+    if ( true(fr->predicate, FOREIGN) || !fr->clause )
+    { if ( argn > fr->predicate->functor->arity )
+	fail;
+    } else
+    { if ( argn > fr->clause->clause->prolog_vars )
+	fail;
+    }
+
+    return unify_ptrs(valTermRef(value), argFrameP(fr, argn-1));
+  }
+  if ( arity != 0 )
+    goto ierr;
 
   if (        key == ATOM_level)
   { PL_put_integer(result, levelFrame(fr));
@@ -1012,6 +1046,9 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
   } else if (key == ATOM_parent)
   { LocalFrame parent;
 
+    if ( fr->parent )
+      clearUninitialisedVarsFrame(fr->parent, fr->programPointer);
+
     if ( (parent = parentFrame(fr)) )
       PL_put_integer(result, PrologRef(parent));
     else
@@ -1022,7 +1059,7 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
   { PL_put_atom(result, contextModule(fr)->name);
   } else if (key == ATOM_clause)
   { if ( false(fr->predicate, FOREIGN) && fr->clause )
-      PL_put_pointer(result, fr->clause);
+      PL_put_pointer(result, fr->clause->clause);
     else
       fail;
   } else if (key == ATOM_goal)
@@ -1048,6 +1085,23 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
 	unify_ptrs(valTermRef(a), argFrameP(fr, n));
       }
     }
+  } else if ( key == ATOM_pc )
+  { if ( fr->programPointer &&
+	 fr->parent &&
+	 false(fr->parent->predicate, FOREIGN) )
+      PL_put_integer(result,
+		     fr->programPointer - fr->parent->clause->clause->codes);
+    else
+      fail;
+  } else if ( key == ATOM_hidden )
+  { atom_t a;
+
+    if ( true(fr, FR_NODEBUG) && !SYSTEM_MODE )
+      a = ATOM_true;
+    else
+      a = ATOM_false;
+
+    PL_put_atom(result, a);
   } else
     return warning("prolog_frame_attribute/3: unknown key");
 

@@ -7,7 +7,7 @@
 #
 # This file is processed using the Unix awk program defineatoms to produce
 # pl-atom.ic, pl-atom.ih, pl-funct.ic and pl-funct.ih.  If you do not have
-# awk you can propagate the changes by hand, but be be careful!
+# awk you can propagate the changes by hand, but be careful!
 
 A abort			"$abort"
 A abs			"abs"
@@ -264,6 +264,8 @@ A xpceref		"@"
 A yf			"yf"
 A yfx			"yfx"
 A yfy			"yfy"
+A pc			"pc"
+A hidden		"hidden"
 
 F abs			1
 F acos			1

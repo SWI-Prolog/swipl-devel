@@ -89,7 +89,6 @@ pl_notrace1(term_t goal)
 
   debugstatus.tracing = FALSE;
   debugstatus.debugging = FALSE;
-  debugstatus.skiplevel = 0;
   debugstatus.suspendTrace = 1;
 
   rval = callProlog(NULL, goal, FALSE);

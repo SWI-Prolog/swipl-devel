@@ -143,7 +143,6 @@ Marking, testing marks and extracting values from GC masked words.
 forwards void		mark_variable(Word);
 forwards void		mark_foreign(void);
 forwards void		sweep_foreign(void);
-forwards void		clear_uninitialised(LocalFrame, Code);
 forwards QueryFrame	mark_environments(LocalFrame);
 forwards TrailEntry	mark_choicepoints(LocalFrame, TrailEntry);
 forwards void		mark_stacks(LocalFrame);
@@ -461,27 +460,20 @@ mark_foreign()
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-clear_uninitialised(LocalFrame fr, Code PC);
+clearUninitialisedVarsFrame(LocalFrame fr, Code PC);
 
 Assuming the clause associated will resume   execution  at PC, determine
 the variables that are not yet initialised and set them to be variables.
 This  avoids  the  garbage  collector    considering  the  uninitialised
 variables.
 
-There are 5 instructions  that  assume   their  argument  variable to be
-uninstantiated.  The instruction C_JMP is used   by if-then-else as well
-as \+/1 (converted to (cond -> fail  ;   true))  to jump over the `else'
-branch.  If we hit a C_JMP, we   will  have initialised all variables in
-the `cond -> if' part and  the variable balancing instructions guarantee
-the same variables will be initialised in the `else' brance.
-
 [Q] wouldn't it be better to track  the variables that *are* initialised
 and consider the others to be not?  Might   take more time, but might be
 more reliable and simpler.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
-clear_uninitialised(LocalFrame fr, Code PC)
+void
+clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
 { if ( PC != NULL )
   { Code branch_end = NULL;
 
@@ -546,7 +538,7 @@ mark_environments(LocalFrame fr)
     DEBUG(3, Sdprintf("Marking [%ld] %s\n",
 		      levelFrame(fr), predicateName(fr->predicate)));
 
-    clear_uninitialised(fr, PC);
+    clearUninitialisedVarsFrame(fr, PC);
 
     slots   = (PC == NULL ? fr->predicate->functor->arity : slotsFrame(fr));
 #if O_SECURE
@@ -1246,7 +1238,7 @@ LocalFrame fr;
       return NULL;			/* from choicepoints only */
     set(fr, FR_MARKED);
     local_frames++;
-    clear_uninitialised(fr, PC);
+    clearUninitialisedVarsFrame(fr, PC);
 
     check_mark(&fr->mark);
 
@@ -1536,7 +1528,7 @@ update_environments(LocalFrame fr, Code PC, long ls, long gs, long ts)
     }
 
     if ( ls )				/* update variables */
-    { clear_uninitialised(fr, PC);
+    { clearUninitialisedVarsFrame(fr, PC);
 
       slots = (PC == NULL ? fr->predicate->functor->arity : slotsFrame(fr));
       sp = argFrameP(fr, slots);

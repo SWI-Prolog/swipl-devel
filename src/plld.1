@@ -40,6 +40,32 @@ should understands the flags
 .BI \-help
 Shows options briefly
 .TP
+.BI \-nostate
+Just relinks the kernel.  The newly linked kernel can only function
+in the presence of the development system.  Any supplied prolog sourcefiles
+are ignored, and so are the options
+.BI \-goal
+.BI \-toplevel
+.BI \-initfile.
+This is the preferred way to attach external modules to Prolog if
+dynamic loading is not supported on your system.
+.TP
+.BI \-goal " goal"
+The goal that is initially executed when the toplevel is started using
+.BI "PL_toplevel()" .
+E.i. the default.
+.BI \-g
+flag for the new executable.
+.TP
+.BI \-toplevel "goal"
+The goal that is executed as the main toplevel goal.  E.i. the default.
+.BI \-t
+flag for the new executable.
+.TP
+.BI \-initfile "file"
+The file that is loaded by the toplevel.  E.i. the default.
+.BI \-f
+flag for the new executable.
 .BI \-v
 Verbose operation.  This will echo the commands before executing them.
 .BI \-o " file"

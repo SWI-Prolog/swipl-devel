@@ -2,6 +2,30 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.7.15
+==============
+
+  * ADDED: prolog_frame_attribute(Frame, argument(N), Arg) to read
+    bindings from a stack-frame.
+
+  * ADDED: Various options to plld, the standalone executable linker.
+
+  * IMPROVED: (if->then;else) to generate tail-recursion code for the
+    `then' part.
+
+  * ADDED: $clause_position/3 and prolog_frame_attribute(Frame, pc, PC).
+    First steps for a source-code debugger.
+
+  * IMPROVED: Clause-representation to delete subclauses member, which
+    proved obsolete using the current system.  Added UNIT_CLAUSE flag
+    to the clause's flags to achieve the same support for the decompiler.
+
+  * FIXED: handling of the stream user_error by other predicates than
+    format/[1-3].  Also, using output from write/2, etc. to unbuffered
+    streams like user_error is now buffered in 256 byte-blocks, but
+    guaranteed to be flushed after the write operation completes,
+    resulting in fewer calls to write() and therefore generally better
+    performance.
 
 Version 2.7.14
 ==============

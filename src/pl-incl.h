@@ -571,7 +571,9 @@ Files and streams.  Don't change the numbers, or change FOPENMODE below.
 	  word SOrval; \
 	  if ( SOn < 0 ) fail; \
 	  Output = SOn; \
+	  LockStream(); \
 	  SOrval = goal; \
+	  UnlockStream(); \
 	  Output = SOout; \
 	  return SOrval; \
 	}
@@ -793,6 +795,7 @@ with one operation, it turns out to be faster as well.
 #define ISCASE			(0x00200000L) /* predicate */
 
 #define ERASED			(0x0001) /* clause */
+#define UNIT_CLAUSE		(0x0002) /* clause */
 #define UNKNOWN			(0x0002) /* module */
 
 #define INLINE_F		(0x0001) /* functor */
@@ -919,7 +922,6 @@ struct clause
   Code		codes;		/* byte codes of clause */
   struct index	index;		/* index key of clause */
   short		code_size;	/* size of byte code array */
-  short		subclauses;	/* number of subclauses in body (decompiler) */
   short		variables;		/* # of variables for frame */
   short		prolog_vars;		/* # real Prolog variables */
   unsigned short	line_no;	/* Source line-number */

@@ -158,10 +158,6 @@ BUGS:	Currently there are three  places were all the VM instructions
 	should  be merged.  For  now, be very carefull  if you add  or
 	delete a VM instruction.
 
-	Be carefull: pl-wam.o must be loaded in low addresses!
-		     make sure you have VM that lets you start the
-		     text addresses close to zero!
-
 NOTE:	If the assert() fails, look at pl-wam.c: VMI(C_NOT, ... for
 	more information.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -631,7 +627,6 @@ Allocate the clause and fill initialise the field we already know.
   clause = (Clause) allocHeap(sizeof(struct clause));
   clause->flags      = 0;
   clause->code_size  = 0;
-  clause->subclauses = 0;
   clause->procedure  = proc;
   clause->source_no  = clause->line_no = 0;
 
@@ -687,6 +682,8 @@ Now compile the body.
   if ( body && *body != ATOM_true )
   { Output_0(&ci, I_ENTER);
     compileBody(body, I_DEPART, &ci);
+  } else
+  { set(clause, UNIT_CLAUSE);		/* fact (for decompiler) */
   }
   Output_0(&ci, I_EXIT);
 
@@ -793,7 +790,7 @@ compileBody(register Word body, code call, register compileInfo *ci)
 	tc_or = PC(ci);
 	TRY( compileBody(argTermP(*a0, 0), I_CALL, ci) );	
 	Output_1(ci, hard ? C_CUT : C_SOFTCUT, var);
-	TRY( compileBody(argTermP(*a0, 1), I_CALL, ci) );	
+	TRY( compileBody(argTermP(*a0, 1), call, ci) );	
 	balanceVars(valt1, valt2, ci);
 	Output_1(ci, C_JMP, (code)0);
 	tc_jmp = PC(ci);
@@ -852,7 +849,6 @@ compileBody(register Word body, code call, register compileInfo *ci)
   }
 
   TRY( compileSubClause(body, call, ci) );
-  ci->clause->subclauses++;
 
   succeed;
 }
@@ -1546,6 +1542,7 @@ typedef struct
   Word	 argp;				/* argument pointer */
   int	 nvars;				/* size of var block */
   term_t *variables;			/* variable table */
+  term_t bindings;			/* [Offset = Var, ...] */
 } decompileInfo;
 
 forwards bool	decompile_head(Clause, term_t, decompileInfo *);
@@ -1622,6 +1619,7 @@ decompileHead(Clause clause, term_t head)
 { decompileInfo di;
   di.nvars     = VAROFFSET(1) + clause->prolog_vars;
   di.variables = alloca(di.nvars * sizeof(term_t));
+  di.bindings  = 0;
 
   return decompile_head(clause, head, &di);
 }
@@ -1660,13 +1658,28 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
   int pushed = 0;
   Definition def = clause->procedure->definition;
 
-  { int m, l;
-    term_t *p;
+  if ( di->bindings )
+  { term_t *p = &di->variables[VAROFFSET(0)];
+    term_t tail = PL_copy_term_ref(di->bindings);
+    term_t head = PL_new_term_ref();
+    int n;
 
-    l = VAROFFSET(0);
-    m = VAROFFSET(clause->prolog_vars) - l; /* # prolog vars (+arguments) */
-    for(p = di->variables + l; m-- > 0;)
-      *p++ = PL_new_term_ref();
+    for(n=0; n<clause->prolog_vars; n++)
+    { p[n] = PL_new_term_ref();
+
+      if ( !PL_unify_list(tail, head, tail) ||
+	   !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_equals2,
+			  	    PL_INTEGER, n,
+			            PL_TERM, p[n]) )
+	fail;
+    }
+    TRY(PL_unify_nil(tail));
+  } else
+  { term_t *p = &di->variables[VAROFFSET(0)];
+    int n;
+
+    for(n=0; n<clause->prolog_vars; n++)
+      p[n] = PL_new_term_ref();
   }
 
   argp  = PL_new_term_ref();
@@ -1786,20 +1799,21 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
 			  storage(w) == STG_INLINE) ? valInt(w) : -1)
 
 bool
-decompile(Clause clause, term_t term)
+decompile(Clause clause, term_t term, term_t bindings)
 { decompileInfo dinfo;
   decompileInfo *di = &dinfo;
   Word body;
 
   di->nvars     = VAROFFSET(1) + clause->prolog_vars;
   di->variables = alloca(di->nvars * sizeof(term_t));
+  di->bindings  = bindings;
 
 #ifdef O_RUNTIME
   if ( false(clause->procedure->definition, DYNAMIC) )
     fail;
 #endif
 
-  if ( clause->subclauses == 0 )	/* fact */
+  if ( true(clause, UNIT_CLAUSE) )	/* fact */
   { return decompileHead(clause, term);
   } else
   { term_t a = PL_new_term_ref();
@@ -2182,7 +2196,7 @@ unify_definition(term_t head, Definition def, term_t thehead)
 
 
 word
-pl_clause(term_t p, term_t term, term_t ref, word h)
+pl_clause4(term_t p, term_t term, term_t ref, term_t bindings, word h)
 { Procedure proc;
   Definition def;
   Clause clause;
@@ -2202,7 +2216,7 @@ pl_clause(term_t p, term_t term, term_t ref, word h)
     if ( !inCore(clause) || !isClause(clause) )
       return warning("clause/3: Invalid reference");
 	
-    if ( !decompile(clause, term) )
+    if ( !decompile(clause, term, bindings) )
       fail;
 
     proc = clause->procedure;
@@ -2252,7 +2266,7 @@ pl_clause(term_t p, term_t term, term_t ref, word h)
       if ( !(cref = findClause(cref, argv, def, &det)) )
 	fail;
   
-      if ( !decompile(cref->clause, term) )
+      if ( !decompile(cref->clause, term, bindings) )
 	continue;
       if ( !PL_unify_pointer(ref, cref->clause) )
 	continue;
@@ -2265,6 +2279,12 @@ pl_clause(term_t p, term_t term, term_t ref, word h)
   }
 
   fail;
+}
+
+
+word
+pl_clause(term_t p, term_t term, term_t ref, word h)
+{ return pl_clause4(p, term, ref, 0, h);
 }
 
 
@@ -2644,4 +2664,232 @@ pl_wam_list(term_t ref)
 
   succeed;
 }
+
+		 /*******************************
+		 *     SOURCE LEVEL DEBUGGER	*
+		 *******************************/
+
+static Code
+find_code1(Code PC, code fop, code ctx)
+{ for(;;)
+  { code op = decode(*PC++);
+
+    if ( fop == op && ctx == *PC )
+      return &PC[-1];
+    assert(op != I_EXIT);
+
+    PC += codeTable[op].arguments;
+  }
+}
+
+
+static Code
+find_code0(Code PC, code fop)
+{ for(;;)
+  { code op = decode(*PC++);
+
+    if ( fop == op )
+      return &PC[-1];
+    assert(op != I_EXIT);
+
+    PC += codeTable[op].arguments;
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+$clause_term_position(+ClauseRef, +PCoffset, -TermPos)
+	Find the term-location of the call that ends in the given PC offset.
+	The term-position is a list of argument-numbers one has to use from
+	the clause-term to find the subterm that sets up the goal.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
+word
+pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
+{ Clause clause;
+  int pcoffset;
+  Code PC, loc, end;
+  term_t tail = PL_copy_term_ref(locterm);
+  term_t head = PL_new_term_ref();
+
+  if ( !PL_get_pointer(ref, (void **)&clause) ||
+       !inCore(clause) || !isClause(clause) ||
+       !PL_get_integer(pc, &pcoffset) ||
+       pcoffset < 0 || pcoffset >= clause->code_size )
+    return warning("$clause_location/3: invalid argument");
+
+  PC = clause->codes;
+  loc = &PC[pcoffset];
+  end = &PC[clause->code_size - 1];	/* forget the final I_EXIT */
+
+  while( PC < loc )
+  { code op = decode(*PC++);
+    CodeInfo ci = &codeTable[op];
+    
+    switch(op)
+    { case I_ENTER:
+	PL_unify_list(tail, head, tail);
+        PL_unify_integer(head, 2);
+	continue;
+      { Code endloc;
+      case C_OR:			/* C_OR <jmp1> <A> C_JMP <jmp2> <B> */
+      { Code jmploc = PC + *PC++ + 1;
+
+	endloc = jmploc + jmploc[-1];
+
+	Sdprintf("jmp = %d, end = %d\n",
+		 jmploc - clause->codes, endloc - clause->codes);
+
+	if ( loc <= endloc )		/* loc is in the disjunction */
+	{ if ( endloc != end )		/* disjunction is not the last */
+	  { PL_unify_list(tail, head, tail);
+	    PL_unify_integer(head, 1);
+	  }
+
+	  if ( loc <= jmploc )		/* loc is in first branch */
+	  { PL_unify_list(tail, head, tail);
+	    PL_unify_integer(head, 1);
+	    end = jmploc-2;
+	    continue;
+	  }
+					/* loc is in second branch */
+	  PL_unify_list(tail, head, tail);
+	  PL_unify_integer(head, 2);
+	  PC = jmploc;
+	  end = endloc;
+	  continue;
+	}
+
+      after_construct:
+	PL_unify_list(tail, head, tail); /* loc is after disjunction */
+        PL_unify_integer(head, 2);
+	PC = endloc;
+	continue;
+      }
+      case C_NOT:		/* C_NOT <var> <jmp> <A> C_CUT, C_FAIL */
+      { endloc = PC + PC[1] + 2;
+
+	if ( loc <= endloc )		/* in the \+ argument */
+	{ if ( endloc != end )		/* \+ is not the last */
+	  { PL_unify_list(tail, head, tail);
+	    PL_unify_integer(head, 1);
+	  }
+
+	  PL_unify_list(tail, head, tail);
+	  PL_unify_integer(head, 1);
+	  PC += 2;
+	  end = endloc-2;		/* C_CUT, C_FAIL */
+	  continue;
+	}
+
+	goto after_construct;
+      }
+      case C_SOFTIF:
+      case C_IFTHENELSE:	/* C_IFTHENELSE <var> <jmp1> */
+				/* <IF> C_CUT <THEN> C_JMP <jmp2> <ELSE> */
+      { Code elseloc = PC + PC[1] + 2;
+	code cut = (op == C_IFTHENELSE ? C_CUT : C_SOFTCUT);
+
+	endloc = elseloc + elseloc[-1];
+
+	Sdprintf("else = %d, end = %d\n",
+		 elseloc - clause->codes, endloc - clause->codes);
+
+	if ( loc <= endloc )
+	{ if ( endloc != end )		/* a->b;c is not the last */
+	  { PL_unify_list(tail, head, tail);
+	    PL_unify_integer(head, 1);
+	  }
+
+	  if ( loc <= elseloc )		/* a->b */
+	  { Code cutloc = find_code1(&PC[2], cut, PC[0]);
+
+	    PL_unify_list(tail, head, tail);
+	    PL_unify_integer(head, 1);
+	    
+	    if ( loc <= cutloc )	/* a */
+	    { PL_unify_list(tail, head, tail);
+	      PL_unify_integer(head, 1);
+	      end = cutloc;
+	      PC = &PC[2];
+	    } else			/* b */
+	    { PL_unify_list(tail, head, tail);
+	      PL_unify_integer(head, 2);
+	      PC = cutloc + 2;
+	      end = elseloc-2;
+	    }    
+	    continue;
+	  }
+					/* c */
+	  PL_unify_list(tail, head, tail);
+	  PL_unify_integer(head, 2);
+	  PC = elseloc;
+	  end = endloc;
+	  continue;
+	}
+
+	goto after_construct;
+      }
+      case C_MARK:		/* A -> B */
+				/* C_MARK <var> <A> C_CUT <var> <B> C_END */
+      { Code cutloc = find_code1(&PC[1], C_CUT, PC[0]);
+	
+	endloc = find_code0(cutloc+2, C_END);
+
+	if ( loc <= endloc )
+	{ if ( endloc != end )		/* a->b is not the last */
+	  { PL_unify_list(tail, head, tail);
+	    PL_unify_integer(head, 1);
+	  }
+
+	  if ( loc <= cutloc )		/* a */
+	  { PL_unify_list(tail, head, tail);
+	    PL_unify_integer(head, 1);
+
+	    PC += 1;
+	    end = cutloc;
+	  } else			/* b */
+	  { PL_unify_list(tail, head, tail);
+	    PL_unify_integer(head, 2);
+	    PC = cutloc+2;
+	    end = endloc;
+	  }
+
+	  continue;
+	}
+
+	goto after_construct;
+      }
+      }					/* closes the special constructs */
+      case I_CALL:
+      case I_DEPART:
+      case I_CUT:
+      case I_FAIL:
+      case I_TRUE:
+      case I_APPLY:
+      case I_USERCALL0:
+      case I_USERCALLN:
+      case I_CALL_FV0:
+      case I_CALL_FV1:
+      case I_CALL_FV2:
+	PC += ci->arguments;
+        if ( loc == PC )
+	{ if ( PC != end )
+	  { PL_unify_list(tail, head, tail);
+	    PL_unify_integer(head, 1);
+	  }
+	  return PL_unify_nil(tail);
+	}
+	PL_unify_list(tail, head, tail);
+        PL_unify_integer(head, 2);
+	continue;
+      default:
+	PC += ci->arguments;
+    }
+  }
+
+  fail;					/* assert(0) */
+}
+
 

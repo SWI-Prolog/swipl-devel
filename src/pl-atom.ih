@@ -253,3 +253,5 @@
 #define ATOM_yf           MK_ATOM(252)
 #define ATOM_yfx          MK_ATOM(253)
 #define ATOM_yfy          MK_ATOM(254)
+#define ATOM_pc           MK_ATOM(255)
+#define ATOM_hidden       MK_ATOM(256)
