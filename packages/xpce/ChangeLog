@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.0.6, distributed with SWI-Prolog 5.0.6
+================================================
+
 * FIXED: Explicit window placement in Windows version. 
 
 * FIXED: avoid loosing a file-descriptor in prolog_xref.pl if a loaded

@@ -13,7 +13,7 @@
                          SSWWII--PPrroolloogg 55..00
                         RReeffeerreennccee MMaannuuaall
 
-             _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._0_._5_, _A_p_r_i_l _2_0_0_2
+              _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _5_._0_._6_, _M_a_y _2_0_0_2
 
                          _J_a_n _W_i_e_l_e_m_a_k_e_r
                        jan@swi.psy.uva.nl
@@ -3630,16 +3630,15 @@ _+_C_o_n_d_i_t_i_o_n -> _+_A_c_t_i_o_n
     created  inside the  clause (by  ;/2), or  by goals  called by  this
     clause.   Unlike !/0,  the choicepoint of  the predicate as a  whole
     (due  to multiple clauses)  is nnoott destroyed.   The combination  ;/2
-    and ->/2  is defines as:
+    and ->/2  acts as if defines by:
 
     If -> Then; _Else :- If, !, Then.
     If -> _Then; Else :- !, Else.
     If -> Then :- If, !, Then.
 
-    Note   that  the   operator  precedence  relation   between  ;   and
-    ->   ensure  If -> Then ; Else  is  actually  a  term  of  the  form
-    ;(->(If, Then), Else).     The  first  two  clauses  belong  to  the
-    definition of ;/2), while only the last defines ->/2 .
+    Please  note that (If -> Then) acts  as (If -> Then ; ffaaiill),  making
+    the  construct _f_a_i_l if the condition fails.  This  unusual semantics
+    is part of the ISO and all de-facto Prolog standards.
 
 
 _+_C_o_n_d_i_t_i_o_n *-> _+_A_c_t_i_o_n _; _+_E_l_s_e
@@ -7239,8 +7238,8 @@ aacccceessss__ffiillee((_+_F_i_l_e_, _+_M_o_d_e))
 
 
 eexxiissttss__ffiillee((_+_F_i_l_e))
-    Succeeds  when _F_i_l_e exists.  This  does not imply the user  has read
-    and/or write permission for the file.
+    Succeeds  when _F_i_l_e exists  and is a  regular file.   This does  not
+    imply the user has read and/or write permission for the file.
 
 
 ffiillee__ddiirreeccttoorryy__nnaammee((_+_F_i_l_e_, _-_D_i_r_e_c_t_o_r_y))
@@ -7263,8 +7262,9 @@ ssaammee__ffiillee((_+_F_i_l_e_1_, _+_F_i_l_e_2))
 
 
 eexxiissttss__ddiirreeccttoorryy((_+_D_i_r_e_c_t_o_r_y))
-    Succeeds  if _D_i_r_e_c_t_o_r_y exists.    This does not  imply the user  has
-    read, search and or write permission for the directory.
+    Succeeds  if _D_i_r_e_c_t_o_r_y exists  and is  a directory.   This does  not
+    imply  the user  has read, search  and or  write permission for  the
+    directory.
 
 
 ddeelleettee__ffiillee((_+_F_i_l_e))

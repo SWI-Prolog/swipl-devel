@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 5.0.6 (May 15, 2002)
+============================
+
   * FIXED: module(Module) argument of read_term/[2,3], fixing GUI-Tracer
     problems when using local operator-declarations.
 
