@@ -55,6 +55,7 @@ make_item(_Mode, Label, Default, @default, _History, Item) :- !,
 					% files and directories
 make_item(Mode, Label, Default, Type, _History, Item) :-
 	(   send(Type, includes, file)
+	;   send(Type, includes, save_file)
 	;   send(Type, includes, directory)
 	), !,
 	(   send(Default, instance_of, file)
@@ -70,16 +71,17 @@ make_item(Mode, Label, Default, Type, _History, Item) :-
 	;   new(DefPath, string('%s', Mode?directory?path)),
 	    send(DefPath, ensure_suffix, /)
 	),
-	(   (   send(Type, includes, file),
-		send(Type, includes, directory)
-	    )
+	(   (   send(Type, includes, file)
+	    ;   send(Type, includes, save_file)
+	    ),
+	    send(Type, includes, directory)
 	->  new(Item, emacs_file_or_directory_item(Label, DefPath))
 	;   send(Type, includes, file)
 	->  new(Item, file_item(Label, DefPath)),
-	    (	send(Type, includes, save_file)
-	    ->	send(Item, exists, @off)
-	    ;	send(Item, exists, @on)
-	    )
+	    send(Item, exists, @on)
+	;   send(Type, includes, save_file)
+	->  new(Item, file_item(Label, DefPath)),
+	    send(Item, exists, @off)
 	;   new(Item, directory_item(Label, DefPath))
 	),
 	send(Item, length, 40).
