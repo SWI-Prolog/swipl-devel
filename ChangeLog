@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORT: Now decided to allow for unaligned access only on systems where
+    we *know* it works and is faster then emulating it (Intel x86).
+    Improved hppa architecture detection.  Thanks to Michael Piefel.
+
   * ENHANCED: Better error message on common syntax-error leaving an
     extra `,' or `;' before ) or end-of-clause.
 
