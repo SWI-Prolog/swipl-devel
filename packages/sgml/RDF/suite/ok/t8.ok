@@ -1,0 +1,3 @@
+rdf(weight_001, 'http://www.nist.gov/RDFschema/':'Units', 'http://www.nist.gov/units/pounds').
+rdf(weight_001, value, literal('200')).
+rdf('John_Smith', 'http://www.nist.gov/RDFschema/':'Weight', weight_001).

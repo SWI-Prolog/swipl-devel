@@ -1,0 +1,3 @@
+rdf('JW', name, literal('Jan Wielemaker')).
+rdf('JW', works_at, literal('SWI')).
+rdf('http://www.swi.psy.uva.nl/projects/SWI-Prolog/', 'http://description.org/schema/':'Creator', 'JW').

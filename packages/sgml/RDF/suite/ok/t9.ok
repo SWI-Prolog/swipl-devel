@@ -1,0 +1,9 @@
+rdf('http://www.bar.com/some.doc', 'http://purl.org/metadata/dublin_core/':'Creator', literal('John Smith')).
+rdf('Statement_001', rdf:type, rdf:'Bag').
+rdf('Statement__1', rdf:type, rdf:'Statement').
+rdf('Statement__1', rdf:subject, 'http://www.bar.com/some.doc').
+rdf('Statement__1', rdf:predicate, 'http://purl.org/metadata/dublin_core/':'Creator').
+rdf('Statement__1', rdf:object, literal('John Smith')).
+rdf('Statement_001', rdf:'_1', 'Statement__1').
+rdf(each('Statement_001'), 'http://www.w3.org/Schemas/DS-Schema/':'CreatedOn', literal('1998-02-06T14:00Z')).
+rdf(each('Statement_001'), 'http://www.w3.org/Schemas/DS-Schema/':'CreatedBy', literal('Jane Cooper')).

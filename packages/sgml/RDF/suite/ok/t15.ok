@@ -1,0 +1,3 @@
+rdf('http://www.w3.org', 'http://description.org/schema/':'Publisher', literal('World Wide Web Consortium')).
+rdf('http://www.w3.org', 'http://description.org/schema/':'Title', literal('W3C Home Page')).
+rdf('http://www.w3.org', 'http://description.org/schema/':'Date', literal('1998-10-03T02:27')).

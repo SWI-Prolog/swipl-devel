@@ -1,0 +1,4 @@
+rdf('http://www.w3.org/staffId/85740', rdf:type, 'http://description.org/schema/Person').
+rdf('http://www.w3.org/staffId/85740', 'http://description.org/view/':'Name', literal('Ora Lassila')).
+rdf('http://www.w3.org/staffId/85740', 'http://description.org/view/':'Email', literal('lassila@w3.org')).
+rdf('http://www.w3.org/Home/Lassila', 'http://description.org/schema/':'Creator', 'http://www.w3.org/staffId/85740').

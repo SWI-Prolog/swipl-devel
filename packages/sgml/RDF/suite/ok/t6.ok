@@ -1,0 +1,4 @@
+rdf('Bag__1', rdf:type, rdf:'Bag').
+rdf('Bag__1', rdf:'_1', literal('Jan Wielemaker')).
+rdf('Bag__1', rdf:'_2', literal('Anjo Anjewierden')).
+rdf('http://www.swi.psy.uva.nl/projects/xpce/', 'http://description.org/schema/':'Creator', 'Bag__1').

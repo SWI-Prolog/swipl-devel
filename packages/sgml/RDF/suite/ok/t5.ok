@@ -1,0 +1,15 @@
+rdf('Description__1', name, literal('Jan Wielemaker')).
+rdf('Description__1', works_at, literal('SWI')).
+rdf('http://www.swi.psy.uva.nl/projects/SWI-Prolog/', 'http://description.org/schema/':'Creator', 'Description__1').
+rdf('JW', rdf:type, rdf:'Bag').
+rdf('Statement__1', rdf:type, rdf:'Statement').
+rdf('Statement__1', rdf:subject, 'Description__1').
+rdf('Statement__1', rdf:predicate, name).
+rdf('Statement__1', rdf:object, literal('Jan Wielemaker')).
+rdf('JW', rdf:'_1', 'Statement__1').
+rdf('Statement__2', rdf:type, rdf:'Statement').
+rdf('Statement__2', rdf:subject, 'Description__1').
+rdf('Statement__2', rdf:predicate, works_at).
+rdf('Statement__2', rdf:object, literal('SWI')).
+rdf('JW', rdf:'_2', 'Statement__2').
+rdf('http://www.swi.psy.uva.nl/projects/SWI-Prolog/', 'http://description.org/schema/':'Creator', 'JW').

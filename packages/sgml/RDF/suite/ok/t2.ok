@@ -1,0 +1,3 @@
+rdf('JW', 'http://description.org/schema/':sex, literal(male)).
+rdf('JW', 'http://description.org/schema/':employed_at, literal('SWI')).
+rdf('SWI-prolog', 'http://description.org/schema/':'Creator', 'JW').

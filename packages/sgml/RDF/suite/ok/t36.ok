@@ -1,0 +1,4 @@
+rdf('CreatorsAlphabeticalBySurname', rdf:type, rdf:'Seq').
+rdf('CreatorsAlphabeticalBySurname', rdf:'_1', 'Mary Andrew').
+rdf('CreatorsAlphabeticalBySurname', rdf:'_2', 'Jacky Crystal').
+rdf('http://www.foo.com/cool.html', 'http://purl.org/metadata/dublin_core#':'Creator', 'CreatorsAlphabeticalBySurname').

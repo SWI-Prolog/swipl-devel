@@ -1,0 +1,4 @@
+rdf(pages, rdf:type, rdf:'Bag').
+rdf(pages, rdf:'_1', 'http://foo.org/foo.html').
+rdf(pages, rdf:'_2', 'http://bar.org/bar.html').
+rdf(each(pages), 'http://purl.org/metadata/dublin_core/':'Creator', literal('Ora Lassila')).

@@ -1,0 +1,6 @@
+rdf('http://www.w3.org/Home/Lassila', 'http://description.org/schema/':'Creator', literal('Ora Lassila')).
+rdf(statement1, rdf:type, rdf:'Statement').
+rdf(statement1, rdf:subject, 'http://www.w3.org/Home/Lassila').
+rdf(statement1, rdf:predicate, 'http://description.org/schema/':'Creator').
+rdf(statement1, rdf:object, literal('Ora Lassila')).
+rdf(statement1, 'http://description.org/schema/':believedBy, literal('Stefan Decker')).

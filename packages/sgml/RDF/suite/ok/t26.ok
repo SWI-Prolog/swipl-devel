@@ -1,0 +1,8 @@
+rdf('JSPapersByDate', rdf:type, rdf:'Seq').
+rdf('JSPapersByDate', rdf:'_1', 'http://www.dogworld.com/Aug96.doc').
+rdf('JSPapersByDate', rdf:'_2', 'http://www.webnuts.net/Jan97.html').
+rdf('JSPapersByDate', rdf:'_3', 'http://www.carchat.com/Sept97.html').
+rdf('JSPapersBySubj', rdf:type, rdf:'Seq').
+rdf('JSPapersBySubj', rdf:'_1', 'http://www.carchat.com/Sept97.html').
+rdf('JSPapersBySubj', rdf:'_2', 'http://www.dogworld.com/Aug96.doc').
+rdf('JSPapersBySubj', rdf:'_3', 'http://www.webnuts.net/Jan97.html').

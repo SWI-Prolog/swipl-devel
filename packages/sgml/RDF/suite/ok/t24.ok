@@ -1,0 +1,5 @@
+rdf('Description__1', rdf:subject, 'http://www.w3.org/Home/Lassila').
+rdf('Description__1', rdf:predicate, 'http://description.org/schema/Creator').
+rdf('Description__1', rdf:object, literal('Ora Lassila')).
+rdf('Description__1', rdf:type, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement').
+rdf('Description__1', 'http://description.org/schema/':attributedTo, literal('Ralph Swick')).

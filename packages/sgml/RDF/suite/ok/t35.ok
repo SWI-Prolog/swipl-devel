@@ -1,0 +1,8 @@
+rdf(prefix('http://www.w3.org/WWW/'), 'http://www.ages.org/our-service/v1.0/':age, literal('11')).
+rdf('L03', rdf:type, rdf:'Bag').
+rdf('Statement__1', rdf:type, rdf:'Statement').
+rdf('Statement__1', rdf:subject, prefix('http://www.w3.org/WWW/')).
+rdf('Statement__1', rdf:predicate, 'http://www.ages.org/our-service/v1.0/':age).
+rdf('Statement__1', rdf:object, literal('11')).
+rdf('L03', rdf:'_1', 'Statement__1').
+rdf(each('L03'), 'http://www.w3.org/TR/xxxx/WD-PICS-labels#':by, literal('abaird@w3.org')).
