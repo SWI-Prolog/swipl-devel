@@ -59,6 +59,9 @@ close_goal(Handle, close_shared_object(Handle)) :-
 find_and_open_shared_object(Lib, Path, Handle) :-
 	'$chk_file'(Lib, ['.so'], Path), !,
 	open_shared_object(Path, Handle).
+find_and_open_shared_object(Lib, _Path, _Handle) :-
+	'$warning'('open_shared_object/2: Cannot find ~w: no such file', [Lib]),
+	fail.
 
 
 		 /*******************************
