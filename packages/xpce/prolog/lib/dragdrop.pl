@@ -54,7 +54,7 @@ variable(source, 	any,	        get,  "Current source").
 variable(active_cursor,	cursor*,	get,  "@nil: activated").
 variable(select_popup,  popup*,		get,  "Popup for selecting command").
 
-class_variable(warp,   bool,        '@on',
+class_variable(warp,   bool,        @on,
 	       "Pointer in center?").
 class_variable(button, button_name, left,
 	       "Button on which gesture operates").
@@ -132,18 +132,23 @@ cursor(G, Gr:graphical, Cursor:cursor) :<-
 	).
 
 
+activate(G, Ev:event) :->
+	"Activate if dragged far enough"::
+	(   get(G, active_cursor, Cursor),
+	    Cursor \== @nil		% still not activated
+	->  (   get(Ev, click_displacement, D),
+		active_distance(G, D)	% far enough: activate
+	    ->	send(Ev?window, focus_cursor, Cursor),
+		send(G, slot, active_cursor, @nil)
+	    )
+	;   true
+	).
+
+
 drag(G, Ev:event) :->
 	"Find possible ->drop target"::
-	(   get(G, active_cursor, Cursor),
-	    Cursor \== @nil
-	->  (   get(Ev, click_displacement, D),
-		active_distance(G, D)
-	    ->	send(Ev?window, focus_cursor, Cursor),
-		send(G, slot, active_cursor, @nil),
-		send(G, drag, Ev)
-	    ;	true
-	    )
-	;   get(G, source, Source),
+	(   send(G, activate)
+	->  get(G, source, Source),
 	    (   get(Ev, inside_sub_window, Frame),
 		get(Ev, inside_sub_window, Frame, Window),
 		get(Window, find, Ev,
@@ -155,6 +160,7 @@ drag(G, Ev:event) :->
 	    ->  true
 	    ;   send(G, target, Source, @nil, @nil)
 	    )
+	;   true
 	).
 
 
