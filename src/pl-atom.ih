@@ -544,3 +544,5 @@
 #define ATOM_byte         MK_ATOM(543)
 #define ATOM_wchar_t      MK_ATOM(544)
 #define ATOM_octet        MK_ATOM(545)
+#define ATOM_representation_errors MK_ATOM(546)
+#define ATOM_xml          MK_ATOM(547)

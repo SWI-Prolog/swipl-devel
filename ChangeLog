@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: allow defining behaviour of streams when writing characters
+    that cannot be represented.  Suggested by Anjo Anjewierden.
+
   * FIXED: getting character code value for characters with code > 255.
     Anjo Anjewierden.
 

@@ -2122,37 +2122,21 @@ output buffer) are ignored.
     \predicate{stream_property}{2}{?Stream, ?StreamProperty}
 ISO compatible predicate for querying status of open I/O streams.  
 \arg{StreamProperty} is one of:
+
 \begin{description}
-
-    \termitem{file_name}{Atom}
-If \arg{Stream} is associated to a file, unify \arg{Atom} to the
-name of this file.
-
-    \termitem{mode}{IOMode}
-Unify \arg{IOMode} to the mode given to open/4 for opening the stream.
-Values are: \const{read}, \const{write}, \const{append} and the
-SWI-Prolog extension \const{update}.
-
-    \termitem{input}{}
-True if \arg{Stream} has mode \const{read}.
-
-    \termitem{output}{}
-True if \arg{Stream} has mode \const{write}, \const{append} or
-\const{update}.
-
     \termitem{alias}{Atom}
 If \arg{Atom} is bound, test of the stream has the specified alias.
 Otherwise unify \arg{Atom} with the first alias of the stream.%
 	\bug{Backtracking does not give other aliases.}
 
+    \termitem{buffer}{Buffering}
+SWI-Prolog extension to query the buffering mode of this stream. 
+\arg{Buffering} is one of \const{full}, \const{line} or \const{false}.
+See also open/4.
+
     \termitem{encoding}{Encoding}
 Query the encoding used for text.  See \secref{encoding} for an
 overview of wide character and encoding issues in SWI-Prolog.
-
-    \termitem{position}{Term}
-Unify \arg{Term} with the current stream-position.  A stream-position
-is a term of format \term{\$stream_position}{CharIndex, LineNo,
-LinePos}.  See also set_stream_position/2.
 
     \termitem{end_of_stream}{E}
 If \arg{Stream} is an input stream, unify \arg{E} with one of the
@@ -2163,14 +2147,9 @@ at_end_of_stream/[0,1].
 Unify \arg{A} with one of \const{eof_code}, \const{reset} or
 \const{error}.  See open/4 for details.
 
-    \termitem{reposition}{Bool}
-Unify \arg{Bool} with \arg{true} if the position of the stream can
-be set (see seek/4).  It is assumed the position can be set if the
-stream has a \jargon{seek-function} and is not based on a POSIX
-file-descriptor that is not associated to a regular file.
-
-    \termitem{type}{T}
-Unify \arg{Bool} with \const{text} or \const{binary}.
+    \termitem{file_name}{Atom}
+If \arg{Stream} is associated to a file, unify \arg{Atom} to the
+name of this file.
 
     \termitem{file_no}{Integer}
 If the stream is associated with a POSIX file-descriptor, unify
@@ -2178,14 +2157,45 @@ If the stream is associated with a POSIX file-descriptor, unify
 primarily for integration with foreign code.  See also Sfileno() from
 \file{SWI-Stream.h}.
 
+    \termitem{input}{}
+True if \arg{Stream} has mode \const{read}.
+
+    \termitem{mode}{IOMode}
+Unify \arg{IOMode} to the mode given to open/4 for opening the stream.
+Values are: \const{read}, \const{write}, \const{append} and the
+SWI-Prolog extension \const{update}.
+
+    \termitem{output}{}
+True if \arg{Stream} has mode \const{write}, \const{append} or
+\const{update}.
+
+    \termitem{position}{Term}
+Unify \arg{Term} with the current stream-position.  A stream-position
+is a term of format \term{\$stream_position}{CharIndex, LineNo,
+LinePos}.  See also set_stream_position/2.
+
+    \termitem{reposition}{Bool}
+Unify \arg{Bool} with \arg{true} if the position of the stream can
+be set (see seek/4).  It is assumed the position can be set if the
+stream has a \jargon{seek-function} and is not based on a POSIX
+file-descriptor that is not associated to a regular file.
+
+    \termitem{representation_errors}{Mode}
+Determines behaviour of character output if the stream cannot represent
+a character. For example, an ISO Latin-1 stream cannot represent
+cyrillic characters.  The behaviour is one of \const{error} (throw
+and I/O error exception), \const{prolog} (write \verb$\...\$ escape
+code or \const{xml} (write \verb$&#...;$ XML character entity).
+The initial mode is \const{prolog} for the user streams and
+\const{error} for all other streams. See also \secref{encoding}
+and set_stream/2.
+
+    \termitem{type}{T}
+Unify \arg{Bool} with \const{text} or \const{binary}.
+
     \termitem{tty}{Bool}
 This property is reported with \arg{Bool} equals \const{true} if
 the stream is associated with a terminal.  See also set_stream/2.
-
-    \termitem{buffer}{Buffering}
-SWI-Prolog extension to query the buffering mode of this stream. 
-\arg{Buffering} is one of \const{full}, \const{line} or \const{false}.
-See also open/4.
 \end{description}
 
     \predicate{current_stream}{3}{?Object, ?Mode, ?Stream}
@@ -2234,10 +2244,6 @@ terminal input is read from this stream. See also interactor/0.
 Set the buffering mode of an already created stream.  Buffering is one
 of \const{full}, \const{line} or \const{false}.
 
-    \termitem{eof_action}{Action}
-Set end-of-file handling to one of \const{eof_code}, \const{reset} or
-\const{error}.
-
     \termitem{close_on_abort}{Bool}
 Determine whether or not the stream is closed by abort/0.  By default
 streams are closed.
@@ -2245,6 +2251,10 @@ streams are closed.
     \termitem{encoding}{Atom}
 Defines the mapping between bytes and character codes used for the
 stream.  See \secref{encoding} for supported encodings.
+
+    \termitem{eof_action}{Action}
+Set end-of-file handling to one of \const{eof_code}, \const{reset} or
+\const{error}.
 
     \termitem{timeout}{Seconds}
 This option can be used to make streams generate an exception if it
@@ -2262,6 +2272,11 @@ form
     \termitem{record_position}{Bool}
 Do/do not record the line-count and line-position (see line_count/2
 and line_position/2). 
+
+    \termitem{representation_errors}{Mode}
+Change the behaviour when writing characters to the stream that cannot
+be represented by the encoding.  See also stream_property/2 and
+\secref{encoding}.
 
     \termitem{file_name}{FileName}
 Set the file name associated to this stream.  This call can be used

@@ -557,6 +557,8 @@ A unicode_le		"unicode_le"
 A byte			"byte"
 A wchar_t		"wchar_t"
 A octet		        "octet"
+A representation_errors	"representation_errors"
+A xml			"xml"
 
 F abs			1
 F access		1
@@ -726,3 +728,4 @@ F xor			2
 F xpceref		1
 F tty			1
 F encoding		1
+F representation_errors 1

@@ -1726,6 +1726,14 @@ UNICODE \jargon{Little Endian}.  Reads input in pairs of bytes, least
 significant byte first.  Can only represent 16-bit characters.
 \end{description}
 
+Note that not all encodings can represent all characters. This implies
+that writing text to a stream may cause errors because the stream cannot
+represent these characters. The behaviour of a stream on these errors
+can be controlled using set_stream/2. Initially the terminal stream
+write the characters using Prolog escape sequences while other streams
+generate an I/O exception.
+
+
 \section{System limits}				\label{sec:limits}
 
 \subsection{Limits on memory areas}		\label{sec:memlimit}

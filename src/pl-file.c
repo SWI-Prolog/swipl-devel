@@ -1222,6 +1222,21 @@ pl_set_stream(term_t stream, term_t attr)
 
 	s->encoding = enc;
 	goto ok;
+      } else if ( aname == ATOM_representation_errors )
+      { atom_t val;
+
+	if ( !PL_get_atom_ex(a, &val) )
+	  goto error;
+	clear(s, SIO_REPXML|SIO_REPPL);
+	if ( val == ATOM_error )
+	  ;
+	else if ( val == ATOM_xml )
+	  set(s, SIO_REPXML);
+	else if ( val == ATOM_prolog )
+	  set(s, SIO_REPPL);
+	else
+	  return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			  ATOM_representation_errors, a);
       }
     }
   }
@@ -2634,6 +2649,21 @@ stream_encoding_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 
 static int
+stream_reperror_prop(IOSTREAM *s, term_t prop ARG_LD)
+{ atom_t a;
+
+  if ( (s->flags & SIO_REPXML) )
+    a = ATOM_xml;
+  else if ( (s->flags & SIO_REPPL) )
+    a = ATOM_prolog;
+  else
+    a = ATOM_error;
+
+  return PL_unify_atom(prop, a);
+}
+
+
+static int
 stream_buffer_prop(IOSTREAM *s, term_t prop ARG_LD)
 { atom_t b;
 
@@ -2670,6 +2700,7 @@ static const sprop sprop_list [] =
   { FUNCTOR_close_on_abort1,stream_close_on_abort_prop },
   { FUNCTOR_tty1,	    stream_tty_prop },
   { FUNCTOR_encoding1,	    stream_encoding_prop },
+  { FUNCTOR_representation_errors1, stream_reperror_prop },
   { 0,			    NULL }
 };
 

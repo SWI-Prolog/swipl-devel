@@ -547,13 +547,35 @@ Sungetc(int c, IOSTREAM *s)
 }
 
 
+static int
+reperror(int c, IOSTREAM *s)
+{ if ( c >= 0 && (s->flags & (SIO_REPXML|SIO_REPPL)) )
+  { char buf[16];
+    const char *q;
+
+    if ( (s->flags & SIO_REPXML) )
+      sprintf(buf, "&#%d;", c);
+    else
+      sprintf(buf, "\\%x\\", c);
+
+    for(q = buf; *q; q++)
+    { if ( put_byte(*q, s) < 0 )
+	return -1;
+    }
+	
+    return c;
+  }
+
+  Sseterr(s, SIO_FERR|SIO_CLEARERR, "Encoding cannot represent character");
+  return -1;
+}
+
+
+
 int
 Sputcode(int c, IOSTREAM *s)
 { if ( c < 0 )
-  { err:
-    Sseterr(s, SIO_FERR|SIO_CLEARERR, "Encoding cannot represent character");
-    return -1;
-  }
+    return reperror(c, s);
 
   if ( s->tee && s->tee->magic == SIO_MAGIC )
     Sputcode(c, s->tee);
@@ -562,7 +584,10 @@ Sputcode(int c, IOSTREAM *s)
   { case ENC_OCTET:
     case ENC_ISO_LATIN_1:
       if ( c >= 256 )
-	goto err;
+      { if ( reperror(c, s) < 0 )
+	  return -1;
+	break;
+      }
     simple:
       if ( s->bufp < s->limitp )
       { *s->bufp++ = (char)c;
@@ -575,7 +600,10 @@ Sputcode(int c, IOSTREAM *s)
       break;
     case ENC_ASCII:
       if ( c >= 128 )
-	goto err;
+      { if ( reperror(c, s) < 0 )
+	  return -1;
+	break;
+      }
       goto simple;
     case ENC_UTF8:
     { char buf[6];
@@ -1006,6 +1034,9 @@ Sunit_size(IOSTREAM *s)
       return 2;
     case ENC_WCHAR:
       return sizeof(wchar_t);
+    default:
+      assert(0);
+      return 1;				/* not reached */
   }
 }
 
@@ -2223,8 +2254,8 @@ Sfileno(IOSTREAM *s)
 #define SIO_STDIO (SIO_FILE|SIO_STATIC|SIO_NOCLOSE|SIO_ISATTY)
 #define STDIO_STREAMS \
   STDIO(0, SIO_STDIO|SIO_LBUF|SIO_INPUT|SIO_NOFEOF),	/* Sinput */ \
-  STDIO(1, SIO_STDIO|SIO_LBUF|SIO_OUTPUT), 		/* Soutput */ \
-  STDIO(2, SIO_STDIO|SIO_NBUF|SIO_OUTPUT)		/* Serror */
+  STDIO(1, SIO_STDIO|SIO_LBUF|SIO_OUTPUT|SIO_REPPL), 	/* Soutput */ \
+  STDIO(2, SIO_STDIO|SIO_NBUF|SIO_OUTPUT|SIO_REPPL)	/* Serror */
 
 
 IOSTREAM S__iob[] =

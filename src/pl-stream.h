@@ -199,6 +199,8 @@ typedef struct io_stream
 #define SIO_ADVLOCK	SmakeFlag(26)	/* File locked with advisory lock */
 #define SIO_WARN	SmakeFlag(27)	/* Pending warning */
 #define SIO_CLEARERR	SmakeFlag(28)	/* Clear error after reporting */
+#define SIO_REPXML	SmakeFlag(29)	/* Bad char --> XML entity */
+#define SIO_REPPL	SmakeFlag(30)	/* Bad char --> Prolog \hex\ */
 
 #define	SIO_SEEK_SET	0	/* From beginning of file.  */
 #define	SIO_SEEK_CUR	1	/* From current position.  */
