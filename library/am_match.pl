@@ -99,7 +99,7 @@ am_anychar([C|Rest]) -->
 	am_anychar(Rest).	
 
 am_max_string([C|Rest]) -->
-	am_next_char("\"), 
+	am_next_char("\\"), 
 	am_next_char([C]), !, 
 	am_max_string(Rest).
 am_max_string([C|Rest]) -->
@@ -113,7 +113,7 @@ am_any_string([]) -->
 am_any_string([]) -->
 	am_see_char(", "), !.
 am_any_string([C|Rest]) -->
-	am_next_char("\"), 
+	am_next_char("\\"), 
 	am_next_char([C]), !, 
 	am_any_string(Rest).
 am_any_string([C|Rest]) -->
