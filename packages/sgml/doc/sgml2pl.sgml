@@ -1116,6 +1116,28 @@ processing external entities, so Prolog-based file-location and Prolog
 resources can be used to store external entities.
 
 
+<s1>Writing markup</title>
+
+<p>
+The <ref pkg/sgml2pl/ package is a parser.  Output is generally much easier
+achieved directly from Prolog.  Nevertheless, it contains a few building
+blocks for emitting markup data.
+
+
+<definitions>  
+    <pred>xml_quote_attribute(+In, -Quoted)
+    <summary>Quote text for use as an attribute
+Map the characters that may not appear in XML attributes to entities.
+Currently these are <c>&lt;&gt;&amp;&apos;&quot</c>.  Future versions may
+also deal with characters that cannot be represented by the document
+character-set.
+    <pred>xml_quote_cdata(+In, -Quoted)
+    <summary>Quote text for use as PCDATA
+Very similar to <pref>xml_quote_attribute/2</pref>, but does not quote the
+single- and double-quotes.
+</definitions>
+
+
 <s1>Unsupported features</title>
 
 <p>

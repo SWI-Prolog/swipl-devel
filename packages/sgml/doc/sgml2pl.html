@@ -60,12 +60,13 @@ DTD. The parser is designed to be small, fast and flexible.
 </ul>
 <li><a href="#sec:indexaccess">Processing Indexed Files</a>
 <li><a href="#sec:sec-5">External entities</a>
-<li><a href="#sec:sec-6">Unsupported features</a>
-<li><a href="#sec:sec-7">Installation</a>
+<li><a href="#sec:sec-6">Writing markup</a>
+<li><a href="#sec:sec-7">Unsupported features</a>
+<li><a href="#sec:sec-8">Installation</a>
 <ul>
-<li><a href="#sec:sec-7.1">Unix systems</a>
+<li><a href="#sec:sec-8.1">Unix systems</a>
 </ul>
-<li><a href="#sec:sec-8">Acknowledgements</a>
+<li><a href="#sec:sec-9">Acknowledgements</a>
 </ul>
 
 <p>
@@ -1506,7 +1507,32 @@ resources can be used to store external entities.
 <p>
 &nbsp;
 
-<h1><a name="sec:sec-6">Unsupported features</a></h1>
+<h1><a name="sec:sec-6">Writing markup</a></h1>
+
+<p>
+The <b>sgml2pl</b> package is a parser.  Output is generally much easier
+achieved directly from Prolog.  Nevertheless, it contains a few building
+blocks for emitting markup data.
+
+
+<dl>
+<dt>&nbsp;<br>
+<b><a name="xml_quote_attribute/2">xml_quote_attribute(<var>+In, -Quoted</var>)</a></b><dd>
+Map the characters that may not appear in XML attributes to entities.
+Currently these are <a name="const:&lt;&gt;&amp;'""><b><tt>&lt;&gt;&amp;'"</tt></b></a>.  Future versions may
+also deal with characters that cannot be represented by the document
+character-set.
+    
+<dt>&nbsp;<br>
+<b><a name="xml_quote_cdata/2">xml_quote_cdata(<var>+In, -Quoted</var>)</a></b><dd>
+Very similar to <a href="#xml_quote_attribute/2"><b>xml_quote_attribute/2</b></a>, but does not quote the
+single- and double-quotes.
+</dl>
+
+<p>
+&nbsp;
+
+<h1><a name="sec:sec-7">Unsupported features</a></h1>
 
 <p>
 The current parser is rather limited. While it is able to deal with many
@@ -1576,12 +1602,12 @@ attributes yet, let alone details.
 <p>
 &nbsp;
 
-<h1><a name="sec:sec-7">Installation</a></h1>
+<h1><a name="sec:sec-8">Installation</a></h1>
 
 <p>
 &nbsp;
 
-<h2><a name="sec:sec-7.1">Unix systems</a></h2>
+<h2><a name="sec:sec-8.1">Unix systems</a></h2>
 
 <p>
 Installation on Unix system uses the commonly found <code>configure</code>,
@@ -1612,7 +1638,7 @@ the Prolog library files in <b>$PLBASE/library</b>, where
 <p>
 &nbsp;
 
-<h1><a name="sec:sec-8">Acknowledgements</a></h1>
+<h1><a name="sec:sec-9">Acknowledgements</a></h1>
 
 <p>
 The Prolog representation for parsed documents is based on the 
@@ -1643,6 +1669,8 @@ standard.  He also made many suggestions for improving this document.
 <tr><td><a href="#set_sgml_parser/2"><b>set_sgml_parser/2</b></a></td><td>Set parser options (dialect, source, <em>etc.</em>)</td></tr>
 <tr><td><a href="#sgml_parse/2"><b>sgml_parse/2</b></a></td><td>Parse the input</td></tr>
 <tr><td><a href="#sgml_register_catalog_file/2"><b>sgml_register_catalog_file/2</b></a></td><td>Register a catalog file</td></tr>
+<tr><td><a href="#xml_quote_attribute/2"><b>xml_quote_attribute/2</b></a></td><td>Quote text for use as an attribute</td></tr>
+<tr><td><a href="#xml_quote_cdata/2"><b>xml_quote_cdata/2</b></a></td><td>Quote text for use as PCDATA</td></tr>
 </table>
 
 <h1>Footnotes</h1>
@@ -1663,6 +1691,7 @@ deleted. This is not yet implemented.
 <li><a href="#const:/"><b><tt>/</tt></b></a> [ <a href="#const:/%2">2</a>]
 <li><a href="#const:/&gt;"><b><tt>/&gt;</tt></b></a>
 <li><a href="#const::"><b><tt>:</tt></b></a>
+<li><a href="#const:&lt;&gt;&amp;'""><b><tt>&lt;&gt;&amp;'"</tt></b></a>
 <li><a href="#const:CDATA"><b><tt>CDATA</tt></b></a> [ <a href="#const:CDATA%2">2</a> <a href="#const:CDATA%3">3</a> <a href="#const:CDATA%4">4</a> <a href="#const:CDATA%5">5</a> <a href="#const:CDATA%6">6</a> <a href="#const:CDATA%7">7</a>]
 <li><a href="#const:DOCTYPE"><b><tt>DOCTYPE</tt></b></a> [ <a href="#const:DOCTYPE%2">2</a> <a href="#const:DOCTYPE%3">3</a>]
 <li><a href="#const:NAMES"><b><tt>NAMES</tt></b></a>
@@ -1739,6 +1768,8 @@ deleted. This is not yet implemented.
 <li><a href="#const:urlns"><b><tt>urlns</tt></b></a>
 <li><a href="#const:warning"><b><tt>warning</tt></b></a>
 <li><a href="#const:xml"><b><tt>xml</tt></b></a> [ <a href="#const:xml%2">2</a> <a href="#const:xml%3">3</a> <a href="#const:xml%4">4</a>]
+<li><a href="#xml_quote_attribute/2"><b>xml_quote_attribute/2</b></a>
+<li><a href="#xml_quote_cdata/2"><b>xml_quote_cdata/2</b></a>
 <li><a href="#const:xmlns"><b><tt>xmlns</tt></b></a> [ <a href="#const:xmlns%2">2</a> <a href="#const:xmlns%3">3</a> <a href="#const:xmlns%4">4</a> <a href="#const:xmlns%5">5</a> <a href="#const:xmlns%6">6</a> <a href="#const:xmlns%7">7</a> <a href="#const:xmlns%8">8</a>]
 </ul>
 </body>
