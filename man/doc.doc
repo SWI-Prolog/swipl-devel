@@ -162,6 +162,7 @@ Copyright \copyright\ 1990--\vyear, University of Amsterdam
 \include{ide}
 \include{builtin}
 \include{module}
+\include{threads}
 \include{foreign}
 \include{runtime}
 \appendix

@@ -1,0 +1,322 @@
+\chapter{Multi-threading applications}		\label{sec:threads}
+
+{\bf The features described in this section are only enabled on Unix
+systems providing POSIX threads and if the system is configured using
+the \longoption{enable-mt}{} option. SWI-Prolog multi-theading support
+is still beta.  Especially, it is discouraged to use I/O streams from
+multiple threads.
+
+The standard Linux RPM based binary installation provides two
+executables: \program{pl} is the single-threaded and \program{pl-mt} is
+the multi-threaded version. The packages distributed with this version
+are built with threading support.}
+
+SWI-Prolog multithreading is based on standard C-language multithreading
+support. It is not like {\em ParLog} or other paralel implementations of
+the Prolog language. Prolog threads have their own stacks and only share
+the Prolog {\em heap}: predicates, records, flags and other global
+non-backtrackable data.  SWI-Prolog thread support is designed with the
+following goals in mind.
+
+\begin{itemlist}
+    \item[Multi-threaded server applications]
+Todays computing services often focus on (internet) server applications.
+Such applications often have need for communication between services
+and/or fast non-blocking service to multiple concurrent clients.  The
+shared heap provides fast communication and thread creation is
+relatively cheap (A Pentium-II/450 can create and join approx. 10,000
+threads per second on Linux 2.2).
+    \item[Interactive applications]
+Interactive applications often need to perform extensive computation.
+If such computations are executed in a new thread, the main thread can
+process events and allow the user to cancel the ongoing computation.
+User interfaces can also use multiple threads, each thread dealing with
+input from a distinct group of windows.
+    \item[Natural integration with foreign code]
+Each Prolog thread runs in a C-thread, automatically making them
+cooperate with \jargon{MT-safe}	foreign-code.  In addition, any
+foreign thread can create its own Prolog engine for dealing with
+calling Prolog from C-code.
+\end{itemlist}
+
+\begin{description}
+    \predicate{thread_create}{3}{:Goal, -Id, +Options}
+Create a new Prolog thread (and underlying C-thread) and start it
+by executing \arg{Goal}.  If the thread is created succesfully, the
+thread-identifier of the created thread is unified to \arg{Id}.
+\arg{Options} is a list of options.  Currently defined options are:
+
+\begin{description}
+    \termitem{local}{K-Bytes}
+Set the limit to which the local stack of this thread may grow.  If
+omited, the limit of the calling thread is used.  See also the
+\cmdlineoption{-L} commandline option.
+    \termitem{global}{K-Bytes}
+Set the limit to which the global stack of this thread may grow.  If
+omited, the limit of the calling thread is used. See also the
+\cmdlineoption{-G} commandline option.
+    \termitem{trail}{K-Bytes}
+Set the limit to which the trail stack of this thread may grow.  If
+omited, the limit of the calling thread is used. See also the
+\cmdlineoption{-T} commandline option.
+    \termitem{argument}{K-Bytes}
+Set the limit to which the argument stack of this thread may grow.  If
+omited, the limit of the calling thread is used. See also the
+\cmdlineoption{-A} commandline option.
+    \termitem{stack}{K-Bytes}
+Set the limit to which the system stack of this thread may grow.  The
+default, mimimum and maximum values are system-dependant.
+    \termitem{alias}{AliasName}
+Associate an `alias-name' with the thread.  This named may be used to
+refer to the thread and remains valid until the thread is joined
+(see thread_join/2).
+    \termitem{detached}{Bool}
+If \const{false} (default), the thread can be waited for using
+thread_join/2. thread_join/2 must be called on this thread to reclaim
+the all resources associated to the thread. If \const{true}, the system
+will reclaim all associated resources automatically after the thread
+finishes. Please note that thread identifiers are freed for reuse after
+a detached thread finishes or a normal thread has been joined.
+\end{description}
+
+The \arg{Goal} argument is {\em copied} to the new Prolog engine.  This
+implies further instantiation of this term in either thread does not
+have consequences for the other thread: Prolog threads do not share
+data from their stacks.
+
+    \predicate{thread_self}{1}{-Id}
+Get the Prolog thread identifier of the running thread.  If the thread
+has an alias, the alias-name is returned.
+
+    \predicate{current_thread}{2}{?Id, ?Status}
+Enumerates identifiers and status of all currently known threads.
+Calling current_thread/2 does not influence any thread.  See also
+thread_join/2.  For threads that have an alias-name, this name is
+returned in \arg{Id} instead of the numerical thread identifier.
+\arg{Status} is one of:
+
+\begin{description}
+    \termitem{running}{}
+The thread is running.  This is the initial status of a thread.  Please
+note that threats waiting for something are considered running too.
+    \termitem{false}{}
+The \arg{Goal} of the thread has been completed and failed.
+    \termitem{true}{}
+The \arg{Goal} of the thread has been completed and succeeded.
+    \termitem{exited}{Term}
+The \arg{Goal} of the thread has been terminated using thread_exit/1
+with \arg{Term} as argument.
+    \termitem{exception}{Term}
+The \arg{Goal} of the thread has been terminated due to an uncaught
+exception (see throw/1 and catch/3).
+\end{description}
+
+    \predicate{thread_join}{2}{+Id, -Status}
+Wait for the termination of thread with given \arg{Id}.  Then unify
+the result-status (see thread_exit/1) of the thread with \arg{Status}.
+After this call, \arg{Id} becomes invalid and all resources associated
+with the thread are reclaimed. See also current_thread/2.
+
+A thread that has been completed without thread_join/2 being called on
+it is partly reclaimed: the Prolog stacks are released and the C-thread
+is destroyed.  A small data-structure represening the exit-status of the
+thread is retained until thread_join/2 is called on the thread.
+
+    \predicate{thread_exit}{1}{+Term}
+Terminates the thread immediately, leaving \term{exited}{Term} as
+result-state.  The Prolog stacks and C-thread are reclaimed.
+
+    \predicate{thread_at_exit}{1}{:Goal}
+Run \arg{Goal} after the execution of this thread has terminated. This
+is to be compared to at_halt/1, but only for the current thread.  These
+hooks are ran regardless of why the execution of the thread has been
+completed.  As these hooks are run, the return-code is already available
+through current_thread/2.
+\end{description}
+
+
+\section{Thread communication}
+
+Prolog threads can exchange data using dynamic predicates, database
+records, and other globally shared data.  In addition, they can send
+messages to each other.  If a threads needs to wait for another thread
+until that thread has produced some data, using only the database forces
+the waiting thread to poll the database continuously.  Waiting for a
+message suspends the thread execution until the message has arrived
+in its message queue.
+
+\begin{description}
+    \predicate{thread_send_message}{2}{+ThreadId, +Term}
+Place \arg{Term} in the message queue of the indicated thread (which can
+even be the message queue of itself (see thread_self/1).  Any term can
+be placed in a message queue, but note that the term is copied to to
+receiving thread and variable-bindings are thus lost.  This call returns
+immediately.
+
+    \predicate{thread_get_message}{1}{?Term}
+Examines the thread message-queue and if necessary blocks execution
+until a term that unifies to \arg{Term} arrives in the queue.  After
+a term from the queue has been unified unified to \arg{Term}, this
+term is deleted from the queue and this predicate returns.
+
+Please note that not-unifying messages remain in the queue.  After
+the following has been executed, thread 1 has the term \term{b}{gnu}
+in its queue and continues execution using \arg{A} is \const{gnat}.
+
+\begin{code}
+   <thread 1>
+   thread_get_message(a(A)),
+
+   <thread 2>
+   thread_send_message(b(gnu)),
+   thread_send_message(a(gnat)),
+\end{code}
+
+See also thread_peek_message/1.
+    \predicate{thread_peek_message}{1}{?Term}
+Examines the thread message-queue and compares the queued terms
+with \arg{Term} until one unifies or the end of the queue has been
+reached.  In the first case the call succeeds (possibly instantiating
+\arg{Term}.  If no term from the queue unifies this call fails.
+    \predicate{thread_signal}{2}{+ThreadId, :Goal}
+Make thread \arg{ThreadId} execute \arg{Goal} at the first
+opportunity.  In the current implementation, this implies at the first
+pass through the \jargon{Call-port}. The predicate thread_signal/2
+itself places \arg{Goal} into the signalled-thread's signal queue
+and returns immediately.
+
+Signals (interrupts) do not cooperate well with the world of
+multi-threading, mainly because the status of mutexes cannot be
+guaranteed easily.  At the call-port, the Prolog virtual machine
+holds no locks and therefore the asynchronous execution is safe.
+
+\arg{Goal} can be any valid Prolog goal, including throw/1 to make
+the receiving thread generate an exception and trace/0 to start
+tracing the receiving thread.
+\end{description}
+
+\section{Thread synchronisation}
+
+All internal Prolog operations are thread-safe. This implies two Prolog
+threads can operate on the same dynamic predicate without corrupting the
+consistency of the predicate. This section deals with user-level
+\jargon{mutexes} (called \jargon{monitors} in ADA or
+\jargon{critical-sections} by Microsoft).  A mutex is a
+{\bf MUT}ual {\bf EX}clusive device, which implies at most one thread
+can \jargon{hold} a mutex.
+
+Mutexes are used to realise related updates to the Prolog database.
+With `related', we refer to the situation where a `transaction' implies
+two or more changes to the Prolog database.  For example, we have a
+predicate address/2, representing the address of a person and we want
+to change the address by retracting the old and asserting the new
+address.  Between these two operations the database is invalid: this
+person has either no address or two addresses (depending on the
+assert/retract order).
+
+Here is how to realise a correct update:
+
+\begin{code}
+:- initialization
+	mutex_create(addressbook).
+
+change_address(Id, Address) :-
+	mutex_lock(addressbook),
+	retractall(address(Id, _)),
+	asserta(address(Id, Address)),
+	mutex_unlock(addressbook).
+\end{code}
+
+
+\begin{description}
+    \predicate{mutex_create}{1}{?MutexId}
+Create a mutex.  if \arg{MutexId} is an atom, a \jargon{named} mutex is
+created.  If it is a variable, an anonymous mutex reference is returned.
+There is no limit to the number of mutexes that can be created.
+    \predicate{mutex_destroy}{1}{+MutexId}
+Destroy a mutex.  After this call, \arg{MutexId} becomes invalid and
+further references yield an \except{existence_error} exception.
+    \predicate{mutex_lock}{1}{+MutexId}
+Lock the mutex.  Prolog mutexes are \jargon{recursive} mutexes: they
+can be locked multiple times by the same thread.  Only after unlocking
+it as many times as it is locked, the mutex becomes available for
+locking by other threads. If another thread has locked the mutex the
+calling thread is suspended until to mutex is unlocked.
+
+If \arg{MutexId} is an atom, and there is no current mutex with that
+name, the mutex is created automatically using mutex_create/1.  This
+implies named mutexes need not be declared explicitly.
+
+Please note that locking and unlocking mutexes should be paired
+carefully. Especially make sure to unlock mutexes even if the protected
+code fails or raises an exception. For most common cases use
+with_mutex/2, wich provides a safer way for handling prolog-level
+mutexes.
+    \predicate{mutex_trylock}{1}{+MutexId}
+As mutex_lock/1, but if the mutex is held by another thread, this
+predicates fails immediately.
+    \predicate{mutex_unlock}{1}{+MutexId}
+Unlock the mutex. This can only be called if the mutex is held by the
+calling thread. If this is not the case, a \except{permission_error}
+exception is raised.
+    \predicate{mutex_unlock_all}{0}{}
+Unlock all mutexes held by the current thread.  This call is especially
+useful to handle thread-termination using abort/0 or exceptions.  See
+also thread_signal/2.
+    \predicate{current_mutex}{3}{?MutexId, ?ThreadId, ?Count}
+Enumerates all existing mutexes.  If the mutex is held by some thread,
+\arg{ThreadId} is unified with the identifier of te holding thread and
+\arg{Count} with the recursive count of the mutex. Otherwise,
+\arg{ThreadId} is \const{[]} and \arg{Count} is 0.
+    \predicate{with_mutex}{2}{+MutexId, :Goal}
+Execute \arg{Goal} while holding \arg{MutexId}.  If \arg{Goal} leaves
+choicepointes, these are destroyed (as in once/1).  The mutex is unlocked
+regardless of whether \arg{Goal} succeeds, fails or raises an exception.
+An exception thrown by \arg{Goal} is re-thrown after the mutex has been
+successfully unlocked.  See also mutex_create/2.
+
+Although described in the thread-section, this predicate is also
+available in the single-threaded version, where it behaves simply as
+once/1.
+\end{description}
+
+
+\section{Thread-support library(threadutil)}
+
+This library defines a couple of useful predicates for demonstrating and
+debugging multi-threaded applications. This library is certainly not
+complete.
+
+\begin{description}
+    \predicate{threads}{0}{}
+Lists all current threads and their status.  In addition, all `zombie'
+threads (finished threads that are not detached, nor waited for) are
+joined to reclaim their resources.
+    \predicate{interactor}{0}{}
+Create a new console and run the Prolog toplevel in this new console.
+See also attach_console/0.
+    \predicate{attach_console}{0}{}
+If the current thread has no console attached yet, attach one and
+redirect the user streams (input, output, and error) to the new console
+window. The console is an \program{xterm} application. For this to work,
+you should be running X-windows and your xterm should know the
+\cmdlineoption{-Sccn}.
+
+This predicate has a couple of useful applications.  One is to separate
+(debugging) I/O of different threads.  Another is to start debugging a
+thread that is running in the background.  If thread 10 is running, the
+following sequence starts the tracer on this thread:
+
+\begin{code}
+?- thread_signal(10, (attach_console, trace)).
+\end{code}
+\end{description}
+
+
+\section{Status of the thread implementation}
+
+It is assumed that the basic Prolog execution is thread-safe. Various
+problems are to be expected though, both dead-locks as well as
+not-thread-safe code in builtin-predicates. 
+
+
