@@ -7,6 +7,13 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.1.13 (May 19, 2003)
+=============================
+
+  * ADDED/PORT: New Windows installer based on NSIS, NullSoft Scriptable
+    Install System.  Also added a dedicated windows readme file to the
+    installation.
+
   * FIXED: handling uninitialised data in compilation of \+/1.  Could
     result in wrong results if the garbage collector is executed in the
     critical window or the graphical tracer it used.  Alan Baljeu.

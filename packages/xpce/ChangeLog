@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.1.13, distributed with SWI-Prolog 5.1.13
+==================================================
+
 * PORT: Fixed many GCC 3.3 signed/unsigned warnings.
 
 VERSION 6.1.12, distributed with SWI-Prolog 5.1.12

@@ -1,39 +1,35 @@
-SWI-Prolog 5.1.12/XPCE 6.1.12 Summary of changes
+SWI-Prolog 5.1.13/XPCE 6.1.13 Summary of changes
 
 Status
 ======
   
-  * 13th beta-release.  Unless serious trouble shows up, the next release
+  * 14th beta-release.  Unless serious trouble shows up, the next release
     will be 5.2.0.  I.e. this will become the next stable release.
 
 SWI-Prolog
 ==========
 
-  * MODIFIED: last/2 argument order to last(List, Elem).  See
-    http://www.prolog-standard.fmg.uva.nl/twiki/bin/view/Library/PredLast2
-    for a discussion.
+  * Fixed A =:= "x" in optimised mode and added handling 0'\n syntax.  Note
+    thats this requires the backslash to be written as 0'\\.  This change
+    is likely to affect compatibility.  Required by the ISO standard.
+ 
+  * Important patch to compilation of \+/1, which could cause the garbage
+    collector to reset variables only used in the scope of \+ and used in
+    multiple goals (i.e. \+ (a(A), b(A))).
 
-  * Added various dec10 compatible library predicates to library(lists).
-    fixed some problems in the library (Richard O'Keefe).
-
-  * Some portability patches and small patches.
+  * Windows: Replaced the Wise installer by the free software NSIS installer.
+    Added Windows readme file.
+    
+  * Many patches for new GCC 3.3 compiler warnings.
 
 Packages
 ========
 
-  * XPCE: Fixes to the new library(tabbed_window), some patches to PostScript
-    generation. Added library(splash_screen) to provide a nice startup-screen
-    for your application.
-
 Development environment
 =======================
 
-  * Fixed showing up too many FAIL-ports in the GUI-tracer,
-
 Short-term Plans
 ================
-
-  * Finish articles :-)
 
   * RDF storage and RDFS and OWL query support.
 
