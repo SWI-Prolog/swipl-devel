@@ -216,19 +216,23 @@ typedef struct rdf_db
   CRITICAL_SECTION	hash_mutex;
   win32_cond_t		rdcondvar;
   win32_cond_t		wrcondvar;
+  win32_cond_t		upcondvar;
 #else
   pthread_mutex_t	mutex;
   pthread_mutex_t	hash_mutex;
   pthread_cond_t	rdcondvar;
   pthread_cond_t	wrcondvar;
+  pthread_cond_t	upcondvar;
 #endif
   int			waiting_readers;
   int			waiting_writers;
+  int			waiting_upgrade;
   int		       *read_by_thread;
 #endif
   int			writer;
-  int			transactor;
+  int			allow_readers;
   int			readers;
+  int			lock_level;	/* recursive locks */
 } rdf_db;
 
 #endif /*RDFDB_H_INCLUDED*/

@@ -214,7 +214,7 @@ static int
 RDLOCK(rdf_db *db)
 { EnterCriticalSection(&db->mutex);
 
-  if ( db->writer == -1 )
+  if ( db->allow_readers == TRUE )
   { ok:
 
     db->readers++;
@@ -233,7 +233,7 @@ RDLOCK(rdf_db *db)
     { LeaveCriticalSection(&db->mutex);
       return FALSE;
     } else if ( rc == 0 )
-    { if ( db->writer == -1 )
+    { if ( db->allow_readers == TRUE )
       { db->waiting_readers--;
 	goto ok;
       }
@@ -245,8 +245,14 @@ RDLOCK(rdf_db *db)
 
 
 static int
-WRLOCK(rdf_db *db)
+WRLOCK(rdf_db *db, int allow_readers)
 { int self = PL_thread_self();
+
+  if ( db->writer == self )		/* recursive write lock, used for */
+  { db->lock_level++;			/* nested transactions */
+
+    return TRUE;
+  }
 
   EnterCriticalSection(&db->mutex);
   
@@ -254,6 +260,7 @@ WRLOCK(rdf_db *db)
   { ok:
 
     db->writer = self;
+    db->allow_readers = allow_readers;
     LeaveCriticalSection(&db->mutex);
     DEBUG(3, Sdprintf("WRLOCK(%d): OK\n", self));
 
@@ -288,31 +295,82 @@ WRLOCK(rdf_db *db)
 
 
 static int
+LOCKOUT_READERS(rdf_db *db)
+{ EnterCriticalSection(&db->mutex);
+  
+  if ( db->readers == 0 )
+  { ok:
+
+    db->allow_readers = FALSE;
+    LeaveCriticalSection(&db->mutex);
+
+    return TRUE;
+  }
+
+  db->waiting_upgrade++;
+
+  for(;;)
+  { int rc = win32_cond_wait(&db->upcondvar, &db->mutex);
+
+    if ( rc == WAIT_INTR )
+    { LeaveCriticalSection(&db->mutex);
+      return FALSE;
+    } else if ( rc == 0 )
+    { if ( db->readers == 0 )
+      { db->waiting_upgrade--;
+	goto ok;
+      }
+    } else
+    { assert(0);			/* TBD: OS errors */
+    }
+  }
+}
+
+
+static int
 UNLOCK(rdf_db *db)
 { int self = PL_thread_self();
   enum { NONE, READ, WRITE } waiting;
+
+  if ( db->writer == self && db->lock_level > 1 )
+  { db->lock_level--;
+    return TRUE;
+  }
+
 
   EnterCriticalSection(&db->mutex);
   if ( db->writer == -1 )		/* must be a read lock */
   { db->readers--;
     db->read_by_thread[self]--;
+    signal = (db->readers == 0);
   } else
   { db->writer = -1;
+    db->allow_readers = TRUE;
+    signal = TRUE;
   }
 
-  waiting = (db->waiting_writers ? WRITE :
-	     db->waiting_readers ? READ : NONE);
+  if ( signal )
+  { enum { NONE, READ, WRITE, UPGRADE } waiting;
 
-  switch(waiting)
-  { case WRITE:
-      win32_cond_signal(&db->wrcondvar);
-      break;
-    case READ:
-      win32_cond_signal(&db->rdcondvar);
-      break;
-    default:
-      ;
+    waiting = (db->waiting_upgrade ? UPGRADE :
+	       db->waiting_writers ? WRITE :
+	       db->waiting_readers ? READ : NONE);
+  
+    switch(waiting)
+    { case UPGRADE:
+	win32_cond_signal(&db->upcondvar);
+	break;
+      case WRITE:
+	win32_cond_signal(&db->wrcondvar);
+	break;
+      case READ:
+	win32_cond_signal(&db->rdcondvar);
+	break;
+      default:
+	;
+    }
   }
+
   LeaveCriticalSection(&db->mutex);	/* In our WIN32 emulation we */
 					/* must hold the associated mutex */
   return TRUE;
@@ -343,16 +401,19 @@ INIT_LOCK(rdf_db *db)
   InitializeCriticalSection(&db->hash_mutex);
 
   if ( !win32_cond_init(&db->wrcondvar) == 0 ||
-       !win32_cond_init(&db->rdcondvar) == 0 )
+       !win32_cond_init(&db->rdcondvar) == 0 ||
+       !win32_cond_init(&db->upcondvar) == 0 )
   {					/* TBD: System error */
     return FALSE;
   }
 
   db->writer          = -1;
-  db->transactor      = -1;
+  db->allow_readers   = TRUE;
   db->readers         = 0;
   db->waiting_readers = 0;
   db->waiting_writers = 0;
+  db->waiting_upgrade = 0;
+  db->lock_level      = 0;
 
   bytes = sizeof(int)*PL_query(PL_QUERY_MAX_THREADS);
 
@@ -374,7 +435,7 @@ RDLOCK(rdf_db *db)
 
   pthread_mutex_lock(&db->mutex);
 
-  if ( db->writer == -1 )
+  if ( db->allow_readers == TRUE )
   { ok:
 
     db->readers++;
@@ -394,7 +455,7 @@ RDLOCK(rdf_db *db)
 	return FALSE;
       continue;
     } else if ( rc == 0 )
-    { if ( db->writer == -1 )
+    { if ( db->allow_readers == TRUE )
       { db->waiting_readers--;
 	goto ok;
       }
@@ -405,9 +466,23 @@ RDLOCK(rdf_db *db)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+WRLOCK() and LOCKOUT_READERS() can be  used   in  two ways. Conventional
+write locks are established using WRLOCK(db,  FALSE) ... UNLOCK(db). For
+transactions, we allow concurrent readers until  we are ready to commit,
+in which case  we  use  WRLOCK(db,   FALSE)  ...  LOCKOUT_READERS()  ...
+UNLOCK(db)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
-WRLOCK(rdf_db *db)
+WRLOCK(rdf_db *db, int allow_readers)
 { int self = PL_thread_self();
+
+  if ( db->writer == self )		/* recursive write lock, used for */
+  { db->lock_level++;			/* nested transactions */
+
+    return TRUE;
+  }
 
   pthread_mutex_lock(&db->mutex);
   
@@ -415,6 +490,7 @@ WRLOCK(rdf_db *db)
   { ok:
 
     db->writer = self;
+    db->allow_readers = allow_readers;
     pthread_mutex_unlock(&db->mutex);
     DEBUG(3, Sdprintf("WRLOCK(%d): OK\n", self));
 
@@ -452,36 +528,83 @@ WRLOCK(rdf_db *db)
 
 
 static int
-TRLOCK(rdf_db *db)
-{ return TRUE;
+LOCKOUT_READERS(rdf_db *db)
+{ pthread_mutex_lock(&db->mutex);
+  
+  if ( db->readers == 0 )
+  { ok:
+
+    db->allow_readers = FALSE;
+    pthread_mutex_unlock(&db->mutex);
+
+    return TRUE;
+  }
+
+  db->waiting_upgrade++;
+
+  for(;;)
+  { int rc = pthread_cond_wait(&db->upcondvar, &db->mutex);
+
+    if ( rc == EINTR )
+    { if ( PL_handle_signals() < 0 )
+	return FALSE;
+      continue;
+    } else if ( rc == 0 )
+    { if ( db->readers == 0 )
+      { db->waiting_upgrade--;
+	goto ok;
+      }
+    } else
+    { assert(0);			/* TBD: OS errors */
+    }
+  }
 }
 
 
 static int
 UNLOCK(rdf_db *db)
 { int self = PL_thread_self();
-  enum { NONE, READ, WRITE } waiting;
+  int signal;
+
+  if ( db->writer == self && db->lock_level > 1 )
+  { db->lock_level--;
+    return TRUE;
+  }
 
   pthread_mutex_lock(&db->mutex);
   if ( db->writer == -1 )		/* must be a read lock */
   { db->readers--;
     db->read_by_thread[self]--;
+    signal = (db->readers == 0);
   } else
   { db->writer = -1;
+    db->allow_readers = TRUE;
+    signal = TRUE;
   }
-  waiting = (db->waiting_writers ? WRITE :
-	     db->waiting_readers ? READ : NONE);
-  pthread_mutex_unlock(&db->mutex);
 
-  switch(waiting)
-  { case WRITE:
-      pthread_cond_signal(&db->wrcondvar);
-      break;
-    case READ:
-      pthread_cond_signal(&db->rdcondvar);
-      break;
-    default:
-      ;
+  if ( signal )
+  { enum { NONE, READ, WRITE, UPGRADE } waiting;
+
+    waiting = (db->waiting_upgrade ? UPGRADE :
+	       db->waiting_writers ? WRITE :
+	       db->waiting_readers ? READ : NONE);
+    pthread_mutex_unlock(&db->mutex);
+  
+    switch(waiting)
+    { case UPGRADE:
+	pthread_cond_signal(&db->upcondvar);
+	break;
+      case WRITE:
+	pthread_cond_signal(&db->wrcondvar);
+	break;
+      case READ:
+	pthread_cond_signal(&db->rdcondvar);
+	break;
+      default:
+	;
+    }
+  } else
+  { pthread_mutex_unlock(&db->mutex);
   }
   
   return TRUE;
@@ -508,16 +631,19 @@ INIT_LOCK(rdf_db *db)
   if ( !pthread_mutex_init(&db->mutex, NULL) == 0 ||
        !pthread_mutex_init(&db->hash_mutex, NULL) == 0 ||
        !pthread_cond_init(&db->wrcondvar, NULL) == 0 ||
-       !pthread_cond_init(&db->rdcondvar, NULL) == 0 )
+       !pthread_cond_init(&db->rdcondvar, NULL) == 0 ||
+       !pthread_cond_init(&db->upcondvar, NULL) == 0 )
   {					/* TBD: System error */
     return FALSE;
   }
 
   db->writer          = -1;
-  db->transactor      = -1;
   db->readers	      = 0;
+  db->allow_readers   = TRUE;
   db->waiting_readers = 0;
   db->waiting_writers = 0;
+  db->waiting_upgrade = 0;
+  db->lock_level      = 0;
 
   maxthreads = PL_query(PL_QUERY_MAX_THREADS);
   bytes = sizeof(int)*maxthreads;
@@ -541,7 +667,7 @@ RDLOCK(rdf_db *db)
 }
 
 static int
-WRLOCK(rdf_db *db)
+WRLOCK(rdf_db *db, int allow_readers)
 { if ( db->readers )
     return permission_error("write", "rdf_db", "default",
 			    "Operation would block");
@@ -2444,7 +2570,7 @@ load_db(rdf_db *db, IOSTREAM *in)
   
   memset(&ctx, 0, sizeof(ctx));
 
-  if ( !WRLOCK(db) )
+  if ( !WRLOCK(db, FALSE) )
     return FALSE;
 
   while((c=Sgetc(in)) != EOF)
@@ -3358,16 +3484,15 @@ rdf_transaction(term_t goal)
 { int rc;
   rdf_db *db = DB;
 
-  if ( !TRLOCK(db) )
+  if ( !WRLOCK(db, TRUE) )
     return FALSE;
 
   open_transaction(db);
 
   rc = PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, PRED_call1, goal);
 
-  if ( rc )
-  { WRLOCK(db);				/* upgrade to a write lock */
-    commit_transaction(db);
+  if ( rc && LOCKOUT_READERS(db) )
+  { commit_transaction(db);
   } else
   { discard_transaction(db);
   }
@@ -3404,18 +3529,19 @@ rdf_assert4(term_t subject, term_t predicate, term_t object, term_t src)
   }
 
   lock_atoms(t);
+  if ( !WRLOCK(db, FALSE) )
+  { unlock_atoms(t);
+    PL_free(t);
+    return FALSE;
+  }
+
   if ( db->transactions )
   { record_transaction(db, TR_ASSERT, t);
   } else
-  { if ( !WRLOCK(db) )
-    { unlock_atoms(t);
-      PL_free(t);
-      return FALSE;
-    }
-    link_triple(db, t);
+  { link_triple(db, t);
     db->generation++;
-    UNLOCK(db);
   }
+  UNLOCK(db);
 
   return TRUE;
 }
@@ -3729,7 +3855,7 @@ rdf_update5(term_t subject, term_t predicate, term_t object, term_t src,
        !get_src(src, &t) )
     return FALSE;
   
-  if ( !WRLOCK(db) )
+  if ( !WRLOCK(db, FALSE) )
     return FALSE;
   if ( !update_hash(db) )
   { UNLOCK(db);
@@ -3764,7 +3890,7 @@ rdf_retractall4(term_t subject, term_t predicate, term_t object, term_t src)
   if ( !get_partial_triple(db, subject, predicate, object, src, &t) )
     return FALSE;
 
-  if ( !WRLOCK(db) )
+  if ( !WRLOCK(db, FALSE) )
     return FALSE;
   if ( !update_hash(db) )
   { UNLOCK(db);
@@ -4514,9 +4640,14 @@ static foreign_t
 rdf_reset_db()
 { rdf_db *db = DB;
   
-  if ( !WRLOCK(db) )
+  if ( !WRLOCK(db, FALSE) )
     return FALSE;
-  reset_db(db);
+
+  if ( db->transactions )
+    record_transaction(db, TR_RESET, NULL);
+  else
+    reset_db(db);
+
   UNLOCK(db);
 
   return TRUE;
