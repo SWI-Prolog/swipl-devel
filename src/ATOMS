@@ -260,6 +260,7 @@ A variable_names	"variable_names"
 A singletons		"singletons"
 A subterm_positions	"subterm_positions"
 A quiet			"quiet"
+A system_init_file	"system_init_file"
 
 F abs			1
 F acos			1

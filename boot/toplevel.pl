@@ -49,11 +49,16 @@ $load_init_file(_).
 $load_system_init_file :-
 	loaded_init_file(system), !.
 $load_system_init_file :-
-	feature(home, Home),
-	concat(Home, '/plrc', File),
-	access_file(File, read),
-	asserta(loaded_init_file(system)),
-	$consult_file(user:File, []), !. % silent consult
+	$option(system_init_file, Base, Base),
+	(   Base == none
+	->  asserta(loaded_init_file(system))
+	;   feature(home, Home),
+	    file_name_extension(Base, rc, Name),
+	    concat_atom([Home, '/', Name], File),
+	    access_file(File, read),
+	    asserta(loaded_init_file(system)),
+	    $consult_file(user:File, []), ! % silent loading
+	).
 $load_system_init_file.
 
 $check_novice :-

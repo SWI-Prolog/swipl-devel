@@ -2052,18 +2052,20 @@ pl_option(term_t key, term_t old, term_t new)
   if ( !PL_get_atom(key, &k) )
     fail;
 
-  if (     k == ATOM_goal)	result = options.goal;
-  else if (k == ATOM_top_level) result = options.topLevel;
-  else if (k == ATOM_init_file) result = options.initFile;
+  if (     k == ATOM_goal)	       result = options.goal;
+  else if (k == ATOM_top_level)	       result = options.topLevel;
+  else if (k == ATOM_init_file)        result = options.initFile;
+  else if (k == ATOM_system_init_file) result = options.systemInitFile;
   else fail;
 
   if ( !PL_unify_atom_chars(old, result) ||
        !PL_get_atom_chars(new, &n) )
     fail;
 
-  if (     k == ATOM_goal)	options.goal     = n;
-  else if (k == ATOM_top_level) options.topLevel = n;
-  else				options.initFile = n;
+  if (     k == ATOM_goal)		   options.goal     = n;
+  else if (k == ATOM_top_level)		   options.topLevel = n;
+  else if (k == ATOM_init_file) 	   options.initFile = n;
+  else /*if (k == ATOM_system_init_file)*/ options.systemInitFile = n;
 
   succeed;
 }

@@ -513,6 +513,17 @@ The full set of command line options is given below:
          Use file as initialisation file instead of `.plrc '.
          `-f none ' stops SWI-Prolog from searching for an
          initialisation file.
+     -F script
+         Selects a startup-script from the SWI-Prolog home
+         directory. The script-file is named script.rc. The
+         default script name is deduced from the executable,
+         taking the leading alphanumerical characters (letters,
+         digits and underscore) from the program-name. -F
+         none stops looking for a script. Intended for simple
+         management of slighly different versions. One could for
+         example write a script iso.rc and then select ISO
+         compatibility mode using pl -F iso or make a link
+         from iso-pl to pl.
      -g goal
          Goal is executed just before entering the top level.
          Default is a predicate which prints the welcome
@@ -3063,21 +3074,98 @@ read_clause(-Term)
      Equivalent to read/1, but warns the user for variables only
      occurring once in a term (singleton variables) which do not start
      with an underscore if style_check(singleton)   is active
-     (default). Used to read Prolog source files (see consult/1).
+     (default). Used to read Prolog source files (see consult/1). New
+     code should use read_term/2 with the option
+     singletons(warning).
 
 
 read_clause(+Stream, -Term)
-     Read a clause from Stream.
+     Read a clause from Stream. See read_clause/1.
 
 
 read_variables(-Term, -Bindings)
      Similar to read/1, but Bindings is unified with a list of
      `Name = Var' tuples, thus providing access to the actual variable
-     names.
+     names. New code should use read_term/2 using the option
+     variables(X).
 
 
 read_variables(+Stream, -Term, -Bindings)
-     Read, returning term and bindings from Stream.
+     Read, returning term and bindings from Stream. See
+     read_variables/2.
+
+
+read_term(-Term, +Options)
+     Read a term from the current input stream and unify the term
+     with Term. The reading is controlled by options from the list of
+     Options. If this list is empty, the bahaviour is the same as for
+     read/1. The options are upward compatible to Quintus Prolog.
+     The argument order is according to the ISO standard. Options:
+
+     syntax_errors(atom or variable)
+         Define the behaviour for when a syntax error occurs. The
+         possible values are:
+
+         fail
+             Default behaviour. The error is reported as a warning
+             and the predicate fails.
+
+         quiet
+             Quietly fails if a syntax error has occurred.
+
+         Variable
+             If no error occurs, the variable is unified with none,
+             otherwise Variable is unified with a term of the form
+
+                 '$stream_position'(CharNo, LineNo, LinePos):Message
+
+             This behaviour is a SWI-Prolog extension.
+
+     variable_names(Vars)
+         Unify Vars with a list of `Name = Var', where Name is an
+         atom describing the variable name and Var is a variable that
+         shares with the corresponding variable in Term.
+     singletons(Vars)
+         As variable_names, but only reports the variables occurring
+         only once in the Term read. Variables starting with an
+         underscore (`_') are not included in this list.
+     term_position(Pos)
+         Unifies Pos with the starting position of the term read. Pos if
+         of the same format as use by stream_position/2.
+     subterm_positions(TermPos)
+         Describes the detailed layout of the term. The formats for
+         the various types of terms if given below. All positions are
+         character positions. If the input is related to a normal
+         stream, these positions are relative to the start of the input,
+         when reading from the terminal, they are relative to the start
+         of the term.
+
+         From-To
+             Used for primitive types (atoms, numbers, variables).
+
+         string_position(From, To)
+             Used to indicate the position of a string enclosed in
+             double quotes (").
+
+         brace_term_position(From, To, Arg)
+             Term of the form { ... }, as used in DCG rules. Arg
+             describes the argument.
+
+         list_position(From, To, Elms, Tail)
+             A list. Elms describes the positions of the elements. If
+             the list specifies the tail as |TailTerm, Tail is unified
+             with the term-position of the tail, otherwise with the
+             atom none.
+
+         term_position(From, To, FFrom, FTo, SubPos)
+             Used for a compound term not matching one of the
+             above. FFrom and FTo describe the position of the
+             functor. SubPos is a list, each element of which describes
+             the term-position of the corresponding subterm.
+
+
+read_term(+Stream, -Term, +Options)
+     Read term with options from Stream. See read_term/2.
 
 
 read_history(+Show, +Help, +Special, +Prompt, -Term, -Bindings)
@@ -6699,12 +6787,12 @@ returning control back to Prolog.
 qid_t  PL_open_query(module_t ctx, int debug, predicate_t p,
        term_t +t0)
        Opens a query and returns an identifier for it. This function
-       always succeeds, irregardless whether the predicate is defined or
+       always succeeds, regardless whether the predicate is defined or
        not. ctx is the context module of the goal. When NULL, the
        context module of the calling context will be used, or user if there
        is no calling context (as may happen in embedded systems). Note
        that the context module only matters for module_transparent
-       predicates. See context_module/1 and module_transparent/2.
+       predicates. See context_module/1 and module_transparent/1.
        The debug argument is normally TRUE. If FALSE is specified, the
        goal is ran in `nodebug' mode, irregardless of the current debug
        mode. The p argument specifies the predicate, and should be the
@@ -7085,6 +7173,18 @@ the requested executable.
 Below, it is described how the options are split and which additional
 options are passed.
 
+-help
+     Print brief synopsis.
+
+-pl prolog
+     Select the prolog to use. This prolog is used for two purposes: get
+     the home-directory as well as the compiler/linker options and
+     create a saved state of the Prolog code.
+
+-v
+     Select verbose operation, showing the various programs and their
+     options.
+
 -o outfile
      Reserved to specify the final output file.
 
@@ -7127,7 +7227,7 @@ The Prolog file is simple:
 
 The C-part of the application parses the command-line options,
 initialises the Prolog engine, locates the calc/1 predicate and calls it.
-The coder is in figure 5.5.
+The coder is in figure ??.
 
      #include <stdio.h>
      #include <SWI-Prolog.h>
@@ -7199,8 +7299,8 @@ The following indicates the usage of the application:
 
 Below is an example showing all stages of the declaration of a foreign
 predicate that transforms atoms possibly holding uppercase letters into
-an atom only holding lower case letters. Figure 5.6 shows the C-source
-file, figure 5.7 illustrates compiling and loading of foreign code.
+an atom only holding lower case letters. Figure ?? shows the C-source
+file, figure ?? illustrates compiling and loading of foreign code.
 
      /*  Include file depends on local installation */
      #include <SWI-Prolog.h>
@@ -8027,7 +8127,7 @@ fail/1                           Immediately fail named block. See block/3
 feature/2                       Get system configuration parameters
 file_base_name/2                Get file part of path
 file_directory_name/2          Get directory part of path
-file_name_extension/3          Add, string or test file extensions
+file_name_extension/3          Add, remove or test file extensions
 file_search_path/2              Define path-aliases for locating files
 fileerrors/2                    Do/Don't warn on file errors
 findall/3                       Find all solutions to a goal
@@ -8176,6 +8276,8 @@ read_clause/1                   Read clause
 read_clause/2                   Read clause from stream
 read_history/6                  Read using history substitution
 read_link/3                     Read a symbolic link
+read_term/2                     Read term with options
+read_term/3                     Read term with options from stream
 read_variables/2                Read clause including variable names
 read_variables/3                Read clause including variable names from stream
 recorda/2                       Record term in the database (first)

@@ -1341,9 +1341,9 @@ are:
         \optionarg{Variable}
     If no error occurs, the variable is unified with {\tt none}, otherwise
     {\em Variable} is unified with a term of the form
-    \begin{code}
-    '$stream_position'(CharNo, LineNo, LinePos):Message
-    \end{code}
+\begin{code}
+'$stream_position'(CharNo, LineNo, LinePos):Message
+\end{code}
     This behaviour is a SWI-Prolog extension.
     \end{description}
 
@@ -1355,7 +1355,7 @@ variable that shares with the corresponding variable in {\em Term}.
     \option{singletons}{Vars}
 As {\tt variable_names}, but only reports the variables occurring only
 once in the {\em Term} read. Variables starting with an underscore
-(`{\verb$_$') are not included in this list.
+(`\verb$_$') are not included in this list.
 
     \option{term_position}{Pos}
 Unifies {\em Pos} with the starting position of the term read.  {\em Pos}

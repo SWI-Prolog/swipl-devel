@@ -4,6 +4,17 @@
 Version 2.7.4
 =============
 
+  * MODIFIED: Added -F file flag to select from multiple initialisation
+    scripts, just like -f file.  Old versions only loaded plrc.   The
+    new version by default loads <program>.rc.  -F none stops loading
+    this file.
+
+  * FIXED: plld: gave error code 1 (always).  Added various flags: -v
+    -help, -pl.  Updated manuals
+
+  * FIXED: PL_next_solution() detection of non-deterministic success
+    (reported deterministic for actually non-deterministic goals).
+
   * ADDED: For XPCE users: nice graphical frontend for the online help
     functions.  Working on much better Prolog mode for PceEmacs.
 

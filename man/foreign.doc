@@ -1513,6 +1513,14 @@ options are passed.
 
 \begin{description}
 \newcommand{\option}[1]{\item[\tt #1]\mbox{}\\}
+    \option{-help}
+Print brief synopsis.
+    \option{-pl {\em prolog}}
+Select the prolog to use.  This prolog is used for two purposes: get the
+home-directory as well as the compiler/linker options and create a saved
+state of the Prolog code.
+    \option{-v}
+Select verbose operation, showing the various programs and their options.
     \option{-o {\em outfile}}
 Reserved to specify the final output file.
     \option{-l{\em library}}

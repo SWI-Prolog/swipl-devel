@@ -25,6 +25,23 @@ from the
 
 .SS Options
 .TP
+.BI \-pl " prolog"
+Specifies the prolog version to use.  The default is
+.BI pl.
+This flag may be used to choose between different versions installed
+on your system, or to specify a modified version.  A modified version
+should understands the flags
+.BI \-dump-runtime-variables
+.BI \-f " file"
+.BI \-F " file"
+.BI \-g " goal"
+.BI \-t " toplevel".
+.TP
+.BI \-help
+Shows options briefly
+.TP
+.BI \-v
+Verbose operation.  This will echo the commands before executing them.
 .BI \-o " file"
 Specifies the name of the final executable.  The default is
 .BI a.out.
@@ -69,7 +86,7 @@ rely on the C-code added by the user.
 .SH "SEE ALSO"
 Jan Wielemaker
 .I pl(1)
-.I SWI-Prolog 2.6 Reference Manual,
+.I SWI-Prolog 2.7 Reference Manual,
 University of Amsterdam, Dept. of Social Science and Informatics (SWI).
 .SH COPYRIGHT
 Copyright (C) 1991-1996, Jan Wielemaker

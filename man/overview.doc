@@ -68,6 +68,15 @@ Optimised compilation. See please/3.
     \option{-f file}
 Use {\em file} as initialisation file instead of `\tty{.plrc}'. `\tty{-f
 none}' stops SWI-Prolog from searching for an initialisation file.
+    \option{-F script}
+Selects a startup-script from the SWI-Prolog home directory. The
+script-file is named {\em script}{\tt .rc}.  The default {\em script}
+name is deduced from the executable, taking the leading alphanumerical
+characters (letters, digits and underscore) from the program-name.
+{\tt -F none} stops looking for a script. Intended for simple management
+of slighly different versions.  One could for example write a script
+{\tt iso.rc} and then select ISO compatibility mode using {\tt pl -F
+iso} or make a link from {\tt iso-pl} to {\tt pl}.
     \option{-g goal}
 {\em Goal} is executed just before entering the top level. Default is a
 predicate which prints the welcome message. The welcome message can

@@ -10,32 +10,39 @@
 # For documentation, see the SWI-Prolog manual and man plld
 ################################################################
 
+program="$0"
+
 PL=pl
-
-if eval `$PL -dump-runtime-variables`; then
-  true
-else
-  echo "plld: failed to get runtime variables from Prolog"
-  exit 1
-fi
-
-pllibdir="$PLBASE/runtime/$PLARCH"
-
 clibs=
 clibdirs=
-ldflags="$PLLDFLAGS"
+ldflags=
 cfiles=
 cflags=
 plfiles=
-plout="pl.out"				# temporary file for saved-state
-cout="c.out"				# temporary file for emulator
+plout="pl.out$$"			# temporary file for saved-state
+cout="c.out$$"				# temporary file for emulator
 out="a.out"				# the real output file
+verbose=
+
+usage()
+{ echo "usage:  $program -help"
+  echo "	$program [-o out] [-pl prolog] [-v] [cc flags] c-files ... pl-files ..."
+}
+
 
 while [ -n "$1" ]; do
   case "$1" in
+    -help)
+	usage;
+	exit 0;;
     -o)
-	out=$2;
+	out="$2";
 	shift;;
+    -pl)
+	PL="$2";
+	shift;;
+    -v)
+        verbose=true;;
     -l*)
 	clibs="$clibs $1";;
     -L*)
@@ -56,19 +63,46 @@ while [ -n "$1" ]; do
   shift
 done
 
+if [ "$verbose" = true ]; then echo "%% $PL -dump-runtime-variables"; fi
+if eval `$PL -dump-runtime-variables`; then
+  true
+else
+  echo "plld: failed to get runtime variables from $PL"
+  exit 1
+fi
+
+pllibdir="$PLBASE/runtime/$PLARCH"
+ldflags="$PLLDFLAGS $ldflags"
+
 cleanup ()
-{ rm -f $cout $plout;
+{ if [ "$verbose" = true ]; then echo "%% rm -f $cout $plout"; fi
+  rm -f $cout $plout;
+}
+
+error()
+{ cleanup;
   exit 1;
 }
 
-trap cleanup 1 2 15
+trap error 1 2 15
 
 LIBS="-L$pllibdir $clibdirs $clibs -lpl $PLLIBS"
+ccmd="$CC -o $cout -I$PLBASE/include $cflags $cfiles $LIBS"
+plflags="-O -f none -F none -g true"
 
-if $CC -o $cout -I$PLBASE/include $cflags $cfiles $LIBS &&
-   $PL -O -f none -g true -t "consult([$plfiles]),qsave_program('$plout')" &&
-   cat $cout $plout > $out &&
-   chmod +x $out; then
-  cleanup
-  exit 0
+if [ "$verbose" = true ]; then echo "%% $ccmd"; fi
+if $ccmd; then true; else error; fi
+if [ "$verbose" = true ]; then
+  echo "%% $PL $plflags -t "'"'"consult([$plfiles]),qsave_program('$plout')"'"';
 fi
+if $PL $plflags -t "consult([$plfiles]),qsave_program('$plout')"; then
+  true
+else
+  error
+fi
+if [ "$verbose" = true ]; then echo "%% cat $cout $plout > $out"; fi
+if cat $cout $plout > $out; then true; else error; fi
+if [ "$verbose" = true ]; then echo "%% chmod +x $out"; fi
+if chmod +x $out; then true; else error; fi
+cleanup
+exit 0

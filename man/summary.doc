@@ -150,7 +150,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
 \\ \verb"feature/2"			\> Get system configuration parameters
 \\ \verb"file_base_name/2"		\> Get file part of path
 \\ \verb"file_directory_name/2"		\> Get directory part of path
-\\ \verb"file_name_extension/3"		\> Add, string or test file extensions
+\\ \verb"file_name_extension/3"		\> Add, remove or test file extensions
 \\ \verb"file_search_path/2"		\> Define path-aliases for locating files
 \\ \verb"fileerrors/2"			\> Do/Don't warn on file errors
 \\ \verb"findall/3"			\> Find all solutions to a goal
@@ -299,6 +299,8 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
 \\ \verb"read_clause/2"			\> Read clause from stream
 \\ \verb"read_history/6"		\> Read using history substitution
 \\ \verb"read_link/3"			\> Read a symbolic link
+\\ \verb"read_term/2"			\> Read term with options
+\\ \verb"read_term/3"			\> Read term with options from stream
 \\ \verb"read_variables/2"		\> Read clause including variable names
 \\ \verb"read_variables/3"		\> Read clause including variable names from stream 
 \\ \verb"recorda/2"			\> Record term in the database (first)

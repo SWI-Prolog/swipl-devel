@@ -249,3 +249,4 @@
 #define ATOM_singletons   MK_ATOM(248)
 #define ATOM_subterm_positions MK_ATOM(249)
 #define ATOM_quiet        MK_ATOM(250)
+#define ATOM_system_init_file MK_ATOM(251)

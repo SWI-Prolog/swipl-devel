@@ -16,6 +16,7 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 
 #include "pl-incl.h"
 #include "pl-save.h"
+#include "pl-ctype.h"
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
@@ -202,6 +203,27 @@ warnNoState()
   Halt(1);
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The default name of the system init file `base.rc' is determined from the
+basename of the running program, taking all the leading alnum characters.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static char *
+defaultSystemInitFile(char *a0)
+{ char *base = BaseName(a0);
+  char buf[256];
+  char *s = buf;
+
+  while(*base && isAlpha(*base))
+    *s++ = *base++;
+  *s = EOS;
+
+  if ( strlen(buf) > 0 )
+    return store_string(buf);
+
+  return "pl";
+}
+
 
 #if O_LINK_PCE
 foreign_t
@@ -324,6 +346,8 @@ startProlog(int argc, char **argv, char **env)
 
 #define K * 1024L
 
+  options.systemInitFile = defaultSystemInitFile(mainArgv[0]);
+
   if ( status.boot == FALSE && status.dumped == FALSE )
   { int state_loaded = FALSE;
 
@@ -386,6 +410,8 @@ startProlog(int argc, char **argv, char **env)
 			explicit_compile_out = TRUE;
 			break;
 	case 'f':	optionString(options.initFile);
+			break;
+	case 'F':	optionString(options.systemInitFile);
 			break;
 	case 'g':	optionString(options.goal);
 			break;
@@ -484,6 +510,7 @@ usage()
     "    -t toplevel     Toplevel goal\n",
     "    -g goal         Initialisation goal\n",
     "    -f file         Initialisation file\n",
+    "    -F file         System Initialisation file\n",
     "    [+/-]tty        Allow tty control\n",
     "    -O              Optimised compilation\n",
     NULL

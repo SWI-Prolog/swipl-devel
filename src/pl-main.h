@@ -36,7 +36,8 @@ GLOBAL struct options
   long		argumentSize;		/* size of argument stack */
   char *	goal;			/* initial goal */
   char *	topLevel;		/* toplevel goal */
-  char *	initFile;		/* initialisation file */
+  char *	initFile;		/* -f initialisation file */
+  char *	systemInitFile;		/* -F initialisation file */
   char *	compileOut;		/* file to store compiler output */
 } options;
 

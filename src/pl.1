@@ -97,6 +97,20 @@ as initialisation file instead of
 .RB "`" .plrc "'. `" "-f none" "'"
 stops SWI-Prolog from searching for an initialisation file.
 .TP
+.BI \-F " file"
+Select startup script from the SWI-Prolog home directory.
+.I file
+Specifies the base-name of the script.  The extension is
+.I .rc.
+The default script is deduced from the basename of the executable,
+taking all leading alphanumerical (letters, digits and underscore)
+from the program name.  Thus if the proram is named
+.I swi-2.0
+it will try to load the file
+.I swi.rc
+from the SWI-Prolog home directory.  If the file does not exist, or
+the user has no read-access to it, the script is silently not loaded.
+.TP
 .BI \-g " goal"
 .I Goal
 is executed just before entering the top level. The default is a
@@ -199,6 +213,17 @@ display the specified section of the SWI-Prolog Reference Manual.
 Section numbers are dash separated numbers: e.g.
 .B 2-3
 refers to section 2.3 of the manual.
+.PP
+If Prolog is used together with the
+.BR GUI
+tool
+.BR XPCE,
+these predicates start a graphical interface, providing a coherent interface
+to
+.BR help/1,
+.BR apropos/1
+and
+.BR explain/1.
 .RE
 .SH FILES
 .TP
@@ -211,7 +236,7 @@ If both exist
 is used.
 .SH SEE ALSO
 Jan\ Wielemaker
-.IR "SWI-Prolog 2.5 Reference Manual" ,
+.IR "SWI-Prolog 2.7 Reference Manual" ,
 University of Amsterdam, Dept. of Social Science and Informatics (SWI).
 .PP
 William\ F.\ Clocksin & Christopher\ S.\ Mellish,
