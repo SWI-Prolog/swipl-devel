@@ -38,7 +38,6 @@ static const ichar *	itake_namegroup(dtd *dtd,
 static const char *	isee_func(dtd *dtd, const ichar *in, charfunc func);
 static const ichar *	isee_text(dtd *dtd, const ichar *in, char *id);
 static const ichar *	iskip_layout(dtd *dtd, const ichar *in);
-static int		process_chars(dtd_parser *p, const ichar *name, const ichar *s);
 static dtd_parser *	clone_dtd_parser(dtd_parser *p);
 static void		free_model(dtd_model *m);
 static int		process_entity_declaraction(dtd_parser *p,
@@ -945,11 +944,11 @@ set_dialect_dtd(dtd *dtd, dtd_dialect dialect)
 
 static ichar *
 baseurl(dtd_parser *p)
-{ if ( p->location.file )
+{ if ( p->location.type == IN_FILE && p->location.name )
   { ichar buf[MAXSTRINGLEN];
 
     strcpy(buf, "file:");
-    strcat(buf, p->location.file);
+    strcat(buf, p->location.name);
     return istrdup(buf);
   }
 
@@ -2613,6 +2612,23 @@ process_end_element(dtd_parser *p, const ichar *decl)
 }
 
 
+static void
+push_location(dtd_parser *p, dtd_srcloc *save)
+{ *save = p->location;
+
+  p->location.parent = save;
+}
+
+
+static void
+pop_location(dtd_parser *p, dtd_srcloc *saved)
+{ if ( saved )
+    p->location = *saved;
+  else
+    p->location = *p->location.parent;
+}
+
+
 static int				/* <!DOCTYPE ...> */
 process_doctype(dtd_parser *p, const ichar *decl)
 { dtd *dtd = p->dtd;
@@ -2660,8 +2676,9 @@ local:
   { int grouplevel = 1;
     data_mode oldmode  = p->dmode;
     dtdstate  oldstate = p->state;
-    dtd_srcloc oldloc  = p->location;
+    dtd_srcloc oldloc;
 
+    push_location(p, &oldloc);
     p->location = p->startloc;		/* not really accurate */
     p->dmode = DM_DTD;
     p->state = S_PCDATA;
@@ -2675,7 +2692,7 @@ local:
 
     p->state    = oldstate;
     p->dmode    = oldmode;
-    p->location = oldloc;
+    pop_location(p, &oldloc);
   }
 
   p->enforce_outer_element = id;	/* make this the outer element */
@@ -2825,10 +2842,11 @@ process_declaration(dtd_parser *p, const ichar *decl)
 static dtd_parser *current_parser;	/* For gripes */
 
 void
-set_file_dtd_parser(dtd_parser *p, const char *file)
-{ p->location.file    = file;
+set_src_dtd_parser(dtd_parser *p, input_type type, const char *name)
+{ p->location.type    = type;
+  p->location.name    = name;
   p->location.line    = 1;
-  p->location.linepos = 1;
+  p->location.linepos = 0;
   p->location.charpos = 0;
 }
 
@@ -2859,7 +2877,7 @@ new_dtd_parser(dtd *dtd)
   p->encoding	= ENC_ISO_LATIN1;
   p->buffer	= new_icharbuf();
   p->cdata	= new_ocharbuf();
-  set_file_dtd_parser(p, NULL);
+  set_src_dtd_parser(p, IN_NONE, NULL);
 
   return p;
 }
@@ -2897,6 +2915,21 @@ free_dtd_parser(dtd_parser *p)
 
 
 static int
+process_chars(dtd_parser *p, input_type in, const ichar *name, const ichar *s)
+{ dtd_srcloc old;
+  
+  push_location(p, &old);
+  set_src_dtd_parser(p, in, (char *)name);
+  empty_icharbuf(p->buffer);		/* dubious */
+  for(; *s; s++)
+    putchar_dtd_parser(p, *s);
+  pop_location(p, &old);
+
+  return TRUE;
+}
+
+
+static int
 process_include(dtd_parser *p, const ichar *entity_name)
 { dtd_symbol *id;
   dtd_entity *pe;
@@ -2909,24 +2942,10 @@ process_include(dtd_parser *p, const ichar *entity_name)
     if ( !text )
       return gripe(ERC_NO_VALUE, pe->name->name);
 
-    return process_chars(p, entity_name, text);
+    return process_chars(p, IN_ENTITY, entity_name, text);
   }
   
   return gripe(ERC_EXISTENCE, "parameter entity", entity_name);
-}
-
-
-static int
-process_chars(dtd_parser *p, const ichar *name, const ichar *s)
-{ dtd_srcloc old = p->location;
-  
-  set_file_dtd_parser(p, (char *)name);
-  empty_icharbuf(p->buffer);		/* dubious */
-  for(; *s; s++)
-    putchar_dtd_parser(p, *s);
-  p->location = old;
-
-  return TRUE;
 }
 
 
@@ -3262,13 +3281,14 @@ process_entity(dtd_parser *p, const ichar *name)
 	    break;
 	  }
 	  if ( e->content == EC_SGML )
-	  { dtd_srcloc oldloc = p->location;
+	  { dtd_srcloc oldloc;
 
-	    set_file_dtd_parser(p, (char *)name);
+	    push_location(p, &oldloc);
+	    set_src_dtd_parser(p, IN_ENTITY, e->name->name);
 	    empty_icharbuf(p->buffer);		/* dubious */
 	    for(s=text; *s; s++)
 	      putchar_dtd_parser(p, *s);
-	    p->location = oldloc;
+	    pop_location(p, &oldloc);
 	    break;
 	  } else
 	  { ochar cdata[MAXSTRINGLEN];
@@ -3764,12 +3784,13 @@ load_dtd_from_file(dtd_parser *p, const char *file)
   int rval;
   data_mode   oldmode  = p->dmode;
   dtdstate    oldstate = p->state;
-  dtd_srcloc  oldloc   = p->location;
+  dtd_srcloc  oldloc;
 
+  push_location(p, &oldloc);
   p->dmode = DM_DTD;
   p->state = S_PCDATA;
   empty_icharbuf(p->buffer);		/* dubious */
-  set_file_dtd_parser(p, file);
+  set_src_dtd_parser(p, IN_FILE, file);
 
   if ( (fd = fopen(file, "rb")) )
   { int chr;
@@ -3782,7 +3803,7 @@ load_dtd_from_file(dtd_parser *p, const char *file)
   } else
     rval = FALSE;
 
-  p->location = oldloc;
+  pop_location(p, &oldloc);
   p->dmode = oldmode;
   p->state = oldstate;
 
@@ -3814,9 +3835,10 @@ int
 sgml_process_file(dtd_parser *p, const char *file)
 { FILE *fd;
   int rval;
-  dtd_srcloc oldloc = p->location;
+  dtd_srcloc oldloc;
 
-  set_file_dtd_parser(p, file);
+  push_location(p, &oldloc);
+  set_src_dtd_parser(p, IN_FILE, file);
   set_mode_dtd_parser(p, DM_DATA);
 
   if ( (fd = fopen(file, "rb")) )
@@ -3829,7 +3851,7 @@ sgml_process_file(dtd_parser *p, const char *file)
   } else
     rval = FALSE;
 
-  p->location = oldloc;
+  pop_location(p, &oldloc);
 
   return rval;
 }
@@ -3839,6 +3861,44 @@ sgml_process_file(dtd_parser *p, const char *file)
 		 /*******************************
 		 *	       ERRORS		*
 		 *******************************/
+
+static char *
+format_location(char *s, dtd_srcloc *l)
+{ int first = TRUE;
+
+  if ( !l || l->type == IN_NONE )
+    return s;
+
+  for( ; l && l->type != IN_NONE;
+         l = l->parent, first = FALSE )
+  { if ( !first )
+    { sprintf(s, " (from ");
+      s += strlen(s);
+    }
+
+    switch(l->type)
+    { case IN_NONE:
+	assert(0);
+      case IN_FILE:
+	sprintf(s, "%s:%d:%d", l->name, l->line, l->linepos);
+        break;
+      case IN_ENTITY:
+        sprintf(s, "&%s;%d:%d", l->name, l->line, l->linepos);
+        break;
+    }
+
+    s += strlen(s);
+    if ( !first )
+    { *s++ = ')';
+    }
+  }
+
+  *s++ = ':';
+  *s++ = ' ';
+
+  return s;
+}
+
 
 static void
 format_message(dtd_error *e)
@@ -3858,10 +3918,7 @@ format_message(dtd_error *e)
   }
   s = buf+strlen(buf);
 
-  if ( e->file )
-  { sprintf(s, "%s:%ld: ", e->file, e->line);
-    s += strlen(s);
-  }
+  s = format_location(s, e->location);
   prefix_len = s-buf;
 
   switch(e->id)
@@ -3907,13 +3964,11 @@ gripe(dtd_error_id e, ...)
   memset(&error, 0, sizeof(error));
 
   if ( current_parser )
-  { error.file = current_parser->startloc.file;
-    error.line = current_parser->startloc.line;
+  { error.location = &current_parser->location;
     if ( current_parser->dmode == DM_DTD )
       dtdmode = TRUE;
   } else
-  { error.file = NULL;
-    error.line = -1;
+  { error.location = NULL;
   }
 
   switch(e)
@@ -3971,7 +4026,7 @@ gripe(dtd_error_id e, ...)
     case ERC_OMITTED_CLOSE:
     { const char *element = va_arg(args, const char *); 
 
-      sprintf(buf, "Inserted omitted close tag for <%s>", element);
+      sprintf(buf, "Inserted omitted end-tag for `%s'", element);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
       e = ERC_VALIDATE;
@@ -3980,7 +4035,7 @@ gripe(dtd_error_id e, ...)
     case ERC_OMITTED_OPEN:
     { const char *element = va_arg(args, const char *); 
 
-      sprintf(buf, "Inserted omitted open tag for <%s>", element);
+      sprintf(buf, "Inserted omitted start-tag for `%s'", element);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
       e = ERC_VALIDATE;
@@ -3989,7 +4044,7 @@ gripe(dtd_error_id e, ...)
     case ERC_NOT_OPEN:
     { const char *element = va_arg(args, const char *); 
 
-      sprintf(buf, "Ignored close tag for </%s> which is not open", element);
+      sprintf(buf, "Ignored end-tag for `%s' which is not open", element);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
       e = ERC_VALIDATE;
@@ -3998,7 +4053,7 @@ gripe(dtd_error_id e, ...)
     case ERC_NOT_ALLOWED:
     { const char *element = va_arg(args, const char *); 
 
-      sprintf(buf, "Element <%s> not allowed here", element);
+      sprintf(buf, "Element `%s' not allowed here", element);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
       e = ERC_VALIDATE;
@@ -4008,7 +4063,7 @@ gripe(dtd_error_id e, ...)
     { const char *elem = va_arg(args, char *); /* element */
       const char *attr = va_arg(args, char *); /* attribute */
 
-      sprintf(buf, "Element <%s> does has no attribute \"%s\"", elem, attr);
+      sprintf(buf, "Element `%s' does has no attribute \"%s\"", elem, attr);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
 

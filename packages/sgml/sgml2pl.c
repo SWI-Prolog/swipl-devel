@@ -339,7 +339,7 @@ pl_set_sgml_parser(term_t parser, term_t option)
     PL_get_arg(1, option, a);
     if ( !PL_get_atom_chars(a, &file) )
       return sgml2pl_error(ERR_TYPE, "atom", a);
-    set_file_dtd_parser(p, file);
+    set_src_dtd_parser(p, IN_FILE, file);
   } else if ( PL_is_functor(option, FUNCTOR_line1) )
   { term_t a = PL_new_term_ref();
 
@@ -386,6 +386,17 @@ pl_set_sgml_parser(term_t parser, term_t option)
 }
 
 
+static dtd_srcloc *
+file_location(dtd_parser *p)
+{ dtd_srcloc *l = &p->location;
+
+  while(l->parent && l->type != IN_FILE)
+    l = l->parent;
+
+  return l;
+}
+
+
 static foreign_t
 pl_get_sgml_parser(term_t parser, term_t option)
 { dtd_parser *p;
@@ -399,11 +410,13 @@ pl_get_sgml_parser(term_t parser, term_t option)
     PL_get_arg(1, option, a);
     return PL_unify_integer(a, p->startloc.charpos);
   } else if ( PL_is_functor(option, FUNCTOR_file1) )
-  { if ( p->startloc.file )
+  { dtd_srcloc *l = file_location(p);
+
+    if ( l->type == IN_FILE && l->name )
     { term_t a = PL_new_term_ref();
 
       PL_get_arg(1, option, a);
-      return PL_unify_atom_chars(a, p->startloc.file);
+      return PL_unify_atom_chars(a, l->name);
     }
   } else if ( PL_is_functor(option, FUNCTOR_source1) )
   { parser_data *pd = p->closure;
@@ -858,6 +871,7 @@ on_error(dtd_parser *p, dtd_error *error)
     predicate_t pred = PL_predicate("print_message", 2, "user");
     term_t av = PL_new_term_refs(2);
     term_t parser = PL_new_term_ref();
+    dtd_srcloc *l = file_location(p);
 
     unify_parser(parser, p);
     PL_put_atom_chars(av+0, severity);
@@ -865,8 +879,8 @@ on_error(dtd_parser *p, dtd_error *error)
     PL_unify_term(av+1,
 		  PL_FUNCTOR_CHARS, "sgml", 4,
 		    PL_TERM, parser,
-		    PL_CHARS, error->file ? error->file : "[]",
-		    PL_INTEGER, error->line,
+		    PL_CHARS, l->name ? l->name : "[]",
+		    PL_INTEGER, l->line,
 		    PL_CHARS, error->plain_message);
 
     PL_call_predicate(NULL, PL_Q_NODEBUG, pred, av);

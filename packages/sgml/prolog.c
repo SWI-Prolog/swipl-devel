@@ -37,42 +37,45 @@ typedef enum
   AT_SPECIAL
 } atomtype;
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Contributed by Richard O'Keefe.  Thanks!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
-atomType(const char *s, int len)
-{ static char symbols[] = "#$&*+-./:<=>?@\\^`~";
-  static char solos[]   = "!%;";
+atomType(char const *s, int len)
+{ static char const symbols[] = "#$&*+-./:<=>?@\\^`~";
+  unsigned char const *u = (unsigned char const *)s;
 
-  if ( len == 0 )
-    return AT_QUOTE;
+  switch (len)
+  { case 0:
+      return AT_QUOTE;
+    case 1:
+      return islower(u[0]) ? AT_LOWER
+	   : u[0] == '.'   ? AT_FULLSTOP
+	   : u[0] == '!'   ? AT_SOLO
+	   : u[0] == ';'   ? AT_SOLO
+	   : u[0] == ','   ? AT_SOLO
+	   : u[0] == '|'   ? AT_SOLO
+	   :                 AT_QUOTE;
+    case 2:
+      if (u[0] == '[' && u[1] == ']') return AT_SPECIAL;
+      if (u[0] == '{' && u[1] == '}') return AT_SPECIAL;
+      break;
+    default:
+      break;
+  }
 
-  if ( islower(*s) )
-  { for(++s; --len > 0 && (isalnum(*s) || *s == '_'); s++)
-      ;
+  if (islower(u[0]))
+  { do ++u; while (--len > 0 && (isalnum(*u) || *u == '_'));
     return len == 0 ? AT_LOWER : AT_QUOTE;
-  }
-
-  if ( len == 1 && s[0] == '.' )
-    return AT_FULLSTOP;
-  
-  if ( strchr(symbols, *s) )
-  { for(++s; --len > 0 && strchr(symbols, *s); s++)
-      ;
+  } else if (strchr(symbols, *u) != (char*)0)
+  { do ++u; while (--len > 0 && strchr(symbols, *u) != 0);
     return len == 0 ? AT_SYMBOL : AT_QUOTE;
+  } else
+  { return AT_QUOTE;
   }
-
-					/* % should be quoted! */
-  if ( (strchr(solos, *s) || *s == ',') && len == 1 && s[0] != '%' )
-    return AT_SOLO;
-
-  if ( len == 2 &&
-       ( (s[0] == '[' && s[1] == ']') ||
-	 (s[0] == '{' && s[1] == '}') ) )
-    return AT_SPECIAL;
-  
-  return AT_QUOTE;
 }
-
-
 
 
 static const char *

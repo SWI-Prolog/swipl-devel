@@ -31,7 +31,7 @@
 #endif
 
 #define streq(s1, s2) strcmp(s1, s2) ==	0
-
+#define uc(p) (*(unsigned char const *)(p))
 
 typedef struct _catalog_file
 { char *file;
@@ -42,7 +42,7 @@ static catalog_file *catalog;
 
 static char *
 skip_layout(const char *in)
-{ while(*in && isspace(*in))
+{ while(*in && isspace(uc(in)))
     in++;
 
   return (char *)in;
@@ -53,10 +53,10 @@ static char *
 see_identifier(const char *in, const char *id)
 { in = skip_layout(in);
 
-  while (*id && tolower(*id) == tolower(*in) )
+  while (*id && tolower(uc(id)) == tolower(uc(in)) )
     id++, in++;
 
-  if ( *id == 0 && !isalnum(*in) )
+  if ( *id == 0 && !isalnum(uc(in)) )
     return skip_layout(in);
 
   return NULL;
@@ -68,14 +68,14 @@ see_string(const char *in, const char *s)
 { in = skip_layout(in);
   
   if ( *in != '"' )
-  { while(*s && tolower(*s) == tolower(*in))
+  { while(*s && tolower(uc(s)) == tolower(uc(in)))
       s++, in++;
-    if ( *s == 0 && isspace(*in) )
+    if ( *s == 0 && isspace(uc(in)) )
       return skip_layout(in);
     return NULL;
   }
   in++;
-  while(*s && tolower(*s) == tolower(*in))
+  while(*s && tolower(uc(s)) == tolower(uc(in)))
     s++, in++;
 
   if ( *s == 0 && *in == '"' )
@@ -111,7 +111,7 @@ int
 is_absolute_path(const char *name)
 { if ( name[0] == '/'
 #ifdef WIN32
-       || (isalpha(name[0]) && name[1] == ':')
+       || (isalpha(uc(name)) && name[1] == ':')
        || name[0] == '\\'
 #endif
      )
@@ -156,7 +156,7 @@ find_public_entity_in_catalog(const char *catfile,
 
       fclose(fd);			/* found it */
 					/* strip trailing blanks */
-      for(e=s+strlen(s); e>s && isspace(e[-1]); e--)
+      for(e=s+strlen(s); e>s && isspace(uc(e-1)); e--)
 	;
       *e = '\0';
 

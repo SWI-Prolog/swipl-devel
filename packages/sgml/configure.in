@@ -18,9 +18,13 @@ AC_SUBST(SO)
 AC_SUBST(LDSOFLAGS)
 AC_SUBST(SONAMEFLAG)
 AC_SUBST(SOWHOLEARCHIVE)
+AC_SUBST(RUNTEX)
 
 LD=ld
 AC_PROG_CC
+
+# Do not cache this, it changes too often in many configurations
+unset ac_cv_prog_PL
 
 plcandidates="pl swipl swi-prolog"
 AC_CHECK_PROGS(PL, $plcandidates, "none")
@@ -85,6 +89,7 @@ fi
 
 AC_CHECK_PROGS(MAKE, gmake make, "make")
 AC_CHECK_PROGS(ETAGS, etags ctags, ":")
+AC_CHECK_PROGS(RUNTEX, runtex, ":")
 AC_PROG_INSTALL
 AC_PROG_CPP
 AC_ISC_POSIX

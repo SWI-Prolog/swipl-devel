@@ -21,7 +21,7 @@ LDFLAGS=$(COFLAGS)
 
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PCEHOME)/bin/pl2tex
-LATEX=latex
+RUNTEX=@RUNTEX@
 DOC=sgml2pl
 TEX=$(DOC).tex
 DVI=$(DOC).dvi
@@ -90,7 +90,7 @@ $(HTML):	$(TEX)
 		mv html/index.html $@
 
 $(PDF):		$(TEX)
-		runtex --pdf $(DOC)
+		$(RUNTEX) --pdf $(DOC)
 
 $(TEX):		$(DOCTOTEX)
 
@@ -109,4 +109,4 @@ clean:
 distclean:	clean
 		rm -f $(TARGETS) config.cache config.h config.status Makefile
 		rm -f $(TEX)
-		runtex --clean $(DOC)
+		$(RUNTEX) --clean $(DOC)

@@ -206,15 +206,31 @@ typedef enum
 } dtd_error_id;
 
 
+typedef enum
+{ IN_NONE,				/* unspecified input */
+  IN_FILE,				/* input from file */
+  IN_ENTITY				/* input from entity */
+} input_type;
+
+
+typedef struct _dtd_srcloc
+{ input_type  type;			/* type of input */
+  const char *name;			/* name of the file */
+  int	      line;			/* 1-based Line no */
+  int	      linepos;			/* 1-based char  */
+  int	      charpos;			/* 0-based file char  */
+  struct _dtd_srcloc *parent;		/* parent location */
+} dtd_srcloc;
+
+
 typedef struct _dtd_error
 { dtd_error_id id;			/* ERC_* identifier */
   dtd_error_severity severity;		/* ERS_* severity */
-  const char *file;			/* file (or NULL) */
-  long line;				/* Related line */
+  dtd_srcloc *location;			/* location of the error */
   char *plain_message;			/* Clean message */
   char *message;			/* complete message */
 					/* (Warning: file:line: <plain>) */
-  char *argv[2];			/* context earguments */
+  char *argv[2];			/* context arguments */
 } dtd_error;
 
 
@@ -414,7 +430,8 @@ int		set_dialect_dtd(dtd *dtd, dtd_dialect dialect);
 void		putchar_dtd_parser(dtd_parser *p, int chr);
 int		begin_document_dtd_parser(dtd_parser *p);
 int		end_document_dtd_parser(dtd_parser *p);
-void		set_file_dtd_parser(dtd_parser *p, const char *file);
+void		set_src_dtd_parser(dtd_parser *p,
+				   input_type in, const char *file);
 void		set_mode_dtd_parser(dtd_parser *p, data_mode mode);
 #endif /*DTD_IMPLEMENTATION*/
 

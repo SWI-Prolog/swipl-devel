@@ -113,14 +113,6 @@ typedef struct _sgml_environment
 } sgml_environment;
 
 
-typedef struct _dtd_srcloc
-{ const char *file;			/* name of the file */
-  int	      line;			/* 1-based Line no */
-  int	      linepos;			/* 1-based char  */
-  int	      charpos;			/* 0-based file char  */
-} dtd_srcloc;
-
-
 typedef struct _dtd_parser
 { long     magic;			/* SGML_PARSER_MAGIC */
   dtd     *dtd;				/* DTD we are building */
