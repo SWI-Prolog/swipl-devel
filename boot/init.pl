@@ -1135,7 +1135,7 @@ $export_list(Module, [Name/Arity|Rest]) :-
 	catch(export(Module:Term), E, print_message(error, E)),
 	$export_list(Module, Rest).
 $export_list(Module, [Term|Rest]) :-
-	print_message(error, type_error(predicate_indicator, Term)),
+	print_message(error, error(type_error(predicate_indicator, Term), _)),
 	$export_list(Module, Rest).
 
 %	$consult_stream(+Stream, +File)
