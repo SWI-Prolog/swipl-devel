@@ -1216,7 +1216,7 @@ CPU intruction, arithmetic domain errors, illegal memory access,
 resource overflow, etc.), as well as for dealing asynchronous
 inter-process communication.
 
-Signals are defined by the Posix standard and part of all Unix machines.
+Signals are defined by the POSIX standard and part of all Unix machines.
 The MS-Windows Win32 provides a subset of the signal handling routines,
 lacking the vital funtionality to raise a signal in another thread for
 achieving asynchronous inter-process (or inter-thread) communication
@@ -1277,7 +1277,14 @@ install()
 }
 \end{code}
 
-Next, we can define the following Prolog code:
+Next, we can define the Prolog below.  This will run \arg{Goal} just
+as once/1, throwing the exception \term{error}{signal(alrm, _), _} if
+a timeout occurs.%
+	\footnote{Note that call_with_depth_limit/2 is defined in
+		  \pllib{time}, part of the `clib' package.  The
+		  version provided in this library runs on POSIX
+		  systems as well as MS-Windows and can schedule
+		  multiple concurrent alarms.}
 
 \begin{code}
 :- load_foreign_library(alarm).
@@ -1289,11 +1296,7 @@ Next, we can define the following Prolog code:
 
 call_with_time_limit(Goal, MaxTime) :-
 	alarm(MaxTime),
-	catch(Goal, error(signal(alrm, _), _), fail), !,
-	alarm(0).
-call_with_time_limit(_, _) :-
-	alarm(0),
-	fail.
+	call_cleanup(Goal, _, alarm(0)), !.
 \end{code}
 
 The signal names are defined by the C-Posix standards as symbols of the
@@ -1306,6 +1309,7 @@ other signals are \const{default}.  The following signals throw
 an exception:  \const{ill}, \const{fpe}, \const{segv}, \const{pipe},
 \const{alrm}, \const{bus}, \const{xcpu}, \const{xfsz} and
 \const{vtalrm}.
+
     \predicate{current_signal}{3}{?Name, ?Id, ?Handler}
 Enumerate the currently defined signal handling.  \arg{Name} is the
 signal name, \arg{Id} is the numerical identifier and \arg{Handler}
@@ -1323,16 +1327,26 @@ consider the following:
 On MS-Windows, the signal interface is severely limited. Different Unix
 brands support different sets of signals, and the relation between
 signal name and number may vary.
+
     \item[Safety]
 Signal handling is not completely safe in the current implementation,
 especially if \const{throw} is used in combination with external foreign
 code. The system will use the C longjmp() construct to direct control to
 the innermost PL_next_solution(), thus forcing an external procedure to
 be abandoned at an arbitrary moment. Most likely not all SWI-Prologs own
-foreign code is (yet) safe too.
+foreign code is (yet) safe too.  For the multi-threaded versions this
+is even worse: signals can easily violate thread synchronisation
+consistency.
+
+The C-interface described in \secref{csignal} provides the option
+\const{PL_SIGSYNC} for registering a signal handler that delays delivery
+of signals to a safe point.  Unfortunately this may cause signals to be
+delayed for a long time if Prolog is executing foreign code.
+
     \item[Garbage Collection]
 The garbage collector will block all signals that are handled by Prolog.
 While handling a signal, the garbage-collector is disabled.
+
     \item[Time of delivery]
 Normally delivery is immediate (or as defined by the operating system
 used).  Signals are blocked when the garbage collector is active, and
