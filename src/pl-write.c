@@ -414,6 +414,18 @@ writeAtom(atom_t a, write_options *options)
 
 
 int
+writeAtomToStream(IOSTREAM *s, atom_t atom)
+{ write_options options;
+
+  memset(&options, 0, sizeof(options));
+  options.out = s;
+  options.module = MODULE_user;
+
+  return writeAtom(atom, &options);
+}
+
+
+int
 writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags)
 { Atom a = atomValue(atom);
   pl_wchar_t *s = (pl_wchar_t*)a->name;

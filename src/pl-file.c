@@ -815,7 +815,7 @@ protocol(const char *str, int n)
 
   if ( LD && (s = getStream(Sprotocol)) )
   { while( --n >= 0 )
-      Sputc(*str++, s);
+      Sputcode(*str++&0xff, s);
     releaseStream(s);			/* we don not check errors */
   }
 }
@@ -893,7 +893,11 @@ PL_write_prompt(int dowrite)
 
   if ( s )
   { if ( dowrite )
-      Sfputs(PrologPrompt(), s);
+    { atom_t a = PrologPrompt();
+
+      if ( a )
+	writeAtomToStream(s, a);
+    }
 
     Sflush(s);
     releaseStream(s);
@@ -1870,31 +1874,41 @@ pl_prompt(term_t old, term_t new)
 
 
 void
-prompt1(char *prompt)
+prompt1(atom_t prompt)
 { GET_LD
-  if ( LD->prompt.first )
-    remove_string(LD->prompt.first);
-  LD->prompt.first = store_string(prompt);
+
+  if ( LD->prompt.first != prompt )
+  { if ( LD->prompt.first )
+      PL_unregister_atom(LD->prompt.first);
+    LD->prompt.first = prompt;
+    PL_register_atom(LD->prompt.first);
+  }
+
   LD->prompt.first_used = FALSE;
 }
 
 
 word
 pl_prompt1(term_t prompt)
-{ char *s;
+{ GET_LD
+  atom_t a;
+  PL_chars_t txt;
 
-  if ( PL_get_chars(prompt, &s, CVT_ALL) )
-  { prompt1(s);
-    succeed;
-  }
+  if ( PL_get_atom(prompt, &a) )
+  { prompt1(a);
+  } else if ( PL_get_text_ex(prompt, &txt,  CVT_ALL) )
+  { prompt1(textToAtom(&txt));
+  } else
+    fail;
 
-  return PL_error("prompt1", 1, NULL, ERR_TYPE, ATOM_atom, prompt);
+  succeed;
 }
 
 
-char *
+atom_t
 PrologPrompt()
 { GET_LD
+
   if ( !LD->prompt.first_used && LD->prompt.first )
   { LD->prompt.first_used = TRUE;
 
@@ -1902,9 +1916,9 @@ PrologPrompt()
   }
 
   if ( Sinput->position && Sinput->position->linepos == 0 )
-    return stringAtom(LD->prompt.current);
+    return LD->prompt.current;
   else
-    return "";
+    return 0;				/* "" */
 }
 
 
@@ -3177,12 +3191,10 @@ Sread_user(void *handle, char *buf, int size)
   wrappedIO *wio = handle;
 
   if ( LD->prompt.next && ttymode != TTY_RAW )
-  { Sfputs(PrologPrompt(), Suser_output);
-    
-    LD->prompt.next = FALSE;
-  }
+    PL_write_prompt(TRUE);
+  else
+    Sflush(Suser_output);
 
-  Sflush(Suser_output);
   size = (*wio->wrapped_functions->read)(wio->wrapped_handle, buf, size);
   if ( size == 0 )			/* end-of-file */
   { Sclearerr(Suser_input);

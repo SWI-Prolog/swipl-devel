@@ -259,7 +259,7 @@ Sread_readline(void *handle, char *buf, int size)
     case PL_COOKEDTTY:
     default:
     { char *line;
-      char *prompt;
+      const char *prompt;
 
 #ifdef RL_NO_REENTRANT
       if ( in_readline )

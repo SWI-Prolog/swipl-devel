@@ -1899,12 +1899,10 @@ Sread_terminal(void *handle, char *buf, int size)
   source_location oldsrc = LD->read_source;
 
   if ( LD->prompt.next && ttymode != TTY_RAW )
-  { Sfputs(PrologPrompt(), Suser_output);
-    
-    LD->prompt.next = FALSE;
-  }
+    PL_write_prompt(TRUE);
+  else
+    Sflush(Suser_output);
 
-  Sflush(Suser_output);
   PL_dispatch(fd, PL_DISPATCH_WAIT);
   size = (*GD->os.org_terminal.read)(handle, buf, size);
 

@@ -3123,7 +3123,7 @@ cleanupInitialiseHooks(void)
 
 void
 PL_prompt1(const char *s)
-{ prompt1((char *) s);
+{ prompt1(lookupAtom(s, strlen(s)));
 }
 
 
@@ -3154,9 +3154,19 @@ PL_prompt_next(int fd)
 char *
 PL_prompt_string(int fd)
 { if ( fd == 0 )
-    return PrologPrompt();
+  { atom_t a = PrologPrompt();		/* TBD: deal with UTF-8 */
 
-  return "";
+    if ( a )
+    { PL_chars_t txt;
+
+      if ( get_atom_text(a, &txt) )
+      { if ( txt.encoding == ENC_ISO_LATIN_1 )
+	  return txt.text.t;
+      }
+    }
+  }
+
+  return NULL;
 }
 
 

@@ -278,10 +278,10 @@ COMMON(word) 		pl_protocol(term_t file);
 COMMON(word) 		pl_protocola(term_t file);
 COMMON(word) 		pl_protocolling(term_t file);
 COMMON(word) 		pl_prompt(term_t old, term_t new);
-COMMON(void) 		prompt1(char *prompt);
+COMMON(void) 		prompt1(atom_t prompt);
 COMMON(word) 		pl_prompt1(term_t prompt);
 COMMON(word) 		pl_tab(term_t n);
-COMMON(char *) 		PrologPrompt(void);
+COMMON(atom_t) 		PrologPrompt(void);
 COMMON(word) 		pl_tab2(term_t stream, term_t n);
 COMMON(word) 		pl_open4(term_t file, term_t mode, term_t stream,
 				 term_t opt);
@@ -837,6 +837,7 @@ COMMON(word) 		pl_writeq2(term_t stream, term_t term);
 COMMON(word) 		pl_print2(term_t stream, term_t term);
 COMMON(int) 		writeAttributeMask(atom_t name);
 COMMON(int)		writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags);
+COMMON(int)		writeAtomToStream(IOSTREAM *s, atom_t atom);
 
 /* pl-term.c */
 COMMON(void) 		resetTerm(void);
