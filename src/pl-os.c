@@ -18,7 +18,8 @@
 #include <os2.h>                /* this has to appear before pl-incl.h */
 #endif
 
-#include <math.h>			/* avoid abs() problem with msvc++ */
+#include <math.h>		/* avoid abs() problem with msvc++ */
+#include <stdio.h>		/* rename() and remove() prototypes */
 #include "pl-incl.h"
 #include "pl-ctype.h"
 

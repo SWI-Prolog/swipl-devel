@@ -131,7 +131,7 @@ $(PL):		$(ALLOBJ)
 		$(CC) $(LDFLAGS) -o $(PL) -Lrc $(ALLOBJ) -lrc $(LIBS)
 
 
-$(STARTUPPATH):	$(PLINIT) $(PLSRC) pl-wam.o pl-wic.o
+$(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)
 		./$(PL) -O -o $(STARTUPPATH) -b $(PLINIT)
 
 
@@ -340,6 +340,10 @@ clean:
 
 distclean:	clean
 		@(cd rc && $(MAKE) distclean)
+		rm -rf $(INCLUDEDIR) $(RUNTIMEDIR)
+		rm -f ../library/INDEX.pl
+		rm -f Makefile README.bin config.h config.status parms.h
+		rm -f swipl swiplbin pl.prc
 		rm -f pl plld pl-bite pl.1
 		rm -f config.log config.cache
 

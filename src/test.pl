@@ -5,7 +5,7 @@
     Copyright (C) 1996 University of Amsterdam. All rights reserved.
 */
 
-:- please(optimise, _, on).
+:- set_feature(optimise, true).
 %:- set_feature(trace_gc, true).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -707,7 +707,6 @@ pl_recorded(term_t key, term_t term, term_t ref, word h)
       DEBUG(0, assert(rl->references > 0));
 
       LOCK();
-      assert(rl->references == 1);
       break;
     }
     case FRG_CUTTED:
@@ -723,7 +722,6 @@ pl_recorded(term_t key, term_t term, term_t ref, word h)
     default:
       succeed;
   }
-  assert(rl->references == 1);
 
   copy = PL_new_term_ref();
   for( ; record; record = record->next )
