@@ -1,5 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
+VERSION 3.2.7
+=============
+
+  * ADDED/FIXED: type-checking on options list of qsave_program/2.
 
   * DELETED: library(whereis).  Function is obsolete using the new
     edit/1 interface (was not documented anyway).
