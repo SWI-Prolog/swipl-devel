@@ -1,3 +1,10 @@
+Nov 20, 2003
+
+  * FIXED: Avoid the use of typed nodes if the type-resource cannot be
+    expressed as an XML name.
+
+  * FIXED: non-determinism in rdf_node/1 and rdf_bnode/1.
+
 Nov 17, 2003
 
   * FIXED: rdfs_subclass_of/2 to make all classes a subclass of rdfs:'Class'.

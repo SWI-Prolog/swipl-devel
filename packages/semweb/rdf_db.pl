@@ -295,7 +295,7 @@ rdf_node(Value) :-
 	gensym('_:', Value),
 	\+ rdf_subject(Value),
 	\+ rdf(_, _, Value),
-	\+ rdf(_, Value, _).
+	\+ rdf(_, Value, _), !.
 
 
 %	rdf_bnode(-Id)
@@ -307,7 +307,7 @@ rdf_bnode(Value) :-
 	gensym('__bnode', Value),
 	\+ rdf_subject(Value),
 	\+ rdf(_, _, Value),
-	\+ rdf(_, Value, _).
+	\+ rdf(_, Value, _), !.
 
 
 		 /*******************************
@@ -787,8 +787,9 @@ rdf_db(Subject, Pred, Object, DB) :-
 
 rdf_save_subject(Out, Subject, DefNS, Atts, Indent, DB) :-
 	rdf_equal(rdf:type, RdfType),
-	select(RdfType=Type, Atts, Atts1), !,
+	select(RdfType=Type, Atts, Atts1),
 	rdf_id(Type, DefNS, TypeId),
+	xml_name(TypeId), !,
 	format(Out, '~*|<~w', [Indent, TypeId]),
 	save_about(Out, Subject, Indent),
 	save_attributes(Atts1, DefNS, Out, TypeId, Indent, DB).
