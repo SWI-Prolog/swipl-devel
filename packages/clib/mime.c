@@ -26,7 +26,9 @@
 #include <SWI-Prolog.h>
 #include <rfc2045.h>
 #include "error.h"
+#ifdef HAVE_MALLOC_H
 #include <malloc.h>
+#endif
 #include <errno.h>
 
 #define max(x, y) ((x)>(y) ? (x) : (y))

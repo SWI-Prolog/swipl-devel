@@ -50,7 +50,9 @@ wait_for_input/3.
 
 #include <stdio.h>
 #include <errno.h>
+#ifdef HAVE_MALLOC_H
 #include <malloc.h>
+#endif
 #include <sys/types.h>
 #ifdef WIN32
 #include <io.h>
