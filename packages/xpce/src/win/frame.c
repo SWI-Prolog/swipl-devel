@@ -1283,11 +1283,22 @@ resizeTileEventFrame(FrameObj fr, EventObj ev)
       cancelResizeTileFrame(fr);
 
       if ( t->super->orientation == NAME_vertical )
-	send(t, NAME_height,
-	     toInt(valInt(getYEvent(ev, fr)) - valInt(t->area->y) - 1), EAV);
-      else
-	send(t, NAME_width,
-	     toInt(valInt(getXEvent(ev, fr)) - valInt(t->area->x) - 1), EAV);
+      { int h = valInt(getYEvent(ev, fr)) - valInt(t->area->y) - 1;
+
+	DEBUG(NAME_tile,
+	      Cprintf("resizeTileEventFrame(): %s->height = %d\n",
+		      pp(t), h));
+	      
+	send(t, NAME_height, toInt(h), EAV);
+      } else
+      { int w = valInt(getXEvent(ev, fr)) - valInt(t->area->x) - 1;
+
+	DEBUG(NAME_tile,
+	      Cprintf("resizeTileEventFrame(): %s->width = %d\n",
+		      pp(t), w));
+	      
+	send(t, NAME_width, toInt(w), EAV);
+      }
 
       succeed;
     } else

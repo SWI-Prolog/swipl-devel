@@ -655,38 +655,82 @@ setTile(TileObj t, Int x, Int y, Int w, Int h)
   if ( notDefault(h) && valInt(h) < valInt(t->border)) h = t->border;
 
   if ( notDefault(w) )
-  { /*if ( t->enforced != ON )*/
-      assign(t, idealWidth, w);
+  { assign(t, idealWidth, w);
 
     if ( t->enforced == ON && notNil(t->super) )
     { Cell cell;
-      Int stretch = ZERO;
+      int before = TRUE;
+      int hs = 0, hg = 0;
 
       for_cell(cell, t->super->members)
       { TileObj t2 = cell->value;
 
-	assign(t2, horStretch, stretch);
-	assign(t2, horShrink,  stretch);
-	if ( t2 == t )
-	  stretch = ONE;
+	if ( before )
+	{ assign(t2, horStretch, ZERO);
+	  assign(t2, horShrink,  ZERO);
+	  if ( t2 == t )
+	    before = FALSE;
+	} else
+	{ hs += valInt(t2->horShrink);
+	  hg += valInt(t2->horStretch);
+	}
+      }
+      if ( hs == 0 || hg == 0 )
+      { before = TRUE;
+
+	for_cell(cell, t->super->members)
+	{ TileObj t2 = cell->value;
+
+	  if ( before )
+	  { if ( t2 == t )
+	      before = FALSE;
+	  } else
+	  { if ( hs == 0 )
+	      assign(t2, horShrink, ONE);
+	    if ( hg == 0 )
+	      assign(t2, horStretch, ONE);
+	  }
+	}
       }
     }
   }
   if ( notDefault(h) )
-  { /*if ( t->enforced != ON )*/
-      assign(t, idealHeight, h);
+  { assign(t, idealHeight, h);
 
     if ( t->enforced == ON && notNil(t->super) )
     { Cell cell;
-      Int stretch = ZERO;
+      int before = TRUE;
+      int vs = 0, vg = 0;
 
       for_cell(cell, t->super->members)
       { TileObj t2 = cell->value;
 
-	assign(t2, verStretch, stretch);
-	assign(t2, verShrink,  stretch);
-	if ( t2 == t )
-	  stretch = ONE;
+	if ( before )
+	{ assign(t2, verStretch, ZERO);
+	  assign(t2, verShrink,  ZERO);
+	  if ( t2 == t )
+	    before = FALSE;
+	} else
+	{ vs += valInt(t2->verShrink);
+	  vg += valInt(t2->verStretch);
+	}
+      }
+      if ( vs == 0 || vg == 0 )
+      { before = TRUE;
+
+	for_cell(cell, t->super->members)
+	{ TileObj t2 = cell->value;
+
+	  if ( before )
+	  { if ( t2 == t )
+	      before = FALSE;
+	  } else
+	  { if ( vs == 0 )
+	      assign(t2, verShrink, ONE);
+	    if ( vg == 0 )
+	      assign(t2, verStretch, ONE);
+	  }
+	}
       }
     }
   }
@@ -694,9 +738,7 @@ setTile(TileObj t, Int x, Int y, Int w, Int h)
   if ( t->enforced != ON )
   { for(super = t->super; notNil(super); super = super->super)
       computeTile(super);
-  }
-
-  if ( t->enforced == ON )
+  } else
   { if ( notNil(t->super) )
       layoutTile(getRootTile(t), DEFAULT, DEFAULT, DEFAULT, DEFAULT);
     else
@@ -909,6 +951,12 @@ forAllTile(TileObj t, Code msg)
 		 /*******************************
 		 *	  RESIZE SUPPORT	*
 		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Find the tile in a tile-stack that  is above/left-of the separation line
+in which `pos' lies.  This is used by resizeTileEventFrame() to find the
+tile to resize.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 TileObj
 getSubTileToResizeTile(TileObj t, Point pos)
