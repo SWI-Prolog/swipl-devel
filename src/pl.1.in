@@ -303,7 +303,7 @@ option
 If the files listed below are not at the indicated place, the installation
 has probably been moved.  Use
 .TP
-?- feature(home, Home).
+?- current_prolog_flag(home, Home).
 .P
 to find the local installation directory of SWI-Prolog.
 .TP
