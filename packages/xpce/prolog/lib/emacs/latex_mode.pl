@@ -40,7 +40,7 @@
 		      open_document     = key('\\C-c\\C-o') + button('LaTeX'),
 		      close_environment = key('\\C-c\\C-f') + button('LaTeX'),
 		      make_command      = key('\\C-\\') + button('LaTeX'),
-		      make_environment  = key('\\C-cRET') + button('LaTeX')
+		      make_environment  = key('\\C-c\\C-m') + button('LaTeX')
 		    ],
 		    [ \	   = symbol,
 		      -    = symbol,
