@@ -446,12 +446,12 @@ initialise(TF,
 
 :- pce_group(appearance).
 
-collapsed_image(TF, Img:image) :->
+collapsed_image(TF, Img:[image]) :->
 	"Image in collapsed state"::
 	send(TF, slot, collapsed_image, Img),
 	send(TF, update_image).
 
-expanded_image(TF, Img:image) :->
+expanded_image(TF, Img:[image]) :->
 	"Image in expanded state"::
 	send(TF, slot, expanded_image, Img),
 	send(TF, update_image).
