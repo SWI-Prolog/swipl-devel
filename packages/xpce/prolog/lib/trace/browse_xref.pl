@@ -37,13 +37,13 @@
 	    global_predicate/1		% +Head
 	  ]).
 :- use_module(library(pce)).
-:- use_module(library('emacs/prolog_xref')).
+:- use_module(library('pce_prolog_xref')).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This file has a common origin   as library('emacs/prolog_xref'). I'm not
-sure what to do: merge them or decide   they are different enough not to
-do so and base them  on  a  common   ground.  Right  now  we import some
-important things from library('emacs/prolog_xref').
+This file has a common origin  as library(pce_prolog_xref). I'm not sure
+what to do: merge them or decide they  are different enough not to do so
+and base them on a common  ground.   Right  now we import some important
+things from library(pce_prolog_xref).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 target_prolog(native).			% The prolog system itself
