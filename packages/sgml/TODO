@@ -9,19 +9,16 @@ TODO LIST:
 
 XML NameSpaces
 
-	* Each name is a local-name + URL
-	* Mapping to Prolog:
+	* Allow for mapping to local identifiers?
 
-		element(NS:Name,
-			[ NS1:Name = Value,
-			  ...
-			],
-			Content)
+		- xmlns(rdf, 'djfejfpwe').
 
-	* Of
+XML Space handling
 
-		NS:element(Name,
-			   [ NS1:Name(Value),
-			     ...
-			   ],
-			   Content)
+	* Recognise xml:space (default|preserve) attribute.  Default:
+
+	 	- Canonise multiple to a single
+		- Remove leading and trailing space of an element:
+
+		  <a> foo <a>              --> 'foo'
+		  <a> foo <b> x </b> </a>  --> 'foo ', b(x)
