@@ -1,4 +1,4 @@
-/*  $Id$
+/*  pl-alloc.c,v 1.18 1995/02/07 12:12:16 jan Exp
 
     Copyright (c) 1990 Jan Wielemaker. All rights reserved.
     See ../LICENCE to find out about your rights.
@@ -353,28 +353,29 @@ be  deallocated  as  it  vanishes  after  quiting  the  foreign language
 function anyway.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static char *scratchBase;			/* base for scratching */
+char *localScratchBase;			/* base for scratching */
+					/* needed in segv_handler()! */
 #if !O_DYNAMIC_STACKS
-static char *scratchTop;
+static char *localScratchTop;
 #endif
 
 void
 initAllocLocal()
-{ if (scratchBase == (char *)NULL)
-  { scratchBase = (char *) lTop;
+{ if (localScratchBase == (char *)NULL)
+  { localScratchBase = (char *) lTop;
 #if !O_DYNAMIC_STACKS
-    scratchTop  = (char *) lMax;
+    localScratchTop  = (char *) lMax;
 #endif
   }
 }
 
 Void
 alloc_local(register size_t n)
-{ register char *mem = scratchBase;
+{ register char *mem = localScratchBase;
 
-  scratchBase += ROUND(n, sizeof(word));
+  localScratchBase += ROUND(n, sizeof(word));
 #if !O_DYNAMIC_STACKS
-  STACKVERIFY( if ( scratchBase >= scratchTop )
+  STACKVERIFY( if ( localScratchBase >= localScratchTop )
 		 outOf((Stack) &stacks.local) );
 #endif
 
@@ -383,7 +384,7 @@ alloc_local(register size_t n)
 
 void
 stopAllocLocal()
-{ scratchBase = (char *)NULL;
+{ localScratchBase = (char *)NULL;
 }
 
 char *

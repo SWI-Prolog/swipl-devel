@@ -198,12 +198,12 @@ static Word *mark_base;			/* Array of marked cells addresses */
 static Word *mark_top;			/* Top of this array */
 static Table check_table = NULL;	/* relocation address table */
 
-/*
+#if 0
 int
 trap_gdb()				/* intended to put a break on */
 {
 }
-*/
+#endif
 
 static void
 needsRelocation(addr)

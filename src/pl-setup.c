@@ -1,4 +1,4 @@
-/*  $Id$
+/*  pl-setup.c,v 1.26 1995/02/07 12:12:31 jan Exp
 
     Copyright (c) 1990 Jan Wielemaker. All rights reserved.
     See ../LICENCE to find out about your rights.
@@ -624,7 +624,12 @@ This the the signal handler for segmentation faults if we are using  MMU
 controlled  stacks.   The  only  argument  we  are  interested in is the
 address of the segmentation fault.  SUN provides this via  an  argument.
 If   your   system   does   not   provide   this  information,  set  the
-O_NO_SEGV_ADDRESS flag.
+SIGNAL_HANDLER_PROVIDES_ADDRESS flag.
+
+There is one problem.  If we are  using   the  local  stack as a scratch
+area, we can get map  signals  from   allocLocal().   If  the handler is
+provided an address, there  is  no   problem.   Otherwise  we  check the
+exported variable localScratchBase (see pl-alloc.c).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static RETSIGTYPE
@@ -634,6 +639,7 @@ segv_handler(int sig, int type, SignalContext scp, char *addr)
 
 #ifndef SIGNAL_HANDLER_PROVIDES_ADDRESS
   int mapped = 0;
+  extern char *localScratchBase;	/* see pl-alloc.c */
 
   DEBUG(1, printf("Page fault.  Free room (g+l+t) = %ld+%ld+%ld\n",
 		  roomStack(global), roomStack(local), roomStack(trail)));
@@ -648,6 +654,17 @@ segv_handler(int sig, int type, SignalContext scp, char *addr)
     }
   }
 
+  if ( !mapped )
+  { Stack ls = (Stack)& stacks.local;
+
+    if ( (unsigned long)localScratchBase > (unsigned long)ls->top &&
+	 (unsigned long)localScratchBase < (unsigned long)ls->base +
+				           ls->maxlimit )
+    { map(ls);
+      mapped++;
+    }
+  }
+
   if ( mapped )
   {
 #ifndef BSD_SIGNALS
@@ -656,7 +673,7 @@ segv_handler(int sig, int type, SignalContext scp, char *addr)
     return;
   }
 
-#else /*O_NO_SEGV_ADDRESS*/
+#else /*SIGNAL_HANDLER_PROVIDES_ADDRESS*/
 
   DEBUG(1, printf("Page fault at %ld (0x%x)\n", (long) addr, (unsigned) addr));
   for(i=0; i<N_STACKS; i++)
@@ -667,7 +684,7 @@ segv_handler(int sig, int type, SignalContext scp, char *addr)
 #endif
       return;
     }
-#endif
+#endif /*SIGNAL_HANDLER_PROVIDES_ADDRESS*/
 
   deliverSignal(sig, type, scp, addr);
 }

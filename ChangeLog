@@ -6,6 +6,11 @@ Version 2.0.0
 
   * Added `Quick Load File' compilation support.  See qcompile/1 and
     qload/1.  Alpha stage.
+  * FIXED infrequent segmentation violation occurring on machines with
+    dynamic stack management, but whose signal handler is not provided
+    the address of the fault (Linux and Solaris 2 for example).  The
+    crash can be in various foreign predicates that use the local stack
+    as scratch area.
   * Important FIX to the garbage collector.  This bug may happen iff
     a garbage collection is invoked while clauses are active that have
     \+ or (a -> b ; c) constructs that are not yet active.  Generally
