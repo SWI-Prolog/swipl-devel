@@ -151,7 +151,7 @@ indicate_directory(_FI, Dir:string) :->
 selection(FI, Warn:[bool], FileName:name) :<-
 	"Get the current selection"::
 	get(FI, modified, Modified),
-	get_super(FI, selection, RawName),
+	get(FI?value_text, string, RawName),
 	get(RawName, size, L),
 	(   get(regex('//\\|/~'), search, RawName, L, 0, Start)
 	->  new(S, string('%s', RawName)),
@@ -172,14 +172,14 @@ selection(FI, Warn:[bool], FileName:name) :<-
 	    (   (   Exists == @on
 		;   Exists == open
 		)
-	    ->  (   send(file(FileName), exists)
+	    ->  (   send(FI, check_existence, FileName)
 		->  true
 		;   send(FI, report, warning,
 			 'File %s does not exist', FileName),
 		    fail
 		)
 	    ;   Exists == save
-	    ->  (   send(file(FileName), exists)
+	    ->  (   send(FI, check_existence, FileName)
 		->  send(FI?display, confirm, 'Overwrite file %s?', FileName)
 		;   true
 		)
@@ -187,6 +187,10 @@ selection(FI, Warn:[bool], FileName:name) :<-
 	    )
 	).
 
+
+check_existence(_FI, Name:name) :->
+	"Check existence of file"::
+	send(file(Name), exists).
 
 clean_file_name(Def, Clean) :-
 	\+ send(Def, '_instance_of', function),
@@ -223,5 +227,9 @@ completions(_FI, Tuple:tuple, Matches:chain) :<-
 	get(Tuple, second, FileName),
 	get(directory(DirName), directories, string('^%s', FileName), Matches).
 	
+
+check_existence(_FI, Name:name) :->
+	"Check existence of directory"::
+	send(directory(Name), exists).
 
 :- pce_end_class.
