@@ -52,10 +52,10 @@ forwards char *symbolString();
 
 #if !hpux
 extern char *sbrk(/*int*/);
+extern int lseek(/*int, long, int*/);
 #endif
 extern int system(/*char **/);
 extern int unlink(/*char **/);
-extern int lseek(/*int, long, int*/);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Load an object file and link it to the system.  The intented  schema  is
