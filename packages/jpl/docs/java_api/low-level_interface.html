@@ -1,0 +1,311 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.74 [en] (WinNT; U) [Netscape]">
+   <meta name="Author" content="Fred Dushin">
+   <meta name="Keywords" content="JPL,java,prolog">
+   <title>Low-Level Interface</title>
+</head>
+<body text="#000000" bgcolor="#FFFFFF" link="#00009C" vlink="#CE31CE" alink="#FF0000">
+
+<div align=right><a href="index.html">up</a>&nbsp;&nbsp;&nbsp;&nbsp; <a href="getting_started.html">prev</a>
+
+<a href="high-level_interface.html">next</a>&nbsp;&nbsp;&nbsp;&nbsp; <a href="api/packages.html">API</a>
+<hr NOSHADE WIDTH="100%"></div>
+
+<center>
+<p><br><b><font size=+4>JPL 2.0.2 Low-Level Interface</font></b></center>
+
+<p><br>
+<br>
+<h3>
+Table of Contents</h3>
+
+<ul>
+<li>
+<a href="#Introduction">Introduction</a></li>
+
+<li>
+<a href="#Supported Data Types">Supported Data Types</a></li>
+
+<li>
+<a href="#jpl.fli.Prolog">jpl.fli.Prolog</a></li>
+
+<li>
+<a href="#Using the Low-Level Interface">Using the Low-Level Interface</a></li>
+
+<li>
+<a href="#Caveats">Caveats</a></li>
+
+<ul>
+<li>
+<a href="#Sequential Term References">Sequential Term References</a></li>
+
+<li>
+<a href="#Variable-length Argument Lists">Variable-length Argument Lists</a></li>
+
+<li>
+<a href="#currently unsupported fli functions">Currently unsupported FLI
+functions</a></li>
+
+<li>
+<a href="#unsupportable fli functions">Unsupportable FLI functions</a></li>
+</ul>
+</ul>
+
+<hr NOSHADE WIDTH="100%">
+<h3>
+<a NAME="Introduction"></a>Introduction</h3>
+<i>[Note: if you just want to build hybrid Java+Prolog applications, you
+probably don't need to know about this interface: see the <a href="high-level_interface.html">High-Level
+interface</a> documentation]</i>
+<br>&nbsp;
+<br>The <b><i>JPL</i></b> Low-Level interface is implemented by the Java
+package <b>jpl.fli</b>.&nbsp; This package contains a set of classes that
+mirror the data types in the SWI-Prolog <i>Foreign Language Interface</i>
+(FLI), together with a class <b>jpl.fli.Prolog</b>, which contains static
+variables and static native methods which reflect the constants and functions
+in the FLI.&nbsp; The package is designed to serve as a direct translation
+of the Prolog FLI and is generally not intended for the average user.&nbsp;
+Its main purpose is to support the High-Level interface (q.v.), use of
+which is preferable in most applications.
+<p>This section provides a detailed description of the Low-Level interface
+for the programmer who may wish to use it much as he or she would the FLI.&nbsp;
+As such, it presumes familiarity with the Prolog FLI.&nbsp; <i>This document
+is not a tutorial on how to use the Prolog FLI; </i>consult your local
+Prolog documentation for how to use the FLI.&nbsp; Programmers who wish
+to use <b><i>JPL</i></b> without having to know any of the nitty gritty
+details of the Low-Level interface may skip this section and read the <a href="high-level_interface.html">High-Level</a>
+interface section.&nbsp; For information about the SWI-Prolog FLI, see
+your local SWI-Prolog documentation.
+<br>&nbsp;
+<br>The <b><i>JPL</i></b> Low-Level interface is highly SWI-Prolog specific,
+unlike the High-Level interface (which could potentially be implemented
+on top of at least some other Prolog systems).
+<br>&nbsp;
+<h3>
+<a NAME="Supported Data Types"></a>Supported Data Types</h3>
+The Low-Level interface provides definitions for the following support
+classes, which are essentially "holder" classes for the corresponding data
+types in the FLI:
+<ul>
+<pre>LongHolder
+&nbsp; |
+&nbsp; +--- term_t
+&nbsp; |
+&nbsp; +--&nbsp; atom_t
+&nbsp; |
+&nbsp; +--&nbsp; functor_t
+&nbsp; |
+&nbsp; +--&nbsp; qid_t
+&nbsp; |
+&nbsp; +--&nbsp; fid_t
+
+PointerHolder
+&nbsp; |
+&nbsp; +--&nbsp; predicate_t
+&nbsp; |
+&nbsp; +--&nbsp; module_t</pre>
+</ul>
+With the exception of <b>predicate_t</b> and <b>module_t</b>, these classes
+hold Java long (signed 64-bit) values, corresponding to the C types in
+the FLI by the same name (unsigned long values).&nbsp; The <b>module_t</b>
+and <b>predicate_t</b> classes also hold long values, but their values
+are understood to be C pointers (void *).
+<blockquote><i><font size=-1><b>Note.&nbsp;</b> The fact that we are using
+signed values to represent unsigned values should not be a problem, since
+we are not using these values in arithmetic expressions that could cause
+errors as a result of casts.&nbsp; However, any SWI-Prolog implementation
+that has a word size larger than 4 bytes is not guaranteed to work correctly
+with this version of the Low-Level interface.</font></i></blockquote>
+The Low-Level interface also provides the following convenience classes
+used to get information back to the JavaVM from Prolog:
+<ul>
+<li>
+<b>IntHolder</b></li>
+
+<li>
+<b>LongHolder</b></li>
+
+<li>
+<b>DoubleHolder</b></li>
+
+<li>
+<b>StringHolder</b></li>
+
+<li>
+<b>PointerHolder</b></li>
+</ul>
+These classes are for use where a SWI-Prolog FLI function takes modifiable
+(by reference) parameters.
+<h3>
+<a NAME="jpl.fli.Prolog"></a>jpl.fli.Prolog</h3>
+The class <b>jpl.fli.Prolog</b> contains a set of Java constant (static
+final) and static native method declarations.&nbsp; These declarations
+more or less mirror those in the header files for the FLI (in SWI-Prolog,
+<i>SWI-Prolog.h</i>), and can all be found in the C source file <i>jpl_fli_Prolog.c</i>.
+<p>The general rule of thumb is as follows:
+<ul>
+<li>
+All constant and function names (with a few notable exceptions) are the
+same as those in the FLI, with the Prolog implementation-specific prefix
+(in the case of SWI-Prolog, <font face="Courier New,Courier">PL_</font>)
+removed.&nbsp; For example, the constant <font face="Courier New,Courier">PL_VARIABLE</font>
+in the FLI becomes just <font face="Courier New,Courier">VARIABLE</font>,
+and the FLI function <font face="Courier New,Courier">PL_new_term_ref()</font>
+becomes just <font face="Courier New,Courier">new_term_ref()</font>.&nbsp;
+A notable exception is the <font face="Courier New,Courier">throw</font>
+FLI function, which is renamed to <b>_throw</b> in the FLI;&nbsp; <i>throw</i>
+is a reserved word in Java.</li>
+
+<li>
+All the constant values are the same in the Low-Level interface as they
+are in the FLI.</li>
+
+<li>
+The signatures of FLI functions (with a few notable exceptions) are preserved
+in the Low-Level interface.&nbsp; The Low-Level interface provides the
+above types for this purpose.</li>
+
+<li>
+Read parameters of the primitive Java types (e.g., <b>int</b>, <b>float</b>,
+<b>long</b>,
+etc.) are preserved.</li>
+
+<li>
+Modify parameters of the primitive Java types take Holder classes (e.g.,
+<b>IntHolder</b>,
+<b>DoubleHolder</b>,
+<b>LongHolder</b>,
+etc.) in which the values are written, instead of pointers to these types.</li>
+
+<li>
+Parameters of other types that are read and read/modify parameters in the
+FLI still take structures (e.g., <b>jpl.fli.term_t</b>) as arguments in
+the Low-Level interface.&nbsp; This preserves the signature of these methods
+as much as possible.&nbsp;&nbsp; A notable exception is the FLI <font face="Courier New,Courier">strip_module</font>
+function, which takes a <font face="Courier New,Courier">module_t *</font>
+as a parameter; in the Low-Level interface, the <b>strip_module</b> method
+takes a <b>module_t</b>, not a Holder for this type.</li>
+</ul>
+
+<h3>
+<a NAME="Using the Low-Level Interface"></a>Using the Low-Level Interface</h3>
+Programmers already comfortable with the FLI should find no surprises.&nbsp;
+For example, to create a <b>term_t</b> in Java, one would do the same as
+one would do in C:
+<blockquote>
+<pre>term_t t = Prolog.new_term_ref();</pre>
+</blockquote>
+The difference is that the Java method is now a static native method of
+the Prolog class, so the syntax is slightly different than the corresponding
+call in C.&nbsp; Moreover, many of the same rules in the FLI apply to the
+Low-Level interface, as well.&nbsp; To make a term reference which contains
+an atom, for example, one must first create the <b>term_t</b>, then an
+<b>atom_t</b>,
+and then put the atom into the term, as in the FLI:
+<blockquote>
+<pre>term_t term = Prolog.new_term_ref();
+atom_t atom = Prolog.new_atom( "foo" );
+Prolog.put_atom( term, atom );</pre>
+</blockquote>
+
+<h3>
+<a NAME="Caveats"></a>Caveats</h3>
+There is nothing special about the Low-Level interface; it is really just
+a straight Java mapping of the FLI, and C programmers familiar with the
+FLI should have little difficulty using it.&nbsp; On the other hand, translating
+the FLI to Java raises some peculiarities that should be mentioned.
+<h4>
+<a NAME="Sequential Term References"></a>Sequential Term References</h4>
+In the FLI, one can create sequential term references via the <font face="Courier New,Courier">new_term_refs</font>
+function:
+<blockquote>
+<pre>term_t t0 = Prolog.new_term_refs( n);</pre>
+</blockquote>
+Subsequent references are obtained by <b>t0+1</b>, <b>t0+2</b>, etc.&nbsp;
+However, Java does not support operator overloading, so we can't obtain
+subsequent term references by offsetting an initial reference.&nbsp; We
+can, however, obtain the value field of a <b>term_t</b> structure an compute
+subsequent references off that value, as in, for example, <b>t0.value+1</b>,
+<b>t0.value+2</b>,
+etc.
+<h4>
+<a NAME="Variable-length Argument Lists"></a>Variable-length Argument Lists</h4>
+Some of the C functions in the FLI (e.g, <b>PL_cons_functor()</b>) take
+variable-length arguments, function definitions whose argument lengths
+are not known at compile time.&nbsp; However, Java has no support for such
+definitions; all method definitions must have determinable signatures at
+compile time.
+<br>&nbsp;
+<br>JPL 1.0.1 was designed and implemented before Java acquired <i>anonymous
+array</i> syntax (in Java 1.1), which make it feasible to redefine a method
+to take an array of arguments in place of a variable-length argument list.&nbsp;
+Since the SWI-Prolog FLI provides alternative functions that are equivalent
+to these variable-length argument functions, <i>JPL 1.0.1</i> implemented
+these.&nbsp; The High-Level interface exploits anonymous array syntax (e.g.
+when constructing a <b>Compound</b>), but it has not been considered necessary
+to revise the implementation of the Low-Level interface.
+<br>&nbsp;
+<h4>
+<a NAME="currently unsupported fli functions"></a>Currently unsupported
+FLI functions</h4>
+A number of SWI-Prolog FLI functions are currently unsupported, and not
+needed by the High-Level interface, but could and might be supported in
+future versions (preference is likely to be given to those which can sensibly
+be made available to applications via the High-Level interface, or which
+are necessary to support future extensions to the High-Level interface).
+<br>&nbsp;
+<h4>
+<a NAME="unsupportable fli functions"></a>Unsupportable FLI functions</h4>
+Some SWI-Prolog FLI functions seem inherently unsupportable within this
+interface:
+<dl>
+<dl>
+<dt>
+<b>PL_signal()</b></dt>
+
+<dd>
+Java can't feasibly register a C function as s signal handler<br>
+<BR></dd>
+
+<dt>
+<b>PL_action()</b></dt>
+
+<dd>
+problems with the argument types and qty; some of these actions may be
+useful...<br>
+<BR></dd>
+
+<dt>
+<b>PL_query()</b></dt>
+
+<dd>
+the ARGC, ARGV, MAX_INTEGER, MIN_INTEGER options are redundant</dd>
+
+<dd>
+QUERY_VERSION might be useful...</dd>
+
+<dd>
+SYMBOLFILE ?<br>
+<BR></dd>
+
+<dt>
+<b>PL_dispatch_hook()<br>
+PL_abort_hook()<br>
+PL_abort_unhook()<br>
+PL_on_halt()<br>
+PL_agc_hook()</b></dt>
+
+<dd>
+these are of little value within Java (unless we can install Java methods?!)</dd>
+</dl>
+</dl>
+
+<div align=right>
+<hr NOSHADE WIDTH="100%"><a href="index.html">up</a>&nbsp;&nbsp; <a href="getting_started.html">prev</a>&nbsp;&nbsp;&nbsp;
+<a href="high-level_interface.html">next&nbsp;</a> <a href="api/packages.html">API</a></div>
+
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.5 [en] (X11; I; Linux 2.1.24 ppc) [Netscape]">
+   <meta name="Author" content="Fred Dushin">
+   <meta name="Keywords" content="JPL,java,prolog">
+   <title>Programming Notes</title>
+</head>
+<body text="#000000" bgcolor="#FFFFFF" link="#00009C" vlink="#CE31CE" alink="#FF0000">
+
+<div align=right><a href="index.html">up</a>&nbsp;&nbsp;&nbsp;&nbsp; <a href="high-level_interface.html">prev</a>&nbsp;&nbsp;&nbsp;
+next&nbsp;&nbsp;&nbsp;&nbsp; <a href="api/packages.html">API</a>
+<hr NOSHADE WIDTH="100%"></div>
+
+<center>
+<p><br><b><font size=+4>Programming Notes</font></b></center>
+
+<p><br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<p>This section provides a description of some of the nitty-gritty involved
+in getting the high-level interface to work.&nbsp; It presumes <i>extensive</i>
+familiarity with the High-Level interface, in addition to the Low-Level
+Interface and the Prolog Foreign Language Interface (FLI).
+<h3>
+Overview</h3>
+The High-Level Interface provides, in essence, a set of Java data structures
+for invoking queries on a Prolog engine.&nbsp; By itself, the High-Level
+interface makes no direct calls to the Prolog Abstract Machine (AM).&nbsp;
+Instead, the High-Level interface rests entirely on top of the Low-LevelInterface,
+a Java implementation of the FLI.&nbsp; The Low-Level interface is more
+or less in 1-1 correspondence with the FLI (barring methods that do not
+make sense in the Java environment).
+<p>The following describes a typical execution of a Prolog query using
+the interfaces described in the jpl.Query class.&nbsp; Assume the High-Level
+Interface programmer (hereafter, just 'the programmer') has constructed
+a jpl.Term structure (assume, for simplicity, that the programmer is invoking
+a predicate of arity 1), and is about to use the Query class to make a
+query using the hasMoreSolutions/nextSolution protocol.&nbsp; Roughly the
+following sequence of events occurs.
+<ol>
+<li>
+The <b>jpl.Term</b> is converted to a <b>jpl.fli.term_t</b></li>
+
+<li>
+A call to the Prolog AM is opened using the Low-Level Interface <b>Prolog.open_query</b>
+method with the predicate name and <b>term_t</b> just created</li>
+
+<li>
+For any <b>jpl.Variable</b> occurrence (i.e., instance) in the original
+<b>jpl.Term</b>
+given to the <b>Query</b>, convert the <b>term_t</b>s that are bound to
+those variables o <b>jpl.Term</b>s, and construct a
+<b>Hashtable</b> of
+these <b>Term</b>s, indexed by the <b>Variable</b>s in the <b>Query</b>.</li>
+
+<li>
+Close the query using the Low-Level Interface <b>Prolog.close_query</b>
+method if there are no more solutions.&nbsp; Otherwise, keep the query
+open for subsequent calls to <b>hasMoreSolutions</b>.</li>
+</ol>
+Significantly more bookeeping is required to prevent the programmer from
+opening a query while another is open, maintaining state about the status
+of the query, and so forth, but the above gives a rough approximation of
+what occurs in typical "successful" calls to the Prolog AM.&nbsp; The remainder
+of this section describes these steps in some detail.
+<h3>
+Translating Terms to term_ts</h3>
+Translating <b>jpl.Term</b>s to <b>jpl.fli.term_t</b>s is relatively straightforward.&nbsp;
+Each <b>Term</b> subclass knows more or less how to convert itself to a
+term_t via its <b>pack</b> method, and the top-level <b>Term</b> static
+method <b>terms_to_term_ts </b>takes an array of <b>Term</b>s and performs
+the conversion for the <b>Query</b>.&nbsp; The following features of the
+FLI, however, help explain the perhaps mysterious signature of <b>pack</b>.
+<ul>
+<li>
+The Prolog FLI requires that <i>term_t</i> references first be created,
+and then data of an appropriate type be "put" into the <i>term_t </i>reference
+using one of the FLI <i>_put</i> functions.&nbsp; For example, to create
+an atom in the FLI, one first creates a <i>term_t,</i> and then "puts"
+an <i>atom_t </i>into the <i>term_t.</i></li>
+
+<p><br><font face="Courier New,Courier"><font size=+1>&nbsp;&nbsp;&nbsp;
+term_t t = PL_new_term_ref();</font></font>
+<br><font face="Courier New,Courier"><font size=+1>&nbsp;&nbsp;&nbsp; atom_t
+a = PL_new_atom( "a" );</font></font>
+<br><font face="Courier New,Courier"><font size=+1>&nbsp;&nbsp;&nbsp; PL_put_atom(
+t, a );</font></font>
+<p>Translating a Term to a term_t requires mimicking this behavior.
+<li>
+In the case of Compound Terms,</li>
+
+<li>
+A <i>term_t</i> in the Prolog FLI is, literally, an unsigned long value.&nbsp;
+It is essentially an index into the Prolog AM.&nbsp; A sequence of <i>term_t</i>s
+is a set of <i>consecutive</i> long values, typically created via the FLI
+C funtion <i>PL_new_term_refs().</i>&nbsp; In order to construct a compound
+<i>term_t,</i> in the FLI, one must create such a sequence of <i>term_t</i>s
+(as many as the arity of the compound), and then use the various FLI <i>_put
+</i>functions to put terms into the term_ts that have just been created.</li>
+
+<br>&nbsp;</ul>
+
+<h3>
+Computing Substitutions</h3>
+
+<p><br>Translating term_ts to Terms
+<h3>
+Terms</h3>
+A <b>jpl.Term</b> structure holds, as an element, a <b>jpl.fli.term_t</b>
+structure, which itself is a class which holds a long value.&nbsp; This
+long value is in fact a pointer (though not a C pointer) to Prolog term
+in the Prolog Abstract Machine (AM).&nbsp; Unfortunately, these low-level
+values are not really valid throughout the life of the jpl.Term.&nbsp;
+Indeed, they are only valid pointers into the Prolog AM <i>during the execution
+of a Prolog query.&nbsp; </i>They must, therefore, be treated with exceptional
+caution, and are consequently kept well-hidden from the user of the High-Level
+Interface.
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<br>&nbsp;
+<div align=right>
+<hr NOSHADE WIDTH="100%"><a href="index.html">up</a>&nbsp;&nbsp; 
+<a href="high-level_interface.html">prev</a>&nbsp;&nbsp;&nbsp;&nbsp;
+next&nbsp; 
+<a href="api/packages.html">API</a></div>
+
+</body>
+</html>

@@ -1,0 +1,90 @@
+Realising attributed variables
+
+Places dealt with:
+
+	* Implemented attvar/1, get_attr/3, put_attr/3 and del_attr/2.
+	* Adjusted write/1 to write AttVar{L,G}<N>{Attribute}.  Also deals with
+	  looping.
+	* Adjusted recorded database (recorda, recorded, findall, ...)
+	* checkData to deal with recursive structures.
+	* Adjusted the garbage collector
+	* standard order of terms
+
+Places to deal with them
+
+	* se_record(): structural equivalence of records
+	* shared variables in recorded?  May not be a problem?
+
+
+		 /*******************************
+		 *	      TESTING		*
+		 *******************************/
+
+	* Wakeup (I_ENTER, I_EXITFACT, exit_builtin)
+	* Avoid copying attvar (always make a reference)
+	* Test for attvar in assignment
+	* Systematic pass to unify operations:
+		unify()
+		unifyAtomic()
+		H_* instructions
+		B_* instructions
+		Check trailing?
+	* Check undo
+
+
+		 /*******************************
+		 *	   THE WAKE LIST	*
+		 *******************************/
+
+	* Using a global variable containing pairs:
+
+		Attribute, Value
+		
+	  Where Attribute is the format attribute value and Value is the
+	  new value of the attributed variable, possibly another attributed
+	  variable.
+
+	  	wakeup(A, V, <Tail>)
+	
+
+		 /*******************************
+		 *	    CYCLIC TERMS	*
+		 *******************************/
+
+Cyclic terms, especially over attributed variables are very common.
+Places where we support them:
+
+	# =/2
+	# copy_term/2
+
+
+		 /*******************************
+		 *	  GLOBAL VARIABLES	*
+		 *******************************/
+
+Copied semantics from hProlog.
+
+GNU:
+
+	g_link(+Callable, ?Term)
+	g_read(+Callable, ?Term)
+
+
+		 /*******************************
+		 *	       MISC		*
+		 *******************************/
+
+	* Print attvars as X{...} (Tom Schrijvers)
+
+	  set_prolog_flag(write_attributes, Mode) where mode is one of
+
+	  	* ignore		(write as plain variables)
+		* dots			(write as {...})
+		* write			(hand to write)
+		* portray		(hand each attribute to
+					 Module:portray_attr)
+
+	  Also write_term(X, [attributes(Mode)])
+
+	  Module:portray_attr()
+		

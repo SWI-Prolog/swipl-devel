@@ -1,0 +1,113 @@
+dnl Process this file with autoconf to produce a configure script.
+
+AC_INIT(install-sh)
+AC_CONFIG_HEADER(config.h)
+
+AC_SUBST(NETLIBS)
+AC_SUBST(PL)
+AC_SUBST(PLLIBS)
+AC_SUBST(PLBASE)
+AC_SUBST(PLARCH)
+AC_SUBST(PLINCL)
+AC_SUBST(COFLAGS)
+AC_SUBST(CWFLAGS)
+AC_SUBST(CMFLAGS)
+AC_SUBST(ETAGS)
+AC_SUBST(LD)
+AC_SUBST(SO)
+AC_SUBST(LDSOFLAGS)
+AC_SUBST(TARGETS)
+AC_SUBST(PLTARGETS)
+AC_SUBST(RUNTEX)
+
+AC_ARG_ENABLE(mt, [  --enable-mt		  Enable Multi-threading],
+	      [case "$enableval" in
+		   yes) AC_DEFINE([_REENTRANT], 1,
+				  [Define to support threads])
+			;;
+		   *)  ;;
+	       esac])
+
+if test -z "$PLINCL"; then
+plcandidates="swi-prolog swipl pl"
+AC_CHECK_PROGS(PL, $plcandidates, "none")
+AC_CHECK_PROGS(PLLD, plld, "none")
+if test $PLLD = "none"; then
+   AC_ERROR("Cannot find SWI-Prolog plld utility. SWI-Prolog must be installed first")
+fi
+if test $PL = "none"; then
+   AC_ERROR("Cannot find SWI-Prolog. SWI-Prolog must be installed first")
+else
+   AC_CHECKING("Running $PL -dump-runtime-variables")
+   eval `$PL -dump-runtime-variables`
+fi
+PLINCL=$PLBASE/include
+AC_MSG_RESULT("		PLBASE=$PLBASE")
+AC_MSG_RESULT("		PLARCH=$PLARCH")
+AC_MSG_RESULT("		PLLIBS=$PLLIBS")
+AC_MSG_RESULT("		PLLDFLAGS=$PLLDFLAGS")
+AC_MSG_RESULT("		PLSHARED=$PLSHARED")
+AC_MSG_RESULT("		PLSOEXT=$PLSOEXT")
+AC_CHECK_PROGS(RUNTEX, runtex, ":")
+else
+PLLD=../plld.sh
+RUNTEX=../../man/runtex
+fi
+
+CC=$PLLD
+LD=$PLLD
+LDSOFLAGS=-shared
+CMFLAGS=-fpic
+
+SO="$PLSOEXT"
+
+AC_CHECK_PROGS(MAKE, gmake make, "make")
+AC_CHECK_PROGS(ETAGS, etags ctags, ":")
+AC_PROG_INSTALL
+AC_ISC_POSIX
+AC_HEADER_STDC
+CFLAGS="$CMFLAGS"
+AC_FUNC_ALLOCA
+AC_C_BIGENDIAN
+
+if test ! -z "$GCC"; then
+    COFLAGS="-O2 -fno-strict-aliasing"
+    CWFLAGS=-Wall
+else
+    COFLAGS=-O
+    CWFLAGS=
+fi
+
+AC_CHECK_LIB(ssl, SSL_library_init)
+AC_CHECK_LIB(crypto, main)
+
+if test "$ac_cv_lib_ssl_SSL_library_init" = yes &&
+   test	"$ac_cv_lib_crypto_main" = yes; then
+  TARGETS="ssl4pl.$SO"
+else
+  echo "ERROR:   Cannot find ssl library"
+  echo "WARNING: SSL interface will not be build"
+  TARGETS=""
+fi
+
+AC_MSG_CHECKING(h_errno)
+AC_TRY_COMPILE(
+[
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <netinet/in.h>
+],
+[ int x = h_errno;
+], AC_DEFINE(HAVE_H_ERRNO, 1,
+	     [Define of h_errno is provided])
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+
+PLTARGETS=`echo $TARGETS | sed "s/4pl\.$SO/.pl/g"`
+
+AC_OUTPUT(Makefile)
+
+
+
+

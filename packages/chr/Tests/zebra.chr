@@ -1,0 +1,117 @@
+:- module(zebra,[zebra/0]).
+:- use_module(library(chr)).
+
+%:- use_module(lib / lists).
+
+/*     
+1.   The Englishman lives in the red house.
+2.   The Spaniard owns the dog.
+3.   Coffee is drunk in the green house.
+4.   The Ukrainian drinks tea.
+5.   The green house is immediately to the right of the ivory house.
+6.   The Porsche driver owns snails.
+7.   The Masserati is driven by the man who lives in the yellow house.
+8.   Milk is drunk in the middle house.
+9.   The Norwegian lives in the first house on the left.
+10.  The man who drives a Saab lives in the house next to the man
+     with the fox.
+11.  The Masserati is driven by the man in the house next to the
+     house where the horse is kept.
+12.  The Honda driver drinks orange juice.
+13.  The Japanese drives a Jaguar.
+14.  The Norwegian lives next to the blue house.
+*/
+
+:- constraints domain/2, diff/2, cleanup/0.
+
+zebra :-
+	solve(Solution),
+	cleanup,
+	Solution == [[yellow,norwegian,masserati,water,fox],[blue,ukranian,saab,tea,horse],[red,english,porsche,milk,snails],[ivory,spanish,honda,orange,dog],[green,japanese,jaguar,coffee,zebra]].	
+
+domain(_X,[]) <=> fail.
+domain(X,[V]) <=> X = V.
+domain(X,L1), domain(X,L2) <=> intersection(L1,L2,L3), domain(X,L3).
+
+diff(X,Y), domain(X,L) <=> nonvar(Y) | select(Y,L,NL), domain(X,NL).
+diff(X,Y) <=> nonvar(X), nonvar(Y) | X \== Y.
+
+cleanup, domain(_,_) <=> writeln(a), fail.
+cleanup, diff(_,_) <=> writeln(b), fail.
+cleanup <=> true.
+
+all_different([]). 
+all_different([H|T]) :-
+	all_different(T,H),
+	all_different(T).
+
+all_different([],_).
+all_different([H|T],E) :-
+	diff(H,E),
+	diff(E,H),
+	all_different(T,E).
+	
+solve(S) :-
+	[ [ ACo, AN, ACa, AD, AP ],
+	  [ BCo, BN, BCa, BD, BP ],
+	  [ CCo, CN, CCa, CD, CP ],
+	  [ DCo, DN, DCa, DD, DP ],
+	  [ ECo, EN, ECa, ED, EP ] ] = S,
+	domain(ACo,[red,green,ivory,yellow,blue]),
+	domain(BCo,[red,green,ivory,yellow,blue]),
+	domain(CCo,[red,green,ivory,yellow,blue]),
+	domain(DCo,[red,green,ivory,yellow,blue]),
+	domain(ECo,[red,green,ivory,yellow,blue]),
+	domain(AN ,[english,spanish,ukranian,norwegian,japanese]),
+	domain(BN ,[english,spanish,ukranian,norwegian,japanese]),
+	domain(CN ,[english,spanish,ukranian,norwegian,japanese]),
+	domain(DN ,[english,spanish,ukranian,norwegian,japanese]),
+	domain(EN ,[english,spanish,ukranian,norwegian,japanese]),
+	domain(ACa,[porsche,masserati,saab,honda,jaguar]),
+	domain(BCa,[porsche,masserati,saab,honda,jaguar]),
+	domain(CCa,[porsche,masserati,saab,honda,jaguar]),
+	domain(DCa,[porsche,masserati,saab,honda,jaguar]),
+	domain(ECa,[porsche,masserati,saab,honda,jaguar]),
+	domain(AD ,[coffee,tea,milk,orange,water]),
+	domain(BD ,[coffee,tea,milk,orange,water]),
+	domain(CD ,[coffee,tea,milk,orange,water]),
+	domain(DD ,[coffee,tea,milk,orange,water]),
+	domain(ED ,[coffee,tea,milk,orange,water]),
+	domain(AP ,[dog,snails,fox,horse,zebra]),
+	domain(BP ,[dog,snails,fox,horse,zebra]),
+	domain(CP ,[dog,snails,fox,horse,zebra]),
+	domain(DP ,[dog,snails,fox,horse,zebra]),
+	domain(EP ,[dog,snails,fox,horse,zebra]),
+	all_different([ACo,BCo,CCo,DCo,ECo]),
+	all_different([AN ,BN ,CN ,DN ,EN ]),
+	all_different([ACa,BCa,CCa,DCa,ECa]),
+	all_different([AD ,BD ,CD ,DD ,ED ]),
+	all_different([AP ,BP ,CP ,DP ,EP ]),
+	[_,_,[_,_,_,milk,_],_,_]           = S,  % clue 8
+        [[_,norwegian,_,_,_],_,_,_,_]      = S , % clue 9
+        member( [green,_,_,coffee,_],                S), % clue 3
+        member( [red,english,_,_,_],              S), % clue 1
+        member( [_,ukranian,_,tea,_],                S), % clue 4
+        member( [yellow,_,masserati,_,_],            S), % clue 7
+        member( [_,_,honda,orange,_],          S), % clue 12
+        member( [_,japanese,jaguar,_,_],             S), % clue 13
+        member( [_,spanish,_,_,dog],                S), % clue 2
+        member( [_,_,porsche,_,snails],              S), % clue 6
+        left_right( [ivory,_,_,_,_],    [green,_,_,_,_], S), % clue 5
+        next_to( [_,norwegian,_,_,_],[blue,_,_,_,_],  S), % clue 14
+        next_to( [_,_,masserati,_,_],[_,_,_,_,horse], S), % clue 11
+        next_to( [_,_,saab,_,_],     [_,_,_,_,fox],   S), % clue 10
+	true.
+
+% left_right(L, R, X) is true when L is to the immediate left of R in list X
+
+left_right(L, R, [L, R | _]).
+
+left_right(L, R, [_ | X]) :- left_right(L, R, X).
+
+
+% next_to(X, Y, L) is true when X and Y are next to each other in list L
+
+next_to(X, Y, L) :- left_right(X, Y, L).
+
+next_to(X, Y, L) :- left_right(Y, X, L).

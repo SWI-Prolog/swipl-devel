@@ -1,0 +1,166 @@
+<!DOCTYPE doctype PUBLIC "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+        
+  <meta http-equiv="Content-Type"
+ content="text/html; charset=iso-8859-1">
+        
+  <meta name="GENERATOR"
+ content="Mozilla/4.7 [en] (WinNT; I) [Netscape]">
+        
+  <meta name="Author" content="Fred Dushin">
+        
+  <meta name="Keywords" content="java,prolog">
+  <title>JPL A Java Interface to Prolog</title>
+</head>
+  <body text="#000000" bgcolor="#ffffff" link="#00009c" vlink="#ce31ce"
+ alink="#ff0000">
+    
+<hr noshade="noshade" width="100%">  
+<center>  
+<p><img src="logo.jpg" nosave="" height="113" width="204">
+  <br>
+ <i>A Java Interface to Prolog</i></p>
+ </center>
+     
+<h3> <a name="News"></a>News</h3>
+  March 18, 2003  
+<ul>
+   <li> JPL 2.0.2 re-released.</li>
+   
+  <ul>
+     <li>see <a href="release_notes_202.html">Release Notes</a></li>
+        
+  </ul>
+ 
+</ul>
+ May 5, 1999  
+<ul>
+  <li> JPL 1.0.1 released.&nbsp; This release contains the following changes:</li>
+      
+  <ul>
+  <li> Fixed a bug with the representation of Tuples.&nbsp; They are now
+      <i>always</i>  binary terms, though generally structured as binary
+trees.&nbsp; The interface  is the same, except we now require that Tuples
+contain <i>at least</i> two elements.&nbsp; (The single element constructor
+has been removed, but I consider this a patch, not an interface change)</li>
+   <li> Added an ith() accessor to the Compound and Query classes. This is 
+used to obtain the ith element in the array of Terms in the Compound or Query.</li>
+   <li> Added a debugString() method to the Term and Query classes.&nbsp; 
+This is used to obtain more detailed information about the structure of the
+ Term or Query.</li>
+   <li> Updated and fixed some of the documentation.</li>
+   <li> JPL is now released under the terms of the Gnu Library Public License,
+ not the Gnu General Public License.&nbsp; All relevant files have been updated.</li>
+     
+  </ul>
+   
+</ul>
+  See the <a href="#Copyright%20and%20License%20Information">Copyright and 
+License Information</a> section for more information.  
+<p>Feb 25, 1999 </p>
+ 
+<ul>
+  <li> JPL 1.0.0 is out.&nbsp; Check the <a href="#Download">download</a> 
+section for information about how to retrieve it.&nbsp; I <i>hope</i> most 
+of the core interfaces are frozen.</li>
+   <li> I am in need of Solaris testers!&nbsp; I have access to a Solaris 
+box, but it has ancient and outdated compilers, libs, etc.&nbsp; If anyone 
+gets this to compile on any platform other than Linux, please send me patches.</li>
+   <li> Eventually I'd like to work out some config scripts.&nbsp; For now 
+you must config manually.&nbsp; Sorry.</li>
+   <li> I have not even tried getting this to run under Windows.&nbsp; Anyone 
+with more expertise (and patience) than I is welcome to give it a go!</li>
+   
+</ul>
+    
+<h3> <a name="General Description"></a>General Description</h3>
+  JPL is a set of Java classes and C functions providing an interface between
+ Java and Prolog.&nbsp; JPL uses the Java Native Interface (JNI) to connect
+ to a Prolog engine through the Prolog Foreign Language Interface (FLI),
+which is more or less in the process of being standardized in various implementations
+ of Prolog.&nbsp; JPL is not a pure Java implementation of Prolog; it makes
+ extensive use of native implementations of Prolog on supported platforms.&nbsp;
+ The current version of JPL only works with SWI-Prolog.  
+<p>Currently, JPL only supports the embedding of a Prolog engine within the 
+Java VM.&nbsp; Future versions may support the embedding of a Java VM within 
+Prolog, so that, for example, one could take advantage of the rich class structure
+of the Java environment from within Prolog. </p>
+ 
+<p>JPL is designed in two layers, a low-level interface to the Prolog FLI
+ and a high-level Java interface for the Java programmer who is not concerned
+ with the details of the Prolog FLI.&nbsp; The low-level interface is provided
+ for C programmers who may wish to port their C implementations which use
+the FLI to Java with minimal fuss. </p>
+ 
+<h3> <a name="Requirements"></a>Requirements</h3>
+  JPL now requires SWI-Prolog version 3.1.0 or later, which is available
+at the following URL:  
+<blockquote><a href="http://www.swi-prolog.org/">http://www.swi-prolog.org/</a></blockquote>
+  SWI-Prolog license information is available here:  
+<blockquote><a href="http://www.swi-prolog.org/license.html">http://www.swi-prolog.org/license.html</a></blockquote>
+  You will also need a Java development environment.&nbsp; Sun's Java website 
+is a good place to start:  
+<blockquote><a href="http://java.sun.com/">http://java.sun.com/</a></blockquote>
+JPL 2.0.2 was developed and tested on Windows NT4, and has not yet been compiled
+on any non-Windows platform<br>
+JPL1.0.1 was written and tested on Linux kernel 2.1.24.&nbsp; It should compile
+ on any other UNIX system with a full suite of gnu tools.  
+<h3> <a name="Copyright and License Information"></a>Copyright and License 
+Information</h3>
+  JPL is released under the terms of the Gnu Library Public License:  
+<blockquote><i>Copyright (c) 2003 Paul Singleton.&nbsp; All rights reserved.</i>
+   <i><br>
+Copyright (c) 1998 Fred Dushin.&nbsp; All rights reserved.</i>    
+  <p><i><font size="-1">This library is free software; you can redistribute
+ it and/or modify it under the terms of the GNU Library Public License as
+published by the Free Software Foundation; either version 2 of the License,
+or (at your option) any later version.</font></i> </p>
+   
+  <p><i><font size="-1">This library is distributed in the hope that it will
+ be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of 
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.&nbsp; See the GNU Library 
+Public License for more details.</font></i></p>
+ </blockquote>
+  This means, among other things, that you may <i>use</i> this software in
+ commercial products without being required to distribute your software under 
+the same licensing terms.&nbsp; See the <a href="lgpl.html">License</a> for 
+more details.  
+<h3> <a name="Documentation"></a>Documentation</h3>
+  The Documentation for JPL is organized into the following sections:  
+<ol>
+  <li> <a href="getting_started.html">Getting Started</a></li>
+   <li> <a href="low-level_interface.html">The Low-Level Interface</a></li>
+   <li> <a href="high-level_interface.html">The High-Level Interface</a></li>
+   <li> <a href="gpl.html">Gnu Public License</a></li>
+   <li> <a href="api/packages/index.html">The JPL API</a></li>
+   
+</ol>
+    
+<h3> <a name="Download"></a>Download (this section is obsolete)</h3>
+  Gnu-zipped, UNIX compressed, and Zipped versions of the source distribution
+ are available at:  
+<blockquote><a
+ href="http://blackcat.cat.syr.edu/%7Efadushin/software/jpl/download">http://blackcat.cat.syr.edu/~fadushin/software/jpl/download</a></blockquote>
+  You may be interested in viewing the <a href="ChangeLog">ChangeLog</a>.
+ 
+<p>The latest version of JPL is available by the World Wide Web at the following 
+URL: </p>
+ 
+<blockquote><a
+ href="http://blackcat.cat.syr.edu/%7Efadushin/software/jpl">http://blackcat.cat.syr.edu/~fadushin/software/jpl</a></blockquote>
+  Writing free software is only gratifying if you hear from users.&nbsp;
+Please feel free to contact the author, Fred Dushin, at the following address:
+ 
+<blockquote><a href="mailto:fadushin@top.cis.syr.edu">fadushin@top.cis.syr.edu</a></blockquote>
+    
+<div align="right"><font size="-2">Happy Prologging.</font></div>
+    
+<hr noshade="noshade" width="100%"> <br>
+ These pages were created using <a href="http://www.netscape.com">Netscape</a>
+ Communicator, 4.5 for <a href="http://www.linuxppc.org">Linux </a>on the
+<a href="http://www.chips.ibm.com/products/powerpc/">PowerPC</a>.&nbsp; The 
+JPL logo was made by the <a href="http://www.gimp.org">Gimp</a>. <br>
+ <br>
+</body>
+</html>

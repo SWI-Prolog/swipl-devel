@@ -1,0 +1,13 @@
+################################################################
+# Build out-of-date PDF figures
+################################################################
+
+.SUFFIXES: .eps .pdf
+
+epsimages=	$(shell find . -name \*.eps)
+pdfimages=	$(epsimages:.eps=.pdf)
+
+all:		$(pdfimages)
+
+.eps.pdf:
+		epstopdf $*.eps

@@ -1,0 +1,144 @@
+################################################################
+# Makefile template for SWI-Prolog SSL interface
+#
+# This template is used by configure to create Makefile.  See
+# the file INSTALL for further installation instructions.
+#
+# License: LGPL
+#
+# Author: Jan Wielemaker (jan@swi.psy.uva.nl)
+#	  Jan van der Steen
+################################################################
+
+.SUFFIXES: .tex .dvi .doc .pl
+
+PL=@PL@
+PLBASE=@PLBASE@
+PLARCH=@PLARCH@
+PLINCL=@PLINCL@
+PKGDOC=$(PLBASE)/doc/packages
+PCEHOME=$(PLBASE)/xpce
+EXDIR=$(PKGDOC)/examples/ssl
+
+CC=@CC@
+COFLAGS=@COFLAGS@
+CWFLAGS=@CWFLAGS@
+CMFLAGS=@CMFLAGS@
+CIFLAGS=-I.
+DEFS=@DEFS@ -DSERVER_CERT_REQUIRED=TRUE -DCLIENT_CERT_REQUIRED=TRUE
+CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) $(DEFS)
+LIBS=@LIBS@
+NETLIBS=@NETLIBS@
+
+DOCTOTEX=$(PCEHOME)/bin/doc2tex
+PLTOTEX=$(PCEHOME)/bin/pl2tex
+DOC=ssl
+TEX=$(DOC).tex
+DVI=$(DOC).dvi
+PDF=$(DOC).pdf
+RUNTEX=@RUNTEX@
+
+LD=@LD@
+LDFLAGS=@LDSOFLAGS@
+
+INSTALL=@INSTALL@
+INSTALL_PROGRAM=@INSTALL_PROGRAM@
+INSTALL_DATA=@INSTALL_DATA@
+
+LIBPL=		@PLTARGETS@
+TARGETS=	@TARGETS@
+EXAMPLES=	client.pl server.pl https.pl
+
+SSLOBJ=		ssl4pl.o ssllib.o ../clib/nonblockio.o ../clib/error.o
+
+all:		$(TARGETS)
+
+ssl4pl.@SO@:	$(SSLOBJ)
+		$(LD) $(LDFLAGS) -o $@ $(SSLOBJ) $(LIBS)
+
+install:	$(TARGETS) $(LIBPL)
+		mkdir -p $(PLBASE)/lib/$(PLARCH)
+		for f in $(TARGETS); do \
+		  $(INSTALL) -m 755 $$f $(PLBASE)/lib/$(PLARCH); \
+		done
+		for f in $(LIBPL); do \
+		  $(INSTALL) -m 644 $$f $(PLBASE)/library; \
+		done
+		$(PL) -f none -g make -t halt
+
+rpm-install:	install
+
+html-install:	install-examples
+		mkdir -p $(PKGDOC)
+		$(INSTALL) -m 644 $(DOC).html $(PKGDOC)
+
+pdf-install:	install-examples
+		mkdir -p $(PKGDOC)
+		$(INSTALL) -m 644 $(DOC).pdf $(PKGDOC)
+
+install-examples::
+		mkdir -p $(EXDIR)
+		$(INSTALL_DATA) $(EXAMPLES) $(EXDIR)
+		cp -r etc $(EXDIR)
+
+uninstall::
+		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))
+		(cd $(PLBASE)/library && rm -f $(LIBPL))
+		rm -r $(EXDIR)
+		$(PL) -f none -g make -t halt
+
+################################################################
+# SSL Certificate stuff
+################################################################
+
+servercert:
+	openssl x509 -inform PEM -text -noout -in etc/server/server-cert.pem
+ 
+clientcert:
+	openssl x509 -inform PEM -text -noout -in etc/client/client-cert.pem
+
+
+################################################################
+# Documentation
+################################################################
+
+pdf:		$(PDF)
+
+$(DVI):		$(TEX)
+		$(RUNTEX) $(DOC)
+
+$(PDF):		$(TEX)
+		$(RUNTEX) --pdf $(DOC)
+
+html:		$(TEX)
+		latex2html $(DOC)
+		mv html/index.html $(DOC).html
+		rm -r html
+
+$(TEX):		$(DOCTOTEX)
+
+.doc.tex:
+		$(DOCTOTEX) $*.doc > $*.tex
+.pl.tex:
+		$(PLTOTEX) $*.pl > $*.tex
+
+################################################################
+# Check
+################################################################
+
+check::
+		$(PL) -q -f ssl_test.pl -F none -g test,halt -t 'halt(1)'
+
+################################################################
+# Clean
+################################################################
+
+clean:
+		rm -f $(OBJ) *~ *.o *% a.out core config.log ssl.tex
+		$(RUNTEX) --clean ssl
+
+distclean:	clean
+		rm -f $(TARGETS) config.cache config.h config.status Makefile
+		rm -f $(DOC).aux $(DOC).log $(DOC).out $(DOC).toc
+		rm -rf html
+		rm -rf autom4te.cache

@@ -1,0 +1,2 @@
+rdf(id1, rdf:type, 'http://www.swi.psy.uva.nl/test#test').
+rdf(id1, 'http://www.swi.psy.uva.nl/test#':a, literal([element(b, [], [strong])])).

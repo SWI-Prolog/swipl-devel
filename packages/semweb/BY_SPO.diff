@@ -1,0 +1,126 @@
+? .plrc
+? BY_SPO.diff
+? Keep
+? Makefile
+? autom4te.cache
+? config.h
+? config.log
+Index: rdf_db.c
+===================================================================
+RCS file: /usr/local/cvsroot/pl/packages/semweb/rdf_db.c,v
+retrieving revision 1.32.2.28
+diff -u -w -r1.32.2.28 rdf_db.c
+--- rdf_db.c	14 Sep 2004 11:44:20 -0000	1.32.2.28
++++ rdf_db.c	16 Sep 2004 09:11:46 -0000
+@@ -1016,7 +1016,7 @@
+   table[0] = &by_none;
+   tail[0]  = &by_none_tail;
+ 
+-  for(i=BY_S; i<=BY_OP; i++)
++  for(i=BY_S; i<=BY_SPO; i++)
+   { if ( i == BY_SO )
+       continue;
+ 
+@@ -1122,6 +1122,11 @@
+     case BY_OP:
+       v = predicate_hash(t->predicate->root) ^ object_hash(t);
+       break;
++    case BY_SPO:
++      v = atom_hash(t->subject) ^
++          predicate_hash(t->predicate->root) ^
++	  object_hash(t);
++      break;
+     default:
+       assert(0);
+   }
+@@ -1143,7 +1148,7 @@
+   BY_S,					/* BY_O    = 4 */
+   BY_SO,				/* BY_SO   = 5 */
+   BY_SP,				/* BY_OP   = 6 */
+-  BY_SPO,				/* BY_SPO  = 7 */
++  BY_SP,				/* BY_SPO  = 7 */
+ };
+ 
+ 
+@@ -1174,7 +1179,7 @@
+ link_triple_hash(triple *t)
+ { int i;
+ 
+-  for(i=1; i<=BY_OP; i++)
++  for(i=1; i<=BY_SPO; i++)
+   { if ( table[i] )
+     { int hash = triple_hash(t, i);
+ 
+@@ -2424,10 +2429,7 @@
+   indexed[t->indexed]++;		/* statistics */
+ 
+   switch(t->indexed)
+-  { case BY_SPO:
+-      t->indexed = BY_SP;
+-      break;
+-    case BY_SO:
++  { case BY_SO:
+       t->indexed = BY_S;
+       break;
+   }
+@@ -2630,16 +2632,13 @@
+ using  the  flag  is_duplicate.  The  `principal'  triple  has  a  count
+ `duplicates',  indicating  the  number  of   duplicate  triples  in  the
+ database.
+-
+-It might make sense to  introduce  the   BY_SPO  table  as fully indexed
+-lookups are frequent with the introduction of duplicate detection.
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+ 
+ 
+ static int
+ update_duplicates_add(triple *t)
+ { triple *d;
+-  const int indexed = BY_SP;
++  const int indexed = BY_SPO;
+ 
+   assert(t->is_duplicate == FALSE);
+   assert(t->duplicates == 0);
+@@ -2669,7 +2668,7 @@
+ 
+ static void				/* t is about to be deleted */
+ update_duplicates_del(triple *t)
+-{ const int indexed = BY_SP;
++{ const int indexed = BY_SPO;
+ 
+   duplicates--;
+ 
+@@ -3029,7 +3028,7 @@
+ rdf_update5(term_t subject, term_t predicate, term_t object, term_t src,
+ 	    term_t action)
+ { triple t, *p;
+-  int indexed = BY_SP;
++  int indexed = BY_SPO;
+   int done = 0;
+     
+   memset(&t, 0, sizeof(t));
+@@ -3748,7 +3747,7 @@
+   }
+   by_none = by_none_tail = NULL;
+ 
+-  for(i=BY_S; i<=BY_OP; i++)
++  for(i=BY_S; i<=BY_SPO; i++)
+   { if ( table[i] )
+     { int bytes = sizeof(triple*)*table_size[i];
+       
+Index: rdf_db.h
+===================================================================
+RCS file: /usr/local/cvsroot/pl/packages/semweb/rdf_db.h,v
+retrieving revision 1.8.2.9
+diff -u -w -r1.8.2.9 rdf_db.h
+--- rdf_db.h	14 Sep 2004 11:44:20 -0000	1.8.2.9
++++ rdf_db.h	16 Sep 2004 09:11:46 -0000
+@@ -53,7 +53,7 @@
+ #define BY_OP	(BY_P|BY_O)		/* 6 */
+ #define BY_SPO	(BY_S|BY_P|BY_O)	/* 7 */
+ 
+-#define INDEX_TABLES 		        7
++#define INDEX_TABLES 		        8
+ #define INITIAL_TABLE_SIZE   		8*1024
+ #define INITIAL_PREDICATE_TABLE_SIZE	1024
+ #define INITIAL_SOURCE_TABLE_SIZE	64

@@ -1,0 +1,170 @@
+\libdoc{clp/bounds}{Integer Bounds Constraint Solver}
+
+Author: \emph{Tom Schrijvers}, K.U.Leuven
+
+The bounds solver is a rather simple integer constraint solver, implemented
+with attributed variables. Its syntax is a subset of the SICStus clp(FD)
+syntax.
+% See \secref{sicstus_compat} for more on compatibility with the SICStus
+% clp(FD) solver.
+
+Please note that the \pllib{clp/bounds} library is \emph{not} an
+\jargon{autoload} library and therefore this library must be loaded
+explicitely before using it using:
+
+\begin{code}
+:- use_module(library('clp/bounds')).
+\end{code}
+
+
+\subsection{Constraints}
+%====================
+
+The following constraints are supported:
+
+\begin{description}
+	\infixop{in}{-Var}{+Range}
+		Varibale \arg{Var} is restricted to be in rage \arg{Range}.
+		A range is denoted by \texttt{L..U} where both \arg{L}
+		and \arg{U} are integers.
+	\infixop{in}{-Vars}{+Range}
+		A list of variables \arg{Vars} are restriced to be in range	
+		\arg{Range}.
+	\infixop{#>}{?Expr}{?Expr}
+		The left-hand expression is constrained to be greater than the
+		right-hand expressions.
+	\infixop{#<}{?Expr}{?Expr}
+		The left-hand expression is constrained to be smaller than the
+		right-hand expressions.
+	\infixop{#>=}{?Expr}{?Expr}
+		The left-hand expression is constrained to be greater than
+		or equal to the right-hand expressions.
+	\infixop{#=<}{?Expr}{?Expr}
+		The left-hand expression is constrained to be smaller than
+		or equal to the right-hand expressions.
+	\infixop{#=}{?Expr}{?Expr}
+		The left-hand expression is constrained to be equal to the
+		right-hand expressions.
+	\infixop{#\=}{?Expr}{?Expr}
+		The left-hand expression is constrained to be not equal to
+		the right-hand expressions.
+	\predicate{all_different}{1}{+Vars}
+		All variables in the list \arg{Vars} are constrained to be
+		different.
+	\predicate{label}{1}{+Vars}
+		All variables are assigned a variable that does not
+		violate the constraint on them.
+\end{description}
+
+\noindent Here \arg{Expr} can be one of
+\begin{description}
+	\item [integer]
+	Any integer.
+	\item [variable]
+	A variable.
+	\infixop{+}{?Expr}{?Expr}
+	The sum of two expressions.
+	\infixop{*}{?Expr}{?Expr}
+	The product of two expressions.
+	\infixop{-}{?Expr}{?Expr}
+	The difference of two expressions.
+	\predicate{max}{2}{?Expr,?Expr}
+	The maximum of two expressions.
+	\predicate{min}{2}{?Expr,?Expr}
+	The minimum of two expressions.
+	\infixop{mod}{?Expr}{?Expr}
+	The first expression modulo the second expression.
+	\predicate{abs}{1}{?Expr}
+	The absolute value of an expression.
+\end{description}
+
+\subsection{Constraint Implication and Reified Constraints}
+%===============================
+
+The following constraint implication predicates are available:
+\begin{description}
+	\infixop{#=>}{+P}{+Q}
+		\arg{P} implies \arg{Q}, where \arg{P} and \arg{Q} are reifyable constraints.
+	\infixop{#<=}{+Q}{+P}
+		\arg{P} implies \arg{Q}, where \arg{P} and \arg{Q} are reifyable constraints.
+	\infixop{#<=>}{+P}{+Q}
+		\arg{P} and \arg{Q} are equivalent, where \arg{P} and \arg{Q} are reifyable constraints.
+\end{description}
+
+\noindent
+In addition, instead of being a reifyable constraint, either \arg{P} or
+\arg{Q} can be a boolean variable that is the truth value of the corresponding constraint. 
+
+\noindent
+The following constraints are reifyable: \predref{#=}{2},
+\predref{#\=}{2}, \predref{#<}{2}, \predref{#>}{2}, \predref{#=<}{2},
+\predref{#>}{2}.
+
+For example, to count the number of occurrences of a particular value in a list of constraint variables:
+\begin{itemlist}
+	\item [Using constraint implication]
+
+\begin{code}
+occurrences(List,Value,Count) :-
+	occurrences(List,Value,0,Count).
+
+occurrences([],_,Count,Count).
+occurrences([X|Xs],Value,Acc,Count) :-
+	X #= Value  #=> NAcc #= Acc + 1,
+	X #\= Value #=> NAcc #= Acc,
+	occurrences(Xs,Value,NAcc,Count).
+\end{code}
+	\item [Using reified constraints]
+
+\begin{code}
+occurrences(List,Value,Count) :-
+	occurrences(List,Value,0,Count).
+
+occurrences([],_,Count,Count).
+occurrences([X|Xs],Value,Acc,Count) :-
+	X #= Value #=> B,
+	NAcc #= Acc + B,
+	occurrences(Xs,Value,NAcc,Count).
+\end{code}
+
+\end{itemlist}
+
+
+\subsection{Example}			%\label{sec:example}
+%================
+
+The following is an implementation of the classic alphametics
+puzzle SEND + MORE = MONEY:
+
+\begin{code}
+:- use_module(library('clp/bounds')).
+
+send([[S,E,N,D], [M,O,R,E], [M,O,N,E,Y]])  :-
+              Digits   =  [S,E,N,D,M,O,R,Y],
+              Carries  =  [C1,C2,C3,C4],
+              Digits  in  0..9,
+              Carries in  0..1,
+
+              M                #=              C4,
+              O  +  10  *  C4  #=  M  +  S  +  C3,
+              N  +  10  *  C3  #=  O  +  E  +  C2,
+              E  +  10  *  C2  #=  R  +  N  +  C1,
+              Y  +  10  *  C1  #=  E  +  D,
+
+              M  #>=  1,
+              S  #>=  1,
+              all_different(Digits),
+              label(Digits).
+\end{code}
+
+\subsection{SICStus clp(FD) compatibility}	%\label{sec:sicstus_compat}
+%======================================
+
+Apart from the limited syntax, the bounds solver differs in the following
+ways from the SICStus clp(FD) solver:
+
+\begin{itemlist}
+	\item [\texttt{inf} and \texttt{sup}]
+	The smallest lowerbound and greatest upperbound in bounds are
+	\texttt{max_integer} and \texttt{min_integer + 1}.
+\end{itemlist}

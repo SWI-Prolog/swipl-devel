@@ -1,0 +1,34 @@
+/* XPM */
+static char * noimg_xpm[] = {
+/* width height num_colors chars_per_pixel */
+"16 16 12 1",
+/* colors */
+" 	c None",
+".	c black",
+"X	c #808080",
+"o	c white",
+"O	c #c0c0c0",
+"+	c #008000",
+"@	c green",
+"#	c blue",
+"$	c red",
+"%	c cyan",
+"&	c magenta",
+"*	c navy",
+/* pixels */
+" ..........X    ",
+" .oooooooooXX   ",
+" .oOOOOOOOOXoX  ",
+" .oOOO++OOOXooX ",
+" .oOO+@+.OO.... ",
+" .oOO+++.OOOOo. ",
+" .oOOO..OOOOOo. ",
+" .oOOOOOO###.oo ",
+" .oO$OOOO#%#.oo ",
+" .oO&$OOO##*ooo ",
+" .oO&&$OO..ooo. ",
+" .oO&&&$OoooOo. ",
+" .oO...oooooOo. ",
+" .oOOoooooOOOo. ",
+" .oooooooooooo. ",
+" ..oooooo...... "};

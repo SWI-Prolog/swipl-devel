@@ -1,0 +1,37 @@
+			SWI-Prolog manual sources
+
+
+This directory contains the sources to  the SWI-Prolog manual. From this
+source we create PDF, HTML and the   plain  text online manual available
+through the help/1 and apropos/1 commands.
+
+The *.doc files form the input. The  program doc2tex converts these into
+plain LaTeX files. It is responsible   for  handling characters that are
+difficult to handle in LaTeX, such as \  and to make references for such
+constructs like member/2.
+
+The style file pl.sty ensures _ (underscore) can be used without special
+precautions outside math mode.  Do NOT write expand\_file/2, but simply
+expand_file/2.
+
+
+Handling weird characters
+-------------------------
+
+Predicate names that cannot be handled by   TeX  due to weird characters
+are translated by doc2tex if they appear  as plan LaTeX argument. We use
+the URL quoting mechanism for this, producing  sequences that can be use
+in any TeX environment (unlike \verb). The sequences are named \S<name>.
+If you add such a sequence you must:
+
+	* Add it to doc2tex
+	* Add it to pl.sty
+	* Add it to ../packages/ltx2htm/pl.cmd
+	* Add it to ../packages/ltx2htm/pl.pl
+	* Run "make install" in ../packages/ltx2html
+
+Summaries
+---------
+
+For each described predicate  there  MUST  be   an  entry  in  the  file
+summary.doc. Note that the content of this file is ordered alphabetical.

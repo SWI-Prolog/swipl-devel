@@ -1,0 +1,261 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog SSL Interface</TITLE>
+</HEAD>
+<BODY BGCOLOR="white"> 
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<CENTER>
+
+<H1>SWI-Prolog SSL Interface</H1>
+
+</CENTER>
+<HR>
+<CENTER>
+<I>Jan van der Steen <BR>
+<A HREF="http://www.diff.nl">Diff Automatisering v.o.f</A> 
+
+<P>Jan Wielemaker <BR>
+SWI, University of Amsterdam <BR>
+The Netherlands <BR>
+E-mail: <A HREF="mailto:jan@swi-prolog.org">jan@swi-prolog.org</A></I>
+</CENTER>
+<HR>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+<CENTER><H3>Abstract</H3></Center>
+<TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>
+This document describes the SWI-Prolog SSL library, a set of predicates 
+which provides secure sockets to Prolog applications, for example to run 
+a secure HTTPS server, or access websites using the <CODE>https</CODE> 
+protocol. It can also be used to provide authentication and secure data 
+exchange between Prolog processes over the network.
+</TABLE>
+
+<H1><A NAME="document-contents">Table of Contents</A></H1>
+
+<UL>
+<LI><A HREF="#sec:1"><B>1 Introduction</B></A>
+<LI><A HREF="#sec:2"><B>2 About SSL</B></A>
+<LI><A HREF="#sec:3"><B>3 Overview of the Prolog API</B></A>
+<LI><A HREF="#sec:4"><B>4 Example code</B></A>
+<LI><A HREF="#sec:5"><B>5 Installation</B></A>
+<LI><A HREF="#sec:6"><B>6 Acknowledgments</B></A>
+</UL>
+
+<H2><A NAME="sec:1">1 Introduction</A></H2>
+
+<P>Raw TCP/IP networking is dangerous for two reasons. It is hard to 
+tell whether the body you think you are talking to is indeed the right 
+one and anyone with access to a subnet through which your data flows can 
+`tap' the wire and listen for sensitive information such as passwords, 
+creditcard numbers, etc. Secure Socket Layer (SSL) deals with both 
+problems. It uses certificates to establish the identity of the peer and 
+encryption to make it useless to tap into the wire. SSL allows agents to 
+talk in private and create secure web services.
+
+<P>The SWI-Prolog <CODE>library(ssl)</CODE> library provides an API very 
+similar to
+<CODE>library(socket)</CODE> for raw TCP/IP connections that provides 
+SSL server and client sockets.
+
+<H2><A NAME="sec:2">2 About SSL</A></H2>
+
+<P>The SWI-Prolog SSL interface is built on top of the
+<A HREF="http://www.openssl.org/">OpenSSL</A> library. This library is 
+commonly provided as a standard package in many Linux distributions. The 
+MS-Windows version is built using a binary distribution available from
+<A HREF="http://www.slproweb.com/products/Win32OpenSSL.html">http://www.slproweb.com/products/Win32OpenSSL.html</A>.
+
+<P>A good introduction on key- and certificate handling for OpenSSL can 
+be found at <A HREF="http://www.tldp.org/HOWTO/SSL-Certificates-HOWTO/">http://www.tldp.org/HOWTO/SSL-Certificates-HOWTO/</A>
+
+<H2><A NAME="sec:3">3 Overview of the Prolog API</A></H2>
+
+<P>An SSL server and client can be built with the following (abstracted) 
+predicate calls:
+
+<P>
+<CENTER>
+<TABLE BORDER=2 FRAME=box RULES=groups>
+<TR VALIGN=top><TD>SSL server</TD><TD>SSL client </TD></TR>
+<TBODY>
+<TR VALIGN=top><TD><A NAME="idx:sslinit3:1"></A><A HREF="#ssl_init/3">ssl_init/3</A> </TD><TD><A NAME="idx:sslinit3:2"></A><A HREF="#ssl_init/3">ssl_init/3</A> </TD></TR>
+<TR VALIGN=top><TD><A NAME="idx:sslaccept3:3"></A><A HREF="#ssl_accept/3">ssl_accept/3</A> </TD></TR>
+<TR VALIGN=top><TD><A NAME="idx:sslopen4:4"></A><A HREF="#ssl_open/4">ssl_open/4</A> </TD><TD><A NAME="idx:sslopen3:5"></A><A HREF="#ssl_open/3">ssl_open/3</A> </TD></TR>
+<TR VALIGN=top><TD>...</TD><TD>...</TD></TR>
+<TR VALIGN=top><TD><A NAME="idx:sslexit1:6"></A><A HREF="#ssl_exit/1">ssl_exit/1</A> </TD><TD><A NAME="idx:sslexit1:7"></A><A HREF="#ssl_exit/1">ssl_exit/1</A> </TD></TR>
+</TABLE>
+
+</CENTER>
+
+<P>What follows is a description of each of these functions and the 
+arguments they accept.
+
+<DL>
+
+<P>
+<DT><A NAME="ssl_init/3"><STRONG>ssl_init</STRONG>(<VAR>-SSL, +Server, 
++Options</VAR>)</A><DD>
+Server with legal values <CODE>server</CODE> or <CODE>client</CODE> 
+denotes whether the SSL socket will have a server or client role in the 
+established connection. With <VAR>Options</VAR> various properties of 
+the TCP/IP + SSL connection can be defined, some of which required, some 
+optional. An overview is given below. The handle of the connection is 
+returned in <VAR>SSL</VAR>.
+
+<P>Below is an overview of the <VAR>Options</VAR> argument. Some options 
+are only required by the client (C), some are required by the server 
+(marked S), some by both server as client (marked CS).
+
+<DL>
+
+<P>
+<DT><STRONG>host</STRONG>(<VAR>+HostName</VAR>)<DD>
+[C] The host to connect to by the client or identified by the server. 
+Both IP addresses and hostnames can be supplied here. This option is 
+required for the client and optionally for the server.
+
+<P>
+<DT><STRONG>port</STRONG>(<VAR>+Integer</VAR>)<DD>
+[CS] The port to connect or listen to. This option is required since no 
+default port can sensibly be defined for an abstract layer. The 
+webserver <EM>https</EM> protocol uses port 443.
+
+<P>
+<DT><STRONG>certificate_file</STRONG>(<VAR>+FileName</VAR>)<DD>
+[S] Specify where the certificate file can be found. This can be the 
+same as the key file (see next option).
+
+<P>
+<DT><STRONG>key_file</STRONG>(<VAR>+FileName</VAR>)<DD>
+[S] Specify where the private key can be found. This can be the same as 
+the certificate file.
+
+<P>
+<DT><STRONG>password</STRONG>(<VAR>+Text</VAR>)<DD>
+Specify the password the private key is protected with (if any). If you 
+do not want to store the password you can also specify an application 
+defined handler to return the password (see next option).
+
+<P>
+<DT><STRONG>pem_password_hook</STRONG>(<VAR>:PredicateName</VAR>)<DD>
+In case a password is required to access the private key the supplied 
+function will be called to fetch it. The function has the following 
+prototype: <CODE>function(+SSL, -Password)</CODE>
+
+<P>
+<DT><STRONG>cacert_file</STRONG>(<VAR>+FileName</VAR>)<DD>
+Specify a file containing certificate keys which will thus automatically 
+be verified as trusted. You can also install an application defined 
+handler to verify certificates (see next option).
+
+<P>
+<DT><STRONG>cert_verify_hook</STRONG>(<VAR>:PredicateName</VAR>)<DD>
+In case a certificate cannot be verified or has some properties which 
+makes it invalid (invalid validity date for example) the supplied 
+function will be called to ask its opinion about the certificate. The 
+predicate is called as follows:
+<CODE>function(+SSL, +Certificate, +Error)</CODE>. Access will be 
+granted iff the predicate succeeds.
+
+<P>
+<DT><STRONG>cert</STRONG>(<VAR>+Boolean</VAR>)<DD>
+Trigger the sending of our certificate as specified using the option <CODE>certificate_file</CODE> 
+described earlier. For a server this option is automatically turned on.
+
+<P>
+<DT><STRONG>peer_cert</STRONG>(<VAR>+Boolean</VAR>)<DD>
+Trigger the request of our peer's certificate while establishing the SSL 
+layer. This option is automatically turned on in a client SSL socket.
+</DL>
+
+<P>
+<DT><A NAME="ssl_accept/3"><STRONG>ssl_accept</STRONG>(<VAR>+SSL, 
+-Socket, -Peer</VAR>)</A><DD>
+This predicate is used in the server to accept new connections.
+<VAR>Socket</VAR> is unified to a socket that must be passed to <A NAME="idx:sslopen4:8"></A><A HREF="#ssl_open/4">ssl_open/4</A> 
+and <VAR>Peer</VAR> is unified with a term ip/4 denoting the IP address 
+of the peer. The format is compatible to the format used by the TCP/IP 
+library <CODE>socket.pl</CODE> provided by the clib package.
+
+<P>
+<DT><A NAME="ssl_open/4"><STRONG>ssl_open</STRONG>(<VAR>+SSL, +Socket, 
+-In, -Out</VAR>)</A><DD>
+Server side. Attach a Prolog input and output stream to the socket. The
+<VAR>Socket</VAR> is automatically closed after both streams are closed. 
+Please note that the output stream is fully buffered and therefore
+<A NAME="idx:flushoutput1:9"></A><B>flush_output/1</B> is required to 
+actually send the data to the peer.
+
+<P>
+<DT><A NAME="ssl_open/3"><STRONG>ssl_open</STRONG>(<VAR>+SSL, -In, -Out</VAR>)</A><DD>
+Client side. Establish the connection based on the data passed to
+<A NAME="idx:sslinit3:10"></A><A HREF="#ssl_init/3">ssl_init/3</A> and 
+create the Prolog I/O streams.
+
+<P>
+<DT><A NAME="ssl_exit/1"><STRONG>ssl_exit</STRONG>(<VAR>+SSL</VAR>)</A><DD>
+Clean up all resources related to the SSL + TCP/IP socket layers.
+</DL>
+
+<H2><A NAME="sec:4">4 Example code</A></H2>
+
+<P>Examples of a simple server and client as well as a simple HTTPS 
+server can be found in the example directory which is located in
+<CODE>doc/packages/examples/ssl</CODE> relative to the SWI-Prolog 
+installation directory. The <CODE>etc</CODE> directory contains example 
+certificate files as well as a <CODE>README</CODE> on the creation of 
+certificates using OpenSSL tools.
+
+<H2><A NAME="sec:5">5 Installation</A></H2>
+
+<P>The OpenSSL libraries are <EM>not</EM> part of the SWI-Prolog 
+distribution and on systems using packagers with dependency checking, 
+dependency on OpenSSL is deliberatly avoided. This implies that OpenSSL 
+must be installed seperatly before using SSL with a binary distribution 
+of SWI-Prolog. Most modern Linux distributions have an SSL package. An 
+installer for MS-Windows is available from
+<A HREF="http://www.slproweb.com/products/Win32OpenSSL.html">http://www.slproweb.com/products/Win32OpenSSL.html</A> 
+The SWI-Prolog SSL interface is currently built using OpenSSL 0.97b.
+
+<P>When installing from the source, the package configuration 
+automatically builds the ssl library if a suitable OpenSSL 
+implementation is found. On Windows systems, OpenSSL must be installed 
+prior to building SWI-Prolog and <CODE>rules.mk</CODE> must be edited to 
+reflect the position of the header and libraries if they are not in the 
+standard search path.
+
+<H2><A NAME="sec:6">6 Acknowledgments</A></H2>
+
+<P>The development of the SWI-Prolog SSL interface has been sponsored by
+<A HREF="http://www.sss.co.nz">Scientific Software and Systems Limited</A>.
+
+<H1><A NAME="document-index">Index</A></H1>
+
+<DL>
+
+<P>
+<DT><STRONG>F</STRONG><DD>
+<DT>flush_output/1<DD>
+<A HREF="#idx:flushoutput1:9">3</A>
+<DT><STRONG>S</STRONG><DD>
+<DT><A HREF="#ssl_accept/3">ssl_accept/3</A><DD>
+<A HREF="#idx:sslaccept3:3">3</A>
+<DT><A HREF="#ssl_exit/1">ssl_exit/1</A><DD>
+<A HREF="#idx:sslexit1:6">3</A> <A HREF="#idx:sslexit1:7">3</A>
+<DT><A HREF="#ssl_init/3">ssl_init/3</A><DD>
+<A HREF="#idx:sslinit3:1">3</A> <A HREF="#idx:sslinit3:2">3</A> <A HREF="#idx:sslinit3:10">3</A>
+<DT><A HREF="#ssl_open/3">ssl_open/3</A><DD>
+<A HREF="#idx:sslopen3:5">3</A>
+<DT><A HREF="#ssl_open/4">ssl_open/4</A><DD>
+<A HREF="#idx:sslopen4:4">3</A> <A HREF="#idx:sslopen4:8">3</A>
+</DL>
+
+</BODY></HTML>

@@ -1,0 +1,31 @@
+
+[ ca ]
+default_ca        = CA_default             # The default ca section
+
+[ CA_default ]
+
+dir               = ./demoCA               # top dir
+database          = $dir/index.txt         # index file.
+new_certs_dir     = $dir/newcerts          # new certs dir
+
+certificate       = $dir/cacert.pem        # The CA cert
+serial            = $dir/serial            # serial no file
+private_key       = $dir/private/cakey.pem # CA private key
+# RANDFILE        = $dir/private/.rand     # random number file
+
+default_days      = 365                    # how long to certify for
+default_startdate = 040701000000+0100      # when does cert become valid
+default_enddate   = 050701000000+0100      # when does cert become invalid
+default_crl_days  = 30                     # how long before next CRL
+default_md        = md5                    # md to use
+
+policy            = policy_any             # default policy
+
+[ policy_any ]
+countryName            = supplied
+stateOrProvinceName    = optional
+organizationName       = supplied
+organizationalUnitName = supplied
+commonName             = supplied
+emailAddress           = supplied
+

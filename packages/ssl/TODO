@@ -1,0 +1,11 @@
+* Check out BIO_new() and change X509_NAME_oneline() to X509_NAME_print_ex()
+  or change it to X509_NAME_print_ex_fp()
++ Get rid of get_peer_cert
++ Callback handler for cert_verify
++ name resolving
+
+Windows environment
+
+1. OpenSSL in rules.mk analoog aan PTHREADLIBDIR?
+2. ssl4pl analoog aan socket.dll?
+3. ssl package directory met proloog server/client tests en ssl.pl?

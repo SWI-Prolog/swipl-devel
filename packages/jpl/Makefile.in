@@ -1,0 +1,196 @@
+################################################################
+# @configure_input@
+#
+# Build JPL.  Building JPL for Unix currently relies on the following
+# assumptions:
+#
+#	* $JAVA_HOME points to the JDK top directory
+#	* $PATH includes $JAVA_HOME/bin
+#	* ELF Dynamic Linker semantics
+#
+# Author: Jan Wielemaker, based on shell-scripts from Paul Singleton.
+################################################################
+
+.SUFFIXES: .tex .dvi .doc .pl
+
+PL=@PL@
+PLBASE=@PLBASE@
+PLARCH=@PLARCH@
+PLINCL=@PLINCL@
+PKGDOC=$(PLBASE)/doc/packages
+EXDIR=$(PKGDOC)/examples/jpl
+PCEHOME=../xpce
+
+CC=@CC@
+COFLAGS=@COFLAGS@
+CWFLAGS=@CWFLAGS@
+CMFLAGS=@CMFLAGS@
+CIFLAGS=@CIFLAGS@
+CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
+LIBS=@LIBS@
+NETLIBS=@NETLIBS@
+
+JAVA_HOME=@JAVA_HOME@
+JAVAC=@JAVAC@
+
+DOCTOTEX=$(PCEHOME)/bin/doc2tex
+PLTOTEX=$(PCEHOME)/bin/pl2tex
+DOC=jpl
+TEX=$(DOC).tex
+DVI=$(DOC).dvi
+PDF=$(DOC).pdf
+RUNTEX=../../man/runtex
+
+LD=@LD@
+LDFLAGS=@LDSOFLAGS@
+
+INSTALL=@INSTALL@
+INSTALL_PROGRAM=@INSTALL_PROGRAM@
+INSTALL_DATA=@INSTALL_DATA@
+INSTALL_SCRIPT=@INSTALL_SCRIPT@
+
+LIBPL=		jpl.pl
+TARGETS=	libjpl.@SO@
+OBJ=		src/c/jpl.o
+
+all:		$(TARGETS)
+		(cd src/java && $(MAKE) all)
+
+libjpl.@SO@:	$(OBJ)
+		$(LD) $(LDFLAGS) -o $@ $(OBJ) -ljava -lverify -ljvm
+
+################################################################
+# Verify the package
+################################################################
+
+check::		TestJPL.class
+		$(PL) -q -f check.pl -g test,halt -t 'halt(1)'
+
+TestJPL.class:	TestJPL.java
+		$(JAVAC) -classpath jpl.jar TestJPL.java
+
+################################################################
+# Installation
+################################################################
+
+DOCDIRS=	. ./java_api ./java_api/javadoc ./java_api/javadoc/jpl \
+		./java_api/javadoc/jpl/class-use \
+		./java_api/javadoc/jpl/fli \
+		./java_api/javadoc/jpl/fli/class-use \
+		./java_api/javadoc/resources \
+		./prolog_api \
+		./prolog_api/overview
+DOCFILES=	$(shell cd ./docs && find . -name '*.html' -o -name '*.gif' -o -name '*.jpg')
+
+EXPL=		$(EXDIR)/prolog
+EXPLS=		jpl_colour_choose_demo.pl \
+		jpl_jlist_demo.pl \
+		jpl_midi_demo.pl \
+		jpl_table_demo.pl \
+		jpl_text_entry_demo.pl \
+		jpl_versions_demo.pl
+EXJAVA=		$(EXDIR)/java
+EXJAVAS=	Exceptions Exceptions2 Family FamilyMT Test Test2 Time \
+		Versions Zahed SemWeb
+
+
+install:	$(TARGETS) $(LIBPL)
+		mkdir -p $(PLBASE)/lib/$(PLARCH)
+		for f in $(TARGETS); do \
+		  $(INSTALL_PROGRAM) $$f $(PLBASE)/lib/$(PLARCH); \
+		done
+		mkdir -p $(PLBASE)/library
+		for f in $(LIBPL); do \
+		  $(INSTALL_DATA) -m 644 $$f $(PLBASE)/library; \
+		done
+		$(INSTALL_DATA) jpl.jar $(PLBASE)/lib
+		$(PL) -f none -g make -t halt
+
+rpm-install:	install html-install
+
+html-install::	expl-install exjava-install
+		mkdir -p $(PKGDOC)/jpl
+		@echo -n "Creating directories "
+		@for d in $(DOCDIRS); do \
+		    mkdir -p $(PKGDOC)/jpl/$$d; echo -n .; \
+		done
+		@echo "ok"
+		@echo -n "Copying documentation files "
+		@for f in $(DOCFILES); do \
+		    $(INSTALL_DATA) docs/$$f $(PKGDOC)/jpl/$$f; echo -n .; \
+		done
+		@echo "ok"
+
+expl-install::
+		echo "Installing Prolog examples"
+		mkdir -p $(EXPL)
+		@for f in $(EXPLS) README; do \
+		    $(INSTALL_DATA) examples/prolog/$$f $(EXPL)/$$f; \
+		done
+
+exjava-install::
+		echo "Installing Java examples"
+		mkdir -p $(EXJAVA)
+		$(INSTALL_DATA) examples/java/README $(EXJAVA)
+		$(INSTALL_DATA) examples/java/env.sh $(EXJAVA)
+		for d in $(EXJAVAS); do \
+		    mkdir -p $(EXJAVA)/$$d; \
+		    $(INSTALL_SCRIPT) examples/java/$$d/run.sh $(EXJAVA)/$$d ;\
+		    $(INSTALL_DATA) examples/java/$$d/README $(EXJAVA)/$$d ;\
+		    $(INSTALL_DATA) examples/java/$$d/$$d.java $(EXJAVA)/$$d ;\
+		    plfile=`echo $$d.pl | tr A-Z a-z`; \
+		    if [ -f examples/java/$$d/$$plfile ]; then \
+			$(INSTALL_DATA) examples/java/$$d/$$plfile $(EXJAVA)/$$d ;\
+		    fi; \
+		    (cd $(EXJAVA)/$$d && env JPL_COMPILE_ONLY=yes ./run.sh); \
+		done
+		$(INSTALL_DATA) examples/java/SemWeb/test.rdf $(EXJAVA)/SemWeb
+
+pdf-install::
+		mkdir -p $(PKGDOC)
+		$(INSTALL) -m 644 $(DOC).pdf $(PKGDOC)
+
+uninstall::
+		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))
+		(cd $(PLBASE)/library && rm -f $(LIBPL))
+		$(PL) -f none -g make -t halt
+
+################################################################
+# Documentation
+################################################################
+
+pdf:		$(PDF)
+
+$(DVI):		$(TEX)
+		$(RUNTEX) $(DOC)
+
+$(PDF):		$(TEX)
+		$(RUNTEX) --pdf $(DOC)
+
+html:		$(TEX)
+		latex2html $(DOC)
+		mv html/index.html $(DOC).html
+		rm -r html
+
+$(TEX):		$(DOCTOTEX)
+
+.doc.tex:
+		$(DOCTOTEX) $*.doc > $*.tex
+.pl.tex:
+		$(PLTOTEX) $*.pl > $*.tex
+
+################################################################
+# Clean
+################################################################
+
+clean:
+		rm -f $(OBJ) *~ *.o *% a.out core config.log
+		rm -f TestJPL.class
+		(cd src/java && $(MAKE) clean)
+
+distclean:	clean
+		rm -rf autom4te.cache
+		rm -f $(TARGETS) config.cache config.h config.status Makefile
+		rm -f $(DOC).aux $(DOC).log $(DOC).out $(DOC).toc
+		rm -rf html
+

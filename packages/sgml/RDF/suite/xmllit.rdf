@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<!DOCTYPE rdf [
+  <!ENTITY rdf  "http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <!ENTITY xsd  "http://www.w3.org/2000/10/XMLSchema#">
+  <!ENTITY t    "http://www.swi.psy.uva.nl/test#">
+]>
+
+<rdf:RDF
+  xmlns:rdf ="&rdf;"
+  xmlns:xsd ="&xsd;"
+  xmlns:t="&t;"
+>
+
+<t:test rdf:ID="id1">
+    <t:a rdf:parseType="Literal"><b>strong</b></t:a>
+</t:test>
+
+</rdf:RDF>

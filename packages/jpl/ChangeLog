@@ -1,0 +1,35 @@
+May 27, 2004
+
+  * CLEANUP: Made Test2 example stand-alone rather than relying on things
+    wired into jpl.jar and jpl.pl (removed support from there).
+
+May 26, 2004
+
+  * ADDED: examples/java/SemWeb: Using the SWI-Prolog semantic web library
+    (rdf_db.pl) from Java.
+
+May 25, 2004
+
+  * ENHANCED: Also use the default engine.  This means no engines are created
+    if they are not needed.
+
+  * ENHANCED: Initially only make a single engine.  Make upto 10 as they
+    are needed.  (JW)
+
+May 24, 2004
+
+  * ADDED: Initial test suite (check.pl) (JW)
+
+May 14, 2004
+
+  * JW: Added Makefile for jpl.jar
+  * jpl.c: changed Sprintf() to DEBUG(level, Sdprintf())
+  * exceptions: generate error(java_exception(Ex), ClassName).  Provide
+    hook for normal readable error messages.
+
+May 12, 2004
+ 
+  * JW: Removed jpl_demo/0
+  * JW: Included library(lists) and removed list predicates
+  * JW: Cleanup of is_pairs/1 and is_pair/1.
+  

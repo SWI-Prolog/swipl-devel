@@ -1,0 +1,95 @@
+Jul 28, 2004
+
+  * TS: Updated hashtable stores. They now start small and expand.
+
+Jul 19, 2004
+
+  * JW: Removed chr_pp: module prefixes
+  * JW: Updated Windows makefile.mak (more similar organisation, added check)
+
+Jul 17, 2004
+
+  * TS: Added chr_hashtable_store library.
+  * TS: Added find library.
+  * TS: Added builtins library.
+  * TS: Added clean_code library.
+  * TS: Added binomial_heap library.
+  * TS: Added a_star library.
+  * TS: Added new intermediate bootstrapping step
+  * TS: Synchronized CHR compiler with most recent development version
+
+  Summary of changes:
+
+   "The new version of the compiler contains several new optimizations, both
+    fully automatic, such as the antimonotny-based delay avoidance (see
+    http://www.cs.kuleuven.ac.be/publicaties/rapporten/cw/CW385.abs.html for
+    the technical report), and enabled by mode declarations (see CHR
+    documentation), such as hashtable-based constraint indexes."
+
+Apr 9, 2004
+
+  * JW: Added chr_messages.pl.  Make all debug messages use the print_message/2
+    interface to enable future embedding.
+
+Apr 7, 2004
+
+  * JW: Added chr:debug_interact/3 hook.  Defined in chr_swi.pl to void
+    showing constraints first as goal and then as CHR call.
+  * JW: Added chr:debug_event/2 hook.  Defined in chr_swi.pl to make the
+    CHR debugger honour a skip command from the Prolog tracer.
+
+Apr 6, 2004
+
+  * JW: Added b (break) to the CHR debugger.
+  * TS: added chr_expandable/2 clause for pragma/2
+
+Apr 5, 2004
+
+  * JW: fixed reference to format_rule/2.
+  * JW: Use select/3 rather than delete/3 in diff/2 in Tests/zebra.pl
+  * TS: CHR translation now leaves CHR store empty
+
+Apr 4, 2004
+
+  * JW: added :- use_module(library(chr)) to all examples.
+  * JW: mapped -O --> option(optimize, full).
+  * JW: introduced file-search-path `chr' for clarity and to enable running
+    make check from the local environment instead of the public installation.
+  * JW: mapped prolog flag generate_debug_info --> option(debug, on)
+  * JW: Replaced the chr -> pl step with term_expansion/2.
+  * JW: Moved insert_declarations/2 to chr_swi.pl
+
+Apr 2, 2004
+
+  * JW: fixed Undefined procedure: chr_runtime:run_suspensions_loop_d/1
+  * TS: Added <space> for creep and shortened debug line prefix to CHR:
+
+Mar 29, 2004
+
+  * JW: Use \+ \+ in chr_compile/3 to undo changes to the constraint
+    pool.  Regression test suite using "make check" works again.
+
+Mar 25, 2004
+
+  * TS: Added skip and ancestor debug commands
+
+Mar 24, 2004
+
+  * TS: Added bootstrapping process for CHR compiler using CHR.
+  * TS: CHR compiler now uses CHR.
+  * TS: Fixed bug in compilation of multi-headed simpagation rules.
+  * TS: Cleaned up compiler.
+  * TS: Added analysis + optimization for never attached constraints.
+  * TS: Exploit uniqueness (functional dependency) results to detect
+    set semantics type simpagation rules where one rule can be passive
+  * TS: Compiler generates 'chr debug_event'/1 calls
+  * TS: Rudimentary support for debugging.
+    option(debug,on) causes a trace of CHR events to be printed
+
+Mar 15, 2004
+
+  * JW: Fix operator handling.
+
+Mar 3, 2004
+
+  * JW: Integrated new version from Tom Schrijvers.

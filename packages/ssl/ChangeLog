@@ -1,0 +1,24 @@
+Jun 29, 2004
+
+  * MODIFIED: use true/false for boolean options.
+
+Jun 28, 2004
+
+  * FIXED: (JW) release of config structure
+
+  * FIXED: (JW) Order of closing connection.
+
+  * FIXED: (JW) pass length for certificate in callback.
+
+  * ADDED: (JW) https.pl demoing a simple HTTPS server
+
+Jun 24, 2004
+ 
+  * MODIFIED: Role of SSL and sockets.  The primary socket of a server
+    or client is kept in the SSL structure.
+
+  * FIXED: close socket on ssl_exit/1 on server site.
+
+  * ADDED: ssl_thread_setup() to allow for multi-threaded apps.
+
+  * Started

@@ -1,0 +1,38 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Sieve of eratosthenes to compute primes
+%% thom fruehwirth 920218-20, 980311
+%% christian holzbaur 980207 for Sicstus CHR
+%%
+%% ported to hProlog by Tom Schrijvers 
+
+:- module(primes,[primes/0]).
+:- use_module(library(chr)).
+
+:- constraints candidate/1.
+:- constraints prime/1.
+:- constraints cleanup/1.
+
+candidate(1) <=> true.
+candidate(N) <=> prime(N), N1 is N - 1, candidate(N1).
+
+absorb @ prime(Y) \ prime(X) <=> 0 =:= X mod Y | true.
+
+cleanup(_L), candidate(_X) <=> fail.
+cleanup(L), prime(N) <=> L = [N|T], cleanup(T).
+cleanup(L) <=> L = [].
+
+primes :-
+	candidate(100),
+	cleanup(L),
+	sort(L,SL),
+	SL == [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97].
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,309 @@
+\chapter{Special Variables and Coroutining}
+
+This chapter deals with extensions primarily designed to support
+constraint logic programming (CLP).
+
+
+\section{Attributed variables} 			\label{sec:attvar}
+
+\jargon{Attributed variables} provide a technique for extending the
+Prolog unification algorithm \cite{holzbaur:1992} by hooking the binding
+of attributed variables. There is little consensus in the Prolog
+community on the exact definition and interface to attributed variables.
+The SWI-Prolog interface is identical to the one realised by Bart Demoen
+for hProlog \cite{Demoen:CW350}.
+
+Binding an attributed variable schedules a goal to be executed at the
+first possible opportunity. In the current implementation the hooks are
+executed immediately after a successful unification of the clause-head
+or successful completion of a foreign language (builtin) predicate. Each
+attribute is associated to a module and the hook (attr_unify_hook/2) is
+executed in this module.  The example below realises a very simple and
+incomplete finite domain reasoner.
+
+\begin{code}
+:- module(domain,
+	  [ domain/2			% Var, ?Domain
+	  ]).
+:- use_module(library(oset)).
+
+domain(X, Dom) :-
+	var(Dom), !,
+	get_attr(X, domain, Dom).
+domain(X, List) :-
+	sort(List, Domain),
+	put_attr(Y, domain, Domain),
+	X = Y.
+
+%	An attributed variable with attribute value Domain has been
+%	assigned the value Y
+
+attr_unify_hook(Domain, Y) :-
+	(   get_attr(Y, domain, Dom2)
+	->  oset_int(Domain, Dom2, NewDomain),
+	    (   NewDomain == []
+	    ->	fail
+	    ;	NewDomain = [Value]
+	    ->	Y = Value
+	    ;	put_attr(Y, domain, NewDomain)
+	    )
+	;   var(Y)
+	->  put_attr( Y, domain, Domain )
+	;   memberchk(Y, Domain)
+	).
+\end{code}
+
+
+Before explaining the code we give some example queries:
+
+\begin{tabular}{ll}
+\tt ?- domain(X, [a,b]), X = c		     & no \\
+\tt ?- domain(X, [a,b]), domain(X, [a,c]).   & X = a \\
+\tt ?- domain(X, [a,b,c]), domain(X, [a,c]). & X = _G492{att(domain, [a, c], [])} \\
+\end{tabular}
+
+The predicate \predref{domain}{2} fetches (first clause) or assigns
+(second clause) the variable a \emph{domain}, a set of values it can
+be unified with.  In the second clause first associates the domain
+with a fresh variable and then unifies X to this variable to deal
+with the possibility that X already has a domain. The
+predicate attr_unify_hook/2 is hook called after a variable with
+a domain is assigned a value.  In the simple case where the variable
+is bound to a concrete value we simply check this value is in the
+domain.  Otherwise we take the intersection of the domains and either
+fail if the intersection is empty (first example), simply assign the
+value if there is only one value in the intersection (second example) or
+assign the intersection as the new domain of the variable (third
+example).
+
+
+\begin{description}
+    \predicate{attvar}{1}{{@}Term}
+Succeeds if \arg{Term} is an attributed variable. Note that var/1 also
+succeeds on attributed variables.  Attributed variables are created with
+put_attr/3.
+
+    \predicate{put_attr}{3}{+Var, +Module, +Value}
+If \arg{Var} is a variable or attributed variable, set the value for the
+attribute named \arg{Module} to \arg{Value}. If an attribute with this
+name is already associated with \var{Var}, the old value is replaced.
+Backtracking will restore the old value (i.e.\ an attribute is a mutable
+term. See also set_arg/3). This predicate raises a type error if
+\arg{Var} is not a variable or \arg{Module} is not an atom.
+
+    \predicate{get_attr}{3}{+Var, +Module, -Value}
+Request the current \arg{value} for the attribute named \arg{Module}.  If
+\arg{Var} is not an attributed variable or the named attribute is not
+associated to \arg{Var} this predicate fails silently.  If \arg{Module}
+is not an atom, a type error is raised.
+
+    \predicate{del_attr}{2}{+Var, +Module}
+Delete the named attribute.  If \arg{Var} looses its last attribute it
+is transformed back into a traditional Prolog variable.  If \arg{Module}
+is not an atom, a type error is raised. In all other cases this
+predicate succeeds regarless whether or not the named attribute is
+present.
+
+    \predicate{attr_unify_hook}{2}{+AttValue, +VarValue}
+Hook that must be defined in the module an attributed variable refers
+to. Is is called \emph{after} the attributed variable has been
+unified with a non-var term, possibly another attributed variable.
+\arg{AttValue} is the attribute that was associated to the variable
+in this module and \arg{VarValue} is the new value of the variable.
+Normally this predicate fails to veto binding the variable to
+\arg{VarValue}, forcing backtracking to undo the binding.  If
+\arg{VarValue} is another attributed variable the hook often combines
+the two attribute and associates the combined attribute with 
+\arg{VarValue} using put_attr/3.
+
+    \predicate{attr_portray_hook}{2}{+AttValue, +Var}
+Called by write_term/2 and friends for each attribute if the option
+\term{attributes}{portray} is in effect.  If the hook succeeds the
+attribute is considered printed.  Otherwise \exam{Module = ...} is
+printed to indicate the existence of a variable.
+\end{description}
+
+\subsection{Accessing all attributes}
+
+Normal user code should deal with put_attr/3, get_attr/3 and del_attr/2.
+The routines in this section fetch or set the entire attribute list of a
+variables. Use of these predicates is anticipated to be restricted to
+printing and other special purpose operations.
+
+\begin{description}
+    \predicate{get_attrs}{2}{+Var, -Attributes}
+Get all attributes of \arg{Var}. \arg{Attributes} is a term of the form
+\term{att}{Module, Value, MoreAttributes}, where \arg{MoreAttributes} is
+\const{[]} for the last attribute.
+
+    \predicate{put_attrs}{2}{+Var, -Attributes}
+Set all attributes of \arg{Var}.  See get_attrs/2 for a description of
+\arg{Attributes}.
+\end{description}
+
+
+\section{Coroutining}				\label{sec:coroutining}
+
+Coroutining deals with having Prolog goals scheduled for execution as
+soon as some conditions is fullfilled.  In Prolog the most commonly
+used conditions is the instantiation (binding) of a variable. Scheduling
+a goal to execute immediately after a variable is bound allows may
+be used to avoid instantiation errors for some built-in predicates
+(e.g.\ arithmetic), do work \jargon{lazy}, prevent the binding of
+a variable to a particular value, etc.  Using freeze/2 for example
+we can define a variable can only be assigned an even number:
+
+\begin{code}
+?- freeze(X, X mod 2 =:= 0), X = 3
+
+No
+\end{code}
+
+\begin{description}
+    \predicate{freeze}{2}{+Var, :Goal}
+Delay the execution of \arg{Goal} until \arg{Var} is bound (i.e. is
+not a variable or attributed variable).	 If \arg{Var} is bound on entry
+freeze/2 is equivalent to call/1.  The freeze/2 predicate is realised
+using an attributed variable associated with the module \const{freeze},
+so \exam{get_attr(Var, freeze, AttVal)} can be used to find out whether
+and which goals are delayed on \arg{Var}.
+
+    \predicate{frozen}{2}{@{Var}, -Goal}
+Unify \arg{Goal} with the goal or conjunction of goals delayed on
+\arg{Var}.  If no goals are frozen on \arg{Var}, \arg{Goal} is unified
+to \const{true}.
+
+    \predicate{when}{2}{@{Condition}, :Goal}
+Execute \arg{Goal} when \arg{Condition} becomes true.  \arg{Condition}
+is one of \term{?=}{X, Y}, \term{nonvar}{X}, \term{ground}{X},
+\term{,}{Cond1, Cond2} or \term{;}{Cond1, Cond2}.  See also freeze/2
+and dif/2.  The implementation can deal with cyclic terms.
+
+The when/2 predicate is realised using attributed variable associated
+with the module \const{when}.  It is defined in the autoload library
+\pllib{when}.
+
+    \predicate{dif}{2}{@{A}, @{B}}
+The dif/2 predicate provides a constraint stating that \arg{A} and
+\arg{B} are different terms. If \arg{A} and \arg{B} can never unify
+dif/2 succeeds deterministically. If \arg{A} and \arg{B} are identical
+it fails immediately and finally, if \arg{A} and \arg{B} can unify,
+goals are delayed that prevent \arg{A} and \arg{B} to become equal. The
+dif/2 predicate behaves as if defined by
+\verb$dif(X, Y) :- when(?=(X, Y), X \== Y)$. See also \predref{?=}{2}.
+The implementation can deal with cyclic terms.
+
+The dif/2 predicate is realised using attributed variable associated
+with the module \const{dif}.  It is defined in the autoload library
+\pllib{dif}.
+\end{description}
+
+
+\section{Global variables}			\label{sec:gvar}
+
+Global variables are associations between names (atoms) and terms.
+They differ in various ways from storing information using assert/1
+or recorda/3.
+
+\begin{itemlist}
+    \item The value lives on the Prolog (global) stack.  This implies
+          that lookup time is independent from the size of the term.
+	  This is particulary interesting for large data structures
+	  such as parsed XML documents or the CHR global constraint
+	  store.
+
+    \item They support both global assignment using nb_setval/2 and
+          backtrackable assignment using b_setval/2.
+
+    \item Only one value (which can be an arbitrary complex Prolog
+   	  term) can be associated to a variable at a time.
+
+    \item Their value cannot be shared among threads.  Each thread
+          has its own namespace and values for global variables.
+
+    \item Currently global variables are scoped globally.  We may
+          consider module scoping in future versions.
+\end{itemlist}
+
+Both b_setval/2 and nb_setval/2 implicitely create a variable if the
+referenced name does not already refer to a variable.
+
+\begin{description}
+    \predicate{b_setval}{2}{+Name, +Value}
+Associate the term \arg{Value} with the atom \arg{Name} or replaces
+the currently associated value with \arg{Value}.  If \arg{Name} does
+not refer to an existing global variable a variable with initial value
+\const{[]} is created (the empty list).  On backtracking the
+assignment is reversed.
+
+    \predicate{b_getval}{2}{+Name, -Value}
+Get the value associated with the global variable \arg{Name} and unify
+it with \arg{Value}. Note that this unification may further instantiate
+the value of the global variable. If this is undesirable the normal
+precautions (double negation or copy_term/2) must be taken. The
+b_getval/2 predicate generates errors if \arg{Name} is not an atom or
+the requested variable does not exist.
+\end{description}
+
+\begin{description}
+    \predicate{nb_setval}{2}{+Name, +Value}
+Associates a copy of \arg{Value} created with duplicate_term/2
+with the atom \arg{Name}.  Note that this can be used to set an
+initial value other than \const{[]} prior to backtrackable assignment.
+
+    \predicate{nb_getval}{2}{+Name, -Value}
+The nb_getval/2 predicate is a synonym for b_getval/2, introduced for
+compatibility and symetry.  As most scenarios will use a particular
+global variable either using non-backtracable or backtrackable
+assignment, using nb_getval/2 can be used to document that the 
+variable is used non-backtracable.
+
+    \predicate{nb_linkval}{2}{+Name, +Value}
+Associates the term \arg{Value} with the atom \arg{Name} without copying
+it. This is a fast special-purpose variation of nb_setval/2 intended for
+expert users only because the semantics on backtracking to a point
+before creating the link are poorly defined for compound terms. The
+principal term is always left untouched, but backtracking behaviour on
+arguments is undone if the orginal assignment was \jargon{trailed} and
+left alone otherwise, which implies that the history that created the
+term affects the behaviour on backtracking. Please consider the
+following example:
+
+\begin{code}
+demo_nb_linkval :-
+	T = nice(N),
+	(   N = world,
+	    nb_linkval(myvar, T),
+	    fail
+	;   nb_getval(myvar, V),
+	    writeln(V)
+	).
+\end{code}
+
+    \predicate{nb_current}{2}{?Name, ?Value}
+Enumerate all defined variables with their value. The order of
+enumeration is undefined.
+
+    \predicate{nb_delete}{1}{+Name}
+Delete the named global variable.
+\end{description}
+
+
+\subsection{Compatibility of SWI-Prolog Global Variables}
+
+Global variables have been introduced by various Prolog implementations
+recently.  The implementation of them in SWI-Prolog is based on hProlog
+by Bart Demoen. In discussion with Bart it was decided that the
+semantics if hProlog nb_setval/2, which is equivalent to nb_linkval/2
+is not acceptable for normal Prolog users as the behaviour is influenced
+by how builtin predicates constructing terms (read/1, =../2, etc.) are
+implemented.
+
+GNU-Prolog provides a rich set of global variables, including arrays.
+Arrays can be implemented easily in SWI-Prolog using functor/3 and
+setarg/3 due to the unrestricted arity of compound terms.
+
+
+
+
+

@@ -1,0 +1,261 @@
+:- module(wfs,[main/0, main/1]).
+
+:- use_module(library(lists)).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Schrijf het programma waarvan je de wellfounded semantics wil bepalen
+% hieronder onder de vorm van prog/1 feiten. Let erop dat je een conjunctie
+% in de body tussen haakjes zet zodat prog/1 geparsed wordt, ipv prog/n.
+
+/*
+
+prog(p :- p).
+
+prog(p :- \+ p).
+
+
+prog(p :- (q, \+ r)).
+prog(q :- (r, \+ p)).
+prog(r :- (p, \+ q)).
+
+prog(p :- r).
+prog(r :- q).
+prog(q :- \+ q).
+
+prog(p :- r).
+prog(r).
+
+prog(p :- p).
+prog(s :- \+ p).
+prog(y :- (s, \+ x)).
+prog(x :- y).
+*/
+prog(a :- a).
+prog(b :- b).
+prog(b :- \+ a).
+prog(c :- \+ b).
+prog(c :- c).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+:- constraints true/1, false/1, undefined/1, aclause/2, pos/2, neg/2, nbulit/2, nbplit/2, nbucl/2, phase2/0, true2/1, undefined2/1, aclause2/2, pos2/2, nbplit2/2, phase1/0, witness1/0, witness2/0.
+
+true(At), aclause(Cl,At) \ pos(_,Cl) <=> true.
+
+true(At), aclause(Cl,At) \ neg(_,Cl) <=> true.
+
+false(At), aclause(Cl,At) \ pos(_,Cl) <=> true.
+
+false(At), aclause(Cl,At) \ neg(_,Cl) <=> true.
+
+true(At) \ nbucl(At,_) <=> true.
+
+true(At) \ aclause(Cl,At), nbulit(Cl,_), nbplit(Cl,_) <=> true.
+
+false(At) \ nbucl(At,_) <=> true.
+
+nbucl(At,0) <=> false(At).
+
+aclause(Cl,At), nbulit(Cl,0), nbplit(Cl,0) <=> true(At).
+
+true(At) \ pos(At,Cl), nbulit(Cl,NU), nbplit(Cl,NP)
+	<=>
+		NU1 is NU - 1, nbulit(Cl,NU1),
+		NP1 is NP - 1, nbplit(Cl,NP1).
+
+false(At) \ neg(At,Cl), nbulit(Cl,NU)
+	<=>
+		NU1 is NU - 1, nbulit(Cl,NU1).
+
+true(At) \ neg(At,Cl), aclause(Cl,OAt), nbulit(Cl,_), nbplit(Cl,_), nbucl(OAt,N)
+	<=>
+		N1 is N - 1, nbucl(OAt,N1).
+
+false(At) \ pos(At,Cl), aclause(Cl,OAt), nbulit(Cl,_), nbplit(Cl,_), nbucl(OAt,N)
+	<=>
+		N1 is N - 1, nbucl(OAt,N1).
+
+witness2 \ witness2 <=> true.
+phase2, nbucl(At,_)  ==> witness2, undefined2(At).
+phase2, pos(At,Cl)   ==> pos2(At,Cl).
+phase2, aclause(Cl,At)    ==> aclause2(Cl,At).
+phase2, nbplit(Cl,N) ==> nbplit2(Cl,N).
+phase2, witness2 # ID <=> phase1 pragma passive(ID).
+phase2 \ nbplit2(_,_) # ID <=> true pragma passive(ID).
+phase2 \ aclause2(_,_) # ID <=> true pragma passive(ID).
+phase2 <=> true. 
+
+
+true2(At), aclause2(Cl,At) \ pos2(_,Cl) <=> true.
+true2(At) \ undefined2(At) <=> true.
+aclause2(Cl,At), nbplit2(Cl,0) <=> true2(At).
+true2(At) \ pos2(At,Cl), nbplit2(Cl,NP)
+	<=>
+		NP1 is NP - 1, nbplit2(Cl,NP1).
+
+witness1 \ witness1 <=> true.
+phase1, undefined2(At) # ID1 , aclause(Cl,At) # ID2 \ pos(_,Cl) # ID3 <=> true pragma passive(ID1), passive(ID2), passive(ID3).
+phase1, undefined2(At) # ID1 , aclause(Cl,At) # ID2 \ neg(_,Cl) # ID3 <=> true pragma passive(ID1), passive(ID2), passive(ID3).
+phase1, undefined2(At) # ID1 \ aclause(Cl,At) # ID2 , nbulit(Cl,_) # ID3, nbplit(Cl,_) # ID4 <=> true pragma passive(ID1), passive(ID2), passive(ID3), passive(ID4).
+phase1 \ undefined2(At) # ID <=> witness1, false(At) pragma passive(ID).
+phase1 \ true2(_) # ID <=> true pragma passive(ID).
+phase1 \ aclause2(_,_) <=> true.
+phase1 \ pos2(_,_) # ID <=> true pragma passive(ID).
+phase1 \ nbplit2(_,_) # ID <=> true pragma passive(ID).
+phase1, witness1 # ID  <=> phase2 pragma passive(ID).
+phase1 \ nbucl(At,_) # ID <=> undefined(At) pragma passive(ID).
+phase1 \ pos(_,_) # ID <=> true.
+phase1 \ neg(_,_) # ID <=> true pragma passive(ID). 
+phase1 \ aclause(_,_) # ID <=>  true pragma passive(ID). 
+phase1 \ nbulit(_,_) # ID <=> true pragma passive(ID). 
+phase1 \ nbplit(_,_) # ID <=> true pragma passive(ID). 
+phase1 <=> true. 
+
+/*
+	p :- r.
+	r.
+*/
+program1 :-
+	nbucl(p,1),		% aantal undefined clauses voor p
+	pos(r,cl1),		% positief voorkomen van r in clause cl1
+	aclause(cl1,p),		% clause cl1 defineert p
+	nbulit(cl1,1),		% aantal undefined literals in cl1
+	nbplit(cl1,1),		% aantal positieve undefined literals in cl1
+	nbucl(r,1),		
+	aclause(cl2,r),
+	nbulit(cl2,0),
+	nbplit(cl2,0).
+
+/*
+	p :- not r.
+	r.
+*/
+program2 :-
+	nbucl(p,1),
+	neg(r,cl1),
+	aclause(cl1,p),
+	nbulit(cl1,1),
+	nbplit(cl1,1),
+	nbucl(r,1),
+	aclause(cl2,r),
+	nbulit(cl2,0),
+	nbplit(cl2,0).
+
+/*
+	p :- p.
+*/
+program3 :-
+	nbucl(p,1),
+	pos(p,cl1),
+	aclause(cl1,p),
+	nbulit(cl1,1),
+	nbplit(cl1,1).
+
+/*
+	p :- not p.
+*/
+program4 :-
+	nbucl(p,1),
+	neg(p,cl1),
+	aclause(cl1,p),
+	nbulit(cl1,1),
+	nbplit(cl1,0).
+
+/*
+	p :- q, not r.
+	q :- r, not p.
+	r :- p, not q.
+*/
+
+program5 :-
+	nbucl(p,1),
+	pos(p,cl3),
+	neg(p,cl2),
+	aclause(cl1,p),
+	nbulit(cl1,2),
+	nbplit(cl1,1),	
+	nbucl(q,1),
+	pos(q,cl1),
+	neg(q,cl3),
+	aclause(cl2,q),
+	nbulit(cl2,2),
+	nbplit(cl2,1),	
+	nbucl(r,1),	
+	pos(r,cl2),
+	neg(r,cl1),
+	aclause(cl3,r),
+	nbulit(cl3,2),
+	nbplit(cl3,1).	
+
+
+main :-
+	main(1000).
+
+main(N) :-
+	cputime(T1),
+	loop(N),
+	cputime(T2),
+	T is T2 - T1,
+	write(bench(wfs ,N , T,0,hprolog)),write('.'),nl.
+
+loop(N) :-
+	( N =< 0 ->
+		true
+	;
+		( prog, fail ; true),
+		M is N - 1,
+		loop(M)
+	).
+
+prog :-
+	findall(Clause,wfs:prog(Clause),Clauses),
+	process(Clauses,1),
+	setof(At,B^(wfs:prog(At :- B) ; wfs:prog(At), atom(At)),Ats),
+	process_atoms(Ats),
+	phase2.
+
+process([],_).
+process([C|Cs],N) :-
+	( C = (HAt :- B) ->
+		aclause(N,HAt),
+		conj2list(B,Literals,[]),
+		process_literals(Literals,N,NbULit,NbPLit),
+		nbulit(N,NbULit),
+		nbplit(N,NbPLit)
+	;
+		C = HAt,
+		aclause(N,HAt),
+		nbulit(N,0),
+		nbplit(N,0)
+	),
+	N1 is N + 1,
+	process(Cs,N1).
+
+conj2list(G,L,T) :-
+	( G = (G1,G2) ->
+		conj2list(G1,L,T1),
+		conj2list(G2,T1,T)
+	;
+		L = [G|T]
+	).
+
+process_literals([],_,0,0).
+process_literals([L|R],Cl,U,P) :-
+	process_literals(R,Cl,U1,P1),
+	( L = (\+ At) ->
+		neg(At,Cl),
+		P = P1,
+		U is U1 + 1
+	;
+		pos(L,Cl),
+		P is P1 + 1,
+		U is U1 + 1
+	).
+
+process_atoms([]).
+process_atoms([A|As]) :-
+	findall(A,wfs:prog(A :- _),L),
+	length(L,N),
+	nbucl(A,N),
+	process_atoms(As).

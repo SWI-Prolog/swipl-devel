@@ -1,0 +1,64 @@
+/*  $Id$
+
+    Part of CHR (Constraint Handling Rules)
+
+    Author:        Tom Schrijvers
+    E-mail:        Tom.Schrijvers@cs.kuleuven.ac.be
+    WWW:           http://www.swi-prolog.org
+    Copyright (C): 2003-2004, K.U. Leuven
+
+*/
+
+:- module(chrdif,[chrdif/2]).
+:- use_module(library(chr)).
+
+:- constraints dif/2, dif2/3, or/2, or_seq/2, del_or/1.
+
+chrdif(X,Y) :- dif(X,Y).
+
+dif(X,Y) <=> compound(X), compound(Y) | dif1(X,Y).
+dif(X,X) <=> fail.
+dif(X,Y) <=> nonvar(X), nonvar(Y) /* X \== Y holds */ | true.
+
+dif1(X,Y) :-
+	( functor(X,F,A),
+	  functor(Y,F,A) ->
+		X =.. [_|XL],
+		Y =.. [_|YL],
+		dif1l(XL,YL,A)
+	;
+		true
+	).
+
+dif1l(Xs,Ys,N) :-
+	or(Or,N),
+	dif1l_2(Xs,Ys,Or).
+
+dif1l_2([],[],_).
+dif1l_2([X|Xs],[Y|Ys],Or) :-
+	dif2(X,Y,Or),
+	dif1l_2(Xs,Ys,Or).
+
+or_seq(OrP,Or) \ or(Or,0), or(OrP,N) <=> M is N - 1, or_seq(OrP,M).
+or(_,0) <=> fail.
+
+dif2(X,Y,Or) <=> compound(X), compound(Y) | dif3(X,Y,Or).
+dif2(X,X,Or), or(Or,N) <=> M is N - 1, or(Or,M).
+dif2(X,Y,Or) <=> nonvar(X), nonvar(Y) /* X \== Y holds */ | del_or(Or).
+
+del_or(Or) \ or_seq(OrP,Or) <=> del_or(OrP).
+del_or(Or) \ or_seq(Or,OrC) <=> del_or(OrC).
+del_or(Or) \ or(Or,_) <=> true.
+del_or(Or) \ dif2(_,_,Or) <=> true.
+del_or(Or) <=> true.
+
+dif3(X,Y,Or) :-
+	( functor(X,F,A),
+	  functor(Y,F,A) ->
+		X =.. [_|XL],
+		Y =.. [_|YL],
+		or_seq(Or,Or2),
+		dif1l(XL,YL,A)
+	;
+		del_or(Or)
+	).

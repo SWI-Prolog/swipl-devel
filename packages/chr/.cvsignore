@@ -1,0 +1,7 @@
+Makefile
+config.h
+config.log
+config.status
+autom4te.cache
+chr.pl
+chr_translate.pl

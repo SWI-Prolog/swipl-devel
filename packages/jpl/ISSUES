@@ -1,0 +1,58 @@
+ELF systems and libpl.so
+========================
+
+On Unix systems, SWI-Prolog is normally   compiled as an application and
+static library (lib/$arch/libpl.a). First of all   this is easier ported
+on  may  Unix  systems  and  second,   shared  object  require  position
+independent code (-fpic) and  this  is   (depending  on  the  processor)
+generally slower than application code running at a fixed address.
+
+We link jpl.so using -lpl, so it is   linked  to the dynamic libpl.so if
+Prolog is configured using  -enable-shared  or   to  the  static libpl.a
+otherwise. On ELF  systems  that   can  handle  position-dependent (i.e.
+compiled _without_ -fpic) code in  shared   objects  this works fine. If
+libjpl.so is loaded directly from Java  it   will  use the Prolog kernel
+included in libjpl.so. If  it  is   invoked  through  Prolog, the Prolog
+application is before libjpl.so in the ELF search path and therefore all
+Prolog symbols are resolved against the application.
+
+There are two drawbacks to this approach.  The libjpl.so file could have
+been a small and version independent library,  while it is now bulky due
+to the embedded Prolog engine and version dependent.
+
+Summarising, if your OS cannot  load   position  dependent .so files you
+MUST configure SWI-Prolog using --enable-shared. If  it can (Linux), the
+choice is yours and depends on  the   performance  penalty  paid on your
+processor (approx. 7% on  an  AMD  Athon),   how  you  wish  to  arrange
+versioning and how keen you are on memory sharing.
+
+
+Installed components (Unix)
+===========================
+
+Make install installs the following components:
+
+	* $PLBASE/library/jpl.pl
+	* $PLBASE/lib/jpl.jar
+	* $PLBASE/lib/$ARCH/libjpl.so
+
+The  disadvantage  of  this  is  that    $PLBASE/lib/$ARCH  must  be  in
+$LD_LIBRARY_PATH to be able  to  call   Prolog  from  Java  (either when
+embedding Prolog in Java or using a  Prolog -> Java -> Prolog callback).
+Unfortunately all the other Prolog .so   files are loaded by explicitely
+searching for them.
+
+
+Finding Java on Windows
+=======================
+
+It appears the following keys are relevant for SUN SDK:
+
+?- win_registry_get_value('HKEY_LOCAL_MACHINE/Software/JavaSoft/Java Development Kit',
+			  'CurrentVersion', X).
+
+   X = 1.4
+
+?- win_registry_get_value('HKEY_LOCAL_MACHINE/Software/JavaSoft/Java Development Kit/1.4', 'JavaHome', X).
+
+   X = 'C:\\j2sdk1.4.2_04'

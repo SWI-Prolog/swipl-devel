@@ -1,0 +1,214 @@
+\documentclass[11pt]{article}
+\usepackage{times}
+\usepackage{pl}
+\usepackage{html}
+\sloppy
+\makeindex
+
+\onefile
+\htmloutput{html}				% Output directory
+\htmlmainfile{index}				% Main document file
+\bodycolor{white}				% Page colour
+
+\renewcommand{\runningtitle}{SWI-Prolog SSL Interface}
+
+\begin{document}
+
+%\urldef{\diff}\url[Diff Automatisering v.o.f]{http://www.diff.nl}
+
+\title{SWI-Prolog SSL Interface}
+\author{Jan van der Steen \\
+	\url[Diff Automatisering v.o.f]{http://www.diff.nl} \\[5pt]
+	Jan Wielemaker \\
+        SWI, University of Amsterdam \\
+        The Netherlands \\
+        E-mail: \email{jan@swi-prolog.org}
+       }
+	
+\maketitle
+
+\begin{abstract}
+This document describes the SWI-Prolog SSL library, a set of predicates
+which provides secure sockets to Prolog applications, for example to run
+a secure HTTPS server, or access websites using the \const{https}
+protocol.  It can also be used to provide authentication and secure
+data exchange between Prolog processes over the network.
+\end{abstract}
+
+\pagebreak
+\tableofcontents
+\pagebreak
+
+
+\section{Introduction}
+
+Raw TCP/IP networking is dangerous for two reasons.  It is hard to tell
+whether the body you think you are talking to is indeed the right one and
+anyone with access to a subnet through which your data flows can `tap'
+the wire and listen for sensitive information such as passwords,
+creditcard numbers, etc.   Secure Socket Layer (SSL) deals with both
+problems.  It uses certificates to establish the identity of the peer
+and encryption to make it useless to tap into the wire.  SSL allows
+agents to talk in private and create secure web services.
+
+The SWI-Prolog \pllib{ssl} library provides an API very similar to
+\pllib{socket} for raw TCP/IP connections that provides SSL server
+and client sockets.
+
+
+\section{About SSL}
+
+The SWI-Prolog SSL interface is built on top of the
+\url[OpenSSL]{http://www.openssl.org/} library. This library is commonly
+provided as a standard package in many Linux distributions. The
+MS-Windows version is built using a binary distribution available from
+\url{http://www.slproweb.com/products/Win32OpenSSL.html}.
+
+A good introduction on key- and certificate handling for OpenSSL can be
+found at \url{http://www.tldp.org/HOWTO/SSL-Certificates-HOWTO/}
+
+
+\section{Overview of the Prolog API}
+
+An SSL server and client can be built with the following (abstracted)
+predicate calls:
+
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline 
+    SSL server    &     SSL client \\
+\hline 
+    ssl_init/3    &     ssl_init/3 \\
+    ssl_accept/3  &     \\
+    ssl_open/4    &     ssl_open/3 \\
+    \ldots        &     \ldots \\
+    ssl_exit/1      &   ssl_exit/1 \\
+\hline
+\end{tabular}
+\end{center}
+
+What follows is a description of each of these functions and the
+arguments they accept.
+
+\begin{description}
+    \predicate{ssl_init}{3}{-SSL, +Server, +Options}
+Server with legal values \const{server} or \const{client} denotes
+whether the SSL socket will have a server or client role in the
+established connection. With \arg{Options} various properties of the
+TCP/IP + SSL connection can be defined, some of which required, some
+optional. An overview is given below. The handle of the connection is
+returned in \arg{SSL}.
+
+Below is an overview of the \arg{Options} argument.  Some options are only
+required by the client (C), some are required by the server (marked S),
+some by both server as client (marked CS). 
+
+\begin{description}
+    \termitem{host}{+HostName} [C]
+        The host to connect to by the client or identified by the server.
+        Both IP addresses and hostnames can be supplied here. This option
+        is required for the client and optionally for the server.
+    \termitem{port}{+Integer} [CS]
+        The port to connect or listen to. This option is required since
+        no default port can sensibly be defined for an abstract layer.
+	The webserver \jargon{https} protocol uses port 443.
+    \termitem{certificate_file}{+FileName} [S]
+        Specify where the certificate file can be found. This can be the
+        same as the key file (see next option).
+    \termitem{key_file}{+FileName} [S]
+        Specify where the private key can be found. This can be the same
+        as the certificate file.
+    \termitem{password}{+Text}
+        Specify the password the private key is protected with (if any).
+	If you do not want to store the password you can also specify
+	an application defined handler to return the password
+	(see next option).
+    \termitem{pem_password_hook}{:PredicateName}
+        In case a password is required to access the private key the
+        supplied function will be called to fetch it. The function
+        has the following prototype: \term{function}{+SSL, -Password}
+    \termitem{cacert_file}{+FileName}
+        Specify a file containing certificate keys which will thus
+        automatically be verified as trusted. You can also install
+        an application defined handler to verify certificates (see
+        next option).
+    \termitem{cert_verify_hook}{:PredicateName}
+        In case a certificate cannot be verified or has some properties
+        which makes it invalid (invalid validity date for example) the
+        supplied function will be called to ask its opinion about the
+        certificate. The predicate is called as follows:
+	\term{function}{+SSL, +Certificate, +Error}.  Access will be
+	granted iff the predicate succeeds.
+    \termitem{cert}{+Boolean}
+        Trigger the sending of our certificate as specified using
+        the option \const{certificate_file} described earlier. For a
+        server this option is automatically turned on.
+    \termitem{peer_cert}{+Boolean}
+        Trigger the request of our peer's certificate while establishing
+        the SSL layer. This option is automatically turned on in a client
+	SSL socket.
+\end{description}
+
+    \predicate{ssl_accept}{3}{+SSL, -Socket, -Peer} 
+This predicate is used in the server to accept new connections.
+\arg{Socket} is unified to a socket that must be passed to ssl_open/4
+and \arg{Peer} is unified with a term \functor{ip}{4} denoting the IP
+address of the peer. The format is compatible to the format used by the
+TCP/IP library \file{socket.pl} provided by the clib package.
+
+    \predicate{ssl_open}{4}{+SSL, +Socket, -In, -Out}
+Server side.  Attach a Prolog input and output stream to the socket. The
+\arg{Socket} is automatically closed after both streams are closed.
+Please note that the output stream is fully buffered and therefore
+flush_output/1 is required to actually send the data to the peer.
+
+    \predicate{ssl_open}{3}{+SSL, -In, -Out}
+Client side. Establish the connection based on the data passed to
+ssl_init/3 and create the Prolog I/O streams.
+
+    \predicate{ssl_exit}{1}{+SSL}
+Clean up all resources related to the SSL + TCP/IP socket layers.
+\end{description}
+
+
+\section{Example code}
+
+Examples of a simple server and client as well as a simple HTTPS server
+can be found in the example directory which is located in
+\file{doc/packages/examples/ssl} relative to the SWI-Prolog installation
+directory. The \file{etc} directory contains example certificate files
+as well as a \file{README} on the creation of certificates using OpenSSL
+tools.
+
+
+\section{Installation}
+
+The OpenSSL libraries are \emph{not} part of the SWI-Prolog distribution
+and on systems using packagers with dependency checking, dependency on
+OpenSSL is deliberatly avoided. This implies that OpenSSL must be
+installed seperatly before using SSL with a binary distribution of
+SWI-Prolog. Most modern Linux distributions have an SSL package. An
+installer for MS-Windows is available from
+\url{http://www.slproweb.com/products/Win32OpenSSL.html} The SWI-Prolog
+SSL interface is currently built using OpenSSL 0.97b.
+
+When installing from the source, the package configuration 
+automatically builds the ssl library if a suitable OpenSSL
+implementation is found.  On Windows systems, OpenSSL must be
+installed prior to building SWI-Prolog and \file{rules.mk} must
+be edited to reflect the position of the header and libraries if
+they are not in the standard search path.
+
+
+\section{Acknowledgments}
+
+The development of the SWI-Prolog SSL interface has been sponsored by
+\url[Scientific Software and Systems Limited]{http://www.sss.co.nz}.
+
+\bibliographystyle{plain}
+\bibliography{odbc}
+
+\printindex
+
+\end{document}
+

@@ -1,0 +1,463 @@
+From ok@cs.otago.ac.nz  Tue Mar 16 04:08:30 2004
+Return-Path: <ok@cs.otago.ac.nz>
+X-Original-To: jan@swi.psy.uva.nl
+Delivered-To: jan@swi.psy.uva.nl
+Received: from tasman.ic.uva.nl (tasman.ic.uva.nl [146.50.98.2])
+	by arwen.swi.psy.uva.nl (Postfix) with ESMTP id 47F3AA3AE4
+	for <jan@swi.psy.uva.nl>; Tue, 16 Mar 2004 04:08:30 +0100 (CET)
+Received: from mailhub1.otago.ac.nz (mailhub1.otago.ac.nz [139.80.64.218])
+	by tasman.ic.uva.nl (8.12.10/8.12.10/Debian-4) with ESMTP id i2G36g6H024287
+	for <jan@swi.psy.uva.nl>; Tue, 16 Mar 2004 04:06:43 +0100
+Received: (from root@localhost)
+	by mailhub1.otago.ac.nz (8.12.11/8.12.11) id i2G36IbP021231
+	for jan@swi.psy.uva.nl; Tue, 16 Mar 2004 16:06:18 +1300
+Received: from atlas.otago.ac.nz (atlas.otago.ac.nz [139.80.32.250])
+	by mailhub1.otago.ac.nz (8.12.11/8.12.9) with ESMTP id i2G36IDc021172
+	for <jan@swi.psy.uva.nl>; Tue, 16 Mar 2004 16:06:18 +1300
+Received: (from ok@localhost)
+	by atlas.otago.ac.nz (8.12.9-2/8.12.9) id i2G36Idr176131
+	for jan@swi.psy.uva.nl; Tue, 16 Mar 2004 16:06:18 +1300 (NZDT)
+Date: Tue, 16 Mar 2004 16:06:18 +1300 (NZDT)
+From: "Richard A. O'Keefe" <ok@cs.otago.ac.nz>
+Message-Id: <200403160306.i2G36Idr176131@atlas.otago.ac.nz>
+To: jan@swi.psy.uva.nl
+Subject: Re: [SWIPL] Latin1 accented letters.
+X-scanner: scanned by Inflex 1.0.12.7
+X-Spam-Score: () -4.9 BAYES_00
+X-Scanned-By: MIMEDefang 2.38
+X-Spam-Status: No, hits=-2.6 required=5.0
+	tests=BAYES_20
+	version=2.55
+X-Spam-Level: 
+X-Spam-Checker-Version: SpamAssassin 2.55 (1.174.2.19-2003-05-19-exp)
+Status: REO
+
+	> It is not clear to me why inability to handle the user's locale is
+	> a merit.
+	
+	Mostly because it is a mess.  The only sensible solution is to move to
+	wide characters.
+
+Exactly so.  Just what I recommended back in 1984...
+
+	It would be a nightmare if I get a program text written
+	using a russian character set and I can't run it because the program
+	text is interpreted differently (e.g. an atom becomes a variable).
+
+But you are saying that inability to handle the user's locale is *NOT*
+a merit; you are saying that getting it wrong is bad, which is just what
+I say.   If the program text starts out with
+
+    :- prolog(iso, koi8r).
+
+everything becomes clear.  Don't forget that there are character sets
+still in use which are based on ISO 646 but are *not* extensions of
+ASCII.  (The Danes pushed incredibly hard on the C committee about
+this, hence the introduction of "digraphs" into a language which was
+moving towards wide characters, and also the <iso646.h> header.)
+
+	I much rather see the situation where I cannot read the program,
+	but at least it runs the same as it does in Russia.
+	
+But it *won't* run the same as it does in Russia unless
+(1) the character set is an extension of ASCII (some Russian character
+    set encoding are not; KOI-7 isn't the only one) and
+(2) the program never attempts to do anything much with characters
+    without first explicitly changing the locale.  If there is a SWI
+    predicate for setting any part of the locale, I've missed it.
+
+	The correct solution is indeed to have a directive that allows you to
+	specify the character set used for a particular sourcefile, so I can
+	have a program partly in russian, partly in french, etc. each of the
+	programmers using their own language.  
+
+Sounds as though we agree.
+
+	> 	Such a table however can be pretty large if we move to UNICODE.
+	> 	
+	> Given Unicode's >2**20 potential characters (currently 98000 or so)
+	> it would indeed be large.  But it compresses nicely.
+	
+	But the memory footprint will be significant.
+	
+No, as I said, it compresses nicely.
+I have a program which reads the UnicodeData*.txt database and figures
+out how to pack the character classification table.  Here's the output
+for UnicodeData-4.0.0.txt:
+
+    204 blocks @  64 each = 30464 bytes.
+    120 blocks @ 128 each = 24064 bytes.
+     73 blocks @ 256 each = 23040 bytes.
+     48 blocks @ 512 each = 26752 bytes.
+     32 blocks @ 1024 each = 33856 bytes.
+
+What it does it fill in a table of 1,114,112 bytes with the Unicode
+"general category" of each Unicode character, at one byte per character.
+Then it chops that table up into blocks, counts the number of different
+blocks, and reports the total size for
+
+    char base_data[N_BLOCKS][BLOCK_SIZE] = {{...},...{...}};
+    (unsigned char | unsigned short) block_index[0x110000/BLOCK_SIZE];
+
+We see that the optimum for Unicode 4.0.0 is a block size of 256
+bytes, where we have
+
+    char base_data[73][256] = {{...},...,{...}};
+    char block_index[0x110000/256/*=4352*/];
+
+    #define category(c) base_data[block_index[(c)>>8]][(c)&255]
+
+Now 23 kB isn't 256 B, but it _is_ only one 30 000th of the physical
+memory on this machine, so it's not _that_ bad.
+
+So what one does is add a tiny hack to arithmetic expressions:
+
+	unicode_general_category_number(C)
+
+with an emulator instruction which checks that the argument is
+an integer in the range 0..0x10FFFF and then uses the category()
+macro above to fetch the character class number (0..29).
+
+Case mapping is trickier.  However, the vast majority of Unicode
+characters are left unchanged by simple case mapping.
+
+f% grep 'SMALL LETTER' UnicodeData*4*txt | wc
+     982    7297   75138
+f% grep 'CAPITAL LETTER' UnicodeData*4*txt | wc
+     797    5844   60534
+
+And in any case, we don't need case mapping to classify characters
+or to read sources.
+
+	> Not if you can say what the locale *is*.
+	
+	But Prolog text has no provision for that.
+
+Yes, and the bl***y ISO Prolog committee *knew* this was a problem
+from day 1 (because the BSI Prolog committee knew it, because I told
+them).
+
+	Even worse, I cannot invent anything (except `structured
+	comments') without making the code non-ISO compliant.
+	
+I would prefer the "Prolog declaration" to have the form of a directive,
+but structured comments are better than nothing.
+
+    %%% Encoding: <encoding name>
+
+Sometimes it really seems as though standardisers haven't a clue.
+The "iconv" program and the iconv library "libiconv" _are_ part of
+the Single Unix Specification, BUT the encoding names used by iconv
+are *not* part of that specification.  I fell foul of this when I
+tried to install a recent version of Squeak on my Solaris box:  it
+used libiconv to convert external characters to its internal character
+set (basically MacRoman), but libiconv wrote an error message for every
+wretched character because it didn't know the encoding name...  I had
+to download and install GNU iconv.
+
+	As far as I'm concerned I'll leave the character set issue for the time
+	being.  The direction to go is to be able to handle UNICODE and UTF-8
+	input.  This means changing character I/O, the atom representation,
+	-very important- the foreign interfaces, the Windows console, XPCE
+	and the SGML/XML parser.  Not a one day job, and one that must be
+	planned carefully to deal with compatibility as good as possible :-(
+	
+	If there is a compagny, organization or a few dedicated programmers
+	willing to cooperate on this they will make many friends.
+	
+If you've been looking at my "community standard", you'll have seen that
+I've put a fair bit of thought into what this should look like.  The
+implementation of character I/O would have to change, yes.
+
+I don't actually know what SWI's internal atom representation is, but if
+it's a packed array of bytes, it can stay as it is.  The only thing is
+that the number of *bytes* and the number of *characters* are no longer
+the same thing (to count characters, count bytes ignoring 10...... ones).
+Ditto for strings, of course.
+
+Or it would be possible to imitate what Interlisp-D did when they
+switched to a 16-bit character set back in the early 1980s:
+they had two string representations, "thin" strings (8-bit codes) and
+"fat" strings (16-bit codes).  Storing a fat character into a thin
+string caused it to be reallocated as a fat string.  Atom names were
+read-only thin or fat strings.
+
+The foreign interface gets somewhat nasty because when you pass a string,
+the foreign code might be expecting
+    - native characters as 8-bit codes
+    - native characters as 16-bit codes
+    - native characters as 32-bit codes
+    - Unicode characters as 8-bit codes using UTF-8
+    - Unicode characters as 16-bit codes
+    - Unicode characters as 32-bit codes
+
+For a Java interface, 16-bit codes (UTF-16) will be wanted.
+For a C interface, 8-bit codes (char) or 32-bit codes (wchar_t)
+will be wanted.  So all of them are needed.  Makes life interesting, no?
+
+Just for grins, here's "pack.c", which reads the UnicodeData*.txt file
+(download from www.unicode.org), reports how many characters there are
+of each type, reports what size the tables would be for each block size,
+and emits C code to define the tables.
+
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_UCHAR 0x10FFFF
+
+/*  Fields:
+     1. <number>
+     2. <name>
+     3. <general category>
+     4. <canonical combining class>
+     5. <BIDI class>
+     6. <decomposition type>
+     7. <numeric type>
+     8. <numeric value>
+     ....
+*/
+
+enum General_Category {		/* 30 classes */
+    Cn,	/* other, not assigned */
+    Cc, /* other, control */
+    Cf, /* other, format */
+    Cs, /* other, surrogate */
+    Co, /* other, private use */
+    Lu, /* letter, upper case */
+    Ll, /* letter, lower case */
+    Lt, /* letter, title case */
+    Lm, /* letter, modifier */
+    Lo, /* letter, other */
+    Mn, /* mark, non-spacing */
+    Mc, /* mark, spacing combining */
+    Me, /* mark, enclosing */
+    Nd, /* number, decimal */
+    Nl, /* number, letter */
+    No, /* number, other */
+    Pc, /* punctuation, connector */
+    Pd, /* punctuation, dash */
+    Ps, /* punctuation, open */
+    Pe, /* punctuation, close */
+    Pi, /* punctuation, initial quote */
+    Pf, /* punctuation, final quote */
+    Po, /* punctuation, other */
+    Sm, /* symbol, math */
+    Sc, /* symbol, currency */
+    Sk, /* symbol, modifier */
+    So, /* symbol, other */
+    Zs, /* separator, space */
+    Zl, /* separator, line */
+    Zp  /* separator, paragraph */
+};
+
+static char
+general_category(char const *p) {
+    switch (p[0]|32) {
+	case 'c':
+	    switch (p[1]|32) {
+	        case 'c': return Cc;
+	        case 'f': return Cf;
+	        case 's': return Cs;
+	        case 'o': return Co;
+	        default : return Cn;
+	    }
+	case 'l':
+	    switch (p[1]|32) {
+	        case 'u': return Lu;
+	        case 'l': return Ll;
+	        case 't': return Lt;
+	        case 'm': return Lm;
+	        case 'o': return Lo;
+	        default : return Cn;
+	    }
+	case 'm':
+	    switch (p[1]|32) {
+	        case 'n': return Mn;
+	        case 'c': return Mc;
+	        case 'e': return Me;
+	        default : return Cn;
+	    }
+	case 'n':
+	    switch (p[1]|32) {
+	        case 'd': return Nd;
+	        case 'l': return Nl;
+	        case 'o': return No;
+	        default : return Cn;
+	    }
+	case 'p':
+	    switch (p[1]|32) {
+	        case 'c': return Pc;
+	        case 'd': return Pd;
+	        case 's': return Ps;
+	        case 'e': return Pe;
+	        case 'i': return Pi;
+	        case 'f': return Pf;
+	        case 'o': return Po;
+	        default : return Cn;
+	    }
+	case 's':
+	    switch (p[1]|32) {
+	        case 'm': return Sm;
+	        case 'c': return Sc;
+	        case 'k': return Sk;
+	        case 'o': return So;
+	        default : return Cn;
+	    }
+	case 'z':
+	    switch (p[1]|32) {
+	        case 's': return Zs;
+	        case 'l': return Zl;
+	        case 'p': return Zp;
+	        default: return Cn;
+	    }
+	default : return Cn;
+    }
+}
+
+static char category[MAX_UCHAR+1];
+
+#define MIN_BLOCK_SIZE 64
+static char *block[(MAX_UCHAR+1)/MIN_BLOCK_SIZE];
+static char  index[(MAX_UCHAR+1)/MIN_BLOCK_SIZE];
+static int nblocks;
+
+static void parse_into_blocks(size_t block_size) {
+    int i;
+    int b;
+
+    nblocks = 0;
+    for (i = 0; i < MAX_UCHAR; i += block_size) {
+	for (b = 0; b < nblocks; b++)
+	    if (0 == memcmp(block[b], &category[i], block_size))
+		break;
+	if (b == nblocks) block[nblocks++] = &category[i];
+	index[i/block_size] = b;
+    }
+    printf("%7d blocks @ %3d each = %d bytes.\n",
+	nblocks, (int)block_size,
+	nblocks * block_size * sizeof (char) +
+	((MAX_UCHAR + 1) / block_size) * (
+	    nblocks <= 256 ? 1 :
+	    nblocks <= 65536 ? 2 : 4));
+}
+
+static void print_blocks(int block_size) {
+    int b, r, c;
+
+    printf("char const base_data[%d][%d] = {\n",
+	nblocks, block_size);
+    for (b = 0; b < nblocks; b++) {
+	for (r = 0; r < block_size; r += 16) {
+	    printf(r == 0 ? "    {   " : "        ");
+	    for (c = 0; c < 16; c++) printf("%3d,", block[b][r+c]);
+	    printf("\n");
+	}	
+	printf("    },\n");
+    }
+    printf("};\n\n");
+    printf("char const index[%d] = {\n", (MAX_UCHAR+1)/block_size);
+    b = (MAX_UCHAR+1)/block_size;
+    for (r = 0; r < b; r += 16) {
+	printf("    ");
+	for (c = 0; c < 16; c++) printf("%3d,", index[r+c]);
+	printf("\n");
+    }
+    printf("};\n\n");
+}
+
+int main(void) {
+    char buffer[256];
+    unsigned i, first, last;
+    char c;
+    char *p;
+    int tally[30];
+
+    for (i = 0; i <= MAX_UCHAR; i++) category[i] = Cn;
+    first = i;
+    while (gets(buffer)) {
+	p = strchr(buffer, ';');
+	if (p == 0) continue;
+	p++;
+	if (2 == sscanf(buffer, "%x..%x;", &i, &last)) {
+	    first = i;
+	} else
+	if (1 == sscanf(buffer, "%x;", &i)) {
+	    if (*p == '<' && strstr(p, ", First>;") != 0) {
+	        first = i;
+	        continue;
+	    } else
+	    if (*p == '<' && strstr(p, ", Last>;") != 0) {
+		last = i;
+	    } else {
+	        first = last = i;
+	    }
+	} else {
+	    continue;
+	}
+	p = strchr(p, ';');
+	if (p == 0) continue;
+	p++;
+	c = general_category(p);	
+	for (i = first; i <= last; i++) category[i] = c;
+    }
+
+
+    for (c = Cn; c <= Zp; c++) tally[c] = 0;
+    for (i = 0; i <= MAX_UCHAR; i++) tally[category[i]]++;
+
+    printf("/*------------------------------\n");
+
+    printf("%7d Cn\n", tally[Cn]);
+    printf("%7d Cc\n", tally[Cc]);
+    printf("%7d Cf\n", tally[Cf]);
+    printf("%7d Cs\n", tally[Cs]);
+    printf("%7d Co\n", tally[Co]);
+
+    printf("%7d Lu\n", tally[Lu]);
+    printf("%7d Ll\n", tally[Ll]);
+    printf("%7d Lt\n", tally[Lt]);
+    printf("%7d Lm\n", tally[Lm]);
+    printf("%7d Lo\n", tally[Lo]);
+
+    printf("%7d Mn\n", tally[Mn]);
+    printf("%7d Mc\n", tally[Mc]);
+    printf("%7d Me\n", tally[Me]);
+
+    printf("%7d Nd\n", tally[Nd]);
+    printf("%7d Nl\n", tally[Nl]);
+    printf("%7d No\n", tally[No]);
+
+    printf("%7d Pc\n", tally[Pc]);
+    printf("%7d Pd\n", tally[Pd]);
+    printf("%7d Ps\n", tally[Ps]);
+    printf("%7d Pe\n", tally[Pe]);
+    printf("%7d Pi\n", tally[Pi]);
+    printf("%7d Pf\n", tally[Pf]);
+    printf("%7d Po\n", tally[Po]);
+
+    printf("%7d Sm\n", tally[Sm]);
+    printf("%7d Sc\n", tally[Sc]);
+    printf("%7d Sk\n", tally[Sk]);
+    printf("%7d So\n", tally[So]);
+
+    printf("%7d Zs\n", tally[Zs]);
+    printf("%7d Zl\n", tally[Zl]);
+    printf("%7d Zl\n", tally[Zp]);
+
+    printf("%7d ==\n", MAX_UCHAR+1 - tally[Cn]);
+
+    parse_into_blocks(64);
+    parse_into_blocks(128);
+    parse_into_blocks(256);
+    parse_into_blocks(512);
+    parse_into_blocks(1024);
+    parse_into_blocks(256);
+
+    printf("------------------------------*/\n\n");
+
+    print_blocks(256);
+    return 0;
+}
+
+
+

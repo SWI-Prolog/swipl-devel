@@ -1,0 +1,4 @@
+V	050526115456Z		01	unknown	/C=NL/ST=Noord-Holland/L=Amsterdam/O=Diff Automatisering/OU=Server/CN=J. van der Steen/emailAddress=J.van.der.Steen@diff.nl
+V	050526121325Z		02	unknown	/C=NL/ST=Noord-Holland/L=Amsterdam/O=Diff Automatisering/OU=Client/CN=J. van der Steen/emailAddress=J.van.der.Steen@diff.nl
+V	050607130948Z		03	unknown	/C=NL/ST=Noord-Holland/L=Amsterdam/O=Diff Automatisering/OU=Client/CN=J. van der Steen/Email=J.van.der.Steen@diff.nl
+V	050701000000+0100		04	unknown	/C=NL/ST=Noord-Holland/O=Diff Automatisering/OU=Client/CN=J. van der Steen/Email=J.van.der.Steen@diff.nl

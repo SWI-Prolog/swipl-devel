@@ -1,0 +1,24 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% 991202 Slim Abdennadher, LMU
+%%
+%% ported to hProlog by Tom Schrijvers
+
+:- module(fib,[]).
+
+:- use_module(library(chr)).
+
+:- constraints fib/2.
+
+%% fib(N,M) is true if  M is the Nth Fibonacci number.
+
+%% Top-down Evaluation with Tabulation
+
+fib(N,M1), fib(N,M2) <=> M1 = M2, fib(N,M1).
+
+fib(0,M) ==> M = 1.
+
+fib(1,M) ==> M = 1.
+
+fib(N,M) ==> N > 1 | N1 is N-1, fib(N1,M1), N2 is N-2, fib(N2,M2), M is M1 + M2.
+                 

@@ -1,0 +1,33 @@
+#!/bin/sh
+
+# Run plld from the development system (i.e.   after  the base system is
+# compiled, but not yet  installed.  If   we  are  building using shared
+# libraries we must set LD_LIBRARY_PATH to be able to find them.
+#
+# The current implementation of this  script   works  on  ELF based Unix
+# systems.  COFF  based  systems  (MacOS    X,  AIX)  require  different
+# procedures.
+
+BUILDDIR=@BUILDDIR@
+srcdir=`echo @srcdir@ | sed 's=/../packages=='`
+ARCH=@ARCH@
+PL=@PL@@RT@
+bdir=$srcdir/../$BUILDDIR
+ldir=$srcdir/../lib/$ARCH
+
+case "$ARCH" in
+  *arwin*|*aix*)
+	plld "$@"
+	exit $?
+	;;
+  *)
+  	;;
+esac
+
+if [ "x$LD_LIBRARY_PATH" = "" ]; then
+  LD_LIBRARY_PATH=$ldir
+else
+  LD_LIBRARY_PATH="$ldir:$LD_LIBRARY_PATH"
+fi
+
+$bdir/plld -pl $bdir/$PL "$@"

@@ -1,0 +1,138 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Thom Fruehwirth ECRC 1991-1993
+%% 910528 started boolean,and,or constraints
+%% 910904 added xor,neg constraints
+%% 911120 added imp constraint
+%% 931110 ported to new release
+%% 931111 added card constraint 
+%% 961107 Christian Holzbaur, SICStus mods
+%%
+%% ported to hProlog by Tom Schrijvers June 2003
+
+
+:- module(fulladder,[main/0,main/1]).
+
+:- constraints and/3, or/3, xor/3, neg/2.
+
+:- use_module(library(lists)).
+
+%% and/3 specification
+%%and(0,0,0).
+%%and(0,1,0).
+%%and(1,0,0).
+%%and(1,1,1).
+
+and(0,X,Y) <=> Y=0.
+and(X,0,Y) <=> Y=0.
+and(1,X,Y) <=> Y=X.
+and(X,1,Y) <=> Y=X.
+and(X,Y,1) <=> X=1,Y=1.
+and(X,X,Z) <=> X=Z.
+and(X,Y,A) \ and(X,Y,B) <=> A=B, chr_dummy.
+and(X,Y,A) \ and(Y,X,B) <=> A=B, chr_dummy.
+
+%% or/3 specification
+%%or(0,0,0).
+%%or(0,1,1).
+%%or(1,0,1).
+%%or(1,1,1).
+
+or(0,X,Y) <=> Y=X.
+or(X,0,Y) <=> Y=X.
+or(X,Y,0) <=> X=0,Y=0.
+or(1,X,Y) <=> Y=1.
+or(X,1,Y) <=> Y=1.
+or(X,X,Z) <=> X=Z.
+or(X,Y,A) \ or(X,Y,B) <=> A=B, chr_dummy.
+or(X,Y,A) \ or(Y,X,B) <=> A=B, chr_dummy.
+
+%% xor/3 specification
+%%xor(0,0,0).
+%%xor(0,1,1).
+%%xor(1,0,1).
+%%xor(1,1,0).
+
+xor(0,X,Y) <=> X=Y.
+xor(X,0,Y) <=> X=Y.
+xor(X,Y,0) <=> X=Y.
+xor(1,X,Y) <=> neg(X,Y).
+xor(X,1,Y) <=> neg(X,Y).
+xor(X,Y,1) <=> neg(X,Y).
+xor(X,X,Y) <=> Y=0.
+xor(X,Y,X) <=> Y=0.
+xor(Y,X,X) <=> Y=0.
+xor(X,Y,A) \ xor(X,Y,B) <=> A=B, chr_dummy.
+xor(X,Y,A) \ xor(Y,X,B) <=> A=B, chr_dummy.
+
+%% neg/2 specification
+%%neg(0,1).
+%%neg(1,0).
+
+neg(0,X) <=> X=1.
+neg(X,0) <=> X=1.
+neg(1,X) <=> X=0.
+neg(X,1) <=> X=0.
+neg(X,X) <=> fail.
+neg(X,Y) \ neg(Y,Z) <=> X=Z, chr_dummy.	
+neg(X,Y) \ neg(Z,Y) <=> X=Z, chr_dummy.	
+neg(Y,X) \ neg(Y,Z) <=> X=Z, chr_dummy.	
+%% Interaction with other boolean constraints
+neg(X,Y) \ and(X,Y,Z) <=> Z=0, chr_dummy.
+neg(Y,X) \ and(X,Y,Z) <=> Z=0, chr_dummy.
+neg(X,Z) , and(X,Y,Z) <=> X=1,Y=0,Z=0.
+neg(Z,X) , and(X,Y,Z) <=> X=1,Y=0,Z=0.
+neg(Y,Z) , and(X,Y,Z) <=> X=0,Y=1,Z=0.
+neg(Z,Y) , and(X,Y,Z) <=> X=0,Y=1,Z=0.
+neg(X,Y) \ or(X,Y,Z) <=> Z=1, chr_dummy.
+neg(Y,X) \ or(X,Y,Z) <=> Z=1, chr_dummy.
+neg(X,Z) , or(X,Y,Z) <=> X=0,Y=1,Z=1.
+neg(Z,X) , or(X,Y,Z) <=> X=0,Y=1,Z=1.
+neg(Y,Z) , or(X,Y,Z) <=> X=1,Y=0,Z=1.
+neg(Z,Y) , or(X,Y,Z) <=> X=1,Y=0,Z=1.
+neg(X,Y) \ xor(X,Y,Z) <=> Z=1, chr_dummy.
+neg(Y,X) \ xor(X,Y,Z) <=> Z=1, chr_dummy.
+neg(X,Z) \ xor(X,Y,Z) <=> Y=1, chr_dummy.
+neg(Z,X) \ xor(X,Y,Z) <=> Y=1, chr_dummy.
+neg(Y,Z) \ xor(X,Y,Z) <=> X=1, chr_dummy.
+neg(Z,Y) \ xor(X,Y,Z) <=> X=1, chr_dummy.
+
+/* end of handler bool */
+
+half_adder(X,Y,S,C) :-
+	xor(X,Y,S),
+	and(X,Y,C).
+
+full_adder(X,Y,Ci,S,Co) :-
+	half_adder(X,Y,S1,Co1),
+	half_adder(Ci,S1,S,Co2),
+	or(Co1,Co2,Co).
+
+main :-
+	main(6000).
+
+main(N) :-
+	cputime(X),
+	adder(N),
+	cputime(Now),
+	Time is Now - X,
+	write(bench(bool ,N,Time,0,hprolog)),write('.'),nl.
+
+adder(N) :-
+	length(Ys,N),
+	add(N,Ys).
+
+add(N,[Y|Ys]) :-
+	half_adder(1,Y,0,C),
+	add0(Ys,C).
+
+add0([],1).
+add0([Y|Ys],C) :-
+	full_adder(0,Y,C,1,NC),
+	add1(Ys,NC).
+
+add1([],0).
+add1([Y|Ys],C) :-
+	full_adder(1,Y,C,0,NC),
+	add0(Ys,NC).
+

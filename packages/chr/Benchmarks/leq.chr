@@ -1,0 +1,32 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% simple constraint solver for inequalities between variables
+%% thom fruehwirth ECRC 950519, LMU 980207, 980311
+%%
+%% ported to hProlog by Tom Schrijvers 
+
+:- module(leq,[main/0,main/1]).
+
+:- constraints leq/2.
+reflexivity  @ leq(X,X) <=> true.
+antisymmetry @ leq(X,Y), leq(Y,X) <=> X = Y.
+idempotence  @ leq(X,Y) \ leq(X,Y) <=> true.
+transitivity @ leq(X,Y), leq(Y,Z) ==> leq(X,Z).
+
+main :-
+	main(60).
+
+main(N):-
+	cputime(X),
+	length(L,N),
+	genleq(L,Last),
+	L=[First|_],
+	leq(Last,First),
+	cputime( Now),
+	Time is Now-X,
+	write(bench(leq ,N,Time,0,hprolog)), write('.'),nl.
+
+genleq([Last],Last) :- ! .
+genleq([X,Y|Xs],Last):-
+	leq(X,Y),
+	genleq([Y|Xs],Last).

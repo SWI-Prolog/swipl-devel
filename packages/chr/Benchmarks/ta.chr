@@ -1,0 +1,381 @@
+:- module(ta,[main/0,main/1]).
+
+:- use_module(library(chr)).
+:- use_module(library(lists)).
+
+/*
+
+	Timed automaton => Constraints
+
+			=>
+	
+	 X := N			geq(X,N)
+	-------->
+
+	 X =< N			leq(X,N)
+	-------->
+	
+	 X >= N			geq(X,N)
+	-------->
+
+	
+n > 1,	1 ------> v		fincl(Xv,X1),
+	...    /		...
+	n ----/			fincl(Xv,Xn),
+				fub_init(Xv,[])
+
+n >= 1, v ------> 1		bincl(Xv,X1),
+	  \     ...		...
+	   \----> n		bincl(Xv,X1),
+				bub_init(Xv,[])
+*/
+
+%% handler ta.
+
+:- constraints
+ 
+	fincl/2, 	% expresses that clock 1 includes clock 2 (union)
+			% in the sense that clock 2 is forward of clock 1
+
+	bincl/2, 	% expresses that clock 1 includes clock 2 (union)
+			% in the sense that clock 1 is forward of clock 2
+
+	leq/2, 		% expresses that clock 1 =< number 2
+
+	geq/2, 		% expresses that clock 1 >= number 2
+
+	fub_init/2, 	% collects the inital upper bounds 
+			% from incoming arrows for clock 1 in list 2
+
+	fub/2,		% collects the upper bounds for clock 1
+			% from incoming arrows in list 2
+
+	flb_init/2, 	% collects the inital lower bounds 
+			% from incoming arrows for clock 1 in list 2
+
+	flb/2,		% collects the lower bounds for clock 1
+			% from incoming arrows in list 2
+
+	bub_init/2, 	% collects the inital upper bounds 
+			% from backward arrows for clock 1 in list 2
+
+	bub/2,		% collects the upper bounds for clock 1
+			% from outgoing arrows in list 2
+			% values of clock 1 cannot exceed all
+			% values of the clocks in list 2
+
+	blb_init/2, 	% collects the inital lower bounds 
+			% from backward arrows for clock 1 in list 2
+
+	blb/2,		% collects the lower bounds for clock 1
+			% from outgoing arrows in list 2
+			% not all values of clock 1 can exceed any
+			% values of the clocks in list 2
+
+	compl/1,	% indicate that all incoming arrows for clock 1
+			% have been registerd
+
+	dist/3,		% indicates that clock 1 - clock 2 =< number 3
+
+	fdist_init/3,	% records initial distances for clock 1 and clock 2 from
+			% incoming arrows in list 3
+
+	fdist/3,	% records distances for clock 1 and clock 2 from
+			% incoming arrows in list 3
+
+	setdist/3.	% sets distance between clock 1 and clock 2, where
+			% clock 1 is reset to value 3
+
+/* More Constraints:
+	
+*/
+
+leq(X,N1) \ leq(X,N2) <=> N1 =< N2 | true.
+
+geq(X,N1) \ geq(X,N2) <=> N2 =< N1 | true.
+
+dist(X,Y,D1) \ dist(X,Y,D2) <=> D1 =< D2 | true.
+
+dist(X,Y,D), leq(Y,MY) \ leq(X,MX1) <=>
+	MX2 is MY + D, MX2 < MX1 | leq(X,MX2).
+
+dist(X,Y,D), geq(X,MX) \ geq(Y,MY1) <=>
+	MY2 is MX - D, MY2 > MY1 | geq(Y,MY2).
+
+fincl(X,Y), leq(Y,N) \ fub_init(X,L) 
+	<=> \+ memberchk_eq(N-Y,L) |
+	    insert_ub(L,Y,N,NL),
+	    fub_init(X,NL).
+
+fincl(X,Y), geq(Y,N) \ flb_init(X,L) 
+	<=> \+ memberchk_eq(N-Y,L) |
+	    insert_lb(L,Y,N,NL),
+	    flb_init(X,NL).
+
+dist(X1,Y1,D), fincl(X2,X1), fincl(Y2,Y1) \ fdist_init(X2,Y2,L)
+	<=>
+	\+ memberchk_eq(D-X1,L) |
+	insert_ub(L,X1,D,NL),
+	fdist_init(X2,Y2,NL).
+
+bincl(X,Y), leq(Y,N) \ bub_init(X,L)
+	<=>
+	\+ memberchk_eq(N-Y,L) |
+	insert_ub(L,Y,N,NL),
+	bub_init(X,NL).
+
+compl(X) \ fub_init(X,L) # ID 
+	<=> 
+	fub(X,L),
+	val(L,M),
+	leq(X,M)
+	pragma passive(ID).
+
+compl(X) \ flb_init(X,L) # ID 
+	<=> 
+	flb(X,L),
+	val(L,M),
+	geq(X,M)
+	pragma passive(ID).
+
+compl(X), compl(Y) \ fdist_init(X,Y,L) # ID
+	<=>
+	fdist(X,Y,L),
+	val(L,D),
+	dist(X,Y,D)
+	pragma passive(D).
+
+compl(X) \ bub_init(X,L) # ID 
+	<=> 
+	bub(X,L),
+	val(L,M),
+	leq(X,M)
+	pragma passive(ID).
+
+fincl(X,Y), leq(Y,N) \ fub(X,L) 
+	<=>
+	\+ memberchk_eq(N-Y,L) |
+	insert_ub(L,Y,N,NL),
+	fub(X,NL),
+	val(NL,M),
+	leq(X,M).
+
+fincl(X,Y), geq(Y,N) \ flb(X,L) 
+	<=>
+	\+ memberchk_eq(N-Y,L) |
+	insert_lb(L,Y,N,NL),
+	flb(X,NL),
+	val(NL,M),
+	geq(X,M).
+
+bincl(X,Y), leq(Y,N) \ bub(X,L) 
+	<=>
+	\+ memberchk_eq(N-Y,L) |
+	insert_ub(L,Y,N,NL),
+	bub(X,NL),
+	val(NL,M),
+	leq(X,M).
+
+fincl(X2,X1), fincl(Y2,Y1), dist(X1,Y1,D) \ fdist(X2,Y2,L)
+	<=>
+	\+ memberchk_eq(D-X1,L) |
+	insert_ub(L,X1,D,NL),
+	fdist(X2,Y2,NL),
+	val(NL,MD),
+	dist(X2,Y2,MD).
+
+fincl(X,Y), leq(X,N) ==> leq(Y,N).
+
+fincl(X,Y), geq(X,N) ==> geq(Y,N).
+
+bincl(X,Y), geq(X,N) ==> geq(Y,N).
+
+bincl(X1,X2), bincl(Y1,Y2), dist(X1,Y1,D1) \ dist(X2,Y2,D2) <=> D1 < D2 | dist(X2,Y2,D1).
+
+setdist(X,Y,N), leq(Y,D1) ==> D2 is D1 - N, dist(Y,X,D2).
+setdist(X,Y,N), geq(Y,D1) ==> D2 is N - D1, dist(X,Y,D2).
+
+val([N-_|_],N).
+
+insert_ub([],X,N,[N-X]).
+insert_ub([M-Y|R],X,N,NL) :-
+	( Y == X ->
+		insert_ub(R,X,N,NL)
+	; M > N ->
+		NL = [M-Y|NR],
+		insert_ub(R,X,N,NR)
+	;
+		NL = [N-X,M-Y|R]
+	).
+
+insert_lb([],X,N,[N-X]).
+insert_lb([M-Y|R],X,N,NL) :-
+	( Y == X ->
+		insert_lb(R,X,N,NL)
+	; M < N ->
+		NL = [M-Y|NR],
+		insert_lb(R,X,N,NR)
+	;
+		NL = [N-X,M-Y|R]
+	).
+
+couple(X,Y) :-
+	dist(X,Y,10000),
+	dist(Y,X,10000).
+
+giri :-
+	giri([x1,y1,x2,y2,x3,y3,x4,y4,x5,y5,x6,y6,x7,y7,x8,y8,x9,y9,x10,y10]).
+
+giri(L) :-
+	L = [X1,Y1,X2,Y2,X3,Y3,X4,Y4,X5,Y5,X6,Y6,X7,Y7,X8,Y8,X9,Y9,X10,Y10],
+	clocks(L),
+	
+	% 1.
+	couple(X1,Y1),
+	geq(X1,0),
+	geq(X2,0),
+	dist(X1,Y1,0),
+	dist(Y1,X1,0),
+
+	% 2.
+	couple(X2,Y2),
+
+	fincl(X2,X1),
+	fincl(X2,X8),
+	fincl(X2,X10),
+	fub_init(X2,[]),
+	flb_init(X2,[]),
+
+	fincl(Y2,Y1),
+	fincl(Y2,Y8),
+	fincl(Y2,Y10),
+	fub_init(Y2,[]),
+	flb_init(Y2,[]),
+
+	bincl(X2,X3),
+	bincl(X2,X4),
+	bub_init(X2,[]),
+	blb_init(X2,[]),
+	
+	bincl(Y2,Y3),
+	bincl(Y2,Y4),
+	bub_init(Y2,[]),
+	blb_init(Y2,[]),
+
+	fdist_init(X2,Y2,[]),
+	fdist_init(Y2,X2,[]),
+
+	% 3.
+	couple(X3,Y3),
+	leq(X3,3),
+
+	bincl(X3,X9),
+	bincl(X3,X5),
+	bub_init(X3,[]),
+	blb_init(X3,[]),
+
+	bincl(Y3,Y9),
+	bincl(Y3,Y5),
+	bub_init(Y3,[]),
+	blb_init(Y3,[]),
+
+	%fdist_init(X3,Y3,[]),
+	%fdist_init(Y3,X3,[]),
+
+	% 4.
+	couple(X4,Y4),
+	geq(Y4,2),
+	leq(Y4,5),
+
+	% 5.
+	couple(X5,Y5),
+	geq(Y5,5),
+	leq(Y5,10),
+
+	% 6.
+	couple(X6,Y6),
+
+	fincl(X6,X4),
+	fincl(X6,X5),
+	fub_init(X6,[]),
+	flb_init(X6,[]),
+
+	fincl(Y6,Y4),
+	fincl(Y6,Y5),
+	fub_init(Y6,[]),
+	flb_init(Y6,[]),
+
+	bincl(X6,X7),
+	bub_init(X6,[]),
+
+	bincl(Y6,Y7),
+	bub_init(Y6,[]),
+
+	fdist_init(X6,Y6,[]),
+	fdist_init(Y6,X6,[]),
+
+	% 7.
+	couple(X7,Y7),
+	geq(Y7,15),
+	leq(Y7,15),
+
+	% 8.
+	couple(X8,Y8),
+	geq(X8,2),
+	geq(Y8,2),
+	dist(X8,Y8,0),
+	dist(Y8,X8,0),
+
+	% 9.
+	couple(X9,Y9),
+	geq(Y9,5),
+	leq(Y9,5),
+	
+
+	% 10.
+	couple(X10,Y10),
+	geq(X10,0),
+	geq(Y10,0),
+	dist(X10,Y10,0),
+	dist(Y10,X10,0),
+
+	% finish
+	compl(X2),
+	compl(Y2),
+
+	compl(X3),
+	compl(Y3),	
+	
+	compl(X6),
+	compl(Y6).	
+
+	
+
+clocks([]).
+clocks([C|Cs]) :-
+	clock(C),
+	clocks(Cs).
+
+clock(X) :-
+	geq(X,0),
+	leq(X,10000).
+
+main :-
+	main(100).
+
+main(N) :-
+	cputime(T1),
+	loop(N),
+	cputime(T2),
+	T is T2 - T1,
+	write(bench(ta ,N , T,0,hprolog)),write('.'),nl.
+	
+
+loop(N) :-
+	( N =< 0 ->
+		true
+	;
+		( giri, fail ; true),
+		M is N - 1,
+		loop(M)
+	).

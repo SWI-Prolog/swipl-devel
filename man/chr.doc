@@ -1,0 +1,487 @@
+\chapter{CHR: Constraint Handling Rules} 		\label{sec:chr}
+
+This chapter is written by Tom Schrijvers, K.U. Leuven for the hProlog
+system. Adjusted by Jan Wielemaker to fit the SWI-Prolog documentation
+infrastructure and remove hProlog specific references.
+
+The CHR runtime environment using in SWI-Prolog is written by Christian
+Holzbaur and Tom Schrijvers while the compiler is written by Tom
+Schrijvers.  Both are integrated with SWI-Prolog and licenced under
+compatible conditions with permission from the authors.
+
+
+\section{Introduction}
+%=====================
+
+Constraint Handling Rules (CHR) is a committed-choice bottom-up language
+embedded in Prolog. It is designed for writing constraint solvers and is
+particularily useful for providing application-specific constraints.
+It has been used in many kinds of applications, like scheduling,
+model checking, abduction, type checking among many others.
+
+CHR has previously been implemented in other Prolog systems (SICStus,
+Eclipse, Yap), Haskell and Java. This CHR system is based on the
+compilation scheme and runtime environment of CHR in SICStus.
+
+In this documentation we restrict ourselves to giving a short overview
+of CHR in general and mainly focus on elements specific to this
+implementation. For a more thorough review of CHR we refer the reader to
+\cite{Freuhwirth:98}. More background on CHR can be found at
+\cite{chrSite}.
+
+In \secref{SyntaxAndSemantics} we present the syntax of CHR in Prolog and
+explain informally its operational semantics. Next, \secref{practical}
+deals with practical issues of writing and compiling hProlog programs
+containing CHR. \Secref{debugging} explains the currently primitive CHR
+debugging facilities. \Secref{predicates} provides a few useful predicates
+to inspect the constraint store and \secref{examples} illustrates CHR with
+two example programs. In \secref{sicstus-chr} some compatibility issues with
+SICStus CHR are listed. Finally, \secref{guidelines} concludes with a few
+practical guidelines for using CHR.
+
+
+\section{Syntax and Semantics} 		\label{sec:SyntaxAndSemantics}
+%=============================
+
+\subsection{Syntax}
+%-----------------
+
+The syntax of CHR rules in hProlog is the following:
+
+\begin{code}
+rules --> rule, rules.
+rules --> [].
+
+rule --> name, actual_rule, pragma, [atom('.')].
+
+name --> atom, [atom('@')].
+name --> [].
+
+actual_rule --> simplification_rule.
+actual_rule --> propagation_rule.
+actual_rule --> simpagation_rule.
+
+simplification_rule --> constraints, [atom('<=>')], guard, body.
+propagation_rule --> constraints, [atom('==>')], guard, body.
+simpagation_rule --> constraints, [atom('\')], constraints, [atom('<=>')], 
+                     guard, body.
+
+constraints --> constraint, constraint_id.
+constraints --> constraint, [atom(',')], constraints.
+
+constraint --> compound_term.
+
+constraint_id --> [].
+constraint_id --> [atom('#')], variable.
+
+guard --> [].
+guard --> goal, [atom('|')].
+
+body --> goal.
+
+pragma --> [].
+pragma --> [atom('pragma')], actual_pragmas.
+
+actual_pragmas --> actual_pragma.
+actual_pragmas --> actual_pragma, [atom(',')], actual_pragmas.
+
+actual_pragma --> [atom('passive(')], variable, [atom(')')].
+
+\end{code}
+
+Additional syntax-related terminology:
+
+\begin{itemize}
+\item \textbf{head:} the constraints in an \texttt{actual_rule} before
+                     the arrow (either \texttt{<=>} or \texttt{==>})
+\end{itemize}
+
+\subsection{Semantics}
+%--------------------
+
+In this subsection the operational semantics of CHR in Prolog are presented
+informally. They do not differ essentially from other CHR systems.
+
+When a constraint is called, it is considered an active constraint and
+the system will try to apply the rules to it. Rules are tried and executed
+sequentially in the order they are written. 
+
+A rule is conceptually tried for an active constraint in the following
+way. The active constraint is matched with a constraint in the head of
+the rule. If more constraints appear in the head they are looked for
+among the suspended constraints, which are called passive constraints in
+this context. If the necessary passive constraints can be found and all
+match with the head of the rule and the gaurd of the rule succeeds, then
+the rule is committed and the body of the rule executed. If not all the
+necessary passive constraint can be found, the matching fails or the
+guard fails, then the body is not executed and the process of trying and
+executing simply continues with the following rules. If for a rule,
+there are multiple constraints in the head, the active constraint will
+try the rule sequentially multiple times, each time trying to match with
+another constraint.
+
+This process ends either when the active constraint disappears, i.e.\ it
+is removed by some rule, or after the last rule has been processed. In
+the latter case the active constraint becomes suspended.
+
+A suspended constraint is eligible as a passive constraint for an active
+constraint. The other way it may interact again with the rules, is when
+a variable appearing in the constraint becomes bound to either a nonvariable
+or another variable involved in one or more constraints. In that case the
+constraint is triggered, i.e.\ it becomes an active constraint and all
+the rules are tried.
+
+\paragraph{Rule Types}
+%- - - - - - - - - - 
+
+There are three different kinds of rules, each with their specific semantics:
+
+\begin{itemlist}
+    \item [simplification]
+The simplification rule removes the constraints in its head and calls its body.
+
+    \item [propagation]
+The propagation rule calls its body exactly once for the constraints in
+its head.
+
+    \item [simpagation]
+The simpagation rule removes the constraints in its head after the
+$\backslash$ and then calls its body. It is an optimization of
+simplification rules of the form: \[constraints_1, constraints_2 <=>
+constraints_1, body \] Namely, in the simpagation form: \[ constraints_1
+\backslash constraints_2 <=> body \] The \arg{constraints_1}
+constraints are not called in the body.
+\end{itemlist}
+
+\paragraph{Rule Names}
+%- - - - - - - - - - 
+Naming a rule is optional and has no semantical meaning. It only functions
+as documentation for the programmer.
+
+\paragraph{Pragmas}
+%- - - - - - - - -
+The semantics of the pragmas are:
+
+\begin{description}
+    \termitem{passive}{Identifier}
+The constraint in the head of a rule \arg{Identifier} can only act as a
+passive constraint in that rule.
+\end{description}
+
+Additional pragmas may be released in the future.
+
+\paragraph{Options}
+%- - - - - - - - -
+It is possible to specify options that apply to all the CHR rules in the module.
+Options are specified with the \texttt{option/2} declaration:
+
+\begin{code}
+                option(Option,Value).
+\end{code}
+
+Available options are:
+\begin{description}
+        \termitem{check_guard_bindings}{}
+This option controls whether guards should be checked for illegal
+variable bindings or not. Possible values for this option are
+\texttt{on}, to enable the checks, and \texttt{off}, to disable the
+checks.
+
+        \termitem{optimize}{}
+This is an experimental option controlling the degree of optimization.
+Possible values are \texttt{full}, to enable all available
+optimizations, and \texttt{off}, to disable all optimizations.  The
+default is derived from the SWI-Prolog flag \const{optimise}, where
+\const{true} is mapped to \const{full}.  Therefore the commandline
+option \cmdlineoption{-O} provides full CHR optimization.
+
+	\termitem{debug}{}
+This options enables or disables the possibility to debug the CHR code.
+Possible values are \texttt{on} and \texttt{off} (default). See
+\secref{debugging} for more details on debugging.  The default is
+derived from the prolog flag \const{generate_debug_info}, which
+is \const{true} by default.  See \cmdlineoption{-nodebug}.
+
+	\termitem{mode}{}
+This option specifies the mode for a particular constraint. The
+value is a term with functor and arity equal to that of a constraint.
+The arguments can be one of \texttt{-}, \texttt{+} or \texttt{?}.
+The latter is the default. The meaning is the following:
+	\begin{description}
+	\termitem{-}{} The corresponding argument of every occurrence
+	of the constraint is always unbound.
+	\termitem{+}{} The corresponding argument of every occurrence
+	of the constraint is always ground.
+	\termitem{?}{} The corresponding argument of every occurrence
+	of the constraint can have any instantiation, which may change
+	over time. This is the default value.
+	\end{description}
+The declaration is used by the compiler for various optimizations. 
+Note that it is up to the user the ensure that the mode declaration
+is correct with respect to the use of the constraint.
+This option may occur once for each constraint.
+
+\end{description}
+
+\section{CHR in SWI-Prolog Programs}		\label{sec:practical}
+%===========================
+
+
+\subsection{Embedding in Prolog Programs}
+
+The CHR constraints defined in a particulary \fileext{chr} file are
+associated with a module. The default module is \const{user}. One should
+never load different \fileext{chr} files with the same CHR module name.
+
+
+\subsection{Compilation}
+
+The SWI-Prolog CHR compiler exploits term_expansion/2 rules to translate
+the constraint handling rules to plain Prolog. These rules are loaded
+from the library \pllib{chr}.   They are activated if the compiled file
+has the \fileext{chr} extension or after finding a declaration of the
+format below.
+
+\begin{code}
+:- constraints ...
+\end{code}
+
+It is adviced to define CHR rules in a module file, where the module
+declaration is immediately followed by including the \pllib{chr}
+library as examplified below:
+
+\begin{code}
+:- module(zebra, [ zebra/0 ]).
+:- use_module(library(chr)).
+
+:- constraints ...
+\end{code}
+
+Using this style CHR rules can be defined in ordinary Prolog
+\fileext{pl} files and the operator definitions required by CHR do not
+leak into modules where they might cause conflicts.
+
+
+\section{Debugging}			\label{sec:debugging}
+%=================
+
+The CHR debugging facilities are currently rather limited. Only tracing
+is currently available. To use the CHR debugging facilities for a CHR
+file it must be compiled for debugging. Generating debug info is
+controlled by the CHR option \const{debug}, whose default is derived
+from the SWI-Prolog flag \const{generate_debug_info}.  Therefore debug
+info is provided unless the \cmdlineoption{-nodebug} is used.
+
+
+\subsection{Ports}				\label{sec:chrports}
+%===============
+
+For CHR constraints the four standard ports are defined:
+
+\begin{itemlist}
+	\termitem{call}{}
+A new constraint is called and becomes active.
+	\termitem{exit}{}
+An active constraint exits: it has either been inserted in the store after
+trying all rules or has been removed from the constraint store.
+	\termitem{fail}{}
+An active constraint fails.
+	\termitem{redo}{}
+An active constraint starts looking for an alternative solution.
+\end{itemlist}
+
+In addition to the above ports, CHR constraints have five additional
+ports:
+
+\begin{itemlist}
+	\termitem{wake}{}
+A suspended constraint is woken and becomes active.
+	\termitem{insert}{}
+An active constraint has tried all rules and is suspended in
+the constraint store.
+	\termitem{remove}{}
+An active or passive constraint is removed from the constraint
+store, if it had been inserted.
+\termitem{try}{}
+	An active constraints tries a rule with possibly
+	some passive constraints. The try port is entered
+	just before committing to the rule.
+\termitem{apply}{}
+	An active constraints commits to a rule with possibly
+	some passive constraints. The apply port is entered
+	just after committing to the rule.
+\end{itemlist}
+
+\subsection{Tracing}
+%=================
+
+Tracing is enabled with the chr_trace/0 predicate
+and disabled with the chr_notrace/0 predicate.
+
+When enabled the tracer will step through the \const{call},
+\const{exit}, \const{fail}, \const{wake} and \const{apply} ports,
+accepting debug commands, and simply write out the other ports.
+
+The following debug commans are currently supported:
+
+\begin{verbatim}
+        CHR debug options:
+
+                <cr>    creep           c       creep
+		s	skip
+		g	ancestors
+                n       nodebug
+		b	break
+                a       abort
+                f       fail
+                ?       help            h       help
+\end{verbatim}
+
+Their meaning is:
+
+\begin{itemlist}
+	\termitem{creep}{}
+Step to the next port.
+	\termitem{skip}{}
+Skip to exit port of this call or wake port.
+	\termitem{ancestors}{}
+Print list of ancestor call and wake ports.
+	\termitem{nodebug}{}
+Disable the tracer.
+	\termitem{break}{}
+Enter a recursive Prolog toplevel.  See break/0.
+	\termitem{abort}{}
+Exit to the toplevel.  See abort/0.
+	\termitem{fail}{}
+Insert failure in execution.
+	\termitem{help}{}
+Print the above available debug options.
+\end{itemlist}
+
+\subsection{CHR Debugging Predicates} 		\label{sec:predicates}
+%====================================
+
+The \pllib{chr} module contains several predicates that allow
+inspecting and printing the content of the constraint store.
+
+\begin{description}
+    \predicate{chr_trace}{0}{}
+Activate the CHR tracer.  By default the CHR tracer is activated and
+deactivated automatically by the Prolog predicates trace/0 and
+notrace/0.
+
+    \predicate{chr_notrace}{0}{}
+De-activate the CHR tracer.  By default the CHR tracer is activated and
+deactivated automatically by the Prolog predicates trace/0 and
+notrace/0.
+    
+    \predicate{chr_leash}{1}{+Spec}
+Define the set of CHR ports on which the CHR tracer asks for user
+intervention (i.e.\ stops). \arg{Spec} is either a list of ports as
+defined in \secref{chrports} or a predefined `alias'. Defined aliases
+are: \const{full} to stop at all ports, \const{none} or \const{off} to
+never stop, and \const{default} to stop at the \const{call},
+\const{exit}, \const{fail}, \const{wake} and \const{apply} ports.
+See also leash/1.
+
+    \predicate{chr_show_store}{1}{+Mod}
+Prints all suspended constraints of module \arg{Mod} to the
+standard output.
+\end{description}
+
+
+\section{Examples}			\label{sec:examples}
+%================
+
+Here are two example constraint solvers written in CHR.
+
+\begin{itemize}
+    \item
+The program below defines a solver with one constraint, 
+\predref{leq}{2}, which is a less-than-or-equal constraint.
+
+\begin{code}
+:- module(leq,[cycle/3, leq/2]).
+:- use_module(library(chr)).
+
+:- constraints leq/2.
+reflexivity  @ leq(X,X) <=> true.
+antisymmetry @ leq(X,Y), leq(Y,X) <=> X = Y.
+idempotence  @ leq(X,Y) \ leq(X,Y) <=> true.
+transitivity @ leq(X,Y), leq(Y,Z) ==> leq(X,Z).
+
+cycle(X,Y,Z):-
+        leq(X,Y),
+        leq(Y,Z),
+        leq(Z,X).
+\end{code}
+
+    \item
+The program below implements a simple finite domain
+constraint solver.
+
+\begin{code}
+:- module(dom,[dom/2]).
+:- use_module(library(chr)).
+
+:- constraints dom/2. 
+
+dom(X,[]) <=> fail.
+dom(X,[Y]) <=> X = Y.
+dom(X,L1), dom(X,L2) <=> intersection(L1,L2,L3), dom(X,L3).
+
+intersection([],_,[]).
+intersection([H|T],L2,[H|L3]) :-
+        member(H,L2), !,
+        intersection(T,L2,L3).
+intersection([_|T],L2,L3) :-
+        intersection(T,L2,L3).
+\end{code}
+		
+\end{itemize}
+
+\section{Compatibility with SICStus CHR} 		\label{sec:sicstus-chr}
+%==================
+
+There are small differences between CHR in SWI-Prolog and SICStus.
+Besides differences in available options and pragmas, the following
+differences should be noted:
+
+\begin{itemlist}
+        \item [The \predref{handler}{1} declaration]
+In SICStus every CHR module requires a \predref{handler}{1}
+declaration declaring a unique handler name. This declaration is valid
+syntax in SWI-Prolog, but will have no effect. A warning will be given
+during compilation.
+
+        \item [The \predref{rules}{1} declaration]
+In SICStus every CHR it is possible to only enable a subset of the
+available rules through the \predref{rules}{1} declaration. The
+declaration is valid syntax in SWI-Prolog, but will have no effect. A
+warning will be given during compilation.
+
+	\item [Sourcefile naming]
+SICStus uses a two-step compiler, where \fileext{chr} files are
+first translated into \fileext{pl} files.  For SWI-Prolog CHR
+rules may be defined in a file with any extension.
+\end{itemlist}
+
+
+\section{Guidelines} 			\label{sec:guidelines}
+%==================
+
+In this section we cover several guidelines on how to use CHR to write
+constraint solvers and how to do so efficiently.
+
+\begin{itemlist}
+    \item [Set semantics]
+The CHR system allows the presence of identical constraints, i.e.
+multiple constraints with the same functor, arity and arguments. For
+most constraint solvers, this is not desirable: it affects efficiency
+and possibly termination. Hence appropriate simpagation rules should be
+added of the form: \[ constraint \backslash constraint <=> true \]
+
+    \item [Multi-headed rules]
+Multi-headed rules are executed more efficiently when the constraints
+share one or more variables.
+\end{itemlist}

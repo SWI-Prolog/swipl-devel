@@ -1,0 +1,13 @@
+Indexing
+========
+
+The indexing omits the table BY_SPO, indexing on all three arguments but
+uses BY_SP instead.  It  was  thought  not   to  gain  that  much.  This
+assumption was verified  on  real   data  (100,000  triple). Introducing
+BY_SPO gave a slowdown of about 10%.  Appearently the relatively high cost
+for indexing on the complicated object field outweights the benefits.
+
+The patch is left for reference in BY_SPO.diff. Note that after applying
+this patch the test cases no  longer   pass.  As  the failing cases were
+irrelevant to the performance test I never   bothered fixing this due to
+the failed performance test.

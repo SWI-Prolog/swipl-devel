@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# This script is used to start Prolog in the development environment
+# when its shared libraries are not yet installed
+
+srcdir=@srcdir@
+lib=$srcdir/../lib/@ARCH@
+bdir=$srcdir/../@BUILDDIR@
+
+if [ "x$LD_LIBRARY_PATH" = "x" ]; then
+  LD_LIBRARY_PATH=$lib
+else
+  LD_LIBRARY_PATH="$lib:$LD_LIBRARY_PATH"
+fi
+
+export LD_LIBRARY_PATH
+
+$bdir/@PL@ "$@"

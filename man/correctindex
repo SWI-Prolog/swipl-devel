@@ -1,0 +1,22 @@
+#!/usr/local/bin/perl -pi
+
+s/\\penalty \\\@M \\ /\\verb\$~\$/g;
+s/\\unhbox.*\\leftarrow.*\\ninit /\\get{/g;
+s/\\unhbox.*\\rightarrow.*\\ninit /\\send{/g;
+s/\\unhbox.*\\leftarrow.*\\pit /\\get{/g;
+s/\\unhbox.*\\rightarrow.*\\pit /\\send{/g;
+s/\\unhbox.*\\rightarrow.*\\it +/\\send{/g;
+s/\\unhbox.*\\leftarrow.*\\it +/\\get{/g;
+s/\\unhbox.*\\leftarrow.*\\ninbf /\\get{/g;
+s/\\unhbox.*\\rightarrow.*\\ninbf /\\send{/g;
+s/\\unhbox.*\\leftarrow.*\\pbf /\\get{/g;
+s/\\unhbox.*\\rightarrow.*\\pbf /\\send{/g;
+s/\\unhbox.*\\rightarrow.*\\bf +/\\send{/g;
+s/\\unhbox.*\\leftarrow.*\\bf +/\\get{/g;
+s/\\unhbox.*\\rightarrow.*\\tt +/\\send{/g;
+s/\\unhbox.*\\leftarrow.*\\tt +/\\get{/g;
+s/\\unhbox[^}]*\\hrule[^}]*}/_/g;
+s/\\relax +\\_/\\_/g;
+s/{\\accent "7E \/}/~/g;
+s/(\[\d+),(\d+\])/\1\{,\}\2/g;
+
