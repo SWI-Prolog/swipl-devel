@@ -1,5 +1,7 @@
 Sep 16, 2002 
 
+  * MODIFIED: Allow for unqualified attribute-names
+
   * ADDED: "make check"
 
 Older entries

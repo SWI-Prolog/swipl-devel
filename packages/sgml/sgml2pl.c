@@ -460,7 +460,6 @@ pl_set_sgml_parser(term_t parser, term_t option)
   } else if ( PL_is_functor(option, FUNCTOR_shorttag1) )
   { term_t a = PL_new_term_ref();
     int val;
-    int set;
 
     PL_get_arg(1, option, a);
     if ( !PL_get_bool(a, &val) )
