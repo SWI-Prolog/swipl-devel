@@ -756,7 +756,7 @@ constants.  \const{BUF_RING} implies, if the data is not static
 (as from an atom), the data is copied to the next buffer from a
 ring of 16 buffers.  This is a convenient way of converting
 multiple arguments passed to a foreign predicate to C-strings.  If
-BUF_MALLOC is used, the data must be freed using free() when not
+BUF_MALLOC is used, the data must be freed using PL_free() when not
 needed any longer.
 
 \begin{tabular}{|p{\tableft}|p{3.5in}|}
@@ -780,7 +780,8 @@ needed any longer.
 \const{BUF_DISCARDABLE}     & Data must copied immediately \\
 \const{BUF_RING}    & Data is stored in a ring of buffers \\
 \const{BUF_MALLOC}  & Data is copied to a new buffer returned by
-		      \manref{malloc}{3} \\
+		      \manref{PL_malloc}{3}.  When no longer needed
+		      the user must call PL_free() on the data. \\
 \hline
 \end{tabular}
 \cfunction{int}{PL_get_list_chars}{+term_t l, char **s, unsigned flags}
@@ -2865,11 +2866,54 @@ Yes
 
 \subsection{Memory Allocation}
 
-SWI-Prolog's memory allocation is based on the \manref{malloc}{3}
-library routines. Foreign applications can safely use
-\manref{malloc}{3}, \manref{realloc}{3} and \manref{free}{3}. Memory
-allocation using \manref{brk}{2} or \manref{sbrk}{2} is not allowed as
-these calls conflict with \manref{malloc}{3}.
+SWI-Prolog's heap memory allocation is based on the \manref{malloc}{3}
+library routines.  The stacks are allocated using mmap() on most Unix
+machines and using VirtualAlloc() on windows.  SWI-Prolog provides the
+functions below as a wrapper around malloc().  Allocation errors in
+these functions trap SWI-Prolog's fatal-error handler, in which case
+PL_malloc() or PL_realloc() do not return.
+
+Portable applications must use PL_free() to release strings returned
+by PL_get_chars() using the \const{BUF_MALLOC} argument.  Portable
+applications may use both PL_malloc() and friends or malloc() and
+friends but should not mix these two sets of functions on the same
+memory.%
+    \footnote{These functions were introduced in SWI-Prolog 5.0.9 to
+	      realise guaranteed portability.  Foreign code that must
+	      be compatible with older versions can check
+	      the \const{PLVERSION} macro.}
+
+\begin{description}
+    \cfunction{void *}{PL_malloc}{size_t bytes}
+Allocate \arg{bytes} of memory.  On failure SWI-Prolog's fatal error
+handler is called and PL_malloc() does not return.  Memory allocated
+using these functions must use PL_realloc() and PL_free() rather than
+realloc() and free().
+
+    \cfunction{void *}{PL_realloc}{void *mem, size_t size}
+Change the size of the allocated chunk, possibly moving it.  The
+\arg{mem} argument must be obtained from a previous PL_malloc() or
+PL_realloc() call.
+
+    \cfunction{void}{PL_free}{void *mem}
+Release memory.  The \arg{mem} argument must be obtained from a
+previous PL_malloc() or PL_realloc() call.
+\end{description}
+
+
+\subsection{Compatibility between Prolog versions}
+
+Great care is taken to ensure binary compatibility of foreign extensions
+between different Prolog versions. Only much less frequently used stream
+interface has been responsible for binary incompatibilities.
+
+\index{PLVERSION}%
+Source-code that relies on new features of the foreign interface can
+use the macro \const{PLVERSION} to find the version of
+\file{SWI-Prolog.h} and PL_query() using the option
+\const{PL_QUERY_VERSION} to find the version of the attached Prolog
+system. Both follow the same numbering schema explained with PL_query().
+
 
 \subsection{Debugging Foreign Code}
 
