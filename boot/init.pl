@@ -141,16 +141,12 @@ call(Goal) :-
 	Goal.
 
 not(Goal) :-
-	Goal, !,
-	fail.
-not(_).
+	\+ Goal.
 
 %	This version of not is compiled as well. For meta-calls only
 
 \+ Goal :-
-	Goal, !,
-	fail.
-\+ _.
+	\+ Goal.
 
 %	once/1 can normally be replaced by ->/2. For historical reasons
 %	only.
@@ -376,6 +372,32 @@ $predicate_name(Goal, String) :-
 	).
 
 
+		 /*******************************
+		 *	 FILE_SEARCH_PATH	*
+		 *******************************/
+
+:- user:dynamic file_search_path/2.
+:- user:multifile file_search_path/2.
+
+:- user:assert((file_search_path(library, Dir) :-
+	library_directory(Dir))).
+
+expand_file_search_path(Spec, Expanded) :-
+	functor(Spec, Alias, 1),
+	user:file_search_path(Alias, Exp0),
+	expand_file_search_path(Exp0, Exp1),
+	arg(1, Spec, Base),
+	$make_path(Exp1, Base, Expanded).
+expand_file_search_path(Spec, Spec) :-
+	atomic(Spec).
+
+$make_path(Dir, File, Path) :-
+	concat(_, /, Dir), !,
+	concat(Dir, File, Path).
+$make_path(Dir, File, Path) :-
+	$concat_atom([Dir, '/', File], Path).
+
+
 		/********************************
 		*         FILE CHECKING         *
 		*********************************/
@@ -386,25 +408,26 @@ $predicate_name(Goal, String) :-
 $check_file(0, _) :- !, fail.			% deal with variables
 $check_file(user, user) :- !.
 $check_file(File, Absolute) :-
-	$chk_file(File, Absolute, [''], ['.qlf', '.pl', '']).
+	$chk_file(File, ['.qlf', '.pl', ''], Absolute).
 
-$chk_file(library(File), FullName, Prefixes, Ext) :- !,
-	$chk_lib_file(File, FullName, Prefixes, Ext).
-$chk_file(Term, FullName, Prefixes, Ext) :-	% allow a/b, a-b, etc.
+$chk_file(Spec, Extensions, FullName) :-
+	functor(Spec, Alias, 1),
+	user:file_search_path(Alias, _), !,
+	$chk_alias_file(Spec, Extensions, FullName).
+$chk_file(Term, Ext, FullName) :-	% allow a/b, a-b, etc.
 	\+ atomic(Term), !,
 	term_to_atom(Term, Raw),
 	name(Raw, S0),
 	delete(S0, 0' , S1),
 	name(Atom, S1),
-	$chk_file(Atom, FullName, Prefixes, Ext).
-$chk_file(File, FullName, _, Exts) :-
-	name(File, [F|_]),
-	memberchk(F, "/$~"), !,
+	$chk_file(Atom, Ext, FullName).
+$chk_file(File, Exts, FullName) :-
+	is_absolute_file_name(File), !,
 	member(Ext, Exts),
 	ensure_extension(File, Ext, Extended),
 	exists_file(Extended),
 	$absolute_file_name(Extended, FullName).
-$chk_file(File, FullName, _, Exts) :-
+$chk_file(File, Exts, FullName) :-
 	source_location(ContextFile, _Line),
 	$file_dir_name(ContextFile, ContextDir), !,
 	$concat_atom([ContextDir, /, File], AbsFile),
@@ -412,7 +435,7 @@ $chk_file(File, FullName, _, Exts) :-
 	ensure_extension(AbsFile, Ext, Extended),
 	exists_file(Extended),
 	$absolute_file_name(Extended, FullName).
-$chk_file(File, FullName, _, Exts) :-
+$chk_file(File, Exts, FullName) :-
 	member(Ext, Exts),
 	ensure_extension(File, Ext, Extended),
 	exists_file(Extended),
@@ -425,21 +448,18 @@ ensure_extension(File, Ext, Extended) :-
 	).
 
 :- dynamic
-	$lib_file_cache/4.
+	$search_path_file_cache/3.
 
-$chk_lib_file(File, FullFile, Prefixes, Exts) :-
-	$lib_file_cache(File, FullFile, Pref, Ext),
-	memberchk(Pref, Prefixes),
+$chk_alias_file(Spec, Exts, FullFile) :-
+	$search_path_file_cache(Spec, FullFile, Ext),
 	memberchk(Ext, Exts).
-$chk_lib_file(File, FullFile, Prefixes, Exts) :-
-	user:library_directory(Dir),
-	member(Prefix, Prefixes),
+$chk_alias_file(Spec, Exts, FullFile) :-
+	expand_file_search_path(Spec, Expanded),
 	member(Ext, Exts),
-	concat_atom([Dir, '/', Prefix, '/', File], LibBase),
-	ensure_extension(LibBase, Ext, LibFile),
+	ensure_extension(Expanded, Ext, LibFile),
 	exists_file(LibFile),
 	$absolute_file_name(LibFile, FullFile),
-	asserta($lib_file_cache(File, FullFile, Prefix, Ext)).
+	asserta($search_path_file_cache(Spec, FullFile, Ext)).
 	
 
 		/********************************
@@ -467,6 +487,13 @@ $chk_lib_file(File, FullFile, Prefixes, Exts) :-
 compiling :-
 	\+ flag($compiling, database, database).
 
+:- module_transparent
+	$ifcompiling/1.
+
+$ifcompiling(_) :-
+	flag($compiling, database, database), !.
+$ifcompiling(G) :-
+	G.
 
 		/********************************
 		*         PREPROCESSOR          *
@@ -616,10 +643,6 @@ $consult_goal(Path, Goal) :-
 %	    verbose		Print statistics on user channel
 %	    is_module		File MUST be a module file
 %	    import = List	List of predicates to import
-%
-%	Actual compilation is executed in a break environment to prevent
-%	warning() from starting the tracer and to clean up the used local
-%	and global stack.
 
 $consult_file(Spec, Options) :-
 	statistics(heapused, OldHeap),
@@ -665,9 +688,20 @@ $read_clause(Clause) :-				% get the first non-syntax
 	repeat,					% error
 	    read_clause(Clause), !.
 
-$consult_file(Absolute, Module, Import, IsModule, compiled, LM) :-
+$consult_file(Absolute, Module, Import, IsModule, What, LM) :-
+	$set_source_module(Module, Module), !, % same module
+	$consult_file_2(Absolute, Module, Import, IsModule, What, LM).
+$consult_file(Absolute, Module, Import, IsModule, What, LM) :-
+	$set_source_module(OldModule, Module),
+	$ifcompiling($qlf_start_sub_module(Module)),
+        $consult_file_2(Absolute, Module, Import, IsModule, What, LM),
+	$ifcompiling($qlf_end_part),
+	$set_source_module(_, OldModule).
+
+$consult_file_2(Absolute, Module, Import, IsModule, What, LM) :-
 	$set_source_module(OldModule, Module),	% Inform C we start loading
 	$start_consult(Absolute),
+	$compile_type(What),
 	(   flag($compiling, wic, wic)	% TBD
 	->  $add_directive_wic($assert_load_context_module(Absolute,OldModule))
 	;   true
@@ -680,6 +714,15 @@ $consult_file(Absolute, Module, Import, IsModule, compiled, LM) :-
 	    $load_file(First, Absolute, Import, IsModule, LM))),
 	$style_check(_, OldStyle),		% Restore old style
 	$set_source_module(_, OldModule).	% Restore old module
+
+$compile_type(What) :-
+	flag($compiling, How, How),
+	(   How == database
+	->  What = compiled
+	;   How == qlf
+	->  What = '*qcompiled*'
+	;   What = 'boot compiled'
+	).
 
 %	$load_context_module(+File, -Module)
 %	Record the module a file was loaded from (see make/0)
@@ -712,12 +755,13 @@ $load_file(end_of_file, _, _, _, Module) :- !,		% empty file
 	$set_source_module(Module, Module).
 $load_file(FirstClause, File, _, false, Module) :- !,
 	$set_source_module(Module, Module),
-	$qlf_start_file(File),
+	$ifcompiling($qlf_start_file(File)),
 	ignore($consult_clause(FirstClause, File)),
 	repeat,
 	    read_clause(Clause),
 	    $consult_clause(Clause, File), !,
-	$qlf_end_part.
+	$ifcompiling($qlf_end_part).
+
 
 $reserved_module(system).
 $reserved_module(user).
@@ -731,14 +775,14 @@ $load_module(Module, Public, Import, File) :-
 	$set_source_module(OldModule, OldModule),
 	$declare_module(Module, File),
 	$export_list(Module, Public),
-	$qlf_start_module(Module),
+	$ifcompiling($qlf_start_module(Module)),
 
 	repeat,
 	    read_clause(Clause),
 	    $consult_clause(Clause, File), !,
 
 	Module:$check_export,
-	$qlf_end_part,
+	$ifcompiling($qlf_end_part),
 	$import_list(OldModule, Module, Import).
 
 
@@ -867,9 +911,23 @@ $store_clause((?- Goal), _) :- !,
 	$execute_directive(Goal).
 $store_clause((_, _), _) :- !,
 	$warning('Full stop in clause body? (attempt to define ,/2)').
+$store_clause((_:-B), _) :-
+	nonvar(B), B = (_:-_), !,
+	$warning('Clause not closed by `.''? (attempt to call :-/2)').
 $store_clause(Term, File) :-
 	$record_clause(Term, File, Ref),
-        $qlf_assert_clause(Ref).
+        $ifcompiling($qlf_assert_clause(Ref)).
+
+		 /*******************************
+		 *	 FOREIGN INTERFACE	*
+		 *******************************/
+
+%	call-back from PL_register_foreign().  First argument is the module
+%	into which the foreign predicate is loaded and second is a term
+%	describing the arguments.
+
+:- dynamic
+	$foreign_registered/2.
 
 
 		/********************************
@@ -950,7 +1008,9 @@ $t_tidy(Var, Var) :-
 $t_tidy((P1;P2), (Q1;Q2)) :- !,
 	$t_tidy(P1, Q1),
 	$t_tidy(P2, Q2).
-$t_tidy(((P1, P2), P3), Q) :-
+$t_tidy(((Conj, P2), P3), Q) :-		% Fix my Michael Huebner: test nonvar!
+        nonvar(Conj),
+	Conj = (P1, P2),
 	$t_tidy((P1, (P2, P3)), Q).
 $t_tidy((P1, P2), (Q1, Q2)) :- !,
 	$t_tidy(P1, Q1),
@@ -1020,11 +1080,26 @@ append([H|T], L, [H|R]) :-
 
 
 		 /*******************************
-		 *	       MISC		*
+		 *	       HALT		*
 		 *******************************/
 
 halt :-
 	halt(0).
+
+
+:- module_transparent
+	at_halt/1.
+:- dynamic
+	$at_halt/1.
+
+at_halt(Spec) :-
+	$strip_module(Spec, Module, Goal),
+	assert(system:$at_halt(Module:Goal)).
+
+$run_at_halt :-
+	$at_halt(Goal),
+	Goal,
+	fail ; true.
 
 
 		/********************************
@@ -1064,6 +1139,3 @@ $load_additional_boot_files :-
 	format('SWI-Prolog boot files loaded~n', []),
 	$execute_directive($style_check(_, 2'1011)),
 	$execute_directive($set_source_module(_, user)).
-
-
-

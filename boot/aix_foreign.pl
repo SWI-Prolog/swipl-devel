@@ -32,8 +32,7 @@ load_foreign(File) :-
 	statistics(heapused, OldHeap),
 	statistics(cputime, OldTime),
 
-	(   feature(arch, Arch),
-	    $chk_file(File, Path, [Arch, ''], [''])
+	(   $chk_file(File, [''], Path)
 	->  true
 	;   $warning('~w: No such foreign file', [File]),
 	    fail
@@ -137,8 +136,7 @@ check_files([F|R], [A|T]) :- !,
 	check_files(F, A),
 	check_files(R, T).
 check_files(F, A) :-
-	feature(arch, Arch),
-	$chk_file(F, A, [Arch, ''], ['.o', '.a', '.c', '']), !.
+	$chk_file(F, ['.o', '.a', '.c', ''], A), !.
 check_files(F, _) :-
 	$warning('~w: No such foreign file', [F]),
 	fail.

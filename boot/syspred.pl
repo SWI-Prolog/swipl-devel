@@ -36,7 +36,6 @@
 	, recorda/2
 	, recordz/2
 	, recorded/2
-	, retractall/1
 	, current_module/1
 	, current_module/2
 	, module/1
@@ -306,8 +305,8 @@ source_file(File) :-
 :- module_transparent
 	prolog_load_context/2.
 
-prolog_load_context(module, M) :-
-	context_module(M).
+prolog_load_context(module, Module) :-
+	$set_source_module(Module, Module).
 prolog_load_context(file, F) :-
 	source_location(F, _).
 prolog_load_context(stream, S) :-
@@ -426,8 +425,7 @@ clause_property(Clause, file(File)) :-
 
 :- module_transparent
 	clause/2,
-	clause/3,
-	retractall/1.
+	clause/3.
 
 clause(Head, Body, Ref) :-
 	nonvar(Ref), !,
@@ -455,11 +453,6 @@ recordz(Key, Value) :-
 	recordz(Key, Value, _).
 recorded(Key, Value) :-
 	recorded(Key, Value, _).
-
-retractall(Term) :-
-	retract(Term),
-	fail.
-retractall(_).
 
 
 		/********************************

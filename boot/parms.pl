@@ -12,7 +12,11 @@
 :- user:assert((
 	library_directory(Lib) :-
 		feature(home, Home),
-		concat(Home, '/library', Lib))).
+		concat(Home, '/library', RawLib),
+		absolute_file_name(RawLib, Lib))).
 
 
+$default_editor(notepad) :-
+	feature(arch, Arch),
+	concat(_, win32, Arch), !.
 $default_editor(vi).

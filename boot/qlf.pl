@@ -29,7 +29,7 @@ qcompile([H|T]) :- !,
 	qcompile(T).
 qcompile(File) :-
 	$strip_module(File, Module, FileName),
-	$chk_file(FileName, Absolute, [''], ['.pl', '']), !,
+	$chk_file(FileName, ['.pl', ''], Absolute), !,
 	remove_suffix(Absolute, '.pl', ABase),
 	ensure_suffix(ABase, '.qlf', Qlf),
 	$qlf_open(Qlf),
@@ -64,7 +64,7 @@ qload(File, Options) :-
 	statistics(cputime, OldTime),
 
 	$strip_module(File, Module, FileName),
-	$chk_file(FileName, Absolute, [''], ['.qlf', '']), !,
+	$chk_file(FileName, ['.qlf', ''], Absolute), !,
 	$qlf_load(Module:Absolute, LoadedModule),
 	(   atom(LoadedModule)
 	->  (   memberchk(import = Import, Options)

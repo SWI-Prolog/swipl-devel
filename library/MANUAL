@@ -65,8 +65,8 @@ SWI-Prolog extends the minimal set of instructions described in  to
 improve performance.  While extending this set care has been taken to
 maintain the advantages of decompilation and tracing of compiled code.
 The extensions include specialised instructions for unification, predicate
-invocation, some frequently used built-in predicates, arithmetic, or (;/2,
-|/2), if-then (->/2) and not (\+/1).
+invocation, some frequently used built-in predicates, arithmetic, and
+control (;/2, |/2), if-then (->/2) and not (\+/1).
 
 This manual does not describe the full syntax and semantics of SWI-Prolog,
 nor how one should write a program in Prolog.  These subjects have been
@@ -81,13 +81,14 @@ predicates compatible with Quintus Prolog,  and BIM_Prolog .
 
 1.1 Status
 
-This manual describes version 1.6.0 of SWI-Prolog.  SWI-Prolog has been
-used now for some years.  The application range includes Prolog course
+This manual describes version 2.0.6 of SWI-Prolog.  SWI-Prolog has been
+used now for several years.  The application range includes Prolog course
 material, meta-interpreters, simulation of parallel Prolog, learning
-systems and a large workbench for knowledge engineering.  Although we
-experienced rather obvious and critical bugs can remain unnoticed for a
-remarkable long period, we can assume the basic Prolog system to be fairly
-stable.  Bugs can be expected in unfrequently used builtin predicates.
+systems, natural language processing and two large workbenches for
+knowledge engineering.  Although we experienced rather obvious and
+critical bugs can remain unnoticed for a remarkable long period, we can
+assume the basic Prolog system is fairly stable.  Bugs can be expected in
+unfrequently used builtin predicates.
 
 Some bugs are known to the author.  They are described as footnotes in
 this manual.
@@ -123,12 +124,12 @@ On the other hand, SWI-Prolog offers some nice facilities:
     facility to maintain programs (see make/0).
 
     Very fast compiler
-    The compiler handles about 5K bytes per second per MIPS (i.e.  35K
-    bytes per second on SUN-4/110).
+    The compiler handles about 100K bytes per second on a SPARC-II
+    processor.
 
     Transparent compiled code
     SWI-Prolog compiled code can be treated just as interpreted code:
-    you can list it, trace it, assert from or retract to it, etc.  This
+    you can list it, trace it, assert to or retract from it, etc.  This
     implies you do not have to decide beforehand whether a module should
     be loaded for debugging or not.  Also, performance is much better
     than the performance of most interpreters.
@@ -153,7 +154,22 @@ On the other hand, SWI-Prolog offers some nice facilities:
     available for X-windows.
 
 
-1.3 Version 1.5 Release Notes
+1.3 Graphics
+
+SWI-Prolog has no provisions for graphical applications itself.  The
+standard graphical environment to be used with SWI-Prolog is XPCE.
+XPCE/SWI-Prolog provides an interactive graphical develpment platform that
+is portable over many Unix/X11 implementations as well as MS-Windows (3.1)
+and Windows-NT (3.5).
+
+XPCE is a licenced product.  A fully functional free demo version for
+PC/Linux is available from ftp://swi.psy.uva.nl/pub/xpce/linux
+
+For more information, see URL http://swi.psy.uva.nl/projects/xpceor
+contact xpce-request@swi.psy.uva.nl.
+
+
+1.4 Version 1.5 Release Notes
 
 There are not many changes between version 1.4 and 1.5.  The C-sources
 have been cleaned and comments have been updated.  The stack memory
@@ -174,7 +190,7 @@ me.  Difference listings are of no use, as I generally won't have exactly
 the same version around.
 
 
-1.4 Version 1.6 Release Notes
+1.5 Version 1.6 Release Notes
 
 Version 1.6 is completely compatible with version 1.5.  Some new features
 have been added, the system has been ported to various new platforms and
@@ -188,20 +204,20 @@ From version 1.6, the sources are now versioned using the CVS version
 control system.
 
 
-1.5 Version 1.7 Release Notes
+1.6 Version 1.7 Release Notes
 
 Version 1.7 intergrates the GNU-readline library, offering powerful
 history and command-line editing both using EMACS and vi key-bindings.
 
 
-1.6 Version 1.8 Release Notes
+1.7 Version 1.8 Release Notes
 
 Version 1.8 offers a stack-shifter to provide dynamically expanding stacks
 on machines that donot offer operating-system support for implementing
 dynamic stacks.
 
 
-1.7 Version 1.9 Release Notes
+1.8 Version 1.9 Release Notes
 
 Version 1.9 offers better portability including an MS-Windows 3.1 version.
 Changes to the Prolog system include:
@@ -221,7 +237,74 @@ Changes to the Prolog system include:
     sources of individual clauses.
 
 
-1.8 Acknowledgements
+1.9 Version 2.0 Release Notes
+
+Version 2.0 is first of all a freeze of all the features added to the
+various 1.9.x releases.  Version 2.0.6 for PC has moved from the WATCOM C
+32-bit windows extender to Windows-NT and runs under Windows 3.1 using the
+Win32s NT emulator.
+
+New features offered:
+
+    32-bit Virtual Machine
+    Removes various limits and improves performance.
+
+    Inline foreign functions
+    `Simple' foreign predicates no longer build a Prolog stack-frame, but
+    are directly called from the VM. Notably provides a speedup for the
+    test predicates such as var/1, etc.
+
+    Various compatibility improvements
+
+    Stream based I/O library
+    All SWI-Prolog's I/O is now handled by the stream-package defined in
+    the foreign include file <SWI-Stream.h>.  Physical I/O of Prolog
+    streams may be redefined through the foreign language interface,
+    facilating much simpler integration in window environments.
+
+Version 2.0.6 offers a few incompatibilities:
+
+    retractall/1
+    In previous releases, the definition of retractall/1 was:
+
+        retractall(Term) :-
+               retract(Term),
+               fail.
+        retractall(_).
+
+    As from version 2.0.6, retractall/1 is implemented as a deterministic
+    foreign predicate compatible with Quintus Prolog.  It behaves as:
+
+        retractall(Head) :-
+               retract(Head),
+               fail.
+        retractall(Head) :-
+               retract((Head :- _)),
+               fail.
+        retractall(_).
+
+    I.e.  the definition behaves the same when handling predicates
+    consisting of facts.  Clauses with a non-true body will be retracted
+    if their head matches.
+
+    Foreign interface types
+    All foreign interface types now have names ending in _t to lessen the
+    chance for conflicts.  term, atomic, functorand modulehave
+    #define's for backward compatibility.
+
+    PL_register_foreign()
+    The attributes is now a bitwise or of the attribute flags rather than
+    a 0 terminated list.  This has no consequences for predicates that
+    have no attributes (99will generate a compiler warning, but work
+    properly otherwise.  Predicates with more than one attributes must be
+    changed.
+
+    PL_dispatch_events
+    This pointer is replaced by PL_dispatch_hook().  A function was
+    necessary for the Windows-NT .DLL interface.
+
+
+1.10 Acknowledgements
 
 Some small parts of the Prolog code of SWI-Prolog are modified versions of
 the corresponding Edinburgh C-Prolog code:  grammar rule compilation and
@@ -242,7 +325,7 @@ Chapter  2
 
 Overview
 
-                                10
+                                12
 
 
 2.1 Starting SWI-Prolog from the Unix Shell
@@ -331,6 +414,9 @@ The full set of command line options is given below:
         Restore a state created by save_program/[1,2] or save/[1,2]
         using the new-style saved-states.  Equivalent to
         restore(restorefile) from Prolog.
+    --
+        Stops scanning for more arguments, so you can pass arguments
+        for your application after this one.
 
 The following options are for system maintenance.  They are given for
 reference only.
@@ -1033,7 +1119,7 @@ reason.
 BUG: The garbage collector is deactivated when Prolog is called back from
 a foreign language predicate.  This implies there is no garbage collection
 within a break environment.  More seriously, there is no garbage
-collection when handling call-backs from ---for example--- the PCE
+collection when handling call-backs from ---for example--- the XPCE
 package.
 
 
@@ -1156,7 +1242,7 @@ Chapter  3
 
 Built-In  Predicates
 
-                                46
+                                48
 
 
 3.1 Notation of Predicate Descriptions
@@ -1234,8 +1320,24 @@ make
 library_directory(-Atom)
     Dynamic predicate used to specify library directories.  Default .,
     ./lib, ~/lib/prolog and the system's library (in this order) are
-    defined.  The user may add library directories using assert/1 or
-    remove system defaults using retract/1.
+    defined.  The user may add library directories using assert/1,
+    asserta/1 or remove system defaults using retract/1.
+
+
+file_search_path(+Alias, -Path)
+    Dynamic predicate used to specify `path-aliases'.  This feature is
+    best described using an example.  Given the definition
+
+        file_search_path(demo, '~/demo').
+
+    the file specification demo(myfile)will be expanded to
+    ' /demo/myfile'.  The second argument of file_search_path/2 may be
+    another alias.  Currently the only predefined alias is
+
+        file_search_path(library, X) :-
+               library_directory(X).
+
+    Used by all loading predicates as well as by absolute_file_name/2.
 
 
 source_file(-File)
@@ -1288,7 +1390,13 @@ at_initialisation(+Goal)
     takes place after reloading a .qlf (formerly .wic) file as well as
     after reloading a saved-state.  The hooks are ran in the order they
     were registered.  A warning message is issued if Goal fails, but
-    execution continues.
+    execution continues.  See also at_halt/1
+
+
+at_halt(+Goal)
+    Register Goal to be ran when the system halts.  The hooks are ran in
+    the order they were registered.  Success or failure executing a hook
+    is ignored.  These hooks may not call halt/[0,1].
 
 
 compiling
@@ -1790,9 +1898,12 @@ redefine_system_predicate(+Head)
 
 retract(+Term When Term is an atom or a term it is)
     unified with the first unifying fact or clause in the database.  The
-    fact or clause is removed from the database.  .C retractall 1 +Term
-    All facts or clauses in the database that unify with Term are
-    removed.
+    fact or clause is removed from the database.
+
+
+retractall(+Head)
+    Allfacts or clauses in the database for which the head unifies with
+    Head are removed.
 
 
 assert(+Term)
@@ -2251,7 +2362,9 @@ stream_position(+Stream, -Old, +New)
         '$stream_position'(CharNo, LineNo, LinePos).
 
     It is only possible to change the position parameters if the stream
-    is connected to a disk file.
+    is connected to a disk file.  If the position is changed, the CharNo
+    field determines the new position in the file.  The LineNo and
+    LinePos are copied in the stream administration.
 
 
 3.13.3 Switching Between Implicit and Explicit I/O
@@ -2390,6 +2503,15 @@ get(-Char)
 
 get(+Stream, -Char)
     Read the next non-blank character from Stream.
+
+
+skip(+Char)
+    Read the input until Char or the end of the file is encountered.  A
+    subsequent call to get0/1 will read the first character after Char.
+
+
+skip(+Stream, +Char)
+    Skip input (as skip/1) on Stream.
 
 
 get_single_char(-Char)
@@ -2537,7 +2659,9 @@ prompt(-Old, +New)
 functor(?Term, ?Functor, ?Arity)
     Succeeds if Term is a term with functor Functor and arity Arity.  If
     Term is a variable it is unified with a new term holding only
-    variables.  functor/3 silently fails on instantiation faults
+    variables.  functor/3 silently fails on instantiation faults If Term
+    is an atom or number, Functor will be unified with Term and arity
+    will be unified with the integer 0 (zero).
 
 
 arg(?Arg, ?Term, ?Value)
@@ -3634,8 +3758,10 @@ convert_time(+Time, -Year, -Month, -Day, -Hour, -Minute, -Second, -MilliSeconds)
 
 access_file(+File, +Mode)
     Succeeds when File exists and can be accessed by this prolog process
-    under mode Mode.  Mode is one of the atoms read, write or execute.
-    File may also be the name of a directory.  Fails silently otherwise.
+    under mode Mode.  Mode is one of the atoms read, write, append,
+    exist, none or execute.  File may also be the name of a directory.
+    Fails silently otherwise.  access_file(File, none)simply succeeds
+    without testing anything.
 
 
 exists_file(+File)
@@ -3680,6 +3806,14 @@ absolute_file_name(+File, -Absolute)
     The absolute path is canonised:  references to `.'  and `..'  are
     deleted.  SWI-Prolog uses absolute file names to register source
     files independant of the current working directory.
+
+
+is_absolute_file_name(+File)
+    True if File specifies and absolute path-name.  On Unix systems, this
+    implies the path starts with a `/'.  For MicroSoft based systems this
+    implies the path starts with <letter>:.  This predicate is intended
+    to provide platform-independent checking for absolute paths.  See
+    also absolute_file_name/2 and prolog_to_os_filename/2.
 
 
 expand_file_name(+WildChart, -List)
@@ -3734,7 +3868,14 @@ abort
 halt
     Terminate Prolog execution.  Open files are closed and if the command
     line option -tty is not active the terminal status (see Unix stty(1))
-    is restored.
+    is restored.  Hooks may be registered both in Prolog and in foreign
+    code.  Prolog hooks are registered using at_halt/1.  halt/0 is
+    equivalent to halt(0).
+
+
+halt(+Status)
+    Terminate Prolog execution with given status.  Status is an integer.
+    See also halt/0.
 
 
 prolog
@@ -4071,13 +4212,21 @@ stack_parameter(+Stack, +Key, -Old, +New)
     definition is subject to change.
 
 
-3.40 Windows DDE client interface
+3.40 Windows DDE interface
 
 The predicates in this section deal with MS-Windows `Dynamic Data
 Exchange' or DDE protocol.  A Windows DDE conversation is a form of
 interprocess communication based on sending reserved window-events between
-the communicating processes.  We will demonstrate the use of the DDE
-interface using the Windows PROGMAN (Program Manager) application:
+the communicating processes.
+
+See also section 5.4 for loading Windows DLL's into SWI-Prolog.
+
+
+3.40.1 DDE client interface
+
+The DDE client interface allows Prolog to talk to DDE server programs.  We
+will demonstrate the use of the DDE interface using the Windows PROGMAN
+(Program Manager) application:
 
     1 ?- open_dde_conversation(progman, progman, C).
 
@@ -4095,7 +4244,8 @@ interface using the Windows PROGMAN (Program Manager) application:
     Yes
 
 For details on interacting with PROGMAN, use the SDK online manual section
-on the Shell DDE interface.
+on the Shell DDE interface.  See also the Prolog library progman.pl, which
+may be used to write simple Windows setup scripts in Prolog.
 
 
 open_dde_conversation(+Service, +Topic, -Handle)
@@ -4126,6 +4276,63 @@ dde_execute(+Handle, +Command)
     Request the DDE server to execute the given command-string.  Succeeds
     if the command could be executed and fails with error message
     otherwise.
+
+
+3.40.2 DDE server mode
+
+The (autoload) library dde.pl defines primitives to realise simple DDE
+server applications in SWI-Prolog.  These features are provided as of
+version 2.0.6 and should be regarded prototypes.  The C-part of the DDE
+server can handle some more primitives, so if you need features not
+provided by this interface, please study the library dde.pl.
+
+
+dde_register_service(+Template, +Goal)
+    Register a server to handle DDE request or DDE execute requests from
+    other applications.  To register a service for a DDE request,
+    Template is of the form:
+
+        +Service(+Topic, +Item, +Value)
+
+    Service is the name of the DDE service provided (like progman in the
+    client example above).  Topic is either an atom, indicating Goal only
+    handles requests on this topic or a variable that also appears in
+    Goal.  Item and Value are variables that also appear in Goal.
+
+    The example below registers the Prolog feature/2 predicate to be
+    accessible from other applications.  The request may be given from
+    the same Prolog as well as from another application.
+
+        ?- dde_register_service(prolog(feature, F, V),
+                             feature(F, V)).
+
+        ?- open_dde_conversation(prolog, feature, Handle),
+          dde_request(Handle, home, Home),
+          close_dde_conversation(Handle).
+
+        Home = '/usr/local/lib/pl-2.0.6/'
+
+    Handling DDE execute requests is very similar.  In this case the
+    template is of the form:
+
+        +Service(+Topic, +Item)
+
+    Passing a Value argument is not needed as execute requests either
+    succeed or fail.  If Goal fails, a `not processed' is passed back to
+    the caller of the DDE request.
+
+
+dde_unregister_service(+Service)
+    Stop responding to Service.  If Prolog is halted, it will
+    automatially call this on all open services.
+
+
+dde_current_service(-Service, -Topic)
+    Find currently registered services and the topics served on them.
+
+
+dde_current_connection(-Service, -Topic)
+    Find currently open conversations.
 
 
 3.41 Miscellaneous
@@ -4199,7 +4406,7 @@ Chapter  4
 
 Using  Modules
 
-                                426
+                                441
 
 
 4.1 Why Using Modules?
@@ -4696,7 +4903,7 @@ Foreign  Language  Interface
 SWI-Prolog offers a powerful interface to C . The main design objectives
 of the foreign language interface are flexibility and performance.  Most
 Prolog foreign language interfaces allow the user only to pass primitive
-data via the interface.  The user should normally specify for each
+data through the interface.  The user should normally specify for each
 argument whether it is an input or output argument as well as the type of
 the argument.  Because type checking and conversion to/from C data types
 is done by Prolog the actual foreign code is usually short if something
@@ -4708,16 +4915,18 @@ trade-off the user is responsible for type checking and should be careful
 not to violate consistency rules as Prolog provides access to its internal
 data structures.
 
-                                449
+                                464
 
 
 5.1 Overview of the Interface
 
 A special include file called ``SWI-Prolog.h'' should be included with
-each C-source file that is to be loaded via the foreign interface.  This
-C-header file defines various data types, macros and functions that can be
-used to communicate with SWI-Prolog.  Functions and macros can be divided
-into the following categories:
+each C-source file that is to be loaded via the foreign interface.  The
+installation process installs this file in the directory includein the
+SWI-Prolog home directory (?- feature(home, Home).).  This C-header file
+defines various data types, macros and functions that can be used to
+communicate with SWI-Prolog.  Functions and macros can be divided into the
+following categories:
 
     Analysing arbitrary Prolog terms
 
@@ -4742,39 +4951,95 @@ into the following categories:
 
 5.2 Linking Foreign Modules
 
-Foreign modules may be linked to Prolog in two ways.  Using static
+Foreign modules may be linked to Prolog in three ways.  Using static
 linking, the extensions, a small description file and the basic SWI-Prolog
 object file are linked together to form a new executable.  Using dynamic
-linking, the extensions are linked into the running Prolog process.
-
-Both approaches have their advantages and disadvantages.  Static linking
-is portable and allows for symbolic debuggers to be used.  It also ensures
-that the text of the extensions is part of the text-segment of the
-process, providing protection and sharing on operating systems that offer
-these features (Unix).  Dynamic linking does not require rebuilding the
-entire Prolog system.  C-code is loaded while Prolog is running.  A new
-executable may be created using save_program/1.  Unfortunately dynamic
-linking is non-portable and puts the incrementally loaded code in the
-data-segment of the process.
-
-In general, we advice static loading for large extensions and dynamic
-loading when an application needs to load only a few C-defined predicates.
+linking of object files, the extensions are linked into the running Prolog
+process.  Finally, on some operating systems SWI-Prolog allows for loading
+dynamic libraries (called shared libraries (.so files) on Unix systems and
+Dynamic Link Libraries (.dll files) on many PC based operating systems.
 
 
-5.2.1 Static Linking
+5.2.1 What linking is provided?
 
-To prepare SWI-Prolog for static linking, invoke `make runtime' in the
-object-directory of SWI-Prolog.  Afterwards, the following files should be
-present (.../pl refers to the SWI-Prolog installation directory):
+The static linking schema can be used on all versions of SWI-Prolog.  The
+feature/2 predicate may be used to find out what other linking methods are
+provided for this version.
+
+    feature(load_foreign, true)
+    If this succeeds the system provides the load_foreign/2 and
+    load_foreign/5 predicates that allow for loading object files (.o
+    files on Unix machines).
+
+    feature(open_shared_object, true)
+    If this succeeds the system provides the open_shared_object/2 and
+    related predicates that allow for handling Unix shared object files
+    based on the Unix library functions dlopen() and friends.  See
+    section 5.4.
+
+    Note that, as this feature conflicts with save/[1,2] and
+    save_program/[1,2], it is not enabled by default.  To enable it, the
+    system should be configured using:
+
+        % sh configure --enable-dlopen
+
+    feature(dll, true)
+    If this succeeds the system provides an interface for loading .DLL
+    files by means of open_dll/2 and friends.  See section 5.4.
+
+If either the feature open_shared_object or dll is true, the library
+library(shlib.pl)provides a common interface for loading foreign files
+from Prolog.
+
+Note that a specific version of SWI-Prolog may offer multiple of these
+loading facilities.
+
+
+5.2.2 What kind of loading should I be using?
+
+All described approaches have their advantages and disadvantages.  Static
+linking is portable and allows for debugging on all platforms.  It is
+relatively cumbersome and the libraries you need to pass to the linker may
+vary from system to system.
+
+Direct loading of object files is not very portable and generally works
+only on operating systems using the old BSD Unix a.out format for object
+and executable files.  Also, the text of the loaded executable is in the
+data-segment of Prolog, disabling text-sharing and protection provided by
+Unix and some modern PC based operating systems.
+
+Loading shared objects or DLL files provides sharing and protection and is
+generally the best choice.  The problem is that save/[1,2] and
+save_program/[1,2] donot cooperate with this mechanism.
+
+Summarising, if you donot need save/[1,2] or save_program/[1,2], loading
+based on library(shlib)is probably the best choice.  See section 5.4.
+Otherwise use loading object files directly for small things and static
+linking for large applications to exploit sharing and protection.
+
+Development in SWI-Prolog and operating systems are likely to make shlib
+the standard foreign loading schema for SWI-Prolog.
+
+Note that the definition of the foreign predicates is the same, regardless
+of the linking type used.
+
+
+5.2.3 Static Linking
+
+Below is an outline of the files structure required for statically linking
+SWI-Prolog with foreign extensions.  .../pl refers to the SWI-Prolog home
+directory (see feature/2).  <arch> refers to the architecture identifier
+that may be obtained using feature/2.
 
       .../pl/runtime/<arch>/pl.o Main object-file
       .../pl/include/SWI-Prolog.hInclude file
+      .../pl/include/SWI-Stream.hStream I/O include file
       .../pl/include/SWI-Exports Export declarations (AIX only)
       .../pl/include/stub.c      Extension stub
 
 The definition of the foreign predicates is the same as for dynamic
 linking.  Unlike with dynamic linking however, there is no initialisation
-function.  Instead, the file .../pl/include/stub.c is copied to your
+function.  Instead, the file .../pl/include/stub.c may be copied to your
 project and modified to define the foreign extensions.  Below is stub.c,
 modified to link the lowercase example described later in this chapter:
 
@@ -4797,37 +5062,61 @@ modified to link the lowercase example described later in this chapter:
       { NULL,       0,      NULL,         0 }     /* terminating line */
     };
 
-Now, a new executable may be created using:
+Now, a new executable may be created using the make(1) Makefile fragment
+below.  The correct versions for the variables may be obtained using the
+feature/2 predicate:
 
-    sun% gcc -static .../pl/runtime/<arch>/pl.o lowercase.c stub.c -lm -ltermcap
+    ?- feature(c_cc,        CC).
+    ?- feature(c_ldflags,    LDFLAGS).
+    ?- feature(c_staticlibs, STATICLIBS).
+    ?- feature(c_libs,       LIBS).
+    ?- feature(arch,        ARCH).
+    ?- feature(home,        HOME).
 
-The resulting a.out file will load the standard prolog bootstrap file.
-Normally, your extensions partly be written in Prolog.  In this case,
-start a.out, load the prolog extensions and use save_program/1 to create a
-saved state.
+    CC=gcc
+    HOME=/usr/local/lib/pl-2.0.6
+    CFLAGS=-I$(HOME)/include
+    LDFLAGS=
+    STATICLIBS=/usr/lib/libc.a
+    LIBS=-lreadline -ltermcap -lm
+    ARCH=i486-linux
 
-Many modern Unix systems use `dynamic libraries'.  Dynamic libraries
-cannot be combined with saved states as created by save_program/[1,2].
-This implies that ---when save_program/[1,2] is available--- static
-linking must used.  The option to use for this is compiler dependant.  See
-M_LDFLAGSin the md- file or consult the manual of the C-compiler used.
+    PLOBJ=$(HOME)/$(ARCH)/pl.o
+    OBJ=lowercase.o stub.o
 
-It is advised to use the C-compiler used to compile SWI-Prolog for
-including statically linked extensions.
+    lwpl:   $(PLOBJ) $(OBJ)
+           $(CC) -o $@ $(LDFLAGS) $(PLOBJ) $(OBJ) $(STATICLIBS) $(LIBS)
+
+The resulting lwpl file will load the standard prolog bootstrap file.
+Normally, your extensions partly be written in Prolog.  In this case you
+may wish to create a new bootfile that includes the standard Prolog system
+and your extensions.  Write a toplevel loadfile that loads your
+application and add the following to your Makefile:
+
+    PLFILES:       load.pl foo.pl bar.pl
+
+    lwpl.qlf:       lwpl $(PLFILES)
+                  ./lwpl -g mytoplevel \
+                         -b $(HOME)/boot/init.pl \
+                         -c load.pl
+
+See also section 2.7 for compiling Prolog sources using the -c option.
 
 
-5.2.2 Dynamic Linking based on load_foreign/[2,5]
+5.2.4 Dynamic Linking based on load_foreign/[2,5]
 
 
-5.2.2.1 Portability Note
+5.2.4.1 Portability Note
 
 The incremental linker is highly system dependent.  It can easily be
 ported to machines for which the C linker allows you to link an object
 file using the symbol table of a (running) executable and use BSD Unix
 format a.out files.  On many Unix systems such an object file can be
 created using the -A option of ld(1).  Some operating systems offer
-primitives for dynamic loading (AIX, MACH). See the introduction section
-for a list of systems to which the foreign interface is available.
+primitives for dynamic loading (AIX, MACH). The following call may be used
+to find out whether load_foreign is functional:
+
+    ?- feature(load_foreign, OK).
 
 
 load_foreign(+File, +Entry)
@@ -4836,11 +5125,7 @@ load_foreign(+File, +Entry)
     extension is used rather than `.pl'.  Thus `test' is a valid
     specification for `test.o' in the current directory,
     `[test, library(basics)]' specifies `test.o' in the current directory
-    and `basics.o' in one of the library directories.  To simplify
-    maintenance of packages in heterogeneous networks the system first
-    tries whether the object file is available from a subdirectory whose
-    name is defined by the MACHINE macro in md- file used to build
-    SWI-Prolog.
+    and `basics.o' in one of the library directories.
 
     Entry defines the entry point of the resulting executable.  The entry
     point will be called by Prolog to install the foreign predicates.
@@ -4851,7 +5136,7 @@ load_foreign(+File, +Entry, +Options, +Libraries, +Size)
     Options is (a list of) additional option to be given to the loader.
     The default command is:
 
-        ld -N -A <symbolfile> -T <offset> -e <entry> -o <executable>
+        $(CC) -N -A <symbolfile> -T <offset> -e <entry> -o <executable>
           <files> -lc
 
     The options are inserted just before the files.  Libraries is (a list
@@ -4876,13 +5161,12 @@ foreign_file(?File)
 The interface defined in this section allows the user to load shared
 libraries (.so files on most Unix systems).  This interface is portable to
 all machines providing the function dlopen(), normally from the library
--ldl.
+-ldl.  To enable it, SWI-Prolog must be configured using
 
-These functions are provided as a short-term solution to loading foreign
-code on some systems.  As yet, they donot cooperate with save/1 nor with
-save_program/1 on most architectures.  It is likely that this interface
-will be extended with possibilities to call functions with arguments, with
-normal file-searching facilities, etc.
+    % sh configure --enable-dlopen
+
+These functions provide the basic interface layer.  It is adviced to use
+the predicates from section 5.4 in your application.
 
 
 open_shared_object(+File, -Handle)
@@ -4902,21 +5186,86 @@ call_shared_object_function(+Handle, +Function)
     calls to PL_register_foreign().
 
 
-5.4 Interface Data types
+5.4 Using the library shlib for .DLL and .so files
+
+This section discusses the functionality of the (autoload) library
+shlib.pl, providing an interface to shared libraries.  Currently it
+supports MS-Windows DLL (.dll) libraries and Unix .so (shared object)
+files.
+
+
+load_foreign_library(+Lib)
+    Equivalent to load_foreign_library(Lib, install).
+
+
+load_foreign_library(+Lib, +Entry)
+    Search for the given foreign library and link it to the current
+    SWI-Prolog instance.  The library may be specified with or without
+    the extension.  It is searched for using the operating-system defined
+    searching mechanism.  If the library can be loaded, the function
+    called Entry will be called without arguments.  The return value of
+    the function is ignored.
+
+    The Entry function will normally call PL_register_foreign() to
+    declare functions in the library as foreign predicates.
+
+
+unload_foreign_library(+Lib)
+    If the foreign library defines the function uninstall, this function
+    will be called without arguments and its return value is ignored.
+    Next, abolish/2 is used to remove all known foreign predicates
+    defined in the library.  Finally the library itself is detatched from
+    the process.
+
+
+current_foreign_library(-Lib, -Predicates)
+    Query the currently loaded foreign libraries and their predicates.
+    Predicates is a list with elements of the form Module:Head,
+    indicating the predicates installed with PL_register_foreign().
+
+
+Figure 5.1 connects a Windows message-box using a foreign function.  This
+example was tested using Windows-NT and Microsoft Visual C++ 2.0.
+
+    #include <windows.h>
+    #include <SWI-Prolog.h>
+
+    static foreign_t
+    pl_say_hello(term_t to)
+    { if ( PL_is_atom(to) )
+      { char *a = PL_atom_value(PL_atomic(to));
+
+        MessageBox(NULL, a, "DLL test", MB_OK|MB_TASKMODAL);
+
+        PL_succeed;
+      }
+
+      PL_fail;
+    }
+
+    install_t
+    install()
+    { PL_register_foreign("say_hello", 1, pl_say_hello, 0);
+    }
+
+            Figure 5.1:  MessageBox() example in Windows-NT
+
+
+5.5 Interface Data types
 
 The interface functions can be divided into two groups.  The first group
 are functions to obtain data from Prolog or pass data to Prolog.  These
 functions use Prolog internal data types.  The second group consists of
 type conversion functions convert between Prolog internal data and C
-primitive types.  Below is a description of the Prolog data types used in
-the interface.
+primitive types.  Below is a description of the types used in the
+interface.
 
-termTerms represent arbitrary Prolog data (variables, atoms, integers,
+term_tTerms represent arbitrary Prolog data (variables, atoms, integers,
     floats and compound terms).  Terms live either until backtracking
     takes us back to a point before the term was created or the garbage
     collector has collected the term.
 
-atomicAtomics are Prologs primitive data types (integers, atoms and
+atomic_tAtomics are Prologs primitive data types (integers, atoms and
     floats).  They can be transformed to C data types (int, char * resp.
     double).  The Prolog representation for an integer is a tagged
     version of that integer.  The mapping between C ints and Prolog
@@ -4934,19 +5283,27 @@ atomicAtomics are Prologs primitive data types (integers, atoms and
     or heap.  The rules for their lifetime and comparison equal those for
     floats and terms.
 
-functorA functor is the internal representation of a name/arity pair.
+functor_tA functor is the internal representation of a name/arity pair.
     They are used to find the name and arity of a compound term as well
     as to construct new compound terms.  Like atoms they live for the
     whole Prolog session and are unique.
 
-moduleA module is a unique handle to a Prolog module.  Modules are used
+predicate_tHandle to a foreign predicate using with PL_call_predicate().
+    Predicates live forever (although they can loose their definition).
+
+module_tA module is a unique handle to a Prolog module.  Modules are used
     only to call predicates in a specific module.
+
+foreign_tReturn type for a C-function implementing a Prolog predicate.
+
+install_tType for the install()and uninstall()functions of shared or
+    dynamic link libraries.  See section 5.4.
 
 
-5.5 The Foreign Include File
+5.6 The Foreign Include File
 
 
-5.5.1 Argument Passing and Control
+5.6.1 Argument Passing and Control
 
 If Prolog encounters a foreign predicate at run time it will call a
 function specified in the predicate definition of the foreign predicate.
@@ -4965,7 +5322,7 @@ void PL_fail
      FALSE''.
 
 
-5.5.1.1 Non-deterministic Foreign Predicates
+5.6.1.1 Non-deterministic Foreign Predicates
 
 By default foreign predicates are deterministic.  Using the
 PL_FA_NONDETERMINISTIC attribute (see PL_register_foreign()) it is
@@ -5038,7 +5395,7 @@ Note:  If a non-deterministic foreign function returns using PL_succeed or
 PL_fail, Prolog assumes the foreign function has cleaned its environment.
 No call with control argument PL_CUTTED will follow.
 
-The code of figure 5.1 shows a skeleton for a non-deterministic foreign
+The code of figure 5.2 shows a skeleton for a non-deterministic foreign
 predicate definition.
 
     typedef struct                /* define a context structure */
@@ -5046,9 +5403,7 @@ predicate definition.
     } context;
 
     foreign_t
-    my_function(a0, a1, handle)
-    term a0, a1;
-    foreign_t handle;
+    my_function(term_t a0, term_t a1, foreign_t handle)
     { struct context * ctxt;
 
       switch( PL_foreign_control(handle) )
@@ -5066,13 +5421,13 @@ predicate definition.
       }
     }
 
-      Figure 5.1:  Skeleton for non-deterministic foreign functions
+      Figure 5.2:  Skeleton for non-deterministic foreign functions
 
 
-5.5.2 Analysing Terms via the Foreign Interface
+5.6.2 Analysing Terms via the Foreign Interface
 
 Each argument of a foreign function (except for the control argument) is
-of type term.  To analyse a term one should first obtain the type of the
+of type term_t.  To analyse a term one should first obtain the type of the
 term.  Primitive terms can then be transformed into atomic data in
 internal Prolog representation.  This atomic data can be transformed into
 C-data types.  Complex terms are analysed in terms on their functor and
@@ -5080,7 +5435,7 @@ arguments.  The arguments themselves are terms, allowing the same
 procedure to be repeated recursively.
 
 
-int PL_type(term)
+int PL_type(term_t)
     Obtain the type of term, which should be a term returned by one of
     the other interface predicates or passed as an argument.  The
     function returns the type of the Prolog term.  The type identifiers
@@ -5102,46 +5457,46 @@ test ``PL_is_var(term)'' is equivalent to ``PL_type(term) ==
 PL_VARIABLE'', but the first is considerably faster.
 
 
-int PL_is_var(term)
+int PL_is_var(term_t)
     Returns non-zero if term is a variable.
 
 
-int PL_is_atom(term)
+int PL_is_atom(term_t)
     Returns non-zero if term is an atom.
 
 
-int PL_is_string(term)
+int PL_is_string(term_t)
     Returns non-zero if term is a string.
 
 
-int PL_is_int(term)
+int PL_is_int(term_t)
     Returns non-zero if term is an integer.
 
 
-int PL_is_float(term)
+int PL_is_float(term_t)
     Returns non-zero if term is a float.
 
 
-int PL_is_term(term)
+int PL_is_term(term_t)
     Returns non-zero if term is a compound term.
 
 
-atomic PL_atomic(term)
-       Return the atomic value of term in Prolog internal representation.
-       Term should be atomic (e.g.  atom, integer, float or string).
+atomic_t PL_atomic(term_t)
+         Return the atomic value of term in Prolog internal representation.
+         Term should be atomic (e.g.  atom, integer, float or string).
 
 
-long PL_integer_value(atomic)
+long PL_integer_value(atomic_t)
      Transforms an integer from Prolog internal representation into a C
      long.
 
 
-double PL_float_value(atomic)
+double PL_float_value(atomic_t)
        Transforms a float from Prolog internal representation into a C
        double.
 
 
-char * PL_atom_value(atomic)
+char * PL_atom_value(atomic_t)
        Transforms an atom from Prolog internal representation into a
        0-terminated C char *.  The pointer points directly into the Prolog
        heap and can assumed to be static.  The contents of the character
@@ -5157,45 +5512,43 @@ char * PL_string_value(string)
        of the character string is NOT allowed.
 
 
-functor PL_functor(term)
-        term should be a complex term.  The return value is a unique
-        identifier of the term's name and arity.  The following example
-        demonstrates this:
+functor_t PL_functor(term_t)
+          term should be a complex term.  The return value is a unique
+          identifier of the term's name and arity.  The following example
+          demonstrates this:
 
-            pl_same_functor(t1, t2)
-            term t1, t2;
-            { if ( PL_type(t1) != PL_TERM || PL_type(t2) != PL_TERM )
-               PL_fail;
-              if ( PL_functor(t1) == PL_functor(t2) )
-               PL_succeed;
-              PL_fail;
-            }
+              pl_same_functor(term_t t1, term_t t2)
+              { if ( !PL_is_term(t1) || !PL_is_term(t2) )
+                 PL_fail;
+                if ( PL_functor(t1) == PL_functor(t2) )
+                 PL_succeed;
+                PL_fail;
+              }
 
 
-atomic PL_functor_name(functor)
-       Return an atom representing the name of functor.  To get the functor
-       name as char * of a term which is known to be compound:
+atomic_t PL_functor_name(functor_t)
+         Return an atom representing the name of functor.  To get the functor
+         name as char * of a term which is known to be compound:
 
-       #define functor_name(term) PL_atom_value(PL_functor_name(PL_functor(term*
- *)))
+         #define functor_name(term) PL_atom_value(PL_functor_name(PL_functor(te*
+ *rm)))
 
 
-int PL_functor_arity(functor)
+int PL_functor_arity(functor_t)
     Return a C integer representing the arity of functor.
 
 
-term PL_arg(term, int)
+term PL_arg(term_t, int)
      Return the int-th argument of term.  Argument counting starts at 1
      and is valid up to and including the arity of term.  No checks on
      these boundaries are performed.
 
 
-Figure 5.2 shows a definition of display/1 to illustrate the described
+Figure 5.3 shows a definition of display/1 to illustrate the described
 functions.
 
-    pl_display(t)
-    term t;
-    { functor functor;
+    pl_display(term_t t)
+    { functor_t functor;
       int arity, n;
 
       switch( PL_type(t) )
@@ -5234,57 +5587,57 @@ functions.
       PL_succeed;
     }
 
-             Figure 5.2:  Foreign definition of display/1
+            Figure 5.3:  A Foreign definition of display/1
 
 
-5.5.3 Instantiating and Constructing Terms
+5.6.3 Instantiating and Constructing Terms
 
 Terms are instantiated as in Prolog itself by unification.  Variables can
 be unified with atomic data, with a functor and with other terms.  New
 terms are first constructed as a single unbound variable.
 
 
-term PL_new_term()
-     Create a new term.  The term is an unbound variable living on the
-     global stack.  In the current implementation it lives until Prolog
-     backtracks to before this call.  Garbage collection might change this
-     in the future.
+term_t PL_new_term()
+       Create a new term.  The term is an unbound variable living on the
+       global stack.  In the current implementation it lives until Prolog
+       backtracks to before this call.  Garbage collection might change this
+       in the future.
 
 
-atomic PL_new_atom(char *)
-       Create a Prolog atom from a C char *.  The contents of the char * are
-       copied to the Prolog heap.
+atomic_t PL_new_atom(char *)
+         Create a Prolog atom from a C char *.  The contents of the char * are
+         copied to the Prolog heap.
 
 
-atomic PL_new_string(char *)
-       Create a Prolog string, living on the global stack.  The contents of
-       the char * are copied into Prolog's data area.
+atomic_t PL_new_string(char *)
+         Create a Prolog string, living on the global stack.  The contents of
+         the char * are copied into Prolog's data area.
 
 
-atomic PL_new_integer(long)
-       Create a Prolog integer from a C long.  Note that the integer is
-       truncated to 28 bits.  No checks on this are performed.
+atomic_t PL_new_integer(long)
+         Create a Prolog integer from a C long.  Note that the integer is
+         truncated to 28 bits.  No checks on this are performed.
 
 
-atomic PL_new_float(double)
-       Create a Prolog float living on the global stack from double.
+atomic_t PL_new_float(double)
+         Create a Prolog float living on the global stack from double.
 
 
-functor PL_new_functor(atomic, int)
-        Create a Prolog functor identifier form atomic (which should be an
-        atom) and int, the arity.  Arity is valid for any arity  0.  Arity = 0
-        is used internally, but none of the interface functions use it.
+functor_t PL_new_functor(atomic_t, int)
+          Create a Prolog functor identifier form atomic (which should be an
+          atom) and int, the arity.  Arity is valid for any arity  0.  Arity = 0
+          is used internally, but none of the interface functions use it.
 
 
-int PL_unify(term, term)
+int PL_unify(term_t, term_t)
     Unify two terms.  Return value is TRUE or FALSE.
 
 
-int PL_unify_atomic(term, atomic)
+int PL_unify_atomic(term_t, atomic_t)
     Unify a term with an atomic value.
 
 
-int PL_unify_functor(term, functor)
+int PL_unify_functor(term_t, functor_t)
     Unify a term with a functor.  The unification simply succeeds if term
     is already instantiated to a term with functor functor.  If term is
     variable it will be instantiated to the most general term of functor
@@ -5295,10 +5648,10 @@ int PL_unify_functor(term, functor)
     calling PL_arg() and recursively unifying the returned terms.
 
 
-An example of using these functions is shown in figure 5.3.
+An example of using these functions is shown in figure 5.4.
 
 
-5.5.4 Interaction with the garbage collector and stack-shifter
+5.6.4 Interaction with the garbage collector and stack-shifter
 
 C-functions that manipulate Prolog terms manipulate pointers to the Prolog
 runtime stacks.  Prolog implements two mechanisms for avoiding stack
@@ -5317,26 +5670,26 @@ unlocked before control is passed back to Prolog.
 A C-variable that is registered must hold valid Prolog data or `0'.
 
 
-void PL_lock(term)
+void PL_lock(term_t)
      Register the named C-variable with the Prolog engine.  The variable
      should hold a valid Prolog term.  The value of the variable may be
      changed while it remains locked.  Each locked variable must be
      unlocked using PL_unlock().  Locking and unlocking must be balanced.
 
 
-void PL_unlock(term)
+void PL_unlock(term_t)
      Unlock a locked variable.  If the named variable is not the most
      recently locked variable an error message is printed.  If a foreign
      function leaves variables unlocked an error message is issued as
      well.
 
 
-5.5.4.1 When is locking necessary
+5.6.4.1 When is locking necessary
 
 Stacks shifts or garbage collections may be forced if there is
 insufficient space on the stacks.  Data is pushed on the stacks by most of
 the term construction functions and if the Prolog engine is called using
-PL_call().
+PL_call() or PL_call_predicate().
 
 By default the Prolog engine ensures the stacks have a minimum of
 `min_free' (see stack_parameter/4) space when a foreign predicate is
@@ -5353,7 +5706,7 @@ structures should protect their variables and should defined the
 PL_FA_GCSAVE attribute (see PL_register_foreign()).
 
 
-5.5.5 Calling Prolog from C
+5.6.5 Calling Prolog from C
 
 The Prolog system can be called back from C. This is done by constructing
 a term with the functions described above and then calling PL_call().
@@ -5363,18 +5716,18 @@ the Prolog predicate.  If alternatives are wanted call findall/3 and read
 the result from the third argument.
 
 
-int PL_call(term, module)
+int PL_call(term_t, module_t)
     Call term just like the Prolog predicate once/1.  Term is called in
-    the specified module, or in the context module if module = NULL.
-    Returns TRUE if the call succeeds, FALSE otherwise.  Figure 5.3 shows
+    the specified module, or in the context module if module_t = NULL.
+    Returns TRUE if the call succeeds, FALSE otherwise.  Figure 5.4 shows
     an example to obtain the number of defined atoms.  All checks are
     omitted to improve readability.
 
 
-5.5.6 Discarding Data
+5.6.6 Discarding Data
 
 The Prolog data created during setting up the call and calling Prolog can
-in most cases be discarded right after the call.  See figure 5.3 for an
+in most cases be discarded right after the call.  See figure 5.4 for an
 example.
 
 
@@ -5415,48 +5768,137 @@ allowed to call PL_bktrk(b2) after this sequence.
       return atoms;
     }
 
-                     Figure 5.3:  Calling Prolog
+                     Figure 5.4:  Calling Prolog
 
 
-5.5.7 Foreign Code and Modules
+5.6.7 Calls based on predicate references
+
+In some situations, callback is highly time-critical and needs to be
+performed often on the same predicate.  In these cases, Pl_call() may be
+too slow as it involves building the gaol using various unification calls
+and calling PL_call() that will again unpack the call-term.  In these
+cases the interface described in this section may be useful.
+
+
+predicate_t PL_predicate(functor_t, module_t)
+            Return a handle to the given predicate in the given module.  If
+            module_t is NULL, the current context module will be used.  This ca*
+ *ll
+            always succeeds, possibly creating a handle to an undefined
+            predicate.
+
+
+int PL_call_predicate(module_t, int debug, predicate_t, term_t *argv)
+    Use a predicate handle to call predicate with the given arguments.
+    The vector argv must point to a vector of Prolog terms with enough
+    elements for the predicate.
+
+    The module argument defines the context module of the goal if the
+    called predicate is module transparent.  If this argument is
+    specified is NULL, this is the current context module.  If no context
+    is available it is the user module.  If the debug argument is FALSE,
+    the call will be hidden from the Prolog debugger.
+
+    The module and debug arguments are in almost all normal cases NULL
+    and TRUE.  They are needed for some internal cases.
+    PL_call_predicate() is the function containing the actual Prolog
+    Virtual Machine Interpreter, flattening the call-stack as far as
+    possible
+
+
+The following example realises the same as the example from figure 5.4
+
+    int
+    count_atoms()
+    { term_t t[2];
+      int atoms;
+      bktrk_buf buf;
+
+      PL_mark(&buf);           /* mark the global stack */
+
+      t[0] = PL_new_term();       /* create `statistics(atoms, Var)' */
+      t[1] = PL_new_term();
+      PL_unify_atomic(t[0], PL_new_atom("atoms"));
+      PL_call_predicate(NULL, TRUE,
+                      PL_predicate(PL_functor(PL_new_atom("statistics"), 2)
+                                  PL_new_module(PL_new_atom("user"))),
+                      t);
+
+                             /* extract the value from the 2nd arg */
+      atoms = PL_integer_value(PL_atomic(t[1]));
+
+      PL_bktrk(&buf);          /* discard global stack data created */
+
+      return atoms;
+    }
+
+                 Figure 5.5:  Using PL_call_predicate
+
+Finally, the direct predicate interface provides some utility functions.
+
+
+int PL_predicate_arity(predicate_t)
+    Returns the number of arguments required by the predicate.  The
+    argument vector provided to PL_call_predicate() should contain at
+    least this number of elements.
+
+
+atomic_t PL_predicate_name(predicate_t)
+         Returns an atom identifying the name of the predicate.
+
+
+functor_t PL_predicate_functor(predicate_t)
+          Functor description of the term.  This is always the same as the
+          first argument of the PL_predicate() call used to find the predicate.
+
+
+module_t PL_predicate_module(predicate_t)
+         Returns a handle to the module in which the predicate is defined.
+         Note that this is not necessarily the same as the module handle used
+         to locate the predicate with PL_predicate() as the predicate may be
+         imported.  As predicate modifications may change the import/export
+         relations, the return value may change between calls.
+
+
+5.6.8 Foreign Code and Modules
 
 Modules are identified via a unique handle.  The following functions are
 available to query and manipulate modules.
 
 
-module PL_context()
-       Return the module identifier of the context module of the currently
-       active foreign predicate.
+module_t PL_context()
+         Return the module identifier of the context module of the currently
+         active foreign predicate.
 
 
-term PL_strip_module(term, module *)
-     Utility function.  If term is a term, possibly holding the module
-     construct module:rest this function will return rest and fill module
-     * with module.  For further nested module constructs the inner most
-     module is returned via module *.  If term is not a module construct
-     term will simply be returned.  If module * is NULL it will be set to
-     the context module.  Otherwise it will be left untouched.  The
-     following example shows how to obtain the plain term and module if
-     the default module is the user module:
+term_t PL_strip_module(term_t, module_t *)
+       Utility function.  If term_t is a term, possibly holding the module
+       construct module:rest this function will return rest and fill module
+       * with module.  For further nested module constructs the inner most
+       module is returned via module *.  If term is not a module construct
+       term will simply be returned.  If module * is NULL it will be set to
+       the context module.  Otherwise it will be left untouched.  The
+       following example shows how to obtain the plain term and module if
+       the default module is the user module:
 
-         { module m = PL_new_module(PL_new_atom("user"));
+           { module m = PL_new_module(PL_new_atom("user"));
 
-           if ( (term = PL_strip_module(term, &m)) == NULL )
-            return PL_warning("Illegal module specification");
+             if ( (term = PL_strip_module(term, &m)) == NULL )
+              return PL_warning("Illegal module specification");
 
-           ...
+             ...
 
 
-atomic PL_module_name(module)
-       Return the name of module as an atom.
+atomic_t PL_module_name(module_t)
+         Return the name of module as an atom.
 
 
-module PL_new_module(atomic)
-       Find an existing or create a new module with name specified by the
-       atom atomic.
+module_t PL_new_module(atomic_t)
+         Find an existing or create a new module with name specified by the
+         atom atomic.
 
 
-5.5.8 Catching Unix Signals
+5.6.9 Catching Signals (Software Interrupts)
 
 SWI-Prolog catches the Unix signals SIGINT, SIGFPE and SIGSEGV. To avoid
 problems with foreign code attempting to catch these signals foreign code
@@ -5473,7 +5915,7 @@ void (*PL_signal(sig, func))()
      signal handlers if a state created with save_program/1 is restarted.
 
 
-5.5.9 Errors and warnings
+5.6.10 Errors and warnings
 
 Two standard functions are available to print standard Prolog errors to
 the standard error stream.
@@ -5491,7 +5933,7 @@ void PL_fatal_error(format, a1, ...)
      and then exits Prolog.
 
 
-5.5.10 Environment Control from Foreign Code
+5.6.11 Environment Control from Foreign Code
 
 
 int PL_action(int, C_type)
@@ -5522,7 +5964,7 @@ int PL_action(int, C_type)
                    Table 5.1:  PL_action() options
 
 
-5.5.11 Querying Prolog
+5.6.12 Querying Prolog
 
 
 C_type PL_query(int)
@@ -5546,15 +5988,15 @@ C_type PL_query(int)
                        Table 5.2:  PL_query() options
 
 
-5.5.12 Registering Foreign Predicates
+5.6.13 Registering Foreign Predicates
 
 
-int PL_register_foreign(name, arity, function, [...option...]  0)
+int PL_register_foreign(name, arity, function, flags)
     Register a C-function to implement a Prolog predicate.  After this
     call returns successfully a predicate with name name (a char *) and
     arity arity (a C int) is created.  When called in Prolog, Prolog will
-    call function.  [...option...]  forms a 0-terminated list of options
-    for the installation.  These are:
+    call function.  flags forms bitwise or'ed list of options for the
+    installation.  These are:
 
          PL_FA_NOTRACE           Predicate cannot be seen in the tracer
          PL_FA_TRANSPARENT       Predicate is module transparent
@@ -5566,25 +6008,71 @@ int PL_register_foreign(name, arity, function, [...option...]  0)
                                  the garbage collector and stack-shifter
 
 
-5.6 Example of Using the Foreign Interface
+5.6.14 Foreign Code Hooks
+
+For various specific applications some hooks re provided.
+
+
+PL_dispatch_hook_tPL_dispatch_hook(PL_dispatch_hook_t)
+                  If this hook is not NULL, this function is called when readin*
+ *g from
+                  the terminal.  It is supposed to dispatch events when SWI-Pro*
+ *log is
+                  connected to a window environment.  It can return two values:
+                  PL_DISPATCH_INPUT indicates Prolog input is available on file
+                  descriptor 0 or PL_DISPATCH_TIMEOUTto indicate a timeout.  Th*
+ *e old
+                  hook is returned.  The type PL_dispatch_hook_tis defined as:
+
+                      typedef int  (*PL_dispatch_hook_t)(void);
+
+
+void PL_abort_hook(PL_abort_hook_t)
+     Install a hook when abort/0 is executed.  SWI-Prolog abort/0 is
+     implemented using C setjmp()/longjmp() construct.  The hooks are
+     executed in the reverse order of their registration after the
+     longjmp() took place and before the Prolog toplevel is reinvoked.
+     The type PL_abort_hook_tis defined as:
+
+         typedef void (*PL_abort_hook_t)(void);
+
+
+int PL_abort_unhook(PL_abort_hook_t)
+    Remove a hook installed with PL_abort_hook().  Returns FALSE if no
+    such hook is found, TRUE otherwise.
+
+
+void PL_reinit_hook(PL_reinit_hook_t)
+     Install a hook that is called when a saved program (using
+     save_program/[1,2]) is restored.  The hooks are called in reverse
+     order.  The type PL_reinit_hook_tis defined as:
+
+         typedef void (*PL_reinit_hook_t)(int argc, char **argv);
+
+
+int PL_reinit_unhook(PL_reinit_hook_t)
+    Remove a hook installed with PL_reinit_hook().  Returns FALSE if no
+    such hook is found, TRUE otherwise.
+
+
+5.7 Example of Using the Foreign Interface
 
 Below is an example showing all stages of the declaration of a foreign
 predicate that transforms atoms possibly holding uppercase letters into an
-atom only holding lower case letters.  Figure 5.4 shows the C-source file.
+atom only holding lower case letters.  Figure 5.6 shows the C-source file.
 
 
-5.6.1 C-Source file (lowercase.c)
+5.7.1 C-Source file (lowercase.c)
 
     /*  Include file depends on local installation */
     #include <SWI-prolog.h>
     #include <ctype.h>
 
     foreign_t
-    pl_lowercase(u, l)
-    term u, l;
+    pl_lowercase(term_t u, term_t l)
     { char *copy;
       char *s, *q;
-      atomic la;
+      atomic_t la;
 
       if ( !PL_is_atom(u) )
         return PL_warning("lowercase/2: instantiation fault");
@@ -5601,18 +6089,18 @@ atom only holding lower case letters.  Figure 5.4 shows the C-source file.
       return PL_unify_atomic(l, la);
     }
 
+    install_t
     init_lowercase()
     { PL_register_foreign("lowercase", 2, pl_lowercase, 0);
     }
 
-                  Figure 5.4:  Lowercase source file
+                  Figure 5.6:  Lowercase source file
 
 
-5.6.2 Compiling and Loading Foreign Code
+5.7.2 Compiling and Loading Foreign Code
 
     sun% cc -I/usr/local/lib/pl/include -O -c lowercase.c
     sun% pl
-    /staff/jan/.plrc consulted, 0.166667 seconds, 2256 bytes.
     Welcome to SWI-Prolog (version 1.5.0, August 1990)
     Copyright (c) 1990, University of Amsterdam
 
@@ -5627,10 +6115,10 @@ atom only holding lower case letters.  Figure 5.4 shows the C-source file.
     Yes
 
 
-5.7 Notes on Using Foreign Code
+5.8 Notes on Using Foreign Code
 
 
-5.7.1 Garbage Collection and Foreign Code
+5.8.1 Garbage Collection and Foreign Code
 
 Currently no interface between foreign code and the garbage collector has
 been defined.  The garbage collector is disabled during execution of
@@ -5639,7 +6127,7 @@ probably will introduce incompatible changes to the current interface
 definition.
 
 
-5.7.2 Memory Allocation
+5.8.2 Memory Allocation
 
 SWI-Prolog's memory allocation is based on the malloc() library routines.
 Foreign applications can savely use malloc(), realloc() and free().
@@ -5647,7 +6135,7 @@ Memory allocation using brk() or sbrk() is not allowed as these calls
 conflict with malloc().
 
 
-5.7.3 Debugging Foreign Code
+5.8.3 Debugging Foreign Code
 
 NOTE: this section is highly machine dependent.  The tricks described here
 are tested on SUN-3 and SUN-4.  They might work on other BSD variants of
@@ -5692,7 +6180,7 @@ initialisation function:
     PL_register_foreign("dbx", 0, pl_dbx, 0);
 
 
-5.7.4 Name Conflicts in C modules
+5.8.4 Name Conflicts in C modules
 
 In the current version of the system all public C functions of SWI-Prolog
 are in the symbol table.  This can lead to name clashes with foreign code.
@@ -5706,9 +6194,9 @@ macro should fix the problem.
     #define warning warning_
 
 
-5.7.5 Compatibility of the Foreign Interface
+5.8.5 Compatibility of the Foreign Interface
 
-As far as I' aware of, there is no standard for foreign language
+As far as I'm aware of, there is no standard for foreign language
 interfaces in Prolog.  The SWI-Prolog interface is no attempt to propose
 such a standard.  It is (in part) tailored to the possibilities of the
 SWI-Prolog machinery.  BIM-Prolog has a similar interface to analyse and
@@ -5735,7 +6223,7 @@ debugging tools for Prolog.  The predicates described here should be
 handled with some care as it is easy to corrupt the consistency of the
 Prolog system by misusing them.
 
-                                537
+                                574
 
 
 6.1 Examining the Environment Stack
@@ -5936,6 +6424,7 @@ asserta/1                   Add a clause to the database (first)
 asserta/2                   Add a clause to the database (first)
 assertz/1                   Add a clause to the database (last)
 assertz/2                   Add a clause to the database (last)
+at_halt/1                   Register goal to run at halt/1
 at_initialisation/1          Register goal to run at start-up
 atan/1                      Arithmetic:  inverse (arc) tangent
 atan/2                      Arithmetic:  rectangular to polar conversion
@@ -5973,6 +6462,7 @@ cputime/0                   Arithmetic:  get CPU time
 current_atom/1               Examine existing atoms
 current_arithmetic_function/1 Examine evaluable functions
 current_flag/1               Examine existing flags
+current_foreign_library/2     Examine loaded shared libraries
 current_functor/2            Examine existing name/arity pairs
 current_input/1              Get current input stream
 current_key/1                Examine existing database keys
@@ -5980,8 +6470,12 @@ current_op/3                Examine current operator declaractions
 current_output/1             Get the current output stream
 current_predicate/2          Examine existing predicates
 current_stream/3             Examine open streams
+dde_current_service/2        Examine DDE services provided
+dde_current_connection/2      Examine open DDE server connections
 dde_execute/2                Execute command on DDE server
+dde_register_service/2       Become an MS-Windows DDE server
 dde_request/3                Make an MS-Windows DDE request
+dde_unregister_service/1      Terminate a DDE server
 debug/0                     Test for debugging mode
 debugging/0                 Show debugger status
 delete/3                    Delete all matching members from a list
@@ -6017,6 +6511,7 @@ export_list/2                List of public predicates of a module
 fail/0                      Always false
 fail/1                      Immediately fail named block (see block/3)
 feature/2                   Get system configuration parameters
+file_search_path/2           Define path-aliases for locating files
 fileerrors/2                Do/Don't warn on file errors
 findall/3                   Find all solutions to a goal
 flag/3                      Simple global variable system
@@ -6043,6 +6538,7 @@ get_time/1                  Get current time
 getenv/2                    Get Unix environment variable
 ground/1                    Verify term holds no unbound variables
 halt/0                      Exit from Prolog
+halt/1                      Exit from Prolog with status
 help/0                      Give help on help
 help/1                      Give help on predicates and show parts of manual
 history_depth/1              Number of remembered queries
@@ -6059,6 +6555,7 @@ integer/1                   Arithmetic:  round to nearest integer
 integer/1                   Type check for integer
 intersection/3               Set intersection
 is/2                        Evaluate arithmetic expression
+is_absolute_file_name/1       True if arg defines an absolute path
 is_list/1                   Type check for a list
 is_set/1                    Type check for a set
 keysort/2                   Sort, using a key
@@ -6074,6 +6571,9 @@ listing/0                   List program in current module
 listing/1                   List predicate
 load_foreign/2               Load foreign (C) module
 load_foreign/5               Load foreign (C) module
+load_foreign_library/1       Load foreign (C) shared library
+load_foreign_library/2       Load foreign (C) shared library
+unload_foreign_library/1      Detach foreign (C) shared library
 log/1                       Arithmetic:  natural logarithm
 log10/1                     Arithmetic:  10 base logarithm
 make/0                      Reconsult all changed source files
@@ -6184,6 +6684,8 @@ shell/2                     Execute Unix command
 show_profile/1               Show results of the profiler
 sin/1                       Arithmetic:  sine
 size_file/2                 Get size of a file in characters
+skip/1                      Skip to character in current input
+skip/2                      Skip to character on stream
 sleep/1                     Suspend execution for specified time
 sort/2                      Sort elements in a list
 source_file/1                Examine currently loaded source files
@@ -6246,4 +6748,4 @@ writeq/2                    Write term, insert quotes on stream
 xor/2                       Arithmetic:  exclusive or
 |/2                         Disjunction of goals
 
-                                546
+                                583

@@ -1,3 +1,9 @@
+/*  File:    shell.pl
+    Purpose: Limited Unix Shell Emulation
+    Author:  Jan Wielemaker
+    Date:    Dec 15,  1994
+*/
+
 :- module(explain,
 	  [ explain/1,
 	    explain/2
@@ -63,7 +69,10 @@ explain(Term, Explanation) :-
 
 explain_atom(A, Explanation) :-
 	current_predicate(A, Module:Head),
-	\+ predicate_property(Module:Head, imported_from(_)),
+	(   Module == system
+	->  true
+	;   \+ predicate_property(Module:Head, imported_from(_))
+	),
 	explain_predicate(Module:Head, Explanation).
 explain_atom(A, Explanation) :-
 	referenced(A, Explanation).

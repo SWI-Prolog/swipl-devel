@@ -140,7 +140,7 @@ pager_stream(Stream) :-
 	open(pipe(Pager), write, Stream).
 
 find_manual(Path) :-
-	'$chk_file'(library('MANUAL'), Path, [''], ['']).
+	'$chk_file'(library('MANUAL'), [''], Path).
 
 find_pager(Pager) :-
 	getenv('PAGER', Pager), !.
@@ -166,14 +166,14 @@ predicate_apropos(Pattern) :-
 		Names),
 	Names \== [],
 	forall(member(Name-Arity-Summary, Names),
-			format('~w/~w~t~22|~w~n', [Name, Arity, Summary])).
+			format('~w/~w~t~30|~w~n', [Name, Arity, Summary])).
 
 function_apropos(Pattern) :-
 	findall(Name, (function(Name, _, _),
 		       apropos_match(Pattern, Name)), Names),
 	Names \== [],
 	forall(member(Name, Names),
-			format('Interface Function~t~22|~w()~n', Name)).
+			format('Interface Function~t~30|~w()~n', Name)).
 
 section_apropos(Pattern) :-
 	findall(Index-Name, (section(Index, Name, _, _),
@@ -181,7 +181,7 @@ section_apropos(Pattern) :-
 	Names \== [],
 	forall(member(Index-Name, Names),
 			(user_index(Index, UserIndex),
-			format('Section ~w~t~22|"~w"~n', [UserIndex, Name]))).
+			format('Section ~w~t~30|"~w"~n', [UserIndex, Name]))).
 
 apropos_match(A, B) :-
 	'$apropos_match'(A, B).			% C defined for performance

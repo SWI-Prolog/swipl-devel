@@ -27,11 +27,7 @@
 
 $welcome :-
 	feature(version, Version),
-	(   feature(runtime, true)
-	->  $ttyformat('Welcome to SWI-Prolog RUNTIME (Version ~w)~n',
-		       [Version])
-	;   $ttyformat('Welcome to SWI-Prolog (Version ~w)~n', [Version])
-	),
+	$ttyformat('Welcome to SWI-Prolog (Version ~w)~n', [Version]),
 	$ttyformat('Copyright (c) 1993-1995 University of Amsterdam.  '),
 	$ttyformat('All rights reserved.~n~n').
 
@@ -42,6 +38,13 @@ $load_init_file(Base) :-
 	exists_file(InitFile), !, 
 	user:ensure_loaded(InitFile).
 $load_init_file(_).
+
+$load_system_init_file :-
+	feature(home, Home),
+	concat(Home, '/plrc', File),
+	access_file(File, read),
+	$consult_file(user:File, []), !. % silent consult
+$load_system_init_file.
 
 $check_novice :-
 	$novice(on, on), 
@@ -94,11 +97,9 @@ $init_return :-
 	$check_novice, 
 	$clean_history,
 	$load_gnu_emacs_interface,
-	(   feature(runtime, true)
-	->  true
-	;   $option(init_file, File, File), 
-	    $load_init_file(File)
-	),
+	$option(init_file, File, File), 
+	$load_init_file(File), 
+	$load_system_init_file,
 	$run_at_initialisation,
 	$option(goal, GoalAtom, GoalAtom), 
 	term_to_atom(Goal, GoalAtom), 
