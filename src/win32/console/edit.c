@@ -16,6 +16,10 @@
 #include <string.h>
 #include <ctype.h>
 
+#ifndef EOF
+#define EOF -1
+#endif
+
 typedef void (*function)(Line ln, int chr);	/* edit-function */
 
 static function dispatch_table[256];	/* general dispatch-table */
@@ -572,7 +576,11 @@ read_line()
     if ( (c = getch()) == IMODE_SWITCH_CHAR )
       return RL_CANCELED_CHARP;
 
-    if ( c == ESC )
+    if ( c == EOF )
+    { eof(&ln, c);
+      update_display(&ln);
+      break;
+    } else if ( c == ESC )
     { if ( (c = getch()) == IMODE_SWITCH_CHAR )
 	return RL_CANCELED_CHARP;
       table = dispatch_meta;

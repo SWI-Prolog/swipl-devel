@@ -1248,11 +1248,22 @@ allocStacks(long local, long global, long trail, long argument)
 }
 
 
+static void
+freeStack(Stack s)
+{ VirtualFree(s->base, (ulong)s->max-(ulong)s->base, MEM_DECOMMIT);
+}
+
+
 void
 freeStacks(PL_local_data_t *ld)
-{ VirtualFree(ld->stacks.global.base);
-  VirtualFree(ld->stacks.trail.base);
-  VirtualFree(ld->stacks.argument.base);
+{ freeStack((Stack)&ld->stacks.global);	/* must we do this? */
+  freeStack((Stack)&ld->stacks.local);
+  freeStack((Stack)&ld->stacks.trail);
+  freeStack((Stack)&ld->stacks.argument);
+
+  VirtualFree(ld->stacks.global.base, 0, MEM_RELEASE);
+  VirtualFree(ld->stacks.trail.base, 0, MEM_RELEASE);
+  VirtualFree(ld->stacks.argument.base, 0, MEM_RELEASE);
 }
 
 #endif /*HAVE_VIRTUAL_ALLOC*/

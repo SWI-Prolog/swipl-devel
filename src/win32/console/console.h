@@ -30,7 +30,10 @@ typedef struct
   int	 	 last;
   int	 	 size;			/* size of the buffer */
   unsigned char *buffer;		/* character buffer */
+  int		 flags;			/* flags for the queue */
 } rlc_queue, *RlcQueue;
+
+#define RLC_EOF	0x1			/* Flags on the queue */
 
 typedef struct
 { int		mark_x;
@@ -94,6 +97,7 @@ _export void *		rlc_realloc(void *ptr, int size);
 
 _export int		rlc_read(char *buf, int count);
 _export int		rlc_write(char *buf, unsigned int count);
+_export int		rlc_close(void);
 
 _export int		getch(void);
 _export int		getche(void);

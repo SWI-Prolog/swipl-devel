@@ -1064,6 +1064,11 @@ canoniseDir(char *path)
 
 #define canoniseDir(d)
 
+static void
+cleanupExpand(void)
+{
+}
+
 #endif /*O_CANONISE_DIRS*/
 
 

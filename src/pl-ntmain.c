@@ -45,7 +45,7 @@ Srlc_read(void *handle, char *buffer, int size)
   if ( ttymode == PL_RAWTTY )
   { int chr = getkey();
       
-    if ( chr == 04 || chr == 26 )
+    if ( chr == 04 || chr == 26 || chr == -1 )
       return 0;			/* EOF */
 
     buffer[0] = chr & 0xff;
@@ -361,6 +361,10 @@ install_readline(int argc, char **argv)
 #endif /*HAVE_LIBREADLINE*/
 }
 
+static void
+closeWin(int s, void *a)
+{ rlc_close();
+}
 
 int
 win32main(int argc, char **argv)
@@ -370,10 +374,11 @@ win32main(int argc, char **argv)
   PL_register_extensions(extensions);
   PL_initialise_hook(install_readline);
   PL_action(PL_ACTION_GUIAPP, TRUE);
+  PL_on_halt(closeWin, NULL);
+  atexit(rlc_close);
   if ( !PL_initialise(argc, argv) )
     PL_halt(1);
   
-/*PL_async_hook(4000, rlc_check_intr);*/
   PL_hidden_window();			/* create in main thread */
   main_thread_id = GetCurrentThreadId();
   rlc_interrupt_hook(interrupt);

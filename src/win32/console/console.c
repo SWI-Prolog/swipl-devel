@@ -101,6 +101,7 @@ static void initHeapDebug(void);
 #define WM_RLC_WRITE	WM_USER+11	/* write data */
 #define WM_RLC_FLUSH	WM_USER+12	/* flush buffered data */
 #define WM_RLC_READY	WM_USER+13	/* Window thread is ready */
+#define WM_RLC_CLOSEWIN WM_USER+14	/* Close the window */
 
 #define IMODE_RAW	1		/* char-by-char */
 #define IMODE_COOKED	2		/* line-by-line */
@@ -180,6 +181,7 @@ typedef struct
   char		promptbuf[MAXPROMPT];	/* Buffer for building prompt */
   char		prompt[MAXPROMPT];	/* The prompt */
   int		promptlen;		/* length of the prompt */
+  int		closing;		/* closing status */
 } rlc_data, *RlcData;
 
 
@@ -222,7 +224,7 @@ static void	rlc_start_selection(RlcData b, int x, int y);
 static void	rlc_extend_selection(RlcData b, int x, int y);
 static void	rlc_word_selection(RlcData b, int x, int y);
 static void	rlc_copy(RlcData b);
-static void	rlc_destroy(void);
+static void	rlc_destroy(RlcData b);
 static void	rlc_request_redraw(RlcData b);
 static void	rlc_redraw(RlcData b);
 static int	rlc_breakargs(char *program, char *line, char **argv);
@@ -443,7 +445,6 @@ rlc_create_window(RlcData b)
 
   b->window = hwnd;
   SetWindowLong(hwnd, GWL_DATA, (LONG) b);
-  atexit(rlc_destroy);
 
   b->foreground = GetSysColor(COLOR_WINDOWTEXT);
   b->background = GetSysColor(COLOR_WINDOW);
@@ -563,10 +564,9 @@ reg_save_str(HKEY key, const char *name, char *value)
 
 
 static void
-rlc_save_options(void)
-{ if ( _rlc_stdio && rlc_reg_key )
+rlc_save_options(RlcData b)
+{ if ( b && rlc_reg_key )
   { HKEY key = rlc_reg_key;
-    RlcData b = _rlc_stdio;
     
     rlc_savelines = b->height;
     rlc_rows      = b->window_size;
@@ -706,8 +706,6 @@ rlc_get_options(const char *prog)
   reg_get_int(key, "FontCharSet",   0,      0, &rlc_font_charset);
 
   rlc_reg_key = key;
-
-  atexit(rlc_save_options);
 }
 
 
@@ -792,7 +790,8 @@ rlc_color(int which, COLORREF c)
       return (COLORREF)-1;
   }
 
-  InvalidateRect(_rlc_stdio->window, NULL, TRUE);
+  if ( _rlc_stdio->window )
+    InvalidateRect(_rlc_stdio->window, NULL, TRUE);
 
   return old;
 }
@@ -802,24 +801,41 @@ static int
 rlc_kill()
 { DWORD result;
 
-  if ( !SendMessageTimeout(_rlc_hidden_window,
-			   WM_DESTROY,
-			   0, 0,
-			   SMTO_ABORTIFHUNG,
-			   5000,
-			   &result) )
-  { switch( MessageBox(_rlc_stdio->window,
-		       "Main task is not responding."
-		       "Click \"OK\" to terminate it",
-		       "Error",
-		       MB_OKCANCEL|MB_ICONEXCLAMATION|MB_APPLMODAL) )
-    { case IDCANCEL:
-	return FALSE;
-    }
-    TerminateThread(_rlc_main_thread, 1);
-
-    return TRUE;
+  switch(_rlc_stdio->closing++)
+  { case 0:
+      _rlc_stdio->queue->flags |= RLC_EOF;
+#ifdef MULTITHREAD
+      PostThreadMessage(_rlc_main_thread_id, WM_RLC_INPUT, 0, 0);
+#endif
+      return TRUE;
+    case 1:
+      if ( _rlc_interrupt_hook )
+      { (*_rlc_interrupt_hook)(SIGINT);
+	return TRUE;
+      }
+    default:
+      if ( !SendMessageTimeout(_rlc_hidden_window,
+			       WM_DESTROY,
+			       0, 0,
+			       SMTO_ABORTIFHUNG,
+			       5000,
+			       &result) )
+      { if ( _rlc_stdio->window )
+	{ switch( MessageBox(_rlc_stdio->window,
+			     "Main task is not responding."
+			     "Click \"OK\" to terminate it",
+			     "Error",
+			     MB_OKCANCEL|MB_ICONEXCLAMATION|MB_APPLMODAL) )
+	  { case IDCANCEL:
+	      return FALSE;
+	  }
+	  TerminateThread(_rlc_main_thread, 1);
+    
+	  return TRUE;
+	}
+      }
   }
+
   return FALSE;
 }
 
@@ -851,9 +867,12 @@ typed_char(RlcData b, int chr)
 		 *******************************/
 
 static void
-rlc_destroy()
-{ if ( _rlc_stdio && _rlc_stdio->window )
-    DestroyWindow(_rlc_stdio->window);
+rlc_destroy(RlcData b)
+{ if ( b && b->window )
+  { DestroyWindow(b->window);
+    b->window = NULL;
+    b->closing = 3;
+  }
 }
 
 
@@ -1183,12 +1202,16 @@ rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       return 0;
     }
 
+    case WM_RLC_CLOSEWIN:
+      return 0;
+
     case WM_CLOSE:
-      if ( !rlc_kill() )
+      if ( rlc_kill() )
         return 0;
       break;
 
     case WM_DESTROY:
+      b->window = NULL;
       PostQuitMessage(0);
       return 0;
   }
@@ -1205,16 +1228,16 @@ rlc_dispatch(RlcQueue q)
   if ( q )
     _rlc_queue = q;
 
-  if ( GetMessage(&msg, NULL, 0, 0) )
+  if ( GetMessage(&msg, NULL, 0, 0) && msg.message != WM_RLC_CLOSEWIN )
   { TranslateMessage(&msg);
     DispatchMessage(&msg);
     rlc_flush_output(_rlc_stdio);
     _rlc_queue = oldq;
     return;
-  }
+  } else
+    _rlc_queue->flags |= RLC_EOF;
 
   _rlc_queue = oldq;
-  ExitProcess(0);
 }
 
 
@@ -1364,6 +1387,9 @@ rlc_translate_mouse(RlcData b, int x, int y, int *line, int *chr)
   int n = b->window_size;		/* # lines */
   TextLine tl;
   x-= b->cw;				/* margin */
+
+  if ( !b->window )
+    return;
 
   while( y > b->ch && ln != b->last && n-- > 0 )
   { ln = NextLine(b, ln);
@@ -1565,7 +1591,7 @@ static void
 rlc_copy(RlcData b)
 { char *sel = rlc_selection(b);
 
-  if ( sel )
+  if ( sel && b->window )
   { int size = strlen(sel);
     HGLOBAL mem = GlobalAlloc(GMEM_MOVEABLE, size + 1);
     char far *data;
@@ -1638,16 +1664,18 @@ rlc_place_caret(RlcData b)
 
 static void
 rlc_update_scrollbar(RlcData b)
-{ int nsb_lines = rlc_count_lines(b, b->first, b->last);
-  int nsb_start = rlc_count_lines(b, b->first, b->window_start);
-
-  if ( nsb_lines != b->sb_lines ||
-       nsb_start != b->sb_start )
-  { SetScrollRange(b->window, SB_VERT, 0, nsb_lines, FALSE);
-    SetScrollPos(  b->window, SB_VERT, nsb_start, TRUE);
-
-    b->sb_lines = nsb_lines;
-    b->sb_start = nsb_start;
+{ if ( b->window )
+  { int nsb_lines = rlc_count_lines(b, b->first, b->last);
+    int nsb_start = rlc_count_lines(b, b->first, b->window_start);
+  
+    if ( nsb_lines != b->sb_lines ||
+	 nsb_start != b->sb_start )
+    { SetScrollRange(b->window, SB_VERT, 0, nsb_lines, FALSE);
+      SetScrollPos(  b->window, SB_VERT, nsb_start, TRUE);
+  
+      b->sb_lines = nsb_lines;
+      b->sb_start = nsb_start;
+    }
   }
 }
 
@@ -1858,22 +1886,26 @@ rlc_resize_pixel_units(RlcData b, int w, int h)
 
 static void
 rlc_add_system_menu(RlcData b, const char *entry, int id)
-{ HMENU hmenu = GetSystemMenu(b->window, FALSE);
+{ if ( b->window )
+  { HMENU hmenu = GetSystemMenu(b->window, FALSE);
 
-  if ( hmenu )
-  { if ( entry )
-      AppendMenu(hmenu, MF_STRING, id, entry);
-    else
-      AppendMenu(hmenu, MF_SEPARATOR, 0, "");
+    if ( hmenu )
+    { if ( entry )
+	AppendMenu(hmenu, MF_STRING, id, entry);
+      else
+	AppendMenu(hmenu, MF_SEPARATOR, 0, "");
+    }
   }
 }
 
 static void
 rlc_add_system_submenu(RlcData b, const char *entry, HMENU menu)
-{ HMENU hmenu = GetSystemMenu(b->window, FALSE);
+{ if ( b->window )
+  { HMENU hmenu = GetSystemMenu(b->window, FALSE);
 
-  if ( hmenu )
-    AppendMenu(hmenu, MF_STRING|MF_POPUP, (UINT) menu, entry);
+    if ( hmenu )
+      AppendMenu(hmenu, MF_STRING|MF_POPUP, (UINT) menu, entry);
+  }
 }
 
 
@@ -1918,13 +1950,13 @@ rlc_init_text_dimensions(RlcData b, HFONT font)
   b->fixedfont = (tm.tmPitchAndFamily & TMPF_FIXED_PITCH ? FALSE : TRUE);
   ReleaseDC(NULL, hdc);
 
-  if ( b->has_focus == TRUE )
-  { CreateCaret(b->window, NULL, b->fixedfont ? b->cw : 3, b->ch-1);
-    rlc_place_caret(b);
-  }
-
   if ( b->window )
   { RECT rect;
+
+    if ( b->has_focus == TRUE )
+    { CreateCaret(b->window, NULL, b->fixedfont ? b->cw : 3, b->ch-1);
+      rlc_place_caret(b);
+    }
 
     GetClientRect(b->window, &rect);
     rlc_resize_pixel_units(b, rect.right - rect.left, rect.bottom - rect.top);
@@ -2554,23 +2586,25 @@ static void
 rlc_paste(RlcData b)
 { HGLOBAL mem;
 
-  OpenClipboard(b->window);
-  if ( (mem = GetClipboardData(CF_TEXT)) )
-  { char far *data = GlobalLock(mem);
-    int i;
-    RlcQueue q = (_rlc_queue ? _rlc_queue : b->queue);
-
-    if ( q )
-    { for(i=0; data[i]; i++)
-      { rlc_add_queue(q, data[i]);
-	if ( data[i] == '\r' && data[i+1] == '\n' )
-	  i++;
+  if ( b->window )
+  { OpenClipboard(b->window);
+    if ( (mem = GetClipboardData(CF_TEXT)) )
+    { char far *data = GlobalLock(mem);
+      int i;
+      RlcQueue q = (_rlc_queue ? _rlc_queue : b->queue);
+  
+      if ( q )
+      { for(i=0; data[i]; i++)
+	{ rlc_add_queue(q, data[i]);
+	  if ( data[i] == '\r' && data[i+1] == '\n' )
+	    i++;
+	}
       }
+  
+      GlobalUnlock(mem);
     }
-
-    GlobalUnlock(mem);
+    CloseClipboard();
   }
-  CloseClipboard();
 }
 
 		 /*******************************
@@ -2653,9 +2687,11 @@ void
 rlc_update()
 { RlcData b = _rlc_stdio;
 
-  rlc_normalise(b);
-  rlc_request_redraw(b);
-  UpdateWindow(b->window);
+  if ( b->window )
+  { rlc_normalise(b);
+    rlc_request_redraw(b);
+    UpdateWindow(b->window);
+  }
 }
 
 		 /*******************************
@@ -2675,7 +2711,7 @@ window_loop(LPVOID arg)
 
   PostThreadMessage(_rlc_main_thread_id, WM_RLC_READY, 0, 0);
 
-  for(;;)
+  while(!b->closing)
   { switch( b->imode )
     { case IMODE_COOKED:
       { char *line = read_line();
@@ -2706,7 +2742,7 @@ window_loop(LPVOID arg)
 	  DispatchMessage(&msg);
 	  rlc_flush_output(b);
 	} else
-	  ExitProcess(0);
+	  goto out;
 
 	if ( b->imodeswitch )
 	{ b->imodeswitch = FALSE;
@@ -2714,6 +2750,23 @@ window_loop(LPVOID arg)
       }
     }
   }
+
+  { MSG msg;
+    char *waiting = "\r\nWaiting for Prolog. Close again to force termination ..";
+      
+    rlc_write(waiting, strlen(waiting));
+
+    while ( b->closing <= 2 && GetMessage(&msg, NULL, 0, 0) )
+    { TranslateMessage(&msg);
+      DispatchMessage(&msg);
+      rlc_flush_output(b);
+    }
+  }
+
+out:
+  rlc_destroy(b);
+
+  PostThreadMessage(_rlc_main_thread_id, WM_RLC_READY, 0, 0);
 
   return 0;
 }
@@ -2729,7 +2782,9 @@ getch()
   int fromcon = (GetCurrentThreadId() == _rlc_console_thread_id);
 
   while( rlc_is_empty_queue(q) )
-  { 
+  { if ( q->flags & RLC_EOF )
+      return EOF;
+
 #ifdef MULTITHREAD
     if ( !fromcon )
     { MSG msg;
@@ -2738,7 +2793,7 @@ getch()
       { TranslateMessage(&msg);
 	DispatchMessage(&msg);
       } else
-	ExitProcess(0);
+	return EOF;
     } else
 #endif
     { rlc_dispatch(q);
@@ -2841,6 +2896,7 @@ rlc_make_queue(int size)
   if ( (q = rlc_malloc(sizeof(rlc_queue))) )
   { q->first = q->last = 0;
     q->size = size;
+    q->flags = 0;
 
     if ( (q->buffer = rlc_malloc(sizeof(short) * size)) )
       return q;
@@ -2922,6 +2978,9 @@ rlc_read(char *buf, int count)
   RlcData d = _rlc_stdio;
   MSG msg;
 
+  if ( d->closing )
+    return 0;				/* signal EOF when closing */
+
   PostThreadMessage(_rlc_console_thread_id,
 		    WM_RLC_FLUSH,
 		    0, 0);
@@ -2947,7 +3006,7 @@ rlc_read(char *buf, int count)
       { TranslateMessage(&msg);
 	DispatchMessage(&msg);
       } else
-	ExitProcess(0);
+	return -1;
     }
 
     { LQueued lq = d->lhead;
@@ -2991,8 +3050,10 @@ rlc_do_write(RlcData b, char *buf, int count)
     }
 
     rlc_normalise(b);
-    rlc_request_redraw(b);
-    UpdateWindow(b->window);
+    if ( b->window )
+    { rlc_request_redraw(b);
+      UpdateWindow(b->window);
+    }
   }
 }
 
@@ -3036,6 +3097,35 @@ rlc_write(char *buf, unsigned int count)
   }
 
   return -1;				/* I/O error */
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+rlc_close() tries to gracefully get rid of   the console thread. It does
+so by posting WM_RLC_CLOSEWIN and then waiting for a WM_RLC_READY reply.
+It waits for a maximum of  1.5  second,   which  should  be  fine as the
+console thread should not have long-lasting activities.
+
+If the timeout expires it hopes for the best. This was the old situation
+and proved to be sound on Windows-NT, but not on 95 and '98.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+rlc_close(void)
+{ MSG msg;
+  int i;
+
+  rlc_save_options(_rlc_stdio);
+  _rlc_stdio->closing = 3;
+  PostMessage(_rlc_stdio->window, WM_RLC_CLOSEWIN, 0, 0);
+
+					/* wait for termination */
+  for(i=0; i<30; i++)
+  { if ( PeekMessage(&msg, NULL, WM_RLC_READY, WM_RLC_READY, PM_REMOVE) )
+      break;
+    Sleep(50);
+  }
+
+  return 0;
 }
 
 
@@ -3174,7 +3264,7 @@ static void
 noMemory()
 { MessageBox(NULL, "Not enough memory", "Console", MB_OK|MB_TASKMODAL);
 
-  exit(1);
+  ExitProcess(1);
 }
 
 
