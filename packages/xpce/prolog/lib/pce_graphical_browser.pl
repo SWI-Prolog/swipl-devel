@@ -43,6 +43,7 @@ variable(multiple_selection,	bool := @off, both, "single/multiple").
 variable(single_column,		bool := @off, get,  "Formated or column").
 variable(render_function,	[function],   get,  "Create rendering").
 variable(unrender_function,	[function],   get,  "Get rendered object").
+variable(gap,			[size],	      get,  "Gap between objects").
 
 initialise(B, W:[int], H:[int], RF:[function], UF:[function]) :->
 	default(W, 200, TheW),
@@ -58,9 +59,15 @@ initialise(B, W:[int], H:[int], RF:[function], UF:[function]) :->
 resized(B, Size:size) :->
 	"Recompute format after resize"::
 	(   get(B, single_column, @off)
-	->  send(B, format, format(horizontal, Size?width, @off))
-	;   send(B, format, format(horizontal, 1, @on))
-	).
+	->  new(Format, format(horizontal, Size?width, @off))
+	;   new(Format, format(horizontal, 1, @on))
+	),
+	(   get_object(B, gap, size(W, H))
+	->  send(Format, column_sep, W),
+	    send(Format, row_sep, H)
+	;   true
+	),
+	send(B, format, Format).
 
 
 single_column(B, SC:bool) :->
@@ -70,6 +77,12 @@ single_column(B, SC:bool) :->
 	;   send(B, slot, single_column, SC),
 	    send(B, resized, B?size)
 	).
+
+
+gap(B, Gap:[size]) :->
+	"Change spacing between objects"::
+	send(B, slot, gap, Gap),
+	send(B, resized, B?size).
 
 
 :- pce_group(render).

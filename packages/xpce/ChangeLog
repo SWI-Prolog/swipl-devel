@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: <->gap to graphical_browser (library(pce_graphical_browser)).
+
+* FIXED: Placing of window objects in tables (class table).
+
 * FIXED: PceEmacs OWL-mode: open_document namespace declarations.
 
 * ADDED: PceEmacs colourise "Comment":: in method-body.

@@ -474,6 +474,10 @@ placeImageTableCell(TableCell cell)
   av[0] = toInt(grx);
   av[1] = toInt(gry);
 
+  if ( instanceOfObject(gr, ClassWindow) && 		/* HACK */
+       notNil(((PceWindow)gr)->decoration) )
+    gr = (Graphical)((PceWindow)gr)->decoration;
+
   qadSendv(gr, NAME_doSet, 4, av);
   if ( gr->device != tab->device )
     send(tab->device, NAME_display, gr, EAV);
