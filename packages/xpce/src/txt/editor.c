@@ -4831,7 +4831,7 @@ static getdecl get_editor[] =
      NAME_area, "Size in character units"),
   GM(NAME_width, 0, "characters=int", NULL, getWidthEditor,
      NAME_area, "Width in character units"),
-  GM(NAME_column, 1, "column=int", "index=[int]", getColumnEditor,
+  GM(NAME_column, 1, "column=0..", "index=[int]", getColumnEditor,
      NAME_caret, "Column point is at"),
   GM(NAME_upDownColumn, 0, "column=int", NULL, getUpDownColumnEditor,
      NAME_caret, "Saved X-infor for ->cursor_up/->cursor_down"),

@@ -57,8 +57,7 @@ resource(breakpoint,   image, image('16x16/stop.xpm')).
 :- emacs_begin_mode(prolog, language,
 		    "Mode for editing XPCE/Prolog sources",
 					% BINDINGS
-	[ indent_clause		       = key('\\eq'),
-	  insert_if_then_else	       = key('(') + key(';') + key('>'),
+	[ insert_if_then_else	       = key('(') + key(';') + key('>'),
 
 	  prolog_manual		       = button(help),
 	  (spy)			       = button(prolog),
@@ -171,6 +170,8 @@ expand_path(Term, D) :-
 	concat_atom([D1, /, Sub], D).
 
 
+:- pce_group(indent).
+
 :- pce_global(@prolog_neck_regex,
 	      new(regex(':-\\|:->\\|:<-\\|-->'))).
 :- pce_global(@prolog_full_stop,
@@ -208,7 +209,7 @@ beginning_of_clause(E, Start:int, BOP:int) :<-
 		send(Here, value, SReg),
 		get(TB, skip_comment, P0, BOP),
 		BOP =< Start,
-		get(TB, scan_syntax, 0, BOP, code)
+		get(TB, scan_syntax, 0, BOP, tuple(code,_))
 	    ).
 beginning_of_clause(E) :->
 	"Goto start of clause"::
@@ -227,7 +228,7 @@ beginning_of_if_then_else(E, Pos:int) :<-
 	Before \== 0'?,				% '?(' for xpce
 	get(E, beginning_of_clause, Caret, BegOfPred),
 	BegOfPred < Pos,
-	get(TB, scan_syntax, BegOfPred, Pos, code).
+	get(TB, scan_syntax, BegOfPred, Pos, tuple(code,_)).
 
 
 indent_if_then_else(E) :->
@@ -298,7 +299,7 @@ indent_clause(E) :->
 	    get(E, caret, Caret),
 	    (	get(regex('.*\\S.\\.'), match, TB, Caret, Size),
 		End is Caret + Size,
-		get(TB, scan_syntax, Start, End, code)
+		get(TB, scan_syntax, Start, End, tuple(code,_))
 	    ->	!
 	    ;	get(TB, size, Caret)
 	    ->	!
@@ -307,6 +308,17 @@ indent_clause(E) :->
 	    ),
  	send(E, forward_char, Size),
 	send(E, electric_caret, Start).
+
+
+fill_paragraph(M, Justify:[int]) :->
+	"Fill paragraph or indent clause"::
+	get(M, caret, Caret),
+	(   get(M, beginning_of_clause, Caret, BOC),
+	    get(M, forward_clause, BOC, EOC),
+	    between(BOC, EOC, Caret)
+	->  send(M, indent_clause)
+	;   send_super(M, fill_paragraph, Justify)
+	).
 
 
 		 /*******************************
@@ -675,7 +687,7 @@ insert_full_stop(M, Arg:[int]) :->
 	    get(M, caret, Caret),
 	    get(M, character, Caret-2, Prev),
 	    \+ symbol_char(Prev),
-	    get(M, scan_syntax, 0, Caret, code)
+	    get(M, scan_syntax, 0, Caret, tuple(code,_))
 	->  get(M, check_clause, repair := @off, _End)
 	;   true
 	).
@@ -968,7 +980,7 @@ forward_clause(M, Start:int, EOC:int) :<-
 	repeat,
 	(   send(@prolog_full_stop, search, M, Here)
 	->  get(@prolog_full_stop, register_start, 1, Stop),
-	    (   get(M, scan_syntax, 0, Stop, code)
+	    (   get(M, scan_syntax, 0, Stop, tuple(code,_))
 	    ->	!,
 	        EOC = Stop
 	    ;	send(Here, value, Stop),

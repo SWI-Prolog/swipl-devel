@@ -130,7 +130,27 @@ comment_lines(TB, S0, End, Comment) :-
 	).
 	
 
-fill_comment_paragraph(M, Justify:justify=[bool]) :->
+fill_paragraph(M, Justify:[int]) :->
+	"Fill comment paragraph"::
+	get(M, caret, Caret),
+	(   (   get(M, scan_syntax, 0, Caret, tuple(comment, Start))
+	    ->  get(M, column, Start, 0)
+	    ;	get(M, column, Caret, 0),
+		Start = Caret
+	    ),
+	    get(M?syntax, comment_start, 1, CS),
+	    send(M, looking_at, CS, Start)
+	->  send(M, fill_comment_paragraph, Justify)
+	;   send_super(M, fill_paragraph, Justify)
+	).
+
+
+justify_paragraph(M) :->
+	"->fill_paragraph using right-margin"::
+	send(M, fill_paragraph, 1).
+
+
+fill_comment_paragraph(M, Justify:justify=[bool|int]) :->
 	"Fill paragraph in (line) comment"::
 	(   get(M?syntax, comment_start, 1, CS)
 	->  true
@@ -160,8 +180,12 @@ fill_comment_paragraph(M, Justify:justify=[bool]) :->
 
 fill_comment(M,
 	     Start:from=int, End:to=int,
-	     Re:leading=regex, Justify:justify=[bool]) :->
+	     Re:leading=regex, Justify:justify=[bool|int]) :->
 	"Fill paragraph given `leading' regex"::
+	(   (Justify == @default ; Justify == @off ; Justify == 0)
+	->  TheJustify = @off
+	;   TheJustify = @on
+	),
 	get(M, text_buffer, TB),
 	get(M, caret, Caret),
 	new(CaretF, fragment(TB, Caret, 0)),
@@ -173,7 +197,7 @@ fill_comment(M,
 	uncomment(M, Re, LeadCol, Start, EndF),
 	get(M, right_margin, RM0),
 	RM is RM0 - LeadCol,
-	send(M, fill, Start, EndF?start, 0, RM, Justify),
+	send(M, fill, Start, EndF?start, 0, RM, TheJustify),
 	comment(M, Start, EndF, Lead, LeadCol),
 	send(M, caret, CaretF?start),
 	free(EndF),

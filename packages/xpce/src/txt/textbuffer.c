@@ -893,11 +893,12 @@ static int
 scan_syntax_textbuffer(TextBuffer tb,
 		       long from, long to,
 		       scan_callback_t *callback,
-		       int flags)
+		       int flags,
+		       long *start)
 { long here = from;			/* current position */
   SyntaxTable syntax = tb->syntax;	/* syntax-table */
   int state = SST_PLAIN;		/* initial/current state */
-  int tokenstart;
+  int tokenstart = from;
   
   for(; here < to; here++)
   { int c = fetch(here);
@@ -913,8 +914,11 @@ scan_syntax_textbuffer(TextBuffer tb,
 	if ( isdigit(c0) )		/* or <digit><number> */
 	{ if ( c0 == '0' )
 	  { here++;			/* ignore this char */
-	    if ( here == 0 )
-	      return SST_STRING;
+	    if ( here >= to )
+	    { tokenstart = here-2;
+	      state = SST_STRING;
+	      break;
+	    }
 	  }
 	  continue;
 	}
@@ -951,9 +955,12 @@ scan_syntax_textbuffer(TextBuffer tb,
       }
 
       state = SST_COMMENT1;
+      break;
     } else if ( tiscommentstart1(syntax, c) &&
 		tiscommentstart2(syntax, fetch(here+1)) )
-    { for( here += 4; here < to; here++ )
+    { tokenstart = here;
+
+      for( here += 4; here < to; here++ )
       { int c = fetch(here - 1);
 	  
 	if ( tiscommentend2(syntax, c) )
@@ -962,39 +969,51 @@ scan_syntax_textbuffer(TextBuffer tb,
 	    goto cont;
 	}
       }
+
       state = SST_COMMENT2;
+      break;
     }
 
   cont:
     ;
   }
 
+  if ( start )
+    *start = tokenstart;
+
   return state;
 }
 
 
-static Name
+static Tuple
 getScanSyntaxTextBuffer(TextBuffer tb, Int f, Int t)
-{ int from = NormaliseIndex(tb, valInt(f));
-  int to   = NormaliseIndex(tb, valInt(t));
+{ long from = NormaliseIndex(tb, valInt(f));
+  long to   = NormaliseIndex(tb, valInt(t));
+  long start;
+  Name class;
   int s;
 
   if ( to == tb->size )
     to--;
 
-  s = scan_syntax_textbuffer(tb, from, to, NULL, 0);
+  s = scan_syntax_textbuffer(tb, from, to, NULL, 0, &start);
   switch(s&0xff00)
   { case SST_PLAIN:
-      answer(NAME_code);
+      class = NAME_code;
+      break;
     case SST_COMMENT1:
     case SST_COMMENT2:
-      answer(NAME_comment);
+      class = NAME_comment;
+      break;
     case SST_STRING:
-      answer(NAME_string);
+      class = NAME_string;
+      break;
     default:
       assert(0);
       fail;
   }
+
+  answer(answerObject(ClassTuple, class, toInt(start), EAV));
 } 
 
 
@@ -2524,7 +2543,8 @@ static getdecl get_textBuffer[] =
      NAME_stream, "Implement reading as a file"),
   GM(NAME_sizeAsFile, 0, "characters=int", NULL, getSizeAsFileTextBuffer,
      NAME_stream, "Implement seek when using as a file"),
-  GM(NAME_scanSyntax, 2, "name", T_fromADintD_toADintD,getScanSyntaxTextBuffer,
+  GM(NAME_scanSyntax, 2, "tuple", T_fromADintD_toADintD,
+     getScanSyntaxTextBuffer,
      NAME_language, "Find syntactical state of position")
 };
 

@@ -1,6 +1,17 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: emacs_language_mode->fill_comment_paragraph to fill/justify
+  regions commented using the line-comment character.
+  `emacs_prolog_mode->fill_paragraph' now dynamically distinguishes
+  between ->indent_clause, ->fill_comment_paragraph or normal
+  ->fill_paragraph.
+
+* MODIFIED: `text_buffer<-scan_syntax' to return a tuple containing the
+  syntax category with the location where this syntactical entity started.
+  Also documented the method.  Being previously undocumented and pretty
+  obscure we don't anticipate public usage.
+
 * FIXED: PceEmacs Prolog mode: avoid endless loop in indent_clause on a
   fact near the end of the file.
 
