@@ -1109,7 +1109,7 @@ pl_wait_for_input(term_t Streams, term_t Available,
   { IOSTREAM *s;
     int fd;
 
-    if ( !PL_get_stream_handle(head, &s) < 0 )
+    if ( !PL_get_stream_handle(head, &s) )
       fail;
     if ( (fd=Sfileno(s)) < 0 )
     { releaseStream(s);
