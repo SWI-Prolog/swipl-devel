@@ -186,6 +186,13 @@ directory(IB, Dir:directory) :->
 	send(IB, scroll_to, point(-10,-10)),
 	ignore(send(IB, report, done)).
 
+refresh(IB) :->
+	"Update contents"::
+	(   get(IB, directory, Dir),
+	    send(Dir, instance_of, directory)
+	->  send(IB, directory, Dir)
+	;   true
+	).
 
 show_dirs(IB, Dirs:chain) :->
 	get(IB, directory, CWD),
@@ -194,7 +201,7 @@ show_dirs(IB, Dirs:chain) :->
 
 show_files(IB, Files:chain) :->
 	get(IB, directory, CWD),
-	send(Files, for_all, message(IB, show_file, ?(CWD, file, @arg1))).
+	send(Files, for_all, message(IB, check_file, ?(CWD, file, @arg1))).
 
 
 show_dir(IB, Dir:directory, Label:[name]) :->
@@ -212,24 +219,31 @@ show_dir(IB, Dir:directory, Label:[name]) :->
 	send(IB, display, F).
 
 
-show_file(IB, File:file) :->
-	"Add image"::
+check_file(IB, File:file) :->
+	"->show_file if it matches the filter"::
 	get(File, base_name, BaseName),
-	(   get(IB, extensions, Exts),
-	    Exts \== @nil
-	->  file_name_extension(_Base, Ext, BaseName),
-	    send(Exts, member, Ext)
-	;   true
-	),
-	ignore(send(IB, report, progress, 'Checking %s ...', BaseName)),
-	new(Img, image),
-	(   pce_catch_error(bad_file, send(Img, load, File))
-	->  new(I, image_browser_file_item(Img)),
-	    send(I, show_file_label, IB?show_file_labels),
-	    send(IB, display, I),
-	    send(IB, flush)
+	(   (   get(IB, extensions, Exts),
+		Exts \== @nil
+	    ->  file_name_extension(_Base, Ext, BaseName),
+		send(Exts, member, Ext)
+	    ;   true
+	    )
+	->  (   pce_catch_error(bad_file, send(IB, append_file, File))
+	    ->	send(IB, synchronise)
+	    ;	send(IB, report, warning,
+		     '%s is not an image file', BaseName)
+	    )
 	;   true
 	).
+
+
+append_file(IB, File:file) :->
+	"Actually display a file"::
+	get(File, base_name, BaseName),
+	ignore(send(IB, report, progress, 'Checking %s ...', BaseName)),
+	new(Img, image),
+	send(Img, load, File),
+	send(IB, append, Img).
 
 
 append(IB, Img:image) :->
@@ -275,8 +289,11 @@ show_file_label(D, Show:bool) :->
 	    ->	true
 	    ;   get(D, image, Img),
 		get(Img, file, File),
-		get(File, base_name, Name),
-		send(D, display, text(Name))
+		(   File \== @nil
+		->  get(File, base_name, Name),
+		    send(D, display, text(Name))
+		;   true
+		)
 	    )
 	;   (   get(D, member, text, Text)
 	    ->	free(Text)
@@ -295,7 +312,12 @@ adjust_selected(D, Sel:'image|chain*') :->
 	->  Val = @on
 	;   Val = @off
 	),
-	send(BM, selected, Val).
+	(   Val == @on
+	->  send(BM, pen, 2),
+	    send(BM, colour, green)
+	;   send(BM, pen, 0),
+	    send(BM, colour, @default)
+	).
 	       
 selected(D) :->
 	"Test of object is selected"::
