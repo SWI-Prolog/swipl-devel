@@ -876,12 +876,14 @@ globalWString(unsigned len, const pl_wchar_t *s)
       *t++ = *p++ & 0xff;
   } else				/* wide string */
   { char *t;
+    pl_wchar_t *w;
 
     g = allocString((len+1)*sizeof(pl_wchar_t) PASS_LD);
-    g[1] = 0L;
-    t = (char *)&g[1];
+    t = (unsigned char *)&g[1];
+    w = (pl_wchar_t*)t;
+    w[0] = 0;
     *t = 'W';
-    memcpy(&g[2], s, len*sizeof(pl_wchar_t));
+    memcpy(&w[1], s, len*sizeof(pl_wchar_t));
   }
 
   return consPtr(g, TAG_STRING|STG_GLOBAL);
@@ -914,6 +916,7 @@ getCharsWString__LD(word w, unsigned *len ARG_LD)
 { Word p = valPtr(w);
   word m = *p;
   int wn  = wsizeofInd(m);
+  int pad = padHdr(m);
   char *s;
   pl_wchar_t *ws;
 
@@ -922,7 +925,7 @@ getCharsWString__LD(word w, unsigned *len ARG_LD)
     return NULL;
   
   if ( len )
-    *len = wn - 2;		/* 1 for 'W', 1 for terminating 0-char */
+    *len = ((wn*sizeof(word) - pad)/sizeof(pl_wchar_t)) - 1;
   
   ws = (pl_wchar_t *)&p[1];
   return ws+1;

@@ -321,7 +321,10 @@ wchars(cmp-2) :-
 	       ( string_to_list(A1, S1),
 		 string_to_list(A2, S2),
 		 compare(Diff, A1, A2),
-		 compare(Diff, S1, S2))).
+		 (   compare(Diff, S1, S2)
+		 ->  true
+		 ;   format(user_error, 'CMP ~w ~w FAILED~n', [S1, S2])
+		 ))).
 
 
 		 /*******************************
