@@ -4,7 +4,7 @@
 VERSION 6.0.8, distributed with SWI-Prolog 5.0.8
 ================================================
 
-* ADDED: writing transparent GIF files (X11 version only).
+* ADDED: writing transparent GIF files.
 
 * FIXED: Removed some traces of pre-iso SWI-Prolog concat/3 (replaced
   with atom_concat/3).  Martin Sondergaard.
