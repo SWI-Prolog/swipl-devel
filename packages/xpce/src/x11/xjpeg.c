@@ -295,20 +295,22 @@ staticColourReadJPEGFile(Image image, IOSTREAM *fd, XImage **return_image)
 					/* setup JPEG error handling */
   cinfo.err = jpeg_std_error((struct jpeg_error_mgr *)&jerr);
   if ( setjmp(jerr.jmp_context) )
-  { switch(jerr.jerr.msg_code)
+  { DEBUG(NAME_image,
+	  { char buf[1024];
+	    
+	    (*jerr.jerr.format_message)((j_common_ptr)&cinfo, buf);
+	    Cprintf("JPEG: %s\n", buf);
+	  });
+
+    switch(jerr.jerr.msg_code)
     { case JERR_OUT_OF_MEMORY:
-	rval = IMG_NOMEM;
+	/*rval = IMG_NOMEM;	   Sometimes this is reported uncorrectly*/
+	rval = IMG_UNRECOGNISED;
 	break;
       case JERR_NO_SOI:
 	rval = IMG_UNRECOGNISED;
 	break;
       default:
-      DEBUG(NAME_image,
-	    { char buf[1024];
-
-	      (*jerr.jerr.format_message)((j_common_ptr)&cinfo, buf);
-	      Cprintf("JPEG: %s\n", buf);
-	    });
         rval = IMG_INVALID;
     }
 

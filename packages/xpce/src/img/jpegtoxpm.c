@@ -135,7 +135,14 @@ readJPEGtoXpmImage(IOSTREAM *fd, XpmImage *img, Image image)
 
   cinfo.err = jpeg_std_error((struct jpeg_error_mgr *)&jerr);
   if ( setjmp(jerr.jmp_context) )
-  { switch(jerr.jerr.msg_code)
+  { DEBUG(NAME_image,
+	  { char buf[1024];
+
+	    (*jerr.jerr.format_message)((j_common_ptr)&cinfo, buf);
+	    Cprintf("JPEG: %s\n", buf);
+	  });
+
+    switch(jerr.jerr.msg_code)
     { case JERR_OUT_OF_MEMORY:
 	rval = XpmNoMemory;
 	break;
@@ -143,12 +150,6 @@ readJPEGtoXpmImage(IOSTREAM *fd, XpmImage *img, Image image)
 	rval = XpmFileInvalid;
 	break;
       default:
-      DEBUG(NAME_image,
-	    { char buf[1024];
-
-	      (*jerr.jerr.format_message)((j_common_ptr)&cinfo, buf);
-	      Cprintf("JPEG: %s\n", buf);
-	    });
       rval = XpmFileInvalid;
     }
 
