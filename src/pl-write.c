@@ -126,7 +126,7 @@ PutOpenToken(int c, IOSTREAM *s)
   } else if ( s->lastc != EOF &&
 	      ((isAlpha(s->lastc) && isAlpha(c)) ||
 	       (isSymbol(s->lastc) && isSymbol(c)) ||
-	       (s->lastc != '(' && c == '(')) )
+	       (s->lastc != '(' && !isBlank(s->lastc) && c == '(')) )
   { return Putc(' ', s);
   }
 
@@ -563,7 +563,7 @@ writeTerm2(term_t t, int prec, write_options *options)
       { if (n > 0)
 	  TRY(PutString(", ", out));
 	PL_get_arg(n+1, t, a);
-	TRY(writeTerm(a, 1000, options));
+	TRY(writeTerm(a, 999, options));
       }
       return Putc(')', out);
     }
