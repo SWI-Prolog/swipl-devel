@@ -1,0 +1,89 @@
+################################################################
+# SWI-Prolog `DB' package
+# Author:    Jan Wielemaker. jan@swi.psy.uva.nl
+# Copyright: LGPL (see COPYING or www.gnu.org
+################################################################
+
+.SUFFIXES: .tex .dvi .doc .pl
+
+PL=@PL@
+PLBASE=@PLBASE@
+PCEHOME=/staff/jan/src/xpce
+
+CC=@CC@
+COFLAGS=@COFLAGS@
+CWFLAGS=@CWFLAGS@
+CMFLAGS=@CMFLAGS@
+CIFLAGS=-I. -I$(PLBASE)/include
+CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
+LIBS=@LIBS@
+NETLIBS=@NETLIBS@
+
+
+DOCTOTEX=$(PCEHOME)/bin/doc2tex
+PLTOTEX=$(PCEHOME)/bin/pl2tex
+LATEX=latex
+DOC=db4pl
+TEX=$(DOC).tex
+DVI=$(DOC).dvi
+PDF=$(DOC).pdf
+HTML=$(DOC).html
+
+LD=@LD@
+LDFLAGS=@LDSOFLAGS@
+
+INSTALL=@INSTALL@
+INSTALL_PROGRAM=@INSTALL_PROGRAM@
+INSTALL_DATA=@INSTALL_DATA@
+
+LIBPL=		db.pl
+TARGETS=	db4pl.so
+
+DBOBJ=		db4pl.o atom.o error.o
+
+all:		$(TARGETS)
+
+db4pl.so:	$(DBOBJ)
+		$(LD) $(LDFLAGS) -o $@ $(DBOBJ) $(LIBS)
+
+install:	$(LIBPL)
+		$(INSTALL) -m 644 $(LIBPL) $(PLBASE)/library
+		$(PL) -f none -g make -t halt
+
+uninstall:
+		(cd $(PLBASE)/library && rm -f $(LIBPL))
+		$(PL) -f none -g make -t halt
+
+################################################################
+# Documentation
+################################################################
+
+doc:		$(PDF) $(HTML)
+pdf:		$(PDF)
+html:		$(HTML)
+
+$(HTML):	$(TEX)
+		latex2html $(DOC)
+		mv html/index.html $@
+
+$(PDF):		$(TEX)
+		runtex --pdf $(DOC)
+
+$(TEX):		$(DOCTOTEX)
+
+.doc.tex:
+		$(DOCTOTEX) $*.doc > $*.tex
+.pl.tex:
+		$(PLTOTEX) $*.pl > $*.tex
+
+################################################################
+# Clean
+################################################################
+
+clean:
+		rm -f $(DBOBJ) *~ *% config.log
+
+distclean:	clean
+		rm -f $(TARGETS) config.cache config.status Makefile
+		rm -f $(TEX)
+		runtex --clean $(DOC)

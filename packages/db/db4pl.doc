@@ -1,0 +1,168 @@
+\documentclass[11pt]{article}
+\usepackage{pl}
+\usepackage{html}
+
+\onefile
+\htmloutput{html}				% Output directory
+\htmlmainfile{index}				% Main document file
+\bodycolor{white}				% Page colour
+
+\renewcommand{\runningtitle}{SWI-Prolog External Database}
+
+\begin{document}
+
+\title{SWI-Prolog External Database}
+\author{Jan Wielemaker \\
+	SWI, \\
+	University of Amsterdam \\
+	The Netherlands \\
+	E-mail: \email{jan@swi.psy.uva.nl}}
+
+\maketitle
+
+\begin{abstract}
+This package realised external storage of Prolog terms based on the {\em
+Berkeley DB} library from \url{www.sleepycat.com}. The DB library
+implements modular support for the bottom layers of a database. The
+database itself maps unconstrained keys onto values. Both key and value
+are \jargon{binary blobs}.
+
+The SWI-Prolog interface for DB allows for fast storage of general
+Prolog terms in the database.
+\end{abstract}
+
+\vfill
+
+\tableofcontents
+
+\vfill
+\vfill
+
+\newpage
+
+\section{Introduction}
+
+The native Prolog database is not very well suited for either {\em very}
+large data-sets or dynamically changing large data-sets that need to be
+communicated between Prolog instances or need to be safely guarded
+against system failure.  These cases ask for an external database that
+can be attached quickly and provides protection against system failure.
+
+The Berkeley DB package by SleepyCat software is a GPL'ed library
+realising the bottom-layers of a database.  It is a modular system,
+which in it's simplest deals with resource management on a mapped
+file and in its most complex form deals with network transparency,
+transaction management, locking, recovery, life-backup, etc.
+
+The DB library maps keys to values.  Optionally multiple values can be
+associated with a key.  Both key and value are arbitrary-length binary
+objects.
+
+This package stores arbitrary Prolog terms, using PL_record_external()
+introduced in SWI-Prolog 3.3.7, in the database. It provides an
+interface similar to the recorded-database (recorda/3).  In the future
+we plan to link this interface transparently to a predicate.
+
+\section{The DB interface}
+
+\subsection{Opening a database}
+
+\begin{description}
+\predicate{db_open}{4}{+File, +Mode, -DB, +Options}
+    Open a file holding a database. \arg{Mode} is one of \const{read},
+    providing read-only access or \const{update}, providing read/write
+    access.  \arg{Options} is a list of options.  Currently supported
+    options are:
+
+    \begin{description}
+	\termitem{duplicates}{bool}
+    Do/do not allow for duplicate values on the same key.  Default is
+    not to allow for duplicates.
+    \end{description}
+\end{description}
+
+
+\subsection{Manipulating and querying a database}
+
+\begin{description}
+\predicate{db_put}{3}{+DB, +Key, +Value}
+    Add a new key-value pair to the database. If the database allows for
+    duplicates this will always succeed, unless a system error occurs.
+\predicate{db_del}{2}{+DB, +Key}
+    Delete all key-value pairs with the named \arg{Key} from the
+    database.  Note that this is equivalent to \term{db_delall}{DB, Key, _}.
+\predicate{db_del}{3}{+DB, ?Key, ?Value}
+    Delete the first matching key-value pair from the database.  If the
+    database allows for duplicates, this predicate is non-deterministic.
+    The enumeration performed by this predicate is the same as for
+    db_get/3.
+\predicate{db_delall}{3}{+DB, +Key, ?Value}
+    Delete all matching key-value pairs from the database.  With unbound
+    key this calls db_del/2.
+\predicate{db_get}{3}{+DB, ?Key, -Value}
+    Query the database.  If the database allows for duplicates this
+    predicate is non-deterministic.  If \arg{Key} is unbound, all keys
+    are enumerated.  This mode is especially useful to enumerating the
+    entire content of a database.
+\predicate{db_getall}{3}{+DB, +Key, -Value}
+    Get all values associated with \arg{Key}.  Fails if the key does
+    not exist (as bagof/3).
+\end{description}
+
+
+\subsection{Initialisation}
+
+\begin{description}
+\predicate{db_init}{1}{+Options}
+    Initialise the DB package.  This must be done before the first call
+    to db_open/4 and at maximum once.  If db_open/4 is called without
+    calling db_init/1, default initialisation is used, which is
+    generally suitable for handling small databases without support for
+    advanced features.
+
+    \arg{Options} is a list of options.  The currently supported are
+    listed below.  For details, please refer to the DB manual.
+
+    \begin{description}
+	\termitem{home}{Home}
+    Specify the DB home directory, the directory holding the database
+    files.
+	\termitem{config}{+ListOfConfig}
+    Specify a list of configuration options, each option is of the
+    form \term{\arg{Name}}{Value}.
+	\termitem{mp_size}{+Integer}
+    Size of the memory-pool used for caching.
+	\termitem{mp_mmapsize}{+Integer}
+    Maximum size of a DB file mapped entirely into memory.
+    \end{description}
+\end{description}
+
+
+\section{Installation}
+
+\subsection{Unix systems}
+
+Installation on Unix system uses the commonly found {\em configure},
+{\em make} and {\em make install} sequence. SWI-Prolog should be
+installed before building this package. If SWI-Prolog is not installed
+as \program{pl}, the environment variable \env{PL} must be set to the
+name of the SWI-Prolog executable. Installation is now accomplished
+using:
+
+\begin{code}
+% ./configure
+% make
+% make install
+\end{code}
+
+This installs the foreign libraries in \file{$PLBASE/lib/$PLARCH} and
+the Prolog library files in \file{$PLBASE/library}, where
+\file{$PLBASE} refers to the SWI-Prolog `home-directory'.
+
+
+\subsection{Acknowledgements}
+
+
+\end{document}
+
+
