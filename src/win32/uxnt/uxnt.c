@@ -434,9 +434,11 @@ opendir(const char *path)
   } else
     dp->map = NULL;
 
-  if ( !dp->handle )
+  if ( dp->handle != INVALID_HANDLE_VALUE )
   { if ( _access(path, 04) )		/* does not exist */
+    { free(dp->data);
       return NULL;
+    }
   }
 
   return dp;
