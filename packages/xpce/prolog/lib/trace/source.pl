@@ -72,7 +72,7 @@ lost_text_buffer(V) :->
 event(V, Ev:event) :->
 	(   send(Ev, is_a, keyboard),
 	    get(V, frame, Tracer),
-	    send(Tracer, typed, Ev)
+	    send(Tracer, source_typed, Ev)
 	->  true
 	;   send(V, send_super, event, Ev)
 	).
@@ -121,16 +121,13 @@ stop_at(V) :->
 	    fail
 	).
 	
-nostop(V) :->
+delete_selected_stop(V) :->
 	"Deleted selected stop"::
-	(   get(V, selected_fragment, F),
-	    F \== @nil,
-	    get(F, attribute, clause, ClauseRef),
-	    get(F, attribute, pc, PC)
-	->  '$break_at'(ClauseRef, PC, false)
-	;   send(V, report, error, 'No selected stop-point'),
-	    fail
-	).
+	get(V, selected_fragment, F),
+	F \== @nil,
+	get(F, attribute, clause, ClauseRef),
+	get(F, attribute, pc, PC), !,
+	'$break_at'(ClauseRef, PC, false).
 
 
 :- pce_group(file).

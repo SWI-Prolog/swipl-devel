@@ -148,6 +148,8 @@ initialise(App) :->
 		   "Toplevel driver for the debugger").
 
 variable(source,	any,	both, "Source view").
+variable(current_frame, int*,   both, "The most recent frame").
+variable(current_break,	tuple*,	both, "tuple(ClauseRef, PC)").
 
 initialise(F) :->
 	version(Version),
@@ -216,8 +218,7 @@ fill_menu_bar(F) :->
 		  ]),
 	send_list(Help, append,
 		  [ menu_item(about, message(F, about)),
-		    menu_item(help, message(F, help)),
-		    menu_item(licence, message(F, licence))
+		    menu_item(help, message(F, help))
 		  ]).
 
 settings(_F) :->
@@ -237,13 +238,19 @@ help(_) :->
         "Show window with help-text"::
         send(@helper, give_help, pltracer, main).
 
-licence(_) :->
-        "Show help at distribution conditions"::
-        send(@helper, give_help, pltracer, licence).
-
 show_frame(_Tool, Frame:int, PC:'int|name') :->
 	"Show the variables of this frame"::
 	prolog_show_frame(Frame, [pc(PC), source, bindings]).
+
+
+		 /*******************************
+		 *	      EVENT		*
+		 *******************************/
+
+source_typed(Frame, Typed:event_id) :->
+	"Forward a typing event to the button-dialog"::
+	get(Frame, member, prolog_button_dialog, Dialog),
+	send(Dialog, typed, Typed).
 
 
 		 /*******************************
@@ -322,11 +329,27 @@ goal(F, Goal:prolog) :<-
 	;   Goal = user:Goal0
 	).
 
-nospy(F) :->
+nostop_or_spy(F) :->
 	"Clear spy-point"::
-	get(F, goal, Goal),
-	nospy(Goal).
-
+	(   send(F?source, delete_selected_stop)
+	->  true
+	;   get(F, current_break, tuple(ClauseRef, PC))
+	->  '$break_at'(ClauseRef, PC, false)
+	;   (   get(F, current_frame, Frame)
+	    ;   get(F, selected_frame, Frame)
+	    ),
+	    Frame == @nil,
+	    prolog_frame_attribute(Frame, goal, Goal0),
+	    (   Goal0 = _:_
+	    ->  Goal = Goal0
+	    ;   Goal = user:Goal0
+	    ),
+	    '$get_predicate_attribute'(Goal, spy, 1)
+	->  nospy(Goal)
+	;   send(F, report, warning,
+		 'No selected break or current spy-point')
+	).
+	    
 browse(F) :->
 	"Provides overview for edit/spy/break"::
 	get(F, application, App),
@@ -340,15 +363,6 @@ stop_at(F) :->
 	"Set stop at caret"::
 	get(F, source, SourceWindow),
 	send(SourceWindow, stop_at).
-
-nostop(F) :->
-	"Delete selected stop"::
-	(   get(F, goal, Goal),
-	    '$get_predicate_attribute'(Goal, spy, 1)
-	->  nospy(Goal)
-	;   get(F, source, SourceWindow),
-	    send(SourceWindow, nostop)
-	).
 
 up(F) :->
 	"Select child frame"::
@@ -401,9 +415,13 @@ frame_finished(F, Frame:int) :->
 	    send(Bindings, slot, prolog_frame, @nil),
 	    ignore(send(F, send_hyper, fragment, free))
 	;   true
+	),
+	(   get(F, current_frame, Frame)
+	->  send(F, current_frame, @nil)
+	;   true
 	).
 
-:- pce_end_class.
+:- pce_end_class(prolog_debugger).
 
 		 /*******************************
 		 *	      BUTTONS		*
@@ -435,9 +453,9 @@ button(+browse,  "",	'16x16/butterfly.xpm',	'Browse program structure').
 button(gap,	 -,	-,		-).
 button(leap,	 "l",	'leap.xpm',	'Continue to spy- or breakpoint').
 button(+spy,	 "+",	'spy.xpm',	'Set spy point').
-button(+nospy,	 "-",	'nospy.xpm',	'Remove spy point').
 button(+stop_at, "!",	'stop.xpm',	'Set Stop at caret').
-button(+nostop,	 "-",	'nostop.xpm',	'Delete selected stop').
+button(+nostop_or_spy,
+		 "-",	'nostopspy.xpm','Delete selected stop or spy-point').
 button(gap,	 -,	-,		-).
 button(+details, "v",	'details.xpm',	'Show (variable) details').
 button(+edit,	 "e",	'edit.xpm',	'Edit').
@@ -492,7 +510,7 @@ event(D, Ev:event) :->
 	;   send(D, send_super, event, Ev)
 	).
 
-:- pce_end_class.
+:- pce_end_class(prolog_button_dialog).
 
 		 /*******************************
 		 *	     VARIABLES		*

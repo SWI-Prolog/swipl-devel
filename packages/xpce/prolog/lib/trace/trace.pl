@@ -76,6 +76,7 @@ intercept(_, _, _, _) :-
 	fail.
 intercept(Port, Frame, BFR0, Action) :-
 	fix_bfr(BFR0, Frame, BFR),
+	send_tracer(current_break(@nil)),
 	do_intercept(Port, Frame, BFR, Action0),
 	fix_action(Port, Action0, Action),
 	send_if_tracer(report(status, '%s ...', Action)),
@@ -154,6 +155,7 @@ do_intercept(break(PC), Frame, BFR, Action) :-
 	'$fetch_vm'(ClauseRef, PC, NPC, _VMI),
 	predicate_name(user:Goal, Pred),
 	send_tracer(report(status, 'Break in: %s', Pred)),
+	send_tracer(current_break(tuple(ClauseRef, PC))),
 	prolog_show_frame(Frame,
 			  [ pc(NPC),
 			    bfr(BFR),
@@ -198,6 +200,7 @@ show(StartFrame, BFR, Up, Port) :-
 	show(StartFrame, BFR, Up, Port, Port).
 
 show(StartFrame, BFR, Up, Port, Style) :-
+	send_tracer(current_frame(StartFrame)),
 	prolog_show_frame(StartFrame,
 			  [ port(Port),
 			    bfr(BFR),

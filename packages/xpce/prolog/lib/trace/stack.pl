@@ -18,6 +18,8 @@
 
 :- system_module.
 
+%	display_stack(+StackWindow, +CallList, +ChoiceList)
+
 display_stack(Window, Call, Choice) :-
 	get(@pce, convert, normal, font, Font),
 	get(Font, height, FH),
@@ -168,8 +170,7 @@ clean_level(Text) :-
 :- pce_begin_class(prolog_stack_view, picture,
 		   "Overview of the parent stack-frames").
 
-variable(members,     hash_table,  get,  "Frame --> Visualiser table").
-variable(last_choice, graphical*,  none, "Internal storage").
+variable(members,       hash_table,  get, "Frame --> Visualiser table").
 
 initialise(B) :->
 	get(@pce, convert, normal, font, Font),
@@ -184,7 +185,6 @@ clean(B) :->
 	clean(B).
 
 clear(B) :->
-	send(B, slot, last_choice, @nil),
 	send(B?graphicals, for_all, message(@arg1, destroy)).
 
 
