@@ -171,7 +171,8 @@ list_redefined_ :-
 	    $syspreds:$defined_predicate(Super:Head),
 	    \+ predicate_property(Super:Head, (dynamic)),
 	    \+ predicate_property(Super:Head, imported_from(Module)),
-	    functor(Head, Name, Arity)
+	    functor(Head, Name, Arity),
+	    (Super == user ; Super == system)
 	->  print_message(informational,
 			  check(redefined(Module, Super, Name/Arity)))
 	),

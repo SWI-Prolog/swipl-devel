@@ -7,8 +7,12 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: library(check) only reports redefinition on modules that
+    default to user and system (otherwise we are dealing with special
+    purpose usage of the module system that must be handled seperately).
+
   * FIXED: Bug#92: pathname handling on paths like \\machine\c$\more\...
-    Tolga Konik.
+    Also, the argument to -s (script) is not expanded. Tolga Konik.
 
   * ADDED: Keep track of line-number where a module is defined (no public
     interface yet, available through '$module_property'(+Module, -Property).
