@@ -157,6 +157,7 @@ dtd_property(DTD, Prop) :-
 		 *******************************/
 
 parser_option(dialect(_)).
+parser_option(shorttag(_)).
 parser_option(file(_)).
 parser_option(line(_)).
 parser_option(space(_)).

@@ -1010,6 +1010,10 @@ itake_nmtoken_chars(dtd *dtd, const ichar *in, ichar *out, int len)
 
     However, in order to break as little as possible, the new (sgml-1.0.14)
     function accepts anything except > / \0 and blanks.
+
+JW: I decided to accept / as part of an unquoted in SGML-mode if
+    shorttag is disabled as well as in XML mode if it is not followed
+    by a >
 */
 
 static ichar const *
@@ -1024,9 +1028,13 @@ itake_unquoted(dtd *dtd, ichar const *in, ichar *out, int len)
 
   /* copy the attribute to out[] */
   while ( !HasClass(dtd, c, CH_BLANK) &&
-	  c != '\0' && c != end1 && c != end2
-	)
-  { if ( --len > 0 )
+	  c != '\0' &&
+	  c != end1 )
+  { if ( c == end2 && (dtd->shorttag ||
+		       (in[1] == end1 && dtd->dialect != DL_SGML)) )
+      break;
+
+    if ( --len > 0 )
       *out++ = c;
     else if ( len == 0 )
       gripe(ERC_REPRESENTATION, "Attribute too long");
@@ -1128,6 +1136,18 @@ set_dialect_dtd(dtd *dtd, dtd_dialect dialect)
 
       break;
     }
+  }
+
+  return TRUE;
+}
+
+
+int
+set_option_dtd(dtd *dtd, dtd_option option, int set)
+{ switch(option)
+  { case OPT_SHORTTAG:
+      dtd->shorttag = set;
+      break;
   }
 
   return TRUE;
