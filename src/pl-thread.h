@@ -324,11 +324,28 @@ void		resumeThreads(void);
 		 *	 NON-THREAD STUFF	*
 		 *******************************/
 
+#ifdef O_MULTIPLE_ENGINES
+
+#define GLOBAL_LD	PL_current_engine_ptr
+#define GET_LD		PL_local_data_t *__PL_ld = GLOBAL_LD;
+#define PRED_LD   PL_local_data_t *__PL_ld = PL__ctx->engine;
+
+#define ARG1_LD   PL_local_data_t *__PL_ld
+#define ARG_LD    , ARG1_LD
+#define PASS_LD1  LD
+#define PASS_LD   , LD
+#define LOCAL_LD  __PL_ld
+#define LD	  GLOBAL_LD
+
+#else /*O_MULTIPLE_ENGINES*/
+
 #define GET_LD
 #define PRED_LD
 #define LOCAL_LD  (&PL_local_data)
 #define GLOBAL_LD (&PL_local_data)
 #define LD	  GLOBAL_LD
+
+#endif /*O_MULTIPLE_ENGINES*/
 
 #define PL_LOCK(id)
 #define PL_UNLOCK(id)

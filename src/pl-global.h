@@ -459,8 +459,11 @@ typedef struct PL_local_data
 GLOBAL PL_global_data_t PL_global_data;
 GLOBAL PL_code_data_t	PL_code_data;
 GLOBAL PL_local_data_t  PL_local_data;
+#ifdef O_MULTIPLE_ENGINES
+GLOBAL PL_local_data_t *PL_current_engine_ptr;
+#endif
 
-#ifndef O_PLMT
+#if !defined(O_PLMT) && !defined(O_MULTIPLE_ENGINES)
 #define GET_LD
 #define ARG_LD
 #define ARG1_LD void
@@ -469,7 +472,7 @@ GLOBAL PL_local_data_t  PL_local_data;
 #define LOCAL_LD  (&PL_local_data)
 #define GLOBAL_LD (&PL_local_data)
 #define LD	  GLOBAL_LD
-#endif /*O_PLMT*/
+#endif /*O_PLMT && O_MULTIPLE_ENGINES*/
 #define GD (&PL_global_data)
 #define CD (&PL_code_data)
 
