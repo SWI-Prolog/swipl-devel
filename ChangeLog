@@ -13,7 +13,8 @@ VERSION 2.8.1
     collected choicepoints.
 
   * FIXED: initialisation of style_check defaults to specify
-    singletons, long atoms and discontiguous clauses.
+    singletons, long atoms and discontiguous clauses.  NOTE: THIS MAY
+    CAUSE WARNINGS ON OLD CODE.
 
   * ADDED: Several predicates for math in library(quintus).
 
