@@ -1117,7 +1117,12 @@ getDeleteHeadChain(Chain ch)
   EXISTS(ch->head);
   result = ch->head->value;
   if ( isObject(result) && !isProtectedObj(result) )
-  { addCodeReference(result);
+  { if ( isFreedObj(result) )
+    { deleteHeadChain(ch);
+      errorPce(ch, NAME_freedObject, result);
+      fail;
+    }
+    addCodeReference(result);
     deleteHeadChain(ch);
     delCodeReference(result);
     pushAnswerObject(result);
