@@ -3283,6 +3283,10 @@ pl_put_column(context *c, int nth, term_t col)
     If ptr_value is NULL, prepare_result() has not used SQLBindCol() due
     to a potentionally too large field such as for SQL_LONGVARCHAR
     columns.
+
+There is a lot of odd code around the SQL_SERVER_BUG below. It turns out
+Microsoft SQL Server sometimes gives the wrong length indication as well
+as the wrong number of pad bytes for the first part of the data.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -3351,6 +3355,12 @@ pl_put_column(context *c, int nth, term_t col)
 	data = odbc_malloc(len+pad);
 	memcpy(data, buf, sizeof(buf));	/* you don't get the data twice! */
 	ep = data+sizeof(buf)-pad;
+#ifdef SQL_SERVER_BUG			/* compensate for wrong pad info */
+        while(ep>data && ep[-1] == 0)
+	{ ep--;
+	  todo++;
+	}
+#endif
 	while(todo > 0)
 	{ c->rc = SQLGetData(c->hstmt, (UWORD)(nth+1), p->cTypeID,
 			     ep, todo, &len2);
