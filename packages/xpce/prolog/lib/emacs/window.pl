@@ -483,25 +483,62 @@ fix_rval(Type, RawRval, RVal) :-
 fix_rval(_, Rval, Rval).
 
 
+:- pce_global(@emacs_prompt,
+	      new(constant(prompt, 'Prompt for value'))).
+
 interactive_arguments(V, Impl:any, Times:[int], Argv:vector) :<-
 	"Prompt for arguments for the given implementation"::
 	get(V, mode, Mode),
-	new(Argv, vector),
-	between(1, 10, ArgN),
-	(   get(Impl, argument_type, ArgN, ArgType)
-	->  (   integer(Times),
-	        send(ArgType, includes, int)
-	    ->	send(Argv, element, ArgN, Times)
-	    ;   send(ArgType, includes, default)
-	    ->  send(Argv, element, ArgN, @default)
-	    ;   get(Mode, interactive_argument, Impl, ArgN, Arg),
-		get(ArgType, check, Arg, CheckedArg)
-	    ->  send(Argv, element, ArgN, CheckedArg)
-	    ;   !, fail
-	    ),
-	    fail			% force backtracing
-	;   !
+	make_arg_vector(Impl, Times, Argv),
+	(   get(Argv, index, @emacs_prompt, _)
+	->  (   get(V, frame, Frame),
+	        get(Frame, has_get_method, prompt_style),
+		get(Frame, prompt_style, mini_window)
+	    ->  fill_arg_vector(Mode, Impl, Argv)
+	    ;	new(D, emacs_prompt_dialog(Mode, Impl, Argv)),
+		send(D, prompt, V, Argv),
+		send(D, destroy)
+	    )
 	).
+
+fill_arg_vector(Mode, Impl, Argv) :-
+	fill_arg_vector(1, Mode, Impl, Argv).
+
+fill_arg_vector(ArgN, Mode, Impl, Argv) :-
+	get(Impl, argument_type, ArgN, ArgType),
+	get(Argv, element, ArgN, @emacs_prompt), !,
+	get(Mode, interactive_argument, Impl, ArgN, Arg),
+	get(ArgType, check, Arg, CheckedArg),
+	send(Argv, element, ArgN, CheckedArg),
+	Next is ArgN + 1,
+	fill_arg_vector(Next, Mode, Impl, Argv).
+fill_arg_vector(ArgN, Mode, Impl, Argv) :-
+	get(Impl, argument_type, ArgN, ArgType), !,
+	Next is ArgN + 1,
+	fill_arg_vector(Next, Mode, Impl, Argv).
+fill_arg_vector(_, _, _, _).
+	
+
+make_arg_vector(Impl, Times, Argv) :-
+	new(Argv, argv),
+	make_arg_vector(1, Impl, Times, Argv).
+
+make_arg_vector(ArgN, Impl, Times, Argv) :-
+	get(Impl, argument_type, ArgN, ArgType), !,
+	(   integer(Times),
+	    send(ArgType, includes, int)
+	->  send(Argv, element, ArgN, Times),
+	    NextTimes = @default
+	;   NextTimes = Times,
+	    (   send(ArgType, includes, default)
+	    ->  send(Argv, element, ArgN, @default)
+	    ;   send(Argv, element, ArgN, @emacs_prompt)
+	    )
+	),
+	Next is ArgN + 1,
+	make_arg_vector(Next, Impl, NextTimes, Argv).
+make_arg_vector(_, _, _, _).
+
 
 :- pce_end_class(emacs_view).
 

@@ -9,6 +9,7 @@
 :- module($history,
 	[ read_history/6
 	, $clean_history/0
+	, $save_history/1
 	]).
 
 %   read_history(+History, +Help, +DontStore, +Prompt, -Term, -Bindings)
@@ -113,6 +114,9 @@ save_history_line(_).
 save_event(Dont, Event) :-
 	memberchk(Event, Dont), !.
 save_event(_, Event) :-
+	$save_history(Event).
+
+$save_history(Event) :-
 	flag($last_event, Old, Old), 
 	succ(Old, New), 
 	flag($last_event, _, New), 
@@ -133,8 +137,9 @@ remove_history(_, _).
 
 history_depth_(N) :-
 	current_prolog_flag(history, N),
-	integer(N), !.
-history_depth_(15).
+	integer(N),
+	N > 0, !.
+history_depth_(25).
 
 %    expand_history(+Raw, -Expanded)
 %    Expand Raw using the available history list. Expandations performed

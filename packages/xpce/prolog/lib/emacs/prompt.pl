@@ -84,3 +84,36 @@ make_item(_Mode, Label, Default, Type, History, Item) :-
 	->  send(Item, value_set, History)
 	;   true
 	).
+
+
+		 /*******************************
+		 *	   PROMPT DIALOG	*
+		 *******************************/
+
+
+:- pce_begin_class(emacs_prompt_dialog, dialog,
+		   "Prompt for method arguments").
+
+initialise(D, Mode:emacs_mode, Impl:any, Argv:vector) :->
+	(   send(Impl, has_get_method, summary),
+	    get(Impl, summary, Summary), Summary \== @nil
+	->  Label = Summary
+	;   get(Impl, name, Name),
+	    Label = string('PceEmacs arguments for %s', Name)
+	),
+	send_super(D, initialise, Label).
+
+
+prompt(D, V:emacs_view, Argv:vector) :->
+	send(D, transient_for, V),
+	send(D, modal, transient),
+	get(V?editor, display_position, point(X,Y)),
+	get(V?editor, size, size(W, H)),
+	get(D, confirm_centered, point(X+W/2, Y+H/2), Ok),
+	(   Ok == ok
+	->  send(D, collect, Argv)
+	;   send(D, destroy),
+	    fail
+	).
+
+:- pce_end_class(emacs_prompt_dialog).

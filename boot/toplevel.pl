@@ -301,7 +301,8 @@ read_query(Prompt, Goal, Bindings) :-
 	catch(atom_to_term(Line, Goal, Bindings), E,
 	      (   print_message(error, E),
 		  fail
-	      )), !.
+	      )), !,
+	$save_history(Line).
 read_query(Prompt, Goal, Bindings) :-
 	seeing(Old), see(user_input),
 	(   read_history(h, '!h', 
@@ -331,7 +332,7 @@ delete_leading_blanks(L, L).
 set_default_history :-
 	(   current_prolog_flag(readline, true)
 	->  set_prolog_flag(history, 0)
-	;   set_prolog_flag(history, 15)
+	;   set_prolog_flag(history, 25)
 	).
 
 :- initialization set_default_history.

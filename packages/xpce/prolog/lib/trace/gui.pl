@@ -28,6 +28,7 @@
 :- use_module(stack).
 
 :- pce_autoload(prolog_source_browser, library('trace/browse')).
+:- pce_autoload(prolog_query,	       library('trace/query')).
 
 :- multifile
 	user:prolog_event_hook/1,
@@ -217,8 +218,15 @@ fill_menu_bar(F) :->
 			      message(F, destroy))
 		  ]),
 	send_list(Help, append,
-		  [ menu_item(about, message(F, about)),
-		    menu_item(help, message(F, help))
+		  [ menu_item(about,
+			      message(F, about)),
+		    menu_item(help_on_debugger,
+			      message(F, help),
+			      end_group := @on),
+		    menu_item(prolog_manual,
+			      message(@prolog, prolog_help)),
+		    menu_item(pce_manual,
+			      message(@prolog, manpce))
 		  ]).
 
 settings(_F) :->
@@ -383,9 +391,18 @@ abort(_) :->
 	"Abort to the Prolog toplevel"::
 	abort.
 
-break(_) :->
-	"Run a break"::
-	break.
+query(F) :->
+	"Enter and run a query"::
+	get(F, member, buttons, Dialog),
+	get(Dialog, button, query, Button),
+	get(Button, display_position, ButtonPos),
+	get(ButtonPos, plus, point(0, 25), Pos),
+	new(PQ, prolog_query),
+	send(new(report_dialog), below, PQ),
+	get(PQ, frame, Frame),
+	send(Frame, application, F?application),
+	send(Frame, transient_for, F),
+	send(PQ, open, Pos).
 
 :- pce_group(delegate).
 
@@ -443,7 +460,7 @@ button(gap,	 -,	-,		-).
 button(retry,	 "r",	'retry.xpm',	'Retry selected goal').
 button(gap,	 -,	-,		-).
 button(nodebug,  "n",	'nodebug.xpm',	'Continue without debugging').
-button(+break,	 "b",	'break.xpm',	'Enter a recursive toplevel').
+button(+query,	 "b",	'break.xpm',	'Enter a query').
 button(+abort,	 "a",	'abort.xpm',	'Abort to the Prolog toplevel').
 button(gap,	 -,	-,		-).
 button(+up,	 "u",	'up.xpm',	'Select child frame').
@@ -509,6 +526,11 @@ event(D, Ev:event) :->
 	->  send(D, typed, Ev)
 	;   send(D, send_super, event, Ev)
 	).
+
+button(D, Name:name, Button:button) :<-
+	"Find button from its name"::
+	get(D, member, tool_bar, TB),
+	get(TB, member, Name, Button).
 
 :- pce_end_class(prolog_button_dialog).
 

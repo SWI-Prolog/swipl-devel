@@ -1,3 +1,6 @@
+* MODIFIED: Organisational issues in PceEmacs: renamed class emacs_window
+  into emacs_frame.
+
 * FIXED: Type-error in manual tools: man_button_fragment ->initialise:
   Argument 4 (object): `object' expected.
 
