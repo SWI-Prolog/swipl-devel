@@ -75,6 +75,7 @@ static void initHeapDebug(void);
 #define _MAKE_DLL 1
 #undef _export
 #include "console.h"
+#include "menu.h"
 #include "common.h"
 #include <signal.h>
 #include <ctype.h>
@@ -118,12 +119,12 @@ static void initHeapDebug(void);
 
 #define ESC 27				/* the escape character */
 
-#define RLC_FONT	1000		/* < F000 */
-#define WM_RLC_INPUT	WM_USER+10	/* Just somewhere ... */
-#define WM_RLC_WRITE	WM_USER+11	/* write data */
-#define WM_RLC_FLUSH	WM_USER+12	/* flush buffered data */
-#define WM_RLC_READY	WM_USER+13	/* Window thread is ready */
-#define WM_RLC_CLOSEWIN WM_USER+14	/* Close the window */
+#define RLC_FONT	 1000		/* < F000 */
+#define WM_RLC_INPUT	 WM_USER+10	/* Just somewhere ... */
+#define WM_RLC_WRITE	 WM_USER+11	/* write data */
+#define WM_RLC_FLUSH	 WM_USER+12	/* flush buffered data */
+#define WM_RLC_READY	 WM_USER+13	/* Window thread is ready */
+#define WM_RLC_CLOSEWIN  WM_USER+14	/* Close the window */
 
 #define IMODE_RAW	1		/* char-by-char */
 #define IMODE_COOKED	2		/* line-by-line */
@@ -269,6 +270,7 @@ static RlcRenderHook	_rlc_render_hook;
 static RlcRenderAllHook _rlc_render_all_hook;
 static RlcInterruptHook _rlc_interrupt_hook;
 static RlcResizeHook    _rlc_resize_hook;
+static RlcMenuHook	_rlc_menu_hook;
 static int _rlc_copy_output_to_debug_output=0;	/* != 0: copy to debugger */
 static int	emulate_three_buttons;
 static HWND	emu_hwnd;		/* Emulating for this window */
@@ -481,6 +483,8 @@ rlc_create_window(RlcData b)
 
   AppendMenu(settings, MF_STRING, RLC_FONT,       "Font ...");
 }
+
+  rlc_add_menu_bar(b->window);
 
   ShowWindow(hwnd, _rlc_show);
   UpdateWindow(hwnd);
@@ -961,6 +965,35 @@ rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     case WM_PAINT:
       rlc_redraw(b);
       return 0;
+
+    case WM_COMMAND:
+    { UINT  item  = (UINT) LOWORD(wParam);
+      const char *name;
+
+      switch( item )
+      { case IDM_PASTE:
+	  rlc_paste(b);
+	  return 0;
+	case IDM_COPY:
+	  return 0;			/* no op: already done */
+	case IDM_CUT:
+	  break;			/* TBD: cut */
+	case IDM_EXIT:
+	  if ( rlc_kill() )
+	    return 0;
+	  break;
+      }
+
+      if ( (name = lookupMenuId(item)) )
+      { if ( _rlc_menu_hook )
+	{ (*_rlc_menu_hook)(name);
+	}
+
+	return 0;
+      }
+
+      break;
+    }
 
   { int chr; 
 
@@ -3121,6 +3154,7 @@ rlc_write(char *buf, unsigned int count)
   return -1;				/* I/O error */
 }
 
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 rlc_close() tries to gracefully get rid of   the console thread. It does
 so by posting WM_RLC_CLOSEWIN and then waiting for a WM_RLC_READY reply.
@@ -3275,6 +3309,14 @@ rlc_resize_hook(RlcResizeHook new)
 { RlcResizeHook old = _rlc_resize_hook;
 
   _rlc_resize_hook = new;
+  return old;
+}
+
+RlcMenuHook
+rlc_menu_hook(RlcMenuHook new)
+{ RlcMenuHook old = _rlc_menu_hook;
+
+  _rlc_menu_hook = new;
   return old;
 }
 

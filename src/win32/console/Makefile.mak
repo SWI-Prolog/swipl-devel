@@ -13,7 +13,7 @@ OUTINC=		$(PLHOME)\include\console.h
 
 XLIBS=		gdi32.lib comdlg32.lib $(DBGLIBS)
 
-OBJ=		complete.obj console.obj edit.obj history.obj
+OBJ=		complete.obj console.obj edit.obj history.obj menu.obj
 
 all:		$(OUTLIB) $(OUTINC)
 
@@ -22,6 +22,11 @@ $(OUTLIB):	$(OBJ)
 
 $(OUTINC):	console.h
 		copy console.h $@
+
+install:	all
+		copy $(OUTDLL) $(BINDIR)
+		copy $(OUTLIB) $(LIBDIR)
+		copy $(OUTINC) $(INCDIR)
 
 clean:
 		del *~ *.obj

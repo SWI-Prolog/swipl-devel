@@ -47,6 +47,7 @@ typedef void	(*RlcRenderAllHook)(void); /* Render all formats */
 typedef int	(*RlcMain)(int, char**); /* the main() function */
 typedef void	(*RlcInterruptHook)(int); /* Hook for Control-C */
 typedef void	(*RlcResizeHook)(int, int); /* Hook for window change */
+typedef void	(*RlcMenuHook)(const char *id); /* Hook for menu-selection */
 
 #ifdef _WINDOWS_			/* <windows.h> is included */
 					/* rlc_color(which, ...) */
@@ -69,6 +70,7 @@ _export RlcRenderHook   rlc_render_hook(RlcRenderHook renderhook);
 _export RlcRenderAllHook rlc_render_all_hook(RlcRenderAllHook renderallhook);
 _export RlcInterruptHook rlc_interrupt_hook(RlcInterruptHook interrupthook);
 _export RlcResizeHook	rlc_resize_hook(RlcResizeHook resizehook);
+_export RlcMenuHook	rlc_menu_hook(RlcMenuHook menuhook);
 _export int		rlc_copy_output_to_debug_output(int docopy);
 
 _export void		rlc_title(char *title, char *old, int size);
@@ -110,6 +112,13 @@ _export int		ScreenCols(void);
 _export int		ScreenRows(void);
 _export const char *	rlc_prompt(const char *prompt);
 _export void		rlc_clearprompt(void);
+
+_export int		rlc_insert_menu_item(const char *menu,
+					     const char *label,
+					     const char *before);
+_export int		rlc_insert_menu(const char *label,
+					const char *before);
+
 
 		 /*******************************
 		 *	 LINE EDIT STUFF	*
