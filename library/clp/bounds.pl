@@ -756,6 +756,7 @@ mydiv(X,Y,Z,New) :-
 				true
 			),
 			( nonvar(Z) ->
+				% TODO: cover this
 				true
 			;	
 				get(Z,ZL,ZU,ZExp),
@@ -796,16 +797,21 @@ mydiv(X,Y,Z,New) :-
 			get(Z,ZL,ZU,ZExp),
 			( XL >= 0, Y >= 0 ->
 				NZL is max(XL // Y,ZL),
-				NZU is min(XU // Y,ZU)
+				NZU is min(XU // Y,ZU),
+				NXL is max(Y*NZL, XL),
+				NXU is min((NZU+1)*Y - 1, XU)
 			; % TODO: cover more cases
 				NZL is max(-max(abs(XL),abs(XU)),ZL),
-				NZU is min(max(abs(XL),abs(XU)),ZU)
+				NZU is min(max(abs(XL),abs(XU)),ZU),
+				NXL = XL,
+				NXU = XU
 			),
 			( New == yes ->
-				put(X,XL,XU,[mydiv(Y,Z)|XExp]),
+				put(X,NXL,NXU,[mydiv(Y,Z)|XExp]),
 				put(Z,NZL,NZU,[mydiv2(X,Y)|ZExp])
 			;
-				put(Z,NZL,NZU,ZExp)
+				put(X,NXL,NXU,XExp),
+				( nonvar(Z) -> true ; put(Z,NZL,NZU,ZExp) )
 			)
 		)
 	; nonvar(Z) ->
