@@ -176,6 +176,8 @@ NewClass(text_image)			/* TBD: subclass of bitmap? */
   ABSTRACT_GRAPHICAL
   Any   	text;			/* Text we are operation on */
   Image		image;			/* Bitmap image */
+  Any		background;		/* Background of text */
+  Any		foreground;		/* Text colour */
   Int		start;			/* Start offset */
   Int		end;			/* First non-visible character */
   Name		wrap;			/* Wrap mode in effect */

@@ -89,6 +89,8 @@ initialiseTextImage(TextImage ti, Any obj, Int w, Int h)
   assign(ti, image,        NIL);
   assign(ti, start,        ZERO);
   assign(ti, end,	   ZERO);
+  assign(ti, background,   DEFAULT);
+  assign(ti, foreground,   DEFAULT);
   assign(ti, wrap,	   getResourceValueObject(ti, NAME_wrap));
   assign(ti, tab_distance, getResourceValueObject(ti, NAME_tabDistance));
 
@@ -228,7 +230,7 @@ reinitTextImage(TextImage ti)
   ti->image_map->allocated = ti->image_map->length = ti->image_map->skip = 0;
   ti->image_map->lines     = NULL;
 
-  succeed;
+  return obtainResourcesObject(ti);
 }
 
 
@@ -666,15 +668,10 @@ t_grey(int x, int y, int w, int h)
 static status
 t_open(TextImage ti)
 { if ( notNil(ti->image) && ti->w > 0 && ti->h > 0 )
-  { Colour c;
-
-    clearArea(ti->changed_area);
+  { clearArea(ti->changed_area);
     DEBUG(NAME_text, printf("Opening image %s\n", pp(ti->image)));
     d_image(ti->image, 0, 0, ti->w, ti->h);
     
-    if ( notDefault(c = getDisplayColourGraphical((Graphical)ti)) )
-      r_default_colour(c);
-
     succeed;
   }
 
@@ -1207,7 +1204,8 @@ RedrawAreaTextImage(TextImage ti, Area a)
 
   if ( isNil(ti->image) )
   { computeTextImage(ti);
-    assign(ti, image, newObject(ClassImage, NIL, ZERO, ZERO, NAME_pixmap, 0));
+    assign(ti, image,
+	   newObject(ClassPixmap, NIL, ti->foreground, ti->background, 0));
     assign(ti->image, display, getDisplayGraphical((Graphical)ti));
     adjustSizeImageTextImage(ti);
     ensure_lines_screen(ti->image_map, ti->map->length);
@@ -1635,6 +1633,10 @@ makeClassTextImage(Class class)
 	     "Source of the text");
   localClass(class, NAME_image, NAME_cache, "image*", NAME_get,
 	     "Scratch image");
+  localClass(class, NAME_background, NAME_appearance, "colour|pixmap", NAME_get,
+	     "Background colour");
+  localClass(class, NAME_foreground, NAME_appearance, "colour|pixmap", NAME_get,
+	     "Text (foreground) colour");
   localClass(class, NAME_start, NAME_scroll, "int", NAME_none,
 	     "Index of first character displayed");
   localClass(class, NAME_end, NAME_scroll, "int", NAME_get,
@@ -1736,6 +1738,10 @@ makeClassTextImage(Class class)
 		  "Wrap unit for long lines");
   attach_resource(class, "tab_distance", "int", "64",
 		  "Tabstop interval (pixels)");
+  attach_resource(class, "background", "colour|pixmap", "white",
+		  "Background colour for the text");
+  attach_resource(class, "foreground", "colour|pixmap", "black",
+		  "Foreground colour for the text");
 
   succeed;
 }
