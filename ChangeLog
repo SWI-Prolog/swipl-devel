@@ -1,6 +1,26 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 3.3.9
+=============
+
+  * FIXED: Install boot.prc (the default Prolog bootfile) as
+    boot<wordlength>.prc, so the Prolog home directory can be
+    shared between machines with different wordlength.
+    Thanks to David Starks-Browning.
+
+  * FIXED: Garbage collector bug.  Only relevant for people using
+    the non-standard setarg/3 predicate (trail was marked after
+    choicepoint stack, causing unwanted early-reset of
+    trail-references).  Thanks to Rolf Socher.
+
+  * FIXED: Problem in tail-recursion optimisation when using the
+    source debugger (or actually the prolog_event_hook/1 callback
+    used by the source debugger).
+
+  * FIXED: Depth-limit handling in write_term for the head of a list.
+    Thanks to Lyosha Ilyukhin.
+
   * FIXED: qsave_program/2: Saving the unknown flag.  Thanks to
     Robert van Engelen.
 
