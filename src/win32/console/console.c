@@ -590,13 +590,26 @@ static void
 reg_save_int(HKEY key, const TCHAR *name, int value)
 { DWORD val = value;
 
-  RegSetValueEx(key, name, 0,
-		REG_DWORD_LITTLE_ENDIAN, (LPBYTE)&val, sizeof(val));
+  if ( RegSetValueEx(key, name, 0,
+		     REG_DWORD_LITTLE_ENDIAN,
+		     (LPBYTE)&val, sizeof(val)) != ERROR_SUCCESS )
+    DEBUG(MessageBox(NULL, _T("Failed to save int setting"),
+		     _T("Error"), MB_OK));
+  else
+  { DEBUG(TCHAR buf[256];
+    
+	  _stprintf(buf, _T("Saved %ld to %s (key = %p)"),
+		    val, name, key);
+	  
+	  MessageBox(NULL, buf, _T("info"), MB_OK));
+  }
 }
 
 static void
 reg_save_str(HKEY key, const TCHAR *name, TCHAR *value)
-{ RegSetValueEx(key, name, 0, REG_SZ, (LPBYTE)value, _tcslen(value)+1);
+{ if ( RegSetValueEx(key, name, 0, REG_SZ,
+		     (LPBYTE)value, (_tcslen(value)+1)*sizeof(TCHAR)) != ERROR_SUCCESS )
+    DEBUG(MessageBox(NULL, _T("Failed to save string setting"), _T("Error"), MB_OK));
 }
 
 
@@ -668,7 +681,7 @@ reg_get_int(HKEY key, const TCHAR *name, int mn, int def, int mx, int *value)
 static void
 reg_get_str(HKEY key, const TCHAR *name, TCHAR *value, int length)
 { DWORD type;
-  BYTE  data[MAXREGSTRLEN];
+  BYTE  data[MAXREGSTRLEN*sizeof(TCHAR)];
   DWORD len = sizeof(data);
 
   if ( *value )
@@ -768,7 +781,8 @@ rlc_get_options(rlc_console_attr *attr)
   reg_get_int(key, _T("Y"),	         miny, miny,   maxy, &attr->y);
 }
 
-  reg_get_str(key, _T("FaceName"), attr->face_name, sizeof(attr->face_name));
+  reg_get_str(key, _T("FaceName"), attr->face_name,
+	      sizeof(attr->face_name)/sizeof(TCHAR));
   reg_get_int(key, _T("FontFamily"),    0,  0,  0, &attr->font_family);
   reg_get_int(key, _T("FontSize"),      0,  0,  0, &attr->font_size);
   reg_get_int(key, _T("FontWeight"),    0,  0,  0, &attr->font_weight);
