@@ -30,7 +30,7 @@
 */
 
 portray(Obj) :-
-	object(Obj),
-	Obj = @(Ref), !,
+	Obj = @(Ref),
+	object(Obj), !,
 	get(Obj, '_class_name', CN),
 	format('@~w/~w', [Ref, CN]).
