@@ -83,8 +83,19 @@ static Timer	ElectricTimer;
 			  { Int _tmp = t; t = f; f = _tmp; \
 			  } \
 			}
+
 #define HasSelection(e) ((e)->mark != (e)->caret && \
 			 (e)->mark_status == NAME_active)
+#define SelectionRegion(e, from, to) \
+  { if ( !HasSelection(e) ) \
+    { send(e, NAME_report, NAME_warning, CtoName("No selection"), EAV); \
+      fail; \
+    } \
+    from = e->mark; \
+    to   = e->caret; \
+    Before(from, to); \
+  }
+
 #define Fetch(e, i)		fetch_textbuffer((e)->text_buffer, (i))
 #define InRegion(i, l, h)	( (l < h && i >= l && i < h) || \
 				  (l > h && i >= h && i < l) )
@@ -132,7 +143,6 @@ initialiseEditor(Editor e, TextBuffer tb, Int w, Int h, Int tmw)
   assign(e, mark, toInt(tb->size));
   assign(e, mark_status, NAME_inactive);
   assign(e, mark_ring, newObject(ClassVector, EAV));
-  fillVector(e->mark_ring, NIL, ONE, toInt(16));
   assign(e, selected_fragment, NIL);
   assign(e, selected_fragment_style, newObject(ClassStyle, EAV));
   boldStyle(e->selected_fragment_style, ON);
@@ -1588,11 +1598,26 @@ CaretEditor(Editor e, Int c)
 
 
 static status
+pushMarkEditor(Editor e, Int mark)
+{ Vector ring = e->mark_ring;
+  Int high = getHighIndexVector(ring);
+
+  if ( valInt(high) < 16 )		/* TBD: parameter */
+    elementVector(ring, add(high, ONE), NIL);
+
+  shiftVector(ring, ONE);
+  elementVector(ring, ONE, mark);
+
+  succeed;
+}
+
+
+static status
 markEditor(Editor e, Int mark, Name status)
 { if ( isDefault(mark) )
     mark = e->caret;
 
-					/* TBD: push in mark-ring */
+  pushMarkEditor(e, mark);
   selection_editor(e, mark, DEFAULT, status);
   return requestComputeGraphical(e, DEFAULT);
 }
@@ -2243,16 +2268,22 @@ killTermEditor(Editor e, Int arg)
 
 static status
 killOrGrabRegionEditor(Editor e, Int arg)
-{ if ( notDefault(e->mark) )
-  { assign(e, mark, normalise_index(e, e->mark));
-    if ( isDefault(arg) )
-      return killEditor(e, e->caret, e->mark);
+{ status rval;
 
-    return grabEditor(e, e->caret, e->mark);
+  if ( !HasSelection(e) )
+  { send(e, NAME_report, NAME_warning, CtoName("No mark"), EAV);
+    succeed;
   }
 
-  send(e, NAME_report, NAME_warning, CtoName("No mark"), EAV);
-  succeed;
+  if ( isDefault(arg) )
+    rval = killEditor(e, e->caret, e->mark);
+  else
+    rval = grabEditor(e, e->caret, e->mark);
+
+  if ( rval )
+    markStatusEditor(e, NAME_inactive);
+
+  return rval;
 }
 
 		/********************************
@@ -2295,11 +2326,22 @@ undoEditor(Editor e)
 static status
 setMarkEditor(Editor e, Int arg)
 { if ( isDefault(arg) )
-    arg = e->caret;
+  { markEditor(e, arg, NAME_active);
 
-  markEditor(e, arg, NAME_active);
+    send(e, NAME_report, NAME_status, CtoName("Mark set"), EAV);
+  } else				/* rotate through mark-ring */
+  { Int to = getElementVector(e->mark_ring, ONE);
 
-  send(e, NAME_report, NAME_status, CtoName("Mark set"), EAV);
+    if ( notNil(to) )
+    { shiftVector(e->mark_ring, toInt(-1));
+      elementVector(e->mark_ring,
+		    getHighIndexVector(e->mark_ring),
+		    to);
+      return CaretEditor(e, to);
+    } else
+      send(e, NAME_report, NAME_warning, CtoName("No marks"), EAV);
+  }
+
   succeed;
 }
 
@@ -2861,7 +2903,7 @@ indentRegionEditor(Editor e, Int arg)
   TextBuffer tb = e->text_buffer;
 
   MustBeEditable(e);
-  get_region_editor(e, &from, &to);
+  SelectionRegion(e, from, to);
   e->internal_mark = valInt(to);
   while( valInt(from) < e->internal_mark )  
   { indentOneLineEditor(e, from, arg);
@@ -3007,13 +3049,13 @@ fillEditor(Editor e,
 
 static status
 fillRegionEditor(Editor e)
-{ TextBuffer tb = e->text_buffer;
-  Int from = e->mark;
-  Int to   = e->caret;
-  
+{ Int from, to;
+  TextBuffer tb = e->text_buffer;
+
+  MustBeEditable(e);
+  SelectionRegion(e, from, to);
   from = getScanTextBuffer(tb, from, NAME_line, ZERO, NAME_start);
 
-  Before(from, to);
   return fillEditor(e, from, to, DEFAULT, DEFAULT, OFF);
 }
 
@@ -3910,16 +3952,6 @@ getSelectedEditor(Editor e)
 		*        SELECTION EDITS	*
 		********************************/
 
-#define SelectionRegion(e, from, to) \
-  { if ( !HasSelection(e) ) \
-    { send(e, NAME_report, NAME_warning, CtoName("No selection"), EAV); \
-      fail; \
-    } \
-    from = e->mark; \
-    to   = e->caret; \
-    Before(from, to); \
-  }
-
 static status
 deleteSelectionEditor(Editor e)
 { Int from, to;
@@ -3931,40 +3963,6 @@ deleteSelectionEditor(Editor e)
     selection_editor(e, from, from, NAME_inactive);
 
   return rval;
-}
-
-
-static status
-indentSelectionEditor(Editor e, Int arg)
-{ Int from, to;
-  TextBuffer tb = e->text_buffer;
-
-  MustBeEditable(e);
-  SelectionRegion(e, from, to);
-  e->internal_mark = valInt(to);
-  while( valInt(from) < e->internal_mark )  
-  { indentOneLineEditor(e, from, arg);
-    from = getScanTextBuffer(tb, from, NAME_line, ONE, NAME_start);
-  }
-  succeed;
-}
-
-
-static status
-undentSelectionEditor(Editor e, Int arg)
-{ return indentSelectionEditor(e, toInt(-UArg(arg)));
-}
-
-
-static status
-fillSelectionEditor(Editor e)
-{ Int from, to;
-  TextBuffer tb = e->text_buffer;
-
-  MustBeEditable(e);
-  SelectionRegion(e, from, to);
-  from = getScanTextBuffer(tb, from, NAME_line, ZERO, NAME_start);
-  return fillEditor(e, from, to, DEFAULT, DEFAULT, OFF);
 }
 
 
@@ -4379,9 +4377,16 @@ static status
 InsertEditor(Editor e, Int where, Int amount)
 { long w = valInt(where);
   long a = valInt(amount);
+  int s = valInt(e->mark_ring->size);
+  int i; Any *p;
 
   assign(e, caret, toInt(update_caret_on_insert(valInt(e->caret), w, a)));
   assign(e, mark,  toInt(update_index_on_insert(valInt(e->mark),  w, a)));
+
+  for(i=0, p=e->mark_ring->elements; i<s; i++, p++)
+  { if ( notNil(*p) )
+      *p = toInt(update_caret_on_insert(valInt(*p), w, a));
+  }
 
 #define UPDATE_C_INDEX(e, idx) \
   e->idx = update_index_on_insert(e->idx, w, a);
@@ -4764,8 +4769,8 @@ static senddecl send_editor[] =
      NAME_fill, "Fill paragraph around point"),
   SM(NAME_fillRegion, 0, NULL, fillRegionEditor,
      NAME_fill, "Fill paragraphs in region"),
-  SM(NAME_fillSelection, 0, NULL, fillSelectionEditor,
-     NAME_fill, "Fill paragraphs in selection"),
+  SM(NAME_fillSelection, 0, NULL, fillRegionEditor,
+     NAME_fill, "Compat: ->fill_region"),
   SM(NAME_justifyParagraph, 0, NULL, justifyParagraphEditor,
      NAME_fill, "Justify paragraph around point"),
   SM(NAME_justifyRegion, 0, NULL, justifyRegionEditor,
@@ -4786,16 +4791,16 @@ static senddecl send_editor[] =
      NAME_indentation, "Indent line by <-indent_increment"),
   SM(NAME_indentRegion, 1, "[int]", indentRegionEditor,
      NAME_indentation, "Indent lines in region by <-indent_increment"),
-  SM(NAME_indentSelection, 1, "[int]", indentSelectionEditor,
-     NAME_indentation, "Indent lines in selection by <-indent_increment"),
+  SM(NAME_indentSelection, 1, "[int]", indentRegionEditor,
+     NAME_indentation, "Compat: ->indent_region"),
   SM(NAME_newlineAndIndent, 1, "[int]", newlineAndIndentEditor,
      NAME_indentation, "Start a newline and indent"),
   SM(NAME_undentLine, 1, "[int]", undentLineEditor,
      NAME_indentation, "Unindent line by <-indent_increment"),
   SM(NAME_undentRegion, 1, "[int]", undentRegionEditor,
      NAME_indentation, "Unindent lines in region by <-indent_increment"),
-  SM(NAME_undentSelection, 1, "[int]", undentSelectionEditor,
-     NAME_indentation, "Unindent lines in selection by <-indent_increment"),
+  SM(NAME_undentSelection, 1, "[int]", undentRegionEditor,
+     NAME_indentation, "Compat: ->undent_region"),
   SM(NAME_append, 1, "text=char_array", appendEditor,
      NAME_insert, "Append text (left_margin, auto_newline)"),
   SM(NAME_insert, 1, "text=char_array", insertEditor,
