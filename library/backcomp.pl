@@ -19,7 +19,8 @@
 	    feature/2,
 	    set_feature/2,
 	    substring/4,
-	    flush/0
+	    flush/0,
+	    write_ln/1
 	  ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -83,3 +84,7 @@ substring(String, Offset, Length, Sub) :-
 flush :-
 	flush_output.
 
+%	write_ln(X) was renamed to writeln(X) for better compatibility
+
+write_ln(X) :-
+	write(X), nl.

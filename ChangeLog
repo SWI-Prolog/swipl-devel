@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * MODIFIED: Renamed write_ln/1 into writeln/1 for better compatibility.
+    Added write_ln/1 to library(backcomp), so existing code shouldn't be
+    bothered.
+
   * FIXED: sub_atom(+,-,-,+,-): crash on backtracking.  Thanks to Anjo
     Anjewierden.
 

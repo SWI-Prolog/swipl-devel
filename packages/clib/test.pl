@@ -157,6 +157,6 @@ fork_server :-
 	    detach_IO,
 	    sleep(60),
 	    write(done)
-	;   write_ln(Pid)
+	;   writeln(Pid)
 	).
 	

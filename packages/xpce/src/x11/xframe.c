@@ -931,9 +931,10 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
 	y -= wmh-meh-dy;
       else
 	y += dy;
-
+/*    The size in a geometry-specifications is the size of the client-area
       w -= wmw-mew;
       h -= wmh-meh;
+*/
     } else
     { DEBUG(NAME_frame, Cprintf("No WM frame yet\n"));
     }

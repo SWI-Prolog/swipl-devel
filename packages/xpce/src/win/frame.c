@@ -666,6 +666,10 @@ getGeometryFrame(FrameObj fr)
       yn++;
     }
 
+					/* geometry-size denotes client area */
+    w = valInt(fr->area->w);
+    h = valInt(fr->area->h);
+
     sprintf(buf, "%dx%d%s%d%s%d",
 	    w, h, xn ? "-" : "+", x, yn ? "-" : "+", y);
 

@@ -23,7 +23,7 @@ cross-referencer.
 
 explain(Item) :-
 	explain(Item, Explanation),
-	write_ln(Explanation),
+	writeln(Explanation),
 	fail.
 explain(_).
 

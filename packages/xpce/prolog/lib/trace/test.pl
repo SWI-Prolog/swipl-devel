@@ -28,14 +28,14 @@ t1 :-
 
 t2 :-
 	(   \+ foo = foo
-	->  write_ln(yes)
-	;   write_ln(no)
+	->  writeln(yes)
+	;   writeln(no)
 	).
 
 t3 :-
 	A = foo(X),
 	B = bar(X),
-	write_ln((A=B)),
+	writeln((A=B)),
 	true.
 
 t4 :-
@@ -57,7 +57,7 @@ t5 :-
 
 t6 :-
 	findall(A, a(A), As),
-	write_ln(As).
+	writeln(As).
 
 t7 :-
 	format('Please enter your name, followed by a dot~n', []),

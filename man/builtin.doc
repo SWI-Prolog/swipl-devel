@@ -3442,7 +3442,7 @@ compatibility reasons might tell you which predicate to use.
 \subsection{Writef}
 
 \begin{description}
-    \predicate{write_ln}{1}{+Term}
+    \predicate{writeln}{1}{+Term}
 Equivalent to \exam{write(Term), nl.}
     \predicate{writef}{1}{+Atom}
 Equivalent to \exam{writef(Atom, []).}

@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: May issues around frame<->geometry.  At least on the X11 version,
+  <->geometry now queries and restores the geometry correctly.
+
 * MODIFIED/FIXED: `frame<-bounding_box' to return the true position of the
   frame rather then just the size, making this method more suitable for
   screen layout arithmetic.  Related and improved documentation of frame

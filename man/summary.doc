@@ -475,7 +475,7 @@ suggest predicates from a keyword.
 \predicatesummary{working_directory}{2}{Query/change CWD}
 \predicatesummary{write}{1}{Write term}
 \predicatesummary{write}{2}{Write term to stream}
-\predicatesummary{write_ln}{1}{Write term, followed by a newline}
+\predicatesummary{writeln}{1}{Write term, followed by a newline}
 \predicatesummary{write_canonical}{1}{Write a term with quotes, ignore operators}
 \predicatesummary{write_canonical}{2}{Write a term with quotes, ignore operators on a stream}
 \predicatesummary{write_term}{2}{Write term with options}

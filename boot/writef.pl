@@ -1,13 +1,18 @@
 /*  $Id$
 
-    Copyright (c) 1990 Jan Wielemaker. All rights reserved.
-    jan@swi.psy.uva.nl
+    Part of SWI-Prolog
 
-    Purpose: writef/1, writef/2, write_ln/1
+    Author:  Jan Wielemaker
+    E-mail:  jan@swi.psy.uva.nl
+    WWW:     http://www.swi.psy.uva.nl/projects/SWI-Prolog/
+    Copying: GPL-2.  See the file COPYING or http://www.gnu.org
+
+    Copyright (C) 1990-2002 SWI, University of Amsterdam. All rights reserved.
 */
 
+
 :- module($writef,
-	[ write_ln/1
+	[ writeln/1
 	, writef/1
 	, writef/2
 	, swritef/2
@@ -23,8 +28,13 @@
 %	- Adjustment now allowed for arbitrary types.
 %	- Uses more appropriate SWI-Prolog built-in predicates.
 %	- Uses 0'<letter> to specify ascii values (more readable).
+%
+%   Changes for version 4.1.1
+%
+%	- renamed write_ln(X) into writeln(X) for better compatibility
+%	- Fixed fileheader
 
-write_ln(X) :-
+writeln(X) :-
 	write(X), nl.
 
 writef(Format) :-
