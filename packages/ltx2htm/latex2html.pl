@@ -590,7 +590,7 @@ expand_macro(#Macro, HTML) :-
 	M:'#'(Macro, HTML0), !,
 	expand_macros(HTML0, HTML).
 expand_macro(List, Expanded) :-
-	is_list(List), !,
+	List = [_|_], !,
 	expand_macros(List, Expanded).
 expand_macro(NoExpand, NoExpand).
 
@@ -714,7 +714,8 @@ env(thebibliography(Args, Tokens),
       HtmlItems,
       Close
     ]) :- !,
-	translate_section(1, -, ['Bibliography'], SectionHeader),
+	translate_section(1, -, ['Bibliography'], SectionHeader,
+			  'Bibliography'),
 	(   list_command(List, Args, Open, Close),
 	    items(Tokens, Items),
 	    translate_items(Items, List, HtmlItems)
