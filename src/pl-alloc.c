@@ -12,11 +12,16 @@
 
 #include "pl-incl.h"
 
+#define O_MYALLOC 1
+
 #ifndef ALLOC_DEBUG
 #define ALLOC_DEBUG 0
 #endif
 #define ALLOC_MAGIC 0xbf
 #define ALLOC_FREE_MAGIC 0x5f
+#define ALLOC_VIRGIN_MAGIC 0x7f
+
+#ifdef O_MYALLOC
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module defines memory allocation for the heap (the  program  space)
@@ -172,8 +177,18 @@ static Chunk
 allocate(size_t n)
 { char *p;
 
-  if (n <= spacefree)
+  if ( n <= spacefree )
   { p = spaceptr;
+#ifdef ALLOC_DEBUG
+    { int i;
+      char *s = p;
+
+      for(i=0; i<n; i++)
+	assert(s[i] == ALLOC_VIRGIN_MAGIC);
+
+      memset(p, ALLOC_MAGIC, n);
+    }
+#endif
     spaceptr += n;
     spacefree -= n;
     return (Chunk) p;
@@ -200,8 +215,67 @@ allocate(size_t n)
   spaceptr = p + n;
   spacefree -= n;
 
+#ifdef ALLOC_DEBUG
+  memset(spaceptr, ALLOC_VIRGIN_MAGIC, spacefree);
+  memset(p, ALLOC_MAGIC, n);
+#endif
+
   return (Chunk) p;
 }
+
+void
+initMemAlloc()
+{ static int done = FALSE;
+
+  PL_LOCK(L_INIT_ALLOC);		/* avoid recursive lock */
+  if ( !done )
+  { Word hbase;
+
+    done = TRUE;
+
+    assert(ALIGN_SIZE >= ALLOC_MIN);
+    hBase = (char *)(~0L);
+    hTop  = (char *)NULL;
+    hbase = allocHeap(sizeof(word));
+    *hbase = 0;
+    heap_base = (ulong)hbase & ~0x007fffffL; /* 8MB */
+    freeHeap(hbase, sizeof(word));
+  }
+  PL_UNLOCK(L_INIT_ALLOC);
+}
+
+#else /*O_MYALLOC*/
+
+void *
+allocHeap(size_t n)
+{ if ( n )
+  { void *mem = malloc(n);
+
+    if ( !mem )
+      outOfCore();
+    
+    GD->statistics.heap += n;
+    SetHBase(mem);
+    SetHTop((char *)mem + n);
+
+    return mem;
+  }
+
+  return NULL;
+}
+
+
+void
+freeHeap(void *mem, size_t n)
+{
+#if ALLOC_DEBUG
+  memset((char *) mem, ALLOC_FREE_MAGIC, n);
+#endif
+
+  free(mem);
+  GD->statistics.heap -= n;
+}
+
 
 void
 initMemAlloc()
@@ -213,7 +287,6 @@ initMemAlloc()
 
     done = TRUE;
 
-    assert(ALIGN_SIZE >= ALLOC_MIN);
     hBase = (char *)(~0L);
     hTop  = (char *)NULL;
     hbase = allocHeap(sizeof(word));
@@ -222,6 +295,9 @@ initMemAlloc()
   }
   PL_UNLOCK(L_INIT_ALLOC);
 }
+
+#endif /*O_MYALLOC*/
+
 
 		/********************************
 		*             STACKS            *
