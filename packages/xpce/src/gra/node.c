@@ -718,9 +718,9 @@ status
 forAllNode(Node n, Code msg)
 { Cell cell, c2;
 
-  TRY( forwardCode(msg, n, 0) );
   for_cell_save(cell, c2, n->sons)
     TRY( forAllNode(cell->value, msg) );
+  TRY( forwardCode(msg, n, 0) );
 
   succeed;
 }
@@ -730,9 +730,9 @@ status
 forSomeNode(Node n, Code msg)
 { Cell cell, c2;
 
-  forwardCode(msg, n, 0);
   for_cell_save(cell, c2, n->sons)
     forSomeNode(cell->value, msg);
+  forwardCode(msg, n, 0);
 
   succeed;
 }
