@@ -203,10 +203,8 @@ pl-itf:		pl
 		cd ../pl/src; \
 		CANONICAL_PATHS=$(PCEHOME); export CANONICAL_PATHS; \
 		$(MAKE) PLLD=$(PLLD) PL=$(PLBUILD) $(PLTARGET)
-		@if [ ! -f ../lib/$(PLARCH) ]; then \
-		    echo "Linking ../lib/$(PLARCH) to build directory";	\
-		    (cd ../lib && ln -s ../$(builddir) $(PLARCH)); \
-		fi
+		rm -f ../lib/$(PLARCH)
+		(cd ../lib && ln -s ../$(builddir) $(PLARCH))
 
 pl-shared:	pl
 		cd ../pl/src; \

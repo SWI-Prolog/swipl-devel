@@ -2882,9 +2882,10 @@ typedef struct
 
 
 static void
-str_break_into_lines(String s, strTextLine *line, int *nlines)
+str_break_into_lines(String s, strTextLine *line, int *nlines, int maxlines)
 { int here = 0;
   int size = s->size;
+  int nls = 0;
 
   *nlines = 0;
 
@@ -2896,7 +2897,7 @@ str_break_into_lines(String s, strTextLine *line, int *nlines)
     return;
   }
 
-  for( ; here < size; line++, (*nlines)++ )
+  for( ; here < size && nls < maxlines; line++, nls++ )
   { int el;
 
     str_cphdr(&line->text, s);
@@ -2906,7 +2907,7 @@ str_break_into_lines(String s, strTextLine *line, int *nlines)
     { line->text.size = el - here;
       here = el + 1;
       if ( here == size )		/* last char is newline: add a line */
-      { line++, (*nlines)++;
+      { line++, nls++;
 	str_cphdr(&line->text, s);
 	line->text.s_text = str_textp(s, here);
 	line->text.size = 0;
@@ -2916,6 +2917,8 @@ str_break_into_lines(String s, strTextLine *line, int *nlines)
       here = size;
     }
   }
+
+  *nlines = nls;
 }
 
 
@@ -2964,7 +2967,7 @@ ps_string(String s, FontObj font, int x, int y, int w, Name format, int flags)
   ps_font(font);
 
   baseline = s_ascent(font);
-  str_break_into_lines(s, lines, &nlines);
+  str_break_into_lines(s, lines, &nlines, MAX_TEXT_LINES);
   str_compute_lines(lines, nlines, font, x, y, w, 0, format, NAME_top);
 
   for(n=0, line = lines; n++ < nlines; line++)
@@ -2997,7 +3000,7 @@ str_string(String s, FontObj font,
 
   s_font(font);
   baseline = s_ascent(font);
-  str_break_into_lines(s, lines, &nlines);
+  str_break_into_lines(s, lines, &nlines, MAX_TEXT_LINES);
   str_compute_lines(lines, nlines, font, x, y, w, h, hadjust, vadjust);
 
   oalign = SetTextAlign(context.hdc, TA_BASELINE|TA_LEFT|TA_NOUPDATECP);
@@ -3079,7 +3082,7 @@ str_label(String s, int acc, FontObj font, int x, int y, int w, int h,
     return;
 
   s_font(font);
-  str_break_into_lines(s, lines, &nlines);
+  str_break_into_lines(s, lines, &nlines, MAX_TEXT_LINES);
   str_compute_lines(lines, nlines, font, x, y, w, h, hadjust, vadjust);
 
   oalign = SetTextAlign(context.hdc, TA_BASELINE|TA_LEFT|TA_NOUPDATECP);
@@ -3152,7 +3155,7 @@ str_selected_string(String s, FontObj font,
 
   s_font(font);
   baseline = context.wsf->ascent;
-  str_break_into_lines(s, lines, &nlines);
+  str_break_into_lines(s, lines, &nlines, MAX_TEXT_LINES);
   str_compute_lines(lines, nlines, font, x, y, w, h, hadjust, vadjust);
 
   oalign = SetTextAlign(context.hdc, TA_BASELINE|TA_LEFT|TA_UPDATECP);

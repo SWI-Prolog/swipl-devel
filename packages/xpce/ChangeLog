@@ -2,6 +2,13 @@
 			   ==============
 
 
+* FIXED: Bug#11: crash on text objects with more than 200 lines.
+  Holger Kanwischer.
+
+
+VERSION 6.5.5, distributed with SWI-Prolog 5.5.5
+================================================
+
 * FIXED: Using text-buffer for binary I/O.  Fixes
   send(Image, save, TextBuffer, jpeg), etc. (bug introduced with wide
   characters).
