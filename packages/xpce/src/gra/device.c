@@ -1322,7 +1322,8 @@ stretchRows(Matrix m, int bbh)
 
     for(x=0; x<m->cols; x++)
     { stretch = max(stretch, m->units[x][y].vstretch);
-      if ( m->units[x][y].vstretch == 0 )
+      if ( m->units[x][y].vstretch == 0 &&
+	   notNil(m->units[x][y].item) )
 	noshrink = TRUE;
     }
 
