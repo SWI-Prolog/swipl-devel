@@ -1,3 +1,7 @@
+Mar 29, 2005
+
+  * FIXED: dataType --> datatype (Vangelis Vassiliadis)
+
 Oct 21, 2004
 
   * FIXED: Bug#196: avoid need for autoloading.  Sandro Hawke.

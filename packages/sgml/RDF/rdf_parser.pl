@@ -282,7 +282,7 @@ mkliteral(Text, literal(Val), Options) :-
 
 %	typed_literal(+Type, +Content, -Literal, +Options)
 %	
-%	Handle a literal attribute with rdf:dataType=Type qualifier. NB:
+%	Handle a literal attribute with rdf:datatype=Type qualifier. NB:
 %	possibly  it  is  faster  to  use  a  global  variable  for  the
 %	conversion hook.
 
@@ -382,7 +382,7 @@ resourceAttr(URI, Options) ::=
 	\rdf_or_unqualified(resource) = \uri(URI, Options).
 
 typeAttr(Type, Options) ::=
-	\rdf_or_unqualified(dataType) = \uri(Type, Options).
+	\rdf_or_unqualified(datatype) = \uri(Type, Options).
 
 uri(URI, Options) ::=
 	A,

@@ -1,3 +1,7 @@
+Mar 29, 2005
+
+  * FIXED: rdf:dataType --> rdf:datatype
+
 Mar 22, 2005
 
   * ADDED: rdfs_assert_list/3 (adding DB argument)

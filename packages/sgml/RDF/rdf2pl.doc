@@ -199,7 +199,7 @@ ignored.  This is mostly for compatibility with older versions of
 this library that did not support language identifiers.
 
 	\termitem{convert_typed_literal}{:ConvertPred}
-If the parser finds a literal with the \const{rdf:dataType}=\arg{Type}
+If the parser finds a literal with the \const{rdf:datatype}=\arg{Type}
 attribute, call \term{ConvertPred}{+Type, +Content, -Literal}.
 \arg{Content} is the XML element contentas returned by the XML
 parser (a list). The predicate must unify \arg{Literal}
@@ -259,7 +259,7 @@ described with the SWI-Prolog \url[SGML/XML
 parser]{http://www.swi-prolog.org/packages/sgml2pl.html}
 
     \item [\term{type}{Type, StringValue}]
-If the literal has an \verb$rdf:dataType=$\arg{Type} a term of this
+If the literal has an \verb$rdf:datatype=$\arg{Type} a term of this
 format is returned.
 \end{itemlist}
 

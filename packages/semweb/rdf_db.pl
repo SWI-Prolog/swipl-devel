@@ -1074,7 +1074,7 @@ save_attribute(body, Name=literal(Literal0), DefNS, Out, Indent, Options) :- !,
 		   [Indent, NameText, LangText])
 	;   Literal = type(Type, Value)
 	->  rdf_id(Type, DefNS, TypeText),
-	    format(Out, '~N~*|<~w rdf:dataType="~w">',
+	    format(Out, '~N~*|<~w rdf:datatype="~w">',
 		   [Indent, NameText, TypeText])
 	;   atomic(Literal)
 	->  format(Out, '~N~*|<~w>', [Indent, NameText]),

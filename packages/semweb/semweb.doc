@@ -133,7 +133,7 @@ qualifier.
 the given language.
 
     \termitem{type}{TypeID, Value}
-Used for attributes qualified using the \const{rdf:dataType}
+Used for attributes qualified using the \const{rdf:datatype}
 \arg{TypeID}. The \arg{Value} is either the textual representation
 or a natural Prolog representation.  See the option
 \term{convert_typed_literal}{:Convertor} of the parser.  The storage

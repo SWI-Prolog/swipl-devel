@@ -1,0 +1,22 @@
+<rdf:RDF
+    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+    xmlns:owl="http://www.w3.org/2002/07/owl#"
+    xmlns:first="http://www.w3.org/2002/03owlt/I5.8/inconsistent001#"
+    xml:base="http://www.w3.org/2002/03owlt/I5.8/inconsistent001" >
+   <rdf:Description rdf:ID="john">
+       <rdf:type>
+          <owl:Restriction>
+             <owl:onProperty>
+               <owl:DatatypeProperty rdf:ID="p">
+                 <rdfs:range rdf:resource=
+  "http://www.w3.org/2001/XMLSchema#byte" />
+               </owl:DatatypeProperty>
+              </owl:onProperty>
+              <owl:cardinality
+  rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">257</owl:cardinality>
+           </owl:Restriction>
+       </rdf:type>
+   </rdf:Description>
+
+</rdf:RDF>
