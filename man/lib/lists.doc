@@ -72,7 +72,7 @@ Unify \arg{Sum} to the result of adding all elements in \arg{List}.
 is/2. for details on arithmetic.
 
     \predicate{numlist}{3}{+Low, +High, -List}
-If \arg{Low} and \arg{High} are integers with $Low \le High$, unify
+If \arg{Low} and \arg{High} are integers with $Low \leq High$, unify
 \arg{List} to a list [$Low$, $Low+1$, \ldots $High$].  See also
 between/3.
 \end{description}
