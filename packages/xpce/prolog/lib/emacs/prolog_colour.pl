@@ -464,6 +464,7 @@ built_in_predicate(module(_, _)).
 goal_colours(use_module(_),	     built_in-[file]).
 goal_colours(use_module(_,_),	     built_in-[file,classify]).
 goal_colours(consult(_),	     built_in-[file]).
+goal_colours(include(_),	     built_in-[file]).
 goal_colours(ensure_loaded(_),	     built_in-[file]).
 goal_colours(pce_autoload(_,_),	     classify-[classify,file]).
 goal_colours(pce_image_directory(_), classify-[file]).
