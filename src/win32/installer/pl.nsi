@@ -7,7 +7,7 @@
 !define DEFCWD $6 ; Default working directory
 !define SHCTX  $7 ; Shell context (current/all)
 
-!system "pl\bin\plwin.exe -f mkinstaller.pl"
+!system "pl\bin\plcon.exe -f mkinstaller.pl"
 !include "version.nsi"
 
 SetCompressor bzip2

@@ -24,8 +24,9 @@
 
 name :-
 	version(Major, Minor, Patch),
-	format('Name "SWI-Prolog ~w.~w.~w"~n',
-	       [Major, Minor, Patch]).
+	get_time(X), convert_time(X, Date),
+	format('Name "SWI-Prolog ~w.~w.~w (~s)"~n',
+	       [Major, Minor, Patch, Date]).
 
 outfile :-
 	version(Major, Minor, Patch),
