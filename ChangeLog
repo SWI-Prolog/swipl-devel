@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug #50: Handle \c<blank*> with character escapes.  Mike Elston.
+
 VERSION 5.1.13 (May 19, 2003)
 =============================
 

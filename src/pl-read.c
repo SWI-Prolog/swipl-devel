@@ -983,14 +983,18 @@ again:
       if ( newline )
       { while(isBlank(*in))
 	  in++;
-	goto again;
+	if ( (c=*in++) == '\\' )
+	  goto again;
+	OK(c);
       }
       OK('c');
     case '\n':				/* \LF<blank>* */
       if ( newline )
       { while(isBlank(*in) && *in != '\n' )
 	  in++;
-	goto again;
+	if ( (c=*in++) == '\\' )
+	  goto again;
+	OK(c);
       }
       OK('\n');
     case 'f':
