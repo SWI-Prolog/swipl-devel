@@ -4,8 +4,8 @@
 # running Prolog from the build-location
 
 PCEHOME=@PCEHOME@
-BUILDDIR=@buildsubdir@
-ldir=$PCEHOME/$BUILDDIR
+PLARCH=@PLARCH@
+ldir=$PCEHOME/lib/$PLARCH
 
 if [ "x$@DLLIBVAR@" = "x" ]; then
   @DLLIBVAR@=$ldir
