@@ -37,6 +37,9 @@
 /* Define if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H
 
+/* Define if you have the `getrlimit' function. */
+#undef HAVE_GETRLIMIT
+
 /* Define if you have the `crypt' library (-lcrypt). */
 #undef HAVE_LIBCRYPT
 
@@ -54,6 +57,9 @@
 
 /* Define if you have the `strerror' function. */
 #undef HAVE_STRERROR
+
+/* Define if you have the <sys/resource.h> header file. */
+#undef HAVE_SYS_RESOURCE_H
 
 /* Define if you have the <sys/time.h> header file. */
 #undef HAVE_SYS_TIME_H

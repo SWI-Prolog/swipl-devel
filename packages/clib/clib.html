@@ -53,6 +53,8 @@ This library decodes MIME messages.
 This library provides access to TCP/IP communication.
 <DT><B><CODE>library(time)</CODE></B><DD>
 This library provides timing (alarm) functions.
+<DT><B><CODE>library(rlimit)</CODE></B><DD>
+Provides access to POSIX resource limits (CPU, memory, files).
 </DL>
 
 <P>On Windows systems, the <CODE>library(unix)</CODE> and <CODE>library(crypt)</CODE> 
@@ -81,9 +83,10 @@ ported to native Windows.
 <LI><A HREF="#sec:7"><B>7 Unix password encryption library</B></A>
 <LI><A HREF="#sec:8"><B>8 Memory files</B></A>
 <LI><A HREF="#sec:9"><B>9 Time and alarm library</B></A>
-<LI><A HREF="#sec:10"><B>10 Installation</B></A>
+<LI><A HREF="#sec:10"><B>10 Limiting process resources</B></A>
+<LI><A HREF="#sec:11"><B>11 Installation</B></A>
 <UL>
-<LI><A HREF="#sec:10.1">10.1 Unix systems</A>
+<LI><A HREF="#sec:11.1">11.1 Unix systems</A>
 </UL>
 </UL>
 
@@ -788,9 +791,69 @@ doesn't complete within
 <CODE>time_limit_exceeded</CODE>. See <A NAME="idx:catch3:42"></A><B>catch/3</B>.
 </DL>
 
-<H2><A NAME="sec:10">10 Installation</A></H2>
+<H2><A NAME="sec:10">10 Limiting process resources</A></H2>
 
-<H3><A NAME="sec:10.1">10.1 Unix systems</A></H3>
+<P>The <CODE>library(rlimit)</CODE> library provides an interface to the 
+POSIX getrlimit()/setrlimit() API that control the maximum 
+resource-usage of a process or group of processes. This call is 
+especially useful for server such as CGI scripts and inetd-controlled 
+servers to avoid an uncontrolled script claiming too much resources.
+
+<DL>
+
+<P>
+<DT><A NAME="rlimit/3"><STRONG>rlimit</STRONG>(<VAR>+Resource, -Old, 
++New</VAR>)</A><DD>
+Query and/or set the limit for <VAR>Resource</VAR>. Time-values are in 
+seconds and size-values are counted in bytes. The following values are 
+supported by this library. Please note that not all resources may be 
+available and accessible on all platforms. This predicate can throw a 
+variety of exceptions. In portable code this should be guarded with <A NAME="idx:catch3:43"></A><B>catch/3</B>. 
+The defined resources are:
+<BLOCKQUOTE>
+<TABLE BORDER=0 FRAME=void RULES=groups>
+<TR VALIGN=top><TD><CODE>cpu</CODE> </TD><TD>CPU time in seconds </TD></TR>
+<TR VALIGN=top><TD><CODE>fsize</CODE> </TD><TD>Maximum filesize </TD></TR>
+<TR VALIGN=top><TD><CODE>data</CODE> </TD><TD>max data size </TD></TR>
+<TR VALIGN=top><TD><CODE>stack</CODE> </TD><TD>max stack size </TD></TR>
+<TR VALIGN=top><TD><CODE>core</CODE> </TD><TD>max core file size </TD></TR>
+<TR VALIGN=top><TD><CODE>rss</CODE> </TD><TD>max resident set size </TD></TR>
+<TR VALIGN=top><TD><CODE>nproc</CODE> </TD><TD>max number of processes </TD></TR>
+<TR VALIGN=top><TD><CODE>nofile</CODE> </TD><TD>max number of open files </TD></TR>
+<TR VALIGN=top><TD><CODE>memlock</CODE> </TD><TD>max locked-in-memory 
+address </TD></TR>
+</TABLE>
+
+</BLOCKQUOTE>
+
+<P>When the process hits a limit POSIX systems normally send the process 
+a signal that terminates it. These signals may be catched using 
+SWI-Prolog's <A NAME="idx:onsignal3:44"></A><B>on_signal/3</B> 
+primitive. The code below illustrates this behaviour. Please note that 
+asynchronous signal handling is dangerous, especially when using 
+threads. 100% fail-safe operation cannot be guaranteed, but this 
+procedure will inform the user properly `most of the time'.
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+rlimit_demo :-
+        rlimit(cpu, _, 2),
+        on_signal(xcpu, _, cpu_exceeded),
+        ( repeat, fail ).
+
+cpu_exceeded(_Sig) :-
+        format(user_error, 'CPU time exceeded~n', []),
+        halt(1).
+</PRE>
+</TABLE>
+
+<P>
+</DL>
+
+<H2><A NAME="sec:11">11 Installation</A></H2>
+
+<H3><A NAME="sec:11.1">11.1 Unix systems</A></H3>
 
 <P>Installation on Unix system uses the commonly found <EM>configure</EM>,
 <EM>make</EM> and <EM>make install</EM> sequence. SWI-Prolog should be 
@@ -818,7 +881,7 @@ and the Prolog library files in <CODE>$PLBASE/library</CODE>, where
 
 <P>
 <DT><A NAME=note-1 HREF="index.html#back-to-note-1">note-1</A><DD>
-<A NAME="idx:kill2:43"></A><A HREF="#kill/2">kill/2</A> should support 
+<A NAME="idx:kill2:45"></A><A HREF="#kill/2">kill/2</A> should support 
 interrupt-names as well
 <DT><A NAME=note-2 HREF="index.html#back-to-note-2">note-2</A><DD>
 More subtle handling of I/O, especially for debugging is required: 

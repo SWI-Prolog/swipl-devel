@@ -45,6 +45,8 @@ This library decodes MIME messages.
 This library provides access to TCP/IP communication.
     \item[\pllib{time}]
 This library provides timing (alarm) functions.
+    \item[\pllib{rlimit}]
+Provides access to POSIX resource limits (CPU, memory, files).
 \end{description}
 
 On Windows systems, the \pllib{unix} and \pllib{crypt} libraries can
@@ -642,6 +644,57 @@ Call \arg{Goal} as once/1.  If \arg{Goal} doesn't complete within
 \const{time_limit_exceeded}.  See catch/3.
 \end{description}
 
+
+\section{Limiting process resources}
+
+The \pllib{rlimit} library provides an interface to the POSIX
+getrlimit()/setrlimit() API that control the maximum resource-usage
+of a process or group of processes.  This call is especially useful
+for server such as CGI scripts and inetd-controlled servers to avoid
+an uncontrolled script claiming too much resources.
+
+\begin{description}
+    \predicate{rlimit}{3}{+Resource, -Old, +New}
+Query and/or set the limit for \arg{Resource}.  Time-values are
+in seconds and size-values are counted in bytes.  The following
+values are supported by this library.  Please note that not all
+resources may be available and accessible on all platforms.  This
+predicate can throw a variety of exceptions.  In portable code this
+should be guarded with catch/3.  The defined resources are:
+
+\begin{quote}
+\begin{tabular}{ll}
+\const{cpu}	& CPU time in seconds \\
+\const{fsize}	& Maximum filesize \\
+\const{data}	& max data size \\
+\const{stack}	& max stack size \\
+\const{core}	& max core file size \\
+\const{rss}	& max resident set size \\
+\const{nproc}	& max number of processes \\ 
+\const{nofile}	& max number of open files \\
+\const{memlock}	& max locked-in-memory address \\
+\end{tabular}
+\end{quote}
+
+When the process hits a limit POSIX systems normally send the process a
+signal that terminates it. These signals may be catched using
+SWI-Prolog's on_signal/3 primitive. The code below illustrates this
+behaviour. Please note that asynchronous signal handling is dangerous,
+especially when using threads.  100\% fail-safe operation cannot be
+guaranteed, but this procedure will inform the user properly `most of
+the time'.
+
+\begin{code}
+rlimit_demo :-
+	rlimit(cpu, _, 2),
+	on_signal(xcpu, _, cpu_exceeded),
+	( repeat, fail ).
+
+cpu_exceeded(_Sig) :-
+	format(user_error, 'CPU time exceeded~n', []),
+	halt(1).
+\end{code}
+\end{description}
 
 \section{Installation}
 

@@ -126,9 +126,9 @@ AC_TRY_COMPILE(
    AC_MSG_RESULT(no))
 
 AC_CHECK_HEADERS(malloc.h alloca.h unistd.h sys/time.h fcntl.h utime.h)
-AC_CHECK_HEADERS(execinfo.h)
+AC_CHECK_HEADERS(execinfo.h sys/resource.h)
 
-AC_CHECK_FUNCS(setsid strerror setitimer utime)
+AC_CHECK_FUNCS(setsid strerror setitimer utime getrlimit)
 
 AC_MSG_CHECKING(_XOPEN_SOURCE)
 AC_TRY_COMPILE(
@@ -154,6 +154,12 @@ if test "$with_time" = yes; then
   else
     echo "WARNING: no setitimer(); dropping time.pl from targets"
   fi
+fi
+
+if test "$ac_cv_func_getrlimit" = "yes"; then
+  TARGETS="$TARGETS rlimit.$SO"
+else
+  "WARNING: no getrlimit(); dropping rlimit.pl from targets"
 fi
 
 PLTARGETS=`echo $TARGETS | sed -e "s/\.$SO/.pl/g" -e "s/files.pl/filesex.pl/"`
