@@ -10,7 +10,7 @@
 <center>
 
 <h1>SWI-Prolog SGML/XML parser<br>
-<font size="+0"><em>Version 1.0.9, August 2000</em></font></h1>
+<font size="+0"><em>Version 1.0.14, March 2001</em></font></h1>
 
 <br>
 <a href="mailto:jan@swi.psy.uva.nl"><em>Jan Wielemaker</em></a><br>
@@ -354,6 +354,15 @@ returned. See <a href="#sec:implicitdtd">implicitdtd</a>.
 <b>dialect(<var>+Dialect</var>)</b><dd>
 Specify the parsing dialect. Supported are <a name="const:sgml"><b><tt>sgml</tt></b></a> (default), <a name="const:xml"><b><tt>xml</tt></b></a> 
 and <a name="const:xmlns"><b><tt>xmlns</tt></b></a>. See <a href="#sec:xml">xml</a> for details on the differences.
+    
+<dt>&nbsp;<br>
+<b>shorttag(<var>+Bool</var>)</b><dd>
+Define whether SHORTTAG abbreviation is accepted.  The default is true
+for SGML mode and false for the XML modes.  Without SHORTTAG, a <a name="const:/"><b><tt>/</tt></b></a>
+is accepted with warning as part of an unquoted attribute-value, though
+<a name="const:/&gt;"><b><tt>/&gt;</tt></b></a> still closes the element-tag in XML mode.  It may be set to
+false for parsing HTML documents to allow for unquoted URLs containing
+<a name="const:/%2"><b><tt>/</tt></b></a>.
     
 <dt>&nbsp;<br>
 <b>space(<var>+SpaceMode</var>)</b><dd>
@@ -1702,6 +1711,8 @@ deleted. This is not yet implemented.
 <li><a href="#const:#IMPLIED"><b><tt>#IMPLIED</tt></b></a>
 <li><a href="#const:#pcdata"><b><tt>#pcdata</tt></b></a> [ <a href="#const:#pcdata%2">2</a>]
 <li><a href="#const:-"><b><tt>-</tt></b></a>
+<li><a href="#const:/"><b><tt>/</tt></b></a> [ <a href="#const:/%2">2</a>]
+<li><a href="#const:/&gt;"><b><tt>/&gt;</tt></b></a>
 <li><a href="#const::"><b><tt>:</tt></b></a>
 <li><a href="#const:CDATA"><b><tt>CDATA</tt></b></a> [ <a href="#const:CDATA%2">2</a> <a href="#const:CDATA%3">3</a> <a href="#const:CDATA%4">4</a> <a href="#const:CDATA%5">5</a> <a href="#const:CDATA%6">6</a> <a href="#const:CDATA%7">7</a>]
 <li><a href="#const:DOCTYPE"><b><tt>DOCTYPE</tt></b></a> [ <a href="#const:DOCTYPE%2">2</a> <a href="#const:DOCTYPE%3">3</a>]

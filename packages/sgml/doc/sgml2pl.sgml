@@ -2,8 +2,8 @@
 
 <pldoc>
 <head>
-<version>1.0.9
-<release-date>August 2000
+<version>1.0.14
+<release-date>March 2001
 <package>sgml2pl
 </head>
 
@@ -261,6 +261,13 @@ returned. See <ref sec/implicitdtd/.
     <termitem>dialect(+Dialect)
 Specify the parsing dialect. Supported are <c/sgml/ (default), <c/xml/ 
 and <c/xmlns/. See <ref sec/xml/ for details on the differences.
+    <termitem>shorttag(+Bool)
+Define whether SHORTTAG abbreviation is accepted.  The default is true
+for SGML mode and false for the XML modes.  Without SHORTTAG, a <c>/</c>
+is accepted with warning as part of an unquoted attribute-value, though
+<c>/></c> still closes the element-tag in XML mode.  It may be set to
+false for parsing HTML documents to allow for unquoted URLs containing
+<c>/</c>.
     <termitem>space(+SpaceMode)
 Sets the `space-handling-mode' for the initial environment. This mode is
 inherited by the other environments, which can override the inherited
