@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: scan_options() for machines where sizeof(int) != sizeof(long).
+    With help from Bob Moniot.
+
   * FIXED: configure work-around for shells providing $PWD, but with the
     wrong value ...
 
