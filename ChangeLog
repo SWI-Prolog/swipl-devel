@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Memory leak in expand_file_name/2.  Reported by Daniel Cote.
+
   * FIXED: Print error-locations in files holding the ~-character.
     Thanks to Mike Maxwell.
 
