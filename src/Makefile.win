@@ -11,7 +11,7 @@ bindir = $(exec_prefix)\bin
 libdir = $(exec_prefix)\lib
 mandir = $(prefix)\man\man1
 manext = 1
-PLVERSION=1.9.4
+PLVERSION=1.9.5
 DEFSTARTUP=_plrc
 
 CC = wcc386

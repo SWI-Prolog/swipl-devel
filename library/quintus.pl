@@ -20,6 +20,8 @@
 	, tan/2
 	, random/3
 
+	, genarg/3
+
 	, (mode)/1
 	, (public)/1
 	, (meta_predicate)/1
@@ -165,6 +167,14 @@ tan(A, V) :- V is tan(A).
 
 random(Min, Max, Value) :-
 	Value is Min + random(Max).
+
+		 /*******************************
+		 *	TERM MANIPULATION	*
+		 *******************************/
+
+
+genarg(N, T, A) :-			% SWI-Prolog arg/3 is generic
+	arg(N, T, A).
 
 		 /*******************************
 		 *	    STATISTICS		*

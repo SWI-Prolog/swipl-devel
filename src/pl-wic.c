@@ -395,9 +395,7 @@ loadPredicate(FILE *fd)
   proc = lookupProcedure(lookupFunctorDef(lookupAtom(name), arity), 
 			  modules.source);
   def = proc->definition;
-  if ( SYSTEM_MODE &&
-       false(def, DYNAMIC) &&
-       false(def, MULTIFILE) )
+  if ( SYSTEM_MODE )
   { set(def, SYSTEM|HIDE_CHILDS|LOCKED);
   }
 

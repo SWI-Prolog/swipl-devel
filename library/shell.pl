@@ -18,10 +18,9 @@
 	, (rm)/1
 	, (grep)/1
 	, (grep)/2
-	, (tg)/1
 	]).
 
-% :- op(900, fy, [ls, cd, pushd, rm, grep, tg]).
+% :- op(900, fy, [ls, cd, pushd, rm, grep]).
 
 /*  Shell Emulation Library
 
@@ -31,8 +30,6 @@
     allows  shell/[0,1,2]  if  Prolog  uses less than half the amount of
     available memory.  This library offers a number  of  predicates  for
     listing, directory management, deleting, copying and renaming files.
-    It should be combined with the linked-in version of Richard O'Keefes
-    `thief' editor (via the $thief/1 predicate).
 
  ** Sun Sep 17 12:04:54 1989  jan@swi.psy.uva.nl */
 
@@ -47,9 +44,9 @@ cd(Dir) :-
 	name_to_atom(Dir, Name),
 	chdir(Name).
 
-%	d	-- Print Directory Stack
-%	p	-- Push Directory Stack
-%	pd	-- Pop Directory Stack
+%	dirs	-- Print Directory Stack
+%	pushd	-- Push Directory Stack
+%	popd	-- Pop Directory Stack
 
 :- dynamic
 	stack/1.
@@ -62,7 +59,7 @@ pushd(N) :-
 	findall(D, stack(D), Ds),
 	(   nth1(N, Ds, Go),
 	    retract(stack(Go))
-	->  p(Go)
+	->  pushd(Go)
 	;   warning('Directory stack not that deep'),
 	    fail
 	).
@@ -118,11 +115,10 @@ ls(Spec) :-
 
 ls_([Dir]) :-
 	exists_directory(Dir), !,
-	(   Dir == '.'
-	->  expand_file_name('*', Files)
-	;   concat(Dir, '/*', Spec),
-	    expand_file_name(Spec, Files)
-	),
+	absolute_file_name('', Here),
+	chdir(Dir),
+	expand_file_name('*', Files),
+	chdir(Here),
 	ls__(Files).
 ls_(Files) :-
 	ls__(Files).
@@ -132,7 +128,7 @@ ls__([]) :- !,
 	fail.
 ls__(Files) :-
 	maplist(tag_file, Files, Tagged),
-	list_atoms(Tagged, 78).
+	list_atoms(Tagged, 72).
 
 tag_file(File, Dir) :-
 	exists_directory(File),	
@@ -182,17 +178,6 @@ grep_(File, S) :-
 grep_(_, _) :-
 	flag(grep_, 1, 1).
 
-tg(String) :-
-	source_file(File),
-	    File \== user,
-	    (   '$grep'(File, String, _)
-	    ->  '$confirm'('Edit ~w', [File]),
-		concat('-', String, Search),
-		\+ '$thief'(['-f', File, Search])	% succeed on ^C
-	    ).
-tg(_) :-
-	make.
-
 %	name_to_atom(Typed, Atom)
 %	Convert a typed name into an atom
 
@@ -223,14 +208,21 @@ list_atoms(List, W) :-
 	Max is Columns * Rows - 1,
 	between(0, Max, N),
 	    Index is N // Columns + (N mod Columns) * Rows + 1,
+	    (	(N+1) mod Columns =:= 0
+	    ->	NL = nl
+	    ;	NL = fail
+	    ),
 	    (	arg(Index, Term, Atom),
 		atom_length(Atom, AL),
-		write(Atom), tab(ColumnWidth - AL)
+		write(Atom),
+		(   NL == fail
+		->  tab(ColumnWidth - AL)
+		;   true
+		)
 	    ->  true
 	    ;   true
 	    ),
-	    (N+1) mod Columns =:= 0,
-	    nl,
+	    NL,
 	fail.
 list_atoms(_, _).
 

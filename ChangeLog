@@ -4,6 +4,17 @@
 Version 1.9.5.
 ==============
 
+alpha-2
+
+  * Fixed prolog_frame_attribute/3 for key=parent.
+  
+  * Added at_initialisation(+Goal) for initialisation hooks
+
+  * Fixed tracer problems introduced in 1.9.5-alpla-1.
+
+
+alpha-1
+
   * Moved sourcecode administration from predicate to individual
     clauses.  Purpose: better source-level debugger support, better
     handling of multifile predicates.

@@ -934,7 +934,8 @@ pl_prolog_frame_attribute(Word frame, Word what, Word value)
 
     if ((parent = parentFrame(fr)) != (LocalFrame) NULL)
       result = PrologRef(parent);
-    fail;
+    else
+      fail;
   } else if (key == ATOM_top)
   { result = consNum(fr->parent == (LocalFrame) NULL ? 1 : 0);
   } else if (key == ATOM_context_module)

@@ -1296,7 +1296,7 @@ care of reconsult, redefinition, etc.
     if ( def->definition.clauses )	/* i.e. is defined */
     { Clause first;
 
-      if ( true(def, LOCKED) && !SYSTEM_MODE )
+      if ( true(def, LOCKED) && !SYSTEM_MODE && false(def, DYNAMIC|MULTIFILE) )
       { warning("Attempt to redefine a system predicate: %s",
 		procedureName(proc));
 	freeClause(clause);
@@ -1333,7 +1333,7 @@ This `if' locks predicates as system predicates  if  we  are  in  system
 mode, the predicate is still undefined and is not dynamic or multifile.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    if ( SYSTEM_MODE && false(def, SYSTEM|DYNAMIC|MULTIFILE) )
+    if ( SYSTEM_MODE && false(def, SYSTEM) )
       set(def, SYSTEM|HIDE_CHILDS|LOCKED);
 
     addProcedureSourceFile(sf, proc);

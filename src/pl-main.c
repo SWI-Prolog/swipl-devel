@@ -56,7 +56,7 @@ findHome(char *symbols, char *def)
     { if ( fgets(buf, sizeof(buf), fd) )
       { int l = strlen(buf);
 
-	while(l > 0 && buf[l-1] < ' ')
+	while(l > 0 && buf[l-1] <= ' ')
 	  l--;
 	buf[l] = EOS;
 

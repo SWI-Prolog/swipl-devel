@@ -17,6 +17,7 @@
 	, prolog/0 			% user toplevel predicate
 	, time/1			% time query
 	, $set_prompt/1			% set the main prompt
+	, at_initialisation/1		% goals to run at initialisation
 	]).
 
 
@@ -54,6 +55,28 @@ $load_gnu_emacs_interface :-
 	user:ensure_loaded(library(emacs_interface)).
 $load_gnu_emacs_interface.
 
+		 /*******************************
+		 *	 AT_INITIALISATION	*
+		 *******************************/
+
+:- module_transparent
+	at_initialisation/1.
+:- dynamic
+	$at_initialisation/1.
+
+at_initialisation(Spec) :-
+	$strip_module(Spec, Module, Goal),
+	'$toplevel':assert($at_initialisation(Module:Goal)).
+
+$run_at_initialisation :-
+	$at_initialisation(Goal),
+	(   Goal
+	->  fail
+	;   $warning('at_initialisation goal ~p failed~n', [Goal]),
+	    fail
+	).
+$run_at_initialisation.
+
 
 		/********************************
 		*        TOPLEVEL GOALS         *
@@ -69,6 +92,7 @@ $init_return :-
 	$load_gnu_emacs_interface,
 	$option(init_file, File, File), 
 	$load_init_file(File), 
+	$run_at_initialisation,
 	$option(goal, GoalAtom, GoalAtom), 
 	term_to_atom(Goal, GoalAtom), 
 	ignore(user:Goal).

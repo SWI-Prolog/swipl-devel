@@ -534,7 +534,9 @@ trapUndefined(Procedure proc)
   { word goal;
     mark m;
     bool rval;
-  
+    Atom sfn = source_file_name;	/* needs better solution! */
+    int  sln = source_line_no;
+
     Mark(m);
     goal = globalFunctor(FUNCTOR_undefinterc3);
     unifyAtomic(argTermP(goal, 0), proc->definition->module->name);
@@ -544,6 +546,8 @@ trapUndefined(Procedure proc)
     debugstatus.suspendTrace++;
     rval = callGoal(MODULE_system, goal, FALSE);
     debugstatus.suspendTrace--;
+    source_file_name = sfn;
+    source_line_no   = sln;
 
     Undo(m);
 
@@ -868,11 +872,9 @@ pl_set_predicate_attribute(Word pred, Word what, Word value)
   { clear(def, att);
   } else
   { set(def, att);
-/*  Bad choice I think
     if ( (att == DYNAMIC || att == MULTIFILE) && SYSTEM_MODE )
     { set(def, SYSTEM|HIDE_CHILDS);
     }
-*/
   }
 
   succeed;

@@ -1187,6 +1187,14 @@ expand_term(+Term1, -Term2)
     returns the first argument.
 
 
+at_initialisation(+Goal)
+    Register Goal to be ran when the system initialises.  Initialisation
+    takes place after reloading a .qlf (formerly .wic) file as well as
+    after reloading a saved-state.  The hooks are ran in the order they
+    were registered.  A warning message is issued if Goal fails, but
+    execution continues.
+
+
 compiling
     Succeeds if the system is compiling source files with the -c option
     into an intermediate code file.  Can be used to perform code
@@ -3994,7 +4002,7 @@ Chapter  4
 
 Using  Modules
 
-                                413
+                                414
 
 
 4.1 Why Using Modules?
@@ -4503,7 +4511,7 @@ trade-off the user is responsible for type checking and should be careful
 not to violate consistency rules as Prolog provides access to its internal
 data structures.
 
-                                436
+                                437
 
 
 5.1 Overview of the Interface
@@ -5530,7 +5538,7 @@ debugging tools for Prolog.  The predicates described here should be
 handled with some care as it is easy to corrupt the consistency of the
 Prolog system by misusing them.
 
-                                524
+                                525
 
 
 6.1 Examining the Environment Stack
@@ -5731,6 +5739,7 @@ asserta/1                   Add a clause to the database (first)
 asserta/2                   Add a clause to the database (first)
 assertz/1                   Add a clause to the database (last)
 assertz/2                   Add a clause to the database (last)
+at_initialisation/1          Register goal to run at start-up
 atan/1                      Arithmetic:  inverse (arc) tangent
 atan/2                      Arithmetic:  rectangular to polar conversion
 atom/1                      Type check for an atom
@@ -6032,4 +6041,4 @@ writeq/2                    Write term, insert quotes on stream
 xor/2                       Arithmetic:  exclusive or
 |/2                         Disjunction of goals
 
-                                533
+                                534

@@ -86,8 +86,6 @@ callGoal(Module module, word goal, bool debug)
 
   lockp(&lSave);
   lockp(&envSave);
-/*lTop = (LocalFrame) addPointer(lTop, sizeof(struct localFrame) +
-				 MAXARITY * sizeof(word));*/
   lTop = (LocalFrame) addPointer(lTop, sizeof(word));
   verifyStack(local);
   varFrame(lTop, -1) = (word) environment_frame;
