@@ -608,7 +608,7 @@ $chk_alias_file(Spec, Exts, Cond, CWD, FullFile) :-
 	(   $file_condition(Cond, LibFile),
 	    $absolute_file_name(LibFile, FullFile),
 	    \+ $search_path_file_cache(Spec, Cond, CWD, FullFile, Exts),
-	    asserta($search_path_file_cache(Spec, Cond, CWD, FullFile, Exts))
+	    assert($search_path_file_cache(Spec, Cond, CWD, FullFile, Exts))
 	->  $search_message(file_search(found(Spec, Cond), FullFile))
 	;   $search_message(file_search(tried(Spec, Cond), LibFile)),
 	    fail
