@@ -2332,3 +2332,5 @@
 #define NAME_yrefVar (&builtin_names[2331])
 #define NAME_zoom (&builtin_names[2332])
 #define NAME_setsockopt (&builtin_names[2333])
+#define NAME_printFileFilter (&builtin_names[2334])
+#define NAME_printFile (&builtin_names[2335])

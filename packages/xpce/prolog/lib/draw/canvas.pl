@@ -1061,15 +1061,40 @@ print(Canvas) :->
 	"Send to default printer"::
 	print_canvas(Canvas).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+There are two routes to print.  On   MS-Windows  printing is achieved by
+drawing on a GDI representing a printer, after which the Windows printer
+driver creates printer-codes and sends them to the printer. The standard
+Windows print dialog is shown by   win_printer->setup. Next we need some
+calculation effort to place our diagram reasonably on the page. Actually
+we need real dimensions here, but  XPCE   operates  in  pixels, so which
+translation makes sense?
+
+In the Unix world, things go different. In general you make a PostScript
+file and hand this  to  the   print-spooler,  which  will  translate the
+device-independant PostScript to whatever the printer needs.
+
+XPCE doesn't (yet)  try  to  hide   the  difference  between  these  two
+approaches.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+%	What about margin-handling in MS-Windows?  Guess we need to do
+%	that ourselves.
+
 print_canvas(Canvas) :-
 	get(@pce, operating_system, win32), !,
 	get(Canvas, default_file, Job),
 	new(Prt, win_printer(Job)),
 	send(Prt, setup, Canvas),
 	send(Prt, open),
-	get(Canvas, bounding_box, area(_X,_Y,_W,_H)),
-	get(Prt, size, size(_PW, _PH)),
-	send(Prt, resolution, 1000),
+	get(Canvas, bounding_box, area(_X,_Y, W, H)),
+	get(Prt, size, size(PW, PH)),
+	(   W/PW > H/PH			% width is the problem
+	->  VRes is round(W*PH/PW)
+	;   VRes is H
+	),
+	TheVRes is min(1000, VRes),
+	send(Prt, resolution, TheVRes),
 	send(Prt, origin, point(0,0)),
 	send(Prt, draw_in, Canvas?graphicals),
 	send(Prt, close),

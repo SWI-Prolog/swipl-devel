@@ -147,6 +147,12 @@ HPALETTE	frame_palette(FrameObj fr);
 int		write_jpeg_file(IOSTREAM *fd, Image image, HBITMAP bm);
 int		write_gif_file(IOSTREAM *fd, Image image, HBITMAP bm);
 HWND		HostConsoleHWND();
+Name		getWinFileNameDisplay(DisplayObj d,
+				      Name mode,
+				      Chain filters,
+				      CharArray title,
+				      CharArray file,
+				      Directory dir);
 
 		 /*******************************
 		 *	    PNM FORMATS		*

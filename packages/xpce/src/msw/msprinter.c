@@ -16,6 +16,12 @@
 #define MAXPATHLEN 1024
 #endif
 
+#define USE_PRINTDLG 1
+#ifdef USE_PRINTDLG
+#undef PAGESETUPDLG
+#define PAGESETUPDLG PRINTDLG
+#endif
+
 #define WinError() strName(WinStrError(GetLastError()))
 
 Class ClassWinPrinter;			/* the class handle */
@@ -23,7 +29,11 @@ typedef struct win_printer *WinPrinter;
 
 typedef struct
 { HDC		hdc;			/* Device hdc */
+#ifdef USE_PRINTDLG
+  PRINTDLG	info;
+#else
   PAGESETUPDLG	info;			/* Window page setup data */
+#endif
 } ws_printer, *WsPrinter;
 
 
@@ -115,9 +125,10 @@ closeAllWinPrinters(int rval)
 
 static status
 setupWinPrinter(WinPrinter prt, FrameObj fr)
-{ PAGESETUPDLG *psd = &prt->ws_ref->info;
-  HWND hwnd = (isDefault(fr) ? 0 : getHwndFrame(fr));
+{ HWND hwnd = (isDefault(fr) ? 0 : getHwndFrame(fr));
   Name mm;
+
+  PAGESETUPDLG *psd = &prt->ws_ref->info;
 
   resetDataWinPrinter(prt);
 
@@ -136,6 +147,12 @@ setupWinPrinter(WinPrinter prt, FrameObj fr)
   psd->lpPageSetupTemplateName; 
   psd->hPageSetupTemplate;
 */
+#ifdef USE_PRINTDLG
+  psd->Flags = (PD_ALLPAGES|
+		PD_RETURNDC|
+		PD_USEDEVMODECOPIESANDCOLLATE);
+  psd->nCopies = 1;
+#endif
 
   if ( isName(prt->device) )		/* default printer name */
   { char *s = strName(prt->device);
@@ -152,8 +169,21 @@ setupWinPrinter(WinPrinter prt, FrameObj fr)
     psd->hDevNames = h;
   }
 
+#ifdef USE_PRINTDLG
+  if ( !PrintDlg(psd) )
+#else
   if ( !PageSetupDlg(psd) )
-    fail;				/* canceled or error */
+#endif
+  { DWORD rc;
+
+    if ( (rc=CommDlgExtendedError()) )
+    { /* TBD: define kernel error and pass Windows message */
+
+      send(CurrentDisplay(NIL), NAME_report, NAME_error,
+	   CtoString("Unable to set up printer"), 0);
+    }
+    fail;
+  }
 
   if ( psd->hDevNames )			/* debugging */
   { DEVNAMES *names = GlobalLock(psd->hDevNames);
@@ -174,6 +204,7 @@ setupWinPrinter(WinPrinter prt, FrameObj fr)
   }
 
 
+#ifdef USE_PRINTDLG
   if ( psd->hDevMode )
   { DEVMODE *dmode = GlobalLock(psd->hDevMode);
     prt->ws_ref->hdc = CreateDC("WINSPOOL", /* NT, NULL for Windows-95 */
@@ -182,6 +213,9 @@ setupWinPrinter(WinPrinter prt, FrameObj fr)
 				psd->hDevMode);
     GlobalUnlock(psd->hDevMode);
   }
+#else
+  prt->ws_ref->hdc = psd->hDC;
+#endif
 
   if ( !prt->ws_ref->hdc )
   { Cprintf("Failed to open Printer DC: %s\n", WinError());
@@ -200,17 +234,56 @@ openWinPrinter(WinPrinter prt)
 { if ( prt->ws_ref->hdc )
   { DOCINFO di;
     int job;
+    char fname[MAXPATHLEN];
 
     di.cbSize       = sizeof(di);
     di.lpszDocName  = strName(prt->job_name);
+
     if ( instanceOfObject(prt->device, ClassFile) )
     { Name name = getOsNameFile(prt->device);
-      char osname[MAXPATHLEN];
 
-      _xos_os_filename(strName(name), osname);
-      di.lpszOutput = osname;
+      _xos_os_filename(strName(name), fname);
+      di.lpszOutput = fname;
+    } else if ( prt->ws_ref->info.Flags & PD_PRINTTOFILE )
+					/* User selected print-to-file */
+#if 1
+    { Name to;
+      static Chain filter;
+
+      if ( !filter )
+	filter = globalObject(NAME_printFileFilter,
+			      ClassChain,
+			      newObject(ClassTuple,
+					NAME_printFile,
+					CtoName("*.prn"), 0),
+			      newObject(ClassTuple,
+					NAME_allFiles,
+					CtoName("*.*"), 0),
+			      0);
+
+      if ( (to = getWinFileNameDisplay(CurrentDisplay(NIL),
+				       NAME_save,
+				       filter,
+				       DEFAULT,
+				       DEFAULT,
+				       DEFAULT)) )
+      { _xos_os_filename(strName(to), fname);
+	di.lpszOutput = fname;
+      } else
+	fail;				/* Use cancel */
+#else
+    { PAGESETUPDLG *psd = &prt->ws_ref->info;
+      DEVNAMES *names = GlobalLock(psd->hDevNames);
+
+      strcpy(fname, &((char *)names)[names->wOutputOffset]);
+      di.lpszOutput = fname;
+      DEBUG(NAME_print, Cprintf("Printing to file: \"%s\"\n", fname));
+
+      GlobalUnlock(psd->hDevNames);
+#endif
     } else
       di.lpszOutput = NULL;
+
     di.lpszDatatype = NULL;
     di.fwType	    = 0;
 
@@ -285,7 +358,10 @@ resolutionWinPrinter(WinPrinter prt, Any resolution)
 	w = valInt(sz->w);
       }
 
-      SetWindowExtEx(prt->ws_ref->hdc, w, -h, NULL);
+      if ( !SetWindowExtEx(prt->ws_ref->hdc, w, -h, NULL) )
+      { Cprintf("Failed to open Printer DC: %s\n", WinError());
+	fail;
+      }
     }
   }
 
@@ -391,7 +467,11 @@ mapModeWinPrinter(WinPrinter prt, Name mode)
   { assign(prt, map_mode, mode);
 
     if ( prt->ws_ref->hdc )
-      SetMapMode(prt->ws_ref->hdc, nameToMapMode(mode));
+    { if ( !SetMapMode(prt->ws_ref->hdc, nameToMapMode(mode)) )
+      { Cprintf("Failed SetMapMode(%s): %s\n", strName(mode), WinError());
+	fail;
+      }
+    }
   }
 
   succeed;
