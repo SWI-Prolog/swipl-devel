@@ -10,7 +10,7 @@
 # copy the result to wherever you want.
 
 # prefix=C:\Program Files
-HOME=$(USERPROFILE)
+#HOME=$(USERPROFILE)
 prefix=$(HOME)\installed
 PLBASE=$(prefix)\pl
 BINDIR=$(PLBASE)\bin
