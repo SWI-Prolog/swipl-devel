@@ -42,7 +42,6 @@
 :- emacs_begin_mode(fundamental, [],	% []: root of the mode hierarchy
 		    "Generic PceEmacs editing mode",
 	[ prefix		   = key('\\C-h'),
-	  show_key_bindings	   = key('\\C-hb'),
 	  insert_file		   = key('\\C-xi'),
 	  write_file		   = key('\\C-x\\C-w'),
 	  save_and_kill            = key('\\C-x#'),
@@ -105,7 +104,9 @@
 	  help_on_mode		   = button(help),
 	  customise		   = button(help),
 	  -			   = button(help),
-	  show_key_bindings	   = button(help),
+	  show_key_bindings	   = key('\\C-hb') + button(help),
+	  describe_key		   = key('\\C-hk') + button(help),
+	  describe_function	   = key('\\C-hf') + button(help),
 	  -			   = button(help),
 	  manual_entry		   = button(help),
 	  xpce_manual		   = button(help)
@@ -206,11 +207,6 @@ keyboard_quit(M) :->
 	"Quit current operation"::
 	send(M?editor, keyboard_quit),
 	send(M, selection, 0, 0).
-
-
-show_key_bindings(M) :->
-	"Display window with key-bindings"::
-	auto_call(show_key_bindings(M)).
 
 
 quit(M) :->
@@ -852,13 +848,82 @@ count_lines_region(M) :->
 	Lines is MarkLine - CaretLine,
 	send(M, report, inform, 'Region has %d lines', Lines).
 
+
+		 /*******************************
+		 *	       HELP		*
+		 *******************************/
+
+:- pce_group(help).
+
 help(_) :->
 	"Display general help"::
 	send(@emacs, help).
 
+
 customise(_) :->
 	"Display customisation help"::
 	send(@emacs, customise).
+
+
+%	->help_on_mode
+%	
+%	See whether there is a file named <Source>.html, where <Source>
+%	is the name of the source-file loaded to define the given mode.
+%	If so, open it using the users' browser using www_open_url/1.
+
+help_on_mode(M) :->
+	"Provide mode-specific help"::
+	(   get(M, class, Class),
+	    get(Class, source, source_location(File, _)),
+	    file_name_extension(FileBase, _, File),
+	    absolute_file_name(FileBase,
+			       [ extensions([html]),
+				 access(read),
+				 file_errors(fail)
+			       ],
+			       HTML)
+	->  atom_concat('file:', HTML, URI),
+	    www_open_url(URI)
+	;   send(M, report, warning, 'No help on mode %s', M?name)
+	).
+
+
+show_key_bindings(M) :->
+	"Display window with key-bindings"::
+	auto_call(show_key_bindings(M)).
+
+
+describe_function(M, CmdName:command=emacs_mode_command) :->
+	"Give help on command"::
+	get(M, send_method, CmdName, tuple(_, Impl)),
+	auto_call(help(Impl)).
+
+describe_key(M) :->
+	"Read key and write its action"::
+	send(M, report, status, 'Describe key: '),
+	send(M, focus_function, '_describe_key').
+
+'_describe_key'(M, Ev:event) :->
+	"Handle \\C-hk keys"::
+	(   get(M, attribute, key_prefix, Prefix)
+	->  get(Ev, key, KeyName0),
+	    atom_concat(Prefix, KeyName0, KeyName),
+	    send(M, delete_attribute, key_prefix)
+	;   get(Ev, key, KeyName)
+	),
+	get(M, bindings, Bindings),
+	get(Bindings, function, KeyName, MethodName),
+	(   MethodName == prefix
+	->  send(M, attribute, key_prefix, KeyName),
+	    send(M, report, status, 'Describe key: %s', KeyName)
+	;   send(M, focus_function, @nil),
+	    (	get(M, send_method, MethodName, tuple(_, Impl))
+	    ->  get(Impl, summary, Summary),
+		send(M, report, inform, 'Key %s executes %s: "%s"',
+		     KeyName, MethodName, Summary)
+	    ;	send(M, report, inform, 'Key %s is not bound', KeyName)
+	    )
+	).
 
 
 		 /*******************************

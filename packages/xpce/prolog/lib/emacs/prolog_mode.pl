@@ -131,18 +131,6 @@ setup_mode(M) :->
 :- send(@class, attribute, outline_regex_list,
 	chain(regex('\\(^\\w+.*:<?->?\\)\\([^.]+\\.\\(\\s *\n\\)*\\)\\s '))).
 
-help_on_mode(M) :->
-	(   absolute_file_name(library('emacs/prolog_mode'),
-			       [ extensions([html]),
-				 access(read),
-				 file_errors(fail)
-			       ],
-			       HTML)
-	->  atom_concat('file:', HTML, URI),
-	    www_open_url(URI)
-	;   send(M, report, warning, 'Can''t find help file')
-	).
-
 source_file_chain(Ch) :-
 	new(Ch, chain),
 	forall(user_source_file(X), send(Ch, append, X)),

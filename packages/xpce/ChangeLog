@@ -1,6 +1,11 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Editor: bind C-j to newline_and_indent as well as LFD, as these
+  sequences send different commands since a while.  Used to work nevertheless
+  in PceEmacs because `fundamental_mode->typed' was defined to accept
+  event_id rather then event.
+
 * FIXED: Improve keyboard input handling in X11 version when using transient
   windows.  Opening a modal window now gives this window the input focus
   regardless of what the window manager wants.
@@ -29,10 +34,11 @@
   to override in subclass.
 
 * COMPATIBILITY: PceEmacs look-and-feel synchronisation to GNU-Emacs
-	- Fix Control-J (new_line_and_indent)
+	- Fix Control-j (new_line_and_indent)
 	- Make prompters return immediately if typed value is unique
 	- `editor->fill_paragraph' justifies if argument is specified
-	- Make Control-X B (switch_to_buffer) use last buffer as default. 
+	- Make Control-x b (switch_to_buffer) use last buffer as default. 
+	- Add Control-h k (describe_key) and Control-h f (describe_function)
 
 
 VERSION 6.0.1, distributed with SWI-Prolog 5.0.1

@@ -27,6 +27,7 @@
 #include <math.h>
 #include "include.h"
 #include <X11/keysym.h>
+#include <X11/Xproto.h>			/* get request codes */
 
 #undef roundup
 #define roundup(v, n)		((((v)+(n)-1)/(n))*(n))
@@ -47,6 +48,12 @@ x_error_handler(Display *display, XErrorEvent *error)
     char request[100];
     char buf[100];
 
+					/* XSetInputFocus() can generate a */
+					/* BadMatch that is hard to avoid */
+    if ( error->request_code == X_SetInputFocus &&
+	 error->error_code == BadMatch )
+      return 0;
+	 
     XGetErrorText(display, error->error_code, msg, 1024);
     sprintf(buf, "%d", error->request_code);
     XGetErrorDatabaseText(display, "XRequest", buf,

@@ -202,23 +202,7 @@ open_document(M, DT:doctype=name) :->
 
 
 		 /*******************************
-		 *	       HELP		*
-		 *******************************/
-
-help_on_mode(M) :->
-	(   absolute_file_name(sgml_mode,
-			       [ extensions([html]),
-				 access(read),
-				 file_errors(fail)
-			       ],
-			       HTML)
-	->  atom_concat('file:', HTML, URI),
-	    www_open_url(URI)
-	;   send(M, report, warning, 'Can''t find help file')
-	).
-
-		 /*******************************
-		 *	 RECOULOR POLICIES	*
+		 *	RECOLOURING POLICIES	*
 		 *******************************/
 
 idle(M) :->

@@ -649,11 +649,7 @@ x_event_frame(Widget w, FrameObj fr, XEvent *event)
 	Window me = XtWindow(widgetFrame(fr));
 
 	if ( d && me )
-	{ catchErrorPce(PCE, NAME_xError);
 	  XSetInputFocus(d, me, RevertToParent, CurrentTime);
-	  XSync(d, False);
-	  catchPopPce(PCE);
-	}
       }
 
       return;

@@ -1201,7 +1201,7 @@ select_event(Ev) :-
 	send(Ev, is_a, cursor),
 	send(Ev, has_modifier, modifier(shift := down)).
 
-typed(M, Id:event_id, Editor:editor) :->
+typed(M, Id:'event|event_id', Editor:editor) :->
 	"Handle typed character for editor"::
 	get(M, text_buffer, TB),
 	send(TB, check_auto_save),
@@ -1357,15 +1357,6 @@ m_x_next(M, Value:any) :<-
 	get(ArgVector, element, M?m_x_argn, Value),
 	send(M, m_x_index, Nidx).
 	
-
-		 /*******************************
-		 *	       HELP		*
-		 *******************************/
-
-help_on_mode(M) :->
-	"Provide mode-specific help"::
-	send(M, report, warning, 'No help on mode %s', M?name).
-
 
 		 /*******************************
 		 *	      REPORT		*

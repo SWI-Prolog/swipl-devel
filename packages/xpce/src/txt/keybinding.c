@@ -731,6 +731,7 @@ static kbDef editor[] =
 
   { "\\C-@",		NAME_setMark },
   { "LFD", 		NAME_newlineAndIndent },
+  { "\\C-j", 		NAME_newlineAndIndent },
   { "\\C-r", 		NAME_isearchBackward },
   { "\\C-s", 		NAME_isearchForward },
   { "\\C-w",		NAME_killOrGrabRegion },
