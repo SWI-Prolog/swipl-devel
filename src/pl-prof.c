@@ -464,22 +464,25 @@ add_sibling_ref(node_sum *sum, call_node *self, call_node *sibling ARG_LD)
 
 
 static int
-sumProfile(call_node *n, Definition def, node_sum *sum ARG_LD)
+sumProfile(call_node *n, Definition def, node_sum *sum, int seen ARG_LD)
 { call_node *s;
   int count = 0;
 
   if ( n->def == def )
   { count++;
-    sum->ticks += n->ticks;
-    sum->sibling_ticks += n->sibling_ticks;
-    sum->recur += n->recur;
+    if ( !seen )
+    { sum->ticks         += n->ticks;
+      sum->sibling_ticks += n->sibling_ticks;
+    }
+    sum->recur         += n->recur;
     add_parent_ref(sum, n, n->parent PASS_LD);
     for(s=n->siblings; s; s = s->next)
       add_sibling_ref(sum, n, s PASS_LD);
+    seen++;
   }
 
   for(s=n->siblings; s; s = s->next)
-    count += sumProfile(s, def, sum PASS_LD);
+    count += sumProfile(s, def, sum, seen PASS_LD);
 
   return count;
 }
@@ -535,7 +538,7 @@ PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
 
   memset(&sum, 0, sizeof(sum));
   for(n=roots; n; n=n->next)
-    count += sumProfile(n, def, &sum PASS_LD);
+    count += sumProfile(n, def, &sum, 0 PASS_LD);
   
   if ( count == 0 )
     fail;				/* nothing known about this one */
@@ -600,7 +603,7 @@ PRED_IMPL("reset_profiler", 0, reset_profiler, 0)
 		 *******************************/
 
 static
-PRED_IMPL("$profile", 1, profile, PL_FA_TRANSPARENT)
+PRED_IMPL("$profi<le", 1, profile, PL_FA_TRANSPARENT)
 { PRED_LD
   int rc;
   ulong ticks;
@@ -707,15 +710,27 @@ profCall(Definition def ARG_LD)
     return node;
   }
 
-  for( ; node; node = node->parent)
-  { if ( node->def == def )
-    { node->recur++;
+					/* straight recursion */
+  if ( node->def == def )
+  { node->recur++;
+    accounting = FALSE;
+    return node;
+  } else				/* from same parent */
+  { Definition parent = node->def;
 
-      current = node;
-      accounting = FALSE;
-      return node;
+    for(node=node->parent; node; node = node->parent)
+    { if ( node->def == def &&
+	   node->parent &&
+	   node->parent->def == parent )
+      { node->recur++;
+
+	current = node;
+	accounting = FALSE;
+	return node;
+      }
     }
   }
+
 
   for(node=current->siblings; node; node=node->next)
   { if ( node->def == def )
