@@ -44,8 +44,8 @@ fi
 rm -f $tmp
 
 for f in pl.lsm pl.spec; do
-    sed -e "s/Version:.*/Version: $version/" \
-	-e "pl-[0-9.]*\.tar\.gz/pl-$version.tar.gz/" $f > tmp
+    sed -e "s/\(Version:[ 	]*\).*/\1$version/" \
+	-e "s/pl-[0-9.]*\.tar\.gz/pl-$version.tar.gz/" $f > $tmp
     if cmp $f $tmp; then
 	rm -f $tmp
     else
