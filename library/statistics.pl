@@ -34,6 +34,7 @@
 	  [ time/1,			% :Goal
 	    profile/1,			% :Goal
 	    profile/3,			% :Goal, +Style, +Top
+	    show_profile/2,		% +Style, +Top
 	    show_profile/1		% +Top
 	  ]).
 
