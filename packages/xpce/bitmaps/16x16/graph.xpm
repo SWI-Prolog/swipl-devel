@@ -1,0 +1,27 @@
+/* XPM */
+static char * graph_xpm[] = {
+/* columns rows colors chars-per-pixel */
+"16 16 6 1",
+" 	c gray100",
+".	c #600000",
+"X	c red",
+"o	c green",
+"O	c blue",
+"+	c black",
+/* pixels */
+"                ",
+"    ..    ..    ",
+" XX ..o  o.. XX ",
+" XXO  o  o  OXX ",
+"   oO O  O Oo   ",
+" ..  OO  OO  .. ",
+" ..oOOO  OOOo.. ",
+"      o++o      ",
+"       ++       ",
+"       OO       ",
+"      OOOO      ",
+"    oO oo Oo    ",
+"    .. oo ..    ",
+"    .. XX ..    ",
+"       XX       ",
+"                "};
