@@ -736,7 +736,6 @@ putstdw(word w, FILE *fd)
 static void
 putReal(real f, FILE *fd)
 { word *s = (word *)&f;
-  int n;
 
 #ifndef WORDS_BIGENDIAN
   putstdw(s[0], fd);

@@ -1573,7 +1573,7 @@ else
 fi
 done
 
-for ac_func in memmove
+for ac_func in memmove stricmp
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&4
 if eval "test \"`echo '${'ac_cv_func_$ac_func'+set}'`\" = set"; then
@@ -2499,9 +2499,9 @@ rm -fr conftest*
 if test "$O_SAVE" = "yes"; then
 
 case "$host" in
-    *linux*)	STATICLIBS=/usr/lib/libc.a ;;
-    *sunos5*)	STATICLIBS=/usr/lib/libc.a -ldl ;;
-    *solaris2*)	STATICLIBS=/usr/lib/libc.a -ldl ;;
+    *linux*)	STATICLIBS="/usr/lib/libc.a" ;;
+    *sunos5*)	STATICLIBS="/usr/lib/libc.a -ldl" ;;
+    *solaris2*)	STATICLIBS="/usr/lib/libc.a -ldl" ;;
     *sunos4*)	LDFLAGS="$LDFLAGS -static" ;;
     *)
     for ac_prog in ldd

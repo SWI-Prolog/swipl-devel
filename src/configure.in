@@ -93,7 +93,7 @@ AC_CHECK_FUNCS(access chmod dossleep fstat readlink getcwd getdtablesize)
 AC_CHECK_FUNCS(getpagesize getpwnam getrlimit gettimeofday getw opendir)
 AC_CHECK_FUNCS(popen putenv random remove rename rl_insert_close select)
 AC_CHECK_FUNCS(signal sleep srand srandom stat strerror tgetent times)
-AC_CHECK_FUNCS(memmove)
+AC_CHECK_FUNCS(memmove stricmp)
 AC_HEADER_TIME
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
@@ -353,12 +353,13 @@ rm -fr conftest*
 if test "$O_SAVE" = "yes"; then
 dnl ****************************************************************
 dnl Configuring libraries/linking
+dnl Fixed by Horst von Brand <vonbrand@inf.utfsm.cl>
 dnl ****************************************************************
 
 case "$host" in
-    *linux*)	STATICLIBS=/usr/lib/libc.a ;;
-    *sunos5*)	STATICLIBS=/usr/lib/libc.a -ldl ;;
-    *solaris2*)	STATICLIBS=/usr/lib/libc.a -ldl ;;
+    *linux*)	STATICLIBS="/usr/lib/libc.a" ;;
+    *sunos5*)	STATICLIBS="/usr/lib/libc.a -ldl" ;;
+    *solaris2*)	STATICLIBS="/usr/lib/libc.a -ldl" ;;
     *sunos4*)	LDFLAGS="$LDFLAGS -static" ;;
     *)
     AC_CHECK_PROGS(LDD, ldd, "none")

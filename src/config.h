@@ -206,6 +206,9 @@
 /* Define if you have the strerror function.  */
 /* #undef HAVE_STRERROR */
 
+/* Define if you have the stricmp function.  */
+#define HAVE_STRICMP 1
+
 /* Define if you have the tgetent function.  */
 #define HAVE_TGETENT 1
 

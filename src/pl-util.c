@@ -156,6 +156,17 @@ strpostfix(char *string, char *postfix)
 }
 
 
+#ifndef HAVE_STRICMP
+static bool
+stricmp(unsigned char *s1, unsigned char *s2)
+{ while(*s1 && makeLower(*s1) == makeLower(*s2))
+    s1++, s2++;
+
+  return *s1 - *s2;
+}
+#endif
+
+
 bool
 stripostfix(char *s, char *e)
 { int ls = strlen(s);
