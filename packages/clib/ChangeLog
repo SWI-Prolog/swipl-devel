@@ -1,3 +1,8 @@
+Dec 6, 2002
+
+  * FIXED: blocking write in sockets and make tcp_close_socket close the
+    associated streams (if any).
+
 Dec 4, 2002
 
   * FIXED: tcp_close_socket/1 to work on the listened socket. Peter Marks.

@@ -154,6 +154,8 @@ typedef struct _plsocket
 { struct _plsocket *next;		/* next in list */
   int		    socket;		/* The OS socket */
   int		    flags;		/* Misc flags */
+  IOSTREAM *	    input;		/* input stream */
+  IOSTREAM *	    output;		/* output stream */
 #ifdef WIN32
   int		    w32_flags;		/* FD_* */
 #endif
@@ -284,7 +286,7 @@ socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	default:
 	  evtname = "???";
       }
-      DEBUG(Sdprintf("%s on %d\n", evtname, sock));
+      DEBUG(Sdprintf("%s (0x%x) on %d\n", evtname, evt, sock));
     }
   }
 
@@ -419,6 +421,10 @@ lookupSocket(int socket)
 
   p->socket = socket;
   p->flags  = SOCK_DISPATCH;		/* by default, dispatch */
+#ifdef WIN32
+  p->w32_flags = 0;
+#endif
+  p->input = p->output = (IOSTREAM*)NULL;
   p->next   = sockets;
   sockets   = p;
 
@@ -440,6 +446,7 @@ freeSocket(int socket)
     if ( false(s, SOCK_LISTEN) )
     { if ( false(s, SOCK_CLOSE_SEEN) )
 	waitMsg(s, FD_CLOSE);
+
       if ( false(s, SOCK_EOF_SEEN) )
       { char tmp[1024];
 
@@ -754,16 +761,32 @@ tcp_socket(term_t Socket)
 static foreign_t
 tcp_close_socket(term_t Socket)
 { int socket;
+  plsocket *s;
 
   if ( !tcp_get_socket(Socket, &socket) )
     return FALSE;
+  s = lookupSocket(socket);
 
+  if ( true(s, SOCK_OUTSTREAM|SOCK_INSTREAM) )
+  { int flags = s->flags;		/* may drop out! */
+
+    if ( flags & SOCK_INSTREAM )
+    { assert(s->input);
+      Sclose(s->input);
+    }
+    if ( flags & SOCK_OUTSTREAM )
+    { assert(s->output);
+      Sclose(s->output);
+    }
+  } else
+  {
 #ifdef WIN32
-  if ( false(lookupSocket(socket), SOCK_LISTEN) )
-    shutdown(socket, SD_SEND);
+    if ( false(lookupSocket(socket), SOCK_LISTEN) )
+      shutdown(socket, SD_SEND);
 #endif
 
-  freeSocket(socket);
+    freeSocket(socket);
+  }
 
   return TRUE;
 }
@@ -1161,13 +1184,15 @@ tcp_write(void *handle, char *buf, int bufSize)
   while( len > 0 )
   { int n;
 
-    waitMsg(s, FD_WRITE);
     n = send(socket, str, len, 0);
     if ( n < 0 )
     {
 #ifdef WIN32
       if ( WSAGetLastError() == WSAEWOULDBLOCK )
-	continue;
+      { waitMsg(s, FD_WRITE|FD_CLOSE);
+	if ( false(s, SOCK_CLOSE_SEEN) )
+	  continue;
+      }
 #endif
       return -1;
     }
@@ -1192,6 +1217,7 @@ tcp_close_input(void *handle)
   plsocket *s = lookupSocket(socket);
 
   DEBUG(Sdprintf("tcp_close_input(%d)\n", socket));
+  s->input = NULL;
   s->flags &= ~SOCK_INSTREAM;
 #ifdef WIN32
   if ( false(s, SOCK_LISTEN) )
@@ -1215,6 +1241,7 @@ tcp_close_output(void *handle)
   plsocket *s = lookupSocket(socket);
 
   DEBUG(Sdprintf("tcp_close_output(%d)\n", socket));
+  s->output = NULL;
   s->flags &= ~SOCK_OUTSTREAM;
   if ( shutdown(socket, SD_SEND) == SOCKET_ERROR )
     Sdprintf("shutdown(%d, SD_SEND) failed: %s\n",
@@ -1264,12 +1291,14 @@ tcp_open_socket(term_t Socket, term_t Read, term_t Write)
   if ( !PL_open_stream(Read, in) )
     return FALSE;
   pls->flags |= SOCK_INSTREAM;
+  pls->input = in;
 
   if ( !(pls->flags & SOCK_LISTEN) )
   { out = Snew(handle, SIO_FILE|SIO_OUTPUT|SIO_RECORDPOS, &writeFunctions);
     if ( !PL_open_stream(Write, out) )
       return FALSE;
     pls->flags |= SOCK_OUTSTREAM;
+    pls->output = out;
   }
 
   return TRUE;
