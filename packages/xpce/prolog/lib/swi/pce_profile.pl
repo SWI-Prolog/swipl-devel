@@ -156,10 +156,12 @@ about(_F) :->
 	     By Jan Wielemaker').
 
 help(_F) :->
-	send(@display, inform,
+	send(@display, confirm,
 	     'No online help yet\n\
 	      The profiler is described in the SWI-Prolog Reference Manual\n\
-	      available from www.swi-prolog.org').
+	      available from www.swi-prolog.org\n\n\
+	      Press OK to open the manual in your browser'),
+	www_open_url('http://www.swi.psy.uva.nl/projects/SWI-Prolog/Manual/profile.html').
 
 :- pce_end_class(prof_frame).
 
