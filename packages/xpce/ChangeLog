@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: `process->close' to avoid messages
+  Warning: Select failed; error code 9.
+
 * FIXED: Manual tools object browser doesn't open class browser on request.
   Fabien Todescato.
 

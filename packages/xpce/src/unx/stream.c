@@ -111,10 +111,14 @@ closeInputStream(Stream s)
 status
 closeOutputStream(Stream s)
 { if ( s->wrfd >= 0 )
-  { DEBUG(NAME_stream, Cprintf("%s: Closing output\n", pp(s)));
+  { int input_too = (s->wrfd == s->rdfd);
+      
+    DEBUG(NAME_stream, Cprintf("%s: Closing output\n", pp(s)));
 
     ws_close_output_stream(s);
     s->wrfd = -1;
+    if ( input_too )
+      closeInputStream(s);
   }
 
   succeed;
