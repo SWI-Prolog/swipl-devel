@@ -2702,6 +2702,13 @@ wamListClause(Clause clause)
 	    Putf(" %g", v.f);
 	    break;
 	  }
+	  case CA1_STRING:
+	  { word m = *bp++;
+	    int  n = wsizeofInd(m);
+	    Putf(" \"%s\"", (char *)bp);
+	    bp += n;
+	    break;
+	  }
 	}
         for(; n < codeTable[op].arguments; n++ )
 	  Putf("%s%d", n == 0 ? " " : ", ", *bp++);

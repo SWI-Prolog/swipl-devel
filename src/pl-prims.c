@@ -1710,7 +1710,7 @@ write_on(term_t goal, int how, term_t target)
   char *string = buf;
   bool rval;
 
-  tellString(&string, 10240);
+  tellString(&string, 1024);
   rval = callProlog(MODULE_user, goal, FALSE);
   toldString();
   TRY(rval);

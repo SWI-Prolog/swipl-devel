@@ -121,7 +121,7 @@ progman_setup :-
 	prolog_to_os_filename(PlExe, OsPlExe),
 
 	progman_make_group(Group),
-	progman_make_item(Group, 'SWI-Prolog', OsPlExe, 'c:').
+	progman_make_item(Group, 'SWI-Prolog', OsPlExe, 'c:'),
 	explain(end).
 
 

@@ -491,6 +491,14 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
 	  c = decode(replacedBreak(PC));
 	  goto again;
 #endif
+#if O_STRING
+	case H_INDIRECT:		/* only skip the size of the */
+	case B_INDIRECT:		/* string + header */
+	{ word m = PC[1];
+	  PC += wsizeofInd(m)+1;
+	  break;
+	}
+#endif
 	case I_EXIT:
 	case I_EXITFACT:
 	  return;
@@ -515,8 +523,6 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
 	  }
 	  break;
       }
-      if ( c > I_HIGHEST )
-	sysError("GC: Illegal WAM instruction: %d", decode(*PC));
     }
   }
 }
