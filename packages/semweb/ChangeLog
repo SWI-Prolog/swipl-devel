@@ -1,3 +1,7 @@
+Sep 28, 2004
+
+  * FIXED: complexity estimate for not-indexed queries (crash).
+
 Sep 14, 2004
 
   * ENHANCED: Actually start of with small tables and resize them if the

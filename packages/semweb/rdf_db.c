@@ -2914,7 +2914,7 @@ static foreign_t
 rdf_estimate_complexity(term_t subject, term_t predicate, term_t object,
 		        term_t complexity)
 { triple t;
-  int c;
+  long c;
 
   if ( !update_hash() )			/* or ignore this problem? */
     return FALSE;
@@ -2923,7 +2923,11 @@ rdf_estimate_complexity(term_t subject, term_t predicate, term_t object,
   if ( !get_partial_triple(subject, predicate, object, 0, &t) )
     return FALSE;
   
-  c = counts[t.indexed][triple_hash(&t, t.indexed)];
+  if ( t.indexed == BY_NONE )
+  { c = created - erased;		/* = totale triple count */
+  } else
+  { c = counts[t.indexed][triple_hash(&t, t.indexed)];
+  }
 
   return PL_unify_integer(complexity, c);
 }
