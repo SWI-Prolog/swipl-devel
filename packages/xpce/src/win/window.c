@@ -586,6 +586,9 @@ eventWindow(PceWindow sw, EventObj ev)
     fail;
 */
 
+  if ( sw->current_event == ev )
+    fail;				/* I don't want loops */
+
   old_event = sw->current_event;
   addCodeReference(old_event);
   assign(sw, current_event, ev);
@@ -1192,9 +1195,11 @@ scrollToWindow(PceWindow sw, Point pos)
 { return scrollWindow(sw, pos->x, pos->y, ON, ON);
 }
 
+#define DO_X 0x1
+#define DO_Y 0x2
 
 static status
-normalise_window(PceWindow sw, Area a)
+normalise_window(PceWindow sw, Area a, int xy)
 { int x, y, w, h;			/* see getVisibleWindow() */
   int p = valInt(sw->pen);
   int sx = -valInt(sw->scroll_offset->x);
@@ -1213,21 +1218,21 @@ normalise_window(PceWindow sw, Area a)
   y -= valInt(sw->scroll_offset->y) + p;
   DEBUG(NAME_normalise, Cprintf("Visible: %d, %d %d x %d\n", x, y, w, h));
 
-  if ( ax + aw > x + w )
+  if ( (xy&DO_X) && ax + aw > x + w )
   { shift = (ax + aw) - (x + w);
     nsx += shift; x += shift;
     DEBUG(NAME_normalise, Cprintf("left by %d\n", shift));
   }
-  if ( ay + ah > y + h )
+  if ( (xy&DO_Y) && ay + ah > y + h )
   { shift = (ay + ah) - (y + h);
     nsy += shift; y += shift;
     DEBUG(NAME_normalise, Cprintf("up by %d\n", shift));
   }
-  if ( ax < x )
+  if ( (xy&DO_X) && ax < x )
   { nsx -= x - ax;
     DEBUG(NAME_normalise, Cprintf("right by %d\n", x - ax));
   }
-  if ( ay < y )
+  if ( (xy&DO_Y) && ay < y )
   { nsy -= y - ay;
     DEBUG(NAME_normalise, Cprintf("down by %d\n", y - ay));
   }
@@ -1243,9 +1248,18 @@ normalise_window(PceWindow sw, Area a)
 
 
 static status
-normaliseWindow(PceWindow sw, Any obj)
-{ if ( instanceOfObject(obj, ClassArea) )
-    return normalise_window(sw, obj);
+normaliseWindow(PceWindow sw, Any obj, Name mode)
+{ int xy;
+
+  if ( mode == NAME_x )
+    xy = DO_X;
+  else if ( mode == NAME_y )
+    xy = DO_Y;
+  else
+    xy = DO_X|DO_Y;
+
+  if ( instanceOfObject(obj, ClassArea) )
+    return normalise_window(sw, obj, xy);
 
   ComputeGraphical(sw);
   if ( notNil(sw->decoration) )
@@ -1255,7 +1269,7 @@ normaliseWindow(PceWindow sw, Any obj)
   { Graphical gr = obj;
     Area a = getAbsoluteAreaGraphical(gr, (Device) sw);
 
-    normalise_window(sw, a);
+    normalise_window(sw, a, xy);
     doneObject(a);
     succeed;
   }
@@ -1275,7 +1289,7 @@ normaliseWindow(PceWindow sw, Any obj)
       }
     
     if ( a->w != ZERO && a->h != ZERO )
-      normalise_window(sw, a);
+      normalise_window(sw, a, xy);
     considerPreserveObject(a);
 
     succeed;
@@ -1991,6 +2005,8 @@ static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 static char *T_flash[] =
 	{ "area=[area]", "time=[int]" };
+static char *T_normalise[] =
+	{ "on=area|graphical|chain", "mode=[{xy,x,y}]" };
 
 /* Instance Variables */
 
@@ -2130,7 +2146,7 @@ static senddecl send_window[] =
      NAME_scroll, "Update bubble of given scroll_bar object"),
   SM(NAME_changedUnion, 4, T_changedUnion, changedUnionWindow,
      NAME_scroll, "Request scroll_bar update"),
-  SM(NAME_normalise, 1, "area|graphical|chain", normaliseWindow,
+  SM(NAME_normalise, 2, T_normalise, normaliseWindow,
      NAME_scroll, "Ensure area|graphical|chain is visible"),
   SM(NAME_scrollHorizontal, 3, T_LforwardsObackwardsOgotoL_LpageOfileOlineL_int, scrollHorizontalWindow,
      NAME_scroll, "Trap message from horizontal scrollbar"),
