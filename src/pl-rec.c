@@ -855,8 +855,8 @@ right_recursion:
 
 
 #ifndef INT_MAX
-#define INT_MIN ((int)1<<(sizeof(int)*8-1))
-#define INT_MAX (-(INT_MIN+1))
+#define INT_MAX	    ((int)(((unsigned int)1<<(sizeof(int)*8-1))-1))
+#define INT_MIN     (-(INT_MIN)-1)
 #endif
 
 word

@@ -651,5 +651,5 @@ xrealloc(void *mem, size_t size)
   return NULL;
 }
 
-#undef LOCK()
-#undef UNLOCK()
+#undef LOCK
+#undef UNLOCK

@@ -255,7 +255,7 @@ initAtoms(void)
 
 word
 pl_current_atom(term_t a, word h)
-{ long i;
+{ unsigned int i;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:

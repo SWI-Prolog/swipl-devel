@@ -1004,7 +1004,7 @@ isvar:
     return NONVOID;
   }
 #undef LD
-#undef LD GLOBAL_LD
+#define LD GLOBAL_LD
 }
 
 
