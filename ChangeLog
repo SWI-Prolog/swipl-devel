@@ -4,12 +4,17 @@
 VERSION 2.9.1
 =============
 
+  * FIXED: auto-detection of -export-dynamic in favour of -rdynamic
+    (GNU-ld based systems using ELF binary format not supporting
+    -rdynamic, e.g. Solaris using gcc with GNU-ld).  Thanks to
+    Volker Weber.
+
   * FIXED: mmap configuration issues, with thanks to Daniel Pun.
 
   * FIXED: some changes to the Makefile(.in) and configure for portability,
     by Joel Faedi.
 
-  * FIXED: wouldBindProcedure(), used by $xr_member, used bu the explain
+  * FIXED: wouldBindProcedure(), used by $xr_member, used by the explain
     facility.  Could crash.
 
 

@@ -94,7 +94,11 @@ dir_name(Path, Name) :-
 	concat(P, /, Path), !,
 	dir_name(P, Name).
 dir_name(Path, Name) :-
-	absolute_file_name('~', Home),
+	absolute_file_name('~', Home0),
+	(   concat(Home, /, Home0)
+	->  true
+	;   Home = Home0
+	),
 	concat(Home, FromHome, Path), !,
 	sformat(Name, '~~~w', [FromHome]).
 dir_name(Path, Path).

@@ -180,8 +180,29 @@ _EOP_
   rm -rf conftest.*
 
 dnl Some versions of (g)cc need to export the symbols from the main program
-dnl using -rdynamic.  See whether this gcc understands this flag.
+dnl using -export-dynamic or (older versions) -rdynamic.  See whether
+dnl this gcc understands this flag.
 
+AC_MSG_CHECKING("whether LDFLAGS need -export-dynamic")
+  old_ldflags="$LDFLAGS"
+  LDFLAGS="-export-dynamic $LDFLAGS"
+  AC_TRY_RUN(
+main()
+{ exit(0);
+},
+     if grep 'unrecognized option `-export-dynamic'"'" config.log >/dev/null; then
+       AC_MSG_RESULT(no)
+       LDFLAGS="$old_ldflags"
+     else
+       AC_MSG_RESULT(yes)
+       exportdynamic=done
+     fi,
+     AC_MSG_RESULT(no)
+     LDFLAGS="$old_ldflags",
+     AC_MSG_RESULT(no)
+     LDFLAGS="$old_ldflags")
+
+if test "$exportdynamic" != "done"; then
 AC_MSG_CHECKING("whether LDFLAGS need -rdynamic")
   old_ldflags="$LDFLAGS"
   LDFLAGS="-rdynamic $LDFLAGS"
@@ -199,6 +220,7 @@ main()
      LDFLAGS="$old_ldflags",
      AC_MSG_RESULT(no)
      LDFLAGS="$old_ldflags")
+fi
 else
   configloadforeign=yes
 fi
