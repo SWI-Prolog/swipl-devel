@@ -30,3 +30,4 @@ documented at all.
 \input{readutil}
 \input{netscape}
 \input{registry}
+\input{url}

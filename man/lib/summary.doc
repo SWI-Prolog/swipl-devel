@@ -39,3 +39,13 @@
 \predicatesummary{shell_register_dde}{6}{Register DDE action}
 \predicatesummary{shell_register_prolog}{1}{Register Prolog}
 \end{summarylist}
+
+\subsection{\pllib{url}}
+
+\begin{summarylist}{ll}
+\predicatesummary{parse_url}{2}{Analyse or construct a URL}
+\predicatesummary{parse_url}{3}{Analyse or construct a relative URL}
+\predicatesummary{global_url}{3}{Make relative URL global}
+\predicatesummary{http_location}{2}{Analyse or construct location}
+\predicatesummary{www_form_encode}{2}{Encode or decode form-data}
+\end{summarylist}

@@ -33,7 +33,7 @@ ONLINE=		../library/MANUAL
 ONLINE_INDEX=	../library/helpidx.pl
 
 LIBFILES=	lib/library.tex lib/readutil.tex lib/netscape.tex \
-		lib/registry.tex lib/check.tex
+		lib/registry.tex lib/check.tex lib/url.tex
 TEXFILES=	doc.tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex \
 		glossary.tex $(LIBFILES)

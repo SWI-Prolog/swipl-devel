@@ -1,0 +1,103 @@
+\libdoc{url}{Analysing and constructing URL}
+
+This library deals with the analysis and construction of a URL,
+\textbf{U}niversal \textbf{R}esource \textbf{L}ocator.  URL is the
+basis for communicating locations of resources (data) on the web.
+A URL consists of a protocol identifier (e.g.\ \idx{HTTP}, \idx{FTP}),
+and a protocol-specific syntax further defining the location.  URLs
+are standardized in \idx{RFC-1738}.
+
+The implementation in this library covers only a small portion of the
+defined protocols.  Though the initial implementation followed RFC-1738
+strictly, the current is more relaxed to deal with frequent violations
+of the standard encountered in practical use.
+
+This library contains code by Jan Wielemaker who wrote the initial
+version and Lukas Faulstich who added various extensions.
+
+\begin{description}
+    \predicate{parse_url}{2}{?URL, ?Parts}
+Construct or analyse a \arg{URL}.  \arg{URL} is an atom holding a
+URL or a variable.  \arg{Parts} is a list of components.  Each
+component is of the format \term{\arg{Name}}{Value}.  Defined
+components are:
+
+\begin{description}
+    \termitem{protocol}{Protocol}
+The used protocol.  This is, after the optional \const{url:}, an
+identifier separated from the remainder of the URL using \const{:}.
+parse_url/2 assumes the \const{http} protocol if no protocol is
+specified and the URL can be parsed as a valid HTTP url.  In addition
+to the RFC-1738 specified protocols, the \const{file:} protocol is
+supported as well.
+
+    \termitem{host}{Host}
+Host-name or IP-address on which the resource is located.  Supported
+by all network-based protocols.
+
+    \termitem{port}{Port}
+Integer port-number to access on the \arg{Host}.  This only appears
+if the port is explicitly specified in the URL.  Implicit default
+ports (e.g.\ 80 for HTTP) do \emph{not} appear in the part-list.
+
+    \termitem{path}{Path}
+(File-) path addressed by the URL.  This is supported for the
+\const{ftp}, \const{http} and \const{file} protocols.  If no path
+appears, the library generates the path \file{/}.
+
+    \termitem{search}{ListOfNameValue}
+Search-specification of HTTP URL. This is the part after the \chr{?},
+normally used to transfer data from HTML forms that use the
+`\const{GET}' protocol. In the URL it consists of a www-form-encoded
+list of \arg{Name}=\arg{Value} pairs.  This is mapped to a list of
+Prolog \arg{Name}=\arg{Value} terms with decoded names and values.
+
+    \termitem{fragment}{Fragment}
+Fragment specification of HTTP URL.  This is the part after the \verb$#$
+character.
+\end{description}
+
+The example below illustrates the all this for an HTTP UTL.
+
+\begin{code}
+?- parse_url('http://swi.psy.uva.nl/message.cgi?msg=Hello+World%21#x',
+             P).
+P = [ protocol(http),
+      host('swi.psy.uva.nl'),
+      fragment(x),
+      search([ msg = 'Hello World!'
+             ]),
+      path('/message.cgi')
+    ].
+\end{code}
+
+By instantiating the parts-list this predicate can be used to create
+a URL.
+
+    \predicate{parse_url}{3}{?URL, +BaseURL, ?Parts}
+Same as parse_url/2, but dealing a url that is relative to the given
+\arg{BaseURL}.  This is used to analyse or construct a URI found in
+the document behind \arg{BaseURL}.
+
+    \predicate{global_url}{3}{+URL, +BaseURL, -AbsoluteUrl}
+Transform a (possibly) relative URL into a global one.
+
+    \predicate{http_location}{2}{?Parts, ?Location}
+Similar to parse_url/2, but only deals with the location part of
+an HTTP URL.  That is, the path, search and fragment specifiers.
+In the HTTP protocol, the first line of a message is
+
+\begin{quote}
+\arg{Action} \arg{Location} \const{HTTP/}\arg{HttpVersion}
+\end{quote}
+
+    \predicate{www_form_encode}{2}{?Value, ?WwwFormEncoded}
+Translate between a string-literal and the x-www-form-encoded
+representation used in path and search specifications of the HTTP
+protocol.
+
+Encoding implies mapping space to +, preserving alpha-numercial
+characters, map newlines to \%0D\%0A and anything else to \%XX.
+When decoding, newlines appear as a single newline (10) character.
+\end{description}
+

@@ -524,16 +524,21 @@ predicate(registry_delete_key, 1, 'Remove a key', 520409, 520518).
 predicate(shell_register_file_type, 4, 'Register a file-type', 520521, 521057).
 predicate(shell_register_dde, 6, 'Register DDE action', 521060, 521771).
 predicate(shell_register_prolog, 1, 'Register Prolog', 521774, 522584).
-predicate(prolog_current_frame, 1, 'Reference to goal''s environment stack', 523179, 523588).
-predicate(prolog_frame_attribute, 3, 'Obtain information on a goal environment', 523591, 526534).
-predicate(prolog_trace_interception, 4, 'library(user) Intercept the Prolog tracer', 526616, 528511).
-predicate(prolog_skip_level, 2, 'Indicate deepest recursion to trace', 528514, 529173).
-predicate(exception, 3, 'Hook (user) Handle runtime exceptions', 529791, 531266).
-predicate(prolog_list_goal, 1, 'Hook.  Intercept tracer ''L'' command', 531752, 532171).
-predicate(debug_control_hook, 1, 'Hook (prolog) Extend spy/1, etc.', 532174, 533417).
-predicate(help_hook, 1, 'Hook (prolog) User-hook in the help-system', 533420, 534076).
-predicate(rl_read_init_file, 1, 'Read readline(3) init file', 534383, 534637).
-predicate(rl_add_history, 1, 'Add line to readline(3) history', 534640, 534799).
+predicate(parse_url, 2, 'Analyse or construct a URL', 523476, 525953).
+predicate(parse_url, 3, 'Analyse or construct a relative URL', 525956, 526259).
+predicate(global_url, 3, 'Make relative URL global', 526262, 526438).
+predicate(http_location, 2, 'Analyse or construct location', 526441, 526830).
+predicate(www_form_encode, 2, 'Encode or decode form-data', 526833, 527325).
+predicate(prolog_current_frame, 1, 'Reference to goal''s environment stack', 527920, 528329).
+predicate(prolog_frame_attribute, 3, 'Obtain information on a goal environment', 528332, 531275).
+predicate(prolog_trace_interception, 4, 'library(user) Intercept the Prolog tracer', 531357, 533252).
+predicate(prolog_skip_level, 2, 'Indicate deepest recursion to trace', 533255, 533914).
+predicate(exception, 3, 'Hook (user) Handle runtime exceptions', 534532, 536007).
+predicate(prolog_list_goal, 1, 'Hook.  Intercept tracer ''L'' command', 536493, 536912).
+predicate(debug_control_hook, 1, 'Hook (prolog) Extend spy/1, etc.', 536915, 538158).
+predicate(help_hook, 1, 'Hook (prolog) User-hook in the help-system', 538161, 538817).
+predicate(rl_read_init_file, 1, 'Read readline(3) init file', 539124, 539378).
+predicate(rl_add_history, 1, 'Add line to readline(3) history', 539381, 539540).
 
 
 %   Predicate section/4
@@ -743,28 +748,30 @@ section([6, 4], 'Finding Application files', 506706, 508566).
 section([6, 4, 1], 'Passing a path to the application', 507983, 508566).
 section([6, 5], 'The Runtime Environment', 508568, 511242).
 section([6, 5, 1], 'The Runtime Emulator', 508647, 511242).
-section([7], 'THE SWI-PROLOG LIBRARY', 511244, 522585).
+section([7], 'THE SWI-PROLOG LIBRARY', 511244, 527326).
 section([7, 1], 'library(check):  Elementary completeness checks', 512698, 514584).
 section([7, 2], 'library(readutil):  Reading lines, streams and files', 514586, 517525).
 section([7, 3], 'library(netscape):  Activating your Web-browser', 517527, 518634).
 section([7, 4], 'library(registry):  Manipulating the Windows registry', 518636, 522585).
-section([8], 'HACKERS CORNER', 522587, 534800).
-section([8, 1], 'Examining the Environment Stack', 523078, 526535).
-section([8, 2], 'Intercepting the Tracer', 526537, 529174).
-section([8, 3], 'Hooks using the exception/3 predicate', 529176, 531267).
-section([8, 4], 'Hooks for integrating libraries', 531269, 534077).
-section([8, 5], 'Readline Interaction', 534079, 534800).
-section([9], 'GLOSSARY OF TERMS', 534802, 547693).
-section([10], 'SUMMARY', 547695, 582245).
-section([10, 1], 'Predicates', 547753, 576307).
-section([10, 2], 'Library predicates', 576309, 577551).
-section([10, 2, 1], 'library(check)', 576378, 576639).
-section([10, 2, 2], 'library(readutil)', 576641, 576992).
-section([10, 2, 3], 'library(netscape)', 576994, 577096).
-section([10, 2, 4], 'library(registry)', 577098, 577551).
-section([10, 3], 'Arithmetic Functions', 577553, 579640).
-section([10, 4], 'Operators', 579642, 582245).
-section([11], 'Bibliography', 582247, 614117).
+section([7, 5], 'library(url):  Analysing and constructing URL', 522587, 527326).
+section([8], 'HACKERS CORNER', 527328, 539541).
+section([8, 1], 'Examining the Environment Stack', 527819, 531276).
+section([8, 2], 'Intercepting the Tracer', 531278, 533915).
+section([8, 3], 'Hooks using the exception/3 predicate', 533917, 536008).
+section([8, 4], 'Hooks for integrating libraries', 536010, 538818).
+section([8, 5], 'Readline Interaction', 538820, 539541).
+section([9], 'GLOSSARY OF TERMS', 539543, 552434).
+section([10], 'SUMMARY', 552436, 587280).
+section([10, 1], 'Predicates', 552494, 581048).
+section([10, 2], 'Library predicates', 581050, 582586).
+section([10, 2, 1], 'library(check)', 581119, 581380).
+section([10, 2, 2], 'library(readutil)', 581382, 581733).
+section([10, 2, 3], 'library(netscape)', 581735, 581837).
+section([10, 2, 4], 'library(registry)', 581839, 582292).
+section([10, 2, 5], 'library(url)', 582294, 582586).
+section([10, 3], 'Arithmetic Functions', 582588, 584675).
+section([10, 4], 'Operators', 584677, 587280).
+section([11], 'Bibliography', 587282, 619543).
 
 
 %   Predicate function/3
