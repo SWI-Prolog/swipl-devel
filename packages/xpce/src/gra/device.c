@@ -1078,8 +1078,26 @@ placeDialogItem(Device d, Matrix m, Graphical i,
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Distribute `total' pixels over n buckets.  Remaining pixels are distributed
+outward-in.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+distribute(int total, int n, int *buckets)
+{ int l, i, m = total/n;
+
+  for(i=0; i<n; i++)
+    buckets[i] = m;
+  total -= m * n;
+
+  for(i=0, l=TRUE; total > 0; l = !l, total--, i++ )
+    buckets[l ? i : n-i]++;
+}
+
+
 status
-layoutDialogDevice(Device d, Size gap)
+layoutDialogDevice(Device d, Size gap, Size bb)
 { matrix m;
   int x, y, max_x = 0, max_y = 0;
   int px, py;
@@ -1089,11 +1107,17 @@ layoutDialogDevice(Device d, Size gap)
   if ( isDefault(gap) )			/* TBD: proper integration */
     gap = answerObject(ClassSize, toInt(15), toInt(8), 0);
 
-  ComputeGraphical(d);
+  if ( notNil(d->request_compute) )
+  { Cell cell;
+
+    for_cell(cell, d->graphicals)
+      ComputeGraphical(cell->value);
+  }
+
   if ( !PlacedTable )
     PlacedTable = createHashTable(toInt(32), OFF);
-
-  clearHashTable(PlacedTable);	
+  else
+    clearHashTable(PlacedTable);	
 
   for(;;)
   { int found = 0;
@@ -1197,6 +1221,10 @@ layoutDialogDevice(Device d, Size gap)
     }
 
 
+  { int gaph = valInt(gap->h);
+    int ideal_y = gaph * 2;
+    int ngaps = -1;
+
     for(y=0; y<max_y; y++)		/* Determine unit height */
     { int h = -1000, d = -1000;
 
@@ -1208,14 +1236,36 @@ layoutDialogDevice(Device d, Size gap)
       { m.units[x][y].height = h;
 	m.units[x][y].depth = d;
       }
+
+      ideal_y += (h+d);
+      ngaps++;
+    }
+    ideal_y += ngaps * gaph;
+
+    if ( notDefault(bb) && ngaps > 0 )	/* distribute in Y-direction */
+    { int extra_y = valInt(bb->h) - ideal_y;
+
+      if ( extra_y > 0 )
+      { int *distributed = alloca(sizeof(int) * ngaps);
+	int ngap = 0;
+
+	distribute(extra_y, ngaps, distributed);
+
+	for(y=0; y<max_y; y++)
+	{ for(x=0; x<max_x; x++)
+	  { m.units[x][y].depth += distributed[ngap];
+	  }
+	      
+	  ngap++;
+	}
+      }
     }
 
 					  /* Place the items */
-    for(py = valInt(gap->h), y=0; y<max_y; y++)
+    for(py = gaph, y=0; y<max_y; y++)
     { int px = valInt(gap->w);
       int lx = px;			/* x for left aligned items */
       int gapw = valInt(gap->w);
-      int gaph = valInt(gap->h);
       
       for(x = 0; x < max_x; x++)
       { if ( notNil(gr = m.units[x][y].item) &&
@@ -1235,20 +1285,25 @@ layoutDialogDevice(Device d, Size gap)
 
       py += m.units[0][y].depth + m.units[0][y].height + gaph; 
     }
+  }
 
     ComputeGraphical(d);		/* recompute bounding-box */
     
     for(y = 0; y < max_y; y++)
-    { if ( instanceOfObject(d, ClassWindow) )
-      { PceWindow sw = (PceWindow) d;
-
-	px = valInt(sw->bounding_box->x) +
-	     valInt(sw->bounding_box->w) +
-	     valInt(gap->w);
+    { if ( notDefault(bb) )
+      { px = valInt(bb->w);
       } else
-      { px = valInt(d->area->x) - valInt(d->offset->x) +
-             valInt(d->area->w) + valInt(gap->w);
-      } 
+      { if ( instanceOfObject(d, ClassWindow) )
+	{ PceWindow sw = (PceWindow) d;
+
+	  px = valInt(sw->bounding_box->x) +
+	       valInt(sw->bounding_box->w) +
+	       valInt(gap->w);
+	} else
+	{ px = valInt(d->area->x) - valInt(d->offset->x) +
+	       valInt(d->area->w) + valInt(gap->w);
+	} 
+      }
 
       for(x = max_x-1; x >= 0; x--)
       { if ( notNil(gr = m.units[x][y].item) &&
@@ -1694,6 +1749,8 @@ static char *T_typed[] =
         { "event_id", "[bool]" };
 static char *T_format[] =
         { "format*|name", "[any]" };
+static char *T_layout[] =
+        { "gap=[size]", "size=[size]" };
 static char *T_modifiedItem[] =
         { "graphical", "bool" };
 static char *T_display[] =
@@ -1772,7 +1829,7 @@ static senddecl send_device[] =
      NAME_iterate, "Run code on all graphicals"),
   SM(NAME_format, 2, T_format, formatDevice,
      NAME_layout, "Use tabular layout"),
-  SM(NAME_layoutDialog, 1, "[size]", layoutDialogDevice,
+  SM(NAME_layoutDialog, 2, T_layout, layoutDialogDevice,
      NAME_layout, "(Re)compute layout of dialog_items"),
   SM(NAME_room, 1, "area", roomDevice,
      NAME_layout, "Test if no graphicals are in area"),
