@@ -98,7 +98,6 @@ static void initHeapDebug(void);
 #include <signal.h>
 #include <ctype.h>
 #include <stdio.h>
-#define MULTITHREAD 1
 #define OQSIZE 4096			/* output queue size */
 
 #ifndef isletter
@@ -154,7 +153,8 @@ static void initHeapDebug(void);
 
 #define streq(s, q) (strcmp((s), (q)) == 0)
 
-static HANDLE _rlc_hinstance;
+static HANDLE _rlc_hinstance;		/* Global instance */
+static HICON  _rlc_hicon;		/* Global icon */
 
 typedef struct lqueued
 { char *	  line;			/* Lines in queue */
@@ -223,6 +223,12 @@ typedef struct
   int		promptlen;		/* length of the prompt */
   int		closing;		/* closing status */
   int		modified_options;	/* OPT_ */
+
+  HANDLE	console_thread;		/* I/O thread  */
+  HANDLE	application_thread;	/* The application I work for */
+  DWORD		console_thread_id;	/* I/O thread id */
+  DWORD		application_thread_id;
+  HWND		kill_window;		/* window in app thread for destroy */
 } rlc_data, *RlcData;
 
 #define OPT_SIZE	0x01
@@ -261,7 +267,7 @@ static void	rlc_init_text_dimensions(RlcData b, HFONT f);
 static void	rlc_save_font_options(HFONT f);
 static void	rlc_get_options(const char *path);
 static void	rlc_progbase(char *path, char *base);
-static int	rlc_add_queue(RlcQueue q, int chr);
+static int	rlc_add_queue(RlcData b, RlcQueue q, int chr);
 static int	rlc_add_lines(RlcData b, int here, int add);
 static void	rlc_start_selection(RlcData b, int x, int y);
 static void	rlc_extend_selection(RlcData b, int x, int y);
@@ -293,16 +299,8 @@ static int _rlc_copy_output_to_debug_output=0;	/* != 0: copy to debugger */
 static int	emulate_three_buttons;
 static HWND	emu_hwnd;		/* Emulating for this window */
 
-#ifdef MULTITHREAD
-static void _rlc_create_hidden_window(void);
-static HWND _rlc_hidden_window;		/* window in main thread */
-
-static HANDLE _rlc_console_thread;	/* screen update thread */
-static HANDLE _rlc_main_thread;		/* the main thread */
-static DWORD  _rlc_console_thread_id;	/* console thread id */
-static DWORD  _rlc_main_thread_id;	/* application (main) thread id */
-static DWORD WINAPI window_loop(LPVOID arg);	/* the routine of this thread */
-#endif /*MULTITHREAD*/
+static void _rlc_create_kill_window(RlcData b);
+static DWORD WINAPI window_loop(LPVOID arg);	/* console window proc */
 
 #ifdef O_DEBUG
 #include <stdarg.h>
@@ -397,29 +395,21 @@ rlc_long_name(char *file)
 }
 
 
-int
-rlc_main(HANDLE hInstance, HANDLE hPrevInstance,
-	 LPSTR lpszCmdLine, int nCmdShow,
-	 RlcMain mainfunc, HICON icon)
-{ WNDCLASS	wndClass;
-  static char	class[] = "RlcConsole";
-  char *	argv[100];
-  int		argc;
-  char		program[MAXPATHLEN];
-  char	 	progbase[100];
+static char *
+rlc_window_class(HICON icon)
+{ static char winclassname[32];
+  static WNDCLASS wndClass;
+  HINSTANCE instance = _rlc_hinstance;
 
-  initHeapDebug();
+  if ( !winclassname[0] )
+  { sprintf(winclassname, "PlTerm-%d", instance);
 
-  _rlc_hinstance = hInstance;
-  _rlc_show = nCmdShow;
-
-  if ( !hPrevInstance )
-  { wndClass.lpszClassName	= class;
+    wndClass.lpszClassName	= winclassname;
     wndClass.style		= CS_HREDRAW|CS_VREDRAW|CS_DBLCLKS;
     wndClass.lpfnWndProc	= (LPVOID) rlc_wnd_proc;
     wndClass.cbClsExtra		= 0;
     wndClass.cbWndExtra		= sizeof(long);
-    wndClass.hInstance		= hInstance;
+    wndClass.hInstance		= instance;
     if ( icon )
       wndClass.hIcon		= icon;
     else
@@ -431,37 +421,56 @@ rlc_main(HANDLE hInstance, HANDLE hPrevInstance,
     RegisterClass(&wndClass);
   }
 
+  return winclassname;
+}
+
+
+
+int
+rlc_main(HANDLE hInstance, HANDLE hPrevInstance,
+	 LPSTR lpszCmdLine, int nCmdShow,
+	 RlcMain mainfunc, HICON icon)
+{ char *	argv[100];
+  int		argc;
+  char		program[MAXPATHLEN];
+  char	 	progbase[100];
+  RlcData       b;
+
+  initHeapDebug();
+
+  _rlc_hinstance = hInstance;
+  _rlc_show = nCmdShow;
+  _rlc_hicon = icon;
+
   GetModuleFileName(hInstance, program, sizeof(program));
   rlc_long_name(program);
   rlc_progbase(program, progbase);
   deftitle = progbase;
   rlc_get_options(progbase);
-  _rlc_stdio = rlc_make_buffer(rlc_cols, rlc_savelines);
-  rlc_init_text_dimensions(_rlc_stdio, NULL);
+  _rlc_stdio = b = rlc_make_buffer(rlc_cols, rlc_savelines);
+  rlc_init_text_dimensions(b, NULL);
 
   argc = rlc_breakargs(program, lpszCmdLine, argv);
 
-#ifdef MULTITHREAD
 { MSG msg;
 
-  _rlc_create_hidden_window();
+  _rlc_create_kill_window(b);
   DuplicateHandle(GetCurrentProcess(),
 		  GetCurrentThread(),
 		  GetCurrentProcess(),
-		  &_rlc_main_thread,
+		  &b->application_thread,
 		  0,
 		  FALSE,
 		  DUPLICATE_SAME_ACCESS);
-  _rlc_main_thread_id = GetCurrentThreadId();
-  _rlc_console_thread = CreateThread(NULL, /* security */
-				     2048, /* stack */
-				     window_loop, _rlc_stdio, /* proc+arg */
-				     0,	/* flags */
-				     &_rlc_console_thread_id); /* id */
+  b->application_thread_id = GetCurrentThreadId();
+  b->console_thread = CreateThread(NULL,			/* security */
+				   2048,			/* stack */
+				   window_loop, _rlc_stdio,	/* proc+arg */
+				   0,				/* flags */
+				   &b->console_thread_id);	/* id */
 					/* wait till the window is created */
   GetMessage(&msg, NULL, WM_RLC_READY, WM_RLC_READY);
 }
-#endif  
 
   if ( mainfunc )
     return (*mainfunc)(argc, argv);
@@ -479,7 +488,7 @@ rlc_create_window(RlcData b)
   int xheight = GetSystemMetrics(SM_CYCAPTION) +
 		2 * GetSystemMetrics(SM_CYBORDER);
 
-  hwnd = CreateWindow("RlcConsole", deftitle,
+  hwnd = CreateWindow(rlc_window_class(_rlc_hicon), deftitle,
 		      WS_OVERLAPPEDWINDOW|WS_VSCROLL,
 		      rlc_x, rlc_y,
 		      (rlc_cols+3) * b->cw + xwidth,
@@ -534,7 +543,7 @@ rlc_progbase(char *path, char *base)
 		 *******************************/
 
 static WINAPI
-rlc_hidden_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
+rlc_kill_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 { switch(message)
   { case WM_DESTROY:
       PostQuitMessage(0);
@@ -545,7 +554,7 @@ rlc_hidden_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 }
 
 static char *
-rlc_hidden_window_class()
+rlc_kill_window_class()
 { static char winclassname[32];
   static WNDCLASS wndClass;
   HINSTANCE instance = _rlc_hinstance;
@@ -554,7 +563,7 @@ rlc_hidden_window_class()
   { sprintf(winclassname, "Console-hidden-win%d", instance);
 
     wndClass.style		= 0;
-    wndClass.lpfnWndProc	= (LPVOID) rlc_hidden_wnd_proc;
+    wndClass.lpfnWndProc	= (LPVOID) rlc_kill_wnd_proc;
     wndClass.cbClsExtra		= 0;
     wndClass.cbWndExtra		= 0;
     wndClass.hInstance		= instance;
@@ -572,12 +581,12 @@ rlc_hidden_window_class()
 
 
 static void
-_rlc_create_hidden_window()
-{ _rlc_hidden_window = CreateWindow(rlc_hidden_window_class(),
-				    "Console hidden window",
-				    0,
-				    0, 0, 32, 32,
-				    NULL, NULL, _rlc_hinstance, NULL);
+_rlc_create_kill_window(RlcData b)
+{ b->kill_window = CreateWindow(rlc_kill_window_class(),
+				"Console hidden window",
+				0,
+				0, 0, 32, 32,
+				NULL, NULL, _rlc_hinstance, NULL);
 }
 
 
@@ -858,13 +867,12 @@ rlc_color(int which, COLORREF c)
 static int
 rlc_kill()
 { DWORD result;
+  RlcData b = _rlc_stdio;
 
   switch(_rlc_stdio->closing++)
   { case 0:
-      _rlc_stdio->queue->flags |= RLC_EOF;
-#ifdef MULTITHREAD
-      PostThreadMessage(_rlc_main_thread_id, WM_RLC_INPUT, 0, 0);
-#endif
+      b->queue->flags |= RLC_EOF;
+      PostThreadMessage(b->application_thread_id, WM_RLC_INPUT, 0, 0);
       return TRUE;
     case 1:
       if ( _rlc_interrupt_hook )
@@ -872,14 +880,14 @@ rlc_kill()
 	return TRUE;
       }
     default:
-      if ( !SendMessageTimeout(_rlc_hidden_window,
+      if ( !SendMessageTimeout(b->kill_window,
 			       WM_DESTROY,
 			       0, 0,
 			       SMTO_ABORTIFHUNG,
 			       5000,
 			       &result) )
       { if ( _rlc_stdio->window )
-	{ switch( MessageBox(_rlc_stdio->window,
+	{ switch( MessageBox(b->window,
 			     "Main task is not responding."
 			     "Click \"OK\" to terminate it",
 			     "Error",
@@ -887,7 +895,7 @@ rlc_kill()
 	  { case IDCANCEL:
 	      return FALSE;
 	  }
-	  TerminateThread(_rlc_main_thread, 1);
+	  TerminateThread(b->application_thread, 1);
     
 	  return TRUE;
 	}
@@ -914,9 +922,9 @@ typed_char(RlcData b, int chr)
   else if ( chr == Control('V') || chr == Control('Y') )
     rlc_paste(b);
   else if ( _rlc_queue )
-    rlc_add_queue(_rlc_queue, chr);
+    rlc_add_queue(b, _rlc_queue, chr);
   else if ( b->queue )
-    rlc_add_queue(b->queue, chr);
+    rlc_add_queue(b, b->queue, chr);
 }
 
 
@@ -2657,7 +2665,7 @@ rlc_paste(RlcData b)
   
       if ( q )
       { for(i=0; data[i]; i++)
-	{ rlc_add_queue(q, data[i]);
+	{ rlc_add_queue(b, q, data[i]);
 	  if ( data[i] == '\r' && data[i+1] == '\n' )
 	    i++;
 	}
@@ -2768,10 +2776,11 @@ window_loop(LPVOID arg)
 					/* if we do not do this, all windows */
 					/* created by Prolog (XPCE) will be */
 					/* in the background and inactive! */
-  if ( !AttachThreadInput(_rlc_main_thread_id, _rlc_console_thread_id, TRUE) )
-    rlc_putansi(_rlc_stdio, '!');
+  if ( !AttachThreadInput(b->application_thread_id,
+			  b->console_thread_id, TRUE) )
+    rlc_putansi(b, '!');
 
-  PostThreadMessage(_rlc_main_thread_id, WM_RLC_READY, 0, 0);
+  PostThreadMessage(b->application_thread_id, WM_RLC_READY, 0, 0);
 
   while(!b->closing)
   { switch( b->imode )
@@ -2790,7 +2799,7 @@ window_loop(LPVOID arg)
 	  } else
 	  { b->lhead = b->ltail = lq;
 					      /* awake main thread */
-	    PostThreadMessage(_rlc_main_thread_id, WM_RLC_INPUT, 0, 0);
+	    PostThreadMessage(b->application_thread_id, WM_RLC_INPUT, 0, 0);
 	  }
 	}
 
@@ -2826,10 +2835,11 @@ window_loop(LPVOID arg)
   }
 
 out:
+{ DWORD appthread = b->application_thread_id;
   rlc_destroy(b);
 
-  PostThreadMessage(_rlc_main_thread_id, WM_RLC_READY, 0, 0);
-
+  PostThreadMessage(appthread, WM_RLC_READY, 0, 0);
+}
   return 0;
 }
 
@@ -2840,14 +2850,14 @@ out:
 
 int
 getch()
-{ RlcQueue q = _rlc_stdio->queue;
-  int fromcon = (GetCurrentThreadId() == _rlc_console_thread_id);
+{ RlcData b = _rlc_stdio;
+  RlcQueue q = b->queue;
+  int fromcon = (GetCurrentThreadId() == b->console_thread_id);
 
   while( rlc_is_empty_queue(q) )
   { if ( q->flags & RLC_EOF )
       return EOF;
 
-#ifdef MULTITHREAD
     if ( !fromcon )
     { MSG msg;
 
@@ -2857,7 +2867,6 @@ getch()
       } else
 	return EOF;
     } else
-#endif
     { rlc_dispatch(q);
       if ( _rlc_stdio->imodeswitch )
       { _rlc_stdio->imodeswitch = FALSE;
@@ -2887,7 +2896,7 @@ int
 getkey()
 { int c;
   RlcData b = _rlc_stdio;
-  int fromcon = (GetCurrentThreadId() == _rlc_console_thread_id);
+  int fromcon = (GetCurrentThreadId() == b->console_thread_id);
 
   if ( !fromcon && b->imode != IMODE_RAW )
   { int old = b->imode;
@@ -2979,17 +2988,15 @@ rlc_free_queue(RlcQueue q)
 
 
 static int
-rlc_add_queue(RlcQueue q, int chr)
+rlc_add_queue(RlcData b, RlcQueue q, int chr)
 { int empty = (q->first == q->last);
 
   if ( QN(q, q->last) != q->first )
   { q->buffer[q->last] = chr;
     q->last = QN(q, q->last);
 
-#ifdef MULTITHREAD
     if ( empty )
-      PostThreadMessage(_rlc_main_thread_id, WM_RLC_INPUT, 0, 0);
-#endif
+      PostThreadMessage(b->application_thread_id, WM_RLC_INPUT, 0, 0);
 
     return TRUE;
   }
@@ -3043,7 +3050,7 @@ rlc_read(char *buf, int count)
   if ( d->closing )
     return 0;				/* signal EOF when closing */
 
-  PostThreadMessage(_rlc_console_thread_id,
+  PostThreadMessage(d->console_thread_id,
 		    WM_RLC_FLUSH,
 		    0, 0);
   if ( _rlc_update_hook )
