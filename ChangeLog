@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: PL_get_char() to accept a 1-character string, so put(" ")
+    writes a space.
+
   * FIXED: Two-step import/export of predicates with special ordering
     of the loading.
 

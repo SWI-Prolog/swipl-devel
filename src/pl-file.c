@@ -1157,13 +1157,15 @@ int
 PL_get_char(term_t c, int *p)
 { int chr;
   char *s;
+  unsigned len;
 
   if ( PL_get_integer(c, &chr) )
   { if ( chr >= 0 && chr <= 255 )
     { *p = chr;
       return TRUE;
     }
-  } else if ( PL_get_atom_chars(c, &s) && s[0] && s[1] == EOS )
+  } else if ( PL_get_nchars(c, &len, &s, CVT_ATOM|CVT_STRING|CVT_LIST) &&
+	      len == 1 )
   { *p = s[0]&0xff;
     return TRUE;
   }
