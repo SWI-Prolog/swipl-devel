@@ -1,5 +1,21 @@
 #!/bin/sh
 
+exclude1="grep -v src/msw/"
+
+while [ ! -z "$1" ]; do
+    case "$1" in
+	-all)
+		exclude1=cat
+		shift
+		;;
+	*)
+		echo "Usage: `basename $0`: [-all]"
+		exit 1
+		;;
+    esac
+done
+
+
 version=`cat VERSION`
 out=xpce-$version.tar.gz
 compress=gzip
@@ -18,7 +34,7 @@ if [ ! "o$1" = "o-q" ]; then
 fi
 
 cat cvsfiles | \
-  grep -v src/msw/ | \
+  $exclude1 | \
   grep -v prolog/pwboot/ | \
   grep -v quintus/ | \
   grep -v /prowindows | \

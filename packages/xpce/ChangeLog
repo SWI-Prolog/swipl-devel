@@ -1,3 +1,15 @@
+* FIXED: type->specialised produced incorrect result on not-yet-realised
+  class-types.
+
+* FIXED: Saved-states refused to start if they could not find the XPCE
+  home directory.
+
+* FIXED: Dropping PceEmacs file-prompter too early.  Found by Seth Greenblatt.
+  Thanks.
+
+FINAL 5.0.0 RELEASE
+===================
+
 * ADDED: Support to create RPM (Redhat Package Manager) distribution:
   make rpm-install and the RPM package specification file xpce.spec
 
