@@ -11,9 +11,9 @@ the definition of the main predicate.  With a flat and global
 predicate space these support predicates will be visible from the
 entire program.
 
-For this reason, it is desirable that each source module has it's own
-predicate space.  A module consists of a declaration for it's name,
-it's \jargon{public predicates} and the predicates themselves.  This
+For this reason, it is desirable that each source module has its own
+predicate space.  A module consists of a declaration for its name,
+its \jargon{public predicates} and the predicates themselves.  This
 approach allow the programmer to use short (local) names for support
 predicates without worrying about name conflicts with the support
 predicates of other modules.  The module declaration also makes
@@ -106,7 +106,7 @@ rev([Head|List1], List2, List3) :-
 \section{Importing Predicates into a Module}	\label{sec:import}
 
 As explained before, in the predicate based approach adapted by
-SWI-Prolog, each module has it's own predicate space.  In SWI-Prolog,
+SWI-Prolog, each module has its own predicate space.  In SWI-Prolog,
 a module initially is completely empty.  Predicates can be added
 to a module by loading a module file as demonstrated in the previous
 section, using assert or by \jargon{importing} them from another module.
@@ -289,7 +289,7 @@ this reason, the notion \jargon{context module} has been introduced.
 
 \subsection{Definition and Context Module}
 
-Each predicate of the program is assigned a module, called it's
+Each predicate of the program is assigned a module, called its
 \jargon{definition module}. The definition module of a predicate is
 always the module in which the predicate was originally defined. Each
 active goal in the Prolog system has a \jargon{context module} assigned
@@ -303,7 +303,7 @@ SWI-Prolog. In the `using maplist' example above, the predicate
 maplist/3 is declared module_transparent. This implies the context
 module remains \const{extend}, the context module of {add_extension}/3.
 This way maplist/3 can decide to call extend_atom in module
-\const{extend} rather than in it's own definition module.
+\const{extend} rather than in its own definition module.
 
 All built-in predicates that refer to predicates via a Prolog term are
 declared module_transparent.  Below is the code defining maplist.

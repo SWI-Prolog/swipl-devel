@@ -1123,7 +1123,7 @@ if a commandline editor is provided (see prolog-flag \const{readline}) and
 15 otherwise.
 
     \prologflagitem{home}{atom}{r}
-SWI-Prolog's notion of the home-directory.  SWI-Prolog uses it's home
+SWI-Prolog's notion of the home-directory.  SWI-Prolog uses its home
 directory to find its startup file as
 \file{<home>/boot32.prc} (32-bit machines) or
 \file{<home>/boot64.prc} (64-bit machines) and to find its library as
