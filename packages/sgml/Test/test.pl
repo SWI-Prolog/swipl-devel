@@ -56,10 +56,10 @@ test(File) :-
 	    error_terms(Errors),
 	    (	compare_errors(Errors, ErrorsOk)
 	    ->	true
-	    ;	format(' [Different errors]')
-%		pp(ErrorsOk),
-%		format('**************~n'),
-%		pp(Errors)
+	    ;	format(' [Different errors]~nOK:~n'),
+		pp(ErrorsOk),
+		format('~NANSWER:~n'),
+		pp(Errors)
 	    ),
 	    nl
 	;   show_errors,

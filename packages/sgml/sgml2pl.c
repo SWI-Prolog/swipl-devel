@@ -1542,25 +1542,16 @@ pl_sgml_parse(term_t parser, term_t options)
       { putchar_dtd_parser(p, p0);
 	if ( p1 != LF )
 	  putchar_dtd_parser(p, p1);
-  
+	else if ( p0 != CR )
+	  putchar_dtd_parser(p, CR);
+
 	break;
-      } else if ( p2 == LF )
-      { if ( p1 != CR )
-	{ putchar_dtd_parser(p, p0);
-	  if ( pd->stopped )
-	  { p2 = CR;
-	    goto stopped;
-	  }
-	  p0 = p1;
-	  p1 = CR;
-	}
-      }
+      } 
   
       putchar_dtd_parser(p, p0);
       CHECKERROR;
       if ( pd->stopped )
-      { stopped:
-	pd->stopped = FALSE;
+      { pd->stopped = FALSE;
 	reset_document_dtd_parser(p);	/* ensure a clean start */
 	Sungetc(p2, in);
 	Sungetc(p1, in);

@@ -4192,6 +4192,14 @@ add_cdata(dtd_parser *p, int chr)
       p->blank_cdata = FALSE;
     }
 
+    if ( chr == '\n' )			/* insert missing CR */
+    { int sz;
+
+      if ( (sz=buf->size) == 0 ||
+	   buf->data[sz-1] != CR )
+	add_cdata(p, CR);
+    }
+
     add_ocharbuf(buf, chr);
   
     if ( p->map && p->map->ends[chr] )
@@ -4454,7 +4462,7 @@ reprocess:
       
       if ( chr == CR )
 	p->state = S_ENTCR;
-      else if ( f[CF_ERC] != chr  )
+      else if ( f[CF_ERC] != chr && chr != '\n' )
 	goto reprocess;
 
       break;
@@ -4723,7 +4731,7 @@ file_to_dtd(const char *file, const char *doctype, dtd_dialect dialect)
 SGML sees a file as
 
 [<LF>]Line 1<CR>
-<LF>Line 2<CR>
+ <LF> Line 2<CR>
 
 I.e. the newline  appearing  just  before   the  end-of-file  should  be
 ignored. In addition, Unix-style files are   mapped  to CR-LF. Thanks to
@@ -4744,16 +4752,12 @@ sgml_process_stream(dtd_parser *p, FILE *fd)
   for(;;)
   { int p2 = getc(fd);
     
-    if ( p2 == LF )
-    { if ( p1 != CR )
-      { putchar_dtd_parser(p, p0);
-	p0 = p1;
-	p1 = CR;
-      }
-    } else if ( p2 == EOF )
+    if ( p2 == EOF )
     { putchar_dtd_parser(p, p0);
       if ( p1 != LF )
 	putchar_dtd_parser(p, p1);
+      else if ( p0 != CR )
+	putchar_dtd_parser(p, CR);
 
       return end_document_dtd_parser(p);
     }
