@@ -26,7 +26,7 @@
 	    pce_lazy_get_method/3,
 	    pce_uses_template/2,
 
-	    pce_method_implementation/4
+	    pce_method_implementation/2
 	  ]).
 
 pce_ifhostproperty(prolog(swi), (:- export(pce_open(_,_,_)))).

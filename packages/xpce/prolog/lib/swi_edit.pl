@@ -72,17 +72,13 @@ receiver_class(Class, Class).
 
 method_source(ClassName, send(Selector), [file(File),line(Line)]) :-
 	var(ClassName),
-	pce_principal:
-	  pce_lazy_send_method(Selector, ClassName,
-			       bind_send_method(_, _,
-						source_location(File, Line))),
+	pce_principal:pce_lazy_send_method(Selector, ClassName, Binder),
+	arg(4, Binder, source_location(File, Line)),
 	\+ get(@classes, member, ClassName, _).
 method_source(ClassName, get(Selector), [file(File),line(Line)]) :-
 	var(ClassName),
-	pce_principal:
-	  pce_lazy_get_method(Selector, ClassName,
-			       bind_get_method(_, _, _,
-					       source_location(File, Line))),
+	pce_principal:pce_lazy_get_method(Selector, ClassName, Binder),
+	arg(4, Binder, source_location(File, Line)),
 	\+ get(@classes, member, ClassName, _).
 					   
 

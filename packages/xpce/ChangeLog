@@ -1,3 +1,7 @@
+* FIXED: `editor ->fill'.  Ensure termination.
+
+* FIXED: Class editor incremental search: handle 8-bit characters ok.
+
 * FIXED: PceDraw problem with text objects, related to an incompatibility
   in use_class_template: it is no longer supported to define methods for
   methods that are already in the template.  The compiler should be

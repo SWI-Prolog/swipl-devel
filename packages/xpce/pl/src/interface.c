@@ -107,7 +107,7 @@ typedef fid_t		Fid;
 #endif /*SWI*/
 
 typedef struct
-{ atom_t	method_id;		/* Identifier of the method */
+{ atomic_t	method_id;		/* Identifier of the method */
   functor_t	functor;		/* Functor for the arguments */
   int		flags;			/* debugging, etc */
   int		argc;			/* #arguments */
@@ -1774,7 +1774,7 @@ invoke(Term rec, Term cl, Term msg, Term ret)
 	  if ( (pcd->flags & (PCE_METHOD_INFO_TRACE|PCE_METHOD_INFO_BREAK)) )
 	    put_trace_info(av+0, pcd);
 	  else
-	    PL_put_atom(av+0, pcd->method_id);
+	    _PL_put_atomic(av+0, pcd->method_id);
 
 	  if ( goal.flags & PCE_GF_CATCHALL )
 	  { goal.argn++;
@@ -2188,24 +2188,16 @@ put_object(Term t, PceObject obj)
 
 
 static foreign_t
-pl_pce_method_implementation(term_t type, term_t class, term_t selector,
-			     term_t msg)
-{ char buf[1024];
-  char *s = buf;
-  char *sg, *c, *sel;
-  prolog_call_data *pcd = pceAlloc(sizeof(prolog_call_data));
+pl_pce_method_implementation(term_t id, term_t msg)
+{ prolog_call_data *pcd = pceAlloc(sizeof(prolog_call_data));
 
-  if ( !PL_get_atom_chars(type, &sg) ||
-       !PL_get_atom_chars(class, &c) ||
-       !PL_get_atom_chars(selector, &sel) )
-    return FALSE;
-  
-  strcpy(s, c);  s += strlen(s);
-  strcpy(s, sg); s += strlen(s);
-  strcpy(s, sel);
-  
   memset(pcd, 0, sizeof(*pcd));
-  pcd->method_id = PL_new_atom(buf);
+
+  if ( PL_is_atomic(id) )
+  { pcd->method_id = _PL_get_atomic(id);
+  } else
+  { return PL_warning("pce_method_implementation/2: type error");
+  }
 
   return unifyObject(msg, cToPcePointer(pcd), FALSE);
 }
@@ -2242,7 +2234,7 @@ put_trace_info(term_t id, prolog_call_data *pm)
 { term_t a = PL_new_term_ref();
   functor_t f;
 
-  PL_put_atom(a, pm->method_id);
+  _PL_put_atomic(a, pm->method_id);
   if ( (pm->flags & PCE_METHOD_INFO_BREAK) )
     f = FUNCTOR_spy1;
   else /*if ( (pm->flags & PCE_METHOD_INFO_TRACE) )*/
@@ -2278,7 +2270,7 @@ PrologCall(PceGoal goal)
     if ( (pcd->flags & (PCE_METHOD_INFO_TRACE|PCE_METHOD_INFO_BREAK)) )
       put_trace_info(av+0, pcd);
     else
-      PL_put_atom(av+0, pcd->method_id);
+      _PL_put_atomic(av+0, pcd->method_id);
 
     for(n=0; n<goal->argc; n++)		/* push normal arguments */
       put_object(mav+n, goal->argv[n]);
@@ -2825,7 +2817,7 @@ registerPredicates()
   InstallPredicate("object",		1, pl_object1,		0);
   InstallPredicate("object",		2, pl_object2,		0);
   InstallPredicate("new",		2, pl_new,		META);
-  InstallPredicate("pce_method_implementation", 4,
+  InstallPredicate("pce_method_implementation", 2,
 		   pl_pce_method_implementation, 0);
   InstallPredicate("pce_open",		3, pl_pce_open, 	0);
 }

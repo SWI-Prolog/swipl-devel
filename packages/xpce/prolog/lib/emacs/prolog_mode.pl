@@ -72,7 +72,9 @@ pce_ifhostproperty(prolog(quintus),
 	  '%'  = comment_start,
 	  '\n' + comment_end,
 	  '/'  + comment_start('*'),
-	  '*'  + comment_end('/')
+	  '*'  + comment_end('/'),
+
+	  paragraph_end('\s *$\|^/\*\|.*\*/\s *$\|^%\|^	\|.*:<?->?\s *$')
 	]).
 		 
 setup_mode(M) :->

@@ -113,6 +113,7 @@ extern char  char_context[];		/* Initial context table */
 #define tisquote(t, c)		THasSyntax(t, c, QT)
 #define tissymbol(t, c)		THasSyntax(t, c, SY)
 #define tiswordsep(t, c)	THasSyntax(t, c, WS)
+#define tisprint(t, c)		!THasSyntax(t, c, CT)
 
 #define tisalnum(t, c)		THasSyntax(t, c, AN)
 #define tisletter(t, c)		THasSyntax(t, c, LC|UC)

@@ -46,16 +46,18 @@ user:portray(pce_principal:get_implementation(_Id, Args, Receiver, RVal)) :-
 
 user:prolog_list_goal(pce_principal:send_implementation(Id, _Args, _Ref)) :- !,
 	(   Head = pce_principal:send_implementation(Id, Args, Ref),
+	    method_from_id(Id, ->(Class, Sel)),
 	    clause(Head, Body)
-	->  format('~N~n% XPCE Method ~w:~n~n', Id),
+	->  format('~N~n% XPCE Method ~w->~w:~n~n', [Class, Sel]),
 	    portray_clause(((Ref->Args) :- Body)),
 	    nl
 	;   format('No XPCE method implementation for id=~p~n', [Id])
 	).
 user:prolog_list_goal(pce_principal:get_implementation(Id, _Args, _Ref, _Rval)) :- !,
 	(   Head = pce_principal:get_implementation(Id, Args, Ref, Rval),
+	    method_from_id(Id, <-(Class, Sel)),
 	    clause(Head, Body)
-	->  format('~N~n% XPCE Method ~w:~n~n', Id),
+	->  format('~N~n% XPCE Method ~w<-~w:~n~n', [Class, Sel]),
 	    portray_clause(((Rval = <-(Ref,Args)) :- Body)),
 	    nl
 	;   format('No XPCE method implementation for id=~p~n', [Id])
@@ -68,10 +70,12 @@ user:prolog_list_goal(pce_principal:get_implementation(Id, _Args, _Ref, _Rval)) 
 
 user:prolog_predicate_name(pce_principal:send_implementation(Id0, _, _),
 			   Id) :-
-	clean_id(Id0, Id).
+	method_from_id(Id0, SG),
+	atom_from_method(SG, Id).
 user:prolog_predicate_name(pce_principal:get_implementation(Id0, _, _, _),
 			   Id) :-
-	clean_id(Id0, Id).
+	method_from_id(Id0, SG),
+	atom_from_method(SG, Id).
 
 clean_id(Id, Id) :-
 	atomic(Id).
@@ -79,3 +83,27 @@ clean_id(Term, Id) :-
 	compound(Term),
 	arg(1, Term, Id0),
 	clean_id(Id0, Id).
+
+
+		 /*******************************
+		 *	       UTIL		*
+		 *******************************/
+
+%	Get the type, class and selector from a method identifier.
+%	Should we cache this info for proper performance on the tracer?
+
+method_from_id(Id, Method) :-
+	compound(Id), !,
+	arg(1, Id, Id2),
+	method_from_id(Id2, Method).
+method_from_id(Id, ->(Class, Selector)) :-
+	pce_principal:pce_lazy_send_method(Selector, Class, Binder),
+	arg(1, Binder, Id), !.
+method_from_id(Id, <-(Class, Selector)) :-
+	pce_principal:pce_lazy_get_method(Selector, Class, Binder),
+	arg(1, Binder, Id).
+
+atom_from_method(->(Class, Selector), Atom) :-
+	concat_atom([Class, (->), Selector], Atom).
+atom_from_method(<-(Class, Selector), Atom) :-
+	concat_atom([Class, (<-), Selector], Atom).

@@ -47,8 +47,8 @@ reexports the content of these files.
 	    pce_extended_class/1,
 	    pce_prolog_class/1,
 	    pce_prolog_class/2,
-	    pce_bind_send_method/6,	% who needs this?
-	    pce_bind_get_method/7,
+%	    pce_bind_send_method/6,	% who needs this?
+%	    pce_bind_get_method/7,
 
 	    pce_catch_error/2,		% pce_error
 	    pce_open/3,

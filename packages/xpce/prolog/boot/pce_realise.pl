@@ -12,9 +12,7 @@
 	    pce_extended_class/1,	% +ClassName
 	    pce_realise_class/1,	% +ClassName
 	    pce_prolog_class/1,		% ?ClassName
-	    pce_prolog_class/2,		% ?ClassName, ?SuperName
-	    pce_bind_send_method/6,
-	    pce_bind_get_method/7
+	    pce_prolog_class/2		% ?ClassName, ?SuperName
 	  ]).
 
 :- use_module(pce_principal).
@@ -41,14 +39,12 @@ pce_register_class(ClassName) :-
 		 *******************************/
 
 pce_extended_class(ClassName) :-
-	(   get(@classes, member, ClassName, Class),
-	    send(Class, instance_of, class)
-	->  attach_class_attributes(ClassName),
-	    send(Class, clear_cache),
-	    resolve_method_message(Msg),
-	    send(Class, resolve_method_message, Msg)
-	;   true
-	).
+	get(@classes, member, ClassName, Class), !,
+	attach_class_attributes(ClassName),
+	send(Class, clear_cache),
+	resolve_method_message(Msg),
+	send(Class, resolve_method_message, Msg).
+pce_extended_class(_).
 
 
 		 /*******************************
@@ -61,8 +57,7 @@ pce_extended_class(ClassName) :-
 %	and have to take action immediately.
 
 check_loaded_class(ClassName) :-
-	get(@classes, member, ClassName, Class),
-	send(Class, instance_of, class), !,
+	get(@classes, member, ClassName, _), !,
 	pce_realise_class(ClassName).
 check_loaded_class(_).
 		
@@ -253,33 +248,33 @@ call_binder(ClassName, Selector, Binder) :-
 call_binder(ClassName, Selector, Binder) :-
 	call(Binder, ClassName, Selector).
 
-build_in_binder(bind_send_method(T, D, L, G), C, S) :- !,
-	pce_bind_send_method(T, D, L, G, C, S).
-build_in_binder(bind_send_method(T, D, L), C, S) :- !,
-	pce_bind_send_method(T, D, L, @default, C, S).
-build_in_binder(bind_send_method(T, D), C, S) :- !,
-	pce_bind_send_method(T, D, @default, @default, C, S).
-build_in_binder(bind_send_method(T), C, S) :- !,
-	pce_bind_send_method(T, @default, @default, @default, C, S).
+build_in_binder(bind_send(Id, T, D, L, G), C, S) :- !,
+	pce_bind_send(Id, T, D, L, G, C, S).
+build_in_binder(bind_send(Id, T, D, L), C, S) :- !,
+	pce_bind_send(Id, T, D, L, @default, C, S).
+build_in_binder(bind_send(Id, T, D), C, S) :- !,
+	pce_bind_send(Id, T, D, @default, @default, C, S).
+build_in_binder(bind_send(Id, T), C, S) :- !,
+	pce_bind_send(Id, T, @default, @default, @default, C, S).
 
-build_in_binder(bind_get_method(R, T, D, L, G), C, S) :- !,
-	pce_bind_get_method(R, T, D, L, G, C, S).
-build_in_binder(bind_get_method(R, T, D, L), C, S) :- !,
-	pce_bind_get_method(R, T, D, L, @default, C, S).
-build_in_binder(bind_get_method(R, T, D), C, S) :- !,
-	pce_bind_get_method(R, T, D, @default, @default, C, S).
-build_in_binder(bind_get_method(R, T), C, S) :- !,
-	pce_bind_get_method(R, T, @default, @default, @default, C, S).
+build_in_binder(bind_get(Id, R, T, D, L, G), C, S) :- !,
+	pce_bind_get(Id, R, T, D, L, G, C, S).
+build_in_binder(bind_get(Id, R, T, D, L), C, S) :- !,
+	pce_bind_get(Id, R, T, D, L, @default, C, S).
+build_in_binder(bind_get(Id, R, T, D), C, S) :- !,
+	pce_bind_get(Id, R, T, D, @default, @default, C, S).
+build_in_binder(bind_get(Id, R, T), C, S) :- !,
+	pce_bind_get(Id, R, T, @default, @default, @default, C, S).
 
 
-pce_bind_send_method(Types, Doc, Loc, Group, ClassName, Selector) :-
+pce_bind_send(Id, Types, Doc, Loc, Group, ClassName, Selector) :-
 	get(@pce, convert, ClassName, class, Class),
-	pce_method_implementation('->', ClassName, Selector, Message),
+	pce_method_implementation(Id, Message),
 	send(Class, send_method,
 	     send_method(Selector, Types, Message, Doc, Loc, Group)).
 	
-pce_bind_get_method(RType, Types, Doc, Loc, Group, ClassName, Selector) :-
+pce_bind_get(Id, RType, Types, Doc, Loc, Group, ClassName, Selector) :-
 	get(@pce, convert, ClassName, class, Class),
-	pce_method_implementation('<-', ClassName, Selector, Message),
+	pce_method_implementation(Id, Message),
 	send(Class, get_method,
 	     get_method(Selector, RType, Types, Message, Doc, Loc, Group)).

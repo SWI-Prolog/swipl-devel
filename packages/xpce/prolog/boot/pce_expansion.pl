@@ -317,10 +317,11 @@ do_expand((Head :-> DocBody),
 	source_location_term(Loc),
 	pce_compiling(ClassName),
 	current_group(ClassName, Group),
-	prolog_head(send, Head, Selector, Types, PlHead),
+	prolog_head(send, Id, Head, Selector, Types, PlHead),
 	strip_defaults([Group, Loc, Doc], NonDefArgs),
-	LSM =.. [bind_send_method, Types | NonDefArgs],
+	LSM =.. [bind_send, Id, Types | NonDefArgs],
 	Clause = (PlHead :- Body),
+	gen_method_id((->), ClassName, Selector, Id),
 	(   attribute(ClassName, super, template)
 	->  template_clause(Clause, Clauses)
 	;   Clauses = [Clause]
@@ -339,10 +340,11 @@ do_expand((Head :<- DocBody),
 	pce_compiling(ClassName),
 	current_group(ClassName, Group),
 	return_type(Head, RType),
-	prolog_head(get, Head, Selector, Types, PlHead),
+	prolog_head(get, Id, Head, Selector, Types, PlHead),
 	strip_defaults([Group, Loc, Doc], NonDefArgs),
-	LGM =.. [bind_get_method, RType, Types | NonDefArgs],
+	LGM =.. [bind_get, Id, RType, Types | NonDefArgs],
 	Clause = (PlHead :- Body),
+	gen_method_id((<-), ClassName, Selector, Id),
 	(   attribute(ClassName, super, template)
 	->  template_clause(Clause, Clauses)
 	;   Clauses = [Clause]
@@ -363,6 +365,26 @@ break_class_specification(Meta:Term, ClassName, Meta, TermArgs) :- !,
 break_class_specification(Term, ClassName, @default, TermArgs) :-
 	Term =.. [ClassName|TermArgs].
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+gen_method_id(+SendGet, +Class, +Selector, -Identifier)
+
+Generate a unique identifier for the method,  used as the first argument
+of send_implementation/3 or get_implementation/4.  The identifier should
+be an atom or integer. The  value  is   not  relevant,  as long as it is
+unique.
+
+This  suggests  simple  counting:  always    unique   and  integers  are
+considerably cheaper than atoms. Unfortunately, there  is a problem with
+this. If methods appear in pre-compiled files, they cannot be joined. It
+is hard to see a good and workable  solution to this problem. Grant each
+file a domain? How do we associate a unique domain to each file?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+gen_method_id(SG, Class, Selector, Id) :-
+	concat_atom([Class, SG, Selector], Id).
+
+%gen_method_id(_, _, _, Id) :-
+%	flag(pce_method_id, Id, Id+1).
 
 		 /*******************************
 		 *       TEMPLATE SUPPORT	*
@@ -467,18 +489,20 @@ use_template_send_methods(Template, Clauses) :-
 use_template_send_method(Template, pce_principal:Clause) :-
 	pce_compiling(ClassName),
 	pce_lazy_send_method(Sel, Template, Binder),
-	(   Clause = pce_lazy_send_method(Sel, ClassName, Binder)
-	;   Clause = (send_implementation(Id, Msg, R) :-
+	Binder =.. [Functor, Id | RestBinder],
+	gen_method_id((->), ClassName, Sel, NewId),
+	(   Clause = pce_lazy_send_method(Sel, ClassName, NewBinder),
+	    NewBinder =.. [Functor, NewId | RestBinder]
+	;   Clause = (send_implementation(NewId, Msg, R) :-
 		     	send_implementation(Tid, IClassMsg, R)),
 	    attribute(ClassName, super, SuperClass), % TBD: pce_extend_class/1
-	    arg(1, Binder, Types),
+	    arg(2, Binder, Types),
 	    type_arity(Types, Arity),
 	    functor(Msg, Sel, Arity),
 	    Msg =.. Args,
 	    append(Args, [SuperClass], Args1),
 	    IClassMsg =.. Args1,
-	    concat_atom([ClassName, '->', Sel], Id),
-	    concat_atom(['T-', Template, '->', Sel], Tid)
+	    concat('T-', Id, Tid)
 	).
 	  
 use_template_get_methods(Template, Clauses) :-
@@ -487,18 +511,20 @@ use_template_get_methods(Template, Clauses) :-
 use_template_get_method(Template, pce_principal:Clause) :-
 	pce_compiling(ClassName),
 	pce_lazy_get_method(Sel, Template, Binder),
-	(   Clause = pce_lazy_get_method(Sel, ClassName, Binder)
-	;   Clause = (get_implementation(Id, Msg, R, V) :-
+	Binder =.. [Functor, Id | RestBinder],
+	gen_method_id((->), ClassName, Sel, NewId),
+	(   Clause = pce_lazy_get_method(Sel, ClassName, NewBinder),
+	    NewBinder =.. [Functor, NewId | RestBinder]
+	;   Clause = (get_implementation(NewId, Msg, R, V) :-
 		     	get_implementation(Tid, IClassMsg, R, V)),
 	    attribute(ClassName, super, SuperClass), % TBD: pce_extend_class/1
-	    arg(2, Binder, Types),
+	    arg(3, Binder, Types),
 	    type_arity(Types, Arity),
 	    functor(Msg, Sel, Arity),
 	    Msg =.. Args,
 	    append(Args, [SuperClass], Args1),
 	    IClassMsg =.. Args1,
-	    concat_atom([ClassName, '<-', Sel], Id),
-	    concat_atom(['T-', Template, '<-', Sel], Tid)
+	    concat('T-', Id, Tid)
 	).
 
 type_arity(@default, 0) :- !.
@@ -750,20 +776,16 @@ return_type(Term, RType) :-
 	;   RType = @default
 	).
 
-prolog_head(send, Head, Selector,
+prolog_head(send, MethodId, Head, Selector,
 	    TypeVector, pce_principal:PlHead) :- !,
-	pce_compiling(ClassName),
 	Head =.. [Selector, Receiver | Args],
-	concat_atom([ClassName, '->', Selector], MethodId),
 	prolog_send_arguments(Args, Types, PlArgs),
 	create_type_vector(Types, TypeVector),
 	CallArgs =.. [Selector | PlArgs],
 	PlHead =.. [send_implementation, MethodId, CallArgs, Receiver].
-prolog_head(get, Head, Selector,
+prolog_head(get, MethodId, Head, Selector,
 	    TypeVector, pce_principal:PlHead) :- !,
-	pce_compiling(ClassName),
 	Head =.. [Selector, Receiver | Args],
-	concat_atom([ClassName, '<-', Selector], MethodId),
 	prolog_get_arguments(Args, Types, PlArgs, Rval),
 	create_type_vector(Types, TypeVector),
 	CallArgs =.. [Selector | PlArgs],

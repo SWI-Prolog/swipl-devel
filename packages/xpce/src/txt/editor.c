@@ -2654,7 +2654,11 @@ fillEditor(Editor e,
   end = valInt(normalise_index(e, to));
 
   while( pos < end )
-  { 					/* skip the separator */
+  { int p0 = pos;
+
+    DEBUG(NAME_fill, Cprintf("fill: region = %d ... %d\n", pos, end)); 
+    
+					/* skip the separator */ 
     while( pos < end && parsep_line_textbuffer(tb, pos) )
     { pos = scan_textbuffer(tb, p=pos, NAME_line, 1, 'a');
       if ( pos <= p )			/* end of file? */
@@ -2694,6 +2698,7 @@ fillEditor(Editor e,
 
 					/* correct end for inserts/deletes */
     end += e->internal_mark - ep;
+    pos = max(pos, p0+1);		/* ensure progress */
   }
   changedTextBuffer(tb);		/* Not a neat place! */
 
@@ -3048,9 +3053,13 @@ IsearchEditor(Editor e, EventId id)
     case Control('J'):
     case Control('I'):
       return executeSearchEditor(e, chr);
+    case Control('L'):
+    case Control('@'):
+      endIsearchEditor(e);
+      fail;
   }
 
-  if ( valInt(chr) >= ' ' && valInt(chr) < 127 )
+  if ( tisprint(e->text_buffer->syntax, valInt(chr)) )
     return executeSearchEditor(e, chr);
 
   endIsearchEditor(e);

@@ -8,120 +8,157 @@
 */
 
 :- module(pce_editor_buttons, []).
+:- use_module(pce_realise).
+:- use_module(pce_expansion).
 :- use_module(pce_global).
-:- use_module(pce_principal, [send/2, send/3, send/4, send/6,
-			      get/3, get/4,
-			      new/2]).
-:- use_module(pce_realise, [pce_extended_class/1]).
-:- use_module(pce_error, [pce_catch_error/2]).
+:- use_module(pce_principal).
 
+:- pce_global(@editor_recogniser,  make_editor_recogniser).
+
+make_editor_recogniser(G) :-
+	new(Editor, @event?receiver),
+	new(G, handler_group(new(select_editor_text_gesture),
+			     click_gesture(middle, '', single,
+					   and(message(Editor, paste),
+					       message(Editor, mark_undo))))).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This module defines how the pointer-buttons are handled by class editor.
-The   method   `editor   ->event'   will   check   the   global   object
-@editor_recogniser.  If it exists,  it  will   be  invoked  *after*  the
-general device event method, typing and area enter/exit events have been
-tried.  If it does not exist, the predefined button actions are invoked.
+This module defines @editor_recogniser, a recogniser called from 
 
-This module attempts to avoid using modifiers and be consistent with
-other X11 applications:
-
-	* Left-click sets the caret
-	* Left-drag makes a selection
-	* Right click/drag extends the selection if it exists
-	* left-double/tripple click selects a word/line.  Subsequent
-	  dragging extends the selection with this unit.
-
-Comments are welcome!
+Parts of the specs by Uwe Lesta.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+:- pce_begin_class(select_editor_text_gesture, gesture,
+		   "Select text in an editor").
 
-:- pce_global(@editor_recogniser, make_editor_recogniser).
+variable(selecting,	bool := @off,	get, "Are we making a selection").
+variable(down_position, point*,		get, "Position of down-event").
+variable(select_timer,  timer*,		get, "Timer for scrolling selection").
+variable(select_scroll, {up,down}*,     get, "Direction for scrolling").
+variable(editor,	editor*,	get, "Client object").
 
-make_editor_recogniser(R) :-
-	new(Editor, @event?receiver),
-	new(Image, Editor?image),
-	new(Index, ?(Image, index, @event)),
+unlink(G) :->
+	send(G, kill_select_timer),
+	send_super(G, unlink).
 
-	new(R, handler_group),
-	send(R, attribute, attribute(saved_caret, 0)),
-	send(R, attribute, attribute(down_index, 0)),
+initiate(G, Ev:event) :->
+	"Set caret and prepare for selectiong"::
+	send(G, slot, down_position, Ev?position),
+	get(Ev, receiver, Editor),
+	send(G, slot, editor, Editor),
+	get(Editor, image, Image),
+	get(Image, index, Ev, Index),
+	send(Editor, caret, Index),
+	get(Ev, multiclick, Multi),
+	(   Multi == single
+	->  send(G, slot, selecting, @off)
+	;   send(G, slot, selecting, @on)
+	),
+	selection_unit(Multi, Unit),
+	send(Editor, selection_unit, Unit),
+	send(Editor, selection_origin, Index),
+	send(G, place_caret).
 
-	new(DownIndex, R?down_index),
+selection_unit(single, character).
+selection_unit(double, word).
+selection_unit(triple, line).
 
-	send(R, append,
-	     new(L, click_gesture(left, '', single,
-			  and(message(Editor, caret, DownIndex),
-			      message(Editor, selection_unit, character),
-			      message(Editor, selection_origin, DownIndex)),
-			  and(message(R, saved_caret, Editor?caret),
-			      message(R, down_index, Index),
-			      if(?(Editor, class_variable_value,
-				   caret_moves_on_select) == @on,
-				 message(Editor, caret, DownIndex)))))),
-	send(L, max_drag_distance, 25),			  
-				  
-	send(R, append,
-	     click_gesture(middle, '', single,
-			   and(message(Editor, paste),
-			       message(Editor, mark_undo)))),
+drag(G, Ev:event) :->
+	"Extend the selection if selecting"::
+	(   (   get(G, selecting, @on)
+	    ->	true
+	    ;	get(G, down_position, DownPos),
+		get(Ev, position, EvPos),
+		get(DownPos, distance, EvPos, D),
+		D > 25
+	    ->  send(G, slot, selecting, @on)
+	    )
+	->  get(Ev, receiver, Editor),
+	    get(Editor, image, Image),
+	    (	get(Image, index, Ev, Index)
+	    ->  send(G, kill_select_timer),
+	        send(Editor, selection_extend, Index),
+		send(G, place_caret)
+	    ;	get(G, select_timer, Timer),
+		Timer \== @nil
+	    ->	true
+	    ;	get(Ev, y, Y),
+		get(Editor, height, H),
+		(   Y > H
+		->  send(G, setup_select_scroll, up)
+		;   Y < 0
+		->  send(G, setup_select_scroll, down)
+		)
+	    ->	true
+	    ;   true
+	    )
+	;   true
+	).
 
-	make_make_selection_gesture(R, MakeSelectionGesture),
-	make_extend_selection_gesture(ExtendGesture),
-	send(R, append, MakeSelectionGesture),
-	send(R, append, ExtendGesture).
+terminate(G, _Ev:event) :->
+	"If we are selecting, copy the selection"::
+	send(G, kill_select_timer),
+	get(G, editor, Editor),
+	send(G, slot, editor, @nil),
+	(   get(G, selecting, @on),
+	    get(Editor, class_variable_value, auto_copy, @on)
+	->  send(Editor, copy)
+	;   true
+	).
 
-	
-make_make_selection_gesture(R, G) :-
-	new(G, gesture),
-	new(Editor, @arg1?receiver),
-	new(Image, Editor?image),
-	new(Index, ?(Image, index, @arg1)),
-	
-	send(G, send_method,
-	     send_method(initiate, vector(event),
-		 and(message(Editor, selection_unit,
-			     when(@arg1?multiclick == single,
-				  character,
-				  progn(if(?(Editor, class_variable_value,
-					     caret_moves_on_select) == @off,
-					   message(Editor, caret,
-						   R?saved_caret)),
-					when(@arg1?multiclick == double,
-					     word, line)))),
-		     message(Editor, selection_origin, Index)))),
-	send(G, send_method,
-	     send_method(drag, vector(event),
-			 message(Editor, selection_extend, Index))),
-	send(G, send_method,
-	     send_method(terminate, vector(event),
-			 and(message(Editor, selection_extend, Index),
-			     if(?(Editor, class_variable_value, auto_copy) == @on,
-				message(Editor, copy))))).
-					 
+:- pce_group(select_scroll).
 
-make_extend_selection_gesture(G) :-
-	new(G, gesture(right)),
-	new(Editor, @arg1?receiver),
-	new(Image, Editor?image),
-	new(Index, ?(Image, index, @arg1)),
-	
-	send(G, condition, Editor?selection_start \== Editor?selection_end),
+setup_select_scroll(G, Direction:{up,down}) :->
+	"Initiate scrolling while extending the selection"::
+	send(G, slot, select_scroll, Direction),
+	get(G, repeat_interval, Time),
+	send(G, slot, select_timer,
+	     new(T, timer(Time, message(G, select_scroll)))),
+	send(T, start).
 
-	send(G, send_method,
-	     send_method(initiate, vector(event),
-		 and(if(@arg1?multiclick \== single,
-			message(Editor, selection_unit,
-			     when(@arg1?multiclick == double,
-				  word,
-				  line))),
-		     message(Editor, selection_extend, Index)))),
-	send(G, send_method,
-	     send_method(drag, vector(event),
-			 message(Editor, selection_extend, Index))),
-	send(G, send_method,
-	     send_method(terminate, vector(event),
-			 and(message(Editor, selection_extend, Index),
-			     if(?(Editor, class_variable_value, auto_copy) == @on,
-				message(Editor, copy))))).
-					 
+repeat_interval(_, I:real) :<-
+	"Speed for scrolling"::
+	(   get(class(scroll_bar), class_variable, repeat_interval, CV),
+	    get(CV, value, I),
+	    number(I)
+	->  true
+	;   I = 0.1
+	).
+
+kill_select_timer(G) :->
+	"Stop and remove the scroll-select timer"::
+	(   get(G, select_timer, Timer),
+	    Timer \== @nil
+	->  send(Timer, stop),
+	    send(G, slot, select_timer, @nil)
+	;   true
+	).
+
+select_scroll(G) :->
+	"Scroll and extend the selection"::
+	get(G, select_scroll, UpDown),
+	get(G, editor, Editor),
+	(   UpDown == up
+	->  send(Editor, scroll_up, 1),
+	    send(Editor, compute),
+	    get(Editor?image, end, Index)
+	;   send(Editor, scroll_down, 1),
+	    send(Editor, compute),
+	    get(Editor?image, start, Index)
+	),
+	send(Editor, selection_extend, Index),
+	send(G, place_caret),
+	send(Editor, flush).
+
+:- pce_group(util).
+
+place_caret(G) :->
+	"Place caret at start of selection"::
+	(   get(G, selecting, @on)
+	->  get(G, editor, Editor),
+	    get(Editor, selection_start, Start),
+	    send(Editor, caret, Start)
+	;   true
+	).
+
+:- pce_end_class.

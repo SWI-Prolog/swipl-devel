@@ -632,7 +632,8 @@ eventWindow(PceWindow sw, EventObj ev)
       rval = eventDevice((Device)sw, ev);
     else
     { DEBUG(NAME_focus,
-	    Cprintf("FOCUS: Directing focussed event to %s\n",
+	    Cprintf("FOCUS: Directing focussed %s event to %s\n",
+		    pp(ev->id),
 		    isNil(sw->focus_recogniser) ? pp(sw->focus)
 		    				: pp(sw->focus_recogniser)));
 

@@ -1,5 +1,16 @@
 				XPCE ToDo List
 
+[ I/O Crash ]
+
+	1) Start XPCE
+	2) Start PceEmacs
+	3) Do ^X^F
+	4) Type text in Prolog window
+	5) Type ^G in Emacs window
+	6) Hit return in Prolog window
+	7) Hit ^C in Prolog window
+	--> segmentation fault (recursive calling of rl_signal_handler())
+
 Simple things to check and fix:
 ===============================
 
@@ -70,7 +81,5 @@ Issue list:
 *) Communicate with host on CWD (current directory)
 
 *) Improve consistency of functional group identifiers.
-
-*) Print \t as space for xdraw.c text functions
 
 *) Modify node->displayed to work as one should expect?
