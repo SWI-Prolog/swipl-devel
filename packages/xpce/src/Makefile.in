@@ -640,7 +640,8 @@ PLBINDIR=	$(PLBASE)/bin/$(PLARCH)
 RTBINDIR=	$(RTHOME)/bin/$(PLARCH)
 DVHOME=		$(RTHOME)
 DVLIBDIRS=	lib lib/compatibility lib/dialog lib/draw lib/emacs lib/man \
-		lib/xref lib/english demo contrib contrib/rubik
+		lib/xref lib/english demo contrib contrib/rubik lib/trace
+DVIMGDIRS=	lib/dialog/bitmaps lib/trace/icons
 DVBOOTDIRS=	boot
 DVMISCFILES=	ChangeLog LICENCE
 RTMISC=		Defaults RT-LICENCE README README.RT
@@ -730,12 +731,14 @@ dv-lib:
 		$(PL) -f none -F none -g true \
 			-t "make_library_index('$(DVHOME)/prolog/lib')"
 		$(INSTALL_DATA) ../prolog/lib/Overview $(DVHOME)/prolog/lib
-		@if [ ! -d $(DVHOME)/prolog/lib/dialog/bitmaps ]; then \
-		    mkdir $(DVHOME)/prolog/lib/dialog/bitmaps; \
-		fi
-		@for f in ../prolog/lib/dialog/bitmaps/*.bm; do \
-		    echo "lib/dialog/bitmaps/$$f"; \
-		    $(INSTALL_DATA) $$f $(DVHOME)/prolog/lib/dialog/bitmaps; \
+		@for d in $(DVIMGDIRS); do \
+		    if [ ! -d $(DVHOME)/prolog/$$d ]; then \
+		        mkdir $(DVHOME)/prolog/$$d; \
+		    fi; \
+		    echo -n "Installing icons in prolog/$$d ..."; \
+		    $(INSTALL_DATA) ../prolog/$$d/*.bm ../prolog/$$d/*.xpm \
+						$(DVHOME)/prolog/$$d; \
+		    echo done; \
 		done
 		$(INSTALL_DATA) ../prolog/lib/man/classification.dat \
 				$(DVHOME)/prolog/lib/man
