@@ -58,18 +58,35 @@ Compilation:
 ============
 
 Includes a project file for MSVC 4.2. Please inspect the settings first.
-Console.dll is made from console.c, edit.c and history.c
+plterm.dll is made from console.c, edit.c and history.c
 
 
-Test:
-=====
+Settings:
+=========
 
-The test.* files contain a  some   test  programs. pl-stream.[ch] is the
-SWI-Prolog IO-stream package used by test.
+Settings are kept in the Windows registry under the key
 
+	Software\<vendor>\<program>\Console
 
-Programmers documentation:
-==========================
+Where
+		
+	<vendor>  is SWI, unless compiled with a different setting for
+		  RLC_VENDOR
+        <program> is the basename of the program without extension
+		  (i.e. plwin for the program C:\Program
+		  Files\pl\bin\plwin.exe).
 
+Maintained values on this key are:
 
-
+	Name		Type			Description
+	================================================================
+	SaveLines	int (200-100000)	# lines saved for scrollback
+	Width		int (20-300)		# width in characters
+	Height		int (5-100)		# height in characters
+	X		int (0-screen-width)	# X-position of window
+	Y		int (0-screen-height)	# Y-position of window
+	FaceName	str			# Font info (settable using
+	FontFamily	int			# extension of Windows menu)
+	FontSize	int
+	FontWeight	int
+	FontCharSet	int
