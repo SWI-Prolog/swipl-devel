@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Documentation of file_directory_name/2 (Lourens van der
+    Meij).
+
   * PORT: Deal with missing rl_done declarations from older readline
     libraries (NIDE Naoyuki).
 
