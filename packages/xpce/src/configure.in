@@ -540,14 +540,16 @@ AC_C_BIGENDIAN
 AC_CHECK_PROGS(YACC, bison yacc, yacc)
 if test $YACC = "bison"; then YACC="bison -y"; fi
 
-AC_CHECK_LIB(socket, socket,
-	     [NETLIBS="$NETLIBS -lsocket"; LIBS="$LIBS -lsocket"]
-	     AC_DEFINE(HAVE_LIBSOCKET, 1,
-		       "Define if you have the socket library (-lsocket)."))
-AC_CHECK_LIB(nsl, t_bind,
-	     [NETLIBS="$NETLIBS -lnsl"]
-	     AC_DEFINE(HAVE_LIBNSL, 1,
-		       "Define if you have the nsl library (-lnsl)."))
+AC_CHECK_FUNC(socket, [], [
+             AC_CHECK_LIB(socket, socket,
+                      [NETLIBS="$NETLIBS -lsocket"; LIBS="$LIBS -lsocket"]
+                      AC_DEFINE(HAVE_LIBSOCKET, 1,
+                      "Define if you have the socket library (-lsocket)."))])
+AC_CHECK_FUNC(gethostent, [], [
+             AC_CHECK_LIB(nsl, gethostent,
+                      [NETLIBS="$NETLIBS -lnsl"]
+                      AC_DEFINE(HAVE_LIBNSL, 1,
+                      "Define if you have the nsl library (-lnsl)."))])
 
 AC_CHECK_HEADERS(unistd.h string.h memory.h sys/time.h sys/file.h pwd.h)
 AC_CHECK_HEADERS(sys/select.h sys/param.h malloc.h sys/resource.h stropts.h)
