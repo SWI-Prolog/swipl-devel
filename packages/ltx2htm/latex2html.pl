@@ -62,6 +62,9 @@ user:file_search_path(foreign, library(Lib)) :-
 	concat('lib/', Arch, Lib).
 user:file_search_path(psfig, tex(figs)).
 user:file_search_path(tex, '.').
+user:file_search_path(img, '.').
+user:file_search_path(img, icons).
+user:file_search_path(img, library(icons)).
 
 :- load_foreign_library(user:foreign(tex)).
 
@@ -897,9 +900,10 @@ cmd(author({Author}), []) :-			% \author
 cmd(bodycolor({BG}), []) :-			% \bodycolor
 	retractall(bodycolor(_)),
 	assert(bodycolor(BG)).
-cmd(linkimage({Name}, {Path}), []) :-		% \linkimage{Id, Path}
+cmd(linkimage({Name}, {Icon}), []) :-		% \linkimage{Id, Path}
 	make_output_directory,
 	html_output_dir(Dir),
+	absolute_file_name(img(Icon), Path),
 	file_base_name(Path, Base),
 	concat_atom([Dir, Base], /, To),
 	sformat(Cmd, 'cp ~w ~w', [Path, To]),
@@ -918,8 +922,10 @@ cmd(htmlmainfile({File}), []) :-
 	retractall(html_file_base(_)),
 	assert(html_file_base(File)).
 cmd(htmlfiledepth({Depth}), []) :-
+	atom_chars(Depth, Chars),
+	number_chars(D, Chars),
 	retractall(html_split_level(_)),
-	assert(html_split_level(Depth)).
+	assert(html_split_level(D)).
 
 cmd(maketitle,					% \maketitle
     #quote(#quote(#quote(#quote([ #center(#h(1, #thetitle)),
@@ -2240,6 +2246,7 @@ ps2gif(In, Out, Options) :-
 	;   format(user_error, 'Could not find figure "~w"~n', In),
 	    fail
 	),
+	format(user_error, 'Converting ~w to .GIF~n', [InFile]),
 	get_ps_parameters(InFile, EPS, bb(X1,Y1,X2,Y2)),
 	(   get_option(Options, width(W))
 	->  ScaleX is W/((X2-X1)/72)

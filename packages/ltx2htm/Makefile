@@ -48,6 +48,8 @@ xinstall:	tex.so latex2html
 	$(INSTALL_DATA) tex.so	      $(LIBDIR)/lib/$(ARCH)
 	$(INSTALL_PROGRAM) latex2html $(BINDIR)
 	for f in $(LIB); do $(INSTALL_DATA) $$f $(LIBDIR); done
+	mkdir -p $(LIBDIR)/icons
+	for f in icons/*.gif; do $(INSTALL_DATA) $$f $(LIBDIR)/icons; done
 
 latex2html:	Makefile latex2html.in
 	sed -e 's%@PL@%$(PL)%' -e 's%@LIBDIR@%$(LIBDIR)%' latex2html.in > $@
