@@ -10,7 +10,7 @@
 
 PLHOME=..\..
 !include ..\..\src\rules.mk
-PKGDLL=odbc
+PKGDLL=odbc4pl
 
 OBJ=		odbc.obj
 
