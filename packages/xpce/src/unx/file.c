@@ -806,7 +806,7 @@ append_file(FileObj f, String str)
     { const charA *s = str->s_textA;
       const charA *e = &s[str->size];
   
-      while(s<e)
+      for(; s<e; s++)
       { if ( Sputcode(*s, f->fd) < 0 )
 	  return reportErrorFile(f);
       }
@@ -814,7 +814,7 @@ append_file(FileObj f, String str)
     { const charW *s = str->s_textW;
       const charW *e = &s[str->size];
   
-      while(s<e)
+      for(; s<e; s++)
       { if ( Sputcode(*s, f->fd) < 0 )
 	  return reportErrorFile(f);
       }

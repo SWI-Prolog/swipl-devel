@@ -2,10 +2,14 @@
 			   ==============
 
 
+* FIXED: `file->append' for text-files did not terminate (bug introduced
+  in 6.5.3).
+
 * PORT: Fix various MacOS (and other) portability problems introduced
   in wide character version.
 
 * PORT: enhanced detection of visibility attribute
+
 
 VERSION 6.5.3, distributed with SWI-Prolog 5.5.3
 ================================================
