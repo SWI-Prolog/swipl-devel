@@ -1988,6 +1988,45 @@ promoteTextBuffer(TextBuffer tb)
 }
 
 
+static status
+fits_iso_latin_1(const charW *s, long len)
+{ const charW *e = &s[len];
+
+  for( ;s<e; s++)
+  { if ( *s > 0xff )
+      succeed;
+  }
+
+  fail;
+}
+
+
+static status
+demoteTextBuffer(TextBuffer tb)
+{ if ( !istbA(tb) )
+  { if ( fits_iso_latin_1(tb->tb_bufferW, tb->gap_start) &&
+	 fits_iso_latin_1(tb->tb_bufferW+tb->gap_end, 
+			  tb->allocated - tb->gap_end) )
+    { charA *s = pceMalloc(tb->allocated * sizeof(charA));
+      const charW *f = tb->tb_bufferW;
+      const charW *e = &f[tb->allocated];
+      charA *t = s;
+
+      while(f<e)
+	*t++ = *f++;
+
+      pceFree(tb->tb_bufferW);
+      tb->tb_bufferA = s;
+      tb->buffer.iswide = FALSE;
+    } else
+    { fail;
+    }
+  }
+
+  succeed;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 insert_file_textbuffer()
 
@@ -2523,7 +2562,9 @@ static senddecl send_textBuffer[] =
   SM(NAME_truncateAsFile, 0, NULL, truncateAsFileTextBuffer,
      NAME_stream, "Implements handling a buffer as a file"),
   SM(NAME_writeAsFile, 2, T_writeAsFile, writeAsFileTextBuffer,
-     NAME_stream, "Implements handling a buffer as a file")
+     NAME_stream, "Implements handling a buffer as a file"),
+  SM(NAME_iso_latin_1, 0, NULL, demoteTextBuffer,
+     NAME_encoding, "Try to represent text as ISO Latin-1")
 };
 
 /* Get Methods */

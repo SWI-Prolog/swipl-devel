@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: `text_buffer->iso_latin_1' to see whether text can be expressed in
+  ISO Latin-1.
+
 * FIXED: Avoid BadAtom errors on X_GetAtomName when getting the X11 selection.
 
 

@@ -61,7 +61,7 @@ Sread_object(void *handle, char *buf, int size)
 
   if ( h->encoding == ENC_WCHAR )
   { advance = size/sizeof(wchar_t);
-  } else if ( h->encoding == ENC_NONE )
+  } else if ( h->encoding == ENC_OCTET )
   { advance = size;
   } else
   { assert(0);
@@ -148,7 +148,7 @@ Swrite_object(void *handle, char *buf, int size)
     } else
     { str_set_n_wchar(&s, advance, (wchar_t*)wbuf);
     }
-  } else if ( h->encoding == ENC_NONE )
+  } else if ( h->encoding == ENC_OCTET )
   { advance = size;
     str_set_n_ascii(&s, size, buf);
   } else
@@ -321,7 +321,7 @@ Sopen_object(Any obj, const char *mode)
     if ( (flags&SIO_TEXT) )
       stream->encoding = ENC_WCHAR;	/* see comment above */
     else
-      stream->encoding = ENC_NONE;
+      stream->encoding = ENC_OCTET;
     h->encoding = stream->encoding;
 
     return stream;

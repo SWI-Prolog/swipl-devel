@@ -132,7 +132,7 @@ typedef struct io_position
 					/* in pl-file.c */
 typedef enum
 { ENC_UNKNOWN = 0,			/* invalid/unknown */
-  ENC_NONE,				/* raw 8 bit input */
+  ENC_OCTET,				/* raw 8 bit input */
   ENC_ASCII,
   ENC_ISO_LATIN_1,
   ENC_UTF8,
