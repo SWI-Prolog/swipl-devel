@@ -922,8 +922,6 @@ move_graphical(Graphical gr, int x, int y)
     doSetGraphical(gr, X, Y, DEFAULT, DEFAULT);
 }
 
-#define MAXCOLS 1024
-#define MAXROWS 1024
 
 static status
 computeFormatDevice(Device dev)
@@ -936,16 +934,22 @@ computeFormatDevice(Device dev)
 #define MUSTBEVISIBLE(dev, gr) { if (gr->displayed == OFF) continue; }
 
   if ( l->columns == ON )
-  { int cw[MAXCOLS];			/* column widths */
-    int rh[MAXROWS];			/* row heights */
-    char cf[MAXCOLS];			/* column format */
+  { int *cw;				/* column widths */
+    int *rh;				/* row heights */
+    char *cf;				/* column format */
     int cs = valInt(l->column_sep);	/* column separator size */
     int rs = valInt(l->row_sep);	/* row separator size */
     Cell cell;
     int c, r = 0;
     int cols = valInt(l->width);
+    int rows = (valInt(getSizeChain(dev->graphicals)) + cols - 1)/cols;
     int x = 0;
     int y = 0;
+
+    if ( !(cw = alloca(sizeof(int) * cols)) ||
+	 !(cf = alloca(sizeof(char) * cols)) ||
+	 !(rh = alloca(sizeof(int) * (rows+1))) )
+      return errorPce(dev, NAME_notEnoughMemory);
 
     for(c=0; c < cols; c++)
     { cw[c] = 0;
