@@ -37,19 +37,6 @@ PROLOG FLAGS AND FOREIGN CODE
 	  level of a split pl_set_feature() if the system is properly
 	  initialised.
 
-MULTITHREAD ISSUES
-==================
-
-	* Thread-local vs. shared dynamic predicates?  By default
-	  local, but with declaration below we make them shared:
-
-	  :- thread_shared foo/1, bar/2.
-
-	  Issues:
-
-		* How to represent per-thread clause-lists for the
-		  same predicate?
-
 
 SCRIPT
 ======
@@ -198,3 +185,11 @@ MISC ISSUES:
 	* Is it safe to create a foreign frame and call-back while another
 	  query is in progress?  I think it is, but this should be checked,
 	  documented and handled by a test-procedure.
+
+WINDOWS ISSUES:
+---------------
+
+	* After installing icons one needs the following to tell the
+	  explorer:  Must be added to the regtry library!
+
+	  SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, nil, nil);

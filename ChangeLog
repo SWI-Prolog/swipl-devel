@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Ignore -x in pl -- -x foo.  With patch from Salvador "Fandiño.
+
   * FIXED: Memory management issues in the multi-threaded version.  Thanks to
     Sergey Tikhonov for his analysis.
 

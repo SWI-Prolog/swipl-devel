@@ -521,7 +521,9 @@ openResourceDB(int argc, char **argv)
   
   for(n=0; n<argc-1; n++)
   { if ( argv[n][0] == '-' && argv[n][2] == EOS ) /* -? */
-    { if ( GD->bootsession )
+    { if ( argv[n][1] == '-' )
+	break;				/* trapped -- */
+      if ( GD->bootsession )
       { if ( argv[n][1] == 'o' )
 	{ xfile = argv[n+1];
 	  break; 
