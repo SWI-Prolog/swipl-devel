@@ -1,6 +1,14 @@
 			SWI-Prolog ChangeLog
 			====================
 
+<Released as w32pl340.exe, using #2 in title of installation>
+
+  * INSTALLATION: Win32: Removed local copy of msvcrt.dll and perform
+    version control installing msvcrt.dll globally.
+
+  * ADDED: Win32 to check for interrupts while doing atom-completion,
+    allowing for interrupt using Control-C.
+
   * FIXED: Bug in `retry' at an exception port, sometimes throwing an
     assertion failure.
 
