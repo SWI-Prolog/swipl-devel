@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Avoid BadAtom errors on X_GetAtomName when getting the X11 selection.
+
+
 VERSION 6.5.7, distributed with SWI-Prolog 5.5.7
 ================================================
 

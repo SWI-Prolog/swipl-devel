@@ -533,7 +533,11 @@ collect_selection_display(Widget w, XtPointer xtp,
 { DisplayObj d = xtp;
   string s;
 
-  if ( *type == XA_STRING )
+  if ( *type == XT_CONVERT_FAIL || *type == (Atom)0 )
+  { selection_error = CtoName("Selection conversion failed");
+    selection_complete = TRUE;
+    return;
+  } else if ( *type == XA_STRING )
   { if ( *format == 8 )
     { if ( !str_set_n_ascii(&s, *len, (char *)value) )
       { selection_error = CtoName("String too long");
@@ -600,6 +604,7 @@ collect_selection_display(Widget w, XtPointer xtp,
   } else
   { char buf[256];
 
+    DEBUG(NAME_selection, Cprintf("Bad type: Atom %d\n", *type));
     sprintf(buf, "Bad type: %s", DisplayAtomToString(d, *type));
 
     selection_error = CtoName(buf);
