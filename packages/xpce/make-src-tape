@@ -33,12 +33,18 @@ if [ ! "o$1" = "o-q" ]; then
   echo "done"
 fi
 
-cat cvsfiles | \
+# Include generated files for building on MS-Windows.
+
+(echo src/gnu/getdate.c &&
+ echo src/h/names.ic &&
+ echo src/h/named.ih &&
+ cat cvsfiles ) | \
   $exclude1 | \
   grep -v sicstus/ | \
   grep -v prolog/pwboot/ | \
   grep -v quintus/ | \
   grep -v /prowindows | \
+  grep -v /licence/ | \
 	  sed "s@^\./@xpce-$version/@" > tapefiles
 
 cd ..

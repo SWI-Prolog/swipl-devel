@@ -1,3 +1,14 @@
+* FIXED: `file<-read' on Windows for not-so-large files and Unix for
+  truely large files.  Also a lot faster now.  Reported by Bob Wielinga.
+
+* FIXED: Various ISO Prolog compatibility issues.
+
+* FIXED: Take care of module-local operator specifications.  Fixes problems
+  with autoloading.
+
+* ADDED: Generated files to the source-distribution to allow for recompiling
+  under Windows.
+
 * ADDED: --enable-mt configuration option to provide rudimentary support
   for multi-threading.  Supports pceMTLock(int lockid) and
   pceMTUnlock(int lockid).  Requires thread-safe version of the X11 libraries.
