@@ -131,9 +131,17 @@ syntax(Char + Term, ST) :-
 	Term =.. TermArgs,
 	Msg =.. [add_syntax, Char | TermArgs],
 	send(ST, Msg).
-syntax(paragraph_end(Regex), ST) :-
+syntax(paragraph_end(End), ST) :-
+	(   is_list(End)
+	->  concat_atom(End, '\\|', Regex)
+	;   Regex = End
+	),
 	send(ST, paragraph_end, Regex).
-syntax(sentence_end(Regex), ST) :-
+syntax(sentence_end(End), ST) :-
+	(   is_list(End)
+	->  concat_atom(End, '\\|', Regex)
+	;   Regex = End
+	),
 	send(ST, sentence_end, Regex).
 
 
