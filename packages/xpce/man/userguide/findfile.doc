@@ -1,23 +1,32 @@
-\subsection{Library ``find_file''}		\label{sec:findfile}
+section{Library ``find_file''}		\label{sec:findfile}
 
-\index{file,prompting for}
-This library file describes the class \class{finder}, representing
-a modal dialog window for entering a filename.  This class defines
-the method `finder <-file':
+\index{file,prompting for}%
+The library \pllib{find_file} defines the class \class{finder},
+representing a modal dialog window for entering a filename. This class
+defines the method `finder <-file':
 
 \begin{description}
-    \getmethod{finder}{file}{Exists:[bool], Ext:[name],
+    \getmethod{finder}{file}{Exists:[bool], Ext:[name|chain],
 			     Dir:[directory], Def:[file]}{name}
-Process events util the user specified a file or pressed the cancel
-button.  In the latter case this method fails. The normal way to use
-this predicate is: 
+Ask the user for a file.  If \arg{Exists} is @on, only existing files
+can be returned.  \arg{Ext} is either an atom denoting a single
+extension or a chain of allowed extensions.  Extensions can be
+specified with or without the leading dot.  I.e.\ both \const{pl}
+and \const{'.pl'} are valid specifications of files ending in
+\const{'.pl'}.  \arg{Dir} is the directory to start from.  When omitted,
+this is the last directory visited by this instance of \class{finder}
+or the current working directory.  \arg{Def} is the default file-name
+returned.  When omitted there is no default.
+
+Below is the typical declaration and usage.  In this example we ask
+for an existing Prolog file.
 
 \begin{code}
 :- pce_autoload(finder, library(find_file)).
 :- pce_global(@finder, new(finder)).
 
 	...,
-	get(@finder, file, @on, '.pl', PlFile),
+	get(@finder, file, @on, pl, PlFile),
 	...,
 \end{code}
 \end{description}
