@@ -304,8 +304,8 @@ forAllTableColumn(TableColumn col, Code code)
     if ( cell )
     { Any av[2];
 
-      av[1] = cell;
-      av[2] = toInt(y);
+      av[0] = cell;
+      av[1] = toInt(y);
       if ( !forwardCodev(code, 2, av) )
 	fail;
     }
