@@ -667,10 +667,6 @@ trail-references  that  will   be   overruled    by   the   choice-point
 stack-reference anyway.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifndef O_DESTRUCTIVE_ASSIGNMENT
-#define isTrailValueP(x) 0
-#endif
-
 static GCTrailEntry
 mark_choicepoints(Choice ch, GCTrailEntry te)
 { GET_LD
