@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: gspy/1 to start the guitracer on a spyed predicate.
+
+  * ADDED: goal_expansion/2 to work on the arguments of catch/3.
+
   * ENHANCED: more debugger issues.  Still unsatisfactory.
 
   * FIXED: proper writing of variables in the normal terminal debugger.

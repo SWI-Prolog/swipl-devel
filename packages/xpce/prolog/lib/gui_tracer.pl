@@ -33,14 +33,19 @@
 	  [ guitracer/0,
 	    noguitracer/0,		% Switch it off
 	    prolog_break_at/3,		% +File, +Line, +Pos
-	    gtrace/0			% Start tracer and trace
+	    gtrace/0,			% Start tracer and trace
+	    gspy/1			% Start tracer and set spypoint
 	  ]).
+
+:- module_transparent
+	gspy/1.
 
 guitracer :-
 	current_prolog_flag(gui_tracer, true), !.
 guitracer :-
 	current_prolog_flag(gui_tracer, _), !,
 	set_prolog_flag(gui_tracer, true),
+	visible(+cut_call),
 	print_message(informational, gui_tracer(true)).
 guitracer :-
 	load_files([library('trace/trace')], [silent(true)]),
@@ -49,6 +54,7 @@ guitracer :-
 noguitracer :-
 	current_prolog_flag(gui_tracer, true), !,
 	set_prolog_flag(gui_tracer, false),
+	visible(-cut_call),
 	print_message(informational, gui_tracer(false)).
 noguitracer.
 
@@ -61,6 +67,14 @@ noguitracer.
 gtrace :-
 	guitracer,
 	trace.
+
+%	gspy(+Spec)
+%	
+%	Like spy/1, but uses the graphical tracer.
+
+gspy(Predicate) :-
+	guitracer,
+	spy(Predicate).
 
 %	prolog_break_at(+File, +Line, +Pos)
 %

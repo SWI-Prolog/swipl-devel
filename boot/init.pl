@@ -1395,6 +1395,9 @@ $do_expand_body(once(A), once(EA)) :- !,
         $do_expand_body(A, EA).
 $do_expand_body(ignore(A), ignore(EA)) :- !,
         $do_expand_body(A, EA).
+$do_expand_body(catch(A, E, B), catch(EA, E, EB)) :- !,
+        $do_expand_body(A, EA),
+        $do_expand_body(B, EB).
 $do_expand_body(forall(A, B), forall(EA, EB)) :- !,
         $do_expand_body(A, EA),
         $do_expand_body(B, EB).

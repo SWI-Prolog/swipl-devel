@@ -37,6 +37,7 @@
 
 variable(hor_stretch,	int := 100,	get, "Stretch-ability").
 variable(hor_shrink,	int := 100,	get, "Shrink-ability").
+variable(delay_next_to,	date*,		get, "Delay errors and warnings").
 
 initialise(R) :->
 	send(R, send_super, initialise, reporter, ''),
@@ -45,13 +46,38 @@ initialise(R) :->
 	send(R, reference, point(0, R?height)).
 
 report(R, Status:name, Fmt:[char_array], Args:any ...) :->
-	Msg =.. [report, Status, Fmt | Args], % new xpce-5
-	colour(Status, Colour),
-	send(R, colour, Colour),
-	send_super(R, Msg).
+	(   get(R, delay_next_to, DelayTo),
+	    DelayTo \== @nil,
+	    get(DelayTo, difference, new(date), ToGo),
+	    ToGo > 0,
+	    (   vital(Status)
+	    ->	send(timer(ToGo), delay),
+		fail
+	    ;	true
+	    )
+	->  true
+	;   Msg =.. [report, Status, Fmt | Args],
+	    colour(Status, Colour),
+	    send(R, colour, Colour),
+	    delay(Status, Date),
+	    send(R, slot, delay_next_to, Date),
+	    send_super(R, Msg)
+	).
 	
 colour(error, red) :- !.
 colour(_, @default).
+
+delay(warning, Date) :- !,
+	new(Date, date),
+	send(Date, advance, 2).
+delay(error, Date) :- !,
+	new(Date, date),
+	send(Date, advance, 5).
+delay(_, @nil).
+
+vital(warning).
+vital(error).
+vital(inform).
 
 :- pce_end_class.
 
