@@ -229,9 +229,9 @@ rlc_bind_terminal(rlc_console c)
   Soutput->handle = c;
   Serror->handle  = c;
 
-  Sinput->encoding  = ENC_UNICODE_LE;
-  Soutput->encoding = ENC_UNICODE_LE;
-  Serror->encoding  = ENC_UNICODE_LE;
+  Sinput->encoding  = ENC_WCHAR;
+  Soutput->encoding = ENC_WCHAR;
+  Serror->encoding  = ENC_WCHAR;
 }
 
 
@@ -307,9 +307,9 @@ pl_win_open_console(term_t title, term_t input, term_t output, term_t error,
   out->position = &in->posbuf;
   err->position = &in->posbuf;
 
-  in->encoding  = ENC_UNICODE_LE;
-  out->encoding = ENC_UNICODE_LE;
-  err->encoding = ENC_UNICODE_LE;
+  in->encoding  = ENC_WCHAR;
+  out->encoding = ENC_WCHAR;
+  err->encoding = ENC_WCHAR;
 
   if ( !PL_unify_stream(input, in) ||
        !PL_unify_stream(output, out) ||

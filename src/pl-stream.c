@@ -610,7 +610,7 @@ Sputcode(int c, IOSTREAM *s)
 	  return -1;
       }
       
-      return -1;
+      break;
     }
     case ENC_UNKNOWN:
       return -1;
@@ -786,7 +786,17 @@ Sungetcode(int c, IOSTREAM *s)
       }
       return -1;
     }
-    case ENC_WCHAR:			/* TBD */
+    case ENC_WCHAR:
+    { pl_wchar_t chr = c;
+
+      if ( s->bufp-sizeof(chr) >= s->unbuffer )
+      { s->bufp -= sizeof(chr);
+	memcpy(s->bufp, &chr, sizeof(chr));
+
+	return c;
+      }
+      return -1;
+    }
     case ENC_UNKNOWN:
       return -1;
   }
