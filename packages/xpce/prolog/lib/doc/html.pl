@@ -428,6 +428,14 @@ element(select, Attrs, Content) -->	% <SELECT>
 	].
 	
 
+		 /*******************************
+		 *	      CATCH ALL		*
+		 *******************************/
+
+element(E, _, Content) -->
+	{ print_message(warning, html_ignored_element(E))
+	},
+	Content.
 
 
 		 /*******************************
@@ -481,3 +489,5 @@ relative_width(Spec, Frac) :-
 
 prolog:message(html_ignored_attribute(Element, Attribute)) -->
 	[ 'Failed to handle attribute ~p of element ~w'-[Attribute, Element] ].
+prolog:message(html_ignored_element(Element)) -->
+	[ 'Ignored element "~w", using content'-[Element] ].

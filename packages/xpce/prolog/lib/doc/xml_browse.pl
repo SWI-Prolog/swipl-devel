@@ -20,9 +20,26 @@
 
 initialise(B, XML:prolog) :->
 	send_super(B, initialise, 'XML structure browser'),
-	send(B, append, new(H, xml_browse_hierarchy(XML))),
-	send(new(doc_window), right, H).
+	send(B, append, new(D, dialog)),
+	send(D, append, new(menu_bar)),
+	send(D, pen, 0),
+	send(D, gap, size(0, 5)),
+	send(B, fill_menu),
+	new(H, xml_browse_hierarchy(XML)),
+	send(new(doc_window), right, H),
+	send(H, below, D).
 	
+fill_menu(B) :->
+	get(B, member, dialog, D),
+	get(D, member, menu_bar, MB),
+	send(MB, append, new(F, popup(view))),
+	send_list(F, append,
+		  [ menu_item(dom,
+			      message(B, view_dom),
+			      'DOM')
+		  ]).
+
+
 xml(B, XML:prolog) :->
 	get(B, member, doc_window, DW),
 	send(DW, clear),
@@ -34,6 +51,19 @@ show_xml(B, Tokens:prolog) :->
 	get(B, member, doc_window, DW),
 	send(DW, show, Tokens).
 	
+view_dom(B) :->
+	get(B, member, xml_browse_hierarchy, H),
+	get_chain(H, selection, Selection),
+	new(V, view),
+	pce_open(V, write, Fd),
+	forall(member(Node, Selection),
+	       (   get(Node, xml, DOM),
+		   pretty_print(Fd, DOM)
+	       )),
+	close(Fd),
+	send(V, caret, 0),
+	send(V, open).
+
 :- pce_end_class.
 
 		 /*******************************
@@ -60,3 +90,4 @@ caption(H, XML:prolog, Caption:name) :<-
 	).
 
 :- pce_end_class.
+
