@@ -63,20 +63,25 @@
 %
 user:portray_message(warning,import(_,_,clpr,private)).
 
-:- use_module('clpr/arith_r').
-:- use_module('clpr/itf3').
-:- use_module('clpr/store').
-:- use_module('clpr/geler').
-:- use_module('clpr/nfr').
-:- use_module('clpr/class').
-:- use_module('clpr/nf').
-:- use_module('clpr/project').
-:- use_module('clpr/bv').
-:- use_module('clpr/ineq').
-:- use_module('clpr/redund').
-:- use_module('clpr/fourmotz').
-:- use_module('clpr/bb').
-:- use_module('clpr/dump').
+:- load_files([ 'clpr/arith_r',
+		'clpr/itf3',
+		'clpr/store',
+		'clpr/geler',
+		'clpr/nfr',
+		'clpr/class',
+		'clpr/nf',
+		'clpr/project',
+		'clpr/bv',
+		'clpr/ineq',
+		'clpr/redund',
+		'clpr/fourmotz',
+		'clpr/bb',
+		'clpr/dump'
+	      ],
+	      [ if(not_loaded),
+		silent(true)
+	      ]).
+
 
 		 /*******************************
 		 *	 TOPLEVEL PRINTING	*	

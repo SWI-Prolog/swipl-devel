@@ -1,5 +1,6 @@
 Dec 16, 2004
 
+   * JW: Make loading parts silent
    * TS: Fixed bug toplevel printing. Now only pass different
 	 variables to dump/3.
 
