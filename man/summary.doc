@@ -286,6 +286,7 @@ suggest predicates from a keyword.
 \predicatesummary{prolog_edit:edit_source}{1}{Call editor for edit/1}
 \predicatesummary{prolog_edit:edit_command}{2}{Specify editor activation}
 \predicatesummary{prolog_edit:load}{0}{Load edit/1 extensions}
+\predicatesummary{prolog_file_type}{2}{Define meaning of file extension}
 \predicatesummary{prolog_frame_attribute}{3}{Obtain information on a goal environment}
 \predicatesummary{prolog_list_goal}{1}{Hook.  Intercept tracer 'L' command}
 \predicatesummary{prolog_load_context}{2}{Context information for directives}

@@ -170,11 +170,36 @@ user:file_search_path(foreign, swi(lib)).
 \end{code}
 
 The file_search_path/2 expansion is used by all loading predicates as
-well as by absolute_file_name/2.
+well as by absolute_file_name/[2,3].
 
     \predicate{expand_file_search_path}{2}{+Spec, -Path}
 Unifies \arg{Path} will all possible expansions of the file name
 specification \arg{Spec}.  See also absolute_file_name/3.
+
+    \predicate{prolog_file_type}{2}{?Extension, ?Type}
+This dynamic multifile predicate defined in module \module{user}
+determines the extensions considered by file_search_path/2.
+\arg{Extension} is the filename extension without the leading dot,
+\arg{Type} denotes the type as used by the \term{file_type}{Type}
+option of file_search_path/2.  Here is the initial definition of
+prolog_file_type/2:
+
+\begin{code}
+user:prolog_file_type(pl,	prolog).
+user:prolog_file_type(Ext,	prolog) :-
+	feature(associate, Ext),
+	Ext \== pl.
+user:prolog_file_type(qlf,	qlf).
+user:prolog_file_type(so,	executable) :-
+	feature(open_shared_object, true).
+user:prolog_file_type(dll,	executable) :-
+	feature(dll, true).
+\end{code}
+
+Users may wish to change the extension used for Prolog source files
+to avoid conflicts (for example with \program{perl}) as well as to
+be compatible with some specific implementation. The preferred
+alternative extension is \fileext{pro}.
 
     \predicate{source_file}{1}{?File}
 Succeeds if \arg{File} was loaded using consult/1 or ensure_loaded/1.
@@ -3064,7 +3089,8 @@ to \file{.} and \file{..} are deleted. SWI-Prolog uses absolute file names to
 register source files independent of the current working directory. See
 also absolute_file_name/3.
 \predicate{absolute_file_name}{3}{+Spec, +Options, -Absolute}
-Converts the given file specification into an absolute path. \arg{Option} is a list of options to guide the conformation process:
+Converts the given file specification into an absolute path.
+\arg{Option} is a list of options to guide the conversion:
 
 \begin{description}
     \termitem{extensions}{ListOfExtensions}
@@ -3081,9 +3107,10 @@ Defines extensions. Current mapping: \const{txt} implies \const{['']},
 \const{prolog} implies \const{['.pl', '']}, \const{executable} implies
 \const{['.so', '']}, \const{qlf} implies \const{['.qlf', '']} and
 \const{directory} implies \const{['']}.
-    \termitem{file_errors}{fail/true}
-Report if the path cannot be resolved or be silent.  The default is
-to stay silent.
+    \termitem{file_errors}{fail/error}
+If \const{error} (default), throw and \const{existence_error} exception
+if the file cannot be found.  If \const{fail}, stay silent.%
+	footnote{Silent operation was the default upto version 3.2.6.}
     \termitem{solutions}{first/all}
 If \const{first} (default), the predicates leaves no choice-point.
 Otherwise a choice-point will be left and backtracking may yield
