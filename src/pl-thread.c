@@ -1962,6 +1962,13 @@ PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
     fail;
   }
 
+  if ( !info->thread_data )
+  { UNLOCK();
+    return PL_error(NULL, 0, NULL,
+		    ERR_PERMISSION,
+		    ATOM_statistics, ATOM_thread, A1);
+  }
+
   if ( LD != info->thread_data )
   { atom_t k;
 
@@ -2186,7 +2193,7 @@ resumeThreads(void)
       if ( pthread_kill(t->tid, SIG_RESUME) == 0 )
 	signalled++;
       else
-	Sdprintf("Failed to signal %d: %s\n", i, OsError());
+	Sdprintf("resumeThreads(): Failed to signal %d: %s\n", i, OsError());
     }
   }
 
@@ -2267,7 +2274,7 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
       if ( pthread_kill(threads[i].tid, SIG_FORALL) == 0 )
       { signalled++;
       } else if ( errno != ESRCH )
-	Sdprintf("Failed to signal: %s\n", OsError());
+	Sdprintf("forThreadLocalData(): Failed to signal: %s\n", OsError());
     }
   }
 
