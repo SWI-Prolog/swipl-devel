@@ -212,7 +212,7 @@ throw(Exception) :-
 %	exception or cut).  $call_cleanup translated to I_CALLCLEANUP.
 
 call_cleanup(Goal, Cleanup) :-
-	call_cleanup(Goal, Cleanup).
+	call_cleanup(Goal, _Catcher, Cleanup).
 
 call_cleanup(_Goal, _Catcher, _Cleanup) :-
 	$call_cleanup.
