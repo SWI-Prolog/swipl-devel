@@ -1929,7 +1929,6 @@ PL_close_query(qid_t qid)
   QueryFrame qf = QueryFromQid(qid);
 
   SECURE(assert(qf->magic == QID_MAGIC));
-  qf->magic = 0;			/* disqualify the frame */
 
   if ( false(qf, PL_Q_DETERMINISTIC) )
     discard_query(qf);
@@ -1938,6 +1937,7 @@ PL_close_query(qid_t qid)
     Undo(qf->choice.mark);
 
   restore_after_query(qf);
+  qf->magic = 0;			/* disqualify the frame */
 }
 
 
