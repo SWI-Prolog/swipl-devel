@@ -3041,6 +3041,11 @@ IsearchEditor(Editor e, EventId id)
     succeed;
   }
       
+  if ( !isInteger(id) )
+  { endIsearchEditor(e);
+    fail;
+  }
+
   switch( valInt(chr) )
   { case ESC:
       endIsearchEditor(e);
@@ -3063,7 +3068,6 @@ IsearchEditor(Editor e, EventId id)
     return executeSearchEditor(e, chr);
 
   endIsearchEditor(e);
-
   fail;
 }
 
