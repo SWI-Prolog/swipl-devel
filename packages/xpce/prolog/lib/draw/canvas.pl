@@ -1066,9 +1066,7 @@ There are two routes to print.  On   MS-Windows  printing is achieved by
 drawing on a GDI representing a printer, after which the Windows printer
 driver creates printer-codes and sends them to the printer. The standard
 Windows print dialog is shown by   win_printer->setup. Next we need some
-calculation effort to place our diagram reasonably on the page. Actually
-we need real dimensions here, but  XPCE   operates  in  pixels, so which
-translation makes sense?
+calculation effort to place our diagram reasonably on the page.
 
 In the Unix world, things go different. In general you make a PostScript
 file and hand this  to  the   print-spooler,  which  will  translate the
@@ -1078,9 +1076,6 @@ XPCE doesn't (yet)  try  to  hide   the  difference  between  these  two
 approaches.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%	What about margin-handling in MS-Windows?  Guess we need to do
-%	that ourselves.
-
 print_canvas(Canvas) :-
 	get(@pce, operating_system, win32), !,
 	get(Canvas, default_file, Job),
@@ -1088,18 +1083,29 @@ print_canvas(Canvas) :-
 	send(Prt, setup, Canvas),
 	send(Prt, open),
 	get(Canvas, bounding_box, area(X, Y, W, H)),
+	get(@display, dots_per_inch, size(DX, DY)),
+	InchW is W/DX,
+	InchH is H/DY,
+
 	get(Prt, size, size(PW0, PH0)),
-	get(Prt, offset, size(OX, OY)),
-	PW is PW0 - 2 * OX,
-	PH is PH0 - 2 * OY,
-	(   W/PW > H/PH			% width is the problem
-	->  VRes is round(W*PH/PW)
-	;   VRes is H
+	get(Prt, dots_per_inch, size(RX, RY)),
+	MarX is RX,			% default 1 inch margins
+	MarY is RY,
+	PrInchW is (PW0-MarX*2)/RX,
+	PrInchH is (PH0-MarY*2)/RY,
+
+	send(Prt, map_mode, isotropic),
+	(   InchW < PrInchW,
+	    InchH < PrInchH		% it fits on the page
+	->  OX is MarX + ((PrInchW-InchW)/2)*RX,
+	    send(Prt, window, area(X, Y, DX, DY)),
+	    send(Prt, viewport, area(OX, MarY, RX, RY))
+	;   Aspect is min(PrInchW/InchW, PrInchH/InchH),
+	    ARX is integer(Aspect*RX),
+	    ARY is integer(Aspect*RY),
+	    send(Prt, window, area(X, Y, DX, DY)),
+	    send(Prt, viewport, area(MarX, MarY, ARX, ARY))
 	),
-	TheVRes is max(1000, VRes),
-	format('Resolution = ~w~n', [VRes]),
-	send(Prt, resolution, TheVRes),
-	send(Prt, origin, point(X,Y)),
 	send(Prt, draw_in, Canvas?graphicals),
 	send(Prt, close),
 	free(Prt).
