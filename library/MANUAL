@@ -14,7 +14,7 @@
 
                         RReeffeerreennccee MMaannuuaall
 
-            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _2_._9_._6_, _N_o_v_e_m_b_e_r _1_9_9_7
+            _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _2_._9_._7_, _F_e_b_r_u_a_r_i _1_9_9_8
 
                          _J_a_n _W_i_e_l_e_m_a_k_e_r
 
@@ -35,7 +35,7 @@ an interface to the C language.
 This  document gives an overview of the features, system limits
 and built-in predicates.
 
-Copyright Oc 1990--1997, University of Amsterdam
+Copyright Oc 1990--1998, University of Amsterdam
 
 
 CChhaapptteerr 11..  IINNTTRROODDUUCCTTIIOONN
@@ -3801,7 +3801,7 @@ aattoomm__cchhaarr((_?_A_t_o_m_, _?_A_S_C_I_I))
 
 nnuummbbeerr__cchhaarrss((_?_N_u_m_b_e_r_, _?_S_t_r_i_n_g))
     Similar  to  aattoomm__cchhaarrss//22,  but  converts between  a number  and  its
-    representation  as a list of ASCII  values.  Fails silently if  _A_t_o_m
+    representation as a list  of ASCII values.  Fails silently if _N_u_m_b_e_r
     is unbound and _S_t_r_i_n_g does not describe a number.
 
 
@@ -4430,8 +4430,13 @@ iiss__sseett((_+_S_e_t))
 
 
 lliisstt__ttoo__sseett((_+_L_i_s_t_, _-_S_e_t))
-    Succeeds  if _S_e_t holds the same elements as _L_i_s_t in the  same order,
-    but has no duplicates.  See also ssoorrtt//22.
+    Unifies  _S_e_t  with a  list  holding the  same  elements as  _L_i_s_t  in
+    the  same order.   If  _l_i_s_t contains duplicates,  only the first  is
+    retained.  See also ssoorrtt//22.  Example:
+
+    ?- list_to_set([a,b,a], X)
+
+    X = [a,b]
 
 
 iinntteerrsseeccttiioonn((_+_S_e_t_1_, _+_S_e_t_2_, _-_S_e_t_3))
@@ -8368,17 +8373,17 @@ available without modification.
 qqssaavvee__pprrooggrraamm((_+_F_i_l_e_, _+_L_i_s_t_O_f_O_p_t_i_o_n_s))
     Saves  the current  state of  the program  to the  file _F_i_l_e.    The
     result is an  executable shell-script, that will start the emulator.
-    _L_i_s_t_O_f_O_p_t_i_o_n_s is a list of <_K_e_y>= <_V_a_l_u_e>pairs.  The available keys
-    are described in table 6.1.
+    _L_i_s_t_O_f_O_p_t_i_o_n_s  is a  list of  <_K_e_y>=<_V_a_l_u_e> or  <_K_e_y>(<_V_a_l_u_e>)  pairs.
+    The available keys are described in table 6.1.
  _______________________________________________________________________
  |__KKeeyy________________||OOppttiioonn__||________TTyyppee__________||DDeessccrriippttiioonn______________________________________________||__
  || local      | --LL   ||   K-bytes    |Size (Limit) of local stack       |
  | global     | --GG   ||   K-bytes    |Size (Limit) of global stack      |
  | trail      | --TT   ||   K-bytes    |Size (Limit) of trail stack       |
  | argument   | --AA   ||   K-bytes    |Size (Limit) of argument stack    |
+
  | goal       | --gg   ||     atom     |Initialisation goal               |
  | toplevel   | --tt   ||     atom     |Prolog toplevel goal              |
-
  |_init_file___|--ff___||_____atom_____|Personal_initialisation_file______|_
  | autoload   |      |     bool     |If true, run aauuttoollooaadd//00 first     |
  | map        |      |     atom     |File containing info on dump      |

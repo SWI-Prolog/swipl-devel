@@ -46,7 +46,7 @@ qsave_program(FileSpec, Options0) :-
 	(   Map == []
 	->  retractall(verbose(_))
 	;   open(Map, write, Fd),
-	    asserta(verbose(Fd))
+	    asserta(qsave:verbose(Fd))
 	),
 	set_feature(saved_program, true),
 	$open_wic(File, Options),
@@ -172,6 +172,9 @@ save_flags :-
 		 *******************************/
 
 default_import(system, _, _) :- !, fail.
+default_import(To, Head, _) :-
+	$get_predicate_attribute(To:Head, (dynamic), 1), !,
+	fail.
 default_import(user, Head, _) :- !,
 	$default_predicate(user:Head, system:Head).
 default_import(To, Head, _From) :-
@@ -289,12 +292,15 @@ save_foreign_libraries.
 
 feedback(Fmt, Args) :-
 	verbose(Fd), !,
-	format(Fd, Fmt, Args),
-	flush_output(Fd).
+	format(Fd, Fmt, Args).
+%	flush_output(Fd).		% Real debugging only
 feedback(_, _).
 
 
-option(List, Name/_Default, Value, Rest) :-
+option(List, Name/_Default, Value, Rest) :- % goal = Goal
 	select(List, Name=Value, Rest), !.
+option(List, Name/_Default, Value, Rest) :- % goal(Goal)
+	Term =.. [Name, Value],
+	select(List, Term, Rest), !.
 option(List, _Name/Default, Default, List).
 	
