@@ -210,7 +210,7 @@ str_format(String out, const String in, const int width, const FontObj font)
       if ( x > width )
       { if ( lb )
 	{ o = lb;
-	  s = in->s_text8 + (lb-out->s_text8);
+	  s = in->s_text16 + (lb-out->s_text16);
 	  
 	  while( islayout(s[1]) )
 	    s++, o++;			/* map (<sp>*)<sp> --> \1\n */
