@@ -375,7 +375,7 @@ typedef struct
 { int	      acc;
   int	      index;
   int	      mode;			/* ACC_UPPER, ACC_ALNUM */
-  const char *label;
+  const char *label;			/* TBD: wide-character version */
   Any	      object;
 } abin, *Abin;
 
@@ -390,7 +390,7 @@ acc_index(Abin a, unsigned char *used)
     do
     { int acc = a->label[i];
       
-      if ( isletter(acc) )
+      if ( isalpha(acc) )
       { acc = tolower(acc);
   
 	if ( !(used && used[acc]) )
@@ -399,9 +399,9 @@ acc_index(Abin a, unsigned char *used)
 	  succeed;
 	}
       }
-      while( a->label[i] && !islayout(a->label[i]) )
+      while( a->label[i] && !isspace(a->label[i]) )
 	i++;
-      while( a->label[i] && islayout(a->label[i]) )
+      while( a->label[i] && isspace(a->label[i]) )
 	i++;
     } while( a->label[i] );
 

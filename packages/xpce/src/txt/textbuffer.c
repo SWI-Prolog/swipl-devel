@@ -1853,8 +1853,8 @@ upcase_textbuffer(TextBuffer tb, int from, int len)
 { for( ; from < tb->size && len > 0; len--, from++ )
   { wint_t c;
 
-    if ( tislower(tb->syntax, (c=fetch(from))) )
-      store_textbuffer(tb, from, toupper(c));
+    if ( iswlower((c=fetch(from))) )
+      store_textbuffer(tb, from, towupper(c));
   }
       
   succeed;
@@ -1868,12 +1868,12 @@ capitalise_textbuffer(TextBuffer tb, int from, int len)
   for( ; from < tb->size && len > 0; len--, from++ )
   { char c = fetch(from);
 
-    if ( !tisalnum(tb->syntax, b) )
-    { if ( tislower(tb->syntax, c) )
-	store_textbuffer(tb, from, toupper(c));
+    if ( iswalnum(b) )
+    { if ( iswlower(c) )
+	store_textbuffer(tb, from, towupper(c));
     } else
-    { if ( tisupper(tb->syntax, c) )
-	store_textbuffer(tb, from, tolower(c));
+    { if ( iswupper(c) )
+	store_textbuffer(tb, from, towlower(c));
     }
 
     b = c;

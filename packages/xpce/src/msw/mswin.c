@@ -316,7 +316,7 @@ get_logical_drive_strings(int bufsize, char *buf)
 
 static int
 allLetter(const char *s)
-{ for(; *s && isletter(*s); s++)
+{ for(; *s && isalpha(*s); s++)
     ;
 
   return *s ? FALSE : TRUE;

@@ -434,7 +434,7 @@ syntaxName(Name n, Name casemap, Int ws)
   for(i=0; i<size; i++)
   { wint_t c = str_fetch(s, i);
 
-    if ( isupper(c) || c == '%' || c == '.' )
+    if ( iswupper(c) || c == '%' || c == '.' )
       succeed;
   }
 

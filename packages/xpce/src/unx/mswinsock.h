@@ -56,13 +56,3 @@
 
 #undef RedrawWindow
 #undef hyper				/* don't need this */
-#undef islower				/* we have these ourselves */
-#undef isupper
-#undef isdigit
-#undef isalnum
-#undef isalpha
-#undef iscntrl
-#undef isprint
-#undef isspace
-#undef ispunct
-#undef isxdigit

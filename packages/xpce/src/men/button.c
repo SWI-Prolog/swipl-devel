@@ -45,9 +45,9 @@ accelerator_code(Name a)
 { if ( isName(a) )
   { char *s = strName(a);
     
-    if ( s[0] == '\\' && s[1] == 'e' && isletter(s[2]) && s[3] == EOS )
+    if ( s[0] == '\\' && s[1] == 'e' && isalpha(s[2]) && s[3] == EOS )
       return s[2];
-    if ( s[1] == EOS && isletter(s[0]) )
+    if ( s[1] == EOS && isalpha(s[0]) )
       return s[0];
   }
 

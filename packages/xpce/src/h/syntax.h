@@ -81,37 +81,24 @@ extern char  char_context[];		/* Initial context table */
 				 (char_flags[(unsigned int)(c)] & (f)))
 #define HasSyntax8(c, f)	((char_flags[(unsigned int)(c)] & (f)))
 
-#define islower(c)		HasSyntax((c), LC)
-#define isupper(c)		HasSyntax((c), UC)
-#define isdigit(c)		HasSyntax((c), DI)
+#define iscsym(c)		(isalnum(c) || c == '_')
 #define isopenbrace(c)		HasSyntax((c), OB)
 #define isclosebrace(c)		HasSyntax((c), CB)
 #define isendsline(c)		HasSyntax((c), EL)
-#define isblank(c)		HasSyntax((c), BL)
-#define islayout(c)		HasSyntax((c), BL|EL)
 #define isquote(c)		HasSyntax((c), QT)
 #define issymbol(c)		HasSyntax((c), SY)
 #define iswordsep(c)		HasSyntax((c), WS)
 
-#define isalnum(c)		HasSyntax((c), AN)
-#define isletter(c)		HasSyntax((c), LC|UC)
 #define ischtype(c, tp)		HasSyntax((c), tp)
-
-#define isblank8(c)		HasSyntax8((c), BL)
 
 #define ismatching(c1, c2)      (Is8char(c1) && \
 				 (char_context[(unsigned int)(c1)] == (c2))
 #define isstringescape(q, e)	(Is8char(q) && \
 				 char_context[((unsigned int))(q)] == (e))
 
-					/* <ctype.h> replacements */
-
-#define isalpha(c)		HasSyntax((c), LC|UC)
-#define iscntrl(c)		HasSyntax((c), CT)
-#define isprint(c)		(!iscntrl((c)))
-#define isspace(c)		islayout((c))
-#define ispunct(c)		HasSyntax((c), PU)
-#define isxdigit(c)		HasSyntax((c), XD)
+#ifndef _GNU_SOURCE
+#define isblank(c)		((c) == ' ' || (c) == '\t')
+#endif
 
 		/********************************
 		*         TABLE VERSIONS	*
@@ -153,20 +140,6 @@ extern char  char_context[];		/* Initial context table */
 #define tiscommentend2(t, c)	(THasSyntax(t, c, CE) && \
 				 ((t)->context[(unsigned int)(c)] & 8))
 
-
-		/********************************
-		*        CASE CONVERSION	*
-		********************************/
-
-extern unsigned char  char_lower[];
-extern unsigned char  char_upper[];
-
-#define tolower(c)		(Is8char(c) ? char_lower[(unsigned int)(c)] \
-					    : (unsigned)(c))
-#define toupper(c)		(Is8char(c) ? char_upper[(unsigned int)(c)] \
-				 	    : (unsigned)(c))
-#define tolower8(c)		(char_lower[(unsigned int)(c)])
-#define toupper8(c)		(char_upper[(unsigned int)(c)])
 
 		/********************************
 		*     HOST-LANGUAGE SYMBOLS	*

@@ -2181,7 +2181,7 @@ getConvertObject(Any ctx, Any x)
       rval = getObjectFromReferencePce(PCE, toInt(atol(start)));
     else
     {					/* check for @name (exception?) */
-      for( s=start; isalnum(*s); s++ )
+      for( s=start; iscsym(*s); s++ )
 	;
       if ( *s == EOS )
 	rval = getObjectAssoc(CtoKeyword(start));

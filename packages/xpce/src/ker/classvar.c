@@ -652,7 +652,7 @@ matchword(const char *s, const char *m)
 { while(*m && *s == *m)
     m++, s++;
 
-  if ( !*m && islayout(*s) )
+  if ( !*m && isspace(*s) )
     return (char *)s;
 
   return NULL;
@@ -664,7 +664,7 @@ getword(const char *s, char **end)
 { string str;
   const char *e;
 
-  for(e=s; !islayout(*e); e++)
+  for(e=s; !isspace(*e); e++)
     ;
   str_set_n_ascii(&str, e-s, (char *)s);
   if ( end )
@@ -717,10 +717,10 @@ loadDefaultClassVariables(SourceSink f)
       }
 
       for(;;)
-      { if ( isalnum(*s) )
+      { if ( iscsym(*s) )
 	{ string str;
 
-	  for(e=s; isalnum(*e); e++)
+	  for(e=s; iscsym(*e); e++)
 	    ;
 	  str_set_n_ascii(&str, e-s, s);
 	  fields[nfields++] = StringToName(&str);

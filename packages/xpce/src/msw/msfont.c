@@ -173,7 +173,7 @@ parse_font(char *s, LOGFONT *lfont)
     int n = -1;
     char *q;
 
-    for(q=att; isletter(*s); *q++ = *s++)
+    for(q=att; isalpha(*s); *q++ = *s++)
       ;
     *q = EOS;
 

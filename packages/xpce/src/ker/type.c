@@ -150,8 +150,8 @@ Name
 getNameType(Type t)
 { char *s = strName(t->fullname);
 
-  if ( isalnum(*s) )
-  { while(isalnum(*s))
+  if ( iscsym(*s) )
+  { while(iscsym(*s))
       s++;
     if ( *s == '=' )
       return CtoName(s+1);
@@ -1360,9 +1360,9 @@ kind_type(TmpString str)
   Name name, kind;
   Type type;
 
-  if ( !isalnum(*str->start) )
+  if ( !iscsym(*str->start) )
     fail;
-  for(s = str->start; isalnum(*s); s++)
+  for(s = str->start; iscsym(*s); s++)
     ;
   for(e=s; isblank(*e); e++)
     ;
@@ -1397,10 +1397,10 @@ named_type(TmpString str)
   Name name, argname;
   Type type, rval;
 
-  if ( !isalnum(*str->start) )
+  if ( !iscsym(*str->start) )
     fail;
 
-  for(s = str->start; isalnum(*s); s++)
+  for(s = str->start; iscsym(*s); s++)
     ;
   for(e=s; isblank(*e); e++)
     ;

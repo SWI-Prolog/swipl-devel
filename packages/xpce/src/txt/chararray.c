@@ -209,16 +209,16 @@ getCapitaliseCharArray(CharArray n)
     LocalString(buf, d, size);
     int i=1, o=1;
 
-    str_store(buf, 0, toupper(str_fetch(d, 0)));
+    str_store(buf, 0, towupper(str_fetch(d, 0)));
 
     for(; i < size; i++, o++)
     { wint_t c = str_fetch(d, i);
       
       if ( iswordsep(c) )
       { if ( ++i < size )
-	  str_store(buf, o, toupper(str_fetch(d, i)));
+	  str_store(buf, o, towupper(str_fetch(d, i)));
       } else
-	str_store(buf, o, tolower(c));
+	str_store(buf, o, towlower(c));
     }
 
     buf->size = o;
@@ -241,7 +241,7 @@ getLabelNameCharArray(CharArray n)
     int c = str_fetch(s, 0);
 
     i = 0;
-    str_store(buf, o, toupper(c));
+    str_store(buf, o, towupper(c));
     i++, o++;
 
     for( ; i < size; i++, o++ )
@@ -252,7 +252,7 @@ getLabelNameCharArray(CharArray n)
 #if 0
 	if ( ++i < size )
 	{ o++;
-	  str_store(buf, o, toupper(str_fetch(s, i)));
+	  str_store(buf, o, towupper(str_fetch(s, i)));
 	}
 #endif
       } else
@@ -287,7 +287,7 @@ getUpcaseCharArray(CharArray n)
   int i;
 
   for(i=0; i<size; i++)
-    str_store(buf, i, toupper(str_fetch(s, i)));
+    str_store(buf, i, towupper(str_fetch(s, i)));
   buf->size = size;
 
   answer(ModifiedCharArray(n, buf));
@@ -305,17 +305,17 @@ getStripCharArray(CharArray n, Name how)
     how = NAME_canonise;
 
   if ( how == NAME_canonise || how == NAME_leading || how == NAME_both )
-  { for(; i<size && islayout(str_fetch(s, i)); i++)
+  { for(; i<size && iswspace(str_fetch(s, i)); i++)
       ;
   }
   for( ; i<size; i++)
   { int c = str_fetch(s, i);
 
     str_store(buf, o++, c);
-    if ( !islayout(c) )
+    if ( !iswspace(c) )
       lnb = o;
     else if ( how == NAME_canonise )
-    { for( ; i+1<size && islayout(str_fetch(s, i+1)); i++)
+    { for( ; i+1<size && iswspace(str_fetch(s, i+1)); i++)
 	;
     }
   }
@@ -356,12 +356,12 @@ getSplitCharArray(CharArray in, CharArray br)
 	i++;
     }
   } else
-  { for(; i<size && islayout(str_fetch(s1, i)); i++) /* strip leading */
+  { for(; i<size && iswspace(str_fetch(s1, i)); i++) /* strip leading */
       ;
     last = i;
 
     while( i<size )
-    { if ( islayout(str_fetch(s1, i)) )
+    { if ( iswspace(str_fetch(s1, i)) )
       { if ( isstrA(s1) )
 	  buf.s_textA = s1->s_textA+last;
 	else
@@ -370,7 +370,7 @@ getSplitCharArray(CharArray in, CharArray br)
 	buf.size = i-last;
 	appendChain(ch, ModifiedCharArray(in, &buf));
 
-	while(i < size && islayout(str_fetch(s1, i)))
+	while(i < size && iswspace(str_fetch(s1, i)))
 	  i++;
 	last = i;
 	if ( i == size )		/* trailing blanks */

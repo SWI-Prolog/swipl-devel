@@ -309,7 +309,7 @@ static int
 is_absolute_name(const char *s)
 {
 #ifdef __WIN32__
-  if ( isletter(s[0]) && s[1] == ':' )
+  if ( isalpha(s[0]) && s[1] == ':' )
     succeed;
   if ( IsDirSep(s[0]) && IsDirSep(s[1]) )
     succeed;
@@ -1125,7 +1125,7 @@ findFile(FileObj f, CharArray path, Name mode)
   { char *end = pathstr;
 
 #ifdef __WIN32__
-    if ( isletter(end[0]) && end[1] == ':' )
+    if ( isalpha(end[0]) && end[1] == ':' )
       end += 2;
 #endif
 

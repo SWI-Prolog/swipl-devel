@@ -98,17 +98,17 @@ cdataParBox(ParBox pb, StringObj cdata,
   Any refbox = NIL;
 
   if ( ignore_blanks == NAME_leading || ignore_blanks == NAME_both )
-  { while( text<end && islayout(*text) )
+  { while( text<end && isspace(*text) )
       text++;
   }
   if ( ignore_blanks == NAME_trailing || ignore_blanks == NAME_both )
-  { while( end > text && islayout(end[-1]) )
+  { while( end > text && isspace(end[-1]) )
       end--;
   }
   
   while( text < end )
-  { if ( islayout(*text) )
-    { while( text<end && islayout(*text) )
+  { if ( isspace(*text) )
+    { while( text<end && isspace(*text) )
 	text++;
 
       if ( isDefault(space) )
@@ -120,7 +120,7 @@ cdataParBox(ParBox pb, StringObj cdata,
       string s;
       Name n;
 
-      while( text<end && !islayout(*text) )
+      while( text<end && !isspace(*text) )
 	text++;
 
       str_set_n_ascii(&s, text - start, (char *)start);

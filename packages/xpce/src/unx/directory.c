@@ -112,7 +112,7 @@ initialiseDirectory(Directory d, Name name)
 #ifdef O_XOS
   { char buf[MAXPATHLEN];
     expanded = _xos_canonical_filename(expanded, buf);
-    if ( isletter(expanded[0]) && expanded[1] == ':' && expanded[2] == EOS )
+    if ( isalpha(expanded[0]) && expanded[1] == ':' && expanded[2] == EOS )
     { expanded[2] = '/';
       expanded[3] = EOS;
     }
@@ -332,7 +332,7 @@ getParentDirectory(Directory d)
     fail;
 #ifdef O_XOS
 					/* DOS root: <Drive>:[\/] */
-  if ( isletter(here[0]) && here[1] == ':' &&
+  if ( isalpha(here[0]) && here[1] == ':' &&
        (here[2] == EOS || (IsDirSep(here[2]) && here[3] == EOS)) )
     fail;
 #endif
@@ -672,7 +672,7 @@ dirName(const char *f)
     }
   
 #ifdef O_XOS
-    if ( isletter(dir[0]) && dir[1] == ':' && dir[2] == EOS )
+    if ( isalpha(dir[0]) && dir[1] == ':' && dir[2] == EOS )
     { dir[2] = '/';
       dir[3] = EOS;
     }
@@ -803,7 +803,7 @@ takeWord(char **string)
   register char *q = wrd;
   register int left = MAXPATHLEN-1;
 
-  while( *s && (isalnum(*s) || *s == '_') )
+  while( *s && iscsym(*s) )
   { if ( --left < 0 )
     { ExpandProblem = CtoName("Variable or user name too long");
       return (char *) NULL;

@@ -284,12 +284,12 @@ stripString(StringObj str, Name where)
   string buf;
 
   if ( where != NAME_trailing )
-  { while( from < size && islayout(str_fetch(s, from)))
+  { while( from < size && iswspace(str_fetch(s, from)))
       from++;
   }
 
   if ( where != NAME_leading )
-  { while( to > from && islayout(str_fetch(s, to-1)) )
+  { while( to > from && iswspace(str_fetch(s, to-1)) )
       to--;
   }
 

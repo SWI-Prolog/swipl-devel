@@ -103,12 +103,12 @@ start:
     Int numarg = DEFAULT;
 
     for(q = s; *q; )
-    { while(*q && islayout(*q))
+    { while(*q && isspace(*q))
 	q++;
       if ( *q == EOS )
 	break;
       argv[argc++] = q;
-      while(*q && !islayout(*q))
+      while(*q && !isspace(*q))
 	q++;
       if ( *q != EOS )
 	*q++ = EOS;

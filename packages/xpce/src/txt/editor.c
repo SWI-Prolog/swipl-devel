@@ -2691,10 +2691,10 @@ toggleCharCaseEditor(Editor e)
   { char c;
 
     c = Fetch(e, caret-1);
-    if ( tisupper(e->text_buffer->syntax, c) )
-      c = tolower(c);
-    else if ( tislower(e->text_buffer->syntax, c) )
-      c = toupper(c);
+    if ( iswupper(c) )
+      c = towlower(c);
+    else if ( iswlower(c) )
+      c = towupper(c);
     else
       succeed;
     

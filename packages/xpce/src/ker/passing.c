@@ -27,16 +27,6 @@
 #define _WIN32_WINNT 0x400		/* get TryEnterCriticalSection() */
 #include <windows.h>
 #undef hyper				/* don't need this */
-#undef islower				/* we have these ourselves */
-#undef isupper
-#undef isdigit
-#undef isalnum
-#undef isalpha
-#undef iscntrl
-#undef isprint
-#undef isspace
-#undef ispunct
-#undef isxdigit
 #define Ellipse PceEllipse
 #define Arc PceArc
 #endif /*USE_WIN32_CRITICAL_SECTION*/

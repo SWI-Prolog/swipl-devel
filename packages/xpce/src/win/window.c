@@ -28,6 +28,7 @@
 static status	uncreateWindow(PceWindow sw);
 static status   tileWindow(PceWindow sw, TileObj t);
 static status   updateScrollbarValuesWindow(PceWindow sw);
+static status   UpdateScrollbarValuesWindow(PceWindow sw);
 static status	visible_window(PceWindow sw, IArea a);
 extern void	unlink_changes_data_window(PceWindow sw);
 

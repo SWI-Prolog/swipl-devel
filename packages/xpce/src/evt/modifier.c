@@ -53,7 +53,7 @@ getConvertModifier(Class class, Name name)
     for(i=0; i<size; i++)
     { wint_t c = str_fetch(s, i);
 
-      switch(tolower(c))
+      switch(towlower(c))
       { case 's':
 	  shift = NAME_down;
 	  break;

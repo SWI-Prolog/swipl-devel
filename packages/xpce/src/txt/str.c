@@ -39,10 +39,11 @@
 
 inline int
 str_allocsize(String s)
-{ if ( isstrA(s) )
-    return (((s->size + sizeof(long)) / sizeof(long)) * sizeof(long));
-  else
-    return (((s->size * 2 + sizeof(long) - 1) / sizeof(long)) * sizeof(long));
+{ int len;
+
+  len = isstrA(s) ? s->size : s->size*sizeof(charW);
+
+  return ((len + sizeof(long))/sizeof(long))*sizeof(long);
 }
 
 
@@ -161,12 +162,12 @@ str_upcase(String str, int from, int to)
   { charA *s = &str->s_textA[from];
 
     for(; from < to; from++, s++)
-      *s = toupper8(*s);
+      *s = toupper(*s);
   } else
   { charW *s = &str->s_textW[from];
 
     for(; from < to; from++, s++)
-      *s = toupper(*s);
+      *s = towupper(*s);
   }
 }
 
@@ -177,12 +178,12 @@ str_downcase(String str, int from, int to)
   { charA *s = &str->s_textA[from];
 
     for(; from < to; from++, s++)
-      *s = tolower8(*s);
+      *s = tolower(*s);
   } else
   { charW *s = &str->s_textW[from];
 
     for(; from < to; from++, s++)
-      *s = tolower(*s);
+      *s = towlower(*s);
   }
 }
 
@@ -242,7 +243,7 @@ str_icase_cmp(String s1, String s2)
     int d;
 
     for(; n-- > 0; d1++, d2++)
-      if ( (d = (tolower8(*d1) - tolower8(*d2))) )
+      if ( (d = (tolower(*d1) - tolower(*d2))) )
 	return d;
 
     return s1->size - s2->size;
@@ -252,7 +253,7 @@ str_icase_cmp(String s1, String s2)
     int d;
 
     for(; n-- > 0; d1++, d2++)
-      if ( (d = (tolower(*d1) - tolower(*d2))) )
+      if ( (d = (towlower(*d1) - towlower(*d2))) )
 	return d;
 
     return s1->size - s2->size;
@@ -328,7 +329,7 @@ str_icase_prefix(String s1, String s2)	/* s2 is prefix of s1 */
       charA *d2 = s2->s_textA;
 
       for(; n-- > 0; d1++, d2++)
-	if ( tolower8(*d1) != tolower8(*d2) )
+	if ( tolower(*d1) != tolower(*d2) )
 	  return FALSE;
 
       return TRUE;
@@ -337,7 +338,7 @@ str_icase_prefix(String s1, String s2)	/* s2 is prefix of s1 */
       charW *d2 = s2->s_textW;
 
       for(; n-- > 0; d1++, d2++)
-	if ( tolower(*d1) != tolower(*d2) )
+	if ( towlower(*d1) != towlower(*d2) )
 	  return FALSE;
     }
 
@@ -394,7 +395,7 @@ str_icase_suffix(String s1, String s2)	/* s2 is suffix of s1 */
       charA *d2 = s2->s_textA;
 
       for( ; n-- > 0; d1++, d2++)
-      { if ( tolower8(*d1) != tolower8(*d2) )
+      { if ( tolower(*d1) != tolower(*d2) )
 	  return FALSE;
       }
 
@@ -404,7 +405,7 @@ str_icase_suffix(String s1, String s2)	/* s2 is suffix of s1 */
       charW *d2 = s2->s_textW;
 
       for( ; n-- > 0; d1++, d2++)
-      { if ( tolower(*d1) != tolower(*d2) )
+      { if ( towlower(*d1) != towlower(*d2) )
 	  return FALSE;
       }
     }
@@ -472,7 +473,7 @@ str_icasesub(String s1, String s2)		/* s2 is substring of s1 */
 	int i;
 
 	for(i=s2->size; i-- > 0; d1++, d2++ )
-	{ if ( tolower8(*d1) != tolower8(*d2) )
+	{ if ( tolower(*d1) != tolower(*d2) )
 	    goto next8;
 	}
 
@@ -486,7 +487,7 @@ str_icasesub(String s1, String s2)		/* s2 is substring of s1 */
 	int i;
 
 	for(i=s2->size; i-- > 0; d1++, d2++ )
-	{ if ( tolower(*d1) != tolower(*d2) )
+	{ if ( towlower(*d1) != towlower(*d2) )
 	    goto next16;
 	}
 
@@ -692,13 +693,13 @@ str_strip(String s)
     charA *t = s->s_textA;
     charA *e = &s->s_textA[size];
     
-    while( f < e && isblank8(*f) )
+    while( f < e && isblank(*f) )
       f++;
 
     do
-    { while( f < e && !isblank8(*f) )
+    { while( f < e && !isblank(*f) )
 	*t++ = *f++;
-      while( f < e && isblank8(*f) )
+      while( f < e && isblank(*f) )
 	f++;
       if ( f < e )
 	*t++ = ' ';
@@ -743,14 +744,14 @@ str_icase_common_length(String s1, String s2)
     { charA *t1 = s1->s_textA;
       charA *t2 = s2->s_textA;
 
-      while( i < size && tolower8(*t1) == tolower8(*t2) )
+      while( i < size && tolower(*t1) == tolower(*t2) )
 	i++, t1++, t2++;
     } else
     { charW *t1 = s1->s_textW;
       charW *t2 = s2->s_textW;
 
-      while( i < size && *t1++ == *t2++ )
-	i++;
+      while( i < size && towlower(*t1) == towlower(*t2) )
+	i++, t1++, t2++;
     }
   }
 

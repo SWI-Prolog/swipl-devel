@@ -26,11 +26,13 @@
 #define _STR_H_INCLUDED
 
 #include <wchar.h>
+#include <wctype.h>
+#include <ctype.h>
 
 #undef charA				/* from pce-include.h */
 
 typedef unsigned char charA;		/* 8-bit character */
-typedef unsigned short charW;		/* wide character */
+typedef wchar_t       charW;		/* wide character */
 
 #define STR_SIZE_BITS 27
 #define STR_MAX_SIZE ((1L<<STR_SIZE_BITS)-1)
