@@ -41,6 +41,16 @@ StringToString(String s)
 
 
 StringObj
+StringToTempString(String s)
+{ CharArray c = StringToScratchCharArray(s);
+  StringObj str = tempObject(ClassString, name_procent_s, c, EAV);
+  doneScratchCharArray(c);
+
+  return str;
+}
+
+
+StringObj
 CtoString(const char *s)
 { CharArray c = CtoScratchCharArray(s);
   StringObj str =  answerObject(ClassString, name_procent_s, c, EAV);

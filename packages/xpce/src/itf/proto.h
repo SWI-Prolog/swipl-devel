@@ -101,7 +101,8 @@ COMMON(PceObject) hostGet(PceObject host, PceName selector, int argc, PceObject 
 COMMON(int)	hostQuery(int what, PceCValue *value);
 COMMON(int)	hostAction(int what, ...);
 COMMON(void)	Cprintf(const char *fmt, ...);
-COMMON(void)	Cvprintf(const char *fmt, va_list args);
+COMMON(void)	Cprintf(const char *fmt, ...);
+COMMON(int)	Cputstr(String s);
 COMMON(int)	Cputchar(int chr);
 COMMON(void)	Cflush(void);
 COMMON(char *)	Cgetline(char *line, int size);

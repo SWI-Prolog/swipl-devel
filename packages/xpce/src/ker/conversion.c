@@ -187,7 +187,7 @@ ppsavestring(const char *s)
 
 
 /* (JW)	A special routine to ease debugging.  Type checking is done more
-	carefully to avoid core-dumps on any 4 byte value.
+	carefully to avoid core-dumps on any void* (=Any) value.
  */
 
 static char *

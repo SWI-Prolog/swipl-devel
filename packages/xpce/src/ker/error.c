@@ -79,14 +79,17 @@ displayError(Error e, int argc, Any *argv)
 
     sendv(argv[0], NAME_report, argc+2, av);
   } else
-  { char buf[FORMATSIZE];
+  { string s;
 
-    swritefv(buf, NULL, (CharArray) e->format, argc, argv);
+    str_writefv(&s, (CharArray) e->format, argc, argv);
 	
     if ( e->kind == NAME_inform || e->kind == NAME_status )
-      Cprintf("[PCE: %s", buf);
+      Cprintf("[PCE: %s");
     else
-      Cprintf("[PCE %s: %s", strName(e->kind), buf);
+      Cprintf("[PCE %s:", strName(e->kind));
+
+    Cputstr(&s);
+    str_unalloc(&s);
 
 #ifndef O_RUNTIME
     if ( e->kind == NAME_fatal ||
@@ -110,11 +113,15 @@ displayError(Error e, int argc, Any *argv)
 
 static StringObj
 getFormatError(Error e, int argc, const Any argv[])
-{ char buf[FORMATSIZE];
+{ string s;
+  StringObj sobj;
 
-  swritefv(buf, NULL, (CharArray)e->format, argc, argv);
+  str_writefv(&s, (CharArray)e->format, argc, argv);
 
-  answer(CtoString(buf));
+  sobj = StringToString(&s);
+  str_unalloc(&s);
+
+  answer(sobj);
 }
 
 

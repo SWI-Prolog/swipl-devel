@@ -121,7 +121,7 @@ substr(register char *str, register char *sb)
 status
 prefixstr(char *s1, char *s2)			/* S2 is a prefix of s1 */
 { while( *s1 == *s2 && *s2 )
-   s1++, s2++;
+    s1++, s2++;
 
   return *s2 == EOS;
 }
@@ -333,60 +333,70 @@ writef(char *fm, ...)
 
   
 #define NOT_SET INT_MAX
-#define Skip(q)	while(*(q)) (q)++
-#define DoPP() \
-	{ char *_s = pp(argv[0]); \
-	  argc--, argv++; \
-	  *r++ = 's'; \
-	  *r = EOS; \
-	  if ( arg == NOT_SET ) \
-	    sprintf(q, fmtbuf, _s); \
-	  else \
-	    sprintf(q, fmtbuf, arg, _s); \
-	}
-#define Put(c) if ( --left > 0 ) *q++ = (c)
-#define PutString(s) do { char *_s=(s); \
+#define Put(c) if ( !(*out)(closure, c) ) return FALSE;
+#define PutString(s) do { const char *_s=(s); \
 			  while(*_s) \
 			  { Put(*_s); _s++; \
 			  } \
 			} while(0)
 
+static int
+put_string(int (*out)(void*, wint_t), void *closure, String s)
+{ int i;
+
+  if ( isstrA(s) )
+  { charA *t = s->s_textA;
+
+    for(i=0; i<s->size; i++)
+      Put(t[i]);
+  } else
+  { charW *t = s->s_textW;
+
+    for(i=0; i<s->size; i++)
+      Put(t[i]);
+  }
+
+  return TRUE;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Comment to avoid mkproto not generating the prototype for this function
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-char *
-swritefv(char *buf, int *szp, CharArray format, int argc, const Any argv[])
-{ char *fmt, *s, *q;
-  int left, size;
+static int
+swritefv(int (*out)(void*, wint_t), void *closure,
+	 const String fmt, int argc, const Any argv[])
+{ int i;
 
-  if ( szp )
-    left = *szp;
-  else
-    left = FORMATSIZE;
-  size = left;
+  for( i=0; i<fmt->size; i++ )
+  { wint_t c;
 
-  fmt = strName(format);
+    switch((c=str_fetch(fmt, i)))
+    { case '\\':
+	if ( ++i == fmt->size )
+	{ Put('\\');
+	  continue;
+	} else
+	{ switch(c = str_fetch(fmt, i))
 
-  for( s=fmt, q=buf; *s; )
-  { switch(*s)
-    { case '\\':	
-	switch(*++s)
-	{ case 'r':	Put('\r');	break;
-	  case 'n':	Put('\n');	break;
-	  case 'b':	Put('\b');	break;
-	  case 'f':	Put('\f');	break;
-	  case 't':	Put('\t');	break;
-	  case EOS:	Put('\\');	continue;
-	  default:	Put(*s);	break;
+	  { case 'r':	Put('\r');	break;
+	    case 'n':	Put('\n');	break;
+	    case 'b':	Put('\b');	break;
+	    case 'f':	Put('\f');	break;
+	    case 't':	Put('\t');	break;
+	    default:	Put(c);		break;
+	  }
+	  continue;
 	}
-	s++;
-	continue;
       case '%':
-	s++;
-	if ( *s == '%' )		/* `%%' */
+	if ( ++i == fmt->size )
+	{ Put('\\');
+	  continue;
+	}
+        c = str_fetch(fmt, i);
+	if ( c == '%' )			/* `%%' */
 	{ Put('%');
-	  s++;
 	  continue;
 	} else
 	{ char fmtbuf[100];
@@ -395,10 +405,13 @@ swritefv(char *buf, int *szp, CharArray format, int argc, const Any argv[])
 
 	  *r++ = '%';
 
-	  if ( *s == '+' || *s == '-' || *s == ' ' || *s == '#' )
-	    *r++ = *s++;
+	  if ( c == '+' || c == '-' || c == ' ' || c == '#' )
+	  { *r++ = c;
+	    i++;
+	    c = str_fetch(fmt, i);
+	  }
 
-	  if ( *s == '*' )
+	  if ( c == '*' )
 	  { Int i;
 
 	    if ( argc <= 0 )
@@ -411,11 +424,14 @@ swritefv(char *buf, int *szp, CharArray format, int argc, const Any argv[])
 	    argc--, argv++;
 	  } else
 	  { arg = NOT_SET;
-	    while( (*s >= '0' && *s <= '9') || *s == '.' )
-	      *r++ = *s++;
+	    while( (c >= '0' && c <= '9') || c == '.' )
+	    { *r++ = c;
+	      i++;
+	      c = str_fetch(fmt, i);
+	    }
 	  }
 
-	  switch(*s)
+	  switch(c)
 	  { case 'c':
 	    case 'd':
 	    case 'i':
@@ -433,13 +449,15 @@ swritefv(char *buf, int *szp, CharArray format, int argc, const Any argv[])
 	      { if ( (i = checkType(argv[0], TypeInt, NIL)) )
 		  a = valInt(i);
 	        else
-		{ DoPP();
+		{ PutString(pp(argv[0]));
+		  argc--, argv++;
+
 		  continue;
 		}
 		argc--, argv++;
 	      }
 
-	      *r++ = *s++;
+	      *r++ = c;
 	      *r = EOS;
 
 	      if ( arg == NOT_SET )
@@ -466,13 +484,15 @@ swritefv(char *buf, int *szp, CharArray format, int argc, const Any argv[])
 	      { if ( (f = checkType(argv[0], TypeReal, NIL)) )
 		  a = valReal(f);
 	        else
-		{ DoPP();
+		{ PutString(pp(argv[0]));
+		  argc--, argv++;
+
 		  continue;
 		}
 		argc--, argv++;
 	      }
 
-	      *r++ = *s++;
+	      *r++ = c;
 	      *r = EOS;
 	      if ( arg == NOT_SET )
 		sprintf(buf, fmtbuf, a);
@@ -483,106 +503,119 @@ swritefv(char *buf, int *szp, CharArray format, int argc, const Any argv[])
 
 	      continue;
 	    }
-	  { char *a;
+	  { string a;
 
 	    case 's':
 	    case 'N':
-	    { int ol, al;
-
-	      if ( argc <= 0 )
-	      { a = "(nil)";
-	      } else if ( !(a = toCharp(argv[0])) )
+	    { if ( argc <= 0 )
+	      { str_set_ascii(&a, "(nil)");
+	      } else if ( !toString(argv[0], &a) )
 	      { Any pn;
 
 		ServiceMode(PCE_EXEC_SERVICE,
 			    pn = get(argv[0], NAME_printName, EAV));
-		if ( !(a = toCharp(pn)) )
-		  a = pp(argv[0]);
+		if ( !(pn && toString(pn, &a)) )
+		  str_set_ascii(&a, pp(argv[0])); /* TBD: wide char version */
 	      }
 
 	    outstr:
 	      *r++ = 's';
-	      s++;
 	      *r = EOS;
 
-	      ol = strlen(a);		/* text length */
-	      al = abs(atoi(fmtbuf+1));	/* specified field width */
-	      ol = max(ol, al);
+	      if ( arg == NOT_SET )
+		arg = atoi(fmtbuf+1);
 
-	      if ( ol < left )
-	      { if ( arg == NOT_SET )
-		  sprintf(q, fmtbuf, a);
-		else
-		  sprintf(q, fmtbuf, arg, a);
-		al = strlen(q);
-		DEBUG(NAME_format,
-		      if ( al != ol )
-		        Cprintf("swritefv(): al=%d; ol=%d\n", al, ol));
-		left -= al;
-		q += al;
+	      if ( a.size >= abs(arg) )
+	      { if ( !put_string(out, closure, &a) )
+		  return FALSE;
 	      } else
-		left -= ol;
+	      { int pad = abs(arg) - a.size;
+		int i;
+
+		if ( pad > 0 )
+		{ for(i=0; i<pad; i++)
+		    Put(' ');
+		  if ( !put_string(out, closure, &a) )
+		    return FALSE;
+		} else
+		{ pad = -pad;
+
+		  if ( !put_string(out, closure, &a) )
+		    return FALSE;
+		  for(i=0; i<pad; i++)
+		    Put(' ');
+		}
+	      }
 
 	      argc--, argv++;
 	      continue;
 	    }
 	    case 'O':			/* object via pp() */
 	    { if ( argc <= 0 )
-	      	a = save_string("(nil)");
+		str_set_ascii(&a, "(nil)");
 	      else
-	      	a = pp(argv[0]);
+		str_set_ascii(&a, pp(argv[0])); /* TBD: wide char version */
 
 	      goto outstr;
 	    }
 	  }				/* end scope of a */
 	    case 'I':			/* ignore */
-	    { s++;
-	      argc--, argv++;
+	    { argc--, argv++;
 	      continue;
 	    }
 	    default:
 	      Put('%');
-	      Put(*s);
-	      s++;
+	      Put(c);
 	      continue;
 	  }
 	}
       default:
-	Put(*s);
-        s++;
+	Put(c);
 	continue;
       }
   }
 
-  if ( szp )
-  { *szp = size-left;
-  } else
-  { if ( left < 0 )
-      errorPce(format, NAME_formatBufferOverFlow, toInt(FORMATSIZE));
+  return TRUE;
+}
+
+
+static int
+put_void_str(void *ctx, wint_t c)
+{ String s = ctx;
+
+  s->size++;
+  if ( c > 0xff )
+  { s->iswide = TRUE;
+    s->encoding	= ENC_WCHAR;
   }
 
-  Put(EOS);
+  return TRUE;
+}
 
-  return buf;
+
+static int
+put_str(void *ctx, wint_t c)
+{ String s = ctx;
+
+  str_store(s, s->size, c);
+  s->size++;
+
+  return TRUE;
 }
 
 
 status
-str_writefv(String s, CharArray format, int argc, Any *argv)
-{ char buf[FORMATSIZE];
-  int sz = sizeof(buf);
+str_writefv(String s, CharArray format, int argc, const Any *argv)
+{ int len;
 
-  swritefv(buf, &sz, format, argc, argv);
-    
   str_inithdr(s, ENC_ISOL1);
-  s->size = sz;				/* FORMATSIZE: ok */
+  s->size = 0;
+  swritefv(put_void_str, s, &format->data, argc, argv);
+  len = s->size;
   str_alloc(s);
-
-  if ( sz > FORMATSIZE-1 )
-  { sz++;				/* provide room for terminating EOS */
-    swritefv(s->s_text, &sz, format, argc, argv);
-  } else
-    memcpy(s->s_text, buf, s->size);
+  s->size = 0;				/* dubious */
+  swritefv(put_str, s, &format->data, argc, argv);
+  assert(s->size == len);
 
   succeed;
 }

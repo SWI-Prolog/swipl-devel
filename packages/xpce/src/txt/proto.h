@@ -100,6 +100,7 @@ COMMON(int)	str_icase_common_length(String s1, String s2);
 
 /* /staff/jan/src/pl/packages/xpce/src/txt/string.c */
 COMMON(StringObj) StringToString(String s);
+COMMON(StringObj) StringToTempString(String s);
 COMMON(StringObj) CtoString(const char *s);
 COMMON(StringObj) staticCtoString(const char *s);
 COMMON(StringObj) CtoTempString(char *s);

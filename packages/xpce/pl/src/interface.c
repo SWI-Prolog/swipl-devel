@@ -577,12 +577,6 @@ initHostConstants()
 }
 
 
-static int
-GetChars(Term t, char **s, unsigned int *len)
-{ return PL_get_nchars(t, len, s, CVT_ALL|BUF_RING);
-}
-
-
 #ifdef __WIN32__
 #include <console.h>
 
@@ -1313,12 +1307,13 @@ getPrintNameProlog(PceObject hd)
 { char *buffer = NULL;
   int   size   = 0;
   PceObject rval;
+  IOSTREAM *s;
 
-  IOSTREAM *s = Sopenmem(&buffer, &size, "w");
+  s = Sopenmem(&buffer, &size, "w");
+  s->encoding = ENC_WCHAR;
   PL_write_term(s, getTermHandle(hd), 1200, 0);
-  Sputc('\0', s);
   Sflush(s);
-  rval = cToPceString(NIL, buffer, size-1, FALSE);
+  rval = cToPceStringW(NIL, (wchar_t *)buffer, size, FALSE);
   Sclose(s);
 
   return rval;
@@ -1453,13 +1448,16 @@ termToObject(Term t, PceType type, Atom assoc, int new)
 					/* string(hello) */
     if ( functor == ATOM_string && arity == 1 )
     { char *s;
+      wchar_t *sW;
       unsigned int len;
       Term a = NewTerm();
       PceName pceassoc = atomToAssoc(assoc);
 
       QGetArg(1, t, a);
-      if ( GetChars(a, &s, &len) )
-	return cToPceString(pceassoc, s, len, TRUE);
+      if ( PL_get_nchars(a, &len, &s, CVT_ALL) )
+	return cToPceStringA(pceassoc, s, len, TRUE);
+      else if ( PL_get_wchars(a, &len, &sW, CVT_ALL) )
+	return cToPceStringW(pceassoc, sW, len, TRUE);
 
       ThrowException(EX_TYPE, ATOM_string, t);
       return PCE_FAIL;
@@ -1552,7 +1550,7 @@ termToObject(Term t, PceType type, Atom assoc, int new)
   { char *s;
     int len;
     if ( GetString(t, &s, &len) )	/* string object (if supported) */
-      return cToPceString(atomToAssoc(assoc), s, len, FALSE);
+      return cToPceStringA(atomToAssoc(assoc), s, len, FALSE);
   }
 #endif
 
@@ -1574,7 +1572,6 @@ static int
 unifyObject(Term t, PceObject obj, int top)
 { PceCValue value;
   int pcetype;
-  char *s;
   Term tmpt;
 
   switch( (pcetype = pceToC(obj, &value)) )
@@ -1617,27 +1614,22 @@ unifyObject(Term t, PceObject obj, int top)
       }
   }
 
-  if ( (s = pceStringToC(obj)) )	/* string: handle special */
-  { Atom name;
-    int arity;
+  if ( pceIsString(obj) )	/* string: handle special */
+  { const char *textA;
+    const wchar_t *textW;
+    int len;
+    Term a = NewTerm();
 
-    if ( IsVar(t) )
-    { Term a = NewTerm();
-
-      PutCharp(a, s);
-      tmpt = NewTerm();
-      ConsFunctor(tmpt, FUNCTOR_string1, a);
-      return Unify(t, tmpt);
-    } else if ( GetNameArity(t, &name, &arity) &&
-		name == ATOM_string && arity == 1 )
-    { Term a = NewTerm();
-
-      PutCharp(a, s);
-      tmpt = NewTerm();
-      QGetArg(1, t, tmpt);
-      return Unify(tmpt, a);
-    } else
+    if ( (textA = pceCharArrayToCA(obj, &len)) )
+      PL_put_atom_nchars(a, len, textA);
+    else if ( (textW = pceCharArrayToCW(obj, &len)) )
+      PL_unify_wchars(a, PL_ATOM, len, textW);
+    else
       return FALSE;
+
+    return PL_unify_term(t,
+			 PL_FUNCTOR, FUNCTOR_string1,
+			   PL_TERM, a);
   }
 
   { Atom name;

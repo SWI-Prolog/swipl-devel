@@ -67,12 +67,36 @@ cToPceReal(double f)
 
 
 Any
-cToPceString(Name assoc, const char *s, unsigned int len, int translate)
+cToPceStringA(Name assoc, const char *s, unsigned int len, int translate)
 { Any str;
   string ss;
   Any c;
 
   str_set_n_ascii(&ss, len, (char *)s);
+  c = StringToScratchCharArray(&ss);
+
+  if ( translate )
+    str = pceNew(assoc, ClassString, 1, &c);
+  else
+  { Any av[2];
+    
+    av[0] = name_procent_s;
+    av[1] = c;
+    str = pceNew(assoc, ClassString, 2, av);
+  }
+  doneScratchCharArray(c);
+
+  return str;
+}
+
+
+Any
+cToPceStringW(Name assoc, const wchar_t *s, unsigned int len, int translate)
+{ Any str;
+  string ss;
+  Any c;
+
+  str_set_n_wchar(&ss, len, (wchar_t*)s);
   c = StringToScratchCharArray(&ss);
 
   if ( translate )
@@ -384,15 +408,9 @@ pceToC(Any obj, PceCValue *rval)
 }
 
 
-char *
-pceStringToC(Any val)
-{ if ( instanceOfObject(val, ClassString) )
-  { StringObj str = val;
-
-    return strName(str);
-  }  
-
-  return NULL;
+int
+pceIsString(Any val)
+{ return instanceOfObject(val, ClassString) ? TRUE : FALSE;
 }
 
 
@@ -832,6 +850,25 @@ Cputchar(int chr)
   { Cprintf("%c", chr);
     return chr;
   }
+}
+
+
+int
+Cputstr(String s)
+{ if ( TheCallbackFunctions.Cputchar )
+  { int i;
+
+    for(i=0; i<s->size; i++)
+    { (*TheCallbackFunctions.Cputchar)(str_fetch(s, i));
+    }
+
+    return s->size;
+  } else if ( isstrA(s) )
+  { Cprintf("%s", s->s_textA);
+
+    return s->size;
+  } else
+    return 0;
 }
 
 

@@ -169,7 +169,7 @@ __pce_export int    pceToC(PceObject datum, PceCValue *rval);
 __pce_export int    pceToCReference(PceObject datum, PceCValue *rval);
 __pce_export char * pceCharArrayToCA(PceObject datum, unsigned int *len);
 __pce_export wchar_t * pceCharArrayToCW(PceObject datum, unsigned int *len);
-__pce_export char * pceStringToC(PceObject datum);
+__pce_export int    pceIsString(PceObject datum);
 __pce_export void * pcePointerToC(PceObject datum);
 __pce_export PceHostData  CtoHostData(PceClass class, void *handle, int flags);
 __pce_export void *    getHostDataHandle(PceHostData hd);
@@ -394,9 +394,12 @@ __pce_export PceObject	cToPceName_nA(const char *, unsigned int len);
 __pce_export PceObject	cToPceName_nW(const wchar_t *, unsigned int len);
 __pce_export PceObject	cToPceInteger(long);
 __pce_export PceObject	cToPceReal(double);
-__pce_export PceObject	cToPceString(PceName assoc,
-				     const char *text, unsigned int len,
-				     int translate);
+__pce_export PceObject	cToPceStringA(PceName assoc,
+				      const char *text, unsigned int len,
+				      int translate);
+__pce_export PceObject	cToPceStringW(PceName assoc,
+				      const wchar_t *text, unsigned int len,
+				      int translate);
 __pce_export PceObject	cToPceAssoc(const char *);
 __pce_export PceObject	cToPceReference(unsigned long);
 __pce_export PceObject	cToPcePointer(void *ptr);

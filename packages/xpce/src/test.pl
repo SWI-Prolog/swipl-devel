@@ -49,6 +49,32 @@ name(name-1) :-
 
 
 		 /*******************************
+		 *	       FORMAT		*
+		 *******************************/
+
+fmt(fmt-1) :-
+	get(string('hello %s', world), value, X),
+	X == 'hello world'.
+fmt(fmt-2) :-
+	get(string('hello %d', 42), value, X),
+	X == 'hello 42'.
+fmt(fmt-3) :-
+	get(string('%4dxx', 42), value, X),
+	X == '  42xx'.
+fmt(fmt-4) :-
+	get(string('%-4dxx', 42), value, X),
+	X == '42  xx'.
+fmt(fmt-5) :-
+	get(string('|%8s|', hello), value, X),
+	X == '|   hello|'.
+fmt(fmt-5) :-
+	get(string('|%-8s|', hello), value, X),
+	X == '|hello   |'.
+
+
+
+
+		 /*******************************
 		 *	    WIDE NAMES		*
 		 *******************************/
 
@@ -66,6 +92,27 @@ wname(wname-2) :-			% get it back as an atom
 	watom(Atom),
 	get(chain(Atom), head, Copy),
 	Copy == Atom.
+
+
+		 /*******************************
+		 *	   WIDE STRINGS		*
+		 *******************************/
+
+wstring(create-1) :-
+	numlist(1050, 1080, L),
+	new(S, string(L)),
+	forall(between(0, 30, I),
+	       ( get(S, character, I, C),
+		 C =:= I+1050)).
+wstring(cvt-1) :-
+	numlist(1050, 1080, L),
+	new(S, string(L)),
+	get(S, value, Atom),
+	atom_codes(Atom, L).
+wstring(fmt-1) :-
+	watom(A),
+	get(string('hello %s', A), value, A2),
+	atom_concat('hello ', A, A2).
 
 
 		 /*******************************
@@ -143,6 +190,8 @@ script_failed(File, Except) :-
 
 testset(name).				% XPCE names
 testset(wname).				% Names holding wide characters
+testset(wstring).			% Strings holding wide characters
+testset(fmt).				% Formatting actions
 
 %	testdir(Dir)
 %	

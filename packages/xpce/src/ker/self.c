@@ -145,11 +145,12 @@ writeLnPcev(Pce pce, int argc, Any *argv)
 
 status
 formatPcev(Pce pce, CharArray fmt, int argc, Any *argv)
-{ char buf[FORMATSIZE];
+{ string s;
 
-  swritefv(buf, NULL, fmt, argc, argv);
-  Cprintf("%s", buf);
-  
+  str_writefv(&s, fmt, argc, argv);
+  Cputstr(&s);
+  str_unalloc(&s);
+
   succeed;
 }
 
@@ -858,34 +859,27 @@ catchErrorSignalsPce(Pce pce, Bool val)
 static status
 informPce(Pce pce, CharArray fmt, int argc, Any *argv)
 { Any d = CurrentDisplay(NIL);
-  char buf[FORMATSIZE];
 
   if ( d != NULL && getOpenDisplay(d) == ON )
     return informDisplay(d, fmt, argc, argv);
 
-  swritefv(buf, NULL, fmt, argc, argv);
-  Cprintf("%s\n", buf);
-
-  succeed;
+  return formatPcev(pce, fmt, argc, argv);
 }
 
 
 static status
 confirmPce(Pce pce, CharArray fmt, int argc, Any *argv)
 { Any d = CurrentDisplay(NIL);
-  char buf[FORMATSIZE];
   int try;
 
   if ( d != NULL && getOpenDisplay(d) == ON )
     return confirmDisplay(d, fmt, argc, argv);
 
-  swritefv(buf, NULL, fmt, argc, argv);
-  strcat(buf, " (y/n) ? ");
-  
   for(try = 0; try < 3; try++)
   { char line[256];
 
-    Cprintf("%s", buf);
+    formatPcev(pce, fmt, argc, argv);
+    Cprintf(" (y/n) ? ");
     Cflush();
 
     if ( Cgetline(line, sizeof(line)) )

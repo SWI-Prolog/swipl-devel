@@ -2590,14 +2590,14 @@ reportObject(Any obj, Name kind, CharArray fmt, int argc, Any *argv)
 
     return sendv(to, NAME_report, argc+2, av);
   } else				/* no event: print it */
-  { char buf[FORMATSIZE];
+  { string msg;
     Any av[2];
 
     if ( isDefault(fmt) )
       fmt = (CharArray) (kind == NAME_done ? NAME_done : NAME_);
-    swritefv(buf, NULL, fmt, argc, argv);
+    str_writefv(&msg, fmt, argc, argv);
     av[0] = kind;
-    av[1] = CtoTempString(buf);
+    av[1] = StringToTempString(&msg);
     formatPcev(PCE,
 	       (CharArray) CtoName(kind == NAME_progress ? "[PCE: %I%s ... " :
 				   kind == NAME_done     ? "%I%s]\n" :
@@ -2606,6 +2606,7 @@ reportObject(Any obj, Name kind, CharArray fmt, int argc, Any *argv)
     if ( kind == NAME_progress )
       Cflush();
     considerPreserveObject(av[1]);
+    str_unalloc(&msg);
 
     succeed;
   }

@@ -602,14 +602,14 @@ str_lineno(String s, int at)
 wint_t
 str_fetch(String s, int idx)
 { return s->iswide ? str_fetchW(s, idx) & 0xffff
-		: str_fetchA(s, idx) & 0xff;
+		   : str_fetchA(s, idx) & 0xff;
 }
 
 
 int
 str_store(String s, int idx, unsigned int chr)
 { return s->iswide ? str_storeW(s, idx, chr)
-		: str_storeA(s, idx, chr);
+		   : str_storeA(s, idx, chr);
 }
 
 		 /*******************************

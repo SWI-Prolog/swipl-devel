@@ -1274,18 +1274,19 @@ ReceiverOfEditor(Editor e)
 static status
 reportEditor(Editor e, Name kind, CharArray fm, int argc, Any *argv)
 { if ( notNil(e->error_message) )
-  { char msg[FORMATSIZE];
+  { string msg;
     StringObj str;
 
     if ( isDefault(fm) )
       fm = (CharArray) (kind == NAME_done ? NAME_done : CtoName(""));
 
-    swritefv(msg, NULL, fm, argc, argv);
-    str = CtoTempString(msg);
+    str_writefv(&msg, fm, argc, argv);
+    str = StringToTempString(&msg);
 
     forwardReceiverCode(e->error_message, Receiver(e),
 			e, kind, str, EAV);
     considerPreserveObject(str);
+    str_unalloc(&msg);
 
     succeed;
   }

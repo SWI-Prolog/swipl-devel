@@ -384,22 +384,21 @@ appendLineStream(Stream s, CharArray data)
 
 static status
 formatStream(Stream s, CharArray fmt, int argc, Any *argv)
-{ char buf[FORMATSIZE];
-  int sz = sizeof(buf);
+{ string tmp;
+  status rc;
 
-  swritefv(buf, &sz, fmt, argc, argv);
-  if ( sz > FORMATSIZE-1 )
-  { int len = ++sz;			/* 1 extra for EOS */
-    char *abuf = alloc(len);
-    status rval;
-
-    swritefv(abuf, &sz, fmt, argc, argv);
-    rval = ws_write_stream_data(s, abuf, sz);
-    unalloc(len, abuf);
-
-    return rval;
+  str_writefv(&tmp, fmt, argc, argv);
+  if ( isstrA(&tmp) )
+  { rc = ws_write_stream_data(s, tmp.s_textA, tmp.size);
   } else
-    return ws_write_stream_data(s, buf, sz);
+  { Cprintf("TBD: wide characters in stream->format");
+
+    rc = FALSE;
+  }
+
+  str_unalloc(&tmp);
+
+  return rc;
 }
 
 
