@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: arithmetic to detect overflow of negative floats properly
+    (Richard O'Keefe).
+
   * FIXED: MT-Version: allow calling utility threads/0 from an exit
     hook.  Improve error message when joining `myself'.  Reported by
     Andrew V. Diatchkov.

@@ -962,9 +962,14 @@ LIST processing macros.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Doubles. To and from are Word pointers pointing to the data of a double,
-but generally not satisfying the double alignment requirements.
+but generally not  satisfying  the   double  alignment  requirements. We
+assume
 
-We assume the compiler will optise this properly.
+  sizeof(*to) == sizeof(*from) &&
+  sizeof(*to) * n == sizeof(*double)
+  	with n == 1 or n == 2.
+
+We assume the compiler will optimise this properly. 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define cpDoubleData(to, from) \

@@ -127,6 +127,11 @@ arithmetic(cmp-1) :-
 		 *	      FLOATS		*
 		 *******************************/
 
+foverflow(X) :-
+	X2 is X * 1000,
+	foverflow(X2),
+	1 = 1.			% avoid tail-recursion to force termination
+
 ftest(4.5).
 ftest :-
 	ftest(4.5).
@@ -150,6 +155,12 @@ floattest(float-5) :-
 floattest(float-5) :-
 	clause(ftest, ftest(X)),
 	X == 4.5.
+floattest(float-6) :-
+	catch(foverflow(2), E, true),
+	E = error(evaluation_error(float_overflow), _).
+floattest(float-7) :-
+	catch(foverflow(-2), E, true),
+	E = error(evaluation_error(float_overflow), _).
 
 
 		 /*******************************

@@ -488,9 +488,14 @@ valueExpression(term_t t, Number r ARG_LD)
 
     if ( r->type == V_REAL )
     {
-#ifdef HUGE_VAL
-      if ( r->value.f == HUGE_VAL )
+#ifdef DBL_MAX
+      if ( r->value.f > DBL_MAX || r->value.f < -DBL_MAX ) 
 	return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
+#else
+#ifdef HUGE_VAL
+      if ( r->value.f == HUGE_VAL || r->value.f == -HUGE_VAL )
+	return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
+#endif
 #endif
 #ifdef HAVE_ISNAN
       if ( isnan(r->value.f) )
@@ -1416,9 +1421,14 @@ ar_func_n(code n, int argc, Number *stack)
   if ( rval )
   { if ( result.type == V_REAL )
     {
-#ifdef HUGE_VAL
-      if ( result.value.f == HUGE_VAL )
+#ifdef DBL_MAX
+      if ( result.value.f > DBL_MAX || result.value.f < -DBL_MAX ) 
 	return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
+#else
+#ifdef HUGE_VAL
+      if ( result.value.f == HUGE_VAL || result.value.f == -HUGE_VAL )
+	return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
+#endif
 #endif
 #ifdef HAVE_ISNAN
       if ( isnan(result.value.f) )
