@@ -81,7 +81,7 @@ load_profile(F) :->
 	send(B, load_profile),
 	send(F, report, done),
 	send(F, show_statistics),
-%	reset_profiler. % Cleanup loaded data from the Prolog database
+	reset_profiler, % Cleanup loaded data from the Prolog database
 	true.
 
 
@@ -551,8 +551,7 @@ make_prof_node_text_recogniser(G) :-
 			      condition := Pred?source),
 		    menu_item(documentation,
 			      message(Pred, help),
-			      condition := if(message(Pred, has_send_method, has_help),
-					      message(Pred, has_help)))
+			      condition := message(Text, has_help))
 		  ]),
 	new(C, click_gesture(left, '', single,
 			     message(@receiver, details))),
@@ -564,6 +563,15 @@ event(T, Ev:event) :->
 	->  true
 	;   send(@prof_node_text_recogniser, event, Ev)
 	).
+
+has_help(T) :->
+	get(T, context, Ctx),
+	(   send(Ctx, instance_of, method) % hack
+	->  manpce
+	;   true
+	),
+	send(Ctx, has_send_method, has_help),
+	send(Ctx, has_help).
 
 details(T) :->
 	"Show details of clicked predicate"::
