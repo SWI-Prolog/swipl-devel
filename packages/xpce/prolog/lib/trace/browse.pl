@@ -36,11 +36,11 @@
 :- dynamic
 	prolog_overview_window/1.
 
-resource(edit,	    image, image('16x16/edit.xpm')).
-resource(up,	    image, image('16x16/up.xpm')).
-resource(refresh,   image, image('16x16/refresh.xpm')).
-resource(butterfly, image, image('butterfly.xpm')).
-resource(debug,	    image, image('16x16/dbgsettings.xpm')).
+resource(edit,	      image, image('16x16/edit.xpm')).
+resource(up,	      image, image('16x16/up.xpm')).
+resource(refresh,     image, image('16x16/refresh.xpm')).
+resource(butterfly,   image, image('butterfly.xpm')).
+resource(dbgsettings, image, image('16x16/dbgsettings.xpm')).
 
 :- pce_begin_class(prolog_navigator, frame,
 		   "Prolog source navigator").
@@ -73,7 +73,7 @@ fill_tool_bar(SB) :->
 				'Update view'),
 		    gap,
 		    tool_button(debug_settings,
-				resource(debug),
+				resource(dbgsettings),
 				'Edit breakpoints'),
 		    tool_button(edit,
 				resource(edit),
