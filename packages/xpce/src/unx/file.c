@@ -64,9 +64,9 @@ initialiseFile(FileObj f, Name name, Name encoding)
   { if ( !isName(f->encoding) )
       assign(f, encoding, getClassVariableValueObject(f, NAME_encoding));
     assign(f, kind, NAME_text);
-  } else if ( encoding == NAME_binary )
+  } else if ( encoding == NAME_binary || encoding == NAME_octet )
   { assign(f, kind, NAME_binary);
-    assign(f, encoding, NAME_binary);
+    assign(f, encoding, NAME_octet);
   } else
   { assign(f, encoding, encoding);
     assign(f, kind, NAME_text);
@@ -716,7 +716,7 @@ static status
 append_file(FileObj f, String str)
 { TRY( check_file(f, NAME_write) );
 
-  if ( f->encoding == NAME_binary )
+  if ( f->encoding == NAME_octet )
   { if ( Sfwrite(str->s_text,
 		 isstrA(str) ? sizeof(charA) : sizeof(charW),
 		 str->size, 
@@ -896,7 +896,7 @@ getReadFile(FileObj f, Int n)
     fail;
   }
 
-  if ( f->encoding == NAME_binary )
+  if ( f->encoding == NAME_octet )
   { s = answerObject(ClassString, EAV);
     str_unalloc(&s->data);
     str_inithdr(&s->data, ENC_ISOL1);
@@ -970,7 +970,7 @@ checkErrorFile(FileObj f)
 
 status
 storeCharFile(FileObj f, int c)
-{ if ( f->encoding == NAME_binary )
+{ if ( f->encoding == NAME_octet )
     Sputc(c, f->fd);
   else
     Sputcode(c, f->fd);

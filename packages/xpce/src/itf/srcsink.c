@@ -113,7 +113,7 @@ setStreamEncodingSourceSink(SourceSink ss, IOSTREAM *fd)
 
 static StringObj
 getContentsSourceSink(SourceSink ss, Int from, Int len)
-{ const char *mode = (ss->encoding == NAME_binary ? "rbr" : "rr");
+{ const char *mode = (ss->encoding == NAME_octet ? "rbr" : "rr");
   IOSTREAM *fd = Sopen_object(ss, mode);
 
   if ( fd )
@@ -139,7 +139,7 @@ getContentsSourceSink(SourceSink ss, Int from, Int len)
       fail;
     }
 
-    if ( ss->encoding == NAME_binary ||
+    if ( ss->encoding == NAME_octet ||
 	 ss->encoding == NAME_iso_latin_1 )
     { str_inithdr(&s, ENC_ISOL1);
       s.size = size;
@@ -266,7 +266,7 @@ static char *T_contents[] =
 /* Instance Variables */
 
 static vardecl var_source_sink[] =
-{ SV(NAME_encoding, "{binary,iso_latin_1,utf8,unicode_be,unicode_le,wchar}",
+{ SV(NAME_encoding, "{octet,iso_latin_1,utf8,unicode_be,unicode_le,wchar}",
      IV_GET|IV_STORE, encodingSourceSink,
      NAME_encoding, "Encoding of the data-source"),
 };
