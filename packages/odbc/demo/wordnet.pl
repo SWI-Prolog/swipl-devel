@@ -1,4 +1,4 @@
-:- use_module(odbc).
+:- use_module(library(odbc)).
 
 open :-
 	odbc_connect('WordNet', _,

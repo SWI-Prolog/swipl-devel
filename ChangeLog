@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORT: Removed static linking of frame.o.  Shouldn't be needed anymore
+    and raised problems on PPC Linux (Aaron Macks).
+
+
 VERSION 5.0.8 (Jul 7, 2002)
 ===========================
 

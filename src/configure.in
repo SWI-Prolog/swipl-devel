@@ -426,16 +426,19 @@ dnl See whether we need to force __register_frame_info to be included.
 dnl This is a glibc/egcs portability problem for binaries accross
 dnl installations.
 
-AC_MSG_CHECKING("Static include of __register_frame_info")
-if ar x `${CC-cc} -print-libgcc-file-name` frame.o &&
-   nm frame.o | grep  __register_frame_info 2>&1 > /dev/null; then
-   AC_MSG_RESULT(yes)
-   EXTRAOBJ="$EXTRAOBJ frame.o"
-else
-   AC_MSG_RESULT(no)
-fi
-rm -f frame.o
-fi
+dnl This was once needed to deal with glibc compatibility issues 
+dnl when Linux was born.  Hopefully it doesn't matter anymore.
+dnl 
+dnl AC_MSG_CHECKING("Static include of __register_frame_info")
+dnl if ar x `${CC-cc} -print-libgcc-file-name` frame.o &&
+dnl    nm frame.o | grep  __register_frame_info 2>&1 > /dev/null; then
+dnl    AC_MSG_RESULT(yes)
+dnl    EXTRAOBJ="$EXTRAOBJ frame.o"
+dnl else
+dnl    AC_MSG_RESULT(no)
+dnl fi
+dnl rm -f frame.o
+dnl fi
 
 if test "$ac_cv_func_fcntl" = yes; then
   AC_MSG_CHECKING("fcntl based locking");
