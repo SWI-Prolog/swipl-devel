@@ -262,6 +262,8 @@ prolog_message(load_file(failed(user:File))) -->
 	[ 'Failed to load ~p'-[File] ].
 prolog_message(load_file(failed(Module:File))) -->
 	[ 'Failed to load ~p into module ~p'-[File, Module] ].
+prolog_message(load_file(failed(File))) -->
+	[ 'Failed to load ~p'-[File] ].
 prolog_message(mixed_directive(Goal)) -->
 	[ 'Cannot pre-compile mixed load/call directive: ~p'-[Goal] ].
 prolog_message(cannot_redefine_comma) -->
