@@ -6,13 +6,15 @@ Description:	ISO/Edinburgh-style Prolog compiler.  Compliant with Part 1 of the 
 		for Prolog.  Covers all traditional Edinburgh Prolog features and shared many
 		features with Quintus and SICStus Prolog, including a compatible module system.
 		Very fast compiler, garbage collection (also on atoms), fast and powerful
-		C/C++ interface, autoloading, GNU-readline interface. X11 interface using
-		XPCE (http://swi.psy.uva.nl/projects/xpce/), including GUI tracer.
+		C/C++ interface, autoloading, GNU-readline interface.
+
+	        Includes standard packages for process management, TCP/IP, XML/SGML, RDF,
+		and the GUI toolkit XPCE.
 Keywords:       Prolog, Edinburgh, Programming Language, Symbolic, Logic
 Author:         jan@swi.psy.uva.nl (Jan Wielemaker)
 Maintained-by:  jan@swi.psy.uva.nl
 Primary-site:   ftp.swi.psy.uva.nl /pub/SWI-Prolog
-		1200kB pl-4.0.0.tar.gz
+		5500kB pl-4.0.0.tar.gz
 Platforms:      Unix, Win32 32 and 64-bit platforms. ANSI-C
 Copying-policy: GPL-2
 End

@@ -1,6 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 4.0.0
+=============
+
+  * ADDED: Integrated generally useful packages and the now Open source
+    XPCE GUI toolkit into the source and binary distribution.
+
+  * ADDED: Integrated NMAKE makefiles for building on MS-Windows.  Requires
+    Windows-NT or 2000 to build, but result works on all Win32 platforms.
+
   * FIXED: Instantiation problems in source_file/2, reported by
     Richard O'Keefe.
 
