@@ -215,7 +215,6 @@ option(type_definition,type(constraint,[ any / any ])).
 
 option(type_declaration,constraint_mode(constraint,list)).
 
-
 target_module(_) \ target_module(_) <=> true.
 target_module(Mod) \ get_target_module(Query)
 	<=> Query = Mod .
@@ -418,26 +417,18 @@ chr_translate(Declarations,NewDeclarations) :-
 		add_constraints(Constraints),
 		add_rules(Rules),
 		% start analysis
-%		format('starting analysis...\n',[]),
 		check_rules(Rules,Constraints),
 		add_occurrences(Rules),
 		functional_dependency_analysis(Rules),
 		set_semantics_rules(Rules),
 		symmetry_analysis(Rules),
-%		format('guard simplification...\n',[]),
 		guard_simplification,
-%		time('guard simplification',guard_simplification),
-%		format('storage analysis...\n',[]),
 		storage_analysis(Constraints),
-%		format('observation analysis...\n',[]),
 		observation_analysis(Constraints),
-%		format('ai observation analysis...\n',[]),
 		ai_observation_analysis(Constraints),
-%		format('late allocation...\n',[]),
 		late_allocation(Constraints),
 		assume_constraint_stores(Constraints),
 		set_constraint_indices(Constraints),
-%		format('end analysis...\n',[]),
 		% end analysis
 		constraints_code(Constraints,ConstraintClauses),
 		validate_store_type_assumptions(Constraints),
@@ -1277,7 +1268,7 @@ chr_pp_flag(Name,Value) :-
 %%	attach_$CONSTRAINT
 generate_attach_detach_a_constraint_all([],[]).
 generate_attach_detach_a_constraint_all([Constraint|Constraints],Clauses) :-
-	( (chr_pp_flag(debugable,on) ; may_trigger(Constraint)) ->
+	( ( chr_pp_flag(debugable,on) ; may_trigger(Constraint)) ->
 		generate_attach_a_constraint(Constraint,Clauses1),
 		generate_detach_a_constraint(Constraint,Clauses2)
 	;
@@ -1664,7 +1655,6 @@ global_indexed_variables_clause(Constraints,List,Tail) :-
 	;
 		List = Tail
 	).
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 generate_attach_increment(Clauses) :-
@@ -2155,6 +2145,7 @@ multi_hash_enumerate_store_body(I,C,Susp,B) :-
 		nb_getval(StoreName,HT),
 		value_ht(HT,Susp)	
 	).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -2200,7 +2191,6 @@ guard_simplification :-
 % for every rule, we create a prev_guard_list where the last argument
 % eventually is a list of the negations of earlier guards
 rule(RuleNb,Rule) \ simplify_guards(RuleNb) <=> 
-%    format('  simplifying rule ~w\n',[RuleNb]),
     Rule = pragma(rule(Head1,Head2,G,_B),_Ids,_Pragmas,_Name,RuleNb),
     append(Head1,Head2,Heads),
     make_head_matchings_explicit_not_negated(Heads,UniqueVarsHeads,Matchings),
@@ -2228,7 +2218,6 @@ rule(N,Rule) \ prev_guard_list(RuleNb,N,H,G,GuardList,M,GH) <=>
     Renamings \= []
     |
     compute_derived_info(Matchings,Renamings,UniqueVarsHeads,Heads,G2,M,H,GH,DerivedInfo,GH_New1),
-%    format('  adding derived info from rule ~w: ~w\n',[N,DerivedInfo]),
     append(GuardList,DerivedInfo,GL1),
     list2conj(GL1,GL_),
     conj2list(GL_,GL),
@@ -2265,10 +2254,7 @@ prev_guard_list(RuleNb,0,H,G,GuardList,M,[]), rule(RuleNb,Rule) <=>
     Rule = pragma(rule(Head1,Head2,G,B),Ids,Pragmas,Name,RuleNb),
     G \== true,		% let's not try to simplify this ;)
     append(M,GuardList,Info),
-%    format(' simplifying guard: ~w\n',[G]),
-%    format(' using info: ~w\n',[Info]),
     simplify_guard(G,B,Info,SimpleGuard,NB),
-%    format(' new guard: ~w\n',[SimpleGuard]),
     G \== SimpleGuard     |
 %    ( prolog_flag(verbose,V), V == yes ->
 %	format('            * Guard simplification in ~@\n',[format_rule(Rule)]),
@@ -2481,8 +2467,6 @@ rule(RuleNb,Rule) \ prev_guard_list(RuleNb,0,H,G,GuardList,M,[]) <=>
     append(M,GuardList,Info),
     guard_entailment:entails_guard(Info,fail) |
     format('CHR compiler WARNING: heads will never match in ~@.\n',[format_rule(Rule)]),
-%    format('because: ~w\n',[Info]),
-%    format('entails fail\n',[]),
     format('    `-->  In the refined operational semantics (rules applied in textual order)\n',[]),
     format('          this rule will never fire! (given the declared types/modes)\n',[]),
     format('          Removing this redundant rule by making all its heads passive...\n',[]),
@@ -2513,7 +2497,6 @@ prev_guard_list(RuleNb,0,H,G,GuardList,M,[]) \ rule(RuleNb,Rule) <=>
 %	format('            * Head simplification in ~@\n',[format_rule(Rule)]),
 %	format('     	      was: ~w \\ ~w \n',[Head2,Head1]),
 %	format('     	      now: ~w \\ ~w \n',[NewH2,NewH1]),
-%	format('     	      because: ~w \n',[GuardList]),
 %	format('     	      extra body: ~w \n',[BodyMatchings])
 %    ;
 %	true	    
@@ -2593,7 +2576,6 @@ simplify_heads([],_GuardList,_G,_Body,[],[]).
 simplify_heads([M|RM],GuardList,G,Body,NewM,NewB) :-
     M = (A = B),
     ( (nonvar(B) ; vars_occur_in(B,RM-GuardList)),guard_entailment:entails_guard(GuardList,(A=B)) ->
-%	write(guard_entailment:entails_guard(GuardList,(A=B))),nl,
 	( vars_occur_in(B,G-RM-GuardList) ->
 	    NewB = NextB,
 	    NewM = NextM
@@ -2608,13 +2590,10 @@ simplify_heads([M|RM],GuardList,G,Body,NewM,NewB) :-
     ;
 	( nonvar(B), functor(B,BFu,BAr),
 	  guard_entailment:entails_guard([functor(A,BFu,BAr)|GuardList],(A=B)) ->
-%	write(guard_entailment:entails_guard([functor(A,BFu,BAr)|GuardList],(A=B))),nl,
 	    NewB = NextB,
 	    ( vars_occur_in(B,G-RM-GuardList) ->
-%		write(ja),nl,
 	        NewM = NextM
     	    ;
-%		write(nee),nl,
 		NewM = [functor(A,BFu,BAr)|NextM]
 	    )
 	;
@@ -2722,7 +2701,7 @@ next_occ_in_rule(RuleNb,C,O,ID_o1,Cond,FH) <=>
 	( OccSubsum \= chr_pp_void_info, 
 	unify_stuff(InfoVars,Info3,OccSubsum3), !,
 	( guard_entailment:entails_guard(Info2,OccSubsum2) ->
-%	 ( prolog_flag(verbose,V), V == yes ->
+%	( prolog_flag(verbose,V), V == yes ->
 %	    format('            * Occurrence subsumption detected in ~@\n',[format_rule(Rule)]),
 %	    format('     	      passive: constraint ~w, occurrence number ~w (id ~w)\n',[C,O2,ID_o2]),
 %        ;
@@ -3070,7 +3049,6 @@ passive(RuleNb,Id) \ check_all_passive(RuleNb,[Id|IDs]) <=>
 
 rule(RuleNb,Rule) \ check_all_passive(RuleNb,[]) <=> 
     format('CHR compiler WARNING: all heads passive in ~@.\n',[format_rule(Rule)]),
-    format('~w\n',[Rule]),
     format('    `-->  Rule never fires. Check your program, this might be a bug!\n',[]).
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -3171,7 +3149,7 @@ check_storage_head2(Head,O,H1,B) :-
 	).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-	
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%  ____        _         ____                      _ _       _   _
 %% |  _ \ _   _| | ___   / ___|___  _ __ ___  _ __ (_) | __ _| |_(_) ___  _ __
@@ -3294,7 +3272,7 @@ gen_cond_attach_clause(F/A,Id,L,T) :-
 		Clause = ( Head :- DebugEvent,Body ),
 		L = [Clause | T]
 	;
-	    L = T
+		L = T
 	).	
 
 constraints 
@@ -3422,7 +3400,6 @@ occurrence(C,O,RuleNb,ID), rule(RuleNb,PragmaRule) \ occurrence_code(C,O,Id,NId,
 		).
 occurrence_code(C,O,_,_,_,_)
 	<=>	
-		chr_show_store(chr_pp),
 		format('occurrence_code/6: missing information to compile ~w:~w\n',[C,O]),fail.
 %-------------------------------------------------------------------------------
 
@@ -3754,9 +3731,6 @@ symmetry_analysis_heads([H|Hs],[ID|IDs],PreHs,PreIDs,Rule,RuleNb) :-
 		true
 	),
 	symmetry_analysis_heads(Hs,IDs,[H|PreHs],[ID|PreIDs],Rule,RuleNb).
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -5044,6 +5018,13 @@ replicate(N,E,L) :-
 		M is N - 1,
 		replicate(M,E,T)
 	).
+
+time(Phase,Goal) :-
+	statistics(runtime,[T1|_]),
+	call(Goal),
+	statistics(runtime,[T2|_]),
+	T is T2 - T1,
+	format('    ~w:\t\t~w ms\n',[Phase,T]).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Storetype dependent lookup
 lookup_passive_head(Head,PreJoin,VarDict,Goal,AllSusps) :-
@@ -5093,6 +5074,7 @@ lookup_passive_head(multi_store(StoreTypes),Head,PreJoin,VarDict,Goal,AllSusps) 
 		member(ST,StoreTypes),
 		lookup_passive_head(ST,Head,PreJoin,VarDict,Goal,AllSusps)
 	)).
+
 existential_lookup(global_singleton,Head,_PreJoin,_VarDict,SuspTerm,State,Goal,Susp,Pairs,Pairs) :- !,
 	functor(Head,F,A),
 	global_singleton_store_name(F/A,StoreName),
@@ -5162,6 +5144,7 @@ hash_index_filter([P|Ps],Index,N,NPairs) :-
 	;
 		NPairs = [P|Ps]
 	).	
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 assume_constraint_stores([]).
 assume_constraint_stores([C|Cs]) :-
@@ -5596,10 +5579,3 @@ generate_show_rules([F/A|Rest],[Rule|Tail],Rules) :-
 			RuleNb
 		),
 	generate_show_rules(Rest,Tail,Rules).
-
-time(Phase,Goal) :-
-	statistics(runtime,[T1|_]),
-	call(Goal),
-	statistics(runtime,[T2|_]),
-	T is T2 - T1,
-	format('    ~w:\t\t~w ms\n',[Phase,T]).
