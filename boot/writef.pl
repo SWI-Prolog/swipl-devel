@@ -103,6 +103,7 @@ $special(0'%, 0'%).		/*  %  */
 
 $getcode(Char, In, Out) :-
 	$getdigits(3, Digits, In, Out),
+	Digits = [_|_],
 	name(Char, Digits),
 	Char < 128.
 

@@ -1,10 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
-  * FIXED: report x, ), y as syntax error rather then , ')', y.  Reported
+  * FIXED: writef('\\X'), where is is not a digit raised exception.  Now
+    writes \X.  Patch by Lyosha Ilyukhin.
+
+  * FIXED: report "x, ), y" as syntax error rather then , ')', y.  Reported
     by Tolga Konik.
 
-  * ADDED: installation of dotfiles (Unix makefile)
+  * ADDED: installation of dotfiles (Unix Makefile)
 
   * ADDED: edit/1 to include definition for uedit32 (Tolga Konik)
 
