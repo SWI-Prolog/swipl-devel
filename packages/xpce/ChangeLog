@@ -4,6 +4,8 @@
 VERSION 6.1.10, distributed with SWI-Prolog 5.1.10
 ==================================================
 
+* ADDED: Class keybinding reports pending keystrokes of multi-key commands.
+
 VERSION 6.1.9, distributed with SWI-Prolog 5.1.9
 ================================================
 

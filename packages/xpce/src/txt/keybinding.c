@@ -201,6 +201,27 @@ functionKeyBinding(KeyBinding kb, EventId id, Any f)
 		********************************/
 
 static status
+reportStatusKeybinding(KeyBinding kb, Any receiver)
+{ static Name fmt = NULL;
+  Any str;
+
+  if ( notDefault(kb->argument) )
+  { if ( !fmt )
+      fmt = CtoName("%d %s");
+
+    str = newObject(ClassString, fmt,
+		    kb->argument, kb->prefix, EAV);
+  } else
+  { str = kb->prefix;
+  }
+  send(receiver, NAME_report, NAME_status, name_procent_s, str, EAV);
+  doneObject(str);
+
+  succeed;
+}
+
+
+static status
 eventKeyBinding(KeyBinding kb, EventObj ev)
 { if ( isAEvent(ev, NAME_keyboard) &&
        (isNil(kb->condition) ||
@@ -349,9 +370,11 @@ typedKeyBinding(KeyBinding kb, Any id, Graphical receiver)
       { reset |= (RESET_ARGUMENT|RESET_COLUMN);
       }
 
+      send(receiver, NAME_report, NAME_status, NAME_, EAV);
       rval = sendv(kb, NAME_fillArgumentsAndExecute, argc, argv);
     } else if ( instanceOfObject(cmd, ClassCode) )
-    { rval = forwardReceiverCode(cmd, receiver, kb->argument, id, EAV);
+    { send(receiver, NAME_report, NAME_status, NAME_, EAV);
+      rval = forwardReceiverCode(cmd, receiver, kb->argument, id, EAV);
     }
   } else
   { reset = (RESET_COLUMN|RESET_ARGUMENT|RESET_STATUS);
@@ -366,6 +389,9 @@ typedKeyBinding(KeyBinding kb, Any id, Graphical receiver)
 
   if ( cmd != NAME_prefix )
     assign(kb, prefix, NAME_);
+
+  if ( notDefault(kb->argument) || kb->prefix != NAME_ )
+    reportStatusKeybinding(kb, receiver);
 
   return rval;
 }
