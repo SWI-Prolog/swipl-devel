@@ -69,3 +69,4 @@
 { (FunctorDef)NULL, FUNCTOR_TYPE, ATOM_exception, 3 },
 { (FunctorDef)NULL, FUNCTOR_TYPE, ATOM_syntax_error, 3 },
 { (FunctorDef)NULL, FUNCTOR_TYPE, ATOM_singleton, 3 },
+{ (FunctorDef)NULL, FUNCTOR_TYPE, ATOM_warning, 3 },

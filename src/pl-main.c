@@ -10,22 +10,14 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Get the ball rolling.  The main task of  this  module  is  command  line
 option  parsing,  initialisation  and  handling  of errors and warnings.
-Also for the binairy distribution, this  file  is  in  source  form,  so
-people  can  easily  integrate with other software.  This makes things a
-bit messy as many definitions needs to be duplicated in pl-main.h.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if __TURBOC__
-#include <string.h>
-#include <stdlib.h>
-#include <tos.h>
-#define MAXPATHLEN	PATH_MAX
-#include "pl-ssymb.h"
-#else
-#include <sys/param.h>			/* MAXPATHLEN */
+#include "pl-incl.h"
+#include "pl-itf.h"
+#include "pl-save.h"
+#if unix
+#include <sys/param.h>
 #endif
-
-#include "pl-main.h"
 
 forwards void	usage P((void));
 forwards char * findHome P((char *));
@@ -37,17 +29,6 @@ forwards char *	findState P((char *));
 			    usage(); \
 			  break; \
 			}
-#define streq(s, q)	( strcmp(s, q) == 0 )
-
-#ifndef MACHINE
-#define MACHINE	"unknown"
-#endif
-#ifndef OPERATING_SYSTEM
-#define OPERATING_SYSTEM "unknown"
-#endif
-
-#define SECURE(g)
-/* #define SECURE(g) { g; } */
 
 static char *
 findHome(def)
@@ -82,14 +63,15 @@ findState(base)
 char *base;
 { char state[MAXPATHLEN];
 
-  sprintf(state, "%s.%s", base, MACHINE);
+  sprintf(state, "%s.%s", base, systemDefaults.machine);
   if ( ExistsFile(state) )
     return store_string(state);
 
   if ( ExistsFile(base) )
     return store_string(base);
 
-  sprintf(state, "%s/startup/%s.%s", systemDefaults.home, base, MACHINE);
+  sprintf(state, "%s/startup/%s.%s",
+	  systemDefaults.home, base, systemDefaults.machine);
   if ( ExistsFile(state) )
     return store_string(state);
 
@@ -101,13 +83,17 @@ char *base;
 }
 
 
-#ifdef O_MULTI_LANGUAGE
-#define main	PL_start
+#if O_LINK_PCE
+foreign_t
+pl_pce_init()
+{ prolog_pce_init(mainArgc, mainArgv);
+
+  succeed;
+}
 #endif
 
-
 int
-main(argc, argv, env)
+startProlog(argc, argv, env)
 int argc;
 char **argv;
 char **env;
@@ -122,11 +108,9 @@ char **env;
 
  /* status.debugLevel = 9; */
 
-  if ( argc == 2 && streq(argv[1], "-help") )
-    usage();
-
   if ( status.dumped == FALSE )
-  { systemDefaults.home		    = findHome(SYSTEMHOME);
+  { systemDefaults.machine	    = MACHINE;
+    systemDefaults.home		    = findHome(SYSTEMHOME);
     systemDefaults.state	    = findState("startup");
     systemDefaults.startup	    = DEFSTARTUP;
     systemDefaults.version	    = store_string(PLVERSION);
@@ -138,7 +122,6 @@ char **env;
     systemDefaults.goal		    = "'$welcome'";
     systemDefaults.toplevel	    = "prolog";
     systemDefaults.notty	    = FALSE;
-    systemDefaults.machine	    = MACHINE;
     systemDefaults.operating_system = OPERATING_SYSTEM;
 
   } else
@@ -177,15 +160,20 @@ char **env;
 
   DEBUG(1, {if (status.boot) printf("Boot session\n");});
 
+  if ( argc >= 2 && streq(argv[0], "-r") )
+  { argc -= 2, argv += 2;		/* recover; we've done this! */
+  }
+
   if ( argc >= 2 && streq(argv[0], "-x") )
   { state = argv[1];
     argc -= 2, argv += 2;
     DEBUG(1, printf("Startup file = %s\n", state));
-  } else if ( argc == 1 && argv[0][0] != '-' )
-  { state = argv[0];
-    argc--, argv++;
-    DEBUG(1, printf("Startup file = %s\n", state));
   }
+
+  if ( argc >= 1 && streq(argv[0], "-help") )
+    usage();
+
+#define K * 1024L
 
   if ( state != NULL && status.boot == FALSE )
   { DEBUG(1, printf("Scanning %s for options\n", state));
@@ -201,17 +189,16 @@ char **env;
     DEBUG(2, printf("options.initFile     = %s\n",  options.initFile));
   } else
   { options.compileOut	  = "a.out";
-    options.localSize	  = systemDefaults.local    * 1024L;
-    options.globalSize	  = systemDefaults.global   * 1024L;
-    options.trailSize	  = systemDefaults.trail    * 1024L;
-    options.argumentSize  = systemDefaults.argument * 1024L;
-    options.lockSize	  = systemDefaults.lock	    * 1024L;
+    options.localSize	  = systemDefaults.local    K;
+    options.globalSize	  = systemDefaults.global   K;
+    options.trailSize	  = systemDefaults.trail    K;
+    options.argumentSize  = systemDefaults.argument K;
+    options.lockSize	  = systemDefaults.lock	    K;
     options.goal	  = systemDefaults.goal;
     options.topLevel	  = systemDefaults.toplevel;
     options.initFile      = systemDefaults.startup;
   }
 
-#define K * 1024L
   for( ; argc > 0 && (argv[0][0] == '-' || argv[0][0] == '+'); argc--, argv++ )
   { if ( streq(&argv[0][1], "tty") )
     { status.notty = (argv[0][0] == '-');
@@ -257,21 +244,10 @@ char **env;
     next:;
   }
 #undef K
-
- DEBUG(1, printf("Command line options parsed\n"));
-
-#if O_PCE
-  notify_status.active        = 0;
-  notify_status.dispatching   = FALSE;
-  notify_status.called	      = FALSE;
-  notify_status.abort_is_save = FALSE;
-#endif O_PCE
+  
+  DEBUG(1, printf("Command line options parsed\n"));
 
   setupProlog();
-
-#if O_LINK_PCE
-  prolog_pce_init(mainArgc, mainArgv);
-#endif
 
 #if LINK_THIEF
   { extern long pl_thief();
@@ -304,16 +280,16 @@ char **env;
   status.dumped = TRUE;
   status.initialised = TRUE;
 
+#if O_LINK_PCE
+  PL_register_foreign("$pce_init", 0, pl_pce_init, PL_FA_TRANSPARENT, 0);
+#endif
+
   DEBUG(1, printf("Starting Prolog Engine\n"));
 
-#ifdef O_MULTI_LANGUAGE
-  prolog(PL_new_atom("$init_return"));
-#else
   if ( prolog(PL_new_atom(compile ? "$compile" : "$init")) == TRUE )
     Halt(0);
   else
     Halt(1);
-#endif
 
   return 0;
 }
@@ -437,7 +413,7 @@ va_list args;
 { fprintf(stderr, "[PROLOG INTERNAL ERROR:\n\t");
   vfprintf(stderr, fm, args);
 /*  fprintf(stderr, "\nPROLOG STACK:\n");
-  backTrace(NULL);
+  backTrace(NULL, 100);
   fprintf(stderr, "]\n"); */
 
   abort();
@@ -461,6 +437,36 @@ vwarning(fm, args)
 char *fm;
 va_list args;
 { toldString();
+
+  if ( ReadingSource && !status.boot && status.initialised )
+  { word goal = globalFunctor(FUNCTOR_exception3);
+    char message[LINESIZ];
+    word arg;
+
+    vsprintf(message, fm, args);
+
+    unifyAtomic(argTermP(goal, 0), ATOM_warning);
+    unifyFunctor(argTermP(goal, 1), FUNCTOR_warning3);
+    arg = argTerm(goal, 1);
+    unifyAtomic(argTermP(arg, 0), source_file_name);
+    unifyAtomic(argTermP(arg, 1), consNum(source_line_no));
+    unifyAtomic(argTermP(arg, 2), globalString(message));
+
+    if ( callGoal(MODULE_user, goal, FALSE) == FALSE )
+    { extern int Output;
+      int old = Output;
+    
+      Output = 2;
+      Putf("[WARNING: (%s:%d)\n\t",
+	    stringAtom(source_file_name), source_line_no);
+      vPutf(fm, args);
+      Putf("]\n");
+      Output = old;
+    }
+
+    PL_fail;				/* handled */
+  }
+
 
   if ( status.io_initialised )
   { extern int Output;

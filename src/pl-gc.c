@@ -7,7 +7,7 @@
     Purpose: Garbage Collection
 */
 
-/* #define O_DEBUG 1 */
+/*#define O_DEBUG 1*/
 #include "pl-incl.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1122,6 +1122,7 @@ scan_global()
   return errors == 0;
 }
 #endif
+
 
 void
 garbageCollect(fr)

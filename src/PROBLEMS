@@ -1,11 +1,5 @@
 Remaining problems in SWI-Prolog
 
-* The standard loaded library facilities get a bit of a mess.  A
-  better idea might be to take out many of the functions and use dynamic
-  library loading instead.  Another idea is to put the entire system in
-  a module called system, so the user can abolish it whenever appropriate,
-  without cripling the system itself.
-
 * Still, we have to search for a solution to garbage collection
   while foreign code is active.
 
@@ -20,4 +14,15 @@ Remaining problems in SWI-Prolog
 
   is read as cd (:- cd ~).
 
-  
+* Bagof/setof have a bug as reported by Paul Broome <broome@BRL.MIL>:
+
+  The symptons are that variable bindings in subgoals of bagof seem to
+  be lost.  An example that illustrates the problem is the following:
+
+  | ?- bagof(Z,(X=Z),L).
+ 
+  L = [G206]
+  X = G148
+  Z = G149 ;
+ 
+  The variables G206 and G148 are the same but this fact is lost.

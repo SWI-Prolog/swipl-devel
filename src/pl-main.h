@@ -7,42 +7,14 @@
     Purpose: System dependent parameters
 */
 
-#if !PL_KERNEL
-#ifdef MD				/* get machine parameters */
-#include MD
-#else
-#include "md.h"
-#endif
-
-#if PROTO
-#define P(type) type
-#else
-#define P(type) ()
-#endif
-
-#if !__GNUC__ || !__STDC__
-#define volatile
-#define inline
-#endif
-
-#if O_NO_VOID_POINTER
-typedef char *			Void;
-#else
-typedef void *			Void;
-#endif
-
-#define forwards static
-#define GLOBAL extern
-
-#include <stdio.h>
-#include "pl-itf.h"
-
-#endif PL_KERNEL
-
 GLOBAL int	mainArgc;		/* arguments to main() */
 GLOBAL char  ** mainArgv;
 GLOBAL char  ** mainEnv;
 GLOBAL void	(*PL_foreign_reinit_function) P((int argc, char **argv));
+
+		/********************************
+		*           STRUCTURES		*
+		********************************/
 
 GLOBAL struct
 { char *state;				/* system's boot file */
@@ -87,74 +59,23 @@ GLOBAL struct
   bool		initialised;		/* Initialisation completed */
 } status;
 
-		/********************************
-		*          FUNCTIONS		*
-		*********************************/
-
-#if !PL_KERNEL
-		/* imported functions */
-bool		prolog P((atomic));
-bool		toldString P((void));
-bool		loadWicFile P((char *, bool, bool));
-void		backTrace P((void *));
-bool		compileFileList P((char *out, int argc, char **argv));
-unsigned long	pl_trace P((void));
-void		systemMode P((bool));
-void		setupProlog P((void));
-unsigned long	Putf P((char *, ...));
-unsigned long	vPutf P((char *, va_list));
-char *		store_string P((char *));
-bool		ExistsDirectory P((char *));
-bool		ExistsFile P((char *));
-volatile void	Halt P((int));
-char *		BaseName P((char *));
-		/* OS functions */
-#if !ANSI && !LINUX
-extern char	*getenv P((char *));
-extern char	*sprintf P((char *, char *, ...));
-extern int	strcmp P((char*, char*));
-extern int	atoi P((char *));
-extern int	printf P((char *, ...));
-extern int	fprintf P((FILE *, char *, ...));
-extern int	vfprintf P((FILE *, char *, va_list));
-volatile void	abort P((void));
-extern void	bzero P((Void, size_t));
-extern int	select P((int, fd_set *,fd_set *,fd_set *, struct timeval *));
-extern int	fflush P((FILE *));
-#endif
-#if O_LINK_PCE
-int		prolog_pce_init P((int, char**));
-#endif
-#endif !PL_KERNEL
-
-		/* exported functions */
-bool		vsysError P((char *, va_list));
-bool		vfatalError P((char *, va_list));
-bool		vwarning P((char *, va_list));
-bool		sysError P((char *, ...));
-bool		fatalError P((char *, ...));
-bool		warning P((char *, ...));
-
-#ifndef DEBUG
-#if O_DEBUG
-#define DEBUG(n, g) { if (status.debugLevel >= n) { g; fflush(stdout); } }
-#else
-#define DEBUG(n, g)
-#endif
-#endif
 
 		/********************************
 		*           PARAMETERS		*
 		********************************/
 
 #ifndef DEFSTARTUP
-#define DEFSTARTUP ".plrc"
-#endif
-#ifndef SYSTEMSTATE
-#define SYSTEMSTATE "startup"
+#define DEFSTARTUP .plrc
 #endif
 #ifndef SYSTEMHOME
-#define SYSTEMHOME "/usr/local/lib/pl"
+#define SYSTEMHOME /usr/local/lib/pl
+#endif
+
+#ifndef MACHINE
+#define MACHINE	"unknown"
+#endif
+#ifndef OPERATING_SYSTEM
+#define OPERATING_SYSTEM "unknown"
 #endif
 
 #if O_CAN_MAP || O_SHARED_MEMORY

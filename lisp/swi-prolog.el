@@ -3,7 +3,7 @@
 ;;; E-mail: jan@swi.psy.uva.nl
 
 ;;; This package forms a layer around the Quintus-Prolog interface.  It
-;;; should be used together with the Prolog library 'qp_interface.pl'.
+;;; should be used together with the Prolog library 'emacs_interface.pl'.
 
 ;;; It implements hooks that allow SWI-Prolog to give compilation-warnings
 ;;; back to EMACS, so the user can step through them using the normal
@@ -152,7 +152,7 @@
   (let (sofar)
     (cond ((setq sofar (prolog-completion-sofar))
 	   (send-prolog (concat 
-			 "'$silent'(qp_dabbrev_atom(\""
+			 "'$silent'(emacs_dabbrev_atom(\""
 			 sofar
 			 "\"))")))
 	  (t
@@ -165,7 +165,7 @@
   (let (sofar)
     (cond ((setq sofar (prolog-completion-sofar))
 	   (send-prolog (concat
-			 "'$silent'(qp_complete_atom(\""
+			 "'$silent'(emacs_complete_atom(\""
 			 sofar
 			 "\"))")))
 	  (t
@@ -195,7 +195,7 @@
   (end-of-buffer)
   (setq *prolog-completion-process-mark*
 	(marker-position (process-mark (get-buffer-process "*prolog*"))))
-  (send-prolog "'$silent'(qp_previous_command)"))
+  (send-prolog "'$silent'(emacs_previous_command)"))
 
 
 (defun prolog-next-command ()
@@ -203,7 +203,7 @@
   (end-of-buffer)
   (setq *prolog-completion-process-mark*
 	(marker-position (process-mark (get-buffer-process "*prolog*"))))
-  (send-prolog "'$silent'(qp_next_command)"))
+  (send-prolog "'$silent'(emacs_next_command)"))
 
 
 (defun prolog-insert-history-command (cmd)

@@ -24,13 +24,10 @@ handling times must be cleaned, but that not only holds for this module.
 #include <sys/time.h>
 #include <sys/file.h>
 #endif
-#if ANSI && !AIX
-#include <stdarg.h>
-#endif
 
 #define MAXSTRINGNEST	20		/* tellString --- Told nesting */
 
-#if AIX
+#if AIX || hpux
 #define file prolog_file
 #define File PrologFile
 #endif
@@ -1416,7 +1413,7 @@ Word stream, count;
 word
 pl_source_location(file, line)
 Word file, line;
-{ if ( source_line_no >= 0 && source_file_name != NULL )
+{ if ( ReadingSource )
   { char *s = AbsoluteFile(stringAtom(source_file_name));
 
     if ( s != NULL )
@@ -1441,6 +1438,7 @@ Word t;
 long time;
 { return unifyAtomic(t, globalReal((real)time));
 }
+
 
 word
 pl_time_file(name, t)
@@ -1554,6 +1552,28 @@ Word name;
   
   return DeleteFile(n);
 }
+
+
+word
+pl_same_file(file1, file2)
+Word file1, file2;
+{ char *n1, *n2;
+
+  initAllocLocal();
+  if ( (n1 = primitiveToString(*file1, TRUE)) == NULL ||
+       (n2 = primitiveToString(*file2, TRUE)) == NULL )
+    return warning("same_file/2: instantiation fault");
+
+  if ( (n1 = ExpandOneFile(n1)) == NULL )
+    fail;
+  n1 = store_string_local(n1);
+  if ( (n2 = ExpandOneFile(n2)) == NULL )
+    fail;
+  stopAllocLocal();
+
+  return SameFile(n1, n2);
+}
+
 
 word
 pl_rename_file(old, new)

@@ -522,14 +522,17 @@ FILE *fd;
   DEBUG(2, printf("loadImport(): %s/%d into %s\n", name, arity, stringAtom(modules.source->name)));
 
   if ((old = isCurrentProcedure(functor, modules.source)) != (Procedure) NULL)
-  { if (!isDefinedProcedure(old) )
+  { if ( old->definition == proc->definition )
+      succeed;			/* already done this! */
+
+    if (!isDefinedProcedure(old) )
     { old->definition = proc->definition;
       succeed;
-    } else
-    { return warning("Failed to import %s into %s", 
-					procedureName(proc), 
-					stringAtom(modules.source->name) );
     }
+
+    return warning("Failed to import %s into %s", 
+		   procedureName(proc), 
+		   stringAtom(modules.source->name) );
   }
   addHTable(modules.source->procedures, functor, proc);
 

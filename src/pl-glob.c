@@ -24,11 +24,10 @@
 #else
 #include <dirent.h>
 #endif
-#define IsDirSep(c)	((c) == '/')
+#ifdef DIR_INCLUDE2
+#include DIR_INCLUDE2
 #endif
-
-#if LUNIX
-#include <dirent.h>			/* Appears requires both of them */
+#define IsDirSep(c)	((c) == '/')
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

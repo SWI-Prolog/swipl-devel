@@ -162,7 +162,7 @@ errorWarning(what)
 char *what;
 { char c = *token_start;
   
-  if ( source_file_name == NULL )	/* not reading from a file */
+  if ( !ReadingSource )			/* not reading from a file */
   { fprintf(stderr, "\n[WARNING: Syntax error: %s \n", what);
     *token_start = EOS;
     fprintf(stderr, "%s\n** here **\n", base);  
@@ -187,11 +187,7 @@ char *what;
     unifyAtomic(argTermP(arg, 2), lookupAtom(what));
 
     if ( callGoal(MODULE_user, goal, FALSE) == FALSE )
-    { fprintf(stderr, "%s:%d:(SYNTAX ERROR) %s\n",
-	      BaseName(stringAtom(source_file_name)),
-	      source_line_no,
-	      what);
-    }
+      warning("Syntax error: %s", what);
   }
 }
 
@@ -219,13 +215,16 @@ int nvars;
   unifyAtomic(a, ATOM_nil);
 
   if ( callGoal(MODULE_user, goal, FALSE) == FALSE )
-  { fprintf(stderr, "%s:%d:(Singleton variable%s):",
-	    BaseName(stringAtom(source_file_name)),
-	    source_line_no,
-	    nvars == 1 ? "" : "s");
+  { char buf[LINESIZ];
+
+    buf[0] = EOS;
     for(n=0; n<nvars; n++)
-      fprintf(stderr, " %s", stringAtom(vars[n]));
-    fprintf(stderr, "\n");
+    { if ( n > 0 )
+	strcat(buf, ", ");
+      strcat(buf, stringAtom(vars[n]));
+    }
+
+    warning("Singleton variables: %s", buf);
   }
 }
 
