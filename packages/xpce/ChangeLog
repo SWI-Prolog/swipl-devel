@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: `toc_node->font' from the library(pce_toc).  Filip Prochazka
+
 * FIXED: Balloon help in modal windows.  After demo program from Juergen Repp.
 
 * FIXED: Guitracer: goal-expansion loop.

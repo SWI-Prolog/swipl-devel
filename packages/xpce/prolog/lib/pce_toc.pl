@@ -376,7 +376,8 @@ image(TF, Img:image) :->
 
 font(TF, Font:font) :->
 	"Modify the font"::
-	get(TF?image, find, message(@arg1, has_send_method, font), Text),
+	get(TF?image, find, @default,
+	    message(@arg1, has_send_method, font), Text),
 	send(Text, font, Font).
 
 update_image(_) :->
