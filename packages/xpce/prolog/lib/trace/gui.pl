@@ -49,39 +49,7 @@ register_directories :-
 	    
 :- initialization register_directories.
 
-version('1.0.4').
-
-required_version(xpce, 50007).
-required_version(pl,   30303).
-
-version_atom(Version, Atom) :-
-	Major is Version // 10000,
-	Minor is (Version // 100) mod 100,
-	Patch is Version mod 100,
-	concat_atom([Major, Minor, Patch], '.', Atom).
-
-check_version(xpce) :-
-	get(@pce, version, number, CurrentVersion),
-	required_version(xpce, Required),
-	(   CurrentVersion >= Required
-	->  true
-	;   version_atom(Required, V),
-	    send(@display, confirm,
-		 'The Prolog GUI tool requires XPCE version %s', V)
-	).
-check_version(pl) :-
-	current_prolog_flag(version, CurrentVersion),
-	required_version(pl, Required),
-	(   CurrentVersion >= Required
-	->  true
-	;   version_atom(Required, V),
-	    send(@display, confirm,
-		 'The Prolog GUI tool requires SWI-Prolog version %s', V)
-	).
-
-:- initialization
-	check_version(xpce),
-	check_version(pl).
+version('1.1.0').
 
 
 		 /*******************************
@@ -136,7 +104,8 @@ user:prolog_event_hook(finished_query(_Qid, YesNo)) :-
 	fail.
 
 user:message_hook('$aborted', _, _Lines) :-
-	aborted.
+	aborted,
+	fail.
 
 aborted :-
 	gui(Level, Gui),
@@ -144,11 +113,10 @@ aborted :-
 	->  send(Gui, destroy)
 	;   send(Gui, clear),
 	    send(Gui, report, status, 'Execution aborted')
-	),
-	fail.
+	).
 aborted :-
-	free(@confirm_prolog_gui_quitted),
-	fail.
+	free(@confirm_prolog_gui_quitted).
+
 
 		 /*******************************
 		 *     DEBUGGER APPLICATION	*
@@ -252,11 +220,11 @@ settings(_F) :->
 
 about(_) :->
 	"Display aout message"::
+	version(Version),
 	send(@display, inform,
-	     'SWI-Prolog debugger\n\
-	      By Jan Wielemaker\n\
-	      This is a demonstration version for evaluation ONLY\n\
-	      Do NOT distribute').
+	     'SWI-Prolog debugger version %s\n\
+	      By Jan Wielemaker',
+	     Version).
 
 help(_) :->
         "Show window with help-text"::

@@ -23,44 +23,21 @@
 		 *	       STYLES		*
 		 *******************************/
 
-style(Name, Style) :-
-	(   get(@display, visual_type, monochrome)
-	->  (   mono_style(Name, Style)
-	    ;   any_style(Name, Style),
-		\+ mono_style(Name, _)
-	    )
-	;   any_style(Name, Style)
-	).
-
-any_style(call,  	style(background := green,
+style(call,  		style(background := green,
 			      icon := 'call.xpm')).
-any_style(break, 	style(background := aquamarine)).
-any_style(exit,  	style(background := green,
+style(break, 		style(background := aquamarine)).
+style(exit,  		style(background := green,
 			      icon := 'exit.xpm')).
-any_style(redo,  	style(background := yellow,
+style(redo,  		style(background := yellow,
 			      icon := 'redo.xpm')).
-any_style(fail,  	style(background := red,
+style(fail,  		style(background := red,
 			      icon := 'fail.xpm')).
-any_style(exception,  	style(background := purple,
+style(exception,  	style(background := purple,
 			      icon := 'except.xpm')).
-any_style(unify, 	style(background := sky_blue)).
-any_style(listing,	style(background := bisque)).
+style(unify, 		style(background := sky_blue)).
+style(listing,		style(background := bisque)).
 
-any_style(breakpoint, 	style(icon := 'stop.xpm')).
-
-%	mono_style(?Name, -Style)
-%	Description of styles for monochrome displays.  If no style is
-%	defined, the colour style will be used.
-
-mono_style(call,  	style(bold := @on,
-			      icon := 'call.xpm')).
-mono_style(exit,  	style(bold := @on,
-			      icon := 'exit.xpm')).
-mono_style(redo,  	style(underline := @on,
-			      icon := 'redo.xpm')).
-mono_style(fail,  	style(background := black,
-			      colour     := white,
-			      icon := 'fail.xpm')).
+style(breakpoint, 	style(icon := 'stop.xpm')).
 
 
 		 /*******************************
@@ -263,7 +240,7 @@ user:message_hook(load_file(start(_Level, file(_Spec, Path))), _, _Lines) :-
 	fail.
 
 buffer(File, Buffer) :-
-	get(@pce, convert, emacs_buffer, class, _), !,
+	object(@emacs), !,
 	destroy_buffers,
 	new(Buffer, emacs_buffer(File)),
 	mark_special(File, Buffer).
@@ -284,6 +261,7 @@ reload_buffer(Buffer) :-
 	send(Buffer, instance_of, emacs_buffer), !,
 	send(Buffer, revert),
 	current_source_buffer(File, Buffer),
+	send(Buffer, delete_attribute, debugger_marks_done),
 	mark_special(File, Buffer),
 	send(Buffer, report, status, 'Reloaded %s', File).
 reload_buffer(Buffer) :-
@@ -291,6 +269,7 @@ reload_buffer(Buffer) :-
 	get(Buffer, attribute, file, FileObj),
 	send(Buffer, insert_file, 0, FileObj, 1),
 	get(FileObj, name, File),
+	send(Buffer, delete_attribute, debugger_marks_done),
 	mark_special(File, Buffer),
 	send(Buffer, report, status, 'Reloaded %s', File).
 

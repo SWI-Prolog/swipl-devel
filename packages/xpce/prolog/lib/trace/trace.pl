@@ -32,7 +32,7 @@
 
 user:prolog_trace_interception(Port, Frame, BFR, Action) :-
 	current_prolog_flag(gui_tracer, true),
-	notrace(pce_prolog_tracer:intercept(Port, Frame, BFR, GuiAction)),
+	notrace(intercept(Port, Frame, BFR, GuiAction)),
 	map_action(GuiAction, Frame, Action).
 
 map_action(creep, _, continue) :-
