@@ -143,6 +143,13 @@ pl_error(const char *pred, int arity, const char *msg, int id, ...)
 		    AtomArg(op),
 		    PL_TERM, obj);
     }
+    case ERR_RESOURCE:
+    { const char *res = va_arg(args, const char *);
+
+      PL_unify_term(formal,
+		    CompoundArg("resource_error", 1),
+		    AtomArg(res));
+    }
     default:
       assert(0);
   }

@@ -388,7 +388,7 @@ callTimer(UINT id, UINT msg, DWORD dwuser, DWORD dw1, DWORD dw2)
 }
 
 
-static void
+static int
 installEvent(Event ev, double t)
 { MMRESULT rval;
 
@@ -401,8 +401,11 @@ installEvent(Event ev, double t)
   if ( rval )
   { ev->tid = GetCurrentThreadId();
     ev->mmid = rval;
-  } else
-    PL_warning("Failed to install alarm");
+
+    return TRUE;
+  }
+    
+  return pl_error(NULL, 0, NULL, ERR_RESOURCE, "no_timers");
 }
 
 
@@ -652,7 +655,10 @@ alarm4(term_t time, term_t callable, term_t id, term_t options)
   ev->goal = PL_record(callable);
 
 #ifdef WIN32
-  installEvent(ev, t);
+  if ( !installEvent(ev, t) )
+  { freeEvent(ev);
+    return FALSE;
+  }
 #else
   re_schedule();
 #endif

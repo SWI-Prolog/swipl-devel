@@ -2,6 +2,9 @@
 			   ==============
 
 
+* FIXED: `date->set' (also `date->initialise' if arguments are provided)
+  on Windows platforms. Fabien Todescato.
+
 * FIXED: Added type-checking if an instance-variable is initialised to
   a constant (Lourens van der Meij).
 

@@ -178,6 +178,9 @@
 /* Define if you have the timelocal function.  */
 #undef HAVE_TIMELOCAL
 
+/* Define if you have the timelocal function.  */
+#define HAVE_MKTIME 1
+
 /* Define if you have the vsscanf function.  */
 #undef HAVE_VSSCANF
 

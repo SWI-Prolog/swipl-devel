@@ -29,8 +29,12 @@
 
 extern time_t get_date(char *p, struct timeb *now);
 
-#ifndef HAVE_TIMELOCAL
-static long timelocal(struct tm *);
+#ifndef HAVE_MKTIME
+#ifdef HAVE_TIMELOCAL
+#define mktime(tm) timelocal(tm)
+#else
+static time_t mktime(struct tm *);
+#endif
 #endif
 
 static status	setDate(Date d, Int s, Int m, Int h, Int D, Int M, Int Y);
@@ -134,7 +138,7 @@ setDate(Date d, Int s, Int m, Int h, Int D, Int M, Int Y)
   if ( notDefault(D) && (v=valInt(D)) >= 1    && v <= 31   ) tm->tm_mday = v;
   if ( notDefault(M) && (v=valInt(M)-1) >= 0  && v <= 11   ) tm->tm_mon  = v;
   if ( notDefault(Y) && (v=valInt(Y)-1900) >= 70 && v <= 1050 ) tm->tm_year = v;
-  d->unix_date = timelocal(tm);
+  d->unix_date = mktime(tm);
 
   succeed;
 }
@@ -540,7 +544,14 @@ makeClassDate(Class class)
 }
 
 
-#ifndef HAVE_TIMELOCAL
+#if !defined(HAVE_TIMELOCAL) && !defined(HAVE_MKTIME)
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Do our one struct tm * -->   time_t translation. This function is buggy,
+but no modern system should need this. We  leave it just for the case we
+need it in the future.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #define MINUTE	60
 #define HOUR	(60 * MINUTE)
 #define DAY	(24 * HOUR)
@@ -548,8 +559,8 @@ makeClassDate(Class class)
 #define leapYear(y)	 ((y % 4) && (!(y % 100) || y % 400))
 static int monthsize[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
-static long
-timelocal(tm)
+static time_t
+mktime(tm)
 struct tm *tm;
 { register long sec;
   register int n;
