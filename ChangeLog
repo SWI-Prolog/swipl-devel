@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PERFORMANCE: switched to use -O3 on GCC.  Seems to be about 5-10%
+    faster.  Also pass -O3 to ld to optimize function placement.
+
   * FIXED: handle abort-exception from -g goal to go to the toplevel.
 
   * PERFORMANCE: better implementation finding clauses, much faster

@@ -151,7 +151,8 @@ AC_DEFINE_UNQUOTED(PROG_CPP, "$CPP")
 AC_ISC_POSIX
 AC_HEADER_STDC
 if test "$GCC" = "yes"; then
-    COFLAGS="-O2 -fno-strict-aliasing"
+    COFLAGS="-O3 -fno-strict-aliasing"
+    LDFLAGS="$LDFLAGS -O3"
     if test "$ac_cv_header_stdc" = "yes" ; then
         CWFLAGS=-Wall
     else
