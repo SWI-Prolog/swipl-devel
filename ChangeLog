@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ENHANCED: Skip intermediate system-predicates when walking `up' in
+    the source-level debugger.
+
+  * ENHANCED: Clear source-location on close/1 of the file currently
+    holding it.
+
   * ADDED: allow for swapped 2nd/3th argument in absolute_file_name/3.
 
   * MODIFIED: relative_to(FileOrDir) to assume the relative-to is a 
