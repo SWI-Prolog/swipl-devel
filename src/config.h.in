@@ -239,6 +239,9 @@
 /* Define if you have the rl_completion_matches function.  */
 #undef HAVE_RL_COMPLETION_MATCHES
 
+/* Define if you have the rl_event_hook function.  */
+#undef HAVE_RL_EVENT_HOOK
+
 /* Define if you have the rl_insert_close function.  */
 #undef HAVE_RL_INSERT_CLOSE
 

@@ -23,6 +23,7 @@ AC_SUBST(INSTALLTARGET)
 AC_SUBST(INSTALLRLMAN)
 AC_SUBST(EXTRAOBJ)
 AC_SUBST(BOOTFILE)
+AC_SUBST(PLLIB)
 
 if test ! -z "$CIFLAGS"; then
     CFLAGS="$CIFLAGS $CFLAGS"
@@ -32,6 +33,7 @@ fi
 EXTRAOBJ=""
 INSTALLTARGET=dv-install
 PL=pl
+PLLIB=libpl.a
 RT=""
 PLVERSION=`cat ../VERSION`
 
@@ -186,6 +188,8 @@ if test "$MT" = "yes"; then
     #################################################################
 
 _EOM_
+  PLLIB=libplmt.a
+
   AC_CHECK_LIB(pthread, main)
   if test "$ac_cv_lib_pthread_main" = "yes"; then
     AC_DEFINE(O_PLMT)
@@ -266,7 +270,7 @@ if test ! "$runtime" = "yes" -a "$configreadline" = "yes"; then
     AC_CHECK_HEADERS(readline/history.h)
     AC_CHECK_FUNCS(rl_completion_matches rl_insert_close rl_readline_state)
     AC_CHECK_FUNCS(rl_set_prompt rl_clear_pending_input)
-    AC_CHECK_FUNCS(rl_cleanup_after_signal)
+    AC_CHECK_FUNCS(rl_event_hook rl_cleanup_after_signal)
     AC_MSG_CHECKING(whether to install readline.3)
     INSTALLRLMAN=install_rlman
     if test -z "$MANPATH"; then MANPATH=/usr/man; fi

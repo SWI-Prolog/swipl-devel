@@ -921,28 +921,33 @@ problem was spotted by Stefan Mueller, whose program produced over 180MB
 of garbage on this clause.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define enterDefinitionNOLOCK(def) \
+	(def->references++)
 #define enterDefinition(def) \
-	{ PL_LOCK(L_MISC); \
-          def->references++; \
-	  PL_UNLOCK(L_MISC); \
+	{ PL_LOCK(L_PREDICATE); \
+	  enterDefinitionNOLOCK(def); \
+	  PL_UNLOCK(L_PREDICATE); \
 	}
-#define leaveDefinition(def) \
-	{ PL_LOCK(L_MISC); \
-	  if ( --def->references == 0 && \
+#define leaveDefinitionNOLOCK(def) \
+	{ if ( --def->references == 0 && \
 	       true(def, NEEDSCLAUSEGC|NEEDSREHASH) ) \
 	    gcClausesDefinition(def); \
 	  DEBUG(0, assert(def->references >= 0)); \
-	  PL_UNLOCK(L_MISC); \
+	}
+#define leaveDefinition(def) \
+	{ PL_LOCK(L_PREDICATE); \
+          leaveDefinitionNOLOCK(def); \
+	  PL_UNLOCK(L_PREDICATE); \
 	}
 #define leaveDefinitionCL(def, cl) \
-	{ PL_LOCK(L_MISC); \
+	{ PL_LOCK(L_PREDICATE); \
           if ( --def->references == 0 ) \
 	  { if ( true(def, NEEDSCLAUSEGC|NEEDSREHASH) ) \
               gcClausesDefinition(def); \
 	  } else if ( def == PROCEDURE_dcall1->definition ) \
 	    retractClauseDefinition(def, cl->clause); \
 	  DEBUG(0, assert(def->references >= 0)); \
-	  PL_UNLOCK(L_MISC); \
+	  PL_UNLOCK(L_PREDICATE); \
 	}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

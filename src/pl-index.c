@@ -638,9 +638,9 @@ addClauseToIndex(Definition def, Clause cl, int where)
     appendClauseChain(&ch[hi], cl, where);
 
     if ( ++ci->size / 2 > ci->buckets )
-    { enterDefinition(def);
+    { enterDefinitionNOLOCK(def);
       set(def, NEEDSREHASH);
-      leaveDefinition(def);
+      leaveDefinitionNOLOCK(def);
     }
   }
 }
@@ -664,6 +664,9 @@ delClauseFromIndex(ClauseIndex ci, Clause cl)
 }
 
 
+/* MT: Calls must be locked on L_PREDICATE
+*/
+
 bool
 hashDefinition(Definition def, int buckets)
 { ClauseRef cref;
@@ -675,14 +678,12 @@ hashDefinition(Definition def, int buckets)
 
   DEBUG(2, Sdprintf("hashDefinition(%s, %d)\n", predicateName(def), buckets));
 
-  LOCK();
   def->hash_info = newClauseIndexTable(buckets);
 
   for(cref = def->definition.clauses; cref; cref = cref->next)
   { if ( false(cref->clause, ERASED) )
       addClauseToIndex(def, cref->clause, CL_END);
   }
-  UNLOCK();
 
   succeed;
 
@@ -691,15 +692,21 @@ hashDefinition(Definition def, int buckets)
 word
 pl_hash(term_t pred)
 { Procedure proc;
+  word rval = FALSE;
 
   if ( get_procedure(pred, &proc, 0, GP_CREATE) )
   { Definition def = proc->definition;
 
-    if ( false(def, FOREIGN) && def->indexPattern & NEED_REINDEX )
-      reindexDefinition(def);
+    if ( true(def, FOREIGN) )
+      return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+		      ATOM_hash, ATOM_foreign, def);
 
-    return hashDefinition(def, 256);
+    LOCK();
+    if ( def->indexPattern & NEED_REINDEX )
+      reindexDefinition(def);
+    rval = hashDefinition(def, 256);
+    UNLOCK();
   }
 
-  fail;
+  return rval;
 }

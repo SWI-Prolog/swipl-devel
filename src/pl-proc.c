@@ -785,7 +785,7 @@ removeClausesProcedure(Procedure proc, int sfindex)
 { Definition def = proc->definition;
   ClauseRef c;
 
-  enterDefinition(def);
+  enterDefinitionNOLOCK(def);
 #ifdef O_LOGICAL_UPDATE
   GD->generation++;
 #endif
@@ -806,7 +806,7 @@ removeClausesProcedure(Procedure proc, int sfindex)
   if ( def->hash_info )
     def->hash_info->alldirty = TRUE;
 
-  leaveDefinition(def);
+  leaveDefinitionNOLOCK(def);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -861,18 +861,15 @@ retractClauseDefinitionMT(Definition def, Clause clause)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 retractClauseDefinition() is only used to deled clauses from $dcall/1.
+MT: LeaveDefinitionCL already locks using L_PREDICATE
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
 retractClauseDefinition(Definition def, Clause clause)
-{ LOCK();
-
-  assert(true(clause, ERASED));
+{ assert(true(clause, ERASED));
   assert(!def->hash_info);
   retractClauseDefinitionMT(def, clause);
   def->erased_clauses--;
-
-  UNLOCK();
 }
 
 
@@ -2070,8 +2067,11 @@ startConsult(SourceFile f)
 
       next = cell->next;
       if ( proc->definition )
+      { LOCK();
 	removeClausesProcedure(proc, true(proc->definition, MULTIFILE)
 						? f->index : 0);
+	UNLOCK();
+      }
       freeHeap(cell, sizeof(struct list_cell));
     }
     f->procedures = NULL;

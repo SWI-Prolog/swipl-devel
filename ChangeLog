@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: MT-Version: deadlock and corruption problem.  Modified
+    mutex-structure slightly, so new problems may have been be
+    introduced.
+
 VERSION 4.0.5
 =============
 

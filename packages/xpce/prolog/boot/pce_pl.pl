@@ -137,6 +137,16 @@ init_pce :-
 	->  set_prolog_flag(xpce, true),
 	    init_threads
 	;   print_message(error,
-			  format('Failed to initialise XPCE]', [])),
+			  format('Failed to initialise XPCE', [])),
 	    halt(1)
 	).
+
+%	We must declare this here as boot/english/pce_messages.pl is
+%	not yet loaded.
+
+:- multifile
+	prolog:message/3.
+
+prolog:message(pce(no_threads)) -->
+        [ 'This version of XPCE does not support multi-threading'
+        ].
