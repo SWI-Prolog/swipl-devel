@@ -596,6 +596,10 @@ Definition	autoImport(functor_t f, Module m);
 word		pl_require(term_t pred);
 word		pl_check_definition(term_t spec);
 word		pl_clause_from_source(term_t file, term_t line, term_t clause);
+foreign_t	pl_list_generations(term_t desc);
+foreign_t	pl_check_procedure(term_t desc);
+void		checkDefinition(Definition def);
+
 
 /* pl-prof.c */
 void		stopItimer(void);
