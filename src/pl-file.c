@@ -313,6 +313,14 @@ getStream(IOSTREAM *s)
   return s;
 }
 
+static inline IOSTREAM *
+tryGetStream(IOSTREAM *s)
+{ if ( s && StryLock(s) == 0 )
+    return s;
+
+  return NULL;
+}
+
 static inline void
 releaseStream(IOSTREAM *s)
 { Sunlock(s);
@@ -320,7 +328,8 @@ releaseStream(IOSTREAM *s)
 
 #else /*O_PLMT*/
 
-#define getStream(s) (s)
+#define getStream(s)	(s)
+#define tryGetStream(s) (s)
 #define releaseStream(s)
 
 #endif /*O_PLMT*/
@@ -661,7 +670,11 @@ closeFiles(int all)
   { IOSTREAM *s = symb->name;
 
     if ( all || !(s->flags & SIO_NOCLOSE) )
-      closeStream(getStream(s));
+    { IOSTREAM *s2 = tryGetStream(s);
+
+      if ( s2 )
+	closeStream(s2);
+    }
   }
   freeTableEnum(e);
 }

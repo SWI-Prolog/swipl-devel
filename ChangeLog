@@ -1,6 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: MT-version: Avoid assertion failure in running subthreads
+    on halt.
+
+  * FIXED: MT-version: Avoid deadlock when closing files on halt.
+
+  * ADDED: Check for interrupts in backtracking code to allow interrupting
+    some tight loops (repeat, fail) in Windows and thread_signal/2 to these
+    in the MT version.
+
 <Released as w32pl340.exe, using #2 in title of installation>
 
   * INSTALLATION: Win32: Removed local copy of msvcrt.dll and perform

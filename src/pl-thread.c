@@ -183,7 +183,7 @@ free_prolog_thread(void *data)
   
   if ( ld->feature.table )
     destroyHTable(ld->feature.table);
-  //PL_unregister_atom(ld->prompt.current);
+  /*PL_unregister_atom(ld->prompt.current);*/
 
   freeThreadMessages(ld);
   freeThreadSignals(ld);
@@ -712,7 +712,8 @@ Q: Should we limit the passes?
 
 static void
 run_thread_exit_hooks()
-{ at_exit_goal *eg;
+{ fid_t fid = PL_open_foreign_frame();
+  at_exit_goal *eg;
   mark m;
   term_t goal = PL_new_term_ref();
 
@@ -732,6 +733,8 @@ run_thread_exit_hooks()
       freeHeap(eg, sizeof(*eg));
     }
   }
+
+  PL_discard_foreign_frame(fid);
 }
 
 

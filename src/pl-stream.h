@@ -251,6 +251,7 @@ __pl_export int		Svsprintf(char *buf, const char *fm, va_list args);
 __pl_export int		Svdprintf(const char *fm, va_list args);
 __pl_export int		Sdprintf(const char *fm, ...);
 __pl_export int		Slock(IOSTREAM *s);
+__pl_export int		StryLock(IOSTREAM *s);
 __pl_export int		Sunlock(IOSTREAM *s);
 __pl_export IOSTREAM *	Snew(void *handle, int flags, IOFUNCTIONS *functions);
 __pl_export IOSTREAM *	Sopen_file(const char *path, const char *how);

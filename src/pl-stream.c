@@ -75,8 +75,16 @@ static void	run_close_hooks(IOSTREAM *s);
 #define S__fupdatefilepos(s, c) S___fupdatefilepos(s, c)
 
 #ifdef O_PLMT
-#define SLOCK(s)   if ( s->mutex ) recursive_mutex_lock(s->mutex)
-#define SUNLOCK(s) if ( s->mutex ) recursive_mutex_unlock(s->mutex)
+#define SLOCK(s)    if ( s->mutex ) recursive_mutex_lock(s->mutex)
+#define SUNLOCK(s)  if ( s->mutex ) recursive_mutex_unlock(s->mutex)
+inline int
+STRYLOCK(IOSTREAM *s)
+{ if ( s->mutex &&
+       recursive_mutex_trylock(s->mutex) == EBUSY )
+    return FALSE;
+
+  return TRUE;
+}
 #else
 #define SLOCK(s)
 #define SUNLOCK(s)
@@ -144,6 +152,22 @@ S__removebuf(IOSTREAM *s)
 int
 Slock(IOSTREAM *s)
 { SLOCK(s);
+
+  if ( s->locks )
+    s->locks++;
+  else if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
+  { s->locks = 1;
+    return S__setbuf(s, NULL, TMPBUFSIZE);
+  }
+
+  return 0;
+}
+
+
+int
+StryLock(IOSTREAM *s)
+{ if ( !STRYLOCK(s) )
+    return -1;
 
   if ( s->locks )
     s->locks++;
