@@ -537,6 +537,62 @@ pl_get_registry_value(term_t Key, term_t Name, term_t Value)
   return FALSE;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Get the local, global,  trail  and   argument-stack  defaults  from  the
+registry.  They  can  be  on  the   HKEY_CURRENT_USER  as  well  as  the
+HKEY_LOCAL_MACHINE  registries  to  allow   for    both   user-only  and
+system-wide settings.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static struct regdef
+{ const char *name;
+  const int  *address;
+} regdefs[] =
+{ { "localSize",    &GD->defaults.local },
+  { "globalSize",   &GD->defaults.global },
+  { "trailSize",    &GD->defaults.trail },
+  { "argumentSize", &GD->defaults.argument },
+  { NULL,           NULL }
+};
+
+
+static void
+setStacksFromKey(HKEY key)
+{ DWORD type;
+  BYTE  data[128];
+  DWORD len = sizeof(data);
+  struct regdef *rd;
+
+  for(rd = regdefs; rd->name; rd++)
+  { if ( RegQueryValueEx(key, rd->name, NULL, &type, data, &len) ==
+							ERROR_SUCCESS &&
+	 type == REG_DWORD )
+    { DWORD v = *((DWORD *)data);
+      
+      *rd->address = (int)v;
+    }
+  }
+}
+
+
+void
+getDefaultsFromRegistry()
+{ HKEY key;
+  DWORD type;
+  BYTE  data[128];
+  DWORD len = sizeof(data);
+
+  if ( (key = reg_open_key("HKEY_LOCAL_MACHINE/Software/SWI/Prolog", FALSE)) )
+  { setStacksFromKey(key);
+    RegCloseKey(key);
+  }
+  if ( (key = reg_open_key("HKEY_CURRENT_USER/Software/SWI/Prolog", FALSE)) )
+  { setStacksFromKey(key);
+    RegCloseKey(key);
+  }
+}
+
 #endif /*__WINDOWS__*/
 
 

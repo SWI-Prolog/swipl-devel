@@ -254,6 +254,10 @@ initDefaults()
   systemDefaults.toplevel    = "prolog";
   systemDefaults.notty       = NOTTYCONTROL;
 
+#ifdef __WIN32__
+  getDefaultsFromRegistry()
+#endif
+
   GD->io_initialised	     = FALSE;
   GD->initialised	     = FALSE;
   GD->bootsession	     = FALSE;
