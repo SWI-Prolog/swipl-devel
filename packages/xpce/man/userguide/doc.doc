@@ -5,7 +5,7 @@
 
 \makeindex
 
-\includeonly{online}
+%\includeonly{online}
 
 \begin{document}
 

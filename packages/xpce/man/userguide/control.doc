@@ -1,0 +1,122 @@
+\section{Control-structure of PCE/Prolog applications}
+
+This section deals with the control-structure of interactive
+applications written in PCE/Prolog. Interactive graphical applications
+are very different from terminal oriented applications. Terminal
+oriented applications often have a toplevel control structure of the
+form:
+
+\begin{code}
+go :-
+	initialise,
+	main_loop.
+
+main_loop :-
+	present_question,
+	read_answer(Answer),
+	process_answer(Answer),
+	main_loop.
+\end{code}
+
+This schema is often refined with sub-loops dealing with
+question/answers in a specific context.
+
+Many interactive graphical applications present various UI components
+simultaneously: the user is free on which component s/he wants to
+operate next.  The users actions (keyboard-typing, mouse movement, and
+mouse-button press/release) have to be related to the correct UI
+component and accordingly interpreted in the application.  It should
+be clear that this interpretation is much more complex than the
+interpretation of a stream of ASCII characters typed by the user.
+
+\subsection{Event-driven applications}
+
+One approach is to write a main-loop that reads events, locates the
+UI-component referred to and executes the appropriate actions.  This
+loop, which has to take care of repaint-requests, various local feedback
+procedures (changing the mouse-cursor, inverting objects, etc.), is
+complicated.  The approach taken by most graphical programming systems
+including PCE is to move this loop into the infra-structure (i.e.\ into
+the PCE kernel).  The application programmer creates the desired UI
+components and supplies code fragments that will be called by the
+main-loop when a certain event happens.  This control-structure is
+normally referred to as {\em event-driven}.  Consider a button:
+
+\begin{code}
+1 ?- new(B, button(hello, message(@pce, write_ln, hello))),
+     send(B, open).
+\end{code}
+
+In this example the application has created and displayed a button UI
+component and associated a code fragment (the message) to be executed
+when the button is depressed.  The PCE kernel will loop through the
+main event-loop.  For each event it will locate the UI component that
+should handle the event.  When the button has recognised a `click' it
+will execute the code fragment attached to it.  This behaviour is part
+of the definition of class \class{button}.
+
+It is clear that this approach relieves the application programmer of
+many of the complications associated with event-processing.  As a
+consequence, the `main-loop' of a PCE application is no longer in the
+application itself, but in the PCE kernel.  Below is an outline of
+the control structure of a PCE/Prolog application:
+
+\begin{code}
+go :-
+	initialise,
+	create_ui_components.
+
+handle_help_pressed :-
+	create_help_window.
+
+handle_solve :-
+	solve_the_problem,
+	create_solution_window.
+
+...
+\end{code}
+
+The predicate go will exit after it has initialised your application and
+created the UI components.  Assuming the application window has a button
+invoking the predicate handle_help_pressed, PCE will call this
+predicate when the user presses the help button.
+
+
+\subsection{PCE and existing applications}
+
+Due to the different control-regime described in the previous section,
+traditional terminal oriented applications are not easily transformed
+into PCE/Prolog graphical applications.  Depending on the application
+there are two ways to proceed.
+
+The first is to keep the existing control-regime.  This implies that
+the questions asked on the terminal will be replaced by \idx{modal}
+dialog windows.  The main loop will be:
+
+\begin{code}
+go :-
+	initialise,
+	create_dialog.
+
+main_loop :-
+	fill_dialog_with_next_question(Dialog),
+	send(Dialog, fit),
+	get(Dialog, confirm, Answer),
+	process_answer(Answer),
+	main_loop.
+\end{code}
+
+This example reuses the same dialog window for all questions.  It is
+trivial to change this loop to use a new dialog window for each
+question. Output from the program may be presented in other windows.
+The approach does not exploit the potentialy larger freedom for the
+user that is possible in graphical user interfaces.
+
+If the application could be viewed as a number of commands operating
+on some data-structure and this data-structure is stored on the Prolog
+heap using assert/1 or recorda/2 one could consider rewriting the
+toplevel control and provide a more flexible interface.  A typical
+application consists of a main window with a menu_bar object attached
+to it which allows the user to select from the available operations.
+
+

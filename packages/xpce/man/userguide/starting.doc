@@ -267,7 +267,7 @@ We will also show how the GUI can call procedures in the Prolog system.
 The demo creates a list of files from the given directory and allows
 the user to view a file.  \Figref{fileviewer} shows the result.
 
-\postscriptfig[width=\textwidth}{fileviewer}{The FileViewer demo}
+\postscriptfig[width=\textwidth]{fileviewer}{The FileViewer demo}
 
 \begin{pcecode}
 fileviewer(Dir) :-

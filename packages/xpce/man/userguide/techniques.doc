@@ -1,0 +1,15 @@
+\chapter{Programming Techniques}
+
+This chapter is an assorted collection of techniques to programming
+problems that appear in many applications and for which support for
+generic solutions is present, but cannot easily be found using the
+online reference manual.
+
+\input{control.tex}
+\input{namedref.tex}
+\input{whoiswho.tex}
+\input{report.tex}
+\input{font.tex}
+\input{hyper.tex}
+\input{dragdrop.tex}
+\input{ugraphics.tex}

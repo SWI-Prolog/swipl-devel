@@ -1,0 +1,72 @@
+\section{Drag and Drop Interface}
+
+XPCE's drag-and-drop interface allows the user to drag-and-drop
+\class{graphical} objects and \class{dict_item} objects. Drag-and-drop
+is a common GUI technique to specify operations that require two objects
+in a specific order. Moving files to another directory by dragging them
+to the icon of the target directory is a common example.
+
+It may also be used to specify operations on a single object, where the
+operation is represented by an icon. Dragging files to a trashbin is the
+most commonly found example.
+
+For the drag-and-drop interface to work, the programmer should connect
+a \class{drag_and_drop_gesture} to the object that should be dragged.%
+    \footnote{Attach a \class{drag_and_drop_dict_item_gesture} to a
+	      \class{list_browser} to enable dragging the items in the
+	      dictionary}.
+A {\em Drop-zone} should define the method ->drop and (not stricktly
+obligatory) ->preview_drop.  ->drop is called to actually perform the
+operation associated, while ->preview_drop may be used to indicate
+what will happen if the object is dropped now.
+
+\input{dragdropdemo.tex}
+
+\subsection{Related methods}
+
+\begin{description}
+    \sendmethod{drag_and_drop_gesture}{initialise}{Button, Modifier,
+						   Warp, GetSource}
+Initialises a new \class{drag_and_drop_gesture}.  {\em Button} is
+the name of the pointer-button the gesture should be connected to
+(left, middle or right).  {\em Modifier} is a \class{modifier}
+description (see class \class{modifier}). {\em Warp} for compatibility
+with older releases of this library.
+
+{\em GetSource} is a function used to fetch the object dragged from the
+graphical representing it.  Suppose the graphical to which the gesture
+is attached represents a database record.  In this case it is much more
+natural to pass the an identifier for the database record to the
+->drop and ->preview_drop methods then to pass the icon representing
+it.  {\em GetSource} is a function that is evaluated with @arg1 bound
+to the graphical when the gesture is activated.  An example could be:
+
+\begin{code}
+	drag_and_drop_gesture(left, get_source := @arg1?db_record)
+\end{code}
+    \sendmethod{graphical}{drop}{Object:<Type> [, Pos:point]}
+This method may be defined on any graphical object that is a drop-zone.
+It will only be activated if the the drag_and_drop_gesture can locate
+the method and make the necessary type transformations.  Thus, if the
+type is specified as {\tt file}, this method will only be activated
+if the dragged object can be converted to a \class{file} object.  See
+also the discussion about the get_source argument above.
+
+If the method accepts a point for the second argument, a point
+will be passed that represents the location of the pointer in the
+coordinate system of the drop-zone, subtracted by the distance between
+the top-left corner of the dragged graphical to the pointer at the
+moment the button was depressed.  To get the position of the pointer
+itself, just ask for the position of @event relative to the drop-zone.
+    \sendmethod{graphical}{preview_drop}{Object:<Type>* [, Pos:[point]]}
+Sent by the \class{drag_and_drop_gesture} to allow the drop-zone 
+providing feedback.  The arguments and their semantics is the same
+as for ->drop, but the first argument can be the constant @nil,
+indicating the user has left the drop-zone.  Under this condition,
+the position argument is @default.
+
+If a position argument is available, the \class{drag_and_drop_gesture}
+will be activated on each {\tt drag} event.  Otherwise it is only
+activated if the pointer enters the area of the drop-zone.
+\end{description}
+

@@ -11,7 +11,8 @@ TEX=	doc.tex \
 	interface.tex graphics.tex pceprolog.tex chess.tex \
 	trouble.tex memory.tex glossary.tex techniques.tex \
 	report.tex font.tex hyper.tex udc.tex dragdrop.tex \
-	dragdropdemo.tex control.tex whoiswho.tex namedref.tex
+	dragdropdemo.tex control.tex whoiswho.tex namedref.tex \
+	ugraphics.tex
 
 LOGO=	figs/uva.ps figs/swi.ps
 

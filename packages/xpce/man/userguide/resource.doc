@@ -1,0 +1,107 @@
+\section{Using resources}		\label{sec:resources}
+
+
+With the term {\em resources} we actually refer to {\em preferences}
+similar to X11. Resources in XPCE act like class-variables for which a
+default is specified by the application programmer. The application may
+overrule this default by specifying its value in a \idx{resource-file}.
+
+The X11 version of XPCE uses the X11 resource machanism to find the
+value for a resource. The Win32 version uses its own resource parser
+that emulates the X11 resource-parsers behaviour.  Resources are
+read from the following locations.
+
+\begin{enumerate}
+    \tick{The X11 server}
+Resources associated with this screen using \idx{xrdb(1)} overrule
+resources defines in any of the other locations.  Note that this
+location is not provided for the Win32 emulator.
+    \tick{The \$HOME/.Xdefaults Resource file}
+This file is contains user preferences that should overrule the
+XPCE default values.
+    \tick{The \$PCEHOME/Pce Resource file}
+This file is used for system configuration.  It defines the basic
+look-and feel of XPCE.  Multiple versions of this file are distributed
+with XPCE, allowing a site to choose its preferred look-and-feel.
+    \tick{The application}
+The values stored in the application are the last location used to
+resolve a resource value.
+\end{enumerate}
+
+
+\subsection{Specifying XPCE resources}
+
+XPCE is known by the X11 application {\tt Pce}.  An XPCE resource
+specification takes the following form:
+
+\begin{quote}
+{\tt Pce.}<CapitalisedClass>{\tt .}<attribute>{\tt :} <Value>
+\end{quote}
+
+<CapitalisedClass> denotes a capitalised version of the class-name, were
+underscores are deleted and the subsequent letter is capitalised. For
+example, {\em Point}, {\em ListBrowser}. <attribute> denotes the
+`class-variable' specified. The online manual ClassBrowser may be used
+to examine the available resources and their current value.
+
+The resource-class {\tt Pce} can be changed using
+`display ->resource_class'.
+
+
+\subsection{Resource-value syntax}
+
+The syntax for resource-{\em values} used by XPCE is in general not the
+same as the syntax used by X11.   Exceptions are integer, boolean and
+colour resources.  Resource values are specified as XPCE objects.  The
+syntax is inspired by Prolog.  Below is a partial BNF description.
+
+\newcommand{\isa}{\>::=~}
+\newcommand(\ora}{\>  \|~}
+\begin{quote}
+\begin{table}{ll}
+\hline
+<Any>			\isa <int>		\\
+			\ora <float>		\\
+			\ora <Name>		\\
+			\ora @<Name>		\\
+			\ora <Chain>		\\
+			\ora <Object>		\\
+\hline						\\
+<Chain>			\isa {\tt [} <Any> \{, <Any>\} {\tt ]} \\
+			\ora {\tt [} {<Blank>} {\tt ]} \\
+\hline
+<Object>		\isa <ClassName>{\tt ()} \\
+			\ora <ClassName>{\tt (} <Any> \{, <Any>\} {\tt )} \\
+			\ora <PrefixOp> <Any> \\
+			\ora <Any> <InfixOp> <Any> \\
+			\ora <Any> <PostfixOp> \\
+			\ora {\tt "} <String> {\tt "} \\
+\hline
+<String>		\isa \{<CharNotDoubleQuote>|{\tt ""}\} \\
+\hline
+<Name>			\isa <Letter>\{<Letter>|<Digit>\} \\
+			\ora {\tt '} \{<CharNotSingleQuote>|{\tt ""}\} {\tt '} \\
+\hline
+\end{table}
+\end{quote}
+
+Summarising, the syntax is the same as for Prolog.  All classes that can
+be specified using Prolog operators can be specified the same way, but
+as XPCE's parser is independent of Prolog, Prolog op/3 directives donot
+influence XPCE.  XPCE has no variables, thus {\tt Fred} refers to the
+name {\em Fred} rather then defining a variable.  If an instance has
+to be created without arguments, such a default \class{point} object,
+this is specified as {\tt point()} rather then {\tt new(point)}.  The
+latter will try to make an instance of class \class{new} (and fail).
+
+
+\subsubsection{Long lines in resource files}
+
+X11 allows resource values that donot fit on a single line to be
+continued on the next line if the newline is {\em immediately}
+preceeded by a backslash.
+
+
+\subsection{Resources and inheritance}
+
+\subsection{Problems}

@@ -1,0 +1,221 @@
+\section{Using Hyper Links to Relate Object}	\label{sec:hyper}
+
+A \class{hyper} is a binary relation between two objects.  Hypers are,
+like \class{connection} objects, guarded automatically against
+destruction of one of the related objects.  Special methods allow for
+the easy communication between {\em hypered} objects.
+
+Hypers form an adequate answer where objects need to be related that
+depend temporary and incidentally on each other.  It is possible to
+be informed of the destruction of hypers, which enables a hypered object
+to keep track of its environment.  Good examples for the usage of hypers
+are to express the relation between multiple {\em frame} objects working
+together to form a single application or maintaining the relation
+between an application object (persistent object, model) and its
+visualisation (controller).
+
+Hypers are an alternative for using slots.  Suppose we want to define an
+application consisting of a main frame and a number of {\em slave}
+frames to handle specific tasks in the application.  One approach would
+be to relate a sheet for the slave frames with the master and a pointer
+to the main window in each slave.  The skeleton for this is given below.
+
+\begin{pcecode}
+:- pce_begin_class(main, frame, "Applications main window").
+
+variable(slaves, sheet, get, "Name --> slave window relations").
+
+initialise(F) :->
+	send(F, send_super, initialise, 'Main Window'),
+	send(F, slot, slaves, new(sheet)),
+	...
+
+
+unlink(F) :->
+	"Destry all slave windows"::
+	get(F, slaves, Slaves),
+	send(Slaves, for_all, message(@arg1?value, destroy)).
+
+
+slave(F, Name:name, Create:[bool], S:slave) :<-
+	"Return existing slave or create new one"::
+	get(F, slaves, Slaves),
+	(   get(Slaves, value, Name, S)
+	->  true
+	;   (	Create == @off
+	    ->	fail
+	    ;	new(S, slave(Name, F))
+	    )
+	).
+
+register_slave(F, Name:name, Slave:slave) :->
+	send(F?slaves, value, Name, Slave).
+
+unregister_slave(F, Slave:slave) :->
+	get(F, slaves, Slaves),
+	(   get(Slaves?members, find, @arg1?value == Slave, Att)
+	->  send(Slaves, delete, Att)
+	;   true
+	).
+
+:- pce_end_class.
+
+:- pce_begin_class(slave, frame, "Applications slave frame").
+
+variable(main,	main,	get,	"Reference to main frame").
+
+initialise(S, Name:name, Main:main) :->
+	"Create and register with main"::
+	send(S, send_super, initialise, Name),
+	send(S, slot, main, Main),
+	send(Main, register_slave, Name, S),
+	...
+
+unlink(S) :->
+	get(S, main, Main),
+	send(Main, unregister_slave, Main).
+
+:- pce_end_class.
+\end{pcecode}
+
+A similar schema to this is used by the XPCE manual tools described in
+section~\ref{sec:online}. Using hypers, the same relation can be
+expressed much simpler and less error-prone.
+
+The semantic relation that, if the main window is destroyed, all slaves
+must be destroyed can both be expressed in the main window and by
+specialising the hyper.  Below we will first implement it using the
+main window's ->unlink method.
+
+\begin{pcecode}
+:- pce_begin_class(main, frame, "Applications main window").
+
+unlink(F) :->
+	ignore(send(F, send_hyper, slave, destroy)),
+	send(F, send_super, unlink).
+
+slave(F, Name:name, Create:[bool], S:slave) :<-
+	"Return existing slave or create new one"::
+	(   get(F, hypered, slave, @arg3?name == Name, Slave)
+	->  true
+	;   (	Create == @off
+	    ->	fail
+	    ;	new(S, slave(Name, F))
+	    )
+	).
+
+:- pce_end_class.
+
+:- pce_begin_class(slave, frame, "Applications slave frame").
+
+variable(name, name, get, "Slave name of this frame").
+
+initialise(S, Name:name, Main:main) :->
+	"Create and register with main"::
+	send(S, send_super, initialise, 'Slave frame'),
+	send(S, slot, name, Name),
+	new(_, hyper(S, M, main, slave)).
+
+:- pce_end_class.
+\end{pcecode}
+
+
+\subsection{Methods for handling hyper objects}
+
+\subsubsection{Methods on class hyper}
+
+\begin{description}
+    \sendmethod{hyper}{initialise}{From:object, To:object,
+				   FromName:name, ToName:[name]}
+Create a new hyper object.  Seen from {\em From}, this hyper is
+called {\em FromName}; seen from {\em To} it is called {\em ToName}.
+The default for {\em ToName} is {\em FromName}.
+    \sendmethod{hyper}{unlink_from}{}
+Called by the object-management system when the <-from side of the hyper
+is being destroyed.  May be refined.
+    \sendmethod{hyper}{unlink_to}{}
+Called by the object-management system when the <-to side of the hyper
+is being destroyed.  May be refined.
+\end{description}
+
+
+\subsubsection{Methods on Class Object}
+
+Below are the two most commonly used methods dealing with hypers and
+defined on class \class{objects}. XPCE defines various other messages
+that let you delete and inspect the hyper structure.  Please use the
+online manual for details.
+
+\begin{description}
+    \sendmethod{object}{send_hyper}{HyperName:[name], Selector:name,
+				    Argument:unchecked ...}
+Perform a broadcast send-operation to all (named) <-hypered objects.
+Similar to <-get_hyper, but does not stop if the method is received
+successfully. Succeeds if there was at least one hypered object
+accepting the message, fails otherwise.
+    \getmethod{object}{hypered}{HyperName:[name], Test:[code]}{object}
+Find a hyper-related object. Name is the name of the hyper (seen from
+the side of the receiver). Test is an optionally additional test. If
+present, this test is executed using the following arguments below.
+The first matching object is returned.  See also <-all_hypers.
+	
+\begin{center}
+\begin{tabular}{ll}
+@arg1	& This object \\
+@arg2	& The hyper object \\
+@arg3	& The object at the other end of the hyper \\
+\end{tabular}
+\end{center}
+\end{description}
+
+
+\subsection{Programming Existence Dependencies}
+
+The example of this section demonstrates a common existence
+relationship: if the `main' object is destroyed, all related slave
+objects should be destroyed too, but if a slave is destroyed, the
+main should not be destroyed.  This semantic could also be expressed
+using a refinement of class \class{hyper}.
+
+\begin{pcecode}
+:- pce_begin_class(master_slave_hyper, hyper,
+		   "Maintain a master-slave relationship").
+
+initialise(H, F:object, T:object, FN:[name], TN:[name]) :->
+	default(FN, slave, FromName),
+	default(TN, master, ToName),
+	send(H, send_super, initialise, F, T, FromName, ToName).
+
+unlink_from(H) :->
+	"From-side (master is destroyed"::
+	ignore(send(H?to, free)),
+	free(H).
+
+:- pce_begin_class.
+\end{pcecode}
+
+This hyper is demonstrated in the following application.  It defines a
+frame holding a graphical window and a dialog with a `Quit' button
+as well as a dialog frame that allows you to modify the label of the
+first frame.  See figure~\ref{fig:hyperdemo}.  If the main window is
+destroyed, the label-editor will be destroyed automatically.
+
+\postscriptfig[width=\textwidth]{hyperdemo}{Two frames related by a hyper-link}
+
+\begin{pcecode}
+hyperdemo :-
+	new(F, frame('Main Window')),
+	send(F, append, new(P, picture)),
+	send(new(D, below, P)),
+	send(D, append, button(quit, message(F, destroy))),
+	send(F, open),
+
+	new(E, dialog('Edit label')),
+	send(E, append, text_item(label, F?label,
+				  message(F, label, @arg1))),
+	send(E, append, button(cancel, message(E, destroy))),
+	new(_, master_slave_hyper(F, E)),
+	send(E, open).
+\end{pcecode}
+ 
+\mbox{}
