@@ -1,5 +1,6 @@
 /*  $Id$
 
+
     Copyright (c) 1990 Jan Wielemaker. All rights reserved.
     See ../LICENCE to find out about your rights.
     jan@swi.psy.uva.nl
@@ -295,13 +296,14 @@ mark is reached we are either finished, or have reached a choice  point,
 in  which case the alternative is the cell above (structures are handled
 last-argument-first).
 
-Mark the tree of global stack cells, referenced by the local stack  word
-`start'.  Things are a bit more difficult than described in the liteture
-above as SWI-Prolog does not use  a  structure  to  describe  a  general
-Prolog object, but just a 32 bits long.  This has performance advantages
-as we can exploit things like using negative numbers for references.  It
-has  some  disadvantages  here as we have to distinguis some more cases.
-Strings and reals on the stacks complicate matters even more.
+Mark the tree of global stack cells,  referenced by the local stack word
+`start'.  Things  are  a  bit  more  difficult  than  described  in  the
+literature above as SWI-Prolog does not use   a  structure to describe a
+general Prolog object, but just a  32   bits  long. This has performance
+advantages as we can exploit  things   like  using  negative numbers for
+references. It has some disadvantages here as we have to distinguis some
+more cases. Strings and reals  on   the  stacks  complicate matters even
+more.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define FORWARD		goto forward
@@ -552,6 +554,10 @@ mark_environments(LocalFrame fr)
   }
 }
 
+#ifndef O_DESTRUCTIVE_ASSIGNMENT
+#define isTrailValueP(x) 0
+#endif
+
 static void
 mark_choicepoints(LocalFrame bfr)
 { TrailEntry te = tTop - 1;
@@ -562,14 +568,16 @@ mark_choicepoints(LocalFrame bfr)
   { Word top = argFrameP(bfr, bfr->procedure->functor->arity);
 
     for( ; te >= bfr->mark.trailtop; te-- )	/* early reset of vars */
-    { if ( te->address >= top )
-      { te->address = (Word) NULL;
-        trailcells_deleted++;
-      } else if ( !marked(te->address) )
-      { setVar(*te->address);
-        DEBUG(3, Sdprintf("Early reset of 0x%p\n", te->address));
-        te->address = (Word) NULL;
-	trailcells_deleted++;
+    { if ( !isTrailValueP(te->address) )
+      { if ( te->address >= top )
+	{ te->address = (Word) NULL;
+	  trailcells_deleted++;
+	} else if ( !marked(te->address) )
+	{ setVar(*te->address);
+	  DEBUG(3, Sdprintf("Early reset of 0x%p\n", te->address));
+	  te->address = (Word) NULL;
+	  trailcells_deleted++;
+	}
       }
     }
     needsRelocation((Word)&bfr->mark.trailtop);
@@ -591,25 +599,37 @@ mark_stacks(LocalFrame fr)
   mark_choicepoints(fr);
 }
 
+#ifdef O_DESTRUCTIVE_ASSIGNMENT
+static void
+mark_trail()
+{ TrailEntry te = tTop - 1;
+
+  for( ; te >= tBase; te-- )
+  { Word gp;
+
+    if ( isTrailValueP(te->address) )
+    { gp = trailValueP(te->address);
+
+      assert(onGlobal(gp));
+      if ( !marked(gp) )
+      { local_marked--;			/* fix counters */
+	total_marked++;
+	mark_variable(gp);
+      }
+    }
+  }
+}
+#endif /*O_DESTRUCTIVE_ASSIGNMENT*/
+
+
 #if O_SECURE
-#ifdef __STDC__
 static int
-cmp_address(vp1, vp2)
-const void *vp1, *vp2;
+cmp_address(const void *vp1, const void *vp2)
 { Word p1 = *((Word *)vp1);
   Word p2 = *((Word *)vp2);
 
   return p1 > p2 ? 1 : p1 == p2 ? 0 : -1;
 }
-
-#else
-
-static int
-cmp_address(p1, p2)
-Word *p1, *p2;
-{ return *p1 > *p2 ? 1 : *p1 == *p2 ? 0 : -1;
-}
-#endif
 #endif
 
 static void
@@ -851,10 +871,18 @@ relocation chains.
 
 static void
 sweep_trail(void)
-{ register TrailEntry te = tTop - 1;
+{ TrailEntry te = tTop - 1;
 
   for( ; te >= tBase; te-- )
-  { if ( onGlobal(te->address) )
+  {
+#ifdef O_DESTRUCTIVE_ASSIGNMENT
+    if ( isTrailValueP(te->address) )
+    { relocation_indirect++;
+      needsRelocation((Word) &te->address);
+      into_relocation_chain((Word) &te->address);
+    } else
+#endif
+    if ( onGlobal(te->address) )
     { needsRelocation((Word) &te->address);
       into_relocation_chain((Word) &te->address);
     }
@@ -1327,6 +1355,9 @@ garbageCollect(LocalFrame fr)
   tTop->address = NULL;
 
   mark_phase(fr);
+#ifdef O_DESTRUCTIVE_ASSIGNMENT
+  mark_trail();
+#endif
   tgar = trailcells_deleted * sizeof(struct trail_entry);
   ggar = (gTop - gBase - total_marked) * sizeof(word);
   gc_status.trail_gained  += tgar;

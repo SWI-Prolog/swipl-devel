@@ -106,7 +106,7 @@ static struct foreign {
   ADD("!",			0, pl_metacut,			TRACE_ME),
   ADD("functor",		3, pl_functor,			TRACE_ME),
   ADD("arg",			3, pl_arg,     NONDETERMINISTIC|TRACE_ME),
-  ADD("$setarg",		3, pl_setarg,			TRACE_ME),
+  ADD("setarg",			3, pl_setarg,			TRACE_ME),
   ADD("=..",			2, pl_univ,			TRACE_ME),
   ADD("name",			2, pl_name,			TRACE_ME),
   ADD("atom_chars",		2, pl_atom_chars,		TRACE_ME),

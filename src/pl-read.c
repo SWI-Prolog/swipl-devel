@@ -413,6 +413,10 @@ raw_read2(void)
 		  addToBuffer(EOS);
 		  return rb.base;
 		}
+		while( c != EOF && char_type[c] == SY )
+		{ addToBuffer(c);
+		  c = getchr();
+		}
 		goto handle_c;
       case_default:			/* Hack, needs fixing */
       default:	switch(char_type[c])
@@ -1287,7 +1291,7 @@ simple_term(bool must_be_op, Word term, bool *name)
 static bool
 read_term(Word term, Word variables, bool check)
 { Token token;
-  word result;
+  Word result = newTerm();
 
   if ((base = raw_read()) == (char *) NULL)
     fail;
@@ -1296,30 +1300,14 @@ read_term(Word term, Word variables, bool check)
   here = base;
   unget = FALSE;
 
-  TRY( complex_term(NULL, &result) );
+  TRY( complex_term(NULL, result) );
 
   if ((token = get_token(FALSE)) == (Token) NULL)
     fail;
   if (token->type != T_FULLSTOP)
     syntaxError("End of clause expected");
 
-  if ( isRef(result) )	/* term is a single variable! */
-  { Variable var;
-#ifndef TAGGED_LVALUE
-    Word w;
-    deRef2(&result, w);
-    var = (Variable) w;
-#else
-    deRef2(&result, (Word)var);
-#endif
-    if ( var->times != 1 || var->address != (Word)NULL )
-      sysError("Error while reading a single variable??");
-    var->address = allocGlobal(1);
-    setVar(*var->address);
-    result = makeRef(var->address);
-  }
-
-  TRY(pl_unify(term, &result) );
+  TRY(pl_unify(term, result) );
   if (variables != (Word) NULL)
     TRY(bind_variables(variables) );
   if (check)

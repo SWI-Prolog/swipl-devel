@@ -1,6 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.1.4
+=============
+
+  * FIXED: problem in read/1 and number_chars/2 that may have lead to 
+    garbage collection errors.
+
+  * FIXED: setarg/3 to be integrated in the trail-system.  Removes its
+    choicepoint and ensures data consistency.
+
 Version 2.1.3
 =============
 

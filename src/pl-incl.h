@@ -14,7 +14,7 @@
 #define MD "config/win32.h"
 #define PLHOME       "c:/pl"
 #define DEFSTARTUP   ".plrc"
-#define PLVERSION    "2.1.2"
+#define PLVERSION    "2.1.3"
 #define ARCH	     "i386-win32"
 #define C_LIBS	     "-lreadline -lconsole -luxnt"
 #define C_STATICLIBS ""
@@ -85,6 +85,7 @@ handy for it someone wants to add a data type to the system.
 #define O_PCE			1	/* doesn't depend any longer */
 #define O_DEBUGGER		1
 #define O_INTERRUPT		1
+#define O_DESTRUCTIVE_ASSIGNMENT 1
 
 #ifndef O_LABEL_ADDRESSES
 #if __GNUC__ == 2
@@ -1170,12 +1171,24 @@ struct symbol
 
 #define setVar(w)	((w) = (word) NULL)
 
+#ifdef O_DESTRUCTIVE_ASSIGNMENT
+
+#define DoUndo(b)	do_undo(&b)
+#define T_VALUE_MASK	INDIRECT_MASK
+#define makeTrailValueP(p)	((Word)((unsigned long)(p) | T_VALUE_MASK))
+#define isTrailValueP(p)	((unsigned long)(p) & T_VALUE_MASK)
+#define trailValueP(p)		((Word)((unsigned long)(p) & ~T_VALUE_MASK))
+
+#else /*O_DESTRUCTIVE_ASSIGNMENT*/
+
 #define DoUndo(b)	{ register TrailEntry tt = tTop; \
 			  while(tt > (b).trailtop) \
 			    setVar(*(--tt)->address); \
 			  tTop = tt; \
 			  gTop = (b).globaltop; \
 			}
+#endif /*O_DESTRUCTIVE_ASSIGNMENT*/
+
 #define DoMark(b)	{ (b).trailtop = tTop; \
 			  (b).globaltop = gTop; \
 			}

@@ -540,6 +540,9 @@ pl_setarg(Word n, Word term, Word value)
 
   a = argTermP(*term, argn-1);
 
+#ifdef O_DESTRUCTIVE_ASSIGNMENT
+  TrailAssignment(a);
+#endif
 					/* this is unify(), but the */
 					/* assignment must *not* be trailed */
   if ( isVar(*value) )
@@ -1071,14 +1074,13 @@ toNumber(char *s)
 
   if ( *s == EOS )
   { bool rval;
-    word n;
+    Word n = newTerm();
 
-    setVar(n);
     seeString(q);
-    rval = pl_read(&n);
+    rval = pl_read(n);
     seenString();
 
-    return rval ? n : FALSE;
+    return rval ? *n : FALSE;
   }
 
   fail;

@@ -417,9 +417,57 @@ Trail(Word p, LocalFrame fr)
     return;
 
   (tTop++)->address = p;
+  SECURE(assert(!isTrailValueP(p)));
   verifyStack(trail);
 }
 
+#ifdef O_DESTRUCTIVE_ASSIGNMENT
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Trailing of destructive assignments.  This feature is used by setarg/3.
+
+Such an assignment is trailed by first  pushing the assigned address (as
+normal) and then pushing a marked pointer to  a cell on the global stack
+holding the old (overwritten) value.
+
+Undo is slightly more complicated as it has to check for these special
+cells on the trailstack.
+
+The garbage collector has to take care in  a number of places: it has to
+pass through the trail-stack, marking   the  global-stack references for
+assigned data and the sweep_trail() must be   careful about this type of
+marks.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+TrailAssignment(Word p)
+{ Word old = allocGlobal(1);
+
+  *old = *p;				/* save the old value on the global */
+  (tTop++)->address = p;
+  (tTop++)->address = makeTrailValueP(old);
+  verifyStack(trail);
+}
+
+inline void
+do_undo(mark *m)
+{ TrailEntry tt = tTop;
+
+  while(tt > m->trailtop)
+  { tt--;
+    if ( isTrailValueP(tt->address) )
+    { word val = *trailValueP(tt->address);
+
+      tt--;
+      *tt->address = val;
+    } else
+      setVar(*tt->address);
+  }
+  tTop = tt;
+  gTop = m->globaltop;
+}
+
+#endif /*O_DESTRUCTIVE_ASSIGNMENT*/
 
 		/********************************
 		*          UNIFICATION          *
