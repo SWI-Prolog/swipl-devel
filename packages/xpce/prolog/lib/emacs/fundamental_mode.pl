@@ -657,10 +657,13 @@ shell(M) :->
 	(   get(@emacs, buffer, '*shell*', Buffer)
 	->  send(Buffer, open)
 	;   (	get(@pce, environment_variable, 'SHELL', Shell)
-	    ->  better_shell(Shell, Shell2)
-	    ;   Shell2 = sh
+	    ->  better_shell(Shell, Shell2),
+		Process = process(Shell2, '-i')
+	    ;	get(@pce, operating_system, winnt) % TBD: Windows 95-ME
+	    ->	Process = process('cmd.exe')
+	    ;   Process = process('sh', '-i')
 	    ),
-	    new(P, process(Shell2, '-i')),
+	    new(P, Process),
 	    get(M, directory, Dir),
 	    send(P, directory, Dir),
 	    new(B, emacs_process_buffer(P, '*shell*')),
