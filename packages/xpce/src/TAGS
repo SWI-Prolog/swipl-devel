@@ -6656,38 +6656,38 @@ compute_label(DialogGroup g, int *x, int *y, int *w, int *h)compute_label66,15
 computeDialogGroup(DialogGroup g)computeDialogGroup103,2289
 geometryDialogGroup(DialogGroup g, Int x, Int y, Int w, Int h)geometryDialogGroup164,3617
 sizeDialogGroup(DialogGroup g, Size s)sizeDialogGroup190,4164
-layoutDialogDialogGroup(DialogGroup g)layoutDialogDialogGroup210,4553
-gapDialogGroup(DialogGroup g, Size gap)gapDialogGroup218,4712
-borderDialogGroup(DialogGroup g, Size border)borderDialogGroup230,4939
-nameDialogGroup(DialogGroup g, Name name)nameDialogGroup249,5441
-ChangedLabelDialogGroup(DialogGroup g)ChangedLabelDialogGroup263,5679
-labelDialogGroup(DialogGroup g, Any label)labelDialogGroup271,5817
-labelFontDialogGroup(DialogGroup g, FontObj font)labelFontDialogGroup282,5995
-showLabelDialogGroup(DialogGroup g, Bool show)showLabelDialogGroup293,6188
-labelFormatDialogGroup(DialogGroup g, Name fmt)labelFormatDialogGroup311,6489
-getLabelNameDialogGroup(DialogGroup g, Name name)getLabelNameDialogGroup322,6685
-radiusDialogGroup(DialogGroup g, Int radius)radiusDialogGroup333,6955
-elevationDialogGroup(DialogGroup d, Elevation e)elevationDialogGroup339,7068
-kindDialogGroup(DialogGroup g, Name kind)kindDialogGroup349,7276
-RedrawLabelDialogGroup(DialogGroup g, int acc,RedrawLabelDialogGroup370,7791
-RedrawAreaDialogGroup(DialogGroup g, Area a)RedrawAreaDialogGroup407,8637
-WantsKeyboardFocusTextItem(DialogGroup g)WantsKeyboardFocusTextItem494,10774
-eventDialogGroup(DialogGroup g, EventObj ev)eventDialogGroup507,10968
-getDefaultButtonDialogGroup(DialogGroup g)getDefaultButtonDialogGroup516,11162
-applyDialogGroup(DialogGroup g, Bool always)applyDialogGroup539,11584
-restoreDialogGroup(DialogGroup g)restoreDialogGroup552,11847
-modifiedItemDialogGroup(DialogGroup g, Graphical gr, Bool m)modifiedItemDialogGroup565,12093
-appendDialogGroup(DialogGroup g, Graphical item, Name where)appendDialogGroup588,12504
-static char T_kind[] = "kind=[{box,group}]";T_kind599,12752
-static char *T_initialise[] =T_initialise600,12797
-static char *T_geometry[] =T_geometry602,12855
-static char *T_append[] =T_append604,12948
-static char *T_modifiedItem[] =T_modifiedItem606,13049
-static vardecl var_diagroup[] =var_diagroup611,13155
-static senddecl send_diagroup[] =send_diagroup637,14330
-static getdecl get_diagroup[] =get_diagroup680,16313
-static classvardecl rc_diagroup[] =rc_diagroup695,16887
-makeClassDialogGroup(Class class)makeClassDialogGroup724,17800
+layoutDialogDialogGroup(DialogGroup g)layoutDialogDialogGroup214,4636
+gapDialogGroup(DialogGroup g, Size gap)gapDialogGroup222,4795
+borderDialogGroup(DialogGroup g, Size border)borderDialogGroup234,5022
+nameDialogGroup(DialogGroup g, Name name)nameDialogGroup253,5524
+ChangedLabelDialogGroup(DialogGroup g)ChangedLabelDialogGroup267,5762
+labelDialogGroup(DialogGroup g, Any label)labelDialogGroup275,5900
+labelFontDialogGroup(DialogGroup g, FontObj font)labelFontDialogGroup286,6078
+showLabelDialogGroup(DialogGroup g, Bool show)showLabelDialogGroup297,6271
+labelFormatDialogGroup(DialogGroup g, Name fmt)labelFormatDialogGroup315,6572
+getLabelNameDialogGroup(DialogGroup g, Name name)getLabelNameDialogGroup326,6768
+radiusDialogGroup(DialogGroup g, Int radius)radiusDialogGroup337,7038
+elevationDialogGroup(DialogGroup d, Elevation e)elevationDialogGroup343,7151
+kindDialogGroup(DialogGroup g, Name kind)kindDialogGroup353,7359
+RedrawLabelDialogGroup(DialogGroup g, int acc,RedrawLabelDialogGroup374,7874
+RedrawAreaDialogGroup(DialogGroup g, Area a)RedrawAreaDialogGroup411,8720
+WantsKeyboardFocusTextItem(DialogGroup g)WantsKeyboardFocusTextItem498,10857
+eventDialogGroup(DialogGroup g, EventObj ev)eventDialogGroup511,11051
+getDefaultButtonDialogGroup(DialogGroup g)getDefaultButtonDialogGroup520,11245
+applyDialogGroup(DialogGroup g, Bool always)applyDialogGroup543,11667
+restoreDialogGroup(DialogGroup g)restoreDialogGroup556,11930
+modifiedItemDialogGroup(DialogGroup g, Graphical gr, Bool m)modifiedItemDialogGroup569,12176
+appendDialogGroup(DialogGroup g, Graphical item, Name where)appendDialogGroup592,12587
+static char T_kind[] = "kind=[{box,group}]";T_kind603,12835
+static char *T_initialise[] =T_initialise604,12880
+static char *T_geometry[] =T_geometry606,12938
+static char *T_append[] =T_append608,13031
+static char *T_modifiedItem[] =T_modifiedItem610,13132
+static vardecl var_diagroup[] =var_diagroup615,13238
+static senddecl send_diagroup[] =send_diagroup641,14413
+static getdecl get_diagroup[] =get_diagroup684,16396
+static classvardecl rc_diagroup[] =rc_diagroup699,16970
+makeClassDialogGroup(Class class)makeClassDialogGroup728,17883
 
 men/dialogitem.c,2594
 createDialogItem(Any obj, Name name)createDialogItem20,461
@@ -9194,116 +9194,116 @@ convertOldSlotFrame(FrameObj fr, Name var, Any value)convertOldSlotFrame137,38
 initialiseNewSlotFrame(FrameObj fr, Variable var)initialiseNewSlotFrame146,4066
 static Constant ConstantNotReturned;ConstantNotReturned157,4348
 getConfirmFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)getConfirmFrame160,4390
-getConfirmCenteredFrame(FrameObj fr, Point pos, Bool grab)getConfirmCenteredFrame191,5149
-returnFrame(FrameObj fr, Any obj)returnFrame209,5528
-openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)openFrame217,5625
-openCenteredFrame(FrameObj fr, Point pos, Bool grab)openCenteredFrame246,6356
-resizeFrame(FrameObj fr)resizeFrame264,6713
-attachWmProtocolsFrame(FrameObj fr)attachWmProtocolsFrame280,6987
-wmProtocolFrame(FrameObj fr, Name name, Code msg)wmProtocolFrame288,7089
-deleteWmProtocolFrame(FrameObj fr, Name name)deleteWmProtocolFrame298,7285
-wmDeleteFrame(FrameObj fr)wmDeleteFrame310,7544
-doneMessageFrame(FrameObj fr, Code msg)doneMessageFrame324,7807
-saveMessageFrame(FrameObj fr, Code msg)saveMessageFrame330,7929
-mappedFrame(FrameObj fr, Bool val)mappedFrame336,8051
-createdFrame(FrameObj fr)createdFrame356,8610
-createFrame(FrameObj fr)createFrame362,8685
-uncreateFrame(FrameObj fr)uncreateFrame397,9308
-fitFrame(FrameObj fr)fitFrame409,9475
-statusFrame(FrameObj fr, Name stat)statusFrame439,10008
-frame_is_upto_date(FrameObj fr)frame_is_upto_date463,10458
-waitFrame(FrameObj fr)waitFrame481,10726
-showFrame(FrameObj fr, Bool val)showFrame498,11049
-getShowFrame(FrameObj fr)getShowFrame510,11275
-exposeFrame(FrameObj fr)exposeFrame520,11466
-hideFrame(FrameObj fr)hideFrame529,11557
-exposedFrame(FrameObj fr)exposedFrame537,11632
-hiddenFrame(FrameObj fr)hiddenFrame546,11792
-get_position_from_center_frame(FrameObj fr, Point pos, int *x, int *y)get_position_from_center_frame558,12074
-ensure_on_display(FrameObj fr, int *x, int *y)ensure_on_display577,12429
-getSizeFrame(FrameObj fr)getSizeFrame592,12794
-getPositionFrame(FrameObj fr)getPositionFrame598,12870
-getBoundingBoxFrame(FrameObj fr)getBoundingBoxFrame604,12953
-getGeometryFrame(FrameObj fr)getGeometryFrame616,13144
-getImageFrame(FrameObj fr)getImageFrame649,13672
-geometryFrame(FrameObj fr, Name spec)geometryFrame659,13841
-setFrame(FrameObj fr, Int x, Int y, Int w, Int h)setFrame669,13973
-xFrame(FrameObj fr, Int x)xFrame688,14277
-yFrame(FrameObj fr, Int y)yFrame694,14375
-widthFrame(FrameObj fr, Int w)widthFrame700,14473
-heightFrame(FrameObj fr, Int h)heightFrame706,14575
-sizeFrame(FrameObj fr, Size sz)sizeFrame712,14678
-positionFrame(FrameObj fr, Point pos)positionFrame718,14783
-centerFrame(FrameObj fr, Point pos)centerFrame724,14896
-areaFrame(FrameObj fr, Area area)areaFrame733,15075
-showLabelFrame(FrameObj fr, Bool val)showLabelFrame739,15186
-borderFrame(FrameObj fr, Int width)borderFrame745,15310
-backgroundFrame(FrameObj fr, Any bg)backgroundFrame758,15515
-forwardColourMapChange(Device d)forwardColourMapChange771,15714
-forwardColourMapChangeFrame(FrameObj fr)forwardColourMapChangeFrame785,15989
-colourMapFrame(FrameObj fr, ColourMap cm)colourMapFrame799,16206
-busyCursorFrame(FrameObj fr, CursorObj c, Bool block_events)busyCursorFrame811,16426
-resetFrame(FrameObj fr)resetFrame820,16576
-iconFrame(FrameObj fr, Image image, Name label)iconFrame834,16821
-getIconLabelFrame(FrameObj fr)getIconLabelFrame845,17010
-iconLabelFrame(FrameObj fr, Name label)iconLabelFrame851,17122
-iconPositionFrame(FrameObj fr, Point pos)iconPositionFrame860,17256
-getIconPositionFrame(FrameObj fr)getIconPositionFrame871,17451
-closedFrame(FrameObj fr, Bool val)closedFrame882,17644
-getClosedFrame(FrameObj fr)getClosedFrame894,17872
-flushFrame(FrameObj fr)flushFrame904,18068
-synchroniseFrame(FrameObj fr)synchroniseFrame910,18146
-bellFrame(FrameObj fr, Int volume)bellFrame916,18236
-getTileFrame(FrameObj fr)getTileFrame922,18326
-labelFrame(FrameObj fr, Name label, Name icon)labelFrame934,18501
-appendFrame(FrameObj fr, PceWindow sw)appendFrame947,18692
-getMembersFrame(FrameObj fr)getMembersFrame953,18778
-AppendFrame(FrameObj fr, PceWindow sw)AppendFrame971,19117
-DeleteFrame(FrameObj fr, PceWindow sw)DeleteFrame993,19526
-deleteFrame(FrameObj fr, PceWindow sw)deleteFrame1018,20145
-getMemberFrame(FrameObj fr, Name name)getMemberFrame1027,20320
-getFrameFrame(FrameObj fr)getFrameFrame1042,20529
-getPointerWindowFrame(FrameObj fr)getPointerWindowFrame1048,20591
-applicationFrame(FrameObj fr, Application app)applicationFrame1071,20967
-keyboardFocusFrame(FrameObj fr, PceWindow sw)keyboardFocusFrame1088,21341
-getKeyboardFocusFrame(FrameObj fr)getKeyboardFocusFrame1113,22223
-inputWindowFrame(FrameObj fr, PceWindow iw)inputWindowFrame1146,22874
-inputFocusFrame(FrameObj fr, Bool val)inputFocusFrame1169,23298
-drawFeedbackLines(FrameObj fr)drawFeedbackLines1201,23899
-cancelResizeTileFrame(FrameObj fr)cancelResizeTileFrame1210,24120
-resizeTileEventFrame(FrameObj fr, EventObj ev)resizeTileEventFrame1221,24362
-blockedByModalFrame(FrameObj fr, EventObj ev)blockedByModalFrame1330,27215
-eventFrame(FrameObj fr, EventObj ev)eventFrame1369,27972
-cursorFrame(FrameObj fr, CursorObj cursor)cursorFrame1387,28318
-grabPointerFrame(FrameObj fr, Bool grab, CursorObj cursor)grabPointerFrame1395,28422
-modalFrame(FrameObj fr, Name how)modalFrame1403,28554
-typedFrame(FrameObj fr, EventId id)typedFrame1420,28909
-kindFrame(FrameObj fr, Name kind)kindFrame1436,29178
-transientForFrame(FrameObj fr, FrameObj fr2)transientForFrame1454,29491
-attachTransientFrame(FrameObj fr, FrameObj tr)attachTransientFrame1477,29993
-detachTransientFrame(FrameObj fr, FrameObj tr)detachTransientFrame1488,30200
-informTransientsFramev(FrameObj fr, Name selector, int argc, Any *argv)informTransientsFramev1497,30350
-getCatchAllFramev(FrameObj fr, Name name)getCatchAllFramev1512,30669
-reportFrame(FrameObj fr, Name kind, CharArray fmt, int argc, Any *argv)reportFrame1530,31046
-getContainedInFrame(FrameObj fr)getContainedInFrame1557,31749
-getContainsFrame(FrameObj fr)getContainsFrame1563,31822
-static char *T_centerADpointD_grabADboolD[] =T_centerADpointD_grabADboolD1574,32003
-static char *T_busyCursor[] =T_busyCursor1576,32094
-static char *T_icon[] =T_icon1578,32178
-static char *T_initialise[] =T_initialise1580,32250
-static char *T_label[] =T_label1585,32403
-static char *T_postscript[] =T_postscript1587,32475
-static char *T_positionADpointD_grabADboolD_normaliseADboolD[] =T_positionADpointD_grabADboolD_normaliseADboolD1589,32556
-static char *T_wmProtocol[] =T_wmProtocol1591,32688
-static char *T_convertOldSlot[] =T_convertOldSlot1593,32762
-static char *T_set[] =T_set1595,32834
-static char *T_grab_pointer[] =T_grab_pointer1597,32922
-static vardecl var_frame[] =var_frame1602,33018
-static senddecl send_frame[] =send_frame1661,35910
-static getdecl get_frame[] =get_frame1776,41634
-static classvardecl rc_frame[] =rc_frame1823,44067
-static Name frame_termnames[] = { NAME_label, NAME_kind, NAME_display };frame_termnames1852,45184
-makeClassFrame(Class class)makeClassFrame1861,45394
+getConfirmCenteredFrame(FrameObj fr, Point pos, Bool grab)getConfirmCenteredFrame191,5141
+returnFrame(FrameObj fr, Any obj)returnFrame209,5520
+openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)openFrame217,5617
+openCenteredFrame(FrameObj fr, Point pos, Bool grab)openCenteredFrame246,6348
+resizeFrame(FrameObj fr)resizeFrame264,6705
+attachWmProtocolsFrame(FrameObj fr)attachWmProtocolsFrame280,6979
+wmProtocolFrame(FrameObj fr, Name name, Code msg)wmProtocolFrame288,7081
+deleteWmProtocolFrame(FrameObj fr, Name name)deleteWmProtocolFrame298,7277
+wmDeleteFrame(FrameObj fr)wmDeleteFrame310,7536
+doneMessageFrame(FrameObj fr, Code msg)doneMessageFrame324,7799
+saveMessageFrame(FrameObj fr, Code msg)saveMessageFrame330,7921
+mappedFrame(FrameObj fr, Bool val)mappedFrame336,8043
+createdFrame(FrameObj fr)createdFrame356,8602
+createFrame(FrameObj fr)createFrame362,8677
+uncreateFrame(FrameObj fr)uncreateFrame397,9300
+fitFrame(FrameObj fr)fitFrame409,9467
+statusFrame(FrameObj fr, Name stat)statusFrame439,10000
+frame_is_upto_date(FrameObj fr)frame_is_upto_date463,10450
+waitFrame(FrameObj fr)waitFrame481,10718
+showFrame(FrameObj fr, Bool val)showFrame498,11041
+getShowFrame(FrameObj fr)getShowFrame510,11267
+exposeFrame(FrameObj fr)exposeFrame520,11458
+hideFrame(FrameObj fr)hideFrame529,11549
+exposedFrame(FrameObj fr)exposedFrame537,11624
+hiddenFrame(FrameObj fr)hiddenFrame546,11784
+get_position_from_center_frame(FrameObj fr, Point pos, int *x, int *y)get_position_from_center_frame558,12066
+ensure_on_display(FrameObj fr, int *x, int *y)ensure_on_display577,12421
+getSizeFrame(FrameObj fr)getSizeFrame592,12786
+getPositionFrame(FrameObj fr)getPositionFrame598,12862
+getBoundingBoxFrame(FrameObj fr)getBoundingBoxFrame604,12945
+getGeometryFrame(FrameObj fr)getGeometryFrame616,13136
+getImageFrame(FrameObj fr)getImageFrame649,13664
+geometryFrame(FrameObj fr, Name spec)geometryFrame659,13833
+setFrame(FrameObj fr, Int x, Int y, Int w, Int h)setFrame669,13965
+xFrame(FrameObj fr, Int x)xFrame688,14269
+yFrame(FrameObj fr, Int y)yFrame694,14367
+widthFrame(FrameObj fr, Int w)widthFrame700,14465
+heightFrame(FrameObj fr, Int h)heightFrame706,14567
+sizeFrame(FrameObj fr, Size sz)sizeFrame712,14670
+positionFrame(FrameObj fr, Point pos)positionFrame718,14775
+centerFrame(FrameObj fr, Point pos)centerFrame724,14888
+areaFrame(FrameObj fr, Area area)areaFrame733,15067
+showLabelFrame(FrameObj fr, Bool val)showLabelFrame739,15178
+borderFrame(FrameObj fr, Int width)borderFrame745,15302
+backgroundFrame(FrameObj fr, Any bg)backgroundFrame758,15507
+forwardColourMapChange(Device d)forwardColourMapChange771,15706
+forwardColourMapChangeFrame(FrameObj fr)forwardColourMapChangeFrame785,15981
+colourMapFrame(FrameObj fr, ColourMap cm)colourMapFrame799,16198
+busyCursorFrame(FrameObj fr, CursorObj c, Bool block_events)busyCursorFrame811,16418
+resetFrame(FrameObj fr)resetFrame820,16568
+iconFrame(FrameObj fr, Image image, Name label)iconFrame834,16813
+getIconLabelFrame(FrameObj fr)getIconLabelFrame845,17002
+iconLabelFrame(FrameObj fr, Name label)iconLabelFrame851,17114
+iconPositionFrame(FrameObj fr, Point pos)iconPositionFrame860,17248
+getIconPositionFrame(FrameObj fr)getIconPositionFrame871,17443
+closedFrame(FrameObj fr, Bool val)closedFrame882,17636
+getClosedFrame(FrameObj fr)getClosedFrame894,17864
+flushFrame(FrameObj fr)flushFrame904,18060
+synchroniseFrame(FrameObj fr)synchroniseFrame910,18138
+bellFrame(FrameObj fr, Int volume)bellFrame916,18228
+getTileFrame(FrameObj fr)getTileFrame922,18318
+labelFrame(FrameObj fr, Name label, Name icon)labelFrame934,18493
+appendFrame(FrameObj fr, PceWindow sw)appendFrame947,18684
+getMembersFrame(FrameObj fr)getMembersFrame953,18770
+AppendFrame(FrameObj fr, PceWindow sw)AppendFrame971,19109
+DeleteFrame(FrameObj fr, PceWindow sw)DeleteFrame993,19518
+deleteFrame(FrameObj fr, PceWindow sw)deleteFrame1018,20137
+getMemberFrame(FrameObj fr, Name name)getMemberFrame1027,20312
+getFrameFrame(FrameObj fr)getFrameFrame1042,20521
+getPointerWindowFrame(FrameObj fr)getPointerWindowFrame1048,20583
+applicationFrame(FrameObj fr, Application app)applicationFrame1071,20959
+keyboardFocusFrame(FrameObj fr, PceWindow sw)keyboardFocusFrame1088,21333
+getKeyboardFocusFrame(FrameObj fr)getKeyboardFocusFrame1113,22215
+inputWindowFrame(FrameObj fr, PceWindow iw)inputWindowFrame1146,22866
+inputFocusFrame(FrameObj fr, Bool val)inputFocusFrame1169,23290
+drawFeedbackLines(FrameObj fr)drawFeedbackLines1201,23891
+cancelResizeTileFrame(FrameObj fr)cancelResizeTileFrame1210,24112
+resizeTileEventFrame(FrameObj fr, EventObj ev)resizeTileEventFrame1221,24354
+blockedByModalFrame(FrameObj fr, EventObj ev)blockedByModalFrame1330,27207
+eventFrame(FrameObj fr, EventObj ev)eventFrame1369,27964
+cursorFrame(FrameObj fr, CursorObj cursor)cursorFrame1387,28310
+grabPointerFrame(FrameObj fr, Bool grab, CursorObj cursor)grabPointerFrame1395,28414
+modalFrame(FrameObj fr, Name how)modalFrame1403,28546
+typedFrame(FrameObj fr, EventId id)typedFrame1420,28901
+kindFrame(FrameObj fr, Name kind)kindFrame1436,29170
+transientForFrame(FrameObj fr, FrameObj fr2)transientForFrame1454,29483
+attachTransientFrame(FrameObj fr, FrameObj tr)attachTransientFrame1477,29985
+detachTransientFrame(FrameObj fr, FrameObj tr)detachTransientFrame1488,30192
+informTransientsFramev(FrameObj fr, Name selector, int argc, Any *argv)informTransientsFramev1497,30342
+getCatchAllFramev(FrameObj fr, Name name)getCatchAllFramev1512,30661
+reportFrame(FrameObj fr, Name kind, CharArray fmt, int argc, Any *argv)reportFrame1530,31038
+getContainedInFrame(FrameObj fr)getContainedInFrame1557,31741
+getContainsFrame(FrameObj fr)getContainsFrame1563,31814
+static char *T_centerADpointD_grabADboolD[] =T_centerADpointD_grabADboolD1574,31995
+static char *T_busyCursor[] =T_busyCursor1576,32086
+static char *T_icon[] =T_icon1578,32170
+static char *T_initialise[] =T_initialise1580,32242
+static char *T_label[] =T_label1585,32395
+static char *T_postscript[] =T_postscript1587,32467
+static char *T_positionADpointD_grabADboolD_normaliseADboolD[] =T_positionADpointD_grabADboolD_normaliseADboolD1589,32548
+static char *T_wmProtocol[] =T_wmProtocol1591,32680
+static char *T_convertOldSlot[] =T_convertOldSlot1593,32754
+static char *T_set[] =T_set1595,32826
+static char *T_grab_pointer[] =T_grab_pointer1597,32914
+static vardecl var_frame[] =var_frame1602,33010
+static senddecl send_frame[] =send_frame1661,35902
+static getdecl get_frame[] =get_frame1776,41626
+static classvardecl rc_frame[] =rc_frame1823,44059
+static Name frame_termnames[] = { NAME_label, NAME_kind, NAME_display };frame_termnames1852,45176
+makeClassFrame(Class class)makeClassFrame1861,45386
 
 win/picture.c,496
 initialisePicture(Picture p, Name name, Size size, DisplayObj display)initialisePicture15,308
@@ -9779,17 +9779,18 @@ GLOBAL Class ClassLBox;ClassLBox36,742
   Int		label_sep;		/* label to item distance */label_sep91,2092
   Int		label_width;		/* Width of label box */label_width92,2140
 
-box/grbox.c,533
+box/grbox.c,594
 initialiseGrBox(GrBox grb, Graphical gr,initialiseGrBox13,278
 computeGrBox(GrBox grb)computeGrBox42,883
 computeAscentDescentGrBox(GrBox grb)computeAscentDescentGrBox66,1430
-static char *T_initialise[] =T_initialise100,2177
-static vardecl var_grbox[] =var_grbox109,2366
-static senddecl send_grbox[] =send_grbox120,2705
-#define get_grbox get_grbox129,2979
-#define rc_grbox rc_grbox138,3061
-static Name grbox_termnames[] = { NAME_graphical };grbox_termnames147,3154
-makeClassGrBox(Class class)makeClassGrBox156,3343
+baselineGrBox(GrBox grb, Any baseline)baselineGrBox95,2066
+static char *T_initialise[] =T_initialise111,2358
+static vardecl var_grbox[] =var_grbox120,2547
+static senddecl send_grbox[] =send_grbox132,2915
+#define get_grbox get_grbox141,3189
+#define rc_grbox rc_grbox150,3271
+static Name grbox_termnames[] = { NAME_graphical };grbox_termnames159,3364
+makeClassGrBox(Class class)makeClassGrBox168,3553
 
 box/hbox.c,412
 initialiseHBox(HBox hb, Int width, Int ascent, Int descent, Rubber rubber)initialiseHBox13,270
@@ -10446,21 +10447,18 @@ str_draw_text_lines(int acc, FontObj font,str_draw_text_lines2899,70072
 r_text_colour(Any c)r_text_colour2935,70882
 str_label(String s, int acc, FontObj font, int x, int y, int w, int h,str_label2948,71065
 
-x11/xevent.c,753
+x11/xevent.c,572
 #define MAX_DECORATION_NESTING	MAX_DECORATION_NESTING25,482
-#define DISPATCH_RUNNING	DISPATCH_RUNNING31,619
-#define DISPATCH_INPUT	DISPATCH_INPUT32,646
-#define DISPATCH_TIMEOUT	DISPATCH_TIMEOUT33,672
-static int*	    dispatch_status_address;dispatch_status_address35,700
-resetDispatch()resetDispatch38,747
-is_pending(XtPointer ctx, int *source, XtInputId *id)is_pending44,813
-is_timeout(XtPointer ctx, XtIntervalId *id)is_timeout50,970
-#define FD_ZERO(FD_ZERO56,1123
-#define FD_SET(FD_SET57,1166
-static int dispatch_fd = -1;dispatch_fd60,1226
-ws_dispatch(Int FD, Int timeout)ws_dispatch63,1263
-ws_discard_input(const char *msg)ws_discard_input124,2745
-ws_event_in_subwindow(EventObj ev, Any root)ws_event_in_subwindow143,3081
+resetDispatch()resetDispatch32,624
+is_pending(XtPointer ctx, int *source, XtInputId *id)is_pending38,659
+is_timeout(XtPointer ctx, XtIntervalId *id)is_timeout43,731
+#define FD_ZERO(FD_ZERO48,797
+#define FD_SET(FD_SET49,840
+static int dispatch_fd = -1;dispatch_fd52,900
+ws_dispatch(Int FD, Int timeout)ws_dispatch55,937
+input_on_fd(int fd)input_on_fd105,2079
+ws_discard_input(const char *msg)ws_discard_input119,2272
+ws_event_in_subwindow(EventObj ev, Any root)ws_event_in_subwindow135,2605
 
 x11/xfont.c,318
 #define MAX_CHAR MAX_CHAR14,312
