@@ -2832,17 +2832,25 @@ pl_is_absolute_file_name(term_t name)
 
 
 word
-pl_chdir(term_t dir)
-{ char *n;
+pl_working_directory(term_t old, term_t new)
+{ const char *wd = PL_cwd();
 
-  if ( (n = PL_get_filename(dir, NULL, 0)) )
-  { if ( ChDir(n) )
-      succeed;
+  if ( PL_unify_atom_chars(old, wd) )
+  { if ( PL_compare(old, new) != 0 )
+    { char *n;
 
-    if ( fileerrors )
-      return PL_error("chdir", 1, NULL, ERR_FILE_OPERATION,
-		      ATOM_chdir, ATOM_directory, dir);
-    fail;
+      if ( (n = PL_get_filename(new, NULL, 0)) )
+      { if ( ChDir(n) )
+	  succeed;
+
+	if ( fileerrors )
+	  return PL_error("working_directory", 2, NULL, ERR_FILE_OPERATION,
+			  ATOM_chdir, ATOM_directory, new);
+	fail;
+      }
+    }
+
+    succeed;
   }
 
   fail;

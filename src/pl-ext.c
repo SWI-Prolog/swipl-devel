@@ -116,7 +116,7 @@ static const struct foreign {
   FRG("$on_signal",		4, pl_on_signal,	   META|TRACE_ME),
 
   FRG("fileerrors",		2, pl_fileerrors,		TRACE_ME),
-  FRG("chdir",			1, pl_chdir,			TRACE_ME),
+  FRG("working_directory",	2, pl_working_directory,	TRACE_ME),
 
   FRG("halt",			1, pl_halt,			TRACE_ME),
   FRG("$shell",			2, pl_shell,			TRACE_ME),

@@ -160,10 +160,9 @@ make_library_index(Dir, Patterns) :-
 make_library_index2(Dir) :-
 	plfile_in_dir(Dir, 'MKINDEX', MkIndex, AbsMkIndex),
 	access_file(AbsMkIndex, read), !,
-	absolute_file_name('', OldDir),
-	chdir(Dir),
+	working_directory(OldDir, Dir),
 	call_cleanup(load_files(user:MkIndex, [silent(true)]),
-		     chdir(OldDir)).
+		     working_directory(_, OldDir)).
 make_library_index2(Dir) :-
 	findall(Pattern, source_file_pattern(Pattern), PatternList),
 	make_library_index2(Dir, PatternList).
@@ -171,16 +170,15 @@ make_library_index2(Dir) :-
 make_library_index2(Dir, Patterns) :-
 	plfile_in_dir(Dir, 'INDEX', Index, AbsIndex),
 	access_file(AbsIndex, write), !,
-	absolute_file_name('', OldDir),
-	chdir(Dir),
-	absolute_file_name('', NewDir),
+	working_directory(OldDir, Dir),
+	working_directory(NewDir, NewDir),
 	expand_index_file_patterns(Patterns, Files),
 	(   library_index_out_of_date(Index, Files)
 	->  print_message(informational, make(library_index(NewDir))),
 	    flag($modified_index, _, true),
 	    call_cleanup(do_make_library_index(Index, Files),
-			 chdir(OldDir))
-	;   chdir(OldDir)
+			 working_directory(_, OldDir))
+	;   working_directory(_, OldDir)
 	).
 make_library_index2(Dir, _) :-
 	throw(error(permission_error(write, index_file, Dir), _)).

@@ -176,7 +176,7 @@ $load_associated_file :-
 	file_name_extension(_, Ext, File),
 	access_file(File, read),
 	file_directory_name(File, Dir),
-	chdir(Dir),
+	working_directory(_, Dir),
 	consult(user:File), !,
 	atom_concat('SWI-Prolog -- ', File, Title),
 	catch(user:window_title(_, Title), _, true),

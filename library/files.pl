@@ -7,7 +7,8 @@
 */
 
 :- module(files,
-	[ can_open_file/2
+	[ can_open_file/2,
+	  chdir/1
 	]).
 
 %	can_open_file(+Path, +Mode)
@@ -37,3 +38,10 @@ path_dir_name(File, Dir) :-
 	->  Dir = '.'
 	;   Dir = RawDir
 	).
+
+%	chdir(+Dir)
+%
+%	Change Working Directory.  New code should be using working_directory/2.
+
+chdir(Dir) :-
+	working_directory(_Old, Dir).

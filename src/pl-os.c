@@ -1431,38 +1431,8 @@ AbsoluteFile(const char *spec, char *path)
   }
 #endif /*O_HASDRIVES*/
 
-  if ( CWDlen == 0 )
-  { char buf[MAXPATHLEN];
-    char *rval;
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-On SunOs, getcwd() is using popen() to read the output of /bin/pwd.  This
-is slow and appears not to cooperate with profile/3.  getwd() is supposed
-to be implemented directly.  What about other Unixes?
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#if defined(HAVE_GETWD) && (defined(__sun__) || !defined(HAVE_GETCWD))
-    rval = getwd(buf);
-#else
-    rval = getcwd(buf, MAXPATHLEN);
-#endif
-    if ( !rval )
-    { term_t tmp = PL_new_term_ref();
-
-      PL_put_atom(tmp, ATOM_dot);
-      PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
-	       ATOM_getcwd, ATOM_directory, tmp);
-    }
-
-    canonisePath(buf);
-    CWDlen = strlen(buf);
-    buf[CWDlen++] = '/';
-    buf[CWDlen] = EOS;
-    
-    if ( CWDdir )
-      remove_string(CWDdir);
-    CWDdir = store_string(buf);
-  }
+  if ( !PL_cwd() )
+    return NULL;
 
   if ( (CWDlen + strlen(file) + 1) >= MAXPATHLEN )
   { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
@@ -1485,6 +1455,47 @@ PL_changed_cwd(void)
     remove_string(CWDdir);
   CWDdir = NULL;
   CWDlen = 0;
+}
+
+
+const char *
+PL_cwd(void)
+{ if ( CWDlen == 0 )
+  { char buf[MAXPATHLEN];
+    char *rval;
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+On SunOs, getcwd() is using popen() to read the output of /bin/pwd.  This
+is slow and appears not to cooperate with profile/3.  getwd() is supposed
+to be implemented directly.  What about other Unixes?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if defined(HAVE_GETWD) && (defined(__sun__) || !defined(HAVE_GETCWD))
+    rval = getwd(buf);
+#else
+    rval = getcwd(buf, MAXPATHLEN);
+#endif
+    if ( !rval )
+    { term_t tmp = PL_new_term_ref();
+
+      PL_put_atom(tmp, ATOM_dot);
+      PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+	       ATOM_getcwd, ATOM_directory, tmp);
+
+      return NULL;
+    }
+
+    canonisePath(buf);
+    CWDlen = strlen(buf);
+    buf[CWDlen++] = '/';
+    buf[CWDlen] = EOS;
+    
+    if ( CWDdir )
+      remove_string(CWDdir);
+    CWDdir = store_string(buf);
+  }
+
+  return (const char *)CWDdir;
 }
 
 

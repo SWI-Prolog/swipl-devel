@@ -296,7 +296,7 @@ word		pl_rename_file(term_t old, term_t new);
 word		pl_fileerrors(term_t old, term_t new);
 word		pl_absolute_file_name(term_t name, term_t expanded);
 word		pl_is_absolute_file_name(term_t name);
-word		pl_chdir(term_t dir);
+word		pl_working_directory(term_t from, term_t to);
 word		pl_file_base_name(term_t f, term_t b);
 word		pl_file_dir_name(term_t f, term_t b);
 word		pl_file_name_extension(term_t base, term_t ext, term_t full);
