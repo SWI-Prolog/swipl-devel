@@ -1,3 +1,5 @@
+:- ['~/.plrc'].
+
 :- asserta(file_search_path(foreign, '.')).
 
 :- [testtime].

@@ -131,7 +131,7 @@ prompt_history(Prompt) :-
 save_history_line(end_of_file) :- !.
 save_history_line(Line) :-
 	current_prolog_flag(readline, true),
-	string_concat(Line, '.', CompleteLine),
+	atom_concat(Line, '.', CompleteLine),
 	catch(user:rl_add_history(CompleteLine), _, fail), !.
 save_history_line(_).
 

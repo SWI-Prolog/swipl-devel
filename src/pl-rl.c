@@ -129,15 +129,23 @@ pl_rl_read_init_file(term_t file)
 
 static foreign_t
 pl_rl_add_history(term_t text)
-{ char *s;
+{ atom_t a;
+  static atom_t last = 0;
 
-  if ( PL_get_chars(text, &s, CVT_ALL) )
-  { add_history(s);
+  if ( PL_get_atom_ex(text, &a) )
+  { if ( a != last )
+    { if ( last )
+	PL_unregister_atom(last);
+      last = a;
+      PL_register_atom(last);
 
-    PL_succeed;
+      add_history(PL_atom_chars(a));
+    }
+
+    return TRUE;
   }
 
-  return PL_warning("rl_add_history/1: instantation fault");
+  return FALSE;
 }
 
 

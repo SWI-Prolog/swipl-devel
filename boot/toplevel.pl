@@ -338,8 +338,7 @@ read_query(Prompt, Goal, Bindings) :-
 	       ->  fail
 	       ;   throw(E)
 	       ))),
-	atom_codes(Line, LineChars),
-	append(LineChars, ".", CompleteLine),
+	atom_concat(Line, '.', CompleteLine),
 	(   current_predicate(_, user:rl_add_history(_))
 	->  call(user:rl_add_history(CompleteLine))
 	;   true

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ENHANCED rl_add_history/1 does not add a line to the history if it is
+    the same as the last line added (Anjo Anjewierden).
+
   * FIXED: Errornous messages on recursively receiving (error) signals.
 
   * FIXED: Various issues in the GUI tracer.

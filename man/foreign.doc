@@ -579,7 +579,10 @@ referenced (see \secref{atomgc}).
 Return a C-string for the text represented by the given atom. The
 returned text will not be changed by Prolog. It is not allowed to modify
 the contents, not even `temporary' as the string may reside in read-only
-memory.
+memory. The returned string becomes invalid if the atom is
+garbage-collected (see \secref{atomgc}).  Foreign functions that require
+the text from an atom passed in a \ctype{term_t} normally use
+PL_get_atom_chars() or PL_get_atom_nchars().
 
     \cfunction{functor_t}{PL_new_functor}{atom_t name, int arity}
 Returns a {\em functor identifier}, a handle for the name/arity
@@ -594,7 +597,7 @@ Return the arity of the given functor.
 \subsubsection{Atoms and atom-garbage collection}	\label{sec:atomgc}
 
 With the introduction of atom-garbage collection in version 3.3.0, atoms
-no longer have live as long as the process. Instead, their lifetime is
+no longer live as long as the process. Instead, their lifetime is
 guaranteed only as long as they are referenced. In the single-threaded
 version, atom garbage collections are only invoked at the
 \jargon{call-port}. In the multi-threaded version (see \secref{threads},
@@ -609,7 +612,8 @@ Increment the reference count of the atom by one. PL_new_atom() performs
 this automatically, returning an atom with a reference count of at least
 one.%
 	\footnote{Otherwise asynchronous atom garbage collection might
-		  detroy the atom before it is used.}
+		  destroy the atom before it is used.}
+
     \cfunction{void}{PL_unregister_atom}{atom_t atom}
 Decrement the reference count of the atom.  If the reference-count
 drops below zero, an assertion error is raised.
