@@ -46,7 +46,8 @@
 %	Time the execution of Goal.  Possible choice-points of Goal are
 %	removed.
 
-time(Goal) :-
+time(Goal0) :-
+	expand_goal(Goal0, Goal),
 	get_time(OldWall),
 	statistics(cputime, OldTime), 
 	statistics(inferences, OldInferences), 
@@ -96,7 +97,8 @@ Later we will add a proper textual report-generator.
 
 profile(Goal) :-
 	profile(Goal, plain, 25).
-profile(Goal, Style, N) :-
+profile(Goal0, Style, N) :-
+	expand_goal(Goal0, Goal),
 	call_cleanup('$profile'(Goal),
 		     prolog_statistics:show_profile(Style, N)).
 

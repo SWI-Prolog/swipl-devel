@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: time/1 and profile/1,3 to call expand_goal/2.  Time/1 to
+    report elapsed time.
+
   * FIXED: Bug#42: starting a saved state with no known Prolog home.
 
   * FIXED: do not show FAIL from ports created by dummy choicepoints.
