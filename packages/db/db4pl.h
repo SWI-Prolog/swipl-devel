@@ -28,6 +28,10 @@
 #include <SWI-Prolog.h>
 #include <db.h>
 
+#if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 1
+#define DB41 1
+#endif
+
 #define DBH_MAGIC 277484232		/* magic for validation */
 
 typedef enum

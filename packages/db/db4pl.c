@@ -507,9 +507,16 @@ pl_db_open(term_t file, term_t mode, term_t handle, term_t options)
        !db_options(options, dbh, &subdb) )
     return FALSE;
   
+#ifdef DB41
+  NOSIG(rval=dbh->db->open(dbh->db, NULL, fname,
+			   subdb, type, flags|DB_AUTO_COMMIT, m));
+#else
   NOSIG(rval=dbh->db->open(dbh->db, fname, subdb, type, flags, m));
+#endif
   if ( rval )
+  { dbh->db->close(dbh->db, 0);
     return db_status(rval);
+  }
 
   register_db(dbh);
   return unify_db(handle, dbh);
