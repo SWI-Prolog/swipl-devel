@@ -30,6 +30,12 @@
 #define __inline inline 
 #endif 
 
+#ifdef _MSC_VER			/* MSVC doesn't know throw doesn't return */
+#define PL_THROWN(value)	return value;
+#else
+#define PL_THROWN(v)		(void)0
+#endif
+
 class PlTerm;
 class PlTermv;
 
@@ -376,6 +382,7 @@ public:
       return FALSE;
 
     throw PlTypeError("list", ref);
+    PL_THROWN(FALSE);
   }
 };
 
@@ -501,6 +508,7 @@ __inline PlTerm::operator char *(void)
     return s;
 
   throw PlTypeError("text", ref);
+  PL_THROWN(NULL);
 }
 
 __inline PlTerm::operator long(void)
@@ -510,6 +518,7 @@ __inline PlTerm::operator long(void)
     return v;
 
   throw PlTypeError("integer", ref);
+  PL_THROWN(0L);
 }
 
 __inline PlTerm::operator int(void)
@@ -519,6 +528,7 @@ __inline PlTerm::operator int(void)
     return v;
 
   throw PlTypeError("integer", ref);
+  PL_THROWN(0);
 }
 
 __inline PlTerm::operator double(void)
@@ -528,6 +538,7 @@ __inline PlTerm::operator double(void)
     return v;
 
   throw PlTypeError("float", ref);
+  PL_THROWN(0.0);
 }
 
 __inline PlTerm::operator PlAtom(void)
@@ -537,6 +548,7 @@ __inline PlTerm::operator PlAtom(void)
     return PlAtom(v);
 
   throw PlTypeError("atom", ref);
+  PL_THROWN((atom_t)0);
 }
 
 __inline PlTerm::operator void *(void)
@@ -546,6 +558,7 @@ __inline PlTerm::operator void *(void)
     return ptr;
 
   throw PlTypeError("pointer", ref);
+  PL_THROWN(NULL);
 }
 
 					/* compounds */
@@ -567,6 +580,7 @@ PlTerm::operator [](int index)
     else
       throw PlDomainError("arity", t.ref); /* TBD: proper exception */
   }
+  PL_THROWN((term_t)0);
 }
 
 
@@ -579,6 +593,7 @@ PlTerm::arity()
     return arity;
 
   throw PlTypeError("compound", ref);
+  PL_THROWN(0);
 }
 
 
@@ -591,6 +606,7 @@ PlTerm::name()
     return PL_atom_chars(name);
 
   throw PlTypeError("compound", ref);
+  PL_THROWN(NULL);
 }
 
 					/* comparison */
@@ -603,6 +619,7 @@ __inline int PlTerm::operator ==(long v)
     return v0 == v;
 
   throw PlTypeError("integer", ref);
+  PL_THROWN(0);
 }
 
 __inline int PlTerm::operator !=(long v)
@@ -612,6 +629,7 @@ __inline int PlTerm::operator !=(long v)
     return v0 != v;
 
   throw PlTypeError("integer", ref);
+  PL_THROWN(0);
 }
 
 __inline int PlTerm::operator <(long v)
@@ -621,6 +639,7 @@ __inline int PlTerm::operator <(long v)
     return v0 < v;
 
   throw PlTypeError("integer", ref);
+  PL_THROWN(0);
 }
 
 __inline int PlTerm::operator >(long v)
@@ -630,6 +649,7 @@ __inline int PlTerm::operator >(long v)
     return v0 > v;
 
   throw PlTypeError("integer", ref);
+  PL_THROWN(0);
 }
 
 __inline int PlTerm::operator <=(long v)
@@ -639,6 +659,7 @@ __inline int PlTerm::operator <=(long v)
     return v0 <= v;
 
   throw PlTypeError("integer", ref);
+  PL_THROWN(0);
 }
 
 __inline int PlTerm::operator >=(long v)
@@ -648,6 +669,7 @@ __inline int PlTerm::operator >=(long v)
     return v0 >= v;
 
   throw PlTypeError("integer", ref);
+  PL_THROWN(0);
 }
 
 				      /* comparison (string) */
@@ -659,6 +681,7 @@ __inline int PlTerm::operator ==(const char *s)
     return strcmp(s0, s) == 0;
   
   throw PlTypeError("text", ref);
+  PL_THROWN(0);
 }
 
 
@@ -669,6 +692,7 @@ __inline int PlTerm::operator ==(const PlAtom &a)
     return v == a.handle;
   
   throw PlTypeError("atom", ref);
+  PL_THROWN(0);
 }
 
 

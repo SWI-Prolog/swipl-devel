@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORT: Windows, plld.exe: Add /MD to flags and /GX when compiling C++.
+    Use libpl.lib, even for the MT version.  SWI-cpp.h: deal with MSVC
+    if it fails to recognise throw doesn't return.
+
   * FIXED: error message for illegal export list (Holger Kanwischer).
 
   * PORT: Check for -lexc on Tru64/DUnix when compiling for multi-threading

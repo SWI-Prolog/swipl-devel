@@ -49,12 +49,12 @@ embedded application.
 #endif
 #define PROG_LD "link.exe"
 #define SO_LD "link.exe"
-#define PROG_CC "cl.exe"
-#define PROG_CXX "cl.exe"
+#define PROG_CC "cl.exe /MD"
+#define PROG_CXX "cl.exe /MD /GX"
 #define PROG_OUT "plout.exe"
 #define PROG_CPP "cl.exe -P"
 #define LIB_PL	 "libpl.lib"
-#define LIB_PLMT "libplmt.lib"
+#define LIB_PLMT LIB_PL
 #define LIB_PL_DEBUG "libplD.lib"
 #define EXT_OBJ "obj"
 #define OPT_DEBUG "/DEBUG"
@@ -1018,6 +1018,10 @@ compileFile(const char *compiler, arglist *options, const char *cfile)
     strcpy(ext, EXT_OBJ);
 
   prependArgList(args, "-c");
+#ifdef WIN32
+  appendArgList(args, "-DWIN32");
+  appendArgList(args, "-D_WINDOWS");
+#endif
   appendArgList(args, "-D__SWI_PROLOG__");
   if ( !shared )
     appendArgList(args, "-D__SWI_EMBEDDED__");
