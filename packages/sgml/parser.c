@@ -59,7 +59,6 @@ static const ichar *	itake_entity_name(dtd *dtd, const ichar *in,
 static const ichar *	itake_namegroup(dtd *dtd,
 					charfunc sep, const ichar *decl,
 					dtd_symbol **names, int *n);
-static const ichar *	isee_text(dtd *dtd, const ichar *in, char *id);
 static const ichar *	iskip_layout(dtd *dtd, const ichar *in);
 static dtd_parser *	clone_dtd_parser(dtd_parser *p);
 static void		free_model(dtd_model *m);

@@ -1,7 +1,7 @@
 \libdoc{netscape}{Activating your Web-browser}
 
 This library deals with the very system dependent task of opening a
-web-browser.  See also \pllib{url}.
+web page in a browser.  See also \pllib{url} and the HTTP package.
 
 \begin{description}
     \predicate{www_open_url}{1}{+URL}
@@ -18,9 +18,13 @@ configuration, but in general it should be the behaviour expected by
 the user.
 
     \item [Other platforms]
-On other platforms it assumes the browser is \program{netscape}.  It
-first tries to tell a running netscape to open the page and only after
-this fails it starts a new browser.
+On other platforms it tests the environment variable (see getenv/1)
+named \env{BROWSER} or uses \program{netscape} if this variable is not
+set.  If the browser is either \const{mozilla} or \const{netscape},
+www_open_url/1 first tries to open a new window on a running using
+the \const{-remote} option of netscape.  If this fails or the browser
+is not \const{mozilla} or \const{netscape} the system simply passes
+the URL as first argument to the program.
 \end{itemlist}
 \end{description}
 
