@@ -472,7 +472,7 @@ last_arg:
     if ( isReal(*p) )
       return key+(word) valReal(*p);
     if ( isString(*p) )
-    { long sz, len;
+    { unsigned sz, len;
       char *s;
 
       s = getCharsString(*p, &sz);

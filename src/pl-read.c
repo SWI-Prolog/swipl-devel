@@ -1147,6 +1147,28 @@ ok:
   return chr;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+get_string() fills the argument buffer with  a UTF-8 representation of a
+quoted string.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+addUTF8Buffer(Buffer b, int c)
+{ if ( c >= 0x80 )
+  { char buf[6];
+    char *p, *end;
+
+    end = utf8_put_char(buf, c);
+    for(p=buf; p<end; p++)
+    { addBuffer(b, *p&0xff, char);
+    }
+  } else
+  { addBuffer(b, c, char);
+  }
+}
+
+
 static void
 get_string(unsigned char *in, unsigned char **end, Buffer buf,
 	   ReadData _PL_rd)
@@ -1158,6 +1180,7 @@ get_string(unsigned char *in, unsigned char **end, Buffer buf,
   for(;;)
   { c = *in++;
 
+  next:
     if ( c == quote )
     { if ( *in == quote )
       { in++;
@@ -1167,6 +1190,16 @@ get_string(unsigned char *in, unsigned char **end, Buffer buf,
     { c = escape_char(in, &in, quote);
       if ( c == EOF )
 	continue;
+      addUTF8Buffer(buf, c);
+
+      continue;
+    } else if ( c >= 0x80 )		/* copy UTF-8 sequence */
+    { do
+      { addBuffer(buf, c, char);
+	c = *in++;
+      } while( c > 0x80 );
+
+      goto next;
     }
 
     addBuffer(buf, c, char);

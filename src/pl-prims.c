@@ -2121,7 +2121,6 @@ concat(const char *pred,
     succeed;
 
   t1.text.t = t2.text.t = t3.text.t = NULL;
-  t1.flags  = t2.flags  = t3.flags = 0;
 
   PL_get_text(a1, &t1, CVT_ATOMIC);
   PL_get_text(a2, &t2, CVT_ATOMIC);
@@ -2154,15 +2153,15 @@ concat(const char *pred,
     goto out;
   }
 
-  if ( !t3.flags ) 
+  if ( !t3.text.t ) 
     goto err3;
 
-  if ( t1.flags )			/* +, -, + */
+  if ( t1.text.t )			/* +, -, + */
   { if ( L1 <= L3 &&
 	 PL_cmp_text(&t1, 0, &t3, 0, L1) == 0 )
       return PL_unify_text_range(a2, &t3, L1, L3-L1, otype);
     fail;
-  } else if ( t2.flags )		/* -, +, + */
+  } else if ( t2.text.t )		/* -, +, + */
   { if ( L2 < L3 &&
 	 PL_cmp_text(&t2, 0, &t3, L3-L2, L2) == 0 )
       return PL_unify_text_range(a1, &t3, 0, L3-L2, otype);

@@ -48,12 +48,16 @@ static inline int
 bufsize_text(PL_chars_t *text)
 { int unit;
 
-  if ( true(text, PL_CHARS_LATIN) )
-    unit = sizeof(char);
-  else if ( true(text, PL_CHARS_UCS) )
-    unit = sizeof(pl_wchar_t);
-  else
-    assert(0);
+  switch(text->encoding)
+  { case PL_CHARS_LATIN:
+      unit = sizeof(char);
+      break;
+    case PL_CHARS_UCS:
+      unit = sizeof(pl_wchar_t);
+      break;
+    default:
+      assert(0);
+  }
 
   return (text->length+1)*unit;
 }
@@ -61,14 +65,13 @@ bufsize_text(PL_chars_t *text)
 
 void
 PL_save_text(PL_chars_t *text, int flags)
-{ if ( false(text, BUF_MALLOC) && false(text, PL_CHARS_MALLOC) )
+{ if ( !(flags & BUF_MALLOC) && text->storage != PL_CHARS_MALLOC )
   { int bl = bufsize_text(text);
     void *new = PL_malloc(bl);
 
     memcpy(new, text->text.t, bl);
-    text->text.w = new;
-    text->flags &= ~PL_CHARS_ALLOC_MASK;
-    text->flags |= PL_CHARS_MALLOC;
+    text->text.t = new;
+    text->storage = PL_CHARS_MALLOC;
   }  
 }
 
@@ -83,19 +86,21 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
     if ( false(a->type, PL_BLOB_TEXT) )
       fail;				/* non-textual atom */
     if ( isUCSAtom(a) )
-    { text->text.w = (pl_wchar_t *) a->name;
-      text->length = a->length / sizeof(pl_wchar_t);
-      text->flags = PL_CHARS_UCS|PL_CHARS_HEAP;
+    { text->text.w   = (pl_wchar_t *) a->name;
+      text->length   = a->length / sizeof(pl_wchar_t);
+      text->encoding = PL_CHARS_UCS;
     } else
-    { text->text.t = a->name;
-      text->length = a->length;
-      text->flags = PL_CHARS_LATIN|PL_CHARS_HEAP;
+    { text->text.t   = a->name;
+      text->length   = a->length;
+      text->encoding = PL_CHARS_LATIN;
     }
+    text->storage = PL_CHARS_HEAP;
   } else if ( (flags & CVT_INTEGER) && isInteger(w) )
   { Ssprintf(text->buf, "%ld", valInteger(w) );
-    text->text.t = text->buf;
-    text->length = strlen(text->text.t);
-    text->flags = PL_CHARS_LATIN|PL_CHARS_LOCAL;
+    text->text.t   = text->buf;
+    text->length   = strlen(text->text.t);
+    text->encoding = PL_CHARS_LATIN;
+    text->storage  = PL_CHARS_LOCAL;
   } else if ( (flags & CVT_FLOAT) && isReal(w) )
   { char *q;
 
@@ -115,15 +120,17 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
       *q = EOS;
     }
     text->length = strlen(text->text.t);
-    text->flags = PL_CHARS_LATIN|PL_CHARS_LOCAL;
+    text->encoding = PL_CHARS_LATIN;
+    text->storage  = PL_CHARS_LOCAL;
   } else if ( (flags & CVT_STRING) && isString(w) )
   { if ( isBString(w) )
-    { text->text.t = getCharsString(w, &text->length);
-      text->flags = PL_CHARS_LATIN|PL_CHARS_STACK;
+    { text->text.t   = getCharsString(w, &text->length);
+      text->encoding = PL_CHARS_LATIN;
     } else
-    { text->text.w = getCharsWString(w, &text->length);
-      text->flags = PL_CHARS_UCS|PL_CHARS_STACK;
+    { text->text.w   = getCharsWString(w, &text->length);
+      text->encoding = PL_CHARS_UCS;
     }
+    text->storage  = PL_CHARS_STACK;
   } else if ( (flags & CVT_LIST) &&
 	      (isList(w) || isNil(w)) )
   { Buffer b;
@@ -132,18 +139,21 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
     { text->length = entriesBuffer(b, char);
       addBuffer(b, EOS, char);
       text->text.t = baseBuffer(b, char);
-      text->flags = PL_CHARS_LATIN|PL_CHARS_RING;
+      text->encoding = PL_CHARS_LATIN;
     } else if ( (b = codes_or_chars_to_buffer(l, BUF_RING, TRUE)) )
     { text->length = entriesBuffer(b, pl_wchar_t);
       addBuffer(b, EOS, pl_wchar_t);
       text->text.w = baseBuffer(b, pl_wchar_t);
-      text->flags = PL_CHARS_UCS|PL_CHARS_RING;
+      text->encoding = PL_CHARS_UCS;
     } else
       fail;
+
+    text->storage  = PL_CHARS_RING;
   } else if ( (flags & CVT_VARIABLE) && isVar(w) )
-  { text->text.t = varName(l, text->buf);
-    text->length = strlen(text->text.t);
-    text->flags = PL_CHARS_LATIN|PL_CHARS_LOCAL;
+  { text->text.t   = varName(l, text->buf);
+    text->length   = strlen(text->text.t);
+    text->encoding = PL_CHARS_LATIN;
+    text->storage  = PL_CHARS_LOCAL;
   } else if ( (flags & CVT_WRITE) )
   { IOENC encodings[] = { ENC_ISO_LATIN_1, ENC_WCHAR, ENC_NONE };
     IOENC *enc;
@@ -172,10 +182,12 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
     }
 
     if ( *enc != ENC_NONE )
-    { if ( r != text->buf )
-	text->flags = *enc|PL_CHARS_MALLOC;
+    { text->encoding = *enc;
+      
+      if ( r != text->buf )
+	text->storage = PL_CHARS_MALLOC;
       else
-	text->flags = *enc|PL_CHARS_LOCAL;
+	text->storage = PL_CHARS_LOCAL;
 
       text->text.t = r;
     } else
@@ -195,7 +207,7 @@ PL_unify_text(term_t term, PL_chars_t *text, int type)
   { case PL_ATOM:
     case PL_STRING:
       PL_canonise_text(text);
-      if ( true(text, PL_CHARS_LATIN) )
+      if ( text->encoding == PL_CHARS_LATIN )
       { if ( type == PL_ATOM )
 	  return PL_unify_atom_nchars(term, text->length, text->text.t);
 	else
@@ -211,7 +223,7 @@ PL_unify_text(term_t term, PL_chars_t *text, int type)
 	Word p = allocGlobal(text->length*3);
       
 	setHandle(l, consPtr(p, TAG_COMPOUND|STG_GLOBAL));
-	if ( true(text, PL_CHARS_LATIN) )
+	if ( text->encoding == PL_CHARS_LATIN )
 	{ const unsigned char *s = (const unsigned char *)text->text.t;
 	  const unsigned char *e = &s[text->length];
 
@@ -262,12 +274,13 @@ PL_unify_text_range(term_t term, PL_chars_t *text,
       return FALSE;
 
     sub.length = len;
-    if ( true(text, PL_CHARS_LATIN) )
-    { sub.text.t = text->text.t+offset;
-      sub.flags  = (PL_CHARS_LATIN|PL_CHARS_HEAP);
+    sub.storage = PL_CHARS_HEAP;
+    if ( text->encoding == PL_CHARS_LATIN )
+    { sub.text.t   = text->text.t+offset;
+      sub.encoding = PL_CHARS_LATIN;
     } else
-    { sub.text.w = text->text.w+offset;
-      sub.flags  = (PL_CHARS_UCS|PL_CHARS_HEAP);
+    { sub.text.w   = text->text.w+offset;
+      sub.encoding = PL_CHARS_UCS;
     }
 
     rc = PL_unify_text(term, &sub, type);
@@ -287,8 +300,8 @@ Promote a text to USC if it is currently 8-bit text.
 
 int
 PL_promote_text(PL_chars_t *text)
-{ if ( false(text, PL_CHARS_UCS) )
-  { if ( true(text, PL_CHARS_MALLOC) )
+{ if ( text->encoding != PL_CHARS_UCS )
+  { if ( text->storage == PL_CHARS_MALLOC )
     { pl_wchar_t *new = PL_malloc(sizeof(pl_wchar_t)*(text->length+1));
       pl_wchar_t *t = new;
       const unsigned char *s = (const unsigned char *)text->text.t;
@@ -302,8 +315,8 @@ PL_promote_text(PL_chars_t *text)
       PL_free(text->text.t);
       text->text.w = new;
       
-      text->flags = (PL_CHARS_UCS|PL_CHARS_MALLOC);
-    } else if ( true(text, PL_CHARS_LOCAL) &&
+      text->encoding = PL_CHARS_UCS;
+    } else if ( text->storage == PL_CHARS_LOCAL &&
 	        (text->length+1)*sizeof(pl_wchar_t) < sizeof(text->buf) )
     { unsigned char buf[sizeof(text->buf)];
       unsigned char *f = buf;
@@ -315,8 +328,8 @@ PL_promote_text(PL_chars_t *text)
       { *t++ = *f++;
       }
       *t = EOS;
-      text->flags = (PL_CHARS_UCS|PL_CHARS_LOCAL);
-    } else if ( true(text, PL_CHARS_RING|PL_CHARS_HEAP|PL_CHARS_STACK) )
+      text->encoding = PL_CHARS_UCS;
+    } else
     { Buffer b = findBuffer(BUF_RING);
       const unsigned char *s = (const unsigned char *)text->text.t;
       const unsigned char *e = &s[text->length];
@@ -325,10 +338,9 @@ PL_promote_text(PL_chars_t *text)
 	addBuffer(b, *s, pl_wchar_t);
       addBuffer(b, EOS, pl_wchar_t);
 
-      text->text.w = baseBuffer(b, pl_wchar_t);
-      text->flags = (PL_CHARS_UCS|PL_CHARS_RING);
-    } else
-    { assert(0);
+      text->text.w   = baseBuffer(b, pl_wchar_t);
+      text->encoding = PL_CHARS_UCS;
+      text->storage  = PL_CHARS_RING;
     }
   }
 
@@ -338,8 +350,8 @@ PL_promote_text(PL_chars_t *text)
 
 int
 PL_demote_text(PL_chars_t *text)
-{ if ( false(text, PL_CHARS_LATIN) )
-  { if ( true(text, PL_CHARS_MALLOC) )
+{ if ( text->encoding != PL_CHARS_LATIN )
+  { if ( text->storage == PL_CHARS_MALLOC )
     { char *new = PL_malloc(sizeof(char)*(text->length+1));
       char *t = new;
       const pl_wchar_t *s = (const pl_wchar_t *)text->text.t;
@@ -357,8 +369,8 @@ PL_demote_text(PL_chars_t *text)
       PL_free(text->text.t);
       text->text.t = new;
       
-      text->flags = (PL_CHARS_LATIN|PL_CHARS_MALLOC);
-    } else if ( true(text, PL_CHARS_LOCAL) )
+      text->encoding = PL_CHARS_LATIN;
+    } else if ( text->storage == PL_CHARS_LOCAL )
     { pl_wchar_t buf[sizeof(text->buf)/sizeof(pl_wchar_t)];
       pl_wchar_t *f = buf;
       pl_wchar_t *e = &buf[text->length];
@@ -371,8 +383,8 @@ PL_demote_text(PL_chars_t *text)
 	*t++ = *f++;
       }
       *t = EOS;
-      text->flags = (PL_CHARS_LATIN|PL_CHARS_LOCAL);
-    } else if ( true(text, PL_CHARS_RING|PL_CHARS_HEAP|PL_CHARS_STACK) )
+      text->encoding = PL_CHARS_LATIN;
+    } else
     { Buffer b = findBuffer(BUF_RING);
       const pl_wchar_t *s = (const pl_wchar_t*)text->text.w;
       const pl_wchar_t *e = &s[text->length];
@@ -386,10 +398,9 @@ PL_demote_text(PL_chars_t *text)
       }
       addBuffer(b, EOS, char);
 
-      text->text.t = baseBuffer(b, char);
-      text->flags = (PL_CHARS_LATIN|PL_CHARS_RING);
-    } else
-    { assert(0);
+      text->text.t   = baseBuffer(b, char);
+      text->storage  = PL_CHARS_RING;
+      text->encoding = PL_CHARS_LATIN;
     }
   }
 
@@ -399,7 +410,7 @@ PL_demote_text(PL_chars_t *text)
 
 static int
 can_demote(PL_chars_t *text)
-{ if ( false(text, PL_CHARS_LATIN) )
+{ if ( text->encoding != PL_CHARS_LATIN )
   { const pl_wchar_t *w = (const pl_wchar_t*)text->text.w;
     const pl_wchar_t *e = &w[text->length];
 
@@ -415,7 +426,7 @@ can_demote(PL_chars_t *text)
 
 int
 PL_canonise_text(PL_chars_t *text)
-{ if ( false(text, PL_CHARS_LATIN) )
+{ if ( text->encoding != PL_CHARS_LATIN )
   { const pl_wchar_t *w = (const pl_wchar_t*)text->text.w;
     const pl_wchar_t *e = &w[text->length];
 
@@ -433,7 +444,7 @@ PL_canonise_text(PL_chars_t *text)
 
 void
 PL_free_text(PL_chars_t *text)
-{ if ( true(text, PL_CHARS_MALLOC) )
+{ if ( text->storage == PL_CHARS_MALLOC )
     PL_free(text->text.t);
 }
 
@@ -465,7 +476,7 @@ PL_cmp_text(PL_chars_t *t1, unsigned o1, PL_chars_t *t2, unsigned o2,
   if ( l < 0 )				/* too long offsets */
     return ifeq;
 
-  if ( true(t1, PL_CHARS_LATIN) && true(t2, PL_CHARS_LATIN) )
+  if ( t1->encoding == PL_CHARS_LATIN && t2->encoding == PL_CHARS_LATIN )
   { const unsigned char *s = t1->text.t+o1;
     const unsigned char *q = t2->text.t+o2;
 
@@ -475,7 +486,7 @@ PL_cmp_text(PL_chars_t *t1, unsigned o1, PL_chars_t *t2, unsigned o2,
       return ifeq;
     else
       return *s > *q ? 1 : -1;
-  } else if ( true(t1, PL_CHARS_UCS) && true(t2, PL_CHARS_UCS) )
+  } else if ( t1->encoding == PL_CHARS_UCS && t2->encoding == PL_CHARS_UCS )
   { const pl_wchar_t *s = t1->text.w+o1;
     const pl_wchar_t *q = t2->text.w+o2;
 
@@ -485,7 +496,7 @@ PL_cmp_text(PL_chars_t *t1, unsigned o1, PL_chars_t *t2, unsigned o2,
       return ifeq;
     else
       return *s > *q ? 1 : -1;
-  } else if ( true(t1, PL_CHARS_LATIN) && true(t2, PL_CHARS_UCS) )
+  } else if ( t1->encoding == PL_CHARS_LATIN && t2->encoding == PL_CHARS_UCS )
   { const unsigned char *s = t1->text.t+o1;
     const pl_wchar_t *q = t2->text.w+o2;
 
@@ -526,12 +537,13 @@ PL_concat_text(int n, PL_chars_t **text, PL_chars_t *result)
   if ( latin )
   { char *to;
 
+    result->encoding = PL_CHARS_LATIN;
     if ( total_length+1 < sizeof(result->buf) )
     { result->text.t = result->buf;
-      result->flags = PL_CHARS_LATIN|PL_CHARS_LOCAL;
+      result->storage = PL_CHARS_LOCAL;
     } else
     { result->text.t = PL_malloc(total_length+1);
-      result->flags = PL_CHARS_LATIN|PL_CHARS_MALLOC;
+      result->storage = PL_CHARS_MALLOC;
     }
 
     for(to=result->text.t, i=0; i<n; i++)
@@ -542,16 +554,17 @@ PL_concat_text(int n, PL_chars_t **text, PL_chars_t *result)
   } else
   { pl_wchar_t *to;
 
+    result->encoding = PL_CHARS_UCS;
     if ( total_length+1 < sizeof(result->buf)/sizeof(pl_wchar_t) )
     { result->text.w = (pl_wchar_t*)result->buf;
-      result->flags = PL_CHARS_UCS|PL_CHARS_LOCAL;
+      result->storage = PL_CHARS_LOCAL;
     } else
     { result->text.w = PL_malloc((total_length+1)*sizeof(pl_wchar_t));
-      result->flags = PL_CHARS_UCS|PL_CHARS_MALLOC;
+      result->storage = PL_CHARS_MALLOC;
     }
 
     for(to=result->text.w, i=0; i<n; i++)
-    { if ( true(text[i], PL_CHARS_UCS) )
+    { if ( text[i]->encoding == PL_CHARS_UCS )
       { memcpy(to, text[i]->text.w, text[i]->length*sizeof(pl_wchar_t));
       } else
       { const unsigned char *f = text[i]->text.t;

@@ -25,14 +25,21 @@
 #ifndef PL_TEXT_H_INCLUDED
 #define PL_TEXT_H_INCLUDED
 
-#define PL_CHARS_LATIN		0x0001	/* 8-bit ISO-Latin-1 text */
-#define PL_CHARS_UCS		0x0002	/* 32-bit USC text */
-#define PL_CHARS_ALLOC_MASK	0xff00	/* allocation mask */
-#define PL_CHARS_MALLOC		0x0100	/* text is malloced */
-#define PL_CHARS_RING   	0x0200	/* text is in buffer-ring */
-#define PL_CHARS_HEAP   	0x0400	/* text is in heap (atom) */
-#define PL_CHARS_STACK  	0x0800	/* text is in stack (string) */
-#define PL_CHARS_LOCAL		0x1000	/* text is in stack (string) */
+typedef enum 
+{ PL_CHARS_LATIN,
+  PL_CHARS_UCS,
+  PL_CHARS_UTF8
+} PL_chars_enc_t;
+
+
+typedef enum
+{ PL_CHARS_MALLOC,			/* malloced data */
+  PL_CHARS_RING,			/* stored in the buffer ring */
+  PL_CHARS_HEAP,			/* stored in program area (atoms) */
+  PL_CHARS_STACK,			/* stored on the global stack */
+  PL_CHARS_LOCAL			/* stored in in-line buffer */
+} PL_chars_alloc_t;
+
 
 typedef struct
 { union
@@ -41,14 +48,8 @@ typedef struct
   } text;
   unsigned int	length;
 					/* private stuff */
-  unsigned int  flags;
-					/* PL_CHARS_LATIN */
-					/* PL_CHARS_UCS */
-					/* PL_CHARS_MALLOC */
-					/* PL_CHARS_RING */
-					/* PL_CHARS_HEAP */
-					/* PL_CHARS_STACK */
-					/* PL_CHARS_LOCAL */
+  PL_chars_enc_t encoding;		/* how it is encoded */
+  PL_chars_alloc_t storage;		/* how it is stored */
   char buf[100];			/* buffer for simple stuff */
 } PL_chars_t;
 
