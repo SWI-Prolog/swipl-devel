@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Image scaling and rotation in 24-bit colourmode for the X11
+  version (memory corruption).
+
 * ADDED: X11 Client-side DragAndDrop supporting `window->drop_files'
   compatible to the MS-Windows version based on the XDND protocol.
   Tested with xftree as server.
