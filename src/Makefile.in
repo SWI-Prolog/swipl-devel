@@ -391,7 +391,7 @@ clean:
 
 distclean:	clean
 		@(cd rc && $(MAKE) distclean)
-		rm -rf $(INCLUDEDIR) $(RUNTIMEDIR)
+		rm -rf $(INCLUDEDIR) ../runtime
 		rm -f ../library/INDEX.pl
 		rm -f Makefile config.h config.status parms.h
 		rm -f swipl swiplbin pl.prc

@@ -869,7 +869,7 @@ cxx-misc:
 
 clean:
 		for d in ../pl/src; do (cd $$d; $(MAKE) clean); done
-		for m in $(MODULES) x11 msw; do \
+		for m in $(MODULES) x11 msw pl; do \
 		    if [ -d $$m ]; then \
 		        (cd $$m; $(RM) -f *.o *~ *% core); \
 		    fi; \
@@ -879,9 +879,13 @@ clean:
 
 distclean:	clean
 		for d in ../pl/src; do (cd $$d; $(MAKE) distclean); done
-		$(RM) -f version.h
+		$(RM) -f version.h ../xpce.spec
 		$(RM) -f h/names.ic h/names.ih
 		$(RM) -rf names Names.Gen Names.X
 		$(RM) -f $(LIB)
-		$(RM) -f install rt-install xpce pl2xpce.so xpce-client
+		$(RM) -f xpce-install rt-install xpce pl2xpce.so xpce-client
 		$(RM) -f Makefile config.h config.status config.cache
+		$(RM) -f ../CXX/Makefile ../pl/src/Makefile.bin
+		$(RM) -f ../prolog/lib/Makefile
+		$(RM) -f ../prolog/pwboot/Makefile
+		$(RM) -f ../sicstus/src/Makefile

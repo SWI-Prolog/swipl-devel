@@ -170,7 +170,7 @@ else
 fi
 
 PLTARGETS=`echo $TARGETS | sed -e "s/\.$SO/.pl/g" -e "s/files.pl/filesex.pl/"`
-if echo "$PLTARGETS" | grep socket.pl 2>1 >/dev/null; then
+if echo "$PLTARGETS" | grep socket.pl 2>&1 >/dev/null; then
   PLTARGETS="$PLTARGETS streampool.pl"
 fi
 

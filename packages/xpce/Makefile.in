@@ -27,3 +27,4 @@ clean::
 
 distclean::
 	@cd $(BUILDARCH) && $(MAKE) $@
+	rm -f Makefile

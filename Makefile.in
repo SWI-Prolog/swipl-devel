@@ -35,6 +35,7 @@ distclean::
 	   cd packages && make distclean; \
 	fi
 	@cd $(BUILDARCH) && $(MAKE) $@
+	rm -f Makefile
 
 ################################################################
 # Build the whole default set of tools
