@@ -1,10 +1,10 @@
 TODO LIST:
 
-	* Cleanup space, SHORTREF and CDATA handling
-		- Build array of possible end-characters
 	* Handling of external entities (both param and normal) in Prolog
 	* Check ID/IDREF
 	* Donot use quoted values for tag identifications.  Right now the
 	  following leads to bad error handling:
 
 		<tag name="value>
+	* Allow for (a,b) as attribute-type (name-group)
+	* Handle source-info in included SYSTEM entities

@@ -171,8 +171,7 @@ set_parser_options(Parser, Options, RestOptions) :-
 set_parser_options(_, Options, Options).
 
 
-load_structure(In, Term, Options) :-
-	In = '$stream'(_), !,
+load_structure(stream(In), Term, Options) :- !,
 	(   select_option(offset(Offset), Options, Options1)
 	->  seek(In, Offset, bof, _)
 	;   Options1 = Options
@@ -199,9 +198,12 @@ load_structure(In, Term, Options) :-
 	    )
 	;   free_dtd(DTD)
 	).
+load_structure(Stream, Term, Options) :-
+	Stream = '$stream'(_), !,
+	load_structure(stream(Stream), Term, Options).
 load_structure(File, Term, Options) :-
 	open(File, read, In, [type(binary)]),
-	load_structure(In, Term, [file(File)|Options]),
+	load_structure(stream(In), Term, [file(File)|Options]),
 	close(In).
 
 
