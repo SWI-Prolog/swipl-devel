@@ -243,7 +243,7 @@ static classvardecl rc_browser[] =
 
 /* Class Declaration */
 
-static Name browser_termnames[] = { NAME_label, NAME_size, NAME_display };
+static Name browser_termnames[] = { NAME_name };
 
 ClassDecl(browser_decls,
           var_browser, send_browser, get_browser, rc_browser,

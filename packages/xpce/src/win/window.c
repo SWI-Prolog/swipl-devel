@@ -2299,11 +2299,11 @@ static classvardecl rc_window[] =
 
 /* Class Declaration */
 
-static Name window_termnames[] = { NAME_name, NAME_size, NAME_display };
+static Name window_termnames[] = { NAME_name };
 
 ClassDecl(window_decls,
           var_window, send_window, get_window, rc_window,
-          3, window_termnames,
+          1, window_termnames,
           "$Rev$");
 
 

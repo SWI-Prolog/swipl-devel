@@ -77,7 +77,7 @@ static classvardecl rc_picture[] =
 
 /* Class Declaration */
 
-static Name picture_termnames[] = { NAME_label, NAME_displaySize, NAME_display };
+static Name picture_termnames[] = { NAME_name };
 
 ClassDecl(picture_decls,
           var_picture, send_picture, get_picture, rc_picture,

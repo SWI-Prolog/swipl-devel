@@ -1,6 +1,11 @@
 			   XPCE ChangeLog
 			   ==============
 
+* MODIFIED: object-term of window and it subclasses now provide one
+  argument: the <-name of the window.  Used to be inconsistent and
+  often refering to failing methods, making object/2 fail on window
+  instances.  Shouldn't break any code.
+
 * ADDED: `class<-no_created' and `class<-no_freed': extra boolean
   argument to add the counts of their subclasses.  Used by PceEmacs
   Prolog colouring to display the correct number of fragments again.

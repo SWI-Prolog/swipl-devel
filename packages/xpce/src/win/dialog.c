@@ -397,8 +397,7 @@ static classvardecl rc_dialog[] =
 
 /* Class Declaration */
 
-static Name dialog_termnames[] =
-	{ NAME_label, NAME_displaySize, NAME_display };
+static Name dialog_termnames[] = { NAME_name };
 
 ClassDecl(dialog_decls,
           var_dialog, send_dialog, get_dialog, rc_dialog,
