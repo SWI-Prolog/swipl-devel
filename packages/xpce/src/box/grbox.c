@@ -91,6 +91,17 @@ computeAscentDescentGrBox(GrBox grb)
 }
 
 
+static status
+baselineGrBox(GrBox grb, Any baseline)
+{ if ( grb->baseline != baseline )
+  { assign(grb, baseline, baseline);
+    computeAscentDescentGrBox(grb);
+  }
+
+  succeed;
+}
+
+
 		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
@@ -109,7 +120,8 @@ static char *T_initialise[] =
 static vardecl var_grbox[] =
 { IV(NAME_graphical, "graphical", IV_GET,
      NAME_content, "Represented graphical object"),
-  IV(NAME_baseline, "{top,center,bottom}|int", IV_GET,
+  SV(NAME_baseline, "{top,center,bottom}|int", IV_GET|IV_STORE,
+     baselineGrBox,
      NAME_layout, "Location of the baseline"),
   IV(NAME_alignment, "{left,right}*", IV_GET,
      NAME_layout, "Alignment in paragraph")

@@ -167,8 +167,8 @@ getConfirmFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
   synchroniseDisplay(fr->display);
   while( offFlag(fr, F_FREED|F_FREEING) &&
 	 fr->return_value == ConstantNotReturned )
-  { if ( dispatchDisplay(fr->display) )
-      ws_discard_input("Confirmer running");
+  { dispatchDisplay(fr->display);
+    ws_discard_input("Confirmer running");
   }
 
   if ( onFlag(fr, F_FREED|F_FREEING) )

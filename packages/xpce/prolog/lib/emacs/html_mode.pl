@@ -22,7 +22,7 @@
 		    [ open_document     = key('\\C-c\\C-o') + button('HTML')
 		    ],
 		    [ '<'  = open_bracket('>'),
-		      paragraph_end(regex('^<\\(H[1-4]\\|DL\|UL\\)'))
+		      paragraph_end(regex('\\s *\\(\\sn\\|<\\(H[1-4]\\|DL\|UL\\)\\)'))
 		    ]).
 
 :- pce_global(@html_end_element_regex, new(regex('</\\(\\w+\\)[^>]*>'))).

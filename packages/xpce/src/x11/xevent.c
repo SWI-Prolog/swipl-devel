@@ -28,28 +28,20 @@
 		*       EVENT DISPATCHING	*
 		********************************/
 
-#define DISPATCH_RUNNING	0
-#define DISPATCH_INPUT		1
-#define DISPATCH_TIMEOUT	2
-
-static int*	    dispatch_status_address;
-
 void
 resetDispatch()
-{ dispatch_status_address = NULL;
+{ 
 }
 
 
 static void
 is_pending(XtPointer ctx, int *source, XtInputId *id)
-{ if ( dispatch_status_address != NULL )
-    *dispatch_status_address = DISPATCH_INPUT;
+{ 
 }
 
 static void
 is_timeout(XtPointer ctx, XtIntervalId *id)
-{ if ( dispatch_status_address != NULL )
-    *dispatch_status_address = DISPATCH_TIMEOUT;
+{ 
 }
 
 #ifndef FD_ZERO
@@ -62,7 +54,6 @@ static int dispatch_fd = -1;
 status
 ws_dispatch(Int FD, Int timeout)
 { XtIntervalId tid;
-  int dispatch_status = DISPATCH_RUNNING;
   int fd = (isDefault(FD) ? dispatch_fd : valInt(FD));
 
 					/* No context: wait for input */
@@ -77,7 +68,7 @@ ws_dispatch(Int FD, Int timeout)
     FD_ZERO(&readfds);
     if ( fd >= 0 )
       FD_SET(fd, &readfds);
-    if ( select(1, &readfds, NULL, NULL, &timeout) > 0 )
+    if ( select(fd+1, &readfds, NULL, NULL, &timeout) > 0 )
       succeed;
     else
       fail;
@@ -97,41 +88,42 @@ ws_dispatch(Int FD, Int timeout)
     tid = 0;
 
   pceMTLock(LOCK_PCE);
-  while( dispatch_status == DISPATCH_RUNNING )
-  { int *old_dispatch_status_address = dispatch_status_address;
-
-    dispatch_status_address = &dispatch_status;
-    RedrawDisplayManager(TheDisplayManager());
-    XtAppProcessEvent(ThePceXtAppContext,
-		      XtIMXEvent|XtIMTimer|XtIMAlternateInput);
-    dispatch_status_address = old_dispatch_status_address;
-  }
+  RedrawDisplayManager(TheDisplayManager());
+  XtAppProcessEvent(ThePceXtAppContext,
+		    XtIMXEvent|XtIMTimer|XtIMAlternateInput);
   pceMTUnlock(LOCK_PCE);
+  if ( tid )
+    XtRemoveTimeOut(tid);
 
   considerLocStillEvent();
-    
-  if ( dispatch_status == DISPATCH_TIMEOUT )
-  { fail;
-  } else
-  { if ( tid )
-      XtRemoveTimeOut(tid);
-    succeed;
-  }
+
+  succeed;
+}
+
+
+static int
+input_on_fd(int fd)
+{ fd_set rfds;
+  struct timeval tv;
+
+  FD_ZERO(&rfds);
+  FD_SET(fd, &rfds);
+  tv.tv_sec = 0;
+  tv.tv_usec = 1;
+
+  return select(fd+1, &rfds, NULL, NULL, &tv) != 0;
 }
 
 
 void
 ws_discard_input(const char *msg)
-{ char buf[1024];
+{ if ( dispatch_fd >= 0 && input_on_fd(dispatch_fd) )
+  { char buf[1024];
 
-  Cprintf("%s; discarding input ...", msg);
-
-  if ( dispatch_fd >= 0 )
+    Cprintf("%s; discarding input ...", msg);
     read(dispatch_fd, buf, sizeof(buf));
-  else
-    Cgetline(buf, sizeof(buf));
-
-  Cprintf("ok\n");
+    Cprintf("ok\n");
+  }
 }
 
 

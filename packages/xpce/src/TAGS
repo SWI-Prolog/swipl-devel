@@ -9935,1180 +9935,707 @@ static classvardecl rc_tbox[] =rc_tbox128,2571
 static Name tbox_termnames[] = { NAME_text, NAME_style };tbox_termnames135,2760
 makeClassTBox(Class class)makeClassTBox144,2949
 
-msw/imglib.h,965
-#define FARFAR11,110
-#define ERROR_READ_ACCESS_DENIED ERROR_READ_ACCESS_DENIED39,1182
-#define ERROR_WRITE_ACCESS_DENIED ERROR_WRITE_ACCESS_DENIED40,1224
-#define ERROR_NO_MEMORY ERROR_NO_MEMORY41,1266
-#define ERROR_NO_DLL ERROR_NO_DLL42,1308
-#define ERROR_INVALID_POINTER ERROR_INVALID_POINTER43,1350
-#define ERROR_INVALID_ARGUMENT ERROR_INVALID_ARGUMENT44,1392
-#define ERROR_UNSUPPORTED_IMAGE ERROR_UNSUPPORTED_IMAGE45,1434
-#define ERROR_INCOMPATIBLE_IMAGE ERROR_INCOMPATIBLE_IMAGE46,1476
-#define ERROR_WRITE_ERROR ERROR_WRITE_ERROR47,1518
-#define FILETYPE_BMP FILETYPE_BMP49,1561
-#define FILETYPE_TIFF_DEFAULT FILETYPE_TIFF_DEFAULT50,1641
-#define FILETYPE_TIFF_NO_COMPRESSION FILETYPE_TIFF_NO_COMPRESSION51,1728
-#define FILETYPE_TIFF_HUFFMAN FILETYPE_TIFF_HUFFMAN52,1804
-#define FILETYPE_TIFF_PACKBITS FILETYPE_TIFF_PACKBITS53,1901
-#define FILETYPE_TIFF_G3 FILETYPE_TIFF_G354,1973
-#define FILETYPE_TIFF_G4 FILETYPE_TIFF_G455,2053
+x11/canvas.c,566
+#define offset(offset17,378
+#undef offsetoffset25,867
+static XtResource resources[] = {resources16,344
+eventCanvas(Widget w, XEvent *event, String *params, Cardinal *num_params)eventCanvas34,1061
+static XtActionsRec actions[] =actions39,1197
+static char translations[] =translations45,1290
+exposeCanvas(Widget w, XEvent *event, Region region)exposeCanvas62,1716
+resizeCanvas(Widget w)resizeCanvas68,1844
+CanvasClassRec canvasClassRec = {canvasClassRec73,1918
+WidgetClass canvasWidgetClass = (WidgetClass)&canvasClassRec;canvasWidgetClass118,3456
 
-msw/include.h,4320
-#undef  O_IMGLIB O_IMGLIB10,247
-#undef  O_GIFREAD O_GIFREAD11,297
-#define O_XPM	O_XPM12,340
-#define O_GIF	O_GIF13,382
-#define RedrawWindow RedrawWindow15,428
-#undef RedrawWindowRedrawWindow17,486
-#undef hyper	hyper18,506
-#undef islower	islower19,544
-#undef isupperisupper20,592
-#undef isdigitisdigit21,607
-#undef isalnumisalnum22,622
-#undef isalphaisalpha23,637
-#undef iscntrliscntrl24,652
-#undef isprintisprint25,667
-#undef isspaceisspace26,682
-#undef ispunctispunct27,697
-#undef isxdigitisxdigit28,712
-#define PceHInstance PceHInstance32,749
-#define Ellipse Ellipse34,787
-#define Arc Arc35,814
-#undef ArcArc38,879
-#undef EllipseEllipse39,890
-#define APIError(APIError41,906
-typedef struct win_mf *WinMF;		/* win_metafile pointer type */WinMF43,954
-typedef char	cwidth;			/* width of a character */cwidth47,1088
-{ HFONT		hfont;			/* Windows font handle */hfont50,1154
-  cwidth *	widths;			/* Character widths */widths51,1198
-  int		ascent;			/* tmAscent + tmExternalLeading */ascent52,1242
-  int		descent;		/* tmDescent */descent53,1294
-  int		from_stock;		/* TRUE: from GetStockObject() */from_stock54,1327
-} ws_font, *WsFont;ws_font55,1381
-} ws_font, *WsFont;WsFont55,1381
-{ int w;				/* width of image */w59,1418
-  int h;				/* height of image */h60,1451
-  BITMAPINFO *msw_info;			/* MS-Windows info structure */msw_info61,1485
-  void *data;				/* the data */data62,1543
-  HICON icon;				/* Icon we've created for it */icon63,1575
-} ws_image, *WsImage;ws_image64,1624
-} ws_image, *WsImage;WsImage64,1624
-{ HWND		hwnd;hwnd68,1663
-  HCURSOR	hcursor;		/* current cursor handle */hcursor69,1677
-  WNDPROC	saved_window_procedure;	/* For refinement */saved_window_procedure70,1725
-  unsigned capture    : 1;		/* has capture */capture71,1780
-  unsigned open	      : 1;		/* window is opened */open72,1826
-} ws_window, *WsWindow;ws_window73,1877
-} ws_window, *WsWindow;WsWindow73,1877
-{ HWND		hwnd;			/* Windows handle */hwnd77,1918
-  int		placed;			/* Explicit placement? */placed78,1955
-  HCURSOR	hbusy_cursor;		/* handle for busy cursor */hbusy_cursor79,1998
-  HCURSOR	hcursor;		/* cursor displayed */hcursor80,2052
-} ws_frame, *WsFrame;ws_frame81,2095
-} ws_frame, *WsFrame;WsFrame81,2095
-#define getDisplayWindow(getDisplayWindow84,2119
-#define EXACT_COLOUR_MASK EXACT_COLOUR_MASK86,2186
-#define O_PPM O_PPM148,4617
-#define PNM_PNM	PNM_PNM150,4634
-#define PNM_PBM	PNM_PBM151,4677
-#define PNM_PGM	PNM_PGM152,4719
-#define PNM_PPM	PNM_PPM153,4762
-#define PNM_ASCII PNM_ASCII155,4805
-#define PNM_RAWBITS PNM_RAWBITS156,4827
-#define PNM_RUNLEN PNM_RUNLEN157,4849
-#define NAME_msObjects NAME_msObjects176,5496
-#define NAME_solidBrush NAME_solidBrush179,5572
-#define NAME_patternBrush NAME_patternBrush182,5652
-static int _dobj;_dobj185,5711
-static HCURSOR _hcur;_hcur186,5729
-static HBRUSH _hbrush;_hbrush187,5751
-static HBITMAP _hbitmap;_hbitmap188,5774
-static HPEN _hpen;_hpen189,5799
-static HRGN _hrgn;_hrgn190,5818
-#define ZDeleteFromRegistry(ZDeleteFromRegistry194,5877
-#define ZSelectObject(ZSelectObject199,6054
-#define ZDeleteObject(ZDeleteObject202,6128
-#define ZSetCursor(ZSetCursor209,6335
-#define ZCreatePatternBrush(ZCreatePatternBrush218,6596
-#define ZCreateSolidBrush(ZCreateSolidBrush222,6753
-#define ZCreateCompatibleBitmap(ZCreateCompatibleBitmap226,6908
-#define ZCreateDIBitmap(ZCreateDIBitmap234,7263
-#define ZCreateBitmap(ZCreateBitmap238,7439
-#define ZCreateRectRgn(ZCreateRectRgn242,7605
-#define ZCreateRectRgnIndirect(ZCreateRectRgnIndirect246,7758
-#define ZCreatePen(ZCreatePen250,7909
-#define ZExtCreatePen(ZExtCreatePen254,8045
-#define ZSelectObject(ZSelectObject261,8226
-#define ZDeleteObject(ZDeleteObject262,8282
-#define ZSetCursor(ZSetCursor263,8328
-#define ZCreatePatternBrush(ZCreatePatternBrush264,8364
-#define ZCreateSolidBrush(ZCreateSolidBrush265,8420
-#define ZCreateCompatibleBitmap(ZCreateCompatibleBitmap266,8474
-#define ZCreateDIBitmap(ZCreateDIBitmap267,8552
-#define ZCreateBitmap(ZCreateBitmap268,8628
-#define ZCreateRectRgn(ZCreateRectRgn269,8694
-#define ZCreateRectRgnIndirect(ZCreateRectRgnIndirect270,8756
-#define ZCreatePen(ZCreatePen271,8816
-#define ZExtCreatePen(ZExtCreatePen272,8864
+x11/canvas.h,326
+#define _Canvas_h_Canvas_h11,267
+#define XtNeventCallback	XtNeventCallback29,723
+#define XtNexposeCallback	XtNexposeCallback30,764
+#define XtNresizeCallback	XtNresizeCallback31,807
+typedef struct _CanvasClassRec*	CanvasWidgetClass;CanvasWidgetClass35,917
+typedef struct _CanvasRec*	CanvasWidget;CanvasWidget36,968
 
-msw/mscolour.c,2165
-#define USE_CONVERTED_COLOURS USE_CONVERTED_COLOURS10,248
-static HashTable ColourNames;		/* name --> rgb (packed in Int) */ColourNames19,388
-static HashTable X11ColourNames;	/* rgb --> X11-name */X11ColourNames20,454
-LoadColourNames()LoadColourNames29,714
-LoadColourNames()LoadColourNames61,1336
-LoadX11ColourNames()LoadX11ColourNames113,2448
-LoadX11ColourNames()LoadX11ColourNames133,2864
-xpmGetRGBfromName(char *inname, int *r, int *g, int *b)xpmGetRGBfromName173,3712
-xpmReadRgbNames(char *rgb_fname, void *rgbn)xpmReadRgbNames206,4322
-xpmFreeRgbNames(void *rgbn, int rgbn_max)xpmFreeRgbNames212,4421
-xpmGetRgbName(void *rgbn, int rgbn_max, int red, int green, int blue)xpmGetRgbName218,4476
-canonical_colour_name(Name in)canonical_colour_name238,4923
-ws_colour_name(DisplayObj d, Name name)ws_colour_name266,5353
-ws_create_colour(Colour c, DisplayObj d)ws_create_colour278,5563
-ws_uncreate_colour(Colour c, DisplayObj d)ws_uncreate_colour314,6413
-ws_pixel_to_colour(DisplayObj d, unsigned long pixel)ws_pixel_to_colour326,6651
-struct system_coloursystem_colour331,6717
-{ char *name;name332,6738
-  int  id;id333,6752
-static struct system_colour window_colours[] =window_colours340,6975
-ws_system_colour(DisplayObj d, const char *name, COLORREF rgb)ws_system_colour377,8307
-ws_system_colours(DisplayObj d)ws_system_colours398,8719
-#undef offsetoffset413,9006
-#define offset(offset414,9020
-CreateCCPalette(int size)CreateCCPalette417,9081
-ws_open_colourmap(ColourMap cm)ws_open_colourmap451,9829
-setPaletteColourMap(ColourMap cm, HPALETTE hpal)setPaletteColourMap495,10930
-getPaletteColourMap(ColourMap cm)getPaletteColourMap501,11013
-ws_colour_cube(ColourMap cm, int size)ws_colour_cube510,11126
-XIntensity(BYTE wi)XIntensity525,11372
-ws_colour_map_colours(ColourMap cm)ws_colour_map_colours535,11471
-ws_create_colour_map(ColourMap cm, DisplayObj d)ws_create_colour_map581,12665
-ws_uncreate_colour_map(ColourMap cm, DisplayObj d)ws_uncreate_colour_map587,12733
-ws_alloc_colour(ColourMap cm, Colour c)ws_alloc_colour607,13474
-ws_unalloc_colour(ColourMap cm, Colour c)ws_unalloc_colour662,14799
+x11/canvasP.h,813
+#define _CanvasP_h_CanvasP_h11,269
+#define XtRCanvasResource XtRCanvasResource19,457
+{ XtPointer extension;extension22,516
+} CanvasClassPart;CanvasClassPart23,539
+typedef struct _CanvasClassRec_CanvasClassRec25,559
+{ CoreClassPart		core_class;core_class26,590
+  CompositeClassPart	composite_class;composite_class27,619
+  CanvasClassPart	canvas_class;canvas_class28,657
+} CanvasClassRec;CanvasClassRec29,689
+  XtCallbackList	event_callback;event_callback35,782
+  XtCallbackList	expose_callback;expose_callback36,815
+  XtCallbackList	resize_callback;resize_callback37,849
+} CanvasPart;CanvasPart40,924
+typedef struct _CanvasRec_CanvasRec42,939
+{ CorePart		core;core43,965
+  CompositePart		composite;composite44,983
+  CanvasPart		canvas;canvas45,1011
+} CanvasRec;CanvasRec46,1033
 
-msw/mscommon.c,1328
-MsObjectTable()MsObjectTable17,376
-ws_discard_input(const char *msg)ws_discard_input32,628
-#define WINASSOC_TABLESIZE WINASSOC_TABLESIZE55,1492
-typedef struct _winassoc_winassoc57,1524
-{ HWND			hwnd;		/* MS-Windows window handle */hwnd58,1549
-  Any			object;		/* Associated object */object59,1596
-  struct _winassoc     *next;		/* Next in chain */next60,1637
-} winassoc, *WinAssoc;winassoc61,1688
-} winassoc, *WinAssoc;WinAssoc61,1688
-static WinAssoc wintable[WINASSOC_TABLESIZE];wintable63,1714
-handleKey(HWND handle)handleKey66,1772
-assocObjectToHWND(HWND hwnd, Any obj)assocObjectToHWND78,1960
-getObjectFromHWND(HWND hwnd)getObjectFromHWND104,2522
-getHwndFrame(FrameObj fr)getHwndFrame122,2806
-setHwndFrame(FrameObj fr, HWND ref)setHwndFrame136,3005
-getHwndWindow(PceWindow sw)getHwndWindow159,3399
-setHwndWindow(PceWindow sw, HWND ref)setHwndWindow173,3604
-static int	emulate_three_buttons;emulate_three_buttons200,4126
-static HWND	emu_hwnd;		/* Emulating for this window */emu_hwnd201,4160
-ws_emulate_three_buttons(int time)ws_emulate_three_buttons204,4220
-IsDownKey(code)IsDownKey215,4374
-messageToKeyId(UINT message, UINT wParam, LONG lParam, unsigned long *bmask)messageToKeyId225,4530
-messageToEvent(HWND hwnd, UINT message, UINT wParam, LONG lParam)messageToEvent311,7106
+x11/fshell.c,1372
+#define offset(offset16,383
+#undef offsetoffset20,650
+static XtResource top_level_resources[] = {top_level_resources15,339
+#define offset(offset25,712
+#undef offsetoffset29,978
+static XtResource override_resources[] = {override_resources24,669
+#define offset(offset34,1041
+#undef offsetoffset38,1309
+static XtResource transient_resources[] = {transient_resources33,997
+eventFrame(Widget w, XEvent *event, String *params, Cardinal *num_params)eventFrame47,1503
+static XtActionsRec top_level_actions[] =top_level_actions57,1898
+static XtActionsRec override_actions[] =override_actions63,2000
+static XtActionsRec transient_actions[] =transient_actions69,2101
+static char translations[] =translations75,2203
+xpce_change_managed(Widget w)xpce_change_managed110,2911
+TopLevelFrameClassRec topLevelFrameClassRec = {topLevelFrameClassRec115,3000
+WidgetClass topLevelFrameWidgetClass = (WidgetClass) (&topLevelFrameClassRec);topLevelFrameWidgetClass168,4981
+OverrideFrameClassRec overrideFrameClassRec = {overrideFrameClassRec170,5061
+WidgetClass overrideFrameWidgetClass = (WidgetClass) (&overrideFrameClassRec);overrideFrameWidgetClass219,6940
+TransientFrameClassRec transientFrameClassRec = {transientFrameClassRec221,7020
+WidgetClass transientFrameWidgetClass = (WidgetClass)(&transientFrameClassRec);transientFrameWidgetClass274,9011
 
-msw/mscursor.c,3296
-#define USE_C_CONVERTED_CURSORS USE_C_CONVERTED_CURSORS10,247
-static int cursor_width;		/* only width allowed */cursor_width58,2050
-static int cursor_height;		/* only height allowed */cursor_height59,2101
-#define SEC(SEC61,2155
-#define XID_MIN XID_MIN62,2223
-#define XID_MAX XID_MAX63,2241
-static Sheet	cursorNames = NIL;cursorNames70,2369
-static struct standardCursorstandardCursor72,2402
-{ char *name;				/* X name of the cursor */name73,2431
-  int	id;				/* X font id of the cursor */id74,2475
-#define MSINTVAL(MSINTVAL164,5000
-} standard_cursors[] =standard_cursors75,2518
-ws_init_cursor_font()ws_init_cursor_font187,5673
-ws_cursor_font_index(Name name)ws_cursor_font_index203,6014
-{ unsigned short *	mask;	/* mask (cursor_width x cursor_height) */mask213,6213
-  unsigned short *	image;	/* image (cursor_width x cursor_height) */image214,6280
-} cursor_bits, *CursorBits;cursor_bits215,6349
-} cursor_bits, *CursorBits;CursorBits215,6349
-{ cursor_glyph_file_header	header;header219,6394
-  CursorGlyph			glyphs;glyphs220,6429
-  unsigned short *		data;data221,6453
-  CursorBits			cache;cache222,6479
-  int				cwidth;	/* width of Windows Cursor */cwidth223,6501
-  int				cheight; /* height of Windows Cursor */cheight224,6548
-} cursor_glyph_set, *CursorGlyphSet;cursor_glyph_set225,6597
-} cursor_glyph_set, *CursorGlyphSet;CursorGlyphSet225,6597
-read_cursor_glyphs(FILE *in)read_cursor_glyphs229,6658
-ws_sizeof_bits(int w, int h)ws_sizeof_bits270,7708
-copy_pattern(unsigned short *dbits, int dw, int dh,copy_pattern278,7841
-copy_mask_pattern(unsigned short *dbits, int dw, int dh,copy_mask_pattern304,8349
-copy_image_pattern(unsigned short *dbits, int dw, int dh,copy_image_pattern311,8507
-swap_bytes(unsigned short *data, int w, int h)swap_bytes361,9458
-window_bits(unsigned short *mask,  unsigned short *image, int w, int h)window_bits379,9748
-get_cursor_bits(CursorGlyphSet set, int cursor, int *hx, int *hy)get_cursor_bits394,10036
-X11Glyhps()X11Glyhps446,11624
-X11Glyhps()X11Glyhps481,12371
-ws_create_cursor(CursorObj c, DisplayObj d)ws_create_cursor555,13876
-ws_destroy_cursor(CursorObj c, DisplayObj d)ws_destroy_cursor611,15285
-static HBITMAP	saved_bits;		/* saved background */saved_bits634,15876
-static HBITMAP  image;			/* the image bits */image635,15927
-static HBITMAP  mask;			/* the mask bits */mask636,15973
-static HCURSOR  hcursorsave;		/* saved cursor */hcursorsave637,16017
-static int	saved_x;		/* x-position of the background */saved_x638,16066
-static int	saved_y;		/* y-position of the background */saved_y639,16122
-static int	hot_x;			/* x-hot-spot */hot_x640,16178
-static int	hot_y;			/* y-hot-spot */hot_y641,16215
-static int	big_cursor_width;	/* width of our giant */big_cursor_width642,16252
-static int	big_cursor_height;	/* height of our giant */big_cursor_height643,16306
-save_big_cursor_background()save_big_cursor_background646,16377
-restore_big_cursor_background()restore_big_cursor_background675,16963
-paint_big_cursor()paint_big_cursor694,17357
-mask_image(HBITMAP img, HBITMAP mask, int w, int h)mask_image729,18238
-start_big_cursor(CursorObj c)start_big_cursor752,18809
-move_big_cursor()move_big_cursor782,19667
-exit_big_cursor()exit_big_cursor794,19857
+x11/fshell.h,628
+#define _Frame_h_Frame_h11,266
+#define XtNeventCallback	XtNeventCallback28,675
+typedef struct _TopLevelFrameClassRec*	TopLevelFrameWidgetClass;TopLevelFrameWidgetClass32,782
+typedef struct _TopLevelFrameRec*	TopLevelFrameWidget;TopLevelFrameWidget33,847
+typedef struct _OverrideFrameClassRec*	OverrideFrameWidgetClass;OverrideFrameWidgetClass35,903
+typedef struct _OverrideFrameRec*	OverrideFrameWidget;OverrideFrameWidget36,968
+typedef struct _TransientFrameClassRec*	TransientFrameWidgetClass;TransientFrameWidgetClass38,1024
+typedef struct _TransientFrameRec*	TransientFrameWidget;TransientFrameWidget39,1091
 
-msw/msdisplay.c,4430
-#define init_render_hooks(init_render_hooks17,384
-ws_flush_display(DisplayObj d)ws_flush_display21,425
-ws_synchronise_display(DisplayObj d)ws_synchronise_display27,468
-ws_bell_display(DisplayObj d, int volume)ws_bell_display38,635
-ws_get_size_display(DisplayObj d, int *w, int *h)ws_get_size_display44,721
-ws_get_visual_type_display(DisplayObj d)ws_get_visual_type_display55,904
-ws_depth_display(DisplayObj d)ws_depth_display64,1052
-ws_activate_screen_saver(DisplayObj d)ws_activate_screen_saver74,1204
-ws_deactivate_screen_saver(DisplayObj d)ws_deactivate_screen_saver80,1254
-ws_init_display(DisplayObj d)ws_init_display86,1306
-ws_legal_display_name(char *s)ws_legal_display_name92,1349
-ws_opened_display(DisplayObj d)ws_opened_display98,1402
-ws_open_display(DisplayObj d)ws_open_display107,1484
-ws_quit_display(DisplayObj d)ws_quit_display118,1720
-static HHOOK defhook	  = NULL;defhook143,2787
-static HINSTANCE pcewhdll = NULL;pcewhdll144,2818
-static FARPROC PceWhEntry = NULL;PceWhEntry145,2852
-static HINDIR PceWhIH	  = NULL;PceWhIH146,2886
-static HWND cwin;cwin147,2918
-static int  cwin_deleted;cwin_deleted148,2936
-xpce_mouse_hook(int code, WPARAM wParam, LPARAM lParam)xpce_mouse_hook151,2995
-unhook_xpce_mouse_hook()unhook_xpce_mouse_hook170,3417
-PceWhAddTask(HTASK task)PceWhAddTask177,3509
-PceWhDeleteTask(HTASK task)PceWhDeleteTask184,3616
-PceWhDeleteWindow(HWND win)PceWhDeleteWindow191,3719
-unload_pcewhdll()unload_pcewhdll200,3879
-init_area_enter_exit_handling(DisplayObj d)init_area_enter_exit_handling211,4044
-typedef void (*mhdw_t)(HWND win);mhdw_t250,5412
-static HINSTANCE xpcemh_id;xpcemh_id252,5447
-static mhdw_t MouseHookDeleteWindow = NULL;MouseHookDeleteWindow253,5475
-PceWhDeleteWindow(HWND win)PceWhDeleteWindow256,5525
-unload_xpcemhdll(void)unload_xpcemhdll263,5635
-init_area_enter_exit_handling(DisplayObj d)init_area_enter_exit_handling270,5721
-static HWND current_window;current_window294,6339
-PceWhDeleteWindow(HWND win)PceWhDeleteWindow297,6373
-PceEventInWindow(HWND win)PceEventInWindow304,6465
-init_area_enter_exit_handling(DisplayObj d)init_area_enter_exit_handling325,6927
-static RlcUpdateHook system_update_hook;system_update_hook333,7040
-exit_update_hook(void)exit_update_hook336,7094
-ws_init_graphics_display(DisplayObj d)ws_init_graphics_display343,7196
-ws_foreground_display(DisplayObj d, Colour c)ws_foreground_display358,7438
-ws_background_display(DisplayObj d, Colour c)ws_background_display364,7495
-ws_draw_in_display(DisplayObj d, Graphical gr, Bool invert, Bool subtoo)ws_draw_in_display370,7552
-ws_grab_server(DisplayObj d)ws_grab_server382,7821
-ws_ungrab_server(DisplayObj d)ws_ungrab_server388,7861
-ws_display_connection_number(DisplayObj d)ws_display_connection_number394,7902
-ws_events_queued_display(DisplayObj d)ws_events_queued_display400,7964
-#define CLIPBOARDWIN	CLIPBOARDWIN409,8177
-#define CLIPBOARDWIN	CLIPBOARDWIN411,8215
-ws_string_to_global_mem(String s)ws_string_to_global_mem415,8277
-ws_set_cutbuffer(DisplayObj d, int n, String s)ws_set_cutbuffer442,8764
-get_clipboard_data(DisplayObj d, Name type)get_clipboard_data460,9085
-ws_get_cutbuffer(DisplayObj d, int n)ws_get_cutbuffer505,10027
-ws_get_selection_timeout(void)ws_get_selection_timeout515,10223
-ws_set_selection_timeout(unsigned long time)ws_set_selection_timeout521,10276
-ws_get_selection(DisplayObj d, Name which, Name target)ws_get_selection527,10331
-ws_renderall(void)ws_renderall533,10436
-ws_disown_selection(DisplayObj d, Name selection)ws_disown_selection543,10558
-ws_provide_selection(int format)ws_provide_selection549,10634
-ws_own_selection(DisplayObj d, Name selection, Name type)ws_own_selection600,11977
-static RlcRenderHook	system_render_hook;system_render_hook627,12586
-static RlcRenderAllHook system_render_all_hook;system_render_all_hook628,12627
-static int 		render_hooks_initialised;render_hooks_initialised629,12675
-exit_render_hooks(void)exit_render_hooks632,12727
-init_render_hooks(void)init_render_hooks643,12934
-ws_window_manager(DisplayObj d)ws_window_manager656,13227
-ws_synchronous(DisplayObj d)ws_synchronous669,13686
-ws_asynchronous(DisplayObj d)ws_asynchronous678,13800
-ws_postscript_display(DisplayObj d)ws_postscript_display687,13917
-ws_grab_image_display(DisplayObj d, int x, int y, int width, int height)ws_grab_image_display707,14310
+x11/fshellP.h,3464
+#define _FrameP_h_FrameP_h11,268
+#define XtRFrameResource XtRFrameResource19,451
+{ XtPointer extension;extension26,607
+} TopLevelFrameClassPart;TopLevelFrameClassPart27,630
+typedef struct _TopLevelFrameClassRec_TopLevelFrameClassRec29,657
+{ CoreClassPart			core_class;core_class30,695
+  CompositeClassPart		composite_class;composite_class31,725
+  ShellClassPart		shell_class;shell_class32,764
+  WMShellClassPart		wm_shell_class;wm_shell_class33,795
+  VendorShellClassPart		vendor_shell_class;vendor_shell_class34,831
+  TopLevelShellClassPart	top_level_shell_class;top_level_shell_class35,875
+  TopLevelFrameClassPart	top_level_frame_class;top_level_frame_class36,923
+} TopLevelFrameClassRec;TopLevelFrameClassRec37,971
+  XtCallbackList		event_callback;event_callback43,1085
+} TopLevelFramePart;TopLevelFramePart46,1160
+typedef struct _TopLevelFrameRec_TopLevelFrameRec48,1182
+{ CorePart	 		core;core49,1215
+  CompositePart 		composite;composite50,1235
+  ShellPart 			shell;shell51,1264
+  WMShellPart			wm;wm52,1286
+  VendorShellPart		vendor;vendor53,1306
+  TopLevelShellPart		top_level_shell;top_level_shell54,1333
+  TopLevelFramePart		top_level_frame;top_level_frame55,1371
+} TopLevelFrameRec;TopLevelFrameRec56,1409
+{ XtPointer extension;extension63,1543
+} OverrideFrameClassPart;OverrideFrameClassPart64,1566
+typedef struct _OverrideFrameClassRec_OverrideFrameClassRec66,1593
+{ CoreClassPart			core_class;core_class67,1631
+  CompositeClassPart		composite_class;composite_class68,1661
+  ShellClassPart		shell_class;shell_class69,1700
+  OverrideShellClassPart	override_shell_class;override_shell_class70,1731
+  OverrideFrameClassPart	override_frame_class;override_frame_class71,1778
+} OverrideFrameClassRec;OverrideFrameClassRec72,1825
+  XtCallbackList		event_callback;event_callback78,1939
+} OverrideFramePart;OverrideFramePart81,2014
+typedef struct _OverrideFrameRec_OverrideFrameRec83,2036
+{ CorePart 			core;core84,2069
+  CompositePart 		composite;composite85,2089
+  ShellPart 			shell;shell86,2118
+  TopLevelShellPart		override_shell;override_shell87,2140
+  OverrideFramePart		override_frame;override_frame88,2177
+} OverrideFrameRec;OverrideFrameRec89,2214
+{ XtPointer extension;extension97,2350
+} TransientFrameClassPart;TransientFrameClassPart98,2373
+typedef struct _TransientFrameClassRec_TransientFrameClassRec100,2401
+{ CoreClassPart			core_class;core_class101,2440
+  CompositeClassPart		composite_class;composite_class102,2470
+  ShellClassPart		shell_class;shell_class103,2509
+  WMShellClassPart		wm_shell_class;wm_shell_class104,2540
+  VendorShellClassPart		vendor_shell_class;vendor_shell_class105,2576
+  TransientShellClassPart	transient_shell_class;transient_shell_class106,2620
+  TransientFrameClassPart	transient_frame_class;transient_frame_class107,2669
+} TransientFrameClassRec;TransientFrameClassRec108,2718
+  XtCallbackList		event_callback;event_callback114,2835
+} TransientFramePart;TransientFramePart117,2910
+typedef struct _TransientFrameRec_TransientFrameRec119,2933
+{ CorePart 			core;core120,2967
+  CompositePart 		composite;composite121,2987
+  ShellPart 			shell;shell122,3016
+  WMShellPart			wm;wm123,3038
+  VendorShellPart		vendor;vendor124,3058
+  TransientShellPart		transient;	transient125,3085
+  TransientFramePart		transient_frame;transient_frame126,3119
+} TransientFrameRec;TransientFrameRec127,3158
 
-msw/msdraw.c,12495
-#define M_PI M_PI14,318
-#define MAX_CLIP_DEPTH MAX_CLIP_DEPTH17,350
-#define MAX_CTX_DEPTH MAX_CTX_DEPTH18,403
-{ PceWindow	window;			/* Pce's notion of the window */window21,476
-  HWND		hwnd;			/* current Windows window */hwnd22,531
-  HBITMAP	hbitmap;		/* current Image */hbitmap23,576
-  PAINTSTRUCT	ps;			/* paint structure */ps24,616
-  HDC		hdc;			/* device context */hdc25,658
-  HPEN		hpen;			/* Current created pen */hpen26,693
-  HRGN		hrgn;			/* Current created region */hrgn27,735
-  HBRUSH	hbrush;			/* Currently selected brush */hbrush28,780
-  HPEN		ohpen;			/* Original pen */ohpen30,831
-  HRGN		ohrgn;			/* Original region */ohrgn31,867
-  HBITMAP	ohbitmap;		/* Original bitmap */ohbitmap32,906
-  HBRUSH	ohbrush;		/* Original brush */ohbrush33,949
-  int		stockpen;		/* Pen comes from GetStockObject() */stockpen34,989
-  HFONT		ohfont;			/* Original font */ohfont35,1045
-  HPALETTE	hpal;			/* selected palette */hpal36,1084
-  HPALETTE	ohpal;			/* Original palette */ohpal37,1126
-  HPALETTE	ochpal;			/* Original cache bitmap palette */ochpal38,1169
-  HBITMAP	cache;			/* background drawing */cache40,1227
-  HDC		cached_hdc;		/* hdc of original device */cached_hdc41,1271
-  int		cache_x;		/* X-corner of cache */cache_x42,1320
-  int		cache_y;		/* Y-corner of cache */cache_y43,1361
-  int		cache_w;		/* Width of cache */cache_w44,1402
-  int		cache_h;		/* Height of cache */cache_h45,1440
-  HBITMAP	cache_ohbitmap;		/* original bitmap handle */cache_ohbitmap46,1479
-  int		offset_x;		/* d_offset(), r_offset() */offset_x48,1536
-  int		offset_y;		/* same */offset_y49,1583
-  int		r_offset_x;		/* r_offset() */r_offset_x50,1612
-  int		r_offset_y;		/* r_offset() */r_offset_y51,1649
-  int		fixed_colours;		/* The colours are fixed */fixed_colours52,1686
-  int		open;			/* is context opened? */open54,1738
-  int		invert;			/* paint inverted */invert55,1778
-  Image		fill_pattern;		/* PCE fill-pattern image */fill_pattern57,1817
-  Colour	colour;			/* Current colour */colour58,1870
-  Colour	default_colour;		/* The default colour */default_colour59,1910
-  Any		background;		/* Background colour */background60,1961
-  Any		default_background;	/* @default background */default_background61,2005
-  COLORREF	rgb;			/* RGB of colour */rgb62,2058
-  COLORREF	background_rgb;		/* RBG of background */background_rgb63,2096
-  int		thickness;		/* Current pen */thickness64,2148
-  Name		texture;		/* Current dash-pattern */texture65,2185
-  int		modified_pen;		/* Pen is modified */modified_pen66,2230
-  FontObj	font;			/* Currently mounted font */font67,2274
-  WsFont	wsf;			/* Window System Font reference */wsf68,2321
-  Any		device;			/* XPCE device in use */device69,2372
-  DisplayObj	display;		/* The XPCE display */display70,2414
-  int		depth;			/* # bits/pixel */depth71,2460
-  Elevation	elevation;		/* current elevation context */elevation73,2496
-  HPEN		relief_pen;		/* standing-edge pen */relief_pen74,2552
-  HPEN		shadow_pen;		/* falling edge pen */shadow_pen75,2597
-  { RECT	orect;			/* old clipping rect */orect79,2652
-  } clip_stack[MAX_CLIP_DEPTH];clip_stack80,2694
-  int		clip_depth;		/* #entries on clip stack */clip_depth81,2726
-} wdraw_context, *WDrawContext;wdraw_context83,2776
-} wdraw_context, *WDrawContext;WDrawContext83,2776
-#define MoveTo(MoveTo86,2826
-#define SetWindowOrg(SetWindowOrg87,2885
-#define SetViewportOrg(SetViewportOrg88,2956
-static int		cache = 1;	/* Do or don't */cache91,3053
-static int		quick;		/* Prefer speed */quick92,3094
-static wdraw_context	context; 	/* current context */context93,3133
-static wdraw_context	ctx_stack[MAX_CTX_DEPTH];  /* Context stack */ctx_stack94,3186
-static int		ctx_stacked;	/* Saved frames */ctx_stacked95,3254
-static HDC		default_hdc;	/* Default context */default_hdc97,3299
-static HBITMAP		default_hdc_hbitmap; /* Memory for default_hdc */default_hdc_hbitmap98,3346
-static HBITMAP		default_hdc_ohbitmap; /* Original memory */default_hdc_ohbitmap99,3412
-static DisplayObj	TheDisplay;	/* @display */TheDisplay100,3472
-static int		display_depth;	/* depth of the display */display_depth101,3517
-reset_context()reset_context113,3863
-initDraw()initDraw152,5097
-resetDraw()resetDraw166,5331
-make_default_context()make_default_context175,5421
-remove_default_context()remove_default_context190,5807
-exitDraw(int rval)exitDraw202,6012
-d_offset(int x, int y)d_offset222,6330
-r_offset(int x, int y)r_offset239,6604
-d_display(DisplayObj d)d_display268,7303
-d_ensure_display()d_ensure_display286,7560
-d_flush(void)d_flush293,7657
-d_mswindow(PceWindow sw, IArea a, int clear)d_mswindow299,7684
-d_window(PceWindow sw, int x, int y, int w, int h, int clear, int limit)d_window378,10154
-push_context()push_context398,10686
-d_image(Image i, int x, int y, int w, int h)d_image409,10900
-d_hdc(HDC hdc, Colour fg, Colour bg)d_hdc479,12825
-d_screen(DisplayObj d)d_screen498,13176
-d_winmf(const char *fn, int x, int y, int w, int h, const char *descr)d_winmf506,13268
-d_winmfdone()d_winmfdone560,14741
-d_current_hdc()d_current_hdc570,14843
-d_clip(int x, int y, int w, int h)d_clip593,15918
-d_done(void)d_done637,17057
-d_clip_done(void)d_clip_done705,18880
-intersection_iarea(IArea a, IArea b)intersection_iarea748,19860
-r_clear(int x, int y, int w, int h)r_clear767,20225
-r_complement(int x, int y, int w, int h)r_complement781,20460
-r_and(int x, int y, int w, int h, Image pattern)r_and794,20643
-r_update_pen()r_update_pen814,21477
-#define DOT_USING_ALTERNATE DOT_USING_ALTERNATE833,22024
-#define DOT_USING_MASK DOT_USING_MASK834,22054
-#define DOT_USING_PSDOT	DOT_USING_PSDOT835,22084
-r_thickness(int pen)r_thickness892,23453
-r_dash(Name dash)r_dash901,23583
-r_colour(Any colour)r_colour910,23708
-#define BRUSH_CACHE_SIZE BRUSH_CACHE_SIZE932,24232
-{ Any	 object;			/* object for brush */object935,24275
-  HBRUSH brush;				/* associated brush */brush936,24315
-  int	 times;				/* # times used */times937,24357
-} brush_cache_element;brush_cache_element938,24393
-brush_cache_element brush_cache[BRUSH_CACHE_SIZE];brush_cache940,24417
-lookup_brush(Any fill)lookup_brush943,24483
-empty_brush_cache()empty_brush_cache959,24715
-add_brush(Any fill, HBRUSH brush)add_brush977,25027
-winBrushTable()winBrushTable1018,25931
-declareWindowsBrush(Any obj, HBRUSH brush)declareWindowsBrush1033,26212
-standardWindowsBrush(Any obj)standardWindowsBrush1042,26380
-r_fillbrush(Any fill)r_fillbrush1053,26540
-r_fillpattern(Any fill, Name which)			/* colour or image */r_fillpattern1082,27158
-r_arcmode(Name mode)r_arcmode1107,27741
-r_fix_colours(Any fg, Any bg, ColourContext ctx)r_fix_colours1113,27811
-r_unfix_colours(ColourContext ctx)r_unfix_colours1131,28182
-r_default_colour(Any c)r_default_colour1140,28353
-r_background(Any c)r_background1159,28665
-r_default_background(Any bg)r_default_background1184,29199
-r_swap_background_and_foreground(void)r_swap_background_and_foreground1193,29382
-r_subwindow_mode(Bool val)r_subwindow_mode1202,29513
-r_invert_mode(Bool val)r_invert_mode1208,29551
-r_translate(int x, int y, int *ox, int *oy)r_translate1214,29616
-r_box(int x, int y, int w, int h, int r, Any fill)r_box1220,29671
-r_shadow_box(int x, int y, int w, int h, int r, int shadow, Image fill)r_shadow_box1253,30449
-cref_colour(Colour c)cref_colour1271,30884
-r_elevation(Elevation e)r_elevation1295,31363
-r_elevation_fillpattern(Elevation e, int up)r_elevation_fillpattern1345,32885
-{ int x1, y1;				/* start of line */x11376,33479
-{ int x1, y1;				/* start of line */y11376,33479
-  int x2, y2;				/* end of line */x21377,33516
-  int x2, y2;				/* end of line */y21377,33516
-} lsegment;lsegment1378,33551
-{ int x, y;x1382,33580
-{ int x, y;y1382,33580
-  int width, height;width1383,33592
-  int width, height;height1383,33592
-  int angle1, angle2;angle11384,33613
-  int angle1, angle2;angle21384,33613
-} larc;larc1385,33635
-draw_segments(lsegment *s, int n, HPEN pen)draw_segments1389,33657
-r_3d_segments(int n, ISegment s, Elevation e, int light)r_3d_segments1402,33902
-static short costable[91];costable1421,34337
-cos64(int angle, int radius)cos641424,34376
-sin64(int angle, int radius)sin641451,34975
-r_arc(int x, int y, int w, int h, int s, int e, Any fill)r_arc1461,35103
-draw_arcs(larc *a, int n, HPEN pen)draw_arcs1467,35221
-#define MAX_SHADOW MAX_SHADOW1494,35942
-r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)r_3d_box1497,35970
-r_3d_rectangle(int x, int y, int w, int h, int z, COLORREF *colours)r_3d_rectangle1691,41649
-r_3d_line(int x1, int y1, int x2, int y2, Elevation e, int up)r_3d_line1729,42673
-#define X(X1770,43430
-#define Y(Y1771,43468
-r_3d_triangle(int x1, int y1, int x2, int y2, int x3, int y3,r_3d_triangle1774,43489
-r_3d_diamond(int x, int y, int w, int h, Elevation e, int up)r_3d_diamond1808,44288
-r_3d_ellipse(int x, int y, int w, int h, Elevation z, int up)r_3d_ellipse1877,45975
-r_msarc(int x, int y, int w, int h,	/* bounding box */r_msarc1932,47220
-r_ellipse(int x, int y, int w, int h, Any fill)r_ellipse1952,47821
-r_line(int x1, int y1, int x2, int y2)r_line1963,48073
-r_polygon(IPoint pts, int n, int close)r_polygon1983,48459
-r_path(Chain points, int ox, int oy, int radius, int closed, Image fill)r_path1989,48511
-r_op_image(Image image, int sx, int sy, int x, int y, int w, int h, Name op)r_op_image2020,49186
-r_image(Image image,r_image2052,50040
-r_winmf(HENHMETAFILE hmf, int x, int y, int w, int h)r_winmf2153,53302
-r_copy(int xf, int yf, int xt, int yt, int w, int h)r_copy2167,53558
-r_fill(int x, int y, int w, int h, Any fill)r_fill2191,54044
-r_fill_polygon(IPoint pts, int n)r_fill_polygon2206,54284
-r_caret(int cx, int cy, FontObj font)r_caret2223,54608
-r_fill_triangle(int x1, int y1, int x2, int y2, int x3, int y3)r_fill_triangle2255,55148
-r_triangle(int x1, int y1, int x2, int y2, int x3, int y3, Any fill)r_triangle2269,55467
-r_pixel(int x, int y, Any val)r_pixel2285,55761
-r_complement_pixel(int x, int y)r_complement_pixel2301,55994
-d_modify(void)d_modify2307,56064
-r_get_pixel(int x, int y)r_get_pixel2313,56099
-r_get_mono_pixel(int x, int y)r_get_mono_pixel2319,56187
-s_font(FontObj font)s_font2330,56451
-s_has_char(FontObj f, unsigned int c)s_has_char2358,57038
-f_domain(FontObj f, Name which, int *x, int *y)f_domain2364,57096
-s_default_char(FontObj font)s_default_char2371,57174
-s_ascent(FontObj f)s_ascent2377,57225
-s_descent(FontObj f)s_descent2385,57297
-s_height(FontObj f)s_height2393,57371
-c_width(unsigned int c, FontObj font)c_width2401,57466
-str_bits_as_font(String s, FontObj f, int *shift)str_bits_as_font2411,57612
-s_width_(String s, int from, int to)s_width_2438,58059
-str_width(String s, int from, int to, FontObj f)str_width2464,58491
-str_advance(String s, int from, int to, FontObj f)str_advance2497,59000
-s_print8(char8 *s, int l, int x, int y, FontObj f)s_print82506,59132
-s_print16(char16 *s, int l, int x, int y, FontObj f)s_print162516,59294
-s_print(String s, int x, int y, FontObj f)s_print2522,59429
-s_print_aligned(String s, int x, int y, FontObj f)s_print_aligned2531,59597
-str_text(String s, int x, int y)str_text2542,59991
-str_size(String s, FontObj font, int *width, int *height)str_size2550,60110
-#define MAX_TEXT_LINES MAX_TEXT_LINES2588,60985
-{ short	x;				/* origin x offset */x2591,61058
-  short	y;				/* origin y offset */y2592,61094
-  short	width;				/* pixel width of line */width2593,61130
-  short	height;				/* pixel height of line */height2594,61174
-  string text;				/* text of the line */text2595,61220
-} strTextLine;strTextLine2596,61261
-str_break_into_lines(String s, strTextLine *line, int *nlines)str_break_into_lines2600,61290
-str_compute_lines(strTextLine *lines, int nlines, FontObj font,str_compute_lines2638,62120
-ps_string(String s, FontObj font, int x, int y, int w, Name format, int flags)ps_string2669,62950
-str_string(String s, FontObj font,str_string2700,63682
-str_draw_text_lines(int acc, FontObj font,str_draw_text_lines2769,65187
-r_text_colour(Any colour)r_text_colour2806,66002
-str_label(String s, int acc, FontObj font, int x, int y, int w, int h,str_label2821,66283
-str_stext(String s, int f, int len, Style style)str_stext2851,67071
-str_selected_string(String s, FontObj font,str_selected_string2888,67897
+x11/include.h,3702
+#define _PCE_X11_INCLUDED_PCE_X11_INCLUDED11,273
+#define O_MOTIF O_MOTIF14,331
+#define O_PPM O_PPM18,371
+#define PNM_PNM	PNM_PNM20,388
+#define PNM_PBM	PNM_PBM21,431
+#define PNM_PGM	PNM_PGM22,473
+#define PNM_PPM	PNM_PPM23,516
+#define PNM_ASCII PNM_ASCII25,559
+#define PNM_RAWBITS PNM_RAWBITS26,581
+#define PNM_RUNLEN PNM_RUNLEN27,603
+#define String String32,635
+#undef Bool	Bool38,824
+#undef index	index39,866
+#undef StringString40,909
+#define XMalloc(XMalloc43,940
+#define XFree(XFree44,978
+{ Widget	widget;widget56,1211
+  Window	busy_window;busy_window57,1228
+} frame_ws_ref;frame_ws_ref58,1250
+{ Display      *display_xref;		/* X-windows reference */display_xref66,1377
+  Widget	shell_xref;		/* Top of widget tree */shell_xref67,1434
+  Pixmap	root_bitmap;		/* Bitmap for GC creation */root_bitmap68,1481
+  DrawContext	pixmap_context;		/* Context for pixmap operations */pixmap_context69,1533
+  DrawContext	bitmap_context;		/* Context for bitmap operations */bitmap_context70,1600
+  int		depth;			/* depth of display */depth71,1667
+  unsigned long white_pixel;		/* a white pixel */white_pixel72,1706
+  unsigned long black_pixel;		/* a black pixel */black_pixel73,1756
+  unsigned long foreground_pixel;	/* foreground pixel */foreground_pixel74,1806
+  unsigned long background_pixel;	/* background pixel */background_pixel75,1863
+  Colormap	colour_map;		/* Colourmap of the display */colour_map76,1920
+} display_ws_ref, *DisplayWsXref;display_ws_ref77,1975
+} display_ws_ref, *DisplayWsXref;DisplayWsXref77,1975
+#define display_x11_ref(display_x11_ref79,2010
+typedef char cwidth;cwidth86,2179
+typedef struct xpce_font_info *XpceFontInfo;XpceFontInfo88,2201
+struct xpce_font_infoxpce_font_info90,2247
+{ XFontStruct  *info;			/* the X info structure */info91,2269
+  cwidth       *widths;			/* array of ints for the widths */widths92,2320
+struct draw_contextdraw_context99,2488
+{ Name		kind;			/* Kind of device */kind100,2508
+  GC		workGC;			/* Dynamic GC for simple graphicals */workGC102,2546
+  GC		clearGC;		/* Write current background */clearGC103,2601
+  GC		andGC;			/* Stipple background */andGC104,2648
+  GC		fillGC;			/* Tile/Stipple area */fillGC105,2688
+  GC		complementGC;		/* Complement an area */complementGC106,2728
+  GC		bitmapGC;		/* Paint bitmap to pixmap */bitmapGC107,2774
+  GC		copyGC;			/* Simple pixmap copy */copyGC108,2820
+  GC		opGC;			/* Logical area operations */opGC109,2861
+  GC		shadowGC;		/* Paint shadows */shadowGC110,2905
+  GC		reliefGC;		/* Paint opposite of shadow */reliefGC111,2942
+  int		pen;			/* Current pen */pen113,2993
+  int		depth;			/* #bits per pixel */depth114,3025
+  Name		dash;			/* Current dash pattern */dash115,3063
+  Name		arcmode;		/* Current arc mode (filling arcs) */arcmode116,3106
+  Any		fill;			/* Image or Colour */fill117,3162
+  Image		and_pattern;		/* Current andpattern */and_pattern118,3199
+  FontObj	font;			/* Current font */font119,3247
+  XFontStruct * font_info;		/* X-font for this display */font_info120,3284
+  cwidth      * char_widths;		/* array with widths of characters */char_widths121,3342
+  Any		colour;			/* Current colour */colour122,3410
+  Any		background;		/* Current background colour */background123,3448
+  unsigned long foreground_pixel;	/* X pixel value of foreground */foreground_pixel124,3500
+  unsigned long background_pixel;	/* X pixel value of background */background_pixel125,3568
+  Bool		subwindow_mode;		/* Draw in subwindows too */subwindow_mode126,3636
+  Bool		invert_mode;		/* Just invert */invert_mode127,3690
+  Elevation	elevation;		/* 3-d elevation GC's */elevation128,3730
 
-msw/msevent.c,353
-resetDispatch()resetDispatch13,273
-ws_dispatch(Int FD, Int timeout)ws_dispatch20,327
-ws_dispatch(Int FD, Int timeout)ws_dispatch39,711
-ws_event_in_subwindow(EventObj ev, Any root)ws_event_in_subwindow57,1012
-locStillTimer(HWND hwnd, UINT msg, UINT id, DWORD now)locStillTimer102,2109
-ws_init_loc_still_timer()ws_init_loc_still_timer111,2295
+x11/proto.h,0
 
-msw/msfont.c,1188
-#define FONTTABLESIZE	FONTTABLESIZE12,267
-#define STOCKFMT STOCKFMT13,293
-typedef struct _lname_lname15,332
-{ char *name;name16,354
-  int   value;value17,368
-} lname;lname18,383
-static lname charset_names[] = charset_names21,394
-static lname outprecision_names[] = outprecision_names32,595
-static lname clipprecision_names[] = clipprecision_names46,969
-static lname quality_names[] = quality_names54,1141
-static lname pitch_names[] = pitch_names62,1287
-static lname family_names[] = family_names70,1431
-named_attribute(char *s, lname *names, int mask, BYTE *value)named_attribute82,1678
-string_attribute(char *s, char *string, int len)string_attribute106,2071
-long_attribute(char *s, LONG *val)long_attribute124,2333
-bool_attribute(char *s, BYTE *val)bool_attribute142,2583
-parse_font(char *s, LOGFONT *lfont)parse_font150,2665
-ws_create_font(FontObj f, DisplayObj d)ws_create_font210,4714
-ws_destroy_font(FontObj f, DisplayObj d)ws_destroy_font309,7484
-static struct system_fontsystem_font322,7755
-{ char *name;name323,7781
-  int  id;id324,7795
-} window_fonts [] = window_fonts325,7806
-ws_system_fonts(DisplayObj d)ws_system_fonts338,8077
+x11/wstproto.h,0
 
-msw/msframe.c,2870
-#define MainWindow(MainWindow17,478
-static FrameObj current_frame;		/* hack for timing problem */current_frame20,586
-WinFrameClass()WinFrameClass23,663
-WinPopupFrameClass()WinPopupFrameClass52,1367
-frame_palette(FrameObj fr)frame_palette81,2135
-do_frame_wnd_proc(FrameObj fr,do_frame_wnd_proc95,2388
-service_frame(FrameObj fr)service_frame387,8945
-frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)frame_wnd_proc396,9129
-paint_icon(FrameObj fr)paint_icon415,9529
-get_point_frame(FrameObj fr, POINT *pt)get_point_frame437,10100
-get_window_holding_point(FrameObj fr, POINT *pt)get_window_holding_point445,10238
-keyboard_event_frame(FrameObj fr, Any id, unsigned long bmask)keyboard_event_frame459,10504
-ws_window_holding_point_frame(FrameObj fr)ws_window_holding_point_frame501,11418
-ws_created_frame(FrameObj fr)ws_created_frame510,11569
-ws_uncreate_frame(FrameObj fr)ws_uncreate_frame525,12017
-outer_frame_area(FrameObj fr, int *x, int *y, int *w, int *h, int limit)outer_frame_area547,12383
-ws_create_frame(FrameObj fr)ws_create_frame588,13365
-ws_realise_frame(FrameObj fr)ws_realise_frame642,14661
-#define PLACE_MARGIN PLACE_MARGIN653,14824
-#define PLACE_X_OFFSET PLACE_X_OFFSET654,14882
-#define PLACE_Y_OFFSET PLACE_Y_OFFSET655,14923
-ws_place_frame(FrameObj fr)ws_place_frame658,14962
-ws_raise_frame(FrameObj fr)ws_raise_frame699,15951
-ws_lower_frame(FrameObj fr)ws_lower_frame705,16026
-ws_topmost_frame(FrameObj fr, Bool topmost)ws_topmost_frame714,16169
-ws_attach_wm_prototols_frame(FrameObj fr)ws_attach_wm_prototols_frame727,16407
-ws_frame_bb(FrameObj fr, int *x, int *y, int *w, int *h)ws_frame_bb733,16471
-ws_x_geometry_frame(FrameObj fr, Name spec)ws_x_geometry_frame751,16755
-ws_geometry_frame(FrameObj fr, Int px, Int py, Int pw, Int ph)ws_geometry_frame800,17899
-ws_frame_background(FrameObj fr, Any c)ws_frame_background825,18382
-ws_border_frame(FrameObj fr, int b)ws_border_frame831,18490
-ws_busy_cursor_frame(FrameObj fr, CursorObj c)ws_busy_cursor_frame837,18537
-ws_set_icon_frame(FrameObj fr)ws_set_icon_frame887,19536
-ws_set_icon_label_frame(FrameObj fr)ws_set_icon_label_frame914,20035
-ws_set_icon_position_frame(FrameObj fr, int x, int y)ws_set_icon_position_frame920,20083
-ws_get_icon_position_frame(FrameObj fr, int *x, int *y)ws_get_icon_position_frame926,20150
-ws_status_frame(FrameObj fr, Name stat)ws_status_frame932,20223
-ws_set_label_frame(FrameObj fr)ws_set_label_frame964,20855
-ws_image_of_frame(FrameObj fr)ws_image_of_frame973,20989
-ws_transient_frame(FrameObj fr, FrameObj fr2)ws_transient_frame1017,22125
-ws_postscript_frame(FrameObj fr)ws_postscript_frame1023,22184
-ws_frame_cursor(FrameObj fr, CursorObj cursor)ws_frame_cursor1052,22792
-ws_grab_frame_pointer(FrameObj fr, Bool grab, CursorObj cursor)ws_grab_frame_pointer1067,23069
+x11/x11-compat.c,165
+dlopen(char *path, int mode)dlopen28,915
+dlsym(void *handle, char *symbol)dlsym36,1014
+dlclose(void *handle)dlclose44,1121
+__iconv_open()__iconv_open62,1534
 
-msw/msimage.c,3578
-#define OEMRESOURCE OEMRESOURCE10,247
-#define M_PI M_PI16,370
-#define OsError(OsError19,414
-#define FOR_MSW FOR_MSW22,465
-#undef offsetoffset26,512
-#define offset(offset27,526
-ws_init_image(Image image)ws_init_image39,817
-attach_ws_image(Image image)attach_ws_image45,887
-ws_destroy_image(Image image)ws_destroy_image57,1072
-ws_store_image(Image image, FileObj file)ws_store_image81,1511
-loadXImage(Image image, IOSTREAM *fd)loadXImage107,2002
-loadPNMImage(Image image, IOSTREAM *fd)loadPNMImage117,2279
-ws_load_old_image(Image image, IOSTREAM *fd)ws_load_old_image143,2896
-#define BM BM149,3003
-color_quads_in_bitmap_info(BITMAPINFOHEADER *hdr)color_quads_in_bitmap_info153,3081
-read_bitmap_info(Image img, IOSTREAM *fd)read_bitmap_info165,3355
-register_colours(BITMAPINFO *bmi)register_colours189,3996
-attach_dib_image(Image image, BITMAPINFO *bmi, BYTE *bits)attach_dib_image222,4836
-ws_load_windows_bmp_file(Image image, IOSTREAM *fd)ws_load_windows_bmp_file240,5297
-ws_load_windows_ico_file(Image image)ws_load_windows_ico_file273,6171
-readXpmImage(Image image, XpmImage *img, XpmInfo *info)readXpmImage403,9456
-ws_std_xpm_image(Name name, Image *global, char **data)ws_std_xpm_image454,10404
-ws_attach_xpm_image(Image image, XpmImage* xpmimg, XpmInfo* xpminfo)ws_attach_xpm_image474,10835
-#undef XPMTODIB	XPMTODIB506,11942
-ws_load_image_file(Image image)ws_load_image_file628,15094
-ws_save_image_file(Image image, FileObj file, Name fmt)ws_save_image_file690,16619
-windows_bitmap_from_dib(Image image)windows_bitmap_from_dib790,19127
-windows_bitmap_from_bits(Image image)windows_bitmap_from_bits832,20157
-ws_open_image(Image image, DisplayObj d)ws_open_image854,20526
-ws_close_image(Image image, DisplayObj d)ws_close_image929,22202
-ws_resize_image(Image image, Int w, Int h)ws_resize_image938,22352
-ws_scale_image(Image image, int w, int h)ws_scale_image973,23271
-rfloat(float f)rfloat1037,25104
-copy_bits(HDC dst, int dx0, int dy0, int dx1, int dy1,copy_bits1046,25214
-#define falmost(falmost1073,25835
-ws_rotate_image(Image image, int a)	/* 0<angle<360 */ws_rotate_image1076,25892
-ws_monochrome_image(Image image)ws_monochrome_image1231,30123
-ws_postscript_image(Image image, Int depth)ws_postscript_image1250,30534
-#undef rounduproundup1261,30801
-#define roundup(roundup1262,30816
-#define rescale(rescale1263,30863
-#define putByte(putByte1264,30906
-brightness(COLORREF rgb, int bright)brightness1271,31104
-postscriptDC(HDC hdc,				/* HDC to print from */postscriptDC1290,31399
-ws_sizeof_bits(int w, int h)ws_sizeof_bits1337,32419
-print_bits(unsigned long *addr)print_bits1345,32552
-mirror_byte(unsigned int b)mirror_byte1358,32768
-ws_create_image_from_x11_data(Image image, unsigned char *data, int w, int h)ws_create_image_from_x11_data1373,32952
-ws_image_bits_for_cursor(Image image, Name kind, int w, int h)ws_image_bits_for_cursor1412,33604
-black_mask(int w, int h)black_mask1494,35527
-ws_icon_from_image(Image img)ws_icon_from_image1508,35754
-struct system_brushsystem_brush1593,37788
-{ char *name;name1594,37808
-  int  id;id1595,37822
-struct system_imagesystem_image1598,37837
-{ char *name;name1599,37857
-  int  id;id1600,37871
-static struct system_brush window_brushes[] =window_brushes1607,38094
-static struct system_image window_images[] =window_images1621,38569
-ws_system_brushes(DisplayObj d)ws_system_brushes1663,39903
-ws_system_images()ws_system_images1682,40372
-ws_colour_map_for_image(Image img)ws_colour_map_for_image1727,41436
+x11/x11.c,292
+ws_initialise(int argc, char **argv)ws_initialise20,389
+ws_version()ws_version26,436
+ws_revision()ws_revision32,478
+ws_show_console(Name how)ws_show_console38,525
+ws_console_label(CharArray label)ws_console_label44,571
+ws_default_scrollbar_width()ws_default_scrollbar_width59,806
 
-msw/msmenu.c,2402
-{ Name		which;			/* up, left, down, right */which17,378
-  int		status;			/* up/down */status18,423
-  char *	imgname;		/* name of the image */imgname19,454
-  Image		img;			/* associated image */img20,497
-} sb_image_def;sb_image_def21,536
-static sb_image_def sbimages[] =sbimages24,554
-sb_image(Name which, int up)sb_image38,999
-ws_draw_scrollbar_arrow(ScrollBar s,ws_draw_scrollbar_arrow60,1655
-ws_arrow_height_scrollbar(ScrollBar s)ws_arrow_height_scrollbar83,2307
-static COLORREF thumb_colours[5];thumb_colours105,2905
-init_sb_thumb_colours()init_sb_thumb_colours108,2952
-ws_draw_sb_thumb(int x, int y, int w, int h)ws_draw_sb_thumb137,3644
-static COLORREF button_colours[5];button_colours150,3875
-static Colour   button_face;button_face151,3910
-init_button_colours()init_button_colours154,3952
-ws_3d_grey_rgb()ws_3d_grey_rgb174,4387
-ws_3d_grey()ws_3d_grey182,4470
-dotpoint(int x, int y, LPARAM hdc)dotpoint196,4670
-r_dotted_box(int x, int y, int w, int h)r_dotted_box207,4822
-ws_draw_button_face(DialogItem di, int x, int y, int w, int h,ws_draw_button_face224,5274
-static Elevation elevation1;		/* Generic hight-1 elevation */elevation1254,5860
-static Colour    WinBackground;		/* Generic window background */WinBackground255,5922
-static COLORREF  edit_colours[5];	/* elevation for entry-field */edit_colours256,5987
-static Image	 WinCombo;		/* @win_combo image */WinCombo257,6053
-static COLORREF  down_colours[3];	/* elevation for down-button */down_colours258,6101
-init_entry_resources()init_entry_resources261,6180
-ws_combo_box_width()ws_combo_box_width284,6824
-ws_stepper_width()ws_stepper_width292,6920
-ws_entry_field(int x, int y, int w, int h, int flags)ws_entry_field304,7320
-{ unsigned char x;			/* X-index in image */x366,9046
-  unsigned char y;			/* Y-index in image */y367,9090
-} checkbox_location;checkbox_location368,9134
-static checkbox_location checkboxes[] =checkboxes375,9410
-static Image CheckBoxes;		/* win_checkboxes */CheckBoxes386,9653
-static Image BtnCorners;		/* win_btncorners */BtnCorners387,9700
-#undef USE_MASKBLT	USE_MASKBLT389,9748
-init_checkboxes()init_checkboxes392,9821
-ws_draw_checkbox(int x, int y, int w, int h, int b, int flags)ws_draw_checkbox416,10373
-ws_checkbox_size(int flags, int *w, int *h)ws_checkbox_size473,12005
-ws_message_box(Any msg, int flags)ws_message_box491,12301
+x11/xcolour.c,650
+#define XBRIGHT XBRIGHT14,315
+x_colour_name(Name name)x_colour_name17,358
+ws_create_colour(Colour c, DisplayObj d)ws_create_colour34,616
+ws_uncreate_colour(Colour c, DisplayObj d)ws_uncreate_colour84,1994
+ws_colour_name(DisplayObj d, Name name)ws_colour_name97,2247
+ws_pixel_to_colour(DisplayObj d, unsigned long pixel)ws_pixel_to_colour112,2487
+ws_colour_cube(ColourMap cm, int size)ws_colour_cube133,3034
+ws_colour_map_colours(ColourMap cm)ws_colour_map_colours139,3084
+ws_create_colour_map(ColourMap cm, DisplayObj d)ws_create_colour_map145,3133
+ws_uncreate_colour_map(ColourMap cm, DisplayObj d)ws_uncreate_colour_map151,3201
 
-msw/msmetafile.c,2230
-#define META32_SIGNATURE META32_SIGNATURE17,488
-#define ALDUS_ID	ALDUS_ID18,546
-{ DWORD		key;key21,591
-  WORD		hmf;hmf22,605
-  SMALL_RECT    bbox;bbox23,618
-  WORD    	inch;inch24,640
-  DWORD   	reserved;reserved25,657
-  WORD    	checksum;checksum26,678
-} APMFILEHEADER;APMFILEHEADER27,699
-typedef APMFILEHEADER * PAPMFILEHEADER;PAPMFILEHEADER28,716
-#define APMSIZE APMSIZE29,756
-#define MAXPATHLEN MAXPATHLEN32,795
-Class ClassWinMF;			/* the class handle */ClassWinMF35,827
-  StringObj	summary;		/* Summary description */summary40,973
-  HENHMETAFILE  hmf;			/* The metafile handle */hmf41,1021
-static Chain WinMetaFiles;		/* @win_metafiles */WinMetaFiles47,1158
-initialiseWinMF(WinMF mf, FileObj f)initialiseWinMF50,1222
-closeWinMF(WinMF mf)closeWinMF69,1529
-unlinkWinMF(WinMF mf)unlinkWinMF81,1654
-closeAllWinMF(int rval)closeAllWinMF90,1786
-storeWinMF(WinMF mf, FileObj file)storeWinMF111,2273
-loadFdWinMF(WinMF mf, IOSTREAM *fd, ClassDef def)loadFdWinMF136,2750
-copyWinMF(WinMF to, WinMF from)copyWinMF162,3269
-cloneWinMF(WinMF from, WinMF clone)cloneWinMF178,3530
-set_area_from_rectl(Area a, RECTL *r)set_area_from_rectl188,3687
-getDimensionsWinMF(WinMF mf)getDimensionsWinMF197,3900
-hemfLoadMetafile(WinMF mf, const char *szFile)hemfLoadMetafile231,4713
-getMhfWinMF(WinMF mf)getMhfWinMF403,9061
-RedrawAreaWinMF(WinMF mf, Area a)RedrawAreaWinMF423,9478
-drawInWinMF(WinMF mf, Any obj, Point pos)drawInWinMF439,9784
-saveALDUS(WinMF mf, HMETAFILE ghmf, FileObj file,saveALDUS537,11793
-convert_enh_metafile(WinMF mf, HDC hdc)convert_enh_metafile650,14853
-saveWinMF(WinMF mf, FileObj file, Name format)saveWinMF678,15493
-ws_on_clipboard_metafile(WinMF mf, Name type)ws_on_clipboard_metafile746,17327
-CtoWinMetafile(HENHMETAFILE hmf)CtoWinMetafile791,18494
-static char *T_drawIn[] =T_drawIn807,18756
-static char *T_save[] =T_save809,18827
-static vardecl var_winmf[] =var_winmf814,18922
-static senddecl send_winmf[] =send_winmf825,19273
-#define get_winmf get_winmf840,19798
-static classvardecl rc_winmf[] =rc_winmf849,19880
-static Name winmf_termnames[] = { NAME_file };winmf_termnames860,20137
-makeClassWinMF(Class class)makeClassWinMF869,20321
+x11/xcommon.c,2420
+#undef rounduproundup16,357
+#define roundup(roundup17,372
+#define rescale(rescale18,419
+#define XBRIGHT XBRIGHT19,462
+XtAppContext	ThePceXtAppContext;	/* X toolkit application context */ThePceXtAppContext23,532
+x_error_handler(Display *display, XErrorEvent *error)x_error_handler30,715
+#define USE_XDEFAUL_APP_CONTEXT USE_XDEFAUL_APP_CONTEXT53,1460
+#undef XtCreateApplicationContextXtCreateApplicationContext57,1574
+#define XtCreateApplicationContext XtCreateApplicationContext58,1608
+pceXtAppContext(XtAppContext ctx)pceXtAppContext63,1686
+widgetWindow(PceWindow sw)widgetWindow97,2397
+widgetFrame(FrameObj fr)widgetFrame103,2465
+setXImageImage(Image image, XImage *i)setXImageImage108,2565
+#define XInternAtom(XInternAtom122,2836
+#define XGetAtomName(XGetAtomName123,2889
+DisplayAtom(DisplayObj d, Name name)DisplayAtom127,2954
+DisplayAtomToString(DisplayObj d, Atom atom)DisplayAtomToString135,3095
+FrameAtom(FrameObj fr, Name name)FrameAtom143,3227
+FrameAtomToString(FrameObj fr, Atom a)FrameAtomToString149,3313
+WmProtocols(FrameObj fr)WmProtocols155,3407
+getWMFrameFrame(FrameObj fr)getWMFrameFrame164,3587
+#define putByte(putByte200,4364
+postscriptXImage(XImage *im,postscriptXImage207,4558
+intensityXColor(XColor *c)intensityXColor286,6276
+getPixelColour(Colour c, DisplayObj d)getPixelColour296,6448
+x11_set_gc_foreground(DisplayObj d, Any fg, int gcs, GC *gc)x11_set_gc_foreground304,6583
+distanceColours(Name vt, XColor *c1, XColor *c2)distanceColours329,7190
+allocNearestColour(Display *display, Colormap map, int depth, Name vt,allocNearestColour346,7597
+makeSparceCInfo(Display *disp, Colormap cmap, XImage *img, int *ncolours)makeSparceCInfo417,9444
+greySparceCInfo(XColor **cinfo, int depth)greySparceCInfo471,10840
+freeSparceCInfo(XColor **table, int depth)freeSparceCInfo492,11362
+keycode_to_name(XEvent *event)keycode_to_name512,11674
+#define XK_Page_Up XK_Page_Up577,13614
+#define XK_Page_Down XK_Page_Down580,13670
+state_to_buttons(unsigned int state, Name name)state_to_buttons615,14610
+button_to_name(int press, unsigned int button)button_to_name643,15438
+CtoEvent(Any window, XEvent *event)	/* window or frame */CtoEvent656,15738
+#     define AnyButtonMask AnyButtonMask712,17157
+Status XSetWMProtocols (dpy, w, protocols, count)XSetWMProtocols744,17857
+void XtPopupSpringLoaded (widget)XtPopupSpringLoaded765,18336
 
-msw/msppm.c,500
-#undef rounduproundup12,266
-#define valdigit(valdigit13,281
-#define rescale(rescale14,314
-getNum(IOSTREAM *fd)getNum22,475
-read_ppm_file(IOSTREAM *fd, Name *kind)read_ppm_file56,932
-static int file_col;file_col332,5956
-putNum(int n, IOSTREAM *fd)putNum335,5989
-#undef BRIGHTBRIGHT356,6304
-#define BRIGHT BRIGHT357,6318
-#undef NOPIXELNOPIXEL358,6337
-#define NOPIXEL NOPIXEL359,6352
-write_pnm_file(IOSTREAM *fd, HBITMAP bm, int scale, int fmt, int encode)write_pnm_file362,6388
+x11/xconvert.c,1055
+#define O_GIFTOXPM O_GIFTOXPM15,336
+#define Round(Round41,1156
+read_bitmap_data(IOSTREAM *fd, int *w, int *h)read_bitmap_data44,1232
+defaultXDisplay()defaultXDisplay67,1887
+CreateXImageFromData(unsigned char *data, int width, int height)CreateXImageFromData79,2038
+readImageFile(Image image, IOSTREAM *fd)readImageFile103,2527
+#define MAX_SIZE MAX_SIZE136,3351
+static short hexTable[256];		/* conversion value */hexTable139,3422
+static int initialized = FALSE;		/* easier to fill in at run time */initialized140,3474
+#define HT_NODIGIT HT_NODIGIT142,3544
+initHexTable(void)initHexTable149,3717
+NextInt(IOSTREAM *fstream)NextInt180,4563
+read_x11_bitmap_file(IOSTREAM *fd, int *w, int *h)read_x11_bitmap_file209,5081
+#define	RETURN_ERROR RETURN_ERROR227,5661
+read_sun_icon_file(IOSTREAM *fd, int *width, int *height)read_sun_icon_file320,7685
+readXpmFile(Image image, IOSTREAM *fd)readXpmFile374,8817
+readGIFFile(Image image, IOSTREAM *fd)readGIFFile440,10323
+readJPEGFile(Image image, IOSTREAM *fd)readJPEGFile475,11092
 
-msw/msprinter.c,2395
-#define MAXPATHLEN MAXPATHLEN13,328
-#define WinError(WinError16,360
-Class ClassWinPrinter;			/* the class handle */ClassWinPrinter18,417
-typedef struct win_printer *WinPrinter;WinPrinter19,465
-{ HDC		hdc;			/* Device hdc */hdc22,521
-  PAGESETUPDLG	info;			/* Window page setup data */info23,552
-} ws_printer, *WsPrinter;ws_printer24,604
-} ws_printer, *WsPrinter;WsPrinter24,604
-  Name	    job_name;			/* Job Name */job_name29,720
-  Int	    job;			/* Job Id */job30,758
-  Any	    resolution;			/* Resolution of the device */resolution31,788
-  Point	    origin;			/* Origin of the coordinate system */origin32,843
-  Any	    device;			/* Output device */device33,903
-  WsPrinter ws_ref;			/* Windows data */ws_ref34,943
-static Chain  WinPrinters;		/* @win_printers */WinPrinters37,990
-initialiseWinPrinter(WinPrinter prt, Name jobname)initialiseWinPrinter44,1239
-resetDataWinPrinter(WinPrinter prt)resetDataWinPrinter63,1725
-unlinkWinPrinter(WinPrinter prt)unlinkWinPrinter81,2053
-closeAllWinPrinters(int rval)closeAllWinPrinters97,2296
-setupWinPrinter(WinPrinter prt, FrameObj fr)setupWinPrinter114,2580
-openWinPrinter(WinPrinter prt)openWinPrinter196,4678
-nextPageWinPrinter(WinPrinter prt)nextPageWinPrinter228,5421
-closeWinPrinter(WinPrinter prt)closeWinPrinter243,5723
-resolutionWinPrinter(WinPrinter prt, Any resolution)resolutionWinPrinter258,6019
-originWinPrinter(WinPrinter prt, Point origin)originWinPrinter294,6814
-getSizeWinPrinter(WinPrinter prt)getSizeWinPrinter315,7230
-getOffsetWinPrinter(WinPrinter prt)getOffsetWinPrinter328,7502
-{ int	mode;mode341,7782
-  Name	name;name342,7794
-} mapmode;mapmode343,7807
-static mapmode map[] =map346,7820
-nameToMapMode(Name name)nameToMapMode359,8133
-mapModeToName(int mode)mapModeToName372,8284
-mapModeWinPrinter(WinPrinter prt, Name mode)mapModeWinPrinter386,8439
-drawInWinPrinter(WinPrinter prt, Any obj, Point pos)drawInWinPrinter403,8763
-static char *T_drawIn[] =T_drawIn482,10272
-static vardecl var_winprinter[] =var_winprinter487,10370
-static senddecl send_winprinter[] =send_winprinter508,11222
-static getdecl get_winprinter[] =get_winprinter527,11951
-static classvardecl rc_winprinter[] =rc_winprinter536,12236
-static Name winprinter_termnames[] = { NAME_file };winprinter_termnames544,12421
-makeClassWinPrinter(Class class)makeClassWinPrinter553,12640
+x11/xcursor.c,513
+static Sheet	cursorNames = NIL;cursorNames18,412
+static struct standardCursorstandardCursor20,445
+{ char *name;				/* X name of the cursor */name21,474
+  int	id;				/* X font id of the cursor */id22,518
+} standard_cursors[] =standard_cursors23,561
+ws_init_cursor_font()ws_init_cursor_font106,2509
+ws_cursor_font_index(Name name)ws_cursor_font_index117,2747
+ws_create_cursor(CursorObj c, DisplayObj d)ws_create_cursor127,2936
+ws_destroy_cursor(CursorObj c, DisplayObj d)ws_destroy_cursor174,4121
 
-msw/msprocess.c,417
-#define MAXCMDLINE MAXCMDLINE15,334
-#define MAXPATHLEN MAXPATHLEN19,386
-getEnvironmentSizeProcess(Process p)getEnvironmentSizeProcess23,429
-createWin32EnvriomentBlock(Process p)createWin32EnvriomentBlock49,1195
-openProcess(Process p, CharArray cmd, int argc, CharArray *argv)openProcess78,1722
-ws_kill_process(Process p, int sig)ws_kill_process178,4594
-ws_done_process(Process p)ws_done_process193,4951
+x11/xdisplay.c,3209
+#define X11LastEventTime(X11LastEventTime14,316
+static XrmOptionDescRec opTable[] =opTable17,369
+ws_flush_display(DisplayObj d)ws_flush_display23,456
+ws_synchronise_display(DisplayObj d)ws_synchronise_display31,555
+ws_bell_display(DisplayObj d, int volume)ws_bell_display43,806
+ws_get_size_display(DisplayObj d, int *w, int *h)ws_get_size_display51,923
+ws_get_visual_type_display(DisplayObj d)ws_get_visual_type_display62,1168
+ws_depth_display(DisplayObj d)ws_depth_display85,1802
+ws_activate_screen_saver(DisplayObj d)ws_activate_screen_saver93,1893
+ws_deactivate_screen_saver(DisplayObj d)ws_deactivate_screen_saver101,2030
+ws_init_display(DisplayObj d)ws_init_display109,2168
+ws_legal_display_name(char *s)ws_legal_display_name129,2643
+ws_opened_display(DisplayObj d)ws_opened_display141,2826
+ws_open_display(DisplayObj d)ws_open_display158,3497
+ws_quit_display(DisplayObj d)ws_quit_display221,5248
+new_draw_context(DisplayObj d, Drawable drawable, Name kind)new_draw_context227,5342
+# define GCALL GCALL235,5626
+#undef GCALLGCALL290,7482
+ws_init_graphics_display(DisplayObj d)ws_init_graphics_display312,7932
+ws_foreground_display(DisplayObj d, Colour c)ws_foreground_display330,8259
+ws_background_display(DisplayObj d, Colour c)ws_background_display338,8392
+ws_draw_in_display(DisplayObj d, Graphical gr, Bool invert, Bool subtoo)ws_draw_in_display346,8525
+ws_grab_server(DisplayObj d)ws_grab_server358,8794
+ws_ungrab_server(DisplayObj d)ws_ungrab_server366,8896
+ws_display_connection_number(DisplayObj d)ws_display_connection_number374,9001
+ws_events_queued_display(DisplayObj d)ws_events_queued_display385,9187
+ws_set_cutbuffer(DisplayObj d, int n, String s)ws_set_cutbuffer402,9514
+ws_get_cutbuffer(DisplayObj d, int n)ws_get_cutbuffer415,9771
+static int	 selection_complete;selection_complete440,10282
+static StringObj selection_value;selection_value441,10314
+static Name	 selection_error;selection_error442,10348
+nameToSelectionAtom(DisplayObj d, Name name)nameToSelectionAtom445,10391
+atomToSelectionName(DisplayObj d, Atom a)atomToSelectionName455,10663
+ws_get_selection_timeout()ws_get_selection_timeout471,11033
+ws_set_selection_timeout(unsigned long time)ws_set_selection_timeout477,11127
+collect_selection_display(Widget w, XtPointer xtp,collect_selection_display483,11245
+ws_get_selection(DisplayObj d, Name which, Name target)ws_get_selection515,12020
+widgetToDisplay(Widget w)widgetToDisplay540,12610
+convert_selection_display(Widget w,convert_selection_display557,12867
+loose_selection_widget(Widget w, Atom *selection)loose_selection_widget594,13897
+ws_disown_selection(DisplayObj d, Name selection)ws_disown_selection607,14188
+ws_own_selection(DisplayObj d, Name selection, Name type)ws_own_selection617,14384
+ws_window_manager(DisplayObj d)ws_window_manager632,14688
+ws_synchronous(DisplayObj d)ws_synchronous646,14855
+ws_asynchronous(DisplayObj d)ws_asynchronous654,14964
+psdepthXImage(XImage *im)psdepthXImage665,15176
+ws_postscript_display(DisplayObj d)ws_postscript_display675,15320
+ws_grab_image_display(DisplayObj d, int x, int y, int width, int height)ws_grab_image_display703,15951
 
-msw/msproto.h,0
+x11/xdraw.c,8729
+#define MAX_CLIP_NESTING	MAX_CLIP_NESTING80,2459
+static int quick;			/* display quick_and_dirty */quick82,2490
+static struct environmentenvironment84,2541
+{ iarea		area;			/* clip rectangle */area85,2567
+  int		level;			/* nesting level */level86,2605
+} environments[MAX_CLIP_NESTING];environments87,2641
+static struct environment *env = environments;env89,2676
+typedef struct d_context *DContext;DContext91,2724
+static struct d_contextd_context93,2761
+{ DContext	parent;			/* saved parent context */parent94,2785
+  DrawContext	gcs;			/* The X GC's */                  gcs95,2833
+  Display      *display;		/* Current drawing display */     display96,2889
+  Drawable	drawable;		/* X Object we are drawing on */  drawable97,2950
+  Name		kind;			/* Drawable kind */               kind98,3007
+  int		depth;			/* depth of drawable */           depth99,3058
+  DisplayObj	pceDisplay;		/* PCE display object */          pceDisplay100,3109
+  Image		cache;			/* Actually writing here */       cache101,3170
+  Window	window;			/* Window we are caching for */   window102,3223
+  Any		default_background;	/* Default background colour */    default_background103,3277
+  Any		default_colour;		/* Colour for @default */default_colour104,3340
+  int		cache_x;		/* X-offset of cache */           cache_x105,3390
+  int		cache_y;		/* Y-offset of cache */           cache_y106,3442
+  int		cache_w;		/* Width of cache */              cache_w107,3494
+  int		cache_h;		/* Height of cache */cache_h108,3546
+  int		offset_x;		/* Paint offset in X direction */offset_x109,3585
+  int		offset_y;		/* Paint offset in Y direction */offset_y110,3637
+  int		origin_x;		/* Origin-X relative to drawable */origin_x111,3689
+  int		origin_y;origin_y112,3743
+  int		fixed_colours;		/* The colours are fixed */fixed_colours113,3760
+  Any		colour;colour115,3851
+  Any		background;background116,3866
+} context;context117,3885
+#define X(X119,3897
+#define Y(Y120,3935
+#define Translate(Translate121,3973
+#define Clip(Clip122,4026
+resetDraw(void)resetDraw127,4112
+d_push_context(void)d_push_context141,4307
+d_pop_context()d_pop_context155,4588
+d_offset(int x, int y)d_offset166,4773
+r_offset(int x, int y)r_offset175,4913
+d_display(DisplayObj d)d_display183,5002
+d_ensure_display()d_ensure_display208,5429
+d_flush(void)d_flush215,5529
+d_window(PceWindow sw, int x, int y, int w, int h, int clear, int limit)d_window225,5836
+d_image(Image i, int x, int y, int w, int h)d_image313,8386
+d_xwindow(DisplayObj d, Window win, int x, int y, int w, int h)d_xwindow371,9670
+d_screen(DisplayObj d)d_screen399,10207
+d_clip(int x, int y, int w, int h)d_clip415,10547
+# define CLIP(CLIP438,11102
+d_done()d_done448,11323
+d_clip_done(void)d_clip_done477,12056
+#   undef CLIPCLIP498,12516
+intersection_iarea(IArea a, IArea b)intersection_iarea503,12540
+clip_area(int *x, int *y, int *w, int *h)clip_area522,12912
+in_clip(int x, int y)in_clip532,13103
+r_clear(int x, int y, int w, int h)r_clear546,13364
+r_complement(int x, int y, int w, int h)r_complement565,13850
+r_and(int x, int y, int w, int h, Image pattern)r_and578,14097
+r_thickness(int pen)r_thickness596,14477
+static struct dashpatterndashpattern608,14756
+{ Name	dash;dash609,14782
+  int	line_style;line_style610,14795
+  char *dash_list;dash_list611,14813
+  int	dash_list_length;dash_list_length612,14832
+} dash_patterns[] =dash_patterns613,14856
+r_dash(Name name)r_dash625,15219
+d_pen(Pen pen)d_pen649,15750
+r_fillpattern(Any fill, Name which)	/* image or colour */r_fillpattern658,15897
+r_arcmode(Name mode)r_arcmode716,17648
+r_andpattern(Image i)r_andpattern727,17870
+r_fix_colours(Any fg, Any bg, ColourContext ctx)r_fix_colours752,18492
+r_unfix_colours(ColourContext ctx)r_unfix_colours770,18873
+r_default_colour(Any c)r_default_colour780,19045
+r_colour(Any c)r_colour795,19267
+r_background(Any c)r_background839,20328
+r_swap_background_and_foreground()r_swap_background_and_foreground891,21670
+r_subwindow_mode(Bool val)r_subwindow_mode902,21859
+r_invert_mode(Bool val)r_invert_mode919,22462
+r_translate(int x, int y, int *ox, int *oy)r_translate948,23265
+r_box(int x, int y, int w, int h, int r, Any fill)r_box961,23460
+#define FILL(FILL1070,26612
+#undef FILLFILL1076,26824
+r_shadow_box(int x, int y, int w, int h, int r, int shadow, Image fill)r_shadow_box1097,27167
+#define MAX_SHADOW MAX_SHADOW1113,27558
+r_elevation(Elevation e)r_elevation1116,27593
+r_elevation_fillpattern(Elevation e, int up)r_elevation_fillpattern1156,28817
+r_3d_segments(int n, ISegment s, Elevation e, int light)r_3d_segments1187,29411
+r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)r_3d_box1209,29859
+r_3d_line(int x1, int y1, int x2, int y2, Elevation e, int up)r_3d_line1439,36684
+step_to(int *x1, int *y1, int tx, int ty)step_to1485,37588
+r_3d_triangle(int x1, int y1, int x2, int y2, int x3, int y3,r_3d_triangle1499,37774
+r_3d_diamond(int x, int y, int w, int h, Elevation e, int up)r_3d_diamond1564,39174
+r_arc(int x, int y, int w, int h, int s, int e, Any fill)r_arc1635,40853
+r_ellipse(int x, int y, int w, int h, Any fill)r_ellipse1683,41811
+r_3d_ellipse(int x, int y, int w, int h, Elevation z, int up)r_3d_ellipse1689,41906
+r_line(int x1, int y1, int x2, int y2)r_line1744,43297
+r_polygon(IPoint pts, int n, int close)r_polygon1771,43801
+r_path(Chain points, int ox, int oy, int radius, int closed, Image fill)r_path1794,44262
+r_op_image(Image image, int sx, int sy, int x, int y, int w, int h, Name op)r_op_image1863,45927
+r_image(Image image,r_image1900,46920
+r_fill(int x, int y, int w, int h, Any pattern)r_fill2066,51905
+r_fill_polygon(IPoint pts, int n)r_fill_polygon2083,52448
+r_caret(int cx, int cy, FontObj font)r_caret2098,52767
+r_fill_triangle(int x1, int y1, int x2, int y2, int x3, int y3)r_fill_triangle2131,53308
+r_triangle(int x1, int y1, int x2, int y2, int x3, int y3, Any fill)r_triangle2147,53619
+r_pixel(int x, int y, Any val)r_pixel2165,54143
+r_complement_pixel(int x, int y)r_complement_pixel2184,54591
+static Drawable  last_drawable = 0;last_drawable2196,54864
+d_modify()d_modify2199,54908
+r_get_mono_pixel(int x, int y)r_get_mono_pixel2206,55019
+r_get_pixel(int x, int y)r_get_pixel2212,55144
+#define MAX_CHAR MAX_CHAR2255,56307
+s_char_struct(XFontStruct *info, int c)s_char_struct2259,56381
+s_has_char(FontObj f, unsigned int c)s_has_char2287,57141
+f_domain(FontObj f, Name which, int *x, int *y)f_domain2301,57357
+s_default_char(FontObj font)s_default_char2317,57639
+s_font(FontObj f)s_font2325,57748
+s_ascent(FontObj f)s_ascent2343,58122
+s_descent(FontObj f)s_descent2351,58205
+s_height(FontObj f)s_height2359,58290
+lbearing(unsigned int c, XFontStruct *info)lbearing2367,58414
+c_width(unsigned int c, FontObj font)c_width2385,58720
+str_bits_as_font(String s, FontObj f, int *shift)str_bits_as_font2396,58912
+s_width_(String s, int from, int to)s_width_2423,59352
+str_width(String s, int from, int to, FontObj f)str_width2466,60206
+str_advance(String s, int from, int to, FontObj f)str_advance2499,60715
+s_print8(char8 *s, int l, int x, int y, FontObj f)s_print82528,61233
+s_print16(char16 *s, int l, int x, int y, FontObj f)s_print162539,61435
+s_print(String s, int x, int y, FontObj f)s_print2550,61654
+s_print_aligned(String s, int x, int y, FontObj f)s_print_aligned2559,61822
+str_stext(String s, int f, int len, int x, int y, Style style)str_stext2573,62119
+str_text(String s, int x, int y)str_text2629,63430
+#define MAX_TEXT_LINES MAX_TEXT_LINES2662,64199
+{ short	x;				/* origin x offset */x2665,64272
+  short	y;				/* origin y offset */y2666,64308
+  short	width;				/* pixel width of line */width2667,64344
+  short	height;				/* pixel height of line */height2668,64388
+  string text;				/* text of the line */text2669,64434
+} strTextLine;strTextLine2670,64475
+str_break_into_lines(String s, strTextLine *line, int *nlines)str_break_into_lines2674,64504
+str_compute_lines(strTextLine *lines, int nlines, FontObj font,str_compute_lines2712,65334
+str_size(String s, FontObj font, int *width, int *height)str_size2743,66110
+str_string(String s, FontObj font, int x, int y, int w, int h,str_string2778,66756
+str_selected_string(String s, FontObj font,str_selected_string2810,67560
+ps_string(String s, FontObj font, int x, int y, int w, Name format, int flags)ps_string2863,69034
+str_draw_text_lines(int acc, FontObj font,str_draw_text_lines2899,70072
+r_text_colour(Any c)r_text_colour2935,70882
+str_label(String s, int acc, FontObj font, int x, int y, int w, int h,str_label2948,71065
 
-msw/msreadimage.c,539
-#define Round(Round25,773
-read_bitmap_data(IOSTREAM *fd, int *w, int *h)read_bitmap_data32,943
-#define MAX_SIZE MAX_SIZE53,1521
-static short hexTable[256];		/* conversion value */hexTable56,1592
-static int initialized = FALSE;		/* easier to fill in at run time */initialized57,1644
-#define HT_NODIGIT HT_NODIGIT59,1714
-initHexTable(void)initHexTable66,1887
-NextInt(IOSTREAM *fstream)NextInt97,2733
-read_x11_bitmap_file(IOSTREAM *fd, int *w, int *h)read_x11_bitmap_file128,3299
-#define	RETURN_ERROR RETURN_ERROR146,3879
+x11/xevent.c,753
+#define MAX_DECORATION_NESTING	MAX_DECORATION_NESTING25,482
+#define DISPATCH_RUNNING	DISPATCH_RUNNING31,619
+#define DISPATCH_INPUT	DISPATCH_INPUT32,646
+#define DISPATCH_TIMEOUT	DISPATCH_TIMEOUT33,672
+static int*	    dispatch_status_address;dispatch_status_address35,700
+resetDispatch()resetDispatch38,747
+is_pending(XtPointer ctx, int *source, XtInputId *id)is_pending44,813
+is_timeout(XtPointer ctx, XtIntervalId *id)is_timeout50,970
+#define FD_ZERO(FD_ZERO56,1123
+#define FD_SET(FD_SET57,1166
+static int dispatch_fd = -1;dispatch_fd60,1226
+ws_dispatch(Int FD, Int timeout)ws_dispatch63,1263
+ws_discard_input(const char *msg)ws_discard_input124,2745
+ws_event_in_subwindow(EventObj ev, Any root)ws_event_in_subwindow143,3081
 
-msw/msstream.c,1501
-#undef sendsend13,313
-#define send send15,346
-#define USE_API_THREAD USE_API_THREAD19,420
-#define WM_SOCKET	WM_SOCKET21,446
-#define WM_PROCESS_INPUT WM_PROCESS_INPUT22,480
-#define WM_PROCESS_EXIT WM_PROCESS_EXIT23,520
-static int input_to_handle;input_to_handle34,846
-findSocketObject(SOCKET sock)findSocketObject37,889
-handleInputSocket(Socket s)handleInputSocket64,1360
-socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)socket_wnd_proc81,1695
-HiddenFrameClass()HiddenFrameClass164,3815
-static HWND pce_hidden_window;pce_hidden_window192,4476
-destroyHiddenWindow(int rval)destroyHiddenWindow195,4520
-PceHiddenWindow()PceHiddenWindow204,4655
-ws_close_input_stream(Stream obj)ws_close_input_stream223,5098
-ws_close_output_stream(Stream obj)ws_close_output_stream242,5439
-ws_close_stream(Stream obj)ws_close_stream260,5714
-ws_listen_socket(Socket s)ws_listen_socket274,6023
-ws_input_stream(Stream s)ws_input_stream284,6199
-ws_write_stream_data(Stream s, void *data, int len)ws_write_stream_data315,7028
-#undef sendsend318,7144
-#define send send326,7334
-ws_read_stream_data(Stream s, void *data, int len)ws_read_stream_data340,7562
-process_thread(void *context)process_thread364,8062
-eof_process(Process p, int status)eof_process424,9574
-ws_read_process(Process p, char *buffer, int size, Int timeout)ws_read_process431,9690
-#define BLOCKSIZE BLOCKSIZE483,11032
-ws_read_line_stream(Stream s, Int timeout)ws_read_line_stream486,11065
+x11/xfont.c,318
+#define MAX_CHAR MAX_CHAR14,312
+#define BOUNDS(BOUNDS15,333
+make_font_char_widths(XFontStruct *info)make_font_char_widths18,417
+ws_create_font(FontObj f, DisplayObj d)ws_create_font89,2479
+ws_destroy_font(FontObj f, DisplayObj d)ws_destroy_font128,3459
+ws_system_fonts(DisplayObj d)ws_system_fonts140,3698
 
-msw/mstimer.c,267
-static HashTable TimerTable;TimerTable12,268
-getIdTimer(Timer tm)getIdTimer15,310
-setIdTimer(Timer tm, UINT id)setIdTimer21,375
-timer_proc(HWND hwnd, UINT msg, UINT id, DWORD now)timer_proc28,516
-ws_status_timer(Timer tm, Name status)ws_status_timer53,1042
+x11/xframe.c,2514
+#define XMSTRINGDEFINESXMSTRINGDEFINES16,346
+#define MainWindow(MainWindow24,564
+setWidgetFrame(FrameObj fr, Widget w)setWidgetFrame33,781
+setBusyWindowFrame(FrameObj fr, Window w)setBusyWindowFrame44,1002
+busyWindowFrame(FrameObj fr)busyWindowFrame55,1232
+ws_created_frame(FrameObj fr)ws_created_frame64,1437
+ws_uncreate_frame(FrameObj fr)ws_uncreate_frame73,1525
+ws_create_frame(FrameObj fr)ws_create_frame98,2050
+ws_realise_frame(FrameObj fr)ws_realise_frame163,3894
+ws_window_holding_point_frame(FrameObj fr)ws_window_holding_point_frame201,4784
+ws_raise_frame(FrameObj fr)ws_raise_frame224,5206
+ws_lower_frame(FrameObj fr)ws_lower_frame239,5523
+ws_attach_wm_prototols_frame(FrameObj fr)ws_attach_wm_prototols_frame253,5791
+service_frame(FrameObj fr)service_frame283,6502
+destroyFrame(Widget w, FrameObj fr, XtPointer data)destroyFrame296,6817
+x_event_frame(Widget w, FrameObj fr, XEvent *event)x_event_frame308,7037
+xEventFrame(Widget w, FrameObj fr, XEvent *event)xEventFrame405,9418
+ws_frame_cursor(FrameObj fr, CursorObj cursor)ws_frame_cursor416,9641
+ws_grab_frame_pointer(FrameObj fr, Bool grab, CursorObj cursor)ws_grab_frame_pointer433,9973
+updateAreaFrame(FrameObj fr, Int border)updateAreaFrame463,10647
+ws_frame_bb(FrameObj fr, int *x, int *y, int *w, int *h)ws_frame_bb499,11407
+ws_x_geometry_frame(FrameObj fr, Name spec)ws_x_geometry_frame521,11845
+ws_geometry_frame(FrameObj fr, Int x, Int y, Int w, Int h)ws_geometry_frame579,13333
+ws_border_frame(FrameObj fr, int b)ws_border_frame618,14421
+ws_busy_cursor_frame(FrameObj fr, CursorObj c)ws_busy_cursor_frame635,14738
+#define BlockAllMask BlockAllMask642,14882
+ws_frame_background(FrameObj fr, Any c)ws_frame_background696,16403
+ws_set_icon_frame(FrameObj fr)ws_set_icon_frame723,16997
+ws_set_icon_label_frame(FrameObj fr)ws_set_icon_label_frame740,17293
+ws_set_icon_position_frame(FrameObj fr, int x, int y)ws_set_icon_position_frame755,17507
+ws_get_icon_position_frame(FrameObj fr, int *x, int *y)ws_get_icon_position_frame772,17816
+ws_status_frame(FrameObj fr, Name status)ws_status_frame793,18162
+ws_topmost_frame(FrameObj fr, Bool topmost)ws_topmost_frame813,18571
+ws_set_label_frame(FrameObj fr)ws_set_label_frame823,18721
+ws_image_of_frame(FrameObj fr)ws_image_of_frame838,19010
+ws_transient_frame(FrameObj fr, FrameObj fr2)ws_transient_frame870,19760
+psdepthXImage(XImage *im)psdepthXImage885,20032
+ws_postscript_frame(FrameObj fr)ws_postscript_frame896,20179
 
-msw/mswin.c,1107
-HINSTANCE ThePceHInstance;		/* Global handle */ThePceHInstance17,389
-#define initHinstance(initHinstance20,459
-pceDLLEntry(HINSTANCE instance, DWORD reason, LPVOID reserved)pceDLLEntry39,1322
-main()main55,1751
-initHinstance(int argc, char **argv)initHinstance64,1878
-ws_version(void)ws_version84,2363
-ws_revision(void)ws_revision92,2447
-iswin32s()iswin32s100,2532
-ws_os(void)ws_os108,2651
-#define ConsoleWindow(ConsoleWindow115,2735
-ConsoleWindow()ConsoleWindow120,2812
-ws_show_console(Name how)ws_show_console132,2972
-ws_console_label(CharArray label)ws_console_label154,3355
-ws_check_intr()ws_check_intr165,3497
-ws_msleep(int time)ws_msleep171,3558
-ws_getpid()ws_getpid177,3609
-ws_mousebuttons()ws_mousebuttons188,3831
-remove_ilerrout(int status)remove_ilerrout195,3919
-ws_initialise(int argc, char **argv)ws_initialise202,3986
-ws_default_scrollbar_width()ws_default_scrollbar_width211,4128
-#define MAXMESSAGE MAXMESSAGE218,4252
-WinStrError(int error, ...)WinStrError221,4282
-get_logical_drive_strings(int bufsize, char *buf)get_logical_drive_strings242,4680
+x11/ximage.c,1897
+#define M_PI M_PI21,413
+#define ROUNDUP(ROUNDUP25,473
+getXImageImage(Image image)getXImageImage29,545
+ws_init_image(Image image)ws_init_image35,606
+ws_destroy_image(Image image)ws_destroy_image41,673
+#define DataSize(DataSize55,928
+getXImageImageFromScreen(Image image)getXImageImageFromScreen58,1009
+ws_store_image(Image image, FileObj file)ws_store_image75,1398
+loadXImage(Image image, IOSTREAM *fd)loadXImage112,2169
+loadPNMImage(Image image, IOSTREAM *fd)loadPNMImage163,3429
+ws_load_old_image(Image image, IOSTREAM *fd)ws_load_old_image190,4038
+ws_load_image_file(Image image)ws_load_image_file202,4252
+ws_std_xpm_image(Name name, Image *global, char **data)ws_std_xpm_image242,5098
+ws_save_image_file(Image image, FileObj file, Name fmt)ws_save_image_file250,5222
+ws_open_image(Image image, DisplayObj d)ws_open_image341,7403
+ws_close_image(Image image, DisplayObj d)ws_close_image413,9318
+ws_resize_image(Image image, Int w, Int h)ws_resize_image428,9624
+MakeXImage(Display *dpy, XImage *oimage, int w, int h)MakeXImage479,11194
+buildIndex(unsigned width, unsigned rwidth)buildIndex523,12791
+ZoomXImage(Display *dsp, Visual *v, XImage *oimage,ZoomXImage552,13291
+ws_scale_image(Image image, int w, int h)ws_scale_image589,14038
+#define falmost(falmost624,14755
+RotateXImage(Display *dsp, XImage *oimage, float angle, Pixel bg)RotateXImage628,14823
+ws_rotate_image(Image image, int angle)	/* 0<angle<360 */ws_rotate_image751,17940
+ws_monochrome_image(Image image)ws_monochrome_image807,19385
+ws_postscript_image(Image image, Int depth)ws_postscript_image828,19799
+loadXliImage(Image image, FileObj file, Int bright)loadXliImage869,20689
+ws_create_image_from_x11_data(Image image,ws_create_image_from_x11_data910,21639
+ws_colour_map_for_image(Image image)ws_colour_map_for_image925,21928
+ws_system_images()ws_system_images931,21982
 
-msw/mswindow.c,2172
-static PceWindow current_window; /* hack to avoid Windows timing problem */current_window12,270
-static int clearing_update;		/* from ws_redraw_window() */clearing_update16,421
-static int invert_window = FALSE;	/* invert the window */invert_window17,480
-static int drawnest;			/* Draw nesting */drawnest18,538
-#define MAXPATHLEN MAXPATHLEN21,600
-WinWindowClass()WinWindowClass25,667
-window_palette(PceWindow sw)window_palette54,1392
-getExistingFrameWindow(PceWindow sw)getExistingFrameWindow65,1546
-window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)window_wnd_proc78,1805
-ws_created_window(PceWindow sw)ws_created_window376,8908
-ws_uncreate_window(PceWindow sw)ws_uncreate_window385,8998
-ws_create_window(PceWindow sw, PceWindow parent)ws_create_window403,9400
-ws_manage_window(PceWindow sw)ws_manage_window445,10470
-ws_unmanage_window(PceWindow sw)ws_unmanage_window451,10512
-ws_reassociate_ws_window(PceWindow from, PceWindow to)ws_reassociate_ws_window457,10556
-ws_geometry_window(PceWindow sw, int x, int y, int w, int h, int pen)ws_geometry_window469,10756
-ws_invalidate_window(PceWindow sw, Area a)ws_invalidate_window478,10960
-ws_redraw_window(PceWindow sw, IArea a, int clear)ws_redraw_window502,11539
-ws_flash_window(PceWindow sw, int msecs)ws_flash_window522,12075
-ws_flash_area_window(PceWindow sw, int x, int y, int w, int h, int msecs)ws_flash_area_window538,12398
-ws_scroll_window(PceWindow sw, int dx, int dy)ws_scroll_window561,12947
-ws_grab_keyboard_window(PceWindow sw, Bool val)ws_grab_keyboard_window571,13163
-ws_grab_pointer_window(PceWindow sw, Bool val)ws_grab_pointer_window577,13222
-ws_ungrab_all(void)ws_ungrab_all594,13468
-ws_move_pointer(PceWindow sw, int x, int y)ws_move_pointer600,13517
-ws_window_cursor(PceWindow sw, CursorObj c)ws_window_cursor616,13796
-ws_window_background(PceWindow sw, Colour c)ws_window_background645,14450
-ws_raise_window(PceWindow sw)ws_raise_window656,14695
-ws_lower_window(PceWindow sw)ws_lower_window662,14776
-getWinHandleWindow(PceWindow sw)getWinHandleWindow672,14958
-winHandleWindow(PceWindow sw, Int handle)winHandleWindow683,15086
+x11/xmenu.c,720
+ws_draw_scrollbar_arrow(ScrollBar s,ws_draw_scrollbar_arrow20,439
+ws_arrow_height_scrollbar(ScrollBar s)ws_arrow_height_scrollbar34,867
+ws_draw_sb_thumb(int x, int y, int w, int h)ws_draw_sb_thumb45,1171
+ws_3d_grey()ws_3d_grey55,1329
+ws_draw_button_face(DialogItem di, int x, int y, int w, int h,ws_draw_button_face67,1459
+ws_combo_box_width()ws_combo_box_width77,1668
+ws_stepper_width()ws_stepper_width83,1710
+ws_entry_field(int x, int y, int w, int h, int flags)ws_entry_field95,2092
+ws_draw_checkbox(int x, int y, int w, int h, int b, int flags)ws_draw_checkbox104,2257
+ws_checkbox_size(int flags, int *w, int *h)ws_checkbox_size110,2339
+ws_message_box(Any msg, int flags)ws_message_box122,2515
 
-msw/pcewh.c,747
-#define NOAUTOPROCSNOAUTOPROCS10,244
-#define DEBUGGING DEBUGGING15,323
-#define MAX_PCE_TASKS MAX_PCE_TASKS37,1218
-static HHOOK defhook;defhook39,1244
-static HTASK	task_list[MAX_PCE_TASKS];task_list45,1457
-static HWND	cwin;			/* current window */cwin46,1496
-static int	cwin_is_pce_window;cwin_is_pce_window47,1537
-static int	cwin_deleted;		/* cwin has been deleted */cwin_deleted48,1568
-WinMain(HANDLE hInstance, HANDLE x1, LPSTR cmdline, int x2)WinMain51,1634
-WEP(int nParameter)WEP81,2380
-AddTask(WORD task)AddTask91,2484
-DeleteTask(WORD task)DeleteTask115,2865
-DeleteWindow(HWND win)DeleteWindow135,3172
-isPceWindow(HWND hwnd)isPceWindow151,3397
-mouse_hook(int code, WPARAM wParam, LPARAM lParam)mouse_hook164,3583
+x11/xppm.c,1415
+#define BRIGHT BRIGHT43,1594
+#define NOPIXEL NOPIXEL44,1622
+#undef rounduproundup46,1645
+#define valdigit(valdigit47,1660
+#define roundup(roundup48,1693
+#define rescale(rescale49,1740
+#define TRUE TRUE52,1797
+#define FALSE FALSE53,1812
+#define Symbol Symbol56,1836
+#define symbol symbol57,1891
+static int ncolours;			/* colours in image */ncolours59,1918
+static int nmapped;			/* remapped colours */nmapped60,1964
+static int nfailed;			/* failed conversions */nfailed61,2009
+typedef struct symbol *Symbol;Symbol67,2165
+typedef struct table  *Table;Table68,2196
+struct symbolsymbol70,2227
+{ unsigned long name;name71,2241
+  unsigned long value;value72,2263
+  Symbol	next;next73,2286
+struct tabletable76,2305
+{ int 		size;size77,2318
+  Symbol	symbols[1];symbols78,2332
+#define hashvalue(hashvalue82,2358
+newTable(int size)newTable85,2412
+freeTable(Table t)freeTable99,2639
+addTable(Table t, unsigned long name, unsigned long value)addTable117,2849
+memberTable(Table t, unsigned long name)memberTable129,3106
+colourPixel(Display *disp, int depth, Colormap cmap,colourPixel146,3418
+getNum(IOSTREAM *fd)getNum180,4217
+read_ppm_file(Display *disp, Colormap cmap, int depth, IOSTREAM *fd)read_ppm_file214,4675
+static int file_col;file_col505,10374
+putNum(int n, IOSTREAM *fd)putNum508,10407
+write_pnm_file(IOSTREAM *fd, XImage *img,write_pnm_file530,10731
 
-msw/pcewh.h,78
-#define WM_WINENTER WM_WINENTER11,264
-#define WM_WINEXIT WM_WINEXIT15,325
+x11/xstream.c,883
+#define OsError(OsError23,464
+getXtInputIdStream(Stream s)getXtInputIdStream26,519
+setXtInputIdStream(Stream s, XtInputId id)setXtInputIdStream32,596
+ws_close_input_stream(Stream s)ws_close_input_stream38,674
+ws_close_output_stream(Stream s)ws_close_output_stream59,967
+ws_close_stream(Stream s)ws_close_stream68,1073
+ws_handle_stream_data(XtPointer xp, int *source, XtInputId *id)ws_handle_stream_data74,1117
+ws_input_stream(Stream s)ws_input_stream80,1224
+ws_accept(XtPointer xp, int *source, XtInputId *id)ws_accept95,1482
+ws_listen_socket(Socket s)ws_listen_socket101,1572
+ws_write_stream_data(Stream s, void *data, int len)ws_write_stream_data114,1785
+ws_read_stream_data(Stream s, void *data, int len)ws_read_stream_data125,2007
+ws_read_line_stream(Stream s, Int timeout)ws_read_line_stream135,2147
+ws_done_process(Process p)ws_done_process169,2804
 
-msw/readimag.c,695
-#define Round(Round32,998
-read_bitmap_data(FILE *fd, int *w, int *h)read_bitmap_data39,1168
-#define MAX_SIZE MAX_SIZE68,1973
-static short hexTable[256];		/* conversion value */hexTable71,2044
-static int initialized = FALSE;		/* easier to fill in at run time */initialized72,2096
-#define HT_NODIGIT HT_NODIGIT74,2166
-initHexTable(void)initHexTable81,2339
-NextInt(FILE *fstream)NextInt112,3185
-read_x11_bitmap_file(FILE *fd, int *w, int *h)read_x11_bitmap_file143,3745
-#define	RETURN_ERROR RETURN_ERROR161,4321
-read_sun_icon_file(FILE *fd, int *width, int *height)read_sun_icon_file254,6348
-read_sun_image_file(FILE *fd, int *width, int *height)read_sun_image_file299,7236
+x11/xtimer.c,217
+getIdTimer(Timer tm)getIdTimer15,333
+setIdTimer(Timer tm, XtIntervalId id)setIdTimer21,406
+trapTimer(XtPointer xtm, XtIntervalId *id)trapTimer27,487
+ws_status_timer(Timer tm, Name status)ws_status_timer53,975
 
-msw/simx.h,1032
-#define _SIMX_H_SIMX_H38,2066
-#define FUNC(FUNC52,2460
-#define LFUNC(LFUNC53,2495
-#define FUNC(FUNC55,2547
-#define LFUNC(LFUNC56,2582
-typedef HDC Display;			/* this should be similar */Display67,2896
-typedef void *Screen;			/* not used */Screen68,2948
-typedef void *Visual;			/* not used yet, is for GRAY, COLOR,Visual69,2987
-typedef void *Colormap;			/* should be COLORPALETTE, not doneColormap72,3065
-typedef COLORREF Pixel;Pixel75,3143
-#define PIXEL_ALREADY_TYPEDEFED	PIXEL_ALREADY_TYPEDEFED77,3168
-    Pixel pixel;pixel80,3252
-    BYTE red, green, blue;red81,3269
-    BYTE red, green, blue;green81,3269
-    BYTE red, green, blue;blue81,3269
-}      XColor;XColor82,3296
-    HBITMAP bitmap;bitmap85,3329
-    unsigned int width;width86,3349
-    unsigned int height;height87,3373
-    unsigned int depth;depth88,3398
-}      XImage;XImage89,3422
-#define ZPixmap ZPixmap123,4628
-#define True True126,4684
-#define False False127,4699
-#undef LFUNCLFUNC133,4845
-#undef FUNCFUNC134,4858
-
-msw/stream.c,149
-ws_close_stream(Stream s)ws_close_stream13,276
-ws_input_stream(Stream s)ws_input_stream19,313
-ws_listen_socket(Socket s)ws_listen_socket25,350
-
-msw/xcolours.c,221
-{ unsigned char red;red18,492
-  unsigned char green;green19,513
-  unsigned char blue;blue20,536
-  const char   *name;name21,558
-} xcolourdef;xcolourdef22,580
-static xcolourdef x11_colours[] =x11_colours24,595
-
-msw/xcursor.h,711
-{ unsigned char	width;width11,265
-  unsigned char height;height12,288
-  char		hot_x;hot_x13,312
-  char		hot_y;hot_y14,327
-  long		offset;offset15,342
-} cursor_glyph, *CursorGlyph;cursor_glyph16,358
-} cursor_glyph, *CursorGlyph;CursorGlyph16,358
-{ int		magic;			/* magic number */magic20,405
-  int		entries;		/* # entries in file */entries21,440
-  int		offset;			/* offset of entries */offset22,481
-  long		dsize;			/* Data size (for bits) in bytes */dsize23,522
-} cursor_glyph_file_header, *CursorGlyphFileHeader;cursor_glyph_file_header24,575
-} cursor_glyph_file_header, *CursorGlyphFileHeader;CursorGlyphFileHeader24,575
-#define XPCE_CURSOR_FILE_MAGIC XPCE_CURSOR_FILE_MAGIC26,628
-
-msw/xcursors.c,189
-static cursor_glyph_file_header x11_glyph_header =x11_glyph_header5,48
-static cursor_glyph x11_glyps[] =x11_glyps12,133
-static unsigned short x11_glyph_data[] =x11_glyph_data169,4482
-
-msw/xpcemh.c,813
-#define DEBUGGING DEBUGGING14,305
-#define _export _export23,450
-#define MAX_PCE_TASKS MAX_PCE_TASKS40,1180
-static HHOOK		defhook;defhook45,1353
-static DWORD	process_list[MAX_PCE_TASKS];process_list47,1377
-static HWND	cwin;			/* current window */cwin48,1419
-static int	cwin_is_pce_window;cwin_is_pce_window49,1460
-static int	cwin_deleted;		/* cwin has been deleted */cwin_deleted50,1491
-static int	count;			/* access counts */count51,1545
-init_mouse_hook(HINSTANCE hInstance, DWORD reason, LPVOID context)init_mouse_hook54,1598
-AddProcess(DWORD pid)AddProcess76,2062
-DeleteProcess(DWORD pid)DeleteProcess98,2386
-MouseHookDeleteWindow(HWND win)MouseHookDeleteWindow116,2634
-isPceWindow(HWND hwnd)isPceWindow130,2806
-mouse_hook(int code, WPARAM wParam, LPARAM lParam)mouse_hook145,3017
-
-msw/xpcemh.h,78
-#define WM_WINENTER WM_WINENTER11,265
-#define WM_WINEXIT WM_WINEXIT15,326
-
-msw/xpm.h,7465
-#define XPM_hXPM_h41,2080
-#define XpmFormat XpmFormat56,2633
-#define XpmVersion XpmVersion57,2653
-#define XpmRevision XpmRevision58,2674
-#define XpmIncludeVersion XpmIncludeVersion59,2696
-#define SYSV	SYSV68,2855
-#define NEED_STRCASECMP	NEED_STRCASECMP71,2984
-typedef unsigned long Pixel;	/* Index into colormap */Pixel80,3254
-#define PIXEL_ALREADY_TYPEDEFEDPIXEL_ALREADY_TYPEDEFED81,3309
-#define XpmColorError XpmColorError90,3465
-#define XpmSuccess XpmSuccess91,3492
-#define XpmOpenFailed XpmOpenFailed92,3519
-#define XpmFileInvalid XpmFileInvalid93,3546
-#define XpmNoMemory XpmNoMemory94,3573
-#define XpmColorFailed XpmColorFailed95,3600
-#define XpmFree(XpmFree98,3702
-    char *name;			/* Symbolic color name */name101,3751
-    char *value;		/* Color value */value102,3795
-    Pixel pixel;		/* Color pixel */pixel103,3831
-}      XpmColorSymbol;XpmColorSymbol104,3867
-    char *name;			/* name of the extension */name107,3908
-    unsigned int nlines;	/* number of lines in this extension */nlines108,3954
-    char **lines;		/* pointer to the extension array of strings */lines109,4019
-}      XpmExtension;XpmExtension110,4086
-    char *string;		/* characters string */string113,4125
-    char *symbolic;		/* symbolic name */symbolic114,4168
-    char *m_color;		/* monochrom default */m_color115,4209
-    char *g4_color;		/* 4 level grayscale default */g4_color116,4253
-    char *g_color;		/* other level grayscale default */g_color117,4306
-    char *c_color;		/* color default */c_color118,4362
-}      XpmColor;XpmColor119,4402
-    unsigned int width;		/* image width */width122,4437
-    unsigned int height;	/* image height */height123,4480
-    unsigned int cpp;		/* number of characters per pixel */cpp124,4524
-    unsigned int ncolors;	/* number of colors */ncolors125,4584
-    XpmColor *colorTable;	/* list of related colors */colorTable126,4633
-    unsigned int *data;		/* image data */data127,4688
-}      XpmImage;XpmImage128,4730
-    unsigned long valuemask;	/* Specifies which attributes are defined */valuemask131,4765
-    char *hints_cmt;		/* Comment of the hints section */hints_cmt132,4839
-    char *colors_cmt;		/* Comment of the colors section */colors_cmt133,4896
-    char *pixels_cmt;		/* Comment of the pixels section */pixels_cmt134,4955
-    unsigned int x_hotspot;	/* Returns the x hotspot's coordinate */x_hotspot135,5014
-    unsigned int y_hotspot;	/* Returns the y hotspot's coordinate */y_hotspot136,5083
-    unsigned int nextensions;	/* number of extensions */nextensions137,5152
-    XpmExtension *extensions;	/* pointer to array of extensions */extensions138,5209
-}      XpmInfo;XpmInfo139,5276
-    unsigned long valuemask;		/* Specifies which attributes arevaluemask142,5310
-    Visual *visual;			/* Specifies the visual to use */visual145,5394
-    Colormap colormap;			/* Specifies the colormap to use */colormap146,5450
-    unsigned int depth;			/* Specifies the depth */depth147,5511
-    unsigned int width;			/* Returns the width of the createdwidth148,5563
-    unsigned int height;		/* Returns the height of the createdheight150,5643
-    unsigned int x_hotspot;		/* Returns the x hotspot'sx_hotspot152,5724
-    unsigned int y_hotspot;		/* Returns the y hotspot'sy_hotspot154,5802
-    unsigned int cpp;			/* Specifies the number of char percpp156,5880
-    Pixel *pixels;			/* List of used color pixels */pixels158,5957
-    unsigned int npixels;		/* Number of pixels */npixels159,6010
-    XpmColorSymbol *colorsymbols;	/* Array of color symbols tocolorsymbols160,6060
-    unsigned int numsymbols;		/* Number of symbols */numsymbols162,6143
-    char *rgb_fname;			/* RGB text file name */rgb_fname163,6197
-    unsigned int nextensions;		/* number of extensions */nextensions164,6245
-    XpmExtension *extensions;		/* pointer to array of extensions */extensions165,6303
-    unsigned int ncolors;               /* Number of colors */ncolors167,6372
-    XpmColor *colorTable;               /* Color table pointer */colorTable168,6435
-    char *hints_cmt;                    /* Comment of the hints section */hints_cmt170,6539
-    char *colors_cmt;                   /* Comment of the colors section */colors_cmt171,6614
-    char *pixels_cmt;                   /* Comment of the pixels section */pixels_cmt172,6690
-    unsigned int mask_pixel;            /* Transparent pixel's color tablemask_pixel174,6783
-    unsigned int exactColors;		/* Only use exact colors for visual */exactColors178,6949
-    unsigned int closeness;		/* Allowable RGB deviation */closeness179,7019
-    unsigned int red_closeness;		/* Allowable red deviation */red_closeness180,7078
-    unsigned int green_closeness;	/* Allowable green deviation */green_closeness181,7141
-    unsigned int blue_closeness;	/* Allowable blue deviation */blue_closeness182,7207
-    int color_key;			/* Use colors from this color set */color_key183,7271
-}      XpmAttributes;XpmAttributes185,7330
-#define XpmVisual	XpmVisual188,7390
-#define XpmColormap	XpmColormap189,7419
-#define XpmDepth	XpmDepth190,7450
-#define XpmSize	XpmSize191,7478
-#define XpmHotspot	XpmHotspot192,7527
-#define XpmCharsPerPixel XpmCharsPerPixel193,7585
-#define XpmColorSymbols	XpmColorSymbols194,7620
-#define XpmRgbFilename	XpmRgbFilename195,7655
-#define XpmInfos	XpmInfos197,7727
-#define XpmReturnInfos	XpmReturnInfos198,7755
-#define XpmReturnPixels	XpmReturnPixels200,7807
-#define XpmExtensions XpmExtensions201,7842
-#define XpmReturnExtensions XpmReturnExtensions202,7878
-#define XpmExactColors XpmExactColors204,7921
-#define XpmCloseness	XpmCloseness205,7957
-#define XpmRGBCloseness	XpmRGBCloseness206,7990
-#define XpmColorKey	XpmColorKey207,8026
-#define XpmColorTable XpmColorTable209,8059
-#define XpmReturnColorTable XpmReturnColorTable210,8095
-#define XpmComments XpmComments213,8169
-#define XpmReturnComments XpmReturnComments214,8205
-#define XpmUndefPixel XpmUndefPixel218,8320
-#define XpmUndefPixel XpmUndefPixel221,8392
-#define XPM_MONO	XPM_MONO228,8570
-#define XPM_GREY4	XPM_GREY4229,8589
-#define XPM_GRAY4	XPM_GRAY4230,8609
-#define XPM_GREY XPM_GREY231,8629
-#define XPM_GRAY XPM_GRAY232,8649
-#define XPM_COLOR	XPM_COLOR233,8669
-#define FUNC(FUNC244,8885
-#define LFUNC(LFUNC245,8920
-#define FUNC(FUNC247,8973
-#define LFUNC(LFUNC248,9008
-#define XpmPixmapColorError XpmPixmapColorError413,13757
-#define XpmPixmapSuccess XpmPixmapSuccess414,13800
-#define XpmPixmapOpenFailed XpmPixmapOpenFailed415,13840
-#define XpmPixmapFileInvalid XpmPixmapFileInvalid416,13883
-#define XpmPixmapNoMemory XpmPixmapNoMemory417,13927
-#define XpmPixmapColorFailed XpmPixmapColorFailed418,13968
-#define XpmReadPixmapFile(XpmReadPixmapFile420,14013
-#define XpmWritePixmapFile(XpmWritePixmapFile422,14125
-#define PixmapColorError PixmapColorError426,14259
-#define PixmapSuccess PixmapSuccess427,14299
-#define PixmapOpenFailed PixmapOpenFailed428,14336
-#define PixmapFileInvalid PixmapFileInvalid429,14376
-#define PixmapNoMemory PixmapNoMemory430,14417
-#define PixmapColorFailed PixmapColorFailed431,14455
-#define ColorSymbol ColorSymbol433,14497
-#define XReadPixmapFile(XReadPixmapFile435,14533
-#define XWritePixmapFile(XWritePixmapFile437,14643
-#define XCreatePixmapFromData(XCreatePixmapFromData439,14751
-#define XCreateDataFromPixmap(XCreateDataFromPixmap441,14871
+x11/xwindow.c,1849
+static Chain grabbedWindows = NIL;grabbedWindows15,335
+setWidgetWindow(PceWindow sw, Widget w)setWidgetWindow27,761
+ws_created_window(PceWindow sw)ws_created_window42,997
+ws_uncreate_window(PceWindow sw)ws_uncreate_window51,1098
+ws_create_window(PceWindow sw, PceWindow parent)ws_create_window71,1574
+ws_manage_window(PceWindow sw)ws_manage_window129,3465
+ws_unmanage_window(PceWindow sw)ws_unmanage_window135,3541
+ws_reassociate_ws_window(PceWindow from, PceWindow to)ws_reassociate_ws_window149,3943
+ws_geometry_window(PceWindow sw, int x, int y, int w, int h, int pen)ws_geometry_window176,4834
+event_window(Widget w, XtPointer xsw, XtPointer xevent)event_window197,5329
+expose_window(Widget w, XtPointer xsw, XtPointer xregion)expose_window227,5968
+resize_window(Widget w, XtPointer xsw, XtPointer data)resize_window248,6590
+destroy_window(Widget w, XtPointer xsw, XtPointer data)destroy_window260,6877
+ws_grab_pointer_window(PceWindow sw, Bool val)ws_grab_pointer_window276,7246
+ws_grab_keyboard_window(PceWindow sw, Bool val)ws_grab_keyboard_window315,8306
+do_grab_window(PceWindow sw)do_grab_window337,8740
+ws_grab_pointer_window(PceWindow sw, Bool val)ws_grab_pointer_window368,9454
+ws_grab_keyboard_window(PceWindow sw, Bool val)ws_grab_keyboard_window388,9965
+ws_ungrab_all()ws_ungrab_all404,10291
+ws_flash_area_window(PceWindow sw, int x, int y, int w, int h, int msecs)ws_flash_area_window421,10594
+ws_flash_window(PceWindow sw, int msecs)ws_flash_window442,11048
+ws_move_pointer(PceWindow sw, int x, int y)ws_move_pointer465,11481
+ws_window_cursor(PceWindow sw, CursorObj cursor)ws_window_cursor478,11736
+ws_window_background(PceWindow sw, Any c)ws_window_background494,12114
+ws_raise_window(PceWindow sw)ws_raise_window520,12737
+ws_lower_window(PceWindow sw)ws_lower_window530,12950
