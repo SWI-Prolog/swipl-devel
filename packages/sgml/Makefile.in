@@ -48,7 +48,7 @@ DTDFILES=	HTML4.dcl HTML4.dtd HTML4.soc \
 
 all:		coflags $(TARGETS) $(PROGRAMS)
 
-coflags:
+coflags::
 		@echo $(COFLAGS) > .coflags
 
 sgml2pl.@SO@:	$(PLOBJ)
@@ -62,7 +62,7 @@ install:	$(TARGETS) $(LIBPL) install-dtd
 
 rpm-install:	install
 
-install-dtd:
+install-dtd::
 		mkdir -p $(PLBASE)/library/DTD
 		for f in $(DTDFILES); do \
 		   $(INSTALL_DATA) DTD/$$f $(PLBASE)/library/DTD; \
@@ -76,10 +76,10 @@ html-install::
 		mkdir -p $(PKGDOC)
 		$(INSTALL_DATA) doc/sgml2pl.html $(PKGDOC)
 
-check:
+check::
 		cd Test && $(PL) -f test.pl -g test,halt.
 
-uninstall:
+uninstall::
 		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))
 		(cd $(PLBASE)/library && rm -f $(LIBPL))
 		$(PL) -f none -g make -t halt
@@ -99,7 +99,7 @@ TAGS:		$(ALLCSRC)
 # Clean
 ################################################################
 
-clean:
+clean::
 		rm -f $(PLOBJ) *~ *.o *% a.out core config.log
 
 distclean:	clean
