@@ -15,6 +15,7 @@ PKG=	clib \
 	table \
 	sgml \
 	sgml/RDF \
+	http \
 	xpce
 
 # Define additional config options.  If you wish to build the multi-threaded

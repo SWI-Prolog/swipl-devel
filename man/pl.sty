@@ -125,6 +125,11 @@
 	    \defentry{#1}}{%
 	    \defentry{#1({\it #3})}}%
 	\index{#1/#2}\ignorespaces}
+\newcommand{\dcg}[3]{%
+	\ifthenelse{\equal{#2}{0}}{%
+	    \defentry{#1}}{%
+	    \defentry{#1({\it #3}) \texttt{\string-->}}}%
+	\index{#1/#2}\ignorespaces}
 \newcommand{\infixop}[3]{%
 	\defentry{{\it #2} #1 {\it #3}}%
 	\index{#1/2}\ignorespaces}
@@ -175,7 +180,7 @@
 \newcommand{\class}[1]{{\em #1}\index{#1 \string\idxtype{class}}}
 \newcommand{\classs}[1]{{\em #1s}\index{#1 \string\idxtype{class}}}
 \newcommand{\demo}[1]{{\sf #1}\index{#1 \string\idxtype{demo}}}
-\newcommand{\pllib}[1]{library({\tt #1})\index{#1 \string\idxtype{library}}}
+\newcommand{\pllib}[1]{{\tt #1}\index{#1 \string\idxtype{library}}}
 \newcommand{\clib}[1]{{\tt #1}\index{#1 \string\idxtype{library}}}
 \newcommand{\tool}[1]{{\em #1}\index{#1 \string\idxtype{tool}}}
 \newcommand{\constf}[1]{{\reffont #1}}

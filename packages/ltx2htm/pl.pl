@@ -133,6 +133,20 @@ cmd(predicate({RawName}, {Arity}, {Args}),
 	clean_name(RawName, Name),
 	sformat(RefName, '~w/~w', [Name, Arity]),
 	add_to_index(RefName, +RefName).
+cmd(dcg({RawName}, {'0'}, {_}),
+    #defitem([#label(RefName, #strong(Name)), #code(-->)])) :-
+	clean_name(RawName, Name),
+	sformat(RefName, '~w/0', [Name]),
+	add_to_index(RefName, +RefName).
+cmd(dcg({RawName}, {Arity}, {Args}),
+    #defitem([#label(RefName,
+		     [ #strong(Name), #embrace(#var(+Args))
+		     ]),
+	      #code(-->)
+	     ])) :-
+	clean_name(RawName, Name),
+	sformat(RefName, '~w/~w', [Name, Arity]),
+	add_to_index(RefName, +RefName).
 cmd(directive({RawName}, {Arity}, {Args}),
     #defitem(#label(RefName,
 		    [ #strong(Name), #embrace(#var(Args))
