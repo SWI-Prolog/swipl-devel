@@ -125,12 +125,12 @@ insert_associated_file.
 		 *******************************/
 
 edit_new(File) :-
-	edit(file(File)).
+	call(edit(file(File))).		% avoid autoloading
 	
 www_open(Id) :-
 	print_message(informational, opening_url(URL)),
 	Spec =.. [Id, '.'],
-	www_open_url(Spec),
+	call(www_open_url(Spec)),	% avoid autoloading
 	print_message(informational, opened_url(URL)).
 	
 about :-
@@ -166,10 +166,10 @@ gather_arg(file(Mode, Title), File) :-
 			   tuple('All files',   	   '*.*'))
 	),
 	current_prolog_flag(hwnd, HWND),
-	get(@display, win_file_name,
-	    Mode, Filter, Title,
-	    owner := HWND,
-	    File).
+	call(get(@display, win_file_name, 	% avoid autoloading
+		 Mode, Filter, Title,
+		 owner := HWND,
+		 File)).
 
 		 /*******************************
 		 *	      MESSAGES		*
