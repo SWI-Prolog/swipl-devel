@@ -1146,6 +1146,11 @@ keyboardFocusFrame(FrameObj fr, PceWindow sw)
 { if ( getHyperedObject(fr, NAME_keyboardFocus, DEFAULT) != sw )
     freeHypersObject(fr, NAME_keyboardFocus, DEFAULT);
 
+  if ( instanceOfObject(sw, ClassWindowDecorator) )
+  { WindowDecorator dw = (WindowDecorator)sw;
+    sw = dw->window;
+  }
+
   if ( instanceOfObject(sw, ClassWindow) )
   { newObject(ClassHyper, fr, sw, NAME_keyboardFocus, NAME_KeyboardFocus, EAV);
     if ( fr->input_focus == ON )
