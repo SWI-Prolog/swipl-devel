@@ -32,6 +32,9 @@
    byte first (like Motorola and SPARC, unlike Intel and VAX).  */
 #undef WORDS_BIGENDIAN
 
+/* Define to prepare for multi-threading */
+#undef _REENTRANT
+
 /* Define if you have the mmap function.  */
 #undef HAVE_MMAP
 

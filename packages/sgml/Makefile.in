@@ -5,6 +5,7 @@
 ################################################################
 
 PL=@PL@
+PLLD=@PLLD@
 PLBASE=@PLBASE@
 PLARCH=@PLARCH@
 PKGDOC=$(PLBASE)/doc/packages
@@ -48,7 +49,7 @@ coflags:
 		@echo $(COFLAGS) > .coflags
 
 sgml2pl.so:	$(PLOBJ)
-		$(LD) $(LDSOFLAGS) -o $@ $(PLOBJ)
+		$(PLLD) -shared -o $@ $(PLOBJ)
 
 install:	$(TARGETS) $(LIBPL) install-dtd
 		mkdir -p $(PLBASE)/lib/$(PLARCH)

@@ -3,8 +3,7 @@
 plld \- Create a SWI-Prolog embedded executable
 .SH SYNOPSIS
 .BR plld
-.BI "options" " " "c-files" " " "o-files" 
-.BI "pl-files"
+.B "options c-files o-files pl-files
 .br
 .SH DESCRIPTION
 The utility
@@ -93,6 +92,13 @@ Fake operation.  Together with
 this prints the commands that need to be executed without actually
 doing anything.
 .TP
+.BI \-E "cppargument ..."
+If the first option is
+.BR  \-E ","
+all subsequent options are appended and handed to the program selected
+by SWI-Prolog configure to run
+.BR cpp "."
+.TP
 .BI \-o " file"
 Specifies the name of the final executable.  The default is
 .BI a.out.
@@ -129,7 +135,7 @@ passed to the C-compiler.
 Specifies an additional library directory for the C-compiler.  By
 default, the runtime directory for the current architecture is passed.
 .TP
-.BI \-g|-I*|-D*|-U*
+.BI \-g|-I*|-D*|-U*|-O*|-W*
 Passed to the compiler as c-flags.  By default, the SWI-Prolog include
 directory is passed as additional include directory.  The following -D
 flags are added by plld: -D__SWI_PROLOG__ and -D__SWI_EMBEDDED__.

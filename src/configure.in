@@ -62,8 +62,9 @@ if test -r ../$BUILDDIR/conftest.unique; then
     AC_MSG_RESULT($BUILDDIR)
 else
     AC_MSG_RESULT(no)
-    BUILDDIR=src			dnl assume this
+    BUILDDIR=src
 fi
+rm -f conftest.unique
 
 AC_PROG_CC
 LDEXE="$CC"
@@ -143,6 +144,7 @@ case "$INSTALL" in
     ./*) INSTALL="`pwd`/$INSTALL" ;;
 esac
 AC_PROG_CPP
+AC_DEFINE_UNQUOTED(PROG_CPP, "$CPP")
 AC_ISC_POSIX
 AC_HEADER_STDC
 if test "$GCC" = "yes"; then
@@ -892,7 +894,7 @@ AC_DEFINE_UNQUOTED(SO_LD,      "$SO_LD")
 AC_DEFINE_UNQUOTED(SO_LDFLAGS, "$SO_LDFLAGS")
 AC_DEFINE_UNQUOTED(SO_pic,     "$SO_pic")
 AC_DEFINE_UNQUOTED(SO_PIC,     "$SO_PIC")
-SO=SO_EXT
+SO=$SO_EXT
 
 fi	dnl dlopen or shl_load
 

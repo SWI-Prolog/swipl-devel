@@ -521,6 +521,7 @@ usage()
 { fprintf(stderr,
 	  "usage: %s -help\n"
 	  "       %s [options] inputfile ...\n"
+	  "       %s -E cppargument ...\n"
 	  "\n"
 	  "options:\n"
 	  "       -o out           define output file\n"
@@ -557,7 +558,7 @@ usage()
 	  "       -Iincludedir     Include directory (C/C++)\n"
 	  "       -Llibdir         Library directory (C/C++ link)\n"
 	  "       -llib            library (C/C++)\n",
-	plld, plld);
+	plld, plld, plld);
 
   exit(1);
 }
@@ -1318,6 +1319,19 @@ main(int argc, char **argv)
   putenv("PLLD=true");			/* for subprograms */
 
   verbose = FALSE;
+					/* behave as cpp */
+  if ( argc > 0 && streq(argv[0], "-E") )
+  { arglist cppoptions;
+
+    memset(&cppoptions, 0, sizeof(cppoptions));
+    for(argc--, argv++ ; argc > 0; argc--, argv++)
+      appendArgList(&cppoptions, argv[0]);
+
+    callprog(PROG_CPP, &cppoptions);
+
+    return 0;
+  }
+
   parseOptions(argc, argv);
   defaultProgram(&pl, PROG_PL);
   getPrologOptions();

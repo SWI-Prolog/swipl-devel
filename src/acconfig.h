@@ -139,3 +139,5 @@
 /* Flags for compiling position-independent small object */
 #undef SO_pic
 
+/* Program to run the C preprocessor */
+#undef PROG_CPP
