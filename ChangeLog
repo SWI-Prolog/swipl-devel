@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: text-buffering rules for strings (Sebastian Sardina).
+
   * FIXED: plld: properly quote arguments holding "
 
   * ADDED/MODIFIED: The toplevel calls expand_goal/2 before actually

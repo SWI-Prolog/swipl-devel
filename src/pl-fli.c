@@ -857,6 +857,7 @@ PL_get_nchars(term_t l, unsigned int *length, char **s, unsigned flags)
 #ifdef O_STRING
   } else if ( (flags & CVT_STRING) && isString(w) )
   { type = PL_STRING;
+    flags |= BUF_RING;			/* always buffer strings */
     r = valString(w);
     len = sizeString(w);
 #endif
@@ -873,9 +874,7 @@ PL_get_nchars(term_t l, unsigned int *length, char **s, unsigned flags)
     IOSTREAM *fd;
     
     type = PL_STRING;			/* hack to get things below ok */
-
-    if ( !(flags & (BUF_MALLOC|BUF_RING)) )
-      flags |= BUF_RING;
+    flags |= BUF_RING;
 
     r = tmp;
     size = sizeof(tmp);
@@ -902,7 +901,6 @@ PL_get_nchars(term_t l, unsigned int *length, char **s, unsigned flags)
   { *s = xmalloc(len+1);
     memcpy(*s, r, len+1);
   } else if ( ((flags & BUF_RING) && type != PL_ATOM) || /* never atoms */
-	      (type == PL_STRING) ||	/* always buffer strings */
 	      r == tmp )		/* always buffer tmp */
   { Buffer b = findBuffer(flags);
 
