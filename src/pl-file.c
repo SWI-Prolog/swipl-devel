@@ -1012,6 +1012,18 @@ pl_set_stream(term_t stream, term_t attr)
 			  ATOM_eof_action, a);
 
 	succeed;
+      } else if ( aname == ATOM_close_on_abort )
+      { int close;
+
+	if ( !PL_get_bool_ex(a, &close) )
+	  fail;
+
+	if ( close )
+	  s->flags |= SIO_NOCLOSE;
+	else
+	  s->flags &= ~SIO_NOCLOSE;
+
+	succeed;
       }
     }
   }
