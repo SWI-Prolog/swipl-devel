@@ -2031,7 +2031,7 @@ x_chars(const char *pred, term_t atom, term_t string, int how)
 
       if ( s && get_number((unsigned char *)s, &q, &n, FALSE) && *q == EOS )
       { if ( intNumber(&n) )
-	  return PL_unify_integer(atom, n.value.i);
+	  return PL_unify_int64(atom, n.value.i);
 	else
 	  return PL_unify_float(atom, n.value.f);
       }

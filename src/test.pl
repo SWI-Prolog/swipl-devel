@@ -632,6 +632,11 @@ atom_handling(number-3) :-
 	atom_number(X, 1.0), X == '1.0'.
 atom_handling(number-4) :-
 	atom_number(X, 42), X == '42'.
+atom_handling(number-5) :-
+	A is 1<<42,
+	number_codes(A, Codes),
+	number_codes(A2, Codes),
+	A == A2.
 
 atom_handling(sub_atom-1) :-
 	\+ sub_atom(a, _, _, 3, _).
