@@ -629,12 +629,9 @@ status
 removeFile(FileObj f)
 { Name name = getOsNameFile(f);
 
-  if ( !name )
-    fail;
-
   closeFile(f);				/* Ok? */
 
-  if ( unlink(nameToFN(name)) == 0 )
+  if ( remove(nameToFN(name)) == 0 )
     succeed;
   if ( existsFile(f, OFF) )
     return errorPce(f, NAME_removeFile, getOsErrorPce(PCE));
@@ -786,7 +783,7 @@ static int
 statFile(FileObj f, STAT_TYPE *buf)
 { int fno;
 
-  if ( f->fd != NULL && (fno = Sfileno(f->fd)) )
+  if ( f->fd != NULL && (fno = Sfileno(f->fd)) >= 0)
   { return FSTAT_FUNC(fno, buf);
   } else
   { Name name = getOsNameFile(f);

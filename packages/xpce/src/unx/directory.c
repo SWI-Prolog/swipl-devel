@@ -181,7 +181,7 @@ popDirectory(Directory d)
   path = getHeadChain(DirectoryStack);
   deleteHeadChain(DirectoryStack);
 
-  if ( chdir(strName(path)) )
+  if ( chdir(nameToFN(path)) )
     return errorPce(d, NAME_chdir, path, getOsErrorPce(PCE));
 
   succeed;

@@ -113,7 +113,8 @@ setStreamEncodingSourceSink(SourceSink ss, IOSTREAM *fd)
 
 static StringObj
 getContentsSourceSink(SourceSink ss, Int from, Int len)
-{ IOSTREAM *fd = Sopen_object(ss, "rbr");
+{ const char *mode = (ss->encoding == NAME_binary ? "rbr" : "rr");
+  IOSTREAM *fd = Sopen_object(ss, mode);
 
   if ( fd )
   { long size = Ssize(fd);

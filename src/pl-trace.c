@@ -418,7 +418,7 @@ again:
     if ( action == ACTION_AGAIN )
       goto again;
   } else
-    Sputc('\n', Sdout);
+    Sputcode('\n', Sdout);
 
 out:
   unblockGC(PASS_LD1);
@@ -532,7 +532,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr, bool interactive)
   char *s;
 
 #define FeedBack(msg)	{ if (interactive) { if (cmd[1] != EOS) \
-					       Sputc('\n', Sdout); \
+					       Sputcode('\n', Sdout); \
 					     else \
 					       Sfputs(msg, Sdout); } }
 #define Warn(msg)	{ if (interactive) \
