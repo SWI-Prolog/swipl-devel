@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * INTERNAL: changed tag schema freeing up an entry for attributed
+    variables.
+
   * ENHANCED: Reduce hash-table size on retract/retractall, avoiding
     performance problems with retract after shrinking a very large
     predicate (Leo Khramov).
