@@ -3034,8 +3034,7 @@ pl_current_output(term_t stream)
 
 word
 pl_character_count(term_t stream, term_t count)
-{ GET_LD
-  IOSTREAM *s;
+{ IOSTREAM *s;
 
   if ( getStreamWithPosition(stream, &s) )
   { int64_t n = s->position->charno;
