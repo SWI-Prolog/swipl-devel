@@ -1865,38 +1865,34 @@ process_attlist_declaraction(dtd *dtd, const ichar *decl)
       at->def = AT_DEFAULT;
 
     if ( at->def == AT_DEFAULT || at->def == AT_FIXED )
-    { switch(at->type)
-      { case AT_CDATA:
-	{ dtd_symbol *value;
+    { ichar buf[MAXSTRINGLEN];
+      const ichar *end;
+      
+      if ( !(end=itake_string(dtd, decl, buf, sizeof(buf))) )
+	end=itake_nmtoken_chars(dtd, decl, buf, sizeof(buf));
+      if ( !end )
+	return gripe(ERC_SYNTAX_ERROR, "Bad attribute default", decl);
 
-	  if ( (s=itake_nmtoken(dtd, decl, &value)) )
-	  { decl = s;
-	    at->att_def.cdata = istrdup((ichar *)value->name);
-	  } else if ( (s=itake_dubbed_string(dtd, decl, &at->att_def.cdata)) )
-	  { decl = s;
-	  } else
-	    return gripe(ERC_DOMAIN, "cdata", decl);
+      switch(at->type)
+      { case AT_CDATA:
+	{ at->att_def.cdata = istrdup(buf);
 	  break;
 	}
 	case AT_ENTITY:
 	case AT_NOTATION:
 	case AT_NAME:
-	{ if ( (s=itake_name(dtd, decl, &at->att_def.name)) )
-	  { decl = s;
-	  } else
+	{ if ( !(s=itake_name(dtd, buf, &at->att_def.name)) || *s )
 	    return gripe(ERC_DOMAIN, "name", decl);
 	  break;
 	}
 	case AT_NMTOKEN:
 	case AT_NAMEOF:
-	{ if ( (s=itake_nmtoken(dtd, decl, &at->att_def.name)) )
-	  { decl = s;
-	  } else
+	{ if ( !(s=itake_nmtoken(dtd, buf, &at->att_def.name)) || *s )
 	    return gripe(ERC_DOMAIN, "nmtoken", decl);
 	  break;
 	}
 	case AT_NUMBER:
-	{ if ( !(decl = itake_number(dtd, decl, &at->att_def.number)) )
+	{ if ( !(s=itake_number(dtd, buf, &at->att_def.number)) || *s )
 	     return gripe(ERC_DOMAIN, "number", decl);
 	  break;
 	}
@@ -1906,16 +1902,14 @@ process_attlist_declaraction(dtd *dtd, const ichar *decl)
 	case AT_NMTOKENS:
 	case AT_NUMBERS:
 	case AT_NUTOKENS:
-	{ if ( (s=itake_dubbed_string(dtd, decl, &at->att_def.list)) )
-	  { decl = s;
-	  } else
-	    return gripe(ERC_DOMAIN, "list", decl);
-
+	{ at->att_def.list = istrdup(buf);
 	  break;
 	}
 	default:
 	  return gripe(ERC_REPRESENTATION, "No default for type");
       }
+
+      decl = end;
     }
 
 					/* add to list */
