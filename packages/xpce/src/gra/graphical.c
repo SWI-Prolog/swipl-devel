@@ -49,6 +49,15 @@ unlinkGraphical(Graphical gr)
 { if ( notNil(gr->layout_interface) )
     freeObject(gr->layout_interface);	/* another message? */
 
+					/* very dubious, but it can't */
+					/* be in class dialog_item */
+  if ( onFlag(gr, F_ATTRIBUTE) || instanceOfObject(gr, ClassDialogItem) )
+  { aboveGraphical(gr, NIL);
+    belowGraphical(gr, NIL);
+    rightGraphical(gr, NIL);
+    leftGraphical(gr, NIL);
+  }
+
   disconnectGraphical(gr, DEFAULT, DEFAULT, DEFAULT, DEFAULT);
   DeviceGraphical(gr, NIL);
 

@@ -958,7 +958,7 @@ static char *T_initialise[] =
 static char *T_image_atADpointD[] =
         { "image", "at=[point]" };
 static char *T_save[] =
-        { "in=[file]", "format=[{xbm,xpm,pnm,pbm,pgm,ppm}]" };
+        { "in=[file]", "format=[{xbm,xpm,pnm,pbm,pgm,ppm,jpeg}]" };
 static char *T_postscript[] =
         { "landscape=[bool]", "maximum_area=[area]" };
 static char *T_resize[] =
