@@ -646,9 +646,9 @@ RTMISC=		Defaults RT-LICENCE README README.RT
 
 install:	dv-install
 
-rt-install:	rt-home rt-misc rt-bitmaps rt-bins rt-link
+rt-install:	$(INSTALL) rt-home rt-misc rt-bitmaps rt-bins rt-link
 
-dv-install:	install rt-install dv-home dv-lib dv-boot dv-help \
+dv-install:	rt-install dv-home dv-lib dv-boot dv-help \
 	        dv-link dv-pl-files dv-manual dv-man \
 		dv-misc cxx-install dv-qlf dv-bins
 
