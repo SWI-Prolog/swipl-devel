@@ -1,6 +1,6 @@
 Feb 18, 2005
 
-  * FIXED: rdf(X,Y,literal(lang(L,W))): not indexed query.  Djam Seddah.
+  * FIXED: rdf(X,Y,literal(lang(L,W))): not indexed query.   Djamé Seddah.
 
 Jan 27, 2005
 
@@ -9,7 +9,7 @@ Jan 27, 2005
 
 Nov 29, 2004
 
-  * FIXED: lock language/type atom.   Djam Seddah.
+  * FIXED: lock language/type atom.    Djamé Seddah.
 
 Oct 19, 2004
 
