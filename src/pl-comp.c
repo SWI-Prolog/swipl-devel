@@ -1400,9 +1400,11 @@ re-definition.
       { Procedure syspred;
 
 	if ( (tm != MODULE_user &&
-	      (syspred=isCurrentProcedure(functor, MODULE_user))) ||
+	      (syspred=isCurrentProcedure(functor, MODULE_user)) &&
+	      isDefinedProcedure(syspred)) ||
 	     (tm != MODULE_system &&
-	      (syspred=isCurrentProcedure(functor, MODULE_system))) )
+	      (syspred=isCurrentProcedure(functor, MODULE_system)) &&
+	      isDefinedProcedure(syspred)) )
 	{ freeHeap(proc->definition, sizeof(struct definition));
 	  proc->definition = syspred->definition;
 	}
