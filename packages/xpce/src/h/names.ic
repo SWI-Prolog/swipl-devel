@@ -1497,6 +1497,7 @@
   BUILTIN_NAME("no_super_class")
   BUILTIN_NAME("no_super_class_of")
   BUILTIN_NAME("no_table")
+  BUILTIN_NAME("no_temp_file")
   BUILTIN_NAME("no_text_behaviour")
   BUILTIN_NAME("no_type_kind")
   BUILTIN_NAME("no_var")
@@ -2378,4 +2379,3 @@
   BUILTIN_NAME("yref")
   BUILTIN_NAME("yref_var")
   BUILTIN_NAME("zoom")
-  BUILTIN_NAME("no_temp_file")

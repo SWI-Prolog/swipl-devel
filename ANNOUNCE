@@ -29,6 +29,9 @@ Packages
     (typically using tcp_accept in one thread and pass the accepted socket to
     a worker-crew for processing).
 
+    Added extensive test-suite (now running without problems for over 50 hours
+    on Linux (dual Athlon 1600+) and Windows 2000 advanced server (PIII/733).
+
 
 Development environment
 -----------------------
