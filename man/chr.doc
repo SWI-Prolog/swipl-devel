@@ -190,17 +190,19 @@ checks.
         \termitem{optimize}{}
 This is an experimental option controlling the degree of optimization.
 Possible values are \texttt{full}, to enable all available
-optimizations, and \texttt{off}, to disable all optimizations.  The
-default is derived from the SWI-Prolog flag \const{optimise}, where
+optimizations, and \texttt{off} (default), to disable all optimizations.  
+The default is derived from the SWI-Prolog flag \const{optimise}, where
 \const{true} is mapped to \const{full}.  Therefore the commandline
 option \cmdlineoption{-O} provides full CHR optimization.
+If optimization is enabled, debugging should be disabled.
 
 	\termitem{debug}{}
 This options enables or disables the possibility to debug the CHR code.
-Possible values are \texttt{on} and \texttt{off} (default). See
+Possible values are \texttt{on} (default) and \texttt{off}. See
 \secref{debugging} for more details on debugging.  The default is
 derived from the prolog flag \const{generate_debug_info}, which
 is \const{true} by default.  See \cmdlineoption{-nodebug}.
+If debugging is enabled, optimization should be disabled.
 
 	\termitem{mode}{}
 This option specifies the mode for a particular constraint. The
@@ -221,7 +223,41 @@ Note that it is up to the user the ensure that the mode declaration
 is correct with respect to the use of the constraint.
 This option may occur once for each constraint.
 
+	\termitem{type_declaration}{}
+This option specifies the argument types for a particular constraint. The
+value is a term with functor and arity equal to that of a constraint.
+The arguments can be a user-defined type or one of
+the built-in types:
+	\begin{description}
+	\termitem{int}{} The corresponding argument of every occurrence
+	of the constraint is an integer number.
+	\termitem{float}{} \ldots a floating point number.
+	\termitem{number}{} \ldots a number.
+	\termitem{natural}{} \ldots a positive integer.
+	\termitem{any}{} The corresponding argument of every occurrence
+	of the constraint can have any type. This is the default value.
+	\end{description}
+
+Currently, type declarations are only used to improve certain
+optimizations (guard simplification, occurrence subsumption, \ldots).
+
+	\termitem{type_definition}{}
+This option defines a new user-defined type which can be used in
+type declarations. The value is a term of the form
+\texttt{type(} \textsf{name} \texttt{,} \textsf{list} \texttt{)}, where
+\textsf{name} is a term and \textsf{list} is a list of alternatives.
+Variables can be used to define generic types. Recursive definitions
+are allowed. Examples are 
+\texttt{type(bool,[true,false])},
+\texttt{type(complex_number,[float + float * i])},
+\texttt{type(binary_tree(T),[ leaf(T) | node(binary_tree(T),binary_tree(T)) ])}.
+and \texttt{type(list(T),[ [] | [T | list(T)])}.
+
+
 \end{description}
+
+The mode, type_declaration and type_definition options are provided
+for backward compatibility. The new syntax is described below.
 
 \section{CHR in SWI-Prolog Programs}		\label{sec:practical}
 %===========================
@@ -232,6 +268,25 @@ This option may occur once for each constraint.
 The CHR constraints defined in a particulary \fileext{chr} file are
 associated with a module. The default module is \const{user}. One should
 never load different \fileext{chr} files with the same CHR module name.
+
+\subsection{Constraint declaration}
+
+Every constraint used in CHR rules has to be declared.
+There are two ways to do this. The old style is as follows:
+
+\begin{code}
+option(type_definition,type(list(T),[ [] , [T|list(T)] ]).
+option(mode,foo(+,?)).
+option(type_declaration,foo(list(int),float)).
+:- constraints foo/2, bar/0.
+\end{code}
+
+The new style is as follows:
+
+\begin{code}
+:- chr_type list(T) ---> [] ; [T|list(T)].
+:- constraints foo(+list(int),?float), bar.
+\end{code}
 
 
 \subsection{Compilation}
@@ -484,4 +539,8 @@ added of the form: \[ constraint \backslash constraint <=> true \]
     \item [Multi-headed rules]
 Multi-headed rules are executed more efficiently when the constraints
 share one or more variables.
+
+    \item [Mode and type declarations]
+Provide mode and type declarations to get more efficient program execution.
+Make sure to disable debug (-nodebug) and enable optimization (-O).
 \end{itemlist}
