@@ -44,7 +44,7 @@ LDFLAGS= -static
 
 PLFOREIGN=foreign.pl
 
-PLVERSION=1.9.2
+PLVERSION=1.9.3
 DEFSTARTUP=.plrc
 
 PB=../boot
@@ -78,7 +78,7 @@ SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c) $(EXT:.o=.c)
 HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h pl-itf.h pl-main.h \
 	pl-os.h pl-save.h
 
-all:	banner headers system startup index runtime pl-bite
+all:	../VERSION banner headers system startup index runtime pl-bite
 
 system:		$(PL)
 startup:	$(STARTUPPATH)
@@ -130,6 +130,10 @@ parms.h:	Makefile
 		@echo "#define C_CC	    \"$(CC)\""	       >> %$@%
 		@echo "#define C_LDFLAGS    \"$(LDFLAGS)\""    >> %$@%
 		@if cmp -s %$@% $@; then rm %$@%; else mv %$@% $@; fi
+
+../VERSION:	Makefile.in
+		@echo $(PLVERSION) > $@%
+		@if cmp -s $@% $@; then rm $@%; else mv $@% $@; fi
 
 pl-main.o:	parms.h
 pl-setup.o:	parms.h
