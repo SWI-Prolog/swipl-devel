@@ -710,7 +710,7 @@ PL_initialise(int argc, char **argv)
   bool compile = FALSE;
   const char *rcpath = "<none>";
 
-#if defined(_DEBUG) && defined(WIN32) /*&& 0*/
+#if defined(_DEBUG) && defined(WIN32) && 0
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF|
 		 _CRTDBG_CHECK_CRT_DF|
 		 //_CRTDBG_CHECK_ALWAYS_DF| 	/* very expensive */
