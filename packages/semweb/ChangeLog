@@ -1,5 +1,8 @@
 Aug 01, 2003
 
+  * ADDED: rdf_save/[1,2] to generate rdf:parseType=Collection for anonymous
+    rdf lists.
+
   * FIXED: rdf_save/[1,2]
 
 Jun 23, 2003

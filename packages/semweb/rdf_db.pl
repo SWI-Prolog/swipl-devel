@@ -732,14 +732,38 @@ save_attribute(body, Name=literal(Value), DefNS, Out, Indent, _DB) :- !,
 save_attribute(body, Name=Value, DefNS, Out, Indent, DB) :-
 	anonymous_subject(Value), !,
 	rdf_id(Name, DefNS, NameText),
-	format(Out, '~N~*|<~w>~n', [Indent, NameText]),
 	SubIndent is Indent + 2,
-	rdf_save_subject(Out, Value, DefNS, SubIndent, DB),
+	(   rdf(Value, rdf:type, rdf:'List')
+	->  format(Out, '~N~*|<~w rdf:parseType=Collection>~n',
+		   [Indent, NameText]),
+	    rdf_save_list(Out, Value, DefNS, SubIndent, DB)
+	;   format(Out, '~N~*|<~w>~n',
+		   [Indent, NameText]),
+	    rdf_save_subject(Out, Value, DefNS, SubIndent, DB)
+	),
 	format(Out, '~N~*|</~w>~n', [Indent, NameText]).
 save_attribute(body, Name=Value, DefNS, Out, Indent, _DB) :-
 	rdf_value(Value, QVal),
 	rdf_id(Name, DefNS, NameText),
 	format(Out, '~N~*|<~w rdf:resource="~w"/>', [Indent, NameText, QVal]).
+
+rdf_save_list(_, List, _, _, _) :-
+	rdf_equal(List, rdf:nil), !.
+rdf_save_list(Out, List, DefNS, Indent, DB) :-
+	rdf_has(List, rdf:first, First),
+	(   anonymous_subject(First)
+	->  nl(Out),
+	    rdf_save_subject(Out, First, DefNS, Indent, DB)
+	;   rdf_value(First, QVal),
+	    format(Out, '~N~*|<rdf:Description about="~w"/>',
+		   [Indent, QVal])
+	),
+	flag(rdf_db_saved_triples, X, X+3),
+	(   rdf_has(List, rdf:rest, List2),
+	    \+ rdf_equal(List2, rdf:nil)
+	->  rdf_save_list(Out, List2, DefNS, Indent, DB)
+	;   true
+	).
 
 %	anonymous_subject(+Subject)
 %	
