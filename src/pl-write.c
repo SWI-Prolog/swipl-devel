@@ -301,8 +301,9 @@ writePrimitive(term_t t, write_options *options)
 #ifdef HAVE_ISNAN
     if ( isnan(f) )
     { s = (true(options, PL_WRT_QUOTED) ? "'$NaN'" : "NaN");
-    } else
+    }
 #endif
+
     if ( s )
       return PutToken(s, out);
     else
