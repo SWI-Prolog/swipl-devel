@@ -924,5 +924,10 @@ for f in $OptionalMakefiles; do
     fi
 done
 
+dnl autoconf 2.5.3 doesn't handle relative srcdir properly.  We'll hack
+dnl around making this variable global.
+
+srcdir=`cd $srcdir && pwd`
+
 AC_OUTPUT($Makefiles)
 

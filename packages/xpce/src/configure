@@ -7638,6 +7638,9 @@ for f in $OptionalMakefiles; do
     fi
 done
 
+
+srcdir=`cd $srcdir && pwd`
+
 ac_config_files="$ac_config_files $Makefiles"
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
