@@ -1,6 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ENHANCED: Allow for PL_set_feature() before PL_initialise().  Improved
+    initialisation procedure for plwin.exe for better compatibility with
+    the other versions.
+
+  * ENHANCED: Cleanup procedure on Windows library(shlib) and PL_cleanup():
+    try to avoid (some) crashes when unloading foreign code.
+
   * FIXED: Properly deal with the vararg foreign calling convention
     for cleanup (CUTTED).  Spotted by Sergey Tikhonov.
 

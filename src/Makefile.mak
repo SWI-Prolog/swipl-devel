@@ -98,6 +98,10 @@ banner:
 		@echo ****************
 		@echo Making SWI-Prolog $(PLVERSION) for $(ARCH)
 		@echo To be installed in $(PLBASE)
+!IF "$(DBG)" == "true"
+		@echo ""
+		@echo Compiling version for DEBUGGING
+!ENDIF
 		@echo ****************
 
 $(PLLIB):	$(OBJ) $(LOCALLIB)

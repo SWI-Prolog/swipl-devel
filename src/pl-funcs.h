@@ -333,6 +333,7 @@ void		popOutputContext(void);
 void		initFlags(void);
 word		pl_flag(term_t name, term_t old, term_t new);
 word		pl_current_flag(term_t k, word h);
+void		initFeatureTable(void);
 void		initFeatures(void);
 
 /* pl-fli.c */

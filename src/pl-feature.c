@@ -627,8 +627,15 @@ pl_feature(term_t name, term_t value, word h)
 #endif
 
 void
+initFeatureTable()
+{ if ( !GD->feature.table )
+    GD->feature.table = newHTable(32);
+}
+
+
+void
 initFeatures()
-{ GD->feature.table = newHTable(32);
+{ initFeatureTable();
 
   defFeature("iso",  FT_BOOL, FALSE, ISO_FEATURE);
   defFeature("arch", FT_ATOM|FF_READONLY, ARCH);

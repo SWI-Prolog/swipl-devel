@@ -23,6 +23,8 @@
 #endif
 #endif
 
+#define DEBUG(g) ((void)0)
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -595,6 +597,10 @@ uninstall_pl2xpce()
   if ( doing )
     return;
   doing = TRUE;
+
+  DEBUG(Sdprintf("Removing hooks (%p and %p)\n",
+		 old_dispatch_hook, old_update_hook));
+
   PL_dispatch_hook(old_dispatch_hook);
 #ifdef __WIN32__
   indirect_rlc_update_hook(old_update_hook);

@@ -76,6 +76,7 @@ typedef struct
   State		stateList;		/* list of loaded states */
   int		initialised;		/* Heap is initialised */
   int		io_initialised;		/* I/O system has been initialised */
+  cleanup_status cleaning;		/* Inside PL_cleanup() */
   int		bootsession;		/* -b boot compilation */
   int		debug_level;		/* Maintenance debugging: 0..9 */
   void *	resourceDB;		/* program resource database */

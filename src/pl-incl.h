@@ -842,6 +842,21 @@ typedef struct
 #define GP_HIDESYSTEM	0x200		/* hide system module */
 #define GP_QUIET	0x400		/* don't throw errors */
 
+
+		 /*******************************
+		 *	     CLEANUP		*
+		 *******************************/
+
+typedef enum
+{ CLN_NORMAL = 0,			/* Normal mode */
+  CLN_ACTIVE,				/* Started cleanup */
+  CLN_FOREIGN,				/* Foreign hooks */
+  CLN_PROLOG,				/* Prolog hooks */
+  CLN_SHARED,				/* Unload shared objects */
+  CLN_DATA				/* Remaining data */
+} cleanup_status;
+
+
 		 /*******************************
 		 *	      FLAGS		*
 		 *******************************/

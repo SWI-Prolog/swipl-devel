@@ -43,20 +43,15 @@
 	load_foreign_library/2.
 
 :- dynamic
-	current_library/6,		% Lib x Entry x Path x
-					% Module x Handle x Public
-	fpublic/1.
-:- volatile
-	current_library/6,
-	fpublic/1.
-
+	loading/1,			% Lib
+	foreign_predicate/2,		% Lib, Pred
+	current_library/5.		% Lib, Entry, Path, Module, Handle
 
 :- (   current_prolog_flag(open_shared_object, true)
    ->  true
-   ;   format(user_error,
-	      'library(shlib): warning: Emulator does not support foreign libraries',
-	      [])
+   ;   print_message(warning, shlib(not_supported)) % error?
    ).
+
 
 		 /*******************************
 		 *	     DISPATCHING	*
@@ -127,52 +122,59 @@ load_foreign_library(LibFileSpec, Entry) :-
 	load_foreign_library(LibFile, Module, Entry).
 
 load_foreign_library(LibFile, _Module, _) :-
-	current_library(LibFile, _, _, _, _, _), !.
+	current_library(LibFile, _, _, _, _), !.
 load_foreign_library(LibFile, Module, DefEntry) :-
-	clean_fpublic,			% make sure!
 	find_library(LibFile, Path),
+	asserta(loading(LibFile)),
 	catch(Module:open_shared_object(Path, Handle), _, fail), !,
 	(   (	entry(LibFile, DefEntry, Entry),
 		Module:call_shared_object_function(Handle, Entry)
 	    ->	true
 	    ;	DefEntry == default(install)
 	    )
-	->  assert_shlib(LibFile, Entry, Path, Module, Handle),
-	    clean_fpublic
-	;   print_message(error, shlib(LibFile, call_entry(DefEntry))),
+	->  retractall(loading(LibFile)),
+	    assert_shlib(LibFile, Entry, Path, Module, Handle)
+	;   retractall(loading(LibFile)),
 	    close_shared_object(Handle),
+	    print_message(error, shlib(LibFile, call_entry(DefEntry))),
 	    fail
 	).
 load_foreign_library(LibFile, _, _) :-
+	retractall(loading(LibFile)),
 	throw(error(existence_error(foreign_library, LibFile), _)).
 
 unload_foreign_library(LibFile) :-
 	unload_foreign_library(LibFile, default(uninstall)).
 
 unload_foreign_library(LibFile, DefUninstall) :-
-	current_library(LibFile, _, _, Module, Public, Handle),
-	retractall(current_library(LibFile, _, _, _, _, _)),
+	current_library(LibFile, _, _, Module, Handle),
+	retractall(current_library(LibFile, _, _, _, _)),
 	(   entry(LibFile, DefUninstall, Uninstall),
 	    Module:call_shared_object_function(Handle, Uninstall)
 	->  true
 	;   true
 	),
-	forall(member(Module:Head, Public),
-	       (   functor(Head, Name, Arity),
-		   abolish(Module:Name, Arity)
-	       )),
+	abolish_foreign(LibFile),
 	close_shared_object(Handle).
 	    
-system:'$foreign_registered'(M, H) :-
-	assert(fpublic(M:H)).
+abolish_foreign(LibFile) :-
+	(   retract(foreign_predicate(LibFile, Module:Head)),
+	    functor(Head, Name, Arity),
+	    abolish(Module:Name, Arity),
+	    fail
+	;   true
+	).
 
-clean_fpublic :-
-	retractall(fpublic(_)).
+system:'$foreign_registered'(M, H) :-
+	(   loading(Lib)
+	->  true
+	;   Lib = '<spontaneous>'
+	),
+	assert(foreign_predicate(Lib, M:H)).
 
 assert_shlib(File, Entry, Path, Module, Handle) :-
-	findall(P, fpublic(P), Public),
-	retractall(current_library(File, _, _, _, _, _)),
-	asserta(current_library(File, Entry, Path, Module, Public, Handle)).
+	retractall(current_library(File, _, _, _, _)),
+	asserta(current_library(File, Entry, Path, Module, Handle)).
 
 
 		 /*******************************
@@ -184,7 +186,9 @@ assert_shlib(File, Entry, Path, Module, Handle) :-
 %	Query currently loaded shared libraries
 
 current_foreign_library(File, Public) :-
-	current_library(File, _Entry, _Path, _Module, Public, _Handle).
+	current_library(File, _Entry, _Path, _Module, _Handle),
+	findall(Pred, foreign_predicate(File, Pred), Public).
+
 
 		 /*******************************
 		 *	      RELOAD		*
@@ -192,14 +196,25 @@ current_foreign_library(File, Public) :-
 
 %	reload_foreign_libraries
 %
-%	Reload all foreign libraries loaded (after restore of state)
+%	Reload all foreign libraries loaded (after restore of a state
+%	craeted using qsave_program/2.
 
 reload_foreign_libraries :-
-	forall(retract(current_library(File, Entry, _, Module, _, _)),
-	       (   load_foreign_library(File, Module, Entry)
-	       ->  true
-	       ;   print_message(error, shlib(File, load_failed))
-	       )).
+	findall(lib(File, Entry, Module),
+		(   retract(current_library(File, Entry, _, Module, _)),
+		    File \== -
+		),
+		Libs),
+	reverse(Libs, Reversed),
+	reload_libraries(Reversed).
+
+reload_libraries([]).
+reload_libraries([lib(File, Entry, Module)|T]) :-
+	(   load_foreign_library(File, Module, Entry)
+	->  true
+	;   print_message(error, shlib(File, load_failed))
+	),
+	reload_libraries(T).
 
 
 		 /*******************************
@@ -217,9 +232,27 @@ On Unix, this is not very useful, and can only lead to conflicts.
 unload_all_foreign_libraries :-
 	current_prolog_flag(unix, true), !.
 unload_all_foreign_libraries :-
-	forall(current_foreign_library(File, _),
-	       unload_foreign_library(File)).
+	forall(current_library(File, _, _, _, _),
+	       unload_foreign(File)).
 
+%	unload_foreign(+File)
+%	
+%	Unload the given foreign file and all `spontaneous' foreign
+%	predicates created afterwards. Handling these spontaneous
+%	predicates is a bit hard, as we do not know who created them and
+%	on which library they depend.
+
+unload_foreign(File) :-
+	unload_foreign_library(File),
+	(   clause(foreign_predicate(Lib, M:H), true, Ref),
+	    (	Lib == '<spontaneous>'
+	    ->	functor(H, Name, Arity),
+		abolish(M:Name, Arity),
+		erase(Ref),
+		fail
+	    ;	!
+	    )
+	).
 
 		 /*******************************
 		 *	      MESSAGES		*
@@ -232,3 +265,5 @@ prolog:message(shlib(LibFile, call_entry(DefEntry))) -->
 	[ '~w: Failed to call entry-point ~w'-[LibFile, DefEntry] ].
 prolog:message(shlib(LibFile, load_failed)) -->
 	[ '~w: Failed to load file'-[LibFile] ].
+prolog:message(shlib(not_supported)) -->
+	[ 'Emulator does not support foreign libraries' ].

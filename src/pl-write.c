@@ -369,6 +369,9 @@ static bool
 callPortray(term_t arg, write_options *options)
 { predicate_t portray;
 
+  if ( GD->cleaning > CLN_PROLOG )
+    fail;				/* avoid dangerous callbacks */
+
   portray = _PL_predicate("portray", 1, "user", &GD->procedures.portray);
 
   if ( portray->definition->definition.clauses )

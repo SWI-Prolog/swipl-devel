@@ -763,6 +763,8 @@ goal_colours(asserta(_,_),	     built_in-[db,classify]).
 goal_colours(assertz(_,_),	     built_in-[db,classify]).
 goal_colours(retract(_),	     built_in-[db]).
 goal_colours(retractall(_),	     built_in-[db]).
+goal_colours(clause(_,_),	     built_in-[db,classify]).
+goal_colours(clause(_,_,_),	     built_in-[db,classify,classify]).
 % XPCE stuff
 goal_colours(pce_autoload(_,_),	     classify-[classify,file]).
 goal_colours(pce_image_directory(_), classify-[file]).

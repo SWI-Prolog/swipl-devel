@@ -471,9 +471,7 @@ win32main(int argc, char **argv)
   PL_action(PL_ACTION_GUIAPP, TRUE);
   PL_on_halt(closeWin, NULL);
   atexit(rlc_close);
-  if ( !PL_initialise(argc, argv) )
-    PL_halt(1);
-  
+
   PL_hidden_window();			/* create in main thread */
   main_thread_id = GetCurrentThreadId();
   PL_set_feature("hwnd", PL_INTEGER, (long)rlc_hwnd());
@@ -483,6 +481,10 @@ win32main(int argc, char **argv)
 #if !defined(O_DEBUG) && !defined(_DEBUG)
   initSignals();
 #endif
+
+  if ( !PL_initialise(argc, argv) )
+    PL_halt(1);
+  
   PL_halt(PL_toplevel() ? 0 : 1);
 
   return 0;

@@ -2773,6 +2773,8 @@ PL_set_feature(const char *name, int type, ...)
 { va_list args;
   int rval = TRUE;
 
+  initFeatureTable();
+
   va_start(args, type);
   switch(type)
   { case PL_BOOL:

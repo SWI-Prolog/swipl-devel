@@ -1003,15 +1003,15 @@ PL_on_halt(halt_function f, Void arg)
 
 int
 PL_cleanup(int rval)
-{ static int cleaning = FALSE;
-  OnHalt h;
+{ OnHalt h;
 
   LOCK();
-  if ( cleaning )
+  if ( GD->cleaning != CLN_NORMAL )
   { UNLOCK();
     return FALSE;
   }
-  cleaning = TRUE;
+
+  GD->cleaning = CLN_ACTIVE;
 
   pl_notrace();				/* avoid recursive tracing */
 #ifdef O_PROFILE
@@ -1023,37 +1023,43 @@ PL_cleanup(int rval)
 
   Scurout = Soutput;			/* reset output stream to user */
 
-  if ( !GD->os.halting++ )
-  { for(h = GD->os.on_halt_list; h; h = h->next)
-      (*h->function)(rval, h->argument);
+  GD->cleaning = CLN_FOREIGN;
 
-    if ( GD->initialised )
-    { fid_t cid = PL_open_foreign_frame();
-      predicate_t proc = PL_predicate("$run_at_halt", 0, "system");
-      PL_call_predicate(MODULE_system, FALSE, proc, 0);
-      PL_discard_foreign_frame(cid);
-    }
+  for(h = GD->os.on_halt_list; h; h = h->next)
+    (*h->function)(rval, h->argument);
+
+  GD->cleaning = CLN_PROLOG;
+
+  if ( GD->initialised )
+  { fid_t cid = PL_open_foreign_frame();
+    predicate_t proc = PL_predicate("$run_at_halt", 0, "system");
+    PL_call_predicate(MODULE_system, FALSE, proc, 0);
+    PL_discard_foreign_frame(cid);
+  }
 
 #if defined(__WINDOWS__) || defined(__WIN32__)
-    if ( rval != 0 && !hasConsole() )
-      PlMessage("Exit status is %d", rval);
+  if ( rval != 0 && !hasConsole() )
+    PlMessage("Exit status is %d", rval);
 #endif
 
-    qlfCleanup();			/* remove errornous .qlf files */
-    dieIO();				/* streams may refer to foreign code */
+  qlfCleanup();				/* remove errornous .qlf files */
+  dieIO();				/* streams may refer to foreign code */
 					/* Standard I/O is only flushed! */
 
-    if ( GD->initialised )
-    { fid_t cid = PL_open_foreign_frame();
-      predicate_t proc = PL_predicate("unload_all_foreign_libraries", 0,
-				      "shlib");
-      if ( isDefinedProcedure(proc) )
-	PL_call_predicate(MODULE_system, FALSE, proc, 0);
-      PL_discard_foreign_frame(cid);
-    }
+  GD->cleaning = CLN_SHARED;
 
-    RemoveTemporaryFiles();
+  if ( GD->initialised )
+  { fid_t cid = PL_open_foreign_frame();
+    predicate_t proc = PL_predicate("unload_all_foreign_libraries", 0,
+				    "shlib");
+    if ( isDefinedProcedure(proc) )
+      PL_call_predicate(MODULE_system, FALSE, proc, 0);
+    PL_discard_foreign_frame(cid);
   }
+
+  GD->cleaning = CLN_DATA;
+
+  RemoveTemporaryFiles();
 
   if ( GD->resourceDB )
   { rc_close_archive(GD->resourceDB);
@@ -1079,7 +1085,7 @@ PL_cleanup(int rval)
   memset(GD, 0, sizeof(*GD));
   memset(LD, 0, sizeof(*LD));
 
-  cleaning = FALSE;			/* prepare for another */
+  GD->cleaning = CLN_NORMAL;			/* prepare for another */
   UNLOCK();
 
   return TRUE;
