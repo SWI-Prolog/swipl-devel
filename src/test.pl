@@ -682,6 +682,10 @@ gc(shift-1) :-
 	).
 gc(gc-1) :-
 	garbage_collect.
+gc(gc-2) :-			% Beautiful crash.  See compilation of \+
+	\+( x(X,2) == x(X,1) ),
+	garbage_collect,
+	true.
 gc(agc-1) :-
 	garbage_collect_atoms.
 gc(agc-2) :-
