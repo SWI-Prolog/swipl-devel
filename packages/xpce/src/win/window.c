@@ -518,6 +518,32 @@ offset_windows(PceWindow w1, Any w2, int *X, int *Y)
 		********************************/
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Support for `diaplay->inspect_handler'.  The naming of this is a bit old
+fashioned.  Checks whether there is a handler   in the chain that may be
+capable of handlign the event before doing anything.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static status
+inspectWindow(PceWindow sw, EventObj ev)
+{ DisplayObj d = getDisplayGraphical((Graphical)sw);
+
+  if ( d )
+  { Cell cell;
+
+    for_cell(cell, d->inspect_handlers)
+    { Handler h = cell->value;
+      
+      if ( isAEvent(ev, h->event) )
+	return inspectDevice((Device) sw, ev);
+    }
+  }
+
+  fail;
+}
+
+
+
 static status
 eventWindow(PceWindow sw, EventObj ev)
 { int rval = FAIL;
@@ -542,8 +568,7 @@ eventWindow(PceWindow sw, EventObj ev)
   } else if ( isAEvent(ev, NAME_areaExit) )
     send(sw, NAME_hasPointer, OFF, 0);
 
-  if ( !emptyChain(getDisplayGraphical((Graphical)sw)->inspect_handlers) &&
-       inspectDevice((Device) sw, ev) )
+  if ( inspectWindow(sw, ev) )
     goto out;
 
   if ( isAEvent(ev, NAME_keyboard) )
@@ -770,7 +795,7 @@ void
 changed_window(PceWindow sw, int x, int y, int w, int h, int clear)
 { UpdateArea a;
   UpdateArea best = NULL;
-  struct iarea new;
+  iarea new;
   int na;
   int ok = 4;				/* max badness */
 
@@ -782,7 +807,7 @@ changed_window(PceWindow sw, int x, int y, int w, int h, int clear)
   { if ( inside_iarea(&a->area, &new ) )
     { return;				/* perfect */
     } else if ( clear == a->clear )
-    { struct iarea u;
+    { iarea u;
       int ua, aa;
       int nok;
 
@@ -868,7 +893,7 @@ redrawWindow(PceWindow sw, Area a)
   int w   = valInt(sw->area->w);
   int h   = valInt(sw->area->h);
   int tmp = FALSE;
-  struct iarea ia;
+  iarea ia;
 
   if ( sw->displayed == OFF )
     succeed;

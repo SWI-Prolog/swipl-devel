@@ -158,7 +158,7 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 
       EndPaint(hwnd, &ps);
     } else
-    { struct iarea a;
+    { iarea a;
       
       DEBUG(NAME_redraw,
 	    Cprintf("%s (%ld) received WM_PAINT (%s clear)\n",

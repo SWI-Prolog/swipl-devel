@@ -10,6 +10,7 @@
 #include <h/kernel.h>
 #include <h/graphics.h>
 #include <h/lang.h>
+#include <h/unix.h>
 
 forwards Name getResourceClassNameResource(Resource);
 
@@ -220,7 +221,8 @@ getSubResource(Resource r, Class class)
 				      getCapitaliseName(name),
 				      name,
 				      r->r_class,
-				      r->name) ) )
+				      r->name,
+				      FALSE) ) )
     { Resource clone = get(r, NAME_clone, 0);
 
       assert(clone);
@@ -260,7 +262,8 @@ getStringValueResource(Resource r, Any obj)
 			      getCapitaliseName(class_name),
 			      name_name,
 			      r->r_class,
-			      r->name);
+			      r->name,
+			      TRUE);
   if ( val )
     answer(val);
   else
@@ -643,3 +646,284 @@ makeClassResource(Class class)
 
   succeed;
 }
+
+#ifdef O_NOX11RESOURCES
+
+		 /*******************************
+		 *    LOW-LEVEL GET RESOURCE	*
+		 *******************************/
+
+static ChainTable ResourceTable;
+static Name name_star;			/* '*' */
+
+#define LBUFSIZE 256			/* initial value buffer */
+#define MAXFIELDS 10			/* Max # x.y.z... fields */
+#ifndef MAXPATHLEN
+#define MAXPATHLEN 256
+#endif
+
+static void
+add_resource(int nfields, Name *fields, StringObj value)
+{ if ( nfields > 0 )
+  { Name resname = fields[nfields-1];
+
+    if ( resname != name_star )
+    { Any argv[10];
+      int i, argc;
+
+      for(argc = 0, i=0; i < (nfields-1); i++)
+	argv[argc++] = fields[i];
+      argv[argc++] = value;
+
+      appendChainTable(ResourceTable, resname,
+		       newObjectv(ClassVector, argc, argv));
+    }
+  }
+}
+
+
+static char *
+matchword(const char *s, const char *m)
+{ while(*m && *s == *m)
+    m++, s++;
+
+  if ( !*m && islayout(*s) )
+    return (char *)s;
+
+  return NULL;
+}
+
+
+static StringObj
+getword(const char *s, char **end)
+{ string str;
+  const char *e;
+
+  for(e=s; !islayout(*e); e++)
+    ;
+  str_set_n_ascii(&str, e-s, (char *)s);
+  if ( end )
+    *end = (char *)e;
+
+  return StringToString(&str);
+}
+
+
+status
+load_resource_file(FileObj f)
+{ int lineno = 0;
+
+  if ( send(f, NAME_access, NAME_read, 0) &&
+       send(f, NAME_open, NAME_read, 0) )
+  { char line[LINESIZE];
+    FILE *fd = f->fd;
+
+    while( fgets(line, sizeof(line), fd) )
+    { char *s = line;
+      char *e;
+      Name fields[MAXFIELDS];
+      int nfields = 0;
+      StringObj value;
+
+      lineno++;
+
+      while(isblank(*s))
+	s++;
+      if ( s[0] == '!' || s[0] == '\n' )
+	continue;
+
+      if ( s[0] == '#' )		/* #include file */
+      { s++;
+	while(isblank(*s))
+	  s++;
+	if ( (s = matchword(s, "include")) )
+	{ while(isblank(*s))
+	    s++;
+	  if ( s )
+	  { StringObj fn = getword(s, NULL);
+	    FileObj fincluded = newObject(ClassFile, fn, 0);
+	    
+	    load_resource_file(fincluded);
+	    doneObject(fincluded);
+	  }
+	}
+	continue;
+      }
+
+      for(;;)
+      { if ( isalnum(*s) )
+	{ string str;
+
+	  for(e=s; isalnum(*e); e++)
+	    ;
+	  str_set_n_ascii(&str, e-s, s);
+	  fields[nfields++] = StringToName(&str);
+	  s = e;
+	  DEBUG(NAME_resource, Cprintf("found %s\n", pp(fields[nfields-1])));
+	  continue;
+	}
+
+	if ( *s == '*' )
+	{ fields[nfields++] = name_star;
+	  DEBUG(NAME_resource, Cprintf("found %s\n", pp(fields[nfields-1])));
+	  s++;
+	  continue;
+	}
+	  
+	if ( *s == '.' )		/* field separator */
+	{ s++;
+	  continue;
+	}
+
+	if ( *s == ':' )		/* value separator */
+	{ char localbuf[LBUFSIZE];
+	  char *buf = localbuf;
+	  int bufsize = LBUFSIZE;
+	  int size = 0;
+	  int l;
+	  string str;
+
+	  s++;				/* skip the ':' */
+
+	  for(;;)
+	  { for(s++; isblank(*s); s++)
+	      ;
+	    l = strlen(s);
+					/* delete [\r\n]*$ */
+	    while( l > 0 && (s[l-1] == '\n' || s[l-1] == '\r') )
+	      s[--l] = EOS;
+					/* make buffer big enough */
+	    while ( size + l > bufsize )
+	    { bufsize *= 2;
+	      if ( buf == localbuf )
+	      { buf = pceMalloc(bufsize);
+		strncpy(buf, localbuf, size);
+	      } else
+		buf = pceRealloc(buf, bufsize);
+	    }
+
+					/* copy the new line to the buf */
+	    strncpy(&buf[size], s, l);
+	    size += l;
+
+					/* continue if ended in a `\' */
+	    if ( s[l-1] == '\\' )
+	    { buf[size-1] = ' ';
+	      if ( !fgets(line, sizeof(line), fd) )
+	      { errorPce(PCE, NAME_resourceSyntaxError, f, toInt(lineno));
+		goto out;
+	      }
+	      s = line;
+	      
+	      continue;
+	    }
+
+	    break;
+	  }
+	  
+	  str_set_n_ascii(&str, size, buf);
+	  value = StringToString(&str);
+	  DEBUG(NAME_resource, Cprintf("Value = %s\n", pp(value)));
+	  add_resource(nfields, fields, value);
+	  goto next;
+	} else
+	{ errorPce(PCE, NAME_resourceSyntaxError, f, toInt(lineno));
+	  goto next;
+	}
+      }
+    next:
+      ;
+    }
+    out:
+      ;
+
+    send(f, NAME_close, 0);
+    succeed;
+  }
+
+  fail;
+}
+
+
+static void
+do_init_resources(DisplayObj d)
+{ char file[MAXPATHLEN];
+  Name home   = get(PCE, NAME_home, 0);
+  Name cl     = get(d, NAME_resourceClass, 0);
+  FileObj f;
+
+  if ( !ResourceTable )
+    ResourceTable = globalObject(NAME_resourceTable, ClassChainTable, 0);
+  if ( !name_star )
+    name_star = CtoName("*");
+
+  sprintf(file, "%s/%s", strName(home), strName(cl));
+  f = newObject(ClassFile, CtoString(file), 0);
+  load_resource_file(f);
+  doneObject(f);
+}
+
+
+StringObj
+ws_get_resource_value(DisplayObj d,
+		      Name cc, Name cn, Name rc, Name rn,
+		      int accept_default)
+{ Chain ch;
+
+  if ( !ResourceTable )
+    do_init_resources(d);
+
+  if ( !(ch = getMemberHashTable((HashTable)ResourceTable, rn)) )
+    ch = getMemberHashTable((HashTable)ResourceTable, rc);
+
+  if ( ch )
+  { Vector best = NIL;
+    int bestok = -1;
+    Cell cell;
+
+    for_cell(cell, ch)
+    { Vector v = cell->value;
+      int size = valInt(v->size);
+      Any *elements = v->elements;
+      int ok = 0;
+
+      if ( size == 3 )			/* Pce.Class.attribute */
+      { if ( elements[1] == cn )
+	{ ok = 100;			/* can not be better */
+	} else if ( elements[1] == cc )
+	{ ok = 70;
+	} else if ( accept_default && elements[1] == name_star )
+	{ ok = 50;
+	}
+
+	DEBUG(NAME_resource, Cprintf("%s using %s: ok = %d (e0=%s)\n",
+				     pp(rn), pp(v), ok, pp(elements[0])));
+
+	if ( elements[0] == d->resource_class )
+	{ ;
+	} else if ( elements[0] == name_star )
+	{ if ( accept_default )
+	    ok /= 10;
+	  else
+	    ok = 0;
+	} else
+	  ok = 0;
+      } else if ( size == 2 )		/* Class.attribute */
+      { if ( accept_default && elements[0] == name_star )
+	  ok = 1;
+      }
+
+      if ( ok && ok >= bestok )
+      { best = v;
+	bestok = ok;
+      }
+    }
+
+    if ( notNil(best) )
+      return getTailVector(best);
+  }
+
+  fail;					/* uses the default */
+}
+
+#endif /*O_NOX11RESOURCES*/

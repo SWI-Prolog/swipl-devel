@@ -1164,6 +1164,26 @@ draw_segments(lsegment *s, int n, HPEN pen)
 }
 
 
+void
+r_3d_segments(int n, ISegment s, Elevation e, int light)
+{ HPEN old;
+  int i, x = PCE_MAX_INT, y = PCE_MAX_INT;
+
+  r_elevation(e);
+
+  old = ZSelectObject(context.hdc, light ? context.relief_pen
+					 : context.shadow_pen);
+  for(i=0; i<n; i++, s++)
+  { if ( x != s->x1 || y != s->y1 )
+      MoveTo(context.hdc, s->x1, s->y1);
+    LineTo(context.hdc, s->x2, s->y2);
+    x = s->x2; y = s->y2;
+  }
+
+  ZSelectObject(context.hdc, old);
+}
+
+
 static short costable[91];
 
 static int
@@ -1850,7 +1870,7 @@ void
 r_caret(int cx, int cy, FontObj font)
 { int ch, cb, ah, cw2;
   int cw = valInt(getExFont(font));
-  struct ipoint pts[3];
+  ipoint pts[3];
 
   if ( cw < 4 )
     cw = 4;
@@ -1968,7 +1988,8 @@ s_font(FontObj font)
     context.wsf = wsf;
     org = ZSelectObject(context.hdc, wsf->hfont);
     if ( !context.ohfont )
-      context.ohfont = org;
+    { context.ohfont = org;
+    }
 
     context.font = font;
   }
@@ -2139,6 +2160,19 @@ s_print(String s, int x, int y, FontObj f)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+str_text() is only called from str_label, using SetTextAlign() to use
+the baseline.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+str_text(String s, int x, int y)
+{ assert(isstr8(s));
+
+  TextOut(context.hdc, x, y, s->s_text8, s->size);
+}    
+
+
 void
 str_size(String s, FontObj font, int *width, int *height)
 { if ( s->size > 0 )
@@ -2206,21 +2240,160 @@ str_string(String s, FontObj font,
   rect.bottom = rect.top + h;
 
   s_font(font);
-  DEBUG(NAME_redraw, Cprintf("str_text(%s, %s, %d, %d, %d, %d, %s, %s)\n",
-			     s->s_text8, pp(font), x, y, w, h,
-			     pp(hadjust), pp(vadjust)));
   DrawText(context.hdc, s->s_text8, s->size, &rect, flags);
+}
+
+
+		/********************************
+		*         MULTILINE TEXT	*
+		********************************/
+
+#define MAX_TEXT_LINES 200		/* lines in a text object */
+
+typedef struct
+{ short	x;				/* origin x offset */
+  short	y;				/* origin y offset */
+  short	width;				/* pixel width of line */
+  short	height;				/* pixel height of line */
+  string text;				/* text of the line */
+} strTextLine;
+
+
+static void
+str_break_into_lines(String s, strTextLine *line, int *nlines)
+{ int here = 0;
+  int size = s->size;
+
+  *nlines = 0;
+
+  if ( size == 0 )			/* totally empty: report one line */
+  { str_cphdr(&line->text, s);
+    line->text.s_text = s->s_text;
+    line->text.size = 0;
+    *nlines = 1;
+    return;
+  }
+
+  for( ; here < size; line++, (*nlines)++ )
+  { int el;
+
+    str_cphdr(&line->text, s);
+    line->text.s_text = str_textp(s, here);
+
+    if ( (el = str_next_index(s, here, '\n')) >= 0 )
+    { line->text.size = el - here;
+      here = el + 1;
+      if ( here == size )		/* last char is newline: add a line */
+      { line++, (*nlines)++;
+	str_cphdr(&line->text, s);
+	line->text.s_text = str_textp(s, here);
+	line->text.size = 0;
+      }
+    } else
+    { line->text.size = size - here;
+      here = size;
+    }
+  }
+}
+
+
+static void
+str_compute_lines(strTextLine *lines, int nlines, FontObj font,
+		  int x, int y, int w, int h,
+		  Name hadjust, Name vadjust)
+{ int cy;
+  int th = s_height(font);
+  strTextLine *line;
+  int n;
+
+  if ( equalName(vadjust, NAME_top) )
+    cy = y;
+  else if ( equalName(vadjust, NAME_center) )
+    cy = y + (h - nlines*th)/2;
+  else /*if ( equalName(vadjust, NAME_bottom) )*/
+    cy = y + h - nlines*th;
+
+  for( n = 0, line = lines; n++ < nlines; line++, cy += th )
+  { line->y      = cy;
+    line->height = th;
+    line->width  = str_width(&line->text, 0, line->text.size, font);
+
+    if ( equalName(hadjust, NAME_left) )
+      line->x = x;
+    else if ( equalName(hadjust, NAME_center) )
+      line->x = x + (w - line->width)/2;
+    else /*if ( equalName(hadjust, NAME_right) )*/
+      line->x = x + w - line->width;
+  }
 }
 
 
 void
 ps_string(String s, FontObj font, int x, int y, int w, Name format)
-{
+{ strTextLine lines[MAX_TEXT_LINES];
+  strTextLine *line;
+  int nlines, n;
+  int baseline;
+
+  if ( s->size == 0 )
+    return;
+
+  s_font(font);
+  ps_font(font);
+
+  baseline = s_ascent(font);
+  str_break_into_lines(s, lines, &nlines);
+  str_compute_lines(lines, nlines, font, x, y, w, 0, format, NAME_top);
+
+  for(n=0, line = lines; n++ < nlines; line++)
+  { if ( line->text.size > 0 )
+      ps_output("~D ~D 0 ~D ~a text\n",
+		line->x, line->y+baseline,
+		line->width, &line->text);
+  }
 }
 
 
 void
-str_label(char8 *s, char8 acc, FontObj font, int x, int y, int w, int h,
+str_label(String s, int acc, FontObj font, int x, int y, int w, int h,
 	  Name hadjust, Name vadjust)
-{
+{ strTextLine lines[MAX_TEXT_LINES];
+  strTextLine *line;
+  int nlines, n;
+  int baseline;
+  UINT oalign;
+
+  if ( s->size == 0 )
+    return;
+
+  s_font(font);
+  baseline = s_ascent(font);
+  str_break_into_lines(s, lines, &nlines);
+  str_compute_lines(lines, nlines, font, x, y, w, h, hadjust, vadjust);
+
+  oalign = SetTextAlign(context.hdc, TA_BASELINE|TA_LEFT|TA_NOUPDATECP);
+
+  for(n=0, line = lines; n++ < nlines; line++)
+  { str_text(&line->text, line->x, line->y+baseline);
+
+    if ( acc )
+    { int cx = line->x;
+      int cn;
+
+      for(cn=0; cn<line->text.size; cn++)
+      { int c  = str_fetch(&line->text, cn);
+	int cw = c_width(c, font);
+
+	if ( tolower(c) == acc )
+	{ r_line(cx, line->y+baseline+1, cx+cw, line->y+baseline+1);
+	  acc = 0;
+	  break;
+	}
+
+	cx += cw;
+      }
+    }
+  }
+
+  SetTextAlign(context.hdc, oalign);
 }

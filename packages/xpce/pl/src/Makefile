@@ -105,7 +105,7 @@ sopce$(XPCESO):
 		$(LD) $(LDSOFLAGS) $(SOITF) -L$(LIBDIR) -lXPCE -o $(XPCESO);
 axpce$(XPCESO):
 		$(LD) $(LDSOFLAGS) $(SOITF) $(SOEXTR) -L$(LIBDIR) \
-		-lXPCE $(GCCLIB) $(XLIBS) -o $(XPCESO);
+		-lXPCE $(GCCLIB) $(XLIBS) $(NETLIBS) -o $(XPCESO);
 
 ################################################################$
 # QLF generation

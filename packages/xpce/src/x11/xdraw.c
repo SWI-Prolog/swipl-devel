@@ -2569,19 +2569,20 @@ ps_string(String s, FontObj font, int x, int y, int w, Name format)
 }
 
 
-#if TBD
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Draws a string, just  like  str_string(),   but  underscores  the  first
+character matching the accelerator (case-insensitive).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
-str_label(char8 *s, char8 acc, FontObj font, int x, int y, int w, int h,
-	Name hadjust, Name vadjust)
+str_label(String s, int acc, FontObj font, int x, int y, int w, int h,
+	   Name hadjust, Name vadjust)
 { strTextLine lines[MAX_TEXT_LINES];
   strTextLine *line;
   int nlines, n;
   int baseline;
-  char8 *q;
 
-  if ( s == NULL )
-    s = "(null)";
-  else if ( s[0] == EOS )
+  if ( s->size == 0 )
     return;
 
   Translate(x, y);
@@ -2591,22 +2592,29 @@ str_label(char8 *s, char8 acc, FontObj font, int x, int y, int w, int h,
   str_compute_lines(lines, nlines, font, x, y, w, h, hadjust, vadjust);
 
   for(n=0, line = lines; n++ < nlines; line++)
-    str_text(line->text, line->length, line->x, line->y+baseline);
+  { str_text(&line->text, line->x, line->y+baseline);
 
-  if ( acc && (q=strchr(s, acc)) )
-  { int i = s - q;
-    int cx, cw;
-    int descent = context.gcs->font_info->descent;
-    
-    for(line = lines; i > line->length; line++)
-      i -= line->length;
+    if ( acc )
+    { int cx = line->x;
+      int cn;
 
-    cx = str_width(line->text, i, font);
-    cw = c_width(acc, font);
+      cx += lbearing(str_fetch(&line->text, 0), context.gcs->font_info);
 
-    r_line(line->x + cx,      line->y + baseline + descent - 1,
-	   line->x + cx + cw, line->y + baseline + descent - 1);
+      for(cn=0; cn<line->text.size; cn++)
+      { int c  = str_fetch(&line->text, cn);
+	int cw = c_width(c, font);
+
+	if ( tolower(c) == acc )
+	{			/* not r_line to avoid double Translate() */
+	  XDrawLine(context.display, context.drawable, context.gcs->workGC,
+		    cx, line->y+baseline+1, cx+cw, line->y+baseline+1);
+	  acc = 0;
+	  break;
+	}
+
+	cx += cw;
+      }
+    }
   }
 }
 
-#endif /*TBD*/

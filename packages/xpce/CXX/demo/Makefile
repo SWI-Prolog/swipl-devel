@@ -23,7 +23,7 @@ PCEARCH=solaris
 CC=gcc
 CXX=g++
 SO=so
-LD=ld
+LD=/usr/ccs/bin/ld
 LIBDIR=../../solaris
 LDSOFLAGS=-G -L$(LIBDIR)
 

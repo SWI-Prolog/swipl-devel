@@ -9,6 +9,8 @@
 
 #include <md.h>
 
+#define O_NOX11RESOURCES 1		/* use own resource parser */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

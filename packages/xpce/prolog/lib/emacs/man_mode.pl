@@ -61,7 +61,8 @@ event(_M, Ev:event) :->
 man(M, Spec:name) :->
 	"Switch to given manual page"::
 	get(M, text_buffer, TB),
-	(   get(Spec, scan, '%s %s', vector(Section, Page))
+	(   get(Spec, scan, '-s %s %s', vector(Section, Page))
+	;   get(Spec, scan, '%s %s', vector(Section, Page))
 	;   get(Spec, scan, '%[a-z](%[^)]', vector(Page, Section))
 	;   Page = Spec
 	),
@@ -81,7 +82,8 @@ man(M, Spec:name) :->
 	    ->	new(P, process(man, Page)),
 		send(TB, name, string('%s', Page)),
 		send(M, report, status, 'Running man %s ...', Page)
-	    ;	(   get(@pce, operating_system, solaris)
+	    ;	(   get(@pce, operating_system, OS),
+		    send(OS, prefix, solaris)
 		->  new(P, process(man, '-s', Section, Page)),
 		    send(TB, name, string('%s(%s)', Page, Section)),
 		    send(M, report, status, 'Running man -s %s %s ...',

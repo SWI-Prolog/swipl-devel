@@ -175,6 +175,13 @@ getPopupFromEventMenuBar(MenuBar mb, EventObj ev)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+`menu_bar->key' will show the popup  of   the  button  which accelerator
+matches the key. This is done the  same   way  as  a click will show the
+popup, so the  user  can  freely   switch  between  keyboard  and  mouse
+operation.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static status
 keyMenuBar(MenuBar mb, Name key)
 { Cell cell;
@@ -182,6 +189,24 @@ keyMenuBar(MenuBar mb, Name key)
   if ( mb->active == OFF )
     fail;
 
+					/* show popup if matching key */
+  for_cell(cell, mb->buttons)
+  { Button b = cell->value;
+    
+    if ( b->accelerator == key )
+    { PceWindow sw = getWindowGraphical((Graphical)mb);
+
+      attributeObject(mb, NAME_Stayup, ON);
+      showPopupMenuBar(mb, b->popup);
+
+      grabPointerWindow(sw, ON);
+      focusWindow(sw, (Graphical) mb, DEFAULT, DEFAULT, NIL);
+
+      succeed;
+    }
+  }
+
+					/* immediately execute items? */
   for_cell(cell, mb->members)
   { PopupObj p = cell->value;
 
@@ -211,7 +236,7 @@ eventMenuBar(MenuBar mb, EventObj ev)
     assign(mb, button, getButtonEvent(ev));
 
   if ( notNil(mb->current) )
-  { if ( isDragEvent(ev) )
+  { if ( isDragEvent(ev) || isAEvent(ev, NAME_locMove) )
     { if ( (p = getPopupFromEventMenuBar(mb, ev)) && p != mb->current )
 	showPopupMenuBar(mb, p);
       postEvent(ev, (Graphical) mb->current, DEFAULT);
@@ -219,7 +244,7 @@ eventMenuBar(MenuBar mb, EventObj ev)
     { PceWindow sw = ev->window;
       PopupObj p;
 
-      if ( valInt(getClickTimeEvent(ev)) < 400 && /* CLICK: stay-up */
+      if ( valInt(getClickTimeEvent(ev)) < 1000 && /* CLICK: stay-up */
 	   valInt(getClickDisplacementEvent(ev)) < 10 &&
 	   getAttributeObject(mb, NAME_Stayup) != ON )
       { attributeObject(mb, NAME_Stayup, ON);
@@ -276,6 +301,59 @@ eventMenuBar(MenuBar mb, EventObj ev)
   return eventDialogItem(mb, ev);
 }
 
+		 /*******************************
+		 *	     GEOMETRY		*
+		 *******************************/
+
+static Int
+getHorStretchMenuBar(MenuBar mb)
+{ answer(ONE);
+}
+
+
+static status
+geometryMenuBar(MenuBar mb, Int x, Int y, Int w, Int h)
+{ Cell cell;
+  int gap = valInt(mb->gap);
+  int wtot = 0;
+  int extragap, cx = 0;
+  int htot = 0;
+
+  for_cell(cell, mb->buttons)
+  { Graphical b = cell->value;
+
+    ComputeGraphical(b);
+    wtot += valInt(b->area->w) + gap;
+    htot = max(htot, valInt(b->area->h));
+  }
+
+  if ( wtot )
+    wtot -= gap;
+
+  if ( mb->look == NAME_motif && notDefault(w) && valInt(w) > wtot )
+    extragap = valInt(w) - wtot;
+  else
+    extragap = 0;
+
+  for_cell(cell, mb->buttons)
+  { DialogItem b = cell->value;
+
+    if ( extragap && b->alignment == NAME_right )
+    { cx += extragap;
+      extragap = 0;
+    }
+	
+    assign(b->area, x, toInt(cx));
+    cx += valInt(b->area->w) + gap;
+  }
+    
+  if ( cx )
+    cx -= gap;
+
+  return geometryGraphical(mb, x, y, toInt(cx), toInt(htot));
+}
+
+
 		/********************************
 		*          ATTRIBUTES		*
 		********************************/
@@ -301,16 +379,38 @@ clearMenuBar(MenuBar mb)
 
 
 static status
-appendMenuBar(MenuBar mb, PopupObj p)
+appendMenuBar(MenuBar mb, PopupObj p, Name alignment)
 { if ( !memberChain(mb->members, p) )
-  { Button b;
+  { Button b = newObject(ClassButton, p->name, NIL, 0);
 
+    labelDialogItem((DialogItem)b, p->label);
     appendChain(mb->members, p);
-    appendChain(mb->buttons, b=newObject(ClassButton, p->label, NIL, 0));
+      
+    if ( alignment == NAME_right )
+    { appendChain(mb->buttons, b);
+      assign(b, alignment, NAME_right);
+    } else
+    { Cell cell;
+      Button before = NIL;
+
+      for_cell(cell, mb->buttons)
+      { Button b2 = cell->value;
+
+	if ( b2->alignment == NAME_right )
+	{ before = b2;
+	  break;
+	}
+      }
+      insertBeforeChain(mb->buttons, b, before);
+    }
+
     assign(b, popup, p);
     obtainResourcesObject(mb);
     if ( mb->look != NAME_openLook )
-    { assign(b, label_font, mb->label_font);
+    { if ( mb->look == NAME_win )
+	assign(b, look, NAME_winMenuBar);
+
+      assign(b, label_font, mb->label_font);
       assign(b, pen, mb->pen);
       assign(b, radius, mb->radius);
     }
@@ -452,6 +552,10 @@ resetMenuBar(MenuBar mb)
 
 static char *T_activeMember[] =
         { "popup=member:popup", "active=bool" };
+static char *T_geometry[] =
+	{ "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+static char *T_append[] =
+	{ "member=popup", "alignment=[{left,right}]" };
 
 /* Instance Variables */
 
@@ -479,6 +583,8 @@ static vardecl var_menuBar[] =
 static senddecl send_menuBar[] =
 { SM(NAME_compute, 0, NULL, computeMenuBar,
      DEFAULT, "Recompute the menu-bar"),
+  SM(NAME_geometry, 4, T_geometry, geometryMenuBar,
+     NAME_resize, "Resize menu-bar"),
   SM(NAME_event, 1, "event", eventMenuBar,
      DEFAULT, "Process an event"),
   SM(NAME_initialise, 1, "name=[name]", initialiseMenuBar,
@@ -501,7 +607,7 @@ static senddecl send_menuBar[] =
      NAME_active, "Activate menu_item or name"),
   SM(NAME_showPopup, 1, "popup", showPopupMenuBar,
      NAME_event, "Make popup <-current and ->open it"),
-  SM(NAME_append, 1, "popup", appendMenuBar,
+  SM(NAME_append, 2, T_append, appendMenuBar,
      NAME_organisation, "Append a popup to the menubar"),
   SM(NAME_clear, 0, NULL, clearMenuBar,
      NAME_organisation, "Remove all menus from the menu_bar"),
@@ -518,6 +624,8 @@ static getdecl get_menuBar[] =
      DEFAULT, "Reference of first button"),
   GM(NAME_popupFromEvent, 1, "popup", "event", getPopupFromEventMenuBar,
      NAME_event, "Find popup to open from event on menu_bar"),
+  GM(NAME_horStretch, 0, "0..", NULL, getHorStretchMenuBar,
+     NAME_layout, "Stetchability (1)"),
   GM(NAME_member, 1, "popup", "name|popup", getMemberMenuBar,
      NAME_organisation, "Find popup from name")
 };

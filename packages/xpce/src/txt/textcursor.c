@@ -30,7 +30,7 @@ RedrawAreaTextCursor(TextCursor c, Area a)
 
   if ( c->style == NAME_arrow )
   { int cx = x+w/2;			/* TBD: consider r_caret()! */
-    struct ipoint pts[3];
+    ipoint pts[3];
     
     r_thickness(1);
     r_dash(NAME_none);
@@ -55,7 +55,7 @@ RedrawAreaTextCursor(TextCursor c, Area a)
       r_fillpattern(colour ? colour : (Any) BLACK_IMAGE);
       r_fill_triangle(cx, y, x, y+h, x+w, y+h);
     } else
-    { struct ipoint pts[4];
+    { ipoint pts[4];
       int cx = x + w/2;
       int cy = y + h/2;
       int i = 0;

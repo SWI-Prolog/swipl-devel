@@ -96,3 +96,21 @@ ws_event_in_subwindow(EventObj ev, Any root)
 }
 
 
+		 /*******************************
+		 *	       LOC-STILL	*
+		 *******************************/
+
+static VOID CALLBACK
+locStillTimer(HWND hwnd, UINT msg, UINT id, DWORD now)
+{ DEBUG(NAME_locStill, Cprintf("locStillTimer() called\n"));
+  considerLocStillEvent();
+
+  /*ws_init_loc_still_timer();*/
+}
+
+
+void
+ws_init_loc_still_timer()
+{ if ( !SetTimer(NULL, 0, (UINT)(250), (TIMERPROC) locStillTimer) )
+    Cprintf("SetTimer() failed\n");
+}

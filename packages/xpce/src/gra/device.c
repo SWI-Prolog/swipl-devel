@@ -222,18 +222,21 @@ updatePointedDevice(Device dev, EventObj ev)
 status
 inspectDevice(Device dev, EventObj ev)
 { Cell cell;
+  DisplayObj d = CurrentDisplay(dev);
+
+  updatePointedDevice(dev, ev);
 
   for_cell(cell, dev->pointed)
   { if ( instanceOfObject(cell->value, ClassDevice) )
     { if ( inspectDevice(cell->value, ev) )
     	succeed;
     } else
-    { if ( inspectDisplay(CurrentDisplay(dev), cell->value, ev) )
+    { if ( inspectDisplay(d, cell->value, ev) )
 	succeed;
     }
   }
 
-  return inspectDisplay(CurrentDisplay(dev), (Graphical) dev, ev);
+  return inspectDisplay(d, (Graphical) dev, ev);
 }
 
 
@@ -1422,6 +1425,8 @@ status
 appendDialogItemDevice(Device d, Graphical item, Name where)
 { Graphical di;
   Name algmnt;
+
+  send(item, NAME_autoAlign, ON, 0);
 
   if ( emptyChain(d->graphicals) )
     return displayDevice(d, item, DEFAULT);

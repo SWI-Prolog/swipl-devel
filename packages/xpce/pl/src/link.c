@@ -50,5 +50,7 @@ main(int argc, char **argv, char **env)
 { if ( !PL_initialise(argc, argv, env) )
     PL_halt(1);
 
+  PL_install_readline();		/* delete if you don't want readline */
+
   PL_halt(PL_toplevel() ? 0 : 1);
 }

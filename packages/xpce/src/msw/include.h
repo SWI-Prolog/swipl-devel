@@ -110,6 +110,7 @@ void		declareWindowsBrush(Any obj, HBRUSH brush);
 status		d_winmf(const char *fn, const char *descr);
 HENHMETAFILE	d_winmfdone(void);
 void		r_winmf(HENHMETAFILE hmf, int x, int y, int w, int h);
+void		ws_init_loc_still_timer(void);
 
 
 		 /*******************************

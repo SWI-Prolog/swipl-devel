@@ -183,8 +183,9 @@ defaultPostScriptFont(FontObj f)
       strcat(buf, "-Italic");
     else /*if ( f->style == NAME_roman )*/
       strcat(buf, "-Roman");
-  } else /*if ( f->family == NAME_screen ||
-	        f->family == NAME_courier )*/
+  } else if ( f->style == NAME_ansiVar )
+  { strcpy(buf, "Helvetica");
+  } else				/* default */
   { strcpy(buf, "Courier");
 
     if ( f->style == NAME_bold )

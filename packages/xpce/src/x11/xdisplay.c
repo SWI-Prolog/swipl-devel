@@ -722,6 +722,7 @@ ws_postscript_display(DisplayObj d)
   succeed;
 }
 
+#ifndef O_NOX11RESOURCES
 
 		 /*******************************
 		 *	     RESOURCES		*
@@ -729,8 +730,8 @@ ws_postscript_display(DisplayObj d)
 
 StringObj
 ws_get_resource_value(DisplayObj d,
-		      Name cc, Name cn,
-		      Name rc, Name rn)
+		      Name cc, Name cn, Name rc, Name rn,
+		      int accept_default)
 { DisplayWsXref r = d->ws_ref;
   char *val;				/* actually X11 String ... */
   XtResource res;
@@ -750,3 +751,5 @@ ws_get_resource_value(DisplayObj d,
 
   fail;
 }
+
+#endif /*O_NOX11RESOURCES*/

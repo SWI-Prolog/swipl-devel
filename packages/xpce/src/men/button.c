@@ -30,13 +30,60 @@ initialiseButton(Button b, Name name, Message msg, Name acc)
 }
 
 
+static int
+accelerator_code(Name a)
+{ if ( isName(a) )
+  { char *s = strName(a);
+    
+    if ( s[0] == '\\' && s[1] == 'e' && s[3] == EOS )
+      return s[2];
+  }
+
+  return 0;
+}
+
+
+static status
+RedrawWinMenuBarButton(Button b, Area a)
+{ int x, y, w, h;
+  Any ofg = NIL;
+
+  initialiseDeviceGraphical(b, &x, &y, &w, &h);
+  NormaliseArea(x, y, w, h);
+  
+  if ( b->status == NAME_preview )
+  { Any fg = getResourceValueObject(b, NAME_selectedForeground);
+    Any bg = getResourceValueObject(b, NAME_selectedBackground);
+
+    if ( !fg ) fg = WHITE_COLOUR;
+    if ( !bg ) bg = BLACK_COLOUR;
+    r_fill(x, y, w, h, bg);
+    ofg = r_colour(fg);
+  }
+
+  str_label(&b->label->data, accelerator_code(b->accelerator), b->label_font,
+	    x, y, w, h,
+	    NAME_center, NAME_center);
+
+  if ( notNil(ofg) )
+    r_colour(ofg);
+
+  succeed;
+}
+
+
 status
 RedrawAreaButton(Button b, Area a)
 { int x, y, w, h;
-  int defb = (getDefaultButtonButton(b) == ON);
+  int defb;
   int rm = 0;				/* right-margin */
-  Elevation z = getResourceValueObject(b, NAME_elevation);
+  Elevation z;
 
+  if ( b->look == NAME_winMenuBar )
+    return RedrawWinMenuBarButton(b, a);
+
+  defb = (getDefaultButtonButton(b) == ON);
+  z = getResourceValueObject(b, NAME_elevation);
   initialiseDeviceGraphical(b, &x, &y, &w, &h);
   NormaliseArea(x, y, w, h);
   
@@ -111,8 +158,9 @@ RedrawAreaButton(Button b, Area a)
       }
     }
 
-    str_string(&b->label->data, b->label_font, x, y, w-rm, h,
-	       NAME_center, NAME_center);
+    str_label(&b->label->data, accelerator_code(b->accelerator), b->label_font,
+	      x, y, w-rm, h,
+	      NAME_center, NAME_center);
   } else				/* x, 2D-open_look */
   { int swapc  = 0;
     int pen    = valInt(b->pen);
@@ -151,8 +199,9 @@ RedrawAreaButton(Button b, Area a)
       r_image(b->popup_image, 0, 0, x+w-rm, y + (h-ih)/2, iw, ih, ON);
     }
 
-    str_string(&b->label->data, b->label_font, x, y, w-rm, h,
-	       NAME_center, NAME_center);
+    str_label(&b->label->data, accelerator_code(b->accelerator), b->label_font,
+	      x, y, w-rm, h,
+	      NAME_center, NAME_center);
 
     if ( swapc )
       r_swap_background_and_foreground();
@@ -165,24 +214,30 @@ RedrawAreaButton(Button b, Area a)
 static status
 computeButton(Button b)
 { if ( notNil(b->request_compute) )
-  { Size size = getResourceValueObject(b, NAME_size);
-    int w, h;
+  { int w, h;
 
     TRY(obtainResourcesObject(b));
 
-    str_size(&b->label->data, b->label_font, &w, &h);
-    h += 6; w += 10;
-    if ( notNil(b->popup) )
-    { if ( notNil(b->popup->popup_image) )
-	w += valInt(b->popup->popup_image->size->w) + 5;
-      else if ( b->look == NAME_motif )
-	w += 12 + 5;
-      else
-	w += 9 + 5;
-    }
+    if ( b->look == NAME_winMenuBar )
+    { str_size(&b->label->data, b->label_font, &w, &h);
+      w += valInt(getExFont(b->label_font)) * 2;
+    } else
+    { Size size = getResourceValueObject(b, NAME_size);
 
-    w = max(valInt(size->w), w);
-    h = max(valInt(size->h), h);
+      str_size(&b->label->data, b->label_font, &w, &h);
+      h += 6; w += 10;
+      if ( notNil(b->popup) )
+      { if ( notNil(b->popup->popup_image) )
+	  w += valInt(b->popup->popup_image->size->w) + 5;
+	else if ( b->look == NAME_motif )
+	  w += 12 + 5;
+	else
+	  w += 9 + 5;
+      }
+
+      w = max(valInt(size->w), w);
+      h = max(valInt(size->h), h);
+    }
 
     CHANGING_GRAPHICAL(b,
 	 assign(b->area, w, toInt(w));
@@ -200,14 +255,17 @@ getReferenceButton(Button b)
 { Point ref;
 
   if ( !(ref = getReferenceDialogItem(b)) )
-  { int fh, ascent, h;
+  { int fh, ascent, h, rx = 0;
 
     ComputeGraphical(b);
     fh     = valInt(getHeightFont(b->label_font));
     ascent = valInt(getAscentFont(b->label_font));
     h      = valInt(b->area->h);
 
-    ref = answerObject(ClassPoint, ZERO, toInt((h - fh)/2 + ascent), 0);
+    if ( b->look == NAME_winMenuBar )
+      rx = valInt(getExFont(b->label_font));
+
+    ref = answerObject(ClassPoint, toInt(rx), toInt((h - fh)/2 + ascent), 0);
   }
   
   answer(ref);
@@ -473,6 +531,10 @@ static resourcedecl rc_button[] =
      "Ensured suffix of label"),
   RC(NAME_pen, "int", "2",
      "Thickness of box"),
+  RC(NAME_selectedForeground, "colour", "white",
+     "Colour when in preview mode (Windows menu-bar)"),
+  RC(NAME_selectedBackground, "colour", "black",
+     "Background when in preview mode (Windows menu-bar)"),
   RC(NAME_popupImage, "image*", "@nil",
      "Image to indicate presence of popup menu"),
   RC(NAME_radius, "int", "4",

@@ -29,6 +29,7 @@ status		confirmDisplay(DisplayObj d, CharArray fmt, int argc, Any *argv);
 status		informDisplay(DisplayObj d, CharArray fmt, int argc, Any *argv);
 status		busyCursorDisplay(DisplayObj d, CursorObj c, Bool block_events);
 status		inspectDisplay(DisplayObj d, Graphical gr, EventObj ev);
+status		loadResourceFileDisplay(DisplayObj d, FileObj f);
 status		makeClassDisplay(Class class);
 
 /* win/displaymgr.c */
@@ -72,6 +73,8 @@ status		attach_resource(Class cl, char *name, char *type, char *def, char *doc);
 status		refine_resource(Class cl, char *name_s, char *def);
 status		variable_resource(Class cl, Name name, char *def);
 status		makeClassResource(Class class);
+status		load_resource_file(FileObj f);
+StringObj	ws_get_resource_value(DisplayObj d, Name cc, Name cn, Name rc, Name rn, int accept_default);
 
 /* win/setup.c */
 

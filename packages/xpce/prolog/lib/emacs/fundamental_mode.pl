@@ -53,13 +53,6 @@
 	  identify		   = button(file),
 	  quit			   = key('\C-x\C-c') + button(file),
 
-					% HELP menu
-	  help			   = button(help),
-	  customise		   = button(help),
-	  show_key_bindings	   = button(help),
-	  manpce		   = button(help),
-	  manual_entry		   = button(help),
-
 					% EDIT menu
 	  undo			   = button(edit),
 	  copy			   = button(edit),
@@ -71,7 +64,14 @@
 	  grep			   = button(browse),
 
 					% COMPILE menu
-	  compile		   = button(compile)
+	  compile		   = button(compile),
+
+					% HELP menu
+	  help			   = button(help),
+	  customise		   = button(help),
+	  show_key_bindings	   = button(help),
+	  manpce		   = button(help),
+	  manual_entry		   = button(help)
 	],
 	[
 	]).
@@ -519,7 +519,7 @@ shell(M) :->
 better_shell('/bin/tcsh', '/bin/csh') :- !.
 better_shell(Shell, Shell).
 
-manual_entry(M, Spec:name) :->
+manual_entry(M, Spec:unix_manual_entry_for=name) :->
 	"Lookup Unix manual entry"::
 	send(M, has_processes),
 	new(B, emacs_buffer(@nil, Spec)),

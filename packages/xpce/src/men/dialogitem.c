@@ -296,7 +296,7 @@ static vardecl var_dialogItem[] =
      NAME_action, "Associated command"),
   IV(NAME_popup, "popup*", IV_BOTH,
      NAME_menu, "Associated popup menu"),
-  SV(NAME_look, "{x,open_look,motif,win}", IV_GET|IV_STORE, lookDialogItem,
+  SV(NAME_look, "{x,open_look,motif,win}|name",IV_GET|IV_STORE,lookDialogItem,
      NAME_appearance, "Look-and-feel switch"),
   IV(NAME_autoAlign, "bool", IV_BOTH,
      NAME_layout, "Item is automatically placed by its dialog"),

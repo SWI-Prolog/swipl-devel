@@ -1,5 +1,37 @@
 [VERSION 4.8.17]
 
+* FIXED: PceEmacs: M-x manual_entry: better feedback and handling of
+  man -s on Solaris.
+
+* FIXED: PceEmacs: capitalisation of popup-labels followed by ...
+  (find_file, etc.).
+
+* MODIFIED: Menu-bar event-handling:
+	+ After clicking, moving to another popup will open this
+	  popup.
+
+* FIXED: avoid failing `key_binding->typed' for prefix and other built-in
+  commands.
+
+* ADDED: loc-still management for Win32 version.  Windows-95 compliant
+  implementation of class menu-bar.
+
+* ADDED: `alignment' attribute to `menu_bar->append' to allow for flush-right
+  of (for example) the help-button.  Implemented `menu-bar ->geometry' and
+  `menu-bar <-hor_stretch' to support this functionality.
+
+* FIXED: 'device->append_dialog_item' to ensure the item has auto_align
+  set to @on.
+
+* FIXED: `display->inspect_handler' handling.  Also speedup of the
+  implementation.
+
+* FIXED: Win32 version: PostScript generation for text objects.
+
+* MODIFIED: Resource parsing is not longer done using the X11 resource
+  manager, but using XPCE's own resource reader.  It now loads the file
+  $PCEHOME/Pce, which loads $HOME/.Xpce
+
 * ADDED: Class tab for `tabbed dialog windows support' as commonly found
   in Windows '95 application.  Also class tab_stack for creating a stack
   of tabbed dialogs.

@@ -60,7 +60,7 @@ ws_status_timer(Timer tm, Name status)
   }
 
   if ( status != NAME_idle )
-  { long msec = (long) (tm->interval->value * 1000.0);
+  { long msec = (long) (valReal(tm->interval) * 1000.0);
     
     if ( (id = SetTimer(NULL, 0, (UINT)msec, (TIMERPROC) timer_proc)) )
     { if ( !TimerTable )

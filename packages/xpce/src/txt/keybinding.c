@@ -239,12 +239,12 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
       argv[(cmdi=argc++)] = cmd;
 
       if ( cmd == NAME_prefix )		/* Prefix (multikey)  */
-	assign(kb, prefix, key);
-					/* Keyboard quit */
-      else if ( cmd == NAME_keyboardQuit )
-	resetKeyBinding(kb, receiver);
-					/* Next/Previous line column saving */
-      else if ( cmd == NAME_nextLine || cmd == NAME_previousLine )
+      { assign(kb, prefix, key);
+	rval = SUCCEED;
+      } else if ( cmd == NAME_keyboardQuit )
+      { resetKeyBinding(kb, receiver);
+	rval = SUCCEED;
+      } else if ( cmd == NAME_nextLine || cmd == NAME_previousLine )
       { int preservescolumn = hasGetMethodObject(receiver, NAME_column);
 
 	if ( isNil(kb->saved_column) && preservescolumn )
@@ -268,12 +268,14 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
 	      assign(kb, argument, toInt(valInt(kb->argument) * 10 + chr));
 	  }
 	}
+	rval = SUCCEED;
       } else if ( cmd == NAME_universalArgument )
       { if ( isDefault(kb->argument) )
 	{ assign(kb, argument, toInt(4));
 	  assign(kb, status, NAME_universalArgument);
 	} else
 	  assign(kb, argument, toInt(valInt(kb->argument) * 4));
+	rval = SUCCEED;
       } else if ( notDefault(kb->argument) && isdigit(valInt(id)) )
       { if ( kb->status == NAME_universalArgument )
 	{ assign(kb, argument, toInt(valInt(id) - '0'));
@@ -283,6 +285,7 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
 				     valInt(id) - '0'));
 	cmd = NAME_universalArgument;
 	argv[cmdi] = cmd;
+	rval = SUCCEED;
       } else if ( cmd == NAME_quotedInsert )
       { assign(kb, status, NAME_quotedInsert );
       } else 
@@ -373,6 +376,8 @@ fillArgumentsAndExecuteKeyBinding(KeyBinding kb,
 	 cmd != NAME_quotedInsert &&
 	 cmd != NAME_prefix )
       errorPce(receiver, NAME_noTextBehaviour, cmd);
+    else
+      succeed;
   }
 
   fail;

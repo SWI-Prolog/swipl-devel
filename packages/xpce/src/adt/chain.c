@@ -272,6 +272,35 @@ insertAfterChain(Chain ch, Any obj, Any obj2)
 
 
 status
+insertBeforeChain(Chain ch, Any obj, Any obj2)
+{ int i = 1;
+  Cell cell, prev = NIL;
+
+  for_cell(cell, ch)
+  { if ( cell->value == obj2 )
+    { if ( isNil(prev) )
+      { return prependChain(ch, obj);
+      } else
+      { Cell c2 = newCell(ch, obj);
+      
+	c2->next = prev->next;
+	prev->next = c2;
+	assign(ch, size, inc(ch->size));
+	ChangedChain(ch, NAME_insert, toInt(i));
+
+	succeed;
+      }
+    }
+
+    prev = cell;
+    i++;
+  }
+
+  return appendChain(ch, obj);
+}
+
+
+status
 swapChain(Chain ch, Any obj1, Any obj2)
 { Cell cell;
 
@@ -474,7 +503,7 @@ getCurrentChain(Chain ch)
 }
 
 
-static Any
+Any
 getNextChain(Chain ch, Any val)
 { if ( isDefault(val) )			/* old code */
   { Any result;
@@ -500,7 +529,7 @@ getNextChain(Chain ch, Any val)
 }
 
 
-static Any
+Any
 getPreviousChain(Chain ch, Any val)
 { Cell cell;
   Cell prev = NULL;
@@ -1303,6 +1332,8 @@ static char *T_moveAfter[] =
         { "value=any", "after=[any]" };
 static char *T_insertAfter[] =
         { "value=any", "after=any*" };
+static char *T_insertBefore[] =
+        { "value=any", "before=any" };
 static char *T_moveBefore[] =
         { "value=any", "before=any" };
 static char *T_swap[] =
@@ -1368,6 +1399,8 @@ static senddecl send_chain[] =
      NAME_list, "Delete last element"),
   SM(NAME_insertAfter, 2, T_insertAfter, insertAfterChain,
      NAME_list, "Insert first after second object (@nil: prepend)"),
+  SM(NAME_insertBefore, 2, T_insertBefore, insertBeforeChain,
+     NAME_list, "Insert first before second object"),
   SM(NAME_merge, 1, "chain", mergeChain,
      NAME_list, "Append all elements from argument"),
   SM(NAME_prepend, 1, "value=any", prependChain,

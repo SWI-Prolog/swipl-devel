@@ -397,6 +397,43 @@ dragPopup(PopupObj p, EventObj ev, Bool check_pullright)
 
 
 static status
+typedPopup(PopupObj p, Any id)
+{ if ( id == toInt(13) )		/* RETURN ... */
+  { assign(p, selected_item, p->preview);
+    send(p, NAME_close, 0);
+
+    succeed;
+  } else if ( id == NAME_cursorUp )
+  { MenuItem mi;
+
+    if ( notNil(p->preview) )
+      mi = getPreviousChain(p->members, p->preview);
+    else
+      mi = getTailChain(p->members);
+
+    if ( mi )
+      previewMenu((Menu) p, mi);
+
+    succeed;
+  } else if ( id == NAME_cursorDown )
+  { MenuItem mi;
+
+    if ( notNil(p->preview) )
+      mi = getNextChain(p->members, p->preview);
+    else
+      mi = getHeadChain(p->members);
+
+    if ( mi )
+      previewMenu((Menu) p, mi);
+
+    succeed;
+  }
+  
+  fail;
+}
+
+
+static status
 eventPopup(PopupObj p, EventObj ev)
 { 					/* Showing PULLRIGHT menu */
   if ( notNil(p->pullright) )
@@ -476,6 +513,8 @@ eventPopup(PopupObj p, EventObj ev)
 
       succeed;
     }
+  } else if ( isAEvent(ev, NAME_keyboard) )
+  { return typedPopup(p, ev->id);
   }
 
   fail;

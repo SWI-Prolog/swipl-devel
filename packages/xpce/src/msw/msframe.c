@@ -532,7 +532,7 @@ ws_create_frame(FrameObj fr)
   } else /* popup */
   { style = WS_POPUP;
     if ( fr->border != ZERO )
-      style |= WS_BORDER;
+      style |= WS_BORDER|WS_DISABLED;
   }
     
   outer_frame_area(fr, &x, &y, &w, &h, TRUE);

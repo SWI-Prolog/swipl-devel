@@ -37,6 +37,7 @@ AC_SUBST(VMAJOR)
 AC_SUBST(VMINOR)
 AC_SUBST(VPATCH)
 AC_SUBST(LDCONFIG)
+AC_SUBST(AR)
 
 RTSUFFIX=""
 
@@ -218,7 +219,7 @@ EOF
   PLTARGET=soall			 # Link XPCE dynamically to prolog
 
   case "$OS" in
-    *solaris* | *sunos5*)	LD=ld
+    *solaris* | *sunos5*)	LD=/usr/ccs/bin/ld
 				LDSOFLAGS="-G"
 				SONAMEFLAG="-h $(LIBXPCESOM)"
 				SOWHOLEARCHIVE="-u pceSend -u pceOpen"
@@ -297,8 +298,21 @@ else
 fi
 CFLAGS="$CMFLAGS"
 AC_PROG_RANLIB
+AC_CHECK_PROGS(AR, ar /usr/ccs/bin/ar, ar)
 AC_CHECK_PROGS(LDCONFIG, ldconfig, "true")
 AC_PROG_INSTALL
+dnl On Solaris, /usr/ucb/install is fine for what XPCE requires
+case "$INSTALL" in 
+    *install-sh)
+	case "$OS" in
+	    *solaris* | *sunos5*)
+	        INSTALL=/usr/ucb/install
+		INSTALL_PROGRAM="$INSTALL"
+		INSTALL_DATA="$INSTALL -m 644"
+		;;
+	esac
+	;;
+esac
 AC_C_INLINE
 AC_FUNC_ALLOCA
 

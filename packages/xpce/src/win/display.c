@@ -685,8 +685,8 @@ inspectDisplay(DisplayObj d, Graphical gr, EventObj ev)
   for_cell(cell, d->inspect_handlers)
   { Handler h = cell->value;
 
-    if ( isAEvent(ev, h->event) == SUCCEED &&
-      	 forwardReceiverCode(h->message, gr, gr, ev, 0) != FAIL )
+    if ( isAEvent(ev, h->event) &&
+      	 forwardReceiverCode(h->message, gr, gr, ev, 0) )
       succeed;
   }
 
@@ -727,6 +727,21 @@ quitDisplay(DisplayObj d)
 
   succeed;
 }
+
+		 /*******************************
+		 *	      RESOURCES		*
+		 *******************************/
+
+status
+loadResourceFileDisplay(DisplayObj d, FileObj f)
+{
+#ifdef O_NOX11RESOURCES
+  return load_resource_file(f);
+#else
+  fail;
+#endif
+}
+
 
 		/********************************
 		*          FONT TABLES		*
@@ -924,6 +939,8 @@ static senddecl send_display[] =
      NAME_event, "Test if there are X-events waiting"),
   SM(NAME_inspectHandler, 1, "handler", inspectHandlerDisplay,
      NAME_event, "Register handler for inspect tool"),
+  SM(NAME_loadResourceFile, 1, "file", loadResourceFileDisplay,
+     NAME_resource, "Load resource-definitions from file"),
   SM(NAME_fontAlias, 3, T_fontAlias, fontAliasDisplay,
      NAME_font, "Define a logical name for a font"),
   SM(NAME_loadFontAliases, 1, "resource=name", loadFontAliasesDisplay,

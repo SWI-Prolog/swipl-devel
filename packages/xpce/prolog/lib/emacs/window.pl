@@ -42,6 +42,7 @@ initialise(F, B:emacs_buffer) :->
 	send(F, send_super, initialise, B?name),
 	send(F, slot, sticky_window, @off),
 	send(F, append, new(MBD, dialog)),
+	send(MBD, resize_message, message(@receiver, layout, @arg2)),
 	send(MBD, gap, size(0,3)),
 	send(MBD, pen, 0),
 	send(MBD, display, new(menu_bar)),
@@ -673,7 +674,8 @@ fill_menu_bar(M, MB:menu_bar) :->
 			       create(popup, @arg1?name,
 				      message(@emacs_mode,
 					      noarg_call, @arg1))),
-			message(MB, append, P),
+			message(MB, append, P,
+				when(@arg1?name == help, right, @default)),
 			message(M, fill_menu, P, @arg1?value))))).
 
 
@@ -699,7 +701,7 @@ menu_item(M, Selector:name, MI:menu_item) :<-
 	                get(Impl, argument_type, ArgN, ArgType)),
 		       send(ArgType, includes, default))
 	    ->	true
-	    ;	send(MI, label, string('%s ...', Selector))
+	    ;	send(MI, label, string('%s ...', Selector?label_name))
 	    )
 	;   send(MI, active, @off)
 	).

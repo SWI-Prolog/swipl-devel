@@ -44,7 +44,9 @@ Name		ws_window_manager(DisplayObj d);
 void		ws_synchronous(DisplayObj d);
 void		ws_asynchronous(DisplayObj d);
 status		ws_postscript_display(DisplayObj d);
-StringObj	ws_get_resource_value(DisplayObj d, Name cc, Name cn, Name rc, Name rn);
+StringObj	ws_get_resource_value(DisplayObj d,
+				      Name cc, Name cn, Name rc, Name rn,
+				      int accept_default);
 
 /* x11/xdraw.c */
 void		resetDraw(void);
@@ -113,9 +115,14 @@ void		s_print8(char8 *s, int l, int x, int y, FontObj f);
 void		s_print16(char16 *s, int l, int x, int y, FontObj f);
 void		s_print(String s, int x, int y, FontObj f);
 void		str_size(String s, FontObj font, int *width, int *height);
-void		str_string(String s, FontObj font, int x, int y, int w, int h, Name hadjust, Name vadjust);
-void		ps_string(String s, FontObj font, int x, int y, int w, Name format);
-void		str_label(char8 *s, char8 acc, FontObj font, int x, int y, int w, int h, Name hadjust, Name vadjust);
+void		str_string(String s, FontObj font,
+			   int x, int y, int w, int h,
+			   Name hadjust, Name vadjust);
+void		ps_string(String s, FontObj font,
+			  int x, int y, int w, Name format);
+void		str_label(String s, int acc, FontObj font,
+			  int x, int y, int w, int h,
+			  Name hadjust, Name vadjust);
 
 /* x11/xevent.c */
 status		ws_dispatch(Int FD, Int timeout);

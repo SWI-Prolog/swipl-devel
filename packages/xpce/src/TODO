@@ -49,8 +49,6 @@ Issue list:
    I'll put it on the `todo' list ...
 
 
-*) PostScript for boxes: fix handling of too large rounding-radius.
-
 *) Browser: too long items may be selected when the pointer is
    below all items.  Scrollbar is strange then.
 
@@ -60,7 +58,6 @@ Issue list:
 	3) Selection handling conform OpenLook (switchable).
 
 *) Bitmaps:
-	1) Scaling
 	2) Stencils
 
 *) Window ->grab_keyboard werkt niet zonder Window ->grab_pointer!
@@ -70,24 +67,8 @@ Issue list:
 
 *) Communicate with host on CWD (current directory)
 
-*) Clone/save:
-	3) Relations (connection, constraint, hyper):
-		- Internal <-> external relations
-
 *) Improve consistency of functional group identifiers.
 
 *) Print \t as space for xwn-draw.c text functions
 
-*) Implement a proper `logical font-name' mechanism with a 
-   proper interaction to the resource system.  One possible
-   schema would be to allow for:
-
-	send(Text, font, <LogicalFontName>)
-   
-   and define this font using Pce.Font.<LogicalFontName>.
-   
-*) Modify font conversion to accept raw X11 font-names.
-	
-*) Should @display be a function that evaluates to the
-   default display if no event is in progress and the
-   display the current event originates from otherwise?
+*) Modify node->displayed to work as one should expect?

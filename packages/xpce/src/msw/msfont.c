@@ -228,7 +228,7 @@ ws_create_font(FontObj f, DisplayObj d)
   } else
   { LOGFONT lfont;
     Real  scale  = getResourceValueObject(f, NAME_scale);
-    float fscale = (scale ? scale->value : 1.4);
+    float fscale = (scale ? valReal(scale) : 1.4);
 
     memset(&lfont, 0, sizeof(lfont));
     lfont.lfHeight          = (int)((float) valInt(f->points) * fscale);
