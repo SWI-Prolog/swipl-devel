@@ -25,6 +25,7 @@
 :- use_module(pce_global).
 :- require([ pce_error/1
 	   , call/3
+	   , ignore/1
 	   , strip_module/3
 	   , notrace/1
 	   ]).

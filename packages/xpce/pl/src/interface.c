@@ -570,7 +570,7 @@ static PceObject
 refToObject(Term arg)
 { xpceref_t r;
 
-  switch ( _PL_get_xpce_reference(arg, &r) )
+  switch ( _PL_get_xpce_reference(arg, &r, NULL) )
   { case TRUE:
     { PceObject obj;
 
@@ -2282,6 +2282,12 @@ registerPredicates()
 #endif
 
 
+static void
+do_redraw()
+{ pceRedraw(FALSE);
+}
+
+
 foreign_t
 pl_pce_init(Term a)
 { char **argv;
@@ -2320,7 +2326,7 @@ pl_pce_init(Term a)
     pceSend(PROLOG, cToPceName("name_reference"), 1, &plname);
     PROLOG_INSTALL_DISPATCH_FUNCTION(pce_dispatch);
     PROLOG_INSTALL_RESET_FUNCTION(pceReset);
-    PROLOG_INSTALL_REDRAW_FUNCTION(pceRedraw);
+    PROLOG_INSTALL_REDRAW_FUNCTION(do_redraw);
 
     initialised = TRUE;
   }
