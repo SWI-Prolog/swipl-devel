@@ -14,6 +14,11 @@
 	, make/0
 	]).
 
+:- user:dynamic
+	edit_source/1.
+:- user:multifile
+	edit_source/1.
+
 :- module_transparent
 	edit/1, 
 	ed/1.
@@ -21,11 +26,11 @@
 edit(File) :-
 	$break($check_file(File, _)), !, 
 	$record_last($edit_file, File), 
-	$edit_load(File, $nopredicate).
+	$edit_load(File).
 edit(File) :-
 	$confirm('Edit new file ~w', [File]),
 	$record_last($edit_file, File), 
-	$edit(File, $nopredicate).
+	$edit(File).
 
 edit :-
 	recorded($edit_file, File), 
@@ -43,7 +48,7 @@ ed(Spec) :-
 	$strip_module(Head, Module, Term), 
 	functor(Term, Name, Arity), 
 	$record_last($edit_predicate, Module:Name/Arity), 
-	$edit_load(File, Name).
+	$edit_load(File:Name/Arity).
 
 ed :-
 	$module(TypeIn, TypeIn), 
@@ -63,22 +68,30 @@ $record_last(Key, Term) :-
 $record_last(Key, Term) :-
 	recorda(Key, Term).
 
-$edit_load(File, Predicate) :-
+$edit_load(File:Predicate) :-
 	$check_file(File, Path), 
-	$edit(Path, Predicate), !, 
+	$edit(Path:Predicate), !, 
+	make.
+$edit_load(File) :-
+	File \= _:_,
+	$check_file(File, Path), 
+	$edit(Path), !, 
 	make.
 $edit_load(_, _).
 
-$edit(File, Predicate) :-
-	getenv('EDITOR', Editor),
-	$file_base_name(Editor, top),
-	current_predicate($thief, user:$thief(_)), !,	% linked in thief
-	thief(File, Predicate).
-$edit(File, Predicate) :-
+$edit(Spec) :-
+	user:edit_source(Spec), !.
+$edit(File:Name/_Arity) :- !,
 	(   getenv('EDITOR', Editor)
 	;   $default_editor(Editor)
 	) ->
-	edit_command(Editor, File, Predicate, Command), !, 
+	edit_command(Editor, File, Name, Command), !, 
+	shell(Command).
+$edit(File) :-
+	(   getenv('EDITOR', Editor)
+	;   $default_editor(Editor)
+	) ->
+	edit_command(Editor, File, $nopredicate, Command), !, 
 	shell(Command).
 
 thief(File, $nopredicate) :- !,
@@ -133,7 +146,24 @@ make :-
 	$time_source_file(File, LoadTime),
 	time_file(File, Modified),
 	Modified @> LoadTime,
-	$load_context_module(File, Module),	% loaded from? (see init.pl)
-	Module:consult(File),
+	reload(File),
 	fail.
 make.
+
+
+%	reload(File)
+%
+%	Reload file in proper module.  Note that if the file is loaded
+%	into multiple modules this should be handled more carefully.
+
+reload(File) :-
+	findall(Context, $load_context_module(File, Context), Modules),
+	(   Modules = []
+	->  consult(user:File)
+	;   Modules = [Module]
+	->  consult(Module:File)
+	;   Modules = [First|_Rest],
+	    consult(First:File)
+	).
+	).
+	

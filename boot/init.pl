@@ -640,7 +640,7 @@ $load_context_module(File, Module) :-
 $assert_load_context_module(File, Module) :-
 	recorded($load_context_module, File/Module, _), !.
 $assert_load_context_module(File, Module) :-
-	recorda($load_context_module, File/Module, _).
+	recordz($load_context_module, File/Module, _).
 
 %   $load_file(+FirstTerm, +Path, +Import, +IsModule, -Module)
 %
