@@ -240,28 +240,14 @@ pl_abort(abort_type type)
 #endif /*O_ABORT_WITH_THROW*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Initial entry point from C to start  the  Prolog  engine.   Saves  abort
-context,  clears  the  stack  and  finally  starts  the  virtual machine
-interpreter with the toplevel goal.
+prologToplevel(): Initial entry point from C to start the Prolog engine.
+Saves abort context, clears the  stack   and  finally starts the virtual
+machine interpreter with the toplevel goal.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-bool
-prologToplevel(volatile atom_t goal)
-{ bool rval;
-  volatile int aborted = FALSE;
-
-#ifndef O_ABORT_WITH_THROW
-  if ( setjmp(abort_context) != 0 )
-  { if ( LD->current_signal )
-      unblockSignal(LD->current_signal);
-    
-    aborted = TRUE;
-  } else
-#endif
-  { debugstatus.debugging = DBG_OFF;
-  }
-
-  emptyStacks();
+static void
+resetProlog()
+{ emptyStacks();
 
 #ifdef O_LIMIT_DEPTH
   depth_limit   = (unsigned long)DEPTH_NO_LIMIT;
@@ -281,14 +267,36 @@ prologToplevel(volatile atom_t goal)
 #ifndef O_ABORT_WITH_THROW
   can_abort = TRUE;
 #endif
+}
+
+
+bool
+prologToplevel(volatile atom_t goal)
+{ bool rval;
+  volatile int aborted = FALSE;
+
+#ifndef O_ABORT_WITH_THROW
+  if ( setjmp(abort_context) != 0 )
+  { if ( LD->current_signal )
+      unblockSignal(LD->current_signal);
+    
+    aborted = TRUE;
+  } else
+#endif
+  { debugstatus.debugging = DBG_OFF;
+  }
+
   for(;;)
-  { fid_t fid = PL_open_foreign_frame();
+  { fid_t fid;
     qid_t qid;
     term_t except = 0;
     Procedure p;
     word gn;
 
-    if ( aborted )
+   resetProlog();
+   fid = PL_open_foreign_frame();
+
+   if ( aborted )
     { aborted = FALSE;
       gn = PL_new_atom("$abort");
     } else
