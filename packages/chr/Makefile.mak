@@ -12,7 +12,7 @@ PLHOME=..\..
 LIBDIR=$(PLBASE)\library
 EXDIR=$(PKGDOC)\examples\chr
 CHR=$(LIBDIR)\chr
-PL="$(PLBASE)\bin\plcon.exe"
+PL="$(PLHOME)\bin\plcon.exe"
 
 LIBPL=		chr_runtime.pl chr_op.pl chr_translate.pl chr_debug.pl \
 		chr_messages.pl hprolog.pl pairlist.pl clean_code.pl \
