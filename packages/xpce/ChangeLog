@@ -1,3 +1,13 @@
+* ADDED: `table_slice->displayed' to temporarily hide/show table rows and
+  columns.
+
+* FIXED: Combining stretchability for spanned cells in tables, causing the
+  table to grow/shrink as rows/columns are manipulated in the presence of
+  spanned cells.
+
+* FIXED: Colour of the underline in class text-image sometimes showing
+  up wrong.
+
 * ADDED: Support for wheel-mice.  See `event<-id' for details.  This support
   works if your windows system passes WM_WHEELMOUSE events or you are on a
   Unix/X11 system and the X-server is programmed to emit button-4 and
