@@ -345,8 +345,8 @@ pl_shell_execute(term_t op, term_t file)
 { char *o, *f;
   HINSTANCE instance;
 
-  if ( !PL_get_chars_ex(op,   &o, CVT_ALL) ||
-       !PL_get_chars_ex(file, &f, CVT_ALL) )
+  if ( !PL_get_chars_ex(op,   &o, CVT_ALL|BUF_RING) ||
+       !PL_get_chars_ex(file, &f, CVT_ALL|BUF_RING) )
     fail;
        
   instance = ShellExecute(NULL, o, f, NULL, NULL, 0);
