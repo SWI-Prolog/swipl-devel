@@ -750,6 +750,7 @@ goal_colours(module(_,_),	     built_in-[identifier,exports]).
 goal_colours(use_module(_),	     built_in-[file]).
 goal_colours(use_module(_,_),	     built_in-[file,classify]).
 goal_colours(dynamic(_),	     built_in-[predicates]).
+goal_colours(thread_local(_),	     built_in-[predicates]).
 goal_colours(multifile(_),	     built_in-[predicates]).
 goal_colours(volatile(_),	     built_in-[predicates]).
 goal_colours(consult(_),	     built_in-[file]).
@@ -821,6 +822,8 @@ style(goal(imported(_),_),style(colour	   := blue)).
 style(goal(autoload,_),	  style(colour	   := blue)).
 style(goal(global,_),	  style(colour	   := navy_blue)).
 style(goal(undefined,_),  style(colour	   := red)).
+style(goal(thread_local,_), style(colour   := magenta,
+				  underline:= @on)).
 style(goal(dynamic,_),	  style(colour	   := magenta)).
 style(goal(multifile,_),  style(colour	   := navy_blue)).
 style(goal(expanded,_),	  style(colour	   := blue,

@@ -49,6 +49,7 @@
 :- dynamic
 	called/3,			% Head, Src, From
 	(dynamic)/2,			% Head, Src
+	(thread_local)/2,		% Head, Src
 	(multifile)/2,			% Head, Src
 	defined/3,			% Head, Src, Line
 	imported/3,			% Head, Src, From
@@ -182,6 +183,8 @@ xref_defined(Source, Called, How) :-
 
 xref_defined2((dynamic), Src, Called) :-
 	dynamic(Called, Src).
+xref_defined2((thread_local), Src, Called) :-
+	thread_local(Called, Src).
 xref_defined2((multifile), Src, Called) :-
 	multifile(Called, Src).
 xref_defined2(local(Line), Src, Called) :-
@@ -292,6 +295,8 @@ process_directive(load_files(Files, _Options), Src) :-
 	process_use_module(Files, Src).
 process_directive(dynamic(Dynamic), Src) :-
 	assert_dynamic(Src, Dynamic).
+process_directive(thread_local(Dynamic), Src) :-
+	assert_thread_local(Src, Dynamic).
 process_directive(multifile(Dynamic), Src) :-
 	assert_multifile(Src, Dynamic).
 process_directive(module(Module, Export), Src) :-
@@ -538,7 +543,18 @@ assert_dynamic(Src, (A, B)) :- !,
 assert_dynamic(_, _M:_Name/_Arity) :- !. % not local
 assert_dynamic(Src, Name/Arity) :-
 	functor(Term, Name, Arity),
-	assert(dynamic(Term, Src)).
+	(   thread_local(Term, Src)	% dynamic after thread_local has
+	->  true			% no effect
+	;   assert(dynamic(Term, Src))
+	).
+
+assert_thread_local(Src, (A, B)) :- !,
+	assert_thread_local(Src, A),
+	assert_thread_local(Src, B).
+assert_thread_local(_, _M:_Name/_Arity) :- !. % not local
+assert_thread_local(Src, Name/Arity) :-
+	functor(Term, Name, Arity),
+	assert(thread_local(Term, Src)).
 
 assert_multifile(Src, (A, B)) :- !,
 	assert_multifile(Src, A),
