@@ -2070,7 +2070,7 @@ Sopen_file(const char *path, const char *how)
   }
 
 #if O_LARGEFILES && defined(O_LARGEFILE)
-  oflags |= O_LARGEFILE
+  oflags |= O_LARGEFILE;
 #endif
 
   switch(op)
