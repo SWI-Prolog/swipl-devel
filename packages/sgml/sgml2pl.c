@@ -240,11 +240,13 @@ static int
 get_parser(term_t parser, dtd_parser **p)
 { if ( PL_is_functor(parser, FUNCTOR_sgml_parser1) )
   { term_t a = PL_new_term_ref();
-    dtd_parser *tmp;
+    void *ptr;
 
     PL_get_arg(1, parser, a);
-    if ( PL_get_pointer(a, (void **)&tmp) )
-    { if ( tmp->magic == SGML_PARSER_MAGIC )
+    if ( PL_get_pointer(a, &ptr) )
+    { dtd_parser *tmp = ptr;
+
+      if ( tmp->magic == SGML_PARSER_MAGIC )
       { *p = tmp;
 
         return TRUE;
@@ -274,11 +276,13 @@ static int
 get_dtd(term_t t, dtd **dtdp)
 { if ( PL_is_functor(t, FUNCTOR_dtd2) )
   { term_t a = PL_new_term_ref();
-    dtd *tmp;
+    void *ptr;
 
     PL_get_arg(1, t, a);
-    if ( PL_get_pointer(a, (void **)&tmp) )
-    { if ( tmp->magic == SGML_DTD_MAGIC )
+    if ( PL_get_pointer(a, &ptr) )
+    { dtd *tmp = ptr;
+
+      if ( tmp->magic == SGML_DTD_MAGIC )
       { *dtdp = tmp;
 
         return TRUE;

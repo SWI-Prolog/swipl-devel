@@ -165,7 +165,7 @@ typedef struct _sgml_environment
 #define SGML_PARSER_QUALIFY_ATTS 0x02	/* qualify attributes in XML mode */
 
 typedef struct _dtd_parser
-{ long     magic;			/* SGML_PARSER_MAGIC */
+{ unsigned long magic;			/* SGML_PARSER_MAGIC */
   dtd     *dtd;				/* DTD we are building */
   dtdstate state;			/* current state */
   dtdstate cdata_state;			/* S_CDATA/S_RCDATA */

@@ -328,10 +328,14 @@ static const char *
 entity_file(dtd *dtd, dtd_entity *e)
 { switch(e->type)
   { case ET_SYSTEM:
-    et_system:
-    { const ichar *f = isee_text(dtd, e->exturl, "file:");
+    case ET_PUBLIC:
+    { const char *f;
 
-      if ( f )
+      if ( (f = find_in_catalogue(e->catalog_location,
+				  e->name->name,
+				  e->extid,
+				  e->exturl,
+				  dtd->dialect != DL_SGML)) )
       { const ichar *b;
 	char *file;
 
@@ -342,45 +346,13 @@ entity_file(dtd *dtd, dtd_entity *e)
 	else
 	  file = localpath(b, f);
 
-/*	printf("ENTITY %s (base %s) --> %s\n",
-	       e->name->name, e->baseurl ? (char *)e->baseurl : "(nil)", file);
-*/
-
 	return file;
       }
-
-      return NULL;
-    }
-    case ET_PUBLIC:
-    { char *f;
-
-					/* TBD */
-      if ( (f=find_in_catalogue(CAT_ENTITY,
-				e->name->name,
-				e->extid,
-				e->exturl,
-				dtd->dialect != DL_SGML)) )
-	return f;
-      if ( e->exturl )
-	goto et_system;
     }
     default:
       return NULL;
   }
 }
-
-
-/* Process long entities by reading the file.
-static long
-size_file(const char *path)
-{ struct stat buf;
-
-  if ( stat(path, &buf) == -1 )
-    return -1;
-
-  return buf.st_size;
-}
-*/
 
 
 static const ichar *
@@ -1298,6 +1270,7 @@ process_entity_declaration(dtd_parser *p, const ichar *decl)
   decl = iskip_layout(dtd, s);
   e = sgml_calloc(1, sizeof(*e));
   e->name = id;
+  e->catalog_location = (isparam ? CAT_PENTITY : CAT_ENTITY);
 
   if ( (s = isee_identifier(dtd, decl, "system")) )
   { e->type = ET_SYSTEM;
@@ -2743,7 +2716,9 @@ open_element(dtd_parser *p, dtd_element *e, int warn)
   if ( !p->environments && !p->dtd->doctype && e != CDATA_ELEMENT )
   { const char *file;
 
-    if ( (file=find_in_catalog("DOCTYPE", e->name->name)) )
+    if ( (file=find_in_catalogue(CAT_DOCTYPE,
+				 e->name->name, NULL, NULL,
+				 p->dtd->dialect != DL_SGML)) )
     { dtd_parser *clone = clone_dtd_parser(p);
 
       gripe(ERC_NO_DOCTYPE, e->name->name, file);
@@ -2752,6 +2727,7 @@ open_element(dtd_parser *p, dtd_element *e, int warn)
 	p->dtd->doctype = istrdup(e->name->name);
       else
 	gripe(ERC_EXISTENCE, "file", file);
+
       free_dtd_parser(clone);
     }
   }
@@ -3441,6 +3417,7 @@ process_doctype(dtd_parser *p, const ichar *decl, const ichar *decl0)
 
   if ( et )
   { et->name = id;
+    et->catalog_location = CAT_DOCTYPE;
     if ( !(s=process_entity_value_declaration(p, decl, et)) )
       return FALSE;
     decl = s;
@@ -3451,8 +3428,14 @@ process_doctype(dtd_parser *p, const ichar *decl, const ichar *decl0)
     dtd_parser *clone;
 
     dtd->doctype = istrdup(id->name);	/* Fill it */
-    if ( !(file=find_in_catalog("DOCTYPE", dtd->doctype)) && 
-	 !(et && (file=entity_file(dtd, et))) )
+    if ( et )
+      file = entity_file(dtd, et);
+    else
+      file = find_in_catalogue(CAT_DOCTYPE,
+			       dtd->doctype, NULL, NULL,
+			       dtd->dialect != DL_SGML);
+
+    if ( !file )
     { gripe(ERC_EXISTENCE, "DTD", dtd->doctype);
     } else
     { clone = clone_dtd_parser(p);

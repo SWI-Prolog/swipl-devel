@@ -290,6 +290,7 @@ typedef struct _dtd_entity
 { dtd_symbol *name;			/* its name */
   entity_type type;			/* ET_* */
   data_type content;			/* EC_* */
+  int catalog_location;			/* what catalog to use for lookup */
   int length;				/* size of literal value */
   ichar *value;				/* literal value */
   ichar *extid;				/* external identifier */
