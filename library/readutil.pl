@@ -179,4 +179,6 @@ read_option(backquoted_string(_)).
 file_option(extensions(_)).
 file_option(file_type(_)).
 file_option(file_errors(_)).
+file_option(relative_to(_)).
+file_option(expand(_)).
 
