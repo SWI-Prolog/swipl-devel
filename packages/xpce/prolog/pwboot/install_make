@@ -1,0 +1,49 @@
+# SCCS:  @(#)install_make	1.4 23 Feb 1995
+
+BIN=sun4-4		# passed in by install script
+XLIBDIR=/usr/lib	# passed in by install script
+SO=so
+
+OBJS=pce_quintus.o qinterface.o
+
+# rs6000/aix flags
+QPBINDIR=../../../bin3.2/rs6000
+IMPORTS=-bI:$(QPBINDIR)/prolog.exp
+
+all:	$(BIN)
+
+sun4-4:		make_sunos
+sun4-5:		make_svr4
+hppa:		make_hpux
+rs6000:		make_aix
+alpha:		make_osf1
+sgi:		make_irix
+x86:		make_svr4
+
+make_sunos:
+	@$(MAKE) BIN=$(BIN) XLIBDIR="$(XLIBDIR)" libraries
+make_svr4:
+	@$(MAKE) BIN=$(BIN) XLIBDIR=$(XLIBDIR) \
+		 LDFLAGS="-G -R$(XLIBDIR)" libraries
+make_hpux:
+	@$(MAKE) BIN=$(BIN) XLIBDIR=$(XLIBDIR) SO=sl LDFLAGS=-b libraries
+make_aix:
+	@$(MAKE) BIN=$(BIN) XLIBDIR=$(XLIBDIR) SO=o \
+		 LDFLAGS="-T512 -H512 $(IMPORTS) -e QP_entry -bnoerrmsg" \
+		 EXTRALIBS=-lc libraries
+make_osf1:
+	@$(MAKE) BIN=$(BIN) XLIBDIR=$(XLIBDIR) \
+		 LDFLAGS="-shared -expect_unresolved 'QP_*'" \
+		 EXTRALIBS=-lc libraries
+make_irix:
+	@$(MAKE) BIN=$(BIN) XLIBDIR=$(XLIBDIR) LDFLAGS=-shared libraries
+
+
+libraries:	library/$(BIN)/libpce.$(SO)
+
+library/$(BIN)/libpce.$(SO):	library/$(BIN)/libpce.a
+	cd library/$(BIN) ;\
+	ar xv libpce.a $(OBJS) ;\
+	ld $(LDFLAGS) -o libpce.$(SO) \
+		$(OBJS) libpce.a -L$(XLIBDIR) -lm -lXt -lX11 $(EXTRALIBS); \
+	rm -f $(OBJS)

@@ -1,0 +1,127 @@
+.SUFFIXES: .qof .pl
+
+.pl.qof:
+	@rm -f $@
+	qpc -L . -L dialog/lib -i pce_qpc.qof -Nc $*.pl
+
+LIBQOFS= area.qof \
+	pce_emacs.qof \
+	emacs_tags.qof \
+	emacs_extend.qof \
+	file_item.qof \
+	find_file.qof \
+	keybinding.qof \
+	pce_debug.qof \
+	pce_edit.qof \
+	pce_manual.qof \
+	pce_objects.qof \
+	pce_portray.qof \
+	pce_postscript.qof \
+	pce_server.qof \
+	pcedraw.qof \
+	portray_object.qof \
+	scan_arguments.qof \
+	pce_selection.qof \
+	stayup_popup.qof \
+	twm_resize_button.qof \
+	twm_geometry_box.qof \
+	subframe.qof \
+	pce_renew.qof \
+	pce_font_item.qof \
+	pce_cxx_headers.qof \
+	pce_drag_and_drop.qof \
+	pce_require.qof \
+        dialog.qof \
+        make_dialog.qof \
+        pce_editable_text.qof \
+        pce_helper.qof \
+	pce_help_file.qof \
+	show_help.qof \
+        pce_image.qof \
+        pce_prompter.qof \
+        pce_tagged_connection.qof \
+	pce_drag_and_drop_dict_item.qof \
+	dragdict.qof \
+	dragdrop.qof \
+	pce_util.qof \
+	pce_qux.qof \
+	pce_template.qof \
+	pce_style_item.qof \
+	english/pce_messages.qof
+
+MANQOFS=man/p_card.qof \
+	man/p_data.qof \
+	man/util.qof \
+	man/v_card.qof \
+	man/v_class.qof \
+	man/v_editor.qof \
+	man/v_error.qof \
+	man/v_global.qof \
+	man/v_group.qof \
+	man/v_hierarchy.qof \
+	man/v_inherit.qof \
+	man/v_inspector.qof \
+	man/v_instance.qof \
+	man/v_keyword.qof \
+	man/v_manual.qof \
+	man/v_module.qof \
+	man/v_statistics.qof \
+	man/v_summary.qof \
+	man/v_tile.qof \
+	man/v_topic.qof \
+	man/v_visual.qof \
+	man/behaviour_item.qof \
+	man/classmap.qof
+
+DIALOGQOFS=dialog/attribute.qof \
+        dialog/behaviour.qof \
+        dialog/dialog.qof \
+        dialog/font.qof \
+        dialog/generate.qof \
+        dialog/image_item.qof \
+        dialog/label.qof \
+        dialog/layout.qof \
+        dialog/load.qof \
+        dialog/menuitem.qof \
+        dialog/meta.qof \
+        dialog/pretty_print.qof \
+        dialog/proto.qof \
+	dialog/util.qof
+
+DRAWQOFS=draw/align.qof \
+	draw/attribute.qof \
+	draw/canvas.qof \
+	draw/draw.qof \
+	draw/gesture.qof \
+	draw/menu.qof \
+	draw/shapes.qof
+
+EMACSQOFS=emacs/buffer.qof \
+	emacs/buffer_menu.qof \
+	emacs/c_mode.qof \
+	emacs/cpp_mode.qof \
+	emacs/fundamental_mode.qof \
+	emacs/outline_mode.qof \
+	emacs/gdb.qof \
+	emacs/hit_list.qof \
+	emacs/language_mode.qof \
+	emacs/latex_mode.qof \
+	emacs/man_mode.qof \
+	emacs/prolog_mode.qof \
+	emacs/script_mode.qof \
+	emacs/server.qof \
+	emacs/shell.qof \
+	emacs/text_mode.qof \
+	emacs/emacs.qof \
+	emacs/window.qof \
+	emacs/annotate_mode.qof
+
+all:	$(LIBQOFS) $(MANQOFS) $(DIALOGQOFS) $(DRAWQOFS) $(EMACSQOFS)
+
+clean:
+	rm -f $(LIBQOFS) $(MANQOFS) $(DIALOGQOFS) $(DIALOGLQOFS) \
+	$(DRAWQOFS) $(EMACSQOFS)
+
+pce_demo.qof:
+	@rm -f $@
+	qpc -L . -f demo:../demo -i pce_qpc.qof -Nc $*.pl

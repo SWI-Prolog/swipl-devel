@@ -1,0 +1,80 @@
+Changes from XPCE 4.8.6
+
+1. new files
+
+QPINDEX.pl			(replaces ../lib/INDEX.pl)
+pce_qpc.pl
+pce_qux.pl
+pce_utils.pl
+prowindows.pl
+require.pl 			(replaces pce_require.pl)
+english/pce_messages.pl
+
+Makefile
+demo_make
+lib_make
+install_make
+
+2. modified files
+
+pce_autoload.pl			(fixes)
+pce_boot.pl			(imports, module name)
+pce_compile.pl			(pce error messages)
+pce_global.pl			(pce warn messages)
+
+The major change is to use the quintus message system for messages,
+going through the interface predicates pce_{error,warn,info}/1.
+
+The file pce_boot defines module(pce) and imports everything from the other
+boot files; qld -r is used to construct a multi-module qof file that contains
+all these boot files; thus eliminating the need for ../lib/pce.pl.
+
+Some initializations were moved to ensure that loading prowindows 
+didn't crash because the initializations were executed in the wrong order.
+Note that library(prowindows) must be loaded before library(pce).
+Loading library(prowindows) will initialize xpce and open the display
+for the first time. You cannot send/get messages until this is loaded.
+
+3. making libpce.a
+
+The top level XPCE make builds an XPCE.a archive file in the src directory.
+This should be moved into an architecture specific directory, e.g. sun4-5.
+Then cd to quintus/src and type 'make'. This copies XPCE.a to libpce.a,
+removes the stub files and adds quintus interface files to the archive.
+This archive is then suitable for producing a shared object.
+
+4. making a release
+
+Once libpce.a is made, cd to the prolog/boot directory and type
+'gmake qofs release'. This builds a release directory in the prowindows3.0
+subdirectory of XPCE.
+
+The directory tree is organized slightly differently from xpce - the
+demo directory in under the top level directory, not the library directory.
+This is so that file_search_paths work correctly after asserting a "package"
+file_search_path (see below).
+
+5. "installing" a release
+
+next step is to build the shared object. This is normally done by the install
+script but can be manually made by invoking the top level make in the
+prowindows3.0 release tree as follows:
+	make BIN=<arch> XLIBDIR=<directory>
+examples:
+	make BIN=sun4-5 XLIBDIR=/usr/openwin/lib
+	make BIN=hppa   XLIBDIR=/usr/lib/X11R5
+
+6. loading prowindows
+
+Create a symbolic link from <QuintusDir>/prowindows3.0 to
+<XPCEDIR>/prowindows3.0. Then run prolog and assert the following
+file_search_path:
+
+	| ?- file_search_path(package, quintus('prowindows3.0'))
+
+	yes
+	| ?- [library(prowindows)].
+
+It should load prowindows and then exit because you don't have a license.
+So, either get a license or remove the call to check_license in prowindows.pl.
+Then you can run user_help.
