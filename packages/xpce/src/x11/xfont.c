@@ -32,7 +32,7 @@ status
 ws_create_font(FontObj f, DisplayObj d)
 { XpceFontInfo xref;
   DisplayWsXref r = d->ws_ref;
-  XFontSet *set;
+  XFontSet set;
   char **missing; int nmissing;
   char *def_string;
 
@@ -50,6 +50,17 @@ ws_create_font(FontObj f, DisplayObj d)
   xref->nmissing   = nmissing;
   xref->def_string = def_string;
 
+  DEBUG(NAME_font,
+	if ( nmissing > 0 )
+	{ int i;
+	  
+	  Cprintf("Missing charsets for %s:\n", strName(f->x_name));
+	  for(i=0; i<nmissing; i++)
+	    Cprintf("\t%s\n", missing[i]);
+	}
+	if ( def_string && def_string[0] )
+	Cprintf("Default string: \"%s\"\n", def_string));
+
   return registerXrefObject(f, d, xref);
 }
 
@@ -64,7 +75,7 @@ ws_destroy_font(FontObj f, DisplayObj d)
     XFreeStringList(xref->missing);
 
     unregisterXrefObject(f, d);
-    unalloc(xref, sizeof(*xref));
+    unalloc(sizeof(*xref), xref);
   }  
 }
 

@@ -136,6 +136,7 @@ static struct d_context
 #define X(x) ((x) + context.offset_x)
 #define Y(y) ((y) + context.offset_y)
 #define Translate(x, y)	 { (x) = X(x); (y) = Y(y); }
+#define InvTranslate(x, y) { x -= context.offset_x; y -= context.offset_y; }
 #define Clip(x, y, w, h) clip_area(&x, &y, &w, &h)
 
 #include <gra/graphstate.c>
@@ -2421,6 +2422,146 @@ r_get_pixel(int x, int y)
 		*       TEXT MANIPULATION	*
 		********************************/
 
+#ifdef USE_XFONTSET
+
+static void
+s_font(FontObj f)
+{ if ( f )
+  { d_ensure_display();
+
+    if ( context.gcs->font != f )
+    { XpceFontInfo info;
+      context.gcs->font = f;
+    
+      info = (XpceFontInfo) getXrefObject(f, context.pceDisplay);
+      context.gcs->font_set = info->font_set;
+    }
+  }
+}
+
+
+int
+s_has_char(FontObj f, unsigned int c)
+{ return TRUE;
+}
+
+
+void
+f_domain(FontObj f, Name which, int *x, int *y)
+{ *x = 0;
+  *y = 0xffff;
+}
+
+
+int
+s_default_char(FontObj font)
+{ return 'X';				/* for now */
+}
+
+
+int
+s_ascent(FontObj font)
+{ XFontSetExtents *exts;
+
+  s_font(font);
+  exts = XExtentsOfFontSet(context.gcs->font_set);
+  
+  return -exts->max_logical_extent.y;
+}
+
+
+int
+s_descent(FontObj font)
+{ XFontSetExtents *exts;
+
+  s_font(font);
+  exts = XExtentsOfFontSet(context.gcs->font_set);
+  
+  return exts->max_logical_extent.y + exts->max_logical_extent.height;
+}
+
+
+int
+c_width(wint_t c, FontObj font)
+{ wchar_t s[1];
+
+  s_font(font);
+  s[0] = c;
+
+  return XwcTextEscapement(context.gcs->font_set, s, 1);
+}
+
+
+static int
+s_advance(String s, int from, int to)
+{ int len = to-from;
+
+  if ( len <= 0 )
+    return 0;
+
+  if ( isstrA(s) )
+  { wchar_t *ws = alloca(len*sizeof(wchar_t));
+    wchar_t *t = ws;
+    const charA *f = &s->s_textA[from];
+    const charA *e = &f[len];
+    
+    while(f<e)
+      *t++ = *f++;
+
+    return XwcTextEscapement(context.gcs->font_set, ws, len);
+  } else
+  { return XwcTextEscapement(context.gcs->font_set, s->s_textW+from, len);
+  }
+}
+
+
+static int
+lbearing(wint_t c)
+{ XRectangle ink;
+  wchar_t s[1];
+
+  s[0] = c;
+  XwcTextExtents(context.gcs->font_set, s, 1, &ink, NULL);
+
+  return -ink.x;
+}
+
+
+void
+s_printA(charA *s, int l, int x, int y, FontObj f)
+{ if ( l > 0 )
+  { wchar_t *ws = alloca(l*sizeof(wchar_t));
+    wchar_t *t = ws;
+    const charA *e = &s[l];
+
+    while(s<e)
+      *t++ = *s++;
+
+    Translate(x, y);
+    s_font(f);
+    XwcDrawString(context.display, context.drawable,
+		  context.gcs->font_set,
+		  context.gcs->workGC,
+		  x, y, ws, l);
+  }
+}
+
+
+void
+s_printW(charW *s, int l, int x, int y, FontObj f)
+{ if ( l > 0 )
+  { Translate(x, y);
+    s_font(f);
+    XwcDrawString(context.display, context.drawable,
+		  context.gcs->font_set,
+		  context.gcs->workGC,
+		  x, y, s, l);
+  }
+}
+
+
+#else /*USE_XFONTSET*/
+
 #define MAX_CHAR 256
 static void s_font(FontObj f);
 
@@ -2492,19 +2633,21 @@ s_default_char(FontObj font)
 
 static void
 s_font(FontObj f)
-{ d_ensure_display();
+{ if ( f )
+  { d_ensure_display();
 
-  if ( context.gcs->font != f )
-  { XpceFontInfo info;
-    context.gcs->font = f;
-
-    info = (XpceFontInfo) getXrefObject(f, context.pceDisplay);
-    context.gcs->font_info   = info->info;
-    context.gcs->char_widths = info->widths;
-    context.gcs->maxchar     = info->maxchar;
-
-    XSetFont(context.display, context.gcs->workGC,
-	     context.gcs->font_info->fid);
+    if ( context.gcs->font != f )
+    { XpceFontInfo info;
+      context.gcs->font = f;
+  
+      info = (XpceFontInfo) getXrefObject(f, context.pceDisplay);
+      context.gcs->font_info   = info->info;
+      context.gcs->char_widths = info->widths;
+      context.gcs->maxchar     = info->maxchar;
+  
+      XSetFont(context.display, context.gcs->workGC,
+	       context.gcs->font_info->fid);
+    }
   }
 }
 
@@ -2525,17 +2668,10 @@ s_descent(FontObj f)
 }
 
 
-int
-s_height(FontObj f)
-{ s_font(f);
-
-  return context.gcs->font_info->ascent + context.gcs->font_info->descent;
-}
-
-
 static int
-lbearing(unsigned int c, XFontStruct *info)
-{ XCharStruct *def = s_char_struct(info, c);
+lbearing(wint_t c)
+{ XFontStruct *info = context.gcs->font_info;
+  XCharStruct *def = s_char_struct(info, c);
 
   return def ? -def->lbearing : 0;
 }
@@ -2553,7 +2689,7 @@ c_width(unsigned int c, FontObj font)
 
 
 static int
-s_width_(String s, int from, int to)
+s_advance(String s, int from, int to)
 { if ( !context.gcs->char_widths )
   { return context.gcs->font_info->max_bounds.width * (to-from);
   } else
@@ -2588,49 +2724,8 @@ s_width_(String s, int from, int to)
 }
 
 
-int
-str_width(String s, int from, int to, FontObj f)
-{ s_font(f);
-
-  if ( from < 0 )
-    from = 0;
-  if ( from >= s->size || to <= from )
-    return 0;
-  if ( to > s->size )
-    to = s->size;
-
-  if ( to > from )
-  { int w = lbearing(str_fetch(s,0), context.gcs->font_info);
-
-    w += s_width_(s, from, to);
-    return w;
-  }
-
-  return 0;
-}
-
-
-int
-str_advance(String s, int from, int to, FontObj f)
-{ if ( f ) 
-    s_font(f);
-
-  if ( from < 0 )
-    from = 0;
-  if ( from >= s->size || to <= from )
-    return 0;
-  if ( to > s->size )
-    to = s->size;
-
-  if ( to > from )
-    return s_width_(s, from, to);
-
-  return 0;
-}
-
-
 void
-s_print8(charA *s, int l, int x, int y, FontObj f)
+s_printA(charA *s, int l, int x, int y, FontObj f)
 { if ( l > 0 )
   { Translate(x, y);
     s_font(f);
@@ -2641,7 +2736,7 @@ s_print8(charA *s, int l, int x, int y, FontObj f)
 
 
 void
-s_print16(charW *s, int l, int x, int y, FontObj f)
+s_printW(charW *s, int l, int x, int y, FontObj f)
 { if ( l > 0 )
   { XChar2b *ws = alloca(l*sizeof(XChar2b));
     int i;
@@ -2659,13 +2754,42 @@ s_print16(charW *s, int l, int x, int y, FontObj f)
   }
 }
 
+#endif /*USE_XFONTSET*/
+
+int
+s_height(FontObj f)
+{ return s_ascent(f) + s_descent(f);
+}
+
+
+int
+str_width(String s, int from, int to, FontObj f)
+{ s_font(f);
+
+  if ( from < 0 )
+    from = 0;
+  if ( from >= s->size || to <= from )
+    return 0;
+  if ( to > s->size )
+    to = s->size;
+
+  if ( to > from )
+  { int w = lbearing(str_fetch(s,0));
+
+    w += s_advance(s, from, to);
+    return w;
+  }
+
+  return 0;
+}
+
 
 void
 s_print(String s, int x, int y, FontObj f)
 { if ( isstrA(s) )
-    s_print8(s->s_textA, s->size, x, y, f);
+    s_printA(s->s_textA, s->size, x, y, f);
   else
-    s_print16(s->s_textW, s->size, x, y, f);
+    s_printW(s->s_textW, s->size, x, y, f);
 }
 
 
@@ -2674,68 +2798,33 @@ s_print_aligned(String s, int x, int y, FontObj f)
 { if ( s->size > 0 )
   { s_font(f);
     
-    x += lbearing(str_fetch(s, 0), context.gcs->font_info);
-    Translate(x, y);
-
-    XDrawString(context.display, context.drawable, context.gcs->workGC,
-		x, y, s->s_textA, s->size);
+    x += lbearing(str_fetch(s, 0));
+    s_print(s, x, y, f);
   } 
 }
 
 
 static void
 str_draw_text(String s, int offset, int len, int x, int y)
-{ if ( s->size > 0 )
-  { if ( context.gcs->font->iswide == ON )
-    { XChar2b *ws = alloca(s->size * sizeof(XChar2b));
+{ if ( offset >= s->size )
+    return;
 
-      if ( isstrA(s) )
-      { const charA *f = s->s_textA;
-	int i;
-
-	for(i=0; i<s->size; i++)
-	{ ws[i].byte1 = 0;
-	  ws[i].byte2 = f[i];
-	}
-      } else
-      { const charW *f = s->s_textW;
-	int i;
-
-	for(i=0; i<s->size; i++)
-	{ ws[i].byte1 = (f[i]>>8) & 0xff;
-	  ws[i].byte2 = f[i]&0xff;
-	}
-      }
-      XDrawString16(context.display, context.drawable, context.gcs->workGC,
-		    x, y, ws, s->size);
-    } else
-    { charA *txt;
-
-      if ( isstrA(s) )
-      { txt = s->s_textA;
-      } else
-      { const charW *f = s->s_textW;
-	int i;
-
-	Cprintf("Drawing wide character text with 8-bit font\n");
-
-	txt = alloca(s->size);
-	for(i=0; i<s->size; i++)
-	  txt[i] = f[i] & 0xff;
-      }
-      XDrawString(context.display, context.drawable, context.gcs->workGC,
-		  x, y, txt, s->size);
-    }
+  if ( offset < 0 )
+  { len += offset;
+    offset = 0;
   }
-}
 
+  if ( offset + len > s->size )
+    len = s->size - offset;
+  
+  if ( s->size > 0 )
+  { InvTranslate(x, y);			/* Hack */
 
-static void
-str_text(String s, int x, int y)
-{ if ( s->size > 0 )
-  { x += lbearing(str_fetch(s, 0), context.gcs->font_info);
-
-    str_draw_text(s, 0, s->size, x, y);
+    if ( isstrA(s) )
+    { s_printA(s->s_textA+offset, len, x, y, NULL);
+    } else
+    { s_printW(s->s_textW+offset, len, x, y, NULL);
+    }
   }
 }
 
@@ -2750,8 +2839,8 @@ str_stext(String s, int f, int len, int x, int y, Style style)
     { w = str_advance(s, f, f+len, NULL);
 
       if ( notDefault(style->background) )
-      { int a = context.gcs->font_info->ascent;
-	int b = context.gcs->font_info->descent;
+      { int a = s_ascent(NULL);
+	int b = s_descent(NULL);
 	
 	r_fillpattern(style->background, NAME_foreground);
 	XFillRectangle(context.display, context.drawable, context.gcs->fillGC,
@@ -2769,6 +2858,16 @@ str_stext(String s, int f, int len, int x, int y, Style style)
 
     if ( ofg )
       r_colour(ofg);
+  }
+}
+
+
+static void
+str_text(String s, int x, int y)
+{ if ( s->size > 0 )
+  { x += lbearing(str_fetch(s, 0));
+
+    str_draw_text(s, 0, s->size, x, y);
   }
 }
 
@@ -2867,25 +2966,13 @@ str_size(String s, FontObj font, int *width, int *height)
 
   s_font(font);
 
-  if ( font->iswide == ON && isstrA(s) )
-  { s2 = *s;
-    s2.iswide = TRUE;
-    s2.size /= 2;
-    s = &s2;
-  } else if ( font->iswide != ON && !isstrA(s) )
-  { s2 = *s;
-    s2.iswide = FALSE;
-    s2.size *= 2;
-    s = &s2;
-  }
-
   str_break_into_lines(s, lines, &nlines);
   for(n = 0, line = lines; n++ < nlines; line++)
   { if ( line->text.size > 0 )
     { int lw;
 
-      lw = lbearing(str_fetch(&line->text, 0), context.gcs->font_info);
-      lw += s_width_(&line->text, 0, line->text.size);
+      lw = lbearing(str_fetch(&line->text, 0));
+      lw += s_advance(&line->text, 0, line->text.size);
     
       if ( w < lw )
 	w = lw;
@@ -2910,7 +2997,7 @@ str_string(String s, FontObj font, int x, int y, int w, int h,
 
   Translate(x, y);
   s_font(font);
-  baseline = context.gcs->font_info->ascent;
+  baseline = s_ascent(font);
   str_break_into_lines(s, lines, &nlines);
   str_compute_lines(lines, nlines, font, x, y, w, h, hadjust, vadjust);
 
@@ -2945,14 +3032,14 @@ str_selected_string(String s, FontObj font,
 
   Translate(x, y);
   s_font(font);
-  baseline = context.gcs->font_info->ascent;
+  baseline = s_ascent(font);
   str_break_into_lines(s, lines, &nlines);
   str_compute_lines(lines, nlines, font, x, y, w, h, hadjust, vadjust);
 
   for(n=0, line = lines; n++ < nlines; line++)
   { int len = line->text.size;
 
-    line->x += lbearing(str_fetch(&line->text, 0), context.gcs->font_info);
+    line->x += lbearing(str_fetch(&line->text, 0));
 
     if ( t <= here || f >= here+len )	/* outside */
       str_stext(&line->text, 0, len, line->x, line->y+baseline, NIL);
@@ -2995,7 +3082,7 @@ ps_string(String s, FontObj font, int x, int y, int w, Name format, int flags)
   s_font(font);
   ps_font(font);
 
-  baseline = context.gcs->font_info->ascent;
+  baseline = s_ascent(font);
   str_break_into_lines(s, lines, &nlines);
   str_compute_lines(lines, nlines, font, x, y, w, 0, format, NAME_top);
 
@@ -3024,7 +3111,7 @@ str_draw_text_lines(int acc, FontObj font,
 		    int ox, int oy)
 { strTextLine *line;
   int n;
-  int baseline = context.gcs->font_info->ascent;
+  int baseline = s_ascent(font);
 
   for(n=0, line = lines; n++ < nlines; line++)
   { str_text(&line->text, line->x+ox, line->y+baseline+oy);
@@ -3033,7 +3120,7 @@ str_draw_text_lines(int acc, FontObj font,
     { int cx = line->x;
       int cn;
 
-      cx += lbearing(str_fetch(&line->text, 0), context.gcs->font_info);
+      cx += lbearing(str_fetch(&line->text, 0));
 
       for(cn=0; cn<line->text.size; cn++)
       { int c  = str_fetch(&line->text, cn);

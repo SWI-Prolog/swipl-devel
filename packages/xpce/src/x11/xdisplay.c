@@ -274,6 +274,8 @@ new_draw_context(DisplayObj d, Drawable drawable, Name kind)
   unsigned long black, white;
   Name vclass = ws_get_visual_type_display(d);
 
+  memset(ctx, 0, sizeof(ctx));
+
 # define GCALL (GCFunction|GCForeground|GCBackground|GCGraphicsExposures)
 
   ctx->kind = kind;
@@ -337,8 +339,6 @@ new_draw_context(DisplayObj d, Drawable drawable, Name kind)
   ctx->arcmode		= NAME_pieSlice;
   ctx->and_pattern      = NIL;
   ctx->font	        = NIL;
-  ctx->font_info	= NULL;
-  ctx->char_widths	= NULL;
   ctx->colour	        = NIL;
   ctx->background       = NIL;
   ctx->foreground_pixel = 0L;

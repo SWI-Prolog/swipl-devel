@@ -26,6 +26,7 @@
 #define _PCE_X11_INCLUDED
 
 #define O_XDND 1			/* include Gnome/KDE drag-and-drop */
+#define USE_XFONTSET 1			/* Use Xwc* functions */
 
 #ifdef HAVE_XMISMOTIFWMRUNNING
 #define O_MOTIF 1
@@ -125,14 +126,12 @@ typedef struct
 		 *	      FONTS		*
 		 *******************************/
 
-//#define USE_XFONTSET 1
-
 typedef struct xpce_font_info *XpceFontInfo;
 
 #ifdef USE_XFONTSET
 
 struct xpce_font_info
-{ XFontSet	*font_set;		/* FontSet structure */
+{ XFontSet	 font_set;		/* FontSet structure */
   char	       **missing;		/* Missing charsets */
   int		nmissing;		/* # missing charsets */
   char 	        *def_string;		/* Default for missing glyphs */
@@ -175,9 +174,13 @@ struct draw_context
   Any		fill;			/* Image or Colour */
   Image		and_pattern;		/* Current andpattern */
   FontObj	font;			/* Current font */
+#ifdef USE_XFONTSET
+  XFontSet      font_set;		/* font-set description */
+#else
   XFontStruct * font_info;		/* X-font for this display */
   wint_t	maxchar;		/* max char value for font */
   cwidth      * char_widths;		/* array with widths of characters */
+#endif
   Any		colour;			/* Current colour */
   Any		background;		/* Current background colour */
   unsigned long foreground_pixel;	/* X pixel value of foreground */
