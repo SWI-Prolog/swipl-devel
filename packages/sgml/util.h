@@ -99,10 +99,11 @@ void		del_ocharbuf(ocharbuf *buf);
 void		terminate_ocharbuf(ocharbuf *buf);
 void		empty_ocharbuf(ocharbuf *buf);
 #define fetch_ocharbuf(buf, at) \
-	(buf->encoding == SGML_ENC_ISO ? buf->data.t[at] : buf->data.w[at])
+	(buf->encoding == SGML_ENC_ISO ? (wint_t)buf->data.t[at] \
+				       : (wint_t)buf->data.w[at])
 #define poke_ocharbuf(buf, at, chr) \
 	{ if ( buf->encoding == SGML_ENC_ISO ) \
-	    buf->data.t[at] = chr; \
+	    buf->data.t[at] = (chr & 0xff); \
 	  else \
 	    buf->data.w[at] = chr; \
 	}

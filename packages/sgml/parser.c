@@ -174,7 +174,7 @@ dec_location(dtd_srcloc *l, int chr)
 		 *   CLASSIFICATION PRIMITIVES	*
 		 *******************************/
 
-static inline int
+static __inline int
 HasClass(dtd *dtd, wint_t chr, int mask)
 { if ( chr <= 0xff )
     return (dtd->charclass->class[(chr)] & (mask));
@@ -185,9 +185,9 @@ HasClass(dtd *dtd, wint_t chr, int mask)
       case CH_NMSTART:
 	return iswalnum(chr);
       case CH_WHITE:
-	return iswspace(chr);
+	return FALSE;			/* only ' ' and '\t' */
       case CH_BLANK:
-	return iswblank(chr);
+	return iswspace(chr);
       case CH_DIGIT:
 	return iswdigit(chr);
       case CH_RS:
@@ -1653,7 +1653,7 @@ compile_map(dtd *dtd, dtd_shortref *sr)
     switch( last )
     { case CHR_BLANK:
       case CHR_DBLANK:
-      { int i;
+      { wint_t i;
 
 	for( i=0; i< ICHARSET_SIZE; i++)
 	{ if ( HasClass(dtd, i, CH_BLANK) )
@@ -1867,7 +1867,7 @@ match_shortref(dtd_parser *p)
 	{ const wchar_t *s;
 
 	  for(s = p->cdata->data.w, i=0; i++ < p->cdata->size; s++)
-	  { if ( !iswblank(*s) )
+	  { if ( !iswspace(*s) )
 	    { blank = FALSE;
 	      break;
 	    }
@@ -2630,8 +2630,13 @@ validate_completeness(sgml_environment *env)
 { if ( !complete(env) )
   { char buf[256];
 
+#ifdef HAVE_SNPRINTF
     snprintf(buf, sizeof(buf), "Incomplete element: <%s>",
 	     env->element->name->name);
+#else
+    sprintf(buf, "Incomplete element: <%s>",
+	    env->element->name->name);
+#endif
 
     gripe(ERC_VALIDATE, buf);		/* TBD: expected */
   }
@@ -4126,7 +4131,7 @@ emit_cdata(dtd_parser *p, int last)
 	    { i++;
 
 	      while(i<size && HasClass(dtd,
-				       fetch_ocharbuf(cdata, offset+i),
+				       (wint_t)fetch_ocharbuf(cdata, offset+i),
 				       CH_BLANK))
 		i++;
 	      i--;
@@ -4285,7 +4290,8 @@ process_entity(dtd_parser *p, const ichar *name)
 	{ if ( chr == 0 )
 	    return gripe(ERC_SYNTAX_ERROR, "Illegal character entity", text);
 
-	  if ( p->blank_cdata == TRUE && !HasClass(dtd, chr, CH_BLANK) )
+	  if ( p->blank_cdata == TRUE &&
+	       !HasClass(dtd, (wint_t)chr, CH_BLANK) )
 	  { p->cdata_must_be_empty = !open_element(p, CDATA_ELEMENT, FALSE);
 	    p->blank_cdata = FALSE;
 	  }
@@ -4522,7 +4528,8 @@ add_cdata(dtd_parser *p, int chr)
 { if ( p->mark_state == MS_INCLUDE )
   { ocharbuf *buf = p->cdata;
 
-    if ( p->blank_cdata == TRUE && !HasClass(p->dtd, chr, CH_BLANK) )
+    if ( p->blank_cdata == TRUE &&
+	 !HasClass(p->dtd, (wint_t)chr, CH_BLANK) )
     { p->cdata_must_be_empty = !open_element(p, CDATA_ELEMENT, FALSE);
       p->blank_cdata = FALSE;
     }
@@ -4561,7 +4568,8 @@ add_verbatim_cdata(dtd_parser *p, int chr)
 { if ( p->mark_state != MS_IGNORE )
   { ocharbuf *buf = p->cdata;
 
-    if ( p->blank_cdata == TRUE && !HasClass(p->dtd, chr, CH_BLANK) )
+    if ( p->blank_cdata == TRUE &&
+	 !HasClass(p->dtd, (wint_t)chr, CH_BLANK) )
     { p->cdata_must_be_empty = !open_element(p, CDATA_ELEMENT, FALSE);
       p->blank_cdata = FALSE;
     }
@@ -4685,7 +4693,8 @@ reprocess:
 	p->cdata_state = p->state = S_PCDATA;
       } else
       { add_verbatim_cdata(p, dtd->charmap->map[chr]);
-	if ( p->etaglen < p->buffer->size || !HasClass(dtd, chr, CH_NAME))
+	if ( p->etaglen < p->buffer->size ||
+	     !HasClass(dtd, (wint_t)chr, CH_NAME))
 	{ empty_icharbuf(p->buffer);	/* mismatch */
 	  p->state = p->cdata_state;
 	} else
@@ -4791,7 +4800,7 @@ reprocess:
 	empty_icharbuf(p->buffer);
 	return;
       }
-      if ( HasClass(dtd, chr, CH_NAME) )
+      if ( HasClass(dtd, (wint_t)chr, CH_NAME) )
       { add_icharbuf(p->buffer, chr);
 	return;
       }
@@ -4801,7 +4810,7 @@ reprocess:
       break;
     }
     case S_ENT0:			/* Seen & */
-    { if ( chr == '#' || HasClass(dtd, chr, CH_NAME) )
+    { if ( chr == '#' || HasClass(dtd, (wint_t)chr, CH_NAME) )
       { empty_icharbuf(p->buffer);
 	add_icharbuf(p->buffer, chr);
 	p->state = S_ENT;
@@ -4814,7 +4823,7 @@ reprocess:
       return;
     }    
     case S_ENT:				/* &entity; */
-    { if ( HasClass(dtd, chr, CH_NAME) )
+    { if ( HasClass(dtd, (wint_t)chr, CH_NAME) )
       { add_icharbuf(p->buffer, chr);
 	return;
       }
@@ -4844,7 +4853,7 @@ reprocess:
     { if ( f[CF_ETAGO2] == chr )	/* </ */
       { add_icharbuf(p->buffer, chr);
 	p->state = S_DECL;
-      } else if ( HasClass(dtd, chr, CH_NAME) ) /* <letter */
+      } else if ( HasClass(dtd, (wint_t)chr, CH_NAME) ) /* <letter */
       { add_icharbuf(p->buffer, chr);
 	p->state = S_DECL;
       } else if ( f[CF_MDO2] == chr )	/* <! */
