@@ -356,6 +356,23 @@ __pl_export void PL_on_halt(void (*)(int, void *), void *);
 __pl_export long	PL_query(int);	/* get information from Prolog */
 
 		 /*******************************
+		 *       FAST XPCE SUPPORT	*
+		 *******************************/
+
+typedef struct
+{ int type;				/* PL_INTEGER or PL_ATOM */
+  union
+  { unsigned long i;			/* integer reference value */
+    atom_t	  a;			/* atom reference value */
+  } value;
+} xpceref_t;
+
+__pl_export int		_PL_get_xpce_reference(term_t t, xpceref_t *ref);
+__pl_export int		_PL_unify_xpce_reference(term_t t, xpceref_t *ref);
+__pl_export void	_PL_put_xpce_reference_i(term_t t, unsigned long r);
+__pl_export void	_PL_put_xpce_reference_a(term_t t, atom_t name);
+
+		 /*******************************
 		 *        COMPATIBILITY		*
 		 *******************************/
 

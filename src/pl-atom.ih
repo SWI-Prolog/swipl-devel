@@ -233,3 +233,4 @@
 #define ATOM_ignore       (&atoms[232])
 #define ATOM_gc           (&atoms[233])
 #define ATOM_trace_gc     (&atoms[234])
+#define ATOM_xpceref      (&atoms[235])

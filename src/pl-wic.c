@@ -154,7 +154,7 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define VERSION 26			/* save version number */
+#define VERSION 27			/* save version number */
 
 #define XR_REF     0			/* reference to previous */
 #define XR_ATOM	   1			/* atom */

@@ -85,3 +85,4 @@
 #define FUNCTOR_var1         (&functors[84])
 #define FUNCTOR_warning3     (&functors[85])
 #define FUNCTOR_xor2         (&functors[86])
+#define FUNCTOR_xpceref1     (&functors[87])

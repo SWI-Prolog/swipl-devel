@@ -656,6 +656,37 @@ PL_get_nil(term_t l)
   fail;
 }
 
+
+int
+_PL_get_xpce_reference(term_t t, xpceref_t *ref)
+{ word w = valHandle(t);
+
+  if ( hasFunctor(w, FUNCTOR_xpceref1) )
+  { Word p = argTermP(w, 0);
+
+    do
+    { if ( isInteger(*p) )
+      { ref->type    = PL_INTEGER;
+	ref->value.i = valNum(*p);
+	ref->value.i &= PLMAXINT;	/* force unsigned */
+
+	succeed;
+      } 
+      if ( isAtom(*p) )
+      { ref->type    = PL_ATOM;
+	ref->value.a = (atom_t) *p;
+
+	succeed;
+      }
+    } while(isRef(*p) && (p = unRef(*p)));
+
+    return -1;				/* error! */
+  }
+
+  fail;
+}
+
+
 		 /*******************************
 		 *		IS-*		*
 		 *******************************/
@@ -866,6 +897,26 @@ PL_put_term(term_t t1, term_t t2)
 }
 
 
+void
+_PL_put_xpce_reference_i(term_t t, unsigned long r)
+{ Word a = allocGlobal(2);
+
+  setHandle(t, (word)a);
+  *a++ = (word)FUNCTOR_xpceref1;
+  *a++ = consNum(r);
+}
+
+
+void
+_PL_put_xpce_reference_a(term_t t, atom_t name)
+{ Word a = allocGlobal(2);
+
+  setHandle(t, (word)a);
+  *a++ = (word)FUNCTOR_xpceref1;
+  *a++ = (word)name;
+}
+
+
 		 /*******************************
 		 *	       UNIFY		*
 		 *******************************/
@@ -966,6 +1017,38 @@ PL_unify_nil(term_t l)
 
   return unifyAtomic(p, ATOM_nil);
 }
+
+
+int
+_PL_unify_xpce_reference(term_t t, xpceref_t *ref)
+{ Word p = valHandleP(t);
+
+  do
+  { if ( isVar(*p) )
+    { Word a = allocGlobal(2);
+  
+      *p = (word)a;
+      *a++ = (word) FUNCTOR_xpceref1;
+      if ( ref->type == PL_INTEGER )
+	*a++ = consNum(ref->value.i);
+      else
+	*a++ = (word) ref->value.a;
+  
+      succeed;
+    } 
+    if ( hasFunctor(*p, FUNCTOR_xpceref1) )
+    { Word a = argTermP(*p, 0);
+      word v = (ref->type == PL_INTEGER ? consNum(ref->value.i)
+					: (word)ref->value.a);
+  
+      deRef(a);
+      return unifyAtomic(a, v);
+    }
+  } while ( isRef(*p) && (p = unRef(*p)));
+
+  fail;
+}
+
 
 		 /*******************************
 		 *       ATOMIC (INTERNAL)	*

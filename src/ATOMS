@@ -244,6 +244,7 @@ A retry			"retry"
 A ignore		"ignore"
 A gc			"gc"
 A trace_gc		"trace_gc"
+A xpceref		"@"
 
 F abs			1
 F acos			1
@@ -332,3 +333,4 @@ F undefinterc		4
 F var			1
 F warning		3
 F xor			2
+F xpceref		1

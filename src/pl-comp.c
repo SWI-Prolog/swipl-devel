@@ -44,6 +44,7 @@ struct code_info codeTable[] = {
   CODE(I_USERCALLN,	"i_usercalln",	1, 0),
   CODE(I_CUT,		"i_cut",	0, 0),
   CODE(I_APPLY,		"i_apply",	0, 0),
+  CODE(A_REAL,		"a_real",	1, 1),
   CODE(A_FUNC0,		"a_func0",	1, 0),
   CODE(A_FUNC1,		"a_func1",	1, 0),
   CODE(A_FUNC2,		"a_func2",	1, 0),
@@ -1090,9 +1091,9 @@ compiler rather than the evaluation routine.
 
 #if O_COMPILE_ARITH
 static int
-compileArith(Word arg, register compileInfo *ci)
+compileArith(Word arg, compileInfo *ci)
 { code a_func;
-  register FunctorDef fdef = functorTerm(*arg);
+  FunctorDef fdef = functorTerm(*arg);
 
   if      ( fdef == FUNCTOR_ar_equals2 )	a_func = A_EQ;	/* =:= */
   else if ( fdef == FUNCTOR_ar_not_equal2 )	a_func = A_NE;	/* =\= */
@@ -1100,8 +1101,16 @@ compileArith(Word arg, register compileInfo *ci)
   else if ( fdef == FUNCTOR_larger2 )		a_func = A_GT;	/* > */
   else if ( fdef == FUNCTOR_smaller_equal2 )	a_func = A_LE;	/* =< */
   else if ( fdef == FUNCTOR_larger_equal2 )	a_func = A_GE;	/* >= */
-  else if ( fdef == FUNCTOR_is2 )		a_func = A_IS;	/* is */
-  else return A_NOTARITH;			/* not arith function */
+  else if ( fdef == FUNCTOR_is2 )				/* is */
+  { Word a = argTermP(*arg, 1);
+
+    deRef(a);
+    if ( isTerm(*a) && isIndexedVarTerm(*a) >= 0 ) /* variable */
+      return A_NOTARITH;		/* X is Var: don't just unify */
+
+    a_func = A_IS;
+  } else
+    return A_NOTARITH;			/* not arith function */
 
   if ( compileArithArgument(argTermP(*arg, 0), ci) == FALSE )
     return A_ERROR;
@@ -1112,8 +1121,8 @@ compileArith(Word arg, register compileInfo *ci)
   return A_OK;
 }
 
-static
-bool
+
+static bool
 compileArithArgument(register Word arg, register compileInfo *ci)
 { int index;
 
@@ -1123,8 +1132,8 @@ compileArithArgument(register Word arg, register compileInfo *ci)
   { Output_1(ci, B_CONST, *arg);
     succeed;
   }
-  if ( isReal(*arg) )			/* real */
-  { Output_1(ci, B_REAL, copyRealToHeap(*arg));
+  if ( isReal(*arg) )			/* real (does not need to copy!) */
+  { Output_1(ci, A_REAL, copyRealToHeap(*arg));
     succeed;
   }
 					/* variable */
@@ -1716,7 +1725,7 @@ decompileBody(register decompileInfo *di, code end, Code until)
 			    *ARGP++ = XR(*PC++);
 			    continue;
 	case B_REAL:
-			    *ARGP++ = globalReal(valReal(XR(*PC++)));
+			    *ARGP++ = copyRealToGlobal(XR(*PC++));
 			    continue;
 	case B_STRING:
 			    *ARGP++ = globalString(valString(XR(*PC++)));

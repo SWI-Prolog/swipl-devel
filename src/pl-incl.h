@@ -414,49 +414,50 @@ codes.
 #define I_APPLY		((code)29)		/* apply/2 */
 
 #if O_COMPILE_ARITH
-#define A_FUNC0		((code)30)		/* nullary arithmic function */
-#define A_FUNC1		((code)31)		/* unary arithmic function */
-#define A_FUNC2		((code)32)		/* binary arithmic function */
-#define A_FUNC		((code)33)		/* n-ary arithmic function */
-#define A_LT		((code)34)		/* < */
-#define A_GT		((code)35)		/* > */
-#define A_LE		((code)36)		/* =< */
-#define A_GE		((code)37)		/* >= */
-#define A_EQ		((code)38)		/* =:= */
-#define A_NE		((code)39)		/* =\= */
-#define A_IS		((code)40)		/* is */
+#define A_REAL		((code)30)
+#define A_FUNC0		((code)31)		/* nullary arithmic function */
+#define A_FUNC1		((code)32)		/* unary arithmic function */
+#define A_FUNC2		((code)33)		/* binary arithmic function */
+#define A_FUNC		((code)34)		/* n-ary arithmic function */
+#define A_LT		((code)35)		/* < */
+#define A_GT		((code)36)		/* > */
+#define A_LE		((code)37)		/* =< */
+#define A_GE		((code)38)		/* >= */
+#define A_EQ		((code)39)		/* =:= */
+#define A_NE		((code)40)		/* =\= */
+#define A_IS		((code)41)		/* is */
 #endif /* O_COMPILE_ARITH */
 
 #if O_COMPILE_OR
-#define C_OR		((code)41)		/* In-clause backtract point */
-#define C_JMP		((code)42)		/* Jump over code */
-#define C_MARK		((code)43)		/* Sub-clause cut mark */
-#define C_CUT		((code)44)		/* cut to corresponding mark */
-#define C_IFTHENELSE	((code)45)		/* if-then-else start */
-#define C_VAR		((code)46)		/* make a variable */
-#define C_END		((code)47)		/* dummy to help decompiler */
-#define C_NOT		((code)48)		/* same as C_IFTHENELSE */
-#define C_FAIL		((code)49)		/* fail */
+#define C_OR		((code)42)		/* In-clause backtract point */
+#define C_JMP		((code)43)		/* Jump over code */
+#define C_MARK		((code)44)		/* Sub-clause cut mark */
+#define C_CUT		((code)45)		/* cut to corresponding mark */
+#define C_IFTHENELSE	((code)46)		/* if-then-else start */
+#define C_VAR		((code)47)		/* make a variable */
+#define C_END		((code)48)		/* dummy to help decompiler */
+#define C_NOT		((code)49)		/* same as C_IFTHENELSE */
+#define C_FAIL		((code)50)		/* fail */
 #endif /* O_COMPILE_OR */
 
-#define B_REAL		((code)50)		/* REAL in body */
-#define B_STRING	((code)51)		/* STRING in body */
+#define B_REAL		((code)51)		/* REAL in body */
+#define B_STRING	((code)52)		/* STRING in body */
 
 #if O_BLOCK
-#define I_CUT_BLOCK	((code)52)		/* !(block) */
-#define B_EXIT		((code)53)		/* exit(block, rval) */
+#define I_CUT_BLOCK	((code)53)		/* !(block) */
+#define B_EXIT		((code)54)		/* exit(block, rval) */
 #endif /*O_BLOCK*/
 
 #if O_INLINE_FOREIGNS
-#define I_CALL_FV0	((code)54)		/* call foreign, no args */
-#define I_CALL_FV1	((code)55)		/* call foreign, 1 var arg */
-#define I_CALL_FV2	((code)56)		/* call foreign, 2 var args */
+#define I_CALL_FV0	((code)55)		/* call foreign, no args */
+#define I_CALL_FV1	((code)56)		/* call foreign, 1 var arg */
+#define I_CALL_FV2	((code)57)		/* call foreign, 2 var args */
 #endif /*O_INLINE_FOREIGNS*/
 
-#define I_FAIL		((code)57)		/* fail */
-#define I_TRUE		((code)58)		/* true */
+#define I_FAIL		((code)58)		/* fail */
+#define I_TRUE		((code)59)		/* true */
 
-#define I_HIGHEST	((code)58)		/* largest WAM code !!! */
+#define I_HIGHEST	((code)59)		/* largest WAM code !!! */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Arithmetic comparison

@@ -672,7 +672,7 @@ trapUndefined(Definition def)
   DEBUG(5, Sdprintf("trapUndefined(%s)\n", predicateName(def)));
 
 					/* Trap via exception/3 */
-  if ( status.autoload && !status.boot )
+  if ( status.autoload )
   { if ( undefined_nesting > 100 )
     { undefined_nesting = 1;
       sysError("trapUndefined(): undefined: %s", predicateName(def));

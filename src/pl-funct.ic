@@ -85,3 +85,4 @@
 { (FunctorDef)NULL, FUNCTOR_TYPE, ATOM_var, 1 },
 { (FunctorDef)NULL, FUNCTOR_TYPE, ATOM_warning, 3 },
 { (FunctorDef)NULL, FUNCTOR_TYPE, ATOM_xor, 2 },
+{ (FunctorDef)NULL, FUNCTOR_TYPE, ATOM_xpceref, 1 },

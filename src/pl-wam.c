@@ -73,6 +73,7 @@ struct
   int i_call;
   int i_exit;
 #if O_COMPILE_ARITH
+  int a_real;
   int a_func0[256];
   int a_func1[256];
   int a_func2[256];
@@ -1036,6 +1037,7 @@ pl-comp.c
     &&I_APPLY_LBL,
 
 #if O_COMPILE_ARITH
+    &&A_REAL_LBL,
     &&A_FUNC0_LBL,
     &&A_FUNC1_LBL,
     &&A_FUNC2_LBL,
@@ -1779,6 +1781,11 @@ Note that we do not call `ar_func0(*PC++, &ARGP)' as ARGP is a register
 variable.  Also, for compilers that do register allocation it is unwise
 to give the compiler a hint to put ARGP not into a register.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+    VMI(A_REAL, COUNT(a_real), ("a_real %d\n", *PC)) MARK(AREAL);
+      { *ARGP++ = (word)*PC++;
+	NEXT_INSTRUCTION;
+      }
 
     VMI(A_FUNC0, COUNT_N(a_func0), ("a_func0 %d\n", *PC)) MARK(A_FUNC0);
       {	Word argp = ARGP;
