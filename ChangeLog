@@ -1,6 +1,7 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Make Unix I/O restart after an interrupt.
 
   * ADDED: backquoted_string(Bool) option to read_term and write_term
     (Holger Kanwischer).
@@ -8,7 +9,7 @@
   * FIXED: More graceful handling if a thread cannot be created due to
     lack of virtual memory (Wouter Jansweijer).
 
-  * ADDED: first implementation of thread-local-predicates
+  * ADDED: first implementation of thread-local-predicates.
 
   * REORGANISED: introduced abstraction between procedures and their
     definitions to allow for thread-local predicates (work in progress).

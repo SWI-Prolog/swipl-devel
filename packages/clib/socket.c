@@ -1058,9 +1058,7 @@ tcp_connect(term_t Socket, term_t Address)
     return FALSE;
   s = lookupSocket(socket);
 	
-#ifdef WIN32
 again:
-#endif
   if ( connect(socket,
 	       (struct sockaddr*)&sockaddr, sizeof(sockaddr)))
   {
@@ -1079,6 +1077,8 @@ again:
         return tcp_error(errno, NULL);
     }
 #else
+    if ( errno == EINTR )
+      goto again;
     return tcp_error(errno, NULL);
 #endif  
   }
@@ -1100,8 +1100,8 @@ tcp_accept(term_t Master, term_t Slave, term_t Peer)
     return FALSE;
   m = lookupSocket(master);
 
-#ifdef WIN32
 again:
+#ifdef WIN32
   waitMsg(m, FD_ACCEPT);
 #else
   wait_socket(m, master);
@@ -1111,6 +1111,9 @@ again:
   {
 #ifdef WIN32
     if ( WSAGetLastError() == WSAEWOULDBLOCK )
+      goto again;
+#else
+    if ( errno == EINTR )
       goto again;
 #endif  
     return tcp_error(errno, NULL);
@@ -1188,8 +1191,10 @@ tcp_read(void *handle, char *buf, int bufSize)
 
 #else /*WIN32*/
 
-  wait_socket(s, socket);
-  n = recv(socket, buf, bufSize, 0);
+  do
+  { wait_socket(s, socket);
+    n = recv(socket, buf, bufSize, 0);
+  } while ( n == -1 && errno == EINTR );
 
 #endif /*WIN32*/
 
@@ -1220,6 +1225,9 @@ tcp_write(void *handle, char *buf, int bufSize)
 	if ( false(s, SOCK_CLOSE_SEEN) )
 	  continue;
       }
+#else
+      if ( errno == EINTR )
+	continue;
 #endif
       return -1;
     }
