@@ -50,6 +50,15 @@ are ignored, and so are the options
 This is the preferred way to attach external modules to Prolog if
 dynamic loading is not supported on your system.
 .TP
+.BI \-F " base"
+By default,
+.I none
+is passed to the pl command to create the saved state.  Using
+.I "\-F xpce"
+you can specify loading
+.IR xpce.rc ,
+making XPCE available to the saved state.
+.TP
 .BI \-goal " goal"
 The goal that is initially executed when the toplevel is started using
 .BR "PL_toplevel()" .

@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: "-F base" option to plld, allows for embedding XPCE.
+
+  * FIXED: Proper type-check on 1st argument of thread_create/[2,3]
+    to avoid a low-level error when started with an invalid goal.
+
 VERSION 4.0.11
 ==============
 

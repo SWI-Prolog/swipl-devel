@@ -159,6 +159,7 @@ static char *plgoal;			/* -g goal */
 static char *pltoplevel;		/* -t goal */
 static char *plinitfile;		/* -f file */
 static char *plclass;			/* -class <class> */
+static char *plsysinit;			/* -F file */
 
 static char *ctmp;			/* base executable */
 static char *pltmp;			/* base saved state */
@@ -545,6 +546,7 @@ usage()
 	  "       -pl-options,...  Add options for Prolog\n"
 	  "       -ld-options,...  Add options for linker\n"
 	  "       -cc-options,...  Add options for C/C++-compiler\n"
+	  "       -F base          Load	swi(base.rc)"
 	  "\n"
 	  "       -goal goal       (Prolog) entry point\n"
 	  "       -toplevel goal   (Prolog) abort toplevel goal\n"
@@ -649,6 +651,12 @@ parseOptions(int argc, char **argv)
     } else if ( streq(opt, "-initfile") ) 	/* -initfile goal */
     { if ( argc > 1 )
       { plinitfile = argv[1];
+	argc--, argv++;
+      } else
+	usage();
+    } else if ( streq(opt, "-F") ) 		/* -F base */
+    { if ( argc > 1 )
+      { plsysinit = argv[1];
 	argc--, argv++;
       } else
 	usage();
@@ -805,6 +813,7 @@ fillDefaultOptions()
   defaultProgram(&plgoal,     "$welcome");
   defaultProgram(&pltoplevel, "prolog");
   defaultProgram(&plinitfile, "none");
+  defaultProgram(&plsysinit,  "none");
 
 #ifdef WIN32
   sprintf(tmp, "%s/lib", plbase);
@@ -1184,7 +1193,7 @@ createSavedState()
   appendArgList(&ploptions, "-f");
   appendArgList(&ploptions, "none");
   appendArgList(&ploptions, "-F");
-  appendArgList(&ploptions, "none");
+  appendArgList(&ploptions, plsysinit);
   appendArgList(&ploptions, "-g");
   appendArgList(&ploptions, "true");
   appendArgList(&ploptions, "-t");
