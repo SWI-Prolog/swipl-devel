@@ -89,7 +89,7 @@ progman_make_item(Group, Title, CmdLine, Dir, Icon) :-
 	;   true
 	),
 	dde_fmt_execute(DDE, '[addItem(~w, "~w",~w,~w,,, "~w",,)]',
-		    [CmdLine, Title, IconFile, IconNum, Dir]),
+			[CmdLine, Title, IconFile, IconNum, Dir]),
 	dde_fmt_execute(DDE, '[ShowGroup("~w", 0)]', Group),
 	close_dde_conversation(DDE).
 
