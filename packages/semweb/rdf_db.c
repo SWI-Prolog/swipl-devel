@@ -2714,10 +2714,10 @@ md5_triple(triple *t, md5_byte_t *digest)
   md5_append(&state, tmp, 2);
   switch(t->objtype)
   { case OBJ_RESOURCE:
-      s = PL_atom_nchars(t->object.resource, &len);
+      s = PL_blob_data(t->object.resource, &len, NULL);
       break;
     case OBJ_STRING:
-      s = PL_atom_nchars(t->object.string, &len);
+      s = PL_blob_data(t->object.string, &len, NULL);
       break;
     case OBJ_INTEGER:			/* TBD: byte order issues */
       s = (const char *)&t->object.integer;
@@ -2738,12 +2738,12 @@ md5_triple(triple *t, md5_byte_t *digest)
   if ( t->qualifier )
   { assert(t->type_or_lang);
     md5_append(&state, t->qualifier == Q_LANG ? "l" : "t", 1);
-    s = PL_atom_nchars(t->type_or_lang, &len);
+    s = PL_blob_data(t->type_or_lang, &len, NULL);
     md5_append(&state, (const md5_byte_t *)s, len);
   }
   if ( t->source )
   { md5_append(&state, "S", 1);
-    s = PL_atom_nchars(t->source, &len);
+    s = PL_blob_data(t->source, &len, NULL);
     md5_append(&state, (const md5_byte_t *)s, len);
   }
   
