@@ -2448,7 +2448,8 @@ pl_put_row(term_t row, context *c)
    
   if ( true(c, CTX_SOURCE) )
   { cell = PL_new_term_refs(3);		/* table, column, value */
-  }
+  } else
+    cell = 0;				/* make compiler happy */
 
   for (i=0, p=c->result; i<c->NumCols; i++, p++)
   { if ( true(c, CTX_SOURCE) )
