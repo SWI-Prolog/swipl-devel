@@ -365,9 +365,8 @@ part of the stacks (e.g. backtrailing is not needed).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-reindexClause(Clause clause)
-{ Procedure proc = clause->procedure;
-  unsigned long pattern = proc->definition->indexPattern & ~NEED_REINDEX;
+reindexClause(Clause clause, Definition def)
+{ unsigned long pattern = def->indexPattern & ~NEED_REINDEX;
 
   if ( pattern == 0x0 )
     succeed;
@@ -391,7 +390,7 @@ reindexClause(Clause clause)
       decompileHead(clause, head);
       getIndex(argTermP(*valTermRef(head), 0),
 	       pattern,
-	       proc->definition->indexCardinality,
+	       def->indexCardinality,
 	       &clause->index
 	       PASS_LD);
       PL_discard_foreign_frame(fid);
@@ -659,7 +658,7 @@ pl_hash(term_t pred)
 { Procedure proc;
 
   if ( get_procedure(pred, &proc, 0, GP_CREATE) )
-  { Definition def = proc->definition;
+  { Definition def = getProcDefinition(proc);
     int size, minsize;
 
     if ( true(def, FOREIGN) )
@@ -682,7 +681,7 @@ pl_hash(term_t pred)
 
       def->indexCardinality = 1;
       for(cref = def->definition.clauses; cref; cref = cref->next)
-	reindexClause(cref->clause);
+	reindexClause(cref->clause, def);
       def->indexPattern = 0x1;
     }
 

@@ -165,7 +165,7 @@ ClauseRef	firstClause(Word argv, LocalFrame fr, Definition def,
 			    ClauseRef *next ARG_LD);
 ClauseRef	findClause(ClauseRef cl, Word argv, LocalFrame fr,
 			   Definition def, ClauseRef *next ARG_LD);
-bool		reindexClause(Clause clause);
+bool		reindexClause(Clause clause, Definition def);
 bool		unify_index_pattern(Procedure proc, term_t value);
 bool		hashDefinition(Definition def, int buckets);
 word		pl_hash(term_t pred);

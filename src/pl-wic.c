@@ -926,7 +926,7 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 	  freeClause(clause PASS_LD);
 	else
 	{ if ( def->hash_info )
-	  { reindexClause(clause);
+	  { reindexClause(clause, def);
 	  }
 	  assertProcedure(proc, clause, CL_END PASS_LD);
 	}

@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Hashing predicates defined with :- thread_local/1 (correct result,
+    but wasting memory and poor performance).
+
   * FIXED: Made O_SECURE tests in pl-gc.c thread-safe (maintenance only).
 
   * FIXED: P_VARARG handling through PL_load_extensions().  With patch from

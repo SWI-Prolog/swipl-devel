@@ -2126,7 +2126,7 @@ reindexDefinition(Definition def)
 
   def->indexCardinality = cardinalityPattern(def->indexPattern);
   for(cref = def->definition.clauses; cref; cref = cref->next)
-    reindexClause(cref->clause);
+    reindexClause(cref->clause, def);
   leaveDefinition(def);
 
   if ( do_hash )
