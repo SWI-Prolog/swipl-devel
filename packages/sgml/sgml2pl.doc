@@ -1,0 +1,368 @@
+\documentclass[11pt]{article}
+\usepackage{pl}
+\usepackage{html}
+
+\onefile
+\htmloutput{html}				% Output directory
+\htmlmainfile{index}				% Main document file
+\bodycolor{white}				% Page colour
+
+\renewcommand{\runningtitle}{SWI-Prolog SGML/XML parser}
+
+\begin{document}
+
+\title{SWI-Prolog SGML/XML parser}
+\author{Jan Wielemaker \\
+	SWI, \\
+	University of Amsterdam \\
+	The Netherlands \\
+	E-mail: \email{jan@swi.psy.uva.nl}}
+
+\maketitle
+
+\begin{abstract}
+Markup languages are an increasingly important method for
+data-representation and exchange.  This article documents the package
+{\em sgml2pl}, a foreign library for SWI-Prolog to parse SGML
+and XML documents, returning information on both the document and the
+documents DTD.  The parser is designed to be small, fast and flexible.
+\end{abstract}
+
+\vfill
+
+\tableofcontents
+
+\vfill
+\vfill
+
+\newpage
+
+
+\section{Introduction}
+
+Markup languages have recently regained popularity for two reasons.  One
+is document exchange, which is largely based on HTML, an instance of
+SGML and the other is for data-exchange between programs, which is often
+based on XML, which can be considered simplified and rationalised
+version of SGML.
+
+James Clark's SP parser is a flexible SGML and XML parser. Unfortunately
+it has some drawbacks. It is very big, not very fast, cannot work under
+event-driven input and is generally hard to program beyond the scope of
+the very well documented generic interface. The generic interface
+however does not provide access to the DTD, does not allow for flexible
+handling of input or parsing the DTD independently of a document
+instance.
+
+The parser described in this document is small (less then 50 Kbytes
+executable on a Pentium), fast (between 2 and 5 times faster then
+SP), provides access to the DTD and flexible input handling.
+
+The document output is equal to the output produced by \jargon{xml2pl},
+an SP interface to SWI-Prolog written by Anjo Anjewierden.
+
+
+\section{Defined predicates}
+
+\subsection{DTD-Handling}
+
+The DTD ({\bf D}ocument {\bf T}ype {\bf D}efinition) is a separate
+entity in sgml2pl, that can be created, freed, defined and inspected.
+Like the parser itself, it is filled by opening it it as a Prolog output
+stream and sending data to it. This section summarises the predicates
+for handling the DTD.
+
+\begin{description}
+    \predicate{new_dtd}{2}{+DocType, -DTD}
+Creates an empty DTD for the named \arg{DocType}. The returned
+DTD-reference is an opaque term that can be used in the other predicates
+of this package.
+
+    \predicate{free_dtd}{1}{+DTD}
+Deallocate all resources associated to the DTD. Further use of \arg{DTD}
+is invalid.
+
+    \predicate{load_dtd}{1}{+DTD, +File}
+Define the DTD by loading the SGML-DTD file \arg{File}.  This predicate
+is defined using the low-level sgml_open/2 predicate:
+
+\begin{code}
+load_dtd(DTD, DtdFile) :-
+	sgml_open(DTD, [], DtdOut),
+	open(DtdFile, read, DtdIn),
+	copy_stream_data(DtdIn, DtdOut),
+	close(DtdIn),
+	close(DtdOut).
+\end{code}
+
+    \predicate{dtd}{2}{+DocType, -DTD}
+Find the DTD representing the indicated \jargon{doctype}. This predicate
+uses a cache of DTD objects. If a doctype has no associated dtd, it
+searches for a file using the file search path \const{dtd} using the
+call:
+
+\begin{code}
+...,
+absolute_file_name(dtd(Type),
+		   [ extensions([dtd]),
+		     access(read)
+		   ], DtdFile),
+...
+\end{code}
+
+    \predicate{dtd_property}{2}{+DTD, ?Property}
+This predicate is used to examine the content of a DTD.  Property is
+one of:
+
+\begin{description}
+    \termitem{doctype}{DocType}
+An atom representing the document-type defined by this DTD.
+    \termitem{elements}{ListOfElements}
+A list of atoms representing the names of the elements in this DTD.
+    \termitem{element}{Name, Omit, Content}
+The DTD contains an element with the given name.  \arg{Omit} is a
+term of the format \term{omit}{OmitOpen, OmitClose}, where both
+arguments are booleans (\const{true} or \const{false} representing
+whether the open- or close-tag may be omitted.  \arg{Content} is
+the content-model of the element represented as a Prolog term.  This
+term takes the following form:
+
+    \begin{description}
+	\termitem{empty}{}
+    The element has no content.
+	\termitem{cdata}{}
+    The element contains non-parsed character data
+	\termitem{'\#pcdata'}{}
+    The element contains parsed character data
+	\termitem{\arg{element}}{}
+    An element with this name.
+	\termitem{*}{SubModel}
+    0 or more appearances.
+	\termitem{?}{SubModel}
+    0 or one appearance.
+	\termitem{+}{SubModel}
+    1 or more appearances.
+	\termitem{,}{SubModel1, SubModel2}
+    \arg{SubModel1} followed by \arg{SubModel2}.
+	\termitem{\&}{SubModel1, SubModel2}
+    \arg{SubModel1} and \arg{SubModel2} in any order.
+	\termitem{{\tt\string|}}{SubModel1, SubModel2}
+    \arg{SubModel1} or \arg{SubModel2}.
+    \end{description}
+    \termitem{attributes}{Element, ListOfAttributes}
+\arg{ListOfAttributes} is a list of atoms representing the attributes of
+the element \arg{Element}.
+    \termitem{attribute}{Element, Attribute, Type, Default}
+Query an element.  \arg{Type} is one of \const{cdata}, \const{entity},
+\const{id}, \const{idref}, \const{name}, \const{nmtoken},
+\const{notation}, \const{number} or \const{nutoken}.  For DTD types that
+allow for a list, the notation \term{list}{Type} is used.  Finally, the
+DTD construct \verb$(a|b|...)$ is mapped to the term
+\term{nameof}{ListOfValues}.
+    \termitem{entities}{ListOfEntities}
+\arg{ListOfEntities} is a list of atoms representing the names of the
+defined entities.
+    \termitem{entity}{Name, Value}
+\arg{Name} is the name of an entity with given value.  Value is one of
+    \begin{description}
+	\termitem{\arg{Atom}}{}
+    If the value is atomic, it represents the literal value of the
+    entity.
+	\termitem{system}{Url}
+    \arg{Url} is the URL of the system external entity.
+	\termitem{public}{Id, Url}
+    For external public entities, \arg{Id} is the identifier.  If an
+    URL is provided this is returned in \arg{Url}. Otherwise this
+    argument is unbound.
+    \end{description}
+\end{description}
+\end{description}
+
+
+\subsection{Loading SGML Documents}
+
+SGML documents are handled through an object called
+\jargon{sgml_parser}. A parser can be created with or without a supplied
+DTD.  The parser itself can, like the DTD, be created, freed and opened
+as a Prolog stream.  First we explain the easy-to-use toplevel predicate
+load_sgml_file/[2,3]:
+
+\begin{description}
+    \predicate{load_sgml_file}{2}{+File, -ListOfContent}
+Parse the SGML instance from \arg{File}, returning a list of elements.
+A proper SGML document contains only a single toplevel element whose
+name matches the document type.  Nevertheless, a list is returned for
+consistency with the representation of element content.  Each element
+is represented as described below:
+
+\begin{description}
+    \termitem{element}{Name, ListAttributes, ListOfContent}
+\arg{Name} is the name of the element. Using SGML, which is
+case-insensitive, all element names are returned as lowercase atoms.
+
+\arg{ListOfAttributes} is a list of \arg{Name}=\arg{Value} pairs for
+attributes that appeared in the source. No information is returned on
+other attributes, such as \const{fixed} or \const{default} attributes.
+See dtd_property/2 for accessing the DTD for this information.
+Attributes of type \const{CDATA} are returned literal. Attributes of
+type \const{NUMBER} are returned as a Prolog integer. All other
+attribute values are returned as lowercase atoms.%
+	\bug{List-valued attributes are returned as a single atom.}
+
+\arg{ListOfContent} is a list in which \const{CDATA} is represented
+using an atom and elements are represented using \funcref{element}{3}
+terms.
+\end{description}
+
+    \predicate{load_sgml_file}{3}{+File, -ListOfContent, ?DTD}
+As load_sgml_file/3. If \arg{DTD} is specified, the \verb$<!DOCTYPE ...$
+declaration is ignored and the document is parsed using the given DTD.
+If \arg{DTD} is unbound, the document declaration is loaded from the
+\verb$<!DOCTYPE ...$ specification and the created DTD is returned in
+\arg{DTD}.  The DTD may be inspected using dtd_property/2 and freed
+using free_dtd/1.
+\end{description}
+
+The predicates above are implemented in \pllib{sgml} based on the
+following low-level primitives. These primitives are useful if documents
+need to be loaded from sources others than files, such as SWI-Prolog
+\jargon{resources} or directly from the network.
+
+\begin{description}
+    \predicate{new_sgml_parser}{2}{-Parser, +Options}
+Create a new SGML parser from the provided options.  Currently the only
+option defined is:
+    \begin{description}
+        \termitem{dtd}{DTD}
+    Provide a DTD or get a reference to the implicitely created DTD.
+    \end{description}
+
+    \predicate{free_sgml_parser}{1}{+Parser}
+Destroy the indicated parser.  Note that this does not destroy the DTD.
+
+    \predicate{set_sgml_parser}{2}{+Parser, +Option}
+Set options on the SGML parser.  The following options are defined:
+    \begin{description}
+	\termitem{file}{File}
+Set the filename associated with the parser.  This name is used for
+generating error messages.  This option sets the line option to 1.
+	\termitem{line}{Line}
+Set the line-number on the input file.    
+	\termitem{dialect}{Dialect}
+Select the \jargon{dialect} to use.  The initial is \const{sgml}.
+The other allowed value is \const{xml}.  See \secref{xml}.
+    \end{description}
+
+    \predicate{sgml_open}{2}{+DTDOrParser, +Options, -OutStream}
+Open either a DTD or an SGML parser as an output stream.  For a DTD,
+the option-list is currently empty.
+
+Opening a parser is a bit unconventional as we aim at returning a Prolog
+structure representing the document (see load_sgml_file/[2,3]), but we
+cannot pass the term-reference of the requested document as
+term-references do not survive over foreign language calls. Hence,
+copying the data to be parsed should happen in the \term{goal}{Goal}
+argument. We provide the implementation of load_sgml_file/2 for
+reference:
+
+\begin{code}
+load_sgml_file(File, Term) :-
+	open(File, read, SgmlIn),
+	new_sgml_parser(Parser, [dtd(DTD)]),
+	sgml_open(Parser,
+		  [ document(Term),
+		    goal(copy_stream_data(SgmlIn, SgmlOut))
+		  ],
+		  SgmlOut),
+	close(SgmlIn),
+	close(SgmlOut),
+	free_dtd(DTD).
+\end{code}
+
+\begin{description}
+    \termitem{document}{+Term}
+A variable that will be unified with a list describing the content of
+the document (see load_sgml_file/2).
+    \termitem{goal}{+Goal}
+\arg{Goal} is a callable term that should copy the input to the parser.
+The provided output stream is flushed automatically on completion of
+\arg{Goal}.
+    \termitem{max_errors}{+MaxErrors}
+Set the maximum number of errors.  If this number is exceeded further
+writes to the stream will yield an I/O error exception.  Printing of
+errors is suppressed after reaching this value.  The default is 100.
+\end{description}
+\end{description}
+
+
+\subsection{XML documents}			\label{sec:xml}
+
+The parser can operate in two modes: \const{sgml} mode and \const{xml}
+mode.  If the first line of the document reads as below, the parser is
+switched automatically into XML mode.
+
+\begin{code}
+<?xml ... ?>
+\end{code}
+
+Currently switching to XML mode implies:
+
+\begin{itemlist}
+    \item [XML empty elements]
+The construct \verb$<element [attribute...] />$ is recognised as an
+empty element.
+    \item [Predefined entities]
+The following entitities are predefined:
+\const{lt} (\verb$<$),
+\const{gt} (\verb$>$),
+\const{amp} (\verb$&$),
+\const{apos} (\verb$'$) and
+\const{quot} (\verb$"$).
+    \item [Case sensitivity]
+In XML mode, names are treated case-sensitive, except for the DTD
+reserved names (i.e. \const{ELEMENT}, etc.).
+    \item [Character classes]
+In XML mode, underscores are allowed in names.
+\end{itemlist}
+
+
+\subsection{HTML Documents}
+
+HTML documents are normal SGML documents to this package.  The W3C DTD
+for HTML 4.0 is provided and used by load_html_file/2.
+
+\begin{description}
+    \predicate{load_html_file}{2}{+File, -Content}
+Load \arg{File} and parse as HTML.  Implemented as:
+
+\begin{code}
+load_html_file(File, Term) :-
+	dtd(html, DTD),
+	load_sgml_file(File, Term, DTD).
+\end{code}
+\end{description}
+
+
+\section{Installation}
+
+\subsection{Unix systems}
+
+Installation on Unix system uses the commonly found {\em configure},
+{\em make} and {\em make install} sequence. SWI-Prolog should be
+installed before building this package. If SWI-Prolog is not installed
+as \program{pl}, the environment variable \env{PL} must be set to the
+name of the SWI-Prolog executable. Installation is now accomplished
+using:
+
+\begin{code}
+% ./configure
+% make
+% make install
+\end{code}
+
+This installs the foreign libraries in \file{$PLBASE/lib/$PLARCH} and
+the Prolog library files in \file{$PLBASE/library}, where
+\file{$PLBASE} refers to the SWI-Prolog `home-directory'.
+
+\end{document}
+

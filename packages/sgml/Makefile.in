@@ -1,0 +1,100 @@
+################################################################
+# SWI-Prolog `sgml2pl' package
+# Author:    Jan Wielemaker. jan@swi.psy.uva.nl
+# Copyright: Same as SWI-Prolog
+################################################################
+
+################################################################
+#
+################################################################
+
+.SUFFIXES: .tex .dvi .doc .pl
+
+PL=@PL@
+PLBASE=@PLBASE@
+PLARCH=@PLARCH@
+PCEHOME=/staff/jan/src/xpce
+
+CC=@CC@
+COFLAGS=@COFLAGS@
+CWFLAGS=@CWFLAGS@
+CMFLAGS=@CMFLAGS@
+CIFLAGS=-I. -I$(PLBASE)/include
+CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
+
+DOCTOTEX=$(PCEHOME)/bin/doc2tex
+PLTOTEX=$(PCEHOME)/bin/pl2tex
+LATEX=latex
+DOC=sgml2pl
+TEX=$(DOC).tex
+DVI=$(DOC).dvi
+PDF=$(DOC).pdf
+HTML=$(DOC).html
+
+LD=@LD@
+LDFLAGS=@LDSOFLAGS@
+
+INSTALL=@INSTALL@
+INSTALL_PROGRAM=@INSTALL_PROGRAM@
+INSTALL_DATA=@INSTALL_DATA@
+
+LIBOBJ=		parser.o util.o charmap.o catalog.o model.o
+PLOBJ=		$(LIBOBJ) error.o sgml2pl.o
+HTMLOBJ=	$(LIBOBJ) sgml.o
+DTD2PLOBJ=	$(LIBOBJ) dtd2pl.o prolog.o
+
+LIBPL=		sgml.pl
+TARGETS=	sgml2pl.so
+PROGRAMS=	dtd2pl sgml
+
+all:		$(TARGETS) $(PROGRAMS)
+
+sgml2pl.so:	$(PLOBJ)
+		$(LD) $(LDFLAGS) -o $@ $(PLOBJ)
+
+install:	$(TARGETS) $(LIBPL)
+		mkdir -p $(PLBASE)/lib/$(PLARCH)
+		$(INSTALL) -m 755 $(TARGETS) $(PLBASE)/lib/$(PLARCH)
+		$(INSTALL) -m 644 $(LIBPL) $(PLBASE)/library
+		$(PL) -f none -g make -t halt
+
+uninstall:
+		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))
+		(cd $(PLBASE)/library && rm -f $(LIBPL))
+		$(PL) -f none -g make -t halt
+
+dtd2pl:		$(DTD2PLOBJ)
+		$(LD) -o $@ $(DTD2PLOBJ)
+
+sgml:		$(HTMLOBJ)
+		$(LD) -o $@ $(HTMLOBJ)
+
+################################################################
+# Documentation
+################################################################
+
+doc:		$(PDF) $(HTML)
+
+$(HTML):	$(TEX)
+		latex2html $(DOC)
+		mv html/index.html $@
+
+$(PDF):		$(TEX)
+		runtex --pdf $(DOC)
+
+$(TEX):		$(DOCTOTEX)
+
+.doc.tex:
+		$(DOCTOTEX) $*.doc > $*.tex
+.pl.tex:
+		$(PLTOTEX) $*.pl > $*.tex
+
+################################################################
+# Clean
+################################################################
+
+clean:
+		rm -f $(PLOBJ) *~ *.o *% a.out core config.log
+
+distclean:	clean
+		rm -f $(TARGETS) config.cache config.h config.status Makefile

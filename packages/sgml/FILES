@@ -1,0 +1,20 @@
+Files in the SGML/XML parser:
+
+catalog.c		Handle SGML_CATALOG_FILES
+catalog.h		
+charmap.c		Character classification and mapping
+dtd.h			Include file for DTD primitives
+dtd2pl.c		Main file for dtd2pl: convert DTD to Prolog
+error.c			Utilities for generating Prolog exceptions
+error.h
+model.c			State engine for handling DDT content model
+model.h
+parser.c		The parser itself
+parser.h
+prolog.c		Print DTD in Prolog source (used by dtd2pl)
+prolog.h
+sgml.c			Main file for sgml (stand-alone parser)
+sgml2pl.c		SWI-Prolog foreign code wrapper
+sgmldefs.h		General definitions
+util.c			Basic character handling and utilities
+util.h

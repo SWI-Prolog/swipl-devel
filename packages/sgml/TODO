@@ -1,0 +1,8 @@
+TODO LIST:
+
+	* Handle multi-valued attributes
+	* Handling of external entities (both param and normal) in Prolog
+	* Characters that cannot be represented in ochar
+	* Improve error messages on incomplete documents
+	* Check ID/IDREF
+	* Parsing of processing instructions to end at ?> instead of just >
