@@ -107,7 +107,8 @@ typedef struct
   shape_cell right[MAXPENDINGGR];
 } parshape;
 
-static int	fill_line(ParBox pb, int here, parline *line, parshape *shape);
+static int	fill_line(ParBox pb, int here, parline *line, parshape *shape,
+			  int compute);
 static void	justify_line(parline *line, Name alignment);
 static void	init_shape(parshape *s, ParBox pb, int w);
 static void	push_shape_graphicals(parline *l, parshape *s);
@@ -165,7 +166,7 @@ RedrawAreaParBox(ParBox pb, Area a)
       l.y = y;
       l.w = w;
       l.size = MAXHBOXES;
-      here = fill_line(pb, here, &l, &shape);
+      here = fill_line(pb, here, &l, &shape, FALSE);
       if ( l.shape_graphicals )
 	push_shape_graphicals(&l, &shape);
 
@@ -219,7 +220,7 @@ getLocateEventParBox(ParBox pb, EventObj ev)
       l.y = y;
       l.w = w;
       l.size = MAXHBOXES;
-      h2 = fill_line(pb, here, &l, &shape);
+      h2 = fill_line(pb, here, &l, &shape, FALSE);
       if ( l.shape_graphicals )
       { int g = 0;
 
@@ -307,7 +308,7 @@ getBoxAreaParBox(ParBox pb, Any target, Device relto)
     l.y = y;
     l.w = w;
     l.size = MAXHBOXES;
-    h2 = fill_line(pb, here, &l, &shape);
+    h2 = fill_line(pb, here, &l, &shape, FALSE);
     if ( l.shape_graphicals )
       push_shape_graphicals(&l, &shape);
 
@@ -675,7 +676,7 @@ compute_line(parline *line)
 
 
 static int
-fill_line(ParBox pb, int here, parline *line, parshape *shape)
+fill_line(ParBox pb, int here, parline *line, parshape *shape, int compute)
 { int cx, ex;
   HBox *content = (HBox *)pb->content->elements-1;
   int hi = valInt(getHighIndexVector(pb->content));
@@ -722,9 +723,24 @@ fill_line(ParBox pb, int here, parline *line, parshape *shape)
     if ( instanceOfObject(hb, ClassGrBox) )
     { GrBox grb = (GrBox)hb;
 
-      if ( notNil(grb->graphical->request_compute) )
-      { ComputeGraphical(grb->graphical);
-	computeGrBox(grb);
+      if ( compute )
+      { Graphical gr = grb->graphical;
+
+	if ( pb->request_compute == NAME_lineWidth )
+	{ Any av[2];
+
+	  av[0] = pb->line_width;
+	  av[1] = DEFAULT;
+
+	  qadSendv(gr, NAME_containerSizeChanged, 2, av);
+	}
+
+	if ( notNil(gr->request_compute) )
+	{ ComputeGraphical(gr);
+	  computeGrBox(grb);
+	}
+
+	pc->w = bw = valInt(hb->width);
       }
 
       pc->flags |= PC_GRAPHICAL;
@@ -916,7 +932,7 @@ computeParBox(ParBox pb)
       l.y = y;
       l.w = w;
       l.size = MAXHBOXES;
-      here = fill_line(pb, here, &l, &shape);
+      here = fill_line(pb, here, &l, &shape, TRUE);
       lineno++;
 
       DEBUG(NAME_parbox,
@@ -1074,20 +1090,9 @@ alignmentParBox(ParBox pb, Name alignment)
 static status
 lineWidthParBox(ParBox pb, Int w)
 { if ( pb->line_width != w )
-  { Cell cell;
-
-    assign(pb, line_width, w);
+  { assign(pb, line_width, w);
     
-    for_cell(cell, pb->graphicals)
-    { Any av[2];
-      
-      av[0] = w;
-      av[1] = DEFAULT;
-
-      qadSendv(cell->value, NAME_containerSizeChanged, 2, av);
-    }
-
-    requestComputeGraphical(pb, DEFAULT);
+    requestComputeGraphical(pb, NAME_lineWidth);
   }
 
   succeed;
