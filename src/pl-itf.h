@@ -395,6 +395,7 @@ __pl_export int		PL_cvt_o_atom(atom_t c, term_t p);
 		 *******************************/
 
 __pl_export int		PL_compare(term_t t1, term_t t2);
+__pl_export int		PL_same_compound(term_t t1, term_t t2);
 
 		 /*******************************
 		 *	     MESSAGES		*

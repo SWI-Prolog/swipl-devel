@@ -352,6 +352,16 @@ PL_compare(term_t t1, term_t t2)
 }
 
 
+int
+PL_same_compound(term_t t1, term_t t2)
+{ GET_LD
+  word w1 = valHandle(t1);
+  word w2 = valHandle(t2);
+
+ return isTerm(w1) && w1==w2 ? TRUE : FALSE;
+}
+
+
 		 /*******************************
 		 *	      INTEGERS		*
 		 *******************************/
