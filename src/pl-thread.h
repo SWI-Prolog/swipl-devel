@@ -158,6 +158,7 @@ extern PL_local_data_t *_LD(void) __attribute((const));
 #define GLOBAL_LD ((PL_local_data_t *)TLD_get(PL_ldata))
 #endif
 #define GET_LD    PL_local_data_t *__PL_ld = GLOBAL_LD;
+#define ENGINE(c) PL_local_data_t *__PL_ld = ForeignEngine(c);
 
 #define ARG1_LD   PL_local_data_t *__PL_ld
 #define ARG_LD    , ARG1_LD
@@ -178,7 +179,7 @@ extern word		pl_thread_create(term_t goal, term_t id,
 					 term_t options);
 extern word		pl_thread_join(term_t thread, term_t retcode);
 extern word		pl_thread_exit(term_t retcode);
-extern word		pl_current_thread(term_t id, term_t status, word h);
+extern word		pl_current_thread(term_t id, term_t status, control_t h);
 extern word		pl_thread_kill(term_t thread, term_t sig);
 extern word		pl_thread_send_message(term_t thread, term_t msg);
 extern word		pl_thread_get_message(term_t msg);
@@ -197,7 +198,7 @@ extern foreign_t	pl_mutex_unlock_all(void);
 extern foreign_t	pl_current_mutex(term_t mutex,
 					 term_t owner,
 					 term_t count,
-					 word h);
+					 control_t h);
 
 const char *		threadName(int id);
 void			executeThreadSignals(int sig);
@@ -216,6 +217,7 @@ void			PL_atomic_dec(int *addr);
 		 *******************************/
 
 #define GET_LD
+#define ENGINE(ctx)
 #define LOCAL_LD  (&PL_local_data)
 #define GLOBAL_LD (&PL_local_data)
 #define LD	  GLOBAL_LD

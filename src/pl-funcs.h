@@ -22,6 +22,13 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#define FOREIGN_VA(name) \
+	foreign_t name(term_t a0, int argc, control_t ctx)
+#define Arg(a0, n) ((a0)+(n))
+
+FOREIGN_VA(pl_unify_va);
+
+
 /* pl-alloc.c */
 void		freeHeap__LD(void *mem, size_t n ARG_LD);
 word		outOfStack(Stack s, stack_overflow_action how);
@@ -71,8 +78,8 @@ word		lookupAtom(const char *s, unsigned int len);
 word		pl_atom_hashstat(term_t i, term_t n);
 void		initAtoms(void);
 void		cleanupAtoms(void);
-word		pl_current_atom2(term_t a, term_t refs, word h);
-word		pl_current_atom(term_t a, word h);
+word		pl_current_atom2(term_t a, term_t refs, control_t ctx);
+word		pl_current_atom(term_t a, control_t ctx);
 word		pl_complete_atom(term_t prefix, term_t common, term_t unique);
 word		pl_atom_completions(term_t prefix, term_t alts);
 void		markAtom(atom_t a);
@@ -91,7 +98,7 @@ void		_PL_debug_unregister_atom(atom_t a,
 
 /* pl-arith.c */
 
-word		pl_between(term_t l, term_t h, term_t n, word b);
+word		pl_between(term_t l, term_t h, term_t n, control_t ctx);
 word		pl_succ(term_t n1, term_t n2);
 word		pl_plus(term_t a, term_t b, term_t c);
 int		ar_compare(Number n1, Number n2, int what);
@@ -103,8 +110,8 @@ word		pl_nonEqualNumbers(term_t n1, term_t n2);
 word		pl_equalNumbers(term_t n1, term_t n2);
 word		pl_is(term_t v, term_t e);
 word		pl_arithmetic_function(term_t descr);
-word		pl_current_arithmetic_function(term_t f, word h);
-word		pl_prolog_arithmetic_function(term_t f, word h);
+word		pl_current_arithmetic_function(term_t f, control_t h);
+word		pl_prolog_arithmetic_function(term_t f, control_t h);
 void		initArith(void);
 void		cleanupArith(void);
 int		indexArithFunction(functor_t fdef, Module m);
@@ -139,11 +146,12 @@ word		pl_redefine_system_predicate(term_t term);
 bool		decompileHead(Clause clause, term_t head);
 int		arg1Key(Clause clause, word *key);
 bool		decompile(Clause clause, term_t term, term_t bindings);
-word		pl_clause4(term_t p, term_t t, term_t ref, term_t b, word h);
-word		pl_clause3(term_t p, term_t term, term_t ref, word h);
-word		pl_clause2(term_t p, term_t term, word h);
-word		pl_nth_clause(term_t p, term_t n, term_t ref, word h);
-word		pl_xr_member(term_t ref, term_t term, word h);
+word		pl_clause4(term_t p, term_t t, term_t ref, term_t b,
+			   control_t h);
+word		pl_clause3(term_t p, term_t term, term_t ref, control_t h);
+word		pl_clause2(term_t p, term_t term, control_t h);
+word		pl_nth_clause(term_t p, term_t n, term_t ref, control_t h);
+word		pl_xr_member(term_t ref, term_t term, control_t h);
 void		wamListClause(Clause clause);
 Code		wamListInstruction(IOSTREAM *out, Clause clause, Code bp);
 word		pl_wam_list(term_t ref);
@@ -190,7 +198,7 @@ void		markDirtyClauseIndex(ClauseIndex ci, Clause cl);
 
 /* pl-dwim.c */
 word		pl_dwim_match(term_t a1, term_t a2, term_t mm);
-word		pl_dwim_predicate(term_t term, term_t dwim, word h);
+word		pl_dwim_predicate(term_t term, term_t dwim, control_t h);
 
 /* pl-ext.c */
 void		initBuildIns(void);
@@ -278,7 +286,8 @@ int		streamNo(term_t spec, int mode);
 word		pl_close(term_t stream);
 word		pl_close2(term_t stream, term_t options);
 void		release_stream_handle(term_t spec);
-foreign_t	pl_stream_property(term_t stream, term_t property, word h);
+foreign_t	pl_stream_property(term_t stream, term_t property,
+				   control_t h);
 word		pl_flush_output1(term_t stream);
 word		pl_set_stream_position(term_t stream, term_t pos);
 word		pl_seek(term_t stream,
@@ -337,7 +346,7 @@ void		popOutputContext(void);
 /* pl-flag.c */
 void		initFlags(void);
 word		pl_flag(term_t name, term_t old, term_t new);
-word		pl_current_flag(term_t k, word h);
+word		pl_current_flag(term_t k, control_t h);
 void		initFeatureTable(void);
 void		initFeatures(void);
 
@@ -386,7 +395,7 @@ functor_t	isCurrentFunctor(atom_t atom, int arity);
 void		initFunctors(void);
 void		cleanupFunctors(void);
 int 		checkFunctors(void);
-word		pl_current_functor(term_t name, term_t arity, word h);
+word		pl_current_functor(term_t name, term_t arity, control_t h);
 
 /* pl-gc.c */
 void		considerGarbageCollect(Stack s);
@@ -434,12 +443,12 @@ Word		stripModule(Word term, Module *module ARG_LD);
 bool		isPublicModule(Module module, Procedure proc);
 int		declareModule(atom_t name, SourceFile sf);
 word		pl_default_module(term_t me, term_t old, term_t new);
-word		pl_current_module(term_t module, term_t file, word h);
+word		pl_current_module(term_t module, term_t file, control_t h);
 word		pl_strip_module(term_t spec, term_t module, term_t term);
 word		pl_module(term_t old, term_t new);
 word		pl_set_source_module(term_t old, term_t new);
-word		pl_term_expansion_module(term_t name, word h);
-word		pl_goal_expansion_module(term_t name, word h);
+word		pl_term_expansion_module(term_t name, control_t h);
+word		pl_goal_expansion_module(term_t name, control_t h);
 word		pl_declare_module(term_t name, term_t file);
 word		pl_export_list(term_t modulename, term_t list);
 word		pl_export(term_t head);
@@ -455,11 +464,14 @@ word		pl_set_prolog_hook(term_t module, term_t old, term_t new);
 int		currentOperator(Module m, atom_t name, int kind,
 				int *type, int *priority);
 int		priorityOperator(Module m, atom_t atom);
-word		pl_current_op(term_t prec, term_t type, term_t name, word h);
-word		pl_local_op(term_t prec, term_t type, term_t name, word h);
+word		pl_current_op(term_t prec, term_t type, term_t name,
+			      control_t h);
+word		pl_local_op(term_t prec, term_t type, term_t name,
+			    control_t h);
 word		pl_op(term_t priority, term_t type, term_t name);
 void		initOperators(void);
-word		pl_builtin_op(term_t prec, term_t type, term_t name, word h);
+word		pl_builtin_op(term_t prec, term_t type, term_t name,
+			      control_t h);
 
 /* pl-os.c */
 bool		initOs(void);
@@ -521,7 +533,6 @@ word		pl_deterministic(void);
 #ifdef O_HASHTERM
 word		pl_hash_term(term_t term, term_t hval);
 #endif
-word		pl_unify(term_t t1, term_t t2);
 word		pl_notunify(term_t t1, term_t t2);
 word		pl_equal(term_t t1, term_t t2);
 word		pl_nonequal(term_t t1, term_t t2);
@@ -534,7 +545,7 @@ word		pl_greaterEqualStandard(term_t t1, term_t t2);
 word		pl_structural_equal(term_t t1, term_t t2);
 word		pl_structural_nonequal(term_t t1, term_t t2);
 word		pl_functor(term_t t, term_t f, term_t a);
-word		pl_arg(term_t n, term_t t, term_t a, word b);
+word		pl_arg(term_t n, term_t t, term_t a, control_t b);
 word		pl_setarg(term_t n, term_t term, term_t arg);
 int		lengthList(term_t list, int errors);
 word		pl_univ(term_t t, term_t l);
@@ -565,16 +576,16 @@ word		pl_concat_atom3(term_t list, term_t sep, term_t atom);
 word		pl_apropos_match(term_t a1, term_t a2);
 foreign_t	pl_sub_atom(term_t atom,
 			    term_t before, term_t len, term_t after,
-			    term_t sub, word h);
+			    term_t sub, control_t h);
 word		pl_string_length(term_t str, term_t l);
-word		pl_string_concat(term_t a1, term_t a2, term_t a3, word h);
+word		pl_string_concat(term_t a1, term_t a2, term_t a3, control_t h);
 word		pl_string_to_atom(term_t str, term_t a);
 word		pl_string_to_list(term_t str, term_t list);
 word		pl_sub_string(term_t str,
 			      term_t offset, term_t length, term_t after,
-			      term_t sub, word h);
+			      term_t sub, control_t h);
 word		pl_write_on_string(term_t goal, term_t string);
-word		pl_repeat(word h);
+word		pl_repeat(control_t h);
 word		pl_fail(void);
 word		pl_true(void);
 word		pl_halt(term_t code);
@@ -586,10 +597,10 @@ word		pl_novice(term_t old, term_t new);
 
 /* pl-feature.c */
 void		defFeature(const char *name, int flags, ...);
-word		pl_feature(term_t key, term_t value, word h);
+word		pl_feature(term_t key, term_t value, control_t h);
 word		pl_feature5(term_t key, term_t value,
 			    term_t local, term_t access, term_t type,
-			    word h);
+			    control_t h);
 word		pl_set_feature(term_t key, term_t value);
 int		setDoubleQuotes(atom_t a, unsigned int *flagp);
 
@@ -601,7 +612,7 @@ word		pl_notrace1(term_t goal);
 word		pl_depth_limit(term_t limit, term_t olimit, term_t oreached);
 word		pl_depth_limit_true(term_t limit,
 				    term_t olimit, term_t oreached,
-				    term_t res, term_t cut, word b);
+				    term_t res, term_t cut, control_t b);
 word		pl_depth_limit_false(term_t limit,
 				     term_t olimit, term_t oreached,
 				     term_t res);
@@ -622,8 +633,8 @@ bool		isDefinedProcedure(Procedure proc);
 int		get_head_functor(term_t head, functor_t *fdef,
 				 int flags ARG_LD);
 int		get_procedure(term_t descr, Procedure *proc, term_t he, int f);
-word		pl_current_predicate(term_t name, term_t functor, word h);
-foreign_t	pl_current_predicate1(term_t spec, word ctx);
+word		pl_current_predicate(term_t name, term_t functor, control_t h);
+foreign_t	pl_current_predicate1(term_t spec, control_t ctx);
 ClauseRef	assertProcedure(Procedure proc, Clause clause,
 				int where ARG_LD);
 bool		abolishProcedure(Procedure proc, Module module);
@@ -635,7 +646,7 @@ void		gcClausesDefinition(Definition def);
 void		resetReferences(void);
 Procedure	resolveProcedure(functor_t f, Module module);
 Definition	trapUndefined(Definition def);
-word		pl_retract(term_t term, word h);
+word		pl_retract(term_t term, control_t h);
 word		pl_retractall(term_t head);
 word		pl_abolish(term_t atom, term_t arity);
 word		pl_abolish1(term_t pred);
@@ -693,7 +704,7 @@ word		pl_read_term3(term_t stream, term_t term, term_t pos);
 word		pl_atom_to_term(term_t term, term_t atom, term_t bindings);
 void		initCharConversion(void);
 foreign_t	pl_char_conversion(term_t in, term_t out);
-foreign_t	pl_current_char_conversion(term_t in, term_t out, word h);
+foreign_t	pl_current_char_conversion(term_t in, term_t out, control_t h);
 
 
 /* pl-rec.c */
@@ -704,10 +715,10 @@ int		structuralEqualArg1OfRecord(term_t t, Record r ARG_LD);
 bool		freeRecord(Record record);
 bool		unifyKey(term_t key, word val);
 int		getKeyEx(term_t key, word *k ARG_LD);
-word		pl_current_key(term_t k, word h);
+word		pl_current_key(term_t k, control_t h);
 word		pl_recorda(term_t key, term_t term, term_t ref);
 word		pl_recordz(term_t key, term_t term, term_t ref);
-word		pl_recorded(term_t key, term_t term, term_t ref, word h);
+word		pl_recorded(term_t key, term_t term, term_t ref, control_t h);
 word		pl_erase(term_t ref);
 word		pl_term_complexity(term_t t, term_t mx, term_t count);
 void		undo_while_saving_term(mark *m, Word term);
@@ -914,8 +925,8 @@ foreign_t	pl_open_xterm(term_t title, term_t in, term_t out);
 
 /* pl-ctype.c */
 
-foreign_t	pl_char_type(term_t chr, term_t class, word h);
-foreign_t	pl_code_type(term_t chr, term_t class, word h);
+foreign_t	pl_char_type(term_t chr, term_t class, control_t h);
+foreign_t	pl_code_type(term_t chr, term_t class, control_t h);
 foreign_t	pl_downcase_atom(term_t in, term_t out);
 foreign_t	pl_upcase_atom(term_t in, term_t out);
 void		initCharTypes(void);

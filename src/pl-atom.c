@@ -676,7 +676,7 @@ cleanupAtoms(void)
 
 
 word
-pl_current_atom2(term_t a, term_t refs, word h)
+pl_current_atom2(term_t a, term_t refs, control_t h)
 { unsigned int i;
 
   switch( ForeignControl(h) )
@@ -726,7 +726,7 @@ pl_current_atom2(term_t a, term_t refs, word h)
 
 
 word
-pl_current_atom(term_t a, word h)
+pl_current_atom(term_t a, control_t h)
 { return pl_current_atom2(a, 0, h);
 }
 

@@ -2737,7 +2737,8 @@ unify_head(term_t h, term_t d ARG_LD)
 
 
 word
-pl_clause4(term_t head, term_t body, term_t ref, term_t bindings, word ctx)
+pl_clause4(term_t head, term_t body, term_t ref, term_t bindings,
+	   control_t ctx)
 { GET_LD
   Procedure proc;
   Definition def;
@@ -2852,13 +2853,13 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings, word ctx)
 
 
 word
-pl_clause3(term_t p, term_t term, term_t ref, word h)
+pl_clause3(term_t p, term_t term, term_t ref, control_t h)
 { return pl_clause4(p, term, ref, 0, h);
 }
 
 
 word
-pl_clause2(term_t p, term_t term, word h)
+pl_clause2(term_t p, term_t term, control_t h)
 { return pl_clause4(p, term, 0, 0, h);
 }
 
@@ -2870,7 +2871,7 @@ typedef struct
 
 
 word
-pl_nth_clause(term_t p, term_t n, term_t ref, word h)
+pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
 { GET_LD
   Clause clause;
   ClauseRef cref;
@@ -3048,7 +3049,7 @@ wouldBindToDefinition(Definition from, Definition to)
 
 
 word
-pl_xr_member(term_t ref, term_t term, word h)
+pl_xr_member(term_t ref, term_t term, control_t h)
 { Clause clause;
   Code PC;
   Code end;

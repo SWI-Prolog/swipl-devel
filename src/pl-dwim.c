@@ -191,7 +191,7 @@ predicate head.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
-pl_dwim_predicate(term_t pred, term_t dwim, word h)
+pl_dwim_predicate(term_t pred, term_t dwim, control_t h)
 { functor_t fdef;
   Module module = (Module) NULL;
   Procedure proc;

@@ -1284,7 +1284,7 @@ getKeyEx(term_t key, word *w ARG_LD)
 
 
 word
-pl_current_key(term_t k, word h)
+pl_current_key(term_t k, control_t h)
 { GET_LD
   TableEnum e;
   Symbol s;
@@ -1372,7 +1372,7 @@ pl_recordz(term_t key, term_t term, term_t ref)
 
 
 word
-pl_recorded(term_t key, term_t term, term_t ref, word h)
+pl_recorded(term_t key, term_t term, term_t ref, control_t h)
 { RecordList rl;
   RecordRef record;
   word k;

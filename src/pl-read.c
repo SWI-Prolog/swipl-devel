@@ -61,7 +61,7 @@ pl_char_conversion(term_t in, term_t out)
 
 
 foreign_t
-pl_current_char_conversion(term_t in, term_t out, word h)
+pl_current_char_conversion(term_t in, term_t out, control_t h)
 { int ctx;
   mark m;
   GET_LD

@@ -286,7 +286,7 @@ unify_char_type(term_t type, const char_type *ct, int context, int how)
 
 
 static foreign_t
-do_char_type(term_t chr, term_t class, word h, int how)
+do_char_type(term_t chr, term_t class, control_t h, int how)
 { generator *gen;
   mark m;
 
@@ -424,13 +424,13 @@ do_char_type(term_t chr, term_t class, word h, int how)
 
 
 foreign_t
-pl_char_type(term_t chr, term_t class, word h)
+pl_char_type(term_t chr, term_t class, control_t h)
 { return do_char_type(chr, class, h, CHAR_MODE);
 }
 
 
 foreign_t
-pl_code_type(term_t chr, term_t class, word h)
+pl_code_type(term_t chr, term_t class, control_t h)
 { return do_char_type(chr, class, h, CODE_MODE);
 }
 

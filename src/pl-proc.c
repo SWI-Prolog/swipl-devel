@@ -401,7 +401,7 @@ to C.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
-pl_current_predicate(term_t name, term_t spec, word h)
+pl_current_predicate(term_t name, term_t spec, control_t h)
 { GET_LD
   TableEnum e;
   atom_t n;
@@ -496,7 +496,7 @@ visibleProcedure(functor_t f, Module m)
 
 
 foreign_t
-pl_current_predicate1(term_t spec, word ctx)
+pl_current_predicate1(term_t spec, control_t ctx)
 { GET_LD
   cur_enum e0;
   cur_enum *e;
@@ -1371,7 +1371,7 @@ pl_require(term_t pred)
 		*********************************/
 
 word
-pl_retract(term_t term, word h)
+pl_retract(term_t term, control_t h)
 { GET_LD
 
   if ( ForeignControl(h) == FRG_CUTTED )

@@ -649,7 +649,7 @@ pl_functor(term_t t, term_t f, term_t a)
 
 
 word
-pl_arg(term_t n, term_t term, term_t arg, word b)
+pl_arg(term_t n, term_t term, term_t arg, control_t b)
 { GET_LD
   atom_t name;
   int arity;
@@ -1623,7 +1623,7 @@ pl_atom_prefix(term_t atom, term_t prefix)
 static word
 concat(const char *pred,
        term_t a1, term_t a2, term_t a3, 
-       word ctx,
+       control_t ctx,
        int (*out)(term_t, unsigned int len, const char *))
 { char *s1 = NULL, *s2 = NULL, *s3 = NULL;
   unsigned int l1, l2, l3;
@@ -1893,7 +1893,7 @@ static foreign_t
 sub_text(term_t atom,
 	 term_t before, term_t len, term_t after,
 	 term_t sub,
-	 word h,
+	 control_t h,
 	 int (*out)(term_t h, unsigned int len, const char *s))
 { char *aa, *s = NULL;			/* the string */
   int b = -1, l = -1, a = -1;		/* the integers */
@@ -2105,7 +2105,7 @@ foreign_t
 pl_sub_atom(term_t atom,
 	    term_t before, term_t len, term_t after,
 	    term_t sub,
-	    word h)
+	    control_t h)
 { return sub_text(atom, before, len, after, sub, h, PL_unify_atom_nchars);
 }
 
@@ -2168,7 +2168,7 @@ foreign_t
 pl_sub_string(term_t atom,
 	      term_t before, term_t len, term_t after,
 	      term_t sub,
-	      word h)
+	      control_t h)
 { return sub_text(atom, before, len, after, sub, h, PL_unify_string_nchars);
 }
 
@@ -2211,7 +2211,7 @@ pl_write_on_string(term_t goal, term_t target)
 		*********************************/
 
 word
-pl_repeat(word h)
+pl_repeat(control_t h)
 { switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
     case FRG_REDO:
@@ -2303,7 +2303,7 @@ pl_depth_limit(term_t limit, term_t olimit, term_t oreached)
 
 word
 pl_depth_limit_true(term_t limit, term_t olimit, term_t oreached,
-		    term_t res, term_t cut, word b)
+		    term_t res, term_t cut, control_t b)
 { switch(ForeignControl(b))
   { case FRG_FIRST_CALL:
     { long l, ol, or;

@@ -268,7 +268,7 @@ checkFunctors()
 #endif
 
 word
-pl_current_functor(term_t name, term_t arity, word h)
+pl_current_functor(term_t name, term_t arity, control_t h)
 { atom_t nm = 0;
   int  ar;
   mark m;

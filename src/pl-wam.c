@@ -34,7 +34,6 @@
 #define MARK(label)
 #endif
 
-static bool	callForeign(LocalFrame, control_t ctx ARG_LD);
 static Choice	newChoice(choice_type type, LocalFrame fr ARG_LD);
 
 #if COUNTING
@@ -490,16 +489,20 @@ the call-back.
 
 
 static bool
-callForeign(LocalFrame frame, control_t ctx ARG_LD)
-{ Definition def = frame->predicate;
+callForeign(LocalFrame frame, frg_code control ARG_LD)
+{ struct foreign_context context;
+  Definition def = frame->predicate;
   Func function = def->definition.function;
   int argc = def->functor->arity;
-  word context = (word)frame->clause;
   word result;
   term_t h0 = argFrameP(frame, 0) - (Word)lBase;
   fid_t cid;
   SaveLocalPtr(s1, frame);
-  
+
+  context.context = (word)frame->clause;
+  context.engine  = LD;
+  context.control = control;
+
 #ifdef O_DEBUGGER
 retry:
 #endif
@@ -509,7 +512,7 @@ retry:
 
 #ifdef O_DEBUGGER
   if ( debugstatus.debugging )
-  { int port = (ForeignControl(ctx) == FIRST_CALL ? CALL_PORT : REDO_PORT);
+  { int port = (control == FRG_FIRST_CALL ? CALL_PORT : REDO_PORT);
 
     switch( tracePort(frame, LD->choicepoints, port, NULL) )
     { case ACTION_FAIL:
@@ -517,7 +520,7 @@ retry:
       case ACTION_IGNORE:
 	succeed;
       case ACTION_RETRY:
-	ctx = FIRST_CALL;
+	control = FRG_FIRST_CALL;
     }
   }
 #endif /*O_DEBUGGER*/
@@ -533,7 +536,7 @@ retry:
 
 #define F (*function)    
   if ( true(def, P_VARARG) )
-  { result = F(h0, argc, context);
+  { result = F(h0, argc, &context);
     if ( false(def, NONDETERMINISTIC) )
       goto ret_det;
     else
@@ -595,7 +598,7 @@ retry:
 	  case ACTION_IGNORE:
 	    succeed;
 	  case ACTION_RETRY:
-	    ctx = FIRST_CALL;
+	    control = FRG_FIRST_CALL;
 	    PL_close_foreign_frame(cid);
 	    goto retry;
 	}
@@ -627,7 +630,7 @@ retry:
       mark m;
       Choice ch;
 
-      CALLNDETFN(result, argc, context);
+      CALLNDETFN(result, argc, &context);
 
     ret_ndet:
       RestoreLocalPtr(s1, frame);
@@ -664,7 +667,7 @@ retry:
 	  case ACTION_IGNORE:
 	    succeed;
 	  case ACTION_RETRY:
-	    ctx = FIRST_CALL;
+	    control = FRG_FIRST_CALL;
 	    PL_close_foreign_frame(cid);
 	    goto retry;
 	}
@@ -676,7 +679,11 @@ retry:
 	return result;
       }
 
-      assert(result & FRG_CONTROL_MASK);
+      if ( (result & FRG_REDO_MASK) == REDO_INT )
+	result >>= FRG_REDO_BITS;
+      else
+	result &= ~FRG_REDO_MASK;
+
       ffr = (FliFrame) valTermRef(cid);
       m = ffr->mark;
       PL_close_foreign_frame(cid);
@@ -693,13 +700,13 @@ retry:
 }
 
 
-static int
-discardForeignFrame(LocalFrame fr)
+static void
+discardForeignFrame(LocalFrame fr ARG_LD)
 { Definition def = fr->predicate;
   int argc       = def->functor->arity;
   Func function  = def->definition.function;
-  word context   = ((word) fr->clause & ~FRG_CONTROL_MASK) | FRG_CUTTED;
-  int  result;
+  struct foreign_context context;
+  word result;
 
 #define F	(*function)
 #define A(n)	0
@@ -707,16 +714,18 @@ discardForeignFrame(LocalFrame fr)
   DEBUG(5, Sdprintf("\tCut %s, context = 0x%lx\n",
 		    predicateName(def), context));
 
+  context.context = (word)fr->clause;
+  context.control = FRG_CUTTED;
+  context.engine  = LD; 
+
   if ( true(def, P_VARARG) )
-  { result = F(0, argc, context);
+  { result = F(0, argc, &context);
   } else
-  { CALLNDETFN(result, argc, context);
+  { CALLNDETFN(result, argc, &context);
   }
 
 #undef A
 #undef F
-
-  return result;
 }
 
 
@@ -992,15 +1001,14 @@ right_recursion:
 
 
 word
-pl_unify(term_t t1, term_t t2)		/* =/2 */
-{ GET_LD
-  Word p1 = valTermRef(t1);
-  Word p2 = valTermRef(t2);
+pl_unify_va(term_t t0, int argc, control_t ctx)		/* =/2 */
+{ ENGINE(ctx)
+  Word p0 = valTermRef(t0);
   mark m;
   int rval;
 
   Mark(m);
-  if ( !(rval = unify(p1, p2 PASS_LD)) )
+  if ( !(rval = unify(p0, p0+1 PASS_LD)) )
     Undo(m);
 
   return rval;  
@@ -1475,7 +1483,7 @@ discardFrame(LocalFrame fr, enum finished reason ARG_LD)
 
   if ( true(def, FOREIGN) )
   { if ( fr->clause )
-      discardForeignFrame(fr);
+      discardForeignFrame(fr PASS_LD);
   } else
     leaveDefinition(def);
 
@@ -1625,7 +1633,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
     clause = def->definition.clauses;
   }
   if ( true(def, FOREIGN) )
-  { fr->clause = FIRST_CALL;
+  { fr->clause = NULL;			/* initial context */
   } else
   { fr->clause = clause;
   }
@@ -3653,17 +3661,26 @@ increase lTop too to prepare for asynchronous interrupts.
 		goto b_throw;
 	      }
 	    }
-	    switch(nvars)
-	    { case 0:
-		rval = (*f)();
-	        break;
-	      case 1:
-		rval = (*f)(h0);
-	        break;
-	      case 2:
-	      default:
-		rval = (*f)(h0, h0+1);
-	        break;
+	    if ( true(def, P_VARARG) )
+	    { struct foreign_context ctx;
+	      ctx.context = 0;
+	      ctx.control = FRG_FIRST_CALL;
+	      ctx.engine  = LD;
+
+	      rval = (*f)(h0, nvars, &ctx);
+	    } else
+	    { switch(nvars)
+	      { case 0:
+		  rval = (*f)();
+		  break;
+		case 1:
+		  rval = (*f)(h0);
+		  break;
+		case 2:
+		default:
+		  rval = (*f)(h0, h0+1);
+		  break;
+	      }
 	    }
 	    PL_close_foreign_frame(fid);
 	    LOAD_REGISTERS(qid);
@@ -3994,7 +4011,7 @@ be able to access these!
 	{ int rval;
 
 	  SAVE_REGISTERS(qid);
-	  rval = callForeign(FR, FIRST_CALL PASS_LD);
+	  rval = callForeign(FR, FRG_FIRST_CALL PASS_LD);
 	  LOAD_REGISTERS(qid);
 
 	  if ( rval )
@@ -4385,7 +4402,7 @@ next_choice:
       Profile(DEF->profile_redos++);
 
       SAVE_REGISTERS(qid);
-      rval = callForeign(FR, ch->value.foreign PASS_LD);
+      rval = callForeign(FR, FRG_REDO PASS_LD);
       LOAD_REGISTERS(qid);
 
       if ( rval )

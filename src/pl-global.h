@@ -242,7 +242,7 @@ typedef struct
 		 *	     LOCAL DATA		*
 		 *******************************/
 
-typedef struct
+typedef struct PL_local_data
 { LocalFrame    environment;		/* Current local frame */
   Choice	choicepoints;		/* Choice-point chain */
   FliFrame      foreign_environment;	/* Current foreign context */

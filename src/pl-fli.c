@@ -2389,7 +2389,7 @@ _PL_retry(long v)
 
 foreign_t
 _PL_retry_address(void *v)
-{ if ( (ulong)v & FRG_CONTROL_MASK )
+{ if ( (ulong)v & FRG_REDO_MASK )
     PL_fatal_error("PL_retry_address(0x%lx): bad alignment", (ulong)v);
 
   ForeignRedoPtr(v);

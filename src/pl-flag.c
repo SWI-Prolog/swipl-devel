@@ -151,7 +151,7 @@ out:
 
 
 word
-pl_current_flag(term_t k, term_t h)
+pl_current_flag(term_t k, control_t h)
 { Symbol symb;
   TableEnum e;
 

@@ -405,7 +405,7 @@ typedef struct
 static word
 current_op(Module m, int inherit,
 	   term_t prec, term_t type, term_t name,
-	   word h)
+	   control_t h)
 { op_enum *e;
   Buffer b;
   int mx;
@@ -479,7 +479,7 @@ current_op(Module m, int inherit,
 
 
 word
-pl_current_op(term_t prec, term_t type, term_t name, word h)
+pl_current_op(term_t prec, term_t type, term_t name, control_t h)
 { Module m = MODULE_parse;
 
   if ( name )				/* FRG_CUTTED: no name! */
@@ -490,7 +490,7 @@ pl_current_op(term_t prec, term_t type, term_t name, word h)
 
 
 word
-pl_local_op(term_t prec, term_t type, term_t name, word h)
+pl_local_op(term_t prec, term_t type, term_t name, control_t h)
 { Module m = MODULE_user;
 
   if ( name )				/* FRG_CUTTED: no name! */
@@ -580,7 +580,7 @@ qsave_program to find out which operator declarations to save.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
-pl_builtin_op(term_t prec, term_t type, term_t name, word h)
+pl_builtin_op(term_t prec, term_t type, term_t name, control_t h)
 { int i;
   const opdef *op;
   mark m;

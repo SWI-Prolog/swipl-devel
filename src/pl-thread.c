@@ -879,7 +879,7 @@ pl_thread_kill(term_t t, term_t sig)
 
 
 word
-pl_current_thread(term_t id, term_t status, word h)
+pl_current_thread(term_t id, term_t status, control_t h)
 { int current;
 
   switch(ForeignControl(h))
@@ -1593,7 +1593,7 @@ pl_mutex_destroy(term_t mutex)
 
 
 foreign_t
-pl_current_mutex(term_t mutex, term_t owner, term_t count, word h)
+pl_current_mutex(term_t mutex, term_t owner, term_t count, control_t h)
 { TableEnum e;
   Symbol s;
   mark mrk;

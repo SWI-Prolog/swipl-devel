@@ -58,6 +58,7 @@ Flags almost always is TRACE_ME.  Additional common flags:
 
 #define NDET NONDETERMINISTIC	/* make a bit shorter */
 #define META METAPRED		/* same */
+#define VA   P_VARARG		/* same */
 
 #define FRG(n, a, f, flags) { n, f, flags, a }
 
@@ -293,7 +294,7 @@ static const struct foreign {
 
   FRG("==",			2, pl_equal,			TRACE_ME),
   FRG("\\==",			2, pl_nonequal,			TRACE_ME),
-  FRG("=",			2, pl_unify,			TRACE_ME),
+  FRG("=",			2, pl_unify_va,		     VA|TRACE_ME),
   FRG("unify_with_occurs_check",2, pl_unify_with_occurs_check,  TRACE_ME),
   FRG("\\=",			2, pl_notunify,			TRACE_ME),
   FRG("compare",		3, pl_compare,			TRACE_ME),

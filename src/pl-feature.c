@@ -521,7 +521,7 @@ typedef struct
 word
 pl_feature5(term_t key, term_t value,
 	    word scope, word access, word type,
-	    word h)
+	    control_t h)
 { feature_enum *e;
   Symbol s;
   mark m;
@@ -629,7 +629,7 @@ pl_feature5(term_t key, term_t value,
 
 
 foreign_t
-pl_feature(term_t name, term_t value, word h)
+pl_feature(term_t name, term_t value, control_t h)
 { return pl_feature5(name, value, 0, 0, 0, h);
 }
 

@@ -488,26 +488,35 @@ consistent  with  the  definitions  in  pl-itf.h, which is included with
 users foreign language code.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define FRG_CONTROL_MASK	0x00000003L
-#define FRG_CONTROL_BITS	2
-
 typedef enum
 { FRG_FIRST_CALL = 0,		/* Initial call */
   FRG_CUTTED     = 1,		/* Context was cutted */
   FRG_REDO	 = 2		/* Normal redo */
 } frg_code;
 
-#define FIRST_CALL	(0L)
+typedef struct foreign_context *control_t;
 
-#define ForeignRedoIntVal(v)	(((unsigned long)(v)<<FRG_CONTROL_BITS)|FRG_REDO)
-#define ForeignRedoPtrVal(v)	(((unsigned long)(v))|FRG_REDO)
+struct foreign_context
+{ unsigned long		context;	/* context value */
+  frg_code		control;	/* FRG_* action */
+  struct PL_local_data *engine;		/* invoking engine */
+};
+
+#define FRG_REDO_MASK	0x00000003L
+#define FRG_REDO_BITS	2
+#define REDO_INT	0x02		/* Returned an integer */
+#define REDO_PTR	0x03		/* returned a pointer */
+
+#define ForeignRedoIntVal(v)	(((unsigned long)(v)<<FRG_REDO_BITS)|REDO_INT)
+#define ForeignRedoPtrVal(v)	(((unsigned long)(v))|REDO_PTR)
 
 #define ForeignRedoInt(v)	return ForeignRedoIntVal(v)
 #define ForeignRedoPtr(v)	return ForeignRedoPtrVal(v)
 
-#define ForeignControl(h)	((frg_code)((h) & FRG_CONTROL_MASK))
-#define ForeignContextInt(h)	((long)(h)>>FRG_CONTROL_BITS)
-#define ForeignContextPtr(h)	((void*)((unsigned long)(h)&~FRG_CONTROL_MASK))
+#define ForeignControl(h)	((h)->control)
+#define ForeignContextInt(h)	((long)(h)->context)
+#define ForeignContextPtr(h)	((void *)(h)->context)
+#define ForeignEngine(h)	((h)->engine)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Virtual machine instruction declarations.  Prefixes:

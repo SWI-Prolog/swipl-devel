@@ -117,8 +117,8 @@ static void		promoteToRealNumber(Number n);
 		*********************************/
 
 word
-pl_between(term_t low, term_t high, term_t n, word b)
-{ switch( ForeignControl(b) )
+pl_between(term_t low, term_t high, term_t n, control_t ctx)
+{ switch( ForeignControl(ctx) )
   { case FRG_FIRST_CALL:
       { GET_LD
 	long l, h, i;
@@ -145,7 +145,7 @@ pl_between(term_t low, term_t high, term_t n, word b)
       }
     case FRG_REDO:
       { GET_LD
-	long next = ForeignContextInt(b) + 1;
+	long next = ForeignContextInt(ctx) + 1;
 	long h;
 
 	PL_unify_integer(n, next);
@@ -1189,7 +1189,7 @@ pl_arithmetic_function(term_t descr)
 }
 
 word
-pl_current_arithmetic_function(term_t f, word h)
+pl_current_arithmetic_function(term_t f, control_t h)
 { GET_LD
   ArithFunction a;
   Module m = NULL;
@@ -1240,7 +1240,7 @@ pl_current_arithmetic_function(term_t f, word h)
 }
 
 word
-pl_prolog_arithmetic_function(term_t f, word h)
+pl_prolog_arithmetic_function(term_t f, control_t h)
 { GET_LD
   ArithFunction a;
   term_t tmp = PL_new_term_ref();

@@ -2210,7 +2210,7 @@ typedef struct
 
 
 foreign_t
-pl_stream_property(term_t stream, term_t property, word h)
+pl_stream_property(term_t stream, term_t property, control_t h)
 { GET_LD
   IOSTREAM *s;
   prop_enum *pe;

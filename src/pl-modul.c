@@ -203,7 +203,7 @@ pl_default_module(term_t me, term_t old, term_t new)
 
 
 word
-pl_current_module(term_t module, term_t file, word h)
+pl_current_module(term_t module, term_t file, control_t h)
 { TableEnum e = NULL;
   Symbol symb;
   atom_t name;
@@ -352,7 +352,7 @@ that has no clauses. The predicate would fail anyhow.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static word
-expansion_module(term_t name, functor_t func, word h)
+expansion_module(term_t name, functor_t func, control_t h)
 { Module m;
   Procedure proc;
 
@@ -387,13 +387,13 @@ expansion_module(term_t name, functor_t func, word h)
 
 
 word
-pl_term_expansion_module(term_t name, word h)
+pl_term_expansion_module(term_t name, control_t h)
 { return expansion_module(name, FUNCTOR_term_expansion2, h);
 }
 
 
 word
-pl_goal_expansion_module(term_t name, word h)
+pl_goal_expansion_module(term_t name, control_t h)
 { return expansion_module(name, FUNCTOR_goal_expansion2, h);
 }
 

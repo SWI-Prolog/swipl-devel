@@ -115,10 +115,10 @@ typedef void *		record_t;	/* Prolog recorded term */
 typedef unsigned long	term_t;		/* opaque term handle */
 typedef unsigned long	qid_t;		/* opaque query handle */
 typedef unsigned long	PL_fid_t;	/* opaque foreign context handle */
+typedef void *		control_t;	/* non-deterministic control arg */
 #endif
 typedef unsigned long	functor_t;	/* Name/arity pair */
 typedef unsigned long	PL_atomic_t;	/* same a word */
-typedef unsigned long	control_t;	/* non-deterministic control arg */
 typedef unsigned long	foreign_t;	/* return type of foreign functions */
 #ifdef __cplusplus
 typedef void * 		pl_function_t;	/* can only pass function as void * */
