@@ -248,6 +248,9 @@ ws_create_font(FontObj f, DisplayObj d)
 			       f->family == NAME_screen    ? FF_MODERN :
 							     FF_DONTCARE);
   
+    if ( f->family == NAME_symbol )
+      strcpy(lfont.lfFaceName, "symbol");
+
     if ( instanceOfObject(f->x_name, ClassCharArray) )
     { strcpy(lfont.lfFaceName, strName(f->family));
 
