@@ -92,17 +92,57 @@ typedef sema_t sem_t;
 
 #endif /*HAVE_SEMA_INIT*/
 
+#define USE_SEM_OPEN 1
+
+#ifdef USE_SEM_OPEN
+static sem_t *sem_canceled_ptr;
+#else
 static sem_t sem_canceled;		/* used on halt */
+#define sem_canceled_ptr (&sem_canceled)
+#endif
 
 #ifndef WIN32
 #include <signal.h>
 
+#ifdef USE_SEM_OPEN
+static sem_t *sem_mark_ptr;
+
+#define sem_init(ptr, flags, val) my_sem_open(&ptr, val)
+#define sem_destroy(ptr)	  ((void)0)
+
+static int
+my_sem_open(sem_t **ptr, unsigned int val)
+{ if ( !*ptr )
+  { sem_t *sem = sem_open("pl", O_CREAT|O_EXCL, 0600, val);
+
+    DEBUG(1, Sdprintf("sem = %p\n", sem));
+
+    if ( sem == NULL )
+    { perror("sem_open");
+      exit(1);
+    }
+
+    *ptr = sem;
+
+    sem_unlink("pl");
+  }
+
+  return 0;
+}
+
+#else
+
 static sem_t sem_mark;			/* used for atom-gc */
+#define sem_mark_ptr (&sem_mark)
+
+#endif
+
 #ifndef SA_RESTART
 #define SA_RESTART 0
 #endif
 
-#define SIG_FORALL SIGHUP
+//#define SIG_FORALL SIGHUP
+#define SIG_FORALL SIGUSR1
 #define SIG_RESUME SIG_FORALL
 #endif
 
@@ -411,7 +451,7 @@ free_prolog_thread(void *data)
     free_thread_info(info);
 
   if ( acknowlege )
-    sem_post(&sem_canceled);
+    sem_post(sem_canceled_ptr);
 }
 
 
@@ -485,7 +525,7 @@ exitPrologThreads()
 
   DEBUG(1, Sdprintf("exitPrologThreads(): me = %d\n", me));
 
-  sem_init(&sem_canceled, USYNC_THREAD, 0);
+  sem_init(sem_canceled_ptr, USYNC_THREAD, 0);
 
   for(t=&threads[1], i=1; i<MAX_THREADS; i++, t++)
   { if ( t->thread_data && i != me )
@@ -535,7 +575,7 @@ exitPrologThreads()
   { int maxwait = 10;
 
     while(maxwait--)
-    { if ( sem_trywait(&sem_canceled) == 0 )
+    { if ( sem_trywait(sem_canceled_ptr) == 0 )
       { DEBUG(1, Sdprintf(" (ok)"));
 	canceled--;
 	break;
@@ -550,7 +590,7 @@ exitPrologThreads()
   }
 
   if ( canceled == 0 )			/* safe */
-    sem_destroy(&sem_canceled);
+    sem_destroy(sem_canceled_ptr);
 
   threads_ready = FALSE;
 }
@@ -754,6 +794,7 @@ set_system_thread_id(PL_thread_info_t *info)
 #else
 #ifdef WIN32
   info->w32id = GetCurrentThreadId();
+#endif
 #endif
 #endif
 }
@@ -2632,14 +2673,14 @@ sync_statistics(PL_thread_info_t *info, atom_t key)
 static void
 SyncUserCPU(int sig)
 { LD->statistics.user_cputime = CpuTime(CPU_USER);
-  sem_post(&sem_mark);
+  sem_post(sem_mark_ptr);
 }
 
 
 static void
 SyncSystemCPU(int sig)
 { LD->statistics.system_cputime = CpuTime(CPU_SYSTEM);
-  sem_post(&sem_mark);
+  sem_post(sem_mark_ptr);
 }
 
 
@@ -2649,7 +2690,7 @@ sync_statistics(PL_thread_info_t *info, atom_t key)
   { struct sigaction old;
     struct sigaction new;
 
-    sem_init(&sem_mark, USYNC_THREAD, 0);
+    sem_init(sem_mark_ptr, USYNC_THREAD, 0);
     memset(&new, 0, sizeof(new));
     if ( key == ATOM_cputime || key == ATOM_runtime )
       new.sa_handler = SyncUserCPU;
@@ -2659,7 +2700,7 @@ sync_statistics(PL_thread_info_t *info, atom_t key)
     new.sa_flags   = SA_RESTART;
     sigaction(SIG_FORALL, &new, &old);
     if ( pthread_kill(info->tid, SIG_FORALL) == 0 )
-    { sem_wait(&sem_mark);
+    { sem_wait(sem_mark_ptr);
     }
     sem_destroy(&sem_mark);
     sigaction(SIG_FORALL, &old, NULL);
@@ -2772,7 +2813,7 @@ wait_resume(PL_thread_info_t *t)
 
 static void
 resume_handler(int sig)
-{ sem_post(&sem_mark);
+{ sem_post(sem_mark_ptr);
 }
 
 
@@ -2789,7 +2830,7 @@ resumeThreads(void)
   new.sa_flags   = SA_RESTART;
   sigaction(SIG_RESUME, &new, &old);
 
-  sem_init(&sem_mark, USYNC_THREAD, 0);
+  sem_init(sem_mark_ptr, USYNC_THREAD, 0);
 
   for(t = threads, i=0; i<MAX_THREADS; i++, t++)
   { if ( t->status == PL_THREAD_SUSPENDED )
@@ -2806,7 +2847,7 @@ resumeThreads(void)
   }
 
   while(signalled)
-  { sem_wait(&sem_mark);
+  { sem_wait(sem_mark_ptr);
     signalled--;
   }
   sem_destroy(&sem_mark);
@@ -2829,13 +2870,16 @@ doThreadLocalData(int sig)
     DEBUG(1, Sdprintf("\n\tDone work on %d; suspending ...",
 		      PL_thread_self()));
     
-    sem_post(&sem_mark);
+    sem_post(sem_mark_ptr);
     wait_resume(info);
   } else
   { DEBUG(1, Sdprintf("\n\tDone work on %d", PL_thread_self()));
-    sem_post(&sem_mark);
+    sem_post(sem_mark_ptr);
   }
 }
+
+
+
 
 
 void
@@ -2846,12 +2890,15 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
   int me = PL_thread_self();
   int signalled = 0;
 
-  DEBUG(1, Sdprintf("Calling forThreadLocalData()\n"));
+  DEBUG(1, Sdprintf("Calling forThreadLocalData() from %d\n", me));
 
   assert(ldata_function == NULL);
   ldata_function = func;
 
-  sem_init(&sem_mark, USYNC_THREAD, 0);
+  if ( sem_init(sem_mark_ptr, USYNC_THREAD, 0) != 0 )
+  { perror("sem_init");
+    exit(1);
+  }
 
   memset(&new, 0, sizeof(new));
   new.sa_handler = doThreadLocalData;
@@ -2875,9 +2922,13 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
   DEBUG(1, Sdprintf("Signalled %d threads.  Waiting ... ", signalled));
 
   while(signalled)
-  { sem_wait(&sem_mark);
-    DEBUG(1, Sdprintf(" (ok)"));
-    signalled--;
+  { if ( sem_wait(sem_mark_ptr) == 0 )
+    { DEBUG(1, Sdprintf(" (ok)"));
+      signalled--;
+    } else
+    { perror("sem_wait");
+      exit(1);
+    }
   }
 
   sem_destroy(&sem_mark);
