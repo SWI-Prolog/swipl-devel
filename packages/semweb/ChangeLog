@@ -1,5 +1,7 @@
 Nov 17, 2003
 
+  * FIXED: rdfs_subclass_of/2 to make all classes a subclass of rdfs:'Class'.
+
   * FIXED: rdf_save/[1,2] to handle XML escapes `value'
     in rdf:resource="value".
 
