@@ -1542,7 +1542,7 @@ arg1Key(Clause clause, word *key)
     switch(c)
     { case H_FUNCTOR:
       case H_RFUNCTOR:
-	*key = ((functor_t)*PC);
+	*key = (functor_t)*PC;
         succeed;
       case H_CONST:
 	*key = *PC;
@@ -1555,6 +1555,8 @@ arg1Key(Clause clause, word *key)
 	*key = FUNCTOR_dot2;
         succeed;
       case H_INTEGER:
+	*key = (word)*PC;
+	succeed;
       case H_FLOAT:			/* tbd */
       case H_INDIRECT:
       case H_FIRSTVAR:
