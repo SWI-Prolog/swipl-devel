@@ -405,20 +405,24 @@ exitPrologThreads()
     }
   }
 
-  Sdprintf("Waiting for %d threads ...", canceled);
+  DEBUG(1, Sdprintf("Waiting for %d threads ...", canceled));
   for(i=canceled; i-- > 0;)
   { int maxwait = 10;
 
     while(maxwait--)
-    { if ( sem_wait(&sem_canceled) == 0 ) /* sem_trywait? */
-      { Sdprintf(" (ok)");
+    { if ( sem_trywait(&sem_canceled) == 0 )
+      { DEBUG(1, Sdprintf(" (ok)"));
 	canceled--;
 	break;
       }
       Pause(0.1);
     }
   }
-  Sdprintf("done\n");
+  if ( canceled )
+  { Sdprintf("%d threads wouldn't die\n", canceled);
+  } else
+  { DEBUG(1, Sdprintf("done\n"));
+  }
 
   if ( canceled == 0 )			/* safe */
     sem_destroy(&sem_canceled);
