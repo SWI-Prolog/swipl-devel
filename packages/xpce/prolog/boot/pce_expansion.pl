@@ -293,10 +293,11 @@ do_expand(variable(Name, Type, Access, Doc), []) :-
 	add_attribute(ClassName, variable, Var).
 do_expand(class_variable(Name, Type, Default, Doc), []) :-
 	pce_compiling(ClassName),
+	prolog_load_context(module, M),
 	pce_type(Type, PceType),
 	pce_summary(Doc, PceDoc),
 	add_attribute(ClassName, classvar,
-		      class_variable(Name, Default, PceType, PceDoc)).
+		      M:class_variable(Name, Default, PceType, PceDoc)).
 do_expand(handle(X, Y, Kind, Name), []) :-
 	pce_compiling(ClassName),
 	add_attribute(ClassName, directive,

@@ -174,8 +174,10 @@ attach_class_variables([R|T], Class) :-
 	attach_class_variable(Class, R),
 	attach_class_variables(T, Class).
 
-attach_class_variable(Class, class_variable(Name, Default, Type, Summary)) :-
-	new(_, class_variable(Class, Name, Default, Type, Summary)).
+attach_class_variable(Class, M:class_variable(Name, Def, Type, Summary)) :- !,
+	new(_, M:class_variable(Class, Name, Def, Type, Summary)).
+attach_class_variable(Class, class_variable(Name, Def, Type, Summary)) :-
+	new(_, class_variable(Class, Name, Def, Type, Summary)).
 
 run_directives([], _).
 run_directives(Directives, Class) :-

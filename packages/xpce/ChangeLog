@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Properly handle resource context in class_variable declarations.
+
 * ADDED: PceEmacs: menu to super-class field of :- pce_begin_class/[2,3]
   to allow switching to the class.
 
