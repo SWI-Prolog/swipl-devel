@@ -4,6 +4,9 @@
 VERSION 5.1.11, distributed with SWI-Prolog 4.1.0
 =================================================
 
+* ADDED: PceEmacs: dialog-based find command.  The library can also be
+  used with non-PceEmacs editor objects.
+
 * ADDED: PceEmacs HTML mode: open_in_browser to open the current page
   in the user's browser.
 
