@@ -434,9 +434,13 @@ selected(TF, Sel:bool) :<-
 	get(TF, member, label, Text),
 	get(Text, selected, Sel).
 
+label_text(TF, Text:graphical) :<-
+	"Get graphical rendering the <-label"::
+	get(TF, member, label, Text).
+
 label(TF, Label:'char_array|graphical') :->
 	"Modify the textual label"::
-	get(TF, member, label, Text),
+	get(TF, label_text, Text),
 	(   send(Label, instance_of, char_array)
 	->  send(Text, string, Label)
 	;   free(Text),
@@ -445,7 +449,7 @@ label(TF, Label:'char_array|graphical') :->
 	).
 label(TF, Label:'char_array|graphical') :<-
 	"Get the textual label"::
-	get(TF, member, label, Text),
+	get(TF, label_text, Text),
 	(   send(Text, has_get_method, string)
 	->  get(Text, string, Label)
 	;   Label = Text
