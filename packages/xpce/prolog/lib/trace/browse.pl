@@ -7,7 +7,7 @@
 */
 
 :- module(prolog_navigator,
-	  [ 
+	  [ prolog_navigator/1		% +Dir or +File:line
 	  ]).
 :- use_module(library(pce)).
 :- use_module(library(toc_filesystem)).
@@ -41,6 +41,21 @@ resource(up,	      image, image('16x16/up.xpm')).
 resource(refresh,     image, image('16x16/refresh.xpm')).
 resource(butterfly,   image, image('butterfly.xpm')).
 resource(dbgsettings, image, image('16x16/dbgsettings.xpm')).
+
+prolog_navigator(File:Line) :- !,
+	file_directory_name(File, Dir),
+	make_prolog_navigator(Dir, Navigator),
+	send(Navigator, goto, File, Line).
+prolog_navigator(Dir) :-
+	make_prolog_navigator(Dir, Navigator),
+	send(Navigator, directory, Dir).
+
+make_prolog_navigator(Dir, Navigator) :-
+	Navigator = @prolog_navigator,
+	(   object(Navigator)
+	->  send(Navigator, expose)
+	;   send(new(Navigator, prolog_navigator(Dir)), open)
+	).
 
 :- pce_begin_class(prolog_navigator, frame,
 		   "Prolog source navigator").
@@ -84,6 +99,11 @@ goto(SB, File:file, Line:int) :->
 	"Expand and highlight tree for given location"::
 	get(SB, member, prolog_source_structure, FB),
 	send(FB, goto, File, Line).
+
+directory(SB, Dir:directory) :->
+	"Make directory visible"::
+	get(SB, member, prolog_source_structure, FB),
+	get(FB, dir_node, Dir, @on, _Node).
 
 :- pce_end_class(prolog_navigator).
 

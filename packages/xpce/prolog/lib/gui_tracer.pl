@@ -40,6 +40,11 @@ prolog_break_at(File, Line, Pos) :-
 	guitracer,
 	prolog_break:break_at(File, Line, Pos).
 
+
+		 /*******************************
+		 *	      MESSAGES		*
+		 *******************************/
+
 :- multifile
 	prolog:message/3.
 
