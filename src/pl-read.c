@@ -2400,13 +2400,47 @@ failed:
 		*       PROLOG CONNECTION       *
 		*********************************/
 
+static char *
+backSkipUTF8(const char *start, const char *end, int *chr)
+{ const char *s;
+
+  for(s=end-1 ; s>start && *s&0x80; s--)
+    ;
+  utf8_get_char(s, chr);
+
+  return (char *)s;
+}
+
+
+static char *
+backSkipBlanks(const char *start, const char *end)
+{ const char *s;
+
+  for( ; end > start; end = s)
+  { char *e;
+    int chr;
+
+    for(s=end-1 ; s>start && *s&0x80; s--)
+      ;
+    e = utf8_get_char(s, &chr);
+    assert(e == end);
+    if ( !isBlankW(chr) )
+      return (char *)end;
+  }
+
+  return (char *)start;
+}
+
+
 word
 pl_raw_read2(term_t from, term_t term)
 { GET_LD
-  unsigned char *s, *top;
+  unsigned char *s, *t2, *top;
   read_data rd;
   word rval;
   IOSTREAM *in;
+  int chr;
+  PL_chars_t txt;
 
   if ( !getInputStream(from, &in) )
     fail;
@@ -2418,17 +2452,20 @@ pl_raw_read2(term_t from, term_t term)
   }
 
 					/* strip the input from blanks */
-  for(top = rd._rb.here-1; top > s && isBlank(*top); top--);
-  if ( *top == '.' )
-  { for(top--; top > s && isBlank(*top); top--)
-      ;
-  }
+  top = backSkipBlanks(s, rd._rb.here-1);
+  t2 = backSkipUTF8(s, top, &chr);
+  if ( chr == '.' )
+    top = backSkipBlanks(s, t2);
   *++top = EOS;
+  s = skipSpaces(s);
+  
+  txt.text.t    = s;
+  txt.length    = top-s;
+  txt.storage   = PL_CHARS_HEAP;
+  txt.encoding  = ENC_UTF8;
+  txt.canonical = FALSE;
 
-  for(; s < top && isBlank(*s); s++)
-    ;
-
-  rval = PL_unify_atom_nchars(term, top-s, (char *)s);
+  rval = PL_unify_text(term, &txt, PL_ATOM);
 
 out:
   free_read_data(&rd);
@@ -2650,14 +2687,14 @@ pl_read_term(term_t term, term_t options)
 word
 pl_atom_to_term(term_t atom, term_t term, term_t bindings)
 { GET_LD
-  char *s;
+  PL_chars_t txt;
 
   if ( PL_is_variable(atom) )
   { char buf[1024];
     int bufsize = sizeof(buf);
     word rval;
+    char *s = buf;
 
-    s = buf;
     tellString(&s, &bufsize);
     pl_writeq(term);
     toldString();
@@ -2669,12 +2706,15 @@ pl_atom_to_term(term_t atom, term_t term, term_t bindings)
     return rval;
   }
 
-  if ( PL_get_chars_ex(atom, &s, CVT_ALL) )
+  if ( PL_get_text_ex(atom, &txt, CVT_ALL) )
   { GET_LD
     read_data rd;
     word rval;
-    IOSTREAM *stream = Sopen_string(NULL, (char *)s, -1, "r");
+    IOSTREAM *stream;
     source_location oldsrc = LD->read_source;
+
+    stream = Sopen_string(NULL, txt.text.t, -1, "r");
+    stream->encoding = txt.encoding;
 
     init_read_data(&rd, stream PASS_LD);
     if ( PL_is_variable(bindings) || PL_is_list(bindings) )

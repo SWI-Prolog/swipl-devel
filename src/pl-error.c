@@ -554,6 +554,25 @@ PL_get_chars_ex(term_t t, char **s, unsigned int flags)
 
 
 int
+PL_get_text_ex(term_t t, PL_chars_t *txt, unsigned int flags)
+{ atom_t expected;
+
+  if ( PL_get_text(t, txt, flags) )
+    return TRUE;
+
+  if ( flags & CVT_LIST )
+    expected = ATOM_text;
+  else if ( flags & CVT_NUMBER )
+    expected = ATOM_atomic;
+  else
+    expected = ATOM_atom;
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, expected, t);
+}
+
+
+
+int
 PL_get_atom_ex(term_t t, atom_t *a)
 { if ( PL_get_atom(t, a) )
     succeed;

@@ -222,7 +222,7 @@ COMMON(int) 		PL_error(const char *pred, int arity, const char *msg,
 COMMON(char *) 		tostr(char *buf, const char *fmt, ...);
 COMMON(void) 		printMessage(atom_t severity, ...);
 COMMON(int) 		PL_get_nchars_ex(term_t t, unsigned int *len, char **s,
-				 unsigned int flags);
+					 unsigned int flags);
 COMMON(int) 		PL_get_chars_ex(term_t t, char **s, unsigned int flags);
 COMMON(int) 		PL_get_atom_ex(term_t t, atom_t *a);
 COMMON(int) 		PL_get_integer_ex(term_t t, int *i);
