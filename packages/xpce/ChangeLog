@@ -1,9 +1,13 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.5.9, distributed with SWI-Prolog 5.5.9
+================================================
+
 * FIXED: Bug#21: wrong computation of window<-visible.  Holger Kanwischer.
 
-* FIXED: Bug#23.  Menu selection handling.  Holger Kanwischer.
+* FIXED: Bug#23.  Menu selection handling (integers).  Holger Kanwischer.
+
 
 VERSION 6.5.8, distributed with SWI-Prolog 5.5.8
 ================================================

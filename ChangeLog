@@ -7,6 +7,12 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.5.9 (March 02, 2005)
+==============================
+
+  * FIXED: Bug#12: poor error reporting on illegal module export list.
+    Remy Haemmerle.
+
   * ADDED: Enh#21: hide details of library debug from the tracer.
     Holger Kanwischer.
 
@@ -18,6 +24,7 @@
 
   * FIXED: getting character code value for characters with code > 255.
     Anjo Anjewierden.
+
 
 VERSION 5.5.8 (Februari 25, 2005)
 =================================

@@ -1201,7 +1201,10 @@ $import_ops(To, From) :-
 %	Handle the export list of the module declaration for Module
 %	associated to File.
 
-$export_list([H|T], Module, File, Ops) :-
+$export_list(Var, _, _, []) :-
+	var(Var), !,
+	print_message(error, error(type_error(list, Var), _)).
+$export_list([H|T], Module, File, Ops) :- !,
 	(   H = op(_,_,_)
 	->  Ops = [H|RestOps]
 	;   catch($export1(H, Module, File), E, print_message(error, E))
@@ -1210,7 +1213,9 @@ $export_list([H|T], Module, File, Ops) :-
 	    RestOps = Ops
 	),
 	$export_list(T, Module, File, RestOps).
-$export_list([], _, _, []).
+$export_list([], _, _, []) :- !.
+$export_list(Term, _, _, []) :-
+	print_message(error, error(type_error(list, Term), _)).
 
 
 $export_ops([H|T], Module, File) :-
