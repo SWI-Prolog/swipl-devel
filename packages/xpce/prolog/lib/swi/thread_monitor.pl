@@ -162,6 +162,11 @@ trace(TS) :->
 	get(TS, key, TID),
 	catch(thread_signal(TID, (attach_console, trace)), _, fail).
 
+gtrace(TS) :->
+	"Prepare tread for graphical debugging"::
+	get(TS, key, TID),
+	catch(thread_signal(TID, gtrace), _, fail).
+
 :- pce_end_class(thread_status).
 
 
@@ -185,11 +190,16 @@ initialise(TB) :->
 		  [ menu_item(join,
 			      message(@arg1, join),
 			      condition := @arg1?style \== running),
-		    menu_item(abort,
-			      message(@arg1, abort),
+		    gap,
+		    menu_item(graphical_debugger,
+			      message(@arg1, gtrace),
 			      condition := IsRunning),
 		    menu_item(trace,
 			      message(@arg1, trace),
+			      condition := IsRunning),
+		    gap,
+		    menu_item(abort,
+			      message(@arg1, abort),
 			      condition := IsRunning)
 		  ]).
 
