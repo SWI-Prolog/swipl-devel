@@ -312,7 +312,8 @@ IDIRS=	appl-help \
 	prolog\lib\plot \
 	prolog\lib\xref \
 	prolog\lib\trace \
-	prolog\lib\trace\icons
+	prolog\lib\trace\icons \
+	prolog\lib\trace\icons\16x16
 
 MANINDEX=$(IBASE)\man\reference\index.obj
 
