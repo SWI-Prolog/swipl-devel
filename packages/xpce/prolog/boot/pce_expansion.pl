@@ -490,14 +490,20 @@ convert_meta(I, Arity, G0, M, T, C, G) :-
 	arg(A, G,  GA),
 	convert_meta(A, Arity, G0, M, T, C, G).
 
-meta(','(:, :)).	
+meta(','(:, :)).			% TBD: synchronise with boot/init.pl
 meta(;(:, :)).	
 meta(->(:, :)).	
 meta(*->(:, :)).	
 meta(\+(:)).	
 meta(not(:)).	
+meta(call(:)).
+meta(once(:)).
+meta(ignore(:)).
 meta(forall(:, :)).	
-meta(call(:)).	
+meta(findall(-, :, -)).
+meta(bagof(-, :, -)).
+meta(setof(-, :, -)).
+meta(^(-,:)).
 
 %	use_template_class_attributes(+Template)
 %
