@@ -126,15 +126,20 @@ demo('FontViewer',
      demo(fontviewer),
      fontviewer).
 
-demo('ImageViewer',
-     'Examine image files in a directory',
-     demo(imageviewer),
-     image_viewer).
-
 demo('Cursors',
      'Displays browser of available cursors',
      demo(cursor),
      cursor_demo).
+
+demo('Colours',
+     'Displays browser of named colours',
+     demo(colour),
+     colour_browser).
+
+demo('ImageViewer',
+     'Examine image files in a directory',
+     demo(imageviewer),
+     image_viewer).
 
 demo('Events',
      'Display hierarchy of event-types',
