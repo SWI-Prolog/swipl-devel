@@ -14,6 +14,11 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 
 /*#define O_DEBUG 1*/
 
+#ifdef __WINDOWS__
+#include <windows.h>
+#undef TRANSPARENT
+#endif
+
 #include "pl-incl.h"
 #include "pl-itf.h"
 #include "pl-save.h"
@@ -23,34 +28,64 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 
 forwards void	usage(void);
 forwards char * findHome(char *);
-forwards char *	findState(char *);
+forwards char *	findState();
 
 #define	optionString(s) { if (argc > 1) \
 			  { s = argv[1]; argc--; argv++; \
 			  } else \
 			    usage(); \
-			  break; \
 			}
 
 static char *
 findHome(def)
 char *def;
-{ char *h;
+{ char *home;
 
-  if ( (h=PrologPath(getenv("SWI_HOME_DIR"))) != NULL && ExistsDirectory(h) )
-    return store_string(h);
+  if ( !(home = getenv("SWI_HOME_DIR")) )
+    home = getenv("SWIPL");
+  if ( home && (home = PrologPath(home)) && ExistsDirectory(home) )
+    return store_string(home);
+
+  if ( (home = Symbols()) )
+  { char magic[MAXPATHLEN];
+    home = DirName(DirName(AbsoluteFile(home)));
+
+    sprintf(magic, "%s/swipl", home);
+    if ( ExistsFile(magic) )
+    { FILE *fd = Fopen(magic, "r");
+
+      if ( fd && fgets(magic, sizeof(magic), fd) )
+      { int l = strlen(magic);
+	if ( l > 0 && l < sizeof(magic) && magic[l-1] == '\n' )
+	  magic[l-1] = EOS;
+
+	home = AbsoluteFile(magic);
+	if ( ExistsDirectory(home) )
+	{ fclose(fd);
+	  return store_string(home);
+	}
+      }
+      if ( fd )
+	fclose(fd);
+    }
+  }
 
   if ( ExistsDirectory(def) )
     return def;
 
+#if tos || __DOS__ || __WINDOWS__
 #if tos
+#define HasDrive(c) (Drvmap() & (1 << (c - 'a')))
+#else
+#define HasDrive(c) 1
+#endif
   { char *drv;
     static char drvs[] = "cdefghijklmnopab";
     char home[MAXPATHLEN];
 
     for(drv = drvs; *drv; drv++)
-    { sprintf(home, "%c:/pl", *drv);
-      if ( Drvmap() & (1 << (*drv - 'a')) && ExistsDirectory(home) )
+    { sprintf(home, "/%c:/pl", *drv);
+      if ( HasDrive(*drv) && ExistsDirectory(home) )
         return store_string(home);
     }
   }
@@ -61,35 +96,66 @@ char *def;
 }
 
 /*
+
   -- atoenne -- convert state to an absolute path. This allows relative
   SWI_HOME_DIR and cleans up non-canonical paths.
 */
 
+#ifndef IS_DIR_SEPARATOR
+#define IS_DIR_SEPARATOR(c) ((c) == '/')
+#endif
+
 static char *
-findState(base)
-char *base;
+proposeStartupFile()
+{ char state[MAXPATHLEN];
+  char *symbols = Symbols();
+
+  if ( symbols )
+  { char *s, *dot = NULL;
+
+    strcpy(state, symbols);
+    for(s=state; *s; s++)
+    { if ( *s == '.' )
+	dot = s;
+      if ( IS_DIR_SEPARATOR(*s) )
+	dot = NULL;
+    }
+    if ( dot )
+      *dot = EOS;
+
+    strcat(state, ".qlf");
+
+    return store_string(state);
+  }
+
+  sprintf(state, "%s/startup/startup.%s",
+	  systemDefaults.home, systemDefaults.machine);
+
+  return store_string(AbsoluteFile(state));
+}
+
+
+static char *
+findState()
 { char state[MAXPATHLEN];
   char *full;
 
-  sprintf(state, "%s.%s", base, systemDefaults.machine);
+  full = proposeStartupFile();
   if ( ExistsFile(state) )
-    return store_string(state);
+    return full;
 
-  if ( ExistsFile(base) )
-    return store_string(base);
-
-  sprintf(state, "%s/startup/%s.%s",
-	  systemDefaults.home, base, systemDefaults.machine);
+  sprintf(state, "%s/startup/startup.%s",
+	  systemDefaults.home, systemDefaults.machine);
   full = AbsoluteFile(state);
   if ( ExistsFile(full) )
     return store_string(full);
 
-  sprintf(state, "%s/startup/%s", systemDefaults.home, base);
+  sprintf(state, "%s/startup/startup", systemDefaults.home);
   full = AbsoluteFile(state);
   if ( ExistsFile(full) )
     return store_string(full);
 
-  return base;
+  return proposeStartupFile();		/* to give error */
 }
 
 
@@ -111,6 +177,7 @@ char **env;
   int n;
   char *state;
   bool compile;
+  bool explicit_compile_out = FALSE;
 
   mainArgc			= argc;
   mainArgv			= argv;
@@ -128,8 +195,8 @@ char **env;
 
   if ( status.dumped == FALSE )
   { systemDefaults.machine	    = MACHINE_ID;
-    systemDefaults.home		    = findHome(store_string(PrologPath(SYSTEMHOME)));
-    systemDefaults.state	    = findState("startup");
+    systemDefaults.home      = findHome(store_string(PrologPath(SYSTEMHOME)));
+    systemDefaults.state	    = findState();
     systemDefaults.startup	    = store_string(PrologPath(DEFSTARTUP));
     systemDefaults.version	    = store_string(PLVERSION);
     systemDefaults.local	    = DEFLOCAL;
@@ -156,6 +223,13 @@ char **env;
 
   argc--; argv++;
 
+#if O_RLC				/* MS-Windows readline console */
+  { char title[60];
+
+    sprintf(title, "SWI-Prolog (version %s)", PLVERSION);
+    rlc_title(title);
+  }
+#endif
 					/* EMACS inferior processes */
 					/* PceEmacs inferior processes */
   if ( ((s = getenv("EMACS")) != NULL && streq(s, "t")) ||
@@ -171,7 +245,7 @@ char **env;
   DEBUG(1, {if (status.boot) printf("Boot session\n");});
 
   if ( argc >= 2 && streq(argv[0], "-r") )
-  { loaderstatus.restored_state = lookupAtom(AbsoluteFile(PrologPath(argv[1])));
+  { loaderstatus.restored_state = lookupAtom(AbsoluteFile(argv[1]));
     argc -= 2, argv += 2;		/* recover; we've done this! */
   }
 
@@ -228,9 +302,14 @@ char **env;
 	case 'O':	status.optimise = TRUE;
 			break;
   	case 'o':	optionString(options.compileOut);
+			explicit_compile_out = TRUE;
+			break;
 	case 'f':	optionString(options.initFile);
+			break;
 	case 'g':	optionString(options.goal);
+			break;
 	case 't':	optionString(options.topLevel);
+			break;
 	case 'c':	compile = TRUE;
 			break;
 	case 'b':	status.boot = TRUE;
@@ -259,20 +338,21 @@ char **env;
   DEBUG(1, printf("Command line options parsed\n"));
 
   setupProlog();
-
-#if LINK_THIEF
-  { extern long pl_thief();
-
-    if ( status.dumped == FALSE )
-      PL_register_foreign("$thief", 1, pl_thief, 0);
-  }
-#endif
-
   systemMode(TRUE);
 
   if ( status.boot )
-  { if (compileFileList(options.compileOut, argc, argv) == TRUE)
+  { if ( !explicit_compile_out )
+      options.compileOut = proposeStartupFile();
+
+    if ( compileFileList(options.compileOut, argc, argv) == TRUE )
+    {
+#ifdef __WINDOWS__
+      char msg[200];
+      sprintf(msg, "Boot compilation has created %s", options.compileOut);
+      MessageBox(NULL, msg, "SWI-Prolog", MB_OK|MB_TASKMODAL);
+#endif
       Halt(0);
+    }
 
     Halt(1);
   }
@@ -312,7 +392,7 @@ usage()
     "    1) %s -help\n",
     "    2) %s [options]\n",
     "    3) %s [options] [-o output] -c file ...\n",
-    "    4) %s [options] [-o output] -b file ...\n",
+    "    4) %s [options] [-o output] -b bootfile -c file ...\n",
     "Options:\n",
     "    -x state        Start from state (must be first)\n",
     "    -[LGTAP]kbytes  Specify {Local,Global,Trail,Argument,Lock} stack sizes\n",
@@ -397,9 +477,18 @@ bool
 vfatalError(fm, args)
 char *fm;
 va_list args;
-{ fprintf(stderr, "[FATAL ERROR:\n\t");
+{
+#ifdef __WINDOWS__
+  char msg[500];
+  sprintf(msg, "[FATAL ERROR:\n\t");
+  vsprintf(&msg[strlen(msg)], fm, args);
+  sprintf(&msg[strlen(msg)], "]");
+  MessageBox(NULL, msg, "Error", MB_OK);
+#else
+  fprintf(stderr, "[FATAL ERROR:\n\t");
   vfprintf(stderr, fm, args);
   fprintf(stderr, "]\n");
+#endif
 
   Halt(2);
   PL_fail;
@@ -433,10 +522,8 @@ va_list args;
       int old = Output;
     
       Output = 2;
-      Putf("[WARNING: (%s:%d)\n\t",
-	    stringAtom(source_file_name), source_line_no);
-      vPutf(fm, args);
-      Putf("]\n");
+      Putf("[WARNING: (%s:%d)\n\t%s]\n",
+	    stringAtom(source_file_name), source_line_no, message);
       Output = old;
     }
     Undo(m);

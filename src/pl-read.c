@@ -318,7 +318,7 @@ raw_read2(void)
     DEBUG(3, if ( Input == 0 ) printf("getchr() -> %d (%c)\n", c, c));
     DEBUG(3, if ( Input == 0 ) printf("here = %ld, base = %ld",
 				      (long) rb.here, (long) rb.base));
-#if !O_READLINE
+#if !O_READLINE && O_TERMIOS
     if ( c == ttytab.tab.c_cc[VEOF] )		/* little hack ... */
       c = EOF ;
 #endif

@@ -343,6 +343,14 @@ heapReal(real f)
 }
 
 
+void
+freeHeapReal(word w)
+{ Word p = (Word)unMask(w);
+  
+ freeHeap(p, sizeof(word) * 2);
+}
+
+
 		/********************************
 		*         LOCAL STACK           *
 		*********************************/

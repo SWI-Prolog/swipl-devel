@@ -620,7 +620,12 @@ main(argc, argv, env)
 int argc;
 char **argv;
 char **env;
-{ exit(startProlog(argc, argv, env));
+{
+#if O_HPFS
+  argv[0] = store_string(PrologPath(argv[0]));
+#endif
+
+  exit(startProlog(argc, argv, env));
   return 1;
 }
 

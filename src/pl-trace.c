@@ -310,7 +310,10 @@ traceAction(char *cmd, int port, LocalFrame frame, bool interactive)
 { int num_arg;				/* numeric argument */
   char *s;
 
-#define FeedBack(msg)	{ if (interactive) Putf(msg); }
+#define FeedBack(msg)	{ if (interactive) { if (cmd[1] != EOS) \
+					       Putf("\n"); \
+					     else \
+					       Putf(msg); } }
 #define Warn(msg)	{ if (interactive) Putf(msg); else warning(msg); }
 #define Default		(-1)
 
@@ -441,6 +444,9 @@ helpTrace(void)
   Putf("r:                 retry      s:                 skip\n");
   Putf("u:                 up         w:                 write\n");
   Putf("C:                 toggle show context\n");
+#if O_DEBUG
+  Putf("[level] D:	   set system debug level\n");
+#endif
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -759,7 +765,7 @@ again:
 void
 initTracer(void)
 { 
-#if unix || EMX
+#if O_SIGNAL
   pl_signal(SIGINT, interruptHandler);
 #endif
 

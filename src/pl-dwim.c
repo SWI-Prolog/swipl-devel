@@ -94,13 +94,13 @@ differentSeparated(register char *s1, register char *s2)
     { c1 = *++s1;
     } else
     { if (isLower(s1[-1]) && isUpper(c1))
-        c1 = toLower(c1);
+        c1 = makeLower(c1);
     }
     if ((c2 = *++s2) == '_')
     { c2 = *++s2;
     } else
     { if (isLower(s2[-1]) && isUpper(c2))
-	c2 = toLower(c2);
+	c2 = makeLower(c2);
     }
   }
   if (c1 == EOS && c2 == EOS)
@@ -110,7 +110,7 @@ differentSeparated(register char *s1, register char *s2)
 
 static char *
 subWord(register char *s, register char *store)
-{ *store++ = (isUpper(*s) ? toLower(*s) : *s);
+{ *store++ = makeLower(*s);
   s++;
 
   for(;;)

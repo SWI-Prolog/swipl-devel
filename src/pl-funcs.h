@@ -38,6 +38,7 @@ real		unpack_real(Word);
 volatile void	outOf(Stack);
 void		free_heap(Void, alloc_t),
 		setReal(word, real),
+		freeHeapReal(word),
 		initAllocLocal(void),
 		stopAllocLocal(void);
 
@@ -422,7 +423,7 @@ word		pl_nonvar(Word),
 		pl_halt(void),
 		pl_statistics(Word, Word),
 		pl_version(Word),
-		pl_option(Word, Word),
+		pl_option(Word, Word, Word),
 		pl_please(Word, Word, Word),
 		pl_style_check(Word, Word),
 		pl_novice(Word, Word),
@@ -469,7 +470,7 @@ void		setupProlog(void),
 		deallocateStacks(void),
 		initSignals(void);
 bool		restoreStack(Stack);
-#if unix || EMX
+#if O_SIGNAL
 void		deliverSignal(int, int, SIGNAL_CONTEXT_TYPE, char *);
 handler_t	pl_signal(int, handler_t);
 #endif

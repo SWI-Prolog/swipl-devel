@@ -23,6 +23,10 @@ appropriate machine description file.
 #include "md.h"
 #endif
 
+#ifdef __WATCOMC__
+#include "pl-nodef.h"
+#endif
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 		      PROLOG SYSTEM OPTIONS
 
@@ -83,6 +87,10 @@ handy for it someone wants to add a data type to the system.
 #endif
 #endif
 
+#if defined(unix) || defined(__unix__)
+#define O_SIGNAL 1
+#endif
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The macros below try to establish a common basis for various  compilers,
 so  we  can  write  most  of the real code without having to worry about
@@ -104,7 +112,10 @@ This has worked on TURBO_C not very long ago.
 #endif
 
 #include <stdio.h>
-#if unix || EMX
+#if O_XOS
+#include <xos/xos.h>
+#endif
+#if O_SIGNAL
 #include <sys/types.h>
 #include <signal.h>
 #endif
@@ -162,7 +173,7 @@ typedef char *			Void;
 typedef void *			Void;
 #endif
 
-#if unix || EMX
+#if O_SIGNAL
 #ifdef SIGNAL_HANDLER_TYPE
 typedef SIGNAL_HANDLER_TYPE (*handler_t)();
 #else
@@ -1320,7 +1331,7 @@ struct state
 
 GLOBAL State stateList;			/* list of loaded states */
 
-#if unix || EMX
+#if O_SIGNAL
 GLOBAL struct
 { handler_t os;				/* Os signal handler */
   handler_t user;			/* User signal handler */

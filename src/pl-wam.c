@@ -8,7 +8,7 @@
 */
 
 /*#define O_SECURE 1*/
-#define O_DEBUG 1
+/*#define O_DEBUG 1*/
 #include "pl-incl.h"
 
 #if sun
@@ -224,6 +224,7 @@ callForeign(Procedure proc, LocalFrame frame)
 
   SECURE(
   int n;
+  DEBUG(5, printf("argc = %d, argv = 0x%x\n", argc, (unsigned long) argv));
   for(n = 0; n < argc; n++)
   { checkData(argv[n], FALSE);
     lockp(&argv[n]);
@@ -234,7 +235,6 @@ callForeign(Procedure proc, LocalFrame frame)
 
 #define A(n) argv[n]
 #define F (*function)
-#define B ((word) frame->clause)
 
   gc_status.blocked++;
   if ( (gc_save = true(proc->definition, GC_SAVE)) )
@@ -243,6 +243,9 @@ callForeign(Procedure proc, LocalFrame frame)
   else
     shift_status.blocked++;
 #endif
+
+  if ( true(proc->definition, NONDETERMINISTIC) )
+  { word B = (word) frame->clause;
 
   switch(argc)
   { case 0:  result = F(B); break;
@@ -274,6 +277,38 @@ callForeign(Procedure proc, LocalFrame frame)
 #endif
     default:	return sysError("Too many arguments to foreign function");
   }
+  } else /* deterministic predicate call */
+  { switch(argc)
+    { case 0:  result = F(); break;
+      case 1:  result = F(A(0)); break;
+      case 2:  result = F(A(0), A(1)); break;
+      case 3:  result = F(A(0), A(1), A(2)); break;
+      case 4:  result = F(A(0), A(1), A(2), A(3)); break;
+      case 5:  result = F(A(0), A(1), A(2), A(3), A(4)); break;
+      case 6:  result = F(A(0), A(1), A(2), A(3), A(4), A(5)); break;
+      case 7:  result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6)); break;
+      case 8:  result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7));
+      			break;
+      case 9:  result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
+			  A(8)); break;
+      case 10: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
+			  A(8), A(9)); break;
+#if !mips				/* MIPS doesn't handle that many */
+      case 11: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
+			  A(8), A(9), A(10)); break;
+      case 12: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
+			  A(8), A(9), A(10), A(11)); break;
+      case 13: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
+			  A(8), A(9), A(10), A(11), A(12)); break;
+      case 14: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
+			  A(8), A(9), A(10), A(11), A(12), A(13)); break;
+      case 15: result = F(A(0), A(1), A(2), A(3), A(4), A(5), A(6), A(7),
+			  A(8), A(9), A(10), A(11), A(12), A(13), A(14));
+			break;
+#endif
+      default:	return sysError("Too many arguments to foreign function");
+    }
+  }
   
   if ( gc_save )
     unlockp(&frame);
@@ -283,12 +318,12 @@ callForeign(Procedure proc, LocalFrame frame)
 #endif
   gc_status.blocked--;
 
-#undef B
 #undef F
 #undef A
 
   SECURE(
   int n;
+  DEBUG(5, printf("argc = %d, argv = 0x%x\n", argc, (unsigned long) argv));
   for(n=argc-1; n >= 0; n--)
   { unlockp(&argv[n]);
     checkData(argv[n], FALSE);
@@ -1910,6 +1945,13 @@ Note: we are working above `lTop' here!
 	  }	    
 	}
 #endif
+#if O_RLC				/* Windows readline console */
+	{ static int tick;
+
+	  if ( (++tick & 0x7ff) == 0 )
+	    rlc_check_intr();		/* check for interrupt (^C) */
+	}
+#endif
 	incLevel(FR);
 	clear(FR, FR_CUT|FR_SKIPPED);
 
@@ -2113,13 +2155,14 @@ Leave the clause:
 	  if ( lTop < (LocalFrame)argFrameP(FR, PROC->functor->arity) )
 	    lTop = (LocalFrame)argFrameP(FR, PROC->functor->arity);
 	  action = tracePort(FR, EXIT_PORT);
-	  lTop = lSave;
 
 	  switch(action)
 	  { case ACTION_RETRY:	goto retry;
 	    case ACTION_FAIL:	set(FR, FR_CUT);	/* references !!! */
 				goto frame_failed;
 	  }
+
+	  lTop = lSave;
 	}
 
 	PC = FR->programPointer;

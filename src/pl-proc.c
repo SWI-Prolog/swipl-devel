@@ -369,7 +369,14 @@ unallocClause(Clause clause)
 void
 freeClause(Clause c)
 { if (c->XR_size)
-  { freeHeap(c->externals, sizeof(word) * c->XR_size);
+  { Word xr = c->externals;
+    int i;
+
+    for(i=c->XR_size; i>0; i--, xr++)
+    { if ( isReal(*xr) )
+	freeHeapReal(*xr);
+    }
+    freeHeap(c->externals, sizeof(word) * c->XR_size);
     statistics.externals -= c->XR_size;
   }
   statistics.codes -= c->code_size;
@@ -464,7 +471,7 @@ autoImport(FunctorDef f, Module m)
   p = isCurrentProcedure(f, m->super);	/* Link the two */
   if ( proc == NULL )			/* Create header if not there */
     proc = lookupProcedure(f, m);
-					/* save? */
+					/* safe? */
   freeHeap(proc->definition, sizeof(struct definition));
   proc->definition = p->definition;
 

@@ -33,11 +33,6 @@ extern int	geti(FILE *);
 		*        MEMORY MANAGEMENT      *
 		*********************************/
 
-#if !ANSI
-#define memcpy(to, from, n)	bcopy(from, to, n)
-#endif
-
-
 #define malloc_t	size_t		/* Argument type of malloc(), etc */
 #define alloc_t		size_t		/* argument type of Prolog's alloc */
 
@@ -173,11 +168,20 @@ extern real	  CpuTime(void);
 #ifdef TERMIO_INCLUDE
 #include TERMIO_INCLUDE
 #else
+#if BSD_TERMIOS
+#include <sys/termios.h>
+#else
 #include <sys/termio.h>
+#endif
 #endif
 
 typedef struct
-{ struct termio tab;		/* saved tty status */
+{
+#if BSD_TERMIOS
+  struct termios tab;		/* saved tty status */
+#else
+  struct termio tab;		/* saved tty status */
+#endif
   int		mode;		/* Prolog;'s view on mode */
 } ttybuf;
 

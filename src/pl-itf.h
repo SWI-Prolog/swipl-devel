@@ -11,7 +11,7 @@
 #define PL_INCLUDED
 
 #ifndef PLVERSION
-#define PLVERSION "1.8.11 April 1994"
+#define PLVERSION "1.9.0 June 1994"
 #endif
 
 #if __GNUC__ && !__STRICT_ANSI__

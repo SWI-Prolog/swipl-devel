@@ -1433,11 +1433,11 @@ pl_home(Word h)
 */
 
 word
-pl_option(Word key, Word value)
+pl_option(Word key, Word old, Word new)
 { Atom result;
-  Atom k;
+  Atom k, n;
 
-  if (!isAtom(*key))
+  if ( !isAtom(*key) )
     fail;
   k = (Atom) *key;
 
@@ -1446,7 +1446,16 @@ pl_option(Word key, Word value)
   else if (k == ATOM_init_file) result = lookupAtom(options.initFile);
   else fail;
 
-  return unifyAtomic(value, result);
+  TRY(unifyAtomic(old, result));
+  
+  if ( !isAtom(*new) )
+    fail;
+  n = (Atom) *new;
+  if (     k == ATOM_goal)	options.goal     = stringAtom(n);
+  else if (k == ATOM_top_level) options.topLevel = stringAtom(n);
+  else				options.initFile = stringAtom(n);
+
+  succeed;
 }
 
 static bool

@@ -1279,9 +1279,14 @@ unlockw(Word p)
 
 void
 unlockp(Void ptr)
-{ lock l = *--pTop;
+{ Lock l = --pTop;
 
-  if ( ptr != lockAddress(l) )
+  DEBUG(5, printf("unlockp(&0x%x (0x%x)) at 0x%x\n",
+		  (unsigned long) ptr,
+		  (unsigned long) lockAddress(*l),
+		  (unsigned long) l));
+
+  if ( ptr != lockAddress(*l) )
     warning("Mismatch in lock()/unlock()\n");
 }
 
@@ -1811,7 +1816,7 @@ int l, g, t;
     SECURE(key = checkStacks(fr));
 
     if ( t )
-    { tsize = nextStackSize(&stacks.trail);
+    { tsize = nextStackSize((Stack) &stacks.trail);
       tb = realloc(tb, tsize);
       shift_status.trail_shifts++;
     }
@@ -1821,18 +1826,18 @@ int l, g, t;
       assert(lb == addPointer(gb, loffset));	
 
       if ( g )
-      { gsize = nextStackSize(&stacks.global);
+      { gsize = nextStackSize((Stack) &stacks.global);
 	shift_status.global_shifts++;
       }
       if ( l )
-      { lsize = nextStackSize(&stacks.local);
+      { lsize = nextStackSize((Stack) &stacks.local);
 	shift_status.local_shifts++;
       }
 
       gb = realloc(gb, lsize + gsize + GL_SEPARATION);
       lb = addPointer(gb, gsize + GL_SEPARATION);
       if ( g )				/* global enlarged; move local */
-	bcopy(addPointer(gb, loffset), lb, lsize);
+	memmove(addPointer(gb, loffset), lb, lsize);
     }
       
 #define PrintStackParms(stack, name, newbase, newsize) \

@@ -82,6 +82,10 @@ show_help(Ranges) :-
 	close(Manual),
 	close(Output),
 	call_emacs('(view-file-other-window "~w")', [Outfile]).
+show_help(Ranges) :-
+	'$arch'('PC', _), !,		% Windows or DOS; no pipes
+	online_manual_stream(Manual),
+	show_ranges(Ranges, Manual, user_output).
 show_help([Start-End]) :-
 	End - Start > 4000, !,
 	find_manual(Manual),

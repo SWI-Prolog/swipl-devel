@@ -11,8 +11,14 @@
 
 #define GLOBAL				/* allocate global variables here */
 #include "pl-incl.h"
+#if defined(__WATCOMC__)
+#define lock lock_function		/* avoid lock() name conflict */
+#endif
 #include <sys/stat.h>
 #include <unistd.h>
+#if defined(__WATCOMC__)
+#undef lock
+#endif
 
 #define K * 1024
 
@@ -33,7 +39,7 @@ setupProlog(void)
   aborted = FALSE;
 
   startCritical;
-#if unix || EMX
+#if O_SIGNAL
   DEBUG(1, printf("Prolog Signal Handling ...\n"));
   initSignals();
 #endif
@@ -125,7 +131,7 @@ they  define  signal handlers to be int functions.  This should be fixed
 some day.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if unix || EMX
+#if O_SIGNAL
 
 static void
 fatal_signal_handler(int sig, int type, SignalContext scp, char *addr)
@@ -319,7 +325,7 @@ use to the OS.
 static void
 unmap(Stack s)
 { caddress top  = (s->top > s->min ? s->top : s->min);
-  caddress addr = (caddress) align_size((long) top + 1);
+  caddress addr = (caddress) align_size((long) top + size_alignment);
 
   if ( addr < s->max )
   { if ( munmap(addr, s->max - addr) != 0 )

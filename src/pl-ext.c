@@ -70,7 +70,7 @@ static struct foreign {
   ADD("wildcard_match",		2, pl_wildcard_match,		TRACE_ME),
   ADD("$apropos_match",		2, pl_apropos_match,		TRACE_ME),
   ADD("$argv",			1, pl_argv,			TRACE_ME),
-  ADD("$option",		2, pl_option,			TRACE_ME),
+  ADD("$option",		3, pl_option,			TRACE_ME),
   ADD("convert_time",		8, pl_convert_time,		TRACE_ME),
   ADD("sleep",			1, pl_sleep,			TRACE_ME),
   ADD("break",			0, pl_break,			TRACE_ME),
@@ -252,10 +252,8 @@ static struct foreign {
   ADD("substring",		4, pl_substring,		TRACE_ME),
 #endif /* O_STRING */
 
-#if O_SAVE
   ADD("save",			2, pl_save,			TRACE_ME),
   ADD("restore",		1, pl_restore,			TRACE_ME),
-#endif /* O_SAVE */
   ADD("$save_program",		2, pl_save_program,		TRACE_ME),
   ADD("$version",		1, pl_version,			TRACE_ME),
 

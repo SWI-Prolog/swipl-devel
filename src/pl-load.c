@@ -11,7 +11,6 @@
 /*  Implementing foreign functions for HP-PA RISC architecture  */
 
 #include "pl-incl.h"
-#include <memory.h>
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Make sure the symbolfile and  orgsymbolfile  attributes  of  the  global
@@ -30,7 +29,7 @@ getSymbols(void)
     symbols = mainArgv[0];
   }
   DEBUG(2, printf("Symbol file = %s\n", symbols));
-  if ( (abs_symbols = AbsoluteFile(PrologPath(symbols))) == NULL )
+  if ( (abs_symbols = AbsoluteFile(symbols)) == NULL )
     fail;
 
   loaderstatus.symbolfile = loaderstatus.orgsymbolfile
@@ -40,6 +39,8 @@ getSymbols(void)
 }
 
 #if O_FOREIGN
+
+#include <memory.h>
 
 forwards bool create_a_out(char *files, char *entry,
 			   char *options, char *libraries,

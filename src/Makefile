@@ -89,13 +89,13 @@ PLBOOT1=$(PB)/syspred.pl $(PB)/toplevel.pl $(PB)/listing.pl
 PLBOOT2=$(PB)/edit.pl $(PB)/sort.pl $(PB)/bags.pl $(PB)/apply.pl
 PLBOOT3=$(PB)/list.pl $(PB)/writef.pl $(PB)/history.pl $(PB)/portray.pl
 PLBOOT4=$(PB)/profile.pl $(PB)/dwim.pl $(PB)/$(FOREIGN) $(PB)/parms.pl
-PLBOOT5=$(PB)/autoload.pl
+PLBOOT5=$(PB)/autoload.pl $(PB)/topvars.pl
 #else
 PLBOOT= $(PB)/syspred.pl $(PB)/toplevel.pl $(PB)/listing.pl \
 	$(PB)/edit.pl $(PB)/sort.pl $(PB)/bags.pl $(PB)/apply.pl \
 	$(PB)/list.pl $(PB)/writef.pl $(PB)/history.pl $(PB)/portray.pl \
 	$(PB)/profile.pl $(PB)/dwim.pl $(PB)/$(FOREIGN) $(PB)/parms.pl \
-	$(PB)/autoload.pl
+	$(PB)/autoload.pl $(PB)/topvars.pl
 #endif
 
 SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c) $(EXT:.o=.c)

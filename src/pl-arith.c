@@ -292,7 +292,7 @@ isCurrentArithFunction(register FunctorDef f, register Module m)
   return r;
 }
 
-#if unix || EMX
+#if O_SIGNAL
 typedef void (*OsSigHandler)(int);
 
 static void
@@ -1021,7 +1021,7 @@ static struct arithFunction ar_functions[MAXARITHFUNCTIONS] = {
 void
 initArith(void)
 {
-#if unix || EMX
+#if O_SIGNAL
   pl_signal(SIGFPE, realExceptionHandler);
 #endif
 #if __TURBOC__

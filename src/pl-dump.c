@@ -347,6 +347,20 @@ struct exec *hdr;
 #else /* O_STORE_PROGRAM || O_SAVE */
 
 word
+pl_save(state, rval)
+Word state, rval;
+{ return warning("save/2: not ported to this machine");
+}
+
+
+word
+pl_restore(state)
+Word state;
+{ return warning("restore/1: not ported to this machine");
+}
+
+
+word
 saveProgram(new)
 Word new;
 { return warning("store_program/1: not ported to this machine");

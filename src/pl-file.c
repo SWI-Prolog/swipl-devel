@@ -439,21 +439,38 @@ vPutf(char *fm, va_list args)
 }
 
 bool
-readLine(char *buf, int stream)
+readLine(char *buffer, int stream)
 { int oldin = Input;
   Char c;
   ttybuf tbuf;
+  char *buf = buffer;
 
   Input = stream;
   PushTty(&tbuf, TTY_RAW);		/* donot prompt! */
-  while( (c=Get0()) != EOF && c != '\n' && c != '\r' )
-    *buf++ = c;
+  for(;;)
+  { switch( (c=Get0()) )
+    { case '\n':
+      case '\r':
+      case EOF:
   PopTty(&tbuf);
 
   *buf++ = EOS;
   Input = oldin;
 
   return c == EOF ? FALSE : TRUE;
+      case '\b':
+	if ( buf > buffer )
+	{ buf--;
+	  Putf("\b \b");
+	}
+	break;
+      default:
+	buf[0] = c;
+	buf[1] = EOS;
+	Putf(buf);
+	buf++;
+    }
+  }
 }
 
 int
@@ -1541,13 +1558,13 @@ pl_chdir(Word dir)
 
   if ( s == (char *)NULL )
     return warning("chdir/1: instantiation fault");
-  if ( (s = ExpandOneFile(s)) == (char *)NULL )
+  if ( (s = ExpandOneFile(PrologPath(s))) == (char *)NULL )
     fail;
   
   if ( ChDir(s) )
     succeed;
 
-  return warning("chdir/1: cannot change directory to %s", s);
+  return warning("chdir/1: cannot change directory to %s: %s", s, OsError());
 }
 
 

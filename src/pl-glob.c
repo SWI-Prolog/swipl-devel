@@ -14,6 +14,7 @@
 #endif
 
 #include "pl-incl.h"
+#include "pl-ctype.h"
 
 #if unix || EMX
 #include <sys/param.h>
@@ -31,6 +32,10 @@
 #endif
 #endif
 
+#if defined(__WATCOMC__)
+#include <direct.h>
+#include <sys/stat.h>
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Unix Wildcard Matching.  Recognised:
@@ -317,20 +322,11 @@ pl_expand_file_name(Word f, Word l)
   succeed;
 }
 
-#if __STDC__
+
 static int
 stringCompare(const void *a1, const void *a2)
 { return strcmp(*((char **)a1), *((char **)a2));
 }
-
-#else
-
-static int
-stringCompare(s1, s2)
-register char **s1, **s2;
-{ return strcmp(*s1, *s2);
-}
-#endif
 
 static bool
 expand(char *f, char **argv, int *argc)
@@ -340,7 +336,7 @@ expand(char *f, char **argv, int *argc)
   b.out = 0;			/* put the first entry in the bag */
   b.in = b.size = 1;
   b.bag[0] = store_string(f);
-#if tos				/* case insensitive: do all lower case */
+#if tos || defined(__MSDOS__)	/* case insensitive: do all lower case */
   strlwr(b.bag[0]);
 #endif
 /* Note for OS2: HPFS is case insensitive but case preserving. */
@@ -362,7 +358,7 @@ expand(char *f, char **argv, int *argc)
   }
 }
 
-#if unix || EMX
+#if unix || EMX || defined(__WATCOMC__)
 static bool
 Exists(char *path)
 { struct stat buf;
@@ -407,7 +403,9 @@ expandBag(struct bag *b)
     register char *s = head;
     
     for(;;)
-    { switch( *s++ )
+    { int c;
+
+      switch( (c = *s++) )
       { case EOS:				/* no special characters */
 	  if ( b->expanded == FALSE || Exists(b->bag[b->out]) )
 	  { b->bag[b->in] = b->bag[b->out];
@@ -416,18 +414,14 @@ expandBag(struct bag *b)
 	  { b->size--;
 	  }
 	  goto next_bag;
-#if tos || OS2
-	case '\\':
-#endif
-	case '/':				/* no specials sofar */
-	  head = s;
-	  continue;
 	case '[':				/* meta characters: expand */
 	case '{':
 	case '?':
 	case '*':
 	  break;
 	default:
+	  if ( IS_DIR_SEPARATOR(c) )
+	    head = s;
 	  continue;
       }
       break;
@@ -465,8 +459,9 @@ expandBag(struct bag *b)
         fail;
       dot = (expanded[0] == '.');			/* do dots as well */
 
-#if unix || EMX
+#if unix || EMX || defined(__WATCOMC__)
       { DIR *d;
+	char *ospath = OsPath(path);
 #if O_STRUCT_DIRECT
 	struct direct *e;
 	extern struct direct *readdir();
@@ -476,9 +471,26 @@ expandBag(struct bag *b)
 #endif
 	extern DIR *opendir(const char *);
 
-	if ( (d = opendir(OsPath(path))) != (DIR *)NULL )
+	d = opendir(ospath);
+
+#ifdef __WATCOMC__
+					/* Grrrr the root has not '.' */
+	if ( !d && streq(ospath, ".") )
+	{ char r[MAXPATHLEN];
+
+	  getcwd(r, MAXPATHLEN);
+	  if ( isLetter(r[0]) && r[1] == ':' && r[2] == '\\' && r[3] == '\0' )
+	    d = opendir("\\");
+	}
+#endif
+
+	if ( d != NULL )
 	{ for(e=readdir(d); e; e = readdir(d))
-	  { if ( (dot || e->d_name[0] != '.') && matchPattern(e->d_name) )
+	  {
+#ifdef __MSDOS__
+	    strlwr(e->d_name);
+#endif
+	    if ( (dot || e->d_name[0] != '.') && matchPattern(e->d_name) )
 	    { strcpy(expanded, prefix);
 	      strcat(expanded, e->d_name);
 	      strcat(expanded, tail);

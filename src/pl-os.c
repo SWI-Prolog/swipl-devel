@@ -9,6 +9,11 @@
 
 /*  Modified (M) 1993 Dave Sherratt  */
 
+#ifdef __WINDOWS__
+#include <windows.h>
+#undef TRANSPARENT
+#endif
+
 #if __TOS__
 #include <tos.h>		/* before pl-os.h due to Fopen, ... */
 static long	wait_ticks;	/* clock ticks not CPU time */
@@ -33,6 +38,14 @@ static long	wait_ticks;	/* clock ticks not CPU time */
 #endif
 #include <unistd.h>
 #include <errno.h>
+#endif
+
+#if defined(__WATCOMC__)
+#include <sys/stat.h>
+#define lock lock_function
+#include <io.h>
+#undef lock
+#include <dos.h>
 #endif
 
 #if sun
@@ -140,6 +153,15 @@ Halt(int status)
   for(h = on_halt_list; h; h = h->next)
     (*h->function)(status, h->argument);
 
+#ifdef __WINDOWS__
+  if ( status != 0 )
+  { char buf[128];
+
+    sprintf(buf, "Exit status is %d", status);
+    MessageBox(NULL, buf, "SWI-Prolog halt", MB_OK|MB_TASKMODAL);
+  }
+#endif
+
   dieIO();
   RemoveTemporaryFiles();
 
@@ -158,7 +180,11 @@ Halt(int status)
 
 char *
 OsError(void)
-{ static char errmsg[64];
+{
+#if O_STRERROR
+  return strerror(errno);
+#else
+static char errmsg[64];
 
 #if unix
   extern int sys_nerr;
@@ -178,6 +204,7 @@ OsError(void)
 
   sprintf(errmsg, "Unknown Error (%d)", errno);
   return errmsg;
+#endif /*O_STRERROR*/
 }
 
 		/********************************
@@ -225,6 +252,11 @@ CpuTime(void)
 		 + i.seconds
 	         + (i.hundredths / 100.0)) - initial_time);
 #endif
+
+#if defined(__WATCOMC__)
+  return (real) clock() / (real) CLOCKS_PER_SEC;
+#endif
+
 
 #if tos
   return (real) (clock() - wait_ticks) / 200.0;
@@ -619,7 +651,7 @@ OsPath(char *unixpath)
 } 
 #endif
 
-#if OS2 && EMX
+#if O_HPFS
 
 /* 
    Conversion rules Prolog <-> OS/2 (using HPFS)
@@ -641,7 +673,7 @@ PrologPath(char *ospath)
     limit -= 3;
   }
   for(; *s && limit; s++, p++, limit--)
-    *p = (*s == '\\' ? '/' : *s);
+    *p = (*s == '\\' ? '/' : makeLower(*s));
   *p = EOS;
 
   return path;
@@ -665,11 +697,13 @@ OsPath(char *unixpath)
 
   for(; *s && limit; s++, p++, limit--)
     *p = (*s == '/' ? '\\' : *s);
+  if ( p[-1] == '\\' && p > path )
+    p--;
   *p = EOS;
 
   return path;
 } 
-#endif /* OS2 */
+#endif /* O_HPFS */
 
 #if unix
 char *PrologPath(char *p)
@@ -682,10 +716,26 @@ OsPath(char *p)
 }
 #endif
 
+#if O_XOS
+char *
+PrologPath(char *p)
+{ static char buf[MAXPATHLEN];
+
+  _xos_canonical_filename(p, buf);
+  return buf;
+}
+
+char *
+OsPath(char *p)
+{ return p;
+}
+#endif /* O_XOS */
+
+
 long
 LastModifiedFile(char *f)
 {
-#if unix || EMX
+#if unix || O_UNIXLIB
   struct stat buf;
 
   if ( stat(OsPath(f), &buf) < 0 )
@@ -730,7 +780,7 @@ LastModifiedFile(char *f)
 bool
 ExistsFile(char *path)
 {
-#if unix || EMX
+#if unix || O_UNIXLIB
   struct stat buf;
 
   if ( stat(OsPath(path), &buf) == -1 || (buf.st_mode & S_IFMT) != S_IFREG )
@@ -753,7 +803,7 @@ ExistsFile(char *path)
 bool
 AccessFile(char *path, int mode)
 {
-#if unix || EMX
+#if unix || EMX || O_UNIXLIB
   int m = 0;
 
   if ( mode & ACCESS_READ    ) m |= R_OK;
@@ -777,22 +827,48 @@ AccessFile(char *path, int mode)
 
 bool
 ExistsDirectory(char *path)
-{
-#if unix || EMX
+{ char *ospath = OsPath(path);
+#if unix || O_UNIXLIB
   struct stat buf;
 
-  if ( stat(OsPath(path), &buf) == -1 || (buf.st_mode & S_IFMT) != S_IFDIR )
-    fail;
+  if ( stat(ospath, &buf) == 0 && (buf.st_mode & S_IFMT) == S_IFDIR )
+    succeed;
+
+#ifdef __WATCOMC__
+  if ( streq(ospath, ".") || streq(ospath, "..") )
+    succeed;
+
+  if ( isLetter(ospath[0]) && ospath[1] == ':' && ospath[2] == '\0' )
+  { unsigned drv = makeLower(ospath[0]) - 'a' + 1;
+    unsigned cdrv, ndrv;
+    unsigned total;
+    int have_drv;
+
+    _dos_getdrive(&cdrv);
+    if ( cdrv == drv )
+    { have_drv = TRUE;
+    } else
+    { _dos_setdrive(drv, &total);
+      _dos_getdrive(&ndrv);
+      have_drv = (ndrv == drv);
+      _dos_setdrive(cdrv, &total);
+    }
+
+    if ( have_drv )
   succeed;
+  }
+#endif
+
+  fail;
 #endif
 
 #if tos
   struct ffblk buf;
 
-  if ( findfirst(OsPath(path), &buf, FA_DIREC|FA_HIDDEN) == 0 &&
+  if ( findfirst(ospath, &buf, FA_DIREC|FA_HIDDEN) == 0 &&
        buf.ff_attrib & FA_DIREC )
     succeed;
-  if ( streq(path, ".") || streq(path, "..") )	/* hack */
+  if ( streq(ospath, ".") || streq(ospath, "..") )	/* hack */
     succeed;
   fail;
 #endif
@@ -812,7 +888,7 @@ SizeFile(char *path)
 bool
 DeleteFile(char *path)
 {
-#if unix || EMX
+#if unix || O_UNIXLIB
   return unlink(OsPath(path)) == 0 ? TRUE : FALSE;
 #endif
 
@@ -842,13 +918,10 @@ RenameFile(char *old, char *new)
     succeed;
 
   fail;
-#endif
-
-#if tos || EMX
+#else
   return rename(os_old, os_new) == 0 ? TRUE : FALSE;
 #endif
 }
-
 
 bool
 SameFile(char *f1, char *f2)
@@ -863,10 +936,18 @@ SameFile(char *f1, char *f2)
     if ( buf1.st_ino == buf2.st_ino && buf1.st_dev == buf2.st_dev )
       succeed;
 #endif
-#if OS2 && EMX
+#if O_XOS
+    char p1[MAXPATHLEN];
+    char p2[MAXPATHLEN];
+
+    _xos_limited_os_filename(f1, p1);
+    _xos_limited_os_filename(f2, p2);
+    if ( streq(p1, p2) )
+      succeed;
+#endif
     /* Amazing! There is no simple way to check two files for identity. */
     /* stat() and fstat() both return dummy values for inode and device. */
-#endif /* OS2 */
+    /* this is fine as OS'es not supporting symbolic links don't need this */
 
     fail;
   }
@@ -878,7 +959,7 @@ SameFile(char *f1, char *f2)
 bool
 OpenStream(int fd)
 {
-#if unix || EMX
+#if unix || O_UNIXLIB
   struct stat buf;
 
   return fstat(fd, &buf) == 0 ? TRUE : FALSE;
@@ -908,13 +989,9 @@ MarkExecutable(char *name)
   buf.st_mode |= 0111 & ~um;
   if ( chmod(name, buf.st_mode) == -1 )
     return warning("Couldn't turn %s into an executable: %s", name, OsError());
+#endif
 
   succeed;
-#endif
-
-#if tos || OS2
-  succeed;		/* determined by extension */
-#endif
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1068,11 +1145,18 @@ canoniseDir(char *path)
 
 
 static char *
-canonisePath(register char *path)
+canonisePath(char *path)
 { register char *out = path;
   char *osave[100];
   int  osavep = 0;
   char *bsave = out;
+
+#if O_XOS
+{ char b[MAXPATHLEN];
+  _xos_limited_os_filename(path, b);
+  strcpy(path, b);
+}
+#endif
 
   while( path[0] == '/' && path[1] == '.' &&
 	 path[2] == '.' && path[3] == '/')
@@ -1080,16 +1164,22 @@ canonisePath(register char *path)
 
   while(*path)
   { if (*path == '/')
-    { while(path[1] == '/')
+    { 
+    again:
+      while(path[1] == '/')
 	path++;
       while (path[1] == '.' && path[2] == '/')
-	path += 2;
-      while (path[1] == '.' && path[2] == '.' && path[3] == '/')
+      { path += 2;
+	goto again;
+      }
+      while (path[1] == '.' && path[2] == '.' &&
+	     (path[3] == '/' || path[3] == EOS) )
       { out = osave[--osavep];
 	path += 3;
       }
       osave[osavep++] = out;
-      *out++ = *path++;
+      if ( (*out++ = *path) )
+	path++;
     } else
       *out++ = *path++;
   }
@@ -1173,8 +1263,7 @@ expandVars(char *pattern, char *expanded)
       }
       value = fredLogin;
     }	  
-#endif
-#if tos || OS2
+#else
     if ( user[0] != EOS || (value = getenv("HOME")) == (char *) NULL )
     { value = "/";	/* top directory of current drive */
     } else
@@ -1262,37 +1351,21 @@ ExpandOneFile(char *spec)
   }
 }
 
+#if OS2
+#define getcwd _getcwd2
+#endif
 
-#if unix
-#if O_GETCWD || USG
-char	*getcwd(char *, size_t);
-
+#if O_GETCWD
 char *
 getwd(char *buf)
-{ return getcwd(buf, MAXPATHLEN);
-}
-#else
-extern char *getwd(char *);
-#endif
-#endif
-
-#if OS2 && EMX
-char *getwd(char *);
-
-char *getwd(buf)
-char *buf;
-{ strcpy(buf, PrologPath(_getcwd2(buf, MAXPATHLEN)));
+{ strcpy(buf, PrologPath(getcwd(buf, MAXPATHLEN)));
   return buf;
 }
-#endif /* OS2 */
-
+#endif
 
 #if tos
-char	*getwd(char *);
-
 char *
-getwd(buf)
-char *buf;
+getwd(char *buf)
 { char path[MAXPATHLEN];
 
   if ( Dgetpath(path, 0) != 0 )
@@ -1313,9 +1386,9 @@ char *buf;
 #define isAbsolutePath(p) ( isLetter(p[0]) && p[1] == ':' )
 #define isRelativePath(p) ( p[0] == '.' || p[0] == '/' || p[0] == '\\' )
 #endif
-#if OS2
+#if OS2 || O_HPFS || O_XOS
 #define isAbsolutePath(p) (p[0] == '/' && isLetter(p[1]) && \
-			   p[2] == ':' && p[3] == '/' )
+			   p[2] == ':' && (p[3] == '/' || p[3] == '\0') )
 #define isDriveRelativePath(p) (p[0] == '/' && p[2] != ':')
 #define isRootlessPath(p) (p[0] == '/' && isLetter(p[1]) && \
 			   p[2] == ':' && p[3] != '/')
@@ -1331,9 +1404,11 @@ char *buf;
 char *
 AbsoluteFile(char *spec)
 { static char path[MAXPATHLEN];
+  char buf[MAXPATHLEN];
   char *file;  
 
-  if ( (file = ExpandOneFile(spec)) == (char *) NULL )
+  strcpy(buf, PrologPath(spec));
+  if ( (file = ExpandOneFile(buf)) == (char *) NULL )
     return (char *) NULL;
 
   if ( isAbsolutePath(file) )
@@ -1342,8 +1417,8 @@ AbsoluteFile(char *spec)
     return canonisePath(path);
   }
 
-#if OS2 && EMX
-  if (isDriveRelativePath(file))
+#if O_HPFS || __DOS__ || __WINDOWS__
+  if (isDriveRelativePath(file))	/* /something  --> /d:/something */
   {
     if ((strlen(file) + 4) > MAXPATHLEN)
     {
@@ -1351,12 +1426,19 @@ AbsoluteFile(char *spec)
       return (char *) NULL;
     }
     path[0] = '/';
+#if OS2
     path[1] = (char) _getdrive();
+#else
+    { unsigned drive;
+      _dos_getdrive(&drive);
+      path[1] = 'a' + drive - 1;
+    }
+#endif
     path[2] = ':';
     strcpy(&path[3], file);
     return canonisePath(path);
   }
-#endif /* OS2 */
+#endif /* O_HPFS */
 
   if ( CWDlen == 0 )
   { char buf[MAXPATHLEN];
@@ -1368,20 +1450,20 @@ AbsoluteFile(char *spec)
     CWDdir[CWDlen] = EOS;
   }
 
-#if OS2 && EMX
-  if (isRootlessPath(file))
-  {
-    if ((strlen(CWDdir) + strlen(file) - 2) >= MAXPATHLEN)
-    {
-      warning("path name too long");
+#if O_HPFS || __DOS__ || __WINDOWS__
+  if ( isRootlessPath(file) )		/* /d:something --> /d:/something */
+  { if ( strlen(file) + 1 >= MAXPATHLEN)
+    { warning("path name too long");
       return (char *) NULL;
     }
-    strcpy(path, CWDdir);
-    strcat(path, "/");
-    strcat(path, &file[3]);
+    strncpy(path, file, 3);
+    path[3] = '/';
+    strcpy(&path[4], &file[3]);
+
     return canonisePath(path);
   }
-#endif /* OS2 */
+#endif /* O_HPFS */
+
   if ( (CWDlen + strlen(file) + 1) >= MAXPATHLEN )
   { warning("path name too long");
     return (char *) NULL;
@@ -1434,27 +1516,61 @@ bool
 ChDir(char *path)
 { extern int chdir(const char *);
   char *ospath = OsPath(path);
-  char buf[MAXPATHLEN];
 
   if ( path[0] == EOS ||
        streq(path, CWDdir) ||
        streq(path, ".") )		/* Same directory */
     succeed;
 
-  strcpy(buf, AbsoluteFile(path));
+#if defined(__DOS__) || defined(__WINDOWS__)
+{ char *s;				/* delete trailing '\' */
+  char buf[MAXPATHLEN];
+
+  strcpy(buf, ospath);
+  s = buf + strlen(buf);
+  while( s > buf+1 && s[-1] == '\\' )
+    s--;
+  *s = EOS;
+  ospath = buf;
+
+#ifdef __WATCOMC__
+					/* chdir("c:") does not work!! */
+  if ( isLetter(buf[0]) && buf[1] == ':' && buf[2] == '\0' )
+  { unsigned int drv = makeLower(buf[0]) - 'a' + 1;
+    unsigned int cdrv;
+
+    _dos_getdrive(&cdrv);
+    if ( cdrv != drv )
+    { unsigned int total;
+
+      _dos_setdrive(drv, &total);
+      _dos_getdrive(&cdrv);
+      if ( cdrv != drv )
+      { errno = 1;  /*ENOENT, but I can't include <errno.h> for some reason*/
+	fail;
+      }
+    }
+
+    ospath = "/";
+  }
+#endif
+}
+#endif
 
   if ( chdir(ospath) == 0 )
-  { strcpy(CWDdir, buf);
+  { strcpy(CWDdir, AbsoluteFile(path));
     CWDlen = strlen(CWDdir);
-    CWDdir[CWDlen++] = '/';
+    if ( CWDlen == 0 || CWDdir[CWDlen-1] != '/' )
+    { CWDdir[CWDlen++] = '/';
     CWDdir[CWDlen] = EOS;
+    }
     succeed;
   }
 
   fail;
 }
 
-#if minix || tos
+#if O_NOGETW
 long
 getw(fd)
 register FILE *fd;
@@ -1479,7 +1595,7 @@ FILE *fd;
 
   return l;
 }
-#endif /* minix || tos */
+#endif /* O_NOGETW */
 
 		/********************************
 		*        TIME CONVERSION        *
@@ -1517,17 +1633,12 @@ struct tm *
 LocalTime(long int *t)
 { extern struct tm *localtime(const time_t *);
 
-  return localtime(t);
+  return localtime((const time_t *) t);
 }
 
 long
 Time(void)
-{
-#if !EMX
-extern long time(time_t *);
-#endif
-
-  return (long)time((time_t *) NULL);
+{ return (long)time((time_t *) NULL);
 }
 
 #if tos
@@ -1556,6 +1667,8 @@ PushTty()
 PopTty()
     Restore the tty state.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int prompt_next = TRUE;	/* prompt on next GetChar() */
 
 #if O_SAVE && !O_SAVE_STDIO
 static void
@@ -1633,17 +1746,27 @@ xmalloc(int size)
 
 static Char
 GetRawChar(void)
-{ unsigned char chr;
-
-  if ( PL_dispatch_events )
+{ if ( PL_dispatch_events )
   { while((*PL_dispatch_events)() != PL_DISPATCH_INPUT)
       ;
   }
+
+#ifdef __WATCOMC__
+  { Char chr = getkey();		/* defined in readline() */
+
+    if ( chr == 04 )
+      chr = EOF;
+    return chr;
+  }
+#else /*__WATCOMC__*/
+  { unsigned char chr;
 
   if (read(0, &chr, 1) == 0)
     return EOF;
   else
     return chr;
+  }
+#endif /*__WATCOMC__*/
 }
 
 
@@ -1652,7 +1775,6 @@ Char
 GetChar(void)
 { static char *line;			/* read line */
   static char *line_p;			/* pointer in it */
-  static int prompt_next = TRUE;	/* prompt on next GetChar() */
   Atom sfn = source_file_name;		/* save over call-back */
   int  sln = source_line_no;
   Char c;
@@ -1764,12 +1886,12 @@ ResetTty(void)				/* used to initialise readline */
   rl_attempted_completion_function = prolog_completion;
   rl_basic_word_break_characters = "\t\n\"\\'`@$><= [](){}+*!";
   rl_add_defun("prolog-complete", prolog_complete, '\t');
+#if O_RL12
   rl_add_defun("insert-close", rl_insert_close, ')');
+#endif
 }
 
 #else /*!O_READLINE*/
-
-static int prompt_next;
 
 Char
 GetChar()
@@ -1777,7 +1899,7 @@ GetChar()
   Atom sfn = source_file_name;		/* save over call-back */
   int  sln = source_line_no;
 
-  if ( prompt_next )
+  if ( prompt_next && ttymode != TTY_RAW )
   { Putf("%s", PrologPrompt());
     pl_ttyflush();
     
@@ -1787,6 +1909,14 @@ GetChar()
   if ( PL_dispatch_events )
   { for(;;)
     { if ( (*PL_dispatch_events)() == PL_DISPATCH_INPUT )
+#ifdef __WATCOMC__
+      { printf("dispatching input!\n");
+	if ( ttymode == TTY_RAW )
+	  c = getch();
+        else
+	  c = getche();
+      }
+#else	
       { char chr;
 	
 	if (read(0, &chr, 1) == 0)
@@ -1795,12 +1925,26 @@ GetChar()
 	  c = (Char) chr;
 	break;
       }
+#endif
     }
   } else
+  {
+#if defined(__WATCOMC__)
+    if ( ttymode == TTY_RAW )
+      c = getch();
+    else
+      c = getchar();
+#else
     c = getchar();
+#endif
+  }
 
   if ( c == '\n' )
     prompt_next = TRUE;
+#if defined(__WATCOMC__)
+  else if ( c == 04 )		/* map ^D to end_of_file */
+    c = -1;
+#endif
 
   source_line_no   = sln;
   source_file_name = sfn;
@@ -1821,7 +1965,12 @@ ResetTty()
 
 bool
 PushTty(ttybuf *buf, int mode)
-{ struct termio tio;
+{
+#if	BSD_TERMIOS
+  struct termios tio;
+#else
+  struct termio tio;
+#endif	/*BSD_TERMIOS*/
 
   buf->mode = ttymode;
   ttymode = mode;
@@ -1829,8 +1978,13 @@ PushTty(ttybuf *buf, int mode)
   if ( status.notty )
     succeed;
 
+#if	BSD_TERMIOS
+  if ( ioctl(0, TIOCGETA, &buf->tab) )	/* save the old one */
+    fail;
+#else
   if ( ioctl(0, TCGETA, &buf->tab) )	/* save the old one */
     fail;
+#endif	/*BSD_TERMIOS*/
   tio = buf->tab;
 
   switch( mode )
@@ -1848,8 +2002,12 @@ PushTty(ttybuf *buf, int mode)
 	/*NOTREACHED*/
   }
 
+#if	BSD_TERMIOS
+  ioctl(0, TIOCSETAW, &tio);
+#else
   ioctl(0, TCSETAW, &tio);
   ioctl(0, TCXONC, (void *)1);
+#endif	/*BSD_TERMIOS*/
 
   succeed;
 }
@@ -1862,8 +2020,13 @@ PopTty(ttybuf *buf)
   if ( status.notty )
     succeed;
 
+
+#if	BSD_TERMIOS
+  ioctl(0, TIOCSETA, &buf->tab);
+#else
   ioctl(0, TCSETA, &buf->tab);
   ioctl(0, TCXONC, (void *)1);
+#endif	/*BSD_TERMIOS*/
 
   succeed;
 }
@@ -1874,14 +2037,21 @@ bool
 PushTty(buf, mode)
 ttybuf *buf;
 int mode;
-{ fail;
+{ buf->mode = ttymode;
+  ttymode = mode;
+
+  succeed;
 }
 
 
 bool
 PopTty(buf)
 ttybuf *buf;
-{ fail;
+{ ttymode = buf->mode;
+  if ( ttymode != TTY_RAW )
+    prompt_next = TRUE;
+
+  succeed;
 }
 
 #endif /* O_TERMIOS */
@@ -1910,6 +2080,34 @@ requested via getenv/2 from Prolog.  Functions
     Delete a variable from the environment.  Return  value  is  the  old
     value, or NULL if the variable did not exist.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if O_PUTENV
+
+char *
+Setenv(char *name, char *value)
+{ char *rval;
+  char buf[256];
+
+  if ( (rval = getenv(name)) )
+    rval = store_string(rval);
+  sprintf(buf, "%s=%s", name, value);
+  if ( putenv(store_string(buf)) < 0 )
+    warning("setenv/2: %s", OsError());
+
+  return rval;
+}
+
+char *
+Unsetenv(char *name)
+{ return Setenv(name, "");
+}
+
+static void
+initEnviron()
+{
+}
+
+#else /*O_PUTENV*/
 
 #if tos
 char **environ;
@@ -2042,6 +2240,8 @@ Unsetenv(char *name)
 
   return (char *) NULL;
 }
+
+#endif /*O_PUTENV*/
 
 		/********************************
 		*       SYSTEM PROCESSES        *
@@ -2251,7 +2451,7 @@ char *command;
    shell that does the job.
 */
 
-#if OS2 && EMX
+#if (OS2 && EMX) || defined(__WATCOMC__)
 int
 System(command)
 char *command;
@@ -2268,7 +2468,7 @@ char *command;
     loader, who gives this path to ld, using ld -A <path>.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if unix || EMX
+#if unix || EMX || defined(__WATCOMC__)
 char *
 Symbols(void)
 { return Which(PrologPath(mainArgv[0]));
@@ -2327,7 +2527,7 @@ char *s;
 #define PATHSEP ','
 #endif /* tos */
 
-#if OS2 && EMX
+#if defined(OS2) || defined(__DOS__) || defined(__WINDOWS__)
 static char *
 okToExec(s)
 char *s;
@@ -2475,6 +2675,18 @@ real time;                      /* granularity only. */
   DosSleep((ULONG)(time * 1000));
 }
 #endif /* OS2 */
+
+
+#if defined(__WATCOMC__)
+void
+Sleep(real t)
+{ if ( t <= 0.0 )
+    return;
+
+  sleep((int)(t + 0.5));
+}
+#endif
+
 
 #if tos
 void

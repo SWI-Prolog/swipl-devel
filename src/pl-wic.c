@@ -150,13 +150,14 @@ int arity;
 
   printf("%c\b", cur[n++ & 0x3]);
 }
-#endif
 
-#if unix || EMX
+#else /*!tos*/
+
 #define notifyLoad(file)
 #define notifyLoaded()
 #define notifyPredicate(name, arity)
-#endif
+
+#endif /* tos */
 
 static char *
 getString(FILE *fd)
@@ -713,7 +714,7 @@ openWic(char *file)
     exec = stringAtom(loaderstatus.orgsymbolfile);
   }
   DEBUG(1, printf("Executable = %s\n", exec));
-  if ( !(exec = OsPath(AbsoluteFile(PrologPath(exec)))) )
+  if ( !(exec = OsPath(AbsoluteFile(exec))) )
     fail;
   DEBUG(1, printf("Expanded executable = %s\n", exec));
 /*fprintf(wicFd, "#!%s -x\n", exec);*/
