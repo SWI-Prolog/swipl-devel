@@ -550,7 +550,7 @@ writePrimitive(term_t t, write_options *options)
   { int64_t i;
 
     PL_get_int64(t, &i);
-    sprintf(buf, "%lld", i);		/* TBD: configure!? */
+    sprintf(buf, INT64_FORMAT, i);
     return PutToken(buf, out);
   }
 

@@ -376,6 +376,9 @@ typedef int mode_t;
 /* Define if pthread has pthread_mutexattr_settype() */
 #define HAVE_PTHREAD_MUTEXATTR_SETTYPE 1
 
+/* Format for int64_t */
+#define INT64_FORMAT "%I64d"
+
 		 /*******************************
 		 *	     FUNCTIONS		*
 		 *******************************/
