@@ -918,6 +918,11 @@ case "$ARCH" in
 	    SO_LDFLAGS="-bI:$PLBASE/include/SWI-Exports"
 	fi
 	;;
+  *darwin*)
+	SO_pic="-fPIC"
+	SO_LDFLAGS="-bundle -bundle_loader \"%s\""
+	AC_DEFINE(LD_SYMBOL_PREFIX, "_")
+	;;
   *cygwin*)
 	SO_EXT="dll"
 	SO_LD="dllwrap"
