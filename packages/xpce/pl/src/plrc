@@ -46,7 +46,7 @@ pcehome_(Home) :-
 
 user:file_search_path(pce, PceHome) :-
 	pcehome_(PceHome).
-user:file_search_path(library, pce('/prolog/lib')).
+user:file_search_path(library, pce('prolog/lib')).
 user:file_search_path(foreign, pce(ArchLib)) :-
 	current_prolog_flag(arch, Arch),
 	atom_concat('lib/', Arch, ArchLib).
