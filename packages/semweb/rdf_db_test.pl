@@ -264,6 +264,27 @@ update(object-6) :-			% drop lang
 	rdf(x, a, literal(hallo)).
 
 
+		 /*******************************
+		 *	    TRANSACTIONS	*
+		 *******************************/
+
+transaction(assert-1) :-
+	rdf_transaction(rdf_assert(x, a, v)),
+	findall(rdf(S,P,O), rdf(S,P,O), L),
+	L == [ rdf(x, a, v)
+	     ].
+transaction(assert-2) :-
+	\+ rdf_transaction((rdf_assert(x, a, v), fail)),
+	findall(rdf(S,P,O), rdf(S,P,O), L),
+	L == [].
+transaction(nest-1) :-
+	rdf_transaction( ( rdf_assert(x, a, v),
+			   rdf_transaction(rdf_assert(x, a, v2)))),
+	findall(rdf(S,P,O), rdf(S,P,O), L),
+	L == [ rdf(x, a, v),
+	       rdf(x, a, v2)
+	     ].
+
 
 		 /*******************************
 		 *	       LABELS		*
@@ -384,6 +405,7 @@ testset(same).
 testset(typed).
 testset(lang).
 testset(update).
+testset(transaction).
 testset(label).
 testset(match).
 

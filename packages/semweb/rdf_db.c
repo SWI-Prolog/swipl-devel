@@ -128,6 +128,11 @@ static int	permission_error(const char *op, const char *type,
 				 const char *obj, const char *msg);
 static void	reset_db(rdf_db *db);
 
+static void	record_transaction(rdf_db *db,
+				   tr_type type, triple *t);
+static void	record_md5_transaction(rdf_db *db,
+				       source *src, md5_byte_t *digest);
+
 
 		 /*******************************
 		 *	       LOCKING		*
@@ -260,6 +265,7 @@ WRLOCK(rdf_db *db, int allow_readers)
   { ok:
 
     db->writer = self;
+    db->lock_level = 1;
     db->allow_readers = allow_readers;
     LeaveCriticalSection(&db->mutex);
     DEBUG(3, Sdprintf("WRLOCK(%d): OK\n", self));
@@ -378,7 +384,7 @@ UNLOCK(rdf_db *db)
 
 
 static int
-LOCK_HASH(rdf_db *db)
+LOCK_MISC(rdf_db *db)
 { EnterCriticalSection(&db->hash_mutex);
 
   return TRUE;
@@ -386,7 +392,7 @@ LOCK_HASH(rdf_db *db)
 
 
 static int
-UNLOCK_HASH(rdf_db *db)
+UNLOCK_MISC(rdf_db *db)
 { LeaveCriticalSection(&db->hash_mutex);
   
   return TRUE;
@@ -490,6 +496,7 @@ WRLOCK(rdf_db *db, int allow_readers)
   { ok:
 
     db->writer = self;
+    db->lock_level = 1;
     db->allow_readers = allow_readers;
     pthread_mutex_unlock(&db->mutex);
     DEBUG(3, Sdprintf("WRLOCK(%d): OK\n", self));
@@ -612,13 +619,13 @@ UNLOCK(rdf_db *db)
 
 
 static int
-LOCK_HASH(rdf_db *db)
+LOCK_MISC(rdf_db *db)
 { return pthread_mutex_lock(&db->hash_mutex) == 0;
 }
 
 
 static int
-UNLOCK_HASH(rdf_db *db)
+UNLOCK_MISC(rdf_db *db)
 { return pthread_mutex_unlock(&db->hash_mutex) == 0;
 }
 
@@ -690,13 +697,13 @@ UNLOCK(rdf_db *db)
 
 
 static int
-LOCK_HASH(rdf_db *db)
+LOCK_MISC(rdf_db *db)
 { return TRUE;
 }
 
 
 static int
-UNLOCK_HASH(rdf_db *db)
+UNLOCK_MISC(rdf_db *db)
 { return TRUE;
 }
 
@@ -982,9 +989,12 @@ lookup_predicate(rdf_db *db, atom_t name)
 { int hash = atom_hash(name) % db->pred_table_size;
   predicate *p;
 
+  LOCK_MISC(db);
   for(p=db->pred_table[hash]; p; p = p->next)
   { if ( p->name == name )
+    { UNLOCK_MISC(db);
       return p;
+    }
   }
   p = PL_malloc(sizeof(*p));
   memset(p, 0, sizeof(*p));
@@ -994,6 +1004,7 @@ lookup_predicate(rdf_db *db, atom_t name)
   p->next = db->pred_table[hash];
   db->pred_table[hash] = p;
   db->pred_count++;
+  UNLOCK_MISC(db);
 
   return p;
 }
@@ -1461,13 +1472,18 @@ lookup_source(rdf_db *db, atom_t name, int create)
 { int hash = atom_hash(name) % db->source_table_size;
   source *src;
 
+  LOCK_MISC(db);
   for(src=db->source_table[hash]; src; src = src->next)
   { if ( src->name == name )
+    { UNLOCK_MISC(db);
       return src;
+    }
   }
 
   if ( !create )
+  { UNLOCK_MISC(db);
     return NULL;
+  }
 
   src = PL_malloc(sizeof(*src));
   memset(src, 0, sizeof(*src));
@@ -1476,6 +1492,7 @@ lookup_source(rdf_db *db, atom_t name, int create)
   PL_register_atom(name);
   src->next = db->source_table[hash];
   db->source_table[hash] = src;
+  UNLOCK_MISC(db);
 
   return src;
 }
@@ -1938,7 +1955,7 @@ update_hash(rdf_db *db)
     DEBUG(1, Sdprintf("rdf_db: want GC\n"));
 
   if ( db->need_update || want_gc )
-  { LOCK_HASH(db);
+  { LOCK_MISC(db);
 
     if ( db->need_update )		/* check again */
     { if ( organise_predicates(db) )
@@ -1955,7 +1972,7 @@ update_hash(rdf_db *db)
       DEBUG(1, Sdprintf("ok\n"));
     }
 
-    UNLOCK_HASH(db);
+    UNLOCK_MISC(db);
   }
 
   return TRUE;
@@ -2538,7 +2555,12 @@ value:
   }
   t->source = load_atom(in, ctx);
   t->line   = load_int(in);
-  link_triple(db, t);
+
+  if ( db->transactions )
+  { record_transaction(db, TR_ASSERT, t);     
+  } else
+  { link_triple(db, t);
+  }
 
   return TRUE;
 }
@@ -2592,7 +2614,11 @@ load_db(rdf_db *db, IOSTREAM *in)
 
 	if ( ctx.source && ctx.source->md5 )
 	{ ctx.md5 = ctx.source->md5;
-	  ctx.source->md5 = FALSE;
+	  if ( db->transactions )
+	  { record_md5_transaction(db, ctx.source, NULL);
+	  } else
+	  { ctx.source->md5 = FALSE;
+	  }
 	}
 
 	break;
@@ -2602,8 +2628,14 @@ load_db(rdf_db *db, IOSTREAM *in)
 	  PL_free(ctx.loaded_atoms);
 
         if ( ctx.md5 )
-	{ sum_digest(ctx.source->digest, ctx.digest);
-	  ctx.source->md5 = ctx.md5;
+	{ if ( db->transactions )
+	  { md5_byte_t *d = PL_malloc(sizeof(ctx.digest));
+	    memcpy(d, ctx.digest, sizeof(ctx.digest));
+	    record_md5_transaction(db, ctx.source, d);
+	  } else
+	  { sum_digest(ctx.source->digest, ctx.digest);
+	    ctx.source->md5 = ctx.md5;
+	  }
 	}
 
 	db->generation += (db->created-created0);
@@ -3362,6 +3394,47 @@ record_transaction(rdf_db *db, tr_type type, triple *t)
 
 
 static void
+record_md5_transaction(rdf_db *db, source *src, md5_byte_t *digest)
+{ transaction_record *tr = PL_malloc(sizeof(*tr));
+
+  memset(tr, 0, sizeof(*tr));
+  tr->type = TR_UPDATE_MD5,
+  tr->update.md5.source = src;
+  tr->update.md5.digest = digest;
+
+  append_transaction(db, tr);
+}
+
+
+static void
+record_update_transaction(rdf_db *db, triple *t, triple *new)
+{ transaction_record *tr = PL_malloc(sizeof(*tr));
+
+  memset(tr, 0, sizeof(*tr));
+  tr->type = TR_UPDATE,
+  tr->triple = t;
+  tr->update.triple = new;
+
+  append_transaction(db, tr);
+}
+
+
+static void
+record_update_src_transaction(rdf_db *db, triple *t,
+			      atom_t src, unsigned long line)
+{ transaction_record *tr = PL_malloc(sizeof(*tr));
+
+  memset(tr, 0, sizeof(*tr));
+  tr->type = TR_UPDATE_SRC,
+  tr->triple = t;
+  tr->update.src.atom = src;
+  tr->update.src.line = line;
+
+  append_transaction(db, tr);
+}
+
+
+static void
 free_transaction(transaction_record *tr)
 { switch(tr->type)
   { case TR_ASSERT:
@@ -3371,6 +3444,10 @@ free_transaction(transaction_record *tr)
     case TR_UPDATE:
       unlock_atoms(tr->update.triple);
       PL_free(tr->update.triple);
+      break;
+    case TR_UPDATE_MD5:
+      if ( tr->update.md5.digest )
+	PL_free(tr->update.md5.digest);
       break;
     default:
       break;
@@ -3458,13 +3535,27 @@ commit_transaction(rdf_db *db)
 	break;
       case TR_UPDATE_SRC:
         if ( tr->triple->source != tr->update.src.atom )
-	{ unregister_source(db, tr->triple);
+	{ if ( tr->triple->source )
+	    unregister_source(db, tr->triple);
 	  tr->triple->source = tr->update.src.atom;
-	  register_source(db, tr->triple);
+	  if ( tr->triple->source )
+	    register_source(db, tr->triple);
 	}
         tr->triple->line = tr->update.src.line;
 	db->generation++;
 	break;
+      case TR_UPDATE_MD5:
+      { source *src = tr->update.md5.source;
+	md5_byte_t *digest = tr->update.md5.digest;
+	if ( digest )
+	{ sum_digest(digest, src->digest);
+	  src->md5 = TRUE;
+	  PL_free(digest);
+	} else
+	{ src->md5 = FALSE;
+	}
+	break;
+      }
       case TR_RESET:
 	reset_db(db);
         break;
@@ -3491,10 +3582,16 @@ rdf_transaction(term_t goal)
 
   rc = PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, PRED_call1, goal);
 
-  if ( rc && LOCKOUT_READERS(db) )
-  { commit_transaction(db);
+  if ( rc )
+  { if ( db->tr_nesting == 0 )
+    { if ( !LOCKOUT_READERS(db) )
+	goto discard;
+    }
+
+    commit_transaction(db);
   } else
-  { discard_transaction(db);
+  { discard:
+    discard_transaction(db);
   }
   UNLOCK(db);
 
@@ -3807,12 +3904,16 @@ update_triple(rdf_db *db, term_t action, triple *t)
       return FALSE;
     if ( t2.source == t->source && t2.line == t->line )
       return TRUE;
-    if ( t->source )
-      unregister_source(db, t);
-    t->source = t2.source;
-    t->line = t2.line;
-    if ( t2.source )
-      register_source(db, t);
+    if ( db->transactions )
+    { record_update_src_transaction(db, t, t2.source, t2.line);
+    } else
+    { if ( t->source )
+	unregister_source(db, t);
+      t->source = t2.source;
+      t->line = t2.line;
+      if ( t->source )
+	register_source(db, t);
+    }
 
     return TRUE;			/* considered no change */
   } else
@@ -3821,7 +3922,6 @@ update_triple(rdf_db *db, term_t action, triple *t)
   for(i=0; i<INDEX_TABLES; i++)
     tmp.next[i] = NULL;
 
-  erase_triple(db, t);
   new = PL_malloc(sizeof(*new));
   memset(new, 0, sizeof(*new));
   new->subject	    = tmp.subject;
@@ -3832,10 +3932,15 @@ update_triple(rdf_db *db, term_t action, triple *t)
   new->qualifier    = tmp.qualifier;
   new->source	    = tmp.source;
   new->line	    = tmp.line;
-
   lock_atoms(new);
-  link_triple(db, new);
-  db->generation++;
+
+  if ( db->transactions )
+  { record_update_transaction(db, t, new);
+  } else
+  { erase_triple(db, t);
+    link_triple(db, new);
+    db->generation++;
+  }
 
   return TRUE;
 }
