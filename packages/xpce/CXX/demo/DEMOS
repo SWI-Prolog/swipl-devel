@@ -59,10 +59,10 @@ onexit.C	A	Shows quitting XPCE/C++ using exit() and
 			hooks in the exit system.
 ----------------------------------------------------------------
 global.C	L/A	Illustrates the usage of a global C++
-			PceArg object for referencing an XPCE
-			object.
+			PceArg object for referencing XPCE
+			objects.
 ----------------------------------------------------------------
-person.C	A	Shows a C++ class for data-storage, opening
+person.C	A	Shows a C++ application class, opening
 			an XPCE dialog box for editing the C++ slots.
 			If the user presses `Quit', the application
 			prints the new values and exits.

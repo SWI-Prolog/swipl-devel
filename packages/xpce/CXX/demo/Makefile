@@ -16,15 +16,15 @@
 
 # The @Var@ fields are set by configure
 
-.SUFFIXES: .C .so
+.SUFFIXES: .cxx .so
 
-PCEHOME=/oorlam/jan/objects/xpce
-PCEARCH=linux
+PCEHOME=../..
+PCEARCH=i686-linux
+LIBDIR=$(PCEHOME)/lib/$(PCEARCH)
 CC=gcc
 CXX=g++
 SO=so
 LD=g++
-LIBDIR=../../linux
 LDSOFLAGS=-shared -L$(LIBDIR)
 COFLAGS=-O
 CMFLAGS= -fPIC -funsigned-char
@@ -47,12 +47,12 @@ all:
 		@echo "Before running an application, do (in sh)"
 		@echo ""
 		@echo "    export PCEHOME=$(PCEHOME)"
-		@echo "    export LD_LIBRARY_PATH=$$PCEHOME/$(PCEARCH)"
+		@echo "    export LD_LIBRARY_PATH=$(PCEHOME)/lib/$(PCEARCH)"
 		@echo ""
 		@echo "Or (in csh)"
 		@echo ""
 		@echo "    setenv PCEHOME $(PCEHOME)"
-		@echo "    setenv LD_LIBRARY_PATH $$PCEHOME/$(PCEARCH)"
+		@echo "    setenv LD_LIBRARY_PATH $(PCEHOME)/lib/$(PCEARCH)"
 
 CFLAGS=		-I$(PCEHOME)/include $(CMFLAGS) $(COFLAGS)
 PCELIBS=	-lXPCEmain -lXPCE $(XLIBS) $(NETLIBS) -lm $(CXXLIBHACK)
@@ -89,14 +89,10 @@ showinst:	showinst.o
 test:		test.o
 		$(LD) -o $@ $(LDFLAGS) test.o $(PCELIBS)
 
-# Shared libraries for loading into XPCE/SWI-Prolog
-
-$(PLSOLIBS):	pcerc.o
-
 # default rules for non GNU-make
 
-.C.o:
-		$(CXX) -c $(CFLAGS) $*.C
+.cxx.o:
+		$(CXX) -c $(CFLAGS) $*.cxx
 
 .o.so:		
-		$(LD) $(LDSOFLAGS) -o $@ pcerc.o $*.o
+		$(LD) $(LDSOFLAGS) -o $@ $*.o

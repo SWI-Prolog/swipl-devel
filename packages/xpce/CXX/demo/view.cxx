@@ -56,7 +56,9 @@ pceInitApplication(int argc, char *argv[])
 { int i;
 
   for( i = 1; i < argc; i++ )
+  { /*ThePce.send("write_ln", "Viewing", argv[i]); used for testing console*/
     view(argv[i]);
+  }
 
   return SUCCEED;
 }

@@ -7,6 +7,7 @@
     Copyright (C) 1993 University of Amsterdam. All rights reserved.
 */
 
+#include <string.h>
 #include <pce/Pce.h>
 #include <pce/Class.h>
 
@@ -20,7 +21,7 @@ To use it, run
 
 	% make bnode.so
 	% xpce
-	?- load_foreign_library(bnode).
+	?- pce_load_cxx(bnode).
 	?- manpce(b_node).		% to inspect the new class.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 

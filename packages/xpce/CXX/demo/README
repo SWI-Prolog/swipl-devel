@@ -3,8 +3,10 @@
 
 Auther:		Jan Wielemaker, SWI, University of Amsterdam
 
-Last updated:	Marh 27, 1997
+Modified:	March 27, 1997
 		Tested in fixed for Solaris 2.5, gcc 2.7.2, Linux/ELF
+Last Updated:	April 2, 1997
+		Ported to Win32 platform using MSVC 4.2
 
 This directory contains demos for the   XPCE/C++ interface.  These demos
 have been developed to test  and   illustrate  the  functionality of the
@@ -15,10 +17,24 @@ This  is  an  alpha   version   of    the   C++   interface.   See  also
 $PCEHOME/README.CXX and the LaTeX documentation in $PCEHOME/man/CXX/
 
 
+Preparation
+===========
+
+The Makefile is created by the   configuration  run from Makefile.in for
+the current target platform.  Normally,  you   will  have  to change the
+definition of PCEHOME in the Makefile to something like:
+
+PCEHOME=/usr/local/lib/pl-2.8.1/xpce
+
+You may wish to copy   $(PCEHOME)/lib/$(PCEARCH)/libXPCE.so*  to a place
+where  your  system  is  looking   for    them,   such  as  /usr/lib  or
+/usr/local/lib.
+
+
 Compiling stand-alone executables
 =================================
 
-The file view.C defines a simple application that can be started as
+The file view.cxx defines a simple application that can be started as
 	
 	% ./view file ...
 
@@ -29,16 +45,15 @@ To compile it, run `make so'  in   the  ../../<arch> directory where you
 have built XPCE. Now, do (use absolute paths   if  you want to start the
 applications from another directory):
 
-	% export LD_LIBRARY_PATH=../../<arch>
+	% export LD_LIBRARY_PATH=../../lib/<arch>
 	% export PCEHOME=../..
-	% make view.o
 	% make view
 
 Stand-alone executables need to be linked  to -lXPCE and -lXPCEmain. The
 latter  provides  a  main()  wrapper  around  pceInitApplication()  that
 initialises XPCE. The environment variable $PCEHOME   should  be set. It
 you   donot   want    to    use     -lXPCEmain,    copy    and    modify
-$PCEHOME/src/itf/main.c to suit your needs.
+$PCEHOME/src/itf/main.cxx to suit your needs.
 
 
 Loading XPCE/C++ defined classes in XPCE/(SWI-)Prolog
@@ -47,15 +62,11 @@ Loading XPCE/C++ defined classes in XPCE/(SWI-)Prolog
 Compiling the demo
 ------------------
 
-bnode.C defines the XPCE class b_node from C++.  Compile it using:
+bnode.cxx defines the XPCE class b_node from C++.  Compile it using:
 
 	% make bnode.so
-
-pcerc.o is a  small  wrapper  to  make   the  .so  file  compliant  with
-SWI-Prolog's load_foreign_library/1 predicate.  Now, run:
-
 	% xpce
-	?- load_foreign_library(bnode).
+	?- pce_load_cxx(bnode).
 	?- manpce(b_node).
 
 to verify the existence of the new class.
@@ -76,6 +87,6 @@ Problems and remarks
        get it to work is by relinking SWI-Prolog after adding
        `-u __builtin_new' to the LDFLAGS.
 
-    3) LINUX: Applications cause a segmentation fault immediately
+    3) LINUX: Applications cause a segmentation fault immediately.
        For one or another reason, you cannot link to the dynamic
        -lg++ library.  Don't ask me why.  See Makefile for details.

@@ -21,7 +21,7 @@ Illustrates the definition of a simple subclass of class point, making a
 	3 4 5
 	?- new(ZP, z_point(1,2,3)).
 	ZP = @377866
-	?- object(@377866, O)
+	?- object(@377866, O).
 	O = z_point(1, 2, 3)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
