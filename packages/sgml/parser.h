@@ -151,6 +151,9 @@ typedef struct _sgml_environment
   struct _xmlns *xmlns;			/* XML namespace */
   struct _xmlns *thisns;		/* Name space of element */
 #endif
+#ifdef XMLBASE
+  ochar *uri_base;			/* xml:base handling */
+#endif
   dtd_space_mode space_mode;		/* How to handle blanks */
   dtd_shortref *map;			/* SHORTREF map */
   struct _sgml_environment *parent;	/* Parent environment */
