@@ -1,67 +1,41 @@
-SWI-Prolog 5.1.10/XPCE 6.1.10 Summary of changes
+SWI-Prolog 5.1.11/XPCE 6.1.11 Summary of changes
 
 Status
 ======
   
-  * 11th beta-release.  Considering feedback, the 5.1.x series probably becomes
+  * 12th beta-release.  Considering feedback, the 5.1.x series probably becomes
     mainstream not too far from here.
-
-    This version provides the missing link to use the same Prolog engine
-    from multiple foreign threads (M threads can use N engines).  See
-    PL_set_engine() and friends in the reference manual.  Threading in
-    JPL (Java interface) should use this.  Currently only the Java 
-    thread that created SWI-Prolog can use it.
 
 SWI-Prolog
 ==========
 
-  * Replaced the execution profiler with a complete new call-statistics
-    gathering system and a GUI frontent to browse the results.  See
-    http://www.swi.psy.uva.nl/projects/SWI-Prolog/Manual/profile.html
+  * Better performance using multiple threads and dynamic code on SMP
+    hardware by using more per-object mutex objects.
 
-  * Added the possibility to detach and re-attach Prolog engines to
-    threads, so the multi-threaded version can have N engines on M threads.
-    A single thread can access multiple engines and an engine can be
-    migrated from one thread to another.
+  * Provide compile_predicates/1 as advocated in by Richard O'Keefe.
 
-  * Get Richard O'Keefs fast `natural-merge' sort to replace sort,
-    msort and keysort.  Saves space on the first 2 and a huge performance
-    gain on keysort.
+  * Some protability patches.
 
-  * PORT: Better detection of required mmap() infrastructure and deal with
-    IRIX style MAP_AUTOGROW maps.  Provides mmap-based stacks for more
-    platforms.
-
-  * ADDED: Make it possible for signals to break blocking (I/O) calls.  This
-    makes it possible to use call_with_time_limit/2 on socket operations and
-    more.  This mechanism is not yet exploited for all operations where it
-    makes sense.
-
-  * Quite a few minor patches.
+  * Miscellaneous small patches.
 
 Packages
 ========
 
-  * Make socket library handle Prolog signals, so it can be used together
-    with call_with_time_limit/2 and thread_signal/2.
-
-  * Better handling of errors in the Windows version of the socket library.
+  * XPCE: More support around tabbed-dialogs.  Added library(tabbed_window)
+    displaying multiple windows as subwindow of a single window, selectable
+    by tabs.
 
 Development environment
 =======================
 
-  * Handle aborts more gracefully (still not perfect).
-
-  * Print human-readable exceptions in the GUI-Tracer.
-  
-  * PceEmacs colouring mode to do more with XPCE classes
-
 Short-term Plans
 ================
 
+  * Write articles :-)
+
   * RDF storage and RDFS and OWL query support.
 
-  * Resolve Java interface issues (Linking issues and related to the above).
+  * Incorporate JPL (Java interface) in the main development tree.
 
 Donations
 =========
