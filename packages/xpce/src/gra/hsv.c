@@ -45,14 +45,14 @@ RGBToHSV(float r, float g, float b, float *H, float *S, float *V)
 
   if ( s > 0 )
   { if ( r == cmax )
-    { h = 0.17 * (g - b) / (cmax - cmin);
+    { h = (float)0.17 * (g - b) / (cmax - cmin);
     } else if ( g == cmax )
-    { h = 0.33 + 0.17 * (b - r) / (cmax - cmin);
+    { h = (float)0.33 + (float)0.17 * (b - r) / (cmax - cmin);
     } else
-    { h = 0.67 + 0.17 * (r - g) / (cmax - cmin);
+    { h = (float)0.67 + (float)0.17 * (r - g) / (cmax - cmin);
     }
     if ( h < 0.0 )
-    { h = h + 1.0;
+    { h = h + (float)1.0;
     }
   } else
   { h = 0.0;
@@ -71,33 +71,33 @@ HSVToRGB(float hue, float sat, float V, float *R, float *G, float *B)
 
   if (hue > 0.17 && hue <= 0.33)	/* green/red */
   { g = 1.0;
-    r = (0.33 - hue) / 0.16;
+    r = ((float)0.33 - hue) / (float)0.16;
     b = 0.0;
   } else if (hue > 0.33 && hue <= 0.5)	/* green/blue */
   { g = 1.0;
-    b = (hue - 0.33) / 0.17;
+    b = (hue - (float)0.33) / (float)0.17;
     r = 0.0;
   } else if (hue > 0.5 && hue <= 0.67)	/* blue/green */
   { b = 1.0;
-    g = (0.67 - hue) / 0.17;
+    g = ((float)0.67 - hue) / (float)0.17;
     r = 0.0;
   } else if (hue > 0.67 && hue <= 0.83)	/* blue/red */
   { b = 1.0;
-    r = (hue - 0.67) / 0.16;
+    r = (hue - (float)0.67) / (float)0.16;
     g = 0.0;
   } else if (hue > 0.83 && hue <= 1.0)	/* red/blue */
   { r = 1.0;
-    b = (1.0 - hue) / 0.17;
+    b = ((float)1.0 - hue) / (float)0.17;
     g = 0.0;
   } else				/* red/green */
   { r = 1.0;
-    g = hue / 0.17;
+    g = hue / (float)0.17;
     b = 0.0;
   }
 
-  r = (sat * r + (1.0 - sat));
-  g = (sat * g + (1.0 - sat));
-  b = (sat * b + (1.0 - sat));
+  r = (sat * r + ((float)1.0 - sat));
+  g = (sat * g + ((float)1.0 - sat));
+  b = (sat * b + ((float)1.0 - sat));
 
   r = r * V;
   g = g * V;
