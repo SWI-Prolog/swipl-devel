@@ -10,6 +10,7 @@
     Copyright (C) 1990-2000 SWI, University of Amsterdam. All rights reserved.
 */
 
+#define UTIL_H_IMPLEMENTATION
 #include "util.h"
 #include <ctype.h>
 #include <stdlib.h>

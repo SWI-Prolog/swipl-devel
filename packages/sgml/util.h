@@ -83,4 +83,10 @@ const char *	str_summary(const char *s, int len);
 char *		str2ring(const char *in);
 char *		load_file_to_charp(const char *file, int *len);
 
+#if defined(USE_STRING_FUNCTIONS) && !defined(UTIL_H_IMPLEMENTATION)
+
+#define istreq(s1,s2) (strcmp(s1,s2)==0)
+
+#endif
+
 #endif /*DTD_UTIL_H_INCLUDED*/

@@ -1,9 +1,9 @@
 TODO LIST:
 
 	* Cleanup space, SHORTREF and CDATA handling
+		- Build array of possible end-characters
 	* Handling of external entities (both param and normal) in Prolog
 	* Check ID/IDREF
-	* Handle memory-allocation errors
 	* Donot use quoted values for tag identifications.  Right now the
 	  following leads to bad error handling:
 

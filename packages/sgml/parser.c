@@ -47,7 +47,6 @@ static const ichar *	itake_entity_name(dtd *dtd, const ichar *in,
 static const ichar *	itake_namegroup(dtd *dtd,
 					charfunc sep, const ichar *decl,
 					dtd_symbol **names, int *n);
-static const char *	isee_func(dtd *dtd, const ichar *in, charfunc func);
 static const ichar *	isee_text(dtd *dtd, const ichar *in, char *id);
 static const ichar *	iskip_layout(dtd *dtd, const ichar *in);
 static dtd_parser *	clone_dtd_parser(dtd_parser *p);
@@ -76,9 +75,6 @@ void			free_dtd_parser(dtd_parser *p);
 		 /*******************************
 		 *	      MACROS		*
 		 *******************************/
-
-#define HasClass(dtd, chr, mask) \
-	(dtd->charclass->class[(chr)] & (mask))
 
 #define WITH_CLASS(p, c, g) \
 	{ sgml_event_class _oc = p->event_class; \
@@ -111,25 +107,27 @@ push_location(dtd_parser *p, locbuf *save)
 
 static void
 pop_location(dtd_parser *p, locbuf *saved)
-{ if ( saved )
-  { p->location = saved->here;
-    p->startloc = saved->start;
-  } else
-  { p->location = *p->location.parent;
-    p->startloc = *p->startloc.parent;
-  }
+{ p->location = saved->here;
+  p->startloc = saved->start;
 }
 
+
+static __inline void
+_sgml_cplocation(dtd_srcloc *d, dtd_srcloc *loc)
+{ d->type    = loc->type;
+  d->name    = loc->name;
+  d->line    = loc->line;
+  d->linepos = loc->linepos;
+  d->charpos = loc->charpos;
+					/* but not the parent! */
+}
 
 void
 sgml_cplocation(dtd_srcloc *d, dtd_srcloc *loc)
-{ d->line    = loc->line;
-  d->linepos = loc->linepos;
-  d->charpos = loc->charpos;
-  d->type    = loc->type;
-  d->name    = loc->name;
+{ _sgml_cplocation(d, loc);
 }
 
+#define sgml_cplocation(d,s) _sgml_cplocation(d, s)
 
 static void
 inc_location(dtd_srcloc *l, int chr)
@@ -153,6 +151,20 @@ dec_location(dtd_srcloc *l, int chr)
   l->charpos--;
 }
 
+		 /*******************************
+		 *   CLASSIFICATION PRIMITIVES	*
+		 *******************************/
+
+#define HasClass(dtd, chr, mask) \
+	(dtd->charclass->class[(chr)] & (mask))
+
+static const char *
+isee_func(dtd *dtd, const ichar *in, charfunc func)
+{ if ( dtd->charfunc->func[func] == *in )
+    return ++in;
+
+  return NULL;
+}
 
 		 /*******************************
 		 *	      SYMBOLS		*
@@ -968,16 +980,6 @@ itake_nonblank_chars(dtd *dtd, const ichar *in, ichar *out, int len)
 
   return iskip_layout(dtd, in);
 }
-
-
-static const char *
-isee_func(dtd *dtd, const ichar *in, charfunc func)
-{ if ( dtd->charfunc->func[func] == *in )
-    return ++in;
-
-  return NULL;
-}
-
 
 
 		 /*******************************
@@ -3018,6 +3020,14 @@ process_declaration(dtd_parser *p, const ichar *decl)
 { const ichar *s;
   dtd *dtd = p->dtd;
 
+  if ( p->dmode != DM_DTD )
+  { if ( (s=isee_func(dtd, decl, CF_ETAGO2)) ) /* </ ... > */
+    { return process_end_element(p, s);
+    } else if ( HasClass(dtd, *decl, CH_NAME) ) /* <letter */
+    { return process_begin_element(p, decl);
+    }
+  }
+
   if ( (s=isee_func(dtd, decl, CF_MDO2)) ) /* <! ... >*/
   { decl = s;
 
@@ -3047,14 +3057,6 @@ process_declaration(dtd_parser *p, const ichar *decl)
     }
 
     return TRUE;
-  }
-
-  if ( p->dmode != DM_DTD )
-  { if ( (s=isee_func(dtd, decl, CF_ETAGO2)) ) /* </ ... > */
-    { return process_end_element(p, s);
-    } else
-    { return process_begin_element(p, decl);
-    }
   }
 
   return gripe(ERC_SYNTAX_ERROR, "Invalid declaration", decl);
@@ -3761,12 +3763,23 @@ recover_parser(dtd_parser *p)
 }
 
 
+static __inline void
+setlocation(dtd_srcloc *d, dtd_srcloc *loc, int line, int lpos)
+{ d->line    = line;
+  d->linepos = lpos;
+  d->charpos = loc->charpos - 1;
+  d->type    = loc->type;
+  d->name    = loc->name;
+}
+
+
 void
 putchar_dtd_parser(dtd_parser *p, int chr)
 { dtd *dtd = p->dtd;
   const ichar *f = dtd->charfunc->func;
-  dtd_srcloc old = p->location;
-
+  int line = p->location.line;
+  int lpos = p->location.linepos;
+    
   if ( f[CF_RS] == chr )
   { p->location.line++;
     p->location.linepos = 0;
@@ -3778,20 +3791,20 @@ reprocess:
   switch(p->state)
   { case S_PCDATA:
     { if ( f[CF_MDO1] == chr )		/* < */
-      { sgml_cplocation(&p->startloc, &old);
+      { setlocation(&p->startloc, &p->location, line, lpos);
 	p->state = S_DECL0;
 	empty_icharbuf(p->buffer);
 	return;
       }
       if ( p->dmode == DM_DTD )
       { if ( f[CF_PERO] == chr )	/* % */
-	{ sgml_cplocation(&p->startloc, &old);
+	{ setlocation(&p->startloc, &p->location, line, lpos);
 	  p->state = S_PENT;
 	  return;
 	}
       } else
       { if ( f[CF_ERO] == chr )		/* & */
-	{ sgml_cplocation(&p->startloc, &old);
+	{ setlocation(&p->startloc, &p->location, line, lpos);
 	  p->state = S_ENT0;
 	  return;
 	}
@@ -3811,11 +3824,11 @@ reprocess:
       }
 #endif
       if ( p->cdata->size == 0 )
-        sgml_cplocation(&p->startcdata, &old);
+        setlocation(&p->startcdata, &p->location, line, lpos);
       add_cdata(p, dtd->charmap->map[chr], FALSE);
       return;
     }
-    case S_ECDATA2:			/* Seen </ in CDATA */
+    case S_ECDATA2:			/* Seen </ in CDATA/RCDATA */
     { if ( f[CF_MDC] == chr &&
 	   p->etaglen == p->buffer->size &&
 	   istrncaseeq(p->buffer->data, p->etag, p->etaglen) )
@@ -3829,7 +3842,7 @@ reprocess:
 	  empty_cdata(p);
 	}
 	empty_icharbuf(p->buffer);
-	p->state = S_PCDATA;
+	p->cdata_state = p->state = S_PCDATA;
       } else
       { add_cdata(p, dtd->charmap->map[chr], TRUE);
 	if ( p->etaglen < p->buffer->size || !HasClass(dtd, chr, CH_NAME))
@@ -3851,7 +3864,7 @@ reprocess:
     }
     case S_RCDATA:
     { if ( f[CF_ERO] == chr ) /* & */
-      { sgml_cplocation(&p->startloc, &old);
+      { setlocation(&p->startloc, &p->location, line, lpos);
 	p->state = S_ENT0;
 	return;
       }
@@ -3861,7 +3874,7 @@ reprocess:
     { add_cdata(p, dtd->charmap->map[chr], TRUE);
 
       if ( f[CF_MDO1] == chr )		/* < */
-      { sgml_cplocation(&p->startloc, &old);
+      { setlocation(&p->startloc, &p->location, line, lpos);
 	p->state = S_ECDATA1;
       } 
 
@@ -4058,7 +4071,7 @@ reprocess:
     }
     case S_SHORTTAG_CDATA:
     { if ( f[CF_ETAGO2] == chr )	/* / */
-      { sgml_cplocation(&p->startloc, &old);
+      { setlocation(&p->startloc, &p->location, line, lpos);
 	process_cdata(p, TRUE);
 	p->state = S_PCDATA;
 	WITH_CLASS(p, EV_SHORTTAG, close_current_element(p));

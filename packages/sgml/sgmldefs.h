@@ -39,6 +39,8 @@
 typedef unsigned char ochar;		/* output character */
 typedef unsigned char ichar;		/* input character */
 
+#define USE_STRING_FUNCTIONS 1		/* use built-in str* functions */
+
 
 		 /*******************************
 		 *	       LIMITS		*

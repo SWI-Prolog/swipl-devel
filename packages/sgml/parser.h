@@ -92,6 +92,13 @@ typedef enum
 
 
 typedef enum
+{ DCL_DTD,				/* DTD Declaration */
+  DCL_BEGIN,				/* begin-tag */
+  DCL_END,				/* end-tag */
+} dcl_type;
+
+
+typedef enum
 { MS_IGNORE,				/* ignore this data */
   MS_INCLUDE,				/* process normally */
   MS_CDATA,				/* pass literally */
