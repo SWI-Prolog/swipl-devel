@@ -476,7 +476,7 @@ delete_tree_node(Node n)
     unrelate_node(n, son);
     delete_tree_node(son);
   }
-  freeObject(n);
+  send(n, NAME_destroy, EAV);
 
   succeed;
 }

@@ -4,6 +4,13 @@
 VERSION 6.2.8, distributed with SWI-Prolog 5.2.8
 ================================================
 
+* MODIFIED: `node->delete_tree' now calls ->destroy on the deleted nodes,
+  providing guaranteed destruction of the node's <-image.  Application that
+  which to preserve the images should detach them from the tree before
+  deleting the node.  We believe it is unlikely that any application is
+  affected.  Please contact bugs@swi-prolog.org if this change poses
+  problems to you.
+
 * ENHANCED/FIXED: X11 image routines now diagnose the image type using
   analysis of the header similar to Unix file(1) before calling the loading
   function.  This is faster and avoids trouble of unsafe loading filters
