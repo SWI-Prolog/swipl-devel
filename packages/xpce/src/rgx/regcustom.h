@@ -29,7 +29,7 @@
 /* headers if any */
 #define tree pceTree
 #define string pceString
-#include "kernel.h"
+#include <h/kernel.h>
 #undef tree
 #undef string
 
@@ -42,14 +42,9 @@
 
 /* overrides for regguts.h definitions, if any */
 #define	FUNCPTR(name, args)	(*name) _ANSI_ARGS_(args)
-#if 0
 #define	MALLOC(n)		pceMalloc(n)
 #define	FREE(p)			pceFree(VS(p))
 #define	REALLOC(p,n)		pceRealloc(VS(p),n)
-#else
-#undef assert
-#endif
-
 
 #include "regtypes.h"
 

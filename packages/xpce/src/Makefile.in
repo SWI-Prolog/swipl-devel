@@ -286,7 +286,7 @@ Initialize.o:
 ################################################################
 
 MODULES=	adt ari evt gnu gra itf ker men fmt msg prg rel \
-		txt unx win img box
+		rgx txt unx win img box
 
 ################################################################
 # PROTOTYPES (must be made in the source directory)
@@ -535,6 +535,29 @@ $(srcdir)/rel/proto.h:	$(RELSRC)
 		$(MKPROTO) $(RELSRC) > $@
 
 ################################################################
+# RGX		--- Henry Spencer's regex library
+################################################################
+
+RGXOBJS=	regcompA.o regexecA.o \
+		regcompW.o regexecW.o \
+		regfree.o regerror.o
+
+REGCOBJS=	rgx/regcomp.c \
+		rgx/regc_lex.c rgx/regc_color.c rgx/regc_nfa.c \
+		rgx/regc_cvec.c rgx/regc_locale.c
+
+rgx/regcompA.o:	$(REGCOBJS)
+		$(CC) -c $(CFLAGS) $(srcdir)/rgx/regcomp.c -o $@
+rgx/regcompW.o:	$(REGCOBJS)
+		$(CC) -c $(CFLAGS) -DREG_WIDE $(srcdir)/rgx/regcomp.c -o $@
+rgx/regexecA.o:	rgx/regexec.c
+		$(CC) -c $(CFLAGS) $< -o $@
+rgx/regexecW.o:	rgx/regexec.c
+		$(CC) -c $(CFLAGS) -DREG_WIDE $< -o $@
+
+$(srcdir)/rgx/proto.h::
+
+################################################################
 # TXT 		--- Text Representation and Manipulation Classes
 ################################################################
 
@@ -637,6 +660,7 @@ OBJECTS=	$(addprefix adt/, $(ADTOBJS)) \
 		$(addprefix msg/, $(MSGOBJS)) \
 		$(addprefix prg/, $(PRGOBJS)) \
 		$(addprefix rel/, $(RELOBJS)) \
+		$(addprefix rgx/, $(RGXOBJS)) \
 		$(addprefix txt/, $(TXTOBJS)) \
 		$(addprefix unx/, $(UNXOBJS)) \
 		$(addprefix win/, $(WINOBJS))
