@@ -33,6 +33,7 @@ static int	header(Any, Area, Bool);
 static int	footer(void);
 static status	fill(Any, Name);
 static void	ps_colour(Colour c, int grey);
+static status	draw_postscript_image(Image image, Int x, Int y);
 
 static struct
 { Colour colour;			/* current colour */
@@ -1271,6 +1272,9 @@ drawPostScriptPath(Path p)
     psdef_texture(p);
     psdef_fill(p, NAME_fillPattern);
     psdef_arrows(p);
+
+    if ( notNil(p->mark) )
+      draw_postscript_image(p->mark, ZERO, ZERO);
   } else
   { if ( valInt(getSizeChain(p->points)) >= 2 )
     { Chain points = (p->kind == NAME_smooth ? p->interpolation : p->points);
@@ -1366,6 +1370,25 @@ drawPostScriptPath(Path p)
 	ps_output("draw\n");
       }
   
+      if ( notNil(p->mark) )
+      { Cell cell;
+	Image i = p->mark;
+	int iw = valInt(i->size->w);
+	int ih = valInt(i->size->h);
+	int iw2 = (iw+1)/2;
+	int ih2 = (ih+1)/2;
+	int ox = valInt(p->offset->x);
+	int oy = valInt(p->offset->y);
+
+	for_cell(cell, p->points)
+	{ Point pt = cell->value;
+
+	  draw_postscript_image(i,
+				toInt(valInt(pt->x) - iw2 + ox),
+				toInt(valInt(pt->y) - ih2 + oy));
+	}
+      }
+
       if ( adjustFirstArrowPath(p) )
 	postscriptGraphical(p->first_arrow);
       if ( adjustSecondArrowPath(p) )
@@ -1553,36 +1576,8 @@ drawPostScriptArc(Arc a)
 }
 
 
-status
-drawPostScriptBitmap(BitmapObj bm)
-{ Name format = get(bm->image, NAME_postscriptFormat, EAV);
-
-  if ( format == NAME_colour )
-  { if ( psstatus.mkheader )
-    { psdef(NAME_rgbimage);
-    } else
-    { Int depth = get(bm->image, NAME_postscriptDepth, EAV);
-
-      ps_output("~x ~y ~w ~h ~d rgbimage\n~I\n",
-		bm, bm, bm, bm, depth, depth, bm->image);
-    }
-  } else
-  { if ( psstatus.mkheader )
-    { psdef(NAME_greymap);
-    } else
-    { Int depth = get(bm->image, NAME_postscriptDepth, EAV);
-      
-      ps_output("~x ~y ~w ~h ~d greymap\n~P\n",
-		bm, bm, bm, bm, depth, depth, bm->image);
-    }
-  }
-
-  succeed;
-}
-
-
-status
-drawPostScriptImage(Image image)
+static status
+draw_postscript_image(Image image, Int x, Int y)
 { Name format = get(image, NAME_postscriptFormat, EAV);
 
   if ( format == NAME_colour )
@@ -1591,8 +1586,8 @@ drawPostScriptImage(Image image)
     } else
     { Int depth = get(image, NAME_postscriptDepth, EAV);
 
-      ps_output("0 0 ~d ~d ~d rgbimage\n~I\n",
-		image->size->w, image->size->h, depth, depth, image);
+      ps_output("~d ~d ~d ~d ~d rgbimage\n~I\n",
+		x, y, image->size->w, image->size->h, depth, depth, image);
     }
   } else
   { if ( psstatus.mkheader )
@@ -1600,12 +1595,24 @@ drawPostScriptImage(Image image)
     } else
     { Int depth = get(image, NAME_postscriptDepth, EAV);
       
-      ps_output("0 0 ~d ~d ~d greymap\n~P\n",
-		image->size->w, image->size->h, depth, depth, image);
+      ps_output("~d ~d ~d ~d ~d greymap\n~P\n",
+		x, y, image->size->w, image->size->h, depth, depth, image);
     }
   }
 
   succeed;
+}
+
+
+status
+drawPostScriptBitmap(BitmapObj bm)
+{ return draw_postscript_image(bm->image, bm->area->x, bm->area->y);
+}
+
+
+status
+drawPostScriptImage(Image image)
+{ return draw_postscript_image(image, ZERO, ZERO);
 }
 
 
