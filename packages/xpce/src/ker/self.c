@@ -90,11 +90,7 @@ initialisePce(Pce pce)
   assign(pce, exception_handlers,     newObject(ClassSheet, EAV));
 
   assign(pce, home,		      DEFAULT);
-  assign(pce, defaults,		      newObject(ClassFile,
-						CtoString("$PCEHOME/Defaults"),
-						NAME_utf8,
-						EAV));
-
+  assign(pce, defaults,		      CtoString("$PCEHOME/Defaults"));
   assign(pce, version,                CtoName(PCE_VERSION));
   assign(pce, machine,                CtoName(MACHINE));
   assign(pce, operating_system,       CtoName(OS));
@@ -1222,7 +1218,7 @@ static vardecl var_pce[] =
      NAME_exception, "Exception-name -> handler mapping"),
   IV(NAME_home, "[name]", IV_SEND,
      NAME_environment, "PCE's home directory"),
-  IV(NAME_defaults, "source_sink", IV_BOTH,
+  IV(NAME_defaults, "source_sink|char_array", IV_BOTH,
      NAME_environment, "File/rc from which to load defaults"),
   IV(NAME_version, "name", IV_NONE,
      NAME_version, "Version indication"),

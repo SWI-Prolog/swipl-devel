@@ -817,9 +817,9 @@ loadDefaultsPce(Pce pce, SourceSink from)
     ClassVariableTable = globalObject(NAME_defaultTable, ClassChainTable, EAV);
 
   if ( isDefault(from) )
-    from = pce->defaults;
+    from = checkType(pce->defaults, nameToType(NAME_file), pce);
 
-  if ( send(from, NAME_access, NAME_read, EAV) )
+  if ( from && send(from, NAME_access, NAME_read, EAV) )
   { loadDefaultClassVariables(from);
 
     succeed;
