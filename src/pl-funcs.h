@@ -483,7 +483,7 @@ char *		DeRefLink(const char *link, char *buf);
 bool		ChDir(const char *path);
 atom_t		TemporaryFile(const char *id);
 int		hasConsole(void);
-struct tm *	LocalTime(long int *t);
+struct tm *	LocalTime(long int *t, struct tm *r);
 Char		GetChar(void);
 char *		getenv3(const char *, char *buf, unsigned int buflen);
 int		getenvl(const char *);

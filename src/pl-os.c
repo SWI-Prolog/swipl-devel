@@ -1793,7 +1793,7 @@ ChDir(const char *path)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    struct tm *LocalTime(time)
+    struct tm *LocalTime(time, struct tm *r)
 	      long *time;
 
     Convert time in Unix internal form (seconds since Jan 1 1970) into a
@@ -1821,8 +1821,14 @@ ChDir(const char *path)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 struct tm *
-LocalTime(long int *t)
-{ return localtime((const time_t *) t);
+LocalTime(long int *t, struct tm *r)
+{
+#ifdef HAVE_LOCALTIME_R
+  return localtime_r(t, r);
+#else
+  *r = *localtime((const time_t *) t);
+  return r;
+#endif
 }
 
 

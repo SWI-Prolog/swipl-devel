@@ -315,6 +315,9 @@
 /* Define to 1 if you have the <locale.h> header file. */
 #undef HAVE_LOCALE_H
 
+/* Define to 1 if you have the `localtime_r' function. */
+#undef HAVE_LOCALTIME_R
+
 /* Define to 1 if you have the <mach-o/rld.h> header file. */
 #undef HAVE_MACH_O_RLD_H
 

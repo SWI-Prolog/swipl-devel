@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: make convert_time/7 thread-safe using localtime_r() if
+    provided.
+
+
 VERSION 5.2.12 (Jan 17, 2004)
 =============================
 	
