@@ -121,8 +121,8 @@ typedef struct
 
 struct token
 { int type;			/* type of token */
-  int start;			/* start-position */
-  int end;			/* end-position */
+  long start;			/* start-position */
+  long end;			/* end-position */
   union
   { number	number;		/* int or float */
     atom_t	atom;		/* atom value */
@@ -281,13 +281,13 @@ errorWarning(const char *id_str, ReadData _PL_rd)
   { PL_unify_term(loc,
 		  PL_FUNCTOR, FUNCTOR_file3,
 		    PL_ATOM, source_file_name,
-		    PL_INTEGER, source_line_no,
-		    PL_INTEGER, source_char_no);
+		    PL_INT, source_line_no,
+		    PL_LONG, source_char_no);
   } else if ( isStringStream(rb.stream) )
   { PL_unify_term(loc,
 		  PL_FUNCTOR, FUNCTOR_string2,
 		    PL_STRING, rdbase,
-		    PL_INTEGER, last_token_start-rdbase);
+		    PL_LONG, last_token_start-rdbase);
   } else				/* any stream */
   { term_t stream = PL_new_term_ref();
 
@@ -295,8 +295,8 @@ errorWarning(const char *id_str, ReadData _PL_rd)
     PL_unify_term(loc,
 		  PL_FUNCTOR, FUNCTOR_stream3,
 		    PL_TERM, stream,
-		    PL_INTEGER, source_line_no,
-		    PL_INTEGER, source_char_no);
+		    PL_INT, source_line_no,
+		    PL_LONG, source_char_no);
   }
 
   _PL_rd->has_exception = TRUE;
@@ -1488,12 +1488,12 @@ opPos(op_entry *op, out_entry *args)
 
       PL_unify_term(r,
 		    PL_FUNCTOR,	FUNCTOR_term_position5,
-		    PL_INTEGER,	s,
-		    PL_INTEGER,	e,
-		    PL_INTEGER, fs,
-		    PL_INTEGER, fe,
-		    PL_LIST,    2, PL_TERM, args[0].tpos,
-		    		   PL_TERM, args[1].tpos);
+		    PL_INT, s,
+		    PL_INT, e,
+		    PL_INT, fs,
+		    PL_INT, fe,
+		    PL_LIST, 2, PL_TERM, args[0].tpos,
+		    		PL_TERM, args[1].tpos);
     } else
     { int s, e;
       
@@ -1507,11 +1507,11 @@ opPos(op_entry *op, out_entry *args)
 
       PL_unify_term(r,
 		    PL_FUNCTOR,	FUNCTOR_term_position5,
-		    PL_INTEGER,	s,
-		    PL_INTEGER,	e,
-		    PL_INTEGER, fs,
-		    PL_INTEGER, fe,
-		    PL_LIST,    1, PL_TERM, args[0].tpos);
+		    PL_INT, s,
+		    PL_INT, e,
+		    PL_INT, fs,
+		    PL_INT, fe,
+		    PL_LIST, 1, PL_TERM, args[0].tpos);
     }
     
     return r;
@@ -1749,8 +1749,8 @@ simple_term(bool must_be_op, term_t term, bool *name,
       if ( positions )
       { PL_unify_term(positions,
 		      PL_FUNCTOR, FUNCTOR_minus2,
-		      PL_INTEGER, token->start,
-		      PL_INTEGER, token->end);
+		      PL_LONG, token->start,
+		      PL_LONG, token->end);
       }
       succeed;
     case T_STRING:
@@ -1758,8 +1758,8 @@ simple_term(bool must_be_op, term_t term, bool *name,
       if ( positions )
       { PL_unify_term(positions,
 		      PL_FUNCTOR, FUNCTOR_string_position2,
-		      PL_INTEGER, token->start,
-		      PL_INTEGER, token->end);
+		      PL_LONG, token->start,
+		      PL_LONG, token->end);
       }
       succeed;
     case T_FUNCTOR:
@@ -1783,11 +1783,11 @@ simple_term(bool must_be_op, term_t term, bool *name,
 	    ph = PL_new_term_ref();
 	    PL_unify_term(positions,
 			  PL_FUNCTOR, FUNCTOR_term_position5,
-			  PL_INTEGER, token->start,
-			  PL_TERM,    pe,
-			  PL_INTEGER, token->start,
-			  PL_INTEGER, token->end,
-			  PL_TERM,    pa);
+			  PL_LONG, token->start,
+			  PL_TERM, pe,
+			  PL_LONG, token->start,
+			  PL_LONG, token->end,
+			  PL_TERM, pa);
 	  } else
 	    pa = pe = ph = 0;
 
@@ -1848,9 +1848,9 @@ simple_term(bool must_be_op, term_t term, bool *name,
 
 		PL_unify_term(positions,
 			      PL_FUNCTOR, FUNCTOR_brace_term_position3,
-			      PL_INTEGER, token->start,
-			      PL_TERM,	  pe,
-			      PL_TERM,	  pa);
+			      PL_LONG, token->start,
+			      PL_TERM, pe,
+			      PL_TERM, pa);
 	      } else
 		pe = pa = 0;
 
@@ -1875,10 +1875,10 @@ simple_term(bool must_be_op, term_t term, bool *name,
 
 		PL_unify_term(positions,
 			      PL_FUNCTOR, FUNCTOR_list_position4,
-			      PL_INTEGER, token->start,
-			      PL_TERM,    pe,
-			      PL_TERM,	  pa,
-			      PL_TERM,	  pt);
+			      PL_LONG, token->start,
+			      PL_TERM, pe,
+			      PL_TERM, pa,
+			      PL_TERM, pt);
 	      } else
 		pa = pe = p2 = pt = 0;
 
@@ -2194,9 +2194,9 @@ retry:
   { if ( tpos && source_line_no > 0 )
       rval = PL_unify_term(tpos,
 			   PL_FUNCTOR, FUNCTOR_stream_position3,
-			   PL_INTEGER, source_char_no,
-			   PL_INTEGER, source_line_no,
-			   PL_INTEGER, 0); /* should be charpos! */
+			   PL_LONG, source_char_no,
+			   PL_INT,  source_line_no,
+			   PL_INT,  0); /* should be charpos! */
   } else
   { if ( rd.has_exception && reportReadError(&rd) )
     { Undo(m);

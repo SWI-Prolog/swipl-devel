@@ -922,7 +922,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 
       PL_unify_term(argv,
 		    PL_FUNCTOR, portfunc,
-		    PL_INTEGER, pcn);
+		    PL_INT, pcn);
     }
 
     PL_put_frame(argv+1, frame);
@@ -1532,7 +1532,7 @@ callEventHook(int ev, ...)
 
 	PL_unify_term(arg, PL_FUNCTOR, FUNCTOR_break3,
 		           PL_POINTER, clause,
-		           PL_INTEGER, offset,
+		           PL_INT, offset,
 			   PL_ATOM, ev == PLEV_BREAK ? ATOM_true
 					             : ATOM_false);
 	break;

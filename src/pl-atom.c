@@ -473,9 +473,9 @@ pl_garbage_collect_atoms()
     printMessage(ATOM_informational,
 		 PL_FUNCTOR_CHARS, "agc", 1,
 		   PL_FUNCTOR_CHARS, "done", 3,
-		     PL_INTEGER, GD->atoms.collected - oldcollected,
-		     PL_INTEGER, GD->statistics.atoms,
-		     PL_FLOAT, t);
+		     PL_LONG, GD->atoms.collected - oldcollected,
+		     PL_INT, GD->statistics.atoms,
+		     PL_DOUBLE, (double)t);
 
   succeed;
 }

@@ -132,6 +132,10 @@ typedef union
 #define PL_BOOL		 (16)		/* PL_set_feature() */
 #define PL_FUNCTOR_CHARS (17)		/* PL_unify_term() */
 #define _PL_PREDICATE_INDICATOR (18)	/* predicate_t (Procedure) */
+#define PL_SHORT	 (19)		/* short */
+#define PL_INT		 (20)		/* int */
+#define PL_LONG		 (21)		/* long */
+#define PL_DOUBLE	 (22)		/* double */
 
 
 		/********************************

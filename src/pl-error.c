@@ -349,7 +349,7 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
       PL_unify_term(formal,
 		    PL_FUNCTOR, FUNCTOR_shell2,
 		      PL_FUNCTOR, FUNCTOR_signal1,
-		        PL_INTEGER, sig,
+		        PL_INT, sig,
 		      PL_TERM, cmd);
       break;
     }
@@ -360,7 +360,7 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
       PL_unify_term(formal,
 		    PL_FUNCTOR, FUNCTOR_signal2,
 			PL_CHARS,   signame,
-		        PL_INTEGER, sig);
+		        PL_INT, sig);
       break;
     }
     case ERR_CLOSED_STREAM:
@@ -394,7 +394,7 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
     { PL_unify_term(predterm,
 		    PL_FUNCTOR, FUNCTOR_divide2,
 		      PL_CHARS, pred,
-		      PL_INTEGER, arity);
+		      PL_INT, arity);
     }
     if ( msg )
     { PL_put_atom_chars(msgterm, msg);

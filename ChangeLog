@@ -4,10 +4,16 @@
 VERSION 4.0.6
 =============
 
+  * PORT: Fixed PL_unify_term() and calls to distinguish between int and
+    long.  User foreign-code that must be portable to 64-bit should verify
+    their calls.
+
   * PORT: Fixed string-handling on 64-bit platforms.  Made the compilation
     of all tools and standard libraries fairly clean on the INTEL Itanium
     (Merced) processor using gcc and Linux.  Thanks to the SuSE team for
     providing access to their hardware.
+
+    Make all default stack-limits a factor of the word-length
 
   * PORT: Included some patches from the SuSE team.
 

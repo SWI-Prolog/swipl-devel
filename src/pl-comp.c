@@ -1825,7 +1825,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di)
 
       if ( !PL_unify_list(tail, head, tail) ||
 	   !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_equals2,
-			  	    PL_INTEGER, n,
+			  	    PL_INT, n,
 			            PL_TERM, p[n]) )
 	fail;
     }
@@ -2369,7 +2369,7 @@ unify_functor(term_t t, functor_t fd, int how)
     return PL_unify_term(t,
 			 PL_FUNCTOR, FUNCTOR_divide2,
 			   PL_ATOM, fdef->name,
-			   PL_INTEGER, fdef->arity);
+			   PL_INT, fdef->arity);
   } else
   { return PL_unify_functor(t, fd);
   }

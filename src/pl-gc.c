@@ -1702,13 +1702,13 @@ garbageCollect(LocalFrame fr, Choice ch)
     printMessage(ATOM_informational,
 		 PL_FUNCTOR_CHARS, "gc", 1,
 		   PL_FUNCTOR_CHARS, "done", 7,
-		     PL_INTEGER, ggar,
-		     PL_INTEGER, tgar,
-		     PL_FLOAT, t,
-		     PL_INTEGER, usedStack(global),
-		     PL_INTEGER, usedStack(trail),
-		     PL_INTEGER, roomStack(global),
-		     PL_INTEGER, roomStack(trail));
+		     PL_LONG, ggar,
+		     PL_LONG, tgar,
+		     PL_DOUBLE, (double)t,
+		     PL_LONG, usedStack(global),
+		     PL_LONG, usedStack(trail),
+		     PL_LONG, roomStack(global),
+		     PL_LONG, roomStack(trail));
   unblockGC();
 }
 

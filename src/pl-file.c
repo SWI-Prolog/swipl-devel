@@ -1821,9 +1821,9 @@ stream_position_prop(IOSTREAM *s, term_t prop)
 { if ( s->position )
   { return PL_unify_term(prop,
 			 PL_FUNCTOR, FUNCTOR_stream_position3,
-			   PL_INTEGER, s->position->charno,
-			   PL_INTEGER, s->position->lineno,
-			   PL_INTEGER, s->position->linepos);
+			   PL_LONG, s->position->charno,
+			   PL_INT, s->position->lineno,
+			   PL_INT, s->position->linepos);
   }
 
   fail;

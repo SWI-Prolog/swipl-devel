@@ -1186,12 +1186,20 @@ The type identifiers are:
 No op.  Used in arguments of \const{PL_FUNCTOR}.
    \definition{\const{PL_ATOM} \arg{atom_t}}
 Unify the argument with an atom, as in PL_unify_atom().
+   \definition{\const{PL_SHORT} \arg{short}}
+Unify the argument with an integer, as in PL_unify_integer().
+   \definition{\const{PL_INT} \arg{int}}
+Unify the argument with an integer, as in PL_unify_integer().
+   \definition{\const{PL_LONG} \arg{long}}
+Unify the argument with an integer, as in PL_unify_integer().
    \definition{\const{PL_INTEGER} \arg{long}}
 Unify the argument with an integer, as in PL_unify_integer().
-   \definition{\const{PL_FLOAT} \arg{double}}
-Unify the argument with a float, as in PL_unify_float().  Note that,
+   \definition{\const{PL_DOUBLE} \arg{double}}
+Unify the argument with a float, as in PL_unify_float(). Note that,
 as the argument is passed using the C vararg conventions, a float must
 be casted to a double explicitly.
+   \definition{\const{PL_FLOAT} \arg{float}}
+Unify the argument with a float, as in PL_unify_float().
    \definition{\const{PL_STRING} \arg{const char *}}
 Unify the argument with a string object, as in PL_unify_string_chars().
    \definition{\const{PL_TERM} \arg{term_t}}
