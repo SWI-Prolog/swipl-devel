@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Pretty printing not proper lists in the GUI tracer.  David Reitter.
+
   * ADDED: Hooks into the profiler that allow for profiling external
     packages such as XPCE.
 

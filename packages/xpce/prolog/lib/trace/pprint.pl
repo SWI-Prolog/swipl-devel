@@ -29,6 +29,14 @@
     the GNU General Public License.
 */
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    Version History:
+    
+    2003/07/14   fixed pp_list_elements/3 so it can handle open-ended lists
+                          David Reitter, reitter at mle.media.mit.edu
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
 :- module(prolog_pretty_print,
 	  [ print_term/2	% +Term, +Options
 	  ]).
@@ -255,7 +263,8 @@ pp_list_elements([H|T], Ctx0, Options) :-
 	pp(H, Ctx, Options),
 	(   T == []
 	->  true
-	;   T = [_|_]
+	;   nonvar(T),
+	    T = [_|_]
 	->  option(Options, output(Out)),
 	    write(Out, ','),
 	    context(Ctx, indent, Indent),
