@@ -1683,69 +1683,6 @@ raised, or 0 if the Prolog goal simply failed.%
 \end{description}
 
 
-\subsection{Foreign code and Prolog threads}
-
-If SWI-Prolog has been build to support multi-threading (see
-\secref{threads}), all foreign-code linked to Prolog should be
-thread-safe (\jargon{reentrant}) or guarded in Prolog using with_mutex/2
-from simultaneous access from multiple Prolog threads.  On Unix systems,
-this generally implies the code should be compiled with the
-\const{-D_REENTRANT} flag passed to the compiler.  Please note that on
-many Unix systems not all systemcalls and library-functions are
-thread-safe.  Consult your manual for details.
-
-If you are using SWI-Prolog as an embedded engine in a multi-threaded
-application you can access the Prolog engine from multiple threads by
-creating an \jargon{engine} in each thread from which you call Prolog.
-Without creating an engine, a thread can only use functions that do
-not use the \type{term_t} type (for example PL_new_atom()).
-
-{\bf Please note that the interface below will only work if threading
-in your application is based on the same thread-library as used to
-compile SWI-Prolog.}
-
-
-\begin{description}
-    \cfunction{int}{PL_thread_self}{}
-Returns the integer Prolog identifier of the engine or -1 if the calling
-thread has no Prolog engine.  This function is also provided in the
-single-threaded version of SWI-Prolog, where it returns -2.
-    \cfunction{int}{PL_thread_attach_engine}{PL_thread_attr_t *attr}
-Creates a new Prolog engine in the calling thread. If the calling thread
-already has an engine the reference count of the engine is incremented.
-The \arg{attr} argument can be \const{NULL} to create a thread with
-default attributes.  Otherwise it is a pointer to a structure with
-the definition below.  For any field with value `0', the default is
-used.
-
-\begin{code}
-typedef struct
-{ unsigned long	    local_size;	   /* Stack sizes (K-bytes) */
-  unsigned long	    global_size;
-  unsigned long	    trail_size;
-  unsigned long	    argument_size;
-  char *	    alias;	   /* alias name */
-} PL_thread_attr_t;
-\end{code}
-
-The structure may be destroyed after PL_thread_attach_engine() has
-returned. If an error occurs, -1 is returned. If this Prolog is not
-compiled for multi-threading, -2 is returned. 
-    \cfunction{int}{PL_thread_destroy_engine}{}
-Destroy the Prolog engine in the calling thread. Only takes effect if
-PL_thread_destroy_engine() is called as many times as
-PL_thread_attach_engine() in this thread.  Returns \const{TRUE} on
-success and \const{FALSE} if the calling thread has no engine or this
-Prolog does not support threads.
-
-Please note that construction and destruction of engines are
-relatively expensive operations. Only destroy an engine if performance
-is not critical and memory is a critical resource. The engine is
-automatically destroyed if the thread finishes, regardless how many
-times PL_thread_attach_engine() has been called.
-\end{description}
-
-
 \subsection{Catching Signals (Software Interrupts)}	\label{sec:csignal}
 
 SWI-Prolog offers both a C and Prolog interface to deal with software

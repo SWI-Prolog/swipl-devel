@@ -1,16 +1,5 @@
 \chapter{Multi-threading applications}		\label{sec:threads}
 
-{\bf The features described in this section are only enabled on Unix
-systems providing POSIX threads and if the system is configured using
-the \longoption{enable-mt}{} option. SWI-Prolog multi-theading support
-is still beta.  Especially, it is discouraged to use I/O streams from
-multiple threads.
-
-The standard Linux RPM based binary installation provides two
-executables: \program{pl} is the single-threaded and \program{pl-mt} is
-the multi-threaded version. The packages distributed with this version
-are built with threading support.}
-
 SWI-Prolog multithreading is based on standard C-language multithreading
 support. It is not like {\em ParLog} or other paralel implementations of
 the Prolog language. Prolog threads have their own stacks and only share
@@ -24,20 +13,32 @@ Todays computing services often focus on (internet) server applications.
 Such applications often have need for communication between services
 and/or fast non-blocking service to multiple concurrent clients.  The
 shared heap provides fast communication and thread creation is
-relatively cheap (A Pentium-II/450 can create and join approx. 10,000
-threads per second on Linux 2.2).
+relatively cheap.%
+    \footnote{On an dual AMD-Athlon 1600+, SWI-Prolog 5.1.0 
+	      creates and joins 4,957 threads per second elapsed time.}
+
     \item[Interactive applications]
 Interactive applications often need to perform extensive computation.
 If such computations are executed in a new thread, the main thread can
 process events and allow the user to cancel the ongoing computation.
 User interfaces can also use multiple threads, each thread dealing with
-input from a distinct group of windows.
+input from a distinct group of windows.  See also \secref{mt-xpce}.
+
     \item[Natural integration with foreign code]
 Each Prolog thread runs in a C-thread, automatically making them
 cooperate with \jargon{MT-safe}	foreign-code.  In addition, any
 foreign thread can create its own Prolog engine for dealing with
 calling Prolog from C-code.
 \end{itemlist}
+
+SWI-Prolog multi-threading is based on the POSIX thread standard used on
+most popular systems except for MS-Windows. On Windows it uses the
+\url[pthread-win32]{http://sources.redhat.com/pthreads-win32/} emulation
+of POSIX threads mixed with the Windows native API for smoother and
+faster operation.
+
+
+\section{Creating and destroying Prolog threads}
 
 \begin{description}
     \predicate{thread_create}{3}{:Goal, -Id, +Options}
@@ -173,11 +174,13 @@ in its queue and continues execution using \arg{A} is \const{gnat}.
 \end{code}
 
 See also thread_peek_message/1.
+
     \predicate{thread_peek_message}{1}{?Term}
 Examines the thread message-queue and compares the queued terms
 with \arg{Term} until one unifies or the end of the queue has been
 reached.  In the first case the call succeeds (possibly instantiating
 \arg{Term}.  If no term from the queue unifies this call fails.
+
     \predicate{thread_signal}{2}{+ThreadId, :Goal}
 Make thread \arg{ThreadId} execute \arg{Goal} at the first
 opportunity.  In the current implementation, this implies at the first
@@ -193,6 +196,10 @@ holds no locks and therefore the asynchronous execution is safe.
 \arg{Goal} can be any valid Prolog goal, including throw/1 to make
 the receiving thread generate an exception and trace/0 to start
 tracing the receiving thread.
+
+In the Windows version, the receiving thread immediately executes
+the signal if it reaches a Windows GetMessage() call, which generally
+happens of the thread is waiting for (user-)input.
 \end{description}
 
 \section{Thread synchronisation}
@@ -273,7 +280,7 @@ Execute \arg{Goal} while holding \arg{MutexId}.  If \arg{Goal} leaves
 choicepointes, these are destroyed (as in once/1).  The mutex is unlocked
 regardless of whether \arg{Goal} succeeds, fails or raises an exception.
 An exception thrown by \arg{Goal} is re-thrown after the mutex has been
-successfully unlocked.  See also mutex_create/2.
+successfully unlocked.  See also mutex_create/2 and call_cleanup/3.
 
 Although described in the thread-section, this predicate is also
 available in the single-threaded version, where it behaves simply as
@@ -292,9 +299,12 @@ complete.
 Lists all current threads and their status.  In addition, all `zombie'
 threads (finished threads that are not detached, nor waited for) are
 joined to reclaim their resources.
+
     \predicate{interactor}{0}{}
 Create a new console and run the Prolog toplevel in this new console.
-See also attach_console/0.
+See also attach_console/0.  In the Windows version a new interactor
+can also be created from the {\sf Run/New thread} menu.
+
     \predicate{attach_console}{0}{}
 If the current thread has no console attached yet, attach one and
 redirect the user streams (input, output, and error) to the new console
@@ -313,10 +323,108 @@ following sequence starts the tracer on this thread:
 \end{description}
 
 
-\section{Status of the thread implementation}
+\section{Multi-threaded mixed C and Prolog applications}
 
-It is assumed that the basic Prolog execution is thread-safe. Various
-problems are to be expected though, both dead-locks as well as
-not-thread-safe code in builtin-predicates. 
+All foreign-code linked to the multi-threading version of SWI-Prolog
+should be thread-safe (\jargon{reentrant}) or guarded in Prolog using
+with_mutex/2 from simultaneous access from multiple Prolog threads.
+If you want to write mixed multi-threaded C and Prolog application
+you should first familarise yourself with writing multi-threaded
+applications in C (C++).
 
+If you are using SWI-Prolog as an embedded engine in a multi-threaded
+application you can access the Prolog engine from multiple threads by
+creating an \jargon{engine} in each thread from which you call Prolog.
+Without creating an engine, a thread can only use functions that do
+not use the \type{term_t} type (for example PL_new_atom()).
+
+{\bf Please note that the interface below will only work if threading
+in your application is based on the same thread-library as used to
+compile SWI-Prolog.}
+
+
+\begin{description}
+    \cfunction{int}{PL_thread_self}{}
+Returns the integer Prolog identifier of the engine or -1 if the calling
+thread has no Prolog engine.  This function is also provided in the
+single-threaded version of SWI-Prolog, where it returns -2.
+
+    \cfunction{int}{PL_thread_attach_engine}{PL_thread_attr_t *attr}
+Creates a new Prolog engine in the calling thread. If the calling thread
+already has an engine the reference count of the engine is incremented.
+The \arg{attr} argument can be \const{NULL} to create a thread with
+default attributes.  Otherwise it is a pointer to a structure with
+the definition below.  For any field with value `0', the default is
+used.
+
+\begin{code}
+typedef struct
+{ unsigned long	    local_size;	   /* Stack sizes (K-bytes) */
+  unsigned long	    global_size;
+  unsigned long	    trail_size;
+  unsigned long	    argument_size;
+  char *	    alias;	   /* alias name */
+} PL_thread_attr_t;
+\end{code}
+
+The structure may be destroyed after PL_thread_attach_engine() has
+returned. If an error occurs, -1 is returned. If this Prolog is not
+compiled for multi-threading, -2 is returned. 
+
+    \cfunction{int}{PL_thread_destroy_engine}{}
+Destroy the Prolog engine in the calling thread. Only takes effect if
+PL_thread_destroy_engine() is called as many times as
+PL_thread_attach_engine() in this thread.  Returns \const{TRUE} on
+success and \const{FALSE} if the calling thread has no engine or this
+Prolog does not support threads.
+
+Please note that construction and destruction of engines are
+relatively expensive operations. Only destroy an engine if performance
+is not critical and memory is a critical resource.
+
+    \cfunction{int}{PL_thread_at_exit}{void (*function)(void *),
+				       void *closure,
+				       int global}
+Register a handle to be called as the Prolog engine is detached.  The
+handler function is called with one \ctype{void *} argument holding
+\arg{closure}. If \arg{global} is \const{TRUE}, the handler is installed
+\emph{for all threads}.  Globally installed handlers are executed after
+the thread-local handlers.  If the handler is installed local for the
+current thread only (\arg{global} == \const{FALSE}) it is stored in
+the same queue as used by thread_at_exit/1.
+\end{description}
+
+
+\section{Multithreading and the XPCE graphics system}	\label{sec:mt-xpce}
+
+GUI applications written in XPCE can benefit from the multi-threaded
+version of XPCE/SWI-Prolog if they need to do expensive computations
+that block to UI in the single-threaded version.
+
+Due to various technical problems on both Windows and Unix/X11 threading
+is best exploited by handing long computations to their own thread.
+
+TBD: how should background threads report their results?
+
+The XPCE message passing system is guarded with a single \jargon{mutex},
+which synchronises both access from Prolog and activation through the
+GUI. In MS-Windows, GUI actions are processed by the thread that created
+the window, whereas in Unix/X11 they are processed by the thread that
+dispatches messages, which is normally the thread holding the main
+console.
+
+
+\section{Threaded Prolog: Status and plans}
+
+With SWI-Prolog 5.1.0 Prolog threads have become portable and the
+performance gap between the single and multi-threaded version has
+become acceptable.%
+    \footnote{Dual AMD 1600+ running SuSE Linux 7.3: 18\%,
+	      Single P-III 733 running SuSE Linux 8.0: 12\%,
+	      Single P-III 450 running NT-4/TSE: 1\%.}
+Most of the basic machinery and API have been tested on some large
+applications and appear to be stable. Especially as we do not anticipate
+problems as long as multi-threading is not used or threads do not
+interact much we believe it is time to move towards making the
+multi-threaded version the default distribution.
 
