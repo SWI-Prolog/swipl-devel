@@ -48,8 +48,8 @@ all:
 	@echo "==============================================================="
 
 install:	tex.@SO@
-	mkdir -p $(LIBDIR)/lib/$(ARCH)
-	$(INSTALL_DATA) tex.@SO@ $(LIBDIR)/lib/$(ARCH)
+	mkdir -p $(LIBDIR)/lib/$(PLARCH)
+	$(INSTALL_DATA) tex.@SO@ $(LIBDIR)/lib/$(PLARCH)
 	$(INSTALL_PROGRAM) latex2html $(bindir)
 	for f in $(LIB); do $(INSTALL_DATA) $$f $(LIBDIR); done
 	mkdir -p $(LIBDIR)/icons
@@ -76,9 +76,13 @@ manual.tex:	manual.doc
 # Cleanup
 ################################################################
 
-clean:
+clean::
 	rm -f *% *~ $(OBJ) tex.@SO@
 
 distclean: clean
 	rm -f Makefile latex2html
 	rm -f config.cache config.log config.status config.h 
+
+uninstall::
+	rm -r $(LIBDIR)
+	rm $(bindir)/latex2html
