@@ -249,7 +249,7 @@ $(XPCEDLL):	$(OBJECTS)
 # Build SWI-Prolog interface
 ################################################################
 
-PLOBJ=		$(OBJECTS) ..\pl\src\interface.obj
+PLOBJ=		$(OBJECTS) ..\pl\src\interface.obj ..\pl\src\pcecall.obj
 
 $(PL2XPCE).dll:	$(PLOBJ)
 		@echo Linking $@ ...
