@@ -11,58 +11,92 @@
 
 static status computeLBox(LBox lb);
 
-status
-initialiseLBox(LBox lb, CharArray text, Style style)
-{ if ( isDefault(style) )
-    style = getClassVariableValueObject(lb, NAME_style);
+static status
+initialiseLBox(LBox lb, Int w)
+{ if ( isDefault(w) )
+    w = getClassVariableValueObject(lb, NAME_width);
 
-  assign(lb, text,  text);
-  assign(lb, style, style);
+  obtainClassVariablesObject(lb);
+  initialiseDevice((Device)lb);
 
-  return computeLBox(lb);
+  assign(lb->area, w, width);
+
+  succeed;
 }
 
 		 /*******************************
 		 *	      COMPUTE		*
 		 *******************************/
 
-static FontObj
-getFontLBox(LBox lb)
-{ if ( notDefault(lb->style->font) )
-    answer(lb->style->font);
-  
-  answer(getClassVariableValueObject(lb, NAME_font));
-}
-
-
 static status
 computeLBox(LBox lb)
-{ FontObj f = getFontLBox(lb);
+{ if ( notNil(lb->request_compute) )
+  { 
 
-  assign(lb, width,   getWidthFont(f, lb->text));
-  assign(lb, ascent,  getAscentFont(f));
-  assign(lb, descent, getDescentFont(f));
+
+    assign(lb, request_compute, NIL);
+  }
 
   succeed;
 }
 
+
+static Int
+getItemWidthLBox(LBox lb)
+{ int iw = valInt(lb->area->width) -
+           valInt(lb->left_margin) -
+	   valInt(lb->right_margin);
+
+  if ( iw < 0 )
+    iw = 0;
+  
+  answer(toInt(iw));
+}
+
 		 /*******************************
-		 *	      REDRAW		*
+		 *	      GEOMETRY		*
 		 *******************************/
 
-void
-drawLBox(LBox lb, int x, int y, int w)
-{ FontObj f = getFontLBox(lb);
-  Style s = lb->style;
-  Colour old_colour = NULL;
+static status
+geometryLBox(LBox lb, Int x, Int y, Int w, Int h)
+{
+}
 
-  if ( notDefault(s->colour) )
-    old_colour = r_colour(s->colour);
+		 /*******************************
+		 *	       ITEM		*
+		 *******************************/
 
-  s_print(&lb->text->data, x, y, f);
+static status
+appendLBox(LBox lb, Graphical label, Graphical item)
+{ if ( isDefault(label) )
+    label = get(lb, NAME_newLabel, 0);
+  if ( isDefault(item) )
+    item  = get(lb, NAME_newItem, 0);
 
-  if ( old_colour )
-    r_colour(old_colour);
+  if ( item && (item = checkType(item, TypeGraphical, lb)) )
+  { if ( label && (label = checkType(label, TypeGraphical, lb)) )
+    { send(lb, NAME_display, label, 0);
+      send(lb, NAME_display, item,  0);
+      newObject(ClassChainHyper, label, item, NAME_item, NAME_label, 0);
+    } else
+      send(lb, NAME_display, item,  0);
+
+    succeed;
+  }
+
+  fail;					/* error? */
+}
+
+
+static Graphical
+getNewLabelLBox(LBox lb)
+{ fail;
+}
+
+
+static Graphical
+getNewItemLBox(LBox lb)
+{ answer(answerObject(ClassParBox, getItemWidthLBox(lb), 0));
 }
 
 
@@ -72,53 +106,64 @@ drawLBox(LBox lb, int x, int y, int w)
 
 /* Type declaractions */
 
-static char *T_initialise[] =
-        { "text=char_array", "style=[style]" };
-
 /* Instance Variables */
 
-static vardecl var_tbox[] =
-{ IV(NAME_text, "char_array", IV_GET,
-     NAME_content, "Represented text"),
-  IV(NAME_style, "style", IV_GET,
-     NAME_appearance, "Appearence of the text")
+static vardecl var_lbox[] =
+{ IV(NAME_left_margin, "0..", IV_GET,
+     NAME_layout, "Distance left of paragraphs"),
+  IV(NAME_right_margin, "0..", IV_GET,
+     NAME_layout, "Distance right of paragraphs"),
+  IV(NAME_top_sep, "0..", IV_GET,
+     NAME_layout, "Vertical skip around environment"),
+  IV(NAME_item_sep, "0..", IV_GET,
+     NAME_layout, "Vertical skip between items"),
+  IV(NAME_label_sep, "0..", IV_GET,
+     NAME_layout, "Horizontal skip from label to paragraph"),
+  IV(NAME_label_width, "0..", IV_GET,
+     NAME_layout, "Width of label-box")
 };
 
 /* Send Methods */
 
-static senddecl send_tbox[] =
-{ SM(NAME_initialise, 2, T_initialise, initialiseLBox,
-     DEFAULT, "Create tbox from text and style")
+static senddecl send_lbox[] =
+{ SM(NAME_initialise, 0, NULL, initialiseLBox,
+     DEFAULT, "Create lbox"),
+  SM(NAME_compute, 0, NULL, computeLBox,
+     DEFAULT, "Recompute layout")
 };
 
 /* Get Methods */
 
-#define get_tbox NULL
+#define get_lbox NULL
 /*
-static getdecl get_tbox[] =
+static getdecl get_lbox[] =
 { 
 };
 */
 
 /* Resources */
 
-static classvardecl rc_tbox[] =
-{ RC(NAME_style, "style", "style()", "Appearance of text"),
-  RC(NAME_font,  "font",  "normal",  "Font if <-style has no font")
+static classvardecl rc_lbox[] =
+{
+  RC(NAME_left_margin,	NULL,  "20",  NULL),
+  RC(NAME_right_margin,	NULL,  "20",  NULL),
+  RC(NAME_top_sep,	NULL,  "10",  NULL),
+  RC(NAME_item_sep,	NULL,  "10",  NULL),
+  RC(NAME_label_sep,	NULL,  "5",   NULL),
+  RC(NAME_label_width,	NULL,  "15",  NULL),
+  RC(NAME_width,	"0..", "500", "Default initial width")
 };
 
 /* Class Declaration */
 
-static Name tbox_termnames[] = { NAME_text, NAME_style };
-
-ClassDecl(tbox_decls,
-          var_tbox, send_tbox, get_tbox, rc_tbox,
-          2, tbox_termnames,
+ClassDecl(lbox_decls,
+          var_lbox, send_lbox, get_lbox, rc_lbox,
+          0, NULL,
           "$Rev$");
 
 
 status
 makeClassLBox(Class class)
-{ return declareClass(class, &tbox_decls);
+{ return declareClass(class, &lbox_decls);
 }
 

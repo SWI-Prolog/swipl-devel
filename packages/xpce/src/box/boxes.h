@@ -19,6 +19,7 @@ typedef struct tbox	*TBox;
 typedef struct grbox	*GrBox;
 typedef struct parbox	*ParBox;
 typedef struct rubber	*Rubber;
+typedef struct lbox     *LBox;
 
 #include "proto.h"
 
@@ -32,8 +33,7 @@ GLOBAL Class ClassRubber;
 GLOBAL Class ClassTBox;
 GLOBAL Class ClassGrBox;
 GLOBAL Class ClassParBox;
-
-#define isLayoutBox(hb)		(classOfObject(hb) == ClassHBox)
+GLOBAL Class ClassLBox;
 
 #define ABSTRACT_HBOX \
   Int		width;			/* total width */ \
@@ -76,15 +76,16 @@ NewClass(parbox)
   Name		alignment;		/* left,right,center,justify */
 End;
 
+
+NewClass(lbox)
+  ABSTRACT_DEVICE
+  Int		left_margin;		/* width of left margin */
+  Int		right_margin;		/* with of right margin */
+  Int		top_sep;		/* separation above  */
+  Int		item_sep;		/* separation between items */
+  Int		label_sep;		/* label to item distance */
+  Int		label_width;		/* Width of label box */
+End;
+
+
 #endif /*NEW_TEXT_H_INCLUDED*/
-
-
-
-
-
-
-
-
-
-
-
