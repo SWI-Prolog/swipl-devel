@@ -2485,6 +2485,9 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	    if ( ch )
 	    { int printed = (*valTermRef(exception_printed) == except);
 
+					/* needed to avoid destruction */
+					/* in the undo */
+	      discardChoicesAfter((LocalFrame)ch PASS_LD);
 	      undo_while_saving_term(&ch->mark, catcher);
 	      except = *catcher;
 	      *valTermRef(LD->exception.pending) = except;
