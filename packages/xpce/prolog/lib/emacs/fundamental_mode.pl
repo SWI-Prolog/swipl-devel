@@ -597,7 +597,7 @@ bookmark_line(M) :->
 
 show_bookmarks(_) :->
 	"Show PceEmacs bookmarks"::
-	send(@emacs_mark_list, open).
+	send(@emacs, show_bookmarks).
 
 
 		 /*******************************

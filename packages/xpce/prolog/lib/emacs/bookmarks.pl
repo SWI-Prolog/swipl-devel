@@ -99,12 +99,10 @@ fill_dialog(BM) :->
 	send(D, resize_message, message(D, layout, @arg2)).
 
 unlink(BM) :->
-	get(BM, member, emacs_bookmark_window, W),
-	send(W, select_node, @nil),	% save possible modified note
-	send(BM, save),
 	get(BM, exit_message, Msg),
 	get(@pce, exit_messages, Chain),
-	send(Chain, delete, Msg),
+	send(Chain, delete_all, Msg),
+	send(BM, save),
 	send_super(BM, unlink).
 
 
@@ -153,6 +151,7 @@ append_hit(F, Buffer:emacs_buffer, SOL:int) :->
 	"Add bookmark for indicated line"::
 	get(Buffer, scan, SOL, line, 0, end, EOL),
 	get(Buffer, contents, SOL, EOL-SOL, Title),
+	send(Title, translate, '\t', ' '),
 	get(Buffer, line_number, SOL, Line),
 	(   get(Buffer, file, File),
 	    File \== @nil,
@@ -170,18 +169,47 @@ loaded_buffer(F, TB:emacs_buffer) :->
 	get(F, tree, Tree),
 	send(Tree?root, loaded_buffer, TB).
 
+current(F, BM:emacs_bookmark*, UpdateSelection:[bool]) :->
+	"Make this bookmark the current one"::
+	(   UpdateSelection \== @off,
+	    get(F, member, emacs_bookmark_window, BW)
+	->  send(BW, selection, BM)
+	;   true
+	),
+	get(F, view, View),
+	(   get(View, modified, @on),
+	    get(View, hypered, bookmark, BM2)
+	->  send(BM2, note, View?contents)
+	;   true
+	),
+	send(View, delete_hypers, bookmark),
+	(   BM == @nil
+	->  send(View, clear),
+	    send(View, editable, @off),
+	    send(View, background, grey80)
+	;   new(_, hyper(View, BM, bookmark, editor)),
+	    (	get(BM, note, Note),
+		Note \== @nil
+	    ->	send(View, contents, Note),
+		send(View, modified, @off)
+	    ;	true
+	    ),
+	    send(View, editable, @on),
+	    send(View, background, white)
+	).
+
 :- pce_group(file).
 
 save(BM) :->
 	"Save bookmarks to file"::
+	send(BM, current, @nil),
 	get(BM, bookmarks_file, write, File),
+	get(BM, tree, Tree),
+	get(Tree, root, Root),
 	send(file(File), backup),
 	open(File, write, Fd),
 	format(Fd, '/* PceEmacs Bookmarks */~n~n', []),
-	get(BM, geometry, Geometry),
-	format(Fd, 'geometry(~q).~n~n', [Geometry]),
-	get(BM, tree, Tree),
-	send(Tree?root, save, Fd),
+	send(Root, save, Fd),
 	close(Fd),
 	send(BM, report, status, 'Saved bookmarks to %s', File).
 
@@ -200,18 +228,23 @@ load_bookmarks(Term, Fd, BM) :- !,
 	read(Fd, Term2),
 	load_bookmarks(Term2, Fd, BM).
 
-load_bookmark(bookmark(File, Line, Title, Stamp, Note), BM) :- !,
-	new(Created, date),
-	send(Created, posix_value, Stamp),
-	send(BM, bookmark,
-	     new(M, emacs_bookmark(File, Line, Title, Created, Note)),
-	     @off),			% do not sort
-	(   get(@emacs, file_buffer, File, Buffer)
-	->  send(M, link, Buffer)
+load_bookmark(bookmark(File0, Line, Title, Stamp, Note), BM) :- !,
+	(   absolute_file_name(File0,
+			       [ access(read),
+				 file_errors(fail)
+			       ],
+			       File)
+	->  new(Created, date),
+	    send(Created, posix_value, Stamp),
+	    send(BM, bookmark,
+		 new(M, emacs_bookmark(File, Line, Title, Created, Note)),
+		 @off),			% do not sort
+	    (   get(@emacs, file_buffer, File, Buffer)
+	    ->  send(M, link, Buffer)
+	    ;   true
+	    )
 	;   true
 	).
-load_bookmark(geometry(GM), BM) :- !,
-	send(BM, geometry, GM).
 load_bookmark(Term, BM) :-
 	term_to_atom(Term, Atom),
 	send(BM, report, warning, 'Unknown term in bookmarks file: %s', Atom).
@@ -235,7 +268,7 @@ bookmarks_file(BM, Access:[{read,write}], File:name) :<-
 	    send(BM, slot, file, File)		% use the absolute path
 	).
 	    
-:- pce_end_class.
+:- pce_end_class(emacs_bookmark_editor).
 
 :- pce_begin_class(emacs_bookmark_window, toc_window).
 
@@ -261,24 +294,18 @@ open_node(BW, Id:any) :->
 	).
 
 select_node(BW, Id:any) :->
-	get(BW?frame, view, View),
-	(   get(View, modified, @on),
-	    get(View, attribute, bookmark, BM0),
-	    BM0 \== @nil
-	->  send(BM0, note, View?contents)
-	;   true
-	),
-	send(View, attribute, bookmark, @nil),
-	send(View, clear),
+	"User selected a node"::
 	(   send(Id, instance_of, emacs_bookmark)
-	->  (   get(Id, note, String),
-	        String \== @nil
-	    ->  send(View, contents, String)
-	    ;	true
-	    ),
-	    send(View, attribute, bookmark, Id)
+	->  send(BW?frame, current, Id)
 	;   true
 	).
+
+selection(BW, Sel:any*) :->
+	(   Sel == @nil
+	->  send(BW?frame, current, @nil, @off)
+	;   true
+	),
+	send_super(BW, selection, Sel).
 
 :- pce_end_class.
 

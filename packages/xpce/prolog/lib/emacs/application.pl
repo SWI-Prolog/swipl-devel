@@ -158,6 +158,10 @@ open_object(_Emacs, Object:prolog, _NewWindow:new_window=[bool]) :->
 	"Open from description"::
 	edit(Object).
 
+show_bookmarks(_) :->
+	"Show PceEmacs bookmarks"::
+	send(@emacs_mark_list, open).
+
 
 		 /*******************************
 		 *	       SAVE		*

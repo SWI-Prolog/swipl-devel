@@ -37,10 +37,11 @@
 
 :- pce_autoload(tool_bar, library(toolbar)).
 
-resource(open,	  image, image('16x16/open.xpm')).
-resource(saveall, image, image('16x16/saveall.xpm')).
-resource(help,    image, image('16x16/help.xpm')).
-resource(buffers, image, image('32x32/buffers.xpm')).
+resource(open,	    image, image('16x16/open.xpm')).
+resource(saveall,   image, image('16x16/saveall.xpm')).
+resource(help,	    image, image('16x16/help.xpm')).
+resource(bookmarks, image, image('16x16/bookmarks.xpm')).
+resource(buffers,   image, image('32x32/buffers.xpm')).
 
 :- pce_begin_class(emacs_buffer_menu, persistent_frame,
 		   "List showing all PceEmacs buffers").
@@ -64,6 +65,9 @@ initialise(BM, Emacs:emacs) :->
 		    tool_button(save_some_buffers,
 				resource(saveall),
 				'Save all modified buffers'),
+		    tool_button(show_bookmarks,
+				resource(bookmarks),
+				'Show bookmarks'),
 		    tool_button(help,
 				resource(help),
 				'Help on PceEmacs')
