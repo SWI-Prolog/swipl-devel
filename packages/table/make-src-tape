@@ -1,0 +1,28 @@
+#!/bin/sh
+
+version=`cat VERSION`
+out=table-$version.tar.gz
+compress=gzip
+
+rm -f $out
+if [ ! "o$1" = "o-q" ]; then
+  cp /dev/null cvsfiles
+  echo -n "Collecting distribution files "
+  for d in `find . -name CVS -type d -print`; do
+      echo -n "."
+      dir=`dirname $d`
+      grep '^/' $dir/CVS/Entries | \
+          awk -F/ '{printf("%s/%s\n", "'$dir'", $2)}' >> cvsfiles
+  done
+  echo "done"
+fi
+
+cat cvsfiles | sed "s@^\./@table-$version/@" > tapefiles
+
+cd ..
+rm -f table-$version
+ln -s table table-$version
+tar cvfT - table/tapefiles | $compress > $out
+rm -f table-$version
+mv $out table
+

@@ -9,7 +9,7 @@
 #ifndef _TABLE_H_INCLUDED
 #define _TABLE_H_INCLUDED
 
-#define TABLE_VERSION "1.2.0"
+#define TABLE_VERSION "1.2.2"
 
 #include <SWI-Prolog.h>
 #include "order.h"
