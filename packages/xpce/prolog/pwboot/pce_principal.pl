@@ -272,7 +272,7 @@ add_input_callback :-
 	get(@pce, window_system, windows), !.
 add_input_callback :-
 	predicate_property(qui:'QP_GetQuiAppContext', _), !,
-	qui:'QP_GetQuiAppContext'(XtAppContext),
+	call(qui:'QP_GetQuiAppContext'(XtAppContext)),
 	pce_appcontext(XtAppContext, XtAppContext).
 add_input_callback :-
 	send(@display, open),
