@@ -118,7 +118,8 @@ colourise_text_buffer(TB) :-
 		  )),
 	    colourise_term(Term, TB, TermPos),
 	    once(xref_expand(Term, _)),		% push current operators!
-	    Term == end_of_file, !.
+	    Term == end_of_file, !,
+	close(Fd).
 
 %	colourise(+TB, +Stream)
 %
