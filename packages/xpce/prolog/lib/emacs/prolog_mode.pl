@@ -1059,3 +1059,7 @@ backward_predicate(M, Arg:[int]) :->
 
 :- emacs_end_mode.
 
+
+%	Load syntax colouring support.
+
+:- use_module(prolog_colour).

@@ -86,6 +86,68 @@ class_variable(shell_command,	chain*,
 		    @nil,
 		    chain('/bin/sh', '-c')),
 	       "Command for running grep, make, etc.").
+class_variable(auto_colourise_size_limit, int, 50000,
+	       "Auto-colourise if buffer is smaller then this").
+
+variable(auto_colourise_size_limit,
+	 int,
+	 both,
+	 "Auto-colourise if buffer is smaller then this").
+variable(coloured_generation,
+	 int := -1,
+	 get,
+	 "Last generation of the text-buffer that was coloured").
+
+
+		 /*******************************
+		 *	COLOURISE BUFFERS	*
+		 *******************************/
+
+idle(M) :->
+	"Idle event was received, colour the current element"::
+	send(M, auto_colourise_buffer).
+
+
+new_buffer(M) :->
+	"A new buffer is attached"::
+	send(M, auto_colourise_buffer).
+
+
+auto_colourise_buffer(M) :->
+	"Colourise if shorter then <-auto_colourise_size_limit"::
+	get(M, generation, Generation),
+	get(M, coloured_generation, Coloured),
+	(   Coloured \== Generation,
+	    get(M?text_buffer, size, Size),
+	    get(M, auto_colourise_size_limit, Limit),
+	    Size < Limit
+	->  (	send(M, colourise_buffer)
+	    ->	send(M, slot, coloured_generation, Generation)
+	    ;	true
+	    )
+	;   true
+	).
+
+
+colourise_buffer(M) :->
+	"Colour buffer using syntax-rules"::
+	send(M, remove_syntax_fragments).
+
+
+remove_syntax_fragments(M, From:[int], To:[int]) :->
+	"Remove all syntax-colouring fragments"::
+	(   From == @default,
+	    To == @default
+	->  send(M, for_all_fragments,
+		 if(message(@arg1, instance_of, emacs_colour_fragment),
+		    message(@arg1, free)))
+	;   new(Pt, point(From, To)),
+	    send(M, for_all_fragments,
+		 if(and(message(@arg1, overlap, Pt),
+		        message(@arg1, instance_of, emacs_colour_fragment)),
+		    message(@arg1, free)))
+	).
+
 
 		 /*******************************
 		 *	GLOBAL UTILITIES	*
@@ -810,3 +872,24 @@ drop(M, Obj:object) :->
 	).
 
 :- emacs_end_mode.
+
+
+		 /*******************************
+		 *	      FRAGMENT		*
+		 *******************************/
+
+:- pce_begin_class(emacs_colour_fragment, fragment,
+		   "Provide colourised region").
+
+variable(severity, {status,warning,error} := status, both, "Message severity").
+variable(message,  string*,	     both, "Message displayed").
+
+identify(F) :->
+	(   get(F, message, Msg),
+	    Msg \== @nil
+	->  send(F?text_buffer, report, warning,
+		 string('%s: %s', F?severity, Msg))
+	;   true
+	).
+
+:- pce_end_class.

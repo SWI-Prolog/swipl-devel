@@ -72,7 +72,7 @@ initialise(F, B:emacs_buffer) :->
 	send(F, open),
 	send(F, pool, B?pool),
 	get(E, mode, Mode),
-	send(Mode, new_buffer).
+	ignore(send(Mode, new_buffer)).
 
 
 input_focus(F, Val:bool) :->
