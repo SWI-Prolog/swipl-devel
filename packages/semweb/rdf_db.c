@@ -1541,8 +1541,12 @@ get_source(term_t src, triple *t)
 static int
 unify_source(term_t src, triple *t)
 { if ( t->line == NO_LINE )
-    return PL_unify_atom(src, t->source);
-  else
+  { if ( !PL_unify_atom(src, t->source) )
+      return PL_unify_term(src,
+			   PL_FUNCTOR, FUNCTOR_colon2,
+			     PL_ATOM, t->source,
+			     PL_VARIABLE);  
+  } else
     return PL_unify_term(src,
 			 PL_FUNCTOR, FUNCTOR_colon2,
 			   PL_ATOM, t->source,
@@ -1750,7 +1754,8 @@ rdf(term_t subject, term_t predicate, term_t object,
       p = table[t.indexed][triple_hash(&t, t.indexed)];
       for( ; p; p = p->next[t.indexed])
       { if ( match_triples(p, &t, flags) )
-	{ unify_triple(subject, retpred, object, src, p);
+	{ if ( !unify_triple(subject, retpred, object, src, p) )
+	    continue;
 	  if ( realpred && PL_is_variable(predicate) )
 	    PL_unify(predicate, retpred);
 
@@ -1780,7 +1785,8 @@ rdf(term_t subject, term_t predicate, term_t object,
 	  continue;
 
 	if ( match_triples(p, t, flags) )
-	{ unify_triple(subject, retpred, object, src, p);
+	{ if ( !unify_triple(subject, retpred, object, src, p) )
+	    continue;
 	  if ( realpred && PL_is_variable(predicate) )
 	    PL_unify(predicate, retpred);
 
