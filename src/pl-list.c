@@ -97,7 +97,7 @@ list_to_sorted_array(term_t List, int *size)
     fail;				/* not a proper list */
 
 					/* Won't work anyhow */
-  if ( spaceStack(local) < sizeof(word)*n )
+  if ( spaceStack(local) < (long)sizeof(word)*n )
   { outOfStack((Stack)&LD->stacks.local, STACK_OVERFLOW_RAISE);
     fail;
   }
