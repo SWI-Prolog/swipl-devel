@@ -132,5 +132,25 @@ pl_collect_bag(term_t bindings, term_t bag)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+An exception was generated during  the   execution  of  the generator of
+findall/3, bagof/3 or setof/3. Reclaim  all   records  and  re-throw the
+exception.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+foreign_t
+pl_except_bag(term_t ex)
+{ Assoc a, next;
 
+  for( a=alist; a; a = next )
+  { if ( a->record )
+    { freeRecord(a->record);
+      next = a->next;
+    } else
+      next = NULL;
+
+    freeHeap(a, sizeof(*a));
+  }
+
+  return PL_raise_exception(ex);
+}

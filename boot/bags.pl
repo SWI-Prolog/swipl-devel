@@ -52,7 +52,7 @@ bagof(Gen, Goal, Bag) :-
 
 assert_bag(Templ, G) :-
 	$record_bag(-), 
-	G,
+	catch(G, E, $except_bag(E)),
 	    $record_bag(Templ), 
 	fail.
 assert_bag(_, _).

@@ -104,6 +104,7 @@ void		canoniseNumber(Number n);
 word		pl_record_bag(term_t term);
 int 		checkBags(void);
 word		pl_collect_bag(term_t bindings, term_t bag);
+foreign_t	pl_except_bag(term_t ex);
 
 /* pl-comp.c */
 void		initWamTable(void);

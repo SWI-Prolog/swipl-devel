@@ -394,6 +394,7 @@ static const struct foreign {
   FRG("sort",			2, pl_sort,			TRACE_ME),
   FRG("format",			2, pl_format,			TRACE_ME),
   FRG("$collect_bag",		2, pl_collect_bag,		TRACE_ME),
+  FRG("$except_bag",		1, pl_except_bag, 		TRACE_ME),
   FRG("$record_bag",		1, pl_record_bag,		TRACE_ME),
 #ifdef O_DEBUG
   FRG("$check_definition",	1, pl_check_definition,    META|TRACE_ME),
