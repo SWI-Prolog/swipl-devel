@@ -117,6 +117,10 @@ release_focus(T) :->
 enter(T) :->
 	"Stop typing"::
 	send(T?window, keyboard_focus, @nil),
+	send(T, forward).
+
+forward(T) :->
+	"Typing has completed; forward change"::
 	get(T, device, Dev),
 	get(T, message, Msg),
 	(   Msg == @nil
