@@ -739,6 +739,44 @@ term_atom(term_to_atom-2) :-
 
 
 		 /*******************************
+		 *		I/O		*
+		 *******************************/
+
+io(tell-1) :-
+	tell(test_x),
+	format('~q.~n', [a]),
+	tell(test_y),
+	format('~q.~n', [b]),
+	tell(test_x),
+	format('~q.~n', [c]),
+	told,
+	tell(test_y),
+	told,
+	read_file_to_terms(test_x, [a,c], []),
+	read_file_to_terms(test_y, [b], []),
+	delete_file(test_x),
+	delete_file(test_y),
+	\+ stream_property(_, file_name(test_x)),
+	\+ stream_property(_, file_name(test_y)).
+
+io(tell-2) :-
+	current_output(OrgOut),
+	open_null_stream(Out),
+	set_output(Out),
+	write(Out, x),
+	telling(Old), tell(test_y),
+	format('~q.~n', [b]),
+	told, tell(Old),
+	write(Out, y),
+	flush_output(Out),
+	character_count(Out, 2),
+	close(Out),
+	set_output(OrgOut),
+	read_file_to_terms(test_y, [b], []),
+	delete_file(test_y).
+
+
+		 /*******************************
 		 *	       POPEN		*
 		 *******************************/
 
@@ -844,6 +882,7 @@ testset(floatconv) :-
 testset(control).
 testset(exception).
 testset(term_atom).
+testset(io).
 testset(popen) :-
 	current_prolog_flag(pipe, true).
 testset(ctype).

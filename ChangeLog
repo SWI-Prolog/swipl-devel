@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * MODIFIED: Improved tell/1 and see/1 compatibility with Edinburgh
+    `standard', allowing for `interleaved I/O'.  After a couple of
+    complaints that text-book code was broken.
+
   * FIXED: Various problems in the manual (Ørjan Johansen).
 
   * FIXED: expand_file_name/2 handling of ~fred (Ørjan Johansen).

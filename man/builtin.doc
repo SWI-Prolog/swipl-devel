@@ -1821,7 +1821,7 @@ layered on top of the ISO predicates. Both packages are fully
 integrated; the user may switch freely between them.
 
 
-\subsection{ISO Input and Output Streams}
+\subsection{ISO Input and Output Streams}		\label{sec:isoIO}
 
 The predicates described in this section provide ISO compliant I/O,
 where streams are explicitly created using the predicate open/3. The
@@ -2061,32 +2061,20 @@ predicates refer to resp. the \emph{current} input- and output stream.
 Initially these streams are connected to the terminal. The current
 output stream is changed using tell/1 or append/1. The current input
 stream is changed using see/1. The streams current value can be obtained
-using telling/1 for output- and seeing/1 for input streams. The table
-below shows the valid stream specifications. The reserved names
-\const{user_input}, \const{user_output} and \const{user_error} are for
-integration with the explicit streams.
+using telling/1 for output- and seeing/1 for input streams.
 
-\begin{center}
-\begin{tabular}{|l|p{3in}|}
-\hline
-\const{user}         & This reserved name refers to the terminal \\
-\const{user_input}   & Input from the terminal \\
-\const{user_output}  & Output to the terminal \\
-\const{user_error}   & Unix error stream (output only) \\
-<Atom>               & Name of a Unix file \\
-\const{pipe(<Atom>)} & Name of a Unix command \\
-\hline
-\end{tabular}
-\end{center}
-
-Source and destination are either a file, one of the reserved words
-above, or a term `pipe(\arg{Command})'.  In the predicate descriptions
-below we will call the source/destination argument `\arg{SrcDest}'.
-Below are some examples of source/destination specifications.
+Source and destination are either a file, \const{user}, or a term
+`pipe(\arg{Command})'. The reserved stream name \const{user} refers
+to the terminal.%
+	\footnote{The ISO I/O layer uses \const{user_input},
+		  \const{user_output} and \const{user_error}.}
+In the predicate descriptions below we will call the source/destination
+argument `\arg{SrcDest}'. Below are some examples of source/destination
+specifications.
 
 \begin{center}\begin{tabular}{ll}
 \exam{?- see(data).}        & \% Start reading from file `data'. \\
-\exam{?- tell(user_error).} & \% Start writing on the error stream. \\
+\exam{?- tell(user).}       & \% Start writing to the terminal. \\
 \exam{?- tell(pipe(lpr)).}  & \% Start writing to the printer.
 \end{tabular}\end{center}
 
@@ -2111,25 +2099,10 @@ collect_wd([]).
 \subsubsection*{Compatibility notes}
 
 Unlike Edinburgh Prolog systems, telling/1 and seeing/1 do not return
-the filename of the current input/output, but the stream-identifier and
-tell/1 and see/1 just switch output if the argument is a stream and
-\emph{always} open the source or destination file otherwise.  This
-implies sequence below, which should end with the file \file{x} holding
-two lines ends with this file just holding the second line in SWI-Prolog.
-
-\begin{code}
-	...,
-	tell(x),
-	writeln('line 1'),
-	tell(y),
-	...,
-	tell(x),
-	writeln('line 2'),
-	told.
-\end{code}
-
-The most common design pattern with these predicates however works
-flawlessly:
+the filename of the current input/output, but the stream-identifier, to
+ensure the design pattern below	works under all circumstances.%
+	\footnote{Filenames can be ambiguous and SWI-Prolog streams can
+		  refer to much more than just files.}
 
 \begin{code}
 	...,
@@ -2139,6 +2112,18 @@ flawlessly:
 	...,
 \end{code}
 
+The predicates tell/1 and see/1 first check for \const{user}, the
+\term{pipe}{command} and a stream-handle.  Otherwise, if the argument
+is an atom it is first compared to open streams associated to a file
+with \emph{exactly} the same name.  If such a stream, created using
+tell/1 or see/1 exists, output (input) is switch to the open stream.
+Otherwise a file with the specified name is opened.
+
+The behaviour is compatible to Edinburgh Prolog.  This is not without
+problems. Changing directory, non-file streams, multiple names referring
+to the same file easily lead to unexpected behaviour. New code,
+especially when managing multiple I/O channals should consider using
+the ISO I/O predicates defined in \secref{isoIO}.
 
 \begin{description}
     \predicate{see}{1}{+SrcDest}
