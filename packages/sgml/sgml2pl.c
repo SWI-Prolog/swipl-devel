@@ -971,7 +971,7 @@ on_end(dtd_parser *p, dtd_element *e)
   { fid_t fid = PL_open_foreign_frame();
     term_t av = PL_new_term_refs(2);
 
-    PL_put_atom_chars(av+0, e->name->name);
+    put_element_name(p, av+0, e);
     unify_parser(av+1, p);
 
     PL_call_predicate(NULL, PL_Q_NORMAL, pd->on_end, av);
