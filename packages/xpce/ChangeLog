@@ -4,6 +4,9 @@
 VERSION 6.2.3, distributed with SWI-Prolog 5.2.3
 ================================================
 
+* ADDED: library(pce_unclip) to show graphicals partly clipped by their own
+  window in a small tooltip-like window.  Used by library(pce_toc).
+
 * MODIFIED: Changed priority of :: using in "comment"::<Body> from 1150 xfx
   to 910 xfy.  Must be above \+ (900) to avoid a conflict.
 
