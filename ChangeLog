@@ -1,6 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.0.1
+=============
+
+  * FIX in garbage collector of 2.0.0 was only half the story.  Should
+    be ok now.  Thanks to Thomas Hoppe for supplying me with the error
+    report.
+  * FIX & performance: current_functor/2 with the first argument is
+    instantiated.
+
 Version 2.0.0
 =============
 
