@@ -3280,28 +3280,43 @@ of a function are expressions.  The functions are described in
 \arg{Value} is an integer, $\arg{Low} \leq \arg{Value} \leq \arg{High}$.
 When \arg{Value} is a variable it is successively bound to all integers
 between \arg{Low} and \arg{High}.
+
     \predicate{succ}{2}{?Int1, ?Int2}
-Succeeds if $\arg{Int2} = \arg{Int1} + 1$. At least one of the arguments
-must be instantiated to an integer.
+Succeeds if $\arg{Int2} = \arg{Int1} + 1$ and $\arg{Int1} \geq 0$.
+At least one of the arguments must be instantiated to a natural number.
+This predicate raises the domain-error \const{not_less_than_zero} if
+called with a negative integer.  E.g.\ \term{succ}{X, 0} fails silently
+and \term{succ}{X, -1} raises a domain-error.%
+	\footnote{The behaviour to deal with natural numbers only was
+		  defined by Richard O'Keefe to support
+		  the common count-down-to-zero in a natural way.  Upto
+		  5.1.8 succ/2 also accepted negative integers.}
+
     \predicate{plus}{3}{?Int1, ?Int2, ?Int3}
 Succeeds if $\arg{Int3} = \arg{Int1} + \arg{Int2}$. At least two of the
 three arguments must be instantiated to integers.
 \infixop{>}{+Expr1}{+Expr2}
 Succeeds when expression \arg{Expr1} evaluates to a larger number than \arg{Expr2}.
+
 \infixop{<}{+Expr1}{+Expr2}
 Succeeds when expression \arg{Expr1} evaluates to a smaller number than \arg{Expr2}.
+
 \infixop{=<}{+Expr1}{+Expr2}
 Succeeds when expression \arg{Expr1} evaluates to a smaller or equal number
 to \arg{Expr2}.
+
 \infixop{>=}{+Expr1}{+Expr2}
 Succeeds when expression \arg{Expr1} evaluates to a larger or equal number
 to \arg{Expr2}.
+
 \infixop{=\=}{+Expr1}{+Expr2}
 Succeeds when expression \arg{Expr1} evaluates to a number non-equal to
 \arg{Expr2}.
+
 \infixop{=:=}{+Expr1}{+Expr2}
 Succeeds when expression \arg{Expr1} evaluates to a number equal to \arg{
 Expr2}.
+
 \infixop{is}{-Number}{+Expr}
 Succeeds when \arg{Number} has successfully been unified with the number
 \arg{Expr} evaluates to.  If \arg{Expr} evaluates to a float that can be

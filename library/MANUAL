@@ -3422,9 +3422,10 @@ are described below.
 eeddiitt((_+_S_p_e_c_i_f_i_c_a_t_i_o_n))
     First  exploits prolog_edit:locate/3to  translate _S_p_e_c_i_f_i_c_a_t_i_o_n into
     a  list  of  _L_o_c_a_t_i_o_n_s.    If there  is  more than  one  `hit',  the
-    user  is  allows to  select  from the  found  locations.    Finally,
+    user  is  asked  to select  from  the  locations found.     Finally,
     prolog_edit:edit_source/1 is  used  to invoke  the user's  preferred
-    editor.
+    editor.   Typically, edit/1 can  be handed the name of  a predicate,
+    module, basename of a file, XPCE class, XPCE method, etc.
 
 
 eeddiitt
@@ -4587,7 +4588,7 @@ iinnddeexx((_+_H_e_a_d))
     indexing only the first  4 will be accepted.  Arguments above 32 are
     ignored for indexing.
 
-    By  default  all predicates  with <_a_r_i_t_y> 1  are indexed  on their
+    By  default all  predicates  with <_a_r_i_t_y>>= 1 are  indexed on  their
     first  argument.  It is possible to redefine indexing  on predicates
     that  already have clauses attached to  them.  This will initiate  a
     scan through the  predicates clause list to update the index summary
@@ -5260,7 +5261,7 @@ nnll((_+_S_t_r_e_a_m))
 
 ppuutt((_+_C_h_a_r))
     Write  _C_h_a_r  to  the  current  output  stream,  _C_h_a_r  is  either  an
-    integer-expression  evaluating to  a character  code (0 _C_h_a_r 255)
+    integer-expression  evaluating to  a character code  (0=<_C_h_a_r=< 255)
     or an atom of one character.
 
 
@@ -5883,7 +5884,7 @@ iinntt__ttoo__aattoomm((_+_I_n_t_, _+_B_a_s_e_, _-_A_t
     Convert  _I_n_t to an  ascii representation using  base _B_a_s_e and  unify
     the  result with _A_t_o_m.   If _B_a_s_e 6=10 the  base will be prepended  to
     _A_t_o_m.    _B_a_s_e= 0 will try  to interpret  _I_n_t as an  ASCII value and
-    return  0'<_c>.   Otherwise  2 _B_a_s_e 36.    Some examples are  given
+    return  0'<_c>.   Otherwise  2=<_B_a_s_e=< 36.   Some  examples are  given
     below.
 
                    int_to_atom(45, 2, A)  -!   A= 20101101
@@ -6301,14 +6302,17 @@ function are expressions.  The functions are described in section 4.27.
 
 
 bbeettwweeeenn((_+_L_o_w_, _+_H_i_g_h_, _?_V_a_l_u_e))
-    _L_o_w  and _H_i_g_h  are integers, _H_i_g_h  _L_o_w.   If _V_a_l_u_e  is an integer,
-    _L_o_w  _V_a_l_u_e _H_i_g_h.   When _V_a_l_u_e  is a  variable it  is successively
+    _L_o_w  and _H_i_g_h  are integers, _H_i_g_h>= _L_o_w.   If  _V_a_l_u_e is an  integer,
+    _L_o_w=< _V_a_l_u_e=< _H_i_g_h.   When _V_a_l_u_e  is a  variable it is  successively
     bound to all integers between _L_o_w and _H_i_g_h.
 
 
 ssuucccc((_?_I_n_t_1_, _?_I_n_t_2))
-    Succeeds  if _I_n_t_2= _I_n_t_1+ 1.  At least one of  the arguments must be
-    instantiated to an integer.
+    Succeeds  if  _I_n_t_2= _I_n_t_1+ 1 and  _I_n_t_1>= 0.    At least  one  of the
+    arguments must be  instantiated to a natural number.  This predicate
+    raises the domain-error not_less_than_zero if called with a negative
+    integer.   E.g. succ(_X_, _0)  fails silently and succ(_X_, _-_1) raises  a
+    domain-error.
 
 
 pplluuss((_?_I_n_t_1_, _?_I_n_t_2_, _?_I_n_t_3))
@@ -6459,7 +6463,7 @@ mmiinn((_+_E_x_p_r_1_, _+_E_x_p_r_2))
 
 
 rraannddoomm((_+_I_n_t))
-    Evaluates  to a  random integer _i  for which  0 i< _I_n_t.   The seed
+    Evaluates  to a  random integer _i  for which 0=< i <_I_n_t.   The  seed
     of  this random  generator is  determined by the  system clock  when
     SWI-Prolog was started.
 
@@ -6809,8 +6813,8 @@ pprreeddssoorrtt((_+_P_r_e_d_, _+_L_i_s_t_, _-_S_o_r_t
 44..3322 FFiinnddiinngg aallll SSoolluuttiioonnss ttoo aa GGooaall
 
 
-ffiinnddaallll((_+_V_a_r_, _+_G_o_a_l_, _-_B_a_g))
-    Creates  a  list  of the  instantiations  _V_a_r gets  successively  on
+ffiinnddaallll((_+_T_e_m_p_l_a_t_e_, _+_G_o_a_l_, _-_B_a_g))
+    Creates  a list of the instantiations _T_e_m_p_l_a_t_e gets  successively on
     backtracking  over _G_o_a_l and unifies the  result with _B_a_g.   Succeeds
     with  an  empty  list  if _G_o_a_l  has  no  solutions.    findall/3  is
     equivalent  to  bagof/3  with  all free  variables  bound  with  the
@@ -6818,13 +6822,13 @@ ffiinnddaallll((_+_V_a_r_, _+_G_o_a_l_, _-_B_a_g))
     solutions.
 
 
-bbaaggooff((_+_V_a_r_, _+_G_o_a_l_, _-_B_a_g))
-    Unify  _B_a_g with the alternatives of _V_a_r, if _G_o_a_l has  free variables
-    besides  the one  sharing  with _V_a_r  bagof will  backtrack over  the
-    alternatives  of  these  free  variables,   unifying  _B_a_g  with  the
-    corresponding  alternatives of _V_a_r.   The construct +Var^Goal  tells
-    bagof  not to  bind  _V_a_r in  _G_o_a_l.   bagof/3  fails if  _G_o_a_l has  no
-    solutions.
+bbaaggooff((_+_T_e_m_p_l_a_t_e_, _+_G_o_a_l_, _-_B_a_g))
+    Unify  _B_a_g  with the  alternatives of  _T_e_m_p_l_a_t_e,  if _G_o_a_l  has  free
+    variables   besides  the  one  sharing  with  _T_e_m_p_l_a_t_e   bagof  will
+    backtrack  over the alternatives  of these free variables,  unifying
+    _B_a_g with the  corresponding alternatives of _T_e_m_p_l_a_t_e.  The construct
+    +Var^Goal  tells bagof not to  bind _V_a_r in _G_o_a_l.   bagof/3 fails  if
+    _G_o_a_l has no solutions.
 
     The  example below  illustrates bagof/3  and the  ^ operator.    The
     variable bindings are printed together on one line to save paper.
@@ -6854,7 +6858,7 @@ bbaaggooff((_+_V_a_r_, _+_G_o_a_l_, _-_B_a_g))
     5 ?-
 
 
-sseettooff((_+_V_a_r_, _+_G_o_a_l_, _-_S_e_t))
+sseettooff((_+_T_e_m_p_l_a_t_e_, _+_G_o_a_l_, _-_S_e_t))
     Equivalent  to bagof/3, but sorts the  result using sort/2 to get  a
     sorted list of alternatives without duplicates.
 

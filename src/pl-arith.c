@@ -166,7 +166,10 @@ pl_succ(term_t n1, term_t n2)
   long i1, i2;
 
   if ( PL_get_long(n1, &i1) )
-  { if ( PL_get_long(n2, &i2) )
+  { if ( i1 < 0L )
+      return PL_error("succ", 2, NULL, ERR_DOMAIN,
+		      ATOM_not_less_than_zero, n1);
+    if ( PL_get_long(n2, &i2) )
       return i1+1 == i2 ? TRUE : FALSE;
     else if ( PL_unify_integer(n2, i1+1) )
       succeed;
@@ -174,7 +177,12 @@ pl_succ(term_t n1, term_t n2)
     return PL_error("succ", 2, NULL, ERR_TYPE, ATOM_integer, n2);
   }
   if ( PL_get_long(n2, &i2) )
-  { if ( PL_unify_integer(n1, i2-1) )
+  { if ( i2 < 0L )
+      return PL_error("succ", 2, NULL, ERR_DOMAIN,
+		      ATOM_not_less_than_zero, n2);
+    if ( i2 == 0L )
+      fail;
+    if ( PL_unify_integer(n1, i2-1) )
       succeed;
   }
 
