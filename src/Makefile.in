@@ -304,6 +304,7 @@ iruntime::
 
 install-implib::
 		$(INSTALL_DATA) libplimp.a $(PLBASE)/runtime/$(ARCH)
+		$(RANLIB) $(PLBASE)/runtime/$(ARCH)/$(PLLIB)
 
 idirs::
 		if [ ! -d $(prefix)/lib  ]; then $(MKDIR) $(prefix)/lib; fi

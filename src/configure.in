@@ -919,9 +919,11 @@ case "$ARCH" in
 	fi
 	;;
   *darwin*)
+	PL=swipl
 	SO_pic="-fPIC"
 	SO_LDFLAGS="-bundle -bundle_loader \"%s\""
 	AC_DEFINE(LD_SYMBOL_PREFIX, "_")
+	CMFLAGS="-no-cpp-precomp"
 	;;
   *cygwin*)
 	SO_EXT="dll"
@@ -938,6 +940,7 @@ AC_DEFINE_UNQUOTED(SO_LD,      "$SO_LD")
 AC_DEFINE_UNQUOTED(SO_LDFLAGS, "$SO_LDFLAGS")
 AC_DEFINE_UNQUOTED(SO_pic,     "$SO_pic")
 AC_DEFINE_UNQUOTED(SO_PIC,     "$SO_PIC")
+AC_DEFINE_UNQUOTED(PROG_PL,    "$PL")
 SO=$SO_EXT
 
 fi	dnl dlopen or shl_load

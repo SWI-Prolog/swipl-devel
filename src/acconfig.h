@@ -147,3 +147,6 @@
 
 /* String used to prefix all symbols requested through dlsym() */
 #undef LD_SYMBOL_PREFIX
+
+/* Name of the SWI-Prolog executable (normally pl)
+#undef PROG_PL

@@ -44,7 +44,9 @@ embedded application.
 #define O_TRUNC _O_TRUNC
 #define O_BINARY _O_BINARY
 
+#ifndef PROG_PL
 #define PROG_PL "plcon.exe"
+#endif
 #define PROG_LD "link.exe"
 #define SO_LD "link.exe"
 #define PROG_CC "cl.exe"
@@ -59,7 +61,9 @@ embedded application.
 #else /*WIN32*/
 #include "pl-incl.h"
 
+#ifndef PROG_PL
 #define PROG_PL "pl"
+#endif
 #define PROG_CC "cc"
 #define PROG_CXX "c++"
 #define PROG_OUT "a.out"
@@ -920,7 +924,7 @@ getPrologOptions()
 
     pclose(fd);
 
-    sprintf(buf, "%s/%s/pl", plbase, plarch);
+    sprintf(buf, "%s/%s/%s", plbase, plarch, PROG_PL);
     defaultPath(&plexe, buf);
   } else
   { fprintf(stderr, "%s: failed to run %s: %s", plld, cmd, oserror());
