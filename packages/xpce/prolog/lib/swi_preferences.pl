@@ -51,8 +51,8 @@ prolog_edit_preferences(What) :-
 	    )
 	;   access_file(File, write)
 	->  true
-	    ;   send(@display, inform,
-		     'You cannot modify the preferences file %s', File)
+	;   send(@display, inform,
+		 'You cannot modify the preferences file %s', File)
 	),
 	send(@emacs, goto_source_location, File).
 
@@ -65,16 +65,31 @@ locate_preferences(xpce_user, File) :-
 locate_preferences(prolog, File) :-
 	'$option'(init_file, Base, Base), % should be in current_prolog_flag!
 	member(Access, [read, write]),
-	absolute_file_name(Base, Here),
 	absolute_file_name(user_profile(Base),
 			   [ access(Access),
 			     file_errors(fail),
 			     solutions(all)
 			   ], File),
-	(   File \== Here
-	;   Access == write
+	(   Access == read
+	;   valid_location(File)
 	), !.
 	
+%	valid_location(+PrefFile)
+%	
+%	See whether this is a valid non-local location for the
+%	preferences file. This should deal with the possibility that our
+%	working directory is ~ or the Prolog home.
+
+valid_location(PrefFile) :-
+	file_directory_name(PrefFile, Dir),
+	(   \+ absolute_file_name('.', Dir)
+	->  true
+	;   expand_file_name(~, [Dir])
+	->  true
+	;   current_prolog_flag(windows, true),
+	    current_prolog_flag(home, Dir)
+	).
+
 %	default_preferences(+Id, -File)
 %
 %	If there is a default file for the preferences, return a path to
