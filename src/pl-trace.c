@@ -965,6 +965,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
     atom_t portname = NULL_ATOM;
     functor_t portfunc = 0;
     int nodebug = FALSE;
+    term_t ex;
 
     switch(port)
     { case CALL_PORT:	   portname = ATOM_call;         break;
@@ -1004,6 +1005,10 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
     PL_put_choice(argv+2, bfr);
     PL_put_variable(rarg);
 
+    if ( exception_term )
+      ex = PL_copy_term_ref(exception_term);
+    else
+      ex = 0;
     qid = PL_open_query(MODULE_user, PL_Q_NODEBUG, proc, argv);
     if ( PL_next_solution(qid) )
     { atom_t a;
@@ -1036,6 +1041,10 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
       }
     }
     PL_close_query(qid);
+    if ( ex )
+    { PL_put_term(exception_bin, ex);
+      exception_term = exception_bin;
+    }
     PL_discard_foreign_frame(cid);
 
     if ( nodebug )
@@ -1678,10 +1687,16 @@ callEventHook(int ev, ...)
   { va_list args;
     fid_t fid;
     term_t arg;
+    term_t ex;
 
     blockGC(PASS_LD1);
     fid = PL_open_foreign_frame();
     arg = PL_new_term_ref();
+
+    if ( exception_term )
+      ex = PL_copy_term_ref(exception_term);
+    else
+      ex = 0;
 
     va_start(args, ev);
     switch(ev)
@@ -1734,6 +1749,12 @@ callEventHook(int ev, ...)
     
     PL_call_predicate(MODULE_user, FALSE, PROCEDURE_event_hook1, arg);
   out:
+
+    if ( ex )
+    { PL_put_term(exception_bin, ex);
+      exception_term = exception_bin;
+    }
+
     PL_discard_foreign_frame(fid);
     unblockGC(PASS_LD1);
     va_end(args);
