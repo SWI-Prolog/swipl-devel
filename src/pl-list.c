@@ -69,7 +69,7 @@ Word e, list;
 forwards int	qsort_compare_standard P((const void *, const void *));
 forwards Word	*list_to_sorted_array P((Word, int *));
 
-#ifdef __STDC__
+#ifdef PROTO
 static int
 qsort_compare_standard(p1, p2)
 const void *p1, *p2;

@@ -105,6 +105,10 @@ a better common basis to get rid of most of these things.
 #    define tsize exec_tsize
 #    define dsize exec_dsize
 #    define bsize exec_bsize
+#    define FORMAT_LOADER_COMMAND(cmd, ldr, sbs, base, entry, out, opts, fls, lbs) \
+	sprintf(cmd, \
+		"%s -N -a archive -A %s -R %x -e %s -o %s %s %s %s -lc /lib/dyncall.o", \
+		cmd, ldr, sbs, base, entry, out, opts, fls, lbs);
 #  endif
 #  ifdef EXEC_PAGESIZE
 #    define PAGSIZ    EXEC_PAGESIZE
@@ -224,23 +228,14 @@ Word file, entry, options, libraries, size;
 
   for( n=0; n<2; n++)
   { base = (long) allocText(sz);
-#if NOENTRY
-    TRY( create_a_out(sfile, soptions, slibraries, base, execFile) );
-#else
     TRY( create_a_out(sfile, sentry, soptions, slibraries, base, execFile) );
-#endif
     if ( (fd = openExec(execFile)) < 0 )
       fail;
 
     if ( sizeExec() <= sz )
     { Func entry;
-#if NOENTRY
       if ( (entry = loadExec(fd, base, sentry)) == NULL )
     	fail;
-#else
-      if ( (entry = loadExec(fd, base)) == NULL )
-	fail;
-#endif
       loaderstatus.symbolfile = execName;
       DEBUG(1, printf("Calling entry point at 0x%x\n", entry));
       (*entry)();
@@ -269,14 +264,23 @@ Word file, entry, options, libraries, size;
 Create an a.out file from a .o file.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifndef FORMAT_LOADER_COMMAND
+#if NOENTRY
+#define FORMAT_LOADER_COMMAND(cmd, ldr, symbols, base, out, opts, files, libs) \
+	sprintf(cmd, "%s -N -A %s -R %x -o %s %s %s %s -lc", \
+		cmd, ldr, symbols, base, entry, out, opts, files, libs);
+#else
+#define FORMAT_LOADER_COMMAND(cmd, ldr, symbols, base, entry, out, opts, files, libs) \
+	sprintf(cmd, "%s -N -A %s -R %x -e _%s -o %s %s %s %s -lc", \
+		cmd, ldr, symbols, base, entry, out, opts, files, libs);
+#endif
+#endif
+
+
 static
 bool
-#if NOENTRY
-create_a_out(files, options, libraries, base, outfile)
-#else
 create_a_out(files, entry, options, libraries, base, outfile)
 char *entry;
-#endif
 char *files;
 char *options;
 char *libraries;
@@ -284,26 +288,27 @@ long base;
 char *outfile;
 { char command[10240];
 
-#ifdef aout_800
-  sprintf(command, "%s -N -a archive -A %s -R %x -e %s -o %s %s %s %s -lc /lib/dyncall.o",
+#if NOENTRY
+  FORMAT_LOADER_COMMAND(command,
+			LOADER,
+			stringAtom(loaderstatus.symbolfile),
+			base,
+			outfile,
+			options,
+			files,
+			libraries);
 #else
-#  if NOENTRY
-  sprintf(command, "%s -N -A %s -T %x -o %s %s %s %s -lc",
-#  else
-  sprintf(command, "%s -N -A %s -R %x -e _%s -o %s %s %s %s -lc",
-#  endif
+  FORMAT_LOADER_COMMAND(command,
+			LOADER,
+			stringAtom(loaderstatus.symbolfile),
+			base,
+			entry,
+			outfile,
+			options,
+			files,
+			libraries);
 #endif
-	   LOADER, 				/* name of loader */
-	   stringAtom(loaderstatus.symbolfile),	/* name of symbol file */
-	   base, 				/* base address */
-#if !NOENTRY
-	   entry, 				/* entry point */
-#endif
-	   outfile,				/* temp. executable */
-	   options,				/* additional options */
-	   files,				/* files to be loaded */
-	   libraries);				/* libraries */
-  
+
   DEBUG(1, printf("Calling loader: %s\n", command) );
   if (system(command) == 0)
     succeed;
@@ -379,12 +384,8 @@ sizeExec()
 
 
 static Func
-#if NOENTRY
 loadExec(fd, base, sentry)
 char *sentry;
-#else
-loadExec(fd, base)
-#endif
 int fd;
 ulong base;
 { Func entry;

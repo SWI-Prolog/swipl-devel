@@ -16,6 +16,7 @@ AWK=awk
 
 # DO NOT CHANGE BELOW THIS LINE
 
+#define MAKE_SECTION 1
 #include "make.h"
 CC=M_CC
 OPTIMIZE=M_OPTIMIZE

@@ -38,8 +38,12 @@ Version 1.6.11 includes   various fixes suggested  by Dave   Sherratt,
 Integrated O_FOREIGN support sent to me by Dave	Sherratt.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define MACHINE			"hp"
+#define OPERATING_SYSTEM	"hpux"
+
+#if MAKE_SECTION
 #ifndef __GNUC__
-#define __GNUC__		0	/* set to 1 to use gcc */
+#define __GNUC__		1	/* set to 1 to use gcc */
 #endif
 
 #if __GNUC__				/* Use GNU-C */
@@ -57,6 +61,8 @@ Integrated O_FOREIGN support sent to me by Dave	Sherratt.
 #define M_LIBS			-lm -ltermcap
 
 /*#define M_OPTIMIZE	        -g -DO_DEBUG*/
+
+#else /* MAKE_SECTION */
 
 #define O_NO_ALLOCA		!__GNUC__
 #define ANSI			__GNUC__
@@ -91,7 +97,6 @@ Integrated O_FOREIGN support sent to me by Dave	Sherratt.
 			/* Interfaces */
 #define O_PCE 			0
 
-#define MACHINE			"hp"
-#define OPERATING_SYSTEM	"hpux"
-
 #define index(s, c)		strchr(s, (int)(c))
+
+#endif /* MAKE_SECTION */

@@ -192,6 +192,8 @@ saveVersion()
     long *end	= (long *) startProlog;
     int  step   = (end - start) / 500;
     
+    if ( step <= 0 )
+      step = 10;
     DEBUG(1, printf("Computing saveVersion in 0x%x .. 0x%x\n", start, end));
 
     for(; start < end; start += step)

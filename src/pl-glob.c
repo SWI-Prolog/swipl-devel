@@ -326,7 +326,7 @@ Word f, l;
   succeed;
 }
 
-#if __STDC__
+#if PROTO
 static int
 stringCompare(a1, a2)
 const void *a1, *a2;
