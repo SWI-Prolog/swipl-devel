@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Properly deal with the vararg foreign calling convention
+    for cleanup (CUTTED).  Spotted by Sergey Tikhonov.
+
   * FIXED: Check whether stack sizes are not allocated above physical
     limits (128 MB on 32-bit machines)
 
