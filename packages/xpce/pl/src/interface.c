@@ -226,6 +226,7 @@ static Atom ATOM_update;		/* "update" */
 static Atom ATOM_user;			/* "user" */
 static Atom ATOM_write;			/* "write" */
 static Atom ATOM_prolog;		/* "prolog" */
+static Atom ATOM_class;			/* "class" */
 
 static Module MODULE_user;		/* Handle for user-module */
 
@@ -276,6 +277,7 @@ initPrologConstants()
   ATOM_user			= AtomFromString("user");
   ATOM_write			= AtomFromString("write");
   ATOM_prolog			= AtomFromString("prolog");
+  ATOM_class			= AtomFromString("class");
 
   MODULE_user			= ModuleFromAtom(ATOM_user);
 }
@@ -696,6 +698,7 @@ Defined context terms
 #define EX_DOMAIN			7 /* <domain-name>, <term> */
 #define EX_PERMISSION			8 /* op, type, obj, msg */
 #define EX_TOO_MANY_ARGUMENTS		9
+#define EX_EXISTENCE		       10 /* <type>, <term> */
 
 static void
 put_goal_context(Term ctx, PceGoal g, va_list args)
@@ -822,6 +825,20 @@ ThrowException(int id, ...)
       ConsFunctor(a1, FUNCTOR_pce1, a1);
       
       ConsFunctor(err, FUNCTOR_type_error2, a1, v);
+      break;
+    }
+    case EX_EXISTENCE:				/* type-name, arg */
+    { Term a1 = NewTerm();
+      Atom tn = va_arg(args, Atom);
+      Term v  = va_arg(args, Term);
+
+      if ( PL_is_variable(v) )
+	goto ex_instantiation;
+
+      PutAtom(a1, tn);
+      ConsFunctor(a1, FUNCTOR_pce1, a1);
+      
+      ConsFunctor(err, FUNCTOR_existence_error2, a1, v);
       break;
     }
     case EX_INSTANTIATION:			/* No arguments */
@@ -1883,7 +1900,10 @@ invoke(Term rec, Term cl, Term msg, Term ret)
     int  arity;
     PceClass class;
 
-    get_pce_class(cl, &class);
+    if ( !get_pce_class(cl, &class) )
+    { rval = ThrowException(EX_EXISTENCE, ATOM_class, cl);
+      goto out;
+    }
     StripModuleTag(msg, &DefaultModule, msg);
     if ( GetNameArity(msg, &name, &arity) )
     { PceName selector = atomToName(name);

@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Produce clean error message when running a class whose super-class
+  is missing.
+
 * FIXED: PceEmacs SGML mode: avoid long delay on long lists of elements
   in very large files.
 
