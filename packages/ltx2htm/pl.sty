@@ -1,15 +1,24 @@
-%			PCE DOCUMENTATION STYLE
-
-\newcommand{\pceversion}{4.9.0, December 1996}
+%			SWI-Prolog document-style
 
 %	Other styles
 
+\input logo.sty
+\usepackage{a4wide}
+\usepackage{fancyheadings}
+\usepackage{fancychap}
 \usepackage{makeidx}
+\usepackage{longtable}
+\usepackage{ifthen}
+\usepackage{dcolumn}
+\usepackage{url}
+\setlongtables
 
 \catcode`\^^A=8% downarrow are for subscripts
 \catcode`\_=\active
 \def_{\ifmmode\else\_\fi}
 \def\vobeyspaces{\@vobeyspaces}
+
+\newcommand{\onlinebreak}{}
 
 %	References
 
@@ -25,129 +34,102 @@
 \newcommand{\Figref}[1]{Figure~\ref{fig:#1}}
 \newcommand{\Tabref}[1]{Table~\ref{tab:#1}}
 
-\newcommand{\tick}[1]{\item {\em #1}\\}
-
-\newlength{\arrowwidth}
-\settowidth{\arrowwidth}{$\leftarrow$}
-\newcommand{\botharrow}{\raisebox{1pt}{$\leftarrow$}\hspace*{-\arrowwidth}\raisebox{-2pt}{$\rightarrow$}}
-
-\def\ttbackslash{\makebox[1ex][l]{\tt \string\ }}
-\newcommand{\tthat}{{\tt \string^}}
-\newcommand{\backslashx}[1]{\ttbackslash{\tt #1}}
 \newcommand{\tm}{$^{tm}$}
 
-%	Running text indication of behaviour
-
-\newcommand{\send}[1]{%                 % send behaviour
-        \ifmmode\rightarrow\!\!\it #1\:%
-        \else\mbox{$\rightarrow$\it #1}\fi}
-\newcommand{\get}[1]{%                  % get behaviour
-        \ifmmode\leftarrow\!\!\it #1\:%
-        \else\mbox{$\leftarrow$\it #1}\fi}
-\newcommand{\both}[1]{%                 % both behaviour
-        \ifmmode\mbox{\botharrow\!\!\it #1\:}%
-        \else\mbox{\botharrow\it #1}\fi}
 \newcommand{\predref}[2]{%		% functor/arity
 	\mbox{\tt #1/#2}}
-\newcommand{\functor}[2]{%		% functor/arity
+\newcommand{\functor}[2]{%		% functor/arity (no predicate)
 	\mbox{\tt #1/#2}}
-\newcommand{\term}[2]{%
-	\mbox{\tt #1({\it #2})}}
+\newcommand{\manref}[2]{%		% page(n)
+	\mbox{{\tt #1(}{\rm #2}{\tt )}}}
+\newcommand{\funcref}[2]{%		% function(Args...)
+	\mbox{{\tt #1(}{\it #2}{\tt )}}}
 
 %	Descriptions (definitions) of various things
 
 \newcommand{\definition}[1]{%
+	\onlinebreak%
 	\item[\mbox{#1}]\hfill\mbox{}\linebreak}
 \newcommand{\emptydefinition}[1]{%
 	\makebox[-\leftmargin]{\mbox{}}\mbox{\bf #1}\\}
 
-\newcommand{\emptydescription}{\vspace{-.8cm}}
+\makeatletter
+\def\cmdlineoptionitem{\@ifstar{\@gluedcmdoptitem}{\@cmdoptitem}}
+\def\@gluedcmdoptitem#1#2{\definition{#1\var{#2}}}
+\def\@cmdoptitem#1#2{\definition{#1 \var{#2}}}
+\makeatother
 
-\newcommand{\cmdlineoptionitem}[1]{\definition{#1}}
-\newcommand{\cmdlineoption}[1]{{\tt #1}}
-\newcommand{\traceoption}[3]{\definition{{\tt #1} (#2)}#3}
-\newcommand{\pleaseoption}[3]{\definition{#1 {\it #2} {\rm(default: \it #3)}}}
-\newcommand{\featureoption}[2]{\definition{#1 ({\it #2})}}
-\newcommand{\escapeitem}[1]{\definition{\ttbackslash{\tt #1}}}
-\newcommand{\ttdef}[1]{\definition{\tt #1}}
+\newcommand{\traceoption}[3]{%
+	\definition{{\tt #1} (#2)}#3%
+	\ignorespaces}
+\newcommand{\pleaseoption}[3]{%
+	\definition{#1 {\it #2} {\rm(default: \it #3)}}%
+	\ignorespaces}
+\newcommand{\featureoption}[2]{%
+	\definition{#1 ({\it #2})}%
+	\ignorespaces}
+\newcommand{\escapeitem}[1]{%
+	\definition{\Sesc{\tt #1}}
+	\ignorespaces}
+\newcommand{\fmtchar}[1]{%
+	\item[\tt #1]%
+	\ignorespaces}
 \newcommand{\directive}[3]{%
 	\definition{:- #1({\it #3})}%
-	\index{#1/#2}}
+	\index{#1/#2}\ignorespaces}
 \newcommand{\predicate}[3]{%
-	\ifnum#2=0%
-	  \definition{#1}%
-	\else
-	  \definition{#1({\it #3})}%
-	\fi
-	\index{#1/#2}}
-\newcommand{\termitem}[2]{%
-	\definition{#1(\it #2)}}
+	\ifthenelse{\equal{#2}{0}}{%
+	    \definition{#1}}{%
+	    \definition{#1({\it #3})}}%
+	\index{#1/#2}\ignorespaces}
 \newcommand{\infixop}[3]{%
 	\definition{{\it #2} #1 {\it #3}}%
-	\index{#1/2}}
-\newcommand{\ttinfixop}[3]{%
-	\definition{{\it #2} \tt #1 {\it #3}}%
-	\index{#1/2}}
+	\index{#1/2}\ignorespaces}
 \newcommand{\prefixop}[2]{%
 	\definition{#1 {\it #2}}%
-	\index{#1/1}}
-\newcommand{\ttprefixop}[2]{%
-	\definition{{\tt #1} {\it #2}}%
-	\index{#1/1}}
-\newcommand{\optionarg}[2]{\definition{#1({\it #2})}}
-\newcommand{\optionnoarg}[1]{\definition{#1}}
-\newcommand{\optionval}[1]{\definition{#1}}
-
-\newcommand{\expanded}[3]{%
-	\definition{#1({\it #3})}%
-	\index{#1/#2}}
-\def\bothmethod{\@ifstar{\@emptybothmethod}{\@bothmethod}}
-\def\sendmethod{\@ifstar{\@emptysendmethod}{\@sendmethod}}
-\def\getmethod{\@ifstar{\@emptygetmethod}{\@getmethod}}
-
-\def\@emptybothmethod#1#2#3{%
-	\emptydefinition{#1 $\botharrow$ #2: #3}\index{#1,\string\both{#2}}}
-\def\@bothmethod#1#2#3{%
-	\definition{#1 $\botharrow$ #2: #3}\index{#1,\string\both{#2}}}
-\def\@emptysendmethod#1#2#3{%
-	\emptydefinition{#1 $\rightarrow$ #2: #3}\index{#1,\string\send{#2}}}
-\def\@sendmethod#1#2#3{%
-	\definition{#1 $\rightarrow$ #2: #3}\index{#1,\string\send{#2}}}
-\def\@emptygetmethod#1#2#3#4{%
-	\emptydefinition{#1 $\leftarrow$ #2: #3 $\rightarrow$ #4}\index{#1,\string\get{#2}}}
-\def\@getmethod#1#2#3#4{%
-	\definition{#1 $\leftarrow$ #2: #3 $\rightarrow$ #4}\index{#1,\string\get{#2}}}
-
+	\index{#1/1}\ignorespaces}
+\newcommand{\termitem}[2]{%
+	\ifthenelse{\equal{}{#2}}{%
+	    \definition{#1}}{%
+	    \definition{#1({\it #2})}}\ignorespaces}
+\def\term{}
+\renewcommand{\term}[2]{%
+	\ifthenelse{\equal{}{#2}}{%
+	    #1}{%
+	    #1({\it #1})}}
 \newcommand{\cfunction}[3]{%
 	\definition{{\it #1} #2({\it #3})}%
-	\index{#2()}\label{func:#2}\relax}
+	\index{#2()}\ignorespaces}
 \newcommand{\cmacro}[3]{%
 	\definition{{\it #1} #2({\it #3})}%
-	\index{#2()}\label{macro:#2}\relax}
+	\index{#2()}\ignorespaces}
+\newcommand{\cglobalvar}[1]{{\tt #1}}
 
 \renewcommand{\arg}[1]{\ifmmode\mbox{\em #1}\else{\em #1}\fi}
-\newcommand{\bnfmeta}[1]{$\langle\mbox{\it #1}\rangle$}
+\newcommand{\bnfmeta}[1]{\ifmmode{\langle\mbox{\it #1}\rangle}\else$\langle\mbox{\it #1}\rangle$\fi}
+\newcommand{\bnfor}{\ifmmode\mid\else$\mid$\fi}
 \newcommand{\isa}{& ::= &}
 \newcommand{\ora}{& $\mid$ &}
 
 \newcommand{\class}[1]{{\em #1}\index{#1 \string\idxtype{class}}}
 \newcommand{\classs}[1]{{\em #1s}\index{#1 \string\idxtype{class}}}
-\newcommand{\file}[1]{{\tt #1}\index{#1 \string\idxtype{file}}}
-\newcommand{\pllib}[1]{\mbox{library({\tt #1})}}
 \newcommand{\demo}[1]{{\sf #1}\index{#1 \string\idxtype{demo}}}
-\newcommand{\lib}[1]{library({\tt #1})\index{#1 \string\idxtype{library}}}
+\newcommand{\pllib}[1]{library({\tt #1})\index{#1 \string\idxtype{library}}}
+\newcommand{\clib}[1]{{\tt #1}\index{#1 \string\idxtype{library}}}
 \newcommand{\tool}[1]{{\em #1}\index{#1 \string\idxtype{tool}}}
 \newcommand{\constf}[1]{{\tt #1}}
-\newcommand{\const}[1]{{\tt #1}\index{#1 \string\idxtype{constant}}}
+\newcommand{\const}[1]{{\tt #1}}
 \newcommand{\type}[1]{{\tt #1}}
 \newcommand{\idx}[1]{#1\index{#1}}
 \newcommand{\foreseen}[1]{\footnote{#1}}
 \newcommand{\email}[1]{\mbox{\tt #1}}
-\newcommand{\url}[1]{\mbox{\tt #1}}
+%\newcommand{\url}[1]{\mbox{\tt #1}}
 \newcommand{\env}[1]{\mbox{\tt #1}}
 \newcommand{\exam}[1]{\mbox{\tt #1}}
+\newcommand{\file}[1]{\mbox{\tt #1}}
 \newcommand{\fileext}[1]{\mbox{\tt .#1}}
 \newcommand{\option}[1]{\mbox{\tt #1}}
+\newcommand{\cmdlineoption}[1]{\mbox{\tt #1}}
 \newcommand{\argoption}[2]{\mbox{\tt #1 \em #2}}
 \newcommand{\ctype}[1]{{\tt #1}}
 \newcommand{\op}[1]{{\tt #1}}
@@ -155,77 +137,89 @@
 \newcommand{\manpage}[2]{{\bf #1}(#2)}
 \newcommand{\chr}[1]{{\tt #1}}
 \newcommand{\jargon}[1]{{\em #1}}
+\newcommand{\strong}[1]{{\bf #1}}
+\newcommand{\texcmd}[1]{{\Sesc}{\tt #1}}
+\newcommand{\texenv}[1]{{\tt #1}}
+\newcommand{\texmode}[1]{{\tt #1}}
+\newcommand{\HTML}[1]{{\bf #1}}
+
+\newcommand\satom{\begingroup \urlstyle{tt}\Url}
+\newcommand\fmtseq{\begingroup \urlstyle{tt}\Url}
+%\newcommand\file{\begingroup \urlstyle{tt}\Url}
+
+\urldef{\Sexe}\satom{#!}		% #!
+\urldef{\Scut}\satom{!}			% !
+\urldef{\Scomma}\satom{,}		% ,
+\urldef{\Sifthen}\satom{->}		% ->
+\urldef{\Ssoftcut}\satom{*->} 		% *->
+\urldef{\Sdot}\satom{.} 		% .
+\urldef{\Ssemicolon}\satom{;} 		% ;
+\urldef{\Slt}\satom{<} 			% <
+\urldef{\Seq}\satom{=} 			% =
+\urldef{\Suniv}\satom{=..} 		% =..
+\urldef{\Saeq}\satom{=:=} 		% =:=
+\urldef{\Sle}\satom{=<} 		% =<
+\urldef{\Sequal}\satom{==} 		% ==
+\urldef{\Sstructeq}\satom{=@=} 		% =@=
+\urldef{\Sstructneq}\satom{\=@=} 	% \=@=
+\urldef{\Sane}\satom{=\=} 		% =\=
+\urldef{\Sgt}\satom{>} 			% >
+\urldef{\Sge}\satom{>=} 		% >=
+\urldef{\Stlt}\satom{@<} 		% @<
+\urldef{\Stle}\satom{@=<} 		% @=<
+\urldef{\Stgt}\satom{@>} 		% @>
+\urldef{\Stge}\satom{@>=} 		% @>=
+\urldef{\Snot}\satom{\+} 		% \+
+\urldef{\Sne}\satom{\=} 		% \=
+\urldef{\Snequal}\satom{\==} 		% \==
+\urldef{\Shat}\satom{^} 		% ^
+\urldef{\Sbar}\satom{|} 		% |
+\urldef{\Stimes}\satom{*}		% *
+\urldef{\Spow}\satom{**}		% **
+\urldef{\Splus}\satom{+}		% +
+\urldef{\Sminus}\satom{-}		% -
+\urldef{\Sdiv}\satom{/}			% /
+\urldef{\Sidiv}\satom{//}		% //
+\urldef{\Sand}\satom{/\}		% /\
+\urldef{\Slshift}\satom{<<}		% <<
+\urldef{\Srshift}\satom{>>}		% >>
+\urldef{\Sneg}\satom{\}			% \
+\urldef{\Sesc}\satom{\}			% \
+\urldef{\Sor}\satom{\/}			% \/
+\urldef{\Sdollar}\satom{$}		% $
+\urldef{\Squest}\satom{?}		% ?
+\urldef{\Smodule}\satom{:}		% :
+\urldef{\Sneck}\satom{:-}		% :-
+\urldef{\Sdirective}\satom{?-}		% ?-
+\urldef{\Sdcg}\satom{-->}		% -->
+\urldef{\Bc}\satom{\c}			% \c
+\urldef{\Bn}\satom{\n}			% \n
+\urldef{\Br}\satom{\r}			% \r
+\urldef{\Bl}\satom{\l}			% \l
+\urldef{\BB}\satom{\\}			% \\
+\urldef{\Stilde}\satom{~}		% ~
+\urldef{\Spercent}\satom{%}		% %
+\urldef{\Shash}\satom{#}		% #
 
 \newcommand{\bug}[1]{\footnote{BUG: #1}}
 
-\newlength{\clwidth}
-\newlength{\clhwidth}
-\newcommand{\classheader}[2]{%
-	\settowidth{\clwidth}{#1}%
-	\setlength{\clhwidth}{\textwidth}%
-	\addtolength{\clhwidth}{-\clwidth}%
-	#1\parbox[t]{\clhwidth}{\hyphenpenalty1000\raggedright({\em #2})}}
-
-\def\classsummary{\@ifstar{\xemptysummary}{\xsummary}}
-\def\xemptysummary#1#2#3{\emptydefinition{\classheader{#1}{#2}}}
-\def\xsummary#1#2#3{%
-    \definition{%
-	\parbox{\textwidth}{\rule{\linewidth}{2pt}\\%
-			    \psfig{figure=figs/class/#3.ps}\\[-12pt]%
-			    \rule{\linewidth}{0.5pt}}}%
-    \emptydefinition{\classheader{#1}{#2}}}
-
-\renewcommand{\line}[1]{\begin{quote}\tt #1\end{quote}}
-
-\newenvironment{note}{%
-  \begin{description}
-      \item[note]\mbox{}\\ \it}{%
-  \end{description}}
+\newcommand{\mod}[2]{#1 \mbox{\rm mod} #2}
+\newcommand{\rem}[2]{#1 \mbox{\rm rem} #2}
+\newcommand{\pow}[2]{{#1}^{#2}}
 
 %	Index handling
 
 \newcommand{\idxtype}[1]{{\small\em #1}}
 
-%	Running text indication of objects
+%	Prolog predicate summary
 
-\newcommand{\objectname}[1]{\mbox{\tt @#1}}
-
-%	Code segments
-
-\newenvironment{pcecode}{%
-	\begin{trivlist}\parindent 0pt\listparindent 0pt\parsep 0pt%
-	\item[]\small\obeylines}{% 
-	\end{trivlist}}
-
-\newcommand{\lineno}[1]{\makebox[1cm][l]{\tiny #1}}
-
-
-%	headers
-
-\newcommand{\header}[1]{\subsubsection*{#1}}
-
-\newcommand{\texcmd}[1]{\ttbackslash{\tt #1}}
-\newcommand{\texenv}[1]{{\tt #1}}
-\newcommand{\texmode}[1]{{\tt #1}}
-\newcommand{\HTML}[1]{\ttbackslash{\tt #1}}
-
-
-%	PostScript figures
-%	\postscriptfig[width=5in]{label}{Title}
-
-\def\postscriptfig{\@ifnextchar[{\@scaledpostscriptfig}{\@postscriptfig}}
-\def\@scaledpostscriptfig[#1]#2#3{%
-	\begin{figure}%
-	    \centerline{\psfig{figure=figs/#2.ps,#1}}
-	    \caption{#3}
-	    \label{fig:#2}
-	\end{figure}}
-\def\@postscriptfig#1#2{%
-	\begin{figure}%
-	    \centerline{\psfig{figure=figs/#1.ps}}
-	    \caption{#2}
-	    \label{fig:#1}
-	\end{figure}}
+\newenvironment{summarylist}[1]{\begin{longtable}[l]{#1}}{\end{longtable}}
+\newcommand{\predicatesummary}[3]{#1/#2 & #3 \\}
+\newcommand{\oppredsummary}[5]{#1/#2 & #5 \\}
+\newcommand{\functionsummary}[3]{#1/#2 & #3 \\}
+\newcommand{\opfuncsummary}[5]{#1/#2 & #5 \\}
+\newcommand{\opsummary}[4]{#3 & #1 & #2 & #4 \\}
+\newcommand{\hook}[1]{(hook)}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -235,6 +229,7 @@
 %	just like verbatim, but indents like quote.
 %	allows also the use of leading tabs
 
+\makeatletter
 {\catcode`\^^I=\active
     \gdef^^I{\mbox{}\space\space\space\space\space\space\space\space}}
 
@@ -255,7 +250,26 @@
 \let\endcode=\@endcode
 
 
-%	PAGESTYLE PCE
+%	PostScript figures
+%	\postscriptfig[width=5in]{label}{Title}
+
+\def\postscriptfig{\@ifnextchar[{\@scaledpostscriptfig}{\@postscriptfig}}
+\def\@scaledpostscriptfig[#1]#2#3{%
+	\begin{figure}%
+	    \centerline{\psfig{figure=figs/#2.ps,#1}}
+	    \caption{#3}
+	    \label{fig:#2}
+	\end{figure}}
+\def\@postscriptfig#1#2{%
+	\begin{figure}%
+	    \centerline{\psfig{figure=figs/#1.ps}}
+	    \caption{#2}
+	    \label{fig:#1}
+	\end{figure}}
+\makeatletter
+
+
+%	PAGESTYLE
 %
 %       Chapter                            date
 %       ---------------------------------------
@@ -266,3 +280,17 @@
 
 \def\arabicday{\number\year-\number\month-\number\day}
 
+\providecommand{\runningtitle}{SWI-Prolog \versionshort}
+
+\pagestyle{fancyplain}
+\headheight 14pt
+\def\chaptermark{\mbox{}}
+\renewcommand{\chaptermark}[1]{\markboth{#1}{#1}} % remember chapter title
+\renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}}
+
+\lhead[\fancyplain{}{\bf\thepage}]{\fancyplain{}{\bf\rightmark}}
+\rhead[\fancyplain{}{\bf\leftmark}]{\fancyplain{}{\bf\thepage}}
+\footrulewidth 0.2pt
+\lfoot[\tiny \runningtitle]{}
+\rfoot[]{\tiny \runningtitle}
+\cfoot{}

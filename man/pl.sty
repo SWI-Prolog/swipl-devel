@@ -92,6 +92,11 @@
 	\ifthenelse{\equal{}{#2}}{%
 	    \definition{#1}}{%
 	    \definition{#1({\it #2})}}\ignorespaces}
+\def\term{}
+\renewcommand{\term}[2]{%
+	\ifthenelse{\equal{}{#2}}{%
+	    #1}{%
+	    #1({\it #1})}}
 \newcommand{\cfunction}[3]{%
 	\definition{{\it #1} #2({\it #3})}%
 	\index{#2()}\ignorespaces}
@@ -103,6 +108,8 @@
 \renewcommand{\arg}[1]{\ifmmode\mbox{\em #1}\else{\em #1}\fi}
 \newcommand{\bnfmeta}[1]{\ifmmode{\langle\mbox{\it #1}\rangle}\else$\langle\mbox{\it #1}\rangle$\fi}
 \newcommand{\bnfor}{\ifmmode\mid\else$\mid$\fi}
+\newcommand{\isa}{& ::= &}
+\newcommand{\ora}{& $\mid$ &}
 
 \newcommand{\class}[1]{{\em #1}\index{#1 \string\idxtype{class}}}
 \newcommand{\classs}[1]{{\em #1s}\index{#1 \string\idxtype{class}}}
@@ -131,6 +138,10 @@
 \newcommand{\chr}[1]{{\tt #1}}
 \newcommand{\jargon}[1]{{\em #1}}
 \newcommand{\strong}[1]{{\bf #1}}
+\newcommand{\texcmd}[1]{{\Sesc}{\tt #1}}
+\newcommand{\texenv}[1]{{\tt #1}}
+\newcommand{\texmode}[1]{{\tt #1}}
+\newcommand{\HTML}[1]{{\bf #1}}
 
 \newcommand\satom{\begingroup \urlstyle{tt}\Url}
 \newcommand\fmtseq{\begingroup \urlstyle{tt}\Url}
@@ -188,6 +199,7 @@
 \urldef{\BB}\satom{\\}			% \\
 \urldef{\Stilde}\satom{~}		% ~
 \urldef{\Spercent}\satom{%}		% %
+\urldef{\Shash}\satom{#}		% #
 
 \newcommand{\bug}[1]{\footnote{BUG: #1}}
 
@@ -268,6 +280,8 @@
 
 \def\arabicday{\number\year-\number\month-\number\day}
 
+\providecommand{\runningtitle}{SWI-Prolog \versionshort}
+
 \pagestyle{fancyplain}
 \headheight 14pt
 \def\chaptermark{\mbox{}}
@@ -277,6 +291,6 @@
 \lhead[\fancyplain{}{\bf\thepage}]{\fancyplain{}{\bf\rightmark}}
 \rhead[\fancyplain{}{\bf\leftmark}]{\fancyplain{}{\bf\thepage}}
 \footrulewidth 0.2pt
-\lfoot[\tiny SWI-Prolog \versionshort]{}
-\rfoot[]{\tiny SWI-Prolog \versionshort}
+\lfoot[\tiny \runningtitle]{}
+\rfoot[]{\tiny \runningtitle}
 \cfoot{}

@@ -43,6 +43,7 @@ cmd(chr(		{A1}), #code(+A1)).
 cmd(const(		{A1}), #code(+A1)).
 cmd(op(			{A1}), #strong(+A1)).
 cmd(cmdlineoption(	{A1}), #strong(+A1)).
+cmd(fmtseq(		{A1}), #code(A1)).
 
 cmd(versionshort,		 _, nospace(Version)) :-
 	feature(version, V),
@@ -57,10 +58,10 @@ cmd(argoption({RawName}, {ArgName}),
     ]) :-
 	clean_tt(RawName, Name).
 cmd(predref({RawName}, {Arity}), #lref(Text, Text)) :-
-	clean_tt(RawName, Name),
+	clean_name(RawName, Name),
 	sformat(Text, '~w/~w', [Name, Arity]).
 cmd(functor({RawName}, {Arity}), Text) :-
-	clean_tt(RawName, Name),
+	clean_name(RawName, Name),
 	sformat(Text, '~w/~w', [Name, Arity]).
 cmd(compound({Name}, {Args}), #code([+Name, #embrace(+Args)])).
 cmd(term({Name}, {Args}), #code([+Name, #embrace(+Args)])).
@@ -75,21 +76,21 @@ cmd(definition({Tag}),
     #defitem(+Tag)).
 cmd(predicate({RawName}, {'0'}, {_}),
     #defitem(#label(RefName, #strong(Name)))) :-
-	clean_tt(RawName, Name),
+	clean_name(RawName, Name),
 	sformat(RefName, '~w/0', [Name]),
 	add_to_index(RefName, +RefName).
 cmd(predicate({RawName}, {Arity}, {Args}),
     #defitem(#label(RefName,
 		    [ #strong(Name), #embrace(#var(+Args))
 		    ]))) :-
-	clean_tt(RawName, Name),
+	clean_name(RawName, Name),
 	sformat(RefName, '~w/~w', [Name, Arity]),
 	add_to_index(RefName, +RefName).
 cmd(directive({RawName}, {Arity}, {Args}),
     #defitem(#label(RefName,
 		    [ #strong(Name), #embrace(#var(Args))
 		    ]))) :-
-	clean_tt(RawName, Name),
+	clean_name(RawName, Name),
 	sformat(RefName, '~w/~w', [Name, Arity]),
 	add_to_index(RefName, +RefName).
 cmd(cfunction({RType}, {Name}, {Args}),
@@ -106,31 +107,20 @@ cmd(cmacro({RType}, {Name}, {Args}),
 	add_to_index(RefName, +RefName).
 cmd(prefixop({RawName}, {Arg}),
     #defitem(#label(RefName, [#strong(Name), ' ', #var(Arg)]))) :-
-	clean_tt(RawName, Name),
-	sformat(RefName, '~w/1', [Name]),
-	add_to_index(RefName, +RefName).
-cmd(ttprefixop({RawName}, {Arg}),
-    #defitem(#label(RefName, [#code(Name), ' ', #var(Arg)]))) :-
-	clean_tt(RawName, Name),
+	clean_name(RawName, Name),
 	sformat(RefName, '~w/1', [Name]),
 	add_to_index(RefName, +RefName).
 cmd(infixop({RawName}, {Arg1}, {Arg2}),
     #defitem(#label(RefName,
 		    [ #var(Arg1), ' ', #strong(Name), ' ', #var(Arg2)
 		    ]))) :-
-	clean_tt(RawName, Name),
-	sformat(RefName, '~w/2', [Name]),
-	add_to_index(RefName, +RefName).
-cmd(ttinfixop({RawName}, {Arg1}, {Arg2}),
-    #defitem(#label(RefName,
-		    [ #var(Arg1), ' ', #code(Name), ' ', #var(Arg2)
-		    ]))) :-
-	clean_tt(RawName, Name),
+	clean_name(RawName, Name),
 	sformat(RefName, '~w/2', [Name]),
 	add_to_index(RefName, +RefName).
 cmd(termitem({Name}, {[]}), #defitem(#strong(+Name))).
 cmd(termitem({Name}, {Arg}),
     #defitem([#strong(+Name), #embrace(#var(+Arg))])).
+cmd(fmtchar({Name}), #defitem(#code(+Name))).
 cmd(optionval({Value}), #defitem(#strong(+Value))).
 cmd(cmdlineoptionitem(M, {Option}, {Arg}),
     #defitem([#strong(+Option), Sep, #var(+Arg)])) :-
@@ -152,21 +142,89 @@ cmd(featureoption({Name}, {Type}),
     #defitem([#strong(Name), ' ', #embrace(#var(Type))])).
 cmd(escapeitem({Name}), #defitem(#code([nospace('\'), +Name]))).
 cmd(ttdef({Def}), #defitem(#code(+Def))).
-cmd(predicatesummary({Name}, {Arity}, {Summary}),
-    #row([#predref(Name, Arity), +Summary])).
-cmd(oppredsummary({Name}, {Arity}, {_Assoc}, {_Pri}, {Summary}),
-    #row([#predref(Name, Arity), +Summary])).
-cmd(functionsummary({Name}, {Arity}, {Summary}),
-    #row([#predref(Name, Arity), +Summary])).
-cmd(opfuncsummary({Name}, {Arity}, {_Assoc}, {_Pri}, {Summary}),
-    #row([#predref(Name, Arity), +Summary])).
+cmd(predicatesummary({RawName}, {Arity}, {Summary}),
+    #row([#predref(Name, Arity), +Summary])) :-
+	clean_name(RawName, Name).
+cmd(oppredsummary({RawName}, {Arity}, {_Assoc}, {_Pri}, {Summary}),
+    #row([#predref(Name, Arity), +Summary])) :-
+	clean_name(RawName, Name).
+cmd(functionsummary({RawName}, {Arity}, {Summary}),
+    #row([#predref(Name, Arity), +Summary])) :-
+	clean_name(RawName, Name).
+cmd(opfuncsummary({RawName}, {Arity}, {_Assoc}, {_Pri}, {Summary}),
+    #row([#predref(Name, Arity), +Summary])) :-
+	clean_name(RawName, Name).
 cmd(opsummary({Pri}, {Assoc}, {RawName}, {Summary}),
     #row([Pri, Assoc, Name, +Summary])) :-
-	clean_tt(RawName, Name).
+	clean_name(RawName, Name).
 
 cmd(texcmd({Name}), #code([nospace(\), Name])).
 cmd(texenv({Name}), #code(Name)).
 cmd(texmode({Name}), #var(Name)).
 
-cmd(tthat, '^').
-cmd(ttbackslash, \).
+		 /*******************************
+		 *               C		*
+		 *******************************/
+
+cmd(Cmd, HTML) :-
+	special(Cmd, Atom),
+	HTML = #code(Atom).
+
+special('Sexe', '#!').
+special('Scut', '!').
+special('Scomma', ',').
+special('Sifthen', '->').
+special('Ssoftcut', '*->').
+special('Sdot', '.').
+special('Ssemicolon', ';').
+special('Slt', '<').
+special('Seq', '=').
+special('Suniv', '=..').
+special('Saeq', '=:=').
+special('Sle', '=<').
+special('Sequal', '==').
+special('Sstructeq', '=@=').
+special('Sstructneq', '\=@=').
+special('Sane', '=\=').
+special('Sgt', '>').
+special('Sge', '>=').
+special('Stlt', '@<').
+special('Stle', '@=<').
+special('Stgt', '@>').
+special('Stge', '@>=').
+special('Snot', '\+').
+special('Sne', '\=').
+special('Snequal', '\==').
+special('Shat', '^').
+special('Sbar', '|').
+special('Stimes', '*').
+special('Spow', '**').
+special('Splus', '+').
+special('Sminus', '-').
+special('Sdiv', '/').
+special('Sidiv', '//').
+special('Sand', '/\').
+special('Slshift', '<<').
+special('Srshift', '>>').
+special('Sneg', '\').
+special('Sesc', '\').
+special('Sor', '\/').
+special('Sdollar', '$').
+special('Squest', '?').
+special('Smodule', ':').
+special('Sneck', ':-').
+special('Sdirective', '?-').
+special('Sdcg', '-->').
+special('Bc', '\c').
+special('Bn', '\n').
+special('Br', '\r').
+special('Bl', '\l').
+special('BB', '\\').
+special('Stilde', '~').
+special('Spercent', '%').
+special('Shash', '#').
+
+clean_name([\Special], Out) :-
+	special(Special, Out), !.
+clean_name([Out], Out).
+	

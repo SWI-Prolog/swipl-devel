@@ -11,13 +11,13 @@ ONLINE=		../library/MANUAL
 ONLINE_INDEX=	../library/helpidx.pl
 PL=		../linux/pl
 
-ALLFILES=	Makefile biblio.doc builtin.doc correct_idx correct_ind \
+ALLFILES=	Makefile biblio.doc builtin.doc \
 		doc2tex foreign.doc hack.doc intro.doc latex_if_needed  \
-		main.doc manual.sty module.doc overview.doc psfig.sty   \
-		summary.doc runtime.doc swi.ps figs/tty.sty figs/uva.ps \
+		manual.sty module.doc overview.doc   \
+		summary.doc runtime.doc figs/swi.ps tty.sty figs/uva.ps \
 		$(DVITOTTY-HOME)
 
-TEXFILES=	manual.sty psfig.sty figs/uva.ps figs/swi.ps          \
+TEXFILES=	manual.sty figs/uva.ps figs/swi.ps          \
 		doc.tex intro.tex overview.tex builtin.tex module.tex \
 		foreign.tex runtime.tex hack.tex summary.tex xpce.tex
 
@@ -26,8 +26,8 @@ TEXFILES=	manual.sty psfig.sty figs/uva.ps figs/swi.ps          \
 
 help:		$(ALLFILES)
 		@echo
-		@echo '"make all"       creates both the online documentation and the manual'
-		@echo '"make online"    should build the online documentation'
+		@echo '"make all"       creates both HTML and DVI'
+		@echo '"make html"      Create HTML verstion'
 		@echo '"make manual"    makes the manual'
 		@echo
 		@echo '"make clean"     removes all temporary files'
@@ -35,7 +35,7 @@ help:		$(ALLFILES)
 		@echo
 
 
-all:		online manual
+all:		html manual
 
 dvi:		$(TEXFILES)
 		$(LATEX) doc

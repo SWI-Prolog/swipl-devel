@@ -5,6 +5,11 @@
 Version 2.7.18
 ==============
 
+  * ADDED: Directory html for a SWI-Prolog based latex2html translator.
+    Very extensive example of using foreign code.
+
+  * REMOVED: Lots of unused files from the source-distribution
+
   * WIN32: Removed the uxnt.dll library.  This library is now a static
     library linked into libpl.lib, the SWI-Prolog kernel.
 

@@ -168,6 +168,7 @@
 \BB
 \Stilde
 \Spercent
+\Shash
 
 
 

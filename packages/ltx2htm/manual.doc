@@ -1,5 +1,7 @@
 \documentclass[11pt]{article}
+\newcommand{\runningtitle}{SWI-Prolog's latex2html}
 \usepackage{pl}
+\usepackage{html}
 \makeindex
 
 \title{Converting LaTeX into HTML}
@@ -35,8 +37,8 @@ that can be consulted through the WEB as a hypertext document. For the
 latter, the document should be represented using HTML. HTML however is
 not the ideal language for maintaining a document:
 
-\begin{itemize}
-    \tick{Not extendable}
+\begin{itemlist}
+    \item [Not extendable]
 It is not possible to define macros in HTML, which makes the maintenance
 of documents in HTML itself difficult. Highly structured documents, such
 as manuals and reports benefit from a description in the terminology of
@@ -46,13 +48,14 @@ is better to start the description of a predicate using a formatting
 command \const{predicate}, rather then directly using textual layout
 primitives such as list, item, font, etc.
 
-    \tick{Difficult-to-read syntax}
+    \item [Difficult-to-read syntax]
 This can always be debated, but lets say I don't like it.
 
-    \tick{Not sufficiently rich to specify a quality paper document}
+    \item [Not sufficiently rich to specify a quality paper document]
 Notably spacing, alignment, mathematics and tables are less powerful
 than one would wish for generating a quality paper document.
-\end{itemize}
+\end{itemlist}
+
 
 
 \section{Maintaining a structured document}
@@ -94,8 +97,8 @@ cmd/[2-4] and env/2, which may be extended or redefined by the user.
 Generating plain HTML in one step is cumbersome.  The macro expander
 allows for parameterised expansion of terms into sequences of HTML
 commands.  Of course, macros may be expressed in macros.  The set
-of macros is represented by the \predref{\#}{2} predicate.  Macros
-are called using \functor{\#}{1} terms.
+of macros is represented by the \predref{#}{2} predicate.  Macros
+are called using \functor{#}{1} terms.
 
     \item[Reference resolver]
 References to local (i.e.\ inside the document) labels are translated
@@ -235,7 +238,7 @@ translate_2(env(gnu, [], [\par]), document, ...) failed
 \end{code}
 
 If an HTML macro could not be expanded, the definition of
-\predref{\#}{2} should be examined. The system will warn:
+\predref{#}{2} should be examined. The system will warn:
 
 \begin{code}
 Post-processing macro #gnus/1 could not be expanded.
@@ -320,8 +323,8 @@ lasts till the end of the current line, just as with LaTeX itself.
 A command declared using a line of the form:
 
 \begin{tabular}{lrll}
-<command>	\isa \ttbackslash<name> { <arg> } [\const{=}<cmdfunc>] & \\
-<arg>		\isa \const{\{} <type> \const{\}} & \\
+<command>	\isa \const{\}<name> { <arg> } [\const{=}<cmdfunc>] & \\
+<arg>		\isa \verb${$ <type> \verb$}$ & \\
 		\ora \const{[}  <type> \const{]}  & \\
 <type>		\isa \const{-} & Do not tokenise \\
 		\ora \const{+} & Tokenise argument \\
@@ -336,7 +339,7 @@ A command declared using a line of the form:
 An environment declaration is of the form:
 
 \begin{tabular}{lrll}
-<environment>	\isa \const{\{} <name> \const{\}} [\const{=}<envfunc>] & \\
+<environment>	\isa \verb${$ <name> \verb$}$ [\const{=}<envfunc>] & \\
 <envfunc>	\isa \const{verbatim} & Act as a verbatim environment \\
 		\ora \const{list} & My body consists of items \\
 		\ora \const{float} & I am a floating environment
@@ -428,7 +431,7 @@ environment.
 \begin{description}
     \predicate{macro_expand}{2}{+In, -Out}
 The input is a (nested) list or a single HTML token or a macro
-reference (terms of \functor{\#}{1}, \functor{+}{1} or \functor{+}{2}).
+reference (terms of \functor{#}{1}, \functor{+}{1} or \functor{+}{2}).
 The \arg{Out} is a (nested) list of HTML tokens as described in
 \secref{htmltokens}.
 \end{description}
@@ -442,8 +445,8 @@ called recursively as \exam{translate(\arg{Tokens}, normal, \arg{Out})}.
     \termitem{+}{Mode, Tokens}
 As \functor{+}{1}, translating in mode \arg{Mode} rather then
 \const{normal}.
-    \termitem{\#}{MacroCall}
-Calls \predref{\#}{2} to expand the macro.
+    \termitem{#}{MacroCall}
+Calls \predref{#}{2} to expand the macro.
 \end{description}
 
 The following macros have been predefined:
@@ -542,7 +545,7 @@ this section (or nothing if there are no subsections).
 
 As discussed in \secref{overview}, the translator may be extended at
 various levels.  Normally, is should suffice to extend the definitions
-of cmd/[2-4], env/2, list_command/4 and \predref{\#}{2}. They are
+of cmd/[2-4], env/2, list_command/4 and \predref{#}{2}. They are
 defines below.
 
 \begin{description}
@@ -640,7 +643,7 @@ list_command(enumerate,       _, html('<OL>'), html('</OL>')).
 list_command(thebibliography, _, html('<DL>'), html('</DL>')).
 \end{code}
 
-    \predicate{\#}{2}{+Macro, -Expansion}
+    \predicate{#}{2}{+Macro, -Expansion}
 This predicate defines the macro-expander as invoked through
 the macro_expand/2 command.  \arg{Macro} is an arbitrary Prolog
 term, possibly containing variables to act as macro arguments,
