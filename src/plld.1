@@ -14,7 +14,7 @@ executable from a series of C/C++ and Prolog input files. It extracts
 information from the SWI-Prolog executable
 .B pl,
 after which it scans the arguments and breaks them into several
-categories.  It will then call the C-compiler to create an executable
+categories.  It then calls the C-compiler to create an executable
 containing the user's C-code and the SWI-Prolog kernel.  After this,
 it will call the development environment to create a Prolog saved
 state from the prolog files and finally it will create the target
@@ -53,7 +53,7 @@ dynamic loading is not supported on your system.
 .TP
 .BI \-goal " goal"
 The goal that is initially executed when the toplevel is started using
-.BI "PL_toplevel()" .
+.BR "PL_toplevel()" .
 E.i. the default.
 .BI \-g
 flag for the new executable.
@@ -83,7 +83,7 @@ in the
 .IR "SWI-Prolog reference manual".
 .TP
 .BI \-v
-Verbose operation.  This will echo the commands before executing them.
+Verbose operation.  This echos the commands before executing them.
 Note that some commands are printed as shell commands, but actually
 executed by plld itself for compatibility with the Win32 platforms.
 .TP
@@ -115,13 +115,13 @@ otherwise
 is assumed.
 .TP
 .BI \-ld " linker"
-Spefies the linker to use.  Default is the C-compiler.  On Win32
+Specifies the linker to use.  Default is the C-compiler.  On Win32
 platforms, the default is
 .BI link.exe.
 .TP
 .BI \-l "library"
 Specifies a C-library for linking the application.  By default,
-.BI -lpl
+.BR \-lpl " (" \-lplmt " if " pl " supports threading)"
 as well as the libraries required by the SWI-Prolog kernel will be
 passed to the C-compiler.
 .TP
@@ -179,9 +179,9 @@ rely on the C-code added by the user.
 .SH "SEE ALSO"
 Jan Wielemaker
 .I pl(1)
-.I SWI-Prolog 3.2 Reference Manual,
+.I SWI-Prolog 4.0 Reference Manual,
 University of Amsterdam, Dept. of Social Science and Informatics (SWI).
 .SH COPYRIGHT
-Copyright (C) 1991-1999, SWI, University of Amsterdam
+Copyright (C) 1991-2001, SWI, University of Amsterdam
 .SH AUTHOR
 Jan Wielemaker
