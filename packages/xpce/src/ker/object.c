@@ -182,19 +182,15 @@ follows:
 #define offset(t, f) ((int)(&((struct t *)0)->f))
 
 static status
-hasClassVariableVariable(Variable v)
-{ if ( instanceOfObject(v->context, ClassClass) )
-  { Class class = v->context;
+hasClassVariableVariable(Variable v, Class class)
+{ for( ; notNil(class); class=class->super_class )
+  { Cell cell;
 
-    for( ; notNil(class); class=class->super_class )
-    { Cell cell;
+    for_cell(cell, class->class_variables)
+    { ClassVariable cv = cell->value;
 
-      for_cell(cell, class->class_variables)
-      { ClassVariable cv = cell->value;
-
-	if ( cv->name == v->name )
-	  succeed;
-      }
+      if ( cv->name == v->name )
+	succeed;
     }
   }
   
@@ -221,10 +217,12 @@ updateInstanceProtoClass(Class class)
   { Variable v = *var;
 
     if ( isNil(v->alloc_value) &&
-	 hasClassVariableVariable(v) )
+	 hasClassVariableVariable(v, class) )
     { *field = CLASSDEFAULT;
       setFlag(obj, F_OBTAIN_CLASSVARS);
-      DEBUG(NAME_classVariable, writef("Set %N to @class_default\n", v));
+      DEBUG(NAME_classVariable,
+	    Cprintf("Set %s-%s to @class_default\n",
+		    pp(class->name), pp(v->name)));
     } else
       *field = v->alloc_value;
   }
