@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+
+<test>
+<p>
+This is a long test holding, with the intention to switch to wide character
+encoding from the local buffer to malloc'ed buffer.  This (&#9996;) is a
+piece symbol.
+</p>
+<p>
+This is a long test holding, with the intention to switch to wide character
+encoding after the output buffer has been switched to malloc'ed mode.  For this
+reason, our buffer should should hold more than 256 character, as defined in
+util.h in the structure ocharbuf.  This (&#10173;) is a fat arrow.
+</p>
+</test>
+
