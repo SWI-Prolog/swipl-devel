@@ -13,7 +13,13 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <stdlib.h>
+#ifdef HAVE_SYS_MALLOC_H
+#include <sys/malloc.h>
+#else
+#ifdef HAVE_MALLOC_H
 #include <malloc.h>
+#endif
+#endif
 #include <errno.h>
 #define RC_KERNEL 1
 #include "rc.h"

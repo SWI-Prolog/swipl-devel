@@ -17,7 +17,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#ifdef HAVE_SYS_MALLOC_H
+#include <sys/malloc.h>
+#else
+#ifdef HAVE_MALLOC_H
 #include <malloc.h>
+#endif
+#endif
 #include "html.h"
 #include <stdlib.h>
 
