@@ -1,6 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 5.0.2
+=============
+
+  * ADDED: library(time) to the clib package, providing alarm and timeout
+    functions.  Works on Unix systems having setitimer() as well as on
+    Windows using Multi Media timers.
+
   * ADDED: PL_handle_signal() to handle synchronous interrupts from foreign
     code.  Option PL_SIGSYNC to PL_signal() to schedule synchronous
     interrupts.
