@@ -140,6 +140,9 @@
 /* Define if you have the ceil function.  */
 #undef HAVE_CEIL
 
+/* Define if you have the cfmakeraw function.  */
+#undef HAVE_CFMAKERAW
+
 /* Define if you have the chmod function.  */
 #undef HAVE_CHMOD
 

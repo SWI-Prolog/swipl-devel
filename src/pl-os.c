@@ -1766,7 +1766,7 @@ PushTty(ttybuf *buf, int mode)
 
   switch( mode )
   { case TTY_RAW:
-#ifdef HAVE_TCSETATTR
+#if defined(HAVE_TCSETATTR) && defined(HAVE_CFMAKERAW)
 	cfmakeraw(&tio);
 	tio.c_oflag = buf->tab.c_oflag;	/* donot change output modes */
 	tio.c_lflag |= ISIG;
