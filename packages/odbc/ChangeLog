@@ -1,3 +1,8 @@
+Sep 19, 2002
+
+* FIXED: type-specifier use second argument as scale argument (i.e.
+  decimal(14,2).  Mike Elston.
+
 Sep 15, 2002
 
 * FIXED: increase column-width for DECIMAL columns as the interface doesn't

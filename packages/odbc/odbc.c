@@ -2286,6 +2286,8 @@ declare_parameters(context *ctxt, term_t parms)
 					/* char(N) --> cbColDef */
       if ( get_int_arg(1, head, &val) )	/* TBD: incomplete */
 	cbColDef = val;
+      if ( get_int_arg(2, head, &val) )	/* decimal(cbColDef, scale) */
+	params->scale = val;
     } else
     { TRY(ctxt, SQLDescribeParam(ctxt->hstmt,		/* hstmt */
 				 (SWORD)pn,		/* ipar */
@@ -2306,7 +2308,9 @@ declare_parameters(context *ctxt, term_t parms)
 	if ( cbColDef > 0 )
 	{ if ( params->sqlTypeID == SQL_DECIMAL ||
 	       params->sqlTypeID == SQL_NUMERIC )
-	    cbColDef++;			/* add one for decimal dot */
+	  { cbColDef++;			/* add one for decimal dot */
+	    /*Sdprintf("cbColDef++ = %d\n", cbColDef);*/
+	  }
 	  if ( cbColDef+1 > PARAM_BUFSIZE )
 	  { if ( !(params->ptr_value = odbc_malloc(cbColDef+1)) )
 	      return FALSE;
