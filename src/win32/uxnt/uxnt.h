@@ -76,8 +76,7 @@
 #define rmdir _xos_rmdir
 #define getcwd _xos_getcwd
 
-#define fopen(p, m) fopen(_xos_os_existing_filename((p), alloca(PATH_MAX)), \
-			  (m))
+#define fopen(p, m) fopen(_xos_os_filename((p), alloca(PATH_MAX)),(m))
 
 #endif /*_UXNT_KERNEL*/
 
@@ -124,15 +123,7 @@ _export int	_xos_exists(const char *path, int flags);
 #define _XOS_ISFILE	0x01
 #define _XOS_ISDIR	0x02
 
-		 /*******************************
-		 *   WIN32 LONG FILENAME MAPS	*
-		 *******************************/
-
-#define _XOS_FILE		0x0001		/* is a file */
-#define _XOS_DIR		0x0002		/* is a directory */
-
-_export int	_xos_make_filemap(const char *dir);
-_export char *	_xos_os_existing_filename(const char *cname, char *osname);
-
+#define _XOS_FILE	0x0001		/* is a file */
+#define _XOS_DIR	0x0002		/* is a directory */
 
 #endif /*_XNT_H_INCLUDED*/

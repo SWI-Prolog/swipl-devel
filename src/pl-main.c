@@ -995,7 +995,7 @@ runtime_vars(int format)
   { 
 #ifdef O_XOS
     if ( format == FMT_CMD )
-    { _xos_os_existing_filename(systemDefaults.home, base);
+    { _xos_os_filename(systemDefaults.home, base);
       home = base;
     } else
       home = systemDefaults.home;

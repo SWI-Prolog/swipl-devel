@@ -369,7 +369,7 @@ _xos_open(const char *path, int access, ...)
   mode = va_arg(args, int);
   va_end(args);
 
-  return _open(_xos_os_existing_filename(path, buf), access, mode);
+  return _open(_xos_os_filename(path, buf), access, mode);
 }
 
 
@@ -411,7 +411,7 @@ int
 _xos_access(const char *path, int mode)
 { char buf[PATH_MAX];
 
-  return _access(_xos_os_existing_filename(path, buf), mode);
+  return _access(_xos_os_filename(path, buf), mode);
 }
 
 
@@ -419,7 +419,7 @@ int
 _xos_chmod(const char *path, int mode)
 { char buf[PATH_MAX];
 
-  return _chmod(_xos_os_existing_filename(path, buf), mode);
+  return _chmod(_xos_os_filename(path, buf), mode);
 }
 
 
@@ -427,7 +427,7 @@ int
 _xos_remove(const char *path)
 { char buf[PATH_MAX];
 
-  return remove(_xos_os_existing_filename(path, buf));
+  return remove(_xos_os_filename(path, buf));
 }
 
 
@@ -436,8 +436,8 @@ _xos_rename(const char *old, const char *new)
 { char osold[PATH_MAX];
   char osnew[PATH_MAX];
 
-  return rename(_xos_os_existing_filename(old, osold),
-		_xos_os_existing_filename(new, osnew));
+  return rename(_xos_os_filename(old, osold),
+		_xos_os_filename(new, osnew));
 }
 
 
@@ -445,7 +445,7 @@ int
 _xos_stat(const char *path, struct stat *sbuf)
 { char buf[PATH_MAX];
   
-  _xos_os_existing_filename(path, buf);
+  _xos_os_filename(path, buf);
 
   return stat(buf, (struct stat *) sbuf);
 }
@@ -456,7 +456,7 @@ _xos_exists(const char *path, int flags)
 { char buf[PATH_MAX];
   DWORD a;
 
-  _xos_os_existing_filename(path, buf);
+  _xos_os_filename(path, buf);
 
   if ( (a=GetFileAttributes(buf)) != 0xFFFFFFFF )
   { if ( flags & _XOS_DIR )
@@ -486,7 +486,7 @@ opendir(const char *path)
 { char buf[PATH_MAX];
   DIR *dp = malloc(sizeof(DIR));
 
-  _xos_os_existing_filename(path, buf);
+  _xos_os_filename(path, buf);
   strcat(buf, "\\*.*");
   
   if ( !(dp->data = malloc(sizeof(WIN32_FIND_DATA))) )
@@ -555,7 +555,7 @@ int
 _xos_chdir(const char *path)
 { char buf[PATH_MAX];
 
-  _xos_os_existing_filename(path, buf);
+  _xos_os_filename(path, buf);
   if ( isalpha(buf[0]) && buf[1] == ':' )
   { int drv = tolower(buf[0]) - 'a' + 1;
 
@@ -573,7 +573,7 @@ int
 _xos_mkdir(const char *path, int mode)
 { char buf[PATH_MAX];
 
-  return _mkdir(_xos_os_existing_filename(path, buf));
+  return _mkdir(_xos_os_filename(path, buf));
 }
 
 
@@ -581,7 +581,7 @@ int
 _xos_rmdir(const char *path)
 { char buf[PATH_MAX];
 
-  return _rmdir(_xos_os_existing_filename(path, buf));
+  return _rmdir(_xos_os_filename(path, buf));
 }
 
 
@@ -691,7 +691,3 @@ _xos_make_filemap(const char *dir)
   return 0;
 }
 
-char *
-_xos_os_existing_filename(const char *cname, char *osname)
-{ return _xos_os_filename(cname, osname);
-}
