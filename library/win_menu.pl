@@ -70,21 +70,21 @@ menu('&Help',
      [ '&About ...' 				= about,
        '&Online manual ...' 			= help,
        --,
-       '&SWI-Prolog WWW home (on www) ...'	= www_open(pl),
-       '&SWI-Prolog FAQ (on www) ...'		= www_open(pl_faq),
-       '&SWI-Prolog Quick Start (on www) ...'	= www_open(pl_quick),
-       '&SWI-Prolog Manual (on www) ...'	= www_open(pl_man),
-       '&SWI-Prolog Mailing list (on www) ...'	= www_open(pl_mail),
-       '&SWI-Prolog Download (on www) ...'	= www_open(pl_download),
+       'SWI-Prolog &WWW home (on www) ...'	= www_open(pl),
+       'SWI-Prolog &FAQ (on www) ...'		= www_open(pl_faq),
+       'SWI-Prolog &Quick Start (on www) ...'	= www_open(pl_quick),
+       'SWI-Prolog &Manual (on www) ...'	= www_open(pl_man),
+       'SWI-Prolog Mailing &List (on www) ...'	= www_open(pl_mail),
+       'SWI-Prolog &Download (on www) ...'	= www_open(pl_download),
        --,
        '&XPCE (GUI) Manual ...' 		= manpce,
-       '&XPCE User Guide (on www) ...'   	= www_open(pce_man),
+       'XPCE &User Guide (on www) ...'   	= www_open(pce_man),
        --,
-       'Submit but report (on www) ...'  	= www_open(pl_bugs)
+       'Submit &Bug report (on www) ...'  	= www_open(pl_bugs)
      ],
      [ before_menu(-)
      ]).
-     
+    
  
 init_win_menus :-
 	(   menu(Menu, Items, Options),
