@@ -135,7 +135,7 @@ render_time(F, Ticks:int, Rendered:any) :<-
 	;   View == percentage
 	->  get(F, ticks, Total),
 	    get(F, accounting_ticks, Accounting),
-	    (	Total == 0
+	    (	Total-Accounting =:= 0
 	    ->	Rendered = '0.0%'
 	    ;	Percentage is 100 * (Ticks/(Total-Accounting)),
 		new(Rendered, string('%.1f%%', Percentage))

@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug in profiler causing very large overhead under some
+    circumstances.  Tolga Konik.
+
   * ENHANCED: thread memory pooling could waste memory, especially in
     designs where a pool of threads is fired, waited for, re-started,
     etc.  Sergey Tikhonov.

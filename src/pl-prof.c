@@ -620,6 +620,7 @@ resetProfiler()
   freeProfileData();
   LD->profile.ticks = 0;
   LD->profile.accounting_ticks = 0;
+  LD->profile.time = 0.0;
   accounting = FALSE;
 
   succeed;
@@ -728,6 +729,9 @@ profCall(Definition def ARG_LD)
     { if ( node->def == def )
       { node->calls++;
 	current = node;
+	DEBUG(2, Sdprintf("existing root %p\n", current));
+
+	return node;
       }
     }
 
@@ -742,6 +746,7 @@ profCall(Definition def ARG_LD)
     roots = node;
     current = node;
     accounting = FALSE;
+    DEBUG(2, Sdprintf("new root %p\n", node));
 
     return node;
   }
@@ -749,6 +754,7 @@ profCall(Definition def ARG_LD)
 					/* straight recursion */
   if ( node->def == def )
   { node->recur++;
+    DEBUG(2, Sdprintf("direct recursion\n"));
     accounting = FALSE;
     return node;
   } else				/* from same parent */
@@ -761,6 +767,7 @@ profCall(Definition def ARG_LD)
       { node->recur++;
 
 	current = node;
+	DEBUG(2, Sdprintf("indirect recursion\n"));
 	accounting = FALSE;
 	return node;
       }
@@ -772,6 +779,7 @@ profCall(Definition def ARG_LD)
   { if ( node->def == def )
     { current = node;
       node->calls++;
+      DEBUG(2, Sdprintf("existing child\n"));
       accounting = FALSE;
       return node;
     }
@@ -787,6 +795,7 @@ profCall(Definition def ARG_LD)
   node->next = current->siblings;
   current->siblings = node;
   current = node;
+  DEBUG(2, Sdprintf("new child\n"));
   accounting = FALSE;
 
   return node;
