@@ -459,6 +459,11 @@ prolog_message(query(eof)) -->
 
 bindings([]) -->
 	[].
+bindings([Name = _|T]) -->
+	{ sub_atom(Name, 0, _, _, '_'),
+	  current_prolog_flag(toplevel_print_anon, false)
+	}, !,
+	bindings(T).
 bindings([Name = Value|T]) -->
 	{ current_prolog_flag(toplevel_print_options, Options)
 	},
