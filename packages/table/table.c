@@ -1163,7 +1163,7 @@ read_field(Table t, Field f, table_offset_t start, table_offset_t *end, term_t a
     case_atom:;
     case FIELD_STRING:
     case FIELD_CODELIST:
-      return unify_field_text(t, f->flags, arg, type, s, z-s);
+      return unify_field_text(t, f->flags, type, arg, s, z-s);
     case FIELD_INTEGER:
     { long l = 0;
       char *a = s;
