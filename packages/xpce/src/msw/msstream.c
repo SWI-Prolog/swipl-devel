@@ -314,9 +314,9 @@ ws_input_stream(Stream s)
 
 
 void
-ws_no_input_stream(Stream s)
-{ if ( instanceOfObject(s, ClassSocket) )
-  { SOCKET s = (SOCKET) s->ws_ref;
+ws_no_input_stream(Stream obj)
+{ if ( instanceOfObject(obj, ClassSocket) )
+  { SOCKET s = (SOCKET) obj->ws_ref;
 
     if ( s != INVALID_SOCKET )
     { WSAAsyncSelect(s, PceHiddenWindow(), 0, 0);
@@ -324,7 +324,7 @@ ws_no_input_stream(Stream s)
   }
 
   DEBUG(NAME_stream,
-	Cprintf("Un-registered %s for asynchronous input\n", pp(s)));
+	Cprintf("Un-registered %s for asynchronous input\n", pp(obj)));
 }
 
 
