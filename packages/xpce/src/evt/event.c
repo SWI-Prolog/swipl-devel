@@ -148,7 +148,6 @@ void
 considerLocStillEvent()
 { if ( !loc_still_posted )
   { unsigned long now = mclock();
-    extern int lock_owner;
 
     if ( now - host_last_time < 700 )
       return;
