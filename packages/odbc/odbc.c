@@ -1889,16 +1889,16 @@ bind_parameters(context *ctxt, term_t parms)
   for(prm = ctxt->params; PL_get_list(tail, head, tail); prm++)
   { switch(prm->cTypeID)
     { case SQL_C_SLONG:
-	if ( !PL_get_long(head, (long *)prm->ptr_value) &&
-	     !try_null(ctxt, prm, head, "integer") )
+	if ( PL_get_long(head, (long *)prm->ptr_value) )
+	  prm->len_value = sizeof(long);
+	else if ( !try_null(ctxt, prm, head, "integer") )
 	  return FALSE;
-        prm->len_value = sizeof(long);
         break;
       case SQL_C_DOUBLE:
-	if ( !PL_get_float(head, (double *)prm->ptr_value) &&
-	     !try_null(ctxt, prm, head, "float") )
+	if ( PL_get_float(head, (double *)prm->ptr_value) )
+	  prm->len_value = sizeof(double);
+        else if ( !try_null(ctxt, prm, head, "float") )
 	  return FALSE;
-        prm->len_value = sizeof(double);
         break;
       case SQL_C_CHAR:
       case SQL_C_BINARY:
@@ -1944,24 +1944,24 @@ bind_parameters(context *ctxt, term_t parms)
 	break;
       }
       case SQL_C_TYPE_DATE:
-      { if ( !get_date(head, (DATE_STRUCT*)prm->ptr_value) &&
-	     !try_null(ctxt, prm, head, "date") )
+      { if ( get_date(head, (DATE_STRUCT*)prm->ptr_value) )
+	  prm->len_value = sizeof(DATE_STRUCT);
+	else if ( !try_null(ctxt, prm, head, "date") )
 	  return FALSE;
-	prm->len_value = sizeof(DATE_STRUCT);
 	break;
       }
       case SQL_C_TYPE_TIME:
-      { if ( !get_time(head, (TIME_STRUCT*)prm->ptr_value) &&
-	     !try_null(ctxt, prm, head, "time") )
+      { if ( get_time(head, (TIME_STRUCT*)prm->ptr_value) )
+	  prm->len_value = sizeof(TIME_STRUCT);
+	else if ( !try_null(ctxt, prm, head, "time") )
 	  return FALSE;
-	prm->len_value = sizeof(TIME_STRUCT);
 	break;
       }
       case SQL_C_TIMESTAMP:
-      { if ( !get_timestamp(head, (SQL_TIMESTAMP_STRUCT*)prm->ptr_value) &&
-	     !try_null(ctxt, prm, head, "timestamp") )
+      { if ( get_timestamp(head, (SQL_TIMESTAMP_STRUCT*)prm->ptr_value) )
+	  prm->len_value = sizeof(SQL_TIMESTAMP_STRUCT);
+	else if ( !try_null(ctxt, prm, head, "timestamp") )
 	  return FALSE;
-	prm->len_value = sizeof(SQL_TIMESTAMP_STRUCT);
 	break;
       }
       default:

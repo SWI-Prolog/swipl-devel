@@ -34,12 +34,23 @@
 
 :- use_module(odbc).
 
+:- dynamic
+	parms/2.
+
+parms(test, [ user(jan),
+	      password(geheim)
+	    ]).
+
+set_db(DSN, Options) :-
+	retractall(parms(_,_)),
+	assert(parms(DSN, Options)).
+
 open_db :-
-	odbc_connect('test', _,
+	parms(DSN, Options),
+	odbc_connect(DSN, _,
 		     [ alias(test),
-		       user(jan),
-		       password(geheim),
 		       open(once)
+		     | Options
 		     ]).
 
 test :-

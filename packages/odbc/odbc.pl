@@ -246,5 +246,8 @@ prolog:message(error(context_error(Obj, Error, What), _)) -->
 	[ 'Context error: ~w ~w: '-[What, Obj] ],
 	context(Error).
 
+prolog:message(odbc(ODBCCode, _NativeCode, Comment)) -->
+	[ 'ODBC: State ~w: ~w'-[ODBCCode, Comment] ].
+
 context(in_use) -->
 	[ 'object is in use' ].
