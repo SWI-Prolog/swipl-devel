@@ -44,7 +44,10 @@ read_history_(Show, Help, _, Help, _, _) :-
 read_history_(History, Help, DontStore, Raw, Term, Bindings) :-
 	expand_history(Raw, Expanded, Changed), 
 	atom_to_term(Expanded, Term0, Bindings0),
-	(   Term0 = $silent(Goal)
+	(   var(Term0)
+	->  Term = Term0,
+	    Bindings = Bindings0
+	;   Term0 = $silent(Goal)
 	->  user:ignore(Goal),
 	    $raw_read(NewRaw),
 	    read_history_(History, Help, DontStore, NewRaw, Term, Bindings)

@@ -70,13 +70,11 @@ $record_last(Key, Term) :-
 
 $edit_load(File:Predicate) :-
 	$check_file(File, Path), 
-	$edit(Path:Predicate), !, 
-	make.
+	$edit(Path:Predicate), !.
 $edit_load(File) :-
 	File \= _:_,
 	$check_file(File, Path), 
-	$edit(Path), !, 
-	make.
+	$edit(Path), !.
 $edit_load(_, _).
 
 $edit(Spec) :-
@@ -86,19 +84,15 @@ $edit(File:Name/_Arity) :- !,
 	;   $default_editor(Editor)
 	) ->
 	edit_command(Editor, File, Name, Command), !, 
-	shell(Command).
+	shell(Command),
+	make.
 $edit(File) :-
 	(   getenv('EDITOR', Editor)
 	;   $default_editor(Editor)
 	) ->
 	edit_command(Editor, File, $nopredicate, Command), !, 
-	shell(Command).
-
-thief(File, $nopredicate) :- !,
-	call($thief(['-f', File])).			% avoid undefined
-thief(File, Predicate) :-
-	concat('-^', Predicate, Search),
-	call($thief(['-f', File, Search])).		% idem
+	shell(Command),
+	make.
 
 edit_command(Editor, File, $nopredicate, Command) :-
 	$file_base_name(Editor, Base),

@@ -174,7 +174,8 @@ $execute(Var, _) :-
 	$ttyformat('... 1,000,000 ............ 10,000,000 years later~n~n'),
 	$ttyformat('~t~8|>> 42 << (last release gives the question)~n'),
 	fail.
-$execute(end_of_file, _) :- !.
+$execute(end_of_file, _) :-
+ 	$ttyformat('~N'), !.
 $execute(Goal, Bindings) :-
 	$module(TypeIn, TypeIn), 
 	TypeIn:$dwim_correct_goal(Goal, Bindings, Corrected), !, 

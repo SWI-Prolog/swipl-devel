@@ -914,6 +914,8 @@ $extend(More, OldT, NewT) :-
 	append(OldL, More, NewL),
 	NewT =.. NewL.
 
+$t_tidy(Var, Var) :-
+ 	var(Var), !.
 $t_tidy((P1;P2), (Q1;Q2)) :- !,
 	$t_tidy(P1, Q1),
 	$t_tidy(P2, Q2).
