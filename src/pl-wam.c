@@ -1928,6 +1928,7 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	  lTop = (LocalFrame) argFrameP(FR, 3); /* above the catch/3 */
 	  argFrame(lTop, 0) = argFrame(FR, 2);  /* copy recover goal */
 	  *valTermRef(exception_printed) = 0;   /* consider it handled */
+	  *valTermRef(exception_bin)     = 0;
 
 	  exit_instruction = encode(I_EXIT);    /* we must continue with */
 	  PC = &exit_instruction;		/* an I_EXIT. Use catch? */
@@ -1940,6 +1941,8 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	  lTop = (LocalFrame) argFrameP(FR, 3); /* ??? */
 					/* needs a foreign frame? */
 	  QF->exception = PL_new_term_ref();
+	  *valTermRef(exception_printed) = 0;   /* consider it handled */
+	  *valTermRef(exception_bin)     = 0;
 
 	  *valTermRef(QF->exception) = except;
 
@@ -2314,7 +2317,13 @@ to give the compiler a hint to put ARGP not into a register.
       { ARGP = (Word)(n+1);
 	NEXT_INSTRUCTION;
       } else
+      {
+#if O_CATCHTHROW
+	if ( exception_term )
+	  goto b_throw;
+#endif
 	BODY_FAILED;			/* check this */
+      }
 
     VMI(A_VAR0, COUNT(a_var0), ("a_var0\n")) MARK(AVAR0);
       offset = ARGOFFSET / sizeof(word);

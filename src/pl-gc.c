@@ -96,6 +96,7 @@ Marking, testing marks and extracting values from GC masked words.
 #define VALUE_MASK	(~GC_MASK)
 
 #if O_SECURE
+char tmp[256];				/* for calling print_val(), etc. */
 #define check_relocation(p) do_check_relocation(p, __FILE__, __LINE__)
 #define recordMark(p)   { if ( (p) < gTop ) *mark_top++ = (p); }
 #else
@@ -202,12 +203,36 @@ needsRelocation(Word addr)
   addHTable(check_table, addr, (Void) TRUE);
 }
 
-char *
-print_val(word val)
-{ static char buf[256];
-  char *tag_name[] = { "var", "int", "float", "atom",
+
+static char *
+print_adr(Word adr, char *buf)
+{ char *name;
+  Word base;
+
+  if ( onGlobal(adr) )
+  { name = "global";
+    base = gBase;
+  } else if ( onLocal(adr) )
+  { name = "local";
+    base = (Word) lBase;
+  } else if ( onTrail(adr) )
+  { name = "trail";
+    base = (Word) tBase;
+  } else
+  { Ssprintf(buf, "%p", adr);
+    return buf;
+  }
+
+  Ssprintf(buf, "%p=%s(%d)", adr, name, adr-base);
+  return buf;
+}
+
+
+static char *
+print_val(word val, char *buf)
+{ char *tag_name[] = { "var", "int", "float", "atom",
 		       "string", "list", "term", "ref" };
-  char *stg_name[] = { "trail", "heap", "global", "local" };
+  char *stg_name[] = { "static/inline/trail", "global", "local", "reserved" };
 
   Ssprintf(buf, "%s at %s(%ld)",
 	   tag_name[tag(val)],
@@ -226,8 +251,10 @@ do_check_relocation(Word addr, char *file, int line)
 { Symbol s;
 
   if ( !(s=lookupHTable(check_table, addr)) )
-  { sysError("%s:%d: Address 0x%lx (%s) was not supposed to be relocated",
-	     file, line, addr, print_val(*addr));
+  { char buf1[256];
+    char buf2[256];
+    sysError("%s:%d: Address %s (%s) was not supposed to be relocated",
+	     file, line, print_adr(addr, buf1), print_val(*addr, buf2));
     return;
   }
 
@@ -1334,6 +1361,25 @@ LocalFrame bfr;
 
 
 word
+check_foreign()
+{ FliFrame ff;
+  word key = 0L;
+
+  for(ff = fli_context; ff; ff = ff->parent )
+  { Word sp = refFliP(ff, 0);
+    int n = ff->size;
+
+    for(n=0 ; n < ff->size; n++ )
+      key += checkData(&sp[n]);
+
+    check_mark(&ff->mark);
+  }
+
+  return key;
+}
+
+
+word
 checkStacks(frame)
 LocalFrame frame;
 { LocalFrame fr, fr2;
@@ -1362,11 +1408,7 @@ LocalFrame frame;
 
   assert(local_frames == 0);
 
-  { FliFrame ff;
-
-    for(ff = fli_context; ff; ff = ff->parent )
-      check_mark(&ff->mark);
-  }
+  key += check_foreign();
 
   return key;
 }

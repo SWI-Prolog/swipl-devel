@@ -287,6 +287,8 @@ void		resetGC(void);
 Word		findGRef(int n);
 int		growStacks(LocalFrame fr, Code PC, int l, int g, int t);
 void		clearUninitialisedVarsFrame(LocalFrame, Code);
+word		check_foreign(void);	/* O_SECURE stuff */
+
 
 /* pl-glob.c */
 word		pl_wildcard_match(term_t pattern, term_t string);

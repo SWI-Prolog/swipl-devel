@@ -4,6 +4,9 @@
 VERSION 2.9.6
 =============
 
+  * FIXED: foreign-reference handling of exception terms, causing garbage
+    collection problems.  Reported by Robert van Engelen.
+
   * PORT: improved detection and placement of mmap()-ed stacks (Unix sparse
     stack-management) with help of Marcello Balduccini.
 

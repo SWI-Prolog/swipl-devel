@@ -334,11 +334,18 @@ checkData(Word p)
   if ( isAtom(*p) )
     return *p;
 					/* now it should be a term */
+  if ( tag(*p) != TAG_COMPOUND ||
+       storage(*p) != STG_GLOBAL )
+    printk("Illegal term at: %p: 0x%x", p, *p);
+
   { word key = 0L;
     Functor f = valueTerm(*p);
 
+    if ( !onGlobal(f) )
+      printk("Term at %p not on global stack", f);
+      
     if ( tag(f->definition) != TAG_ATOM ||
-         storage(f->definition != STG_GLOBAL) )
+         storage(f->definition) != STG_GLOBAL )
       printk("Illegal term: 0x%x", *p);
     arity = arityFunctor(f->definition);
     if (arity <= 0 || arity > 100)
