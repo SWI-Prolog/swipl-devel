@@ -194,3 +194,6 @@
 #define ATOM_lock         (&atoms[193])
 #define ATOM_limit        (&atoms[194])
 #define ATOM_min_free     (&atoms[195])
+#define ATOM_block        (&atoms[196])
+#define ATOM_dcut         (&atoms[197])
+#define ATOM_dexit        (&atoms[198])

@@ -205,6 +205,9 @@ A line_count		"line_count"
 A lock			"lock"
 A limit			"limit"
 A min_free		"min_free"
+A block			"block"
+A dcut			"$cut"
+A dexit			"$exit"
 
 F apply			2
 F call			1
@@ -278,3 +281,6 @@ F exception		3
 F syntax_error		3
 F singleton		3
 F warning		3
+F block			3
+F dcut			1
+F dexit			2

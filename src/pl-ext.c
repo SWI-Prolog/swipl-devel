@@ -123,6 +123,7 @@ static struct foreign {
   ADD("$clause",    3, pl_clause,     NONDETERMINISTIC|TRANSPARENT|TRACE_ME),
   ADD("nth_clause", 3, pl_nth_clause, NONDETERMINISTIC|TRANSPARENT|TRACE_ME),
   ADD("retract",    1, pl_retract,    NONDETERMINISTIC|TRANSPARENT|TRACE_ME),
+  ADD("$xr_member", 2, pl_xr_member,  NONDETERMINISTIC|TRACE_ME),
 
   ADD("flag",			3, pl_flag,			TRACE_ME),
   ADD("recorda",		3, pl_recorda,			TRACE_ME),
@@ -355,6 +356,7 @@ initBuildIns()
   PROCEDURE_alt1 = lookupProcedure(FUNCTOR_alt1, MODULE_system);
   PROCEDURE_garbage_collect0 = lookupProcedure(FUNCTOR_garbage_collect0,
 					       MODULE_system);
+  PROCEDURE_block3 = lookupProcedure(FUNCTOR_block3, MODULE_system);
 
   for(e = &PL_extensions[0]; e->predicate_name; e++)
   { short flags = TRACE_ME;

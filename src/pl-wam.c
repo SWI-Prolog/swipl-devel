@@ -8,6 +8,7 @@
 */
 
 /*#define O_SECURE 1*/
+#define O_DEBUG 1
 #include "pl-incl.h"
 
 #if sun
@@ -56,6 +57,10 @@ struct
   int i_pop;
   int i_pop_n[256];
   int i_enter;
+#if O_BLOCK
+  int i_cut_block;
+  int b_exit;
+#endif
   int i_cut;
   int i_usercall;
   int i_apply;
@@ -114,6 +119,10 @@ pl_count()
   countOne(  "I_POP", 		counting.i_pop);
   countArray("I_POPN", 		counting.i_pop_n);  
   countOne(  "I_ENTER", 	counting.i_enter);
+#if O_BLOCK
+  countOne(  "I_CUT_BLOCK",	counting.i_cut_block);
+  countOne(  "B_EXIT",		counting.b_exit);
+#endif
   countOne(  "I_CUT", 		counting.i_cut);
   countOne(  "I_USERCALL", 	counting.i_usercall);
   countOne(  "I_APPLY", 	counting.i_apply);
@@ -150,8 +159,7 @@ int *array;
   Putf("\n");
 }
 
-static
-void
+static void
 countOne(s, i)
 char *s;
 int i;
@@ -540,6 +548,26 @@ register FunctorDef functor;
   fail;
 }
 
+#if O_BLOCK
+		/********************************
+		*         BLOCK SUPPORT         *
+		*********************************/
+
+static LocalFrame
+findBlock(LocalFrame fr, Word block)
+{ for(; fr; fr = fr->parent)
+  { if ( fr->procedure->definition == PROCEDURE_block3->definition &&
+	 pl_unify(argFrameP(fr, 0), block) )
+      return fr;
+  }
+
+  warning("Can't find block");
+
+  return NULL;
+}
+
+#endif O_BLOCK
+
 		/********************************
 		*          INTERPRETER          *
 		*********************************/
@@ -672,7 +700,12 @@ bool debug;
 #endif /* O_COMPILE_OR */
 
     &&B_REAL_LBL,
-    &&B_STRING_LBL
+    &&B_STRING_LBL,
+#if O_BLOCK
+    &&I_CUT_BLOCK_LBL,
+    &&B_EXIT_LBL,
+#endif O_BLOCK
+    NULL
   };
 
 #define VMI(Name, Count, Msg)	Name ## _LBL: Count; DEBUG(8, printf Msg);
@@ -1201,6 +1234,105 @@ backtrack without showing the fail ports explicitely.
 
 	NEXT_INSTRUCTION;
       }
+
+#if O_BLOCK
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+exit(Block, RVal).  First does !(Block).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    VMI(B_EXIT, COUNT(b_exit), ("b_exit")) MARK(B_EXIT);
+      { Word name, rval;
+	LocalFrame blockfr, fr, fr2;
+
+	name = argFrameP(lTop, 0); deRef(name);
+	rval = argFrameP(lTop, 1); deRef(rval);
+
+        if ( !(blockfr = findBlock(FR, name)) )
+	{ BODY_FAILED;
+	}
+	
+	set(blockfr, FR_CUT);
+	for(fr = BFR; fr > blockfr; fr = fr->backtrackFrame)
+	{ for(fr2 = fr; fr2->clause && fr2 > blockfr; fr2 = fr2->parent)
+	  { DEBUG(3, printf("discard %d\n", (Word)fr2 - (Word)lBase) );
+	    leaveFrame(fr2);
+	    fr2->clause = (Clause) NULL;
+	  }
+	}
+	SetBfr(debugstatus.debugging ? blockfr : blockfr->backtrackFrame);
+	for(fr = FR; fr > blockfr; fr = fr->parent)
+	{ set(fr, FR_CUT);
+	  fr->backtrackFrame = BFR;
+	}
+
+	DEBUG(3, printf("BFR = %d\n", (Word)BFR - (Word)lBase) );
+
+	if ( unify(argFrameP(blockfr, 2), rval) )
+	{ for( ; FR > blockfr; FR = FR->parent )
+	  { leaveFrame(FR);
+	    FR->clause = NULL;
+	    if ( FR->parent == blockfr )
+	      PC = FR->programPointer;
+	  }
+					/* TBD: tracing? */
+
+          environment_frame = FR;
+	  PROC = FR->procedure;
+	  DEF = PROC->definition;
+	  XR = CL->externals;
+	  lTop = (LocalFrame) argFrameP(FR, CL->variables);
+	  ARGP = argFrameP(lTop, 0);
+
+	  NEXT_INSTRUCTION;
+	} else
+	{ lTop = (LocalFrame) argFrameP(FR, CL->variables);
+	  ARGP = argFrameP(lTop, 0);
+
+	  BODY_FAILED;
+	}
+      }
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+!(Block).  Cuts all alternatives created after entering the named block.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    VMI(I_CUT_BLOCK, COUNT(i_cut_block), ("i_cut_block\n")) MARK(CUT_BLOCK);
+      { LocalFrame cutfr, fr, fr2;
+	Word name;
+
+	name = argFrameP(lTop, 0); deRef(name);
+
+	if ( !(cutfr = findBlock(FR, name)) )
+	{ BODY_FAILED;
+	}
+	
+	SetBfr(debugstatus.debugging ? cutfr : cutfr->backtrackFrame);
+	for(fr = FR; fr > cutfr; fr = fr->parent)
+	{ set(fr, FR_CUT);
+	  fr->backtrackFrame = BFR;
+	}
+	set(cutfr, FR_CUT);
+
+	for(fr = BFR; fr > cutfr; fr = fr->backtrackFrame)
+	{ for(fr2 = fr; fr2->clause && fr2 > cutfr; fr2 = fr2->parent)
+	  { if ( false(fr, FR_CUT) )
+	    { DEBUG(3, printf("discard [%ld] %s\n",
+			      levelFrame(fr), procedureName(fr->procedure)));
+	      leaveFrame(fr2);
+	      fr2->clause = (Clause) NULL;
+	    }
+	  }
+	}
+
+	DEBUG(3, printf("BFR = [%ld] %s\n",
+			levelFrame(BFR),
+			procedureName(BFR->procedure)));
+
+	lTop = (LocalFrame) argFrameP(FR, CL->variables);
+	ARGP = argFrameP(lTop, 0);
+
+	NEXT_INSTRUCTION;
+      }
+#endif O_BLOCK
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 !. Basic task is to mark the frame, telling it  is  cut  off,  restoring
 `BFR'  to the backtrack frame of this frame (this, nor one of the childs

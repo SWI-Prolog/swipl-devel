@@ -194,3 +194,6 @@
 { (Atom)NULL, ATOM_TYPE, "lock" },
 { (Atom)NULL, ATOM_TYPE, "limit" },
 { (Atom)NULL, ATOM_TYPE, "min_free" },
+{ (Atom)NULL, ATOM_TYPE, "block" },
+{ (Atom)NULL, ATOM_TYPE, "$cut" },
+{ (Atom)NULL, ATOM_TYPE, "$exit" },

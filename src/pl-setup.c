@@ -303,7 +303,10 @@ point to the same physical memory.
 static void
 map(s)
 Stack s;
-{ if ( mmap(s->max, size_alignment,
+{ if ( s->max + size_alignment > s->base + s->maxlimit )
+    outOf(s);
+
+  if ( mmap(s->max, size_alignment,
 	    PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED,
 	    mapfd, 0L) != s->max )
     fatalError("Failed to map memory at 0x%x for %d bytes on fd=%d: %s\n",

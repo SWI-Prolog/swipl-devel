@@ -70,3 +70,6 @@
 #define FUNCTOR_syntax_error3 (&functors[69])
 #define FUNCTOR_singleton3   (&functors[70])
 #define FUNCTOR_warning3     (&functors[71])
+#define FUNCTOR_block3       (&functors[72])
+#define FUNCTOR_dcut1        (&functors[73])
+#define FUNCTOR_dexit2       (&functors[74])

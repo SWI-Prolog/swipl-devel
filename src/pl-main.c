@@ -37,11 +37,11 @@ findHome(def)
 char *def;
 { char *h;
 
-  if ( ExistsDirectory(def) )
-    return def;
-
   if ( (h=PrologPath(getenv("SWI_HOME_DIR"))) != NULL && ExistsDirectory(h) )
     return store_string(h);
+
+  if ( ExistsDirectory(def) )
+    return def;
 
 #if tos
   { char *drv;

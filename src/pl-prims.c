@@ -888,9 +888,14 @@ word w;
 word
 pl_atom_length(w, n)
 Word w, n;
-{ char *s = primitiveToString(*w, FALSE);
-  return unifyAtomic(n, consNum(strlen(s)));
+{ char *s;
+
+  if ( (s = primitiveToString(*w, FALSE)) )
+    return unifyAtomic(n, consNum(strlen(s)));
+
+  return warning("atom_length/2: instantiation fault");
 }
+
 
 static char *
 prependBase(b, s)

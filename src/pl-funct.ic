@@ -70,3 +70,6 @@
 { (FunctorDef)NULL, FUNCTOR_TYPE, ATOM_syntax_error, 3 },
 { (FunctorDef)NULL, FUNCTOR_TYPE, ATOM_singleton, 3 },
 { (FunctorDef)NULL, FUNCTOR_TYPE, ATOM_warning, 3 },
+{ (FunctorDef)NULL, FUNCTOR_TYPE, ATOM_block, 3 },
+{ (FunctorDef)NULL, FUNCTOR_TYPE, ATOM_dcut, 1 },
+{ (FunctorDef)NULL, FUNCTOR_TYPE, ATOM_dexit, 2 },

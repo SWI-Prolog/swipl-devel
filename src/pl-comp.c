@@ -72,6 +72,10 @@ struct code_info codeTable[] = {
   CODE(C_FAIL,		"c_fail",	0),
   CODE(B_REAL,		"b_real",	1),
   CODE(B_STRING,	"b_string",	1),
+#if O_BLOCK
+  CODE(I_CUT_BLOCK,	"i_cut_block",	0),
+  CODE(B_EXIT,		"b_exit",	0),
+#endif
   CODE(0,		NULL,		0)
 };
 
@@ -1113,6 +1117,14 @@ operator.
       if ( proc->functor == FUNCTOR_apply2 )
       { Output_0(ci, I_APPLY);
 	succeed;
+#if O_BLOCK
+      } else if ( proc->functor == FUNCTOR_dcut1 )
+      { Output_0(ci, I_CUT_BLOCK);
+	succeed;
+      } else if ( proc->functor == FUNCTOR_dexit2 )
+      { Output_0(ci, B_EXIT);
+	succeed;
+#endif
       }
       Output_1(ci, call, addXRtable(proc, ci));
 
@@ -1792,6 +1804,10 @@ Code until;
 	case A_NE:	    f = FUNCTOR_ar_not_equal2;	goto f_common;
 	case A_IS:	    f = FUNCTOR_is2;		goto f_common;
 #endif /* O_COMPILE_ARITH */
+#if O_BLOCK
+	case I_CUT_BLOCK:   f = FUNCTOR_dcut1;		goto f_common;
+	case B_EXIT:	    f = FUNCTOR_dexit2;		goto f_common;
+#endif
 	case I_APPLY:	    f = FUNCTOR_apply2;		f_common:
 			    build_term(f, di);
 			    pushed++;
@@ -1912,6 +1928,9 @@ register decompileInfo *di;
   *ARGP++ = term;
 }
 
+#undef PC
+#undef XR
+#undef ARGP
 
 word
 pl_clause(p, term, ref, h)
@@ -2011,6 +2030,12 @@ word h;
   Procedure proc;
   Cref cr;
 
+  if ( ForeignControl(h) == FRG_CUTTED )
+  { cr = (Cref) ForeignContextAddress(h);
+    freeHeap(cr, sizeof(cref));
+    succeed;
+  }
+
   if (!isVar(*ref))  
   { Clause c;
     int i;
@@ -2051,7 +2076,9 @@ word h;
   { if ( (proc = findProcedure(p)) == (Procedure) NULL ||
          true(proc->definition, FOREIGN) )
       fail;
-    clause = proc->definition->definition.clauses;
+
+    if ( !(clause = proc->definition->definition.clauses) )
+      fail;
 
     if ( isInteger(*n) )		/* proc and n specified */
     { int i = valNum(*n);
@@ -2073,11 +2100,6 @@ word h;
     proc = clause->procedure;
   }
 
-  if ( ForeignControl(h) == FRG_CUTTED )
-  { freeHeap(cr, sizeof(cref));
-    succeed;
-  }
-
   unifyAtomic(n, consNum(cr->index));
   unifyAtomic(ref, pointerToNum(cr->clause));
   if ( (cr->clause = cr->clause->next) )
@@ -2087,4 +2109,86 @@ word h;
 
   freeHeap(cr, sizeof(cref));
   succeed;
+}
+
+
+static bool
+unifyProcedure(t, proc)
+Word t;
+Procedure proc;
+{ if ( unifyFunctor(t, FUNCTOR_module2) )
+  { deRef(t);
+    if ( unifyAtomic(argTermP(*t, 0), proc->definition->module->name) &&
+	 unifyFunctor(argTermP(*t, 1), proc->functor) )
+      succeed;
+  }
+
+  fail;
+}
+
+
+word
+pl_xr_member(ref, term, h)
+Word ref, term;
+word h;
+{ Clause clause;
+  Word XR;
+  int size, i;
+
+  if ( ForeignControl(h) == FRG_CUTTED )
+    succeed;
+
+  if (!isInteger(*ref))
+    return warning("$xr_member/2: Illegal reference");
+  clause = (Clause) numToPointer(*ref);
+  
+  if (!inCore(clause) || !isClause(clause))
+    return warning("$xr_member/2: Invalid reference");
+
+  XR = clause->externals;
+  size = clause->XR_size;
+
+  if ( isVar(*term) )
+  { if ( ForeignControl(h) == FRG_FIRST_CALL)
+      i = 0;
+    else
+      i = ForeignContext(h);
+
+    for(; i<size; i++)
+    { bool rval;
+      word xr = XR[i];
+
+      if ( isAtomic(xr) )         rval = unifyAtomic(term, xr);
+      else if ( isProcedure(xr) ) rval = unifyProcedure(term, xr);
+      else			  rval = unifyFunctor(term, (FunctorDef)xr);
+
+      if ( rval )
+	ForeignRedo(i+1);
+    }
+
+    fail;
+  } else				/* instantiated */
+  { Procedure proc;
+
+    if ( isAtomic(*term) )
+    { for(i=0; i<size; i++)
+	if ( isAtomic(XR[i]) && unifyAtomic(term, XR[i]) )
+	  succeed;
+    } else if ( (proc = findProcedure(term)) )
+    { for(i=0; i<size; i++)
+	if ( !isAtomic(XR[i]) &&
+	     isProcedure(XR[i]) &&
+	     ((Procedure)XR[i])->definition == proc->definition )
+	  succeed;
+      fail;
+    } else if ( isTerm(*term) )
+    { word target = (word) functorTerm(*term);
+
+      for(i=0; i<size; i++)
+	if ( XR[i] == target )
+	  succeed;
+    }
+  }
+
+  fail;
 }

@@ -46,6 +46,8 @@ handy for it someone wants to add a data type to the system.
       Include arithmetic compiler (compiles is/2, >/2, etc. into WAM).
   O_PROLOG_FUNCTIONS
       Include evaluatable Prolog functions into the arithmetic module.
+  O_BLOCK
+      Include support for block/3, !/1, fail/1 and exit/2 in the VM.
   O_LABEL_ADDRESSES
       Means we can pick up the address of a label in  a function using
       the var  = `&&label' construct  and jump to  it using goto *var;
@@ -64,6 +66,7 @@ handy for it someone wants to add a data type to the system.
 #define O_COMPILE_ARITH		1
 #define O_STRING		1
 #define O_PROLOG_FUNCTIONS	1
+#define O_BLOCK			1
 
 /*
    OS/2 : The excellent EMX port of GCC puts the text segment at address
@@ -378,7 +381,12 @@ codes.
 #define B_REAL		((code)57)		/* REAL in body */
 #define B_STRING	((code)58)		/* STRING in body */
 
-#define I_HIGHEST	((code)58)		/* largest WAM code !!! */
+#if O_BLOCK
+#define I_CUT_BLOCK	((code)59)		/* !(block) */
+#define B_EXIT		((code)60)		/* exit(block, rval) */
+#endif O_BLOCK
+
+#define I_HIGHEST	((code)60)		/* largest WAM code !!! */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Arithmetic comparison
@@ -1263,6 +1271,7 @@ GLOBAL Table	moduleTable;		/* hash table of available modules */
 
 GLOBAL Procedure	PROCEDURE_alt1;	/* $alt/1, see C_OR */
 GLOBAL Procedure	PROCEDURE_garbage_collect0;
+GLOBAL Procedure	PROCEDURE_block3;
 
 extern struct code_info	codeTable[];
 
@@ -1362,4 +1371,4 @@ extern struct functorDef functors[];
 #include "pl-atom.ih"
 #include "pl-funct.ih"
 
-#endif /*_PL_INCLUDE_H*/
+#endif _PL_INCLUDE_H

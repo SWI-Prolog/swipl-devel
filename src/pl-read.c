@@ -842,8 +842,10 @@ bool must_be_op;
 
 		  tmp[0] = c, tmp[1] = EOS;
 		  token.value.prolog = (word) lookupAtom(tmp);
-		  token.type = T_NAME;
-		  DEBUG(9, printf("NAME: %s\n", stringAtom(token.value.prolog)));
+		  token.type = (*here == '(' ? T_FUNCTOR : T_NAME);
+		  DEBUG(9, printf("%s: %s\n",
+				  *here == '(' ? "FUNC" : "NAME",
+				  stringAtom(token.value.prolog)));
 
 		  return &token;
 		}
