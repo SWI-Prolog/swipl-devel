@@ -27,10 +27,16 @@ Planned features in 5.5.x relative to 5.4.x and their status
       Lacking
       -------
 
-	- No support for input methods (XIM, ...)
+	- Support for BOM (Byte Order Marker) for UNICODE and UTF-8 files.
 	- Incomplete support in packages
 		- ODBC
-		- window titles, etc. in XPCE
+			- No support at all
+		- JPL
+			- No support at all
+		- XPCE
+			- Getting close
+			- Lacking input methods (XIM, ...)
+			- Lacking support in Class regex
 
   * More constraint libraries
 
@@ -67,7 +73,8 @@ Packages
 
   * XPCE: rewrote most of the file access to access filesnames according
     to the locale and to the new XOS layer for MS-Windows, accessing
-    files using UNICODE names.
+    files using UNICODE names.  Win32: support UNICODE in cut/paste.
+    All platforms: support UNICODE for window captions.
 
 
 Incompatible changes
