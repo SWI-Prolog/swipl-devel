@@ -1,3 +1,9 @@
+* FIXED: Click-stay up of popup menus that do not fit on the screen.
+
+* FIXED: Location of pullright menus on multicolumn popup menus.
+
+* ADDED: Optional case-sensitive argument to regex->initialise
+
 * FIXED: Bounding box calculation for class parbox if floating graphicals
   extend below the text.
 
