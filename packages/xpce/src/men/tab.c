@@ -221,6 +221,7 @@ RedrawAreaTab(Tab t, Area a)
   int eh      = valInt(e->height);
   int ex      = valInt(getExFont(t->label_font));
   int r       = 1;			/* radius of label corners */
+  int lflags  = (t->active == OFF ? LABEL_INACTIVE : 0);
 
   initialiseDeviceGraphical(t, &x, &y, &w, &h);
   w -= 1;
@@ -235,7 +236,7 @@ RedrawAreaTab(Tab t, Area a)
     } else
     { GOTO(p, x, y+lh);			/* top-left of contents */
       RMOVE(p, loff, 0);
-      RMOVE(p, 0, -lh+r);			/* top-left of label */
+      RMOVE(p, 0, -lh+r);		/* top-left of label */
     }
     RMOVE(p, r, -r);
     RMOVE(p, lw-2*r, 0);		/* top-right of label */
@@ -250,7 +251,7 @@ RedrawAreaTab(Tab t, Area a)
     RedrawLabelDialogGroup((DialogGroup)t, 0,
 			   x+loff+ex, y, lw-2*ex, lh,
 			   t->label_format, NAME_center,
-			   0);
+			   lflags);
 
     { Cell cell;
       Int ax = a->x, ay = a->y;
@@ -296,7 +297,7 @@ RedrawAreaTab(Tab t, Area a)
     RedrawLabelDialogGroup((DialogGroup)t, 0,
 			   x+loff+ex, y, lw-2*ex, lh,
 			   t->label_format, NAME_center,
-			   0);
+			   lflags);
   }
 
   return RedrawAreaGraphical(t, a);
@@ -354,7 +355,7 @@ eventTab(Tab t, EventObj ev)
 
 static status
 labelEventTab(Tab t, EventObj ev)
-{ if ( isAEvent(ev, NAME_msLeftDown) )
+{ if ( isAEvent(ev, NAME_msLeftDown) && t->active != OFF )
   { send(t->device, NAME_onTop, t, EAV);
     succeed;
   }
@@ -385,6 +386,17 @@ advanceTab(Tab t, Graphical gr, Bool propagate, Name direction)
     propagate = OFF;
 
   return advanceDevice((Device)t, gr, propagate, direction);
+}
+
+
+static status
+activeTab(Tab t, Bool active)
+{ if ( t->active != active )
+  { assign(t, active, active);
+    qadSendv(t, NAME_ChangedLabel, 0, NULL);
+  }
+
+  succeed;
 }
 
 
@@ -441,6 +453,8 @@ static senddecl send_tab[] =
      NAME_update, "Recompute area"),
   SM(NAME_advance, 3, T_advance, advanceTab,
      NAME_focus, "Advance keyboard focus to next item"),
+  SM(NAME_active, 1, "bool", activeTab,
+     NAME_event, "Enable/disable the tab"),
   SM(NAME_ChangedLabel, 0, NULL, ChangedLabelTab,
      NAME_update, "Add label-area to the update")
 };
@@ -464,6 +478,8 @@ static classvardecl rc_tab[] =
            "1, " /* concat */
      	   "elevation(tab, 2, relief := @grey50_image, shadow := black))",
      "Elevation above environment"),
+  RC(NAME_inactiveColour, "colour|pixmap*",
+     "@nil", NULL),
   RC(NAME_gap, "size", "size(15, 8)",
      "Distance between items in X and Y"),
   RC(NAME_labelFont, "font", "normal",

@@ -725,6 +725,7 @@ RedrawArea(Any obj, Area area)
   int clearbg = 0;
   struct colour_context ctx;
   status rval;
+  Any inactive_colour;
 
   ComputeGraphical(obj);		/* should not be necessary: */
   
@@ -736,11 +737,12 @@ RedrawArea(Any obj, Area area)
      )
     succeed;
 
-  if ( gr->active == OFF )
-  { Any c2 = getClassVariableValueObject(gr, NAME_inactiveColour);
-
-    fix++;
-    r_fix_colours(c2, DEFAULT, &ctx);
+  if ( gr->active == OFF &&
+       (inactive_colour = getClassVariableValueObject(gr,
+						      NAME_inactiveColour)) &&
+       notNil(inactive_colour) )
+  { fix++;
+    r_fix_colours(inactive_colour, DEFAULT, &ctx);
   } else if ( gr->selected == ON )
   { PceWindow sw = getWindowGraphical(gr);
 

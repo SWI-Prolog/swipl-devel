@@ -1,9 +1,11 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: library(scaledbitmap) providing class scaled_bitmap.
+
 * FIXED: Bug#104: PceEmacs find-file `Browse' to use Open rather than Save
   (actually not good, but MS-Windows cannot browse for Open or Save file at
-  the same time.  Holger Kanwischer.
+  the same time).  Holger Kanwischer.
 
 
 VERSION 6.2.10, distributed with SWI-Prolog 5.2.10
