@@ -1,4 +1,4 @@
-/*  $Id$
+/*  md-solaris.h,v 1.3 1994/03/02 16:50:42 jan Exp
 
     Copyright (c) 1990 Jan Wielemaker. All rights reserved.
     See ../LICENCE to find out about your rights.
@@ -39,6 +39,7 @@ NOTE:	/lri2/jan/{lib,include} hold the GNU readline library.  Modify
 
 			/* terminal driver */
 #define O_READLINE		1
+#define O_RL12			1	/* using libreadline version 1.2 */
 #define O_TERMIOS 		1
 #define O_FOLD 			0
 

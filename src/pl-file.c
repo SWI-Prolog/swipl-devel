@@ -1,4 +1,4 @@
-/*  $Id$
+/*  pl-file.c,v 1.22 1994/04/11 08:37:36 jan Exp
 
     Copyright (c) 1990 Jan Wielemaker. All rights reserved.
     See ../LICENCE to find out about your rights.
@@ -409,6 +409,7 @@ this  which  accepts  both  Prolog data structures (ints, floats, atoms,
 etc) and C data structures.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+word
 Putf(char *fm, ...)
 { va_list args;
 

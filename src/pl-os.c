@@ -1,4 +1,4 @@
-/*  $Id$
+/*  pl-os.c,v 1.45 1994/04/11 08:37:37 jan Exp
 
     Copyright (c) 1990 Jan Wielemaker. All rights reserved.
     See ../LICENCE to find out about your rights.
@@ -1594,6 +1594,9 @@ extern rl_delete_text(int from, int to);
 #endif
 
 #undef ESC				/* will be redefined ... */
+#if solaris && !defined(HAVE_STRING_H)
+#define HAVE_STRING_H
+#endif
 #include <readline/readline.h>
 #undef savestring
 extern void add_history(char *);	/* should be in readline.h */
