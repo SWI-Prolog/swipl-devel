@@ -81,7 +81,8 @@
 		label/1,
 		labeling/2,
 		all_different/1,
-		sum/3
+		sum/3,
+		lex_chain/1
 	]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -337,6 +338,33 @@ sum1([],Sum,Op,Value) :-
 sum1([X|Xs],Acc,Op,Value) :-
 	NAcc #= Acc + X,
 	sum1(Xs,NAcc,Op,Value).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% contributed by Markus Triska
+
+lex_le([],[]).
+lex_le([V1|V1s], [V2|V2s]) :-
+      V1 #=< V2,
+      ( integer(V1) ->
+              ( integer(V2) ->
+                      (V1 == V2 ->
+                              lex_le(V1s,V2s)
+                      ;
+                              true
+                      )
+              ;
+                      freeze(V2,lex_le([V1|V1s],[V2|V2s]))
+              )
+      ;
+              freeze(V1,lex_le([V1|V1s],[V2|V2s]))
+      ).
+
+lex_chain([_L]) :- !.
+lex_chain([L1,L2|Ls]) :-
+      lex_le(L1,L2),
+      lex_chain([L2|Ls]).
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 domain(X,L,U) :-

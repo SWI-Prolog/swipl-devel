@@ -53,6 +53,11 @@ The following constraints are supported:
 		\arg{Op} is one of the binary constraint relation symbols above
 		and \arg{Value} is an integer or variable. It represents the
 		constraint ($\sum$\arg{Vars}) \arg{Op} \arg{Value}.
+	\predicate{lex_chain}{1}{+VarsLists}
+		The constraint enforces lexicographic ordering on the lists
+		in the argument. The argument \arg{Vars} is a list of lists
+		of variables and integers. The current implementation
+		was contributed by Markus Triska.
 	\predicate{all_different}{1}{+Vars}
 	\predicate{label}{1}{+Vars}
 		All variables are assigned a variable that does not
