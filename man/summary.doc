@@ -329,6 +329,7 @@ suggest predicates from a keyword.
 \predicatesummary{prolog_frame_attribute}{3}{Obtain information on a goal environment}
 \predicatesummary{prolog_list_goal}{1}{Hook.  Intercept tracer 'L' command}
 \predicatesummary{prolog_load_context}{2}{Context information for directives}
+\predicatesummary{prolog_navigator}{1}{Graphical overview of project}
 \predicatesummary{prolog_skip_level}{2}{Indicate deepest recursion to trace}
 \predicatesummary{prolog_to_os_filename}{2}{Convert between Prolog and OS filenames}
 \predicatesummary{prolog_trace_interception}{4}{\pllib{user} Intercept the Prolog tracer}

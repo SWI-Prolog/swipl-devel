@@ -1,5 +1,6 @@
-\chapter{Prolog in Practice}
+\chapter{Initialising and Managing a Prolog Project}
 
+\index{IDE}\index{Development environment}%
 Prolog text-books give you an overview of the Prolog language. The
 manual tells you what predicates are provided in the system and what
 they do. This chapter wants to explain how to run a project. There is no
@@ -25,7 +26,7 @@ sub-projects each using their own directory.
 
 \subsection{File Names and Locations}
 
-\subsubsection{File Name Extensions}		\label{fileext}
+\subsubsection{File Name Extensions}		\label{sec:fileext}
 
 \index{.pl}\index{.pro}%
 The first consideration is what extension to use for the source-files.
@@ -404,11 +405,11 @@ Do not worry, you can edit as well as move around in both.
 \end{itemlist}
 
 These were the most commonly used commands. In section
-\secref{sec:emacsprologmode} we discuss specific support for dealing
+\secref{emacsprologmode} we discuss specific support for dealing
 with Prolog source code.
 
 
-\subsection{Prolog Mode}		\label{sec:emacsbluff}
+\subsection{Prolog Mode}		\label{sec:emacsprologmode}
 
 In the previous section (\secref{emacsbluff}) we explained the basics of
 PceEmacs. Here we continue with Prolog specific functionality. Possibly
@@ -595,7 +596,7 @@ from PceEmacs using the command \menu{Browse/Prolog navigator}{}, from
 the GUI debugger or using the predicate prolog_navigator/1.
 
 \begin{description}
-    \predicate{prolog_navigator}{1}{DirOrLocation}
+    \predicate{prolog_navigator}{1}{+DirOrLocation}
 Ensure the navigator exists and the indicated location is shown.
 \arg{DirOrLocation} is either the name of a directory or
 \arg{File}:\arg{Line} to open and select the given location.
