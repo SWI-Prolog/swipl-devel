@@ -54,11 +54,25 @@ to get the data from an URL using the GET-method.
 %	
 %		size(-Size)		Return size of the resource
 %		timeout(+Timeout)	Raise exception on timeout
+%		proxy(+Host, +Port)	Use an HTTP proxy server
 
 http_open(Url, Stream, Options) :-
 	atom(Url), !,
 	parse_url(Url, Parts),
 	http_open(Parts, Stream, Options).
+http_open(Parts, Stream, Options) :-
+	memberchk(proxy(Host, Port), Options), !,
+	parse_url(URL, Parts),
+	open_socket(Host:Port, In, Out, Options),
+	format(Out,
+	       'GET ~w HTTP/1.0~n\
+	       Host: ~w~n\
+	       Connection: close~n~n',
+	       [URL, Host]),
+	close(Out),
+					% read the reply header
+	read_header(In, Code, Comment, Lines),
+	do_open(Code, Comment, Lines, Options, Parts, In, Stream).
 http_open(Parts, Stream, Options) :-
 	memberchk(host(Host), Parts),
 	(   memberchk(port(Port), Parts)
@@ -66,14 +80,7 @@ http_open(Parts, Stream, Options) :-
 	;   Port = 80
 	),
 	http_location(Parts, Location),
-	tcp_socket(Socket),
-	tcp_connect(Socket, Host:Port),
-	tcp_open_socket(Socket, In, Out),
-	set_stream(In, record_position(false)),
-	(   memberchk(Options, timeout(Timeout))
-	->  set_stream(In, timeout(Timeout))
-	;   true
-	),
+	open_socket(Host:Port, In, Out, Options),
 	format(Out,
 	       'GET ~w HTTP/1.0~n\
 	       Host: ~w~n\
@@ -101,6 +108,17 @@ do_open(Code, Comment, _, _, Parts, In, In) :-
 	parse_url(Id, Parts),
 	throw(error(existence_error(url, Id),
 		    context(_, status(Code, Comment)))).
+
+
+open_socket(Host:Port, In, Out, Options) :-
+	tcp_socket(Socket),
+	tcp_connect(Socket, Host:Port),
+	tcp_open_socket(Socket, In, Out),
+	set_stream(In, record_position(false)),
+	(   memberchk(Options, timeout(Timeout))
+	->  set_stream(In, timeout(Timeout))
+	;   true
+	).
 
 
 return_size(Options, Lines) :-

@@ -1,3 +1,6 @@
 Jan 8, 2003
  
+  * ADDED: Support for using proxy servers Option: proxy(Host, Port).
+
   * ADDED: Support for 302 (document moved) reply in http_open/3.
+

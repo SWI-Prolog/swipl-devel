@@ -113,6 +113,9 @@ stream raises an exception. Default is to wait forever
 	\termitem{size}{-Size}
 If provided \arg{Size} is unified with the value of the
 \const{Content-Length} fields of the reply-header.
+
+	\termitem{proxy}{+Host, +Port}
+Use an HTTP proxy to connect to the outside world.
     \end{description}
 
 Here is a simple example:
