@@ -869,12 +869,12 @@ OpenLookEventScrollBar(ScrollBar s, EventObj ev)
     { if ( offset < button_bi.start )
       { assign(s, unit,      NAME_page);
 	assign(s, direction, NAME_backwards);
-	assign(s, amount,    toInt(990));
+	assign(s, amount,    toInt(SCROLL_PAGE_PROM));
 	assign(s, status,    NAME_repeatDelay);
       } else if ( offset > button_bi.start + button_bi.length )
       { assign(s, unit,      NAME_page);
 	assign(s, direction, NAME_forwards);
-	assign(s, amount,    toInt(990));
+	assign(s, amount,    toInt(SCROLL_PAGE_PROM));
 	assign(s, status,    NAME_repeatDelay);
       } else if ( offset < button_bi.start + button_bi.length/3 )
       { assign(s, unit,      NAME_line);
@@ -990,12 +990,12 @@ MotifEventScrollBar(ScrollBar s, EventObj ev)
 	if ( offset < bi.start )	/* page-up */
 	{ assign(s, unit,      NAME_page);
 	  assign(s, direction, NAME_backwards);
-	  assign(s, amount,    toInt(990));
+	  assign(s, amount,    toInt(SCROLL_PAGE_PROM));
 	  assign(s, status,    NAME_repeatDelay);
 	} else if ( offset > bi.start + bi.length ) /* page-down */
 	{ assign(s, unit,      NAME_page);
 	  assign(s, direction, NAME_forwards);
-	  assign(s, amount,    toInt(990));
+	  assign(s, amount,    toInt(SCROLL_PAGE_PROM));
 	  assign(s, status,    NAME_repeatDelay);
 	} else				/* on the bubble */
 	{ assign(s, unit,      NAME_file);

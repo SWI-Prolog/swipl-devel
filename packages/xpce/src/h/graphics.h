@@ -482,6 +482,8 @@ NewClass(scrollbar)
   Bool		auto_hide;		/* if @on, hide automatically */
 End;  
 
+#define SCROLL_PAGE_PROM 900		/* Scroll one page */
+
 NewClass(menu_item)
   ABSTRACT_VISUAL
   Menu	     menu;			/* Menu I'm part of */
