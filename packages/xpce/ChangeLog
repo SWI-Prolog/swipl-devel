@@ -1,6 +1,11 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: PceEmacs: report key-bindings in replace mode.
+
+* FIXED: `frame->set' force negative and 0-width/height frames to be
+  at least one pixel to avoid errors from the Window system.
+
 * FIXED: Avoid loop in textimage redraw if it is 0-pixels wide.
 
 * FIXED: Access of freed memory in `display->inspect', used by the

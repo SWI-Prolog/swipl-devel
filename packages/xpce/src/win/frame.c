@@ -723,6 +723,10 @@ setFrame(FrameObj fr, Int x, Int y, Int w, Int h)
   Int oh = a->h;
 
   setArea(a, x, y, w, h);
+  if ( valInt(a->w) <= 0 )		/* Window systems don't like that */
+    assign(a, w, ONE);
+  if ( valInt(a->h) <= 0 )
+    assign(a, h, ONE);
 
   if ( createdFrame(fr) )
   { ws_geometry_frame(fr, a->x, a->y, a->w, a->h);
