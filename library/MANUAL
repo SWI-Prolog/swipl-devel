@@ -269,7 +269,7 @@ include:
      The toplevel maintains a table of bindings returned by
      toplevel goals and allows for reuse of these bindings
      by prefixing the variables with the $ sign.  See
-     section ??.
+     section 2.5.
 
      Better sourcecode administration
      Allows for proper updating of multifile predicates and
@@ -521,7 +521,7 @@ The full set of command line options is given below:
          for more details.
      -c file ...
          Compile files into an `intermediate code
-         file'.  See section ??.
+         file'.  See section 2.7.
      -o output
          Used in combination with -c or -b to
          determine output file for compilation.
@@ -676,8 +676,8 @@ Unix csh capabilities to include arguments.  This is
 omitted as it is unclear how the first, second, etc.
 argument should be defined.
 
-The available history commands are shown in table ??.
-Figure ??  gives some examples.
+The available history commands are shown in table 2.1.
+Figure 2.1 gives some examples.
 
   !!.               Repeat last query
   !nr.              Repeat query numbered <nr>
@@ -812,7 +812,7 @@ Note that in the interactive toplevel goal trace/0 means
 displaying the port name, the current depth of the
 recursion and the goal.  The goal is printed using the
 Prolog predicate print/1 (default), write/1 or display/1.
-An example using all five ports is shown in figure ??.
+An example using all five ports is shown in figure 2.3.
 
      Yes
      2 ?- visible(+all), leash(-exit).
@@ -878,7 +878,7 @@ A    Alternatives         all
 C    Context              all
      Toggle `Show Context'.  If on the context module of
      the goal is displayed between square brackets (see
-     section ??).  Default is off.
+     section 4).  Default is off.
 
 L    Listing              all
      List the current predicate with listing/1.
@@ -1032,7 +1032,7 @@ please(+Key, -Old, +New)
 
      autoload on/off (default:  on)
          If on autoloading of library functions is enabled.
-         If off autoloading is disabled.  See section ??.
+         If off autoloading is disabled.  See section 2.10.
 
      verbose_autoload on/off (default:  off)
          If on the normal consult message will be printed
@@ -1209,7 +1209,7 @@ save_program(+NewProgram, +ListOfOptions)
      saved into the new program.  If a default is not
      specified the default compiled into the currently
      running Prolog executable is used.  The available keys
-     are given in table ??
+     are given in table 2.2
 
   Key          Option      Type     Description
   local          -L      K-bytes    Size (Limit) of local stack
@@ -1231,7 +1231,7 @@ save_program(+NewProgram, +ListOfOptions)
      not possible try to find the smallest possible stack
      sizes to compile the program.  On machines with
      dynamic stack allocation the stacks are not written to
-     file and so their size does not matter.  Figure ??
+     file and so their size does not matter.  Figure 2.4
      shows a possible session.  Note the use of
      `initialise', which is supposed to be a predicate of
      the application doing time consuming initialisation.
@@ -1322,8 +1322,8 @@ please option autoload can be used to enable/disable the
 entire auto load system.
 
 Autoloading only handles (library) source files that use
-the module mechanism described in chapter ??.  The files
-are loaded with use_module/2 and only the trapped undefined
+the module mechanism described in chapter 4.  The files are
+loaded with use_module/2 and only the trapped undefined
 predicate will be imported to the module where the
 undefined predicate was called.  Each library directory
 must hold a file INDEX.pl that contains an index to all
@@ -1533,7 +1533,7 @@ be followed immediately by a number and expresses the
 number of kilo bytes to use for the area.  There are no
 other limits than the available memory of the machine to
 the sizes of the areas.  The areas are described in
-table ??.
+table 2.3.
 
 The heap is a memory area to store atoms, clauses, records,
 flags, etc.  This area is dynamically enlarged at runtime
@@ -1906,7 +1906,7 @@ individual or multiple Prolog sourcefiles into `Quick Load
 Files'.  A `Quick Load Files' (.qlf file) stores the
 contents of the file in a precompiled format very similar
 to compiled files created using the -b and -c flags (see
-section ??).
+section 2.7).
 
 These files load considerably faster than sourcefiles and
 are normally more compact.  They are machine independent
@@ -1918,7 +1918,7 @@ old compiled files unusable.
 Quick Load Files are created using qcompile/1.  They may be
 loaded explicitely using qload/1 or implicitely using
 consult/1 or one of the other file-loading predicates
-described in section ??.  If consult is given the explicit
+described in section 3.2.  If consult is given the explicit
 .pl file, it will load the Prolog source.  When given the
 .qlf file, it will call qload/1 to load the file.  When no
 extension is specified, it will load the .qlf file when
@@ -1939,7 +1939,7 @@ qcompile(+File)
      same fashion as when loading the .pl file.
 
      For term_expansion/2, the same rules as described in
-     section ??  apply.
+     section 2.7 apply.
 
      Source references (source_file/2) in the Quick Load
      File refer to the Prolog source file from which the
@@ -2866,7 +2866,7 @@ examples of source/destination specifications.
   ?- tell(pipe(lpr)).    % Start writing to the printer.
 
 Another example of using the pipe/1 construct is shown on
-in figure ??.  Note that the pipe/1 construct is not part
+in figure 3.1.  Note that the pipe/1 construct is not part
 of Prolog's standard I/O reportoire.
 
      getwd(Wd) :-
@@ -3113,7 +3113,7 @@ put(+Stream, +Char)
 tab(+Amount)
      Writes Amount spaces on the current output stream.
      Amount should be an expression that evaluates to a
-     positive integer (see section ??).
+     positive integer (see section 3.21).
 
 
 tab(+Stream, +Amount)
@@ -3157,6 +3157,18 @@ get(+Stream, -Char)
      Read the next non-blank character from Stream.
 
 
+peek_byte(-Char)
+     Reads the next imput character like get0/1, but does
+     not remove it from the input stream.  This predicate
+     is ISO compliant.
+
+
+peek_byte(+Stream, -Char)
+     Reads the next imput character like get0/2, but does
+     not remove it from the stream.  This predicate is ISO
+     compliant.
+
+
 skip(+Char)
      Read the input until Char or the end of the file is
      encountered.  A subsequent call to get0/1 will read
@@ -3178,6 +3190,17 @@ get_single_char(-Char)
      the first non-blank character on this line, or the
      ASCII code of the newline (10) if the entire line
      consisted of blank characters.
+
+
+at_end_of_stream
+     Succeeds after the last character of the current input
+     stream has been read.  Also succeeds if there is no
+     valid current input stream.
+
+
+at_end_of_stream(+Stream)
+     Succeeds after the last character of the named stream
+     is read, or Stream is not a valid imput stream.
 
 
 3.16  Term Reading and Writing
@@ -3297,7 +3320,7 @@ read_history(+Show, +Help, +Special, +Prompt, -Term, -Bindings)
      the history.  Prompt is the first prompt given.
      Continuation prompts for more lines are determined by
      prompt/2.  A %w in the prompt is substituted by the
-     event number.  See section ??  for available
+     event number.  See section 2.4 for available
      substitutions.
 
      SWI-Prolog calls history_read/6 as follows:
@@ -3595,7 +3618,7 @@ op(+Precedence, +Type, +Name)
      is the precedence of this operator.  A term enclosed
      in brackets ((...)) has precedence 0.
 
-     The predefined operators are shown in table ??.  Note
+     The predefined operators are shown in table 3.1.  Note
      that all operators can be redefined by the user.
 
     1200   xfx    -->, :-
@@ -3645,7 +3668,7 @@ traced, which is why it is optional.
 The general arithmetic predicates all handle expressions.
 An expression is either a simple number or a function.  The
 arguments of a function are expressions.  The functions are
-described in section ??.
+described in section 3.22.
 
 
 between(+Low, +High, ?Value)
@@ -4061,7 +4084,7 @@ length(?List, ?Int)
 
 merge(+List1, +List2, -List3)
      List1 and List2 are lists, sorted to the standard
-     order of terms (see section ??).  List3 will be
+     order of terms (see section 3.5).  List3 will be
      unified with an ordered list holding both the elements
      of List1 and List2.  Duplicates are not removed.
 
@@ -4114,7 +4137,7 @@ merge_set(+Set1, +Set2, -Set3)
 sort(+List, -Sorted)
      Succeeds if Sorted can be unified with a list holding
      the elements of List, sorted to the standard order of
-     terms (see section ??).  Duplicates are removed.
+     terms (see section 3.5).  Duplicates are removed.
 
 
 msort(+List, -Sorted)
@@ -4286,7 +4309,8 @@ writef(+Format, +Arguments)
               : nnn is read as DECIMAL)
 
      Note that \l, \nnn and \\ are interpreted differently
-     when character-escapes are in effect.  See section ??.
+     when character-escapes are in effect.  See
+     section 2.12.1.1.
 
      Escape sequences to include arguments from Arguments.
      Each time a % escape sequence is found in Format the
@@ -4911,7 +4935,7 @@ debugging
 
 spy(+Pred)
      Put a spy point on all predicates meeting the
-     predicate specification Pred.  See section ??.
+     predicate specification Pred.  See section 3.3.
 
 
 nospy(+Pred)
@@ -5001,7 +5025,7 @@ style_check(+Spec)
 
 statistics(+Key, -Value)
      Unify system statistics determined by Key with Value.
-     The possible keys are given in the table ??.
+     The possible keys are given in the table 3.2.
 
   cputime        (User) cpu time since Prolog was started in
                  seconds
@@ -5196,7 +5220,7 @@ conversation is a form of interprocess communication based
 on sending reserved window-events between the communicating
 processes.
 
-See also section ??  for loading Windows DLL's into
+See also section 5.4 for loading Windows DLL's into
 SWI-Prolog.
 
 
@@ -5628,9 +5652,9 @@ Another typical way to use the module system is for
 defining classes within an object oriented paradigm.  The
 class structure and the methods of a class can be defined
 in a module and the explicit module-boundary overruling
-describes in section ??  can by used by the message passing
-code to invoke the behaviour.  An outline of this mechanism
-is given below.
+describes in section 4.6.2 can by used by the message
+passing code to invoke the behaviour.  An outline of this
+mechanism is given below.
 
      %       Define class point
 
@@ -5668,7 +5692,7 @@ indicates how message passing can easily be implemented:
 
 The construct `Module:Goal' explicitely calls Goal in
 module Module.  It is discussed in more detail in
-section ??.
+section 3.7.
 
 
 4.6  Meta-Predicates in Modules
@@ -5740,7 +5764,7 @@ call a predicate in some module or assert explicitly in
 some module.  The first is useful to invoke goals in some
 module from the user's toplevel or to implement a
 object-oriented system (see above).  The latter is useful
-to create and modify dynamic modules (see section ??).
+to create and modify dynamic modules (see section 4.7).
 
 For this purpose, the reserved term :/2 has been
 introduced.  All built-in predicates that transform a term
@@ -5879,7 +5903,7 @@ with meta_predicate/1).  A second problem arises if the
 body of a transparent predicate uses module sensitive
 predicates for which it wants to refer to its own module.
 Suppose we want to define findall/3 using assert/1 and
-retract/1.  The example in figure ??  gives the solution.
+retract/1.  The example in figure 4.1 gives the solution.
 
      :- module(findall, [findall/3]).
 
@@ -5908,7 +5932,7 @@ retract/1.  The example in figure ??  gives the solution.
              Figure 4.1:  findall using modules
 
 The Quintus meta_predicate/1 directive can in many cases be
-replaced by the transparent declaration.  Figure ??  gives
+replaced by the transparent declaration.  Figure 4.2 gives
 a definition of meta_predicate/1 as available from the
 `quintus' library package.
 
@@ -6010,12 +6034,12 @@ version.
      open_shared_object/2 and related predicates that allow
      for handling Unix shared object files based on the
      Unix library functions dlopen() and friends.  See
-     section ??.
+     section 5.4.
 
      feature(dll, true)
      If this succeeds the system provides an interface for
      loading .DLL files by means of open_dll/2 and friends.
-     See section ??.
+     See section 5.4.
 
 If either the feature open_shared_object or dll is true,
 the library library(shlib) provides a common interface for
@@ -6048,8 +6072,8 @@ load shared libraries (.so files on most Unix systems).
 This interface is portable to all machines providing the
 function dlopen() or an equivalent, normally from the
 library -ldl.  These functions provide the basic interface
-layer.  It is advised to use the predicates from section ??
-in your application.
+layer.  It is advised to use the predicates from
+section 5.4 in your application.
 
 
 open_shared_object(+File, -Handle)
@@ -6137,7 +6161,7 @@ current_foreign_library(-Lib, -Predicates)
      library was called.
 
 
-Figure ??  connects a Windows message-box using a foreign
+Figure 5.1 connects a Windows message-box using a foreign
 function.  This example was tested using Windows NT and
 Microsoft Visual C++ 2.0.
 
@@ -6258,7 +6282,7 @@ application and add the following to your Makefile:
                             -b $(HOME)/boot/init.pl \
                             -c load.pl
 
-See also section ??  for compiling Prolog sources using the
+See also section 2.7 for compiling Prolog sources using the
 -c option.
 
 
@@ -6361,7 +6385,8 @@ Term references are obtained in any of the following ways.
 
      Created by PL_copy_term_ref(term_t t)
      Creates a new term-reference to the same term as the
-     argument.  The term may be written to.  See figure ??.
+     argument.  The term may be written to.  See
+     figure 5.3.
 
 Term-references can savely be copied to other C-variables
 of type term_t, but all copies will always refer to the
@@ -6461,7 +6486,7 @@ control_t Passed as additional argument to
      and PL_foreign_context*().
 
 install_t Type for the install() and uninstall() functions
-     of shared or dynamic link libraries.  See section ??.
+     of shared or dynamic link libraries.  See section 5.4.
 
 
 5.6  The Foreign Include File
@@ -6582,7 +6607,7 @@ using PL_succeed or PL_fail, Prolog assumes the foreign
 function has cleaned its environment.  No call with control
 argument PL_CUTTED will follow.
 
-The code of figure ??  shows a skeleton for a
+The code of figure 5.2 shows a skeleton for a
 non-deterministic foreign predicate definition.
 
      typedef struct                  /* define a context structure */
@@ -6916,7 +6941,7 @@ int PL_get_nil(term_t +l)
 
 5.6.3.4  An example:  defining display/1 in C
 
-Figure ??  shows a definition of display/1 to illustrate
+Figure 5.3 shows a definition of display/1 to illustrate
 the described functions.
 
      foreign_t
@@ -7329,7 +7354,7 @@ int PL_call(term_t, module_t)
     Call term just like the Prolog predicate once/1.  Term
     is called in the specified module, or in the context
     module if module_t = NULL. Returns TRUE if the call
-    succeeds, FALSE otherwise.  Figure ??  shows an
+    succeeds, FALSE otherwise.  Figure 5.4 shows an
     example to obtain the number of defined atoms.  All
     checks are omitted to improve readability.
 
@@ -7341,7 +7366,7 @@ the call and/or analyse the result can in most cases be
 discarded right after the call.  PL_close_query() allows
 for destructing the data, while leaving the
 term-references.  The calls below may be used to destroy
-term-references and data.  See figure ??  for an example.
+term-references and data.  See figure 5.4 for an example.
 
 
 fid_t PL_open_foreign_frame()
@@ -7477,7 +7502,7 @@ int PL_warning(format, a1, ...)
 int PL_action(int, C_type)
     Perform some action on the Prolog system.  int
     describes the action, C_type provides the argument if
-    necessary.  The actions are listed in table ??.
+    necessary.  The actions are listed in table 5.1.
 
      PL_ACTION_TRACE           Start Prolog tracer
      PL_ACTION_DEBUG           Switch on Prolog debug mode
@@ -7509,7 +7534,7 @@ C_type PL_query(int)
        Obtain status information on the Prolog system.  The
        actual argument type depends on the information
        required.  int describes what information is wanted.
-       The options are given in table ??.
+       The options are given in table 5.2.
 
         PL_QUERY_ARGC             Return an integer holding the number of
                                   arguments given to Prolog from Unix.
@@ -7605,7 +7630,7 @@ As of version 2.1.0, SWI-Prolog may be embedded in a
 C-program.  To reach at a compiled C-program with
 SWI-Prolog as an embedded application is very similar to
 creating a statically linked SWI-Prolog executable as
-described in section ??.
+described in section 5.4.1.
 
 The file pl-stub.c defines SWI-Prologs default main
 program:
@@ -7654,8 +7679,8 @@ void PL_halt(int status)
 Below is an example showing all stages of the declaration
 of a foreign predicate that transforms atoms possibly
 holding uppercase letters into an atom only holding lower
-case letters.  Figure ??  shows the C-source file,
-figure ??  illustrates compiling and loading of foreign
+case letters.  Figure 5.5 shows the C-source file,
+figure 5.6 illustrates compiling and loading of foreign
 code.
 
      /*  Include file depends on local installation */
@@ -7817,7 +7842,7 @@ qsave_program(+File, +ListOfOptions)
      `File'.  The result is an executable shell-script,
      that will start the emulator.  ListOfOptions is a list
      of Key = Value pairs.  The available keys are
-     described in table ??.
+     described in table 6.1.
 
   Key          Option        Type        Description
   local          -L        K-bytes       Size (Limit) of local stack
@@ -7945,7 +7970,7 @@ using qsave_program/[1,2].
      If the program is an embedded Prolog application or
      uses the foreign language interface, care has to be
      taken to restore the appropriate foreign context.  See
-     section ??  for details.
+     section 6.2 for details.
 
      If the program uses directives (:- goal. lines) that
      perform other actions then setting predicate
@@ -8228,7 +8253,7 @@ prolog_frame_attribute(+Frame, +Key, -Value)
      Frame is a frame reference as obtained through
      prolog_current_frame/1, prolog_trace_interception/3 or
      this predicate.  The key values are described in
-     table ??.
+     table 7.1.
 
   Key                 Value
   alternative         Value is unified with an integer reference
@@ -8284,12 +8309,12 @@ prolog_trace_interception(+Port, +Frame, -Action)
      fail).  Leaving it a variable is identical to
      continue.
 
-     Together with the predicates described in section ??
+     Together with the predicates described in section 3.36
      and the other predicates of this chapter this
      predicate enables the Prolog user to define a complete
      new debugger in Prolog.  Besides this it enables the
      Prolog programmer monitor the execution of a program.
-     The example shown in figure ??  records all goals
+     The example shown in figure 7.1 records all goals
      trapped by the tracer in the database.  To trace the
      execution of `go' this way the following query should
      be given:
@@ -8441,6 +8466,8 @@ asserta/1                     Add a clause to the database (first)
 asserta/2                     Add a clause to the database (first)
 assertz/1                     Add a clause to the database (last)
 assertz/2                     Add a clause to the database (last)
+at_end_of_stream/0            Test for end of file on input
+at_end_of_stream/1            Test for end of file on stream
 at_halt/1                     Register goal to run at halt/1
 at_initialization/1           Register goal to run at start-up
 atom/1                        Type check for an atom
@@ -8645,6 +8672,8 @@ open_null_stream/1            Open a stream to discard output
 open_shared_object/2          UNIX: Open shared library (.so file)
 open_shared_object/3          UNIX: Open shared library (.so file)
 
+peek_byte/1                   Read character without removing
+peek_byte/2                   Read character without removing
 phrase/2                      Activate grammar-rule set
 phrase/3                      Activate grammar-rule set (returning rest)
 please/3                      Query/change environment parameters

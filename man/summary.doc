@@ -50,6 +50,8 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
 \\ \verb"asserta/2"			\> Add a clause to the database (first)
 \\ \verb"assertz/1"			\> Add a clause to the database (last)
 \\ \verb"assertz/2"			\> Add a clause to the database (last)
+\\ \verb"at_end_of_stream/0"		\> Test for end of file on input
+\\ \verb"at_end_of_stream/1"		\> Test for end of file on stream
 \\ \verb"at_halt/1"			\> Register goal to run at \verb"halt/1"
 \\ \verb"at_initialization/1"		\> Register goal to run at start-up
 \\ \verb"atom/1"			\> Type check for an atom
@@ -254,6 +256,8 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
 \\ \verb"open_shared_object/2"		\> UNIX: Open shared library (.so file)
 \\ \verb"open_shared_object/3"		\> UNIX: Open shared library (.so file)
 \\
+\\ \verb"peek_byte/1"			\> Read character without removing
+\\ \verb"peek_byte/2"			\> Read character without removing
 \\ \verb"phrase/2"			\> Activate grammar-rule set
 \\ \verb"phrase/3"			\> Activate grammar-rule set (returning rest)
 \\ \verb"please/3"			\> Query/change environment parameters

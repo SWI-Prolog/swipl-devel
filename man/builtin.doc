@@ -1209,6 +1209,12 @@ Read the current input stream and unify the next non-blank character
 with {\em Char}. {\em Char} is unified with -1 on end of file.
 .C get 2 +Stream, -Char
 Read the next non-blank character from {\em Stream}.
+.C peek_byte 1 -Char
+Reads the next imput character like get0/1, but does not remove it from
+the input stream.  This predicate is ISO compliant.
+.C peek_byte 2 +Stream, -Char
+Reads the next imput character like get0/2, but does not remove it from
+the stream.  This predicate is ISO compliant.
 .C skip 1 +Char
 Read the input until {\em Char} or the end of the file is encountered.
 A subsequent call to get0/1 will read the first character after {\em
@@ -1224,6 +1230,12 @@ started with the \verb$-tty$ flag this predicate reads an entire line of
 input and returns the first non-blank character on this line, or the
 ASCII code of the newline (10) if the entire line consisted of blank
 characters.
+.C at_end_of_stream 0
+Succeeds after the last character of the current input stream has
+been read.  Also succeeds if there is no valid current input stream.
+.C at_end_of_stream 1 +Stream
+Succeeds after the last character of the named stream is read, or
+{\em Stream} is not a valid imput stream.
 .ED
 
 .S Term Reading and Writing

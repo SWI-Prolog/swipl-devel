@@ -1724,6 +1724,7 @@ decompileBody(register decompileInfo *di, code end, Code until)
 	case B_CONST:
 			    *ARGP++ = XR(*PC++);
 			    continue;
+	case A_REAL:
 	case B_REAL:
 			    *ARGP++ = copyRealToGlobal(XR(*PC++));
 			    continue;

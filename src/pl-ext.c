@@ -365,6 +365,10 @@ static struct foreign {
   FRG("line_count",		2, pl_line_count,		TRACE_ME),
   FRG("line_position",		2, pl_line_position,		TRACE_ME),
   FRG("source_location",	2, pl_source_location,		TRACE_ME),
+  FRG("at_end_of_stream",	1, pl_at_end_of_stream1,	TRACE_ME),
+  FRG("at_end_of_stream",	0, pl_at_end_of_stream0,	TRACE_ME),
+  FRG("peek_byte",		2, pl_peek_byte2,		TRACE_ME),
+  FRG("peek_byte",		1, pl_peek_byte1,		TRACE_ME),
 
   FRG("nl",			1, pl_nl1,			TRACE_ME),
   FRG("tab",			2, pl_tab2,			TRACE_ME),

@@ -1570,6 +1570,60 @@ pl_source_location(term_t file, term_t line)
 }
 
 
+word
+pl_at_end_of_stream1(term_t stream)
+{ int n;
+
+  if ( (n = streamNo(stream, F_READ)) < 0 )
+    fail;
+
+  return Sfeof(fileTable[n].stream) ? TRUE : FALSE;
+}
+
+
+word
+pl_at_end_of_stream0()
+{ IOSTREAM *s = fileTable[Input].stream;
+  
+  if ( !s || Sfeof(s) )
+    succeed;
+
+  fail;
+}
+
+
+word
+pl_peek_byte2(term_t stream, term_t chr)
+{ int n;
+  IOSTREAM *s;
+  int c;
+
+  if ( (n = streamNo(stream, F_READ)) < 0 ||
+       !(s = fileTable[n].stream) )
+    fail;
+
+  c = Sgetc(s);
+  Sungetc(c, s);
+
+  return PL_unify_integer(chr, c);
+}
+
+
+word
+pl_peek_byte1(term_t chr)
+{ IOSTREAM *s;
+  int c;
+
+  if ( !(s = fileTable[Input].stream) )
+    fail;
+
+  c = Sgetc(s);
+  Sungetc(c, s);
+
+  return PL_unify_integer(chr, c);
+}
+
+
 		/********************************
 		*             FILES             *
 		*********************************/

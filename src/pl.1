@@ -1,59 +1,75 @@
-.TH SWI 1 "September 3rd 1993"
+.\" -*- nroff -*-
+.TH PL 1L "January 26, 1996" "SWI-Prolog 2.5"
 .SH NAME
-PL \- SWI-Prolog
+pl \- SWI-Prolog
 .SH SYNOPSIS
-.BR PL " [\|" \-help "\|]"
+.B pl
+.RB [ \-help | \-v | \-arch ]
 .br
-.BR PL " [\|" options "\|]"
+.B pl
+[options]
 .br
-.BR PL " [\|" options "\|] [\|" "\-o output" "\|]"
-.BI "\-c" " file ..."
+.B pl
+[options]
+.RB [ "\-o \fIoutput" ]
+.BI \-c " file ..."
 .br
-.BR PL " [\|" options "\|] [\|" "\-o output" "\|]"
-.BI "\-b" " file ..."
+.B pl
+[options]
+.RB [ "\-o \fIoutput" ]
+.BI \-b " initfile ..."
 .SH DESCRIPTION
-SWI-Prolog is an implementation of Prolog in the Edinburgh tradition.
-It is based on a restricted form of the WAM (RISC-WAM?). It has a good
-collection of built-in predicates, a large set of which it shares with
-C-Prolog, Quintus Prolog and SICStus Prolog. It has a fairly good
-performance, with a fast compiler. It includes a Quintus-like module
-system, a library autoload facility, a garbage collector, on-line help,
-a trasparent and fast C interface (in both directions), and a profiler.
-.SS Options
+SWI-Prolog is an implementation of Prolog in the Edinburgh tradition.  It is
+based on a restricted form of the WAM (RISC-WAM?).  It has a good collection
+of built-in predicates, a large set of which it shares with C-Prolog, Quintus
+Prolog and SICStus Prolog.  It has a fairly good performance, with a fast
+compiler.  It includes a Quintus-like module system, a library autoload
+facility, a garbage collector, on-line help, a trasparent and fast C interface
+(in both directions), and a profiler.
+.SH OPTIONS
 .TP
-.BI \-help
-Gives a summary of the usage of this command.
+.B \-help
+Gives a summary of the most important options.
 .TP
-.BI \-A "size"
-Give the argument stack size on K bytes (default 5K). For machines
-with dynamic stack allocation, the default is 1M. See
-.B -L
+.B \-v
+Displays version and architecture information.
+.TP
+.B \-arch
+Prints the architecture identifier.
+.TP
+.BI \-A size
+Sets the argument stack size to
+.I size
+K bytes. The default is 1024. See
+.B \-L
 for more details.
 .TP
-.BI \-G "size"
-Give the global stack size on K bytes (default 100K). For machines
-with dynamic stack allocation, the default is 4M. See
-.B -L
+.BI \-G size
+Sets the global stack size to
+.I size
+K bytes. The default is 4096. See
+.B \-L
 for more details.
 .TP
-.BI \-L "size"
-Give the local stack size on K bytes (default 200K). Note that there
-is no space between the size option and its argument. For machines
-with dynamic stack allocation, this flag sets the maximum value to
-which the stack is allowed to grow (default 2M). A maximum is useful
-to prevent buggy programs from claiming all the memory resources.
-.B -L0
+.BI \-L size
+Sets the local stack size to
+.I size
+K bytes. This flag sets the maximum value to which the stack is
+allowed to grow (default 2048). A maximum is useful to prevent buggy
+programs from claiming all the memory resources.
+.B \-L0
 sets the limit to the highest possible value.
 .TP
 .BI \-O
 Optimised compilation. See
-.B please\/3
+.B please/3
 in the SWI-Prolog Reference Manual.
 .TP
-.BI \-T "size"
-Give the trail stack size on K bytes (default 50K). For machines
-with dynamic stack allocation, the default is 4M. See
-.B -L
+.BI \-T size
+Sets the trail stack size to
+.I size
+K bytes. The default is 4096. See
+.B \-L
 for more details.
 .TP
 .BI \-b " initfile ... " -c " file ..."
@@ -78,7 +94,7 @@ This option is for system maintenance and is given for reference only.
 Use
 .I "file"
 as initialisation file instead of
-.RB "`" .PLrc "'. `" "-f none" "'"
+.RB "`" .plrc "'. `" "-f none" "'"
 stops SWI-Prolog from searching for an initialisation file.
 .TP
 .BI \-g " goal"
@@ -86,7 +102,7 @@ stops SWI-Prolog from searching for an initialisation file.
 is executed just before entering the top level. The default is a
 predicate which prints the welcome message. The welcome message
 can thus be supressed by giving
-.BR "-g true" .
+.BR "\-g true" .
 .I goal
 can be a complex term. In this case, quotes are normally needed
 to protect it from being expanded by the Unix shell.
@@ -98,17 +114,35 @@ or
 .B \-c
 to determine the output file for compilation.
 .TP
+.BI \-p " alias" = pathlist
+Define a path alias for
+.BR file_search_path/2 .
+.I pathlist
+is a "`":"'" separated list of values for the alias. See
+.B file_search_path/2
+in the SWI-Prolog Reference Manual.
+.TP
+.BI \-r " restorefile"
+Restore a saved state created by
+.B save_program/[1,2]
+or
+.BR save/[1,2] .
+Equivalent to
+.BI restore( restorefile )
+from Prolog.
+.TP
 .BI \-t " goal"
 Use
 .I goal
 as an interactive top level instead of the default goal
-.BR prolog\/0 "."
+.BR prolog/0 .
 .I goal
 can be a complex term. If the top level goal succeeds, SWI-Prolog
 exits with status 0. If it fails, the exit status is 1. This flag
 also determines the goal started by
-.BR break\/0 and
-.BR abort\/0 "."
+.B break/0
+and
+.BR abort/0 .
 If you want to stop the user from entering interactive mode, start
 the application with
 .RB "`" \-g
@@ -117,32 +151,37 @@ and give
 .RB "`" halt "'"
 as the top level.
 .TP
-.BI \-x state
-Load from an intermediate code file resulting from a Prolog compilation
+.BI \-x " bootfile"
+Start from an intermediate code file resulting from a Prolog compilation
 using the
 .B \-b
 or
-.B -c
+.B \-c
 option.
 .TP
-.BI \+\/\-tty
-Switches tty control (using ioctl(2)) on
-.RB "(" "+tty" ") or off ("  "-tty" ")."
+.RB [ \+ | \- ] tty
+Switches tty control (using 
+.BR ioctl (2))
+on
+.RB ( \+tty ") or off ("  \-tty ")."
 Normally tty control is switched on. This default depends on the
 installation. You may wish to switch tty control off if SWI-Prolog is
-used from an editor such as GNU EMACS. If switched off,
-.B get_single_char\/1
+used from an editor such as GNU Emacs. If switched off,
+.B get_single_char/1
 and the tracer will wait for a carriage return.
-.SS On-line Help
+.TP
+.B \-\-
+Stops scanning for more arguments.
+.SH ON-LINE HELP
 SWI-Prolog has on-line help. This provides a fast lookup and browsing
 facility to the SWI-Prolog Reference manual. The on-line manual can
 show predicate definitions as well as entire sections of the manual.
 .TP
 .B help
 Equivalent to
-.BR "help(help/1)" .
+.BR help(help/1) .
 .TP
-.BI "help\fI(" "+What\fR)"
+.BI help( \+What )
 Show a specified part of the manual.
 .I What
 is one of:
@@ -158,20 +197,27 @@ function with that name.
 Section
 display the specified section of the SWI-Prolog Reference Manual.
 Section numbers are dash separated numbers: e.g.
-.B "2-3"
-refers to section 2-3 of the manual.
+.B 2-3
+refers to section 2.3 of the manual.
 .RE
-.SH "SEE ALSO"
-Jan Wielemaker
-.I SWI-Prolog 1.6 Reference Manual,
+.SH FILES
+.TP
+.I .plrc
+.TP
+.I ~/.plrc
+Personal initialisation files consulted by SWI-Prolog on startup.
+If both exist
+.I .plrc
+is used.
+.SH SEE ALSO
+Jan\ Wielemaker
+.IR "SWI-Prolog 2.5 Reference Manual" ,
 University of Amsterdam, Dept. of Social Science and Informatics (SWI).
 .PP
-W. F. Clocksin & C. S. Mellish,
-.I Programming in Prolog, third edition,
-Springer Verlag, Berlin 1987.
-.PP
-.I readline(3)
+William\ F.\ Clocksin & Christopher\ S.\ Mellish,
+.IR "Programming in Prolog" ,
+fourth edition, Springer Verlag, Berlin 1994.
 .SH COPYRIGHT
-Copyright (C) 1991-196, Jan Wielemaker
+Copyright (c) 1993\-1996 University of Amsterdam
 .SH AUTHOR
 Jan Wielemaker

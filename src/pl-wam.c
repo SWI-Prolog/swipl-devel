@@ -603,7 +603,7 @@ unify(Word t1, Word t2, LocalFrame fr)
       fail;
 
     if ( (*t1 & DATA_TAG_MASK) == REAL_MASK )
-    { if ( t1[1] == t1[2] )
+    { if ( t1[1] == t2[1] )
 	succeed;
       fail;
     }
@@ -675,47 +675,15 @@ above. See this function for comments.
 
 bool
 can_unify(register Word t1, register Word t2)
-{ word w1, w2;
+{ mark m;
 
-  deRef(t1);  
-  deRef(t2);
+  bool rval;
 
-  if (isVar(*t1) || isVar(*t2) )
-    succeed;
-  if ( (w1 = *t1) == (w2 = *t2) )
-    succeed;
-  if ( mask(w1) != mask(w2) )
-    fail;
+  Mark(m);
+  rval = unify(t1, t2, environment_frame);
+  Undo(m);
 
-  if ( mask(w1) != 0 )
-  { if ( !isIndirect(w1) )
-      fail;
-#if O_STRING
-    if ( isString(w1) && isString(w2) && equalString(w1, w2) )
-      succeed;
-#endif /* O_STRING */
-    if ( isReal(w1) && equalReal(w1, w2) )
-      succeed;
-    fail;
-  }
-
-  { register int arity;
-    register FunctorDef fd;
-
-    if ( pointerIsAtom(w1) || 
-	 pointerIsAtom(w2) ||
-	 (fd = functorTerm(w1)) != functorTerm(w2) )
-      fail;
-
-    arity = fd->arity;
-    t1 = argTermP(w1, 0);
-    t2 = argTermP(w2, 0);
-    for(; arity > 0; arity--, t1++, t2++)
-      if ( !can_unify(t1, t2) )
-	fail;
-  }
-
-  succeed;
+  return rval;  
 }
 
 

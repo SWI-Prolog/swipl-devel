@@ -1,6 +1,30 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.5.3
+=============
+
+  * ADDED: ISO at_end_of_stream/[0,1] and peek_byte/[1,2].
+
+  * Fixed and faster nth0/3 and nth1/3 implementations by Martin Jansche.
+
+  * New pl(1) manual page by Martin Jansche.  Thanks.
+
+  * PORT: Ron Ferguson mailed me a couple of fixes for the NeXT machine,
+    using release 2 of the C-compiler from the standard development system.
+    Thanks.
+
+  * FIXED: decompilation (listing, retract, etc.) for clauses using the
+    new (2.5.x) A_REAL instruction.
+
+  * FIXED: \=/2 and recorded/3 for handling shared variables.  Found
+    by Joerg Garbers.
+
+  * ADDED: edit definition for emacsclient(1).
+
+  * Fixed unify (=/2) for unification of two floats.  Reported by Dave
+    Moffat.
+
 Version 2.5.2
 =============
 

@@ -150,11 +150,12 @@ not sensitive to changes.  Smart editors  may pass both informations and
 search nearby the given line number.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-edit_command(top,     search,   '%e ''%f'' ''-^%s''').
-edit_command(vi,      search,   '%e ''+/^%s'' ''%f''').
-edit_command(emacs,   search,   '%e +%d ''%f''').
-edit_command(notepad, nosearch, '%e %f').
-edit_command(_,       nosearch, '%e ''%f''').
+edit_command(top,	  	search,   '%e ''%f'' ''-^%s''').
+edit_command(vi,		search,   '%e ''+/^%s'' ''%f''').
+edit_command(emacs,   		search,   '%e +%d ''%f''').
+edit_command(emacsclient,   	search,   '%e +%d ''%f''').
+edit_command(notepad, 		nosearch, '%e %f').
+edit_command(_,       		nosearch, '%e ''%f''').
 
 substitute(From, ToAtom, Old, New) :-
 	name(ToAtom, To),
@@ -185,7 +186,7 @@ make.
 
 %	reload(File)
 %
-%	Reload file in proper module.  Note that if the file is loaded
+%	Reload file into the proper module.  Note that if the file is loaded
 %	into multiple modules this should be handled more carefully.
 
 reload(File) :-
