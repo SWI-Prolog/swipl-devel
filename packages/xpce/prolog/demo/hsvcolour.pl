@@ -148,7 +148,7 @@ value(D, V:'0..360') :->
 :- pce_group(rgb).
 
 red(D, R:'0..255') :->
-	get(D, value, red, G),
+	get(D, value, green, G),
 	get(D, value, blue, B),
 	rgb(R, G, B, Colour),
 	send(D, current_colour, Colour, rgb).

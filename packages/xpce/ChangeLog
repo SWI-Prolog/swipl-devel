@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Error handling red-slider in HSV colour demo (Geof Bishop).
+
 * FIXED: Draw the label of tab objects that are not `on top'.
 
 * PORT: MacOS X.  Changed:
