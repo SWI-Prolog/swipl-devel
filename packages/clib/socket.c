@@ -463,6 +463,23 @@ freeSocket(int socket)
   }
 #endif
 
+again:
+  if ( (rval=closesocket(socket)) == SOCKET_ERROR )
+  {
+#ifdef WIN32
+    Sdprintf("closesocket(%d) failed: %s\n",
+	     socket,
+	     WinSockError(WSAGetLastError()));
+#else
+    if ( errno == EINTR )
+      goto again;
+
+    Sdprintf("closesocket(%d) failed: %s\n",
+	     socket,
+	     strerror(errno));
+#endif
+  }
+
   LOCK();
   p = &sockets;
 
@@ -476,19 +493,6 @@ freeSocket(int socket)
     }
   }
   UNLOCK();
-
-  if ( (rval=closesocket(socket)) == SOCKET_ERROR )
-  {
-#ifdef WIN32
-    Sdprintf("closesocket(%d) failed: %s\n",
-	     socket,
-	     WinSockError(WSAGetLastError()));
-#else
-    Sdprintf("closesocket(%d) failed: %s\n",
-	     socket,
-	     strerror(errno));
-#endif
-  }
 
   DEBUG(Sdprintf("freeSocket(%d) returned %d\n", socket, rval));
 
@@ -783,6 +787,7 @@ tcp_close_socket(term_t Socket)
 
   if ( true(s, SOCK_OUTSTREAM|SOCK_INSTREAM) )
   { int flags = s->flags;		/* may drop out! */
+//    int msk = sigblock(~0L);
 
     if ( flags & SOCK_INSTREAM )
     { assert(s->input);
@@ -792,6 +797,8 @@ tcp_close_socket(term_t Socket)
     { assert(s->output);
       Sclose(s->output);
     }
+
+//    sigblock(msk);
   } else
   {
 #ifdef WIN32
