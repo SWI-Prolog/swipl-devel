@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: library(password_item) to allow entering passwords through the GUI.
+
+
 VERSION 6.2.0, distributed with SWI-Prolog 5.2.0
 ================================================
 		
