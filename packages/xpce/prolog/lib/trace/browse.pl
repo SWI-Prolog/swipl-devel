@@ -218,12 +218,12 @@ debug_settings(_FB) :->
 
 :- pce_group(event).
 
-post_event(FB, Ev:event) :->
+event(FB, Ev:event) :->
 	"Deal with identifying nodes"::
-	(   send_super(FB, post_event, Ev)
+	(   send_super(FB, event, Ev)
 	->  true
-	;   send(Ev, is_a, loc_move),
-	    (	get(FB, hypered, current, Node)
+	;   send(Ev, is_a, loc_move)
+	->  (	get(FB, hypered, current, Node)
 	    ->  (   send(Ev, inside, Node)
 		->  true
 		;   send(FB, delete_hypers, current),
@@ -253,7 +253,7 @@ initialise(TF, File:file) :->
 	;   Img = 'plfile.xpm'
 	),
 	file_base_name(FileName, Base),
-	send(TF, send_super, initialise, Base, Path, Img),
+	send_super(TF, initialise, Base, Path, Img),
 	send(TF, name, Base).
 
 update_image(_TF) :->
@@ -811,12 +811,6 @@ identify_predicate(fact, Name/Arity, P) :-
 identify_predicate(Class, Name/Arity, P) :-
 	send(P, report, status,
 	     '%s predicate %s/%d', Class?label_name, Name, Arity).
-
-event(P, Ev:event) :->
-	(   send(Ev, is_a, area_enter)
-	->  send(P, identify)
-	;   send(P, report, status, '')
-	).
 
 open(P) :->
 	"Edit, manual or expand"::
