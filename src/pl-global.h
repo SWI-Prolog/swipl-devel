@@ -32,6 +32,8 @@ typedef struct
   long	  _dewam_table_offset;		/* offset of 1st */
   code    _wam_table[I_HIGHEST+1];	/* code --> address */
   void  **_interpreter_jmp_table;	/* interpreters table */
+#else
+  int	  struct_may_not_be_empty;	/* empty structure is illegal */
 #endif
 } PL_code_data_t;
 
