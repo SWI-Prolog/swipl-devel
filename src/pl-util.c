@@ -151,8 +151,7 @@ setLong(long *flag, const char *name, term_t old, term_t new)
 Variable argument list:
 
 	atom_t	name
-	int	type	OPT_ATOM, OPT_STRING, OPT_BOOL, OPT_INT
-	long            OPT_LONG
+	int	type	OPT_ATOM, OPT_STRING, OPT_BOOL, OPT_INT, OPT_LONG
 	pointer	value
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
