@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: `text_image<-character_position'.
+
 * ADDED: Make `text_image <->elevation' an instance-variable instead of a
   class-variable.
 

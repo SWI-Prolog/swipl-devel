@@ -1166,7 +1166,7 @@ should be changed to binary searches someday,   but  this routine is not
 uterly time critical.
 
 In X-direction, we first do a quick   test  hoping the characters in the
-line are adjecent (i.e.  no characters are hidden).
+line are adjacent (i.e.  no characters are hidden).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static status
@@ -1226,6 +1226,18 @@ get_character_box_textimage(TextImage ti, int index,
 
     succeed;
   }
+
+  fail;
+}
+
+
+static Point
+getCharacterPositionTextImage(TextImage ti, Int index)
+{ int x, y, w, h, b;
+
+  if ( get_character_box_textimage(ti, valInt(index),
+				   &x, &y, &w, &h, &b) )
+    answer(answerObject(ClassPoint, toInt(x), toInt(b), EAV));
 
   fail;
 }
@@ -2481,7 +2493,9 @@ static getdecl get_textImage[] =
   GM(NAME_displayedCursor, 0, "cursor*", NULL, getDisplayedCursorTextImage,
      NAME_cursor, "Currently displayed cursor"),
   GM(NAME_view, 0, "int", NULL, getViewTextImage,
-     NAME_scroll, "Number of characters visible")
+     NAME_scroll, "Number of characters visible"),
+  GM(NAME_characterPosition, 1, "point", "int", getCharacterPositionTextImage,
+     NAME_compute, "X,BaseLine of character by index")
 };
 
 /* Resources */
