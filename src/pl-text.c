@@ -304,6 +304,40 @@ PL_unify_text(term_t term, PL_chars_t *text, int type)
 	    }
 	    break;
 	  }
+	  case ENC_ANSI:
+	  { const char *s = text->text.t;
+	    int rc, n = text->length;
+	    unsigned int len = 0;
+	    mbstate_t mbs;
+	    wchar_t wc;
+
+	    memset(&mbs, 0, sizeof(mbs));
+	    while( n > 0 && (rc=mbrtowc(&wc, s, n, &mbs)) > 0 )
+	    { len++;
+	      n -= rc;
+	      s += rc;
+	    }
+	    
+	    p0 = p = allocGlobal(len*3);
+	    memset(&mbs, 0, sizeof(mbs));
+	    n = text->length;
+
+	    while(n > 0)
+	    { rc = mbrtowc(&wc, s, n, &mbs);
+
+	      *p++ = FUNCTOR_dot2;
+	      if ( type == PL_CODE_LIST )
+		*p++ = consInt(wc);
+	      else
+		*p++ = codeToAtom(wc);
+	      *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
+	      p++;
+	      
+	      s += rc;
+	      n -= rc;
+	    }
+	    break;
+	  }
 	  default:
 	  { assert(0);
 
@@ -634,8 +668,6 @@ PL_canonise_text(PL_chars_t *text)
 	if ( s == e )
 	{ text->encoding  = ENC_ISO_LATIN_1;
 	  text->canonical = TRUE;
-
-	  succeed;
 	} else
 	{ int chr;
 	  int wide = FALSE;
@@ -678,8 +710,92 @@ PL_canonise_text(PL_chars_t *text)
 	  }
 
 	  text->canonical = TRUE;
+	}
+
+	succeed;
+      }
+      case ENC_ANSI:
+      { mbstate_t mbs;
+	int len = 0;
+	int iso = TRUE;
+	char *s = text->text.t;
+	int n = text->length;
+	int rc;
+	wchar_t wc;
+
+	memset(&mbs, 0, sizeof(mbs));
+	while( n > 0 && (rc=mbrtowc(&wc, s, n, &mbs)) > 0 )
+	{ if ( wc > 0xff )
+	    iso = FALSE;
+	  len++;
+	  n -= rc;
+	  s += rc;
+	}
+
+	if ( n == 0 )
+	{ const char *from = text->text.t;
+	  void *do_free;
+
+	  n = text->length;
+	  memset(&mbs, 0, sizeof(mbs));
+
+	  if ( text->storage == PL_CHARS_MALLOC )
+	    do_free = text->text.t;
+	  else
+	    do_free = NULL;
+
+	  if ( iso )
+	  { char *to;
+
+	    text->encoding = ENC_ISO_LATIN_1;
+	    if ( n+1 < sizeof(text->buf) )
+	    { text->text.t = text->buf;
+	      text->storage = PL_CHARS_LOCAL;
+	    } else
+	    { text->text.t = PL_malloc(n+1);
+	      text->storage = PL_CHARS_MALLOC;
+	    }
+
+	    to = text->text.t;
+	    while( n > 0 && (rc=mbrtowc(&wc, from, n, &mbs)) > 0 )
+	    { *to++ = (char)wc;
+	      n -= rc;
+	      from += rc;
+	    }
+	    *to = EOS;
+	  } else
+	  { wchar_t *to;
+	    char b2[sizeof(text->buf)];
+
+	    text->encoding = ENC_WCHAR;
+	    if ( n+1 < sizeof(text->buf)/sizeof(wchar_t) )
+	    { if ( text->text.t == text->buf )
+	      { memcpy(b2, text->buf, sizeof(text->buf));
+		from = b2;
+	      }
+	      text->text.w = (wchar_t*)text->buf;
+	    } else
+	    { text->text.w = PL_malloc((n+1)*sizeof(wchar_t));
+	      text->storage = PL_CHARS_MALLOC;
+	    }
+
+	    to = text->text.w;
+	    while( n > 0 && (rc=mbrtowc(&wc, from, n, &mbs)) > 0 )
+	    { *to++ = wc;
+	      n -= rc;
+	      from += rc;
+	    }
+	    *to = EOS;
+	  }
+
+	  text->canonical = TRUE;
+	  if ( do_free )
+	    PL_free(do_free);
+
 	  succeed;
 	}
+
+	fail;
       }
       default:
 	assert(0);

@@ -2163,6 +2163,37 @@ PL_unify_list_chars(term_t l, const char *chars)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+flags: bitwise or of type and representation
+
+	Types:		PL_ATOM, PL_STRING, PL_CODE_LIST, PL_CHAR_LIST
+	Representation: REP_ISO_LATIN_1, REP_UTF8, REP_MB
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+PL_unify_chars(term_t t, int flags, unsigned int len, const char *s)
+{ PL_chars_t text;
+  int rc;
+
+  if ( len == (unsigned int)-1 )
+    len = strlen(s);
+
+  text.text.t    = (char *)s;
+  text.encoding  = ((flags&REP_UTF8) ? ENC_UTF8 : \
+		    (flags&REP_MB)   ? ENC_ANSI : ENC_ISO_LATIN_1);
+  text.storage   = PL_CHARS_HEAP;
+  text.length    = len;
+  text.canonical = FALSE;
+
+  flags &= ~(REP_UTF8|REP_MB|REP_ISO_LATIN_1);
+
+  rc = PL_unify_text(t, &text, flags);
+  PL_free_text(&text);
+
+  return rc;
+}
+
+
 int
 PL_unify_integer__LD(term_t t, long i ARG_LD)
 { return unifyAtomic(t, makeNum(i) PASS_LD);

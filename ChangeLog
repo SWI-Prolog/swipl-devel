@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Pl_unify_chars().  Start to use for returning filenames.
+
   * MODIFIED: copy_stream_data/[2,3] now copies using get_code/2 and
     put_code/2 semantics instead of byte-by-byte.
 

@@ -1202,42 +1202,54 @@ pl_hostname(term_t name)
 
 
 \begin{description}
-\cfunction{int}{PL_unify}{term_t ?t1, term_t ?t2}
+    \cfunction{int}{PL_unify}{term_t ?t1, term_t ?t2}
 Unify two Prolog terms and return non-zero on success.
-\cfunction{int}{PL_unify_atom}{term_t ?t, atom_t a}
+    \cfunction{int}{PL_unify_atom}{term_t ?t, atom_t a}
 Unify \arg{t} with the atom \arg{a} and return non-zero on success.
-\cfunction{int}{PL_unify_atom_chars}{term_t ?t, const char *chars}
+    \cfunction{int}{PL_unify_chars}{term_t ?t, int flags, 
+				    unsigned int len,
+				    const char *chars}
+New function do deal with unification of \ctype{char*} with various
+encodings to a Prolog representation.  The \arg{flags} argument is
+a bitwise \emph{or} specifying the Prolog target type and the 
+encoding of \arg{chars}.  Prolog types is one of
+\const{PL_ATOM}, \const{PL_STRING}, \const{PL_CODE_LIST} or
+\const{PL_CHAR_LIST}.  Representations is one of
+\const{REP_ISO_LATIN_T}, \const{REP_UTF8} or \const{REP_MB}.  See
+PL_get_chars() for a definition of the representation types.  If
+\arg{len} is \const{-1}, \arg{chars} is assumed to be nul-terminated.
+    \cfunction{int}{PL_unify_atom_chars}{term_t ?t, const char *chars}
 Unify \arg{t} with an atom created from \arg{chars}  and return non-zero
 on success.
-\cfunction{int}{PL_unify_list_chars}{term_t ?t, const char *chars}
+    \cfunction{int}{PL_unify_list_chars}{term_t ?t, const char *chars}
 Unify \arg{t} with a list of ASCII characters constructed from
 \arg{chars}.
-\cfunction{void}{PL_unify_string_chars}{term_t ?t, const char *chars}
+    \cfunction{void}{PL_unify_string_chars}{term_t ?t, const char *chars}
 Unify \arg{t} with a Prolog string object created from the
 zero-terminated string \arg{chars}. The data will be copied.
 See also PL_unify_string_nchars().
-\cfunction{void}{PL_unify_string_nchars}{term_t ?t,
-					 unsigned int len,
-					 const char *chars}
+    \cfunction{void}{PL_unify_string_nchars}{term_t ?t,
+					     unsigned int len,
+					     const char *chars}
 Unify \arg{t} with a Prolog string object created from the string
 created from the \arg{len}/\arg{chars} pair. The data will be copied.
 This interface can deal with 0-bytes in the string. See also
 \secref{foreigndata}.
-\cfunction{int}{PL_unify_integer}{term_t ?t, long n}
+    \cfunction{int}{PL_unify_integer}{term_t ?t, long n}
 Unify \arg{t} with a Prolog integer from \arg{n}.
-\cfunction{int}{PL_unify_int64}{term_t ?t, int64_t n}
+    \cfunction{int}{PL_unify_int64}{term_t ?t, int64_t n}
 Unify \arg{t} with a Prolog integer from \arg{n}.
-\cfunction{int}{PL_unify_float}{term_t ?t, double f}
+    \cfunction{int}{PL_unify_float}{term_t ?t, double f}
 Unify \arg{t} with a Prolog float from \arg{f}.
-\cfunction{int}{PL_unify_pointer}{term_t ?t, void *ptr}
+    \cfunction{int}{PL_unify_pointer}{term_t ?t, void *ptr}
 Unify \arg{t} with a Prolog integer describing the pointer. See also
 PL_put_pointer() and PL_get_pointer().
-\cfunction{int}{PL_unify_functor}{term_t ?t, functor_t f}
+    \cfunction{int}{PL_unify_functor}{term_t ?t, functor_t f}
 If \arg{t} is a compound term with the given functor, just succeed.
 If it is unbound, create a term and bind the variable, else fails.
 Not that this function does not create a term if the argument is
 already instantiated.
-\cfunction{int}{PL_unify_list}{term_t ?l, term_t -h, term_t -t}
+    \cfunction{int}{PL_unify_list}{term_t ?l, term_t -h, term_t -t}
 Unify \arg{l} with a list-cell ({\tt ./2}). If successful, write a
 reference to the head of the list to \arg{h} and a reference
 to the tail of the list in \arg{t}. This reference may be used for

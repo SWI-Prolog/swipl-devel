@@ -437,6 +437,8 @@ PL_EXPORT(int)		PL_unify_list(term_t l, term_t h, term_t t);
 PL_EXPORT(int)		PL_unify_nil(term_t l);
 PL_EXPORT(int)		PL_unify_arg(int index, term_t t, term_t a);
 PL_EXPORT(int)		PL_unify_term(term_t t, ...);
+PL_EXPORT(int)		PL_unify_chars(term_t t, int flags,
+				       unsigned int len, const char *s);
 
 
 		 /*******************************
