@@ -29,6 +29,7 @@
 #ifdef __WIN32__
 #include <uxnt.h>
 #define MD "config/win32.h"
+#include <winsock2.h>
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
