@@ -1,3 +1,6 @@
+* FIXED/MODIFIED: Deleting content from a table object now ->destroy's
+  the graphicals if they are not locked.
+
 * FIXED: Added proper message for `unresolved' types.
 
 * ADDED: ignore-case argument to `char_array->prefix' for consistency with
