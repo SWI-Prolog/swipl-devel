@@ -984,6 +984,7 @@ ws_geometry_frame(FrameObj fr, Int x, Int y, Int w, Int h)
     in.width  = valInt(fr->area->w);
     in.height = valInt(fr->area->h);
 
+    DEBUG(NAME_frame, Cprintf("%s: doing widget geometry request\n", pp(fr)));
     XtMakeGeometryRequest(wdg, &in, &out);
 
     if ( fr->kind != NAME_popup )
@@ -1003,7 +1004,9 @@ ws_geometry_frame(FrameObj fr, Int x, Int y, Int w, Int h)
 	 hints->flags |= PWinGravity;
       }
 
+      DEBUG(NAME_frame, Cprintf("%s: setting WM hints\n", pp(fr)));
       XSetWMNormalHints(r->display_xref, XtWindow(wdg), hints);
+      DEBUG(NAME_frame, Cprintf("\tok\n"));
       XFree(hints);
     }
   }
