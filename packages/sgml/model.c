@@ -206,7 +206,8 @@ state_allows_for(dtd_state *state, dtd_element **allow, int *n)
   visited.size = 0;
 
   *n = 0;
-  do_state_allows_for(state, allow, n, &visited);
+  if ( state )
+    do_state_allows_for(state, allow, n, &visited);
 }
 
 

@@ -163,8 +163,12 @@ find_public_entity_in_catalog(const char *catfile,
 
       fclose(fd);			/* found it */
 					/* strip trailing blanks */
+      if ( *s == '"' )
+	s++;
       for(e=s+strlen(s); e>s && isspace(uc(e-1)); e--)
 	;
+      if ( e>s && e[-1] == '"' )
+	e--;
       *e = '\0';
 
       return localpath(catfile, s);

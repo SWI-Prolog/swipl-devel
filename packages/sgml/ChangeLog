@@ -1,3 +1,8 @@
+* FIXED: SGML-mode: immediately close EMPTY elements (i.e. do not allow
+  for a closing </img>).
+
+* IMPROVED: Error reporting on elements not in the DTD.
+
 * ADDED: get_sgml_parser(Parser, dtd(-DTD)).
 
 VERSION 1.0.8

@@ -2768,10 +2768,11 @@ process_begin_element(dtd_parser *p, const ichar *decl)
 
     free_attribute_values(natts, atts);
 
-    if ( empty /*||
-	 (e->structure &&
+    if ( empty ||
+	 (dtd->dialect == DL_SGML &&
+	  e->structure &&
 	  e->structure->type == C_EMPTY &&
-	  !e->undefined)*/ )
+	  !e->undefined) )
       close_element(p, e);
 
     return TRUE;

@@ -1832,7 +1832,8 @@ unify_attribute_default(term_t defval, dtd_attr *a)
 	  default:
 	    assert(0);
 	}
-      }
+      } else
+	return FALSE;
     default:
       assert(0);
       return FALSE;
