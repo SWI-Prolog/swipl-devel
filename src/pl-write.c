@@ -501,8 +501,6 @@ writeTerm2(term_t t, int prec, write_options *options)
 	  term_t l    = PL_copy_term_ref(t);
   
 	  TRY(Putc('[', out));
-	  if ( options->max_depth )	/* we recurse as same level! */
-	    options->depth--;
 	  for(;;)
 	  { PL_get_list(l, head, l);
   
