@@ -23,6 +23,9 @@
 	    rdfe_can_undo/1,		% -TID
 	    rdfe_can_redo/1,		% -TID
 
+	    rdfe_is_modified/1,		% ?File
+	    rdfe_clear_modified/1,	% +File
+
 	    rdfe_open_journal/2,	% +File, +Mode
 	    rdfe_close_journal/0,
 	    rdfe_replay_journal/1,	% +File
@@ -41,7 +44,8 @@
 	current_transaction/1,		% TID
 	transaction_name/2,		% TID, Name
 	undo_marker/2,			% Mode, TID
-	journal/2.			% Path, Stream
+	journal/2,			% Path, Stream
+	modified/1.			% Path
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This library provides a number of functions on top of the rdf_db module:
@@ -106,7 +110,8 @@ rdfe_assert(Subject, Predicate, Object, PayLoad) :-
 	rdf_assert(Subject, Predicate, Object, PayLoad),
 	rdfe_current_transaction(TID),
 	assert_action(TID, assert(PayLoad), Subject, Predicate, Object),
-	journal(assert(TID, Subject, Predicate, Object, PayLoad)).
+	journal(assert(TID, Subject, Predicate, Object, PayLoad)),
+	set_modified(PayLoad).
 
 rdfe_retractall(Subject, Predicate, Object) :-
 	rdfe_retractall(Subject, Predicate, Object, _).
@@ -116,6 +121,7 @@ rdfe_retractall(Subject, Predicate, Object, PayLoad) :-
 	(   rdf(Subject, Predicate, Object, PayLoad),
 	    assert_action(TID, retract(PayLoad), Subject, Predicate, Object),
 	    journal(retract(TID, Subject, Predicate, Object, PayLoad)),
+	    set_modified(PayLoad),
 	    fail
 	;   true
 	),
@@ -135,6 +141,8 @@ rdfe_retractall(Subject, Predicate, Object, PayLoad) :-
 
 rdfe_update(Subject, Predicate, Object, Action) :-
 	rdfe_current_transaction(TID),
+	forall(rdf(Subject, Predicate, Object, PayLoad),
+	       set_modified(PayLoad)),		% Dubious; move to rdf_db.c?
 	rdf_update(Subject, Predicate, Object, Action),
 	(   Action = object(New)
 	->  assert_action(TID, object(Object), Subject, Predicate, New)
@@ -425,6 +433,30 @@ user_transaction_member(Update, Subject, Predicate, Object,
 
 
 		 /*******************************
+		 *	     MODIFIED		*
+		 *******************************/
+
+set_modified(File:_Line) :-
+	atom(File), !,
+	set_modified(File).
+set_modified(File) :-
+	modified(File), !.
+set_modified(File) :-
+	assert(modified(File)).
+
+%	rdfe_is_modified(?File)
+%	
+%	True if facts have been added, deleted or updated that have File
+%	as `payload'.
+
+rdfe_is_modified(File) :-
+	modified(File).
+
+rdfe_clear_modified(File) :-
+	retractall(modified(File)).
+
+
+		 /*******************************
 		 *	    JOURNALLING		*
 		 *******************************/
 
@@ -441,7 +473,8 @@ rdfe_open_journal(File, Mode) :-
 	(   Mode == append,
 	    exists_file(Path)
 	->  Start = resume(Options),
-	    rdfe_replay_journal(File)
+	    rdfe_replay_journal(File),
+	    rdfe_clear_modified(_)
 	;   Start = start(Options)
 	),
 	open(Path, Mode, Stream, [close_on_abort(false)]),
