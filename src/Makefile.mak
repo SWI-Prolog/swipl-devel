@@ -79,7 +79,7 @@ PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 	backcomp.pl gensym.pl listing.pl \
 	bim.pl quintus.pl edinburgh.pl ctypes.pl files.pl \
 	edit.pl emacs_interface.pl shell.pl check.pl \
-	tty.pl readln.pl \
+	tty.pl readln.pl readutil.pl \
 	am_match.pl oset.pl ordsets.pl occurs.pl \
 	netscape.pl url.pl \
 	qpforeign.pl \
