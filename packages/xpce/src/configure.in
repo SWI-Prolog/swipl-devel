@@ -95,7 +95,12 @@ AC_ARG_ENABLE(shared, [  --enable-shared	  Prepare for shared lib],
 		   yes) MAKE_SHARED_OBJECT=yes ;;
 		   no)  MAKE_SHARED_OBJECT=no ;;
 	       esac])
-AC_ARG_ENABLE(shared, [  --enable-cpp		  Include C++ interface],
+AC_ARG_ENABLE(sysld, [  --enable-sysld	  Use system ld, not gcc -shared],
+	      [case "$enableval" in
+		   yes) GCCLD=no ;;
+		   no)  GCCLD=yes ;;
+	       esac])
+AC_ARG_ENABLE(cpp, [  --enable-cpp		  Include C++ interface],
 	      [case "$enableval" in
 		   yes) CONFIG_CXX=yes ;;
 		   no)  CONFIG_CXX=no ;;
@@ -268,6 +273,7 @@ EOF
 dnl See whether gcc supports building shared objects.  Some older versions
 dnl recognise the flags, but don't behave appropirately.
 
+    if test -z "$GCCLD"; then
     AC_MSG_CHECKING("whether ${CC-cc} -shared works")
     cat > conftest.c <<EOF
 int
@@ -280,11 +286,13 @@ EOF
       AC_MSG_RESULT("yes")
       LD=${CC-cc}
       LDSOFLAGS="-shared"
-      GCCLD=true
+      GCCLD=yes
     else
+      GCCLD=no
       AC_MSG_RESULT("no")
     fi
     rm -f conftest*
+    fi
 
 dnl GCC can be configured to use GNU-ld or native ld.  Check whether the
 dnl relevant GNU-ld options are supported.    
@@ -336,7 +344,7 @@ EOF
 
   case "$OS" in
     *solaris* | *sunos5*)
-	if test -z "$GCCLD"; then
+	if test "$GCCLD" = "no"; then
 	    LD=/usr/ccs/bin/ld
 	    LDSOFLAGS="-G"
 	    SONAMEFLAG="-h $(LIBXPCESOM)"
@@ -350,7 +358,7 @@ EOF
 	fi
 	;;
     *sunos*)
-	if test -z "$GCCLD"; then
+	if test "$GCCLD" = "no"; then
 	    LD=ld
 	    LDSOFLAGS="-assert nodefinitions"
 	    SOWHOLEARCHIVE="-u _pceSend -u _pceOpen"
@@ -367,7 +375,7 @@ EOF
     *irix*)
 	;;
     *osf*)
-	if test -z "$GCCLD"; then
+	if test "$GCCLD" = "no"; then
 	    LD=ld
 	    LDSOFLAGS="-shared -expect_unresolved \*"
 	fi
@@ -759,14 +767,18 @@ fi dnl WITHX11
 
 dnl Check the critical but not very standard libXpm and libjpeg libraries
 dnl and make sure they required headers can be found.
+dnl
+dnl NOTE: If we have to add a -L, it should be *before* the -l for some
+dnl linkers
+
+XLIBDIRS=""
 
 AC_ARG_WITH(xpm,[  --with-xpm=<dir>	  Location of Xpm include/lib],
 	[case $withval in 
 		no|yes)	echo 'Specify dir for XPM please';
 			exit 1 ;;
-		*)	LIBS="-L${withval}/lib ${LIBS}"
-		        XLIBS="-L${withval}/lib ${XLIBS}"
-			CFLAGS="-I${withval}/include ${CFLAGS}"
+		*)	XLIBDIRS="-L${withval}/lib $XLIBDIRS"
+		        CFLAGS="-I${withval}/include ${CFLAGS}"
 			CPPFLAGS="-I${withval}/include ${CPPFLAGS}"
 			CIFLAGS="-I${withval}/include ${CIFLAGS}"
 			echo "LIBS=${LIBS}"
@@ -775,8 +787,7 @@ AC_ARG_WITH(jpeg,[  --with-jpeg=<dir>	  Location of JPEG include/lib],
 	[case $withval in 
 		no|yes)	echo 'Specify dir for JPEG please';
 			exit 1 ;;
-		*)	LIBS="-L${withval}/lib ${LIBS}"
-		        XLIBS="-L${withval}/lib ${XLIBS}"
+		*)	XLIBDIRS="-L${withval}/lib $XLIBDIRS"
 			CPPFLAGS="-I${withval}/include ${CPPFLAGS}"
 			CIFLAGS="-I${withval}/include ${CIFLAGS}"
 			echo "LIBS=${LIBS}"
@@ -791,6 +802,8 @@ if test "$ac_cv_header_X11_xpm_h" != yes; then unset ac_cv_header_X11_xpm_h; fi
 if test "$ac_cv_header_jpeglib_h" != yes; then unset ac_cv_header_jpeglib_h; fi
 if test "$ac_cv_header_jerror_h" != yes; then unset ac_cv_header_jerror_h; fi
 	
+LIBS="$XLIBDIRS $LIBS"
+
 AC_CHECK_LIB(jpeg, main,
 	     [XLIBS="-ljpeg $XLIBS"]
 	     AC_DEFINE(HAVE_LIBJPEG))
@@ -798,6 +811,8 @@ AC_CHECK_LIB(jpeg, main,
 AC_CHECK_LIB(Xpm, main,
 	     [XLIBS="-lXpm $XLIBS"]
 	     AC_DEFINE(HAVE_LIBXPM))
+
+XLIBS="$XLIBDIRS $XLIBS"
 
 if test "$ac_cv_lib_Xpm_main" != "yes"; then
 cat << _EOM_
