@@ -262,8 +262,8 @@ PL_open_foreign_frame()
 { FliFrame fr = (FliFrame) lTop;
 
   finish_foreign_frame();
+  requireStack(local, sizeof(struct fliFrame));
   lTop = addPointer(lTop, sizeof(struct fliFrame));
-  verifyStack(local);
   fr->size = 0;
   Mark(fr->mark);
   fr->parent = fli_context;
@@ -484,9 +484,12 @@ global stack and fr is available.
 static inline void			/* used by the WAM interpreter */
 TrailLG(Word p, LocalFrame fr)
 { if ( p >= (Word) lBase )
+  { requireStack(trail, sizeof(struct trail_entry));
     (tTop++)->address = consPtr(p, TAG_TRAILADDR|STG_LOCAL);
-  else if ( p <= valPtr2(fr->mark.globaltop, STG_GLOBAL) )
+  } else if ( p <= valPtr2(fr->mark.globaltop, STG_GLOBAL) )
+  { requireStack(trail, sizeof(struct trail_entry));
     (tTop++)->address = consPtr(p, TAG_TRAILADDR|STG_GLOBAL);
+  }
 }
 
 
@@ -511,8 +514,8 @@ Trail(Word p, LocalFrame fr)
       st = TAG_TRAILADDR|STG_HEAP;
   }
 
+  requireStack(trail, sizeof(struct trail_entry));
   (tTop++)->address = consPtr(p, st);
-  verifyStack(trail);
 }
 
 
@@ -549,9 +552,9 @@ TrailAssignment(Word p)
 { Word old = allocGlobal(1);
 
   *old = *p;				/* save the old value on the global */
+  requireStack(trail, 2*sizeof(struct trail_entry));
   (tTop++)->address = consPtr(p,   TAG_TRAILADDR|STG_GLOBAL);
   (tTop++)->address = consPtr(old, TAG_TRAILVAL|STG_GLOBAL);
-  verifyStack(trail);
 }
 
 
@@ -1559,8 +1562,8 @@ the global stack (should we check?  Saves trail! How often?).
       MARK(HFUNC);
       { FunctorDef fdef = (FunctorDef) *PC++;
 
+	requireStack(argument, sizeof(Word));
 	*aTop++ = ARGP + 1;
-	verifyStack(argument);
         deRef(ARGP);
 	if ( isVar(*ARGP) )
 	{ int arity = fdef->arity;
@@ -1591,8 +1594,8 @@ the global stack (should we check?  Saves trail! How often?).
 	CLAUSE_FAILED;	    
 
     VMI(H_LIST, COUNT(h_list), ("h_list\n")) MARK(HLIST);
+        requireStack(argument, sizeof(Word));
 	*aTop++ = ARGP + 1;
-	verifyStack(argument);
 	deRef(ARGP);
 	if ( isVar(*ARGP) )
 	{ 
@@ -1626,13 +1629,14 @@ avoid a function call.
     VMI(B_FUNCTOR, COUNT_N(b_functor_n), ("b_functor %d\n", *PC)) MARK(BFUNC);
       { register FunctorDef fdef = (FunctorDef) *PC++;
 
+	requireStack(global, sizeof(word) * (1+fdef->arity));
+	requireStack(argument, sizeof(Word));
+
 	*ARGP = consPtr(gTop, TAG_COMPOUND|STG_GLOBAL);
 	*aTop++ = ++ARGP;
-	verifyStack(argument);
 	*gTop++ = fdef->functor;
 	ARGP = gTop;
 	gTop += fdef->arity;
-	verifyStack(global);
 
 	NEXT_INSTRUCTION;
       }

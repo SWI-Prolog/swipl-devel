@@ -1053,8 +1053,8 @@ $tailvar(X, X) :-
 $tailvar([_|T], V) :-
 	$tailvar(T, V).
 
-$t_head((LP, List), S, SR, H):- !,
-	append(List, SR, List2),
+$t_head((LP, List), S, SR, H) :-
+	append(List, SR, List2), !,
 	$extend([S, List2], LP, H).
 $t_head(LP, S, SR, H) :-
 	$extend([S, SR], LP, H).

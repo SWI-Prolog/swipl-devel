@@ -143,16 +143,22 @@ This function is called back from the   console.dll main loop to provide
 the main for the application.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static void
+install_readline(int argc, char **argv)
+{ PL_install_readline();
+}
+
+
 int
 win32main(int argc, char **argv, char **env)
 { set_window_title();
   rlc_bind_terminal();
 
   PL_register_extensions(extensions);
+  PL_initialise_hook(install_readline);
   if ( !PL_initialise(argc, argv, env) )
     PL_halt(1);
   
-  PL_install_readline();
   PL_async_hook(4000, rlc_check_intr);
   rlc_interrupt_hook(PL_interrupt);
   initSignals();

@@ -446,7 +446,7 @@ startProlog(int argc, char **argv, char **env)
     CSetFeature("boot_file", state);
   }
 
-  reinitForeign(mainArgc, mainArgv);	/* run PL_reinit_hook() functions */
+  initialiseForeign(mainArgc, mainArgv); /* PL_initialise_hook() functions */
   systemMode(FALSE);
   status.dumped = TRUE;
   status.initialised = TRUE;

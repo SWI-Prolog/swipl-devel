@@ -1562,56 +1562,41 @@ resetForeign(void)
 		*      REINITIALISE (SAVE)	*
 		********************************/
 
-typedef struct reinit_handle * ReinitHandle;
+typedef struct initialise_handle * InitialiseHandle;
 
-static struct reinit_handle
-{ ReinitHandle	  next;			/* Next handle */
-  PL_reinit_hook_t function;		/* The handle itself */
-} * reinit_head = NULL,
-  * reinit_tail = NULL;
+static struct initialise_handle
+{ InitialiseHandle	  next;			/* Next handle */
+  PL_initialise_hook_t function;		/* The handle itself */
+} * initialise_head = NULL,
+  * initialise_tail = NULL;
 
 
 void
-PL_reinit_hook(PL_reinit_hook_t func)
-{ ReinitHandle h = reinit_head;
+PL_initialise_hook(PL_initialise_hook_t func)
+{ InitialiseHandle h = initialise_head;
 
   for(; h; h = h->next)
   { if ( h->function == func )
       return;				/* already there */
   }
 
-  h = (ReinitHandle) allocHeap(sizeof(struct reinit_handle));
+  h = (InitialiseHandle) malloc(sizeof(struct initialise_handle));
 
   h->next = NULL;
   h->function = func;
 
-  if ( reinit_head == NULL )
-  { reinit_head = reinit_tail = h;
+  if ( initialise_head == NULL )
+  { initialise_head = initialise_tail = h;
   } else
-  { reinit_tail->next = h;
-    reinit_tail = h;
+  { initialise_tail->next = h;
+    initialise_tail = h;
   }
-}
-
-
-int
-PL_reinit_unhook(PL_reinit_hook_t func)
-{ ReinitHandle h = reinit_head;
-
-  for(; h; h = h->next)
-  { if ( h->function == func )
-    { h->function = NULL;
-      return TRUE;
-    }
-  }
-
-  return FALSE;
 }
 
 
 void
-reinitForeign(int argc, char **argv)
-{ ReinitHandle h = reinit_head;
+initialiseForeign(int argc, char **argv)
+{ InitialiseHandle h = initialise_head;
 
   for(; h; h = h->next)
     (*h->function)(argc, argv);

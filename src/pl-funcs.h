@@ -283,7 +283,7 @@ word		pl_expand_file_name(term_t f, term_t l);
 
 /* pl-itf.c */
 void		resetForeign(void);
-void		reinitForeign(int argc, char **argv);
+void		initialiseForeign(int argc, char **argv);
 
 /* pl-list.c */
 word		pl_is_list(term_t list);

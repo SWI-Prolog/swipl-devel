@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include "pl-itf.h"
 
+#define READLINE 1			/* use readline interface */
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 C-extensions can either be loaded through the foreign language interface
 using load_foreign_library/[1,2] or they can   be statically linked with
@@ -42,12 +44,23 @@ PL_extension PL_extensions [] =
 };
 
 
+#ifdef READLINE
+static void
+install_readline(int argc, char**argv)
+{ PL_install_readline();
+}
+#endif
+
 int
 main(int argc, char **argv, char **env)
-{ if ( !PL_initialise(argc, argv, env) )
-    PL_halt(1);
+{
 
-  PL_install_readline();		/* delete if you don't want readline */
+#ifdef READLINE
+  PL_initialise_hook(install_readline);
+#endif
+
+  if ( !PL_initialise(argc, argv, env) )
+    PL_halt(1);
 
   PL_halt(PL_toplevel() ? 0 : 1);
 

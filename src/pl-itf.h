@@ -26,7 +26,7 @@ before loading this file.  See end of this file.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef PLVERSION
-#define PLVERSION "2.7.1, April 1996"
+#define PLVERSION "2.7.3, May 1996"
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -399,15 +399,14 @@ __pl_export void	PL_clock_wait_ticks(long waited);
 
 typedef int  (*PL_dispatch_hook_t)(int fd);
 typedef void (*PL_abort_hook_t)(void);
-typedef void (*PL_reinit_hook_t)(int argc, char **argv);
+typedef void (*PL_initialise_hook_t)(int argc, char **argv);
 typedef void (*PL_async_hook_t)(void);	/* Win32 only (O_ASYNC_HOOK) */
 typedef int  (*PL_getkey_hook_t)(int fd);
 
 __pl_export PL_dispatch_hook_t PL_dispatch_hook(PL_dispatch_hook_t);
 __pl_export void	       PL_abort_hook(PL_abort_hook_t);
-__pl_export void	       PL_reinit_hook(PL_reinit_hook_t);
+__pl_export void	       PL_initialise_hook(PL_initialise_hook_t);
 __pl_export int		       PL_abort_unhook(PL_abort_hook_t);
-__pl_export int		       PL_reinit_unhook(PL_reinit_hook_t);
 __pl_export PL_async_hook_t    PL_async_hook(unsigned int, PL_async_hook_t);
 __pl_export PL_getkey_hook_t   PL_getkey_hook(PL_getkey_hook_t);
 

@@ -1,6 +1,20 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.7.3
+=============
+
+  * FIXED: ?- expand_term(A,B), reported by Fergus Henderson.
+
+  * FIXED: cleanup after calling Prolog-defined arithmetic functions
+    (caused a crash when two arithmetic functions are called in the
+    same context).
+
+  * Renamed PL_reinit_hook() to PL_initialise_hook(), which reflects
+    more the current function.  Use this to register the readline
+    interface, so it is available while loading .plrc.  Se also
+    pl-extend.c and its public copy stub.c.
+
 Version 2.7.2
 =============
 

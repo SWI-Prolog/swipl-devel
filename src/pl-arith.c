@@ -304,16 +304,21 @@ prologFunction(ArithFunction f, term_t av, Number r)
 { int arity = f->proc->definition->functor->arity;
   fid_t cid = PL_open_foreign_frame();
   qid_t qid;
+  int rval;
 
   qid = PL_open_query(NULL, TRUE, f->proc, av);
+
   if ( PL_next_solution(qid) )
-  { int rval = valueExpression(av+arity-1, r);
-    PL_discard_foreign_frame(cid);
-    return rval;
-  } else
-  { PL_discard_foreign_frame(cid);
-    return warning("Arithmetic function %s failed", procedureName(f->proc));
+    rval = valueExpression(av+arity-1, r);
+  else
+  { warning("Arithmetic function %s failed", procedureName(f->proc));
+    rval = FALSE;
   }
+
+  PL_close_query(qid);
+  PL_discard_foreign_frame(cid);
+
+  return rval;
 }
 
 #endif /* O_PROLOG_FUNCTIONS */

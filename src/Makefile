@@ -100,7 +100,8 @@ banner:
 		@echo "****************"
 
 $(PL):		$(ALLOBJ)
-		$(CC) $(LDFLAGS) -o $(PL) $(ALLOBJ) $(LIBS) $(STATICLIBS) 
+		LD_RUN_PATH=$(prefix)/lib ; \
+		    $(CC) $(LDFLAGS) -o $(PL) $(ALLOBJ) $(LIBS) $(STATICLIBS) 
 
 
 $(STARTUPPATH):	$(PLINIT) pl-wam.o pl-wic.o
