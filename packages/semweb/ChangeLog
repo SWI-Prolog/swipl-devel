@@ -1,3 +1,8 @@
+Oct 12, 2004
+
+  * INTERNAL: Preparing for seperate databases by combining all global
+    data in a single structure.
+
 Oct 6, 2004
 
   * ADDED/FIXED: Various issues in the documentation.

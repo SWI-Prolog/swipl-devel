@@ -145,4 +145,28 @@ typedef struct triple
 } triple;
 
 
+typedef struct rdf_db
+{ triple       *by_none, *by_none_tail;
+  triple      **table[INDEX_TABLES];
+  triple      **tail[INDEX_TABLES];
+  int	       *counts[INDEX_TABLES];
+  int		table_size[INDEX_TABLES];
+  long		created;		/* #triples created */
+  long		erased;			/* #triples erased */
+  long		freed;			/* #triples actually erased */
+  long		subjects;		/* subjects (unique first) */
+  long		indexed[8];		/* Count calls */
+  predicate   **pred_table;		/* Hash-table of predicates */
+  int		pred_table_size;	/* #entries in the table */
+  int		pred_count;		/* #predicates */
+  int		active_queries;		/* Calls with choicepoints */
+  int		need_update;		/* We need to update */
+  long		agenda_created;		/* #visited nodes in agenda */
+  long		duplicates;		/* #duplicate triples */
+  long		generation;		/* generation-id of the database */
+  source      **source_table;		/* Hash table of sources */
+  int      	source_table_size;	/* Entries in table */
+  source	*last_source;		/* last accessed source */
+} rdf_db;
+
 #endif /*RDFDB_H_INCLUDED*/
