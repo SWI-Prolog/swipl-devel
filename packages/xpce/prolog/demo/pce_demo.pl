@@ -13,10 +13,9 @@
 :- module(pce_demo,
 	  [ pcedemo/0
 	  ]).
-
-
 :- use_module(library(pce)).
 :- use_module(contrib(contrib)).
+:- use_module(library(persistent_frame)).
 :- require([ emacs/1
 	   , forall/2
 	   , member/2
@@ -30,13 +29,13 @@ file is a list of available demo's.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 pcedemo :-
-	new(B, browser('PCE Demo''s', size(60,10))),
+	new(F, persistent_frame('XPCE Demo Programs')),
+	send(F, append, new(B, browser(@default, size(60,10)))),
 	send(B, confirm_done, @off),
 	send(B, tab_stops, vector(150)),
 	fill_browser(B),
 
-	new(D, dialog),
-	send(D, below, B),
+	send(new(D, dialog), below, B),
 	send(D, append, new(O, button(open, message(@prolog, open_demo, B)))),
 	send(D, append, button(source, message(@prolog, view_source, B))),
 	send(D, append, button(quit, message(D?frame, free))),
