@@ -200,6 +200,7 @@ pce_post_expand(T, T).
 pce_expandable((:- pce_begin_class(_Class, _Super, _Doc))).
 pce_expandable((:- pce_extend_class(_Class))).
 pce_expandable((:- pce_end_class)).
+pce_expandable((:- pce_end_class(_))).
 pce_expandable((:- use_class_template(_TemplateClass))).
 pce_expandable((:- pce_group(_))).
 pce_expandable((:- pce_class_directive(_))).
@@ -230,6 +231,12 @@ do_expand((:- pce_begin_class(Spec, Super, Doc)), []) :-
 do_expand((:- pce_extend_class(ClassName)), []) :-
 	push_class(ClassName),
 	set_attribute(ClassName, extending, true).
+do_expand((:- pce_end_class(Class)), Expansion) :-
+	pce_compiling(ClassName),
+	(   Class == ClassName
+	->  do_expand((:- pce_end_class), Expansion)
+	;   pce_error(end_class_mismatch(Class, ClassName))
+	).
 do_expand((:- pce_end_class),
 	  [ pce_principal:pce_class(ClassName, MetaClass, Super,
 				    Variables,
