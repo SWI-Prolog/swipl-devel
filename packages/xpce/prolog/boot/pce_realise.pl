@@ -259,9 +259,6 @@ resolve_method_message(X) :-
 	;   new(X, message(@prolog, call, bind_lazy, @arg1, @arg2, @arg3))
 	).
 
-pce_ifhostproperty(prolog(swi),		% Hide from the tracer
-		   (:- '$hide'(bind_lazy, 3))).
-
 doretract :- fail.
 
 find_data(Goal) :-
@@ -271,7 +268,14 @@ find_data(Goal) :-
 	current_predicate(_, Goal),
 	Goal.
 
-bind_lazy(send, ClassName, @default) :- !,
+pce_ifhostproperty(prolog(swi),
+		   (:- '$hide'(bind_lazy, 3)),
+		   (notrace(G) :- G)).
+
+bind_lazy(Type, Class, Selector) :-
+	notrace(do_bind_lazy(Type, Class, Selector)).
+
+do_bind_lazy(send, ClassName, @default) :- !,
 	get(@pce, convert, ClassName, class, Class),
 	(   class_module(ClassName, Module),
 	    find_data(Module:lazy_send_method(Selector, ClassName, Binder)),
@@ -279,11 +283,11 @@ bind_lazy(send, ClassName, @default) :- !,
 	    call_binder(Module, ClassName, Selector, Binder),
 	    fail ; true
 	).
-bind_lazy(send, ClassName, Selector) :-
+do_bind_lazy(send, ClassName, Selector) :-
 	class_module(ClassName, Module),
 	find_data(Module:lazy_send_method(Selector, ClassName, Binder)),
 	call_binder(Module, ClassName, Selector, Binder).
-bind_lazy(get, ClassName, @default) :- !,
+do_bind_lazy(get, ClassName, @default) :- !,
 	get(@pce, convert, ClassName, class, Class),
 	(   class_module(ClassName, Module),
 	    find_data(Module:lazy_get_method(Selector, ClassName, Binder)),
@@ -291,7 +295,7 @@ bind_lazy(get, ClassName, @default) :- !,
 	    call_binder(Module, ClassName, Selector, Binder),
 	    fail ; true
 	).
-bind_lazy(get, ClassName, Selector) :-
+do_bind_lazy(get, ClassName, Selector) :-
 	class_module(ClassName, Module),
 	find_data(Module:lazy_get_method(Selector, ClassName, Binder)),
 	call_binder(Module, ClassName, Selector, Binder).

@@ -1,5 +1,12 @@
 [VERSION 4.8.13]
 
+* INSTALL: make dv-install to install the development system with SWI-Prolog.
+
+* FIXED: restarting the dialog editor, moving the help-files to appl-help
+  directory.
+
+* FIXED: configure for Linux/ELF
+
 * ADDED: checkpce/0 to check for unclosed class-definitions.
 
 * FIXED: checkpce/0 to consider pce_prolog_class/1.

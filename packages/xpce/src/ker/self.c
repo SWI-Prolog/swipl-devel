@@ -430,9 +430,7 @@ getdtablesize(void)
 static Int
 getFdPce(Pce pce)
 {
-#ifndef HAVE_FSTAT
-  return toInt(ws_free_file_descriptors());
-#else
+#if defined(HAVE_FSTAT) || defined(__linux)
   int i, cntr = 0;
   struct stat buf;
   int mx = getdtablesize();
@@ -444,6 +442,8 @@ getFdPce(Pce pce)
     }
   }
   answer(toInt(cntr));
+#else
+  return toInt(ws_free_file_descriptors());
 #endif
 }
 
@@ -1084,7 +1084,7 @@ getVersionPce(Pce pce, Name how)
     { answer(toInt(major*10000+minor*100+patchlevel));
     }
 
-    assert(0);
+    answer(toInt(-1));
   }
 }
 

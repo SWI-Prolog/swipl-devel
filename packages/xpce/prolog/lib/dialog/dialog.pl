@@ -49,8 +49,8 @@ standard XPCE library directory.
 
 dia_version('0.5').
 
-:- initialization pce_help_file(dialog, 'dialog.hlp').
-:- initialization pce_image_directory(bitmaps).
+:- initialization pce_help_file(dialog, pce_help('dialog.hlp')).
+:- initialization pce_image_directory(library('dialog/bitmaps')).
 
 
 		 /*******************************
@@ -59,9 +59,9 @@ dia_version('0.5').
 
 :- pce_begin_class(dia_proto, template).
 
-variable(can_resize,	bool := @off,	both,	"Object can be resized").
-variable(proto,		name,		both,	"Name of proto description").
-variable(ref_indicator,	graphical*,	get,	"Indicate reference-point").
+variable(can_resize,	  bool := @off,	both,	"Object can be resized").
+variable(proto,		  name,		both,	"Name of proto description").
+variable(ref_indicator,	  graphical*,	get,	"Indicate reference-point").
 variable(fixed_alignment, bool := @off,	both,	"<-alignment is specified").
 
 :- free(@dia_proto_recogniser).

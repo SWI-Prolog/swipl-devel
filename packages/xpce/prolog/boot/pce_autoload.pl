@@ -65,9 +65,16 @@ pce_autoload_all.
 	attribute(undefined_class,
 		  message(@prolog, call, trap_autoload, @arg1))).
 
+pce_ifhostproperty(prolog(swi),
+		   (:- '$hide'(trap_autoload, 1)),
+		   (notrace(G) :- G)).
+
 trap_autoload(Class) :-
+	notrace(do_trap_autoload(Class)).
+
+do_trap_autoload(Class) :-
 	pce_realise_class(Class), !.
-trap_autoload(Class) :-
+do_trap_autoload(Class) :-
 	autoload(Class, File),
 	user:ensure_loaded(File),
 	pce_realise_class(Class).

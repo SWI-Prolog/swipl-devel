@@ -88,8 +88,8 @@ modes(_BM, ModeNames:chain) :<-
 :- dynamic
 	help_file/1.
 
-:- pce_help_file(emacs, library('emacs/emacs.hlp')).
-:- pce_help_file(emacs_customise, library('emacs/customise.hlp')).
+:- pce_help_file(emacs, pce_help('emacs.hlp')).
+:- pce_help_file(emacs_customise, pce_help('customise.hlp')).
 
 help(_BM) :->
 	"Display general help"::

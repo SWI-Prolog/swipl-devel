@@ -22,6 +22,7 @@ AC_SUBST(OS)
 AC_SUBST(TAR_CP_FLAGS)
 AC_SUBST(ALLTARGET)
 AC_SUBST(RTSUFFIX)
+AC_SUBST(LD)
 AC_SUBST(SO)
 AC_SUBST(LDSOFLAGS)
 AC_SUBST(GCCLIB)
@@ -31,6 +32,7 @@ AC_SUBST(builddir)
 
 RTSUFFIX=""
 
+LD=ld
 AC_PROG_CC
 AC_CANONICAL_HOST
 changequote(,)dnl
@@ -189,7 +191,8 @@ EOF
 				SOEXTRAOBJ=Initialize.o
 				;;
     *linux*)			SO="so"
-				LDSOFLAGS="-G"
+				LD=gcc
+				LDSOFLAGS="-shared"
 				;;
     *irix*)			SO="so"
 				LDSOFLAGS="-shared"
@@ -401,6 +404,12 @@ if test "$static_x_libraries" = "yes"; then
 else
     XLIBS="-lXt -lX11"
 fi
+
+case "$OS" in			# Linux/ELF only.  How to test?
+    *linux*)	XLIBS="$XLIBS -lICE -lSM"
+		;;
+    *)		;;
+esac
 
 AC_MSG_CHECKING("memory model")
 echo '#include "confdefs.h"' > conftest.c

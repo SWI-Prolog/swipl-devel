@@ -19,6 +19,11 @@
 #include "../../prolog/c/interface.h"	/* generic Prolog <->PCE part */
 #include <stdlib.h>			/* exit() */
 
+#ifdef PL_MAX_INTEGER
+#define PROLOG_MAX_INTEGER PL_MAX_INTEGER
+#else
+#define PROLOG_MAX_INTEGER ((1<<26) - 1) /* default as long as not passed */
+#endif
 
 #ifdef __GNUC__
 #define AtomicVector(name, size)  atomic_t name[size]

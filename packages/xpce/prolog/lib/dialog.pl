@@ -12,7 +12,8 @@
 	  ]).
 :- use_module(library(pce)).
 
+:- pce_autoload(dia_editor, library('dialog/dialog')).
+
 dialog :-
-	ensure_loaded(library('dialog/dialog')),
 	send(new(dia_editor), open).
 	

@@ -24,6 +24,10 @@ initialiseLink(Link link, Name from, Name to, Line line, Class cl)
 }
 
 
+		 /*******************************
+		 *	     CONNECTION		*
+		 *******************************/
+
 					/* lazy binding: fixes save/load! */
 
 static Connection

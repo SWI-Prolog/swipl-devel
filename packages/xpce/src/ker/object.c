@@ -1937,7 +1937,14 @@ convertLoadedObjectObject(Any obj, Int oldversion, Int currentversion)
 
 static status
 initialiseNewSlotObject(Any obj, Variable var)
-{ fail;
+{ if ( validateType(var->type, NIL, obj) )
+    succeed;
+  if ( validateType(var->type, DEFAULT, obj) )
+  { Any val = DEFAULT;
+    return sendVariable(var, obj, 1, &val);
+  }
+
+  fail;
 }
 
 

@@ -11,8 +11,8 @@
 :- module(swi_prolog_emacs_binding, []).
 
 :- multifile
-	user:edit_source/2,
-	user:exception/2.
+	user:edit_source/1,
+	user:exception/3.
 
 		 /*******************************
 		 *       EDITOR INTERFACE	*

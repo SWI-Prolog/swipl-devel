@@ -12,7 +12,7 @@
 
 :- pce_begin_class(emacs_text_mode, emacs_fundamental_mode).
 
-:-  new(_KB, emacs_key_binding(emacs_text, fundamental)).
+:- new(_KB, emacs_key_binding(emacs_text, fundamental)).
 
 :- new(_, syntax_table(text)).
 

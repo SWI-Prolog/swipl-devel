@@ -68,7 +68,6 @@ reexports the content of these files.
 	  , pce_welcome/0
 	  ]).
 
-
 user:term_expansion((:- require(_)), []).
 
 		/********************************
