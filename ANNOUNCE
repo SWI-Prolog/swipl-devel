@@ -1,4 +1,14 @@
-SWI-Prolog 5.0.8/XPCE 6.0.8 Summary of changes
+SWI-Prolog 5.0.9/XPCE 6.0.9 Summary of changes
+
+Project
+=======
+
+  * We have founded the `SWI-Prolog foundation'!
+
+  * We are ready to accept donations through this foundation.
+    Please visit http://www.swi-prolog.org/sponsor.html for
+    details.
+
 
 SWI-Prolog
 ==========
@@ -8,11 +18,39 @@ SWI-Prolog
 Packages
 ========
 
-  * Added first version of ODBC (database) interface.
+  * Updated the ODBC (database) interface.  It is still immature,
+    but it is not unlikely to help get your database connected
+    easily and reliably.  Notably thanks to Mike Elston to test
+    and comment on the many intermediate versions.
+
+Environment
+===========
+
+  * Windows users will most probably be happy with many more
+    Windows-compatible accelerators in the tools: ^C, ^X, ^V
+    for standard copy/cut/paste, ^O, ^N (open, new) and ^P
+    print.
+
+    Both Emacs and CUA (Common User Access) mode are supported
+    on all platforms.  On Windows CUA is the default.
+    CUA cut/copy conflict with Emacs prefix keys has been resolved
+    using the same technique as the GNU-Emacs cua.el package. 
+
+    The different styles are realised by xpce/prolog/boot/pce_keybinding.pl,
+    which can be modified and extended in Prolog.
+
+  * Printing of buffer and region.  In the Windows version the
+    printed version includes the syntax-based colouring provided
+    by PceEmacs Prolog mode.
+
 
 XPCE
 ====
 
-   * Added transparency to writing .GIF image files.
+  * Various improvements to handle image transperency and write
+    transparent images, notably on Windows.
 
-   * Minor patches.
+  * Many modification to the editor and keyboard accelerator
+    framework to improve compatibility.
+
+  * Minor patches.
