@@ -159,6 +159,13 @@ formatView(View v, CharArray fmt, int argc, Any *argv)
 }
 
 
+static status
+backgroundView(View v, Any bg)
+{ return backgroundEditor(v->editor, bg);
+}
+
+
+
 		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
@@ -207,7 +214,9 @@ static senddecl send_view[] =
   SM(NAME_scrollTo, 2, T_scrollTo, scrollToView,
      NAME_scroll, "Overrule window behaviour"),
   SM(NAME_selection, 3, T_selection, selectionView,
-     NAME_selection, "Overrule window behaviour")
+     NAME_selection, "Overrule window behaviour"),
+  SM(NAME_background, 1, "colour|pixmap", backgroundView,
+     NAME_appearance, "Backround for the window")
 };
 
 /* Get Methods */

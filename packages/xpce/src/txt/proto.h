@@ -1,5 +1,5 @@
 
-/* ../src/txt/chararray.c */
+/* /staff/jan/src/pl/packages/xpce/src/txt/chararray.c */
 status		initialiseCharArray(CharArray n, CharArray value);
 Name		getValueCharArray(CharArray n);
 status		equalCharArray(CharArray n1, CharArray n2, Bool ign_case);
@@ -20,31 +20,32 @@ void		doneScratchCharArray(CharArray n);
 CharArray	CtoCharArray(char *s);
 status		makeClassCharArray(Class class);
 
-/* ../src/txt/editor.c */
+/* /staff/jan/src/pl/packages/xpce/src/txt/editor.c */
 status		normaliseEditor(Editor e, Int start, Int end);
 Any		ReceiverOfEditor(Editor e);
 status		forwardModifiedEditor(Editor e, Bool val);
 status		scrollToEditor(Editor e, Int pos, Int screenline);
-status		selectionEditor(Editor e, Int from, Int to, Name how);
+status		selectionEditor(Editor e, Int from, Int to, Name status);
 Point		getSelectionEditor(Editor e);
 StringObj	getSelectedEditor(Editor e);
 status		formatEditor(Editor e, CharArray fmt, int argc, Any *argv);
 status		clearEditor(Editor e);
+status		backgroundEditor(Editor e, Any bg);
 status		makeClassEditor(Class class);
 
-/* ../src/txt/fragment.c */
+/* /staff/jan/src/pl/packages/xpce/src/txt/fragment.c */
 status		makeClassFragment(Class class);
 
-/* ../src/txt/keybinding.c */
+/* /staff/jan/src/pl/packages/xpce/src/txt/keybinding.c */
 Any		getFunctionKeyBinding(KeyBinding kb, EventId id);
 status		functionKeyBinding(KeyBinding kb, EventId id, Any f);
-status		typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver);
+status		typedKeyBinding(KeyBinding kb, Any id, Graphical receiver);
 status		makeClassKeyBinding(Class class);
 KeyBinding	KeyBindingText(void);
 KeyBinding	KeyBindingTextItem(void);
 KeyBinding	KeyBindingTextItemView(void);
 
-/* ../src/txt/regex.c */
+/* /staff/jan/src/pl/packages/xpce/src/txt/regex.c */
 status		ignoreCaseRegex(Regex re, Bool val);
 status		compileRegex(Regex re, Bool optimize);
 status		search_regex(Regex re, char *str1, int size1, char *str2, int size2, int start, int end);
@@ -54,14 +55,14 @@ status		matchRegex(Regex re, Any obj, Int start, Int end);
 Int		getRegisterEndRegex(Regex re, Int which);
 status		makeClassRegex(Class class);
 
-/* ../src/txt/str.c */
+/* /staff/jan/src/pl/packages/xpce/src/txt/str.c */
 int		str_allocsize(String s);
 void		str_pad(String s);
 void		str_alloc(String s);
 void		str_unalloc(String s);
 String		str_init(String s, String proto, char8 *data);
-status		str_set_ascii(String str, char *text);
 status		str_set_n_ascii(String str, int len, char *text);
+status		str_set_ascii(String str, char *text);
 status		str_set_static(String str, const char *text);
 void		str_ncpy(String dest, int at, String src, int from, int len);
 void		str_cpy(String dest, String src);
@@ -94,7 +95,7 @@ void		str_strip(String s);
 int		str_common_length(String s1, String s2);
 int		str_icase_common_length(String s1, String s2);
 
-/* ../src/txt/string.c */
+/* /staff/jan/src/pl/packages/xpce/src/txt/string.c */
 StringObj	StringToString(String s);
 StringObj	CtoString(const char *s);
 StringObj	staticCtoString(const char *s);
@@ -109,14 +110,14 @@ status		str_insert_string(StringObj str, Int where, String s);
 StringObj	getSubString(StringObj n, Int start, Int end);
 status		makeClassString(Class class);
 
-/* ../src/txt/style.c */
+/* /staff/jan/src/pl/packages/xpce/src/txt/style.c */
 status		boldStyle(Style s, Bool on);
 status		makeClassStyle(Class class);
 
-/* ../src/txt/syntax.c */
+/* /staff/jan/src/pl/packages/xpce/src/txt/syntax.c */
 status		makeClassSyntaxTable(Class class);
 
-/* ../src/txt/textbuffer.c */
+/* /staff/jan/src/pl/packages/xpce/src/txt/textbuffer.c */
 status		changedTextBuffer(TextBuffer tb);
 status		ChangedRegionTextBuffer(TextBuffer tb, Int start, Int end);
 status		ChangedFragmentListTextBuffer(TextBuffer tb);
@@ -151,11 +152,11 @@ status		insert_textbuffer(TextBuffer tb, int where, int times, String s);
 status		delete_textbuffer(TextBuffer tb, int where, int length);
 status		makeClassTextBuffer(Class class);
 
-/* ../src/txt/textcursor.c */
+/* /staff/jan/src/pl/packages/xpce/src/txt/textcursor.c */
 status		setTextCursor(TextCursor c, Int x, Int y, Int w, Int h, Int b);
 status		makeClassTextCursor(Class class);
 
-/* ../src/txt/textimage.c */
+/* /staff/jan/src/pl/packages/xpce/src/txt/textimage.c */
 status		InsertTextImage(TextImage ti, Int where, Int amount);
 status		ChangedRegionTextImage(TextImage ti, Int from, Int to);
 status		ChangedEntireTextImage(TextImage ti);
@@ -179,10 +180,10 @@ Int		getEndOfLineCursorTextImage(TextImage ti, Int here);
 status		ensureVisibleTextImage(TextImage ti, Int caret);
 status		makeClassTextImage(Class class);
 
-/* ../src/txt/textmargin.c */
+/* /staff/jan/src/pl/packages/xpce/src/txt/textmargin.c */
 status		makeClassTextMargin(Class class);
 
-/* ../src/txt/undo.c */
+/* /staff/jan/src/pl/packages/xpce/src/txt/undo.c */
 void		destroyUndoBuffer(UndoBuffer ub);
 Int		getUndoTextBuffer(TextBuffer tb);
 status		undoTextBuffer(TextBuffer tb);

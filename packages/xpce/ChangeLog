@@ -4,6 +4,9 @@
 VERSION 6.2.0, distributed with SWI-Prolog 5.2.0
 ================================================
 		
+* ADDED: `view->background' and `editor->background' to set the background
+  of the text_image
+
 * FIXED: Bug #53: Restarting the Prolog Navigator (Holger Kanwischer).
 
 

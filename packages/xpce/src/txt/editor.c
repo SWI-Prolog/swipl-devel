@@ -4370,6 +4370,13 @@ getWrapEditor(Editor e)
 { answer(e->image->wrap);
 }
 
+
+status
+backgroundEditor(Editor e, Any bg)
+{ return backgroundTextImage(e->image, bg);
+}
+
+
 		/********************************
 		*      CHANGE NOTIFICATIONS	*
 		********************************/
@@ -4656,6 +4663,8 @@ static senddecl send_editor[] =
      NAME_appearance, "Associate new name --> style object map"),
   SM(NAME_tabStops, 1, "vector*", tabStopsEditor,
      NAME_appearance, "Set tab-stops (vector of pixels)"),
+  SM(NAME_background, 1, "colour|pixmap", backgroundEditor,
+     NAME_appearance, "Background colour or image for the text"),
   SM(NAME_wrap, 1, "{none,character,word}", wrapEditor,
      NAME_appearance, "Wrap mode for long lines"),
   SM(NAME_Size, 1, "pixels=size", SizeEditor,
