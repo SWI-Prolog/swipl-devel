@@ -598,6 +598,53 @@ ws_postscript_image(Image image, Int depth)
 }
 
 		 /*******************************
+		 *	   XLI INTERFACE	*
+		 *******************************/
+
+#ifdef O_XLI
+
+#include <libxli.h>
+
+/*typedef Ximage * (*xliloadf)(const char *name, XliOptions options);*/
+
+status
+loadXliImage(Image image, FileObj file, Int bright)
+{ DisplayWsXref r;
+  Display *d;
+  XImage *im;
+  xli_options opts;
+
+  if ( isNil(image->display) )
+    assign(image, display, CurrentDisplay(image));
+  openDisplay(image->display);
+
+  r = image->display->ws_ref;
+  d = r->display_xref;
+
+  memset(&opts, 0, sizeof(opts));
+
+  opts.verbose = TRUE;			/*FALSE;*/
+  opts.display = d;
+  opts.screen  = DefaultScreen(d);
+  opts.visual  = DefaultVisual(d, opts.screen);
+  opts.bright  = (isDefault(bright) ? 100 : valInt(bright));
+  
+  if ( (im = XliLoadXImage(strName(file->name), &opts)) )
+  { setSize(image->size, toInt(im->width), toInt(im->height));
+    assign(image, depth, toInt(im->depth));
+
+    if ( image->depth != ONE )
+      assign(image, kind, NAME_pixmap);
+
+    setXImageImage(image, im);
+    succeed;
+  } else
+    fail;
+}
+
+#endif O_XLI
+
+		 /*******************************
 		 *	     X11 SOURCE		*
 		 *******************************/
 

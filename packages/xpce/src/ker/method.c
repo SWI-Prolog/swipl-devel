@@ -651,9 +651,11 @@ static char *T_initialise[] =
         { "name=name", "types=[vector]",
 	  "implementation=code|c_pointer", "summary=[string]*",
 	  "source=[source_location]*", "group=[name]*" };
+#ifndef O_RUNTIME
 static char *T_printTraceMessage[] =
         { "port={enter,exit,fail}*", "receiver=unchecked",
 	  "arguments=vector" };
+#endif
 
 /* Instance Variables */
 

@@ -216,6 +216,19 @@ XcloseImage(Image image, DisplayObj d)
   succeed;
 }
 
+		 /*******************************
+		 *	    COLOURMAP		*
+		 *******************************/
+
+ColourMap
+getColourMapImage(Image image)
+{ if ( image->kind != NAME_bitmap )
+    return ws_colour_map_for_image(image);
+
+  fail;
+}
+
+
 		/********************************
 		*         FILE OPERATIONS	*
 		********************************/
@@ -253,6 +266,7 @@ saveImage(Image image, FileObj file, Name fmt)
 
   return ws_save_image_file(image, file, fmt);
 }
+
 
 
 		/********************************
@@ -766,6 +780,10 @@ static char *T_xAint_yAint[] =
         { "x=int", "y=int" };
 static char *T_pixel[] =
         { "x=int", "y=int", "value=bool|colour" };
+#ifdef O_XLI
+static char *T_loadXli[] =
+	{ "file=file", "bright=[0..]" };
+#endif
 
 /* Instance Variables */
 
@@ -798,6 +816,10 @@ static vardecl var_image[] =
 
 /* Send Methods */
 
+#ifdef O_XLI
+extern status loadXliImage(Image image, FileObj file, Int bright);
+#endif
+
 static senddecl send_image[] =
 { SM(NAME_initialise, 4, T_initialise, initialiseImage,
      DEFAULT, "Create from name, [width, height, kind]"),
@@ -823,6 +845,10 @@ static senddecl send_image[] =
      NAME_edit, "Bitwise xor with argument"),
   SM(NAME_load, 2, T_load, loadImage,
      NAME_file, "Load image from file (searching in path)"),
+#ifdef O_XLI
+  SM(NAME_loadXli, 2, T_loadXli, loadXliImage,
+     NAME_file, "Load image using xli library"),
+#endif
   SM(NAME_save, 2, T_save, saveImage,
      NAME_file, "Save bits in standard X11 format"),
   SM(NAME_clearPixel, 2, T_xAint_yAint, clearPixelImage,
@@ -856,6 +882,8 @@ static getdecl get_image[] =
      NAME_oms, "Lookup in @images table"),
   GM(NAME_pixel, 2, "value=bool|colour", T_xAint_yAint, getPixelImage,
      NAME_pixel, "Get 0-1 (image) or colour for x-y"),
+  GM(NAME_colourMap, 0, "colour_map", NULL, getColourMapImage,
+     NAME_colour, "New colour_map for best display of image"),
   GM(NAME_boundingBox, 0, "area", NULL, getBoundingBoxImage,
      NAME_postscript, "BoundingBox for PostScript generation"),
   GM(NAME_postscript, 2, "string", T_postscript, getPostscriptObject,

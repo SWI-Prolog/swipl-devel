@@ -10,7 +10,22 @@
 #include "include.h"
 #include <h/unix.h>
 
+#define O_IMGLIB 1
+
 #define OsError() getOsErrorPce(PCE)
+
+#ifdef O_IMGLIB
+
+#include "imglib.h"
+
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#else
+#ifndef MAXPATHLEN
+#define MAXPATHLEN 256
+#endif
+#endif
+#endif /*O_IMGLIB*/
 
 /* Using ws_ref for storing the bits and the xref mechanism for storing
    the Windows HBITMAP handle
@@ -158,7 +173,7 @@ read_bitmap_info(FileObj f)
 
 
 static void
-attach_dbi_image(Image image, BITMAPINFO *bmi, BYTE *bits)
+attach_dib_image(Image image, BITMAPINFO *bmi, BYTE *bits)
 { WsImage wsi;
   BITMAPINFOHEADER *bmih = &bmi->bmiHeader;
 
@@ -173,6 +188,8 @@ attach_dbi_image(Image image, BITMAPINFO *bmi, BYTE *bits)
   assign(image, kind, image->depth == ONE ? NAME_bitmap : NAME_pixmap);
 }
 
+
+#ifndef O_IMGLIB
 
 static status
 ws_load_windows_bmp_file(Image image, FileObj f)
@@ -203,28 +220,31 @@ ws_load_windows_bmp_file(Image image, FileObj f)
     return errorPce(f, NAME_ioError, getOsErrorPce(PCE));
   }
   
-  attach_dbi_image(image, bmi, aBitmapBits);
+  attach_dib_image(image, bmi, aBitmapBits);
   succeed;
 }
 
+#endif /*O_IMGLIB*/
 
 #define OsError() getOsErrorPce(PCE)
+#define SWORD unsigned short
+#define ICOFHDRSIZE 6			/* Designed for 16-bit rounding */
 
 typedef struct tagICONDIRENTRY
 { BYTE	bWidth;
   BYTE	bHeight;
   BYTE	bColorCount;
   BYTE	bReserved;
-  WORD	wPlanes;
-  WORD	wBitCount;
+  SWORD	wPlanes;
+  SWORD	wBitCount;
   DWORD	dwBytesInRes;
   DWORD	dwImageOffset;
 } ICONDIRENTRY;
 
 typedef struct ICONDIR
-{ WORD	idReserved;
-  WORD  idType;
-  WORD	idCount;
+{ SWORD	idReserved;
+  SWORD idType;
+  SWORD	idCount;
   ICONDIRENTRY idEntries[1];
 } ICONHEADER;
     
@@ -238,13 +258,13 @@ ws_load_windows_ico_file(Image image)
   long pos = ftell(fd);
   int databytes;
 
-  if ( fread(&ico_hdr, sizeof(ico_hdr) - sizeof(ICONDIRENTRY), 1, fd) != 1 ||
+  if ( fread(&ico_hdr, ICOFHDRSIZE, 1, fd) != 1 ||
        ico_hdr.idType != 1 )
   { fseek(fd, pos, SEEK_SET);
-    fail;				/* not a MS-Windows .bmp file */
+    fail;				/* not a MS-Windows .ico file */
   }
-  DEBUG(NAME_image, Cprintf("idType = %d, idCount = %d\n",
-			    ico_hdr.idType, ico_hdr.idCount));
+  DEBUG(NAME_image, Cprintf("Header to %d: idType = %d, idCount = %d\n",
+			    ftell(fd), ico_hdr.idType, ico_hdr.idCount));
   if ( ico_hdr.idCount > 1 )
     errorPce(image->file, NAME_moreThanOneIcon);
 
@@ -255,7 +275,7 @@ ws_load_windows_ico_file(Image image)
        BadDimension(ico_entry.bHeight) ||
        BadColorCount(ico_entry.bColorCount) )
   { fseek(fd, pos, SEEK_SET);
-    fail;				/* not a MS-Windows .bmp file */
+    fail;				/* not a MS-Windows .ico file */
   }
 #undef BadDimension
 #undef BadColorCount
@@ -279,7 +299,7 @@ ws_load_windows_ico_file(Image image)
     return errorPce(image->file, NAME_ioError, OsError());
   }
 
-  attach_dbi_image(image, bmi, bits);
+  attach_dib_image(image, bmi, bits);
   succeed;
 }
 
@@ -290,6 +310,45 @@ ws_load_image_file(Image image)
 
   assign(image->file, kind, NAME_binary);
 
+#ifdef O_IMGLIB
+{ char fname[MAXPATHLEN];
+  Name fn = getOsNameFile(image->file);
+  BITMAPINFO *bmi;
+
+  _xos_os_filename(strName(fn), fname);
+
+  if ( (bmi = ReadFileIntoDIB(fname)) )
+  { HDC      hdc       = GetDC(NULL);
+    int     iPixelBits = GetDeviceCaps (hdc, BITSPIXEL);
+    int     iPlanes    = GetDeviceCaps (hdc, PLANES);
+    int     lColors    = 1 << iPixelBits * iPlanes;
+    BITMAPINFO *displdib;
+
+    displdib = ReduceDIB (bmi, lColors, TRUE);
+    if ( displdib && displdib != bmi )
+    { DIBFree(bmi);
+      bmi = displdib;
+    }
+
+    ReleaseDC(NULL, hdc);
+
+    { RGBQUAD *colors  = (RGBQUAD *)((char *)bmi + bmi->bmiHeader.biSize);
+      BYTE    *data    = (BYTE *)&colors[bmi->bmiHeader.biClrUsed];
+    
+      attach_dib_image(image, bmi, data);
+    }
+
+    rval = SUCCEED;
+  } else				/* other formats */
+  { if ( send(image->file, NAME_open, NAME_read, 0) )
+    { if ( ws_load_windows_ico_file(image) )
+	rval = SUCCEED;
+
+      send(image->file, NAME_close, 0);
+    }
+  }
+}
+#else /*O_IMGLIB*/
   if ( send(image->file, NAME_open, NAME_read, 0) )
   { int w, h;
     unsigned char *data;
@@ -309,6 +368,7 @@ ws_load_image_file(Image image)
 
     send(image->file, NAME_close, 0);
   }
+#endif /*O_IMGLIB*/
 
   return rval;
 }
@@ -352,7 +412,7 @@ ws_save_image_file(Image image, FileObj file, Name fmt)
 
 
 static HBITMAP
-windows_bitmap_from_dbi(Image image)
+windows_bitmap_from_dib(Image image)
 { WsImage wsi;
 
   if ( (wsi=image->ws_ref) && wsi->msw_info )
@@ -384,7 +444,7 @@ windows_bitmap_from_bits(Image image)
   { HBITMAP bm;
 
     if ( r->msw_info )
-    { bm = windows_bitmap_from_dbi(image);
+    { bm = windows_bitmap_from_dib(image);
     } else
     { bm = ZCreateBitmap(r->w, r->h, 1, 1, NULL);
       SetBitmapBits(bm, ws_sizeof_bits(r->w, r->h), r->data);
@@ -741,3 +801,25 @@ ws_system_images(DisplayObj d)
 }
 
 
+		 /*******************************
+		 *	      PALETTE		*
+		 *******************************/
+
+ColourMap
+ws_colour_map_for_image(Image img)
+{ WsImage wsi = img->ws_ref;
+
+  if ( wsi && wsi->msw_info )
+  { HPALETTE hpal = CreateDIBPalette(wsi->msw_info);
+
+    if ( hpal )
+    { ColourMap cm = answerObject(ClassColourMap, 0);
+      
+      setPaletteColourMap(cm, hpal);
+
+      answer(cm);
+    }
+  }
+
+  fail;
+}

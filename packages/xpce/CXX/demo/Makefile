@@ -19,12 +19,12 @@
 .SUFFIXES: .C .so
 
 PCEHOME=/oorlam/jan/objects/xpce
-PCEARCH=linux
+PCEARCH=rt
 CC=gcc
 CXX=g++
 SO=so
 LD=gcc
-LIBDIR=../../linux
+LIBDIR=../../rt
 LDSOFLAGS=-shared -L$(LIBDIR)
 
 all:		pcerc.o

@@ -95,7 +95,6 @@ IsDownMeta(LONG lParam)
 }
 
 
-
 static int WINAPI
 frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 { FrameObj fr = (FrameObj) GetWindowLong(hwnd, GWL_DATA);
@@ -203,6 +202,13 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 
     case WM_KILLFOCUS:
       send(fr, NAME_inputFocus, OFF, 0);
+      break;
+
+    case WM_QUERYNEWPALETTE:
+    case WM_PALETTECHANGED:
+      if ( instanceOfObject(fr->colour_map, ClassColourMap) &&
+	   fr->colour_map->ws_ref )
+	forwardColourMapChangeFrame(fr);
       break;
 
     case WM_ERASEBKGND:

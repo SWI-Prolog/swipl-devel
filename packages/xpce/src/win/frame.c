@@ -734,6 +734,43 @@ backgroundFrame(FrameObj fr, Any bg)
   succeed;
 }
 
+
+static void
+forwardColourMapChange(Device d)
+{ Cell cell;
+
+  if ( instanceOfObject(d, ClassWindow) )
+    redrawWindow((PceWindow)d, DEFAULT);
+
+  for_cell(cell, d->graphicals)
+  { if ( instanceOfObject(cell->value, ClassDevice) )
+      forwardColourMapChange(cell->value);
+  }
+}
+
+
+status
+forwardColourMapChangeFrame(FrameObj fr)
+{ if ( !isFreedObj(fr) || isFreeingObj(fr) )
+  { Cell cell;
+
+    for_cell(cell, fr->members)
+    { forwardColourMapChange(cell->value);
+    }
+  }
+
+  succeed;
+}
+
+
+static status
+colourMapFrame(FrameObj fr, ColourMap cm)
+{ assign(fr, colour_map, cm);
+
+  return forwardColourMapChangeFrame(fr);
+}
+
+
 		 /*******************************
 		 *	     CURSORS		*
 		 *******************************/
@@ -1395,6 +1432,8 @@ static vardecl var_frame[] =
      NAME_appearance, "Width of border"),
   SV(NAME_background, "colour|pixmap", IV_GET|IV_STORE, backgroundFrame,
      NAME_appearance, "Background of the frame"),
+  SV(NAME_colourMap, "colour_map*", IV_GET|IV_STORE, colourMapFrame,
+     NAME_appearance, "Colourmap for the window's frame"),
   SV(NAME_area, "area", IV_GET|IV_STORE, areaFrame,
      NAME_area, "Area of the opened frame on the display"),
   SV(NAME_geometry, "name*", IV_NONE|IV_STORE, geometryFrame,

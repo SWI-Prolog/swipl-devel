@@ -1036,7 +1036,9 @@ void
 run_pce_exit_hooks()
 { AtexitEntry h;
 
+#ifndef O_RUNTIME
   assign(PCE, trap_errors, OFF);
+#endif
   tracePce(PCE, NAME_never);
 
   if ( exit_running++ )

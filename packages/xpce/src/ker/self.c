@@ -1162,8 +1162,13 @@ getVersionPce(Pce pce, Name how)
 
 static char *T_instance[] =
         { "class=class", "argument=unchecked ..." };
+#ifndef O_RUNTIME
 static char *T_printStack[] =
         { "depth=[int]", "always=[bool]" };
+static char *T_bench[] =
+        { "message=message", "times=int",
+	  "how={forward,execute,qad,send,invoke}" };
+#endif /*O_RUNTIME*/
 static char *T_userInfo[] =
         { "field={name,password,user_id,group_id,gecos,home,shell}",
 	  "user=[name]" };
@@ -1171,9 +1176,6 @@ static char *T_formatAchar_array_argumentAany_XXX[] =
         { "format=char_array", "argument=any ..." };
 static char *T_exception[] =
         { "identifier=name", "context=any ..." };
-static char *T_bench[] =
-        { "message=message", "times=int",
-	  "how={forward,execute,qad,send,invoke}" };
 static char *T_defineClass[] =
         { "name=name", "super=name", "summary=[string]", "realise=code" };
 static char *T_convert[] =

@@ -17,7 +17,8 @@
 #define MAX_CTX_DEPTH (10)		/* Max draw context depth */
 
 typedef struct
-{ HWND		hwnd;			/* current Windows window */
+{ PceWindow	window;			/* Pce's notion of the window */
+  HWND		hwnd;			/* current Windows window */
   HBITMAP	hbitmap;		/* current Image */
   PAINTSTRUCT	ps;			/* paint structure */
   HDC		hdc;			/* device context */
@@ -31,6 +32,7 @@ typedef struct
   HBRUSH	ohbrush;		/* Original brush */
   int		stockpen;		/* Pen comes from GetStockObject() */
   HFONT		ohfont;			/* Original font */
+  HPALETTE	ohpal;			/* Original palette */
 
   HBITMAP	cache;			/* background drawing */
   HDC		cached_hdc;		/* hdc of original device */
@@ -113,6 +115,7 @@ reset_context()
   context.ohbrush	     = 0;
   context.ohpen		     = 0;
   context.ohfont	     = 0;
+  context.ohpal		     = 0;
   context.hpen 		     = 0;
   context.stockpen	     = FALSE;
   context.colour             = BLACK_COLOUR;
@@ -121,6 +124,7 @@ reset_context()
   context.rgb	             = RGB(0, 0, 0);
   context.background_rgb     = RGB(255, 255, 255);
   context.hwnd	             = 0;
+  context.window	     = NIL;
   context.hbitmap            = 0;
   context.modified_pen       = FALSE;
   context.open	             = 0;
@@ -286,13 +290,30 @@ d_flush(void)
 
 status
 d_mswindow(PceWindow sw, IArea a, int clear)
-{ push_context();
+{ FrameObj fr = getFrameWindow(sw);
+  HPALETTE hpal = NULL;
 
+  push_context();
+
+  if ( fr &&
+       notNil(fr->colour_map) &&
+       (hpal = getPaletteColourMap(fr->colour_map)) )
+  { 
+  }
+
+  context.window	 = sw;
   context.hwnd           = getHwndWindow(sw);
   context.hdc            = BeginPaint(context.hwnd, &context.ps);
   context.device         = sw;
   context.default_colour = sw->colour;
   context.open++;
+
+  if ( hpal )
+  { DEBUG(NAME_colourMap,
+	  Cprintf("%s: Selected %s\n", pp(sw), pp(fr->colour_map)));
+    context.ohpal = SelectPalette(context.hdc, hpal, FALSE);
+    RealizePalette(context.hdc);
+  }
 
   if ( !IsRectEmpty(&context.ps.rcPaint) )
   { RECT *r = &context.ps.rcPaint;
@@ -351,6 +372,7 @@ d_window(PceWindow sw, int x, int y, int w, int h, int clear, int limit)
   if ( !context.open++ )
   { push_context();
 
+    context.window	       = sw;
     context.hwnd               = getHwndWindow(sw);
     context.hdc                = BeginPaint(context.hwnd, &context.ps);
     context.default_colour     = sw->colour;
@@ -542,10 +564,9 @@ d_clip(int x, int y, int w, int h)
 void
 d_done(void)
 { if ( --context.open == 0 )
-  { DEBUG(NAME_redraw, Cprintf("d_done(%s)\n",
-			       context.hwnd ?
-			       pp(GetWindowLong(context.hwnd, GWL_DATA)) :
-			       "(image)"));
+  { DEBUG(NAME_redraw,
+	  Cprintf("d_done(%s)\n",
+		  context.window ? pp(context.window) : "(image)"));
 
     if ( context.ohbrush )
     { ZSelectObject(context.hdc, context.ohbrush);
@@ -562,6 +583,10 @@ d_done(void)
     if ( context.ohfont )
     { ZSelectObject(context.hdc, context.ohfont);
       context.ohfont = 0;
+    }
+    if ( context.ohpal )
+    { SelectPalette(context.hdc, context.ohpal, FALSE);
+      context.ohpal = NULL;
     }
     if ( context.relief_pen )
     { ZDeleteObject(context.relief_pen);
@@ -1756,6 +1781,11 @@ r_op_image(Image image, int sx, int sy, int x, int y, int w, int h, Name op)
   DeleteDC(mhdc);
 }
 
+#define O_IMGLIB 1
+
+#ifdef O_IMGLIB
+#include "imglib.h"
+#endif
 
 void
 r_image(Image image,
@@ -1764,34 +1794,57 @@ r_image(Image image,
 	Bool transparent)
 { if ( w > 0 && h > 0 &&
        image->size->w != ZERO && image->size->h != ZERO )
-  { HBITMAP bm = (HBITMAP) getXrefObject(image, context.display);
-    HDC mhdc = CreateCompatibleDC(context.hdc);
-    HBITMAP obm = ZSelectObject(mhdc, bm);
+  { if ( image->ws_ref && ((WsImage)image->ws_ref)->msw_info )
+    { WsImage wsi = image->ws_ref;
 
-    DEBUG(NAME_redraw,
-	  Cprintf("r_image(%s, %d, %d, %d, %d, %d, %d) (bm=0x%x, mhdc=0x%x)\n",
-		  pp(image), sx, sy, x, y, w, h, (long)bm, (long)mhdc));
-    
-    if ( transparent == ON && valInt(image->depth) <= 1 )
-    { HBRUSH hbrush = ZCreateSolidBrush(context.rgb);
-      HBRUSH oldbrush = ZSelectObject(context.hdc, hbrush);
-      COLORREF oldbk = SetBkColor(context.hdc, RGB(255,255,255));
-      COLORREF oldtx = SetTextColor(context.hdc, RGB(0,0,0));
-      
-      BitBlt(context.hdc, x, y, w, h, mhdc, sx, sy, 0xB8074AL);
-      /* ROP from "Programming Windows3.1" */
-      /* 3-rd edition, page 633 */
-      SetTextColor(context.hdc, oldtx);
-      SetBkColor(context.hdc, oldbk);
+      if ( transparent == ON /*&& image->kind == NAME_bitmap*/ )
+      { HBRUSH hbrush = ZCreateSolidBrush(context.rgb);
+	HBRUSH oldbrush = ZSelectObject(context.hdc, hbrush);
+	COLORREF oldbk = SetBkColor(context.hdc, RGB(255,255,255));
+	COLORREF oldtx = SetTextColor(context.hdc, RGB(0,0,0));
 
-      ZSelectObject(context.hdc, oldbrush);
-      ZDeleteObject(hbrush);
+	StretchDIBits(context.hdc, x, y, w, h, sx, sy, w, h,
+		      wsi->data, wsi->msw_info, DIB_RGB_COLORS, 0xB8074AL);
+
+	SetTextColor(context.hdc, oldtx);
+	SetBkColor(context.hdc, oldbk);
+  
+	ZSelectObject(context.hdc, oldbrush);
+	ZDeleteObject(hbrush);
+      } else
+      { StretchDIBits(context.hdc, x, y, w, h, sx, sy, w, h,
+		      wsi->data, wsi->msw_info, DIB_RGB_COLORS, SRCCOPY);
+      }
     } else
-    { BitBlt(context.hdc, x, y, w, h, mhdc, sx, sy, SRCCOPY);
-    }
+    { HBITMAP bm = (HBITMAP) getXrefObject(image, context.display);
+      HDC mhdc = CreateCompatibleDC(context.hdc);
+      HBITMAP obm = ZSelectObject(mhdc, bm);
+  
+      DEBUG(NAME_redraw,
+	    Cprintf("r_image(%s, %d, %d, %d, %d, %d, %d) (bm=0x%x)\n",
+		    pp(image), sx, sy, x, y, w, h, (long)bm));
       
-    ZSelectObject(mhdc, obm);
-    DeleteDC(mhdc);
+      if ( transparent == ON && image->kind == NAME_bitmap )
+      { HBRUSH hbrush = ZCreateSolidBrush(context.rgb);
+	HBRUSH oldbrush = ZSelectObject(context.hdc, hbrush);
+	COLORREF oldbk = SetBkColor(context.hdc, RGB(255,255,255));
+	COLORREF oldtx = SetTextColor(context.hdc, RGB(0,0,0));
+	
+	BitBlt(context.hdc, x, y, w, h, mhdc, sx, sy, 0xB8074AL);
+	/* ROP from "Programming Windows3.1" */
+	/* 3-rd edition, page 633 */
+	SetTextColor(context.hdc, oldtx);
+	SetBkColor(context.hdc, oldbk);
+  
+	ZSelectObject(context.hdc, oldbrush);
+	ZDeleteObject(hbrush);
+      } else
+      { BitBlt(context.hdc, x, y, w, h, mhdc, sx, sy, SRCCOPY);
+      }
+	
+      ZSelectObject(mhdc, obm);
+      DeleteDC(mhdc);
+    }
   }
 }
 

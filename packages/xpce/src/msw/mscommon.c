@@ -103,9 +103,10 @@ setHwndWindow(PceWindow sw, HWND ref)
       w = sw->ws_ref;
     }
 
-    w->hwnd = ref;
-    w->hcursor = 0;
-    w->capture = 0;
+    w->hwnd       = ref;
+    w->hcursor    = 0;
+    w->capture    = 0;
+    w->haspalette = 0;
   } else
   { if ( sw->ws_ref )
     { unalloc(sizeof(ws_window), sw->ws_ref);

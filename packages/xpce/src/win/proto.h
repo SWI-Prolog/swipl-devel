@@ -50,6 +50,7 @@ status		fitFrame(FrameObj fr);
 status		statusFrame(FrameObj fr, Name stat);
 status		exposeFrame(FrameObj fr);
 status		hideFrame(FrameObj fr);
+status		forwardColourMapChangeFrame(FrameObj fr);
 status		busyCursorFrame(FrameObj fr, CursorObj c, Bool block_events);
 Name		getIconLabelFrame(FrameObj fr);
 TileObj		getTileFrame(FrameObj fr);

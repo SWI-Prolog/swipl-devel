@@ -53,7 +53,6 @@ reexports the content of these files.
 
 	  , pce_catch_error/2		% pce_error
 	  , pce_open/3
-	  , require/1
 
 	  , pce_welcome/0
 	  ]).

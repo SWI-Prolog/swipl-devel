@@ -314,3 +314,6 @@ status		makeClassPen(Class class);
 
 /* gra/draw.c */
 void		r_3d_rectangular_polygon(int n, IPoint pts, Elevation e, int flags);
+
+/* gra/colourmap.c */
+status		makeClassColourMap(Class class);

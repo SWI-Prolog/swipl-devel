@@ -130,7 +130,7 @@ static status
 computeTile(TileObj t)
 { Int w   = ZERO;
   Int h   = ZERO;
-  Int vsh, vst, hsh, hst;
+  Int vsh=ZERO, vst=ZERO, hsh=ZERO, hst=ZERO;
 
   DEBUG(NAME_tile, Cprintf("computeTile(%s) --> ", pp(t)));
 

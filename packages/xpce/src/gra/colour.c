@@ -14,15 +14,21 @@ static XCloseColour(Colour c, DisplayObj d);
 
 static Int
 defcolourname(Int r, Int g, Int b)
-{ return toInt(((valInt(r)/256) << 16) +
-	       ((valInt(g)/256) << 8) +
-	       (valInt(b)/256));
+{ char buf[50];
+
+  sprintf(buf, "#%02x%02x%02x",
+	  (unsigned int)valInt(r)>>8,
+	  (unsigned int)valInt(g)>>8,
+	  (unsigned int)valInt(b)>>8);
+
+  return CtoName(buf);
 }
 
 
 static status
 initialiseColour(Colour c, Name name, Int r, Int g, Int b)
-{ assign(c, name, name);
+{ if ( notDefault(name) )
+    assign(c, name, name);
 
   if ( isDefault(r) && isDefault(g) && isDefault(b) )
   { DisplayObj d;

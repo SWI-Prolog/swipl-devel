@@ -95,15 +95,19 @@ $(OBJDIR)/Initialize.o:
 		ar x $(XLIB)/libXt.a $@
 
 $(XPCESO):	$(SOITF) $(libXPCE) $(SOEXTR)
-		@if [ -r $(LIBDIR)/libXPCE.so ]; then \
+		@if [ -r $(LIBDIR)/libXPCE.$(SO) ]; then \
 		    $(MAKE) sopce$(XPCESO); \
 		else \
 		    $(MAKE) axpce$(XPCESO); \
 		fi
 
 sopce$(XPCESO):
+		LD_RUN_PATH="$(libdir):$$LD_RUN_PATH"; \
+		export LD_RUN_PATH; \
 		$(LD) $(LDSOFLAGS) $(SOITF) -L$(LIBDIR) -lXPCE -o $(XPCESO);
 axpce$(XPCESO):
+		LD_RUN_PATH="$(libdir):$$LD_RUN_PATH"; \
+		export LD_RUN_PATH; \
 		$(LD) $(LDSOFLAGS) $(SOITF) $(SOEXTR) -L$(LIBDIR) \
 		-lXPCE $(GCCLIB) $(XLIBS) $(NETLIBS) -o $(XPCESO);
 

@@ -53,6 +53,7 @@ struct global
   { NAME_runningProcesses,	NAME_process },
   { NAME_openSockets,		NAME_socket },
   { NAME_colours,		NAME_colour },
+  { NAME_colourMaps,		NAME_colourMap },
   { NAME_cursors,		NAME_cursor },
   { NAME_cursorNames,		NAME_cursor },
   { NAME_eventTree,		NAME_event },

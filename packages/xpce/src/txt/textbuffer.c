@@ -857,7 +857,7 @@ getMatchingQuoteTextBuffer(TextBuffer tb, Int idx, Name direction)
 
 typedef int (*scan_callback_t)(TextBuffer, long, long, int);
 
-int
+static int
 scan_syntax_textbuffer(TextBuffer tb,
 		       long from, long to,
 		       scan_callback_t *callback,

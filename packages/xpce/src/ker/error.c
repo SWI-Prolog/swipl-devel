@@ -48,8 +48,11 @@ static status
 displayError(Error e, int argc, Any *argv)
 { char buf[FORMATSIZE];
 
-  if ( e->feedback == NAME_report ||
-       (PCE->trace == NAME_never && e->kind != NAME_fatal) )
+  if ( e->feedback == NAME_report
+#ifndef O_RUNTIME
+       || (PCE->trace == NAME_never && e->kind != NAME_fatal)
+#endif
+     )
   { ArgVector(av, argc+2);
     int i;
 

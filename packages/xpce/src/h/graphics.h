@@ -573,6 +573,12 @@ End;
   UpdateArea	changes_data;		/* Recorded changes */ \
   WsRef		ws_ref;			/* Window system reference */
 
+NewClass(colour_map)
+  Name		name;			/* name of the map */
+  Vector	colours;		/* colours in the map */
+  WsRef		ws_ref;			/* Window system reference */
+End;
+
 #define ABSTRACT_IMAGE \
   ABSTRACT_VISUAL \
   Name		name;			/* Name of the image */ \
@@ -681,6 +687,7 @@ NewClass(frameobj)
   DisplayObj	display;		/* Display it is displayed on */
   Int		border;			/* Border width */
   Any		background;		/* Frames background */
+  ColourMap	colour_map;		/* Attached colourmap */
   Area		area;			/* Area of the frame */
   Name		geometry;		/* X-Window geometry spec */
   Chain		members;		/* Windows displayed */

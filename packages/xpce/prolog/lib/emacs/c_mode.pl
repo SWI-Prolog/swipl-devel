@@ -227,25 +227,25 @@ break_at_function(M, Function:[name]) :->
 
 gdb_go(M) :->
 	"Send `run' to GDB"::
-	send(M, tell_gdb, "run\n").
+	send(M, tell_gdb, 'run\n').
 
 gdb_step(M, Times:[int]) :->
 	"Send `run' to GDB"::
 	(   Times == @default
-	->  send(M, tell_gdb, "step\n")
-	;   send(M, tell_gdb, "step %d\n", Times)
+	->  send(M, tell_gdb, 'step\n')
+	;   send(M, tell_gdb, 'step %d\n', Times)
 	).
 
 gdb_next(M, Times:[int]) :->
 	"Send `run' to GDB"::
 	(   Times == @default
-	->  send(M, tell_gdb, "next\n")
-	;   send(M, tell_gdb, "next %d\n", Times)
+	->  send(M, tell_gdb, 'next\n')
+	;   send(M, tell_gdb, 'next %d\n', Times)
 	).
 
 gdb_print(M, Expression:expresion=string) :->
 	"Print value of expression"::
-	send(M, tell_gdb, "print %s\n", Expression).
+	send(M, tell_gdb, 'print %s\n', Expression).
 
 
 		 /*******************************

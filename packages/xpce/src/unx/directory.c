@@ -709,9 +709,7 @@ expandFileName(char *pattern)
       static char myhome[MAXPATHLEN];
 
       if ( myhome[0] == EOS )
-      { char plp[MAXPATHLEN];
-
-	if ( (value = getenv("HOME")) )
+      { if ( (value = getenv("HOME")) )
 	{ strcpy(myhome, value);
 	}
 	if ( myhome[0] == EOS )

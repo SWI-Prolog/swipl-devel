@@ -203,3 +203,133 @@ This is odd, these report the same as their window!?
     }
   }
 }
+
+
+		 /*******************************
+		 *	     COLOURMAPS		*
+		 *******************************/
+
+#undef offset
+#define offset(s, f) ((int)&((s *)NULL)->f)
+
+static HPALETTE
+CreateCCPalette(int size)
+{ int le = size * size * size;
+  LOGPALETTE *lp = pceMalloc(offset(LOGPALETTE, palPalEntry[le]));
+  int i, r, g, b;
+  PALETTEENTRY *pe = &lp->palPalEntry[0];
+  BYTE *intensity = alloca(size * sizeof(BYTE));
+  HPALETTE hpal;
+
+  lp->palVersion    = 0x300;
+  lp->palNumEntries = le;
+
+  for(i=0; i<size; i++)
+    intensity[i] = (255*i)/(size-1);	/* gamma correction? */
+
+  for(r=0; r<size; r++)
+  { for(g = 0; g<size; g++)
+    { for(b = 0; b<size; b++)
+      { pe->peRed   = intensity[r];
+	pe->peGreen = intensity[g];
+	pe->peBlue  = intensity[b];
+	pe->peFlags = 0;
+	pe++;
+      }
+    }
+  }
+
+  if ( !(hpal = CreatePalette(lp)) )
+    Cprintf("Failed to create color cube with %d entries\n", le);
+
+  return hpal;
+}
+
+
+void
+setPaletteColourMap(ColourMap cm, HPALETTE hpal)
+{ cm->ws_ref = hpal;
+}
+
+
+HPALETTE
+getPaletteColourMap(ColourMap cm)
+{ return cm->ws_ref;
+}
+
+
+void
+ws_colour_cube(ColourMap cm, int size)
+{ HPALETTE hpal;
+  
+  if ( size < 1 )			/* nonsence value */
+    size = 2;
+  if ( size > 6 )			/* too large */
+    size = 6;
+
+  hpal = CreateCCPalette(size);
+
+  setPaletteColourMap(cm, hpal);
+}
+
+
+static Int
+XIntensity(BYTE wi)
+{ unsigned i = (unsigned)wi;
+
+  i = (i << 8) + i;
+
+  return toInt(i);
+}
+
+
+void
+ws_colour_map_colours(ColourMap cm)
+{ if ( isNil(cm->colours) )
+  { int entries;
+    PALETTEENTRY *lpe;
+    int n;
+
+    if ( cm->name == NAME_system )	/* system palette */
+    { HDC hdc = GetDC(NULL);
+
+      entries = GetSystemPaletteEntries(hdc, 0, 1<<16, NULL);
+      lpe = alloca(entries * sizeof(PALETTEENTRY));
+      GetSystemPaletteEntries(hdc, 0, entries, lpe);
+
+      ReleaseDC(NULL, hdc);
+    } else				/* normal palette */
+    { HPALETTE hpal = getPaletteColourMap(cm);
+
+      if ( !hpal )
+	return;
+
+      entries = GetPaletteEntries(hpal, 0, 1<<16, NULL);
+      lpe = alloca(entries * sizeof(PALETTEENTRY));
+      GetPaletteEntries(hpal, 0, entries, lpe);
+    }
+  
+    assign(cm, colours, newObject(ClassVector, 0));
+    elementVector(cm->colours, ONE, NIL);
+    elementVector(cm->colours, toInt(entries), NIL);
+    for(n=0; n<entries; n++)
+    { elementVector(cm->colours, toInt(n+1),
+		    newObject(ClassColour, DEFAULT,
+			      XIntensity(lpe[n].peRed),
+			      XIntensity(lpe[n].peGreen),
+			      XIntensity(lpe[n].peBlue), 0));
+    }
+  }
+}
+
+
+status
+ws_create_colour_map(ColourMap cm, DisplayObj d)
+{ fail;
+}
+
+
+status
+ws_uncreate_colour_map(ColourMap cm, DisplayObj d)
+{ fail;
+}

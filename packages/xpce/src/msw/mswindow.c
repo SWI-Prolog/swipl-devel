@@ -190,6 +190,30 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       return 0;
     }
 
+    case WM_QUERYNEWPALETTE:
+    { HWND hwnd = getHwndWindow(sw);
+      WsWindow w = sw->ws_ref;
+
+      if ( hwnd && w->haspalette )
+      { w->haspalette = FALSE;		/* will be set to true if still true */
+	InvalidateRect(hwnd, (LPRECT)NULL, FALSE);
+      }
+
+      break;
+    }
+
+    case WM_PALETTECHANGED:
+    { HWND hwnd = getHwndWindow(sw);
+      WsWindow w = sw->ws_ref;
+
+      if ( hwnd && w->haspalette && wParam != (UINT) hwnd )
+      { w->haspalette = FALSE;		/* will be set to true if still true */
+	InvalidateRect(hwnd, (LPRECT)NULL, FALSE);
+      }
+
+      break;
+    }
+
     case WM_SETCURSOR:
     { WsWindow w;
       WsFrame wfr;

@@ -168,6 +168,7 @@ getExecuteCode(Code c)
 }
 
 
+#ifndef O_RUNTIME
 static void
 traceCode(Code c)
 { Any f;
@@ -191,6 +192,7 @@ traceCode(Code c)
     writef(")");
   }
 }
+#endif /*O_RUNTIME*/
 
 
 		/********************************

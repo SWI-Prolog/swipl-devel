@@ -121,3 +121,35 @@ ws_pixel_to_colour(DisplayObj d, ulong pixel)
 
   fail;
 }
+
+		 /*******************************
+		 *	     COLOURMAPS		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ColourMap handling functions (TBD)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+ws_colour_cube(ColourMap cm, int size)
+{
+}
+
+
+void
+ws_colour_map_colours(ColourMap cm)
+{
+}
+
+
+status
+ws_create_colour_map(ColourMap cm, DisplayObj d)
+{ fail;
+}
+
+
+status
+ws_uncreate_colour_map(ColourMap cm, DisplayObj d)
+{ fail;
+}
+

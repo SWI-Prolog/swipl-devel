@@ -1,5 +1,16 @@
 [VERSION 4.8.18]
 
+* FIXED: Win32: loading .ico file images.  Broken when moved to 32-bit
+  platform.
+
+* FIXED: new(C, colour(@default, R, G, B)).
+
+* FIXED: Error reporting if loading pl2xpce.so fails, removed pushing
+  LD_LIBRARY_PATH in pce_pl.pl as this didn't work anyway (ld.so checks
+  these variables only at startup).  Removed require/1 definition from
+  XPCE/SWI-Prolog interface, as this predicate is part of Prolog since
+  a while.
+
 * DISTR: Removed various outdated files. 
 
 * FIXED: (hopefully) mispositioned Popup menus on some X11 servers and/or

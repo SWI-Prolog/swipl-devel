@@ -4,7 +4,12 @@ status		ws_create_colour(Colour c, DisplayObj d);
 void		ws_uncreate_colour(Colour c, DisplayObj d);
 status		ws_colour_name(DisplayObj d, Name name);
 Colour		ws_pixel_to_colour(DisplayObj d, ulong pixel);
-
+void		ws_colour_cube(ColourMap cm, int size);
+void		ws_colour_map_colours(ColourMap cm);
+status		ws_create_colour_map(ColourMap cm, DisplayObj d);
+status		ws_uncreate_colour_map(ColourMap cm, DisplayObj d);
+ColourMap	ws_colour_map_for_image(Image img);
+	
 /* x11/xcursor.c */
 void		ws_init_cursor_font(void);
 Int		ws_cursor_font_index(Name name);
@@ -44,9 +49,7 @@ Name		ws_window_manager(DisplayObj d);
 void		ws_synchronous(DisplayObj d);
 void		ws_asynchronous(DisplayObj d);
 status		ws_postscript_display(DisplayObj d);
-StringObj	ws_get_resource_value(DisplayObj d,
-				      Name cc, Name cn, Name rc, Name rn,
-				      int accept_default);
+StringObj	ws_get_resource_value(DisplayObj d, Name cc, Name cn, Name rc, Name rn, int accept_default);
 
 /* x11/xdraw.c */
 void		resetDraw(void);
@@ -115,14 +118,9 @@ void		s_print8(char8 *s, int l, int x, int y, FontObj f);
 void		s_print16(char16 *s, int l, int x, int y, FontObj f);
 void		s_print(String s, int x, int y, FontObj f);
 void		str_size(String s, FontObj font, int *width, int *height);
-void		str_string(String s, FontObj font,
-			   int x, int y, int w, int h,
-			   Name hadjust, Name vadjust);
-void		ps_string(String s, FontObj font,
-			  int x, int y, int w, Name format);
-void		str_label(String s, int acc, FontObj font,
-			  int x, int y, int w, int h,
-			  Name hadjust, Name vadjust);
+void		str_string(String s, FontObj font, int x, int y, int w, int h, Name hadjust, Name vadjust);
+void		ps_string(String s, FontObj font, int x, int y, int w, Name format);
+void		str_label(String s, int acc, FontObj font, int x, int y, int w, int h, Name hadjust, Name vadjust);
 
 /* x11/xevent.c */
 status		ws_dispatch(Int FD, Int timeout);
@@ -177,6 +175,7 @@ void		ws_close_image(Image image, DisplayObj d);
 status		ws_resize_image(Image image, Int w, Int h);
 Image		ws_scale_image(Image image, int w, int h);
 void		ws_postscript_image(Image image, Int depth);
+status		loadXliImage(Image image, FileObj file, Int bright);
 void		ws_create_image_from_x11_data(Image image, unsigned char *data, int w, int h);
 
 /* x11/xstream.c */

@@ -78,11 +78,11 @@ user, $HOME/src. Unpack the  Prolog  and   XPCE  archives  from the same
 directory:
 
 	% gunzip < pl-<version>.tar.gz | tar xvfB -
-	% gnuzip < xpce-<version>.tar.gz | tar xvfB -
+	% gunzip < xpce-<version>.tar.gz | tar xvfB -
 
 NOTES:
 	* Some versions of tar hate reading from a pipe.  In that case
-	use `gzip file.tar.gz' followed by `tar xvf file.tar' to extract
+	use `gunzip file.tar.gz' followed by `tar xvf file.tar' to extract
 	the archives
 
 	* If you are using GNU-tar, `tar zxvf file.tar.gz' is easier.
@@ -93,7 +93,7 @@ Choosing a build sub-directory
 
 For easy cleanup or building for   multiple directories, both SWI-Prolog
 and XPCE are normally built in a   directory  next to the src directory.
-The name is unimportant. Good examples   are  `sunos' `solaris', etc. In
+The name is not important. Good examples  are `sunos' `solaris', etc. In
 the examples below, we use `solaris'.
 
 
@@ -139,7 +139,7 @@ At the moment, shared libraries are *known* to work on:
 	* SunOs 4.1.x
 	* Solaris 2.x
 	* SGI/Irix 5.x
-	* Linux when using ELF binaries
+	* Linux when using ELF binary format
 	* Win32 (DLL interface)
 
 It is likely to work  on  any   system  using  ELF binaries or something
@@ -180,15 +180,15 @@ Preparing XPCE
 ==============
 
 XPCE extracts most information about  the configuration from SWI-Prolog,
-so it is generally much simpler. Most   of  the configure run is simple,
-but configure needs to find out  where   the  X11  libraries and include
-files are and you  may  have  multiple.   Normally,  it  will  first try
+so it is generally much easier. Most of the configure run is simple, but
+configure needs to find out where the   X11  libraries and include files
+are  and  you  may  have   multiple.    Normally,   it  will  first  try
 /usr/include/X11 and /usr/lib. If  you  have   only  one  version of X11
 around, generally configure will be able to find it.
 
 If you have multiple copies of X11 around,   you have to decide which to
 use. If you are compiling for local  usage,   use  the  one most of your
-local packages use to  reduce  memory   usage.  Otherwise,  use  the one
+local packages use to improve resource   sharing. Otherwise, use the one
 distributed with the OS or known to be most commonly in use by your user
 community. For example, our system has the   MIT X11R6 libs and includes
 in  /usr/lib  and  /usr/include/X11  and  the  OpenWindows  versions  in
@@ -217,7 +217,7 @@ Now, run configure:
 
 	% cd xpce-<version>
 	% mkdir solaris
-	% ../src/configure
+	% ../src/configure <options>
 					     
 Building the library
 ====================
@@ -229,7 +229,7 @@ Now, make the XPCE library:
 If you have configured for using shared libraries, the -fPIC flag should
 be passed to the compiler. If this is  not the case, please look closely
 at the steps above. If all goes well, the compilation should finish with
-very few warnings, resulting in the library libXPCE.a
+few warnings, resulting in the library libXPCE.a
 
 
 Building libXPCE.so?
@@ -264,12 +264,12 @@ to make the interface.
 					     
 	% make pl-itf
 
-This command will run either `make   pl-shared' or `make pl-static'. The
-first builds the pl2xpce.so shared object, and the second builds an XPCE
-executable holding both the Prolog kernel   and  the XPCE library called
-`xpce'.
+This command will run  either  `make   pl-shared'  or  `make pl-static',
+depending on whether SWI-Prolog handles shared objects. The first builds
+the pl2xpce.so shared object, and the   second builds an XPCE executable
+holding both the Prolog kernel and the XPCE library called `xpce'.
 
-Both versions will put various things  in the SWI[-Prolog home directory
+Both versions will put various things   in the SWI-Prolog home directory
 to make XPCE known to Prolog:
 
 	* A link to the xpce build-directory
@@ -303,14 +303,14 @@ Finally, to install the XPCE libraries, do:
 
 Which will:
 
-	# Create a directory xpce-version in the Prolog home and
+	# Create a directory xpce-<version> in the Prolog home and
 	copy the Prolog libraries, manual data and other resources
 	into this directory.
 
-	# In the Prolog home, make a link from xpce to xpce-version
+	# In the Prolog home, make a link from xpce to xpce-<version>
 
 	# run `make' in the Prolog home directory to make quick-load
-	versions of the libraries.
+	versions of some large and frequently used library packages.
 
 	# in $prefix/bin, make links to the xpce and xpce-client
 	executables

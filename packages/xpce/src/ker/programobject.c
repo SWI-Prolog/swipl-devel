@@ -268,8 +268,10 @@ ulong mask;
 
 /* Type declaractions */
 
+#ifndef O_RUNTIME
 static char *T_debug[] =
         { "value=[bool]", "ports=[{full,enter,exit,fail}]", "condition=[code]" };
+#endif
 
 /* Instance Variables */
 
