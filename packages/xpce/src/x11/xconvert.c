@@ -129,36 +129,59 @@ readImageFile(Image image, IOSTREAM *fd)
 { unsigned char *data;
   int w, h;
   XImage *img=NULL;
+  char hdr[64];
+  int hdrlen;
+  long offset = Stell(fd);
+  int fmt;
 
-  if ( (data = read_bitmap_data(fd, &w, &h)) != NULL )
-    return CreateXImageFromData(data, w, h);
+  hdrlen = Sfread(hdr, 1, sizeof(hdr), fd);
+  Sseek(fd, offset, SIO_SEEK_SET);
 
-  switch(staticColourReadJPEGFile(image, fd, &img))
-  { case IMG_OK:
-      return img;
-    case IMG_NOMEM:
-      return NULL;
-    case IMG_INVALID:
-      goto nojpeg;
+  switch((fmt=image_type_from_data(hdr, hdrlen)))
+  { case IMG_IS_UNKNOWN:
+    case IMG_IS_XBM:
+    case IMG_IS_SUNICON:
+      if ( (data = read_bitmap_data(fd, &w, &h)) != NULL )
+	return CreateXImageFromData(data, w, h);
+      if ( fmt != IMG_IS_UNKNOWN )
+	break;
+#ifdef HAVE_LIBJPEG
+    case IMG_IS_JPEG:
+      switch(staticColourReadJPEGFile(image, fd, &img))
+      { case IMG_OK:
+	  return img;
+	case IMG_NOMEM:
+	  return NULL;
+	default:
+	  break;
+      }
+      if ( (img=readJPEGFile(image, fd)) )
+	return img;
+      if ( fmt != IMG_IS_UNKNOWN )
+	break;
+#endif  
+#ifdef HAVE_LIBXPM
+#ifdef O_GIFTOXPM
+    case IMG_IS_GIF:
+      if ( (img=readGIFFile(image, fd)) )
+	return img;
+      if ( fmt != IMG_IS_UNKNOWN )
+	break;
+#endif
+    case IMG_IS_XPM:
+      if ( (img=readXpmFile(image, fd)) )
+	return img;
+      if ( fmt != IMG_IS_UNKNOWN )
+	break;
+#endif
     default:
-      break;
+      if ( fmt != IMG_IS_UNKNOWN )
+      { DEBUG(NAME_image,
+	      Cprintf("Image format %d not supported\n", fmt));
+      }
   }
 
-#ifdef HAVE_LIBXPM
-#ifdef HAVE_LIBJPEG
-  if ( (img=readJPEGFile(image, fd)) )
-    return img;
-#endif  
-nojpeg:
-#ifdef O_GIFTOXPM
-  if ( (img=readGIFFile(image, fd)) )
-    return img;
-#endif  
-  if ( (img=readXpmFile(image, fd)) )
-    return img;
-#endif
-
-  return img;
+  return NULL;
 }
 
 

@@ -1087,6 +1087,24 @@ GLOBAL  EventTreeObj  EventTree;	/* @event_tree */
 #define MBX_CANCEL		0x2	/* user canceled */
 
 
+		 /*******************************
+		 *	    IMAGE TYPES		*
+		 *******************************/
+
+extern int image_type_from_data(char *data, int size);
+
+#define IMG_IS_UNKNOWN	0
+#define IMG_IS_JPEG	1
+#define IMG_IS_XBM	2		/* Old monochrome X11 icons */
+#define IMG_IS_SUNICON	3		/* Very old: SunView icons */
+#define IMG_IS_XPM	4
+#define IMG_IS_GIF	5
+#define IMG_IS_PNM	6		/* PBMPLUS image formats */
+#define IMG_IS_PNG	7
+#define IMG_IS_BMP	8		/* MS-Windows .BMP */
+#define IMG_IS_ICO	9		/* MS-Windows .ICO */
+
+
 		/********************************
 		*          PROTOTYPES		*
 		********************************/

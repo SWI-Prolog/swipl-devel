@@ -579,7 +579,7 @@ $(srcdir)/win/proto.h:	$(WINSRC)
 ################################################################
 
 IMGOBJS=	jdatasrc.o jdatadst.o jpegtoxpm.o gifread.o giftoxpm.o \
-		gifwrite.o
+		gifwrite.o imgutil.o
 IMGSRC=		$(addprefix $(srcdir)/img/, $(IMGOBJS:.o=.c))
 
 $(srcdir)/img/proto.h:	$(IMGSRC)

@@ -4,6 +4,12 @@
 VERSION 6.2.8, distributed with SWI-Prolog 5.2.8
 ================================================
 
+* ENHANCED/FIXED: X11 image routines now diagnose the image type using
+  analysis of the header similar to Unix file(1) before calling the loading
+  function.  This is faster and avoids trouble of unsafe loading filters
+  on images of the wrong format.  Also fixes trouble running the SuSE
+  RPMs on Mandrake.  Diagnosed with help of Chris Fox.
+
 * ADDED: Support for new event-types.  See event_node->initialise.
 
 * ADDED: Class tabular (library(tabular)): ->append now accepts
