@@ -37,13 +37,16 @@
 	    predicate_classification/2,	% +Goal, -Classification
 	    clause_name/2		% +ClauseRef, -Name
 	  ]).
-
+:- use_module(library(pce)).
+:- use_module(library(debug)).
 
 :- pce_global(@dynamic_source_buffer,
-	      new(emacs_buffer(@nil, '*dynamic code*'))).
+	      make_dynamic_source_buffer).
 
-debug(_, _).
-%debug(Fmt, Args) :- format(Fmt, Args), flush.
+make_dynamic_source_buffer(B) :-
+	start_emacs,
+	new(B, emacs_buffer(@nil, '*dynamic code*')).
+
 
 		 /*******************************
 		 *	       CACHE		*
@@ -56,7 +59,7 @@ debug(_, _).
 
 user:prolog_event_hook(erased(Ref)) :-
 	retract(clause_info_cache(Ref, _, _, _)),
-	debug('Retracted info for ~d~n', [Ref]),
+	debug(clause_info, 'Retracted info for ~d~n', [Ref]),
 	fail.				% allow other hooks
 
 clear_clause_info_cache :-
@@ -68,9 +71,9 @@ clear_clause_info_cache :-
 
 clause_info(ClauseRef, File, TermPos, NameOffset) :-
 	clause_info_cache(ClauseRef, File, TermPos, NameOffset), !,
-	debug('clause_info(~w): from cache~n', [ClauseRef]).
+	debug(clause_info, 'clause_info(~w): from cache~n', [ClauseRef]).
 clause_info(ClauseRef, File, TermPos, NameOffset) :-
-	debug('clause_info(~w)... ', [ClauseRef]),
+	debug(clause_info, 'clause_info(~w)... ', [ClauseRef]),
 	clause_property(ClauseRef, file(File)),
 	'$clause'(Head, Body, ClauseRef, VarOffset),
 	(   Body == true
@@ -83,17 +86,17 @@ clause_info(ClauseRef, File, TermPos, NameOffset) :-
 	->  true
 	;   strip_module(user:Head, Module, _)
 	),
-	debug('from ~w:~d ... ', [File, LineNo]),
+	debug(clause_info, 'from ~w:~d ... ', [File, LineNo]),
 	read_term_at_line(File, LineNo, Module, Clause, TermPos0, VarNames),
-	debug('read ...', []),
+	debug(clause_info, 'read ...', []),
 	unify_clause(Clause, DecompiledClause, TermPos0, TermPos),
-	debug('unified ...', []),
+	debug(clause_info, 'unified ...', []),
 	make_varnames(Clause, VarOffset, VarNames, NameOffset),
-	debug('got names~n', []), !,
+	debug(clause_info, 'got names~n', []), !,
 	asserta(clause_info_cache(ClauseRef, File, TermPos, NameOffset)),
-	debug('Added to info-cache~n', []).
+	debug(clause_info, 'Added to info-cache~n', []).
 clause_info(ClauseRef, S, TermPos, NameOffset) :-
-	debug('Listing for clause ~w~n', [ClauseRef]),
+	debug(clause_info, 'Listing for clause ~w~n', [ClauseRef]),
 	'$clause'(Head, Body, ClauseRef, VarOffset),
 	(   Body == true
 	->  Clause = Head
@@ -105,22 +108,22 @@ clause_info(ClauseRef, S, TermPos, NameOffset) :-
 	send(S, attribute, comment,
 	     string('Decompiled listing of %s', ClauseName)),
 	send(S, clear),
-	debug('Writing clause ~w to string ~p ... ', [ClauseRef, S]),
+	debug(clause_info, 'Writing clause ~w to string ~p ... ', [ClauseRef, S]),
 	pce_open(S, write, Fd),
 	telling(Old), set_output(Fd),
 	portray_clause(Clause),
 	tell(Old),
 	close(Fd),
-	debug('ok, reading ... ', []),
+	debug(clause_info, 'ok, reading ... ', []),
 	pce_open(S, read, Handle),
 	call_cleanup(read(Handle, user, ReadClause, TermPos, VarNames),
 		     close(Handle)),
 	unify_term(Clause, ReadClause),
-	debug('ok ...', []),
+	debug(clause_info, 'ok ...', []),
 	make_varnames(Clause, VarOffset, VarNames, NameOffset),
-	debug('got names~n', []), !.
+	debug(clause_info, 'got names~n', []), !.
 clause_info(_, _, _, _) :-
-	debug('FAILED~n', []),
+	debug(clause_info, 'FAILED~n', []),
 	fail.
 
 
@@ -263,7 +266,7 @@ unify_clause(Read, Compiled1, TermPos0, TermPos) :-
 	match_module(Compiled2, Compiled1, TermPos0, TermPos).
 					% I don't know ...
 unify_clause(_, _, _, _) :-
-	send(@nil, report, warning, 'Could not unify clause'),
+	debug(clause_info, 'Could not unify clause', []),
 	fail.
 
 unify_clause_head(H1, H2) :-
@@ -406,25 +409,25 @@ pce_method_clause(Head, Body, _:PlHead, PlBody, TermPos0, TermPos) :- !,
 pce_method_clause(Head, Body,
 		  send_implementation(_Id, Msg, Receiver), PlBody,
 		  TermPos0, TermPos) :- !,
-	debug('send method ...', []),
+	debug(clause_info, 'send method ...', []),
 	arg(1, Head, Receiver),
 	functor(Head, _, Arity),
 	pce_method_head_arguments(2, Arity, Head, Msg),
-	debug('head ...', []),
+	debug(clause_info, 'head ...', []),
 	pce_method_body(Body, PlBody, TermPos0, TermPos).
 pce_method_clause(Head, Body,
 		  get_implementation(_Id, Msg, Receiver, Result), PlBody,
 		  TermPos0, TermPos) :- !,
-	debug('get method ...', []),
+	debug(clause_info, 'get method ...', []),
 	arg(1, Head, Receiver),
-	debug('receiver ...', []),
+	debug(clause_info, 'receiver ...', []),
 	functor(Head, _, Arity),
 	arg(Arity, Head, PceResult),
-	debug('~w?~n', [PceResult = Result]),
+	debug(clause_info, '~w?~n', [PceResult = Result]),
 	pce_unify_head_arg(PceResult, Result),
 	Ar is Arity - 1,
 	pce_method_head_arguments(2, Ar, Head, Msg),
-	debug('head ...', []),
+	debug(clause_info, 'head ...', []),
 	pce_method_body(Body, PlBody, TermPos0, TermPos).
 
 pce_method_head_arguments(N, Arity, Head, Msg) :-
@@ -433,7 +436,7 @@ pce_method_head_arguments(N, Arity, Head, Msg) :-
 	PLN is N - 1,
 	arg(PLN, Msg, PlArg),
 	pce_unify_head_arg(PceArg, PlArg),
-	debug('~w~n', [PceArg = PlArg]),
+	debug(clause_info, '~w~n', [PceArg = PlArg]),
 	NextArg is N+1,
 	pce_method_head_arguments(NextArg, Arity, Head, Msg).
 pce_method_head_arguments(_, _, _, _).

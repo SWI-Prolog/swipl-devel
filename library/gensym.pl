@@ -41,6 +41,9 @@
 %
 %	Generate <Base>0, <Base>1, etc atoms on each subsequent call.
 
+gensym(_Base, Atom) :-
+	nonvar(Atom), !,
+	throw(error(type_error(variable, Atom), context(gensym/2, _))).
 gensym(Base, Atom) :-
 	atom_concat($gs_, Base, Key), 
 	with_mutex('$gensym', increment_key(Key, N)),
