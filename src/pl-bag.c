@@ -68,6 +68,11 @@ pl_record_bag(term_t t)
   } else
     a->record = compileTermToHeap(t, 0);
 
+  DEBUG(1, { Sdprintf("Recorded %p: ", a->record);
+	     pl_write(t);
+	     pl_nl();
+	   });
+
   a->next    = alist;
   alist      = a;
 
@@ -143,9 +148,12 @@ pl_except_bag(term_t ex)
 { GET_LD
   Assoc a, next;
 
+  DEBUG(1, Sdprintf("EXCEPTION\n"));
+
   for( a=alist; a; a = next )
   { if ( a->record )
-    { freeRecord(a->record);
+    { DEBUG(1, Sdprintf("\tFree %p\n", a->record));
+      freeRecord(a->record);
       next = a->next;
     } else
       next = NULL;

@@ -6,7 +6,11 @@ BUGS:
 
 	* plcon.exe to delay Control-C in garbage collections.
 
+	* Handle out-of-stack in findall/3 and friends.  Probable
+	  scenario: generator of findall/3 calls findall/3 in
+	  unbound recursion.
 
+=======
 INPUT HANDLING:
 ---------------
 
