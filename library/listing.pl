@@ -183,9 +183,11 @@ notify_changed(_).
 %	The prolog_list_goal/1 hook is a dubious as it may lead to
 %	confusion if the heads relates to other bodies.  For now it
 %	is only used for XPCE methods and works just nice.
+%	
+%	Not really ...  It may confuse the source-level debugger.
 
-portray_clause(Head :- _Body) :-
-	user:prolog_list_goal(Head), !.
+%portray_clause(Head :- _Body) :-
+%	user:prolog_list_goal(Head), !.
 portray_clause(Term) :-
 	numbervars(Term, '$VAR', 0, _), 
 	do_portray_clause(Term), 
