@@ -1,3 +1,8 @@
+Feb 24, 2005
+
+  * MODIFIED: rdf_edit.pl: broadcast missing journal instead of creating
+    an XPCE dialog.  More flexible and removes XPCE dependency.
+
 Feb 22, 2005
 
   * FIXED: rdf_save/[1,2] to properly quote attributes.  Anjo Anjewierden.

@@ -3,7 +3,7 @@
     Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        jan@swi.psy.uva.nl
+    E-mail:        wielemak@science.uva.nl
     WWW:           http://www.swi-prolog.org
     Copyright (C): 1985-2002, University of Amsterdam
 
@@ -858,7 +858,7 @@ journal_comment(start, Time) :-
 	format(Stream,
 	       '/* Triple20 Journal File\n\n   \
 	       Created: ~w\n   \
-	       Triple20 by Jan Wielemaker <jan@swi.psy.uva.nl>\n\n   \
+	       Triple20 by Jan Wielemaker <wielemak@science.uva.nl>\n\n   \
 	       EDIT WITH CARE!\n\
 	       */~n~n', [String]).
 journal_comment(resume, Time) :-
@@ -901,7 +901,7 @@ journal(Term) :-
 	(   journal(_, _, Stream)
 	->  write_journal(Term, Stream),
 	    flush_output(Stream)
-	;   report_no_journal
+	;   broadcast(rdf_journal(no_journal(Term)))
 	).
 
 write_journal(commit(TID, Time), Stream) :- !,
@@ -909,28 +909,6 @@ write_journal(commit(TID, Time), Stream) :- !,
 write_journal(Term, Stream) :-
 	format(Stream, '~q.~n', [Term]).
 
-
-:- dynamic
-	reported_no_journal/0.
-
-report_no_journal :-
-	reported_no_journal, !.
-report_no_journal :-
-	new(D, dialog('No project')),
-	send(D, append,
-	     text('No project has been created or opened.  Your modifications\n\
-	           are not saved unless you create or open a project.')),
-	send(D, append, button('Ok, all data will be lost',
-			       message(D, return, ok))),
-	send(D, append, button('Remind me next time',
-			       message(D, return, remind))),
-	get(D, confirm_centered, RVal),
-	send(D, destroy),
-	(   RVal == ok
-	->  assert(reported_no_journal)
-	;   true
-	).
-	     
 
 %	rdfe_replay_journal(+File)
 %	
