@@ -55,7 +55,7 @@ Word new;
   closeFiles();
 
 #if O_SAVE
-  save(dest, old_name, RET_MAIN, 0, NULL);
+  TRY(save(dest, old_name, RET_MAIN, 0, NULL));
 #else
   Putf("Running program: %s\n", old_name);
   if ( sym_name != NULL )

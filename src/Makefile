@@ -141,12 +141,18 @@ pl-bite:	pl-bite.c
 install:	xmakefile
 		make -f xmakefile xinstall
 
-xinstall:
+#if O_SAVE
+xinstall:	$(RUNTIMEDIR)
+		$(INSTALL) $(SYS) $(RUNTIMEDIR)
+		./dump $(RUNTIMEDIR)/$(SYS) $(BINDIR)/$(PROLOG)
+#else
 		rm -f $(BINDIR)/$(PROLOG)
+		
 #if O_STORE_PROGRAM && !O_INSTALL_DONOT_STORE
 		./dump ./$(SYS) $(BINDIR)/$(PROLOG)
 #else
 		$(INSTALL) $(SYS) $(BINDIR)/$(PROLOG)
+#endif
 #endif
 		$(INSTALL) pl-bite $(BINDIR)/pl-bite
 		chmod 755 $(BINDIR)/$(PROLOG) $(BINDIR)/pl-bite

@@ -761,14 +761,107 @@ char *name;
     Return the directory name for a file having path `path'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#if unix
+typedef struct canonical_dir *CanonicalDir;
+
+static struct canonical_dir
+{ char *	name;			/* name of directory */
+  char *	canonical;		/* canonical name of directory */
+  dev_t		device;			/* device number */
+  ino_t		inode;			/* inode number */
+  CanonicalDir  next;			/* next in chain */
+} *canonical_dirlist;
+
+forwards char	*canonisePath P((char *)); /* canonise a path-name */
+forwards char   *canoniseDir P((char *));
+#endif
+
 static  char    CWDdir[MAXPATHLEN];	   /* current directory */
+
 
 static void
 initExpand()
-{ CWDdir[0] = EOS;
+{ char *dir;
+
+  CWDdir[0] = EOS;
+
+#if unix
+  if ( dir = getenv("HOME") ) canoniseDir(dir);
+  if ( dir = getenv("PWD")  ) canoniseDir(dir);
+#endif
 }
 
-forwards char	*canonisePath P((char *));
+#if unix
+
+static char *
+canoniseDir(path)
+char *path;
+{ CanonicalDir d;
+  struct stat buf;
+
+  DEBUG(1, printf("canoniseDir(%s) --> ", path); fflush(stdout));
+
+  for(d = canonical_dirlist; d; d = d->next)
+  { if ( streq(d->name, path) )
+    { if ( d->name != d->canonical )
+	strcpy(path, d->canonical);
+
+      DEBUG(1, printf("(lookup) %s\n", path));
+      return path;
+    }
+  }
+
+  if ( stat(path, &buf) == 0 )
+  { CanonicalDir dn = allocHeap(sizeof(struct canonical_dir));
+    char dirname[MAXPATHLEN];
+    char *e = path + strlen(path);
+
+    dn->next   = canonical_dirlist;
+    dn->name   = store_string(path);
+    dn->inode  = buf.st_ino;
+    dn->device = buf.st_dev;
+
+    do
+    { strncpy(dirname, path, e-path);
+      dirname[e-path] = EOS;
+      if ( stat(dirname, &buf) < 0 )
+	break;
+
+      for(d = canonical_dirlist; d; d = d->next)
+      { if ( d->inode == buf.st_ino && d->device == buf.st_dev )
+	{ canonical_dirlist = dn;
+
+	  strcpy(dirname, d->canonical);
+	  strcat(dirname, e);
+	  strcpy(path, dirname);
+	  dn->canonical = store_string(path);
+	  DEBUG(1, printf("(replace) %s\n", path));
+	  return path;
+	}
+      }
+
+      for(e--; *e != '/' && e > path + 1; e-- )
+	;
+
+    } while( e > path );
+
+    dn->canonical = dn->name;
+    canonical_dirlist = dn;
+
+    DEBUG(1, printf("(new, existing) %s\n", path));
+    return path;
+  }
+
+  printf("(nonexisting) %s\n", path);
+  return path;
+}
+
+#else
+
+#define canoniseDir(d)
+
+#endif
+
 
 static char *
 canonisePath(path)
@@ -798,6 +891,21 @@ register char *path;
       *out++ = *path++;
   }
   *out++ = *path++;
+
+#if unix
+{ char *e;
+  char dirname[MAXPATHLEN];
+
+  e = bsave + strlen(bsave) - 1;
+  for( ; *e != '/' && e > bsave; e-- )
+    ;
+  strncpy(dirname, bsave, e-bsave);
+  dirname[e-bsave] = EOS;
+  canoniseDir(dirname);
+  strcat(dirname, e);
+  strcpy(bsave, dirname);
+}
+#endif
 
   return bsave;
 }
@@ -1042,7 +1150,7 @@ char *f;
   char *base, *p;
 
   for(base = p = f; *p; p++)
-    if (*p == '/')
+    if (*p == '/' && p[1] != EOS )
       base = p;
   strncpy(dir, f, base-f);
   dir[base-f] = EOS;

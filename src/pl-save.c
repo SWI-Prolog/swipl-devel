@@ -308,7 +308,7 @@ SaveSection sections;
   SaveSection sect;
 
   if ( (fd = open(file, O_WRONLY|O_CREAT|O_TRUNC, 0777)) < 0 )
-    return warning("save/1: cannot write %s: %s\n", OsError());
+    return warning("save/1: cannot write %s: %s\n", file, OsError());
   
 /*sprintf(buf, "#!%s -r\n", interpreter);*/
   sprintf(buf, "#!/bin/sh\nexec %s -r $0 $*\n", interpreter);
