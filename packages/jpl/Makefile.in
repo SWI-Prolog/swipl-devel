@@ -100,6 +100,9 @@ install:	$(TARGETS) $(LIBPL)
 		for f in $(TARGETS); do \
 		  $(INSTALL_PROGRAM) $$f $(PLBASE)/lib/$(PLARCH); \
 		done
+ifeq (@SO@,dylib)		
+		(cd $(PLBASE)/lib/$(PLARCH) && ln -sf libjpl.@SO@ libjpl.jnilib)
+endif
 		mkdir -p $(PLBASE)/library
 		for f in $(LIBPL); do \
 		  $(INSTALL_DATA) -m 644 $$f $(PLBASE)/library; \
