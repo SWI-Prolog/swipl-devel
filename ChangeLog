@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: $qlf_info/4 to request information on QLF files.  Also turned
+    a couple of common warnings into proper exceptions.
+
   * FIXED: Avoid the usage of the appearently badly supported Win32 function
     GetFileInformationByHandle(), now using GetFileSize().  This fixes some
     false-alarm about not being able to find the system resources.
