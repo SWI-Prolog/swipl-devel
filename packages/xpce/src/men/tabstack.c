@@ -54,7 +54,14 @@ RedrawAreaTabStack(TabStack t, Area a)
   { Cell cell;
 
     for_cell(cell, dev->graphicals)
-      RedrawArea(cell->value, a);
+    { Tab t = cell->value;
+
+      if ( t->status == NAME_onTop )
+	RedrawArea(t, a);
+      else
+	RedrawArea(t, t->area);		/* ignore the fact that it is not */
+					/* displayed if not on top */
+    }
 
     ExitRedrawAreaDevice(dev, a, &ctx);
   }
