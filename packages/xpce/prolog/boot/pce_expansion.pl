@@ -248,6 +248,7 @@ pce_expandable((_Head :<- _Body)).
 do_expand((:- pce_begin_class(Spec, Super, Doc)),
 	  (:- pce_begin_class_definition(ClassName, MetaClass, Super, Doc))) :-
 	break_class_specification(Spec, ClassName, MetaClass, TermArgs),
+	can_define_class(ClassName, Super),
 	push_class(ClassName),
 	set_attribute(ClassName, super, Super),
 	set_attribute(ClassName, meta, MetaClass),
@@ -595,6 +596,26 @@ isa_prolog_class(Class, Super) :-
 isa_prolog_class(Class, Super) :-		% Loaded Prolog class
 	pce_class(Class, _, Super0, _, _, _), !,
 	isa_prolog_class(Super0, Super).
+
+
+		 /*******************************
+		 *	      CHECKING		*
+		 *******************************/
+
+%	can_define_class(+Name, +Super)
+%	
+%	Check whether we can define Name as   a  subclass of Super. This
+%	cannot be done of Name  is  a   builtin  class  or it is already
+%	defined at another location.
+
+can_define_class(Name, _Super) :-
+	get(@classes, member, Name, Class),
+	get(Class, creator, built_in), !,
+	throw(error(permission_error(modify, pce(built_in_class), Name), _)).
+can_define_class(Name, _Super) :-
+	pce_class(Name, _Meta, _OldSuper, _Vars, _ClassVars, _Dirs),
+	throw(error(permission_error(modify, pce(class), Name), _)).
+can_define_class(_, _).
 
 
 		 /*******************************

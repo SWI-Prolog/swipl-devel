@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: pce_begin_class/[2,3]: test for redefinition of built-in and user
+  defined classes.
+
 * FIXED: Produce clean error message when running a class whose super-class
   is missing.
 
@@ -9,12 +12,14 @@
 
 * FIXED: Popup handling with library(pce_unclip).
 
+
 VERSION 6.2.6, distributed with SWI-Prolog 5.2.6
 ================================================
 
 * ADDED: Paint <-mark of class path when generating PostScript.
 
 * ENHANCED: barchart package: show cursor indicating a bar can be dragged.
+
 
 VERSION 6.2.5, distributed with SWI-Prolog 5.2.5
 ================================================
