@@ -82,7 +82,11 @@ duplicated this stuff.
 #define __pl_export_data __declspec(dllexport)
 #define install_t	 void
 #else
+#ifdef __BORLANDC__
+#define __pl_export	 _stdcall
+#else
 #define __pl_export	 extern
+#endif
 #define __pl_export_data __declspec(dllimport)
 #define install_t	 __declspec(dllexport) void
 #endif
