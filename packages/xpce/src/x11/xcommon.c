@@ -20,6 +20,7 @@
 #define roundup(v, n)		((((v)+(n)-1)/(n))*(n))
 #define rescale(v, o, n)	((v) * (n) / (o))
 #define XBRIGHT ((1L<<16)-1)
+#define INTENSITY(r, g, b) ((r*20 + g*32 + b*18)/(20+32+18))
 
 static int	intensityXColor(XColor *c);
 
@@ -214,12 +215,13 @@ postscriptXImage(XImage *im,
 		 int depth)
 { static char print[] = { '0', '1', '2', '3', '4', '5', '6', '7',
 			  '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
-  int x, y, w8, psbright;
+  int x, y, w8, psbright = 0;
   int bits, bytes;
   int c;
-  unsigned char *psmap;
+  unsigned char *psmap = NULL;
   int psmap_alloced = 0;
   XColor **cinfo;
+  int direct = FALSE;
 
   if ( depth == 0 )			/* PostScript depth is 1, 2, 4, or 8 */
   { depth = im->depth;
@@ -235,11 +237,8 @@ postscriptXImage(XImage *im,
   if ( im->format == XYBitmap )
   { psmap = (unsigned char *)"\1\0";
     psbright = 1;
-  } else
+  } else if ( im->depth <= 16 )
   { int entries	= 1<<im->depth;
-
-    if ( im->depth > 16 )
-      return errorPce(NIL, NAME_maxDepth, toInt(16));
 
     psbright = (1<<depth) - 1;
     psmap = (unsigned char *)pceMalloc(entries * sizeof(unsigned char));
@@ -258,19 +257,38 @@ postscriptXImage(XImage *im,
       }
       freeSparceCInfo(cinfo, im->depth);
     }
+  } else
+  { assert(depth == 8);			/* PostScript depth */
+    direct = TRUE;
   }
-
 
   w8 = roundup(w, 8);
   for(bytes = c = 0, bits = 8, y = fy; y < h; y++)
-  { for(x = fx; x < w8; x++)
-    { int pixval;
+  { if ( !direct )
+    { for(x = fx; x < w8; x++)
+      { int pixval;
+	
+	bits -= depth;
+	pixval = (x < w ? psmap[XGetPixel(im, x, y)] : psbright);
+	c |= pixval << bits;
+	if ( bits == 0 )
+	  putByte(c);
+      }
+    } else
+    { unsigned char *line;
 
-      bits -= depth;
-      pixval = (x < w ? psmap[XGetPixel(im, x, y)] : psbright);
-      c |= pixval << bits;
-      if ( bits == 0 )
-        putByte(c);
+      line = &((unsigned char *)im->data)[y * im->bytes_per_line];
+      line += 4*fx;
+
+      for(x = fx; x < w8; x++, line += 4)
+      { if ( x >= w )
+	{ putByte(0);			/* write alignment bytes */
+	} else
+	{ int v = INTENSITY(line[0], line[1], line[2]);
+
+	  putByte(v);
+	}
+      }
     }
   }
 
@@ -291,7 +309,7 @@ intensityXColor(XColor *c)
   unsigned int g = c->green;
   unsigned int b = c->blue;
 
-  return (r*20 + g*32 + b*18)/(20+32+18);
+  return INTENSITY(r, g, b);
 }
 
 

@@ -4,6 +4,9 @@
 VERSION 5.1.11, distributed with SWI-Prolog 4.1.0
 =================================================
 
+* ADDED/FIXED: X11: Saving images to PostScript on X-servers with more then
+  16-bit colourdepth.  Reported by Lourens van der Meij.
+
 * ADDED: PceEmacs: dialog-based find command.  The library can also be
   used with non-PceEmacs editor objects.
 
