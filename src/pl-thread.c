@@ -603,7 +603,9 @@ pl_thread_self(term_t self)
 
 static void
 free_thread_info(PL_thread_info_t *info)
-{ if ( info->return_value )
+{ PL_local_data_t *data = info->thread_data;
+
+  if ( info->return_value )
     PL_erase(info->return_value);
   if ( info->goal )
     PL_erase(info->goal);
@@ -611,8 +613,8 @@ free_thread_info(PL_thread_info_t *info)
   if ( info->thread_data->thread.name )
     unaliasThread(info->thread_data->thread.name);
 
-  freeHeap(info->thread_data, sizeof(*info->thread_data));
   memset(info, 0, sizeof(*info));
+  freeHeap(data, sizeof(*data));
 }
 
 
