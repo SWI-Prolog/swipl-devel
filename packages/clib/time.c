@@ -48,13 +48,6 @@
 
 #ifdef _REENTRANT
 #include <pthread.h>
-
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-#define LOCK() pthread_mutex_lock(&mutex)
-#define UNLOCK() pthread_mutex_unlock(&mutex)
-#else
-#define LOCK()
-#define UNLOCK()
 #endif
 
 #ifdef WIN32
