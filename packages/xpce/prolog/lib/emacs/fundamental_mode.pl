@@ -26,8 +26,6 @@
 	  show_key_bindings	   = key('\\C-hb'),
 	  insert_file		   = key('\\C-xi'),
 	  write_file		   = key('\\C-x\\C-w'),
-	  split_window		   = key('\\C-x2'),
-	  only_window              = key('\\C-x1'),
 	  save_and_kill            = key('\\C-x#'),
 	  what_cursor_position     = key('\\C-x='),
 	  count_lines_region       = key('\\e='),
@@ -44,16 +42,21 @@
 	  show_buffer_menu	   = key('\\C-x\\C-b') + button(file),
 	  switch_to_buffer	   = key('\\C-xb') +
 				     button(file, @emacs_mode?buffers),
+	  -			   = button(file),
 	  find_file		   = key('\\C-x\\C-f') + button(file),
 	  save_buffer		   = key('\\C-x\\C-s') + button(file),
 	  save_as		   = button(file),
+	  print			   = button(file),
+	  -			   = button(file),
 	  revert		   = button(file),
-	  kill_buffer		   = key('\\C-xk')    + button(file),
+	  kill_buffer		   = key('\\C-xk') + button(file),
+	  -			   = button(file),
 	  ispell		   = button(file),
 	  shell			   = button(file),
 	  (mode)		   = key('\\em') +
 	  			     button(file, @emacs_mode?modes),
 	  identify		   = button(file),
+	  -			   = button(file),
 	  quit			   = key('\\C-x\\C-c') + button(file),
 
 					% EDIT menu
@@ -67,6 +70,9 @@
 	  replace		   = button(edit),
 
 					% BROWSER menu
+	  split_window		   = key('\\C-x2') + button(browse),
+	  only_window              = key('\\C-x1') + button(browse),
+	  -			   = button(browse),
 	  bookmark_line		   = button(browse),
 	  show_bookmarks	   = button(browse),
 	  -			   = button(browse),
@@ -97,7 +103,14 @@ class_variable(shell_command,	chain*,
 	       "Command for running grep, make, etc.").
 class_variable(auto_colourise_size_limit, int, 50000,
 	       "Auto-colourise if buffer is smaller then this").
+class_variable(print_command,	string,
+	       [ 'X'('lpr %s'),
+		 windows('NOTEPAD.EXE /P %s')
+	       ],
+	       "Command to print a file").
 
+variable(print_command, name, both,
+	 "Command to print a file").
 variable(auto_colourise_size_limit,
 	 int,
 	 both,
@@ -428,14 +441,34 @@ comment_column(M, Col:[int]) :->
 		 *	       PRINT		*
 		 *******************************/
 
-/*
 print(M) :->
-	"Print on emacs_fundamental_mode.print_command"::
+	"Print associated file"::
 	get(M, print_command, Cmd),
 	send(M, save_if_modified),
-	get(M, file, File),
-	get(File, name, Name).
-*/
+	(   get(M, file, File),
+	    File \== @nil
+	->  get(File, name, Name),
+	    prolog_to_os_filename(Name, OsName),
+	    new(S, string(Cmd, OsName)),
+	    new(D, dialog('Print command')),
+	    send(D, append, new(TI, text_item(print_command, S))),
+	    send(D, append, button(print, message(D, return, TI?selection))),
+	    send(D, append, button(cancel, message(D, destroy))),
+	    send(D, default_button, print),
+	    (	get(M, frame, Frame)
+	    ->	send(D, transient_for, Frame),
+		send(D, modal, transient),
+		get(Frame?area, center, Pos)
+	    ;	Pos = @default
+	    ),
+	    get(D, confirm_centered, Pos, CmdAtom),
+	    send(M, report, progress, 'Running %s ...', CmdAtom),
+	    (	shell(CmdAtom)
+	    ->	send(M, report, done)
+	    ;	send(M, report, warning, 'Print command %s failed', CmdAtom)
+	    )
+	;   send(M, report, warning, 'No file')
+	).
 	
 
 		 /*******************************

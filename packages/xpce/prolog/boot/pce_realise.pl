@@ -175,9 +175,30 @@ attach_class_variables([R|T], Class) :-
 	attach_class_variables(T, Class).
 
 attach_class_variable(Class, M:class_variable(Name, Def, Type, Summary)) :- !,
-	new(_, M:class_variable(Class, Name, Def, Type, Summary)).
-attach_class_variable(Class, class_variable(Name, Def, Type, Summary)) :-
-	new(_, class_variable(Class, Name, Def, Type, Summary)).
+	classvar_default(Def, PceDef),
+	new(_, M:class_variable(Class, Name, PceDef, Type, Summary)).
+attach_class_variable(Class, ClassVar) :-
+	attach_class_variable(Class, user:ClassVar).
+
+%	Allow the default to be specified as below to deal with different
+%	window systems.
+%
+%	[ windows(foo), 'X'(bar) ]
+
+classvar_default(List, Default) :-
+	is_list(List), !,
+	(   get(@pce, window_system, WS),
+	    Term =.. [WS,Default],
+	    memberchk(Term, List)
+	->  true
+	;   List = [H|_],
+	    compound(H),
+	    H =.. [_, Default]
+	->  true
+	;   throw(error(type_error(class_variable_default, List), _))
+	).
+classvar_default(Default, Default).
+		 
 
 run_directives([], _).
 run_directives(Directives, Class) :-
