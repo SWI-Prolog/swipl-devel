@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.5.11 (March 15, 2005)
+===============================
+
   * FIXED: PL_get_chars() using REP_UTF8.
 
   * ADDED: rewrite of `xos' layer to do all interaction in UTF-8, mapping
@@ -16,6 +19,7 @@
   * ADDED: setlocale/3: change/query locale settings at runtime.
 
   * CLEANUP: deleted old win32s stuff from uxnt.c
+
 
 VERSION 5.5.10 (March 09, 2005)
 ===============================
