@@ -252,8 +252,7 @@ print_adr(Word adr, char *buf)
 
 static char *
 print_val(word val, char *buf)
-{ GET_LD
-  char *tag_name[] = { "var", "float", "int", "atom",
+{ char *tag_name[] = { "var", "float", "int", "atom",
 		       "string", "list", "term", "ref" };
   char *stg_name[] = { "static/inline/trail", "global", "local", "reserved" };
 
@@ -271,8 +270,7 @@ print_val(word val, char *buf)
 
 static void
 do_check_relocation(Word addr, char *file, int line)
-{ GET_LD
-  Symbol s;
+{ Symbol s;
 
   if ( !(s=lookupHTable(check_table, addr)) )
   { char buf1[256];
@@ -817,8 +815,7 @@ mark_trail()
 #if O_SECURE
 static int
 cmp_address(const void *vp1, const void *vp2)
-{ GET_LD
-  Word p1 = *((Word *)vp1);
+{ Word p1 = *((Word *)vp1);
   Word p2 = *((Word *)vp2);
 
   return p1 > p2 ? 1 : p1 == p2 ? 0 : -1;
@@ -1866,8 +1863,9 @@ update_local_pointer(void *p, long ls)
 { GET_LD
   char **ptr = (char **)p;
 
-  if ( inShiftedArea(local, ls, *ptr) )
-  { update_pointer(p, ls);
+  if ( onStackArea(local, *ptr) )
+  { DEBUG(2, Sdprintf(" (local ptr %p)", *ptr));
+    update_pointer(p, ls);
   }
 }
 
@@ -1887,13 +1885,14 @@ update_environments(LocalFrame fr, Code PC, long ls, long gs, long ts)
     local_frames++;
     
     DEBUG(2,
-	  Sdprintf("Shifting frame 0x%p [%ld] %s ... ",
+	  Sdprintf("Shifting frame %p [%ld] %s ... ",
 		 fr, levelFrame(fr), predicateName(fr->predicate)));
 
     if ( ls )				/* update frame pointers */
     { update_pointer(&fr->parent, ls);
       clearUninitialisedVarsFrame(fr, PC);
 
+      DEBUG(2, Sdprintf("PC=%p ", fr->programPointer));
       update_local_pointer(&fr->programPointer, ls);
 					/* I_USERCALL0 compiled clause */
       if ( fr->predicate == PROCEDURE_dcall1->definition )
@@ -1910,15 +1909,16 @@ update_environments(LocalFrame fr, Code PC, long ls, long gs, long ts)
 	if ( (marks = cl->marks) )
 	{ Word sp = argFrameP(fr, cl->prolog_vars);
 	
-	  DEBUG(2, Sdprintf("(%d marks)", marks));
+	  DEBUG(2, Sdprintf(" (%d marks)", marks));
 
 	  for( ; marks-- > 0; sp++ )
 	    update_pointer(sp, ls);
 	}
       }
+
+      DEBUG(2, Sdprintf("ok\n"));
     }
 
-    DEBUG(2, Sdprintf("ok\n"));
 
     PC = fr->programPointer;
     if ( fr->parent )
@@ -2046,7 +2046,7 @@ update_stacks(LocalFrame frame, Choice choice, Code PC,
   gs = (long) gb - (long) gBase;
   ts = (long) tb - (long) tBase;
 
-  DEBUG(2, Sdprintf("ls+gs+ts = %ld %ld %ld ... ", ls, gs, ts));
+  DEBUG(2, Sdprintf("update_stacks(): ls+gs+ts = %ld %ld %ld\n", ls, gs, ts));
 
   if ( ls || gs || ts )
   { LocalFrame fr;
@@ -2056,6 +2056,8 @@ update_stacks(LocalFrame frame, Choice choice, Code PC,
     local_frames = 0;
     choice_count = 0;
     
+    update_local_pointer(&PC, ls);
+
     for( fr = addPointer(frame, ls),
 	 ch = addPointer(choice, ls)
        ; fr
