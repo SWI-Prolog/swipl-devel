@@ -25,6 +25,7 @@ initialiseTableSlice(TableSlice c)
   assign(c, reference,  ZERO);
   assign(c, position,   ZERO);
   assign(c, fixed,      OFF);
+  assign(c, displayed,  ON);
 /*assign(c, table,      NIL);
   assign(c, rubber,     NIL);
 */
@@ -93,6 +94,19 @@ widthTableSlice(TableSlice slice, Int width)
   succeed;
 }
 
+
+static status
+displayedTableSlice(TableSlice slice, Bool val)
+{ if ( slice->displayed != val )
+  { assign(slice, displayed, val);
+
+    if ( notNil(slice->table) )
+      return requestComputeLayoutManager((LayoutManager)slice->table, DEFAULT);
+  }
+
+  succeed;
+}
+
 		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
@@ -126,7 +140,9 @@ static vardecl var_table_slice[] =
   IV(NAME_position, "int", IV_GET,
      NAME_layout, "X/Y-offset of the column/row"),
   IV(NAME_rubber, "rubber*", IV_GET,
-     NAME_layout, "How to handle forced width/height")
+     NAME_layout, "How to handle forced width/height"),
+  SV(NAME_displayed, "bool", IV_GET|IV_STORE, displayedTableSlice,
+     NAME_visibility, "If @on, row/column is visible")
 };
   
 /* Send Methods */
@@ -311,6 +327,8 @@ computeTableColumn(TableColumn col)
   w = max(w, l+r);
   assign(col, width, toInt(w));
   assign(col, reference, toInt(l));
+  DEBUG(NAME_table, Cprintf("Column %d set to width = %d\n",
+			    valInt(col->index), w));
 
   succeed;
 }

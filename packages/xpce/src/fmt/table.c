@@ -999,7 +999,7 @@ stretch_table_slices(Table tab, Vector v, /* table and <-rows or <-columns */
   for(i=from; i<to; i++)
   { TableSlice slice = getElementVector(v, toInt(i));
 
-    if ( slice && notNil(slice) )
+    if ( slice && notNil(slice) && slice->displayed == ON )
     { slice_stretchability(slice, &stretches[i-from]);
       nslices++;
     }
@@ -1008,9 +1008,19 @@ stretch_table_slices(Table tab, Vector v, /* table and <-rows or <-columns */
   if ( nslices == 0 )
     return;
 
+  DEBUG(NAME_table,
+	Cprintf("%s: Stretching %d slices from %d into %d+%d-%d\n",
+		pp(tab), nslices, from,
+		into->ideal, into->stretch, into->shrink));
+
   sum_stretches(stretches, nslices, &tmp[0]);
   tmp[1] = *into;
   join_stretches(tmp, 2, &joined);
+
+  DEBUG(NAME_table,
+	Cprintf("Summed = %d+%d-%d, joined = %d+%d-%d\n",
+		tmp[0].ideal, tmp[0].stretch, tmp[0].shrink,
+		joined.ideal, joined.stretch, joined.shrink));
 
   ngaps = nslices-1;
   width = joined.ideal - ngaps*spacing;
@@ -1020,7 +1030,7 @@ stretch_table_slices(Table tab, Vector v, /* table and <-rows or <-columns */
     for(i=from; i<to; i++)
     { TableSlice slice = getElementVector(v, toInt(i));
 
-      if ( slice && notNil(slice) )
+      if ( slice && notNil(slice) && slice->displayed == ON )
       { Any av[2];
 	Name sel;
 
@@ -1109,7 +1119,7 @@ computeRowsTable(Table tab)
   for(cy=tborder+rowspacing, y=ymin; y<=ymax; y++)
   { TableRow row = getRowTable(tab, toInt(y), OFF);
 
-    if ( row && row->width != ZERO )
+    if ( row && row->width != ZERO && row->displayed == ON )
     { if ( cy != valInt(row->position) )
       { changedTable(tab);
 	assign(row, position, toInt(cy));
@@ -1180,12 +1190,14 @@ computeColsTable(Table tab)
   for(cx=lborder+colspacing, x=xmin; x<=xmax; x++)
   { TableColumn col = getColumnTable(tab, toInt(x), ON);
 
-    if ( cx != valInt(col->position) )
-    { changedTable(tab);
-      assign(col, position, toInt(cx));
+    if ( col->displayed == ON )
+    { if ( cx != valInt(col->position) )
+      { changedTable(tab);
+	assign(col, position, toInt(cx));
+      }
+      ncols++;				/* real test for empty columns? */
+      cx += valInt(col->width) + colspacing;
     }
-    ncols++;				/* real test for empty columns? */
-    cx += valInt(col->width) + colspacing;
   }
   cx += rborder;
 
@@ -1259,7 +1271,17 @@ placeCellsTable(Table tab)
 	TableColumn col = getColumnTable(tab, toInt(x), OFF);
 
 	if ( cell && cell->column == col->index && cell->row == row->index )
-	  placeImageTableCell(cell);
+	{ if ( row->displayed == ON && col->displayed == ON )
+	    placeImageTableCell(cell);
+	  else
+	  { if ( notNil(cell->image) && notNil(cell->image->device) )
+	    { Any av[1];
+
+	      av[0] = NIL;
+	      qadSendv(cell->image, NAME_device, 1, av);
+	    }
+	  }
+	}
       }    
     }
   }
