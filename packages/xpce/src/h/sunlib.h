@@ -38,3 +38,4 @@ extern char *getwd(char *pathname);
 extern int ioctl(int fd, int request, void *arg);
 extern void bzero(void *b, int length);
 extern void perror(char *s);
+extern int putenv(char *s);
