@@ -39,7 +39,7 @@ PLDLL=$(PLHOME)\bin\libpl.dll
 TERMDLL=$(PLHOME)\bin\plterm.dll
 OUTDIRS=$(PLHOME)\bin $(PLHOME)\lib $(PLHOME)\include
 
-LOCALLIB=win32/uxnt/uxnt.lib rc/rc.lib
+LOCALLIB=$(UXLIB) rc/rc.lib
 
 PB=$(PLHOME)\boot
 INCLUDEDIR=$(PLHOME)\include

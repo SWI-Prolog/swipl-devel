@@ -3,22 +3,23 @@
 # stuff on top of the MSVC (posix) runtime library.
 ################################################################
 
+PLHOME=..\..\..
 !include ..\..\rules.mk
 
-PLBASE=	..\..\..
 OBJ=	uxnt.obj
-HDR=	$(PLBASE)\include\uxnt.h \
-	$(PLBASE)\include\dirent.h
+OUT=	$(PLHOME)\lib\uxnt.lib
+HDR=	$(PLHOME)\include\uxnt.h \
+	$(PLHOME)\include\dirent.h
 
-all:	uxnt.lib $(HDR)
+all:	$(OUT) $(HDR)
 
-uxnt.lib:	$(OBJ)
+$(OUT):	$(OBJ)
 	del $@
 	$(AR) /nologo /out:$@ $(OBJ)
 
-$(PLBASE)\include\uxnt.h: uxnt.h
+$(PLHOME)\include\uxnt.h: uxnt.h
 	copy uxnt.h $@
-$(PLBASE)\include\dirent.h: dirent.h
+$(PLHOME)\include\dirent.h: dirent.h
 	copy dirent.h $@
 
 clean:

@@ -7,6 +7,10 @@
     Copyright (C) 1995 University of Amsterdam. All rights reserved.
 */
 
+#if !defined(__WIN32__) && defined(WIN32)
+#define __WIN32__ 1
+#endif
+
 #ifdef __WIN32__
 #define HAVE_MALLOC_H 1
 #define HAVE_SIGNAL_H 1
@@ -41,8 +45,7 @@
 #include <windows.h>
 #endif
 
-/*#define SICSTUS 1*/			/* SICStus Prolog version 3.x */
-/*#define SWI 1*/			/* SWI-Prolog version 2.5! and up */
+#define SWI 1			/* SWI-Prolog version 2.5! and up */
 
 #ifdef __GNUC__
 #define TermVector(name, size)  Term name[size]

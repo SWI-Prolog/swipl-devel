@@ -3,13 +3,13 @@
 PLHOME=..\..\..
 !include $(PLHOME)\src\rules.mk
 
-INCLUDE=$(INCLUDE);E:\jan\include;..\include
-LIB=$(LIB);E:\jan\lib
-XLIBS=$(PLHOME)\lib\uxnt.lib $(PLLIB) jpeglib2.lib xpm.lib comdlg32.lib
+INCLUDE=$(INCLUDE);..\include
+XLIBS=$(UXLIB) $(PLLIB) jpeglib2.lib xpm.lib comdlg32.lib
 
 XPCEDLL=xpce.dll
+XPCE2PL=xpce2pl.dll
 
-all:	$(XPCEDLL)
+all:	$(XPCE2PL)
 
 ################################################################
 # ADT 		--- Abstract Data Types
@@ -215,4 +215,30 @@ OBJECTS=	$(ADTOBJS) \
 
 $(XPCEDLL):	$(OBJECTS)
 		$(LD) $(LDFLAGS) /out:$@ /dll $(OBJECTS) $(LIBS) $(XLIBS)
+	
+################################################################
+# Build SWI-Prolog interface
+################################################################
+
+PLOBJ=		$(OBJECTS) ..\pl\src\interface.obj
+
+$(XPCE2PL):	$(PLOBJ)
+		$(LD) $(LDFLAGS) /out:$@ /dll $(OBJECTS) $(LIBS) $(XLIBS)
+
+################################################################
+# Installation
+################################################################
+
+IBASE=	$(PLBASE)\xpce
+IDIRS=	$(IBASE)\appl-help \
+	$(IBASE)\bitmaps \
+	$(IBASE)\man \
+	$(IBASE)\prolog \
+	$(IBASE)\prolog\boot \
+	$(IBASE)\prolog\contrib \
+	$(IBASE)\prolog\demo \
+	$(IBASE)\prolog\lib
+
+install::
+	copy $(XPCE2PL) $(PLBASE)\bin
 	
