@@ -21,8 +21,8 @@ EOF
 fi
 
 grep -v src/msw/ srcfiles | \
-grep -v prolog/pwboot/ srcfiles | \
-grep -v quintus/ srcfiles | \
+grep -v prolog/pwboot/ | \
+grep -v quintus/ | \
 grep -v /prowindows | \
 	sed "s@^\./@xpce-$version/@" > tapefiles
 
