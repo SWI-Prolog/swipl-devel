@@ -1398,6 +1398,21 @@ match_shortref(dtd_parser *p)
 			  p->cdata->size, (ichar *)p->cdata->data)) )
       { p->cdata->size -= len;
 
+	if ( p->cdata_must_be_empty )
+	{ int blank = TRUE;
+	  const ichar *s;
+	  int i;
+
+	  for(s = p->cdata->data, i=0; i++ < p->cdata->size; s++)
+	  { if ( !HasClass(p->dtd, *s, CH_BLANK) )
+	    { blank = FALSE;
+	      break;
+	    }
+	  }
+
+	  p->blank_cdata = blank;
+	}
+
 	process_entity(p, map->to->name); /* TBD: optimise */
 	break;
       }
@@ -2217,8 +2232,22 @@ allow_for(dtd_element *in, dtd_element *e)
 
 
 static int
-open_element(dtd_parser *p, dtd_element *e)
-{ if ( p->environments )
+open_element(dtd_parser *p, dtd_element *e, int warn)
+{ if ( !p->environments && p->enforce_outer_element )
+  { dtd_element *f = p->enforce_outer_element->element;
+
+    if ( f && f != e )
+    { if ( !f->structure ||
+	   !f->structure->omit_open )
+	gripe(ERC_OMITTED_OPEN, f->name->name);
+
+      open_element(p, f, TRUE);
+      if ( p->on_begin_element )
+	(*p->on_begin_element)(p, f, 0, NULL);
+    }
+  }
+
+  if ( p->environments )
   { sgml_environment *env = p->environments;
 
     if ( env->element->undefined )
@@ -2238,7 +2267,8 @@ open_element(dtd_parser *p, dtd_element *e)
         push_element(p, e, FALSE);
 	return TRUE;
       case IE_EXCLUDED:
-	gripe(ERC_NOT_ALLOWED, e->name->name);
+	if ( warn )
+	  gripe(ERC_NOT_ALLOWED, e->name->name);
 	/*FALLTHROUGH*/
       case IE_NORMAL:
 	for(; env; env=env->parent)
@@ -2271,15 +2301,20 @@ open_element(dtd_parser *p, dtd_element *e)
 	    break;
 	}
     }
-    if ( e == CDATA_ELEMENT )
-      gripe(ERC_VALIDATE, "#PCDATA not allowed here");
-    else
-      gripe(ERC_NOT_ALLOWED, e->name->name);
+
+    if ( warn )
+    { if ( e == CDATA_ELEMENT )
+	gripe(ERC_VALIDATE, "#PCDATA not allowed here");
+      else
+	gripe(ERC_NOT_ALLOWED, e->name->name);
+    }
   }
 
-  push_element(p, e, FALSE);
-
-  return TRUE;
+  if ( warn )
+  { push_element(p, e, FALSE);
+    return TRUE;
+  } else
+    return FALSE;
 }
 
 
@@ -2511,20 +2546,6 @@ process_begin_element(dtd_parser *p, const ichar *decl)
     dtd_element *e = find_element(dtd, id);
     int empty = FALSE;
 
-    if ( !p->environments && p->enforce_outer_element )
-    { dtd_element *f = p->enforce_outer_element->element;
-
-      if ( f && f != e )
-      { if ( !f->structure ||
-	     !f->structure->omit_open )
-	  gripe(ERC_OMITTED_OPEN, f->name->name);
-
-	open_element(p, f);
-	if ( p->on_begin_element )
-	  (*p->on_begin_element)(p, f, 0, NULL);
-      }
-    }
-
     if ( !e->structure )
     { dtd_edef *def;
       if ( !dtd->implicit )
@@ -2536,7 +2557,7 @@ process_begin_element(dtd_parser *p, const ichar *decl)
       def->type = C_EMPTY;
     }
 
-    open_element(p, e);
+    open_element(p, e, TRUE);
 
     decl=s;
     if ( (s=process_attributes(p, e, decl, atts, &natts)) )
@@ -3027,6 +3048,14 @@ update_space_mode(dtd_parser *p, dtd_element *e,
 }
 
 
+static void
+empty_cdata(dtd_parser *p)
+{ empty_ocharbuf(p->cdata);
+  p->blank_cdata = TRUE;
+  p->cdata_must_be_empty = FALSE;
+}
+
+
 static int
 emit_cdata(dtd_parser *p, int last)
 { dtd *dtd = p->dtd;
@@ -3111,7 +3140,9 @@ emit_cdata(dtd_parser *p, int last)
     return TRUE;
 
   if ( !p->blank_cdata )
-  { if ( p->on_data )
+  { if ( p->cdata_must_be_empty )
+      gripe(ERC_VALIDATE, "#PCDATA not allowed here");
+    if ( p->on_data )
       (*p->on_data)(p, EC_CDATA, p->cdata->size, data);
   } else if ( p->environments )
   { sgml_environment *env = p->environments;
@@ -3124,8 +3155,7 @@ emit_cdata(dtd_parser *p, int last)
     }
   }
   
-  empty_ocharbuf(p->cdata);
-  p->blank_cdata = TRUE;
+  empty_cdata(p);
 
   return TRUE;
 }
@@ -3161,11 +3191,10 @@ prepare_cdata(dtd_parser *p)
 
       p->blank_cdata = blank;
       if ( !blank )
-	open_element(p, CDATA_ELEMENT);
+	open_element(p, CDATA_ELEMENT, TRUE);
     }
   } else
-  { empty_ocharbuf(p->cdata);
-    p->blank_cdata = TRUE;
+  { empty_cdata(p);
   }
 
   return TRUE;
@@ -3216,7 +3245,7 @@ process_entity(dtd_parser *p, const ichar *name)
 	case EC_CDATA:
 	  if ( (s=isee_character_entity(dtd, text, &chr)) && *s == '\0' )
 	  { if ( p->blank_cdata == TRUE && !HasClass(dtd, chr, CH_BLANK) )
-	    { open_element(p, CDATA_ELEMENT);
+	    { p->cdata_must_be_empty = !open_element(p, CDATA_ELEMENT, FALSE);
 	      p->blank_cdata = FALSE;
 	    }
 	      
@@ -3475,7 +3504,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	  return;
 	case DM_DATA:
 	  if ( p->blank_cdata == TRUE && !HasClass(dtd, chr, CH_BLANK) )
-	  { open_element(p, CDATA_ELEMENT);
+	  { p->cdata_must_be_empty = !open_element(p, CDATA_ELEMENT, FALSE);
 	    p->blank_cdata = FALSE;
 	  }
 #ifdef UTF8
@@ -3501,8 +3530,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 			     process_end_element(p, p->buffer->data));
 	}
 	empty_icharbuf(p->buffer);
-	empty_ocharbuf(p->cdata);
-	p->blank_cdata = TRUE;
+	empty_cdata(p);
 	p->state = S_PCDATA;
       } else
       { add_cdata(p, dtd->charmap->map[chr], TRUE);

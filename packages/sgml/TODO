@@ -1,5 +1,6 @@
 TODO LIST:
 
+	* Cleanup space, SHORTREF and CDATA handling
 	* Handling of external entities (both param and normal) in Prolog
 	* Check ID/IDREF
 	* Handle memory-allocation errors

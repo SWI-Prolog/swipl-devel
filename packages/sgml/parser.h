@@ -133,6 +133,7 @@ typedef struct _dtd_parser
   icharbuf *buffer;			/* buffer for temp data */
   ocharbuf *cdata;			/* collected character data */
   int	   blank_cdata;			/* CDATA is all blank */
+  int	   cdata_must_be_empty;		/* Only shortrefs allowed here */
   const ichar *etag;			/* name of end-tag in CDATA */
   int	   etaglen;			/* length of end-tag */
   int	   grouplevel;			/* [..] level in declaration */
