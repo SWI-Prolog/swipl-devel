@@ -34,5 +34,6 @@
 #define ERR_UNDEFINED_PROC     24	/* Definition def */
 #define ERR_SIGNALLED	       25	/* int sig, char *name */
 #define ERR_CLOSED_STREAM      26	/* IOSTREAM * */
+#define ERR_BUSY	       27	/* mutexes */
 
 #define MSG_ERRNO		((char *)(-1))

@@ -125,55 +125,21 @@ source-code compatible over Unix/X11 and Win32 (Windows 95 and NT).
 
 \input{xpce}
 
-\section{Version 1.5 Release Notes}
+\section{Release Notes}
 
-There are not many changes between version 1.4 and 1.5.  The C-sources
-have been cleaned and comments have been updated.  The stack memory 
-management based on using the MMU has been changed to run on a number
-of System-V Unix systems offering shared memory.  Handling dates has
-been changed.  All functions handling dates now return a floating
-point number, expressing the time in seconds since January 1, 1970.
-A predicate convert_time/8 is available to get the year, month, etc.
-The predicate time/6 has been deleted.  get_time/1 and convert_time/8
-together do the same.
-
-From version 1.5, the system is distributed in source form, rather than
-in object form as used with previous releases.  This allows users to port
-SWI-Prolog to new machines, extend and improve the system.  If you want
-your changes to be incorporated in the next release, please indicate
-all changes using a C-preprocessor flag and send complete source files
-back to me.  Difference listings are of no use, as I generally won't have
-exactly the same version around.
+Collected release-notes. This section only contains some highlights.
+Smaller changes to especially older releases have been removed. For
+a complete log, see the file \file{ChangeLog} from the distribution.
 
 
-\section{Version 1.6 Release Notes}
-
-Version 1.6 is completely compatible with version 1.5.  Some new features
-have been added, the system has been ported to various new platforms and
-there is a provisional interface to GNU~Emacs.  This interface will be
-improved and documented later.
-
-The WAM virtual-machine interpreter has been modified to use GCC-2's
-support for threaded code.
-
-From version 1.6, the sources are now versioned using the CVS version
-control system.
-
-
-\section{Version 1.7 Release Notes}
-
-Version 1.7 integrates the GNU-readline library, offering powerful
-history and command-line editing both using Emacs and vi key-bindings.
-
-
-\section{Version 1.8 Release Notes}
+\subsection{Version 1.8 Release Notes}
 
 Version 1.8 offers a stack-shifter to provide dynamically expanding
 stacks on machines that do not offer operating-system support for
 implementing dynamic stacks.
 
 
-\section{Version 1.9 Release Notes}
+\subsection{Version 1.9 Release Notes}
 
 Version 1.9 offers better portability including an MS-Windows 3.1
 version.  Changes to the Prolog system include:
@@ -193,13 +159,7 @@ sources of individual clauses.
 \end{itemlist}
 
 
-\section{Version 2.0 Release Notes}
-
-\index{Win32s}
-Version 2.0 is first of all a freeze of all the features added to the
-various 1.9.x releases.  Version 2.0.6 for PC has moved from the WATCOM
-C 32-bit windows extender to Windows~NT and runs under Windows 3.1 using
-the Win32s NT emulator.
+\subsection{Version 2.0 Release Notes}
 
 New features offered:
 
@@ -218,69 +178,8 @@ Prolog streams may be redefined through the foreign language interface,
 facilitating much simpler integration in window environments.
 \end{itemlist}
 
-Version 2.0.6 offers a few incompatibilities:
 
-\begin{itemlist}
-    \item [retractall/1]
-In previous releases, the definition of retractall/1 was:
-\begin{code}
-retractall(Term) :-
-        retract(Term),
-        fail.
-retractall(_).
-\end{code}
-As from version 2.0.6, retractall/1 is implemented as a deterministic
-foreign predicate compatible with Quintus Prolog.  It behaves as:
-\begin{code}
-retractall(Head) :-
-        retract(Head),
-        fail.
-retractall(Head) :-
-        retract((Head :- _)),
-        fail.
-retractall(_).
-\end{code}
-I.e. the definition behaves the same when handling predicates consisting
-of facts.  Clauses with a non-true body will be retracted if their head
-matches.
-    \item [Foreign interface types]
-All foreign interface types now have names ending in \ctype{_t} to lessen
-the chance for conflicts.  \ctype{term}, \ctype{atomic}, \ctype{functor} and
-\ctype{module} have \exam{\#define}'s for backward compatibility.
-    \item [PL_register_foreign()]
-The attributes is now a bitwise or of the attribute flags rather than
-a 0 terminated list.  This has no consequences for predicates that have
-no attributes (99\% of them), while predicates with just one attribute
-will generate a compiler warning, but work properly otherwise.
-Predicates with more than one attributes must be changed.
-    \item [\cglobalvar{PL_dispatch_events}]
-This pointer is replaced by PL_dispatch_hook(). A function was necessary
-for the Win32 \fileext{DLL} interface.
-\end{itemlist}
-
-
-\section{Version 2.1 Release Notes}
-
-In addition to several bug fixes, the 2.1 versions provide some new features:
-\begin{itemlist}
-    \item [setarg/3]
-A new predicate setarg/3 for extra-logical (destructive) assignment to
-arguments of terms is provided.
-    \item [Modified keysort/2]
-keysort/2 is now stable with regard to multiple values on the same key.
-Makes this predicate compatible with SICStus and Quintus.
-    \item [Modified grammar rule expansion]
-DCG translation of free variables now calls phrase/3, which has been changed
-slightly to deal with `un-parsing'.  Modification is probably not complete,
-but it fixes some problems encountered by Michael B\"ohlen.
-    \item [Exception handling]
-The top of the runtime stack are automatically dumped on floating point
-exceptions.
-    \item [Foreign interface]
-Added facilities to allow for embedding SWI-Prolog in C applications.
-\end{itemlist}
-
-\section{Version 2.5 Release Notes}
+\subsection{Version 2.5 Release Notes}
 
 Version 2.5 is an intermediate release on the path from 2.1 to 3.0. All
 changes are to the foreign-language interface, both to user- and
@@ -293,10 +192,6 @@ Quintus and SICStus Prolog foreign interface using the \const{+term}
 argument specification (see their respective manuals). This allows for
 writing foreign interfaces that are easily portable over these three
 Prolog platforms.
-
-According to the current plan, ISO compliant exception handling and
-hooks for source-code debugging will be added before the system will
-be called 3.0.
 
 Apart from various bug fixes listed in the Changelog file, these
 are the main changes since 2.1.0:
@@ -317,7 +212,7 @@ The predicate qsave_program/[1,2] allows for the creating of machine
 independent saved-states that load very quickly.
 \end{itemlist}
 
-\section{Version 2.6 Release Notes}
+\subsection{Version 2.6 Release Notes}
 
 Version 2.6 provides a stable implementation of the features added in
 the 2.5.x releases, but at the same time implements a number of new
@@ -339,21 +234,21 @@ Version 2.6.0 can create stand-alone executables by attaching the
 saved-state to the emulator.  See qsave_program/2.
 \end{itemlist}
 
-\section{Version 2.7 Release Notes}
+\subsection{Version 2.7 Release Notes}
 
 Version 2.7 reorganises the entire data-representation of the Prolog data
 itself.  The aim is to remove most of the assumption on the machine's
 memory layout to improve portability in general and enable embedding on
 systems where the memory layout may depend on invocation or on how the
 executable is linked.  The latter is notably a problem on the Win32
-platforms.  Porting to 64-bit architectures should be feasible now.
+platforms.  Porting to 64-bit architectures is feasible now.
 
 Furthermore, 2.7 lifts the limits on arity of predicates and number of
 variables in a clause considerably and allow for further expansion at
 minimal cost.
 
 
-\section{Version 2.8 Release Notes}
+\subsection{Version 2.8 Release Notes}
 
 \index{Alpha, DEC}\index{DEC, Alpha}%
 With version 2.8, we declare the data-representation changes of 2.7.x
@@ -364,7 +259,7 @@ represented in a compiled format. SWI-Prolog no longer limits the use of
 \funcref{malloc}{} or uses assumptions on the addresses returned by this
 function.
 
-\section{Version 2.9 Release Notes}
+\subsection{Version 2.9 Release Notes}
 
 Version 2.9 is the next step towards version 3.0, improving ISO
 compliance and introducing ISO compliant exception handling. New are
@@ -380,14 +275,14 @@ code using these constants compatible. Non-zero values other than
 \const{TRUE} (1) will be interpreted different.
 
 
-\section{Version 3.0 Release Notes}
+\subsection{Version 3.0 Release Notes}
 
 Complete redesign of the saved-state mechanism, providing the
 possibility of `program resources'. See resource/3, open_resource/3, and
 qsave_program/[1,2].
 
 
-\section{Version 3.1 Release Notes}
+\subsection{Version 3.1 Release Notes}
 
 Improvements on exception-handling. Allows relating software interrupts
 (signals) to exceptions, handling signals in Prolog and C (see
@@ -396,18 +291,68 @@ the \const{resource_error} exception and thus can be handled in
 Prolog using catch/3.
 
 
-\section{Version 3.2 Release Notes}
+\subsection{Version 3.3 Release Notes}
 
-Many small patches and improvements.  Support for XPCE 5.0 (improved
-exception-handling from foreign code, recorded-database interface from
-C).  Moved compiler to MSVC 5.0 on Windows, repackaged sources and
-projects to make building on Windows from the sources feasible for
-normal users.  Support for non-blocking Input streams.  Better and
-portable support for mmap()-based stacks on Unix.  Raised maximum
-stack size to 128 MB, etc.
+Version 3.3 is a major release, changing many things internally and
+externally.  The highlights are a complete redesign of the high-level
+I/O system, which is now based on explicit streams rather then current
+input/output.  The old Edinburgh predicates (see/1, tell/1, etc.) are
+now defined on top of this layer instead of the other way around.  This
+fixes various internal problems and removes Prolog limits on the number
+of streams.  Progress has been made to improve ISO compliance: handling
+strings as lists of one-character atoms is now supported (next to
+character codes as integers).  Many more exceptions have been added and
+printing of exceptions and messages is rationalised.
 
-As of 3.2.9, first steps in supporting multi-threaded applications
-(Unix, developers only).
+Finally, an alpha version of a multi-threaded SWI-Prolog for Linux is
+added. This version is still much slower than the single-threaded
+version due to frequent access to `thread-local-data' as well as some
+too detailed mutex locks. The basic thread API is ready for serious
+use and testing however.  See \secref{threads}.
+
+
+\subsubsection{Incompatible changes}
+
+A number of incompatible changes result from this upgrade.  They
+are all easily fixed however.
+
+\begin{itemlist}
+    \item [atom_chars/2]
+This predicate is now ISO compliant and thus generates a list of
+one-character atoms.  The behaviour of the old predicate is available
+in the ---also ISO compliant--- atom_codes/2 predicate.  Safest repair
+is a replacement of all \const{atom_chars} into \const{atom_codes}.  If
+you do not want to change any souce-code, you might want to use
+
+\begin{code}
+user:goal_expansion(atom_chars(A,B), atom_codes(A,B)).
+\end{code}
+    \item [number_chars/2]
+Same applies for number_chars/2 and number_codes/2.
+    \item [feature/2, set_feature/2]
+These are replaced by the ISO compliant current_prolog_flag/2 and
+set_prolog_flag/2.  The library \pllib{backcomp} provides definitions
+for feature/2 and set_feature/2, so no source {\bf has} to be updated.
+    \item [Accessing command-line arguments]    
+This used to be provided by the undocumented '\$argv'/1 and Quintus
+compatible library unix/1.  Now there is also documented
+\term{current_prolog_flag}{argv, Argv}.
+    \item [dup_stream/2]
+Has been deleted.  New stream-aliases can deal with most of the problems
+for which dup_stream/2 was designed and dup/2 from the \jargon{clib}
+package can with most others.
+    \item [op/3]
+Operators are not {\bf local to modules}.  This implies any modification
+of the operator-table does not influence other modules. This is
+consistent with the proposed ISO behaviour and a necessity to have
+any usable handling of operators in a multi-threaded environment.
+    \item [set_prolog_flag(character_escapes, Bool)]
+This prolog flag is now an interface to changing attributes on the
+current source-module, effectively making this flag module-local as
+well.  This is required for consistent handling of sources written
+with ISO (obligatory) character-escape sequences together with old
+Edinburgh code.
+\end{itemlist}
 
 
 \section{Acknowledgements}

@@ -18,7 +18,7 @@
 	    progman_setup/0		% Installs icons
 	  ]).
 
-:- (   feature(dde, true)
+:- (   current_prolog_flag(dde, true)
    ->  true
    ;   '$warning'('Module "library(progman)" requires DDE support')
    ).
@@ -117,7 +117,7 @@ progman_setup :-
 	explain(start),
 
 	program_group('SWI-Prolog', Group),
-	feature(executable, PlExe),
+	current_prolog_flag(executable, PlExe),
 	prolog_to_os_filename(PlExe, OsPlExe),
 
 	progman_make_group(Group),

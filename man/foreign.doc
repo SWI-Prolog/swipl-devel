@@ -21,13 +21,14 @@ C and use Prolog as an embedded logical engine.
 
 \section{Overview of the Interface}
 
-A special include file called \file{SWI-Prolog.h} should be included with
-each C-source file that is to be loaded via the foreign interface.  The
-installation process installs this file in the directory \file{include}
-in the SWI-Prolog home directory (\exam{?- feature(home, Home).}).  This
-C-header file defines various data types, macros and functions that can
-be used to communicate with SWI-Prolog.  Functions and macros can be
-divided into the following categories:
+A special include file called \file{SWI-Prolog.h} should be included
+with each C-source file that is to be loaded via the foreign interface.
+The installation process installs this file in the directory
+\file{include} in the SWI-Prolog home directory (\exam{?-
+current_prolog_flag(home, Home).}). This C-header file defines various
+data types, macros and functions that can be used to communicate with
+SWI-Prolog. Functions and macros can be divided into the following
+categories:
 
 \begin{shortlist}
     \item Analysing Prolog terms
@@ -62,11 +63,11 @@ Prolog process.%
 \subsection{What linking is provided?}
 
 The \jargon{static linking} schema can be used on all versions of
-SWI-Prolog.  Whether or not dynamic linking is supported can be deduced
-from the feature \const{open_shared_object} (see feature/2).  If this
-feature yields true, open_shared_object/2 and related predicates are
-defined. See \secref{shlib} for a suitable high-level interface to these
-predicates.
+SWI-Prolog. Whether or not dynamic linking is supported can be deduced
+from the prolog-flag \const{open_shared_object} (see
+current_prolog_flag/2). If this prolog-flag yields true,
+open_shared_object/2 and related predicates are defined. See
+\secref{shlib} for a suitable high-level interface to these predicates.
 
 \subsection{What kind of loading should I be using?}
 
@@ -132,7 +133,7 @@ PL_register_foreign().
 
 This section discusses the functionality of the (autoload) library
 \file{shlib.pl}, providing an interface to shared libraries.   This
-library can only be used if the feature \const{open_shared_object} is
+library can only be used if the prolog-flag \const{open_shared_object} is
 enabled.
 
 \begin{description}
@@ -206,9 +207,10 @@ install()
 \subsection{Static Linking}                             \label{sec:staticl}
 
 Below is an outline of the files structure required for statically
-linking SWI-Prolog with foreign extensions. \file{\ldots/pl} refers to the
-SWI-Prolog home directory (see feature/2). \file{<arch>} refers to the
-architecture identifier that may be obtained using feature/2.
+linking SWI-Prolog with foreign extensions. \file{\ldots/pl} refers to
+the SWI-Prolog home directory (see current_prolog_flag/2). \file{<arch>}
+refers to the architecture identifier that may be obtained using
+current_prolog_flag/2.
 
 \begin{center}
 \begin{tabular}{ll}
@@ -1185,7 +1187,7 @@ call_chars(const char *goal)
     In the current implementation, the string is surrounded by
     \arg{chr} and any occurence of \arg{chr} is doubled.  In the
     future the behaviour will depend on the \const{character_escape}
-    feature.  See feature/2.
+    prolog-flag.  See current_prolog_flag/2.
 \end{description}
 
 
@@ -1865,13 +1867,13 @@ second example, we look at handling a `netmask'.  Finally, we discuss
 the outline of the DDE interface.
 
 \paragraph{Integer sets} with not-to-far-apart upper- and lower-bounds
-can be represented using bit-vectors.   Common set operations, such as
-union, intersection, etc.  are reduced to simple and'ing and or'ing the
-bitvectors.  This can be done in Prolog, using a compound term holding
-integer arguments.  Especially if the integers are kept below the
-maximum tagged integer value (see feature/2), this representation is
+can be represented using bit-vectors. Common set operations, such as
+union, intersection, etc. are reduced to simple and'ing and or'ing the
+bitvectors. This can be done in Prolog, using a compound term holding
+integer arguments. Especially if the integers are kept below the maximum
+tagged integer value (see current_prolog_flag/2), this representation is
 fairly space-efficient (wasting 1 word for the functor and and 7 bits
-per integer for the tags).  Arithmetic can all be performed in Prolog
+per integer for the tags). Arithmetic can all be performed in Prolog
 too.
 
 For really demanding applications, foreign representation will perform
@@ -2138,7 +2140,7 @@ Linker used to link the raw executable.  Default is to use the C-compiler
 (Win32: link.exe).
     \cmdlineoptionitem{-cc}{C-compiler}
 Compiler for \fileext{c} files found on the commandline.  Default is the
-compiler used to build SWI-Prolog (see feature/2) (Win32: cl.exe).
+compiler used to build SWI-Prolog (see current_prolog_flag/2) (Win32: cl.exe).
     \cmdlineoptionitem{-c++}{C++-compiler}
 Compiler for C++ sources (extensions \fileext{cpp}, \fileext{cxx},
 \fileext{cc} or \fileext{C}) files found on the commandline.  Default is

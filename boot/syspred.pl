@@ -101,9 +101,12 @@ $map_style_check(atom,     	    2'0000001).
 $map_style_check(singleton, 	    2'0000010).
 $map_style_check(dollar,   	    2'0000100).
 $map_style_check((discontiguous),   2'0001000).
-$map_style_check(string,	    2'0010000).
-$map_style_check(dynamic,	    2'0100000).
+$map_style_check(dynamic,	    2'0010000).
 
+style_check(+string) :- !,
+	set_prolog_flag(double_quotes, string).
+style_check(-string) :- !,
+	set_prolog_flag(double_quotes, codes).
 style_check(Spec) :-
 	$style_check(Old, Old),
 	$map_bits($map_style_check, Spec, Old, New),
@@ -273,6 +276,7 @@ gensym(Base, Atom) :-
 dwim_match(A1, A2) :-
 	dwim_match(A1, A2, _).
 
+
 		/********************************
 		*             SOURCE            *
 		*********************************/
@@ -364,7 +368,7 @@ current_predicate(Name, Term) :-
 	$c_current_predicate(Name, DefModule:Head),
 	$defined_predicate(DefModule:Head), !.
 current_predicate(Name, Term) :-
-	feature(autoload, true),
+	current_prolog_flag(autoload, true),
 	$strip_module(Term, Module, Head),
 	functor(Head, Name, Arity),
 	$find_library(Module, Name, Arity, _LoadModule, _Library), !.
@@ -556,7 +560,8 @@ statistics :-
 	       [TrailLimit, Trail, TrailUsed]),
 
 	gc_statistics,
-	shift_statistics.
+	shift_statistics,
+	thread_statistics.
 
 gc_statistics :-
 	statistics(collections, Collections),
@@ -579,6 +584,16 @@ shift_statistics :-
 	format('~nStack shifts: ~D local, ~D global, ~D trail.~n',
 	       [LS, GS, TS]).
 shift_statistics.
+
+thread_statistics :-
+	current_prolog_flag(threads, true), !,
+	statistics(threads, Active),
+	statistics(threads_created, Created),
+	statistics(thread_cputime, CpuTime),
+	Finished is Created - Active,
+	format('~n~D threads, ~D finished threads used ~2f seconds.~n',
+	       [Active, Finished, CpuTime]).
+thread_statistics.
 
 
 		/********************************

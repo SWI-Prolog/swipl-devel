@@ -79,7 +79,9 @@ pthread_mutex_t _PL_mutexes[] =
   PTHREAD_MUTEX_INITIALIZER,		/* L_TABLE */
   PTHREAD_MUTEX_INITIALIZER,		/* L_BREAK */
   PTHREAD_MUTEX_INITIALIZER,		/* L_INIT_ALLOC */
-  PTHREAD_MUTEX_INITIALIZER		/* L_FILE */
+  PTHREAD_MUTEX_INITIALIZER,		/* L_FILE */
+  PTHREAD_MUTEX_INITIALIZER,		/* L_FEATURE */
+  PTHREAD_MUTEX_INITIALIZER		/* L_OP */
 };
 
 #define LOCK()   PL_LOCK(L_THREAD)
@@ -91,7 +93,10 @@ pthread_mutex_t _PL_mutexes[] =
 
 static PL_thread_info_t *alloc_thread(void);
 static void	freeThreadMessages(PL_local_data_t *ld);
+static void	freeThreadSignals(PL_local_data_t *ld);
 static void	unaliasThread(atom_t name);
+static void	run_thread_exit_hooks();
+static void	free_thread_info(PL_thread_info_t *info);
 
 
 		 /*******************************
@@ -136,6 +141,10 @@ PL_initialise_thread(PL_thread_info_t *info)
   pthread_mutex_init(&info->thread_data->thread.queue_mutex, NULL);
   pthread_cond_init(&info->thread_data->thread.cond_var, NULL);
 
+  LOCK();
+  GD->statistics.threads_created++;
+  UNLOCK();
+
   return TRUE;
 }
 
@@ -156,8 +165,17 @@ free_prolog_thread(void *data)
   discardBuffer(&ld->fli._discardable_buffer);
   for(i=0; i<BUFFER_RING_SIZE; i++)
     discardBuffer(&ld->fli._buffer_ring[i]);
+  
+  if ( ld->feature.table )
+    destroyHTable(ld->feature.table);
 
   freeThreadMessages(ld);
+  freeThreadSignals(ld);
+
+  LOCK();
+  GD->statistics.threads_finished++;
+  GD->statistics.thread_cputime += CpuTime();
+  UNLOCK();
 }
 
 
@@ -169,6 +187,8 @@ initPrologThreads()
   info = alloc_thread();
   info->tid = pthread_self();
   pthread_setspecific(PL_ldata, info->thread_data);
+  GD->statistics.thread_cputime = 0.0;
+  GD->statistics.threads_created = 1;
 }
 
 		 /*******************************
@@ -244,12 +264,24 @@ PL_thread_self()
 }
 
 
+const char *
+threadName(int id)
+{ PL_thread_info_t *info = &threads[id];
+
+  if ( info->thread_data->thread.name )
+    return PL_atom_chars(info->thread_data->thread.name);
+
+  return NULL;
+}
+
+
 static const opt_spec make_thread_options[] = 
 { { ATOM_local,		OPT_INT },
   { ATOM_global,	OPT_INT },
   { ATOM_trail,	        OPT_INT },
   { ATOM_argument,	OPT_INT },
   { ATOM_alias,		OPT_ATOM },
+  { ATOM_detached,	OPT_BOOL },
   { NULL_ATOM,		0 }
 };
 
@@ -275,6 +307,9 @@ start_thread(void *closure)
     { info->status = PL_THREAD_FAILED;
     }
   }    
+  run_thread_exit_hooks();
+  if ( info->detached )
+    free_thread_info(info);
 
   return (void *)TRUE;
 }
@@ -285,6 +320,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 { PL_thread_info_t *info = alloc_thread();
   PL_local_data_t *ldnew = info->thread_data;
   atom_t alias = NULL_ATOM;
+  pthread_attr_t attr;
+
 
   if ( !scan_options(options, 0,
 		     ATOM_thread_option, make_thread_options,
@@ -292,7 +329,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 		     &info->global_size,
 		     &info->trail_size,
 		     &info->argument_size,
-		     &alias) )
+		     &alias,
+		     &info->detached) )
     fail;
 
   info->local_size    *= 1024;
@@ -308,14 +346,26 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
 					/* copy settings */
 
-  ldnew->prompt	       = LD->prompt;
-  ldnew->modules       = LD->modules;
-  ldnew->IO	       = LD->IO;
-  ldnew->_fileerrors   = LD->_fileerrors;
-  ldnew->_float_format = LD->_float_format;
+  ldnew->prompt			 = LD->prompt;
+  ldnew->modules		 = LD->modules;
+  ldnew->IO			 = LD->IO;
+  ldnew->_fileerrors		 = LD->_fileerrors;
+  ldnew->float_format		 = LD->float_format;
+  ldnew->_debugstatus		 = LD->_debugstatus;
+  ldnew->_debugstatus.retryFrame = NULL;
+  ldnew->feature.mask		 = LD->feature.mask;
+  if ( LD->feature.table )
+  { PL_LOCK(L_FEATURE);
+    ldnew->feature.table	 = copyHTable(LD->feature.table);
+    PL_UNLOCK(L_FEATURE);
+  }
 
-  if ( pthread_create(&info->tid, NULL, start_thread, info) != 0 )
+  pthread_attr_init(&attr);
+  if ( info->detached )
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+  if ( pthread_create(&info->tid, &attr, start_thread, info) != 0 )
     return PL_warning("Could not create thread: %s", OsError());
+  pthread_attr_destroy(&attr);
 					/* TBD: exception, unallocate! */
 
   return PL_unify_integer(id, info->pl_tid);
@@ -390,9 +440,23 @@ unify_thread_status(term_t status, PL_thread_info_t *info)
 
 word
 pl_thread_self(term_t self)
-{ DEBUG(1, Sdprintf("thread_self(): LD at %p\n", LD));
+{ return unify_thread(self, LD->thread.info);
+}
 
-  return PL_unify_integer(self, PL_thread_self());
+
+static void
+free_thread_info(PL_thread_info_t *info)
+{ if ( info->return_value )
+    PL_erase(info->return_value);
+  if ( info->goal )
+    PL_erase(info->goal);
+
+  if ( info->thread_data->thread.name )
+    unaliasThread(info->thread_data->thread.name);
+
+  freeHeap(info->thread_data, sizeof(*info->thread_data));
+
+  info->tid = 0;
 }
 
 
@@ -409,17 +473,7 @@ pl_thread_join(term_t thread, term_t retcode)
   
   rval = unify_thread_status(retcode, info);
    
-  if ( info->return_value )
-    PL_erase(info->return_value);
-  if ( info->goal )
-    PL_erase(info->goal);
-
-  if ( info->thread_data->thread.name )
-    unaliasThread(info->thread_data->thread.name);
-
-  freeHeap(info->thread_data, sizeof(*info->thread_data));
-
-  info->tid = 0;
+  free_thread_info(info);
 
   return rval;
 }
@@ -493,6 +547,163 @@ pl_current_thread(term_t id, term_t status, word h)
     case FRG_CUTTED:
     default:
       succeed;
+  }
+}
+
+		 /*******************************
+		 *	     CLEANUP		*
+		 *******************************/
+
+typedef struct _at_exit_goal
+{ struct _at_exit_goal *next;		/* Next in queue */
+  Module   module;			/* Module for running goal */
+  record_t goal;			/* Goal to run */
+} at_exit_goal;
+
+
+foreign_t
+pl_thread_at_exit(term_t goal)
+{ Module m = NULL;
+  at_exit_goal *eg = allocHeap(sizeof(*eg));
+
+  PL_strip_module(goal, &m, goal);
+  eg->next = NULL;
+  eg->module = m;
+  eg->goal = PL_record(goal);
+
+  eg->next = LD->thread.exit_goals;
+  LD->thread.exit_goals = eg;
+
+  succeed;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Newly pushed hooks are executed  after   all  currently registered hooks
+have finished. 
+
+Q: What to do with exceptions?
+Q: Should we limit the passes?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+run_thread_exit_hooks()
+{ at_exit_goal *eg;
+  mark m;
+  term_t goal = PL_new_term_ref();
+
+  while( (eg = LD->thread.exit_goals) )
+  { at_exit_goal *next;
+
+    LD->thread.exit_goals = NULL;	/* empty these */
+
+    Mark(m);
+    for( ; eg; eg = next)
+    { next = eg->next;
+  
+      PL_recorded(eg->goal, goal);
+      PL_erase(eg->goal);
+      callProlog(eg->module, goal, PL_Q_NODEBUG, NULL);
+      Undo(m);
+      freeHeap(eg, sizeof(*eg));
+    }
+  }
+}
+
+
+		 /*******************************
+		 *	   THREAD SIGNALS	*
+		 *******************************/
+
+typedef struct _thread_sig
+{ struct _thread_sig *next;		/* Next in queue */
+  Module   module;			/* Module for running goal */
+  record_t goal;			/* Goal to run */
+} thread_sig;
+
+
+foreign_t
+pl_thread_signal(term_t thread, term_t goal)
+{ Module m = NULL;
+  thread_sig *sg;
+  PL_thread_info_t *info;
+  PL_local_data_t *ld;
+
+  if ( !get_thread(thread, &info) )
+    fail;
+
+  PL_strip_module(goal, &m, goal);
+  sg = allocHeap(sizeof(*sg));
+  sg->next = NULL;
+  sg->module = m;
+  sg->goal = PL_record(goal);
+
+  LOCK();
+  ld = info->thread_data;
+  if ( !ld->thread.sig_head )
+    ld->thread.sig_head = ld->thread.sig_tail = sg;
+  else
+  { ld->thread.sig_tail->next = sg;
+    ld->thread.sig_tail = sg;
+  }
+  ld->pending_signals |= (1L << (SIG_THREAD_SIGNAL-1));
+  UNLOCK();
+
+  succeed;
+}
+
+
+void
+executeThreadSignals(int sig)
+{ thread_sig *sg, *next;
+  fid_t fid = PL_open_foreign_frame();
+  term_t goal = PL_new_term_ref();
+
+  LOCK();
+  sg = LD->thread.sig_head;
+  LD->thread.sig_head = LD->thread.sig_tail = NULL;
+  UNLOCK();
+
+  for( ; sg; sg = next)
+  { term_t ex;
+    int rval;
+  
+    next = sg->next;
+    PL_recorded(sg->goal, goal);
+    PL_erase(sg->goal);
+    rval = callProlog(sg->module, goal, PL_Q_CATCH_EXCEPTION, &ex);
+    freeHeap(sg, sizeof(*sg));
+
+    if ( !rval && ex )
+    { PL_close_foreign_frame(fid);
+      PL_raise_exception(ex);
+
+      for(sg = next; sg; sg=next)
+      { next = sg->next;
+	PL_erase(sg->goal);
+	freeHeap(sg, sizeof(*sg));
+      }
+
+      return;
+    }
+
+    PL_rewind_foreign_frame(fid);
+  }
+
+  PL_discard_foreign_frame(fid);
+}
+
+
+static void
+freeThreadSignals(PL_local_data_t *ld)
+{ thread_sig *sg;
+  thread_sig *next;
+
+  for( sg = ld->thread.sig_head; sg; sg = next )
+  { next = sg->next;
+
+    PL_erase(sg->goal);
+    freeHeap(sg, sizeof(*sg));
   }
 }
 
@@ -623,6 +834,278 @@ freeThreadMessages(PL_local_data_t *ld)
   }
 }
 
+		 /*******************************
+		 *	    USER MUTEXES	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+User-level mutexes (critical sections in MS parlance).  
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static Table mutexTable;
+static int mutex_id;
+
+typedef struct _pl_mutex
+{ pthread_mutex_t mutex;		/* the system mutex */
+  int count;				/* lock count */
+  int owner;				/* integer id of owner */
+  word id;				/* id of the mutex */
+} pl_mutex;
+
+
+static int
+unify_mutex(term_t t, pl_mutex *m)
+{ if ( isAtom(m->id) )
+    return PL_unify_atom(t, m->id);
+  else
+    return PL_unify_term(t,
+			 PL_FUNCTOR, FUNCTOR_dmutex1,
+			 PL_INTEGER, valInt(m->id));
+}
+
+
+static int
+unify_mutex_owner(term_t t, int owner)
+{ if ( owner )
+    return unify_thread(t, &threads[owner]);
+  else
+    return PL_unify_nil(t);
+}
+
+
+foreign_t
+pl_mutex_create(term_t mutex)
+{ Symbol s;
+  atom_t name = NULL_ATOM;
+  pl_mutex *m;
+  word id;
+
+  LOCK();
+
+  if ( !mutexTable )
+    mutexTable = newHTable(16);
+  
+  if ( PL_get_atom(mutex, &name) )
+  { if ( (s = lookupHTable(mutexTable, (void *)name)) )
+    { UNLOCK();
+      return PL_error("mutex_create", 1, NULL, ERR_PERMISSION,
+		      ATOM_mutex, ATOM_create, mutex);
+    }
+    id = name;
+  } else if ( PL_is_variable(mutex) )
+  { id = consInt(mutex_id++);
+  } else
+  { UNLOCK();
+    return PL_error("mutex_create", 1, NULL, ERR_TYPE, ATOM_mutex, mutex);
+  }
+
+  m = allocHeap(sizeof(*m));
+  { pthread_mutexattr_t attr;		/* can this be local? */
+
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_setkind_np(&attr, PTHREAD_MUTEX_RECURSIVE_NP);
+    pthread_mutex_init(&m->mutex, &attr);
+  }
+  m->count = 0;
+  m->owner = 0;
+  m->id    = id;
+  addHTable(mutexTable, (void *)id, m);
+
+  UNLOCK();
+
+  return unify_mutex(mutex, m);
+}
+
+
+static int
+get_mutex(term_t t, pl_mutex **mutex)
+{ atom_t name;
+  word id = 0;
+
+  if ( PL_get_atom(t, &name) )
+  { id = name;
+  } else if ( PL_is_functor(t, FUNCTOR_dmutex1) )
+  { term_t a = PL_new_term_ref();
+    long i;
+
+    PL_get_arg(1, t, a);
+    if ( PL_get_long(a, &i) )
+      id = consInt(i);
+  }
+  if ( !id )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_mutex, t);
+
+  if ( mutexTable )
+  { Symbol s = lookupHTable(mutexTable, (void *)id);
+
+    if ( s )
+    { *mutex = s->value;
+      return TRUE;
+    }
+  }
+
+  return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_mutex, t);
+}
+
+
+
+foreign_t
+pl_mutex_lock(term_t mutex)
+{ pl_mutex *m;
+
+  if ( !get_mutex(mutex, &m) )
+    fail;
+
+  if ( pthread_mutex_lock(&m->mutex) == 0 )
+  { m->count++;
+    m->owner = PL_thread_self();
+
+    succeed;
+  }
+
+  assert(0);				/* should not happen */
+  fail;
+}
+
+
+foreign_t
+pl_mutex_trylock(term_t mutex)
+{ pl_mutex *m;
+
+  if ( !get_mutex(mutex, &m) )
+    fail;
+
+  switch( pthread_mutex_trylock(&m->mutex) )
+  { case 0:
+      m->count++;
+      m->owner = PL_thread_self();
+      succeed;
+    case EBUSY:
+      fail;
+/*    return PL_error("mutex_trylock", 1, NULL,
+		      ERR_BUSY, ATOM_mutex, mutex);
+*/
+    default:
+      assert(0);			/* should not happen */
+      fail;
+  }
+}
+
+
+foreign_t
+pl_mutex_unlock(term_t mutex)
+{ pl_mutex *m;
+
+  if ( !get_mutex(mutex, &m) )
+    fail;
+
+  if ( pthread_mutex_unlock(&m->mutex) == 0 )
+  { if ( --m->count == 0 )
+      m->owner = 0;
+
+    succeed;
+  }
+
+  return PL_error("mutex_unlock", 1, MSG_ERRNO, ERR_PERMISSION,
+		  ATOM_mutex, ATOM_unlock, mutex);
+}
+
+
+foreign_t
+pl_mutex_unlock_all()
+{ TableEnum e;
+  Symbol s;
+  int tid = PL_thread_self();
+
+  if ( !mutexTable )
+    succeed;
+  
+  e = newTableEnum(mutexTable);
+  while( (s = advanceTableEnum(e)) )
+  { pl_mutex *m = s->value;
+    
+    if ( m->owner == tid )
+    { while( --m->count > 0 )
+	pthread_mutex_unlock(&m->mutex);
+    }
+  }
+  freeTableEnum(e);
+  succeed;
+}
+
+
+foreign_t
+pl_mutex_destroy(term_t mutex)
+{ pl_mutex *m;
+  Symbol s;
+
+  if ( !get_mutex(mutex, &m) )
+    fail;
+
+  if ( pthread_mutex_destroy(&m->mutex) != 0 )
+    return PL_error("mutex_destroy", 1, NULL,
+		    ERR_PERMISSION, ATOM_mutex, ATOM_destroy, mutex);
+
+  LOCK();
+  s = lookupHTable(mutexTable, (void *)m->id);
+  deleteSymbolHTable(mutexTable, s);
+  freeHeap(m, sizeof(*m));
+  UNLOCK();
+
+  succeed;
+}
+
+
+foreign_t
+pl_current_mutex(term_t mutex, term_t owner, term_t count, word h)
+{ TableEnum e;
+  Symbol s;
+  mark mrk;
+
+  switch(ForeignControl(h))
+  { case FRG_FIRST_CALL:
+    { if ( PL_is_variable(mutex) )
+      { if ( !mutexTable )
+	  fail;
+	e = newTableEnum(mutexTable);
+      } else
+      { pl_mutex *m;
+
+        if ( get_mutex(mutex, &m) &&
+	     unify_mutex_owner(owner, m->owner) &&
+	     PL_unify_integer(count, m->count) )
+	  succeed;
+
+	fail;
+      }
+      break;
+    }
+    case FRG_REDO:
+      e = ForeignContextPtr(h);
+      break;
+    case FRG_CUTTED:
+      e = ForeignContextPtr(h);
+      freeTableEnum(e);
+    default:
+      succeed;
+  }
+
+  Mark(mrk);
+  while ( (s = advanceTableEnum(e)) )
+  { pl_mutex *m = s->value;
+
+    if ( unify_mutex(mutex, m) &&
+	 unify_mutex_owner(owner, m->owner) &&
+	 PL_unify_integer(count, m->count) )
+    { ForeignRedoPtr(e);
+    }
+    Undo(mrk);
+  }
+
+  freeTableEnum(e);
+  fail;
+}
+
 
 		 /*******************************
 		 *	  DEBUGGING AIDS	*
@@ -646,5 +1129,4 @@ lBase()
 }
 
 #endif /*O_PLMT*/
-
 

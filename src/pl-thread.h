@@ -20,6 +20,7 @@ typedef struct _PL_thread_info_t
   ulong		    global_size;
   ulong		    trail_size;
   ulong		    argument_size;
+  bool		    detached;		/* detached thread */
   PL_local_data_t  *thread_data;	/* The thread-local data  */
   pthread_t	    tid;		/* Thread identifier */
   int		    status;		/* PL_THREAD_* */
@@ -35,6 +36,8 @@ typedef struct _PL_thread_info_t
 #define PL_THREAD_SUCCEEDED	3
 #define PL_THREAD_FAILED	4
 #define PL_THREAD_EXCEPTION	5
+
+#define SIG_THREAD_SIGNAL SIGUSR1
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 				Thread-local data
@@ -73,9 +76,22 @@ extern pthread_mutex_t _PL_mutexes[];	/* Prolog mutexes */
 #define L_BREAK	       10
 #define L_INIT_ALLOC   11
 #define L_FILE	       12
+#define L_FEATURE      13
+#define L_OP	       14
 
+#ifdef O_DEBUG_MT
+#define PL_LOCK(id) \
+	do { Sdprintf("%s:%d: LOCK(%s)\n", __BASE_FILE__, __LINE__, #id); \
+             pthread_mutex_lock(&_PL_mutexes[id]); \
+	   } while(0)
+#define PL_UNLOCK(id) \
+	do { Sdprintf("%s:%d: UNLOCK(%s)\n", __BASE_FILE__, __LINE__, #id); \
+	     pthread_mutex_unlock(&_PL_mutexes[id]); \
+	   } while(0)
+#else
 #define PL_LOCK(id)   pthread_mutex_lock(&_PL_mutexes[id])
 #define PL_UNLOCK(id) pthread_mutex_unlock(&_PL_mutexes[id])
+#endif
 
 #if 0
 #define GET_LD    PL_local_data_t *__PL_ld = GLOBAL_LD;
@@ -103,7 +119,25 @@ extern word		pl_thread_kill(term_t thread, term_t sig);
 extern word		pl_thread_send_message(term_t thread, term_t msg);
 extern word		pl_thread_get_message(term_t msg);
 extern word		pl_thread_peek_message(term_t msg);
+extern foreign_t	pl_thread_signal(term_t thread, term_t goal);
+
+extern foreign_t	pl_thread_at_exit(term_t goal);
 extern int		PL_thread_self(void);
+
+extern foreign_t	pl_mutex_create(term_t mutex);
+extern foreign_t	pl_mutex_destroy(term_t mutex);
+extern foreign_t	pl_mutex_lock(term_t mutex);
+extern foreign_t	pl_mutex_trylock(term_t mutex);
+extern foreign_t	pl_mutex_unlock(term_t mutex);
+extern foreign_t	pl_mutex_unlock_all(void);
+extern foreign_t	pl_current_mutex(term_t mutex,
+					 term_t owner,
+					 term_t count,
+					 word h);
+
+const char *		threadName(int id);
+void			executeThreadSignals(int sig);
+foreign_t		pl_attach_xterm(term_t in, term_t out);
 #else /*O_PLMT*/
 
 		 /*******************************

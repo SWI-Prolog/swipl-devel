@@ -99,6 +99,9 @@ typedef struct
   struct read_buffer _rb;		/* keep read characters here */
   struct var_table vt;			/* Data about variables */
 
+  Module	module;			/* Current source module */
+  unsigned int	flags;			/* Module syntax flags */
+
   term_t	exception;		/* raised exception */
   term_t	varnames;		/* Report variables */
   term_t	singles;		/* Report singleton variables */
@@ -123,6 +126,8 @@ init_read_data(ReadData _PL_rd, IOSTREAM *in)
   initBuffer(&var_buffer);
   _PL_rd->exception = PL_new_term_ref();
   rb.stream = in;
+  _PL_rd->module = MODULE_parse;
+  _PL_rd->flags  = _PL_rd->module->flags; /* change for options! */
 }
 
 static void
@@ -134,7 +139,7 @@ free_read_data(ReadData _PL_rd)
   discardBuffer(&var_buffer);
 }
 
-#define CHARESCAPE trueFeature(CHARESCAPE_FEATURE)
+#define DO_CHARESCAPE true(_PL_rd, CHARESCAPE)
 
 #define RBSIZE	512		/* initial size of read buffer */
 
@@ -445,7 +450,7 @@ raw_read2(ReadData _PL_rd)
 		newlines = 0;
 		addToBuffer(c, _PL_rd);
 		while((c=getchr()) != EOF && c != '\'')
-		{ if ( c == '\\' && CHARESCAPE )
+		{ if ( c == '\\' && DO_CHARESCAPE )
 		  { addToBuffer(c, _PL_rd);
 		    if ( (c = getchr()) == EOF )
 		      goto eofinquoted;
@@ -467,7 +472,7 @@ raw_read2(ReadData _PL_rd)
 		newlines = 0;
 		addToBuffer(c, _PL_rd);
 		while((c=getchr()) != EOF && c != '"')
-		{ if ( c == '\\' && CHARESCAPE )
+		{ if ( c == '\\' && DO_CHARESCAPE )
 		  { addToBuffer(c, _PL_rd);
 		    if ( (c = getchr()) == EOF )
 		      goto eofinstr;
@@ -543,16 +548,12 @@ raw_read2(ReadData _PL_rd)
 static char *
 raw_read(ReadData _PL_rd)
 { char *s;
+  ttybuf tab;
 
-  if ( rb.stream == Sinput )		/* TBD: test for TTY, save locally! */
-  { ttybuf tab;
-
-    PushTty(&tab, TTY_SAVE);		/* make sure tty is sane */
-    PopTty(&ttytab);
-    s = raw_read2(_PL_rd);
-    PopTty(&tab);
-  } else
-    s = raw_read2(_PL_rd);
+  PushTty(rb.stream, &tab, TTY_SAVE);		/* make sure tty is sane */
+  PopTty(rb.stream, &ttytab);
+  s = raw_read2(_PL_rd);
+  PopTty(rb.stream, &tab);
 
   return s;
 }
@@ -743,7 +744,8 @@ scan_number(char **s, int b, Number n)
 #define NEXT(v)	do { c = (v); goto next; } while(0) 
 
 static void
-get_string(unsigned char *in, unsigned char **end, Buffer buf)
+get_string(unsigned char *in, unsigned char **end, Buffer buf,
+	   ReadData _PL_rd)
 { int n;
   int quote;
   char c;
@@ -762,7 +764,7 @@ get_string(unsigned char *in, unsigned char **end, Buffer buf)
 
       break;
     }
-    if ( c == '\\' && CHARESCAPE )
+    if ( c == '\\' && DO_CHARESCAPE )
     { int c2;
       int base;
       int xdigits;
@@ -1089,7 +1091,7 @@ get_token(bool must_be_op, ReadData _PL_rd)
     case SQ:	{ tmp_buffer b;
 
 		  initBuffer(&b);
-		  get_string(rdhere-1, &rdhere, (Buffer)&b);
+		  get_string(rdhere-1, &rdhere, (Buffer)&b, _PL_rd);
 		  cur_token.value.atom = lookupAtom(baseBuffer(&b, char));
 		  cur_token.type = (rdhere[0] == '(' ? T_FUNCTOR : T_NAME);
 		  discardBuffer(&b);
@@ -1100,13 +1102,18 @@ get_token(bool must_be_op, ReadData _PL_rd)
 		  char *s;
 
 		  initBuffer(&b);
-		  get_string(rdhere-1, &rdhere, (Buffer)&b);
+		  get_string(rdhere-1, &rdhere, (Buffer)&b, _PL_rd);
 		  s = baseBuffer(&b, char);
 #if O_STRING
- 		  if ( debugstatus.styleCheck & STRING_STYLE )
+ 		  if ( true(_PL_rd, DBLQ_STRING) )
 		    PL_put_string_chars(t, s);
 		  else
 #endif
+		  if ( true(_PL_rd, DBLQ_ATOM) )
+		    PL_put_atom_chars(t, s);
+		  else if ( true(_PL_rd, DBLQ_CHARS) )
+		    PL_put_list_chars(t, s);
+		  else
 		    PL_put_list_codes(t, s);
 
   		  cur_token.value.term = t;
@@ -1220,17 +1227,17 @@ typedef struct
 
 
 static bool
-isOp(atom_t atom, int kind, op_entry *e)
-{ Operator op = isCurrentOperator(atom, kind);
-  int pri;
+isOp(atom_t atom, int kind, op_entry *e, ReadData _PL_rd)
+{ int pri;
+  int type;
 
-  if ( op == NULL )
+  if ( !currentOperator(_PL_rd->module, atom, kind, &type, &pri) )
     fail;
   e->op     = atom;
   e->kind   = kind;
-  e->op_pri = pri = op->priority;
+  e->op_pri = pri;
 
-  switch(op->type)
+  switch(type)
   { case OP_FX:		e->left_pri = 0;     e->right_pri = pri-1; break;
     case OP_FY:		e->left_pri = 0;     e->right_pri = pri;   break;
     case OP_XF:		e->left_pri = pri-1; e->right_pri = 0;     break;
@@ -1296,7 +1303,7 @@ the values.
 	    side_n--; \
 	    side_p = (side_n == 0 ? -1 : side_p-1); \
 	  } else if ( side[side_p].kind == OP_INFIX && out_n > 0 && rmo == 0 && \
-		      isOp(side[side_p].op, OP_POSTFIX, &side[side_p]) ) \
+		      isOp(side[side_p].op, OP_POSTFIX, &side[side_p], _PL_rd) ) \
 	  { DEBUG(9, Sdprintf("Infix %s to postfix\n", \
 			      stringAtom(side[side_p].op))); \
 	    rmo++; \
@@ -1497,7 +1504,7 @@ complex_term(const char *stop, term_t term, term_t positions, ReadData _PL_rd)
 
       DEBUG(9, Sdprintf("name %s, rmo = %d\n", stringAtom(name), rmo));
 
-      if ( isOp(name, OP_INFIX, &in_op) )
+      if ( isOp(name, OP_INFIX, &in_op, _PL_rd) )
       { DEBUG(9, Sdprintf("Infix op: %s\n", stringAtom(name)));
 
 	Modify(in_op.left_pri);
@@ -1509,7 +1516,7 @@ complex_term(const char *stop, term_t term, term_t positions, ReadData _PL_rd)
 	  continue;
 	}
       }
-      if ( isOp(name, OP_POSTFIX, &in_op) )
+      if ( isOp(name, OP_POSTFIX, &in_op, _PL_rd) )
       { DEBUG(9, Sdprintf("Postfix op: %s\n", stringAtom(name)));
 
 	Modify(in_op.left_pri);
@@ -1520,7 +1527,7 @@ complex_term(const char *stop, term_t term, term_t positions, ReadData _PL_rd)
 	  continue;
 	}
       }
-      if ( rmo == 0 && isOp(name, OP_PREFIX, &in_op) )
+      if ( rmo == 0 && isOp(name, OP_PREFIX, &in_op, _PL_rd) )
       { DEBUG(9, Sdprintf("Prefix op: %s\n", stringAtom(name)));
 	
 	PushOp();
@@ -1951,6 +1958,8 @@ static const opt_spec read_term_options[] =
   { ATOM_singletons,        OPT_TERM },
   { ATOM_term_position,     OPT_TERM },
   { ATOM_subterm_positions, OPT_TERM },
+  { ATOM_character_escapes, OPT_BOOL },
+  { ATOM_double_quotes,	    OPT_ATOM },
   { NULL_ATOM,	     	    0 }
 };
 
@@ -1961,6 +1970,8 @@ pl_read_term3(term_t from, term_t term, term_t options)
   atom_t w;
   read_data rd;
   IOSTREAM *s;
+  bool charescapes = -1;
+  atom_t dq = NULL_ATOM;
 
   if ( !getInputStream(from, &s) )
     fail;
@@ -1970,11 +1981,25 @@ pl_read_term3(term_t from, term_t term, term_t options)
 		     &rd.varnames,
 		     &rd.singles,
 		     &tpos,
-		     &rd.subtpos) )
+		     &rd.subtpos,
+		     &charescapes,
+		     &dq) )
   { PL_release_stream(s);
     fail;
   }
 
+  if ( charescapes != -1 )
+  { if ( charescapes )
+      set(&rd, CHARESCAPE);
+    else
+      clear(&rd, CHARESCAPE);
+  }
+  if ( dq )
+  { if ( !setDoubleQuotes(dq, &rd.flags) )
+    { PL_release_stream(s);
+      fail;
+    }
+  }
   if ( rd.singles && PL_get_atom(rd.singles, &w) && w == ATOM_warning )
     rd.singles = TRUE;
 

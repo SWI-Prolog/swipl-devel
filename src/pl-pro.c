@@ -130,10 +130,44 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Bring the Prolog system itself to life.  Prolog  saves  the  C-stack  to
-enable  aborts.   pl_abort()  will  close  open  files, reset all clause
-references to `0' and finally long_jumps back to prolog().
+Abort and toplevel. At the  moment,   prologToplevel()  sets a longjmp()
+context and pl_abort() jumps to this   context and resets the SWI-Prolog
+engine. 
+
+Using the multi-threaded version, this is   not  acceptable. Each thread
+needs such a context, but worse  is   that  we cannot properly reset the
+reference count and ensure locks are all in a sane state. 
+
+A cleaner solution is to  map  an   abort  onto  a Prolog exception. The
+exception-handling   code   should    ensure     proper    handling   of
+reference-counts and locks anyhow. Small disadvantage   is  that the old
+abort()   mechanism   was   capable   of     recovering   from   serious
+data-inconsistencies, while the throw-based requires   the Prolog engine
+to be in a sane state.  Anyhow,   in  the multi-threaded version we have
+little choice.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef O_PLMT
+#define O_ABORT_WITH_THROW 1
+#endif
+
+#ifdef O_ABORT_WITH_THROW
+
+word
+pl_abort()
+{ fid_t fid = PL_open_foreign_frame();
+  term_t ex = PL_new_term_ref();
+
+  pl_notrace();
+
+  PL_put_atom(ex, ATOM_aborted);
+  PL_throw(ex);				/* use longjmp() to ensure */
+
+  PL_close_foreign_frame(fid);		/* should not be reached */
+  fail;				
+}
+
+#else /*O_ABORT_WITH_THROW*/
 
 static jmp_buf abort_context;		/* jmp buffer for abort() */
 static int can_abort;			/* embeded code can't abort */
@@ -152,7 +186,7 @@ pl_abort()
   }
 
   if ( !trueFeature(READLINE_FEATURE) )
-    PopTty(&ttytab);
+    PopTty(Sinput, &ttytab);
   LD->outofstack = NULL;
   closeFiles(FALSE);
   resetReferences();
@@ -169,6 +203,7 @@ pl_abort()
   fail;
 }
 
+#endif /*O_ABORT_WITH_THROW*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Initial entry point from C to start  the  Prolog  engine.   Saves  abort
@@ -180,12 +215,14 @@ bool
 prologToplevel(volatile atom_t goal)
 { bool rval;
 
+#ifndef O_ABORT_WITH_THROW
   if ( setjmp(abort_context) != 0 )
   { if ( LD->current_signal )
       unblockSignal(LD->current_signal);
     
     goal = ATOM_abort;
   } else
+#endif
   { debugstatus.debugging = FALSE;
   }
 
@@ -206,7 +243,9 @@ prologToplevel(volatile atom_t goal)
   debugmode(FALSE, NULL);
   debugstatus.suspendTrace = 0;
 
+#ifndef O_ABORT_WITH_THROW
   can_abort = TRUE;
+#endif
   { fid_t fid = PL_open_foreign_frame();
     Procedure p = lookupProcedure(lookupFunctorDef(goal, 0), MODULE_system);
 
@@ -217,9 +256,18 @@ prologToplevel(volatile atom_t goal)
       qid = PL_open_query(MODULE_system, PL_Q_NORMAL, p, 0);
       rval = PL_next_solution(qid);
       if ( !rval && (except = PL_exception(qid)) )
-      { PL_close_query(qid);
-	warning("Unhandled exception");
+      { atom_t a;
+	
 	pl_nodebug();
+	if ( PL_get_atom(except, &a) && a == ATOM_aborted )
+	  Sfprintf(Suser_error, "\nExecution aborted\n\n");
+	else
+	{ Sfprintf(Suser_error, "[WARNING: Unhandled exception: ");
+	  PL_write_term(Suser_error, except,
+			1200, PL_WRT_QUOTED|PL_WRT_PORTRAY);
+	  Sfprintf(Suser_error, "]\n");
+	}
+	PL_close_query(qid);
 	continue;
       }
       PL_close_query(qid);
@@ -227,7 +275,9 @@ prologToplevel(volatile atom_t goal)
     }
     PL_discard_foreign_frame(fid);
   }
+#ifndef O_ABORT_WITH_THROW
   can_abort = FALSE;
+#endif
 
   return rval;
 }

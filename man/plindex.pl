@@ -230,6 +230,10 @@ predicate_line(Name, Arity) -->
 	->  true
 	;   format('Not a defined predicate: ~w/~w~n', [Name, Arity])
 	}.
+predicate_line(Name, 0) -->
+	atom(_),
+	":",
+	atom(Name).
 predicate_line(Name, 1) -->			% prefix operator
 	atom(Name),
 	skip_blanks,
@@ -256,6 +260,7 @@ predicate_line(Name, 2) -->			% infix operator
 	predarg,
 	skip_blanks.
 predicate_line(Name, 0) -->
+	optional_module,
 	atom(Name).
 
 optional_directive -->
@@ -575,7 +580,12 @@ parse_summary(Name, Arity, Summary) -->
 	(   "\\predicatesummary"
 	;   "\\functionsummary"
 	),
-	tex_arg(Name),
+	tex_arg(Name0),
+	{ atom_codes(Name0, Chars),
+	  append(_, [0':|Chars1], Chars)
+	->atom_codes(Name, Chars1)
+	; Name = Name0
+	},
 	tex_arg(Arity),
 	tex_string(Summary),
 	tex_comment.

@@ -35,7 +35,7 @@ dlldemo directory.
 		 *******************************/
 
 shell_register_prolog :-
-	'$argv'([Me|_]),
+	current_prolog_flag(argv, [Me|_]),
 	concat_atom(['"', Me, '" "%1"'], OpenCommand),
 	shell_register_file_type(pl, 'prolog.type', 'Prolog Source',
 				 OpenCommand),

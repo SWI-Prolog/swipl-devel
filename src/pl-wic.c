@@ -2210,11 +2210,15 @@ compileFile(char *file)
     DEBUG(2, Sdprintf("pl_read_clause() -> "));
     PL_put_variable(t);
     if ( !pl_read_clause(t) )		/* syntax error */
+    { Sdprintf("%s:%d: Syntax error\n",
+	       PL_atom_chars(source_file_name),
+	       source_line_no);
       continue;
+    }
     if ( PL_get_atom(t, &eof) && eof == ATOM_end_of_file )
       break;
 
-    DEBUG(2, pl_write(t); pl_nl());
+    DEBUG(2, PL_write_term(Serror, t, 1200, PL_WRT_NUMBERVARS); pl_nl());
 
     if ( directiveClause(directive, t, ":-") )
     { DEBUG(1,
@@ -2243,11 +2247,10 @@ compileFile(char *file)
 
 bool
 compileFileList(IOSTREAM *fd, int argc, char **argv)
-{ newOp("$:-", OP_FX, 1200);
-  TRY(writeWicHeader(fd));
+{ TRY(writeWicHeader(fd));
   
   systemMode(TRUE);
-  CSetFeature("autoload", "false");
+  defFeature("autoload", FT_BOOL, FALSE, 0);
 
   for(;argc > 0; argc--, argv++)
   { if ( streq(argv[0], "-c" ) )
@@ -2255,7 +2258,7 @@ compileFileList(IOSTREAM *fd, int argc, char **argv)
     compileFile(argv[0]);
   }
 
-  CSetFeature("autoload", "true");
+  defFeature("autoload", FT_BOOL, TRUE, 0);
   systemMode(FALSE);
 
   { predicate_t pred = PL_predicate("$load_additional_boot_files", 0, "user");

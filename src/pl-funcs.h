@@ -168,7 +168,6 @@ int		getSingleChar(IOSTREAM *s);
 bool		readLine(IOSTREAM *in, IOSTREAM *out, char *buffer);
 bool		LockStream(void);
 bool		UnlockStream(void);
-word		pl_dup_stream(term_t from, term_t to);
 IOSTREAM *	PL_current_input(void);
 IOSTREAM *	PL_current_output(void);
 word		pl_told(void);
@@ -188,7 +187,6 @@ word		pl_get(term_t chr);
 word		pl_skip(term_t chr);
 word		pl_skip2(term_t stream, term_t chr);
 word		pl_get2(term_t stream, term_t chr);
-word		pl_tty(void);
 word		pl_get_single_char(term_t c);
 word		pl_get0(term_t c);
 word		pl_get02(term_t stream, term_t c);
@@ -219,6 +217,7 @@ word		pl_seek(term_t stream,
 			term_t offset, term_t method, term_t newloc);
 word		pl_set_input(term_t stream);
 word		pl_set_output(term_t stream);
+foreign_t	pl_set_stream(term_t stream, term_t attr);
 word		pl_current_input(term_t stream);
 word		pl_current_output(term_t stream);
 word		pl_character_count(term_t stream, term_t count);
@@ -255,11 +254,13 @@ word		pl_make_fat_filemap(term_t dir);
 #endif
 word		pl_copy_stream_data3(term_t in, term_t out, term_t len);
 word		pl_copy_stream_data2(term_t in, term_t out);
+int		PL_get_char(term_t c, int *p);
 
 /* pl-flag.c */
 void		initFlags(void);
 word		pl_flag(term_t name, term_t old, term_t new);
 word		pl_current_flag(term_t k, word h);
+void		initFeatures(void);
 
 /* pl-fli.c */
 word		makeNum(long i);
@@ -271,6 +272,7 @@ predicate_t	_PL_predicate(const char *name, int arity, const char *module,
 void		initialiseForeign(int argc, char **argv);
 char *		buffer_string(const char *s, int flags);
 atom_t		codeToAtom(int code);
+extern record_t PL_duplicate_record(record_t r);
 
 /* pl-fmt.c */
 word		pl_format_predicate(term_t chr, term_t descr);
@@ -341,15 +343,14 @@ word		pl_context_module(term_t module);
 word		pl_import(term_t pred);
 
 /* pl-op.c */
-Operator	isCurrentOperator(atom_t name, int type);
+int		currentOperator(Module m, atom_t name, int kind,
+				int *type, int *priority);
+int		priorityOperator(Module m, atom_t atom);
 word		pl_current_op(term_t prec, term_t type, term_t name, word h);
-bool		isPrefixOperator(atom_t atom, int *type, int *priority);
-bool		isPostfixOperator(atom_t atom, int *type, int *priority);
-bool		isInfixOperator(atom_t atom, int *type, int *priority);
-word		pl_op1(term_t priority, term_t type, term_t name);
-bool		newOp(char *name, int type, int pri);
+word		pl_local_op(term_t prec, term_t type, term_t name, word h);
+word		pl_op(term_t priority, term_t type, term_t name);
 void		initOperators(void);
-word		pl_reset_operators(void);
+word		pl_builtin_op(term_t prec, term_t type, term_t name, word h);
 
 /* pl-os.c */
 bool		initOs(void);
@@ -385,9 +386,6 @@ atom_t		TemporaryFile(const char *id);
 int		hasConsole(void);
 struct tm *	LocalTime(long int *t);
 Char		GetChar(void);
-void		ResetTty(void);
-bool		PushTty(ttybuf *buf, int mode);
-bool		PopTty(ttybuf *buf);
 char *		getenv3(const char *, char *buf, int buflen);
 int		getenvl(const char *);
 int		Setenv(char *name, char *value);
@@ -448,7 +446,8 @@ word		pl_name(term_t atom, term_t string);
 word		pl_atom_chars(term_t atom, term_t string);
 word		pl_atom_codes(term_t atom, term_t string);
 word		pl_number_chars(term_t number, term_t string);
-word		pl_atom_char(term_t atom, term_t chr);
+word		pl_number_codes(term_t number, term_t string);
+word		pl_char_code(term_t atom, term_t chr);
 word		pl_atom_prefix(term_t atom, term_t prefix);
 word		pl_atom_concat(term_t a1, term_t a2, term_t a3, control_t ctx);
 word		pl_concat_atom(term_t list, term_t atom);
@@ -466,14 +465,19 @@ word		pl_fail(void);
 word		pl_true(void);
 word		pl_halt(term_t code);
 word		pl_statistics(term_t k, term_t value);
-int		setFeature(atom_t name, int type, ...);
-void		CSetFeature(const char *name, const char *value);
-word		pl_feature(term_t key, term_t value, word h);
-word		pl_set_feature(term_t key, term_t value);
 word		pl_option(term_t key, term_t old, term_t new, control_t h);
 int		set_pl_option(const char *name, const char *value);
 word		pl_style_check(term_t old, term_t new);
 word		pl_novice(term_t old, term_t new);
+
+/* pl-feature.c */
+void		defFeature(const char *name, int flags, ...);
+word		pl_feature(term_t key, term_t value, word h);
+word		pl_feature5(term_t key, term_t value,
+			    term_t local, term_t access, term_t type,
+			    word h);
+word		pl_set_feature(term_t key, term_t value);
+int		setDoubleQuotes(atom_t a, unsigned int *flagp);
 
 /* pl-pro.c */
 word		pl_break(void);
@@ -610,7 +614,6 @@ word		pl_shell(term_t command, term_t status);
 word		pl_getenv(term_t var, term_t value);
 word		pl_setenv(term_t var, term_t value);
 word		pl_unsetenv(term_t var);
-word		pl_argv(term_t list);
 word		pl_convert_time(term_t time, term_t year,
 				term_t month, term_t day,
 				term_t hour, term_t minute,
@@ -627,6 +630,7 @@ Symbol		lookupHTable(Table ht, void *name);
 bool		addHTable(Table ht, void *name, void *value);
 void		deleteSymbolHTable(Table ht, Symbol s);
 void		clearHTable(Table ht);
+Table		copyHTable(Table org);
 TableEnum	newTableEnum(Table ht);
 void		freeTableEnum(TableEnum e);
 Symbol		advanceTableEnum(TableEnum e);
@@ -667,7 +671,6 @@ word		setLong(long *val, const char *name, term_t old, term_t new);
 bool		strprefix(char *string, char *prefix);
 bool		strpostfix(char *string, char *postfix);
 bool		stripostfix(const char *string, const char *postfix);
-void		systemMode(bool accept);
 bool		scan_options(term_t list, int flags, atom_t name,
 			     const opt_spec *specs, ...);
 #ifndef HAVE_STRICMP
@@ -718,7 +721,6 @@ void		resetTerm(void);
 word		pl_tty_get_capability(term_t name, term_t type, term_t value);
 word		pl_tty_goto(term_t x, term_t y);
 word		pl_tty_put(term_t a, term_t affcnt);
-word		pl_set_tty(term_t old, term_t new);
 
 /* pl-main.c */
 int		startProlog(int argc, char **argv);
@@ -768,3 +770,14 @@ foreign_t       pl_rc_append_file(term_t rc_h,
 				  term_t name, term_t class, term_t encoding,
 				  term_t file);
 foreign_t	pl_rc_members(term_t rc_h, term_t members);
+
+/* pl-xterm.c */
+
+foreign_t	pl_open_xterm(term_t title, term_t in, term_t out);
+
+/* pl-ctype.c */
+
+foreign_t	pl_char_type(term_t chr, term_t class, word h);
+foreign_t	pl_code_type(term_t chr, term_t class, word h);
+void		initCharTypes(void);
+void		systemMode(bool accept);

@@ -205,8 +205,8 @@ extern int	ttymode;		/* Current tty mode */
 
 #define IsaTty(fd)	isatty(fd)
 
-extern bool PushTty(ttybuf *, int mode);
-extern bool PopTty(ttybuf *);
+extern bool PushTty(IOSTREAM *s, ttybuf *, int mode);
+extern bool PopTty(IOSTREAM *s, ttybuf *);
 extern void ResetTty(void);
 
 

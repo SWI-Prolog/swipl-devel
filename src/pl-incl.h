@@ -577,34 +577,22 @@ Arithmetic comparison
 #define EQ 6
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Operator types
+Operator types.  NOTE: if you change OP_*, check operatorTypeToAtom()!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define	OP_FX	0
-#define OP_FY	1
-#define OP_XF	2
-#define OP_YF	3
-#define OP_XFX	4
-#define OP_XFY	5
-#define OP_YFX	6
-#define	OP_YFY	7
+#define OP_PREFIX  0
+#define OP_INFIX   1
+#define OP_POSTFIX 2
+#define OP_MASK    0xf
 
-#define OP_PREFIX  1
-#define OP_INFIX   2
-#define OP_POSTFIX 3
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Files and streams.  Don't change the numbers, or change FOPENMODE below.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define F_CLOSED	0		/* closed entry */
-#define F_READ		1		/* open for reading */
-#define F_WRITE		2		/* open for writing */
-#define F_APPEND	3		/* open for append writing */
-#define F_WRNOTRUNC	4		/* open for write without truncate */
-#define F_ANY		5		/* any mode (finding stream) */
-
-#define FOPENMODE "-rwau"		/* Sopen_file() mode argument */
+#define	OP_FX	(0x10|OP_PREFIX)
+#define OP_FY	(0x20|OP_PREFIX)
+#define OP_XF	(0x30|OP_POSTFIX)
+#define OP_YF	(0x40|OP_POSTFIX)
+#define OP_XFX	(0x50|OP_INFIX)
+#define OP_XFY	(0x60|OP_INFIX)
+#define OP_YFX	(0x70|OP_INFIX)
+#define	OP_YFY	(0x80|OP_INFIX)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Type fields.  These codes are  included  in  a  number  of  the  runtime
@@ -833,6 +821,12 @@ with one operation, it turns out to be faster as well.
 #define HAS_BREAKPOINTS		(0x0004) /* clause */
 
 #define UNKNOWN			(0x0002) /* module */
+#define CHARESCAPE		(0x0004) /* module */
+#define DBLQ_CHARS		(0x0008) /* "ab" --> ['a', 'b'] */
+#define DBLQ_ATOM		(0x0010) /* "ab" --> 'ab' */
+#define DBLQ_STRING		(0x0020) /* "ab" --> "ab" */
+#define DBLQ_MASK 		(DBLQ_CHARS|DBLQ_ATOM|DBLQ_STRING)
+#define MODULE_COPY_FLAGS	(DBLQ_MASK|CHARESCAPE)
 
 #define INLINE_F		(0x0001) /* functor */
 
@@ -1146,6 +1140,7 @@ struct record
   int		gsize;			/* Stack space required (words) */
   int		size;			/* # bytes of the record */
   int		erased;			/* record has been erased */
+  int		references;		/* PL_duplicate_record() support */
   char 		buffer[1];		/* array holding codes */
 };
 
@@ -1181,10 +1176,14 @@ struct module
   SourceFile	file;		/* file from which module is loaded */
   Table		procedures;	/* predicates associated with module */
   Table		public;		/* public predicates associated */
+  Table		operators;	/* local operator declarations */
   Module	super;		/* Import predicates from here */
-  unsigned short flags;		/* booleans: */
+  unsigned int  flags;		/* booleans: */
 		/*	SYSTEM	   system module */
 		/*	UNKNOWN	   trap unknown predicates */
+  		/*	DBLQ_INHERIT inherit from default module */
+		/*	DBLQ_CHARS "ab" --> ['a', 'b'] */
+		/*	DBLQ_ATOM  "ab" --> 'ab' */
 };
 
 struct trail_entry
@@ -1199,6 +1198,8 @@ struct table
 { int		buckets;	/* size of hash table */
   int		size;		/* # symbols in the table */
   TableEnum	enumerators;	/* Handles for enumeration */
+  void 		(*copy_symbol)(Symbol s);
+  void 		(*free_symbol)(Symbol s);
   Symbol	*entries;	/* array of hash symbols */
 };
 
@@ -1483,6 +1484,10 @@ typedef struct
 
 #define MODULE_user	(GD->modules.user)
 #define MODULE_system	(GD->modules.system)
+#define MODULE_parse	(ReadingSource ? LD->modules.source \
+				       : MODULE_user)
+#define MODULE_context	(environment_frame ? contextModule(environment_frame) \
+					   : MODULE_user)
 
 		/********************************
 		*         PREDICATES            *
@@ -1525,15 +1530,12 @@ Tracer communication declarations.
 #define CUT_PORT	(CUT_CALL_PORT|CUT_EXIT_PORT)
 #define VERY_DEEP	1000000000L	/* deep skiplevel */
 
-#define LONGATOM_CHECK	    0x1		/* read/1: error on long atoms */
-#define SINGLETON_CHECK	    0x2		/* read/1: check singleton vars */
-#define DOLLAR_STYLE	    0x4		/* dollar is lower case */
-#define DISCONTIGUOUS_STYLE 0x8		/* warn on discontiguous predicates */
-#if O_STRING
-#define STRING_STYLE	    0x10	/* read ".." as string object */
-#endif /* O_STRING */
-#define DYNAMIC_STYLE	    0x20	/* warn on assert/retract active */
-#define MAXNEWLINES	    5		/* maximum number of newlines in atom */
+#define LONGATOM_CHECK	    0x01	/* read/1: error on long atoms */
+#define SINGLETON_CHECK	    0x02	/* read/1: check singleton vars */
+#define DOLLAR_STYLE	    0x04	/* dollar is lower case */
+#define DISCONTIGUOUS_STYLE 0x08	/* warn on discontiguous predicates */
+#define DYNAMIC_STYLE	    0x10	/* warn on assert/retract active */
+#define MAXNEWLINES	    5		/* maximum # of newlines in atom */
 #define SYSTEM_MODE	    (debugstatus.styleCheck & DOLLAR_STYLE)
 
 typedef struct debuginfo
@@ -1550,7 +1552,13 @@ typedef struct debuginfo
 } pl_debugstatus_t;
 
 #define FT_ATOM		0		/* atom feature */
-#define FT_INTEGER	1		/* integer feature */
+#define FT_BOOL		1		/* boolean feature (true, false) */
+#define FT_INTEGER	2		/* integer feature */
+#define FT_TERM		3		/* term feature */
+#define FT_MASK		0x0f		/* mask to get type */
+
+#define FF_READONLY	0x10		/* feature is read-only */
+
 
 #define CHARESCAPE_FEATURE	0x0001	/* handle \ in atoms */
 #define GC_FEATURE		0x0002	/* do GC */
@@ -1573,6 +1581,8 @@ typedef struct
 } pl_features_t;
 
 #define trueFeature(mask)	true(&features, mask)
+#define setFeatureMask(mask)	set(&features, mask)
+#define clearFeatureMask(mask)	clear(&features, mask)
 
 #ifdef O_LIMIT_DEPTH
 #define DEPTH_NO_LIMIT	(~0x0L)		/* Highest value */

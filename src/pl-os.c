@@ -1712,10 +1712,11 @@ ResetStdin()
     Clear the Sinput buffer after a saved state.  Only necessary
     if O_SAVE is defined.
 
-PushTty()
-    Push the tty to the specified state.
+PushTty(IOSTREAM *s, ttybuf *buf, int state)
+    Push the tty to the specified state and save the old state in
+    buf.
 
-PopTty()
+PopTty(IOSTREAM *s, ttybuf *buf)
     Restore the tty state.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -1750,23 +1751,23 @@ Sread_terminal(void *handle, char *buf, int size)
   int fd = (int)h;
   source_location oldsrc = LD->read_source;
 
-  if ( GD->os.prompt_next && ttymode != TTY_RAW )
-  { Sfputs(PrologPrompt(), Soutput);
+  if ( LD->prompt.next && ttymode != TTY_RAW )
+  { Sfputs(PrologPrompt(), Suser_output);
     
-    GD->os.prompt_next = FALSE;
+    LD->prompt.next = FALSE;
   }
 
-  pl_ttyflush();
+  Sflush(Suser_output);
   PL_dispatch(fd, PL_DISPATCH_WAIT);
   size = (*GD->os.org_terminal.read)(handle, buf, size);
 
   if ( size == 0 )			/* end-of-file */
   { if ( fd == 0 )
-    { Sclearerr(Sinput);
-      GD->os.prompt_next = TRUE;
+    { Sclearerr(Suser_input);
+      LD->prompt.next = TRUE;
     }
   } else if ( size > 0 && buf[size-1] == '\n' )
-    GD->os.prompt_next = TRUE;
+    LD->prompt.next = TRUE;
 
   LD->read_source = oldsrc;
 
@@ -1792,7 +1793,7 @@ ResetTty()
     Soutput->functions = 
     Serror->functions  = &GD->os.iofunctions;
   }
-  GD->os.prompt_next = TRUE;
+  LD->prompt.next = TRUE;
   endCritical;
 }
 
@@ -1808,20 +1809,23 @@ ResetTty()
 #endif
 
 bool
-PushTty(ttybuf *buf, int mode)
+PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 { struct termios tio;
+  int fd;
 
   buf->mode = ttymode;
   ttymode = mode;
 
-  if ( GD->cmdline.notty )
+  if ( (fd = Sfileno(s)) < 0 || !isatty(fd) )
+    succeed;				/* not a terminal */
+  if ( !trueFeature(TTY_CONTROL_FEATURE) )
     succeed;
 
 #ifdef HAVE_TCSETATTR 
-  if ( tcgetattr(0, &buf->tab) )	/* save the old one */
+  if ( tcgetattr(fd, &buf->tab) )	/* save the old one */
     fail;
 #else
-  if ( ioctl(0, TIOCGETA, &buf->tab) )	/* save the old one */
+  if ( ioctl(fd, TIOCGETA, &buf->tab) )	/* save the old one */
     fail;
 #endif
 
@@ -1849,7 +1853,7 @@ PushTty(ttybuf *buf, int mode)
   }
 
 #ifdef HAVE_TCSETATTR
-  if ( tcsetattr(0, TCSANOW, &tio) != 0 )
+  if ( tcsetattr(fd, TCSANOW, &tio) != 0 )
   { static int MTOK_warned;			/* MT-OK */
 
     if ( !MTOK_warned++ )
@@ -1857,10 +1861,10 @@ PushTty(ttybuf *buf, int mode)
   }
 #else
 #ifdef TIOCSETAW
-  ioctl(0, TIOCSETAW, &tio);
+  ioctl(fd, TIOCSETAW, &tio);
 #else
-  ioctl(0, TCSETAW, &tio);
-  ioctl(0, TCXONC, (void *)1);
+  ioctl(fd, TCSETAW, &tio);
+  ioctl(fd, TCXONC, (void *)1);
 #endif
 #endif
 
@@ -1869,20 +1873,23 @@ PushTty(ttybuf *buf, int mode)
 
 
 bool
-PopTty(ttybuf *buf)
-{ ttymode = buf->mode;
+PopTty(IOSTREAM *s, ttybuf *buf)
+{ int fd;
+  ttymode = buf->mode;
 
-  if ( GD->cmdline.notty )
+  if ( (fd = Sfileno(s)) < 0 || !isatty(fd) )
+    succeed;				/* not a terminal */
+  if ( !trueFeature(TTY_CONTROL_FEATURE) )
     succeed;
 
 #ifdef HAVE_TCSETATTR
-  tcsetattr(0, TCSANOW, &buf->tab);
+  tcsetattr(fd, TCSANOW, &buf->tab);
 #else
 #ifdef TIOCSETA
-  ioctl(0, TIOCSETA, &buf->tab);
+  ioctl(fd, TIOCSETA, &buf->tab);
 #else
-  ioctl(0, TCSETA, &buf->tab);
-  ioctl(0, TCXONC, (void *)1);
+  ioctl(fd, TCSETA, &buf->tab);
+  ioctl(fd, TCXONC, (void *)1);
 #endif
 #endif
 
@@ -1894,16 +1901,19 @@ PopTty(ttybuf *buf)
 #ifdef HAVE_SGTTYB
 
 bool
-PushTty(ttybuf *buf, int mode)
+PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 { struct sgttyb tio;
+  int fd;
 
   buf->mode = ttymode;
   ttymode = mode;
 
-  if ( GD->cmdline.notty )
+  if ( (fd = Sfileno(s)) < 0 || !isatty(fd) )
+    succeed;				/* not a terminal */
+  if ( !trueFeature(TTY_CONTROL_FEATURE) )
     succeed;
 
-  if ( ioctl(0, TIOCGETP, &buf->tab) )  /* save the old one */
+  if ( ioctl(fd, TIOCGETP, &buf->tab) )  /* save the old one */
     fail;
   tio = buf->tab;
 
@@ -1923,22 +1933,25 @@ PushTty(ttybuf *buf, int mode)
       }
   
   
-  ioctl(0, TIOCSETP,  &tio);
-  ioctl(0, TIOCSTART, NULL);
+  ioctl(fd, TIOCSETP,  &tio);
+  ioctl(fd, TIOCSTART, NULL);
 
   succeed;
 }
 
 
 bool
-PopTty(ttybuf *buf)
+PopTty(IOSTREAM *s, ttybuf *buf)
 { ttymode = buf->mode;
+  int fd;
 
-  if ( GD->cmdline.notty )
+  if ( (fd = Sfileno(s)) < 0 || !isatty(fd) )
+    succeed;				/* not a terminal */
+  if ( !trueFeature(TTY_CONTROL_FEATURE) )
     succeed;
 
-  ioctl(0, TIOCSETP,  &buf->tab);
-  ioctl(0, TIOCSTART, NULL);
+  ioctl(fd, TIOCSETP,  &buf->tab);
+  ioctl(fd, TIOCSTART, NULL);
 
   succeed;
 }
@@ -1946,7 +1959,7 @@ PopTty(ttybuf *buf)
 #else /*HAVE_SGTTYB*/
 
 bool
-PushTty(buf, mode)
+PushTty(IOSTREAM *s, buf, mode)
 ttybuf *buf;
 int mode;
 { buf->mode = ttymode;
@@ -1957,11 +1970,11 @@ int mode;
 
 
 bool
-PopTty(buf)
+PopTty(IOSTREAM *s, buf)
 ttybuf *buf;
 { ttymode = buf->mode;
   if ( ttymode != TTY_RAW )
-    GD->os.prompt_next = TRUE;
+    LD->prompt.next = TRUE;
 
   succeed;
 }

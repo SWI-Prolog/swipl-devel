@@ -66,11 +66,6 @@ typedef struct
   void *	resourceDB;		/* program resource database */
 
   struct
-  { Feature	list;			/* global features */
-    pl_features_t mask;			/* Masked access to booleans */
-  } feature;
-
-  struct
   { int		argc;			/* main(int argc, char **argv) */
     char **	argv;
     int		_c_argc;		/* stripped options */
@@ -90,6 +85,11 @@ typedef struct
     int		predicates;		/* No. of predicates defined */
     int		modules;		/* No. of modules in the system */
     long	codes;			/* No. of byte codes generated */
+#ifdef O_PLMT
+    int		threads_created;	/* # threads created */
+    int		threads_finished;	/* # finished threads */
+    real	thread_cputime;		/* Total CPU time of threads */
+#endif
   } statistics;
 
   struct
@@ -137,15 +137,15 @@ typedef struct
   { Table	table;			/* flag key --> flag */
   } flags;
 
+  struct 
+  { Table	table;			/* global (read-only) features */
+  } feature;
+
   struct
   { buffer	array;			/* index --> functor */
     int		buckets;		/* # buckets in atom --> functor */
     FunctorDef* table;			/* hash-table */
   } functors;
-
-  struct
-  { Operator	table[OPERATORHASHSIZE]; /* global operator table */
-  } op;
 
   struct
   { TempFile		_tmpfile_head;
@@ -156,7 +156,6 @@ typedef struct
     char *		fredshome;	/* home of fred */
     OnHalt		on_halt_list;	/* list of onhalt hooks */
     int			halting;	/* process is shutting down */
-    int			prompt_next;	/* prompt on next read operation */
     int			gui_app;	/* Win32: Application is a gui app */
     IOFUNCTIONS		iofunctions;	/* initial IO functions */
     IOFUNCTIONS 	org_terminal;	/* IO+Prolog terminal functions */
@@ -211,11 +210,12 @@ typedef struct
   { atom_t	current;		/* current global prompt */
     char *	first;			/* how to prompt first line */
     int		first_used;		/* did we do the first line? */
+    int		next;			/* prompt on next read operation */
   } prompt;
 
   source_location read_source;		/* file, line, char of last term */
   int	 _fileerrors;			/* current file-error status */
-  atom_t _float_format;			/* floating point format */
+  const char   *float_format;		/* floating point format */
 
   struct
   { term_t	term;			/* exception term */
@@ -258,6 +258,11 @@ typedef struct
   } os;
 
   struct
+  { Table	  table;		/* Feature table */
+    pl_features_t mask;			/* Masked access to booleans */
+  } feature;
+
+  struct
   { FindData	find;			/* /<ports> <goal> in tracer */
   } trace;
 
@@ -273,12 +278,16 @@ typedef struct
   } fli;
 
   struct				/* Local IO stuff */
-  { IOSTREAM *	curin;			/* current input stream */
-    IOSTREAM *	curout;			/* current output stream */
-    IOSTREAM *	din;			/* debugger input */
-    IOSTREAM *	dout;			/* debuffer output */
-    IOSTREAM *	log;			/* stream used for protocolling */
-    IOSTREAM *	term;			/* terminal stream */
+  { IOSTREAM *streams[6];		/* handles for standard streams */
+    IOSTREAM *user_input;		/* current user input */
+    IOSTREAM *user_output;		/* current user output */
+    IOSTREAM *user_error;		/* current user error */
+    IOSTREAM *curin;			/* current input stream */
+    IOSTREAM *curout;			/* current output stream */
+    IOSTREAM *din;			/* debugger input */
+    IOSTREAM *dout;			/* debuffer output */
+    IOSTREAM *log;			/* stream used for protocolling */
+    IOSTREAM *term;			/* terminal stream */
     struct input_context *input_stack;	/* maintain input stream info */
     struct output_context *output_stack; /* maintain output stream info */
   } IO;
@@ -318,10 +327,13 @@ typedef struct
     atom_t name;			/* name of the thread (if any) */
     struct _PL_thread_info_t *info;	/* info structure */
 					/* Message queues */
-    pthread_mutex_t   queue_mutex;	/* Message queue mutex */
-    pthread_cond_t    cond_var;		/* condition variable of queue */
-    struct _thread_msg *msg_head;	/* Head of message queue */
-    struct _thread_msg *msg_tail;	/* Tail of message queue */
+    pthread_mutex_t      queue_mutex;	/* Message queue mutex */
+    pthread_cond_t       cond_var;	/* condition variable of queue */
+    struct _thread_msg   *msg_head;	/* Head of message queue */
+    struct _thread_msg   *msg_tail;	/* Tail of message queue */
+    struct _thread_sig   *sig_head;	/* Head of signal queue */
+    struct _thread_sig   *sig_tail;	/* Tail of signal queue */
+    struct _at_exit_goal *exit_goals;	/* thread_at_exit/1 goals */
   } thread;
 #endif
 } PL_local_data_t;
@@ -345,7 +357,7 @@ GLOBAL PL_local_data_t  PL_local_data;
 #define functor_array		(GD->functors.array)
 #define atom_array		(GD->atoms.array)
 #define systemDefaults		(GD->defaults)
-#define features		(GD->feature.mask)
+#define features		(LD->feature.mask)
 
 #define environment_frame 	(LD->environment)
 #define fli_context	  	(LD->foreign_environment)
@@ -358,19 +370,20 @@ GLOBAL PL_local_data_t  PL_local_data;
 #define exception_bin		(LD->exception.bin)
 #define exception_printed	(LD->exception.printed)
 #define fileerrors		(LD->_fileerrors)
-#define float_format		(LD->_float_format)
 #define gc_status		(LD->gc.status)
 #define shift_status		(LD->_shift_status)
 #define debugstatus		(LD->_debugstatus)
 #define depth_limit		(LD->depth_info.limit)
 #define depth_reached		(LD->depth_info.reached)
 #define base_addresses		(LD->bases)
-#define Scurin			(LD->IO.curin)
-#define Scurout			(LD->IO.curout)
-#define Sdin			(LD->IO.din)
-#define Sdout			(LD->IO.dout)
-#define Slog			(LD->IO.log)
-#define Sterm			(LD->IO.term)
+#define Suser_input		(LD->IO.streams[0])
+#define Suser_output		(LD->IO.streams[1])
+#define Suser_error		(LD->IO.streams[2])
+#define Scurin			(LD->IO.streams[3])
+#define Scurout			(LD->IO.streams[4])
+#define Sprotocol		(LD->IO.streams[5])
+#define Sdin			Suser_input 		/* not used for now */
+#define Sdout			Suser_output
 
 #ifdef VMCODE_IS_ADDRESS
 #define dewam_table		(CD->_dewam_table)

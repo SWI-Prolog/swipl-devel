@@ -49,9 +49,9 @@ unix(cd) :-
 unix(cd(Dir)) :-
         chdir(Dir).
 unix(args(L)) :-
-	'$argv'(L).
+	current_prolog_flag(argv, L).
 unix(argv(L)) :-
-	'$argv'(S),
+	current_prolog_flag(argv, S),
 	maplist(to_prolog, S, L).
 
 to_prolog(S, A) :-
@@ -186,7 +186,7 @@ numbervars(Term, From, To) :-
 		*            MODULES            *
 		*********************************/
 
-:- initialization op(1150, fx, (meta_predicate)).
+:- initialization op(1150, fx, user:(meta_predicate)).
 
 :- module_transparent
 	(meta_predicate)/1.

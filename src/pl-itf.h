@@ -126,6 +126,7 @@ typedef union
 					/* PlArg::PlArg(text, type) */
 #define PL_CODE_LIST	(14)		/* [ascii...] */
 #define PL_CHAR_LIST	(15)		/* [h,e,l,l,o] */
+#define PL_BOOL		(16)		/* PL_set_feature() */
 
 		/********************************
 		*    DETERMINISTIC CALL/RETURN  *

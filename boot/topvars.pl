@@ -85,7 +85,7 @@ assert_bindings([]).
 assert_bindings([Binding|Tail]) :-
 	Binding = (Var = Value),
 	forall(recorded('$topvar', Var = _, Ref), erase(Ref)),
-	(   (   feature(toplevel_var_size, Count)
+	(   (   current_prolog_flag(toplevel_var_size, Count)
 	    ->  '$term_complexity'(Value, Count, _)
 	    ;   true
 	    )

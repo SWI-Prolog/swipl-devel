@@ -167,6 +167,9 @@
 /* Define if you have the getwd function.  */
 #undef HAVE_GETWD
 
+/* Define if you have the grantpt function.  */
+#undef HAVE_GRANTPT
+
 /* Define if you have the isnan function.  */
 #undef HAVE_ISNAN
 

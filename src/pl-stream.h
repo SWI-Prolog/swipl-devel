@@ -152,7 +152,9 @@ __pl_export_data IOSTREAM    S__iob[];		/* Libs standard streams */
 					    : S__fillbuf(s))
 #define Sgetc(s) S__updatefilepos((s), Snpgetc(s))
 
+/* Control-operations */
 #define SIO_GETSIZE	(1)		/* get size of underlying object */
+#define SIO_GETFILENO	(2)		/* get underlying file (if any) */
 
 #if IOSTREAM_REPLACES_STDIO
 

@@ -188,6 +188,30 @@ portPrompt(int port)
 }
 
 
+#ifdef O_PLMT
+
+static void
+writeThread(IOSTREAM *s)
+{ int id;
+
+  if ( (id = PL_thread_self()) != 1 )
+  { const char *name = threadName(id);
+
+    if ( name )
+      Sfprintf(s, "{%s} ", name);
+    else
+      Sfprintf(s, "{%d} ", id);
+  }
+}
+
+#else
+
+#define writeThread(s)
+
+#endif
+
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Toplevel  of  the  tracer.   This  function  is  called  from  the   WAM
 interpreter.   It  can  take  care of most of the tracer actions itself,
@@ -237,7 +261,8 @@ tracePort(LocalFrame frame, LocalFrame bfr, int port, Code PC)
         break;
     }
     if ( fmt )
-    { Sfprintf(Sdout, fmt, levelFrame(frame));
+    { writeThread(Sdout);
+      Sfprintf(Sdout, fmt, levelFrame(frame));
       writeFrameGoal(frame, debugstatus.style);
       Sputc('\n', Sdout);
     }
@@ -310,6 +335,7 @@ All failed.  Things now are upto the normal Prolog tracer.
   action = ACTION_CONTINUE;
 
 again:
+  writeThread(Sdout);
   Sputc(true(def, SPY_ME)   ? '*' : ' ', Sdout);
   Sputc(true(def, METAPRED) ? '^' : ' ', Sdout);
   Sfputs(portPrompt(port), Sdout);
@@ -324,7 +350,7 @@ again:
 
     Sfputs(" ? ", Sdout);
     Sflush(Sdout);
-    if ( GD->cmdline.notty )
+    if ( !trueFeature(TTY_CONTROL_FEATURE) )
     { buf[0] = EOS;
       if ( !readLine(Sdin, Sdout, buf) )
       { Sfputs("EOF: exit\n", Sdout);
@@ -344,7 +370,7 @@ again:
 	readLine(Sdin, Sdout, buf);
       }
     }
-    action = traceAction(buf, port, frame, GD->cmdline.notty ? FALSE : TRUE);
+    action = traceAction(buf, port, frame, trueFeature(TTY_CONTROL_FEATURE));
     if ( action == ACTION_AGAIN )
       goto again;
   } else

@@ -125,13 +125,18 @@ show the actual source-code in an editor. See also portray/1 and
 multifile/1.
 \end{description}
 
-\section{Exception Handling}
 
-A start has been made to make exception handling available to the
-Prolog user. On exceptions a dynamic and multifile defined predicate
-exception/3 is called. If this user defined predicate succeeds Prolog
-assumes the exception has been taken care of. Otherwise the system
-default exception handler is called.
+\section{Hooks using the exception/3 ptredicate}
+
+This section describes the predicate exception/3, which may be defined
+by the user in the module \module{user} as a multifile predicate. Unlike
+the name suggests, this is actually a \jargon{hook} predicate.
+Exceptions are handled by the ISO predicates catch/3 and throw/1.  They
+all frames created after the matching catch/3 to be discarded
+immediately.
+
+The predicate exception/3 is called by the kernel on a couple of events,
+allowing the user to alter the behaviour on some predefined events.
 
 \begin{description}
     \predicate{exception}{3}{+Exception, +Context, -Action}
@@ -144,16 +149,17 @@ values for \arg{Exception} are described below.
 \begin{description}
     \termitem{undefined_predicate}{}
 If \arg{Exception} is \const{undefined_predicate} \arg{Context} is
-instantiated to a term \arg{Name}/\arg{Arity}.  \arg{Name} refers to the
-name and \arg{Arity} to the arity of the undefined predicate.  If the
+instantiated to a term \arg{Name}/\arg{Arity}. \arg{Name} refers to the
+name and \arg{Arity} to the arity of the undefined predicate. If the
 definition module of the predicate is not \arg{user}, \arg{Context} will
-be of the form \mbox{\tt <Module>:<Name>/<Arity>}.  If the predicate fails
-Prolog will print the default error warning and start the tracer.  If
-the predicate succeeds it should instantiate the last argument either to
-the atom \const{fail} to tell Prolog to fail the predicate or the atom
-\const{retry} to tell Prolog to retry the predicate.  This only makes
-sense if the exception handler has defined the predicate.  Otherwise it
-will lead to a loop.
+be of the form \mbox{\tt <Module>:<Name>/<Arity>}. If the predicate
+fails Prolog will generate an \except{esistence_error} exception. If the
+predicate succeeds it should instantiate the last argument either to the
+atom \const{fail} to tell Prolog to fail the predicate, the atom
+\const{retry} to tell Prolog to retry the predicate or \const{error} to
+make the system generate an exception. The action \const{retry} only
+makes sense if the exception handler has defined the predicate.
+
     \termitem{warning}{}
 If prolog wants to give a warning while reading a file, it will first
 raise the exception \arg{warning}.  The context argument is a term of
@@ -170,11 +176,13 @@ integrates error handling with \program{GNU~Emacs}.
 \end{description}
 \end{description}
 
+
 \section{Readline Interaction}
 
-The following predicates are available if \exam{feature(readline, true)}
-succeeds.  They allow for direct interaction with the GNU readline library.
-See also \manref{readline}{3}
+The following predicates are available if
+\exam{current_prolog_flag(readline, true)} succeeds. They allow for
+direct interaction with the GNU readline library. See also
+\manref{readline}{3}
 
 \begin{description}
     \predicate{rl_read_init_file}{1}{+File}

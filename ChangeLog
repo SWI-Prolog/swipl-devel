@@ -1,6 +1,31 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: char_type/2 and code_type/2 for fast and locale-supported
+    character classification.
+
+  * MODIFIED: The following aspects are now local to the module into
+    which they are defined: the prolog-flags character_escapes and
+    double_quotes and operators.
+
+  * ADDED: prolog-flag double_quotes, replacing and refining the old
+    style_check(+string) option, which is mapped to the new interface.
+
+  * MODIFIED: The predicates feature/2 and set_feature/2 have been renamed
+    to the ISO compliant current_prolog_flag/2 and set_prolog_flag/2.  
+    Definitions of the old predicates have been moved to the
+    library(backcomp).
+    
+  * ADDED: read-only access to system features, strict type-checking and
+    allow for arbitrary terms as feature-value.
+
+  * ADDED: feature(argv, Argv) to get (finally) documented access to the
+    commandline arguments.  The '$argv'/1 has been put into the backcomp.pl
+    library.  The Quintus compatibility unix(argv(Argv)) is still provided
+    as well.
+
+  * ADDED: Write exception-term if nobody catches an exception.
+
   * FIXED: bug in filename canonisation.
 
   * The manual-helper program pl-bite, use to pick bits of the online
@@ -38,7 +63,7 @@
   * COMPATIBILITY/ISO: Introduced atom_codes/2 and modified atom_chars/2
     to return a list of one-char atoms rather than a list of codes.
     The atom-breaking routines now generate exceptions rather than
-    warnings.
+    warnings.  Same for number_chars/2 and the new number_codes/2.
 
     Renamed concat/3 to atom_concat/3 and also allow for the pattern
     -, -, +.  Added concat/3 to the autoload backcomp.pl library.
@@ -66,7 +91,7 @@
     deleted and replaced by the feature executable.
 
   * DELETED: load_foreign/[2,5], symbolfile related foreign interface
-    primitves.  On all modern OS'es we should have some form of shared
+    primitives.  On all modern OS'es we should have some form of shared
     object or DLL interface for dealing with loading dynamic code.  On
     others, static relinking of the kernel can be used.
 

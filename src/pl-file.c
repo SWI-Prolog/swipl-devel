@@ -18,6 +18,8 @@ If time is there I will have a look at all this to  clean  it.   Notably
 handling times must be cleaned, but that not only holds for this module.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/*#define O_DEBUG_MT 1*/
+
 #ifdef WIN32
 #include "windows.h"
 #endif
@@ -38,8 +40,46 @@ handling times must be cleaned, but that not only holds for this module.
 #include <bstring.h>
 #endif
 
-#define LOCK() PL_LOCK(L_FILE)		/* MT locking */
+#define LOCK()   PL_LOCK(L_FILE)	/* MT locking */
 #define UNLOCK() PL_UNLOCK(L_FILE)
+
+const atom_t standardStreams[] =
+{ ATOM_user_input,			/* 0 */
+  ATOM_user_output,			/* 1 */
+  ATOM_user_error,			/* 2 */
+  ATOM_current_input,			/* 3 */
+  ATOM_current_output,			/* 4 */
+  ATOM_protocol,			/* 5 */
+  NULL_ATOM
+};
+
+
+static int
+standardStreamIndexFromName(atom_t name)
+{ const atom_t *ap;
+
+  for(ap=standardStreams; *ap; ap++)
+  { if ( *ap == name )
+      return (ap - standardStreams);
+  }
+
+  return -1;
+}
+
+
+static int
+standardStreamIndexFromStream(IOSTREAM *s)
+{ IOSTREAM **sp = LD->IO.streams;
+  int i = 0;
+
+  for( ; i<6; i++, sp++ )
+  { if ( *sp == s )
+      return i;
+  }
+
+  return -1;
+}
+
 
 		 /*******************************
 		 *	   BOOKKEEPING		*
@@ -86,7 +126,6 @@ aliasStream(IOSTREAM *s, atom_t name)
 { stream_context *ctx;
   alias *a;
 
-  LOCK();
   ctx = getStreamContext(s);
   addHTable(streamAliases, (void *)name, s);
   
@@ -100,7 +139,6 @@ aliasStream(IOSTREAM *s, atom_t name)
   } else
   { ctx->alias_head = ctx->alias_tail = a;
   }
-  UNLOCK();
 }
 
 /* MT: Locked by freeStream()
@@ -157,6 +195,8 @@ unaliasStream(IOSTREAM *s, atom_t name)
 static void
 freeStream(IOSTREAM *s)
 { Symbol symb;
+  int i;
+  IOSTREAM **sp;
 
   LOCK();
   unaliasStream(s, NULL_ATOM);
@@ -166,16 +206,24 @@ freeStream(IOSTREAM *s)
     freeHeap(ctx, sizeof(*ctx));
     deleteSymbolHTable(streamContext, symb);
   }
-
-  if ( s == Slog )			/* avoid dangling handles */
-    Slog = NULL;
-  else if ( s == Sdin )
-    Sdin = Sinput;
-  else if ( s == Sdout )
-    Sdout = Serror;
-  else if ( s == Sterm )
-    Sterm = Soutput;
   UNLOCK();
+
+					/* if we are a standard stream */
+					/* reassociate with standard I/O */
+  for(i=0, sp = LD->IO.streams; i<6; i++, sp++)
+  { if ( *sp == s )
+    { if ( s->flags & SIO_INPUT )
+	*sp = Sinput;
+      else if ( sp == &Suser_error )
+	*sp = Serror;
+      else if ( sp == &Sprotocol )
+	*sp = NULL;
+      else
+	*sp = Soutput;
+
+      break;
+    }
+  }
 }
 
 
@@ -201,41 +249,42 @@ fileNameStream(IOSTREAM *s)
 
 void
 initIO()
-{ streamAliases = newHTable(16);
+{ const atom_t *np;
+  int i;
+
+  streamAliases = newHTable(16);
   streamContext = newHTable(16);
 
   fileerrors = TRUE;
 #ifdef __unix__
 { int fd;
 
-  if ( (fd=Sfileno(Sinput)) < 0 || !isatty(fd) )
-    GD->cmdline.notty = TRUE;
-  if ( (fd=Sfileno(Soutput)) < 0 || !isatty(fd) )
-    GD->cmdline.notty = TRUE;
+  if ( (fd=Sfileno(Sinput))  < 0 || !isatty(fd) ||
+       (fd=Sfileno(Soutput)) < 0 || !isatty(fd) )
+    defFeature("tty_control", FT_BOOL, FALSE);
 }
 #endif
   ResetTty();
 
   Sclosehook(freeStream);
 
-  aliasStream(Sinput,  ATOM_user_input);
-  aliasStream(Soutput, ATOM_user_output);
-  aliasStream(Serror,  ATOM_user_error);
-
   Sinput->position  = &Sinput->posbuf;	/* position logging */
   Soutput->position = &Sinput->posbuf;
   Serror->position  = &Sinput->posbuf;
 
   ttymode = TTY_COOKED;
-  PushTty(&ttytab, TTY_SAVE);
+  PushTty(Sinput, &ttytab, TTY_SAVE);
   LD->prompt.current = ATOM_prompt;
 
-  Scurin  = Sinput;			/* see/tell */
-  Scurout = Soutput;
-  Sdin    = Sinput;			/* debugger I/O */
-  Sdout   = Serror;
-  Slog	  = NULL;			/* protocolling */
-  Sterm   = Soutput;			/* see pl-term.c */
+  Suser_input  = Sinput;
+  Suser_output = Soutput;
+  Suser_error  = Serror;
+  Scurin       = Sinput;		/* see/tell */
+  Scurout      = Soutput;
+  Sprotocol    = NULL;			/* protocolling */
+
+  for( i=0, np = standardStreams; *np; np++, i++ )
+    addHTable(streamAliases, (void *)*np, (void *)i);
 
   GD->io_initialised = TRUE;
 }
@@ -297,10 +346,20 @@ PL_get_stream_handle(term_t t, IOSTREAM **s)
 
     LOCK();
     if ( (symb=lookupHTable(streamAliases, (void *)alias)) )
-    { *s = getStream(symb->value);
-      assert((*s)->magic == SIO_MAGIC);
-      UNLOCK();
-      return TRUE;
+    { IOSTREAM *stream;
+      unsigned long n = (unsigned long)symb->value;
+
+      if ( n < 6 )			/* standard stream! */
+      { stream = LD->IO.streams[n];
+      } else
+	stream = symb->value;
+      
+      if ( stream )
+      { assert(stream->magic == SIO_MAGIC);
+	*s = getStream(stream);
+	UNLOCK();
+	return TRUE;
+      }
     }
     UNLOCK();
 
@@ -315,6 +374,10 @@ int
 PL_unify_stream(term_t t, IOSTREAM *s)
 { int rval;
   stream_context *ctx;
+  int i;
+
+  if ( (i=standardStreamIndexFromStream(s)) >= 0 )
+    return PL_unify_atom(t, standardStreams[i]);
 
   LOCK();
   ctx = getStreamContext(s);
@@ -362,7 +425,7 @@ getOutputStream(term_t t, IOSTREAM **s)
   { *s = getStream(Scurout);
     return TRUE;
   } else if ( PL_get_atom(t, &a) && a == ATOM_user )
-  { *s = getStream(Soutput);
+  { *s = getStream(Suser_output);
     return TRUE;
   }
 
@@ -378,7 +441,7 @@ getInputStream(term_t t, IOSTREAM **s)
   { *s = getStream(Scurin);
     return TRUE;
   } else if ( PL_get_atom(t, &a) && a == ATOM_user )
-  { *s = getStream(Sinput);
+  { *s = getStream(Suser_input);
     return TRUE;
   }
 
@@ -449,7 +512,7 @@ dieIO()
 { if ( GD->io_initialised )
   { pl_noprotocol();
     closeFiles(TRUE);
-    PopTty(&ttytab);
+    PopTty(Sinput, &ttytab);
   }
 }
 
@@ -491,7 +554,6 @@ closeFiles(int all)
 { TableEnum e;
   Symbol symb;
 
-  LOCK();
   e = newTableEnum(streamContext);
   while( (symb=advanceTableEnum(e)) )
   { IOSTREAM *s = symb->name;
@@ -500,7 +562,6 @@ closeFiles(int all)
       closeStream(getStream(s));
   }
   freeTableEnum(e);
-  UNLOCK();
 }
 
 
@@ -537,7 +598,7 @@ void
 protocol(const char *str, int n)
 { IOSTREAM *s;
 
-  if ( (s = getStream(Slog)) )
+  if ( (s = getStream(Sprotocol)) )
   { while( --n >= 0 )
       Sputc(*str++, s);
     releaseStream(s);			/* we don not check errors */
@@ -602,7 +663,7 @@ popOutputContext()
 
 void
 PL_write_prompt(int dowrite)
-{ IOSTREAM *s = getStream(Soutput);
+{ IOSTREAM *s = getStream(Suser_output);
 
   if ( s )
   { if ( dowrite )
@@ -612,13 +673,13 @@ PL_write_prompt(int dowrite)
     releaseStream(s);
   }
 
-  GD->os.prompt_next = FALSE;
+  LD->prompt.next = FALSE;
 }
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Get a single character from Sinput  without   waiting  for a return. The
-character should not be  echoed.  If   GD->cmdline.notty  is  true  this
+character should not be echoed.  If   TTY_CONTROL_FEATURE  is false this
 function will read the first character and  then skip all character upto
 and including the newline.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -631,10 +692,9 @@ getSingleChar(IOSTREAM *stream)
   debugstatus.suspendTrace++;
   Slock(stream);
   Sflush(stream);
-  if ( stream == Sinput )
-    PushTty(&buf, TTY_RAW);		/* just donot prompt */
+  PushTty(stream, &buf, TTY_RAW);	/* just donot prompt */
   
-  if ( GD->cmdline.notty )
+  if ( !trueFeature(TTY_CONTROL_FEATURE) )
   { Char c2;
 
     c2 = Sgetc(stream);
@@ -655,8 +715,7 @@ getSingleChar(IOSTREAM *stream)
   if ( c == 4 || c == 26 )		/* should ask the terminal! */
     c = -1;
 
-  if ( stream == Sinput )
-    PopTty(&buf);
+  PopTty(stream, &buf);
   debugstatus.suspendTrace--;
   Sunlock(stream);
 
@@ -677,15 +736,11 @@ readLine(IOSTREAM *in, IOSTREAM *out, char *buffer)
 { int c;
   char *buf = &buffer[strlen(buffer)];
   ttybuf tbuf;
-  int ttyset = FALSE;
 
   Slock(in);
   Slock(out);
 
-  if ( !GD->cmdline.notty && in == Sinput )
-  { PushTty(&tbuf, TTY_RAW);		/* just donot prompt */
-    ttyset = TRUE;
-  }
+  PushTty(in, &tbuf, TTY_RAW);		/* just donot prompt */
 
   for(;;)
   { Sflush(out);
@@ -695,20 +750,19 @@ readLine(IOSTREAM *in, IOSTREAM *out, char *buffer)
       case '\r':
       case EOF:
         *buf++ = EOS;
-	if ( ttyset )
-	  PopTty(&tbuf);
+        PopTty(in, &tbuf);
 	Sunlock(in);
 	Sunlock(out);
 
 	return c == EOF ? FALSE : TRUE;
       case '\b':
       case DEL:
-	if ( !GD->cmdline.notty && buf > buffer )
+	if ( trueFeature(TTY_CONTROL_FEATURE) && buf > buffer )
 	{ Sfputs("\b \b", out);
 	  buf--;
 	}
       default:
-	if ( !GD->cmdline.notty )
+	if ( trueFeature(TTY_CONTROL_FEATURE) )
 	  Sputc(c, out);
 	*buf++ = c;
     }
@@ -728,23 +782,6 @@ PL_current_output()
 }
 
 
-word
-pl_dup_stream(term_t from, term_t to)
-{ IOSTREAM *f, *t;
-
-  if ( PL_get_stream_handle(from, &f) &&
-       PL_get_stream_handle(to,   &t) )
-  { notImplemented("dup_stream", 2);
-
-    releaseStream(f);
-    releaseStream(t);
-    succeed;
-  }
-  
-  fail;
-}
-
-
 static word
 openProtocol(term_t f, bool appnd)
 { IOSTREAM *s;
@@ -754,7 +791,7 @@ openProtocol(term_t f, bool appnd)
 
   PL_put_atom(mode, appnd ? ATOM_append : ATOM_write);
   if ( (s = openStream(f, mode, 0)) )
-  { Slog = s;
+  { Sprotocol = s;
     return TRUE;
   }
 
@@ -766,12 +803,58 @@ word
 pl_noprotocol()
 { IOSTREAM *s;
 
-  if ( (s = getStream(Slog)) )
+  if ( (s = getStream(Sprotocol)) )
   { closeStream(s);
-    Slog = NULL;
+    Sprotocol = NULL;
   }
 
   succeed;
+}
+
+
+		 /*******************************
+		 *	 STREAM ATTRIBUTES	*
+		 *******************************/
+
+
+foreign_t
+pl_set_stream(term_t stream, term_t attr)
+{ IOSTREAM *s;
+  atom_t aname;
+  int arity;
+
+  if ( !PL_get_stream_handle(stream, &s) )
+    fail;
+
+  if ( PL_get_name_arity(attr, &aname, &arity) )
+  { if ( aname == ATOM_alias && arity == 1 )
+    { term_t a = PL_new_term_ref();
+      atom_t alias;
+      Symbol symb;
+      int i;
+
+      _PL_get_arg(1, attr, a);
+      if ( !PL_get_atom(a, &alias) )
+	return PL_error("set_stream", 2, NULL, ERR_TYPE, ATOM_atom, alias);
+      
+      if ( (i=standardStreamIndexFromName(alias)) >= 0 )
+      { LD->IO.streams[i] = s;
+	if ( i == 0 )
+	  LD->prompt.next = TRUE;	/* changed standard input: prompt! */
+	succeed;
+      }
+
+      LOCK();
+      if ( (symb = lookupHTable(streamAliases, (void *)alias)) )
+	unaliasStream(symb->value, alias);
+      aliasStream(s, alias);
+      UNLOCK();
+      succeed;
+    } 
+  }
+
+  return PL_error("set_stream", 2, NULL, ERR_TYPE,
+		  PL_new_atom("stream_attribute"), attr);
 }
 
 
@@ -986,13 +1069,6 @@ pl_skip(term_t chr)
 
 
 word
-pl_tty()				/* $tty/0 */
-{ if ( GD->cmdline.notty )
-    fail;
-  succeed;
-}
-
-word
 pl_get_single_char(term_t chr)
 { IOSTREAM *s = getStream(Scurin);
   int c = getSingleChar(s);
@@ -1034,7 +1110,7 @@ pl_get0(term_t c)
 
 word
 pl_ttyflush()
-{ IOSTREAM *s = getStream(Soutput);
+{ IOSTREAM *s = getStream(Suser_output);
 
   Sflush(s);
 
@@ -1058,7 +1134,7 @@ word
 pl_protocolling(term_t file)
 { IOSTREAM *s;
 
-  if ( (s = Slog) )
+  if ( (s = Sprotocol) )
   { atom_t a;
 
     if ( (a = fileNameStream(s)) )
@@ -1315,6 +1391,9 @@ pl_seen()
 
   popInputContext();
 
+  if ( s->flags & SIO_NOFEOF )
+    succeed;
+
   return closeStream(s);
 }
 
@@ -1355,6 +1434,9 @@ pl_told()
 { IOSTREAM *s = Scurout;
 
   popOutputContext();
+
+  if ( s->flags & SIO_NOFEOF )
+    succeed;
 
   return closeStream(s);
 }
@@ -1448,7 +1530,10 @@ unifyStreamMode(term_t t, IOSTREAM *s)
 word
 pl_current_stream(term_t file, term_t mode,
 		  term_t stream, word h)
-{ TableEnum e;
+{ IOSTREAM **sp = NULL;
+  IOSTREAM **spstart = &LD->IO.streams[0];
+  IOSTREAM **spend   = &LD->IO.streams[6];
+  TableEnum e = NULL;
   Symbol symb;
   mark m;
 
@@ -1466,31 +1551,67 @@ pl_current_stream(term_t file, term_t mode,
 
 	fail;
       }
+      sp = LD->IO.streams;
       e = newTableEnum(streamContext);
       break;
     case FRG_REDO:
-      e = ForeignContextPtr(h);
+    { void *ctx = ForeignContextPtr(h);
+
+      if ( (IOSTREAM **)ctx >= spstart &&
+	   (IOSTREAM **)ctx <  spend )
+	sp = ctx;
+      else
+	e = ctx;
+
       break;
+    }
     case FRG_CUTTED:
-      e = ForeignContextPtr(h);
-      freeTableEnum(e);
+    { void *ctx = ForeignContextPtr(h);
+
+      if ( !((IOSTREAM **)ctx >= spstart &&
+	     (IOSTREAM **)ctx < spend) )
+        freeTableEnum(ctx);
+    }
     default:
       succeed;
   }
 
   Mark(m);
-  while( (symb=advanceTableEnum(e)) )
-  { IOSTREAM *s = getStream(symb->name);
-
-    if ( unifyStreamName(file, s) &&
-	 unifyStreamMode(mode, s) &&
-	 PL_unify_stream(stream, s) )
-    { releaseStream(s);
-      ForeignRedoPtr(e);
+  if ( sp )
+  { for( ; sp < spend; sp++ )
+    { if ( *sp )
+      { IOSTREAM *s = getStream(*sp);
+  
+	if ( unifyStreamName(file, s) &&
+	     unifyStreamMode(mode, s) &&
+	     PL_unify_atom(stream, standardStreams[sp-spstart]) )
+	{ releaseStream(s);
+	  ForeignRedoPtr(sp+1);
+	}
+  
+	releaseStream(s);
+	Undo(m);
+      }
     }
+    e = newTableEnum(streamContext);
+  }
 
-    releaseStream(s);
-    Undo(m);
+  while( (symb=advanceTableEnum(e)) )
+  { IOSTREAM *s = symb->name;
+
+					/* don't do standard streams again */
+    if ( standardStreamIndexFromStream(s) < 0 )
+    { s = getStream(s);
+      if ( unifyStreamName(file, s) &&
+	   unifyStreamMode(mode, s) &&
+	   PL_unify_stream(stream, s) )
+      { releaseStream(s);
+	ForeignRedoPtr(e);
+      }
+
+      releaseStream(s);
+      Undo(m);
+    }
   }
 
   fail;

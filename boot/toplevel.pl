@@ -29,7 +29,7 @@
 	loaded_init_file/1.		% already loaded init files
 
 $welcome :-
-	feature(version, Version),
+	current_prolog_flag(version, Version),
 	Major is Version // 10000,
 	Minor is (Version // 100) mod 100,
 	Patch is Version mod 100,
@@ -60,7 +60,7 @@ $load_system_init_file :-
 	$option(system_init_file, Base, Base),
 	(   Base == none
 	->  asserta(loaded_init_file(system))
-	;   feature(home, Home),
+	;   current_prolog_flag(home, Home),
 	    file_name_extension(Base, rc, Name),
 	    concat_atom([Home, '/', Name], File),
 	    access_file(File, read),
@@ -71,7 +71,7 @@ $load_system_init_file.
 
 $load_gnu_emacs_interface :-
 	getenv('EMACS', t),
-	$argv(Args),
+	current_prolog_flag(argv, Args),
 	memberchk('+C', Args), !,
 	user:ensure_loaded(library(emacs_interface)).
 $load_gnu_emacs_interface.
@@ -91,7 +91,7 @@ at_initialization(Spec) :-
 	'$toplevel':assert($at_initialization(Module:Goal)).
 
 $run_at_initialization :-
-	\+ feature(saved_program, true), !.
+	\+ current_prolog_flag(saved_program, true), !.
 $run_at_initialization :-
 	(   $at_initialization(Goal),
 	    (   catch(Goal, E,
@@ -117,7 +117,7 @@ initialization(Goal) :-
 		 *******************************/
 
 $set_file_search_paths :-
-	$argv(Argv),
+	current_prolog_flag(argv, Argv),
 	append(H, ['-p', Path|_], Argv),
 	\+ member(H, '--'),
 	(   atom_chars(Path, Chars),
@@ -167,8 +167,8 @@ $make_alias(Chars, Alias) :-
 		 *******************************/
 
 $load_associated_file :-
-	feature(associate, Ext),
-	$argv([_,OsFile]),
+	current_prolog_flag(associate, Ext),
+	current_prolog_flag(argv, [_,OsFile]),
 	prolog_to_os_filename(File, OsFile),
 	file_name_extension(_, Ext, File),
 	access_file(File, read),
@@ -274,13 +274,13 @@ prolog :-
 
 
 read_query(Prompt, Goal, Bindings) :-
-	feature(history, N),
+	current_prolog_flag(history, N),
 	integer(N),
 	N =< 0, !,
 	remove_history_prompt(Prompt, Prompt1),
 	repeat,				% over syntax errors
 	prompt1(Prompt1),
-	(   feature(readline, true)
+	(   current_prolog_flag(readline, true)
 	->  catch($raw_read(user_input, Line), E,
 		  (print_message(error, E),
 		   (   E = error(syntax_error(_), _)
@@ -323,9 +323,9 @@ delete_leading_blanks(L, L).
 
 
 set_default_history :-
-	(   feature(readline, true)
-	->  set_feature(history, 0)
-	;   set_feature(history, 15)
+	(   current_prolog_flag(readline, true)
+	->  set_prolog_flag(history, 0)
+	;   set_prolog_flag(history, 15)
 	).
 
 :- initialization set_default_history.
@@ -516,7 +516,7 @@ show_toplevel_usage :-
 $format_if_tty(Fmt) :-
 	$format_if_tty(Fmt, []).
 $format_if_tty(Fmt, Args) :-
-	$tty, !,
+	current_prolog_flag(tty_control, true), !,
 	$ttyformat(Fmt, Args).
 $format_if_tty(_, _).
 

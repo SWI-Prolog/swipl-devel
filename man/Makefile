@@ -67,8 +67,8 @@ $(MANUAL):	latex_if_needed doc.tex $(TEXFILES) doc.bbl doc.ind
 		./latex_if_needed $(LATEX) doc
 		mv doc.dvi $@
 
-$(PDF):		latex_if_needed doc.tex $(TEXFILES) doc.bbl doc.ind
-		./latex_if_needed $(PDFTEX) doc
+$(PDF):		doc.tex $(TEXFILES) doc.bbl
+		runtex --pdf doc
 		mv doc.pdf $@
 
 # pstill is nice, but pdflatex is a lot quicker and produces hyperlinks

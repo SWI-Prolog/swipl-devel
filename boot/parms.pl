@@ -46,5 +46,5 @@ cached_library_directory(CacheName, _, _) :-
 	fail.
 		
 $default_editor(notepad) :-
-	feature(windows, true), !.
+	current_prolog_flag(windows, true), !.
 $default_editor(vi).

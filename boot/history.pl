@@ -118,7 +118,7 @@ prompt_history(Prompt) :-
 %   Save Event in the history system. Remove possibly outdated events.
 
 save_history_line(Line) :-
-	feature(readline, true),
+	current_prolog_flag(readline, true),
 	string_concat(Line, '.', CompleteLine),
 	catch(user:rl_add_history(CompleteLine), _, fail), !.
 save_history_line(_).
@@ -145,7 +145,7 @@ remove_history(_, _).
 %    Define the depth to which to keep the history.
 
 history_depth_(N) :-
-	feature(history, N),
+	current_prolog_flag(history, N),
 	integer(N), !.
 history_depth_(15).
 
@@ -266,7 +266,7 @@ find_event([!|Left], Event, Left) :- !,
 find_event([N|Rest], Event, Left) :-
 	digit(N), !, 
 	take_number([N|Rest], String, Left), 
-	number_chars(Number, String), 
+	number_codes(Number, String), 
 	recorded($history_list, Number/Atom), 
 	atom_chars(Atom, Event).
 find_event(Spec, Event, Left) :-

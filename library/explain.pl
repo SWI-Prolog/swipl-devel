@@ -198,22 +198,22 @@ referenced(_Module:Head, Explanation) :-
 			 'Possibly referenced', Explanation).
 
 utter_referenced(_Module:class(_,_,_,_,_,_), _, _, _, _) :-
-	feature(xpce, true), !,
+	current_prolog_flag(xpce, true), !,
 	fail.
 utter_referenced(_Module:lazy_send_method(_,_,_), _, _, _, _) :-
-	feature(xpce, true), !,
+	current_prolog_flag(xpce, true), !,
 	fail.
 utter_referenced(_Module:lazy_get_method(_,_,_), _, _, _, _) :-
-	feature(xpce, true), !,
+	current_prolog_flag(xpce, true), !,
 	fail.
 utter_referenced(pce_principal:send_implementation(_, _, _),
 		 _, Ref, Text, Explanation) :-
-	feature(xpce, true), !,
+	current_prolog_flag(xpce, true), !,
 	xpce_method_id(Ref, Id),
 	utter(Explanation, '~t~8|~w from ~w', [Text, Id]).
 utter_referenced(pce_principal:get_implementation(Id, _, _, _),
 		 _, Ref, Text, Explanation) :-
-	feature(xpce, true), !,
+	current_prolog_flag(xpce, true), !,
 	xpce_method_id(Ref, Id),
 	utter(Explanation, '~t~8|~w from ~w', [Text, Id]).
 utter_referenced(Module:Head, N, _Ref, Text, Explanation) :-

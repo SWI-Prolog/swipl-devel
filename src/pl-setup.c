@@ -31,7 +31,6 @@ foreign language code or packages with which Prolog was linked together.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static   void allocStacks(long local, long global, long trail, long argument);
-forwards void initFeatures(void);
 forwards void initSignals(void);
 
 #undef I
@@ -57,6 +56,7 @@ setupProlog(void)
   signalled = 0;
 
   startCritical;
+  initCharTypes();
   initMemAlloc();
 #if HAVE_SIGNAL
   DEBUG(1, Sdprintf("Prolog Signal Handling ...\n"));
@@ -115,109 +115,10 @@ initPrologLocalData(void)
 
   environment_frame = (LocalFrame) NULL;
   LD->statistics.inferences = 0;
+  LD->float_format = "%g";
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Feature interface
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-void
-CSetFeature(const char *name, const char *value)
-{ setFeature(lookupAtom(name), FT_ATOM, lookupAtom(value));
-}
-
-static void
-CSetIntFeature(const char *name, long value)
-{ setFeature(lookupAtom(name), FT_INTEGER, value);
-}
-
-#ifndef SO_EXT
-#define SO_EXT "so"
-#endif
-
-static void
-initFeatures()
-{ CSetFeature("arch",		ARCH);
-#if __WIN32__
-  if ( iswin32s() )
-    CSetFeature("win32s",	"true");
-  CSetFeature("windows",	"true");
-#endif
-  CSetIntFeature("version",	PLVERSION);
-  if ( systemDefaults.home )
-    CSetFeature("home",		systemDefaults.home);
-  if ( GD->paths.executable )
-    CSetFeature("executable",	GD->paths.executable);
-
-  CSetFeature("optimise",	GD->cmdline.optimise == TRUE ? "true" 
-							     : "false");
-  CSetFeature("c_libs",		C_LIBS);
-  CSetFeature("c_cc",		C_CC);
-  CSetFeature("c_ldflags",	C_LDFLAGS);
-  CSetFeature("gc",		"true");
-  CSetFeature("trace_gc",	"false");
-#if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
-  CSetFeature("open_shared_object", "true");
-  CSetFeature("shared_object_extension", SO_EXT);
-#endif
-#if O_DYNAMIC_STACKS
-  CSetFeature("dynamic_stacks",	"true");
-#endif
-#ifdef HAVE_POPEN
-  CSetFeature("pipe",		"true");
-#endif
-#ifdef O_PLMT
-  CSetFeature("threads",	"true");
-#endif
-#ifdef ASSOCIATE_SRC
-  CSetFeature("associate",	ASSOCIATE_SRC);
-#endif
-#ifdef O_DDE
-  CSetFeature("dde",		"true");
-#endif
-#ifdef O_RUNTIME
-  CSetFeature("runtime",	"true");
-  CSetFeature("debug_on_error",	"false");
-  CSetFeature("report_error",	"false");
-#else
-  CSetFeature("debug_on_error",	"true");
-  CSetFeature("report_error",	"true");
-#endif
-  CSetFeature("autoload",	"true");
-					/* ISO features */
-  CSetIntFeature("max_integer", PLMAXINT);
-  CSetIntFeature("min_integer", PLMININT);
-  CSetIntFeature("max_tagged_integer", PLMAXTAGGEDINT);
-  CSetIntFeature("min_tagged_integer", PLMINTAGGEDINT);
-  CSetFeature("bounded",	"true");
-  if ( (-3 / 2) == -2 )
-    CSetFeature("integer_rounding_function", "down");
-  else
-    CSetFeature("integer_rounding_function", "toward_zero");
-  CSetFeature("max_arity", "unbounded");
-  CSetFeature("float_format", "%g");
-  CSetFeature("character_escapes", "true");
-  CSetFeature("tty_control", GD->cmdline.notty ? "false" : "true");
-  CSetFeature("allow_variable_name_as_functor", "false");
-  CSetIntFeature("toplevel_var_size", 1000);
-  CSetFeature("file_name_variables", "false");
-#if defined(__unix__) || defined(unix)
-  CSetFeature("unix", "true");
-#endif
-
-#if defined(__WIN32__) && defined(_DEBUG)
-  CSetFeature("kernel_compile_mode", "debug");
-#endif
-
-#if defined(__DATE__) && defined(__TIME__)
-  { char buf[100];
-
-    Ssprintf(buf, "%s, %s", __DATE__, __TIME__);
-    CSetFeature("compiled_at",	buf);
-  }
-#endif
-}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			   SIGNAL HANDLING
@@ -637,6 +538,12 @@ PL_handle_signals()
     for( ; mask ; mask <<= 1, sig++ )
     { if ( signalled & mask )
       { signalled &= ~mask;		/* reset the signal */
+
+#ifdef O_PLMT
+        if ( sig == SIG_THREAD_SIGNAL )
+	  executeThreadSignals(sig);
+#endif
+
 	pl_signal_handler(sig);
       }
     }

@@ -61,12 +61,12 @@ suggest predicates from a keyword.
 \predicatesummary{asserta}{2}{Add a clause to the database (first)}
 \predicatesummary{assertz}{1}{Add a clause to the database (last)}
 \predicatesummary{assertz}{2}{Add a clause to the database (last)}
+\predicatesummary{attach_console}{0}{Attach I/O console to thread}
 \predicatesummary{at_end_of_stream}{0}{Test for end of file on input}
 \predicatesummary{at_end_of_stream}{1}{Test for end of file on stream}
 \predicatesummary{at_halt}{1}{Register goal to run at halt/1}
 \predicatesummary{at_initialization}{1}{Register goal to run at start-up}
 \predicatesummary{atom}{1}{Type check for an atom}
-\predicatesummary{atom_char}{2}{Convert between atom and ASCII value}
 \predicatesummary{atom_chars}{2}{Convert between atom and list of characters}
 \predicatesummary{atom_codes}{2}{Convert between atom and list of ASCII values}
 \predicatesummary{atom_length}{2}{Determine length of an atom}
@@ -84,6 +84,8 @@ suggest predicates from a keyword.
 \predicatesummary{call_shared_object_function}{2}{UNIX:  Call C-function in shared (.so) file}
 \predicatesummary{call_with_depth_limit}{3}{Prove goal with bounded depth}
 \predicatesummary{catch}{3}{Call goal, watching for exceptions}
+\predicatesummary{char_code}{2}{Convert between atom and ASCII value}
+\predicatesummary{char_type}{2}{Classify characters}
 \predicatesummary{character_count}{2}{Get character index on a stream}
 \predicatesummary{chdir}{1}{Change working directory}
 \predicatesummary{checklist}{2}{Invoke goal on all members of a list}
@@ -98,6 +100,7 @@ suggest predicates from a keyword.
 \predicatesummary{compiling}{0}{Is this a compilation run?}
 \predicatesummary{compound}{1}{Test for compound term}
 \predicatesummary{atom_concat}{3}{Append two atoms}
+\predicatesummary{code_type}{2}{Classify a character-code}
 \predicatesummary{concat_atom}{2}{Append a list of atoms}
 \predicatesummary{concat_atom}{3}{Append a list of atoms with separator}
 \predicatesummary{consult}{1}{Read (compile) a Prolog source file}
@@ -117,6 +120,7 @@ suggest predicates from a keyword.
 \predicatesummary{current_key}{1}{Examine existing database keys}
 \predicatesummary{current_module}{1}{Examine existing modules}
 \predicatesummary{current_module}{2}{Examine existing modules}
+\predicatesummary{current_mutex}{3}{Examine existing mutexes}
 \predicatesummary{current_op}{3}{Examine current operator declarations}
 \predicatesummary{current_output}{1}{Get the current output stream}
 \predicatesummary{current_predicate}{2}{Examine existing predicates}
@@ -136,7 +140,6 @@ suggest predicates from a keyword.
 \predicatesummary{delete}{3}{Delete all matching members from a list}
 \predicatesummary{delete_file}{1}{Remove a file from the file system}
 \oppredsummary{discontiguous}{1}{fx}{1150}{Indicate distributed definition of a predicate}
-\predicatesummary{dup_stream}{2}{Duplicate I/O streams}
 \predicatesummary{dwim_match}{2}{Atoms match in ``Do What I Mean'' sense}
 \predicatesummary{dwim_match}{3}{Atoms match in ``Do What I Mean'' sense}
 \predicatesummary{dwim_predicate}{2}{Find predicate in ``Do What I Mean'' sense}
@@ -160,7 +163,7 @@ suggest predicates from a keyword.
 \predicatesummary{export_list}{2}{List of public predicates of a module}
 \predicatesummary{fail}{0}{Always false}
 \predicatesummary{fail}{1}{Immediately fail named block. See block/3}
-\predicatesummary{feature}{2}{Get system configuration parameters}
+\predicatesummary{current_prolog_flag}{2}{Get system configuration parameters}
 \predicatesummary{file_base_name}{2}{Get file part of path}
 \predicatesummary{file_directory_name}{2}{Get directory part of path}
 \predicatesummary{file_name_extension}{3}{Add, remove or test file extensions}
@@ -203,6 +206,7 @@ suggest predicates from a keyword.
 \predicatesummary{int_to_atom}{2}{Convert from integer to atom}
 \predicatesummary{int_to_atom}{3}{Convert from integer to atom (non-decimal)}
 \predicatesummary{integer}{1}{Type check for integer}
+\predicatesummary{interactor}{0}{Start new thread with console and toplevel}
 \predicatesummary{intersection}{3}{Set intersection}
 \oppredsummary{is}{2}{xfx}{700}{Evaluate arithmetic expression}
 \predicatesummary{is_absolute_file_name}{1}{True if arg defines an absolute path}
@@ -237,6 +241,12 @@ suggest predicates from a keyword.
 \oppredsummary{module_transparent}{1}{fx}{1150}{Indicate module based meta predicate}
 \predicatesummary{msort}{2}{Sort, do not remove duplicates}
 \oppredsummary{multifile}{1}{fx}{1150}{Indicate distributed definition of predicate}
+\predicatesummary{mutex_create}{1}{Create a thread-synchronisation device}
+\predicatesummary{mutex_destroy}{1}{Destroy a mutex}
+\predicatesummary{mutex_lock}{1}{Become owner of a mutex}
+\predicatesummary{mutex_trylock}{1}{Become owner of a mutex (non-blocking)}
+\predicatesummary{mutex_unlock}{1}{Release ownership of mutex}
+\predicatesummary{mutex_unlock_all}{0}{Release ownership of all mutexes}
 \predicatesummary{name}{2}{Convert between atom and list of ASCII characters}
 \predicatesummary{nl}{0}{Generate a newline}
 \predicatesummary{nl}{1}{Generate a newline on a stream}
@@ -252,7 +262,8 @@ suggest predicates from a keyword.
 \predicatesummary{nth1}{3}{N-th element of a list (1-based)}
 \predicatesummary{nth_clause}{3}{N-th clause of a predicate}
 \predicatesummary{number}{1}{Type check for integer or float}
-\predicatesummary{number_chars}{2}{Convert between number and atom}
+\predicatesummary{number_chars}{2}{Convert between number and one-char atoms}
+\predicatesummary{number_codes}{2}{Convert between number and ASCII values}
 \predicatesummary{numbervars}{4}{Enumerate unbound variables of a term using a given base}
 \predicatesummary{on_signal}{3}{Handle a software signal}
 \predicatesummary{once}{1}{Call a goal deterministically}
@@ -278,6 +289,7 @@ suggest predicates from a keyword.
 \predicatesummary{print}{1}{Print a term}
 \predicatesummary{print}{2}{Print a term on a stream}
 \predicatesummary{print_message}{2}{Print message from (exception) term}
+\predicatesummary{print_message_lines}{3}{Print message to stream}
 \predicatesummary{profile}{3}{Obtain execution statistics}
 \predicatesummary{profile_count}{3}{Obtain profile results on a predicate}
 \predicatesummary{profiler}{2}{Obtain/change status of the profiler}
@@ -337,9 +349,10 @@ suggest predicates from a keyword.
 \predicatesummary{seek}{4}{Modify the current position in a stream}
 \predicatesummary{seen}{0}{Close the current input stream}
 \predicatesummary{select}{3}{Select element of a list}
-\predicatesummary{set_feature}{2}{Define a system feature}
+\predicatesummary{set_prolog_flag}{2}{Define a system feature}
 \predicatesummary{set_input}{1}{Set current input stream from a stream}
 \predicatesummary{set_output}{1}{Set current output stream from a stream}
+\predicatesummary{set_stream}{2}{Set stream attribute}
 \predicatesummary{set_tty}{2}{Set `tty' stream}
 \predicatesummary{setarg}{3}{Destructive assignment on term}
 \predicatesummary{setenv}{2}{Set shell environment variable}
@@ -384,6 +397,7 @@ suggest predicates from a keyword.
 \predicatesummary{telling}{1}{Query current output stream}
 \predicatesummary{term_expansion}{2}{\hook{user} Convert term before compilation}
 \predicatesummary{term_to_atom}{2}{Convert between term and atom}
+\predicatesummary{thread_at_exit}{1}{Register goal to be called at exit}
 \predicatesummary{thread_create}{3}{Create a new Prolog task}
 \predicatesummary{thread_exit}{1}{Terminate Prolog task with value}
 \predicatesummary{thread_get_message}{1}{Wait for message}
@@ -391,6 +405,8 @@ suggest predicates from a keyword.
 \predicatesummary{thread_peek_message}{1}{Test for message in queue}
 \predicatesummary{thread_self}{1}{Get identifier of current thread}
 \predicatesummary{thread_send_message}{2}{Send message to another thread}
+\predicatesummary{thread_signal}{2}{Execute goal in another thread}
+\predicatesummary{threads}{0}{List running threads}
 \predicatesummary{throw}{1}{Raise an exception (see catch/3)}
 \predicatesummary{time}{1}{Determine time needed to execute goal}
 \predicatesummary{time_file}{2}{Get last modification time of file}

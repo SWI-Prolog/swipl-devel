@@ -438,11 +438,11 @@ provides better performance.
 \item [No interrupt]
 Keyboard interrupt (Control-C normally) is not rebound and will normally
 terminate the application.
-\item [feature(runtime, true) succeeds]
+\item [current_prolog_flag(runtime, true) succeeds]
 This may be used to verify your application is running in the runtime
 environment rather than the development environment.
 \item [clause/[2,3] do not work on static predicates]
-This feature inhibits listing your program.  It is only a very limited
+This prolog-flag inhibits listing your program.  It is only a very limited
 protection however.
 \end{itemlist}
 

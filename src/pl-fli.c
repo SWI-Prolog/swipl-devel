@@ -694,7 +694,7 @@ PL_get_chars(term_t l, char **s, unsigned flags)
     r = tmp;
   } else if ( (flags & CVT_FLOAT) && isReal(w) )
   { type = PL_FLOAT;
-    Ssprintf(tmp, stringAtom(float_format), valReal(w) );
+    Ssprintf(tmp, LD->float_format, valReal(w) );
     r = tmp;
 #ifdef O_STRING
   } else if ( (flags & CVT_STRING) && isString(w) )
@@ -2312,8 +2312,10 @@ PL_prompt1(const char *s)
 
 int
 PL_ttymode(int fd)
-{ if ( fd == 0 )
-  { if ( GD->cmdline.notty )		/* -tty in effect */
+{ GET_LD
+
+  if ( fd == 0 )
+  { if ( !trueFeature(TTY_CONTROL_FEATURE) ) /* -tty in effect */
       return PL_NOTTY;
     if ( ttymode == TTY_RAW )		/* get_single_char/1 and friends */
       return PL_RAWTTY;
@@ -2325,8 +2327,10 @@ PL_ttymode(int fd)
 
 void
 PL_prompt_next(int fd)
-{ if ( fd == 0 )
-    GD->os.prompt_next = TRUE;
+{ GET_LD
+
+  if ( fd == 0 )
+    LD->prompt.next = TRUE;
 }
 
 
@@ -2400,6 +2404,13 @@ PL_erase(record_t r)
 { freeRecord(r);
 }
 
+record_t
+PL_duplicate_record(record_t r)
+{ r->references++;
+
+  return r;
+}
+
 
 		 /*******************************
 		 *	    FEATURES		*
@@ -2412,14 +2423,20 @@ PL_set_feature(const char *name, int type, ...)
 
   va_start(args, type);
   switch(type)
-  { case PL_ATOM:
-    { char *v = va_arg(args, char *);
-      setFeature(lookupAtom(name), FT_ATOM, lookupAtom(v));
+  { case PL_BOOL:
+    { int val = va_arg(args, int);
+      
+      defFeature(name, FT_BOOL, val, 0);
+      break;
+    }
+    case PL_ATOM:
+    { const char *v = va_arg(args, const char *);
+      defFeature(name, FT_ATOM, v);
       break;
     }
     case PL_INTEGER:
     { long v = va_arg(args, long);
-      setFeature(lookupAtom(name), FT_INTEGER, v);
+      defFeature(name, FT_INTEGER, v);
       break;
     }
     default:
@@ -2597,7 +2614,7 @@ PL_query(int query)
     case PL_QUERY_MIN_TAGGED_INT:
       return PLMINTAGGEDINT;
     case PL_QUERY_GETC:
-      PopTty(&ttytab);			/* restore terminal mode */
+      PopTty(Sinput, &ttytab);		/* restore terminal mode */
       return (long) Sgetchar();		/* normal reading */
     case PL_QUERY_VERSION:
       return PLVERSION;

@@ -864,8 +864,11 @@ trapUndefined(Definition def)
       def = lookupProcedure(functor->functor, module)->definition;
 
       if ( answer == ATOM_fail )
+      { return def;
+      } else if ( answer == ATOM_error )
+      { PL_error(NULL, 0, NULL, ERR_UNDEFINED_PROC, def);
 	return def;
-      else if ( answer == ATOM_retry )
+      } else if ( answer == ATOM_retry )
       { if ( retry_times++ )
 	{ warning("exception handler failed to define predicate %s\n",
 		  predicateName(def));

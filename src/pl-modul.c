@@ -35,8 +35,9 @@ _lookupModule(atom_t name)
   m = allocHeap(sizeof(struct module));
   m->name = name;
   m->file = (SourceFile) NULL;
+  m->operators = NULL;
   clearFlags(m);
-  set(m, UNKNOWN);
+  set(m, CHARESCAPE|UNKNOWN);
 
   if ( name == ATOM_user || name == ATOM_system )
     m->procedures = newHTable(PROCEDUREHASHSIZE);

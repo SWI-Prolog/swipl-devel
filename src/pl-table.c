@@ -51,6 +51,8 @@ newHTable(int buckets)
   ht->buckets	  = buckets;
   ht->size	  = 0;
   ht->enumerators = NULL;
+  ht->free_symbol = NULL;
+  ht->copy_symbol = NULL;
 
   allocHTableEntries(ht);
   return ht;
@@ -241,6 +243,9 @@ clearHTable(Table ht)
     for(s = ht->entries[n]; s; s = q)
     { q = s->next;
 
+      if ( ht->free_symbol )
+	(*ht->free_symbol)(s);
+
       freeHeap(s, sizeof(struct symbol));
     }
 
@@ -249,6 +254,48 @@ clearHTable(Table ht)
 
   ht->size = 0;
   UNLOCK();
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Table copyHTable(Table org)
+    Make a copy of a hash-table.  This is used to realise the copy-on-write
+    as defined by SharedTable.  The table is copied to have exactly the
+    same dimensions as the original.  If the copy_symbol function is
+    provided, it is called to allow duplicating the symbols name or value
+    fields.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+Table
+copyHTable(Table org)
+{ Table ht;
+  int n;
+
+  LOCK();
+  ht = allocHeap(sizeof(struct table));
+  *ht = *org;				/* copy all attributes */
+  allocHTableEntries(ht);
+
+  for(n=0; n < ht->buckets; n++)
+  { Symbol s, *q;
+
+    q = &ht->entries[n];
+    for(s = org->entries[n]; s; s = s->next)
+    { Symbol s2 = allocHeap(sizeof(*s2));
+
+      *q = s2;
+      q = &s2->next;
+      s2->name = s->name;
+      s2->value = s->value;
+
+      if ( ht->copy_symbol )
+	(*ht->copy_symbol)(s2);
+    }
+    *q = NULL;
+  }
+  UNLOCK();
+
+  return ht;
 }
 
 

@@ -3271,8 +3271,8 @@ Testing is suffices to find out that the predicate is defined.
 	       false(DEF, PROC_DEFINED) &&
 	       true(DEF->module, UNKNOWN) )
 	  { FR->clause = NULL;
-	    PL_error(NULL, 0, NULL, ERR_UNDEFINED_PROC, DEF);
-	    goto b_throw;
+	    if ( exception_term )
+	      goto b_throw;
 	  }
 	}
 

@@ -141,7 +141,7 @@ architecture identifier.
 
     \cmdlineoptionitem{-arch}{}
 When given as the only option, it prints the architecture identifier
-(see feature(arch, Arch)) and exits.
+(see current_prolog_flag(arch, Arch)) and exits.
 
     \cmdlineoptionitem*{-L}{size[km]}
 Give local stack limit (2 Mbytes default). Note that there is no space
@@ -186,7 +186,7 @@ Used in combination with \cmdlineoption{-c} or \cmdlineoption{-b} to
 determine output file for compilation.
 
     \cmdlineoptionitem{-O}{}
-Optimised compilation. See feature/2.
+Optimised compilation. See current_prolog_flag/2.
 
     \cmdlineoptionitem{-f}{file}
 Use \arg{file} as startup file instead of the default.
@@ -296,16 +296,16 @@ created from the \LaTeX{} sources with a modified version of
 \program{dvitty}, using overstrike for printing bold text and
 underlining for rendering italic text. XPCE is shipped with
 \pllib{swi_help}, presenting the information from the online help in a
-hypertext window. The feature \const{write_help_with_overstrike}
+hypertext window. The prolog-flag \const{write_help_with_overstrike}
 controls whether or not help/1 writes its output using overstrike to
-realise bold and underlined output or not. If this feature is not set it
+realise bold and underlined output or not. If this prolog-flag is not set it
 is initialised by the help library to \const{true} if the \const{TERM}
 variable equals \const{xterm} and \const{false} otherwise. If this
 default does not satisfy you, add the following line to your personal
 startup file (see \secref{initfile}):
 
 \begin{code}
-:- set_feature(write_help_with_overstrike, true).
+:- set_prolog_flag(write_help_with_overstrike, true).
 \end{code}
 
 
@@ -360,13 +360,13 @@ Backtracking yields further explanations.
 
 SWI-Prolog offers a query substitution mechanism similar to that of Unix
 csh (csh(1)), called `history'. The availability of this feature is
-controlled by set_feature/2, using the \const{history} feature. By
-default, history is available if the feature \const{readline} is
+controlled by set_prolog_flag/2, using the \const{history} prolog-flag. By
+default, history is available if the prolog-flag \const{readline} is
 \const{false}. To enable this feature, remembering the last 50 commands,
 put the following into your startup file (see \secref{initfile}:
 
 \begin{code}
-:- set_feature(history, 50).
+:- set_prolog_flag(history, 50).
 \end{code}
 
 The history system allows the user to compose new queries from those
@@ -787,57 +787,60 @@ This performs exactly the same as executing
 See also unix/1.
 
 
-\section{Environment Control}
+\section{Environment Control (Prolog flags)}
 
 The current system defines 2 different mechanisms to query and/or set
-properties of the environment: flag/3 and feature/2 as well as a number
-of special purpose predicates of which unknown/2, fileerrors/2 are
-examples. The ISO standard defines prolog_flag. It is likely that all
-these global features will be merged into a single in the future.
+properties of the environment: flag/3 and current_prolog_flag/2 as well
+as a number of special purpose predicates of which unknown/2,
+fileerrors/2 are examples. The ISO standard defines prolog_flag. It is
+likely that all these global features will be merged into a single in
+the future.
 
 \begin{description}
-    \predicate{feature}{2}{?Key, -Value}
-The predicate feature/2 defines an interface to installation features:
-options compiled in, version, home, etc.  With both arguments unbound,
-it will generate all defined features.  With the `Key' instantiated it
-unify the value of the feature.  Features come in three types: boolean
-features, features with an atom value and features with an integer
-value. A boolean feature is true iff the feature is present {\bf and}
-the \arg{Value} is the atom \const{true}. Currently defined keys:
+    \predicate{current_prolog_flag}{2}{?Key, -Value}
+The predicate current_prolog_flag/2 defines an interface to installation
+features: options compiled in, version, home, etc. With both arguments
+unbound, it will generate all defined prolog-flags. With the `Key'
+instantiated it unify the value of the prolog-flag. Features come in
+three types: boolean prolog-flags, prolog-flags with an atom value and
+prolog-flags with an integer value. A boolean prolog-flag is true iff
+the prolog-flag is present {\bf and} the \arg{Value} is the atom
+\const{true}. Currently defined keys:
 
 \begin{description}
-    \featureoption{arch}{atom}
+    \prologflagitem{arch}{atom}{r}
 Identifier for the hardware and operating system SWI-Prolog is running
 on.  Used to determine the startup file as well as to select foreign
 files for the right architecture.  See also load_foreign/5.
-    \featureoption{version}{integer}
+    \prologflagitem{version}{integer}{r}
 The version identifier is an integer with value: $$10000 \times
 \arg{Major} + 100 \times \arg{Minor} + \arg{Patch}$$
-Note that in releases upto 2.7.10 this feature yielded an atom holding
+Note that in releases upto 2.7.10 this prolog-flag yielded an atom holding
 the three numbers separated by dots. The current representation is much
 easier for implementing version-conditional statements.
-    \featureoption{home}{atom}
+    \prologflagitem{home}{atom}{r}
 SWI-Prolog's notion of the home-directory.  SWI-Prolog uses it's home
 directory to find its startup file as \file{<home>/startup/startup.<arch>}
 and to find its library as \file{<home>/library}.
-    \featureoption{executable}{atom}
+    \prologflagitem{executable}{atom}
 Path-name of the running executable.  Used by qsave_program/2 as default
 emulator.
-    \featureoption{pipe}{bool}
+    \prologflagitem{argv}{list}{r}
+List is a list of atoms representing the command-line arguments used to
+invoke SWI-Prolog.  Please note that {\bf all} arguments are included
+in the list returned.
+    \prologflagitem{pipe}{bool}{r}
 If true, tell(pipe(command)), etc.\ are supported.
-    \featureoption{load_foreign}{bool}
-If true, load_foreign/[2,5] are implemented.
-    \featureoption{open_shared_object}{bool}
+    \prologflagitem{open_shared_object}{bool}{r}
 If true, open_shared_object/2 and friends are implemented, providing
-access to shared libraries (.so files).  This requires the C-library
-functions dlopen() and friends as well as the configuration option
-{\tt --with-dlopen}.
-    \featureoption{shared_object_extension}{atom}
+access to shared libraries (\fileext{so} files) or dynamic link
+libraries (\fileext{DLL} files).
+    \prologflagitem{shared_object_extension}{atom}{r}
 Extension used by the operating system for shared objects.  \const{so}
 for most Unix systems and \const{dll} for Windows.  Used for locating
 files using the \const{file_type} \const{executable}.  See also
 absolute_file_name/3.
-    \featureoption{dynamic_stacks}{bool}
+    \prologflagitem{dynamic_stacks}{bool}{r}
 If \const{true}, the system uses some form of `sparse-memory management'
 to realise the stacks. If false, malloc()/realloc() are used for the
 stacks. In earlier days this had consequenses for foreign code. As of
@@ -848,61 +851,61 @@ stack-shifter, and checking the stack-boundary is often realised by the
 hardware using a `guard-page'. Also, memory is actually returned to the
 system after a garbage collection or call to trim_stacks/0 (called by
 prolog/0 after finishing a user-query).
-    \featureoption{c_libs}{atom}
+    \prologflagitem{c_libs}{atom}{r}
 Libraries passed to the C-linker when SWI-Prolog was linked.  May be used
 to determine the libraries needed to create statically linked extensions
 for SWI-Prolog.  See \secref{plld}.
-    \featureoption{c_staticlibs}{atom}
-On some machines, the SWI-Prolog executable is dynamically linked, but
-requires some libraries to be statically linked.  Obsolete.
-    \featureoption{c_cc}{atom}
+    \prologflagitem{c_cc}{atom}{r}
 Name of the C-compiler used to compile SWI-Prolog.  Normally either gcc
 or cc.  See \secref{plld}.
-    \featureoption{c_ldflags}{atom}
+    \prologflagitem{c_ldflags}{atom}{r}
 Special linker flags passed to link SWI-Prolog.  See \secref{plld}.
-    \featureoption{save}{bool}
-If true, save/[1,2] is implemented.  Saving using save/0 is obsolete.  See
-qsave_program/[1,2].
-    \featureoption{save_program}{bool}
-If true, save_program/[1,2] is implemented.  Saving using save_program/0
-is obsolete.  See qsave_program/[1,2].
-    \featureoption{readline}{bool}
+    \prologflagitem{readline}{bool}{r}
 If true, SWI-Prolog is linked with the readline library.  This is done
 by default if you have this library installed on your system.  It is
 also true for the Win32 plwin.exe version of SWI-Prolog, which realises
 a subset of the readline functionality.
-    \featureoption{saved_program}{bool}
+    \prologflagitem{saved_program}{bool}{r}
 If true, Prolog is started from a state saved with qsave_program/[1,2].
-    \featureoption{runtime}{bool}
+    \prologflagitem{runtime}{bool}{r}
 If true, SWI-Prolog is compiled with -DO_RUNTIME, disabling various
 useful development features (currently the tracer and profiler).
-    \featureoption{max_integer}{integer}
+    \prologflagitem{max_integer}{integer}{r}
 Maximum integer value.  Most arithmetic operations will automatically
 convert to floats if integer values above this are returned.
-    \featureoption{min_integer}{integer}
+    \prologflagitem{min_integer}{integer}{r}
 Minimum integer value.
-    \featureoption{max_tagged_integer}{integer}
+    \prologflagitem{max_tagged_integer}{integer}{r}
 Maximum integer value represented as a `tagged' value.  Tagged integers
 require 4-bytes storage and are used for indexing.  Larger integers are
 represented as `indirect data' and require 16-bytes on the stacks (though
 a copy requires only 4 additional bytes).
-    \featureoption{min_tagged_integer}{integer}
+    \prologflagitem{min_tagged_integer}{integer}{r}
 Start of the tagged-integer value range.
-    \featureoption{float_format}{atom}
+    \prologflagitem{float_format}{atom}{rw}
 C {\tt printf()} format specification used by write/1 and friends to
 determine how floating point numbers are printed.  The default is {\tt
 \%g}.  May be changed.  The specified value is passed to printf()
 without further checking.  For example, if you want more digits printed,
 {\tt \%.12g} will print all floats using 12 digits instead of the
 default 6.  See also format/[1,2], write/1, print/1 and portray/1.
-    \featureoption{compiled_at}{atom}
+    \prologflagitem{compiled_at}{atom}{r}
 Describes when the system has been compiled. Only available if the
 C-compiler used to compile SWI-Prolog provides the __DATE__ and __TIME__
 macros.
-    \featureoption{character_escapes}{bool}
-If true (default), read/1 interprets \verb$\$ escape sequences in quoted
-atoms and strings.  May be changed.
-    \featureoption{allow_variable_name_as_functor}{bool}
+    \prologflagitem{character_escapes}{bool}{rw}
+If \const{true} (default), read/1 interprets \verb$\$ escape sequences
+in quoted atoms and strings. May be changed. This flag is local to the
+module in which it is changed.
+    \prologflagitem{double_quotes}{codes,chars,atom,string}{rw}
+This flag determines how double-quotes strings are read by Prolog and is
+---like character_escapes--- maintained for each module. If
+\const{codes} (default), a list of character-codes is returned, if
+\const{chars} a list of one-character atoms, if \const{atom} double
+quotes are the same as single-quotes and finally, \const{string} reads
+the text into a Prolog string (see \secref{strings}).   See also
+atom_chars/2 and atom_codes/2.
+    \prologflagitem{allow_variable_name_as_functor}{bool}{rw}
 If true (default is false), \exam{Functor(arg)} is read as if it was
 written \exam{'Functor'(arg)}. Some applications use the Prolog read/1
 predicate for reading an application defined script language. In these
@@ -913,17 +916,17 @@ atom by calling read_term/2 using the option \const{variable_names} and
 binding the variables to their name. Using this feature, F(x) can be
 turned into valid syntax for such script languages. Suggested by Robert
 van Engelen.  SWI-Prolog specific.
-    \featureoption{history}{integer}
+    \prologflagitem{history}{integer}{rw}
 If $\arg{integer}> 0$, support Unix \program{csh(1)} like history as
 described in \secref{history}. Otherwise, only support reusing commands
-through the commandline editor. The default is to set this feature to 0
-if a commandline editor is provided (see feature \const{readline}) and
+through the commandline editor. The default is to set this prolog-flag to 0
+if a commandline editor is provided (see prolog-flag \const{readline}) and
 15 otherwise.
-    \featureoption{gc}{bool}
+    \prologflagitem{gc}{bool}{rw}
 If true (default), the garbage collector is active.  If false, neither
 garbage-collection, nor stack-shifts will take place, even not on
 explicit request.  May be changed.
-    \featureoption{iso}{bool}
+    \prologflagitem{iso}{bool}{rw}
 Include some weird ISO compatibility that is incompatible to normal
 SWI-Prolog behaviour.  Currently it has the following effect:
 \begin{itemize}
@@ -932,7 +935,7 @@ SWI-Prolog behaviour.  Currently it has the following effect:
     \item In the standard order of terms (see \secref{standardorder}),
           all floats are before all integers.
 \end{itemize}
-    \featureoption{optimise}{bool}
+    \prologflagitem{optimise}{bool}{rw}
 If \const{true}, compile in optimised mode. The initial value is
 \const{true} if Prolog was started with the \cmdlineoption{-O}
 commandline option.
@@ -945,59 +948,110 @@ integrating small predicates into their callers, eliminating constant
 expressions and other predictable constructs. Source code optimisation
 is never applied to predicates that are declared dynamic (see
 dynamic/1).
-    \featureoption{autoload}{bool}
+    \prologflagitem{autoload}{bool}{rw}
 If \const{true} (default) autoloading of library functions is enabled.
 See \secref{autoload}.
-    \featureoption{verbose_autoload}{bool}
+    \prologflagitem{verbose_autoload}{bool}{rw}
 If \const{true} the normal consult message will be printed if a library
 is autoloaded. By default this message is suppressed. Intended to be
 used for debugging purposes.
-    \featureoption{trace_gc}{bool}
+    \prologflagitem{trace_gc}{bool}{rw}
 If true (false is the default), garbage collections and stack-shifts
 will be reported on the terminal.  May be changed.
-    \featureoption{max_arity}{unbounded}
-ISO feature describing there is no maximum arity to compound terms.
-    \featureoption{integer_rounding_function}{down,toward_zero}
-ISO feature describing rounding by \verb$//$ and \verb$rem$ arithmetic
+    \prologflagitem{max_arity}{unbounded}{r}
+ISO prolog-flag describing there is no maximum arity to compound terms.
+    \prologflagitem{integer_rounding_function}{down,toward_zero}
+ISO prolog-flag describing rounding by \verb$//$ and \verb$rem$ arithmetic
 functions. Value depends on the C-compiler used.
-    \featureoption{bounded}{true}
-ISO feature describing integer representation is bound by
+    \prologflagitem{bounded}{true}{r}
+ISO prolog-flag describing integer representation is bound by
 {\tt min_integer} and {\tt min_integer}.
-    \featureoption{tty_control}{bool}
+    \prologflagitem{tty_control}{bool}{r}
 Determines whether the terminal is switched to raw mode for
 get_single_char/1, which also reads the user-actions for the trace.  May
 be set.  See also the \cmdlineoption{+/-tty} command-line option.
-    \featureoption{debug_on_error}{bool}
+    \prologflagitem{debug_on_error}{bool}{rw}
 If {\tt true}, start the tracer after an error is detected.  Otherwise
 just continue execution.  The goal that raised the error will normally
-fail.  See also fileerrors/2 and the feature {\tt report_error}.  May
+fail.  See also fileerrors/2 and the prolog-flag {\tt report_error}.  May
 be changed.  Default is {\tt true}, except for the runtime version.
-    \featureoption{report_error}{bool}
+    \prologflagitem{report_error}{bool}{rw}
 If {\tt true}, print error messages, otherwise suppress them.  May be
-changed.  See also the {\tt debug_on_error} feature.  Default is {\tt
+changed.  See also the {\tt debug_on_error} prolog-flag.  Default is {\tt
 true}, except for the runtime version.  
-    \featureoption{file_name_variables}{bool}
+    \prologflagitem{file_name_variables}{bool}{rw}
 If \const{true} (default \const{false}), expand \file{\$\arg{varname}}
 and \file{~} in arguments of builtin-predicates that accept a file name
 (open/3, exists_file/1, access_file/2, etc.).   The predicate
 expand_file_name/2 should be used to expand environment variables
-and wildcard patterns. This feature is intended for backward
+and wildcard patterns. This prolog-flag is intended for backward
 compatibility with older versions of SWI-Prolog.
-    \featureoption{unix}{bool}
+    \prologflagitem{unix}{bool}{r}
 \index{unix}%
 If {\tt true}, the operating system is some version of Unix.  Defined
 if the C-compiler used to compile this version of SWI-Prolog either
 defines \verb$__unix__$ or \const{unix}.
-    \featureoption{windows}{bool}
+    \prologflagitem{windows}{bool}{r}
 \index{windows}%
 If {\tt true}, the operating system is an implementation of Microsoft
 Windows (3.1, 95, NT, etc.).
 \end{description}
 
-    \predicate{set_feature}{2}{+Key, +Value}
-Define a new feature or change its value.  \arg{Key} is an atom,
-\arg{Value} is an atom or number.
+    \predicate{set_prolog_flag}{2}{+Key, +Value}
+Define a new prolog-flag or change its value.  \arg{Key} is an atom.
+If the flag is a system-defined flag that is not marked
+\jargon{changeable} above, an attempt to modify the flag yields a
+\except{permission_error}.  If the provided \arg{Value} does not
+match the type of the flag, a \except{type_error} is raised.
+
+In addition to ISO, SWI-Prolog allows for user-defined prolog flags.
+The type of the flag is determined from the initial value and cannot
+be changed afterwards.
 \end{description}
+
+
+\section{Hooks, an overview}
+
+\index{hooks}
+SWI-Prolog knows about various other hooks that are implemented using
+their own predicates.  Below is an overview with indication of their
+portability.
+
+\begin{itemlist}
+    \item [portray/1]
+Hook into write_term/3 to alter the way terms are printed (ISO).
+    \item [message_hook/3]
+Hook into print_message/2 to alter the way system messages are printed
+(Quintus/SICStus).
+    \item [library_directory/1]
+Hook into absolute_file_name/3 to define new library directories.
+(most Prolog system).
+    \item [file_search_path/2]
+Hook into absolute_file_name/3 to define new search-paths
+(Quintus/SICStus).
+    \item [term_expansion/2]
+Hook into load_files/1 to modify read terms before they are compiled
+(macro-processing) (most Prolog system).
+    \item [goal_expansion/2]
+Same as term_expansion/2 for individual goals (SICStus).
+    \item [prolog_edit:locate/3]
+Hook into edit/1 to locate objects (SWI).
+    \item [prolog_edit:edit_source/1]
+Hook into edit/1 to call some internal editor (SWI).
+    \item [prolog_edit:edit_command/2]
+Hook into edit/1 to define the external editor to use (SWI).
+    \item [prolog_list_goal/1]
+Hook into the tracer to list the code associated to a particular goal
+(SWI).
+    \item [prolog_trace_interception/4]
+Hook into the tracer to handle trace-events (SWI).
+    \item [resource/3]
+Defines a new resource (not really a hook, but similar) (SWI).    
+    \item [exception/3]
+Old attempt to a generic hook mechanism.  Handles undefined predicates
+and old-style warnings (SWI).
+\end{itemlist}
+
 
 \section{Automatic loading of libraries}	\label{sec:autoload}
 
@@ -1008,10 +1062,10 @@ index to all library files in all library directories is loaded in core
 (see library_directory/1). If the undefined predicate can be located in
 the one of the libraries that library file is automatically loaded and
 the call to the (previously undefined) predicate is resumed. By default
-this mechanism loads the file silently. The feature/2
-\const{verbose_autoload} is provided to get verbose loading. The feature
-\const{autoload} can be used to enable/disable the entire auto
-load system.
+this mechanism loads the file silently. The current_prolog_flag/2
+\const{verbose_autoload} is provided to get verbose loading. The
+prolog-flag \const{autoload} can be used to enable/disable the entire
+auto load system.
 
 The auto-loader only works if the unknown flag (see unknown/2) is set to
 \const{trace} (default).  A more appropriate interaction with this flag
@@ -1149,14 +1203,14 @@ describe the atom with a single~\verb$'$.
 \end{description}
 
 Character escaping is only available if the
-\exam{feature(character_escapes, true)} is active (default). See
-feature/2. Character escapes conflict with writef/2 in two ways:
-\verb$\40$ is interpreted as decimal 40 by writef/2, but character
-escapes handling by read has already interpreted as 32 (40 octal). Also,
-\fmtseq{\l} is translated to a single `l'.  It is adviced to use the
-more widely supported format/[2,3] predicate instead. If you insist
-using writef, either switch \const{character_escapes} to \const{false},
-or use double \fmtseq{\\}, as in \verb$writef('\\l')$.
+\exam{current_prolog_flag(character_escapes, true)} is active (default).
+See current_prolog_flag/2. Character escapes conflict with writef/2 in
+two ways: \verb$\40$ is interpreted as decimal 40 by writef/2, but
+character escapes handling by read has already interpreted as 32 (40
+octal). Also, \fmtseq{\l} is translated to a single `l'. It is adviced
+to use the more widely supported format/[2,3] predicate instead. If you
+insist using writef, either switch \const{character_escapes} to
+\const{false}, or use double \fmtseq{\\}, as in \verb$writef('\\l')$.
 
 
 \subsubsection{Syntax for Non-Decimal Numbers}
@@ -1262,7 +1316,7 @@ to 128 Mb for each of the areas, except for the program heap, which is
 not limited.
     \item[Integers]
 Integers are 32-bit to the user, but integers upto the value of the
-\const{max_tagged_integer} feature are represented more efficiently.
+\const{max_tagged_integer} prolog-flag are represented more efficiently.
     \item[Floats]
 Floating point numbers are represented as native double precision
 floats, 64 bit IEEE on most machines.

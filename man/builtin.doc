@@ -162,9 +162,9 @@ load_foreign_library/[1,2].
 user:file_search_path(library, X) :-
         library_directory(X).
 user:file_search_path(swi, Home) :-
-        feature(home, Home).
+        current_prolog_flag(home, Home).
 user:file_search_path(foreign, swi(ArchLib)) :-
-        feature(arch, Arch),
+        current_prolog_flag(arch, Arch),
         atom_concat('lib/', Arch, ArchLib).
 user:file_search_path(foreign, swi(lib)).
 \end{code}
@@ -187,13 +187,13 @@ prolog_file_type/2:
 \begin{code}
 user:prolog_file_type(pl,	prolog).
 user:prolog_file_type(Ext,	prolog) :-
-	feature(associate, Ext),
+	current_prolog_flag(associate, Ext),
 	Ext \== pl.
 user:prolog_file_type(qlf,	qlf).
 user:prolog_file_type(so,	executable) :-
-	feature(open_shared_object, true).
+	current_prolog_flag(open_shared_object, true).
 user:prolog_file_type(dll,	executable) :-
-	feature(dll, true).
+	current_prolog_flag(dll, true).
 \end{code}
 
 Users may wish to change the extension used for Prolog source files
@@ -542,8 +542,8 @@ so called ``standard order''. This order is defined as follows:
 	  on their arguments, leftmost argument first. 
 \end{enumerate}
 
-If the feature (see feature/2) \const{iso} is defined, all floating
-point numbers precede all integers.
+If the prolog_flag (see current_prolog_flag/2) \const{iso} is defined,
+all floating point numbers precede all integers.
 
 
 \begin{description}
@@ -800,10 +800,10 @@ context can be retrieved using PL_exception().
 
 \index{exceptions,debugging}%
 \index{debugging,exceptions}%
-Before the introduction of exceptions in SWI-Prolog a runtime error
-was handled by printing an error message, after which the predicate
-failed.  If the feature (see feature/2) \const{debug_on_error} was
-in effect (default), the tracer was switched on.  The combination of
+Before the introduction of exceptions in SWI-Prolog a runtime error was
+handled by printing an error message, after which the predicate failed.
+If the prolog_flag (see current_prolog_flag/2) \const{debug_on_error}
+was in effect (default), the tracer was switched on. The combination of
 the error message and trace information is generally sufficient to
 locate the error.
 
@@ -821,15 +821,15 @@ system will enter trace mode.
 If the system is in an non-interactive callback from foreign code and
 there is no catch/3 active in the current context, it cannot determine
 whether or not the exception will be caught by the external routine
-calling Prolog.  It will then base its behaviour on the feature
+calling Prolog.  It will then base its behaviour on the prolog_flag
 debug_on_error:
 
 \begin{itemlist}
-    \item [feature(debug_on_error, false)]
+    \item [current_prolog_flag(debug_on_error, false)]
 The exception does not trap the debugger and is returned to the foreign
 routine calling Prolog, where it can be accessed using PL_exception().
 This is the default.
-    \item [feature(debug_on_error, true)]
+    \item [current_prolog_flag(debug_on_error, true)]
 If the exception is not caught by Prolog in the current context, it will
 trap the tracer to help analysing the context of the error.
 \end{itemlist}
@@ -856,32 +856,62 @@ information was present.
 \subsection{Printing a message from an exception}
 
 The predicate print_message/2 may be used to print an exception term
-in a human readable format:
+in a human readable format.  The other predicates from this section
+allow the user to refine and extend the message system.  The most
+common usage of print_message/3 is to print error messages from
+exceptions.  The code below prints errors encountered during the
+execution of \arg{Goal}, without further propagating the exception
+and without starting the debugger.
+
+\begin{code}
+	...,
+	catch(Goal, E,
+	      ( print_message(error, E),
+		fail
+	      )),
+	...
+\end{code}
 
 \begin{description}
     \predicate{print_message}{2}{+Kind, +Term}
-This predicate is modelled after the Quintus predicate with the same
-name, though its current implementation is incomplete.  It is used
-only for printing messages from exceptions from built-in predicates.
-\arg{Kind} is one of \const{informational}, \const{warning},
-\const{error}, \const{help} or \const{silent}.  Currently only
-\const{error} is defined.  \arg{Term} is an \funcref{error}{2}
-term described in \secref{exceptterm}.  A human-readable message
-is printed to the stream \const{user_error}.
+The predicate print_message/2 is used to print messages, notably from
+exceptions in a human-readable format. \arg{Kind} is one of
+\const{informational}, \const{warning}, \const{error}, \const{help} or
+\const{silent}. A human-readable message is printed to the stream
+\const{user_error}.
 
-This predicate first obtains the `human translation' of \arg{Term} and
-then calls message_hook/3.  If this fails the message is printed to
-the stream \const{user_error}.
+This predicate first translates the \arg{Term} into a list of
+`message lines' (see print_message_lines/3 for details).  Next it will
+call the hook message_hook/3 to allow the user intercepting the message.
+If message_hook/3 fails it will print the message unless \arg{Kind} is
+silent.
 
 The print_message/2 predicate and its rules are in the file
 \file{<plhome>/boot/messages.pl}, which may be inspected for more
 information on the error messages and related error terms.
-    \predicate{message_hook}{3}{+Term, +Kind, +Message}
+
+    \predicate{print_message_lines}{3}{+Stream, +Prefix, +Lines}
+Print a message (see print_message/3) that has been translated to
+a list of message elements.  The elements of this list are:
+
+\begin{description}
+    \definition{<Format>-<Args>}
+        Where \arg{Format} is an atom and \arg{Args} is a list
+	of format argument.  Handed to format/3.
+    \definition{<Format>}
+        Handed to format/3 as \exam{format(Stream, Format, [])}.
+    \definition{nl}
+        A new line is started and if the message is not complete
+	the \arg{Prefix} is printed too.
+\end{description}
+
+See also print_message/3 and message_hook/3.
+
+    \predicate{message_hook}{3}{+Term, +Kind, +Lines}
 Hook predicate that may be define in the module \const{user} to
 intercept messages from print_message/2. \arg{Term} and \arg{Kind} are
-the same as passed to print_message/2. \arg{Message} is a string
-containing the human readable translation of the message. If this
-predicate succeeds, print_message/2 considers the message printed.
+the same as passed to print_message/2. \arg{Lines} is a list of format
+statements as described with print_message_lines/3.
 
 This predicate should be defined dynamic and multifile to allow other
 modules defining clauses for it too.
@@ -1629,6 +1659,14 @@ If the stream cannot be repostioned, a \const{reposition} error is
 raised. The predicate seek/4 is compatible to Quintus Prolog, though the
 error conditions and signalling is ISO compliant. See also
 stream_position/3.
+    \predicate{set_stream}{2}{+Stream, +Attribute}
+Modify an attribute of an existing stream. \arg{Attribute} is in the
+current implemention only \term{alias}{AliasName} to set the alias of an
+already created stream. If \arg{AliasName} is the name of one of the
+standard streams is used, this stream is rebound. Thus,
+\exam{set_stream(S, current_input)} is the same as set_input/1 and by
+setting the alias of a stream to \const{user_input}, etc.\ all user
+terminal input is read from this stream. See also interactor/0.
 \end{description}
 
 \subsection{Switching Between Implicit and Explicit I/O}
@@ -1647,26 +1685,6 @@ Get the current input stream.  Useful to get access to the status
 predicates associated with streams.
 \predicate{current_output}{1}{-Stream}
 Get the current output stream.
-\predicate{dup_stream}{2}{+From, +To}
-Duplicate the underlying data from stream \arg{From} to stream{To}, so
-actions performed on either stream have the same effect.  The primary
-goal of this predicate is to facilitate redirection of the user
-interaction to allow for `interactor' windows.  For example, the
-following code will redirect output to \const{user_output} and
-\const{user_error} to an XPCE text window:
-
-\begin{code}
-	...,
-	pce_open(Window, append, Fd),
-	dup_stream(user_output, Fd),
-	dup_stream(user_error, Fd),
-	...
-\end{code}
-
-The old status of a stream can be stored by duplicating to a null-stream
-as obtained using open_null_stream/1.
-
-This predicate is SWI-Prolog specific.
 \end{description}
 
 \section{Status of Input and Output Streams}
@@ -1790,10 +1808,10 @@ and writef/2 provide formatted output.
 
 There are two ways to manipulate the output format.  The predicate
 print/[1,2] may be programmed using portray/1.  The format of floating
-point numbers may be manipulated using the feature (see feature/2)
-\const{float_format}.
+point numbers may be manipulated using the prolog_flag (see
+current_prolog_flag/2) \const{float_format}.
 
-Reading is sensitive to the feature \const{character_escapes}, which
+Reading is sensitive to the prolog_flag \const{character_escapes}, which
 controls the interpretation of the \chr{\} character in quoted
 atoms and strings.
 
@@ -1835,7 +1853,7 @@ Equivalent to write_term/2 using the options \const{ignore_ops} and
 Write \arg{Term} in canonical form on \arg{Stream}.
 \predicate{write}{1}{+Term}
 Write \arg{Term} to the current output, using brackets and operators where
-appropriate.   See feature/2 for controlling floating point output format.
+appropriate.   See current_prolog_flag/2 for controlling floating point output format.
 \predicate{write}{2}{+Stream, +Term}
 Write \arg{Term} to \arg{Stream}.
 \predicate{writeq}{1}{+Term}
@@ -1890,6 +1908,14 @@ variable that shares with the corresponding variable in \arg{Term}.
 As \const{variable_names}, but only reports the variables occurring only
 once in the \arg{Term} read. Variables starting with an underscore
 (`\chr{_}') are not included in this list.
+
+    \termitem{character_escapes}{Bool}
+Defines how to read \verb$\$ escape-sequences in quoted atoms.
+See the prolog-flags \const{character_escapes}, current_prolog_flag/2.
+
+    \termitem{double_quotes}{Bool}
+Defines how to read "\ldots" strings. See the prolog-flags
+\const{double_quotes}, current_prolog_flag/2.
 
     \termitem{term_position}{Pos}
 Unifies \arg{Pos} with the starting position of the term read.  \arg{Pos}
@@ -2047,11 +2073,11 @@ copy_term(In, Out) :-
 \section{Analysing and Constructing Atoms}
 
 These predicates convert between Prolog constants and lists of ASCII
-values. The predicates atom_codes/2, number_chars/2 and name/2
-behave the same when converting from a constant to a list of ASCII
-values. When converting the other way around, atom_codes/2 will
-generate an atom, number_chars/2 will generate a number or fail and
-name/2 will return a number if possible and an atom otherwise.
+values. The predicates atom_codes/2, number_codes/2 and name/2 behave
+the same when converting from a constant to a list of ASCII values. When
+converting the other way around, atom_codes/2 will generate an atom,
+number_codes/2 will generate a number or exception and name/2 will
+return a number if possible and an atom otherwise.
 
 The ISO standard defines atom_chars/2 to describe the `broken-up'
 atom as a list of one-character atoms instead of a list of codes.  Upto
@@ -2081,19 +2107,28 @@ rather than a list of ASCII values%
 
 X = [h, e, l, l, o]
 \end{code}
-    \predicate{atom_char}{2}{?Atom, ?ASCII}
-Convert between character and ASCII value for a single character.
-\predicate{number_chars}{2}{?Number, ?String}
+    \predicate{char_code}{2}{?Atom, ?ASCII}
+Convert between character and ASCII value for a single character.%
+	\footnote{This is also called atom_char/2 in older versions of
+		  SWI-Prolog as well as some other Prolog
+		  implementations.  atom_char/2 is available from
+		  the library  \file{backcomp.pl}}
+    \predicate{number_chars}{2}{?Number, ?CharList}
 Similar to atom_chars/2, but converts between a number and its
-representation as a list of ASCII values.  Fails silently if \arg{Number}
-is unbound and \arg{String} does not describe a number.
-\predicate{name}{2}{?AtomOrInt, ?String}
+representation as a list of one-character atoms. Fails with a
+\except{representation_error} if \arg{Number} is unbound and
+\arg{CharList} does not describe a number.
+    \predicate{number_codes}{2}{?Number, ?CodeList}
+As number_chars/2, but converts to a list of character codes (normally
+ASCII values) rather than one-character atoms.  In the mode -, +, both
+predicates behave identically to improve handling of non-ISO source.
+    \predicate{name}{2}{?AtomOrInt, ?String}
 \arg{String} is a list of ASCII values describing \arg{Atom}. Each of the
 arguments may be a variable, but not both. When \arg{String} is bound to an
 ASCII value list describing an integer and \arg{Atom} is a variable \arg{Atom}
 will be unified with the integer value described by \arg{String} (e.g.
 `\exam{name(N, "300"), 400 is N + 100}' succeeds).
-\predicate{int_to_atom}{3}{+Int, +Base, -Atom}
+    \predicate{int_to_atom}{3}{+Int, +Base, -Atom}
 Convert \arg{Int} to an {\sc ascii} representation using base \arg{Base}
 and unify the result with \arg{Atom}. If $\arg{Base} \not= 10$ the base
 will be prepended to \arg{Atom}. $\arg{Base} = 0$ will try to interpret
@@ -2106,7 +2141,7 @@ int_to_atom(97,  0, A) & $\longrightarrow$ & $A = 0'a$ \\
 int_to_atom(56, 10, A) & $\longrightarrow$ & $A = 56$ \\
 \end{tabular}\end{center}
 
-\predicate{int_to_atom}{2}{+Int, -Atom}
+    \predicate{int_to_atom}{2}{+Int, -Atom}
 Equivalent to \exam{int_to_atom(Int, 10, Atom)}.
 \predicate{term_to_atom}{2}{?Term, ?Atom}
 Succeeds if \arg{Atom} describes a term that unifies with \arg{Term}. When
@@ -2114,7 +2149,7 @@ Succeeds if \arg{Atom} describes a term that unifies with \arg{Term}. When
 \arg{Term}.  If \arg{Atom} has no valid syntax, a \except{syntax_error}
 exception is raised. Otherwise \arg{Term} is ``written'' on \arg{Atom}
 using write/1.
-\predicate{atom_to_term}{3}{+Atom, -Term, -Bindings}
+    \predicate{atom_to_term}{3}{+Atom, -Term, -Bindings}
 Use \arg{Atom} as input to read_term/2 using the option
 \const{variable_names} and return the read term in \arg{Term} and the
 variable bindings in \arg{Bindings}. \arg{Bindings} is a list of
@@ -2142,14 +2177,105 @@ between each pair of atoms.  For example:
 
 A = 'gnu, gnat'
 \end{code}
-\predicate{atom_length}{2}{+Atom, -Length}
+    \predicate{atom_length}{2}{+Atom, -Length}
 Succeeds if \arg{Atom} is an atom of \arg{Length} characters long. This
 predicate also works for integers and floats, expressing the number of
 characters output when given to write/1.
-\predicate{atom_prefix}{2}{+Atom, +Prefix}
+    \predicate{atom_prefix}{2}{+Atom, +Prefix}
 Succeeds if \arg{Atom} starts with the characters from \arg{Prefix}.
 Its behaviour is equivalent to \exam{?- concat(\arg{Prefix}, _, \arg{Atom})}, but avoids the construction of an atom for the `remainder'.
 \end{description}
+
+
+\section{Classifying characters}
+
+SWI-Prolog offers two comprehensive predicates for classifying
+characters and character-codes. These predicates are defined as built-in
+predicates to exploit the C-character classification's handling of
+\jargon{locale} (handling of local character-sets).  These predicates
+are fast, logical and deterministic if applicable.
+
+In addition, there is the library \pllib{ctype} providing compatibility
+to some other Prolog systems. The predicates of this library are defined
+in terms of code_type/2.
+
+\begin{description}
+    \predicate{char_type}{2}{?Char, ?Type}
+Tests or generates alternative \arg{Type}s or \arg{Char}s. The
+character-types are inspired by the standard C \file{<ctype.h>}
+primitives.
+
+\begin{description}
+    \termitem{alnum}{}
+\arg{Char} is a letter (upper- or lowercase) or digit.
+    \termitem{alpha}{}
+\arg{Char} is a letter (upper- or lowercase).
+    \termitem{csym}{}
+\arg{Char} is a letter (upper- or lowercase), digit or the underscore
+(\verb$_$).  These are valid C- and Prolog symbol characters.
+    \termitem{csymf}{}
+\arg{Char} is a letter (upper- or lowercase) or the underscore
+(\verb$_$). These are valid first characters for C- and Prolog symbols
+    \termitem{ascii}{}
+\arg{Char} is a 7-bits ASCII character (0..127).
+    \termitem{white}{}
+\arg{Char} is a space or tab.  E.i.\ white space inside a line.
+    \termitem{cntrl}{}
+\arg{Char} is an ASCII control-character (0..31).
+    \termitem{digit}{}
+\arg{Char} is a digit.
+    \termitem{digit}{Weigth}
+\arg{Char} is a digit with value \arg{Weigth}. I.e.\ \exam{char_type(X,
+digit(6)} yields \arg{X} = \exam{'6'}.  Useful for parsing numbers.
+    \termitem{graph}{}
+\arg{Char} produces a visible mark on a page when printed. Note that
+the space is not included!
+    \termitem{lower}{}
+\arg{Char} is a lower-case letter.
+    \termitem{lower}{Upper}
+\arg{Char} is a lower-case version of \arg{Upper}. Only true if
+\arg{Char} is lowercase and \arg{Upper} uppercase.
+    \termitem{to_lower}{Upper}
+\arg{Char} is a lower-case version of \arg{Upper}. For non-letters,
+or letter without case, \arg{Char} and \arg{Lower} are the same.
+    \termitem{upper}{}
+\arg{Char} is an upper-case letter.
+    \termitem{upper}{Lower}
+\arg{Char} is an upper-case version of \arg{Lower}. Only true if
+\arg{Char} is uppercase and \arg{Lower} lowercase.
+    \termitem{to_upper}{Lower}
+\arg{Char} is an upper-case version of \arg{Lower}.  For non-letters,
+or letter without case, \arg{Char} and \arg{Lower} are the same.
+    \termitem{punct}{}
+\arg{Char} is a punctuation character. This is a \const{graph} character
+that is not a letter or digit.
+    \termitem{space}{}
+\arg{Char} is some form of layout character (tab, vertical-tab, newline,
+etc.).
+    \termitem{end_of_file}{}
+\arg{Char} is -1.
+    \termitem{end_of_line}{}
+\arg{Char} ends a line (ASCII: 10..13).
+    \termitem{newline}{}
+\arg{Char} is a the newline character (10).
+    \termitem{period}{}
+\arg{Char} counts as the end of a sentence (.,!,?).
+    \termitem{quote}{}
+\arg{Char} is a quote-character (\verb$"$, \verb$'$, \verb$`$).
+    \termitem{paren}{Close}
+\arg{Char} is an open-parenthesis and \arg{Close} is the corresponding
+close-parenthesis.
+\end{description}
+
+    \predicate{code_type}{2}{?Code, ?Type}
+As char_type/2, but uses character-codes rather than one-character
+atoms.  Please note that both predicates are as flexible as possible.
+They handle either representation if the argument is instantiated
+and only will instantiate with an integer code or one-character atom
+depending of the version used. See also the prolog-flag
+\const{double_quotes}, atom_chars/2 and atom_codes/2.
+\end{description}
+
 
 \section{Representing Text in Strings}		\label{sec:strings}
 
@@ -2207,21 +2333,51 @@ Create a substring of \arg{String} that starts at character \arg{Start}
 
 \section{Operators}
 
+Operators are defined to improve the readibility of source-code.
+For example, without operators, to write \exam{2*3+4*5} one would have
+to write \exam{+(*(2,3),*(4,5))}.  In Prolog, a number of operators have
+been predefined. All operators, except for the comma (,) can be
+redefined by the user.  
+
+\index{operator,and modules}
+Some care has to be taken before defining new operators.  Defining too
+many operators might make your source `natural' looking, but at the same
+time lead to hard to understand the limits of your syntax.  To ease the
+pain, as of SWI-Prolog 3.3.0, operators are local to the module in which
+they are defined.  The module-table of the module \const{user} acts as
+default table for all modules. This global table can be modified
+explictly from inside a module:
+
+\begin{code}
+:- module(prove,
+	  [ prove/1
+	  ]).
+
+:- op(900, xfx, user:(=>)).
+\end{code}
+
+Unlike what many users think, operators and quoted atoms have no
+relation: defining a atom as an operator does {\bf not} influence
+parsing characters into atoms and quoting an atom does {\bf not} stop
+it from acting as an operator.  To stop an atom acting as an operator,
+enclose it in braces like this: (myop).
+
 \begin{description}
-\predicate{op}{3}{+Precedence, +Type, +Name}
+\predicate{op}{3}{+Precedence, +Type, :Name}
 Declare \arg{Name} to be an operator of type \arg{Type} with precedence
-\arg{Precedence}.  \arg{Name} can also be a list of names, in which case
-all elements of the list are declared to be identical operators.  \arg{Precedence} is an integer between 0 and 1200.  Precedence 0 removes
-the declaration.  \arg{Type} is one of: \const{xf}, \const{yf}, 
-\const{xfx}, \const{xfy}, \const{yfx}, \const{yfy}, \const{fy} or \const{fx}.  The
-`\chr{f}' indicates the position of the functor, while \chr{x}
-and \chr{y} indicate the position of the arguments. `\chr{y}'
+\arg{Precedence}. \arg{Name} can also be a list of names, in which case
+all elements of the list are declared to be identical operators.
+\arg{Precedence} is an integer between 0 and 1200. Precedence 0 removes
+the declaration. \arg{Type} is one of: \const{xf}, \const{yf},
+\const{xfx}, \const{xfy}, \const{yfx}, \const{yfy}, \const{fy} or
+\const{fx}. The `\chr{f}' indicates the position of the functor, while
+\chr{x} and \chr{y} indicate the position of the arguments. `\chr{y}'
 should be interpreted as ``on this position a term with precedence lower
-or equal to the precedence of the functor should occur''. For
-`\chr{x}' the precedence of the argument must be strictly lower.
-The precedence of a term is 0, unless its principal functor is an
-operator, in which case the precedence is the precedence of this
-operator. A term enclosed in brackets \exam{(\ldots)} has precedence 0.
+or equal to the precedence of the functor should occur''. For `\chr{x}'
+the precedence of the argument must be strictly lower. The precedence of
+a term is 0, unless its principal functor is an operator, in which case
+the precedence is the precedence of this operator. A term enclosed in
+brackets \exam{(\ldots)} has precedence 0.
 
 The predefined operators are shown in \tabref{operators}. Note that
 all operators can be redefined by the user.
@@ -2238,7 +2394,7 @@ all operators can be redefined by the user.
 1050 & xfy & \op{->} \\
 1000 & xfy & \op{,} \\
 954 & xfy & \op{\} \\
-900 & fy & \op{\+}, \op{not} \\
+900 & fy & \op{\+} \\
 900 & fx & \op{~} \\
 700 & xfx & \op{<}, \op{=}, \op{=..}, \op{=@=}, \op{=:=}, \op{=<}, \op{==}, 
             \op{=\=}, \op{>}, \op{>=}, \op{@<}, \op{@=<}, \op{@>}, 
@@ -2257,7 +2413,7 @@ all operators can be redefined by the user.
     \label{tab:operators}
 \end{table}
 
-\predicate{current_op}{3}{?Precedence, ?Type, ?Name}
+\predicate{current_op}{3}{?Precedence, ?Type, ?:Name}
 Succeeds when \arg{Name} is currently defined as an operator of type \arg{Type}
 with precedence \arg{Precedence}. See also op/3.
 \end{description}
@@ -2271,7 +2427,7 @@ possible.  Their usage is recommended whenever applicable, resulting in
 faster and more ``logical'' programs.
 
 The general arithmetic predicates are optionally compiled now (see
-set_feature/2 and the \cmdlineoption{-O} command line option).
+set_prolog_flag/2 and the \cmdlineoption{-O} command line option).
 Compiled arithmetic reduces global stack requirements and improves
 performance. Unfortunately compiled arithmetic cannot be traced, which
 is why it is optional.
@@ -3251,13 +3407,12 @@ Change working directory to \arg{Path}.%
 
 \end{description}
 
-\section{Multi-threading (PRE-ALPHA: developers only!)}
+\section{Multi-threading (alpha code)}		\label{sec:threads}
 
 {\bf The features described in this section are only enabled on Unix
 systems providing POSIX threads and if the system is configured using
-the \longoption{enable-mt}{} option.  SWI-Prolog multi-theading support
-is very incomplete and for developers ONLY.  This section however does
-provide an overview of forthcoming functionality.}
+the \longoption{enable-mt}{} option. SWI-Prolog multi-theading support
+is experimental and in some areas not safe.}
 
 SWI-Prolog multithreading is based on standard C-language multithreading
 support. It is not like {\em ParLog} or other paralel implementations of
@@ -3287,11 +3442,6 @@ foreign thread can create its own Prolog engine for dealing with
 calling Prolog from C-code.
 \end{itemlist}
 
-Below is the tentative and incomplete API for dealing with multiple
-Prolog threads. Forthcoming: \idx{mutexes}, \idx{semaphores},
-thread-suspend and cancel, foreign-language interface and debugger
-interface.
-
 \begin{description}
     \predicate{thread_create}{3}{:Goal, -Id, +Options}
 Create a new Prolog thread (and underlying C-thread) and start it
@@ -3320,6 +3470,13 @@ omited, the limit of the calling thread is used. See also the
 Associate an `alias-name' with the thread.  This named may be used to
 refer to the thread and remains valid until the thread is joined
 (see thread_join/2).
+    \termitem{detached}{Bool}
+If \const{false} (default), the thread can be waited for using
+thread_join/2. thread_join/2 must be called on this thread to reclaim
+the all resources associated to the thread. If \const{true}, the system
+will reclaim all associated resources automatically after the thread
+finishes. Please not that thread identifiers are freed for reuse after a
+detached thread finishes or a normal thread has been joined.
 \end{description}
 
 The \arg{Goal} argument is {\em copied} to the new Prolog engine.  This
@@ -3369,6 +3526,12 @@ thread is retained until thread_join/2 is called on the thread.
 Terminates the thread immediately, leaving \term{exited}{Term} as
 result-state.  The Prolog stacks and C-thread are reclaimed.
 
+    \predicate{thread_at_exit}{1}{:Goal}
+Run \arg{Goal} after the execution of this thread has terminated. This
+is to be compared to at_halt/1, but only for the current thread.  These
+hooks are ran regardless of why the execution of the thread has been
+completed.  As these hooks are run, the return-code is already available
+through current_thread/2.
 \end{description}
 
 
@@ -3415,7 +3578,129 @@ Examines the thread message-queue and compares the queued terms
 with \arg{Term} until one unifies or the end of the queue has been
 reached.  In the first case the call succeeds (possibly instantiating
 \arg{Term}.  If no term from the queue unifies this call fails.
+    \predicate{thread_signal}{2}{+ThreadId, :Goal}
+Make thread \arg{ThreadId} execute \arg{Goal} at the first
+opportunity.  In the current implementation, this implies at the first
+pass through the \jargon{Call-port}. The predicate thread_signal/2
+itself places \arg{Goal} into the signalled-thread's signal queue
+and returns immediately.
+
+Signals (interrupts) do not cooperate well with the world of
+multi-threading, mainly because the status of mutexes cannot be
+guaranteed easily.  At the call-port, the Prolog virtual machine
+holds no locks and therefore the asynchronous execution is safe.
+
+\arg{Goal} can be any valid Prolog goal, including throw/1 to make
+the receiving thread generate an exception and trace/0 to start
+tracing the receiving thread.
 \end{description}
+
+\subsection{Thread synchronisation}
+
+All internal Prolog operations are thread-safe. This implies two Prolog
+threads can operate on the same dynamic predicate without corrupting the
+consistency of the predicate. This section deals with user-level
+\jargon{mutexes} (called \jargon{monitors} in ADA or
+\jargon{critical-sections} by Microsoft).  A mutex is a
+{\bf MUT}ual {\bf EX}clusive device, which implies at most one thread
+can \jargon{hold} a mutex.
+
+Mutexes are used to realise related updates to the Prolog database.
+With `related', we refer to the situation where a `transaction' implies
+two or more changes to the Prolog database.  For example, we have a
+predicate address/2, representing the address of a person and we want
+to change the address by retracting the old and asserting the new
+address.  Between these two operations the database is invalid: this
+person has either no address or two addresses (depending on the
+assert/retract order).
+
+Here is how to realise a correct update:
+
+\begin{code}
+:- initialization
+	mutex_create(addressbook).
+
+change_address(Id, Address) :-
+	mutex_lock(addressbook),
+	retractall(address(Id, _)),
+	asserta(address(Id, Address)),
+	mutex_unlock(addressbook).
+\end{code}
+
+
+\begin{description}
+    \predicate{mutex_create}{1}{?MutexId}
+Create a mutex.  if \arg{MutexId} is an atom, a \jargon{named} mutex is
+created.  If it is a variable, an anonymous mutex reference is returned.
+There is no limit to the number of mutexes that can be created.
+    \predicate{mutex_destroy}{1}{+MutexId}
+Destroy a mutex.  After this call, \arg{MutexId} becomes invalid and
+further references yield an \except{existence_error} exception.
+    \predicate{mutex_lock}{1}{+MutexId}
+Lock the mutex.  Prolog mutexes are \jargon{recursive} mutexes: they
+can be locked multiple times by the same thread.  Only after unlocking
+it as many times as it is locked, the mutex becomes available for
+locking by other threads.
+
+If another thread has locked the mutex the calling thread is suspended
+until to mutex is unlocked.
+    \predicate{mutex_trylock}{1}{+MutexId}
+As mutex_lock/1, but if the mutex is held by another thread, this
+predicates fails immediately.
+    \predicate{mutex_unlock}{1}{+MutexId}
+Unlock the mutex. This can only be called if the mutex is held by the
+calling thread. If this is not the case, a \except{permission_error}
+exception is raised.
+    \predicate{mutex_unlock_all}{0}{}
+Unlock all mutexes held by the current thread.  This call is especially
+useful to handle thread-termination using abort/0 or exceptions.  See
+also thread_signal/2.
+    \predicate{current_mutex}{3}{?MutexId, ?ThreadId, ?Count}
+Enumerates all existing mutexes.  If the mutex is held by some thread,
+\arg{ThreadId} is unified with the identifier of te holding thread and
+\arg{Count} with the recursive count of the mutex. Otherwise,
+\arg{ThreadId} is \const{[]} and \arg{Count} is 0.
+\end{description}
+
+
+\subsection{Thread-support library(threadutil)}
+
+This library defines a couple of useful predicates for demonstrating and
+debugging multi-threaded applications. This library is certainly not
+complete.
+
+\begin{description}
+    \predicate{threads}{0}{}
+Lists all current threads and their status.  In addition, all `zombie'
+threads (finished threads that are not detached, nor waited for) are
+joined to reclaim their resources.
+    \predicate{interactor}{0}{}
+Create a new console and run the Prolog toplevel in this new console.
+See also attach_console/0.
+    \predicate{attach_console}{0}{}
+If the current thread has no console attached yet, attach one and
+redirect the user streams (input, output, and error) to the new console
+window. The console is an \program{xterm} application. For this to work,
+you should be running X-windows and your xterm should know the
+\cmdlineoption{-Sccn}.
+
+This predicate has a couple of useful applications.  One is to separate
+(debugging) I/O of different threads.  Another is to start debugging a
+thread that is running in the background.  If thread 10 is running, the
+following sequence starts the tracer on this thread:
+
+\begin{code}
+?- thread_signal(10, (attach_console, trace)).
+\end{code}
+\end{description}
+
+
+\subsection{Status of the thread implementation}
+
+It is assumed that the basic Prolog execution is thread-safe. Various
+problems are to be expected though, both dead-locks as well as
+not-thread-safe code in builtin-predicates. 
+
 
 \section{User Toplevel Manipulation}
 
@@ -3439,6 +3724,17 @@ to \arg{user}.%
 \bug{Erased clauses which could not actually be removed from the
 database, because they are active in the interpreter, will never be
 garbage collected after an abort.}
+
+In the single-threaded version abort/0 is implemented using a
+C-longjmp() call, after which the Prolog stacks are emptied, relevant
+reference-counts and some other global data is reset, after which the
+system is restarted. This approach allows Prolog to recover from
+internal consistency problems such as garbage-collection errors. The
+multi-threaded version implements abort/0 by generation an exception
+\const{\$aborted}. This approach is less secure if the system is in an
+unhealthy state, but required to ensure consistency of the other threads
+as well as mutexes.
+
 \predicate{halt}{0}{}
 Terminate Prolog execution.  Open files are closed and if the command
 line option \cmdlineoption{-tty} is not active the terminal status (see Unix
@@ -3450,9 +3746,10 @@ Terminate Prolog execution with given status.  Status is an integer.
 See also halt/0.
 \predicate{prolog}{0}{}
 This goal starts the default interactive top level. Queries are read
-from the stream \const{user_input}. See also the \const{history} feature
-(feature/2). The prolog/0 predicate is terminated (succeeds) by typing
-the end-of-file character (Unix: control-D).
+from the stream \const{user_input}. See also the \const{history}
+prolog_flag (current_prolog_flag/2). The prolog/0 predicate is
+terminated (succeeds) by typing the end-of-file character (On most
+systems control-D).
 \end{description}
 
 The following two hooks allow for expanding queries and handling the
@@ -3475,7 +3772,6 @@ successfully executed toplevel query. \arg{Bindings} is the query
 $<Name>=<Value>$ binding list from the query. \arg{ExpandedBindings}
 must be unified with the bindings the toplevel should print.
 \end{description}
-
 
 \section{Creating a Protocol of the User Interaction}
 
@@ -3614,9 +3910,8 @@ Name & Default & Description \\
                         System maintenance use only. \\         
 \const{discontiguous} & on & Warn if the clauses for a predicate are not
                         together in the same source file. \\
-\const{string}     & off & Read and derivatives transform \const{"\ldots"} into
-                        a prolog string instead of a list of ASCII
-                        characters. \\
+\const{string}     & off & Backward compatibility.  See the prolog-flag
+			\const{double_quotes} (current_prolog_flag/2). \\
 \hline
 \end{tabular}
 \end{center}
@@ -3654,6 +3949,9 @@ functors        & Total number of defined name/arity pairs. \\
 predicates      & Total number of predicate definitions. \\
 modules         & Total number of module definitions. \\
 codes           & Total amount of byte codes in all clauses. \\
+threads		& MT-version: number of active threads \\
+threads_created & MT-version: number of created threads \\
+threads_cputime & MT-version: seconds CPU time used by finished threads \\
 \hline
 \end{tabular}
 \end{center}
@@ -3890,15 +4188,15 @@ atom, indicating \arg{Goal} only handles requests on this topic or a
 variable that also appears in \arg{Goal}. \arg{Item} and \arg{Value} are
 variables that also appear in \arg{Goal}.
 
-The example below registers the Prolog feature/2 predicate to be
-accessible from other applications.  The request may be given from
+The example below registers the Prolog current_prolog_flag/2 predicate
+to be accessible from other applications. The request may be given from
 the same Prolog as well as from another application.
 
 \begin{code}
-?- dde_register_service(prolog(feature, F, V),
-                        feature(F, V)).
+?- dde_register_service(prolog(current_prolog_flag, F, V),
+                        current_prolog_flag(F, V)).
 
-?- open_dde_conversation(prolog, feature, Handle),
+?- open_dde_conversation(prolog, current_prolog_flag, Handle),
    dde_request(Handle, home, Home),
    close_dde_conversation(Handle).
 

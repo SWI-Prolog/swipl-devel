@@ -49,7 +49,7 @@ qsave_program(FileSpec, Options0) :-
 	;   true
 	),
 	open_map(Map),
-	set_feature(saved_program, true),
+	set_prolog_flag(saved_program, true),
 	(   exists_file(File)
 	->  delete_file(File)
 	;   true
@@ -68,7 +68,7 @@ qsave_program(FileSpec, Options0) :-
 	save_records,
 	save_flags,
 	save_imports,
-	save_features,
+	save_prolog_flags,
 	save_operators(SaveOps),
 	save_format_predicates,
 	save_functions,
@@ -81,7 +81,7 @@ qsave_program(FileSpec, Options0) :-
 	close_map.
 
 exe_file(Base, Exe) :-
-	feature(windows, true),
+	current_prolog_flag(windows, true),
 	file_name_extension(_, '', Base), !,
 	file_name_extension(Base, exe, Exe).
 exe_file(Exe, Exe).
@@ -101,17 +101,17 @@ make_header(RC, _, Options) :-
 	absolute_file_name(OptVal, [access(read)], Emulator),
 	$rc_append_file(RC, $header, $rc, none, Emulator).
 make_header(RC, _, Options) :-
-	(   feature(windows, true)
+	(   current_prolog_flag(windows, true)
 	->  DefStandAlone = true
 	;   DefStandAlone = false
 	),
 	option(Options, stand_alone/DefStandAlone, OptVal, _),
 	OptVal == true, !,
-	feature(executable, Executable),
+	current_prolog_flag(executable, Executable),
 	$rc_append_file(RC, $header, $rc, none, Executable).
 make_header(RC, SaveClass, _Options) :-
-	feature(unix, true),
-	feature(executable, Executable),
+	current_prolog_flag(unix, true),
+	current_prolog_flag(executable, Executable),
 	$rc_open(RC, $header, $rc, write, Fd),
 	format(Fd, '#!/bin/sh~n', []),
 	format(Fd, '# SWI-Prolog saved state~n', []),
@@ -206,7 +206,7 @@ copy_resource(FromRC, ToRC, Name, Class) :-
 	$rc_open(ToRC,	 Name, Class, write, FdOut),
 	feedback('~t~8|~w~t~24|~w~t~40|~w~n',
 		 [Name, Class, '<Copied from running state>']),
-	$copy_stream(FdIn, FdOut),
+	copy_stream_data(FdIn, FdOut),
 	close(FdOut),
 	close(FdIn).
 
@@ -378,45 +378,13 @@ save_imports :-
 		 *	      FEATURES		*
 		 *******************************/
 
-save_features :-
-	feedback('~nFEATURES~n~n', []),
-	feature(Feature, Value),
-	\+ c_feature(Feature),
+save_prolog_flags :-
+	feedback('~nPROLOG FLAGS~n~n', []),
+	$current_prolog_flag(Feature, Value, global, write, _Type),
 	feedback('~t~8|~w: ~w~n', [Feature, Value]),
-	$add_directive_wic(set_feature(Feature, Value)),
+	$add_directive_wic(set_prolog_flag(Feature, Value)),
 	fail.
-save_features.
-
-c_feature(arch).
-c_feature(boot_file).
-c_feature(bounded).
-c_feature(c_cc).
-c_feature(c_ldflags).
-c_feature(c_libs).
-c_feature(c_staticlibs).
-c_feature(compiled_at).
-c_feature(dynamic_stacks).
-c_feature(home).
-c_feature(executable).
-c_feature(integer_rounding_function).
-c_feature(max_arity).
-c_feature(max_integer).
-c_feature(max_tagged_integer).
-c_feature(min_integer).
-c_feature(min_tagged_integer).
-c_feature(open_shared_object).
-c_feature(pipe).
-c_feature(readline).
-c_feature(resource_database).
-c_feature(save).
-c_feature(save_program).
-c_feature(tty_control).
-c_feature(unix).
-c_feature(version).
-c_feature(windows).
-c_feature(open_shared_object).
-c_feature(shared_object_extension).
-
+save_prolog_flags.
 
 		 /*******************************
 		 *	     OPERATORS		*
@@ -425,9 +393,9 @@ c_feature(shared_object_extension).
 save_operators(save) :- !,
 	feedback('~nOPERATORS~n', []),
 	findall(op(P, T, N), current_op(P, T, N), Ops),
-	$reset_operators,
-	make_operators(Ops, Set),
-	findall(D, deleted_operator(Ops, D), Deleted),
+	findall(op(P, T, N), '$builtin_op'(P, T, N), SystemOps),
+	make_operators(Ops, SystemOps, Set),
+	deleted_operators(SystemOps, Ops, Deleted),
 	append(Set, Deleted, Modify),
 	forall(member(O, Modify),
 	       (   feedback('~n~t~8|~w ', [O]),
@@ -435,20 +403,23 @@ save_operators(save) :- !,
 		   O)).
 save_operators(_).
 
-make_operators([], []).
-make_operators([Op|L0], [Op|L]) :-
-	Op = op(P, T, N),
-	\+ current_op(P, T, N), !,
-	make_operators(L0, L).
-make_operators([_|T], L) :-
-	make_operators(T, L).
+make_operators([], _, []).
+make_operators([Op|L0], SystemOps, [Op|L]) :-
+	\+ memberchk(Op, SystemOps), !,
+	make_operators(L0, SystemOps, L).
+make_operators([_|T], SystemOps, L) :-
+	make_operators(T, SystemOps, L).
 
-deleted_operator(Ops, op(0, T, N)) :-
-	current_op(_, T, N),
-	\+ (  member(op(_, OT, N), Ops),
+deleted_operators([], _, []).
+deleted_operators([Op|L0], CurrentOps, [op(0, T, N)|L]) :-
+	Op = op(_, T, N),
+	\+ (  member(op(_, OT, N), CurrentOps),
 	      same_op_type(T, OT)
-	   ).
-	
+	   ), !,
+	deleted_operators(L0, CurrentOps, L).
+deleted_operators([_|L0], CurrentOps, L) :-
+	deleted_operators(L0, CurrentOps, L).
+
 same_op_type(T, OT) :-
 	op_type(T, Type),
 	op_type(OT, Type).

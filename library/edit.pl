@@ -157,9 +157,9 @@ external_edit_command(Location, Command) :-
 editor(Editor) :-
 	getenv('EDITOR', Editor), !.
 editor(vi) :-
-	feature(unix, true), !.
+	current_prolog_flag(unix, true), !.
 editor(notepad) :-
-	feature(windows, true), !.
+	current_prolog_flag(windows, true), !.
 editor(_) :-
 	throw(error(existence_error(editor), _)).
 

@@ -49,9 +49,21 @@ $dwim_correct_goal(Goal, Bindings, NewGoal) :-	% correct the goal
 	context_module(C),
 	principal_predicates(C, DWIMs0, DWIMs),
 	correct_goal(Goal, Bindings, DWIMs, NewGoal).
-$dwim_correct_goal(Goal, _, _) :-		% can't be corrected
-	$break($warn_undefined(Goal, [])),
-	fail.
+$dwim_correct_goal(Goal, _, NewGoal) :-
+	$strip_module(Goal, Module, G1),
+	functor(G1, Name, Arity),
+	$undefined_procedure(Module, Name, Arity, Action),
+	(   Action == error
+	->  existence_error(Module:Name/Arity)
+	;   Action == retry
+	->  NewGoal = Goal
+	;   NewGoal = fail
+	).
+
+existence_error(user:Name/Arity) :- !,
+	throw(error(existence_error(procedure, Name/Arity), _)).
+existence_error(Module:Name/Arity) :- !,
+	throw(error(existence_error(procedure, Module:Name/Arity), _)).
 
 correct_goal(Goal, Bindings, [Dwim], DwimGoal) :-
 	$strip_module(Goal, _, G1), 

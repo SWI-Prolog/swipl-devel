@@ -34,7 +34,7 @@ help :-
 %	predicate might not be true.
 
 help(What) :-
-	feature(gui, true), !,
+	current_prolog_flag(gui, true), !,
 	call(prolog_help(What)).
 help(What) :-
 	give_help(What).
@@ -43,7 +43,7 @@ help(What) :-
 %	Give a list of subjects that might be appropriate.
 
 apropos(What) :-
-	feature(gui, true), !,
+	current_prolog_flag(gui, true), !,
 	call(prolog_apropos(What)).
 apropos(What) :-
 	give_apropos(What).
@@ -96,7 +96,7 @@ show_help(_, Ranges) :-
 	write_ranges_to_file(Ranges, Outfile),
 	call_emacs('(view-file-other-window "~w")', [Outfile]).
 show_help(_, Ranges) :-
-	feature(pipe, true), !,
+	current_prolog_flag(pipe, true), !,
 	online_manual_stream(Manual),
 	pager_stream(Pager),
 	catch(show_ranges(Ranges, Manual, Pager), _, true),
@@ -127,7 +127,7 @@ copy_chars(N, _, To, _) :-
 copy_chars(N, From, To, C) :-
 	get0(From, C1),
 	(   C1 == 8,			% backspace
-	    \+ feature(write_help_with_overstrike, true)
+	    \+ current_prolog_flag(write_help_with_overstrike, true)
 	->  get0(From, C2),
 	    NN is N - 2,
 	    copy_chars(NN, From, To, C2)
@@ -161,12 +161,12 @@ Set the write_help_with_overstrike feature.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 set_overstrike_feature :-
-	feature(write_help_with_overstrike, _), !.
+	current_prolog_flag(write_help_with_overstrike, _), !.
 set_overstrike_feature :-
 	getenv('TERM', xterm), !,
-	set_feature(write_help_with_overstrike, true).
+	set_prolog_flag(write_help_with_overstrike, true).
 set_overstrike_feature :-
-	set_feature(write_help_with_overstrike, false).
+	set_prolog_flag(write_help_with_overstrike, false).
 	
 :- initialization set_overstrike_feature.
 

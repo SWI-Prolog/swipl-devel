@@ -231,6 +231,7 @@ compileTermToHeap(term_t t)
   record->nvars = info.nvars;
   record->size = size;
   record->erased = FALSE;
+  record->references = 1;
   memcpy(record->buffer, info.code.base, sizeOfBuffer(&info.code));
   discardBuffer(&info.code);
 
@@ -549,7 +550,8 @@ structuralEqualArg1OfRecord(term_t t, Record r)
 
 bool
 freeRecord(Record record)
-{ freeHeap(record, record->size);
+{ if ( --record->references == 0 )
+    freeHeap(record, record->size);
 
   succeed;
 }

@@ -94,7 +94,7 @@ dir_name(Path, Name) :-
 	atom_concat(P, /, Path), !,
 	dir_name(P, Name).
 dir_name(Path, Name) :-
-	feature(unix, true),
+	current_prolog_flag(unix, true),
 	absolute_file_name('~', Home0),
 	(   atom_concat(Home, /, Home0)
 	->  true

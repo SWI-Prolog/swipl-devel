@@ -107,8 +107,9 @@
 \newcommand{\pleaseoption}[3]{%
 	\definition{#1 {\it #2} {\rm(default: \it #3)}}%
 	\ignorespaces}
-\newcommand{\featureoption}[2]{%
-	\definition{#1 ({\it #2})}%
+\newcommand{\prologflagitem}[3]{%
+	\definition{#1 {\it (#2%
+	    \ifthenelse{\equal{rw}{#3}}{, changeable}{})}}%
 	\ignorespaces}
 \newcommand{\escapeitem}[1]{%
 	\definition{\Sesc{\tt #1}}

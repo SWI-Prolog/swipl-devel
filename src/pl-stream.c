@@ -1462,6 +1462,11 @@ Sfileno(IOSTREAM *s)
     n = (int)h;
   } else if ( s->flags & SIO_PIPE )
   { n = fileno((FILE *)s->handle);
+  } else if ( s->functions->control &&
+	      (*s->functions->control)(s->handle,
+				       SIO_GETFILENO,
+				       (void *)&n)  == 0 )
+  { ;
   } else
   { errno = EINVAL;
     n = -1;				/* no file stream */

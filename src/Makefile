@@ -148,7 +148,7 @@ rc-lib:
 
 index:
 		./$(PL) -x $(STARTUPPATH) \
-			-f none \
+			-f none -F none \
 			-g make_library_index\(\'../library\'\) \
 			-t halt
 

@@ -12,7 +12,6 @@
 #include "pl-ctype.h"
 #include <stdio.h>			/* sprintf() */
 
-forwards int	priorityOperator(atom_t);
 forwards bool	writeTerm2(term_t term, int pri, int flags, IOSTREAM *s);
 
 char *
@@ -259,7 +258,7 @@ writePrimitive(term_t t, bool quote, IOSTREAM *out)
     else
     { char buf[100];
 
-      sprintf(buf, stringAtom(float_format), f);
+      sprintf(buf, LD->float_format, f);
       return PutToken(buf, out);
     }
 
@@ -304,21 +303,6 @@ pl_nl1(term_t stream)
 word
 pl_nl()
 { return pl_nl1(0);
-}
-
-static int
-priorityOperator(atom_t atom)
-{ int type, priority;
-  int result = 0;
-
-  if (isPrefixOperator(atom, &type, &priority) && priority > result)
-    result = priority;
-  if (isPostfixOperator(atom, &type, &priority) && priority > result)
-    result = priority;
-  if (isInfixOperator(atom, &type, &priority) && priority > result)
-    result = priority;
-
-  return result;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -369,7 +353,7 @@ writeTerm2(term_t t, int prec, bool style, IOSTREAM *out)
     succeed;
 
   if ( PL_get_atom(t, &a) )
-  { if ( priorityOperator(a) > prec )
+  { if ( priorityOperator(NULL, a) > prec )
     { if ( PutOpenBrace(out) &&
 	   writeAtom(a, quote, out) &&
 	   PutCloseBrace(out) )
@@ -424,7 +408,7 @@ writeTerm2(term_t t, int prec, bool style, IOSTREAM *out)
 	  }
 	}
 					  /* op <term> */
-	if ( isPrefixOperator(functor, &op_type, &op_pri) )
+	if ( currentOperator(NULL, functor, OP_PREFIX, &op_type, &op_pri) )
 	{ term_t arg = PL_new_term_ref();
   
 	  PL_get_arg(1, t, arg);
@@ -444,7 +428,7 @@ writeTerm2(term_t t, int prec, bool style, IOSTREAM *out)
 	}
   
 					  /* <term> op */
-	if ( isPostfixOperator(functor, &op_type, &op_pri) )
+	if ( currentOperator(NULL, functor, OP_POSTFIX, &op_type, &op_pri) )
 	{ term_t arg = PL_new_term_ref();
   
 	  PL_get_arg(1, t, arg);
@@ -483,7 +467,7 @@ writeTerm2(term_t t, int prec, bool style, IOSTREAM *out)
 	}
   
 					  /* <term> op <term> */
-	if ( isInfixOperator(functor, &op_type, &op_pri) )
+	if ( currentOperator(NULL, functor, OP_INFIX, &op_type, &op_pri) )
 	{ term_t l = PL_new_term_ref();
 	  term_t r = PL_new_term_ref();
   

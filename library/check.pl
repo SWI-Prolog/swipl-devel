@@ -60,10 +60,10 @@ write_undefined(Module:Name/Arity) :-
 list_autoload :-
 	$style_check(Old, Old), 
 	style_check(+dollar), 
-	feature(autoload, OldAutoLoad),
-	set_feature(autoload, false),
+	current_prolog_flag(autoload, OldAutoLoad),
+	set_prolog_flag(autoload, false),
 	list_autoload_, 
-	set_feature(autoload, OldAutoLoad),
+	set_prolog_flag(autoload, OldAutoLoad),
 	$style_check(_, Old).
 	
 list_autoload_ :-

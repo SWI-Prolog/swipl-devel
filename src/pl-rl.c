@@ -267,7 +267,7 @@ install_t
 PL_install_readline()
 { 
 #ifndef __WIN32__
-  if ( GD->cmdline.notty || !isatty(0) )
+  if ( !trueFeature(TTY_CONTROL_FEATURE) || !isatty(0) )
     return;
 #endif
 
@@ -293,8 +293,8 @@ PL_install_readline()
   PL_register_foreign("rl_read_init_file", 1, pl_rl_read_init_file, 0);
   PL_register_foreign("rl_add_history",    1, pl_rl_add_history,
 		      PL_FA_NOTRACE);
-  PL_set_feature("readline", PL_ATOM, "true");
-  PL_set_feature("tty_control", PL_ATOM, "true");
+  PL_set_feature("readline",    PL_BOOL, TRUE);
+  PL_set_feature("tty_control", PL_BOOL, TRUE);
   PL_abort_hook(reset_readline);
 }
 

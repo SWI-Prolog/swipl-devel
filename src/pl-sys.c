@@ -80,24 +80,6 @@ pl_unsetenv(term_t var)
 
 
 word
-pl_argv(term_t av)
-{ int n;
-  term_t head = PL_new_term_ref();
-  term_t list = PL_copy_term_ref(av);
-  int argc    = GD->cmdline.argc;
-  char **argv = GD->cmdline.argv;
-
-  for(n=0; n<argc; n++)
-  { if ( !PL_unify_list(list, head, list) ||
-	 !PL_unify_atom_chars(head, argv[n]) )
-      fail;
-  }
-
-  return PL_unify_nil(list);
-}
-
-
-word
 pl_convert_time(term_t time, term_t year, term_t month,
 		term_t day, term_t hour, term_t minute,
 		term_t second, term_t usec)

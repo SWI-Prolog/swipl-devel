@@ -28,7 +28,7 @@
 	fpublic/1.
 
 
-:- (   feature(open_shared_object, true)
+:- (   current_prolog_flag(open_shared_object, true)
    ->  true
    ;   format(user_error,
 	      'library(shlib): warning: Emulator does not support foreign libraries',
@@ -163,7 +163,7 @@ On Unix, this is not very useful, and can only lead to conflicts.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 unload_all_foreign_libraries :-
-	feature(unix, true), !.
+	current_prolog_flag(unix, true), !.
 unload_all_foreign_libraries :-
 	forall(current_foreign_library(File, _),
 	       unload_foreign_library(File)).

@@ -196,7 +196,7 @@ setupGNUEmacsInferiorMode()
 
   if ( ((s = getenv3("EMACS", envbuf, sizeof(envbuf))) && streq(s, "t")) ||
        ((s = getenv3("INFERIOR", envbuf, sizeof(envbuf))) && streq(s, "yes")) )
-    GD->cmdline.notty = TRUE;
+    clearFeatureMask(TTY_CONTROL_FEATURE);
 }
 
 
@@ -245,8 +245,11 @@ initDefaults()
 
   GD->io_initialised	     = FALSE;
   GD->initialised	     = FALSE;
-  GD->cmdline.notty	     = systemDefaults.notty;
   GD->bootsession	     = FALSE;
+  if ( systemDefaults.notty )
+    clearFeatureMask(TTY_CONTROL_FEATURE);
+  else
+    setFeatureMask(TTY_CONTROL_FEATURE);
 }
 
 
@@ -344,7 +347,10 @@ parseCommandLineOptions(int argc0, char **argv, int *compile)
       continue;				/* don't handle --long=value */
 
     if ( streq(s, "tty") )	/* +/-tty */
-    { GD->cmdline.notty = (s[-1] == '-');
+    { if ( s[-1] == '+' )
+	setFeatureMask(TTY_CONTROL_FEATURE);
+      else
+	clearFeatureMask(TTY_CONTROL_FEATURE);
       continue;
     }
 
@@ -566,7 +572,7 @@ properly on Linux. Don't bother with it.
 #ifdef O_PLMT
   aliasThread(PL_thread_self(), PL_new_atom("main"));
 #endif
-  CSetFeature("resource_database", rcpath);
+  defFeature("resource_database", FT_ATOM|FF_READONLY, rcpath);
   initialiseForeign(GD->cmdline.argc, /* PL_initialise_hook() functions */
 		    GD->cmdline.argv);
   systemMode(TRUE);
@@ -864,16 +870,16 @@ vwarning(const char *fm, va_list args)
       PL_discard_foreign_frame(cid);
   
       if ( !rval )
-      { Sfprintf(Serror, "[WARNING: (%s:%d)\n\t%s]\n",
+      { Sfprintf(Suser_error, "[WARNING: (%s:%d)\n\t%s]\n",
 		 stringAtom(source_file_name), source_line_no, message);
       }
   
       PL_fail;				/* handled */
     }
   
-    Sfprintf(Serror, "[WARNING: ");
-    Svfprintf(Serror, fm, args);
-    Sfprintf(Serror, "]\n");
+    Sfprintf(Suser_error, "[WARNING: ");
+    Svfprintf(Suser_error, fm, args);
+    Sfprintf(Suser_error, "]\n");
   }
 
   if ( trueFeature(DEBUG_ON_ERROR_FEATURE) )

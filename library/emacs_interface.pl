@@ -28,7 +28,7 @@ running_under_emacs_interface :-
 	emacs_tmp_file(_).
 
 emacs_tmp_file(File) :-
-	'$argv'(Argv),
+	current_prolog_flag(argv, Argv),
 	tmp_file(Argv, File).
 
 tmp_file(['+C', Raw|_], File) :- !,

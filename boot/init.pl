@@ -19,9 +19,12 @@ If you want  to  debug  this  module,  put  a  '$:-'  trace.   directive
 somewhere.   The  tracer will work properly under boot compilation as it
 will use the C defined write predicate  to  print  goals  and  does  not
 attempt to call the Prolog defined trace interceptor.
+
+Please note that of version  3.3,  $:-   is  no  longer  an operator and
+therefore you have to use braces.
 */
 
-'$:-' format('Loading boot file ...~n', []).
+'$:-'(format('Loading boot file ...~n', [])).
 
 		/********************************
 		*    LOAD INTO MODULE SYSTEM	*
@@ -32,13 +35,6 @@ attempt to call the Prolog defined trace interceptor.
 		/********************************
 		*          DIRECTIVES           *
 		*********************************/
-
-op(_, _, []) :- !.
-op(Priority, Type, [Name|Rest]) :- !,
-	$op(Priority, Type, Name),
-	op(Priority, Type, Rest).
-op(Priority, Type, Name) :-
-	$op(Priority, Type, Name).
 
 dynamic((Spec, More)) :- !,
 	dynamic(Spec),
@@ -256,15 +252,15 @@ $prefix_module(Module, _, Head, Module:Head).
 %	to give a DWIM warning. Otherwise fail. C will print an error
 %	message.
 
-:- set_feature(autoload, true).
-:- set_feature(verbose_autoload, false).
+:- set_prolog_flag(autoload, true).
+:- set_prolog_flag(verbose_autoload, false).
 :- flag($autoloading, _, 0).
 
 $undefined_procedure(Module, Name, Arity, Action) :-
 	$prefix_module(Module, user, Name/Arity, Pred),
 	user:exception(undefined_predicate, Pred, Action), !.
 $undefined_procedure(Module, Name, Arity, retry) :-
-	feature(autoload, true),
+	current_prolog_flag(autoload, true),
 	$find_library(Module, Name, Arity, LoadModule, Library),
 	functor(Head, Name, Arity),
 	flag($autoloading, Old, Old+1),
@@ -277,7 +273,7 @@ $undefined_procedure(Module, Name, Arity, retry) :-
 	),
 	flag($autoloading, _, Old),
 	$c_current_predicate(_, Module:Head).
-$undefined_procedure(_, _, _, fail).
+$undefined_procedure(_, _, _, error).
 
 $calleventhook(Term) :-
 	(   notrace(user:prolog_event_hook(Term))
@@ -317,12 +313,12 @@ $confirm(Format, Args) :-
 
 $confirm_(Answer) :-
 	memberchk(Answer, [0'y, 0'Y, 0'j, 0'J, 0' ,10]), !,
-	(   $tty
+	(   current_prolog_flag(tty_control, true)
 	->  $ttyformat('yes~n')
 	;   true
 	).
 $confirm_(_) :-
-	$tty,
+	current_prolog_flag(tty_control, true),
 	$ttyformat('no~n'),
 	fail.
 
@@ -333,7 +329,7 @@ $warning(Format) :-
 	$warning(Format, []).
 $warning(Format, Args) :-
 	source_location(File, Line), !,
-	(   feature(report_error, true)
+	(   current_prolog_flag(report_error, true)
 	->  sformat(Msg, Format, Args),
 	    (   user:exception(warning, warning(File, Line, Msg), _)
 	    ->  true
@@ -343,13 +339,13 @@ $warning(Format, Args) :-
 	;   true
 	).
 $warning(Format, Args) :-
-	(   feature(report_error, true)
+	(   current_prolog_flag(report_error, true)
 	->  format(user_error, '[WARNING: ', []), 
 	    format(user_error, Format, Args), 
 	    format(user_error, ']~n', [])
 	;   true
 	),
-	(   feature(debug_on_error, true)
+	(   current_prolog_flag(debug_on_error, true)
 	->  trace
 	;   true
 	).
@@ -407,17 +403,17 @@ $predicate_name(Goal, String) :-
 user:(file_search_path(library, Dir) :-
 	library_directory(Dir)).
 user:file_search_path(swi, Home) :-
-	feature(home, Home).
+	current_prolog_flag(home, Home).
 user:file_search_path(foreign, swi(ArchLib)) :-
-	feature(arch, Arch),
+	current_prolog_flag(arch, Arch),
 	atom_concat('lib/', Arch, ArchLib).
 user:file_search_path(foreign, swi(lib)).
 user:file_search_path(user_profile, '.').
 user:file_search_path(user_profile, UserHome) :-
 	catch(expand_file_name(~, [UserHome]), _, fail).
 user:file_search_path(user_profile, SwiHome) :-
-	feature(unix, false),
-	feature(home, SwiHome).
+	current_prolog_flag(unix, false),
+	current_prolog_flag(home, SwiHome).
 
 expand_file_search_path(Spec, Expanded) :-
 	functor(Spec, Alias, 1),
@@ -487,11 +483,11 @@ $file_type_extensions(prolog, [pl, '']). % findall is not yet defined ...
 
 user:prolog_file_type(pl,	prolog).
 user:prolog_file_type(Ext,	prolog) :-
-	feature(associate, Ext),
+	current_prolog_flag(associate, Ext),
 	Ext \== pl.
 user:prolog_file_type(qlf,	qlf).
 user:prolog_file_type(Ext,	executable) :-
-	feature(shared_object_extension, Ext).
+	current_prolog_flag(shared_object_extension, Ext).
 
 %	File is a specification of a Prolog source file. Return the full
 %	path of the file.
@@ -839,7 +835,7 @@ $load_file(Spec, Options) :-
 
 	    (   Silent == false,
 		(   flag($autoloading, 0, 0)
-		;   feature(verbose_autoload, true)
+		;   current_prolog_flag(verbose_autoload, true)
 		)
 	    ->  statistics(heapused, Heap),
 		statistics(cputime, Time),
@@ -1192,7 +1188,7 @@ $do_expand_body(A, A).
 %	Is the really necessary?  Should we only do it if -O is effective?
 
 $tidy_body(A, A) :-
-	feature(optimise, false), !.
+	current_prolog_flag(optimise, false), !.
 $tidy_body(A, A) :-
         var(A), !.
 $tidy_body((A,B), (A, TB)) :-
@@ -1343,7 +1339,7 @@ phrase(RuleSet, Input, Rest) :-
 */
 
 $compile_wic :-
-	$argv(Argv),			% gets main() argv as a list of atoms
+	current_prolog_flag(argv, Argv),
 	$get_files_argv(Argv, Files),
 	$translate_options(Argv, Options),
 	$option(compileout, Out, Out),
@@ -1434,7 +1430,7 @@ $load_wic_files(Module, Files) :-
 
 
 $load_additional_boot_files :-
-	$argv(Argv),
+	current_prolog_flag(argv, Argv),
 	$get_files_argv(Argv, Files),
 	(   Files \== []
 	->  format('Loading additional boot files~n'),
@@ -1443,14 +1439,13 @@ $load_additional_boot_files :-
 	;   true
         ).
 
-
-'$:-'	
-	format('Loading Prolog startup files~n', []),
-	source_location(File, _Line),
-	file_directory_name(File, Dir),
-	atom_concat(Dir, '/load.pl', LoadFile),
-	$load_wic_files(system, [LoadFile]),
-	format('SWI-Prolog boot files loaded~n', []),
-	flag($compiling, OldC, wic),
-	$execute_directive($set_source_module(_, user)),
-	flag($compiling, _, OldC).
+'$:-'((format('Loading Prolog startup files~n', []),
+       source_location(File, _Line),
+       file_directory_name(File, Dir),
+       atom_concat(Dir, '/load.pl', LoadFile),
+       $load_wic_files(system, [LoadFile]),
+       format('SWI-Prolog boot files loaded~n', []),
+       flag($compiling, OldC, wic),
+       $execute_directive($set_source_module(_, user)),
+       flag($compiling, _, OldC)
+      )).

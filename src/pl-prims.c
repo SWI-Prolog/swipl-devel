@@ -1464,12 +1464,18 @@ pl_atom_codes(term_t atom, term_t string)
 
 word
 pl_number_chars(term_t atom, term_t string)
+{ return x_chars("number_chars", atom, string, X_NUMBER|X_CHARS);
+}
+
+
+word
+pl_number_codes(term_t atom, term_t string)
 { return x_chars("number_chars", atom, string, X_NUMBER);
 }
 
 
 word
-pl_atom_char(term_t atom, term_t chr)
+pl_char_code(term_t atom, term_t chr)
 { char *s;
   int n;
 
@@ -1481,12 +1487,12 @@ pl_atom_char(term_t atom, term_t chr)
   { if ( n >= 0 && n < 256 )
       return PL_unify_atom(atom, codeToAtom(n));
 
-    return PL_error("atom_char", 2, NULL,
+    return PL_error("char_code", 2, NULL,
 		    ERR_REPRESENTATION,
 		    lookupAtom("character_code"));
   }
 
-  return warning("atom_char/2: instantiation fault");
+  return PL_error("char_code", 2, NULL, ERR_INSTANTIATION);
 }
 
 
@@ -1971,7 +1977,7 @@ pl_statistics(term_t k, term_t value)
   atom_t key;
 
   if ( !PL_get_atom(k, &key) )
-    return warning("statistics/2: instantiation fault");
+    return PL_error("statistics", 2, NULL, ERR_TYPE, ATOM_atom, k);
 
   if      (key == ATOM_cputime)				/* time */
     result = globalReal(CpuTime());
@@ -2036,212 +2042,20 @@ pl_statistics(term_t k, term_t value)
 	    key == ATOM_trail_shifts )
     fail;
 #endif
+#ifdef O_PLMT
+  else if ( key == ATOM_threads )
+    result = consInt(GD->statistics.threads_created -
+		     GD->statistics.threads_finished);
+  else if ( key == ATOM_threads_created )
+    result = consInt(GD->statistics.threads_created);
+  else if ( key == ATOM_thread_cputime )
+    result = globalReal(GD->statistics.thread_cputime);
+#endif
   else
-    return warning("statistics/2: unknown key");
+    return PL_error("statistics", 2, NULL, ERR_DOMAIN,
+		    PL_new_atom("statistics_key"), k);
 
   return _PL_unify_atomic(value, result);
-}
-
-		 /*******************************
-		 *	 FEATURE HANDLING	*
-		 *******************************/
-
-struct feature
-{ atom_t	name;
-  int	 	type;
-  union
-  { atom_t	atom;			/* value as atom */
-    long	i;			/* value as integer */
-  } value;
-
-  Feature next;
-};
-
-#define feature_list (GD->feature.list)
-
-typedef struct
-{ atom_t	name;
-  unsigned long	mask;
-} builtin_boolean_feature;
-
-
-static const builtin_boolean_feature builtin_boolean_features[] = 
-{ { ATOM_character_escapes,	         CHARESCAPE_FEATURE },
-  { ATOM_gc,			         GC_FEATURE },
-  { ATOM_trace_gc,		         TRACE_GC_FEATURE },
-  { ATOM_tty_control,		         TTY_CONTROL_FEATURE },
-  { ATOM_readline,		         READLINE_FEATURE },
-  { ATOM_debug_on_error,	         DEBUG_ON_ERROR_FEATURE },
-  { ATOM_report_error,		         REPORT_ERROR_FEATURE },
-  { ATOM_case_sensitive_file_names,      FILE_CASE_FEATURE },
-  { ATOM_allow_variable_name_as_functor, ALLOW_VARNAME_FUNCTOR },
-  { ATOM_iso, 			 	 ISO_FEATURE },
-  { ATOM_optimise,		 	 OPTIMISE_FEATURE },
-  { ATOM_file_name_variables,		 FILEVARS_FEATURE },
-  { ATOM_autoload,			 AUTOLOAD_FEATURE },
-  { NULL_ATOM,			         0L }
-};
-
-
-int
-setFeature(atom_t name, int type, ...)
-{ Feature f;
-  const builtin_boolean_feature *bf;
-  atom_t a = 0;
-  long i = 0;
-  va_list args;
-
-  va_start(args, type);
-  switch(type)
-  { case FT_ATOM:
-      a = va_arg(args, atom_t);
-      break;
-    case FT_INTEGER:
-      i = va_arg(args, long);
-      break;
-    default:
-      assert(0);
-  }
-
-					/* special features */
-  if ( name == ATOM_float_format )
-  { if ( type == FT_ATOM )
-    { float_format = a;
-    } else
-    { warning("set_feature/2: %s feature is atom", stringAtom(name));
-      fail;
-    }
-    goto doset;
-  }
-
-  for(bf = builtin_boolean_features; bf->name; bf++ )
-  { if ( name == bf->name )
-    { if ( type == FT_ATOM )
-      { if ( a == ATOM_true || a == ATOM_on )
-	  set(&features, bf->mask);
-	else if ( a == ATOM_false || a == ATOM_off )
-	  clear(&features, bf->mask);
-	else
-	  goto nobool;
-      } else
-      { nobool:
-	warning("set_feature/2: %s feature is boolean", stringAtom(name));
-	fail;
-      }
-      if ( name == ATOM_tty_control )	/* GD->cmdline.notty should be feature */
-	GD->cmdline.notty = (trueFeature(TTY_CONTROL_FEATURE) ? FALSE : TRUE);
-      goto doset;
-    }
-  }
-
-doset:
-  for(f=feature_list; f; f = f->next)
-  { if ( f->name == name )
-      goto setf;
-  }
-
-  f = allocHeap(sizeof(struct feature));
-  f->next = feature_list;
-  f->name = name;
-  feature_list = f;
-
-setf:
-  f->type = type;
-  switch(f->type)
-  { case FT_ATOM:
-      f->value.atom = a;
-      break;
-    case FT_INTEGER:
-      f->value.i = i;
-      break;
-  }
-
-  succeed;
-}
-
-
-static Feature
-findFeature(atom_t name)
-{ Feature f;
-
-  for(f=feature_list; f; f = f->next)
-  { if ( f->name == name )
-      return f;
-  }
-
-  fail;
-}
-
-
-word
-pl_set_feature(term_t key, term_t value)
-{ atom_t k;
-  atom_t a;
-  long i;
-  
-  if ( !PL_get_atom(key, &k) )
-    return warning("set_feature/2: key is not an atom");
-
-  if ( PL_get_atom(value, &a) )
-    return setFeature(k, FT_ATOM, a);
-  if ( PL_get_long(value, &i) )
-    return setFeature(k, FT_INTEGER, i);
-
-  return warning("set_feature/2: illegal value");
-}
-
-
-static int
-unify_feature_value(Feature f, term_t val)
-{ switch(f->type)
-  { case FT_ATOM:
-      return PL_unify_atom(val, f->value.atom);
-    case FT_INTEGER:
-      return PL_unify_integer(val, f->value.i);
-    default:
-      assert(0);
-      fail;
-  }
-}
-
-
-word
-pl_feature(term_t key, term_t value, word h)
-{ Feature here;
-
-  switch( ForeignControl(h) )
-  { case FRG_FIRST_CALL:
-    { atom_t k;
-
-      if ( PL_get_atom(key, &k) )
-      { Feature f;
-
-	if ( (f = findFeature(k)) )
-	  return unify_feature_value(f, value);
-	fail;
-      } else if ( PL_is_variable(key) )
-      { here = feature_list;
-	break;
-      }
-    }
-    case FRG_REDO:
-      here = ForeignContextPtr(h);
-      break;
-    case FRG_CUTTED:
-    default:
-      succeed;
-  }
-
-  for(; here; here = here->next)
-  { if ( PL_unify_atom(key, here->name) &&
-	 unify_feature_value(here, value) )
-    { if ( !here->next )
-	succeed;
-      ForeignRedoPtr(here->next);
-    }
-  }
-
-  fail;
 }
 
 

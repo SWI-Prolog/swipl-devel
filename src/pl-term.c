@@ -153,7 +153,7 @@ pl_tty_get_capability(term_t name, term_t type, term_t value)
 
 static int
 tputc(int chr)
-{ return Sputc(chr, Sterm); 
+{ return Sputc(chr, Suser_output); 
 }
 
 
@@ -191,21 +191,6 @@ pl_tty_put(term_t a, term_t affcnt)
   }
 
   return warning("tty_put: instantiation fault");
-}
-
-word
-pl_set_tty(term_t old, term_t new)
-{ if ( PL_unify_stream(old, Sterm) )
-  { IOSTREAM *s;
-
-    if ( getOutputStream(new, &s) )
-    { Sterm = s;
-      PL_release_stream(s);
-      succeed;
-    }
-  }
-
-  fail;
 }
 
 #else /* ~TGETENT */
