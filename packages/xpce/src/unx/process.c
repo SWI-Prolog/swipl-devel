@@ -38,8 +38,6 @@ reduced to the facility to terminate the inferior process.
 #define HAVE_PTYS	1
 #define HAVE_KILL	1
 #define HAVE_WAIT	1
-#define HAVE_TERMIOS_H	1
-#define HAVE_TERMIO_H	1
 #define HAVE_SYS_WAIT_H	1
 #define HAVE_SYS_IOCTL_H 1
 #define USE_SIGCHLD	1
@@ -60,6 +58,10 @@ reduced to the facility to terminate the inferior process.
 
 #ifdef HAVE_TERMIOS_H
 #include <termios.h>
+#else
+#ifdef HAVE_TERMIO_H
+#include <termio.h>
+#endif
 #endif
 #ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
@@ -77,6 +79,10 @@ extern char **environ;		/* Unix version */
 					/* this fixes RS6000/AIX problems */
 #if !defined(TCGETS) && defined(HAVE_TERMIO_H)
 #include <termio.h>
+#endif
+					/* NetBSD-1.5.2 hacks */
+#if !defined(TCSETS) && defined(TIOCSETA)
+#define TCSETS TIOCSETA
 #endif
 
 #if HAVE_STROPTS_H && HAVE_GRANTPT	/* Solaris */

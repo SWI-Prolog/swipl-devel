@@ -12,6 +12,7 @@
 
 #include <md.h>				/* get HAVE_'s */
 #if defined(HAVE_SOCKET) && defined(HAVE_SHUTDOWN)
+#include <sys/types.h>
 #include <sys/socket.h>			/* avoid send() conflict */
 #endif
 
