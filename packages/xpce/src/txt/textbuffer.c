@@ -1499,7 +1499,7 @@ sortTextBuffer(TextBuffer tb, Int from, Int to)
   to   = getScanTextBuffer(tb, to, NAME_line, ZERO, NAME_start);
   f = valInt(from);
   t = valInt(to);
-  ln = count_lines_textbuffer(tb, f, t);
+  ln = count_lines_textbuffer(tb, f, t+1); /* <=t below */
 
   if ( ln > 1 )				/* TBD (16B) */
   { bufsize = t - f + 1;
@@ -1512,6 +1512,7 @@ sortTextBuffer(TextBuffer tb, Int from, Int to)
       if ( tisendsline(tb->syntax, *bp) )
       { *bp = EOS;
 	*lp++ = bp+1;
+        Cprintf("nl %-4d at %d\n", lp-lines, i);
       }
     }
 
@@ -1566,12 +1567,16 @@ count_lines_textbuffer(TextBuffer tb, int f, int t)
 
     for( ; f<end1; f++)
     { if ( tisendsline(syntax, b[f]) )
-	lines++;
+      { lines++;
+	Cprintf("count-nl %-4d at %d\n", lines, f);
+      }
     }
     b += tb->gap_end - tb->gap_start + 1;
     for( ; f<t; f++)
     { if ( tisendsline(syntax, b[f]) )
-	lines++;
+      { lines++;
+	Cprintf("count-nl %-4d at %d\n", lines, f);
+      }
     }
   } else
   { char16 *b = tb->tb_buffer16;
@@ -2189,6 +2194,8 @@ room(TextBuffer tb, int where, int grow)
   succeed;
 }
 
+#if 0
+
 		 /*******************************
 		 *	    EVENT VIEW		*
 		 *******************************/
@@ -2263,6 +2270,7 @@ forCharsInTextBuffer(TextBuffer tb, TextEventFunction f, text_event *ev)
   }
 }
 
+#endif /*0*/
 
 		 /*******************************
 		 *	 ASFILE INTERFACE	*

@@ -2362,7 +2362,7 @@ saveBufferEditor(Editor e, Int arg)
 	     CtoName("Buffer saved in %N"), e->file, 0);
       } else
       { send(e, NAME_report, NAME_error,
-	     CtoName("Failed to save buffer into %N"), e->file);
+	     CtoName("Failed to save buffer into %N"), e->file, 0);
 	rval = FAIL;
       }      
     } else
