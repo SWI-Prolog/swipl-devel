@@ -52,7 +52,7 @@ suggest predicates from a keyword.
 \predicatesummary{append}{1}{Append to a file}
 \predicatesummary{append}{3}{Concatenate lists}
 \predicatesummary{apply}{2}{Call goal with additional arguments}
-\predicatesummary{apropos}{1}{\pllib{online_help} Show related predicates and manual sections}
+\predicatesummary{apropos}{1}{\pllib{online_help} Search manual}
 \predicatesummary{arg}{3}{Access argument of a term}
 \predicatesummary{arithmetic_function}{1}{Register an evaluable function}
 \predicatesummary{assert}{1}{Add a clause to the database}

@@ -4757,10 +4757,11 @@ Succeeds if \arg{String} matches the wildcard pattern \arg{Pattern}.
 patterns are given below:
 
 \begin{center}\begin{tabular}{ll}
-\const{?}         & Matches one arbitrary character. \\
-\const{*}         & Matches any number of arbitrary characters. \\
-\const{[\ldots]}  & Matches one of the characters specified between the
-		    brackets. \mbox{\tt <char1>-<char2>} indicates a range. \\
+\const{?}          & Matches one arbitrary character. \\
+\const{*}          & Matches any number of arbitrary characters. \\
+\const{[\ldots]}   & Matches one of the characters specified between the
+		     brackets. \\
+		   & \mbox{\tt <char1>-<char2>} indicates a range. \\
 \const{\{\ldots\}} & Matches any of the patterns of the comma separated
 list between the braces.
 \end{tabular}\end{center}

@@ -1009,14 +1009,20 @@ holding the same number of term_t objects as the arity of the functor.
 To create the term \exam{animal(gnu, 50)}, use:
 
 \begin{code}
-        term_t a1 = PL_new_term_ref();
-        term_t a2 = PL_new_term_ref();
-        term_t t  = PL_new_term_ref();
-
-        PL_put_atom_chars(a1, "gnu");
-        PL_put_integer(a2, 50);
-        PL_cons_functor(t, PL_new_functor(PL_new_atom("animal"), 2),
-                        a1, a2);
+{ term_t a1 = PL_new_term_ref();
+  term_t a2 = PL_new_term_ref();
+  term_t t  = PL_new_term_ref();
+  functor_t animal2;
+  
+  /* animal2 is a constant that may be bound to a global
+     variable and re-used
+  */
+  animal2 = PL_new_functor(PL_new_atom("animal"), 2);
+  
+  PL_put_atom_chars(a1, "gnu");
+  PL_put_integer(a2, 50);
+  PL_cons_functor(t, animal2, a1, a2);
+}
 \end{code}
 
 
