@@ -1,3 +1,7 @@
+* ADDED: PceEmacs: prolog mode: handle :- multifile directives.
+
+* ADDED: (Finally) indication of default-button in default X11 openLook style.
+
 * FIXED: PceEmacs: Enable timed auto-colouring after ->paste
 
 * ADDED: PceEmacs: language mode: ->insert_file_header.

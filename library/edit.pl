@@ -38,7 +38,7 @@ edit(Spec) :-
 		locate(Spec, FullSpec, Location),
 		Pairs0),
 	merge_locations(Pairs0, Pairs),
-	select_location(Pairs, Spec, Location),
+	do_select_location(Pairs, Spec, Location),
 	do_edit_source(Location).
 
 
@@ -246,14 +246,17 @@ merge_specs(source_file(Path), _, source_file(Path)).
 
 %	select_location(+Pairs, +UserSpec, -Location)
 
-select_location([], Spec, _) :- !,
+do_select_location(Pairs, Spec, Location) :-
+	select_location(Pairs, Spec, Location), !, 		% HOOK
+	Location \== [].
+do_select_location([], Spec, _) :- !,
 	print_message(warning, edit(not_found(Spec))),
 	fail.
-select_location([Location-_Spec], _, Location) :- !.
+do_select_location([Location-_Spec], _, Location) :- !.
 %select_location(Pairs, _, Location) :-
 %	length(Pairs, N),
 %	N > 20, !,
-select_location(Pairs, _, Location) :-
+do_select_location(Pairs, _, Location) :-
 	print_message(help, edit(select)),
 	list_pairs(Pairs, 1),
 	print_message(help, edit(prompt_select)),

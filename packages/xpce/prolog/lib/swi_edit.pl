@@ -100,5 +100,44 @@ prolog_edit:edit_source(Location) :-
 	send(@emacs, goto_source_location, source_location(File)).
 
 
+		 /*******************************
+		 *	       SELECT		*
+		 *******************************/
 
+%	Use GUI-based selection if the request comes from the GUI!
 
+prolog_edit:select_location(Pairs, _Spec, Location) :-
+	Pairs \= [_],					% direct match
+	object(@event),
+	send(@event, instance_of, event), !, 		% GUI initiated
+	(   Pairs == []
+	->  send(@event?receiver, report, error, 'No match'),
+	    Location = []				% Cancel
+	;   get(@event?receiver, frame, Frame),
+	    new(D, dialog('Select object to edit')),
+	    send(D, append, label(title, 'Click object to edit')),
+	    length(Pairs, Len),
+	    LBH is min(Len, 10),
+	    send(D, append, new(LB, list_browser(@default, 30, LBH))),
+	    fill_browser(Pairs, 1, LB),
+	    send(LB, select_message, message(D, return, LB?selection?object)),
+	    send(D, append,
+		 new(C, button(cancel, message(D, destroy)))),
+	    send(C, alignment, right),
+	    send(D, resize_message, message(D, layout, @arg2)),
+	    send(D, modal, transient),
+	    send(D, transient_for, Frame),
+	    (	get(D, confirm_centered, Frame?area?center, Rval)
+	    ->	send(D, destroy),
+		Location = Rval
+	    ;	Location = []
+	    )
+	).
+
+fill_browser([], _, _).
+fill_browser([Location-Spec|T], N, LB) :-
+	message_to_string(edit(target(Location-Spec, N)), Label),
+	send(LB, append,
+	     dict_item(Label, object := prolog(Location))),
+	NN is N + 1,
+	fill_browser(T, NN, LB).
