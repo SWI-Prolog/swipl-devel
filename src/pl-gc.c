@@ -139,6 +139,10 @@ char tmp[256];				/* for calling print_val(), etc. */
 #define onLocal(p)	onStackArea(local, p)
 #define onTrail(p)	topPointerOnStack(trail, p)
 
+#ifndef offset
+#define offset(s, f) ((int)(&((struct s *)NULL)->f))
+#endif
+
 		 /*******************************
 		 *     FUNCTION PROTOTYPES	*
 		 *******************************/
@@ -146,9 +150,6 @@ char tmp[256];				/* for calling print_val(), etc. */
 forwards void		mark_variable(Word);
 forwards void		sweep_foreign(void);
 forwards QueryFrame	mark_environments(LocalFrame);
-forwards GCTrailEntry	mark_choicepoints(LocalFrame, GCTrailEntry);
-forwards void		mark_stacks(LocalFrame);
-forwards void		mark_phase(LocalFrame);
 forwards void		update_relocation_chain(Word, Word);
 forwards void		into_relocation_chain(Word, int stg);
 forwards void		alien_into_relocation_chain(void *addr,
@@ -156,14 +157,9 @@ forwards void		alien_into_relocation_chain(void *addr,
 forwards void		compact_trail(void);
 forwards void		sweep_mark(mark *);
 forwards void		sweep_trail(void);
-forwards LocalFrame	sweep_environments(LocalFrame);
-forwards LocalFrame	sweep_choicepoints(LocalFrame);
-forwards void		sweep_stacks(LocalFrame);
-forwards void		sweep_local(LocalFrame);
 forwards bool		is_downward_ref(Word);
 forwards bool		is_upward_ref(Word);
 forwards void		compact_global(void);
-forwards void		collect_phase(LocalFrame);
 
 #if O_SECURE
 forwards int		cmp_address(const void *, const void *);
@@ -188,6 +184,7 @@ forwards void		check_mark(mark *m);
 #define	marks_unswept	   (LD->gc._marks_unswept)
 #define	alien_relocations  (LD->gc._alien_relocations)
 #define local_frames	   (LD->gc._local_frames)
+#define choice_count	   (LD->gc._choice_count)
 #if O_SECURE
 static long trailtops_marked;		/* # marked trailtops */
 static Word *mark_base;			/* Array of marked cells addresses */
@@ -326,6 +323,51 @@ makePtr(Word ptr, int tag)
 
   return consPtr(ptr, tag|stg);
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Clear the FR_MARKED flags left after traversing all reachable frames.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static QueryFrame
+unmark_environments(PL_local_data_t *ld, LocalFrame fr)
+{ if ( fr == NULL )
+    return NULL;
+
+  for(;;)
+  { if ( false(fr, FR_MARKED) )
+      return NULL;
+    clear(fr, FR_MARKED);
+    ld->gc._local_frames--;
+    
+    if ( fr->parent )
+      fr = fr->parent;
+    else				/* Prolog --> C --> Prolog calls */
+      return (QueryFrame)addPointer(fr, -offset(queryFrame, frame));
+  }
+}
+
+
+static void
+unmark_choicepoints(PL_local_data_t *ld, Choice ch)
+{ for( ; ch; ch = ch->parent )
+  { ld->gc._choice_count--;
+    unmark_environments(ld, ch->frame);
+  }
+}
+
+
+static void
+unmark_stacks(PL_local_data_t *ld, LocalFrame fr, Choice ch)
+{ QueryFrame qf;
+
+  for( ; fr; fr = qf->saved_environment, ch = qf->saved_bfr )
+  { qf = unmark_environments(ld, fr);
+    assert(qf->magic == QID_MAGIC);
+    unmark_choicepoints(ld, ch);
+  }
+}
+
 
 
 		/********************************
@@ -567,12 +609,10 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Marking the environments.
+Mark environments and all data that can   be  reached from them. Returns
+the QueryFrame that started this environment,  which provides use access
+to the parent `foreign' environment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifndef offset
-#define offset(s, f) ((int)(&((struct s *)NULL)->f))
-#endif
 
 static QueryFrame
 mark_environments(LocalFrame fr)
@@ -619,16 +659,33 @@ mark_environments(LocalFrame fr)
   }
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Mark the choicepoints. This function walks   along the environments that
+can be reached from  the  choice-points.   In  addition,  it deletes all
+trail-references  that  will   be   overruled    by   the   choice-point
+stack-reference anyway.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #ifndef O_DESTRUCTIVE_ASSIGNMENT
 #define isTrailValueP(x) 0
 #endif
 
 static GCTrailEntry
-mark_choicepoints(LocalFrame bfr, GCTrailEntry te)
+mark_choicepoints(Choice ch, GCTrailEntry te)
 { GET_LD
-  for( ; bfr; bfr = bfr->backtrackFrame )
-  { Word top = argFrameP(bfr, bfr->predicate->functor->arity);
-    GCTrailEntry tm = (GCTrailEntry)bfr->mark.trailtop;
+
+  for( ; ch; ch = ch->parent )
+  { LocalFrame fr = ch->frame;
+    GCTrailEntry tm = (GCTrailEntry)ch->mark.trailtop;
+    Word top;
+
+    if ( ch->type == CHP_CLAUSE )
+      top = argFrameP(fr, fr->predicate->functor->arity);
+    else
+    { assert(ch->type == CHP_TOP || (void *)ch > (void *)fr);
+      top = (Word)ch;
+    }
 
     for( ; te >= tm; te-- )		/* early reset of vars */
     { if ( tag(te->address) == TAG_TRAILADDR )
@@ -649,13 +706,11 @@ mark_choicepoints(LocalFrame bfr, GCTrailEntry te)
       }
     }
 
-    set(bfr, FR_CHOICEPT);
-    assert(bfr->mark.trailtop != INVALID_TRAILTOP);
-    needsRelocation(&bfr->mark.trailtop);
-    alien_into_relocation_chain(&bfr->mark.trailtop, STG_TRAIL, STG_LOCAL);
+    needsRelocation(&ch->mark.trailtop);
+    alien_into_relocation_chain(&ch->mark.trailtop, STG_TRAIL, STG_LOCAL);
     SECURE(trailtops_marked--);
 
-    mark_environments(bfr);
+    mark_environments(fr);
   }
 
   return te;
@@ -663,7 +718,7 @@ mark_choicepoints(LocalFrame bfr, GCTrailEntry te)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-mark_stacks() will mark all data that  is   reachable  from any frame or
+mark_stacks() marks all  data  that  is   reachable  from  any  frame or
 choicepoint. In addition, it  will  do   `early  reset'  on variables of
 choicepoints that will be  reset  anyway   if  backtracking  reaches the
 choicepoint. Also, it  will  insert  all   trailtops  of  marks  in  the
@@ -674,24 +729,18 @@ has to be updated as none of these variables should be reset
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-mark_stacks(LocalFrame fr)
+mark_stacks(LocalFrame fr, Choice ch)
 { GET_LD
   QueryFrame query;
   GCTrailEntry te = (GCTrailEntry)tTop - 1;
 
   trailcells_deleted = 0;
 
-  for( ; fr; fr = query->saved_environment )
+  for( ; fr; fr = query->saved_environment, ch = query->saved_bfr )
   { query = mark_environments(fr);
+    te    = mark_choicepoints(ch, te);
+
     assert(query->magic == QID_MAGIC);
-    te    = mark_choicepoints(fr, te);
-
-    if ( false(&query->frame, FR_CHOICEPT) ) /* top one is always choicept */
-    { LocalFrame bfr = &query->frame;
-
-      DEBUG(2, Sdprintf("Marking toplevel frame as choicepoint\n"));
-      te = mark_choicepoints(bfr, te);
-    }
   }
   
   DEBUG(2, Sdprintf("Trail stack garbage: %ld cells\n", trailcells_deleted));
@@ -735,12 +784,12 @@ cmp_address(const void *vp1, const void *vp2)
 
 
 static void
-mark_phase(LocalFrame fr)
+mark_phase(LocalFrame fr, Choice ch)
 { GET_LD
   total_marked = 0;
 
   mark_term_refs();
-  mark_stacks(fr);
+  mark_stacks(fr, ch);
   mark_foreign_trail_refs();
 #if O_SECURE
   if ( !scan_global(TRUE) )
@@ -1006,43 +1055,30 @@ unsweep_foreign()
     unsweep_mark(&fr->mark);
 }
 
-static LocalFrame unsweep_environments(LocalFrame fr);
 
-static LocalFrame
-unsweep_choicepoints(LocalFrame bfr)
-{ for( ; ; )
-  { unsweep_environments(bfr);
-    unsweep_mark(&bfr->mark);
-    if ( !bfr->backtrackFrame )
-      return bfr;
-    else
-      bfr = bfr->backtrackFrame;
-  }
+static void
+unsweep_choicepoints(Choice ch)
+{ for( ; ch ; ch = ch->parent)
+    unsweep_mark(&ch->mark);
 }
 
 
-static LocalFrame
+static QueryFrame
 unsweep_environments(LocalFrame fr)
-{ if ( !fr )
-    return fr;
-
-  while(fr->parent)
+{ while(fr->parent)
     fr = fr->parent;
 
-  return fr;
+  return (QueryFrame)addPointer(fr, -offset(queryFrame, frame));
 }
 
 
 static void
-unsweep_local(LocalFrame fr)
-{ while(fr)
-  { LocalFrame tfr  = unsweep_environments(fr);
-    LocalFrame tbfr = unsweep_choicepoints(fr);
+unsweep_stacks(LocalFrame fr, Choice ch)
+{ QueryFrame query;
 
-    if ( tfr != tbfr )
-      unsweep_mark(&tfr->mark);
-
-    fr = parentFrame(tfr);
+  for( ; fr; fr = query->saved_environment, ch = query->saved_bfr )
+  { query = unsweep_environments(fr);
+    unsweep_choicepoints(ch);
   }
 }
 
@@ -1075,37 +1111,23 @@ sweep_trail(void)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-NOTE: catch/3 and the topmost frame requires its mark to be valid!
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static LocalFrame
+static QueryFrame
 sweep_environments(LocalFrame fr)
 { GET_LD
   Code PC = NULL;
 
-  if ( fr == (LocalFrame) NULL )
-    return (LocalFrame) NULL;
+  if ( !fr )
+    return NULL;
 
   for( ; ; )
   { int slots;
     Word sp;
 
     if ( false(fr, FR_MARKED) )
-      return (LocalFrame) NULL;
+      return NULL;
     clear(fr, FR_MARKED);
 
-    if ( false(fr, FR_CHOICEPT) )
-    { if ( fr->predicate != PROCEDURE_catch3->definition &&
-	   fr->parent )
-      { fr->mark.trailtop = INVALID_TRAILTOP;
-	fr->mark.globaltop = INVALID_GLOBALTOP;
-      }
-      SECURE(trailtops_marked--);	/* ... but counted anyway */
-    } else
-      clear(fr, FR_CHOICEPT);
-
-    slots   = (PC == NULL ? fr->predicate->functor->arity : slotsFrame(fr));
+    slots = (PC == NULL ? fr->predicate->functor->arity : slotsFrame(fr));
 
     sp = argFrameP(fr, 0);
     for( ; slots > 0; slots--, sp++ )
@@ -1123,48 +1145,37 @@ sweep_environments(LocalFrame fr)
     if ( fr->parent != NULL )
       fr = fr->parent;
     else
-      return fr;			/* Prolog --> C --> Prolog calls */
-  }
-}
-
-
-static LocalFrame
-sweep_choicepoints(LocalFrame bfr)
-{ for( ; ; )
-  { sweep_environments(bfr);
-    sweep_mark(&bfr->mark);
-    if ( !bfr->backtrackFrame )
-      return bfr;
-    else
-      bfr = bfr->backtrackFrame;
+      return (QueryFrame)addPointer(fr, -offset(queryFrame, frame));
   }
 }
 
 
 static void
-sweep_stacks(LocalFrame fr)
-{ LocalFrame tfr, tbfr;
-
-  while(fr)
-  { tfr  = sweep_environments(fr);
-    tbfr = sweep_choicepoints(fr);
-
-    if ( tfr != tbfr )
-      sweep_mark(&tfr->mark);
-
-    fr = parentFrame(tfr);
+sweep_choicepoints(Choice ch)
+{ for( ; ch ; ch = ch->parent)
+  { sweep_environments(ch->frame);
+    sweep_mark(&ch->mark);
   }
 }
 
 
 static void
-sweep_local(LocalFrame fr)
+sweep_stacks(LocalFrame fr, Choice ch)
 { GET_LD
-  sweep_stacks(fr);
+  QueryFrame query;
+  
+  for( ; fr; fr = query->saved_environment, ch = query->saved_bfr )
+  { query = sweep_environments(fr);
+    sweep_choicepoints(ch);
+
+    if ( !query )			/* we've been here */
+      break;
+  }
 
   if ( local_marked != 0 )
     sysError("local_marked = %ld", local_marked);
 }
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 All preparations have been made now, and the actual  compacting  of  the
@@ -1322,7 +1333,7 @@ compact_global(void)
 }
 
 static void
-collect_phase(LocalFrame fr)
+collect_phase(LocalFrame fr, Choice ch)
 { GET_LD
  
   DEBUG(2, Sdprintf("Sweeping foreign references\n"));
@@ -1330,12 +1341,12 @@ collect_phase(LocalFrame fr)
   DEBUG(2, Sdprintf("Sweeping trail stack\n"));
   sweep_trail();
   DEBUG(2, Sdprintf("Sweeping local stack\n"));
-  sweep_local(fr);
+  sweep_stacks(fr, ch);
   DEBUG(2, Sdprintf("Compacting global stack\n"));
   compact_global();
 
   unsweep_foreign();
-  unsweep_local(fr);
+  unsweep_stacks(fr, ch);
 
   if ( relocation_chains != 0 )
     sysError("relocation chains = %ld", relocation_chains);
@@ -1419,18 +1430,14 @@ static int checked;
 static void
 check_mark(mark *m)
 { GET_LD
-  if ( m->trailtop == INVALID_TRAILTOP )
-  { assert(m->globaltop == INVALID_GLOBALTOP);
-  } else
-  { assert(onStackArea(trail,  m->trailtop));
-    assert(onStackArea(global, m->globaltop));
-  }
+
+  assert(onStackArea(trail,  m->trailtop));
+  assert(onStackArea(global, m->globaltop));
 }
 
 
 static QueryFrame
-check_environments(fr)
-LocalFrame fr;
+check_environments(LocalFrame fr)
 { GET_LD
   Code PC = NULL;
 
@@ -1447,7 +1454,6 @@ LocalFrame fr;
     local_frames++;
     clearUninitialisedVarsFrame(fr, PC);
 
-    check_mark(&fr->mark);
     assert(onStack(local, fr));
 
     DEBUG(3, Sdprintf("Check [%ld] %s:",
@@ -1475,42 +1481,14 @@ LocalFrame fr;
 
 
 static void
-check_choicepoints(bfr)
-LocalFrame bfr;
+check_choicepoints(Choice ch)
 { GET_LD
-  for( ; bfr; bfr = bfr->backtrackFrame )
-  { check_environments(bfr);
+
+  for( ; ch; ch = ch->parent )
+  { choice_count++;
+    check_mark(&ch->mark);
+    check_environments(ch->frame);
   }
-}
-
-
-static LocalFrame
-lunmark_environments(fr)
-LocalFrame fr;
-{ GET_LD
-  if ( fr == NULL )
-    return NULL;
-
-  for(;;)
-  { if ( false(fr, FR_MARKED) )
-      return NULL;
-    clear(fr, FR_MARKED);
-    local_frames--;
-    
-    if ( fr->parent )
-      fr = fr->parent;
-    else				/* Prolog --> C --> Prolog calls */
-      return parentFrame(fr);
-  }
-}
-
-
-static void
-lunmark_choicepoints(bfr)
-LocalFrame bfr;
-{ GET_LD
-  for( ; bfr; bfr = bfr->backtrackFrame )
-    lunmark_environments(bfr);
 }
 
 
@@ -1535,33 +1513,36 @@ check_foreign()
 
 
 word
-checkStacks(LocalFrame frame)
+checkStacks(LocalFrame frame, Choice choice)
 { GET_LD
-  LocalFrame fr, fr2;
+  LocalFrame fr;
+  Choice ch;
   QueryFrame qf;
 
   if ( !frame )
     frame = environment_frame;
+  if ( !choice )
+    choice = LD->choicepoints;
 
   local_frames = 0;
+  choice_count = 0;
   key = 0L;
 
-  for( fr = frame; fr; fr = qf->saved_environment )
+  for( fr = frame, ch=choice;
+       fr;
+       fr = qf->saved_environment, ch = qf->saved_bfr )
   { qf = check_environments(fr);
     assert(qf->magic == QID_MAGIC);
 
-    check_choicepoints(fr->backtrackFrame);
+    check_choicepoints(ch);
   }
 
-  SECURE(trailtops_marked = local_frames);
+  SECURE(trailtops_marked = choice_count);
 
-  for( fr = frame; fr; fr = fr2 )
-  { fr2 = lunmark_environments(fr);
-
-    lunmark_choicepoints(fr->backtrackFrame);
-  }
+  unmark_stacks(LD, frame, choice);
 
   assert(local_frames == 0);
+  assert(choice_count == 0);
 
   key += check_foreign();
 
@@ -1572,7 +1553,7 @@ checkStacks(LocalFrame frame)
 
 
 void
-garbageCollect(LocalFrame fr)
+garbageCollect(LocalFrame fr, Choice ch)
 { GET_LD
   long tgar, ggar;
   real t = CpuTime();
@@ -1580,14 +1561,10 @@ garbageCollect(LocalFrame fr)
 
   DEBUG(0, verbose = TRUE);
 
-#if O_SECURE
-  key = checkStacks(fr);
-#endif
-
   if ( gc_status.blocked || !trueFeature(GC_FEATURE) )
     return;
-  gc_status.requested = FALSE;
-  blockGC();
+  blockGC();				/* avoid recursion due to */
+  gc_status.requested = FALSE;		/* printMessage() */
 
   gc_status.active = TRUE;
   finish_foreign_frame(PASS_LD1);
@@ -1605,7 +1582,7 @@ garbageCollect(LocalFrame fr)
   if ( !scan_global(FALSE) )
     sysError("Stack not ok at gc entry");
 
-  key = checkStacks(fr);
+  key = checkStacks(fr, ch);
 
   if ( check_table == NULL )
     check_table = newHTable(256);
@@ -1627,7 +1604,7 @@ garbageCollect(LocalFrame fr)
   tTop->address = 0;
 
   tag_trail();
-  mark_phase(fr);
+  mark_phase(fr, ch);
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
   mark_trail();
 #endif
@@ -1640,7 +1617,7 @@ garbageCollect(LocalFrame fr)
   DEBUG(2, Sdprintf("Compacting trail ... "));
   compact_trail();
 
-  collect_phase(fr);
+  collect_phase(fr, ch);
   untag_trail();
 #if O_SECURE
   assert(trailtops_marked == 0);
@@ -1657,7 +1634,7 @@ garbageCollect(LocalFrame fr)
   gc_status.active = FALSE;
   unblockSignals();
 
-  SECURE(if ( checkStacks(fr) != key )
+  SECURE(if ( checkStacks(fr, ch) != key )
 	 { Sdprintf("Stack checksum failure\n");
 	   trap_gdb();
 	 } else
@@ -1674,7 +1651,6 @@ garbageCollect(LocalFrame fr)
 		     PL_INTEGER, usedStack(trail),
 		     PL_INTEGER, roomStack(global),
 		     PL_INTEGER, roomStack(trail));
-
   unblockGC();
 }
 
@@ -1682,6 +1658,7 @@ word
 pl_garbage_collect(term_t d)
 { GET_LD
   LocalFrame fr = environment_frame;
+  Choice ch = LD->choicepoints;
 
 #if O_DEBUG
   int ol = GD->debug_level;
@@ -1692,7 +1669,7 @@ pl_garbage_collect(term_t d)
   GD->debug_level = nl;
 #endif
   finish_foreign_frame(PASS_LD1);
-  garbageCollect(fr);
+  garbageCollect(fr, ch);
 #if O_DEBUG
   GD->debug_level = ol;
 #endif
@@ -1719,32 +1696,6 @@ unblockGC()
 #endif
 }
 
-
-#if O_SHIFT_STACKS || O_ATOMGC
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Clear the FR_MARKED flags left after traversing all reachable frames.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static QueryFrame
-unmark_environments(PL_local_data_t *ld, LocalFrame fr)
-{ if ( fr == NULL )
-    return NULL;
-
-  for(;;)
-  { if ( false(fr, FR_MARKED) )
-      return NULL;
-    clear(fr, FR_MARKED);
-    ld->gc._local_frames--;
-    
-    if ( fr->parent )
-      fr = fr->parent;
-    else				/* Prolog --> C --> Prolog calls */
-      return (QueryFrame)addPointer(fr, -offset(queryFrame, frame));
-  }
-}
-
-#endif /*O_SHIFT_STACKS || O_SHIFT_STACKS*/
 
 #if O_SHIFT_STACKS
 
@@ -1773,19 +1724,16 @@ update_pointer(void *p, long offset)
 		 *	   LOCAL STACK		*
 		 *******************************/
 
-static void update_choicepoints(LocalFrame, long, long, long);
-
 static void
 update_mark(mark *m, long gs, long ts)
 { GET_LD
-  if ( ts && m->trailtop != INVALID_TRAILTOP )
-    update_pointer(&m->trailtop, ts);
-  if ( gs && m->globaltop != INVALID_GLOBALTOP )
-    update_pointer(&m->globaltop, gs);
+
+  if ( ts ) update_pointer(&m->trailtop, ts);
+  if ( gs ) update_pointer(&m->globaltop, gs);
 }
 
 
-static LocalFrame
+static QueryFrame
 update_environments(LocalFrame fr, Code PC, long ls, long gs, long ts)
 { GET_LD
   if ( fr == NULL )
@@ -1806,17 +1754,9 @@ update_environments(LocalFrame fr, Code PC, long ls, long gs, long ts)
 	  Sdprintf("Shifting frame 0x%p [%ld] %s ... ",
 		 fr, levelFrame(fr), predicateName(fr->predicate)));
 
-    update_mark(&fr->mark, gs, ts);
-
     if ( ls )				/* update frame pointers */
-    { if ( fr->parent )
-	fr->parent = (LocalFrame) addPointer(fr->parent, ls);
-      if ( fr->backtrackFrame )
-	fr->backtrackFrame = (LocalFrame) addPointer(fr->backtrackFrame, ls);
-    }
-
-    if ( ls )				/* update variables */
-    { clearUninitialisedVarsFrame(fr, PC);
+    { update_pointer(&fr->parent, ls);
+      clearUninitialisedVarsFrame(fr, PC);
 
       slots = (PC == NULL ? fr->predicate->functor->arity : slotsFrame(fr));
       sp = argFrameP(fr, slots);
@@ -1844,19 +1784,29 @@ update_environments(LocalFrame fr, Code PC, long ls, long gs, long ts)
 	update_pointer(&query->registers.fr, ls);
       }
       
-      return query->saved_environment;	/* parent frame */
+      return query;
     }
   }
 }
 
 
 static void
-update_choicepoints(LocalFrame bfr, long ls, long gs, long ts)
+update_choicepoints(Choice ch, long ls, long gs, long ts)
 { GET_LD
-  for( ; bfr; bfr = bfr->backtrackFrame )
+
+  for( ; ch; ch = ch->parent )
   { DEBUG(1, Sdprintf("Updating choicepoints from 0x%p [%ld] %s ... ",
-		      bfr, levelFrame(bfr), predicateName(bfr->predicate)));
-    update_environments(bfr, NULL, ls, gs, ts);
+		      ch,
+		      levelFrame(ch->frame),
+		      predicateName(ch->frame->predicate)));
+
+    if ( ls )
+    { update_pointer(&ch->frame, ls);
+      update_pointer(&ch->parent, ls);
+    }
+    update_mark(&ch->mark, gs, ts);
+    update_environments(ch->frame, NULL, ls, gs, ts);
+    choice_count++;
   }
 }
 
@@ -1934,14 +1884,11 @@ way to reach at dynamic stacks.
 	}
 
 
-static LocalFrame
-updateStacks(frame, PC, lb, gb, tb)
-LocalFrame frame;
-Code PC;
-Void lb, gb, tb;			/* bases addresses */
+static void
+update_stacks(LocalFrame frame, Choice choice, Code PC,
+	      void *lb, void *gb, void *tb)
 { GET_LD
   long ls, gs, ts;
-  LocalFrame fr;
 
   ls = (long) lb - (long) lBase;
   gs = (long) gb - (long) gBase;
@@ -1950,30 +1897,34 @@ Void lb, gb, tb;			/* bases addresses */
   DEBUG(2, Sdprintf("ls+gs+ts = %ld %ld %ld ... ", ls, gs, ts));
 
   if ( ls || gs || ts )
-  { QueryFrame qf;
-    LocalFrame fr2;
+  { LocalFrame fr;
+    Choice ch;
+    QueryFrame qf;
 
     local_frames = 0;
+    choice_count = 0;
+    
+    for( fr = addPointer(frame, ls),
+	 ch = addPointer(choice, ls)
+       ; fr
+       ; fr = qf->saved_environment,
+	 ch = qf->saved_bfr,
+	 PC = NULL
+       )
+    { qf = update_environments(fr, PC, ls, gs, ts);
 
-    for(fr = addPointer(frame, ls); fr; fr = fr2, PC = NULL)
-    { fr2 = update_environments(fr, PC, ls, gs, ts);
-
-      update_choicepoints(fr->backtrackFrame, ls, gs, ts);
-      DEBUG(1, if ( fr2 )
-	         Sdprintf("Update frames of C-parent at 0x%p\n", fr2));
+      update_choicepoints(ch, ls, gs, ts);
     }
 
-    DEBUG(2, Sdprintf("%d frames ...", local_frames));
+    DEBUG(2, Sdprintf("%d frames, %d choice-points ...",
+		      local_frames, choice_count));
 
-    for(fr = addPointer(frame, ls); fr; fr = qf->saved_environment)
-    { LocalFrame bfr;
+    frame  = addPointer(frame, ls);
+    choice = addPointer(choice, ls);
+    unmark_stacks(LD, frame, choice);
 
-      qf = unmark_environments(LD, fr);
-
-      for(bfr = fr->backtrackFrame; bfr; bfr = bfr->backtrackFrame)
-	unmark_environments(LD, bfr);
-    }
     assert(local_frames == 0);
+    assert(choice_count == 0);
 
     if ( gs || ls )
     { update_argument(ls, gs);
@@ -1995,8 +1946,9 @@ Void lb, gb, tb;			/* bases addresses */
     update_pointer(&fli_context, ls);
     update_pointer(&LD->choicepoints, ls);
   }
-
-  return addPointer(frame, ls);
+  if ( gs )
+  { update_pointer(&LD->mark_bar, gs);
+  } 
 }
 
 
@@ -2031,7 +1983,7 @@ Entry point from interpret()
 #define GL_SEPARATION sizeof(word)
 
 int
-growStacks(LocalFrame fr, Code PC, int l, int g, int t)
+growStacks(LocalFrame fr, Choice ch, Code PC, int l, int g, int t)
 { GET_LD
   if ( fr == NULL || PC != NULL )	/* for now, only at the call-port */
     fail;
@@ -2062,8 +2014,10 @@ growStacks(LocalFrame fr, Code PC, int l, int g, int t)
 
     if ( !fr )
       fr = environment_frame;
+    if ( !ch )
+      ch = LD->choicepoints;
 
-    SECURE(key = checkStacks(fr));
+    SECURE(key = checkStacks(fr, ch));
 
     if ( t )
     { tsize = nextStackSize((Stack) &LD->stacks.trail);
@@ -2115,7 +2069,7 @@ growStacks(LocalFrame fr, Code PC, int l, int g, int t)
 	     });
 		    
     DEBUG(1, Sdprintf("Updating stacks ..."));
-    fr = updateStacks(fr, PC, lb, gb, tb);
+    update_stacks(fr, ch, PC, lb, gb, tb);
 
     LD->stacks.local.max  = addPointer(LD->stacks.local.base,  lsize);
     LD->stacks.global.max = addPointer(LD->stacks.global.base, gsize);
@@ -2126,7 +2080,7 @@ growStacks(LocalFrame fr, Code PC, int l, int g, int t)
 
     time = CpuTime() - time;
     shift_status.time += time;
-    SECURE(if ( checkStacks(fr) != key )
+    SECURE(if ( checkStacks(NULL, NULL) != key )
 	   { Sdprintf("Stack checksum failure\n");
 	     trap_gdb();
 	   });
@@ -2168,6 +2122,15 @@ to walk along all reachable data as well.
 
 #ifdef O_DEBUG_ATOMGC
 extern IOSTREAM * atomLogFd;		/* for error messages */
+
+static long
+loffset(void *p)
+{ if ( p == NULL )
+    return 0;
+
+  assert((long)p % sizeof(word) == 0);
+  return (Word)p-(Word)lBase;
+}
 #endif
 
 static void
@@ -2265,35 +2228,32 @@ markAtomsInTermReferences(PL_local_data_t *ld)
 static void
 markAtomsInEnvironments(PL_local_data_t *ld)
 { QueryFrame qf;
-  LocalFrame fr, bfr;
+  LocalFrame fr;
+  Choice ch;
 
   ld->gc._local_frames = 0;
 
-  for( fr = ld->environment, bfr = ld->choicepoints;
-       fr;
-       fr = qf->saved_environment, bfr = qf->saved_bfr )
+  for( fr = ld->environment,
+       ch = ld->choicepoints
+     ; fr
+     ; fr = qf->saved_environment,
+       ch = qf->saved_bfr
+     )
   { qf = mark_atoms_in_environments(ld, fr);
     assert(qf->magic == QID_MAGIC);
 
-    for(; bfr; bfr = bfr->backtrackFrame)
+    for(; ch; ch = ch->parent)
     {
 #ifdef O_DEBUG_ATOMGC
       if ( atomLogFd )
-	Sfprintf(atomLogFd, "Marking atom from choicepoint [%ld] %s\n",
-		 levelFrame(bfr), predicateName(bfr->predicate));
+	Sfprintf(atomLogFd, "Marking atoms from choicepoint #%ld on %s\n",
+		 local(ch), predicateName(ch->frame->predicate));
 #endif
-      mark_atoms_in_environments(ld, bfr);
+      mark_atoms_in_environments(ld, ch->frame);
     }
   }
 
-  for( fr = ld->environment, bfr = ld->choicepoints;
-       fr;
-       fr = qf->saved_environment, bfr = qf->saved_bfr )
-  { qf = unmark_environments(ld, fr);
-
-    for(; bfr; bfr = bfr->backtrackFrame)
-      unmark_environments(ld, bfr);
-  }
+  unmark_stacks(ld, ld->environment, ld->choicepoints);
 
   assert(ld->gc._local_frames == 0);
 }
@@ -2307,3 +2267,4 @@ markAtomsOnStacks(PL_local_data_t *ld)
 }
 
 #endif /*O_ATOMGC*/
+

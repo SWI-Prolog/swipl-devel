@@ -191,7 +191,7 @@ unifyAtomic(term_t t, word w ARG_LD)
   for(;;)
   { if ( isVar(*p) )
     { *p = w;
-      Trail(p, environment_frame);  
+      Trail(p);  
       succeed;
     }
 
@@ -1472,7 +1472,7 @@ PL_unify_functor(term_t t, functor_t f)
     { 
 #ifdef O_SHIFT_STACKS
       if ( !roomStack(global) > (1+arity) * sizeof(word) )
-      { growStacks(environment_frame, NULL, FALSE, TRUE, FALSE);
+      { growStacks(environment_frame, NULL, NULL, FALSE, TRUE, FALSE);
 	p = valHandleP(t);
 	deRef(p);
       }
@@ -1666,7 +1666,7 @@ PL_unify_list(term_t l, term_t h, term_t t)
 
 #ifdef O_SHIFT_STACKS
     if ( !roomStack(global) > 3 * sizeof(word) )
-    { growStacks(environment_frame, NULL, FALSE, TRUE, FALSE);
+    { growStacks(environment_frame, NULL, NULL, FALSE, TRUE, FALSE);
       p = valHandleP(t);
       deRef(p);
     }
@@ -1894,7 +1894,7 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
     { Word a = allocGlobal(2);
   
       *p = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
-      Trail(p, environment_frame);
+      Trail(p);
       *a++ = FUNCTOR_xpceref1;
       if ( ref->type == PL_INTEGER )
 	*a++ = makeNum(ref->value.i);
@@ -1913,7 +1913,7 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
 	succeed;
       if ( isVar(*a) )
       { *a = v;
-        Trail(a, environment_frame);
+        Trail(a);
 	succeed;
       }
       if ( isIndirect(v) )

@@ -43,7 +43,6 @@ void *		xrealloc(void *mem, size_t size);
 word		pl_count(void);
 bool		unify_ptrs(Word t1, Word t2);
 bool		can_unify(Word t1, Word t2);
-word		pl_alt(word h);
 void		TrailAssignment(Word p);
 void		DoTrail(Word p);
 void		do_undo(mark *m);
@@ -338,12 +337,13 @@ word		pl_current_functor(term_t name, term_t arity, word h);
 
 /* pl-gc.c */
 void		considerGarbageCollect(Stack s);
-void		garbageCollect(LocalFrame fr);
+void		garbageCollect(LocalFrame fr, Choice ch);
 word		pl_garbage_collect(term_t d);
 void		blockGC(void);
 void		unblockGC(void);
 Word		findGRef(int n);
-int		growStacks(LocalFrame fr, Code PC, int l, int g, int t);
+int		growStacks(LocalFrame fr, Choice ch, Code PC,
+			   int l, int g, int t);
 void		clearUninitialisedVarsFrame(LocalFrame, Code);
 word		check_foreign(void);	/* O_SECURE stuff */
 void		markAtomsOnStacks(PL_local_data_t *ld);
@@ -697,7 +697,7 @@ void		freeTableEnum(TableEnum e);
 Symbol		advanceTableEnum(TableEnum e);
 
 /* pl-trace.c */
-int		tracePort(LocalFrame frame, LocalFrame bfr, int port, Code PC);
+int		tracePort(LocalFrame frame, Choice bfr, int port, Code PC);
 void		backTrace(LocalFrame frame, int depth);
 void		initTracer(void);
 void		resetTracer(void);

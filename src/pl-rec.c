@@ -996,7 +996,6 @@ undo_while_saving_term(mark *m, Word term)
   while(--n >= 0)
     setVar(**p++);
 
-  assert(m->trailtop != INVALID_TRAILTOP);
   Undo(*m);
   
   b.data = info.code.base;
@@ -1020,3 +1019,5 @@ undo_while_saving_term(mark *m, Word term)
 
   discardBuffer(&info.vars);
 }
+
+

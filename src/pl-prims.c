@@ -2269,12 +2269,14 @@ pl_depth_limit_true(term_t limit, term_t olimit, term_t oreached,
 	if ( !PL_unify_integer(res, used) )
 	  fail;
     
+#if 0					/* CHP_* */
 	if ( environment_frame->backtrackFrame->predicate ==
 	     PROCEDURE_alt0->definition &&
 	     environment_frame->parent ==
 	     environment_frame->backtrackFrame->parent )
 	{ return PL_unify_atom(cut, ATOM_cut);
 	} else
+#endif
 	{ if ( PL_unify_atom(cut, ATOM_true) )
 	    ForeignRedoInt(1);
 	}

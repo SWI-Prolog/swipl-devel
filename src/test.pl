@@ -50,6 +50,10 @@ syntax(op-7) :-
 	op(500, xf, op2),
 	catch(atom_to_term("op1 a op2", op1(op2(a)), []), E, true),
 	E = error(syntax_error(operator_clash), _).
+syntax(atom-1) :-
+	atom_codes('\003\\'\n\x80\', X),
+	X = [3, 39, 10, 128].
+
 
 
 		 /*******************************
@@ -471,6 +475,10 @@ softcut2(A) :-
 do_block :-
 	exit(notmyblock, ok).
 
+bb(a) :-
+	!(myblock).
+bb(b).
+
 control(softcut-1) :-
 	findall(A, softcut1(A), [1,2]).
 control(softcut-2) :-
@@ -478,6 +486,13 @@ control(softcut-2) :-
 control(block-1) :-
 	catch(block(myblock, do_block, _), E, true),
 	E =@= error(existence_error(block, notmyblock), _).
+control(block-2) :-
+	block(notmyblock, do_block, X),
+	X == ok.
+control(block-3) :-
+	\+ (   block(myblock, bb(X), _),
+	       X == b
+	   ).
 
 		 /*******************************
 		 *	     EXCEPTIONS		*

@@ -421,7 +421,7 @@ set_sighandler(int sig, handler_t func)
 #endif
 
 
-#ifndef NO_SEGV_HANDLING
+#if !defined(NO_SEGV_HANDLING) && defined(O_DYNAMIC_STACKS)
 static handler_t
 set_stack_guard_handler(int sig, void *func)
 {
@@ -512,6 +512,9 @@ resetSignals()
 static void
 allSignalMask(sigset_t *set)
 { sigfillset(set);
+#ifdef O_PROFILE
+  sigdelset(set, SIGPROF);
+#endif
 }
 
 
@@ -761,6 +764,8 @@ emptyStacks()
   exception_printed     = PL_new_term_ref();
   LD->exception.tmp     = PL_new_term_ref();
   LD->exception.pending = PL_new_term_ref();
+
+  LD->mark_bar          = gLimit;
 }
 
 #if O_DYNAMIC_STACKS
@@ -983,6 +988,8 @@ allocStacks(long local, long global, long trail, long argument)
   ulong maxarea;
 
   size_alignment = getpagesize();
+  while(size_alignment < 16 K)
+    size_alignment *= 2;
   base_alignment = size_alignment;
   mapfd  = get_map_fd();
 

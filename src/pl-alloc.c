@@ -330,7 +330,7 @@ allocGlobal(int n)
   Word result;
 
   if ( roomStack(global)/sizeof(word) < (long) n )
-  { growStacks(NULL, NULL, FALSE, TRUE, FALSE);
+  { growStacks(NULL, NULL, NULL, FALSE, TRUE, FALSE);
 
     if ( roomStack(global)/sizeof(word) < (long) n )
       outOfStack((Stack) &LD->stacks.global, STACK_OVERFLOW_FATAL);

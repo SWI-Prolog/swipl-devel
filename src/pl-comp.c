@@ -48,7 +48,7 @@ const code_info codeTable[] = {
   CODE(B_NIL,		"b_nil",	0, 0),
   CODE(H_LIST,		"h_list",	0, 0),
   CODE(H_RLIST,		"h_rlist",	0, 0),
-  CODE(B_LIST,		"h_list",	0, 0),
+  CODE(B_LIST,		"b_list",	0, 0),
   CODE(B_RLIST,		"h_rlist",	0, 0),
   CODE(B_VAR0,		"b_var0",	0, 0),
   CODE(B_VAR1,		"b_var1",	0, 0),
@@ -103,6 +103,7 @@ const code_info codeTable[] = {
   CODE(I_EXITFACT,	"i_exitfact",	0, 0),
   CODE(D_BREAK,		"d_break",	0, 0),
 #if O_CATCHTHROW
+  CODE(I_CATCH,		"b_catch",      0, 0),
   CODE(B_THROW,		"b_throw",	0, 0),
 #endif
   CODE(I_CONTEXT,	"i_context",	1, CA1_MODULE),
@@ -1221,6 +1222,8 @@ operator.
     { Output_0(ci, I_TRUE);
     } else if ( *arg == ATOM_fail )
     { Output_0(ci, I_FAIL);
+    } else if ( *arg == ATOM_dcatch )	/* $catch */
+    { Output_0(ci, I_CATCH);
     } else
     { functor_t fdef = lookupFunctorDef(*arg, 0);
       code cproc = (code) lookupProcedure(fdef, tm);
@@ -2165,6 +2168,9 @@ decompileBody(decompileInfo *di, code end, Code until)
       case C_LCUT:	    PC++;
 			    /*FALLTHROUGH*/
       case I_CUT:	    *ARGP++ = ATOM_cut;
+			    pushed++;
+			    continue;
+      case I_CATCH:	    *ARGP++ = ATOM_dcatch;
 			    pushed++;
 			    continue;
       case I_CONTEXT:	    di->body_context = (Module) *PC++;

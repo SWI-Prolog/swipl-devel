@@ -21,7 +21,6 @@ A alias			"alias"
 A allow_variable_name_as_functor "allow_variable_name_as_functor"
 A alnum			"alnum"
 A alpha			"alpha"
-A alt			"$alt"
 A alternative		"alternative"
 A and			"/\\"
 A append		"append"
@@ -465,11 +464,11 @@ A dec10			"dec10"
 A xdigit		"xdigit"
 A canceled		"canceled"
 A time_stamp		"time_stamp"
+A dcatch		"$catch"
 
 F abs			1
 F acos			1
 F alias			1
-F alt			0
 F and			2
 F apply			2
 F ar_equals		2

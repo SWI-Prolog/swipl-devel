@@ -63,6 +63,19 @@ PL_put_frame(term_t t, LocalFrame fr)
 }
 
 
+#if 0
+static void
+PL_put_choice(term_t t, Choice ch)
+{ if ( ch )
+  { assert(ch >= (Choice)lBase && ch < (Choice)lTop);
+
+    PL_put_integer(t, (Word)ch - (Word)lBase);
+  } else
+    PL_put_atom(t, ATOM_none);
+}
+#endif
+
+
 static int
 PL_get_frame(term_t r, LocalFrame *fr)
 { long i;
@@ -96,16 +109,20 @@ user to intercept and redefine the tracer.
 
 					/* Frame <-> Prolog integer */
 forwards LocalFrame	redoFrame(LocalFrame, Code *PC);
-forwards int		traceAction(char *, int, LocalFrame, bool);
 forwards void		helpTrace(void);
 #ifdef O_INTERRUPT
 forwards void		helpInterrupt(void);
 #endif
 forwards bool		hasAlternativesFrame(LocalFrame);
-forwards void		alternatives(LocalFrame);
+static void		alternatives(Choice);
 static void		exceptionDetails(void);
 forwards void		listGoal(LocalFrame frame);
-forwards int		traceInterception(LocalFrame, LocalFrame, int, Code);
+forwards int		traceInterception(LocalFrame, Choice, int, Code);
+static int		traceAction(char *cmd,
+				    int port,
+				    LocalFrame frame,
+				    Choice bfr,
+				    bool interactive);
 forwards void		interruptHandler(int sig);
 static void		writeFrameGoal(LocalFrame frame, Code PC,
 				       unsigned int flags);
@@ -205,7 +222,7 @@ returns to the WAM interpreter how to continue the execution:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-tracePort(LocalFrame frame, LocalFrame bfr, int port, Code PC)
+tracePort(LocalFrame frame, Choice bfr, int port, Code PC)
 { int action = ACTION_CONTINUE;
   Definition def = frame->predicate;
   LocalFrame fr;
@@ -213,9 +230,6 @@ tracePort(LocalFrame frame, LocalFrame bfr, int port, Code PC)
   if ( (true(frame, FR_NODEBUG) && !(SYSTEM_MODE)) || /* hidden */
        debugstatus.suspendTrace )		      /* called back */
     return ACTION_CONTINUE;
-
-  if ( port == FAIL_PORT )
-    Undo(frame->mark);
 
 					/* trace/[1,2] */
   if ( true(def, TRACE_CALL|TRACE_REDO|TRACE_EXIT|TRACE_FAIL) )
@@ -239,6 +253,9 @@ tracePort(LocalFrame frame, LocalFrame bfr, int port, Code PC)
        (false(def, SPY_ME) || (port & CUT_PORT)) )
     return ACTION_CONTINUE;		/* not tracing and no spy-point */
   if ( debugstatus.skiplevel < levelFrame(frame) )
+    return ACTION_CONTINUE;		/* skipped */
+  if ( debugstatus.skiplevel == levelFrame(frame) &&
+       (port == REDO_PORT || port == CUT_CALL_PORT || port == CUT_EXIT_PORT) )
     return ACTION_CONTINUE;		/* skipped */
   if ( false(def, TRACE_ME) )
     return ACTION_CONTINUE;		/* non-traced predicate */
@@ -331,7 +348,7 @@ again:
 	readLine(Sdin, Sdout, buf);
       }
     }
-    action = traceAction(buf, port, frame, trueFeature(TTY_CONTROL_FEATURE));
+    action = traceAction(buf, port, frame, bfr, trueFeature(TTY_CONTROL_FEATURE));
     if ( action == ACTION_AGAIN )
       goto again;
   } else
@@ -434,7 +451,7 @@ setPrintOptions(word t)
 
 
 static int
-traceAction(char *cmd, int port, LocalFrame frame, bool interactive)
+traceAction(char *cmd, int port, LocalFrame frame, Choice bfr, bool interactive)
 { int num_arg;				/* numeric argument */
   char *s;
 
@@ -533,7 +550,7 @@ traceAction(char *cmd, int port, LocalFrame frame, bool interactive)
 		backTrace(frame, num_arg == Default ? 5 : num_arg);
 		return ACTION_AGAIN;
     case 'A':	FeedBack("alternatives\n");
-		alternatives(frame);
+		alternatives(bfr);
 		return ACTION_AGAIN;
     case 'C':	debugstatus.showContext = 1 - debugstatus.showContext;
 		if ( debugstatus.showContext == TRUE )
@@ -737,11 +754,10 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
  ** Tue May 10 23:23:11 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
 static void
-alternatives(LocalFrame frame)
-{ for(; frame; frame = frame->backtrackFrame)
-  { if (hasAlternativesFrame(frame) &&
-	 (false(frame, FR_NODEBUG) || SYSTEM_MODE) )
-      writeFrameGoal(frame, NULL, WFG_CHOICE);
+alternatives(Choice ch)
+{ for(; ch; ch = ch->parent)
+  { if ( (false(ch->frame, FR_NODEBUG) || SYSTEM_MODE) )
+      writeFrameGoal(ch->frame, NULL, WFG_CHOICE);
   }
 }    
 
@@ -858,7 +874,7 @@ This predicate is supposed to return one of the following atoms:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-traceInterception(LocalFrame frame, LocalFrame bfr, int port, Code PC)
+traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 { int rval = -1;			/* Default C-action */
   predicate_t proc;
 
@@ -907,7 +923,7 @@ traceInterception(LocalFrame frame, LocalFrame bfr, int port, Code PC)
     }
 
     PL_put_frame(argv+1, frame);
-    PL_put_frame(argv+2, bfr);
+    PL_put_frame(argv+2, bfr->frame);	/* PL_put_choice() */
     PL_put_variable(rarg);
 
     qid = PL_open_query(MODULE_user, PL_Q_NODEBUG, proc, argv);
@@ -951,21 +967,91 @@ traceInterception(LocalFrame frame, LocalFrame bfr, int port, Code PC)
 
 #endif /*O_DEBUGGER*/
 
+#ifndef offset
+#define offset(s, f) ((int)(&((struct s *)NULL)->f))
+#endif
+
+static QueryFrame
+findQuery(LocalFrame fr)
+{ while(fr->parent)
+    fr = fr->parent;
+
+  return (QueryFrame)addPointer(fr, -offset(queryFrame, frame));
+}
+
+
 static bool
 hasAlternativesFrame(LocalFrame frame)
-{ ClauseRef cref;
+{ QueryFrame qf;
+  LocalFrame fr = environment_frame;
+  Choice ch = LD->choicepoints;
 
-  if ( true(frame, FR_CUT) )
-    fail;
-  if ( true(frame->predicate, FOREIGN) )
-    succeed;
-  for(cref = frame->clause; cref; cref = cref->next)
-  { if ( visibleClause(cref->clause, generationFrame(frame)) )
-      succeed;
+  for(;;)
+  { for( ; ch; ch = ch->parent )
+    { if ( (void *)ch < (void *)frame )
+	return FALSE;
+
+      if ( ch->frame == frame )
+      { switch( ch->type )
+	{ case CHP_CLAUSE:
+	  case CHP_JUMP:
+	  case CHP_FOREIGN:
+	    return TRUE;
+	  case CHP_TOP:			/* no default to get warning */
+	  case CHP_CATCH:
+	  case CHP_NONE:
+	  case CHP_DEBUG:
+	    continue;
+	}
+      }
+    }
+    if ( (qf = findQuery(fr)) )
+    { fr = qf->saved_environment;
+      ch = qf->saved_bfr;
+    } else
+      return FALSE;
   }
-
-  fail;
 }
+
+
+static LocalFrame
+alternativeFrame(LocalFrame frame)
+{ QueryFrame qf;
+  LocalFrame fr = environment_frame;
+  Choice ch = LD->choicepoints;
+
+  for(;;)
+  { for( ; ch; ch = ch->parent )
+    { if ( (void *)ch < (void *)frame )
+	return NULL;
+
+      if ( ch->frame == frame )
+      { for(ch = ch->parent; ch; ch = ch->parent )
+	{ if ( ch->frame == frame )
+	    continue;
+
+	  switch( ch->type )
+	  { case CHP_CLAUSE:
+	    case CHP_FOREIGN:
+	    case CHP_JUMP:
+	      return ch->frame;
+	    default:
+	      break;
+	  }
+	}
+
+        return NULL;
+      }
+    }
+
+    if ( (qf = findQuery(fr)) )
+    { fr = qf->saved_environment;
+      ch = qf->saved_bfr;
+    } else
+      return NULL;
+  }
+}
+
 
 void
 resetTracer(void)
@@ -1288,9 +1374,12 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
   } else if (key == ATOM_has_alternatives)
   { PL_put_atom(result, hasAlternativesFrame(fr) ? ATOM_true : ATOM_false);
   } else if (key == ATOM_alternative)
-  { if (fr->backtrackFrame == (LocalFrame) NULL)
+  { LocalFrame alt;
+
+    if ( (alt = alternativeFrame(fr)) )
+      PL_put_frame(result, alt);
+    else
       fail;
-    PL_put_frame(result, fr->backtrackFrame);
   } else if (key == ATOM_parent)
   { LocalFrame parent;
 

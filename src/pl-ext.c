@@ -386,9 +386,6 @@ static const struct foreign {
   FRG("$check_definition",	1, pl_check_definition,    META|TRACE_ME),
 #endif
 
-#if O_COMPILE_OR
-  FRG("$alt",			0, pl_alt,			NDET),
-#endif /* O_COMPILE_OR */
   FRG("$atom_hashstat",		2, pl_atom_hashstat,		TRACE_ME),
   FRG("$current_prolog_flag",	5, pl_feature5,		   NDET|TRACE_ME),
   FRG("current_prolog_flag",	2, pl_feature,		   NDET|TRACE_ME),
@@ -591,7 +588,6 @@ initBuildIns(void)
       set(valueFunctor(fdef), INLINE_F);
   }
 
-  PROCEDURE_alt0	     = lookupProcedure(FUNCTOR_alt0,		  m);
   PROCEDURE_garbage_collect0 = lookupProcedure(FUNCTOR_dgarbage_collect1, m);
   PROCEDURE_block3	     = lookupProcedure(FUNCTOR_block3, 		  m);
   PROCEDURE_catch3           = lookupProcedure(FUNCTOR_catch3, 		  m);

@@ -122,4 +122,3 @@
 #define pl_tty_goto		Sttygoto
 
 #define PROCEDURE_garbage_collect0	Sproc_gc
-#define PROCEDURE_alt0			Sproc_alt

@@ -1,7 +1,6 @@
 FUNCTOR(ATOM_abs, 1),
 FUNCTOR(ATOM_acos, 1),
 FUNCTOR(ATOM_alias, 1),
-FUNCTOR(ATOM_alt, 0),
 FUNCTOR(ATOM_and, 2),
 FUNCTOR(ATOM_apply, 2),
 FUNCTOR(ATOM_ar_equals, 2),

@@ -65,7 +65,7 @@ obtain all options.  Then stacks, built  in's,  etc.   are  initialised.
 The  the  boot  file is read again, but now only scanning for directives
 and predicates.
 
-IF YOU CHANGE ANYTHING TO THIS IOSTREAM, SO THAT OLD WIC-FILES CAN NO LONGER
+IF YOU CHANGE ANYTHING TO THIS FILE, SO THAT OLD WIC-FILES CAN NO LONGER
 BE READ, PLEASE DO NOT FORGET TO INCREMENT THE VERSION NUMBER!
 
 Below is an informal description of the format of a `.qlf' file:
@@ -155,8 +155,8 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 34			/* load all versions later >= 30 */
-#define VERSION 34			/* save version number */
+#define LOADVERSION 35			/* load all versions later >= X */
+#define VERSION 35			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF     0			/* reference to previous */
@@ -585,11 +585,6 @@ loadQlfTerm(term_t term, IOSTREAM *fd)
   Word vars;
 
   DEBUG(3, Sdprintf("Loading from %d ...", Stell(fd)));
-
-if ( Stell(fd) == 170152 )
-{ GD->debug_level = 4;
-  trap_gdb();
-}
 
   if ( (nvars = getNum(fd)) )
   { term_t *v;
@@ -1368,7 +1363,9 @@ do_save_qlf_term(Word t, IOSTREAM *fd)
 static void
 saveQlfTerm(term_t t, IOSTREAM *fd)
 { int nvars;
-  fid_t cid = PL_open_foreign_frame();
+  fid_t cid;
+
+  cid = PL_open_foreign_frame();
 
   DEBUG(3,
 	Sdprintf("Saving ");
@@ -2091,8 +2088,9 @@ pl_close_wic()
 word
 pl_add_directive_wic(term_t term)
 { if ( wicFd )
-  { if ( PL_is_variable(term) )
-      return warning("$add_directive_wic/1: directive is a variable");
+  { if ( !(PL_is_compound(term) || PL_is_atom(term)) )
+      return PL_error("$add_directive_wic", 1, NULL, ERR_TYPE,
+		      ATOM_callable, term);
 
     return addDirectiveWic(term, wicFd);
   }

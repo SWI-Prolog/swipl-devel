@@ -567,13 +567,14 @@ codes.
 #define D_BREAK		((code)76)		/* Debugger break-point */
 
 #if O_CATCHTHROW
-#define B_THROW		((code)77)		/* throw(Exception) */
+#define I_CATCH		((code)77)		/* $catch (catch/3) */
+#define B_THROW		((code)78)		/* throw(Exception) */
 #endif
 
-#define I_CONTEXT	((code)78)		/* Push context module */
-#define C_LCUT		((code)79)		/* ! local in \+ and -> */
+#define I_CONTEXT	((code)79)		/* Push context module */
+#define C_LCUT		((code)80)		/* ! local in \+ and -> */
 
-#define I_HIGHEST	((code)79)		/* largest WAM code !!! */
+#define I_HIGHEST	((code)80)		/* largest WAM code !!! */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Arithmetic comparison
@@ -729,7 +730,7 @@ typedef struct table *		Table;		/* (numeric) hash table */
 typedef struct symbol *		Symbol;		/* symbol of hash table */
 typedef struct table_enum *	TableEnum; 	/* Enumerate table entries */
 typedef struct localFrame *	LocalFrame;	/* environment frame */
-typedef struct localFrame *	Choice;		/* Choice-point */
+typedef struct choice *		Choice;		/* Choice-point */
 typedef struct queryFrame *	QueryFrame;     /* toplevel query frame */
 typedef struct fliFrame *	FliFrame; 	/* FLI interface frame */
 typedef struct trail_entry *	TrailEntry;	/* Entry of trail stack */
@@ -849,23 +850,23 @@ with one operation, it turns out to be faster as well.
 Handling environment (or local stack) frames.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define FR_LEVEL		(~0xffL)
-#define FR_CUT			(0x01L)
-#define FR_NODEBUG		(0x02L)
-#define FR_SKIPPED		(0x04L)
-#define FR_MARKED		(0x08L)
-#define FR_CHOICEPT		(0x10L)
-#define FR_WATCHED		(0x20L)
-#define FR_CATCHED		(0x40L)
+#define FR_BITS			5	/* mask-bits */
+#define FR_NODEBUG		(0x01L)	/* Invisible frame */
+#define FR_SKIPPED		(0x02L)	/* We have skipped on this frame */
+#define FR_MARKED		(0x04L)	/* GC */
+#define FR_WATCHED		(0x08L)	/* GUI debugger */
+#define FR_CATCHED		(0x10L)	/* Frame catched an exception */
+
+#define FR_LEVEL		((1L<<FR_BITS)-1)
 
 #define ARGOFFSET		((int)sizeof(struct localFrame))
 #define VAROFFSET(var) 		((var)+(ARGOFFSET/(int)sizeof(word)))
 
 #define setLevelFrame(fr, l)	{ (fr)->flags &= ~FR_LEVEL;   \
-				  (fr)->flags |= ((l) << 8); \
+				  (fr)->flags |= ((l) << FR_BITS); \
 				}
-#define levelFrame(fr)		(fr->flags >> 8)
-#define incLevel(fr)		(fr->flags += 0x100)
+#define levelFrame(fr)		(fr->flags >> FR_BITS)
+#define incLevel(fr)		(fr->flags += (1<<FR_BITS))
 #define argFrameP(f, n)		((Word)((f)+1) + (n))
 #define argFrame(f, n)		(*argFrameP((f), (n)) )
 #define varFrameP(f, n)		((Word)(f) + (n))
@@ -907,9 +908,6 @@ Handling environment (or local stack) frames.
 				  PL_UNLOCK(L_MISC); \
 				}
 #endif /*O_DEBUG*/
-
-#define INVALID_TRAILTOP  ((TrailEntry)~0L)
-#define INVALID_GLOBALTOP ((Word)~1L)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Heuristics functions to determine whether an integer reference passed to
@@ -1130,14 +1128,12 @@ struct definition
   unsigned	number_of_clauses : 24;	/* number of associated clauses */
 };
 
+
 struct localFrame
 { Code		programPointer;		/* pointer into program */
   LocalFrame	parent;			/* parent local frame */
   ClauseRef	clause;			/* Current clause of frame */
-  ClauseRef	backtrack_clause;	/* Next candidate clause */
-  LocalFrame	backtrackFrame;		/* Frame for backtracking */
   Definition	predicate;		/* Predicate we are running */
-  mark		mark;			/* data backtrack mark */
   Module	context;		/* context module of frame */
 #ifdef O_LOGICAL_UPDATE
   unsigned long generation;		/* generation of the database */
@@ -1152,7 +1148,11 @@ struct localFrame
 typedef enum
 { CHP_JUMP,				/* A jump due to ; */
   CHP_CLAUSE,				/* Next clause of predicate */
-  CHP_FOREIGN				/* Foreign code choicepoint */
+  CHP_FOREIGN,				/* Foreign code choicepoint */
+  CHP_TOP,				/* First (toplevel) choice */
+  CHP_CATCH,				/* $catch initiated choice */
+  CHP_DEBUG,				/* Enable redo */
+  CHP_NONE				/* not a choice any-more */
 } choice_type;
 
 
@@ -1164,7 +1164,7 @@ struct choice
   union
   { ClauseRef	clause;			/* Next candidate clause */
     Code	PC;			/* Next candidate program counter */
-    void       *handle;			/* foreign redo handle */
+    word        foreign;		/* foreign redo handle */
   } value;
 };
 
@@ -1193,8 +1193,11 @@ struct queryFrame
   int		debugSave;		/* saved debugstatus.debugging */
   Word	       *aSave;			/* saved argument-stack */
   int		solutions;		/* # of solutions produced */
-  LocalFrame	saved_bfr;		/* Saved BacktrackFrame */
+  Choice	saved_bfr;		/* Saved choice-point */
+  struct choice	choice;			/* First (dummy) choice-point */
   LocalFrame	saved_environment;	/* Parent local-frame */
+					/* Do not put anything between */
+					/* or check parentFrame() */
   struct localFrame frame;		/* The local frame */
 };
 
@@ -1314,7 +1317,7 @@ struct table_enum
 #endif /*O_DESTRUCTIVE_ASSIGNMENT*/
 
 #define Mark(b)		{ (b).trailtop  = tTop; \
-			  (b).globaltop = gTop; \
+			  LD->mark_bar = (b).globaltop = gTop; \
 			}
 
 
@@ -1569,7 +1572,6 @@ typedef struct
 		*         PREDICATES            *
 		*********************************/
 
-#define PROCEDURE_alt0			(GD->procedures.alt0)
 #define PROCEDURE_garbage_collect0	(GD->procedures.garbage_collect0)
 #define PROCEDURE_block3		(GD->procedures.block3)
 #define PROCEDURE_catch3		(GD->procedures.catch3)

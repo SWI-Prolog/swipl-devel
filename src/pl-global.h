@@ -185,8 +185,7 @@ typedef struct
   } os;
 
   struct
-  { Procedure	alt0;			/* $alt/0, see C_OR */
-    Procedure	garbage_collect0;
+  { Procedure	garbage_collect0;
     Procedure 	block3;
     Procedure	catch3;
     Procedure	true0;
@@ -211,8 +210,9 @@ typedef struct
 
 typedef struct
 { LocalFrame    environment;		/* Current local frame */
-  LocalFrame	choicepoints;		/* Choice-point chain */
+  Choice	choicepoints;		/* Choice-point chain */
   FliFrame      foreign_environment;	/* Current foreign context */
+  Word		mark_bar;		/* Mark globals > this one */
   pl_stacks_t   stacks;			/* Prolog runtime stacks */
   ulong		bases[STG_MASK+1];	/* area base addresses */
   ulong		pending_signals;	/* PL_raise() pending signals */
@@ -335,6 +335,7 @@ typedef struct
     long _marks_unswept;		/* # marks swept */
     long _alien_relocations;		/* # alien_into_relocation_chain() */
     long _local_frames;			/* frame count for debugging */
+    long _choice_count;			/* choice-point count for debugging */
 
     pl_gc_status_t	status;		/* Garbage collection status */
   } gc;
