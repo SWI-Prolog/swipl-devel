@@ -68,7 +68,6 @@ CLEAN :
 	-@erase "$(INTDIR)\pl-ext.obj"
 	-@erase "$(INTDIR)\pl-file.obj"
 	-@erase "$(INTDIR)\pl-flag.obj"
-	-@erase "$(INTDIR)\pl-fli.obj"
 	-@erase "$(INTDIR)\pl-fmt.obj"
 	-@erase "$(INTDIR)\pl-funct.obj"
 	-@erase "$(INTDIR)\pl-gc.obj"
@@ -153,7 +152,6 @@ LINK32_OBJS= \
 	"$(INTDIR)\pl-ext.obj" \
 	"$(INTDIR)\pl-file.obj" \
 	"$(INTDIR)\pl-flag.obj" \
-	"$(INTDIR)\pl-fli.obj" \
 	"$(INTDIR)\pl-fmt.obj" \
 	"$(INTDIR)\pl-funct.obj" \
 	"$(INTDIR)\pl-gc.obj" \
@@ -222,7 +220,6 @@ CLEAN :
 	-@erase "$(INTDIR)\pl-ext.obj"
 	-@erase "$(INTDIR)\pl-file.obj"
 	-@erase "$(INTDIR)\pl-flag.obj"
-	-@erase "$(INTDIR)\pl-fli.obj"
 	-@erase "$(INTDIR)\pl-fmt.obj"
 	-@erase "$(INTDIR)\pl-funct.obj"
 	-@erase "$(INTDIR)\pl-gc.obj"
@@ -312,7 +309,6 @@ LINK32_OBJS= \
 	"$(INTDIR)\pl-ext.obj" \
 	"$(INTDIR)\pl-file.obj" \
 	"$(INTDIR)\pl-flag.obj" \
-	"$(INTDIR)\pl-fli.obj" \
 	"$(INTDIR)\pl-fmt.obj" \
 	"$(INTDIR)\pl-funct.obj" \
 	"$(INTDIR)\pl-gc.obj" \
@@ -381,7 +377,6 @@ CLEAN :
 	-@erase "$(INTDIR)\pl-ext.obj"
 	-@erase "$(INTDIR)\pl-file.obj"
 	-@erase "$(INTDIR)\pl-flag.obj"
-	-@erase "$(INTDIR)\pl-fli.obj"
 	-@erase "$(INTDIR)\pl-fmt.obj"
 	-@erase "$(INTDIR)\pl-funct.obj"
 	-@erase "$(INTDIR)\pl-gc.obj"
@@ -468,7 +463,6 @@ LINK32_OBJS= \
 	"$(INTDIR)\pl-ext.obj" \
 	"$(INTDIR)\pl-file.obj" \
 	"$(INTDIR)\pl-flag.obj" \
-	"$(INTDIR)\pl-fli.obj" \
 	"$(INTDIR)\pl-fmt.obj" \
 	"$(INTDIR)\pl-funct.obj" \
 	"$(INTDIR)\pl-gc.obj" \
@@ -1323,6 +1317,7 @@ DEP_CPP_PL_WA=\
 	".\pl-buffer.h"\
 	".\pl-data.h"\
 	".\pl-error.h"\
+	".\pl-fli.c"\
 	".\pl-funcs.h"\
 	".\pl-funct.ih"\
 	".\pl-global.h"\
@@ -1340,19 +1335,19 @@ DEP_CPP_PL_WA=\
 !IF  "$(CFG)" == "libpl - Win32 Release"
 
 
-"$(INTDIR)\pl-wam.obj" : $(SOURCE) $(DEP_CPP_PL_WA) "$(INTDIR)"
+"$(INTDIR)\pl-wam.obj" : $(SOURCE) $(DEP_CPP_PL_WA) "$(INTDIR)" ".\pl-fli.c"
 
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Debug"
 
 
-"$(INTDIR)\pl-wam.obj" : $(SOURCE) $(DEP_CPP_PL_WA) "$(INTDIR)"
+"$(INTDIR)\pl-wam.obj" : $(SOURCE) $(DEP_CPP_PL_WA) "$(INTDIR)" ".\pl-fli.c"
 
 
 !ELSEIF  "$(CFG)" == "libpl - Win32 Runtime"
 
 
-"$(INTDIR)\pl-wam.obj" : $(SOURCE) $(DEP_CPP_PL_WA) "$(INTDIR)"
+"$(INTDIR)\pl-wam.obj" : $(SOURCE) $(DEP_CPP_PL_WA) "$(INTDIR)" ".\pl-fli.c"
 
 
 !ENDIF 
@@ -2078,49 +2073,6 @@ DEP_CPP_PL_AR=\
 
 
 "$(INTDIR)\pl-arith.obj" : $(SOURCE) $(DEP_CPP_PL_AR) "$(INTDIR)"
-
-
-!ENDIF 
-
-# End Source File
-################################################################################
-# Begin Source File
-
-SOURCE=".\pl-fli.c"
-DEP_CPP_PL_FLI=\
-	".\pl-atom.ih"\
-	".\pl-buffer.h"\
-	".\pl-data.h"\
-	".\pl-error.h"\
-	".\pl-funcs.h"\
-	".\pl-funct.ih"\
-	".\pl-global.h"\
-	".\pl-incl.h"\
-	".\pl-itf.h"\
-	".\pl-main.h"\
-	".\pl-os.h"\
-	".\pl-stream.h"\
-	"d:\development\pl\include\uxnt.h"\
-	{$(INCLUDE)}"\sys\STAT.H"\
-	{$(INCLUDE)}"\sys\TYPES.H"\
-	
-
-!IF  "$(CFG)" == "libpl - Win32 Release"
-
-
-"$(INTDIR)\pl-fli.obj" : $(SOURCE) $(DEP_CPP_PL_FLI) "$(INTDIR)"
-
-
-!ELSEIF  "$(CFG)" == "libpl - Win32 Debug"
-
-
-"$(INTDIR)\pl-fli.obj" : $(SOURCE) $(DEP_CPP_PL_FLI) "$(INTDIR)"
-
-
-!ELSEIF  "$(CFG)" == "libpl - Win32 Runtime"
-
-
-"$(INTDIR)\pl-fli.obj" : $(SOURCE) $(DEP_CPP_PL_FLI) "$(INTDIR)"
 
 
 !ENDIF 

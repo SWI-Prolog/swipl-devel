@@ -70,7 +70,7 @@ wise_install_xpce :-
 	    progman_make_item(Group, Item, CmdLine, Cwd, Prog:1)
 	;   true
 	), !,
-	pce_manual_index,
+%	pce_manual_index,
 	halt(0).
 wise_install_xpce :-
 	halt(1).

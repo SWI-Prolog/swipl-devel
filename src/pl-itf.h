@@ -28,7 +28,7 @@ before loading this file.  See end of this file.
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
 
 #ifndef PLVERSION
-#define PLVERSION 30000
+#define PLVERSION 30100
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -270,6 +270,9 @@ __pl_export void	PL_put_variable(term_t t);
 __pl_export void	PL_put_atom(term_t t, atom_t a);
 __pl_export void	PL_put_atom_chars(term_t t, const char *chars);
 __pl_export void	PL_put_string_chars(term_t t, const char *chars);
+__pl_export void	PL_put_string_nchars(term_t t,
+					     unsigned int len,
+					     const char *chars);
 __pl_export void	PL_put_list_chars(term_t t, const char *chars);
 __pl_export void	PL_put_integer(term_t t, long i);
 __pl_export void	PL_put_pointer(term_t t, void *ptr);
@@ -291,7 +294,8 @@ __pl_export int		PL_unify_atom_chars(term_t t, const char *chars);
 __pl_export int		PL_unify_list_chars(term_t t, const char *chars);
 __pl_export int		PL_unify_string_chars(term_t t, const char *chars);
 __pl_export int		PL_unify_string_nchars(term_t t,
-					       int len, const char *chars);
+					       unsigned int len,
+					       const char *chars);
 __pl_export int		PL_unify_integer(term_t t, long n);
 __pl_export int		PL_unify_float(term_t t, double f);
 __pl_export int		PL_unify_pointer(term_t t, void *ptr);

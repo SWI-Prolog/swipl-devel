@@ -7412,7 +7412,15 @@ _v_o_i_d PPLL__ppuutt__aattoomm__cchhaarrss((_t_e_r_m_
 
 
 _v_o_i_d PPLL__ppuutt__ssttrriinngg__cchhaarrss((_t_e_r_m___t _-_t_, _c_o_n_s_t _c_h_a_r _*_c_h_a_r_s))
-    Put a string in the term-reference.  The data will be copied.
+    Put  a zero-terminated string in the term-reference.  The  data will
+    be copied.  See also PPLL__ppuutt__ssttrriinngg__nncchhaarrss(()).
+
+
+_v_o_i_d PPLL__ppuutt__ssttrriinngg__nncchhaarrss((_t_e_r_m___t _-_t_, _u_n_s_i_g_n_e_d _i_n_t _l_e_n_, _c_o_n_s_t _c_h_a_r _*_c_h_a_r_s))
+
+    Put  a string,  represented by  a length/start pointer  pair in  the
+    term-reference.   The data will be copied.  This interface  can deal
+    with 0-bytes in the string.  See also section 5.6.17.
 
 
 _v_o_i_d PPLL__ppuutt__lliisstt__cchhaarrss((_t_e_r_m___t _-_t_, _c_o_n_s_t _c_h_a_r _*_c_h_a_r_s))
@@ -7553,8 +7561,18 @@ _i_n_t PPLL__uunniiffyy__lliisstt__cchhaarrss((_t_e_r_
     Unify _t with a list of ASCII characters constructed from _c_h_a_r_s.
 
 
-_i_n_t PPLL__uunniiffyy__ssttrriinngg__cchhaarrss((_t_e_r_m___t _?_t_, _c_o_n_s_t _c_h_a_r _*_c_h_a_r_s))
-    Unify _t with a Prolog string object created from _c_h_a_r_s.
+_v_o_i_d PPLL__uunniissyy__ssttrriinngg__cchhaarrss((_t_e_r_m___t _?_t_, _c_o_n_s_t _c_h_a_r _*_c_h_a_r_s))
+    Unify  _t  with  a  Prolog  string  object  created  from  the  zero-
+    terminated  string  _c_h_a_r_s.   The  data will  be copied.    See  also
+    PPLL__ppuutt__ssttrriinngg__nncchhaarrss(()).
+
+
+_v_o_i_d PPLL__ppuutt__ssttrriinngg__nncchhaarrss((_t_e_r_m___t _?_t_, _u_n_s_i_g_n_e_d _i_n_t _l_e_n_, _c_o_n_s_t _c_h_a_r _*_c_h_a_r_s))
+
+    Unify   _t   with   a  Prolog   string   object  created   from   the
+    string  created from the _l_e_n/_c_h_a_r_s pair.   The data will be  copied.
+    This  interface can  deal  with 0-bytes  in the  string.   See  also
+    section 5.6.17.
 
 
 _i_n_t PPLL__uunniiffyy__iinntteeggeerr((_t_e_r_m___t _?_t_, _l_o_n_g _n))
@@ -8239,7 +8257,205 @@ _i_n_t PPLL__aabboorrtt__uunnhhooookk((_P_L___a_b_o_r_
     such hook is found, TRUE otherwise.
 
 
-55..66..1177 EEmmbbeeddddiinngg SSWWII--PPrroolloogg iinn aa CC--pprrooggrraamm
+55..66..1177 SSttoorriinngg ffoorreeiiggnn ddaattaa
+
+This section  provides some hints for  handling foreign data in  Prolog.
+With foreign  data, we refer  to data that is  used by foreign  language
+predicates  and  needs  to  be passed  around  in  Prolog.     Excluding
+combinations, there are three principal options for storing such data
+
+  o _N_a_t_u_r_a_l _P_r_o_l_o_g _d_a_t_a
+    E.i.  using the  representation  one would  choose if  there was  no
+    foreign interface required.
+
+  o _O_p_a_q_u_e _p_a_c_k_e_d _P_r_o_l_o_g _d_a_t_a
+    Data  can also be  represetented in a  foreign structure and  stored
+    on the Prolog stacks  using PPLL__ppuutt__ssttrriinngg__nncchhaarrss(())and retrieved using
+    PPLL__ggeett__ssttrriinngg__cchhaarrss(()).   It is  generally good practice  to wrap  the
+    string  in a compound term with arity 1, so Prolog can  identify the
+    type.    ppoorrttrraayy//11 rules  may be  used to  streamline printing  such
+    terms during development.
+
+  o _N_a_t_u_r_a_l _f_o_r_e_i_g_n _d_a_t_a_, _p_a_s_s_i_n_g _a _p_o_i_n_t_e_r
+    An  alternative is to pass  a pointer to the  foreign data.   Again,
+    this functor may be wrapped in a compound term.
+
+The choice may be guided using the following distinctions
+
+  o _I_s _t_h_e _d_a_t_a _o_p_a_q_u_e _t_o _P_r_o_l_o_g
+    With  `opaque' data, we refer to data handled in  foreign functions,
+    passed  around in  Prolog, but  of which Prolog  never examines  the
+    contents  of the  data itself.   If  the data is  opaque to  Prolog,
+    the  choosen representation  does not depend  on simple analysis  by
+    Prolog,  and the selection  will be driven  solely by simplicity  of
+    the interface and performance (both in time and space).
+
+  o _H_o_w _b_i_g _i_s _t_h_e _d_a_t_a
+    Is  effient encoding  required?   For  examine, a  boolean aray  may
+    be  expressed as  a compound  term, holding integers  each of  which
+    contains a number of bits, or as a list of true and false.
+
+  o _W_h_a_t _i_s _t_h_e _n_a_t_u_r_e _o_f _t_h_e _d_a_t_a
+    For  examples in C,  constants are often  expressed using `enum'  or
+    #define'd  integer values.   If  prolog needs  to handle this  data,
+    atoms  are a more logical  choice.  Whether  or not this mapping  is
+    used  depends on  whether Prolog  needs to interpret  the data,  how
+    important debugging is and how important performance is.
+
+  o _W_h_a_t _i_s _t_h_e _l_i_f_e_t_i_m_e _o_f _t_h_e _d_a_t_a
+    We can distinguish three cases.
+
+     1.  The lifetime  is dictated by  the accesibility  of the data  on
+         the Prolog stacks.   Their is no way by which the  foreign code
+         when the  data becomes `garbage',  and the  data thus needs  to
+         be represented  on the Prolog  stacks using Prolog  data-types.
+         (2),
+
+     2.  The  data lives  on  the  `heap' and  is  explicitly  allocated
+         and deallocated.   In  this case,  representing the data  using
+         native foreign representation and passing a pointer to  it is a
+         sensible choice.
+
+     3.  The data lives as  during the lifetime of a  foreign predicate.
+         If the predicate is deterministic, foreign  automatic variables
+         are suitable.  if the predicate is  non-deterministic, the data
+         may be allocated  using malloc() and  a pointer may be  passed.
+         See section 5.6.1.1.
+
+
+55..66..1177..11 EExxaammpplleess ffoorr ssttoorriinngg ffoorreeiiggnn ddaattaa
+
+In this section, we wull outline some examples,  covering typical cases.
+In  the  first  example,  we will  deal  with  extending  Prolog's  data
+representation with  integer-sets, represented as  bit-vectors.  In  the
+second example, we  look at handling a  `netmask'.  Finally, we  discuss
+the outline of the DDE interface.
+
+IInntteeggeerr  sseettss with  not-to-far-apart  upper-  and  lower-bounds  can  be
+represented using  bit-vectors.  Common  set operations, such as  union,
+intersection,  etc.    are  reduced to  simple  and'ing and  or'ing  the
+bitvectors.  This  can be done in Prolog, using a compound  term holding
+integer  arguments.   Especially  if  the integers  are kept  below  the
+maximum tagged  integer value  (see ffeeaattuurree//22),  this representation  is
+fairly space-efficient (wasting  1 word for the  functor and and 7  bits
+per integer for  the tags).  Arithmetic  can all be performed in  Prolog
+too.
+
+For really demanding  applications, foreign representation will  perform
+better,  especially  time-wise.    Bit-vectors are  natrually  expressed
+using  string  objects.    If  the  string is  wrapped  in  bbiittvveeccttoorr//11,
+lower-bound of the  vector is 0, and  the upperbound is not defined,  an
+implementation for getting  and putting the setes  as well as the  union
+predicate for it is below.
+
+#include <SWI-Prolog.h>
+
+#define max(a, b) ((a) > (b) ? (a) : (b))
+#define min(a, b) ((a) < (b) ? (a) : (b))
+
+static functor_t FUNCTOR_bitvector1;
+
+static int
+get_bitvector(term_t in, int *len, unsigned char **data)
+{ if ( PL_is_functor(in, FUNCTOR_bitvector1) )
+  { term_t a = PL_new_term_ref();
+
+    PL_get_arg(1, in, a);
+    return PL_get_string(a, (char **)data, len);
+  }
+
+  PL_fail;
+}
+
+static int
+unify_bitvector(term_t out, int len, const unsigned char *data)
+{ if ( PL_unify_functor(out, FUNCTOR_bitvector1) )
+  { term_t a = PL_new_term_ref();
+
+    PL_get_arg(1, out, a);
+
+    return PL_unify_string_nchars(a, len, (const char *)data);
+  }
+
+  PL_fail;
+}
+
+static foreign_t
+pl_bitvector_union(term_t t1, term_t t2, term_t u)
+{ unsigned char *s1, *s2;
+  int l1, l2;
+
+  if ( get_bitvector(t1, &l1, &s1) &&
+       get_bitvector(t2, &l2, &s2) )
+  { int l = max(l1, l2);
+    unsigned char *s3 = alloca(l);
+
+    if ( s3 )
+    { int n;
+      int ml = min(l1, l2);
+
+      for(n=0; n<ml; n++)
+        s3[n] = s1[n] | s2[n];
+      for( ; n < l1; n++)
+        s3[n] = s1[n];
+      for( ; n < l2; n++)
+        s3[n] = s2[n];
+
+      return unify_bitvector(u, l, s3);
+    }
+
+    return PL_warning("Not enough memory");
+  }
+
+  PL_fail;
+}
+
+install_t
+install()
+{ PL_register_foreign("bitvector_union", 3, pl_bitvector_union, 0);
+
+  FUNCTOR_bitvector1 = PL_new_functor(PL_new_atom("bitvector"), 1);
+}
+
+NNeettmmaasskk''ss are  used with  TCP/IP  configuration.    Suppose we  have  an
+application dealing with reasoning about a network configuration.   Such
+an  application  requires  communicating  netmask  structures  from  the
+operating system,  reasoning about  them and  possibly communicate  them
+to the  user.   A  netmask consists  of 4  bitmasks between  0 and  255.
+C-application  normally see  them as  an 4-byte  wide unsigned  integer.
+SWI-Prolog cannot do that, as integers are always signed.
+
+We could use the string approach outlined above, but  this makes it hard
+to handle  these terms in Prolog.   A better  choice is a compound  term
+nneettmmaasskk//44, holding the 4 submasks as integer arguments.
+
+As the implementation is trivial, we will omit this here.
+
+TThhee DDDDEE  iinntteerrffaaccee (see section  3.42) represents  another common  usage
+of  the foreign  interface:   providing communication  to new  operating
+system features.  The DDE interface requires knowledge  about active DDE
+server and  client channels.   These  channels contains various  foreign
+data-types.  Such an interface is normally achieved  using an open/close
+protocol that creates and destroys a _h_a_n_d_l_e.  The  handle is a reference
+to a foreign data-structure containing the relevant information.
+
+There are a  couple of possibilities for  representing the handle.   The
+choice  depends on  responsibilities  and  debugging facilities.     The
+simplest  aproach is  to  using  PPLL__uunniiffyy__ppooiinntteerr(())and  PPLL__ggeett__ppooiinntteerr(()).
+This  approach is  fast and  easy, but  has the  drawbacks of  (untyped)
+pointers:   there  is no  reliable way  to detect  the  validity of  the
+pointer, not  to verify  it is pointing  to a  structure of the  desired
+type.   The pointer  may be wrapped  into a compound  term with arity  1
+(i.e.  dde_channel(<_P_o_i_n_t_e_r>)), making the type-problem less serious.
+
+Alternatively  (used in  the  DDE  interface),  the interface  code  can
+maintain a  (preferably variable  length) array of  pointers and  return
+the index in this  array.  This provides better protection.   Especially
+for debugging  purposes, wrapping  the handle  in a compound  is a  good
+suggestion.
+
+
+55..66..1188 EEmmbbeeddddiinngg SSWWII--PPrroolloogg iinn aa CC--pprrooggrraamm
 
 As  of  version  2.1.0,  SWI-Prolog may  be  embedded  in  a  C-program.
 To  reach  at  a compiled  C-program  with  SWI-Prolog  as  an  embedded
@@ -9934,4 +10150,4 @@ Bibliography
                                   New York, 1983.  Major revision  March
                                   1984.
 
-                                  734
+                                  738

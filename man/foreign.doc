@@ -477,7 +477,7 @@ Fail and start Prolog backtracking.  PL_fail is defined as \exam{return
 \const{FALSE}}.
 \end{description}
 
-\subsubsection{Non-deterministic Foreign Predicates}
+\subsubsection{Non-deterministic Foreign Predicates}	\label{sec:foreignnondet}
 
 By default foreign predicates are deterministic. Using the
 \const{PL_FA_NONDETERMINISTIC} attribute (see PL_register_foreign()) it
@@ -914,7 +914,15 @@ Put an atom in the term-reference constructed from the 0-terminated
 string.  The string itself will never be references by Prolog after this
 function.
 \cfunction{void}{PL_put_string_chars}{term_t -t, const char *chars}
-Put a string in the term-reference.  The data will be copied.
+Put a zero-terminated string in the term-reference. The data will be
+copied.  See also PL_put_string_nchars().
+\cfunction{void}{PL_put_string_nchars}{term_t -t,
+				       unsigned int len,
+				       const char *chars}
+
+Put a string, represented by a length/start pointer pair in the
+term-reference.  The data will be copied.  This interface can deal
+with 0-bytes in the string.  See also \secref{foreigndata}.
 \cfunction{void}{PL_put_list_chars}{term_t -t, const char *chars}
 Put a list of ASCII values in the term-reference.
 \cfunction{void}{PL_put_integer}{term_t -t, long i}
@@ -1036,8 +1044,17 @@ on success.
 \cfunction{int}{PL_unify_list_chars}{term_t ?t, const char *chars}
 Unify \arg{t} with a list of ASCII characters constructed from
 \arg{chars}.
-\cfunction{int}{PL_unify_string_chars}{term_t ?t, const char *chars}
-Unify \arg{t} with a Prolog string object created from \arg{chars}.
+\cfunction{void}{PL_unisy_string_chars}{term_t ?t, const char *chars}
+Unify \arg{t} with a Prolog string object created from the
+zero-terminated string \arg{chars}. The data will be copied.
+See also PL_put_string_nchars().
+\cfunction{void}{PL_put_string_nchars}{term_t ?t,
+				       unsigned int len,
+				       const char *chars}
+Unify \arg{t} with a Prolog string object created from the string
+created from the \arg{len}/\arg{chars} pair. The data will be copied.
+This interface can deal with 0-bytes in the string. See also
+\secref{foreigndata}.
 \cfunction{int}{PL_unify_integer}{term_t ?t, long n}
 Unify \arg{t} with a Prolog integer from \arg{n}.
 \cfunction{int}{PL_unify_float}{term_t ?t, double f}
@@ -1717,6 +1734,208 @@ typedef void (*PL_abort_hook_t)(void);
 Remove a hook installed with PL_abort_hook(). Returns \const{FALSE} if no
 such hook is found, \const{TRUE} otherwise.
 \end{description}
+
+
+\subsection{Storing foreign data}		\label{sec:foreigndata}
+
+This section provides some hints for handling foreign data in Prolog.
+With foreign data, we refer to data that is used by foreign language
+predicates and needs to be passed around in Prolog. Excluding
+combinations, there are three principal options for storing such data
+
+\begin{itemlist}
+    \item[Natural Prolog data]
+E.i.\ using the representation one would choose if there was no foreign
+interface required.
+    \item[Opaque packed Prolog data]
+Data can also be represetented in a foreign structure and stored on the
+Prolog stacks using PL_put_string_nchars() and retrieved using
+PL_get_string_chars().  It is generally good practice to wrap the
+string in a compound term with arity 1, so Prolog can identify the
+type.  portray/1 rules may be used to streamline printing such terms
+during development.
+    \item[Natural foreign data, passing a pointer]
+An alternative is to pass a pointer to the foreign data. Again, this
+functor may be wrapped in a compound term.
+\end{itemlist}
+
+\noindent
+The choice may be guided using the following distinctions
+
+\begin{itemlist}
+    \item[Is the data opaque to Prolog]
+With `opaque' data, we refer to data handled in foreign functions,
+passed around in Prolog, but of which Prolog never examines the contents
+of the data itself. If the data is opaque to Prolog, the choosen
+representation does not depend on simple analysis by Prolog, and the
+selection will be driven solely by simplicity of the interface and
+performance (both in time and space).
+    \item[How big is the data]
+Is effient encoding required?  For examine, a boolean aray may be
+expressed as a compound term, holding integers each of which contains
+a number of bits, or as a list of \const{true} and \const{false}.
+    \item[What is the nature of the data]
+For examples in C, constants are often expressed using `enum' or
+\#define'd integer values. If prolog needs to handle this data, atoms
+are a more logical choice.   Whether or not this mapping is used depends
+on whether Prolog needs to interpret the data, how important debugging is
+and how important performance is.
+    \item[What is the lifetime of the data]
+We can distinguish three cases.
+    \begin{enumerate}
+	\item
+The lifetime is dictated by the accesibility of the data on the Prolog
+stacks. Their is no way by which the foreign code when the data becomes
+`garbage', and the data thus needs to be represented on the Prolog
+stacks using Prolog data-types. (2),
+        \item
+The data lives on the `heap' and is explicitly allocated and
+deallocated. In this case, representing the data using native foreign
+representation and passing a pointer to it is a sensible choice.
+	\item
+The data lives as during the lifetime of a foreign predicate.  If the
+predicate is deterministic, foreign automatic variables are suitable.
+if the predicate is non-deterministic, the data may be allocated using
+malloc() and a pointer may be passed.  See \secref{foreignnondet}.
+    \end{enumerate}
+\end{itemlist}
+
+
+\subsubsection{Examples for storing foreign data}
+
+In this section, we wull outline some examples, covering typical cases.
+In the first example, we will deal with extending Prolog's data
+representation with integer-sets, represented as bit-vectors.  In the
+second example, we look at handling a `netmask'.  Finally, we discuss
+the outline of the DDE interface.
+
+\paragraph{Integer sets} with not-to-far-apart upper- and lower-bounds
+can be represented using bit-vectors.   Common set operations, such as
+union, intersection, etc.  are reduced to simple and'ing and or'ing the
+bitvectors.  This can be done in Prolog, using a compound term holding
+integer arguments.  Especially if the integers are kept below the
+maximum tagged integer value (see feature/2), this representation is
+fairly space-efficient (wasting 1 word for the functor and and 7 bits
+per integer for the tags).  Arithmetic can all be performed in Prolog
+too.
+
+For really demanding applications, foreign representation will perform
+better, especially time-wise. Bit-vectors are natrually expressed using
+string objects. If the string is wrapped in \functor{bitvector}{1},
+lower-bound of the vector is 0, and the upperbound is not defined, an
+implementation for getting and putting the setes as well as the
+union predicate for it is below.
+
+\begin{code}
+#include <SWI-Prolog.h>
+
+#define max(a, b) ((a) > (b) ? (a) : (b))
+#define min(a, b) ((a) < (b) ? (a) : (b))
+
+static functor_t FUNCTOR_bitvector1;
+
+static int
+get_bitvector(term_t in, int *len, unsigned char **data)
+{ if ( PL_is_functor(in, FUNCTOR_bitvector1) )
+  { term_t a = PL_new_term_ref();
+
+    PL_get_arg(1, in, a);
+    return PL_get_string(a, (char **)data, len);
+  }
+
+  PL_fail;
+}
+
+static int
+unify_bitvector(term_t out, int len, const unsigned char *data)
+{ if ( PL_unify_functor(out, FUNCTOR_bitvector1) )
+  { term_t a = PL_new_term_ref();
+
+    PL_get_arg(1, out, a);
+
+    return PL_unify_string_nchars(a, len, (const char *)data);
+  }
+
+  PL_fail;
+}
+
+static foreign_t
+pl_bitvector_union(term_t t1, term_t t2, term_t u)
+{ unsigned char *s1, *s2;
+  int l1, l2;
+
+  if ( get_bitvector(t1, &l1, &s1) &&
+       get_bitvector(t2, &l2, &s2) )
+  { int l = max(l1, l2);
+    unsigned char *s3 = alloca(l);
+    
+    if ( s3 )
+    { int n;
+      int ml = min(l1, l2);
+
+      for(n=0; n<ml; n++)
+        s3[n] = s1[n] | s2[n];
+      for( ; n < l1; n++)
+        s3[n] = s1[n];
+      for( ; n < l2; n++)
+        s3[n] = s2[n];
+
+      return unify_bitvector(u, l, s3);
+    }
+
+    return PL_warning("Not enough memory");
+  }
+
+  PL_fail;
+}
+
+
+install_t
+install()
+{ PL_register_foreign("bitvector_union", 3, pl_bitvector_union, 0);
+
+  FUNCTOR_bitvector1 = PL_new_functor(PL_new_atom("bitvector"), 1);
+}
+\end{code}
+
+\paragraph{Netmask's} are used with TCP/IP configuration. Suppose we
+have an application dealing with reasoning about a network
+configuration. Such an application requires communicating netmask
+structures from the operating system, reasoning about them and possibly
+communicate them to the user.  A netmask consists of 4 bitmasks between
+0 and 255.  C-application normally see them as an 4-byte wide unsigned
+integer.  SWI-Prolog cannot do that, as integers are always signed.
+
+We could use the string approach outlined above, but this makes it
+hard to handle these terms in Prolog.  A better choice is a compound
+term netmask/4, holding the 4 submasks as integer arguments.
+
+As the implementation is trivial, we will omit this here.
+
+\paragraph{The DDE interface} (see \secref{DDE}) represents another
+common usage of the foreign interface: providing communication to new
+operating system features. The DDE interface requires knowledge about
+active DDE server and client channels. These channels contains various
+foreign data-types.  Such an interface is normally achieved using an
+open/close protocol that creates and destroys a \jargon{handle}.  The
+handle is a reference to a foreign data-structure containing the
+relevant information.
+
+There are a couple of possibilities for representing the handle.  The
+choice depends on responsibilities and debugging facilities.  The
+simplest aproach is to using PL_unify_pointer() and PL_get_pointer().
+This approach is fast and easy, but has the drawbacks of (untyped)
+pointers: there is no reliable way to detect the validity of the
+pointer, not to verify it is pointing to a structure of the desired
+type.  The pointer may be wrapped into a compound term with arity
+1 (i.e. \exam{dde_channel(<Pointer>)}), making the type-problem
+less serious.
+
+Alternatively (used in the DDE interface), the interface code can
+maintain a (preferably variable length) array of pointers and return the
+index in this array. This provides better protection. Especially for
+debugging purposes, wrapping the handle in a compound is a good
+suggestion.
 
 
 \subsection{Embedding SWI-Prolog in a C-program}

@@ -1017,8 +1017,8 @@ PL_unify_string_chars(term_t t, const char *s)
 }
 
 int
-PL_unify_string_nchars(term_t t, int len, const char *s)
-{ word str = globalNString(len, (char *)s);
+PL_unify_string_nchars(term_t t, unsigned int len, const char *s)
+{ word str = globalNString(len, s);
 
   return unifyAtomic(t, str);
 }
@@ -1056,6 +1056,15 @@ PL_put_string_chars(term_t t, const char *s)
 
   setHandle(t, w);
 }
+
+
+void
+PL_put_string_nchars(term_t t,  unsigned int len, const char *s)
+{ word w = globalNString(len, s);
+
+  setHandle(t, w);
+}
+
 
 void
 PL_put_list_chars(term_t t, const char *chars)
@@ -1683,7 +1692,7 @@ find_query(LocalFrame fr)
     while(fr->parent)
       fr = fr->parent;
     
-    qf = (QueryFrame)addPointer(fr, -offsetof(struct queryFrame, frame));
+    qf = (QueryFrame)addPointer(fr, -(long)offsetof(struct queryFrame, frame));
 
     return qf;
   }

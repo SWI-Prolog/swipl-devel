@@ -48,6 +48,10 @@
 	\def\item[##1]{\@iitem {\it ##1}\mbox{}\\}}{%
 	\end{itemize}}
 
+\let\@normalitem=\item
+\let\@enumerate=\enumerate
+\def\enumerate{\@enumerate\let\item=\@normalitem}
+
 %	\var{Var}
 %
 %	Indicate Var is a variable or argument.

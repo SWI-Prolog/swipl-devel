@@ -5,6 +5,8 @@
 \sloppy
 \makeindex
 
+%\includeonly{foreign}
+
 \usepackage{times}
 \usepackage{fancyheadings}
 \renewcommand{\runningtitle}{SWI-Prolog \versionshort{} Reference Manual}

@@ -5,6 +5,8 @@
 \sloppy
 \makeindex
 
+%\includeonly{foreign}
+
 #ifdef ONLINE
 \usepackage{txt}
 \usepackage{plonline}

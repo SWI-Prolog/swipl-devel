@@ -265,32 +265,69 @@ some day.
 #define PLSIG_PREPARED 0x01		/* signal is prepared */
 #define PLSIG_THROW    0x02		/* throw signal(num, name) */
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Define the signasls and  their  properties.   This  could  be nicer, but
+different systems provide different signals, and   above all, MS systems
+provide very few.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static struct signame
 { int 	      sig;
   const char *name;
   int	      flags;
 } signames[] = 
-{ { SIGHUP,	"hup",    0},
+{
+#ifdef SIGHUP
+  { SIGHUP,	"hup",    0},
+#endif
   { SIGINT,	"int",    0},
+#ifdef SIGQUIT
   { SIGQUIT,	"quit",   0},
+#endif
   { SIGILL,	"ill",    PLSIG_THROW},
   { SIGABRT,	"abrt",   0},
   { SIGFPE,	"fpe",    PLSIG_THROW},
+#ifdef SIGKILL
   { SIGKILL,	"kill",   0},
+#endif
   { SIGSEGV,	"segv",   PLSIG_THROW},
+#ifdef SIGPIPE
   { SIGPIPE,	"pipe",   PLSIG_THROW},
+#endif
+#ifdef SIGALRM
   { SIGALRM,	"alrm",   PLSIG_THROW},
+#endif
   { SIGTERM,	"term",   0},
+#ifdef SIGUSR1
   { SIGUSR1,	"usr1",   0},
+#endif
+#ifdef SIGUSR2
   { SIGUSR2,	"usr2",   0},
+#endif
+#ifdef SIGCHLD
   { SIGCHLD,	"chld",   0},
+#endif
+#ifdef SIGCONT
   { SIGCONT,	"cont",   0},
+#endif
+#ifdef SIGSTOP
   { SIGSTOP,	"stop",   0},
+#endif
+#ifdef SIGTSTP
   { SIGTSTP,	"tstp",   0},
+#endif
+#ifdef SIGTTIN
   { SIGTTIN,	"ttin",   0},
+#endif
+#ifdef SIGTTOU
   { SIGTTOU,	"ttou",   0},
+#endif
+#ifdef SIGTRAP
   { SIGTRAP,	"trap",   0},
+#endif
+#ifdef SIGBUS
   { SIGBUS,	"bus",    PLSIG_THROW},
+#endif
 #ifdef SIGSTKFLT
   { SIGSTKFLT,	"stkflt", 0},
 #endif
@@ -513,33 +550,42 @@ resetSignals()
 
 void
 blockSignals()
-{ sigset_t set;
+{
+#ifdef HAVE_SIGPROCMASK
+  sigset_t set;
 
   sigfillset(&set);			/* only part? */
   
   sigprocmask(SIG_BLOCK, &set, NULL);
+#endif
 }
 
 
 void
 unblockSignals()
-{ sigset_t set;
+{
+#ifdef HAVE_SIGPROCMASK
+  sigset_t set;
 
   sigfillset(&set);			/* only part? */
   
   sigprocmask(SIG_UNBLOCK, &set, NULL);
+#endif
 }
 
 
 void
 unblockSignal(int sig)
-{ sigset_t set;
+{
+#ifdef HAVE_SIGPROCMASK
+  sigset_t set;
 
   sigemptyset(&set);
   sigaddset(&set, sig);
 
   sigprocmask(SIG_UNBLOCK, &set, NULL);
   DEBUG(1, Sdprintf("Unblocked signal %d\n", sig));
+#endif
 }
 
 

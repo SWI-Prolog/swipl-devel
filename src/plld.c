@@ -678,7 +678,7 @@ fillDefaultOptions()
   defaultProgram(&plinitfile, "none");
 
 #ifdef WIN32
-  sprintf(tmp, "%s/bin", plbase);
+  sprintf(tmp, "%s/lib", plbase);
 #else
   sprintf(tmp, "%s/runtime/%s", plbase, plarch);
 #endif

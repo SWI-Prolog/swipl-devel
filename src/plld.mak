@@ -43,11 +43,11 @@ RSC=rc.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "d:\development\lib"
-# PROP Intermediate_Dir "d:\development\objects\plld"
+# PROP Output_Dir "E:\pl\bin"
+# PROP Intermediate_Dir "E:\objects\plld"
 # PROP Target_Dir ""
-OUTDIR=d:\development\lib
-INTDIR=d:\development\objects\plld
+OUTDIR=E:\pl\bin
+INTDIR=E:\objects\plld
 
 ALL : "$(OUTDIR)\plld.exe"
 
@@ -65,7 +65,7 @@ CLEAN :
 # ADD CPP /nologo /MD /W3 /GX /O2 /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D "__WIN32__" /YX /c
 CPP_PROJ=/nologo /MD /W3 /GX /O2 /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D\
  "__WIN32__" /Fp"$(INTDIR)/plld.pch" /YX /Fo"$(INTDIR)/" /c 
-CPP_OBJS=d:\development\objects\plld/
+CPP_OBJS=E:\objects\plld/
 CPP_SBRS=.\.
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
@@ -99,11 +99,11 @@ LINK32_OBJS= \
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "d:\development\lib"
-# PROP Intermediate_Dir "d:\development\objects\plld"
+# PROP Output_Dir "E:\pl\bin"
+# PROP Intermediate_Dir "E:\objects\plld"
 # PROP Target_Dir ""
-OUTDIR=d:\development\lib
-INTDIR=d:\development\objects\plld
+OUTDIR=E:\pl\bin
+INTDIR=E:\objects\plld
 
 ALL : "$(OUTDIR)\plld.exe"
 
@@ -125,7 +125,7 @@ CLEAN :
 # ADD CPP /nologo /MD /W3 /Gm /GX /Zi /Od /D "_DEBUG" /D "WIN32" /D "_CONSOLE" /D "__WIN32__" /YX /c
 CPP_PROJ=/nologo /MD /W3 /Gm /GX /Zi /Od /D "_DEBUG" /D "WIN32" /D "_CONSOLE"\
  /D "__WIN32__" /Fp"$(INTDIR)/plld.pch" /YX /Fo"$(INTDIR)/" /Fd"$(INTDIR)/" /c 
-CPP_OBJS=d:\development\objects\plld/
+CPP_OBJS=E:\objects\plld/
 CPP_SBRS=.\.
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"

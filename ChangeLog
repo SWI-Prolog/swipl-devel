@@ -4,6 +4,8 @@
 VERSION 3.1.0
 =============
 
+  * ADDED: PL_put_string_nchars() to register strings using length/ptr    
+
   * FIXED: bug in the stack-shifter, introduced in 3.0.0
 
   * FIXED: configure option --disable-mapped-stacks

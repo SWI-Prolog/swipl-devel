@@ -35,15 +35,14 @@ unification, predicate invocation, some frequently used built-in
 predicates, arithmetic, and control (\predref{;}{2}, \predref{|}{2}),
 if-then (\predref{->}{2}) and not (\predref{\+}{1}).
 
-This manual does not describe the full syntax and semantics of
-SWI-Prolog, nor how one should write a program in Prolog.  These
-subjects have been described extensively in the literature.  See
-\cite{Bratko:86}, \cite{Sterling:86}, and \cite{Clocksin:87}.  For more
-advanced Prolog material see \cite{Keefe:90}. Syntax and standard
-operator declarations confirm to the `Edinburgh standard'.  Most built
-in predicates are compatible with those described in \cite{Clocksin:87}.
-SWI-Prolog also offers a number of primitive predicates compatible with
-Quintus Prolog%
+This manual does not describe the full syntax and semantics of Prolog,
+nor how one should write a program in Prolog. These subjects have been
+described extensively in the literature. See \cite{Bratko:86},
+\cite{Sterling:86}, and \cite{Clocksin:87}. For more advanced Prolog
+material see \cite{Keefe:90}. Syntax and standard operator declarations
+confirm to the `Edinburgh standard'. Most built in predicates are
+compatible with those described in \cite{Clocksin:87}. SWI-Prolog also
+offers a number of primitive predicates compatible with Quintus Prolog%
     \footnote{Quintus is a trademark of Quintus Computer Systems Inc., USA} 
 \cite{QUINTUS:manual} and BIM_Prolog%
     \footnote{BIM is a trademark of BIM sa/nv., Belgium}
@@ -96,8 +95,9 @@ history mechanism and a tracer that operates on single key-strokes.
 Interfaces to standard Unix editors are provided, as well as a facility
 to maintain programs (see make/0).
     \item [Very fast compiler]
-The compiler handles about 100K bytes per second on a SPARC-II
-processor.
+Even very large applications can be loaded in seconds on most machines.
+If this is not enough, there is a Quick Load Format that is slightly
+more compact and loading is almst always I/O bound.
     \item [Transparent compiled code]
 SWI-Prolog compiled code can be treated just as interpreted code: you
 can list it, trace it, assert to or retract from it, etc. This implies

@@ -47,6 +47,10 @@ qsave_program(FileSpec, Options0) :-
 	),
 	open_map(Map),
 	set_feature(saved_program, true),
+	(   exists_file(File)
+	->  delete_file(File)
+	;   true
+	),
 	$rc_open_archive(File, RC),
 	make_header(RC, SaveClass, Options),
 	save_options(RC, [class(SaveClass)|Options]),
