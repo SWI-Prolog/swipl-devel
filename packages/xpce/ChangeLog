@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: library(pce_image_browser): deduce name through method, allowing
+  to override in subclass.
+
 * COMPATIBILITY: PceEmacs look-and-feel synchronisation to GNU-Emacs
 	- Fix Control-J (new_line_and_indent)
 	- Make prompters return immediately if typed value is unique

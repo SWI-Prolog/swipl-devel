@@ -165,7 +165,7 @@ report_image(IB, Image:image*) :->
 	"Report on the status of an image"::
 	(   Image == @nil
 	->  send(IB, report, status, '')
-	;   image_name(Image, Name),
+	;   get(IB, image_name, Image, Name),
 	    get(Image, kind, Kind),
 	    get(Image, size, size(W, H)),
 	    (	get(Image, mask, Mask),
@@ -179,14 +179,16 @@ report_image(IB, Image:image*) :->
 	).
 
 
-image_name(Image, Name) :-
-	get(Image, name, Name),
-	Name \== @nil, !.
-image_name(Image, Name) :-
-	get(Image, file, File),
-	(   send(File, instance_of, file)
-	->  get(File, base_name, Name)
-	;   get(File, name, Name)
+image_name(_IB, Image, Name) :<-
+	"Get name to display for the image"::
+	(   get(Image, name, Name),
+	    Name \== @nil
+	->  true
+	;   get(Image, file, File),
+	    (   send(File, instance_of, file)
+	    ->  get(File, base_name, Name)
+	    ;   get(File, name, Name)
+	    )
 	).
 
 :- pce_group(render).
