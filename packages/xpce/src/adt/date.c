@@ -302,6 +302,27 @@ getStringDate(Date d)
 }
 
 
+static StringObj
+getRfcStringDate(Date d)
+{ char *s = ctime(&d->unix_date);
+  char date[30];
+
+  date[0] = '\0';
+
+  strncat(date, s, 3);			/* dayname */
+  strcat(date, ", ");
+  strncat(date, s+4, 7);		/* Month, day */
+  strncat(date, s+20, 4);		/* year */
+  strncat(date, s+10, 9);		/* time */
+#ifdef HAVE_TZNAME
+  strcat(date, " ");
+  strcat(date, tzname[0]);
+#endif
+
+  answer(CtoString(date));
+}
+
+
 static Name
 getCompareDate(Date d1, Date d2)
 { answer(d1->unix_date < d2->unix_date ? NAME_smaller :
@@ -424,6 +445,8 @@ static getdecl doget_date[] =
      NAME_textual, "Convert Day/Month/Year to date"),
   GM(NAME_printName, 0, "string", NULL, getStringDate,
      NAME_textual, "Same as <-string"),
+  GM(NAME_rfcString, 0, "string", NULL, getRfcStringDate,
+     NAME_textual, "<-string in RFC compatible format"),
   GM(NAME_string, 0, "string", NULL, getStringDate,
      NAME_textual, "New string representing date")
 };
