@@ -2722,11 +2722,15 @@ process_attributes(dtd_parser *p, dtd_element *e, const ichar *decl,
   { dtd_symbol *nm;
     const ichar *s;
 
-    if ( (s=itake_name(dtd, decl, &nm)) )
+    if ( (s=itake_nmtoken(dtd, decl, &nm)) )
     { decl = s;
 
       if ( (s=isee_func(dtd, decl, CF_VI)) ) /* name= */
       { dtd_attr *a;
+
+	if ( !HasClass(dtd, nm->name[0], CH_NMSTART) )
+	  gripe(ERC_SYNTAX_WARNING,
+		"Illegal start of attribute-name", decl);
 
 	decl = s;
 	if ( !(a=find_attribute(e, nm)) )
