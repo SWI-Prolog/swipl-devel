@@ -1,9 +1,9 @@
-SWI-Prolog 5.5.11/XPCE 6.5.11 development release
+SWI-Prolog 5.5.12/XPCE 6.5.12 development release
 
 Planned features in 5.5.x relative to 5.4.x and their status
 ============================================================
 
-  * Wide character support
+  * UNICODE support
 
       Realised
       --------
@@ -59,22 +59,25 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- Possible alignment problems on some platforms
 	- Option to disable it on platforms that cannot support it.
 
-Patches in 5.5.11 relative to 5.5.10
+Patches in 5.5.12 relative to 5.5.11
 ====================================
 
-  * Rewrote most of the `xos' layer providing better POSIX functionality
-    for Windows to provide UTF-8 access to Windows UNICODE filenames.
+  * Fix floats on 64-bit platforms (GC error)
 
-  * Added setlocale/3
+  * Various minor issues
 
 
 Packages
 ========
 
-  * XPCE: rewrote most of the file access to access filesnames according
-    to the locale and to the new XOS layer for MS-Windows, accessing
-    files using UNICODE names.  Win32: support UNICODE in cut/paste.
-    All platforms: support UNICODE for window captions.
+  * XPCE: Added library(pce_progress), providing progress bars.
+    Fixed locale issue making XPCE fail in environmens with different
+    NUMERIC locale.  minor stuff.
+  * SGML: Allow throwing exceptions from call-backs.  Minor stuff.
+  * RDF: Fix for rdf:datatype handling.  Memory leak in process_rdf/2.
+  * SemWeb: For rdf(?,+,?) where the predicate is not a yet known predicate.
+    Used by rdf_bnode/1. Bug resulted in serious loss of memory and
+    performance in applications using rdf_bnode/1 frequently.
 
 
 Incompatible changes
