@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: `persistent_frame' to save deeply nested subwindow layout.
+
 * ADDED: Win32: `@pce<-user' to obtain the name of the currently logged
   on user.
 

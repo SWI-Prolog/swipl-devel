@@ -145,14 +145,13 @@ wise_install_xpce :-			% no XPCE around
 			      [ access(exist),
 				file_type(directory),
 				file_errors(fail)
-			      ], _), !.
+			      ], _), !,
+	format('Cannot find XPCE.~n', []).
 wise_install_xpce :-
 	set_prolog_flag(debug_on_error, false),
 	qcompile_pce,
-	qcompile_lib,
-	halt(0).
-wise_install_xpce :-
-	halt(1).
+	qcompile_lib.
+
 	
 		 /*******************************
 		 *	 PRECOMPILED PARTS	*

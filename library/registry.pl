@@ -58,8 +58,9 @@ dlldemo directory.
 shell_register_prolog(Ext) :-
 	current_prolog_flag(argv, [Me|_]),
 	concat_atom(['"', Me, '" "%1"'], OpenCommand),
+	atom_concat(Me, ',1', Icon),
 	shell_register_file_type(Ext, 'prolog.type', 'Prolog Source',
-				 OpenCommand),
+				 OpenCommand, Icon),
 	shell_register_dde('prolog.type', consult,
 			   prolog, control, 'consult(''%1'')', Me), 
 	shell_register_dde('prolog.type', edit,
@@ -80,9 +81,16 @@ shell_register_prolog(Ext) :-
 %				    '"c:\pl\bin\plwin.exe" "%1"').
 
 shell_register_file_type(Ext, Type, Name, Open) :-
+	shell_register_file_type(Ext, Type, Name, Open, []).
+
+shell_register_file_type(Ext, Type, Name, Open, Icon) :-
 	ensure_dot(Ext, DExt),
 	registry_set_key(classes_root/DExt, Type),
 	registry_set_key(classes_root/Type, Name),
+	(   Icon \== []
+	->  registry_set_key(classes_root/'DefaultIcon', Icon)
+	;   true
+	),
 	registry_set_key(classes_root/Type/shell/open/command, Open).
 
 ensure_dot(Ext, Ext) :-

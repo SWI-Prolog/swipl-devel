@@ -132,14 +132,14 @@ load_layout(F) :->
 %	if the application is modified.
 
 get_tile_layout(T, layout(Me, SubLayout)) :-
-	get_this_tile_layout(T, Me),
-	(   get(T, members, Members),
-	    Members \== @nil
-	->  chain_list(Members, List),
-	    maplist(get_this_tile_layout, List, SubLayout),
-	    has_specifier(layout(Me, SubLayout))
-	;   SubLayout = []
-	).
+	get(T, members, Members),
+	Members \== @nil,
+	chain_list(Members, List),
+	maplist(get_tile_layout, List, SubLayout),
+	has_specifier(layout(Me, SubLayout)), !,
+	get_this_tile_layout(T, Me).
+get_tile_layout(T, Me) :-
+	get_this_tile_layout(T, Me).
 
 get_this_tile_layout(T, Size) :-
 	get(T, can_resize, @on), !,
@@ -171,14 +171,16 @@ has_specifier(Subs) :-
 %	Apply a previously saved layout description, sending ->width
 %	or ->height messages to resizeable tiles.
 
-apply_tile_layout(T, layout(Me, SubLayout)) :-
+apply_tile_layout(T, layout(Me, SubLayout)) :- !,
 	apply_this_tile_layout(T, Me),
 	(   get(T, members, Members),
 	    Members \== @nil
 	->  chain_list(Members, List),
-	    maplist(apply_this_tile_layout, List, SubLayout)
+	    maplist(apply_tile_layout, List, SubLayout)
 	;   true
 	).
+apply_tile_layout(T, Me) :-
+	apply_this_tile_layout(T, Me).
 
 apply_this_tile_layout(_, *) :- !.
 apply_this_tile_layout(T, Size) :-

@@ -699,33 +699,6 @@ tcp_listen(term_t Sock, term_t BackLog)
 
 #define fdFromHandle(p) ((int)((long)(p)))
 
-static int
-tcp_read(void *handle, char *buf, int bufSize)
-{ int socket = fdFromHandle(handle);
-  int n;
-
-#ifdef WIN32
-again:
-#endif
-
-  n = recv(socket, buf, bufSize, 0);
-
-#ifdef WIN32
-  if ( n < 0 && WSAGetLastError() == WSAEWOULDBLOCK )
-  { fd_set readfds;
-
-    FD_ZERO(&readfds);
-    FD_SET(socket, &readfds);
-
-    select(socket+1, &readfds, NULL, NULL, NULL);
-
-    goto again;
-  }
-#endif  
-
-  return n;
-}
-
 #ifdef WIN32
 static void
 waitMsg()
@@ -739,6 +712,29 @@ waitMsg()
   }
 }
 #endif
+
+
+static int
+tcp_read(void *handle, char *buf, int bufSize)
+{ int socket = fdFromHandle(handle);
+  int n;
+
+#ifdef WIN32
+again:
+#endif
+
+  n = recv(socket, buf, bufSize, 0);
+
+#ifdef WIN32
+  if ( n < 0 && WSAGetLastError() == WSAEWOULDBLOCK )
+  { waitMsg();
+
+    goto again;
+  }
+#endif  
+
+  return n;
+}
 
 static int
 tcp_write(void *handle, char *buf, int bufSize)

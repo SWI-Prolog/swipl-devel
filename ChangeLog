@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Various minor improvements in the Windows registration of Prolog.
+
   * ADDED: unwise_install to wise.pl to do the registration after running
     Wise.
 
