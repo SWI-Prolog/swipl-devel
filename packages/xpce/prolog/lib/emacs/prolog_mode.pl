@@ -415,29 +415,18 @@ pce_define_class(M, Name:name,
 		 *	   BROWSE STUFF		*
 		 *******************************/
 
-:- pce_autoload(prolog_navigator,    library('trace/browse')).
-:- pce_autoload(prolog_debug_status, library('trace/status')).
-
 prolog_navigator(M) :->
-	Browser = @prolog_navigator,
+	"Open source-file browser"::
 	get(M, file, File), File \== @nil,
 	get(File, absolute_path, Path),
 	get(M, line_number, Line),
-	(   object(Browser)
-	->  send(Browser, expose)
-	;   file_directory_name(Path, Dir),
-	    send(new(Browser, prolog_navigator(Dir)), open),
-	    send(Browser, wait)
-	),
-	send(Browser, goto, Path, Line).
+	prolog_ide(open_navigator(source_location(Path, Line))).
 
 
-edit_breakpoints(M) :->
-	get(M, application, Emacs),
-	(   get(Emacs, member, prolog_debug_status, Dialog)
-	->  send(Dialog, expose)
-	;   send(prolog_debug_status(Emacs), open)
-	).
+edit_breakpoints(_M) :->
+	"Open Prolog debug settings window"::
+	prolog_ide(open_debug_status).
+
 
 		 /*******************************
 		 *	   COMPILATION		*

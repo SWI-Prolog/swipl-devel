@@ -9,7 +9,9 @@
 
 :- module(prolog_debug_status, []).
 :- use_module(library(pce)).
+:- use_module(library(persistent_frame)).
 :- use_module(library(pce_report)).
+:- use_module(library(toolbar)).
 :- use_module(library('trace/clause')).
 :- use_module(library(prolog_predicate_item)).
 

@@ -52,13 +52,14 @@ variable(geometry_key,		      name*, send,
 	 "Key used to identify this frame").
 
 unlink(F) :->
+	"Save layout and destroy"::
 	send(F, save_layout),
 	send_super(F, unlink).
 
-open(F, Pos:point=[point], Grab:grab=[bool], Normalise:normalise=[bool]) :->
-	send(F, create),
-	send(F, load_layout),
-	send_super(F, open, Pos, Grab, Normalise).
+create(F) :->
+	"Create and restore layout"::
+	send_super(F, create),
+	send(F, load_layout).
 
 :- pce_group(config).
 

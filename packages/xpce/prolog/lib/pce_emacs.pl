@@ -52,7 +52,8 @@ emacs(File) :-
 	send(B, open).
 
 emacs_toplevel :-
-	unix(argv(Argv)),
+	send(@pce, trap_errors, @off),
+	current_prolog_flag(argv, Argv),
 	files(Argv, Files),
 	(   Files = [_|_]
 	->  start_emacs,

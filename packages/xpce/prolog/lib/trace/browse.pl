@@ -6,9 +6,7 @@
     Copyright (C) 1997 University of Amsterdam. All rights reserved.
 */
 
-:- module(prolog_navigator,
-	  [ prolog_navigator/1		% +Dir or +File:line
-	  ]).
+:- module(prolog_navigator, []).
 :- use_module(library(pce)).
 :- use_module(library(toc_filesystem)).
 :- use_module(library(pce_report)).
@@ -31,7 +29,6 @@
 	   , pce_image_directory/1
 	   ]).
 
-:- pce_autoload(prolog_debug_status, library('trace/status')).
 :- pce_image_directory(library('trace/icons')).
 
 :- dynamic
@@ -42,21 +39,6 @@ resource(up,	      image, image('16x16/up.xpm')).
 resource(refresh,     image, image('16x16/refresh.xpm')).
 resource(butterfly,   image, image('butterfly.xpm')).
 resource(dbgsettings, image, image('16x16/dbgsettings.xpm')).
-
-prolog_navigator(File:Line) :- !,
-	file_directory_name(File, Dir),
-	make_prolog_navigator(Dir, Navigator),
-	send(Navigator, goto, File, Line).
-prolog_navigator(Dir) :-
-	make_prolog_navigator(Dir, Navigator),
-	send(Navigator, directory, Dir).
-
-make_prolog_navigator(Dir, Navigator) :-
-	Navigator = @prolog_navigator,
-	(   object(Navigator)
-	->  send(Navigator, expose)
-	;   send(new(Navigator, prolog_navigator(Dir)), open)
-	).
 
 :- pce_begin_class(prolog_navigator, persistent_frame,
 		   "Prolog source navigator").
@@ -209,17 +191,9 @@ edit(FB) :->
 	    fail
 	).
 
-debug_settings(FB) :->
+debug_settings(_FB) :->
 	"Open debug-status editor"::
-	(   get(FB, application, App),
-	    App \== @nil
-	->  (   get(App, member, prolog_debug_status, W)
-	    ->  send(W, expose)
-	    ;   send(prolog_debug_status(App), open)
-	    )
-	;   send(new(prolog_debug_status), open)
-	).
-
+	prolog_ide(open_debug_status).
 
 :- pce_group(event).
 

@@ -632,7 +632,7 @@ guitracer(M) :->
 
 prolog_navigator(_M) :->
 	"Start the source-code navigator"::
-	auto_call(prolog_navigator('.')).
+	prolog_ide(open_navigator).
 
 start_emacs(_M) :->
 	"Start PceEmacs (*scratch* buffer)"::

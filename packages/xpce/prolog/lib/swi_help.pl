@@ -20,6 +20,7 @@
 
 :- use_module(library(pce)).
 :- use_module(library(pce_edit)).
+:- use_module(library(persistent_frame)).
 :- pce_autoload(toc_window, library(pce_toc)).
 :- use_module(library(helpidx)).
 :- require([ start_emacs/0
@@ -91,7 +92,7 @@ prolog_explain(Term) :-
 make_pui_help_window(W) :-
 	send(new(W, pui_manual), open).
 
-:- pce_begin_class(pui_manual, frame,
+:- pce_begin_class(pui_manual, persistent_frame,
 		   "Frame for Prolog help").
 
 variable(history, chain, get, "History list").

@@ -26,6 +26,8 @@ the IDE components to the autoloading of one single predicate.
 
 :- pce_autoload(prolog_debug_status, library('trace/status')).
 :- pce_autoload(prolog_navigator,    library('trace/browse')).
+:- pce_autoload(prolog_query_frame,  library('trace/query')).
+
 
 
 		 /*******************************
@@ -65,26 +67,39 @@ open_debug_status(IDE) :->
 
 open_navigator(IDE, Where:[directory|source_location]) :->
 	"Open Source Navigator"::
-	get(IDE, navigator, Navigator),
 	(   send(Where, instance_of, directory)
-	->  send(Navigator, directory, directory)
+	->  get(IDE, navigator, Where, Navigator),
+	    send(Navigator, directory, directory)
 	;   send(Where, instance_of, source_location)
 	->  get(Where, file_name, File),
+	    file_directory_name(File, Dir),
 	    get(Where, line_no, Line),
 	    (	integer(Line)
 	    ->	LineNo = Line
 	    ;	LineNo = 1
 	    ),
+	    get(IDE, navigator, Dir, Navigator),
 	    send(Navigator, goto, File, LineNo)
-	;   send(Navigator, directory, '.')
-	).
+	;   get(IDE, navigator, directory('.'), Navigator)
+	),
+	send(Navigator, expose).
+
 
 navigator(IDE, Dir:[directory], Navigator:prolog_navigator) :<-
 	"Create or return existing navigator"::
 	(   get(IDE, member, prolog_navigator, Navigator)
-	->  send(Navigator, expose)
+	->  true
 	;   new(Navigator, prolog_navigator(Dir)),
 	    send(Navigator, application, IDE)
 	).
+
+open_query_window(IDE) :->
+	"Open window to enter a query"::
+	(   get(IDE, member, prolog_query_frame, QF)
+	->  true
+	;   new(QF, prolog_query_frame),
+	    send(QF, application, IDE)
+	),
+	send(QF, expose).
 
 :- pce_end_class(prolog_ide).

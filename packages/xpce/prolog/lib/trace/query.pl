@@ -16,6 +16,21 @@
 :- dynamic
 	query_window/1.
 
+:- pce_begin_class(prolog_query_frame, persistent_frame,
+		   "Enter query in a frame").
+
+initialise(QF) :->
+	send_super(QF, initialise, 'Prolog Query'),
+	send(QF, append, new(PQ, prolog_query)),
+	send(new(report_dialog), below, PQ).
+
+:- pce_end_class(prolog_query_frame).
+
+
+		 /*******************************
+		 *	   QUERY-DIALOG		*
+		 *******************************/
+
 :- pce_begin_class(prolog_query, dialog,
 		   "Ask a Prolog query").
 

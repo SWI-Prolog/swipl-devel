@@ -31,10 +31,6 @@
 	     viewterm
 	   ]).
 
-:- pce_autoload(prolog_navigator,    library('trace/browse')).
-:- pce_autoload(prolog_query,	     library('trace/query')).
-:- pce_autoload(prolog_debug_status, library('trace/status')).
-
 :- multifile
 	user:prolog_event_hook/1,
 	user:message_hook/3.
@@ -335,13 +331,9 @@ edit(F) :->
 	"(Toggle) Edit-mode of source-window"::
 	send(F?source, edit).
 
-breakpoints(F) :->
+breakpoints(_F) :->
 	"Edit spy/break/trace-points"::
-	new(D, prolog_debug_status),
-	send(D, application, F?application),
-	send(D, transient_for, F),
-	get(F, window_pos_for_button, breakpoints, Pos),
-	send(D, open, Pos).
+	prolog_ide(open_debug_status).
 
 make(_) :->
 	"Run Prolog make"::
@@ -381,14 +373,9 @@ nostop_or_spy(F) :->
 		 'No selected break or current spy-point')
 	).
 	    
-browse(F) :->
+browse(_F) :->
 	"Provides overview for edit/spy/break"::
-	get(F, application, App),
-	(   get(App, member, prolog_navigator, Browser)
-	->  send(Browser, expose)
-	;   send(new(PB, prolog_navigator('.')), open),
-	    send(PB, application, F?application)
-	).
+	prolog_ide(open_navigator).
 
 stop_at(F) :->
 	"Set stop at caret"::
@@ -414,15 +401,9 @@ abort(_) :->
 	"Abort to the Prolog toplevel"::
 	abort.
 
-query(F) :->
+query(_F) :->
 	"Enter and run a query"::
-	get(F, window_pos_for_button, query, Pos),
-	new(PQ, prolog_query),
-	send(new(report_dialog), below, PQ),
-	get(PQ, frame, Frame),
-	send(Frame, application, F?application),
-	send(Frame, transient_for, F),
-	send(PQ, open, Pos).
+	prolog_ide(open_query_window).
 
 :- pce_group(delegate).
 
