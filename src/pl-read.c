@@ -1501,39 +1501,47 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  break;
 		}
     case SQ:	{ tmp_buffer b;
-		  int len;
-		  char *s;
+		  PL_chars_t txt;
 
 		  initBuffer(&b);
 		  get_string(rdhere-1, &rdhere, (Buffer)&b, _PL_rd);
-		  s = baseBuffer(&b, char);
-		  len = entriesBuffer(&b, char);
-		  cur_token.value.atom = lookupAtom(s, len);
+		  txt.text.t    = baseBuffer(&b, char);
+		  txt.length    = entriesBuffer(&b, char);
+		  txt.storage   = PL_CHARS_HEAP;
+		  txt.encoding  = ENC_UTF8;
+		  txt.canonical = FALSE;
+		  cur_token.value.atom = textToAtom(&txt);
+		  PL_free_text(&txt);
 		  cur_token.type = (rdhere[0] == '(' ? T_FUNCTOR : T_NAME);
 		  discardBuffer(&b);
 		  break;
 		}
     case DQ:	{ tmp_buffer b;
 		  term_t t = PL_new_term_ref();
-		  char *s;
-		  int len;
+		  PL_chars_t txt;
+		  int type;
 
 		  initBuffer(&b);
 		  get_string(rdhere-1, &rdhere, (Buffer)&b, _PL_rd);
-		  s   = baseBuffer(&b, char);
-		  len = entriesBuffer(&b, char);
+		  txt.text.t    = baseBuffer(&b, char);
+		  txt.length    = entriesBuffer(&b, char);
+		  txt.storage   = PL_CHARS_HEAP;
+		  txt.encoding  = ENC_UTF8;
+		  txt.canonical = FALSE;
 #if O_STRING
  		  if ( true(_PL_rd, DBLQ_STRING) )
-		    PL_put_string_nchars(t, len, s);
+		    type = PL_STRING;
 		  else
 #endif
 		  if ( true(_PL_rd, DBLQ_ATOM) )
-		    PL_put_atom_nchars(t, len, s);
+		    type = PL_ATOM;
 		  else if ( true(_PL_rd, DBLQ_CHARS) )
-		    PL_put_list_nchars(t, len, s);
+		    type = PL_CHAR_LIST;
 		  else
-		    PL_put_list_ncodes(t, len, s);
+		    type = PL_CODE_LIST;
 
+		  PL_unify_text(t, &txt, type);
+		  PL_free_text(&txt);
   		  cur_token.value.term = t;
 		  cur_token.type = T_STRING;
 		  discardBuffer(&b);
@@ -1543,14 +1551,17 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
     case BQ:
     case_bq:    { tmp_buffer b;
 		  term_t t = PL_new_term_ref();
-		  char *s;
-		  int len;
+		  PL_chars_t txt;
 
 		  initBuffer(&b);
 		  get_string(rdhere-1, &rdhere, (Buffer)&b, _PL_rd);
-		  s   = baseBuffer(&b, char);
-		  len = entriesBuffer(&b, char);
-		  PL_put_string_nchars(t, len, s);
+		  txt.text.t    = baseBuffer(&b, char);
+		  txt.length    = entriesBuffer(&b, char);
+		  txt.storage   = PL_CHARS_HEAP;
+		  txt.encoding  = ENC_UTF8;
+		  txt.canonical = FALSE;
+		  PL_unify_text(t, &txt, PL_STRING);
+		  PL_free_text(&txt);
   		  cur_token.value.term = t;
 		  cur_token.type = T_STRING;
 		  discardBuffer(&b);

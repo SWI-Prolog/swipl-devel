@@ -54,4 +54,6 @@
 extern char *__utf8_get_char(const char *in, int *chr);
 extern char *__utf8_put_char(char *out, int chr);
 
+extern unsigned int utf8_strlen(const char *s, unsigned int len);
+
 #endif /*UTF8_H_INCLUDED*/

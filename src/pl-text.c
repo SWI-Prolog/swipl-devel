@@ -209,18 +209,45 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
 }
 
 
+atom_t
+textToAtom(PL_chars_t *text)
+{ PL_canonise_text(text);
+
+  if ( text->encoding == ENC_ISO_LATIN_1 )
+  { return lookupAtom(text->text.t, text->length);
+  } else
+  { return lookupUCSAtom(text->text.w, text->length);
+  }
+}
+
+
+word
+textToString(PL_chars_t *text)
+{ PL_canonise_text(text);
+
+  if ( text->encoding == ENC_ISO_LATIN_1 )
+  { return globalString(text->length, text->text.t);
+  } else
+  { return globalWString(text->length, text->text.w);
+  }
+}
+
+
 int
 PL_unify_text(term_t term, PL_chars_t *text, int type)
 { switch(type)
   { case PL_ATOM:
+    { atom_t a = textToAtom(text);
+      int rval = _PL_unify_atomic(term, a);
+      
+      PL_unregister_atom(a);
+      return rval;
+    }
     case PL_STRING:
-      PL_canonise_text(text);
-      if ( text->encoding == ENC_ISO_LATIN_1 )
-      { if ( type == PL_ATOM )
-	  return PL_unify_atom_nchars(term, text->length, text->text.t);
-	else
-	  return PL_unify_string_nchars(term, text->length, text->text.t);
-      }
+    { word w = textToString(text);
+
+      return _PL_unify_atomic(term, w);
+    }
     case PL_CODE_LIST:
     case PL_CHAR_LIST:
     { if ( text->length == 0 )
@@ -228,37 +255,67 @@ PL_unify_text(term_t term, PL_chars_t *text, int type)
       } else
       { GET_LD
 	term_t l = PL_new_term_ref();
-	Word p = allocGlobal(text->length*3);
+	Word p0, p;
       
-	setHandle(l, consPtr(p, TAG_COMPOUND|STG_GLOBAL));
-	if ( text->encoding == ENC_ISO_LATIN_1 )
-	{ const unsigned char *s = (const unsigned char *)text->text.t;
-	  const unsigned char *e = &s[text->length];
+	switch(text->encoding)
+	{ case ENC_ISO_LATIN_1:
+	  { const unsigned char *s = (const unsigned char *)text->text.t;
+	    const unsigned char *e = &s[text->length];
 
-	  for( ; s < e; p++)
-	  { *p++ = FUNCTOR_dot2;
-	    if ( type == PL_CODE_LIST )
-	      *p++ = consInt(*s);
-	    else
-	      *p++ = codeToAtom(*s);
-	    *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
-	    p++;
+	    p0 = p = allocGlobal(text->length*3);
+	    for( ; s < e; p++)
+	    { *p++ = FUNCTOR_dot2;
+	      if ( type == PL_CODE_LIST )
+		*p++ = consInt(*s);
+	      else
+		*p++ = codeToAtom(*s);
+	      *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
+	      p++;
+	    }
+	    break;
 	  }
-	} else
-	{ const pl_wchar_t *s = (const pl_wchar_t *)text->text.t;
-	  const pl_wchar_t *e = &p[text->length];
+	  case ENC_WCHAR:
+	  { const pl_wchar_t *s = (const pl_wchar_t *)text->text.t;
+	    const pl_wchar_t *e = &p[text->length];
+  
+	    p0 = p = allocGlobal(text->length*3);
+	    for( ; s < e; p++)
+	    { *p++ = FUNCTOR_dot2;
+	      if ( type == PL_CODE_LIST )
+		*p++ = consInt(*s);
+	      else
+		*p++ = codeToAtom(*s);
+	      *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
+	      p++;
+	    }
+	    break;
+	  }
+	  case ENC_UTF8:
+	  { const char *s = text->text.t;
+	    const char *e = &s[text->length];
+	    unsigned int len = utf8_strlen(s, text->length);
 
-	  for( ; s < e; p++)
-	  { *p++ = FUNCTOR_dot2;
-	    if ( type == PL_CODE_LIST )
-	      *p++ = consInt(*s);
-	    else
-	      *p++ = codeToAtom(*s);
-	    *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
-	    p++;
+	    p0 = p = allocGlobal(len*3);
+	    while(s<e)
+	    { int chr;
+
+	      s = utf8_get_char(s, &chr);
+	      *p++ = FUNCTOR_dot2;
+	      if ( type == PL_CODE_LIST )
+		*p++ = consInt(chr);
+	      else
+		*p++ = codeToAtom(chr);
+	      *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
+	      p++;
+	    }
+	    break;
 	  }
+	  default:
+	    assert(0);
 	}
 	p[-1] = ATOM_nil;
+
+	setHandle(l, consPtr(p0, TAG_COMPOUND|STG_GLOBAL));
 
 	return PL_unify(l, term);
       }
@@ -473,28 +530,30 @@ PL_canonise_text(PL_chars_t *text)
 	  }
 
 	  s = (const unsigned char *)text->text.t;
+	  text->length = len;
+
 	  if ( wide )
 	  { pl_wchar_t *to = PL_malloc(sizeof(pl_wchar_t)*(len+1));
 
+	    text->text.w = to;
 	    while(s<e)
 	    { s = utf8_get_char(s, &chr);
 	      *to++ = chr;
 	    }
 	    *to = EOS;
 
-	    text->text.w = to;
 	    text->encoding = ENC_WCHAR;
 	    text->storage  = PL_CHARS_MALLOC;
 	  } else
 	  { char *to = PL_malloc(len+1);
 
+	    text->text.t = to;
 	    while(s<e)
 	    { s = utf8_get_char(s, &chr);
 	      *to++ = chr;
 	    }
 	    *to = EOS;
 
-	    text->text.t = to;
 	    text->encoding = ENC_ISO_LATIN_1;
 	    text->storage  = PL_CHARS_MALLOC;
 	  }

@@ -98,3 +98,19 @@ __utf8_put_char(char *out, int chr)
 
   return out;
 }
+
+
+unsigned int
+utf8_strlen(const char *s, unsigned int len)
+{ const char *e = &s[len];
+  unsigned int l = 0;
+
+  while(s<e)
+  { int chr;
+
+    s = utf8_get_char(s, &chr);
+    l++;
+  }
+
+  return l;
+}

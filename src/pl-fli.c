@@ -339,6 +339,15 @@ isUCSAtom(Atom a)
 }
 
 
+atom_t
+lookupUCSAtom(const pl_wchar_t *s, unsigned int len)
+{ int new;
+
+  return lookupBlob((const char *)s, len*sizeof(pl_wchar_t),
+		    &ucs_atom, &new);
+}
+
+
 int
 PL_unify_wchars(term_t t, int flags, unsigned int len, const pl_wchar_t *s)
 { PL_chars_t text;

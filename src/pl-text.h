@@ -70,4 +70,6 @@ int	PL_concat_text(int n, PL_chars_t **text, PL_chars_t *result);
 void	PL_free_text(PL_chars_t *text);
 void	PL_save_text(PL_chars_t *text, int flags);
 
+atom_t	textToAtom(PL_chars_t *text);
+
 #endif /*PL_TEXT_H_INCLUDED*/

@@ -46,6 +46,7 @@ COMMON(void) 		cleanupMemAlloc(void);
 COMMON(void) 		mergeAllocPool(AllocPool to, AllocPool from);
 COMMON(word) 		globalFunctor(functor_t def);
 COMMON(word) 		globalString(long len, const char *s);
+COMMON(word) 		globalWString(long len, const pl_wchar_t *s);
 COMMON(char *)		getCharsString__LD(word w, unsigned *len ARG_LD);
 COMMON(pl_wchar_t *)	getCharsWString__LD(word w, unsigned *len ARG_LD);
 COMMON(Word) 		newTerm(void);
@@ -386,6 +387,7 @@ COMMON(void) 		PL_cons_list__LD(term_t l, term_t head, term_t tail
 					 ARG_LD);
 COMMON(int)		PL_is_inf(term_t t);
 COMMON(int)		isUCSAtom(Atom a);
+COMMON(atom_t)		lookupUCSAtom(const pl_wchar_t *s, unsigned int len);
 COMMON(Buffer)		codes_or_chars_to_buffer(term_t l, unsigned int flags,
 						 int wide);
 COMMON(Buffer)		findBuffer(int flags);
