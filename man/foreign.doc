@@ -1214,6 +1214,8 @@ as the argument is passed using the C vararg conventions, a float must
 be casted to a double explicitly.
    \definition{\const{PL_FLOAT} \arg{double}}
 Unify the argument with a float, as in PL_unify_float().
+   \definition{\const{PL_POINTER} \arg{void *}}
+Unify the argument with a pointer, as in PL_unify_pointer().
    \definition{\const{PL_STRING} \arg{const char *}}
 Unify the argument with a string object, as in PL_unify_string_chars().
    \definition{\const{PL_TERM} \arg{term_t}}
