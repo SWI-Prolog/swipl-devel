@@ -985,28 +985,21 @@ the predicate as the reference-count drops to   zero. For static code we
 introduce a garbage collector (TBD).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define enterDefinitionNOLOCK(def) \
-	if ( true(def, DYNAMIC) ) (def->references++)
 #define enterDefinition(def) \
 	if ( true(def, DYNAMIC) ) \
 	{ PL_LOCK(L_PREDICATE); \
 	  def->references++; \
 	  PL_UNLOCK(L_PREDICATE); \
 	}
-#define leaveDefinitionNOLOCK(def) \
-	if ( true(def, DYNAMIC) ) \
-	{ if ( --def->references == 0 && \
-	       true(def, NEEDSCLAUSEGC|NEEDSREHASH) ) \
-	    gcClausesDefinition(def); \
-	  DEBUG(0, assert(def->references >= 0)); \
-	}
 #define leaveDefinition(def) \
 	if ( true(def, DYNAMIC) ) \
 	{ PL_LOCK(L_PREDICATE); \
 	  if ( --def->references == 0 && \
 	       true(def, NEEDSCLAUSEGC|NEEDSREHASH) ) \
-	    gcClausesDefinition(def); \
-	  PL_UNLOCK(L_PREDICATE); \
+	  { gcClausesDefinitionAndUnlock(def); \
+	  } else \
+	  { PL_UNLOCK(L_PREDICATE); \
+	  } \
 	}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

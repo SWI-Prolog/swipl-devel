@@ -37,8 +37,7 @@ finding source files, etc.
 
 static void	resetReferencesModule(Module);
 static void	resetProcedure(Procedure proc, bool isnew);
-static void	removeClausesProcedure(Procedure proc, int sfindex,
-				       int is_marked);
+static void	removeClausesProcedure(Procedure proc, int sfindex);
 static atom_t	autoLoader(atom_t name, int arity, atom_t mname);
 static void	registerDirtyDefinition(Definition def);
 
@@ -751,6 +750,13 @@ assertProcedure(Procedure proc, Clause clause, int where ARG_LD)
 	 );
 
     addClauseToIndex(def, clause, where PASS_LD);
+    if ( def->hash_info->size /2 > def->hash_info->buckets )
+    { set(def, NEEDSREHASH);
+      if ( true(def, DYNAMIC) && def->references == 0 )
+      { gcClausesDefinitionAndUnlock(def); /* does UNLOCK() */
+	return cref;
+      }
+    }
   } else
   { if ( def->number_of_clauses == 25 &&
 	 true(def, AUTOINDEX) )
@@ -798,7 +804,22 @@ abolishProcedure(Procedure proc, Module module)
   { def->definition.clauses = def->lastClause = NULL;
     resetProcedure(proc, TRUE);
   } else				/* normal Prolog procedure */
-  { removeClausesProcedure(proc, 0, FALSE);
+  { removeClausesProcedure(proc, 0);
+
+    if ( true(def, DYNAMIC) )
+    { if ( def->references == 0 )
+      { resetProcedure(proc, FALSE);
+	gcClausesDefinitionAndUnlock(def);
+	succeed;
+      } else				/* dynamic --> static */
+      { clear(def, DYNAMIC);
+	if ( true(def, NEEDSCLAUSEGC|NEEDSREHASH) )
+	{ registerDirtyDefinition(def);
+	  def->references = 0;
+	}
+      }
+    }
+
     resetProcedure(proc, FALSE);
   }
   UNLOCK();
@@ -807,35 +828,29 @@ abolishProcedure(Procedure proc, Module module)
 }
 
 
-/* MT: Must be locked by caller */
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Remove (mark for  deletion)  all  clauses   that  come  from  the  given
+source-file or any sourcefile
+
+MT: Caller must hold L_PREDICATE
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-removeClausesProcedure(Procedure proc, int sfindex, int is_marked)
+removeClausesProcedure(Procedure proc, int sfindex)
 { Definition def = proc->definition;
   ClauseRef c;
-  int immediate_static;
-
-  immediate_static = ( is_marked &&
-		       def->references == 0 &&
-		       false(def, DYNAMIC)
-		     );
 
 #ifdef O_LOGICAL_UPDATE
   GD->generation++;
 #endif
-
-  enterDefinitionNOLOCK(def);
 
   for(c = def->definition.clauses; c; c = c->next)
   { Clause cl = c->clause;
 
     if ( (sfindex == 0 || sfindex == cl->source_no) && false(cl, ERASED) )
     { set(cl, ERASED);
-      if ( false(def, NEEDSCLAUSEGC|DYNAMIC) )
-      { set(def, NEEDSCLAUSEGC);
-	if ( !immediate_static )
-	  registerDirtyDefinition(def);
-      }
+      set(def, NEEDSCLAUSEGC);		/* only on first */
+
 #ifdef O_LOGICAL_UPDATE
       cl->generation.erased = GD->generation;
 #endif
@@ -845,10 +860,6 @@ removeClausesProcedure(Procedure proc, int sfindex, int is_marked)
   }
   if ( def->hash_info )
     def->hash_info->alldirty = TRUE;
-
-  leaveDefinitionNOLOCK(def);
-  if ( immediate_static )
-    gcClausesDefinition(def);
 }
 
 
@@ -964,13 +975,16 @@ freeClause(Clause c ARG_LD)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 gcClausesDefinition()
-    Called from leaveDefinition().  Its task is to garbage collect all
-    clauses marked as ERASED.  leaveDefinition() is locked for
-    multi-threading, so there is no reason to do that here.
+    This function has two tasks. If the predicates needs to be rehashed,
+    this is done and all erased clauses from the predicate are returned
+    as a linked list.
+
+    We cannot delete the clauses immediately as the debugger requires a
+    call-back and we have the L_PREDICATE mutex when running this code.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-void
-gcClausesDefinition(Definition def)
+static ClauseRef
+cleanDefinition(Definition def, ClauseRef garbage)
 { GET_LD
   ClauseRef cref, prev = NULL;
   int rehash = 0;
@@ -996,6 +1010,7 @@ gcClausesDefinition(Definition def)
   { if ( true(cref->clause, ERASED) )
     { ClauseRef c = cref;
       
+					/* Unlink from definition */
       cref = cref->next;
       if ( !prev )
       { def->definition.clauses = c->next;
@@ -1008,16 +1023,11 @@ gcClausesDefinition(Definition def)
       }
 
       DEBUG(2, removed++);
-#if O_DEBUGGER
-      if ( PROCEDURE_event_hook1 && def != PROCEDURE_event_hook1->definition )
-      { def->references++;		/* prevent recursion */
-	callEventHook(PLEV_ERASED, c->clause);
-	def->references--;
-      }
-#endif
       def->erased_clauses--;
-      freeClause(c->clause PASS_LD);
-      freeClauseRef(c PASS_LD);
+
+					/* re-link into garbage chain */
+      c->next = garbage;
+      garbage = c;
     } else
     { prev = cref;
       cref = cref->next;
@@ -1037,7 +1047,55 @@ gcClausesDefinition(Definition def)
     hashDefinition(def, rehash);
 
   clear(def, NEEDSCLAUSEGC|NEEDSREHASH);
+
+  return garbage;
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Free a list of clauses as returned by gcClausesDefinition();
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+freeClauseList(ClauseRef cref)
+{ GET_LD
+  ClauseRef next;
+  
+
+  for( ; cref; cref = next)
+  { Clause cl = cref->clause;
+    next = cref->next;
+    
+#if O_DEBUGGER
+    if ( PROCEDURE_event_hook1 &&
+	 cl->procedure->definition != PROCEDURE_event_hook1->definition )
+      callEventHook(PLEV_ERASED, cl);
+#endif
+
+    freeClause(cl PASS_LD);
+    freeClauseRef(cref PASS_LD);
+  }
+}
+
+
+void
+gcClausesDefinition(Definition def)
+{ ClauseRef cref = cleanDefinition(def, NULL);
+
+  if ( cref )
+    freeClauseList(cref);
+}
+
+
+void
+gcClausesDefinitionAndUnlock(Definition def)
+{ ClauseRef cref = cleanDefinition(def, NULL);
+
+  UNLOCK();
+  if ( cref )
+    freeClauseList(cref);
+}
+
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2259,6 +2317,7 @@ startConsult(SourceFile f)
   { ListCell cell, next;
     sigset_t set;
     int immediate;
+    ClauseRef garbage = NULL;
 
     PL_LOCK(L_THREAD);
     LOCK();
@@ -2286,8 +2345,14 @@ startConsult(SourceFile f)
       next = cell->next;
       if ( def )
       { removeClausesProcedure(proc,
-			       true(def, MULTIFILE) ? f->index : 0,
-			       immediate);
+			       true(def, MULTIFILE) ? f->index : 0);
+
+	if ( true(def, NEEDSCLAUSEGC) )
+	{ if ( def->references == 0 )
+	    garbage = cleanDefinition(def, garbage);
+	  else if ( false(def, DYNAMIC) )
+	    registerDirtyDefinition(def);
+	}
 
 	if ( false(def, DYNAMIC) && def->references )
 	{ def->references = 0;
@@ -2306,6 +2371,9 @@ startConsult(SourceFile f)
     unblockSignals(&set);
     UNLOCK();
     PL_UNLOCK(L_THREAD);
+
+    if ( garbage )
+      freeClauseList(garbage);
   }
 
   f->current_procedure = NULL;

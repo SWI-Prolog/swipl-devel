@@ -604,6 +604,7 @@ void		freeClause(Clause c ARG_LD);
 void		freeClauseRef(ClauseRef c ARG_LD);
 ClauseRef	newClauseRef(Clause cl ARG_LD);
 void		gcClausesDefinition(Definition def);
+void		gcClausesDefinitionAndUnlock(Definition def);
 void		resetReferences(void);
 Procedure	resolveProcedure(functor_t f, Module module);
 Definition	trapUndefined(Definition def);

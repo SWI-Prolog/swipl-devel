@@ -625,6 +625,8 @@ markDirtyClauseIndex(ClauseIndex ci, Clause cl)
 }
 
 
+/* MT: caller must hold L_PREDICATE */
+
 void
 addClauseToIndex(Definition def, Clause cl, int where ARG_LD)
 { ClauseIndex ci = def->hash_info;
@@ -649,12 +651,7 @@ addClauseToIndex(Definition def, Clause cl, int where ARG_LD)
     
     DEBUG(4, Sdprintf("Storing in bucket %d\n", hi));
     appendClauseChain(&ch[hi], cl, where PASS_LD);
-
-    if ( ++ci->size / 2 > ci->buckets )
-    { enterDefinitionNOLOCK(def);
-      set(def, NEEDSREHASH);
-      leaveDefinitionNOLOCK(def);
-    }
+    ci->size++;
   }
 }
 
