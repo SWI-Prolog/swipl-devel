@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: `class<-no_created' and `class<-no_freed': extra boolean
+  argument to add the counts of their subclasses.  Used by PceEmacs
+  Prolog colouring to display the correct number of fragments again.
+
 * MODIFIED: moved image greying from library(toolbar) to new
   library(imageops), which is included from library(toolbar).
 

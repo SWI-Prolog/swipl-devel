@@ -1907,26 +1907,26 @@ deleteGetMethodClass(Class class, Name selector)
 
 
 Int
-getNoCreatedClass(Class class)
+getNoCreatedClass(Class class, Bool subtoo)
 { Cell cell;
   Int rval = class->no_created;
 
-  if ( notNil(class->sub_classes) )
+  if ( notNil(class->sub_classes) && subtoo == ON )
     for_cell(cell, class->sub_classes)
-      rval = add(rval, getNoCreatedClass(cell->value));
+      rval = add(rval, getNoCreatedClass(cell->value, subtoo));
 
   answer(rval);
 }
 
 
 Int
-getNoFreedClass(Class class)
+getNoFreedClass(Class class, Bool subtoo)
 { Cell cell;
   Int rval = class->no_freed;
 
-  if ( notNil(class->sub_classes) )
+  if ( notNil(class->sub_classes) && subtoo == ON )
     for_cell(cell, class->sub_classes)
-      rval = add(rval, getNoFreedClass(cell->value));
+      rval = add(rval, getNoFreedClass(cell->value, subtoo));
 
   answer(rval);
 }
@@ -2299,9 +2299,9 @@ makeClassClass(Class class)
 	     "How to save instances to file");
   localClass(class, NAME_features, NAME_version, "sheet*", NAME_none,
 	     "Defined features on this class");
-  localClass(class, NAME_noCreated, NAME_statistics, "int", NAME_get,
+  localClass(class, NAME_noCreated, NAME_statistics, "int", NAME_none,
 	     "Number of instances created");
-  localClass(class, NAME_noFreed, NAME_statistics, "int", NAME_get,
+  localClass(class, NAME_noFreed, NAME_statistics, "int", NAME_none,
 	     "Number of instances freed");
   localClass(class, NAME_solid, NAME_repaint, "bool", NAME_none,
 	     "Graphicals: image affects ALL pixels");
@@ -2548,6 +2548,12 @@ makeClassClass(Class class)
   getMethod(class, NAME_lazyBinding, NAME_cache, "bool", 1, "{send,get}",
 	    "@on if methods are bound lazy",
 	    getLazyBindingClass);
+  getMethod(class, NAME_noCreated, NAME_statistics, "int", 1, "sub_too=[bool]",
+	    "How many instances were created",
+	    getNoCreatedClass);
+  getMethod(class, NAME_noFreed, NAME_statistics, "int", 1, "sub_too=[bool]",
+	    "How many instances were freed",
+	    getNoFreedClass);
 
 
 		 /*******************************

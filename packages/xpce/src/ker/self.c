@@ -559,13 +559,13 @@ getAnswerStackSizePce(Pce pce)
 
 static Int
 getNoCreatedPce(Pce pce)
-{ answer(getNoCreatedClass(ClassObject));
+{ answer(getNoCreatedClass(ClassObject, ON));
 }
 
 
 static Int
 getNoFreedPce(Pce pce)
-{ answer(getNoFreedClass(ClassObject));
+{ answer(getNoFreedClass(ClassObject, ON));
 }
 
 

@@ -96,7 +96,7 @@ colourise_buffer(M) :->
 	"Do cross-referencing and colourising of the whole buffer"::
 	statistics(runtime, _),
 	new(Class, class(emacs_colour_fragment)),
-	get(Class, no_created, OldCreated),
+	get(Class, no_created, @on, OldCreated),
 
 	send_super(M, colourise_buffer),
 	send(M, setup_styles),
@@ -106,7 +106,7 @@ colourise_buffer(M) :->
 	send(M, colourise_comments),
 	statistics(runtime, [_,UsedMilliSeconds]),
 	Used is UsedMilliSeconds/1000,
-	get(Class, no_created, NewCreated),
+	get(Class, no_created, @on, NewCreated),
 	Created is NewCreated - OldCreated,
 	send(M, report, done,
 	     'done, %.2f seconds, %d fragments', Used, Created).
