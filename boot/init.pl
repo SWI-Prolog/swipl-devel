@@ -594,7 +594,7 @@ $consult_file(Spec, Options) :-
 	    $confirm_file(File, Absolute, ConfirmFile),
 	    $confirm_module(LM, ConfirmModule),
 
-	    $ttyformat('~w compiled~w, ~2f sec, ~D bytes.~n',
+	    $ttyformat('~N~w compiled~w, ~2f sec, ~D bytes.~n',
 		       [ConfirmFile, ConfirmModule, TimeUsed, HeapUsed])
 	;   true
 	).
