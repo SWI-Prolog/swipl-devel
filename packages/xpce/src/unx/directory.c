@@ -132,7 +132,7 @@ static status
 existsDirectory(Directory d)
 { struct stat buf;
 
-  if ( stat(nameToUTF8(d->path), &buf) == -1 ||
+  if ( stat(nameToFN(d->path), &buf) == -1 ||
        (buf.st_mode & S_IFMT) != S_IFDIR )
     fail;
 
@@ -143,7 +143,7 @@ existsDirectory(Directory d)
 static status
 makeDirectory(Directory d)
 { if ( !existsDirectory(d) )
-  { if ( mkdir(nameToUTF8(d->path), 0777) != 0 )
+  { if ( mkdir(nameToFN(d->path), 0777) != 0 )
       return errorPce(d, NAME_mkdir, getOsErrorPce(PCE));
   }
 

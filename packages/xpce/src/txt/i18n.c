@@ -277,7 +277,7 @@ UTF8ToName(const char *utf8)
   }
 
   if ( wide )
-  { wchar_t *ws;
+  { wchar_t *ws, *o;
     int mlcd;
     string s;
     Name nm;
@@ -290,6 +290,13 @@ UTF8ToName(const char *utf8)
       mlcd = TRUE;
     }
 
+    for(in=utf8, o=ws; in < e; )
+    { int chr;
+
+      in = utf8_get_char(in, &chr);
+      *o++ = chr;
+    }
+
     str_set_n_wchar(&s, len, ws);
     nm = StringToName(&s);
 
@@ -298,7 +305,7 @@ UTF8ToName(const char *utf8)
 
     return nm;
   } else
-  { char *as;
+  { char *as, *o;
     int mlcd;
     string s;
     Name nm;
@@ -309,6 +316,13 @@ UTF8ToName(const char *utf8)
     } else
     { as = pceMalloc((len+1));
       mlcd = TRUE;
+    }
+
+    for(in=utf8, o=as; in < e; )
+    { int chr;
+
+      in = utf8_get_char(in, &chr);
+      *o++ = (char)chr;
     }
 
     str_set_n_ascii(&s, len, as);

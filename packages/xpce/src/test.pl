@@ -35,7 +35,10 @@ available test sets. The public goals are:
 	?- test.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- format('XPCE/SWI-Prolog test suite.  To run all tests run ?- test.~n~n', []).
+:- get(@pce, version, V),
+   format('XPCE/SWI-Prolog test suite. (XPCE version ~w)~n\
+          To run all tests run ?- test.~n~n', [V]).
+
 
 
 		 /*******************************
@@ -176,6 +179,9 @@ srcsink(read-1) :-
 		 *	       FILE		*
 		 *******************************/
 
+foreign(Name) :-
+	atom_codes(Name, [1087, 1083, 1072, 1090, 1085, 1072, 1103]).
+
 file(env-1) :-
 	new(F, file('$PCEHOME/Defaults')),
 	send(F, exists),
@@ -203,7 +209,7 @@ file(exists-1) :-
 	       ;   \+ send(file(F), exists)
 	       )).
 file(utf8-1) :-
-	atom_codes(Name, [1087, 1083, 1072, 1090, 1085, 1072, 1103]),
+	foreign(Name),
 	new(F, file(Name)),
 	send(F, open, write),
 	send(F, append, 'Hello world\n'),
@@ -213,6 +219,39 @@ file(utf8-1) :-
 	send(F2, exists),
 	get(F2, contents, string('Hello world\n')),
 	send(F2, remove).
+
+
+		 /*******************************
+		 *	      DIRECTORY		*
+		 *******************************/
+
+dir(cwd-1) :-
+	new(D, directory(.)),
+	get(D, path, Path),
+	same_file(Path, '.').
+dir(members-1) :-
+	new(D, directory(.)),
+	get_chain(D, files, Files),
+	forall(member(F, Files), send(file(F), exists)).
+dir(members-2) :-
+	new(D, directory(.)),
+	get_chain(D, directories, Dirs),
+	forall(member(F,Dirs), send(directory(F), exists)).
+dir(members-3) :-
+	new(D, directory(.)),
+	get_chain(D, files, Files),
+	get_chain(D, directories, Dirs),
+	append(Files, Dirs, All),
+	sort(All, S0),
+	expand_file_name(*, PlAll),
+	sort(PlAll, S1),
+	S0 == S1.
+dir(foreign-1) :-
+	foreign(Name),
+	new(D, directory(Name)),
+	send(D, make),
+	send(D, exists),
+	delete_directory(Name).
 
 
 		 /*******************************
@@ -403,6 +442,7 @@ testset(wstring).			% Strings holding wide characters
 testset(fmt).				% Formatting actions
 testset(srcsink).			% Source/Sink operations
 testset(file).				% file (-name) handling
+testset(dir).				% directory (-name) handling
 testset(textbuffer).
 testset(asfile).			% test pce_open and friends
 testset(selection).			% X11 selection
