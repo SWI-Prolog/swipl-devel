@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* PORT: addopt new SWI-Prolog `xos' layer around MS-Windows.
+
+
 VERSION 6.5.9, distributed with SWI-Prolog 5.5.9
 ================================================
 

@@ -294,7 +294,7 @@ openWinPrinter(WinPrinter prt)
     { Name name = getOsNameFile(prt->device);
 
       if ( !_xos_os_filename(strName(name), fname, sizeof(fname)) )
-	return errorPce(prt, NAME_representation, CtoName("name_too_long"));
+	return errorPce(prt, NAME_representation, NAME_nameTooLong);
       di.lpszOutput = fname;
     } else if ( prt->ws_ref->info.Flags & PD_PRINTTOFILE )
 					/* User selected print-to-file */
@@ -321,7 +321,7 @@ openWinPrinter(WinPrinter prt)
 				       DEFAULT,
 				       DEFAULT)) )
       { if ( !_xos_os_filename(strName(to), fname, sizeof(fname)) )
-	  return errorPce(prt, NAME_representation, CtoName("name_too_long"));
+	  return errorPce(prt, NAME_representation, NAME_nameTooLong);
 	di.lpszOutput = fname;
       } else
 	fail;				/* Use cancel */

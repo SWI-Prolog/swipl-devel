@@ -134,7 +134,7 @@ initialiseFile(FileObj f, Name name, Name encoding)
 	 _xos_canonical_filename(lng, buf, sizeof(buf), 0) )
     { assign(f, name, CtoName(buf));
     } else
-    { return errorPce(f, NAME_representation, CtoName("name_too_long"));
+    { return errorPce(f, NAME_representation, NAME_nameTooLong);
     }    
   }
 #else
