@@ -930,24 +930,31 @@ static int
 scan_number(cucharp *s, int b, Number n)
 { int d;
   unsigned long maxi = PLMAXINT/b;	/* cache? */
-  unsigned long t = 0;
+  unsigned long t;
+  cucharp q = *s;
 
-  while((d = digitValue(b, **s)) >= 0)
-  { (*s)++;
+  if ( (d = digitValue(b, *q)) < 0 )
+    fail;				/* syntax error */
+  t = d;
+  q++;
+
+  while((d = digitValue(b, *q)) >= 0)
+  { q++;
 
     if ( t > maxi )
     { real maxf = MAXREAL / (real) b - (real) b;
       real tf = (real)t;
 
       tf = tf * (real)b + (real)d;
-      while((d = digitValue(b, **s)) >= 0)
-      { (*s)++;
+      while((d = digitValue(b, *q)) >= 0)
+      { q++;
         if ( tf > maxf )
 	  fail;				/* number too large */
         tf = tf * (real)b + (real)d;
       }
       n->value.f = tf;
       n->type = V_REAL;
+      *s = q;
       succeed;
     } else
       t = t * b + d;
@@ -956,11 +963,13 @@ scan_number(cucharp *s, int b, Number n)
   if ( t > PLMAXINT )
   { n->value.f = (real)t;
     n->type = V_REAL;
+    *s = q;
     succeed;
   }
 
   n->value.i = t;
   n->type = V_INTEGER;
+  *s = q;
   succeed;
 }
 

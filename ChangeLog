@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Generate syntax error on `based numbers' without digits.  Dima.
+
   * ADDED: PL_unify_term: handle (PL_BOOL, int) to unify boolean
     values as true or false.
 

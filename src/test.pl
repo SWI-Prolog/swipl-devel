@@ -74,6 +74,9 @@ syntax(number-1) :-			% check integer overflow translation
 	name(X, Chars),
 	sformat(S, '~0f', [X]),
 	string_to_list(S, Chars).
+syntax(number-2) :-
+	catch(atom_to_term('2\'', _, _), E, true),
+	E = error(syntax_error(illegal_number), _).
 
 
 		 /*******************************

@@ -1219,6 +1219,8 @@ The type identifiers are:
 \begin{description}
    \definition{\const{PL_VARIABLE} \arg{none}}
 No op.  Used in arguments of \const{PL_FUNCTOR}.
+   \definition{\const{PL_BOOL} \arg{int}}
+Unify the argument with \const{true} or \const{false}.
    \definition{\const{PL_ATOM} \arg{atom_t}}
 Unify the argument with an atom, as in PL_unify_atom().
    \definition{\const{PL_CHARS} \arg{const char *}}
