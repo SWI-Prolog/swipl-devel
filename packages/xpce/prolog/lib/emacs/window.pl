@@ -1029,7 +1029,7 @@ convert(_, Name:name, Mode:emacs_mode) :<-
 		 *	   THE MODE MENU	*
 		 *******************************/
 
-:- pce_global(@emacs_mode, new(@event?window?frame?(mode))).
+:- pce_global(@emacs_mode, new(@event?window?(mode))).
 
 mode_menu(M, MM:emacs_mode_menu) :<-
 	"Return the mode-menu structure for this mode"::
