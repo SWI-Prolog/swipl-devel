@@ -272,7 +272,7 @@ pl_set_tty(term_t old, term_t new)
 }
 
 word
-tty_size(term_t r, term_t c)
+pl_tty_size(term_t r, term_t c)
 { return notImplemented("tty_size", 2);
 }
 
