@@ -849,17 +849,40 @@ do_undo(mark *m)
 		 *******************************/
 
 static inline Definition
-pl__getProcDefinition(Procedure proc)
-{ return proc->definition;
+pl__getProcDefinition(Procedure proc ARG_LD)
+{
+#ifdef O_PLMT
+  Definition def = proc->definition;
+
+  if ( true(def, P_THREAD_LOCAL) )
+  { int i = LD->thread.info->pl_tid;
+    Definition local;
+
+    PL_LOCK(L_THREAD);
+    if ( !def->definition.local ||
+	 i >= def->definition.local->size ||
+	 !(local=def->definition.local->thread[i]) )
+      local = localiseDefinition(def);
+    PL_UNLOCK(L_THREAD);
+
+    return local;
+  }
+
+  return def;
+#else
+  return proc->definition;
+#endif
 }
 
 
 Definition
 getProcDefinition(Procedure proc)
-{ return pl__getProcDefinition(proc);
+{ GET_LD
+
+  return pl__getProcDefinition(proc PASS_LD);
 }
 
-#define getProcDefinition(proc) pl__getProcDefinition(proc)
+#define getProcDefinition(proc) pl__getProcDefinition(proc PASS_LD)
 
 
 

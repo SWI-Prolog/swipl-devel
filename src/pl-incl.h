@@ -804,6 +804,7 @@ typedef struct table *		Table;		/* (numeric) hash table */
 typedef struct symbol *		Symbol;		/* symbol of hash table */
 typedef struct table_enum *	TableEnum; 	/* Enumerate table entries */
 typedef struct localFrame *	LocalFrame;	/* environment frame */
+typedef struct local_definitions *LocalDefinitions; /* thread-local preds */
 typedef struct choice *		Choice;		/* Choice-point */
 typedef struct queryFrame *	QueryFrame;     /* toplevel query frame */
 typedef struct fliFrame *	FliFrame; 	/* FLI interface frame */
@@ -1209,11 +1210,17 @@ struct clause_chain
   int		dirty;			/* # of garbage clauses */
 };
 
+struct local_definitions
+{ int 		size;
+  Definition	thread[1];		/* Appended definitions */
+};
+
 struct definition
 { FunctorDef	functor;		/* Name/Arity of procedure */
   union
   { ClauseRef	clauses;		/* clause list of procedure */
     Func	function;		/* function pointer of procedure */
+    LocalDefinitions local;		/* P_THREAD_LOCAL predicates */
   } definition;
   ClauseRef	lastClause;		/* last clause of list */
   Module	module;			/* module of the predicate */

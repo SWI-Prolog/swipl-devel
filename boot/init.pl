@@ -89,12 +89,19 @@ volatile((Spec, More)) :- !,
 volatile(Spec) :-
 	$set_predicate_attribute(Spec, (volatile), 1).
 
+thread_local((Spec, More)) :- !,
+	thread_local(Spec),
+	thread_local(More).
+thread_local(Spec) :-
+	$set_predicate_attribute(Spec, (thread_local), 1).
+
 :- module_transparent
 	(dynamic)/1,
 	(multifile)/1,
 	(module_transparent)/1,
 	(discontiguous)/1,
 	(volatile)/1,
+	(thread_local)/1,
 	$hide/2,
 	$show_childs/2.
 

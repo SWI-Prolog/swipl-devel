@@ -1109,6 +1109,25 @@ gcClausesDefinitionAndUnlock(Definition def)
 }
 
 
+#ifdef O_PLMT
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Discard an entire definition. This can  only   be  used if we *know* the
+definition is not  referenced  in  any  way.   It  is  used  to  discard
+thread-local definitions at the end of a threads lifetime.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+destroyDefinition(Definition def)
+{ GET_LD
+
+  if ( def->hash_info )
+    unallocClauseIndexTable(def->hash_info);
+  freeClauseList(def->definition.clauses);
+
+  freeHeap(def, sizeof(*def));
+}
+
+#endif /*O_PLMT*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 resetReferences() is called by abort() to clear all predicate references.
@@ -1717,6 +1736,7 @@ attribute_mask(atom_t key)
   if (key == ATOM_transparent)	 return METAPRED;
   if (key == ATOM_discontiguous) return DISCONTIGUOUS;
   if (key == ATOM_volatile)	 return VOLATILE;
+  if (key == ATOM_thread_local)  return P_THREAD_LOCAL;
 
   return 0;
 }
@@ -1782,6 +1802,7 @@ pl_get_predicate_attribute(term_t pred,
   { if ( def->flags & FOREIGN )
       fail;
 
+    def = getProcDefinition(proc);
     return PL_unify_integer(value, def->number_of_clauses);
   } else if ( (att = attribute_mask(key)) )
   { return PL_unify_integer(value, (def->flags & att) ? 1 : 0);
@@ -1833,6 +1854,46 @@ set_dynamic_procedure(Procedure proc, bool isdyn)
 }
 
 
+static int
+set_thread_local_procedure(Procedure proc, bool val)
+{
+#ifdef O_PLMT
+  Definition def;
+
+  LOCK();
+  def = proc->definition;
+
+  if ( (val && true(def, P_THREAD_LOCAL)) ||
+       (!val && false(def, P_THREAD_LOCAL)) )
+  { UNLOCK();
+    succeed;
+  }
+
+  if ( val )				/* static --> local */
+  { if ( def->definition.clauses )
+    { UNLOCK();
+      return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
+    }
+    set(def, DYNAMIC|VOLATILE|P_THREAD_LOCAL);
+  } else				/* local --> static */
+  { return PL_error(NULL, 0, "TBD: better message",
+		    ERR_MODIFY_STATIC_PROC, proc);
+  }
+
+  UNLOCK();
+  succeed;
+#else
+  set_dynamic_procedure(proc, val);
+
+  if ( val )
+    set(proc->definition, VOLATILE|P_THREAD_LOCAL);
+  else
+    clear(proc->definition, VOLATILE|P_THREAD_LOCAL);
+
+  succeed;
+#endif
+}
+
 
 word
 pl_set_predicate_attribute(term_t pred,
@@ -1862,6 +1923,8 @@ pl_set_predicate_attribute(term_t pred,
 
   if ( att == DYNAMIC )
     return set_dynamic_procedure(proc, val);
+  if ( att == P_THREAD_LOCAL )
+    return set_thread_local_procedure(proc, val);
 
   if ( !val )
   { clear(def, att);

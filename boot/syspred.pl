@@ -440,6 +440,8 @@ $predicate_property((dynamic), Pred) :-
 	$get_predicate_attribute(Pred, (dynamic), 1).
 $predicate_property((volatile), Pred) :-
 	$get_predicate_attribute(Pred, (volatile), 1).
+$predicate_property((thread_local), Pred) :-
+	$get_predicate_attribute(Pred, (thread_local), 1).
 $predicate_property((multifile), Pred) :-
 	$get_predicate_attribute(Pred, (multifile), 1).
 $predicate_property(imported_from(Module), Pred) :-

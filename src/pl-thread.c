@@ -213,6 +213,7 @@ static void	free_thread_info(PL_thread_info_t *info);
 static void	set_system_thread_id(PL_thread_info_t *info);
 static int	get_message_queue(term_t t, message_queue **queue,
 				  int create);
+static void	cleanupLocalDefinitions(PL_local_data_t *ld);
 
 #ifdef WIN32
 static void	attachThreadWindow(PL_local_data_t *ld);
@@ -387,6 +388,7 @@ free_prolog_thread(void *data)
   freeThreadSignals(ld);
 
   LOCK();
+  cleanupLocalDefinitions(ld);
   destroy_message_queue(&ld->thread.messages);
   GD->statistics.threads_finished++;
   GD->statistics.thread_cputime += CpuTime(CPU_USER);
@@ -2558,6 +2560,98 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
 }
 
 #endif /*WIN32*/
+
+		 /*******************************
+		 *	    PREDICATES		*
+		 *******************************/
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+localiseDefinition(Definition def)
+    Create a thread-local definition for the predicate `def'.
+
+    This function is called from getProcDefinition() if the procedure is
+    not yet `localised'.  Calling this function must be guarded by the
+    L_THREAD mutex.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifndef offsetof
+#define offsetof(structure, field) ((int) &(((structure *)NULL)->field))
+#endif
+
+static void
+registerLocalDefinition(Definition def)
+{ DefinitionChain cell = allocHeap(sizeof(*cell));
+
+  cell->definition = def;
+  cell->next = LD->thread.local_definitions;
+  LD->thread.local_definitions = cell;
+}
+
+
+Definition
+localiseDefinition(Definition def)
+{ Definition local = allocHeap(sizeof(*local));
+  int id = LD->thread.info->pl_tid;
+
+  *local = *def;
+  clear(local, P_THREAD_LOCAL);
+  local->definition.clauses = NULL;
+  local->hash_info = NULL;
+  
+  if ( !def->definition.local ||
+       id >= def->definition.local->size )
+  { int newsize = def->definition.local ? def->definition.local->size : 1;
+    LocalDefinitions new;
+    int bytes;
+    int i=0;
+
+    do
+    { newsize *= 2;
+    } while ( newsize <= id );
+     
+    bytes = offsetof(struct local_definitions, thread[newsize]);
+    new = allocHeap(bytes);
+    new->size = newsize;
+    if ( def->definition.local )
+    { for(; i<def->definition.local->size; i++)
+	new->thread[i] = def->definition.local->thread[i];
+    }
+    for(; i<newsize; i++)
+      new->thread[i] = NULL;
+    if ( def->definition.local )
+      freeHeap(def->definition.local,
+	       offsetof(struct local_definitions,
+			thread[def->definition.local->size]));
+    def->definition.local = new;
+  }
+
+  def->definition.local->thread[id] = local;
+  registerLocalDefinition(def);
+
+  return local;
+}
+
+
+static void
+cleanupLocalDefinitions(PL_local_data_t *ld)
+{ DefinitionChain ch = ld->thread.local_definitions;
+  DefinitionChain next;
+  int id = ld->thread.info->pl_tid;
+
+  for( ; ch; ch = next)
+  { Definition local, def = ch->definition;
+    next = ch->next;
+    
+    assert(true(def, P_THREAD_LOCAL));
+    local = def->definition.local->thread[id];
+    def->definition.local->thread[id] = NULL;
+
+    destroyDefinition(local);
+
+    freeHeap(ch, sizeof(*ch));
+  }
+}
 
 
 		 /*******************************

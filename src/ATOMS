@@ -517,6 +517,7 @@ A timeout_error		"timeout_error"
 A join			"join"
 A message_queue		"message_queue"
 A dmessage_queue	"$message_queue"
+A thread_local		"thread_local"
 
 F abs			1
 F acos			1

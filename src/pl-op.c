@@ -553,6 +553,7 @@ static const opdef operators[] = {
   OP(ATOM_discontiguous,OP_FX,	       1150),	/* discontiguous */
   OP(ATOM_dynamic,	OP_FX,	       1150),	/* dynamic */
   OP(ATOM_volatile,	OP_FX,	       1150), 	/* volatile */
+  OP(ATOM_thread_local,	OP_FX,	       1150), 	/* thread_local */
   OP(ATOM_initialization,OP_FX,	       1150), 	/* initialization */
   OP(ATOM_is,		OP_XFX,		700),	/* is */
   OP(ATOM_mod,		OP_YFX,		400),	/* mod */

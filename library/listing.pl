@@ -116,9 +116,22 @@ list_predicate(Name, Pred, Arity) :-
 	list_clauses(Pred).
 
 list_declarations(Name, Pred, Arity, Sofar) :-
+	\+ member((thread_local Name/Arity), Sofar), 
+	predicate_property(Pred, (thread_local)), !, 
+	list_declarations(Name, Pred, Arity,
+			  [ (thread_local Name/Arity)
+			  | Sofar
+			  ]).
+list_declarations(Name, Pred, Arity, Sofar) :-
 	\+ member((dynamic Name/Arity), Sofar), 
+	\+ member((thread_local Name/Arity), Sofar), 
 	predicate_property(Pred, (dynamic)), !, 
 	list_declarations(Name, Pred, Arity, [(dynamic Name/Arity)|Sofar]).
+list_declarations(Name, Pred, Arity, Sofar) :-
+	\+ member((volatile Name/Arity), Sofar), 
+	\+ member((thread_local Name/Arity), Sofar),
+	predicate_property(Pred, (volatile)), !, 
+	list_declarations(Name, Pred, Arity, [(volatile Name/Arity)|Sofar]).
 list_declarations(Name, Pred, Arity, Sofar) :-
 	\+ member((multifile Name/Arity), Sofar), 
 	predicate_property(Pred, (multifile)), !, 

@@ -425,6 +425,7 @@ typedef struct PL_local_data
 #ifdef WIN32
     HWND hwnd;				/* Window for signalling */
 #endif
+    DefinitionChain local_definitions;	/* P_THREAD_LOCAL predicates */
   } thread;
 
   struct alloc_pool alloc_pool;		/* Thread allocation pool */

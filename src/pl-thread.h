@@ -231,6 +231,7 @@ void			executeThreadSignals(int sig);
 foreign_t		pl_attach_xterm(term_t in, term_t out);
 long			threadLocalHeapUsed(void);
 int			attachConsole(void);
+Definition		localiseDefinition(Definition def);
 
 
 		 /*******************************

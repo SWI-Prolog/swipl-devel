@@ -743,7 +743,7 @@ compileClause(Word head, Word body, Procedure proc, Module module ARG_LD)
   if ( head )
   { ci.islocal      = FALSE;
     ci.subclausearg = 0;
-    ci.arity        = getProcDefinition(proc)->functor->arity;
+    ci.arity        = proc->definition->functor->arity;
     ci.argvars      = 0;
     clause.flags    = 0;
   } else

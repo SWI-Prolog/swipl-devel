@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: first implementation of thread-local-predicates
+
   * REORGANISED: introduced abstraction between procedures and their
     definitions to allow for thread-local predicates (work in progress).
 
