@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ENHANCED: prolog_to_os_filename(-Pl, +Os) to convert 8+3 filenames
+    to long filenames.
+
   * ENHANCED: Allow setting spy-point from PceEmacs.
 
   * CLEANUP: Replace some more warnings with exceptions.
