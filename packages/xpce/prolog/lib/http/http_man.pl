@@ -52,19 +52,42 @@ accepted(HTTPD) :->
 	"Log connections"::
 	send_super(HTTPD, accepted),
 	get(HTTPD, peer_name, Peer),
-	(   send(Peer, instance_of, tuple)
-	->  send(@pce, format, 'New connection from %s:%s\n', 
-		 Peer?first, Peer?second)
-	;   send(@pce, format, 'New connection from %s\n', Peer)
-	).
+	log(connect(Peer)).
 
 
 request(HTTPD, Request:sheet) :->
 	get(Request, path, Path),
 	get(Request, form, Form),
+	log(request(Request)),
 	reply(Path, Form, HTTPD).
 
 :- pce_end_class.
+
+		 /*******************************
+		 *	        LOG		*
+		 *******************************/
+
+log(connect(Peer)) :- !,
+	(   send(Peer, instance_of, tuple)
+	->  send(@pce, format, 'New connection from %s:%s\n', 
+		 Peer?first, Peer?second)
+	;   send(@pce, format, 'New connection from %s\n', Peer)
+	).
+log(request(Request)) :- !,
+	get(Request, path, Path),
+	send(@pce, format, '\t%s\n', Path),
+	(   get(Request, form, Form),
+	    Form \== @nil
+	->  send(Form, for_all,
+		 message(@pce, format, '\t\t%s=%s\n', @arg1?name, @arg1?value))
+	;   true
+	).
+log(_).
+
+
+		 /*******************************
+		 *	      REPLIES		*
+		 *******************************/
 
 :- discontiguous
 	reply/3.
@@ -381,7 +404,7 @@ reply('/classhierarchy', Form, HTTPD) :-
 	;   Root = object
 	),
 	get(HTTPD, request, Request),
-	(   get(Request, value, 'Cookie', Cookie)
+	(   get(Request, value, cookie, Cookie)
 	;   Cookie = []
 	),
 	send(HTTPD, reply_html, pce_http_man:classhierarchy(Root, Cookie)).
