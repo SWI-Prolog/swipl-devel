@@ -1,8 +1,11 @@
 			   XPCE ChangeLog
 			   ==============
 
-* ADDED: Instance variables that allow for @default, but not for @nil
-  have initial value @default without explicit specification.
+* ADDED/MODIFIED: Instance variables that allow for @default, but not for
+  @nil have initial value @default without explicit specification.
+  Instance-variables that have an associated class-variable are now always
+  initialised to @class_default, which is replaced by the value from the
+  class-variable on first access.
 
 * MODIFIED: class tab/tab_stack: nicer visualisation of top/hidden tab.
 

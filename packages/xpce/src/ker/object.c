@@ -228,7 +228,7 @@ updateInstanceProtoClass(Class class)
   for( ; --slots >= 0; var++, field++)
   { Variable v = *var;
 
-    if ( isNil(v->alloc_value) &&
+    if ( /*isNil(v->alloc_value) &&*/
 	 hasClassVariableVariable(v, class) )
     { *field = CLASSDEFAULT;
       setFlag(obj, F_OBTAIN_CLASSVARS);
