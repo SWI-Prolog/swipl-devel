@@ -83,6 +83,7 @@ AC_CHECK_LIB(nsl, t_bind,
 	     [NETLIBS="$NETLIBS -lnsl"]
 	     AC_DEFINE(HAVE_LIBNSL))
 AC_CHECK_LIB(crypt, crypt)
+AC_CHECK_FUNCS(crypt)
 AC_CHECK_LIB(rfc822, rfc822t_alloc)
 AC_MSG_CHECKING(for -lrfc2045)
 oldlibs="$LIBS"
@@ -99,7 +100,7 @@ rfc2045_error(const char *errmsg)
   LIBS="$oldlibs")
 
 
-if test "$ac_cv_lib_crypt_crypt" = yes; then
+if test "$ac_cv_func_crypt" = yes; then
   TARGETS="$TARGETS crypt.$SO"
 else
   echo "WARNING: could not find crypt; dropping crypt.pl from targets"
