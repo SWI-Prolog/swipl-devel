@@ -20,6 +20,24 @@
 #ifndef __REGEXP_LIBRARY_H__
 #define __REGEXP_LIBRARY_H__
 
+/* In SuSE Linux 6.0 (glibc based), it is no longer possible to replace
+   function in a shared object if there is already a definition from the
+   library.  Therefore we rename all external symbols. -- JW
+*/
+
+#define	re_compile_fastmap pce_re_compile_fastmap
+#define	re_compile_pattern pce_re_compile_pattern
+#define	re_match	   pce_re_match
+#define	re_match_2	   pce_re_match_2
+#define	re_search	   pce_re_search
+#define	re_search_2	   pce_re_search_2
+#define	re_set_registers   pce_re_set_registers
+#define	re_set_syntax	   pce_re_set_syntax
+#define	regcomp		   pce_regcomp
+#define	regerror	   pce_regerror
+#define	regexec		   pce_regexec
+#define	regfree		   pce_regfree
+
 /* POSIX says that <sys/types.h> must be included (by the caller) before
    <regex.h>.  */
 

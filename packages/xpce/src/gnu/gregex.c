@@ -523,9 +523,11 @@ extract_number_and_incr (destination, source)
 #include <stdio.h>
 
 /* It is useful to test things that ``must'' be true when debugging.  */
+#ifndef assert
 #include <assert.h>
+#endif
 
-static int debug = 0;
+static int debug = 1;
 
 #define DEBUG_STATEMENT(e) e
 #define DEBUG_PRINT1(x) if (debug) Cprintf (x)
