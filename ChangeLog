@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ENHANCED: Handling of prolog_edit:select_location/3.  Enhancement
+    exploited by XPCE to use GUI-based selection if running from GUI.
+
   * ADDED: -s file to load a script-file in addition to the user
     initialisation file.
 

@@ -534,6 +534,14 @@ term_colours(user:file_search_path(_,_),
 				       classify
 				     ]
 			]).
+term_colours(library_directory(_),
+	     expanded - [ file
+			]).
+term_colours(user:library_directory(_),
+	     expanded - [ expanded,
+			  expanded - [ file
+				     ]
+			]).
 term_colours((user:message_hook(_,_,_) :- _),
 	     classify - [ expanded - [ expanded,
 				       expanded - [ classify,

@@ -1,3 +1,7 @@
+* ADDED: Handling of GNU-Emacs compliant mode-specification on first line
+  of the file using -*- Mode -*- or -*- mode: Mode; ... -*-.  Other variables
+  are (still) ignored.
+
 * ADDED: Hook into prolog_edit:select_location to use GUI when running from
   the GUI.
 
