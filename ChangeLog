@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: make qsave work if predicates from library(lists) are
+    redefined (Sergey Tikhonov).
+
   * FIXED: Scanning resource-file without using mmap().  (Sergey Tikhonov).
 
   * FIXED: Detection of mmap() for regular files (Sergey Tikhonov).

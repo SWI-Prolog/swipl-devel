@@ -33,6 +33,7 @@
 	  [ qsave_program/1
 	  , qsave_program/2
 	  ]).
+:- use_module(library(lists)).
 
 :- module_transparent
 	qsave_program/1,
