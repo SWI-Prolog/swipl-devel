@@ -69,7 +69,7 @@ LINK32=link.exe
 # PROP Intermediate_Dir "..\objects\debug\xpce"
 # PROP Ignore_Export_Lib 0
 # ADD BASE CPP /nologo /MT /W3 /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /c
-# ADD CPP /nologo /MD /W3 /Gm /GX /ZI /Od /I "." /I "..\..\pl\include" /I "..\include" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "pce_source" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /ZI /Od /I "." /I "..\..\pl\include" /I "..\include" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "pce_source" /YX /FD /c
 # SUBTRACT CPP /Fr
 # ADD BASE MTL /nologo /D "_DEBUG" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
