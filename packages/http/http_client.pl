@@ -282,7 +282,11 @@ http_read_data(In, Fields, Data, _) :-
 	http_read_data(In, Fields, Codes, [to(codes)]),
 	parse_url_search(Codes, Data).
 http_read_data(In, Fields, Data, Options) :- 			% call hook
-	http_convert_data(In, Fields, Data, Options), !.
+	(   select(content_type(Type), Options, Options1)
+	->  delete(Fields, content_type(_), Fields1),
+	    http_convert_data(In, [content_type(Type)|Fields1], Data, Options1)
+	;   http_convert_data(In, Fields, Data, Options)
+	), !.
 http_read_data(In, Fields, Data, Options) :-
 	http_read_data(In, Fields, Data, [to(atom)|Options]).
 

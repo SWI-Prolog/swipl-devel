@@ -216,6 +216,9 @@ be used with care.%
 Return the page as a list of character-codes.  This is especially useful
 for parsing it using grammar rules.
     \end{description}
+    \termitem{content_type}{Type}
+Overrule the \const{Content-Type} as provided by the HTTP reply header.
+Intented as a work-around for badly configured servers.
 \end{description}
 
 If no \term{to}{Target} option is provided the library tries the
