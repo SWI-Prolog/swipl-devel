@@ -131,7 +131,7 @@ load_dtd(M, Parser) :-
 	(   send(Re, search, TB)
 	->  get(Re, register_start, Start),
 	    pce_open(TB, read, In),
-	    seek(In, Start, bof, _),
+	    seek_to(In, Start),
 	    catch(sgml_parse(Parser,
 			     [ source(In),
 			       parse(declaration)
@@ -281,8 +281,9 @@ colourise_element(M, Warn:[bool]) :->
 	    ->	From = F,
 		To = T
 	    )
-	->  send(M, remove_syntax_fragments, From, To),
-	    seek(In, From, bof, _),
+	->  debug(sgml_mode, 'Colouring ~D..~D', [From, To]),
+	    send(M, remove_syntax_fragments, From, To),
+	    seek_to(In, From),
 	    set_sgml_parser(Parser, charpos(From)),
 	    colourise(M, Parser,
 		      [ source(In),
@@ -333,7 +334,7 @@ find_element(M, Parser, _Re, In, Caret, Start, Start-To) :-
 	       and(message(@arg1, overlap, Start),
 		   @arg1?parsed == @off),
 	       _),
-	seek(In, Start, bof, _),
+	seek_to(In, Start),
 	set_sgml_parser(Parser, charpos(Start)),
 	retractall(caret(Caret)),
 	retractall(tag(_)),
@@ -423,12 +424,12 @@ colourise(M, Parser, Options) :-
 	      show_message(M, E)),
 	erase(Ref).
 	
-on_begin(_Tag, _Attributes, Parser) :-
+on_begin(Tag, _Attributes, Parser) :-
 	get_sgml_parser(Parser, file(File)),
 	current_tb(TB, File),
-%	format('Tag ~w, Attr = ~p~n', [Tag, Attributes]),
 	get_sgml_parser(Parser, charpos(From, To)),
 	get_sgml_parser(Parser, event_class(Class)),
+	debug(sgml_mode, 'begin ~w at ~d..~d', [Tag, From, To]),
 	Class \== omitted,
 	colour_item(tag(begin, Class), TB, From, To).
 on_end(_Tag, Parser) :-
@@ -969,7 +970,7 @@ allowed_elements(M, Allowed:prolog) :<-
 	    (	dtd_property(DTD, doctype(E))
 	    ;   dtd_property(DTD, element(E, omit(_, false), _))
 	    )
-	->  seek(In, From, bof, _),
+	->  seek_to(In, From),
 	    set_sgml_parser(Parser, charpos(From)),
 	    Len is Caret - From,
 	    catch(sgml_parse(Parser,
@@ -1088,3 +1089,22 @@ open_in_browser(M) :->
 variable(parsed,   bool := @on,	     both, "@off for unparsed fragments").
 
 :- pce_end_class.
+
+
+		 /*******************************
+		 *	       UTIL		*
+		 *******************************/
+
+%	seek_to(+Stream, +Pos)
+%	
+%	Seek to Pos on Stream related to an  XPCE object. This is a hack
+%	around  a  bug.  Sseek()  first  checks  whether  the  requested
+%	position is in the current buffer. If   so, it does no low-level
+%	seek. Seek on objects  however  is   defined  in  terms  of code
+%	positions while the text  is   exchanged  using  wchar encoding.
+%	Seeking first to the start of  the   object  avoids reuse of the
+%	buffer.
+
+seek_to(Stream, Pos) :-
+	seek(Stream, 0, bof, _),
+	seek(Stream, Pos, bof, _).
