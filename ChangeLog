@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: GUI-tracer source-location problems with (If->Then).
+
   * FIXED: PLWIN.EXE getting into a loop after using Page Up/Down buttons.
     Yair Greenberg.
 
