@@ -940,7 +940,7 @@ retractClauseProcedure(Procedure proc, Clause clause ARG_LD)
     if ( def->hash_info )
     { markDirtyClauseIndex(def->hash_info, clause);
       if ( false(def, NEEDSREHASH) &&
-	   def->hash_info->size * 4 > def->hash_info->buckets )
+	   def->hash_info->size * 4 < def->hash_info->buckets )
       { set(def, NEEDSREHASH);
       }
     }
