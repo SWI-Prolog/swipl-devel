@@ -1201,21 +1201,16 @@ getKeyboardFocusFrame(FrameObj fr)
 
 static status
 inputWindowFrame(FrameObj fr, PceWindow iw)
-{ Cell cell;
+{ PceWindow ow;
 
-  if ( fr->input_focus == ON )
-  { for_cell(cell, fr->members)
-    { PceWindow sw = cell->value;
+  if ( (ow=getHyperedObject(fr, NAME_inputWindow, DEFAULT)) && ow != iw )
+  { inputFocusWindow(ow, OFF);
+    freeHypersObject(fr, NAME_inputWindow, DEFAULT);
+  }
 
-      inputFocusWindow(sw, sw == iw ? ON : OFF);
-
-      if ( instanceOfObject(sw, ClassWindowDecorator) )
-      { WindowDecorator dw = (WindowDecorator)sw;
-	
-	sw = dw->window;
-	inputFocusWindow(sw, sw == iw ? ON : OFF);
-      }
-    }
+  if ( fr->input_focus == ON && notNil(iw) )
+  { newObject(ClassHyper, fr, iw, NAME_inputWindow, EAV); 
+    inputFocusWindow(iw, ON);
   }
 
   succeed;
@@ -1236,16 +1231,7 @@ inputFocusFrame(FrameObj fr, Bool val)
 	inputWindowFrame(fr, iw);
     } else
     { for_cell(cell, fr->members)
-      { PceWindow sw = cell->value;
-
-	inputFocusWindow(cell->value, OFF);
-
-	if ( instanceOfObject(sw, ClassWindowDecorator) )
-	{ WindowDecorator dw = (WindowDecorator)sw;
-	
-	  sw = dw->window;
-	  inputFocusWindow(sw, OFF);
-	}
+      { inputFocusWindow(cell->value, OFF);
       }
     }
   }

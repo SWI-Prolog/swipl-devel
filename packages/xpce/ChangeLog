@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: library(tabbed_window) for putting windows in tabs.
+
+* FIXED: handle keyboard focus to windows displayed on windows.
+
 * FIXED: Term-description of class view.
 
 * FIXED: Cursor up/down in list-browser.  Anjo Anjewierden.

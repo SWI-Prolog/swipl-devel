@@ -603,7 +603,8 @@ eventWindow(PceWindow sw, EventObj ev)
   if ( isAEvent(ev, NAME_areaEnter) )
   { FrameObj fr = getFrameWindow(sw, DEFAULT);
 
-    if ( notNil(fr) && !getKeyboardFocusFrame(fr) )
+    if ( notNil(fr) &&
+	 !getHyperedObject(fr, NAME_keyboardFocus, DEFAULT) )
       send(fr, NAME_inputWindow, sw, EAV);
     send(sw, NAME_hasPointer, ON, EAV);
   } else if ( isAEvent(ev, NAME_areaExit) )
@@ -731,6 +732,13 @@ inputFocusWindow(PceWindow sw, Bool val)
       generateEventGraphical(sw->keyboard_focus,
 			     val == ON ? NAME_activateKeyboardFocus
 			   	       : NAME_deactivateKeyboardFocus);
+  }
+
+  if ( instanceOfObject(sw, ClassWindowDecorator) )
+  { WindowDecorator dw = (WindowDecorator)sw;
+	
+    sw = dw->window;
+    inputFocusWindow(sw, val);
   }
 
   succeed;
