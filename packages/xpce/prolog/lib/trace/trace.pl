@@ -15,9 +15,12 @@
 	    clause_info/4,		% +Ref, -File, -TermPos, -VarOffset
 	    clear_clause_info_cache/0
 	  ]).
-:- use_module(gui).
-:- use_module(util).
-:- use_module(clause).
+:- consult([ clause,
+	     util,
+	     source,
+	     break,
+	     gui
+	   ]).
 
 :- visible(+cut_call).
 

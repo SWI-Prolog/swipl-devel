@@ -402,6 +402,8 @@ prompter(D, Prompter:dialog_item*) :->
 
 class_variable(size,         size, size(80,32), "Size of text-field").
 
+variable(reuse,		bool := @on,	both, "Re-use for opening buffers").
+
 initialise(V, B:buffer=[emacs_buffer], W:width=[int], H:height=[int]) :->
 	"Create for buffer"::
 	get(V, class_variable_value, size, size(DW, DH)),

@@ -1298,7 +1298,12 @@ pl_spy(term_t p)
 { Procedure proc;
 
   if ( get_procedure(p, &proc, 0, GP_FIND) )
-  { set(proc->definition, SPY_ME);
+  { if ( false(proc->definition, SPY_ME) )
+    { set(proc->definition, SPY_ME);
+      printMessage(ATOM_informational,
+		   PL_FUNCTOR_CHARS, "spy", 1,
+		     PL_TERM, p);
+    }
     debugmode(DBG_ALL, NULL);
     succeed;
   }
@@ -1311,7 +1316,12 @@ pl_nospy(term_t p)
 { Procedure proc;
 
   if ( get_procedure(p, &proc, 0, GP_FIND) )
-  { clear(proc->definition, SPY_ME);
+  { if ( true(proc->definition, SPY_ME) )
+    { clear(proc->definition, SPY_ME);
+      printMessage(ATOM_informational,
+		   PL_FUNCTOR_CHARS, "nospy", 1,
+		     PL_TERM, p);
+    }
     succeed;
   }
 

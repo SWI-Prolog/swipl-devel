@@ -7,7 +7,7 @@
 PL=	pl
 
 QLF=	pce.qlf pce_manual.qlf pcedraw.qlf dialog/dialog.qlf \
-	emacs/emacs.qlf
+	emacs/emacs.qlf trace/trace.qlf
 
 all:	checkwd INDEX.pl $(QLF)
 
@@ -42,6 +42,11 @@ emacs/emacs.qlf:	.pwd emacs/emacs.pl emacs/window.pl emacs/buffer.pl \
 			emacs/fundamental_mode.pl emacs/language_mode.pl \
 			emacs/outline_mode.pl emacs/application.pl \
 			emacs/bookmarks.pl
+
+trace/trace.qlf:	.pwd trace/trace.pl trace/clause.pl trace/util.pl \
+			trace/settings.pl trace/break.pl trace/source.pl \
+			trace/stack.pl trace/pprint.pl trace/viewterm.pl \
+			trace/gui.pl
 
 INDEX.pl:	.
 	$(PL) -g "make_library_index('.')" -t halt

@@ -128,14 +128,22 @@ trace(Pred, Ports) :-
 	$find_predicate(Pred, Preds),
 	Preds \== [],
 	(   member(Head, Preds),
-		$define_predicate(Head),
-	        $trace(Ports, Head),
-	        trace_ports(user:Head, Tracing),
-	        print_message(informational, trace(user:Head, Tracing)),
+	        (   Head = _:_
+		->  QHead0 = Head
+		;   QHead0 = user:Head
+		),
+		$define_predicate(QHead0),
+	        (   predicate_property(QHead0, imported_from(M))
+		->  QHead0 = _:Plain,
+		    QHead = M:Plain
+		;   QHead = QHead0
+		),
+	        $trace(Ports, QHead),
+	        trace_ports(QHead, Tracing),
+	        print_message(informational, trace(QHead, Tracing)),
 	    fail
 	;   true
 	).
-
 
 trace_alias(all,  [trace_call, trace_redo, trace_exit, trace_fail]).
 trace_alias(call, [trace_call]).
@@ -180,7 +188,6 @@ spy(Spec) :-
 	member(Head, Preds),
 	    $define_predicate(Head),
 	    $spy(Head),
-	    print_message(informational, spy(Head)),
 	fail.
 spy(_).
 
@@ -192,14 +199,12 @@ nospy(Spec) :-
 	$find_predicate(Spec, Preds),
 	member(Head, Preds),
 	    $nospy(Head),
-	    print_message(informational, nospy(Head)),
 	fail.
 nospy(_).
 
 nospyall :-
 	spy_point(Head),
 	    $nospy(Head),
-	    print_message(informational, nospy(Head)),
 	fail.
 nospyall.
 

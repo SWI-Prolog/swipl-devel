@@ -426,7 +426,8 @@ open(B, New:[bool], Window:emacs_frame) :<-
 	(   New == @on
 	->  send(new(Window, emacs_frame(B)), open)
 	;   (   get(B?editors, find,
-		    message(@arg1, instance_of, emacs_editor),
+		    and(message(@arg1, instance_of, emacs_editor),
+			@arg1?window?reuse == @on),
 		    Editor)
 	    ->  get(Editor, frame, Window),
 		send(Window, expose)

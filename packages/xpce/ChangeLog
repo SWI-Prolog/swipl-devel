@@ -1,3 +1,5 @@
+* MODIFIED: Moved call to ->unlink *before* releasing assoc and hypers.
+
 * ENHANCED: `frame->return' and `frame<-confirm' type-check to unchecked,
   so Prolog terms can be returned using this mechanism.
 

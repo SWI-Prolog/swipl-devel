@@ -23,9 +23,6 @@ setting(?Name, ?ValueSet, ?Comment)
 setting(verbose,
 	[true, false],
 	'Print GUI debugging info (maintenance)').
-%setting(active,
-%	[true, false],
-%	'Use the GUI tracer').
 setting(show_unbound,
 	[true, false],
 	'`Bindings'' window shows unbound variables').
@@ -47,9 +44,6 @@ setting(list_max_clauses,
 setting(auto_raise,
 	[true, false],
 	'Automatically raise the tracer window').
-setting(console_actions,
-	[true, false],
-	'Accept typing from Prolog console for trace actions').
 setting(use_pce_emacs,
 	[true, false],
 	'Use Built-in PceEmacs editor').

@@ -81,6 +81,10 @@ locate(Name/Arity, Module:Name/Arity, Location) :-
 	locate(Module:Name/Arity, Location).
 locate(Module:Name, Module:Name/Arity, Location) :-
 	locate(Module:Name/Arity, Location).
+locate(Module:Head, Module:Name/Arity, Location) :-
+	callable(Head),
+	functor(Head, Name, Arity),
+	locate(Module:Name/Arity, Location).
 locate(Spec, module(Spec), Location) :-
 	locate(module(Spec), Location).
 locate(Spec, Spec, Location) :-
@@ -111,6 +115,12 @@ locate(Module:Name/Arity, [file(File), line(Line)]) :-
 	predicate_property(Module:Head, line_count(Line)).
 locate(module(Module), [file(Path)]) :-
 	current_module(Module, Path).
+locate(clause(Ref), [file(File), line(Line)]) :-
+	clause_property(Ref, file(File)),
+	clause_property(Ref, line_count(Line)).
+locate(clause(Ref, _PC), [file(File), line(Line)]) :- % TBD: use clause
+	clause_property(Ref, file(File)),
+	clause_property(Ref, line_count(Line)).
 
 
 		 /*******************************
@@ -181,6 +191,7 @@ edit_command(vi,	  '%e ''%f''').
 edit_command(emacs,	  '%e +%d ''%f''').
 edit_command(emacs,	  '%e ''%f''').
 edit_command(notepad,     '"%e" "%f"').
+edit_command(wordpad,     '"%e" "%f"').
 edit_command(edit,        '%e %f:%d').		% private stuff
 edit_command(edit,        '%e %f').
 

@@ -105,6 +105,7 @@ qmodule(lib, library(pce_manual)).
 qmodule(lib, library(pcedraw)).
 qmodule(lib, library('emacs/emacs')).
 qmodule(lib, library('dialog/dialog')).
+qmodule(lib, library('trace/trace')).
 
 qcompile_pce :-
 	set_prolog_flag(character_escapes, false),

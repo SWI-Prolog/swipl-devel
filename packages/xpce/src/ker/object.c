@@ -603,13 +603,14 @@ freeObject(Any obj)
   unlockObj(inst);			/* release possible lock */
   deleteAnswerObject(inst);		/* delete from AnswerStack */
   setFreeingObj(inst);			/* mark */
+
+  if ( !qadSendv(inst, NAME_unlink, 0, NULL) )
+    errorPce(inst, NAME_unlinkFailed);
+
   if ( onFlag(obj, F_ASSOC) )
     deleteAssoc(inst);			/* delete name association */
 
   unlinkHypersObject(inst);
-
-  if ( !qadSendv(inst, NAME_unlink, 0, NULL) )
-    errorPce(inst, NAME_unlinkFailed);
 
   unlinkObject(inst);
   setFreedObj(inst);			/* freeing finished */

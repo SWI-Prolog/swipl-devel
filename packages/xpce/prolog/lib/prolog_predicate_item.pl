@@ -142,10 +142,12 @@ selection(TI, Sel:prolog) :<-
 	;   get(Text, value, Name)
 	), !,
 	to_atom(Name0, Name),
+	Name \== '',
 	(   var(Module0)
 	->  Sel = Name/Arity
 	;   to_atom(Module0, Module),
-	    Sel = Module:Name/Arity
+	    Module \== ''
+	->  Sel = Module:Name/Arity
 	).
 
 to_atom(X, A) :-

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * INTERNAL: Moved message-activation of spy and nospy predicates to
+    foreign-code to make sure it gets always called.
+
   * FIXED: Bug in recorded database, reported by Michael Heerdegen.
 
   * FIXED: Removed trace of rl_add_history()

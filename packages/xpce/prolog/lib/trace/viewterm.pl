@@ -19,6 +19,10 @@
 view_term(Term) :-
 	view_term(Term, []).
 
+view_term(Term, _) :-			% TBD: Turn into user hook!
+	object(Term), !,
+	manpce,
+	send(@manual, inspect, Term).
 view_term(Term, Attributes0) :-
 	defaults(Defs),
 	append(Attributes0, Defs, Attributes),
@@ -38,7 +42,9 @@ tv(Term, Attributes) :-
 	pce_open(TB, write, Fd),
 	print_term(Term, [output(Fd)|Attributes]),
 	close(Fd),
-	send(V, caret, 0).
+	send(V, caret, 0),
+	send(V, editable, @off),
+	send(V?text_cursor, displayed, @off).
 
 attribute(Attributes, A) :-
 	memberchk(A, Attributes).

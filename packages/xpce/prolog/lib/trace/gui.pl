@@ -20,16 +20,19 @@
 :- use_module(library(pce)).
 :- use_module(library(toolbar)).
 :- use_module(library(pce_report)).
-:- use_module(settings).
 :- use_module(trace).
-:- use_module(source).
-:- use_module(util).
 :- use_module(clause).
-:- use_module(viewterm).
-:- use_module(stack).
+:- use_module(util).
+:- use_module(source).
+:- consult([ settings,
+	     pprint,
+	     stack,
+	     viewterm
+	   ]).
 
-:- pce_autoload(prolog_navigator, library('trace/browse')).
-:- pce_autoload(prolog_query,	  library('trace/query')).
+:- pce_autoload(prolog_navigator,    library('trace/browse')).
+:- pce_autoload(prolog_query,	     library('trace/query')).
+:- pce_autoload(prolog_debug_status, library('trace/status')).
 
 :- multifile
 	user:prolog_event_hook/1,
@@ -164,6 +167,7 @@ initialise(F) :->
 	send(MBD, pen, 0),
 	send(MBD, append, new(menu_bar)),
 	send(MBD, name, menu_bar_dialog),
+	send(MBD, resize_message, message(MBD, layout, @arg2)),
 	send(F, fill_menu_bar),
 	send(new(D, prolog_button_dialog), below, MBD),
 	send(D, name, buttons),
@@ -200,19 +204,28 @@ fill_menu_bar(F) :->
 	get(F, member, menu_bar_dialog, MBD),
 	get(MBD, member, menu_bar, MB),
 	send(MB, append, new(Tool, popup(tool))),
-	send(MB, append, new(Help, popup(help))),
+	send(MB, append, new(Edit, popup(edit))),
+	send(MB, append, new(Comp, popup(compile))),
+	send(MB, append, new(Help, popup(help)), right),
 	send_list(Tool, append,
 		  [ menu_item(settings,
 			      message(F, settings),
-			      end_group := @on),
-		    menu_item(make,
-			      message(@prolog, make),
 			      end_group := @on),
 		    menu_item(clear_source_cache,
 			      message(@prolog, clear_clause_info_cache),
 			      end_group := @on),
 		    menu_item(quit,
 			      message(F, destroy))
+		  ]),
+	send_list(Edit, append,
+		  [ menu_item(breakpoints,
+			      message(F, breakpoints),
+			      end_group := @on)
+		  ]),
+	send_list(Comp, append,
+		  [ menu_item(make,
+			      message(@prolog, make),
+			      end_group := @on)
 		  ]),
 	send_list(Help, append,
 		  [ menu_item(about,
@@ -319,19 +332,13 @@ edit(F) :->
 	"Edit current source_location"::
 	send(F?source, edit).
 
-spy(F) :->
-	"Set a spy-point"::
-	new(D, dialog('Set spy point')),
-	send(D, append, new(TI, prolog_predicate_item(predicate, ''))),
-	send(D, append, button(ok, message(D, return, TI?selection))),
-	send(D, append, button(cancel, message(D, return, @nil))),
-	send(D, default_button, ok),
-	get(F, window_pos_for_button, spy, Pos),
+breakpoints(F) :->
+	"Edit spy/break/trace-points"::
+	new(D, prolog_debug_status),
+	send(D, application, F?application),
 	send(D, transient_for, F),
-	get(D, confirm, Pos, Answer),
-	send(D, destroy),
-	Answer \== @nil,
-	user:spy(Answer).
+	get(F, window_pos_for_button, breakpoints, Pos),
+	send(D, open, Pos).
 
 goal(F, Goal:prolog) :<-
 	"Return qualitied term for selected frame"::
@@ -454,30 +461,29 @@ frame_finished(F, Frame:int) :->
 %	If action is +Action, send message Action to the frame.  Otherwise
 %	return Action to the caller.
 
-button(into,	 "i",	'into.xpm',	'Show unification').
-button(creep,	 "\n ",	'creep.xpm',	'Step').
-button(skip,	 "s",	'skip.xpm',	'Skip over this goal').
-button(finish,	 "f",	'finish.xpm',	'Finish selected goal').
-button(gap,	 -,	-,		-).
-button(retry,	 "r",	'retry.xpm',	'Retry selected goal').
-button(gap,	 -,	-,		-).
-button(nodebug,  "n",	'nodebug.xpm',	'Continue without debugging').
-button(+query,	 "b",	'break.xpm',	'Enter a query').
-button(+abort,	 "a",	'abort.xpm',	'Abort to the Prolog toplevel').
-button(gap,	 -,	-,		-).
-button(+up,	 "u",	'up.xpm',	'Select child frame').
-button(+down,	 "d",	'down.xpm',	'Select parent frame').
-button(gap,	 -,	-,		-).
-button(+browse,  "",	'16x16/butterfly.xpm',	'Browse program structure').
-button(gap,	 -,	-,		-).
-button(leap,	 "l",	'leap.xpm',	'Continue to spy- or breakpoint').
-button(+spy,	 "+",	'spy.xpm',	'Set spy point').
-button(+stop_at, "!",	'stop.xpm',	'Set Stop at caret').
-button(+nostop_or_spy,
-		 "-",	'nostopspy.xpm','Delete selected stop or spy-point').
-button(gap,	 -,	-,		-).
-button(+details, "v",	'details.xpm',	'Show (variable) details').
-button(+edit,	 "e",	'edit.xpm',	'Toggle read-only/edit-mode').
+button(into,	       "i",   'into.xpm',	     'Show unification').
+button(creep,	       "\n ", 'creep.xpm',	     'Step').
+button(skip,	       "s",   'skip.xpm',	     'Skip over this goal').
+button(finish,	       "f",   'finish.xpm',	     'Finish selected goal').
+button(gap,	       -,     -,		     -).
+button(retry,	       "r",   'retry.xpm',	     'Retry selected goal').
+button(gap,	       -,     -,		     -).
+button(nodebug,	       "n",   'nodebug.xpm',	     'Continue without debugging').
+button(+query,	       "b",   'break.xpm',	     'Enter a query').
+button(+abort,	       "a",   'abort.xpm',	     'Abort to the Prolog toplevel').
+button(gap,	       -,     -,		     -).
+button(+up,	       "u",   'up.xpm',		     'Select child frame').
+button(+down,	       "d",   'down.xpm',	     'Select parent frame').
+button(gap,	       -,     -,		     -).
+button(+browse,	       "",    '16x16/butterfly.xpm', 'Browse program structure').
+button(gap,	       -,     -,		     -).
+button(leap,	       "l",   'leap.xpm',	     'Continue to spy- or breakpoint').
+button(+breakpoints,   "+",   'spy.xpm',	     'Edit spy- and breakpoints').
+button(+stop_at,       "!",   'stop.xpm',	     'Set Stop at caret').
+button(+nostop_or_spy, "-",   'nostopspy.xpm',	     'Delete break- or spy-point').
+button(gap,	       -,     -,		     -).
+button(+details,       "v",   'details.xpm',	     'Show (variable) details').
+button(+edit,	       "e",   'edit.xpm',	     'Toggle read-only/edit-mode').
 
 
 tag_balloon(Balloon0, Keys, Balloon) :-
@@ -540,6 +546,14 @@ button(D, Name:name, Button:button) :<-
 		 *	     VARIABLES		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+We use a view with some tweaks   to  display the bindings. Originally we
+used a browser, but a view has  two   advantages.  First  of all, we can
+write directly to it by opening it as   a stream and second the user can
+use search and selection on the view to   analyse it or export text from
+it.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 :- pce_begin_class(prolog_bindings_view, view,
 		   "Overview of bindings of the current frame").
 
@@ -567,8 +581,8 @@ initialise(B) :->
 	get(Font, ex, Ex),
 	Tab is 15 * Ex,
 	send(B, wrap, none),
-	send(B, selected_fragment_style,
-	     style(background := black, colour := white)),
+%	send(B, selected_fragment_style,
+%	     style(background := black, colour := white)),
 	send(B?image, tab_stops, vector(Tab)),
 	send(B?image, recogniser, @prolog_binding_recogniser),
 	send(B, editable, @off),
@@ -599,11 +613,6 @@ details(B, Fragment:[fragment]) :->	% also handle a variable name!
 	get(Frag, var_name, VarName),
 	get(Frag, argn, ArgN),
 	prolog_frame_attribute(Frame, argument(ArgN), Value),
-	(   object(Value)
-	->  manpce,
-	    send(@manual, inspect, Value)
-	;   true
-	),
 	prolog_frame_attribute(Frame, level, Level),
 	prolog_frame_attribute(Frame, goal, Goal),
 	predicate_name(Goal, PredName),
@@ -619,8 +628,10 @@ on_click(B, Index:int) :->
 	"Select fragment clicked"::
 	get(B, text_buffer, TB),
 	send(B, selection, 0, 0),
-	get(TB, find_fragment, message(@arg1, overlap, Index), Frag),
-	send(B, selected_fragment, Frag).
+	(   get(TB, find_fragment, message(@arg1, overlap, Index), Frag)
+	->  send(B, selected_fragment, Frag)
+	;   send(B, selected_fragment, @nil)
+	).
 
 bindings(B, Bindings:prolog) :->
 	"Display complete list of bindings"::
