@@ -485,11 +485,12 @@ Version 5.4 consolidates the 5.3.x beta series.
 \subsection{Version 5.5 Release Notes} \label{sec:rel-5.5}
 
 Version 5.5.x provides support for \jargon{wide characters} with UTF-8
-and UNICODE I/O. On both 32 and 64-bit hardware Prolog integers are noew
-represented as 64-bit integers, improving portability and allow integer
-representations of most things we can count in the real world. This
-version also incorporates clp(r) by Christian Holzbaur, brought to
-SWI-Prolog by Tom Schrijver and Leslie De Koninck.
+and UNICODE I/O (\secref{encoding}). On both 32 and 64-bit hardware
+Prolog integers are now represented as 64-bit integers, improving
+portability and allow integer representations of most things we can
+count in the real world. This version also incorporates clp(r) by
+Christian Holzbaur, brought to SWI-Prolog by Tom Schrijver and Leslie
+De Koninck (\secref{lib:clpr}).
 
 
 \section{Donate to the SWI-Prolog project}	\label{sec:sponsor}
