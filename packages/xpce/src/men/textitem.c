@@ -970,7 +970,7 @@ eventTextItem(TextItem ti, EventObj ev)
 	 !insideEvent(ev, (Graphical)lb) )
       return quitCompleterDialogItem(ti);
 
-    return postEvent(ev, (Graphical)c, DEFAULT);
+    succeed;
   }
 
   if ( eventGraphical(ti, ev) )		/* recognisers */
