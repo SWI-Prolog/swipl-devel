@@ -1,45 +1,18 @@
-SWI-Prolog 5.0.7/XPCE 6.0.7 Summary of changes
+SWI-Prolog 5.0.8/XPCE 6.0.8 Summary of changes
 
 SWI-Prolog
 ==========
-  
-  * Windows: Added statistical profiling.  Fully operational on NT/2000/XP
-    (tested on NT/TSE), cripple on 95/98/ME.
 
-  * Windows: Editor handling problem
-
-  * Windows: Borland C compatibility in headers.  See the Twiki web `Foreign'
-    for using SWI-Prolog with Borland C.
-
-  * MT-Version: atom-locking problem.
-
-  * Data corruption crashing GC and GUI-tracer due to bad compilation of
-    rather weird code involving \+ (bug was around for many years).
-
-  * Slightly improved Edinburgh compatibility of telling/1 and seeing/1
-
-  * SICStus 3.9 compatibility of absolute_file_name/3.
-
-Development Environment
-=======================
-
-  * GUI-tracer: handling dynamic code holding floats, skip `hidden' frames
-    when going `up'.
+  * Minor patches.
 
 Packages
 ========
 
-  * Updated installation of (not-default) packages "mp" and "db".  Added
-    Windows Makefile for the "db" package (BerkeleyDB interface).
-
-  * SGML2PL fix of marked-sections and handling of content_length option
-    for partial parsing.
+  * Added first version of ODBC (database) interface.
 
 XPCE
 ====
 
-   * X11: compatibility of X11 selection handling with (notably) Qt
-   
-   * Windows: much faster and better handling of JPEG images.
+   * Added transparency to writing .GIF image files.
 
-   * Various minor patches
+   * Minor patches.
