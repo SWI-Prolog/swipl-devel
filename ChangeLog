@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: Calling PL_halt(2) on SIGHUP, forcing halt handlers to run.
+
   * FIXED: Properly throw exception when compiling arithmetic with
     unbound (but not anonymous) variable.  Reported by Leo (leo@solvo.ru)
 

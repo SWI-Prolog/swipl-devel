@@ -1,3 +1,14 @@
+* MODIFIED: PceEmacs Prolog mode never to move the caret on automatic
+  checking launced by typing a full-stop.  Also singleton-replace mode
+  is now only activated on explicit request.
+
+* MODIFIED: Call toc_window (from library(toc_window)) to use ->normalise
+  on the window after expanding a node and to provide a horizontal scroll_bar
+  by default.
+
+* ADDED/FIXED: Proper support for long (word-)wrapped lines in class editor.
+  This allows for normal modern `textarea' using `editor->wrap: word'.
+
 * FIXED: Class key_binding to fetch <-saved_column on ->cursor_up and
   ->cursor_down.  MODIFIED: class key_binding now uses <-up_down_column
   to find the desired `context' column rather then <-column.  This allows
