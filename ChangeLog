@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: interrupt and error handling in wait_for_input/3.  With patch
+    from Leonid Khramov.  Thanks.
+
   * FIXED: Generate syntax error on `based numbers' without digits.  Dima.
 
   * ADDED: PL_unify_term: handle (PL_BOOL, int) to unify boolean

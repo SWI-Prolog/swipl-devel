@@ -1244,7 +1244,7 @@ pl_wait_for_input(term_t Streams, term_t Available,
   fd_set fds;
   struct timeval t, *to;
   double time;
-  int n, max = 0;
+  int n, max = 0, ret, min = 1 << (INTBITSIZE-2);
   fdentry *map     = NULL;
   term_t head      = PL_new_term_ref();
   term_t streams   = PL_copy_term_ref(Streams);
@@ -1289,6 +1289,8 @@ pl_wait_for_input(term_t Streams, term_t Available,
 
     if ( fd > max )
       max = fd;
+    if( fd < min )
+      min = fd;
   }
   if ( !PL_get_nil(streams) )
     return PL_error("wait_for_input", 3, NULL, ERR_TYPE, ATOM_list, Streams);
@@ -1328,14 +1330,29 @@ pl_wait_for_input(term_t Streams, term_t Available,
     to = &t;
   }
 
-  select(max+1, &fds, NULL, NULL, to);
+  while( (ret=select(max+1, &fds, NULL, NULL, to)) == -1 &&
+	 errno == EINTR )
+  { if ( PL_handle_signals() < 0 )
+      fail;				/* exception */
+  }
 
-  for(n=0; n <= max; n++)
-  { if ( FD_ISSET(n, &fds) )
-    { if ( !PL_unify_list(available, ahead, available) ||
-	   !PL_unify(ahead, findmap(map, n)) )
-	fail;
-    }
+  switch(ret)
+  { case -1:
+      return PL_error("wait_for_input", 3, MSG_ERRNO, ERR_FILE_OPERATION,
+		      ATOM_select, ATOM_stream, Streams);
+
+    case 0: /* Timeout */
+      break;
+
+    default: /* Something happend -> check fds */
+      for(n=min; n <= max; n++)
+      { if ( FD_ISSET(n, &fds) )
+	{ if ( !PL_unify_list(available, ahead, available) ||
+	       !PL_unify(ahead, findmap(map, n)) )
+	    fail;
+	}
+      }
+      break;
   }
 
   return PL_unify_nil(available);
