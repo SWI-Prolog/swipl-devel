@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Informational messages from the PLWIN.EXE console when opening
+    a URL. 
+
   * FIXED: Editor handling problems.
 
   * ADDED: Statistical profiling to the Windows version.  Also modernised

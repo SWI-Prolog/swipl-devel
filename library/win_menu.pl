@@ -128,9 +128,10 @@ edit_new(File) :-
 	call(edit(file(File))).		% avoid autoloading
 	
 www_open(Id) :-
-	print_message(informational, opening_url(URL)),
 	Spec =.. [Id, '.'],
-	call(www_open_url(Spec)),	% avoid autoloading
+	call(expand_url_path(Spec, URL)),
+	print_message(informational, opening_url(URL)),
+	call(www_open_url(URL)),	% avoid autoloading
 	print_message(informational, opened_url(URL)).
 	
 about :-
@@ -179,6 +180,6 @@ gather_arg(file(Mode, Title), File) :-
 	prolog:message/3.
 
 prolog:message(opening_url(Url)) -->
-	[ 'Opening ~w ...'-[Url], flush ].
+	[ 'Opening ~w ... '-[Url], flush ].
 prolog:message(opened_url(_Url)) -->
-	[ 'ok' ].
+	[ at_same_line, 'ok' ].

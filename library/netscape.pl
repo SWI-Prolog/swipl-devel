@@ -30,7 +30,8 @@
 */
 
 :- module(netscape,
-	  [ www_open_url/1
+	  [ www_open_url/1,		% +UrlOrSpec
+	    expand_url_path/2		% +Spec, -URL
 	  ]).
 
 %	www_open_url(+Url)
@@ -43,14 +44,14 @@
 
 www_open_url(Spec) :-
 	current_prolog_flag(windows, true), !,
-	expand_url(Spec, URL),
+	expand_url_path(Spec, URL),
 	win_shell(open, URL).
 www_open_url(Spec) :-
 	(   getenv('BROWSER', Browser)
 	->  true
 	;   Browser = netscape
 	),
-	expand_url(Spec, URL),
+	expand_url_path(Spec, URL),
 	www_open_url(Browser, URL).
 
 www_open_url(Browser, URL) :-
@@ -96,18 +97,18 @@ user:url_path(pl_quick,	   pl_man('quickstart.html')).
 user:url_path(xpce,	   pl('packages/xpce')).
 user:url_path(xpce_man,	   swi('projects/xpce/UserGuide')).
 
-expand_url(URL, URL) :-
+expand_url_path(URL, URL) :-
 	atom(URL), !.
-expand_url(Spec, URL) :-
+expand_url_path(Spec, URL) :-
 	Spec =.. [Path, Local],
 	(   user:url_path(Path, Spec2)
-	->  expand_url(Spec2, URL0),
+	->  expand_url_path(Spec2, URL0),
 	    (	Local == '.'
 	    ->	URL = URL0
 	    ;	sub_atom(Local, 0, _, _, #)
 	    ->	atom_concat(URL0, Local, URL)
 	    ;	concat_atom([URL0, Local], /, URL)
 	    )
-	;   throw(error(existence_error(url_path, Path), expand_url/2))
+	;   throw(error(existence_error(url_path, Path), expand_url_path/2))
 	).
 
