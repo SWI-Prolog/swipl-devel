@@ -518,8 +518,21 @@ extern void jpeg_iostream_dest(j_compress_ptr cinfo, IOSTREAM *outfile);
 		 *	   WRITING JPEG		*
 		 *******************************/
 
-/*#define rescale(v, o, n)	((v) * (n) / (o))*/
-#define rescale(v,o,n) ((v)>>8)
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Writing JPEG data. One of the problems is getting access to the colours.
+Upto  16-bit,  we  do  a   two-pass    process.   In   the  first  pass,
+makeSparceCInfo() walks through the image,   collecting the pixel values
+from the image and then query the X-server   for the RGB values of these
+pixels.
+
+Unfortunately, this schema won't work for 24-  and 32-bit displays as we
+cannot realistically allocate the required array and using hashing would
+be slow, and still require  a  lot  of   memory  if  there  are a lot of
+colours. It appears hinted that the pixel  is simply an 8-bit packed RGB
+value in this case. Is that true?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define rescale(v) ((v)>>8)
 
 int
 write_jpeg_file(IOSTREAM *fd, XImage *img, Display *disp, Colormap cmap)
@@ -531,18 +544,20 @@ write_jpeg_file(IOSTREAM *fd, XImage *img, Display *disp, Colormap cmap)
   int y;
   struct jpeg_compress_struct cinfo;
   struct jpeg_error_mgr jerr;
-  JSAMPLE *row = pceMalloc(sizeof(JSAMPLE)*3*width);
+  JSAMPLE *row;
 
   if ( !cmap )
     cmap = DefaultColormap(disp, DefaultScreen(disp));
 
-  if ( depth > 16 )
-  { Cprintf("JPEG generation not yet supported for depth > 16\n");
+  if ( depth <= 16 )
+  { if ( !(colorinfo = makeSparceCInfo(disp, cmap, img, &colours)) )
+      return -1;
+  } else if ( img->bits_per_pixel != 32 )
+  { Cprintf("Cannot write JPEG for this color format\n");
     return -1;
   }
-  if ( !(colorinfo = makeSparceCInfo(disp, cmap, img, &colours)) )
-    return -1;
 
+  row = pceMalloc(sizeof(JSAMPLE)*3*width);
   cinfo.err = jpeg_std_error(&jerr);
   jpeg_create_compress(&cinfo);
   jpeg_iostream_dest(&cinfo, fd);
@@ -559,13 +574,26 @@ write_jpeg_file(IOSTREAM *fd, XImage *img, Display *disp, Colormap cmap)
   { int x;
     JSAMPLE *s = row;
 
-    for(x=0; x<width; x++)
-    { XColor *c;
+    if ( colorinfo )
+    { for(x=0; x<width; x++)
+      { XColor *c;
   
-      c = colorinfo[XGetPixel(img, x, y)];
-      *s++ = rescale(c->red,   XBRIGHT, 256);
-      *s++ = rescale(c->green, XBRIGHT, 256);
-      *s++ = rescale(c->blue,  XBRIGHT, 256);
+	c = colorinfo[XGetPixel(img, x, y)];
+	*s++ = rescale(c->red);
+	*s++ = rescale(c->green);
+	*s++ = rescale(c->blue);
+      }
+    } else				/* 24 and 32-bit displays */
+    { unsigned char *line;
+
+      line = &((unsigned char *)img->data)[y * img->bytes_per_line];
+
+      for(x=0; x<width; x++)
+      { *s++ = *line++;
+	*s++ = *line++;
+	*s++ = *line++;
+        line++;				/* the alignment */
+      }
     }
 
     jpeg_write_scanlines(&cinfo, &row, 1);
