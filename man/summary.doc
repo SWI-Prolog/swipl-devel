@@ -147,8 +147,10 @@ suggest predicates from a keyword.
 \predicatesummary{exists_directory}{1}{Check existence of directory}
 \predicatesummary{exists_file}{1}{Check existence of file}
 \predicatesummary{exit}{2}{Exit from named block. See block/3}
+\predicatesummary{expand_answer}{2}{Expand answer of query}
 \predicatesummary{expand_file_name}{2}{Wildcard expansion of file names}
 \predicatesummary{expand_file_search_path}{2}{Wildcard expansion of file paths}
+\predicatesummary{expand_query}{4}{Expanded entered query}
 \predicatesummary{expand_term}{2}{Compiler: expand read term into clause(s)}
 \predicatesummary{explain}{1}{\pllib{explain} Explain argument}
 \predicatesummary{explain}{2}{\pllib{explain} 2nd argument is explanation of first}
