@@ -394,12 +394,12 @@ Exists(path)
 char *path;
 { struct ffblk buf;
 
-  DEBUG(2, printf("Checking existence of %s ... ", path));
+  DEBUG(2, Sdprintf("Checking existence of %s ... ", path));
   if ( findfirst(OsPath(path), &buf, SUBDIR|HIDDEN) == 0 )
-  { DEBUG(2, printf("yes\n"));
+  { DEBUG(2, Sdprintf("yes\n"));
     succeed;
   }
-  DEBUG(2, printf("no\n"));
+  DEBUG(2, Sdprintf("no\n"));
 
   fail;
 }
@@ -514,18 +514,18 @@ expandBag(struct bag *b)
 	strcpy(dpat, path);
 	strcat(dpat, "\\*.*");
 
-	DEBUG(2, printf("match path = %s\n", dpat));
+	DEBUG(2, Sdprintf("match path = %s\n", dpat));
 	for(r=findfirst(OsPath(dpat), &buf, SUBDIR|HIDDEN); r == 0; r=findnext(&buf))
 	{ char *name = buf.ff_name;
 	  strlwr(name);		/* match at lower case */
 
-	  DEBUG(2, printf("found %s\n", name));
+	  DEBUG(2, Sdprintf("found %s\n", name));
 	  if ( (dot || name[0] != '.') && matchPattern(name) )
 	  { strcpy(expanded, prefix);
 	    strcat(expanded, name);
 	    strcat(expanded, tail);
 
-	    DEBUG(2, printf("%s matches pattern\n", name));
+	    DEBUG(2, Sdprintf("%s matches pattern\n", name));
 	    b->bag[b->in] = change_string(b->bag[b->out], expanded);
 	    b->in = NextIndex(b->in);
 	    b->size++;

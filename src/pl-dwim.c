@@ -32,12 +32,12 @@ the case:
 
 static Atom
 dwimMatch(char *str1, char *str2)
-{ int l1, l2;
+{ int cl=0, l1, l2;
   register char *s1 = str1;
   register char *s2 = str2;
 
   while(*s1 && *s1 == *s2)			/* delete common part */
-    s1++, s2++;
+    s1++, s2++, cl++;
   l2 = (int) strlen(s2);
   l1 = (int) strlen(s1);
 
@@ -45,8 +45,7 @@ dwimMatch(char *str1, char *str2)
     fail;
   
   if ( l1 == 0 && l2 == 0 )			return ATOM_equal;
-  if ( (s1[0] == EOS || s1[1] == EOS || s1[2] == EOS) ||
-       (s2[0] == EOS || s2[1] == EOS || s2[2] == EOS))
+  if ( cl + l1 < 3 || cl + l2 < 3 )
     fail;
   if ( l1 == l2 && oneTypo(s1, s2) )		return ATOM_mismatched_char;
   if ( l1 == l2 && twoTransposed(s1, s2) )	return ATOM_transposed_char;

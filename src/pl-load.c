@@ -28,7 +28,7 @@ getSymbols(void)
   { Putf("[WARNING: Failed to find symbol table. Trying %s]\n", mainArgv[0]);
     symbols = mainArgv[0];
   }
-  DEBUG(2, printf("Symbol file = %s\n", symbols));
+  DEBUG(2, Sdprintf("Symbol file = %s\n", symbols));
   if ( (abs_symbols = AbsoluteFile(symbols)) == NULL )
     fail;
 
@@ -222,9 +222,9 @@ pl_load_foreign(Word file, Word entry, Word options, Word libraries, Word size)
       if ( (entry = loadExec(fd, base, sentry)) == NULL )
     	fail;
       loaderstatus.symbolfile = execName;
-      DEBUG(1, printf("Calling entry point at 0x%x\n", entry));
+      DEBUG(1, Sdprintf("Calling entry point at 0x%x\n", entry));
       (*entry)();
-      DEBUG(1, printf("Entry point returned successfully\n"));
+      DEBUG(1, Sdprintf("Entry point returned successfully\n"));
 
       succeed;
     }
@@ -278,22 +278,22 @@ create_a_out(char *files, char *entry, char *options, char *libraries, long int 
 
 #define next(str) { (str) += strlen(str); *(str)++ = ' '; };
 
-  sprintf(s, "%s", LD_COMMAND);					 next(s);
-  sprintf(s, "%s", LD_O_OPTIONS);				 next(s);
-  sprintf(s, LD_O_SFILE, stringAtom(loaderstatus.symbolfile));   next(s);
-  sprintf(s, LD_O_ADDR, base);				 	 next(s);
+  Ssprintf(s, "%s", LD_COMMAND);					 next(s);
+  Ssprintf(s, "%s", LD_O_OPTIONS);				 next(s);
+  Ssprintf(s, LD_O_SFILE, stringAtom(loaderstatus.symbolfile));   next(s);
+  Ssprintf(s, LD_O_ADDR, base);				 	 next(s);
 #if !O_NOENTRY
-  sprintf(s, LD_O_ENTRY, entry);				 next(s);
+  Ssprintf(s, LD_O_ENTRY, entry);				 next(s);
 #endif
-  sprintf(s, LD_O_OUT, outfile);				 next(s);
-  sprintf(s, "%s", options);					 next(s);
-  sprintf(s, "%s", files);					 next(s);
-  sprintf(s, "%s", libraries);					 next(s);
-  sprintf(s, LD_O_LIBS);
+  Ssprintf(s, LD_O_OUT, outfile);				 next(s);
+  Ssprintf(s, "%s", options);					 next(s);
+  Ssprintf(s, "%s", files);					 next(s);
+  Ssprintf(s, "%s", libraries);					 next(s);
+  Ssprintf(s, LD_O_LIBS);
 
 #undef next
   
-  DEBUG(1, printf("Calling loader: %s\n", command) );
+  DEBUG(1, Sdprintf("Calling loader: %s\n", command) );
   if (system(command) == 0)
     succeed;
 
@@ -391,8 +391,8 @@ loadExec(int fd, unsigned long base, char *sentry)
   bss_size = sysHeader.bsize;
 #endif
 
-  DEBUG(1, printf("Text offset = %d, Data offset = %d\n", text_off, data_off));
-  DEBUG(1, printf("Base = 0x%x (= %d), text at 0x%x, %d bytes, data at 0x%x, %d bytes\n",
+  DEBUG(1, Sdprintf("Text offset = %d, Data offset = %d\n", text_off, data_off));
+  DEBUG(1, Sdprintf("Base = 0x%x (= %d), text at 0x%x, %d bytes, data at 0x%x, %d bytes\n",
 		    base, base, text, text_size, data, data_size) );
 
   if ( lseek(fd, text_off, 0) < 0 ||
@@ -416,11 +416,11 @@ loadExec(int fd, unsigned long base, char *sentry)
 #  if hpux
 #    ifndef aout_800
   entry = (Func)(header.a_entry + (long)text);
-  DEBUG(2, printf("a_entry = 0x%x; text = 0x%x, entry = 0x%x\n",
+  DEBUG(2, Sdprintf("a_entry = 0x%x; text = 0x%x, entry = 0x%x\n",
 				header.a_entry, text, entry));
 #    else
   entry = (Func)(sysHeader.exec_entry);
-  DEBUG(2, printf("exec_entry = 0x%x; text = 0x%x, entry = 0x%x\n",
+  DEBUG(2, Sdprintf("exec_entry = 0x%x; text = 0x%x, entry = 0x%x\n",
                               sysHeader.exec_entry, text, entry));
 #    endif
 #  else
@@ -430,7 +430,7 @@ loadExec(int fd, unsigned long base, char *sentry)
 
   close(fd);
 
-  DEBUG(1, printf("Cleaning BSS %d bytes from 0x%x (=%d)\n", 
+  DEBUG(1, Sdprintf("Cleaning BSS %d bytes from 0x%x (=%d)\n", 
 	      bss_size, bss, bss));
   memset(bss, 0, bss_size);
 
@@ -577,13 +577,13 @@ Word file;
     TRY(getSymbols());
     me = stringAtom(loaderstatus.symbolfile);
 
-    DEBUG(1, printf("Loading %s ... ", me); fflush(stdout));
+    DEBUG(1, Sdprintf("Loading %s ... ", me));
     if ( (main_entry = (Func) load(me, L_NOAUTODEFER, libpath)) == NULL )
       return warning("load_foreign/5: %s: %s", me, OsError());
-    DEBUG(1, printf("ok\n"));
+    DEBUG(1, Sdprintf("ok\n"));
   }
 
-  DEBUG(1, printf("Loading %s ... ", sfile); fflush(stdout));
+  DEBUG(1, Sdprintf("Loading %s ... ", sfile));
   if ((entry = (Func) load(sfile, L_NOAUTODEFER, libpath)) == NULL)
   { char *buf[1024];
     warning("load_foreign/5: %s: %s", sfile, OsError());
@@ -602,19 +602,19 @@ Word file;
     }
     fail;
   }
-  DEBUG(1, printf("ok\n"));
+  DEBUG(1, Sdprintf("ok\n"));
 
   if ( entry < (Func) &_data )
     cannot_save_program = "Foreign code loaded outside data area";
 
-  DEBUG(1, printf("Loadbind() ... "); fflush(stdout));
+  DEBUG(1, Sdprintf("Loadbind() ... "));
   if ( loadbind(0, main_entry, entry) != 0 )
     return warning("load_foreign/5: loadbind: %s", OsError());
-  DEBUG(1, printf("ok\n"));
+  DEBUG(1, Sdprintf("ok\n"));
 
-  DEBUG(1, printf("Calling entry-point at 0x%x\n", entry));
+  DEBUG(1, Sdprintf("Calling entry-point at 0x%x\n", entry));
   rval = (*entry)();
-  DEBUG(1, printf("rval = %d (0x%x)\n", rval, rval));
+  DEBUG(1, Sdprintf("rval = %d (0x%x)\n", rval, rval));
 
   succeed;
 }
@@ -645,7 +645,7 @@ extern char *mktemp(char *template);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 the rld_...  routines  spew  their  complaints   on  a  stream  of  type
-NXStream.  We do not want to print   these  to stderr or stdout, because
+NXStream.  We do not want to print   these  to Serror or Soutput, because
 the 'current stream' mechanism of prolog   is  circumvented in this way.
 We open a temp file instead, informing the user this file exists only if
 an error occurred and errno == 0.
@@ -691,10 +691,9 @@ Word file, entry, options, libraries, size;
   sentry = stringAtom(*entry);
   slibraries = stringAtom(*libraries);
   DEBUG(1, 
-   printf("** sfile = \"%s\"\n",sfile);
-   printf("** sentry = \"%s\"\n",sentry);
-   printf("** slibraries = \"%s\"\n",slibraries);
-   fflush(stdout));
+	Sdprintf("** sfile = \"%s\"\n",sfile);
+	Sdprintf("** sentry = \"%s\"\n",sentry);
+	Sdprintf("** slibraries = \"%s\"\n",slibraries));
   
   /* append object-files and libraries */
   if (strlen(slibraries) > 0)
@@ -728,10 +727,9 @@ Word file, entry, options, libraries, size;
      object_filenames[0] = NULL;
    
   DEBUG(1, 
-    printf("Calling rld_load(), file(s):\n");
+    Sdprintf("Calling rld_load(), file(s):\n");
     for (i = 0; i <= stringno; i++)
-      printf("\t \"%s\"\n",object_filenames[i]);
-    fflush(stdout));
+      Sdprintf("\t \"%s\"\n",object_filenames[i]));
   
   rld_result = rld_load(rld_err_stream,&m_header,object_filenames,NULL);
   /* get rid of these as soon as we can */
@@ -745,9 +743,9 @@ Word file, entry, options, libraries, size;
     NXCloseMemory (rld_err_stream, NX_FREEBUFFER);
 	fail;
   } 
-  DEBUG(1, printf("\nrld_load returned ok (adress of mach-header: %ld)\n",m_header));
+  DEBUG(1, Sdprintf("\nrld_load returned ok (adress of mach-header: %ld)\n",m_header));
 
-  DEBUG(1, printf("Calling rld_lookup()\n"); fflush(stdout));
+  DEBUG(1, Sdprintf("Calling rld_lookup()\n"));
   /* Add an underscore to sentry (as in symbol-table looked at by 
    * rld_lookup())
    *
@@ -763,17 +761,17 @@ Word file, entry, options, libraries, size;
 	warning("load_foreign/5: rld_lookup() of \"%s()\" failed",sentry);
 	fail;
   }
-  DEBUG(1, printf("rld_lookup returned ok\n"));
+  DEBUG(1, Sdprintf("rld_lookup returned ok\n"));
 
   entry_func = (Func)rld_adress;
-  DEBUG(1, printf("Calling entry-point at 0x%x\n", entry_func));
+  DEBUG(1, Sdprintf("Calling entry-point at 0x%x\n", entry_func));
   rval = (*entry_func)();
   if (!rval > 0) {
   	warning("load_foreign/5: entry-function failed (%s())",sentry);
 	fail;
   }
-  DEBUG(1, printf("Entry point returned successfully\n"));
-  DEBUG(1, printf("rval = %d (0x%x)\n", rval, rval));
+  DEBUG(1, Sdprintf("Entry point returned successfully\n"));
+  DEBUG(1, Sdprintf("rval = %d (0x%x)\n", rval, rval));
   
   succeed;
 }
@@ -918,7 +916,7 @@ pl_load_shared_object(Word file, Word entry)
   { stopAllocLocal();
     return warning("load_shared_object/2: %s", dlerror());
   }
-  printf("Handle = 0x%p\n", dlhandle);
+  Sdprintf("Handle = 0x%p\n", dlhandle);
 
   if ( !(ef = (dl_funcptr) dlsym(dlhandle, eb)) )
     return warning("load_shared_object/2: %s", dlerror());

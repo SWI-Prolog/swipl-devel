@@ -179,7 +179,7 @@ We are in searching mode; should we actually give this port?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   if ( find.searching )
-  { DEBUG(2, printf("Searching\n"));
+  { DEBUG(2, Sdprintf("Searching\n"));
 
     if ( (port & find.port) && canUnifyTermWithGoal(&find.goal->term, frame) )
     { find.searching = FALSE;		/* Got you */
@@ -303,9 +303,9 @@ setupFind(char *buf)
   find.searching = TRUE;
   Undo(m);
 
-  DEBUG(2, printf("setup ok, port = 0x%x, goal = ", port);
+  DEBUG(2, Sdprintf("setup ok, port = 0x%x, goal = ", port);
 	   pl_write(&find.goal->term);
-	   printf("\n") );
+	   Sdprintf("\n") );
 
   succeed;
 }
@@ -722,7 +722,7 @@ interruptHandler(int sig)
   Char c; 
 
   if ( status.initialised == FALSE )
-  { fprintf(stderr, "Interrupt during startup. Cannot continue\n");
+  { Sfprintf(Serror, "Interrupt during startup. Cannot continue\n");
     Halt(1);
   }  
 

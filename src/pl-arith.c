@@ -366,7 +366,7 @@ prologFunction(ArithFunction f, Word av, Number r)
 
   if ( (LocalFrame) &av[1] > lBase )
   { lTop = (LocalFrame) &av[1];
-    DEBUG(8, printf("Setting lTop to 0x%x\n", lTop));
+    DEBUG(8, Sdprintf("Setting lTop to 0x%x\n", lTop));
   }
   DEBUG(2, Putf("calling "); pl_write(&goal); pl_nl());
   rval = PL_call(&goal, f->proc->definition->module);

@@ -26,14 +26,6 @@ struct timeval
 #endif
 
 
-
-		/********************************
-		*             OS-TYPES		*
-		********************************/
-
-extern int	puti(int, FILE *);
-extern int	geti(FILE *);
-
 		/********************************
 		*        MEMORY MANAGEMENT      *
 		*********************************/
@@ -84,7 +76,7 @@ extern long Random(void);
 
 #ifdef HAVE_POPEN
 #define PIPE 1
-#define Popen(path, m)	popen(OsPath(path), m)
+#define Popen(path, m)	Sopen_pipe(OsPath(path), m)
 #define Pclose(fd)	pclose(fd)
 #endif
 
@@ -93,17 +85,17 @@ extern long Random(void);
 #endif
 
 
-#define Fflush(fd)		fflush(fd)
-#define Fopen(path, m)		fopen(OsPath(path), m)
-#define Fclose(fd)		fclose(fd)
+#define Fflush(fd)		Sflush(fd)
+#define Fopen(path, m)		Sopen_file(OsPath(path), m)
+#define Fclose(fd)		Sclose(fd)
 #define Open(path, how, mode)	open(OsPath(path), how, mode)
 #define Close(fd)		close(fd)
 #define Read(fd, buf, size)	read(fd, buf, size)
 #define Write(fd, buf, size)	write(fd, buf, size)
-#define Getc(fd)		getc(fd)
-#define Putc(c, fd)		putc((char)(c), fd)
-#define Putw(w, fd)		putw((long)(w), fd)
-#define Getw(fd)		getw(fd)
+#define Getc(fd)		Sgetc(fd)
+#define Putc(c, fd)		Sputc((char)(c), fd)
+#define Putw(w, fd)		Sputw((long)(w), fd)
+#define Getw(fd)		Sgetw(fd)
 
 Char		GetChar(void);
 Atom		TemporaryFile(char *key);
@@ -149,7 +141,7 @@ extern real	  CpuTime(void);
 
 
 		/********************************
-		*       FILE DESCR. SETS	*
+		*       IOSTREAM DESCR. SETS	*
 		********************************/
 
 #ifndef FD_ZERO

@@ -359,7 +359,7 @@ pl_recorded(Word key, Word term, Word ref, word h)
   mark m;
   word copy;
 
-  DEBUG(5, printf("recorded: h=0x%lx, control = %d\n", h, ForeignControl(h)));
+  DEBUG(5, Sdprintf("recorded: h=0x%lx, control = %d\n", h, ForeignControl(h)));
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
       if ( isInteger(*ref) )

@@ -355,7 +355,7 @@ registerForeign(char *name, int arity, Func f, va_list args)
     { case PL_FA_NOTRACE:	   clear(def, TRACE_ME);	break;
       case PL_FA_TRANSPARENT:	   set(def, TRANSPARENT);	break;
       case PL_FA_NONDETERMINISTIC: set(def, NONDETERMINISTIC);	break;
-      case PL_FA_GCSAVE:	   set(def, GC_SAVE);		break;
+      case PL_FA_GCSAFE:	   set(def, GC_SAFE);		break;
       default:
 	return warning("PL_register_foreign(): %s: bad argument",
 		       procedureName(proc));
@@ -398,7 +398,7 @@ PL_load_extensions(PL_extension *ext)
     if ( e->flags & PL_FA_NOTRACE )	     flags &= ~TRACE_ME;
     if ( e->flags & PL_FA_TRANSPARENT )	     flags |= TRANSPARENT;
     if ( e->flags & PL_FA_NONDETERMINISTIC ) flags |= NONDETERMINISTIC;
-    if ( e->flags & PL_FA_GCSAVE )	     flags |= GC_SAVE;
+    if ( e->flags & PL_FA_GCSAFE )	     flags |= GC_SAFE;
 
     proc = lookupProcedure(lookupFunctorDef(lookupAtom(e->predicate_name),
 					    e->arity), 
@@ -672,7 +672,7 @@ PL_query(int query)
       return (long) stringAtom(loaderstatus.orgsymbolfile);
     case PL_QUERY_GETC:
       PopTty(&ttytab);			/* restore terminal mode */
-      return (long) getchar();		/* normal reading */
+      return (long) Sgetchar();		/* normal reading */
     default:
       sysError("PL_query: Illegal query: %d", query);
       /*NOTREACHED*/

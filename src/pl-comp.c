@@ -532,7 +532,7 @@ clause should belong to.
   if ( (ci.arity = proc->functor->arity) > MAXARITY )
     return (Clause) warning("Compiler: arity too high (%d)\n", ci.arity);
 
-  DEBUG(9, printf("Splitted and found proc\n"));
+  DEBUG(9, Sdprintf("Splitted and found proc\n"));
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Allocate the clause and fill initialise the field we already know.
@@ -547,7 +547,7 @@ Allocate the clause and fill initialise the field we already know.
   clause->procedure = proc;
   clause->source_no = clause->line_no = 0;
 
-  DEBUG(9, printf("clause struct initialised\n"));
+  DEBUG(9, Sdprintf("clause struct initialised\n"));
 
   { register Definition def = proc->definition;
 
@@ -1199,10 +1199,10 @@ assert_term(Word term, char where, Atom file)
 
   term = stripModule(term, &module);
 
-  DEBUG(9, printf("compiling "); pl_write(term); printf(" ... "););
+  DEBUG(9, Sdprintf("compiling "); pl_write(term); Sdprintf(" ... "););
   if ((clause = compile(term, module)) == (Clause) NULL)
     return (Clause) NULL;
-  DEBUG(9, printf("ok\n"));
+  DEBUG(9, Sdprintf("ok\n"));
   clause->line_no = source_line_no;
   proc = clause->procedure;
   def = proc->definition;
@@ -1399,7 +1399,7 @@ forwards void	build_term(FunctorDef, decompileInfo *);
 
 static bool
 unifyVar(register Word var, register Word *vars, register int i)
-{ DEBUG(3, printf("unifyVar(%d, %d, %d)\n", var, vars, i) );
+{ DEBUG(3, Sdprintf("unifyVar(%d, %d, %d)\n", var, vars, i) );
   if (vars[i] == (Word)NULL)
   { vars[i] = var;
     succeed;
@@ -1482,7 +1482,7 @@ decompile_head(Clause clause, Word head, register decompileInfo *di)
 
   deRef(head);
 
-  DEBUG(5, printf("Decompiling head of %s\n", procedureName(clause->procedure)));
+  DEBUG(5, Sdprintf("Decompiling head of %s\n", procedureName(clause->procedure)));
   arity = clause->procedure->functor->arity;
   if (arity == 0)
   { TRY(unifyAtomic(head, clause->procedure->functor->name) );
@@ -1624,7 +1624,7 @@ Unfortunately it also has some serious disadvantages:
     and then back-up to fill the arguments, introducing one  more  place
     where we need to know the WAM code semantics.
   - With the  introduction  of  nested  reverse  polish  constructs  for
-    arithmic  it  gets  very  difficult  to do the decompilation without
+    arithmic  it  Sgets  very  difficult  to do the decompilation without
     using a stack for  intermediate  data  storage,  building  the  term
     bottom-up.
 

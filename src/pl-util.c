@@ -68,7 +68,7 @@ digitName(int n, bool small)
 
 int
 digitValue(int b, char c)
-{ DEBUG(9, printf("digitValue(%d, %c)\n", b, c));
+{ DEBUG(9, Sdprintf("digitValue(%d, %c)\n", b, c));
   if (b == 0)
   { if (c & 0x80)
       return -1;
@@ -103,10 +103,10 @@ procedureName(Procedure proc)
 
   if ( proc->definition->module == MODULE_user ||
        isUserSystemProcedure(proc) )
-    sprintf(tmp, "%s/%d", stringAtom(proc->functor->name), 
+    Ssprintf(tmp, "%s/%d", stringAtom(proc->functor->name), 
 			  proc->functor->arity);
   else
-    sprintf(tmp, "%s:%s/%d", stringAtom(proc->definition->module->name), 
+    Ssprintf(tmp, "%s:%s/%d", stringAtom(proc->definition->module->name), 
 			     stringAtom(proc->functor->name), 
 			     proc->functor->arity);
 

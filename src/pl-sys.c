@@ -77,7 +77,7 @@ pl_argv(Word list)
 word
 pl_grep(Word file, Word search, Word line, word h)
 { char *fn;
-  FILE *fd;
+  IOSTREAM *fd;
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
@@ -85,7 +85,7 @@ pl_grep(Word file, Word search, Word line, word h)
 	  return warning("$grep/3: instantiation fault");
 	if ( (fn = ExpandOneFile(fn)) == (char *)NULL )
 	  fail;
-	if ( (fd = Fopen(fn, "r")) == (FILE *) NULL )
+	if ( (fd = Fopen(fn, "r")) == (IOSTREAM *) NULL )
 	  return warning("$grep/3: cannot open %s: %s", fn, OsError());
       }
       goto redo;
@@ -93,11 +93,11 @@ pl_grep(Word file, Word search, Word line, word h)
       { char buf[1024];
 	char *s;
 
-	fd = (FILE *) ForeignContextAddress(h);
+	fd = (IOSTREAM *) ForeignContextAddress(h);
       redo:
 	if ( (s = primitiveToString(*search, FALSE)) == (char *) NULL )
 	  return warning("$grep/3: instantiation fault");
-	while( fgets(buf, 1023, fd) != (char *) NULL )
+	while( Sfgets(buf, 1023, fd) != (char *) NULL )
 	{ if ( (*s == '^' && strprefix(buf, &s[1])) ||
 	       strsub(buf, s) )
 	  { for( s = buf; *s; s++ )	/* get rid of final newline */
@@ -113,13 +113,13 @@ pl_grep(Word file, Word search, Word line, word h)
 	    ForeignRedo(fd);
 	  }
 	}         
-	fclose(fd);
+	Sclose(fd);
 
 	fail;
       }
     case FRG_CUTTED:
     default:;
-	fclose((FILE *)ForeignContextAddress(h));
+	Sclose((IOSTREAM *)ForeignContextAddress(h));
 	succeed;
   }
 }

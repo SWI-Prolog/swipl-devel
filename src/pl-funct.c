@@ -20,10 +20,10 @@ lookupFunctorDef(register Atom atom, register int arity)
 { int v = pointerHashValue(atom, FUNCTORHASHSIZE);
   register FunctorDef f;
 
-  DEBUG(9, printf("Lookup functor %s/%d = ", stringAtom(atom), arity));
+  DEBUG(9, Sdprintf("Lookup functor %s/%d = ", stringAtom(atom), arity));
   for(f = functorDefTable[v]; f && !isRef((word)f); f = f->next)
   { if (atom == f->name && f->arity == arity)
-    { DEBUG(9, printf("%ld (old)\n", f));
+    { DEBUG(9, Sdprintf("%ld (old)\n", f));
       return f;
     }
   }
@@ -36,7 +36,7 @@ lookupFunctorDef(register Atom atom, register int arity)
   functorDefTable[v] = f;
   statistics.functors++;
 
-  DEBUG(9, printf("%ld (new)\n", f));
+  DEBUG(9, Sdprintf("%ld (new)\n", f));
 
   return f;
 }
@@ -92,21 +92,21 @@ checkFunctors()
   { f = functorDefTable[n];
     for( ;f && !isRef((word)f); f = f->next )
     { if ( f->type != FUNCTOR_TYPE )
-        printf("[ERROR: Functor %ld has bad type: %ld]\n", f, f->type);
+        Sdprintf("[ERROR: Functor %ld has bad type: %ld]\n", f, f->type);
       if ( f->arity < 0 || f->arity > 10 )	/* debugging only ! */
-        printf("[ERROR: Functor %ld has dubious arity: %d]\n", f, f->arity);
+        Sdprintf("[ERROR: Functor %ld has dubious arity: %d]\n", f, f->arity);
       if ( !inCore(f->name) || f->name->type != ATOM_TYPE )
-        printf("[ERROR: Functor %ld has illegal name: %ld]\n", f, f->name);
+        Sdprintf("[ERROR: Functor %ld has illegal name: %ld]\n", f, f->name);
       if ( !( f->next == (FunctorDef) NULL ||
 	      isRef((word)f->next) ||
 	      inCore(f->next)) )
-	printf("[ERROR: Functor %ld has illegal next: %ld]\n", f, f->next);
+	Sdprintf("[ERROR: Functor %ld has illegal next: %ld]\n", f, f->next);
     }
     if ( (isRef((word)f) &&
 	 ((FunctorDef *) unRef((word)f) != &functorDefTable[n+1])) )
-      printf("[ERROR: Bad continuation pointer (fDef, n=%d)]\n", n);
+      Sdprintf("[ERROR: Bad continuation pointer (fDef, n=%d)]\n", n);
     if ( f == (FunctorDef) NULL && n != (FUNCTORHASHSIZE-1) )
-      printf("[ERROR: illegal end pointer (fDef, n=%d)]\n", n);
+      Sdprintf("[ERROR: illegal end pointer (fDef, n=%d)]\n", n);
   }
 }
 #endif
@@ -146,7 +146,7 @@ pl_current_functor(Word name, Word arity, word h)
   }
 
   DoMark(m);
-  DEBUG(9, printf("current_functor(): fdef = %ld\n", fdef));
+  DEBUG(9, Sdprintf("current_functor(): fdef = %ld\n", fdef));
   for(; fdef; fdef = fdef->next)
   { if ( isRef((word)fdef) )
     { if ( name_is_atom )
@@ -164,7 +164,7 @@ pl_current_functor(Word name, Word arity, word h)
     if ( !unifyAtomic(name, fdef->name) ||
 	 !unifyAtomic(arity, consNum(fdef->arity)))
       continue;
-    DEBUG(9, printf("Returning backtrack point %ld\n", fdef->next));
+    DEBUG(9, Sdprintf("Returning backtrack point %ld\n", fdef->next));
 
     return_next_table(FunctorDef, fdef);
   }

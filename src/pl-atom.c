@@ -53,7 +53,7 @@ struct atom atoms[] = {
 
 /* Note that the char * of the atoms is copied to the data segment.  This
    is done because some functions temporary change the char string associated
-   with an atom (pl_concat_atom()) and GCC puts char constants in the text
+   with an atom (pl_concat_atom()) and GCC Sputs char constants in the text
    segment.
 */
 

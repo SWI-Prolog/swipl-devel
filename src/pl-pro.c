@@ -210,9 +210,9 @@ printk(char *fm, ...)
 { va_list args;
 
   va_start(args, fm);
-  fprintf(stderr, "[DATA INCONSISTENCY: ");
-  vfprintf(stderr, fm, args);
-  fprintf(stderr, "]\n");
+  Sfprintf(Serror, "[DATA INCONSISTENCY: ");
+  Svfprintf(Serror, fm, args);
+  Sfprintf(Serror, "]\n");
   va_end(args);
 
   trap_gdb();

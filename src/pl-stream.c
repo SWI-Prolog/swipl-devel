@@ -20,6 +20,9 @@
 #include <unistd.h>
 #include <stdio.h>			/* sprintf() for numeric values */
 #include <assert.h>
+#ifdef SYSLIB_H
+#include SYSLIB_H
+#endif
 
 #ifndef FALSE
 #define FALSE 0
@@ -498,7 +501,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
       { int align = A_RIGHT;
 	int modified = FALSE;
 	int has_arg1 = FALSE, has_arg2 = FALSE;
-	int arg1, arg2;
+	int arg1=0, arg2=0;
 	char fbuf[100], *fs = fbuf, *fe = fbuf;
 	int islong = FALSE;
 	int pad = ' ';
@@ -669,20 +672,305 @@ Ssprintf(char *buf, const char *fm, ...)
 int
 Svsprintf(char *buf, const char *fm, va_list args)
 { IOSTREAM s;
+  int rval;
 
   s.bufp      = buf;
   s.limitp    = (char *)0xffffffff;
   s.buffer    = buf;
-/*s.unbuffer  = buf;			Won't be used anyway
-  s.magic     = SIO_MAGIC;
-  s.bufsize   = 0x7fffffff; */
   s.flags     = SIO_FBUF|SIO_OUTPUT;
   s.position  = NULL;
   s.handle    = NULL;
   s.functions = NULL;
   
-  return Svfprintf(&s, fm, args);
+  if ( (rval = Svfprintf(&s, fm, args)) >= 0 )
+    *s.bufp = '\0';
+
+  return rval;
 }
+
+
+int
+Sdprintf(const char *fm, ...)
+{ va_list args;
+  int rval;
+
+  va_start(args, fm);
+  rval = Svfprintf(Soutput, fm, args);
+  Sflush(Soutput);
+  va_end(args);
+
+  return rval;
+}
+
+#if 0
+		 /*******************************
+		 *	      SCANF		*
+		 *******************************/
+
+int
+Svfscanf(IOSTREAM *s, const char *fm, va_list args)
+{ int done = 0;				/* # items converted */
+  int chread = 0;			/* # characters read */
+  int c = GET(s);			/* current character */
+  int supress;				/* if TRUE, don't assign (*) */
+  int field_width;			/* max width of field */
+  int tsize;				/* SZ_SHORT, SZ_NORMAL, SZ_LONG */
+
+  while(*fm)
+  { if ( *fm == ' ' )
+    { while ( isblank(c) )
+	c = GET(s);
+      fm++;
+      continue;
+    } else if ( *fm == '%' && fm[1] != '%' )
+    { supress = FALSE;
+      field_width = -1;
+      int size = SZ_STANDARD;
+
+      for(;;)				/* parse modifiers */
+      { fm++;
+	if ( isdigit(*fm) )
+	{ field_width = valdigit(*fm);
+	  for(++fm; isdigit(*fm); fm++)
+	    field_width = 10*field_width + valdigit(*fm);
+	  fm--;
+	  continue;
+	}
+	if ( *fm == '*' )
+	{ supress++;
+	  continue;
+	}
+	if ( *fm == 'l' )
+	{ size = SZ_LONG;
+	  continue;
+	}
+	if ( *fm == 'h' )
+	{ size = SZ_SHORT;
+	  continue;
+	}
+      }
+	
+      if ( *fm != '[' && *fm != c )
+	while(isblank(c))
+	  c = GET(s);
+
+      switch(*fm)
+      { { long v;			/* collect value here */
+	  int negative;			/* true if < 0 */
+	  int base;			/* base for conversion */
+	  int ok;			/* successful */
+	case 'd':
+	  base = 10;
+
+	do_int:
+	  negative = FALSE;
+	  if ( c == '+' )
+	    c = GET(s);
+	  else if ( c == '-' )
+	  { negative++;
+	    c = GET(s);
+	  }
+	do_unsigned:
+	  ok = FALSE;
+	  if ( base == 16 )		/* hexadecimal */
+	  { if ( isxdigit(c) )
+	    { v = valxdigit(c);
+	      for(c = GET(s); isxdigit(c); c = GET(s))
+		v = base*v + valxdigit(c);
+	      ok++;
+	    }
+	  } else
+	  { int cv;
+
+	    if ( isdigit(c) && (cv=valdigit(c)) < base )
+	    { v = cv;
+	      for(c = GET(s); isdigit(c) && (cv=valdigit(c)) < base; c = GET(s))
+		v = base*v + cv;
+	      ok++;
+	    }
+	  }
+
+	  if ( ok )
+	  { if ( !supress )
+	    { if ( negative )
+		v = -v;
+	      if ( tsize == SZ_SHORT )
+	      { short *vp = va_arg(args, short *);
+		*vp = v;
+	      } else if ( tsize == SZ_LONG )
+	      { long *vp = va_arg(args, long *);
+		*vp = v;
+	      } else
+	      { int *vp = va_arg(args, int *);
+		*vp = v;
+	      }
+	      done++;
+	    }
+	    continue;			/* with next */
+	  } else
+	    return done;
+	case 'u':
+	  base = 10;
+	  negative = FALSE;
+	  goto do_unsigned;
+	case 'o':
+	  base = 8;
+	  goto do_int;
+	case 'x':
+	  base = 16;
+	  goto do_int;
+	case 'i':
+	  if ( c == '0' )
+	  { int c2 = GET(s);
+
+	    if ( c2 == 'x' )
+	    { base = 16;
+	      c = GET(s);
+	    } else
+	    { UNGET(c2, s);
+	      base = 8;
+	    }
+	    negative = FALSE;
+	    goto do_unsigned;
+	  }
+	  base = 10;
+	  goto do_int;
+	}
+	case 'n':
+	  if ( !supress )
+	  { if ( tsize == SZ_SHORT )
+	    { short *vp = va_arg(args, short *);
+	      *vp = chread;
+	    } else if ( tsize == SZ_LONG )
+	    { long *vp = va_arg(args, long *);
+	      *vp = chread;
+	    } else
+	    { int *vp = va_arg(args, int *);
+	      *vp = chread;
+	    }
+	    done++;
+	  }
+	  fm++;
+	  continue;
+	case 'E':
+	case 'e':
+	case 'f':
+	case 'G':
+	case 'g':
+	{ char work[200];
+	  char *w = work;
+	  int ds = 0;
+	  double v;
+
+	  if ( c == '-' || c == '+' )	/* [+|-] */
+	  { *w++ = c;
+	    c = GET(s);
+	  }
+	  while(isdigit(c))		/* {digit} */
+	  { *w++ = c;
+	    c = GET(s);
+	    ds++;
+	  }
+	  if ( c == '.' )		/* [.] */
+	    *w++ = c;
+	  while(isdigit(c))		/* {digit} */
+	  { *w++ = c;
+	    c = GET(s);
+	    ds++;
+	  }
+	  if ( !ds )
+	    SCAN_ERROR(s)
+	  if ( c == 'e' || c == 'E' )	/* [e<digit>{<digit>}] */
+	  { *w++ = c;
+	    c = GET(s);
+	    if ( !isdigit(c) )
+	      SCAN_ERROR(s)
+	    while(isdigit(c))
+	    { *w++ = c;
+	    c = GET(s);
+	    }
+	  }
+
+	  if ( !supress )
+	  { *w = '\0';
+	    v = strtod(work, &w)
+	    if ( w == work )
+	      SCAN_ERROR(s);
+
+	    switch(tsize)
+	    { case SZ_NORMAL:
+	      { float *fp = va_arg(args, float *);
+		*fp = v;
+		break;
+	      }	
+	      case SZ_LONG:
+	      { double *fp = va_arg(args, double *);
+		*fp = v;
+		break;
+	      }
+	    }  
+	    done++;
+	  }
+
+	  fm++;
+	  continue;
+	}
+	case 's':
+	  if ( !supress )
+	  { char *sp = va_arg(args, char *);
+	    
+	    while(!isblank(c) && field_width-- != 0)
+	    { *sp++ = c;
+	      c = GET(s);
+	    }
+	  } else
+	    while(!isblank(c) && field_width-- != 0)
+	      c = GET(s);
+	  fm++;
+	  continue;
+	case 'c':
+	  if ( !supress )
+	  { char *cp = va_arg(args, char *);
+	    *cp = c;
+	  }
+	  c = GET(s);
+	  fm++;
+	  continue;
+	case '[':
+	{ char set[256];
+	  
+	  memset(set, 0, sizeof(set));
+	  fm++;
+	  if ( *fm == ']' )
+	    set[*fm++]++;
+	  else if ( *fm == '^' )
+	  { fm++;
+	    negate++;
+	  }
+	  while(*fm != ']')
+	  { if ( *fm == '-' )
+	      
+	  }
+	}
+      }
+    } else				/* normal character */
+    { if ( c == *fm )
+      { c = GET(s);
+	fm++;
+	continue;
+      }
+
+      break;
+    }
+  }
+
+out:
+  UNGET(c, s);
+
+  return done;
+}
+
+#endif /*0*/
 
 
 
@@ -1028,6 +1316,8 @@ Sopenmem(char **buffer, int *sizep, char *mode)
       flags |= SIO_INPUT;
       if ( sizep == NULL || *sizep < 0 )
 	size = (*buffer ? strlen(*buffer) : 0);
+      else
+	size = *sizep;
       mf->size = size;
       mf->allocated = size+1;
       break;

@@ -295,8 +295,8 @@ do_format(char *fmt, int argc, Word argv)
 		  if ( wordToReal(*a, &f) == FALSE )
 		    ERROR1("illegal argument to ~%c", *fmt);
 		  SHIFT;
-		  sprintf(tmp, "%%.%d%c", arg == DEFAULT ? 6 : arg, *fmt);
-		  sprintf(buf, tmp, f);
+		  Ssprintf(tmp, "%%.%d%c", arg == DEFAULT ? 6 : arg, *fmt);
+		  Ssprintf(buf, tmp, f);
 		  OUTSTRING(buf);
 		  fmt++;
 		  break;

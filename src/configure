@@ -1450,7 +1450,7 @@ else
 fi
 done
 
-for ac_func in getpagesize getpwnam getrlimit gettimeofday getw opendir
+for ac_func in getpagesize getpwnam getrlimit gettimeofday opendir
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&4
 if eval "test \"`echo '${'ac_cv_func_$ac_func'+set}'`\" = set"; then
@@ -2622,122 +2622,12 @@ rm -f conftest*
         echo "$ac_t"""LDFLAGS=$LDFLAGS"" 1>&4
     fi ;;
 esac
-
-
-echo $ac_n "checking "how to reset stdin"""... $ac_c" 1>&4
-# BSD Unix
-cat > conftest.$ac_ext <<EOF
-#line 2631 "configure"
-#include "confdefs.h"
-
-#include <stdio.h>
-
-int main() { return 0; }
-int t() {
- stdin->_ptr = stdin->_base;
-  stdin->_cnt = 0;
-
-; return 0; }
-EOF
-if eval $ac_compile; then
-  rm -rf conftest*
-  cat >> confdefs.h <<\EOF
-#define RESET_STDIN stdin->_ptr = stdin->_base; stdin->_cnt = 0;
-EOF
-
-   echo "$ac_t""stdin->_ptr = stdin->_base; stdin->_cnt = 0;" 1>&4
-   reset_stdin=yes
-fi
-rm -f conftest*
-
-if test "$reset_stdin" != "yes"; then
-# Older GNU clibs
-cat > conftest.$ac_ext <<EOF
-#line 2657 "configure"
-#include "confdefs.h"
-
-#include <stdio.h>
-
-int main() { return 0; }
-int t() {
- stdin->_gptr = stdin->_egptr;
-
-; return 0; }
-EOF
-if eval $ac_compile; then
-  rm -rf conftest*
-  cat >> confdefs.h <<\EOF
-#define RESET_STDIN stdin->_gptr = stdin->_egptr;
-EOF
-
-   echo "$ac_t""stdin->_gptr = stdin->_egptr;" 1>&4
-   reset_stdin=yes
-fi
-rm -f conftest*
-
-fi
-if test "$reset_stdin" != "yes"; then
-# New GNU clibs
-cat > conftest.$ac_ext <<EOF
-#line 2683 "configure"
-#include "confdefs.h"
-
-#include <stdio.h>
-
-int main() { return 0; }
-int t() {
- stdin->_IO_read_ptr = stdin->_IO_read_end;
-  exit(0);
-
-; return 0; }
-EOF
-if eval $ac_compile; then
-  rm -rf conftest*
-  cat >> confdefs.h <<\EOF
-#define RESET_STDIN stdin->_IO_read_ptr = stdin->_IO_read_end;
-EOF
-
-   echo "$ac_t""stdin->_IO_read_ptr = stdin->_IO_read_end;" 1>&4
-   reset_stdin=yes
-fi
-rm -f conftest*
-
-fi
-if test "$reset_stdin" != "yes"; then
-# EMX
-cat > conftest.$ac_ext <<EOF
-#line 2710 "configure"
-#include "confdefs.h"
-
-#include <stdio.h>
-
-int main() { return 0; }
-int t() {
- stdin->ptr = stdin->buffer;
-  stdin->rcount = 0;
-  stdin->wcount = 0;
-  exit(0);
-
-; return 0; }
-EOF
-if eval $ac_compile; then
-  rm -rf conftest*
-  cat >> confdefs.h <<\EOF
-#define RESET_STDIN stdin->ptr = stdin->buffer; stdin->rcount = 0; stdin->wcount = 0;
-EOF
-
-   echo "$ac_t""stdin->ptr = stdin->buffer; stdin->rcount = 0; stdin->wcount = 0;" 1>&4
-   reset_stdin=yes
-fi
-rm -f conftest*
-
-fi
-fi
+fi					# O_SAVE's fi
 
 
 echo $ac_n "checking "foreign C-interface"""... $ac_c" 1>&4
 cat > conftest.$ac_ext <<EOF
-#line 2741 "configure"
+#line 2631 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -2770,7 +2660,7 @@ rm -f conftest*
 
 if test "$ac_foreign" != "yes"; then
 cat > conftest.$ac_ext <<EOF
-#line 2774 "configure"
+#line 2664 "configure"
 #include "confdefs.h"
 
 #include <rld.h>
@@ -2825,7 +2715,7 @@ EOF
 rm -rf conftest*
 echo $ac_n "checking "BSD a.out based loading"""... $ac_c" 1>&4
 cat > conftest.$ac_ext <<EOF
-#line 2829 "configure"
+#line 2719 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>

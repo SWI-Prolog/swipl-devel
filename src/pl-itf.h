@@ -11,7 +11,7 @@
 #define PL_INCLUDED
 
 #ifndef PLVERSION
-#define PLVERSION "1.9.6 January 1995"
+#define PLVERSION "2.0.5, February 1995"
 #endif
 
 #if __GNUC__ && !__STRICT_ANSI__
@@ -179,7 +179,7 @@ extern void *	 		PL_foreign_context_address(long);
 #define PL_FA_NOTRACE		(1)	/* foreign cannot be traced */
 #define PL_FA_TRANSPARENT	(2)	/* foreign is module transparent */
 #define PL_FA_NONDETERMINISTIC	(4)	/* foreign is non-deterministic */
-#define PL_FA_GCSAVE		(8)	/* save to GC and/or shift stacks */
+#define PL_FA_GCSAFE		(8)	/* safe to GC and/or shift stacks */
 
 int	PL_register_foreign(char *, int, function, ...);
 
@@ -272,6 +272,15 @@ void	PL_on_halt(void (*)(int, void *), void *);
 #define PL_QUERY_GETC		5	/* Read character from terminal */
 
 long	PL_query(int);			/* get information from Prolog */
+
+#ifdef SIO_MAGIC
+		 /*******************************
+		 *	  STREAM SUPPORT	*
+		 *******************************/
+
+					/* Make IOSTREAM known to Prolog */
+extern int PL_open_stream(IOSTREAM *s, term t);
+#endif
 
 #endif /* PL_INCLUDED */
 /* DO NOT WRITE BELOW THIS ENDIF */

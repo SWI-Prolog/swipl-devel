@@ -1252,6 +1252,20 @@ source_file(?Pred, ?File)
     (see multifile/1) cannot be found this way.
 
 
+prolog_load_context(?Key, ?Value)
+    Determine loading context.  The following keys are defined:
+
+      Key            Description
+      module         Module into which file is loaded
+      file           File loaded
+      stream         Stream identifier (see current_stream/1)
+      directory      Directory in which File lives.
+      term_position  Postion of last term read.  Term of the form
+                     '$stream_position'(0,Line,0,0,0)
+
+    Quintus compatibility predicate.  See also source_location/2.
+
+
 term_expansion(+Term1, -Term2)
     Dynamic predicate, normally not defined.  When defined by the user
     all terms read during consulting that are given to this predicate.
@@ -2591,9 +2605,34 @@ copy_term(+In, -Out)
 
 
 3.18 Analysing and Constructing Atoms
+
+These predicates convert between Prolog constants and lists of ASCII
+values.  The predicates atom_chars/2, number_chars/2 and number/2 behave
+the same when converting from a constant to a list of ASCII values.  When
+converting the other way around, atom_chars/2 will generate an atom,
+number_chars will generate a number or fail and name/2 will return a
+number if possible and an atom otherwise.
 
 
-name(?Atom, ?String)
+atom_chars(?Atom, ?String)
+    Convert between an atom and a list of ASCII values.  If Atom is
+    instantiated, if will be translated into a list of ASCII values and
+    the result is unified with String.  If Atom is unbound and String is
+    a list of ASCII values, it will Atom will be unified with an atom
+    constructed from this list.
+
+
+atom_char(?Atom, ?ASCII)
+    Convert between character and ASCII value for a single character.
+
+
+number_chars(?Number, ?String)
+    Similar to atom_chars/2, but converts between a number and its
+    representation as a list of ASCII values.  Fails silently if Atom is
+    unbound and String does not describe a number.
+
+
+name(?AtomOrInt, ?String)
     String is a list of ASCII values describing Atom.  Each of the
     arguments may be a variable, but not both.  When String is bound to
     an ASCII value list describing an integer and Atom is a variable Atom
@@ -4160,7 +4199,7 @@ Chapter  4
 
 Using  Modules
 
-                                422
+                                426
 
 
 4.1 Why Using Modules?
@@ -4669,7 +4708,7 @@ trade-off the user is responsible for type checking and should be careful
 not to violate consistency rules as Prolog provides access to its internal
 data structures.
 
-                                445
+                                449
 
 
 5.1 Overview of the Interface
@@ -5696,7 +5735,7 @@ debugging tools for Prolog.  The predicates described here should be
 handled with some care as it is easy to corrupt the consistency of the
 Prolog system by misusing them.
 
-                                533
+                                537
 
 
 6.1 Examining the Environment Stack
@@ -5901,6 +5940,8 @@ at_initialisation/1          Register goal to run at start-up
 atan/1                      Arithmetic:  inverse (arc) tangent
 atan/2                      Arithmetic:  rectangular to polar conversion
 atom/1                      Type check for an atom
+atom_char/2                 Convert between atom and ASCII value
+atom_chars/2                Convert between atom and list of ASCII values
 atom_length/2                Determine length of an atom
 atom_to_term/3               Convert between atom and term
 atomic/1                    Type check for primitive
@@ -6063,6 +6104,7 @@ nth0/3                      N-th element of a list (0-based)
 nth1/3                      N-th element of a list (1-based)
 nth_clause/3                N-th clause of a predicate
 number/1                    Type check for integer or float
+number_chars/2               Convert between number and atom
 numbervars/4                Enumerate unbound variables of a term
 once/1                      Call a goal deterministicaly
 op/3                        Declare an operator
@@ -6088,6 +6130,7 @@ profiler/2                  Obtain/change status of the profiler
 prolog/0                    Run interactive toplevel
 prolog_current_frame/1       Reference to goal's environment stack
 prolog_frame_attribute/3      Obtain information on a goal environment
+prolog_load_context/2        Context information for directives
 prolog_skip_level/2          Indicate deepest recursion to trace
 prolog_to_os_filename/2       Convert between Prolog and OS filenames
 prolog_trace_interception/3   Intercept the Prolog tracer
@@ -6203,4 +6246,4 @@ writeq/2                    Write term, insert quotes on stream
 xor/2                       Arithmetic:  exclusive or
 |/2                         Disjunction of goals
 
-                                542
+                                546

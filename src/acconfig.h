@@ -55,9 +55,6 @@
 /* Define if pl-save.c works */
 #undef O_SAVE
 
-/* Define how to reset stdin after a restore */
-#undef RESET_STDIN
-
 /* Define if symbolic links are supported by the OS */
 #undef HAVE_SYMLINKS
 

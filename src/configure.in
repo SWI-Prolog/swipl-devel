@@ -105,7 +105,7 @@ AC_CHECK_HEADERS(sys/select.h sys/param.h sys/file.h sys/resource.h malloc.h)
 AC_CHECK_HEADERS(sys/termios.h sys/termio.h)
 
 AC_CHECK_FUNCS(access chmod dossleep fstat readlink getcwd getdtablesize)
-AC_CHECK_FUNCS(getpagesize getpwnam getrlimit gettimeofday getw opendir)
+AC_CHECK_FUNCS(getpagesize getpwnam getrlimit gettimeofday opendir)
 AC_CHECK_FUNCS(popen putenv random remove rename rl_insert_close select)
 AC_CHECK_FUNCS(signal sleep srand srandom stat strerror tgetent times)
 AC_CHECK_FUNCS(memmove stricmp)
@@ -425,60 +425,7 @@ AC_TRY_LINK(
         AC_MSG_RESULT("LDFLAGS=$LDFLAGS")
     fi ;;
 esac
-
-dnl ****************************************************************
-dnl See how we have to reset stdin
-dnl ****************************************************************
-
-AC_MSG_CHECKING("how to reset stdin")
-# BSD Unix
-AC_TRY_COMPILE(
-[
-#include <stdio.h>
-],
-[ stdin->_ptr = stdin->_base;
-  stdin->_cnt = 0;
-], AC_DEFINE(RESET_STDIN, [stdin->_ptr = stdin->_base; stdin->_cnt = 0;])
-   AC_MSG_RESULT([stdin->_ptr = stdin->_base; stdin->_cnt = 0;])
-   reset_stdin=yes)
-if test "$reset_stdin" != "yes"; then
-# Older GNU clibs
-AC_TRY_COMPILE(
-[
-#include <stdio.h>
-],
-[ stdin->_gptr = stdin->_egptr;
-], AC_DEFINE(RESET_STDIN, [stdin->_gptr = stdin->_egptr;])
-   AC_MSG_RESULT([stdin->_gptr = stdin->_egptr;])
-   reset_stdin=yes)
-fi
-if test "$reset_stdin" != "yes"; then
-# New GNU clibs
-AC_TRY_COMPILE(
-[
-#include <stdio.h>
-],
-[ stdin->_IO_read_ptr = stdin->_IO_read_end;
-  exit(0);
-], AC_DEFINE(RESET_STDIN, [stdin->_IO_read_ptr = stdin->_IO_read_end;])
-   AC_MSG_RESULT([stdin->_IO_read_ptr = stdin->_IO_read_end;])
-   reset_stdin=yes)
-fi
-if test "$reset_stdin" != "yes"; then
-# EMX
-AC_TRY_COMPILE(
-[
-#include <stdio.h>
-],
-[ stdin->ptr = stdin->buffer;
-  stdin->rcount = 0;
-  stdin->wcount = 0;
-  exit(0);
-], AC_DEFINE(RESET_STDIN, [stdin->ptr = stdin->buffer; stdin->rcount = 0; stdin->wcount = 0;])
-   AC_MSG_RESULT([stdin->ptr = stdin->buffer; stdin->rcount = 0; stdin->wcount = 0;])
-   reset_stdin=yes)
-fi
-fi
+fi					# O_SAVE's fi
 
 dnl ****************************************************************
 dnl Foreign language interface

@@ -35,19 +35,19 @@ forwards void initFeatures(void);
 
 void
 setupProlog(void)
-{ DEBUG(1, printf("Starting Heap Initialisation\n"));
+{ DEBUG(1, Sdprintf("Starting Heap Initialisation\n"));
 
   critical = 0;
   aborted = FALSE;
 
   startCritical;
 #if HAVE_SIGNAL
-  DEBUG(1, printf("Prolog Signal Handling ...\n"));
+  DEBUG(1, Sdprintf("Prolog Signal Handling ...\n"));
   initSignals();
 #endif
-  DEBUG(1, printf("OS ...\n"));
+  DEBUG(1, Sdprintf("OS ...\n"));
   initOs();
-  DEBUG(1, printf("Stacks ...\n"));
+  DEBUG(1, Sdprintf("Stacks ...\n"));
   initStacks( options.localSize, 
 	      options.globalSize, 
 	      options.trailSize, 
@@ -56,41 +56,41 @@ setupProlog(void)
   assert(stacks.local.maxlimit < PLMAXINT/sizeof(word)); /* C_NOT, etc. */
 
   if ( status.dumped == FALSE )
-  { DEBUG(1, printf("Atoms ...\n"));
+  { DEBUG(1, Sdprintf("Atoms ...\n"));
     initAtoms();
-    DEBUG(1, printf("Features ...\n"));
+    DEBUG(1, Sdprintf("Features ...\n"));
     initFeatures();
-    DEBUG(1, printf("Functors ...\n"));
+    DEBUG(1, Sdprintf("Functors ...\n"));
     initFunctors();
-    DEBUG(1, printf("Modules ...\n"));
+    DEBUG(1, Sdprintf("Modules ...\n"));
     initModules();
-    DEBUG(1, printf("Records ...\n"));
+    DEBUG(1, Sdprintf("Records ...\n"));
     initRecords();
-    DEBUG(1, printf("Flags ...\n"));
+    DEBUG(1, Sdprintf("Flags ...\n"));
     initFlags();
-    DEBUG(1, printf("Foreign Predicates ...\n"));
+    DEBUG(1, Sdprintf("Foreign Predicates ...\n"));
     initBuildIns();
-    DEBUG(1, printf("Operators ...\n"));
+    DEBUG(1, Sdprintf("Operators ...\n"));
     initOperators();
-    DEBUG(1, printf("Arithmetic ...\n"));
+    DEBUG(1, Sdprintf("Arithmetic ...\n"));
     initArith();
-    DEBUG(1, printf("Tracer ...\n"));
+    DEBUG(1, Sdprintf("Tracer ...\n"));
     initTracer();
     debugstatus.styleCheck = SINGLETON_CHECK;
-    DEBUG(1, printf("wam_table ...\n"));
+    DEBUG(1, Sdprintf("wam_table ...\n"));
     initWamTable();
   } else
   { resetReferences();
     resetGC();			/* reset garbage collector */
     stateList = (State) NULL;	/* all states are already in core */
   }
-  DEBUG(1, printf("IO ...\n"));
+  DEBUG(1, Sdprintf("IO ...\n"));
   initIO();
-  DEBUG(1, printf("Loader ...\n"));
+  DEBUG(1, Sdprintf("Loader ...\n"));
   resetLoader();
-  DEBUG(1, printf("Symbols ...\n"));
+  DEBUG(1, Sdprintf("Symbols ...\n"));
   getSymbols();
-  DEBUG(1, printf("Term ...\n"));
+  DEBUG(1, Sdprintf("Term ...\n"));
   resetTerm();
   status.io_initialised = TRUE;
 
@@ -105,11 +105,11 @@ setupProlog(void)
 #endif
 
 #if O_XWINDOWS
-  DEBUG(1, printf("XWindows ...\n");
+  DEBUG(1, Sdprintf("XWindows ...\n");
   initXWindows();
 #endif
 
-  DEBUG(1, printf("Heap Initialised\n"));
+  DEBUG(1, Sdprintf("Heap Initialised\n"));
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -186,7 +186,7 @@ some day.
 
 static void
 fatal_signal_handler(int sig, int type, SignalContext scp, char *addr)
-{ DEBUG(1, printf("Fatal signal %d\n", sig));
+{ DEBUG(1, Sdprintf("Fatal signal %d\n", sig));
 
   deliverSignal(sig, type, scp, addr);
 }
@@ -377,7 +377,7 @@ map(Stack s)
     fatalError("Failed to map memory at 0x%x for %d bytes on fd=%d: %s\n",
 	       s->max, size_alignment, mapfd, OsError());
 
-  DEBUG(1, printf("mapped %d bytes from 0x%x to 0x%x\n",
+  DEBUG(1, Sdprintf("mapped %d bytes from 0x%x to 0x%x\n",
 		  size_alignment, (unsigned) s->max, s->max + size_alignment));
   s->max += size_alignment;
 }
@@ -440,7 +440,7 @@ restoreStack(Stack s)
 	       s->base, len, mapfd, OsError());
 
   s->max = max;
-  DEBUG(0, printf("mapped %d bytes from 0x%x\n", len, (unsigned) s->base));
+  DEBUG(0, Sdprintf("mapped %d bytes from 0x%x\n", len, (unsigned) s->base));
   succeed;
 }
 
@@ -527,7 +527,7 @@ long size;
       	fatalError("Failed to detach shared memory segment: %s", OsError());
     
     if ( id >= 0 )
-    { DEBUG(0, printf("Attach segment of size %ld at 0x%x\n",
+    { DEBUG(0, Sdprintf("Attach segment of size %ld at 0x%x\n",
 		      size, s->segments[n].base));
       if ( shmat(id, s->segments[n].base, 0) != s->segments[n].base )
       	fatalError("Failed to attach shared memory segment at 0x%x: %s",
@@ -549,7 +549,7 @@ Stack s;
   int  top_segment = new_size / base_alignment;
   int  n;
 
-  DEBUG(1, printf("Expanding %s stack to %ld\n", s->name, new_size));
+  DEBUG(1, Sdprintf("Expanding %s stack to %ld\n", s->name, new_size));
 
   for(n=0; n < top_segment; n++)
     resize_segment(s, n, base_alignment);
@@ -626,7 +626,7 @@ caddress addr;
 
   if ( addr <= s->max + STACK_SEPARATION*2 )
   { if ( addr < s->base + s->limit )
-    { DEBUG(1, printf("Expanding %s stack\n", s->name));
+    { DEBUG(1, Sdprintf("Expanding %s stack\n", s->name));
       map(s);
       considerGarbageCollect(s);
 
@@ -662,7 +662,7 @@ segv_handler(int sig, int type, SignalContext scp, char *addr)
   int mapped = 0;
   extern char *localScratchBase;	/* see pl-alloc.c */
 
-  DEBUG(1, printf("Page fault.  Free room (g+l+t) = %ld+%ld+%ld\n",
+  DEBUG(1, Sdprintf("Page fault.  Free room (g+l+t) = %ld+%ld+%ld\n",
 		  roomStack(global), roomStack(local), roomStack(trail)));
 
   for(i=0; i<N_STACKS; i++)
@@ -696,7 +696,7 @@ segv_handler(int sig, int type, SignalContext scp, char *addr)
 
 #else /*SIGNAL_HANDLER_PROVIDES_ADDRESS*/
 
-  DEBUG(1, printf("Page fault at %ld (0x%x)\n", (long) addr, (unsigned) addr));
+  DEBUG(1, Sdprintf("Page fault at %ld (0x%x)\n", (long) addr, (unsigned) addr));
   for(i=0; i<N_STACKS; i++)
     if ( expandStack(&stacka[i], addr) )
     {
@@ -793,7 +793,7 @@ initStacks(long int local, long int global, long int trail, long int argument, l
 #endif
 #if O_SHARED_MEMORY
   base_alignment = SHMLBA;
-  DEBUG(0, printf("Shared memory must be aligned to %d (0x%x) bytes\n",
+  DEBUG(0, Sdprintf("Shared memory must be aligned to %d (0x%x) bytes\n",
 		  base_alignment, base_alignment));
 #endif
 
@@ -817,7 +817,7 @@ initStacks(long int local, long int global, long int trail, long int argument, l
   base  = (long) align_base((long)sbrk(0));
 #endif
   top   = (long) MMAP_MAX_ADDRESS;
-  DEBUG(1, printf("top = 0x%x, stack at 0x%x\n", top, (unsigned) &top));
+  DEBUG(1, Sdprintf("top = 0x%x, stack at 0x%x\n", top, (unsigned) &top));
   space = top - base;
   space -= align_base(heap) +
            align_base(local + STACK_SEPARATION) +
@@ -829,7 +829,7 @@ initStacks(long int local, long int global, long int trail, long int argument, l
   large_size = ((space / large) / base_alignment) * base_alignment;
   if ( large_size < STACK_MINIMUM )
     fatalError("Can't fit requested stack sizes in address space");
-  DEBUG(1, printf("Large stacks are %ld\n", large_size));
+  DEBUG(1, Sdprintf("Large stacks are %ld\n", large_size));
 
   heap                          = large_size;
   if ( local    == 0 ) local    = large_size;
@@ -841,7 +841,7 @@ initStacks(long int local, long int global, long int trail, long int argument, l
   base += heap;
 
 #define INIT_STACK(name, print, limit, minsize) \
-  DEBUG(1, printf("%s stack at 0x%x; size = %ld\n", print, base, limit)); \
+  DEBUG(1, Sdprintf("%s stack at 0x%x; size = %ld\n", print, base, limit)); \
   init_stack((Stack) &stacks.name, print, (caddress) base, limit, minsize); \
   base += limit + STACK_SEPARATION; \
   base = align_base(base);

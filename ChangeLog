@@ -9,6 +9,11 @@ Version 2.0.5
     has these built-in these days.  These changes are to facilate embedding
     in window-based environments that do not support stdio.  See pl-stream.c
 
+  * FIX: dwim_match/2 for single character mismatch.
+
+  * ADDED: atom_chars/2, number_chars/2, atom_char/2, various new
+    unix/1 arguments.
+
 Version 2.0.4
 =============
 

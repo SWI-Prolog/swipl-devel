@@ -971,7 +971,7 @@ pl_get_clause_attribute(Word ref, Word att, Word value)
 
 
 		/********************************
-		*         SOURCE FILE           *
+		*         SOURCE IOSTREAM           *
 		*********************************/
 
 SourceFile

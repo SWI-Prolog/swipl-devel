@@ -97,11 +97,11 @@ have to be dropped. See the header of pl-incl.h for details.
 
 bool
 initOs(void)
-{ DEBUG(1, printf("OS:initExpand() ...\n"));
+{ DEBUG(1, Sdprintf("OS:initExpand() ...\n"));
   initExpand();
-  DEBUG(1, printf("OS:initRandom() ...\n"));
+  DEBUG(1, Sdprintf("OS:initRandom() ...\n"));
   initRandom();
-  DEBUG(1, printf("OS:initEnviron() ...\n"));
+  DEBUG(1, Sdprintf("OS:initEnviron() ...\n"));
   initEnviron();
 
 #if tos
@@ -116,7 +116,7 @@ initOs(void)
 		   + (i.hundredths / 100.0);
   }
 #endif /* OS2 */
-  DEBUG(1, printf("OS:done\n"));
+  DEBUG(1, Sdprintf("OS:done\n"));
 
   succeed;
 }
@@ -157,7 +157,7 @@ Halt(int status)
   if ( status != 0 )
   { char buf[128];
 
-    sprintf(buf, "Exit status is %d", status);
+    Ssprintf(buf, "Exit status is %d", status);
     MessageBox(NULL, buf, "SWI-Prolog halt", MB_OK|MB_TASKMODAL);
   }
 #endif
@@ -197,7 +197,7 @@ static char errmsg[64];
     return sys_errlist[errno];
 #endif
 
-  sprintf(errmsg, "Unknown Error (%d)", errno);
+  Ssprintf(errmsg, "Unknown Error (%d)", errno);
   return errmsg;
 #endif /*HAVE_STRERROR*/
 }
@@ -385,7 +385,7 @@ TemporaryFile(char *id)
 
 #if unix
   static int temp_counter = 0;
-  sprintf(temp, "/tmp/pl_%s_%d_%d", id, (int) getpid(), temp_counter++);
+  Ssprintf(temp, "/tmp/pl_%s_%d_%d", id, (int) getpid(), temp_counter++);
 #endif
 
 #if EMX
@@ -396,7 +396,7 @@ TemporaryFile(char *id)
   { strcpy(temp, foo);
     free(foo);
   } else
-    sprintf(temp, "pl_%s_%d_%d", id, getpid(), temp_counter++);
+    Ssprintf(temp, "pl_%s_%d_%d", id, getpid(), temp_counter++);
 #endif
 
 #if tos
@@ -725,7 +725,7 @@ LastModifiedFile(char *f)
   if ( findfirst(OsPath(f), &buf, FA_HIDDEN) != 0 )
     return -1;
   dz = (struct dz *) &buf.ff_ftime;
-  DEBUG(2, printf("%d/%d/%d %d:%d:%d\n",
+  DEBUG(2, Sdprintf("%d/%d/%d %d:%d:%d\n",
 	   dz->day, dz->mon, dz->year+1980, dz->hour, dz->min, dz->sec));
 
   t = (10*365+2) * DAY;		/* Start of 1980 */
@@ -755,10 +755,10 @@ ExistsFile(char *path)
   struct ffblk buf;
 
   if ( findfirst(OsPath(path), &buf, FA_HIDDEN) == 0 )
-  { DEBUG(2, printf("%s (%s) exists\n", path, OsPath(path)));
+  { DEBUG(2, Sdprintf("%s (%s) exists\n", path, OsPath(path)));
     succeed;
   }
-  DEBUG(2, printf("%s (%s) does not exist\n", path, OsPath(path)));
+  DEBUG(2, Sdprintf("%s (%s) does not exist\n", path, OsPath(path)));
   fail;
 #endif
 }
@@ -903,7 +903,7 @@ OpenStream(int fd)
 
   return fstat(fd, &buf) == 0 ? TRUE : FALSE;
 #else
-  return fd < 3 ? TRUE : FALSE;	/* stdin, stdout and stderr are open */
+  return fd < 3 ? TRUE : FALSE;	/* Sinput, Soutput and Serror are open */
 #endif
 }
 
@@ -1019,14 +1019,14 @@ canoniseDir(char *path)
 { CanonicalDir d;
   struct stat buf;
 
-  DEBUG(1, printf("canoniseDir(%s) --> ", path); fflush(stdout));
+  DEBUG(1, Sdprintf("canoniseDir(%s) --> ", path));
 
   for(d = canonical_dirlist; d; d = d->next)
   { if ( streq(d->name, path) )
     { if ( d->name != d->canonical )
 	strcpy(path, d->canonical);
 
-      DEBUG(1, printf("(lookup) %s\n", path));
+      DEBUG(1, Sdprintf("(lookup) %s\n", path));
       return path;
     }
   }
@@ -1055,7 +1055,7 @@ canoniseDir(char *path)
 	  strcat(dirname, e);
 	  strcpy(path, dirname);
 	  dn->canonical = store_string(path);
-	  DEBUG(1, printf("(replace) %s\n", path));
+	  DEBUG(1, Sdprintf("(replace) %s\n", path));
 	  return path;
 	}
       }
@@ -1068,11 +1068,11 @@ canoniseDir(char *path)
     dn->canonical = dn->name;
     canonical_dirlist = dn;
 
-    DEBUG(1, printf("(new, existing) %s\n", path));
+    DEBUG(1, Sdprintf("(new, existing) %s\n", path));
     return path;
   }
 
-  DEBUG(1, printf("(nonexisting) %s\n", path));
+  DEBUG(1, Sdprintf("(nonexisting) %s\n", path));
   return path;
 }
 
@@ -1325,7 +1325,7 @@ getwd(char *buf)
   { warning("Can't get current directory: %s", OsError());
     strcpy(path, "");
   }
-  sprintf(buf, "%c:%s", Dgetdrv()+'a', PrologPath(path));
+  Ssprintf(buf, "%c:%s", Dgetdrv()+'a', PrologPath(path));
 
   return buf;
 }
@@ -1611,7 +1611,7 @@ void *p;
 			TERMINAL IO MANIPULATION
 
 ResetStdin()
-    Clear the stdin buffer after a saved state.  Only necessary
+    Clear the Sinput buffer after a saved state.  Only necessary
     if O_SAVE is defined.
 
 PushTty()
@@ -1648,6 +1648,7 @@ extern rl_delete_text(int from, int to);
 #endif
 
 #undef ESC				/* will be redefined ... */
+#include <stdio.h>			/* readline needs it */
 #include <readline/readline.h>
 #undef savestring
 extern void add_history(char *);	/* should be in readline.h */
@@ -1702,6 +1703,8 @@ Sread_readline(void *handle, char *buf, int size)
   int  sln = source_line_no;
   int rval;
 
+  pl_ttyflush();
+
   if ( ttymode == TTY_RAW )
   { int c = GetRawChar();
 
@@ -1713,7 +1716,10 @@ Sread_readline(void *handle, char *buf, int size)
   } else if ( status.notty )		/* do not use readline */
   { int n;
 
-    if ( prompt_next )
+#ifndef __unix__
+#define isatty(x) 1
+#endif
+    if ( prompt_next && isatty(1) )
     { extern int Output;
       int old = Output;
       Output = 1;
@@ -1850,10 +1856,11 @@ Sread_terminal(void *handle, char *buf, int size)
 
   if ( prompt_next && ttymode != TTY_RAW )
   { Putf("%s", PrologPrompt());
-    pl_ttyflush();
     
     prompt_next = FALSE;
   }
+
+  pl_ttyflush();
 
   if ( PL_dispatch_events )
   { for(;;)
@@ -2042,7 +2049,7 @@ Setenv(char *name, char *value)
 
   if ( (rval = getenv(name)) )
     rval = store_string(rval);
-  sprintf(buf, "%s=%s", name, value);
+  Ssprintf(buf, "%s=%s", name, value);
   if ( putenv(store_string(buf)) < 0 )
     warning("setenv/2: %s", OsError());
 
@@ -2345,7 +2352,7 @@ char *command;
   char	   *cmd = command;
 
   if ( (status = system_via_shell(command)) != -1 )
-  { printf("\033e");		/* get cursor back */
+  { Sprintf("\033e");		/* get cursor back */
 
     return status;
   }
@@ -2381,7 +2388,7 @@ char *command;
 	/* clean up after a graphics application */
   if ( strpostfix(cmd_path, ".prg") || strpostfix(cmd_path, ".tos") )
   { graf_mouse(M_OFF, NULL);		/* get rid of the mouse */
-    printf("\033e\033E");		/* clear screen and get cursor */
+    Sprintf("\033e\033E");		/* clear screen and get cursor */
   }  
 
   return status;
@@ -2524,7 +2531,7 @@ char *s;
 { static char *extensions[] = EXEC_EXTENSIONS;
   static char **ext;
 
-  DEBUG(2, printf("Checking %s\n", s));
+  DEBUG(2, Sdprintf("Checking %s\n", s));
   for(ext = extensions; *ext; ext++)
     if ( stripostfix(s, *ext) )
       return ExistsFile(s) ? s : (char *) NULL;

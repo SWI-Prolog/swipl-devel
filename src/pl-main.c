@@ -47,13 +47,13 @@ findHome(char *symbols, char *def)
   if ( (home = symbols) )
   { char buf[MAXPATHLEN];
     char parent[MAXPATHLEN];
-    FILE *fd;
+    IOSTREAM *fd;
 
     strcpy(parent, DirName(DirName(AbsoluteFile(home))));
-    sprintf(buf, "%s/swipl", parent);
+    Ssprintf(buf, "%s/swipl", parent);
 
     if ( (fd = Fopen(buf, "r")) )
-    { if ( fgets(buf, sizeof(buf), fd) )
+    { if ( Sfgets(buf, sizeof(buf), fd) )
       { int l = strlen(buf);
 
 	while(l > 0 && buf[l-1] <= ' ')
@@ -70,17 +70,17 @@ findHome(char *symbols, char *def)
 	if ( buf[0] != '/' )
 	{ char buf2[MAXPATHLEN];
 
-	  sprintf(buf2, "%s/%s", parent, buf);
+	  Ssprintf(buf2, "%s/%s", parent, buf);
 	  home = AbsoluteFile(buf2);
 	} else
 	home = AbsoluteFile(buf);
 
 	if ( ExistsDirectory(home) )
-	{ fclose(fd);
+	{ Sclose(fd);
 	  return store_string(home);
 	}
       }
-	fclose(fd);
+	Sclose(fd);
     }
   }
 
@@ -98,7 +98,7 @@ findHome(char *symbols, char *def)
     char home[MAXPATHLEN];
 
     for(drv = drvs; *drv; drv++)
-    { sprintf(home, "/%c:/pl", *drv);
+    { Ssprintf(home, "/%c:/pl", *drv);
       if ( HasDrive(*drv) && ExistsDirectory(home) )
         return store_string(home);
     }
@@ -144,7 +144,7 @@ proposeStartupFile(char *symbols)
     return store_string(state);
   }
 
-  sprintf(state, "%s/startup/startup.%s",
+  Ssprintf(state, "%s/startup/startup.%s",
 	  systemDefaults.home, systemDefaults.arch);
 
   return store_string(AbsoluteFile(state));
@@ -160,13 +160,13 @@ findState(char *symbols)
   if ( AccessFile(full, ACCESS_READ) )
     return full;
 
-  sprintf(state, "%s/startup/startup.%s",
+  Ssprintf(state, "%s/startup/startup.%s",
 	  systemDefaults.home, systemDefaults.arch);
   full = AbsoluteFile(state);
   if ( AccessFile(full, ACCESS_READ) )
     return store_string(full);
 
-  sprintf(state, "%s/startup/startup", systemDefaults.home);
+  Ssprintf(state, "%s/startup/startup", systemDefaults.home);
   full = AbsoluteFile(state);
   if ( AccessFile(full, ACCESS_READ) )
     return store_string(full);
@@ -179,7 +179,7 @@ static void
 warnNoFile(char *file)
 { AccessFile(file, ACCESS_READ);	/* just to set errno */
 
-  fprintf(stderr, "    no `%s': %s\n", file, OsError());
+  Sfprintf(Serror, "    no `%s': %s\n", file, OsError());
 }
 
 
@@ -188,19 +188,19 @@ warnNoState()
 { char state[MAXPATHLEN];
   char *full;
 
-  fprintf(stderr, "[FATAL ERROR: Failed to find startup file\n");
+  Sfprintf(Serror, "[FATAL ERROR: Failed to find startup file\n");
   warnNoFile(proposeStartupFile(NULL));
-  sprintf(state, "%s/startup/startup.%s",
+  Ssprintf(state, "%s/startup/startup.%s",
 	  systemDefaults.home, systemDefaults.arch);
   full = AbsoluteFile(state);
   warnNoFile(full);
-  sprintf(state, "%s/startup/startup", systemDefaults.home);
+  Ssprintf(state, "%s/startup/startup", systemDefaults.home);
   full = AbsoluteFile(state);
   warnNoFile(full);
-  fprintf(stderr,
+  Sfprintf(Serror,
 	  "\nUse\n\t`%s -o startup-file -b boot/init.pl -c boot/load.pl'\n",
 	  mainArgv[0]);
-  fprintf(stderr, "\nto create one]\n");
+  Sfprintf(Serror, "\nto create one]\n");
 
   Halt(1);
 }
@@ -260,7 +260,7 @@ startProlog(int argc, char **argv, char **env)
     systemDefaults.notty       = FALSE;
 
   } else
-  { DEBUG(1, printf("Restarting from dumped state\n"));
+  { DEBUG(1, Sdprintf("Restarting from dumped state\n"));
   }
 
   compile			= FALSE;
@@ -277,7 +277,7 @@ startProlog(int argc, char **argv, char **env)
 #if O_RLC				/* MS-Windows readline console */
   { char title[60];
 
-    sprintf(title, "SWI-Prolog (version %s)", PLVERSION);
+    Ssprintf(title, "SWI-Prolog (version %s)", PLVERSION);
     rlc_title(title);
   }
 #endif
@@ -288,12 +288,12 @@ startProlog(int argc, char **argv, char **env)
     status.notty = TRUE;
 
   for(n=0; n<argc; n++)			/* need to check this first */
-  { DEBUG(2, printf("argv[%d] = %s\n", n, argv[n]));
+  { DEBUG(2, Sdprintf("argv[%d] = %s\n", n, argv[n]));
     if (streq(argv[n], "-b") )
       status.boot = TRUE;
   }
 
-  DEBUG(1, {if (status.boot) printf("Boot session\n");});
+  DEBUG(1, {if (status.boot) Sdprintf("Boot session\n");});
 
   if ( argc >= 2 && streq(argv[0], "-r") )
   { loaderstatus.restored_state = lookupAtom(AbsoluteFile(argv[1]));
@@ -303,11 +303,11 @@ startProlog(int argc, char **argv, char **env)
   if ( argc >= 2 && streq(argv[0], "-x") )
   { state = argv[1];
     argc -= 2, argv += 2;
-    DEBUG(1, printf("Startup file = %s\n", state));
+    DEBUG(1, Sdprintf("Startup file = %s\n", state));
   } else if ( argc >= 1 && stripostfix(argv[0], ".qlf") )
   { state = argv[0];
     argc--, argv++;
-    DEBUG(1, printf("Startup file = %s\n", state));
+    DEBUG(1, Sdprintf("Startup file = %s\n", state));
   }
   
   if ( argc >= 1 && streq(argv[0], "-help") )
@@ -319,17 +319,17 @@ startProlog(int argc, char **argv, char **env)
   { if ( state == NULL )
       warnNoState();
 
-    DEBUG(1, printf("Scanning %s for options\n", state));
+    DEBUG(1, Sdprintf("Scanning %s for options\n", state));
     if ( loadWicFile(state, TRUE, TRUE) == FALSE )
       Halt(1);
-    DEBUG(2, printf("options.localSize    = %ld\n", options.localSize));
-    DEBUG(2, printf("options.globalSize   = %ld\n", options.globalSize));
-    DEBUG(2, printf("options.trailSize    = %ld\n", options.trailSize));
-    DEBUG(2, printf("options.argumentSize = %ld\n", options.argumentSize));
-    DEBUG(2, printf("options.lockSize	  = %ld\n", options.lockSize));
-    DEBUG(2, printf("options.goal         = %s\n",  options.goal));
-    DEBUG(2, printf("options.topLevel     = %s\n",  options.topLevel));
-    DEBUG(2, printf("options.initFile     = %s\n",  options.initFile));
+    DEBUG(2, Sdprintf("options.localSize    = %ld\n", options.localSize));
+    DEBUG(2, Sdprintf("options.globalSize   = %ld\n", options.globalSize));
+    DEBUG(2, Sdprintf("options.trailSize    = %ld\n", options.trailSize));
+    DEBUG(2, Sdprintf("options.argumentSize = %ld\n", options.argumentSize));
+    DEBUG(2, Sdprintf("options.lockSize	  = %ld\n", options.lockSize));
+    DEBUG(2, Sdprintf("options.goal         = %s\n",  options.goal));
+    DEBUG(2, Sdprintf("options.topLevel     = %s\n",  options.topLevel));
+    DEBUG(2, Sdprintf("options.initFile     = %s\n",  options.initFile));
   } else
   { options.compileOut	  = "a.out";
     options.localSize	  = systemDefaults.local    K;
@@ -393,7 +393,7 @@ startProlog(int argc, char **argv, char **env)
   }
 #undef K
   
-  DEBUG(1, printf("Command line options parsed\n"));
+  DEBUG(1, Sdprintf("Command line options parsed\n"));
 
   setupProlog();
   systemMode(TRUE);
@@ -407,11 +407,11 @@ startProlog(int argc, char **argv, char **env)
     {
 #ifdef __WINDOWS__
       char msg[200];
-      sprintf(msg, "Boot compilation has created %s", options.compileOut);
+      Ssprintf(msg, "Boot compilation has created %s", options.compileOut);
       MessageBox(NULL, msg, "SWI-Prolog", MB_OK|MB_TASKMODAL);
 #else
       if ( !explicit_compile_out )
-	fprintf(stderr, "Result stored in %s\n", options.compileOut);
+	Sfprintf(Serror, "Result stored in %s\n", options.compileOut);
 #endif
       Halt(0);
     }
@@ -437,7 +437,7 @@ startProlog(int argc, char **argv, char **env)
   PL_register_foreign("$pce_init", 0, pl_pce_init, PL_FA_TRANSPARENT, 0);
 #endif
 
-  DEBUG(1, printf("Starting Prolog Engine\n"));
+  DEBUG(1, Sdprintf("Starting Prolog Engine\n"));
 
   if ( prolog(PL_new_atom(compile ? "$compile" : "$init")) == TRUE )
     Halt(0);
@@ -469,7 +469,7 @@ usage()
   char **lp = lines;
 
   for(lp = lines; *lp; lp++)
-    fprintf(stderr, *lp, BaseName(mainArgv[0]));
+    Sfprintf(Serror, *lp, BaseName(mainArgv[0]));
 
   Halt(1);
 }
@@ -516,20 +516,20 @@ bool
 vsysError(fm, args)
 char *fm;
 va_list args;
-{ fprintf(stderr, "[PROLOG INTERNAL ERROR:\n\t");
-  vfprintf(stderr, fm, args);
+{ Sfprintf(Serror, "[PROLOG INTERNAL ERROR:\n\t");
+  Svfprintf(Serror, fm, args);
   if ( gc_status.active )
-  { fprintf(stderr,
+  { Sfprintf(Serror,
 	    "\n[While in %ld-th garbage collection; skipping stacktrace]\n",
 	    gc_status.collections);
   }
 #ifdef O_DEBUGGER
   else
-  { fprintf(stderr, "\n[Switched to system mode: style_check(+dollar)]\n");
+  { Sfprintf(Serror, "\n[Switched to system mode: style_check(+dollar)]\n");
     debugstatus.styleCheck |= DOLLAR_STYLE;
-    fprintf(stderr, "PROLOG STACK:\n");
+    Sfprintf(Serror, "PROLOG STACK:\n");
     backTrace(NULL, 10);
-    fprintf(stderr, "]\n");
+    Sfprintf(Serror, "]\n");
   }
 #endif /*O_DEBUGGER*/
 
@@ -545,14 +545,14 @@ va_list args;
 {
 #ifdef __WINDOWS__
   char msg[500];
-  sprintf(msg, "[FATAL ERROR:\n\t");
-  vsprintf(&msg[strlen(msg)], fm, args);
-  sprintf(&msg[strlen(msg)], "]");
+  Ssprintf(msg, "[FATAL ERROR:\n\t");
+  Svsprintf(&msg[strlen(msg)], fm, args);
+  Ssprintf(&msg[strlen(msg)], "]");
   MessageBox(NULL, msg, "Error", MB_OK);
 #else
-  fprintf(stderr, "[FATAL ERROR:\n\t");
-  vfprintf(stderr, fm, args);
-  fprintf(stderr, "]\n");
+  Sfprintf(Serror, "[FATAL ERROR:\n\t");
+  Svfprintf(Serror, fm, args);
+  Sfprintf(Serror, "]\n");
 #endif
 
   Halt(2);
@@ -571,7 +571,7 @@ va_list args;
     word arg;
     mark m;
 
-    vsprintf(message, fm, args);
+    Svsprintf(message, fm, args);
 
     Mark(m);
     goal = globalFunctor(FUNCTOR_exception3);
@@ -607,9 +607,9 @@ va_list args;
     Putf("]\n");
     Output = old;
   } else
-  { fprintf(stderr, "[WARNING: ");
-    vfprintf(stderr, fm, args);
-    fprintf(stderr, "]\n");
+  { Sfprintf(Serror, "[WARNING: ");
+    Svfprintf(Serror, fm, args);
+    Sfprintf(Serror, "]\n");
   }
 
   pl_trace();

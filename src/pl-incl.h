@@ -108,11 +108,14 @@ This has worked on TURBO_C not very long ago.
 #define unix 1
 #endif
 
-#include <stdio.h>
+#ifndef CONFTEST
+#include "pl-stream.h"
+#else
+#include <stdio.h>			/* for testing pl-save.c */
+#endif
 #if O_XOS
 #include <xos/xos.h>
 #endif
-#include "pl-stream.h"
 
 #include <sys/types.h>
 #include <setjmp.h>
@@ -148,8 +151,10 @@ A common basis for C keywords.
 
 #if !__GNUC__ || __STRICT_ANSI__
 #define volatile		/* volatile functions do not return */
+#ifndef inline
 #define inline			/* inline functions are integrated in */
 				/* their caller */
+#endif
 #define signed			/* some compilers don't have this. */
 #endif
 
@@ -702,7 +707,7 @@ with one operation, it turns out to be faster as well.
 #define SYSTEM			(0x00000100L) /* predicate, module */
 #define TRACE_ME		(0x00000200L) /* predicate */
 #define TRANSPARENT		(0x00000400L) /* predicate */
-#define GC_SAVE			(0x00000800L) /* predicate */
+#define GC_SAFE			(0x00000800L) /* predicate */
 #define TRACE_CALL		(0x00001000L) /* predicate */
 #define TRACE_REDO		(0x00002000L) /* predicate */
 #define TRACE_EXIT		(0x00004000L) /* predicate */
@@ -990,7 +995,7 @@ struct definition
 		/*	TRANSPARENT	   procedure transparent to modules */
 		/*	DISCONTIGUOUS	   procedure might be discontiguous */
 		/*	NONDETERMINISTIC   deterministic foreign (not used) */
-		/*	GC_SAVE		   Save to perform GC while active */
+		/*	GC_SAFE		   Save to perform GC while active */
 		/*	TRACE_CALL	   Trace call-port */
 		/*	TRACE_REDO	   Trace redo-port */
 		/*	TRACE_EXIT	   Trace exit-port */
@@ -1386,7 +1391,7 @@ GLOBAL State stateList;			/* list of loaded states */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Include debugging info to make it (very) verbose.  SECURE adds  code  to
-check  consistency mainly in the WAM interpreter.  Prolog gets VERY slow
+check  consistency mainly in the WAM interpreter.  Prolog Sgets VERY slow
 if SECURE is  used.   DEBUG  is  not  too  bad  (about  20%  performance
 decrease).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1394,7 +1399,7 @@ decrease).
 #define REL(a)		((Word)(a) - (Word)(lBase))
 
 #if O_DEBUG
-#define DEBUG(n, g) { if (status.debugLevel >= n) { g; fflush(stdout); } }
+#define DEBUG(n, g) { if (status.debugLevel >= n) { g; } }
 #else
 #define DEBUG(a, b) 
 #endif

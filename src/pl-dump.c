@@ -50,7 +50,7 @@ saveProgram(Word new)
   else
     sym_name = NULL;
   
-  sprintf(tmp, "%s#%d", dest, (int) getpid());
+  Ssprintf(tmp, "%s#%d", dest, (int) getpid());
   new_name = tmp;
 
   systemDefaults.state = (char *) NULL;		/* does not need this any */

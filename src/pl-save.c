@@ -67,15 +67,6 @@ PORTABILITY/OPTIONS
     argc of main() depending on STACK_DIRECTION  to a multiple of this
     value (default: 64 Kbytes).  This generally finds the stack's base
     address.
-
-  O_SAVE_STDIO
-    When set,  the stdin, stdout and stderr  structures are saved over
-    the restore  action.  I'm  not that  sure about  this option.   It
-    appears to  be necessary on Solaris  as appearantly the structures
-    are inside  the saved area  and the  buffers  are not.  Using  the
-    stored buffers might  yield  invalid pointers.  Nice advantage  is
-    that possible pending io is gone  too.  Maybe we should check this
-    at runtime?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -98,17 +89,22 @@ PORTABILITY/OPTIONS
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if TEST
+#include <stdio.h>
 #undef DEBUG
 #define DEBUG(l, g) {g;}
 #define O_SAVE 1
 #define OsPath(x) x
 #define ResetTty()
+#define Sdprintf printf
+#define Ssprintf sprintf
 #endif
 
 #if O_SAVE
 #include <sys/types.h>
 #include <unistd.h>
+#ifndef SIO_MAGIC			/* using stream-package */
 #include <stdio.h>
+#endif
 #include <setjmp.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -229,13 +225,13 @@ saveVersion()
     
     if ( step <= 0 )
       step = 10;
-    DEBUG(2, printf("Computing saveVersion in 0x%x .. 0x%x\n", start, end));
+    DEBUG(2, Sdprintf("Computing saveVersion in 0x%x .. 0x%x\n", start, end));
 
     for(; start < end; start += step)
       save_version ^= *start;
   }
 
-  DEBUG(1, printf("saveVersion = %ld\n", save_version));
+  DEBUG(1, Sdprintf("saveVersion = %ld\n", save_version));
 
   return save_version;
 }
@@ -246,14 +242,14 @@ saveVersion()
 		********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The FILE related IO buffer  will be restored  in the same  state as it
+The IOSTREAM related IO buffer  will be restored  in the same  state as it
 was  before the saved state  was created.  We want  to  read new input
 instead  of saved input   and therefore we   have to  clear  the input
 stream.  Currently this is done by setting the _cnt slot of  the stdio
 structure to 0.  This is not very portable.
 
 Alternatives?   One  would be  to allocate  new  IO buffers, but then,
-assigning these to stdin is not very neat either.   I guess a macro is
+assigning these to Sinput is not very neat either.   I guess a macro is
 best ...
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -325,9 +321,9 @@ readCStack(int fd, caddr start, long int length)
 #else
   if ( (unsigned long) &fd + MAXSTACKFRAMESIZE < (unsigned long) start )
 #endif
-  { DEBUG(1, printf("&fd = 0x%x\n", (unsigned) &fd));
+  { DEBUG(1, Sdprintf("&fd = 0x%x\n", (unsigned) &fd));
     tryRead(fd, start, length);
-    DEBUG(1, printf("C-stack read; starting longjmp\n"));
+    DEBUG(1, Sdprintf("C-stack read; starting longjmp\n"));
     resetIO();
     longjmp(ret_return_ctx, 1);
   } else
@@ -362,7 +358,7 @@ restore(char *file, int (*allocf) (SaveSection))
       break;
     }
   }
-  DEBUG(2, printf("header_offset = %d\n", header_offset));
+  DEBUG(2, Sdprintf("header_offset = %d\n", header_offset));
   if ( header_offset == 0 )
     return warning("restore/1: %s is not a saved state", file);
 
@@ -380,19 +376,13 @@ restore(char *file, int (*allocf) (SaveSection))
   { jmp_buf restore_ctx;	/* Will be destroyed */
 
     memcpy(restore_ctx, ret_main_ctx, sizeof(restore_ctx));
-#if O_SAVE_STDIO
-  { FILE restore_iob[3];
-    restore_iob[0] = *stdin;
-    restore_iob[1] = *stdout;
-    restore_iob[2] = *stderr;
-#endif
 
     for(n = 0; n < header.nsections; n++)
     { struct save_section section_header;
 
       trySeek(fd, header_offset+SectionOffset(n));
       tryRead(fd, &section_header, sizeof(section_header));
-      DEBUG(2, printf("Restoring # %d (0x%x-0x%x) offset = %ld)\n",
+      DEBUG(2, Sdprintf("Restoring # %d (0x%x-0x%x) offset = %ld)\n",
 		      n, (unsigned) section_header.start,
 		      (unsigned) section_header.start + section_header.length,
 		      header_offset+section_header.offset));
@@ -406,12 +396,6 @@ restore(char *file, int (*allocf) (SaveSection))
       }
     }
 
-#if O_SAVE_STDIO
-    *stdin = restore_iob[0];
-    *stdout = restore_iob[1];
-    *stderr = restore_iob[2];
-  }
-#endif
     memcpy(ret_main_ctx, restore_ctx, sizeof(restore_ctx));
 
     resetIO();
@@ -538,12 +522,12 @@ save(char *file, char *interpreter, int kind,
     return warning("save/1: cannot write %s: %s\n", file, OsError());
   
 #if OS2
-  sprintf(buf, "/* Self-starting SWI-Prolog state */\r\n'@ECHO OFF'\r\nparse source . . name\r\n\"%s -r \" name arg(1)\r\nexit\r\n\032", OsPath(interpreter));
+  Ssprintf(buf, "/* Self-starting SWI-Prolog state */\r\n'@ECHO OFF'\r\nparse source . . name\r\n\"%s -r \" name arg(1)\r\nexit\r\n\032", OsPath(interpreter));
 #else
-  sprintf(buf, "#!/bin/sh\nexec %s -r $0 \"$@\"\n", OsPath(interpreter));
+  Ssprintf(buf, "#!/bin/sh\nexec %s -r $0 \"$@\"\n", OsPath(interpreter));
 #endif
   header_offset = strlen(buf) + 1; /* +1 to write the EOS too */
-  DEBUG(1, printf("header_offset = %d\n", header_offset));
+  DEBUG(1, Sdprintf("header_offset = %d\n", header_offset));
   tryWrite(fd, buf, header_offset);
 
   header.magic 		= SAVE_MAGIC;
@@ -560,7 +544,7 @@ save(char *file, char *interpreter, int kind,
   { SaveSection stack_sect = &sects[nsections+csects];
 
     if ( setjmp(ret_return_ctx) )
-    { DEBUG(1, printf("Yipie, returning from state\n"));
+    { DEBUG(1, Sdprintf("Yipie, returning from state\n"));
       return SAVE_RESTORE;
     } 
     
@@ -586,7 +570,7 @@ save(char *file, char *interpreter, int kind,
   tryWrite(fd, sects, sects_size);
 
   for(n=0, sect = sects; n++ < header.nsections; sect++)
-  { DEBUG(1, printf("Saving # %d 0x%x-0x%x (offset = %ld)\n",
+  { DEBUG(1, Sdprintf("Saving # %d 0x%x-0x%x (offset = %ld)\n",
 		    n,
 		    (unsigned) sect->start,
 		    (unsigned) sect->start+sect->length,
@@ -611,7 +595,7 @@ main(int argc, char **argv, char **env)
   c_stack_base = baseOfCStack(&argc, argv, env);
 
   if ( setjmp(ret_main_ctx) )
-  { DEBUG(1, printf("Restarting startProlog()\n"));
+  { DEBUG(1, Sdprintf("Restarting startProlog()\n"));
     environ = env;
     rval = startProlog(argc, argv, env);
   } else
@@ -698,7 +682,7 @@ OsError()
   if ( errno < sys_nerr )
     return sys_errlist[errno];
 
-  sprintf(errmsg, "Unknown Error (%d)", errno);
+  Ssprintf(errmsg, "Unknown Error (%d)", errno);
   return errmsg;
 #endif
 }
@@ -715,7 +699,7 @@ startProlog(int argc, char **argv, char **env)
   for ( ; argc > 1; argc--, argv++ )
   { if ( streq(argv[0], "-s") )
     { save(argv[1], interpreter, RET_MAIN, 0, NULL);
-      printf("Saved (-s) in %s\n", argv[1]);
+      Sdprintf("Saved (-s) in %s\n", argv[1]);
       exit(0);
     }
     if ( streq(argv[0], "-S") )

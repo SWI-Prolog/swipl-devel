@@ -46,7 +46,7 @@ typedef struct io_stream
 { unsigned char	       *bufp;		/* `here' */
   unsigned char	       *limitp;		/* read/write limit */
   unsigned char	       *buffer;		/* the buffer */
-  unsigned char	       *unbuffer;	/* ungetc buffer */
+  unsigned char	       *unbuffer;	/* Sungetc buffer */
   int			magic;		/* magic number SIO_MAGIC */
   int  			bufsize;	/* size of the buffer */
   int			flags;		/* Status flags */
@@ -81,56 +81,63 @@ extern IOFUNCTIONS Sfilefunctions;	/* OS file functions */
 extern IOSTREAM    S__iob[];		/* Standard IO */
 extern int	   Slinesize;		/* Sgets() linesize (SIO_LINESIZE) */
 
-#define Sinput  (&S__iob[0])		/* Stream stdin */
-#define Soutput (&S__iob[1])		/* Stream stdout */
-#define Serror  (&S__iob[2])		/* Stream stderr */
+#define Sinput  (&S__iob[0])		/* Stream Sinput */
+#define Soutput (&S__iob[1])		/* Stream Soutput */
+#define Serror  (&S__iob[2])		/* Stream Serror */
 
 #define Sgetchar()	Sgetc(Sinput)
 #define Sputchar(c)	Sputc((c), Soutput)
 
-#ifdef IOSTREAM_REPLACES_STDIO
+#if IOSTREAM_REPLACES_STDIO
 
-#undef FILE
-#undef stdin
-#undef stderr
-#undef putc
-#undef getc
+#undef IOSTREAM
+#undef Sinput
+#undef Soutput
+#undef Serror
+#undef Sputc
+#undef Sgetc
+#undef Sputchar
+#undef Sgetchar
+#undef Sfeof
+#undef Sferror
+#undef Sfileno
+#undef Sclearerr
 
-#define FILE		IOSTREAM
-#define stdin		Sinput
-#define stdout		Soutput
-#define stderr		Serror
+#define IOSTREAM		IOSTREAM
+#define Sinput		Sinput
+#define Soutput		Soutput
+#define Serror		Serror
 
-#define	putc		Sputc
-#define	getc		Sgetc
-#define	fputc		Sputc
-#define	fgetc		Sgetc
-#define getw		Sgetw
-#define putw		Sputw
-#define	ungetc		Sungetc
-#define putchar		Sputchar
-#define getchar		Sgetchar
-#define feof		Sfeof
-#define ferror		Sferror
-#define clearerr	Sclearerr
-#define	fflush		Sflush
-#define	fseek		Sseek
-#define	ftell		Stell
-#define	fclose		Sclose
-#define fgets		Sfgets
-#define gets		Sgets
-#define	fputs		Sfputs
-#define	puts		Sputs
-#define	fprintf		Sfprintf
-#define	printf		Sprintf
-#define	vprintf		Svprintf
-#define	vfprintf	Svfprintf
-#define	sprintf		Ssprintf
-#define	vsprintf	Svsprintf
-#define fopen		Sopen_file
-#define fdopen		Sfdopen
-#define	fileno		Sfileno
-#define popen		Sopen_pipe
+#define	Sputc		Sputc
+#define	Sgetc		Sgetc
+#define	Sputc		Sputc
+#define	Sgetc		Sgetc
+#define Sgetw		Sgetw
+#define Sputw		Sputw
+#define	Sungetc		Sungetc
+#define Sputchar		Sputchar
+#define Sgetchar		Sgetchar
+#define Sfeof		Sfeof
+#define Sferror		Sferror
+#define Sclearerr	Sclearerr
+#define	Sflush		Sflush
+#define	Sseek		Sseek
+#define	Stell		Stell
+#define	Sclose		Sclose
+#define Sfgets		Sfgets
+#define Sgets		Sgets
+#define	Sfputs		Sfputs
+#define	Sputs		Sputs
+#define	Sfprintf		Sfprintf
+#define	Sprintf		Sprintf
+#define	Svprintf		Svprintf
+#define	Svfprintf	Svfprintf
+#define	Ssprintf		Ssprintf
+#define	Svsprintf	Svsprintf
+#define Sopen_file		Sopen_file
+#define Sfdopen		Sfdopen
+#define	Sfileno		Sfileno
+#define Sopen_pipe		Sopen_pipe
 
 #endif /*IOSTREAM_REPLACES_STDIO*/
 
@@ -160,6 +167,7 @@ int		Svprintf(const char *fm, va_list args);
 int		Svfprintf(IOSTREAM *s, const char *fm, va_list args);
 int		Ssprintf(char *buf, const char *fm, ...);
 int		Svsprintf(char *buf, const char *fm, va_list args);
+int		Sdprintf(const char *fm, ...);
 IOSTREAM *	Snew(void *handle, int flags, IOFUNCTIONS *functions);
 IOSTREAM *	Sopen_file(char *path, char *how);
 IOSTREAM *	Sfdopen(int fd, char *type);

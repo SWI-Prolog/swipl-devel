@@ -24,9 +24,9 @@ varName(Word adr)
 { static char name[10];
 
   if (adr > (Word) lBase)
-    sprintf(name, "L%ld", (long)adr - (long)lBase);
+    Ssprintf(name, "L%ld", (long)adr - (long)lBase);
   else
-    sprintf(name, "G%ld", (long)adr - (long)gBase);
+    Ssprintf(name, "G%ld", (long)adr - (long)gBase);
 
   return name;
 }
@@ -76,7 +76,7 @@ static void
 writePrimitive(Word w, bool quote)
 { char *s, c;
 
-  DEBUG(9, printf("writing primitive at 0x%x: 0x%x\n", w, *w));
+  DEBUG(9, Sdprintf("writing primitive at 0x%x: 0x%x\n", w, *w));
 
   if (isInteger(*w))
   { Putf("%ld", valNum(*w));
@@ -162,21 +162,21 @@ display(Word t, bool quote)
   int arity;
   Word arg;
 
-  DEBUG(9, printf("display term at 0x%x; ", t));
+  DEBUG(9, Sdprintf("display term at 0x%x; ", t));
   deRef(t);
-  DEBUG(9, printf("after deRef() at 0x%x\n", t));
+  DEBUG(9, Sdprintf("after deRef() at 0x%x\n", t));
 
   if (isPrimitive(*t) )
-  { DEBUG(9, printf("primitive\n"));
+  { DEBUG(9, Sdprintf("primitive\n"));
     writePrimitive(t, quote);
     succeed;
   }
 
   arity = functorTerm(*t)->arity;
   arg = argTermP(*t, 0);
-  DEBUG(9, printf("Complex; arg0 at 0x%x, arity = %d\n", arg, arity));
+  DEBUG(9, Sdprintf("Complex; arg0 at 0x%x, arity = %d\n", arg, arity));
 
-  DEBUG(9, printf("functorTerm() = 0x%x, ->name = 0x%x\n",
+  DEBUG(9, Sdprintf("functorTerm() = 0x%x, ->name = 0x%x\n",
 				functorTerm(*t), functorTerm(*t)->name));
   writePrimitive((Word)&(functorTerm(*t)->name), quote);
   Putf("(");

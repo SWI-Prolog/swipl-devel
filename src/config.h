@@ -92,9 +92,6 @@
 /* Define if pl-save.c works */
 #define O_SAVE 1
 
-/* Define how to reset stdin after a restore */
-#define RESET_STDIN stdin->_ptr = stdin->_base; stdin->_cnt = 0;
-
 /* Define if symbolic links are supported by the OS */
 #define HAVE_SYMLINKS 1
 
@@ -123,7 +120,7 @@
 /* #undef NEED_DECL_ERRNO */
 
 /* Define to "file.h" to include additional system prototypes */
-/* #undef SYSLIB_H */
+#define SYSLIB_H "syslib.h"
 
 /* Define how to invoke the linker for incremental linking (default: ld) */
 #define LD_COMMAND "gcc"
@@ -163,9 +160,6 @@
 
 /* Define if you have the gettimeofday function.  */
 #define HAVE_GETTIMEOFDAY 1
-
-/* Define if you have the getw function.  */
-#define HAVE_GETW 1
 
 /* Define if you have the memmove function.  */
 /* #undef HAVE_MEMMOVE */

@@ -817,11 +817,11 @@ primitiveToString(word w, bool save)
   if (isAtom(w) )
     return stringAtom(w);
   if (isInteger(w) )
-  { sprintf(tmp, "%ld", valNum(w) );
+  { Ssprintf(tmp, "%ld", valNum(w) );
     return save ? store_string_local(tmp) : tmp;
   }
   if (isReal(w) )
-  { sprintf(tmp, "%f", valReal(w) );
+  { Ssprintf(tmp, "%f", valReal(w) );
     return save ? store_string_local(tmp) : tmp;
   }
 #if O_STRING
@@ -987,8 +987,8 @@ pl_format_number(Word format, Word number, Word string)
 	  arg = 6;
 	if (wordToReal(*number, &f) == FALSE)
 	  return warning("format_number/3: 2nd argument is not a float");
-	sprintf(form2, "%%.%d%c", arg, conv);
-	sprintf(tmp, form2, f);
+	Ssprintf(form2, "%%.%d%c", arg, conv);
+	Ssprintf(tmp, form2, f);
 	list = stringToList(tmp);
 	return pl_unify(string, &list);
       }
@@ -1005,31 +1005,88 @@ isPrefix(register char *s, register char *q)
   return *s == EOS;
 }
 
-word
-pl_name(Word atom, Word string)
+#define X_AUTO   0
+#define X_ATOM   1
+#define X_NUMBER 2
+
+static word
+x_chars(Word atom, Word string, int how)
 { register char *s;
 
   if ((s = primitiveToString(*atom, FALSE)) != (char *)NULL)
     return unifyStringWithList(s, string);
 
-  if (isVar(*atom) )
+  if ( isVar(*atom) )
   { register char *q;
 
-    if ((s = listToString(*string)) == (char *)NULL)
-      return warning("name/2: 2nd argument is not a string");
-    if ( isDigit(*s) )
-    { word n;
+    if ( !(s = listToString(*string)) )
+      return warning("instantiation fault");
 
-      for(q=s; *q && isDigit(*q); q++) ;
-      if ( *q == EOS && (n = charpToNumber(s)) )
-      { return unifyAtomic(atom, n);
+    switch(how)
+    { case X_ATOM:
+	return unifyAtomic(atom, lookupAtom(s));
+      case X_NUMBER:
+      { word n = charpToNumber(s);
+
+	if ( n )
+	  return unifyAtomic(atom, n);
+	else
+	  fail;
       }
+      case X_AUTO:
+      default:
+	if ( isDigit(*s) )
+	{ word n;
+
+	  for(q=s; *q && isDigit(*q); q++) ;
+	  if ( *q == EOS && (n = charpToNumber(s)) )
+	    return unifyAtomic(atom, n);
+	}
+        return unifyAtomic(atom, lookupAtom(s) );
     }
-    return unifyAtomic(atom, lookupAtom(s) );
   }
 
   return warning("name/2: instantiation fault");
 }
+
+
+word
+pl_name(Word atom, Word string)
+{ return x_chars(atom, string, X_AUTO);
+}
+
+
+word
+pl_atom_chars(Word atom, Word string)
+{ return x_chars(atom, string, X_ATOM);
+}
+
+
+word
+pl_number_chars(Word atom, Word string)
+{ return x_chars(atom, string, X_NUMBER);
+}
+
+
+word
+pl_atom_char(Word atom, Word chr)
+{ if ( isAtom(*atom) )
+  { Atom a = (Atom)*atom;
+    return unifyAtomic(chr, consNum(stringAtom(a)[0]));
+  } else if ( isInteger(*chr) )
+  { int n = valNum(*chr);
+    char buf[2];
+
+    if ( n >= 0 && n < 256 )
+    { buf[0] = n;
+      buf[1] = '\0';
+      return unifyAtomic(atom, lookupAtom(buf));
+    }
+  }
+
+  return warning("atom_char/2: instantiation fault");
+}
+
 
 word
 pl_concat(Word a1, Word a2, Word a3)

@@ -148,12 +148,12 @@ errorWarning(char *what)
 { char c = *token_start;
   
   if ( !ReadingSource )			/* not reading from a file */
-  { fprintf(stderr, "\n[WARNING: Syntax error: %s \n", what);
+  { Sfprintf(Serror, "\n[WARNING: Syntax error: %s \n", what);
     *token_start = EOS;
-    fprintf(stderr, "%s\n** here **\n", base);  
+    Sfprintf(Serror, "%s\n** here **\n", base);  
     if (c != EOS)
     { *token_start = c;
-      fprintf(stderr, "%s]\n", token_start);
+      Sfprintf(Serror, "%s]\n", token_start);
     }
   } else
   { char *s;
@@ -249,7 +249,7 @@ clearBuffer()
 						read_nesting, rb.size) );
   rb.left = rb.size;
   base = rb.here = rb.base;
-  DEBUG(8, printf("Cleared read buffer.rb at %ld, base at %ld\n",
+  DEBUG(8, Sdprintf("Cleared read buffer.rb at %ld, base at %ld\n",
 		  (long) &rb, (long) rb.base));
 }      
 
@@ -259,7 +259,7 @@ addToBuffer(register char c)
 { if (rb.left-- == 0)
   { if ((rb.base = Realloc(rb.base, rb.size * 2)) == (char *)NULL)
       fatalError("%s", OsError());
-    DEBUG(8, printf("Reallocated read buffer at %ld\n", (long) rb.base));
+    DEBUG(8, Sdprintf("Reallocated read buffer at %ld\n", (long) rb.base));
     base = rb.base;
     rb.here = rb.base + rb.size;
     rb.left = rb.size - 1;
@@ -298,8 +298,8 @@ raw_read2(void)
 
   for(;;)
   { c = getchr();
-    DEBUG(3, if ( Input == 0 ) printf("getchr() -> %d (%c)\n", c, c));
-    DEBUG(3, if ( Input == 0 ) printf("here = %ld, base = %ld",
+    DEBUG(3, if ( Input == 0 ) Sdprintf("getchr() -> %d (%c)\n", c, c));
+    DEBUG(3, if ( Input == 0 ) Sdprintf("here = %ld, base = %ld",
 				      (long) rb.here, (long) rb.base));
 #if !defined(HAVE_LIBREADLINE) && defined(O_TERMIO)
     if ( c == ttytab.tab.c_cc[VEOF] )		/* little hack ... */
@@ -552,7 +552,7 @@ lookupVariable(char *s)
     }
   }
   var = (Variable) alloc_var((size_t) sizeof(struct variable));
-  DEBUG(9, printf("Allocated var at %ld\n", (long) var));
+  DEBUG(9, Sdprintf("Allocated var at %ld\n", (long) var));
   var->next = varTable[v];
   varTable[v] = var;
   var->name = save_var_name(s);
@@ -668,7 +668,7 @@ get_token(bool must_be_op)
 		  token.value.prolog = (word)lookupAtom(start);
 		  *here = c;
 		  token.type = (c == '(' ? T_FUNCTOR : T_NAME);
-		  DEBUG(9, printf("%s: %s\n", c == '(' ? "FUNC" : "NAME", stringAtom(token.value.prolog)));
+		  DEBUG(9, Sdprintf("%s: %s\n", c == '(' ? "FUNC" : "NAME", stringAtom(token.value.prolog)));
 
 		  return &token;
 		}
@@ -679,11 +679,11 @@ get_token(bool must_be_op)
 		  *here = EOS;
 		  if (start[0] == '_' && here == start + 1)
 		  { setVar(token.value.prolog);
-		    DEBUG(9, printf("VOID\n"));
+		    DEBUG(9, Sdprintf("VOID\n"));
 		    token.type = T_VOID;
 		  } else
 		  { token.value.variable = lookupVariable(start);
-		    DEBUG(9, printf("VAR: %s\n", token.value.variable->name));
+		    DEBUG(9, Sdprintf("VAR: %s\n", token.value.variable->name));
 		    token.type = T_VARIABLE;
 		  }
 		  *here = c;
@@ -703,7 +703,7 @@ get_token(bool must_be_op)
 		    token.type = T_INTEGER;
 		    here += 2;
 
-		    DEBUG(9, printf("INT: %ld\n", valNum(token.value.prolog)));
+		    DEBUG(9, Sdprintf("INT: %ld\n", valNum(token.value.prolog)));
 		    return &token;
 		  }
 
@@ -755,7 +755,7 @@ get_token(bool must_be_op)
 		    bool neg_exponent;
 
 		    here++;
-		    DEBUG(9, printf("Exponent\n"));
+		    DEBUG(9, Sdprintf("Exponent\n"));
 		    switch(*here)
 		    { case '-':		here++;
 					neg_exponent = TRUE;
@@ -796,7 +796,7 @@ get_token(bool must_be_op)
 		  tmp[0] = c, tmp[1] = EOS;
 		  token.value.prolog = (word) lookupAtom(tmp);
 		  token.type = (*here == '(' ? T_FUNCTOR : T_NAME);
-		  DEBUG(9, printf("%s: %s\n",
+		  DEBUG(9, Sdprintf("%s: %s\n",
 				  *here == '(' ? "FUNC" : "NAME",
 				  stringAtom(token.value.prolog)));
 
@@ -823,7 +823,7 @@ get_token(bool must_be_op)
 		    }
 		  }
 		  token.type = (end == '(' ? T_FUNCTOR : T_NAME);
-		  DEBUG(9, printf("%s: %s\n", end == '(' ? "FUNC" : "NAME", stringAtom(token.value.prolog)));
+		  DEBUG(9, Sdprintf("%s: %s\n", end == '(' ? "FUNC" : "NAME", stringAtom(token.value.prolog)));
 
 		  return &token;
 		}
@@ -836,13 +836,13 @@ get_token(bool must_be_op)
 				token.value.prolog =
 				    (word)(c == '[' ? ATOM_nil : ATOM_curl);
 				token.type = T_NAME;
-				DEBUG(9, printf("NAME: %s\n", stringAtom(token.value.prolog)));
+				DEBUG(9, Sdprintf("NAME: %s\n", stringAtom(token.value.prolog)));
 				return &token;
 			      }
 		  }
 		  token.value.character = c;
 		  token.type = T_PUNCTUATION;
-		  DEBUG(9, printf("PUNCT: %c\n", token.value.character));
+		  DEBUG(9, Sdprintf("PUNCT: %c\n", token.value.character));
 
 		  return &token;
 		}
@@ -857,7 +857,7 @@ get_token(bool must_be_op)
 			*s = end;
 			token.type = (here[1] == '(' ? T_FUNCTOR : T_NAME);
 			here++;
-			DEBUG(9, printf("%s: %s\n", here[1] == '(' ? "FUNC" : "NAME", stringAtom(token.value.prolog)));
+			DEBUG(9, Sdprintf("%s: %s\n", here[1] == '(' ? "FUNC" : "NAME", stringAtom(token.value.prolog)));
 			return &token;
 		      }
 		      here++;
@@ -880,7 +880,7 @@ get_token(bool must_be_op)
 #else
 			token.value.prolog = (word) stringToList(start);
 #endif /* O_STRING */
-			DEBUG(9, printf("STR: %s\n", start));
+			DEBUG(9, Sdprintf("STR: %s\n", start));
 			*s = end;
 			token.type = T_STRING;
 			here++;
@@ -909,7 +909,7 @@ build_term(Atom atom, int arity, Word argv)
   word term;
   Word argp;
 
-  DEBUG(9, printf("Building term %s/%d ... ", stringAtom(atom), arity));
+  DEBUG(9, Sdprintf("Building term %s/%d ... ", stringAtom(atom), arity));
   term = globalFunctor(functor);
   argp = argTermP(term, 0);
   while(arity-- > 0)
@@ -930,7 +930,7 @@ build_term(Atom atom, int arity, Word argv)
     } else
       *argp++ = *argv++;
   }
-  DEBUG(9, printf("result: "); pl_write(&term); printf("\n") );
+  DEBUG(9, Sdprintf("result: "); pl_write(&term); Sdprintf("\n") );
 
   return term;
 }
@@ -994,14 +994,14 @@ isOp(Atom atom, int kind, op_entry *e)
 #define Modify(pri) \
 	if ( side_p != NULL && pri > side_p->right_pri ) \
 	{ if ( side_p->kind == OP_PREFIX && rmo == 0 ) \
-	  { DEBUG(1, printf("Prefix %s to atom\n", stringAtom(side_p->op))); \
+	  { DEBUG(1, Sdprintf("Prefix %s to atom\n", stringAtom(side_p->op))); \
 	    rmo++; \
 	    out[out_n++] = (word) side_p->op; \
 	    side_n--; \
 	    side_p = (side_n == 0 ? NULL : side_p-1); \
 	  } else if ( side_p->kind == OP_INFIX && out_n > 0 && rmo == 0 && \
 		      isOp(side_p->op, OP_POSTFIX, side_p) ) \
-	  { DEBUG(1, printf("Infix %s to postfix\n", stringAtom(side_p->op)));\
+	  { DEBUG(1, Sdprintf("Infix %s to postfix\n", stringAtom(side_p->op)));\
 	    rmo++; \
 	    out[out_n-1] = build_term(side_p->op, 1, &out[out_n-1]); \
 	    side_n--; \
@@ -1014,7 +1014,7 @@ isOp(Atom atom, int kind, op_entry *e)
 	{ int arity = (side_p->kind == OP_INFIX ? 2 : 1); \
 							  \
  	  if ( arity > out_n ) break; \
-	  DEBUG(1, printf("Reducing %s/%d\n", stringAtom(side_p->op), arity));\
+	  DEBUG(1, Sdprintf("Reducing %s/%d\n", stringAtom(side_p->op), arity));\
 	  out[out_n-arity] = build_term(side_p->op, \
 					arity, \
 					&out[out_n - arity]); \
@@ -1060,10 +1060,10 @@ complex_term(char *stop, Word term)
     TRY( simple_term(rmo == 1, &in, &isname) );
 
     if ( isname )			/* Check for operators */
-    { DEBUG(1, printf("name %s, rmo = %d\n", stringAtom((Atom) in), rmo));
+    { DEBUG(1, Sdprintf("name %s, rmo = %d\n", stringAtom((Atom) in), rmo));
 
       if ( isOp((Atom) in, OP_INFIX, &in_op) )
-      { DEBUG(1, printf("Infix op: %s\n", stringAtom((Atom) in)));
+      { DEBUG(1, Sdprintf("Infix op: %s\n", stringAtom((Atom) in)));
 
 	Modify(in_op.left_pri);
 	if ( rmo == 1 )
@@ -1075,7 +1075,7 @@ complex_term(char *stop, Word term)
 	}
       }
       if ( isOp((Atom) in, OP_POSTFIX, &in_op) )
-      { DEBUG(1, printf("Postfix op: %s\n", stringAtom((Atom) in)));
+      { DEBUG(1, Sdprintf("Postfix op: %s\n", stringAtom((Atom) in)));
 
 	Modify(in_op.left_pri);
 	if ( rmo == 1 )
@@ -1086,7 +1086,7 @@ complex_term(char *stop, Word term)
 	}
       }
       if ( rmo == 0 && isOp((Atom) in, OP_PREFIX, &in_op) )
-      { DEBUG(1, printf("Prefix op: %s\n", stringAtom((Atom) in)));
+      { DEBUG(1, Sdprintf("Prefix op: %s\n", stringAtom((Atom) in)));
 	
 	Reduce(in_op.left_pri > side_p->right_pri);
 	PushOp();
@@ -1125,7 +1125,7 @@ static bool
 simple_term(bool must_be_op, Word term, bool *name)
 { Token token;
 
-  DEBUG(9, printf("simple_term(): Stack at %ld\n", (long) &term));
+  DEBUG(9, Sdprintf("simple_term(): Stack at %ld\n", (long) &term));
 
   *name = FALSE;
 

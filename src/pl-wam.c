@@ -218,11 +218,11 @@ callForeign(Procedure proc, LocalFrame frame)
       deRef2(a, *ap)
   }
 
-  DEBUG(7, printf("Calling built in %s\n", procedureName(proc)) );
+  DEBUG(7, Sdprintf("Calling built in %s\n", procedureName(proc)) );
 
   SECURE(
   int n;
-  DEBUG(5, printf("argc = %d, argv = 0x%x\n", argc, (unsigned long) argv));
+  DEBUG(5, Sdprintf("argc = %d, argv = 0x%x\n", argc, (unsigned long) argv));
   for(n = 0; n < argc; n++)
   { checkData(argv[n], FALSE);
     lockp(&argv[n]);
@@ -235,7 +235,7 @@ callForeign(Procedure proc, LocalFrame frame)
 #define F (*function)
 
   gc_status.blocked++;
-  if ( (gc_save = true(proc->definition, GC_SAVE)) )
+  if ( (gc_save = true(proc->definition, GC_SAFE)) )
     lockp(&frame);
 #if O_SHIFT_STACKS
   else
@@ -321,7 +321,7 @@ callForeign(Procedure proc, LocalFrame frame)
 
   SECURE(
   int n;
-  DEBUG(5, printf("argc = %d, argv = 0x%x\n", argc, (unsigned long) argv));
+  DEBUG(5, Sdprintf("argc = %d, argv = 0x%x\n", argc, (unsigned long) argv));
   for(n=argc-1; n >= 0; n--)
   { unlockp(&argv[n]);
     checkData(argv[n], FALSE);
@@ -369,7 +369,7 @@ leaveForeignFrame(LocalFrame fr)
     word context = (word) fr->clause | FRG_CUT;
 
 #define U ((Word) NULL)
-    DEBUG(5, printf("Cut %s, context = 0x%lx\n", procedureName(proc), context));
+    DEBUG(5, Sdprintf("Cut %s, context = 0x%lx\n", procedureName(proc), context));
     switch(proc->functor->arity)
     { case 0:	(*f)(context);					return;
       case 1:	(*f)(U, context);				return;
@@ -718,7 +718,7 @@ interpret(Module Context, word Goal, bool debug)
     NULL
   };
 
-#define VMI(Name, Count, Msg)	Name ## _LBL: Count; DEBUG(8, printf Msg);
+#define VMI(Name, Count, Msg)	Name ## _LBL: Count; DEBUG(8, Sdprintf Msg);
 #if VMCODE_IS_ADDRESS
 #define NEXT_INSTRUCTION	goto *(void *)((int)(*PC++))
 #else
@@ -727,7 +727,7 @@ interpret(Module Context, word Goal, bool debug)
 
 #else /* O_LABEL_ADDRESSES */
 
-#define VMI(Name, Count, Msg)	case Name: Count; DEBUG(8, printf Msg);
+#define VMI(Name, Count, Msg)	case Name: Count; DEBUG(8, Sdprintf Msg);
 #define NEXT_INSTRUCTION	goto next_instruction
 
 #endif /* O_LABEL_ADDRESSES */
@@ -742,7 +742,7 @@ interpret(Module Context, word Goal, bool debug)
 	       pl_write(&Goal);
 	       Putf("\n");
 	     } else
-	       printf("Interpret goal in unitialized environment.\n");
+	       Sdprintf("Interpret goal in unitialized environment.\n");
 	   });
 
   /* Allocate a local stack frame */
@@ -1226,7 +1226,7 @@ exit(Block, RVal).  First does !(Block).
 	set(blockfr, FR_CUT);
 	for(fr = BFR; fr > blockfr; fr = fr->backtrackFrame)
 	{ for(fr2 = fr; fr2->clause && fr2 > blockfr; fr2 = fr2->parent)
-	  { DEBUG(3, printf("discard %d\n", (Word)fr2 - (Word)lBase) );
+	  { DEBUG(3, Sdprintf("discard %d\n", (Word)fr2 - (Word)lBase) );
 	    leaveFrame(fr2);
 	    fr2->clause = (Clause) NULL;
 	  }
@@ -1241,7 +1241,7 @@ exit(Block, RVal).  First does !(Block).
 	  fr->backtrackFrame = BFR;
 	}
 
-	DEBUG(3, printf("BFR = %d\n", (Word)BFR - (Word)lBase) );
+	DEBUG(3, Sdprintf("BFR = %d\n", (Word)BFR - (Word)lBase) );
 
 	if ( unify(argFrameP(blockfr, 2), rval) )
 	{ for( ; FR > blockfr; FR = FR->parent )
@@ -1294,7 +1294,7 @@ exit(Block, RVal).  First does !(Block).
 	for(fr = BFR; fr > cutfr; fr = fr->backtrackFrame)
 	{ for(fr2 = fr; fr2->clause && fr2 > cutfr; fr2 = fr2->parent)
 	  { if ( false(fr, FR_CUT) )
-	    { DEBUG(3, printf("discard [%ld] %s\n",
+	    { DEBUG(3, Sdprintf("discard [%ld] %s\n",
 			      levelFrame(fr), procedureName(fr->procedure)));
 	      leaveFrame(fr2);
 	      fr2->clause = (Clause) NULL;
@@ -1302,7 +1302,7 @@ exit(Block, RVal).  First does !(Block).
 	  }
 	}
 
-	DEBUG(3, printf("BFR = [%ld] %s\n",
+	DEBUG(3, Sdprintf("BFR = [%ld] %s\n",
 			levelFrame(BFR),
 			procedureName(BFR->procedure)));
 
@@ -1336,7 +1336,7 @@ backtrack that makes it difficult to understand the tracer's output.
 	set(FR, FR_CUT);
 	for(fr = BFR; fr > FR; fr = fr->backtrackFrame)
 	{ for(fr2 = fr; fr2->clause && fr2 > FR; fr2 = fr2->parent)
-	  { DEBUG(3, printf("discard %d\n", (Word)fr2 - (Word)lBase) );
+	  { DEBUG(3, Sdprintf("discard %d\n", (Word)fr2 - (Word)lBase) );
 	    leaveFrame(fr2);
 	    fr2->clause = (Clause) NULL;
 	  }
@@ -1347,7 +1347,7 @@ backtrack that makes it difficult to understand the tracer's output.
 	SetBfr(FR->backtrackFrame);
 #endif
 
-	DEBUG(3, printf("BFR = %d\n", (Word)BFR - (Word)lBase) );
+	DEBUG(3, Sdprintf("BFR = %d\n", (Word)BFR - (Word)lBase) );
 	lTop = (LocalFrame) argFrameP(FR, CL->variables);
 	ARGP = argFrameP(lTop, 0);
 
@@ -1425,7 +1425,7 @@ discarded.
 
 	for(fr = BFR; fr > obfr; fr = fr->backtrackFrame)
 	{ for(fr2 = fr; fr2->clause && fr2 > obfr; fr2 = fr2->parent)
-	  { DEBUG(3, printf("discard %d: ", (Word)fr2 - (Word)lBase) );
+	  { DEBUG(3, Sdprintf("discard %d: ", (Word)fr2 - (Word)lBase) );
 	    DEBUG(3, writeFrameGoal(fr2, 2); pl_nl() );
 	    leaveFrame(fr2);
 	    fr2->clause = (Clause) NULL;
@@ -1494,10 +1494,10 @@ to give the compiler a hint to put ARGP not into a register.
 	if ( ar_func_n(*PC++, 0, &argp) == FALSE )
 	  BODY_FAILED;
 	ARGP = argp;
-				DEBUG(8, printf("ARGP = 0x%lx; top = ",
+				DEBUG(8, Sdprintf("ARGP = 0x%lx; top = ",
 						(unsigned long)ARGP);
 					 pl_write(ARGP-1);
-					 printf("\n"));
+					 Sdprintf("\n"));
 	NEXT_INSTRUCTION;
       }
 
@@ -1506,27 +1506,27 @@ to give the compiler a hint to put ARGP not into a register.
 	if ( ar_func_n(*PC++, 1, &argp) == FALSE )
 	  BODY_FAILED;
 	ARGP = argp;
-				DEBUG(8, printf("ARGP = 0x%lx; top = ",
+				DEBUG(8, Sdprintf("ARGP = 0x%lx; top = ",
 						(unsigned long)ARGP);
 					 pl_write(ARGP-1);
-					 printf("\n"));
+					 Sdprintf("\n"));
 	NEXT_INSTRUCTION;
       }
 
     VMI(A_FUNC2, COUNT_N(a_func2), ("a_func2 %d\n", *PC)) MARK(A_FUNC2);
       {	Word argp = ARGP;
-				DEBUG(8, printf("ARGP = 0x%lx; top = ",
+				DEBUG(8, Sdprintf("ARGP = 0x%lx; top = ",
 						(unsigned long)ARGP);
-					 pl_write(ARGP-2); printf(" & ");
+					 pl_write(ARGP-2); Sdprintf(" & ");
 					 pl_write(ARGP-1);
-					 printf("\n"));
+					 Sdprintf("\n"));
 	if ( ar_func_n(*PC++, 2, &argp) == FALSE )
 	  BODY_FAILED;
 	ARGP = argp;
-				DEBUG(8, printf("ARGP = 0x%lx; top = ",
+				DEBUG(8, Sdprintf("ARGP = 0x%lx; top = ",
 						(unsigned long)ARGP);
 					 pl_write(ARGP-1);
-					 printf("\n"));
+					 Sdprintf("\n"));
 	NEXT_INSTRUCTION;
       }
 
@@ -1748,7 +1748,7 @@ the first call of $alt/1 simply succeeds.
 	Word a;
 
 	*ARGP++ = consNum(skip);	/* push amount to skip (as B_CONST) */
-	DEBUG(9, printf("$alt(%d)\n", skip));
+	DEBUG(9, Sdprintf("$alt(%d)\n", skip));
 	next = lTop;
 	next->flags = FR->flags;
 	next->procedure = PROCEDURE_alt1;
@@ -2081,12 +2081,12 @@ Testing is suffices to find out that the predicate is defined.
 	    long tused = usedStack(trail);
 
 	    garbageCollect(FR);
-	    DEBUG(1, printf("\tgshift = %d; tshift = %d", gshift, tshift));
+	    DEBUG(1, Sdprintf("\tgshift = %d; tshift = %d", gshift, tshift));
 	    if ( gshift )
 	      gshift = ((2 * usedStack(global)) > gused);
 	    if ( tshift )
 	      tshift = ((2 * usedStack(trail)) > tused);
-	    DEBUG(1, printf(" --> gshift = %d; tshift = %d\n",
+	    DEBUG(1, Sdprintf(" --> gshift = %d; tshift = %d\n",
 			    gshift, tshift));
 	  }
 
@@ -2130,14 +2130,14 @@ values  found  in  the  clause, give a referecence to the clause and set
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 	ARGP = argFrameP(FR, 0);
 
-	DEBUG(9, printf("Searching clause ... "));
+	DEBUG(9, Sdprintf("Searching clause ... "));
 
 	if ( (CL = findClause(DEF->definition.clauses, ARGP, DEF,
 			      &deterministic)) == NULL )
-	{ DEBUG(9, printf("No clause matching index.\n"));
+	{ DEBUG(9, Sdprintf("No clause matching index.\n"));
 	  FRAME_FAILED;
 	}
-	DEBUG(9, printf("Clauses found.\n"));
+	DEBUG(9, Sdprintf("Clauses found.\n"));
 
 	if ( deterministic )
 	  set(FR, FR_CUT);
@@ -2335,7 +2335,7 @@ such frames are created the current clause fails.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 body_failed:				MARK(BKTRK);
-  DEBUG(9, printf("body_failed\n"));
+  DEBUG(9, Sdprintf("body_failed\n"));
   if ( BFR > FR )
   { environment_frame = FR = BFR;
     goto resume_from_body;
@@ -2557,7 +2557,7 @@ pl_alt(Word skip, word h)
       SECURE( if (!isInteger(*skip)) sysError("pl_alt()") );
       ForeignRedo(valNum(*skip));
     case FRG_REDO:
-      DEBUG(9, printf("$alt/1: skipping %ld codes\n", ForeignContext(h)) );
+      DEBUG(9, Sdprintf("$alt/1: skipping %ld codes\n", ForeignContext(h)) );
       environment_frame->programPointer += ForeignContext(h);
       succeed;
     case FRG_CUTTED:

@@ -57,7 +57,7 @@ alloc_heap(register size_t n)
 { register Chunk f;
   register alloc_t m;
   
-  DEBUG(9, printf("allocated %ld bytes at ", (unsigned long)n));
+  DEBUG(9, Sdprintf("allocated %ld bytes at ", (unsigned long)n));
   n = ALLOCROUND(n);
   statistics.heap += n;
 
@@ -66,7 +66,7 @@ alloc_heap(register size_t n)
     if ((f = freeChains[m]) != NULL)
     { freeChains[m] = f->next;
       f->next = (Chunk) NULL;
-      DEBUG(9, printf("(r) %ld (0x%lx)\n",
+      DEBUG(9, Sdprintf("(r) %ld (0x%lx)\n",
 		      (unsigned long) f, (unsigned long) f));
       return (Word) f;			/* perfect fit */
     }
@@ -75,12 +75,12 @@ alloc_heap(register size_t n)
     SetHBase(f);
     SetHTop((char *)f + n);
 
-    DEBUG(9, printf("(n) %ld (0x%lx)\n", (unsigned long)f, (unsigned long)f));
+    DEBUG(9, Sdprintf("(n) %ld (0x%lx)\n", (unsigned long)f, (unsigned long)f));
     return f;
   }
 
   f = (Chunk) Malloc(n);
-  DEBUG(9, printf("(b) %ld\n", (unsigned long)f));
+  DEBUG(9, Sdprintf("(b) %ld\n", (unsigned long)f));
   return f;
 }
 
@@ -90,7 +90,7 @@ free_heap(register Void mem, register size_t n)
 
   n = ALLOCROUND(n);
   statistics.heap -= n;
-  DEBUG(9, printf("freed %ld bytes at %ld\n",
+  DEBUG(9, Sdprintf("freed %ld bytes at %ld\n",
 		  (unsigned long)n, (unsigned long)p));
 
   if (n <= ALLOCFAST)
@@ -320,7 +320,7 @@ globalReal(real f)
   verifyStack(global);
   pack_real((double) f, p);
 
-  DEBUG(4, printf("Put REAL on global stack at 0x%lx\n", (unsigned long)p));
+  DEBUG(4, Sdprintf("Put REAL on global stack at 0x%lx\n", (unsigned long)p));
   return (word)p | INDIRECT_MASK;
 }
 

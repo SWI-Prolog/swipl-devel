@@ -114,6 +114,11 @@ initIO(void)
     fileTable = allocHeap(sizeof(struct plfile) * maxfiles);
   }
 
+#ifdef __unix__
+  if ( !isatty(0) || !isatty(1) )	/* Sinput is not a tty */
+    status.notty = TRUE;
+#endif
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Initilise user input, output and error  stream.   How  to do this neatly
 without the Unix assumptions?
@@ -309,6 +314,7 @@ getSingleChar(void)
     
   Input = 0;
   debugstatus.suspendTrace++;
+  pl_ttyflush();
   PushTty(&buf, TTY_RAW);		/* just donot prompt */
   
   if ( status.notty )
@@ -418,6 +424,29 @@ currentInputLine()
 }
 
 
+bool
+PL_open_stream(IOSTREAM *s, Word handle)
+{ int n;
+  PlFile f;
+
+  for(n=3, f=&fileTable[n]; n<maxfiles; n++, f++)
+  { if ( !f->stream )
+    { f->stream = s;
+      f->name   = NULL;
+      f->type   = ST_FILE;
+      if ( s->flags & SIO_INPUT )
+	f->status = F_READ;
+      else
+	f->status = F_WRITE;
+
+      return unifyAtomic(handle, consNum(n));
+    }
+  }
+
+  return warning("Out of IO streams");
+}
+
+
 static bool
 openStream(word file, int mode, bool fresh)
 { int n;
@@ -426,7 +455,7 @@ openStream(word file, int mode, bool fresh)
   Atom f;
   int type;
 
-  DEBUG(2, printf("openStream file=0x%lx, mode=%d\n", file, mode));
+  DEBUG(2, Sdprintf("openStream file=0x%lx, mode=%d\n", file, mode));
   if ( isAtom(file) )
   { type = ST_FILE;
     f = (Atom) file;
@@ -442,7 +471,7 @@ openStream(word file, int mode, bool fresh)
   } else
     return warning("Illegal stream specification");
 
-  DEBUG(3, printf("File/command name = %s\n", stringAtom(f)));
+  DEBUG(3, Sdprintf("File/command name = %s\n", stringAtom(f)));
   if ( type == ST_FILE )
   { if ( mode == F_READ )
     { if ( f == ATOM_user || f == ATOM_user_input )
@@ -471,7 +500,7 @@ openStream(word file, int mode, bool fresh)
 	    case F_WRITE:
 	    case F_APPEND:	Output = n; break;
 	  }
-	  DEBUG(3, printf("Switched back to already open stream %d\n", n));
+	  DEBUG(3, Sdprintf("Switched back to already open stream %d\n", n));
 	  succeed;
 	} else
 	{ closeStream(n);
@@ -484,7 +513,7 @@ openStream(word file, int mode, bool fresh)
       pushInputContext();		/* see/1 to a new file */
   }
 
-  DEBUG(2, printf("Starting Unix open\n"));
+  DEBUG(2, Sdprintf("Starting Unix open\n"));
   cmode = (mode == F_READ ? "r" : mode == F_WRITE ? "w" : "a");
 
 #ifdef HAVE_POPEN
@@ -526,7 +555,7 @@ openStream(word file, int mode, bool fresh)
     case F_APPEND:		Output = n; break;
   }
 
-  DEBUG(2, printf("Prolog fileTable[] updated\n"));
+  DEBUG(2, Sdprintf("Prolog fileTable[] updated\n"));
 
   succeed;
 }
@@ -665,7 +694,7 @@ bool
 seenString()
 { PlFile f = &fileTable[Input];
 
-  if ( f->stream )
+  if ( f->type == ST_STRING && f->stream )
   { Sclose(f->stream);
     f->stream = NULL;
     f->status = F_CLOSED;
@@ -703,7 +732,7 @@ bool
 toldString()
 { PlFile f = &fileTable[Output];
 
-  if ( f->stream )
+  if ( f->type == ST_STRING && f->stream )
   { Sclose(f->stream);
     f->stream = NULL;
     f->status = F_CLOSED;
@@ -715,14 +744,17 @@ toldString()
 
 
 		/********************************
-		*        INPUT FILE NAME        *
+		*        INPUT IOSTREAM NAME        *
 		*********************************/
 
 Atom
-currentStreamName()
+currentStreamName()			/* only if a file! */
 { PlFile f = &fileTable[Input];
 
-  return f->name;
+  if ( f->type == ST_FILE || f->type == ST_PIPE )
+    return f->name;
+
+  return NULL;
 }
 
 		/********************************
@@ -1240,6 +1272,8 @@ pl_stream_position(Word stream, Word old, Word new)
   lineno  = s->position->lineno;
   linepos = s->position->linepos;
   oldcharno = charno;
+
+  TRY( unifyFunctor(old, FUNCTOR_stream_position3) );
   TRY( unifyAtomic(argTermP(*old, 0), consNum(charno)) );
   TRY( unifyAtomic(argTermP(*old, 1), consNum(lineno)) );
   TRY( unifyAtomic(argTermP(*old, 2), consNum(linepos)) );

@@ -89,7 +89,7 @@ static struct foreign {
   ADD("read",			1, pl_read,			TRACE_ME),
   ADD("read_clause",		1, pl_read_clause,		TRACE_ME),
   ADD("read_clause",		2, pl_read_clause2,		TRACE_ME),
-  ADD("$raw_read",		1, pl_raw_read,		GC_SAVE|TRACE_ME),
+  ADD("$raw_read",		1, pl_raw_read,		GC_SAFE|TRACE_ME),
   ADD("current_op",		3, pl_current_op,	NONDETERMINISTIC|TRACE_ME),
   ADD("current_atom",		1, pl_current_atom,	NONDETERMINISTIC|TRACE_ME),
   ADD("current_functor",	2, pl_current_functor,	NONDETERMINISTIC|TRACE_ME),
@@ -102,6 +102,9 @@ static struct foreign {
   ADD("arg",			3, pl_arg,     NONDETERMINISTIC|TRACE_ME),
   ADD("=..",			2, pl_univ,			TRACE_ME),
   ADD("name",			2, pl_name,			TRACE_ME),
+  ADD("atom_chars",		2, pl_atom_chars,		TRACE_ME),
+  ADD("atom_char",		2, pl_atom_char,		TRACE_ME),
+  ADD("number_chars",		2, pl_number_chars,		TRACE_ME),
   ADD("int_to_atom",		3, pl_int_to_atom,		TRACE_ME),
   ADD("format_number",		3, pl_format_number,		TRACE_ME),
   ADD("concat",			3, pl_concat,			TRACE_ME),
@@ -290,7 +293,7 @@ static struct foreign {
   ADD("msort",			2, pl_msort,			TRACE_ME),
   ADD("sort",			2, pl_sort,			TRACE_ME),
   ADD("format",			2, pl_format,			TRACE_ME),
-  ADD("$collect_bag",		2, pl_collect_bag,	GC_SAVE|TRACE_ME),
+  ADD("$collect_bag",		2, pl_collect_bag,	GC_SAFE|TRACE_ME),
   ADD("$record_bag",		2, pl_record_bag,		TRACE_ME),
   ADD("$please",		3, pl_please,			TRACE_ME),
 
@@ -391,7 +394,7 @@ initBuildIns(void)
     if ( e->flags & PL_FA_NOTRACE )	     flags &= ~TRACE_ME;
     if ( e->flags & PL_FA_TRANSPARENT )	     flags |= TRANSPARENT;
     if ( e->flags & PL_FA_NONDETERMINISTIC ) flags |= NONDETERMINISTIC;
-    if ( e->flags & PL_FA_GCSAVE )	     flags |= GC_SAVE;
+    if ( e->flags & PL_FA_GCSAFE )	     flags |= GC_SAFE;
 
     def = lookupProcedure(lookupFunctorDef(lookupAtom(e->predicate_name),
 					   e->arity), 

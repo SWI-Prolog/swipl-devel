@@ -15,7 +15,7 @@ C-extension   can  either  be   loaded  through the   foreign language
 interface  implemented   by   load_foreign/[1,2,5]  or  through static
 linking.  The latter  mechanism  is  to be  used if  the first is  not
 ported to your machine/operating system.  Static linking is also to be
-preferred  for large   applications   as  it  puts  the   text  in the
+preferred  for large   applications   as  it  Sputs  the   text  in the
 text-section of the (unix) process rather  than te  data section.  The
 text-section  of  a  process  is  normally write-protected  (providing
 better protection) and shared between multiple copies of the program.

@@ -134,12 +134,12 @@ findClause(register Clause cl, register Word argv, register Definition def, bool
 { *deterministic = FALSE;
 
   if ( def->indexPattern == 0x0L )
-  { DEBUG(9, printf("Not indexed.\n"));
+  { DEBUG(9, Sdprintf("Not indexed.\n"));
     while(cl && true(cl, ERASED))
-    { DEBUG(9, printf("Skipping erased clause.\n"));
+    { DEBUG(9, Sdprintf("Skipping erased clause.\n"));
       cl = cl->next;
     }
-    DEBUG(9, printf("Returning clause 0x%lx\n", (unsigned long) cl));
+    DEBUG(9, Sdprintf("Returning clause 0x%lx\n", (unsigned long) cl));
     if ( cl && !cl->next )
       *deterministic = TRUE;
     return cl;

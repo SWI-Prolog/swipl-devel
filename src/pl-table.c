@@ -30,7 +30,7 @@ newHTable(int size)
   int n;
   Table ht;
 
-  DEBUG(9, printf("Creating hash table (size=%d)\n", size));
+  DEBUG(9, Sdprintf("Creating hash table (size=%d)\n", size));
   ht = (Table) allocHeap(htsize(size));
   ht->size = size;
 
@@ -38,7 +38,7 @@ newHTable(int size)
     *p = (Symbol) makeRef(p+1);
   *p = (Symbol) NULL;
 
-  DEBUG(9, printf("Returning ht=%ld\n", ht));
+  DEBUG(9, Sdprintf("Returning ht=%ld\n", ht));
   return ht;
 }
 
@@ -54,14 +54,14 @@ Symbol
 lookupHTable(Table ht, Void name)
 { register Symbol s = ht->entries[pointerHashValue(name, ht->size)];
 
-  DEBUG(9, printf("lookupHTable(%ld, %ld) --> ", ht, name));
+  DEBUG(9, Sdprintf("lookupHTable(%ld, %ld) --> ", ht, name));
   for(;s && !isRef((word)s); s = s->next)
     if (s->name == (word)name)
-    { DEBUG(9, printf("Symbol=%ld, value=%ld\n", s, s->value));
+    { DEBUG(9, Sdprintf("Symbol=%ld, value=%ld\n", s, s->value));
       return s;
     }
 
-  DEBUG(9, printf("Symbol = NULL\n"));
+  DEBUG(9, Sdprintf("Symbol = NULL\n"));
   return (Symbol) NULL;
 }
 
@@ -71,7 +71,7 @@ addHTable(Table ht, Void name, Void value)
 { register Symbol s;
   register int v = pointerHashValue(name, ht->size);
 
-  DEBUG(9, printf("addHTable(%ld, %ld, %ld) ... ", ht, name, value));
+  DEBUG(9, Sdprintf("addHTable(%ld, %ld, %ld) ... ", ht, name, value));
   if (lookupHTable(ht, name) != (Symbol) NULL)
     fail;
   s = (Symbol) allocHeap(sizeof(struct symbol));
@@ -80,7 +80,7 @@ addHTable(Table ht, Void name, Void value)
   s->next = ht->entries[v];
   ht->entries[v] = s;
 
-  DEBUG(9, printf("ok\n"));
+  DEBUG(9, Sdprintf("ok\n"));
   succeed;
 }  
 

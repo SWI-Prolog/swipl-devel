@@ -15,10 +15,10 @@
 #
 ################################################################
 
-PLVERSION=2.0.4
+PLVERSION=2.0.5
 
 PL=pl
-prefix=/usr/local
+prefix=/staff/jan
 exec_prefix=${prefix}
 bindir=$(exec_prefix)/bin
 PLBASE=$(prefix)/lib/pl-$(PLVERSION)
@@ -38,7 +38,7 @@ INSTALL_PROGRAM=${INSTALL}
 INSTALL_DATA=${INSTALL} -m 644
 
 COFLAGS=-O2
-CWFLAGS=
+CWFLAGS=-Wall
 CIFLAGS=
 CMFLAGS=-funsigned-char
 CFLAGS=	$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS)
@@ -51,6 +51,7 @@ DEFSTARTUP=.plrc
 PB=../boot
 EXPORTS=../include/SWI-Exports
 CINCLUDE=../include/SWI-Prolog.h
+STREAMH=../include/SWI-Stream.h
 STARTUPPATH=$(PL).qlf
 RUNTIMEDIR=../runtime/$(ARCH)
 RUNTIME=$(RUNTIMEDIR)/$(PL).o
@@ -78,7 +79,7 @@ all:	../VERSION banner headers system startup index runtime pl-bite
 
 system:		$(PL)
 startup:	$(STARTUPPATH)
-headers:	$(EXPORTS) $(CINCLUDE)
+headers:	$(EXPORTS) $(CINCLUDE) $(STREAMH)
 runtime:	$(RUNTIME)
 
 banner:
@@ -115,6 +116,10 @@ $(EXPORTS):	Makefile pl-export
 $(CINCLUDE):	pl-itf.h
 		if [ ! -d ../include ]; then mkdir ../include; fi
 		cp pl-itf.h $(CINCLUDE)
+
+$(STREAMH):	pl-stream.h
+		if [ ! -d ../include ]; then mkdir ../include; fi
+		cp pl-stream.h $@
 
 parms.h:	Makefile
 		@echo "#define PLHOME       \"$(PLBASE)\""      > %$@%
@@ -199,7 +204,7 @@ ilib:
 
 iinclude:       
 		cd ../include; \
-		for f in SWI-Prolog.h SWI-Exports; do \
+		for f in SWI-Prolog.h SWI-Exports SWI-Stream.h; do \
 		    if [ -f $$f ]; then \
 			$(INSTALL_DATA) $$f $(PLBASE)/include; \
 		    fi; \

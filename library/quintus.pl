@@ -39,13 +39,30 @@
 		*********************************/
 
 %	unix(+Action)
-%	interface to  Unix.   Currently  only  `system(Command)'  is
-%	available as `Action'.
+%	interface to  Unix.
 
 unix(system(Command)) :-
-	shell(Command).
+        shell(Command).
+unix(shell(Command)) :-
+        shell(Command).
+unix(shell) :-
+        shell.
 unix(access(File, 0)) :-
-	access_file(File, read).
+        access_file(File, read).
+unix(cd) :-
+        chdir('~').
+unix(cd(Dir)) :-
+        chdir(Dir).
+unix(args(L)) :-
+	'$argv'(L).
+unix(argv(L)) :-
+	'$argv'(S),
+	maplist(to_prolog, S, L).
+
+to_prolog(S, A) :-
+	name(S, L),
+	name(A, L).
+
 
 %	file_exists(+File)
 %	Succeeds if `File' exists as a file or directory in the Unix file
