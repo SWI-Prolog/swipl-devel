@@ -73,12 +73,13 @@ $define_predicate(Term) :-
 		********************************/
 
 $update_library_index :-
-	setof(Dir, indexed_directory(Dir), Dirs),
+	setof(Dir, indexed_directory(Dir), Dirs), !,
 	checklist(guarded_make_library_index, Dirs),
 	(   flag($modified_index, true, false)
 	->  clear_library_index
 	;   true
 	).
+$update_library_index.
 
 guarded_make_library_index(Dir) :-
 	catch(make_library_index(Dir), E,
