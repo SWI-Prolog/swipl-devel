@@ -42,10 +42,12 @@ manual:		$(MANUAL)
 
 pdf:		$(PDF)
 
-online:		$(ONLINE) online_index
+online:		txt.sty $(ONLINE) online_index
 online_index:	$(ONLINE_INDEX)
 
 dvi2tty:	$(DVI2TTY)
+txt.sty:	txt/txt.sty
+		cp txt/txt.sty $@
 
 clean:		
 		rm -f *~ *% tmp.* *.aux *.idx *.ind *.log *.toc *.ilg
