@@ -557,7 +557,8 @@ getBase64EncodeCharArray(CharArray in)
   unsigned long v;
 
   for(i=0; i+2<size;)
-  { v = (str_fetch(s, i++)<<16) + (str_fetch(s, i++)<<8) + str_fetch(s, i++);
+  { v = (str_fetch(s, i)<<16) + (str_fetch(s, i+1)<<8) + str_fetch(s, i+2);
+    i += 3;
     str_store(buf, o++, base64_char((v>>18)&0x3f));
     str_store(buf, o++, base64_char((v>>12)&0x3f));
     str_store(buf, o++, base64_char((v>> 6)&0x3f));
@@ -565,7 +566,7 @@ getBase64EncodeCharArray(CharArray in)
   }
 
   if ( size - i == 2 )
-  { v = (str_fetch(s, i++)<<16) + (str_fetch(s, i)<<8);
+  { v = (str_fetch(s, i)<<16) + (str_fetch(s, i+1)<<8);
     str_store(buf, o++, base64_char((v>>18)&0x3f));
     str_store(buf, o++, base64_char((v>>12)&0x3f));
     str_store(buf, o++, base64_char((v>> 6)&0x3f));
@@ -594,8 +595,9 @@ getBase64DecodeCharArray(CharArray in)
   for(i=0; i+3<size; )
   { int c;
 
-    v = (base64_code(str_fetch(s, i++)) << 18) |
-	(base64_code(str_fetch(s, i++)) << 12);
+    v = (base64_code(str_fetch(s, i)) << 18) |
+	(base64_code(str_fetch(s, i+1)) << 12);
+    i += 2;
     c = str_fetch(s, i++);
     if ( c == '=' )
     { i++;				/* skip last (must be =) */

@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Some dubious C constructs reported by gcc 3.1 (Paulo Mauro).
+
 * FIXED: Editor text-selection better checking of context (Jakub Jiricek).
 
 * FIXED: When using with multi-threaded SWI-Prolog, avoid deadlock if
