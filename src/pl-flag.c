@@ -81,7 +81,7 @@ freeFlagValue(Flag f)
 
 
 static
-PRED_IMPL("flag", 3, flag, 0)
+PRED_IMPL("flag", 3, flag, PL_FA_TRANSPARENT)
 { PRED_LD
   Flag f;
   word key;
@@ -206,5 +206,5 @@ pl_current_flag(term_t k, control_t h)
 		 *******************************/
 
 BeginPredDefs(flag)
-  PRED_DEF("flag", 3, flag, 0)
+  PRED_DEF("flag", 3, flag, PL_FA_TRANSPARENT)
 EndPredDefs
