@@ -797,15 +797,23 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
   char signx[10], signy[10];
   int ok=0;
   WsFrame f = fr->ws_ref;
+  int ew, eh;
 
-  outer_frame_area(fr, &x, &y, &w, &h, FALSE);
+  if ( !ws_frame_bb(fr, &x, &y, &w, &h) )
+    return;
+  ew = w - valInt(fr->area->w);		/* width/height of decorations */
+  eh = h - valInt(fr->area->h);
 
   switch(sscanf(s, "%dx%d%[+-]%d%[+-]%d", &w, &h, signx, &x, signy, &y))
   { case 2:
+      w += ew;
+      h += eh;
       flags |= SWP_NOMOVE;
       ok++;
       break;
     case 6:
+      w += ew;
+      h += eh;
       if ( signx[0] == '-' )
 	x = valInt(getWidthDisplay(fr->display)) - x - w;
       if ( signy[0] == '-' )
@@ -845,8 +853,12 @@ ws_geometry_frame(FrameObj fr, Int px, Int py, Int pw, Int ph)
   if ( f )
   { int x, y, w, h;
     UINT flags = SWP_NOACTIVATE|SWP_NOZORDER;
+    Area a = fr->area;
 
-    outer_frame_area(fr, &x, &y, &w, &h, FALSE);
+    x = valInt(a->x);
+    y = valInt(a->y);
+    w = valInt(a->w);
+    h = valInt(a->h);
 
     if ( isDefault(pw) && isDefault(ph) )
       flags |= SWP_NOSIZE;
