@@ -150,8 +150,22 @@ rdfe_update(Subject, Predicate, Object, Action) :-
 	->  assert_action(TID, predicate(Predicate), Subject, New, Object)
 	;   Action = subject(New)
 	->  assert_action(TID, subject(Subject), New, Predicate, Object)
+	;   Action = source(New)
+	->  forall(rdf(Subject, Predicate, Object, PayLoad),
+		   assert_action(TID, source(PayLoad, New),
+				 Subject, Predicate, Object))
 	),
 	journal(update(TID, Subject, Predicate, Object, Action)).
+
+rdfe_update(Subject, Predicate, Object, PayLoad, Action) :-
+	rdfe_current_transaction(TID),
+	set_modified(PayLoad),
+	(   Action = source(New)
+	->  assert_action(TID, source(PayLoad, New),
+			  Subject, Predicate, Object)
+	;   throw(tbd)			% is not yet public and only
+	),				% source is used internally
+	journal(update(TID, Subject, Predicate, Object, PayLoad, Action)).
 
 %	rdfe_delete(+Subject)
 %	
@@ -307,6 +321,8 @@ undo(assert(PayLoad), Subject, Predicate, Object) :- !,
 	rdfe_retractall(Subject, Predicate, Object, PayLoad).
 undo(retract(PayLoad), Subject, Predicate, Object) :- !,
 	rdfe_assert(Subject, Predicate, Object, PayLoad).
+undo(source(Old, New), Subject, Predicate, Object) :- !,
+	rdfe_update(Subject, Predicate, Object, source(New), Old).
 undo(Action, Subject, Predicate, Object) :-
 	action(Action), !,
 	rdfe_update(Subject, Predicate, Object, Action).
