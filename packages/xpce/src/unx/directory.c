@@ -98,11 +98,16 @@ static status
 initialiseDirectory(Directory d, Name name)
 { char *expanded;
   char bin[MAXPATHLEN];
+  char *e;
 
   assign(d, name, name);
 
   if ( !(expanded = expandFileName(strName(name), bin)) )
     return errorPce(d, NAME_badFileName, ExpandProblem);
+
+  e = expanded + strlen(expanded);
+  while ( e>expanded+1 && IsDirSep(e[-1]) ) /* delete trailing / */
+    *--e = EOS;
 
 #ifdef O_XOS
   { char buf[MAXPATHLEN];
