@@ -279,8 +279,8 @@ initialise(TC) :->
 	send(TC, direction, list),
 	send(TC, level_gap, 17).
 
-root(TC, Root:toc_folder, Relink:[bool]) :->
-	"Assing the root"::
+root(TC, Root:toc_node, Relink:[bool]) :->
+	"Assign the root"::
 	send_super(TC, root, Root, Relink),
 	send(TC?nodes, append, Root?identifier, Root).
 

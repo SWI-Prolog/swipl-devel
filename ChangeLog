@@ -7,6 +7,11 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: profiler/2 and '$prof_procedure_data'/7 to deal with sibling
+    ticks accounting.  Direct use of profile/1 was ok.  Also fixed getting
+    details from predicates in the user module.  David Reitter.
+
+
 VERSION 5.2.5 (Aug 01, 2003)
 ============================
 

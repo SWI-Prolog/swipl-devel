@@ -32,6 +32,8 @@ variable(nodes,		   int,	 get, "Nodes created").
 variable(time_view,	   {ticks,percentage,seconds} := percentage,
 				 get, "How time is displayed").
 
+class_variable(auto_reset, bool, @on, "Reset profiler after collecting").
+
 initialise(F) :->
 	send_super(F, initialise, 'SWI-Prolog profiler'),
 	send(F, append, new(TD, tool_dialog(F))),
@@ -81,8 +83,10 @@ load_profile(F) :->
 	send(B, load_profile),
 	send(F, report, done),
 	send(F, show_statistics),
-	reset_profiler, % Cleanup loaded data from the Prolog database
-	true.
+	(   get(F, auto_reset, @on)
+	->  reset_profiler
+	;   true
+	).
 
 
 show_statistics(F) :->
@@ -242,9 +246,14 @@ value(DI, Name:name, Value:prolog) :<-
 	get(DI, data, Data),
 	value(Data, Name, Value).
 
-has_predicate(DI, Pred:prolog) :->
+has_predicate(DI, Test:prolog) :->
 	get(DI, data, Data),
-	value(Data, predicate, Pred).
+	value(Data, predicate, Pred),
+	same_pred(Test, Pred).
+
+same_pred(X, X) :- !.
+same_pred(user:Pred, Pred) :- !.
+same_pred(Pred, user:Pred).
 
 compare(DI, DI2:prof_dict_item,
 	SortBy:name, Order:{normal,reverse},

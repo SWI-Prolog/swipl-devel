@@ -335,10 +335,11 @@ typedef struct PL_local_data
 #ifdef O_PROFILE
   struct
   { int		active;			/* profiler is on */
+    int		accounting;		/* we are accounting */
+    int		sum_ok;			/* siblings are counted */
     struct call_node *current;		/* `current' node */
     struct call_node *roots;		/* list of root-nodes */
     ulong	ticks;			/* profile ticks total */
-    int		accounting;		/* we are accounting */
     ulong	accounting_ticks;	/* Ticks in profCall() and friends */
     ulong	nodes;			/* #Recorded nodes */
     double	time;			/* recorded CPU time */

@@ -34,6 +34,7 @@
 #define roots      (LD->profile.roots)		/* roots (<spontaneous>) */
 #define nodes      (LD->profile.nodes)		/* # nodes created */
 #define accounting (LD->profile.accounting)	/* We are accounting */
+#define sum_ok	   (LD->profile.sum_ok)		/* sibling count is ok */
 
 #define PROFTYPE_MAGIC 0x639a2fb1
 
@@ -67,7 +68,7 @@ typedef struct call_node
 } call_node;
 
 static void	freeProfileData(void);
-static ulong	collectSiblingsTime(void);
+static void	collectSiblingsTime(void);
 
 static void
 activateProfiler(int active ARG_LD)
@@ -646,6 +647,14 @@ get_handle(term_t t, void **handle)
   fail;
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+$prof_procedure_data(+Procedure,
+		     -Ticks, -TicksSiblings,
+		     -Calls, -Redos,
+		     -Callers, -Callees)
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 
 static
 PRED_IMPL("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
@@ -659,6 +668,7 @@ PRED_IMPL("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
   if ( !get_handle(A1, &handle) )
     fail;
 
+  collectSiblingsTime();
   memset(&sum, 0, sizeof(sum));
   for(n=roots; n; n=n->next)
     count += sumProfile(n, handle, &prof_default_type, &sum, 0 PASS_LD);
@@ -729,7 +739,6 @@ static
 PRED_IMPL("$profile", 1, profile, PL_FA_TRANSPARENT)
 { PRED_LD
   int rc;
-  ulong ticks;
 
   resetProfiler();
   startProfiler();
@@ -737,10 +746,11 @@ PRED_IMPL("$profile", 1, profile, PL_FA_TRANSPARENT)
   rc = callProlog(NULL, A1, PL_Q_PASS_EXCEPTION, NULL);
   LD->profile.time = CpuTime(CPU_USER) - LD->profile.time;
   stopProfiler();
-  ticks = collectSiblingsTime();
 
-  DEBUG(0, Sdprintf("Created %ld nodes (%ld bytes); %ld ticks\n",
-		    nodes, nodes*sizeof(call_node), ticks));
+  DEBUG(0,
+	Sdprintf("Created %ld nodes (%ld bytes); %ld ticks (%ld overhead)\n",
+		 nodes, nodes*sizeof(call_node),
+		 LD->profile.ticks, LD->profile.accounting_ticks));
 
   return rc;
 }
@@ -995,17 +1005,18 @@ collectSiblingsNode(call_node *n)
 }
 
 
-static ulong
+static void
 collectSiblingsTime()
 { GET_LD
-  ulong count = 0;
-  call_node *n;
-  
-  for(n=roots; n; n=n->next)
-  { count += collectSiblingsNode(n);
-  }
+    
+  if ( !sum_ok )
+  { call_node *n;
+    
+    for(n=roots; n; n=n->next)
+      collectSiblingsNode(n);
 
-  return count;
+    sum_ok = TRUE;
+  }
 }
 
 
