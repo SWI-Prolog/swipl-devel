@@ -27,7 +27,7 @@ mandir=$(prefix)/man/man$(mansec)
 
 CC=gcc
 LIBS= -lreadline -ltermcap -lm -ldl
-STATICLIBS=
+STATICLIBS=/usr/lib/libc.a
 AWK=nawk
 SED=sed
 LD_R=ld -r
