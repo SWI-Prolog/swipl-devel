@@ -250,6 +250,7 @@ editor(Editor) :-			% $EDITOR
 	getenv(Var, Editor), !.
 editor(Editor) :-			% An editor
 	current_prolog_flag(editor, Editor),
+	\+ sub_atom(Editor, 0, _, _, $),
 	\+ pceemacs(Editor), !.
 editor(Editor) :-			% User defaults
 	getenv('EDITOR', Editor), !.
