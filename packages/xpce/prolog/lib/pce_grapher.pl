@@ -241,6 +241,8 @@ actions(persist, _) :- !,
 actions(step, G) :- !,
 	(   tracing
 	->  true
+	;   get(G, mode, fast_forward)
+	->  true
 	;   notrace(get(G, prompt_step, Action)),
 	    (	Action == forward
 	    ->	true
