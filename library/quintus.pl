@@ -26,7 +26,7 @@
 	  no_style_check/1,
 	  otherwise/0,
 	  numbervars/3,
-	  statistics/2,
+%	  statistics/2,			% Please access as quintus:statistics/2
 
 	  current_stream/3,		% ?File, ?Mode, ?Stream
 	  stream_position/3,		% +Stream, -Old, +New
@@ -128,6 +128,7 @@ genarg(N, T, A) :-			% SWI-Prolog arg/3 is generic
 		 *******************************/
 
 :- recorda('$runtime', 0, _).
+:- redefine_system_predicate(statistics(_,_)).
 
 statistics(runtime, [Total, New]) :- !,
 	system:statistics(cputime, Time),
