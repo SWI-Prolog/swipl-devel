@@ -1,0 +1,4 @@
+#define Grey_9_0_width 3
+#define Grey_9_0_height 3
+static char Grey_9_0_bits[] = {
+   0x00, 0x00, 0x00};

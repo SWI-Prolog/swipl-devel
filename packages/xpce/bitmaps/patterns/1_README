@@ -1,0 +1,23 @@
+
+prog/patterns    Small scale patterns and textures
+
+This directory contains tile patterns which can be used by paint
+programs and for background displays.
+
+These patterns can also be used on color displays by specifing appropriate
+forground and background colors in the `setroot' command. By careful
+choice of colors some very wierd effects can be produced.
+
+For Examples of commands you can use on a color display look at the file
+``support/misc/xbgnd_cmd_list''.
+
+
+See Also
+  desc/bw-bgnd    lager scale monocrome background patterns
+  desc/cl-bgnd    color background patterns
+  prog/map        landscape tile patterns
+  prog/effects    miscellanous patterns (spell effects)
+  prog/walls      DIY walls
+  prog/bits       bits an pieces, some of which can be fitted together
+
+Anthony Thyssen  <anthony@cit.gu.edu.au>  http://www.cit.gu.edu.au/~anthony/
