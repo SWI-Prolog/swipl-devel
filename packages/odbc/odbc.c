@@ -57,6 +57,7 @@ typedef DWORD SQLLEN;
 #include <SWI-Prolog.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 
 #ifndef NULL
