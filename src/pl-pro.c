@@ -14,9 +14,7 @@
 #define O_SECURE 1			/* include checkData() */
 #endif
 #include "pl-incl.h"
-#ifdef HAVE_MALLOC_H
-#include <malloc.h>
-#endif
+
 
 		/********************************
 		*    CALLING THE INTERPRETER    *

@@ -56,7 +56,13 @@ embedded application.
 
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef HAVE_MALLOC_H
 #include <malloc.h>
+#else
+#ifdef HAVE_SYS_MALLOC_H
+#include <sys/malloc.h>
+#endif
+#endif
 #include <ctype.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>

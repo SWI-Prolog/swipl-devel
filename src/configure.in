@@ -329,7 +329,8 @@ _EOP_
   rm -rf conftest.*
 
 AC_CHECK_HEADERS(unistd.h string.h memory.h sys/time.h sys/stat.h pwd.h)
-AC_CHECK_HEADERS(sys/select.h sys/param.h sys/file.h sys/resource.h malloc.h)
+AC_CHECK_HEADERS(sys/select.h sys/param.h sys/file.h sys/resource.h)
+AC_CHECK_HEADERS(malloc.h sys/malloc.h)
 AC_CHECK_HEADERS(sys/termios.h sys/termio.h bstring.h sys/mman.h)
 AC_CHECK_HEADERS(mach-o/rld.h locale.h)
 

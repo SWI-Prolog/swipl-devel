@@ -36,9 +36,6 @@ SWI-Prolog.h (pl-itf.h) and SWI-Stream.h (pl-strea.h).
 
 #if defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
 
-#ifdef HAVE_MALLOC_H
-#include <malloc.h>
-#endif
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif

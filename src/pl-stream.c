@@ -39,6 +39,10 @@ locking is required.
 #include <errno.h>
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
+#else
+#ifdef HAVE_SYS_MALLOC_H
+#include <sys/malloc.h>
+#endif
 #endif
 #include <memory.h>
 #include <string.h>

@@ -212,6 +212,10 @@ void *alloca ();
 #endif
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
+#else
+#ifdef HAVE_SYS_MALLOC_H
+#include <sys/malloc.h>
+#endif
 #endif
 
 #if defined(STDC_HEADERS) || defined(HAVE_STRING_H)
