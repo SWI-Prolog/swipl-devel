@@ -149,12 +149,15 @@ struct token
 };
 
 
+#define FASTBUFFERSIZE	256	/* read quickly upto this size */
+
 struct read_buffer
 { int	size;			/* current size of read buffer */
   unsigned char *base;		/* base of read buffer */
   unsigned char *here;		/* current position in read buffer */
   unsigned char *end;		/* end of the valid buffer */
   IOSTREAM *stream;		/* stream we are reading from */
+  unsigned char fast[FASTBUFFERSIZE];	/* Quick internal buffer */
 };
 
 
@@ -189,8 +192,6 @@ typedef struct
   unsigned char *token_start;		/* start of most recent read token */
   struct token token;			/* current token */
   bool _unget;				/* unget_token() */
-  struct read_buffer _rb;		/* keep read characters here */
-  struct var_table vt;			/* Data about variables */
 
   Module	module;			/* Current source module */
   unsigned int	flags;			/* Module syntax flags */
@@ -204,6 +205,9 @@ typedef struct
   term_t	varnames;		/* Report variables+names */
   term_t	singles;		/* Report singleton variables */
   term_t	subtpos;		/* Report Subterm positions */
+
+  struct var_table vt;			/* Data about variables */
+  struct read_buffer _rb;		/* keep read characters here */
 } read_data, *ReadData;
 
 #define	rdhere		  (_PL_rd->here)
@@ -232,16 +236,14 @@ init_read_data(ReadData _PL_rd, IOSTREAM *in ARG_LD)
 
 static void
 free_read_data(ReadData _PL_rd)
-{ if ( rdbase )
-    free(rdbase);
+{ if ( rdbase && rdbase != rb.fast )
+    PL_free(rdbase);
 
   discardBuffer(&var_name_buffer);
   discardBuffer(&var_buffer);
 }
 
 #define DO_CHARESCAPE true(_PL_rd, CHARESCAPE)
-
-#define RBSIZE	512		/* initial size of read buffer */
 
 
 		/********************************
@@ -392,9 +394,8 @@ claimed automatically en enlarged if necessary.
 static void
 clearBuffer(ReadData _PL_rd)
 { if (rb.size == 0)
-  { if ( !(rb.base = (unsigned char *)malloc(RBSIZE)) )
-      fatalError("%s", OsError());
-    rb.size = RBSIZE;
+  { rb.base = rb.fast;
+    rb.size = sizeof(rb.fast);
   }
   rb.end = rb.base + rb.size;
   rdbase = rb.here = rb.base;
@@ -411,8 +412,11 @@ clearBuffer(ReadData _PL_rd)
 
 static void
 growToBuffer(int c, ReadData _PL_rd)
-{ if ( !(rb.base = (unsigned char *)realloc(rb.base, rb.size * 2)) )
-    fatalError("%s", OsError());
+{ if ( rb.base == rb.fast )		/* long clause: jump to use malloc() */
+  { rb.base = PL_malloc(FASTBUFFERSIZE * 2);
+    memcpy(rb.base, rb.fast, FASTBUFFERSIZE);
+  } else
+    rb.base = PL_realloc(rb.base, rb.size*2);
 
   DEBUG(8, Sdprintf("Reallocated read buffer at %ld\n", (long) rb.base));
   rdbase = rb.base;

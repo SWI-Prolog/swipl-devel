@@ -895,13 +895,16 @@ char *
 PL_atom_generator(const char *prefix, int state)
 { long i, mx = entriesBuffer(&atom_array, Atom);
 
+#ifdef O_PLMT
+  if ( !key )
+    pthread_key_create(&key, NULL);
+#endif
+
   if ( !state )
     i = 0;
   else
   {
 #ifdef O_PLMT
-    if ( !key )
-      pthread_key_create(&key, NULL);
     i = (long)pthread_getspecific(key);
 #else
     i = LD->atoms.generator;
