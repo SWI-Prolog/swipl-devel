@@ -10,6 +10,7 @@
 
 
 :- module(link_xpce, []).
+:- style_check(+dollar).		% lock as system module
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This file is loaded  on  startup.  Use   it  for  local  (not  personal)
@@ -21,7 +22,7 @@ configuration purposes.
 :- initialization op(990, xfx, user:(:=)).
 
 :- multifile
-	file_search_path/2.
+	user:file_search_path/2.
 
 :- dynamic
 	pcehomestore_/1.
