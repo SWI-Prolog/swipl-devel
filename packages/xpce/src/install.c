@@ -303,7 +303,7 @@ main(int argc, char **argv)
 	case 'p':
 	  strippath = 0;
 	  makedirs = TRUE;
-	  if ( isdigit(opts[1]) )
+	  if ( isdigit(opts[1]&0xff) )
 	  { opts++;
 	    strippath = *opts - '0';
 	  }
@@ -313,7 +313,7 @@ main(int argc, char **argv)
 	  break;
 	case 'v':
 	  verbose++;
-	  if ( isdigit(opts[1]) )
+	  if ( isdigit(opts[1]&0xff) )
 	  { opts++;
 	    verbose = *opts - '0';
 	  }

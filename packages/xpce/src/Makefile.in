@@ -716,7 +716,7 @@ dv-lib:
 		    echo "lib/dialog/bitmaps/$$f"; \
 		    $(INSTALL_DATA) $$f $(DVHOME)/prolog/lib/dialog/bitmaps; \
 		done
-		$(INSTALL_DATA) ../prolog/lib/man/classification.obj \
+		$(INSTALL_DATA) ../prolog/lib/man/classification.dat \
 				$(DVHOME)/prolog/lib/man
 		$(INSTALL_DATA) ../prolog/lib/Makefile $(DVHOME)/prolog/lib
 

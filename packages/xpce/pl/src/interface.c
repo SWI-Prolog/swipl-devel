@@ -697,7 +697,7 @@ ThrowException(int id, ...)
       if ( descr[0] == '@' )
       { char *s;
 
-	for(s=&descr[1]; *s && isdigit(*s); s++)
+	for(s=&descr[1]; *s && isdigit(*s&0xff); s++)
 	  ;
 	if ( *s )
 	{ PutCharp(ctx, descr);			/* context(_, Message) */
