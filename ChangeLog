@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#71: graphical tracer confused about (a,b),c nested inside
+    an if-then-else.  Holger Kanwischer.
+
   * FIXED: call_cleanup/3 to call the handler on deterministic exit in
     debug mode.  Holger Kanwischer.
 

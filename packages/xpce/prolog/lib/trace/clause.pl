@@ -296,6 +296,9 @@ a --> { x, y, z }.
     which the compiler creates "a(X,Y) :- x, y, z, X=Y".
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+%	ubody(+Read, +Decompiled, +TermPosRead, -TermPosForDecompiled)
+
+
 ubody(B, B, P, P) :-
 	\+ subterm(brace_term_position(_,_,_), P), !.
 ubody(B0, B,
@@ -312,6 +315,18 @@ ubody(B0, B,
       brace_term_position(F,T,A0),
       term_position(F,T,F,T,[A])) :- !,
 	ubody(B0, B, A0, A).
+ubody(((A0,B0),C0), (A,B,C),
+      term_position(F1,T1,FF1,TT1,
+		    [ PA0,
+		      term_position(F2,T2,FF2,FT2, [PB0,PC0])
+		    ]),
+      term_position(F1,T1,FF1,TT1,
+		    [ term_position(F2,T2,FF2,FT2, [PA,PB]),
+		      PC
+		    ])) :- !,
+	ubody(A0,A,PA0,PA),
+	ubody(B0,B,PB0,PB),
+	ubody(C0,C,PC0,PC).
 ubody(C0, C, P0, P) :-
 	C0 = (_,_), !,
       conj(C0, P0, GL, PL),
@@ -360,7 +375,7 @@ mkconj((A,B), term_position(0,0,0,0,[PA,PB]), GL, TG, PL, TP) :- !,
 	mkconj(A, PA, GL, TGA, PL, TPA),
 	mkconj(B, PB, TGA, TG, TPA, TP).
 mkconj(A0, P0, [A|TG], TG, [P|TP], TP) :-
-	ubody(A0, A, P0, P).
+	ubody(A, A0, P, P0).
 
 
 subterm(X,X).
