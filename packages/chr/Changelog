@@ -1,3 +1,19 @@
+Feb 19, 2005
+
+  * JW: Cleanup integration in SWI-Prolog environment:
+	- Extended SWI-Prolog library ordsets.  Renamed ord_delete/3 to
+	  ord_del_element/3 and ord_difference/3 to ord_subtract/3 for
+	  better compatibility.
+	- Renamed module find to chr_find to avoid name conflict and declared
+	  preds as meta-predicate.
+	- Re-inserted and exported strip_attributes/2 and
+	  restore_attributes/2 in hprolog.pl. Deleted hprolog: from
+	  chr_translate.chr.
+	- Added dummy option declarations to bootstrap compiler.
+	- Fixed path problems in makefile (-p chr=.) and install new
+	  components.
+	- Fixed typo 'chr show_store' --> chr_show_store.
+
 Feb 17, 2005
 
   * JS: Added guard entailment optimizations and

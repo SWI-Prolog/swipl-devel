@@ -854,6 +854,8 @@ option_definition(debug,on,Flags) :-
 	Flags = [ debugable - on ].
 option_definition(debug,off,Flags) :-
 	Flags = [ debugable - off ].
+option_definition(type_definition, _, []). % JW: ignored by bootstrap compiler
+option_definition(type_declaration, _, []). % JW: ignored by bootstrap compiler
 
 init_chr_pp_flags :-
 	chr_pp_flag_definition(Name,[DefaultValue|_]),

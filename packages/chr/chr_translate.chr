@@ -2200,9 +2200,9 @@ rule(N,Rule) \ prev_guard_list(RuleNb,N,H,G,GuardList,M,GH) <=>
     append(H1,H2,Heads),
     make_head_matchings_explicit(Heads,UniqueVarsHeads,Matchings),
     term_variables(UniqueVarsHeads+H,HVars),
-    hprolog:strip_attributes(HVars,HVarAttrs),	% this seems to be necessairy to get past the setof
+    strip_attributes(HVars,HVarAttrs),	% this seems to be necessairy to get past the setof
     setof(Renaming,chr_translate:head_subset(UniqueVarsHeads,H,Renaming),Renamings),
-    hprolog:restore_attributes(HVars,HVarAttrs),
+    restore_attributes(HVars,HVarAttrs),
     Renamings \= []
     |
     compute_derived_info(Matchings,Renamings,UniqueVarsHeads,Heads,G2,M,H,GH,DerivedInfo,GH_New1),
@@ -3400,7 +3400,7 @@ occurrence(C,O,RuleNb,ID), rule(RuleNb,PragmaRule) \ occurrence_code(C,O,Id,NId,
 		).
 occurrence_code(C,O,_,_,_,_)
 	<=>	
-		'chr show_store'(chr_pp),
+		chr_show_store(chr_pp),
 		format('occurrence_code/6: missing information to compile ~w:~w\n',[C,O]),fail.
 %-------------------------------------------------------------------------------
 
@@ -3649,7 +3649,7 @@ discover_unique_pattern(PragmaRule,F/A,RuleNb,Pattern,Key) :-
 	check_unique_constraints(C1,C2,Guard,RuleNb,List),
 	term_variables(C1,Vs),
 	select_pragma_unique_variables(Vs,List,Key1),
-	hprolog:copy_term_nat(C1-Key1,Pattern-Key),
+	copy_term_nat(C1-Key1,Pattern-Key),
 	functor(C1,F,A).
 	
 select_pragma_unique_variables([],_,[]).
@@ -3682,8 +3682,8 @@ set_semantics_rule_main(PragmaRule) :-
 	  \+ is_passive(RuleNb,ID1),
 	  functor(C1,F,A),
 	  get_functional_dependency(F/A,RuleNb,Pattern,Key),
-	  hprolog:copy_term_nat(Pattern-Key,C1-Key1),
-	  hprolog:copy_term_nat(Pattern-Key,C2-Key2),
+	  copy_term_nat(Pattern-Key,C1-Key1),
+	  copy_term_nat(Pattern-Key,C2-Key2),
 	  Key1 == Key2 ->
 		passive(RuleNb,ID2)
 	;
@@ -4019,7 +4019,7 @@ different_from_other_susps(Head,Susp,Heads,Susps,DiffSuspGoals) :-
 different_from_other_susps_(_,[],_,_,[]) :- !.
 different_from_other_susps_([PreHead|Heads],[PreSusp|Susps],Head,Susp,List) :-
 	( functor(Head,F,A), functor(PreHead,F,A),
-          hprolog:copy_term_nat(PreHead-Head,PreHeadCopy-HeadCopy),
+          copy_term_nat(PreHead-Head,PreHeadCopy-HeadCopy),
 	  \+ \+ PreHeadCopy = HeadCopy ->
 
 		List = [Susp \== PreSusp | Tail]
@@ -4090,7 +4090,7 @@ guard_body_copies2(Rule,VarDict,GuardCopyList,BodyCopy) :-
           bagof(('chr lock'(Y)) - (chr_runtime:unlock(Y)),
                 X ^ (lists:member(X,GuardVars),		% X is a variable appearing in the original guard
                      pairlist:lookup_eq(VarDict,X,Y),            % translate X into new variable
-                     hprolog:memberchk_eq(Y,GuardCopyVars)      % redundant check? or multiple entries for X possible?
+                     memberchk_eq(Y,GuardCopyVars)      % redundant check? or multiple entries for X possible?
                     ),
                 LocksUnlocks) ->
 		once(pairup(Locks,Unlocks,LocksUnlocks))
@@ -4768,7 +4768,7 @@ reorder_heads(RuleNb,Head,RestHeads,RestIDs,NRestHeads,NRestIDs) :-
 reorder_heads_main(RuleNb,Head,RestHeads,RestIDs,NRestHeads,NRestIDs) :-
 	term_variables(Head,Vars),
 	InitialData = entry([],[],Vars,RestHeads,RestIDs,RuleNb),
-	hprolog:copy_term_nat(InitialData,InitialDataCopy),
+	copy_term_nat(InitialData,InitialDataCopy),
 	a_star(InitialDataCopy,FD^(chr_translate:final_data(FD)),N^EN^C^(chr_translate:expand_data(N,EN,C)),FinalData),
 	InitialDataCopy = InitialData,
 	FinalData   = entry(RNRestHeads,RNRestIDs,_,_,_,_),
@@ -4824,7 +4824,7 @@ order_score_indexes([],_,_,Score,Score) :-
 	Score > 0.
 order_score_indexes([I|Is],Head,KnownVars,Score,NScore) :-
 	multi_hash_key_args(I,Head,Args),
-	( forall(Arg,Args,hprolog:memberchk_eq(Arg,KnownVars)) ->
+	( forall(Arg,Args,memberchk_eq(Arg,KnownVars)) ->
 		Score1 is Score + 10 	
 	;
 		Score1 = Score
@@ -5153,7 +5153,7 @@ assume_constraint_stores([C|Cs]) :-
 
 all_distinct_var_args(Term) :-
 	Term =.. [_|Args],
-	hprolog:copy_term_nat(Args,NArgs),
+	copy_term_nat(Args,NArgs),
 	all_distinct_var_args_(NArgs).
 
 all_distinct_var_args_([]).
@@ -5439,7 +5439,7 @@ depends_on_ap(CP,CPP,CPD,Delete), final_answer_pattern(CPP,APP),
 	),
 	( Delete == yes ->
 		APP = odom([],Set0),
-		ord_delete(Set0,C,Set),
+		ord_del_element(Set0,C,Set),
 		NAPP = odom([],Set)
 	;
 		NAPP = APP
@@ -5457,11 +5457,11 @@ ai_observation_leq(odom(AG,S1),odom(AG,S2)) :-
 	ord_subset(S2,S1).
 
 ai_observation_observe(odom(AG,S),AC,odom(AG,NS)) :-
-	ord_delete(S,AC,NS).
+	ord_del_element(S,AC,NS).
 
 ai_observation_observe_list(odom(AG,S),ACs,odom(AG,NS)) :-
 	list_to_ord_set(ACs,ACSet),
-	ord_difference(S,ACSet,NS).
+	ord_subtract(S,ACSet,NS).
 
 ai_observation_abstract_constraint(C,ACs,AC) :-
 	functor(C,F,A),
@@ -5498,7 +5498,7 @@ unconditional_occurrence(C,O) :-
 	get_occurrence(C,O,RuleNb,ID),
 	get_rule(RuleNb,PRule),
 	PRule = pragma(ORule,_,_,_,_),
-	hprolog:copy_term_nat(ORule,Rule),
+	copy_term_nat(ORule,Rule),
 	Rule = rule(H1,H2,Guard,_),
 	guard_entailment:entails_guard([chr_pp_headvariables(H1,H2)],Guard),
 	once((
@@ -5517,8 +5517,8 @@ unconditional_occurrence_args([X|Xs]) :-
 	unconditional_occurrence_args(Xs).
 
 is_variant(A,B) :-
-	hprolog:copy_term_nat(A,AC),
-	hprolog:copy_term_nat(B,BC),
+	copy_term_nat(A,AC),
+	copy_term_nat(B,BC),
 	term_variables(AC,AVars), 
 	term_variables(BC,BVars),
 	AC = BC,
