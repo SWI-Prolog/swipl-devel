@@ -1267,8 +1267,8 @@ $t_body((C->T|E), S, SR, (Ct->Tt;Et)) :- !,
 $t_body((C->T), S, SR, (Ct->Tt)) :- !,
 	$t_body(C, S, SR1, Ct),
 	$t_body(T, SR1, SR, Tt).
-$t_body((\+ C), S, SR, (\+ Ct)) :- !,
-	$t_body(C, S, SR, Ct).
+$t_body((\+ C), S, S, (\+ Ct)) :- !,
+	$t_body(C, S, _, Ct).
 $t_body(T, S, SR, Tt) :-
 	$extend([S, SR], T, Tt).
 
