@@ -58,16 +58,52 @@ This module defines support for timing during execution. Most of this is
 highly system dependent, and currently running on Unix systems providing
 the setitimer() and  friends  functions.   See  time.pl  for  user-level
 documentation.
+
+Design
+======
+
+This module keeps a double-linked  list   of  `scheduled events' that is
+tagged with and annotated using  the   absolute  time  it should happen.
+These  times  are  represented  using   the  struct  timeval,  providing
+microsecond resolution.
+
+Whenever an event is added  or   deleted,  the  system calls schedule(),
+which takes the current time, checks which  event should be the next one
+executed and sets a timer to call on_alarm() at that time.
+
+Problems
+========
+
+Various locking and asynchronous issues in the  Prolog kernel need to be
+checked and validated. Notably throwing an exception might not always be
+guarded appropriately. We should distinguish   various types of critical
+regions in the code.  To make a start:
+
+	* Places where it is not save to execute Prolog code
+		- When GC is running
+		- If the clause-index is being rebuild (maybe ok?)
+
+	* Places where it is not save to long_jmp()
+		- State is inconsistent
+		- Garbage will not be cleaned
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void	on_alarm(int sig);
 
 static module_t  MODULE_user;
+static atom_t	 ATOM_true;
+static atom_t	 ATOM_false;
+static atom_t	 ATOM_remove;
+static atom_t    ATOM_done;
+static atom_t	 ATOM_next;
+static atom_t	 ATOM_scheduled;
+static functor_t FUNCTOR_module2;
 static functor_t FUNCTOR_alarm1;
 
 #define EV_MAGIC	1920299187	/* Random magic number */
 
 #define EV_DONE		0x0001		/* Handled this one */
+#define EV_REMOVE	0x0002		/* Automatically remove */
 
 typedef struct event
 { record_t	 goal;			/* Thing to call */
@@ -101,12 +137,10 @@ allocEvent(struct timeval *at)
   ev->at = *at;
   ev->magic = EV_MAGIC;
 
-  Sdprintf("allocEvent(%d.%06d)\n", at->tv_sec, at->tv_usec);
+  DEBUG(Sdprintf("allocEvent(%d.%06d)\n", at->tv_sec, at->tv_usec));
 
   for(e = first; e; e = e->next)
   { struct timeval d;
-
-    Sdprintf("\t%d.%06d\n", e->at.tv_sec, e->at.tv_usec);
 
     d.tv_sec  = at->tv_sec  - e->at.tv_sec;
     d.tv_usec = at->tv_usec - e->at.tv_usec;
@@ -115,13 +149,22 @@ allocEvent(struct timeval *at)
       d.tv_usec += 1000000;
     }
 
-    if ( d.tv_sec < 0 )
-    { if ( e->next )
-      { Sdprintf("next\n");
-	continue;
-      }
+    if ( d.tv_sec < 0 )			/* new must be before e */
+    { ev->next = e;
+      ev->previous = e->previous;
+      if ( e->previous )
+	e->previous->next = ev;
+      e->previous = ev;
 
-      ev->previous = e;
+      if ( first == e )			/* allocated as first */
+	first = ev;
+
+      return ev;
+    } else
+    { if ( e->next )
+	continue;
+
+      ev->previous = e;			/* end of the list */
       e->next = ev;
 
       return ev;
@@ -144,9 +187,36 @@ freeEvent(Event ev)
   if ( ev->next )
     ev->next->previous = ev->previous;
 
+  if ( ev->goal )
+    PL_erase(ev->goal);
+
   ev->magic = 0;
 
   free(ev);
+}
+
+
+static void
+cleanupHandler()
+{ struct itimerval v;
+
+  DEBUG(Sdprintf("Removed timer\n"));
+  memset(&v, 0, sizeof(v));
+  setitimer(ITIMER_REAL, &v, NULL);	/* restore? */
+
+  if ( signal_function_set )
+  { signal_function_set = FALSE;
+    PL_signal(SIGALRM, signal_function);
+  }
+}
+
+
+static void
+installHandler()
+{ if ( !signal_function_set )
+  { signal_function = PL_signal(SIGALRM, on_alarm);
+    signal_function_set = TRUE;
+  }
 }
 
 
@@ -163,8 +233,8 @@ schedule()
       continue;
 
     gettimeofday(&now, NULL);
-    left.tv_sec  = first->at.tv_sec - now.tv_sec;
-    left.tv_usec = first->at.tv_usec - now.tv_usec;
+    left.tv_sec  = ev->at.tv_sec  - now.tv_sec;
+    left.tv_usec = ev->at.tv_usec - now.tv_usec;
     if ( left.tv_usec < 0 )
     { left.tv_sec--;
       left.tv_usec += 1000000;
@@ -172,28 +242,36 @@ schedule()
 
     if ( left.tv_sec < 0 ||
 	 (left.tv_sec == 0 && left.tv_usec == 0) )
+    { DEBUG(Sdprintf("Passed\n"));
       continue;				/* Time has passed.  Call? */
+    }
 
     scheduled = ev;			/* This is the scheduled one */
+    DEBUG(Sdprintf("Scheduled for %d.%06d\n", ev->at.tv_sec, ev->at.tv_usec));
 
     v.it_value            = left;
     v.it_interval.tv_sec  = 0;
     v.it_interval.tv_usec = 0;
 
     setitimer(ITIMER_REAL, &v, NULL);	/* Store old? */
-    if ( !signal_function_set )
-    { signal_function = PL_signal(SIGALRM, on_alarm);
-      signal_function_set = TRUE;
-    }
+    installHandler();
 
     return;
   }
 
-  DEBUG(Sdprintf("Removed timer\n"));
-  memset(&v, 0, sizeof(v));
-  setitimer(ITIMER_REAL, &v, NULL);	/* restore? */
+  cleanupHandler();
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This one is  asynchronously  called  from   the  hook  registered  using
+PL_signal(). Throwing an exception is normally   safe,  but some foreign
+code might not leave the  system   unstable  after resulting long_jmp().
+This should all nicely be protected,  but   most  likely  this isn't the
+case.
+
+The alternative is to delay the signal to a safe place using PL_raise();
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 on_alarm(int sig)
@@ -213,9 +291,12 @@ on_alarm(int sig)
     qid = PL_open_query(ev->module, PL_Q_CATCH_EXCEPTION, pred, goal);
     if ( !PL_next_solution(qid) && (ex = PL_exception(qid)) )
     { PL_cut_query(qid);
-      PL_throw(ex);
+      PL_raise_exception(ex);
     }
     PL_close_query(qid);
+
+    if ( ev->flags & EV_REMOVE )
+      freeEvent(ev);
   }
 
   schedule();
@@ -258,13 +339,62 @@ get_timer(term_t t, Event *ev)
 }
 
 
+static int
+pl_get_bool_ex(term_t arg, int *val)
+{ atom_t a;
+
+  if ( PL_get_atom(arg, &a) )
+  { if ( a == ATOM_true )
+    { *val = TRUE;
+      return TRUE;
+    }
+    if ( a == ATOM_false )
+    { *val = FALSE;
+      return FALSE;
+    }
+  }
+
+  return pl_error(NULL, 0, NULL, ERR_ARGTYPE, 0, arg, "bool");
+}
+
+
 static foreign_t
 alarm4(term_t time, term_t callable, term_t id, term_t options)
 { Event ev;
   double t;
   struct timeval tv;
   module_t m = NULL;
+  unsigned long flags = 0L;
     
+  if ( options )
+  { term_t tail = PL_copy_term_ref(options);
+    term_t head = PL_new_term_ref();
+
+    while( PL_get_list(tail, head, tail) )
+    { atom_t name;
+      int arity;
+
+      if ( PL_get_name_arity(head, &name, &arity) )
+      { if ( arity == 1 )
+	{ term_t arg = PL_new_term_ref();
+
+	  PL_get_arg(1, head, arg);
+
+	  if ( name == ATOM_remove )
+	  { int t;
+
+	    if ( !pl_get_bool_ex(arg, &t) )
+	      return FALSE;
+	    if ( t )
+	      flags |= EV_REMOVE;
+	  }	    
+	}
+      }
+    }
+    if ( !PL_get_nil(tail) )
+      return pl_error(NULL, 0, NULL, ERR_ARGTYPE, 4, options, "list");
+  }
+
   if ( !PL_get_float(time, &t) )
     return pl_error(NULL, 0, NULL, ERR_ARGTYPE, 1,
 		    time, "number");
@@ -284,6 +414,7 @@ alarm4(term_t time, term_t callable, term_t id, term_t options)
     return FALSE;
   }
 
+  ev->flags = flags;
   PL_strip_module(callable, &m, callable);
   ev->module = m;
   ev->goal = PL_record(callable);
@@ -317,12 +448,89 @@ remove_alarm(term_t alarm)
 }
 
 
+foreign_t
+current_alarm(term_t time, term_t goal, term_t id, term_t status, control_t h)
+{ Event ev;
+  term_t g;
+  fid_t fid;
+
+  switch(PL_foreign_control(h))
+  { case PL_FIRST_CALL:
+      ev = first;
+      break;
+    case PL_REDO:
+      ev = PL_foreign_context_address(h);
+      break;
+    default:
+    case PL_CUTTED:
+      return TRUE;
+  }
+
+  g = PL_new_term_ref();
+  fid = PL_open_foreign_frame();
+
+  for(; ev; PL_rewind_foreign_frame(fid), ev = ev->next)
+  { atom_t s;
+
+    if ( ev->flags & EV_DONE )
+      s = ATOM_done;
+    else if ( ev == scheduled )
+      s = ATOM_next;
+    else
+      s = ATOM_scheduled;
+    
+    if ( !PL_unify_atom(status, s) )
+      continue;
+
+    PL_recorded(ev->goal, g);
+    if ( !PL_unify_term(goal,
+			PL_FUNCTOR, FUNCTOR_module2,
+			  PL_ATOM, PL_module_name(ev->module),
+			  PL_TERM, g) )
+      continue;
+
+    if ( !PL_unify_float(time, (double)ev->at.tv_sec +
+			       (double)ev->at.tv_usec / 1000000.0) )
+      continue;
+
+    if ( !unify_timer(id, ev) )
+      continue;
+      
+    PL_close_foreign_frame(fid);
+
+    if ( ev->next )
+      PL_retry_address(ev->next);
+
+    return TRUE;
+  }
+
+  PL_close_foreign_frame(fid);
+  return FALSE;
+}
+
+
 install_t
 install()
-{ MODULE_user    = PL_new_module(PL_new_atom("user"));
-  FUNCTOR_alarm1 = PL_new_functor(PL_new_atom("$alarm"), 1);
+{ MODULE_user	  = PL_new_module(PL_new_atom("user"));
+
+  FUNCTOR_alarm1  = PL_new_functor(PL_new_atom("$alarm"), 1);
+  FUNCTOR_module2 = PL_new_functor(PL_new_atom(":"), 2);
+
+  ATOM_true	  = PL_new_atom("true");
+  ATOM_false	  = PL_new_atom("false");
+  ATOM_remove	  = PL_new_atom("remove");
+  ATOM_done	  = PL_new_atom("done");
+  ATOM_next	  = PL_new_atom("next");
+  ATOM_scheduled  = PL_new_atom("scheduled");
 
   PL_register_foreign("alarm",        4, alarm4,       PL_FA_TRANSPARENT);
   PL_register_foreign("alarm",        3, alarm3,       PL_FA_TRANSPARENT);
   PL_register_foreign("remove_alarm", 1, remove_alarm, 0);
+  PL_register_foreign("current_alarm",4, current_alarm,PL_FA_NONDETERMINISTIC);
+}
+
+
+install_t
+uninstall()
+{ cleanupHandler();
 }

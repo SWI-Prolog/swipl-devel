@@ -33,10 +33,12 @@
 	  [ alarm/3,			% +Time, :Callable, -Id
 	    alarm/4,			% +Time, :Callable, -Id, +Options
 	    remove_alarm/1,		% +Id
+	    current_alarm/4,		% ?At, ?:Goal, ?Id, ?Status
 	    call_with_time_limit/2	% +Time, :Callable
 	  ]).
 
 %	alarm(+Time, :Callable, -Id)
+%	alarm(+Time, :Callable, -Id, +Options)
 %	
 %	Set up an alarm to be signaled Time seconds from now. If the
 %	alarm expires, Callable is called asynchronously. Callable can
@@ -46,6 +48,26 @@
 %	The alarm system manages a sorted list of scheduled alarms. Each
 %	time an alarm is added, removed or expires, this list is
 %	re-examined and a new signal is scheduled using setitimer()
+%	
+%	Options is a list of Name(Value) options.  Currently defined
+%	options are:
+%	
+%		* remove(Bool)
+%		If Bool is true, remove the alarm-event (as
+%		remove_alarm/1) after it has been fired.
+
+%	remove_alarm(+Id)
+%	
+%	Remove an alarm.  If it has not yet been fired, it never will.
+
+%	current_alarm(?Time, ?:Goal, ?Id, ?Status)
+%	
+%	Enumerate the alarms in the schedule.  Time is the absolute time
+%	the event is scheduled for (see also get_time/1). Goal is the
+%	goal to execute, Id is the identifier and Status is the
+%	scheduling status. It takes the value =done= if the alarm has
+%	been fired, =next= if the event is the next to be executed and
+%	=scheduled= otherwise.
 
 :- load_foreign_library(foreign(time)).
 
