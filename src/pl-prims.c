@@ -443,7 +443,8 @@ tail_recursion:
       }
     }
 
-    return t1 < t2 ? LESS : GREATER;
+    if ( t1 > TAG_ATTVAR || t2 > TAG_ATTVAR )
+      return t1 < t2 ? LESS : GREATER;
   }
 
   switch(t1)

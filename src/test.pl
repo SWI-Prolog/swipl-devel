@@ -1151,6 +1151,14 @@ avar(throw-2) :-
 	T = x(X,_,Y),
 	catch(throw(T), Ex, true),
 	Ex =@= T.
+avar(order-1) :-			% attributes do not change standard
+	_ = foo(A,B),			% order of terms
+	(   A @< B
+	->  put_attr(A, test, x),
+	    A @< B
+	;   put_attr(A, test, x),
+	    A @> B
+	).
 
 
 		 /*******************************
@@ -1197,7 +1205,7 @@ gvar(avar-1) :-
 	freeze(A, fail),
 	nb_setval(gvar1, A),
 	nb_getval(gvar1, B),
-	A =@= B.		% ... but =@= is broken on attvar
+	A =@= B.
 
 
 
