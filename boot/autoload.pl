@@ -10,6 +10,7 @@
 	[ $find_library/5
 	, $in_library/2
 	, $update_library_index/0
+	, make_library_index/1
 	]).
 
 :- dynamic
@@ -109,6 +110,12 @@ assert_index(Term, Dir) :-
 		*       CREATE INDEX.pl		*
 		********************************/
 
+make_library_index(Dir) :-
+	access_file(Dir, write), !,
+	library_index(Dir, 'INDEX.pl').
+make_library_index(Dir) :-
+	$warning('make_library_index/1: Cannot write ~w', [Dir]).
+
 library_index(Dir, Index) :-
 	absolute_file_name('', OldDir),
 	chdir(Dir),
@@ -121,14 +128,13 @@ library_index(Dir, Index) :-
 	chdir(OldDir).
 
 index_file(Fd, File) :-
-	concat(Base, '.pl', File),
 	open(File, read, In),
 	read(In, Term),
 	close(In),
 	Term = (:- module(Module, Public)), !,
 	forall( member(Name/Arity, Public),
 		format(Fd, 'index((~k), ~k, ~k, ~k).~n',
-		       [Name, Arity, Module, Base])).
+		       [Name, Arity, Module, File])).
 index_file(_, _).
 
 index_header(Fd):-
