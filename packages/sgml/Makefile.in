@@ -10,6 +10,8 @@ PLLD=@PLLD@
 PLBASE=@PLBASE@
 PLARCH=@PLARCH@
 PKGDOC=$(PLBASE)/doc/packages
+PLLIB=$(PLBASE)/library
+PLFOREIGN=$(PLBASE)/lib/$(PLARCH)
 SO=@SO@
 
 CC=@CC@
@@ -54,8 +56,8 @@ sgml2pl.@SO@:	$(PLOBJ)
 
 install:	$(TARGETS) $(LIBPL) install-dtd
 		mkdir -p $(PLBASE)/lib/$(PLARCH)
-		$(INSTALL) -m 755 $(TARGETS) $(PLBASE)/lib/$(PLARCH)
-		$(INSTALL) -m 644 $(LIBPL) $(PLBASE)/library
+		$(INSTALL) -m 755 $(TARGETS) $(PLFOREIGN)
+		$(INSTALL) -m 644 $(LIBPL) $(PLLIB)
 		$(PL) -f none -g make -t halt
 
 rpm-install:	install

@@ -42,6 +42,7 @@ INSTALL=@INSTALL@
 INSTALL_DATA=@INSTALL_DATA@
 SO=@SO@
 BUILDDIR=@BUILDDIR@
+PLLIB=$(PLBASE)/library
 
 # How to run configure.  We pass the information required from SWI-Prolog
 # in the environment.  All configure scripts in the packages are designed
@@ -70,6 +71,9 @@ install::
 	for p in $(PKG); do \
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
         done
+	@echo "*** Forcing update of library index ***"
+	rm -f $(PLLIB)/INDEX.pl
+	$(PL) -f none -g "make_library_index('$(PLLIB)')" -t halt
 
 rpm-install: html-install
 	for p in $(PKG); do \
