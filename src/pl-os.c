@@ -189,6 +189,8 @@ Halt(int rval)
 #endif
 
     qlfCleanup();			/* remove errornous .qlf files */
+    dieIO();				/* streams may refer to foreign code */
+					/* Standard I/O is only flushed! */
 
     if ( GD->initialised )
     { fid_t cid = PL_open_foreign_frame();
@@ -200,7 +202,6 @@ Halt(int rval)
     }
 
     RemoveTemporaryFiles();
-    dieIO();
   }
 
   exit(rval);
