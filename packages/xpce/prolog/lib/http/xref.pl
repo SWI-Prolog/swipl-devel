@@ -31,6 +31,8 @@
 
 :- module(http_xref, []).
 
+:- dynamic
+	prolog:called_by/2.
 :- multifile
 	prolog:called_by/2.
 

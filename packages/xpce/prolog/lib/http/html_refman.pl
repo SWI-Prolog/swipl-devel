@@ -455,6 +455,8 @@ group_summary(Group, Summary) :-
 		 *	    HELP X-REF		*
 		 *******************************/
 
+:- dynamic
+	prolog:called_by/2.
 :- multifile
 	prolog:called_by/2.
 
