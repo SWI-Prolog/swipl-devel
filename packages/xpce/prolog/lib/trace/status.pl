@@ -111,7 +111,7 @@ initialise(D) :->
 				'Set trace point'),
 		    tool_button(edit,
 				resource(edit),
-				'Edit predicate')
+				'Edit predicate/show listing')
 		  ]),
 	send(D, append, new(reporter)),
 	send(D, resize_message, message(D, layout, @arg2)),
@@ -231,7 +231,32 @@ edit(D, DI:[dict_item]) :->
 	;   get(D, selection, DI)
 	->  get(DI, object, What)
 	),
-	edit(What).
+	edit_or_list(What).
+
+edit_or_list(0) :- !, fail.		% catch variables
+edit_or_list(Name/Arity) :-
+	edit_or_list(_Module:Name/Arity).
+edit_or_list(Module:Name/Arity) :-
+	atom(Name),
+	integer(Arity),
+	functor(Head, Name, Arity),
+	predicate_property(Module:Head, dynamic),
+	predicate_property(Module:Head, number_of_clauses(N)),
+	send(@display, confirm,
+	     '%s:%s/%d is a dynamic predicate with %d clauses.  Show listing?',
+	     Module, Name, Arity, N), !,
+	start_emacs,
+	new(Tmp, emacs_buffer(@nil, string('*Listing for %s:%s/%d*',
+					   Module, Name, Arity))),
+	pce_open(Tmp, write, Out),
+	telling(Old), set_output(Out),
+	ignore(listing(Module:Name/Arity)),
+	tell(Old),
+	close(Out),
+	send(Tmp, modified, @off),
+	send(Tmp, open).
+edit_or_list(Spec) :-
+	edit(Spec).
 
 cut(D) :->
 	"Delete associated object"::
