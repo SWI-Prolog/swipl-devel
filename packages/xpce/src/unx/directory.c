@@ -327,7 +327,7 @@ getRootsDirectory(Directory dir)
       char *cnfn;
 
       if ( (cnfn=_xos_canonical_filename(s, buf2, sizeof(buf2), 0)) )
-	appendChain(ch, cnfn);
+	appendChain(ch, FNToName(cnfn));
       s += strlen(s)+1;
     }
   }
