@@ -788,6 +788,8 @@ ws_save_image_file(Image image, SourceSink into, Name fmt)
 
     if ( rval != XpmSuccess )
       return errorPce(image, NAME_xError);
+
+    succeed;
 #else
     return errorPce(image, NAME_noImageFormat, NAME_xpm);
 #endif
