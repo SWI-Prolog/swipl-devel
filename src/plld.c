@@ -924,7 +924,11 @@ getPrologOptions()
 
     pclose(fd);
 
-    sprintf(buf, "%s/%s/%s", plbase, plarch, PROG_PL);
+#ifdef WIN32
+    sprintf(buf, "%s/bin/%s", plbase, PROLOG);
+#else
+    sprintf(buf, "%s/bin/%s/%s", plbase, plarch, PROG_PL);
+#endif
     defaultPath(&plexe, buf);
   } else
   { fprintf(stderr, "%s: failed to run %s: %s", plld, cmd, oserror());

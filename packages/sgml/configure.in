@@ -35,7 +35,7 @@ LD=$CC
 unset ac_cv_prog_PL
 
 if test -z "$PLINCL"; then
-plcandidates="$with_prolog pl swipl swi-prolog"
+plcandidates="$with_prolog swipl swi-prolog pl"
 AC_CHECK_PROGS(PL, $plcandidates, "none")
 AC_CHECK_PROGS(PLLD, plld, "none")
 if test $PLLD = "none"; then
@@ -67,6 +67,8 @@ case "$PLARCH" in
   *irix*)	if test -z "$GCC"; then
   		    CWFLAGS="-woff 1164"
 		fi
+		;;
+  *darwin*)	CMFLAGS="$CMFLAGS -cc-options,-no-cpp-precomp"
 		;;
   *)		;;
 esac

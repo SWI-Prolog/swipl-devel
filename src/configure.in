@@ -922,7 +922,7 @@ case "$ARCH" in
 	PL=swipl
 	SO_pic="-fPIC"
 	AC_DEFINE(LD_SYMBOL_PREFIX, "_")
-	AC_DEFINE(SO_FORMAT_LDFTAGS, "-bundle -bundle_loader \"%s\"", plexe)
+	AC_DEFINE(SO_FORMAT_LDFLAGS, ["-bundle -bundle_loader \"%s\"", plexe])
 	CMFLAGS="-no-cpp-precomp"
 	;;
   *cygwin*)

@@ -532,9 +532,6 @@
 /* The size of a `long', as computed by sizeof. */
 #undef SIZEOF_LONG
 
-/* plexe */
-#undef SO_FORMAT_LDFTAGS
-
 /* If using the C implementation of alloca, define if you know the
    direction of stack growth for your system; otherwise it will be
    automatically deduced at run-time.

@@ -49,6 +49,7 @@ wait_for_input/3.
 #include "clib.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>

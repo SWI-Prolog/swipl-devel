@@ -31,7 +31,9 @@
 #include "table.h"
 #include "error.h"
 #include <stdlib.h>
+#ifdef HAVE_MALLOC_H
 #include <malloc.h>
+#endif
 #include <stdio.h>
 #include <memory.h>
 #include <string.h>

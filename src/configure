@@ -8309,8 +8309,8 @@ EOF
 #define LD_SYMBOL_PREFIX "_"
 EOF
 
-cat >>confdefs.h <<\EOF
-#define SO_FORMAT_LDFTAGS "-bundle -bundle_loader \"%s\""
+	cat >>confdefs.h <<\EOF
+#define SO_FORMAT_LDFLAGS "-bundle -bundle_loader \"%s\"", plexe
 EOF
 
 	CMFLAGS="-no-cpp-precomp"

@@ -132,8 +132,7 @@ PLWIN=	wise.pl dde.pl progman.pl registry.pl
 
 all:	banner \
 	headers rc-lib system startup index runtime \
-	plld \
-	swipl swiplbin
+	plld
 
 .c.o:
 	$(CC) -c -I. -I$(srcdir) -I$(srcdir)/rc $(CFLAGS) $< @COUTOPT@
@@ -250,11 +249,6 @@ tags:		$(srcdir)/TAGS
 $(srcdir)/TAGS:	$(SRC)
 		(cd $(srcdir) && $(ETAGS) $(SRC) $(HDR))
 
-swipl:
-		echo "." > $@
-swiplbin:	
-		echo ".." > $@
-
 check:
 		./$(PL) -f $(srcdir)/test.pl -F none -g test,halt -t 'halt(1)'
 
@@ -287,9 +281,8 @@ install-arch:	idirs iruntime
 
 install-libs:	idirs iboot ilib iruntime iinclude iman idot
 		$(INSTALL_DATA) $(STARTUPPATH) $(PLBASE)/$(BOOTFILE)
-		$(INSTALL_DATA) swipl $(PLBASE)
-		$(INSTALL_DATA) swiplbin $(PLBASE)/bin/swipl
-		# $(INSTALL_DATA) ../COPYING $(PLBASE)
+		echo . > $(PLBASE)/swipl
+		echo .. > $(PLBASE)/bin/swipl
 		cd $(PLBASE)/library; \
 		   ../bin/$(ARCH)/$(PL) \
 			-f none \
@@ -366,7 +359,7 @@ install-lman::
 # runtime-only environment installation
 #
 
-RTHOME=		$(prefix)/lib/rt-pl-$(PLVERSION)
+RTHOME=		$(prefix)/lib/$(PLV)
 RTDIRS=		$(RTHOME) $(RTHOME)/bin $(RTHOME)/lib $(RTHOME)/lib/$(ARCH) \
 		$(RTHOME)/man $(RTHOME)/bin/$(ARCH) $(RTHOME)/include
 
@@ -380,14 +373,13 @@ rt-install:
 			$(MKDIR) $$d; \
 		    fi; \
 		done
-		$(INSTALL_PROGRAM) $(PL) $(RTHOME)/bin/$(ARCH)/pl
-		$(INSTALL_DATA) pl.1 $(RTHOME)/man/pl.1
-		$(INSTALL_DATA) swipl $(RTHOME)/swipl
-		$(INSTALL_DATA) swiplbin $(RTHOME)/bin/swipl
+		$(INSTALL_PROGRAM) $(PL) $(RTHOME)/bin/$(ARCH)/$(PL)
+		$(INSTALL_DATA) pl.1 $(RTHOME)/man/$(PL).1
+		echo . > $(RTHOME)/swipl
+		echo .. > $(RTHOME)/bin/swipl
 		$(INSTALL_DATA) ../README.RT $(RTHOME)
 		$(INSTALL_DATA) ../include/SWI-Prolog.h $(RTHOME)/include
 		$(INSTALL_DATA) ../include/SWI-Stream.h $(RTHOME)/include
-#		-cd $(bindir); rm -f plrt; ln -s $(RTHOME)/bin/$(ARCH)/pl plrt
 
 #
 # Cleanup
@@ -403,7 +395,7 @@ distclean:	clean
 		rm -f ../library/INDEX.pl
 		rm -f Makefile config.h config.status parms.h
 		rm -f swipl swiplbin pl.prc
-		rm -f pl plld pl.1 pl.exe plld.exe libplimp.a $(DEF)
+		rm -f $(PL) plld pl.1 $(PL).exe plld.exe libplimp.a $(DEF)
 		rm -f config.log config.cache
 
 realclean:	clean

@@ -52,8 +52,8 @@ indexing only on the first argument as this is default.
 /* 1 <= c <= 4 */
 
 #define SHIFT(c, a)	((LONGBITSIZE/(c)) * a)
-#define MASK(c)		(c == 1 ? ~0L : ((1L << (LONGBITSIZE/(c))) - 1))
-#define VM(c, a)	((unsigned long)(~(MASK(c) << SHIFT(c, a))))
+#define IDX_MASK(c)	(c == 1 ? ~0L : ((1L << (LONGBITSIZE/(c))) - 1))
+#define VM(c, a)	((unsigned long)(~(IDX_MASK(c) << SHIFT(c, a))))
 
 #define Shift(c, a)	(mask_shift[c][a])
 #define Mask(c)		(mask_mask[c])
@@ -85,11 +85,11 @@ static int mask_shift[][4] =
 static unsigned long mask_mask[] =
   { 0,
 #ifdef DONOT_AVOID_SHIFT_WARNING
-    MASK(1),
+    IDX_MASK(1),
 #else
     0L,
 #endif
-    MASK(2), MASK(3), MASK(4)
+    IDX_MASK(2), IDX_MASK(3), IDX_MASK(4)
   };
 
 

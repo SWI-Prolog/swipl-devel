@@ -160,7 +160,7 @@ if test "$swipl" != "no"; then
     fi
     plcandidates="plrt"
   else
-    plcandidates="pl swipl swi-prolog"
+    plcandidates="swipl swi-prolog pl"
   fi
   AC_CHECK_PROGS(PL, $plcandidates, "none")
   if test $PL = "none"; then
@@ -408,6 +408,11 @@ EOF
 	LDSOFLAGS="-shared"
 	CMFLAGS=`echo $CMFLAGS | sed 's/-fPIC//'`
 	AC_MSG_RESULT(ok)
+	;;
+    *darwin*)
+	LD=plld
+	GCCLIB=""
+	CMFLAGS="$CMFLAGS -no-cpp-precomp"
 	;;
     *)
 	;;
@@ -762,6 +767,9 @@ dnl the real linking hacks around it in yet another way ...
 case "$OS" in
   *sunos*) LIBS="$BEFOREXLIBS -lX11 $XSMLIBS";;
 esac
+
+CPPFLAGS="-I$XINCLUDES ${CPPFLAGS}"
+CIFLAGS="-I$XINCLUDES ${CIFLAGS}"
 
 fi dnl WITHX11
 

@@ -32,6 +32,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#ifdef __APPLE__			/* defines INT_MAX, so we must */
+#include <time.h>			/* do that before we do it here */
+#endif
 #include <h/stream.h>			/* IOSTREAM interface */
 
 #ifdef HAVE_DMALLOC_H

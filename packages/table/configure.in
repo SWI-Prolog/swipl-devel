@@ -25,7 +25,7 @@ AC_ARG_ENABLE(mt, [  --enable-mt		  Enable Multi-threading],
 	       esac])
 
 if test -z "$PLINCL"; then
-plcandidates="pl swipl swi-prolog"
+plcandidates="swipl swi-prolog pl"
 AC_CHECK_PROGS(PL, $plcandidates, "none")
 AC_CHECK_PROGS(PLLD, plld, "none")
 if test $PLLD = "none"; then
@@ -54,6 +54,14 @@ LDSOFLAGS=-shared
 CMFLAGS=-fpic
 
 SO="$PLSOEXT"
+
+case $PLARCH in
+    *darwin*)
+	CMFLAGS="$CMFLAGS -cc-options,-no-cpp-precomp"
+        undefine([__unix__])
+	AC_DEFINE(__unix__)
+	;;
+esac
 
 AC_CHECK_PROGS(MAKE, gmake make, "make")
 AC_CHECK_PROGS(ETAGS, etags ctags, ":")
