@@ -179,7 +179,7 @@ addUintBuffer(Buffer b, uint val)
 
 static inline void
 addSizeInt(CompileInfo info, uint val)
-{ return addUintBuffer((Buffer)&info->code, val);
+{ addUintBuffer((Buffer)&info->code, val);
 }
 
 
