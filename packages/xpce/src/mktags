@@ -7,11 +7,13 @@
 #
 # To create a tag-table for the proper environment.
 
-if [ ! -z "$1" ]; then win="$1"; fi
+if [ ! -z "$1" ]; then win="$1"; else win=x11; fi
+
+modules="adt ari evt gnu gra itf ker men msg prg rel txt unx win fmt box"
 
 files=""
 
-for d in h adt ari evt gnu gra itf ker men msg prg rel txt unx win $win; do
+for d in h $modules $win; do
   files="$files `echo $d/*.[ch]`"
 done
 

@@ -25,7 +25,7 @@ GLOBAL int	arithError;		/* error occurred */arithError56,1940
 h/dialog.h,51
 #define _PCE_DIA_INCLUDED_PCE_DIA_INCLUDED11,275
 
-h/graphics.h,26496
+h/graphics.h,26606
 #define _PCE_GRA_INCLUDED_PCE_GRA_INCLUDED11,274
 #define MAX_WRAP_LINES	MAX_WRAP_LINES14,323
 typedef struct update_area *UpdateArea;	/* Window changes data  */UpdateArea16,385
@@ -338,113 +338,115 @@ End;End815,28263
   Name		status;			/* {idle,interval,once} */status820,28384
   WsRef		ws_ref;			/* Window System Reference */ws_ref821,28429
 { int	ideal;				/* ideal size */ideal829,28603
-  int	stretch;			/* stretch handicap */stretch830,28636
-  int	shrink;				/* shrink handicap */shrink831,28676
-  int	size;				/* resulting size */size832,28715
-} stretch, *Stretch;stretch833,28751
-} stretch, *Stretch;Stretch833,28751
-#define BUTTON_mask	BUTTON_mask840,28868
-#define BUTTON_control	BUTTON_control841,28896
-#define BUTTON_shift	BUTTON_shift842,28926
-#define BUTTON_meta	BUTTON_meta843,28954
-#define BUTTON_ms_left	BUTTON_ms_left844,28981
-#define BUTTON_ms_middle	BUTTON_ms_middle845,29011
-#define BUTTON_ms_right	BUTTON_ms_right846,29043
-#define CLICK_TYPE_mask	CLICK_TYPE_mask848,29103
-#define CLICK_TYPE_single	CLICK_TYPE_single849,29135
-#define CLICK_TYPE_double	CLICK_TYPE_double850,29168
-#define CLICK_TYPE_triple	CLICK_TYPE_triple851,29201
-struct xrefxref857,29339
-{ Any		object;			/* Object (Cursor, Font, ...) */object858,29351
-  DisplayObj    display;		/* Display for which to get ref */display859,29401
-  void *	xref;			/* X-window reference */xref860,29462
-  Xref		next;			/* Next entry of table */next861,29504
-#define BRIGHT	BRIGHT869,29650
-#define NoPixel NoPixel870,29693
-#define CHANGING_GRAPHICAL(CHANGING_GRAPHICAL883,30173
-#define DRAW_3D_DOWN	DRAW_3D_DOWN903,30746
-#define DRAW_3D_CLOSED	DRAW_3D_CLOSED904,30811
-#define DRAW_3D_FILLED	DRAW_3D_FILLED905,30838
-{ int x, y;x908,30881
-{ int x, y;y908,30881
-} ipoint, *IPoint;ipoint909,30893
-} ipoint, *IPoint;IPoint909,30893
-{ int x, y, w, h;x913,30929
-{ int x, y, w, h;y913,30929
-{ int x, y, w, h;w913,30929
-{ int x, y, w, h;h913,30929
-} iarea, *IArea;iarea914,30947
-} iarea, *IArea;IArea914,30947
-{ int x1, y1, x2, y2;x1918,30981
-{ int x1, y1, x2, y2;y1918,30981
-{ int x1, y1, x2, y2;x2918,30981
-{ int x1, y1, x2, y2;y2918,30981
-} isegment, *ISegment;isegment919,31003
-} isegment, *ISegment;ISegment919,31003
-struct update_areaupdate_area922,31028
-{ iarea		area;			/* Concerned area */area923,31047
-  int		clear;			/* needs to be cleared */clear924,31085
-  int		deleted;		/* area is deleted */deleted925,31127
-  int		size;			/* width * height */size926,31166
-  UpdateArea    next;			/* next in chain */next927,31202
-struct colour_contextcolour_context930,31250
-{ Any		foreground;		/* saved foreground */foreground931,31272
-  Any		background;		/* saved background */background932,31315
-  int		lock;			/* lock nesting count */lock933,31358
-{ Int	x;x937,31417
-  Int	y;y938,31426
-  Int 	w;w939,31435
-  Int	h;h940,31445
-} device_draw_context, *DeviceDrawContext;device_draw_context941,31454
-} device_draw_context, *DeviceDrawContext;DeviceDrawContext941,31454
-#define OverlapArea(OverlapArea948,31597
-#define GLOBAL GLOBAL957,31831
-GLOBAL Image BLACK_IMAGE;BLACK_IMAGE960,31861
-GLOBAL Image WHITE_IMAGE;WHITE_IMAGE961,31887
-GLOBAL Image GREY12_IMAGE;GREY12_IMAGE962,31913
-GLOBAL Image GREY25_IMAGE;GREY25_IMAGE963,31940
-GLOBAL Image GREY50_IMAGE;GREY50_IMAGE964,31967
-GLOBAL Image GREY75_IMAGE;GREY75_IMAGE965,31994
-GLOBAL Colour BLACK_COLOUR;BLACK_COLOUR967,32022
-GLOBAL Colour WHITE_COLOUR;WHITE_COLOUR968,32050
-GLOBAL Image CYCLE_IMAGE;		/* image of a cycle */CYCLE_IMAGE970,32079
-GLOBAL Image MARK_IMAGE;		/* images for toggle and marked */MARK_IMAGE971,32129
-GLOBAL Image NOMARK_IMAGE;NOMARK_IMAGE972,32190
-GLOBAL Image MS_MARK_IMAGE;		/* MS images for toggle and marked */MS_MARK_IMAGE973,32217
-GLOBAL Image MS_NOMARK_IMAGE;MS_NOMARK_IMAGE974,32284
-GLOBAL Image PULLRIGHT_IMAGE;		/* Popup menu pullright marker */PULLRIGHT_IMAGE975,32314
-GLOBAL Image MARK_HANDLE_IMAGE;		/* connect_gesture */MARK_HANDLE_IMAGE976,32379
-GLOBAL Image NULL_IMAGE;		/* empty image */NULL_IMAGE977,32434
-GLOBAL Image INT_ITEM_IMAGE;INT_ITEM_IMAGE978,32478
-GLOBAL Modifier MODIFIER_shift;		/* Demands `shift-is-down' */MODIFIER_shift980,32508
-GLOBAL Modifier MODIFIER_control;	/* Demands `control-is-down' */MODIFIER_control981,32571
-GLOBAL Modifier MODIFIER_allup;		/* Demands all modifiers up */MODIFIER_allup982,32637
-GLOBAL PopupGesture GESTURE_popup;	/* Displays a popup menu */GESTURE_popup984,32702
-GLOBAL ClickGesture GESTURE_button;	/* Gesture for handling buttons */GESTURE_button985,32765
-GLOBAL Chain ChangedWindows;		/* Windows that have changed */ChangedWindows987,32837
-GLOBAL  int XrefsResolved;		/* succesful getXrefObject()'s */XrefsResolved989,32900
-GLOBAL	HashTable ColourTable;		/* ColourName --> Colour */ColourTable990,32962
-GLOBAL  HashTable CursorTable;		/* CursorName --> Cursor */CursorTable991,33021
-GLOBAL	HashTable FontTable;		/* FontName --> Font */FontTable992,33081
-GLOBAL	HashTable ImageTable;		/* ImageName --> Image */ImageTable993,33134
-GLOBAL  HashTable WindowTable;		/* X-Window --> PceWindow|FrameObj */WindowTable994,33190
-GLOBAL  Class ClassImage;		/* @image_class */ClassImage995,33260
-#define TEXTFIELD_EDITABLE	TEXTFIELD_EDITABLE1001,33412
-#define TEXTFIELD_COMBO	TEXTFIELD_COMBO1002,33468
-#define TEXTFIELD_COMBO_DOWN	TEXTFIELD_COMBO_DOWN1003,33527
-#define TEXTFIELD_STEPPER	TEXTFIELD_STEPPER1004,33600
-#define TEXTFIELD_INCREMENT	TEXTFIELD_INCREMENT1005,33653
-#define TEXTFIELD_DECREMENT	TEXTFIELD_DECREMENT1006,33720
-#define LABEL_INACTIVE	LABEL_INACTIVE1008,33788
-#define CHECKBOX_SELECTED	CHECKBOX_SELECTED1010,33841
-#define CHECKBOX_ACTIVE	CHECKBOX_ACTIVE1011,33894
-#define CHECKBOX_MULTIPLE	CHECKBOX_MULTIPLE1012,33944
-#define MBX_INFORM	MBX_INFORM1014,34014
-#define MBX_CONFIRM	MBX_CONFIRM1015,34065
-#define MBX_ERROR	MBX_ERROR1016,34111
-#define MBX_NOTHANDLED	MBX_NOTHANDLED1018,34155
-#define MBX_OK	MBX_OK1019,34223
-#define MBX_CANCEL	MBX_CANCEL1020,34265
+  int   minimum;			/* minimum size */minimum830,28636
+  int	maximum;			/* maximum size */maximum831,28674
+  int	stretch;			/* stretch handicap */stretch832,28710
+  int	shrink;				/* shrink handicap */shrink833,28750
+  int	size;				/* resulting size */size834,28789
+} stretch, *Stretch;stretch835,28825
+} stretch, *Stretch;Stretch835,28825
+#define BUTTON_mask	BUTTON_mask842,28942
+#define BUTTON_control	BUTTON_control843,28970
+#define BUTTON_shift	BUTTON_shift844,29000
+#define BUTTON_meta	BUTTON_meta845,29028
+#define BUTTON_ms_left	BUTTON_ms_left846,29055
+#define BUTTON_ms_middle	BUTTON_ms_middle847,29085
+#define BUTTON_ms_right	BUTTON_ms_right848,29117
+#define CLICK_TYPE_mask	CLICK_TYPE_mask850,29177
+#define CLICK_TYPE_single	CLICK_TYPE_single851,29209
+#define CLICK_TYPE_double	CLICK_TYPE_double852,29242
+#define CLICK_TYPE_triple	CLICK_TYPE_triple853,29275
+struct xrefxref859,29413
+{ Any		object;			/* Object (Cursor, Font, ...) */object860,29425
+  DisplayObj    display;		/* Display for which to get ref */display861,29475
+  void *	xref;			/* X-window reference */xref862,29536
+  Xref		next;			/* Next entry of table */next863,29578
+#define BRIGHT	BRIGHT871,29724
+#define NoPixel NoPixel872,29767
+#define CHANGING_GRAPHICAL(CHANGING_GRAPHICAL885,30247
+#define DRAW_3D_DOWN	DRAW_3D_DOWN905,30820
+#define DRAW_3D_CLOSED	DRAW_3D_CLOSED906,30885
+#define DRAW_3D_FILLED	DRAW_3D_FILLED907,30912
+{ int x, y;x910,30955
+{ int x, y;y910,30955
+} ipoint, *IPoint;ipoint911,30967
+} ipoint, *IPoint;IPoint911,30967
+{ int x, y, w, h;x915,31003
+{ int x, y, w, h;y915,31003
+{ int x, y, w, h;w915,31003
+{ int x, y, w, h;h915,31003
+} iarea, *IArea;iarea916,31021
+} iarea, *IArea;IArea916,31021
+{ int x1, y1, x2, y2;x1920,31055
+{ int x1, y1, x2, y2;y1920,31055
+{ int x1, y1, x2, y2;x2920,31055
+{ int x1, y1, x2, y2;y2920,31055
+} isegment, *ISegment;isegment921,31077
+} isegment, *ISegment;ISegment921,31077
+struct update_areaupdate_area924,31102
+{ iarea		area;			/* Concerned area */area925,31121
+  int		clear;			/* needs to be cleared */clear926,31159
+  int		deleted;		/* area is deleted */deleted927,31201
+  int		size;			/* width * height */size928,31240
+  UpdateArea    next;			/* next in chain */next929,31276
+struct colour_contextcolour_context932,31324
+{ Any		foreground;		/* saved foreground */foreground933,31346
+  Any		background;		/* saved background */background934,31389
+  int		lock;			/* lock nesting count */lock935,31432
+{ Int	x;x939,31491
+  Int	y;y940,31500
+  Int 	w;w941,31509
+  Int	h;h942,31519
+} device_draw_context, *DeviceDrawContext;device_draw_context943,31528
+} device_draw_context, *DeviceDrawContext;DeviceDrawContext943,31528
+#define OverlapArea(OverlapArea950,31671
+#define GLOBAL GLOBAL959,31905
+GLOBAL Image BLACK_IMAGE;BLACK_IMAGE962,31935
+GLOBAL Image WHITE_IMAGE;WHITE_IMAGE963,31961
+GLOBAL Image GREY12_IMAGE;GREY12_IMAGE964,31987
+GLOBAL Image GREY25_IMAGE;GREY25_IMAGE965,32014
+GLOBAL Image GREY50_IMAGE;GREY50_IMAGE966,32041
+GLOBAL Image GREY75_IMAGE;GREY75_IMAGE967,32068
+GLOBAL Colour BLACK_COLOUR;BLACK_COLOUR969,32096
+GLOBAL Colour WHITE_COLOUR;WHITE_COLOUR970,32124
+GLOBAL Image CYCLE_IMAGE;		/* image of a cycle */CYCLE_IMAGE972,32153
+GLOBAL Image MARK_IMAGE;		/* images for toggle and marked */MARK_IMAGE973,32203
+GLOBAL Image NOMARK_IMAGE;NOMARK_IMAGE974,32264
+GLOBAL Image MS_MARK_IMAGE;		/* MS images for toggle and marked */MS_MARK_IMAGE975,32291
+GLOBAL Image MS_NOMARK_IMAGE;MS_NOMARK_IMAGE976,32358
+GLOBAL Image PULLRIGHT_IMAGE;		/* Popup menu pullright marker */PULLRIGHT_IMAGE977,32388
+GLOBAL Image MARK_HANDLE_IMAGE;		/* connect_gesture */MARK_HANDLE_IMAGE978,32453
+GLOBAL Image NULL_IMAGE;		/* empty image */NULL_IMAGE979,32508
+GLOBAL Image INT_ITEM_IMAGE;INT_ITEM_IMAGE980,32552
+GLOBAL Modifier MODIFIER_shift;		/* Demands `shift-is-down' */MODIFIER_shift982,32582
+GLOBAL Modifier MODIFIER_control;	/* Demands `control-is-down' */MODIFIER_control983,32645
+GLOBAL Modifier MODIFIER_allup;		/* Demands all modifiers up */MODIFIER_allup984,32711
+GLOBAL PopupGesture GESTURE_popup;	/* Displays a popup menu */GESTURE_popup986,32776
+GLOBAL ClickGesture GESTURE_button;	/* Gesture for handling buttons */GESTURE_button987,32839
+GLOBAL Chain ChangedWindows;		/* Windows that have changed */ChangedWindows989,32911
+GLOBAL  int XrefsResolved;		/* succesful getXrefObject()'s */XrefsResolved991,32974
+GLOBAL	HashTable ColourTable;		/* ColourName --> Colour */ColourTable992,33036
+GLOBAL  HashTable CursorTable;		/* CursorName --> Cursor */CursorTable993,33095
+GLOBAL	HashTable FontTable;		/* FontName --> Font */FontTable994,33155
+GLOBAL	HashTable ImageTable;		/* ImageName --> Image */ImageTable995,33208
+GLOBAL  HashTable WindowTable;		/* X-Window --> PceWindow|FrameObj */WindowTable996,33264
+GLOBAL  Class ClassImage;		/* @image_class */ClassImage997,33334
+#define TEXTFIELD_EDITABLE	TEXTFIELD_EDITABLE1003,33486
+#define TEXTFIELD_COMBO	TEXTFIELD_COMBO1004,33542
+#define TEXTFIELD_COMBO_DOWN	TEXTFIELD_COMBO_DOWN1005,33601
+#define TEXTFIELD_STEPPER	TEXTFIELD_STEPPER1006,33674
+#define TEXTFIELD_INCREMENT	TEXTFIELD_INCREMENT1007,33727
+#define TEXTFIELD_DECREMENT	TEXTFIELD_DECREMENT1008,33794
+#define LABEL_INACTIVE	LABEL_INACTIVE1010,33862
+#define CHECKBOX_SELECTED	CHECKBOX_SELECTED1012,33915
+#define CHECKBOX_ACTIVE	CHECKBOX_ACTIVE1013,33968
+#define CHECKBOX_MULTIPLE	CHECKBOX_MULTIPLE1014,34018
+#define MBX_INFORM	MBX_INFORM1016,34088
+#define MBX_CONFIRM	MBX_CONFIRM1017,34139
+#define MBX_ERROR	MBX_ERROR1018,34185
+#define MBX_NOTHANDLED	MBX_NOTHANDLED1020,34229
+#define MBX_OK	MBX_OK1021,34297
+#define MBX_CANCEL	MBX_CANCEL1022,34339
 
 h/interface.h,9285
 #define _XPCE_INTERFACE_H_INCLUDED_XPCE_INTERFACE_H_INCLUDED11,284
@@ -1291,7 +1293,7 @@ GLOBAL Constant EndOfFile;		/* @end_of_file */EndOfFile18,438
   Int		left_priority;		/* Allowed priority left */left_priority23,585
   Int		right_priority;		/* Allowed priority rigth */right_priority24,636
 
-h/layout.h,2878
+h/layout.h,2943
 #define LAYOUT_H_INCLUDEDLAYOUT_H_INCLUDED11,271
 GLOBAL Class ClassLayoutManager;ClassLayoutManager14,322
 GLOBAL Class ClassLayoutInterface;ClassLayoutInterface15,355
@@ -1318,30 +1320,31 @@ End;End47,1279
     Size	cell_padding;		/* default padding around cells */cell_padding56,1579
     Size	cell_spacing;		/* Space between cells */cell_spacing57,1638
     Point	current;		/* Current X-Y location */current58,1688
-    Area	area;			/* Total occupied area */area60,1761
-    Bool	changed;		/* layout-changing action */changed61,1804
-    Int		row;			/* Y-location in table */row67,1954
-    Name	halign;			/* left, right, center, ref, stretch */halign68,1996
-    Name	valign;			/* top, bottom, center, ref, stretch */valign69,2055
-    Int		col_span;		/* number of columns spanned */col_span70,2114
-    Int		row_span;		/* number of rows spanned */row_span71,2166
-    Size	cell_padding;		/* Padding for this cell (default) */cell_padding72,2215
-    Bool	selected;		/* Cell is selected */ \selected73,2277
-    Any		background;		/* Background colour in */background74,2322
-    Image	note_mark;		/* Mark for (foot-) notes */note_mark75,2371
-#define ABSTRACT_TABLE_SLICE ABSTRACT_TABLE_SLICE78,2428
-End;End99,3211
-typedef struct _table_cell_dimensions_table_cell_dimensions105,3271
-{ int	x;				/* X-location */x106,3309
-  int	y;				/* Y-location */y107,3338
-  int	w;				/* Width of the cell (outer) */w108,3367
-  int	h;				/* heigth */h109,3411
-  int	rx;				/* reference-X */rx110,3436
-  int	ry;				/* reference-Y */ry111,3467
-  int	px;				/* H-padding */px112,3498
-  int	py;				/* V-padding */py113,3527
-} table_cell_dimensions, *TableCellDimensions;table_cell_dimensions114,3556
-} table_cell_dimensions, *TableCellDimensions;TableCellDimensions114,3556
+    Int		width;			/* Total width (or @default) */width59,1735
+    Area	area;			/* Total occupied area */area61,1811
+    Bool	changed;		/* layout-changing action */changed62,1854
+    Int		row;			/* Y-location in table */row68,2004
+    Name	halign;			/* left, right, center, ref, stretch */halign69,2046
+    Name	valign;			/* top, bottom, center, ref, stretch */valign70,2105
+    Int		col_span;		/* number of columns spanned */col_span71,2164
+    Int		row_span;		/* number of rows spanned */row_span72,2216
+    Size	cell_padding;		/* Padding for this cell (default) */cell_padding73,2265
+    Bool	selected;		/* Cell is selected */ \selected74,2327
+    Any		background;		/* Background colour in */background75,2372
+    Image	note_mark;		/* Mark for (foot-) notes */note_mark76,2421
+#define ABSTRACT_TABLE_SLICE ABSTRACT_TABLE_SLICE79,2478
+End;End100,3261
+typedef struct _table_cell_dimensions_table_cell_dimensions106,3321
+{ int	x;				/* X-location */x107,3359
+  int	y;				/* Y-location */y108,3388
+  int	w;				/* Width of the cell (outer) */w109,3417
+  int	h;				/* heigth */h110,3461
+  int	rx;				/* reference-X */rx111,3486
+  int	ry;				/* reference-Y */ry112,3517
+  int	px;				/* H-padding */px113,3548
+  int	py;				/* V-padding */py114,3577
+} table_cell_dimensions, *TableCellDimensions;table_cell_dimensions115,3606
+} table_cell_dimensions, *TableCellDimensions;TableCellDimensions115,3606
 
 h/str.h,1919
 #define _STR_H_INCLUDED_STR_H_INCLUDED11,266
@@ -4054,56 +4057,56 @@ expand_y_matrix(Matrix m, int *max_x, int *max_y)expand_y_matrix1145,26662
 free_matrix_columns(Matrix m, int max_x)free_matrix_columns1156,26819
 placeDialogItem(Device d, Matrix m, Graphical i,placeDialogItem1165,26966
 stretchColumns(Matrix m, Size gap, Size bb, Size border)stretchColumns1207,28446
-determineXColumns(Matrix m, Size gap, Size bb, Size border)determineXColumns1247,29445
-stretchRows(Matrix m, int bbh)stretchRows1280,30370
-adjustDialogItem(Any obj, Int x, Int y, Int w, Int h)adjustDialogItem1329,31716
-#define Changed(Changed1340,32041
-#undef ChangedChanged1349,32281
-layoutDialogDevice(Device d, Size gap, Size bb, Size border)layoutDialogDevice1356,32320
-#define AUTO_ALIGN_LABEL AUTO_ALIGN_LABEL1413,33705
-#define AUTO_ALIGN_VALUE AUTO_ALIGN_VALUE1414,33732
-appendDialogItemDevice(Device d, Graphical item, Name where)appendDialogItemDevice1712,41582
-convertLoadedObjectDevice(Device dev, Int ov, Int cv)convertLoadedObjectDevice1751,42563
-reparentDevice(Device dev)reparentDevice1760,42736
-roomDevice(Device dev, Area area)roomDevice1776,43046
-getInsideDevice(Device dev, Area a)getInsideDevice1792,43302
-resizeDevice(Device dev, Real xfactor, Real yfactor, Point origin)resizeDevice1809,43600
-getMemberDevice(Device dev, Name name)getMemberDevice1835,44265
-forSomeDevice(Device dev, Name name, Code msg)forSomeDevice1850,44498
-forAllDevice(Device dev, Name name, Code msg)forAllDevice1865,44766
-updateConnectionsDevice(Device dev, Int level)updateConnectionsDevice1884,45129
-geometryDevice(Device dev, Int x, Int y, Int w, Int h)geometryDevice1899,45469
-referenceDevice(Device dev, Point pos)referenceDevice1933,46255
-set_position_device(Device dev, Int x, Int y)set_position_device1961,46799
-positionDevice(Device dev, Point pos)positionDevice1975,47125
-xDevice(Device dev, Int x)xDevice1981,47232
-yDevice(Device dev, Int y)yDevice1987,47324
-getPositionDevice(Device dev)getPositionDevice1993,47415
-getXDevice(Device dev)getXDevice2000,47508
-getYDevice(Device dev)getYDevice2006,47583
-getOffsetDevice(Device dev)getOffsetDevice2012,47660
-getCatchAllDevice(Device dev, Name name)getCatchAllDevice2023,47851
-getContainsDevice(Device dev)getContainsDevice2038,48183
-static char *T_DnameD_code[] =T_DnameD_code2048,48367
-static char *T_find[] =T_find2050,48428
-static char *T_pointedObjects[] =T_pointedObjects2052,48504
-static char *T_typed[] =T_typed2054,48589
-static char *T_format[] =T_format2056,48648
-static char *T_layout[] =T_layout2058,48711
-static char *T_modifiedItem[] =T_modifiedItem2060,48795
-static char *T_display[] =T_display2062,48860
-static char *T_appendDialogItem[] =T_appendDialogItem2064,48932
-static char *T_convertLoadedObject[] =T_convertLoadedObject2066,49043
-static char *T_changedUnion[] =T_changedUnion2068,49132
-static char *T_geometry[] =T_geometry2070,49216
-static char *T_resize[] =T_resize2072,49309
-static char *T_flash[] =T_flash2074,49401
-static char *T_advance[] =T_advance2076,49460
-static vardecl var_device[] =var_device2081,49560
-static senddecl send_device[] =send_device2106,50566
-static getdecl get_device[] =get_device2174,53774
-#define rc_device rc_device2204,55119
-makeClassDevice(Class class)makeClassDevice2220,55344
+determineXColumns(Matrix m, Size gap, Size bb, Size border)determineXColumns1251,29533
+stretchRows(Matrix m, int bbh)stretchRows1284,30458
+adjustDialogItem(Any obj, Int x, Int y, Int w, Int h)adjustDialogItem1336,31884
+#define Changed(Changed1347,32209
+#undef ChangedChanged1356,32449
+layoutDialogDevice(Device d, Size gap, Size bb, Size border)layoutDialogDevice1363,32488
+#define AUTO_ALIGN_LABEL AUTO_ALIGN_LABEL1420,33873
+#define AUTO_ALIGN_VALUE AUTO_ALIGN_VALUE1421,33900
+appendDialogItemDevice(Device d, Graphical item, Name where)appendDialogItemDevice1719,41750
+convertLoadedObjectDevice(Device dev, Int ov, Int cv)convertLoadedObjectDevice1758,42731
+reparentDevice(Device dev)reparentDevice1767,42904
+roomDevice(Device dev, Area area)roomDevice1783,43214
+getInsideDevice(Device dev, Area a)getInsideDevice1799,43470
+resizeDevice(Device dev, Real xfactor, Real yfactor, Point origin)resizeDevice1816,43768
+getMemberDevice(Device dev, Name name)getMemberDevice1842,44433
+forSomeDevice(Device dev, Name name, Code msg)forSomeDevice1857,44666
+forAllDevice(Device dev, Name name, Code msg)forAllDevice1872,44934
+updateConnectionsDevice(Device dev, Int level)updateConnectionsDevice1891,45297
+geometryDevice(Device dev, Int x, Int y, Int w, Int h)geometryDevice1906,45637
+referenceDevice(Device dev, Point pos)referenceDevice1940,46423
+set_position_device(Device dev, Int x, Int y)set_position_device1968,46967
+positionDevice(Device dev, Point pos)positionDevice1982,47293
+xDevice(Device dev, Int x)xDevice1988,47400
+yDevice(Device dev, Int y)yDevice1994,47492
+getPositionDevice(Device dev)getPositionDevice2000,47583
+getXDevice(Device dev)getXDevice2007,47676
+getYDevice(Device dev)getYDevice2013,47751
+getOffsetDevice(Device dev)getOffsetDevice2019,47828
+getCatchAllDevice(Device dev, Name name)getCatchAllDevice2030,48019
+getContainsDevice(Device dev)getContainsDevice2045,48351
+static char *T_DnameD_code[] =T_DnameD_code2055,48535
+static char *T_find[] =T_find2057,48596
+static char *T_pointedObjects[] =T_pointedObjects2059,48672
+static char *T_typed[] =T_typed2061,48757
+static char *T_format[] =T_format2063,48816
+static char *T_layout[] =T_layout2065,48879
+static char *T_modifiedItem[] =T_modifiedItem2067,48963
+static char *T_display[] =T_display2069,49028
+static char *T_appendDialogItem[] =T_appendDialogItem2071,49100
+static char *T_convertLoadedObject[] =T_convertLoadedObject2073,49211
+static char *T_changedUnion[] =T_changedUnion2075,49300
+static char *T_geometry[] =T_geometry2077,49384
+static char *T_resize[] =T_resize2079,49477
+static char *T_flash[] =T_flash2081,49569
+static char *T_advance[] =T_advance2083,49628
+static vardecl var_device[] =var_device2088,49728
+static senddecl send_device[] =send_device2113,50734
+static getdecl get_device[] =get_device2181,53942
+#define rc_device rc_device2211,55287
+makeClassDevice(Class class)makeClassDevice2227,55512
 
 gra/draw.c,263
 #define D_RIGHT	D_RIGHT27,1058
@@ -4980,92 +4983,92 @@ draw_caret(int x, int y, int w, int h, int active)draw_caret230,5009
 #define OL_CURSOR_SIZE	OL_CURSOR_SIZE255,5563
 repaintText(TextObj t, int x, int y, int w, int h)repaintText259,5603
 initAreaText(TextObj t)initAreaText350,8020
-initPositionText(TextObj t)initPositionText407,9302
-initOffsetText(TextObj t, int tw)initOffsetText461,10481
-resizeText(TextObj t, Real xfactor, Real yfactor, Point origin)resizeText502,11349
-getCharacterPositionText(TextObj t, Int chr)getCharacterPositionText528,12148
-get_char_pos_text(TextObj t, Int chr, int *X, int *Y)get_char_pos_text538,12321
-get_pointed_text(TextObj t, int x, int y)get_pointed_text596,13569
-getPointedText(TextObj t, Point pos)getPointedText657,14825
-backgroundText(TextObj t, Any bg)backgroundText669,15068
-underlineText(TextObj t, Bool underline)underlineText681,15268
-transparentText(TextObj t, Bool val)transparentText692,15476
-getTransparentText(TextObj t)getTransparentText700,15602
-fontText(TextObj t, FontObj font)fontText707,15687
-formatText(TextObj t, Name format)formatText717,15837
-borderText(TextObj t, Int border)borderText727,15993
-stringText(TextObj t, CharArray s)stringText737,16144
-showCaretText(TextObj t, Any val)showCaretText751,16358
-selectionText(TextObj t, Int from, Int to)selectionText767,16660
-getSelectionText(TextObj t)getSelectionText809,17372
-getSelectedTextText(TextObj t)getSelectedTextText823,17587
-copyText(TextObj t)copyText836,17808
-deleteSelectionText(TextObj t)deleteSelectionText853,18113
-cutText(TextObj t)cutText872,18491
-geometryText(TextObj t, Int x, Int y, Int w, Int h)geometryText892,18762
-updateShowCaretText(TextObj t)updateShowCaretText925,19561
-eventText(TextObj t, EventObj ev)eventText938,19819
-typedText(TextObj t, EventId id)typedText959,20262
-start_of_line(String s, int n)start_of_line965,20373
-end_of_line(String s, int n)end_of_line976,20554
-forward_word(String s, int i, int n)forward_word985,20674
-backward_word(String s, int i, int n)backward_word996,20898
-#define UArg(UArg1011,21214
-deselectText(TextObj t)deselectText1014,21278
-caretText(TextObj t, Int where)caretText1021,21386
-forwardCharText(TextObj t, Int arg)forwardCharText1038,21707
-backwardCharText(TextObj t, Int arg)backwardCharText1046,21835
-nextLineText(TextObj t, Int arg, Int column)nextLineText1054,21964
-previousLineText(TextObj t, Int arg, Int column)previousLineText1070,22332
-getColumnText(TextObj t)getColumnText1078,22467
-endOfLineText(TextObj t, Int arg)endOfLineText1090,22642
-beginningOfLineText(TextObj t, Int arg)beginningOfLineText1106,22973
-forwardWordText(TextObj t, Int arg)forwardWordText1122,23295
-backwardWordText(TextObj t, Int arg)backwardWordText1132,23496
-prepareInsertText(TextObj t)prepareInsertText1146,23794
-prepareEditText(TextObj t)prepareEditText1157,24077
-pasteText(TextObj t, Int buffer)pasteText1167,24289
-backwardDeleteCharText(TextObj t, Int arg)backwardDeleteCharText1182,24698
-deleteCharText(TextObj t, Int arg)deleteCharText1210,25235
-cutOrDeleteCharText(TextObj t, Int arg)cutOrDeleteCharText1216,25341
-cutOrBackwardDeleteCharText(TextObj t, Int arg)cutOrBackwardDeleteCharText1225,25512
-killLineText(TextObj t, Int arg)killLineText1234,25699
-clearText(TextObj t)clearText1256,26217
-insertText(TextObj t, Int where, CharArray str)insertText1267,26412
-insertSelfText(TextObj t, Int times, Int chr)insertSelfText1280,26689
-newlineText(TextObj t, Int arg)newlineText1316,27399
-openLineText(TextObj t, Int arg)openLineText1322,27495
-gosmacsTransposeText(TextObj t)gosmacsTransposeText1344,27941
-transposeCharsText(TextObj t)transposeCharsText1365,28328
-killWordText(TextObj t, Int arg)killWordText1386,28709
-backwardKillWordText(TextObj t, Int arg)backwardKillWordText1398,29008
-formatCenterText(TextObj t)formatCenterText1411,29336
-formatLeftText(TextObj t)formatLeftText1418,29438
-formatRightText(TextObj t)formatRightText1425,29536
-lengthText(TextObj t, Int l)lengthText1436,29727
-marginText(TextObj t, Int width, Name wrap)marginText1450,29962
-loadText(TextObj t, IOSTREAM *fd, ClassDef def)loadText1482,30533
-convertOldSlotText(TextObj t, Name slot, Any value)convertOldSlotText1501,30959
-catchAllText(TextObj t, Name sel, int argc, Any* argv)catchAllText1513,31252
-getCatchAllText(TextObj t, Name sel, int argc, Any *argv)getCatchAllText1528,31585
-hasSendMethodText(TextObj t, Name sel)hasSendMethodText1538,31842
-hasGetMethodText(TextObj t, Name sel)hasGetMethodText1548,32004
-static char *T_insert[] =T_insert1563,32273
-static char *T_resize[] =T_resize1565,32342
-static char *T_margin[] =T_margin1567,32434
-static char *T_linesADintD_columnADintD[] =T_linesADintD_columnADintD1569,32514
-static char *T_convertOldSlot[] =T_convertOldSlot1571,32601
-static char *T_initialise[] =T_initialise1573,32679
-static char *T_insertSelf[] =T_insertSelf1576,32794
-static char *T_geometry[] =T_geometry1578,32871
-static char *T_selection[] =T_selection1580,32964
-static char *T_catchAll[] =T_catchAll1582,33032
-static vardecl var_text[] =var_text1587,33142
-static senddecl send_text[] =send_text1622,34709
-static getdecl get_text[] =get_text1722,39741
-static classvardecl rc_text[] =rc_text1742,40641
-static Name text_termnames[] = { NAME_string, NAME_format, NAME_font };text_termnames1762,41273
-makeClassText(Class class)makeClassText1771,41476
+initPositionText(TextObj t)initPositionText407,9284
+initOffsetText(TextObj t, int tw)initOffsetText461,10463
+resizeText(TextObj t, Real xfactor, Real yfactor, Point origin)resizeText502,11331
+getCharacterPositionText(TextObj t, Int chr)getCharacterPositionText528,12130
+get_char_pos_text(TextObj t, Int chr, int *X, int *Y)get_char_pos_text538,12303
+get_pointed_text(TextObj t, int x, int y)get_pointed_text596,13551
+getPointedText(TextObj t, Point pos)getPointedText657,14807
+backgroundText(TextObj t, Any bg)backgroundText669,15050
+underlineText(TextObj t, Bool underline)underlineText681,15250
+transparentText(TextObj t, Bool val)transparentText692,15458
+getTransparentText(TextObj t)getTransparentText700,15584
+fontText(TextObj t, FontObj font)fontText707,15669
+formatText(TextObj t, Name format)formatText717,15819
+borderText(TextObj t, Int border)borderText727,15975
+stringText(TextObj t, CharArray s)stringText737,16126
+showCaretText(TextObj t, Any val)showCaretText751,16340
+selectionText(TextObj t, Int from, Int to)selectionText767,16642
+getSelectionText(TextObj t)getSelectionText809,17354
+getSelectedTextText(TextObj t)getSelectedTextText823,17569
+copyText(TextObj t)copyText836,17790
+deleteSelectionText(TextObj t)deleteSelectionText853,18095
+cutText(TextObj t)cutText872,18473
+geometryText(TextObj t, Int x, Int y, Int w, Int h)geometryText892,18744
+updateShowCaretText(TextObj t)updateShowCaretText925,19543
+eventText(TextObj t, EventObj ev)eventText938,19801
+typedText(TextObj t, EventId id)typedText959,20244
+start_of_line(String s, int n)start_of_line965,20355
+end_of_line(String s, int n)end_of_line976,20536
+forward_word(String s, int i, int n)forward_word985,20656
+backward_word(String s, int i, int n)backward_word996,20880
+#define UArg(UArg1011,21196
+deselectText(TextObj t)deselectText1014,21260
+caretText(TextObj t, Int where)caretText1021,21368
+forwardCharText(TextObj t, Int arg)forwardCharText1038,21689
+backwardCharText(TextObj t, Int arg)backwardCharText1046,21817
+nextLineText(TextObj t, Int arg, Int column)nextLineText1054,21946
+previousLineText(TextObj t, Int arg, Int column)previousLineText1070,22314
+getColumnText(TextObj t)getColumnText1078,22449
+endOfLineText(TextObj t, Int arg)endOfLineText1090,22624
+beginningOfLineText(TextObj t, Int arg)beginningOfLineText1106,22955
+forwardWordText(TextObj t, Int arg)forwardWordText1122,23277
+backwardWordText(TextObj t, Int arg)backwardWordText1132,23478
+prepareInsertText(TextObj t)prepareInsertText1146,23776
+prepareEditText(TextObj t)prepareEditText1157,24059
+pasteText(TextObj t, Int buffer)pasteText1167,24271
+backwardDeleteCharText(TextObj t, Int arg)backwardDeleteCharText1182,24680
+deleteCharText(TextObj t, Int arg)deleteCharText1210,25217
+cutOrDeleteCharText(TextObj t, Int arg)cutOrDeleteCharText1216,25323
+cutOrBackwardDeleteCharText(TextObj t, Int arg)cutOrBackwardDeleteCharText1225,25494
+killLineText(TextObj t, Int arg)killLineText1234,25681
+clearText(TextObj t)clearText1256,26199
+insertText(TextObj t, Int where, CharArray str)insertText1267,26394
+insertSelfText(TextObj t, Int times, Int chr)insertSelfText1280,26671
+newlineText(TextObj t, Int arg)newlineText1316,27381
+openLineText(TextObj t, Int arg)openLineText1322,27477
+gosmacsTransposeText(TextObj t)gosmacsTransposeText1344,27923
+transposeCharsText(TextObj t)transposeCharsText1365,28310
+killWordText(TextObj t, Int arg)killWordText1386,28691
+backwardKillWordText(TextObj t, Int arg)backwardKillWordText1398,28990
+formatCenterText(TextObj t)formatCenterText1411,29318
+formatLeftText(TextObj t)formatLeftText1418,29420
+formatRightText(TextObj t)formatRightText1425,29518
+lengthText(TextObj t, Int l)lengthText1436,29709
+marginText(TextObj t, Int width, Name wrap)marginText1450,29944
+loadText(TextObj t, IOSTREAM *fd, ClassDef def)loadText1482,30515
+convertOldSlotText(TextObj t, Name slot, Any value)convertOldSlotText1501,30941
+catchAllText(TextObj t, Name sel, int argc, Any* argv)catchAllText1513,31234
+getCatchAllText(TextObj t, Name sel, int argc, Any *argv)getCatchAllText1528,31567
+hasSendMethodText(TextObj t, Name sel)hasSendMethodText1538,31824
+hasGetMethodText(TextObj t, Name sel)hasGetMethodText1548,31986
+static char *T_insert[] =T_insert1563,32255
+static char *T_resize[] =T_resize1565,32324
+static char *T_margin[] =T_margin1567,32416
+static char *T_linesADintD_columnADintD[] =T_linesADintD_columnADintD1569,32496
+static char *T_convertOldSlot[] =T_convertOldSlot1571,32583
+static char *T_initialise[] =T_initialise1573,32661
+static char *T_insertSelf[] =T_insertSelf1576,32776
+static char *T_geometry[] =T_geometry1578,32853
+static char *T_selection[] =T_selection1580,32946
+static char *T_catchAll[] =T_catchAll1582,33014
+static vardecl var_text[] =var_text1587,33124
+static senddecl send_text[] =send_text1622,34691
+static getdecl get_text[] =get_text1722,39723
+static classvardecl rc_text[] =rc_text1742,40623
+static Name text_termnames[] = { NAME_string, NAME_format, NAME_font };text_termnames1762,41255
+makeClassText(Class class)makeClassText1771,41458
 
 gra/tree.c,2071
 static Any div_h_2;			/* h/2 */div_h_217,377
@@ -9325,30 +9328,30 @@ aboveTile(TileObj t, Any obj, Bool delegate)aboveTile340,8407
 belowTile(TileObj t, Any obj, Bool delegate)belowTile384,9562
 getRootTile(TileObj t)getRootTile398,9858
 distribute_stretches(stretch *s, int n, int w)distribute_stretches407,9950
-setTile(TileObj t, Int x, Int y, Int w, Int h)setTile522,12703
-unenforceTile(TileObj t)unenforceTile587,14133
-enforceTile(TileObj t, Bool val)enforceTile602,14323
-layoutTile(TileObj t, Int ax, Int ay, Int aw, Int ah)layoutTile619,14603
-areaTile(TileObj t, Area a)areaTile705,16681
-positionTile(TileObj t, Point p)positionTile711,16772
-sizeTile(TileObj t, Size s)sizeTile717,16874
-xTile(TileObj t, Int x)xTile723,16971
-yTile(TileObj t, Int y)yTile729,17064
-widthTile(TileObj t, Int w)widthTile735,17157
-heightTile(TileObj t, Int h)heightTile741,17254
-cornerTile(TileObj t, Point pos)cornerTile747,17352
-centerTile(TileObj t, Point pos)centerTile754,17508
-forAllTile(TileObj t, Code msg)forAllTile766,17757
-getSubTileToResizeTile(TileObj t, Point pos)getSubTileToResizeTile784,18086
-static char *T_initialise[] =T_initialise827,19101
-static char *T_xADintD_yADintD_widthADintD_heightADintD[] =T_xADintD_yADintD_widthADintD_heightADintD829,19192
-static char *T_associate[] =T_associate831,19317
-static vardecl var_tile[] =var_tile836,19407
-static senddecl send_tile[] =send_tile867,20628
-static getdecl get_tile[] =get_tile910,22433
-static classvardecl rc_tile[] =rc_tile919,22710
-static Name tile_termnames[] =tile_termnames926,22833
-makeClassTile(Class class)makeClassTile936,23048
+setTile(TileObj t, Int x, Int y, Int w, Int h)setTile530,12951
+unenforceTile(TileObj t)unenforceTile595,14381
+enforceTile(TileObj t, Bool val)enforceTile610,14571
+layoutTile(TileObj t, Int ax, Int ay, Int aw, Int ah)layoutTile627,14851
+areaTile(TileObj t, Area a)areaTile719,17061
+positionTile(TileObj t, Point p)positionTile725,17152
+sizeTile(TileObj t, Size s)sizeTile731,17254
+xTile(TileObj t, Int x)xTile737,17351
+yTile(TileObj t, Int y)yTile743,17444
+widthTile(TileObj t, Int w)widthTile749,17537
+heightTile(TileObj t, Int h)heightTile755,17634
+cornerTile(TileObj t, Point pos)cornerTile761,17732
+centerTile(TileObj t, Point pos)centerTile768,17888
+forAllTile(TileObj t, Code msg)forAllTile780,18137
+getSubTileToResizeTile(TileObj t, Point pos)getSubTileToResizeTile798,18466
+static char *T_initialise[] =T_initialise841,19481
+static char *T_xADintD_yADintD_widthADintD_heightADintD[] =T_xADintD_yADintD_widthADintD_heightADintD843,19572
+static char *T_associate[] =T_associate845,19697
+static vardecl var_tile[] =var_tile850,19787
+static senddecl send_tile[] =send_tile881,21008
+static getdecl get_tile[] =get_tile924,22813
+static classvardecl rc_tile[] =rc_tile933,23090
+static Name tile_termnames[] =tile_termnames940,23213
+makeClassTile(Class class)makeClassTile950,23428
 
 win/view.c,1309
 initialiseView(View v, Name name, Size size, DisplayObj display, Editor editor)initialiseView15,324
@@ -9488,6 +9491,428 @@ static getdecl get_window[] =get_window2158,53006
 static classvardecl rc_window[] =rc_window2189,54492
 static Name window_termnames[] = { NAME_name, NAME_size, NAME_display };window_termnames2202,54989
 makeClassWindow(Class class)makeClassWindow2211,55205
+
+fmt/layoutitf.c,679
+initialiseLayoutInterface(Any obj, Graphical image)initialiseLayoutInterface15,303
+unlinkLayoutInterface(Any obj)unlinkLayoutInterface25,496
+getConvertLayoutInterface(Any context, Graphical image)getConvertLayoutInterface39,739
+changedAreaLayoutInterface(LayoutInterface itf)changedAreaLayoutInterface45,814
+static vardecl var_layoutitf[] =var_layoutitf62,1200
+static senddecl send_layoutitf[] =send_layoutitf71,1427
+static getdecl get_layoutitf[] =get_layoutitf80,1684
+#define rc_layoutitf rc_layoutitf88,1867
+static Name layoutitf_termnames[] = { NAME_image };layoutitf_termnames97,1967
+makeClassLayoutInterface(Class class)makeClassLayoutInterface105,2179
+
+fmt/layoutmgr.c,765
+initialiseLayoutManager(Any obj)initialiseLayoutManager15,303
+unlinkLayoutManager(LayoutManager mgr)unlinkLayoutManager27,468
+attachLayoutManager(LayoutManager mgr, Device dev)attachLayoutManager36,612
+detachLayoutManager(LayoutManager mgr)detachLayoutManager44,721
+requestComputeLayoutManager(LayoutManager mgr, Any val)requestComputeLayoutManager53,842
+computeLayoutManager(LayoutManager mgr)computeLayoutManager73,1262
+ComputeLayoutManager(Any obj)ComputeLayoutManager81,1362
+static vardecl var_layoutmgr[] =var_layoutmgr99,1666
+static senddecl send_layoutmgr[] =send_layoutmgr108,1968
+#define get_layoutmgr get_layoutmgr127,2732
+#define rc_layoutmgr rc_layoutmgr136,2822
+makeClassLayoutManager(Class class)makeClassLayoutManager151,3066
+
+fmt/paragraph.c,2155
+  Style		style;			/* style (override) */style17,391
+  Int		start_indent;		/* indent */start_indent18,432
+  Int		first_line_indent;	/* indent of first line */first_line_indent19,467
+  Int		space_before;		/* Space above text */space_before20,520
+  Int		space_after;		/* Space below text */space_after21,565
+  Name		quadding;		/* left,center,right */quadding22,609
+  Bool		justify;		/* justify text? */justify23,652
+  TextBuffer	text_buffer;		/* contained text and graphics */text_buffer24,690
+{ int		ascent;			/* height above baseline */ascent28,772
+  int		decent;			/* height below baseline */decent29,817
+  int		x;			/* X-position */x30,862
+  int		w;			/* total width */w31,891
+  lineitem     *items;			/* list of items */items32,921
+} line;line33,966
+{ FontObj	font;			/* font of the item */font36,990
+  Style		style;			/* its style */style37,1031
+  String	text;			/* represented text */text38,1065
+  int		x;			/* X-position */x39,1105
+} lineitem;lineitem40,1134
+initialiseParagraph(Paragraph par, TextBuffer tb)initialiseParagraph48,1256
+computeParagraph(Paragraph par)computeParagraph77,1685
+RedrawAreaParagraph(Paragraph par, Area area)RedrawAreaParagraph92,1927
+assignParagraph(Paragraph par, Name slot, Any value)assignParagraph102,2089
+startIndentParagraph(Paragraph par, Int val)startIndentParagraph120,2443
+firstLineIndentParagraph(Paragraph par, Int val)firstLineIndentParagraph126,2560
+spaceBeforeParagraph(Paragraph par, Int val)spaceBeforeParagraph132,2685
+spaceAfterParagraph(Paragraph par, Int val)spaceAfterParagraph138,2802
+styleParagraph(Paragraph par, Style val)styleParagraph144,2917
+fontParagraph(Paragraph par, Font val)fontParagraph150,3024
+justifyParagraph(Paragraph par, Bool justify)justifyParagraph156,3128
+static vardecl var_paragraph[] =var_paragraph169,3382
+static senddecl send_paragraph[] =send_paragraph193,4494
+#define get_paragraph get_paragraph204,4879
+static classvardecl rc_paragraph[] =rc_paragraph213,4969
+static Name paragraph_termnames[] = { NAME_image };paragraph_termnames226,5372
+makeClassParagraph(Class class)makeClassParagraph237,5593
+
+fmt/proto.h,0
+
+fmt/tabcell.c,1822
+table_of_cell(TableCell cell)table_of_cell18,410
+initialiseTableCell(TableCell c, Graphical image)initialiseTableCell32,643
+unlinkTableCell(TableCell cell)unlinkTableCell48,1003
+getConvertTableCell(Any context, Graphical image)getConvertTableCell59,1203
+modifiedImageTableCell(TableCell c)modifiedImageTableCell69,1416
+selectedTableCell(TableCell c, Bool selected)selectedTableCell89,1807
+backgroundTableCell(TableCell c, Any bg)backgroundTableCell100,1986
+noteMarkTableCell(TableCell c, Image mark)noteMarkTableCell111,2152
+halignTableCell(TableCell c, Name align)halignTableCell122,2322
+valignTableCell(TableCell c, Name align)valignTableCell135,2554
+cellPaddingTableCell(TableCell c, Size padding)cellPaddingTableCell147,2749
+getHalignTableCell(TableCell cell)getHalignTableCell161,3067
+getValignTableCell(TableCell cell)getValignTableCell179,3379
+getTableTableCell(TableCell cell)getTableTableCell197,3686
+colSpanTableCell(TableCell cell, Int span)colSpanTableCell203,3769
+rowSpanTableCell(TableCell cell, Int span)rowSpanTableCell241,4568
+table_cell_padding(TableCell cell, int *pxptr, int* pyptr)table_cell_padding284,5457
+dims_table_cell(TableCell cell, TableCellDimensions dims)dims_table_cell301,5796
+getAreaTableCell(TableCell c)getAreaTableCell343,6898
+getIf(Any cell, Name method, Any def)	/* can be optimised further */getIf366,7352
+placeImageTableCell(TableCell cell)placeImageTableCell378,7568
+static vardecl var_table_cell[] =var_table_cell452,9380
+static senddecl send_table_cell[] =send_table_cell479,10650
+static getdecl get_table_cell[] =get_table_cell488,10903
+#define rc_table_cell rc_table_cell508,11566
+static Name table_cell_termnames[] = { NAME_image };table_cell_termnames517,11668
+makeClassTableCell(Class class)makeClassTableCell528,11896
+
+fmt/table.c,4785
+initialiseTable(Table tab)initialiseTable17,468
+#define for_cells_table(for_cells_table44,1344
+#define for_rows_table(for_rows_table68,2009
+#define for_cols_table(for_cols_table78,2287
+table_of_cell(TableCell cell)table_of_cell90,2598
+getRowTable(Table tab, Any y, Bool create)getRowTable104,2826
+getColumnTable(Table tab, Any x, Bool create)getColumnTable125,3232
+getCellTable(Table tab, Any x, Any y)getCellTable146,3663
+row_range(Table tab, int *ymin, int *ymax)row_range172,4188
+col_range(Table tab, int *xmin, int *xmax)col_range181,4362
+getColumnRangeTable(Table tab)getColumnRangeTable213,4948
+getRowRangeTable(Table tab)getRowRangeTable223,5115
+appendTable(Table tab, TableCell cell, Int x, Int y)appendTable233,5280
+nextRowTable(Table tab, Bool end_group)nextRowTable270,6072
+advance_table(Table tab)advance_table290,6496
+deleteCellTable(Table tab, TableCell cell)deleteCellTable306,6743
+deleteRowTable(Table tab, TableRow row)deleteRowTable345,7879
+deleteColumnTable(Table tab, TableColumn col)deleteColumnTable387,9004
+deleteTable(Table tab, Any obj)deleteTable452,10751
+deleteRowsTable(Table tab, Int from, Int to)deleteRowsTable470,11365
+insertRowTable(Table tab, Int at)insertRowTable524,12451
+insertColumnTable(Table tab, Int at, TableColumn new)insertColumnTable563,13407
+sortRowsTable(Table tab, Code cmp, Int from, Int to)sortRowsTable665,15914
+clearSelectionTable(Table tab)clearSelectionTable715,17057
+selectTable(Table tab, Any selection)selectTable726,17231
+selectionTable(Table tab, Any selection)selectionTable746,17615
+getSelectionTable(Table tab)getSelectionTable754,17740
+getCellFromPositionTable(Table tab, Any pos)getCellFromPositionTable775,18105
+#undef swapintswapint815,18949
+#define swapint(swapint816,18964
+getCellsInRegionTable(Table tab, Area reg)getCellsInRegionTable819,19041
+changedTable(Table tab)changedTable856,19797
+span(TableCell cell, Name which)span887,20748
+addSpannedCell(Chain *rval, TableCell tc, Name which)addSpannedCell893,20871
+getSpannedCellsTable(Table tab, Name which)getSpannedCellsTable916,21368
+slice_stretchability(TableSlice slice, stretch *s)slice_stretchability928,21570
+stretch_table_slices(Vector v, int from, int span, int width, int spacing)stretch_table_slices953,22239
+stretchColsSpannedCell(TableCell cell)stretchColsSpannedCell988,23076
+stretchRowsSpannedCell(TableCell cell)stretchRowsSpannedCell1006,23523
+computeRowsTable(Table tab)computeRowsTable1024,23966
+computeColsTable(Table tab)computeColsTable1075,25023
+computeTable(Table tab)computeTable1131,26252
+computeBoundingBoxTable(Table tab)computeBoundingBoxTable1164,26932
+placeCellsTable(Table tab)placeCellsTable1173,27070
+r_hline(int x, int y, int w, int b)r_hline1205,27819
+r_vline(int x, int y, int h, int b)r_vline1217,28020
+frame_border(Table tab, int *tb, int *rb, int *bb, int *lb)frame_border1229,28219
+RedrawFrameTable(Table tab, Area a)RedrawFrameTable1253,28747
+getBackgroundTableCell(TableCell cell)getBackgroundTableCell1285,29499
+getSelectedTableCell(TableCell cell)getSelectedTableCell1308,29964
+#define NOSIDES	NOSIDES1330,30358
+#define BOX_SIDES BOX_SIDES1331,30378
+#define VSIDES VSIDES1332,30433
+#define HSIDES HSIDES1333,30455
+#define RSIDES RSIDES1334,30477
+#define BSIDES BSIDES1335,30499
+#define RBSIDES RBSIDES1336,30521
+RedrawRulesTableCell(TableCell cell, Name style, int b)RedrawRulesTableCell1339,30556
+RedrawRulesTable(Table tab, Area a)RedrawRulesTable1458,33578
+RedrawAreaTable(Table tab, Area a)RedrawAreaTable1474,33841
+assignTable(Table tab, Name slot, Any value, int compute)assignTable1488,34108
+borderTable(Table tab, Int border)borderTable1508,34521
+frameTable(Table tab, Name frame)frameTable1514,34628
+rulesTable(Table tab, Name rules)rulesTable1520,34732
+widthTable(Table tab, Int width)widthTable1526,34837
+cellPaddingTable(Table tab, Any padding)cellPaddingTable1532,34940
+cellSpacingTable(Table tab, Any spacing)cellSpacingTable1541,35148
+static char *T_append[] =T_append1555,35466
+static char *T_xy[] =T_xy1557,35538
+static char *T_row[] =T_row1559,35593
+static char *T_col[] =T_col1561,35652
+static char *T_sort[] =T_sort1563,35711
+static char *T_deleteRows[] =T_deleteRows1565,35782
+static char *T_insert_column[] =T_insert_column1567,35843
+static char T_frame[] = "{void,above,below,hsides,vsides,box}";T_frame1569,35911
+static char T_rules[] = "{none,groups,rows,cols,all}";T_rules1570,35975
+static vardecl var_table[] =var_table1574,36057
+static senddecl send_table[] =send_table1602,37151
+static getdecl get_table[] =get_table1642,38709
+static classvardecl rc_table[] =rc_table1667,39705
+makeClassTable(Class class)makeClassTable1692,40320
+
+fmt/tabslice.c,3010
+initialiseTableSlice(TableSlice c)initialiseTableSlice14,308
+findNamedSlice(Vector v, Name name)findNamedSlice35,740
+endGroupTableSlice(TableSlice slice, Bool end)endGroupTableSlice49,959
+widthTableSlice(TableSlice slice, Int width)widthTableSlice61,1174
+static vardecl var_table_slice[] =var_table_slice83,1627
+static senddecl send_table_slice[] =send_table_slice113,2844
+#define get_table_slice get_table_slice122,3108
+#define rc_table_slice rc_table_slice133,3318
+makeClassTableSlice(Class class)makeClassTableSlice151,3585
+getIf(Any cell, Name method, Any def)	/* can be optimised further */getIf161,3798
+initialiseTableColumn(TableColumn col, Name halign)initialiseTableColumn173,4021
+unlinkTableColumn(TableColumn col)unlinkTableColumn186,4231
+changedImageTableColumn(TableColumn col)changedImageTableColumn195,4419
+halignTableColumn(TableColumn col, Name halign)halignTableColumn205,4643
+getHalignTableColumn(TableColumn col)getHalignTableColumn213,4753
+backgroundTableColumn(TableColumn col, Any bg)backgroundTableColumn219,4835
+selectedTableColumn(TableColumn col, Bool selected)selectedTableColumn230,5014
+getCellTableColumn(TableColumn col, Int y)getCellTableColumn241,5209
+computeTableColumn(TableColumn col)computeTableColumn253,5429
+forAllTableColumn(TableColumn col, Code code)forAllTableColumn297,6366
+static char T_halign[]    = "{left,right,center,reference,stretch}";T_halign323,6813
+static char T_defhalign[] = "[{left,right,center,reference,stretch}]";T_defhalign324,6882
+static vardecl var_table_column[] =var_table_column328,6980
+static senddecl send_table_column[] =send_table_column335,7141
+static getdecl get_table_column[] =get_table_column354,7870
+#define rc_table_column rc_table_column365,8155
+makeClassTableColumn(Class class)makeClassTableColumn383,8429
+initialiseTableRow(TableRow col, Name valign)initialiseTableRow393,8624
+unlinkTableRow(TableRow row)unlinkTableRow406,8827
+valignTableRow(TableRow col, Name valign)valignTableRow415,9011
+getHalignTableRow(TableRow col)getHalignTableRow423,9115
+changedImageTableRow(TableRow row)changedImageTableRow429,9189
+backgroundTableRow(TableRow row, Any bg)backgroundTableRow439,9407
+selectedTableRow(TableRow row, Bool selected)selectedTableRow450,9577
+getCellTableRow(TableRow row, Any x)getCellTableRow461,9756
+cellTableRow(TableRow row, Int col, TableCell cell)cellTableRow484,10136
+indexTableRow(TableRow row, Int index)indexTableRow500,10429
+computeTableRow(TableRow row)computeTableRow514,10687
+static char T_valign[] = "{top,bottom,center,reference,stretch}";T_valign554,11563
+static char T_defvalign[] = "[{top,bottom,center,reference,stretch}]";T_defvalign555,11629
+static vardecl var_table_row[] =var_table_row559,11727
+static senddecl send_table_row[] =send_table_row566,11885
+static getdecl get_table_row[] =get_table_row585,12590
+#define rc_table_row rc_table_row596,12874
+makeClassTableRow(Class class)makeClassTableRow614,13127
+
+box/boxes.c,129
+#define GLOBALS_HERE GLOBALS_HERE10,244
+static struct class_definition boxdefs[] =boxdefs13,287
+initBoxes()initBoxes31,960
+
+box/boxes.h,1761
+#define BOXES_H_INCLUDEDBOXES_H_INCLUDED11,269
+typedef struct hbox	*HBox;HBox13,295
+typedef struct tbox	*TBox;TBox14,322
+typedef struct grbox	*GrBox;GrBox15,349
+typedef struct parbox	*ParBox;ParBox16,378
+typedef struct rubber	*Rubber;Rubber17,409
+typedef struct lbox     *LBox;LBox18,440
+#undef GLOBALGLOBAL27,579
+#define GLOBAL GLOBAL28,593
+GLOBAL Class ClassHBox;ClassHBox31,617
+GLOBAL Class ClassRubber;ClassRubber32,641
+GLOBAL Class ClassTBox;ClassTBox33,667
+GLOBAL Class ClassGrBox;ClassGrBox34,691
+GLOBAL Class ClassParBox;ClassParBox35,716
+GLOBAL Class ClassLBox;ClassLBox36,742
+#define ABSTRACT_HBOX ABSTRACT_HBOX38,767
+  CharArray	text;			/* represented text */text52,1035
+  Style		style;			/* used style parameters */style53,1078
+  Any		baseline;		/* Location of the baseline */baseline60,1216
+  Any		alignment;		/* left, right (in paragraph) */alignment61,1265
+  Int		shrink;			/* Get smaller */shrink67,1375
+  Int		level;			/* hfil/hfill/hfilll (1/2/3) */level68,1410
+  Int		natural;		/* Natural desired size */natural69,1458
+  Int		minimum;		/* Minimum size */minimum70,1502
+  Int		maximum;		/* Maximum size */maximum71,1538
+  Name		linebreak;		/* @nil, allow, force */linebreak72,1574
+  Vector	content;		/* Contained hboxes */content79,1732
+  Name		alignment;		/* left,right,center,justify */alignment80,1774
+  Bool		auto_crop;		/* Crop content */auto_crop81,1826
+  Int		right_margin;		/* with of right margin */right_margin88,1953
+  Int		top_sep;		/* separation above  */top_sep89,2002
+  Int		item_sep;		/* separation between items */item_sep90,2043
+  Int		label_sep;		/* label to item distance */label_sep91,2092
+  Int		label_width;		/* Width of label box */label_width92,2140
+
+box/grbox.c,533
+initialiseGrBox(GrBox grb, Graphical gr,initialiseGrBox13,278
+computeGrBox(GrBox grb)computeGrBox42,883
+computeAscentDescentGrBox(GrBox grb)computeAscentDescentGrBox66,1430
+static char *T_initialise[] =T_initialise100,2177
+static vardecl var_grbox[] =var_grbox109,2366
+static senddecl send_grbox[] =send_grbox120,2705
+#define get_grbox get_grbox127,2873
+#define rc_grbox rc_grbox136,2955
+static Name grbox_termnames[] = { NAME_graphical };grbox_termnames145,3048
+makeClassGrBox(Class class)makeClassGrBox154,3237
+
+box/hbox.c,412
+initialiseHBox(HBox hb, Int width, Int ascent, Int descent, Rubber rubber)initialiseHBox13,270
+static char *T_initialise[] =T_initialise37,809
+static vardecl var_hbox[] =var_hbox45,953
+static senddecl send_hbox[] =send_hbox58,1328
+#define get_hbox get_hbox65,1481
+#define rc_hbox rc_hbox74,1561
+static Name hbox_termnames[] = \hbox_termnames83,1652
+makeClassHBox(Class class)makeClassHBox93,1873
+
+box/lbox.c,842
+initialiseLBox(LBox lb, Int w)initialiseLBox15,314
+PlaceLBox(LBox lp, Graphical gr, Int x, Int y, Int w)PlaceLBox32,638
+getLabelItem(Graphical item)getLabelItem45,957
+computeLBox(LBox lb)computeLBox67,1418
+getItemWidthLBox(LBox lb)getItemWidthLBox123,2567
+geometryLBox(LBox lb, Int x, Int y, Int w, Int h)geometryLBox139,2859
+appendLBox(LBox lb, Graphical label, Graphical item)appendLBox155,3262
+getNewLabelLBox(LBox lb)getNewLabelLBox177,3840
+getNewItemLBox(LBox lb)getNewItemLBox183,3894
+static char *T_append[] = T_append194,4109
+static char *T_geometry[] =T_geometry196,4182
+static vardecl var_lbox[] =var_lbox201,4302
+static senddecl send_lbox[] =send_lbox218,4878
+static getdecl get_lbox[] =get_lbox231,5280
+static classvardecl rc_lbox[] =rc_lbox240,5550
+makeClassLBox(Class class)makeClassLBox260,6053
+
+box/parbox.c,4947
+initialiseParBox(ParBox pb, Int width, Name alignment)initialiseParBox18,378
+appendParBox(ParBox pb, HBox hb)appendParBox35,804
+clearParBox(ParBox pb)clearParBox50,1116
+makeDefaultSpace(TBox refbox, Style style)makeDefaultSpace58,1220
+cdataParBox(ParBox pb, StringObj cdata,cdataParBox77,1566
+#define MAXHBOXES	MAXHBOXES124,2475
+#define MAXPENDINGGR	MAXPENDINGGR125,2517
+#define GR_SEP	GR_SEP126,2575
+#define PC_GRAPHICAL	PC_GRAPHICAL128,2633
+#define PC_ALIGNED_GR	PC_ALIGNED_GR129,2686
+#define PC_PLACED	PC_PLACED130,2749
+#define PC_GRMASK	PC_GRMASK131,2811
+typedef struct _parcell_parcell133,2859
+{ HBox		box;			/* box displayed here */box134,2883
+  int		x;			/* Relative X-position */x135,2923
+  int		w;			/* Width (stretch!) */w136,2961
+  int		flags;			/* PC_* flags */flags137,2996
+} parcell;parcell138,3029
+typedef struct _parline_parline141,3042
+{ int		x;			/* X, relative to device */x142,3066
+  int		y;			/* Y, relative to device */y143,3106
+  int		w;			/* Total width of the line */w144,3146
+  int		minx;			/* left side */minx145,3188
+  int		maxx;		/* Natural width */maxx146,3219
+  int		ascent;			/* Total ascent of the line */ascent147,3253
+  int		descent;		/* Total descent of the line */descent148,3301
+  int		size;			/* # hboxes contained */size149,3350
+  int		graphicals;		/* # graphicals on line */graphicals150,3390
+  int		shape_graphicals;	/* # left/right aligned graphicals */shape_graphicals151,3437
+  int		end_of_par;		/* Last line?  */end_of_par152,3500
+  int		rlevel;			/* Highest rubber-level */rlevel153,3538
+  parcell	hbox[MAXHBOXES];	/* array of cells */hbox154,3582
+} parline;parline155,3630
+{ int	start_y;start_y158,3657
+  int	end_y;end_y159,3672
+  int   x;x160,3685
+} shape_cell;shape_cell161,3696
+{ ParBox     parbox;			/* Box we are working on */parbox165,3727
+  int	     line_width;		/* full width of the line */line_width166,3778
+  int	     ln;			/* # in left-queue */ln167,3831
+  int	     rn;			/* # in right queue */rn168,3870
+  shape_cell left[MAXPENDINGGR];left169,3910
+  shape_cell right[MAXPENDINGGR];right170,3943
+} parshape;parshape171,3977
+drawHBox(HBox hb, int x, int y, int w)drawHBox187,4460
+RedrawAreaParBox(ParBox pb, Area a)RedrawAreaParBox195,4595
+getLocateEventParBox(ParBox pb, EventObj ev)getLocateEventParBox261,6167
+getBoxParBox(ParBox pb, Int index)getBoxParBox334,7758
+getBoxAreaParBox(ParBox pb, Any target, Device relto)getBoxAreaParBox345,7903
+for_parbox(ParBox pb,for_parbox449,10391
+for_device_parbox(Device dev, for_device_parbox477,11046
+{ Code   test;				/* Test code to use */test499,11492
+  ParBox parbox;			/* Found on this parbox */parbox500,11533
+  long   index;				/* at this index */index501,11579
+} testcl;testcl502,11618
+test_get_find_parbox(ParBox pb, HBox hb, long index, void *closure)test_get_find_parbox506,11642
+getFindParBox(ParBox pb, Code test)getFindParBox520,11916
+getMinimumWidthParBox(ParBox pb)getMinimumWidthParBox534,12133
+init_shape(parshape *s, ParBox pb, int w)init_shape562,12996
+current_margins(parshape *s, int y, int *lm, int *lw)current_margins570,13118
+clean_margins(parshape *s, int y)clean_margins591,13465
+add_left_margin(parshape *s, int y, int h, int x)add_left_margin604,13772
+add_right_margin(parshape *s, int y, int h, int x)add_right_margin620,14174
+justify_line(parline *line, Name alignment)justify_line652,15195
+compute_line(parline *line)compute_line714,16765
+fill_line(ParBox pb, int here, parline *line, parshape *shape, int compute)fill_line759,17694
+push_shape_graphicals(parline *l, parshape *s)push_shape_graphicals873,20284
+print_line(parline *l)print_line898,20904
+compute_ascent_descent_line(parline *l)compute_ascent_descent_line922,21433
+PlaceGrBox(ParBox pb, GrBox grb, Int x, Int y, Int w)PlaceGrBox941,21778
+PlaceAlignedGr(GrBox grb, parline *line, parshape *shape, int below)PlaceAlignedGr966,22536
+computeParBox(ParBox pb)computeParBox994,23222
+requestGeometryParBox(ParBox pb, Int x, Int y, Int w, Int h)requestGeometryParBox1109,25949
+geometryParBox(ParBox pb, Int x, Int y, Int w, Int h)geometryParBox1130,26329
+alignmentParBox(ParBox pb, Name alignment)alignmentParBox1165,27064
+lineWidthParBox(ParBox pb, Int w)lineWidthParBox1171,27182
+autoCropParBox(ParBox pb, Bool crop)autoCropParBox1183,27364
+static char *T_initialise[] = T_initialise1195,27581
+static char *T_geometry[] =T_geometry1199,27679
+static char *T_boxArea[] =T_boxArea1201,27772
+static char *T_cdata[] = T_cdata1203,27844
+static vardecl var_parbox[] =var_parbox1210,27989
+static senddecl send_parbox[] =send_parbox1223,28484
+static getdecl get_parbox[] =get_parbox1242,29184
+static classvardecl rc_parbox[] =rc_parbox1258,29794
+static Name parbox_termnames[] = { NAME_width, NAME_alignment };parbox_termnames1266,29982
+makeClassParBox(Class class)makeClassParBox1275,30190
+
+box/proto.h,0
+
+box/rubber.c,475
+initialiseRubber(Rubber r, Int level, Int stretch, Int shrink, Name linebreak)initialiseRubber24,540
+static char *T_initialise[] =T_initialise49,1129
+static vardecl var_rubber[] =var_rubber58,1286
+static senddecl send_rubber[] =send_rubber77,1915
+#define get_rubber get_rubber84,2093
+#define rc_rubber rc_rubber93,2177
+static Name rubber_termnames[] = { NAME_stretch, NAME_shrink };rubber_termnames102,2272
+makeClassRubber(Class class)makeClassRubber111,2479
+
+box/tbox.c,680
+initialiseTBox(TBox tb, CharArray text, Style style)initialiseTBox15,307
+getFontTBox(TBox tb)getFontTBox30,619
+computeTBox(TBox tb)computeTBox39,781
+getSpaceHBoxFont(FontObj f)getSpaceHBoxFont51,988
+getSpaceTBox(TBox tb)getSpaceTBox62,1218
+drawTBox(TBox tb, int x, int y, int w)drawTBox74,1405
+static char *T_initialise[] =T_initialise100,1935
+static vardecl var_tbox[] =var_tbox105,2040
+static senddecl send_tbox[] =send_tbox114,2252
+static getdecl get_tbox[] =get_tbox121,2409
+static classvardecl rc_tbox[] =rc_tbox128,2571
+static Name tbox_termnames[] = { NAME_text, NAME_style };tbox_termnames135,2760
+makeClassTBox(Class class)makeClassTBox144,2949
 
 x11/canvas.c,566
 #define offset(offset17,378
