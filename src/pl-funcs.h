@@ -264,7 +264,7 @@ COMMON(word) 		pl_noprotocol(void);
 COMMON(bool) 		seeString(const char *s);
 COMMON(bool) 		seeingString(void);
 COMMON(bool) 		seenString(void);
-COMMON(bool) 		tellString(char **s, int *size);
+COMMON(bool) 		tellString(char **s, int *size, IOENC enc);
 COMMON(bool) 		toldString(void);
 COMMON(word) 		pl_wait_for_input(term_t streams, term_t avail,
 					  term_t tmo);

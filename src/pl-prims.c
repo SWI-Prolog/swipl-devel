@@ -2221,31 +2221,30 @@ pl_atom_concat(term_t a1, term_t a2, term_t a3, control_t ctx)
 
 static int
 split_atom(term_t list, term_t sep, term_t atom)
-{ char *sp, *text;
-  unsigned int splen, tlen;
+{ PL_chars_t st, at;
   int i, last;
   term_t tail = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
 
   if ( !sep )
     return -1;
-  if ( !PL_get_nchars(atom, &tlen,  &text, CVT_ATOMIC|BUF_RING) ||
-       !PL_get_nchars(sep, &splen, &sp, CVT_ATOMIC|BUF_RING) )
+  if ( !PL_get_text(atom, &at, CVT_ATOMIC) ||
+       !PL_get_text(sep, &st, CVT_ATOMIC) )
     return -1;
 
-  for(last=i=0; i<=(int)tlen-(int)splen; )
-  { if ( memcmp(sp, text+i, splen) == 0 )
+  for(last=i=0; i<=(int)at.length-(int)st.length; )
+  { if ( PL_cmp_text(&st, 0, &at, i, st.length) == 0 )
     { if ( !PL_unify_list(tail, head, tail) ||
-	   !PL_unify_atom_nchars(head, i-last, text+last) )
+	   !PL_unify_text_range(head, &at, last, i-last, PL_ATOM) )
 	fail;
-      i += splen;
+      i += st.length;
       last = i;
     } else
       i++;
   }
 
   if ( !PL_unify_list(tail, head, tail) ||
-       !PL_unify_atom_nchars(head, tlen-last, text+last) )
+       !PL_unify_text_range(head, &at, last, at.length-last, PL_ATOM) )
     fail;
 
   return PL_unify_nil(tail);

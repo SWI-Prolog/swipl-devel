@@ -29,6 +29,24 @@ source should also use format() to produce error messages, etc.
 
 #include "pl-incl.h"
 #include "pl-ctype.h"
+#include "pl-utf8.h"
+
+#define MAXRUBBER 100
+
+struct rubber
+{ int where;				/* where is rubber in output */
+  int size;				/* how big should it be */
+  pl_wchar_t pad;			/* padding character */
+};
+
+typedef struct
+{ IOSTREAM *out;			/* our output stream */
+  int column;				/* current column */
+  tmp_buffer buffer;			/* bin for characters with tabs */
+  int buffered;				/* characters in buffer */
+  int pending_rubber;			/* number of not-filled ~t's */
+  struct rubber rub[MAXRUBBER];
+} format_state;
 
 #define BUFSIZE 	10240
 #define DEFAULT 	(-1)
@@ -44,26 +62,123 @@ source should also use format() to produce error messages, etc.
 #define FMT_ARG(c, a)	return Sunlock(fd), \
 			       PL_error(NULL, 0, NULL, \
 					ERR_FORMAT_ARG, c, a)
-#define OUTSTRING(s, n)	{ int _i; char *q = s; \
-			  for(_i=0; _i++<(int)(n); q++) OUTCHR(*q); \
-			}
-#define OUTSTRING0(s)	{ char *q = s; \
-			  for( ; *q; q++ ) OUTCHR(*q); \
-			}
-#define OUTCHR(c)	{ if ( pending_rubber ) \
-			    buffer[index++] = (c); \
-			  else \
-			    Sputc((Char)(c), fd); \
-			  column = update_column(column, c); \
-			}
 
-#define MAXRUBBER 100
 
-struct rubber
-{ int where;				/* where is rubber in output */
-  int size;				/* how big should it be */
-  Char pad;				/* padding character */
-};
+static int
+update_column(int col, int c)
+{ switch(c)
+  { case '\n':	return 0;
+    case '\r':  return 0;
+    case '\t':	return (col + 1) | 0x7;
+    case '\b':	return (col <= 0 ? 0 : col - 1);
+    default:	return col + 1;
+  }
+}   
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Low-level output. If there is pending  rubber   the  output is stored in
+UTF-8 format in the state's `buffer'.   The  `buffered' field represents
+the number of UTF-8 characters in the buffer.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+outchr(format_state *state, int chr)
+{ if ( state->pending_rubber )
+  { if ( chr > 0x7f )
+    { char buf[8];
+      char *s, *e;
+
+      e = utf8_put_char(buf, chr);
+      for(s=buf; s<e; s++)
+	addBuffer((Buffer)&state->buffer, *s, char);
+    } else
+    { char c = chr;
+
+      addBuffer((Buffer)&state->buffer, c, char);
+    }
+
+    state->buffered++;
+  } else
+  { if ( Sputcode(chr, state->out) < 0 )
+      return FALSE;
+  }
+
+  state->column = update_column(state->column, chr);
+
+  return TRUE;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Emit ASCII 0-terminated strings resulting from sprintf() on numeric
+arguments.  No fuzz with wide characters here.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+outstring(format_state *state, const char *s, unsigned int len)
+{ const char *q;
+  const char *e = &s[len];
+
+  for(q=s; q < e; q++)
+    state->column = update_column(state->column, *q&0xff);
+
+  if ( state->pending_rubber )
+  { addMultipleBuffer(&state->buffer, s, len, char);
+  } else
+  { for(q=s; q < e; q++)
+    { if ( Sputcode(*q&0xff, state->out) < 0 )
+	return FALSE;
+    }
+  }
+
+  return TRUE;
+}
+
+
+static int
+outstring0(format_state *state, const char *s)
+{ return outstring(state, s, strlen(s));
+}
+
+
+static int
+oututf8(format_state *state, const char *s, unsigned int len)
+{ const char *e = &s[len];
+
+  while(s<e)
+  { int chr;
+
+    s = utf8_get_char(s, &chr);
+    if ( !outchr(state, chr) )
+      return FALSE;
+  }
+
+  return TRUE;
+}
+
+
+static int
+outtext(format_state *state, PL_chars_t *txt)
+{ switch(txt->encoding)
+  { case ENC_ISO_LATIN_1:
+      return outstring(state, txt->text.t, txt->length);
+    case ENC_WCHAR:
+    { const pl_wchar_t *s = txt->text.w;
+      const pl_wchar_t *e = &s[txt->length];
+
+      while(s<e)
+      { if ( !outchr(state, *s++) )
+	  return FALSE;
+      }
+
+      return TRUE;
+    }
+    default:
+      assert(0);
+  }
+}
+
 
 #define format_predicates (GD->format.predicates)
 
@@ -71,7 +186,8 @@ static int	update_column(int, Char);
 static bool	do_format(IOSTREAM *fd,
 			  const char *fmt, unsigned len, int ac, term_t av);
 static void	distribute_rubber(struct rubber *, int, int);
-static void	emit_rubber(IOSTREAM *fd, char *, int, struct rubber *, int);
+static int	emit_rubber(format_state *state);
+
 
 		/********************************
 		*       PROLOG CONNECTION	*
@@ -190,36 +306,25 @@ pl_format(term_t fmt, term_t args)
 		*       ACTUAL FORMATTING	*
 		********************************/
 
-static int
-update_column(int col, int c)
-{ switch(c)
-  { case '\n':	return 0;
-    case '\r':  return 0;
-    case '\t':	return (col + 1) | 0x7;
-    case '\b':	return (col <= 0 ? 0 : col - 1);
-    default:	return col + 1;
-  }
-}   
-
-
 static bool
 do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
-{ char buffer[BUFSIZE];			/* to store chars with tabs */
-  int index = 0;			/* index in buffer */
-  int column;				/* current output column */
+{ format_state state;			/* complete state */
   int tab_stop = 0;			/* padded tab stop */
-  int pending_rubber = 0;		/* number of not-filled ~t's */
-  struct rubber rub[MAXRUBBER];
   Symbol s;
   const char *end = fmt+len;
   int rc = TRUE;
 
   Slock(fd);				/* buffer locally */
 
+  state.out = fd;
+  state.pending_rubber = 0;
+  initBuffer(&state.buffer);
+  state.buffered = 0;
+
   if ( fd->position )
-    column = fd->position->linepos;
+    state.column = fd->position->linepos;
   else
-    column = 0;
+    state.column = 0;
 
   while(fmt < end)
   { switch(*fmt)
@@ -264,13 +369,13 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 	      SHIFT;
 	    }
 
-	    tellString(&str, &bufsize);
+	    tellString(&str, &bufsize, ENC_UTF8);
 	    qid = PL_open_query(proc->definition->module, PL_Q_NODEBUG,
 				proc, av);
 	    PL_next_solution(qid);
 	    PL_close_query(qid);
 	    toldString();
-	    OUTSTRING(str, bufsize);
+	    oututf8(&state, str, bufsize);
 	    if ( str != buf )
 	      free(str);
 
@@ -278,14 +383,13 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 	  } else
 	  { switch(*fmt)		/* Build in formatting */
 	    { case 'a':			/* atomic */
-		{ char *s;
-		  unsigned int len;
+		{ PL_chars_t txt;
 
 		  NEED_ARG;
-		  if ( !PL_get_nchars(argv, &len, &s, CVT_ATOMIC) )
+		  if ( !PL_get_text(argv, &txt, CVT_ATOMIC) )
 		    FMT_ARG("a", argv);
 		  SHIFT;
-		  OUTSTRING(s, len);
+		  outtext(&state, &txt);
 		  fmt++;
 		  break;
 		}
@@ -298,7 +402,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 
 		    SHIFT;
 		    while(times-- > 0)
-		    { OUTCHR(c);
+		    { outchr(&state, c);
 		    }
 		  } else
 		    FMT_ARG("c", argv);
@@ -325,7 +429,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		  SHIFT;
 		  Ssprintf(tmp, "%%.%d%c", arg == DEFAULT ? 6 : arg, *fmt);
 		  Ssprintf(buf, tmp, f);
-		  OUTSTRING0(buf);
+		  outstring0(&state, buf);
 		  fmt++;
 		  break;
 		}
@@ -351,18 +455,17 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		    formatInteger(*fmt == 'D', arg, 10, TRUE, i, tmp);
 		  else
 		    formatInteger(FALSE, 0, arg, *fmt == 'r', i, tmp);
-		  OUTSTRING0(tmp);			
+		  outstring0(&state, tmp);			
 		  fmt++;
 		  break;
 		}
 	      case 's':			/* string */
-		{ char *s;
-		  unsigned int len;
+		{ PL_chars_t txt;
 
 		  NEED_ARG;
-		  if ( !PL_get_nchars(argv, &len, &s, CVT_LIST|CVT_STRING) )
+		  if ( !PL_get_text(argv, &txt, CVT_LIST|CVT_STRING) )
 		    FMT_ARG("s", argv);
-		  OUTSTRING(s, len);
+		  outtext(&state, &txt);
 		  SHIFT;
 		  fmt++;
 		  break;
@@ -391,33 +494,34 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		  pl_common:
 
 		  NEED_ARG;
-		  if ( pending_rubber )
+		  if ( state.pending_rubber )
 		  { int bufsize = BUFSIZE;
 
 		    str = buf;
-		    tellString(&str, &bufsize);
+		    tellString(&str, &bufsize, ENC_UTF8);
 		    (*f)(argv);
 		    toldString();
-		    OUTSTRING(str, bufsize);
+		    oututf8(&state, str, bufsize);
 		    if ( str != buf )
 		      free(str);
 		  } else
-		  { if ( fd->position && fd->position->linepos == column )
+		  { if ( fd->position &&
+			 fd->position->linepos == state.column )
 		    { IOSTREAM *old = Scurout;
 
 		      Scurout = fd;
 		      (*f)(argv);
 		      Scurout = old;
 
-		      column = fd->position->linepos;
+		      state.column = fd->position->linepos;
 		    } else
 		    { int bufsize = BUFSIZE;
 
 		      str = buf;
-		      tellString(&str, &bufsize);
+		      tellString(&str, &bufsize, ENC_UTF8);
 		      (*f)(argv);
 		      toldString();
-		      OUTSTRING(str, bufsize);
+		      oututf8(&state, str, bufsize);
 		      if ( str != buf )
 			free(str);
 		    }
@@ -433,20 +537,21 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		 if ( argc < 2 )
 		 { FMT_ERROR("not enough arguments");
 		 }
-		 if ( pending_rubber )
+		 if ( state.pending_rubber )
 		  { int bufsize = BUFSIZE;
 
 		    str = buf;
-		    tellString(&str, &bufsize);
+		    tellString(&str, &bufsize, ENC_UTF8);
 		    rc = pl_write_term(argv, argv+1);
 		    toldString();
 		    if ( !rc )
 		      goto out;
-		    OUTSTRING(str, bufsize);
+		    oututf8(&state, str, bufsize);
 		    if ( str != buf )
 		      free(str);
 		  } else
-		  { if ( fd->position && fd->position->linepos == column )
+		  { if ( fd->position &&
+			 fd->position->linepos == state.column )
 		    { IOSTREAM *old = Scurout;
 
 		      Scurout = fd;
@@ -455,17 +560,17 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		      if ( !rc )
 			goto out;
 
-		      column = fd->position->linepos;
+		      state.column = fd->position->linepos;
 		    } else
 		    { int bufsize = BUFSIZE;
 
 		      str = buf;
-		      tellString(&str, &bufsize);
+		      tellString(&str, &bufsize, ENC_UTF8);
 		      rc = pl_write_term(argv, argv+1);
 		      if ( !rc )
 			goto out;
 		      toldString();
-		      OUTSTRING(str, bufsize);
+		      oututf8(&state, str, bufsize);
 		      if ( str != buf )
 			free(str);
 		    }
@@ -485,10 +590,10 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		  if ( argc < 1 )
 		  { FMT_ERROR("not enough arguments");
 		  }
-		  tellString(&str, &bufsize);
+		  tellString(&str, &bufsize, ENC_UTF8);
 		  rval = callProlog(NULL, argv, PL_Q_CATCH_EXCEPTION, &ex);
 		  toldString();
-		  OUTSTRING(str, bufsize);
+		  oututf8(&state, str, bufsize);
 		  if ( str != buf )
 		    free(str);
 
@@ -502,7 +607,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		  break;
 	        }
 	      case '~':			/* ~ */
-		{ OUTCHR('~');
+		{ outchr(&state, '~');
 		  fmt++;
 		  break;
 		}
@@ -510,18 +615,19 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 	      case 'N':			/* \n if not on newline */
 		{ if ( arg == DEFAULT )
 		    arg = 1;
-		  if ( *fmt == 'N' && column == 0 )
+		  if ( *fmt == 'N' && state.column == 0 )
 		    arg--;
 		  while( arg-- > 0 )
-		    OUTCHR('\n');
+		    outchr(&state, '\n');
 		  fmt++;
 		  break;
 		}
 	      case 't':			/* insert tab */
-		{ rub[pending_rubber].where = index;
-		  rub[pending_rubber].pad   = (arg == DEFAULT ? (Char) ' '
-							      : (Char) arg);
-		  pending_rubber++;
+		{ state.rub[state.pending_rubber].where = state.buffered;
+		  state.rub[state.pending_rubber].pad   =
+					(arg == DEFAULT ? (pl_wchar_t)' '
+							: (pl_wchar_t)arg);
+		  state.pending_rubber++;
 		  fmt++;
 		  break;
 		}
@@ -529,23 +635,23 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		{ int stop;
 
 		  if ( arg == DEFAULT )
-		    arg = column;
+		    arg = state.column;
 	      case '+':			/* tab relative */
 		  if ( arg == DEFAULT )
 		    arg = 8;
 		  stop = (*fmt == '+' ? tab_stop + arg : arg);
 
-		  if ( pending_rubber == 0 ) /* nothing to distribute */
-		  { rub[0].where = index;
-		    rub[0].pad = ' ';
-		    pending_rubber++;
+		  if ( state.pending_rubber == 0 ) /* nothing to distribute */
+		  { state.rub[0].where = state.buffered;
+		    state.rub[0].pad = ' ';
+		    state.pending_rubber++;
 		  }
-		  distribute_rubber(rub, pending_rubber, stop - column);
-		  emit_rubber(fd, buffer, index, rub, pending_rubber);
-		  index = 0;
-		  pending_rubber = 0;
+		  distribute_rubber(state.rub,
+				    state.pending_rubber,
+				    stop - state.column);
+		  emit_rubber(&state);
 
-		  column = tab_stop = stop;
+		  state.column = tab_stop = stop;
 		  fmt++;
 		  break;
 		}
@@ -563,15 +669,15 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 	  break;			/* the '~' switch */
 	}
       default:
-	{ OUTCHR(*fmt);
+	{ outchr(&state, *fmt);
 	  fmt++;
 	  break;
 	}
     }
   }
 
-  if ( pending_rubber )			/* not closed ~t: flush out */
-    emit_rubber(fd, buffer, index, rub, 0);
+  if ( state.pending_rubber )		/* not closed ~t: flush out */
+    emit_rubber(&state);
 
 out:
   Sunlock(fd);
@@ -602,19 +708,37 @@ distribute_rubber(struct rubber *r, int rn, int space)
 }
 
 
-static void
-emit_rubber(IOSTREAM *fd, char *buf, int i, struct rubber *r, int rn)
-{ int j;
+static int
+emit_rubber(format_state *state)
+{ const char *s = baseBuffer(&state->buffer, char);
+  const char *e = &s[entriesBuffer(&state->buffer, char)];
+  struct rubber *r = state->rub;
+  int rn = state->pending_rubber;
+  int j;
 
-  for(j = 0; j <= i; j++)
-  { if ( r->where == j && rn )
+  for(j = 0; s < e; j++)
+  { int chr;
+
+    if ( r->where == j && rn )
     { int n;
+
       for(n=0; n<r->size; n++)
-        Sputc(r->pad, fd);
+      { if ( Sputcode(r->pad, state->out) < 0 )
+	  return FALSE;
+      }
       r++;
       rn--;
     }
-    if ( j < i )
-      Sputc(buf[j], fd);
+
+    s = utf8_get_char(s, &chr);
+    if ( Sputcode(chr, state->out) < 0 )
+      return FALSE;
   }
+
+  discardBuffer(&state->buffer);
+  initBuffer(&state->buffer);
+  state->buffered = 0;
+  state->pending_rubber = 0;
+
+  return TRUE;
 }

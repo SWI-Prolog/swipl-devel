@@ -1223,11 +1223,12 @@ error:
 extern IOFUNCTIONS Smemfunctions;
 
 bool
-tellString(char **s, int *size)
+tellString(char **s, int *size, IOENC enc)
 { GET_LD
   IOSTREAM *stream;
   
   stream = Sopenmem(s, size, "w");
+  stream->encoding = enc;
   pushOutputContext();
   Scurout = stream;
 
