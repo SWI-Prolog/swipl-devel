@@ -162,11 +162,9 @@ int
 Slock(IOSTREAM *s)
 { SLOCK(s);
 
-  if ( s->locks )
-    s->locks++;
-  else if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
-  { s->locks = 1;
-    return S__setbuf(s, NULL, TMPBUFSIZE);
+  if ( !s->locks++ )
+  { if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
+      return S__setbuf(s, NULL, TMPBUFSIZE);
   }
 
   return 0;
@@ -178,11 +176,9 @@ StryLock(IOSTREAM *s)
 { if ( !STRYLOCK(s) )
     return -1;
 
-  if ( s->locks )
-    s->locks++;
-  else if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
-  { s->locks = 1;
-    return S__setbuf(s, NULL, TMPBUFSIZE);
+  if ( --s->locks == 0 )
+  { if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
+      return S__setbuf(s, NULL, TMPBUFSIZE);
   }
 
   return 0;
@@ -191,16 +187,18 @@ StryLock(IOSTREAM *s)
 
 int
 Sunlock(IOSTREAM *s)
-{ if ( s->locks )
+{ int rval = 0;
+
+  if ( s->locks )
   { if ( --s->locks == 0 )
     { if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
-	S__removebuf(s);
+	rval = S__removebuf(s);
     }
   }
 
   SUNLOCK(s);
 
-  return 0;
+  return rval;
 }
 
 
@@ -677,6 +675,8 @@ Sclose(IOSTREAM *s)
   }
 
   SLOCK(s);
+  while(s->locks > 0)			/* remove buffer-locks */
+    rval = Sunlock(s);
 
   if ( s->buffer )
   { if ( (s->flags & SIO_OUTPUT) && S__flushbuf(s) < 0 )
@@ -691,6 +691,7 @@ Sclose(IOSTREAM *s)
   if ( s->functions->close && (*s->functions->close)(s->handle) < 0 )
     rval = -1;
   run_close_hooks(s);
+
   SUNLOCK(s);
 
 #ifdef O_PLMT
