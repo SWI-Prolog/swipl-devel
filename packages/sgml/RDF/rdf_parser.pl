@@ -101,7 +101,7 @@ propAttrs([H|T]) ::=
 	].
 
 propAttr(rdf:type = URI) ::=
-	\rdf(type) = \uri(URI), !.
+	\rdf_or_unqualified(type) = \uri(URI), !.
 propAttr(Name = literal(Value)) ::=
 	Name = Value.
 
@@ -213,21 +213,21 @@ all_blank([H|T]) :-
 		 *******************************/
 
 idAttr(Id) ::=
-	\rdf('ID') = \globalid(Id).
+	\rdf_or_unqualified('ID') = \globalid(Id).
 
 bagIdAttr(Id) ::=
-	\rdf(bagID) = \globalid(Id).
+	\rdf_or_unqualified(bagID) = \globalid(Id).
 
 aboutAttr(About) ::=
-	\rdf(about) = \uri(About).
+	\rdf_or_unqualified(about) = \uri(About).
 
 aboutEachAttr(each(AboutEach)) ::=
-	\rdf(aboutEach) = \uri(AboutEach), !.
+	\rdf_or_unqualified(aboutEach) = \uri(AboutEach), !.
 aboutEachAttr(prefix(Prefix)) ::=
-	\rdf(aboutEachPrefix) = \uri(Prefix), !.
+	\rdf_or_unqualified(aboutEachPrefix) = \uri(Prefix), !.
 
 resourceAttr(URI) ::=
-	\rdf(resource) = \uri(URI).
+	\rdf_or_unqualified(resource) = \uri(URI).
 
 
 uri(URI) ::=
@@ -294,24 +294,24 @@ memberElt(LI) ::=
 	\inlineItem(LI).
 
 referencedItem(LI) ::=
-	element(\rdf(li),
+	element(\rdf_or_unqualified(li),
 		[ \resourceAttr(LI) ],
 		[]).
 
 inlineItem(literal(LI)) ::=
-	element(\rdf(li),
+	element(\rdf_or_unqualified(li),
 		[ \parseLiteral ],
 		LI).
 inlineItem(description(description, _, _, Properties)) ::=
-	element(\rdf(li),
+	element(\rdf_or_unqualified(li),
 		[ \parseResource ],
 		\propertyElts(Properties)).
 inlineItem(LI) ::=
-	element(\rdf(li),
+	element(\rdf_or_unqualified(li),
 		[],
 		[\rdf_object(LI)]), !.	% inlined object
 inlineItem(literal(LI)) ::=
-	element(\rdf(li),
+	element(\rdf_or_unqualified(li),
 		[],
 		[LI]).			% string value
 
@@ -325,8 +325,8 @@ memberAttrs([H|T]) ::=
 memberAttr(li(Id, Value)) ::=		% Id should be _<n>
 	\rdf(Id) = Value.
 
-parseLiteral  ::= \rdf(parseType) = 'Literal'.
-parseResource ::= \rdf(parseType) = 'Resource'.
+parseLiteral  ::= \rdf_or_unqualified(parseType) = 'Literal'.
+parseResource ::= \rdf_or_unqualified(parseType) = 'Resource'.
 
 
 		 /*******************************
@@ -334,6 +334,13 @@ parseResource ::= \rdf(parseType) = 'Resource'.
 		 *******************************/
 
 rdf(Tag) ::=
+	NS:Tag,
+	{ rdf_name_space(NS), !
+	}.
+
+rdf_or_unqualified(Tag) ::=
+	Tag.
+rdf_or_unqualified(Tag) ::=
 	NS:Tag,
 	{ rdf_name_space(NS), !
 	}.

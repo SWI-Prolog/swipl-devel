@@ -1,4 +1,4 @@
 rdf('http://mycorp.com/papers/NobelPaper1', xmlns:dc, literal('http://purl.org/metadata/dublin_core#')).
-rdf('http://mycorp.com/papers/NobelPaper1', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#':xmlns, literal('http://www.w3.org/TR/REC-mathml')).
+rdf('http://mycorp.com/papers/NobelPaper1', xmlns, literal('http://www.w3.org/TR/REC-mathml')).
 rdf('http://mycorp.com/papers/NobelPaper1', 'http://purl.org/metadata/dublin_core#':'Title', literal(['      Ramifications of\n\t ', element('http://www.w3.org/TR/REC-mathml':apply, [], [element('http://www.w3.org/TR/REC-mathml':power, [], []), element('http://www.w3.org/TR/REC-mathml':apply, [], [element('http://www.w3.org/TR/REC-mathml':plus, [], []), element('http://www.w3.org/TR/REC-mathml':ci, [], [a]), element('http://www.w3.org/TR/REC-mathml':ci, [], [b])]), element('http://www.w3.org/TR/REC-mathml':cn, [], ['2'])]), '\n      to World Peace\n    '])).
 rdf('http://mycorp.com/papers/NobelPaper1', 'http://purl.org/metadata/dublin_core#':'Creator', literal('David Hume')).
