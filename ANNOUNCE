@@ -1,4 +1,4 @@
-SWI-Prolog 5.5.0/XPCE 6.4.0 development release
+SWI-Prolog 5.5.1/XPCE 6.5.1 development release
 
 Planned features in 5.5.x relative to 5.4.x and their status
 ============================================================
@@ -27,14 +27,36 @@ Planned features in 5.5.x relative to 5.4.x and their status
 
   * More constraint libraries
 
-	- Received clp(r).  Not yet integrated.
+	- Received clp(r): Constraint Logic Programming over Reals by
+	  Leslie De Koninck, K.U. Leuven, supervised by Bart Demoen and
+	  Tom Schrijvers.
+
+	  This library is added to the default installation.  Should be
+	  considered beta code.
+
+
+Patches in 5.5.1 relative to 5.5.0
+==================================
+
+  * Integrated clp(R).
+
+  * Cleanup of foreign predicate registration by Salvador Fandino.
+
+  * Fixed some issues in the Windows console support for wide characters:
+    recalling window size/position, protocol/noprotocol.
+
+  * Various small issues.
+
 
 Packages
 ========
 
-  (none)
+  * socket/ssl: Fix SSL problems on Windows and SSL/Socket interaction
+    on Windows.
 
 
 Incompatible changes
+====================
 
-  (none)
+  * PL_register_foreign("module:predicate", ...) no longer works.  See
+    the new PL_register_foreign_in_module() interface
