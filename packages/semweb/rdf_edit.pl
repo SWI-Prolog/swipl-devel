@@ -227,7 +227,8 @@ rdfe_current_transaction(_) :-
 rdfe_commit :-
 	retract(current_transaction(TID)), !,
 	retractall(undo_marker(_, _)),
-	journal(commit(TID)),
+	get_time(Time),
+	journal(commit(TID, Time)),
 	(   TID = [Id]
 	->  broadcast(rdf_transaction(Id))
 	;   true
@@ -474,10 +475,16 @@ rdfe_current_journal(Path) :-
 
 journal(Term) :-
 	(   journal(_, Stream)
-	->  format(Stream, '~q.~n', [Term]),
+	->  write_journal(Term, Stream),
 	    flush_output(Stream)
 	;   report_no_journal
 	).
+
+write_journal(commit(TID, Time), Stream) :- !,
+	format(Stream, 'commit(~q, ~2f).~n', [TID, Time]).
+write_journal(Term, Stream) :-
+	format(Stream, '~q.~n', [Term]).
+
 
 :- dynamic
 	reported_no_journal/0.
@@ -538,7 +545,7 @@ replay(Term0, Stream) :-
 
 replay_transaction(Term0, Stream) :-
 	collect_transaction(Term0, Stream, Transaction, Last),
-	(   Last = commit(_)
+	(   committed_transaction(Last)
 	->  replay_actions(Transaction)
 	;   true
 	).
@@ -549,8 +556,12 @@ collect_transaction(A, Stream, [A|T], End) :-
 	read(Stream, Term),
 	collect_transaction(Term, Stream, T, End).
 
+committed_transaction(commit(_)).
+committed_transaction(commit(_, _)).
+
 ends_transaction(end_of_file).
 ends_transaction(commit(_)).
+ends_transaction(commit(_, _)).
 ends_transaction(rollback(_)).
 ends_transaction(end(_)).
 ends_transaction(start(_)).

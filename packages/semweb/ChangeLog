@@ -1,5 +1,7 @@
 Sep 18, 2003
 
+  * ADDED: timestamps to transaction journal commit operations.
+
   * ADDED: rdf_edit.pl: named transactions.
 
 Sep 13, 2003
