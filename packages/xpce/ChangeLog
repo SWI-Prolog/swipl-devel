@@ -2,6 +2,8 @@
 			   ==============
 
 
+* FIXED: Bug#14: image->pixel for <-kind = bitmap. Holger Kanwischer.
+
 * FIXED: omitted close in text_buffer->insert, introduced in 5.5.3.
 
 * FIXED: Bug#11: crash on text objects with more than 200 lines.
