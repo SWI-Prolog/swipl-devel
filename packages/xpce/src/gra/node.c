@@ -792,6 +792,45 @@ getFindNode(Node n, Code msg)
 }
 
 
+		 /*******************************
+		 *	      EVENT		*
+		 *******************************/
+
+static status
+eventNode(Node n, EventObj ev)
+{ Cell cell;
+  Tree t = n->tree;
+
+  if ( isNil(t) )
+    fail;
+
+  if ( n->collapsed == ON )
+  { for_cell(cell, t->collapsedHandlers)
+    { if ( postEvent(ev, n->image, cell->value) )
+	succeed;
+    }
+  }
+  if ( emptyChain(n->sons) )
+  { for_cell(cell, t->leafHandlers)
+    { if ( postEvent(ev, n->image, cell->value) )
+	succeed;
+    }
+  }
+  if ( n->tree->displayRoot == n )
+  { for_cell(cell, t->rootHandlers)
+    { if ( postEvent(ev, n->image, cell->value) )
+	succeed;
+    }
+  }
+  for_cell(cell, t->nodeHandlers)
+  { if ( postEvent(ev, n->image, cell->value) )
+      succeed;
+  }
+
+  fail;
+}
+
+
 		/********************************
 		*             VISUAL		*
 		********************************/
@@ -883,7 +922,9 @@ static senddecl send_node[] =
   SM(NAME_zoom, 0, NULL, zoomNode,
      NAME_scroll, "Zoom the tree to this node"),
   SM(NAME_computeLayout, 3, T_computeLayout, computeLayoutNode,
-     NAME_update, "Recursively place each node (level, x, y)")
+     NAME_update, "Recursively place each node (level, x, y)"),
+  SM(NAME_event, 1, "event", eventNode,
+     NAME_event, "Process central tree recognisers")
 };
 
 /* Get Methods */

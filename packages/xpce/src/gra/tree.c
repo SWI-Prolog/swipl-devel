@@ -313,30 +313,12 @@ eventTree(Tree t, EventObj ev)
 
   for_cell(cell, t->pointed)
   { Node n;
-    Cell cell2;
 
-    if ( (n = getFindNodeNode(t->displayRoot, cell->value)) == FAIL )
+    if ( !(n = getFindNodeNode(t->displayRoot, cell->value)) )
       continue;
 
-    if ( n->collapsed == ON )
-    { for_cell(cell2, t->collapsedHandlers)
-      { if ( postEvent(ev, n->image, cell2->value) == SUCCEED )
-	  succeed;
-      }
-    }
-    if ( emptyChain(n->sons) == SUCCEED )
-    { for_cell(cell2, t->leafHandlers)
-	if ( postEvent(ev, n->image, cell2->value) == SUCCEED )
-	  succeed;
-    }
-    if ( n->tree->displayRoot == n )
-    { for_cell(cell2, t->rootHandlers)
-	if ( postEvent(ev, n->image, cell2->value) == SUCCEED )
-	  succeed;
-    }
-    for_cell(cell2, t->nodeHandlers)
-      if ( postEvent(ev, n->image, cell2->value) == SUCCEED )
-	succeed;
+    if ( qadSendv(n, NAME_event, 1, (Any*)&ev) )
+      succeed;
   }
 
   if ( t->direction == NAME_list &&
