@@ -404,8 +404,8 @@ getInt64(IOSTREAM *fd)
   int bytes, shift, b;
 
   if ( !(first & 0xc0) )		/* 99% of them: speed up a bit */    
-  { first <<= (LONGBITSIZE-6);
-    first >>= (LONGBITSIZE-6);
+  { first <<= (INT64BITSIZE-6);
+    first >>= (INT64BITSIZE-6);
 
     DEBUG(4, Sdprintf("getInt64() --> %lld\n", first));
     return first;
