@@ -57,6 +57,7 @@ typedef struct
 { int		     owner;		/* owning thread */
 #ifdef WIN32
   HWND		     window;		/* Window for pce_call/1 */
+  HINSTANCE	     hinstance;		/* Our instance */
 #else
   int		     pipe[2];		/* pipe to talk to main process */
 #endif
@@ -66,10 +67,13 @@ typedef struct
 } dispatch_context;
 
 #define DISPATCH_CONSOLE 0x0001		/* Attach a console window */
+#define DISPATCH_END	 0x0002		/* Break out of the loop */
 
 static dispatch_context context;
 
 static int end_dispatch(int id);	/* stop dispatch-loop */
+static int init_prolog_goal(prolog_goal *g, term_t goal);
+static void call_prolog_goal(prolog_goal *g);
 
 static void
 undispatch(void *closure)
@@ -160,19 +164,116 @@ domain_error(term_t actual, const char *expected)
 
 #ifdef WIN32
 
+#define WM_CALL (WM_USER+1)
+#define WM_END  (WM_USER+2)
+
+static int WINAPI
+dispatch_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
+{ switch( message )
+  { case WM_CALL:
+    { prolog_goal *g = (prolog_goal *)lParam;
+      call_prolog_goal(g);
+      PL_free(g);
+      return 0;
+    }
+    case WM_END:
+    { dispatch_context *ctx = (dispatch_context*)lParam;
+
+      ctx->flags |= DISPATCH_END;
+      return 0;
+    }
+  }
+
+  return DefWindowProc(hwnd, message, wParam, lParam);
+}
+
+static char *
+DispatchFrameClass()
+{ static char *name;
+  static WNDCLASS wndClass;
+
+  if ( !name )
+  { char buf[50];
+
+    context.hinstance = GetModuleHandle("pl2xpce");
+    sprintf(buf, "DispatchWin%d", (int)context.hinstance);
+    name = strdup(buf);
+
+    wndClass.style		= 0;
+    wndClass.lpfnWndProc	= (LPVOID) dispatch_wnd_proc;
+    wndClass.cbClsExtra		= 0;
+    wndClass.cbWndExtra		= 0;
+    wndClass.hInstance		= context.hinstance;
+    wndClass.hIcon		= NULL;
+    wndClass.hCursor		= NULL;
+    wndClass.hbrBackground	= GetStockObject(WHITE_BRUSH);
+    wndClass.lpszMenuName	= NULL;
+    wndClass.lpszClassName	= name;
+
+    RegisterClass(&wndClass);
+  }
+
+  return name;
+}
+
+
+static HWND
+CreateDispatchWindow(dispatch_context *ctx)
+{ if ( !ctx->window )
+  { ctx->window = CreateWindow(DispatchFrameClass(),
+			       "XPCE dispatch window",
+			       WS_POPUP,
+			       0, 0, 32, 32,
+			       NULL, NULL, context.hinstance, NULL);
+    assert(ctx->window);
+  }
+
+  return ctx->window;
+}
+
+
 static void
 dispatch(dispatch_context *context)
-{
+{ MSG msg;
+  
+  CreateDispatchWindow(context);
+
+  while( !(context->flags & DISPATCH_END) &&
+	 GetMessage(&msg, NULL, 0, 0) )
+  { TranslateMessage(&msg);
+    DispatchMessage(&msg);
+  }
 }
 
 static foreign_t
 pl_pce_end_dispatch()
-{
+{ if ( context.window )
+  { if ( PostMessage(context.window, WM_END, 0, (LPARAM)&context) )
+      return TRUE;
+  }
+
+  return FALSE;
 }
 
 static foreign_t
 pl_pce_call(term_t goal)
-{
+{ DLOCK();
+
+  if ( context.window )
+  { prolog_goal *g = PL_malloc(sizeof(*g));
+
+    if ( !init_prolog_goal(g, goal) )
+    { DUNLOCK();
+      return FALSE;
+    }
+    if ( PostMessage(context.window, WM_CALL, 0, (LPARAM)g) )
+    { DUNLOCK();
+      return TRUE;
+    }
+  }
+
+  DUNLOCK();
+  return FALSE;
 }
 
 #else /*WIN32*/
@@ -204,17 +305,7 @@ dispatch(dispatch_context *context)
       int n;
 
       if ( (n=read(context->pipe[0], &g, sizeof(g))) == sizeof(g) )
-      { fid_t fid = PL_open_foreign_frame();
-	term_t t = PL_new_term_ref();
-	static predicate_t pred = NULL;
-
-	if ( !pred )
-	  pred = PL_predicate("call", 1, "user");
-
-	PL_recorded(g.goal, t);
-	PL_erase(g.goal);
-	PL_call_predicate(g.module, PL_Q_NORMAL, pred, t);
-	PL_discard_foreign_frame(fid);
+      { call_prolog_goal(&g);
       } else if ( n == 0 )		/* EOF: quit */
       { break;
       }
@@ -233,16 +324,12 @@ pl_pce_call(term_t goal)
 { DLOCK();
 
   if ( context.pipe[1] >= 0 )
-  { term_t plain = PL_new_term_ref();
-    prolog_goal g;
-    g.module = NULL;
+  { prolog_goal g;
 
-    PL_strip_module(goal, &g.module, plain);
-    if ( !(PL_is_compound(plain) || PL_is_atom(plain)) )
+    if ( !init_prolog_goal(&g, goal) )
     { DUNLOCK();
-      return type_error(goal, "callable");
+      return FALSE;
     }
-    g.goal = PL_record(plain);
 
     if ( write(context.pipe[1], &g, sizeof(g)) == sizeof(g) )
     { DUNLOCK();
@@ -275,6 +362,35 @@ pl_pce_end_dispatch()
 }
 
 #endif /*WIN32*/
+
+static int
+init_prolog_goal(prolog_goal *g, term_t goal)
+{ term_t plain = PL_new_term_ref();
+
+  g->module = NULL;
+  PL_strip_module(goal, &g->module, plain);
+  if ( !(PL_is_compound(plain) || PL_is_atom(plain)) )
+    return type_error(goal, "callable");
+  g->goal = PL_record(plain);
+
+  return TRUE;
+}
+
+
+static void
+call_prolog_goal(prolog_goal *g)
+{ fid_t fid = PL_open_foreign_frame();
+  term_t t = PL_new_term_ref();
+  static predicate_t pred = NULL;
+
+  if ( !pred )
+    pred = PL_predicate("call", 1, "user");
+
+  PL_recorded(g->goal, t);
+  PL_erase(g->goal);
+  PL_call_predicate(g->module, PL_Q_NORMAL, pred, t);
+  PL_discard_foreign_frame(fid);
+}
 
 
 static int
