@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: call_cleanup/3 to call the handler on deterministic exit in
+    debug mode.  Holger Kanwischer.
+
   * MODIFIED: hide predicates starting with $ from listing/0.  Paulo Moura.
 
   * FIXED: compiler warnings on initPrologThreads().  Paulo Moura.

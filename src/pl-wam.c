@@ -2737,7 +2737,10 @@ parent (it is the entry of PL_next_solution()),
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
     VMI(I_EXITCLEANUP)
-      { if ( BFR->frame == FR && BFR == (Choice)argFrameP(FR, 3) )
+      { while( BFR && BFR->type == CHP_DEBUG )
+	  BFR = BFR->parent;
+
+	if ( BFR->frame == FR && BFR == (Choice)argFrameP(FR, 3) )
 	{ assert(BFR->type == CHP_CATCH);
 
 	  DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(BFR->parent)));
