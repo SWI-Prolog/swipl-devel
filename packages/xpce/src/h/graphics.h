@@ -252,6 +252,13 @@ NewClass(ellipse)
   Image		fill_pattern;		/* fill pattern  */
 End;
 
+NewClass(bezier)
+  ABSTRACT_JOINT
+  Point	start;
+  Point control;
+  Point end;
+End;
+
 NewClass(box)
   ABSTRACT_GRAPHICAL
   Int        radius;			/* if displayed as a rounded box */

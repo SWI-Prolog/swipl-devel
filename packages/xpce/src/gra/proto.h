@@ -268,6 +268,7 @@ status		drawPostScriptBox(Box b);
 status		drawPostScriptCircle(Circle c);
 status		drawPostScriptEllipse(Ellipse e);
 status		drawPostScriptPath(Path p);
+status		drawPostScriptBezier(Bezier b);
 status		drawPostScriptLine(Line ln);
 status		drawPostScriptArrow(Arrow a);
 status		drawPostScriptArc(Arc a);
@@ -330,4 +331,6 @@ void		r_3d_rectangular_polygon(int n, IPoint pts, Elevation e, int flags);
 status		makeClassColourMap(Class class);
 
 /* ../src/gra/bezier.c */
+status		adjustFirstArrowBezier(Bezier b);
+status		adjustSecondArrowBezier(Bezier b);
 status		makeClassBezier(Class class);

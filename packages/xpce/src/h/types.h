@@ -141,6 +141,7 @@ typedef struct create_obj *		Create;
 
 typedef struct arc 			* Arc;
 typedef struct arrow			* Arrow;
+typedef struct bezier 			* Bezier;
 typedef struct bitmapobj		* BitmapObj;
 typedef struct box			* Box;
 typedef struct browser			* Browser;

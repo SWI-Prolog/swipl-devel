@@ -1322,6 +1322,37 @@ drawPostScriptPath(Path p)
 
 
 status
+drawPostScriptBezier(Bezier b)
+{ if ( psstatus.mkheader )
+  { psdef(NAME_draw);
+    psdef(NAME_startpath);
+    psdef_texture(b);
+    psdef_arrows(b);
+  } else
+  { ps_output("gsave ~C\n", b);
+    
+    if ( b->pen != ZERO )
+    { ps_output("newpath ~d ~d moveto\n", b->start->x, b->start->y);
+      ps_output("~T ~p pen\n", b, b);
+      ps_output("~d ~d ~d ~d ~d ~d curveto draw\n",
+		b->control->x, b->control->y,
+		b->control->x, b->control->y,
+		b->end->x, b->end->y);
+    }
+
+    if ( adjustFirstArrowBezier(b) )
+      postscriptGraphical(b->first_arrow);
+    if ( adjustSecondArrowBezier(b) )
+      postscriptGraphical(b->second_arrow);
+  
+    ps_output("grestore\n");
+  }
+
+  succeed;
+}
+
+
+status
 drawPostScriptLine(Line ln)
 { if ( psstatus.mkheader )
   { if ( ln->pen != ZERO )

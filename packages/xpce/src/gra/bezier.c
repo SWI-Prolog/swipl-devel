@@ -19,15 +19,6 @@ from:
 http://graphics.cs.ucdavis.edu/CAGDNotes/Divide-and-Conquer-Bezier-Curve/Divide-and-Conquer-Bezier-Curve.html
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-typedef struct bezier *Bezier;
-
-NewClass(bezier)
-  ABSTRACT_JOINT
-  Point	start;
-  Point control;
-  Point end;
-End;
-
 static status
 initialiseBezier(Bezier b,
 		 Point start, Point control, Point end)
@@ -39,6 +30,48 @@ initialiseBezier(Bezier b,
 
   return requestComputeGraphical(b, DEFAULT);
 }
+
+
+		 /*******************************
+		 *	      ARROWS		*
+		 *******************************/
+
+status
+adjustFirstArrowBezier(Bezier b)
+{ if ( notNil(b->first_arrow) )
+  { Any av[4];
+
+    av[0] = b->start->x;
+    av[1] = b->start->y;
+    av[2] = b->control->x;
+    av[3] = b->control->y;
+
+    if ( qadSendv(b->first_arrow, NAME_points, 4, av) )
+      return ComputeGraphical(b->first_arrow);
+  }
+
+  fail;
+}
+
+
+status
+adjustSecondArrowBezier(Bezier b)
+{ if ( notNil(b->second_arrow) )
+  { Any av[4];
+
+    av[0] = b->end->x;
+    av[1] = b->end->y;
+    av[2] = b->control->x;
+    av[3] = b->control->y;
+
+    if ( qadSendv(b->second_arrow, NAME_points, 4, av) )
+      return ComputeGraphical(b->second_arrow);
+  }
+
+  fail;
+}
+
+
 
 
 		 /*******************************
@@ -183,6 +216,11 @@ computeBezier(Bezier b)
     } else
       clearArea(b->area);
 
+    if ( adjustFirstArrowBezier(b) )
+      unionNormalisedArea(b->area, b->first_arrow->area);
+    if ( adjustSecondArrowBezier(b) )
+      unionNormalisedArea(b->area, b->second_arrow->area);
+
     assign(b, request_compute, NIL);
   }
 
@@ -207,6 +245,11 @@ RedrawAreaBezier(Bezier b, Area a)
 
   compute_points_bezier(b, pts, &npts);
   r_polygon(pts, npts, FALSE);
+
+  if ( adjustFirstArrowBezier(b) )
+    RedrawArea(b->first_arrow, a);
+  if ( adjustSecondArrowBezier(b) )
+    RedrawArea(b->second_arrow, a);
 
   return RedrawAreaGraphical(b, a);
 }
@@ -262,6 +305,25 @@ endBezier(Bezier b, Point pt)
 }
 
 
+static status
+pointsBezier(Bezier b, Int sx, Int sy, Int ex, Int ey)
+{ assign(b->start, x, sx);
+  assign(b->start, y, sy);
+  assign(b->end, x, ex);
+  assign(b->end, y, ey);
+
+  requestComputeGraphical(b, DEFAULT);
+
+  CHANGING_GRAPHICAL(b,
+		     { ComputeGraphical(b);
+		       changedEntireImageGraphical(b);
+		     });
+
+  succeed;
+}
+
+
+
 		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
@@ -270,6 +332,8 @@ endBezier(Bezier b, Point pt)
 
 static char *T_initialise[] =
         { "start=point", "control=point", "end=[point]" };
+static char *T_points[] =
+        { "start_x=int", "start_y=int", "end_x=int", "end_y=int" };
 
 /* Instance Variables */
 
@@ -290,9 +354,11 @@ static senddecl send_bezier[] =
   SM(NAME_compute, 0, NULL, computeBezier,
      DEFAULT, "Recompute area"),
   SM(NAME_paintSelected, 0, NULL, paintSelectedBezier,
-     NAME_appearance, "Paint inverted drops on control-points")
-/*SM(NAME_DrawPostScript, 0, NULL, drawPostScriptBezier,
-     NAME_postscript, "Create PostScript")*/
+     NAME_appearance, "Paint inverted drops on control-points"),
+  SM(NAME_points, 4, T_points, pointsBezier,
+     NAME_tip, "Set start- and end-point"),
+  SM(NAME_DrawPostScript, 0, NULL, drawPostScriptBezier,
+     NAME_postscript, "Create PostScript")
 };
 
 /* Get Methods */

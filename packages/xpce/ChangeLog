@@ -1,3 +1,7 @@
+* MODIFIED: `dialog_group->reference' is now equivalent to
+  `graphical->reference', rather then `device->reference' for proper
+  integration with dialog items.
+
 * ADDED: `image->save' to allow saving in a source_sink object, so image
   data can be written to memory buffers.  Only works for jpeg en pnm formats.
 
