@@ -1630,7 +1630,9 @@ GLOBAL int	qsortReverse;		/* used by qsortCompareObjects() */
 /* Normalise the area given by the C integers x, y, w, h
  * such that w and h are always positive.
  */
-#define NormaliseArea(x,y,w,h)	OrientateArea(x,y,w,h,NAME_northWest)
+#define NormaliseArea(x,y,w,h)	{ if (w < 0) x += w+1, w = -w; \
+				  if (h < 0) y += h+1, h = -h; \
+				}
 
 #ifndef O_RUNTIME
 #define DEBUGGING(subject)	( PCEdebugging && pceDebugging(subject) )

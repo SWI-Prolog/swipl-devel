@@ -204,42 +204,44 @@ computeTile(TileObj t)
 
 
 static status
-nonDelegatingLeftTile(TileObj t, TileObj t2)
-{ t = getRootTile(t);
+nonDelegatingLeftRightTile(TileObj t, TileObj t2, Name where)
+{ TileObj super;
 
-  if ( notNil(t2->super) )
-  { if ( t2->super->orientation == NAME_horizontal )
-    { prependChain(t2->super->members, t);
-      assign(t, super, t2);
-      computeTile(t2->super);
-    } else
-    { TileObj super = newObject(ClassTile, NIL, ZERO, ZERO, 0);
-      
-      assign(super, orientation, NAME_horizontal);
-      assign(super, members, newObject(ClassChain, t, t2, 0));
-      assign(super->area, x, t->area->x);
-      assign(super->area, y, t->area->y);
+  t = getRootTile(t);
 
-      replaceChain(t2->super->members, t2, super);
-      assign(super, super, t2->super);
-      assign(t2, super, super);
-      assign(t,  super, super);
-      computeTile(super);
-    }
+  if ( notNil(t2->super) && t2->super->orientation == NAME_horizontal )
+  { super = t2->super;
+
+    if ( where == NAME_right )
+      insertAfterChain(super->members, t, t2);
+    else
+      insertBeforeChain(super->members, t, t2);
+
+    assign(t, super, super);
   } else
-  { TileObj super = newObject(ClassTile, NIL, ZERO, ZERO, 0);
+  { Chain ch;
+
+    super = newObject(ClassTile, NIL, ZERO, ZERO, 0);
     
+    if ( where == NAME_right )
+      ch = newObject(ClassChain, t2, t, 0);
+    else
+      ch = newObject(ClassChain, t, t2, 0);
+
     assign(super, orientation, NAME_horizontal);
-    assign(super, members, newObject(ClassChain, t, t2, 0));
+    assign(super, members, ch);
     assign(super->area, x, t->area->x);
     assign(super->area, y, t->area->y);
-    
+    if ( notNil(t2->super) )
+    { replaceChain(t2->super->members, t2, super);
+      assign(super, super, t2->super);
+    }
     assign(t2, super, super);
     assign(t,  super, super);
-    computeTile(super);
+    assign(super, enforced, t2->enforced);
   }
 
-  succeed;
+  return computeTile(super);
 }
 
 
@@ -249,7 +251,7 @@ leftTile(TileObj t, Any obj, Bool delegate)
   TileObj super;
 
   if ( delegate == OFF )
-    return nonDelegatingLeftTile(t, t2);
+    return nonDelegatingLeftRightTile(t, t2, NAME_left);
 
 					/* One already has a super tile */
   if ( notNil(t->super)  &&
@@ -288,47 +290,52 @@ leftTile(TileObj t, Any obj, Bool delegate)
 
 static status
 rightTile(TileObj t, Any obj, Bool delegate)
-{ return leftTile(toTile(obj), t, delegate);
+{ if ( delegate == OFF )
+    return nonDelegatingLeftRightTile(t, toTile(obj), NAME_right);
+
+  return leftTile(toTile(obj), t, ON);
 }
 
 					/* can be merged with left version */
 static status
-nonDelegatingAboveTile(TileObj t, TileObj t2)
-{ t = getRootTile(t);
+nonDelegatingAboveBelowTile(TileObj t, TileObj t2, Name where)
+{ TileObj super;
 
-  if ( notNil(t2->super) )
-  { if ( t2->super->orientation == NAME_vertical )
-    { prependChain(t2->super->members, t);
-      assign(t, super, t2);
-      computeTile(t2->super);
-    } else
-    { TileObj super = newObject(ClassTile, NIL, ZERO, ZERO, 0);
-      
-      assign(super, orientation, NAME_vertical);
-      assign(super, members, newObject(ClassChain, t, t2, 0));
-      assign(super->area, x, t->area->x);
-      assign(super->area, y, t->area->y);
+  t = getRootTile(t);
 
-      replaceChain(t2->super->members, t2, super);
-      assign(super, super, t2->super);
-      assign(t2, super, super);
-      assign(t,  super, super);
-      computeTile(super);
-    }
+  if ( notNil(t2->super) && t2->super->orientation == NAME_vertical )
+  { super = t2->super;
+
+    if ( where == NAME_below )
+      insertAfterChain(super->members, t, t2);
+    else
+      insertBeforeChain(super->members, t, t2);
+
+    assign(t, super, super);
   } else
-  { TileObj super = newObject(ClassTile, NIL, ZERO, ZERO, 0);
+  { Chain ch;
+
+    super = newObject(ClassTile, NIL, ZERO, ZERO, 0);
     
-    assign(super, members, newObject(ClassChain, t, t2, 0));
+    if ( where == NAME_below )
+      ch = newObject(ClassChain, t2, t, 0);
+    else
+      ch = newObject(ClassChain, t, t2, 0);
+
     assign(super, orientation, NAME_vertical);
+    assign(super, members, ch);
     assign(super->area, x, t->area->x);
     assign(super->area, y, t->area->y);
-    
+    if ( notNil(t2->super) )
+    { replaceChain(t2->super->members, t2, super);
+      assign(super, super, t2->super);
+    }
     assign(t2, super, super);
     assign(t,  super, super);
-    computeTile(super);
+    assign(super, enforced, t2->enforced);
   }
 
-  succeed;
+  return computeTile(super);
 }
 
 
@@ -338,7 +345,7 @@ aboveTile(TileObj t, Any obj, Bool delegate)
   TileObj super;
 
   if ( delegate == OFF )
-    return nonDelegatingAboveTile(t, t2);
+    return nonDelegatingAboveBelowTile(t, t2, NAME_above);
 
 					/* One already has a super tile */
   if ( notNil(t->super)  &&
@@ -378,7 +385,10 @@ aboveTile(TileObj t, Any obj, Bool delegate)
 
 static status
 belowTile(TileObj t, Any obj, Bool delegate)
-{ return aboveTile(toTile(obj), t, delegate);
+{ if ( delegate == OFF )
+    return nonDelegatingAboveBelowTile(t, toTile(obj), NAME_below);
+
+  return aboveTile(toTile(obj), t, ON);
 }
 
 
@@ -532,7 +542,8 @@ setTile(TileObj t, Int x, Int y, Int w, Int h)
   if ( notDefault(h) && valInt(h) < valInt(t->border)) h = t->border;
 
   if ( notDefault(w) )
-  { assign(t, idealWidth, w);
+  { /*if ( t->enforced != ON )*/
+      assign(t, idealWidth, w);
 
     if ( t->enforced == ON && notNil(t->super) )
     { Cell cell;
@@ -549,7 +560,8 @@ setTile(TileObj t, Int x, Int y, Int w, Int h)
     }
   }
   if ( notDefault(h) )
-  { assign(t, idealHeight, h);
+  { /*if ( t->enforced != ON )*/
+      assign(t, idealHeight, h);
 
     if ( t->enforced == ON && notNil(t->super) )
     { Cell cell;

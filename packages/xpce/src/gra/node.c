@@ -669,15 +669,19 @@ unzoomNode(Node n)
 
 static status
 collapsedNode(Node n, Bool val)
-{ if ( n->collapsed == val )
-    succeed;
+{ if ( n->collapsed != val )
+  { int update = ((n->collapsed == ON || val == ON) && notNil(n->tree));
 
-  if ( notNil(n->tree) )
-  { assign(n, collapsed, val);
-    updateDisplayedTree(n->tree);
-    requestComputeTree(n->tree);
-  } else
     assign(n, collapsed, val);  
+
+    if ( update )
+    { updateDisplayedTree(n->tree);
+      requestComputeTree(n->tree);
+    }
+
+    if ( n->tree->direction == NAME_list ) /* TBD: actually compute the area */
+      changedEntireImageGraphical(n->tree);
+  }
   
   succeed;
 }
@@ -791,7 +795,7 @@ static vardecl var_node[] =
      NAME_hierarchy, "Sub nodes of this node"),
   IV(NAME_parents, "chain", IV_GET,
      NAME_hierarchy, "Parent nodes of this node"),
-  SV(NAME_collapsed, "bool", IV_GET|IV_STORE, collapsedNode,
+  SV(NAME_collapsed, "bool*", IV_GET|IV_STORE, collapsedNode,
      NAME_scroll, "Sub nodes are invisible"),
   IV(NAME_displayed, "[bool]", IV_GET,
      NAME_scroll, "Node is visible (@default used by update)"),

@@ -1,3 +1,32 @@
+[VERSION 4.9.6]
+
+* FIXED: Scrollbar update for editors with incomplete last line.
+
+* FIXED: `display <-font_alias' to call makeBuiltinFonts() first to
+  ensure all system fonts are defined.
+
+* FIXED: Win32 colour handling.  Properly handle colour-names case
+  insensitive.
+
+* FIXED: 2nd argument of bitmap->initialise (transparent) was ignored.
+
+* ADDED: Much better support for dynamically adding windows to an (open)
+  frame.  See `window->above'.
+
+* COMPATIBILITY: if a window is added to an open frame, the system now
+  invokes ->resize to the frame, rather than ->fit.  This avoids the frame
+  from resizing.  Code that wishes the old behaviour should look at the
+  resource Pce.Frame.fit_after_append, or explicitely invoke ->fit after
+  appending the window.
+
+* CHANGED: removed obsolete `frame <-destroying' (now using ->unlinking
+  to avoid recursion).
+
+* UI: PceEmacs: added ->save_as to file menu.
+
+* FIXED: figure ->_draw_postscript to deal properly with the <-radius of
+  of the figure.
+
 [VERSION 4.9.5]
 
 * FIXED: Win32 box with rounded corners with radius > min(w,h)/2 was

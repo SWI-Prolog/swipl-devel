@@ -106,6 +106,12 @@ static char translations[] =
 ";
 #endif
 
+static void
+xpce_change_managed(Widget w)
+{ /* don't do anything, this is done by XPCE itself */
+}
+
+
 TopLevelFrameClassRec topLevelFrameClassRec = {
   {
     /* superclass         */    (WidgetClass) &topLevelShellClassRec,
@@ -142,7 +148,7 @@ TopLevelFrameClassRec topLevelFrameClassRec = {
     /* extension	  */    NULL
   },{					/* Composite */
     /* geometry_manager   */    XtInheritGeometryManager,
-    /* change_managed     */    XtInheritChangeManaged,
+    /* change_managed     */    xpce_change_managed,/*XtInheritChangeManaged,*/
     /* insert_child	  */	XtInheritInsertChild,
     /* delete_child	  */	XtInheritDeleteChild,
     /* extension	  */	NULL
@@ -197,7 +203,7 @@ OverrideFrameClassRec overrideFrameClassRec = {
     /* extension	  */    NULL
   },{					/* Composite */
     /* geometry_manager   */    XtInheritGeometryManager,
-    /* change_managed     */    XtInheritChangeManaged,
+    /* change_managed     */    xpce_change_managed,/*XtInheritChangeManaged,*/
     /* insert_child	  */	XtInheritInsertChild,
     /* delete_child	  */	XtInheritDeleteChild,
     /* extension	  */	NULL
@@ -248,7 +254,7 @@ TransientFrameClassRec transientFrameClassRec = {
     /* extension	  */    NULL
   },{					/* Composite */
     /* geometry_manager   */    XtInheritGeometryManager,
-    /* change_managed     */    XtInheritChangeManaged,
+    /* change_managed     */    xpce_change_managed,/*XtInheritChangeManaged,*/
     /* insert_child	  */	XtInheritInsertChild,
     /* delete_child	  */	XtInheritDeleteChild,
     /* extension	  */	NULL

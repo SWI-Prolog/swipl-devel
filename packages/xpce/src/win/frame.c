@@ -53,7 +53,6 @@ initialiseFrame(FrameObj fr, Name label, Name kind,
   assign(fr, colour_map,    DEFAULT);
   assign(fr, area,	    newObject(ClassArea, 0));
   assign(fr, members,	    newObject(ClassChain, 0));
-  assign(fr, destroying,    OFF);
   assign(fr, kind,	    kind);
   assign(fr, status,	    NAME_unmapped);
   assign(fr, can_delete,    ON);
@@ -74,12 +73,13 @@ initialiseFrame(FrameObj fr, Name label, Name kind,
 
 static status
 unlinkFrame(FrameObj fr)
-{ if ( fr->destroying == OFF )
+{ if ( fr->status != NAME_unlinking )
   { FrameObj sfr;
     PceWindow sw;
     Cell cell;
 
-    assign(fr, destroying, ON);
+    assign(fr, status, NAME_unlinking);
+
     for_cell(cell, fr->members)		/* suppress any updates */
     { PceWindow sw = cell->value;
 
@@ -269,7 +269,7 @@ resizeFrame(FrameObj fr)
   TileObj t = getTileFrame(fr);
 
   if ( t )
-    send(t, NAME_set, ZERO, ZERO, a->w, a->h, 0);
+    send(t, NAME_layout, ZERO, ZERO, a->w, a->h, 0);
 
   succeed;
 }
@@ -422,6 +422,8 @@ fitFrame(FrameObj fr)
 
   enforceTile(t, ON);
   border = mul(t->border, TWO);
+
+  assign(fr->area, w, ZERO);		/* ensure ->resize */
 
   return setFrame(fr, DEFAULT, DEFAULT,
 		  add(t->idealWidth, border),
@@ -968,7 +970,12 @@ AppendFrame(FrameObj fr, PceWindow sw)
   { TRY(send(sw, NAME_create, 0));
 
     ws_manage_window(sw);
-    send(fr, NAME_fit, 0);
+
+    if ( getResourceValueObject(fr, NAME_fitAfterAppend) == ON )
+      send(fr, NAME_fit, 0);
+    else
+      send(fr, NAME_resize, 0);
+
     if ( isOpenFrameStatus(fr->status) )
       send(sw, NAME_displayed, ON, 0);
   }
@@ -982,6 +989,9 @@ DeleteFrame(FrameObj fr, PceWindow sw)
 { if ( instanceOfObject(sw->device, ClassWindowDecorator) )
     return DeleteFrame(fr, (PceWindow) sw->device);
 
+  if ( sw->frame != fr )
+    return errorPce(fr, NAME_noMember, sw);
+
   deleteChain(fr->members, sw);
   assign(sw, frame, NIL);		/* may kill the frame */
 
@@ -989,7 +999,10 @@ DeleteFrame(FrameObj fr, PceWindow sw)
   { ws_unmanage_window(sw);
     TRY(send(sw, NAME_uncreate, 0));
     unrelateTile(sw->tile);
-    send(fr, NAME_fit, 0);
+    if ( getResourceValueObject(fr, NAME_fitAfterAppend) == ON )
+      send(fr, NAME_fit, 0);
+    else
+      send(fr, NAME_resize, 0);
   }
 
   succeed;
@@ -998,13 +1011,10 @@ DeleteFrame(FrameObj fr, PceWindow sw)
 
 static status
 deleteFrame(FrameObj fr, PceWindow sw)
-{ DisplayObj d = fr->display;
+{ if ( valInt(fr->members->size) <= 1 )
+    fail;				/* cannot delete last (yet) */
 
-  DeleteFrame(fr, sw);
-  if ( !isFreedObj(sw) )
-    frameWindow(sw, newObject(ClassFrame, DEFAULT, DEFAULT, d, 0));
-
-  succeed;
+  return DeleteFrame(fr, sw);
 }
 
 
@@ -1587,8 +1597,6 @@ static vardecl var_frame[] =
      NAME_area, "X-window geometry specification"),
   IV(NAME_members, "chain", IV_NONE,
      NAME_organisation, "Windows in the frame"),
-  IV(NAME_destroying, "bool", IV_NONE,
-     NAME_internal, "Handle destruction gracefully"),
   SV(NAME_kind, "{toplevel,transient,popup}", IV_GET|IV_STORE, kindFrame,
      NAME_appearance, "Tool, support or popup"),
   SV(NAME_transientFor, "frame*", IV_GET|IV_STORE, transientForFrame,
@@ -1601,7 +1609,7 @@ static vardecl var_frame[] =
      NAME_modal, "Bin for value of ->return"),
   SV(NAME_inputFocus, "bool", IV_GET|IV_STORE, inputFocusFrame,
      NAME_event, "Frame has focus for keyboard events"),
-  IV(NAME_status, "{unmapped,hidden,iconic,window,full_screen}", IV_GET,
+  IV(NAME_status, "{unlinking,unmapped,hidden,iconic,window,full_screen}", IV_GET,
      NAME_visibility, "Current visibility of the frame"),
   IV(NAME_canDelete, "bool", IV_BOTH,
      NAME_permission, "Frame can be deleted by user"),
@@ -1791,7 +1799,9 @@ static resourcedecl rc_frame[] =
   RC(NAME_horizontalResizeCursor, "cursor", "sb_h_double_arrow",
      "Cursor for horizontally resizing tile"),
   RC(NAME_verticalResizeCursor, "cursor", "sb_v_double_arrow",
-     "Cursor for vertically resizing tile")
+     "Cursor for vertically resizing tile"),
+  RC(NAME_fitAfterAppend, "bool", "@off",
+     "Automatically ->fit the frame after a subwindow was added")
 };
 
 /* Class Declaration */

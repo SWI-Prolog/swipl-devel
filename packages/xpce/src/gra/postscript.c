@@ -582,7 +582,8 @@ drawPostScriptDevice(Device dev)
 status
 drawPostScriptFigure(Figure f)
 { if ( f->pen != ZERO || notNil(f->background) )
-  { ps_output("gsave ~C ~T ~p ~x ~y ~w ~h 0 boxpath\n", f, f, f, f, f, f, f);
+  { ps_output("gsave ~C ~T ~p ~x ~y ~w ~h ~d boxpath\n",
+	      f, f, f, f, f, f, f, f->radius);
     fill(f, NAME_background);
     ps_output("draw grestore\n");
   }

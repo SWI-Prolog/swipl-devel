@@ -105,35 +105,3 @@ pce_home(_) :-
 	    halt(1)
 	),
 	set_feature(xpce, true), !.
-
-
-		 /*******************************
-		 *	  CONSULT-SUPPORT	*
-		 *******************************/
-
-%	callable_predicate(+Module:+Head)
-%	True if Head is a callable predicate in Module.
-
-callable_predicate(Module:Head) :-
-	default_module(Module, DefModule),
-	current_predicate(_, DefModule:Head), !.
-callable_predicate(_:Head) :-
-	functor(Head, Name, Arity),
-	'$in_library'(Name, Arity).
-
-default_module(M, M).
-default_module(M, user) :- M \== user.
-default_module(M, system) :- M \== system.
-
-%	modified_since_last_loaded(Path)
-%	True is file has been modified since the last time it was loaded.
-
-modified_since_last_loaded(File) :-
-	'$time_source_file'(File, LoadTime), !,
-	time_file(File, Modified),
-	Modified @> LoadTime.
-modified_since_last_loaded(InFile) :-
-	'$time_source_file'(File, LoadTime),
-	same_file(InFile, File), !,
-	time_file(File, Modified),
-	Modified @> LoadTime.

@@ -422,9 +422,9 @@ handle(0,   h/2, link, west).
 handle(w,   h/2, link, east).
 
 initialise(T, String:[string], Format:[name], Font:[font]) :->
-	default(String, '',			     Str),
-	default(Format, center, 		     Fmt),
-	default(Font,   font(helvetica, roman, 14),  Fnt),
+	default(String, '',     Str),
+	default(Format, center, Fmt),
+	default(Font,   normal, Fnt),
 	send(T, send_super, initialise, Str, Fmt, Fnt).
 
 
@@ -879,7 +879,10 @@ draw_attribute(C, Att:name, Val:any) :->
 	;   get(C?class, part_attributes, Sheet),  Sheet \== @nil,
 	    get(Sheet, value, Att, PartName)
 	->  get(C, member, PartName, Part),
-	    send(Part, draw_attribute, Att, Val)
+	    (	send(Part, has_send_method, draw_attribute)
+	    ->  send(Part, draw_attribute, Att, Val)
+	    ;	send(Part, Att, Val)
+	    )
 	;   send(C?graphicals, for_some,
 		 if(@is_draw_shape,
 		    message(@arg1, draw_attribute, Att, Val),
@@ -894,7 +897,10 @@ draw_attribute(C, Att:name, Val) :<-
 	;   get(C?class, part_attributes, Sheet),  Sheet \== @nil,
 	    get(Sheet, value, Att, PartName)
 	->  get(C, member, PartName, Part),
-	    get(Part, draw_attribute, Att, Val)
+	    (	send(Part, has_get_method, draw_attribute)
+	    ->  get(Part, draw_attribute, Att, Val)
+	    ;	get(Part, Att, Val)
+	    )
 	;   get(C?graphicals, find,
 		if(@is_draw_shape,
 		   message(@arg1, has_attribute, Att),

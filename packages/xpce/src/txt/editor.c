@@ -67,6 +67,9 @@ static Timer	ElectricTimer;
 			  } \
 			}
 #define HasSelection(e) ((e)->selection_start != (e)->selection_end)
+#define Fetch(e, i)		fetch_textbuffer((e)->text_buffer, (i))
+#define InRegion(i, l, h)	( (l < h && i >= l && i < h) || \
+				  (l > h && i >= h && i < l) )
 
 /* Scroll using line-parameters upto this size for the buffer */
 #define MAXLINEBASEDSCROLLING 25000
@@ -382,11 +385,18 @@ bubbleScrollBarEditor(Editor e, ScrollBar sb)
 { TextBuffer tb = e->text_buffer;
   Int start = getStartTextImage(e->image, ONE);
 
-  if ( tb->size < MAXLINEBASEDSCROLLING )		/* short, work line-based */
+  if ( tb->size < MAXLINEBASEDSCROLLING )	/* short, work line-based */
   { Int len   = countLinesEditor(e, ZERO, toInt(tb->size));
     Int first = sub(getLineNumberEditor(e, start), ONE); /* 1-based! */
     Int view  = countLinesEditor(e, start, e->image->end);
     
+    if ( tb->size > 0 &&
+	 !tisendsline(tb->syntax, Fetch(e, tb->size-1)) )
+      incrInt(len);			/* incomplete last line */
+    if ( valInt(e->image->end) > 0 &&
+	 !tisendsline(tb->syntax, Fetch(e, valInt(e->image->end)-1)) )
+      incrInt(view);
+
     return bubbleScrollBar(sb, len, first, view);
   } else				/* long, work character-based */
   { Int len  = toInt(tb->size);
@@ -863,10 +873,6 @@ indexFragmentCache(FragmentCache fc, Editor e, long int i)
   fc->index = i;
 }
 
-
-#define Fetch(e, i)		fetch_textbuffer((e)->text_buffer, (i))
-#define InRegion(i, l, h)	( (l < h && i >= l && i < h) || \
-				  (l > h && i >= h && i < l) )
 
 static void
 seek_editor(Any obj, long int index)

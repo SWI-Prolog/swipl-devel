@@ -138,8 +138,8 @@ computeLine(Line ln)
     { w++;
       h++;
     } else if ( pen > 1 )
-    { int ex = (pen*h)/(w+h);
-      int ey = (pen*w)/(w+h);
+    { int ex = (h > 0 ? (pen*h)/(w+h) : 0); /* h = 0: horizontal line */
+      int ey = (w > 0 ? (pen*w)/(w+h) : 0); /* w = 0: vertical line */
       int hx = ex/2;
       int hy = ey/2;
 

@@ -917,7 +917,7 @@ void
 ws_set_icon_frame(FrameObj fr)
 { HWND hwnd;
 
-  if ( (hwnd = getHwndFrame(fr)) && fr->destroying == OFF )
+  if ( (hwnd = getHwndFrame(fr)) && fr->status != NAME_unlinking )
   { HICON icon;
 
     if ( notNil(fr->icon_image) &&

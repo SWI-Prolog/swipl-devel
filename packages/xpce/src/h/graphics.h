@@ -719,7 +719,6 @@ NewClass(frameobj)
   Area		area;			/* Area of the frame */
   Name		geometry;		/* X-Window geometry spec */
   Chain		members;		/* Windows displayed */
-  Bool		destroying;		/* Destroying the tree */
   Name		kind;			/* Kind of frame */
   FrameObj	transient_for;		/* Sub frame of who? */
   Chain		transients;		/* Sub frames */

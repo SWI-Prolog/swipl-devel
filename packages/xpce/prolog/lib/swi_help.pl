@@ -89,8 +89,11 @@ initialise(F) :->
 	send(F, fill_dialog).
 
 give_help(F, What:name, Clear:[bool], ScrollToStart:[bool]) :->
+	get(F, display, Display),
+	send(Display, busy_cursor),
 	get(F, member, pui_editor, Editor),
-	send(Editor, give_help, What, Clear, ScrollToStart).
+	ignore(send(Editor, give_help, What, Clear, ScrollToStart)),
+	send(Display, busy_cursor, @nil).
 
 apropos(F, Atom:name) :->
 	get(F, member, pui_editor, Editor),
@@ -105,7 +108,7 @@ explain(F, Text:name) :->
 about(_F) :->
 	send(@display, inform,
 	     '%s\n\n%s\n%s',
-	     'SWI-Prolog manual browser version 0.1',
+	     'SWI-Prolog manual browser version 1.0',
 	     'Jan Wielemaker',
 	     'E-mail: jan@swi.psy.uva.nl').
 
@@ -144,32 +147,22 @@ fill_dialog(F) :->
 	chain_list(ValueSet, Names),
 	send(TI, value_set, ValueSet),
 	send(D, append, button(help,
-			       and(message(F, give_help, TI?selection),
-				   message(F, default_action, help)))),
+			       message(F, give_help, TI?selection))),
 	send(D, append, button(apropos,
-			       and(message(F, apropos, TI?selection),
-				   message(F, default_action, apropos))),
+			       message(F, apropos, TI?selection)),
 	     right),
 	send(D, append, button(explain,
-			       and(message(F, explain, TI?selection),
-				   message(F, default_action, explain))),
+			       message(F, explain, TI?selection)),
 	     right),
 	send(D, append, TI, right),
 	send(D, append, label(reporter), right),
-	send(F, default_action, help).
+	send(D, default_button, help).
 
 prolog_help_topic(Name) :-
 	predicate(Name, _, _, _, _).
 prolog_help_topic(Name) :-
 	function(Name, _, _).
 
-default_action(_F, _Action:name) :->
-	true.
-/*	get(F, member, dialog, D),
-	send(D?graphicals, for_all, 
-	     if(message(@arg1, instance_of, button),
-		message(@arg1, default_button,
-			when(@arg1?name == Action, @on, @off)))). */
 
 add_history(F, What:name) :->
 	get(F, history, Chain),
@@ -363,10 +356,11 @@ mark_titles(TB, From, To) :-
 	regex_db/2.
 
 :- set_feature(character_escapes, true).
-:- pce_global(@ul_regex, new(regex('\\(.\\)\b.'))).
+:- pce_global(@ul_regex, new(regex('.\b\\(.\\)'))).
 
 regex(bold,	  '\\(\\(.\\)\b\\2\\)+').
 regex(underline,  '\\(\\(.\\)\b_\\)+').
+regex(underline2,  '\\(_\b\\(.\\)\\)+').
 :- set_feature(character_escapes, false).
 regex(predicate,  '\(\w+\)/\(\sd+\)').
 regex(predicate2, '\w+/\[\sd+[-,]\sd+\]').
@@ -403,8 +397,9 @@ mark_fragment(V, Re:regex) :->
 	;   true
 	).
 
-font_style(bold).
-font_style(underline).
+font_style(bold, bold).
+font_style(underline, underline).
+font_style(underline2, underline).
 
 documented(Re, V, button) :-
 	regex_db(predicate, Re), !,
@@ -413,8 +408,8 @@ documented(Re, V, button) :-
 	get(Re, register_value, TB, 2, int,  Arity),
 	predicate(Name, Arity, _, _, _).
 documented(Re, V, Style) :-
-	regex_db(Style, Re),
-        font_style(Style), !,
+	regex_db(Style0, Re),
+        font_style(Style0, Style), !,
         get(V, text_buffer, TB),
         get(Re, register_value, TB, 0, String),
 	send(@ul_regex, for_all, String,
@@ -743,39 +738,68 @@ source(File, Line) -->			% n-th clause of module:name/arity
 
 initialise(PT) :->
 	send(PT, send_super, initialise),
-	send(PT, root, toc_folder('Manual', manual)).
+	send(PT, root,
+	     toc_folder('Manual', manual,
+			image('16x16/manual.xpm'),
+			image('16x16/book2.xpm'))).
 
 		 /*******************************
 		 *	       OPEN		*
 		 *******************************/
 
-open_node(PT, Id:name) :->
-	send(PT?frame, give_help, Id).
+select_node(PT, Id:name) :->
+	(   atom_chars(Id, S),
+	    phrase(section([_]), S)
+	->  true			% entire chapter
+	;   send(PT?frame, give_help, Id)
+	).
 
 		 /*******************************
 		 *	      EXPAND		*
 		 *******************************/
 
 expand_node(PT, Node:any) :->
-	expand_node(PT, Node).
+	expand_node(PT, Node),
+	send(PT, send_super, expand_node, Node).
 
 expand_node(PT, manual) :- !,
 	forall(section([N], Title, _, _),
-	       send(PT, son, manual, toc_folder(Title, N))).
+	       add_section(PT, manual, Title, [N])).
 expand_node(PT, Section) :-
 	atom_chars(Section, S),
 	phrase(section(List), S),
 	subsection(List, I),
 	forall(section(I, Title, _, _),
-	       (   concat_atom(I, '.', Id),
-		   send(PT, son, Section, toc_folder(Title, Id))
-	       )),
+	       add_section(PT, Section, Title, I)),
 	forall(predicate_in_section(List, Name/Arity),
 	       (   concat_atom([Name, /, Arity], Id),
-		   send(PT, son, Section, toc_file(Id, Id))
+		   send(PT, son, Section,
+			toc_file(Id, Id, image('16x16/preddoc.xpm')))
 	       )),
 	forall(function_in_section(List, Name),
-	       send(PT, son, Section, toc_file(Name, Name))).
+	       send(PT, son, Section,
+		    toc_file(Name, Name, image('16x16/funcdoc.xpm')))).
+
+add_section(PT, Parent, Title, Son) :-
+	(   can_expand(Son)
+	->  CanExpand = @on
+	;   CanExpand = @off
+	),
+	concat_atom(Son, '.', Id),
+	send(PT, son, Parent,
+	     toc_folder(Title, Id,
+			image('16x16/manual.xpm'),
+			image('16x16/book2.xpm'),
+			CanExpand)).
+
+can_expand(Section) :-
+	subsection(Section, Sub),
+	section(Sub, _, _, _), !.
+can_expand(Section) :-
+	plain_predicate_in_section(Section, _), !.
+can_expand(Section) :-
+	plain_function_in_section(Section, _), !.
+
 
 plain_predicate_in_section(Section, Name/Arity) :-
 	section(Section, _, SFrom, STo),

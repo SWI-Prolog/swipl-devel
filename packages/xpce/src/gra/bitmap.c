@@ -18,11 +18,13 @@ static status
 initialiseBitmap(BitmapObj b, Image image, Bool transparent)
 { if ( isDefault(image) )
     TRY(image = newObject(ClassImage, NIL, 0));
+  if ( isDefault(transparent) )
+    transparent = OFF;
   
   initialiseGraphical(b, ZERO, ZERO, image->size->w, image->size->h);
 
   assign(b, pen, ZERO);
-  assign(b, transparent, OFF);
+  assign(b, transparent, transparent);
   assign(b, image, image);
   if ( image->access == NAME_both && isNil(image->bitmap) )
     assign(image, bitmap, b);

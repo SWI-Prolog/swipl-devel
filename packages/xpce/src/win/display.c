@@ -956,7 +956,14 @@ fontAliasDisplay(DisplayObj d, Name name, FontObj font, Bool force)
 
 static FontObj
 getFontAliasDisplay(DisplayObj d, Name name)
-{ answer(getMemberHashTable(d->font_table, name));
+{ FontObj f;
+
+  if ( (f = getMemberHashTable(d->font_table, name)) )
+    answer(f);
+
+  makeBuiltinFonts();
+       
+  answer(getMemberHashTable(d->font_table, name));
 }
 
 

@@ -182,7 +182,10 @@ ws_geometry_window(PceWindow sw, int x, int y, int w, int h, int pen)
   if ( h < 1 ) h = 1;
 
   if ( wid )
+  { DEBUG(NAME_tile, Cprintf("ws_geometry_window(%s, %d, %d, %d, %d, %d)\n",
+			     pp(sw), x, y, w, h, pen));
     XtConfigureWidget(wid, x, y, w, h, pen);
+  }
 }
 
 

@@ -43,6 +43,7 @@
 				     button(file, @emacs_mode?buffers),
 	  find_file		   = key('\C-x\C-f') + button(file),
 	  save_buffer		   = key('\C-x\C-s') + button(file),
+	  save_as		   = button(file),
 	  revert		   = button(file),
 	  kill_buffer		   = key('\C-xk')    + button(file),
 	  ispell		   = button(file),
@@ -242,6 +243,11 @@ save_text(M) :->
 save_buffer(M) :->
 	"Save buffer if it is modified"::
 	send(M, save_text).
+
+
+save_as(M, File:file) :->
+	"Equivalent to write_file"::
+	send(M, write_file, File).
 
 
 save_some_buffers(_M, Arg:[int]) :->

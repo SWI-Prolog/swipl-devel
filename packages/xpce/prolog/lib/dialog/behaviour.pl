@@ -446,7 +446,7 @@ initialise(P, Name:[name]) :->
 	get(P, resource_value, port_font, Font),
 	send(P, send_super, initialise, Name, left, Font),
 	send(P, name, Nm),
-	send(P, transparent, @off),
+	send(P, background, colour(white)), % dynamic?
 	send(P, border, 2),
 	send(P, pen, 1).
 
@@ -1329,12 +1329,12 @@ initialise(O, Name:name) :->
 	ifcolour(send(O, elevation, @dia_component_elevation),
 		 send(O, background, @grey25_image)),
 	send(O, display, new(T, editable_text(Name, center, Font))),
+	send(T, background, colour(white)),
 	send(T, name, text),
 	send(T, message, value),
 	send(T, center, B?center),
 	send(T, border, 3),
-	send(T, pen, 1),
-	send(T, transparent, @off).
+	send(T, pen, 1).
 
 
 shape(O, Shape:graphical) :<-
@@ -1552,7 +1552,7 @@ initialise(Host, HostObject:host, File:[file]) :->
 	send(T, name, file),
 	send(T, border, 3),
 	send(T, pen, 1),
-	send(T, transparent, @off),
+	send(T, background, colour(white)),
 	send(T, message, message(Host, file_name, @arg1)),
 	get(Host, member, text, Label),
 	send(@dia_center_below_spatial, forwards, Label, T).

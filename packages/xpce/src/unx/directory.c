@@ -503,7 +503,7 @@ makeClassDirectory(Class class)
 		********************************/
 
 static char *
-canonisePath(register char *path)
+canonisePath(char *path)
 { register char *out = path;
   char *osave[100];
   int  osavep = 0;

@@ -832,6 +832,8 @@ getPostscriptDepthImage(Image image)
 #include "bitmaps/ol_pullright.bm"
 #include "bitmaps/ol_cycle.bm"
 #include "bitmaps/pce.bm"
+#include "bitmaps/cnode.bm"
+#include "bitmaps/enode.bm"
 
 static Image
 stdImage(Name name, Image *global, char *bits, int w, int h)
@@ -902,6 +904,10 @@ standardImages(void)
 	   ol_cycle_bits, ol_cycle_width, ol_cycle_height);
   stdImage(NAME_pceImage, NULL,
 	   pce_bm_bits, pce_bm_width, pce_bm_height);
+  stdImage(NAME_treeExpandedImage, NULL,
+	   enode_bits, enode_width, enode_height);
+  stdImage(NAME_treeCollapsedImage, NULL,
+	   cnode_bits, cnode_width, cnode_height);
 
   stdImage(NAME_nullImage, &NULL_IMAGE,
 	   NULL, 0, 0);

@@ -178,8 +178,11 @@ canonical_colour_name(Name in)
   { if ( *s == ' ' )
     { *q = '_';
       changed++;
+    } else if ( isupper(*s) )
+    { *q = tolower(*s);
+      changed++;
     } else
-      *q = tolower(*s);
+      *q = *s;
   }
   
   if ( left && changed )

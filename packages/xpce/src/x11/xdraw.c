@@ -1726,6 +1726,23 @@ r_line(int x1, int y1, int x2, int y2)
 { Translate(x1, y1);
   Translate(x2, y2);
 
+  { int p = context.gcs->pen;		/* check whether the line is */
+    int x = x1;				/* in the painted area */
+    int y = y1;
+    int w = x2-x1;
+    int h = y2-y1;
+
+    NormaliseArea(x, y, w, h);
+    x -= p;
+    y -= p;
+    p *= 2;
+    w += p;
+    h += p;
+    Clip(x, y, w, h);
+    if ( w == 0 || h == 0 )
+      return;
+  }
+
   XDrawLine(context.display, context.drawable, context.gcs->workGC,
 	    x1, y1, x2, y2);
 }

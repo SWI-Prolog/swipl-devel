@@ -108,21 +108,56 @@ requestComputeTree(Tree t)
 		 *	      REPAINT		*
 		 *******************************/
 
+static int
+leading_x_tree(Tree t)
+{ Node n;
+
+  if ( notNil((n=t->displayRoot)) && t->direction == NAME_list )
+  { Image img = NULL;
+
+    if ( n->collapsed == ON )
+      img = getResourceValueObject(t, NAME_collapsedImage);
+    else if ( n->collapsed == OFF )
+      img = getResourceValueObject(t, NAME_expandedImage);
+
+    if ( img && notNil(img) )
+    { int lg = valInt(t->levelGap)/2;
+      int iw2 = (valInt(img->size->w)+1)/2;
+
+      return lg+iw2;
+    }
+  }
+
+  return 0;
+}
+
+
 static void
-RedrawAreaNode(Node node)
+RedrawAreaNode(Node node, Image cimg, Image eimg)
 { Graphical img = node->image;
   Tree t = node->tree;
   int lg = valInt(t->levelGap)/2;
   Node lastnode;
+  int ly = valInt(img->area->y) + valInt(img->area->h)/2;
+  int lx = valInt(img->area->x);
+  Image i = NULL;
 
-  if ( node != t->displayRoot )		/* not the root */
-  { int ly = valInt(img->area->y) + valInt(img->area->h)/2;
-    int lx = valInt(img->area->x);
+  if ( node->collapsed == OFF && eimg )
+    i = eimg;
+  else if ( node->collapsed == ON && cimg )
+    i = cimg;
 
-    r_line(lx-lg, ly, lx, ly);		/* line to parent */
+  if ( i || node != t->displayRoot )
+    r_line(lx-lg, ly, lx, ly);	/* line to parent */
+
+  if ( i )
+  { int iw = valInt(i->size->w);
+    int ih = valInt(i->size->h);
+
+    r_image(i, 0, 0, lx-lg-(iw+1)/2, ly-(ih+1)/2, iw, ih, OFF);
   }
 
-  if ( notNil(node->sons) &&
+  if ( notNil(node->sons) && node->collapsed != ON &&
        (lastnode = getTailChain(node->sons)) )	/* I have sons */
   { int fy	   = valInt(getBottomSideGraphical(img));
     Graphical last = lastnode->image;
@@ -133,7 +168,7 @@ RedrawAreaNode(Node node)
     r_line(lx, fy, lx, ty);
     
     for_cell(cell, node->sons)
-      RedrawAreaNode(cell->value);
+      RedrawAreaNode(cell->value, cimg, eimg);
   }
 }
 
@@ -157,13 +192,15 @@ RedrawAreaTree(Tree t, Area area)
 
       if ( proto->pen != ZERO )
       { Colour old = NULL;
+	Image cimg = getResourceValueObject(t, NAME_collapsedImage);
+	Image eimg = getResourceValueObject(t, NAME_expandedImage);
 
 	r_thickness(valInt(proto->pen));
 	r_dash(proto->texture);
 	if ( notDefault(proto->colour) )
 	  old = r_colour(proto->colour);
     
-	RedrawAreaNode(t->displayRoot);
+	RedrawAreaNode(t->displayRoot, cimg, eimg);
 	if ( old )
 	  r_colour(old);
       }
@@ -193,6 +230,54 @@ RedrawAreaTree(Tree t, Area area)
 		/********************************
 		*             EVENTS		*
 		********************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+When displayed in `list' mode, return the node with a [+] or [-] sign to
+indicate a expand/collapse request.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static Node
+getNodeToCollapseOrExpand(Node node, int x, int y, Image cimg, Image eimg)
+{ Graphical img = node->image;
+  Tree t = node->tree;
+  int lg = valInt(t->levelGap)/2;
+  Node lastnode;
+  Image i = NULL;
+
+  if ( node->collapsed == OFF && eimg )
+    i = eimg;
+  else if ( node->collapsed == ON && cimg )
+    i = cimg;
+
+  if ( i )
+  { int ly = valInt(img->area->y) + valInt(img->area->h)/2;
+    int lx = valInt(img->area->x);
+    int iw = valInt(i->size->w);
+    int ih = valInt(i->size->h);
+    int iw2 = (ih+1)/2;
+    int ih2 = (iw+1)/2;
+    int x0 = lx-lg-iw2;
+    int y0 = ly-ih2;
+
+    if ( x >= x0 && x <= x0+iw && y >= y0 && y <= y0+ih )
+      return node;
+  }
+
+  if ( notNil(node->sons) && node->collapsed != ON &&
+       (lastnode = getTailChain(node->sons)) )	/* I have sons */
+  { Cell cell;
+
+    for_cell(cell, node->sons)
+    { Node n2;
+
+      if ( (n2=getNodeToCollapseOrExpand(cell->value, x, y, cimg, eimg)) )
+	return n2;
+    }
+  }
+
+  fail;
+}
+
 
 static status
 eventTree(Tree t, EventObj ev)
@@ -227,6 +312,24 @@ eventTree(Tree t, EventObj ev)
     for_cell(cell2, t->nodeHandlers)
       if ( postEvent(ev, n->image, cell2->value) == SUCCEED )
 	succeed;
+  }
+
+  if ( t->direction == NAME_list &&
+       notNil(t->displayRoot) &&
+       isAEvent(ev, NAME_msLeftDown) )
+  { Image cimg = getResourceValueObject(t, NAME_collapsedImage);
+    Image eimg = getResourceValueObject(t, NAME_expandedImage);
+    Int x, y;
+    Node n;
+
+    get_xy_event(ev, t, OFF, &x, &y);
+
+    if ( (n=getNodeToCollapseOrExpand(t->displayRoot,
+				      valInt(x), valInt(y),
+				      cimg, eimg)) )
+    { send(n, NAME_collapsed, n->collapsed == ON ? OFF : ON, 0);
+      succeed;
+    }
   }
 
   fail;
@@ -285,6 +388,51 @@ linkGapTree(Tree t, Int i)
   
 
 static status
+computeBoundingBoxFigureTree(Tree t)
+{ if ( t->badBoundingBox == ON )
+  { Area a = t->area;
+    Int ox = a->x, oy = a->y, ow = a->w, oh = a->h;
+    int ex = leading_x_tree(t);
+
+    computeBoundingBoxDevice((Device) t);
+
+    if ( t->border != ZERO )
+      increaseArea(t->area, t->border);
+    if ( ex )
+    { assign(a, x, toInt(valInt(a->x)-ex));
+      assign(a, w, toInt(valInt(a->w)+2*ex));
+    }
+
+    if ( ox != a->x || oy != a->y || ow != a->w || oh != a->h )
+      changedAreaGraphical((Graphical)t, ox, oy, ow, oh);
+  }
+
+  succeed;
+}
+
+
+status
+computeFigureTree(Tree t)
+{ if ( notNil(t->request_compute) )
+  { if ( t->pen != ZERO || notNil(t->background) )
+    { CHANGING_GRAPHICAL(t, { computeGraphicalsDevice((Device) t);
+			      computeFormatDevice((Device) t);
+			      computeBoundingBoxFigureTree(t);
+			    });
+    } else
+    { computeGraphicalsDevice((Device) t);
+      computeFormatDevice((Device) t);
+      computeBoundingBoxFigureTree(t);
+    }
+
+    assign(t, request_compute, NIL);
+  }
+
+  succeed;
+}
+
+
+static status
 computeTree(Tree t)
 { if ( notNil(t->request_compute) )
   { if ( t->auto_layout == ON )
@@ -295,7 +443,7 @@ computeTree(Tree t)
       assign(t, request_compute, old);
     }
 
-    computeFigure((Figure) t);
+    computeFigureTree(t);
   }
 
   succeed;
@@ -304,12 +452,16 @@ computeTree(Tree t)
 
 static status
 layoutTree(Tree t)
-{ if ( isNil(t->displayRoot) )
+{ int ex;
+  
+  if ( isNil(t->displayRoot) )
     succeed;
+
+  ex = leading_x_tree(t);
 
   if ( send(t->displayRoot, NAME_computeLevel, ZERO, 0) &&
        get(t->displayRoot, NAME_computeSize, ZERO, 0) &&
-       send(t->displayRoot, NAME_computeLayout, ZERO, ZERO, ZERO, 0) )
+       send(t->displayRoot, NAME_computeLayout, ZERO, toInt(ex), ZERO, 0) )
     succeed;
 
   fail;
@@ -553,7 +705,11 @@ static resourcedecl rc_tree[] =
   RC(NAME_linkGap, "int", "2",
      "Gap between link-line and image"),
   RC(NAME_neighbourGap, "int", "0",
-     "Gap between neighbours")
+     "Gap between neighbours"),
+  RC(NAME_expandedImage, "image*", "@tree_expanded_image",
+     "Image left of node if it is expanded <-direction: list"),
+  RC(NAME_collapsedImage, "image*", "@tree_collapsed_image",
+     "Image left of node if it is collapsed <-direction: list")
 };
 
 /* Class Declaration */

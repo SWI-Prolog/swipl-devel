@@ -214,6 +214,7 @@ frame, making the frame responsible for its destruction.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 initialise(Draw, Title:[name]) :->
+	fix_fonts,
 	default(Title, 'PceDraw', TheTitle),
 	send(Draw, send_super, initialise, TheTitle),
 	send(Draw, slot, title, TheTitle),
@@ -226,6 +227,16 @@ initialise(Draw, Title:[name]) :->
 	send(Draw, fill_dialog, D),
 	send(Draw, fill_menu),
 	send(Menu, activate_select).
+
+%  The Windows win_ansi font reproduces poorly in exported metafiles, hence
+%  we force the usage of a normal font.
+
+fix_fonts :-
+	send(@display, open),
+	get(@display, font_alias, normal, Font),
+	get(Font, family, win_ansi), !,
+	send(@display, font_alias, normal, font(helvetica, roman, 12), @on).
+fix_fonts.
 
 resize(Draw) :->
 	send(Draw, send_super, resize),

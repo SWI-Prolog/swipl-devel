@@ -41,6 +41,7 @@ Typical usage
 
 	initialise(FB, Root:directory) :->
 		send(FB, send_super, initialise),
+		get(Root, name, Name),
 		send(FB, root, toc_folder(Name, Root)).
 
 	expand_node(FB, D:directory) :->
@@ -64,16 +65,13 @@ Typical usage
 :- pce_begin_class(toc_window, window,
 		   "Window for table-of-contents").
 
-variable(nodes,	hash_table, get, "Id --> node mapping").
-
 initialise(TW) :->
 	"Create window and display empty toc_tree"::
 	send(TW, send_super, initialise),
 	send(TW, scrollbars, vertical),
 	send(TW, hor_shrink, 0),
 	send(TW, hor_stretch, 0),
-	send(TW, slot, nodes, new(hash_table)),
-	send(TW, display, new(toc_tree)).
+	send(TW, display, new(toc_tree), point(10, 5)).
 
 :- pce_group(parts).
 
@@ -83,7 +81,8 @@ tree(TW, Tree:toc_tree) :<-
 
 node(TW, Id:any, Node:toc_node) :<-
 	"Find node from identifier"::
-	get(TW, nodes, Table),
+	get(TW, member, toc_tree, Tree),
+	get(Tree, nodes, Table),
 	get(Table, member, Id, Node).
 
 :- pce_group(virtual).
@@ -96,14 +95,15 @@ select_node(_TW, _Id:any) :->
 	"Called on single-click"::
 	true.
 
-expand_node(_TW, _Id:any) :->
+expand_node(TW, Id:any) :->
 	"Define expansion of node 'id'"::
-	true.
+	get(TW, node, Id, Node),
+	send(Node, slot, collapsed, @off). % HAXK!!
 
 :- pce_group(build).
 
 root(TW, Root:toc_folder) :->
-	"Assing the table a root"::
+	"Assign the table a root"::
 	get(TW, tree, Tree),
 	send(Tree, root, Root).
 
@@ -155,61 +155,74 @@ scroll_vertical(TW,
 :- pce_begin_class(toc_tree, tree,
 		   "Tree to display table-of-contents").
 
+variable(nodes,	hash_table, get, "Id --> node mapping").
+
 initialise(TC) :->
 	"Create the tree, setting style and geometry"::
+	send(TC, slot, nodes, new(hash_table)),
 	send(TC, send_super, initialise),
 	send(TC, direction, list),
-	send(TC, level_gap, 12).
+	send(TC, level_gap, 17).
 
 root(TC, Root:toc_folder) :->
 	"Assing the root"::
 	send(TC, send_super, root, Root),
-	send(TC?window?nodes, append, Root?identifier, Root).
+	send(TC?nodes, append, Root?identifier, Root).
+
+selection(TC, SelectedNodes:chain) :<-
+	"Find all toc_nodes that are selected"::
+	get(TC?contains, find_all, @arg1?selected == @on, SelectedNodes).
+	
 
 :- pce_end_class.
 	  
 
-		 /*******************************
-		 *      FOLDERS AND FILES	*
-		 *******************************/
-
-:- pce_global(@toc_node_format, make_toc_node_format).
-:- pce_global(@toc_node_recogniser,
-	      new(handler_group(click_gesture(left, '', single,
-					      message(@receiver, select)),
-				click_gesture(left, c, single,
-					      message(@receiver, select, @on)),
-				click_gesture(left, '', double,
-					      message(@receiver, open)),
-				drag_and_drop_gesture(left, '', @default,
-						      @arg1?drop_target)))).
-
-make_toc_node_format(F) :-
-	new(F, format(vertical, 1, @on)),
-	send(F, row_sep, 5).
-
-		 /*******************************
-		 *	      TOC-NODE		*
-		 *******************************/
-
-:- pce_begin_class(toc_node, device, "TOC node object").
+:- pce_begin_class(toc_node, node,
+		   "Node for the table-of-contents package").
 
 variable(identifier, any, 		get, "Identification handle").
 
-initialise(TF, Label:char_array, Id:[any], Img:image) :->
-	default(Id, Label, Identifier),
-	send(TF, slot, identifier, Identifier),
-	send(TF, send_super, initialise),
-	send(TF, format, @toc_node_format),
-	send(TF, display, bitmap(Img)),
-	send(TF, display, text(Label, left, normal)).
+initialise(TN, Id:any, Image:toc_image) :->
+	send(TN, slot, identifier, Id),
+	send(TN, send_super, initialise, Image).
 
-unlink(TF) :->
-	(   get(TF, window, Window)
-	->  send(Window?nodes, delete, TF?identifier)
+
+son(TN, Son:toc_node) :->
+	send(TN, send_super, son, Son),
+	get(Son, identifier, Id),
+	get(TN?tree, nodes, Nodes),
+	send(Nodes, append, Id, Son).
+
+
+unlink(TN) :->
+	(   get(TN, tree, Tree),
+	    Tree \== @nil
+	->  get(Tree, nodes, Table),
+	    get(TN, identifier, Id),
+	    send(Table, delete, Id)
 	;   true
 	),
-	send(TF, send_super, unlink).
+	send(TN, send_super, unlink).
+
+
+collapsed(Node, Val:bool*) :->
+	"Switch collapsed mode"::
+	(   get(Node, collapsed, Val)
+	->  true
+	;   (	Val == @on
+	    ->	send(Node?sons, for_all, message(@arg1, delete_tree))
+	    ;	Val == @off
+	    ->	get(Node, window, TocWindow),
+		get(TocWindow, display, Display),
+		get(Node, identifier, Id),
+	        send(Display, busy_cursor),
+	        ignore(send(TocWindow, expand_node, Id)),
+		send(Display, busy_cursor, @nil)
+	    ;	true
+	    ),
+	    send(Node, send_super, collapsed, Val),
+	    send(Node, update_image)
+	).
 
 :- pce_group(appearance).
 
@@ -223,6 +236,65 @@ font(TF, Font:font) :->
 	get(TF, member, text, Text),
 	send(Text, font, Font).
 
+update_image(_) :->
+	true.
+
+:- pce_group(action).
+
+select(Node, Modified:[bool]) :->
+	(   Modified == @on
+	->  send(Node, toggle_selected)
+	;   send(Node?tree, selection, Node?image),
+	    send(Node, flush),
+	    send(Node?window, select_node, Node?identifier)
+	).
+
+
+open(Node) :->
+	send(Node?window, open_node, Node?identifier).
+
+:- pce_end_class.
+
+
+		 /*******************************
+		 *      FOLDERS AND FILES	*
+		 *******************************/
+
+:- pce_global(@toc_node_format, make_toc_node_format).
+:- pce_global(@toc_node, new(@receiver?node)).
+:- pce_global(@toc_node_recogniser,
+	      new(handler_group(click_gesture(left, '', single,
+					      message(@toc_node, select)),
+				click_gesture(left, c, single,
+					      message(@toc_node, select, @on)),
+				click_gesture(left, '', double,
+					      message(@toc_node, open)),
+				drag_and_drop_gesture(left, '', @default,
+						      @arg1?drop_target)))).
+
+make_toc_node_format(F) :-
+	new(F, format(vertical, 1, @on)),
+	send(F, row_sep, 5).
+
+		 /*******************************
+		 *	     TOC-IMAGE		*
+		 *******************************/
+
+:- pce_begin_class(toc_image, device, "TOC node object").
+
+initialise(TF, Label:char_array, Img:image) :->
+	send(TF, send_super, initialise),
+	send(TF, format, @toc_node_format),
+	send(TF, display, bitmap(Img)),
+	send(TF, display, text(Label, left, normal)).
+
+selected(TF, Sel:bool) :->
+	get(TF, member, text, Text),
+	send(Text, selected, Sel).
+selected(TF, Sel:bool) :<-
+	get(TF, member, text, Text),
+	get(Text, selected, Sel).
+
 :- pce_group(event).
 
 event(TF, Ev:event) :->
@@ -230,27 +302,22 @@ event(TF, Ev:event) :->
 	;   send(@toc_node_recogniser, event, Ev)
 	).
 
-:- pce_group(action).
-
-select(TF, Modified:[bool]) :->
-	(   Modified == @on
-	->  send(TF, toggle_selected)
-	;   send(TF?device, selection, TF)
-	).
-
-open(TF) :->
-	send(TF?window, open_node, TF?identifier).
-
 :- pce_group(drop).
 
 drop_target(TF, DTG:'chain|any') :<-
 	(   get(TF, selected, @on)
 	->  get(TF?device, selection, Nodes),
 	    get(Nodes, map, @arg1?identifier, DTG)
-	;   get(TF, identifier, DTG)
+	;   get(TF?node, identifier, DTG)
 	).
 
 :- pce_end_class.
+
+image(folder, _, 'dir.xpm') :-
+	get(@display, visual_type, monochrome), !.
+image(folder, @off, 'opendir.xpm') :- !.
+image(folder, _,    'closedir.xpm').
+
 
 		 /*******************************
 		 *	    TOC-FOLDER		*
@@ -258,42 +325,55 @@ drop_target(TF, DTG:'chain|any') :<-
 
 :- pce_begin_class(toc_folder, toc_node, "TOC folder object").
 
-variable(status,     {open,closed},	get, "Folder is opened?").
+variable(collapsed_image,	[image], get, "Icon if collapsed [+]").
+variable(expanded_image,	[image], get, "Icon if expanded [-]").
 
-initialise(TF, Label:char_array, Id:[any], Img:[image]) :->
-	default(Img, 'dir.bm', I),
-	send(TF, send_super, initialise, Label, Id, I).
+initialise(TF,
+	   Label:label=char_array,
+	   Id:identifier=[any],
+	   CollapsedImg:image=[image],
+	   ExpandedImg:image=[image],
+	   CanExpand:can_expand=[bool]) :->
+	send(TF, slot, collapsed_image, CollapsedImg),
+	send(TF, slot, expanded_image, ExpandedImg),
+	(   CollapsedImg == @default
+	->  image(folder, closed, I)
+	;   I = CollapsedImg
+	),
+	send(TF, send_super, initialise, Id, toc_image(Label, I)),
+	(   CanExpand == @off
+	->  send(TF, collapsed, @nil)
+	;   send(TF, collapsed, @on)
+	).
 
 :- pce_group(build).
 
-son(TF, Son:toc_node) :->
-	send(TF?window?nodes, append, Son?identifier, Son),
-	send(TF?node, son, Son).
+:- pce_group(open).
 
-status(TF, Status:{open,closed}) :->
-	(   get(TF, status, Status)
-	->  true
-	;   send(TF, slot, status, Status),
-	    (	Status == closed
-	    ->	send(TF?node?sons, for_all, message(@arg1, delete_tree))
-	    ;	send(TF?display, busy_cursor),
-	        ignore(send(TF?window, expand_node, TF?identifier)),
-		send(TF?display, busy_cursor, @nil)
-	    )
-	).
+update_image(TF) :->
+	"Update image after status change"::
+	get(TF, collapsed, Val),
+	(   Val == @off
+	->  get(TF, expanded_image, Img0)
+	;   get(TF, collapsed_image, Img0)
+	),
+	(   Img0 == @default
+	->  image(folder, Val, Img)
+	;   Img = Img0
+	),
+	send(TF, image, Img).
 
 :- pce_group(action).
 
-select(TF, Modified:[bool]) :->
-	(   Modified \== @on
-	->  send(TF?device, selection, @nil),
-	    (   get(TF, status, open)
-	    ->  send(TF, status, closed)
-	    ;   send(TF, status, open)
-	    )
-	;   send(TF, send_super, select, Modified)
+open(TF) :->
+	get(TF, node, Node),
+	get(Node, collapsed, Collapsed),
+	(   Collapsed == @on
+	->  send(Node, collapsed, @off)
+	;   Collapsed == @off
+	->  send(Node, collapsed, @on)
+	;   send(Node, send_super, open)
 	).
-
 
 :- pce_end_class.
 
@@ -305,18 +385,13 @@ select(TF, Modified:[bool]) :->
 
 initialise(TF, Label:char_array, Id:[any], Img:[image]) :->
 	default(Img, 'file.bm', I),
-	send(TF, send_super, initialise, Label, Id, I).
+	send(TF, send_super, initialise, Id, toc_image(Label, I)),
+	send(TF, collapsed, @nil).
 
 :- pce_group(build).
 
 son(TF, _Son:toc_node) :->
 	send(TF, report, error, 'Cannot add sons to a file'),
 	fail.
-
-:- pce_group(action).
-
-select(TF, Modified:[bool]) :->
-	send(TF, send_super, select, Modified),
-	send(TF?window, select_node, TF?identifier).
 
 :- pce_end_class.
