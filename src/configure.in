@@ -24,6 +24,8 @@ AC_SUBST(INSTALLRLMAN)
 AC_SUBST(EXTRAOBJ)
 AC_SUBST(BOOTFILE)
 AC_SUBST(PLLIB)
+AC_SUBST(LDEXE)
+AC_SUBST(EXTRAHDR)
 
 if test ! -z "$CIFLAGS"; then
     CFLAGS="$CIFLAGS $CFLAGS"
@@ -31,6 +33,7 @@ if test ! -z "$CIFLAGS"; then
 fi
 
 EXTRAOBJ=""
+EXTRAHDR=""
 INSTALLTARGET=dv-install
 PL=pl
 PLLIB=libpl.a
@@ -46,6 +49,7 @@ true()
 }
 
 AC_PROG_CC
+LDEXE="$CC"
 AC_PROG_RANLIB
 AC_CANONICAL_HOST
 changequote(,)dnl
@@ -169,6 +173,22 @@ esac
 AC_C_INLINE
 AC_FUNC_ALLOCA
 AC_C_BIGENDIAN
+
+case "$ARCH" in
+    *cygwin*)
+	AC_MSG_CHECKING("Cygwin ...")
+        configmmappedstacks=no
+	AC_DEFINE(HAVE_VIRTUALALLOC)
+	AC_DEFINE(NO_SEGV_HANDLING)
+	LDEXE="../src/ldcygwin"
+	AC_MSG_RESULT("Use VirtualAlloc")
+	EXTRAHDR=def
+	INSTALLTARGET="$INSTALLTARGET install-implib"
+        ;;
+    *aix*)
+	EXTRAHDR=exports
+	;;
+esac
 
 dnl ****************************************************************
 dnl Finding libraries
@@ -351,8 +371,9 @@ AC_CHECK_FUNCS(popen putenv random remove rename select)
 AC_CHECK_FUNCS(signal sigset sigprocmask sleep usleep srand srandom stat)
 AC_CHECK_FUNCS(memmove stricmp strlwr sigaction sigsetmask siggetmask sigblock)
 AC_CHECK_FUNCS(rint aint floor ceil isnan tcsetattr cfmakeraw)
-AC_CHECK_FUNCS(strerror tgetent times mmap unsetenv grantpt)
+AC_CHECK_FUNCS(strerror tgetent times unsetenv grantpt)
 AC_CHECK_FUNCS(setlocale)
+AC_CHECK_FUNCS(mmap)
 AC_HEADER_TIME
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT

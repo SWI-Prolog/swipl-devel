@@ -31,6 +31,7 @@ embedded application.
 
 #define PROG_PL "plcon.exe"
 #define PROG_LD "link.exe"
+#define PROG_LDSO = "link.exe"
 #define PROG_CC "cl.exe"
 #define PROG_CXX "cl.exe"
 #define PROG_OUT "plout.exe"
@@ -38,6 +39,7 @@ embedded application.
 #define LIB_PLMT "libplmt.lib"
 #define LIB_PL_DEBUG "libplD.lib"
 #define EXT_OBJ "obj"
+#define EXT_SO "dll"
 #define OPT_DEBUG "/DEBUG"
 #else /*WIN32*/
 #include "pl-incl.h"
@@ -45,11 +47,17 @@ embedded application.
 #define PROG_PL "pl"
 #define PROG_CC "cc"
 #define PROG_CXX "c++"
-#define PROG_LD cc
 #define PROG_OUT "a.out"
+#define EXT_OBJ "o"
 #define LIB_PL	"-lpl"
 #define LIB_PLMT "-lplmt"
-#define EXT_OBJ "o"
+#ifdef __CYGWIN32__
+#define EXT_SO "dll"
+#define PROG_LDSO "dllwrap"
+#define LIB_PLEXPORT "-lplexp"
+#else
+#define EXT_SO "so"
+#endif
 #define OPT_DEBUG "-g"
 #endif /*WIN32*/
 
@@ -160,6 +168,8 @@ static char *out;			/* final output */
 
 static int nostate = FALSE;		/* do not make a state */
 static int nolink = FALSE;		/* do not link */
+static int shared = FALSE;		/* -shared: make a shared-object/DLL */
+static char *soext;			/* extension of shared object */
 
 static int verbose = TRUE;		/* verbose operation */
 static int fake = FALSE;		/* don't really do anything */
@@ -478,6 +488,8 @@ file_name_extension(const char *in)
   for( ; *in; in++)
   { if ( *in == '.' )
       ext = in+1;
+    else if ( *in == '/' || *in == '\\' )
+      ext = NULL;
   }
 
   return ext;
@@ -527,6 +539,7 @@ usage()
 	  "       -c++ compiler    compiler for C++ source files\n"
 	  "\n"
 	  "       -nostate         just relink the kernel\n"
+	  "       -shared          link to shared object or DLL\n"
 	  "\n"
 	  "       -pl-options,...  Add options for Prolog\n"
 	  "       -ld-options,...  Add options for linker\n"
@@ -579,6 +592,9 @@ parseOptions(int argc, char **argv)
 #endif
     } else if ( streq(opt, "-nostate") ) 	/* -nostate */
     { nostate = TRUE;
+    } else if ( streq(opt, "-shared") )		/* -shared */
+    { shared = TRUE;
+      nostate = TRUE;
     } else if ( streq(opt, "-o") ) 		/* -o out */
     { if ( argc > 1 )
       { out = argv[1];
@@ -708,11 +724,22 @@ fillDefaultOptions()
   if ( streq(cc, "gcc") )
     defcxx = "g++";
   defaultProgram(&cxx, defcxx);
-#ifndef WIN32
-  if ( PROG_LD == cc && cppfiles.size > 0 )
-    PROG_LD = cxx;
+
+  if ( !ld )				/* not specified */
+  { if ( shared )
+    {
+#ifndef PROG_LDSO
+       ld = (cppfiles.size > 0 ? cxx : cc);
+#else
+       ld = PROG_LDSO;
 #endif
-  defaultProgram(&ld,  PROG_LD);
+    } else
+#ifndef PROG_LD
+       ld = (cppfiles.size > 0 ? cxx : cc);
+#else
+       ld = PROG_LD;
+#endif
+  }
 
 #ifdef WIN32
   if (strcmp(LIB_PL_DEBUG,pllib) == 0) ensureOption(&coptions, "/MDd");
@@ -744,6 +771,12 @@ fillDefaultOptions()
   prependArgList(&libdirs, tmp);
   sprintf(tmp, "%s/include", plbase);
   prependArgList(&includedirs, tmp);
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Supporting -shared
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  defaultProgram(&soext, EXT_SO);
 }
 
 		 /*******************************
@@ -955,25 +988,18 @@ linkBaseExecutable()
   sprintf(tmp, "/out:%s", cout);
   prependArgList(&ldoptions, tmp);
 }
-#else
+  concatArgList(&ldoptions, "", &ofiles);	/* object files */
+  exportlibdirs();
+  appendArgList(&ldoptions, pllib);		/* -lpl */
+  concatArgList(&ldoptions, "", &libs);		/* libraries */
+  concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
+#else /*WIN32*/
   prependArgList(&ldoptions, cout);
   prependArgList(&ldoptions, "-o");		/* -o ctmp */
-#endif
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
-#ifdef WIN32
-  exportlibdirs();
-#else
   concatArgList(&ldoptions, "-L", &libdirs);    /* library directories */
-#endif
   appendArgList(&ldoptions, pllib);		/* -lpl */
-#ifdef WIN32
-  concatArgList(&ldoptions, "", &libs);		/* libraries */
-#else
   concatArgList(&ldoptions, "-l", &libs);	/* libraries */
-#endif
-#ifdef WIN32
-  concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
-#else
   concatArgList(&ldoptions, "-l", &lastlibs);	/* libraries */
 #endif
 
@@ -987,6 +1013,52 @@ linkBaseExecutable()
     }
 #endif
   }
+
+  callprog(ld, &ldoptions);
+}
+
+
+void
+linkSharedObject()
+{ char soname[MAXPATHLEN];
+  char *soout;
+
+  if ( file_name_extension(out) )
+  { soout = out;
+  } else
+  { soout = replaceExtension(out, soext, soname);
+  }
+
+#ifdef WIN32
+  prependArgList(&ldoptions, "/dll");
+{ char tmp[MAXPATHLEN];
+  sprintf(tmp, "/out:%s", soout);
+  prependArgList(&ldoptions, tmp);
+}
+  concatArgList(&ldoptions, "", &ofiles);	/* object files */
+  exportlibdirs();
+  appendArgList(&ldoptions, pllib);		/* libpl.lib */
+  concatArgList(&ldoptions, "", &libs);		/* libraries */
+  concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
+#else /*WIN32*/
+#ifdef __CYGWIN32__
+  prependArgList(&ldoptions, soout);
+  prependArgList(&ldoptions, "-o");		/* -o ctmp */
+  concatArgList(&ldoptions, "", &ofiles);	/* object files */
+  appendArgList(&ldoptions, "-lplimp");		/* kernel import library */
+  concatArgList(&ldoptions, "-L", &libdirs);    /* library directories */
+  concatArgList(&ldoptions, "-l", &libs);	/* libraries */
+  concatArgList(&ldoptions, "-l", &lastlibs);	/* libraries */
+#else /*__CYGWIN32__*/
+  prependArgList(&ldoptions, "-shared"); 	/* gcc */
+  prependArgList(&ldoptions, soout);
+  prependArgList(&ldoptions, "-o");		/* -o ctmp */
+  concatArgList(&ldoptions, "", &ofiles);	/* object files */
+  concatArgList(&ldoptions, "-L", &libdirs);    /* library directories */
+  concatArgList(&ldoptions, "-l", &libs);	/* libraries */
+  concatArgList(&ldoptions, "-l", &lastlibs);	/* libraries */
+#endif /*__CYGWIN32__*/
+#endif /*WIN32*/
 
   callprog(ld, &ldoptions);
 }
@@ -1217,12 +1289,17 @@ main(int argc, char **argv)
   fillDefaultOptions();
 
   compileObjectFiles();
-  if ( !nolink )
-  { linkBaseExecutable();
 
-    if ( !nostate )
-    { createSavedState();
-      createOutput();
+  if ( shared )
+  { linkSharedObject();
+  } else
+  { if ( !nolink )
+    { linkBaseExecutable();
+      
+      if ( !nostate )
+      { createSavedState();
+	createOutput();
+      }
     }
   }
 

@@ -1,0 +1,104 @@
+			Using SWI-Prolog on CygWin
+			==========================
+
+Author:   Jan Wielemaker
+E-mail:   jan@swi.psy.uva.nl
+Created:  Sun Jun 17 2001
+Modified:
+
+Wat is Cygwin?
+==============
+
+Cygwin is a POSIX emulation environment for   Windows  (all but 3.1). It
+consists of two parts: a DLL that  provides a POSIX functionality on top
+of Windows and ported  (mostly  GNU)   toolchain  and  applications. For
+further info, see http://www.cygwin.com.
+
+
+Why SWI-Prolog on Cygwin?
+=========================
+
+The original and primary development  platform   of  SWI-Prolog  is Unix
+(currently Linux and Solaris). SWI-Prolog has  been ported to MS-Windows
+using various emulators of the required  basic POSIX functonality. First
+this was the WATCOM environment. Right now it is MSVC using the NT Posix
+layer with an  additional  library   (src/win32/uxnt)  to  provide  some
+additional functionality and work around some  bugs and dubious features
+of the NT POSIX layer.
+
+Cygwin provides a fairly complete emulation of the POSIX standard, while
+allowing access to the native Win32  API   at  the same time. The cygwin
+ports therefore uses almost  exclusively  the   POSIX  source.  The only
+exception is the stack-allocation that uses  the VirtualAlloc() API from
+Win32 because it is better and  the   mmap()  emulation of cygwin is not
+good enough.
+
+Cygwin is an excelent platform for   porting native Unix applications to
+Windows without much work. Though the native Win32 version of SWI-Prolog
+can run under Cygwin, it is limited  in this environment. It cannot load
+shared objects created in  Cygwin  and   it  doesn't  use  Cygwins POSIX
+extensions to the Windows  filesystem   (mount-points,  symbolic links).
+Therefore only a Cygwin version  of   SWI-Prolog  can use advanced POSIX
+behaviour, which is  especially  useful   to  realise  portable advanced
+process and server management.
+
+
+Drawbacks?
+==========
+
+Cygwin  is  just  `fairly  complete'.   Especially  signal  handling  is
+practically non-existent. Cygwin is big, so   if SWI-Prolog is your only
+cygwin application it isn't very interesting.   Cygwin  is slow, notably
+handling calls for which you really want it such as fork().
+
+So, it is useful if you boss says your application *must* run on Windows
+and the application uses lots of advanced  Unix primitives. In all other
+cases I would recomment using a real  Unix machine. They are cheaper and
+as easy to manage as windows machines these days.
+
+
+Problems?
+=========
+
+Most today Unix systems are based on   the  ELF executable format, while
+Windows uses XCOFF (eXtended COFF). This   has  lots of consequences for
+making foreign libraries for SWI-Prolog.  With   the  cygwin  port we've
+started to put all these system dependencies   in  plld, but it is still
+good to know the ins and outs.
+
+	* Linking pl.exe
+	Linking the executable, such that it exports systems and you
+	can import them in your foreign libraries is a nightmare.
+	See the script ldcygwin ...  In addition to pl.exe, it creates
+	libplimp.a the import library you need to add to your inputs
+	for linking foreign libraries.
+
+	So, after "make install" you'll find the following in
+	$(prefix)/lib/pl-<version>/runtime/i686-cygwin:
+
+		- libpl.a
+		Static library for creating stand-alone embedded
+		executables.
+
+		- libplimp.a
+		Import library to make foreign libraries.
+
+	* Creating a foreign library
+	This too is very complicated, but luckily hidden from you.
+	The basic sequence is
+
+		dllwrap -o mylib.dll <input files> -lplimp
+
+	To make life a bit easier in your Makefiles, we've put this
+	in plld, so you can do on any platform for which plld is
+	aware of the proper sequence:
+
+		plld -shared -o mylib <input files>
+
+Mixing cygwin and native SWI-Prolog?
+====================================
+
+Sofar it appears impossible to  use   foreign  libraries built using the
+above Cygwin sequence on the  native   SWI-Prolog  and  visa versa. Most
+likely this is caused by native   SWI-Prolog using MSVCRT*.lib, which is
+said to be mutially exclusive with the Cygwin POSIX library.

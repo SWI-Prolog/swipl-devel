@@ -52,6 +52,7 @@ lmandir=$(man_prefix)/man$(lmansec)
 plmandir=$(PLBASE)/man
 
 CC=@CC@
+LDEXE=@LDEXE@
 LIBS=@LIBS@
 AWK=@AWK@
 SED=sed
@@ -79,6 +80,7 @@ DEFSTARTUP=.plrc
 PB=../boot
 INCLUDEDIR=../include
 EXPORTS=$(INCLUDEDIR)/SWI-Exports
+DEF=$(PL).def
 CINCLUDE=$(INCLUDEDIR)/SWI-Prolog.h
 STREAMH=$(INCLUDEDIR)/SWI-Stream.h
 STUBC=$(INCLUDEDIR)/stub.c
@@ -137,10 +139,10 @@ all:	banner \
 
 system:		$(PL)
 startup:	$(STARTUPPATH)
-headers:	parms.h $(EXPORTS) $(CINCLUDE) $(STREAMH) $(STUBC)
+headers:	parms.h $(CINCLUDE) $(STREAMH) $(STUBC) @EXTRAHDR@
 runtime:	$(RUNTIME)
 
-banner:
+banner::
 		@echo "****************"
 		@echo "Making SWI-Prolog $(PLVERSION) for $(ARCH)"
 		@echo "To be installed in $(bindir)/$(PL)"
@@ -149,7 +151,7 @@ banner:
 
 
 $(PL):		$(ALLOBJ) rc/librc.a
-		$(CC) $(LDFLAGS) -o $(PL) -Lrc $(ALLOBJ) -lrc $(LIBS)
+		$(LDEXE) $(LDFLAGS) -o $(PL) $(ALLOBJ) -Lrc -lrc $(LIBS)
 
 
 $(STARTUPPATH):	$(PLINIT) $(PLSRC) $(PL)
@@ -175,13 +177,30 @@ index:
 $(INCLUDEDIR):
 		if [ ! -d $@ ]; then $(MKDIR) $@; fi
 
+# Create SWI-Exports, used for importing and exporting symbols on behalf of
+# the AIX version.
+
+exports:	$(EXPORTS)
+def:		$(DEF)
+
 $(EXPORTS):	Makefile $(srcdir)/pl-itf.h $(INCLUDEDIR)
-		echo \#\!$(bindir)/$(PL) > $(EXPORTS)
+		echo \#\!$(bindir)/$(PL) > $@
 		grep '^__pl_export' $(srcdir)/pl-itf.h $(srcdir)/pl-stream.h | \
 		    $(SED) -e 's/.*[ 	*]\(_*PL_[a-zA-Z0-9_]*\).*/\1/' \
 			   -e 's/.*[ 	*]\(S[a-zA-Z_]*\).*/\1/' | \
 		    grep -v '_t$$' | grep -v '^PL_extension$$' | \
-		    sort -u >> $(EXPORTS)
+		    sort -u >> $@
+
+# Create pl.def, required for exporting symbols from pl.exe for the CygWin
+# platform
+
+$(DEF):		$(srcdir)/pl-itf.h
+		echo EXPORTS > $@
+		grep '^__pl_export' $(srcdir)/pl-itf.h $(srcdir)/pl-stream.h | \
+		    $(SED) -e 's/.*[ 	*]\(_*PL_[a-zA-Z0-9_]*\).*/\1/' \
+			   -e 's/.*[ 	*]\(S[a-zA-Z_]*\).*/\1/' | \
+		    grep -v '_t$$' | grep -v '^PL_extension$$' | \
+		    sort -u >> $@
 
 $(CINCLUDE):	$(srcdir)/pl-itf.h $(INCLUDEDIR)
 		cp $(srcdir)/pl-itf.h $(CINCLUDE)
@@ -280,16 +299,14 @@ installdirs=	bin bin/$(ARCH) lib lib/$(ARCH) man boot library \
 		include runtime runtime/$(ARCH)
 
 iruntime:
-		if [ ! -d $(PLBASE)/runtime/$(ARCH) ]; then \
-			$(MKDIR) $(PLBASE)/runtime/$(ARCH); \
-		fi
-		if [ -f $(RUNTIME) ]; then \
-			$(INSTALL_DATA) $(RUNTIME) $(PLBASE)/runtime/$(ARCH); \
-		fi
+		$(INSTALL_DATA) $(RUNTIME) $(PLBASE)/runtime/$(ARCH)
+
+install-implib:
+		$(INSTALL_DATA) libplimp.a $(PLBASE)/runtime/$(ARCH)
 
 idirs:
-		-if [ ! -d $(prefix)/lib  ];    then $(MKDIR) $(prefix)/lib;     fi
-		-if [ ! -d $(PLBASE)  ];    then $(MKDIR) $(PLBASE); 	fi
+		if [ ! -d $(prefix)/lib  ]; then $(MKDIR) $(prefix)/lib; fi
+		if [ ! -d $(PLBASE) ]; then $(MKDIR) $(PLBASE); fi
 		for d in $(installdirs); do \
 			if [ ! -d $(PLBASE)/$$d ]; then \
 				$(MKDIR) $(PLBASE)/$$d; \

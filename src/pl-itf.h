@@ -34,38 +34,57 @@ before loading this file.  See end of this file.
 #define PLVERSION 40007
 #endif
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-_declspec(dllexport) is used by MSVC++ 2.0 to declare exports from DLL's.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+		 /*******************************
+		 *	       EXPORT		*
+		 *******************************/
 
-/* Get export declarations right.  Also in SWI-Stream.h, hence the
-   check to avoid doing it twice.
-*/
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Traditional and ELF-based Unix systems  don't   need  all this, but COFF
+based systems need  to  import  and   export  symbols  explicitely  from
+executables and shared objects (DLL). On some systems (e.g. AIX) this is
+achieved using import/export files, on Windows   this  is achieved using
+special  declarations  on  exported  symbols.  So,  a  symbol  is  local
+(static), shared between the objects building   an executable or DLL (no
+special declaration) or exported from the executable or DLL.
+
+Both using native Microsoft MSVC as well   as recent CygWin (tested 1.1)
+compilers support __declspec(...) for exporting symbols.
+
+As SWI-Prolog.h can be included seperately or together with this file we
+duplicated this stuff.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef _PL_EXPORT_DONE
 #define _PL_EXPORT_DONE
-#ifdef WIN32
-#ifndef __WIN32__
+#if defined(WIN32) && !defined(__WIN32__)
 #define __WIN32__
 #endif
+
+#if (defined(__WIN32__) || defined(__CYGWIN32__)) && !defined(__LCC__)
+#define HAVE_DECLSPEC
 #endif
 
-#if defined(__WIN32__) && !defined(__LCC__)
+#ifdef HAVE_DECLSPEC
 #ifdef PL_KERNEL
-#define __pl_export	 _declspec(dllexport)
-#define __pl_export_data _declspec(dllexport)
+#define __pl_export	 __declspec(dllexport)
+#define __pl_export_data __declspec(dllexport)
 #define install_t	 void
 #else
 #define __pl_export	 extern
-#define __pl_export_data _declspec(dllimport)
-#define install_t	 _declspec(dllexport) void
+#define __pl_export_data __declspec(dllimport)
+#define install_t	 __declspec(dllexport) void
 #endif
-#else /*__WIN32__*/
+#else /*HAVE_DECLSPEC*/
 #define __pl_export	 extern
 #define __pl_export_data extern
 #define install_t	 void
-#endif /*__WIN32__*/
+#endif /*HAVE_DECLSPEC*/
 #endif /*_PL_EXPORT_DONE*/
+
+
+		 /*******************************
+		 *	       TYPES		*
+		 *******************************/
 
 #ifdef _PL_INCLUDE_H
 typedef Module		module_t;	/* a module */

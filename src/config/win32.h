@@ -15,7 +15,7 @@ typedef unsigned long sigset_t;		/* we don't have this */
 
 #define HAVE_UXNT_H 1
 #define HAVE_MALLOC_H 1
-#define HAVE_VIRTUAL_ALLOC 1
+#define HAVE_VIRTUALALLOC 1
 #define HAVE_CLOCK 1			/* clock() timing function */
 #define inline __inline
 

@@ -19,35 +19,45 @@
 extern "C" {
 #endif
 
-/* Get export declarations right.  Also in SWI-Prolog.h, hence the
-   check to avoid doing it twice.
-*/
+		 /*******************************
+		 *	       EXPORT		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+See SWI-Prolog.h, containing the same code   for  an explanation on this
+stuff.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef _PL_EXPORT_DONE
 #define _PL_EXPORT_DONE
-#ifdef WIN32
-#ifndef __WIN32__
+#if defined(WIN32) && !defined(__WIN32__)
 #define __WIN32__
 #endif
+
+#if (defined(__WIN32__) || defined(__CYGWIN32__)) && !defined(__LCC__)
+#define HAVE_DECLSPEC
 #endif
 
-#if defined(__WIN32__) && !defined(__LCC__)
+#ifdef HAVE_DECLSPEC
 #ifdef PL_KERNEL
-#define __pl_export	 _declspec(dllexport)
-#define __pl_export_data _declspec(dllexport)
+#define __pl_export	 __declspec(dllexport)
+#define __pl_export_data __declspec(dllexport)
 #define install_t	 void
 #else
 #define __pl_export	 extern
-#define __pl_export_data _declspec(dllimport)
-#define install_t	 _declspec(dllexport) void
+#define __pl_export_data __declspec(dllimport)
+#define install_t	 __declspec(dllexport) void
 #endif
-#else /*__WIN32__*/
+#else /*HAVE_DECLSPEC*/
 #define __pl_export	 extern
 #define __pl_export_data extern
 #define install_t	 void
-#endif /*__WIN32__*/
+#endif /*HAVE_DECLSPEC*/
 #endif /*_PL_EXPORT_DONE*/
 
+		 /*******************************
+		 *	    CONSTANTS		*
+		 *******************************/
 
 #ifndef EOF
 #define EOF (-1)
@@ -142,7 +152,7 @@ __pl_export IOSTREAM *S__getiob(void);	/* get DLL's S__iob[] address */
 
 __pl_export_data IOFUNCTIONS Sfilefunctions;	/* OS file functions */
 __pl_export_data int	     Slinesize;		/* Sgets() linesize */
-__pl_export_data IOSTREAM    S__iob[];		/* Libs standard streams */
+__pl_export_data IOSTREAM    S__iob[3];		/* Libs standard streams */
 
 #define Sinput  (&S__iob[0])		/* Stream Sinput */
 #define Soutput (&S__iob[1])		/* Stream Soutput */

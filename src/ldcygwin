@@ -1,0 +1,49 @@
+#!/bin/bash
+#
+# Link SWI-Prolog executable on CygWin.  This is way too complicated,
+# but sofar the only thing that works and created the required input
+# library libplexp.a for making dlls that can be loaded using
+# load_foreign_library/1.
+
+output=pl.exe
+implib=libplimp.a
+verbose=false
+
+function usage()
+{ echo "Usage: mkexe [-v] [-o output] input"
+  exit 1
+}
+
+done=false
+while [ $done = false ]; do
+  case "$1" in
+    -v) verbose=true
+        shift
+	;;
+    -o)	output="$2"
+        shift
+	shift
+	;;
+    -*) usage
+        ;;
+    *)  done=true
+  esac
+done
+
+in="$*"
+out=`echo $output | sed 's/\.exe//'`
+
+if [ $verbose = true ]; then set -x; fi
+
+dlltool --dllname $out.exe --def $out.def --output-lib $implib
+if [ $? != 0 ]; then exit 1; fi
+dlltool --dllname $out.exe --output-exp $out.exp --def $out.def
+if [ $? != 0 ]; then exit 1; fi
+gcc -g -o $out.exe -Wl,--base-file,$out.base $out.exp $in
+if [ $? != 0 ]; then exit 1; fi
+dlltool --dllname $out.exe --base-file $out.base --output-exp $out.exp --def $out.def
+if [ $? != 0 ]; then exit 1; fi
+gcc -g -o $out.exe $out.exp $in
+if [ $? != 0 ]; then exit 1; fi
+rm $out.exp $out.base
+

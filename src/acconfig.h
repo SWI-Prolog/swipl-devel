@@ -123,3 +123,6 @@
 
 /* Alignment restrictions on setjmp()/longjmp() buffer */
 #undef JMPBUF_ALIGNMENT
+
+/* On Cygwin we should use VirtualAlloc() */
+#undef HAVE_VIRTUALALLOC

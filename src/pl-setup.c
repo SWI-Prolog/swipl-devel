@@ -1144,7 +1144,7 @@ freeStacks(PL_local_data_t *ld)
 #endif /* MMAP_STACK */
 
 
-#ifdef HAVE_VIRTUAL_ALLOC
+#ifdef HAVE_VIRTUALALLOC
 
 #undef FD_ZERO
 #undef FD_ISSET
@@ -1287,7 +1287,7 @@ freeStacks(PL_local_data_t *ld)
   VirtualFree(ld->stacks.argument.base, 0, MEM_RELEASE);
 }
 
-#endif /*HAVE_VIRTUAL_ALLOC*/
+#endif /*HAVE_VIRTUALALLOC*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This the the signal handler for segmentation  faults if we are using MMU
