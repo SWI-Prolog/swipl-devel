@@ -1715,6 +1715,20 @@ sub_type(horse, animal).
 ...
 ...
 \end{code}
+
+Note that this type of indexing makes selecting clauses much faster but
+remains \emph{linear} with respect to the number of clauses, while
+hashing as described with hash/1 provides constant access time.
+
+    \predicate{hash}{1}{+Head}
+Index the given predicate by hashing on the first argument. This is done
+by default on any predicate with more than 5 clauses having a first
+argument that can be indexed and at most two that can not be indexed. On
+dynamic predicates the hash-table is resized as the number of clauses
+grows, providing roughly constant-time access regardless of the number
+of clauses predicates that can be indexed on the first argument.
+See also index/1 and predicate_property/2.
+
 \end{description}
 
 \section{Examining the program}		\label{sec:examineprog}

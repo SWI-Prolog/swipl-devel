@@ -220,6 +220,7 @@ suggest predicates from a keyword.
 \predicatesummary{guitracer}{0}{Install hooks for the graphical debugger}
 \predicatesummary{halt}{0}{Exit from Prolog}
 \predicatesummary{halt}{1}{Exit from Prolog with status}
+\predicatesummary{hash}{1}{Index predicate using a hash-table}
 \predicatesummary{hash_term}{2}{Hash-value of ground term}
 \predicatesummary{help}{0}{Give help on help}
 \predicatesummary{help}{1}{Give help on predicates and show parts of manual}

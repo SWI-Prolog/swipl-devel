@@ -661,6 +661,9 @@ pl_hash(term_t pred)
   { Definition def = getProcDefinition(proc);
     int size, minsize;
 
+    if ( def->hash_info )		/* already hashed; won't change */
+      succeed;
+
     if ( true(def, FOREIGN) )
       return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 		      ATOM_hash, ATOM_foreign, def);

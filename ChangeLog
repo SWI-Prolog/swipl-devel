@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Memory leak in hash/1 (Sergey Tikhonov).
+
   * ADDED: Partial support for large files (>2GB) on Unix systems.  Tested
     on SuSE Linux.  Note that the SWI-Prolog cannot fully handle such files
     as Prolog cannot represent offsets using its 32-bit integers.  It can
