@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: PceEmacs: cross-referencer check for :- arithmetic_function/1.
+
 * ADDED: optional `before' argument to `node->son' for efficient insertion
   of nodes at arbitrary locations.
 

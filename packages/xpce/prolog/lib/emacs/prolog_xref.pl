@@ -316,6 +316,10 @@ process_directive(pce_expansion:pop_compile_operators, _) :-
 	pce_expansion:pop_compile_operators.
 process_directive(meta_predicate(Meta), _) :-
 	process_meta_predicate(Meta).
+process_directive(arithmetic_function(Name/Arity), Src) :-
+	PredArity is Arity + 1,
+	functor(Goal, Name, PredArity),
+	assert_called(Src, '<directive>', Goal).
 process_directive(Goal, Src) :-
 	process_body(Goal, '<directive>', Src).
 
