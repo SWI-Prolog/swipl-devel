@@ -266,7 +266,7 @@ selection(TC, Nodes:'graphical|chain') :->
 	send(TC, compute),
 	send(TC, send_super, selection, Nodes).
 
-:- pce_end_class.
+:- pce_end_class(toc_tree).
 	  
 
 :- pce_begin_class(toc_node, node,

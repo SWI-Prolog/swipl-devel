@@ -456,11 +456,12 @@ built_in_predicate(module(_, _)).
 %	highlight file references, so we can jump to them and are indicated
 %	on missing files.
 
-goal_colours(use_module(_),     built_in-[file]).
-goal_colours(use_module(_,_),   built_in-[file,classify]).
-goal_colours(consult(_),        built_in-[file]).
-goal_colours(ensure_loaded(_),  built_in-[file]).
-goal_colours(pce_autoload(_,_), classify-[classify,file]).
+goal_colours(use_module(_),	     built_in-[file]).
+goal_colours(use_module(_,_),	     built_in-[file,classify]).
+goal_colours(consult(_),	     built_in-[file]).
+goal_colours(ensure_loaded(_),	     built_in-[file]).
+goal_colours(pce_autoload(_,_),	     classify-[classify,file]).
+goal_colours(pce_image_directory(_), classify-[file]).
 
 
 		 /*******************************

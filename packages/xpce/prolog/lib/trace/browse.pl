@@ -30,6 +30,7 @@
 	   , pce_image_directory/1
 	   ]).
 
+:- pce_autoload(prolog_debug_status, library('trace/status')).
 :- pce_image_directory(library('trace/icons')).
 
 :- dynamic
@@ -142,7 +143,8 @@ goto(FB, File:'file|node', Line:int) :->
 	(   (   get(Node, collapsed, @nil)
 	    ;	send(Node, instance_of, sb_predicate)
 	    )
-	->  send(FB?tree, selection, Node)
+	->  send(FB?tree, selection, Node),
+	    send(FB, normalise, Node)
 	;   send(Node, collapsed, @off),
 	    new(N, var),
 	    (	get(Node?sons, find,
@@ -154,7 +156,8 @@ goto(FB, File:'file|node', Line:int) :->
 			       new(or)))),
 		    _)
 	    ->	(   get(N, '_value', @nil)
-		->  send(FB?tree, selection, Node)
+		->  send(FB?tree, selection, Node),
+		    send(FB, normalise, Node)
 		;   send(FB, goto, N, Line)
 		)
 	    ;	get(Node?sons, tail, Last),
