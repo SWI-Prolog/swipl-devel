@@ -1437,6 +1437,7 @@ identify_fragment(module(Module), _, Summary) :-
 identify_fragment(method(send), _, 'XPCE send method').
 identify_fragment(method(get), _, 'XPCE get method').
 identify_fragment(head(unreferenced), _, 'Unreferenced predicate').
+identify_fragment(head(exported), _, 'Exported (Public) predicate').
 identify_fragment(Class, _, Summary) :-
 	term_to_atom(Class, Summary).
 
