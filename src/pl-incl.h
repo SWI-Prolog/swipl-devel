@@ -910,6 +910,7 @@ with one operation, it turns out to be faster as well.
 #define NEEDSREHASH		(0x00100000L) /* predicate */
 #define P_VARARG		(0x00200000L) /* predicate */
 #define P_SHARED		(0x00400000L) /* predicate */
+#define P_REDEFINED		(0x00800000L) /* predicate */
 #define PROC_DEFINED		(DYNAMIC|FOREIGN|MULTIFILE|DISCONTIGUOUS)
 
 #define ERASED			(0x0001) /* clause, record */

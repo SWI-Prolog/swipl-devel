@@ -1423,13 +1423,12 @@ re-definition.
     { Procedure proc = lookupProcedure(functor, tm);
       int ar = fdef->arity;
 
-      if ( !isDefinedProcedure(proc) && !GD->bootsession )
+      if ( !isDefinedProcedure(proc) &&
+	   !true(proc->definition, P_REDEFINED) &&
+	   !GD->bootsession )
       { Procedure syspred;
 
-	if ( (tm != MODULE_user &&
-	      (syspred=isCurrentProcedure(functor, MODULE_user)) &&
-	      isDefinedProcedure(syspred)) ||
-	     (tm != MODULE_system &&
+	if ( (tm != MODULE_system &&
 	      (syspred=isCurrentProcedure(functor, MODULE_system)) &&
 	      isDefinedProcedure(syspred)) )
 	{ freeHeap(proc->definition, sizeof(struct definition));
@@ -1947,6 +1946,7 @@ pl_redefine_system_predicate(term_t pred)
 
   proc = lookupProcedure(fd, m);
   abolishProcedure(proc, m);
+  set(proc->definition, P_REDEFINED);	/* flag as redefined */
 
   succeed;
 }
