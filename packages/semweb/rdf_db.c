@@ -49,6 +49,11 @@ static int debuglevel = 0;
 #define DEBUG(n, g) ((void)0);
 #endif
 
+#ifdef DIRECT_MALLOC
+#define PL_malloc malloc
+#define PL_free free
+#define PL_realloc realloc
+#endif
 
 static functor_t FUNCTOR_literal1;
 static functor_t FUNCTOR_literal2;
@@ -457,7 +462,10 @@ root_predicate(predicate *p0, int vindex)
 
 	      for(c=r2->siblings.head; c; c=c->next)
 		set_dummy_root(c->value, root);
-	      free_predicate(r2);
+#if 0
+	      if ( !r2->siblings.head )
+		free_predicate(r2);
+#endif
 	    } else
 	    { set_dummy_root(r2, root);
 	    }
@@ -535,8 +543,10 @@ organise_predicates()
     for( p = *ht; p; p = p->next )
     { if ( p->oldroot != p->root )
 	changed++;
+#if 0					/* may be referenced multiple */
       if ( is_virgin_dummy_root(p->oldroot) )
 	free_predicate(p->oldroot);	/* has not been reused: discard */
+#endif
       p->oldroot = NULL;
       DEBUG(1,
 	    if ( p->root != p )
@@ -853,18 +863,27 @@ rehash_triples()
 update_hash()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+static int
 update_hash()
 { if ( need_update )
-  { LOCK();
-    if ( organise_predicates() )
-    { Sdprintf("Re-hash ...");
-      rehash_triples();
-      Sdprintf("ok\n");
+  { if ( active_queries )
+    { Sdprintf("Problem: %d active queries\n", active_queries);
+      return FALSE;
     }
-    need_update = 0;
+
+    LOCK();
+    if ( need_update )			/* check again */
+    { if ( organise_predicates() )
+      { Sdprintf("Re-hash ...");
+	rehash_triples();
+	Sdprintf("ok\n");
+      }
+      need_update = 0;
+    }
     UNLOCK();
   }
+
+  return TRUE;
 }
 
 
@@ -1711,7 +1730,8 @@ rdf(term_t subject, term_t predicate, term_t object,
       if ( !get_partial_triple(subject, predicate, object, src, &t) )
 	return FALSE;
 
-      update_hash();
+      if ( !update_hash() )
+	return FALSE;
       p = table[t.indexed][triple_hash(&t, t.indexed)];
       for( ; p; p = p->next[t.indexed])
       { if ( match_triples(p, &t, flags) )
@@ -1896,7 +1916,8 @@ rdf_update(term_t subject, term_t predicate, term_t object, term_t action)
   if ( !get_triple(subject, predicate, object, &t) )
     return FALSE;
   
-  update_hash();
+  if ( !update_hash() )
+    return FALSE;
   p = table[indexed][triple_hash(&t, indexed)];
   for( ; p; p = p->next[indexed])
   { if ( match_triples(p, &t, MATCH_EXACT) )
@@ -1919,7 +1940,8 @@ rdf_retractall4(term_t subject, term_t predicate, term_t object, term_t src)
   if ( !get_partial_triple(subject, predicate, object, src, &t) )
     return FALSE;
 
-  update_hash();
+  if ( !update_hash() )
+    return FALSE;
   p = table[t.indexed][triple_hash(&t, t.indexed)];
   for( ; p; p = p->next[t.indexed])
   { if ( match_triples(p, &t, MATCH_EXACT|MATCH_SRC) )
@@ -2281,7 +2303,8 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
       } else
 	return instantiation_error(subj);
 
-      update_hash();
+      if ( !update_hash() )
+	return FALSE;
       if ( (a.pattern.indexed & BY_S) ) 	/* subj ... */
 	append_agenda(&a, a.pattern.subject);
       else

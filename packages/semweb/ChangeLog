@@ -1,3 +1,7 @@
+Sep 20, 2003
+
+  * FIXED: Memory management problem in virtual property-hierarchy roots.
+
 Sep 19, 2003
 
   * FIXED: rdf_update() to properly update the hash-table.
