@@ -1547,9 +1547,9 @@ pl_sgml_parse(term_t parser, term_t options)
     }
 
     while(!eof)
-    { int c = Sgetc(in);
+    { int c = (content_length <= 0 ? EOF : Sgetc(in));
 
-      if ( content_length-- == 0 || Sfeof(in) )
+      if ( --content_length <= 0 || Sfeof(in) )
       { eof = TRUE;
 	if ( c == LF )			/* file ends in LF */
 	  c = CR;

@@ -1,3 +1,6 @@
+* FIXED: correct handling of content_length(Len) option (was reading one
+  character too many).
+
 * FIXED: Correctly handle marked sections ending in ]]]> rather than ]]>
   Spotted by Adrian Boyko.
 
