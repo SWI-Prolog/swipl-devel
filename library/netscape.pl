@@ -93,7 +93,7 @@ user:url_path(pl_mail,	   pl('mailinglist.html')).
 user:url_path(pl_download, pl('download.html')).
 user:url_path(pl_bugs,	   pl('bugreport.html')).
 user:url_path(pl_quick,	   pl_man('quickstart.html')).
-user:url_path(pl_sponsor,  pl('sponsor.html')).
+user:url_path(pl_donate,   pl('donate.html')).
 
 user:url_path(xpce,	   pl('packages/xpce')).
 user:url_path(xpce_man,	   swi('projects/xpce/UserGuide')).

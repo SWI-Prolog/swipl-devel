@@ -204,8 +204,6 @@ fill_menu_bar(F) :->
 
 		    menu_item('SWI-Prolog WWW home (on www) ...',
 			      message(F, open_url, pl)),
-		    menu_item('Sponsor SWI-Prolog (on www) ...',
-			      message(F, open_url, pl_sponsor)),
 		    menu_item('SWI-Prolog FAQ (on www) ...',
 			      message(F, open_url, pl_faq)),
 		    menu_item('SWI-Prolog Quick Start (on www) ...',
@@ -225,7 +223,11 @@ fill_menu_bar(F) :->
 			      end_group := @on),
 
 		    menu_item('SWI-Prolog bug report (on www) ...',
-			      message(F, open_url, pl_bugs))
+			      message(F, open_url, pl_bugs)),
+		    gap,
+		    menu_item('Donate to SWI-Prolog (on www) ...',
+			      message(F, open_url, pl_donate))
+
 		  ]).
 
 

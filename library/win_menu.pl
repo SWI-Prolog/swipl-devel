@@ -71,7 +71,6 @@ menu('&Help',
        '&Online manual ...' 			= help,
        --,
        'SWI-Prolog &WWW home (on www) ...'	= www_open(pl),
-       '&Sponsor the SWI-Prolog project (on www) ...' = www_open(pl_sponsor),
        'SWI-Prolog &FAQ (on www) ...'		= www_open(pl_faq),
        'SWI-Prolog &Quick Start (on www) ...'	= www_open(pl_quick),
        'SWI-Prolog &Manual (on www) ...'	= www_open(pl_man),
@@ -81,7 +80,9 @@ menu('&Help',
        '&XPCE (GUI) Manual ...' 		= manpce,
        'XPCE &User Guide (on www) ...'   	= www_open(pce_man),
        --,
-       'Submit &Bug report (on www) ...'  	= www_open(pl_bugs)
+       'Submit &Bug report (on www) ...'  	= www_open(pl_bugs),
+       --,
+       '&Donate to the SWI-Prolog project (on www) ...' = www_open(pl_donate)
      ],
      [ before_menu(-)
      ]).
