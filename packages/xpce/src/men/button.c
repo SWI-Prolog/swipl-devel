@@ -48,22 +48,28 @@ RedrawAreaButton(Button b, Area a)
   r_thickness(pen);
   r_dash(b->texture);
 
-  if ( equalName(b->status, NAME_inactive) ||
-       equalName(b->status, NAME_active) )
-  { r_shadow_box(x, y, w, h, radius, shadow, NIL);
-  } else if ( equalName(b->status, NAME_preview) )
-  { r_shadow_box(x, y, w, h, radius, shadow, BLACK_IMAGE);
-    swapc = TRUE;
-  } else if ( equalName(b->status, NAME_execute) )
-  { r_shadow_box(x, y, w, h, radius, shadow, GREY25_IMAGE);
+  if ( b->look == NAME_motif )
+  { int up   = (b->status == NAME_inactive || b->status == NAME_active);
+    Any fill = (b->status == NAME_execute ? GREY50_IMAGE : GREY25_IMAGE);
+
+    r_3d_box(x, y, w, h, 2, fill, up);
+  } else
+  { if ( b->status == NAME_inactive || b->status == NAME_active )
+    { r_shadow_box(x, y, w, h, radius, shadow, NIL);
+    } else if ( b->status == NAME_preview )
+    { r_shadow_box(x, y, w, h, radius, shadow, BLACK_IMAGE);
+      swapc = TRUE;
+    } else if ( b->status == NAME_execute )
+    { r_shadow_box(x, y, w, h, radius, shadow, GREY25_IMAGE);
+    }
   }
 
   if ( swapc )
     r_swap_background_and_foreground();
-
+  
   if ( defb && b->look == NAME_openLook )
     r_box(x+pen+1, y+pen+1, w-2*pen-2-shadow, h-2*pen-2-shadow, radius, NIL);
-
+  
   if ( notNil(b->popup) && notNil(b->popup_image) )
   { int iw = valInt(b->popup_image->size->w);
     int ih = valInt(b->popup_image->size->h);

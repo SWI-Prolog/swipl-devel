@@ -281,7 +281,8 @@ makeClassDialogItem(Class class)
 	     "Associated command");
   localClass(class, NAME_popup, NAME_menu, "popup*", NAME_both,
 	     "Associated popup menu");
-  localClass(class, NAME_look, NAME_appearance, "{x,open_look}", NAME_get,
+  localClass(class, NAME_look, NAME_appearance,
+	     "{x,open_look,motif}", NAME_get,
 	     "Look-and-feel switch");
   localClass(class, NAME_autoAlign, NAME_layout, "bool", NAME_both,
 	     "Item is automatically placed by its dialog");
@@ -379,7 +380,7 @@ makeClassDialogItem(Class class)
 	    "Reference point for alingment",
 	    getReferenceDialogItem);
 
-  attach_resource(class, "look", "{x,open_look}", "x",
+  attach_resource(class, "look", "{x,open_look,motif}", "x",
 		  "Look-and-feel switch");
   attach_resource(class, "label_format", "{left,center,right}", "left",
 		  "Alignment of the label in its box");
