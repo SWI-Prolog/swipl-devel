@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Deal with EINTR in sem_wait (Sergey Tikhonov).
+
   * FIXED: AGC problem.  With patch from Sergey Tikhonov.
 
   * FIXED: destroying thread-local clauses with the GUI debugger loaded.

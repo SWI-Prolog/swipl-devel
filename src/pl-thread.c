@@ -2873,7 +2873,8 @@ sync_statistics(PL_thread_info_t *info, atom_t key)
     new.sa_flags   = SA_RESTART;
     sigaction(SIG_FORALL, &new, &old);
     if ( pthread_kill(info->tid, SIG_FORALL) == 0 )
-    { sem_wait(sem_mark_ptr);
+    { while( sem_wait(sem_mark_ptr) == -1 && errno == EINTR )
+	;
     }
     sem_destroy(&sem_mark);
     sigaction(SIG_FORALL, &old, NULL);
@@ -3020,7 +3021,8 @@ resumeThreads(void)
   }
 
   while(signalled)
-  { sem_wait(sem_mark_ptr);
+  { while(sem_wait(sem_mark_ptr) == -1 && errno == EINTR)
+      ;
     signalled--;
   }
   sem_destroy(&sem_mark);
@@ -3098,7 +3100,7 @@ forThreadLocalData(void (*func)(PL_local_data_t *), unsigned flags)
   { if ( sem_wait(sem_mark_ptr) == 0 )
     { DEBUG(1, Sdprintf(" (ok)"));
       signalled--;
-    } else
+    } else if ( errno != EINTR )
     { perror("sem_wait");
       exit(1);
     }
