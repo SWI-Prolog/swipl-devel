@@ -247,9 +247,9 @@ quote_char(X, X).
 html_quoted_attribute(Text) -->
 	{ sub_atom(Text, _, _, _, <)
 	; sub_atom(Text, _, _, _, >)
-	; sub_atom(Text, _, _, _, &)
+%	; sub_atom(Text, _, _, _, &)
 	; sub_atom(Text, _, _, _, '"')
-	; sub_atom(Text, _, _, _, '''')
+%	; sub_atom(Text, _, _, _, '''')
 	}, !,
 	{ atom_chars(Text, Chars),
 	  quote_att_chars(Chars, QuotedChars),
@@ -266,7 +266,7 @@ quote_att_chars([H0|T0], [H|T]) :-
 
 quote_att_char(<, '&lt;') :- !.
 quote_att_char(>, '&gt;') :- !.
-quote_att_char(&, '&amp;') :- !.
+%quote_att_char(&, '&amp;') :- !.
 quote_att_char('"', '&quot;') :- !.
 %quote_att_char('''', '&apos;') :- !.
 quote_att_char(X, X).

@@ -1,6 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: <, >, =<, etc to handle user-defined arithmetic functions
+    properly.  Reported by Emerson dos Santos.
+
+  * ADDED: library(mime) as part of the clib package for parsing MIME
+    serialized objects.  Requires maildrop development libraries installed.
+    Currently Unix only.
+
   * MAINTAIN: Added "nmake /f makefile.mak DBG=true" to Windows building
     suite to make a version ready for debugging using MSVC.  Still to
     to: install all .pdb during "nmake /f makefile.mak DBG=true" install.

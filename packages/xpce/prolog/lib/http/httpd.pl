@@ -100,7 +100,10 @@ input(S, Header:string) :->
 	;   send(S, server_error)
 	;   true
 	),
-	send(S, slot, request, @nil).
+	(   object(S)
+	->  send(S, slot, request, @nil)
+	;   true
+	).
 
 
 break_path(_, Header:sheet) :->
@@ -241,17 +244,29 @@ reply(S,
 		  [ format('HTTP/1.1 %s\n', TheStatus),
 		    format('Date: %s\n', Now),
 		    format('Last-modified: %s\n', Modified),
-		    format('Connection: Keep-Alive\n'),
 		    format('Content-Length: %d\n', Data?size),
 		    format('Content-Type: %s\n', TheType)
 		  ]),
+	(   get(S, request, Request),
+	    Request \== @nil,
+	    (	get(Request, value, connection, 'Keep-Alive')
+	    ;	get(Request, value, http_version, '1.1')
+	    )
+	->  Connection = 'Keep-Alive'
+	;   Connection = close
+	),
+	send(S, format, 'Connection: %s\n', Connection),
 	(   Header \== @default
 	->  send(Header, for_all,
 		 message(S, format, '%s: %s\n', @arg1?name, @arg1?value))
 	;   true
 	),
 	send(S, format, '\n'),
-	send(S, append, Data).
+	send(S, append, Data),
+	(   Connection == 'Keep-Alive'
+	->  true
+	;   send(S, free)
+	).
 
 reply_html(S, Term:prolog, Status:status=[name], Header:header=[sheet]) :->
 	"Reply HTML from a structured Prolog term"::

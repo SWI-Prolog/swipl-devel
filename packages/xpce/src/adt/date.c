@@ -314,7 +314,8 @@ getRfcStringDate(Date d)
 
   strncat(date, s, 3);			/* dayname */
   strcat(date, ", ");
-  strncat(date, s+4, 7);		/* Month, day */
+  strncat(date, s+8, 2);		/* day */
+  strncat(date, s+3, 5);		/* Month */
   strncat(date, s+20, 4);		/* year */
   strncat(date, s+10, 9);		/* time */
 #ifdef HAVE_TZNAME
