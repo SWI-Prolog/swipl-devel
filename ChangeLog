@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: end_of_file issues in readln/[1,2,5] (library(readln)) and
+    modernised the code a bit.
+
   * FIXED: Write out-of-range floating point numbers properly (Bart Demoen).
 
 VERSION 4.0.0
