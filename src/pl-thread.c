@@ -2394,5 +2394,7 @@ pl_with_mutex(term_t mutex, term_t goal)
 		 *******************************/
 
 BeginPredDefs(thread)
-PRED_DEF("thread_statistics", 3, thread_statistics, 0)
+#ifdef O_PLMT
+  PRED_DEF("thread_statistics", 3, thread_statistics, 0)
+#endif
 EndPredDefs
