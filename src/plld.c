@@ -1148,10 +1148,8 @@ linkSharedObject()
   concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
 #else /*WIN32*/
 #ifdef __CYGWIN32__
-#ifndef SO_FORMAT_LDFLAGS			/* done below */
   prependArgList(&ldoptions, soout);
   prependArgList(&ldoptions, "-o");		/* -o ctmp */
-#endif
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
   appendArgList(&ldoptions, "-lplimp");		/* kernel import library */
   concatArgList(&ldoptions, "-L", &libdirs);    /* library directories */
@@ -1165,9 +1163,9 @@ linkSharedObject()
   }
 #else
   prependArgList(&ldoptions, SO_LDFLAGS);
-#endif /*SO_FORMAT_LDFLAGS*/
   prependArgList(&ldoptions, soout);
   prependArgList(&ldoptions, "-o");		/* -o ctmp */
+#endif /*SO_FORMAT_LDFLAGS*/
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
   concatArgList(&ldoptions, "-L", &libdirs);    /* library directories */
   concatArgList(&ldoptions, "-l", &libs);	/* libraries */
