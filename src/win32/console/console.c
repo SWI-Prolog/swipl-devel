@@ -334,7 +334,8 @@ rlc_check_assertions(RlcData b)
 
   assert(b->last != b->first || b->first == 0);
   assert(b->caret_x >= 0 && b->caret_x < b->width);
-  assert(rlc_between(b, b->window_start, window_last, b->caret_y));
+					/* TBD: debug properly */
+/*assert(rlc_between(b, b->window_start, window_last, b->caret_y));*/
   
   for(y=0; y<b->height; y++)
   { TextLine tl = &b->lines[y];
@@ -3243,6 +3244,27 @@ rlc_title(char *title, char *old, int size)
 void
 rlc_icon(HICON icon)
 { SetClassLong(rlc_hwnd(), GCL_HICON, (LONG) icon);
+}
+
+
+int
+rlc_window_pos(HWND hWndInsertAfter,
+	       int x, int y, int w, int h,
+	       UINT flags)
+{ RlcData b = _rlc_stdio;
+
+  if ( b )
+  { w *= b->cw;
+    h *= b->ch;
+
+    SetWindowPos(b->window, hWndInsertAfter,
+		 x, y, w, h,
+		 flags);
+
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 

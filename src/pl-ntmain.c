@@ -30,6 +30,10 @@
 #include <console.h>
 #include <signal.h>
 
+#ifndef streq
+#define streq(s,q) (strcmp((s), (q)) == 0)
+#endif
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Main program for running SWI-Prolog from   a window. The window provides
 X11-xterm like features: scrollback for a   predefined  number of lines,
@@ -212,6 +216,125 @@ pl_window_title(term_t old, term_t new)
   rlc_title(n, buf, sizeof(buf));
 
   return PL_unify_atom_chars(old, buf);
+}
+
+
+static int
+type_error(term_t actual, const char *expected)
+{ term_t ex = PL_new_term_ref();
+
+  PL_unify_term(ex, PL_FUNCTOR_CHARS, "error", 2,
+		      PL_FUNCTOR_CHARS, "type_error", 2,
+		        PL_CHARS, expected,
+		        PL_TERM, actual,
+		      PL_VARIABLE);
+
+  return PL_raise_exception(ex);
+}
+
+static int
+domain_error(term_t actual, const char *expected)
+{ term_t ex = PL_new_term_ref();
+
+  PL_unify_term(ex, PL_FUNCTOR_CHARS, "error", 2,
+		      PL_FUNCTOR_CHARS, "domain_error", 2,
+		        PL_CHARS, expected,
+		        PL_TERM, actual,
+		      PL_VARIABLE);
+
+  return PL_raise_exception(ex);
+}
+
+static int
+get_int_arg_ex(int a, term_t t, int *v)
+{ term_t arg = PL_new_term_ref();
+
+  PL_get_arg(a, t, arg);
+  if ( PL_get_integer(arg, v) )
+    return TRUE;
+
+  return type_error(arg, "integer");
+}
+
+
+static int
+get_bool_arg_ex(int a, term_t t, int *v)
+{ term_t arg = PL_new_term_ref();
+
+  PL_get_arg(a, t, arg);
+  if ( PL_get_bool(arg, v) )
+    return TRUE;
+
+  return type_error(arg, "boolean");
+}
+
+
+foreign_t
+pl_window_pos(term_t options)
+{ int x = 0, y = 0, w = 0, h = 0;
+  HWND z = HWND_TOP;
+  UINT flags = SWP_NOACTIVATE|SWP_NOZORDER|SWP_NOSIZE|SWP_NOMOVE;
+  term_t opt = PL_new_term_ref();
+  term_t tail = PL_copy_term_ref(options);
+
+  while(PL_get_list(tail, opt, tail))
+  { atom_t name;
+    const char *s;
+    int arity;
+    
+    if ( !PL_get_name_arity(opt, &name, &arity) )
+      return type_error(opt, "compound");
+    s = PL_atom_chars(name);
+    if ( streq(s, "position") && arity == 2 )
+    { if ( !get_int_arg_ex(1, opt, &x) ||
+	   !get_int_arg_ex(2, opt, &y) )
+	return FALSE;
+      flags &= ~SWP_NOMOVE;
+    } else if ( streq(s, "size") && arity == 2 )
+    { if ( !get_int_arg_ex(1, opt, &w) ||
+	   !get_int_arg_ex(2, opt, &h) )
+	return FALSE;
+      flags &= ~SWP_NOSIZE;
+    } else if ( streq(s, "zorder") && arity == 1 )
+    { term_t t = PL_new_term_ref();
+      char *v;
+
+      PL_get_arg(1, opt, t);
+      if ( !PL_get_atom_chars(t, &v) )
+	return type_error(t, "atom");
+      if ( streq(v, "top") )
+	z = HWND_TOP;
+      else if ( streq(v, "bottom") )
+	z = HWND_BOTTOM;
+      else if ( streq(v, "topmost") )
+	z = HWND_TOPMOST;
+      else if ( streq(v, "notopmost") )
+	z = HWND_NOTOPMOST;
+      else
+	return domain_error(t, "hwnd_insert_after");
+
+      flags &= ~SWP_NOZORDER;
+    } else if ( streq(s, "show") && arity == 1 )
+    { int v;
+
+      if ( !get_bool_arg_ex(1, opt, &v) )
+	return FALSE;
+      flags &= ~(SWP_SHOWWINDOW|SWP_HIDEWINDOW);
+      if ( v )
+	flags |= SWP_SHOWWINDOW;
+      else
+	flags |= SWP_HIDEWINDOW;
+    } else if ( streq(s, "activate") && arity == 0 )
+    { flags &= ~SWP_NOACTIVATE;
+    } else
+      return domain_error(opt, "window_option");
+  }
+  if ( !PL_get_nil(tail) )
+   return type_error(tail, "list");
+
+  rlc_window_pos(z, x, y, w, h, flags);
+
+  return TRUE;
 }
 
 
@@ -448,8 +571,9 @@ install_readline(int argc, char **argv)
   rlc_init_history(FALSE, 50);
   file_completer = rlc_complete_hook(do_complete);
 
-  PL_register_foreign("system:rl_add_history", 1, pl_rl_add_history, 0);
+  PL_register_foreign("system:rl_add_history",    1, pl_rl_add_history,    0);
   PL_register_foreign("system:rl_read_init_file", 1, pl_rl_read_init_file, 0);
+  PL_register_foreign("system:win_window_pos",    1, pl_window_pos,        0);
 
   PL_set_feature("tty_control", PL_BOOL, TRUE);
   PL_set_feature("readline",    PL_BOOL, TRUE);

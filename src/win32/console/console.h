@@ -74,6 +74,9 @@ typedef void	(*RlcMenuHook)(const char *id); /* Hook for menu-selection */
 
 _export HANDLE	rlc_hinstance(void);	/* hInstance of WinMain() */
 _export HWND	rlc_hwnd(void);		/* HWND of console window */
+_export int	rlc_window_pos(HWND hWndInsertAfter,
+			       int x, int y, int w, int h,
+			       UINT flags); /* resize/reposition window */
 _export int	rlc_main(HANDLE hI, HANDLE hPrevI,
 			 LPSTR cmd, int show, RlcMain main, HICON icon);
 _export void	rlc_icon(HICON icon);	/* Change icon of main window */

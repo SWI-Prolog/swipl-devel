@@ -561,6 +561,28 @@ PL_unify_nil_ex(term_t l)
 
 
 int
+PL_get_list_ex(term_t l, term_t h, term_t t)
+{ if ( PL_get_list(l, h, t) )
+    succeed;
+
+  if ( PL_get_nil(l) )
+    fail;
+  
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
+}
+
+int
+PL_get_nil_ex(term_t l)
+{ if ( PL_get_nil(l) )
+    succeed;
+
+  if ( PL_is_list(l) )
+    fail;
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
+}
+
+int
 PL_unify_bool_ex(term_t t, bool val)
 { bool v;
 
