@@ -1603,7 +1603,7 @@ thread_get_message/1 should not be using windows.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-dispatch_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
+dispatch_cond_wait(message_queue *queue)
 { struct timeb now;
   struct timespec timeout;
   int rc;
@@ -1613,7 +1613,8 @@ dispatch_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
     timeout.tv_sec  = now.time;
     timeout.tv_nsec = (now.millitm+250) * 1000000;
 
-    switch( (rc=pthread_cond_timedwait(cond, mutex, &timeout)) )
+    switch( (rc=pthread_cond_timedwait(&queue->cond_var, &queue->mutex,
+				       &timeout)) )
     { case ETIMEDOUT:
       { MSG msg;
 
@@ -1624,6 +1625,12 @@ dispatch_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
 	}
 	if ( LD->pending_signals )
 	  return EINTR;
+
+	if ( queue->head )
+	{ DEBUG(1, Sdprintf("[%d]: ETIMEDOUT: queue not empty\n",
+			    PL_thread_self()));
+	  return 0;
+	}
 
 	continue;
       }
@@ -1636,7 +1643,7 @@ dispatch_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
 #else
 
 static int
-dispatch_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
+dispatch_cond_wait(message_queue *queue)
 { struct timeval now;
   struct timespec timeout;
   int rc;
@@ -1646,10 +1653,17 @@ dispatch_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
     timeout.tv_sec  = now.tv_sec;
     timeout.tv_nsec = (now.tv_usec+250000) * 1000;
 
-    switch( (rc=pthread_cond_timedwait(cond, mutex, &timeout)) )
+    switch( (rc=pthread_cond_timedwait(&queue->cond_var, &queue->mutex,
+				       &timeout)) )
     { case ETIMEDOUT:
       { if ( LD->pending_signals )
 	  return EINTR;
+
+	if ( queue->head )
+	{ DEBUG(1, Sdprintf("[%d]: ETIMEDOUT: queue not empty\n",
+			    PL_thread_self()));
+	  return 0;
+	}
 
 	continue;
       }
@@ -1709,7 +1723,7 @@ get_message(message_queue *queue, term_t msg)
     queue->waiting++;
     queue->waiting_var += isvar;
     DEBUG(1, Sdprintf("%d: waiting on queue\n", PL_thread_self()));
-    while( dispatch_cond_wait(&queue->cond_var, &queue->mutex) == EINTR )
+    while( dispatch_cond_wait(queue) == EINTR )
     { DEBUG(1, Sdprintf("%d: EINTR\n", PL_thread_self()));
       if ( PL_handle_signals() < 0 )	/* thread-signal */
       { queue->waiting--;
