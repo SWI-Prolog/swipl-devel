@@ -256,7 +256,9 @@ __pl_export void	PL_reset_term_refs(term_t r);
 
 			/* Constants */
 __pl_export atom_t	PL_new_atom(const char *s);
+__pl_export atom_t	PL_new_atom_nchars(unsigned int len, const char *s);
 __pl_export const char *PL_atom_chars(atom_t a);
+__pl_export const char *PL_atom_nchars(atom_t a, unsigned int *len);
 #ifndef O_DEBUG_ATOMGC
 __pl_export void	PL_register_atom(atom_t a);
 __pl_export void	PL_unregister_atom(atom_t a);

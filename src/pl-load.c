@@ -124,7 +124,7 @@ pl_open_shared_object(term_t file, term_t plhandle,
     if ( n & DL_GLOBAL )
       dlflags |= RTLD_GLOBAL;
   } else
-    dlflags = RTLD_LAZY | RTLD_GLOBAL;
+    dlflags = RTLD_LAZY;
 
   if ( !PL_get_atom(file, &afile) )
     return warning("open_shared_object/2: instantiation fault");

@@ -223,9 +223,29 @@ PL_new_atom(const char *s)
 }
 
 
+atom_t
+PL_new_atom_nchars(unsigned int len, const char *s)
+{ if ( !GD->initialised )
+    initAtoms();
+
+  return (atom_t) lookupAtom(s, len);
+}
+
+
 const char *
 PL_atom_chars(atom_t a)
 { return (const char *) stringAtom(a);
+}
+
+
+const char *
+PL_atom_nchars(atom_t a, unsigned int *len)
+{ Atom x = atomValue(a);
+
+  if ( len )
+    *len = x->length;
+
+  return x->name;
 }
 
 
