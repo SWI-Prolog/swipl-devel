@@ -1,8 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Bug #8: module-specifier while listing declarations.
+    Tolga Konik.
+
   * ADDED: Perform goal-expansion on 2nd argument of findall/3, bagof/3
     and setof/3.
+
 
 VERSION 5.1.6 (Jan 17, 2003)
 ============================
@@ -296,7 +300,8 @@ VERSION 5.1.0 (Oct 26, 2002)
 	- Console code (plterm.dll/plwin.exe) allows for multiple consoles
 	- Basics seem to work fine.
 	- Now uses CRITICAL_SECTIONS and Windows native TslGetValue() to
-	  improve performance.  Slow down is now 12% compared to
+	  improve performance.  Slow down is now 12% compared tolisting(library_directory).
+
 	  single-threading.
 
     Consequences:

@@ -38,9 +38,7 @@
 :- module_transparent
 	listing/0, 
 	listing/1, 
-	list_predicates/2, 
-	list_predicate/3, 
-	list_clauses/1.
+	list_predicates/2.
 
 :- multifile
 	prolog:locate_clauses/2.	% +Spec, -ClauseRefList
@@ -50,11 +48,12 @@
 %   calls listing(Pred) for each current_predicate Pred.
 
 listing :-
+	context_module(Context),
 	current_predicate(_, Pred), 
 	\+ predicate_property(Pred, built_in), 
 	nl, 
-	functor(Pred, Name, Arity),
-	list_predicate(Name, Pred, Arity),
+	'$strip_module'(Pred, Module, Head),
+	list_predicate(Module:Head, Context),
 	fail.
 listing.
 
@@ -85,13 +84,13 @@ list_clauserefs(Ref) :-
 
 
 list_predicates(Preds, X) :-
+	context_module(Context),
 	member(Pred, Preds),
 	unify_args(Pred, X),
 	nl, 
 	'$define_predicate'(Pred),
-	'$strip_module'(Pred, _, Head), 
-	functor(Head, Name, Arity), 
-        list_predicate(Name, Pred, Arity), 
+	'$strip_module'(Pred, Module, Head), 
+        list_predicate(Module:Head, Context), 
         fail.
 list_predicates(_, _).
 
@@ -103,54 +102,55 @@ unify_args(X, X) :- !.
 unify_args(_:X, X) :- !.
 unify_args(_, _).
 
-list_predicate(Name, Pred, Arity) :-
+list_predicate(Pred, Context) :-
 	predicate_property(Pred, undefined), !, 
-	format('%   Undefined: ~w/~w~n', [Name, Arity]).
-list_predicate(Name, Pred, Arity) :-
+	decl_term(Pred, Context, Decl),
+	format('%   Undefined: ~q~n', [Decl]).
+list_predicate(Pred, Context) :-
 	predicate_property(Pred, foreign), !, 
-	format('%   Foreign: ~w/~w~n', [Name, Arity]).
-list_predicate(Name, Pred, Arity) :-
+	decl_term(Pred, Context, Decl),
+	format('%   Foreign: ~q~n', [Decl]).
+list_predicate(Pred, Context) :-
+	notify_changed(Pred),
+	list_declarations(Pred, Context), 
+	list_clauses(Pred, Context).
+
+decl_term(Pred, Context, Decl) :-
 	'$strip_module'(Pred, Module, Head),
-	notify_changed(Module, Head),
-	list_declarations(Name, Pred, Arity, []), 
-	list_clauses(Pred).
+	functor(Head, Name, Arity),
+	(   (Module == system; Context == Module)
+	->  Decl = Name/Arity
+	;   Decl = Module:Name/Arity
+	).
 
-list_declarations(Name, Pred, Arity, Sofar) :-
-	\+ member((thread_local Name/Arity), Sofar), 
-	predicate_property(Pred, (thread_local)), !, 
-	list_declarations(Name, Pred, Arity,
-			  [ (thread_local Name/Arity)
-			  | Sofar
-			  ]).
-list_declarations(Name, Pred, Arity, Sofar) :-
-	\+ member((dynamic Name/Arity), Sofar), 
-	\+ member((thread_local Name/Arity), Sofar), 
-	predicate_property(Pred, (dynamic)), !, 
-	list_declarations(Name, Pred, Arity, [(dynamic Name/Arity)|Sofar]).
-list_declarations(Name, Pred, Arity, Sofar) :-
-	\+ member((volatile Name/Arity), Sofar), 
-	\+ member((thread_local Name/Arity), Sofar),
-	predicate_property(Pred, (volatile)), !, 
-	list_declarations(Name, Pred, Arity, [(volatile Name/Arity)|Sofar]).
-list_declarations(Name, Pred, Arity, Sofar) :-
-	\+ member((multifile Name/Arity), Sofar), 
-	predicate_property(Pred, (multifile)), !, 
-	list_declarations(Name, Pred, Arity, [(multifile Name/Arity)|Sofar]).
-list_declarations(Name, Pred, Arity, Sofar) :-
-	\+ member((module_transparent Name/Arity), Sofar), 
-	predicate_property(Pred, (transparent)), !, 
-	list_declarations(Name, Pred, Arity, [(module_transparent Name/Arity)|Sofar]).
-list_declarations(_, _, _, []) :- !.
-list_declarations(_, _, _, List) :-
-	write_declarations(List), nl.
 
-write_declarations([]) :- !.
-write_declarations([H|T]) :-
+decl(thread_local, thread_local).
+decl(dynamic,	   dynamic).
+decl(volatile,	   volatile).
+decl(multifile,	   multifile).
+decl(transparent,  module_transparent).
+
+declaration(Pred, Source, Decl) :-
+	decl(Prop, Declname),
+	predicate_property(Pred, Prop),
+	decl_term(Pred, Source, Funct),
+	Decl =.. [ Declname, Funct ].
+	    
+list_declarations(Pred, Source) :-
+	findall(Decl, declaration(Pred, Source, Decl), Decls),
+	(   Decl == []
+	->  true
+	;   write_declarations(Decls, Source),
+	    format('~n', [])
+	).
+
+
+write_declarations([], _) :- !.
+write_declarations([H|T], Module) :-
 	format(':- ~q.~n', [H]),
-	write_declarations(T).
+	write_declarations(T, Module).
 
-list_clauses(Pred) :-
-	context_module(Source), 
+list_clauses(Pred, Source) :-
 	'$strip_module'(Pred, Module, Head), 
 	clause(Pred, Body), 
 	    write_module(Module, Source), 
@@ -162,7 +162,8 @@ write_module(Module, Module) :- !.
 write_module(Module, _) :-
 	format('~q:', [Module]).
 
-notify_changed(user, Head) :-
+notify_changed(Pred) :-
+	'$strip_module'(Pred, user, Head),
 	'$c_current_predicate'(_, system:Head),
 	\+ ( predicate_property(user:Head, imported_from(System)),
 	     (System == system ; '$default_module'(System, system, system))
@@ -170,8 +171,8 @@ notify_changed(user, Head) :-
 	\+ predicate_property(system:Head, (dynamic)), !,
 	functor(Head, Name, Arity),
 	format('%   NOTE: system definition has been overruled for ~w/~w~n~n',
-				[Name, Arity]).
-notify_changed(_, _).
+	       [Name, Arity]).
+notify_changed(_).
 
 %	portray_clause(+Clause)
 %	Portray `Clause' on the current output stream.   Layout  of  the
