@@ -1,6 +1,14 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * MODIFIED: Unix version no longer installs Windows specific library
+    files (dde.pl, registry.pl, progman.pl).
+
+  * DELETED: libraries toolkit.pl, gensym.pl, qlfutil.pl.  Obscure and
+    out of date functionality.
+
+  * ADDED: library url.pl: parsing URL's
+
 VERSION 3.3.0 (release-14)
 ==========================
 
