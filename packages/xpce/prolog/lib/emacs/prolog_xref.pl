@@ -47,7 +47,12 @@ xref_source(Source) :-
 	canonical_source(Source, Src),
 	xref_clean(Src),
 	assert(source(Src)),
-	collect(Src).
+	asserta(user:message_hook(_,_,_), Ref),
+	(   collect(Src)
+	->  erase(Ref)
+	;   erase(Ref),
+	    fail
+	).
 
 xref_clean(Source) :-
 	canonical_source(Source, Src),

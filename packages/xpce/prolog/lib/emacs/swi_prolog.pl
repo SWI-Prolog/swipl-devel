@@ -15,6 +15,8 @@
 
 :- multifile
 	user:message_hook/3.
+:- dynamic
+	user:message_hook/3.
 
 
 		 /*******************************
@@ -28,7 +30,6 @@ make_prolog_warning_list(L) :-
 	send(L, clear_on_append, @on),
 	send(L, expose_on_append, @on),
 	send(L, message, error_at_location).
-
 
 user:message_hook(Term, Level, Lines) :-
 	accept_level(Level),

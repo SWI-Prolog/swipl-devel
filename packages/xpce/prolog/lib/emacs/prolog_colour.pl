@@ -117,9 +117,16 @@ colourise_text_buffer(TB) :-
 		      fail
 		  )),
 	    colourise_term(Term, TB, TermPos),
-	    once(xref_expand(Term, _)),		% push current operators!
+	    fix_operators(Term),
 	    Term == end_of_file, !,
 	close(Fd).
+
+fix_operators((:-Directive)) :-
+	asserta(user:message_hook(_,_,_), Ref),
+	ignore(xref_expand((:-Directive), _)),
+	erase(Ref).
+fix_operators(_).
+
 
 %	colourise(+TB, +Stream)
 %
@@ -434,6 +441,15 @@ term_colours(user:file_search_path(_,_),
 			  expanded - [ identifier,
 				       classify
 				     ]
+			]).
+term_colours((user:message_hook(_,_,_) :- _),
+	     classify - [ expanded - [ expanded,
+				       expanded - [ classify,
+				                    classify,
+						    classify
+						  ]
+				     ],
+		          classify
 			]).
 term_colours((prolog:message(_) --> _),
 	     expanded - [ expanded - [ expanded,
