@@ -167,9 +167,9 @@ unify_clause(:->(Head, Body), (PlHead :- PlBody), TermPos0, TermPos) :- !,
 	pce_method_clause(Head, Body, PlHead, PlBody, TermPos0, TermPos).
 unify_clause(:<-(Head, Body), (PlHead :- PlBody), TermPos0, TermPos) :- !,
 	pce_method_clause(Head, Body, PlHead, PlBody, TermPos0, TermPos).
-unify_clause(Read, Compiled1, TermPos, TermPos) :-
+unify_clause(Read, Compiled1, TermPos0, TermPos) :-
 	expand_term(Read, Compiled2),
-	match_module(Compiled1, Compiled2).
+	match_module(Compiled1, Compiled2, TermPos0, TermPos).
 unify_clause(_, _, _, _) :-
 	send(@nil, report, warning, 'Could not unify clause'),
 	fail.
@@ -178,10 +178,47 @@ unify_clause_head(H1, H2) :-
 	strip_module(H1, _, H),
 	strip_module(H2, _, H).
 
-match_module((H1 :- B), (H2 :- B)) :- !,
+match_module((H1 :- B1), (H2 :- B2), Pos0, Pos) :- !,
+	unify_clause_head(H1, H2),
+	unify_body(B1, B2, Pos0, Pos).
+match_module(H1, H2, Pos, Pos) :-	% deal with facts
 	unify_clause_head(H1, H2).
-match_module(H1, H2) :-			% deal with facts
-	unify_clause_head(H1, H2).
+
+%	unify_body(+Read, +Decompiled, +Pos0, -Pos)
+%	
+%	Deal with translations implies by the compiler.  For eaxmple,
+%	compiling (a,b),c yields the same code as compiling a,b,c.
+%	
+%	Pos0 and Pos still include the term-position of the head.
+
+unify_body(B, B,  Pos, Pos) :- !.
+unify_body(R, D,
+	   term_position(F,T,FF,FT,[HP,BP0]),
+	   term_position(F,T,FF,FT,[HP,BP])) :-
+	ubody(R, D, BP0, BP).
+	   
+
+ubody(B, B, P, P) :- !.
+ubody((A,B,C), ((A,B),C),
+      term_position(F1,T1,FF1,TT1,
+		    [ PA,
+		      term_position(F1,T2,FF2,FT2, [PB, PC])
+		    ]),
+      term_position(F1,T1,FF1,TT1,
+		    [ term_position(F1,T2,FF2,FT2, [PA, PB]),
+		      PC
+		    ])) :- !.
+ubody((A0,B0), (A,B),
+      term_position(F,T,FF,TT,
+		    [ PA0,
+		      PB0
+		    ]),
+      term_position(F,T,FF,TT,
+		    [ PA,
+		      PB
+		    ])) :- !,
+	ubody(A0, A, PA0, PA),
+	ubody(B0, B, PB0, PB).
 
 
 		 /*******************************
