@@ -188,7 +188,7 @@ typedef struct _dtd_parser
   int	   grouplevel;			/* [..] level in declaration */
   int	   saved;			/* saved character */
   dtdstate lit_saved_state;		/* literal saved-state */
-  dtd_char_encoding encoding;		/* CDATA output character-set */
+  int      encoded;			/* TRUE for binary input */
   dtd_shortref *map;			/* SHORTREF map */
 #ifdef UTF8
   int	   utf8_decode;			/* decode UTF-8 sequences? */

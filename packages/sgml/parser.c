@@ -1858,11 +1858,11 @@ match_shortref(dtd_parser *p)
 	{ const ichar *s;
 
 	  for(s = p->cdata->data.t, i=0; i++ < p->cdata->size; s++)
-	{ if ( !HasClass(p->dtd, *s, CH_BLANK) )
-	  { blank = FALSE;
-	    break;
+	  { if ( !HasClass(p->dtd, *s, CH_BLANK) )
+	    { blank = FALSE;
+	      break;
+	    }
 	  }
-	}
 	} else
 	{ const wchar_t *s;
 
@@ -3616,7 +3616,7 @@ init_decoding(dtd_parser *p)
   dtd *dtd = p->dtd;
 
   if ( dtd->encoding == SGML_ENC_UTF8 &&
-       p->encoding   == SGML_ENC_ISO_LATIN1 )
+       p->encoded    == TRUE )
     decode = TRUE;
   else
     decode = FALSE;
@@ -3821,7 +3821,7 @@ new_dtd_parser(dtd *dtd)
   p->state	 = S_PCDATA;
   p->mark_state	 = MS_INCLUDE;
   p->dmode       = DM_DTD;
-  p->encoding	 = SGML_ENC_ISO_LATIN1;
+  p->encoded	 = TRUE;		/* encoded octed stream */
   p->buffer	 = new_icharbuf();
   p->cdata	 = new_ocharbuf();
   p->event_class = EV_EXPLICIT;

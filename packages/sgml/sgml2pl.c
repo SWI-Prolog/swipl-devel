@@ -1623,6 +1623,11 @@ pl_sgml_parse(term_t parser, term_t options)
   if ( in )
   { int eof = FALSE;
 
+    if ( (in->flags & SIO_TEXT) )
+      p->encoded = FALSE;		/* already decoded */
+    else
+      p->encoded = TRUE;		/* parser must decode */
+
     if ( !recursive )
     { pd->source = in;
       begin_document_dtd_parser(p);
@@ -1634,11 +1639,16 @@ pl_sgml_parse(term_t parser, term_t options)
       if ( has_content_length )
       { if ( content_length <= 0 )
 	  c = EOF;
+	else if ( p->encoded == TRUE )
+	  c = Sgetc(in);
 	else
 	  c = Sgetcode(in);
 	ateof = (--content_length <= 0);
       } else
-      { c = Sgetcode(in);
+      { if ( p->encoded == TRUE )
+	  c = Sgetc(in);
+	else
+	  c = Sgetcode(in);
 	ateof = Sfeof(in);
       }
 
