@@ -68,7 +68,7 @@ bufsize_text(PL_chars_t *text, unsigned int len)
 
 void
 PL_save_text(PL_chars_t *text, int flags)
-{ if ( !(flags & BUF_MALLOC) && text->storage != PL_CHARS_MALLOC )
+{ if ( (flags & BUF_MALLOC) && text->storage != PL_CHARS_MALLOC )
   { int bl = bufsize_text(text, text->length+1);
     void *new = PL_malloc(bl);
 

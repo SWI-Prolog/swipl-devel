@@ -1188,8 +1188,42 @@ PL_atom_generator(const char *prefix, int state)
 
   while ( atom_generator(&txt, &hit, state) )
   { if ( hit.encoding == ENC_ISO_LATIN_1 )
-      return hit.text.t;
+      return hit.text.t;		/* text is from atoms, thus static */
     state = TRUE;
+  }
+
+  return NULL;
+}
+
+
+pl_wchar_t *
+PL_atom_generator_w(const pl_wchar_t *prefix,
+		    pl_wchar_t *buffer,
+		    unsigned int buflen,
+		    int state)
+{ PL_chars_t txt, hit;
+
+  PL_init_text(&txt);
+  txt.text.w   = (pl_wchar_t *)prefix;
+  txt.encoding = ENC_WCHAR;
+  txt.length   = wcslen(prefix);
+
+  for( ; atom_generator(&txt, &hit, state); state = TRUE )
+  { if ( buflen > hit.length+1 )
+    { if ( hit.encoding == ENC_WCHAR )
+      { wcscpy(buffer, hit.text.w);
+      } else
+      { const unsigned char *s = (const unsigned char *)hit.text.t;
+	const unsigned char *e = &s[hit.length];
+	pl_wchar_t *o;
+	
+	for(o=buffer; s<e;)
+	  *o++ = *s++;
+	*o = EOS;
+      }
+
+      return buffer;
+    }
   }
 
   return NULL;

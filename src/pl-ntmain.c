@@ -374,16 +374,6 @@ pl_rl_read_init_file(term_t file)
 
 static RlcCompleteFunc file_completer;
 
-static TCHAR *
-str2wide_copy(TCHAR *dest, const char *src)
-{ TCHAR *d;
-
-  for(d=dest; *src; )
-    *d++ = (*src++)&0xff;
-
-  return dest;
-}
-
 static int
 prolog_complete(RlcCompleteData data)
 { Line ln = data->line;
@@ -406,14 +396,15 @@ prolog_complete(RlcCompleteData data)
       }
       if ( _istlower(ln->data[start]) )	/* Lower, Aplha ...: an atom */
       { int patlen = ln->point - start;
-	char *s;
 
 	_tcsncpy(data->buf_handle, &ln->data[start], patlen);
 	data->buf_handle[patlen] = '\0';
 	
-	if ( (s = PL_atom_generator(data->buf_handle, FALSE)) )
-	{ str2wide_copy(data->candidate, s);
-	  data->replace_from = start;
+	if ( PL_atom_generator_w(data->buf_handle,
+				 data->candidate,
+				 sizeof(data->candidate)/sizeof(TCHAR),
+				 FALSE) )
+	{ data->replace_from = start;
 	  data->function = prolog_complete;
 	  return TRUE;
 	}
@@ -422,11 +413,12 @@ prolog_complete(RlcCompleteData data)
       return FALSE;
     }
     case COMPLETE_ENUMERATE:
-    { char *s = PL_atom_generator(data->buf_handle, TRUE);
-      if ( s )
-      { str2wide_copy(data->candidate, s);
+    { if ( PL_atom_generator_w(data->buf_handle,
+			       data->candidate,
+			       sizeof(data->candidate)/sizeof(TCHAR),
+			       TRUE) )
 	return TRUE;
-      }
+
       return FALSE;
     }
     case COMPLETE_CLOSE:

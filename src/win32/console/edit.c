@@ -405,7 +405,7 @@ common(const TCHAR *s1, const TCHAR *s2, int insensitive)
     return n;
   } else
   { while(*s1)
-    { if ( tolower(*s1) == tolower(*s2) )
+    { if ( _totlower(*s1) == _totlower(*s2) )
       { s1++, s2++;
 	n++;
       } else

@@ -677,6 +677,10 @@ PL_EXPORT(char *)	PL_prompt_string(int fd);
 PL_EXPORT(void)		PL_write_prompt(int dowrite);
 PL_EXPORT(void)		PL_prompt_next(int fd);
 PL_EXPORT(char *)	PL_atom_generator(const char *prefix, int state);
+PL_EXPORT(pl_wchar_t*)  PL_atom_generator_w(const pl_wchar_t *pref,
+					    pl_wchar_t *buffer,
+					    unsigned int buflen,
+					    int state);
 PL_EXPORT(void)		PL_clock_wait_ticks(long waited);
 
 
