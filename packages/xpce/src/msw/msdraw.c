@@ -14,7 +14,7 @@
 #define M_PI (3.141593)
 #endif
 
-#define MAX_CLIP_DEPTH (5)		/* clip nesting depth */
+#define MAX_CLIP_DEPTH (50)		/* clip nesting depth */
 #define MAX_CTX_DEPTH (10)		/* Max draw context depth */
 
 typedef struct
