@@ -1,0 +1,85 @@
+		   Using 16-bit fonts in XPCE 4.8.0
+
+From  XPCE  4.8.0,  the  text-representation    classes  char_array  and
+text_buffer can handle characters of either 8 bit or 16 bit.
+
+Defining 16-bit fonts
+=====================
+
+This version is capable of displaying *all* X11 fonts, either 8 bits or
+16 bits.  Defining 16-bit fonts is the same as defining 8-bit fonts.
+One way is to define the font using a directive:
+
+	:- new(_, font(jis, roman, 16,
+		       '-jis-*-*-*-*-*-16-*-75-*-*-*-jisx0208.1983-*')).
+
+which will allow you to refer to this 16-bit font using either
+@jis_roman_16 or font(jis, roman, 16).
+
+The alternative way is to redefine the X11 resources defining the fonts.
+For example:
+
+================================================================
+Pce.Display.font_families: \
+	[ screen_fonts, \
+	  courier_fonts, \
+	  helvetica_fonts, \
+	  times_fonts, \
+	  jis_fonts \
+	]
+
+Pce.Display.jis_fonts: \
+	[ font(jis, roman, 16, '-jis-*-*-*-*-*-16-*-75-*-*-*-jisx0208.1983-*')
+	]
+================================================================
+
+Displaying 16-bit fonts:
+========================
+
+Both 8- and 16-bit text may be displayed using 16-bit fonts.  In the former
+case characters will be used in pairs (last will be discarded if the size
+is odd).  In the latter case the 16-bit font will be used directly.
+
+Example:
+
+[ My humble excuses for the characters choosen: I have *no* knowledge of
+  the meaning of them and might have written unpolite things.
+]
+
+demo1 :-
+	send(new(P, picture), open),
+	send(P, display, text('jhd3f2u2mwhd', font := @jis_roman_16)).
+
+You can also define a predicate to make 16-bit strings out of Prolog
+16-bit strings (supposed to be defined as a Prolog list holding 16-bit
+integers):
+
+make_string16(Text, String) :-
+	new(String, string),
+	send(String, bits_per_character, 16),
+	forall(member(C, Text), send(String, insert_character, C)).
+
+After which the following is possible:
+
+demo2 :-
+	make_string16([27240, 27241], String),
+	send(new(P, picture), open),
+	send(P, display, text(String, font := @jis_roman_16)).
+
+Of course, you can use these strings for text_item labels, etc:
+
+demo3 :-
+	make_string16([27240, 27241], Label),
+	make_string16([25651, 28023], Value),
+	new(TI, text_item(Label, Value)),
+	send(TI, value_font, @jis_roman_16),
+	send(TI, label_font, @jis_roman_16),
+	send(TI, open).
+
+
+
+
+
+
+
+

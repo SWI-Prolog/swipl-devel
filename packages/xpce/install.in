@@ -1,0 +1,126 @@
+#!/bin/sh
+# Create xpce executable
+
+PLBASE=@PLBASE@
+LN_S="@LN_S@"
+emulator=bin/xpce.base
+xpce=bin/xpce
+PWD=`pwd`
+
+if [ $# = 1 ]; then xpce=$1; fi
+
+for d in library boot include; do
+    if [ ! -d pl/$d ]; then (cd pl; $LN_S $PLBASE/$d .); fi
+done
+
+if test -r $PWD/Pce; then
+    PCEHOME=""
+    topdirs="$HOME /usr/local /home /opt"
+    for top in $topdirs; do
+	if [ -r $top ]; then
+	    can="$PWD"
+	    topinode=`ls -di $top | awk '{print $1}'`
+	    base=""
+	    while test "$can" != "/" && test "$PCEHOME" = ""; do
+		caninode=`ls -di $can | awk '{print $1}'`
+		if test "$caninode" = "$topinode"; then
+		    PCEHOME=`echo $top/$base | sed 's@/$@@'`
+		fi
+		base=`basename $can`/$base
+		can=`dirname $can`
+	    done
+	fi
+    done
+    if test "$PCEHOME" = ""; then
+	PCEHOME="$PWD"
+    else
+	if test ! -r $PCEHOME/Pce; then PCEHOME="$PWD"; fi
+    fi
+else
+    echo "$0 should be run from the XPCE home directory"
+    exit 1
+fi
+
+SWIPL=$PCEHOME/pl; export SWIPL
+CANONICAL_PATHS=$PCEHOME; export CANONICAL_PATHS
+cat <<EOF
+Using the following paths:
+
+        PCEHOME=$PCEHOME
+        SWIPL=$SWIPL
+        CANONICAL_PATHS=$CANONICAL_PATHS
+
+EOF
+
+$emulator -o bin/pl.qlf -b pl/boot/init.pl -c pl/boot/load.pl
+
+$emulator -x bin/pl.qlf -f none -g true >.plparms << _EOS_
+(   feature(save_program, V), V == true
+->  format('O_SAVE=yes~n')
+;   true
+),
+halt.
+_EOS_
+. ./.plparms
+
+if [ "$O_SAVE" != "yes" ]; then
+    echo "SWI-Prolog cannot save on this system.  Will create quick"
+    echo "load file"
+    echo ""
+    target=`basename $xpce`
+    prefix=`dirname $xpce`
+    prefix=`dirname $prefix`
+    echo "Linking $prefix/bin/$target to $PCEHOME/bin/xpce.base"
+    (cd $prefix/bin; rm -f $target; $LN_S $PCEHOME/bin/xpce.base $target)
+    echo "Creating quick load file"
+    $xpce -b $PCEHOME/pl/boot/init.pl \
+          -c $PCEHOME/pl/boot/load.pl \
+	     $PCEHOME/pl/load.pl
+    echo "Done"
+    rm -f bin/pl.qlf
+    exit 0
+fi
+
+
+
+
+$emulator -x bin/pl.qlf -f none << _EOS_
+['prolog/boot/pce_expand'].
+use_module('prolog/boot/pce_pl').
+use_module('prolog/lib/pce').
+
+'\$version'(PlVersion),
+send(@pce, catch_error_signals, @on),
+concat('SWI-Prolog version ', PlVersion, PlId),
+send(@prolog, system, PlId).
+   
+absolute_file_name('', Home),
+format('PCE home directory = ~w~n', Home),
+send(@pce, home, Home).
+
+
+assert((library_directory(PceLib) :-
+	get(@pce, home, Home),
+	concat(Home, '/prolog/lib', PceLib))).
+
+'\$autoload':clear_library_index.
+use_module(library(pce_manual)).
+
+'\$make_system_source_files'.
+'\$autoload':clear_library_index.
+
+format('Saving to ~w~n', ['$xpce']),
+save_program('$xpce',
+	[ goal		= 'pce_host:pce_banner'
+	]).
+
+get(@pce, home, Home),
+concat(Home, '/prolog/lib', PceLib),
+make_library_index(PceLib).
+
+
+halt.
+_EOS_
+
+rm -f bin/pl.qlf
+

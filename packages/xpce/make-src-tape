@@ -1,0 +1,20 @@
+#!/bin/sh
+
+version=`cat VERSION`
+out=xpce-$version.tar.gz
+compress=gzip
+
+cp /dev/null srcfiles-0
+for d in `find . -type d -print`; do
+    if [ -r $d/CVS/Entries ]; then
+	awk -F/ '{printf("%s/%s\n", "'$d'", $2)}' $d/CVS/Entries > srcfiles-0
+    fi
+done
+
+grep -v src/msw/ srcfiles | sed 's@^\./@xpce-$version/@ > srcfiles-1
+
+cd ..
+ln -s xpce xpce-$version
+tar cvfI - xpce/srcfiles-1 | $compress > $out
+
+
