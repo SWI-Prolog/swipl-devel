@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Seek issues for wchar and unicode streams.
+
   * MODIFIED: changed encoding 'none' to 'octet'.  Streams opened as
     type 'binary' now by default use the 'octet' encoding.  Adjusted
     and documented sgml-parser interaction with Prolog stream encoding.

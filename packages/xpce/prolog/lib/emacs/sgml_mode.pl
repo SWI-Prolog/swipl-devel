@@ -1097,14 +1097,8 @@ variable(parsed,   bool := @on,	     both, "@off for unparsed fragments").
 
 %	seek_to(+Stream, +Pos)
 %	
-%	Seek to Pos on Stream related to an  XPCE object. This is a hack
-%	around  a  bug.  Sseek()  first  checks  whether  the  requested
-%	position is in the current buffer. If   so, it does no low-level
-%	seek. Seek on objects  however  is   defined  in  terms  of code
-%	positions while the text  is   exchanged  using  wchar encoding.
-%	Seeking first to the start of  the   object  avoids reuse of the
-%	buffer.
+%	Seek to Pos on Stream related to an  XPCE object.
 
 seek_to(Stream, Pos) :-
-	seek(Stream, 0, bof, _),
+%	seek(Stream, 0, bof, _),		% Bug is fixed
 	seek(Stream, Pos, bof, _).

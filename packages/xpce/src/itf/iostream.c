@@ -171,10 +171,18 @@ Swrite_object(void *handle, char *buf, int size)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note: pos is measured  in  bytes.  If   we  use  wchar  encoding we must
+compensate for this.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static long
 Sseek_object(void *handle, long pos, int whence)
 { OpenObject h = handle;
   Int size;
+  int usize = (h->encoding == ENC_WCHAR ? sizeof(wchar_t) : 1);
+
+  pos /= usize;
 
   if ( isFreedObj(h->object) )
   { errno = EIO;
@@ -194,7 +202,7 @@ Sseek_object(void *handle, long pos, int whence)
       { h->point = valInt(size) - pos;
 	break;
       } else
-      { errno = EPIPE;		/* better idea? */
+      { errno = EPIPE;			/* better idea? */
 	return -1;
       }
     }
@@ -204,7 +212,7 @@ Sseek_object(void *handle, long pos, int whence)
     }
   }
 
-  return h->point;
+  return h->point * usize;
 }
 
 

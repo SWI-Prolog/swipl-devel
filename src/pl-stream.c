@@ -992,6 +992,24 @@ Sflush(IOSTREAM *s)
 		 *	      SEEK		*
 		 *******************************/
 
+static int
+Sunit_size(IOSTREAM *s)
+{ switch(s->encoding)
+  { case ENC_UNKNOWN:
+    case ENC_OCTET:
+    case ENC_ASCII:
+    case ENC_ISO_LATIN_1:
+    case ENC_UTF8:
+      return 1;
+    case ENC_UNICODE_BE:
+    case ENC_UNICODE_LE:
+      return 2;
+    case ENC_WCHAR:
+      return sizeof(wchar_t);
+  }
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Return the size of the underlying data object.  Should be optimized;
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1036,10 +1054,10 @@ Sseek64(IOSTREAM *s, int64_t pos, int whence)
       char *nbufp = (char *)-1;
     
       if ( whence == SIO_SEEK_CUR )
-      { nbufp = s->bufp + pos;
+      { nbufp = s->bufp + pos*Sunit_size(s);
 	rval = now + pos;
       } else if ( whence == SIO_SEEK_SET )
-      { nbufp = s->bufp + (pos - now);
+      { nbufp = s->bufp + (pos - now)*Sunit_size(s);
 	rval = pos;
       } else
 	rval = -1;			/* should not happen */
@@ -1068,6 +1086,7 @@ Sseek64(IOSTREAM *s, int64_t pos, int whence)
     whence = SIO_SEEK_SET;
   }
   
+  pos *= Sunit_size(s);
   if ( s->functions->seek64 )
     pos = (*s->functions->seek64)(s->handle, pos, whence);
   else if ( pos <= LONG_MAX )
@@ -1076,6 +1095,7 @@ Sseek64(IOSTREAM *s, int64_t pos, int whence)
   { errno = EINVAL;
     return -1;
   }
+  pos /= Sunit_size(s);
 
 update:
   s->flags &= ~SIO_FEOF;		/* not on eof of file anymore */
@@ -1113,14 +1133,15 @@ Stell64(IOSTREAM *s)
       pos = (*s->functions->seek64)(s->handle, 0L, SIO_SEEK_CUR);
     else
       pos = (*s->functions->seek)(s->handle, 0L, SIO_SEEK_CUR);
+    pos /= Sunit_size(s);
 
     if ( s->buffer )			/* open */
-    { if ( s->flags & SIO_INPUT )
-      { pos -= s->limitp - s->buffer;
-	pos += s->bufp - s->buffer;
-      } else
-      { pos += s->bufp - s->buffer;
-      }
+    { int64_t off = s->bufp - s->buffer;
+
+      if ( s->flags & SIO_INPUT )
+	off -= s->limitp - s->buffer;
+
+      pos += off/Sunit_size(s);
     }
 
     return pos;

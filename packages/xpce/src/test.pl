@@ -228,6 +228,21 @@ asfile(tb-3) :-
 	read_stream_to_terms(In, Read),
 	close(In),
 	Read =@= Terms.
+asfile(tb-4) :-
+	numlist(0, 20000, L),
+	atom_codes(Atom, L),
+	new(TB, text_buffer),
+	send(TB, contents, Atom),
+	pce_open(TB, read, In),
+	get_code(In, 0),
+	seek(In, 0, current, P1), P1 == 1,
+	forall(member(Pos, [20, 5000, 10240]),
+	       (   seek(In, Pos, bof, P), P == Pos,
+		   get_code(In, Code), Code == Pos
+	       )),
+	seek(In, 0, eof, EndPos), atom_length(Atom, EndPos),
+	close(In),
+	free(TB).
 
 read_stream_to_terms(In, Terms) :-
 	read(In, T0),

@@ -213,9 +213,16 @@ pceWrite(int handle, const char *buf, int size)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note: pos is measured  in  bytes.  If   we  use  wchar  encoding we must
+compensate for this.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 long
 pceSeek(int handle, long offset, int whence)
 { PceFileHandle h;
+
+  offset /= sizeof(wchar_t);
 
   if ( handle >= 0 && handle < max_handles && (h = handles[handle]) )
   { Int size;
@@ -247,7 +254,7 @@ pceSeek(int handle, long offset, int whence)
 	return -1;
       }
     }
-    return h->point;
+    return h->point * sizeof(wchar_t);
   } else
   { errno = EBADF;
     return -1;

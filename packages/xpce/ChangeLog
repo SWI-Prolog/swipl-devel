@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: seek issues on streams created from XPCE objects.
+
 * FIXED: integer return values of prolog defined methods incorrectly mapped
   to XPCE floats.
 
