@@ -77,6 +77,7 @@ request(HTTPD, Request:sheet) :->
 	get(Request, path, Path),
 	get(Request, form, Form),
 	log(request(Request)),
+	flag(requests, N, N+1),
 	reply(Path, Form, HTTPD).
 
 :- pce_end_class.
@@ -122,7 +123,7 @@ frames -->
 			     [ frame([ src('/classhierarchy'),
 				       name(hierarchy)
 				     ]),
-			       frameset([ rows('40,*')
+			       frameset([ rows('60,*')
 					],
 					[ frame([ src('/top'),
 						  name(top)
@@ -787,19 +788,48 @@ top -->
 	{ url(pcehome, Home),
 	  url(pceusg, USG)
 	},
-	page([ title('XPCE reference manual index')
+	page([ title('XPCE reference manual index'),
+	       meta(['http-equiv'('Refresh'), content(60)])
 	     ],
 	     [ p(align(center),
 		 [ \link(Home, 'XPCE Home'), ' ',
 		   \link(USG,  'User Guide'), ' ',
 		   \link('/search', 'Search'), ' ',
-		   \link('/about',  'About')
+		   \link('/about',  'About'),
+		   br([]),
+		   font(size(-1), em(\info))
 		 ])
 	     ]).
 		       
 
 link(URL, Name) -->
 	html([ '[', a([ href(URL), target(description) ], Name), ']' ]).
+
+
+info -->
+	{ get(@pce, version, Version),
+	  flag(requests, Requests, Requests),
+	  statistics(cputime, CPU),
+	  sformat(C2, '~2f', [CPU])
+	},
+	html([ 'XPCE ', Version,
+	       '; Up ', \uptime,
+	       '; Processed ', Requests, ' requests in ', C2, ' seconds'
+	      ]).
+
+:- pce_global(@started, new(date)).
+:- object(@started).
+
+uptime -->
+	{ get(new(date), difference, @started, minute, UpMinutes),
+	  UpDays  is UpMinutes // (24*60),
+	  UpHours is UpMinutes // 60 - UpDays*24,
+	  UpMin   is UpMinutes mod 60
+	},
+	html([ UpDays, ' days ', UpHours, h, UpMin, m ]).
+
+
+
 
 
 %	/blank
