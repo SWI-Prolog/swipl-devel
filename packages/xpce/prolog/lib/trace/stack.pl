@@ -270,11 +270,17 @@ step(_, B, child, V, V) :- !,
 %	prolog_parent(+Frame, -Parent, -PC)
 %
 %	Find parent executing Prolog. If our direct parent is a foreign
-%	frame, keep walking up.
+%	frame, keep walking up.  Same if the parent appears to be a hidden
+%	frame, we keep walking up for a user-frame
 
 prolog_parent(Frame, Parent, PC) :-
-	prolog_frame_attribute(Frame, pc, PC), !,
-	prolog_frame_attribute(Frame, parent, Parent).
+	prolog_frame_attribute(Frame, pc, PC0), !,
+	prolog_frame_attribute(Frame, parent, MyParent),
+	(   prolog_frame_attribute(MyParent, hidden, false)
+	->  Parent = MyParent,
+	    PC = PC0
+	;   prolog_parent(MyParent, Parent, PC)
+	).
 prolog_parent(Frame, Parent, PC) :-
 	prolog_frame_attribute(Frame, parent, Super),
 	prolog_parent(Super, Parent, PC).
