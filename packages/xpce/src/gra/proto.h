@@ -61,6 +61,7 @@ status		swapGraphicalsDevice(Device dev, Graphical gr, Graphical gr2);
 status		layoutDialogDevice(Device d, Size gap, Size bb, Size border);
 status		appendDialogItemDevice(Device d, Graphical item, Name where);
 Graphical	getMemberDevice(Device dev, Name name);
+status		updateConnectionsDevice(Device dev, Int level);
 status		geometryDevice(Device dev, Int x, Int y, Int w, Int h);
 status		makeClassDevice(Class class);
 

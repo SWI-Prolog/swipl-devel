@@ -10,7 +10,6 @@
 #include <h/kernel.h>
 #include <h/graphics.h>
 
-static status	updateConnectionsDevice(Device dev, Int level);
 static status	computeFormatDevice(Device dev);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1881,7 +1880,7 @@ forAllDevice(Device dev, Name name, Code msg)
 		********************************/
 
 
-static status
+status
 updateConnectionsDevice(Device dev, Int level)
 { Cell cell;
 
