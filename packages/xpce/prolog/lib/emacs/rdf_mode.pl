@@ -91,7 +91,7 @@ open_document(M) :->
 	      <rdf:RDF\n  \
 	      xmlns:rdf ="&rdf;"\n  \
 	      xmlns:rdfs="&rdfs;"\n  \
-	      xmlns:xsd ="&dc;"\n\
+	      xmlns:xsd ="&xsd;"\n\
 	      >\n\n\
 	      </rdf:RDF>\n').
 
