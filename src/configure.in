@@ -335,8 +335,8 @@ fi	dnl test for -exportdynamic
 
 dnl Some specific OS stuff
 
-case "$OS" in
-  *hppa*)
+case "$ARCH" in
+  *hppa*|*hpux*)
 	AC_DEFINE(SO_EXT, "sl")
 	if test "$GCC" = "yes"; then
 	    LDFLAGS="$LDFLAGS -Wl,-E"

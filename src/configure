@@ -2725,8 +2725,8 @@ fi
 
 fi	
 
-case "$OS" in
-  *hppa*)
+case "$ARCH" in
+  *hppa*|*hpux*)
 	cat >> confdefs.h <<\EOF
 #define SO_EXT "sl"
 EOF
