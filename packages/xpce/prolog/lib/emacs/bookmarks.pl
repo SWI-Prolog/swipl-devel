@@ -467,10 +467,13 @@ link(BM, To:text_buffer) :->
 update(BM) :->
 	"If bookmark is linked, update <-line_no"::
 	get(BM, hypered, fragment, Fragment),
-	get(Fragment, start, Start),
-	get(Fragment, text_buffer, TB),
-	get(TB, line_number, Start, Line),
-	send(BM, line_no, Line).
+	(   get(Fragment, text_buffer, TB),
+	    TB \== @nil
+	->  get(Fragment, start, Start),
+	    get(TB, line_number, Start, Line),
+	    send(BM, line_no, Line)
+	;   true			% destroy?
+	).
 
 :- pce_end_class.
 
