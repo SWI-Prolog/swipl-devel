@@ -130,7 +130,7 @@ xml_name(term_t in)
 { char *ins;
   unsigned len;
   static dtd_charclass *map;
-  int i;
+  unsigned int i;
 
   if ( !map )
     map = new_charclass();
