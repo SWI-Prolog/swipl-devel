@@ -336,7 +336,7 @@ callTimer(UINT id, UINT msg, DWORD dwuser, DWORD dw1, DWORD dw2)
 
 
 static void
-installEvent(Event ev, doubl5e t)
+installEvent(Event ev, double t)
 { MMRESULT rval;
 
   installHandler();
