@@ -23,9 +23,8 @@ AC_SUBST(RUNTEX)
 
 AC_ARG_ENABLE(mt, [  --enable-mt		  Enable Multi-threading],
 	      [case "$enableval" in
-		   yes) AC_DEFINE([_REENTRANT], 1,
-				  [Define for multi-threaded version])
-			;;
+		   yes) MT=yes
+		       ;;
 		   *)  ;;
 	       esac])
 
@@ -54,8 +53,14 @@ AC_MSG_RESULT("		PLARCH=$PLARCH")
 AC_MSG_RESULT("		PLLIBS=$PLLIBS")
 AC_MSG_RESULT("		PLLDFLAGS=$PLLDFLAGS")
 AC_MSG_RESULT("		PLSHARED=$PLSHARED")
+if test "$PLTHREADS" = yes; then MT=yes; fi
 else
 PLLD=../plld.sh
+fi
+
+if test "$MT" = yes; then
+  AC_DEFINE([_REENTRANT], 1,
+ 	    [Define for multi-threaded version])
 fi
 
 CC=$PLLD

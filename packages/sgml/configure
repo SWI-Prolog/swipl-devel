@@ -1290,12 +1290,8 @@ fi;
 if test "${enable_mt+set}" = set; then
   enableval="$enable_mt"
   case "$enableval" in
-		   yes)
-cat >>confdefs.h <<\_ACEOF
-#define _REENTRANT 1
-_ACEOF
-
-			;;
+		   yes) MT=yes
+		       ;;
 		   *)  ;;
 	       esac
 fi;
@@ -2282,8 +2278,17 @@ echo "$as_me:$LINENO: result: \"		PLLDFLAGS=$PLLDFLAGS\"" >&5
 echo "${ECHO_T}\"		PLLDFLAGS=$PLLDFLAGS\"" >&6
 echo "$as_me:$LINENO: result: \"		PLSHARED=$PLSHARED\"" >&5
 echo "${ECHO_T}\"		PLSHARED=$PLSHARED\"" >&6
+if test "$PLTHREADS" = yes; then MT=yes; fi
 else
 PLLD=../plld.sh
+fi
+
+if test "$MT" = yes; then
+
+cat >>confdefs.h <<\_ACEOF
+#define _REENTRANT 1
+_ACEOF
+
 fi
 
 CC=$PLLD
