@@ -31,11 +31,12 @@ initialiseLBox(LBox lb, Int w)
 static status
 PlaceLBox(LBox lp, Graphical gr, Int x, Int y, Int w)
 { DEBUG(NAME_lbox,
-	Cprintf("Placing %s on %s at %d,%d (width = %d)\n",
-		pp(gr), pp(lp), valInt(x), valInt(y), valInt(w)));
+	Cprintf("Placing %s on %s at %d,%d (width = %s)\n",
+		pp(gr), pp(lp), valInt(x), valInt(y), pp(w)));
 
   ComputeGraphical(gr);
-  if ( gr->area->x != x || gr->area->y != y || gr->area->w != w )
+  if ( gr->area->x != x || gr->area->y != y ||
+       (notDefault(w) && gr->area->w != w) )
     setGraphical(gr, x, y, w, DEFAULT);
 
   succeed;

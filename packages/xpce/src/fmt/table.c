@@ -1663,15 +1663,13 @@ RedrawRulesTableCell(TableCell cell, Name style, int b)
 
 static status 
 RedrawRulesTable(Table tab, Area a)
-{ if ( tab->border != ZERO )
-  { int b = valInt(tab->border);
+{ int b = valInt(tab->border);
 
-    r_dash(NAME_none);
-    r_thickness(b);
+  r_dash(NAME_none);
+  r_thickness(b);
 
-    for_displayed_cells_table(tab, cell,
-			      RedrawRulesTableCell(cell, tab->rules, b), ;);
-  }
+  for_displayed_cells_table(tab, cell,
+			    RedrawRulesTableCell(cell, tab->rules, b), ;);
 
   succeed;
 }
