@@ -2,7 +2,7 @@
 
 <pldoc>
 <head>
-<version>1.0.8
+<version>1.0.9
 <release-date>August 2000
 <package>sgml2pl
 </head>
@@ -33,7 +33,7 @@ DTD. The parser is designed to be small, fast and flexible.
 <p>
 Markup languages have recently regained popularity for two reasons. One 
 is document exchange, which is largely based on HTML, an instance of 
-SGML and the other is for data-exchange between programs, which is often
+SGML, and the other is for data exchange between programs, which is often
 based on XML, which can be considered a simplified and rationalised 
 version of SGML.
 
@@ -46,15 +46,17 @@ not provide access to the DTD, does not allow for flexible handling of
 input or parsing the DTD independently of a document instance.
 
 <p>
-The parser described in this document is small (less than 50 Kbytes 
-executable on a Pentium), fast (between 2 and 5 times faster than SP), 
-provides access to the DTD and flexible input handling.
+The parser described in this document is small (less than 50 kbytes
+executable on a Pentium or 80 kbytes on a SPARC), fast (between 2 and 5
+times faster than SP), provides access to the DTD, and provides flexible
+input handling.
 
 <p>
 The document output is equal to the output produced by <jargon/xml2pl/, 
 an SP interface to SWI-Prolog written by Anjo Anjewierden.
 
-<s1>Bluffers Guide</title>
+
+<s1>Bluffer's Guide</title>
 
 <p>
 This package allows you to parse SGML, XML and HTML data into a Prolog 
@@ -63,7 +65,7 @@ provides access at the file-level, while the low-level interface defined
 in the foreign module works with Prolog streams. Please use the source 
 of <ref file/sgml.pl/ as a starting point for dealing with data from 
 other sources than files, such as SWI-Prolog resources, network-sockets,
-character strings, etc. In the first example below loads an HTML file.
+character strings, <em>etc.</em> The first example below loads an HTML file.
 
 <code>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
@@ -128,9 +130,9 @@ details.
 <s2>`Goodies' Predicates</title>
 
 <p>
-These predicates are for basic usage of the library, converting entire 
-and self-contained files in one of the three supported XML dialects into
-a structured term. They are all expressed in <pref>load_structure/3</pref>.
+These predicates are for basic use of the library, converting entire and
+self-contained files in SGML, HTML, or XML into a structured term. They
+are based on <pref>load_structure/3</pref>.
 
 <definitions>
     <pred>load_sgml_file(+File, -ListOfContent)
@@ -188,13 +190,22 @@ case-insensitive, all element names are returned as lowercase atoms.
 <p>
 <aref/ListOfAttributes/ is a list of <aref/Name/=<aref/Value/ pairs for
 attributes that appeared in the source. No information is returned on
-other attributes, such as <c/fixed/ or <c/default/ attributes. See
+<!--****OUCH****.  So that's what was going wrong.
+    How hard would it be to change this rather devastating limitation?
+    The essence of attribute processing is that an application should
+    have no reason to care, let alone know, which attribute values
+    came from what source.  The HyTime "SGML Extended Facilities", which are
+    supposed to become part of the SGML standard, even provide a way
+    for a document to provide its own default values (<dvlist>).
+-->other attributes, such as <c/fixed/ or <c/default/ attributes. See
 <pref>dtd_property/2</pref> for accessing the DTD for this information.
-Attributes of type <c/CDATA/ are returned literal. Attributes of type
-<c/NUMBER/ are returned as a Prolog integer. Multi-valued attributes
-(<c/NAMES/, etc.) are returned as a list of atoms. For the type
-<c/NUMBERS/, a list of Prolog integers is returned for any element of
-the list that can be converted into an integer.
+Attributes of type <c/CDATA/ are returned literal. Multi-valued
+attributes (<c/NAMES/, <em>etc.</em>) are returned as a list of atoms.
+Handling attributes of the types <c/NUMBER/ and <c/NUMBERS/ depends on
+the setting of the <term>number(+NumberMode)</term> attribute through
+<pref>set_sgml_parser/2</pref> or <pref>load_structure/3</pref>.  By
+default they are returned as atoms, but automatic conversion to Prolog
+integers is supported.
 
 <p>
 <aref/ListOfContent/ defines the content for the element.
@@ -207,8 +218,8 @@ If an entity refers to a character-entity holding a single character,
 but this character cannot be represented in the Prolog character set, 
 this term is returned. For example, the HTML input text
 <verb>&Alpha; &lt; &Beta;</verb>
-is returned as below. Please note that neither in XML nor SGML entities 
-are case-insensitive.
+is returned as below. Please note that entity names are case sensitive
+in both SGML and XML.
 
 <code>
 [ entity('Alpha'), ' < ', entity('Beta') ]
@@ -216,18 +227,27 @@ are case-insensitive.
 
 <p>
 This is a special case of <term>entity(Code)</term>, intended to handle 
-special symbols by their name rather then character code.
+special symbols by their name rather than character code.
     <termitem>sdata(Text)
-If an entity width declared content-type <c/SDATA/ is encountered, this 
+If an entity with declared content-type <c/SDATA/ is encountered, this 
 term is returned holding the data in <aref/Text/.
     <termitem>ndata(Text)
-If an entity width declared content-type <c/NDATA/ is encountered, this 
+If an entity with declared content-type <c/NDATA/ is encountered, this 
 term is returned holding the data in <aref/Text/.
     <termitem>pi(Text)
-If a processing instruction is encoutered (<verb><?...?></verb>), <aref/
+If a processing instruction is encountered (<verb><?...?></verb>), <aref/
 Text/ holds the text of the processing instruction. Please note that the
 <verb><?xml ...?></verb> instruction is handled internally. 
-</argdef>
+<!--This interface does not match what the XML spec requires nor
+    what the Infoset calls for.  Given <?target data...data?>, XML
+    expects something like pi('target','data...data').
+    XML also requires (DOM, Infoset) that comments be provided
+    if you want them (and even if you don't, *sigh*).
+    comment(Text), provided if comment(yes) appeared in the Options
+    would be good.  Similarly, cdata(Text), for the content of
+    CDATA marked sections, provided if cdata(yes) appear in the Options
+    would seem to be required by XML InfoSet.
+--></argdef>
 
 
 <p>
@@ -245,12 +265,12 @@ Specify the parsing dialect. Supported are <c/sgml/ (default), <c/xml/
 and <c/xmlns/. See <ref sec/xml/ for details on the differences.
     <termitem>space(+SpaceMode)
 Sets the `space-handling-mode' for the initial environment. This mode is
-inherited by the other environments and subject to the XML reserved tag <elem/
-xml:space/. See <ref sec/space/.
+inherited by the other environments, which can override the inherited
+value using the XML reserved attribute <elem/xml:space/. See <ref sec/space/.
     <termitem>number(+NumberMode)
 Determines how attributes of type <c/NUMBER/ and <c/NUMBERS/ are handled.
 If <c/token/ (default) they are passed as an atom.  If <c/integer/ the
-parser attempts to convert the value to an integer.  If successfull, the
+parser attempts to convert the value to an integer.  If successful, the
 attribute is passed as a Prolog integer.  Otherwise it is still passed
 as an atom.  Note that SGML defines a numeric attribute to be a sequence
 of digits.  The <c/-/ sign is not allowed and <xmp/1/ is different from
@@ -276,38 +296,41 @@ exception of the format below is raised. The default is 50.
 
 <p>
 SGPL2PL has four modes for handling white-space. The initial mode can be
-switched using the <term>space(SpaceMode)</term> option to <pref>
-load_structure/3</pref> and <pref>set_sgml_parser/2</pref>. In XML mode,
-the mode is further controlled by the <elem/xml:space/ attribute, which 
-may be specified both in the DTD as in the document. The defined modes 
-are:
+switched using the <term>space(SpaceMode)</term> option to
+<pref>load_structure/3</pref> and <pref>set_sgml_parser/2</pref>. In XML
+mode, the mode is further controlled by the <elem/xml:space/ attribute,
+which may be specified both in the DTD and in the document. The defined
+modes are:
 
 <valdef>
     <termitem>space(sgml)
-In SGML, newlines at the start and end of an element are removed.<fn>In 
-addition, newlines at the end of lines containing only markup should be 
+In SGML, newlines at the start and end of an element are removed.<fn>In
+addition, newlines at the end of lines containing only markup should be
 deleted. This is not yet implemented.</fn> This is the default mode for 
 the SGML dialect. 
+
     <termitem>space(preserve)
-White space is passed literally to the application. This is the default 
-mode. This mode leaves all white space handling to the application. This
-is the default mode for the XML dialect. 
+White space is passed literally to the application. This mode leaves all
+white space handling to the application. This is the default mode for
+the XML dialect. 
+
     <termitem>space(default)
 In addition to <c/sgml/ space-mode, all consequtive white-space is 
 reduced to a single space-character. This mode canonises all white 
 space. 
+
     <termitem>space(remove)
 In addition to <c/default/, all leading and trailing white-space is 
-removed from <c/CDATA/ objects. If, as a result, if the <c/CDATA/ 
+removed from <c/CDATA/ objects. If, as a result, the <c/CDATA/ 
 becomes empty, nothing is passed to the application. This mode is 
 especially handy for processing `data-oriented' documents, such as RDF. 
 It is not suitable for normal text documents. Consider the HTML 
-statement below. When processed in this mode, the spaces between the 
-three modified words are lost. This mode is, unlike the two others, not 
-part of the XML standard.
+fragment below. When processed in this mode, the spaces between the 
+three modified words are lost.  This mode is not part of any standard;
+XML 1.0 allows only <c/default/ and <c/preserve/.
 
 <code>
-Consider adjecent <b>bold</b> <ul>and</ul> <it>italic</it> words.
+Consider adjacent <b>bold</b> <ul>and</ul> <it>italic</it> words.
 </code>
 </valdef>
 
@@ -336,16 +359,16 @@ The following entitities are predefined: <c/lt/ (<verb><</verb>), <c/gt/
 and <c/quot/ (<verb>"</verb>). 
    <tag>Case sensitivity
 In XML mode, names are treated case-sensitive, except for the DTD 
-reserved names (i.e. <xmp/ELEMENT/, etc.). 
+reserved names (i.e. <xmp/ELEMENT/, <em>etc.</em>). 
    <tag>Character classes
 In XML mode, underscores (<verb>_</verb>) and colon (<verb>:</verb>) are
 allowed in names. 
    <tag>White-space handling
-White space mode is set to <c/preserve/. In addition to setting 
-white-space handling at the toplevel the XML reserved attribute <elem/
-xml:space/ is honoured. It may appear both in the document as the DTD. 
-The <c/remove/ extension is honoured as <elem/xml:space/ value. For 
-example, the DTD statement below ensures that the <elem/pre/ element 
+White space mode is set to <c/preserve/. In addition to setting
+white-space handling at the toplevel the XML reserved attribute
+<elem/xml:space/ is honoured. It may appear both in the document and the
+DTD. The <c/remove/ extension is honoured as <elem/xml:space/ value. For
+example, the DTD statement below ensures that the <elem/pre/ element
 preserves space, regardless of the default processing mode.
 
 <code>
@@ -360,6 +383,26 @@ preserves space, regardless of the default processing mode.
 Using the <jargon/dialect/ <c/xmlns/, the parser will interpret XML 
 namespaces. In this case, the names of elements are returned as a term 
 of the format
+<!--I am a bit puzzled here.  It is clear from the XML InfoSet and
+    from the Document Object Model and also, I thought, quite clear
+    from XML Namespaces itself, that under namespaces, the name
+    of an element is a TRIPLE:  qualified name, local name, uri
+    An element always retains the name it was originally written
+    with, not least because that is exactly what the <!ELEMENT>
+    declarations constrain, and under Namespace processing acquires
+    two ADDITIONAL pieces of information: the local name and the uri
+    The same goes for attribute names; I must say that the approach
+    taken in sgml2pl seems excessively complicated.
+    Why not take a step forward and use 
+      element(Name,Addl,Atts,Content) 
+      attribute(Name,Addl,Value) 
+    where Addl is an abstract data type, leaving you room to plug 
+    source location in there later (which would be useful in 'sgml'
+    and 'xml' without namespaces modes) plus other stuff like 
+    namespace, xbase, and so on.  You'd need a predicate 
+      xml_namespace(Addl, LocalName, URI) 
+    to get at the information, but it would work.
+-->
 
 <quote>
 <aref/URL/<c/:/<aref/LocalName/ 
@@ -372,12 +415,14 @@ namespace is undeclared, the namespace name rather than the related URL
 is returned.
 
 <p>
-Attributes declaring namespaces (<xmp>xmlns:<aref/ns/=<aref/url/</xmp>
-are reported as if <c/xmlns/ is not a defined resource.
-
+Attributes declaring namespaces (<xmp>xmlns:<aref/ns/=<aref/url/</xmp>)
+are reported as if <c/xmlns/ were not a defined resource.
+<!--Unless I've misunderstood, xml*:* attributes are not supposed
+    to be returned with other attributes.
+-->
 <p>
 In many cases, getting attribute-names as <xmp><aref/url/:<aref/name/</xmp>
-is not desirable. Such terms are hard to unified and sometimes multiple 
+is not desirable. Such terms are hard to unify and sometimes multiple 
 URLs may be mapped to the same identifier. This may happen due to poor 
 version management, poor standardisation or because the the application 
 doesn't care too much about versions. This package defines two 
@@ -385,8 +430,8 @@ call-backs that can be set using <pref>set_sgml_parser/2</pref> to deal
 with this problem.
 
 <p>
-the call-back <c/xmlns/ is called as XML namespaces are pushed on the
-environment. It can be used to extend a canonical mapping for later use
+The call-back <c/xmlns/ is called as XML namespaces are noticed.
+It can be used to extend a canonical mapping for later use
 by the <c/urlns/ call-back. The following illustrates this behaviour.
 Any namespace containing <c/rdf-syntax/ in its URL or that is used as
 <c/rdf/ namespace is canonised to <c/rdf/. This implies that any
@@ -400,7 +445,7 @@ attribute and element name from the RDF namespace appears as
 on_xmlns(rdf, URL, _Parser) :- !,
         asserta(xmlns(URL, rdf, _)).
 on_xmlns(_, URL, _Parser) :-
-        sub_atom(URL, _, _, _, rdf-syntax), !,
+        sub_atom(URL, _, _, _, 'rdf-syntax'), !,
         asserta(xmlns(URL, rdf, _)).
 
 load_rdf_xml(File, Term) :-
@@ -417,7 +462,7 @@ load_rdf_xml(File, Term) :-
 <p>
 The DTD (<b>D</b>ocument <b>T</b>ype <b>D</b>efinition) is a separate 
 entity in sgml2pl, that can be created, freed, defined and inspected. 
-Like the parser itself, it is filled by opening it it as a Prolog output
+Like the parser itself, it is filled by opening it as a Prolog output
 stream and sending data to it. This section summarises the predicates 
 for handling the DTD.
 <definitions>
@@ -482,30 +527,45 @@ arguments are booleans (<c/true/ or <c/false/ representing whether the
 open- or close-tag may be omitted. <aref/Content/ is the content-model 
 of the element represented as a Prolog term. This term takes the 
 following form:
-<argdef>
+<!--You say nothing about how exceptions +(...) -(...) are
+    represented.  Exceptions are used in HTML, e.g. 
+     <!ELEMENT A - - (%inline)* -(A)> 
+    so what DOES sgml2pl do with them? 
+--><argdef>
     <termitem><c/empty/
 The element has no content. 
+
     <termitem><c/cdata/
-The element contains non-parsed character data.  All data upto the
+The element contains non-parsed character data.  All data up to the
 matching end-tag is included in the data (<jargon/declared content/).
+
     <termitem><c/rcdata/
 As <c/cdata/, but entity-references are expanded.
+
     <termitem><c/any/
 The element may contain any number of any element from the DTD in
 any order.
+
     <termitem><c/#pcdata/
-The element contains parsed character data 
+The element contains parsed character data .
+
     <termitem><var/element/ An element with this name. 
+
     <termitem>*(SubModel)
 0 or more appearances. 
+
     <termitem>?(SubModel)
 0 or one appearance. 
+
     <termitem>+(SubModel)
 1 or more appearances. 
+
     <termitem>,(SubModel1, SubModel2)
 <aref/SubModel1/ followed by <aref/SubModel2/. 
+
     <termitem>&amp;(SubModel1, SubModel2)
 <aref/SubModel1/ and <aref/SubModel2/ in any order. 
+
     <termitem>|(SubModel1, SubModel2)
 <aref/SubModel1/ or <aref/SubModel2/. 
 </argdef>
@@ -564,7 +624,9 @@ soon as the first real data is encountered.
 <s2 name="implicitdtd">Extracting a DTD</title>
 
 <p>
-Some documents have no DTD. One of the neat facilities of this library 
+<!--There's a PhD thesis from Helsinki about inferring a DTD.
+    There's also a recent paper about inferring XML DTDs.
+-->Some documents have no DTD. One of the neat facilities of this library 
 is that it builds a DTD while parsing a document with an <jargon/
 implicit/ DTD. The resulting DTD contains all elements encountered in 
 the document. For each element the content model is a disjunction of 
@@ -618,7 +680,7 @@ Destroy all resources related to the parser. This does not destroy the
 DTD if the parser was created using the <term>dtd(DTD)</term> option.
 
     <pred>set_sgml_parser(+Parser, +Option)
-    <summary>Set parser options (dialect, source, etc.)
+    <summary>Set parser options (dialect, source, <em>etc.</em>)
 Sets attributes to the parser. Currently defined attributes: 
 
 <argdef>
@@ -638,8 +700,8 @@ The default dialect is to process as SGML. This implies markup is
 case-insensitive and standard SGML abbreviation is allowed (abreviated 
 attributes and omitted tags). 
     <termitem><c/xml/
-This dialect is selected automatically if the processing instruction <verb><?xml ...></verb>
-is encountered. See <ref sec/xml/ for details. 
+This dialect is selected automatically if the processing instruction
+<verb><?xml ...></verb> is encountered. See <ref sec/xml/ for details. 
     <termitem><c/xmlns/
 Process file as XML file with namespace support. See <ref sec/xmlns/ for
 details. 
@@ -681,7 +743,7 @@ current call-back.  Used in <ref exe/PceEmacs/ to for colouring text in
 SGML and XML modes.
 
     <termitem>source(-Stream)
-Prolog stream being processed. May be used in the <c/on_begin/, etc. 
+Prolog stream being processed. May be used in the <c/on_begin/, <em>etc.</em> 
 callbacks from <pref>sgml_parse/2</pref>. 
 
     <termitem>dialect(-Dialect)
@@ -701,12 +763,11 @@ highlighting.  Defined values are:
     <termitem><c/shorttag/
 	The current event (<c/begin/ or <c/end/) is caused by an
 	element written down using the <jargon/shorttag/ notation
-	(<verb><tag/value/</verb>).
+	(<verb><tag/value/></verb>.
     <termitem><c/shortref/
 	The current event is caused by the expansion of a
 	<jargon/shortref/. This allows for highlighting shortref strings
 	in the source-text.
-    </argdef>
 
     <termitem>doctype(-Element)
 Return the defined document-type (= toplevel element).  See also
@@ -752,6 +813,7 @@ with loaded DTD, an input stream and a start-location.
 feed(In, Len, Parser) :-
 	copy_stream_data(In, Parser, Len).
 </code>
+    </argdef>
 </argdef>
 
 <p>
@@ -777,10 +839,10 @@ An input stream that is read. Either this option or the <term>goal(Goal)</term>
 option must be provided. 
     <termitem>goal(+Goal)
 <aref/Goal/ is a callable term. The predicate <pref>sgml_parse/2</pref> 
-opens an output stream to the parser and invokes <term>call(Goal,
-Stream)</term>, where <aref/Goal/ should write the data to be parsed to
-<aref/Stream/. This option is not compatible to
-<term>parse(element)</term>. This option can be used for example to
+opens an output stream to the parser and invokes
+<term>call(Goal, Stream)</term>, where <aref/Goal/ should write the data
+to be parsed to <aref/Stream/. This option is not compatible with
+<term>parse(element)</term>. This option can be used, for example, to
 parse a Prolog atom:
 
 <code>
@@ -858,7 +920,9 @@ arguments: <term><aref/Handler/(+Tag, +Attributes, +Parser)</term>.
     <termitem>end
 A close-tag has been parsed. The named handler is called with two 
 arguments: <term><aref/Handler/(+Tag, +Parser)</term>. 
-    <termitem>cdata
+<!--Why on earth are the attributes not parsed here?
+    I know nsgmls doesn't include them, and a major nuisance I've found it.
+-->    <termitem>cdata
 CDATA has been parsed. The named handler is called with two arguments: <term><aref/
 Handler/(+CDATA, +Parser)</term>, where CDATA is an atom representing 
 the data. 
@@ -873,7 +937,7 @@ with two arguments: <term><aref/Handler/(+Text, +Parser)</term>, where
     <termitem>decl
 A declaration (<verb><!...></verb>) has been read. The named handler is
 called with two arguments: <term><aref/Handler/(+Text, +Parser)</term>,
-where <aref/Text/ is the text of the declaration stripped from comments. 
+where <aref/Text/ is the text of the declaration with comments removed.
 
 <p>
 This option is expecially useful for highlighting declarations and comments in
@@ -911,9 +975,9 @@ use <pref>load_structure/2</pref> or one of its variations and extract
 the desired elements from the returned structure. This is a clean 
 solution, especially on small and medium-sized documents. It however is 
 unsuitable for parsing really big documents. Such documents can only be 
-handled with the call-back output interface realised by the <term>call(
-Event, Action)</term> option of <pref>sgml_parse/2</pref>. Event-driven 
-processing is not very natural in Prolog.
+handled with the call-back output interface realised by the
+<term>call(Event, Action)</term> option of <pref>sgml_parse/2</pref>.
+Event-driven processing is not very natural in Prolog.
 
 <p>
 The SGML2PL library allows for a mixed approach. Consider the case where
@@ -962,7 +1026,7 @@ by Netscape has produced a 90MB RDF file representing the main index.
 The parser described here can process this document as a unit, but 
 loading takes 85 seconds on a Pentium-II 450 and the resulting term 
 requires about 70MB global stack. One option is to process the entire 
-document and output it as a Prolog fact-based of RDF tripplets, but in 
+document and output it as a Prolog fact-base of RDF triplets, but in 
 many cases this is undesirable. Another example is a large SGML file 
 containing online documentation. The application normally wishes to 
 provide only small portions at a time to the user. Loading the entire 
@@ -1021,15 +1085,17 @@ rdf_element(Id, Term) :-
 While processing an SGML document the document may refer to external 
 data. This occurs in three places: external parameter entities, normal 
 external entities and the <c/DOCTYPE/ declaration. The current version 
-of these tools deal rather primitively with external data. External 
+of this tool deals rather primitively with external data. External 
 entities can only be loaded from a file and the mapping between the 
 entity names and the file is done using a <jargon/catalog/ file in a 
-format compatible to that used by James Clark's SP Parser.
+format compatible with that used by James Clark's SP Parser,
+based on the SGML Open (now OASIS) specification.
 
 <p>
-Catalog files can be specified using two primitives: the predicate <pref>
-sgml_register_catalog_file/2</pref> or the environment variable <ref env/
-SGML_CATALOG_FILES/ (compatible to the SP package).
+Catalog files can be specified using two primitives: the predicate
+<pref>sgml_register_catalog_file/2</pref> or the environment variable
+<ref env/SGML_CATALOG_FILES/ (compatible with the SP package).
+
 <definitions>
     <pred>sgml_register_catalog_file(+File, +Location)
     <summary>Register a catalog file
@@ -1047,7 +1113,8 @@ all files in this path.
 
 <p>
 Two types of lines are used by this package.
-
+<!--Why are DOCTYPE, ENTITY, and NOTATION not supported? 
+-->
 <xmp sgml block>
 <c/DOCTYPE/ <aref/doctype/ <aref/file/
 <c/PUBLIC/ <xmp/"/<aref/Id/<xmp/"/ <aref/file/ 
@@ -1061,6 +1128,12 @@ fails it tries to resolve the <aref/doctype/ using the provided catalog
 files.
 
 <p>
+Strictly speaking, <ref pkg/sgml2pl/ breaks the rules for XML, where
+system identifiers must be Universal Resource Indicators, not local file
+names.  Simple uses of relative URIs will work correctly under UNIX
+and Windows.
+
+<p>
 In the future we will design a call-back mechanism for locating and 
 processing external entities, so Prolog-based file-location and Prolog 
 resources can be used to store external entities.
@@ -1069,9 +1142,9 @@ resources can be used to store external entities.
 <s1>Missing functionality</title>
 
 <p>
-The current parser is rather limited. Though suitable to deal with many 
-serious documents, it also fails a number of less-used features in SGML 
-and XML. Known missing SGML features include
+The current parser is rather limited. While it is able to deal with many
+serious documents, it omits several less-used features of SGML and XML.
+Known missing SGML features include
 
 <ul>
     <tag>NOTATION on entities
@@ -1082,14 +1155,31 @@ The SGML SHORTTAG syntax is only partially implemented. Currently,
 <verb><tag/content/</verb> is a valid abbreviation for
 <verb><tag>content</tag></verb>, which can also be written as
 <verb><tag>content</></verb>.
+Empty start tags (<verb><></verb>), unclosed start tags
+(<verb><a<b</verb>) and unclosed end tags (<verb></a<b</verb>) are not
+supported.
     <tag>SGML declaration
 The `SGML declaration' is fixed, though most of the parameters are 
 handled through indirections in the implementation. 
+    <tag>The DATATAG feature
+It is regarded as superseded by SHORTREF, which is supported.
+(SP does not support it either.)
+    <tag>The RANK feature
+It is regarded as obsolete.
+    <tag>The LINK feature
+It is regarded as too complicated.
+    <tag>The CONCUR feature
+Concurrent markup allows a document to be tagged according to more than
+one DTD at the same time.  It is not supported.
 </ul>
 
 <p>
 In XML mode the parser recognises SGML constructs that are not allowed 
 in XML. Also various extensions of XML over SGML are not yet realised.
+In particular, XInclude is not implemented because the designers of
+XInclude can't make up their minds whether to base it on elements or
+attributes yet, let alone details.
+
 
 <s1>Installation</title>
 
@@ -1122,7 +1212,7 @@ SWI-Prolog interface to SP by Anjo Anjewierden.
 
 <p>
 Richard O'Keefe pointed out a number of mistakes in a earlier version of
-this parser.
+this parser, and made many suggestions for improving this document.
 
 </pldoc>
 

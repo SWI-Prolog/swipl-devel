@@ -136,7 +136,7 @@
 <!ELEMENT definition   o o (pred,summary?,desc)>
 <!ELEMENT desc         o o (%DescBody)>
 
-<!ELEMENT summary      - - (#PCDATA)>
+<!ELEMENT summary      - - (#PCDATA|%Font;)*>
 <!ENTITY end-summary ENDTAG "summary">
 <!SHORTREF in.summary '&#RE;' end-summary>
 <!USEMAP in.summary summary>
