@@ -258,7 +258,7 @@ static const PL_extension foreigns[] = {
   FRG("source_file",		2, pl_source_file,      NDET|META),
   FRG("$time_source_file",	2, pl_time_source_file,	     NDET),
   FRG("$start_consult",		1, pl_start_consult,		0),
-  FRG("$make_system_source_files",0,pl_make_system_source_files,TRACE_ME),
+  FRG("$make_system_source_files",0,pl_make_system_source_files,0),
   FRG("$default_predicate",	2, pl_default_predicate,     META),
   FRG("$clause_from_source",	3, pl_clause_from_source,	0),
 

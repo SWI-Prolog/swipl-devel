@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: Predicates whose name starts with '$' are automatically
+    hidden from the tracer.  To comfort LogTalk.  Paulo Moura.
+
   * FIXED: retractall/1 to call setDynamicProcedure() instead of simply
     modifying the predicate.  setDynamicProcedure() to call the clause
     garbage collector before deciding it cannot turn static predicate

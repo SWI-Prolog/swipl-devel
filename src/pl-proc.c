@@ -104,7 +104,8 @@ resetProcedure(Procedure proc, bool isnew)
     isnew = TRUE;
 
   def->flags ^= def->flags & ~(SPY_ME|NEEDSCLAUSEGC|P_SHARED);
-  set(def, TRACE_ME);
+  if ( stringAtom(def->functor->name)[0] != '$' )
+    set(def, TRACE_ME);
   def->number_of_clauses = 0;
 
   if ( isnew )
