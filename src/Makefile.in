@@ -302,7 +302,7 @@ rt-install:
 		    fi; \
 		done
 		$(INSTALL_PROGRAM) $(PL) $(RTHOME)/bin/$(ARCH)/pl
-		$(INSTALL_PROGRAM) chpl $(RTHOME)/bin/$(ARCH)chpl
+		$(INSTALL_PROGRAM) chpl $(RTHOME)/bin/$(ARCH)/chpl
 		$(INSTALL_DATA) $(srcdir)/pl.1 $(RTHOME)/man/pl.1
 		$(INSTALL_DATA) $(srcdir)/chpl.1 $(RTHOME)/man/chpl.1
 		$(INSTALL_DATA) swipl $(RTHOME)/swipl

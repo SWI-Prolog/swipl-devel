@@ -1,0 +1,96 @@
+			SWI-Prolog runtime README
+			=========================
+
+1. Components of the SWI-Prolog runtime environment
+===================================================
+
+	bin/$ARCH/pl	 The emulator itself.
+	bin/$(ARCH)/chpl `Change Prolog': change the emulator path
+	bin/swipl	 File containing the place of the home directory (..)
+	man/pl.1	 Manual page for SWI-Prolog
+	man/chpl.1	 Manual page for chpl.1
+	swipl		 File containing the place of the home directory (.)
+	lib/<arch>	 Place for your shared libraries.
+
+
+2. Installation of the runtime environment
+==========================================
+
+Place this directory anywhere you like.
+
+
+3. Installing an application to use the runtime environment
+===========================================================
+
+A SWI-Prolog runtime application is a /bin/sh shell script that executes
+the emulator.  Therefore, it needs to know the location of the emulator.
+It starts the emulator using the following command:
+
+	exec ${SWIPL-/staff/jan/src/pl/src/pl} -x $0 "$@"
+
+Therefore, there are two ways to tell   the  application how to find the
+emulator:
+
+	(1) Change the wired-in path using the program `chpl' from
+	the runtime distribution:
+
+	    % chpl -e /absolute-path-to-emulator my-application
+
+	Or simply edit the file.  In this case, be warned that the
+	scripts ends with the line `# End Header'.  This line and
+	anything below should *not* be modified.  The file after
+	this line is BINARY and contains LONG LINES.  Many editors
+	don't like this!
+
+	You can also edit the runtime header script using chpl:
+	
+	    % chpl -x my-application > header
+	    % emacs header
+	    % chpl -h header my-application
+
+	this avoids problems with editors that are incapable of
+	editing binary files.
+
+	(2) Set the environment variable SWIPL to point to the
+	emulator.
+
+
+4. The development environment
+==============================
+
+SWI-Prolog is a free  Prolog  system   for  non-commercial  usage.   Its
+licence allows you to use the system for  anything you like, but you are
+*not* allowed to ask money  for   applications  running under SWI-Prolog
+that exceeds reasonable administrative and copying costs.  The system is
+distributed `as-is' without any implicit or   explicit warranty.  If you
+want to distribute commercial applications  based on SWI-Prolog, contact
+prolog-request@swi.psy.uva.nl
+
+The sources and documentation are available from
+
+	ftp://swi.psy.uva.nl/pub/SWI-Prolog/
+
+4. Warranty
+===========
+
+WE PROVIDE ABSOLUTELY NO WARRANTY, TO THE EXTENT PERMITTED BY APPLICABLE
+LAW. EXCEPT WHEN OTHERWISE STATED IN WRITING, THE UNIVERSITY OF
+AMSTERDAM AND/OR OTHER PARTIES PROVIDE THE XPCE RUNTIME SYSTEM "AS IS"
+WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING,
+BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND
+PERFORMANCE OF THE PROGRAM IS WITH YOU. SHOULD THE XPCE PROGRAM PROVE
+DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR
+CORRECTION.
+
+IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW WILL THE UNIVERSITY OF
+AMSTERDAM, AND/OR ANY OTHER PARTY WHO MAY MODIFY AND REDISTRIBUTE XPCE
+AS PERMITTED ABOVE, BE LIABLE TO YOU FOR DAMAGES, INCLUDING ANY LOST
+PROFITS, LOST MONIES, OR OTHER SPECIAL, INCIDENTAL OR CONSEQUENTIAL
+DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE (INCLUDING BUT NOT
+LIMITED TO LOSS OF DATA OR DATA BEING RENDERED INACCURATE OR LOSSES
+SUSTAINED BY THIRD PARTIES OR A FAILURE OF THE PROGRAM TO OPERATE WITH
+PROGRAMS NOT DISTRIBUTED BY THE UNIVERSITY BY OF AMSTERDAM) THE PROGRAM,
+EVEN IF YOU HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES, OR FOR
+ANY CLAIM BY ANY OTHER PARTY.
+

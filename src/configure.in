@@ -46,8 +46,8 @@ AC_ARG_ENABLE(runtime, [  --enable-runtime	  Runtime system only],
 	      [case "$enableval" in
 		   yes) AC_DEFINE(O_RUNTIME)
 		        runtime=yes
-			RT=rt ;;
-			INSTALLTARGET=rt-install
+			RT=rt
+			INSTALLTARGET=rt-install ;;
 		   *)  ;;
 	       esac])
 

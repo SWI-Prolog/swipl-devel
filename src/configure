@@ -771,8 +771,8 @@ if test "${enable_runtime+set}" = set; then
 EOF
 
 		        runtime=yes
-			RT=rt ;;
-			INSTALLTARGET=rt-install
+			RT=rt
+			INSTALLTARGET=rt-install ;;
 		   *)  ;;
 	       esac
 fi
