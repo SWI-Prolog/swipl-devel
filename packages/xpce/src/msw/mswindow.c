@@ -559,8 +559,10 @@ ws_topmost_window(PceWindow sw, Bool topmost)
 void
 ws_invalidate_window(PceWindow sw, Area a)
 { int clear = FALSE;
-  HWND hwnd = getHwndWindow(sw);
+  HWND hwnd;
 
+  pceMTLock(LOCK_PCE);
+  hwnd = getHwndWindow(sw);
   clearing_update = FALSE;
 
   if ( hwnd && IsWindowVisible(hwnd) )
@@ -577,6 +579,7 @@ ws_invalidate_window(PceWindow sw, Area a)
       InvalidateRect(hwnd, &rect, clear);
     }
   }
+  pceMTUnlock(LOCK_PCE);
 }
 
 
