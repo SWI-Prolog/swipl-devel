@@ -54,17 +54,20 @@ hooks, file_search_path/2, set_prolog_flag/2 and portray/1.
 %	Define the editor to use.  Note that more advanced maniluation
 %	of this is defined in the SWI-Prolog reference manual, section
 %	"Listing and Editor Interface"
+%	
+%	The value pce_emacs (or built_in) causes the system to use the
+%	built-in editor PceEmacs if the environment provides for a GUI.
+%	
+%	The se
 
-% :- setenv('EDITOR', emacs).
+% :- set_prolog_flag(editor, pce_emacs).
+% :- set_prolog_flag(editor, pico).
 
-%	When using XPCE, you can also opt for the built-in editor PceEmacs.
-%	This can be started using ?- emacs(File). ?- emacs. or automatically
-%	through the edit interface by uncommenting this. The flag `gui'
-%	is true when using plwin.exe on Windows or have $DISPLAY set on
-%	Unix.
-
-% :- (current_prolog_flag(gui, true) ->
-%     use_module(library('emacs/swi_prolog.pl')) ; true).
+%:- multifile
+%	prolog_edit:edit_command/3.
+%
+%prolog_edit:edit_command(pico, '%e +%d "%f"').
+%prolog_edit:edit_command(pico, '%e "%f"').
 
 
 		 /*******************************

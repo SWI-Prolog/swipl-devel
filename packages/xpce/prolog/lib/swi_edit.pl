@@ -35,7 +35,7 @@
 :- multifile
 	prolog_edit:locate/3,		% +Partial, -FullSpec, -Location
 	prolog_edit:locate/2,
-	prolog_edit:edit_source/1.
+	prolog_edit:select_location/3.
 	  
 
 		 /*******************************
@@ -103,21 +103,6 @@ method_source(ClassName, get(Selector), [file(File),line(Line)]) :-
 	arg(4, Binder, source_location(File, Line)),
 	\+ get(@classes, member, ClassName, _).
 					   
-
-		 /*******************************
-		 *	     EDIT HOOK		*
-		 *******************************/
-
-prolog_edit:edit_source(Location) :-
-	memberchk(file(File), Location),
-	memberchk(line(Line), Location), !,
-	Goal = start_emacs, Goal,	% fool xref
-	send(@emacs, goto_source_location, source_location(File, Line)).
-prolog_edit:edit_source(Location) :-
-	memberchk(file(File), Location),
-	Goal = start_emacs, Goal,	% fool xref
-	send(@emacs, goto_source_location, source_location(File)).
-
 
 		 /*******************************
 		 *	       SELECT		*

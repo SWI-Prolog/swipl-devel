@@ -49,26 +49,64 @@
 :- pce_global(@emacs, new(emacs(@emacs_buffers))).
 
 
+%	start_emacs/0
+%	
+%	Create PceEmacs, but no buffers nor windows.
+
 start_emacs :-
+	register_emacs,
 	send(@emacs, start).
 
+
+%	register_emacs/0
+%	
+%	If the user has not specified a specific editor and has started
+%	PceEmacs, make it the default editor.
+
+register_emacs :-
+	(   current_prolog_flag(editor, '$EDITOR')
+	->  set_prolog_flag(editor, pceemacs)
+	;   true
+	).
+
+
+%	emacs_server/0
+%	
+%	Create a PceEmacs, ready to run as an unattended background
+%	server.
 
 emacs_server :-
 	start_emacs,
 	send(@pce, trap_errors, @off),
 	send(@pce, console_label, 'PceEmacs Server').
 
+%	emacs/0
+%	
+%	Create PceEmacs and open the *scratch* buffer.
 
 emacs :-
 	start_emacs,
 	new(Scratch, emacs_buffer(@nil, '*scratch*')),
 	send(Scratch, open).
 	
+%	emacs(+File:+Line)
+%	emacs(+File)
+%	
+%	Create PceEmacs and edit File. If :Line is provided goto the
+%	specified line.
 
+emacs(File:Line) :-
+	integer(Line),
+	atom(File), !,
+	start_emacs,
+	send(@emacs, goto_source_location, source_location(File, Line)).
 emacs(File) :-
 	start_emacs,
-	new(B, emacs_buffer(File)),
-	send(B, open).
+	send(@emacs, goto_source_location, source_location(File)).
+
+%	emacs_toplevel
+%	
+%	Propare to run PceEmacs as a stand-alone executable.
 
 emacs_toplevel :-
 	send(@pce, trap_errors, @off),

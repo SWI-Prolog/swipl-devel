@@ -561,15 +561,17 @@ Start editor on \arg{Location}. See prolog_edit:locate/3 for the format
 of a location term. This multi-file predicate is normally not defined.
 If it succeeds, edit/1 assumes the editor is started.
 
-If it fails, edit/1 will invoke an external editor.  The editor
-to be invoked is determined from the evironment variable \env{EDITOR},
-which may be set from the operating system or from the Prolog
-initialisation file using setenv/2.  If no editor is defined,
-\program{vi} is the default in Unix systems, and \program{notepad}
-on Windows.
+If it fails, edit/1 uses its internal defaults, which are defined by
+the prolog-flag \const{editor} and/or the environment variable
+\env{EDITOR}.  The following rules apply.  If the prolog-flag \const{editor}
+is of the format \verb|$|<name>, the editor is determined by the environment
+variable <name>.  Else, if this flag is \const{pce_emacs} or \const{built_in}
+\emph{and} XPCE is loaded or can be loaded, the built-in Emacs clone is used.
+Else, if the environment \env{EDITOR} is set, this editor is used.  Finally,
+\program{vi} is used as default on Unix systems and \program{notepad} on
+Windows.
 
-The predicate prolog_edit:edit_command/2 defines how the editor will
-be invoked.
+See the default user preferences file \file{dotfiles/dotplrc} for examples.
 
     \predicate{prolog_edit:edit_command}{2}{+Editor, -Command}
 Determines how \arg{Editor} is to be invoked using shell/1.  

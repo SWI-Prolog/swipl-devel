@@ -171,9 +171,31 @@ locate(clause(Ref, _PC), [file(File), line(Line)]) :- % TBD: use clause
 		 *	       EDIT		*
 		 *******************************/
 
-do_edit_source(Location) :-
+%	do_edit_source(+Location)
+%	
+%	Actually call the editor to edit Location, a list of Name(Value)
+%	that contains file(File) and may contain line(Line). First the
+%	multifile hook edit_source/1 is called. If this fails the system
+%	checks for XPCE and the prolog-flag editor. If the latter is
+%	built_in or pce_emacs, it will start PceEmacs.
+%	
+%	Finally, it will get the editor to use from the prolog-flag
+%	editor and use edit_command/2 to determine how this editor
+%	should be called.
+
+do_edit_source(Location) :-		% hook
 	edit_source(Location), !.
-do_edit_source(Location) :-
+do_edit_source(Location) :-		% PceEmacs
+	current_prolog_flag(editor, Editor),
+	pceemacs(Editor),
+	current_prolog_flag(gui, true), !,
+	memberchk(file(File), Location),
+	(   memberchk(line(Line), Location)
+	->  Goal = emacs(File:Line)
+	;   Goal = emacs(File)
+	),
+	Goal.
+do_edit_source(Location) :-		% External editor
 	external_edit_command(Location, Command),
 	print_message(informational, edit(waiting_for_editor)),
 	(   catch(shell(Command), E,
@@ -214,13 +236,28 @@ external_edit_command(Location, Command) :-
 	editor(Editor),
 	concat_atom(['"', Editor, '" "', File, '"'], Command).
 
-editor(Editor) :-
+pceemacs(pce_emacs).
+pceemacs(built_in).
+
+%	editor(-Editor)
+%	
+%	Determine the external editor to run.
+
+editor(Editor) :-			% $EDITOR
+	current_prolog_flag(editor, Editor),
+	sub_atom(Editor, 0, _, _, $),
+	sub_atom(Editor, 1, _, 0, Var),
+	getenv(Var, Editor), !.
+editor(Editor) :-			% An editor
+	current_prolog_flag(editor, Editor),
+	\+ pceemacs(Editor), !.
+editor(Editor) :-			% User defaults
 	getenv('EDITOR', Editor), !.
-editor(vi) :-
+editor(vi) :-				% Platform defaults
 	current_prolog_flag(unix, true), !.
 editor(notepad) :-
 	current_prolog_flag(windows, true), !.
-editor(_) :-
+editor(_) :-				% No luck
 	throw(error(existence_error(editor), _)).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * IDE: Avoid various problems selecting the preferred editor.  See the
+    new prolog-flag `editor' and the example .plrc (pl.ini).
+
   * INSTALL: Added some code to configure and Makefile.in in the top-directory
     to allow for ./configure --with-world && make && make install to build
     the complete suite on a well-supported platform.

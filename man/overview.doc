@@ -1129,6 +1129,10 @@ Determines whether the terminal is switched to raw mode for
 get_single_char/1, which also reads the user-actions for the trace.  May
 be set.  See also the \cmdlineoption{+/-tty} command-line option.
 
+    \prologflagitem{editor}{atom}{rw}
+Determines the editor used by edit/1. See \secref{listing} for
+details on selecting the editor used.
+
     \prologflagitem{unknown}{fail,warning,error}{rw}
 Determines the behaviour if an undefined procedure is encountered.  If
 \const{fail}, the predicates fails silently.  If \const{warn}, a warning
@@ -1234,6 +1238,10 @@ Hook into load_files/1 to modify read terms before they are compiled
 (macro-processing) (most Prolog system).
     \item [goal_expansion/2]
 Same as term_expansion/2 for individual goals (SICStus).
+    \item [prolog_load_file/2]
+Hook into load_files/2 to load other data-formats for Prolog sources
+from `non-file' resources.  The load_files/2 predicate is the ancestor
+of consult/1, use_module/1, etc.
     \item [prolog_edit:locate/3]
 Hook into edit/1 to locate objects (SWI).
     \item [prolog_edit:edit_source/1]

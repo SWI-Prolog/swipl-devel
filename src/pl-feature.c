@@ -692,6 +692,7 @@ initFeatures()
   defFeature("debug_on_error",	FT_BOOL, TRUE, DEBUG_ON_ERROR_FEATURE);
   defFeature("report_error",	FT_BOOL, TRUE, REPORT_ERROR_FEATURE);
 #endif
+  defFeature("editor",		   FT_ATOM, "$EDITOR");
   defFeature("debugger_show_context", FT_BOOL, FALSE, 0);
   defFeature("autoload",  FT_BOOL, TRUE,  AUTOLOAD_FEATURE);
   defFeature("max_integer",	   FT_INTEGER|FF_READONLY, PLMAXINT);
