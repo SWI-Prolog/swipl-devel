@@ -1915,18 +1915,47 @@ r_path(Chain points, int ox, int oy, int radius, int closed, Image fill)
 
   if ( radius == 0 )
   { XPoint *pts = (XPoint *)alloca((npoints+1) * sizeof(XPoint));
+    IArea a = &env->area;
     int i=0;
+    int linesonly = (isNil(fill) && context.gcs->pen);
+    int x0=0, y0=0;			/* keep compiler happy */
 
     for_cell(cell, points)
     { Point p = cell->value;
-      pts[i].x = valInt(p->x) + ox; pts[i].x = X(pts[i].x);
-      pts[i].y = valInt(p->y) + oy; pts[i].y = Y(pts[i].y);
+      int x, y;
+
+      x = X(valInt(p->x) + ox);
+      y = Y(valInt(p->y) + oy);
+
+      if ( linesonly && i > 0 )
+      { if ( (x < a->x && x0 < a->x) ||
+	     (x > a->x + a->w && x0 > a->x + a->w) ||
+	     (y < a->y && y0 < a->y) ||
+	     (y > a->y + a->h && y0 > a->y + a->h) )
+	{ /*Cprintf("Skipping %d,%d --> %d,%d\n", x0, y0, x, y);*/
+	  if ( i > 1 )
+	  { /*Cprintf("Drawing %d lines\n", i-1);*/
+	    XDrawLines(context.display, context.drawable, context.gcs->workGC,
+		       pts, i, CoordModeOrigin);
+	  }
+
+	  i = 0;			/* restart */
+	}
+      }
+
+      x0 = x;
+      y0 = y;
+
+      pts[i].x = x;			/* TBD: XPoint is 16-bit! */
+      pts[i].y = y;
+
       i++;
     }
+
     if ( closed || notNil(fill) )
     { Point p = (Point) points->head->value;
-      pts[i].x = valInt(p->x) + ox; pts[i].x = X(pts[i].x);
-      pts[i].y = valInt(p->y) + oy; pts[i].y = Y(pts[i].y);
+      pts[i].x = X(valInt(p->x) + ox);
+      pts[i].y = Y(valInt(p->y) + oy);
       i++;
     }
 
@@ -1937,8 +1966,10 @@ r_path(Chain points, int ox, int oy, int radius, int closed, Image fill)
     }
 
     if ( context.gcs->pen )
+    { /*Cprintf("Finally drawing %d lines\n", i-1);*/
       XDrawLines(context.display, context.drawable, context.gcs->workGC,
 		 pts, i, CoordModeOrigin);
+    }
   } else
   { 
 #if 0					/* TBD */

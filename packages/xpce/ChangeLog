@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Various overflow issues concerning path and distance calculations
+  when using graphicals extending the range of 16-bit (short) integers.
+
 * FIXED: `text_item ->value_font' fails to update font in some rare
   situations.
 

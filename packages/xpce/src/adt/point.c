@@ -24,6 +24,7 @@
 
 #include <h/kernel.h>
 #include <h/graphics.h>
+#include <math.h>
 
 static status
 initialisePoint(Point p, Int x, Int y)
@@ -111,16 +112,26 @@ getDifferencePoint(Point p, Point q)
 
 int
 get_distance_point(Point p, int x, int y)
-{ int x1 = valInt(p->x);
-  int y1 = valInt(p->y);
+{ double px = (double)valInt(p->x);
+  double py = (double)valInt(p->y);
+  double qx = (double)x;
+  double qy = (double)y;
+  double d = sqrt((qx-px)*(qx-px) + (qy-py)*(qy-py));
 
-  return isqrt((x1-x) * (x1-x) + (y1-y) * (y1-y));
+  return (int)d;
 }
 
 
 Int
 getDistancePoint(Point p, Point q)
-{ answer(toInt(get_distance_point(p, valInt(q->x), valInt(q->y))));
+{ double px = (double)valInt(p->x);
+  double py = (double)valInt(p->y);
+  double qx = (double)valInt(q->x);
+  double qy = (double)valInt(q->y);
+  double d = sqrt((qx-px)*(qx-px) + (qy-py)*(qy-py));
+  long di = (long)d;
+
+  answer(toInt(di));
 }
 
 
