@@ -120,6 +120,15 @@ event(W, Ev:event) :->
 	(   send(Ev, is_a, loc_move),
 	    \+ send(Ev, inside, W)
 	->  send(W, detach)
+	;   (   send(Ev, is_a, button)
+	    ;	send(Ev, is_a, keyboard)
+	    )
+	->  get(W, hypered, mirroring, Gr),
+	    get(Gr, window, W2),
+	    get(Ev, position, W2, point(X,Y)),
+	    get(Ev, id, Id),
+	    send(W, detach),
+	    send(event(Id, W2, X, Y), post, W2)
 	;   \+ send(Ev, is_a, area),
 	    get(W, hypered, mirroring, Gr),
 	    catch(send(Ev, post, Gr), E,
