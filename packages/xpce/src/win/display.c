@@ -1279,7 +1279,13 @@ makeClassDisplay(Class class)
 }
   
 
-#ifdef WIN32_GRAPHICS
+#if defined(WIN32_GRAPHICS) || defined(USE_XFT)
+#define NO_XNAME 1
+#else
+#undef NO_XNAME
+#endif
+
+#ifdef NO_XNAME
 #define PFONT(n, p, x) { n, p }
 #define ENDFONTLIST    { NULL, 0 }
 #else
@@ -1290,7 +1296,7 @@ makeClassDisplay(Class class)
 typedef struct
 { Name style;
   int  points;
-#ifndef WIN32_GRAPHICS
+#ifndef NO_XNAME
   char *xname;
 #endif
 } fontdef, *FontDef;
@@ -1431,7 +1437,7 @@ default_font_list(Name fam, FontDef defs)
   
   while(defs->style)
   {
-#ifdef WIN32_GRAPHICS
+#ifdef NO_XNAME
     sprintf(s, "font(%s, %s, %d)",
 	    strName(fam),
 	    strName(defs->style),

@@ -33,14 +33,48 @@ ws_create_font(FontObj f, DisplayObj d)
 { XpceFontInfo xref;
   DisplayWsXref r = d->ws_ref;
   XftFont *xft;
-  int screen = DefaultScreen(r->display_xref);
 
-  if ( !instanceOfObject(f->x_name, ClassCharArray) )
-    fail;
-  
-  xft = XftFontOpenXlfd(r->display_xref, screen, strName(f->x_name));
-  if ( !xft )
-    return replaceFont(f, d);
+  if ( !instanceOfObject(f->x_name, ClassCharArray) ||
+       !isstrA(&f->x_name->data) )
+  { XftPattern *p = XftPatternCreate();
+    XftPattern *match;
+    char buf[256];
+
+    if ( !XftPatternAddString(p, XFT_FAMILY, strName(f->family)) )
+      assert(0);
+    XftPatternAddInteger(p, XFT_PIXEL_SIZE, valInt(f->points));
+    if ( f->style == NAME_italic )
+      XftPatternAddInteger(p, XFT_SLANT, XFT_SLANT_ITALIC);
+    else if ( f->style == NAME_roman )
+      XftPatternAddInteger(p, XFT_SLANT, XFT_SLANT_ROMAN);
+    else if ( f->style == NAME_bold )
+      XftPatternAddInteger(p, XFT_WEIGHT, XFT_WEIGHT_BOLD);
+
+    XftNameUnparse(p, buf, sizeof(buf));
+    Cprintf("Pattern = '%s'\n", buf);
+
+    match = XftFontMatch(r->display_xref, r->screen, ???);
+
+    xft = XftFontOpenPattern(r->display_xref, p);
+    XftPatternDestroy(p);
+
+    if ( !xft )
+      xft = XftFontOpenName(r->display_xref, r->screen, buf);
+
+    if ( !xft )
+    { assert(0);
+      return replaceFont(f, d);
+    }
+  } else
+  { const charA *xname = strName(f->x_name);
+
+    if ( strchr(xname, ':') )
+      xft = XftFontOpenName(r->display_xref, r->screen, xname);
+    else
+      xft = XftFontOpenXlfd(r->display_xref, r->screen, xname);
+    if ( !xft )
+      return replaceFont(f, d);
+  }
 
   xref = alloc(sizeof(*xref));
   xref->xft_font = xft;
