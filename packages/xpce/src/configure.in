@@ -731,6 +731,7 @@ AC_ARG_WITH(xpm,[  --with-xpm=<dir>	  Location of Xpm include/lib],
 		*)	LIBS="-L${withval}/lib ${LIBS}"
 		        XLIBS="-L${withval}/lib ${XLIBS}"
 			CFLAGS="-I${withval}/include ${CFLAGS}"
+			CPPFLAGS="-I${withval}/include ${CPPFLAGS}"
 			CIFLAGS="-I${withval}/include ${CIFLAGS}"
 			echo "LIBS=${LIBS}"
 	esac])
@@ -740,6 +741,7 @@ AC_ARG_WITH(jpeg,[  --with-jpeg=<dir>	  Location of JPEG include/lib],
 			exit 1 ;;
 		*)	LIBS="-L${withval}/lib ${LIBS}"
 		        XLIBS="-L${withval}/lib ${XLIBS}"
+			CPPFLAGS="-I${withval}/include ${CPPFLAGS}"
 			CIFLAGS="-I${withval}/include ${CIFLAGS}"
 			echo "LIBS=${LIBS}"
 	esac])
