@@ -98,8 +98,9 @@
 	    #1}{%
 	    #1({\it #1})}}
 \newcommand{\cfunction}[3]{%
-	\definition{{\it #1} #2({\it #3})}%
+	\definition{{\tt #1} #2{\rm (}{\it #3}{\rm )}}%
 	\index{#2()}\ignorespaces}
+\newcommand{\cdecl}[2]{{\tt #1} {\em #2}}
 \newcommand{\cmacro}[3]{%
 	\definition{{\it #1} #2({\it #3})}%
 	\index{#2()}\ignorespaces}
