@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug #68: building on  cygwin.  Lourens van der Meij.
+
 VERSION 5.2.2 (Jun 23, 2003)
 ============================
 

@@ -10,7 +10,7 @@ implib=libplimp.a
 verbose=false
 
 function usage()
-{ echo "Usage: mkexe [-v] [-o output] input"
+{ echo "Usage: ldcygwin [-v] [-o output] input"
   exit 1
 }
 
@@ -24,7 +24,7 @@ while [ $done = false ]; do
         shift
 	shift
 	;;
-    -export-dynamic)
+    -export-dynamic|-O*)
 	shift
 	;;
     -*) usage
