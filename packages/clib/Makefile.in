@@ -109,7 +109,7 @@ uninstall::
 # Testing
 ################################################################
 
-check:		check-socket
+check:		check-socket check-memfile
 
 torture:	torture-socket
 
@@ -118,6 +118,10 @@ check-socket::
 
 torture-socket::
 		$(PL) -q -f stresssocket.pl -F none -g test,halt -t 'halt(1)'
+
+check-memfile::
+		$(PL) -q -f testmemfile.pl -F none -g test,halt -t 'halt(1)'
+
 
 ################################################################
 # Documentation

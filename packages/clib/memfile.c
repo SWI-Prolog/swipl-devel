@@ -26,6 +26,7 @@
 #include <SWI-Prolog.h>
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "error.h"
 
 #define streq(s,q) (strcmp((s), (q)) == 0)
@@ -47,8 +48,10 @@ static functor_t FUNCTOR_memory_file1;
 
 typedef struct
 { long  magic;				/* MEMFILE_MAGIC */
+  IOENC  encoding;			/* encoding of the data */
   char *data;				/* data of the file */
-  int   size;				/* length of the file */
+  int	data_size;			/* byte-size of data */
+  int   size;				/* size in characters */
   IOSTREAM *stream;			/* Stream hanging onto it */
   atom_t atom;				/* Created from atom */
 } memfile;
@@ -91,7 +94,7 @@ new_memory_file(term_t handle)
 { memfile *m = calloc(1, sizeof(*m));
 
   if ( !m )
-    return FALSE;
+    return pl_error(NULL, 0, NULL, ERR_ERRNO);
 
   m->magic = MEMFILE_MAGIC;
   m->data = 0;
@@ -160,20 +163,23 @@ open_memory_file(term_t handle, term_t mode, term_t stream)
     if ( m->data )
     { Sfree(m->data);
       m->data = NULL;
-      m->size = 0;
     }
+    m->data_size = 0;
+    m->size = -1;			/* don't know */
+    m->encoding = ENC_UTF8;
   } else if ( streq(s, "read") )
     x = "r";
   else
     return pl_error("open_memory_file", 3, NULL, ERR_DOMAIN,
 		    mode, "io_mode");
 
-  if ( !(fd = Sopenmem(&m->data, &m->size, x)) )
+  if ( !(fd = Sopenmem(&m->data, &m->data_size, x)) )
     return pl_error("open_memory_file", 3, NULL, ERR_ERRNO,
 		    "memory_file", "create");
 
   fd->close_hook = closehook;
   fd->closure = m;
+  fd->encoding = m->encoding;
   m->stream = fd;
 
   return PL_unify_stream(stream, fd);
@@ -188,7 +194,24 @@ size_memory_file(term_t handle, term_t size)
   { if ( m->stream && !m->atom )
       return alreadyOpen(handle, "size");
     if ( m->data )
-    { return PL_unify_integer(size, m->size);
+    { if ( m->size < 0 )
+      { switch( m->encoding )
+	{ case ENC_ISO_LATIN_1:
+	  case ENC_NONE:
+	    m->size = m->data_size;
+	    break;
+	  case ENC_WCHAR:
+	    m->size = m->data_size / sizeof(wchar_t);
+	    break;
+	  case ENC_UTF8:
+	    m->size = PL_utf8_strlen(m->data, m->data_size);
+	    break;
+	  default:
+	    assert(0);
+	    return FALSE;
+	}
+      }
+      return PL_unify_integer(size, m->size);
     } else
       return PL_unify_integer(size, 0);
   }
@@ -199,25 +222,34 @@ size_memory_file(term_t handle, term_t size)
 
 static foreign_t
 atom_to_memory_file(term_t atom, term_t handle)
-{ char *s;
-  unsigned int len;
+{ atom_t a;
 
-  if ( !PL_get_atom_nchars(atom, &len, &s) )
-    return pl_error(NULL, 0, NULL, ERR_ARGTYPE, 1,
-		    atom, "atom");
-  else
+  if ( PL_get_atom(atom, &a) )
   { memfile *m = calloc(1, sizeof(*m));
 
     if ( !m )
-      return FALSE;
+      return pl_error(NULL, 0, NULL, ERR_ERRNO);
 
-    PL_get_atom(atom, &m->atom);
+    m->atom = a;
     PL_register_atom(m->atom);
     m->magic = MEMFILE_MAGIC;
-    m->data = s;
-    m->size = len;
+
+    if ( (m->data = (char *)PL_atom_nchars(a, &m->size)) )
+    { m->encoding = ENC_ISO_LATIN_1;
+      m->data_size = m->size;
+    } else if ( (m->data = (char *)PL_atom_wchars(a, &m->size)) )
+    { m->encoding = ENC_WCHAR;
+      m->data_size = m->size * sizeof(wchar_t);
+    } else if ( PL_blob_data(a, &m->size, NULL) )
+    { m->data = PL_blob_data(a, &m->data_size, NULL);
+      m->encoding = ENC_NONE;
+      m->size = m->data_size;
+    }
 
     return unify_memfile(handle, m);
+  } else
+  { return pl_error(NULL, 0, NULL, ERR_ARGTYPE, 1,
+		    atom, "atom");
   }
 }
 
@@ -230,7 +262,17 @@ memory_file_to_atom(term_t handle, term_t atom)
   { if ( m->stream )
       return alreadyOpen(handle, "to_atom");
     if ( m->data )
-    { return PL_unify_atom_nchars(atom, m->size, m->data);
+    { switch(m->encoding)
+      { case ENC_ISO_LATIN_1:
+        case ENC_NONE:
+	  return PL_unify_atom_nchars(atom, m->data_size, m->data);
+	case ENC_WCHAR:
+	  return PL_unify_wchars(atom, PL_ATOM, m->data_size/sizeof(wchar_t), (pl_wchar_t*)m->data);
+	case ENC_UTF8:
+	  return PL_unify_term(atom, PL_NUTF8_CHARS, m->data_size, m->data);
+	default:
+	  assert(0);
+      }
     } else
       return PL_unify_atom_nchars(atom, 0, "");
   }
@@ -247,7 +289,17 @@ memory_file_to_codes(term_t handle, term_t codes)
   { if ( m->stream )
       return alreadyOpen(handle, "to_codes");
     if ( m->data )
-    { return PL_unify_list_ncodes(codes, m->size, m->data);
+    { switch(m->encoding)
+      { case ENC_ISO_LATIN_1:
+	case ENC_NONE:
+	  return PL_unify_list_ncodes(codes, m->data_size, m->data);
+	case ENC_WCHAR:
+	  return PL_unify_wchars(codes, PL_CODE_LIST, m->data_size/sizeof(wchar_t), (pl_wchar_t*)m->data);
+	case ENC_UTF8:
+	  return PL_unify_term(codes, PL_NUTF8_CODES, m->data_size, m->data);
+	default:
+	  assert(0);
+      }
     } else
       return PL_unify_list_ncodes(codes, 0, "");
   }
@@ -258,8 +310,8 @@ memory_file_to_codes(term_t handle, term_t codes)
 
 install_t
 install_memfile()
-{ if ( PL_query(PL_QUERY_VERSION) <= 40006 )
-  { PL_warning("Requires SWI-Prolog version 4.0.7 or later");
+{ if ( PL_query(PL_QUERY_VERSION) <= 50505 )
+  { PL_warning("Requires SWI-Prolog version 5.5.6 or later");
     return;
   }
 

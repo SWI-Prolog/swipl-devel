@@ -1,3 +1,7 @@
+Feb 17, 2005
+
+  * ADDED: Provide wide-character support for library(memfile).
+
 Dec 16, 2004
 
   * FIXED: Socket and ssl interaction problems (Windows).  Matt Lilley.
