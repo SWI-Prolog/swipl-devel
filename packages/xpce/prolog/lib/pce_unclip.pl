@@ -79,6 +79,7 @@ initialise(W) :->
 	send_super(W, initialise),
 	get(W, frame, Fr),
 	send(Fr, kind, popup),
+	send(Fr, sensitive, @off),
 	send(W, pen, 0),
 	send(Fr, border, 1),
 	send(Fr?tile, border, 0),

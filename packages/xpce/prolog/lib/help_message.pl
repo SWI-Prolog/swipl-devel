@@ -46,14 +46,16 @@ initialise(W) :->
 	send(W, slot, handler,
 	     handler(mouse, message(W, try_hide, @event))),
 	send_super(W, initialise),
-	send(W, kind, popup),
-	send(W?frame, border, 0),
-	send(W?frame?tile, border, 0),
+	get(W, frame, Frame),
+	send(Frame, kind, popup),
+	send(Frame, sensitive, @off),
+	send(Frame, border, 0),
+	send(Frame?tile, border, 0),
 	send(W, gap, size(5, 2)),
 	send(W, pen, 0),
 	send(W, append, new(L, label(feedback, '', normal))),
 	send(L, length, 0),
-	send(W?frame, create).
+	send(Frame, create).
 
 owner(W, Owner:[any]*) :->
 	"Maintain hyperlink to the owner"::

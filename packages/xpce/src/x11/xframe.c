@@ -1241,28 +1241,32 @@ ws_get_icon_position_frame(FrameObj fr, int *x, int *y)
 }
 
 
-static void
-ws_enable_frame(FrameObj fr, Bool val)
+int
+ws_enable_frame(FrameObj fr, int val)
 { Widget w;
 
   if ( (w = widgetFrame(fr)) )
   { Arg args[1];
 
-    XtSetArg(args[0], XtNinput, val == ON ? True : False);
+    XtSetArg(args[0], XtNinput, val ? True : False);
     XtSetValues(w, args, 1);
+
+    succeed;
   }
+  
+  fail;
 }
 
 
 void
 ws_enable_modal(FrameObj fr, Bool val)
 { if ( fr->modal == NAME_transient && notNil(fr->transient_for) )
-  { ws_enable_frame(fr->transient_for, val);
+  { ws_enable_frame(fr->transient_for, val == ON ? TRUE : FALSE);
   } else if ( fr->modal == NAME_application && notNil(fr->application) )
   { Cell cell;
 
     for_cell(cell, fr->application->members)
-      ws_enable_frame(cell->value, val);
+      ws_enable_frame(cell->value, val == ON ? TRUE : FALSE);
   }
 }
 
@@ -1341,7 +1345,6 @@ void
 ws_topmost_frame(FrameObj fr, Bool topmost)
 { 
 }
-
 
 		 /*******************************
 		 *	       LABEL		*

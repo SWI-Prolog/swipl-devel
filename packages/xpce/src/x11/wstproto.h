@@ -175,6 +175,7 @@ Image		ws_image_of_frame(FrameObj fr);
 void		ws_transient_frame(FrameObj fr, FrameObj fr2);
 status		ws_postscript_frame(FrameObj fr, int iscolor);
 Int		ws_frame_thread(FrameObj fr);
+int		ws_enable_frame(FrameObj fr, int enable);
 
 /* ../src/x11/ximage.c */
 void		ws_init_image(Image image);
@@ -234,6 +235,7 @@ void		ws_window_cursor(PceWindow sw, CursorObj cursor);
 void		ws_window_background(PceWindow sw, Any c);
 void		ws_raise_window(PceWindow sw);
 void		ws_lower_window(PceWindow sw);
+int		ws_enable_window(PceWindow sw, int enable);
 Int		ws_window_thread(PceWindow sw);
 int		ws_delayed_redraw_window(PceWindow sw);
 

@@ -695,6 +695,9 @@ ws_create_frame(FrameObj fr)
     }
   }
     
+  if ( fr->sensitive == OFF )
+    style |= WS_DISABLED;
+
   outer_frame_area(fr, &x, &y, &w, &h, TRUE);
   DEBUG(NAME_frame, Cprintf("Creating %s area(%d,%d,%d,%d)\n", 
 			    pp(fr), x, y, w, h));
@@ -785,7 +788,15 @@ ws_place_frame(FrameObj fr)
 
 void
 ws_raise_frame(FrameObj fr)
-{ BringWindowToTop(getHwndFrame(fr));
+{ UINT flags = SWP_NOMOVE|SWP_NOSIZE;
+
+  if ( fr->sensitive == OFF )
+    flags |= SWP_NOACTIVATE;
+
+  SetWindowPos(getHwndFrame(fr),
+	       HWND_TOP,
+	       0, 0, 0, 0,
+	       flags);
 }
 
 
@@ -808,6 +819,19 @@ ws_topmost_frame(FrameObj fr, Bool topmost)
 		 0, 0, 0, 0,
 		 SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE);
   }
+}
+
+
+int
+ws_enable_frame(FrameObj fr, int enable)
+{ HWND hwnd;
+
+  if ( (hwnd=getHwndFrame(fr)) )
+  { if ( EnableWindow(hwnd, enable) )
+      succeed;
+  }
+
+  fail;
 }
 
 
@@ -1135,8 +1159,9 @@ ws_status_frame(FrameObj fr, Name stat)
       f->placed = TRUE;
     }
 
-    if ( fr->kind == NAME_popup )
-    { how = SW_SHOWNOACTIVATE; /*SW_SHOWNA;*/
+    if ( fr->kind == NAME_popup || fr->sensitive == OFF )
+    { DEBUG(NAME_sensitive, Cprintf("%s: using SW_SHOWNOACTIVATE\n", pp(fr)));
+      how = SW_SHOWNOACTIVATE; /*SW_SHOWNA;*/
     } else
     { if ( stat == NAME_window )
 	how = SW_RESTORE;

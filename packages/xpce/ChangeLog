@@ -4,10 +4,15 @@
 VERSION 6.2.8, distributed with SWI-Prolog 5.2.8
 ================================================
 
+* ADDED: `frame->sensitive'.  Use this to avoid tooltip (balloon) and the 
+  `unclip' windows of library(pce_unclip) to grab the focus from the
+  application window.
+
 * MODIFIED: The windowing kernel now invokes `window->post_event' rather than
-  `window->event'.  For most applications this just removes bugs, but applications
-  that really aim at redefining the window focus and event-handling may break.  Such
-  applications should redefine ->post_event instead of ->event.
+  `window->event'.  For most applications this just removes bugs, but
+  applications that really aim at redefining the window focus and
+  event-handling may break.  Such applications should redefine
+  ->post_event instead of ->event.
 
 * PORT/MODIFIED: `window->grab_pointer' maintains @grabbed_windows on all
   platform (used to be called @_grabbed_windows and only on X11).

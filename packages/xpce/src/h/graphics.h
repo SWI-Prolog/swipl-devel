@@ -799,6 +799,7 @@ NewClass(frameobj)
   Name		modal;			/* Modal operation */
   Any		return_value;		/* ->return saved value */
   Bool		input_focus;		/* @on: focus for keyboard events */
+  Bool		sensitive;		/* @on: accept user input */
   Name		status;			/* {unmapped,iconic,open} */
   Bool		can_delete;		/* User can delete the frame */
   Bool		can_resize;		/* User can resize the frame */

@@ -1946,6 +1946,18 @@ getForegroundWindow(PceWindow sw)
 }
 
 
+static status
+sensitiveWindow(PceWindow sw, Bool sensitive)
+{ if ( sw->sensitive != sensitive )
+  { assign(sw, sensitive, sensitive);
+
+    ws_enable_window(sw, sensitive == ON ? TRUE : FALSE);
+  }
+
+  succeed;
+}
+
+
 		/********************************
 		*            FLUSHING		*
 		********************************/
@@ -2161,7 +2173,7 @@ static vardecl var_window[] =
      NAME_menu, "Popup-menu of the window"),
   IV(NAME_currentEvent, "event*", IV_GET,
      NAME_event, "Event being processed now"),
-  IV(NAME_sensitive, "bool", IV_BOTH,
+  SV(NAME_sensitive, "bool", IV_GET|IV_STORE, sensitiveWindow,
      NAME_event, "Window accepts events"),
   SV(NAME_background, "colour|pixmap", IV_GET|IV_STORE, backgroundWindow,
      NAME_appearance, "Background colour or pattern"),

@@ -621,3 +621,28 @@ ws_lower_window(PceWindow sw)
     XLowerWindow(r->display_xref, XtWindow(w));
 }
 
+		 /*******************************
+		 *	       INPUT		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Enable/disable event processing on the window. I guess this must be done
+by    modifying    the    event-mask.      See    XCreateWindow()    and
+XChangeWindowAttributes()
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+ws_enable_window(PceWindow sw, int enable)
+{ Widget w;
+
+  if ( (w = widgetWindow(sw)) )
+  { Arg args[1];
+
+    XtSetArg(args[0], XtNinput, val ? True : False);
+    XtSetValues(w, args, 1);
+
+    succeed;
+  }
+
+  fail;
+}

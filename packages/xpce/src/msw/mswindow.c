@@ -439,6 +439,8 @@ ws_create_window(PceWindow sw, PceWindow parent)
 
   if ( sw->pen != ZERO )
     style |= WS_BORDER;
+  if ( sw->sensitive == OFF )
+    style |= WS_DISABLED;
 
   hwnd = CreateWindow(WinWindowClass(),
 		      strName(sw->name),
@@ -782,6 +784,19 @@ ws_raise_window(PceWindow sw)
 void
 ws_lower_window(PceWindow sw)
 { ShowWindow(getHwndWindow(sw), SW_HIDE);
+}
+
+
+int
+ws_enable_window(PceWindow sw, int enable)
+{ HWND hwnd;
+
+  if ( (hwnd=getHwndWindow(sw)) )
+  { if ( EnableWindow(hwnd, enable) )
+      succeed;
+  }
+
+  fail;
 }
 
 

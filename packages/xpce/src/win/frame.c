@@ -1245,6 +1245,18 @@ inputFocusFrame(FrameObj fr, Bool val)
 }
 
 
+static status
+sensitiveFrame(FrameObj fr, Bool sensitive)
+{ if ( fr->sensitive != sensitive )
+  { assign(fr, sensitive, sensitive);
+
+    ws_enable_frame(fr, sensitive == ON ? TRUE : FALSE);
+  }
+
+  succeed;
+}
+
+
 status
 redrawFrame(FrameObj fr, Area a)
 { succeed;
@@ -1625,6 +1637,8 @@ static vardecl var_frame[] =
      NAME_modal, "Bin for value of ->return"),
   SV(NAME_inputFocus, "bool", IV_GET|IV_STORE, inputFocusFrame,
      NAME_event, "Frame has focus for keyboard events"),
+  SV(NAME_sensitive, "bool", IV_GET|IV_STORE, sensitiveFrame,
+     NAME_event, "@on: window accepts user input"),
   IV(NAME_status, "{unlinking,unmapped,hidden,iconic,window,full_screen}", IV_GET,
      NAME_visibility, "Current visibility of the frame"),
   IV(NAME_canDelete, "bool", IV_BOTH,
