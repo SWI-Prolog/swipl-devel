@@ -101,12 +101,14 @@ equalCharArray(CharArray n1, CharArray n2)
 }
 
 
-status
-prefixCharArray(CharArray n1, CharArray n2) /* n2 is prefix of n1 */
-{ if ( str_prefix(&n1->data, &n2->data) )
-    succeed;
+/* n2 is prefix of n1 */
 
-  fail;
+status
+prefixCharArray(CharArray n1, CharArray n2, Bool ign_case)
+{ if ( ign_case == ON )
+    return str_icase_prefix(&n1->data, &n2->data);
+  else
+    return str_prefix(&n1->data, &n2->data);
 }
 
 
@@ -392,7 +394,7 @@ getEnsureSuffixCharArray(CharArray n, CharArray s)
 
 static CharArray
 getDeletePrefixCharArray(CharArray n, CharArray s)
-{ if ( prefixCharArray(n, s) )
+{ if ( prefixCharArray(n, s, OFF) )
   { string buf;
 
     str_cphdr(&buf, &n->data);
@@ -653,7 +655,7 @@ static senddecl send_charArray[] =
      NAME_compare, "Test if I'm alphabetically after arg"),
   SM(NAME_smaller, 1, "than=char_array", smallerCharArray,
      NAME_compare, "Test if I'm alphabetically before arg"),
-  SM(NAME_prefix, 1, "prefix=char_array", prefixCharArray,
+  SM(NAME_prefix, 2, T_cmpcase, prefixCharArray,
      NAME_test, "Test if receiver has prefix argument"),
   SM(NAME_sub, 2, T_cmpcase, subCharArray,
      NAME_test, "Test if argument is a substring"),
