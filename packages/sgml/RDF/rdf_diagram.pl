@@ -23,10 +23,16 @@
 		   "Show set of RDF triples in a window").
 :- use_class_template(print_graphics).
 
+variable(auto_layout,	bool := @on, both, "Automatically layout on resize").
+
 initialise(D, Label:[name]) :->
 	send_super(D, initialise, Label),
 	send(D, scrollbars, both),
-	send(D, fill_popup).
+	send(D, fill_popup),
+	send(D, resize_message,
+	     if(and(D?auto_layout == @on,
+		    D?focus_recogniser == @nil),
+		message(D, layout))).
 
 fill_popup(D) :->
 	send(D, popup, new(P, popup)),
@@ -63,8 +69,12 @@ resource(D, Resource:name, Create:[bool], Subject:rdf_resource) :<-
 
 literal(D, Value:prolog, Gr:rdf_literal) :<-
 	"Display a literal.  Don't try to re-use"::
-	send(D, display, new(Gr, rdf_literal(Value)),
-	     D?visible?center).
+	(   literal_name(Value, Name),
+	    get(D, member, Name, Gr)
+	->  true
+	;   send(D, display, new(Gr, rdf_literal(Value)),
+		 D?visible?center)
+	).
 
 
 triples(D, Triples:prolog) :->
@@ -79,10 +89,28 @@ triples(D, Triples:prolog) :->
 
 layout(D) :->
 	"Produce automatic layout"::
-	(   get(D?graphicals, head, First)
-	->  send(First, layout)
-	;   true
-	).
+	new(Nodes, chain),
+	send(D?graphicals, for_all,
+	     if(message(@arg1, instance_of, rdf_any),
+		message(Nodes, append, @arg1))),
+	send(Nodes?head, layout, 2, 40,
+	     iterations := 200,
+	     area := D?visible,
+	     network := Nodes).
+
+/*
+	get(D?graphicals, copy, ToDo),
+	layout(ToDo).
+
+layout(Chain) :-
+	get(Chain, head, Head), !,
+	get(Head, network, Network),
+	send(Chain, subtract, Network),
+	send(Head, layout, 2, 40, iterations := 200),
+	layout(Chain).
+layout(_).
+*/
+
 
 copy_layout(D, From:rdf_diagram, Subst:prolog) :->
 	"Copy the layout from another windows"::
@@ -120,11 +148,31 @@ find(D, Name, Subst, _) :-
 		 *	       SHAPES		*
 		 *******************************/
 
-:- pce_begin_class(rdf_any(name), figure,
-		   "Represent an RDF resource or literal").
+:- pce_begin_class(rdf_connection, tagged_connection,
+		   "Represents a triple").
 
 :- pce_global(@rdf_link, new(link(link, link,
 				  line(0,0,0,0,second)))).
+
+initialise(C, Gr1:graphical, Gr2:graphical, Pred:name) :->
+	"Create from predicate"::
+	send_super(C, initialise, Gr1, Gr2, @rdf_link),
+	send(C, tag, rdf_label(Pred, italic)).
+
+ideal_length(C, Len:int) :<-
+	"Layout: compute the desired length"::
+	get(C, height, H),
+	(   H < 40
+	->  get(C, tag, Tag),
+	    get(Tag, width, W),
+	    Len is W + 30
+	;   Len = 40
+	).
+
+:- pce_end_class(rdf_connection).
+
+:- pce_begin_class(rdf_any(name), figure,
+		   "Represent an RDF resource or literal").
 
 handle(w/2, 0,	 link, north).
 handle(w,   h/2, link, east).
@@ -137,11 +185,19 @@ initialise(F, Ref:name) :->
 	send(F, name, Ref).
 	
 connect(F, Pred:name, Object:graphical) :->
-	new(C, tagged_connection(F, Object, @rdf_link)),
-	send(C, tag, rdf_label(Pred, italic)).
+        new(_C, rdf_connection(F, Object, Pred)).
 
 :- pce_global(@rdf_any_recogniser,
-	      new(move_gesture(left))).
+	      make_rdf_any_recogniser).
+
+make_rdf_any_recogniser(G) :-
+	new(M1, move_gesture(left)),
+	new(M2, move_network_gesture(left, c)),
+	new(P, popup_gesture(new(Popup, popup))),
+	Gr = @arg1,
+	send(Popup, append,
+	     menu_item(layout, message(Gr, layout))),
+	new(G, handler_group(M1, M2, P)).
 
 event(F, Ev:event) :->
 	(   send_super(F, event, Ev)
@@ -150,6 +206,67 @@ event(F, Ev:event) :->
 	).
 
 :- pce_end_class(rdf_any).
+
+
+:- pce_begin_class(move_network_gesture, move_gesture,
+		   "Move network of connected graphicals").
+
+variable(outline,	box,	get,
+	 "Box used to indicate move").
+variable(network,	chain*, both,
+	 "Stored value of the network").
+variable(origin,	point,  get,
+	 "Start origin of network").
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The  gesture maintains  an outline, the selection to  be moved and the
+positon  where  the move orginiated.    The outline  itself is given a
+normal  move_gesture to make  it move on  dragging.  This move_gesture
+should operate on the same button and modifier.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+initialise(G, B:[button_name], M:[modifier]) :->
+	send(G, send_super, initialise, B, M),
+	send(G, slot, outline, new(Box, box(0,0))),
+	send(G, slot, origin, point(0,0)),
+	send(Box, texture, dotted),
+	send(Box, recogniser, move_gesture(G?button, G?modifier)).
+
+initiate(G, Ev:event) :->
+	get(Ev, receiver, Gr),
+	get(Gr, device, Dev),
+	get(G, outline, Outline),
+	get(Gr, network, Network),
+	send(G, network, Network),
+	new(Union, area(0,0,0,0)),
+	send(Network, for_all, message(Union, union, @arg1?area)),
+	send(G?origin, copy, Union?position),
+	send(Outline, area, Union),
+	send(Union, done),
+	send(Dev, display, Outline),
+	ignore(send(Ev, post, Outline)).
+
+drag(G, Ev) :->
+	send(Ev, post, G?outline).
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Terminate.   First undisplay the outline.  Next  calculate by how much
+the outline has been dragged and move all objects  of the selection by
+this amount.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+terminate(G, Ev:event) :->
+	ignore(send(G, drag, Ev)),
+	get(G, outline, Outline),
+	send(Outline, device, @nil),
+	get(Outline?area?position, difference, G?origin, Offset),	
+	get(G, network, Network),
+	send(Network, for_all, message(@arg1, relative_move, Offset)),
+	send(G, network, @nil).
+
+:- pce_end_class(move_network_gesture).
+
 
 
 :- pce_begin_class(rdf_label, text,
@@ -236,6 +353,10 @@ literal_label(Value, Value) :-
 	atomic(Value), !.
 literal_label(Value, Label) :-
 	term_to_atom(Value, Label).
+
+literal_name(Value, Name) :-
+	literal_label(Value, Label),
+	atom_concat('__lit:', Label, Name).
 
 fit(F) :->
 	"Make box fit contents"::

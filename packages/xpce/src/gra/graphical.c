@@ -2305,6 +2305,7 @@ typedef struct
 { int		fx;			/* force in X-direction */
   int		fy;			/* force in Y-direction */
   Connection 	c;			/* the connection */
+  Int		ideal_len;		/* ideal length */
 } lg_relation;
 
 
@@ -2330,12 +2331,17 @@ cy_object(lg_object *o)
 
 static void
 place_object(lg_object *o)
-{ Any av[2];
-
-  av[0] = toInt(o->area.x);
-  av[1] = toInt(o->area.y);
-
-  qadSendv(o->gr, NAME_set, 2, av);
+{ if ( o->update )
+  { Any av[2];
+    
+    o->update = FALSE;
+    av[0] = toInt(o->area.x);
+    av[1] = toInt(o->area.y);
+    
+    if ( o->gr->area->x != av[0] ||
+	 o->gr->area->y != av[1] )
+      qadSendv(o->gr, NAME_set, 2, av);
+  }
 }
 
 
@@ -2376,11 +2382,12 @@ layoutGraphical(Graphical gr,
 		Real argC2,		/* natural distance */
 		Real argC3,		/* strength of not-connected */
 		Int  argC4,		/* addaption-speed */
-		Int  argC5)		/* max iterations */
+		Int  argC5,		/* max iterations */
+		Area area,		/* Bounce objects in this area */
+		Chain work)		/* network to layout */
 { lg_relation **r;	/* relation matrix */
   lg_object *objects;	/* object array */
   lg_object *op;	/* current object */
-  int un;		/* # in u[] */
   int force;
   int dx, dy, d;
   int n, l, i, j;
@@ -2392,17 +2399,33 @@ layoutGraphical(Graphical gr,
   int C5   = (isDefault(argC5) ?  100 : valInt(argC5));
   int moved;
   Chain network;
+  iarea limit;
 
   if ( isNil(gr->device) )
     fail;
+  if ( isDefault(area) )
+  { limit.x = limit.y = 5;
+    limit.w = limit.h = PCE_MAX_INT;
+  } else
+  { limit.x = valInt(area->x);
+    limit.y = valInt(area->y);
+    limit.w = valInt(area->w);
+    limit.h = valInt(area->h);
 
-  network = get(gr, NAME_network, EAV);
+    NormaliseArea(limit.x, limit.y, limit.w, limit.h);
+  }
+
+  if ( isDefault(work) )
+    network = get(gr, NAME_network, EAV);
+  else
+    network = work;
   n = valInt(getSizeChain(network));
+  if ( n <= 1 )				/* nothing to be done */
+    succeed;
 
   r = pceMalloc(n*sizeof(lg_relation *));
   for (i=0; i<n; i++)
-  { r[i] = pceMalloc(sizeof(lg_relation)*n);
-  }
+    r[i] = pceMalloc(sizeof(lg_relation)*n);
   objects = pceMalloc(sizeof(lg_object)*n);
 
   for (cell=network->head, op=objects; notNil(cell); op++, cell=cell->next)
@@ -2416,6 +2439,8 @@ layoutGraphical(Graphical gr,
     op->moved  = TRUE;
     op->update = FALSE;
   }
+  if ( isDefault(work) )
+    doneObject(network);
 
   for (i=0, op=objects; i<n; i++, op++)
   { lg_object *op2;
@@ -2423,57 +2448,58 @@ layoutGraphical(Graphical gr,
 
     for (j=0, op2=objects, rp = r[i]; j<i; j++, op2++, rp++)
     { rp->c = getConnectedGraphical(op->gr, op2->gr, DEFAULT, DEFAULT, DEFAULT);
+      if ( rp->c )
+	rp->ideal_len = qadGetv(rp->c, NAME_idealLength, 0, NULL);
     }
     r[i][i].fx = r[i][i].fy = 0;	/* clean diagonal */
   }
 
-  un = 0;
   moved = TRUE;
 
   for (l=1; l<=C5 && moved; l++)
-  { for (i=0; i<n; i++)
+  { int recheck = (l%10 == 0);		/* recheck computed length */
+
+    for (i=0; i<n; i++)
     { int mi = objects[i].moved;
-      for (j=0; j<i; j++)
+      lg_relation *rp;
+
+      for (j=0, rp=r[i]; j<i; j++, rp++)
       { if (mi == FALSE && objects[j].moved == FALSE)
 	  continue;
+
 	d = distance_area(&objects[i].area, &objects[j].area);
 	if (d == 0)
 	{ int f = ((int)C2<<10)/6;
 
-	  r[j][i].fx = -(r[i][j].fx = f);
-	  r[j][i].fy = -(r[i][j].fy = f);
+	  r[j][i].fx = -(rp->fx = f);
+	  r[j][i].fy = -(rp->fy = f);
 
 	  continue;
 	}
 	dx = (cx_object(&objects[j]) - cx_object(&objects[i])) << 10;
 	dy = (cy_object(&objects[j]) - cy_object(&objects[i])) << 10;
 
-	if ( r[i][j].c )
-	{ Int len;
-	  float c2;
+	if ( rp->c )
+	{ float c2;
 
-	  ComputeGraphical(r[i][j].c);
-	  len = qadGetv(r[i][j].c, NAME_idealLength, 0, NULL);
+	  if ( recheck && rp->ideal_len )
+	  { place_object(&objects[i]);
+	    place_object(&objects[j]);
+	    ComputeGraphical(rp->c);
+	    rp->ideal_len = qadGetv(rp->c, NAME_idealLength, 0, NULL);
+	  }
 
-	  if ( len )
-	  { c2 = (float)valInt(len);
-	    if ( !objects[i].update )
-	    { un++;
-	      objects[i].update = TRUE;
-	    }
-	    if ( !objects[j].update )
-	    { un++;
-	      objects[j].update = TRUE;
-	    }
-	  } else
+	  if ( rp->ideal_len )
+	    c2 = (float)valInt(rp->ideal_len);
+	  else
 	    c2 = C2;
 
 	  force = forceAttract(d, C1, c2);
 	} else
 	  force = forceRepel(d, C3);
 
-	r[j][i].fx = -(r[i][j].fx = (dx * force) >> 11);
-	r[j][i].fy = -(r[i][j].fy = (dy * force) >> 11);
+	r[j][i].fx = -(rp->fx = (dx * force) >> 11);
+	r[j][i].fy = -(rp->fy = (dy * force) >> 11);
       }
     }
 
@@ -2490,33 +2516,25 @@ layoutGraphical(Graphical gr,
       { op->moved = FALSE;
 	continue;
       }
-      op->moved = moved = TRUE;
+      op->update = op->moved = moved = TRUE;
       op->area.x += dx;
       op->area.y += dy;
-      if ( op->area.x < 5 )			/* bounce on Window */
-	op->area.x = 5;
-      if ( op->area.y < 5 )
-	op->area.y = 5;
-    }
-
-    if ( un )
-    { for (i=0, op=objects; i<n; i++, op++)
-      { if ( op->update )
-	{ place_object(op);
-	  op->update = FALSE;
-	  un--;
-	}
-      }
-      assert(un==0);
+      if ( op->area.x+op->area.w > limit.x + limit.w ) /* bounce on Window */
+	op->area.x = limit.x + limit.w - op->area.w;
+      if ( op->area.y+op->area.h > limit.y + limit.h ) /* bounce on Window */
+	op->area.y = limit.y + limit.h - op->area.h;
+      if ( op->area.x < limit.x )			/* bounce on Window */
+	op->area.x = limit.x;
+      if ( op->area.y < limit.y )
+	op->area.y = limit.y;
     }
   }
 
-  for (i=0; i<n; i++)	/* update display */
-    place_object(&objects[i]);
+  for (i=0, op=objects; i<n; i++, op++)	/* update display */
+    place_object(op);
 
   for(i=0; i<n; i++)
-  { pceFree(r[i]);
-  }
+    pceFree(r[i]);
   pceFree(r);
   pceFree(objects);
 
@@ -3158,7 +3176,10 @@ getSolidGraphical(Graphical gr)
 
 static char *T_layout[] =
 	{ "attract=[real]", "nominal=[real]", "repel=[real]",
-	  "adapt=[int]", "iterations=[int]" };
+	  "adapt=[int]", "iterations=[int]",
+	  "area=[area]",
+	  "network=[chain]"
+	};
 static char *T_resize[] =
 	{ "factor_x=real", "factor_y=[real]", "origin=[point]" };
 static char *T_drawImage[] =
@@ -3369,7 +3390,7 @@ static senddecl send_graphical[] =
      NAME_layout, "Dialog item integration"),
   SM(NAME_below, 1, "graphical*", belowGraphical,
      NAME_layout, "Put me below argument"),
-  SM(NAME_layout, 5, T_layout, layoutGraphical,
+  SM(NAME_layout, 7, T_layout, layoutGraphical,
      NAME_layout, "Make graph-layout for connected graphicals"),
   SM(NAME_left, 1, "graphical*", leftGraphical,
      NAME_layout, "Put me left of argument"),

@@ -166,13 +166,20 @@ $search_path(Name, Aliases) -->
 
 $search_aliases([Alias|More]) -->
 	$string(AliasChars),
-	[:], !,
+	path_sep, !,
 	{ $make_alias(AliasChars, Alias) },
 	$search_aliases(More).
 $search_aliases([Alias]) -->
 	$string(AliasChars),
 	$eos, !,
 	{ $make_alias(AliasChars, Alias) }.
+
+path_sep -->
+	{ current_prolog_flag(windows, true)
+	}, !,
+	[;].
+path_sep -->
+	[:].
 
 $string(X) --> {X=[_|_]}, X.
 

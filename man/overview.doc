@@ -292,11 +292,12 @@ qsave_program/[1,2].
 
     \cmdlineoptionitem{-p}{alias=path1[:path2 \ldots]}
 Define a path alias for file_search_path. \arg{alias} is the name of
-the alias, \arg{path1 ...} is a \chr{:} separated list of values for
-the alias.  A value is either a term of the form \mbox{alias(value)}
-or pathname.  The computed aliases are added to file_search_path/2
-using asserta/1, so they precede predefined values for the alias.  See
-file_search_path/2 for details on using this file-location mechanism.
+the alias, \arg{path1 ...} is a list of values for the alias. On Windows
+the list-seperator is \chr{;}. On other systems it is \chr{:}. A value
+is either a term of the form \mbox{alias(value)} or pathname. The
+computed aliases are added to file_search_path/2 using asserta/1, so
+they precede predefined values for the alias. See file_search_path/2 for
+details on using this file-location mechanism.
 
     \cmdlineoptionitem{{\tt --}}{}
 \index{commandline, arguments}%

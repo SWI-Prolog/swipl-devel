@@ -27,6 +27,15 @@
 :- use_module(library('emacs/emacs')).
 
 :- dynamic
+	verbose/0.
+%verbose.
+
+set_verbose :-
+	verbose, !.
+set_verbose :-
+	assert(verbose).
+
+:- dynamic
 	rdf/3.
 
 ns(test,
@@ -255,13 +264,14 @@ show(Item) :->
 	member(result(RTriples), List),
 	member(norm(NTriples), List),
 	member(source(File), List),
-	member(substitutions(Substitutions), List),
+%	member(substitutions(Substitutions), List),
 	send(Result, triples, RTriples),
 	send(Norm, triples, NTriples),
-	send(Result, copy_layout, Norm, Substitutions),
+%	send(Result, copy_layout, Norm, Substitutions),
 	send(View, text_buffer, new(TB, emacs_buffer(File))),
 					% scroll to RDF text
-	(   get(TB, find, 0, ':RDF', Start),
+	(   member(Pattern, [':RDF', 'RDF']),
+	    get(TB, find, 0, Pattern, Start),
 	    get(TB, scan, Start, line, 0, start, BOL)
 	->  send(View, scroll_to, BOL, 1)
 	;   true
@@ -275,11 +285,6 @@ show(Item) :->
 make_rdf_test_gui(Ref) :-
 	send(new(Ref, w3c_rdf_test_gui), open).
 
-
-:- dynamic
-	verbose/0.
-
-verbose.
 
 test_result(Result, Test, Data) :-
 	send(@rdf_test_gui, test_result, Result, Test, Data),
@@ -304,6 +309,7 @@ report_results :-
 	send(@rdf_test_gui, summarise).
 
 run :-
+	set_verbose,
 	get(@rdf_test_gui, member, browser, B),
 	get(B, selection, DI),
 	get(DI, key, Test),
@@ -343,8 +349,7 @@ show(File) :-
 
 
 compare_triples(A, B, Substitutions) :-
-	compare_list(A, B, [], Substitutions),
-	pp(Substitutions).
+	compare_list(A, B, [], Substitutions).
 
 compare_list([], [], S, S).
 compare_list([H1|T1], In2, S0, S) :-
@@ -371,10 +376,19 @@ compare_field(X, node(Id), S, [X=Id|S]) :-
 	atom(X),
 	generated_prefix(Prefix),
 	sub_atom(X, 0, _, _, Prefix), !,
-	format('Assume ~w = ~w~n', [X, node(Id)]).
+	feedback('Assume ~w = ~w~n', [X, node(Id)]).
 
 generated_prefix('Bag__').
 generated_prefix('Seq__').
 generated_prefix('Alt__').
 generated_prefix('Description__').
 generated_prefix('Statement__').
+
+%	feedback(+Format, +Args)
+%	
+%	Print if verbose
+
+feedback(Fmt, Args) :-
+	verbose, !,
+	format(user_error, Fmt, Args).
+feedback(_, _).

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * MODIFIED: use ; as separator for the -p alias=path1:path2 option
+    on MS-Windows.  Mike Elston.
+
   * FIXED: deadlock reconsuling files with breakpoints (debugger).
 
   * FIXED: remove rc/rc.o from libpl.a (anonymous).
