@@ -166,7 +166,7 @@ showPopupMenuBar(MenuBar mb, PopupObj p)
 
 static status
 cancelMenuBar(MenuBar mb, EventObj ev)
-{ PceWindow sw = ev->window;
+{ PceWindow sw = getWindowGraphical((Graphical)mb);
 
   if ( notNil(mb->current) && mb->current->displayed == ON )
   { PopupObj current = mb->current;
@@ -177,8 +177,10 @@ cancelMenuBar(MenuBar mb, EventObj ev)
     changedMenuBarButton(mb, current);
   }
 
-  grabPointerWindow(sw, OFF);
-  focusWindow(sw, NIL, NIL, NIL, NIL);
+  if ( sw )
+  { grabPointerWindow(sw, OFF);
+    focusWindow(sw, NIL, NIL, NIL, NIL);
+  }
 
   succeed;
 }
@@ -267,7 +269,8 @@ eventMenuBar(MenuBar mb, EventObj ev)
 	postEvent(ev, (Graphical) mb->current, DEFAULT);
       }
     } else if ( isUpEvent(ev) )
-    { PceWindow sw = ev->window;
+    { /*PceWindow sw = ev->window;*/
+      PceWindow sw = getWindowGraphical((Graphical)mb);
       PopupObj p;
 
       if ( valInt(getClickTimeEvent(ev)) < 1000 && /* CLICK: stay-up */
@@ -331,7 +334,8 @@ eventMenuBar(MenuBar mb, EventObj ev)
       } else if ( ev->id == toInt(27) )	/* ESC ... */
       {	cancelMenuBar(mb, ev);
       } else
-      { PceWindow sw = ev->window;
+      { /*PceWindow sw = ev->window;*/
+	PceWindow sw = getWindowGraphical((Graphical)mb);
       
 	postEvent(ev, (Graphical)current, DEFAULT);
 

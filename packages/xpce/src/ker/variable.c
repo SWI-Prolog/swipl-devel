@@ -71,6 +71,11 @@ initialiseVariable(Variable var, Name name, Type type, Name access,
   typeVariable(var, type);
   if ( notDefault(initial) )
     initialValueVariable(var, initial);
+  else
+  { if ( !includesType(type, TypeNil) &&
+	 includesType(type, TypeDefault) )
+      initialValueVariable(var, DEFAULT);
+  }
   
   succeed;
 }

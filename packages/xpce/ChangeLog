@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Instance variables that allow for @default, but not for @nil
+  have initial value @default without explicit specification.
+
 * MODIFIED: class tab/tab_stack: nicer visualisation of top/hidden tab.
 
 * ADDED: `colour<-hilite' and `colour<-reduce': argument to say how much.
