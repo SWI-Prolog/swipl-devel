@@ -9,6 +9,24 @@
 
 #ifndef _PCE_GRA_INCLUDED
 #define _PCE_GRA_INCLUDED
+
+		 /*******************************
+		 *     STRETCHABLE OBJECTS	*
+		 *******************************/
+
+typedef struct
+{ int	ideal;				/* ideal size */
+  int   minimum;			/* minimum size */
+  int	maximum;			/* maximum size */
+  int	stretch;			/* stretch handicap */
+  int	shrink;				/* shrink handicap */
+  int	size;				/* resulting size */
+} stretch, *Stretch;
+
+		 /*******************************
+		 *	    TABLES, ETC.	*
+		 *******************************/
+
 #include <h/layout.h>
 
 #define MAX_WRAP_LINES	100		/* line-wraps in text-objects */
@@ -820,19 +838,6 @@ NewClass(timer)
   Name		status;			/* {idle,interval,once} */
   WsRef		ws_ref;			/* Window System Reference */
 End;
-
-		 /*******************************
-		 *     STRETCHABLE OBJECTS	*
-		 *******************************/
-
-typedef struct
-{ int	ideal;				/* ideal size */
-  int   minimum;			/* minimum size */
-  int	maximum;			/* maximum size */
-  int	stretch;			/* stretch handicap */
-  int	shrink;				/* shrink handicap */
-  int	size;				/* resulting size */
-} stretch, *Stretch;
 
 
 		 /*******************************

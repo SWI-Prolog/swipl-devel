@@ -569,9 +569,15 @@ join_stretches(stretch *stretches, int len, stretch *r)
   r->minimum = 0;
   r->maximum = INT_MAX;
 
+  DEBUG(NAME_stretch, Cprintf("Joining %d stretches\n", len));
+
   for(sp=stretches, i=len ; i-- > 0; sp++)
   { r->minimum = max(r->minimum, sp->minimum);
     r->maximum = min(r->maximum, sp->maximum);
+    DEBUG(NAME_stretch, Cprintf("\t%d %d..%d <-%d ->%d\n",
+				sp->ideal,
+				sp->minimum, sp->maximum,
+				sp->shrink, sp->stretch));
   }
     
   for(avg=0, sp=stretches, i=len; i-- > 0; sp++)
@@ -588,7 +594,7 @@ join_stretches(stretch *stretches, int len, stretch *r)
       w0 = (sp->ideal < avg ? sp->stretch : sp->shrink);
 
       if ( w0 != 0 )
-	w0 = 1000/w0;
+	w0 = max(1000/w0, 1);
       else
 	w0 = 100000;
 
@@ -612,6 +618,11 @@ join_stretches(stretch *stretches, int len, stretch *r)
 
   r->shrink  = shrinkavg;
   r->stretch = stretchavg;
+
+  DEBUG(NAME_stretch, Cprintf("--> %d %d..%d <-%d ->%d\n",
+			      r->ideal,
+			      r->minimum, r->maximum,
+			      r->shrink, r->stretch));
 }
 
 
