@@ -493,7 +493,7 @@ bindExtensions(const PL_extension *e)
 { Definition def;
 
   for(; e->predicate_name; e++)
-  { short flags = TRACE_ME;
+  { unsigned long flags = TRACE_ME;
     Module m;
     atom_t name;
     char *s;

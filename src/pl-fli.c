@@ -2631,7 +2631,7 @@ PL_load_extensions(const PL_extension *ext)
 			 : MODULE_system);
 
   for(e = ext; e->predicate_name; e++)
-  { short flags = TRACE_ME;
+  { unsigned long flags = TRACE_ME;
     Definition def;
     Procedure proc;
     atom_t a = PL_new_atom(e->predicate_name);
