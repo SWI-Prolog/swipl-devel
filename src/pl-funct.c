@@ -162,6 +162,7 @@ registerBuiltinFunctors()
     f->name             = d->name;
     f->arity            = d->arity;
     f->next             = functorDefTable[v];
+    f->flags		= 0;
     functorDefTable[v]  = f;
     registerFunctor(f);
   }
