@@ -517,6 +517,10 @@ user_transaction_member(assert(_), Subject, Predicate, Object,
 			assert(Subject, Predicate, Object)) :- !.
 user_transaction_member(retract(_), Subject, Predicate, Object,
 			retract(Subject, Predicate, Object)) :- !.
+user_transaction_member(load_file(Path), -, -, -,
+			file(load(Path))) :- !.
+user_transaction_member(unload_file(Path), -, -, -,
+			file(unload(Path))) :- !.
 user_transaction_member(Update, Subject, Predicate, Object,
 			update(Subject, Predicate, Object, Update)).
 
@@ -573,6 +577,11 @@ rdfe_reset_undo :-
 	retractall(undo_marker(_,_)),
 	retractall(modified(_)).
 
+%	close possible open journal at exit.  Using a Prolog hook
+%	guarantees closure, even for most crashes.
+
+:- at_halt(rdfe_replay_journal).
+
 
 		 /*******************************
 		 *	    JOURNALLING		*
@@ -613,7 +622,7 @@ rdfe_open_journal(File, Mode) :-
 		    version(Version)
 		  ],
 	journal(Start),
-	at_halt(ignore(rdfe_close_journal)).
+	broadcast(rdf_journal(Start)).
 
 rdfe_close_journal :-
 	get_time(T),
