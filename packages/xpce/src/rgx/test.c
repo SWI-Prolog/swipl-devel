@@ -55,7 +55,7 @@ main(int argc, char **argv)
   charW *target, *offset;
   int dflags = REG_MTRACE|REG_FTRACE;
   
-//  dflags = 0;
+  dflags = 0;
 
   if ( argc != 3 )
   { fprintf(stderr, "Usage: %s re string\n", argv[0]);
@@ -84,7 +84,7 @@ main(int argc, char **argv)
   fprintf(stderr, "WIDE version\n");
 #endif
 
-  if ( (rc=re_compileW(&re, mkwide(argv[1]), strlen(argv[1]), REG_ADVANCED)) != REG_OKAY )
+  if ( (rc=re_compileW(&re, mkwide(argv[1]), strlen(argv[1]), REG_BOSONLY|REG_ADVANCED)) != REG_OKAY )
   { regerror(rc, &re, ebuf, sizeof(ebuf));
     printf("error(compile, '%s').\n", ebuf);
     exit(1);
@@ -102,7 +102,7 @@ main(int argc, char **argv)
 #endif
   if ( (rc = re_execW(&re, target, strlen(argv[2]),
 		      fetch, offset,
-		      &details, 100, matches, REG_MATCH|dflags)) != REG_OKAY )
+		      &details, 100, matches, dflags)) != REG_OKAY )
   { regerror(rc, &re, ebuf, sizeof(ebuf));
     printf("error(execute, '%s').\n", ebuf);
     exit(0);

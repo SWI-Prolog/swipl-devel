@@ -10,7 +10,8 @@ AR=ar
 RANLIB=ranlib
 RM=rm
 
-OBJS= 		regcompA.o regexecA.o regcompW.o regexecW.o regfree.o regerror.o
+OBJS= 		regcompW.o regexecW.o regfree.o regerror.o
+# OBJS= regcompA.o regexecA.o regcompW.o regexecW.o regfree.o regerror.o
 
 all:		libregex.a test
 
@@ -27,6 +28,10 @@ regexecA.o:
 		$(CC) $(CFLAGS) -c -o $@ regexec.c
 regexecW.o:
 		$(CC) $(CFLAGS) -DREG_WIDE -c -o $@ regexec.c
+regfree.o:
+		$(CC) $(CFLAGS) -DREG_WIDE -c -o $@ regfree.c
+regerror.o:
+		$(CC) $(CFLAGS) -DREG_WIDE -c -o $@ regerror.c
 
 
 # mark inclusion dependencies between .c files explicitly

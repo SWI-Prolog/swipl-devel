@@ -393,6 +393,66 @@ image(bitmap-1) :-
 
 
 		 /*******************************
+		 *	       REGEX		*
+		 *******************************/
+
+re_tb(TB, From, GapAt) :-
+	new(TB, text_buffer(From)),
+	send(TB, insert, GapAt, x),
+	send(TB, delete, GapAt, 1).
+
+re_frag(Frag, From) :-
+	new(TB, text_buffer),
+	send(TB, append, 'leader '),
+	get(TB, size, Start),
+	send(TB, append, From),
+	send(TB, append, ' trailer'),
+	atom_length(From, Len),
+	new(Frag, fragment(TB, Start, Len)).
+
+re_target(In, atom, In).
+re_target(In, text_buffer, TB) :-
+	re_tb(TB, In, 0).
+re_target(In, fragment, Frag) :-
+	re_frag(Frag, In).
+
+re_free(Atom) :-
+	atom(Atom), !.
+re_free(Frag) :-
+	send(Frag, instance_of, fragment), !,
+	get(Frag, text_buffer, TB),
+	free(TB).
+re_free(Obj) :-
+	free(Obj).
+
+re_match(regex(foo), @default, @default, 'aap foo bar', 4-7).
+re_match(regex(foo), 4, @default, 'aap foo bar', 4-7).
+re_match(regex(foo), 11, 0, 'aap foo bar', 4-7).
+re_match(regex(foo, @off), @default, @default, 'aap FOO bar', 4-7).
+re_match(regex(foo), @default, @default, String, 4-7) :-
+	atom_codes(W, [1080]),
+	atom_concat('aap foo bar', W, String).
+
+regex(regex-1) :-
+	State = state(ok),
+	(   re_match(Term, Start, End, In, From-To),
+	    new(Re, Term),
+	    re_target(In, How, Target),
+	    (   send(Re, search, Target, Start, End),
+		get(Re, register_start, From),
+		get(Re, register_end, To)
+	    ->  re_free(Target),
+		put(.), flush
+	    ;   format('~NRegex: failed ~w on ~w (~w)~n', [Term, In, How]),
+		nb_setarg(1, State, error)
+	    ),
+	    fail
+	;   arg(1, State, ok)
+	).
+
+
+
+		 /*******************************
 		 *	      SCRIPTS		*
 		 *******************************/
 
@@ -475,6 +535,7 @@ testset(textbuffer).
 testset(asfile).			% test pce_open and friends
 testset(selection).			% X11 selection
 testset(image).				% Simple image manipulation
+testset(regex).				% Regular expression matches
 
 %	testdir(Dir)
 %	

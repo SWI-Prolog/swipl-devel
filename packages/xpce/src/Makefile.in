@@ -382,7 +382,7 @@ $(srcdir)/evt/proto.h:	$(EVTSRC)
 # GNU 		--- GNU-Project Libraries
 ################################################################
 
-GNUOBJS=	gregex.o getdate.o
+GNUOBJS=	getdate.o
 GNUSRC=		$(addprefix $(srcdir)/gnu/, $(GNUOBJS:.o=.c))
 CNWFLAGS=	$(CMFLAGS) $(COFLAGS) $(CIFLAGS)
 
@@ -538,8 +538,7 @@ $(srcdir)/rel/proto.h:	$(RELSRC)
 # RGX		--- Henry Spencer's regex library
 ################################################################
 
-RGXOBJS=	regcompA.o regexecA.o \
-		regcompW.o regexecW.o \
+RGXOBJS=	regcompW.o regexecW.o \
 		regfree.o regerror.o
 
 REGCOBJS=	rgx/regcomp.c \
@@ -553,6 +552,10 @@ rgx/regcompW.o:	$(REGCOBJS)
 rgx/regexecA.o:	rgx/regexec.c
 		$(CC) -c $(CFLAGS) $< -o $@
 rgx/regexecW.o:	rgx/regexec.c
+		$(CC) -c $(CFLAGS) -DREG_WIDE $< -o $@
+rgx/regfree.o:	rgx/regfree.c
+		$(CC) -c $(CFLAGS) -DREG_WIDE $< -o $@
+rgx/regerror.o:	rgx/regerror.c
 		$(CC) -c $(CFLAGS) -DREG_WIDE $< -o $@
 
 $(srcdir)/rgx/proto.h::

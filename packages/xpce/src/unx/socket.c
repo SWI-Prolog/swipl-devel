@@ -52,6 +52,7 @@
 #endif
 #include <errno.h>
 extern int errno;
+#undef NAME_MAX				/* conflict */
 
 #define SOCKET int
 #endif /*WINSOCK*/

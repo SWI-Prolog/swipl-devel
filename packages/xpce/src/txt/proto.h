@@ -51,7 +51,7 @@ COMMON(KeyBinding) KeyBindingTextItemView(void);
 /* /staff/jan/src/pl/packages/xpce/src/txt/regex.c */
 COMMON(status)	ignoreCaseRegex(Regex re, Bool val);
 COMMON(status)	compileRegex(Regex re, Bool optimize);
-COMMON(status)	search_regex(Regex re, char *str1, int size1, char *str2, int size2, int start, int end);
+COMMON(status)	search_string_regex(Regex re, String s);
 COMMON(status)	searchRegex(Regex re, Any obj, Int start, Int end);
 COMMON(Int)	getMatchRegex(Regex re, Any obj, Int start, Int end);
 COMMON(status)	matchRegex(Regex re, Any obj, Int start, Int end);

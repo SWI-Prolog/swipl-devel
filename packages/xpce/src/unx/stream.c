@@ -279,13 +279,17 @@ dispatch_input_stream(Stream s)
       return;
     }
 
-    if ( search_regex(s->record_separator,
-		      (char *)s->input_buffer, s->input_p,
-		      NULL, 0, 0, s->input_p) )
-    { int size = valInt(getRegisterEndRegex(s->record_separator, ZERO));
+    if ( instanceOfObject(s->record_separator, ClassRegex) )
+    { Regex re = s->record_separator;
+      string str;
 
-      dispatch_stream(s, size, FALSE);
-      continue;
+      str_set_n_ascii(&str, s->input_p, s->input_buffer);
+      if ( search_string_regex(re, &str) )
+      { int size = valInt(getRegisterEndRegex(s->record_separator, ZERO));
+
+	dispatch_stream(s, size, FALSE);
+	continue;
+      }
     }
 
     return;

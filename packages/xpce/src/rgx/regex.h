@@ -192,8 +192,6 @@ typedef struct {
 #define	REG_FTRACE	0010	/* none of your business */
 #define	REG_MTRACE	0020	/* none of your business */
 #define	REG_SMALL	0040	/* none of your business */
-				/* JW */
-#define REG_MATCH	0100	/* match, do not search */
 
 
 /*
