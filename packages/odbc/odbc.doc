@@ -1,0 +1,528 @@
+\documentclass[11pt]{article}
+\usepackage{pl}
+\usepackage{html}
+
+\onefile
+\htmloutput{html}				% Output directory
+\htmlmainfile{index}				% Main document file
+\bodycolor{white}				% Page colour
+
+\renewcommand{\runningtitle}{SWI-Prolog ODBC Interface}
+
+\begin{document}
+
+\title{SWI-Prolog ODBC Interface}
+\author{Jan Wielemaker \\
+	SWI, \\
+	University of Amsterdam \\
+	The Netherlands \\
+	E-mail: \email{jan@swi-prolog.org}}
+
+\maketitle
+
+\begin{abstract}
+This document describes the SWI-Prolog interface to ODBC, the Microsoft
+standard for \jargon{Open DataBase Connectivity}.  These days there are
+ODBC managers from multiple vendors for many platforms as well as
+drivers for most databases, making it an attractive target for a Prolog
+Database connection.
+ 
+The database interface is envisioned to consist of two layers. The first
+layer is an encapsulation of the core functionality of ODBC.  This layer
+makes it possible to run SQL queries.  The second layer exploits the
+relation between Prolog predicates and database tables, providing
+---a somewhat limited--- natural Prolog view on the data. The current
+interface only covers the first layer.
+\end{abstract}
+
+\tableofcontents
+
+\section{Introduction}
+
+The value of RDMS for Prolog is often over-estimated, as Prolog itself
+can manage substantial amounts of data. Nevertheless a Prolog/RDMS
+interface provides advantages if data is already provided in an RDMS,
+data must be shared with other applications, there are strong
+persistency requirements or there is too much data to fit in memory.
+
+The popularity of ODBC makes it possible to design a single
+foreign-language module that provides RDMS access for a wide variety
+of databases on a wide variety of platforms. The SWI-Prolog RDMS
+interface is closely modelled after the ODBC API.  This API is rather
+low-level, but defaults and dynamic typing provided by Prolog give the
+user quite simple access to RDMS, while the interface provides the best
+possible performance given the RDMS independency constraint.
+
+The Prolog community knows about various high-level connections between
+RDMS and Prolog. We envision these layered on top of the ODBC connection
+described here.
+
+
+\section{The ODBC layer}
+
+\subsection{Connection management}
+
+The ODBC interface deals with a single ODBC environment but with
+multiple simultaneous connections.  The predicates in this section
+deal with connection management.
+
+\begin{description}
+    \predicate{odbc_connect}{3}{+DSN, -Connection, +Options}
+Create a new ODBC connection to data-source \arg{DSN} and return a
+handle to this connection in \arg{Connection}.  The connection handle
+is either an opaque structure or an atom of the \const{alias} option
+is used.  The options below are defined.  In addition, options of
+odbc_set_connection/2 may be provided.
+
+\begin{description}
+    \termitem{user}{User}
+Define the user-name for the connection.  This option must be present
+if the database uses authorization.
+
+    \termitem{password}{Password}
+Provide a password for the connection.  Normally used in combination
+with \term{user}{User}.
+
+    \termitem{alias}{AliasName}
+Use \arg{AliasName} as \arg{Connection} identifier, making the
+connection available as a global resource.  A good choice is to
+use the \arg{DSN} as alias.
+
+    \termitem{open}{OpenMode}
+If \arg{OpenMode} is \const{once} (default if an \const{alias} is
+provided), a second call to open the same \arg{DSN} simply returns
+the existing connection.  If \const{multiple} (default if there is
+no alias name), a second connection to the same data-source is
+opened.
+\end{description}
+
+The following example connects to the WordNet database, using the
+connection alias \const{wordnet} and opening the connection only
+once:
+
+\begin{code}
+open_wordnet :-
+	odbc_connect('WordNet', _,
+		     [ user(jan),
+		       password(xxx),
+		       alias(wordnet),
+		       open(once)
+		     ]).
+\end{code}
+
+\predicate{odbc_disconnect}{1}{+Connection}
+Close the given \arg{Connection}.  This destroyes the connection alias
+or, if there is no alias, makes further use of the \arg{Connection}
+handle illegal.
+
+\predicate{odbc_current_connection}{2}{?Connection, ?DSN}
+Enumerate the existing ODBC connections.
+
+\predicate{odbc_set_connection}{2}{+Connection, +Option}
+Set options on an existing connection.  Defined options are:
+
+\begin{description}
+    \termitem{auto_commit}{bool}
+If \const{true} (default), each update statement is committed
+immediately.  If \const{false}, an update statement starts a transaction
+that can be committed or rolled-back.  See \secref{sqltrans} for details
+on transaction management.
+\end{description}
+\end{description}
+
+\subsection{Running SQL queries}
+
+ODBC distinguishes between direct execution of literal SQL strings and
+parameterized execution of SQL strings. The first is a simple practical
+solution for infrequent calls (such as creating a table), while
+parameterized execution allows the driver and database to precompile the
+query and store the optimized code, making it suitable for time-critical
+operations.  In addition, it allows for passing parameters without going
+through SQL-syntax and thus avoiding the need for quoting.
+
+
+\subsubsection{One-time invocation}
+
+\begin{description}
+    \predicate{odbc_query}{3}{+Connection, +SQL, -Row}
+Same as odbc_query/4 using \const{[]} for \arg{Options}.
+
+    \predicate{odbc_query}{4}{+Connection, +SQL, -Row, +Options}
+Fire a query on the database represented by \arg{Connection}. \arg{SQL}
+is any valid SQL statement. SQL statements can be specified as a plain
+atom, string or a term of the format
+\mbox{\arg{Format}-\arg{Arguments}}, which is converted using format/2.
+After executing the query, result-rows are returned one-by-one as terms
+of the functor \functor{row}{\arg{Arity}}, where \arg{Arity} denotes the
+number of columns in the result-set. If the query has no results (such
+as \const{INSERT}) use odbc_query/2. Here is a small example using the
+connection created from odbc_connect/3.
+
+\begin{code}
+lemma(Lemma) :-
+	odbc_query(wordnet,
+		   'SELECT (lemma) FROM word',
+		   row(Lemma).
+\end{code}
+
+Please note that the SQL-statement does not end in the \chr{;}
+character.  \arg{Options} defines the following options:
+
+\begin{description}
+    \termitem{types}{ListOfTypes}
+Determine the Prolog type used to report the column-values.  When
+omitted, default conversion as described in \secref{sqltypes} is
+implied.  A column may specify \const{default} to use default
+conversion for that column.  The length of the type-list must match
+the number of columns in the result-set.
+
+For example, in the table \exam{word} the first column is defined
+with the SQL type \exam{DECIMAL(6)}.  Using this SQL-type, ``001''
+is distinct from ``1'', but using Prolog integers is a valid
+representation for Wordnet \exam{wordno} identifiers.  The following
+query extracts rows using Prolog integers:
+
+\begin{code}
+?- odbc_query(wordnet,
+	      'select * from word', X,
+	      [ types([integer,default])
+	      ]).
+
+X = row(1, entity)
+\end{code}
+\end{description}
+
+See also \secref{sqltypes} for notes on type-conversion.
+
+    \predicate{odbc_query}{2}{+Connection, +SQL}
+As odbc_query/3, but used for SQL-statements that should not return
+result-rows (i.e.\ all statements except for \const{SELECT}).  The
+predicate prints a diagnostic message if teh query returns a result.
+\end{description}
+
+
+\subsubsection{Paramaterised queries}
+
+ODBC provides for `parameterized queries'.  These are SQL queries with
+a \chr{?}-sign at places where parameters appear.  The ODBC interface
+and database driver may use this to precompile the SQL-statement, giving
+better performance on repeated queries.  This is exactly what we want if
+we associate Prolog predicates to database tables.  This interface is
+defined by the following predicates:
+
+\begin{description}
+\predicate{odbc_prepare}{4}{+Connection, +SQL, +Parameters, -Statement}
+As odbc_prepare/5 using \const{[]} for \arg{Options}.
+
+\predicate{odbc_prepare}{5}{+Connection, +SQL, +Parameters,
+			    -Statement, +Options}
+Create a statement from the given \arg{SQL} (which may be a format
+specification as described with odbc_query/3) statement that normally
+has one or more parameter-indicators (\chr{?}) and unify \arg{Statement}
+with a handle to the created statement. \arg{Parameters} is a list of
+descriptions, one for each parameter. Each parameter description is one
+of the following:
+
+\begin{description}
+    \termitem{default}{}
+Uses the ODBC function SQLDescribeParam() to obtain information about
+the parameter and applies default rules.  See \secref{sqltypes} for
+details.
+
+    \termitem{\arg{SqlType}{Specifier, ...}}
+Declare the parameter to be of type \arg{SqlType} with the given
+specifiers. Specifiers are required for \type{char}, \type{varchar},
+etc.\ to specify the field-width. In odbc_execute/2, the must supply the
+value in default Prolog type for this SQL type. See \secref{sqltypes}
+for details.
+
+    \definition{\arg{PrologType} $>$ \arg{SqlType}}
+As above, but supply values of the given \arg{PrologType}, using the
+type-transformation defined by the database driver.  For example,
+if the parameter is specified as
+
+\begin{code}
+atom > date
+\end{code}
+
+The use must supply an atom of format \exam{YYYY-MM-DD} rather than a
+term \term{date}{Year,Month,Day}.  This construct enhances flexibility
+and allows for passing values that have no proper representation in
+Prolog.
+\end{description}
+
+\arg{Options} defines a list of options for executing the statement.  See
+odbc_query/4 for details.
+
+    \predicate{odbc_execute}{3}{+Statement, +ParameterValues, -Row}
+Execute a statement prepared with odbc_prepare/4 with the given
+\arg{ParameterValues} and return the rows one-by-one on backtracking as
+odbc_query/4. This predicate may return type_error exceptions if the
+provided parameter values cannot be converted to the declared types.
+
+ODBC doesn't appear to allow for multiple cursors on the same
+result-set.%
+	\footnote{Is this right?}
+This would imply there can only be one active odbc_execute/3
+(i.e.\ have a choice-point) on a prepared statement.  Suppose we
+have a table \exam{age (name char(25), age integer)} bound to the
+predicate \predref{age}{2} we cannot write the code below without
+special precautions.  The ODBC interface therefore creates a clone
+of a statement if it discovers the statement is being executed,
+which is discarded after the statement is finished.%
+	\footnote{The code is prepared to maintain a cache of
+		  statements.  Practice should tell us whether
+		  it is worthwhile activating this.}
+
+\begin{code}
+same_age(X, Y) :-
+	age(X, AgeX),
+	age(Y, AgeY),
+	AgeX = AgeY.
+\end{code}
+
+    \predicate{odbc_free_statement}{1}{+Statement}
+Destroy a statement prepared with odbc_prepare/4. If the statement is
+currently executing (i.e. odbc_execute/3 left a choice-point), the
+destruction is delayed until the execution terminates.
+\end{description}
+
+
+\subsection{Transaction management}		\label{sec:sqltrans}
+
+ODBC can run in two modi. By default, all update actions are immediately
+committed on the server.  Using odbc_set_connection/2 this behaviour can
+be switched off, after which each SQL statement that can be inside a
+transaction implicitely starts a new transaction.   This transaction can
+be ended using odbc_end_transaction/2.
+
+\begin{description}
+    \predicate{odbc_end_transaction}{2}{+Connection, +Action}
+End the currently open transaction if there is one.  Using \arg{Action}
+\const{commit} pending updates are made permanent, using
+\const{rollback} they are discarded.
+\end{description}
+
+The ODBC documentation has many comments on transation management and
+its interaction with database cursors.  
+
+
+\subsection{Accessing the database dictionary}
+
+With this interface we do not envision the use of Prolog as a database
+manager.  Nevertheless, elementary access to the structure of a database
+is required, for example to validate a database satisfies the
+assumptions made by the application.  
+
+\begin{description}
+    \predicate{odbc_current_table}{2}{+Connection, -Table}
+Return on backtracking the names of all tables in the database
+identified by the connection.
+
+    \predicate{odbc_current_table}{3}{+Connection, ?Table, ?Facet}
+Enumerate properties of the tables.  Defines facets are:
+
+\begin{description}
+    \termitem{qualifier}{Qualifier}
+    \termitem{owner}{Owner}
+    \termitem{comment}{Comment}
+These facets are defined by SQLTables()
+    \termitem{arity}{Arity}
+This facet returns the number of columns in a table.
+\end{description}
+
+    \predicate{odbc_table_column}{3}{+Connection, ?Table, ?Column}
+On backtracking, enumerate all columns in all tables.
+
+    \predicate{odbc_table_column}{3}{+Connection, ?Table, ?Column, ?Facet}
+Provides access to the properties of the table as defined by the ODBC
+call SQLColumns().  Defined facets are:
+
+\begin{description}
+    \termitem{table_qualifier}{Qualifier}
+    \termitem{table_owner}{Owner}
+    \termitem{table_name}{Table}
+See odbc_current_table/3.
+    \termitem{data_type}{DataType}
+    \termitem{type_name}{TypeName}
+    \termitem{precision}{Precision}
+    \termitem{length}{Length}
+    \termitem{scale}{Scale}
+    \termitem{radix}{Radix}
+    \termitem{nullable}{Nullable}
+    \termitem{remarks}{Remarks}
+These facets are defined by SQLColumns()
+    \termitem{type}{Type}
+More prolog-friendly representation of the type properties.  See
+\secref{sqltypes}.
+\end{description}
+\end{description}
+
+
+\subsection{Getting more information}		\label{sec:odbcinfo}
+
+\begin{description}
+    \predicate{odbc_statistics}{1}{?Key}
+Get statistical data on the ODBC interface.  Currently defined keys are:
+
+\begin{description}
+    \termitem{statements}{Created, Freed}
+Number of SQL statements that have been \arg{Created} and \arg{Freed}
+over all connections. Statements executed with odbc_query/[2,3]
+increment \arg{Created} as the query is created and \arg{Freed} if
+the query is terminated due to deterministic success, failure, cut
+or exception.  Statements created with odbc_prepare/[4,5] are freed
+by odbc_free_statement/1 or due to a fatal error with the statement.
+\end{description}
+\end{description}
+
+
+\subsection{Representing SQL data in Prolog}		\label{sec:sqltypes}
+
+Databases have a poorly standardized but rich set of datatypes.  Some
+have natural Prolog counterparts, some not.  A complete mapping requires
+us to define Prolog data-types for SQL types that have no standardized
+Prolog counterpart (such as timestamp), the definition of a default
+mapping and the possibility to define an alternative mapping for a
+specific column. For example, many variations of the SQL \const{DECIMAL}
+type cannot be mapped to a Prolog integer.  Nevertheless, mapping to
+an integer may be the proper choice for a specific application.
+
+The Prolog/ODBC interface defines the following Prolog result types with
+the indicated default transformation. Different result-types can be
+requested using the \term{types}{TypeList} option for the
+odbc_query/4 and odbc_prepare/5 interfaces.
+
+\begin{description}
+    \termitem{atom}{}
+Used as default for the SQL types \const{char}, \const{varchar},
+\const{longvarchar}, \const{decimal} and \const{numeric}. Can be used
+for all types.
+
+    \termitem{string}{}
+SWI-Prolog extended type string. Use the type for special cases where
+garbage atoms must be avoided. Can be used for all types.
+
+    \termitem{codes}{}
+List of character codes.  Use this type if the argument must be analysed
+or compatibility with Prolog systems that cannot handle infinite-length
+atoms is desired.  Can be used for all types.
+
+    \termitem{integer}{}
+Used as default for the SQL types \const{bit}, \const{tinyint},
+\const{smallint} and \const{integer}.  Please note that SWI-Prolog
+integers are signed 32-bit values, where SQL allows for unsigned
+values as well. Can be used for the integral, and \const{decimal} types
+as well as the types \const{date} and \const{time_stamp}, which are
+represented as POSIX time-stamps (seconds after Jan 1, 1970).
+
+    \termitem{double}{}
+Used as default for the SQL types \const{real}, \const{float} and
+\const{double}.  Can be used for the integral, float and \const{decimal}
+types as well as the types \const{date} and \const{time_stamp}, which
+are represented as POSIX time-stamps (seconds after Jan 1, 1970).
+Representing time this way is compatible to SWI-Prologs time-stamp
+handling.
+
+    \termitem{date}{}
+A Prolog term of the form \term{date}{Year,Month,Day} used as default
+for the SQL type \const{date}.
+
+    \termitem{time}{}
+A Prolog term of the form \term{time}{Hour,Minute,Second} used as
+default for the SQL type \const{time}.
+
+    \termitem{time_stamp}{}
+A Prolog term of the form
+\term{time_tamp}{Year,Month,Day,Hour,Minute,Second,Fraction} used as
+default for the SQL type \const{time_stamp}.
+\end{description}
+
+
+\subsection{Errors and warnings}
+
+Disregarding some details, ODBC operations return success, error or
+`success with information'.  This section explains how results from
+the ODBC layer are reported to Prolog.
+
+\subsubsection{ODBC messages: `Result with info'}
+\label{sec:successwithinfo}
+
+If an ODBC operation returns `with info', the info is extracted from the
+interface and handled to the Prolog message dispatcher print_message/2.
+The level of the message is \const{informational} and the term is of the
+form:
+
+\begin{description}
+    \termitem{odbc}{State, Native, Message}
+Here, \arg{State} is the SQL-state as defined in the ODBC API,
+\arg{Native} is the (integer) error code of the underlying data source
+and \arg{Message} is a human readable explanation of the message.
+\end{description}
+
+\subsubsection{ODBC errors}				\label{sec:sqlerror}
+
+If an ODBC operation signals an error, it throws the exception
+\term{error}{\term{odbc}{State, Native, Message}, _}. The arguments
+of the \funcref{odbc}{3} term are explained in \secref{successwithinfo}.
+
+In addition, the Prolog layer performs the normal tests for proper
+arguments and state, signalling the conventional instantiation, type,
+domain and resource exceptions.
+
+
+\subsection{ODBC implementations}
+
+There is a wealth on ODBC implementations that are completely or almost
+compatible to this interface. In addition, a number of databases are
+delivered with an ODBC compatible interface. This implies you get the
+portability benefits of ODBC without paying the configuration and
+performance price. Currently this interface is, according to the
+\url[PHP]{www.php.net} documentation on this subject, provided by Adabas
+D, IBM DB2, Solid, and Sybase SQL Anywhere. 
+
+
+\subsubsection{Using unixODBC}
+
+The SWI-Prolog ODBC interface was developed using
+\url[unixODBC]{www.unixodbc.org} and \url[MySQL]{www.mysql.com} on
+\url[SuSE Linux]{www.suse.com}.  
+
+
+\subsubsection{Using Microsoft ODBC}
+
+\subsection{Remaining issues}
+
+The following issues are indentified and waiting for concrete problems
+and suggestions.
+
+\begin{description}
+    \item[NULL data]
+How to represent NULL in Prolog.  We have seen the atom \verb|$Null$|
+and the compound term 'NULL'(_).
+\end{description}
+
+
+\section{Installation}
+
+\subsection{Unix systems}
+
+Installation on Unix system uses the commonly found {\em configure},
+{\em make} and {\em make install} sequence. SWI-Prolog should be
+installed before building this package. If SWI-Prolog is not installed
+as \program{pl}, the environment variable \env{PL} must be set to the
+name of the SWI-Prolog executable. Installation is now accomplished
+using:
+
+\begin{code}
+% ./configure
+% make
+% make install
+\end{code}
+
+This installs the foreign libraries in \file{$PLBASE/lib/$PLARCH} and
+the Prolog library files in \file{$PLBASE/library}, where
+\file{$PLBASE} refers to the SWI-Prolog `home-directory'.
+
+\end{document}
+

@@ -1,0 +1,18 @@
+Files:
+
+* contents.txt this file.
+
+* readmefirst.txt
+    Please read it.
+
+* pl_odbc.c
+    C source code for the foreign library.
+
+* pl_odbc.dll
+    Foreign library, providing predicates to the
+    following module.
+
+* pl_odbc.pl
+    Prolog code containing the predicates to access
+    DB via ODBC. Load this file only, in Prolog, this
+    automtically load the Foreign Library. 

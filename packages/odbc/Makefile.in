@@ -1,0 +1,114 @@
+################################################################
+# Makefile template for SWI-Prolog ODBC interface
+#
+# This template is used by configure to create Makefile.  See
+# the file INSTALL for further installation instructions.
+#
+# License: LGPL
+#
+# Author: Jan Wielemaker (jan@swi.psy.uva.nl)
+################################################################
+
+.SUFFIXES: .tex .dvi .doc .pl
+
+PL=@PL@
+PLBASE=@PLBASE@
+PLARCH=@PLARCH@
+PLINCL=@PLINCL@
+PKGDOC=$(PLBASE)/doc/packages
+PCEHOME=$(PLBASE)/xpce
+
+CC=@CC@
+COFLAGS=@COFLAGS@
+CWFLAGS=@CWFLAGS@
+CMFLAGS=@CMFLAGS@
+CIFLAGS=-I.
+CFLAGS=$(COFLAGS) $(CWFLAGS) $(CMFLAGS) $(CIFLAGS) @DEFS@
+LIBS=@LIBS@
+NETLIBS=@NETLIBS@
+
+DOCTOTEX=$(PCEHOME)/bin/doc2tex
+PLTOTEX=$(PCEHOME)/bin/pl2tex
+DOC=odbc
+TEX=$(DOC).tex
+DVI=$(DOC).dvi
+PDF=$(DOC).pdf
+RUNTEX=@RUNTEX@
+
+LD=@LD@
+LDFLAGS=@LDSOFLAGS@
+
+INSTALL=@INSTALL@
+INSTALL_PROGRAM=@INSTALL_PROGRAM@
+INSTALL_DATA=@INSTALL_DATA@
+
+LIBPL=		@PLTARGETS@
+TARGETS=	@TARGETS@
+
+ODBCOBJ=	odbc.o
+
+all:		$(TARGETS)
+
+odbc.@SO@:	$(ODBCOBJ)
+		$(LD) $(LDFLAGS) -o $@ $(ODBCOBJ) $(LIBS)
+
+install:	$(TARGETS) $(LIBPL)
+		mkdir -p $(PLBASE)/lib/$(PLARCH)
+		for f in $(TARGETS); do \
+		  $(INSTALL) -m 755 $$f $(PLBASE)/lib/$(PLARCH); \
+		done
+		for f in $(LIBPL); do \
+		  $(INSTALL) -m 644 $$f $(PLBASE)/library; \
+		done
+		$(PL) -f none -g make -t halt
+
+rpm-install:	install
+
+html-install::
+		mkdir -p $(PKGDOC)
+		$(INSTALL) -m 644 clib.html $(PKGDOC)
+
+pdf-install::
+		mkdir -p $(PKGDOC)
+		$(INSTALL) -m 644 clib.pdf $(PKGDOC)
+
+uninstall::
+		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))
+		(cd $(PLBASE)/library && rm -f $(LIBPL))
+		$(PL) -f none -g make -t halt
+
+################################################################
+# Documentation
+################################################################
+
+pdf:		$(PDF)
+
+$(DVI):		$(TEX)
+		$(RUNTEX) $(DOC)
+
+$(PDF):		$(TEX)
+		$(RUNTEX) --pdf $(DOC)
+
+html:		$(TEX)
+		latex2html $(DOC)
+		mv html/index.html clib.html
+		rm -r html
+
+$(TEX):		$(DOCTOTEX)
+
+.doc.tex:
+		$(DOCTOTEX) $*.doc > $*.tex
+.pl.tex:
+		$(PLTOTEX) $*.pl > $*.tex
+
+################################################################
+# Clean
+################################################################
+
+clean:
+		rm -f $(OBJ) *~ *.o *% a.out core config.log
+
+distclean:	clean
+		rm -f $(TARGETS) config.cache config.h config.status Makefile
+		rm -f clib.aux clib.log clib.out clib.toc
+		rm -rf html
