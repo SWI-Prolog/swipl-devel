@@ -483,6 +483,10 @@ freeSocket(int socket)
     Sdprintf("closesocket(%d) failed: %s\n",
 	     socket,
 	     WinSockError(WSAGetLastError()));
+#else
+    Sdprintf("closesocket(%d) failed: %s\n",
+	     socket,
+	     strerror(errno));
 #endif
   }
 
@@ -1279,6 +1283,7 @@ tcp_close_output(void *handle)
   if ( s->output )
   { s->output = NULL;
     s->flags &= ~SOCK_OUTSTREAM;
+#if 0
     if ( shutdown(socket, SD_SEND) == SOCKET_ERROR )
     {
 #ifdef O_DEBUG
@@ -1293,6 +1298,7 @@ tcp_close_output(void *handle)
       }
 #endif
     }
+#endif
   }
 
   if ( !(s->flags & (SOCK_INSTREAM|SOCK_OUTSTREAM)) )

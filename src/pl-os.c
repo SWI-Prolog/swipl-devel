@@ -2734,6 +2734,28 @@ Which(const char *program, char *fullname)
 #define PAUSE_DONE 1			/* see pl-nt.c */
 #endif
 
+#if !defined(PAUSE_DONE) && defined(HAVE_NANOSLEEP)
+#define PAUSE_DONE 1
+
+void
+Pause(real t)
+{ struct timespec req;
+  int rc;
+
+  if ( t < 0.0 )
+    return;
+
+  req.tv_sec = (time_t) t;
+  req.tv_nsec = (long)((t - floor(t)) * 1000000000);
+
+  do
+  { rc = nanosleep(&req, &req);
+  } while(rc == -1 && errno == EINTR );
+}
+
+#endif /*HAVE_NANOSLEEP*/
+
+
 #if !defined(PAUSE_DONE) && defined(HAVE_USLEEP)
 #define PAUSE_DONE 1
 

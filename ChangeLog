@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: Base sleep/1 on nanosleep() if this function is available.
+
   * FIXED: copy_stream_data/[2,3] locking problem.
 
   * FIXED: call_cleanup/[2,3] to pass exceptions properly
