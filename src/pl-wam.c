@@ -3737,7 +3737,7 @@ possible to be able to call-back to Prolog.
       }
 #endif
 
-	clear(FR, FR_SKIPPED|FR_WATCHED);
+	clear(FR, FR_SKIPPED|FR_WATCHED|FR_CATCHED);
 
 	LD->statistics.inferences++;
 

@@ -548,6 +548,9 @@ rethrow(G) :-
 throwit :-
 	throw(foo(_)).
 
+catchme :-
+	catch(throwit, _, true).
+
 exception(call-1) :-
 	catch(do_exception_1, E, true),
 	E =@= error(instantiation_error, _).
@@ -559,6 +562,8 @@ exception(call-3) :-
 exception(call-4) :-
 	catch(throwit, foo(X), X = a),
 	X = a.
+exception(call-5) :-
+	catch(throwit, _, catchme).
 
 
 		 /*******************************

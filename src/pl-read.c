@@ -1932,8 +1932,7 @@ term is to be written.
 	  default:
 	    *name = TRUE;
 	    PL_put_atom(term, codeToAtom(token->value.character));
-
-	    succeed;
+	    goto atomic_out;
 	}
       } /* case T_PUNCTUATION */
     default:;
