@@ -1,6 +1,9 @@
 VERSION 1.0.7
 =============
 
+* IMPROVED: Redirect all memory management to print a fatal error message
+  instead of crashing.
+
 * IMPROVED: Handle the (illegal) comment <!-- some text -- more text -->
   more elegantly: assume <!-- will be terminated by --> and generate a
   warning if text was found outside --comment--.
