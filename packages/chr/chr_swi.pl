@@ -40,7 +40,11 @@
 	    op(1200, xfx, @),
 	    op(1190, xfx, pragma),
 	    op( 500, yfx, #),
-
+	    op(1150, fx, chr_type),
+	    op(1130, xfx, --->),
+	    op(1150, fx, (+)),
+	    op(1150, fx, (-)),
+	    op(1150, fx, (?)),
 	    chr_show_store/1,		% +Module
 	    chr_trace/0,
 	    chr_notrace/0,
@@ -50,6 +54,7 @@
 
 :- multifile user:file_search_path/2.
 :- dynamic   user:file_search_path/2.
+:- dynamic   chr_translated_program/1.
 
 user:file_search_path(chr, library(chr)).
 
@@ -78,6 +83,8 @@ user:file_search_path(chr, library(chr)).
 
 chr_expandable((:- constraints _)).
 chr_expandable((constraints _)).
+chr_expandable((:- chr_type _)).
+chr_expandable((chr_type _)).
 chr_expandable((handler _)) :-
 	is_chr_file.
 chr_expandable((rules _)) :-
@@ -164,8 +171,14 @@ add_optimise_decl(CHR, CHR).
 %	better issue a warning  rather  than   simply  ignoring  the CHR
 %	declarations.
 
-call_chr_translate(_, In, Out) :-
-	chr_translate(In, Out), !.
+call_chr_translate(_, In, _Out) :-
+	   ( chr_translate(In, Out0) ->
+		assert(chr_translated_program(Out0)),
+		fail
+	    ).
+call_chr_translate(_, _In, Out) :-
+	    retract(chr_translated_program(Out)),!.
+	
 call_chr_translate(File, _, []) :-
 	print_message(error, chr(compilation_failed(File))).
 

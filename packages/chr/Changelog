@@ -1,3 +1,8 @@
+Feb 17, 2005
+
+  * JS: Added guard entailment optimizations and
+	new syntax for type and mode declarations.
+
 Dec 15, 2004
 
   * TS: Use prolog:message/3 hook to automatically print

@@ -8,7 +8,8 @@ benches :-
 	abolish(main,0),
 	abolish(main,1),
 	[File],
-	(main;main;main;main),
+%	(main;main;main;main),
+	main,
 	fail.
 benches.
 

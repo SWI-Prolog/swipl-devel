@@ -12,11 +12,15 @@
 %%
 %% removes redundant 'true's and other trivial but potentially non-free constructs
 
+% TODO
+%	Remove last clause with Body = fail
 
 :- module(clean_code,
 	[
 		clean_clauses/2
 	]).
+
+:- use_module(hprolog, [memberchk_eq/2]).
 
 clean_clauses([],[]).
 clean_clauses([C|Cs],[NC|NCs]) :-
@@ -25,11 +29,12 @@ clean_clauses([C|Cs],[NC|NCs]) :-
 
 clean_clause(Clause,NClause) :-
 	( Clause = (Head :- Body) ->
-		clean_goal(Body,NBody),
+		clean_goal(Body,Body1),
+		move_unification_into_head(Head,Body1,NHead,NBody),
 		( NBody == true ->
-			NClause = Head
+			NClause = NHead
 		;
-			NClause = (Head :- NBody)
+			NClause = (NHead :- NBody)
 		)
 	;
 		NClause = Clause
@@ -97,3 +102,62 @@ clean_goal((G1 -> G2),NGoal) :-
 	).
 clean_goal(Goal,Goal).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+move_unification_into_head(Head,Body,NHead,NBody) :-
+	conj2list(Body,BodyList),
+	move_unification_into_head_(BodyList,Head,NHead,NBody).
+
+move_unification_into_head_([],Head,Head,true).
+move_unification_into_head_([G|Gs],Head,NHead,NBody) :-
+	( nonvar(G), G = (X = Y) ->
+		term_variables(Gs,GsVars),
+		( var(X), ( \+ memberchk_eq(X,GsVars) ; atomic(Y)) ->
+			X = Y,
+			move_unification_into_head_(Gs,Head,NHead,NBody)
+		; var(Y), (\+ memberchk_eq(Y,GsVars) ; atomic(X)) ->
+			X = Y,
+			move_unification_into_head_(Gs,Head,NHead,NBody)
+		;
+			Head = NHead,
+			list2conj([G|Gs],NBody)
+		)	
+	;
+		Head = NHead,
+		list2conj([G|Gs],NBody)
+	).
+
+% move_unification_into_head(Head,Body,NHead,NBody) :-
+% 	( Body = (X = Y, More) ; Body = (X = Y), More = true), !,
+% 	( var(X), term_variables(More,MoreVars), \+ memberchk_eq(X,MoreVars) ->
+% 		X = Y,
+% 		move_unification_into_head(Head,More,NHead,NBody)
+% 	; var(Y) ->
+% 		move_unification_into_head(Head,(Y = X,More),NHead,NBody)
+% 	; 
+% 		NHead = Head,
+% 		NBody = Body
+% 	).
+% 
+% move_unification_into_head(Head,Body,Head,Body).
+
+		
+conj2list(Conj,L) :-				%% transform conjunctions to list
+  conj2list(Conj,L,[]).
+
+conj2list(Conj,L,T) :-
+  Conj = (true,G2), !,
+  conj2list(G2,L,T).
+conj2list(Conj,L,T) :-
+  Conj = (G1,G2), !,
+  conj2list(G1,L,T1),
+  conj2list(G2,T1,T).
+conj2list(G,[G | T],T).
+	
+list2conj([],true).
+list2conj([G],X) :- !, X = G.
+list2conj([G|Gs],C) :-
+	( G == true ->				%% remove some redundant trues
+		list2conj(Gs,C)
+	;
+		C = (G,R),
+		list2conj(Gs,R)
+	).

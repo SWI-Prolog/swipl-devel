@@ -108,6 +108,8 @@
 	    'chr debug_event'/1,
 	    'chr debug command'/2,	% Char, Command
 
+	    'chr chr_indexed_variables'/2,
+
 	    chr_trace/0,
 	    chr_notrace/0,
 	    chr_leash/1
@@ -136,6 +138,16 @@
 
 ?- initialization
    nb_setval(chr_debug_history,mutable([],0)).
+
+show_store(Mod) :-
+	(
+		Mod:'$enumerate_suspensions'(Susp),
+		arg(6,Susp,C),
+		writeln(C),
+		fail
+	;
+		true
+	).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 'chr merge_attributes'( As, Bs, Cs) :-
@@ -737,3 +749,6 @@ set_chr_debug(State) :-
 	nb_getval(chr_debug,Mutable),
 	setarg(1,Mutable,State).
 
+'chr chr_indexed_variables'(Susp,Vars) :-
+        Susp =.. [_,_,_,_,_,_,_|Args],
+	term_variables(Args,Vars).

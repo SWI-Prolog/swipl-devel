@@ -33,6 +33,7 @@
 	  [ chr_compile_step1/2		% +CHRFile, -PlFile
 	  , chr_compile_step2/2		% +CHRFile, -PlFile
 	  , chr_compile_step3/2		% +CHRFile, -PlFile
+	  , chr_compile_step4/2		% +CHRFile, -PlFile
 	  ]).
 :- use_module(library(listing)).	% portray_clause/2
 :- include('chr_op').
@@ -52,6 +53,9 @@ chr_compile_step2(From, To) :-
 	use_module('chr_translate_bootstrap1.pl'),
 	chr_compile(From, To, informational).
 chr_compile_step3(From, To) :-
+	use_module('chr_translate_bootstrap2.pl'),
+	chr_compile(From, To, informational).
+chr_compile_step4(From, To) :-
 	use_module('chr_translate.pl'),
 	chr_compile(From, To, informational).
 

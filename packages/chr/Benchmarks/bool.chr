@@ -319,3 +319,5 @@ add1([Y|Ys],C) :-
 	full_adder(1,Y,C,0,NC),
 	add0(Ys,NC).
 
+%cputime(Time) :-
+%	statistics(runtime, [_,Time]).

@@ -11,18 +11,34 @@
 	]).
 
 :- use_module(hprolog).
+:- use_module(library(lists)).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-negate_b(true,fail).
-negate_b(fail,true).
-negate_b(X =< Y, Y < X).
-negate_b(X > Y, Y >= X).
-negate_b(X >= Y, Y > X).
-negate_b(X < Y, Y =< X).
-negate_b(var(X),nonvar(X)).
-negate_b(nonvar(X),var(X)).
+negate_b(A,B) :- once(negate(A,B)).
+negate((A,B),NotB) :- A==true,negate(B,NotB). % added by jon
+negate((A,B),NotA) :- B==true,negate(A,NotA). % added by jon
+negate((A,B),(NotA;NotB)) :- negate(A,NotA),negate(B,NotB). % added by jon
+negate((A;B),(NotA,NotB)) :- negate(A,NotA),negate(B,NotB). % added by jon
+negate(true,fail).
+negate(fail,true).
+negate(X =< Y, Y < X).
+negate(X > Y, Y >= X).
+negate(X >= Y, Y > X).
+negate(X < Y, Y =< X).
+negate(X == Y, X \== Y). % added by jon
+negate(X \== Y, X == Y). % added by jon
+negate(X =:= Y, X =\= Y). % added by jon
+negate(X is Y, X =\= Y). % added by jon
+negate(X =\= Y, X =:= Y). % added by jon
+negate(X = Y, X \= Y). % added by jon
+negate(X \= Y, X = Y). % added by jon
+negate(var(X),nonvar(X)).
+negate(nonvar(X),var(X)).
+negate(\+ X,X). % added by jon
+negate(X,\+ X). % added by jon
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+entails_b(fail,_) :-!.
 entails_b(A,B) :-
 	( var(B) ->
 		entails(A,B,[A])
@@ -42,16 +58,27 @@ entails(A,C,History) :-
 entails_(X > Y, X >= Y).
 entails_(X > Y, Y < X).
 entails_(X >= Y, Y =< X).
+entails_(X =< Y, Y >= X). %added by jon
 entails_(X < Y, Y > X).
 entails_(X < Y, X =< Y).
 entails_(X > Y, X \== Y).
 entails_(X \== Y, Y \== X).
 entails_(X == Y, Y == X).
+entails_(X == Y, X =:= Y) :- ground(X). %added by jon
+entails_(X == Y, X =:= Y) :- ground(Y). %added by jon
+entails_(X \== Y, X =\= Y) :- ground(X). %added by jon
+entails_(X \== Y, X =\= Y) :- ground(Y). %added by jon
+entails_(X =:= Y, Y =:= X). %added by jon
+entails_(X =\= Y, Y =\= X). %added by jon
+entails_(X == Y, X >= Y). %added by jon
+entails_(X == Y, X =< Y). %added by jon
 entails_(ground(X),nonvar(X)).
 entails_(compound(X),nonvar(X)).
 entails_(atomic(X),nonvar(X)).
 entails_(number(X),nonvar(X)).
 entails_(atom(X),nonvar(X)).
+entails_(fail,true).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 binds_b(G,Vars) :-
 	binds_(G,L,[]),
@@ -75,6 +102,7 @@ binds_(_ =:= _,L,L).
 binds_(_ =\= _,L,L).
 binds_(_ == _,L,L).
 binds_(_ \== _,L,L).
+binds_(true,L,L).
 
 binds_(X is _,[X|L],L).
 binds_((G1,G2),L,T) :-
@@ -89,3 +117,5 @@ binds_((G1->G2),L,T) :-
 
 binds_(\+ G,L,T) :-
 	binds_(G,L,T).
+
+binds_(G,L,T) :- term_variables(G,GVars),append(GVars,T,L).	%jon
