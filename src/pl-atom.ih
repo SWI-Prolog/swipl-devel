@@ -469,3 +469,5 @@
 #define ATOM_matches      MK_ATOM(468)
 #define ATOM_shared       MK_ATOM(469)
 #define ATOM_exclusive    MK_ATOM(470)
+#define ATOM_terminal_capability MK_ATOM(471)
+#define ATOM_environment  MK_ATOM(472)

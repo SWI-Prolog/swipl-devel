@@ -80,7 +80,12 @@ initTerm(void)
 
     term_initialised = STAT_ERROR;
     if ( !getenv3("TERM", term, sizeof(term)) )
-      return warning("No variable TERM");
+    { term_t env = PL_new_term_ref();
+
+      PL_put_atom_chars(env, "TERM");
+      return PL_error(NULL, 0, NULL, ERR_EXISTENCE,
+		      ATOM_environment, env);
+    }
 
     if ( buf == NULL )         buf         = allocHeap(MAX_TERMBUF);
     if ( string_area == NULL ) string_area = allocHeap(MAX_TERMBUF);
@@ -145,8 +150,8 @@ pl_tty_get_capability(term_t name, term_t type, term_t value)
 { Entry e;
   atom_t n, t;
 
-  if ( !PL_get_atom(name, &n) || !PL_get_atom(type, &t) )
-    return warning("tgetent/3: instantiation fault");
+  if ( !PL_get_atom_ex(name, &n) || !PL_get_atom_ex(type, &t) )
+    fail;
   if ( !(e = lookupEntry(n, t)) )
     fail;
 
@@ -169,13 +174,18 @@ pl_tty_goto(term_t x, term_t y)
   char *s;
   int ix, iy;
 
-  if ( !PL_get_integer(x, &ix) ||
-       !PL_get_integer(y, &iy) )
-    return warning("tty_goto: instantiation fault");
+  if ( !PL_get_integer_ex(x, &ix) ||
+       !PL_get_integer_ex(y, &iy) )
+    fail;
 
   if ( (e = lookupEntry(ATOM_cm, ATOM_string)) == NULL ||
         e->value == 0L )
-    fail;
+  { term_t obj = PL_new_term_ref();
+
+    PL_put_atom(obj, ATOM_cm);
+    return PL_error("tty_goto", 2, NULL, ERR_EXISTENCE,
+		    ATOM_terminal_capability, obj);
+  }
 
   s = tgoto(stringAtom(e->value), ix, iy);
   if ( streq(s, "OOPS") )
@@ -190,13 +200,13 @@ pl_tty_put(term_t a, term_t affcnt)
 { char *s;
   int n;
 
-  if ( PL_get_chars(a, &s, CVT_ALL) &&
-       PL_get_integer(affcnt, &n) )
+  if ( PL_get_chars_ex(a, &s, CVT_ALL) &&
+       PL_get_integer_ex(affcnt, &n) )
   { tputs(s, n, tputc);
     succeed;
   }
 
-  return warning("tty_put: instantiation fault");
+  fail;
 }
 
 

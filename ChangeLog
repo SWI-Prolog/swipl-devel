@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ENHANCED: Change errors in pl-term.c predicates to raise exceptions
+    rather then just warning messages.
+
   * PORT: Now decided to allow for unaligned access only on systems where
     we *know* it works and is faster then emulating it (Intel x86).
     Improved hppa architecture detection.  Thanks to Michael Piefel.
