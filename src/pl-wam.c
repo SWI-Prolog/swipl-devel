@@ -3074,6 +3074,7 @@ erasure as soon as the clause finishes executing.
 	    if ( !(cl = compileClause(head, a, PROCEDURE_dcall1, module)) )
 	      goto b_throw;
   
+	    cl->index.key = cl->index.varmask = 0L;
 	    DEF = PROCEDURE_dcall1->definition;
 	    enterDefinition(DEF);
 	    next->clause         = assertProcedure(PROCEDURE_dcall1,
