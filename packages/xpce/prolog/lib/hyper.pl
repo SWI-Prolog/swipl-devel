@@ -13,6 +13,23 @@
 :- module(pce_hyper, []).
 :- use_module(library(pce)).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This library defines some typical  dependency   relations  based on XPCE
+hyper objects. Hyper objects relate two objects and are triggered by the
+object-management layer if one of the connected object is destroyed.
+
+The partof_hyper will destroy  the  related   `part'  if  the `whole' is
+destroyed, while th mutual_dependency_hyper  destroys   the  other side,
+regardless of which of the two is destroyed initially.
+
+Example:
+
+	new(_, partof_hyper(Frame, Dialog))
+
+makes sure the Dialog is destroyed if the Frame disappears.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
 		 /*******************************
 		 *     WHOLE-PART RELATION	*
 		 *******************************/
@@ -30,4 +47,37 @@ unlink_from(H) :->
 	),
 	free(H).
 
-:- pce_end_class.
+:- pce_end_class(partof_hyper).
+
+
+		 /*******************************
+		 *  MUTUALLY DEPENDANT OBJECTS	*
+		 *******************************/
+
+:- pce_begin_class(mutual_dependency_hyper, hyper,
+		   "<-to and <-from depend on each other").
+
+unlink_from(H) :->
+	"->destroy the <-to part"::
+	get(H, to, Dependant),
+	(   object(Dependant),
+	    send(Dependant, has_send_method, destroy)
+	->  send(Dependant, destroy)
+	;   free(Dependant)
+	),
+	free(H).
+
+unlink_to(H) :->
+	"->destroy the <-from part"::
+	get(H, from, Dependant),
+	(   object(Dependant),
+	    send(Dependant, has_send_method, destroy)
+	->  send(Dependant, destroy)
+	;   free(Dependant)
+	),
+	free(H).
+
+:- pce_end_class(mutual_dependency_hyper).
+
+
+
