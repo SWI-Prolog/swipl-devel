@@ -225,20 +225,26 @@ fill_dialog(M, D) :->
 		    menu_item('Prolog Defaults',
 			      message(M, edit_preferences, prolog))
 		  ]),
-	(    get(M, maintainer, @on)
-	->   send_list(F, append,
-		       [ menu_item(edit_mode,
-				   message(M, toggle_edit_mode))
-		       , menu_item(list_modules,
-				   message(M, list_modules))
-		       , menu_item(list_all_modules,
-				   message(M, list_all_modules))
-		       , menu_item(save_manual,
-				   message(M, save_if_modified, @off),
-				   @default, @on,
-				   M?modified == @on)
-		       ])
-	;    true
+	(   get(@pce, window_system, windows)
+	->  send(Prefs, append,
+		 menu_item('Prolog Stack Limits',
+			   message(M, edit_prolog_registry)))
+	;   true
+	),
+	(   get(M, maintainer, @on)
+	->  send_list(F, append,
+		      [ menu_item(edit_mode,
+				  message(M, toggle_edit_mode))
+		      , menu_item(list_modules,
+				  message(M, list_modules))
+		      , menu_item(list_all_modules,
+				  message(M, list_all_modules))
+		      , menu_item(save_manual,
+				  message(M, save_if_modified, @off),
+				  @default, @on,
+				  M?modified == @on)
+		      ])
+	;   true
 	),
 	send_list(F, append,
 		  [ menu_item(quit,
@@ -486,6 +492,11 @@ ensure_xpce_config_dir(Dir) :-
 	->  true
 	;   send(D, make)
 	).
+
+edit_prolog_registry(_M) :->
+	"Edit SWI-Prolog registry settings"::
+	use_module(library('man/swi_preferences')),
+	send(new(prolog_preferences), open_centered).
 
 
 		/********************************

@@ -142,6 +142,10 @@ convert_option(_, Val, Val).
 save_options(RC, Options) :-
 	$rc_open(RC, $options, $prolog, write, Fd),
 	(   $option(OptionName, OptionVal0, _),
+	        (   OptionName == home	% save home if not runtime
+		->  \+ memberchk(class(runtime), Options)
+		;   true
+		),
 	        option(Options, OptionName/_, OptionVal1, _),
 	        (   var(OptionVal1)	% used the default
 		->  OptionVal = OptionVal0

@@ -2,7 +2,7 @@
 			    Jan Wielemaker
 			       06/06/94
 
-		(Last Updated: 02/02/01) (Version 4.0.0)
+		(Last Updated: 24/04/01) (Version 4.0.4)
 		  
 
 
@@ -80,7 +80,15 @@ Windows Registry
 SWI-Prolog stores information on the current installation on the key
 
 	# HKEY_LOCAL_MACHINE\Software\SWI\Prolog
-	Installation directory, working directory, file-extension
+	Installation directory, working directory, file-extension and
+	system-wide stack-size defaults (see below for specs).
+
+	# HKEY_CURREN_USER\Software\SWI\Prolog
+	User-level stack-size defaults in K-bytes on the names
+	localSize, globalSize, trailSize and argumentSize (DWORD).
+	These can also be set and queried through the File/Preferences
+	menu on the window opened using ?- manpce. If you have XPCE
+	installed).
 
 	# HKEY_CURREN_USER\Software\SWI\plwin
 	Current settings for the console window
