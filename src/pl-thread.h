@@ -40,6 +40,7 @@ typedef struct _PL_thread_info_t
   unsigned long	    global_size;
   unsigned long	    trail_size;
   unsigned long	    argument_size;
+  int		    (*cancel)(int id);	/* cancel function */
   int		    open_count;		/* for PL_thread_detach_engine() */
   bool		    detached;		/* detached thread */
   int		    status;		/* PL_THREAD_* */
@@ -221,6 +222,7 @@ const char *		threadName(int id);
 void			executeThreadSignals(int sig);
 foreign_t		pl_attach_xterm(term_t in, term_t out);
 long			threadLocalHeapUsed(void);
+int			attachConsole(void);
 
 
 		 /*******************************

@@ -398,7 +398,10 @@ already has an engine the reference count of the engine is incremented.
 The \arg{attr} argument can be \const{NULL} to create a thread with
 default attributes.  Otherwise it is a pointer to a structure with
 the definition below.  For any field with value `0', the default is
-used.
+used.  The \const{cancel} field may be filled with a pointer to a
+function that is called when PL_cleanup() terminates the running
+Prolog engines. If this function is not present or returns \const{FALSE}
+pthread_cancel() is used.
 
 \begin{code}
 typedef struct
@@ -407,6 +410,7 @@ typedef struct
   unsigned long	    trail_size;
   unsigned long	    argument_size;
   char *	    alias;	   /* alias name */
+  int		   (*cancel)(int thread);
 } PL_thread_attr_t;
 \end{code}
 

@@ -649,6 +649,7 @@ PL_EXPORT(int)  PL_handle_signals(void);
 #define PL_ACTION_WRITE		8	/* write via Prolog i/o buffer */
 #define PL_ACTION_FLUSH		9	/* Flush Prolog i/o buffer */
 #define PL_ACTION_GUIAPP	10	/* Win32: set when this is a gui */
+#define PL_ACTION_ATTACH_CONSOLE 11	/* MT: Attach a console */
 
 PL_EXPORT(int)	 PL_action(int, ...);	/* perform some action */
 PL_EXPORT(void) PL_on_halt(void (*)(int, void *), void *);
@@ -681,6 +682,8 @@ typedef struct
   unsigned long	    trail_size;
   unsigned long	    argument_size;
   char *	    alias;		/* alias name */
+  int		  (*cancel)(int id);	/* cancel function */
+  void *	    reserved[5];	/* reserved for extensions */
 } PL_thread_attr_t;
 
 

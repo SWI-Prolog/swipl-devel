@@ -1,6 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: PL_action(PL_ACTION_ATTACH_CONSOLE) to simplify attaching a
+    console to a thread from foreign code.
+
+  * ADDED: PL_thread_attach_engine() `cancel' attribute to determine
+    what should happen at halt/cleanup.
+
+  * FIXED: PL_thread_attach_engine() to deal with the `alias' attribute
+    and to interpret stack sizes in K-bytes as advertised.
+
   * ADDED: timeout to Prolog streams.
 
   * ADDED: Make Prolog safe for pthread_cancel(), canceling threads

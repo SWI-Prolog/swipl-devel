@@ -3110,6 +3110,14 @@ PL_action(int action, ...)
       rval = Sflush(Scurout);
       break;
     }
+    case PL_ACTION_ATTACH_CONSOLE:
+    {
+#ifdef O_PLMT
+      return attachConsole();
+#else
+      return FALSE;
+#endif
+    }
     default:
       sysError("PL_action(): Illegal action: %d", action);
       /*NOTREACHED*/

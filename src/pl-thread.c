@@ -474,15 +474,19 @@ exitPrologThreads()
 	  break;
 	}
 	case PL_THREAD_RUNNING:
-	{
+	{ int rc;
+
+	  if ( t->cancel )
+	  { if ( (*t->cancel)(i) == TRUE )
+	      break;			/* done so */
+	  }
+
 #ifdef WIN32
   	  t->thread_data->exit_requested = TRUE;
 	  t->thread_data->pending_signals |= (1L << (SIGINT-1));
 	  PostThreadMessage(t->w32id, WM_QUIT, 0, 0);
 	  canceled++;
 #else
-          int rc;
-
 	  if ( (rc=pthread_cancel(t->tid)) == 0 )
 	  { t->status = PL_THREAD_CANCELED;
 	    canceled++;
@@ -1906,12 +1910,16 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   ldnew = info->thread_data;
 
   if ( attr )
-  { if ( attr->local_size )	info->local_size    = attr->local_size;
-    if ( attr->global_size )	info->global_size   = attr->global_size;
-    if ( attr->trail_size )	info->trail_size    = attr->trail_size;
-    if ( attr->argument_size )	info->argument_size = attr->argument_size;
-    if ( attr->alias )
-      aliasThread(info->pl_tid, PL_new_atom(attr->alias));
+  { if ( attr->local_size )
+      info->local_size = attr->local_size * 1024;
+    if ( attr->global_size )
+      info->global_size = attr->global_size * 1024;
+    if ( attr->trail_size )
+      info->trail_size = attr->trail_size * 1024;
+    if ( attr->argument_size )
+      info->argument_size = attr->argument_size * 1024;
+
+    info->cancel = attr->cancel;
   }
   
   info->goal       = NULL;
@@ -1939,6 +1947,8 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
 #ifdef WIN32
   info->w32id = GetCurrentThreadId();
 #endif
+  if ( attr && attr->alias )
+    aliasThread(info->pl_tid, PL_new_atom(attr->alias));
 
   return info->pl_tid;
 }
@@ -1959,6 +1969,21 @@ PL_thread_destroy_engine()
 
   return FALSE;				/* we had no thread */
 }
+
+
+int
+attachConsole()
+{ fid_t fid = PL_open_foreign_frame();
+  int rval;
+  predicate_t pred = PL_predicate("attach_console", 0, "user");
+
+  rval = PL_call_predicate(NULL, PL_Q_NODEBUG, pred, 0);
+
+  PL_discard_foreign_frame(fid);
+
+  return rval;
+}
+
 
 
 		 /*******************************
