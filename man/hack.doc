@@ -155,6 +155,6 @@ exception handler succeeds.  Otherwise the standard Prolog warning message
 is printed.
 
 This exception is used by the library {\tt emacs_interface}, that
-integrates error handling with GNU-Emacs.
+integrates error handling with GNU~Emacs.
 \end{description}
 .ED

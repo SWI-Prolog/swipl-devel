@@ -52,6 +52,13 @@ setupProlog(void)
   if ( status.dumped == FALSE )
   { hBase = (char *)0xffffffffL;
     hTop  = (char *)NULL;
+#ifdef AVOID_0X80000000_BIT
+    { void *ptr = allocHeap(4);
+      
+      ptr_to_num_offset = (unsigned long)ptr & 0xF0000000L;
+      freeHeap(ptr, 4);
+    }
+#endif
   }
   DEBUG(1, Sdprintf("Stacks ...\n"));
   initStacks( options.localSize, 
@@ -772,8 +779,6 @@ initStacks(long local, long global, long trail, long argument, long lck)
     fatalError("Failed to allocate stacks for %d bytes: %d",
 	       totalsize, GetLastError());
 
-  ptr_to_num_offset = base & 0xF0000000L;
-
   if ( large )
   { ulong space = totalsize -
            ( align_base(local + STACK_SEPARATION) +
@@ -957,6 +962,15 @@ this  is the maximum discontinuity in writing the stacks.  On almost any
 machine size_alignment will do.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef FORCED_MALLOC_BASE
+#undef MMAP_MAX_ADDRESS
+#undef MMAP_MIN_ADDRESS
+#undef MB
+#define MB * 1024 * 1024
+#define MMAP_MAX_ADDRESS (FORCED_MALLOC_BASE + 64 MB)
+#define MMAP_MIN_ADDRESS (FORCED_MALLOC_BASE + 16 MB)
+#endif
+
 #ifndef SPECIFIC_INIT_STACK
 
 static void
@@ -991,7 +1005,7 @@ initStacks(long local, long global, long trail, long argument, long lck)
   if ( lck      == 0 ) large++;
 
 #ifdef MMAP_MIN_ADDRESS
-  base	= MMAP_MIN_ADDRESS
+  base	= MMAP_MIN_ADDRESS;
 #else
   base  = (long) align_base((long)sbrk(0));
 #endif

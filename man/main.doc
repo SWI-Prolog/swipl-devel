@@ -7,11 +7,11 @@
 
 \newcommand{\vmajor}{2}
 \newcommand{\vminor}{1}
-\newcommand{\vpatch}{10}
-\newcommand{\vmonth}{October}
+\newcommand{\vpatch}{13}
+\newcommand{\vmonth}{December}
 \newcommand{\vyear}{1995}
 
-\newcommand{\double}{\cleardoublepage}
+\newcommand{\double}{\thispagestyle{plain}\cleardoublepage}
 \newcommand{\onlinebreak}{}
 \newcommand{\pow}[2]{{#1}^{#2}}
 
@@ -31,10 +31,10 @@
 \newcommand{\prefix}[2]{\onlinebreak\item[#1 {\it #2}]\hfil\mbox{}\\}
 \newcommand{\infix}[3]{\onlinebreak\item[{\it #1} #2 {\it #3}]\hfil\mbox{}\\}
 
-\newcommand{\function}[4]{\onlinebreak\item[{\it #1}] {\bf #2(\it #4})\\}
+\newcommand{\function}[4]{\onlinebreak\item[{\it #1}] {\bf #2({\it #4})}\\}
 \newcommand{\noargfunction}[2]{\onlinebreak\item[{\it #1}] {\bf #2()}\\}
 
-\newcommand{\macro}[4]{\onlinebreak\item[{\it #1}] {\bf #2(\it #4})\\}
+\newcommand{\macro}[4]{\onlinebreak\item[{\it #1}] {\bf #2({\it #4})}\\}
 \newcommand{\noargmacro}[2]{\onlinebreak\item[{\it #1}] {\bf #2}\\}
 
 \newcommand{\variable}[2]{\onlinebreak\item[{\it #1}] {\bf #2}\\}

@@ -1,4 +1,4 @@
-#!/bin/sh
+#! /bin/sh
 
 PATH=/bin:/usr/bin
 
@@ -32,8 +32,8 @@ b
 
 :version
 n
-s/^\.VERSION/Welcome to SWI-Prolog (version 2.1.3, July 1995)\
-Copyright (c) 1990-1995, University of Amsterdam. All rights reserved./
+s/^\.VERSION/Welcome to SWI-Prolog (version 2.1.11)\
+Copyright (c) 1993-1995 University of Amsterdam.  All rights reserved./
 t version
 s/\\end{code}/&/
 t

@@ -1,10 +1,7 @@
 # Make the documentation
 
-.SUFFIXES: .bbl .doc .dvi .ind .tex 
-
 CP=		ln -fs
 CCCP=		/lib/cpp -C -P
-
 DVITOTTY=	dvi2tty
 DVITOTTY-HOME=	./dvi2tty.src
 INDEX=  	makeindex
@@ -17,12 +14,14 @@ PL=		../sun4/pl
 ALLFILES=	Makefile biblio.doc builtin.doc correct_idx correct_ind   \
 		doc_to_tex foreign.doc hack.doc intro.doc latex_if_needed \
 		main.doc manual.sty module.doc overview.doc psfig.sty     \
-		summary.doc swi.ps tty.sty uva.ps $(DVITOTTY-HOME) \
-		runtime.doc
+		summary.doc runtime.doc swi.ps tty.sty uva.ps $(DVITOTTY-HOME)
 
 TEXFILES=	manual.sty psfig.sty uva.ps swi.ps                        \
-		intro.tex overview.tex builtin.tex module.tex foreign.tex \
-		hack.tex summary.tex runtime.tex
+		intro.tex overview.tex builtin.tex module.tex             \
+		foreign.tex runtime.tex hack.tex summary.tex
+
+.SUFFIXES:
+.SUFFIXES: .doc .tex 
 
 
 help:		$(ALLFILES)
@@ -32,7 +31,6 @@ help:		$(ALLFILES)
 		@echo '"make manual"    makes the manual'
 		@echo
 		@echo '"make clean"     removes all temporary files'
-		@echo '"make cleaner"   removes all files but the already created manuals'
 		@echo '"make distclean" lets you start from scratch'
 		@echo
 
@@ -45,9 +43,9 @@ online:		$(ONLINE) $(ONLINE_INDEX)
 
 dvi2tty:	$(DVI2TTY)
 
-clean:	
+clean:		
 		rm -f tmp.* *.aux *.idx *.log *.toc
-		rm -f {doc,online}.* *.tex
+		rm -f doc.* online.* *.tex
 
 distclean:	clean
 		rm -f $(MANUAL) $(DVITOTTY)
@@ -70,20 +68,16 @@ summary.tex:	summary.doc
 doc.bbl:	biblio.doc
 		expand < biblio.doc > doc.bbl
 
-doc.ind:	latex_if_needed correct_idx correct_ind doc.tex $(TEXFILES) doc.bbl
+doc.ind:	latex_if_needed correct_idx correct_ind doc.tex \
+		$(TEXFILES) doc.bbl
 		./latex_if_needed $(LATEX) doc
 		./correct_idx doc.idx > tmp.idx
 		$(INDEX) tmp
 		./correct_ind tmp.ind > doc.ind
 
+
 $(ONLINE):	$(DVITOTTY) online.dvi
 		$(DVITOTTY) -w100 online | cat -s > $(ONLINE)
-
-$(ONLINE_INDEX):	$(ONLINE)
-		MANUAL=$(ONLINE); INDEX=$(ONLINE_INDEX); \
-		export MANUAL INDEX; \
-		$(PL) -f none -g online_index -t halt.
-
 
 online.dvi:	latex_if_needed online.tex tty.sty $(TEXFILES)
 		./latex_if_needed $(LATEX) online
@@ -91,6 +85,12 @@ online.dvi:	latex_if_needed online.tex tty.sty $(TEXFILES)
 online.tex:	main.doc
 		$(CCCP) -DONLINE main.doc | cat -s > online.tex
 
+$(ONLINE_INDEX):	$(ONLINE)
+		MANUAL=$(ONLINE); INDEX=$(ONLINE_INDEX); export MANUAL INDEX; \
+		$(PL) -f none -g online_index -t halt.
+
 $(DVITOTTY):
-		make -C$(DVITOTTY-HOME) dvi2tty
+		$(MAKE) -C$(DVITOTTY-HOME) dvi2tty
 		$(CP) $(DVITOTTY-HOME)/dvi2tty ./$(DVITOTTY)
+
+# EOF #

@@ -589,6 +589,10 @@ save(char *file, char *interpreter, int kind,
 }
 
 
+#ifdef FORCED_MALLOC_BASE
+#include "morecore.c"
+#endif
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 main() stub
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -596,6 +600,11 @@ main() stub
 int
 PL_initialise(int argc, char **argv, char **env)
 { int rval;
+
+#ifdef FORCED_MALLOC_BASE
+  start_memory((void *)FORCED_MALLOC_BASE);
+  fprintf(stderr, "FORCED_MALLOC_BASE at 0x%08x\n", FORCED_MALLOC_BASE);
+#endif
 
   c_stack_base = baseOfCStack(&argc, argv, env);
 
@@ -633,9 +642,19 @@ PL_initialise(int argc, char **argv, char **env)
 
 #else /*O_SAVE*/
 
+#ifdef FORCED_MALLOC_BASE
+#include "morecore.c"
+#endif
+
 int
 PL_initialise(int argc, char **argv, char **env)
-{ return startProlog(argc, argv, env);
+{ 
+#ifdef FORCED_MALLOC_BASE
+  start_memory((void *)FORCED_MALLOC_BASE);
+  Sdprintf("FORCED_MALLOC_BASE at 0x%08x\n", FORCED_MALLOC_BASE);
+#endif
+
+  return startProlog(argc, argv, env);
 }
 
 #endif /*O_SAVE*/

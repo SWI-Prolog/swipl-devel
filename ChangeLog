@@ -1,6 +1,24 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.1.14
+==============
+
+  * DISTRIBUTION: Removed various out-of-date files from the distribution:
+    Makefile.win, Makefile.dos, etc.
+
+  * WIN32S: Fixed problem in the garbage collector.
+
+  * WIN32: Improved cputime for NT ('95 and win32s use the old code).
+
+  * MANUAL: Martin Jansche <martin@pc03.idf.uni-heidelberg.de> has send me
+    patches for the manual, fixing many smaller and bigger mistakes in it.
+    Thanks!
+
+  * DEBUG: Added stuff for debugging for different memory models on Unix
+    machines with an mmap() that can map memory at the addresses normally
+    used by the target machine.  See morecore.c
+
 Version 2.1.13
 ==============
 

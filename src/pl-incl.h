@@ -14,7 +14,7 @@
 #define MD	     "config/win32.h"
 #define PLHOME       "c:/pl"
 #define DEFSTARTUP   ".plrc"
-#define PLVERSION    "2.1.13"
+#define PLVERSION    "2.1.14"
 #define ARCH	     "i386-win32"
 #define C_LIBS	     "-lreadline -lconsole -luxnt"
 #define C_STATICLIBS ""
@@ -880,7 +880,7 @@ AIX  version  we  substract  this value and add it again when converting
 integers to pointers.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef __WIN32__
+#ifdef AVOID_0X80000000_BIT
 
 #define PTR_TO_NUM_OFFSET ptr_to_num_offset
 GLOBAL unsigned long ptr_to_num_offset;

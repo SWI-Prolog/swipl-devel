@@ -114,6 +114,11 @@ Marking, testing marks and extracting values from GC masked words.
 #define mark_first(p)	(*(p) |= FIRST_MASK)
 #define unmark_first(p)	(*(p) &= ~FIRST_MASK)
 #define is_first(p)	(*(p) & FIRST_MASK)
+#ifdef AVOID_0X80000000_BIT
+#define is_ref(w)	(mask((word)(w)) == REF_MASK)
+#else
+#define is_ref(w)	isRef(w)
+#endif
 
 #define get_value(p)	(*(p) & VALUE_MASK)
 #define set_value(p, w)	{ *(p) &= GC_MASK; *(p) |= w; }
@@ -128,9 +133,6 @@ Marking, testing marks and extracting values from GC masked words.
 #define onGlobal(p)	onStackArea(global, p)
 #define onLocal(p)	onStackArea(local, p)
 #define onTrail(p)	topPointerOnStack(trail, p)
-#define isGlobalRef(w)	(  ((isIndirect(w) || isPointer(w)) \
-				&& onGlobal(unMask(w))) \
-			|| (isRef(w) && onGlobal(unRef(w))))
 
 		 /*******************************
 		 *	   FOREIGN LOCKS	*
@@ -247,6 +249,17 @@ do_check_relocation(Word addr, char *file, int line)
 		*********************************/
 
 static inline int
+isGlobalRef(word w)
+{ if ( isIndirect(w) || isPointer(w) )
+    return onGlobal(unMask(w));
+  if ( is_ref(w) )
+    return onGlobal(unRef(w));
+
+  return 0;
+}
+  
+
+static inline int
 offset_cell(Word p)
 { word m = *p & DATA_TAG_MASK;		/* was get_value(p) */
 
@@ -339,7 +352,7 @@ forward:				/* Go into the tree */
     BACKWARD;
   domark(current);
 
-  if ( isRef(val) )
+  if ( is_ref(val) )
   { next = unRef(val);			/* address pointing to */
     if ( next < gBase )
       sysError("REF pointer to 0x%p\n", next);
@@ -396,7 +409,7 @@ forward:				/* Go into the tree */
 
 backward:  				/* reversing backwards */
   if ( !is_first(current) )
-  { if ( isRef(get_value(current)) )	/* internal cell */
+  { if ( is_ref(get_value(current)) )	/* internal cell */
     { next = unRef(get_value(current));
       set_value(current, val);		/* restore its value */
       val  = makeRef(current);		/* invariant */
@@ -705,7 +718,7 @@ update_relocation_chain(Word current, Word dest)
 
     do
     { unmark_first(current);
-      if ( isRef(val) )
+      if ( is_ref(val) )
       { current = unRef(val);
         val = get_value(current);
 	DEBUG(3, Sdprintf("Ref from 0x%p\n", current));
@@ -735,7 +748,7 @@ into_relocation_chain(Word current)
 { Word head;
   word val = get_value(current);
   
-  if ( isRef(val) )
+  if ( is_ref(val) )
   { head = unRef(val);
     set_value(current, get_value(head));
     set_value(head, makeRef(current));
@@ -985,6 +998,10 @@ this  element  will  be  after  the compacting phase is completed.  This
 invariant is central and should be maintained carefully while processing
 alien objects as strings and reals, which happen to have a  non-standard
 size.
+
+On win32s, the reference mask-bit  is   used  for distinguishing between
+real and string on the global  stack   (indirect  data). This implies we
+have to test isIndirect() before is_ref() here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
@@ -992,10 +1009,6 @@ is_downward_ref(Word p)
 { word val = get_value(p);
   Word ptr;
 
-  if ( isRef(val) )
-  { DEBUG(5, if ( unRef(val) < p ) Sdprintf("REF: "));
-    return unRef(val) < p;
-  }
   if ( isVar(val) || isInteger(val) )
     fail;
   if ( isIndirect(val) )
@@ -1009,6 +1022,10 @@ is_downward_ref(Word p)
     }
 
     fail;
+  }
+  if ( is_ref(val) )
+  { DEBUG(5, if ( unRef(val) < p ) Sdprintf("REF: "));
+    return unRef(val) < p;
   }
 
   ptr = (Word) val;
@@ -1026,7 +1043,7 @@ is_upward_ref(Word p)
 { word val = get_value(p);
   Word ptr;
 
-  if ( isRef(val) )
+  if ( is_ref(val) )
     return unRef(val) > p;
   if ( isVar(val) || isInteger(val) )
     fail;
@@ -1069,11 +1086,12 @@ compact_global(void)
     {
 #if O_SECURE
       if ( current != *--v )
-        sysError("Marked cell at 0x%p (*= 0x%p); gTop = 0x%p; should have been 0x%p", current, *current, gTop, *v);
+        sysError("Marked cell at 0x%p (*= 0x%p); gTop = 0x%p; should be 0x%p",
+		 current, *current, gTop, *v);
 #endif
       dest -= offset + 1;
       DEBUG(3, Sdprintf("Marked cell at 0x%p (size = %ld; dest = 0x%p)\n",
-						current, offset+1, dest));
+			current, offset+1, dest));
       update_relocation_chain(current, dest);
       if ( is_downward_ref(current) )
       { check_relocation(current);
@@ -1580,7 +1598,7 @@ static void
 update_variable(sp, ls, gs)
 Word sp;
 long ls, gs;
-{ if ( isRef(*sp) )
+{ if ( is_ref(*sp) )
   { if ( onGlobal(unRef(*sp)) )
       *sp = makeRef(addPointer(unRef(*sp), gs));
     else if ( onLocal(unRef(*sp)) )
@@ -1727,7 +1745,7 @@ int n;
   Word to = &gBase[n];
 
   for(; p < t; p++)
-    if ( isRef(*p) && unRef(*p) == to )
+    if ( is_ref(*p) && unRef(*p) == to )
       return p;
 
   return NULL;

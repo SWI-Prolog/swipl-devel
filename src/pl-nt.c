@@ -98,6 +98,32 @@ Pause(double t)
 }
 
 		 /*******************************
+		 *	 QUERY CPU TIME		*
+		 *******************************/
+
+#define nano * 0.0000001
+#define ntick 1.0			/* manual says 100.0 ??? */
+
+real
+CpuTime()
+{ real t;
+  HANDLE proc = GetCurrentProcess();
+  FILETIME created, exited, kerneltime, usertime;
+
+  if ( GetProcessTimes(proc, &created, &exited, &kerneltime, &usertime) )
+  { t = (real)usertime.dwHighDateTime * (4294967296.0 * ntick nano);
+    t += (real)usertime.dwLowDateTime  * (ntick nano);
+  } else				/* '95, Windows 3.1/win32s */
+  { extern long clock_wait_ticks;
+
+    t = (real) (clock() - clock_wait_ticks) / (real) CLOCKS_PER_SEC;
+  }
+
+  return t;
+}
+
+
+		 /*******************************
 		 *     SUPPORT FOR SHELL/2	*
 		 *******************************/
 

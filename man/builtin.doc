@@ -84,7 +84,7 @@ autoload/0.
 .C make 0
 Consult all source files that have been changed since they were
 consulted.  It checks {\em all} loaded source files: files loaded into a
-compiled state using {\tt pl -c ...} and files loaded using consult or
+compiled state using {\tt pl -c \dots} and files loaded using consult or
 one of its derivates.  make/0 is normally invoked by the edit/[0,1] and
 ed/[0,1] predicates.  make/0 can be combined with the compiler to speed
 up the development of large packages.  In this case compile the package
@@ -96,12 +96,12 @@ sun% pl -g make -o my_program -c file ...
 
 If `my_program' is started it will first reconsult all source files
 that have changed since the compilation.
-.C library_directory 1 -Atom
+.C library_directory 1 ?Atom
 Dynamic predicate used to specify library directories.  Default
 \tty{.}, \tty{./lib}, \verb$~/lib/prolog$ and the system's library
 (in this order) are defined.  The user may add library directories
 using assert/1, asserta/1 or remove system defaults using retract/1.
-.C file_search_path 2 +Alias, -Path
+.C file_search_path 2 +Alias, ?Path
 Dynamic predicate used to specify `path-aliases'.  This feature is
 best described using an example.  Given the definition
 
@@ -132,7 +132,7 @@ user:file_search_path(foreign, swi(lib)).
 
 The file_search_path/2 expansion is used by all loading predicates as
 well as by absolute_file_name/2.
-.C source_file 1 -File
+.C source_file 1 ?File
 Succeeds if {\em File} was loaded using consult/1 or ensure_loaded/1.
 {\em File} refers to the full path name of the file (see
 expand_file_name/2). Source_file/1 backtracks over all loaded source
@@ -241,12 +241,13 @@ and the {\tt .pl} file otherwise.
 .BD
 .C qcompile 1 +File
 Takes a single file specification like consult/1 (i.e. accepts
-constructs like {\em library(LibFile)} and creates a Quick Load
+constructs like \tty{library(LibFile)} and creates a Quick Load
 File from {\em File}.  The file-extension of this file is {\tt .qlf}.
 The base name of the Quick Load File is the same as the input file.
 
-If the file contains `:- consult(+File)' or `:- [+File]' statements,
-the referred files are compiled into the same .qlf file.  Other
+If the file contains `\tty{:- consult(}{\em +File}\tty{)}' or
+`\tty{:- [}{\em +File}\tty{]}' statements,
+the referred files are compiled into the same {\tt .qlf} file.  Other
 directives will be stored in the {\tt .qlf} file and executed in
 the same fashion as when loading the {\tt .pl} file.
 
@@ -257,25 +258,28 @@ Source references (source_file/2) in the Quick Load File refer to
 the Prolog source file from which the compiled code originates. 
 .C qload 1 +File
 Loads the `Quick Load File'.  It has the same semantics as consult/1
-for a normal sourcefile.  Equivalent to consult(File) iff {\em File}
-refers to a `Quick Load File'.
+for a normal sourcefile.  Equivalent to \tty{consult(}{\em File}\tty{)}
+iff {\em File} refers to a `Quick Load File'.
 .ED
 
 
 .S Listing Predicates and Editor Interface
 \label{listing}
 
-SWI-Prolog offers an interface to the Unix {\em vi} editor (vi(1)),
-Richard O'Keefe's {\em top} editor \cite{TOP:manual} and the GNU-EMACS
-invocations {\tt emacs} and {\tt emacsclient}.  Which editor is
-used is determined by the Unix environment variable \tty{EDITOR}, which
-should hold the full pathname of the editor.  If this variable is not
-defined, vi(1) is used.
+SWI-Prolog offers an interface to the Unix {\em vi} editor (vi(1)) and
+the GNU~Emacs invocations {\tt emacs} and {\tt emacsclient}. Which
+editor is used is determined by the Unix environment variable
+\tty{EDITOR}, which should hold the full pathname of the editor. If this
+variable is not defined, vi(1) is used.%
+    \footnote{When using XPCE, you may wish to load
+	      library('\tty{emacs/swi_prolog}') to use XPCE/Prolog's
+	      built-in editor.}
 
-After the user quits the editor make/0 is invoked to reload all modified
-source files using consult/1.  If the editor can be quit such that an
-exit status non-equal to 0 is returned make/0 will not be invoked.  {\em
-top} can do this by typing control-C, {\em vi} cannot do this.
+After the user quits the editor, make/0 is invoked to reload all
+modified source files using consult/1. If the editor can be quit such
+that an exit status non-equal to 0 is returned make/0 will not be
+invoked. {\em top} can do this by typing control-C, {\em vi} cannot do
+this.
 
 A predicate specification is either a term with the same functor and arity
 as the predicate wanted, a term of the form \tty{Functor/Arity} or a
@@ -494,8 +498,8 @@ while for normal calls this search is done at compile time.
 Invoke {\em Goal} as a goal. Note that clauses may have variables as
 subclauses, which is identical to call/1, except when the argument is
 bound to the cut. See !/0.
-.C call [2..] +Goal, +ExtraArg1, ...
-Append {\em ExtraArg1, ExtraArg2, ...} to the argument list of {\em
+.C call [2..] +Goal, +ExtraArg1, \dots
+Append {\em ExtraArg1, ExtraArg2, \dots} to the argument list of {\em
 Goal} and call the result.  For example, \tty{call(plus(1), 2, X)}
 will call plus/3, binding {\em X} to 3.
  
@@ -598,7 +602,7 @@ The predicates below may be called to activate a grammar-rule set:
 
 .BD
 .C phrase 2 +RuleSet, +InputList
-Equivalent to phrase(RuleSet, InputList, []).
+Equivalent to \tty{phrase(RuleSet, InputList, [])}.
 .C phrase 3 +RuleSet, +InputList, -Rest
 Activate the rule-set with given name.  `InputList' is the list of tokens
 to parse, `Rest' is unified with the remaining tokens if the sentence is
@@ -610,7 +614,7 @@ parsed correctly.
 
 SWI-Prolog offers three different database mechanisms. The first one is
 the common assert/retract mechanism for manipulating the clause
-database. As facts and clauses asserted using assert/1 or one of it's
+database. As facts and clauses asserted using assert/1 or one of its
 derivates become part of the program these predicates compile the term
 given to them. Retract/1 and retractall/1 have to unify a term and
 therefore have to decompile the program. For these reasons the
@@ -765,17 +769,17 @@ they can also be called by a program.  Do not rely on this feature if
 you want to maintain portability to other Prolog implementations.
 
 .BD
-.P dynamic +Functor/+Arity, ...
+.P dynamic +Functor/+Arity, \dots
 Informs the interpreter that the definition of the predicate(s) may change
 during execution (using assert/1 and/or retract/1).  Currently dynamic/1
 only stops the interpreter from complaining about undefined predicates (see
 unknown/2).  Future releases might prohibit assert/1 and retract/1 for
 not-dynamic declared procedures.
-.P multifile +Functor/+Arity, ...
+.P multifile +Functor/+Arity, \dots
 Informs the system that the specified predicate(s) may be defined over
 more than one file. This stops consult/1 from redefining a predicate
 when a new definition is found.
-.P discontiguous +Functor/+Arity, ...
+.P discontiguous +Functor/+Arity, \dots
 Informs the system that the clauses of the specified predicate(s) might
 not be together in the source file.  See also style_check/1.
 .C index 1 +Head
@@ -802,7 +806,7 @@ already have clauses attached to them.  This will initiate a scan
 through the predicate's clause list to update the index summary
 information stored with each clause.
 
-If --for example-- one wants to represents sub-types using a fact list
+If---for example---one wants to represents sub-types using a fact list
 \mbox{`sub_type(Sub, Super)'} that should be used both to determine sub- and
 super types one should declare sub_type/2 as follows:
 \begin{boxed}
@@ -853,7 +857,7 @@ because, although the code is actually compiled, it is completely
 transparent, just like interpreted code.
     \item[built_in]\mbox{}\\
 Is true if the predicate is locked as a built-in predicate. This
-implies it cannot be redefined in it's definition module and it can
+implies it cannot be redefined in its definition module and it can
 normally not be seen in the tracer.
     \item[foreign]\mbox{}\\
 Is true if the predicate is defined in the C language.
@@ -897,7 +901,7 @@ is instantiated with the most general term built from {\em Name} and the
 arity of a defined predicate that matches the predicate specified by
 {\em Term} in the `Do What I Mean' sence.  See dwim_match/2 for `Do
 What I Mean' string matching.  Internal system predicates are
-not generated, unless \mbox{style_check(+dollar)} is active.  Backtracking
+not generated, unless \tty{style_check(+dollar)} is active.  Backtracking
 provides all alternative matches.
 .C clause 2 ?Head, ?Body
 Succeeds when {\em Head} can be unified with a clause head and {\em
@@ -1020,8 +1024,8 @@ positioned at the start of the file.
 .C tell 1 +SrcDest
 Make {\em SrcDest} the current output stream.  If {\em SrcDest} was already opened for
 writing with tell/1 or append/1 and has not been closed since, writing
-will be resumed.  Otherwise the file is created or --when existing--
-truncated. See also append/1.
+will be resumed.  Otherwise the file is created or---when
+existing---truncated. See also append/1.
 .C append 1 +File
 Similar to tell/1, but positions the file pointer at the end of {\em File}
 rather than truncating an existing file. The pipe construct is not
@@ -1049,8 +1053,9 @@ or destination of the data.
 .BD
 .C open 4 +SrcDest, +Mode, -Stream, +Options
 ISO compliant predicate to open a stream. {\em SrcDes} is either an
-atom, specifying a Unix file, or a term `pipe({\em Command})', just like
-see/1 and tell/1. {\em Mode} is one of \tty{read}, \tty{write} or
+atom, specifying a Unix file, or a term `\tty{pipe(}{\em Command}\tty{)}',
+just like see/1 and tell/1.
+{\em Mode} is one of \tty{read}, \tty{write} or
 \tty{append}. {\em Stream} is either a variable, in which case it is
 bound to a small integer identifying the stream, or an atom, in which
 case this atom will be the stream indentifier.  The {\em Options} list
@@ -1060,7 +1065,7 @@ can contain the following options:
 will write a text-file in an operating-system compatible way. Using type
 {\tt binary} the bytes will be read or written without any translation.
 Note there is no difference between the two on Unix systems.
-    \item {\tt alias(Atom} gives the stream a name.  The following two
+    \item {\tt alias(Atom)} gives the stream a name.  The following two
 calls are identical, but only the latter is allowed in ISO Prolog.
 \begin{code}
 ?- open(foo, read, in, []).
@@ -1425,7 +1430,7 @@ is unbound and {\em String} does not describe a number.
 arguments may be a variable, but not both. When {\em String} is bound to an
 ASCII value list describing an integer and {\em Atom} is a variable {\em Atom}
 will be unified with the integer value described by {\em String} (e.g.
-`\tty{name(N, "300"), 400 is N + 100}' succeeds).
+`\verb|name(N, "300"), 400 is N + 100|' succeeds).
 .C int_to_atom 3 +Int, +Base, -Atom
 Convert {\em Int} to an ascii representation using base {\em Base} and unify
 the result with {\em Atom}. If ${\em Base} \not= 10$ the base will be
@@ -1484,9 +1489,9 @@ live on the global stack and their storage is thus reclaimed on
 backtracking.  Garbage collection can easily deal with strings.
 
 The ISO standard proposes \verb$"..."$ is transformed into a string
-object by read/1 and derivates. This poses problems as in the old
+object by read/1 and derivates.  This poses problems as in the old
 convention \verb$"..."$ is transformed into a list of ascii characters.
-For this reason the style check option `{\em string}' is available
+For this reason the style check option `\tty{string}' is available
 (see style_check/2).
 
 The set of predicates associated with strings is incomplete and
@@ -1664,11 +1669,11 @@ ${\em Result} = {\em Expr1} \times {\em Expr2}$
 .IT +Expr1 / +Expr2
 ${\em Result} = \frac{\em Expr1}{\em Expr2}$
 .I +IntExpr1 mod +IntExpr2
-${\em Result} = {\em Expr1}~mod~{\em Expr2}$ (remainder of division).
+${\em Result} = {\em Expr1}~{\rm mod}~{\em Expr2}$ (remainder of division).
 .I +IntExpr1 rem +IntExpr2
-${\em Result} = {\em Expr1}~rem~{\em Expr2}$ (remainder of division).
+${\em Result} = {\em Expr1}~{\rm rem}~{\em Expr2}$ (remainder of division).
 .IT +IntExpr1 // +IntExpr2
-${\em Result} = {\em Expr1}~div~{\em Expr2}$ (integer division).
+${\em Result} = {\em Expr1}~{\rm div}~{\em Expr2}$ (integer division).
 .C abs 1 +Expr
 Evaluate {\em Expr} and return the absolute value of it.
 .C sign 1 +Expr
@@ -1678,11 +1683,11 @@ ${\em Expr} = 0$.
 Evaluates to the largest of both {\em Expr1} and {\em Expr2}.
 .C min 2 +Expr1, +Expr2
 Evaluates to the smallest of both {\em Expr1} and {\em Expr2}.
-.C . 2 +Int, []
-A list of one element evaluates to the element.  This implies \tty{"a"}
+.C . 2 +Int, {\rm []}
+A list of one element evaluates to the element.  This implies \verb|"a"|
 evaluates to the ASCII value of the letter \tty{a} (97). This option is
 available for compatibility only.  It will not work if
-`style_check(+string)' is active as \tty{"a"} will then be tranformed
+`\tty{style_check(+string)}' is active as \verb|"a"| will then be tranformed
 into a string object. The recommended way to specify the ASCII value of
 the letter `a' is \tty{0'a}.
 .C random 1 +Int
@@ -1738,7 +1743,7 @@ ${\em Result} = \arccos{{\em Expr}}$. {\em Result} is the angle in radials.
 ${\em Result} = \arctan{{\em Expr}}$. {\em Result} is the angle in radials.
 .C atan 2 +YExpr, +XExpr
 ${\em Result} = \arctan{\frac{\em YExpr}{\em XExpr}}$. {\em Result} is the
-angle in radials.  The return value is in the range $-\pi ... \pi$.
+angle in radials.  The return value is in the range $[-\pi\dots\pi]$.
 Used to convert between rectangular and polar coordinate system.
 .C log 1 +Expr
 ${\em Result} = \ln{{\em Expr}}$
@@ -1860,8 +1865,8 @@ List}. Can be used to create a list holding only variables.
 .C merge 3 +List1, +List2, -List3
 {\it List1} and {\it List2} are lists, sorted to the standard order of
 terms (see section~\ref{sec:compare}).  {\it List3} will be unified with an
-ordered list holding the both the elements of {\it List1} and {\it
-List2}. Duplicates are {\bf not} removed.
+ordered list holding both the elements of {\it List1} and {\it List2}.
+Duplicates are {\bf not} removed.
 .ED
 
 .S Set Manipulation
@@ -1871,7 +1876,7 @@ List2}. Duplicates are {\bf not} removed.
 Succeeds if {\em Set} is a proper list (see proper_list/1) without duplicates.
 .C list_to_set 2 +List, -Set
 Succeeds if {\em Set} holds the same elements as {\em List} in the same
-order, but has no duplicates. See also sort/1.
+order, but has no duplicates. See also sort/2.
 .C intersection 3 +Set1, +Set2, -Set3
 Succeeds if {\em Set3} unifies with the intersection of {\em Set1} and
 {\em Set2}. {\em Set1} and {\em Set2} are lists without duplicates.
@@ -1932,7 +1937,7 @@ free variables besides the one sharing with {\em Var} bagof will
 backtrack over the alternatives of these free variables, unifying {\em
 Bag} with the corresponding alternatives of {\em Var}. The construct
 \verb+Var^Goal+ tells bagof not to bind {\em Var} in {\em Goal}.
-Bagof/3 fails if {\em Goal} has no solutions.
+bagof/3 fails if {\em Goal} has no solutions.
 
 The example below illustrates bagof/3 and the \verb+^+ operator. The
 variable bindings are printed together on one line to save paper.
@@ -1981,7 +1986,7 @@ arguments obtained from the list(s). For example:
 X = [1, 2, 3]
 \end{code}
 
-we will phrase this as ``{\em Predicate} is applied on ...''
+we will phrase this as ``{\em Predicate} is applied on \dots''
 
 .BD
 .C checklist 2 +Pred, +List
@@ -2123,7 +2128,7 @@ Output the next argument, which should be an atom. This option is
 equivalent to {\bf w}. Compatibility reasons only.
     \item[\bf c]
 Output the next argument as an ASCII value. This argument should be an
-integer in the range [0, ..., 255] (including 0 and 255).
+integer in the range [0, \dots, 255] (including 0 and 255).
     \item[\bf d]
 Output next argument as a decimal number.  It should be an integer.  If
 a numeric argument is specified a dot is inserted {\em argument}
@@ -2163,7 +2168,7 @@ Give the next argument to writeq/1.
     \item[\bf r]
 Print integer in radix the numeric argument notation. Thus \verb$~16r$
 prints its argument hexadecimal. The argument should be in the range
-\mbox{[2, ... 36]}. Lower case letters are used for digits above 9.
+\mbox{[2, \dots, 36]}. Lower case letters are used for digits above 9.
     \item[\bf R]
 Same as {\bf r}, but uses upper case letters for digits above 9.
     \item[\bf s]
@@ -2246,7 +2251,7 @@ dos_newline(Arg) :-
 .S Terminal Control
 
 The following predicates form a simple access mechanism to the Unix termcap
-library to provide terminal independant I/O for screen terminals.  The
+library to provide terminal independent I/O for screen terminals.  The
 library package \tty{tty} builds on top of these predicates.
 
 .BD
@@ -2305,7 +2310,7 @@ Year} is unified with the year, {\em Month} with the month number
 (January is 1), {\em Day} with the day of the month (starting with 1),
 {\em Hour} with the hour of the day (0--23), {\em Minute} with the
 minute (0--59). {\em Second} with the second (0--59) and {\em
-MilliSecond} with the milli seconds (0--999).  Note that the latter
+MilliSecond} with the milliseconds (0--999).  Note that the latter
 might not be acurate or might always be 0, depending on the timing
 capabilities of the system.
 .ED
@@ -2359,7 +2364,7 @@ Expand Unix file specification into an absolute path.  User home
 directory expansion (\verb+~+ and \verb+~user+) and variable expansion
 is done.  The absolute path is canonised: references to `.' and `..' are
 deleted.  SWI-Prolog uses absolute file names to register source files
-independant of the current working directory.
+independent of the current working directory.
 .C absolute_file_name 3 +Spec, +Options, -Absolute
 Converts the given file specification into an absolute path. {\em
 Option} is a list of options to guide the conformation process:
@@ -2398,9 +2403,9 @@ this implies the path starts with a `/'.  For MicroSoft based systems
 this implies the path starts with $<$letter$>$:. This predicate is
 intended to provide platform-independent checking for absolute paths.
 See also absolute_file_name/2 and prolog_to_os_filename/2.
-.C expand_file_name 2 +WildChart, -List
+.C expand_file_name 2 +WildCard, -List
 Unify {\em List} with a sorted list of files or directories matching
-{\em WildChart}.  The normal Unix wildchart constructs `\verb+?+',
+{\em WildCard}.  The normal Unix wildcard constructs `\verb+?+',
 `\verb+*+', `\verb+[...]+' and `\verb+{...}+' are recognised.  The
 interpretation of `\verb+{...}+' is interpreted slightly different from
 the C shell (csh(1)).  The comma separated argument can be arbitrary
@@ -2433,15 +2438,15 @@ Change working directory to {\em Path}.
 .BD
 .C break 0
 Recursively start a new Prolog top level. This Prolog top level has
-it's own stacks, but shares the heap with all break environments and
+its own stacks, but shares the heap with all break environments and
 the top level. Debugging is switched off on entering a break and
 restored on leaving one. The break environment is terminated by typing
-the system's \mbox{end-of-file} character (control-D). If the \tty{-t
-toplevel} command line option is given this goal is started instead of
+the system's \mbox{end-of-file} character (control-D). If the \tty{-t }
+{\it toplevel} command line option is given this goal is started instead of
 entering the default interactive top level (prolog/0).
 .C abort 0
 Abort the Prolog execution and start a new top level.  If the
-\tty{-t toplevel} command line options is given this goal is started
+\tty{-t }{\it toplevel} command line options is given this goal is started
 instead of entering the default interactive top level.  Break
 environments are aborted as well.  All open files except for the
 terminal related files are closed.  The input- and output stream again refers
@@ -2454,7 +2459,7 @@ Terminate Prolog execution.  Open files are closed and if the command
 line option \tty{-tty} is not active the terminal status (see Unix
 stty(1)) is restored.  Hooks may be registered both in Prolog and in
 foreign code.  Prolog hooks are registered using at_halt/1.  halt/0
-is equivalent to halt(0).
+is equivalent to \tty{halt(0)}.
 .C halt 1 +Status
 Terminate Prolog execution with given status.  Status is an integer.
 See also halt/0.
@@ -2500,7 +2505,7 @@ not be seen in the tracer.
 .C notrace 0
 Stop the tracer. notrace/0 itself cannot be seen in the tracer.
 .C trace 1 +Pred
-Equivalent to trace({\em Pred}, +all).
+Equivalent to {\tt trace({\it Pred}, +all)}.
 .C trace 2 +Pred, +Ports
 Put a trace-point on all predicates meeting the predicate specification
 {\em Pred}.  {\em Ports} is a list of portnames ({\tt call, redo, exit,
@@ -2576,7 +2581,7 @@ Set style checking options.  {\em Spec} is either \verb|+<option>|,
 \verb|+<option>| sets a style checking option, \verb|-<option>| clears
 it and \verb|?<option>| succeeds or fails according to the current
 setting. consult/1 and derivates resets the style checking options to
-their value before loading the file. If --for example-- a file containing
+their value before loading the file. If---for example---a file containing
 long atoms should be loaded the user can start the file with:
 \begin{code}
 :- style_check(-atom).
@@ -2689,9 +2694,9 @@ are low-level predicates that can be used for special cases.
 .C show_profile 1 +Number
 Show the collected results of the profiler. Stops the profiler first to
 avoid interference from show_profile/1. It shows the top {\em Number}
-predicates according the percentage cpu-time used%
+predicates according the percentage cpu-time used.%
     \footnote{show_profile/1 is defined in Prolog and takes a
-	      considerable amount of memory.}.
+	      considerable amount of memory.}
 .C profiler 2 -Old, +New
 Query or change the status of the profiler. The status is one of
 \tty{off}, \tty{plain} or \tty{cummulative}. \tty{plain} implies the
@@ -2935,12 +2940,12 @@ Succeeds if {\em String} matches the wildcard pattern {\em Pattern}. {\em
 Pattern} is very similar the the Unix csh pattern matcher.  The patterns
 are given below:
 \begin{center}\begin{tabular}{ll}
-\tt ?		& Matches one arbitrary character \\
-\tt *		& Matches any number of arbitrary characters \\
-\tt [...]	& Matches one of the characters specified at \verb|...|
+\tt ?		& Matches one arbitrary character. \\
+\tt *		& Matches any number of arbitrary characters. \\
+\tt [\dots]	& Matches one of the characters specified between the brackets.
 		  \verb|<char>-<char>| indicates a range. \\
-\tt \{...\}	& Matches any of the patterns of the comma separated list
-		  between the brackets.
+\tt \{\dots\}	& Matches any of the patterns of the comma separated list
+		  between the braces.
 \end{tabular}\end{center}
 Example:
 \begin{code}
@@ -2960,6 +2965,6 @@ Suspend execution {\em Time} seconds.  {\em Time} is either a floating
 point number or an integer.  Granularity is dependent on the system's
 timer granularity (1/60 seconds on most Unix systems).  A negative
 time causes the timer to return immediately.  As Unix is a multi-tasking
-environment we can only ensure execution is suspended for {\sl at least}
+environment we can only ensure execution is suspended for {\bf at least}
 {\em Time} seconds.
 .ED

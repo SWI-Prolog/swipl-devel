@@ -77,7 +77,7 @@ forwards char *	Which(char *);
 		 *	       GLOBALS		*
 		 *******************************/
 #ifdef HAVE_CLOCK
-static long clock_wait_ticks;
+long clock_wait_ticks;
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -249,6 +249,8 @@ static char errmsg[64];
     consult a file or to execute a query.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifndef __WIN32__			/* defined in pl-nt.c */
+
 #ifdef HAVE_TIMES
 #include <sys/times.h>
 
@@ -289,6 +291,8 @@ CpuTime(void)
   return (real) (clock() - clock_wait_ticks) / (real) CLOCKS_PER_SEC;
 #endif
 }
+
+#endif /*__WIN32__*/
 
 		/********************************
 		*       MEMORY MANAGEMENT       *

@@ -13,6 +13,8 @@
 	, online_index/0
 	]).
 
+:- set_feature(character_escapes, true).
+
 :- multifile
 	user:portray/1.
 

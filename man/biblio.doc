@@ -15,7 +15,7 @@ A.~Anjewierden and J.~Wielemaker.
   Amsterdam, March 1989.
 
 \bibitem[BIM, 1989]{BIMPROLOG:manual}
-{\em BIM Prolog release 2.4}.
+{\em BIM_Prolog release 2.4}.
 \newblock Everberg, Belgium, 1989.
 
 \bibitem[Bowen \& Byrd, 1983]{Bowen:83}
@@ -33,18 +33,13 @@ I.~Bratko.
 W.\,F.~Clocksin and C.\,S.~Mellish.
 \newblock {\em Programming in Prolog}.
 \newblock Springer-Verlag, New York, 1981.
-\newblock [4th~ed. 1994]
+\newblock (4th~ed. 1994)
 
 \bibitem[Kernighan \& Ritchie, 1978]{Kernighan:78}
 B.\,W.~Kernighan and D.\,M.~Ritchie.
 \newblock {\em The C Programming Language}.
 \newblock Prentice-Hall, Englewood Cliffs~NJ, 1978.
-%\newblock [2nd ed., ANSI-C, 1988]
-
-\bibitem[O'Keefe, 1985]{TOP:manual}
-R.\,A.~O'Keefe.
-\newblock {\em This Here Isn't Even Fine}, 1985.
-\newblock Also available from SWI, University of Amsterdam.
+%\newblock (2nd ed., ANSI-C, 1988)
 
 \bibitem[O'Keefe, 1990]{Keefe:90}
 R.\,A.~O'Keefe.
@@ -66,12 +61,12 @@ F.~Pereira.
 L.~Sterling and E.~Shapiro.
 \newblock {\em The Art of Prolog}.
 \newblock MIT Press, Cambridge~MA, 1986.
-\newblock [2nd~ed. 1994]
+\newblock (2nd~ed. 1994)
 
 \bibitem[Warren, 1983]{Warren:83b}
 D.\,H.\,D.~Warren.
 \newblock The runtime environment for a Prolog compiler using a copy algorithm.
-\newblock Technical Report 83/052, SUNY and Stone Brook, New York, 1983.
+\newblock Technical Report 83/052, SUNY at Stony Brook, New York, 1983.
 \newblock Major revision March 1984.
 
 \end{thebibliography}

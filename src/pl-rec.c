@@ -16,7 +16,10 @@ forwards word	   heapFunctor(FunctorDef);
 forwards void	   copyTermToHeap2(Word, Record, Word);
 forwards void	   copyTermToGlobal2(Word, Word *, Word, Word);
 forwards void	   freeHeapTerm(Word);
-forwards bool	   record(Word, Word, Word, char);
+forwards bool	   record(Word, Word, Word, int);
+
+#define RECORDA 0
+#define RECORDZ 1
 
 static RecordList recordTable[RECORDHASHSIZE];
 
@@ -312,7 +315,7 @@ pl_current_key(Word k, word h)
 }
 
 static bool
-record(Word key, Word term, Word ref, char az)
+record(Word key, Word term, Word ref, int az)
 { RecordList l;
   Record copy;
   word k;
@@ -330,7 +333,7 @@ record(Word key, Word term, Word ref, char az)
     l->firstRecord = l->lastRecord = copy;
     succeed;
   }
-  if (az == 'a')
+  if ( az == RECORDA )
   { copy->next = l->firstRecord;
     l->firstRecord = copy;
     succeed;
@@ -344,12 +347,12 @@ record(Word key, Word term, Word ref, char az)
 
 word
 pl_recorda(Word key, Word term, Word ref)
-{ return record(key, term, ref, 'a');
+{ return record(key, term, ref, RECORDA);
 }
 
 word
 pl_recordz(Word key, Word term, Word ref)
-{ return record(key, term, ref, 'z');
+{ return record(key, term, ref, RECORDZ);
 }
 
 word

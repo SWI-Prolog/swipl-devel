@@ -1,6 +1,6 @@
 \chapter{Introduction}
 
-\section{SWI-Prolog}
+.S SWI-Prolog
 
 SWI-Prolog has been designed and implemented to get a Prolog
 implementation which can be used for experiments with logic programming
@@ -44,8 +44,8 @@ operator declarations confirm to the `Edinburgh standard'.  Most built
 in predicates are compatible with those described in \cite{Clocksin:81}.
 SWI-Prolog also offers a number of primitive predicates compatible with
 Quintus Prolog%
-    \footnote{Quintus is a trademark of Quintus Computer Systems Inc., USA}, 
-\cite{QUINTUS:manual} and BIM~Prolog%
+    \footnote{Quintus is a trademark of Quintus Computer Systems Inc., USA} 
+\cite{QUINTUS:manual} and BIM_Prolog%
     \footnote{BIM is a trademark of BIM sa/nv., Belgium}
 \cite{BIMPROLOG:manual}.
 
@@ -77,7 +77,7 @@ promise anything.  Now that the sources are provided, you can always
 dig into them yourself.
     \tick{Memory requirements and performance are your first concerns}
 A number of commercial compilers are more keen on memory and performance
-than SWI-Prolog.  I do not wish to offer some of the nice features of
+than SWI-Prolog.  I do not wish to sacrifice some of the nice features of
 the system, nor its portability to compete on raw performance.
     \tick{You need features not offered by SWI-Prolog}
 In this case you may wish to give me suggestions for extensions. If
@@ -124,9 +124,9 @@ PCE is now also available for the X Window System.
 
 SWI-Prolog has no provisions for graphical applications itself. The
 standard graphical environment to be used with SWI-Prolog is XPCE.
-XPCE/SWI-Prolog provides an interactive graphical develpment platform
+XPCE/SWI-Prolog provides an interactive graphical development platform
 that is portable over many Unix/X11 implementations as well as
-MS-Windows (3.1) and Windows-NT (3.5).
+MS-Windows (3.1) and Windows~NT (3.5).
 
 XPCE is a licenced product.  A fully functional free demo version for
 PC/Linux is available from \tty{ftp://swi.psy.uva.nl/pub/xpce/linux},
@@ -134,7 +134,7 @@ for more information see URL
 \begin{code}
 http://www.swi.psy.uva.nl/projects/xpce/home.html
 \end{code}
-or contact xpce-request@swi.psy.uva.nl.
+or contact xpce-request@swi.psy.uva.nl
 
 
 .S Version 1.5 Release Notes
@@ -162,7 +162,7 @@ exactly the same version around.
 
 Version 1.6 is completely compatible with version 1.5.  Some new features
 have been added, the system has been ported to various new platforms and
-there is a provisional interface to GNU-Emacs.  This interface will be
+there is a provisional interface to GNU~Emacs.  This interface will be
 improved and documented later.
 
 The WAM virtual-machine interpreter has been modified to use GCC-2's
@@ -175,7 +175,7 @@ control system.
 .S Version 1.7 Release Notes
 
 Version 1.7 intergrates the GNU-readline library, offering powerful
-history and command-line editing both using EMACS and vi key-bindings.
+history and command-line editing both using Emacs and vi key-bindings.
 
 
 .S Version 1.8 Release Notes
@@ -210,7 +210,7 @@ sources of individual clauses.
 \index{Win32s}
 Version 2.0 is first of all a freeze of all the features added to the
 various 1.9.x releases.  Version 2.0.6 for PC has moved from the WATCOM
-C 32-bit windows extender to Windows-NT and runs under Windows 3.1 using
+C 32-bit windows extender to Windows~NT and runs under Windows 3.1 using
 the Win32s NT emulator.
 
 New features offered:
@@ -259,15 +259,15 @@ matches.
 All foreign interface types now have names ending in \tty{_t} to lessen
 the chance for conflicts.  \tty{term}, \tty{atomic}, \tty{functor} and
 \tty{module} have \verb$#define$'s for backward compatibility.
-    \tick{PL_register_foreign()}
+    \tick{\tt PL_register_foreign()}
 The attributes is now a bitwise or of the attribute flags rather than
 a 0 terminated list.  This has no consequences for predicates that have
 no attributes (99\% of them), while predicates with just one attribute
 will generate a compiler warning, but work properly otherwise.
 Predicates with more than one attributes must be changed.
-    \tick{PL_dispatch_events}
+    \tick{\tt PL_dispatch_events}
 This pointer is replaced by PL_dispatch_hook(). A function was necessary
-for the Windows-NT .DLL interface.
+for the Windows~NT .DLL interface.
 \end{itemize}
 
 
@@ -276,7 +276,7 @@ for the Windows-NT .DLL interface.
 In addition to several bugfixes, the 2.1 versions provide some new features:
 \begin{itemize}
     \tick{setarg/3}
-A new predicate setarg/3 for extra-logical (destructiveZ) assignment to
+A new predicate setarg/3 for extra-logical (destructive) assignment to
 arguments of terms is provided.
     \tick{Modified keysort/2}
 keysort/2 is now stable with regard to multiple values on the same key.
@@ -292,7 +292,7 @@ exceptions.
 Added facilities to allow for embedding SWI-Prolog in C applications.
 \end{itemize}
 
-\section{Acknowledgements}
+.S Acknowledgements
 
 Some small parts of the Prolog code of SWI-Prolog are modified
 versions of the corresponding Edinburgh C-Prolog code: grammar rule
