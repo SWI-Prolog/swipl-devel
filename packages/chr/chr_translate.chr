@@ -848,7 +848,7 @@ generate_attach_body_n(F/A,Var,Susp,Body) :-
 	make_attr(Total,NewMask,SuspsList2,NewAttr2),
 	copy_term(SuspsList,SuspsList3),
 	nth(Position,SuspsList3,[Susp]),
-	delete(SuspsList3,[Susp],RestSuspsList),
+	chr_delete(SuspsList3,[Susp],RestSuspsList),
 	set_elems(RestSuspsList,[]),
 	make_attr(Total,Pattern,SuspsList3,NewAttr3),
 	get_target_module(Mod),

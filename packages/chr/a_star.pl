@@ -14,6 +14,8 @@
 
 :- use_module(find).
 
+:- use_module(hprolog).
+
 a_star(DataIn,FinalData,ExpandData,DataOut) :-
 	a_star_node(DataIn,0,InitialNode),
 	empty_q(NewQueue),
@@ -49,12 +51,3 @@ expand_node(D^Ds^C^Call,Node,Nodes) :-
 	find_with_var_identity(ENode,NVars,(NCall,EScore is Cost + Score,a_star:a_star_node(EData,EScore,ENode)),Nodes).	
 
 a_star_node(Data,Score,Data-Score).
-
-
-chr_delete([], _, []).
-chr_delete([H|T], X, L) :-
-        (   H==X ->
-            chr_delete(T, X, L)
-        ;   L=[H|RT],
-            chr_delete(T, X, RT)
-        ).

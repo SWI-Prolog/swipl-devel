@@ -2484,17 +2484,5 @@ pair_all_with([X|Xs],Y,[X-Y|Rest]) :-
 default(X,Def) :-
 	( var(X) -> X = Def ; true).
 
-%	chr_delete/3 is delete/3 from the GNU-Prolog library.  It is
-%	a local predicate to avoid the confusion around delete/3 in
-%	various Prolog libraries.
-
-chr_delete([], _, []).
-chr_delete([H|T], X, L) :-
-        (   H==X ->
-            chr_delete(T, X, L)
-        ;   L=[H|RT],
-            chr_delete(T, X, RT)
-        ).
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

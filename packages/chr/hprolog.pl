@@ -10,7 +10,8 @@
 	    max_go_list/2,		% +List, -Max
 	    or_list/2,			% +ListOfInts, -BitwiseOr
 	    sublist/2,
-	    min_list/2
+	    min_list/2,
+	    chr_delete/3
 	  ]).
 :- use_module(library(lists)).
 
@@ -162,3 +163,10 @@ min_list([H|T], Min) :-
         ;   '$min_list1'(T, H, Min)
         ).
 
+chr_delete([], _, []).
+chr_delete([H|T], X, L) :-
+        (   H==X ->
+            chr_delete(T, X, L)
+        ;   L=[H|RT],
+            chr_delete(T, X, RT)
+        ).

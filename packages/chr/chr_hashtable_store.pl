@@ -189,11 +189,3 @@ expand_insert(Table,Capacity,K,V) :-
 term_hash(Term,Hash) :-
 	hash_term(Term,Hash).
 	
-
-chr_delete([], _, []).
-chr_delete([H|T], X, L) :-
-        (   H==X ->
-            chr_delete(T, X, L)
-        ;   L=[H|RT],
-            chr_delete(T, X, RT)
-        ).
