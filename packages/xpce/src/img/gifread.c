@@ -561,14 +561,14 @@ ReadImage(IOSTREAM *fd,
   { return GIF_INVALID;
   }
   while ((color = LZWReadByte(fd, FALSE, c)) >= 0)
-  {
+  { 
     curidx = (long) xpos + (long) ypos *(long) width; /* optimize */
 
     bigMemBuf[curidx] = color;
 
     ++xpos;
     if (xpos == width)
-    {
+    { 
       xpos = 0;
       if ( interlace )
       {

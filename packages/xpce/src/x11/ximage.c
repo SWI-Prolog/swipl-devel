@@ -412,7 +412,7 @@ ws_save_image_file(Image image, SourceSink into, Name fmt)
   } else if ( fmt == NAME_gif )
   {
 #ifdef O_GIFWRITE
-    XImage *i;
+    XImage *i, *msk=NULL;
     int dofree = FALSE;
       
     if ( !(i=getXImageImage(image)) )
@@ -424,10 +424,15 @@ ws_save_image_file(Image image, SourceSink into, Name fmt)
     { status rval;
       IOSTREAM *fd;
 
+      if ( notNil(image->mask) )
+      { if ( !(msk = getXImageImage(image->mask)) )
+	  msk = getXImageImageFromScreen(image->mask);
+      }
+
       if ( !(fd=Sopen_object(into, "wbr")) )
 	fail;
 
-      if ( write_gif_file(fd, i, r->display_xref, 0) < 0 )
+      if ( write_gif_file(fd, i, msk, r->display_xref, 0) < 0 )
 	rval = errorPce(image, NAME_xError);
       else
 	rval = SUCCEED;

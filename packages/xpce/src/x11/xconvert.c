@@ -691,13 +691,16 @@ write_jpeg_file(IOSTREAM *fd,
 typedef unsigned char GSAMPLE;
 
 int
-write_gif_file(IOSTREAM *fd, XImage *img, Display *disp, Colormap cmap)
+write_gif_file(IOSTREAM *fd, XImage *img, XImage *msk,
+	       Display *disp, Colormap cmap)
 { int width  = img->width;
   int height = img->height;
   int depth  = img->depth;
   XColor cdata[256];
   XColor *colorinfo;
   GSAMPLE *data, *s;
+  GSAMPLE *maskdata;
+  int bytes_per_line;			/* for the mask bits */
   int y;
 
   if ( depth <= 8 )
@@ -717,18 +720,46 @@ write_gif_file(IOSTREAM *fd, XImage *img, Display *disp, Colormap cmap)
 
   data = pceMalloc(sizeof(GSAMPLE)*3*width*height);
   s = data;
+  if ( msk )
+  { bytes_per_line = (width+7)/8;
+    maskdata = pceMalloc(sizeof(GSAMPLE)*bytes_per_line*height);
+  } else
+  { bytes_per_line = 0;			/* make compiler happy */
+    maskdata = NULL;
+  }
 
   for(y=0; y<height; y++)
   { int x;
+    GSAMPLE *mrow;
+    GSAMPLE bt = 0;
+    GSAMPLE m = 0x80;
+
+    mrow = maskdata+y*bytes_per_line;
 
     if ( colorinfo )
     { for(x=0; x<width; x++)
-      { XColor *c;
+      { if ( !msk || XGetPixel(msk, x, y) )
+	{ XColor *c;
   
-	c = &colorinfo[XGetPixel(img, x, y)];
-	*s++ = rescale(c->red);
-	*s++ = rescale(c->green);
-	*s++ = rescale(c->blue);
+	  c = &colorinfo[XGetPixel(img, x, y)];
+	  *s++ = rescale(c->red);
+	  *s++ = rescale(c->green);
+	  *s++ = rescale(c->blue);
+	} else
+	{ bt |= m;
+	  *s++ = 255;
+	  *s++ = 255;
+	  *s++ = 255;			/* transparent: pass as white */
+	}
+
+	if ( msk )
+	{ m >>= 1;
+	  if ( !m )
+	  { *mrow++ = bt;
+	    m = 0x80;
+	    bt = 0;
+	  }
+	}
       }
     } else				/* Direct colour displays */
     { int r_shift = shift_for_mask(img->red_mask);
@@ -742,20 +773,41 @@ write_gif_file(IOSTREAM *fd, XImage *img, Display *disp, Colormap cmap)
       { unsigned long pixel;
 	int r, g, b;
 
-	pixel = XGetPixel(img, x, y);
-	r = (pixel & img->red_mask)   >> r_shift;
-	g = (pixel & img->green_mask) >> g_shift;
-	b = (pixel & img->blue_mask)  >> b_shift;
+	if ( !msk || XGetPixel(msk, x, y) )
+	{ pixel = XGetPixel(img, x, y);
+	  r = (pixel & img->red_mask)   >> r_shift;
+	  g = (pixel & img->green_mask) >> g_shift;
+	  b = (pixel & img->blue_mask)  >> b_shift;
 
-	*s++ = RESCALE(r, r_bright, 255);
-	*s++ = RESCALE(g, g_bright, 255);
-	*s++ = RESCALE(b, b_bright, 255);
+	  *s++ = RESCALE(r, r_bright, 255);
+	  *s++ = RESCALE(g, g_bright, 255);
+	  *s++ = RESCALE(b, b_bright, 255);
+	} else
+	{ bt |= m;
+	  *s++ = 255;
+	  *s++ = 255;
+	  *s++ = 255;			/* transparent: pass as white */
+	}
+
+	if ( msk )
+	{ m >>= 1;
+	  if ( !m )
+	  { *mrow++ = bt;
+	    m = 0x80;
+	    bt = 0;
+	  }
+	}
+      }
+      if ( msk )
+      { *mrow++ = bt;
       }
     }
   }
 
-  gifwrite_rgb(fd, data, width, height);
+  gifwrite_rgb(fd, data, maskdata, width, height);
   pceFree(data);
+  if ( maskdata )
+    pceFree(maskdata);
 
   return 0;
 }

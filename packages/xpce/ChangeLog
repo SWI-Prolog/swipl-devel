@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: writing transparent GIF files (X11 version only).
+
 * FIXED: Removed some traces of pre-iso SWI-Prolog concat/3 (replaced
   with atom_concat/3).  Martin Sondergaard.
 

@@ -13,7 +13,9 @@
 
 int gifwrite_grey(IOSTREAM *fp, unsigned char *image, long w, long h);
 
-int gifwrite_rgb(IOSTREAM *fp, unsigned char *rgbimage, long w, long h);
+int gifwrite_rgb(IOSTREAM *fp,
+		 unsigned char *rgbimage, unsigned char *mask,
+		 long w, long h);
 
 int gifwrite_colmap(IOSTREAM *fp, unsigned char *image, long w, long h,
 		     unsigned char *red_map, unsigned char *green_map,

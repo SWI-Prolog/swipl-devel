@@ -3,8 +3,8 @@
  *               flgifc.c from the FBM Library, by Michael Maudlin
  *
  * Contains: 
- *   WriteGIF(fp, pic, ptype, w, h, rmap, gmap, bmap, numcols, colorstyle,
- *            comment)
+ *   WriteGIF(fp, pic, mask, ptype, w, h, rmap, gmap, bmap,
+ *	      numcols, colorstyle, comment)
  *
  * Note: slightly brain-damaged, in that it'll only write non-interlaced 
  *       GIF files (in the interests of speed, or something)
@@ -15,6 +15,7 @@
  *	- Replaced fprintf(stderr, ...) by Cprintf()
  *	- Replaced FILE * by IOSTREAM *
  *      - Replaced malloc(), etc. by pceMalloc()
+ *	- Added writing transparent GIF (RGB images only)
  */
 
 /*****************************************************************
@@ -78,9 +79,10 @@ static void cl_hash(count_int);
 static void char_init(void);
 static void char_out(int);
 static void flush_char(void);
-static int WriteGIF(FILE *, byte *, int, int, int, byte *, byte *, byte *,
+static int WriteGIF(FILE *, byte *, byte *,
+		    int, int, int, byte *, byte *, byte *,
 		    int, int, char*);
-static byte *Conv24to8(byte *,int,int,int,byte *,byte *,byte *);
+static byte *Conv24to8(byte *,int,int,int*,byte *,byte *,byte *);
 static void FatalError (char*);
 
 static byte pc2nc[256],r1[256],g1[256],b1[256],greymap[256];
@@ -109,16 +111,18 @@ int gifwrite_grey(fp, image, w, h)
 {
   long i;
   for (i = 0; i < 256; i++) greymap[i] = (byte) i;
-  return WriteGIF(fp, (byte *) image, PIC8, (int) w, (int) h,
+  return WriteGIF(fp, (byte *) image, NULL, PIC8, (int) w, (int) h,
 		  greymap, greymap, greymap, 256, GREYSCALE, (char *) '\0');
 }
 
-int gifwrite_rgb(fp, rgbimage, w, h)
+int gifwrite_rgb(fp, rgbimage, mask, w, h)
     FILE *fp;
     unsigned char *rgbimage;
+    unsigned char *mask;
     long w, h;
 {
-  return WriteGIF(fp, (byte *) rgbimage, PIC24, (int) w, (int) h,
+  return WriteGIF(fp, (byte *) rgbimage, (byte *) mask,
+		  PIC24, (int) w, (int) h,
 		  (byte *) '\0', (byte *) '\0', (byte *) '\0', 256, COLOURIMG,
 		  (char *) '\0');
 }
@@ -129,7 +133,7 @@ int gifwrite_colmap(fp, image, w, h, red_map, green_map, blue_map)
     unsigned char *image, *red_map, *green_map, *blue_map;
     long w, h;
 {
-  return WriteGIF(fp, (byte *) image, PIC8, (int) w, (int) h,
+  return WriteGIF(fp, (byte *) image, NULL, PIC8, (int) w, (int) h,
 		  red_map, green_map, blue_map, 256, COLOURIMG,
 		  (char *) '\0');
 }
@@ -137,10 +141,17 @@ int gifwrite_colmap(fp, image, w, h, red_map, green_map, blue_map)
 
 static jmp_buf jmp_env;
 
-static int WriteGIF(fp, pic, ptype, w, h, rmap, gmap, bmap, numcols,
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+JW: The transparent map is a bitmap,   settings  1's for the places that
+must be transparent and using MSB-first   bit-order. Each scanline (row)
+starts at a whole byte, so each scanline is (w+7)/8 bytes long.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int WriteGIF(fp, pic, mask, ptype, w, h, rmap, gmap, bmap, numcols,
 		    colorstyle, comment)
      FILE *fp;
      byte *pic;
+     byte *mask;				/* mask bitmap */
      int   ptype, w,h;
      byte *rmap, *gmap, *bmap;
      int   numcols, colorstyle;
@@ -148,7 +159,7 @@ static int WriteGIF(fp, pic, ptype, w, h, rmap, gmap, bmap, numcols,
 {
   int   RWidth, RHeight;
   int   LeftOfs, TopOfs;
-  int   ColorMapSize, InitCodeSize, Background, BitsPerPixel;
+  int   ColorMapSize, InitCodeSize, Background, BitsPerPixel, Transparent;
   int   i,j,nc;
   byte *pic8;
   byte  rtemp[256],gtemp[256],btemp[256];
@@ -158,16 +169,18 @@ static int WriteGIF(fp, pic, ptype, w, h, rmap, gmap, bmap, numcols,
     return rval;
 
   if (ptype == PIC24) {  /* have to quantize down to 8 bits */
-    pic8 = Conv24to8(pic, w, h, 256, rtemp,gtemp,btemp);
+    numcols=256;
+    if ( mask ) numcols--;		/* space for mask */
+    pic8 = Conv24to8(pic, w, h, &numcols, rtemp,gtemp,btemp);
     if (!pic8) FatalError("Unable to malloc in WriteGIF()");
-    rmap = rtemp;  gmap = gtemp;  bmap = btemp;  numcols=256;
+    rmap = rtemp;  gmap = gtemp;  bmap = btemp;
   }
   else pic8 = pic;
 
   Interlace = 0;
   Background = 0;
-
-
+  Transparent = 0;  
+					/* clear global colormap */
   for (i=0; i<256; i++) { pc2nc[i] = r1[i] = g1[i] = b1[i] = 0; }
 
   /* compute number of unique colors */
@@ -190,13 +203,40 @@ static int WriteGIF(fp, pic, ptype, w, h, rmap, gmap, bmap, numcols,
     else pc2nc[i] = pc2nc[j];
   }
 
+  if ( mask )
+  { int bytes_per_row = (w+7)/8;
+    int x, y;
+
+    Transparent = nc++;
+    r1[Transparent] = 255;		/* Transparent pixel is white */
+    g1[Transparent] = 255;		/* for best result if not supported */
+    b1[Transparent] = 255;
+    pc2nc[Transparent] = Transparent;
+
+    for(y=0; y<h; y++)
+    { unsigned char *row = mask + bytes_per_row*y;
+      unsigned char b = *row++;
+      int m = 0x80;
+      byte *prow = pic8+y*w;
+
+      for(x=0; x<w; x++, prow++)
+      { if ( b&m )
+	  *prow = Transparent;
+
+	m>>=1;
+	if ( !m )
+	{ m = 0x80;
+	  b = *row++;
+	}
+      }
+    }
+  }
 
   /* figure out 'BitsPerPixel' */
   for (i=1; i<8; i++)
     if ( (1<<i) >= nc) break;
   
   BitsPerPixel = i;
-
   ColorMapSize = 1 << BitsPerPixel;
 	
   RWidth  = Width  = w;
@@ -210,7 +250,7 @@ static int WriteGIF(fp, pic, ptype, w, h, rmap, gmap, bmap, numcols,
 
   curx = cury = 0;
 
-  if (comment && strlen(comment) > (size_t) 0)
+  if ( (comment && strlen(comment) > (size_t) 0) || mask )
     fwrite("GIF89a", (size_t) 1, (size_t) 6, fp);    /* the GIF magic number */
   else
     fwrite("GIF87a", (size_t) 1, (size_t) 6, fp);    /* the GIF magic number */
@@ -260,7 +300,17 @@ static int WriteGIF(fp, pic, ptype, w, h, rmap, gmap, bmap, numcols,
     }
     fputc(0, fp);    /* zero-length data subblock to end extension */
   }
+  if ( mask )
+  { fputc(0x21, fp);			/* EXTENSION block */
+    fputc(0xF9, fp);			/* Graphic Ctrl Ext */
 
+    fputc(4, fp);			/* length */
+    fputc(0x1, fp);			/* transparent mask */
+    fputc(0x0, fp);			/* delaytime byte 1 */
+    fputc(0x0, fp);			/* delaytime byte 2 */
+    fputc(Transparent, fp);		/* transparent pixel */
+    fputc(0, fp);    /* zero-length data subblock to end extension */
+  }
 
   fputc( ',', fp );              /* image separator */
 
@@ -741,20 +791,22 @@ static int    slow_quant  (byte*, int,int, byte*, byte*,byte*,byte*,int);
 
 /****************************/
 
-static byte *Conv24to8(pic24,w,h,nc,rm,gm,bm)
+static byte *Conv24to8(pic24,w,h,NC,rm,gm,bm)
      byte *pic24;
      byte *rm, *gm, *bm;
-     int   w,h,nc;
+     int   w,h,*NC;
 {
   /* returns pointer to new 8-bit-per-pixel image (w*h) if successful, or
      NULL if unsuccessful */
   
   int   i;
   byte *pic8;
-  
+  int nc = *NC;
+  int found;
+
   if (!pic24) return NULL;
 
-  pic8 = (byte *) malloc((size_t) (w * h));
+  pic8 = (byte *) malloc((size_t) (w * h)*sizeof(byte));
   if (!pic8) {
     Cprintf("GIFwrite: Conv24to8() - failed to allocate 'pic8'\n");
     return pic8;
@@ -762,7 +814,8 @@ static byte *Conv24to8(pic24,w,h,nc,rm,gm,bm)
 
   if (nc<=0) nc = 255;  /* 'nc == 0' breaks code */
 
-  if (quick_check(pic24, w,h, pic8, rm,gm,bm, nc)) { 
+  if ((found=quick_check(pic24, w,h, pic8, rm,gm,bm, nc))) { 
+    *NC = found;
     return pic8;   
   }
 
@@ -860,7 +913,7 @@ static int quick_check(pic24, w,h, pic8, rmap,gmap,bmap, maxcol)
     bmap[i] =  colors[i]     & 0xff;
   }
 
-  return 1;
+  return nc;
 }
 
 

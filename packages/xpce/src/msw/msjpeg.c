@@ -466,7 +466,7 @@ write_gif_file(IOSTREAM *fd, Image image, HBITMAP bm)
     }
   }
 
-  rval = gifwrite_rgb(fd, data, width, height);
+  rval = gifwrite_rgb(fd, data, NULL, width, height);
   pceFree(data);
 
   ZSelectObject(hdc, obm);
