@@ -40,6 +40,8 @@
 #include "rdf_db.h"
 #include <assert.h>
 #include <string.h>
+#include <wchar.h>
+#include <wctype.h>
 #include <ctype.h>
 #include "atom_set.h"
 #ifdef WITH_MD5
@@ -1664,7 +1666,7 @@ save_triple(triple *t)
 
 
 static unsigned long
-string_hash(const char *t, unsigned int len)
+string_hashA(const char *t, unsigned int len)
 { unsigned int value = 0;
   unsigned int shift = 5;
 
@@ -1682,13 +1684,34 @@ string_hash(const char *t, unsigned int len)
 
 
 static unsigned long
+string_hashW(const wchar_t *t, unsigned int len)
+{ unsigned int value = 0;
+  unsigned int shift = 5;
+
+  while(len-- != 0)
+  { wint_t c = *t++;
+    
+    c = towlower(c);			/* case insensitive */
+    c -= 'a';
+    value ^= c << (shift & 0xf);
+    shift ^= c;
+  }
+
+  return value ^ (value >> 16);
+}
+
+
+static unsigned long
 case_insensitive_atom_hash(atom_t a)
 { const char *s;
+  const wchar_t *w;
   unsigned len;
 
-  s = PL_atom_nchars(a, &len);
+  if ( (s = PL_atom_nchars(a, &len)) )
+    return string_hashA(s, len);
+  else if ( (w = PL_atom_wchars(a, &len)) )
+    return string_hashW(w, len);
 
-  return string_hash(s, len);
 }
 
 
@@ -1704,8 +1727,8 @@ object_hash(triple *t)
     case OBJ_DOUBLE:
       return t->object.integer;		/* TBD: get all bits */
     case OBJ_TERM:
-      return string_hash((const char*)t->object.term.record,
-			 t->object.term.len);
+      return string_hashA((const char*)t->object.term.record,
+			  t->object.term.len);
     default:
       assert(0);
       return 0;
@@ -4790,8 +4813,22 @@ rdf_reset_db()
 		 *	       MATCH		*
 		 *******************************/
 
-static const char *
-nextword(const char *s)
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+With the introduction of wide characters there   are two versions of the
+match() function, one using char* and one using a structure and index to
+fetch characters. Overall performance of  the   first  function is about
+twice as good as the general one  and   as  most data will be handled by
+this function in  practice  I  think  it   is  worthwhile  to  have  two
+implementations. Both implementations are  very   similar  in design and
+likely to have the same bugs. If  you   find  one, please fix it in both
+branches!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef unsigned char charA;
+typedef wchar_t       charW;
+
+static const charA *
+nextwordA(const charA *s)
 { while(*s && isalnum(*s))
     s++;
   while(*s && !isalnum(*s))
@@ -4802,11 +4839,8 @@ nextword(const char *s)
 
 
 static int
-match(int how, atom_t search, atom_t label)
-{ const char *l = PL_atom_chars(label);
-  const char *f = PL_atom_chars(search);
-
-  switch(how)
+matchA(int how, const charA *f, const charA *l)
+{ switch(how)
   { case STR_MATCH_EXACT:
     { for( ; *l && *f; l++, f++ )
       { if ( tolower(*l) != tolower(*f) )
@@ -4848,7 +4882,7 @@ match(int how, atom_t search, atom_t label)
     { const char *h;
       const char *f0 = f;
   
-      for(h=l; *h; h = nextword(h))
+      for(h=l; *h; h = nextwordA(h))
       { for( l=h,f=f0; *l && *f; l++, f++ )
 	{ if ( tolower(*l) != tolower(*f) )
 	    break;
@@ -4907,6 +4941,183 @@ retry_like:
       { chn--;
 	f = chps[chn].pattern;
 	l = chps[chn].label;
+	goto search_like;
+      }
+
+      return FALSE;
+    }
+    default:
+      assert(0);
+      return FALSE;
+  }
+}
+
+
+typedef struct text
+{ const charA *a;
+  const charW *w;
+  unsigned int length;
+} text;
+
+
+static int
+get_atom_text(atom_t atom, text *txt)
+{ if ( (txt->a = (const charA*)PL_atom_nchars(atom, &txt->length)) )
+  { txt->w = NULL;
+    return TRUE;
+  }
+  if ( (txt->w = (const charW*)PL_atom_wchars(atom, &txt->length)) )
+  { txt->a = NULL;
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+__inline wint_t
+fetch(const text *txt, int i)
+{ return txt->a ? (wint_t)txt->a[i] : (wint_t)txt->w[i];
+}
+
+
+static unsigned int
+nextword(text *txt, int i)
+{ while(i<txt->length && iswalnum(fetch(txt, i)))
+    i++;
+  while(i<txt->length && !iswalnum(fetch(txt, i)))
+    i++;
+
+  return i;
+}
+
+
+
+static int
+match(int how, atom_t search, atom_t label)
+{ text l, f;
+
+  if ( !get_atom_text(label, &l) ||
+       !get_atom_text(search, &f) )
+    return FALSE;			/* error? */
+  
+  if ( f.length == 0 )
+    return TRUE;
+
+  if ( f.a && l.a )
+    return matchA(how, f.a, l.a);
+
+  switch(how)
+  { case STR_MATCH_EXACT:
+    { if ( l.length == f.length )
+      { unsigned int i;
+
+	for(i=0; i<l.length; i++ )
+	{ if ( towlower(fetch(&l, i)) != towlower(fetch(&f, i)) )
+	    return FALSE;
+	}
+
+        return TRUE;
+      }
+  
+      return FALSE;
+    }
+    case STR_MATCH_PREFIX:
+    { if ( f.length <= l.length )
+      { unsigned int i;
+
+	for(i=0; i<f.length; i++ )
+	{ if ( towlower(fetch(&l, i)) != towlower(fetch(&f, i)) )
+	    return FALSE;
+	}
+
+	return TRUE;
+      }  
+
+      return FALSE;
+    }
+    case STR_MATCH_SUBSTRING:		/* use Boyle-More! */
+    { if ( f.length <= l.length )
+      { unsigned int i, s;
+
+	for(s=0; s+f.length <= l.length; s++)
+	{ for(i=0; i<f.length; i++)
+	  { if ( towlower(fetch(&l, i+s)) != towlower(fetch(&f, i)) )
+	      goto snext;
+	  }
+	  return TRUE;
+
+	snext:;
+	}
+      }
+  
+      return FALSE;
+    }
+    case STR_MATCH_WORD:
+    { if ( f.length <= l.length )
+      { unsigned int i, s;
+
+	for(s=0; s+f.length <= l.length; s = nextword(&l, s))
+	{ for(i=0; i<f.length; i++)
+	  { if ( towlower(fetch(&l, i+s)) != towlower(fetch(&f, i)) )
+	      goto wnext;
+	  }
+	  if ( i+s == l.length || !iswalnum(fetch(&l,i+s)) )
+	    return TRUE;
+
+	wnext:;
+	}
+      }
+  
+      return FALSE;
+    }
+    case STR_MATCH_LIKE:		/* SeRQL like: * --> wildcart */
+    { unsigned int ip, il;
+      typedef struct chp { unsigned int ip;
+			   unsigned int il;
+			 } chp;
+      chp chps[MAX_LIKE_CHOICES];
+      int chn=0;
+
+      for(ip=il=0; il < l.length && ip < f.length; ip++, il++ )
+      { if ( fetch(&f, ip) == '*' )
+	{ ip++;
+
+	  if ( ip == f.length )		/* foo* */
+	    return TRUE;
+
+	search_like:
+	  while ( il < l.length &&
+		  towlower(fetch(&l, il)) != towlower(fetch(&f, ip)) )
+	    il++;
+
+	  if ( il < l.length )
+	  { if ( chn >= MAX_LIKE_CHOICES )
+	    { Sdprintf("rdf_db: too many * in `like' expression (>%d)",
+		       MAX_LIKE_CHOICES);
+	      return FALSE;
+	    }
+	    chps[chn].ip = ip;
+	    chps[chn].il = il+1;
+	    chn++;
+
+	    continue;
+	  } else
+	    goto retry_like;
+	}
+
+	if ( towlower(fetch(&l, il)) != towlower(fetch(&f, ip)) )
+	  goto retry_like;
+      }
+      if ( il == l.length && (ip == f.length ||
+			      (fetch(&f,ip) == '*' && ip+1 == f.length)) )
+	return TRUE;
+  
+retry_like:
+      if ( chn > 0 )
+      { chn--;
+	ip = chps[chn].ip;
+	il = chps[chn].il;
 	goto search_like;
       }
 

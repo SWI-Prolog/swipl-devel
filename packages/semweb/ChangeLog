@@ -1,6 +1,11 @@
+Jan 27, 2005
+
+  * ADDED: wide-character support in label matching (rdf_match_label/3)
+    and literals queries (rdf(S, P, literal(substring(foo), X))).
+
 Nov 29, 2004
 
-  * FIXED: lock language/type atom.   Djamé Seddah.
+  * FIXED: lock language/type atom.   Djam Seddah.
 
 Oct 19, 2004
 
