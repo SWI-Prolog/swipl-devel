@@ -60,7 +60,7 @@
 	xmodule/2,			% Module, Src
 	source/1,			% Src
 	used_class/2,			% Name, Src
-	defined_class/3.		% Name, Src, Line
+	defined_class/5.		% Name, Super, Summary, Src, Line
 
 
 		 /*******************************
@@ -147,7 +147,7 @@ xref_clean(Source) :-
 	retractall(xmodule(_, Src)),
 	retractall(source(Src)),
 	retractall(used_class(_, Src)),
-	retractall(defined_class(_, Src, _)).
+	retractall(defined_class(_, _, _, Src, _)).
 	
 
 		 /*******************************
@@ -223,9 +223,9 @@ xref_used_class(Source, Class) :-
 	canonical_source(Source, Src),
 	used_class(Class, Src).
 
-xref_defined_class(Source, Class, local(Line)) :-
+xref_defined_class(Source, Class, local(Line, Super, Summary)) :-
 	canonical_source(Source, Src),
-	defined_class(Class, Src, Line).
+	defined_class(Class, Super, Summary, Src, Line).
 
 collect(Src) :-
 	open_source(Src, Fd),
@@ -291,8 +291,8 @@ process((Head :- Body), Src) :- !,
 	process_body(Body, Head, Src).
 process('$source_location'(_File, _Line):Clause, Src) :- !,
 	process(Clause, Src).
-process(pce_principal:pce_class(Name, Meta, Super, _, _, _), Src) :- !,
-	assert_defined_class(Src, Name, Meta, Super).
+process(pce_principal:pce_class(Name, Meta, Super, _, _, Directs), Src) :- !,
+	assert_defined_class(Src, Name, Meta, Super, Directs).
 process(Head, Src) :-
 	assert_defined(Src, Head).
 
@@ -653,11 +653,16 @@ assert_used_class(Src, Name) :-
 assert_used_class(Src, Name) :-
 	assert(used_class(Name, Src)).
 
-assert_defined_class(Src, Name, _Meta, _Super) :-
-	defined_class(Name, Src, _), !.
-assert_defined_class(Src, Name, Meta, Super) :-
+assert_defined_class(Src, Name, _Meta, _Super, _) :-
+	defined_class(Name, _, _, Src, _), !.
+assert_defined_class(_, _, _, -, _) :- !.
+assert_defined_class(Src, Name, Meta, Super, Directives) :-
 	flag(xref_src_line, Line, Line),
-	assert(defined_class(Name, Src, Line)),
+	(   memberchk(send(@class, summary, Summary), Directives)
+	->  atom_concat(Summary, '', Atom)
+	;   Atom = ''
+	),
+	assert(defined_class(Name, Super, Atom, Src, Line)),
 	(   Meta = @_
 	->  true
 	;   assert_used_class(Src, Meta)
