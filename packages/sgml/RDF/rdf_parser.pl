@@ -552,6 +552,8 @@ term_colours((c(head(+(1))) ::= c(match))).
 
 emacs_prolog_colours:goal_classification(\_, expanded).
 
+:- dynamic
+	prolog:meta_goal/2.
 :- multifile
 	prolog:meta_goal/2.
 
