@@ -646,6 +646,13 @@ symbol_char(C) :-
 insert_full_stop(M, Arg:[int]) :->
 	"Check clause after typing '.'"::
 	send(M, insert_self, Arg, 0'.),
+	get(M, text_buffer, TB),
+	get(TB, size, Len),
+	get(M, caret, Here),
+	(   Here == Len
+        ->  send(M, open_line)
+	;   true
+	),
 	(   Arg == @default,
 	    get(M, caret, Caret),
 	    get(M, character, Caret-2, Prev),
