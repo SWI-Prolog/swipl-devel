@@ -825,11 +825,28 @@ testset(ctype).
 testset(resource).
 
 :- dynamic
-	failed/1.
+	failed/1,
+	blocked/2.
 
 test :-
 	retractall(failed(_)),
+	retractall(blocked(_,_)),
 	forall(testset(Set), runtest(Set)),
+	report_blocked,
+	report_failed.
+
+report_blocked :-
+	findall(Head-Reason, blocked(Head, Reason), L),
+	(   L \== []
+        ->  format('~nThe following tests are blocked:~n', []),
+	    (	member(Head-Reason, L),
+		format('    ~p~t~40|~w~n', [Head, Reason]),
+		fail
+	    ;	true
+	    )
+        ;   true
+	).
+report_failed :-
 	findall(X, failed(X), L),
 	length(L, Len),
 	(   Len > 0
@@ -844,8 +861,7 @@ runtest(Name) :-
 	functor(Head, Name, 1),
 	nth_clause(Head, _N, R),
 	clause(Head, _, R),
-	(   catch(Head, blocked(Reason),
-		  format('~NBlocked test ~p: ~w~n', [Head, Reason]))
+	(   catch(Head, blocked(Reason), assert(blocked(Head, Reason)))
 	->  put(.), flush
 	;   arg(1, Head, TestName),
 	    clause_property(R, line_count(Line)),
