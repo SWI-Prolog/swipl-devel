@@ -191,14 +191,19 @@ match_module(H1, H2, Pos, Pos) :-	% deal with facts
 %	
 %	Pos0 and Pos still include the term-position of the head.
 
-unify_body(B, B,  Pos, Pos) :- !.
+unify_body(B, B, Pos, Pos) :-
+	\+ term_member(brace_term_position(_,_,_), Pos), !.
 unify_body(R, D,
 	   term_position(F,T,FF,FT,[HP,BP0]),
 	   term_position(F,T,FF,FT,[HP,BP])) :-
 	ubody(R, D, BP0, BP).
 	   
 
-ubody(B, B, P, P) :- !.
+ubody(B, B, P, P) :-
+	\+ term_member(brace_term_position(_,_,_), P), !.
+ubody(B, B,
+      brace_term_position(F,T,A),
+      term_position(F,T,F,T,[A])).
 ubody(((A,B),C), (A,B,C),
       term_position(F1,T1,FF1,TT1,
 		    [ term_position(F1,T2,FF2,FT2, [PA, PB]),
@@ -229,6 +234,13 @@ ubody_list([], [], [], []).
 ubody_list([G0|T0], [G|T], [PA0|PAT0], [PA|PAT]) :-
 	ubody(G0, G, PA0, PA),
 	ubody_list(T0, T, PAT0, PAT).
+
+
+term_member(X,X).
+term_member(X, T) :-
+	compound(T),
+	arg(_, T, A),
+	term_member(X, A).
 
 
 		 /*******************************
