@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: PceEmacs: menu to super-class field of :- pce_begin_class/[2,3]
+  to allow switching to the class.
+
 * FIXED: Error handling default file in finder on Windows.
 
 * FIXED: Metafile handling in PceDraw (proper detection of win_metafile

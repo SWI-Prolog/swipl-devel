@@ -107,11 +107,13 @@ find_file(Emacs, Dir:[directory]) :->
 	get(@finder, file, @on, @default, Dir, FileName),
 	send(Emacs, open_file, FileName).
 
-goto_source_location(_Emacs, Location:source_location) :->
+goto_source_location(_Emacs,
+		     Location:source_location,
+		     NewWindow:new_window=[bool]) :->
 	"Visit the indicated source-location"::
 	get(Location, file_name, File),
 	new(B, emacs_buffer(File)),
-	send(B, open),
+	send(B, open, NewWindow),
 	send(B, check_modified_file),
 	(   get(Location, line_no, Line),
 	    Line \== @nil
@@ -132,6 +134,10 @@ existing_file(_Emacs, Dir:[directory], File:file) :<-
 	"Find existing file in directory"::
 	get(@finder, file, @on, @default, Dir, FileName),
 	new(File, file(FileName)).
+
+open_object(_Emacs, Object:prolog, _NewWindow:new_window=[bool]) :->
+	"Open from description"::
+	edit(Object).
 
 
 		 /*******************************

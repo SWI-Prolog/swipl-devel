@@ -397,6 +397,8 @@ colour_item(Class, TB, F, T) :-
 
 :- pce_global(@prolog_mode_file_popup,
 	      make_prolog_mode_file_popup).
+:- pce_global(@prolog_mode_class_popup,
+	      make_prolog_mode_class_popup).
 
 make_prolog_mode_file_popup(G) :-
 	new(G, popup(file_options)),
@@ -407,9 +409,29 @@ make_prolog_mode_file_popup(G) :-
 			      message(@emacs, open_file, @arg1?message, @on))
 		  ]).
 
-message(file(Path), F) :-
+make_prolog_mode_class_popup(G) :-
+	new(G, popup(file_options)),
+	send_list(G, append,
+		  [ menu_item(open,
+			      message(@emacs_mode, open_class, @arg1?message)),
+		    menu_item(open_other_window,
+			      message(@emacs_mode, open_class, @arg1?message, @on))
+		  ]).
+
+open_class(_Mode, Class:name, NewWindow:[bool]) :->
+	"Open XPCE class [in new window]"::
+	prolog_edit:locate(class(Class), Location),
+	memberchk(file(File), Location),
+	memberchk(line(Line), Location),
+	send(@emacs, goto_source_location,
+	     source_location(File, Line), NewWindow).
+
+message(file(Path), F) :- !,
 	send(F, message, Path),
 	send(F, attribute, popup, @prolog_mode_file_popup).
+message(class(Super), F) :- !,
+	send(F, message, Super),
+	send(F, attribute, popup, @prolog_mode_class_popup).
 message(_, _).
 
 
@@ -509,6 +531,7 @@ style(string,		  style(colour	   := navy_blue)).
 style(nofile,		  style(colour	   := red)).
 style(file(_),		  style(colour	   := blue,
 				underline  := @on)).
+style(class(_),		  style(underline  := @on)).
 
 style(identifier,	  style(bold       := @on)).
 style(expanded,		  style(colour	   := blue,
@@ -633,15 +656,15 @@ term_colours(class_variable(_,_,_),
 term_colours(delegate_to(_),
 	     expanded - [ classify
 			]).
-term_colours((:- pce_begin_class(_, _, _)),
+term_colours((:- pce_begin_class(_, Super, _)),
 	     expanded - [ expanded - [ identifier,
-				       classify,
+				       class(Super),
 				       comment
 				     ]
 			]).
-term_colours((:- pce_begin_class(_, _)),
+term_colours((:- pce_begin_class(_, Super)),
 	     expanded - [ expanded - [ identifier,
-				       classify
+				       class(Super)
 				     ]
 			]).
 term_colours((:- pce_extend_class(_)),
