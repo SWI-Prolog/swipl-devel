@@ -63,6 +63,7 @@ get_data(Parts, File) :-			% HTTP
 	memberchk(protocol(http), Parts), !,
 	cache_file(Parts, File),
 	new(F, file(File)),
+	send(F, kind, binary),
 	send(F, open, write),
 	new(Client, http_client(Parts)),
 	send(Client, fetch_data, F),
