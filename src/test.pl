@@ -67,6 +67,8 @@ syntax(char-2) :-
 	"\\" =:= 0'\\.
 syntax(string-1) :-
 	'\c ' = ''.
+syntax(string-2) :-
+	'x\c y' = xy.
 syntax(number-1) :-			% check integer overflow translation
 	Chars = "41234567891",
 	name(X, Chars),

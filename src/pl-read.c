@@ -991,6 +991,7 @@ again:
 	}
 	if ( c == quote )		/* \c ' --> no output */
 	  OK(EOF);
+	in++;
 	OK(c);
       }
       OK('c');
