@@ -168,7 +168,7 @@ check:
 
 install:	dv-install
 
-dv-install:	install-arch install-libs install_packages
+dv-install:	install-arch install-libs install-readme install_packages
 
 install-arch:	idirs
 		$(INSTALL_PROGRAM) $(PLWIN) "$(PLBASE)\bin"
@@ -206,6 +206,12 @@ ilib:
 iinclude:       
 		$(INSTALL_DATA) $(PLHOME)\include\SWI-Prolog.h "$(PLBASE)\include"
 		$(INSTALL_DATA) $(PLHOME)\include\SWI-Stream.h "$(PLBASE)\include"
+
+install-readme::
+		$(INSTALL_DATA) ..\README "$(PLBASE)\README.TXT"
+		$(INSTALL_DATA) ..\VERSION "$(PLBASE)"
+		$(INSTALL_DATA) ..\ChangeLog "$(PLBASE)\ChangeLog.TXT"
+		$(INSTALL_DATA) ..\README.WIN "$(PLBASE)\READWIN.TXT"
 
 ################################################################
 # Build and install packages
