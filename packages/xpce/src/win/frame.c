@@ -670,8 +670,12 @@ getGeometryFrame(FrameObj fr)
     w = valInt(fr->area->w);
     h = valInt(fr->area->h);
 
-    sprintf(buf, "%dx%d%s%d%s%d",
-	    w, h, xn ? "-" : "+", x, yn ? "-" : "+", y);
+    if ( fr->can_resize == OFF )
+      sprintf(buf, "%s%d%s%d",
+	      xn ? "-" : "+", x, yn ? "-" : "+", y);
+    else
+      sprintf(buf, "%dx%d%s%d%s%d",
+	      w, h, xn ? "-" : "+", x, yn ? "-" : "+", y);
 
     answer(CtoName(buf));
   }

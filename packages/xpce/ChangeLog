@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* MODIFIED: `Frame<-geometry' excludes the size if <-can_resize yields @off
+  (for improved geometry maintenance by class persistent_frame).
+
 * FIXED: shrinking ver_stretch items in a dialog (shrink could be blocked
   by empty cells in other columns).
 
