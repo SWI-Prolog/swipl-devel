@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: make pl-wam.c compile in `runtime mode'.  Lourens van der Meij,
+
+
 VERSION 5.0.1
 =============
 

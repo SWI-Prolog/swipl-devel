@@ -4119,8 +4119,10 @@ bit more careful.
 	DEF = FR->predicate;
 	ARGP = argFrameP(lTop, 0);
 
+#if O_DEBUGGER
 	if ( leave )
 	  frameFinished(leave, FINISH_EXIT);
+#endif
       }
 	NEXT_INSTRUCTION;
       }	  
