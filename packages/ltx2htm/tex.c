@@ -31,8 +31,8 @@ static int debuglevel = 0;
 #define MAXCMDARGS	32
 #define MAXENVNESTING	256		/* max depth of environment */
 
-static void error(int errno, const char *file, int line); /* handle errors */
-static void warn(int errno, const char *file, int line); /* handle errors */
+static void error(int eno, const char *file, int line); /* handle errors */
+static void warn(int eno, const char *file, int line); /* handle errors */
 
 #define ERR_UNEXPECTED_EOF	1	/* unexpected end-of-file */
 #define ERR_RUNAWAY_ARGUMENT	2	/* runaway argument */
@@ -1705,8 +1705,8 @@ put_token(Token t, void *ctx)
 #ifdef TEST
 
 static void
-error(int errno, const char *file, int line)
-{ fprintf(stderr, "ERROR: %s:%d: %s\n", file, line, tex_error_strings[errno]);
+error(int eno, const char *file, int line)
+{ fprintf(stderr, "ERROR: %s:%d: %s\n", file, line, tex_error_strings[eno]);
 
   exit(1);
 }
@@ -2617,11 +2617,11 @@ pl_put_html_token(term_t term)
 		 *******************************/
 
 static void
-error(int errno, const char *file, int line)
+error(int eno, const char *file, int line)
 { fprintf(stderr,
 	  "[TeX tokeniser: %s:%d: %s]\n",
-	  file, line, tex_error_strings[errno]);
-  switch(errno)
+	  file, line, tex_error_strings[eno]);
+  switch(eno)
   { case ERR_RUNAWAY_ARGUMENT:
     case ERR_RUNAWAY_MATH:
     { char argstart[50];
@@ -2636,10 +2636,10 @@ error(int errno, const char *file, int line)
 }
 
 static void
-warn(int errno, const char *file, int line)
+warn(int eno, const char *file, int line)
 { fprintf(stderr,
 	  "WARNING: %s:%d: %s\n",
-	  file, line, tex_error_strings[errno]);
+	  file, line, tex_error_strings[eno]);
 }
 
 
