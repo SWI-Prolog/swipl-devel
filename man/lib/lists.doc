@@ -80,6 +80,12 @@ between/3.
 
 \subsection{Set Manipulation}		\label{sec:manipset}
 
+The set predicates listed in this section work on ordinary unsorted
+lists. Note that this makes many of the operations order $N^2$. For
+larger sets, please consider the use of ordered sets as implemented by
+library \file{oset.pl}, running most these operations in order $N$. This
+library is currently not documented in the manual.
+
 \begin{description}
     \predicate{is_set}{1}{+Set}
 Succeeds if \arg{Set} is a list (see is_list/1) without duplicates.
