@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.2.12, distributed with SWI-Prolog 5.2.12
+==================================================
+
 * FIXED: Avoid excessive amount amount of ->report: status, '' from
   keybinding (Laurens van der Meij).
 

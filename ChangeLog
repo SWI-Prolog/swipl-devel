@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.2.12 (Jan 17, 2004)
+=============================
+	
   * FIXED: Crash in atom-garbage collection.  Sergey Tikhonov.
 
   * FIXED: Memory corruption problem in prompt handling of threads.
