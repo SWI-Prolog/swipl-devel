@@ -193,6 +193,8 @@ NextInt(IOSTREAM *fstream)
 
     if ( ch == EOF )
     { return -1;
+    } else if ( ch == '\r' )
+    { continue;
     } else
     { int dvalue = hexTable[ch];
 
