@@ -437,7 +437,8 @@ add_parent_ref(node_sum *sum, call_node *self, Definition def, int cycle ARG_LD)
 
 
 static void
-add_recursive_ref(node_sum *sum, call_node *self, ulong count, int cycle ARG_LD)
+add_recursive_ref(node_sum *sum, call_node *self, ulong count,
+		  int cycle ARG_LD)
 { prof_ref *r;
 
   for(r=sum->callers; r; r=r->next)
@@ -459,7 +460,8 @@ add_recursive_ref(node_sum *sum, call_node *self, ulong count, int cycle ARG_LD)
 
 
 static void
-add_sibling_ref(node_sum *sum, call_node *self, call_node *sibling, int cycle ARG_LD)
+add_sibling_ref(node_sum *sum, call_node *self, call_node *sibling,
+		int cycle ARG_LD)
 { prof_ref *r;
 
   for(r=sum->callees; r; r=r->next)
@@ -797,9 +799,6 @@ Exit, resuming execution in node
 void
 profExit(struct call_node *node ARG_LD)
 { call_node *n;
-
-  if ( node == PROF_META_NODE )
-    return;
 
   accounting = TRUE;
   assert(!node || node->magic == PROFNODE_MAGIC);

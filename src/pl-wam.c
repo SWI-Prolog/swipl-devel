@@ -3505,7 +3505,7 @@ atom is referenced by the goal-term anyway.
 	    next->parent	 = FR;
 	    next->programPointer = PC;
 #ifdef O_PROFILE
-	    next->prof_node      = PROF_META_NODE;	    
+	    next->prof_node      = FR->prof_node;	    
 #endif
 #ifdef O_LOGICAL_UPDATE
 	    cl->generation.erased = ~0L;

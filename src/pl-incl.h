@@ -1261,7 +1261,6 @@ struct definition_chain
   DefinitionChain 	next;		/* next in chain */
 };
 
-#define PROF_META_NODE ((struct call_node*)0x1)
 
 struct localFrame
 { Code		programPointer;		/* pointer into program */
