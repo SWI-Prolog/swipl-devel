@@ -4,6 +4,11 @@
 Version 2.1.1
 =============
 
+  * MODIFIED: DCG translation of free variables now calls phrase/3, which
+    has been changed slightly to deal with `un-parsing'.  Modification
+    is probably not complete, but it fixes some problems encountered by
+    Michael Boehlen.
+
   * MODIFIED: keysort/2 is now stable with regard to multiple values on
     the same key.  Makes this predicate compatible with SICStus and
     Quintus.

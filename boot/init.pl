@@ -985,7 +985,7 @@ $t_head(LP, S, SR, H) :-
 	$extend([S, SR], LP, H).
 
 
-$t_body(Var, S, SR, $apply(Var, [S, SR])) :-
+$t_body(Var, S, SR, phrase(Var, S, SR)) :-
 	var(Var), !.
 $t_body(!, S, S, !) :- !.
 $t_body([], S, S1, S=S1) :- !.
@@ -1050,7 +1050,11 @@ $char([X|S], X, S).
 phrase(RuleSet, Input) :-
 	phrase(RuleSet, Input, []).
 phrase(RuleSet, Input, Rest) :-
-	call(RuleSet, Input, Rest).
+	$strip_module(RuleSet, _, Head),
+	(   is_list(Head)
+	->  append(Head, Rest, Input)
+	;   call(RuleSet, Input, Rest)
+	).
 
 
 		/********************************

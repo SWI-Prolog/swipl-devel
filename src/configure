@@ -2863,7 +2863,7 @@ int main() { return 0; }
 int t() {
  char *objfiles[10];
   struct mach_header *m_header;
-  unsigned long rld_adress;
+  unsigned long rld_address;
 
   rld_load(stderr, &m_header, objfiles, NULL);
   rld_lookup(NULL, "_init", &rld_address);
