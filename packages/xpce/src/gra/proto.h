@@ -1,24 +1,24 @@
 
-/* arc.c */
+/* gra/arc.c */
 void		points_arc(Arc a, int *sx, int *sy, int *ex, int *ey);
 status		makeClassArc(Class class);
 
-/* arrow.c */
+/* gra/arrow.c */
 status		computeArrow(Arrow a);
 status		pointsArrow(Arrow a, Int tx, Int ty, Int rx, Int ry);
 status		paintArrow(Arrow a, Int tx, Int ty, Int rx, Int ry);
 status		makeClassArrow(Class class);
 
-/* bitmap.c */
+/* gra/bitmap.c */
 status		makeClassBitmap(Class class);
 
-/* box.c */
+/* gra/box.c */
 status		makeClassBox(Class class);
 
-/* circle.c */
+/* gra/circle.c */
 status		makeClassCircle(Class class);
 
-/* colour.c */
+/* gra/colour.c */
 status		equalColour(Colour c1, Colour c2);
 Int		getRedColour(Colour c);
 Int		getGreenColour(Colour c);
@@ -27,16 +27,16 @@ Colour		getHiliteColour(Colour c);
 Colour		getReduceColour(Colour c);
 status		makeClassColour(Class class);
 
-/* connection.c */
+/* gra/connection.c */
 status		updateHideExposeConnection(Connection c);
 status		updateDeviceConnection(Connection c);
 status		makeClassConnection(Class class);
 int		distanceLineToPoint(int x1, int y1, int x2, int y2, int px, int py);
 
-/* cursor.c */
+/* gra/cursor.c */
 status		makeClassCursor(Class class);
 
-/* device.c */
+/* gra/device.c */
 status		initialiseDevice(Device dev);
 status		unlinkDevice(Device dev);
 CursorObj	getFindCursorDevice(Device dev);
@@ -64,15 +64,15 @@ Graphical	getMemberDevice(Device dev, Name name);
 status		geometryDevice(Device dev, Int x, Int y, Int w, Int h);
 status		makeClassDevice(Class class);
 
-/* ellipse.c */
+/* gra/ellipse.c */
 status		makeClassEllipse(Class class);
 
-/* figure.c */
+/* gra/figure.c */
 status		initialiseFigure(Figure f);
 status		computeFigure(Figure f);
 status		makeClassFigure(Class class);
 
-/* font.c */
+/* gra/font.c */
 status		replaceFont(FontObj f, DisplayObj d);
 status		loadFontFamilyDisplay(DisplayObj d, Name fam);
 status		loadFontsDisplay(DisplayObj d);
@@ -85,10 +85,10 @@ Bool		getFixedWidthFont(FontObj f);
 Bool		getB16Font(FontObj f);
 status		makeClassFont(Class class);
 
-/* format.c */
+/* gra/format.c */
 status		makeClassFormat(Class class);
 
-/* graphical.c */
+/* gra/graphical.c */
 status		initialiseGraphical(Any obj, Int x, Int y, Int w, Int h);
 status		unlinkGraphical(Graphical gr);
 status		copyGraphical(Any obj1, Any obj2);
@@ -173,13 +173,13 @@ status		nameGraphical(Graphical gr, Name name);
 status		initialiseNewSlotGraphical(Graphical gr, Variable new);
 status		makeClassGraphical(Class class);
 
-/* handle.c */
+/* gra/handle.c */
 status		getXYHandle(Handle h, Graphical gr, Device dev, Int *X, Int *Y);
 Int		getXHandle(Handle h, Graphical gr, Device dev);
 Int		getYHandle(Handle h, Graphical gr, Device dev);
 status		makeClassHandle(Class class);
 
-/* image.c */
+/* gra/image.c */
 status		initialiseImage(Image image, Name name, Int w, Int h, Name kind);
 Image		getConvertImage(Class class, Any obj);
 status		XopenImage(Image image, DisplayObj d);
@@ -188,13 +188,13 @@ status		loadImage(Image image, FileObj file, CharArray path);
 status		resizeImage(Image image, Int w, Int h);
 status		makeClassImage(Class class);
 
-/* joint.c */
+/* gra/joint.c */
 status		initialiseJoint(Joint jt, Int x, Int y, Int w, Int h, Name arrows);
 status		copyJoint(Joint jt1, Joint jt2);
 status		setArrowsJoint(Joint jt, Arrow first, Arrow second);
 status		makeClassJoint(Class class);
 
-/* line.c */
+/* gra/line.c */
 status		initialiseLine(Line ln, Int xa, Int ya, Int xb, Int yb, Name arrows);
 status		copyLine(Line l1, Line l2);
 Int		getStartXLine(Line ln);
@@ -206,10 +206,10 @@ Point		getIntersectionLine(Line l1, Line l2);
 Real		getAngleLine(Line ln, Point p);
 status		makeClassLine(Class class);
 
-/* link.c */
+/* gra/link.c */
 status		makeClassLink(Class class);
 
-/* listbrowser.c */
+/* gra/listbrowser.c */
 Name		getLabelListBrowser(ListBrowser lb);
 Size		getSizeListBrowser(ListBrowser lb);
 status		selectedListBrowser(ListBrowser lb, DictItem di);
@@ -222,17 +222,17 @@ DictItem	getMemberListBrowser(ListBrowser lb, Any key);
 Chain		getContainsListBrowser(ListBrowser lb);
 status		makeClassListBrowser(Class class);
 
-/* node.c */
+/* gra/node.c */
 status		updateDisplayedTree(Tree t);
 status		forAllNode(Node n, Code msg);
 status		forSomeNode(Node n, Code msg);
 Node		getFindNodeNode(Node n, Graphical gr);
 status		makeClassNode(Class class);
 
-/* path.c */
+/* gra/path.c */
 status		makeClassPath(Class class);
 
-/* postscript.c */
+/* gra/postscript.c */
 StringObj	getPostscriptObject(Any obj, Bool ls, Area a);
 void		ps_put_char(int c);
 void		ps_output(char *fm, ...);
@@ -254,14 +254,14 @@ status		drawPostScriptText(TextObj t);
 status		postscriptFrame(FrameObj fr);
 status		postscriptDisplay(DisplayObj d);
 
-/* scrollbar.c */
+/* gra/scrollbar.c */
 Int		getMarginScrollBar(ScrollBar sb);
 status		placeScrollBar(ScrollBar sb, Graphical gr);
 status		RedrawAreaScrollBar(ScrollBar s, Area a);
 status		bubbleScrollBar(ScrollBar sb, Int l, Int s, Int v);
 status		makeClassScrollBar(Class class);
 
-/* text.c */
+/* gra/text.c */
 status		computeText(TextObj t);
 void		str_format(String out, const String in, const int width, const FontObj font);
 status		repaintText(TextObj t, int x, int y, int w, int h);
@@ -277,14 +277,14 @@ status		lengthText(TextObj t, Int l);
 status		marginText(TextObj t, Int width, Name wrap);
 status		makeClassText(Class class);
 
-/* tree.c */
+/* gra/tree.c */
 status		requestComputeTree(Tree t);
 status		displayTree(Tree t, Node n);
 status		unzoomTree(Tree t);
 status		zoomTree(Tree t, Node n);
 status		makeClassTree(Class class);
 
-/* visual.c */
+/* gra/visual.c */
 status		resetVisual(VisualObj v);
 status		destroyVisual(VisualObj v);
 Any		getReportToVisual(VisualObj v);
@@ -292,10 +292,10 @@ status		reportVisual(VisualObj v, Name kind, CharArray fmt, int argc, Any *argv)
 status		alertReporteeVisual(Any v);
 status		makeClassVisual(Class class);
 
-/* pixmap.c */
+/* gra/pixmap.c */
 Colour		getReplacementColourPixmap(PixmapObj pm);
 status		makeClassPixmap(Class class);
 
-/* elevation.c */
+/* gra/elevation.c */
 Elevation	getModifyElevation(Elevation e, Name att, Any val);
 status		makeClassElevation(Class class);

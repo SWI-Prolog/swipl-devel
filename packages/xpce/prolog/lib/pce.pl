@@ -44,6 +44,8 @@ reexports the content of these files.
 
 	  , pce_register_class/1
 	  , pce_extended_class/1
+	  , pce_prolog_class/1
+	  , pce_prolog_class/2
 	  , pce_bind_send_method/8
 	  , pce_bind_get_method/9
 	  , pce_send_method_message/2
@@ -55,7 +57,6 @@ reexports the content of these files.
 	  , require/1
 	  , auto_call/1
 	  , (meta_predicate)/1
-	  , (initialization)/1
 	  , 'pceloadc++'/1
 	  , 'pceloadc++'/2
 	  , 'pceloadcxx'/1
@@ -92,21 +93,41 @@ user:term_expansion((:- require(_)), []).
      pce_boot(pce_editor)
    ].
 
+:- retractall(user:file_search_path(pce_boot, _)).
 
-:- feature(version, PlVersion),
-   send(@pce, catch_error_signals, @on),
-   concat('SWI-Prolog version ', PlVersion, PlId),
-   send(@prolog, system, PlId).
+set_version :-
+	feature(version, PlVersion),
+	send(@pce, catch_error_signals, @on),
+	concat('SWI-Prolog version ', PlVersion, PlId),
+	send(@prolog, system, PlId).
+
+:- initialization set_version.
    
+get_pce_version :-
+	(   feature(xpce_version, _)
+	->  true
+	;   get(@pce, version, name, Version),
+	    set_feature(xpce_version, Version)
+	).
+
+:- initialization get_pce_version.
 
 		/********************************
 		*           SET PCE HOME	*
 		********************************/
 
-:- prolog_load_context(directory, Dir0),
-   '$file_dir_name'(Dir0, Dir1),
-   '$file_dir_name'(Dir1, PceHome),
-   send(@pce, home, PceHome).
+set_xpce_home :-
+	absolute_file_name(pce('Pce'), [exists], ResourceFile), !,
+	file_directory_name(ResourceFile, PceHome),
+	send(@pce, home, PceHome).
+set_xpce_home :-
+	prolog_load_context(directory, LibDir),
+	file_directory_name(LibDir, PrologDir),
+	file_directory_name(PrologDir, PceHome),
+	absolute_file_name(PceHome, CanonicalHome),
+	send(@pce, home, CanonicalHome).
+
+:- initialization set_xpce_home.
 
 
 		 /*******************************
@@ -120,14 +141,12 @@ user:term_expansion((:- require(_)), []).
 		*       PROLOG LIBRARIES	*
 		********************************/
 
-user:(file_search_path(demo, DemoDir) :-
-	get(@pce, home, Home),
-	concat(Home, '/prolog/demo', Raw),
-	absolute_file_name(Raw, DemoDir)).
-user:(file_search_path(contrib, ContribDir) :-
-	get(@pce, home, Home),
-	concat(Home, '/prolog/contrib', Raw),
-	absolute_file_name(Raw, ContribDir)).
+:- multifile
+	user:file_search_path/2.
+
+user:file_search_path(demo, pce('prolog/demo')).
+user:file_search_path(contrib, pce('prolog/contrib')).
+
 
 		/********************************
 		*            BANNER		*
@@ -140,6 +159,9 @@ pce_welcome :-
 	    format('         on xpce, please type manpce.~n~n')
 	;   format('~n', [])
 	).
+
+
+:- flag('$banner_goal', _, pce_welcome).
 
 		/********************************
 		*        LOCK LOADED FILES	*

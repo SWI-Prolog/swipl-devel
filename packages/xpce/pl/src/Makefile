@@ -8,19 +8,43 @@
 #   Copyright (c) 1991, University of Amsterdam
 # 
 
+################################################################
+# NOTE NOTE NOTE
+#
+# This Makefile is normally started from the Makefile in the build-directory.
+# The following parameters are passed into it:
+#
+# $(PL)		SWI-Prolog executable
+# $(PLBASE)	SWI-Prolog's home directory
+# $(PLARCH)	SWI-Prolog's architecture identifier
+# $(builddir)	Path from XPCE home to build directory
+# $(C?FLAGS)	The various C-compiler flags
+# $(SOEXTRAOBJ)	Possibly non-standard .o files for creating xpce4pl.so
+# $(GCCLIB)	The path to -lgcc
+# $(SO)		Extension for shared libraries
+################################################################
+
 .SUFFIXES: .qlf .pl
 
-XPCEOBJ=$(PCEHOME)/src/XPCE.a
+libXPCE=	../../$(builddir)/libXPCE.a
+LIBDIR=		../../$(builddir)/lib
+BINDIR=		../../$(builddir)/bin
+OBJDIR=		../../$(builddir)/pl
 
-PL=     pl
-OBJ=	$(PLRUNTIME)/$(PLOBJ) interface.o link.o $(XPCEOBJ)
-XPCE=	xpce$(RTSUFFIX)
-QLF=    xpce$(RTSUFFIX).qlf
-XLIBS=	-lXt -lX11
-XPCESO= xpce4pl.$(SO)
+PL=     	pl
+ITFOBJ= 	$(addprefix $(OBJDIR)/, interface.o link.o)
+SOITF=		$(OBJDIR)/so-interface.o
+OBJ=		$(PLRUNTIME)/$(PLOBJ) $(ITFOBJ) $(libXPCE)
+XPCE=		$(BINDIR)/xpce$(RTSUFFIX)
+QLF=    	$(BINDIR)/xpce$(RTSUFFIX).qlf
+XLIBS=		-lXt -lX11
+XPCESO= 	$(LIBDIR)/xpce4pl.$(SO)
+CRT0=   	$(LIBDIR)/pl-crt0.o
+SOEXTR=		$(addprefix $(OBJDIR)/, $(SOEXTRAOBJ))
 
-CFLAGS= 	$(COFLAGS) $(CMFLAGS) -I$(PLINCLUDE) -I$(PCEHOME)/src
+CFLAGS= 	$(COFLAGS) $(CMFLAGS) -I$(PLINCLUDE) -I../../src
 ITF=		../../prolog/c/interface.c ../../prolog/c/interface.h
+SOOBJ=		$(SOITF) $(libXPCE) $(SOEXTR) $(GCCLIB)
 
 PCEPLS=		pce_expand.pl english/pce_messages.pl pce_pl.pl \
 		pce_principal.pl pce_error.pl pce_autoload.pl pce_global.pl \
@@ -28,32 +52,54 @@ PCEPLS=		pce_expand.pl english/pce_messages.pl pce_pl.pl \
 BOOTQLF=	pce.qlf
 LIBQLFS=	pce_manual.qlf dialog/dialog.qlf emacs/emacs.qlf pcedraw.qlf
 
-nosoall:	$(QLF) pl-crt0.o
+################################################################
+# The main targets
+################################################################
 
-soall:		$(PLBASE)/plrc $(PLBASE)/xpce ../$(PLARCH)/$(XPCESO) \
-		../$(PLARCH)/pl-crt0.o bootqlf libqlfs
+nosoall:	$(QLF) $(CRT0)
 
-interface.o:	$(ITF) interface.c
+soall:		$(PLBASE)/plrc $(PLBASE)/xpce $(XPCESO) $(CRT0) bootqlf libqlfs
+
+################################################################
+# Objects for $(OBJDIR)
+################################################################
+
+$(OBJDIR)/interface.o:	interface.c $(ITF) 
+		$(CC) -c $(CFLAGS) $< -o $@
+$(OBJDIR)/link.o:	link.c
+		$(CC) -c $(CFLAGS) $< -o $@
+$(CRT0):	pl-crt0.c
+		$(CC) -c $(CFLAGS) $< -o $@
+
+################################################################
+# Creating statically linked xpce and its xpce.qlf bootfile
+################################################################
 
 $(XPCE):	$(OBJ)
 		$(CC) $(LDFLAGS) -o $@ $(OBJ) $(LIBS)
 
 $(QLF):		$(XPCE)
-		./$(XPCE) -O -o $(QLF) \
-			  -g pce_welcome \
-			  -b $(PLBASE)/boot/init.pl \
-			  -c load.pl
+		$(XPCE) -O -o $(QLF) \
+			-g pce_welcome \
+			-b $(PLBASE)/boot/init.pl \
+			-c load.pl
 
-shitf.o:	interface.c
-		cp interface.c shitf.c
-		$(CC) -DO_SHAREDLIBRARY $(CFLAGS) -c shitf.c
-		rm -f shitf.c
+################################################################$
+# Creating xpce4pl.so
+################################################################
+
+$(SOITF):	interface.c
+		$(CC) -DO_SHAREDLIBRARY $(CFLAGS) -c $< -o $@
 		
-Initialize.o:	
+$(OBJDIR)/Initialize.o:	
 		ar x $(XLIB)/libXt.a $@
 
-$(XPCESO):	shitf.o $(XPCEOBJ) $(SOEXTRAOBJ)
-		$(LD) $(LDSOFLAGS) shitf.o $(XPCEOBJ) $(SOEXTRAOBJ) $(GCCLIB) $(XLIBS) -o $@
+$(XPCESO):	$(SOITF) $(libXPCE) $(SOEXTR)
+		$(LD) $(LDSOFLAGS) $(SOOBJ) $(XLIBS) -o $@
+
+################################################################$
+# QLF generation
+################################################################
 
 libqlfs:	$(addprefix ../../prolog/lib/, $(LIBQLFS))
 bootqlf:	$(addprefix ../../prolog/lib/, $(BOOTQLF))
@@ -64,20 +110,19 @@ bootqlf:	$(addprefix ../../prolog/lib/, $(BOOTQLF))
 .pl.qlf:
 		$(PL) -g "pce_welcome,qcompile('$*')" -t halt
 
-../$(PLARCH):
-		mkdir $@
-
-../$(PLARCH)/$(XPCESO): ../$(PLARCH) $(XPCESO)
-		(cd ../$(PLARCH); rm -f $(XPCESO); ln -s ../src/$(XPCESO) .)
-
-../$(PLARCH)/pl-crt0.o: ../$(PLARCH) pl-crt0.o
-		(cd ../$(PLARCH); rm -f pl-crt0.o; ln -s ../src/pl-crt0.o .)
+################################################################
+# Link xpce to the SWI-Prolog library directory
+################################################################
 
 $(PLBASE)/plrc:	plrc
 		cp plrc $@
 
 $(PLBASE)/xpce:
 		(cd $(PLBASE); rm -f xpce; ln -s $(PCEHOME) xpce)
+
+################################################################
+# C++ Name mangling.  Not used right now
+################################################################
 
 mangle:		mangle.c
 		$(CC) -O -o mangle mangle.c
@@ -86,9 +131,12 @@ domangle:	mangle mlist xpce.base
 		./mangle mlist xpce.base
 		touch domangle
 
+################################################################
+# Cleanup
+################################################################
+
 clean:		
 		$(RM) -f *.o core a.out shitf.c *~
 
-realclean:	clean
+distclean:	clean
 		$(RM) -f xpce$(RTSUFFIX) *.qlf mangle domangle ctr0.o xpce4pl.*
-		

@@ -7,7 +7,7 @@
     Copyright (C) 1992 University of Amsterdam. All rights reserved.
 */
 
-#include "version.h"			/* get MACHINE and PCE_VERSION */
+#include <version.h>			/* get MACHINE and PCE_VERSION */
 #include <h/kernel.h>
 #include "alloc.h"
 #include <h/interface.h>

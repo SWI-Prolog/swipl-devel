@@ -67,7 +67,8 @@ global(Ref, Module, Goal) :-
 		*            SYSTEM		*
 		********************************/
 
-:- send(@pce?exception_handlers, append,
+:- initialization
+   send(@pce?exception_handlers, append,
 	attribute(undefined_assoc, message(@prolog, call, trap_ref, @arg1))).
 
 trap(@Ref) :-

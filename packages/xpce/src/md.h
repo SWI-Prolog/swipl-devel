@@ -20,7 +20,7 @@ autoconf/config.h based machine-binding file.
 # ifdef __WINDOWS__
 # include "md/md-mswin.h"
 # else
-# include "../config.h"
+# include <config.h>
 # endif
 #endif
 		 /*******************************

@@ -14,7 +14,7 @@
 	]).
 
 :- use_module(pce_principal, [get/4, send/3]).
-:- use_module(pce_realise, [pce_realise_class/1]).
+:- use_module(pce_realise, [pce_realise_class/1, pce_prolog_class/1]).
 :- require([ concat_atom/2
 	   , is_absolute_file_name/1
 	   , prolog_load_context/2
@@ -54,12 +54,14 @@ pce_autoload(Class, Local) :-
 pce_autoload_all :-
 	autoload(Class, File),
 	\+ get(@classes, member, Class, _),
+	\+ pce_prolog_class(Class),
 	user:ensure_loaded(File),
 	fail.
 pce_autoload_all.
 
 
-:- send(@pce?exception_handlers, append,
+:- initialization
+   send(@pce?exception_handlers, append,
 	attribute(undefined_class,
 		  message(@prolog, call, trap_autoload, @arg1))).
 

@@ -11,6 +11,8 @@
 	  [ pce_register_class/1,	% +ClassName
 	    pce_extended_class/1,	% +ClassName
 	    pce_realise_class/1,	% +ClassName
+	    pce_prolog_class/1,		% ?ClassName
+	    pce_prolog_class/2,		% ?ClassName, ?SuperName
 	    pce_send_method_message/2,	% +Module:PlHead, -Message
 	    pce_get_method_message/2,	% +Module:PlHead, -Message
 	    pce_bind_send_method/8,
@@ -98,6 +100,19 @@ pce_realise_class(ClassName) :-
 	attach_variables(Variables, Class),
 	attach_resources(Resources, Class),
 	run_directives(Directives, Class, Module).
+
+%	pce_prolog_class(?ClassName, [?SuperName])
+%
+%	Is true if ClassName refers to a class defined in Prolog
+
+pce_prolog_class(ClassName) :-
+	pce_prolog_class(ClassName, _SuperName).
+pce_prolog_class(ClassName, SuperName) :-
+	class_module(ClassName, Module),
+	Module:class(ClassName, _MetaClassName, SuperName,
+		     _Variables,
+		     _Resources,
+		     _Directives).
 
 
 %	create_class(+ClassName, +MetaClassName, +SuperName, -Class)
@@ -247,25 +262,38 @@ resolve_method_message(X) :-
 pce_ifhostproperty(prolog(swi),		% Hide from the tracer
 		   (:- '$hide'(bind_lazy, 3))).
 
+doretract :- fail.
+
+find_data(Goal) :-
+	doretract, !,
+	retract(Goal).
+find_data(Goal) :-
+	current_predicate(_, Goal),
+	Goal.
+
 bind_lazy(send, ClassName, @default) :- !,
+	get(@pce, convert, ClassName, class, Class),
 	(   class_module(ClassName, Module),
-	    retract(Module:lazy_send_method(Selector, ClassName, Binder)),
+	    find_data(Module:lazy_send_method(Selector, ClassName, Binder)),
+	    \+ send(Class, bound_send_method, Selector),
 	    call_binder(Module, ClassName, Selector, Binder),
 	    fail ; true
 	).
 bind_lazy(send, ClassName, Selector) :-
 	class_module(ClassName, Module),
-	retract(Module:lazy_send_method(Selector, ClassName, Binder)),
+	find_data(Module:lazy_send_method(Selector, ClassName, Binder)),
 	call_binder(Module, ClassName, Selector, Binder).
 bind_lazy(get, ClassName, @default) :- !,
+	get(@pce, convert, ClassName, class, Class),
 	(   class_module(ClassName, Module),
-	    retract(Module:lazy_get_method(Selector, ClassName, Binder)),
+	    find_data(Module:lazy_get_method(Selector, ClassName, Binder)),
+	    \+ send(Class, bound_get_method, Selector),
 	    call_binder(Module, ClassName, Selector, Binder),
 	    fail ; true
 	).
 bind_lazy(get, ClassName, Selector) :-
 	class_module(ClassName, Module),
-	retract(Module:lazy_get_method(Selector, ClassName, Binder)),
+	find_data(Module:lazy_get_method(Selector, ClassName, Binder)),
 	call_binder(Module, ClassName, Selector, Binder).
 
 

@@ -18,8 +18,3 @@
 
 :- retract('$libref'(Ref)),
    erase(Ref).
-
-library_directory(Lib) :-
-	get(@pce, home, Home),
-	concat(Home, '/prolog/lib', RawLib),
-	absolute_file_name(RawLib, Lib).

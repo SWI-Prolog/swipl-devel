@@ -1,0 +1,80 @@
+#!/bin/sh
+
+arch=@ARCH@-@OS@
+RTSUFFIX=@RTSUFFIX@
+
+version=`cat VERSION`
+outdir=/guest/xpce/$version
+libout=$outdir/xpcelib.tgz
+binout=$outdir/xpce-$arch.tgz
+compress="gzip -9"
+emulator="./bin/xpce$RTSUFFIX"
+crt0=./bin/crt0.o
+xpcelib=./bin/XPCE$RTSUFFIX.a
+
+if [ ! -d $outdir ]; then
+    mkdir $outdir
+fi
+
+for d in library boot include; do
+    rm -f pl/$d
+    (cd pl; ln -s ../../pl/$d .)
+done
+
+rm -f $emulator $crt0 $xpcelib
+(cd bin; ln -s ../pl/src/`basename $emulator` .)
+(cd bin; ln -s ../pl/src/`basename $crt0` .)
+(cd bin; ln -s ../src/`basename $xpcelib` .)
+
+chmod +x install
+
+libdirs="./CXX ./bitmaps ./include ./man/reference ./pl ./postscript ./prolog"
+
+rm -f xpce-$version
+if [ ! "o$1" = "o-q" ]; then
+  cp /dev/null libfiles
+  echo -n "Collecting distribution files "
+  for d in `find $libdirs -name CVS -type d -print`; do
+      echo -n "."
+      dir=`dirname $d`
+      awk -F/ '{printf("%s/%s\n", "'$dir'", $2)}' $dir/CVS/Entries >> libfiles
+  done
+cat >> libfiles << EOF
+./FAQ
+./INFO
+./Pce
+./INSTALL
+./README
+./README.customise
+./README.font
+./README.linux
+./VERSION
+./install-sh
+./licence/licence.tex
+./man/xpce-client.1
+./man/xpce.1
+./prolog/lib/man/classification.obj
+EOF
+  echo "done"
+fi
+
+grep -v src/msw/ libfiles | \
+	grep -v prolog/pwboot | \
+	grep -v quintus/ | \
+	sed "s@^\./@xpce-$version/@" > tapefiles.lib
+
+cat > binfiles << EOF
+$emulator
+$crt0
+$xpcelib
+./bin/xpce-client
+./install
+EOF
+
+sed "s@^\./@xpce-$version/@" binfiles > tapefiles.bin
+
+cd ..
+ln -s xpce xpce-$version
+tar chvfT - xpce/tapefiles.lib | $compress > $libout
+tar chvfT - xpce/tapefiles.bin | $compress > $binout
+rm -f xpce-$version

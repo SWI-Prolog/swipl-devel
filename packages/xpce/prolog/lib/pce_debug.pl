@@ -185,8 +185,19 @@ checkpce :-
 checkpce :-
 	test(check_pce_database, Status),
 	test(check_pce_types, Status),
+	test(check_classes, Status),
 	Status = yes.
 
+
+check_classes :-
+	(   pce_expansion:compiling(_)
+	->  forall(pce_expansion:compiling(Class),
+		   send(@pce, format,
+			'[PCE: WARNING: definition of class %s not closed]\n',
+			Class)),
+	    fail
+	;   true
+	).
 
 check_pce_database :-
 	globals(All),
@@ -208,6 +219,8 @@ check_pce_types :-
 	).
 
 
+no_autoload_class(ClassName) :-
+	pce_prolog_class(ClassName), !, fail.
 no_autoload_class(ClassName) :-
 	pce_autoload:autoload(ClassName, _), !, fail.
 no_autoload_class(_).

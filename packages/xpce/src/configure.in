@@ -1,0 +1,430 @@
+dnl Process this file with autoconf to produce a configure script.
+
+AC_INIT(Pce.in)
+
+AC_CONFIG_HEADER(config.h)
+AC_SUBST(NETLIBS)
+AC_SUBST(PL)
+AC_SUBST(PLLIBS)
+AC_SUBST(PLBASE)
+AC_SUBST(PLARCH)
+AC_SUBST(XLIB)
+AC_SUBST(XINCLUDES)
+AC_SUBST(XLIBS)
+AC_SUBST(STATICLIBS)
+AC_SUBST(PCEHOME)
+AC_SUBST(COFLAGS)
+AC_SUBST(CWFLAGS)
+AC_SUBST(CMFLAGS)
+AC_SUBST(ETAGS)
+AC_SUBST(ARCH)
+AC_SUBST(OS)
+AC_SUBST(TAR_CP_FLAGS)
+AC_SUBST(ALLTARGET)
+AC_SUBST(RTSUFFIX)
+AC_SUBST(SO)
+AC_SUBST(LDSOFLAGS)
+AC_SUBST(GCCLIB)
+AC_SUBST(SOEXTRAOBJ)
+AC_SUBST(PLTARGET)
+AC_SUBST(builddir)
+
+RTSUFFIX=""
+
+AC_PROG_CC
+AC_CANONICAL_HOST
+changequote(,)dnl
+ARCH=`echo $host | sed 's/\([^-]*\)-[^-]*-[^-]*/\1/'`
+OS=`echo $host | sed 's/[^-]*-[^-]*-\([^-]*\)/\1/'`
+changequote([,])dnl
+
+swipl=yes
+runtime=no
+
+AC_ARG_ENABLE(syslibh, [  --enable-syslibh	  Prototype file to enable gcc -Wall],
+	      [case "$enableval" in
+	          yes)	AC_DEFINE(SYSLIB_H, <h/syslib.h>)
+			syslibh=yes ;;
+		  no)   ;;
+		  *)	AC_DEFINE(SYSLIB_H, "$enableval")
+			syslibh=yes ;;
+	      esac])
+AC_ARG_WITH(pl, [  --without-pl		  Donot include SWI-Prolog],
+	    [case "$withval" in
+		yes)	swipl=yes ;;
+		no)     swipl=no ;;
+	     esac])
+AC_ARG_ENABLE(runtime, [  --enable-runtime	  Runtime system only],
+	      [case "$enableval" in
+		   yes) AC_DEFINE(O_RUNTIME)
+		        runtime=yes
+			RTSUFFIX=rt ;;
+		   no)  runtime=no ;;
+	       esac])
+
+
+RAWHOME=`dirname $PWD`
+AC_MSG_CHECKING("canonical path to $RAWHOME")
+if test ! -f $PCEHOME/src/Pce.in; then
+    PCEHOME=""
+    topdirs="$HOME /usr/local /home /opt"
+    for top in $topdirs; do
+	if test -r $top; then
+	    can="$RAWHOME"
+	    topinode=`ls -di $top | awk '{print $1}'`
+	    base=""
+	    while test "$can" != "/" && test "$PCEHOME" = ""; do
+		caninode=`ls -di $can | awk '{print $1}'`
+		if test "$caninode" = "$topinode"; then
+		    PCEHOME=`echo $top/$base | sed 's@/$@@'`
+		fi
+		base=`basename $can`/$base
+		can=`dirname $can`
+	    done
+	fi
+    done
+    if test "$PCEHOME" = ""; then
+	PCEHOME="$RAWHOME"
+    else
+	if test ! -r $PCEHOME/src/Pce.in; then PCEHOME="$RAWHOME"; fi
+    fi
+fi
+AC_MSG_RESULT("$PCEHOME")
+
+AC_MSG_CHECKING("Path relative to $PCEHOME")
+builddir=`basename $PWD`
+AC_MSG_RESULT("$builddir")
+
+if test "$swipl" = "yes"; then
+  plcandidates="pl swipl swi-prolog"
+  if test "$runtime" = "yes"; then
+      plcandidates="plrt swiplrt swi-prologrt $plcandidates"
+  fi
+  AC_CHECK_PROGS(PL, $plcandidates, "none")
+  if test $PL = "none"; then
+     AC_ERROR("Cannot find SWI-Prolog. SWI-Prolog must be installed first")
+  else
+     AC_CHECKING("Running $PL to find home and architecture")
+changequote(,)dnl
+     $PL -f none -g true << _EOS_
+     feature(arch, Arch),
+     feature(home, Home),
+     feature(c_libs, PLLIBS),
+     feature(c_staticlibs, PLSTATICLIBS),
+     feature(c_ldflags, PLLDFLAGS),
+     tell('/tmp/__plparms$$'),
+     format('PLBASE="~w"~n', Home),
+     format('PLARCH="~w"~n', Arch),
+     format('PLLIBS="~w"~n', PLLIBS),
+     format('PLSTATICLIBS="~w"~n', PLSTATICLIBS),
+     format('PLLDFLAGS="~w"~n', PLLDFLAGS),
+     (   feature(open_shared_object, true)
+     ->	 format('MAKE_SHARED_OBJECT=yes~n', [])
+     ;   true
+     ),
+     told,
+     halt.
+_EOS_
+changequote([,])dnl
+     . /tmp/__plparms$$
+     rm -f /tmp/__plparms$$
+  fi
+  AC_MSG_RESULT("		PLBASE=$PLBASE")
+  AC_MSG_RESULT("		PLARCH=$PLARCH")
+  AC_MSG_RESULT("		PLLIBS=$PLLIBS")
+  AC_MSG_RESULT("		PLSTATICLIBS=$PLSTATICLIBS")
+  AC_MSG_RESULT("		PLLDFLAGS=$PLLDFLAGS")
+  if test ! -z "$MAKE_SHARED_OBJECT"; then
+    AC_MSG_RESULT("		MAKE_SHARED_OBJECT=yes")
+  fi
+  
+  case "$PLARCH" in
+      *-solaris | *-sunos5)	STATICLIBS="/usr/lib/libc.a" ;;
+      *-linux)			STATICLIBS="/usr/lib/libc.a" ;;
+      *)			STATICLIBS="$PLSTATICLIBS"
+				LDFLAGS="$PLLDFLAGS" ;;
+  esac
+  ALLTARGET=xpce-pl
+  PLTARGET=nosoall
+else
+  ALLTARGET=xpce
+fi
+
+dnl The following part is to decide for making a shared library or
+dnl other dynamic linkable object.  This isn't easy and and is mostly
+dnl done on the basis what I know to work for specific operating systems.
+dnl How to make this any better?
+dnl
+dnl Only the sunos and solaris version are supposed to really work. Rest
+dnl needs to be validated.
+
+if test "$MAKE_SHARED_OBJECT" = "yes"; then
+  if test ! -z "$GCC"; then
+  AC_MSG_CHECKING("Looking for -lgcc")
+cat > conftest.c <<EOF
+main(){}
+EOF
+    ${CC-cc} -c conftest.c
+    ${CC-cc} -v -o conftest conftest.o 2> conftest.out 1>/dev/null
+    changequote(,)dnl
+    GCCLIBDIR=`grep lgcc conftest.out | sed 's/.*-L\([^ ]*gcc[^ ]*\).*/\1/'`
+    changequote([,])dnl
+    if test -r "$GCCLIBDIR/libgcc.a"; then
+      GCCLIB="$GCCLIBDIR/libgcc.a"
+      AC_MSG_RESULT("$GCCLIB")
+    else
+      AC_MSG_RESULT("no")
+    fi
+  rm -f conftest*
+  CMFLAGS="$CMFLAGS -fPIC"
+  fi
+
+  SO="so"			# set up defaults
+  PLTARGET=soall
+
+  case "$OS" in
+    *solaris* | *sunos5*)	LDSOFLAGS="-G"
+    				;;
+    *sunos*)			LDSOFLAGS=""
+				SOEXTRAOBJ=Initialize.o
+				;;
+    *linux*)			SO="so"
+				LDSOFLAGS="-G"
+				;;
+    *irix*)			SO="so"
+				LDSOFLAGS="-shared"
+				;;
+    *osf1*)			SO="so"
+				LDSOFLAGS="-shared"
+				;;
+    *aix*)			SO="o"
+				LDSOFLAGS="-bI:$PLBASE/include/SWI-Exports"
+				;;
+    *hpux*)			SO="sl"
+				LDSOFLAGS="-b"
+				;;
+    *)				;;
+  esac
+else
+  SHLIB=""
+fi
+
+
+AC_MSG_CHECKING("tar flags to create including symbolic links")
+mkdir conftest.in conftest.out
+echo "this is a file" > conftest.in/file1
+(cd conftest.in; ln -s file1 file2)
+for flags in ch c; do
+   rm -rf conftest.tmp conftest.out
+   mkdir conftest.tmp
+   ${TAR-tar} ${flags}f - conftest.in | (cd conftest.tmp; tar xf -)
+   mv conftest.tmp/conftest.in conftest.out
+   rm -rf conftest.tmp
+   if cmp conftest.out/file1 conftest.out/file2 >/dev/null 2>&1; then
+	echo "second line" >> conftest.out/file2
+	if cmp conftest.out/file1 conftest.out/file2 >/dev/null 2>&1 ; then
+	    true
+	else
+	    TAR_CP_FLAGS="$flags"
+	    AC_MSG_RESULT($TAR_CP_FLAGS)
+	    break
+	fi
+   fi
+done
+rm -rf conftest*
+
+AC_CHECK_PROGS(ETAGS, etags ctags, ":")
+AC_CHECK_PROGS(GXX, g++, "NONE")
+if test "$GXX" != "NONE"; then CXX="$GXX"; fi
+AC_PROG_LN_S
+AC_PROG_CPP
+AC_PROG_CXX
+AC_ISC_POSIX
+AC_HEADER_STDC
+if test ! -z "$GCC"; then
+    COFLAGS=-O2
+    if test "$ac_cv_header_stdc" = "yes" || test "$syslibh" = "yes"; then
+        CWFLAGS=-Wall
+    else
+	CWFLAGS=
+    fi
+    CMFLAGS="$CMFLAGS -funsigned-char"
+else
+    COFLAGS=-O
+    CWFLAGS=
+fi
+CFLAGS="$CMFLAGS"
+AC_PROG_RANLIB
+AC_PROG_INSTALL
+AC_C_INLINE
+AC_FUNC_ALLOCA
+
+AC_CHECK_LIB(socket, socket,
+	     [NETLIBS="$NETLIBS -lsocket"; LIBS="$LIBS -lsocket"]
+	     AC_DEFINE(HAVE_LIBSOCKET))
+AC_CHECK_LIB(nsl, t_bind,
+	     [NETLIBS="$NETLIBS -lnsl"]
+	     AC_DEFINE(HAVE_LIBNSL))
+
+AC_CHECK_HEADERS(unistd.h string.h memory.h sys/time.h sys/file.h pwd.h)
+AC_CHECK_HEADERS(sys/select.h sys/param.h malloc.h sys/resource.h stropts.h)
+AC_CHECK_HEADERS(frame.h sys/timeb.h sys/times.h)
+AC_CHECK_FUNCS(vsscanf on_exit memmove select popen strerror timelocal)
+AC_CHECK_FUNCS(getdtablesize socket fork ftime getpid select getlogin)
+AC_CHECK_FUNCS(getcwd setsid grantpt gethostname fstat gettimeofday)
+AC_HEADER_TIME
+AC_HEADER_DIRENT
+AC_C_CHAR_UNSIGNED
+
+if test "$ac_cv_func_ftime" != "yes"; then
+AC_MSG_CHECKING("tm_gmtoff")
+AC_TRY_COMPILE(
+[
+#include <sys/types.h>
+#include <time.h>
+],
+[ struct tm *tm;
+  int i;
+  
+  i = tm->tm_gmtoff;
+], AC_DEFINE(HAVE_TM_GMTOFF)
+   AC_MSG_RESULT("yes"),
+   AC_MSG_RESULT("no"))
+fi
+
+AC_MSG_CHECKING("for type ulong")
+AC_TRY_COMPILE(
+[
+#include <sys/types.h>
+typedef unsigned char ulong;
+],
+[;], AC_DEFINE(NEED_ULONG)
+     AC_MSG_RESULT("need typedef ulong"),
+     AC_MSG_RESULT("ulong predefined"))
+
+AC_MSG_CHECKING("for type ushort")
+AC_TRY_COMPILE(
+[
+#include <sys/types.h>
+typedef unsigned char ushort;
+],
+[;], AC_DEFINE(NEED_USHORT)
+     AC_MSG_RESULT("need typedef ushort"),
+     AC_MSG_RESULT("ushort predefined"))
+
+AC_TYPE_SIGNAL
+AC_MSG_CHECKING("for BSD signal handlers")
+AC_TRY_RUN(
+[
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <signal.h>
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+static int signalled;
+static RETSIGTYPE catch (s) int s; { signalled = 1; }
+main()
+{ signal(SIGINT, catch);
+  kill(getpid(), SIGINT);
+  while(!signalled)
+    ;
+  if ( signal(SIGINT, catch) == catch )
+    exit(0);
+  exit(1);
+}], AC_DEFINE(BSD_SIGNALS)
+    AC_MSG_RESULT("BSD signals"),
+    AC_MSG_RESULT("Posix signals"),
+    AC_MSG_RESULT("assuming Posix signals"))
+
+AC_MSG_CHECKING("for union wait")
+if test "$GCC" = yes; then
+    ac_oldcflags="$CFLAGS"
+    CFLAGS="$CFLAGS -Werror"
+fi
+AC_TRY_COMPILE(
+[
+#include <sys/wait.h>
+],
+[ union wait status;
+  waitpid(1, &status, WNOHANG);
+], AC_DEFINE(UNION_WAIT)
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+if test "$GCC" = "yes"; then CFLAGS="$ac_oldcflags"; fi
+
+AC_MSG_CHECKING("for tagged lvalues")
+AC_TRY_COMPILE(
+[
+],
+[ int x;
+  *(char *)&x = 'a';
+  exit(0);
+], AC_DEFINE(TAGGED_LVALUE)
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+
+AC_MSG_CHECKING("Checking struct termios.c_line")
+AC_TRY_COMPILE(
+[
+#include <termios.h>
+],
+[ struct termios buf;
+  buf.c_line = 0;
+  exit(0);
+], AC_DEFINE(TERMIOS_HAS_C_LINE)
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no))
+
+AC_PATH_X
+ac_oldlibs="$LIBS"
+LIBS="-lXt -lX11 $LIBS"
+if test ! -z "$x_libraries"; then
+  LIBS="-L$x_libraries $LIBS"
+fi
+AC_CHECK_FUNCS(XtPopupSpringLoaded XmIsMotifWMRunning)
+LIBS="$ac_oldlibs"
+
+if test "$x_libraries" = ""; then
+    XLIB=/usr/lib
+else
+    XLIB="$x_libraries"
+fi
+if test "$x_includes" = ""; then
+XINCLUDES=/usr/include
+else
+XINCLUDES="$x_includes"
+fi
+if test "$static_x_libraries" = "yes"; then
+    XLIBS="$XLIB/libXt.a $XLIB/libX11.a"
+else
+    XLIBS="-lXt -lX11"
+fi
+
+AC_MSG_CHECKING("memory model")
+echo '#include "confdefs.h"' > conftest.c
+cat $srcdir/test/m-model.c >> conftest.c
+eval $ac_link
+if test -s conftest && eval `./conftest`; then
+    msg=
+    if test ! -z "$POINTER_OFFSET"; then
+	AC_DEFINE_UNQUOTED(POINTER_OFFSET, $POINTER_OFFSET)
+	msg="$msg POINTER_OFFSET=$POINTER_OFFSET"
+    fi
+    if test ! -z "$TEXT_OFFSET"; then
+	AC_DEFINE_UNQUOTED(TEXT_OFFSET, $TEXT_OFFSET)
+	msg="$msg TEXT_OFFSET=$TEXT_OFFSET"
+    fi
+    if test -z "$msg"; then msg="yes"; fi
+    AC_MSG_RESULT("$msg")
+else
+    AC_MSG_RESULT("Could not compile m-model.c")
+fi
+rm -rf conftest*
+
+
+AC_OUTPUT(Makefile install-pl-bins install make-bin-tape make-so-bin)
+
+chmod +x install-pl-bins install
+echo "chmod +x install-pl-bins install" >> config.status

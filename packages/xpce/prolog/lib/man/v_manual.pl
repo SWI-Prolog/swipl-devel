@@ -834,7 +834,8 @@ inherit(M, CD, Selection, Obj) :-
 request_source(_M, Obj:object) :->
 	"Display source of object"::
 	(   get(Obj, source, Location)
-	->  send(@emacs, goto_source_location, Location)
+	->  auto_call(start_emacs),
+	    send(@emacs, goto_source_location, Location)
 	;   send(@display, inform, 'Can''t find source')
 	).
 

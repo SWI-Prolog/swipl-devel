@@ -689,6 +689,15 @@ ws_asynchronous(DisplayObj d)
 		 *	    POSTSCRIPT		*
 		 *******************************/
 
+static int
+psdepthXImage(XImage *im)
+{ if ( im->depth < 3 )			/* 1, 2 */
+    return im->depth;
+  if ( im->depth < 8 )
+    return 4;
+}
+
+
 status
 ws_postscript_display(DisplayObj d)
 { XWindowAttributes atts;
@@ -708,7 +717,7 @@ ws_postscript_display(DisplayObj d)
   im = XGetImage(r->display_xref, atts.root,
 		 0, 0, iw, ih, AllPlanes, XYPixmap);
 
-  ps_output("0 0 ~D ~D ", iw, ih);
+  ps_output("0 0 ~D ~D ~D greymap\n", iw, ih, psdepthXImage(im));
   postscriptXImage(im, 0, 0, iw, ih, r->display_xref, r->colour_map, 0);
   ps_output("\n");
 

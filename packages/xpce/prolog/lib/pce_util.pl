@@ -45,6 +45,8 @@
 
 
 :- use_module(library(pce)).
+:- require([ pce_error/1
+	   ]).
 
 pce_ifhostproperty(prolog(quintus),
 		   (   pce_get_object(Obj, Sel, Args, Rval) :-

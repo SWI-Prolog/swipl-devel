@@ -590,6 +590,7 @@ start_text(C, Ev:[event]) :->
 	;   get(Texts, head, First)
 	->  send(First, caret, @default),
 	    send(C?window, keyboard_focus, First)
+	;   true	% Thanks, Lourens van der Meij <lourens@cs.vu.nl>
 	),
 	send(Texts, done).
 

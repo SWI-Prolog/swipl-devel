@@ -17,6 +17,11 @@
 	   , is_absolute_file_name/1
 	   ]).
 
+:- multifile
+	user:file_search_path/2.
+
+user:file_search_path(pce_help,	pce('appl-help')).
+
 :- pce_autoload(helper, library(pce_helper)).
 :- pce_global(@helper, new(helper)).
 
@@ -47,9 +52,8 @@ pce_help_file(Id, FileName) :-
 	    concat_atom([Cwd, /, FileName], Path)
 	;   Path = FileName
 	),
-	absolute_file_name(Path, AbsPath),
 	retractall(pce_registered_help_file(Id, _)),
-	assert(pce_registered_help_file(Id, AbsPath)).
+	assert(pce_registered_help_file(Id, Path)).
 
 %	pce_help(+DataBaseId, +Label)
 %	

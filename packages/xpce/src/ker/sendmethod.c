@@ -57,6 +57,7 @@ sendSendMethod(SendMethod m, Any receiver, int argc, const Any argv[])
   Goal g = &goal;
   int _xmode = ExecuteMode;
 
+  addCodeReference(m);
   pushGoal(g, m, receiver, m->name, argc, argv);
   traceEnter(g);
 
@@ -161,6 +162,8 @@ out:
   ExecuteMode = _xmode;
   traceReturn(g, rval);
   popGoal();
+  delCodeReference(m);
+  freeableObj(m);
 
   return rval;
 }

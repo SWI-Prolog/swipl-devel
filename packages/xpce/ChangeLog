@@ -1,3 +1,47 @@
+[VERSION 4.8.13]
+
+* ADDED: checkpce/0 to check for unclosed class-definitions.
+
+* FIXED: checkpce/0 to consider pce_prolog_class/1.
+
+* PERFORMANCE: speedup of pce_autoload_all/0 by using pce_prolog_class/1.
+
+* ADDED: pce_prolog_class/[1,2]
+
+* FIXED: Protected get_methods and send_methods from the incremental
+  garbage collector while executing.
+
+* INSTALL: Reorganised the Makefile architecture.  The aim is to be able to
+  build multiple configurations using the same sourcetree. To avoid
+  problems with old ar(1) programs, some files have been renamed to fit
+  in 14 characters.  The configure programs have veen moved to the src
+  subdirectory.
+
+* REMOVED: library(pce_common).  This file defined some SWI-Prolog specific
+  predicates for SICStus.  Now moved to the SICStus sourcetree.
+
+* ADDED: `@pce <-version', additional argument to obtain short form and
+  numeric form.
+
+* FIXED: PceDraw: set `modified' after paint of prototype, auto-alignment
+  after pasting a prototype holding no text objects.  Both found and fixed
+  by Lourens van der Meij <lourens@cs.vu.nl>.  Thanks.
+
+* FIXED: `class ->save_style_variable' to <-clone the variable if it isn't
+  onwed by the class (copy-on-write).  Fixes save problems in PceDraw and
+  other saving displayed graphicals.
+
+* FIXED: `Source' option from the manual tools to start PceEmacs properly
+  if it is not running.
+
+* DOC: Added default/3
+
+* PW3: Fixed signal() interface.  This fixes execution of
+  `process ->terminate_message' and `@pce ->catch_error_signals'.  The
+  latter is useful for locating errors.
+
+* PW3: Fixed graphical update when commands arrive from the terminal.
+
 [VERSION 4.8.12]
 
 * FIXED: Multiclick generation in confirmers (sometimes required a button
@@ -7,7 +51,7 @@
   the gesture should respond to any type of click (single, multiple).  Allows
   for fast-clicking on a button.
 
-* FIXED: class ->instance_variable to handle the cache properly.
+* FIXED: `class ->instance_variable' to handle the cache properly.
 
 * DOC: added pce_image_directory/1 and pointers to it.
 

@@ -1,17 +1,17 @@
 
-/* browser.c */
+/* win/browser.c */
 status		requestGeometryBrowser(Browser b, Int x, Int y, Int w, Int h);
 status		makeClassBrowser(Class class);
 
-/* decorate.c */
+/* win/decorate.c */
 status		requestComputeScrollbarsWindowDecorator(WindowDecorator dw);
 status		makeClassWindowDecorator(Class class);
 
-/* dialog.c */
+/* win/dialog.c */
 status		displayDialog(Dialog d, Graphical item, Point pos);
 status		makeClassDialog(Class class);
 
-/* display.c */
+/* win/display.c */
 status		openDisplay(DisplayObj d);
 Bool		getOpenDisplay(Any d);
 status		dispatchDisplay(DisplayObj d);
@@ -28,7 +28,7 @@ status		busyCursorDisplay(DisplayObj d, CursorObj c, Bool block_events);
 status		inspectDisplay(DisplayObj d, Graphical gr, EventObj ev);
 status		makeClassDisplay(Class class);
 
-/* displaymanager.c */
+/* win/displaymanager.c */
 status		appendDisplayManager(DisplayManager dm, DisplayObj d);
 DisplayObj	getMemberDisplayManager(DisplayManager dm, Name address);
 DisplayObj	CurrentDisplay(Any obj);
@@ -37,7 +37,7 @@ status		dispatchDisplayManager(DisplayManager dm, Int fd, Int timeout);
 DisplayManager	TheDisplayManager(void);
 status		makeClassDisplayManager(Class class);
 
-/* frame.c */
+/* win/frame.c */
 Any		getConfirmFrame(FrameObj fr, Point pos, Bool grab, Bool normalise);
 Any		getConfirmCenteredFrame(FrameObj fr, Point pos, Bool grab);
 status		resizeFrame(FrameObj fr);
@@ -55,10 +55,10 @@ PceWindow	getKeyboardFocusFrame(FrameObj fr);
 status		eventFrame(FrameObj fr, EventObj ev);
 status		makeClassFrame(Class class);
 
-/* picture.c */
+/* win/picture.c */
 status		makeClassPicture(Class class);
 
-/* resource.c */
+/* win/resource.c */
 char *		resourceName(Name name);
 Resource	getSubResource(Resource r, Class class);
 status		resourceClass(Class class, Resource r);
@@ -70,9 +70,9 @@ status		refine_resource(Class cl, char *name_s, char *def);
 status		variable_resource(Class cl, Name name, char *def);
 status		makeClassResource(Class class);
 
-/* setup.c */
+/* win/setup.c */
 
-/* tile.c */
+/* win/tile.c */
 status		unrelateTile(TileObj t);
 status		leftTile(TileObj t, Any obj);
 status		rightTile(TileObj t, Any obj);
@@ -83,11 +83,11 @@ status		setTile(TileObj t, Int x, Int y, Int w, Int h);
 status		enforceTile(TileObj t);
 status		makeClassTile(Class class);
 
-/* view.c */
+/* win/view.c */
 status		requestGeometryView(View v, Int x, Int y, Int w, Int h);
 status		makeClassView(Class class);
 
-/* window.c */
+/* win/window.c */
 status		initialiseWindow(PceWindow sw, Name label, Size size, DisplayObj display);
 status		createdWindow(PceWindow sw);
 status		grabPointerWindow(PceWindow sw, Bool val);

@@ -1,11 +1,11 @@
 
-/* clickgesture.c */
+/* evt/clickgesture.c */
 status		makeClassClickGesture(Class class);
 
-/* connectgesture.c */
+/* evt/connectgesture.c */
 status		makeClassConnectGesture(Class class);
 
-/* event.c */
+/* evt/event.c */
 PceWindow	WindowOfLastEvent(void);
 ulong		LastEventTime(void);
 void		setLastEventTime(ulong time);
@@ -37,48 +37,48 @@ Any		getMasterEvent(EventObj ev);
 DisplayObj	getDisplayEvent(EventObj ev);
 status		makeClassEvent(Class class);
 
-/* eventnode.c */
+/* evt/eventnode.c */
 status		isAEventNode(EventNodeObj sb, EventNodeObj super);
 status		makeClassEventNode(Class class);
 
-/* eventtree.c */
+/* evt/eventtree.c */
 status		addNodeEventTree(EventTreeObj t, EventNodeObj n);
 EventNodeObj	getNodeEventTree(EventTreeObj t, Any value);
 status		makeClassEventTree(Class class);
 
-/* gesture.c */
+/* evt/gesture.c */
 status		initialiseGesture(Gesture g, Name button, Modifier modifier);
 status		eventGesture(Any obj, EventObj ev);
 status		cancelGesture(Gesture g, EventObj ev);
 status		makeClassGesture(Class class);
 
-/* handler.c */
+/* evt/handler.c */
 status		makeClassHandler(Class class);
 
-/* handlergroup.c */
+/* evt/handlergroup.c */
 status		makeClassHandlerGroup(Class class);
 
-/* modifier.c */
+/* evt/modifier.c */
 status		makeClassModifier(Class class);
 
-/* movegesture.c */
+/* evt/movegesture.c */
 status		initialiseMoveGesture(MoveGesture g, Name button, Modifier modifier);
 status		makeClassMoveGesture(Class class);
 
-/* moveoutlinegesture.c */
+/* evt/moveoutlinegesture.c */
 status		makeClassMoveOutlineGesture(Class class);
 
-/* popupgesture.c */
+/* evt/popupgesture.c */
 status		makeClassPopupGesture(Class class);
 Recogniser	popupGesture(void);
 
-/* recogniser.c */
+/* evt/recogniser.c */
 status		initialiseRecogniser(Recogniser r);
 status		makeClassRecogniser(Class class);
 
-/* resizegesture.c */
+/* evt/resizegesture.c */
 status		initialiseResizeGesture(ResizeGesture g, Name button, Modifier modifier);
 status		makeClassResizeGesture(Class class);
 
-/* resizeoutlinegesture.c */
+/* evt/resizeoutlinegesture.c */
 status		makeClassResizeOutlineGesture(Class class);

@@ -15,7 +15,8 @@
 	  ]).
 
 :- use_module(library(pce)).
-:- require([ checklist/2
+:- require([ append/3
+	   , checklist/2
 	   ]).
 
 :- consult(library('draw/draw')).
@@ -55,7 +56,8 @@ draw_toplevel :-
 %	The SWI-Prolog command line args when restarting a compiled file
 %	are: <executable> -x <Startup> <UserArg1> ...
 
-files([], []).
-files(['-x', _Startup|Files], Files) :- !.
-files([_|Args], Files) :-
-	files(Args, Files).
+files(List, Files) :-
+	append(_, ['--'|Files], List), !.
+files(List, Files) :-
+	append(_, ['-x', _State|Files], List), !.
+files([_Prog|Files], Files).

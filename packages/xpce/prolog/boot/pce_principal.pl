@@ -67,7 +67,7 @@ is  normally defined   in the   prolog-dependant   first  file of  the
 interface, called pce_<prolog-name>.pl
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- pce_host:'$load_pce'.
+:- initialization pce_host:'$load_pce'.
 
 
 		/********************************

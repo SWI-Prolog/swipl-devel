@@ -1,5 +1,5 @@
 
-/* alloc.c */
+/* ker/alloc.c */
 Any		alloc(register int n);
 void		unalloc(register int n, Any p);
 void		initAlloc(void);
@@ -9,7 +9,7 @@ status		listWastedCorePce(Pce pce, Bool ppcells);
 char *		save_string(const char *s);
 void		free_string(char *s);
 
-/* assoc.c */
+/* ker/assoc.c */
 PceITFSymbol	newSymbol(Any obj, Name name);
 void		deleteAssoc(Any obj);
 void		newAssoc(Name name, Any obj);
@@ -19,11 +19,11 @@ status		renameAssoc(Name old, Name new);
 status		forSomeAssoc(Code code);
 void		initAssoc(int handles);
 
-/* behaviour.c */
+/* ker/behaviour.c */
 status		initialiseBehaviour(Behaviour b, Name name, Any ctx);
 status		makeClassBehaviour(Class class);
 
-/* class.c */
+/* ker/class.c */
 Class		typeClass(Name name);
 Class		nameToTypeClass(Name name);
 Class		defineClass(Name name, Name super, StringObj summary, SendFunc makefunction);
@@ -77,7 +77,7 @@ status		featureClass(Class class, Name name, Any value);
 Chain		getSendMethodsClass(Class class);
 status		makeClassClass(Class class);
 
-/* conversion.c */
+/* ker/conversion.c */
 status		toString(Any obj, String s);
 char *		toCharp(Any obj);
 Int		toInteger(Any obj);
@@ -88,26 +88,26 @@ Type		toType(Any obj);
 char *		pcePP(Any obj);
 Any		expandFunction(Any obj);
 
-/* csymbol.c */
+/* ker/csymbol.c */
 Name		getCSymbolFilePce(Pce pce);
 char *		c_function_name_from_address(long int addr, int *perc);
 Name		getCFunctionNamePce(Pce pce, Int address);
 
-/* debug.c */
+/* ker/debug.c */
 void		catchErrorSignals(Bool yes);
 export void	pcePrintStack(int depth);
 status		confirmTerminal(char *question, char *def);
 
-/* declarations.c */
+/* ker/declarations.c */
 void		initClassDefs(void);
 void		initTypeAliases(void);
 
-/* error.c */
+/* ker/error.c */
 Error		getConvertError(Class class, Name id);
 status		makeClassError(Class class);
 status		errorPce(Any obj, Name id, ...);
 
-/* gc.c */
+/* ker/gc.c */
 void		pushAnswerObject(Any obj);
 void		deleteAnswerObject(Any obj);
 export void	_markAnswerStack(AnswerMark *mark);
@@ -116,19 +116,19 @@ void		initAnswerStack(void);
 void		resetAnswerStack(void);
 Int		countAnswerStack(void);
 
-/* getmethod.c */
+/* ker/getmethod.c */
 GetMethod	createGetMethod(Name name, Type rtype, Vector types, StringObj doc, Func action);
 status		initialiseGetMethod(GetMethod m, Name name, Type rtype, Vector types, Function msg, StringObj doc, SourceLocation loc, Name group);
 Any		getGetGetMethod(GetMethod m, Any receiver, int argc, const Any argv []);
 status		makeClassGetMethod(Class class);
 
-/* glob.c */
+/* ker/glob.c */
 
-/* global.c */
+/* ker/global.c */
 void		initGlobals(void);
 Any		findGlobal(Name name);
 
-/* goodies.c */
+/* ker/goodies.c */
 int		isqrt(long a);
 int		distance(int x1, int y1, int x2, int y2);
 int		rfloat(float f);
@@ -156,7 +156,7 @@ int		pceAssert(int expr, char *text, char *file, int line);
 void		at_pce_exit(atexit_function f, int flags);
 void		run_pce_exit_hooks(void);
 
-/* passing.c */
+/* ker/passing.c */
 status		sendImplementation(Any implementation, Any receiver, int argc, Any *argv);
 Any		resolveSendMethodObject(Any obj, Class class, Name sel, Any *receiver, DelegateList dlist);
 Any		resolveGetMethodObject(Any obj, Class class, Name sel, Any *receiver);
@@ -171,7 +171,7 @@ status		errorTypeMismatch(Any rec, Any impl, int arg, Type type);
 status		send(Any receiver, Name selector, ...);
 Any		get(Any receiver, Name selector, ...);
 
-/* method.c */
+/* ker/method.c */
 status		createMethod(Method m, Name name, Vector types, StringObj doc, Func action);
 status		initialiseMethod(Method m, Name name, Vector types, Code msg, StringObj doc, SourceLocation loc, Name group);
 Type		getArgumentTypeMethod(Method m, Int n);
@@ -180,7 +180,7 @@ Method		getInheritedFromMethod(Method m);
 Method		getMethodFromFunction(Any f);
 status		makeClassMethod(Class class);
 
-/* name.c */
+/* ker/name.c */
 void		trapGdb(void);
 void		initNamesPass1(void);
 void		initNamesPass2(void);
@@ -196,7 +196,7 @@ Name		CtoKeyword(const char *s);
 char *		saveStringName(Name n);
 status		makeClassName(Class class);
 
-/* object.c */
+/* ker/object.c */
 void		unallocInstanceProtoClass(Class class);
 Any		allocObject(Class class, int funcs);
 status		initialiseObject(Instance obj, int argc, const Any argv []);
@@ -272,7 +272,7 @@ status		errorObjectv(Any obj, Error e, int argc, Any *argv);
 Name		getManIdObject(Any obj);
 status		makeClassObject(Class class);
 
-/* programobject.c */
+/* ker/programobject.c */
 status		initialiseProgramObject(Any obj);
 status		initialiseNewSlotProgramObject(ProgramObject obj, Variable var);
 ulong		nameToTraceFlag(Name name);
@@ -284,7 +284,7 @@ void		setDFlagProgramObject(Any obj, ulong mask);
 void		clearDFlagProgramObject(Any obj, ulong mask);
 status		makeClassProgramObject(Class class);
 
-/* save.c */
+/* ker/save.c */
 Int		isSavedObject(Any obj);
 status		saveInFileObject(Any obj, FileObj file);
 status		storeObject(Any obj, FileObj file);
@@ -296,7 +296,7 @@ Any		getObjectFile(FileObj f);
 Any		loadObject(FILE *fd);
 status		loadSlotsObject(Any obj, FILE *fd, ClassDef def);
 
-/* self.c */
+/* ker/self.c */
 status		formatPcev(Pce pce, CharArray fmt, int argc, Any *argv);
 Name		getOsErrorPce(Pce pce);
 status		catchedErrorPce(Pce pce, Name id);
@@ -316,17 +316,17 @@ status		makeClassPce(Class class);
 export status	pceReInitialise(int argc, char **argv);
 export status	pceInitialise(int handles, int argc, char **argv);
 
-/* sendmethod.c */
+/* ker/sendmethod.c */
 SendMethod	createSendMethod(Name name, Vector types, StringObj doc, SendFunc action);
 status		sendSendMethod(SendMethod m, Any receiver, int argc, const Any argv []);
 status		sendSendMethod(SendMethod m, Any receiver, int argc, const Any argv []);
 status		makeClassSendMethod(Class class);
 
-/* sourcelocation.c */
+/* ker/sourcelocation.c */
 status		initialiseSourceLocation(SourceLocation loc, Name file, Int line);
 status		makeClassSourceLocation(Class class);
 
-/* timer.c */
+/* ker/timer.c */
 status		intervalTimer(Timer tm, Real interval);
 status		executeTimer(Timer tm);
 status		statusTimer(Timer tm, Name stat);
@@ -335,7 +335,7 @@ status		startTimer(Timer tm, Name mode);
 status		stopTimer(Timer tm);
 status		makeClassTimer(Class class);
 
-/* trace.c */
+/* ker/trace.c */
 void		resetDebugger(void);
 void		initDebugger(void);
 status		parentGoal(ProgramObject obj, Any rec, Name sel);
@@ -346,7 +346,7 @@ void		writeGoal(Goal g, Name port);
 void		traceBackPce(Int depth, Name mode);
 int		getModeGoal(Any obj);
 
-/* type.c */
+/* ker/type.c */
 status		initialiseType(Type t, Name name, Name kind, Any context, Chain supers);
 Type		getLookupType(Class class, Name name);
 Type		createType(Name name, Name kind, Any context);
@@ -367,7 +367,7 @@ void		resetTypes(void);
 void		initTypes(void);
 Type		defineType(char *name, char *def);
 
-/* variable.c */
+/* ker/variable.c */
 Variable	createVariable(Name name, Type type, Name access);
 status		cloneStyleVariable(Variable var, Name style);
 status		saveStyleVariable(Variable var, Name style);
@@ -384,21 +384,21 @@ Name		getAccessArrowVariable(Variable v);
 status		makeClassVariable(Class class);
 status		makeClassDelegateVariable(Class class);
 
-/* vmi.c */
+/* ker/vmi.c */
 status		initialiseVmi(Vmi vmi, Name name);
 status		makeClassVmi(Class class);
 
-/* xref.c */
+/* ker/xref.c */
 WsRef		getXrefObject(Any obj, DisplayObj d);
 WsRef		getExistingXrefObject(Any obj, DisplayObj d);
 status		registerXrefObject(Any obj, DisplayObj d, WsRef xref);
 Xref		unregisterXrefObject(Any obj, DisplayObj d);
 void		closeAllXrefs(void);
 
-/* error.c */
+/* ker/error.c */
 Error		getConvertError(Class class, Name id);
 status		makeClassError(Class class);
 status		errorPce(Any obj, Name id, ...);
 
-/* classstub.c */
+/* ker/classstub.c */
 status		makeClassClassStub(Class class);

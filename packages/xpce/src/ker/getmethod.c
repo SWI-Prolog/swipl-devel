@@ -46,6 +46,7 @@ getGetGetMethod(GetMethod m, Any receiver, int argc, const Any argv[])
   goal goal;
   Goal g = &goal;
 
+  addCodeReference(m);
   pushGoal(g, m, receiver, m->name, argc, argv);
   traceEnter(g);
 
@@ -64,6 +65,8 @@ getGetGetMethod(GetMethod m, Any receiver, int argc, const Any argv[])
 
   traceAnswer(g, rv2);
   popGoal();
+  delCodeReference(m);
+  freeableObj(m);
 
   return rv2;
 }

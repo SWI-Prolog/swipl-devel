@@ -8,22 +8,28 @@
 */
 
 
+:- module(swi_prolog_emacs_binding, []).
+
+:- multifile
+	user:edit_source/2,
+	user:exception/2.
+
 		 /*******************************
 		 *       EDITOR INTERFACE	*
 		 *******************************/
 
-edit_source(File:_Line:Name/Arity) :-
+user:edit_source(File:_Line:Name/Arity) :-
 	start_emacs,
 	new(X, emacs_buffer(File)),
 	send(X, open),
 	get(X?editors, head, Editor),
 	send(Editor, locate, Name, Arity).
-edit_source(File) :-
+user:edit_source(File) :-
 	\+ File = _:_,
 	start_emacs,
 	new(X, emacs_buffer(File)),
 	send(X, open).
-edit_source(Spec) :-
+user:edit_source(Spec) :-
 	format('Failed to start PCE/Emacs from ~w~n', [Spec]).
 
 
@@ -38,7 +44,7 @@ make_prolog_warning_list(L) :-
 	send(L, clear_on_append, @on),
 	send(L, expose_on_append, @on).
 
-exception(warning, warning(Path, Line, Message), _) :-
+user:exception(warning, warning(Path, Line, Message), _) :-
 	Path \== user,
 	\+ object(@loading_emacs),
 	start_emacs,

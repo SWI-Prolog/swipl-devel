@@ -791,7 +791,16 @@ ws_transient_frame(FrameObj fr, FrameObj fr2)
   }
 }
 
+static int
+psdepthXImage(XImage *im)
+{ if ( im->depth < 3 )			/* 1, 2 */
+    return im->depth;
+  if ( im->depth < 8 )
+    return 4;
+}
 
+
+  
 status
 ws_postscript_frame(FrameObj fr)
 { Window win;
@@ -824,7 +833,7 @@ ws_postscript_frame(FrameObj fr)
 
     im = XGetImage(d, root, x, y, iw, ih, AllPlanes, XYPixmap);
     
-    ps_output("0 0 ~D ~D ", iw, ih);
+    ps_output("0 0 ~D ~D ~D greymap\n", iw, ih, psdepthXImage(im));
     postscriptXImage(im, 0, 0, iw, ih,
 		     r->display_xref, r->colour_map, 0);
     ps_output("\n");

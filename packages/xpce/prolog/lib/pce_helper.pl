@@ -73,7 +73,8 @@ give_help(Helper, Database:name, Label:name) :->
 	    send(Editor, goto, Label),
 	    send(Editor, expose)
 	;   (	get(Helper, value, Database, File)
-	    ;	pce_registered_help_file(Database, FileName),
+	    ;	pce_registered_help_file(Database, Path),
+		absolute_file_name(Path, FileName),
 		new(File, file(FileName))
 	    )
 	->  (   \+ send(File, exists),
@@ -897,4 +898,4 @@ fit(F) :->
 :- pce_end_class.
 
 
-:- initialization pce_help_file(help, 'help.hlp').
+:- initialization pce_help_file(help, pce_help('help.hlp')).

@@ -43,12 +43,11 @@ as SWI-Prolog will  inherit the PCE system  predicates from the module
 With this declaration we load the other Prolog modules of PceDraw.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- consult(
-	[ gesture				  % Gestures
-	, shapes				  % Drawable shapes
-	, canvas				  % Drawing plain
-	, menu				  	  % Icon Menu
-	]).
+:- consult([ gesture				  % Gestures
+	   , shapes				  % Drawable shapes
+	   , canvas				  % Drawing plain
+	   , menu			  	  % Icon Menu
+	   ]).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -509,7 +508,7 @@ possibilities  for getting help  one should introduce a separate  help
 system.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- pce_help_file(pcedraw, library('draw/draw.hlp')).
+:- pce_help_file(pcedraw, pce_help('pcedraw.hlp')).
 
 help(_Draw) :->
 	"Show window with help-text"::

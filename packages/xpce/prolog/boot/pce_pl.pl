@@ -14,7 +14,6 @@
 	, require/1
 	, auto_call/1
 	, (meta_predicate)/1
-	, (initialization)/1
 	, 'pceloadc++'/1
 	, 'pceloadc++'/2
 	, 'pceloadcxx'/1
@@ -33,7 +32,7 @@
 	auto_call/1.
 
 
-:- use_module(library(quintus), [(meta_predicate)/1, (initialization)/1]).
+:- use_module(library(quintus), [(meta_predicate)/1]).
 
 		 /*******************************
 		 *	    PROPERTIES		*
@@ -189,15 +188,15 @@ actions_to_format([Fmt0-Args0|Tail], Fmt, Args) :-
 
 '$load_pce' :-
 	'$c_current_predicate'('$pce_init', user:'$pce_init'), !,
-	set_feature(xpce, true),
-	pce_principal:'$pce_init'.
+	pce_principal:'$pce_init',
+	set_feature(xpce, true).
 '$load_pce' :-
 	feature(dll, true), !,
-	pce_principal:load_foreign_library(pl2xpce),
+	load_foreign_library(pce_principal:foreign(pl2xpce)),
 	set_feature(xpce, true).
 '$load_pce' :-
 	feature(open_shared_object, true), !,
-	pce_principal:load_foreign_library(so(xpce4pl)),
+	load_foreign_library(pce_principal:foreign(xpce4pl)),
 	set_feature(xpce, true).
 
 

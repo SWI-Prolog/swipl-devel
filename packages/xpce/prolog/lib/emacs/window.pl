@@ -526,20 +526,14 @@ load_user_extensions(C) :->
 :- pce_end_class.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Finally, we have to explicitely create  the   first  instance of our new
-meta-class,  after  which  we  can   use  the  normal  pce_begin_class/3
-directive to define our emacs_mode classes.  This works for two reasons.
-First, pce_begin_class/3 will reuse  the  class   object  if  it already
-exists.  Second, if pce_begin_class/3 makes a subclass, it will make the
-subclass of the same meta-class as its super-class.  Thus, a subclass of
+Finally, we have to tell pce_begin_class/3 the  meta-class we want to be
+using.  If pce_begin_class/3 makes a subclass, it will make the subclass
+of the same  meta-class  as  its   super-class.   Thus,  a  subclass  of
 emacs_mode will be an instance   of  class(emacs_mode_class), instead of
 class(class).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- new(_, emacs_mode_class(emacs_mode, object)).
-
-
-:- pce_begin_class(emacs_mode(name), object,
+:- pce_begin_class(emacs_mode_class:emacs_mode(name), object,
 		   "Generic PceEmacs mode class").
 
 variable(name,		  name,		get,  "Name of the mode").

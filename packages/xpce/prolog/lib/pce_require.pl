@@ -15,7 +15,7 @@
 	  ]).
 
 :- use_module(library(pce)).
-:- consult('xref/quintus.def').		% built-in's
+:- consult('xref/quintus').		% built-in's
 :- require([ exists_file/1
 	   , ignore/1
 	   , is_list/1

@@ -13,24 +13,44 @@ This file is loaded  on  startup.  Use   it  for  local  (not  personal)
 configuration purposes.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- op(100, fx,  @).
-:- op(150, yfx, ?).
+:- initialization op(100, fx,  @).
+:- initialization op(150, yfx, ?).
+:- initialization op(990, xfx, :=).
+
+:- multifile
+	file_search_path/2.
+
+:- dynamic
+	pcehomestore_/1.
+:- volatile
+	pcehomestore_/1.
 
 pcehome_(Home) :-
-	feature(home, PlHome),
-	concat_atom([PlHome, /, xpce], RawHome),
-	absolute_file_name(RawHome, Home).
+	pcehomestore_(Home), !.
+pcehome_(Home) :-
+	(   getenv('XPCEHOME', RawHome)
+	;   feature(home, PlHome),
+	    (   feature(xpce_version, Version),
+		concat('/xpce-', Version, Suffix)
+	    ;   Suffix = '/xpce'
+	    ),
+	    concat(PlHome, Suffix, RawHome)
+	),
+	exists_directory(RawHome), !,
+	absolute_file_name(RawHome, Home),
+	asserta(pcehomestore_(Home)).
 
-library_directory(Lib) :-
-	pcehome_(Home),
-	concat(Home, '/prolog/lib', Lib).
-
-file_search_path(so, SoDir) :-
-	pcehome_(Home),
+file_search_path(pce, PceHome) :-
+	pcehome_(PceHome).
+file_search_path(library, pce('/prolog/lib')).
+file_search_path(foreign, pce(ArchLib)) :-
 	feature(arch, Arch),
-	concat_atom([Home, '/pl/', Arch], SoDir).
+	concat('lib/', Arch, ArchLib).
+file_search_path(foreign, pce(lib)).
 
-:-  (   pcehome_(PceHome),
+:-  initialization
+    (   \+ feature(saved_program, true),
+	pcehome_(PceHome),
 	exists_directory(PceHome),
 	'$argv'([Proc|Args]),
 	(   member('-pce', Args)
