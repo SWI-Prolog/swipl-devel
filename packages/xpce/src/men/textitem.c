@@ -499,25 +499,32 @@ status
 forwardCompletionEvent(EventObj ev)
 { if ( Completer )
   { ListBrowser lb = Completer->list_browser;
+    ScrollBar   sb = lb->scroll_bar;
 
-    if ( insideEvent(ev, (Graphical)lb->image) )
+    if ( sb->status != NAME_inactive )
+    { postEvent(ev, (Graphical)lb->scroll_bar , DEFAULT);
+      succeed;
+    }
+
+    if ( insideEvent(ev, (Graphical)lb->image) &&
+	 !insideEvent(ev, (Graphical)sb) ) /* HACK: they can overlap a bit */
     { if ( isAEvent(ev, NAME_msLeftDrag) ||
 	   isAEvent(ev, NAME_locMove) )
       { EventObj ev2 = answerObject(ClassEvent, NAME_msLeftDown, EAV);
 	PceWindow sw = ev2->window;
 
-	DEBUG(NAME_focus, Cprintf("Sending artificial ms_left_down to %s\n",
-				  pp(Completer)));
-	postEvent(ev2, (Graphical) Completer, DEFAULT);
+	DEBUG(NAME_comboBox,
+	      Cprintf("Sending artificial ms_left_down to %s\n", pp(lb)));
+	postEvent(ev2, (Graphical) lb, DEFAULT);
 	if ( notNil(sw) )
 	  assign(sw, focus_button, NIL); /* Hack to keep the focus */
 	succeed;
       }
-    } else if ( insideEvent(ev, (Graphical)lb->scroll_bar) && isDownEvent(ev) )
+    } else if ( insideEvent(ev, (Graphical)sb) && isDownEvent(ev) )
     { PceWindow sw = ev->window;
 
-      DEBUG(NAME_focus, Cprintf("Initiating scrollbar\n"));
-      postEvent(ev, (Graphical) Completer, DEFAULT);
+      DEBUG(NAME_comboBox, Cprintf("Initiating scrollbar\n"));
+      postEvent(ev, (Graphical)lb->scroll_bar , DEFAULT);
       if ( notNil(sw) )
 	assign(sw, focus_button, NIL); /* Hack to keep the focus */
       succeed;

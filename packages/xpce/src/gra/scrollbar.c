@@ -610,6 +610,13 @@ static status
 repeatScrollBar(ScrollBar s)
 { again:
 
+  if ( getIsDisplayedGraphical((Graphical)s, DEFAULT) != ON )
+  { DEBUG(NAME_repeat, Cprintf("%s: no longer displayed\n", pp(s)));
+
+    detachTimerScrollBar(s);
+    fail;
+  }
+
   if ( Repeating(s) )
   { unsigned long clk = mclock();
 
@@ -978,7 +985,9 @@ MotifEventScrollBar(ScrollBar s, EventObj ev)
       ah = (vertical ? valInt(w) : valInt(h));
 
     if ( isAEvent(ev, NAME_msLeftDown) )
-    { if ( offset < ah )		/* line-up */
+    { DEBUG(NAME_comboBox, Cprintf("%s: received ms_left_down\n", pp(s)));
+
+      if ( offset < ah )		/* line-up */
       { assign(s, unit,      NAME_line);
 	assign(s, direction, NAME_backwards);
 	assign(s, amount,    ONE);
