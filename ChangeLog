@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ENHANCED: Allow setting spy-point from PceEmacs.
+
+  * CLEANUP: Replace some more warnings with exceptions.
+
   * ENHANCED: library(url) for breaking down and constructing URL strings
     with some new functionality.  Additions by Lukas Faulstich.  Also
     fixed a dangling choice-point in decoding a www-encoded string.

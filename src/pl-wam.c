@@ -1554,7 +1554,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   { set(fr, FR_NODEBUG);
     debugstatus.suspendTrace++;
     qf->debugSave = debugstatus.debugging;
-    debugstatus.debugging = FALSE;
+    debugstatus.debugging = DBG_OFF;
 #ifdef O_LIMIT_DEPTH
     qf->saved_depth_limit   = depth_limit;
     qf->saved_depth_reached = depth_reached;

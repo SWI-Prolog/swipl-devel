@@ -331,10 +331,10 @@ pl_set_feature(term_t key, term_t value)
 	  clear(m, CHARESCAPE);
       } else if ( k == ATOM_debug )
       { if ( val )
-	{ debugmode(TRUE, NULL);
+	{ debugmode(DBG_ALL, NULL);
 	} else
 	{ tracemode(FALSE, NULL);
-	  debugmode(FALSE, NULL);
+	  debugmode(DBG_OFF, NULL);
 	}
       } else if ( k == ATOM_debugger_show_context )
       { debugstatus.showContext = val;

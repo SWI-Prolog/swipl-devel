@@ -546,7 +546,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr, bool interactive)
 		debugstatus.tracing = FALSE;
 		return ACTION_CONTINUE;
     case 'n':	FeedBack("no debug\n");
-		debugstatus.debugging = FALSE;
+    		debugmode(DBG_OFF, NULL);
 		debugstatus.tracing = FALSE;
 		return ACTION_CONTINUE;
     case 'g':	FeedBack("goals\n");
@@ -720,7 +720,7 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
 		   PL_TERM, port,
 		   PL_TERM, pc);
   } else
-  { int debugSave = debugstatus.debugging;
+  { debug_type debugSave = debugstatus.debugging;
     term_t goal    = PL_new_term_ref();
     term_t options = PL_new_term_ref();
     term_t tmp     = PL_new_term_ref();
@@ -728,7 +728,7 @@ writeFrameGoal(LocalFrame frame, Code PC, unsigned int flags)
     const char *pp = portPrompt(flags&PORT_MASK);
 
     put_frame_goal(goal, frame);
-    debugstatus.debugging = FALSE;
+    debugstatus.debugging = DBG_OFF;
     PL_put_atom(tmp, ATOM_debugger_print_options);
     if ( !pl_feature(tmp, options, 0) )
       PL_put_nil(options);
@@ -961,7 +961,7 @@ traceInterception(LocalFrame frame, Choice bfr, int port, Code PC)
 
     if ( nodebug )
     { tracemode(FALSE, NULL);
-      debugmode(FALSE, NULL);
+      debugmode(DBG_OFF, NULL);
     }
   }
 
@@ -1063,9 +1063,9 @@ resetTracer(void)
   PL_signal(SIGINT, interruptHandler);
 #endif
 
-  debugstatus.tracing      =
-  debugstatus.debugging    = FALSE;
-  debugstatus.suspendTrace = FALSE;
+  debugstatus.tracing      = FALSE;
+  debugstatus.debugging    = DBG_OFF;
+  debugstatus.suspendTrace = 0;
   debugstatus.skiplevel    = 0;
   debugstatus.retryFrame   = NULL;
 
@@ -1174,7 +1174,7 @@ initTracer(void)
 int
 tracemode(int doit, int *old)
 { if ( doit )
-  { debugmode(TRUE, NULL);
+  { debugmode(DBG_ON, NULL);
     doit = TRUE;
   }
 
@@ -1197,18 +1197,38 @@ tracemode(int doit, int *old)
 }
 
 
-int
-debugmode(int doit, int *old)
-{ if ( doit )
-    doit = TRUE;
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+debugmode(debug_type new, debug_type *old)
 
-  if ( old )
+Set the current debug mode. If DBG_ALL,  debugging in switched on in all
+queries. This behaviour is intended to allow   using  spy and debug from
+PceEmacs that runs its Prolog work in non-debug mode.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+debugmode(debug_type doit, debug_type *old)
+{ if ( old )
     *old = debugstatus.debugging;
 
   if ( debugstatus.debugging != doit )
   { if ( doit )
     { debugstatus.skiplevel = VERY_DEEP;
       clearFeatureMask(TAILRECURSION_FEATURE);
+      if ( doit == DBG_ALL )
+      { LocalFrame fr = environment_frame;
+
+	while( fr )
+	{ if ( fr->parent )
+	    fr = fr->parent;
+	  else
+	  { QueryFrame qf = (QueryFrame)addPointer(fr, -offset(queryFrame,
+							       frame));
+	    qf->debugSave = DBG_ON;
+	    fr = qf->saved_environment;
+	  }
+	}
+	doit = DBG_ON;
+      }
     } else
     { setFeatureMask(TAILRECURSION_FEATURE);
     }
@@ -1229,7 +1249,7 @@ tracemode(int doit, int *old)
 }
 
 int
-debugmode(int doit, int *old)
+debugmode(debug_type doit, debug_type *old)
 { succeed;
 }
 
@@ -1279,7 +1299,7 @@ pl_spy(term_t p)
 
   if ( get_procedure(p, &proc, 0, GP_FIND) )
   { set(proc->definition, SPY_ME);
-    debugmode(TRUE, NULL);
+    debugmode(DBG_ALL, NULL);
     succeed;
   }
 

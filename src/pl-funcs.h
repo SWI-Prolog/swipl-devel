@@ -732,7 +732,7 @@ void		backTrace(LocalFrame frame, int depth);
 void		initTracer(void);
 void		resetTracer(void);
 int		tracemode(int new, int *old);
-int		debugmode(int new, int *old);
+int		debugmode(debug_type new, debug_type *old);
 word		pl_trace(void);
 word		pl_notrace(void);
 word		pl_tracing(void);

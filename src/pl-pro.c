@@ -48,10 +48,11 @@ pl_break1(term_t goal)
   IOSTREAM *outSave = Scurout;
   long skipSave     = debugstatus.skiplevel;
   int  suspSave     = debugstatus.suspendTrace;
-  int  traceSave, debugSave;
+  int  traceSave;
+  debug_type debugSave;
 
   tracemode(FALSE, &traceSave);
-  debugmode(FALSE, &debugSave);
+  debugmode(DBG_OFF, &debugSave);
 
   Scurin  = Sinput;
   Scurout = Soutput;
@@ -236,7 +237,7 @@ prologToplevel(volatile atom_t goal)
     aborted = TRUE;
   } else
 #endif
-  { debugstatus.debugging = FALSE;
+  { debugstatus.debugging = DBG_OFF;
   }
 
   emptyStacks();
@@ -253,7 +254,7 @@ prologToplevel(volatile atom_t goal)
   LD->in_arithmetic    = 0;
 
   tracemode(FALSE, NULL);
-  debugmode(FALSE, NULL);
+  debugmode(DBG_OFF, NULL);
   debugstatus.suspendTrace = 0;
 
 #ifndef O_ABORT_WITH_THROW
@@ -280,7 +281,7 @@ prologToplevel(volatile atom_t goal)
     { atom_t a;
       
       tracemode(FALSE, NULL);
-      debugmode(FALSE, NULL);
+      debugmode(DBG_OFF, NULL);
       if ( PL_get_atom(except, &a) && a == ATOM_aborted )
       { printMessage(ATOM_informational, PL_ATOM, ATOM_aborted);
       } else if ( !PL_is_functor(except, FUNCTOR_error2) )

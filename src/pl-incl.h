@@ -1188,6 +1188,16 @@ typedef enum
   CHP_NONE				/* not a choice any-more */
 } choice_type;
 
+typedef enum
+{ ABORT_NORMAL,				/* normal abort */
+  ABORT_FATAL				/* abort on fatal error */
+} abort_type;
+   
+typedef enum
+{ DBG_OFF = 0,				/* no debugging */
+  DBG_ON,				/* switch on in current environment */
+  DBG_ALL				/* switch on globally */
+} debug_type;
 
 struct choice
 { choice_type	type;			/* CHP_* */
@@ -1223,7 +1233,7 @@ struct queryFrame
   jmp_buf	exception_jmp_env;	/* longjmp() buffer for exception */
 #endif
   unsigned long	flags;
-  int		debugSave;		/* saved debugstatus.debugging */
+  debug_type	debugSave;		/* saved debugstatus.debugging */
   Word	       *aSave;			/* saved argument-stack */
   int		solutions;		/* # of solutions produced */
   Choice	saved_bfr;		/* Saved choice-point */
@@ -1665,7 +1675,7 @@ Tracer communication declarations.
 typedef struct debuginfo
 { unsigned long	skiplevel;		/* current skip level */
   bool		tracing;		/* are we tracing? */
-  bool		debugging;		/* are we debugging? */
+  debug_type	debugging;		/* are we debugging? */
   int		leashing;		/* ports we are leashing */
   int	        visible;		/* ports that are visible */
   bool		showContext;		/* tracer shows context module */
@@ -1714,11 +1724,6 @@ typedef struct
 #define DEPTH_NO_LIMIT	(~0x0L)		/* Highest value */
 #endif
 
-typedef enum
-{ ABORT_NORMAL,				/* normal abort */
-  ABORT_FATAL				/* abort on fatal error */
-} abort_type;
-   
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Administration of loaded intermediate code files  (see  pl-wic.c).  Used
 with the -c option to include all these if necessary.
