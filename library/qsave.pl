@@ -529,11 +529,11 @@ option_type(toplevel, 	 callable).
 option_type(initfile, 	 atom).
 option_type(emulator, 	 ground).
 
-check_options([]).
+check_options([]) :- !.
 check_options([Var|_]) :-
-	var(Var),
+	var(Var), !,
 	throw(error(domain_error(save_options, Var), _)).
-check_options([Name=Value|T]) :-
+check_options([Name=Value|T]) :- !,
 	(   option_type(Name, Type)
 	->  (   check_type(Type, Value)
 	    ->  check_options(T)
@@ -542,11 +542,12 @@ check_options([Name=Value|T]) :-
 	;   throw(error(domain_error(save_option, Name), _))
 	).
 check_options([Term|T]) :-
-	Term =.. [Name,Arg],
+	Term =.. [Name,Arg], !,
 	check_options([Name=Arg|T]).
 check_options([Var|_]) :-
-	var(Var),
 	throw(error(domain_error(save_options, Var), _)).
+check_options(Opt) :-
+	throw(error(domain_error(list, Opt), _)).
 
 check_type(integer, V) :-
 	integer(V).
