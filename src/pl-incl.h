@@ -1474,7 +1474,7 @@ typedef struct
 { handler_t   saved_handler;		/* Original handler */
   handler_t   handler;			/* User signal handler */
   predicate_t predicate;		/* Prolog handler */
-  int	      flags;			/* Various flags */
+  int	      flags;			/* PLSIG_*, defined in pl-setup.c */
 } sig_handler, *SigHandler;
 #endif /* HAVE_SIGNAL */
 

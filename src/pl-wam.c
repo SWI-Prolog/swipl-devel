@@ -2649,6 +2649,7 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	{ for( ; FR && FR > catchfr; FR = FR->parent )
 	  { SECURE(checkData(catcher));
 	    discardChoicesAfter(FR PASS_LD);
+	    SECURE(checkData(catcher));
 	    discardFrame(FR, FINISH_EXCEPT);
 	  }
 	}
@@ -3630,8 +3631,11 @@ increase lTop too to prepare for asynchronous interrupts.
 	    fid = PL_open_foreign_frame();
 	    if ( is_signalled() )
 	    { PL_handle_signals();
+	      LOAD_REGISTERS(qid);
 	      if ( exception_term )
+	      { PL_close_foreign_frame(fid);
 		goto b_throw;
+	      }
 	    }
 	    switch(nvars)
 	    { case 0:
@@ -3865,20 +3869,31 @@ possible to be able to call-back to Prolog.
 
 	clear(FR, FR_SKIPPED|FR_WATCHED|FR_CATCHED);
 
-	LD->statistics.inferences++;
-
 	if ( is_signalled() )
-	{ PL_handle_signals();
+	{ SAVE_REGISTERS(qid);
+	  PL_handle_signals();
+	  LOAD_REGISTERS(qid);
 	  if ( exception_term )
+	  { CL = NULL;
+
+	    enterDefinition(DEF);
+					/* The catch is not yet installed, */
+					/* so we ignore it */
+	    if ( FR->predicate == PROCEDURE_catch3->definition )
+	      set(FR, FR_CATCHED);
+
 	    goto b_throw;
+	  }
 	}
 
 #if O_ASYNC_HOOK			/* Asynchronous hooks */
-	{ if ( async.hook &&
-	       !((++LD->statistics.inferences & async.mask)) )
-	    (*async.hook)();		/* check the hook */
-	}
+	if ( async.hook &&
+	     !((++LD->statistics.inferences & async.mask)) )
+	  (*async.hook)();		/* check the hook */
+	else
 #endif
+	  LD->statistics.inferences++;
+
 
 	Profile(DEF->profile_calls++);
 
@@ -3903,9 +3918,10 @@ be able to access these!
 	       false(DEF, PROC_DEFINED) &&
 	       true(DEF->module, UNKNOWN_ERROR) )
 	  { FR->clause = NULL;
-	    enterDefinition(DEF);	/* will be left in exception code */
 	    if ( exception_term )
+	    { enterDefinition(DEF);	/* will be left in exception code */
 	      goto b_throw;
+	    }
 	  }
 	}
 
@@ -4237,7 +4253,9 @@ frame_failed:
   DEBUG(3, Sdprintf("BACKTRACKING\n"));
 
   if ( is_signalled() )
-  { PL_handle_signals();
+  { SAVE_REGISTERS(qid);
+    PL_handle_signals();
+    LOAD_REGISTERS(qid);
     if ( exception_term )
       goto b_throw;
   }

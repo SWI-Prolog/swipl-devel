@@ -1,6 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: PL_handle_signal() to handle synchronous interrupts from foreign
+    code.  Option PL_SIGSYNC to PL_signal() to schedule synchronous
+    interrupts.
+
+  * FIXED: Try to be a bit more intelligent on the expansion of ~ (home)
+    in the Windows versions by checking the various alternatives to be
+    existing and writeable directories.  Now prefers %USERPROFILE% over
+    %HOMEDRIVE%\%HOMEPATH%.  With help from Lee Sanders.
+
   * FIXED: PL_recorded_external() handling ground terms.  Spotted by
     Volker Wysk.
 
@@ -12,7 +21,9 @@
 
   * FIXED: Errornous messages on recursively receiving (error) signals.
 
-  * FIXED: Various issues in the GUI tracer.
+  * FIXED: Various issues in the GUI tracer, making the trace more
+    intuitive, print pending exception-terms in the status window,
+    and fix some source-location handling problems.
 
   * FIXED: when loading foreign libraries in `system mode', the loaded 
     predicates are available to the tracer as other built-in code.  This

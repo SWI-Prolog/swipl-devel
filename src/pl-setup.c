@@ -164,6 +164,7 @@ some day.
 
 #define PLSIG_PREPARED 0x01		/* signal is prepared */
 #define PLSIG_THROW    0x02		/* throw signal(num, name) */
+#define PLSIG_SYNC     0x04		/* call synchronously */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Define the signals and  their  properties.   This  could  be  nicer, but
@@ -320,10 +321,13 @@ There are a few possible problems:
 
 	* The system is in a `critical section'.  These are insufficiently
 	flagged at the moment.
+
+The sync-argument is TRUE  when   called  from  PL_handle_signals(), and
+FALSE otherwise.  It is used to delay signals marked with PLSIG_SYNC.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-pl_signal_handler(int sig)
+dispatch_signal(int sig, int sync)
 { SigHandler sh = &GD->sig_handlers[sig];
   fid_t fid;
   LocalFrame lTopSave = lTop;
@@ -344,7 +348,7 @@ pl_signal_handler(int sig)
 	       sig, signal_name(sig), gc_status.collections);
   }
 
-  if ( GD->critical )
+  if ( GD->critical || (true(sh, PLSIG_SYNC) && !sync) )
   { PL_raise(sig);			/* wait for better times! */
     return;
   }
@@ -393,7 +397,7 @@ pl_signal_handler(int sig)
   } else if ( sh->handler )
   { (*sh->handler)(sig);
 
-    if ( exception_term )		/* handler: PL_raise_exception() */
+    if ( exception_term && !sync )	/* handler: PL_raise_exception() */
     { LD->pending_exception = PL_record(exception_term);
       PL_raise(SIG_EXCEPTION);
       exception_term = 0;
@@ -407,6 +411,11 @@ pl_signal_handler(int sig)
   unblockGC();
 }
 
+
+static void
+pl_signal_handler(int sig)
+{ dispatch_signal(sig, FALSE);
+}
 
 #ifndef SA_RESTART
 #define SA_RESTART 0
@@ -637,12 +646,13 @@ void blockSignal(int sig) {}
 
 
 handler_t
-PL_signal(int sig, handler_t func)
+PL_signal(int sigandflags, handler_t func)
 { if ( HAVE_SIGNALS )
   { handler_t old;
     SigHandler sh;
+    int sig = (sigandflags & 0xffff);
 
-    if ( sig < 1 || sig > MAXSIGNAL )
+    if ( sig > MAXSIGNAL )
     { warning("PL_signal(): illegal signal number: %d", sig);
       return SIG_DFL;
     }
@@ -662,21 +672,30 @@ PL_signal(int sig, handler_t func)
     if ( func != SIG_DFL )
       clear(sh, PLSIG_THROW);		/* we have a user handler now */
 
+    if ( (sigandflags & PL_SIGSYNC) )
+      set(sh, PLSIG_SYNC);
+    else
+      clear(sh, PLSIG_SYNC);
+
     return old;
   } else
     return SIG_DFL;
 }
 
 
-void
+int
 PL_handle_signals()
-{ while(!GD->critical && LD->pending_signals)
+{ int done = 0;
+
+  while(!GD->critical && LD->pending_signals)
   { ulong mask = 1L;
     int sig = 1;
 
     for( ; mask ; mask <<= 1, sig++ )
     { if ( LD->pending_signals & mask )
       { LD->pending_signals &= ~mask;	/* reset the signal */
+
+	done++;
 
 #ifdef O_PLMT
         if ( sig == SIG_THREAD_SIGNAL )
@@ -700,10 +719,15 @@ PL_handle_signals()
 
 	  SECURE(checkData(valTermRef(exception_term)));
 	} else
-	  pl_signal_handler(sig);
+	  dispatch_signal(sig, TRUE);
+
+	if ( exception_term )
+	  return -1;
       }
     }
   }
+
+  return done;
 }
 
 

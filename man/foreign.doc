@@ -1841,7 +1841,7 @@ Any handler that wishes to call one of the Prolog interface functions
 should call PL_signal() for its installation.
 
 \begin{description}
-\cfunction{void (*)()}{PL_signal}{sig, func}
+    \cfunction{void (*)()}{PL_signal}{sig, func}
 This function is equivalent to the BSD-Unix signal() function,
 regardless of the platform used.  The signal handler is blocked
 while the signal routine is active, and automatically reactivated
@@ -1852,6 +1852,34 @@ signal interface redirects the signal to a generic signal handler inside
 SWI-Prolog. This generic handler validates the environment, creates a
 suitable environment for calling the interface functions described in
 this chapter and finally calls the registered user-handler.
+
+By default, signals are handled asynchronously (i.e.\ at the time they
+arrive). It is inheritly dangerous to call extensive code fragments,
+and especially exception related code from asynchronous handlers. The
+interface allows for \jargon{synchronous} handling of signals. In this
+case the native OS handler just schedules the signal using PL_raise(),
+which is checked by PL_handle_signals() at the call- and redo-port. This
+behaviour is realised by or-ing \arg{sig} with the constant
+\const{PL_SIGSYNC}.%
+    \footnote{A better default would be to use synchronous handling,
+	      but this interface preserves backward compatibility.}
+
+Signal handling routines may raise exceptions using
+PL_raise_exception().  The use of PL_throw() is not safe.  If a synchronous
+handler raises an exception, the exception is delayed to the next call
+to PL_handle_signals();
+
+    \cfunction{int}{PL_handle_signals}{void}
+Handle any signals pending from PL_raise(). PL_handle_signals() is
+called at each pass through the call- and redo-port at a safe point.
+Exceptions raised by the handler using PL_raise_exception() are properly
+passed to the environment.
+
+The user may call this function inside long-running foreign functions
+to handle scheduled interrupts.  This routine returns the number of
+signals handled.  If a handler raises an exception, the return value
+is -1 and the calling routine should return with \const{FALSE} as
+soon as possible.
 \end{description}
 
 

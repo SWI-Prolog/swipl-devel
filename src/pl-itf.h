@@ -596,10 +596,12 @@ __pl_export PL_agc_hook_t      PL_agc_hook(PL_agc_hook_t);
 		*            SIGNALS            *
 		*********************************/
 
+#define PL_SIGSYNC	0x00010000	/* call handler synchronously */
+
 __pl_export void (*PL_signal(int sig, void (*func)(int)))(int);
 __pl_export void PL_interrupt(int sig);
 __pl_export void PL_raise(int sig);
-__pl_export void PL_handle_signals(void);
+__pl_export int  PL_handle_signals(void);
 
 		/********************************
 		*      PROLOG ACTION/QUERY      *

@@ -215,7 +215,7 @@ cleanupHandler()
 static void
 installHandler()
 { if ( !signal_function_set )
-  { signal_function = PL_signal(SIGALRM, on_alarm);
+  { signal_function = PL_signal(SIGALRM|PL_SIGSYNC, on_alarm);
     signal_function_set = TRUE;
   }
 }
@@ -270,6 +270,7 @@ debugging this is just great,  as   the  problem  generally appear after
 generating an exception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef O_DEBUG
 #ifdef HAVE_EXECINFO_H
 #define BACKTRACE 1
 
@@ -288,10 +289,7 @@ print_trace (void)
   strings = backtrace_symbols(array, size);
      
   Sdprintf("on_alarm() Prolog-context:\n");
-  { int old = systemMode(TRUE);
-    backTrace(0, 3);
-    systemMode(old);
-  }
+  PL_action(PL_ACTION_BACKTRACE, 3);
 
   Sdprintf("on_alarm() C-context:\n");
   
@@ -304,6 +302,7 @@ print_trace (void)
 }
 #endif /*BACKTRACE*/
 #endif /*HAVE_EXECINFO_H*/
+#endif /*O_DEBUG*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This one is  asynchronously  called  from   the  hook  registered  using

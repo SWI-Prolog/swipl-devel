@@ -2848,6 +2848,7 @@ PL_action(int action, ...)
     case PL_ACTION_BACKTRACE:
 #ifdef O_DEBUGGER
     { int a = va_arg(args, int);
+      int om;
 
       if ( gc_status.active )
       { Sfprintf(Serror,
@@ -2860,7 +2861,9 @@ PL_action(int action, ...)
 		 "\n[Cannot print stack while initialising]\n");
 	fail;
       }
+      om = systemMode(TRUE);		/* Also show hidden frames */
       backTrace(environment_frame, a);
+      systemMode(om);
       rval = TRUE;
     }
 #else
