@@ -462,6 +462,12 @@ to limit system resources and the possibility to set timeouts on
 input streams.
 
 
+\subsection{Version 5.2 Release Notes} \label{sec:rel-5.2}
+
+Version 5.2 consolidates the 5.1.x beta series that introduced threading
+and many related modifications to the kernel.
+
+
 \section{Donate to the SWI-Prolog project}	\label{sec:sponsor}
 
 If you are happy with SWI-Prolog, you care it to be around for much

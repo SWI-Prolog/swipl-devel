@@ -1802,6 +1802,8 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   clearFlags(fr);
   if ( qf->saved_environment )
   { setLevelFrame(fr, levelFrame(qf->saved_environment)+1);
+    if ( true(qf->saved_environment, FR_NODEBUG) )
+      set(fr, FR_NODEBUG);
   } else
   { setLevelFrame(fr, 1);
   }

@@ -103,7 +103,7 @@ AC_ARG_ENABLE(mapped-stacks, [  --disable-mapped-stacks Do not use mmap for stac
 	      configmmappedstacks=yes)
 
 segvhandling=no
-AC_ARG_ENABLE(segv-handling, [  --enable-segv-handling Use SIGSEGV to guard stacks],
+AC_ARG_ENABLE(segv-handling, [  --enable-segv-handling  Use SIGSEGV to guard stacks],
 	      if test "$enableval" = "yes"; then
 	          segvhandling=yes
 	      fi)
@@ -1090,6 +1090,11 @@ echo "	LDFLAGS=$LDFLAGS"
 echo "	LIBS=$LIBS"
 
 OutputFiles="Makefile rc/Makefile pl.1"
+
+dnl autoconf 2.5.3 doesn't handle relative srcdir properly.  We'll hack
+dnl around making this variable global.
+
+srcdir=`cd $srcdir && pwd`
 
 # Prepare the package configuration if present
 

@@ -14,8 +14,8 @@ interactive application simply by starting the program:
 
 \begin{code}
 machine% pl
-Welcome to SWI-Prolog (Version 5.0.0)
-Copyright (c) 1990-2002 University of Amsterdam.
+Welcome to SWI-Prolog (Version 5.2.0)
+Copyright (c) 1990-2003 University of Amsterdam.
 SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software,
 and you are welcome to redistribute it under certain conditions.
 Please visit http://www.swi-prolog.org for details.
@@ -145,7 +145,7 @@ is a typical example for starting an application directly from the
 commandline.
 
 \begin{code}
-machine% pl -f load.pl -g go -t halt
+machine% pl -s load.pl -g go -t halt
 \end{code}
 
 It tells SWI-Prolog to load \file{load.pl}, start the application using
