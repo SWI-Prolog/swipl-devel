@@ -30,8 +30,7 @@ html_hierarchy(Root, GenChild, GenLabel, Cookie) -->
 	hierarchy(Root, M1:T1, M2:T2, Cookie, 0, []).
 
 hierarchy(Root, GenChild, GenLabel, Cookie, 0, _) --> !,
-	{ format('Cookie = ~w~n', [Cookie]),
-	  findall(Child, gen_child(GenChild, Root, Child), Subs)
+	{ findall(Child, gen_child(GenChild, Root, Child), Subs)
 	},
 	html([ \gen_label(GenLabel, Root),
 	       br([])
@@ -82,11 +81,18 @@ hierarchy(Root, GenChild, GenLabel, Cookie, Level, Lines) -->
 
 script -->				% tagged window.location.pathname
 	html(script(
-'function collapse(name)
+'function pageY()
+{ if ( navigator.appName == "Microsoft Internet Explorer" ) 
+    return document.body.scrollTop;
+  else
+    return window.pageYOffset;
+}
+
+function collapse(name)
 { var x = document.cookie.split("#");
   var a = x[0].split("&");
   var r = new String("&");
-  var y = window.pageYOffset;
+  var y = pageY();
 
   for(var i=0; i < a.length; i++)
   { if ( a[i] != name && a[i] != "" )
@@ -101,7 +107,7 @@ script -->				% tagged window.location.pathname
 
 function expand(name)
 { var x = document.cookie.split("#");
-  var y = window.pageYOffset;
+  var y = pageY();
 
   if ( x[0] == "" )
   { x[0] = "&" + name + "&";
@@ -111,6 +117,7 @@ function expand(name)
   document.cookie = x[0] + "#" + y + " ;path=" + window.location.pathname;
 
   window.location.reload();
+//window.onLoad = "scrollTo(0," + y + ")";
 }
 
 function expandall()

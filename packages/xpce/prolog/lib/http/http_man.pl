@@ -30,6 +30,11 @@ To test it, do:
 Then run your browser and start at the url http://localhost:8080/
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+url(pcehome, 'http://www.swi.psy.uva.nl/projects/xpce/').
+url(pceusg,  URL) :-
+	url(pcehome, Home),
+	atom_concat(Home, 'UserGuide/', URL).
+
 
 pce_http_man(Port) :-			% start on anonymous port
 	var(Port), !,
@@ -63,9 +68,15 @@ frames -->
 			     [ frame([ src('/classhierarchy'),
 				       name(hierarchy)
 				     ]),
-			       frame([ src('/search'),
-				       name(description)
-				     ])
+			       frameset([ rows('40,*')
+					],
+					[ frame([ src('/top'),
+						  name(top)
+						]),
+					  frame([ src('/search'),
+						  name(description)
+						])
+					])
 			     ])
 		  ])).
 
@@ -654,23 +665,46 @@ search_index(@Ref) :-
 	get(file(IndexFile), object, Obj),
 	send(Obj, name_reference, Ref).
 
-%	/welcome
+%	/about
 %
 %	Temporary stuff
 
-reply('/welcome', @nil, HTTPD) :-
-	send(HTTPD, reply_html, pce_http_man:welcome).
+reply('/about', @nil, HTTPD) :-
+	send(HTTPD, reply_html, pce_http_man:about).
 
-welcome -->
-	page([ title('Welcome')
+about -->
+	page([ title('About the XPCE Web manual')
 	     ],
-	     [ form([ action('/man'),
-		      method('GET')
-		    ],
-		    [ input([name(for)]),
-		      input([type(submit)])
-		    ])
+	     [ h3('About the XPCE Web manual'),
+	       
+	       p(\['The XPCE Web-manual is based on the built-in XPCE online ',
+		   'manual started using the <b>manpce/0</b> predicate.']),
+	       p(\['This manual can be read from the main XPCE site or installed ',
+		   'locally.  Please refer to the directory ',
+		   '<b><tt>.../xpce/prolog/lib/http</tt></b> for details.'])
 	     ]).
+
+reply('/top', @nil, HTTPD) :-
+	send(HTTPD, reply_html, pce_http_man:top).
+
+top -->
+	{ url(pcehome, Home),
+	  url(pceusg, USG)
+	},
+	page([ title('XPCE reference manual index')
+	     ],
+	     [ p(align(center),
+		 [ \link(Home, 'XPCE Home'), ' ',
+		   \link(USG,  'User Guide'), ' ',
+		   \link('/search', 'Search'), ' ',
+		   \link('/about',  'About')
+		 ])
+	     ]).
+		       
+
+link(URL, Name) -->
+	html([ '[', a([ href(URL), target(description) ], Name), ']' ]).
+
 
 %	/blank
 %
@@ -693,6 +727,13 @@ reply(Path, @nil, HTTPD) :-
 		 *             TYPES		*
 		 *******************************/
 
+type(T) -->
+	{ get(T, kind, alias),
+	  get(T, argument_name, ArgName),
+	  ArgName \== @nil, !,
+	  get(T, context, Type)
+	},
+	type(Type).
 type(T) -->
 	{ get(T, kind, class), !,
 	  get(T, context, C),
