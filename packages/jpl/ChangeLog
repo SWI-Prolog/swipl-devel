@@ -1,3 +1,7 @@
+Oct 28, 2004
+
+  * CONFIG: Bug#197: Handle absolute path for JAVAC.  Owen Cliffe.
+
 Sep 28, 2004
 
   * CONFIG: Force the use of javac (Sun Java) in configure if nothing is
