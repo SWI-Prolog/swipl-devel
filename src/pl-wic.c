@@ -155,8 +155,8 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 35			/* load all versions later >= X */
-#define VERSION 35			/* save version number */
+#define LOADVERSION 36			/* load all versions later >= X */
+#define VERSION 36			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF     0			/* reference to previous */
@@ -355,6 +355,36 @@ getString(IOSTREAM *fd)
 }
 
 
+static atom_t
+getAtom(IOSTREAM *fd)
+{ char buf[1024];
+  char *tmp, *s;
+  int len = getNum(fd);
+  int i;
+  atom_t a;
+
+  if ( len < sizeof(buf) )
+    tmp = buf;
+  else
+    tmp = allocHeap(len);
+  
+  for(s=tmp, i=0; i<len; i++)
+  { int c = Getc(fd);
+
+    if ( c == EOF )
+      fatalError("Unexpected EOF on intermediate code file at offset %d",
+		 Stell(fd));
+    *s++ = c;
+  }
+  a = lookupAtom(tmp, len);
+
+  if ( tmp != buf )
+    freeHeap(tmp, len);
+
+  return a;
+}
+
+
 static char *
 getMagicString(IOSTREAM *fd, char *buf, int maxlen)
 { char *s;
@@ -456,10 +486,8 @@ loadXRc(int c, IOSTREAM *fd)
       return val;
     }
     case XR_ATOM:
-    { char *s;
-      id = ++loadedXRTableId;
-      s = getString(fd);
-      xr = lookupAtom(s, strlen(s));;
+    { id = ++loadedXRTableId;
+      xr = getAtom(fd);
       DEBUG(3, Sdprintf("XR(%d) = '%s'\n", id, stringAtom(xr)));
       break;
     }
@@ -1154,8 +1182,14 @@ putString(char *s, IOSTREAM *fd)
 
 
 static void
-putAtom(atom_t a, IOSTREAM *fd)
-{ putString(stringAtom(a), fd);
+putAtom(atom_t w, IOSTREAM *fd)
+{ Atom a = atomValue(w);
+  const char *s = a->name;
+  const char *e = s+a->length;
+
+  putNum(a->length, fd);
+  for( ; s<e; s++ )
+    Sputc(*s, fd);
 }
 
 
@@ -1894,7 +1928,7 @@ static bool
 qlfSaveSource(SourceFile f, IOSTREAM *fd)
 { sourceMark(fd);
   Sputc('F', fd);
-  putAtom(f->name, fd);
+  putString(stringAtom(f->name), fd);
   putNum(f->time, fd);
   Sputc(f->system ? 's' : 'u', fd);
 
