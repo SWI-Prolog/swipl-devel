@@ -424,6 +424,7 @@ pl_lessStandard(term_t t1, term_t t2) /* @</2 */
   return compareStandard(p1, p2) < 0 ? TRUE : FALSE;
 }
 
+
 word
 pl_lessEqualStandard(term_t t1, term_t t2) /* @=</2 */
 { Word p1 = valTermRef(t1);
@@ -607,9 +608,13 @@ pl_structural_nonequal(term_t t1, term_t t2)
 		*         TERM HACKING          *
 		*********************************/
 
+#undef LD
+#define LD LOCAL_LD
+
 word
 pl_functor(term_t t, term_t f, term_t a)
-{ int arity;
+{ GET_LD
+  int arity;
   atom_t name;
   
   if ( PL_get_name_arity(t, &name, &arity) )
@@ -646,8 +651,6 @@ pl_functor(term_t t, term_t f, term_t a)
 word
 pl_arg(term_t n, term_t term, term_t arg, word b)
 { GET_LD
-#undef LD
-#define LD LOCAL_LD
   atom_t name;
   int arity;
 
@@ -713,14 +716,13 @@ pl_arg(term_t n, term_t term, term_t arg, word b)
     default:
       succeed;
   }
-#undef LD
-#define LD GLOBAL_LD
 }
 	
 
 word
 pl_setarg(term_t n, term_t term, term_t value)
-{ int arity, argn;
+{ GET_LD
+  int arity, argn;
   atom_t name;
   Word a, v;
 
@@ -766,8 +768,6 @@ pl_setarg(term_t n, term_t term, term_t value)
 int
 lengthList(term_t list, int errors)
 { GET_LD
-#undef LD
-#define LD LOCAL_LD
   int length = 0;
   Word l = valTermRef(list);
 
@@ -786,13 +786,12 @@ lengthList(term_t list, int errors)
     PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, wordToTermRef(l));
 
   return isVar(*l) ? -2 : -1;
-#undef LD
-#define LD GLOBAL_LD
 }
 
 word
 pl_univ(term_t t, term_t list)
-{ int arity;
+{ GET_LD
+  int arity;
   atom_t name;
   int n;
 
@@ -865,7 +864,8 @@ pl_univ(term_t t, term_t list)
 
 static int
 do_number_vars(term_t t, functor_t functor, int n)
-{ atom_t name;
+{ GET_LD
+  atom_t name;
   int arity;
 
 start:
@@ -904,7 +904,8 @@ start:
 
 int
 numberVars(term_t t, functor_t functor, int n)
-{ term_t h2 = PL_copy_term_ref(t);
+{ GET_LD
+  term_t h2 = PL_copy_term_ref(t);
   int rval = do_number_vars(h2, functor, n);
 
   resetTermRefs(h2);
@@ -916,7 +917,8 @@ numberVars(term_t t, functor_t functor, int n)
 word
 pl_numbervars(term_t t, term_t f,
 	      term_t start, term_t end)
-{ int n;
+{ GET_LD
+  int n;
   functor_t functor;
   atom_t name;
   
@@ -932,8 +934,8 @@ pl_numbervars(term_t t, term_t f,
 
 
 static int
-free_variables(Word t, term_t l, int n)
-{
+free_variables(Word t, term_t l, int n ARG_LD)
+{ 
 right_recursion:
   deRef(t);
 
@@ -957,7 +959,7 @@ right_recursion:
   { int arity = arityFunctor(functorTerm(*t));
 
     for(t = argTermP(*t, 0); --arity > 0; t++)
-      n = free_variables(t, l, n);
+      n = free_variables(t, l, n PASS_LD);
     goto right_recursion;
   }
     
@@ -967,10 +969,11 @@ right_recursion:
 
 word
 pl_free_variables(term_t t, term_t variables)
-{ term_t head = PL_new_term_ref();
+{ GET_LD
+  term_t head = PL_new_term_ref();
   term_t vars = PL_copy_term_ref(variables);
   term_t v0   = PL_new_term_refs(0);
-  int i, n    = free_variables(valTermRef(t), v0, 0);
+  int i, n    = free_variables(valTermRef(t), v0, 0 PASS_LD);
 
   for(i=0; i<n; i++)
   { if ( !PL_unify_list(vars, head, vars) ||
@@ -997,7 +1000,7 @@ undone by the Undo().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-dobind_vars(Word t, atom_t constant)
+dobind_vars(Word t, atom_t constant ARG_LD)
 { deRef(t);
 
   if ( isVar(*t) )
@@ -1009,13 +1012,13 @@ dobind_vars(Word t, atom_t constant)
   { int arity = arityFunctor(functorTerm(*t));
 
     for(t = argTermP(*t, 0); arity > 0; arity--, t++)
-      dobind_vars(t, constant);
+      dobind_vars(t, constant PASS_LD);
   }
 }
 
 
 static Word
-bind_existential_vars(Word t)
+bind_existential_vars(Word t ARG_LD)
 { deRef(t);
 
   if ( isTerm(*t) )
@@ -1024,13 +1027,13 @@ bind_existential_vars(Word t)
     Word a;
 
     if ( f->definition == FUNCTOR_hat2 )
-    { dobind_vars(&f->arguments[0], ATOM_nil);
-      return bind_existential_vars(&f->arguments[1]);
+    { dobind_vars(&f->arguments[0], ATOM_nil PASS_LD);
+      return bind_existential_vars(&f->arguments[1] PASS_LD);
     }
     
     arity = arityFunctor(f->definition);
     for(a = f->arguments; arity > 0; arity--, a++)
-      bind_existential_vars(a);
+      bind_existential_vars(a PASS_LD);
   }
 
   return t;
@@ -1039,12 +1042,13 @@ bind_existential_vars(Word t)
 
 word
 pl_e_free_variables(term_t t, term_t vars)
-{ mark m;
+{ GET_LD
+  mark m;
 
   Mark(m);
-  { Word t2   = bind_existential_vars(valTermRef(t));
+  { Word t2   = bind_existential_vars(valTermRef(t) PASS_LD);
     term_t v0 = PL_new_term_refs(0);
-    int i, n  = free_variables(t2, v0, 0);
+    int i, n  = free_variables(t2, v0, 0 PASS_LD);
     Undo(m);
 
     if ( PL_unify_functor(vars, PL_new_functor(ATOM_v, n)) )
@@ -1059,6 +1063,9 @@ pl_e_free_variables(term_t t, term_t vars)
   }  
 }
   
+#undef LD
+#define LD GLOBAL_LD
+
 
 		 /*******************************
 		 *	      COPY-TERM		*
