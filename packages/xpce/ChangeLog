@@ -1,3 +1,6 @@
+VERSION 5.0.5
+=============
+
 * PORTABILITY: Integrated many patches for compilation using egcs-1.1.1 on
   DEC/Alpha running OSF/1 4.0.  Most general 64-bit problems detected by
   the compiler.

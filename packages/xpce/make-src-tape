@@ -35,6 +35,7 @@ fi
 
 cat cvsfiles | \
   $exclude1 | \
+  grep -v sicstus/ | \
   grep -v prolog/pwboot/ | \
   grep -v quintus/ | \
   grep -v /prowindows | \
