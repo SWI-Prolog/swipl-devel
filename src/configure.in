@@ -1235,7 +1235,7 @@ srcdir=`cd $srcdir && pwd`
 # Prepare the package configuration if present
 
 if test -r ../packages/Makefile.in; then
-  OutputFiles="$OutputFiles ../packages/Makefile ../packages/plld.sh"
+  OutputFiles="$OutputFiles ../packages/Makefile ../packages/plld.sh ../packages/pl.sh"
 fi
 
 if test -r ../packages/configure.in; then
@@ -1246,6 +1246,7 @@ AC_CONFIG_COMMANDS([exe],
 		   [ if test -r ../packages/configure; then
 		       chmod +x ../packages/configure
 		       chmod +x ../packages/plld.sh
+		       chmod +x ../packages/pl.sh
 		     fi
 		     chmod +x pl.sh
 		   ])

@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: precompilation of chr files in build environment.  Paulo Moura.
+
 VERSION 5.5.4 (Januari 26, 2005)
 ================================
 
@@ -540,7 +542,7 @@ VERSION 5.3.4 (Mar 12, 2004)
     ISO-latin-1.  Richard O'Keefe.  All these characters used to be
     classified as lowercase letter.  Note that this may cause errors
     reading old code containing not-quoted atoms holding such characters.
-    For example, �ab used to be read as an atom but is now read as a
+    For example, ab used to be read as an atom but is now read as a
     Prolog variable.  Please use ?- style_check(+charset) to get warnings
     in possible conflicts.
 
