@@ -1,0 +1,126 @@
+\documentstyle[12pt,myparms,txt]{article}
+
+\title{The {\tt txt} Style}
+\author{Ralph Droms \\ Bucknell University}
+
+\begin{document}
+\bibliographystyle{/home/sol/CSFAC/droms/lib/plain}
+\maketitle
+\section{Introduction}
+\TeX\ and \LaTeX\ produce nicely formatted documents; however, the final
+versions of these documents, the {\tt .dvi} files, are, in some ways,
+not accessible to further electronic processing. For example,
+\unix\footnote{\unix\ is a trademark of AT\&T Bell Laboratories.}
+tools like {\tt grep} and {\tt emacs} can't be used on {\tt .dvi}
+files, and electronic display of {\tt .dvi} files requires a
+high-function bit--mapped terminal.
+
+Some text--processing systems accommodate both high--resolution output
+and straight ASCII text output. Microsoft Word\footnote{I assume
+Microsoft Word is a trademark of Microsoft, Inc.} can save a document
+in either formatted or text--only form.  The formatted version can be
+printed on an appropriate high--function printer, while the text--only
+version is compatible with other tools and text editors. The \unix\
+text processing tools {\tt troff} and {\tt nroff} both accept the same
+input files, but {\tt troff} produces high--quality output while {\tt
+nroff} produces ASCII text. {\tt troff} and {\tt nroff} are used, for
+example, to produde hard--copy and online versions of the \unix\
+user's manual, assuring that both versions have identical content.
+
+\TeX\ and \LaTeX\ have no equivalent to {\tt troff}'s {\tt nroff}.
+The {\tt txt} style is part of a package that can take standard
+\LaTeX\ input and produce ASCII text output.  This output will not be
+identical to the \LaTeX\ {\tt .dvi} file output, but will, instead, be
+ASCII text appropriately formatted for an 8.5 by 11 inch page.
+
+\section{Theory}
+
+The problem addressed by {\tt txt} is to restrict \LaTeX\ output so
+that it simulates a line printer, without rewriting \LaTeX\ itself. An
+accompanying program, {\tt dvi2tty}~\cite{dvi2tty}, then produces
+ASCII text output from the {\tt txt}--generated {\tt .dvi} file.
+
+There are three primary areas in which {\tt txt} must modify \LaTeX\
+to produce ASCII output:
+
+\begin{itemize}
+\item Horizontal spacing
+\item Vertical spacing
+\item Special characters
+\end{itemize}
+
+{\tt txt} makes a first approximation to line--printer output by
+substituting the 12--point Courier font for all the standard \LaTeX\
+font styles and sizes. Using 12--point Courier is assumed to be a good
+approximation of a standard line printer, both horizontally and
+vertically.  {\tt txt} explicitly sets the \LaTeX\
+\verb+\baselineskip+ to be 12 points to better approximate a standard
+line printer generating 66 lines on an 11.5 inch long page.
+
+The next problem in approximating line printer output is to replace
+all rubber vertical glue with fixed glue. Such rubber glue, included
+in commands like \verb+\section+ and the {\tt itemize} environment, is
+replaced by fixed glue in multiples of 12 points. Several other fixed
+vertical spaces are modified to be even multiples of 12 points, again
+to better simulate line printer output.
+
+There are two types of special characters modified by {\tt txt}: the
+\verb+\labelitem+ characters used by the {\tt itemize} environment and
+footnote marks. Footnote marks are recoded to use arabic numbers in
+parentheses without superscripting (which is typically not feasible on
+a line printer or ASCII terminal). The \verb+\labelitem+ characters
+are redefined to be ``{\tt o}'', ``{\tt -}'', ``{\tt *}'' and ``{\tt
++}''.
+
+\section{Using {\tt txt}}
+
+Generating ASCII output with {\tt txt} requires two steps: first, the
+{\tt txt} style must be included in the \verb+\documentstyle+ command,
+and then {\tt dvi2tty} must be run on the {\tt .dvi} file to generate
+the ASCII output.
+
+The {\tt txt} style specification should be included after any other
+style files, so that previously defined commands and parameters are
+correctly redefined by {\tt txt} for ASCII output. For example, the
+header to this document is:
+\begin{verbatim}
+     \documentstyle[12pt,txt]{article}
+\end{verbatim}
+
+A sample session to generate a file containing the ASCII version of
+this doucment is (where the ``\%'' character is the \unix\ prompt and
+should not be typed):
+\begin{verbatim}
+     % latex txt.tex
+     % dvi2tty txt.dvi > txt.txt
+\end{verbatim}
+
+\section{Bugs}
+
+Not all vertical rubber glue has been removed: for example, tables,
+page headers and page footers do not always appear on even multiples
+of 12 point lines.
+
+Rules aren't correct; specifically, horizontal and vertical lines in
+arrays are likely not to work correctly.
+
+The model used by {\tt dvi2tty} to simulate horizontal spaacing is
+prone to error, especially when horizontal spaces or fills are used.
+
+\section{Summary}
+
+The {\tt txt} style generates an approximation of line printer output
+from \LaTeX\ input, in the way {\tt nroff} generates output from {\tt
+troff} input. The approximation assumes an 80 column, 66 line per page
+printer. The {\tt .dvi} file generated by {\tt txt} can be run through
+{\tt dvi2tty}.  The resulting ASCII output is compatible with
+ASCII--only display and printing devices, and can be further processed
+by tools like {\tt grep} and {\tt emacs}.
+
+The approximation is imperfect and has several bugs in the spacing of
+output.  Modifications to both {\tt txt}, especially eliminating
+remaining rubber space, and {\tt dvi2tty} are required to generate
+better output.
+
+\bibliography{/home/sol/CSFAC/droms/lib/droms}
+\end{document}

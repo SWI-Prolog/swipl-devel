@@ -37,28 +37,40 @@ architecture identifier.
 When given as the only option, it prints the architecture identifier
 (see feature(arch, Arch)) and exits.
 
-    \cmdlineoptionitem*{-L}{size}
-Give local stack size in K bytes (2000 K default). Note that there is no
-space between the size option and its argument.  For machines with
-dynamic stack allocation this flag sets the maximum value to which the
-stack is allowed to grow (2 Mbytes default).  A maximum is useful to
-stop buggy programs from claiming all memory resources.  \cmdlineoption{-L0} sets
-the limit to the highest possible value.
+    \cmdlineoptionitem*{-L}{size[km]}
+Give local stack limit (2 Mbytes default). Note that there is no space
+between the size option and its argument.  By default, the argument is
+interpreted in Kbytes.  Postfixing the argument with \const{m} causes
+the argument to be interpreted in Mbytes. The following example
+specifies 32 Mbytes local stack.
+\begin{code}
+% pl -L32m
+\end{code}
+A maximum is useful to stop buggy programs from claiming all memory
+resources. \cmdlineoption{-L0} sets the limit to the highest possible
+value.
 
-    \cmdlineoptionitem*{-G}{size}
-Give global stack size in K bytes (4000 K default).  For machines with
-dynamic stack allocation the default is 4 Mbytes. See \cmdlineoption{-L} for more
-details.
+    \cmdlineoptionitem*{-G}{size[km]}
+Give global stack limit (4 Mbytes default). See \cmdlineoption{-L} for
+more details.
 
-    \cmdlineoptionitem*{-T}{size}
-Give trail stack size in K bytes (4000 K default).  For machines with
-dynamic stack allocation the default is 4 Mbytes. See \cmdlineoption{-L} for more
-details.
+    \cmdlineoptionitem*{-T}{size[km]}
+Give trail stack limit (4 Mbytes default). This limit is relatively high
+because trail-stack overflows are not often caused program bugs. See
+\cmdlineoption{-L} for more details.
 
-    \cmdlineoptionitem*{-A}{size}
-Give argument stack size in K bytes (1000 K default).  For machines with
-dynamic stack allocation the default is 1 Mbytes. See \cmdlineoption{-L} for more
-details.
+    \cmdlineoptionitem*{-A}{size[km]}
+Give argument stack limit (1 Mbytes default). The argument stack limits
+the maximum nesting of terms that can be compiled and executed. The
+SWI-Prolog does `last-argument optimisation' to avoid many deeply nested
+structure using this stack. Enlarging this limit is only necessary in
+extreme cases. See \cmdlineoption{-L} for more details.
+
+    \cmdlineoptionitem*{-H}{size[km]}
+Give \funcref{malloc}{} heap limit. The default is to raise the limit as
+high as possible. This option only applies to machines using the
+\funcref{mmap}{} function for allocating the Prolog stacks. See
+\cmdlineoption{-L} for more details.
 
     \cmdlineoptionitem{-c}{file \ldots}
 Compile files into an `intermediate code file'. See \secref{compilation}.
@@ -1044,19 +1056,19 @@ a valid expression. Such numbers are always unsigned.
 
 \subsection{Limits on Memory Areas}
 
-SWI-Prolog has a number of memory areas which are not enlarged at run
-time, unless you have a version with dynamic stack allocation.  The
-default sizes for these areas should suffice for small applications, but
-most serious application require larger ones.  They all can be modified
-by command line options.  The table below shows these areas.  The first
-column gives the option name to modify the size of the area.  This
-option character should be followed immediately by a number and
-expresses the number of kilo bytes to use for the area.  There are no
-other limits than the available memory of the machine to the sizes of
-the areas.  The areas are described in \tabref{areas}.
+SWI-Prolog has a number of memory areas which are only enlarged to a
+certain limit. The default sizes for these areas should suffice for most
+applications, but big applications may require larger ones. They are
+modified by command line options. The table below shows these areas. The
+first column gives the option name to modify the size of the area. The
+option character is immediately followed by a number and optionally by a
+\const{k} or \const{m}. With \const{k} or no unit indicator, the value
+is interpreted in Kbytes (1024 bytes), with \const{m}, the value is
+interpreted in Mbytes ($1024 \times 1024$ bytes).
 
-The heap is a memory area to store atoms, clauses, records, flags, etc.
-This area is dynamically enlarged at runtime on all versions of SWI-Prolog.
+The local-, global- and trail-stack are limited to 64 Mbytes on 32 bit
+processors, or more in general to $\pow{2}{\mbox{bits-per-long} - 6}$
+bytes.
 
 \begin{table}
 \begin{center}
@@ -1096,6 +1108,48 @@ Option & Default & Area name & Description \\
     \caption{Memory areas}
     \label{tab:areas}
 \end{table}
+
+
+\subsubsection{The heap}				\label{sec:heap}
+
+\index{stack,memory management}%
+\index{memory,layout}%
+With the heap, we refer to the memory area used by \funcref{malloc}{}
+and friends. SWI-Prolog uses the area to store atoms, functors,
+predicates and their clauses, records and other dynamic data.  As of
+SWI-Prolog 2.8.5, no limits are imposed on the addresses returned by
+\funcref{malloc}{} and friends.
+
+On some machines, the runtime stacks described above are allocated using
+`sparse allocation'. Virtual space upto the limit is claimed at startup
+and committed and released while the area grows and shrinks.  On Win32
+platform this is realised using \funcref{VirtualAlloc}{} and friends.
+On Unix systems this is realised using \funcref{mmap}{}, either mapping
+\file{/dev/zero} or a temporary file created in \file{/tmp}.
+
+As Unix provides no way to reserve part of the address space, this
+process may lead to conflicts. By default, SWI-Prolog computes the
+required virtual address space for the runtime stacks. If available, it
+uses \funcref{getrlimit}{} to determine the top of the virtual space
+reserved for \funcref{malloc}{} usage and locates the stacks in the top
+of this area. It assumes no other \funcref{mmap}{} activity such as
+mapping shared libraries or \funcref{mmap}{} by foreign modules will use
+the area reserved for the heap and \funcref{malloc}{},
+\funcref{malloc}{} will grow the heap from low to high addresses and
+will notice the existence of the Prolog stacks.
+
+These assumptions appear to hold. The user may using the
+\cmdlineoption{-H} to specify the maximum heap-size.  In this case,
+the Prolog stacks will be allocated at the indicated size from the
+current top of the heap.  On these system, statistics/[0,2] reports
+\idx{heaplimit} and \idx{heap}.  The \idx{heaplimit} value is the
+distance between the {\em break} and the first Prolog stack. 
+The \idx{heap} value is the distance between what Prolog assumes to
+be the base of the heap%
+	\footnote{There is no portable and reliable way to find the real
+		  base.}
+and the current location of the break.
+
 
 \subsection{Other Limits}
 

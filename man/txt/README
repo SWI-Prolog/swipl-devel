@@ -1,0 +1,31 @@
+To install:
+
+1) Copy the desired .sty files to your favoriate LaTeX library (e.g.,
+   /usr/lib/tex/inputs).
+
+   txt.sty      - Generates fixed-width font output from LaTeX input.
+                  Does flush-right output if doc.tfm is installed.
+
+   txt-old.sty  - Older version of txt.sty that generates ragged-right
+                  output, but does not require doc.tfm
+
+   txt.tex      - "Documentation" for the above.
+
+   rfc.sty      - .sty for Internet RFCs.
+
+   i-d.sty      - .sty for Internet Drafts.
+
+   rfc.tex      - "Documentation" for the above.
+
+2) Copy the doc.tfm file to your favorite LaTeX font directory (e.g.,
+   /usr/lib/tex/fonts).  Make links or copies using the names
+
+   docbf.tfm
+   docul.tfm
+
+3) Make and install the new version of dvi2tty:
+
+   cd dvi2tty
+   make
+   cp dvi2tty <your favorite binary directory>
+

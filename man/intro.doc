@@ -113,10 +113,11 @@ Prolog calling C functions as C calling Prolog predicates.  SWI-Prolog
 is provided in source form, which implies SWI-Prolog can be linked in
 with another package.  Command line options and predicates to obtain
 information from the system and feedback into the system are provided.
-    \item [Integration with PCE]
+    \item [Integration with XPCE]
 SWI-Prolog offers a tight integration to the Object Oriented Package
-for User Interface Development, called PCE \cite{P1098:C1.6}.
-PCE is now also available for the X Window System.
+for User Interface Development, called XPCE \cite{P1098:C1.6}.
+XPCE allows you to implement graphical user interfaces that are
+source-code compatible over Unix/X11 and Win32 (Windows 95 and NT).
 \end{itemlist}
 
 
@@ -348,6 +349,17 @@ platforms.  Porting to 64-bit architectures should be feasible now.
 Furthermore, 2.7 lifts the limits on arity of predicates and number of
 variables in a clause considerably and allow for further expansion at
 minimal cost.
+
+
+\section{Version 2.8 Release Notes}
+
+\index{Alpha, DEC}\index{DEC, Alpha}% With version 2.8, we declare the
+data-representation changes of 2.7.x stable. Version 2.8 exploits the
+changes of of 2.7 to support 64-bit processors like the DEC Alpha. As of
+version 2.8.5, the representation of recorded the terms has changed, and
+terms on the heap are now represented in a compiled format. SWI-Prolog
+no longer limits the use of \funcref{malloc}{} or uses assumptions on
+the addresses returned by this function.
 
 
 \section{Acknowledgements}

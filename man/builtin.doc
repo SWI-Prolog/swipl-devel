@@ -2930,7 +2930,9 @@ possible keys are given in the \tabref{statistics}.
 cputime         & (User) {\sc cpu} time since Prolog was started in seconds \\
 inferences      & Total number of passes via the call and redo ports
                   since Prolog was started. \\
-heapused        & Bytes heap in use. \\
+heap		& Estimated total size of the heap (see \secref{heap}) \\
+heapused        & Bytes heap in use by Prolog. \\
+heaplimit	& Maximum size of the heap (see \secref{heap}) \\
 local           & Allocated size of the local stack in bytes. \\
 localused       & Number of bytes in use on the local stack. \\
 locallimit      & Size to which the local stack is allowed to grow \\

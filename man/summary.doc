@@ -42,8 +42,7 @@ suggest predicates from a keyword.
 \oppredsummary{\==}{2}{xfx}{700}{Not identical}
 \oppredsummary{\=@=}{2}{xfx}{700}{Not structural identical}
 \oppredsummary{^}{2}{xfy}{200}{Existential quantification (bagof/3, setof/3)}
-\oppredsummary{|}{2}{xfy}{1100}{Disjunction of goals.
-				    Same as \predref{;}{2}}
+\oppredsummary{|}{2}{xfy}{1100}{Disjunction of goals. Same as \predref{;}{2}}
 \predicatesummary{abolish}{2}{Remove predicate definition from the database}
 \predicatesummary{abort}{0}{Abort execution, return to top level}
 \predicatesummary{absolute_file_name}{2}{Get absolute path name}
@@ -230,6 +229,7 @@ suggest predicates from a keyword.
 \predicatesummary{memberchk}{2}{Deterministic member/2}
 \predicatesummary{merge}{3}{Merge two sorted lists}
 \predicatesummary{merge_set}{3}{Merge two sorted sets}
+\predicatesummary{meta_predicate}{1}{Quintus compatibility}
 \predicatesummary{module}{1}{Query/set current type-in module}
 \predicatesummary{module}{2}{Declare a module}
 \oppredsummary{module_transparent}{1}{fx}{1150}{Indicate module based meta predicate}

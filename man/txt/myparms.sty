@@ -1,0 +1,39 @@
+\def\section{\@startsection {section}{1}{\z@}{-3.5ex plus -1ex minus 
+ -.2ex}{2.3ex plus .2ex}{\normalsize\bf}}
+\def\subsection{\@startsection{subsection}{2}{\z@}{-3.25ex plus -1ex minus 
+ -.2ex}{1.5ex plus .2ex}{\normalsize\bf}}
+
+% Make ``smallverbatim'' environment
+\begingroup \catcode `|=0 \catcode `[= 1
+\catcode`]=2 \catcode `\{=12 \catcode `\}=12
+\catcode`\\=12 |gdef|@xsmallverbatim#1\end{smallverbatim}[#1|end[smallverbatim]]
+|gdef|@sxsmallverbatim#1\end{smallverbatim*}[#1|end[smallverbatim*]]
+|endgroup
+
+\def\@ssmallverbatim{\obeyspaces\@smallverbatim}
+
+\def\@gobble#1{}
+
+\def\@smallverbatim{\trivlist \item[]\if@minipage\else\vskip\parskip\fi
+\leftskip\@totalleftmargin\rightskip\z@
+\parindent\z@\parfillskip\@flushglue\parskip\z@
+\@tempswafalse \def\par{\if@tempswa\hbox{}\fi\@tempswatrue\@@par}
+\obeylines \small\tt \catcode``=13 \@noligs \let\do\@makeother \dospecials}
+
+\def\smallverbatim{\@smallverbatim \frenchspacing\@vobeyspaces \@xsmallverbatim}
+\let\endsmallverbatim=\endtrivlist
+
+%\evensidemargin 0in
+%\oddsidemargin  0in
+%\topmargin      0pt
+%\textwidth      6.5in
+%\textheight     8.5in
+
+\parindent      0in
+\parskip        12pt
+
+\newcommand{\unix}{{\sc Unix}}
+\newcommand{\tildechar}{\raisebox{-3pt}{\bf\char'176}}
+\newcommand{\msdos}{MS--DOS}
+
+\special{header=/home/sol/CSFAC/droms/lib/makefonts.ps}

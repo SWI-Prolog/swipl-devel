@@ -1,0 +1,46 @@
+\documentstyle[12pt,myparms]{article}
+
+\title{The {\tt rfc} Style}
+\author{Ralph Droms \\ Bucknell Univerity}
+\begin{document}
+\bibliographystyle{/home/sol/CSFAC/droms/lib/plain}
+\maketitle
+
+The {\tt rfc} style is a modification of the \LaTeX\ {\tt article}
+style that produces documents in the format of Internet RFCs. It
+includes several new commands that define fields required for RFC
+headers, and then generates a document header and page headers and
+footers that follow the RFC format.
+
+The {\tt rfc} commands are:
+\begin{description}
+\item[{\tt \\rfcnum\{ \}} :] specifies the number of this RFC.  the word
+``DRAFT'' can be substituted for draft RFCs.
+\item[{\tt \\pubdate\{ \}} :] defines the publication date to be printed in
+the RFC headers.
+\item[{\tt \\title\{ \}} :] specifies the title of the RFC.
+\item[{\tt \\author\{ \}} :] gives the RFC author.
+\item[{\tt \\address\{ \}} :] gives the author's address.
+\item[{\tt \\maketitle} :] generates the RFC header on the first page.
+\end{description}
+\newpage
+Using {\tt rfc} requires simply that {\tt rfc} be specified in the
+list of {\tt .sty} files, and that the commands in the list above all
+be filled in.  For example, the following is extracted from a draft
+RFC:
+
+\begin{verbatim}
+     \documentstyle[12pt,rfc]{article}
+
+     \author{R. Droms}
+     \rfcnum{DRAFT}
+     \address{NRI}
+     \pubdate{November, 1989}
+     \title{Dynamic Host Configuration}
+
+     \begin{document}
+
+     \maketitle
+
+\end{verbatim}
+\end{document}

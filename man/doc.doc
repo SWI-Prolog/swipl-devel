@@ -2,12 +2,28 @@
 \usepackage{pl}
 \usepackage{html}
 %\onefile
+\sloppy
 \makeindex
 
+\usepackage{times}
+\usepackage{fancyheadings}
+\renewcommand{\runningtitle}{SWI-Prolog \versionshort{} Reference Manual}
+\headheight 14pt
+\renewcommand{\chaptermark}[1]{\markboth{#1}{#1}} % remember chapter title
+\renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}}
+                                                % section number and title
+\lhead[\fancyplain{}{\bf\thepage}]{\fancyplain{}{\bf\rightmark}}
+\rhead[\fancyplain{}{\bf\leftmark}]{\fancyplain{}{\bf\thepage}}
+\footrulewidth 0.2pt
+\lfoot[\tiny \runningtitle]{}
+\rfoot[]{\tiny \runningtitle}
+\cfoot{}
+\pagestyle{fancyplain}
+
 \newcommand{\vmajor}{2}
-\newcommand{\vminor}{7}
-\newcommand{\vpatch}{18}
-\newcommand{\vmonth}{January}
+\newcommand{\vminor}{8}
+\newcommand{\vpatch}{4}
+\newcommand{\vmonth}{May}
 \newcommand{\vyear}{1997}
 
 \newcommand{\versionshort}{\vmajor.\vminor}
@@ -15,10 +31,10 @@
 \renewcommand{\arabicday}{\versionshort}
 
 \title{SWI-Prolog Reference Manual}
-\author{\email[Jan Wielemaker]{jan@swi.psy.uva.nl}\\
-	Dept. of Social Science Informatics (SWI)	\\
-	    Roeterstraat 15, 1018 WB~~Amsterdam		\\
-		    The Netherlands			\\
+\author{\email[Jan Wielemaker]{jan@swi.psy.uva.nl}	\\ 
+	Dept. of Social Science Informatics (SWI)	\\ 
+	    Roeterstraat 15, 1018 WB~~Amsterdam		\\ 
+		    The Netherlands			\\ 
 		Tel. (+31) 20 5256121}
 	
 \begin{htmlonly}
@@ -42,7 +58,6 @@ built-in predicates.
 
 Copyright \copyright\ 1990--\year, University of Amsterdam
 \end{htmlonly}
-
 
 \begin{document}
 

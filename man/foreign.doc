@@ -389,6 +389,16 @@ pl_mypredicate(term_t a0, term_t a1)
 Create a new term reference and make it point initially to the same
 term as \arg{from}.  This function is commonly used to copy a predicate
 argument to a term reference that may be written.
+\cfunction{void}{PL_reset_term_refs}{term_t after}
+Destroy all term references that have been created after \arg{after},
+including \arg{after} itself. Any reference to the invalidated  term
+references after this call results in undefined behaviour.
+
+Note that returning from the foreign context to Prolog will reclaim
+all references used in the foreign context.  This call is only necessary
+if references are created inside a loop that never exits back to Prolog.
+See also PL_open_foreign_frame(), PL_close_foreign_frame() and
+PL_discard_foreign_frame().
 \end{description}
 
 
@@ -658,11 +668,11 @@ or
 \end{description}
 
 The functions PL_is_<type> are an alternative to PL_term_type(). The
-test \exam{PL_is_var(term)} is equivalent to \exam{PL_term_type(term) ==
-PL_VARIABLE}, but the first is considerably faster. On the other hand,
-using a switch over PL_term_type() is faster and more readable then
-using an if-then-else using the functions below.  All these functions
-return either \const{TRUE} or \const{FALSE}.
+test \exam{PL_is_variable(term)} is equivalent to
+\exam{PL_term_type(term) == PL_VARIABLE}, but the first is considerably
+faster. On the other hand, using a switch over PL_term_type() is faster
+and more readable then using an if-then-else using the functions below.
+All these functions return either \const{TRUE} or \const{FALSE}.
 
 \begin{description}
 \cfunction{int}{PL_is_variable}{term_t}
