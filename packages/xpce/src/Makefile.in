@@ -763,10 +763,6 @@ dv-help:
 
 dv-misc:
 		$(INSTALL_DATA) -C .. $(DVMISCFILES) $(DVHOME)
-		@case $(PLARCH) in \
-		    *linux*) $(INSTALL_DATA) ../README.linux $(DVHOME); \
-			     echo README.linux ;; \
-		esac
 
 dv-manual:	
 		-$(INSTALL_DATA) -p1 ../man/reference/index.obj $(DVHOME)

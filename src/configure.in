@@ -809,7 +809,7 @@ echo "	CFLAGS=$CWFLAGS $COFLAGS $CIFLAGS $CMFLAGS"
 echo "	LDFLAGS=$LDFLAGS"
 echo "	LIBS=$LIBS"
 
-OutputFiles="Makefile rc/Makefile README.bin pl.1"
+OutputFiles="Makefile rc/Makefile pl.1"
 
 # Prepare the package configuration if present
 

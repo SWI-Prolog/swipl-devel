@@ -268,7 +268,6 @@ install-libs:	idirs iboot ilib iruntime iinclude iman
 		$(INSTALL_DATA) $(STARTUPPATH) $(PLBASE)/$(BOOTFILE)
 		$(INSTALL_DATA) swipl $(PLBASE)
 		$(INSTALL_DATA) swiplbin $(PLBASE)/bin/swipl
-		# $(INSTALL_DATA) README.bin $(PLBASE)
 		# $(INSTALL_DATA) ../COPYING $(PLBASE)
 		cd $(PLBASE)/library; \
 		   ../bin/$(ARCH)/$(PL) \
@@ -374,7 +373,7 @@ distclean:	clean
 		@(cd rc && $(MAKE) distclean)
 		rm -rf $(INCLUDEDIR) $(RUNTIMEDIR)
 		rm -f ../library/INDEX.pl
-		rm -f Makefile README.bin config.h config.status parms.h
+		rm -f Makefile config.h config.status parms.h
 		rm -f swipl swiplbin pl.prc
 		rm -f pl plld pl.1
 		rm -f config.log config.cache
