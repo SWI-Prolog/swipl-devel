@@ -557,6 +557,7 @@ static status
 OpenLookEventScrollBar(ScrollBar s, EventObj ev)
 { if ( isAEvent(ev, NAME_msLeftDown) )
   { int offset = offset_event_scrollbar(s, ev);
+    int vertical = (s->orientation == NAME_vertical);
     Int w = s->area->w;
     Int h = s->area->h;
     struct bubble_info button_bi;
@@ -569,14 +570,21 @@ OpenLookEventScrollBar(ScrollBar s, EventObj ev)
       assign(s, direction, NAME_goto);
       assign(s, amount,    ZERO);
       assign(s, status,	   NAME_topOfFile);
-      changedImageGraphical(s, 0, 0, w, toInt(BOXHEIGHT));
+      if ( vertical )
+	changedImageGraphical(s, 0, 0, w, toInt(BOXHEIGHT));
+      else
+	changedImageGraphical(s, 0, 0, toInt(BOXHEIGHT), h);
     } else if ( offset >= button_bi.bar_start + button_bi.bar_length )
     { assign(s, unit,      NAME_file);
       assign(s, direction, NAME_goto);
       assign(s, amount,    toInt(1000));
       assign(s, status,	   NAME_bottomOfFile);
-      changedImageGraphical(s, 0, toInt(valInt(h)-BOXHEIGHT),
-			    w, toInt(BOXHEIGHT));
+      if ( vertical )
+	changedImageGraphical(s, 0, toInt(valInt(w)-BOXHEIGHT),
+			      h, toInt(BOXHEIGHT));
+      else
+	changedImageGraphical(s, toInt(valInt(w)-BOXHEIGHT), 0, 
+			      toInt(BOXHEIGHT), h);
     } else
     { if ( offset < button_bi.start )
       { assign(s, unit,      NAME_page);

@@ -412,7 +412,7 @@ makeClassFont(Class class)
   getMethod(class, NAME_fixedWidth, NAME_property, "bool", 0,
 	    "Boolean to indicate font is fixed-width",
 	    getFixedWidthFont);
-  getMethod(class, NAME_b16, NAME_property, "bool", 0,
+  getMethod(class, NAME_b16, NAME_encoding, "bool", 0,
 	    "Boolean to indicate font is 16-bits",
 	    getB16Font);
   getMethod(class, NAME_convert, NAME_conversion, "font", 1, "name",
