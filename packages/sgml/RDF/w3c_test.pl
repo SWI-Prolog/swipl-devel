@@ -24,11 +24,14 @@
 
 :- use_module(rdf).			% our RDF parser
 :- use_module(rdf_nt).			% read .nt files
-:- use_module(library(pce)).
-:- use_module(library(toolbar)).
-:- use_module(library(pce_report)).
-:- use_module(rdf_diagram).
-:- use_module(library('emacs/emacs')).
+:- load_files([ library(pce),
+		library(toolbar),
+		library(pce_report),
+		rdf_diagram,
+		library('emacs/emacs')
+	      ],
+	      [ silent(true)
+	      ]).
 
 :- dynamic
 	verbose/0.
@@ -129,27 +132,48 @@ local_file(URL, File) :-
 
 :- pce_begin_class(w3c_rdf_test_gui, frame).
 
-initialise(F) :->
+initialise(F, Show:chain) :->
 	send_super(F, initialise, 'W3C RDF test suite results'),
 	send(F, append, new(B, browser)),
 	send(B, hor_stretch, 100),
 	send(B, hor_shrink, 100),
-	new(V, emacs_view(height := 3)),
-	new(R, rdf_diagram),
-	new(N, rdf_diagram),
-	send(R, label, 'Result'),
-	send(N, label, 'Norm'),
-	send(R, above, N),
-	send(V, above, R),
-	send(V, right, B),
-	send(V, name, text),
-	send(R, name, result),
-	send(N, name, norm),
+	(   send(Show, member, source)
+	->  new(V, emacs_view(height := 3)),
+	    send(V, name, text)
+	;   true
+	),
+	(   send(Show, member, result)
+	->  new(R, rdf_diagram),
+	    send(R, name, result),
+	    send(R, label, 'Result')
+	;   true
+	),
+	(   send(Show, member, norm)
+	->  new(N, rdf_diagram),
+	    send(N, name, norm),
+	    send(N, label, 'Norm')
+	;   true
+	),
+	stack_windows([V,R,N], _, W),
+	(   nonvar(W)
+	->  send(W, right, B)
+	;   true
+	),
 	send(new(D, tool_dialog(F)), above, B),
 	send(new(report_dialog), below, B),
 	send(F, fill_menu, D),
 	send(F, fill_browser, B).
 
+stack_windows([], L, L).
+stack_windows([H|T], W0, W) :-
+	var(H), !,
+	stack_windows(T, W0, W).
+stack_windows([H|T], W0, W) :-
+	var(W0), !,
+	stack_windows(T, H, W).
+stack_windows([H|T], WL, W) :-
+	send(H, below, WL),
+	stack_windows(T, H, W).
 
 fill_menu(F, D:tool_dialog) :->
 	send_list(D,
@@ -241,7 +265,8 @@ show_diagram(_Item, Triples:prolog, Label:name) :->
 	"Show diagram for triples"::
 	new(D, rdf_diagram(Label)),
 	send(new(report_dialog), below, D),
-	send(D, triples, Triples).
+	send(D, triples, Triples),
+	send(D, open).
 
 open_url(Item, Which:name) :->
 	"Open associated URL in browser"::
@@ -268,25 +293,31 @@ copy_test_uri(Item) :->
 show(Item) :->
 	"Show source, result and norm diagrams"::
 	get(Item?image, frame, Frame),
-	get(Frame, member, text, View),
-	get(Frame, member, result, Result),
-	get(Frame, member, norm, Norm),
 	get(Item, object, List),
-	member(result(RTriples), List),
-	member(norm(NTriples), List),
-	member(source(File), List),
-%	member(substitutions(Substitutions), List),
-	send(Result, triples, RTriples),
-	send(Norm, triples, NTriples),
-%	send(Result, copy_layout, Norm, Substitutions),
-	send(View, text_buffer, new(TB, emacs_buffer(File))),
+	(   get(Frame, member, result, Result)
+	->  member(result(RTriples), List),
+	    send(Result, triples, RTriples)
+	;   true
+	),
+	(   get(Frame, member, norm, Norm)
+	->  member(norm(NTriples), List),
+	    send(Norm, triples, NTriples)
+	;   true
+	),
+	(   get(Frame, member, text, View)
+	->  member(source(File), List),
+	    send(View, text_buffer, new(TB, emacs_buffer(File))),
 					% scroll to RDF text
-	(   member(Pattern, [':RDF', 'RDF']),
-	    get(TB, find, 0, Pattern, Start),
-	    get(TB, scan, Start, line, 0, start, BOL)
-	->  send(View, scroll_to, BOL, 1)
+	    (   member(Pattern, [':RDF', 'RDF']),
+		get(TB, find, 0, Pattern, Start),
+		get(TB, scan, Start, line, 0, start, BOL)
+	    ->  send(View, scroll_to, BOL, 1)
+	    ;   true
+	    )
 	;   true
 	).
+%	member(substitutions(Substitutions), List),
+%	send(Result, copy_layout, Norm, Substitutions),
 	
 :- pce_end_class(rdf_test_item).
 
@@ -294,7 +325,7 @@ show(Item) :->
 :- pce_global(@rdf_test_gui, make_rdf_test_gui).
 
 make_rdf_test_gui(Ref) :-
-	send(new(Ref, w3c_rdf_test_gui), open).
+	send(new(Ref, w3c_rdf_test_gui(chain(source,result))), open).
 
 
 test_result(Result, Test, Data) :-
