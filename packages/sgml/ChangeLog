@@ -1,3 +1,11 @@
+Dec 20, 2004
+
+  * Working wide-character version.  Consequences:
+	- CDATA attributes and content never contain entities anymore
+	  as all text can now be represented.
+	- Limit on quoted CDATA attribute values (was 2048 characters)
+	  has been removed.
+
 Dec 19, 2004
 
   * Start working on wide-character support: introducing wide-character
