@@ -206,7 +206,8 @@ emit(Element, Out, State) :-
 
 emit_element(element(Name, Attributes, Content), Out, State) :-
 	att_length(Attributes, State, Alen),
-	(   Alen > 60
+	(   Alen > 60,
+	    get_state(State, layout, true)
 	->  Sep = nl,
 	    AttIndent = 4
 	;   Sep = sp,
