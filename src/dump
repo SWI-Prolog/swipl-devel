@@ -28,5 +28,6 @@ save_program('$bin',
 	]).	
 forall(library_directory(X),
        (exists_directory(X) -> make_library_index(X) ; true)).
+
 halt.
 _EOS_

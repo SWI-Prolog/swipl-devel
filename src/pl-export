@@ -29,6 +29,7 @@ PL_new_integer
 PL_new_module
 PL_new_string
 PL_new_term
+PL_on_halt
 PL_query
 PL_register_foreign
 PL_signal
