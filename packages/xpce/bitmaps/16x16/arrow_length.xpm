@@ -1,0 +1,22 @@
+/* XPM */
+static char * arrow_length_xpm[] = {
+"16 16 3 1",
+" 	s None	c None",
+".	c blue",
+"X	c black",
+"   .        .   ",
+"   XX       .   ",
+"   X XX     .   ",
+"   X   XX   .   ",
+"   X     XX .   ",
+"XXXXXXXXXXXX.   ",
+"   X     XX .   ",
+"   X   XX   .   ",
+"   X XX     .   ",
+"   XX       .   ",
+"   .  .  .  .   ",
+"   . ..  .. .   ",
+"   ..........   ",
+"   . ..  .. .   ",
+"      .  .      ",
+"                "};

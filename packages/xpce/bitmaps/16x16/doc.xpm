@@ -1,0 +1,21 @@
+/* XPM */
+static char * mini-doc_xpm[] = {
+"16 14 4 1",
+" 	c None s None",
+".	c black",
+"X	c white",
+"o	c gray50",
+"   .......      ",
+"   .XXXXX..     ",
+"   .XoooX.X.    ",
+"   .XXXXX....   ",
+"   .XooooXoo.o  ",
+"   .XXXXXXXX.o  ",
+"   .XooooooX.o  ",
+"   .XXXXXXXX.o  ",
+"   .XooooooX.o  ",
+"   .XXXXXXXX.o  ",
+"   .XooooooX.o  ",
+"   .XXXXXXXX.o  ",
+"   ..........o  ",
+"    oooooooooo  "};
