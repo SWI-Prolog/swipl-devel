@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: read, etc. not to raise an exception if the argument is
+    instantiated (reported by Mike Elston).
+	
+  * ADDED: make_directory/1 and delete_directory/1.
+
   * (RE)ADDED: library(gensym) providing reset_gensym/[0,1]
 
   * FIXED: discarding the choice-point of current_op/3 could
