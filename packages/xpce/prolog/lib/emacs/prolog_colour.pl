@@ -166,7 +166,7 @@ colourise_term(Term, TB, Pos) :-
 	term_colours(Term, FuncSpec-ArgSpecs), !,
 	Pos = term_position(_,_,FF,FT,ArgPos),
 	specified_item(FuncSpec, Term, TB, FF-FT),
-	specified_items(ArgSpecs, 1, Term, TB, ArgPos).
+	specified_items(ArgSpecs, Term, TB, ArgPos).
 colourise_term((Head :- Body), TB,
 	       term_position(F,T,FF,FT,[HP,BP])) :- !,
 	colour_item(clause,	    TB,	F-T),
@@ -309,7 +309,7 @@ colourise_goal(Goal, TB, Pos) :-
 	;   Class = ClassSpec
 	),
 	colour_item(goal(Class), TB, FPos),
-	specified_items(ArgSpecs, 1, Goal, TB, ArgPos).
+	specified_items(ArgSpecs, Goal, TB, ArgPos).
 colourise_goal(Goal, TB, Pos) :-
 	goal_classification(TB, Goal, Class),
 	(   Pos = term_position(_,_,FF,FT,_ArgPos)
@@ -337,6 +337,24 @@ colourise_file_list([H|T], TB, [PH|PT]) :-
 	colourise_files(H, TB, PH),
 	colourise_file_list(T, TB, PT).
 
+%	colourise_class(ClassName, TB, Pos)
+%
+%	Colourise an XPCE class.  Dealing with not-loaded classes is not
+%	very easy as classes cannot easily be resolved using local
+%	cross-referencing.
+
+colourise_class(ClassName, TB, Pos) :-
+	get(@classes, member, ClassName, Class), !,
+	(   get(Class, creator, built_in)
+	->  colour_item(class(built_in, ClassName), TB, Pos)
+	;   colour_item(class(user, ClassName), TB, Pos)
+	).
+colourise_class(ClassName, TB, Pos) :-
+	pce_prolog_class(ClassName), !,
+	colour_item(class(user, ClassName), TB, Pos).
+colourise_class(ClassName, TB, Pos) :-
+	colour_item(class(unknown, ClassName), TB, Pos).
+
 %	colourise_term_args(+Term, +TB, +Pos)
 %
 %	colourise head/body principal terms.
@@ -362,7 +380,7 @@ colourise_term_arg(Atom, TB, Pos) :-			% single quoted atom
 	get(TB, character, From, 39), !, 	
 	colour_item(quoted_atom, TB, Pos).
 colourise_term_arg(List, TB, list_position(_, _, Elms, Tail)) :- !,
-	colourise_list_args(Elms, Tail, List, TB).	% list
+	colourise_list_args(Elms, Tail, List, TB, classify).	% list
 colourise_term_arg(Compound, TB, Pos) :- 		% compound
 	compound(Compound), !,
 	colourise_term_args(Compound, TB, Pos).
@@ -371,12 +389,12 @@ colourise_term_arg(_, TB, string_position(F, T)) :- !,	% string
 colourise_term_arg(_Arg, _TB, _Pos) :-
 	true.
 	
-colourise_list_args([HP|TP], Tail, [H|T], TB) :-
-	colourise_term_arg(H, TB, HP),
-	colourise_list_args(TP, Tail, T, TB).
-colourise_list_args([], none, _, _) :- !.
-colourise_list_args([], TP, T, TB) :-
-	colourise_term_arg(T, TB, TP).
+colourise_list_args([HP|TP], Tail, [H|T], TB, How) :-
+	specified_item(How, H, TB, HP),
+	colourise_list_args(TP, Tail, T, TB, How).
+colourise_list_args([], none, _, _, _) :- !.
+colourise_list_args([], TP, T, TB, How) :-
+	specified_item(How, T, TB, TP).
 
 
 %	colour_item(+Class, +TB, +Pos)
@@ -411,14 +429,25 @@ make_prolog_mode_file_popup(G) :-
 
 make_prolog_mode_class_popup(G) :-
 	new(G, popup(file_options)),
+	new(Class, @arg1?context),
+	M = @emacs_mode,
 	send_list(G, append,
-		  [ menu_item(open,
-			      message(@emacs_mode, open_class, @arg1?message)),
-		    menu_item(open_other_window,
-			      message(@emacs_mode, open_class, @arg1?message, @on))
+		  [ menu_item(edit,
+			      message(M, edit_class, Class),
+			      condition := message(M, is_user_class, Class)),
+		    menu_item(edit_other_window,
+			      message(M, edit_class, Class, @on),
+			      condition := message(M, is_user_class, Class)),
+		    gap,
+		    menu_item(manual,
+			      message(M, manpce, Class))
 		  ]).
 
-open_class(Mode, ClassName:name, NewWindow:[bool]) :->
+is_user_class(_, ClassName:name) :->
+	get(@pce, convert, ClassName, class, Class),
+	\+ get(Class, creator, built_in).
+
+edit_class(Mode, ClassName:name, NewWindow:[bool]) :->
 	"Open XPCE class [in new window]"::
 	(   get(@pce, convert, ClassName, class, Class)
 	->  (   get(Class, creator, built_in)
@@ -436,8 +465,8 @@ open_class(Mode, ClassName:name, NewWindow:[bool]) :->
 message(file(Path), F) :- !,
 	send(F, message, Path),
 	send(F, attribute, popup, @prolog_mode_file_popup).
-message(class(Super), F) :- !,
-	send(F, message, Super),
+message(class(_, Class), F) :- !,
+	send(F, context, Class),
 	send(F, attribute, popup, @prolog_mode_class_popup).
 message(_, _).
 
@@ -490,7 +519,7 @@ built_in_predicate(Goal) :-
 	predicate_property(system:Goal, built_in), !.
 built_in_predicate(module(_, _)).
 
-%	Speciy colours for individual goals.  Currently used only to
+%	Specify colours for individual goals.  Currently used only to
 %	highlight file references, so we can jump to them and are indicated
 %	on missing files.
 
@@ -501,7 +530,17 @@ goal_colours(include(_),	     built_in-[file]).
 goal_colours(ensure_loaded(_),	     built_in-[file]).
 goal_colours(pce_autoload(_,_),	     classify-[classify,file]).
 goal_colours(pce_image_directory(_), classify-[file]).
+goal_colours(new(_, _),		     built_in-[classify,pce_new]).
+goal_colours(send_list(_,_,_),	     built_in-pce_arg_list).
+goal_colours(Pce,		     built_in-pce_arg) :-
+	compound(Pce),
+	functor(Pce, Functor, _),
+	pce_functor(Functor).
 
+pce_functor(send).
+pce_functor(get).
+pce_functor(send_super).
+pce_functor(get_super).
 
 		 /*******************************
 		 *	       STYLES		*
@@ -538,7 +577,10 @@ style(string,		  style(colour	   := navy_blue)).
 style(nofile,		  style(colour	   := red)).
 style(file(_),		  style(colour	   := blue,
 				underline  := @on)).
-style(class(_),		  style(underline  := @on)).
+style(class(built_in,_),  style(colour	   := blue,
+				underline  := @on)).
+style(class(user,_),	  style(underline  := @on)).
+style(class(_,_),	  style(underline  := @on)).
 
 style(identifier,	  style(bold       := @on)).
 style(expanded,		  style(colour	   := blue,
@@ -663,15 +705,15 @@ term_colours(class_variable(_,_,_),
 term_colours(delegate_to(_),
 	     expanded - [ classify
 			]).
-term_colours((:- pce_begin_class(_, Super, _)),
+term_colours((:- pce_begin_class(_, _, _)),
 	     expanded - [ expanded - [ identifier,
-				       class(Super),
+				       pce_new,
 				       comment
 				     ]
 			]).
-term_colours((:- pce_begin_class(_, Super)),
+term_colours((:- pce_begin_class(_, _)),
 	     expanded - [ expanded - [ identifier,
-				       class(Super)
+				       pce_new
 				     ]
 			]).
 term_colours((:- pce_extend_class(_)),
@@ -723,23 +765,76 @@ term_colours((_,_),
 		       classify
 		     ]).
 
+specified_item(_, Var, TB, Pos) :-
+	var(Var), !,
+	colourise_term_arg(Var, TB, Pos).
 specified_item(classify, Term, TB, Pos) :- !,
 	colourise_term_arg(Term, TB, Pos).
+					% files
 specified_item(file, Term, TB, Pos) :- !,
 	colourise_files(Term, TB, Pos).
+					% XPCE new argument
+specified_item(pce_new, Term, TB, Pos) :- !,
+	(   atom(Term)
+	->  colourise_class(Term, TB, Pos)
+	;   compound(Term)
+	->  functor(Term, Class, _),
+	    Pos = term_position(_,_,FF, FT, ArgPos),
+	    colourise_class(Class, TB, FF-FT),
+	    specified_items(pce_arg, Term, TB, ArgPos)
+	;   colourise_term_arg(Term, TB, Pos)
+	).
+					% Generic XPCE arguments
+specified_item(pce_arg, new(X), TB,
+	       term_position(_,_,_,_,[ArgPos])) :- !,
+	specified_item(pce_new, X, TB, ArgPos).
+specified_item(pce_arg, new(X, T), TB,
+	       term_position(_,_,_,_,[P1, P2])) :- !,
+	colourise_term_arg(X, TB, P1),
+	specified_item(pce_new, T, TB, P2).
+specified_item(pce_arg, @Ref, TB, Pos) :- !,
+	colourise_term_arg(@Ref, TB, Pos).
+specified_item(pce_arg, Term, TB, Pos) :-
+	compound(Term), !,
+	specified_item(pce_new, Term, TB, Pos).
+specified_item(pce_arg, Term, TB, Pos) :-
+	colourise_term_arg(Term, TB, Pos).
+					% List of XPCE arguments
+specified_item(pce_arg_list, List, TB, list_position(_,_,Elms,Tail)) :- !,
+	colourise_list_args(Elms, Tail, List, TB, pce_arg).
+specified_item(pce_arg_list, Term, TB, Pos) :- !,
+	specified_item(pce_arg, Term, TB, Pos).
+					% Nested specification
 specified_item(FuncSpec-ArgSpecs, Term, TB,
 	       term_position(_,_,FF,FT,ArgPos)) :- !,
 	specified_item(FuncSpec, Term, TB, FF-FT),
-	specified_items(ArgSpecs, 1, Term, TB, ArgPos).
+	specified_items(ArgSpecs, Term, TB, ArgPos).
+					% Specified
 specified_item(Class, _, TB, Pos) :-
 	colour_item(Class, TB, Pos).
 
-specified_items([], _, _, _, _).
-specified_items([S0|ST], N, T, TB, [P0|PT]) :-
+%	specified_items(+Spec, +T, +TB, +PosList)
+
+specified_items(Specs, Term, TB, PosList) :-
+	is_list(Specs), !,
+	specified_arglist(Specs, 1, Term, TB, PosList).
+specified_items(Spec, Term, TB, PosList) :-
+	specified_argspec(PosList, Spec, 1, Term, TB).
+
+
+specified_arglist([], _, _, _, _).
+specified_arglist([S0|ST], N, T, TB, [P0|PT]) :-
 	arg(N, T, Term),
 	specified_item(S0, Term, TB, P0),
 	NN is N + 1,
-	specified_items(ST, NN, T, TB, PT).
+	specified_arglist(ST, NN, T, TB, PT).
+
+specified_argspec([], _, _, _, _).
+specified_argspec([P0|PT], Spec, N, T, TB) :-
+	arg(N, T, Term),
+	specified_item(Spec, Term, TB, P0),
+	NN is N + 1,
+	specified_argspec(PT, Spec, NN, T, TB).
 
 :- emacs_end_mode.
 

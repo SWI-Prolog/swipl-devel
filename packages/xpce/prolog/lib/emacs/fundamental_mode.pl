@@ -881,6 +881,7 @@ drop(M, Obj:object) :->
 
 variable(severity, {status,warning,error} := status, both, "Message severity").
 variable(message,  string*,	     both, "Message displayed").
+variable(context,  any*,	     both, "Popup context argument").
 
 identify(F) :->
 	(   get(F, message, Msg),
