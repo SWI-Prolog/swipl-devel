@@ -122,11 +122,24 @@ readImageFile(Image image, IOSTREAM *fd)
 
   if ( (data = read_bitmap_data(fd, &w, &h)) != NULL )
     return CreateXImageFromData(data, w, h);
+
+  switch(staticColourReadJPEGFile(image, fd, &img))
+  { case IMG_OK:
+      return img;
+    case IMG_NOMEM:
+      return NULL;
+    case IMG_INVALID:
+      goto nojpeg;
+    default:
+      break;
+  }
+
 #ifdef HAVE_LIBXPM
 #ifdef HAVE_LIBJPEG
   if ( (img=readJPEGFile(image, fd)) )
     return img;
 #endif  
+nojpeg:
 #ifdef O_GIFTOXPM
   if ( (img=readGIFFile(image, fd)) )
     return img;
@@ -526,6 +539,7 @@ readJPEGFile(Image image, IOSTREAM *fd)
 
 #ifdef HAVE_LIBJPEG
 #undef GLOBAL				/* conflict */
+#undef HAVE_STDLIB_H			/* from jconfig.h */
 #include <jpeglib.h>
 #include <jerror.h>
 #define XBRIGHT ((1L<<16)-1)

@@ -71,6 +71,21 @@ error XPCE cannot be build for X version 10.  Sorry.
 
 
 		 /*******************************
+		 *	      IMAGES		*
+		 *******************************/
+
+typedef enum 
+{ IMG_OK,				/* Image loaded fine */
+  IMG_UNRECOGNISED,			/* Routine didn't recognise it */
+  IMG_NOMEM,				/* Not enough memory */
+  IMG_INVALID,				/* Something wrong with the image */
+  IMG_NO_STATIC_COLOUR			/* true colour routine can't handle */
+} img_status;
+
+img_status staticColourReadJPEGFile(Image image, IOSTREAM *fd, XImage **ret);
+
+
+		 /*******************************
 		 *	      FRAME		*
 		 *******************************/
 

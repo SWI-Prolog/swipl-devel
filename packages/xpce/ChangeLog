@@ -1,6 +1,11 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Dedicated support for JPEG loading on static-color visuals in
+  the X11 version, more than doubling the speed on non colour-mapped
+  displays.
+
+
 VERSION 6.0.5, distributed with SWI-Prolog 5.0.5
 ================================================
 
