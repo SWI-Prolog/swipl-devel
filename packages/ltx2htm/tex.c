@@ -17,6 +17,7 @@
 #endif
 
 static int debuglevel = 0;
+static int emit_space = 0;
 
 #define DEBUG(n, g)	if ( n <= debuglevel ) { g; }
 
@@ -1783,6 +1784,8 @@ static atom_t	 ATOM_minus;		/* - */
 static atom_t	 ATOM_space;		/* ' ' */
 static atom_t	 ATOM_nl;		/* '\n' */
 static atom_t	 ATOM_nil;		/* [] */
+static atom_t	 ATOM_true;		/* true */
+static atom_t	 ATOM_false;		/* false */
 
 static void
 initPrologConstants()
@@ -1814,6 +1817,8 @@ initPrologConstants()
   ATOM_space	    = PL_new_atom(" ");
   ATOM_nl	    = PL_new_atom("\n");
   ATOM_nil	    = PL_new_atom("[]");
+  ATOM_true	    = PL_new_atom("true");
+  ATOM_false	    = PL_new_atom("false");
 }
 
 static ppcontext ppctx;
@@ -2071,15 +2076,18 @@ build_list(Token t, void *context)
       return;
     case TOK_SPACE:
     case TOK_LINE:
-      goto out;
+      if ( !emit_space )
+	goto out;
   }
 
-  if ( (ctx->prev_type0 == TOK_SPACE || ctx->prev_type0 == TOK_LINE) &&
-       (ctx->prev_type1 != TOK_WORD || t->type != TOK_WORD) )
-  { atom_t a = (ctx->prev_type0 == TOK_SPACE ? ATOM_space : ATOM_nl);
+  if ( !emit_space )
+  { if ( (ctx->prev_type0 == TOK_SPACE || ctx->prev_type0 == TOK_LINE) &&
+	 (ctx->prev_type1 != TOK_WORD || t->type != TOK_WORD) )
+    { atom_t a = (ctx->prev_type0 == TOK_SPACE ? ATOM_space : ATOM_nl);
     
-    PL_unify_list(ctx->list, ctx->head, ctx->list);
-    PL_unify_atom(ctx->head, a);
+      PL_unify_list(ctx->list, ctx->head, ctx->list);
+      PL_unify_atom(ctx->head, a);
+    }
   }
 
   switch(t->type)
@@ -2199,6 +2207,10 @@ build_list(Token t, void *context)
     case TOK_WORD:
       PL_unify_atom_chars(ctx->head, t->value.string);
       break;
+    case TOK_SPACE:
+    case TOK_LINE:
+      PL_unify_atom(ctx->head, ATOM_space);
+      break;
   }
 
 out:
@@ -2247,6 +2259,26 @@ cmd_prolog(Command g, Input fd, CallBack func, void *ctx)
   PL_discard_foreign_frame(f);
 
   cmd_normal(g, fd, func, ctx);
+}
+
+
+foreign_t
+pl_tex_emit_spaces(term_t old, term_t new)
+{ if ( PL_unify_atom(old, emit_space ? ATOM_true : ATOM_false) )
+  { atom_t a;
+
+    if ( PL_get_atom(new, &a) )
+    { if ( a == ATOM_true )
+      { emit_space = 1;
+	return TRUE;
+      } else
+      { emit_space = 0;
+	return TRUE;
+      }
+    }
+  }
+
+  return FALSE;
 }
 
 
@@ -2663,6 +2695,7 @@ install()
 									  0);
   PL_register_foreign("tex_command_function", 2, pl_tex_command_function, 0);
   PL_register_foreign("tex_atom_to_tokens",   2, pl_tex_atom_to_tokens,   0);
+  PL_register_foreign("tex_emit_spaces",      2, pl_tex_emit_spaces,      0);
 
   ppctx.envnesting   = 0;		/* seperate predicate? */
   ppctx.last_type    = TOK_EOF;
