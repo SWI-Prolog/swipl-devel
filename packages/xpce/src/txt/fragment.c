@@ -561,24 +561,24 @@ getContainedInFragment(Fragment f)
 
 /* Type declarations */
 
-static const char *T_insert[] =
+static char *T_insert[] =
         { "[int]", "char_array" };
-static const char *T_delete[] =
+static char *T_delete[] =
         { "from=int", "length=[int]" };
-static const char *T_start[] =
+static char *T_start[] =
         { "int", "move_end=[bool]" };
-static const char *T_convertOldSlot[] =
+static char *T_convertOldSlot[] =
         { "name", "any" };
-static const char *T_sub[] =
+static char *T_sub[] =
         { "start=int", "end=[int]" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "text=text_buffer", "start=int", "length=int", "style=[name]" };
-static const char *T_include[] =
+static char *T_include[] =
         { "what=[{start,end,both}]", "include=[bool]" };
 
 /* Instance Variables */
 
-static const vardecl var_fragment[] =
+static vardecl var_fragment[] =
 { IV(NAME_textBuffer, "text_buffer", IV_GET,
      NAME_whole, "Text_buffer I'm a range of"),
   IV(NAME_next, "fragment*", IV_NONE,
@@ -597,7 +597,7 @@ static const vardecl var_fragment[] =
 
 /* Send Methods */
 
-static const senddecl send_fragment[] =
+static senddecl send_fragment[] =
 { SM(NAME_initialise, 4, T_initialise, initialiseFragment,
      DEFAULT, "Create from text_buffer, start, length, style"),
   SM(NAME_unlink, 0, NULL, unlinkFragment,
@@ -632,7 +632,7 @@ static const senddecl send_fragment[] =
 
 /* Get Methods */
 
-static const getdecl get_fragment[] =
+static getdecl get_fragment[] =
 { GM(NAME_containedIn, 0, "editor", NULL, getContainedInFragment,
      DEFAULT, "editor object I'm contained in"),
   GM(NAME_string, 0, "string", NULL, getStringFragment,
@@ -653,9 +653,12 @@ static const getdecl get_fragment[] =
 
 /* Resources */
 
-static const resourcedecl rc_fragment[] =
+#define rc_fragment NULL
+/*
+static resourcedecl rc_fragment[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

@@ -196,8 +196,7 @@ handleInputStream(Stream s)
 
 	markAnswerStack(mark);
 	size = valInt(getRegisterEndRegex(s->record_separator, ZERO));
-	q.encoding = ENC_ASCII;
-	q.b16 = FALSE;
+	str_inithdr(&q, ENC_ASCII);
 	q.size = size;
 	q.s_text8 = s->input_buffer;
 	str = StringToString(&q);
@@ -312,14 +311,14 @@ recordSeparatorStream(Stream s, Regex re)
 
 /* Type declarations */
 
-static const char *T_format[] =
+static char *T_format[] =
         { "format=char_array", "argument=any ..." };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "rfd=[int]", "wfd=[int]", "input_message=[code]", "record_separator=[regex]" };
 
 /* Instance Variables */
 
-static const vardecl var_stream[] =
+static vardecl var_stream[] =
 { IV(NAME_inputMessage, "code*", IV_BOTH,
      NAME_input, "Forwarded on input from the stream"),
   SV(NAME_recordSeparator, "regex*", IV_GET|IV_STORE, recordSeparatorStream,
@@ -342,7 +341,7 @@ static const vardecl var_stream[] =
 
 /* Send Methods */
 
-static const senddecl send_stream[] =
+static senddecl send_stream[] =
 { SM(NAME_initialise, 4, T_initialise, initialiseStream,
      DEFAULT, "Create stream"),
   SM(NAME_unlink, 0, NULL, unlinkStream,
@@ -369,16 +368,19 @@ static const senddecl send_stream[] =
 
 /* Get Methods */
 
-static const getdecl get_stream[] =
+static getdecl get_stream[] =
 { GM(NAME_readLine, 1, "string", "[int]", getReadLineStream,
      NAME_input, "Read line with optional timeout (milliseconds)")
 };
 
 /* Resources */
 
-static const resourcedecl rc_stream[] =
+#define rc_stream NULL
+/*
+static resourcedecl rc_stream[] =
 { 
 };
+*/
 
 /* Class Declaration */
 
@@ -403,7 +405,7 @@ makeClassStream(Class class)
 
 /* Instance Variables */
 
-static const vardecl var_stream[] =
+static vardecl var_stream[] =
 { IV(NAME_inputMessage, "code*", IV_BOTH,
      NAME_input, "Forwarded on input from the stream"),
   IV(NAME_recordSeparator, "regex*", IV_GET,
@@ -426,21 +428,30 @@ static const vardecl var_stream[] =
 
 /* Send Methods */
 
-static const senddecl send_stream[] =
+#define send_stream NULL
+/*
+static senddecl send_stream[] =
 { 
 };
+*/
 
 /* Get Methods */
 
-static const getdecl get_stream[] =
+#define get_stream NULL
+/*
+static getdecl get_stream[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_stream[] =
+#define rc_stream NULL
+/*
+static resourcedecl rc_stream[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

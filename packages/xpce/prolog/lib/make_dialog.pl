@@ -54,7 +54,13 @@ make_dialog_item(Var := NewTerm) :-
 		 *******************************/
 
 modify(Ref := List) :-
-	forall(member(Attr := Value, List), send_list(Ref, Attr, Value)).
+	modify(List, Ref).
+
+modify([], _).
+modify([Attr := Value|T], Ref) :-
+	send_list(Ref, Attr, Value),
+	modify(T, Ref).
+
 
 		 /*******************************
 		 *	      POPUPS		*
@@ -79,6 +85,7 @@ layout(Dialog, right(I1, I2)) :- !,
 layout(Dialog, position(I1, Pos)) :-
 	send(Dialog, display, I1, Pos).
 layout(Dialog, area(I1, area(X,Y,W,H))) :-
+	send(I1, auto_align, @off),
 	send(I1, do_set, X, Y, W, H),
 	send(Dialog, display, I1).
 

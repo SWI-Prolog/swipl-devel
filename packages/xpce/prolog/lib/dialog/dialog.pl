@@ -106,7 +106,6 @@ behaviour_model(DI, Model:object) :<-
 
 edit_attributes(DI) :->
 	"Start attribute editor"::
-	trace,
 	get(DI?window, attribute_editor, Ed),
 	get(DI?window, mode, Mode),
 	get(DI, proto, Proto),
@@ -1055,8 +1054,11 @@ load(DE) :->
 
 rebind(DE, Loaded, File) :-
 	(   send(Loaded, instance_of, chain)
-	->  send(Loaded, for_all,
-		 message(@prolog, rebind, DE, @arg1, @default))
+	->  (   send(Loaded, empty)
+	    ->	send(DE, report, error, 'No dialog windows in %N', File)
+	    ;	send(Loaded, for_all,
+		     message(@prolog, rebind, DE, @arg1, @default))
+	    )
 	;   (   send(Loaded, instance_of, hyper)
 	    ->  get(Loaded, from, Target),
 		send(Loaded?to, relink)
@@ -1072,11 +1074,23 @@ rebind(DE, Loaded, File) :-
 	).
 
 
+current_dialog(Key, Module) :-
+	current_predicate(dialog, Module:dialog(_,_)),
+	Module:dialog(Key, _).
+
+
 reload(DE) :->
 	"Import from source"::
-	prompter('Import dialog from key',
-		 [ key:name = Key
-		 ]),
+	new(D, dialog('Import dialog from key')),
+	send(D, append, new(B, list_browser(@default, 30))),
+	forall(current_dialog(Key, _Module),
+	       (functor(Key, Id, _Arity),
+		send(B, append, Id))),
+	send(B, open_message, message(D, return, @arg1?key)),
+	send(D, append, button(load, message(D, return, B?selection?key))),
+	send(D, append, button(cancel, message(D, return, @nil))),
+	get(D, confirm_centered, DE?area?center, Key),
+	send(D, destroy),
 	load_dialog(Target, Key),
 	send(Target, name, Key),
 	get(DE, area, Area),

@@ -174,12 +174,12 @@ terminatePopupGesture(PopupGesture g, EventObj ev)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "popup=[popup|function]", "button=[button_name]", "modifier=[modifier]" };
 
 /* Instance Variables */
 
-static const vardecl var_popupGesture[] =
+static vardecl var_popupGesture[] =
 { IV(NAME_popup, "popup|function*", IV_BOTH,
      NAME_popup, "Popup displayed"),
   IV(NAME_current, "popup*", IV_NONE,
@@ -190,7 +190,7 @@ static const vardecl var_popupGesture[] =
 
 /* Send Methods */
 
-static const senddecl send_popupGesture[] =
+static senddecl send_popupGesture[] =
 { SM(NAME_drag, 1, "event", dragPopupGesture,
      DEFAULT, "Pass drag events to popup"),
   SM(NAME_initialise, 3, T_initialise, initialisePopupGesture,
@@ -207,13 +207,16 @@ static const senddecl send_popupGesture[] =
 
 /* Get Methods */
 
-static const getdecl get_popupGesture[] =
+#define get_popupGesture NULL
+/*
+static getdecl get_popupGesture[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_popupGesture[] =
+static resourcedecl rc_popupGesture[] =
 { RC(NAME_button, "button_name", "right",
      "Active on which button (right)"),
   RC(NAME_cursor, "cursor", "right_ptr",

@@ -29,6 +29,7 @@ status		storeCharpFile(FileObj f, char *s);
 status		storeNameFile(FileObj f, Name n);
 status		storeIntFile(FileObj f, Int i);
 status		findFile(FileObj f, CharArray path, Name mode);
+status		isAbsoluteFile(FileObj f);
 status		checkObjectFile(FileObj f);
 status		makeClassFile(Class class);
 

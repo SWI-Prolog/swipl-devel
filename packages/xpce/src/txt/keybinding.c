@@ -388,22 +388,22 @@ executeKeyBinding(KeyBinding kb, Any receiver, Name cmd, int argc, Any argv[])
 
 /* Type declarations */
 
-static const char *T_typed[] =
+static char *T_typed[] =
         { "id=event_id", "for=[object]" };
-static const char *T_fillArgumentsAndExecute[] =
+static char *T_fillArgumentsAndExecute[] =
         { "id=event_id", "receiver=object", "selector=name", "arguments=any ..." };
-static const char *T_function[] =
+static char *T_function[] =
         { "key=name|event_id", "action=name|code" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "name=[name]*", "super=key_binding ..." };
-static const char *T_lookup[] =
+static char *T_lookup[] =
         { "name", "key_binding ..." };
-static const char *T_execute[] =
+static char *T_execute[] =
         { "receiver=object", "selector=name", "arguments=any ..." };
 
 /* Instance Variables */
 
-static const vardecl var_keyBinding[] =
+static vardecl var_keyBinding[] =
 { IV(NAME_name, "name*", IV_GET,
      NAME_name, "Name of this binding-table"),
   IV(NAME_bindings, "sheet", IV_GET,
@@ -426,7 +426,7 @@ static const vardecl var_keyBinding[] =
 
 /* Send Methods */
 
-static const senddecl send_keyBinding[] =
+static senddecl send_keyBinding[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseKeyBinding,
      DEFAULT, "Create named binding-table with defaults"),
   SM(NAME_reset, 1, "[graphical]*", resetKeyBinding,
@@ -447,7 +447,7 @@ static const senddecl send_keyBinding[] =
 
 /* Get Methods */
 
-static const getdecl get_keyBinding[] =
+static getdecl get_keyBinding[] =
 { GM(NAME_receiver, 0, "graphical", NULL, getReceiverKeyBinding,
      NAME_client, "Client of the key_binding object"),
   GM(NAME_convert, 1, "key_binding", "name", getConvertKeyBinding,
@@ -462,9 +462,12 @@ static const getdecl get_keyBinding[] =
 
 /* Resources */
 
-static const resourcedecl rc_keyBinding[] =
+#define rc_keyBinding NULL
+/*
+static resourcedecl rc_keyBinding[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

@@ -118,15 +118,15 @@ ExecuteMessage(Message msg)
 
 /* Type declarations */
 
-static const char *T_argument[] =
+static char *T_argument[] =
         { "index=int", "value=any|function" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "receiver=object|function", "selector=name|function",
 	  "argument=any|function ..." };
 
 /* Instance Variables */
 
-static const vardecl var_message[] =
+static vardecl var_message[] =
 { IV(NAME_receiver, "object|function", IV_BOTH,
      NAME_storage, "Receiver of the operation"),
   IV(NAME_selector, "name|function", IV_BOTH,
@@ -139,7 +139,7 @@ static const vardecl var_message[] =
 
 /* Send Methods */
 
-static const senddecl send_message[] =
+static senddecl send_message[] =
 { SM(NAME_Execute, 0, NULL, ExecuteMessage,
      DEFAULT, "Send the message"),
   SM(NAME_initialise, 3, T_initialise, initialiseMessagev,
@@ -150,7 +150,7 @@ static const senddecl send_message[] =
 
 /* Get Methods */
 
-static const getdecl get_message[] =
+static getdecl get_message[] =
 { GM(NAME_Arg, 1, "any|function", "int", getArgMessage,
      DEFAULT, "Nth-1 argument for term description"),
   GM(NAME_Arity, 0, "int", NULL, getArityMessage,
@@ -161,9 +161,12 @@ static const getdecl get_message[] =
 
 /* Resources */
 
-static const resourcedecl rc_message[] =
+#define rc_message NULL
+/*
+static resourcedecl rc_message[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

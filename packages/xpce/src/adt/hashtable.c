@@ -501,16 +501,16 @@ getShiftsHashTable(HashTable ht)
 
 /* Type declaractions */
 
-static const char *T_actionAcode_safeADboolD[] =
+static char *T_actionAcode_safeADboolD[] =
         { "action=code", "safe=[bool]" };
-static const char *T_append[] =
+static char *T_append[] =
         { "key=any", "value=any" };
-static const char *T_convertOldSlot[] =
+static char *T_convertOldSlot[] =
         { "name", "any" };
 
 /* Instance Variables */
 
-static const vardecl var_hashTable[] =
+static vardecl var_hashTable[] =
 { IV(NAME_refer, "bool", IV_NONE,
      NAME_oms, "If @off, registers no references (internal)"),
   IV(NAME_size, "int", IV_GET,
@@ -523,7 +523,7 @@ static const vardecl var_hashTable[] =
 
 /* Send Methods */
 
-static const senddecl send_hashTable[] =
+static senddecl send_hashTable[] =
 { SM(NAME_initialise, 1, "buckets=[int]", initialiseHashTable,
      DEFAULT, "Create from buckets"),
   SM(NAME_unlink, 0, NULL, unlinkHashTable,
@@ -556,7 +556,7 @@ static const senddecl send_hashTable[] =
 
 /* Get Methods */
 
-static const getdecl get_hashTable[] =
+static getdecl get_hashTable[] =
 { GM(NAME_member, 1, "value=any", "key=any", getMemberHashTable,
      NAME_lookup, "Get associated value"),
   GM(NAME_findKey, 1, "key=any", "test=code", getFindKeyHashTable,
@@ -573,9 +573,12 @@ static const getdecl get_hashTable[] =
 
 /* Resources */
 
-static const resourcedecl rc_hashTable[] =
+#define rc_hashTable NULL
+/*
+static resourcedecl rc_hashTable[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

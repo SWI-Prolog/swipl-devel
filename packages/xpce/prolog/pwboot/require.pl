@@ -7,7 +7,7 @@
     Copyright (C) 1993 University of Amsterdam. All rights reserved.
 */
 
-:- module(require, [require/1, auto_call/1]).
+:- module(require, [require/1]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This file defines the  Prolog  predicate   require/1  which  allows  for
@@ -35,8 +35,7 @@ Auto_call/1 added for xpce 4.8.6
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- meta_predicate
-	require(:),
-	auto_call(:).
+	require(:).
 
 
 :- use_module(pce_utils, [strip_module/3]).
@@ -129,9 +128,3 @@ assert_index(index(Name, Arity, Module, File), _Index) :- !,
 assert_index(Term, Index) :-
 	print_message(warning, illegal_term_in_index(Term,Index)).
 
-
-auto_call(Goal) :-
-	strip_module(Goal, Module, Predicate),
-	functor(Predicate, Name, Arity),
-	require(Module, [Name/Arity]),
-	Goal.

@@ -26,12 +26,12 @@ initialiseBinding(Binding att, Any name, Any value)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "name=name", "value=any|function" };
 
 /* Instance Variables */
 
-static const vardecl locals_binding[] =
+static vardecl locals_binding[] =
 { IV(NAME_name, "name", IV_BOTH,
      NAME_argument, "Name of the binding"),
   IV(NAME_value, "any|function", IV_BOTH,
@@ -40,22 +40,28 @@ static const vardecl locals_binding[] =
 
 /* Send Methods */
 
-static const senddecl send_binding[] =
+static senddecl send_binding[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseBinding,
      DEFAULT, "Create binding from name and value")
 };
 
 /* Get Methods */
 
-static const getdecl get_binding[] =
+#define get_binding NULL
+/*
+static getdecl get_binding[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_binding[] =
+#define rc_binding NULL
+/*
+static resourcedecl rc_binding[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

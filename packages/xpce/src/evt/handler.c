@@ -55,12 +55,12 @@ eventHandler(Handler h, EventObj ev)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "event=event_id", "message=code*", "restrict_to=[region]" };
 
 /* Instance Variables */
 
-static const vardecl var_handler[] =
+static vardecl var_handler[] =
 { IV(NAME_event, "event_id", IV_GET,
      NAME_condition, "Type of the event"),
   IV(NAME_message, "code*", IV_BOTH,
@@ -71,7 +71,7 @@ static const vardecl var_handler[] =
 
 /* Send Methods */
 
-static const senddecl send_handler[] =
+static senddecl send_handler[] =
 { SM(NAME_initialise, 3, T_initialise, initialiseHandler,
      DEFAULT, "Create from event-type, message and region"),
   SM(NAME_event, 1, "event", eventHandler,
@@ -80,15 +80,21 @@ static const senddecl send_handler[] =
 
 /* Get Methods */
 
-static const getdecl get_handler[] =
+#define get_handler NULL
+/*
+static getdecl get_handler[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_handler[] =
+#define rc_handler NULL
+/*
+static resourcedecl rc_handler[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

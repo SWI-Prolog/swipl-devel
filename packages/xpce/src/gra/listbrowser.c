@@ -1371,22 +1371,22 @@ getMasterListBrowser(ListBrowser lb)
 
 /* Type declarations */
 
-static const char *T_scrollVertical[] =
+static char *T_scrollVertical[] =
         { "{forwards,backwards,goto}", "{file,page,line}", "int" };
-static const char *T_changeSelection[] =
+static char *T_changeSelection[] =
         { "action={set,toggle,clear}", "context=[dict_item]" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "dict=[dict]", "width=[int]", "height=[int]" };
-static const char *T_style[] =
+static char *T_style[] =
         { "style_name=name", "style=style" };
-static const char *T_insertSelf[] =
+static char *T_insertSelf[] =
         { "times=[int]", "character=[char]" };
-static const char *T_xADintD_yADintD_widthADintD_heightADintD[] =
+static char *T_xADintD_yADintD_widthADintD_heightADintD[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_listBrowser[] =
+static vardecl var_listBrowser[] =
 { SV(NAME_dict, "dict*", IV_GET|IV_STORE, dictListBrowser,
      NAME_delegate, "Associated dict object (table of items)"),
   IV(NAME_image, "text_image", IV_GET,
@@ -1433,7 +1433,7 @@ static const vardecl var_listBrowser[] =
 
 /* Send Methods */
 
-static const senddecl send_listBrowser[] =
+static senddecl send_listBrowser[] =
 { SM(NAME_compute, 0, NULL, computeListBrowser,
      DEFAULT, "Recompute the image"),
   SM(NAME_geometry, 4, T_xADintD_yADintD_widthADintD_heightADintD, geometryListBrowser,
@@ -1514,7 +1514,7 @@ static const senddecl send_listBrowser[] =
 
 /* Get Methods */
 
-static const getdecl get_listBrowser[] =
+static getdecl get_listBrowser[] =
 { GM(NAME_contains, 0, "chain", NULL, getContainsListBrowser,
      DEFAULT, "Dict visualised"),
   GM(NAME_master, 0, "device", NULL, getMasterListBrowser,
@@ -1551,7 +1551,7 @@ static const getdecl get_listBrowser[] =
 
 /* Resources */
 
-static const resourcedecl rc_listBrowser[] =
+static resourcedecl rc_listBrowser[] =
 { RC(NAME_background, "colour|pixmap", "white",
      "Colour/fill pattern of the background"),
   RC(NAME_clearSelectionOnSearch, "bool", "@on",

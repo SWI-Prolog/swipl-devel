@@ -45,12 +45,12 @@ ExecuteIf(If i)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "condition=code", "then=[code]*", "else=[code]*" };
 
 /* Instance Variables */
 
-static const vardecl var_if[] =
+static vardecl var_if[] =
 { IV(NAME_condition, "code", IV_BOTH,
      NAME_statement, "Condition to be tested"),
   IV(NAME_then, "code*", IV_BOTH,
@@ -61,7 +61,7 @@ static const vardecl var_if[] =
 
 /* Send Methods */
 
-static const senddecl send_if[] =
+static senddecl send_if[] =
 { SM(NAME_Execute, 0, NULL, ExecuteIf,
      DEFAULT, "Test condition and branch"),
   SM(NAME_initialise, 3, T_initialise, initialiseIf,
@@ -70,15 +70,21 @@ static const senddecl send_if[] =
 
 /* Get Methods */
 
-static const getdecl get_if[] =
+#define get_if NULL
+/*
+static getdecl get_if[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_if[] =
+#define rc_if NULL
+/*
+static resourcedecl rc_if[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

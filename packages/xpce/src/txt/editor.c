@@ -3812,47 +3812,47 @@ getMasterEditor(Editor e)
 
 /* Type declarations */
 
-static const char *T_align[] =
+static char *T_align[] =
         { "column=int", "index=[int]" };
-static const char *T_scrollVertical[] =
+static char *T_scrollVertical[] =
         { "direction={forwards,backwards,goto}",
 	  "unit={file,page,line}", "amount=int" };
-static const char *T_formatAchar_array_argumentAany_XXX[] =
+static char *T_formatAchar_array_argumentAany_XXX[] =
         { "format=char_array", "argument=any ..." };
-static const char *T_style[] =
+static char *T_style[] =
         { "fragment=name", "style=style" };
-static const char *T_fromADintD_toADintD[] =
+static char *T_fromADintD_toADintD[] =
         { "from=[int]", "to=[int]" };
-static const char *T_fromAint_toAint[] =
+static char *T_fromAint_toAint[] =
         { "from=int", "to=int" };
-static const char *T_fill[] =
+static char *T_fill[] =
         { "from=int", "to=int", "left_margin=[int]",
 	  "right_margin=[int]", "justify=[bool]" };
-static const char *T_indentation[] =
+static char *T_indentation[] =
         { "index=[int]", "skip=[regex]" };
-static const char *T_electricCaret[] =
+static char *T_electricCaret[] =
         { "index=int", "seconds=[real]" };
-static const char *T_int_int[] =
+static char *T_int_int[] =
         { "int", "int" };
-static const char *T_keyBinding[] =
+static char *T_keyBinding[] =
         { "key=name", "action=name|code" };
-static const char *T_report[] =
+static char *T_report[] =
         { "kind={status,inform,progress,done,warning,error}", "format=[char_array]", "argument=any ..." };
-static const char *T_selectLine[] =
+static char *T_selectLine[] =
         { "line=[int]", "newline=[bool]" };
-static const char *T_linesADintD_columnADintD[] =
+static char *T_linesADintD_columnADintD[] =
         { "lines=[int]", "column=[int]" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "text=[text_buffer]", "width=[int]", "height=[int]",
 	  "margin=[int]" };
-static const char *T_timesADintD_characterADcharD[] =
+static char *T_timesADintD_characterADcharD[] =
         { "times=[int]", "character=[char]" };
-static const char *T_geometry[] =
+static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_editor[] =
+static vardecl var_editor[] =
 { SV(NAME_textBuffer, "text_buffer", IV_GET|IV_STORE, textBufferEditor,
      NAME_delegate, "Underlying text"),
   IV(NAME_image, "text_image", IV_GET,
@@ -3939,7 +3939,7 @@ static const vardecl var_editor[] =
      NAME_cache, "Cache to compute fragment attributes")
 };
 
-static const senddecl send_editor[] =
+static senddecl send_editor[] =
 { SM(NAME_geometry, 4, T_geometry, geometryEditor,
      DEFAULT, "Resize the image"),
   SM(NAME_initialise, 4, T_initialise, initialiseEditor,
@@ -4220,7 +4220,7 @@ static const senddecl send_editor[] =
 
 /* Get Methods */
 
-static const getdecl get_editor[] =
+static getdecl get_editor[] =
 { GM(NAME_contains, 0, "visual", NULL, getContainsEditor,
      DEFAULT, "Visuals contained (fails)"),
   GM(NAME_convert, 1, "editor", "view", getConvertEditor,
@@ -4289,7 +4289,7 @@ static const getdecl get_editor[] =
 
 /* Resources */
 
-static const resourcedecl rc_editor[] =
+static resourcedecl rc_editor[] =
 { RC(NAME_background, "colour|pixmap", "white",
      "Colour/fill pattern of the background"),
   RC(NAME_caretModifier, "modifier", "",

@@ -174,33 +174,42 @@ out:
 
 /* Type declaractions */
 
-static const char *T_send[] =
+static char *T_send[] =
         { "receiver=object", "argument=unchecked ..." };
 
 /* Instance Variables */
 
-static const vardecl var_sendMethod[] =
+#define var_sendMethod NULL
+/*
+vardecl var_sendMethod[] =
 { 
 };
+*/
 
 /* Send Methods */
 
-static const senddecl send_sendMethod[] =
+static senddecl send_sendMethod[] =
 { SM(NAME_send, 2, T_send, sendSendMethod,
      NAME_execute, "Invoke send method on object")
 };
 
 /* Get Methods */
 
-static const getdecl get_sendMethod[] =
+#define get_sendMethod NULL
+/*
+static getdecl get_sendMethod[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_sendMethod[] =
+#define rc_sendMethod NULL
+/*
+static resourcedecl rc_sendMethod[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

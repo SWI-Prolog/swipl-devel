@@ -87,12 +87,12 @@ loadHyper(Hyper h, FILE *fd, ClassDef def)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "from=object", "to=object", "forward=name", "backward=[name]" };
 
 /* Instance Variables */
 
-static const vardecl var_hyper[] =
+static vardecl var_hyper[] =
 { IV(NAME_from, "object", IV_GET,
      NAME_client, "From side of hyper link"),
   IV(NAME_to, "object", IV_GET,
@@ -105,7 +105,7 @@ static const vardecl var_hyper[] =
 
 /* Send Methods */
 
-static const senddecl send_hyper[] =
+static senddecl send_hyper[] =
 { SM(NAME_initialise, 4, T_initialise, initialiseHyper,
      DEFAULT, "Create named link between objects"),
   SM(NAME_unlink, 0, NULL, unlinkHyper,
@@ -120,15 +120,21 @@ static const senddecl send_hyper[] =
 
 /* Get Methods */
 
-static const getdecl get_hyper[] =
+#define get_hyper NULL
+/*
+static getdecl get_hyper[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_hyper[] =
+#define rc_hyper NULL
+/*
+static resourcedecl rc_hyper[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

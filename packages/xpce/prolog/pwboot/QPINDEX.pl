@@ -52,6 +52,7 @@ index((pce_error), 1, pce_qux, pce_qux).
 index((pce_warn), 1, pce_qux, pce_qux).
 index((pce_info), 1, pce_qux, pce_qux).
 index((ignore), 1, pce_qux, pce_qux).
+index((auto_call), 1, pce_qux, pce_qux).
 index((concat), 3, pce_qux, pce_qux).
 index((free_variables), 2, pce_qux, pce_qux).
 index((atom_length), 2, pce_qux, pce_qux).
@@ -63,7 +64,7 @@ index((exists_file), 1, pce_qux, pce_qux).
 index((make), 0, pce_qux, pce_qux).
 index((source_warning), 2, pce_qux, pce_qux).
 index((sformat), 3, pce_qux, pce_qux).
-index((call_emacs), 2, pce_qux, pce_qux).
+index((defined_predicate), 1, pce_qux, pce_qux).
 index((is_absolute_file_name), 1, pce_qux, pce_qux).
 index((file_directory_name), 2, pce_qux, pce_qux).
 index((expand_file_name), 2, pce_qux, pce_qux).

@@ -214,14 +214,14 @@ do_expand((:- pce_end_class), Result) :-
 	method_clauses(ClassName, Clauses),
 	(   attribute(ClassName, extending, true)
 	->  dynamic_declaration([class(_,_,_,_,_,_)], ClassDecl),
+	    term_expand((:- initialization(pce_extended_class(ClassName))),
+			ExtendDecl),
 	    flatten([ Clauses,
 		      Decl1, SMS,
 		      Decl2, SGS,
 		      ClassDecl,
 		      ExtendDecl
-		    ], Result),
-	    term_expand((:- initialization(pce_extended_class(ClassName))),
-			ExtendDecl)
+		    ], Result)
 	;   retract(attribute(ClassName, super, Super)),
 	    retract(attribute(ClassName, meta, MetaClass)),
 	    findall(V, retract(attribute(ClassName, variable, V)),  Variables),
@@ -232,14 +232,14 @@ do_expand((:- pce_end_class), Result) :-
 			      Resources,
 			      Directs),
 	    dynamic_declaration([ClassFact], ClassDecl),
+	    term_expand((:- initialization(pce_register_class(ClassName))),
+			RegisterDecl),
 	    flatten([ Clauses,
 		      Decl1,	 SMS,
 		      Decl2,	 SGS,
 		      ClassDecl, ClassFact,
 		      RegisterDecl
-		    ], Result),
-	    term_expand((:- initialization(pce_register_class(ClassName))),
-			RegisterDecl)
+		    ], Result)
 	),
 	pop_class.
 do_expand((:- pce_group(Group)), []) :-

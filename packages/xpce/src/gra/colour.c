@@ -308,16 +308,16 @@ getIntensityColour(Colour c)
 
 /* Type declarations */
 
-static const char *T_lookup[] =
+static char *T_lookup[] =
         { "[name|int]", "red=[0..65535]", "green=[0..65535]",
 	  "blue=[0..65535]" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "name=[name]", "red=[0..65535]", "green=[0..65535]",
 	  "blue=[0..65535]" };
 
 /* Instance Variables */
 
-static const vardecl var_colour[] =
+static vardecl var_colour[] =
 { IV(NAME_name, "name|int", IV_GET,
      NAME_name, "Name of the colour"),
   IV(NAME_kind, "{named,rgb}", IV_NONE,
@@ -332,7 +332,7 @@ static const vardecl var_colour[] =
 
 /* Send Methods */
 
-static const senddecl send_colour[] =
+static senddecl send_colour[] =
 { SM(NAME_initialise, 4, T_initialise, initialiseColour,
      DEFAULT, "Create from name and optional rgb"),
   SM(NAME_unlink, 0, NULL, unlinkColour,
@@ -345,7 +345,7 @@ static const senddecl send_colour[] =
 
 /* Get Methods */
 
-static const getdecl get_colour[] =
+static getdecl get_colour[] =
 { GM(NAME_hilite, 0, "colour", NULL, getHiliteColour,
      NAME_3d, "Hilited version of the colour"),
   GM(NAME_reduce, 0, "colour", NULL, getReduceColour,
@@ -362,7 +362,7 @@ static const getdecl get_colour[] =
 
 /* Resources */
 
-static const resourcedecl rc_colour[] =
+static resourcedecl rc_colour[] =
 { RC(NAME_hiliteFactor, "real", "0.9",
      "Factor for <-hilite'd colour"),
   RC(NAME_reduceFactor, "real", "0.5",

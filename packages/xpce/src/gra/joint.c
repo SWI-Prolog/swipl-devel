@@ -128,13 +128,13 @@ getArrowsJoint(Joint jt)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "x=[int]", "y=[int]", "width=[int]",
 	  "height=[int]", "arrows=[{none,first,second,both}]" };
 
 /* Instance Variables */
 
-static const vardecl var_joint[] =
+static vardecl var_joint[] =
 { SV(NAME_firstArrow, "arrow*", IV_GET|IV_STORE, firstArrowJoint,
      NAME_appearance, "Arrow on start-point"),
   SV(NAME_secondArrow, "arrow*", IV_GET|IV_STORE, secondArrowJoint,
@@ -143,7 +143,7 @@ static const vardecl var_joint[] =
 
 /* Send Methods */
 
-static const senddecl send_joint[] =
+static senddecl send_joint[] =
 { SM(NAME_initialise, 5, T_initialise, initialiseJoint,
      DEFAULT, "Create joint with bounding-box and arrows"),
   SM(NAME_arrows, 1, "arrows={none,first,second,both}", arrowsJoint,
@@ -152,7 +152,7 @@ static const senddecl send_joint[] =
 
 /* Get Methods */
 
-static const getdecl get_joint[] =
+static getdecl get_joint[] =
 { GM(NAME_arrows, 0, "arrows={none,first,second,both}", NULL, getArrowsJoint,
      NAME_appearance, "Which arrows are defined"),
   GM(NAME_defaultArrow, 0, "arrow", NULL, getDefaultArrowJoint,
@@ -161,9 +161,12 @@ static const getdecl get_joint[] =
 
 /* Resources */
 
-static const resourcedecl rc_joint[] =
+#define rc_joint NULL
+/*
+static resourcedecl rc_joint[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

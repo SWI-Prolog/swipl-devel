@@ -161,19 +161,19 @@ getValueNumber(Number n)
 
 /* Type declaractions */
 
-static const char *T_catchAll[] =
+static char *T_catchAll[] =
         { "selector=name", "argument=unchecked ..." };
 
 /* Instance Variables */
 
-static const vardecl var_number[] =
+static vardecl var_number[] =
 { IV(NAME_value, "int", IV_SEND,
      NAME_storage, "Value of number object")
 };
 
 /* Send Methods */
 
-static const senddecl send_number[] =
+static senddecl send_number[] =
 { SM(NAME_initialise, 1, "value=int", initialiseNumber,
      DEFAULT, "Create from integer"),
   SM(NAME_divide, 1, "int", divideNumber,
@@ -204,7 +204,7 @@ static const senddecl send_number[] =
 
 /* Get Methods */
 
-static const getdecl get_number[] =
+static getdecl get_number[] =
 { GM(NAME_convert, 1, "number", "any", getConvertNumber,
      DEFAULT, "Converts int, real and char_array"),
   GM(NAME_compare, 1, "{smaller,equal,larger}", "int", getCompareNumber,
@@ -219,9 +219,12 @@ static const getdecl get_number[] =
 
 /* Resources */
 
-static const resourcedecl rc_number[] =
+#define rc_number NULL
+/*
+static resourcedecl rc_number[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

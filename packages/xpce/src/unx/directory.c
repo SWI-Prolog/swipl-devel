@@ -390,14 +390,14 @@ getPrintNameDirectory(Directory dir)
 
 /* Type declarations */
 
-static const char *T_scan[] =
+static char *T_scan[] =
         { "files=chain*", "directories=chain*", "pattern=[regex]", "hidden_too=[bool]" };
-static const char *T_patternADregexD_hidden_tooADboolD[] =
+static char *T_patternADregexD_hidden_tooADboolD[] =
         { "pattern=[regex]", "hidden_too=[bool]" };
 
 /* Instance Variables */
 
-static const vardecl var_directory[] =
+static vardecl var_directory[] =
 { IV(NAME_name, "name", IV_GET,
      NAME_name, "Name of the directory"),
   IV(NAME_path, "name", IV_GET,
@@ -408,7 +408,7 @@ static const vardecl var_directory[] =
 
 /* Send Methods */
 
-static const senddecl send_directory[] =
+static senddecl send_directory[] =
 { SM(NAME_initialise, 1, "path=name", initialiseDirectory,
      DEFAULT, "Create from name"),
   SM(NAME_scan, 4, T_scan, scanDirectory,
@@ -433,7 +433,7 @@ static const senddecl send_directory[] =
 
 /* Get Methods */
 
-static const getdecl get_directory[] =
+static getdecl get_directory[] =
 { GM(NAME_printName, 0, "text=char_array", NULL, getPrintNameDirectory,
      DEFAULT, "Equivalent to <-path"),
   GM(NAME_directories, 2, "names=chain", T_patternADregexD_hidden_tooADboolD, getDirectoriesDirectory,
@@ -452,9 +452,12 @@ static const getdecl get_directory[] =
 
 /* Resources */
 
-static const resourcedecl rc_directory[] =
+#define rc_directory NULL
+/*
+static resourcedecl rc_directory[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

@@ -451,18 +451,18 @@ getParseParser(Parser p, Any input)
 
 /* Type declarations */
 
-static const char *T_buildTerm[] =
+static char *T_buildTerm[] =
         { "class=class", "argument=unchecked ..." };
-static const char *T_list[] =
+static char *T_list[] =
         { "end=[name]", "delimiter=[name]*", "functor=[name]" };
-static const char *T_active[] =
+static char *T_active[] =
         { "token=any", "message=code|function" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "tokeniser=tokeniser", "operators=operator..." };
 
 /* Instance Variables */
 
-static const vardecl var_parser[] =
+static vardecl var_parser[] =
 { IV(NAME_tokeniser, "tokeniser", IV_BOTH,
      NAME_syntax, "Tokeniser used for this parser"),
   IV(NAME_operators, "chain_table", IV_BOTH,
@@ -473,7 +473,7 @@ static const vardecl var_parser[] =
 
 /* Send Methods */
 
-static const senddecl send_parser[] =
+static senddecl send_parser[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseParserv,
      DEFAULT, "Create from tokeniser and operators"),
   SM(NAME_active, 2, T_active, activeParser,
@@ -484,7 +484,7 @@ static const senddecl send_parser[] =
 
 /* Get Methods */
 
-static const getdecl get_parser[] =
+static getdecl get_parser[] =
 { GM(NAME_buildTerm, 2, "object=unchecked", T_buildTerm, getBuildTermParser,
      NAME_build, "Create object from data read"),
   GM(NAME_list, 3, "object=unchecked", T_list, getListParser,
@@ -497,9 +497,12 @@ static const getdecl get_parser[] =
 
 /* Resources */
 
-static const resourcedecl rc_parser[] =
+#define rc_parser NULL
+/*
+static resourcedecl rc_parser[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

@@ -179,7 +179,7 @@ loadFdImage(Image image, FILE *fd, ClassDef def)
 
 					/* convert old path-representation */
   if ( notNil(image->file) &&
-       str_fetch(&image->file->name->data, 0) == '/' &&
+       isAbsoluteFile(image->file) &&
        getBaseNameFile(image->file) == image->name )
   { assign(image->file, path, image->file->name);
     assign(image->file, name, image->name);
@@ -730,31 +730,31 @@ standardImages(void)
 
 /* Type declarations */
 
-static const char *T_load[] =
+static char *T_load[] =
         { "from=[file]", "path=[char_array]" };
-static const char *T_drawIn[] =
+static char *T_drawIn[] =
         { "graphical", "at=[point]" };
-static const char *T_fill[] =
+static char *T_fill[] =
         { "image", "[area]" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
 	{ "name=[name]*", "width=[int]", "height=[int]",
 	  "kind=[{bitmap,pixmap}]" };
-static const char *T_image_atADpointD[] =
+static char *T_image_atADpointD[] =
         { "image", "at=[point]" };
-static const char *T_save[] =
+static char *T_save[] =
         { "in=[file]", "format=[{xbm,pnm,pbm,pgm,ppm}]" };
-static const char *T_postscript[] =
+static char *T_postscript[] =
         { "landscape=[bool]", "maximum_area=[area]" };
-static const char *T_resize[] =
+static char *T_resize[] =
         { "width=int", "height=int" };
-static const char *T_xAint_yAint[] =
+static char *T_xAint_yAint[] =
         { "x=int", "y=int" };
-static const char *T_pixel[] =
+static char *T_pixel[] =
         { "x=int", "y=int", "value=bool|colour" };
 
 /* Instance Variables */
 
-static const vardecl var_image[] =
+static vardecl var_image[] =
 { IV(NAME_name, "name*", IV_GET,
      NAME_name, "Name of the image"),
   IV(NAME_kind, "{bitmap,pixmap}", IV_GET,
@@ -781,7 +781,7 @@ static const vardecl var_image[] =
 
 /* Send Methods */
 
-static const senddecl send_image[] =
+static senddecl send_image[] =
 { SM(NAME_initialise, 4, T_initialise, initialiseImage,
      DEFAULT, "Create from name, [width, height, kind]"),
   SM(NAME_unlink, 0, NULL, unlinkImage,
@@ -826,7 +826,7 @@ static const senddecl send_image[] =
 
 /* Get Methods */
 
-static const getdecl get_image[] =
+static getdecl get_image[] =
 { GM(NAME_containedIn, 0, "bitmap", NULL, getContainedInImage,
      DEFAULT, "Equivalent to <-bitmap if ot @nil"),
   GM(NAME_convert, 1, "image", "bitmap|name|graphical", getConvertImage,
@@ -847,7 +847,7 @@ static const getdecl get_image[] =
 
 /* Resources */
 
-static const resourcedecl rc_image[] =
+static resourcedecl rc_image[] =
 { RC(NAME_path, "string",
      "\".:bitmaps:~/lib/bitmaps:$PCEHOME/bitmaps:" /* concat */
      "/usr/include/X11/bitmaps\"",

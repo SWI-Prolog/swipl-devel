@@ -293,18 +293,18 @@ reportLabel(Label lb, Name kind, CharArray fmt, int argc, Any *argv)
 
 /* Type declarations */
 
-static const char *T_report[] =
+static char *T_report[] =
         { "kind={status,inform,progress,done,warning,error}", "format=[char_array]", "argument=any ..." };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "name=[name]", "selection=[string|image]", "font=[font]" };
-static const char *T_format[] =
+static char *T_format[] =
         { "name", "any ..." };
-static const char *T_catchAll[] =
+static char *T_catchAll[] =
         { "name", "unchecked ..." };
 
 /* Instance Variables */
 
-static const vardecl var_label[] =
+static vardecl var_label[] =
 { SV(NAME_font, "font", IV_GET|IV_STORE, fontLabel,
      NAME_appearance, "Font for selection"),
   SV(NAME_length, "int", IV_GET|IV_STORE, lengthLabel,
@@ -317,7 +317,7 @@ static const vardecl var_label[] =
 
 /* Send Methods */
 
-static const senddecl send_label[] =
+static senddecl send_label[] =
 { SM(NAME_compute, 0, NULL, computeLabel,
      DEFAULT, "Recompute layout"),
   SM(NAME_status, 1, "{inactive,active,preview,execute}", statusLabel,
@@ -340,14 +340,14 @@ static const senddecl send_label[] =
 
 /* Get Methods */
 
-static const getdecl get_label[] =
+static getdecl get_label[] =
 { GM(NAME_reference, 0, "point", NULL, getReferenceLabel,
      DEFAULT, "Baseline or bottom (image)")
 };
 
 /* Resources */
 
-static const resourcedecl rc_label[] =
+static resourcedecl rc_label[] =
 { RC(NAME_border, "0..", "0",
      "Space around image/string"),
   RC(NAME_font, "font", "normal",

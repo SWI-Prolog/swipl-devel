@@ -167,12 +167,12 @@ imageTextCursor(TextCursor c, Image image, Point hot)
 
 /* Type declarations */
 
-static const char *T_set[] =
+static char *T_set[] =
         { "x=int", "y=int", "width=int", "height=int", "baseline=int" };
 
 /* Instance Variables */
 
-static const vardecl var_textCursor[] =
+static vardecl var_textCursor[] =
 { SV(NAME_style, "{arrow,image,block,open_look}", IV_GET|IV_STORE,
      styleTextCursor,
      NAME_appearance, "How the text_cursor object is visualised"),
@@ -184,7 +184,7 @@ static const vardecl var_textCursor[] =
 
 /* Send Methods */
 
-static const senddecl send_textCursor[] =
+static senddecl send_textCursor[] =
 { SM(NAME_initialise, 1, "for=[font]", initialiseTextCursor,
      DEFAULT, "Create for specified font"),
   SM(NAME_font, 1, "font", fontTextCursor,
@@ -195,13 +195,16 @@ static const senddecl send_textCursor[] =
 
 /* Get Methods */
 
-static const getdecl get_textCursor[] =
+#define get_textCursor NULL
+/*
+static getdecl get_textCursor[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_textCursor[] =
+static resourcedecl rc_textCursor[] =
 { RC(NAME_fixedFontStyle, "name", "block",
      "->style for fixed fonts"),
   RC(NAME_proportionalFontStyle, "name", "open_look",

@@ -144,16 +144,16 @@ createSpatial(Spatial s, Any from, Any to)
 
 /* Type declarations */
 
-static const char *T_create[] =
+static char *T_create[] =
         { "from=graphical*", "to=graphical*" };
-static const char *T_fromAgraphical_toAgraphical[] =
+static char *T_fromAgraphical_toAgraphical[] =
         { "from=graphical", "to=graphical" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "x1=[=]*", "y1=[=]*", "x2=[=]*", "y2=[=]*", "width=[=]*", "height=[=]*" };
 
 /* Instance Variables */
 
-static const vardecl var_spatial[] =
+static vardecl var_spatial[] =
 { IV(NAME_xFrom, "=*", IV_BOTH,
      NAME_position, "X of reference at `from' (XYHW -> xref)"),
   IV(NAME_yFrom, "=*", IV_BOTH,
@@ -170,7 +170,7 @@ static const vardecl var_spatial[] =
 
 /* Send Methods */
 
-static const senddecl send_spatial[] =
+static senddecl send_spatial[] =
 { SM(NAME_backwards, 2, T_fromAgraphical_toAgraphical, backwardsSpatial,
      DEFAULT, "Maintain after `from' has changed"),
   SM(NAME_create, 2, T_create, createSpatial,
@@ -183,15 +183,21 @@ static const senddecl send_spatial[] =
 
 /* Get Methods */
 
-static const getdecl get_spatial[] =
+#define get_spatial NULL
+/*
+static getdecl get_spatial[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_spatial[] =
+#define rc_spatial NULL
+/*
+static resourcedecl rc_spatial[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

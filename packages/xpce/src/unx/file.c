@@ -218,16 +218,22 @@ getAbsolutePathFile(FileObj f)
 }
 
 
-static status
+status
 isAbsoluteFile(FileObj f)
-{ char *name = expandFileName(strName(f->name));
+{ char *name = strName(f->name);
+  int n;
 
+  for(n=0; n < 2; n++)
+  {
 #ifdef __WIN32__
-  if ( isletter(name[0]) && name[1] == ':' )
-    succeed;
+    if ( isletter(name[0]) && name[1] == ':' )
+      succeed;
 #endif
-  if ( name[0] == '/' )
-    succeed;
+    if ( name[0] == '/' )
+      succeed;
+
+    name = expandFileName(name);
+  }
 
   fail;
 }
@@ -991,21 +997,21 @@ checkObjectFile(FileObj f)
 
 /* Type declarations */
 
-static const char *T_seek[] =
+static char *T_seek[] =
         { "byte=int", "from=[{start,here,end}]" };
-static const char *T_format[] =
+static char *T_format[] =
         { "format=char_array", "argument=any ..." };
-static const char *T_open[] =
+static char *T_open[] =
         { "mode={read,write,append}", "filter=[name]",
 	  "extension=[char_array]" };
-static const char *T_find[] =
+static char *T_find[] =
         { "path=[char_array]", "access=[{read,write,append,execute}]" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "path=[name]", "kind=[{text,binary}]" };
 
 /* Instance Variables */
 
-static const vardecl var_file[] =
+static vardecl var_file[] =
 { SV(NAME_name, "name=name", IV_GET|IV_STORE, nameFile,
      NAME_path, "Name of the file"),
   IV(NAME_path, "path=[name]", IV_BOTH,
@@ -1022,7 +1028,7 @@ static const vardecl var_file[] =
 
 /* Send Methods */
 
-static const senddecl send_file[] =
+static senddecl send_file[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseFile,
      DEFAULT, "Create from name and kind"),
   SM(NAME_unlink, 0, NULL, unlinkFile,
@@ -1065,7 +1071,7 @@ static const senddecl send_file[] =
 
 /* Get Methods */
 
-static const getdecl get_file[] =
+static getdecl get_file[] =
 { GM(NAME_convert, 1, "file", "path=name", getConvertFile,
      DEFAULT, "Convert name to file"),
   GM(NAME_backupFileName, 1, "char_array", "extension=[char_array]",
@@ -1097,9 +1103,12 @@ static const getdecl get_file[] =
 
 /* Resources */
 
-static const resourcedecl rc_file[] =
+#define rc_file NULL
+/*
+static resourcedecl rc_file[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

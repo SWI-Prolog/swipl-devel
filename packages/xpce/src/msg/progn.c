@@ -90,14 +90,14 @@ getArgProgn(Progn p, Int n)
 
 /* Instance Variables */
 
-static const vardecl var_progn[] =
+static vardecl var_progn[] =
 { IV(NAME_members, "chain", IV_GET,
      NAME_statement, "Statements and return function")
 };
 
 /* Send Methods */
 
-static const senddecl send_progn[] =
+static senddecl send_progn[] =
 { SM(NAME_initialise, 1, "statement=code|any ...", initialisePrognv,
      DEFAULT, "Create progn from statements and return"),
   SM(NAME_append, 1, "code|any", appendProgn,
@@ -106,7 +106,7 @@ static const senddecl send_progn[] =
 
 /* Get Methods */
 
-static const getdecl get_progn[] =
+static getdecl get_progn[] =
 { GM(NAME_Arg, 1, "code", "int", getArgProgn,
      DEFAULT, "Nth-1 argument for term description"),
   GM(NAME_Arity, 0, "int", NULL, getArityProgn,
@@ -117,9 +117,12 @@ static const getdecl get_progn[] =
 
 /* Resources */
 
-static const resourcedecl rc_progn[] =
+#define rc_progn NULL
+/*
+static resourcedecl rc_progn[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

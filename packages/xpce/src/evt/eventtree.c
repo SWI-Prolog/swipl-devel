@@ -59,7 +59,7 @@ getNodeEventTree(EventTreeObj t, Any value)
 
 /* Instance Variables */
 
-static const vardecl var_eventTree[] =
+static vardecl var_eventTree[] =
 { SV(NAME_root, "event_node", IV_GET|IV_STORE, rootEventTree,
      NAME_hierarchy, "Root node of the hierarchy"),
   IV(NAME_table, "hash_table", IV_NONE,
@@ -68,23 +68,26 @@ static const vardecl var_eventTree[] =
 
 /* Send Methods */
 
-static const senddecl send_eventTree[] =
+static senddecl send_eventTree[] =
 { SM(NAME_initialise, 1, "root=[event_node]", initialiseEventTree,
      DEFAULT, "Create from root node")
 };
 
 /* Get Methods */
 
-static const getdecl get_eventTree[] =
+static getdecl get_eventTree[] =
 { GM(NAME_node, 1, "event_node", "event_id", getNodeEventTree,
      NAME_lookup, "Find a node from it's associated value")
 };
 
 /* Resources */
 
-static const resourcedecl rc_eventTree[] =
+#define rc_eventTree NULL
+/*
+static resourcedecl rc_eventTree[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

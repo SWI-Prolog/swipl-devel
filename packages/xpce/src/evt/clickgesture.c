@@ -108,12 +108,12 @@ terminateClickGesture(ClickGesture g, EventObj ev)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "button=[button_name]", "modifier=[modifier]", "multiple=[{single,double,triple}]", "message=[code]*", "preview=[code]*", "cancel=[code]*" };
 
 /* Instance Variables */
 
-static const vardecl var_clickGesture[] =
+static vardecl var_clickGesture[] =
 { IV(NAME_multiclick, "[{single,double,triple}]", IV_BOTH,
      NAME_modifier, "Demand single, double or triple click"),
   IV(NAME_downPosition, "point", IV_GET,
@@ -132,7 +132,7 @@ static const vardecl var_clickGesture[] =
 
 /* Send Methods */
 
-static const senddecl send_clickGesture[] =
+static senddecl send_clickGesture[] =
 { SM(NAME_cancel, 1, "event", cancelClickGesture,
      DEFAULT, "Cancel this gesture and try the next"),
   SM(NAME_drag, 1, "event", dragClickGesture,
@@ -149,13 +149,16 @@ static const senddecl send_clickGesture[] =
 
 /* Get Methods */
 
-static const getdecl get_clickGesture[] =
+#define get_clickGesture NULL
+/*
+static getdecl get_clickGesture[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_clickGesture[] =
+static resourcedecl rc_clickGesture[] =
 { RC(NAME_button, "button_name", "left",
      "Active on which button (left)"),
   RC(NAME_cursor, "[cursor]", "@default",

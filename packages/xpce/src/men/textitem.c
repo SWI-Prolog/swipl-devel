@@ -889,18 +889,18 @@ WantsKeyboardFocusTextItem(TextItem ti)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "name=[name]", "default=[any|function]", "message=[code]*" };
-static const char *T_delegate[] =
+static char *T_delegate[] =
         { "program_object", "text", "unchecked ..." };
-static const char *T_selectCompletion[] =
+static char *T_selectCompletion[] =
         { "value_set=chain", "prefix=[char_array]" };
-static const char *T_geometry[] =
+static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_textItem[] =
+static vardecl var_textItem[] =
 { SV(NAME_selection, "any", IV_NONE|IV_STORE, selectionTextItem,
      NAME_selection, "Current value"),
   IV(NAME_default, "any|function", IV_NONE,
@@ -931,7 +931,7 @@ static const vardecl var_textItem[] =
 
 /* Send Methods */
 
-static const senddecl send_textItem[] =
+static senddecl send_textItem[] =
 { SM(NAME_compute, 0, NULL, computeTextItem,
      DEFAULT, "Compute desired size"),
   SM(NAME_geometry, 4, T_geometry, geometryTextItem,
@@ -992,7 +992,7 @@ static const senddecl send_textItem[] =
 
 /* Get Methods */
 
-static const getdecl get_textItem[] =
+static getdecl get_textItem[] =
 { GM(NAME_reference, 0, "point", NULL, getReferenceTextItem,
      DEFAULT, "Baseline of label"),
   GM(NAME_default, 0, "any", NULL, getDefaultTextItem,
@@ -1015,7 +1015,7 @@ static const getdecl get_textItem[] =
 
 /* Resources */
 
-static const resourcedecl rc_textItem[] =
+static resourcedecl rc_textItem[] =
 { RC(NAME_border, "0..", "0",
      "Border around <-value_text"),
   RC(NAME_length, "int", "25",

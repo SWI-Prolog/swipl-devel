@@ -26,18 +26,21 @@ ignoreReleation(Relation r, Any from, Any to)
 
 /* Type declarations */
 
-static const char *T_fromAobject_toAobject[] =
+static char *T_fromAobject_toAobject[] =
         { "from=object", "to=object" };
 
 /* Instance Variables */
 
-static const vardecl var_relation[] =
+#define var_relation NULL
+/*
+vardecl var_relation[] =
 { 
 };
+*/
 
 /* Send Methods */
 
-static const senddecl send_relation[] =
+static senddecl send_relation[] =
 { SM(NAME_backwards, 2, T_fromAobject_toAobject, ignoreReleation,
      NAME_constraint, "Called to update after a change of `to'"),
   SM(NAME_create, 2, T_fromAobject_toAobject, createRelation,
@@ -48,15 +51,21 @@ static const senddecl send_relation[] =
 
 /* Get Methods */
 
-static const getdecl get_relation[] =
+#define get_relation NULL
+/*
+static getdecl get_relation[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_relation[] =
+#define rc_relation NULL
+/*
+static resourcedecl rc_relation[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

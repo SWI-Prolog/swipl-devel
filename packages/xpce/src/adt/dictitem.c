@@ -165,12 +165,12 @@ getContainedInDictItem(DictItem di)
 
 /* Type declaractions */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "key=any", "label=[char_array]", "object=[any]*", "style=[name]" };
 
 /* Instance Variables */
 
-static const vardecl var_dictItem[] =
+static vardecl var_dictItem[] =
 { SV(NAME_key, "any", IV_GET|IV_STORE, keyDictItem,
      NAME_value, "Key used to index from dict"),
   SV(NAME_label, "[char_array]", IV_NONE|IV_STORE, labelDictItem,
@@ -187,7 +187,7 @@ static const vardecl var_dictItem[] =
 
 /* Send Methods */
 
-static const senddecl send_dictItem[] =
+static senddecl send_dictItem[] =
 { SM(NAME_initialise, 4, T_initialise, initialiseDictItem,
      DEFAULT, "Create from key, label, object and style"),
   SM(NAME_unlink, 0, NULL, unlinkDictItem,
@@ -196,7 +196,7 @@ static const senddecl send_dictItem[] =
 
 /* Get Methods */
 
-static const getdecl get_dictItem[] =
+static getdecl get_dictItem[] =
 { GM(NAME_containedIn, 0, "dict", NULL, getContainedInDictItem,
      DEFAULT, "dict object I'm contained in"),
   GM(NAME_convert, 1, "dict_item", "any", getConvertDictItem,
@@ -211,9 +211,12 @@ static const getdecl get_dictItem[] =
 
 /* Resources */
 
-static const resourcedecl rc_dictItem[] =
+#define rc_dictItem NULL
+/*
+static resourcedecl rc_dictItem[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

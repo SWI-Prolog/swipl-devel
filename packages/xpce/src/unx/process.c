@@ -634,16 +634,16 @@ directoryProcess(Process p, Directory dir)
 
 /* Type declarations */
 
-static const char *T_open[] =
+static char *T_open[] =
         { "command=[char_array]", "argument=char_array ..." };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "command=char_array", "argument=char_array ..." };
-static const char *T_environment[] =
+static char *T_environment[] =
         { "name=name", "value=char_array" };
 
 /* Instance Variables */
 
-static const vardecl var_process[] =
+static vardecl var_process[] =
 { IV(NAME_name, "char_array", IV_GET,
      NAME_command, "Name of command executed"),
   IV(NAME_arguments, "vector", IV_GET,
@@ -668,7 +668,7 @@ static const vardecl var_process[] =
 
 /* Send Methods */
 
-static const senddecl send_process[] =
+static senddecl send_process[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseProcess,
      DEFAULT, "Create process from command and arguments"),
   SM(NAME_unlink, 0, NULL, unlinkProcess,
@@ -695,16 +695,19 @@ static const senddecl send_process[] =
 
 /* Get Methods */
 
-static const getdecl get_process[] =
+static getdecl get_process[] =
 { GM(NAME_environment, 0, "sheet", NULL, getEnvironmentProcess,
      NAME_environment, "Sheet with process' environment")
 };
 
 /* Resources */
 
-static const resourcedecl rc_process[] =
+#define rc_process NULL
+/*
+static resourcedecl rc_process[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

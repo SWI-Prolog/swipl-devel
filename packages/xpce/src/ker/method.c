@@ -647,17 +647,17 @@ getPrintNameMethod(Method m)
 
 /* Type declaractions */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "name=name", "types=[vector]",
 	  "implementation=code|c_pointer", "summary=[string]*",
 	  "source=[source_location]*", "group=[name]*" };
-static const char *T_printTraceMessage[] =
+static char *T_printTraceMessage[] =
         { "port={enter,exit,fail}*", "receiver=unchecked",
 	  "arguments=vector" };
 
 /* Instance Variables */
 
-static const vardecl var_method[] =
+static vardecl var_method[] =
 { IV(NAME_group, "[name]", IV_NONE,
      NAME_manual, "Conceptual group of method"),
   IV(NAME_types, "vector", IV_GET,
@@ -676,7 +676,7 @@ static const vardecl var_method[] =
 
 /* Send Methods */
 
-static const senddecl send_method[] =
+static senddecl send_method[] =
 { SM(NAME_initialise, 6, T_initialise, initialiseMethod,
      DEFAULT, "Create from name, types, code and doc"),
 #ifndef O_RUNTIME
@@ -692,7 +692,7 @@ static const senddecl send_method[] =
 
 /* Get Methods */
 
-static const getdecl get_method[] =
+static getdecl get_method[] =
 { GM(NAME_summary, 0, "string", NULL, getSummaryMethod,
      DEFAULT, "<-summary or try to infer summary"),
   GM(NAME_accessArrow, 0, "{<-,->}", NULL, getAccessArrowMethod,
@@ -721,9 +721,12 @@ static const getdecl get_method[] =
 
 /* Resources */
 
-static const resourcedecl rc_method[] =
+#define rc_method NULL
+/*
+static resourcedecl rc_method[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

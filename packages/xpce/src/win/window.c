@@ -65,6 +65,7 @@ loadWindow(PceWindow sw, FILE *fd, ClassDef def)
 { TRY(loadSlotsObject(sw, fd, def));
 
   sw->ws_ref = NULL;
+  assign(sw, displayed, OFF);
   if ( isNil(sw->has_pointer) )
     assign(sw, has_pointer, OFF);
 
@@ -1258,7 +1259,7 @@ focusCursorWindow(PceWindow sw, CursorObj cursor)
 
 
 static CursorObj
-getFindCursorWindow(PceWindow sw)
+getDisplayedCursorWindow(PceWindow sw)
 { CursorObj rval;
 
   if ( notNil(sw->focus) )
@@ -1268,7 +1269,7 @@ getFindCursorWindow(PceWindow sw)
       answer(sw->focus->cursor);
   }    
   
-  if ( notNil(rval = getFindCursorDevice((Device) sw)) )
+  if ( notNil(rval = getDisplayedCursorDevice((Device) sw)) )
     answer(rval);
 
   answer(sw->cursor);
@@ -1278,7 +1279,7 @@ getFindCursorWindow(PceWindow sw)
 status
 updateCursorWindow(PceWindow sw)
 { if ( ws_created_window(sw) )
-  { CursorObj cursor = getFindCursorWindow(sw);
+  { CursorObj cursor = getDisplayedCursorWindow(sw);
 
     if ( sw->displayed_cursor != cursor )
     { assign(sw, displayed_cursor, cursor);
@@ -1759,32 +1760,32 @@ catchAllWindowv(PceWindow sw, Name selector, int argc, Any *argv)
 
 /* Type declarations */
 
-static const char *T_open[] =
+static char *T_open[] =
         { "[point]", "normalise=[bool]" };
-static const char *T_LforwardsObackwardsOgotoL_LpageOfileOlineL_int[] =
+static char *T_LforwardsObackwardsOgotoL_LpageOfileOlineL_int[] =
         { "{forwards,backwards,goto}", "{page,file,line}", "int" };
-static const char *T_decorate[] =
+static char *T_decorate[] =
         { "area=[{grow,shrink}]", "left_margin=[int]", "right_margin=[int]", "top_margin=[int]", "bottom_margin=[int]", "decorator=[window]" };
-static const char *T_confirmCentered[] =
+static char *T_confirmCentered[] =
         { "center=[point]", "grab=[bool]" };
-static const char *T_typed[] =
+static char *T_typed[] =
         { "event_id", "delegate=[bool]" };
-static const char *T_focus[] =
+static char *T_focus[] =
         { "graphical*", "[recogniser]*", "[cursor]*", "[name]*" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "label=[name]", "size=[size]", "display=[display]" };
-static const char *T_catchAll[] =
+static char *T_catchAll[] =
         { "name", "unchecked ..." };
-static const char *T_changedUnion[] =
+static char *T_changedUnion[] =
         { "ox=int", "oy=int", "ow=int", "oh=int" };
-static const char *T_confirm[] =
+static char *T_confirm[] =
         { "position=[point]", "grab=[bool]", "normalise=[bool]" };
-static const char *T_geometry[] =
+static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_window[] =
+static vardecl var_window[] =
 { IV(NAME_frame, "frame*", IV_NONE,
      NAME_organisation, "Frame the window is member of"),
   IV(NAME_decoration, "window_decorator*", IV_GET,
@@ -1834,7 +1835,7 @@ static const vardecl var_window[] =
 
 /* Send Methods */
 
-static const senddecl send_window[] =
+static senddecl send_window[] =
 { SM(NAME_destroy, 0, NULL, destroyWindow,
      DEFAULT, "->destroy associated frame"),
   SM(NAME_device, 1, "device*", deviceWindow,
@@ -1933,7 +1934,7 @@ static const senddecl send_window[] =
 
 /* Get Methods */
 
-static const getdecl get_window[] =
+static getdecl get_window[] =
 { GM(NAME_containedIn, 0, "frame|device", NULL, getContainedInWindow,
      DEFAULT, "Frame/graphical device I'm contained in"),
   GM(NAME_convert, 1, "window", "graphical", getConvertWindow,
@@ -1948,6 +1949,8 @@ static const getdecl get_window[] =
      NAME_area, "Union of graphicals"),
   GM(NAME_visible, 0, "area", NULL, getVisibleWindow,
      NAME_area, "New area representing visible part"),
+  GM(NAME_displayedCursor, 0, "cursor*", NULL, getDisplayedCursorDevice,
+     NAME_cursor, "Currently displayed cursor"),
   GM(NAME_confirm, 3, "any", T_confirm, getConfirmWindow,
      NAME_modal, "Run sub event-loop until ->return"),
   GM(NAME_confirmCentered, 2, "any", T_confirmCentered, getConfirmCenteredWindow,
@@ -1956,7 +1959,7 @@ static const getdecl get_window[] =
 
 /* Resources */
 
-static const resourcedecl rc_window[] =
+static resourcedecl rc_window[] =
 { RC(NAME_background, "colour|pixmap", "white",
      "Colour/fill pattern of the background"),
   RC(NAME_cursor, "cursor", "top_left_arrow",

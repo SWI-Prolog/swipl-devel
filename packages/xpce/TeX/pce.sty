@@ -1,6 +1,6 @@
 %			PCE DOCUMENTATION STYLE
 
-\newcommand{\pceversion}{4.8.15, December 1995}
+\newcommand{\pceversion}{4.8.16, January 1996}
 
 %	Other styles
 
@@ -95,14 +95,36 @@
 	\index{#2()}\label{func:#2}\relax}
 
 \renewcommand{\arg}[1]{{\em #1}}
-\newcommand{\bnfmeta}[1]{$<${\it #1}$>$}
+\newcommand{\bnfmeta}[1]{$\langle\mbox{\it #1}\rangle$}
 
 \newcommand{\class}[1]{{\em #1}\index{#1 \string\idxtype{class}}}
+\newcommand{\classs}[1]{{\em #1s}\index{#1 \string\idxtype{class}}}
 \newcommand{\file}[1]{{\tt #1}\index{#1 \string\idxtype{file}}}
+\newcommand{\demo}[1]{{\sf #1}\index{#1 \string\idxtype{demo}}}
+\newcommand{\lib}[1]{library({\tt #1})\index{#1 \string\idxtype{library}}}
+\newcommand{\tool}[1]{{\em #1}\index{#1 \string\idxtype{tool}}}
 \newcommand{\const}[1]{{\tt #1}\index{#1 \string\idxtype{constant}}}
 \newcommand{\type}[1]{{\tt #1}}
 \newcommand{\idx}[1]{#1\index{#1}}
 \newcommand{\foreseen}[1]{\footnote{#1}}
+\newcommand{\email}[1]{\mbox{\tt #1}}
+
+\newlength{\clwidth}
+\newlength{\clhwidth}
+\newcommand{\classheader}[2]{%
+	\settowidth{\clwidth}{#1}%
+	\setlength{\clhwidth}{\textwidth}%
+	\addtolength{\clhwidth}{-\clwidth}%
+	#1\parbox[t]{\clhwidth}{\hyphenpenalty1000\raggedright({\em #2})}}
+
+\def\classsummary{\@ifstar{\xemptysummary}{\xsummary}}
+\def\xemptysummary#1#2#3{\emptydefinition{\classheader{#1}{#2}}}
+\def\xsummary#1#2#3{%
+    \definition{%
+	\parbox{\textwidth}{\rule{\linewidth}{2pt}\\%
+			    \psfig{figure=figs/class/#3.ps}\\[-12pt]%
+			    \rule{\linewidth}{0.5pt}}}%
+    \emptydefinition{\classheader{#1}{#2}}}
 
 \renewcommand{\line}[1]{\begin{quote}\tt #1\end{quote}}
 

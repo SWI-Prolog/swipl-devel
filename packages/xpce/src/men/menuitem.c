@@ -266,14 +266,14 @@ getContainedInMenuItem(MenuItem mi)
 
 /* Type declarations */
 
-static const char *T_value[] =
+static char *T_value[] =
         { "value=any", "label=[name|image]" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "value=any", "message=[code]*", "label=[name|image]", "end_group=[bool]", "condition=[code]*", "accelerator=[name]" };
 
 /* Instance Variables */
 
-static const vardecl var_menuItem[] =
+static vardecl var_menuItem[] =
 { IV(NAME_menu, "menu*", IV_GET,
      NAME_organisation, "Menu I'm part of"),
   IV(NAME_value, "any", IV_GET,
@@ -302,7 +302,7 @@ static const vardecl var_menuItem[] =
 
 /* Send Methods */
 
-static const senddecl send_menuItem[] =
+static senddecl send_menuItem[] =
 { SM(NAME_initialise, 6, T_initialise, initialiseMenuItem,
      DEFAULT, "Create from value, message, label, end and cond"),
   SM(NAME_unlink, 0, NULL, unlinkMenuItem,
@@ -317,7 +317,7 @@ static const senddecl send_menuItem[] =
 
 /* Get Methods */
 
-static const getdecl get_menuItem[] =
+static getdecl get_menuItem[] =
 { GM(NAME_containedIn, 0, "menu", NULL, getContainedInMenuItem,
      DEFAULT, "Menu I'm contained in"),
   GM(NAME_convert, 1, "menu_item", "value=any", getConvertMenuItem,
@@ -332,9 +332,12 @@ static const getdecl get_menuItem[] =
 
 /* Resources */
 
-static const resourcedecl rc_menuItem[] =
+#define rc_menuItem NULL
+/*
+static resourcedecl rc_menuItem[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

@@ -527,14 +527,14 @@ applySlider(Slider s, Bool always)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "name", "low=int|real", "high=int|real", "value=int|real|function", "message=[code]*" };
-static const char *T_geometry[] =
+static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_slider[] =
+static vardecl var_slider[] =
 { SV(NAME_selection, "int|real", IV_GET|IV_STORE, selectionSlider,
      NAME_selection, "Current selection"),
   IV(NAME_default, "int|real|function", IV_NONE,
@@ -563,7 +563,7 @@ static const vardecl var_slider[] =
 
 /* Send Methods */
 
-static const senddecl send_slider[] =
+static senddecl send_slider[] =
 { SM(NAME_compute, 0, NULL, computeSlider,
      DEFAULT, "Compute desired size"),
   SM(NAME_event, 1, "event", eventSlider,
@@ -586,7 +586,7 @@ static const senddecl send_slider[] =
 
 /* Get Methods */
 
-static const getdecl get_slider[] =
+static getdecl get_slider[] =
 { GM(NAME_reference, 0, "point", NULL, getReferenceSlider,
      DEFAULT, "Baseline of label"),
   GM(NAME_default, 0, "int|real", NULL, getDefaultSlider,
@@ -603,9 +603,12 @@ static const getdecl get_slider[] =
 
 /* Resources */
 
-static const resourcedecl rc_slider[] =
+#define rc_slider NULL
+/*
+static resourcedecl rc_slider[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

@@ -109,11 +109,11 @@ prefixCharArray(CharArray n1, CharArray n2) /* n2 is prefix of n1 */
 
 
 status
-suffixCharArray(CharArray n, CharArray s)
-{ if ( str_suffix(&n->data, &s->data) )
-    succeed;
-
-  fail;
+suffixCharArray(CharArray n, CharArray s, Bool ign_case)
+{ if ( ign_case == ON )
+    return str_icase_suffix(&n->data, &s->data);
+  else
+    return str_suffix(&n->data, &s->data);
 }
 
 
@@ -332,7 +332,7 @@ getAppendCharArrayv(CharArray ca, int argc, CharArray *argv)
 
 CharArray
 getDeleteSuffixCharArray(CharArray n, CharArray s)
-{ if ( suffixCharArray(n, s) )
+{ if ( suffixCharArray(n, s, OFF) )
   { string buf;
 
     str_cphdr(&buf, &n->data);
@@ -348,7 +348,7 @@ getDeleteSuffixCharArray(CharArray n, CharArray s)
 
 CharArray
 getEnsureSuffixCharArray(CharArray n, CharArray s)
-{ if ( suffixCharArray(n, s) )
+{ if ( suffixCharArray(n, s, OFF) )
     answer(n);
 
   answer(getAppendCharArray(n, s));
@@ -581,18 +581,18 @@ stringToCharArray(String s)
 
 /* Type declarations */
 
-static const char *T_compare[] =
+static char *T_compare[] =
         { "char_array", "ignore_case=[bool]" };
-static const char *T_ofAchar_fromADintD[] =
+static char *T_ofAchar_fromADintD[] =
         { "of=char", "from=[int]" };
-static const char *T_gsub[] =
+static char *T_gsub[] =
         { "start=int", "end=[int]" };
-static const char *T_ssub[] =
-        { "sub=char_array", "ignore_case=[bool]" };
+static char *T_cmpcase[] =
+        { "text=char_array", "ignore_case=[bool]" };
 
 /* Instance Variables */
 
-static const vardecl var_charArray[] =
+static vardecl var_charArray[] =
 { IV(NAME_header, "alien:str_h", IV_NONE,
      NAME_internal, "Header info (packed)"),
   IV(NAME_text, "alien:wchar *", IV_NONE,
@@ -601,7 +601,7 @@ static const vardecl var_charArray[] =
 
 /* Send Methods */
 
-static const senddecl send_charArray[] =
+static senddecl send_charArray[] =
 { SM(NAME_initialise, 1, "text=char_array", initialiseCharArray,
      DEFAULT, "Create from other char_array"),
   SM(NAME_unlink, 0, NULL, unlinkCharArray,
@@ -614,15 +614,15 @@ static const senddecl send_charArray[] =
      NAME_compare, "Test if I'm alphabetically before arg"),
   SM(NAME_prefix, 1, "prefix=char_array", prefixCharArray,
      NAME_test, "Test if receiver has prefix argument"),
-  SM(NAME_sub, 2, T_ssub, subCharArray,
+  SM(NAME_sub, 2, T_cmpcase, subCharArray,
      NAME_test, "Test if argument is a substring"),
-  SM(NAME_suffix, 1, "suffix=char_array", suffixCharArray,
+  SM(NAME_suffix, 2, T_cmpcase, suffixCharArray,
      NAME_test, "Test if receiver has suffix argument")
 };
 
 /* Get Methods */
 
-static const getdecl get_charArray[] =
+static getdecl get_charArray[] =
 { GM(NAME_printName, 0, "char_array", NULL, getSelfObject,
      DEFAULT, "Equivalent to <-self"),
   GM(NAME_size, 0, "int", NULL, getSizeCharArray,
@@ -669,9 +669,12 @@ static const getdecl get_charArray[] =
 
 /* Resources */
 
-static const resourcedecl rc_charArray[] =
+#define rc_charArray NULL
+/*
+static resourcedecl rc_charArray[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

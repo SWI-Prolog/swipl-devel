@@ -385,7 +385,7 @@ getContainsTree(Tree t)
 
 /* Instance Variables */
 
-static const vardecl var_tree[] =
+static vardecl var_tree[] =
 { IV(NAME_root, "node*", IV_GET,
      NAME_nodes, "Root-node of the tree"),
   IV(NAME_displayRoot, "node*", IV_GET,
@@ -419,7 +419,7 @@ static const vardecl var_tree[] =
 
 /* Send Methods */
 
-static const senddecl send_tree[] =
+static senddecl send_tree[] =
 { SM(NAME_compute, 0, NULL, computeTree,
      DEFAULT, "Recompute the tree layout"),
   SM(NAME_event, 1, "event", eventTree,
@@ -452,14 +452,14 @@ static const senddecl send_tree[] =
 
 /* Get Methods */
 
-static const getdecl get_tree[] =
+static getdecl get_tree[] =
 { GM(NAME_contains, 0, "chain", NULL, getContainsTree,
      DEFAULT, "New chain with nodes I manage")
 };
 
 /* Resources */
 
-static const resourcedecl rc_tree[] =
+static resourcedecl rc_tree[] =
 { RC(NAME_direction, "name", "horizontal",
      "Default style {horizontal,vertical,list}"),
   RC(NAME_levelGap, "int", "50",

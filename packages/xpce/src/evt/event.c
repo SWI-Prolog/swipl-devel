@@ -672,14 +672,14 @@ getDisplayEvent(EventObj ev)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "id=event_id", "origin=[window]", "x=[int]", "y=[int]", "button_mask=[int]", "time=[int]" };
-static const char *T_post[] =
+static char *T_post[] =
         { "to=graphical", "recogniser=[recogniser]" };
 
 /* Instance Variables */
 
-static const vardecl var_event[] =
+static vardecl var_event[] =
 { IV(NAME_window, "window", IV_GET,
      NAME_context, "Window that generated event"),
   IV(NAME_receiver, "graphical", IV_GET,
@@ -700,7 +700,7 @@ static const vardecl var_event[] =
 
 /* Send Methods */
 
-static const senddecl send_event[] =
+static senddecl send_event[] =
 { SM(NAME_initialise, 6, T_initialise, initialiseEvent,
      DEFAULT, "Create from type, window, x, y, buttons and time"),
   SM(NAME_hasModifier, 1, "modifier", hasModifierEvent,
@@ -721,7 +721,7 @@ static const senddecl send_event[] =
 
 /* Get Methods */
 
-static const getdecl get_event[] =
+static getdecl get_event[] =
 { GM(NAME_convert, 1, "event", "[any]", getConvertEvent,
      DEFAULT, "Convert @default into current event (@event)"),
   GM(NAME_time, 1, "int", "[event]", getTimeEvent,
@@ -758,9 +758,12 @@ static const getdecl get_event[] =
 
 /* Resources */
 
-static const resourcedecl rc_event[] =
+#define rc_event NULL
+/*
+static resourcedecl rc_event[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

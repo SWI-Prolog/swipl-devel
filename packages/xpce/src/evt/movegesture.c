@@ -68,19 +68,19 @@ terminateMoveGesture(MoveGesture g, EventObj ev)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "button=[button_name]", "modifier=[modifier]" };
 
 /* Instance Variables */
 
-static const vardecl var_moveGesture[] =
+static vardecl var_moveGesture[] =
 { IV(NAME_offset, "point", IV_GET,
      NAME_internal, "Offset of down relative to object")
 };
 
 /* Send Methods */
 
-static const senddecl send_moveGesture[] =
+static senddecl send_moveGesture[] =
 { SM(NAME_drag, 1, "event", dragMoveGesture,
      DEFAULT, "Drag to next position"),
   SM(NAME_initialise, 2, T_initialise, initialiseMoveGesture,
@@ -95,13 +95,16 @@ static const senddecl send_moveGesture[] =
 
 /* Get Methods */
 
-static const getdecl get_moveGesture[] =
+#define get_moveGesture NULL
+/*
+static getdecl get_moveGesture[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_moveGesture[] =
+static resourcedecl rc_moveGesture[] =
 { RC(NAME_button, "button_name", "middle",
      "Active on which button (middle)"),
   RC(NAME_cursor, "cursor", "fleur",

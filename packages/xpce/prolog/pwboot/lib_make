@@ -67,6 +67,8 @@ MANQOFS=man/p_card.qof \
 	man/v_module.qof \
 	man/v_statistics.qof \
 	man/v_summary.qof \
+	man/v_search.qof \
+	man/man_index.qof \
 	man/v_tile.qof \
 	man/v_topic.qof \
 	man/v_visual.qof \
@@ -76,7 +78,6 @@ MANQOFS=man/p_card.qof \
 DIALOGQOFS=dialog/attribute.qof \
         dialog/behaviour.qof \
         dialog/dialog.qof \
-        dialog/font.qof \
         dialog/generate.qof \
         dialog/image_item.qof \
         dialog/label.qof \

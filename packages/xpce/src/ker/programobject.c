@@ -268,19 +268,19 @@ ulong mask;
 
 /* Type declaractions */
 
-static const char *T_debug[] =
+static char *T_debug[] =
         { "value=[bool]", "ports=[{full,enter,exit,fail}]", "condition=[code]" };
 
 /* Instance Variables */
 
-static const vardecl var_programObject[] =
+static vardecl var_programObject[] =
 { IV(NAME_dflags, "int", IV_BOTH,
      NAME_debugging, "Debugging-flags of the program_object")
 };
 
 /* Send Methods */
 
-static const senddecl send_programObject[] =
+static senddecl send_programObject[] =
 { SM(NAME_initialise, 0, NULL, initialiseProgramObject,
      DEFAULT, "Create program_object"),
   SM(NAME_initialiseNewSlot, 1, "variable", initialiseNewSlotProgramObject,
@@ -301,7 +301,7 @@ static const senddecl send_programObject[] =
 
 /* Get Methods */
 
-static const getdecl get_programObject[] =
+static getdecl get_programObject[] =
 {
 #ifndef O_RUNTIME
   GM(NAME_break, 1, "bool", "port=[{enter,exit,fail}]", getBreakProgramObject,
@@ -319,9 +319,12 @@ static const getdecl get_programObject[] =
 
 /* Resources */
 
-static const resourcedecl rc_programObject[] =
+#define rc_programObject NULL
+/*
+static resourcedecl rc_programObject[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

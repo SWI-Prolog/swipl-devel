@@ -444,20 +444,20 @@ pointsArc(Arc a, Int Sx, Int Sy, Int Ex, Int Ey, Int D)
 
 /* Type declaractions */
 
-static const char *T_connectAngle[] =
+static char *T_connectAngle[] =
         { "line", "line" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "radius=[int]", "start=[real]", "size=[real]" };
-static const char *T_resize[] =
+static char *T_resize[] =
         { "real", "[real]", "[point]" };
-static const char *T_points[] =
+static char *T_points[] =
         { "start_x=int", "start_y=int", "end_x=int", "end_y=int", "curvature=int" };
-static const char *T_geometry[] =
+static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_arc[] =
+static vardecl var_arc[] =
 { SV(NAME_position, "point", IV_GET|IV_STORE, positionArc,
      NAME_area, "Position of the arc"),
   SV(NAME_size, "size", IV_GET|IV_STORE, sizeArc,
@@ -474,7 +474,7 @@ static const vardecl var_arc[] =
 
 /* Send Methods */
 
-static const senddecl send_arc[] =
+static senddecl send_arc[] =
 { SM(NAME_compute, 0, NULL, computeArc,
      DEFAULT, "Compute the bounding box area"),
   SM(NAME_geometry, 4, T_geometry, geometryArc,
@@ -497,7 +497,7 @@ static const senddecl send_arc[] =
 
 /* Get Methods */
 
-static const getdecl get_arc[] =
+static getdecl get_arc[] =
 { GM(NAME_radius, 0, "int", NULL, getRadiusArc,
      NAME_area, "Equivalent to <-width"),
   GM(NAME_end, 0, "point", NULL, getEndArc,
@@ -508,7 +508,7 @@ static const getdecl get_arc[] =
 
 /* Resources */
 
-static const resourcedecl rc_arc[] =
+static resourcedecl rc_arc[] =
 { RC(NAME_radius, "int", "30",
      "Default radius")
 };

@@ -2433,40 +2433,43 @@ getPrintNameObject(Any obj)
 
 /* Type declaractions */
 
-static const char *T_forSlotReference[] =
+static char *T_forSlotReference[] =
         { "action=code", "recursive=[bool]" };
-static const char *T_attribute[] =
+static char *T_attribute[] =
         { "attribute|name", "value=[any]" };
-static const char *T_error[] =
+static char *T_error[] =
         { "error=error", "context=any ..." };
-static const char *T_hyper_nameADnameD_selectorAname_argumentAunchecked_XXX[] =
+static char *T_hyper_nameADnameD_selectorAname_argumentAunchecked_XXX[] =
         { "hyper_name=[name]", "selector=name", "argument=unchecked ..." };
-static const char *T_hyper_nameADnameD_testADcodeD[] =
+static char *T_hyper_nameADnameD_testADcodeD[] =
         { "hyper_name=[name]", "test=[code]" };
-static const char *T_attachHyper[] =
+static char *T_attachHyper[] =
         { "hyper", "object" };
-static const char *T_report[] =
+static char *T_report[] =
         { "kind={status,inform,progress,done,warning,error}", "format=[char_array]", "argument=any ..." };
-static const char *T_deleteHypers[] =
+static char *T_deleteHypers[] =
         { "name=[name]", "condition=[code]" };
-static const char *T_slot[] =
+static char *T_slot[] =
         { "name|int", "unchecked" };
-static const char *T_name_any[] =
+static char *T_name_any[] =
         { "name", "any" };
-static const char *T_convertLoadedObject[] =
+static char *T_convertLoadedObject[] =
         { "old_version=int", "current_version=int" };
-static const char *T_selectorAname_argumentAunchecked_XXX[] =
+static char *T_selectorAname_argumentAunchecked_XXX[] =
         { "selector=name", "argument=unchecked ..." };
 
 /* Instance Variables */
 
-static const vardecl var_object[] =
+#define var_object NULL
+/*
+vardecl var_object[] =
 { 
 };
+*/
 
 /* Send Methods */
 
-static const senddecl send_object[] =
+static senddecl send_object[] =
 { SM(NAME_equal, 1, "to=any", equalObject,
      NAME_compare, "Test if i'm equal to the argument"),
   SM(NAME_sameReference, 1, "to=any", sameReferenceObject,
@@ -2564,7 +2567,7 @@ static const senddecl send_object[] =
 
 /* Get Methods */
 
-static const getdecl get_object[] =
+static getdecl get_object[] =
 { GM(NAME_clone, 0, "object", NULL, getCloneObject,
      NAME_copy, "New object that is a (recursive) copy)"),
   GM(NAME_Flags, 0, "name", NULL, getFlagsObject,
@@ -2660,9 +2663,12 @@ static const getdecl get_object[] =
 
 /* Resources */
 
-static const resourcedecl rc_object[] =
+#define rc_object NULL
+/*
+static resourcedecl rc_object[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

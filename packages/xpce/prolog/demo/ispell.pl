@@ -467,7 +467,10 @@ select(F, Word:name*, Fragment:[fragment]) :->
 	    send(F, activate_replacement_items, @on),
 	    (   Fragment \== @default
 	    ->  send(F, slot, fragment, Fragment)
-	    ;   send(F, slot, fragment, Errors?head)
+	    ;   (   send(Errors, empty)
+		->  fail
+		;   send(F, slot, fragment, Errors?head)
+		)
 	    ),
 	    get(F, fragment, Frag),
 	    get(F, view, View),

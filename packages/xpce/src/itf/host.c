@@ -136,14 +136,14 @@ getMessageHost(Host h)
 
 /* Type declarations */
 
-static const char *T_name_any_XXX[] =
+static char *T_name_any_XXX[] =
         { "name", "any ..." };
-static const char *T_name_unchecked_XXX[] =
+static char *T_name_unchecked_XXX[] =
         { "name", "unchecked ..." };
 
 /* Instance Variables */
 
-static const vardecl var_host[] =
+static vardecl var_host[] =
 { IV(NAME_language, "{prolog,lisp,c}", IV_BOTH,
      NAME_host, "Host language pce is connected to"),
   IV(NAME_system, "name", IV_BOTH,
@@ -156,7 +156,7 @@ static const vardecl var_host[] =
 
 /* Send Methods */
 
-static const senddecl send_host[] =
+static senddecl send_host[] =
 { SM(NAME_initialise, 1, "name=name", initialiseHost,
      DEFAULT, "Create host from name"),
   SM(NAME_call, 2, T_name_unchecked_XXX, callHostv,
@@ -167,7 +167,7 @@ static const senddecl send_host[] =
 
 /* Get Methods */
 
-static const getdecl get_host[] =
+static getdecl get_host[] =
 { GM(NAME_call, 2, "unchecked", T_name_unchecked_XXX, getCallHostv,
      NAME_callback, "Invoke a host defined get_method"),
   GM(NAME_catchAll, 2, "any", T_name_any_XXX, getCatchAllHostv,
@@ -178,9 +178,12 @@ static const getdecl get_host[] =
 
 /* Resources */
 
-static const resourcedecl rc_host[] =
+#define rc_host NULL
+/*
+static resourcedecl rc_host[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

@@ -480,16 +480,16 @@ getPrintNameVariable(Variable var)
 
 /* Type declaractions */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "name=name", "type=[type]", "access=[{none,send,get,both}]", "summary=[string]*", "group=[name]", "initial_value=[any|function]" };
-static const char *T_get[] =
+static char *T_get[] =
         { "receiver=object", "unchecked ..." };
-static const char *T_send[] =
+static char *T_send[] =
         { "receiver=object", "value=unchecked ..." };
 
 /* Instance Variables */
 
-static const vardecl var_variable[] =
+static vardecl var_variable[] =
 { IV(NAME_group, "[name]", IV_NONE,
      NAME_manual, "Conceptual group of variable"),
   IV(NAME_access, "{none,send,get,both}", IV_GET,
@@ -508,7 +508,7 @@ static const vardecl var_variable[] =
 
 /* Send Methods */
 
-static const senddecl send_variable[] =
+static senddecl send_variable[] =
 { SM(NAME_initialise, 6, T_initialise, initialiseVariable,
      DEFAULT, "Create from name, type, access, doc, group and initial value"),
   SM(NAME_cloneStyle, 1, "{recursive,reference,reference_chain,value,alien,nil}", cloneStyleVariable,
@@ -529,7 +529,7 @@ static const senddecl send_variable[] =
 
 /* Get Methods */
 
-static const getdecl get_variable[] =
+static getdecl get_variable[] =
 { GM(NAME_cloneStyle, 0, "name", NULL, getCloneStyleVariable,
      NAME_copy, "Clone style for this slot"),
   GM(NAME_get, 2, "unchecked", T_get, getGetVariable,
@@ -562,9 +562,12 @@ static const getdecl get_variable[] =
 
 /* Resources */
 
-static const resourcedecl rc_variable[] =
+#define rc_variable NULL
+/*
+static resourcedecl rc_variable[] =
 { 
 };
+*/
 
 /* Class Declaration */
 
@@ -606,36 +609,42 @@ initialiseDelegateVariable(DelegateVariable var, Name name, Type type,
 
 /* Type declaractions */
 
-static const char *T_initialise_delegate[] =
+static char *T_initialise_delegate[] =
         { "name=name", "type=[type]", "access=[{none,send,get,both}]",
 	  "wrapper=name", "summary=[string]*", "group=[name]*",
 	  "initial_value=[any|function]" };
 
 /* Instance Variables */
 
-static const vardecl var_delegateVariable[] =
+static vardecl var_delegateVariable[] =
 { IV(NAME_wrapper, "name*", IV_BOTH,
      NAME_change, "Wrapper to take care of side-effects")
 };
 
 /* Send Methods */
 
-static const senddecl send_delegateVariable[] =
+static senddecl send_delegateVariable[] =
 { SM(NAME_initialise, 7, T_initialise_delegate, initialiseDelegateVariable,
      DEFAULT, "Create from name, type, access and doc")
 };
 
 /* Get Methods */
 
-static const getdecl get_delegateVariable[] =
+#define get_delegateVariable NULL
+/*
+static getdecl get_delegateVariable[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_delegateVariable[] =
+#define rc_delegateVariable NULL
+/*
+static resourcedecl rc_delegateVariable[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

@@ -44,7 +44,6 @@ PCE public predicates
 	  , pce_catch_error/2
 
 	  , require/1
-	  , auto_call/1
 	  ]).
 
 

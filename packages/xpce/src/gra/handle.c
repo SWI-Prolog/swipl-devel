@@ -88,14 +88,14 @@ getYHandle(Handle h, Graphical gr, Device dev)
 
 /* Type declarations */
 
-static const char *T_relative_toAgraphical_coordinate_system_ofADdeviceD[] =
+static char *T_relative_toAgraphical_coordinate_system_ofADdeviceD[] =
         { "relative_to=graphical", "coordinate_system_of=[device]" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "x=expression", "y=expression", "kind=[name]", "name=[name]" };
 
 /* Instance Variables */
 
-static const vardecl var_handle[] =
+static vardecl var_handle[] =
 { IV(NAME_xPosition, "expression", IV_BOTH,
      NAME_location, "Expression for X in variable `w'"),
   IV(NAME_yPosition, "expression", IV_BOTH,
@@ -108,14 +108,14 @@ static const vardecl var_handle[] =
 
 /* Send Methods */
 
-static const senddecl send_handle[] =
+static senddecl send_handle[] =
 { SM(NAME_initialise, 4, T_initialise, initialiseHandle,
      DEFAULT, "Create from X-, Y expression, kind and name")
 };
 
 /* Get Methods */
 
-static const getdecl get_handle[] =
+static getdecl get_handle[] =
 { GM(NAME_position, 2, "point", T_relative_toAgraphical_coordinate_system_ofADdeviceD, getPositionHandle,
      NAME_location, "New point with position on graphical relative to device"),
   GM(NAME_x, 2, "int", T_relative_toAgraphical_coordinate_system_ofADdeviceD, getXHandle,
@@ -126,9 +126,12 @@ static const getdecl get_handle[] =
 
 /* Resources */
 
-static const resourcedecl rc_handle[] =
+#define rc_handle NULL
+/*
+static resourcedecl rc_handle[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

@@ -65,33 +65,16 @@ unlinkDevice(Device dev)
 		********************************/
 
 CursorObj
-getFindCursorDevice(Device dev)
-{ CursorObj rval = NIL;
-  CursorObj c2;
+getDisplayedCursorDevice(Device dev)
+{ CursorObj c2;
   Cell cell;
 
   for_cell(cell, dev->pointed)
-  { Graphical gr = cell->value;
-
-    if ( instanceOfObject(gr, ClassDevice) &&
-	 notNil(c2 = getFindCursorDevice((Device) gr)) )
-      rval = c2;
-    else if ( notNil(gr->cursor) )
-    { rval = gr->cursor;
-      DEBUG(NAME_cursor, Cprintf("get cursor %s from %s\n", pp(rval), pp(gr)));
-    }
-
-    if ( notNil(rval) )
-      break;
+  { if ( (c2 = qadGetv(cell->value, NAME_displayedCursor, 0, NULL)) )
+      answer(c2);
   }
 
-  if ( isNil(rval) && notNil(dev->cursor) )
-  { rval = dev->cursor;
-    DEBUG(NAME_cursor, Cprintf("get cursor %s from device %s\n",
-			       pp(rval), pp(dev)));
-  }
-
-  answer(rval);
+  answer(dev->cursor);			/* = getDisplayedCursorGraphical()! */
 }
 
 
@@ -1672,34 +1655,34 @@ getContainsDevice(Device dev)
 
 /* Type declarations */
 
-static const char *T_DnameD_code[] =
+static char *T_DnameD_code[] =
         { "[name]", "code" };
-static const char *T_find[] =
+static char *T_find[] =
         { "at=[point|event]", "condition=[code]" };
-static const char *T_pointedObjects[] =
+static char *T_pointedObjects[] =
         { "at=point|event", "append_to=[chain]" };
-static const char *T_typed[] =
+static char *T_typed[] =
         { "event_id", "[bool]" };
-static const char *T_format[] =
+static char *T_format[] =
         { "format*|name", "[any]" };
-static const char *T_modifiedItem[] =
+static char *T_modifiedItem[] =
         { "graphical", "bool" };
-static const char *T_display[] =
+static char *T_display[] =
         { "graphical", "position=[point]" };
-static const char *T_appendDialogItem[] =
+static char *T_appendDialogItem[] =
         { "item=graphical", "relative_to_last=[{below,right,next_row}]" };
-static const char *T_convertLoadedObject[] =
+static char *T_convertLoadedObject[] =
         { "old_version=int", "new_version=int" };
-static const char *T_changedUnion[] =
+static char *T_changedUnion[] =
         { "ox=int", "oy=int", "ow=int", "oh=int" };
-static const char *T_geometry[] =
+static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
-static const char *T_resize[] =
+static char *T_resize[] =
         { "x_factor=real", "y_factor=[real]", "origin=[point]" };
 
 /* Instance Variables */
 
-static const vardecl var_device[] =
+static vardecl var_device[] =
 { IV(NAME_level, "int", IV_GET,
      NAME_organisation, "Nesting depth to topmost device"),
   IV(NAME_offset, "point", IV_NONE,
@@ -1722,7 +1705,7 @@ static const vardecl var_device[] =
 
 /* Send Methods */
 
-static const senddecl send_device[] =
+static senddecl send_device[] =
 { SM(NAME_geometry, 4, T_geometry, geometryDevice,
      DEFAULT, "Move device"),
   SM(NAME_initialise, 0, NULL, initialiseDevice,
@@ -1788,7 +1771,7 @@ static const senddecl send_device[] =
 
 /* Get Methods */
 
-static const getdecl get_device[] =
+static getdecl get_device[] =
 { GM(NAME_contains, 0, "chain", NULL, getContainsDevice,
      DEFAULT, "Chain with visuals contained"),
   GM(NAME_offset, 0, "point", NULL, getOffsetDevice,
@@ -1808,6 +1791,8 @@ static const getdecl get_device[] =
      NAME_organisation, "Find named graphical"),
   GM(NAME_find, 2, "graphical", T_find, getFindDevice,
      NAME_search, "Find most local graphical"),
+  GM(NAME_displayedCursor, 0, "cursor*", NULL, getDisplayedCursorDevice,
+     NAME_cursor, "Currently displayed cursor"),
   GM(NAME_inside, 1, "chain", "area", getInsideDevice,
      NAME_selection, "New chain with graphicals inside area"),
   GM(NAME_selection, 0, "chain", NULL, getSelectionDevice,
@@ -1816,9 +1801,12 @@ static const getdecl get_device[] =
 
 /* Resources */
 
-static const resourcedecl rc_device[] =
+#define rc_device NULL
+/*
+static resourcedecl rc_device[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

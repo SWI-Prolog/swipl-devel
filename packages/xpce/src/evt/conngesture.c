@@ -206,18 +206,18 @@ connectConnectGesture(ConnectGesture g, Graphical gr1, Graphical gr2,
 
 /* Type declarations */
 
-static const char *T_indicateHandle[] =
+static char *T_indicateHandle[] =
         { "at=graphical", "handle=name", "indicators=chain" };
-static const char *T_indicate[] =
+static char *T_indicate[] =
         { "at=graphical", "near=event", "handle_kind=name", "indicators=chain", "variable={to_handle,from_handle}" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "button=[button_name]", "modifier=[modifier]", "link=[link]" };
-static const char *T_connect[] =
+static char *T_connect[] =
         { "from=graphical", "to=graphical", "link=link", "from_handle=[name]", "to_handle=[name]" };
 
 /* Instance Variables */
 
-static const vardecl var_connectGesture[] =
+static vardecl var_connectGesture[] =
 { IV(NAME_device, "device*", IV_BOTH,
      NAME_context, "Device used for feedback"),
   IV(NAME_line, "line", IV_GET,
@@ -240,7 +240,7 @@ static const vardecl var_connectGesture[] =
 
 /* Send Methods */
 
-static const senddecl send_connectGesture[] =
+static senddecl send_connectGesture[] =
 { SM(NAME_drag, 1, "event", dragConnectGesture,
      DEFAULT, "Drag to next position"),
   SM(NAME_initialise, 3, T_initialise, initialiseConnectGesture,
@@ -261,14 +261,14 @@ static const senddecl send_connectGesture[] =
 
 /* Get Methods */
 
-static const getdecl get_connectGesture[] =
+static getdecl get_connectGesture[] =
 { GM(NAME_pointed, 1, "chain", "event", getPointedConnectGesture,
      NAME_event, "Find the graphicals covered by the mouse")
 };
 
 /* Resources */
 
-static const resourcedecl rc_connectGesture[] =
+static resourcedecl rc_connectGesture[] =
 { RC(NAME_button, "button_name", "left",
      "Active on which button (left)"),
   RC(NAME_mark, "image", "@mark_handle_image",

@@ -15,6 +15,10 @@
 /* SUPPRESS 287 on yaccpar_sccsid *//* Unused static variable */
 /* SUPPRESS 288 on yyerrlab *//* Label unused */
 
+#include "md.h"
+#include <gnu/system.h>
+#include <ctype.h>
+
 #define malloc(n)	pceMalloc(n)
 #define free(p)		pceFree(p)
 #define realloc(p, n)	pceRealloc(p, n)
@@ -22,10 +26,6 @@
 extern void *pceMalloc(int n);
 extern void *pceRealloc(void *p, int n);
 extern void *pceFree(void *p);
-
-#include "md.h"
-#include <gnu/system.h>
-#include <ctype.h>
 
 #if (!defined (__STDC__) && defined (sparc)) || defined (__sparc__)
 #ifdef __GNUC__

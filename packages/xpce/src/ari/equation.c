@@ -26,12 +26,12 @@ initialiseBinaryCondition(BinaryCondition c, Any l, Any r)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "left=expression", "right=expression" };
 
 /* Instance Variables */
 
-static const vardecl var_binaryCondition[] =
+static vardecl var_binaryCondition[] =
 { IV(NAME_left, "expression", IV_BOTH,
      NAME_operant, "Left-hand side of conditional expression"),
   IV(NAME_right, "expression", IV_BOTH,
@@ -40,22 +40,28 @@ static const vardecl var_binaryCondition[] =
 
 /* Send Methods */
 
-static const senddecl send_binaryCondition[] =
+static senddecl send_binaryCondition[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseBinaryCondition,
      DEFAULT, "Initialise from 2 expressions")
 };
 
 /* Get Methods */
 
-static const getdecl get_binaryCondition[] =
+#define get_binaryCondition NULL
+/*
+static getdecl get_binaryCondition[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_binaryCondition[] =
+#define rc_binaryCondition NULL
+/*
+static resourcedecl rc_binaryCondition[] =
 { 
 };
+*/
 
 /* Class Declaration */
 
@@ -215,34 +221,40 @@ ExecuteEquation(Equation e)
 
 /* Type declarations */
 
-static const char *T_var[] =
+static char *T_var[] =
         { "variable=var", "bindings== ..." };
 
 /* Instance Variables */
 
-static const vardecl var_equation[] =
+#define var_equation NULL
+/*
+vardecl var_equation[] =
 { 
 };
+*/
 
 /* Send Methods */
 
-static const senddecl send_equation[] =
+static senddecl send_equation[] =
 { SM(NAME_Execute, 0, NULL, ExecuteEquation,
      DEFAULT, "Test if equation is true")
 };
 
 /* Get Methods */
 
-static const getdecl get_equation[] =
+static getdecl get_equation[] =
 { GM(NAME_var, 2, "value=int", T_var, getVarEquationv,
      NAME_calculate, "Get value of a variable")
 };
 
 /* Resources */
 
-static const resourcedecl rc_equation[] =
+#define rc_equation NULL
+/*
+static resourcedecl rc_equation[] =
 { 
 };
+*/
 
 /* Class Declaration */
 
@@ -343,28 +355,37 @@ ExecuteGreaterEqual(Equation e)
 
 /* Instance Variables */
 
-static const vardecl var_less[] =
+#define var_less NULL
+/*
+vardecl var_less[] =
 { 
 };
+*/
 
 /* Send Methods */
 
-static const senddecl send_less[] =
+static senddecl send_less[] =
 { SM(NAME_Execute, 0, NULL, ExecuteLess,
      DEFAULT, "Evaluate arguments and compare")
 };
 
 /* Get Methods */
 
-static const getdecl get_less[] =
+#define get_less NULL
+/*
+static getdecl get_less[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_less[] =
+#define rc_less NULL
+/*
+static resourcedecl rc_less[] =
 { 
 };
+*/
 
 /* Class Declaration */
 
@@ -385,28 +406,37 @@ makeClassLess(Class class)
 
 /* Instance Variables */
 
-static const vardecl var_lessEqual[] =
+#define var_lessEqual NULL
+/*
+vardecl var_lessEqual[] =
 { 
 };
+*/
 
 /* Send Methods */
 
-static const senddecl send_lessEqual[] =
+static senddecl send_lessEqual[] =
 { SM(NAME_Execute, 0, NULL, ExecuteLessEqual,
      DEFAULT, "Evaluate arguments and compare")
 };
 
 /* Get Methods */
 
-static const getdecl get_lessEqual[] =
+#define get_lessEqual NULL
+/*
+static getdecl get_lessEqual[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_lessEqual[] =
+#define rc_lessEqual NULL
+/*
+static resourcedecl rc_lessEqual[] =
 { 
 };
+*/
 
 /* Class Declaration */
 
@@ -431,28 +461,37 @@ makeClassLessEqual(Class class)
 
 /* Instance Variables */
 
-static const vardecl var_greater[] =
+#define var_greater NULL
+/*
+vardecl var_greater[] =
 { 
 };
+*/
 
 /* Send Methods */
 
-static const senddecl send_greater[] =
+static senddecl send_greater[] =
 { SM(NAME_Execute, 0, NULL, ExecuteGreater,
      DEFAULT, "Evaluate arguments and compare")
 };
 
 /* Get Methods */
 
-static const getdecl get_greater[] =
+#define get_greater NULL
+/*
+static getdecl get_greater[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_greater[] =
+#define rc_greater NULL
+/*
+static resourcedecl rc_greater[] =
 { 
 };
+*/
 
 /* Class Declaration */
 
@@ -477,28 +516,37 @@ makeClassGreater(Class class)
 
 /* Instance Variables */
 
-static const vardecl var_greaterEqual[] =
+#define var_greaterEqual NULL
+/*
+vardecl var_greaterEqual[] =
 { 
 };
+*/
 
 /* Send Methods */
 
-static const senddecl send_greaterEqual[] =
+static senddecl send_greaterEqual[] =
 { SM(NAME_Execute, 0, NULL, ExecuteGreaterEqual,
      DEFAULT, "Evaluate arguments and compare")
 };
 
 /* Get Methods */
 
-static const getdecl get_greaterEqual[] =
+#define get_greaterEqual NULL
+/*
+static getdecl get_greaterEqual[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_greaterEqual[] =
+#define rc_greaterEqual NULL
+/*
+static resourcedecl rc_greaterEqual[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

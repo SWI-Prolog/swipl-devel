@@ -42,13 +42,16 @@ getNegateBool(Bool b)
 
 /* Instance Variables */
 
-static const vardecl var_bool[] =
+#define var_bool NULL
+/*
+static vardecl var_bool[] =
 { 
 };
+*/
 
 /* Send Methods */
 
-static const senddecl send_bool[] =
+static senddecl send_bool[] =
 { SM(NAME_initialise, 0, NULL, initialiseBool,
      DEFAULT, "Create bool (cannot be created)"),
   SM(NAME_unlink, 0, NULL, unlinkBool,
@@ -57,7 +60,7 @@ static const senddecl send_bool[] =
 
 /* Get Methods */
 
-static const getdecl get_bool[] =
+static getdecl get_bool[] =
 { GM(NAME_convert, 1, "bool", "any", getConvertBool,
      DEFAULT, "Converts true, false and integer"),
   GM(NAME_negate, 0, "bool", NULL, getNegateBool,
@@ -66,9 +69,12 @@ static const getdecl get_bool[] =
 
 /* Resources */
 
-static const resourcedecl rc_bool[] =
+#define rc_bool NULL
+/*
+static resourcedecl rc_bool[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

@@ -10,13 +10,11 @@
 :- module(pce_require,
 	  [ pce_require/1		% file
 	  , pce_require/3		% file x directive x message
-	  , emacs_require/1		% from GNU-Emacs
 	  ]).
 
 :- use_module(library(pce)).
 :- require([ absolute_file_name/3
 	   , append/3
-	   , call_emacs/2
 	   , forall/2
 	   , ignore/1
 	   , is_list/1
@@ -63,15 +61,6 @@ pce_require(File, Directive, Message) :-
 	erase(Clause),
 	get(D, value, Directive),
 	get(M, value, Message).
-
-
-emacs_require(File) :-
-	pce_require(File, Directive, Message),
-	call_emacs('(insert "~w")', Directive),
-	(   Message \== ''
-	->  call_emacs('(message "~w")', Message)
-	;   true
-	).
 
 
 clean :-

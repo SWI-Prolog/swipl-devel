@@ -300,14 +300,14 @@ paintArrow(Arrow a, Int tx, Int ty, Int rx, Int ry)
 
 /* Type declaractions */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "length=[int]", "wing=[int]" };
-static const char *T_points[] =
+static char *T_points[] =
         { "tip_x=[int]", "tip_y=[int]", "reference_x=[int]", "reference_y=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_arrow[] =
+static vardecl var_arrow[] =
 { SV(NAME_tip, "point", IV_GET|IV_STORE, tipArrow,
      NAME_area, "Tip of the arrow"),
   SV(NAME_reference, "point", IV_GET|IV_STORE, referenceArrow,
@@ -328,7 +328,7 @@ static const vardecl var_arrow[] =
 
 /* Send Methods */
 
-static const senddecl send_arrow[] =
+static senddecl send_arrow[] =
 { SM(NAME_compute, 0, NULL, computeArrow,
      DEFAULT, "Compute <-tip, <-left and <-right"),
   SM(NAME_initialise, 2, T_initialise, initialiseArrow,
@@ -349,7 +349,7 @@ static const senddecl send_arrow[] =
 
 /* Get Methods */
 
-static const getdecl get_arrow[] =
+static getdecl get_arrow[] =
 { GM(NAME_referenceX, 0, "int", NULL, getReferenceXArrow,
      NAME_area, "X of reference point"),
   GM(NAME_referenceY, 0, "int", NULL, getReferenceYArrow,
@@ -362,7 +362,7 @@ static const getdecl get_arrow[] =
 
 /* Resources */
 
-static const resourcedecl rc_arrow[] =
+static resourcedecl rc_arrow[] =
 { RC(NAME_fillPattern, "image|colour", "@black_image",
      "Fill pattern for the triangle"),
   RC(NAME_length, "int", "10",

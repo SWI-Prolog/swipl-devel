@@ -28,12 +28,12 @@ initialiseBehaviour(Behaviour b, Name name, Any ctx)
 
 /* Type declaractions */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "name=name", "context=[class|object*]" };
 
 /* Instance Variables */
 
-static const vardecl var_behaviour[] =
+static vardecl var_behaviour[] =
 { IV(NAME_name, "name", IV_GET,
      NAME_name, "Selector of this behaviour"),
   IV(NAME_context, "class|object*", IV_GET,
@@ -42,22 +42,28 @@ static const vardecl var_behaviour[] =
 
 /* Send Methods */
 
-static const senddecl send_behaviour[] =
+static senddecl send_behaviour[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseBehaviour,
      DEFAULT, "Create from <-name and <-context")
 };
 
 /* Get Methods */
 
-static const getdecl get_behaviour[] =
+#define get_behaviour NULL
+/*
+static getdecl get_behaviour[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_behaviour[] =
+#define rc_behaviour NULL
+/*
+static resourcedecl rc_behaviour[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

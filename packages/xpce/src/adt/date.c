@@ -314,23 +314,23 @@ getDifferenceDate(Date d1, Date d2, Name units)
 
 /* Type declaractions */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "seconds=[0..59]", "minutes=[0..59]",
 	  "hours=[0..23]", "day=[1..31]", "month=[1..12]",
 	  "year=[1970..2050]" };
-static const char *T_difference[] =
+static char *T_difference[] =
         { "to=[date]", "unit=[{second,minute,hour,day,week,year}]" };
 
 /* Instance Variables */
 
-static const vardecl var_date[] =
+static vardecl var_date[] =
 { IV(NAME_date, "alien:long", IV_NONE,
      NAME_storage, "Unix's notion of date")
 };
 
 /* Send Methods */
 
-static const senddecl send_date[] =
+static senddecl send_date[] =
 { SM(NAME_initialise, 6, T_initialise, initialiseDate,
      DEFAULT, "Create a date from smhDMY (default now)"),
   SM(NAME_after, 1, "date", afterDate,
@@ -361,7 +361,7 @@ static const senddecl send_date[] =
 
 /* Get Methods */
 
-static const getdecl doget_date[] =
+static getdecl doget_date[] =
 { GM(NAME_difference, 2, "units=int", T_difference, getDifferenceDate,
      NAME_calculate, "Difference between dates in specified units"),
   GM(NAME_compare, 1, "{smaller,equal,larger}", "date", getCompareDate,
@@ -394,9 +394,12 @@ static const getdecl doget_date[] =
 
 /* Resources */
 
-static const resourcedecl rc_date[] =
+#define rc_date NULL
+/*
+static resourcedecl rc_date[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

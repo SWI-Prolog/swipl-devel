@@ -182,17 +182,17 @@ getModifyElevation(Elevation e, Name att, Any val)
 
 /* Type declarations */
 
-static const char *T_modify[] =
+static char *T_modify[] =
         { "attribute={height,colour,relief,shadow,kind,background}",
 	  "value=any" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "name=[name|int]*", "height=[int]", "colour=[colour|pixmap]",
 	  "relief=[colour|pixmap]", "shadow=[colour|pixmap]",
 	  "kind=[{3d,shadow}]", "background=[colour|pixmap]" };
 
 /* Instance Variables */
 
-static const vardecl var_elevation[] =
+static vardecl var_elevation[] =
 { IV(NAME_name, "name|int*", IV_GET,
      NAME_name, "Name for reuse"),
   SV(NAME_height, "int", IV_GET|IV_STORE, heightElevation,
@@ -211,7 +211,7 @@ static const vardecl var_elevation[] =
 
 /* Send Methods */
 
-static const senddecl send_elevation[] =
+static senddecl send_elevation[] =
 { SM(NAME_initialise, 7, T_initialise, initialiseElevation,
      DEFAULT, "Create elevation from name, height and colours"),
   SM(NAME_unlink, 0, NULL, unlinkElevation,
@@ -220,7 +220,7 @@ static const senddecl send_elevation[] =
 
 /* Get Methods */
 
-static const getdecl get_elevation[] =
+static getdecl get_elevation[] =
 { GM(NAME_convert, 1, "elevation", "name|int", getConvertElevation,
      DEFAULT, "Convert name to object (reuse) or int to height"),
   GM(NAME_lookup, 7, "elevation", T_initialise, getLookupElevation,
@@ -231,7 +231,7 @@ static const getdecl get_elevation[] =
 
 /* Resources */
 
-static const resourcedecl rc_elevation[] =
+static resourcedecl rc_elevation[] =
 { RC(NAME_colour, "[colour|pixmap]", "@default",
      "Colour of the top"),
   RC(NAME_height, "int", "2",

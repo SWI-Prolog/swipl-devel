@@ -67,14 +67,14 @@ getArgBlock(Block b, Int n)
 
 /* Instance Variables */
 
-static const vardecl var_block[] =
+static vardecl var_block[] =
 { IV(NAME_parameters, "code_vector*", IV_BOTH,
      NAME_argument, "Vector with formal parameters")
 };
 
 /* Send Methods */
 
-static const senddecl send_block[] =
+static senddecl send_block[] =
 { SM(NAME_initialise, 1, "var|code ...", initialiseBlockv,
      DEFAULT, "Create from parameters and statements"),
   SM(NAME_forward, 1, "any ...", forwardBlockv,
@@ -83,7 +83,7 @@ static const senddecl send_block[] =
 
 /* Get Methods */
 
-static const getdecl get_block[] =
+static getdecl get_block[] =
 { GM(NAME_Arg, 1, "code", "int", getArgBlock,
      DEFAULT, "Nth-1 argument for term description"),
   GM(NAME_Arity, 0, "int", NULL, getArityBlock,
@@ -92,9 +92,12 @@ static const getdecl get_block[] =
 
 /* Resources */
 
-static const resourcedecl rc_block[] =
+#define rc_block NULL
+/*
+static resourcedecl rc_block[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

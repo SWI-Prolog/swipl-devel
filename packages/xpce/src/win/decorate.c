@@ -281,16 +281,16 @@ getLabelWindowDecorator(WindowDecorator dw)
 
 /* Type declarations */
 
-static const char *T_label[] =
+static char *T_label[] =
         { "format=char_array*", "argument=any ..." };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "window=window", "scrollbars=[{none,vertical,horizontal,both}]", "label=[char_array]" };
-static const char *T_xADintD_yADintD_widthADintD_heightADintD[] =
+static char *T_xADintD_yADintD_widthADintD_heightADintD[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_windowDecorator[] =
+static vardecl var_windowDecorator[] =
 { IV(NAME_window, "window", IV_GET,
      NAME_client, "Decorated window"),
   IV(NAME_horizontalScrollbar, "scroll_bar*", IV_GET,
@@ -303,7 +303,7 @@ static const vardecl var_windowDecorator[] =
 
 /* Send Methods */
 
-static const senddecl send_windowDecorator[] =
+static senddecl send_windowDecorator[] =
 { SM(NAME_displayed, 1, "bool", displayedWindowDecorator,
      DEFAULT, "(Un)display window.  Take care of <-window"),
   SM(NAME_geometry, 4, T_xADintD_yADintD_widthADintD_heightADintD, geometryWindowDecorator,
@@ -332,7 +332,7 @@ static const senddecl send_windowDecorator[] =
 
 /* Get Methods */
 
-static const getdecl get_windowDecorator[] =
+static getdecl get_windowDecorator[] =
 { GM(NAME_label, 0, "char_array", NULL, getLabelWindowDecorator,
      NAME_label, "Currently displayed label"),
   GM(NAME_scrollbars, 0, "{none,horizontal,vertical,both}", NULL, getScrollbarsWindowDecorator,
@@ -341,7 +341,7 @@ static const getdecl get_windowDecorator[] =
 
 /* Resources */
 
-static const resourcedecl rc_windowDecorator[] =
+static resourcedecl rc_windowDecorator[] =
 { RC(NAME_border, "int", "0",
      "Distance between outside and inside"),
   RC(NAME_labelFont, "font", "bold",

@@ -550,12 +550,12 @@ getGroupResource(Resource r)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "name=name", "class=[name]", "type=[type]", "default=string", "context=[object]*", "summary=[string]*" };
 
 /* Instance Variables */
 
-static const vardecl var_resource[] =
+static vardecl var_resource[] =
 { IV(NAME_name, "name", IV_GET,
      NAME_name, "Name of the resource"),
   IV(NAME_resourceClass, "name", IV_GET,
@@ -574,7 +574,7 @@ static const vardecl var_resource[] =
 
 /* Send Methods */
 
-static const senddecl send_resource[] =
+static senddecl send_resource[] =
 { SM(NAME_context, 1, "object", contextResource,
      DEFAULT, "Attach resource to an object"),
   SM(NAME_initialise, 6, T_initialise, initialiseResource,
@@ -587,7 +587,7 @@ static const senddecl send_resource[] =
 
 /* Get Methods */
 
-static const getdecl get_resource[] =
+static getdecl get_resource[] =
 { GM(NAME_group, 0, "name", NULL, getGroupResource,
      NAME_manual, "Same as related variable"),
   GM(NAME_manId, 0, "name", NULL, getManIdResource,
@@ -612,9 +612,12 @@ static const getdecl get_resource[] =
 
 /* Resources */
 
-static const resourcedecl rc_resource[] =
+#define rc_resource NULL
+/*
+static resourcedecl rc_resource[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

@@ -72,12 +72,12 @@ getKindOperator(Operator o)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "name=name", "priority=0..1200", "kind={xf,yf,xfx,xfy,yfx,yfy,fy,fx}" };
 
 /* Instance Variables */
 
-static const vardecl var_operator[] =
+static vardecl var_operator[] =
 { IV(NAME_name, "name", IV_GET,
      NAME_name, "Name of the operator"),
   IV(NAME_priority, "int", IV_GET,
@@ -90,7 +90,7 @@ static const vardecl var_operator[] =
 
 /* Send Methods */
 
-static const senddecl send_operator[] =
+static senddecl send_operator[] =
 { SM(NAME_initialise, 3, T_initialise, initialiseOperator,
      DEFAULT, "Initialise"),
   SM(NAME_kind, 1, "kind={xf,yf,xfx,xfy,yfx,yfy,fy,fx}", kindOperator,
@@ -99,16 +99,19 @@ static const senddecl send_operator[] =
 
 /* Get Methods */
 
-static const getdecl get_operator[] =
+static getdecl get_operator[] =
 { GM(NAME_kind, 0, "kind={xf,yf,xfx,xfy,yfx,yfy,fy,fx}", NULL, getKindOperator,
      NAME_syntax, "associativity of the operator")
 };
 
 /* Resources */
 
-static const resourcedecl rc_operator[] =
+#define rc_operator NULL
+/*
+static resourcedecl rc_operator[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

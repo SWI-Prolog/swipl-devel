@@ -25,31 +25,37 @@ initialisePicture(Picture p, Name name, Size size, DisplayObj display)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "label=[name]", "size=[size]", "display=[display]" };
 
 /* Instance Variables */
 
-static const vardecl var_picture[] =
+#define var_picture NULL
+/*
+vardecl var_picture[] =
 { 
 };
+*/
 
 /* Send Methods */
 
-static const senddecl send_picture[] =
+static senddecl send_picture[] =
 { SM(NAME_initialise, 3, T_initialise, initialisePicture,
      DEFAULT, "Create from label, size and display")
 };
 
 /* Get Methods */
 
-static const getdecl get_picture[] =
+#define get_picture NULL
+/*
+static getdecl get_picture[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_picture[] =
+static resourcedecl rc_picture[] =
 { RC(NAME_size, "size", "size(400,200)",
      "Default size in pixels")
 };

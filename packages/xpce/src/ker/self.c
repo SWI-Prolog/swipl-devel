@@ -544,7 +544,7 @@ bannerPce(Pce pce)
 	 pce->xt_version,
 	 pce->xt_revision);
 
-  writef("Copyright 1993-1995, University of Amsterdam.  All rights reserved.\n");
+  writef("Copyright 1993-1996, University of Amsterdam.  All rights reserved.\n");
 
   if ( host != NAME_unknown )
     writef("The host-language is %s\n", host);
@@ -945,9 +945,12 @@ benchPce(Pce pce, Message msg, Int count, Name how)
     Any *argv;
     int argc;
 
-    if ( isNil(msg->arguments) )
+    if ( msg->arg_count == ZERO )
     { argv = NULL;
       argc = 0;
+    } else if ( msg->arg_count == ONE )
+    { argv = (Any *)&msg->arguments;
+      argc = 1;
     } else
     { argv = msg->arguments->elements;
       argc = valInt(msg->arguments->size);
@@ -1145,32 +1148,32 @@ getVersionPce(Pce pce, Name how)
 
 /* Type declaractions */
 
-static const char *T_instance[] =
+static char *T_instance[] =
         { "class=class", "argument=unchecked ..." };
-static const char *T_printStack[] =
+static char *T_printStack[] =
         { "depth=[int]", "always=[bool]" };
-static const char *T_userInfo[] =
+static char *T_userInfo[] =
         { "field={name,password,user_id,group_id,gecos,home,shell}",
 	  "user=[name]" };
-static const char *T_formatAchar_array_argumentAany_XXX[] =
+static char *T_formatAchar_array_argumentAany_XXX[] =
         { "format=char_array", "argument=any ..." };
-static const char *T_exception[] =
+static char *T_exception[] =
         { "identifier=name", "context=any ..." };
-static const char *T_bench[] =
+static char *T_bench[] =
         { "message=message", "times=int",
 	  "how={forward,execute,qad,send,invoke}" };
-static const char *T_defineClass[] =
+static char *T_defineClass[] =
         { "name=name", "super=name", "summary=[string]", "realise=code" };
-static const char *T_convert[] =
+static char *T_convert[] =
         { "object=unchecked", "type=type" };
-static const char *T_renameReference[] =
+static char *T_renameReference[] =
         { "old=name", "new=name" };
-static const char *T_syntax[] =
+static char *T_syntax[] =
 	{ "syntax={uppercase}", "word_separator=[char]" };
 
 /* Instance Variables */
 
-static const vardecl var_pce[] =
+static vardecl var_pce[] =
 {
 #ifndef O_RUNTIME
   SV(NAME_debugging, "bool", IV_GET|IV_STORE, debuggingPce,
@@ -1206,7 +1209,7 @@ static const vardecl var_pce[] =
 
 /* Send Methods */
 
-static const senddecl send_pce[] =
+static senddecl send_pce[] =
 { SM(NAME_initialise, 0, NULL, initialisePce,
      DEFAULT, "Create @pce (done only once)"),
   SM(NAME_syntax, 2, T_syntax, syntaxPce,
@@ -1279,7 +1282,7 @@ static const senddecl send_pce[] =
 
 /* Get Methods */
 
-static const getdecl get_pce[] =
+static getdecl get_pce[] =
 { GM(NAME_home, 0, "name", NULL, getHomePce,
      DEFAULT, "Find XPCE's home directory"),
   GM(NAME_convert, 2, "converted=unchecked", T_convert, getConvertPce,
@@ -1349,9 +1352,12 @@ static const getdecl get_pce[] =
 
 /* Resources */
 
-static const resourcedecl rc_pce[] =
+#define rc_pce NULL
+/*
+static resourcedecl rc_pce[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

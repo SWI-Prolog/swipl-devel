@@ -746,22 +746,22 @@ initialiseNewSlotPath(Path p, Variable var)
 
 /* Type declarations */
 
-static const char *T_resize[] =
+static char *T_resize[] =
         { "factor_x=real", "factor_y=[real]", "origin=[point]" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "kind=[{poly,smooth}]", "intervals=[int]" };
-static const char *T_point[] =
+static char *T_point[] =
         { "near=point|event", "max_distance=[int]" };
-static const char *T_setPoint[] =
+static char *T_setPoint[] =
         { "point=point", "x=[int]", "y=[int]" };
-static const char *T_insert[] =
+static char *T_insert[] =
         { "point", "point*" };
-static const char *T_geometry[] =
+static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_path[] =
+static vardecl var_path[] =
 { IV(NAME_offset, "point", IV_GET,
      NAME_dimension, "Offset to origin"),
   SV(NAME_kind, "{poly,smooth}", IV_GET|IV_STORE, kindPath,
@@ -784,7 +784,7 @@ static const vardecl var_path[] =
 
 /* Send Methods */
 
-static const senddecl send_path[] =
+static senddecl send_path[] =
 { SM(NAME_compute, 0, NULL, computePath,
      DEFAULT, "Recompute interpolation and area"),
   SM(NAME_geometry, 4, T_geometry, geometryPath,
@@ -815,7 +815,7 @@ static const senddecl send_path[] =
 
 /* Get Methods */
 
-static const getdecl get_path[] =
+static getdecl get_path[] =
 { GM(NAME_point, 2, "point", T_point, getPointPath,
      NAME_event, "Find closest point"),
   GM(NAME_segment, 1, "point", "near=point|event", getSegmentPath,
@@ -830,7 +830,7 @@ static const getdecl get_path[] =
 
 /* Resources */
 
-static const resourcedecl rc_path[] =
+static resourcedecl rc_path[] =
 { RC(NAME_intervals, "int", "10",
      "Number of interpolated points"),
   RC(NAME_selectionHandles, RC_REFINE, "@nil",

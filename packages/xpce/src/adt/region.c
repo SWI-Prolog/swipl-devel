@@ -91,14 +91,14 @@ getAreaRegion(RegionObj r, Area a)
 
 /* Type declaractions */
 
-static const char *T_inside[] =
+static char *T_inside[] =
         { "area", "point" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "x=expression", "y=expression", "width=expression", "height=expression" };
 
 /* Instance Variables */
 
-static const vardecl var_region[] =
+static vardecl var_region[] =
 { IV(NAME_x, "expression", IV_BOTH,
      NAME_dimension, "X of area expressed in XYWH of area"),
   IV(NAME_y, "expression", IV_BOTH,
@@ -111,7 +111,7 @@ static const vardecl var_region[] =
 
 /* Send Methods */
 
-static const senddecl send_region[] =
+static senddecl send_region[] =
 { SM(NAME_initialise, 4, T_initialise, initialiseRegion,
      DEFAULT, "Create region from XYWH-expressions"),
   SM(NAME_inside, 2, T_inside, insideRegion,
@@ -120,7 +120,7 @@ static const senddecl send_region[] =
 
 /* Get Methods */
 
-static const getdecl get_region[] =
+static getdecl get_region[] =
 { GM(NAME_area, 1, "area", "area", getAreaRegion,
      NAME_calculate, "New area describing region of argument"),
   GM(NAME_areaHeight, 1, "int", "area", getAreaHRegion,
@@ -135,9 +135,12 @@ static const getdecl get_region[] =
 
 /* Resources */
 
-static const resourcedecl rc_region[] =
+#define rc_region NULL
+/*
+static resourcedecl rc_region[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

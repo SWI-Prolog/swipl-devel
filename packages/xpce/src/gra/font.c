@@ -323,14 +323,14 @@ getPointsFont(FontObj f)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "family=name", "style=name", "points=[int]", "x_name=[name]" };
-static const char *T_lookup[] =
+static char *T_lookup[] =
         { "name", "name", "[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_font[] =
+static vardecl var_font[] =
 { IV(NAME_family, "name", IV_GET,
      NAME_name, "Family the font belongs to (times, etc.)"),
   IV(NAME_style, "name", IV_GET,
@@ -353,7 +353,7 @@ static const vardecl var_font[] =
 
 /* Send Methods */
 
-static const senddecl send_font[] =
+static senddecl send_font[] =
 { SM(NAME_initialise, 4, T_initialise, initialiseFont,
      DEFAULT, "Create from fam, style, points, name"),
   SM(NAME_member, 1, "char", memberFont,
@@ -366,7 +366,7 @@ static const senddecl send_font[] =
 
 /* Get Methods */
 
-static const getdecl get_font[] =
+static getdecl get_font[] =
 { GM(NAME_points, 0, "int", NULL, getPointsFont,
      DEFAULT, "Specified point-size or <-height"),
   GM(NAME_convert, 1, "font", "name", getConvertFont,
@@ -397,7 +397,7 @@ static const getdecl get_font[] =
 
 /* Resources */
 
-static const resourcedecl rc_font[] =
+static resourcedecl rc_font[] =
 { RC(NAME_scale, "real", "1.4",
      "Multiplication factor for all fonts")
 };

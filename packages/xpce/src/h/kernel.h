@@ -794,10 +794,10 @@ typedef struct _resourcedecl
 } resourcedecl;
 
 typedef struct _classdecl
-{ const vardecl      *variables;	/* Instance variables */
-  const senddecl     *send_methods;	/* Send methods of class */
-  const getdecl      *get_methods;	/* get methods of class */
-  const resourcedecl *resources;	/* Resources of the class */
+{ vardecl      *variables;		/* Instance variables */
+  senddecl     *send_methods;		/* Send methods of class */
+  getdecl      *get_methods;		/* get methods of class */
+  resourcedecl *resources;		/* Resources of the class */
   int		nvar;			/* number of entries in tables */
   int		nsend;
   int		nget;
@@ -809,7 +809,7 @@ typedef struct _classdecl
 } classdecl;
 
 #define ClassDecl(name, vs, ss, gs, rs, ta, tn, rcs) \
-	static const classdecl name = \
+	static classdecl name = \
 	{ vs, ss, gs, rs, \
 	  IVEntries(vs), SMEntries(ss), GMEntries(gs), RCEntries(rs), \
 	  ta, tn, __FILE__, rcs \

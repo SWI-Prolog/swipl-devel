@@ -60,20 +60,23 @@ deleteChainTable(ChainTable ct, Any name, Any value)
 
 /* Type declaractions */
 
-static const char *T_delete[] =
+static char *T_delete[] =
         { "key=any", "value=[any]" };
-static const char *T_keyAany_valueAany[] =
+static char *T_keyAany_valueAany[] =
         { "key=any", "value=any" };
 
 /* Instance Variables */
 
-static const vardecl var_chainTable[] =
+#define var_chainTable NULL
+/*
+static vardecl var_chainTable[] =
 { 
 };
+*/
 
 /* Send Methods */
 
-static const senddecl send_chainTable[] =
+static senddecl send_chainTable[] =
 { SM(NAME_append, 2, T_keyAany_valueAany, appendChainTable,
      DEFAULT, "Append association to table"),
   SM(NAME_add, 2, T_keyAany_valueAany, appendChainTable,
@@ -86,15 +89,21 @@ static const senddecl send_chainTable[] =
 
 /* Get Methods */
 
-static const getdecl get_chainTable[] =
+#define get_chainTable NULL
+/*
+static getdecl get_chainTable[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_chainTable[] =
+#define rc_chainTable NULL
+/*
+static resourcedecl rc_chainTable[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

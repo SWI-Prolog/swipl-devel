@@ -773,14 +773,14 @@ getContainedInNode(Node n)
 
 /* Type declarations */
 
-static const char *T_computeLevel[] =
+static char *T_computeLevel[] =
         { "int", "[bool]" };
-static const char *T_computeLayout[] =
+static char *T_computeLayout[] =
         { "int", "int", "int" };
 
 /* Instance Variables */
 
-static const vardecl var_node[] =
+static vardecl var_node[] =
 { SV(NAME_image, "graphical", IV_GET|IV_STORE, imageNode,
      NAME_appearance, "Graphical image of the node"),
   IV(NAME_tree, "tree", IV_GET,
@@ -805,7 +805,7 @@ static const vardecl var_node[] =
 
 /* Send Methods */
 
-static const senddecl send_node[] =
+static senddecl send_node[] =
 { SM(NAME_initialise, 1, "image=graphical", initialiseNode,
      DEFAULT, "Create from graphical"),
   SM(NAME_unlink, 0, NULL, unlinkNode,
@@ -846,7 +846,7 @@ static const senddecl send_node[] =
 
 /* Get Methods */
 
-static const getdecl get_node[] =
+static getdecl get_node[] =
 { GM(NAME_containedIn, 0, "tree", NULL, getContainedInNode,
      DEFAULT, "Visual I'm contained in (tree)"),
   GM(NAME_contains, 0, "chain", NULL, getContainsNode,
@@ -863,9 +863,12 @@ static const getdecl get_node[] =
 
 /* Resources */
 
-static const resourcedecl rc_node[] =
+#define rc_node NULL
+/*
+static resourcedecl rc_node[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

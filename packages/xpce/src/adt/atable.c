@@ -290,14 +290,14 @@ getMatchATable(Atable t, Vector v)
 
 /* Type declaractions */
 
-static const char *T_vectors[] =
+static char *T_vectors[] =
         { "column=name", "value=any" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "names=vector", "keys=vector" };
 
 /* Instance Variables */
 
-static const vardecl var_atable[] =
+static vardecl var_atable[] =
 { IV(NAME_keys, "vector", IV_GET,
      NAME_hashing, "Vector to determine key columns"),
   IV(NAME_names, "vector", IV_GET,
@@ -308,7 +308,7 @@ static const vardecl var_atable[] =
 
 /* Send Methods */
 
-static const senddecl send_atable[] =
+static senddecl send_atable[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseAtablev,
      DEFAULT, "Create table, given names and keys"),
   SM(NAME_unlink, 0, NULL, unlinkAtable,
@@ -323,7 +323,7 @@ static const senddecl send_atable[] =
 
 /* Get Methods */
 
-static const getdecl get_atable[] =
+static getdecl get_atable[] =
 { GM(NAME_match, 1, "associations=chain", "pattern=vector", getMatchATable,
      NAME_lookup, "New chain with vectors matching arg-1"),
   GM(NAME_members, 0, "chain", NULL, getMembersATable,
@@ -334,9 +334,12 @@ static const getdecl get_atable[] =
 
 /* Resources */
 
-static const resourcedecl rc_atable[] =
+#define rc_atable NULL
+/*
+static resourcedecl rc_atable[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

@@ -200,8 +200,8 @@ ensureNlString(StringObj s1, CharArray s2)
 
 
 static status
-ensureSuffixString(StringObj s, CharArray suff)
-{ if ( !suffixCharArray((CharArray) s, suff) )
+ensureSuffixString(StringObj s, CharArray suff, Bool ign_case)
+{ if ( !suffixCharArray((CharArray) s, suff, ign_case) )
     appendString(s, suff);
 
   succeed;
@@ -570,28 +570,33 @@ str_insert_string(StringObj str, Int where, String s)
 
 /* Type declarations */
 
-static const char *T_insert[] =
+static char *T_insert[] =
         { "at=[int]", "text=char_array" };
-static const char *T_character[] =
+static char *T_character[] =
         { "at=int", "char=char" };
-static const char *T_insertCharacter[] =
+static char *T_insertCharacter[] =
         { "char=char", "at=[0..]", "times=[0..]" };
-static const char *T_formatADchar_arrayD_argumentAany_XXX[] =
+static char *T_formatADchar_arrayD_argumentAany_XXX[] =
         { "format=[char_array]", "argument=any ..." };
-static const char *T_translate[] =
+static char *T_translate[] =
         { "from=char", "into=char*" };
-static const char *T_delete[] =
+static char *T_delete[] =
         { "from=int", "length=[int]" };
+static char *T_ensureSuffix[] =
+	{ "text=char_array", "ignore_case=[bool]" };
 
 /* Instance Variables */
 
-static const vardecl var_string[] =
+#define var_string NULL
+/*
+vardecl var_string[] =
 { 
 };
+*/
 
 /* Send Methods */
 
-static const senddecl send_string[] =
+static senddecl send_string[] =
 { SM(NAME_initialise, 2, T_formatADchar_arrayD_argumentAany_XXX, initialiseStringv,
      DEFAULT, "Create a string, initialise as ->format"),
   SM(NAME_downcase, 0, NULL, downcaseString,
@@ -606,7 +611,7 @@ static const senddecl send_string[] =
      NAME_content, "Delete range from 0-based start and length"),
   SM(NAME_ensureNl, 1, "[char_array]", ensureNlString,
      NAME_content, "Ensure string has trailing newline [and append string]"),
-  SM(NAME_ensureSuffix, 1, "suffix=[char_array]", ensureSuffixString,
+  SM(NAME_ensureSuffix, 2, T_ensureSuffix, ensureSuffixString,
      NAME_content, "Ensure string has indicated suffix"),
   SM(NAME_insert, 2, T_insert, insertString,
      NAME_content, "Insert string at 0-based index"),
@@ -634,7 +639,7 @@ static const senddecl send_string[] =
 
 /* Get Methods */
 
-static const getdecl get_string[] =
+static getdecl get_string[] =
 { GM(NAME_convert, 1, "string", "any", convertString,
      DEFAULT, "Convert name, int, real, etc."),
   GM(NAME_modify, 1, "string", "char_array", getModifyString,
@@ -645,9 +650,12 @@ static const getdecl get_string[] =
 
 /* Resources */
 
-static const resourcedecl rc_string[] =
+#define rc_string NULL
+/*
+static resourcedecl rc_string[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

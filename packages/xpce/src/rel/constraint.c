@@ -182,12 +182,12 @@ toConstraint(Constraint c, Any obj)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "from=object", "to=object", "relation=relation", "propagate=[{forwards,backwards}]" };
 
 /* Instance Variables */
 
-static const vardecl var_constraint[] =
+static vardecl var_constraint[] =
 { SV(NAME_from, "object", IV_GET|IV_STORE, fromConstraint,
      NAME_client, "`From' side of the constraint"),
   SV(NAME_to, "object", IV_GET|IV_STORE, toConstraint,
@@ -200,7 +200,7 @@ static const vardecl var_constraint[] =
 
 /* Send Methods */
 
-static const senddecl send_constraint[] =
+static senddecl send_constraint[] =
 { SM(NAME_initialise, 4, T_initialise, initialiseConstraint,
      DEFAULT, "Create from objects, relation and direction"),
   SM(NAME_unlink, 0, NULL, unlinkConstraint,
@@ -209,15 +209,21 @@ static const senddecl send_constraint[] =
 
 /* Get Methods */
 
-static const getdecl get_constraint[] =
+#define get_constraint NULL
+/*
+static getdecl get_constraint[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_constraint[] =
+#define rc_constraint NULL
+/*
+static resourcedecl rc_constraint[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

@@ -1289,16 +1289,16 @@ convertLoadedObjectScrollBar(ScrollBar sb, Int ov, Int nv)
 
 /* Type declarations */
 
-static const char *T_convertLoadedObject[] =
+static char *T_convertLoadedObject[] =
         { "int", "int" };
-static const char *T_bubble[] =
+static char *T_bubble[] =
         { "length=int", "start=int", "view=int" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "object=object", "orientation={horizontal,vertical}", "message=[code]*" };
 
 /* Instance Variables */
 
-static const vardecl var_scrollBar[] =
+static vardecl var_scrollBar[] =
 { IV(NAME_message, "[code]*", IV_BOTH,
      NAME_action, "Message used to inform object"),
   IV(NAME_object, "graphical*", IV_BOTH,
@@ -1335,7 +1335,7 @@ static const vardecl var_scrollBar[] =
 
 /* Send Methods */
 
-static const senddecl send_scrollBar[] =
+static senddecl send_scrollBar[] =
 { SM(NAME_compute, 0, NULL, computeScrollBar,
      DEFAULT, "Recompute the scrollbar values"),
   SM(NAME_convertLoadedObject, 2, T_convertLoadedObject, convertLoadedObjectScrollBar,
@@ -1356,13 +1356,16 @@ static const senddecl send_scrollBar[] =
 
 /* Get Methods */
 
-static const getdecl get_scrollBar[] =
+#define get_scrollBar NULL
+/*
+static getdecl get_scrollBar[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_scrollBar[] =
+static resourcedecl rc_scrollBar[] =
 { RC(NAME_background, "[elevation|colour|pixmap]", "white",
      "Colour of background parts"),
   RC(NAME_distance, "int", "-1",

@@ -432,16 +432,16 @@ changedVector(Vector v, Any *field)
 
 /* Type declaractions */
 
-static const char *T_element[] =
+static char *T_element[] =
         { "index=int", "value=any" };
-static const char *T_swap[] =
+static char *T_swap[] =
         { "index_1=int", "index_2=int" };
-static const char *T_fill[] =
+static char *T_fill[] =
         { "value=any", "from=[int]", "to=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_vector[] =
+static vardecl var_vector[] =
 { IV(NAME_offset, "int", IV_GET,
      NAME_range, "Offset relative to 1-based"),
   IV(NAME_size, "int", IV_GET,
@@ -452,7 +452,7 @@ static const vardecl var_vector[] =
 
 /* Send Methods */
 
-static const senddecl send_vector[] =
+static senddecl send_vector[] =
 { SM(NAME_initialise, 1, "element=any ...", initialiseVectorv,
      DEFAULT, "Create vector with elements at 1, ..."),
   SM(NAME_unlink, 0, NULL, unlinkVector,
@@ -477,7 +477,7 @@ static const senddecl send_vector[] =
 
 /* Get Methods */
 
-static const getdecl get_vector[] =
+static getdecl get_vector[] =
 { GM(NAME_Arg, 1, "any", "int", getArgVector,
      DEFAULT, "Get argument for term"),
   GM(NAME_Arity, 0, "int", NULL, getArityVector,
@@ -506,9 +506,12 @@ static const getdecl get_vector[] =
 
 /* Resources */
 
-static const resourcedecl rc_vector[] =
+#define rc_vector NULL
+/*
+static resourcedecl rc_vector[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

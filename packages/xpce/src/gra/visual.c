@@ -169,19 +169,22 @@ alertReporteeVisual(Any v)
 
 /* Type declaractions */
 
-static const char *T_report[] =
+static char *T_report[] =
 	{ "kind={status,inform,progress,done,warning,error}",
 	  "format=[char_array]", "argument=any ..." };
 
 /* Instance Variables */
 
-static const vardecl var_visual[] =
+#define var_visual NULL
+/*
+vardecl var_visual[] =
 { 
 };
+*/
 
 /* Send Methods */
 
-static const senddecl send_visual[] =
+static senddecl send_visual[] =
 { SM(NAME_reset, 0, NULL, resetVisual,
      NAME_abort, "Send a ->reset to all contained objects"),
   SM(NAME_destroy, 0, NULL, destroyVisual,
@@ -194,7 +197,7 @@ static const senddecl send_visual[] =
 
 /* Get Methods */
 
-static const getdecl get_visual[] =
+static getdecl get_visual[] =
 { GM(NAME_master, 0, "visual", NULL, getMasterVisual,
      NAME_event, "Principal visual I'm part of (self)"),
   GM(NAME_containedIn, 0, "visual", NULL, getContainedInVisual,
@@ -211,9 +214,12 @@ static const getdecl get_visual[] =
 
 /* Resources */
 
-static const resourcedecl rc_visual[] =
+#define rc_visual NULL
+/*
+static resourcedecl rc_visual[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

@@ -92,12 +92,12 @@ displayError(Error e, int argc, Any *argv)
 
 /* Type declaractions */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "name=name", "format=string", "kind=[{status,inform,warning,error,fatal,ignored}]", "feedback=[{report,print}]" };
 
 /* Instance Variables */
 
-static const vardecl var_error[] =
+static vardecl var_error[] =
 { IV(NAME_id, "name", IV_GET,
      NAME_name, "Unique identifier"),
   IV(NAME_format, "string", IV_GET,
@@ -110,7 +110,7 @@ static const vardecl var_error[] =
 
 /* Send Methods */
 
-static const senddecl send_error[] =
+static senddecl send_error[] =
 { SM(NAME_initialise, 4, T_initialise, initialiseError,
      DEFAULT, "-> id, format, [kind], [feedback]"),
   SM(NAME_display, 1, "any|function ...", displayError,
@@ -119,7 +119,7 @@ static const senddecl send_error[] =
 
 /* Get Methods */
 
-static const getdecl get_error[] =
+static getdecl get_error[] =
 { GM(NAME_convert, 1, "error", "name", getConvertError,
      NAME_oms, "Convert id into error"),
   GM(NAME_lookup, 1, "error", "name", getConvertError,
@@ -128,9 +128,12 @@ static const getdecl get_error[] =
 
 /* Resources */
 
-static const resourcedecl rc_error[] =
+#define rc_error NULL
+/*
+static resourcedecl rc_error[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

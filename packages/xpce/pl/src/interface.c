@@ -12,15 +12,26 @@
 #include <sys/types.h>			/* size_t */
 #include <h/interface.h>
 #include <stdio.h>
+#ifdef HAVE_MALLOC_H
+#include <malloc.h>
+#endif
+
+#ifdef __WIN32__
+#include <windows.h>
+#define RaiseException PceRaiseException /* conflict */
+#endif
 
 /*#define SICSTUS 1*/			/* SICStus Prolog version 3.x */
 /*#define SWI 1*/			/* SWI-Prolog version 2.5! and up */
 
 #ifdef __GNUC__
 #define TermVector(name, size)  Term name[size]
+#define ObjectVector(name, size) PceObject name[size]
 #else
 #define TermVector(name, size) \
 	Term *name = (Term *) alloca(size * sizeof(Term))
+#define ObjectVector(name, size) \
+	PceObject *name = (PceObject *) alloca(size * sizeof(Term))
 #endif
 
 #define O_MODULE 1			/* use module tags */
@@ -388,8 +399,15 @@ GetSelector(Term t, Module *m)
 
 
 #ifdef __WIN32__
+#include <console.h>
+
 static IOSTREAM *S__iob;		/* Windows DLL version */
-#define PROLOG_ITF_INIT() { S__iob = S__getiob(); }
+static RlcUpdateHook old_update_hook;
+
+#define PROLOG_ITF_INIT() \
+	{ S__iob = S__getiob(); }
+#define PROLOG_INSTALL_REDRAW_FUNCTION(f) \
+	{ old_update_hook = rlc_update_hook(f); }
 #define O_SHAREDLIBRARY
 #endif
 
@@ -409,6 +427,9 @@ install()
 install_t
 uninstall()
 { PL_dispatch_hook(old_dispatch_hook);
+#ifdef __WIN32__
+  rlc_update_hook(old_update_hook);
+#endif
   if ( exitpce_hook )
     (*exitpce_hook)();
 }
@@ -879,7 +900,7 @@ termToObject(Term t, Atom assoc, int new)
 		 *	  OBJECT-TO-TERM	*
 		 *******************************/
 
-static inline int
+static __inline int
 atomIsName(Atom a, PceCValue value)
 { PceITFSymbol symbol = value.itf_symbol;
 
@@ -893,7 +914,7 @@ atomIsName(Atom a, PceCValue value)
 static int
 unifyObject(Term t, PceObject obj, int top)
 { PceCValue value;
-  int pltype, pcetype;
+  int pcetype;
   char *s;
   Term tmpt;
 
@@ -1132,7 +1153,7 @@ pl_sendn(Term rec, Term sel, Term args)
     int i;
 
     if ( GetFunctor(args, &name, &arity) )
-    { PceObject av[arity];
+    { ObjectVector(av, arity);
 
       for(i=1; i<=arity; i++)
       { GetArg(i, args, t);
@@ -1250,7 +1271,7 @@ pl_getn(Term rec, Term sel, Term args, Term ret)
     int i;
 
     if ( GetFunctor(args, &name, &arity) )
-    { PceObject av[arity];
+    { ObjectVector(av, arity);
 
       for(i=1; i<=arity; i++)
       { GetArg(i, args, t);
@@ -1546,7 +1567,6 @@ pl_pce_predicate_reference(Term pred, Term ref)
   { Module m = 0, name;
     int arity;
     Predicate predicate;
-    char echarp[512];
     Term p = NewTerm();
     
     StripModuleTag(pred, &m, p);

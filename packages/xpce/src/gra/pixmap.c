@@ -142,23 +142,26 @@ getReplacementColourPixmap(PixmapObj pm)
 
 /* Type declarations */
 
-static const char *T_fill[] =
+static char *T_fill[] =
         { "image|colour", "[area]" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "source=[image|file]*", "foreground=[colour]",
 	  "background=[colour]", "width=[int]", "height=[int]" };
-static const char *T_lookup[] =
+static char *T_lookup[] =
         { "source=image", "foreground=[colour]", "background=[colour]" };
 
 /* Instance Variables */
 
-static const vardecl var_pixmap[] =
+#define var_pixmap NULL
+/*
+vardecl var_pixmap[] =
 { 
 };
+*/
 
 /* Send Methods */
 
-static const senddecl send_pixmap[] =
+static senddecl send_pixmap[] =
 { SM(NAME_initialise, 5, T_initialise, initialisePixmap,
      DEFAULT, "Create image of <-kind pixmap"),
   SM(NAME_fill, 2, T_fill, fillImage,
@@ -167,7 +170,7 @@ static const senddecl send_pixmap[] =
 
 /* Get Methods */
 
-static const getdecl get_pixmap[] =
+static getdecl get_pixmap[] =
 { GM(NAME_convert, 1, "pixmap", "source=image", getConvertPixmap,
      NAME_oms, "Lookup already made conversion"),
   GM(NAME_lookup, 3, "pixmap", T_lookup, getLookupPixmap,
@@ -178,7 +181,7 @@ static const getdecl get_pixmap[] =
 
 /* Resources */
 
-static const resourcedecl rc_pixmap[] =
+static resourcedecl rc_pixmap[] =
 { RC(NAME_background, "colour", "white",
      "Default background colour"),
   RC(NAME_foreground, "colour", "black",

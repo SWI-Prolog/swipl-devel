@@ -31,7 +31,7 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Format description:
 
-dialog(<ref>,
+dialog(<key>(<Arg> ...),
        [ <attribute> := <value>,
 	 ...
        ]).
@@ -44,12 +44,13 @@ dialog(<ref>,
 source(Dialog, Source) :-
 	retractall(reference(_,_)),
 	findall(P, parameter(Dialog, P), Ps),
+	menu_items(Dialog),
 	findall(Attr := Value, source_attribute(Dialog, Attr, Value), List),
 	reference(ObjectRef, Dialog),
 	get(Dialog, name, Id),
 	IdTerm =.. [Id|Ps],
-	Source =.. [dialog, IdTerm, [object := ObjectRef | List]],
-	retractall(reference(_,_)).
+	Source =.. [dialog, IdTerm, [object := ObjectRef | List]].
+%	retractall(reference(_,_)).	% TBD
 
 :- discontiguous
 	source_attribute/3.
@@ -68,6 +69,23 @@ parameter(Dialog, P) :-
 				   asserta(reference('$aref'(RefName), Gr))),
 		Parms),
 	member(P, Parms).
+
+		 /*******************************
+		 *	     MENU_ITEMS		*
+		 *******************************/
+
+menu_items(Dialog) :-
+	get(Dialog, behaviour_model, Model),
+	get_chain(Model, graphicals, Grs),
+	member(Gr, Grs),
+	send(Gr, instance_of, msg_object),
+	get(Gr, ui_object, UI),
+	send(UI, instance_of, menu_item),
+	get(UI, value, ValueName),
+	prolog_variable_name(ValueName, RefName),
+	asserta(reference('$aref'(RefName), UI)),
+	fail.
+menu_items(_).
 
 
 		 /*******************************
@@ -224,6 +242,14 @@ popup(Gr, [ popup := NewTerm, Attributes ]) :-
 		 *	      BEHAVIOUR		*
 		 *******************************/
 
+behaviour_object(O, R) :-
+	send(O, instance_of, menu_item), !,
+	reference(R, O).
+behaviour_object(O, O) :-
+	O = @Ref,
+	atom(Ref),
+	\+ send(O, instance_of, graphical).
+	
 source_attribute(Dialog, behaviour, Behaviour) :-
 	get_chain(Dialog, graphicals, Grs),
 	findall(Ref := Dyns,
@@ -236,14 +262,11 @@ source_attribute(Dialog, behaviour, Behaviour) :-
 		B0),
 	get(Dialog, behaviour_model, Model),
 	get_chain(Model, graphicals, BMs),
-	findall(O := Dyns,
+	findall(R := Dyns,
 		(member(BM, BMs),
 		 send(BM, instance_of, msg_object),
 		 get(BM, ui_object, O),
-		 O = @Ref,
-		 atom(Ref),		% only for global references now
-		 \+ ( send(O, instance_of, graphical),
-		      get(O, device, Dialog) ),
+		 behaviour_object(O, R),
 		 behaviour(BM, Dyns),
 		 Dyns \== []),
 		B1),
@@ -462,24 +485,54 @@ new_term(Object, Term) :-
 	proto_term(Proto, Functor, ProtoArgs), !,
 	new_proto_term(Proto, Functor, Args),
 	maplist(new_argument(Object), Args, Values),
-	(   Values == []
-	->  Term = new(Functor)
-	;   Term =.. [Functor|Values]
-	),
 	(   length(Args, L),
 	    length(ProtoArgs, L)
 	->  true			% no more arguments
-	;   new(Tmp, Term),
+	;   maplist(try_argument, Values, TryValues),
+	    new_term(Functor, TryValues, TryTerm),
+	    new(Tmp, TryTerm),
 	    (	equal_on_remaining_proto_args(Values, ProtoArgs, Object, Tmp)
 	    ->	!,
 		free(Tmp)
 	    ;	free(Tmp),
 		fail
 	    )
+	),
+	new_term(Functor, Values, RawTerm),
+	(   Functor == menu_item,
+	    reference(Ref, Object)
+	->  Term = new(Ref, RawTerm)
+	;   Term = RawTerm
 	).
 new_term(Object, Term) :-
 	portray_object(Object, Term).
 	
+%	new_term(+Class, +Args, -Term)
+%	Create a term that can be handed as an argument to create an
+%	instance of the class.
+
+new_term(Class, Args, Term) :-
+	append(NonDef, Def, Args),
+	checklist(=(@default), Def), !,
+	(   NonDef == []
+	->  Term = new(Class)
+	;   Term =.. [Class|NonDef]
+	).
+	
+code_class(message).
+code_class(and).
+
+%	try_argument(+Arg, -Try)
+%	Code arguments normally contain $aref(_) terms and thus cannot
+%	be handed to the temporary term.  Just hand in a dummy argument
+%	to fix to avoid the error.
+
+:- pce_global(@dia_dummy_code, new(or)).
+
+try_argument(A, @dia_dummy_code) :-
+	functor(A, Class, _),
+	code_class(Class), !.
+try_argument(A, A).
 
 new_argument(_, _Name := Value, Value) :- !.
 new_argument(O, Name, Value) :-
@@ -550,16 +603,15 @@ object_attribute(Object, _Tmp, append, Value) :- % menu_items of a menu
 		Value).
 
 
-simplify_item(menu_item(Value), Value) :-
-	atomic(Value), !.
+simplify_item(menu_item(Value), Value) :- !.
 simplify_item(Item, Item).
 
-
-delete_attribute(fixed_reference).
-delete_attribute(fixed_alignment).
-delete_attribute(has_popup).
-delete_attribute(popup_items(_)).
-delete_attribute(members).
+delete_attribute(_, fixed_reference).
+delete_attribute(_, fixed_alignment).
+delete_attribute(_, has_popup).
+delete_attribute(_, popup_items(_)).
+delete_attribute(_, members).
+delete_attribute(popup, reference).
 
 attribute_mapping(reference_x, reference).
 attribute_mapping(reference_y, reference).
@@ -573,7 +625,7 @@ proto_source_attribute(Mode, Proto, Attr) :-
 	maplist(map_attribute, S0, S1),
 	list_to_set(S1, S2),
 	member(Attr, S2),
-	\+ delete_attribute(Attr).
+	\+ delete_attribute(Proto, Attr).
 
 
 		 /*******************************

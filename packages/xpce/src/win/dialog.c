@@ -276,20 +276,20 @@ getReportToDialog(Dialog d)
 
 /* Type declarations */
 
-static const char *T_typed[] =
+static char *T_typed[] =
         { "event_id", "[bool]" };
-static const char *T_display[] =
+static char *T_display[] =
         { "graphical", "at=[point]" };
-static const char *T_modifiedItem[] =
+static char *T_modifiedItem[] =
         { "item=graphical", "modified=bool" };
-static const char *T_append[] =
+static char *T_append[] =
         { "item=graphical", "relative_to_last=[{below,right,next_row}]" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "label=[name]", "size=[size]", "display=[display]" };
 
 /* Instance Variables */
 
-static const vardecl var_dialog[] =
+static vardecl var_dialog[] =
 { IV(NAME_gap, "size", IV_BOTH,
      NAME_layout, "Distance in X and Y direction between items"),
   IV(NAME_sizeGiven, "bool", IV_NONE,
@@ -298,7 +298,7 @@ static const vardecl var_dialog[] =
 
 /* Send Methods */
 
-static const senddecl send_dialog[] =
+static senddecl send_dialog[] =
 { SM(NAME_initialise, 3, T_initialise, initialiseDialog,
      DEFAULT, "Create from label, size and display"),
   SM(NAME_defaultButton, 1, "member:button*", defaultButtonDialog,
@@ -333,7 +333,7 @@ static const senddecl send_dialog[] =
 
 /* Get Methods */
 
-static const getdecl get_dialog[] =
+static getdecl get_dialog[] =
 { GM(NAME_defaultButton, 0, "button", NULL, getDefaultButtonDialog,
      NAME_accelerator, "Current Button connected to `RET'"),
   GM(NAME_active, 0, "bool", NULL, getActiveDialog,
@@ -348,7 +348,7 @@ static const getdecl get_dialog[] =
 
 /* Resources */
 
-static const resourcedecl rc_dialog[] =
+static resourcedecl rc_dialog[] =
 { RC(NAME_gap, "size", "size(15,8)",
      "Distance between items in X and Y")
 };

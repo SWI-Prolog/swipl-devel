@@ -1,11 +1,36 @@
 [VERSION 4.8.16]
 
+* ADDED: optional `ignore_case' argument to `char_array->suffix' and
+  `string->ensure_suffix'.  Should be added to some more of the text
+  analysis methods.
+
+* FIXED: Update after sending a message from the Prolog window to XPCE
+  for the Win32 version (broken with the new pl-2.5.x interface).
+
+* FIXED: Added case-insensitive file handling in the standard library finder
+  for the Win32 platform.
+
+* FIXED: Loading images from file on the Win32 platform.  Guaranteed display
+  of picture windows that have been loaded from file.
+
+* FIXED: Dialog Editors handling of menu_items with messages in associated
+  popup menus.  Modified code-generation, make_dialog/2 and reload-from-id.
+
+* FIXED: `stream <->record_separator' handling.  Probably broken since
+  version 4.8.14.  Also improved underline/bold handling and feedback.
+
+* Added `graphical <-displayed_cursor' to make cursor computation available
+  to the (advanced) user.
+
 * Integrated SICStus interface and moved SWI-Prolog interface to the new
   2.5.0 interface.  Both Prolog's now share the same interface.
 
 * PceEmacs: Added conversion of - to _ for entering M-x commands.
 
 * PceEmacs: Fixed M-P in completer field when no history was present.
+
+* INTERFACE: Created hooks for malloc()/free()/realloc() to allow for
+  host-defined versions of these.
 
 [VERSION 4.8.15]
 

@@ -84,19 +84,19 @@ geometryCircle(Circle c, Int x, Int y, Int w, Int h)
 
 /* Type declarations */
 
-static const char *T_geometry[] =
+static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_circle[] =
+static vardecl var_circle[] =
 { SV(NAME_fillPattern, "image|colour*", IV_GET|IV_STORE, fillPatternGraphical,
      NAME_appearance, "Fill pattern for internals")
 };
 
 /* Send Methods */
 
-static const senddecl send_circle[] =
+static senddecl send_circle[] =
 { SM(NAME_initialise, 1, "diameter=[int]", initialiseCircle,
      DEFAULT, "Create circle from diameter"),
   SM(NAME_diameter, 1, "int", diameterCircle,
@@ -113,7 +113,7 @@ static const senddecl send_circle[] =
 
 /* Get Methods */
 
-static const getdecl get_circle[] =
+static getdecl get_circle[] =
 { GM(NAME_diameter, 0, "int", NULL, getDiameterCircle,
      NAME_area, "Diameter (= twice radius)"),
   GM(NAME_radius, 0, "int", NULL, getRadiusCircle,
@@ -122,7 +122,7 @@ static const getdecl get_circle[] =
 
 /* Resources */
 
-static const resourcedecl rc_circle[] =
+static resourcedecl rc_circle[] =
 { RC(NAME_selectionHandles, "name", "side_handles",
      "Visual feedback of <->selected")
 };

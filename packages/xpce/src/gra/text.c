@@ -1235,29 +1235,29 @@ convertOldSlotText(TextObj t, Name slot, Any value)
 
 /* Type declarations */
 
-static const char *T_insert[] =
+static char *T_insert[] =
         { "at=[int]", "text=char_array" };
-static const char *T_resize[] =
+static char *T_resize[] =
         { "factor_x=real", "factor_y=[real]", "origin=[point]" };
-static const char *T_margin[] =
+static char *T_margin[] =
         { "int*", "[{wrap,wrap_fixed_width,clip}]" };
-static const char *T_linesADintD_columnADintD[] =
+static char *T_linesADintD_columnADintD[] =
         { "lines=[int]", "column=[int]" };
-static const char *T_delegate[] =
+static char *T_delegate[] =
         { "program_object", "string", "unchecked ..." };
-static const char *T_convertOldSlot[] =
+static char *T_convertOldSlot[] =
         { "slot=name", "value=unchecked" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "string=[char_array]", "format=[{left,center,right}]",
 	  "font=[font]" };
-static const char *T_insertSelf[] =
+static char *T_insertSelf[] =
         { "times=[int]", "character=[char]" };
-static const char *T_geometry[] =
+static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_text[] =
+static vardecl var_text[] =
 { SV(NAME_string, "char_array", IV_GET|IV_SUPER, NAME_delegate,
      NAME_storage, "Represented string (may contain newlines)"),
   SV(NAME_font, "font", IV_GET|IV_STORE, fontText,
@@ -1288,7 +1288,7 @@ static const vardecl var_text[] =
 
 /* Send Methods */
 
-static const senddecl send_text[] =
+static senddecl send_text[] =
 { SM(NAME_event, 1, "event", eventText,
      DEFAULT, "Handle focus and keyboard events"),
   SM(NAME_geometry, 4, T_geometry, geometryText,
@@ -1371,7 +1371,7 @@ static const senddecl send_text[] =
 
 /* Get Methods */
 
-static const getdecl get_text[] =
+static getdecl get_text[] =
 { GM(NAME_characterPosition, 1, "point", "index=[int]",
      getCharacterPositionText,
      NAME_calculate, "Convert index to position of character"),
@@ -1385,7 +1385,7 @@ static const getdecl get_text[] =
 
 /* Resources */
 
-static const resourcedecl rc_text[] =
+static resourcedecl rc_text[] =
 { RC(NAME_border, "0..", "0",
      "Space around the actual text"),
   RC(NAME_font, "font", "normal",

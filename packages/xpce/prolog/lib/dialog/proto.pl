@@ -106,7 +106,7 @@ proto_term(list_browser,list_browser,	[dict := @default,width,height]).
 proto_term(editor,	editor,		[text_buffer:= @default,width,height]).
 proto_term(dialog,	dialog,		[label]).
 proto_term(menu_item,	menu_item,	[ value,
-					  [message],
+					  message := @default,
 					  [label],
 					  [end_group],
 					  [condition],

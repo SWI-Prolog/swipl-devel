@@ -84,12 +84,12 @@ maxSizeResizeOulineGesture(ResizeOutlineGesture g, Size sz)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "button=[button_name]", "modifier=[modifier]" };
 
 /* Instance Variables */
 
-static const vardecl var_resizeOutlineGesture[] =
+static vardecl var_resizeOutlineGesture[] =
 { IV(NAME_outline, "box", IV_GET,
      NAME_feedback, "The outline resized"),
   IV(NAME_outlineGesture, "resize_gesture", IV_GET,
@@ -98,7 +98,7 @@ static const vardecl var_resizeOutlineGesture[] =
 
 /* Send Methods */
 
-static const senddecl send_resizeOutlineGesture[] =
+static senddecl send_resizeOutlineGesture[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseResizeOutlineGesture,
      DEFAULT, "Create from button and modifier"),
   SM(NAME_drag, 1, "event", dragResizeOutlineGesture,
@@ -115,13 +115,16 @@ static const senddecl send_resizeOutlineGesture[] =
 
 /* Get Methods */
 
-static const getdecl get_resizeOutlineGesture[] =
+#define get_resizeOutlineGesture NULL
+/*
+static getdecl get_resizeOutlineGesture[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_resizeOutlineGesture[] =
+static resourcedecl rc_resizeOutlineGesture[] =
 { RC(NAME_button, "button_name", "middle",
      "Active on which button (middle)"),
   RC(NAME_texture, "texture_name", "dotted",

@@ -49,14 +49,14 @@ equalCPointer(CPointer p1, CPointer p2)
 
 /* Instance Variables */
 
-static const vardecl var_cPointer[] =
+static vardecl var_cPointer[] =
 { IV(NAME_pointer, "alien:void *", IV_NONE,
      NAME_storage, "Address of the pointer")
 };
 
 /* Send Methods */
 
-static const senddecl send_cPointer[] =
+static senddecl send_cPointer[] =
 { SM(NAME_initialise, 1, "alien:void *", initialiseCPointer,
      DEFAULT, "Create c_pointer from alien pointer"),
   SM(NAME_equal, 1, "to=c_pointer", equalCPointer,
@@ -65,16 +65,19 @@ static const senddecl send_cPointer[] =
 
 /* Get Methods */
 
-static const getdecl get_cPointer[] =
+static getdecl get_cPointer[] =
 { GM(NAME_printName, 0, "string", NULL, getPrintNameCPointer,
      NAME_textual, "Printed representation as 0x%lx")
 };
 
 /* Resources */
 
-static const resourcedecl rc_cPointer[] =
+#define rc_cPointer NULL
+/*
+static resourcedecl rc_cPointer[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

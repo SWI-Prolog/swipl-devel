@@ -25,6 +25,8 @@ AC_SUBST(RTSUFFIX)
 AC_SUBST(LD)
 AC_SUBST(SO)
 AC_SUBST(LDSOFLAGS)
+AC_SUBST(SONAMEFLAG)
+AC_SUBST(SOWHOLEARCHIVE)
 AC_SUBST(CXXTARGETS)
 AC_SUBST(GCCLIB)
 AC_SUBST(SOEXTRAOBJ)
@@ -208,24 +210,27 @@ EOF
   CMFLAGS="$CMFLAGS -fPIC"
   fi
 
-  SO="so"			# set up defaults
-  PLTARGET=soall
+  SO="so"				# Default shared object extension
+  LD="gcc"				# Default linking through gcc
+  LDSOFLAGS="-shared"			# Create a shared object
+  SONAMEFLAG="-Wl,-soname"		# Set the internal name
+  SOWHOLEARCHIVE="-Wl,-whole-archive"	# Link the whole archive
+  PLTARGET=soall			# Link XPCE dynamically to prolog
 
   case "$OS" in
-    *solaris* | *sunos5*)	LD=gcc
-				LDSOFLAGS="-shared"
+    *solaris* | *sunos5*)	LD=ld
+				LDSOFLAGS="-G"
+				SONAMEFLAG="-h "
+				SOWHOLEARCHIVE="-u pceSend"
     				;;
     *sunos*)			LDSOFLAGS=""
+				SOWHOLEARCHIVE="-u pceSend"
+				SONAMEFLAG=""
 				SOEXTRAOBJ=Initialize.o
 				;;
-    *linux*)			LD=gcc
-				LDSOFLAGS="-shared"
-				;;
-    *irix*)			LD=gcc
-    				LDSOFLAGS="-shared"
-				;;
-    *osf1*)			LDSOFLAGS="-shared"
-				;;
+    *linux*)			;;
+    *irix*)			;;
+    *osf1*)			;;
     *aix*)			SO="o"
 				LDSOFLAGS="-bI:$PLBASE/include/SWI-Exports"
 				;;

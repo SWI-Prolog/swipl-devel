@@ -48,7 +48,7 @@
 	  kill_buffer		   = key('\C-xk')    + button(file),
 	  ispell		   = button(file),
 	  shell			   = button(file),
-	  mode			   = key('\em') +
+	  (mode)		   = key('\em') +
 	  			     button(file, @emacs_mode?modes),
 	  identify		   = button(file),
 	  quit			   = key('\C-x\C-c') + button(file),
@@ -524,7 +524,7 @@ manual_entry(M, Spec:name) :->
 	send(M, has_processes),
 	new(B, emacs_buffer(@nil, Spec)),
 	send(B, pool, manual_entry),
-	send(B, mode, man),
+	send(B, (mode), man),
 	send(B, open),
 	send(B?editors?head, man, Spec).
 
@@ -564,7 +564,7 @@ annotate(M) :->
 			    new(B, emacs_annotate_buffer(NFile, BufName))),
 	    send(B, contents, OB?contents)
 	),
-	send(B, mode, annotate),
+	send(B, (mode), annotate),
 	send(B, pool, wysiwyg),
 	send(B, open).
 

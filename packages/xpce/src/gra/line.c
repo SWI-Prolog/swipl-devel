@@ -318,20 +318,23 @@ orientationLine(Line ln, Name o)
 
 /* Type declarations */
 
-static const char *T_points[] =
+static char *T_points[] =
         { "start_x=[int]", "start_y=[int]", "end_x=[int]", "end_y=[int]" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "start_x=[int]", "start_y=[int]", "end_x=[int]", "end_y=[int]", "arrows=[{none,first,second,both}]" };
 
 /* Instance Variables */
 
-static const vardecl var_line[] =
+#define var_line NULL
+/*
+vardecl var_line[] =
 { 
 };
+*/
 
 /* Send Methods */
 
-static const senddecl send_line[] =
+static senddecl send_line[] =
 { SM(NAME_initialise, 5, T_initialise, initialiseLine,
      DEFAULT, "Create line (X1,Y1) - (X2,Y2) with arrows"),
   SM(NAME_normalise, 0, NULL, normaliseLine,
@@ -360,7 +363,7 @@ static const senddecl send_line[] =
 
 /* Get Methods */
 
-static const getdecl get_line[] =
+static getdecl get_line[] =
 { GM(NAME_angle, 1, "degrees=real", "origin=[point]", getAngleLine,
      NAME_calculate, "Angle"),
   GM(NAME_intersection, 1, "point", "with=line", getIntersectionLine,
@@ -383,7 +386,7 @@ static const getdecl get_line[] =
 
 /* Resources */
 
-static const resourcedecl rc_line[] =
+static resourcedecl rc_line[] =
 { RC(NAME_selectionHandles, RC_REFINE, "line",
      NULL)
 };

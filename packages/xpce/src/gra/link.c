@@ -45,14 +45,14 @@ getConnectionLink(Link link, Graphical gr, Graphical gr2, Name from, Name to)
 
 /* Type declarations */
 
-static const char *T_connection[] =
+static char *T_connection[] =
         { "from=graphical", "to=graphical", "from_handle=[name]", "to_handle=[name]" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "handle_kind1=[name]", "handle_kind2=[name]", "line=[line]", "connection_class=[class]" };
 
 /* Instance Variables */
 
-static const vardecl var_link[] =
+static vardecl var_link[] =
 { IV(NAME_line, "line", IV_GET,
      NAME_appearance, "Line (with pen, arrows, etc.)"),
   IV(NAME_from, "name", IV_BOTH,
@@ -65,23 +65,26 @@ static const vardecl var_link[] =
 
 /* Send Methods */
 
-static const senddecl send_link[] =
+static senddecl send_link[] =
 { SM(NAME_initialise, 4, T_initialise, initialiseLink,
      DEFAULT, "Create from handle names, line")
 };
 
 /* Get Methods */
 
-static const getdecl get_link[] =
+static getdecl get_link[] =
 { GM(NAME_connection, 4, "connection", T_connection, getConnectionLink,
      NAME_relation, "Instantiate the link by creating a connection")
 };
 
 /* Resources */
 
-static const resourcedecl rc_link[] =
+#define rc_link NULL
+/*
+static resourcedecl rc_link[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

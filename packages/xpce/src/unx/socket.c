@@ -665,14 +665,14 @@ closeSocket(Socket s)
 
 /* Type declarations */
 
-static const char *T_listen[] =
+static char *T_listen[] =
         { "[code]*", "[{1..5}]" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "address=file|tuple|int*", "domain=[{unix,inet}]" };
 
 /* Instance Variables */
 
-static const vardecl var_socket[] =
+static vardecl var_socket[] =
 { IV(NAME_address, "file|tuple|int*", IV_GET,
      NAME_address, "Address for the connection end-point"),
   IV(NAME_domain, "{unix,inet}", IV_GET,
@@ -691,7 +691,7 @@ static const vardecl var_socket[] =
 
 /* Send Methods */
 
-static const senddecl send_socket[] =
+static senddecl send_socket[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseSocket,
      DEFAULT, "Create socket from address and domain"),
   SM(NAME_unlink, 0, NULL, unlinkSocket,
@@ -710,7 +710,7 @@ static const senddecl send_socket[] =
 
 /* Get Methods */
 
-static const getdecl get_socket[] =
+static getdecl get_socket[] =
 { GM(NAME_printName, 0, "string", NULL, getPrintNameSocket,
      DEFAULT, "returns <classname>(<address>)"),
   GM(NAME_peerName, 0, "name|tuple", NULL, getPeerNameSocket,
@@ -719,9 +719,12 @@ static const getdecl get_socket[] =
 
 /* Resources */
 
-static const resourcedecl rc_socket[] =
+#define rc_socket NULL
+/*
+static resourcedecl rc_socket[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

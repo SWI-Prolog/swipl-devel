@@ -41,12 +41,12 @@ ExecuteAssignment(Assignment b)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "variable=var", "value=any|function", "scope=[{local,outer,global}]" };
 
 /* Instance Variables */
 
-static const vardecl var_assign[] =
+static vardecl var_assign[] =
 { IV(NAME_var, "var", IV_BOTH,
      NAME_storage, "Variable to be bound"),
   IV(NAME_value, "any|function", IV_BOTH,
@@ -57,7 +57,7 @@ static const vardecl var_assign[] =
 
 /* Send Methods */
 
-static const senddecl send_assign[] =
+static senddecl send_assign[] =
 { SM(NAME_Execute, 0, NULL, ExecuteAssignment,
      DEFAULT, "Bind the variable"),
   SM(NAME_initialise, 3, T_initialise, initialiseAssignment,
@@ -66,15 +66,21 @@ static const senddecl send_assign[] =
 
 /* Get Methods */
 
-static const getdecl get_assign[] =
+#define get_assign NULL
+/*
+static getdecl get_assign[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_assign[] =
+#define rc_assign NULL
+/*
+static resourcedecl rc_assign[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

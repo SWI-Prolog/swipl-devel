@@ -545,18 +545,18 @@ getContainsDict(Dict d)
 
 /* Type declaractions */
 
-static const char *T_sort[] =
+static char *T_sort[] =
         { "[bool|code|function]", "ignore_blanks=[bool]", "reverse=[bool]" };
-static const char *T_actionAcode_safeADboolD[] =
+static char *T_actionAcode_safeADboolD[] =
         { "action=code", "safe=[bool]" };
-static const char *T_insertAfter[] =
+static char *T_insertAfter[] =
         { "after=dict_item", "item=any|dict_item*" };
-static const char *T_findPrefix[] =
+static char *T_findPrefix[] =
         { "for=string", "from=[int]", "no_exact_case=[bool]" };
 
 /* Instance Variables */
 
-static const vardecl var_dict[] =
+static vardecl var_dict[] =
 { IV(NAME_browser, "list_browser*", IV_NONE,
      NAME_visualisation, "Associated browser (visualisation)"),
   IV(NAME_members, "chain", IV_GET,
@@ -569,7 +569,7 @@ static const vardecl var_dict[] =
 
 /* Send Methods */
 
-static const senddecl send_dict[] =
+static senddecl send_dict[] =
 { SM(NAME_initialise, 1, "member=dict_item ...", initialiseDictv,
      DEFAULT, "Create a dict and append the arguments"),
   SM(NAME_unlink, 0, NULL, unlinkDict,
@@ -598,7 +598,7 @@ static const senddecl send_dict[] =
 
 /* Get Methods */
 
-static const getdecl get_dict[] =
+static getdecl get_dict[] =
 { GM(NAME_containedIn, 0, "list_browser|browser", NULL, getBrowserDict,
      DEFAULT, "Equivalent to <-browser"),
   GM(NAME_contains, 0, "chain", NULL, getContainsDict,
@@ -621,7 +621,7 @@ static const getdecl get_dict[] =
 
 /* Resources */
 
-static const resourcedecl rc_dict[] =
+static resourcedecl rc_dict[] =
 { RC(NAME_sortIgnoreBlanks, "bool", "@off",
      "@on: ignore leading blanks when sorting"),
   RC(NAME_sortIgnoreCase, "bool", "@off",

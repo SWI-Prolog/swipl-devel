@@ -417,8 +417,14 @@ ws_open_image(Image image, DisplayObj d)
   }
 
   if ( notNil(image->file) )
-  { TRY(loadImage(image, DEFAULT, DEFAULT));
-    succeed;
+  { if ( loadImage(image, DEFAULT, DEFAULT) &&
+	 image->ws_ref &&
+	 (bm = windows_bitmap_from_bits(image)) )
+    { registerXrefObject(image, d, (void *) bm);
+      succeed;
+    }
+
+    fail;
   }
 
   if ( w != 0 && h != 0 && image->access == NAME_both )

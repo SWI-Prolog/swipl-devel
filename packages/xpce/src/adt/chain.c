@@ -1286,31 +1286,31 @@ changedChain(Chain ch, Any *field)
 
 /* Type declaractions */
 
-static const char *T_actionAcode_safeADboolD[] =
+static char *T_actionAcode_safeADboolD[] =
         { "action=code", "safe=[bool]" };
-static const char *T_cellValue[] =
+static char *T_cellValue[] =
         { "cell_reference=int", "value=any" };
-static const char *T_firstAany_secondAany[] =
+static char *T_firstAany_secondAany[] =
         { "first=any", "second=any" };
-static const char *T_indexAint_valueAany[] =
+static char *T_indexAint_valueAany[] =
         { "index=int", "value=any" };
-static const char *T_replace[] =
+static char *T_replace[] =
         { "old=any", "new=any" };
-static const char *T_completeName[] =
+static char *T_completeName[] =
         { "prefix=char_array", "extract_name=[function]*",
 	  "ignore_case=[bool]" };
-static const char *T_moveAfter[] =
+static char *T_moveAfter[] =
         { "value=any", "after=[any]" };
-static const char *T_insertAfter[] =
+static char *T_insertAfter[] =
         { "value=any", "after=any*" };
-static const char *T_moveBefore[] =
+static char *T_moveBefore[] =
         { "value=any", "before=any" };
-static const char *T_swap[] =
+static char *T_swap[] =
         { "value_1=any", "value_2=any" };
 
 /* Instance Variables */
 
-static const vardecl var_chain[] =
+static vardecl var_chain[] =
 { IV(NAME_size, "int", IV_GET,
      NAME_cardinality, "Number of elements"),
   IV(NAME_head, "alien:Cell", IV_NONE,
@@ -1323,7 +1323,7 @@ static const vardecl var_chain[] =
 
 /* Send Methods */
 
-static const senddecl send_chain[] =
+static senddecl send_chain[] =
 { SM(NAME_initialise, 1, "member=any ...", initialiseChainv,
      DEFAULT, "Create a chain with initial elements"),
   SM(NAME_unlink, 0, NULL, unlinkChain,
@@ -1404,7 +1404,7 @@ static const senddecl send_chain[] =
 
 /* Get Methods */
 
-static const getdecl get_chain[] =
+static getdecl get_chain[] =
 { GM(NAME_cellValue, 1, "any", "cell_reference=int", getCellValueChain,
      NAME_cell, "Value for cell-reference"),
   GM(NAME_headCell, 0, "int", NULL, getHeadCellChain,
@@ -1455,9 +1455,12 @@ static const getdecl get_chain[] =
 
 /* Resources */
 
-static const resourcedecl rc_chain[] =
+#define rc_chain NULL
+/*
+static resourcedecl rc_chain[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

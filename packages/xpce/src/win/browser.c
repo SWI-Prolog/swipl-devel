@@ -153,23 +153,23 @@ getContainsBrowser(Browser b)
 
 /* Type declarations */
 
-static const char *T_typed[] =
+static char *T_typed[] =
         { "event_id", "delegate=[bool]" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "label=[name]", "size=[size]", "display=[display]" };
-static const char *T_requestGeometry[] =
+static char *T_requestGeometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_browser[] =
+static vardecl var_browser[] =
 { IV(NAME_listBrowser, "list_browser", IV_GET,
      NAME_delegate, "Displayed list_browser")
 };
 
 /* Send Methods */
 
-static const senddecl send_browser[] =
+static senddecl send_browser[] =
 { SM(NAME_initialise, 3, T_initialise, initialiseBrowser,
      DEFAULT, "Create from label, size and display"),
   SM(NAME_requestGeometry, 4, T_requestGeometry, requestGeometryBrowser,
@@ -196,7 +196,7 @@ static const senddecl send_browser[] =
 
 /* Get Methods */
 
-static const getdecl get_browser[] =
+static getdecl get_browser[] =
 { GM(NAME_contains, 0, "chain", NULL, getContainsBrowser,
      DEFAULT, "The dict object contained"),
   GM(NAME_size, 0, "characters=size", NULL, getSizeBrowser,
@@ -211,7 +211,7 @@ static const getdecl get_browser[] =
 
 /* Resources */
 
-static const resourcedecl rc_browser[] =
+static resourcedecl rc_browser[] =
 { RC(NAME_pen, "int", "0",
      "Pen (done by <-list_browser)"),
   RC(NAME_size, "size", "size(25,10)",

@@ -53,12 +53,12 @@ radiusBox(Box b, Int r)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "width=[int]", "height=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_box[] =
+static vardecl var_box[] =
 { SV(NAME_radius, "int", IV_GET|IV_STORE, radiusBox,
      NAME_appearance, "Rounding radius for corners"),
   SV(NAME_shadow, "int", IV_GET|IV_STORE, shadowGraphical,
@@ -69,7 +69,7 @@ static const vardecl var_box[] =
 
 /* Send Methods */
 
-static const senddecl send_box[] =
+static senddecl send_box[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseBox,
      DEFAULT, "Create box from width and height"),
   SM(NAME_DrawPostScript, 0, NULL, drawPostScriptBox,
@@ -78,15 +78,21 @@ static const senddecl send_box[] =
 
 /* Get Methods */
 
-static const getdecl get_box[] =
+#define get_box NULL
+/*
+static getdecl get_box[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_box[] =
+#define rc_box NULL
+/*
+static resourcedecl rc_box[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

@@ -135,12 +135,12 @@ get_var_in_binary_expression(Any e, Var var, int n)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "left=expression", "right=expression" };
 
 /* Instance Variables */
 
-static const vardecl var_binaryExpression[] =
+static vardecl var_binaryExpression[] =
 { IV(NAME_left, "expression", IV_BOTH,
      NAME_operant, "Left-hand side of expression"),
   IV(NAME_right, "expression", IV_BOTH,
@@ -149,14 +149,14 @@ static const vardecl var_binaryExpression[] =
 
 /* Send Methods */
 
-static const senddecl send_binaryExpression[] =
+static senddecl send_binaryExpression[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseBinaryExpression,
      DEFAULT, "Create binary expression")
 };
 
 /* Get Methods */
 
-static const getdecl get_binaryExpression[] =
+static getdecl get_binaryExpression[] =
 { GM(NAME_Execute, 0, "int", NULL, getExecuteExpression,
      DEFAULT, "Evaluate, given variable bindings"),
   GM(NAME_value, 1, "value=int", "binding== ...", getValueExpressionv,
@@ -167,9 +167,12 @@ static const getdecl get_binaryExpression[] =
 
 /* Resources */
 
-static const resourcedecl rc_binaryExpression[] =
+#define rc_binaryExpression NULL
+/*
+static resourcedecl rc_binaryExpression[] =
 { 
 };
+*/
 
 /* Class Declaration */
 
@@ -225,33 +228,42 @@ initialiseMinus(Minus m, Expression left, Expression right)
 
 /* Types */
 
-static const char *T_minitialise[] =
+static char *T_minitialise[] =
         { "left=expression", "right=[expression]" };
 
 /* Instance Variables */
 
-static const vardecl var_minus[] =
+#define var_minus NULL
+/*
+vardecl var_minus[] =
 { 
 };
+*/
 
 /* Send Methods */
 
-static const senddecl send_minus[] =
+static senddecl send_minus[] =
 { SM(NAME_initialise, 2, T_minitialise, initialiseMinus,
      DEFAULT, "Create unary or binary `-'")
 };
 
 /* Get Methods */
 
-static const getdecl get_minus[] =
+#define get_minus NULL
+/*
+static getdecl get_minus[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_minus[] =
+#define rc_minus NULL
+/*
+static resourcedecl rc_minus[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

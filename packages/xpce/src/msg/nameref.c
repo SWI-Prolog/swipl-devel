@@ -41,12 +41,12 @@ ExecuteAssoc(Assoc a)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "reference=name", "object=object|function" };
 
 /* Instance Variables */
 
-static const vardecl var_assoc[] =
+static vardecl var_assoc[] =
 { IV(NAME_reference, "name", IV_BOTH,
      NAME_reference, "Reference to give to the object"),
   IV(NAME_object, "object|function", IV_BOTH,
@@ -55,7 +55,7 @@ static const vardecl var_assoc[] =
 
 /* Send Methods */
 
-static const senddecl send_assoc[] =
+static senddecl send_assoc[] =
 { SM(NAME_Execute, 0, NULL, ExecuteAssoc,
      DEFAULT, "Assign the reference"),
   SM(NAME_initialise, 2, T_initialise, initialiseAssoc,
@@ -64,15 +64,21 @@ static const senddecl send_assoc[] =
 
 /* Get Methods */
 
-static const getdecl get_assoc[] =
+#define get_assoc NULL
+/*
+static getdecl get_assoc[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_assoc[] =
+#define rc_assoc NULL
+/*
+static resourcedecl rc_assoc[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

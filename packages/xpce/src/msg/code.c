@@ -254,20 +254,23 @@ doneCodeVector(Vector v)
 
 /* Type declarations */
 
-static const char *T_element[] =
+static char *T_element[] =
         { "index=int", "value=any|function" };
-static const char *T_fill[] =
+static char *T_fill[] =
         { "value=any|function", "from=[int]", "to=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_codeVector[] =
+#define var_codeVector NULL
+/*
+static vardecl var_codeVector[] =
 { 
 };
+*/
 
 /* Send Methods */
 
-static const senddecl send_codeVector[] =
+static senddecl send_codeVector[] =
 { SM(NAME_append, 1, "value=any|function ...", appendVector,
      DEFAULT, NULL),
   SM(NAME_element, 2, T_element, elementVector,
@@ -282,15 +285,21 @@ static const senddecl send_codeVector[] =
 
 /* Get Methods */
 
-static const getdecl get_codeVector[] =
+#define get_codeVector NULL
+/*
+static getdecl get_codeVector[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_codeVector[] =
+#define rc_codeVector NULL
+/*
+static resourcedecl rc_codeVector[] =
 { 
 };
+*/
 
 /* Class Declaration */
 
@@ -301,7 +310,7 @@ ClassDecl(codeVector_decls,
 
 status
 makeClassCodeVector(Class class)
-{ return declareClass(class, &codeVector_decls);
+{ declareClass(class, &codeVector_decls);
 
   assign(class, un_answer, OFF);
   assign(class, summary, CtoString("Argument vector"));
@@ -319,13 +328,16 @@ makeClassCodeVector(Class class)
 
 /* Instance Variables */
 
-static const vardecl var_code[] =
+#define var_code NULL
+/*
+static vardecl var_code[] =
 { 
 };
+*/
 
 /* Send Methods */
 
-static const senddecl send_code[] =
+static senddecl send_code[] =
 { SM(NAME_execute, 0, NULL, executeCode,
      NAME_execute, "Execute code"),
   SM(NAME_forward, 1, "any ...", forwardCodev,
@@ -340,16 +352,19 @@ static const senddecl send_code[] =
 
 /* Get Methods */
 
-static const getdecl get_code[] =
+static getdecl get_code[] =
 { GM(NAME_Execute, 0, "unchecked", NULL, getExecuteCode,
      NAME_internal, "Execute the function object (error)")
 };
 
 /* Resources */
 
-static const resourcedecl rc_code[] =
+#define rc_code NULL
+/*
+static resourcedecl rc_code[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

@@ -510,13 +510,25 @@ loadWord(FILE *fd)
 
 char *
 loadCharp(FILE *fd)
-{ int size = loadWord(fd);
-  char *s = alloc(size+1);
+{ DEBUG(NAME_save,
+	{ long here = ftell(fd);
+	  int size = loadWord(fd);
+	  char *s = alloc(size+1);
 
-  fread(s, sizeof(char), size, fd);
-  s[size] = '\0';
+	  fread(s, sizeof(char), size, fd);
+	  s[size] = '\0';
+	  Cprintf("Loaded from %d chars from %ld: `%s'\n", size, here, s);
+	  return s;
+	});
+	  
+  { int size = loadWord(fd);
+    char *s = alloc(size+1);
 
-  return s;
+    fread(s, sizeof(char), size, fd);
+    s[size] = '\0';
+
+    return s;
+  }
 }
 
 

@@ -152,12 +152,12 @@ getHiddenStyle(Style s)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "icon=[image]*", "font=[font]", "colour=[colour]", "highlight=[bool]", "underline=[bool]", "bold=[bool]", "grey=[bool]", "background=[colour|pixmap|elevation]", "hidden=[bool]", "left_margin=[int]", "right_margin=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_style[] =
+static vardecl var_style[] =
 { IV(NAME_font, "[font]", IV_BOTH,
      NAME_appearance, "Font of characters"),
   IV(NAME_colour, "[colour]", IV_BOTH,
@@ -176,7 +176,7 @@ static const vardecl var_style[] =
 
 /* Send Methods */
 
-static const senddecl send_style[] =
+static senddecl send_style[] =
 { SM(NAME_initialise, 11, T_initialise, initialiseStyle,
      DEFAULT, "Create from icon, font, colour and attributes"),
   SM(NAME_bold, 1, "bool", boldStyle,
@@ -193,7 +193,7 @@ static const senddecl send_style[] =
 
 /* Get Methods */
 
-static const getdecl get_style[] =
+static getdecl get_style[] =
 { GM(NAME_bold, 0, "bool", NULL, getBoldStyle,
      NAME_appearance, "Boolean to indicate bold"),
   GM(NAME_grey, 0, "bool", NULL, getGreyStyle,
@@ -208,9 +208,12 @@ static const getdecl get_style[] =
 
 /* Resources */
 
-static const resourcedecl rc_style[] =
+#define rc_style NULL
+/*
+static resourcedecl rc_style[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

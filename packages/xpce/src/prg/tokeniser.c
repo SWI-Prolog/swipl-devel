@@ -506,7 +506,7 @@ nonum:
 
 /* Instance Variables */
 
-static const vardecl var_tokeniser[] =
+static vardecl var_tokeniser[] =
 { IV(NAME_syntax, "syntax_table", IV_BOTH,
      NAME_syntax, "Syntax used"),
   IV(NAME_source, "file|char_array|text_buffer*", IV_GET,
@@ -525,7 +525,7 @@ static const vardecl var_tokeniser[] =
 
 /* Send Methods */
 
-static const senddecl send_tokeniser[] =
+static senddecl send_tokeniser[] =
 { SM(NAME_initialise, 1, "syntax=[syntax_table]", initialiseTokeniser,
      DEFAULT, "Create from syntax"),
   SM(NAME_close, 0, NULL, closeTokeniser,
@@ -542,7 +542,7 @@ static const senddecl send_tokeniser[] =
 
 /* Get Methods */
 
-static const getdecl get_tokeniser[] =
+static getdecl get_tokeniser[] =
 { GM(NAME_open, 1, "tokeniser", "file|char_array|text_buffer*", getOpenTokeniser,
      NAME_input, "Open input for tokenising"),
   GM(NAME_character, 0, "char", NULL, getCharacterTokeniser,
@@ -561,9 +561,12 @@ static const getdecl get_tokeniser[] =
 
 /* Resources */
 
-static const resourcedecl rc_tokeniser[] =
+#define rc_tokeniser NULL
+/*
+static resourcedecl rc_tokeniser[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

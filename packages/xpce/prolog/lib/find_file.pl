@@ -160,11 +160,11 @@ selection(F, File:file) :<-
 
 
 clean_name(Name, Ext, Clean) :-
-	new(S, string(Name)),
+	new(S, string('%s', Name)),
 	send(S, strip),
-	(   send(S, suffix, Ext)
-	->  true
-	;   send(S, append, Ext)
+        (   send(class(file), has_feature, case_sensitive, @off)
+	->  send(S, ensure_suffix, Ext, @on)
+	;   send(S, ensure_suffix, Ext)
 	),
 	get(S, value, Clean),
 	send(S, free).
@@ -212,7 +212,13 @@ directory(F, Dir:[directory], Ext:[name]) :->
 	get(F, extension, Extension),
 	(   Extension == ''
 	->  Files = AllFiles
-	;   get(AllFiles, find_all, message(@arg1, suffix, Extension), Files),
+	;   new(R, regex('')),
+	    send(R, pattern, string('.*%s', ?(R, quote, Extension))),
+	    (	send(class(file), has_feature, case_sensitive, @off)
+	    ->	send(R, ignore_case, @on)
+	    ;	true
+	    ),
+	    get(AllFiles, find_all, message(R, match, @arg1), Files),
 	    send(AllFiles, done)
 	),
 	send(Dirs, for_all, message(B, append,

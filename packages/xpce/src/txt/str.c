@@ -350,6 +350,41 @@ str_suffix(String s1, String s2)	/* s2 is suffix of s1 */
 
 
 int
+str_icase_suffix(String s1, String s2)	/* s2 is suffix of s1 */
+{ sameEncoding(s1, s2);
+
+  if ( s2->size <= s1->size )
+  { int n = s2->size;
+    int offset = s1->size - s2->size;
+
+    if ( isstr8(s1) )
+    { char8 *d1 = &s1->s_text8[offset];
+      char8 *d2 = s2->s_text8;
+
+      for( ; n-- > 0; d1++, d2++)
+      { if ( tolower(*d1) != tolower(*d2) )
+	  return FALSE;
+      }
+
+      return TRUE;
+    } else
+    { char16 *d1 = &s1->s_text16[offset];
+      char16 *d2 = s2->s_text16;
+
+      for( ; n-- > 0; d1++, d2++)
+      { if ( tolower(*d1) != tolower(*d2) )
+	  return FALSE;
+      }
+    }
+
+    return TRUE;
+  } 
+
+  return FALSE;
+}
+
+
+int
 str_sub(String s1, String s2)		/* s2 is substring of s1 */
 { sameEncoding(s1, s2);
 

@@ -847,32 +847,32 @@ getContainedInDisplay(DisplayObj d)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "address=[name]", "resource_class=[name]" };
-static const char *T_cutBuffer[] =
+static char *T_cutBuffer[] =
         { "buffer=[0..7]", "value=string" };
-static const char *T_busyCursor[] =
+static char *T_busyCursor[] =
         { "cursor=[cursor]*", "block_input=[bool]" };
-static const char *T_drawIn[] =
+static char *T_drawIn[] =
         { "graphical", "at=[point]", "invert=[bool]", "subwindow=[bool]" };
-static const char *T_report[] =
+static char *T_report[] =
         { "kind={status,inform,progress,done,warning,error}",
 	  "format=[char_array]", "argument=any ..." };
-static const char *T_postscript[] =
+static char *T_postscript[] =
         { "landscape=[bool]", "max_area=[area]" };
-static const char *T_fontAlias[] =
+static char *T_fontAlias[] =
         { "name=name", "font=font", "force=[bool]" };
-static const char *T_name_any_XXX[] =
+static char *T_name_any_XXX[] =
         { "name", "any ..." };
-static const char *T_selectionOwner[] =
+static char *T_selectionOwner[] =
         { "owner=object*", "which=[name]", "convert=[function]",
 	  "loose=[code]" };
-static const char *T_selection[] =
+static char *T_selection[] =
         { "which=[name]", "target=[name]", "type=[type]" };
 
 /* Instance Variables */
 
-static const vardecl var_display[] =
+static vardecl var_display[] =
 { IV(NAME_size, "size*", IV_NONE,
      NAME_dimension, "Size (width, height) of display"),
   IV(NAME_address, "[name]", IV_BOTH,
@@ -903,7 +903,7 @@ static const vardecl var_display[] =
 
 /* Send Methods */
 
-static const senddecl send_display[] =
+static senddecl send_display[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseDisplay,
      DEFAULT, "Create from address and resource class"),
   SM(NAME_reset, 0, NULL, resetDisplay,
@@ -962,7 +962,7 @@ static const senddecl send_display[] =
 
 /* Get Methods */
 
-static const getdecl get_display[] =
+static getdecl get_display[] =
 { GM(NAME_containedIn, 0, "display_manager", NULL, getContainedInDisplay,
      DEFAULT, "Display manager"),
   GM(NAME_contains, 0, "chain", NULL, getContainsDisplay,
@@ -1003,7 +1003,7 @@ static const getdecl get_display[] =
 
 /* Resources */
 
-static const resourcedecl rc_display[] =
+static resourcedecl rc_display[] =
 { RC(NAME_background, "colour", "white",
      "Default background for windows"),
   RC(NAME_foreground, "colour", "black",

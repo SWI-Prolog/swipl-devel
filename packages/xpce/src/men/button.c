@@ -404,12 +404,12 @@ getSelectionButton(Button b)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "name=name", "message=[code]*", "label=[name]" };
 
 /* Instance Variables */
 
-static const vardecl var_button[] =
+static vardecl var_button[] =
 { SV(NAME_radius, "int", IV_GET|IV_STORE, radiusButton,
      NAME_appearance, "Rounding radius for corners"),
   SV(NAME_shadow, "int", IV_GET|IV_STORE, shadowButton,
@@ -424,7 +424,7 @@ static const vardecl var_button[] =
 
 /* Send Methods */
 
-static const senddecl send_button[] =
+static senddecl send_button[] =
 { SM(NAME_compute, 0, NULL, computeButton,
      DEFAULT, "Compute desired size (from command)"),
   SM(NAME_event, 1, "event", eventButton,
@@ -451,7 +451,7 @@ static const senddecl send_button[] =
 
 /* Get Methods */
 
-static const getdecl get_button[] =
+static getdecl get_button[] =
 { GM(NAME_popup, 1, "popup*", "create=[bool]", getPopupButton,
      DEFAULT, "Associated popup (make one if create = @on)"),
   GM(NAME_reference, 0, "point", NULL, getReferenceButton,
@@ -464,9 +464,11 @@ static const getdecl get_button[] =
 
 /* Resources */
 
-static const resourcedecl rc_button[] =
+static resourcedecl rc_button[] =
 { RC(NAME_alignment, "{column,left,center,right}", "left",
      "Alignment in the row"),
+  RC(NAME_labelFont, "font", "normal",
+     "Default font for labels"),
   RC(NAME_labelSuffix, "name", "",
      "Ensured suffix of label"),
   RC(NAME_pen, "int", "2",

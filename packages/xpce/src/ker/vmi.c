@@ -27,29 +27,35 @@ initialiseVmi(Vmi vmi, Name name)
 
 /* Instance Variables */
 
-static const vardecl var_vmi[] =
+static vardecl var_vmi[] =
 { IV(NAME_name, "name", IV_GET,
      NAME_name, "Name of the vmi")
 };
 
 /* Send Methods */
 
-static const senddecl send_vmi[] =
+static senddecl send_vmi[] =
 { SM(NAME_initialise, 1, "name=name", initialiseVmi,
      DEFAULT, "Create named vmi")
 };
 
 /* Get Methods */
 
-static const getdecl get_vmi[] =
+#define get_vmi NULL
+/*
+static getdecl get_vmi[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_vmi[] =
+#define rc_vmi NULL
+/*
+static resourcedecl rc_vmi[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

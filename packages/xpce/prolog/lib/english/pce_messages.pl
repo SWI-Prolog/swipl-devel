@@ -40,6 +40,10 @@ pce_message(help_goal(Goal)) -->
 pce_message(pce_host_send_or_get) -->
 	['PCE/Prolog Error in Send or Get'-[],nl].
 
+pce_message(loading(Goal)) -->
+	{ functor(Goal, Name, Arity) },
+	['Autoloading ~w/~d.  Please wait ...'-[Name, Arity], nl].
+
 pce_message(builtin_class_not_redefined(ClassName)) -->
 	['Cannot redefine built-in class: ~w'-[ClassName],nl].
 pce_message(superclass_not_changed(ClassName)) -->

@@ -175,12 +175,12 @@ getMirrorPoint(Point p1, Point p2)
 
 /* Type declaractions */
 
-static const char *T_offset[] = { "dx=int", "dy=int" };
-static const char *T_xADintD_yADintD[] = { "x=[int]", "y=[int]" };
+static char *T_offset[] = { "dx=int", "dy=int" };
+static char *T_xADintD_yADintD[] = { "x=[int]", "y=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_point[] =
+static vardecl var_point[] =
 { IV(NAME_x, "int", IV_BOTH,
      NAME_dimension, "x-coordinate of point"),
   IV(NAME_y, "int", IV_BOTH,
@@ -189,7 +189,7 @@ static const vardecl var_point[] =
 
 /* Send Methods */
 
-static const senddecl send_point[] =
+static senddecl send_point[] =
 { SM(NAME_initialise, 2, T_xADintD_yADintD, initialisePoint,
      DEFAULT, "Create point from x- and y-value"),
   SM(NAME_minus, 1, "point", minusPoint,
@@ -210,7 +210,7 @@ static const senddecl send_point[] =
 
 /* Get Methods */
 
-static const getdecl get_point[] =
+static getdecl get_point[] =
 { GM(NAME_difference, 1, "point", "to=point", getDifferencePoint,
      NAME_calculate, "New point that reflects distance"),
   GM(NAME_distance, 1, "int", "to=point", getDistancePoint,
@@ -231,9 +231,12 @@ static const getdecl get_point[] =
 
 /* Resources */
 
-static const resourcedecl rc_point[] =
+#define rc_point NULL
+/*
+static resourcedecl rc_point[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

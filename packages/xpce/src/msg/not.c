@@ -40,14 +40,14 @@ ExecuteNot(Not n)
 
 /* Instance Variables */
 
-static const vardecl var_not[] =
+static vardecl var_not[] =
 { IV(NAME_argument, "code", IV_BOTH,
      NAME_statement, "Test to negate")
 };
 
 /* Send Methods */
 
-static const senddecl send_not[] =
+static senddecl send_not[] =
 { SM(NAME_Execute, 0, NULL, ExecuteNot,
      DEFAULT, "Evaluate argument test and negate result"),
   SM(NAME_initialise, 1, "test=code", initialiseNotv,
@@ -56,15 +56,21 @@ static const senddecl send_not[] =
 
 /* Get Methods */
 
-static const getdecl get_not[] =
+#define get_not NULL
+/*
+static getdecl get_not[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_not[] =
+#define rc_not NULL
+/*
+static resourcedecl rc_not[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

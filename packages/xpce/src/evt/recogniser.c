@@ -33,14 +33,14 @@ eventRecogniser(Recogniser r, EventObj ev)
 
 /* Instance Variables */
 
-static const vardecl var_recogniser[] =
+static vardecl var_recogniser[] =
 { IV(NAME_active, "bool", IV_BOTH,
      NAME_status, "Ignore events when @off")
 };
 
 /* Send Methods */
 
-static const senddecl send_recogniser[] =
+static senddecl send_recogniser[] =
 { SM(NAME_initialise, 0, NULL, initialiseRecogniser,
      DEFAULT, "Create new recogniser"),
   SM(NAME_event, 1, "event", eventRecogniser,
@@ -49,15 +49,21 @@ static const senddecl send_recogniser[] =
 
 /* Get Methods */
 
-static const getdecl get_recogniser[] =
+#define get_recogniser NULL
+/*
+static getdecl get_recogniser[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_recogniser[] =
+#define rc_recogniser NULL
+/*
+static resourcedecl rc_recogniser[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

@@ -601,18 +601,21 @@ GetBenchName(Name name, Int count)
 
 /* Type declaractions */
 
-static const char *T_syntax[] =
+static char *T_syntax[] =
         { "{uppercase}", "char" };
 
 /* Instance Variables */
 
-static const vardecl var_name[] =
+#define var_name NULL
+/*
+vardecl var_name[] =
 { 
 };
+*/
 
 /* Send Methods */
 
-static const senddecl send_name[] =
+static senddecl send_name[] =
 { SM((Name)NAME_initialise, 1, "text=char_array", initialiseName,
      DEFAULT, "Create a name from name"),
   SM((Name)NAME_unlink, 0, NULL, unlinkName,
@@ -629,7 +632,7 @@ static const senddecl send_name[] =
 
 /* Get Methods */
 
-static const getdecl get_name[] =
+static getdecl get_name[] =
 { GM((Name)NAME_copy, 0, "name", NULL, getCopyName,
      DEFAULT, "The name itself"),
   GM((Name)NAME_modify, 1, "name", "char_array", getModifyName,
@@ -652,9 +655,12 @@ static const getdecl get_name[] =
 
 /* Resources */
 
-static const resourcedecl rc_name[] =
+#define rc_name NULL
+/*
+static resourcedecl rc_name[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

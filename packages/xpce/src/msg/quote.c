@@ -27,29 +27,35 @@ initialiseQuoteFunction(QuoteFunction q, Function f)
 
 /* Instance Variables */
 
-static const vardecl var_quoteFunction[] =
+static vardecl var_quoteFunction[] =
 { IV(NAME_function, "function", IV_BOTH,
      NAME_storage, "Quoted function")
 };
 
 /* Send Methods */
 
-static const senddecl send_quoteFunction[] =
+static senddecl send_quoteFunction[] =
 { SM(NAME_initialise, 1, "function=function", initialiseQuoteFunction,
      DEFAULT, "Initialise")
 };
 
 /* Get Methods */
 
-static const getdecl get_quoteFunction[] =
+#define get_quoteFunction NULL
+/*
+static getdecl get_quoteFunction[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_quoteFunction[] =
+#define rc_quoteFunction NULL
+/*
+static resourcedecl rc_quoteFunction[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

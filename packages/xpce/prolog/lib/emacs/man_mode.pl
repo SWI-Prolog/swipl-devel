@@ -93,6 +93,7 @@ man(M, Spec:name) :->
 		)
 	    ),
 	    send(P, use_tty, @off),
+	    send(P, record_separator, @nil),
 	    send(P, input_message,
 		 and(message(TB, append, @arg1),
 		     message(M, caret, 0))),
@@ -119,20 +120,20 @@ man(M, Spec:name) :->
 
 clean(M) :->
 	"Remove ^H_ from the entry"::
-	send(M, report, status, 'Cleaning ...'),
+	send(M, report, progress, 'Cleaning ...'),
 	get(M, text_buffer, TB),
 	send(@emacs_man_underline_fragment_regex, for_all, TB,
 	     create(fragment, TB,
 		    @arg1?register_start,
 		    @arg1?register_end - @arg1?register_start,
-		    bold)),
+		    underline)),
+	send(@emacs_man_underline_regex, for_all, TB,
+	     message(@arg1, replace, @arg2, '')),
 	send(@emacs_man_bold_fragment_regex, for_all, TB,
 	     create(fragment, TB,
 		    @arg1?register_start,
 		    @arg1?register_end - @arg1?register_start,
 		    bold)),
-	send(@emacs_man_underline_regex, for_all, TB,
-	     message(@arg1, replace, @arg2, '')),
 	send(@emacs_man_bold_regex, for_all, TB,
 	     message(@arg1, replace, @arg2, '')),
 	send(@emacs_man_title_regex, for_all, TB,
@@ -142,7 +143,7 @@ clean(M) :->
 	get(M, skip_comment, 0, Start),
 	send(TB, delete, 0, Start),
 	send(M?text_buffer, modified, @off),
-	send(M, report, status, 'done').
+	send(M, report, done).
 
 
 goto_man_page(M) :->

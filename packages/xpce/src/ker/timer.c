@@ -110,12 +110,12 @@ runningTimer(Timer tm, Bool val)
 
 /* Type declaractions */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "interval=real", "message=[code]*" };
 
 /* Instance Variables */
 
-static const vardecl var_timer[] =
+static vardecl var_timer[] =
 { SV(NAME_interval, "real", IV_GET|IV_STORE, intervalTimer,
      NAME_time, "Interval between messages in seconds"),
   IV(NAME_message, "code*", IV_BOTH,
@@ -128,7 +128,7 @@ static const vardecl var_timer[] =
 
 /* Send Methods */
 
-static const senddecl send_timer[] =
+static senddecl send_timer[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseTimer,
      DEFAULT, "Create for interval and message"),
   SM(NAME_unlink, 0, NULL, unlinkTimer,
@@ -147,15 +147,21 @@ static const senddecl send_timer[] =
 
 /* Get Methods */
 
-static const getdecl get_timer[] =
+#define get_timer NULL
+/*
+static getdecl get_timer[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_timer[] =
+#define rc_timer NULL
+/*
+static resourcedecl rc_timer[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

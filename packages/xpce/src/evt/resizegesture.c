@@ -214,12 +214,12 @@ terminateResizeGesture(ResizeGesture g, EventObj ev)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "button=[button_name]", "modifier=[modifier]" };
 
 /* Instance Variables */
 
-static const vardecl var_resizeGesture[] =
+static vardecl var_resizeGesture[] =
 { IV(NAME_hMode, "{left,keep,right}", IV_BOTH,
      NAME_mode, "Horizontal resize mode"),
   IV(NAME_vMode, "{top,keep,bottom}", IV_BOTH,
@@ -232,7 +232,7 @@ static const vardecl var_resizeGesture[] =
 
 /* Send Methods */
 
-static const senddecl send_resizeGesture[] =
+static senddecl send_resizeGesture[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseResizeGesture,
      DEFAULT, "Create from button and modifier"),
   SM(NAME_drag, 1, "event", dragResizeGesture,
@@ -247,13 +247,16 @@ static const senddecl send_resizeGesture[] =
 
 /* Get Methods */
 
-static const getdecl get_resizeGesture[] =
+#define get_resizeGesture NULL
+/*
+static getdecl get_resizeGesture[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_resizeGesture[] =
+static resourcedecl rc_resizeGesture[] =
 { RC(NAME_button, "button_name", "middle",
      "Active on which button (middle)"),
   RC(NAME_marginFraction, "int", "4",

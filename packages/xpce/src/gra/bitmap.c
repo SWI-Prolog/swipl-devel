@@ -203,16 +203,16 @@ getContainsBitmap(BitmapObj bm)
 
 /* Type declarations */
 
-static const char *T_load[] =
+static char *T_load[] =
         { "file", "path=[char_array]" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "image=[image]", "transparent=[bool]" };
-static const char *T_geometry[] =
+static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_bitmap[] =
+static vardecl var_bitmap[] =
 { SV(NAME_image, "image", IV_GET|IV_STORE, imageBitmap,
      NAME_appearance, "The pixel collection managed"),
   SV(NAME_transparent, "bool", IV_GET|IV_STORE, transparentBitmap,
@@ -221,7 +221,7 @@ static const vardecl var_bitmap[] =
 
 /* Send Methods */
 
-static const senddecl send_bitmap[] =
+static senddecl send_bitmap[] =
 { SM(NAME_geometry, 4, T_geometry, geometryBitmap,
      DEFAULT, "Bitmaps can only be moved"),
   SM(NAME_initialise, 2, T_initialise, initialiseBitmap,
@@ -238,7 +238,7 @@ static const senddecl send_bitmap[] =
 
 /* Get Methods */
 
-static const getdecl get_bitmap[] =
+static getdecl get_bitmap[] =
 { GM(NAME_contains, 0, "chain", NULL, getContainsBitmap,
      DEFAULT, "New chain with <-image"),
   GM(NAME_convert, 1, "bitmap", "name", getConvertBitmap,
@@ -249,9 +249,12 @@ static const getdecl get_bitmap[] =
 
 /* Resources */
 
-static const resourcedecl rc_bitmap[] =
+#define rc_bitmap NULL
+/*
+static resourcedecl rc_bitmap[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

@@ -450,12 +450,12 @@ resetMenuBar(MenuBar mb)
 
 /* Type declarations */
 
-static const char *T_activeMember[] =
+static char *T_activeMember[] =
         { "popup=member:popup", "active=bool" };
 
 /* Instance Variables */
 
-static const vardecl var_menuBar[] =
+static vardecl var_menuBar[] =
 { IV(NAME_members, "chain", IV_GET,
      NAME_organisation, "The pulldown menus"),
   IV(NAME_format, "{left,center,right}", IV_GET,
@@ -476,7 +476,7 @@ static const vardecl var_menuBar[] =
 
 /* Send Methods */
 
-static const senddecl send_menuBar[] =
+static senddecl send_menuBar[] =
 { SM(NAME_compute, 0, NULL, computeMenuBar,
      DEFAULT, "Recompute the menu-bar"),
   SM(NAME_event, 1, "event", eventMenuBar,
@@ -511,7 +511,7 @@ static const senddecl send_menuBar[] =
 
 /* Get Methods */
 
-static const getdecl get_menuBar[] =
+static getdecl get_menuBar[] =
 { GM(NAME_contains, 0, "any", NULL, getContainsMenuBar,
      DEFAULT, "Chain with popup menus contained"),
   GM(NAME_reference, 0, "point", NULL, getReferenceMenuBar,
@@ -524,7 +524,7 @@ static const getdecl get_menuBar[] =
 
 /* Resources */
 
-static const resourcedecl rc_menuBar[] =
+static resourcedecl rc_menuBar[] =
 { RC(NAME_format, "name", "center",
      "Format items {left,center,right}"),
   RC(NAME_gap, "int", "-1",

@@ -279,7 +279,7 @@ modifiedDialogItem(Any di, Bool modified)
 
 /* Instance Variables */
 
-static const vardecl var_dialogItem[] =
+static vardecl var_dialogItem[] =
 { SV(NAME_label, "name", IV_GET|IV_STORE, labelDialogItem,
      NAME_label, "Label of the item"),
   IV(NAME_labelWidth, "[int]", IV_NONE,
@@ -320,7 +320,7 @@ static const vardecl var_dialogItem[] =
 
 /* Send Methods */
 
-static const senddecl send_dialogItem[] =
+static senddecl send_dialogItem[] =
 { SM(NAME_initialise, 1, "name=name", createDialogItem,
      DEFAULT, "Create from name"),
   SM(NAME_device, 1, "device*", deviceDialogItem,
@@ -351,7 +351,7 @@ static const senddecl send_dialogItem[] =
 
 /* Get Methods */
 
-static const getdecl get_dialogItem[] =
+static getdecl get_dialogItem[] =
 { GM(NAME_default, 0, "any", NULL, getVirtualObject,
      NAME_apply, "Virtual method"),
   GM(NAME_modified, 0, "bool", NULL, getModifiedDialogItem,
@@ -370,7 +370,7 @@ static const getdecl get_dialogItem[] =
 
 /* Resources */
 
-static const resourcedecl rc_dialogItem[] =
+static resourcedecl rc_dialogItem[] =
 { RC(NAME_alignment, "{column,left,center,right}", "column",
      "Alignment in the row"),
   RC(NAME_background, "colour|pixmap*", "@nil",

@@ -1802,16 +1802,16 @@ applyMenu(Menu m, Bool always)
 
 /* Type declarations */
 
-static const char *T_activeItem[] =
+static char *T_activeItem[] =
         { "item=member:menu_item", "active=bool" };
-static const char *T_selected[] =
+static char *T_selected[] =
         { "item=member:menu_item", "selected=bool" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "name=[name]", "kind=[name]", "message=[code]*" };
 
 /* Instance Variables */
 
-static const vardecl var_menu[] =
+static vardecl var_menu[] =
 { IV(NAME_selection, "values=any|chain", IV_NONE,
      NAME_selection, "Value(s) of currently selected menu_items"),
   IV(NAME_members, "items=chain", IV_GET,
@@ -1872,7 +1872,7 @@ static const vardecl var_menu[] =
 
 /* Send Methods */
 
-static const senddecl send_menu[] =
+static senddecl send_menu[] =
 { SM(NAME_compute, 0, NULL, computeMenu,
      DEFAULT, "Compute desired size"),
   SM(NAME_status, 1, "{inactive,active,preview,execute}", statusMenu,
@@ -1941,7 +1941,7 @@ static const senddecl send_menu[] =
 
 /* Get Methods */
 
-static const getdecl get_menu[] =
+static getdecl get_menu[] =
 { GM(NAME_contains, 0, "items=chain", NULL, getContainsMenu,
      DEFAULT, "Chain with menu_items contained"),
   GM(NAME_reference, 0, "point", NULL, getReferenceMenu,
@@ -1968,7 +1968,7 @@ static const getdecl get_menu[] =
 
 /* Resources */
 
-static const resourcedecl rc_menu[] =
+static resourcedecl rc_menu[] =
 { RC(NAME_acceleratorFont, "font*", "@nil",
      "Show the accelerators"),
   RC(NAME_border, "int", "0",

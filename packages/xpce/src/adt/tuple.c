@@ -24,12 +24,12 @@ initialiseTuple(Tuple t, Any first, Any second)
 
 /* Type declaractions */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "first=any", "second=any" };
 
 /* Instance Variables */
 
-static const vardecl var_tuple[] =
+static vardecl var_tuple[] =
 { IV(NAME_first, "any", IV_BOTH,
      NAME_storage, "First of the tuple"),
   IV(NAME_second, "any", IV_BOTH,
@@ -38,22 +38,28 @@ static const vardecl var_tuple[] =
 
 /* Send Methods */
 
-static const senddecl send_tuple[] =
+static senddecl send_tuple[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseTuple,
      DEFAULT, "Create tuple from first and second")
 };
 
 /* Get Methods */
 
-static const getdecl get_tuple[] =
+#define get_tuple NULL
+/*
+static getdecl get_tuple[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_tuple[] =
+#define rc_tuple NULL
+/*
+static resourcedecl rc_tuple[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

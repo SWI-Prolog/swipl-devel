@@ -373,16 +373,16 @@ eventConnection(Connection c, EventObj ev)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "from=graphical", "to=graphical", "link=[link]", "handle_from=[name]*", "handle_to=[name]*" };
-static const char *T_points[] =
+static char *T_points[] =
         { "start_x=[int]", "start_y=[int]", "end_x=[int]", "end_y=[int]" };
-static const char *T_geometry[] =
+static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_connection[] =
+static vardecl var_connection[] =
 { IV(NAME_link, "link", IV_GET,
      NAME_relation, "Generic definition of the link"),
   IV(NAME_from, "graphical", IV_GET,
@@ -401,7 +401,7 @@ static const vardecl var_connection[] =
 
 /* Send Methods */
 
-static const senddecl send_connection[] =
+static senddecl send_connection[] =
 { SM(NAME_compute, 0, NULL, computeConnection,
      DEFAULT, "Recompute the line"),
   SM(NAME_geometry, 4, T_geometry, geometryConnection,
@@ -420,16 +420,19 @@ static const senddecl send_connection[] =
 
 /* Get Methods */
 
-static const getdecl get_connection[] =
+static getdecl get_connection[] =
 { GM(NAME_opposite, 1, "graphical", "graphical", getOppositeConnection,
      NAME_relation, "Other side of the connection")
 };
 
 /* Resources */
 
-static const resourcedecl rc_connection[] =
+#define rc_connection NULL
+/*
+static resourcedecl rc_connection[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

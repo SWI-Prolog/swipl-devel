@@ -78,37 +78,40 @@ getGetGetMethod(GetMethod m, Any receiver, int argc, const Any argv[])
 
 /* Type declaractions */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "name=name", "return=[type]", "types=[vector]", "implementation=function|c_pointer", "summary=[string]*", "source=[source_location]*", "group=[name]*" };
-static const char *T_get[] =
+static char *T_get[] =
         { "receiver=object", "argument=unchecked ..." };
 
 /* Instance Variables */
 
-static const vardecl var_getMethod[] =
+static vardecl var_getMethod[] =
 { IV(NAME_returnType, "type", IV_GET,
      NAME_type, "Type of value returned")
 };
 
 /* Send Methods */
 
-static const senddecl send_getMethod[] =
+static senddecl send_getMethod[] =
 { SM(NAME_initialise, 7, T_initialise, initialiseGetMethod,
      DEFAULT, "->selector, return_type, types, msg, doc, location")
 };
 
 /* Get Methods */
 
-static const getdecl get_getMethod[] =
+static getdecl get_getMethod[] =
 { GM(NAME_get, 2, "value=unchecked", T_get, getGetGetMethod,
      NAME_execute, "Invoke get-method")
 };
 
 /* Resources */
 
-static const resourcedecl rc_getMethod[] =
+#define rc_getMethod NULL
+/*
+static resourcedecl rc_getMethod[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

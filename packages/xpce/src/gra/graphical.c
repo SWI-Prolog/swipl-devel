@@ -1838,6 +1838,13 @@ focusCursorGraphical(Graphical gr, CursorObj cursor)
   succeed;
 }
 
+
+static CursorObj
+getDisplayedCursorGraphical(Graphical gr)
+{ answer(gr->cursor);
+}
+
+
 		/********************************
 		*             FOCUS		*
 		********************************/
@@ -2812,58 +2819,58 @@ drawTextGraphical(Graphical gr, CharArray txt, FontObj font,
 
 /* Type declaractions */
 
-static const char *T_layout[] =
+static char *T_layout[] =
 	{ "attract=[real]", "nominal=[real]", "repel=[real]",
 	  "adapt=[int]", "iterations=[int]" };
-static const char *T_resize[] =
+static char *T_resize[] =
 	{ "factor_x=real", "factor_y=[real]", "origin=[point]" };
-static const char *T_drawImage[] =
+static char *T_drawImage[] =
 	{ "image", "x=int", "y=int", "sx=[int]", "sy=[int]",
 	  "sw=[int]", "sh=[int]", "transparent=bool" };
-static const char *T_postscript[] =
+static char *T_postscript[] =
 	{ "landscape=[bool]", "maximum_area=[area]" };
-static const char *T_network[] =
+static char *T_network[] =
 	{ "link=[link]", "from_kind=[name]", "to_kind=[name]" };
-static const char *T_handlePosition[] =
+static char *T_handlePosition[] =
 	{ "name=name", "device=[device]" };
-static const char *T_handles[] =
+static char *T_handles[] =
 	{ "near=[point]", "kind=[name]", "distance=[int]" };
-static const char *T_draw[] =
+static char *T_draw[] =
 	{ "offset=[point]", "area=[area]" };
-static const char *T_graphicsState[] =
+static char *T_graphicsState[] =
 	{ "pen=[0..]", "texture=[texture_name]", "colour=[colour|pixmap]",
 	  "background=[colour|pixmap]" };
-static const char *T_drawPoly[] =
+static char *T_drawPoly[] =
 	{ "points=chain|vector", "closed=[bool]", "fill=[colour|image]*" };
-static const char *T_focus[] =
+static char *T_focus[] =
 	{ "recogniser=[recogniser]", "cursor=[cursor]", "button=[name]" };
-static const char *T_drawText[] =
+static char *T_drawText[] =
 	{ "string=char_array", "font", "x=int", "y=int", "w=[0..]", "h=[0..]",
 	  "hadjust=[{left,center,right}]", "vadjust=[{top,center,bottom}]" };
-static const char *T_connections[] =
+static char *T_connections[] =
 	{ "to=[graphical]", "link=[link]",
 	  "from_kind=[name]", "to_kind=[name]" };
-static const char *T_link[] =
+static char *T_link[] =
 	{ "to=[graphical]", "link=[link]",
 	  "to_kind=[name]", "from_kind=[name]" };
-static const char *T_drawLine[] =
+static char *T_drawLine[] =
 	{ "x1=[int]", "y1=[int]", "x2=[int]", "y2=[int]" };
-static const char *T_geometry[] =
+static char *T_geometry[] =
 	{ "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
-static const char *T_inEventArea[] =
+static char *T_inEventArea[] =
 	{ "x=int", "y=int" };
-static const char *T_drawArc[] =
+static char *T_drawArc[] =
 	{ "x=int", "y=int", "w=int", "h=int",
 	  "angle1=[real]", "angle2=[real]", "fill=[colour|image]*" };
-static const char *T_drawFill[] =
+static char *T_drawFill[] =
 	{ "x=int", "y=int", "w=int", "h=int", "fill=[colour|image]*" };
-static const char *T_drawBox[] =
+static char *T_drawBox[] =
 	{ "x=int", "y=int", "w=int", "h=int", "radius=[0..]",
 	  "fill=[image|colour|elevation]", "up=[bool]" };
 
 /* Instance Variables */
 
-static const vardecl var_graphical[] =
+static vardecl var_graphical[] =
 { SV(NAME_device, "device*", IV_GET|IV_STORE, deviceGraphical,
      NAME_organisation, "Device I'm displayed on"),
   SV(NAME_area, "area", IV_NONE|IV_STORE, areaGraphical,
@@ -2896,7 +2903,7 @@ static const vardecl var_graphical[] =
 
 /* Send Methods */
 
-static const senddecl send_graphical[] =
+static senddecl send_graphical[] =
 { SM(NAME_initialise, 4, T_geometry, initialiseGraphical,
      DEFAULT, "Create from XYWH"),
   SM(NAME_unlink, 0, NULL, unlinkGraphical,
@@ -2935,7 +2942,8 @@ static const senddecl send_graphical[] =
      NAME_area, "Move origin to argument"),
   SM(NAME_normalise, 0, NULL, normaliseGraphical,
      NAME_area, "Make top-left corner the origin"),
-  SM(NAME_orientation, 1, "{north_west,south_east,north_east,south_east}", orientationGraphical,
+  SM(NAME_orientation, 1, "{north_west,south_east,north_east,south_east}",
+     orientationGraphical,
      NAME_area, "Put origin at {north,south}_{west,east}"),
   SM(NAME_position, 1, "point", positionGraphical,
      NAME_area, "Move origin to argument (as ->move)"),
@@ -3079,7 +3087,7 @@ static const senddecl send_graphical[] =
 
 /* Get Methods */
 
-static const getdecl get_graphical[] =
+static getdecl get_graphical[] =
 { GM(NAME_containedIn, 0, "device|node", NULL, getContainedInGraphical,
      DEFAULT, "Device I'm contained in"),
   GM(NAME_displayColour, 0, "colour|pixmap", NULL, getDisplayColourGraphical,
@@ -3106,13 +3114,16 @@ static const getdecl get_graphical[] =
      NAME_area, "X-coordinate of corner"),
   GM(NAME_cornerY, 0, "int", NULL, getCornerYGraphical,
      NAME_area, "Y-coordinate of corner"),
+  GM(NAME_displayedCursor, 0, "cursor*", NULL, getDisplayedCursorGraphical,
+     NAME_cursor, "Currently displayed cursor"),
   GM(NAME_displayPosition, 0, "point", NULL, getDisplayPositionGraphical,
      NAME_area, "Position relative to display"),
   GM(NAME_height, 0, "int", NULL, getHeightGraphical,
      NAME_area, "Height of graphical"),
   GM(NAME_leftSide, 0, "int", NULL, getLeftSideGraphical,
      NAME_area, "Left-side of graphical"),
-  GM(NAME_orientation, 0, "{north_west,south_east,north_east,south_east}", NULL, getOrientationGraphical,
+  GM(NAME_orientation, 0, "{north_west,south_east,north_east,south_east}",
+     NULL, getOrientationGraphical,
      NAME_area, "Current orientation"),
   GM(NAME_position, 0, "point", NULL, getPositionGraphical,
      NAME_area, "New point representing origin"),
@@ -3190,7 +3201,7 @@ static const getdecl get_graphical[] =
 
 /* Resources */
 
-static const resourcedecl rc_graphical[] =
+static resourcedecl rc_graphical[] =
 { RC(NAME_colour, "[colour|pixmap]", "@default",
      "Default colour for this object"),
   RC(NAME_inactiveColour, "colour|pixmap*", "grey",

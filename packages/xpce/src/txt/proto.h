@@ -3,7 +3,7 @@
 status		initialiseCharArray(CharArray n, CharArray value);
 Name		getValueCharArray(CharArray n);
 status		equalCharArray(CharArray n1, CharArray n2);
-status		suffixCharArray(CharArray n, CharArray s);
+status		suffixCharArray(CharArray n, CharArray s, Bool ign_case);
 CharArray	getCopyCharArray(CharArray n);
 CharArray	getCapitaliseCharArray(CharArray n);
 CharArray	getLabelNameCharArray(CharArray n);
@@ -77,6 +77,7 @@ int		str_icase_eq(String s1, String s2);
 int		str_prefix(String s1, String s2);
 int		str_icase_prefix(String s1, String s2);
 int		str_suffix(String s1, String s2);
+int		str_icase_suffix(String s1, String s2);
 int		str_sub(String s1, String s2);
 int		str_next_index(String s, int from, wchar chr);
 int		str_next_rindex(String s, int from, wchar chr);

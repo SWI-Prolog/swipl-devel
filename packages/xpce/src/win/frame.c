@@ -1200,32 +1200,32 @@ getContainsFrame(FrameObj fr)
 
 /* Type declarations */
 
-static const char *T_report[] =
+static char *T_report[] =
         { "{status,inform,progress,done,warning,error}", "format=[char_array]", "argument=any ..." };
-static const char *T_centerADpointD_grabADboolD[] =
+static char *T_centerADpointD_grabADboolD[] =
         { "center=[point]", "grab=[bool]" };
-static const char *T_busyCursor[] =
+static char *T_busyCursor[] =
         { "cursor=[cursor]*", "block_input=[bool]" };
-static const char *T_icon[] =
+static char *T_icon[] =
         { "image=image", "icon_label=[name]" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "label=[name]", "kind=[{toplevel,transient,popup}]", "display=[display]" };
-static const char *T_label[] =
+static char *T_label[] =
         { "label=name", "icon_label=[name]" };
-static const char *T_postscript[] =
+static char *T_postscript[] =
         { "landscape=[bool]", "scale_in=[area]" };
-static const char *T_positionADpointD_grabADboolD_normaliseADboolD[] =
+static char *T_positionADpointD_grabADboolD_normaliseADboolD[] =
         { "position=[point]", "grab=[bool]", "normalise=[bool]" };
-static const char *T_wmProtocol[] =
+static char *T_wmProtocol[] =
         { "protocol=name", "action=code" };
-static const char *T_convertOldSlot[] =
+static char *T_convertOldSlot[] =
         { "slot=name", "value=any" };
-static const char *T_set[] =
+static char *T_set[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_frame[] =
+static vardecl var_frame[] =
 { IV(NAME_label, "name", IV_GET,
      NAME_label, "Label of the frame"),
   SV(NAME_iconLabel, "name*", IV_NONE|IV_STORE, iconLabelFrame,
@@ -1274,7 +1274,7 @@ static const vardecl var_frame[] =
 
 /* Send Methods */
 
-static const senddecl send_frame[] =
+static senddecl send_frame[] =
 { SM(NAME_convertOldSlot, 2, T_convertOldSlot, convertOldSlotFrame,
      DEFAULT, "Convert old `show' slot"),
   SM(NAME_initialise, 3, T_initialise, initialiseFrame,
@@ -1377,7 +1377,7 @@ static const senddecl send_frame[] =
 
 /* Get Methods */
 
-static const getdecl get_frame[] =
+static getdecl get_frame[] =
 { GM(NAME_containedIn, 0, "display", NULL, getContainedInFrame,
      DEFAULT, "Display that contains me"),
   GM(NAME_contains, 0, "chain", NULL, getContainsFrame,
@@ -1424,7 +1424,7 @@ static const getdecl get_frame[] =
 
 /* Resources */
 
-static const resourcedecl rc_frame[] =
+static resourcedecl rc_frame[] =
 { RC(NAME_background, "colour|pixmap", "white",
      "Default background colour"),
   RC(NAME_busyCursor, "cursor*", "watch",

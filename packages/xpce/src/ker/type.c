@@ -873,16 +873,16 @@ kindType(Type t, Name kind)
 
 /* Type declaractions */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "name=name", "kind=[name]", "context=[any]", "supers=[chain*]" };
-static const char *T_validate[] =
+static char *T_validate[] =
         { "unchecked", "[object]*" };
-static const char *T_valueAunchecked_contextADobjectDN[] =
+static char *T_valueAunchecked_contextADobjectDN[] =
         { "value=unchecked", "context=[object]*" };
 
 /* Instance Variables */
 
-static const vardecl var_type[] =
+static vardecl var_type[] =
 { SV(NAME_kind, "name", IV_GET|IV_STORE, kindType,
      NAME_check, "Type of type"),
   IV(NAME_fullname, "name", IV_GET,
@@ -903,7 +903,7 @@ static const vardecl var_type[] =
 
 /* Send Methods */
 
-static const senddecl send_type[] =
+static senddecl send_type[] =
 { SM(NAME_initialise, 4, T_initialise, initialiseType,
      DEFAULT, "Create type from name, kind, context and supers"),
   SM(NAME_validate, 2, T_validate, validateType,
@@ -916,7 +916,7 @@ static const senddecl send_type[] =
 
 /* Get Methods */
 
-static const getdecl get_type[] =
+static getdecl get_type[] =
 { GM(NAME_check, 2, "unchecked", T_valueAunchecked_contextADobjectDN, getCheckType,
      NAME_check, "Validate and translate if necessary"),
   GM(NAME_convert, 1, "type", "name", getConvertType,
@@ -935,9 +935,12 @@ static const getdecl get_type[] =
 
 /* Resources */
 
-static const resourcedecl rc_type[] =
+#define rc_type NULL
+/*
+static resourcedecl rc_type[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

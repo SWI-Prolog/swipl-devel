@@ -86,12 +86,12 @@ getPathSourceLocation(SourceLocation loc)
 
 /* Type declaractions */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "file=name", "line=[int]*" };
 
 /* Instance Variables */
 
-static const vardecl var_sourceLocation[] =
+static vardecl var_sourceLocation[] =
 { IV(NAME_fileName, "name", IV_BOTH,
      NAME_location, "Name of the file in which the source resides"),
   IV(NAME_lineNo, "int*", IV_BOTH,
@@ -100,7 +100,7 @@ static const vardecl var_sourceLocation[] =
 
 /* Send Methods */
 
-static const senddecl send_sourceLocation[] =
+static senddecl send_sourceLocation[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseSourceLocation,
      DEFAULT, "Create from file_name and line_no"),
   SM(NAME_copy, 1, "source_location", copySourceLocation,
@@ -109,7 +109,7 @@ static const senddecl send_sourceLocation[] =
 
 /* Get Methods */
 
-static const getdecl get_sourceLocation[] =
+static getdecl get_sourceLocation[] =
 { GM(NAME_convert, 1, "source_location", "char_array|file", getConvertSourceLocation,
      DEFAULT, "Convert `file', `path-name' and `path-name:line-no'"),
   GM(NAME_path, 0, "name", NULL, getPathSourceLocation,
@@ -118,9 +118,12 @@ static const getdecl get_sourceLocation[] =
 
 /* Resources */
 
-static const resourcedecl rc_sourceLocation[] =
+#define rc_sourceLocation NULL
+/*
+static resourcedecl rc_sourceLocation[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

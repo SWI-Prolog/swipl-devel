@@ -1,3 +1,12 @@
+/*  $Id$
+
+    Part of XPCE
+    Designed and implemented by Anjo Anjewierden and Jan Wielemaker
+    E-mail: jan@swi.psy.uva.nl
+
+    Copyright (C) 1996 University of Amsterdam. All rights reserved.
+*/
+
 :- module(pce_qux, [
 	  atom_to_term/2,
 	  atom_to_term/3,
@@ -7,6 +16,7 @@
 	  pce_warn/1,
 	  pce_info/1,
 	  ignore/1,
+	  auto_call/1,
 	  concat/3,
 	  free_variables/2,
 	  atom_length/2,
@@ -18,14 +28,16 @@
 	  make/0,
 	  source_warning/2,
 	  sformat/3,
-	  call_emacs/2,
 	  is_absolute_file_name/1,
 	  file_directory_name/2,
-	  expand_file_name/2	% added for QP3.2
+	  expand_file_name/2,
+	  defined_predicate/1
 	]).
 
 :- meta_predicate
 	ignore(:),
+	auto_call(:),
+	defined_predicate(:),
 	sublist(:, +, ?).
 
 :- use_module(library(charsio), [chars_to_stream/2,
@@ -179,6 +191,8 @@ print_source_location:-
 %
 % Provide (prolog-part) PCE interface messages
 
+:- extern(pce_error(+term)).
+
 pce_error(Error) :-
 	print_message(error, Error).
 
@@ -195,6 +209,16 @@ pce_info(Info) :-
 ignore(Goal) :-
 	Goal, !.
 ignore(_).
+
+%	auto_call(+Goal)
+%	As goal, but invokes require/1 to define a predicate if it is
+%	not defined already.
+
+auto_call(Goal) :-
+	strip_module(Goal, Module, Predicate),
+	functor(Predicate, Name, Arity),
+	require:require(Module, [Name/Arity]),
+	Goal.
 
 % atom_length(+Atom, -Length)
 
@@ -254,16 +278,15 @@ source_warning(Fmt, Args):-
 sformat(Chars, Format, Args):-
 	with_output_to_chars(format(Format, Args), Chars).
 
-% call_emacs(Fmt)
-% call_emacs(Fmt, Args)
+%	defined_predicate(:Head)
 
-call_emacs(Fmt) :-
-        call_emacs(Fmt, []).
-call_emacs(Fmt, Args) :-
-        concat_atom(['', Fmt, ''], F1),
-        format(F1, Args),
-	current_output(Stream),
-        flush_output(Stream).
+defined_predicate(Spec) :-
+      strip_module(Spec, Module, Head),
+      (   predicate_property(Head, built_in)
+      ->  true
+      ;	  current_predicate(_, Module:Head)
+      ).
+
 
 % following was added for QP3.2
 

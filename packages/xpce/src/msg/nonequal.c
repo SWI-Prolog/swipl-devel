@@ -38,12 +38,12 @@ ExecuteNonEqual(NonEqual c)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "left=any|function", "right=any|function" };
 
 /* Instance Variables */
 
-static const vardecl var_nonEqual[] =
+static vardecl var_nonEqual[] =
 { IV(NAME_left, "any|function", IV_BOTH,
      NAME_operant, "Left-hand side"),
   IV(NAME_right, "any|function", IV_BOTH,
@@ -52,7 +52,7 @@ static const vardecl var_nonEqual[] =
 
 /* Send Methods */
 
-static const senddecl send_nonEqual[] =
+static senddecl send_nonEqual[] =
 { SM(NAME_Execute, 0, NULL, ExecuteNonEqual,
      DEFAULT, "Evaluate both sides and test on non-equal"),
   SM(NAME_initialise, 2, T_initialise, initialiseNonEqual,
@@ -61,15 +61,21 @@ static const senddecl send_nonEqual[] =
 
 /* Get Methods */
 
-static const getdecl get_nonEqual[] =
+#define get_nonEqual NULL
+/*
+static getdecl get_nonEqual[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_nonEqual[] =
+#define rc_nonEqual NULL
+/*
+static resourcedecl rc_nonEqual[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

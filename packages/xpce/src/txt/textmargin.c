@@ -217,12 +217,12 @@ scan_fragment_icons(TextMargin m, SendFunc func, Name how, Any ctx)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "editor=editor", "width=int", "height=int" };
 
 /* Instance Variables */
 
-static const vardecl var_textMargin[] =
+static vardecl var_textMargin[] =
 { IV(NAME_editor, "editor", IV_GET,
      NAME_storage, "Editor I'm part of"),
   SV(NAME_gap, "size", IV_GET|IV_STORE, gapTextMargin,
@@ -231,21 +231,21 @@ static const vardecl var_textMargin[] =
 
 /* Send Methods */
 
-static const senddecl send_textMargin[] =
+static senddecl send_textMargin[] =
 { SM(NAME_initialise, 3, T_initialise, initialiseTextMargin,
      DEFAULT, "Create from editor, width and height")
 };
 
 /* Get Methods */
 
-static const getdecl get_textMargin[] =
+static getdecl get_textMargin[] =
 { GM(NAME_fragment, 1, "fragment", "event", getFragmentTextMargin,
      NAME_fragment, "Find the fragment at the event-position")
 };
 
 /* Resources */
 
-static const resourcedecl rc_textMargin[] =
+static resourcedecl rc_textMargin[] =
 { RC(NAME_gap, "size", "size(5,2)",
      "Distance between icons in X and Y")
 };

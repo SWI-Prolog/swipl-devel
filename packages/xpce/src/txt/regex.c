@@ -652,20 +652,20 @@ getQuoteRegex(Regex re, CharArray ca)
 
 /* Type declarations */
 
-static const char *T_forAll[] =
+static char *T_forAll[] =
         { "in=char_array|text_buffer|fragment", "action=code", "from=[int]", "to=[int]" };
-static const char *T_inAchar_arrayOtext_bufferOfragment_startADintD_endADintD[] =
+static char *T_inAchar_arrayOtext_bufferOfragment_startADintD_endADintD[] =
         { "in=char_array|text_buffer|fragment", "start=[int]", "end=[int]" };
-static const char *T_gregisterValue[] =
+static char *T_gregisterValue[] =
         { "in=object", "register=[0..9]", "type=[type]" };
-static const char *T_replace[] =
+static char *T_replace[] =
         { "in=object", "value=char_array" };
-static const char *T_sregisterValue[] =
+static char *T_sregisterValue[] =
         { "in=object", "value=char_array", "register=[0..9]" };
 
 /* Instance Variables */
 
-static const vardecl var_regex[] =
+static vardecl var_regex[] =
 { IV(NAME_pattern, "char_array", IV_GET,
      NAME_pattern, "Pattern to search for"),
   IV(NAME_compiled, "alien:struct re_pattern_buffer *", IV_NONE,
@@ -676,7 +676,7 @@ static const vardecl var_regex[] =
 
 /* Send Methods */
 
-static const senddecl send_regex[] =
+static senddecl send_regex[] =
 { SM(NAME_initialise, 1, "pattern=char_array", initialiseRegex,
      DEFAULT, "Create regex from pattern"),
   SM(NAME_unlink, 0, NULL, unlinkRegex,
@@ -701,7 +701,7 @@ static const senddecl send_regex[] =
 
 /* Get Methods */
 
-static const getdecl get_regex[] =
+static getdecl get_regex[] =
 { GM(NAME_convert, 1, "regex", "char_array", getConvertRegex,
      NAME_conversion, "Converts char_array to regex(pattern)"),
   GM(NAME_ignoreCase, 0, "ignore=bool", NULL, getIgnoreCaseRegex,
@@ -728,9 +728,12 @@ static const getdecl get_regex[] =
 
 /* Resources */
 
-static const resourcedecl rc_regex[] =
+#define rc_regex NULL
+/*
+static resourcedecl rc_regex[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

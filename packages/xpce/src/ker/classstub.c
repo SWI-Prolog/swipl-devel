@@ -146,12 +146,12 @@ getManIndicatorClass(ClassStub cstub)
 
 /* Type declaractions */
 
-static const char *T_nameAname_superADclass_stubDN_summaryADstringDN[] =
+static char *T_nameAname_superADclass_stubDN_summaryADstringDN[] =
         { "name=name", "super=[class_stub]*", "summary=[string]*" };
 
 /* Instance Variables */
 
-static const vardecl var_classStub[] =
+static vardecl var_classStub[] =
 { IV(NAME_name, "name", IV_GET,
      NAME_name, "Name of the class"),
   IV(NAME_summary, "string*", IV_BOTH,
@@ -166,7 +166,7 @@ static const vardecl var_classStub[] =
 
 /* Send Methods */
 
-static const senddecl send_classStub[] =
+static senddecl send_classStub[] =
 { SM(NAME_initialise, 3, T_nameAname_superADclass_stubDN_summaryADstringDN, initialiseClassStub,
      DEFAULT, "Create Class Stub object"),
   SM(NAME_catchAll, 1, "unchecked ...", catchAllClassStubv,
@@ -175,7 +175,7 @@ static const senddecl send_classStub[] =
 
 /* Get Methods */
 
-static const getdecl get_classStub[] =
+static getdecl get_classStub[] =
 { GM(NAME_convert, 1, "class_stub", "name=name", getConvertClassStub,
      DEFAULT, "Reuse predefined stub"),
   GM(NAME_lookup, 3, "class_stub", T_nameAname_superADclass_stubDN_summaryADstringDN, getLookupClassStub,
@@ -196,9 +196,12 @@ static const getdecl get_classStub[] =
 
 /* Resources */
 
-static const resourcedecl rc_classStub[] =
+#define rc_classStub NULL
+/*
+static resourcedecl rc_classStub[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

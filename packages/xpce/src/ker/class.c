@@ -841,6 +841,8 @@ sendMethodClass(Class class, SendMethod m)
 
   appendChain(class->send_methods, m);
   assign(m, context, class);
+  if ( offDFlag(class, DC_LAZY_SEND) )
+    lazyBindingClass(class, NAME_send, ON);
 
   succeed;
 }
@@ -895,6 +897,8 @@ getMethodClass(Class class, GetMethod m)
 					/* Insert new one */
   appendChain(class->get_methods, m);
   assign(m, context, class);
+  if ( offDFlag(class, DC_LAZY_GET) )
+    lazyBindingClass(class, NAME_get, ON);
 
   succeed;
 }
@@ -1767,6 +1771,8 @@ clearCacheClass(Class class)
     assign(class, initialise_method, DEFAULT);
     assign(class, lookup_method,     DEFAULT);
 
+    setDFlag(class, DC_LAZY_SEND|DC_LAZY_GET);
+
     installClass(class);		/* Enter function special methods */
   }
     
@@ -2121,6 +2127,10 @@ getLazyBindingClass(Class class, Name which)
 static status
 lazyBindingClass(Class class, Name which, Bool val)
 { ulong mask = (which == NAME_send ? DC_LAZY_SEND : DC_LAZY_GET);
+
+  DEBUG(NAME_lazyBinding,
+	Cprintf("lazyBindingClass(%s, %s, %s)\n",
+		pp(class), pp(which), pp(val)));
 
   if ( val == ON )
     setDFlag(class, mask);

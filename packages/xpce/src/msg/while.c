@@ -42,12 +42,12 @@ ExecuteWhile(While w)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "condition=code", "statement=[code]*" };
 
 /* Instance Variables */
 
-static const vardecl var_while[] =
+static vardecl var_while[] =
 { IV(NAME_condition, "code", IV_BOTH,
      NAME_statement, "Condition to be tested"),
   IV(NAME_body, "code*", IV_BOTH,
@@ -56,7 +56,7 @@ static const vardecl var_while[] =
 
 /* Send Methods */
 
-static const senddecl send_while[] =
+static senddecl send_while[] =
 { SM(NAME_Execute, 0, NULL, ExecuteWhile,
      DEFAULT, "Execute body until test fails"),
   SM(NAME_initialise, 2, T_initialise, initialiseWhile,
@@ -65,15 +65,21 @@ static const senddecl send_while[] =
 
 /* Get Methods */
 
-static const getdecl get_while[] =
+#define get_while NULL
+/*
+static getdecl get_while[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_while[] =
+#define rc_while NULL
+/*
+static resourcedecl rc_while[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

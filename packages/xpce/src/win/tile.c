@@ -630,14 +630,14 @@ forAllTile(TileObj t, Code msg)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "object=object*", "width=[int]", "height=[int]" };
-static const char *T_xADintD_yADintD_widthADintD_heightADintD[] =
+static char *T_xADintD_yADintD_widthADintD_heightADintD[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_tile[] =
+static vardecl var_tile[] =
 { IV(NAME_idealWidth, "int", IV_BOTH,
      NAME_dimension, "Desired width of the tile"),
   IV(NAME_idealHeight, "int", IV_BOTH,
@@ -668,7 +668,7 @@ static const vardecl var_tile[] =
 
 /* Send Methods */
 
-static const senddecl send_tile[] =
+static senddecl send_tile[] =
 { SM(NAME_initialise, 3, T_initialise, initialiseTile,
      DEFAULT, "Create from object, width and height"),
   SM(NAME_unlink, 0, NULL, unlinkTile,
@@ -711,14 +711,14 @@ static const senddecl send_tile[] =
 
 /* Get Methods */
 
-static const getdecl get_tile[] =
+static getdecl get_tile[] =
 { GM(NAME_root, 0, "tile", NULL, getRootTile,
      NAME_organisation, "Root of the tile-hierarchy")
 };
 
 /* Resources */
 
-static const resourcedecl rc_tile[] =
+static resourcedecl rc_tile[] =
 { RC(NAME_border, "int", "3",
      "Border between subtiles")
 };

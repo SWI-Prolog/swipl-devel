@@ -54,12 +54,12 @@ RedrawAreaEllipse(Ellipse e, Area a)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "width=[int]", "height=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_ellipse[] =
+static vardecl var_ellipse[] =
 { SV(NAME_shadow, "int", IV_GET|IV_STORE, shadowGraphical,
      NAME_appearance, "Shadow painted below/right"),
   SV(NAME_fillPattern, "image|colour*", IV_GET|IV_STORE, fillPatternGraphical,
@@ -68,7 +68,7 @@ static const vardecl var_ellipse[] =
 
 /* Send Methods */
 
-static const senddecl send_ellipse[] =
+static senddecl send_ellipse[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseEllipse,
      DEFAULT, "Create ellipse from width and height"),
   SM(NAME_DrawPostScript, 0, NULL, drawPostScriptEllipse,
@@ -77,13 +77,16 @@ static const senddecl send_ellipse[] =
 
 /* Get Methods */
 
-static const getdecl get_ellipse[] =
+#define get_ellipse NULL
+/*
+static getdecl get_ellipse[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_ellipse[] =
+static resourcedecl rc_ellipse[] =
 { RC(NAME_selectionHandles, RC_REFINE, "sides",
      NULL)
 };

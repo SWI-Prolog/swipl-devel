@@ -499,18 +499,18 @@ showCurrentPopup(PopupObj p, Bool show)
 
 /* Type declarations */
 
-static const char *T_drag[] =
+static char *T_drag[] =
         { "event", "check_pullright=[bool]" };
-static const char *T_showPullrightMenu[] =
+static char *T_showPullrightMenu[] =
         { "item=menu_item", "event=[event]", "context=[any]" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "name=[name]", "message=[code]*" };
-static const char *T_open[] =
+static char *T_open[] =
         { "on=graphical", "offset=point", "offset_is_pointer=[bool]", "warp=[bool]", "ensure_on_display=[bool]" };
 
 /* Instance Variables */
 
-static const vardecl var_popup[] =
+static vardecl var_popup[] =
 { IV(NAME_context, "any*", IV_BOTH,
      NAME_context, "Invoking context"),
   IV(NAME_updateMessage, "code*", IV_BOTH,
@@ -529,7 +529,7 @@ static const vardecl var_popup[] =
 
 /* Send Methods */
 
-static const senddecl send_popup[] =
+static senddecl send_popup[] =
 { SM(NAME_event, 1, "event", eventPopup,
      DEFAULT, "Handle an event"),
   SM(NAME_initialise, 2, T_initialise, initialisePopup,
@@ -556,13 +556,16 @@ static const senddecl send_popup[] =
 
 /* Get Methods */
 
-static const getdecl get_popup[] =
+#define get_popup NULL
+/*
+static getdecl get_popup[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_popup[] =
+static resourcedecl rc_popup[] =
 { RC(NAME_acceleratorFont, "font*", "small",
      "Show the accelerators"),
   RC(NAME_border, "int", "2",

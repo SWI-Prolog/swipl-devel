@@ -98,9 +98,12 @@ type_to_class(Type, Class) :-
 	type_to_class(Super, Class).
 
 
-show(IT, Class:class) :->
+show(IT, Class:class, Clear:[bool]) :->
 	get(IT, resource_value, inheritance_font, Font),
-	send(IT, clear),
+	(   Clear \== @off
+	->  send(IT, clear)
+	;   true
+	),
 	get(IT, show_inheritance, Class, Font, Node),
 	send(Node, selected, @on),
 	send(IT, show_delegation, Class),

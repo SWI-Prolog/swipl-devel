@@ -37,12 +37,12 @@ getExecuteWhen(When w)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "condition=code", "then=any|function", "else=any|function" };
 
 /* Instance Variables */
 
-static const vardecl var_when[] =
+static vardecl var_when[] =
 { IV(NAME_condition, "code", IV_BOTH,
      NAME_statement, "Condition to be tested"),
   IV(NAME_then, "any|function", IV_BOTH,
@@ -53,7 +53,7 @@ static const vardecl var_when[] =
 
 /* Send Methods */
 
-static const senddecl send_when[] =
+static senddecl send_when[] =
 { SM(NAME_initialise, 3, T_initialise, initialiseWhen,
      DEFAULT, "Create from condition, when- and else"),
   SM(NAME_unlink, 0, NULL, succeedObject,
@@ -62,16 +62,19 @@ static const senddecl send_when[] =
 
 /* Get Methods */
 
-static const getdecl get_when[] =
+static getdecl get_when[] =
 { GM(NAME_Execute, 0, "unchecked", NULL, getExecuteWhen,
      DEFAULT, "Test condition and evaluate <-then or <-else")
 };
 
 /* Resources */
 
-static const resourcedecl rc_when[] =
+#define rc_when NULL
+/*
+static resourcedecl rc_when[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

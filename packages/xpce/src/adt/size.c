@@ -92,14 +92,14 @@ offsetSize(Size s, Int w, Int h)
 
 /* Type declaractions */
 
-static const char *T_widthADintD_heightADintD[] =
+static char *T_widthADintD_heightADintD[] =
         { "width=[int]", "height=[int]" };
-static const char *T_offset[] =
+static char *T_offset[] =
         { "width=int", "height=int" };
 
 /* Instance Variables */
 
-static const vardecl var_size[] =
+static vardecl var_size[] =
 { IV(NAME_width, "int", IV_BOTH,
      NAME_dimension, "Width (W) of the size"),
   IV(NAME_height, "int", IV_BOTH,
@@ -108,7 +108,7 @@ static const vardecl var_size[] =
 
 /* Send Methods */
 
-static const senddecl send_size[] =
+static senddecl send_size[] =
 { SM(NAME_initialise, 2, T_widthADintD_heightADintD, initialiseSize,
      DEFAULT, "Create size from width and height"),
   SM(NAME_offset, 2, T_offset, offsetSize,
@@ -125,7 +125,7 @@ static const senddecl send_size[] =
 
 /* Get Methods */
 
-static const getdecl get_size[] =
+static getdecl get_size[] =
 { GM(NAME_convert, 1, "size", "name", getConvertSize,
      NAME_textual, "Convert text `WxH'"),
   GM(NAME_printName, 0, "string", NULL, getPrintNameSize,
@@ -134,9 +134,12 @@ static const getdecl get_size[] =
 
 /* Resources */
 
-static const resourcedecl rc_size[] =
+#define rc_size NULL
+/*
+static resourcedecl rc_size[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

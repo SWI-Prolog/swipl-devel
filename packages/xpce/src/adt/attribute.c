@@ -105,14 +105,14 @@ getArgumentTypeAttribute(Attribute att, Int n)
 
 /* Type declaractions */
 
-static const char *T_contextAobject_argumentAunchecked_XXX[] =
+static char *T_contextAobject_argumentAunchecked_XXX[] =
         { "context=object", "argument=unchecked ..." };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "name=any", "value=any" };
 
 /* Instance Variables */
 
-static const vardecl var_attribute[] =
+static vardecl var_attribute[] =
 { IV(NAME_name, "any", IV_BOTH,
      NAME_storage, "Name of the attribute"),
   IV(NAME_value, "any", IV_BOTH,
@@ -121,7 +121,7 @@ static const vardecl var_attribute[] =
 
 /* Send Methods */
 
-static const senddecl send_attribute[] =
+static senddecl send_attribute[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseAttribute,
      DEFAULT, "Create attribute from name and value"),
   SM(NAME_send, 2, T_contextAobject_argumentAunchecked_XXX, sendAttribute,
@@ -130,7 +130,7 @@ static const senddecl send_attribute[] =
 
 /* Get Methods */
 
-static const getdecl get_attribute[] =
+static getdecl get_attribute[] =
 { GM(NAME_convert, 1, "attribute", "any", getConvertAttribute,
      DEFAULT, "Converts name to attribute(name, @nil)"),
   GM(NAME_get, 2, "value=unchecked", T_contextAobject_argumentAunchecked_XXX, getAttribute,
@@ -141,9 +141,12 @@ static const getdecl get_attribute[] =
 
 /* Resources */
 
-static const resourcedecl rc_attribute[] =
+#define rc_attribute NULL
+/*
+static resourcedecl rc_attribute[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

@@ -193,21 +193,21 @@ forSomeSheet(Sheet sh, Code msg)
 
 /* Type declaractions */
 
-static const char *T_value[] =
+static char *T_value[] =
         { "key=any", "value=any" };
-static const char *T_catchAll[] =
+static char *T_catchAll[] =
         { "key=name", "value=any" };
 
 /* Instance Variables */
 
-static const vardecl var_sheet[] =
+static vardecl var_sheet[] =
 { IV(NAME_members, "chain", IV_GET,
      NAME_storage, "Attributes of the sheet")
 };
 
 /* Send Methods */
 
-static const senddecl send_sheet[] =
+static senddecl send_sheet[] =
 { SM(NAME_initialise, 1, "member=attribute ...", initialiseSheet,
      DEFAULT, "Create sheet from attributes"),
   SM(NAME_append, 1, "attribute", appendSheet,
@@ -228,7 +228,7 @@ static const senddecl send_sheet[] =
 
 /* Get Methods */
 
-static const getdecl get_sheet[] =
+static getdecl get_sheet[] =
 { GM(NAME_Arg, 1, "attribute", "int", getArgSheet,
      DEFAULT, "Nth-1 argument of term"),
   GM(NAME_Arity, 0, "int", NULL, getAritySheet,
@@ -245,9 +245,12 @@ static const getdecl get_sheet[] =
 
 /* Resources */
 
-static const resourcedecl rc_sheet[] =
+#define rc_sheet NULL
+/*
+static resourcedecl rc_sheet[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

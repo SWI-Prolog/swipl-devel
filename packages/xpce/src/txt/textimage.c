@@ -1684,18 +1684,18 @@ getViewTextImage(TextImage ti)
 
 /* Type declarations */
 
-static const char *T_center[] =
+static char *T_center[] =
         { "index=int", "line=[int]" };
-static const char *T_start[] =
+static char *T_start[] =
         { "start=[int]", "skip_lines=[int]" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "text=object", "width=int", "height=int" };
-static const char *T_geometry[] =
+static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_textImage[] =
+static vardecl var_textImage[] =
 { IV(NAME_text, "object", IV_GET,
      NAME_storage, "Source of the text"),
   IV(NAME_background, "[colour|pixmap]", IV_GET,
@@ -1738,7 +1738,7 @@ static const vardecl var_textImage[] =
 
 /* Send Methods */
 
-static const senddecl send_textImage[] =
+static senddecl send_textImage[] =
 { SM(NAME_compute, 0, NULL, computeTextImage,
      DEFAULT, "Recompute text-image if necessary"),
   SM(NAME_event, 1, "event", eventTextImage,
@@ -1759,7 +1759,7 @@ static const senddecl send_textImage[] =
 
 /* Get Methods */
 
-static const getdecl get_textImage[] =
+static getdecl get_textImage[] =
 { GM(NAME_height, 0, "int", NULL, getHeightTextImage,
      NAME_area, "Height of the image"),
   GM(NAME_width, 0, "int", NULL, getWidthTextImage,
@@ -1778,7 +1778,7 @@ static const getdecl get_textImage[] =
 
 /* Resources */
 
-static const resourcedecl rc_textImage[] =
+static resourcedecl rc_textImage[] =
 { RC(NAME_background, "[colour|pixmap]", "white",
      "Background colour for the text"),
   RC(NAME_elevation, "elevation*", "@nil",

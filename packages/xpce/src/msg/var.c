@@ -81,14 +81,14 @@ getValueVar(Var v)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "type=[type]", "name=[name]", "value=[any]" };
-static const char *T_assign[] =
+static char *T_assign[] =
         { "value=any", "scope=[{local,outer,global}]" };
 
 /* Instance Variables */
 
-static const vardecl var_var[] =
+static vardecl var_var[] =
 { IV(NAME_Name, "name*", IV_GET,
      NAME_name, "Name of the var"),
   IV(NAME_Type, "type", IV_BOTH,
@@ -101,7 +101,7 @@ static const vardecl var_var[] =
 
 /* Send Methods */
 
-static const senddecl send_var[] =
+static senddecl send_var[] =
 { SM(NAME_initialise, 3, T_initialise, initialiseVar,
      DEFAULT, "Create var from name and value"),
   SM(NAME_unlink, 0, NULL, unlinkVar,
@@ -112,7 +112,7 @@ static const senddecl send_var[] =
 
 /* Get Methods */
 
-static const getdecl get_var[] =
+static getdecl get_var[] =
 { GM(NAME_convert, 1, "var", "name", getConvertVar,
      NAME_conversion, "Converts name to var from @variables"),
   GM(NAME_Execute, 0, "unchecked", NULL, getValueVar,
@@ -123,9 +123,12 @@ static const getdecl get_var[] =
 
 /* Resources */
 
-static const resourcedecl rc_var[] =
+#define rc_var NULL
+/*
+static resourcedecl rc_var[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

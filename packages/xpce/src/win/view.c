@@ -150,25 +150,25 @@ formatView(View v, CharArray fmt, int argc, Any *argv)
 
 /* Type declarations */
 
-static const char *T_format[] =
+static char *T_format[] =
         { "char_array", "any ..." };
-static const char *T_fromAint_toAint[] =
+static char *T_fromAint_toAint[] =
         { "from=int", "to=int" };
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "label=[name]", "size=[size]", "display=[display]", "editor=[editor]" };
-static const char *T_requestGeometry[] =
+static char *T_requestGeometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_view[] =
+static vardecl var_view[] =
 { IV(NAME_editor, "editor", IV_GET,
      NAME_delegate, "Editor displayed")
 };
 
 /* Send Methods */
 
-static const senddecl send_view[] =
+static senddecl send_view[] =
 { SM(NAME_editor, 1, "editor", editorView,
      DEFAULT, "Associate editor with view"),
   SM(NAME_initialise, 4, T_initialise, initialiseView,
@@ -191,7 +191,7 @@ static const senddecl send_view[] =
 
 /* Get Methods */
 
-static const getdecl get_view[] =
+static getdecl get_view[] =
 { GM(NAME_createEditor, 1, "editor", "size=[size]", getCreateEditorView,
      NAME_create, "Create the editor of the view"),
   GM(NAME_selected, 0, "string", NULL, getSelectedView,
@@ -202,7 +202,7 @@ static const getdecl get_view[] =
 
 /* Resources */
 
-static const resourcedecl rc_view[] =
+static resourcedecl rc_view[] =
 { RC(NAME_pen, "int", "0",
      "Pen (done by <-editor)"),
   RC(NAME_size, "size", "size(80,20)",

@@ -68,12 +68,12 @@ getConvertModifier(Class class, Name name)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "shift=[{up,down}]", "control=[{up,down}]", "meta=[{up,down}]" };
 
 /* Instance Variables */
 
-static const vardecl var_modifier[] =
+static vardecl var_modifier[] =
 { IV(NAME_shift, "[{up,down}]", IV_BOTH,
      NAME_modifier, "Condition on shift"),
   IV(NAME_control, "[{up,down}]", IV_BOTH,
@@ -84,23 +84,26 @@ static const vardecl var_modifier[] =
 
 /* Send Methods */
 
-static const senddecl send_modifier[] =
+static senddecl send_modifier[] =
 { SM(NAME_initialise, 3, T_initialise, initialiseModifier,
      DEFAULT, "Create from shift, control and meta")
 };
 
 /* Get Methods */
 
-static const getdecl get_modifier[] =
+static getdecl get_modifier[] =
 { GM(NAME_convert, 1, "modifier", "name", getConvertModifier,
      NAME_conversion, "Convert name, consisting of {s|m|c}")
 };
 
 /* Resources */
 
-static const resourcedecl rc_modifier[] =
+#define rc_modifier NULL
+/*
+static resourcedecl rc_modifier[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

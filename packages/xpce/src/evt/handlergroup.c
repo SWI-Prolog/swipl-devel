@@ -75,14 +75,14 @@ getArgHandlerGroup(HandlerGroup h, Int n)
 
 /* Instance Variables */
 
-static const vardecl var_handlerGroup[] =
+static vardecl var_handlerGroup[] =
 { IV(NAME_members, "chain", IV_GET,
      NAME_list, "Members of the collection")
 };
 
 /* Send Methods */
 
-static const senddecl send_handlerGroup[] =
+static senddecl send_handlerGroup[] =
 { SM(NAME_initialise, 1, "member=recogniser ...", initialiseHandlerGroupv,
      DEFAULT, "Create from given recognisers"),
   SM(NAME_event, 1, "event", eventHandlerGroup,
@@ -95,7 +95,7 @@ static const senddecl send_handlerGroup[] =
 
 /* Get Methods */
 
-static const getdecl get_handlerGroup[] =
+static getdecl get_handlerGroup[] =
 { GM(NAME_Arg, 1, "recogniser", "int", getArgHandlerGroup,
      DEFAULT, "Nth-1 argument or term description"),
   GM(NAME_Arity, 0, "int", NULL, getArityHandlerGroup,
@@ -104,9 +104,12 @@ static const getdecl get_handlerGroup[] =
 
 /* Resources */
 
-static const resourcedecl rc_handlerGroup[] =
+#define rc_handlerGroup NULL
+/*
+static resourcedecl rc_handlerGroup[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

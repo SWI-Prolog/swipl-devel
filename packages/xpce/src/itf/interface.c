@@ -600,5 +600,5 @@ pceRealloc(void *ptr, int size)
 
 void
 pceFree(void *ptr)
-{ return (*TheCallbackFunctions.free)(ptr);
+{ (*TheCallbackFunctions.free)(ptr);
 }

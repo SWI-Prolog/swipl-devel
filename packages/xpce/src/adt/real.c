@@ -217,19 +217,19 @@ getValueReal(Real r)
 
 /* Type declaractions */
 
-static const char *T_catchAll[] =
+static char *T_catchAll[] =
         { "selector=name", "argument=unchecked ..." };
 
 /* Instance Variables */
 
-static const vardecl var_real[] =
+static vardecl var_real[] =
 { IV(NAME_value, "alien:float", IV_NONE,
      NAME_storage, "C float value")
 };
 
 /* Send Methods */
 
-static const senddecl send_real[] =
+static senddecl send_real[] =
 { SM(NAME_initialise, 1, "value=any", initialiseReal,
      DEFAULT, "Create real by converting argument"),
   SM(NAME_divide, 1, "real", divideReal,
@@ -258,7 +258,7 @@ static const senddecl send_real[] =
 
 /* Get Methods */
 
-static const getdecl get_real[] =
+static getdecl get_real[] =
 { GM(NAME_convert, 1, "real", "any", getConvertReal,
      DEFAULT, "Converts int, number and char_array"),
   GM(NAME_compare, 1, "{smaller,equal,larger}", "real", getCompareReal,
@@ -273,9 +273,12 @@ static const getdecl get_real[] =
 
 /* Resources */
 
-static const resourcedecl rc_real[] =
+#define rc_real NULL
+/*
+static resourcedecl rc_real[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

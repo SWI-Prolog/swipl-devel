@@ -39,12 +39,12 @@ ExecuteEqual(Equal eq)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "left=any|function", "right=any|function" };
 
 /* Instance Variables */
 
-static const vardecl var_equal[] =
+static vardecl var_equal[] =
 { IV(NAME_left, "any|function", IV_BOTH,
      NAME_operant, "Left-hand side"),
   IV(NAME_right, "any|function", IV_BOTH,
@@ -53,7 +53,7 @@ static const vardecl var_equal[] =
 
 /* Send Methods */
 
-static const senddecl send_equal[] =
+static senddecl send_equal[] =
 { SM(NAME_Execute, 0, NULL, ExecuteEqual,
      DEFAULT, "Evaluate both sides and test on equal"),
   SM(NAME_initialise, 2, T_initialise, initialiseEqual,
@@ -62,15 +62,21 @@ static const senddecl send_equal[] =
 
 /* Get Methods */
 
-static const getdecl get_equal[] =
+#define get_equal NULL
+/*
+static getdecl get_equal[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_equal[] =
+#define rc_equal NULL
+/*
+static resourcedecl rc_equal[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

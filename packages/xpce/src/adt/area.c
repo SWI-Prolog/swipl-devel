@@ -698,14 +698,14 @@ getLessSidesArea(Area a, Area b)
 
 /* Type declaractions */
 
-static const char *T_nearSides[] =
+static char *T_nearSides[] =
         { "area", "int" };
-static const char *T_dxdydwdh[] =
+static char *T_dxdydwdh[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_area[] =
+static vardecl var_area[] =
 { IV(NAME_x, "int", IV_BOTH,
      NAME_position, "Origin's X-value"),
   IV(NAME_y, "int", IV_BOTH,
@@ -718,7 +718,7 @@ static const vardecl var_area[] =
 
 /* Send Methods */
 
-static const senddecl send_area[] =
+static senddecl send_area[] =
 { SM(NAME_initialise, 4, T_dxdydwdh, initialiseArea,
      DEFAULT, "Create area from X, Y, W and H"),
   SM(NAME_copy, 1, "area", copyArea,
@@ -727,7 +727,8 @@ static const senddecl send_area[] =
      NAME_equality, "Test if area is equal to the argument"),
   SM(NAME_normalise, 0, NULL, normaliseArea,
      NAME_orientation, "Make top-left corner the origin"),
-  SM(NAME_orientation, 1, "{north_west,south_east,north_east,south_east}", orientationArea,
+  SM(NAME_orientation, 1, "{north_west,south_east,north_east,south_east}",
+     orientationArea,
      NAME_orientation, "Put origin at indicated corner"),
   SM(NAME_center, 1, "point", centerArea,
      NAME_position, "Move to make point the center"),
@@ -761,7 +762,7 @@ static const senddecl send_area[] =
 
 /* Get Methods */
 
-static const getdecl get_area[] =
+static getdecl get_area[] =
 { GM(NAME_normalised, 0, "area", NULL, getNormalisedArea,
      NAME_copy, "New area with origin at top-left"),
   GM(NAME_measure, 0, "int", NULL, getMeasureArea,
@@ -804,9 +805,12 @@ static const getdecl get_area[] =
 
 /* Resources */
 
-static const resourcedecl rc_area[] =
+#define rc_area NULL
+/*
+static resourcedecl rc_area[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

@@ -64,14 +64,14 @@ getArgOr(Or or, Int n)
 
 /* Instance Variables */
 
-static const vardecl var_or[] =
+static vardecl var_or[] =
 { IV(NAME_members, "chain", IV_GET,
      NAME_statement, "One of these must succeed")
 };
 
 /* Send Methods */
 
-static const senddecl send_or[] =
+static senddecl send_or[] =
 { SM(NAME_Execute, 0, NULL, ExecuteOr,
      DEFAULT, "Evaluate tests until one succeeds"),
   SM(NAME_initialise, 1, "test=code ...", initialiseOrv,
@@ -80,7 +80,7 @@ static const senddecl send_or[] =
 
 /* Get Methods */
 
-static const getdecl get_or[] =
+static getdecl get_or[] =
 { GM(NAME_Arg, 1, "code", "int", getArgOr,
      DEFAULT, "Nth-1 argument for term description"),
   GM(NAME_Arity, 0, "int", NULL, getArityOr,
@@ -89,9 +89,12 @@ static const getdecl get_or[] =
 
 /* Resources */
 
-static const resourcedecl rc_or[] =
+#define rc_or NULL
+/*
+static resourcedecl rc_or[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

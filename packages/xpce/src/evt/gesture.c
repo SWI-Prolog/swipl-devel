@@ -90,12 +90,12 @@ cancelGesture(Gesture g, EventObj ev)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "button=[button_name]", "modifier=[modifier]" };
 
 /* Instance Variables */
 
-static const vardecl var_gesture[] =
+static vardecl var_gesture[] =
 { IV(NAME_button, "button_name", IV_GET,
      NAME_event, "Mouse button to initiate on"),
   IV(NAME_modifier, "modifier", IV_BOTH,
@@ -110,7 +110,7 @@ static const vardecl var_gesture[] =
 
 /* Send Methods */
 
-static const senddecl send_gesture[] =
+static senddecl send_gesture[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseGesture,
      DEFAULT, "Create from button and modifier"),
   SM(NAME_cancel, 1, "event", cancelGesture,
@@ -129,13 +129,16 @@ static const senddecl send_gesture[] =
 
 /* Get Methods */
 
-static const getdecl get_gesture[] =
+#define get_gesture NULL
+/*
+static getdecl get_gesture[] =
 { 
 };
+*/
 
 /* Resources */
 
-static const resourcedecl rc_gesture[] =
+static resourcedecl rc_gesture[] =
 { RC(NAME_button, "button_name", "left",
      "Active on which button?"),
   RC(NAME_cursor, "[cursor]", "@default",

@@ -27,6 +27,7 @@ initialise(I, Name:[name], Default:[any|function], Msg:[code]*) :->
 	get(class(image), resource, path, R),
 	get(R, value, Path),
 	new(ValueSet, chain),
+	send(ValueSet, lock_object, @on),
 	send(@image_path_regex, for_all, Path,
 	     and(assign(new(Dir, var),
 			create(directory,
@@ -39,6 +40,7 @@ initialise(I, Name:[name], Default:[any|function], Msg:[code]*) :->
 		message(ValueSet, append, create(string, '@%s', @arg1)))),
 	send(ValueSet, sort),
 	send(ValueSet, unique),
-	send(I, value_set, ValueSet).
+	send(I, value_set, ValueSet),
+	send(ValueSet, lock_object, @off).
 
 :- pce_end_class.

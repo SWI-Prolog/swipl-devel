@@ -55,8 +55,12 @@ currentDisplayManager(DisplayManager dm, DisplayObj d)
 static DisplayObj
 getCurrentDisplayManager(DisplayManager dm)
 { if ( emptyChain(dm->current) )
-  { errorPce(dm, NAME_noCurrentDisplay);
-    fail;
+  { realiseClass(ClassDisplay);
+    
+    if ( emptyChain(dm->current) )
+    { errorPce(dm, NAME_noCurrentDisplay);
+      fail;
+    }
   }
 
   answer(dm->current->head->value);
@@ -179,12 +183,12 @@ TheDisplayManager()
 
 /* Type declarations */
 
-static const char *T_dispatch[] =
+static char *T_dispatch[] =
         { "file_descriptor=[int]", "milliseconds=[int]*" };
 
 /* Instance Variables */
 
-static const vardecl var_displayManager[] =
+static vardecl var_displayManager[] =
 { IV(NAME_members, "chain", IV_GET,
      NAME_display, "Available displays"),
   IV(NAME_current, "chain", IV_NONE,
@@ -193,7 +197,7 @@ static const vardecl var_displayManager[] =
 
 /* Send Methods */
 
-static const senddecl send_displayManager[] =
+static senddecl send_displayManager[] =
 { SM(NAME_initialise, 0, NULL, initialiseDisplayManager,
      DEFAULT, "Create the display manager"),
   SM(NAME_current, 1, "display", currentDisplayManager,
@@ -208,7 +212,7 @@ static const senddecl send_displayManager[] =
 
 /* Get Methods */
 
-static const getdecl get_displayManager[] =
+static getdecl get_displayManager[] =
 { GM(NAME_contains, 0, "chain", NULL, getContainsDisplayManager,
      DEFAULT, "Contained displays"),
   GM(NAME_current, 0, "display", NULL, getCurrentDisplayManager,
@@ -219,9 +223,12 @@ static const getdecl get_displayManager[] =
 
 /* Resources */
 
-static const resourcedecl rc_displayManager[] =
+#define rc_displayManager NULL
+/*
+static resourcedecl rc_displayManager[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

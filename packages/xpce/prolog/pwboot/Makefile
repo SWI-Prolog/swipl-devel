@@ -31,16 +31,14 @@ PCECONTRIB=$(PCEHOME)/contrib
 	$(QPC) -L . -i pce_qpc.qof -N $(DELFLAGS) -cH $*.pl -o $*.qof
 
 
-PCESHARE=	english \
-		pce_editor.pl \
+PCESHARE=	pce_editor.pl \
 		pce_realise.pl \
 		pce_expansion.pl \
 		pce_error.pl \
 		pce_expand.pl \
 		pce_global.pl \
 		pce_operator.pl \
-		pce_autoload.pl \
-		pce_principal.pl
+		pce_autoload.pl
 
 
 PCEQOFS=	pce_boot.qof \
@@ -130,6 +128,8 @@ MANPLS= 	man/p_card.pl \
 		man/v_tile.pl \
 		man/v_topic.pl \
 		man/v_visual.pl \
+		man/v_search.pl \
+		man/man_index.pl \
 		man/behaviour_item.pl \
 		man/classmap.pl \
 		man/classification.obj
@@ -173,7 +173,6 @@ EMACSPLS=	emacs/buffer.pl \
 DIALOGPLS=	dialog/attribute.pl \
 		dialog/behaviour.pl \
 		dialog/dialog.pl \
-		dialog/font.pl \
 		dialog/generate.pl \
 		dialog/image_item.pl \
 		dialog/label.pl \
@@ -308,7 +307,7 @@ release_makes:	$(PCEHOME)/Makefile $(PCELIB)/Makefile $(PCEDEMO)/Makefile
 
 release_misc:	$(PCEHOME)/Pce $(PCEHOME)/bitmaps $(PCELIB)/dialog/bitmaps \
 		$(PCEHOME)/include $(PCEHOME)/man $(PCEHOME)/postscript \
-		$(PCELIB)/xref/quintus.pl
+		$(PCELIB)/xref/common.pl $(PCELIB)/xref/quintus.pl
 
 pceshare:	
 		@for f in $(PCESHARE); do \

@@ -102,14 +102,14 @@ getExecuteCreate(Create c)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "class=name|class", "argument=any|function ..." };
-static const char *T_argument[] =
+static char *T_argument[] =
         { "index=int", "value=any|function" };
 
 /* Instance Variables */
 
-static const vardecl var_create[] =
+static vardecl var_create[] =
 { IV(NAME_class, "name|class", IV_BOTH,
      NAME_class, "Class (name) to create instance of"),
   IV(NAME_argument, "code_vector*", IV_BOTH,
@@ -118,7 +118,7 @@ static const vardecl var_create[] =
 
 /* Send Methods */
 
-static const senddecl send_create[] =
+static senddecl send_create[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseCreatev,
      DEFAULT, "Create from class (name) and arguments"),
   SM(NAME_argument, 2, T_argument, argumentCreate,
@@ -127,7 +127,7 @@ static const senddecl send_create[] =
 
 /* Get Methods */
 
-static const getdecl get_create[] =
+static getdecl get_create[] =
 { GM(NAME_Arg, 1, "any|function", "int", getArgCreate,
      DEFAULT, "Nth-1 argument for term description"),
   GM(NAME_Arity, 0, "int", NULL, getArityCreate,
@@ -140,9 +140,12 @@ static const getdecl get_create[] =
 
 /* Resources */
 
-static const resourcedecl rc_create[] =
+#define rc_create NULL
+/*
+static resourcedecl rc_create[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

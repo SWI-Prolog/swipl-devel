@@ -116,12 +116,12 @@ getConvertCursor(Class class, Name name)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "name=name*", "image=[image]", "mask=[image]", "hot_spot=[point]", "foreground=[colour]", "background=[colour]" };
 
 /* Instance Variables */
 
-static const vardecl var_cursor[] =
+static vardecl var_cursor[] =
 { IV(NAME_name, "name*", IV_GET,
      NAME_name, "Name of the cursor"),
   IV(NAME_fontId, "[int]*", IV_GET,
@@ -140,7 +140,7 @@ static const vardecl var_cursor[] =
 
 /* Send Methods */
 
-static const senddecl send_cursor[] =
+static senddecl send_cursor[] =
 { SM(NAME_initialise, 6, T_initialise, initialiseCursor,
      DEFAULT, "Create from name or name, image, mask, hot_spot"),
   SM(NAME_unlink, 0, NULL, unlinkCursor,
@@ -153,7 +153,7 @@ static const senddecl send_cursor[] =
 
 /* Get Methods */
 
-static const getdecl get_cursor[] =
+static getdecl get_cursor[] =
 { GM(NAME_convert, 1, "cursor", "name", getConvertCursor,
      NAME_conversion, "Convert cursor-name to cursor"),
   GM(NAME_lookup, 1, "cursor", "name", getLookupCursor,
@@ -162,9 +162,12 @@ static const getdecl get_cursor[] =
 
 /* Resources */
 
-static const resourcedecl rc_cursor[] =
+#define rc_cursor NULL
+/*
+static resourcedecl rc_cursor[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

@@ -71,12 +71,12 @@ getTreeEventNode(EventNodeObj n)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "value=name", "parent=[event_node]*" };
 
 /* Instance Variables */
 
-static const vardecl var_eventNode[] =
+static vardecl var_eventNode[] =
 { IV(NAME_value, "event_id", IV_GET,
      NAME_value, "Value of the node"),
   IV(NAME_parent, "event_node|event_tree", IV_GET,
@@ -87,7 +87,7 @@ static const vardecl var_eventNode[] =
 
 /* Send Methods */
 
-static const senddecl send_eventNode[] =
+static senddecl send_eventNode[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseEventNode,
      DEFAULT, "Create from value and parent"),
   SM(NAME_son, 1, "event_node", sonEventNode,
@@ -98,16 +98,19 @@ static const senddecl send_eventNode[] =
 
 /* Get Methods */
 
-static const getdecl get_eventNode[] =
+static getdecl get_eventNode[] =
 { GM(NAME_tree, 0, "event_tree", NULL, getTreeEventNode,
      NAME_organisation, "The tree holding this event_node")
 };
 
 /* Resources */
 
-static const resourcedecl rc_eventNode[] =
+#define rc_eventNode NULL
+/*
+static resourcedecl rc_eventNode[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

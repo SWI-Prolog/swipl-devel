@@ -1877,48 +1877,48 @@ getReadAsFileTextBuffer(TextBuffer tb, Int from, Int size)
 
 /* Type declarations */
 
-static const char *T_writeAsFile[] =
+static char *T_writeAsFile[] =
         { "at=[int]", "text=char_array" };
-static const char *T_character[] =
+static char *T_character[] =
         { "at=int", "character=char" };
-static const char *T_delete[] =
+static char *T_delete[] =
         { "at=int", "characters=[int]" };
-static const char *T_insertFile[] =
+static char *T_insertFile[] =
         { "at=int", "data=file", "times=[int]" };
-static const char *T_insert[] =
+static char *T_insert[] =
         { "at=int", "text=char_array", "times=[int]" };
-static const char *T_format[] =
+static char *T_format[] =
         { "format=char_array", "argument=any ..." };
-static const char *T_transpose[] =
+static char *T_transpose[] =
         { "from1=int", "to1=int", "from2=int", "to2=int" };
-static const char *T_contents[] =
+static char *T_contents[] =
         { "from=[int]", "size=[int]" };
-static const char *T_fromADintD_toADintD[] =
+static char *T_fromADintD_toADintD[] =
         { "from=[int]", "to=[int]" };
-static const char *T_matchingBracket[] =
+static char *T_matchingBracket[] =
         { "from=int", "bracket=[char]" };
-static const char *T_matchingQuote[] =
+static char *T_matchingQuote[] =
         { "from=int", "direction={forward,backward}" };
-static const char *T_find[] =
+static char *T_find[] =
         { "from=int", "for=string", "times=[int]", "return=[{start,end}]", "exact_case=[bool]", "word=[bool]" };
-static const char *T_fromAint_sizeAint[] =
+static char *T_fromAint_sizeAint[] =
         { "from=int", "size=int" };
-static const char *T_skipComment[] =
+static char *T_skipComment[] =
         { "from=int", "to=[int]", "skip_layout=[bool]" };
-static const char *T_scan[] =
+static char *T_scan[] =
         { "from=int", "unit={character,word,line,sentence,paragraph,term}", "times=[int]", "return=[{start,end}]" };
-static const char *T_save[] =
+static char *T_save[] =
         { "in=file", "from=[int]", "size=[int]" };
-static const char *T_indexAint_startADintD[] =
+static char *T_indexAint_startADintD[] =
         { "index=int", "start=[int]" };
-static const char *T_report[] =
+static char *T_report[] =
         { "kind={status,inform,progress,done,warning,error}", "format=[char_array]", "argument=any ..." };
-static const char *T_append[] =
+static char *T_append[] =
         { "text=char_array", "times=[int]" };
 
 /* Instance Variables */
 
-static const vardecl var_textBuffer[] =
+static vardecl var_textBuffer[] =
 { IV(NAME_firstFragment, "fragment*", IV_GET,
      NAME_fragment, "First fragment (lowest start index)"),
   IV(NAME_lastFragment, "fragment*", IV_GET,
@@ -1953,7 +1953,7 @@ static const vardecl var_textBuffer[] =
 
 /* Send Methods */
 
-static const senddecl send_textBuffer[] =
+static senddecl send_textBuffer[] =
 { SM(NAME_initialise, 1, "contents=[char_array]", initialiseTextBuffer,
      DEFAULT, "Create from initial contents"),
   SM(NAME_unlink, 0, NULL, unlinkTextBuffer,
@@ -2014,7 +2014,7 @@ static const senddecl send_textBuffer[] =
 
 /* Get Methods */
 
-static const getdecl get_textBuffer[] =
+static getdecl get_textBuffer[] =
 { GM(NAME_convert, 1, "text_buffer", "editor", getConvertTextBuffer,
      DEFAULT, "Return `editor <-text_buffer'"),
   GM(NAME_length, 0, "int", NULL, getSizeTextBuffer,
@@ -2051,7 +2051,7 @@ static const getdecl get_textBuffer[] =
 
 /* Resources */
 
-static const resourcedecl rc_textBuffer[] =
+static resourcedecl rc_textBuffer[] =
 { RC(NAME_syntax, "[syntax_table]", "default",
      "Syntax definition"),
   RC(NAME_undoBufferSize, "int", "10000",

@@ -78,12 +78,12 @@ getExecuteObtain(Obtain obt)
 
 /* Type declarations */
 
-static const char *T_initialise[] =
+static char *T_initialise[] =
         { "receiver=object|function", "selector=name|function", "argument=any|function ..." };
 
 /* Instance Variables */
 
-static const vardecl var_obtain[] =
+static vardecl var_obtain[] =
 { IV(NAME_receiver, "object|function", IV_NONE,
      NAME_storage, "Receiver of the operation"),
   IV(NAME_selector, "name|function", IV_NONE,
@@ -94,14 +94,14 @@ static const vardecl var_obtain[] =
 
 /* Send Methods */
 
-static const senddecl send_obtain[] =
+static senddecl send_obtain[] =
 { SM(NAME_initialise, 3, T_initialise, initialiseObtainv,
      DEFAULT, "Create from receiver, selector and args")
 };
 
 /* Get Methods */
 
-static const getdecl get_obtain[] =
+static getdecl get_obtain[] =
 { GM(NAME_Arg, 1, "unchecked", "int", getArgObtain,
      DEFAULT, "Nth-1 argument of term instead of result's"),
   GM(NAME_Arity, 0, "int", NULL, getArityObtain,
@@ -112,9 +112,12 @@ static const getdecl get_obtain[] =
 
 /* Resources */
 
-static const resourcedecl rc_obtain[] =
+#define rc_obtain NULL
+/*
+static resourcedecl rc_obtain[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

@@ -62,14 +62,14 @@ getArgAnd(And a, Int n)
 
 /* Instance Variables */
 
-static const vardecl var_and[] =
+static vardecl var_and[] =
 { IV(NAME_members, "chain", IV_GET,
      NAME_statement, "Tests that must succeed")
 };
 
 /* Send Methods */
 
-static const senddecl send_and[] =
+static senddecl send_and[] =
 { SM(NAME_Execute, 0, NULL, ExecuteAnd,
      DEFAULT, "Evaluate and"),
   SM(NAME_initialise, 1, "test=code ...", initialiseAndv,
@@ -78,7 +78,7 @@ static const senddecl send_and[] =
 
 /* Get Methods */
 
-static const getdecl get_and[] =
+static getdecl get_and[] =
 { GM(NAME_Arg, 1, "code", "int", getArgAnd,
      DEFAULT, "Nth-1 argument for term description"),
   GM(NAME_Arity, 0, "int", NULL, getArityAnd,
@@ -87,9 +87,12 @@ static const getdecl get_and[] =
 
 /* Resources */
 
-static const resourcedecl rc_and[] =
+#define rc_and NULL
+/*
+static resourcedecl rc_and[] =
 { 
 };
+*/
 
 /* Class Declaration */
 

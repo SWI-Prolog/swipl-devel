@@ -39,7 +39,7 @@ status		makeClassCursor(Class class);
 /* gra/device.c */
 status		initialiseDevice(Device dev);
 status		unlinkDevice(Device dev);
-CursorObj	getFindCursorDevice(Device dev);
+CursorObj	getDisplayedCursorDevice(Device dev);
 Chain		getPointedObjectsDevice(Device dev, Any pos, Chain ch);
 status		inspectDevice(Device dev, EventObj ev);
 status		eventDevice(Any obj, EventObj ev);

@@ -139,22 +139,25 @@ getGetMethodFunction(Function f, Name selector)
 
 /* Type declarations */
 
-static const char *T_Error[] =
+static char *T_Error[] =
         { "error=error", "context=any ..." };
-static const char *T_convertLoadedObject[] =
+static char *T_convertLoadedObject[] =
         { "int", "int" };
-static const char *T_sendSuper[] =
+static char *T_sendSuper[] =
         { "selector=name", "argument=unchecked ..." };
 
 /* Instance Variables */
 
-static const vardecl var_function[] =
+#define var_function NULL
+/*
+vardecl var_function[] =
 { 
 };
+*/
 
 /* Send Methods */
 
-static const senddecl send_function[] =
+static senddecl send_function[] =
 { SM(NAME_Check, 1, "[bool]", CheckObject,
      DEFAULT, "Check obtainer instead of result"),
   SM(NAME_Free, 0, NULL, freeObject,
@@ -183,7 +186,7 @@ static const senddecl send_function[] =
 
 /* Get Methods */
 
-static const getdecl get_function[] =
+static getdecl get_function[] =
 { GM(NAME_Arg, 1, "unchecked", "int", getArgObject,
      DEFAULT, "Nth-1 argument of term instead of result's"),
   GM(NAME_Arity, 0, "int", NULL, getArityObject,
@@ -222,9 +225,12 @@ static const getdecl get_function[] =
 
 /* Resources */
 
-static const resourcedecl rc_function[] =
+#define rc_function NULL
+/*
+static resourcedecl rc_function[] =
 { 
 };
+*/
 
 /* Class Declaration */
 
