@@ -77,6 +77,7 @@ reexports the content of these files.
 	    pce_dispatch/1,		% +Options
 	    pce_end_dispatch/0,		% break dispatch loop
 	    pce_call/1,			% :Goal
+	    in_pce_thread/1,		% :Goal
 
 	    pce_welcome/0
 	  ]).

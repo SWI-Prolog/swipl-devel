@@ -53,7 +53,8 @@
 	    pce_open/3,			% +Object, +Mode, -Stream
 	    pce_dispatch/1,		% +Options
 	    pce_end_dispatch/0,		% Break pce_dispatch loop
-	    pce_call/1			% :Goal
+	    pce_call/1,			% :Goal
+	    in_pce_thread/1		% :Goal
 	  ]).
 
 
