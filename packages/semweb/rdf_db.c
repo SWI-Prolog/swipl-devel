@@ -170,7 +170,7 @@ win32_cond_wait(win32_cond_t *cv,
 				 FALSE,	/* wait for either event */
 				 INFINITE,
 				 QS_ALLINPUT);
-  if ( rc == WAIT_OBJECT_0+2 )
+  if ( rc == WAIT_OBJECT_0+1 )
   { MSG msg;
 
     while( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) )
