@@ -22,6 +22,8 @@
 	    dtd/2,			% +Type, -DTD
 	    dtd_property/2,		% +DTD, ?Property
 
+	    load_structure/3,		% +File, -Term, +Options
+
 	    load_sgml_file/2,		% +File, -Document
 	    load_sgml_file/3,		% +File, -Document, ?DTD
 	    load_html_file/2		% +File, -Document
@@ -112,6 +114,48 @@ dtd_property(DTD, Prop) :-
 		 *	       SGML		*
 		 *******************************/
 
+parser_option(dialect(_)).
+parser_option(file(_)).
+parser_option(line(_)).
+
+set_parser_options(Parser, Options, RestOptions) :-
+	parser_option(Option),
+	select_option(Option, Options, RestOptions0), !,
+	set_sgml_parser(Parser, Option),
+	set_parser_options(Parser, RestOptions0, RestOptions).
+set_parser_options(_, Options, Options).
+
+
+load_structure(File, Term, Options) :-
+	open(File, read, In, [type(binary)]),
+	(   select_option(dtd(DTD), Options, Options1)
+	->  ExplicitDTD = true
+	;   ExplicitDTD = false,
+	    Options1 = Options
+	),
+	new_sgml_parser(Parser,
+			[ dtd(DTD)
+			]),
+	set_sgml_parser(Parser, file(File)),
+	set_parser_options(Parser, Options1, Options2),
+	sgml_open(Parser,
+		  [ document(Term),
+		    goal(copy_stream_data(In, Out))
+		  | Options2
+		  ],
+		  Out),
+	close(In),
+	close(Out),
+	(   ExplicitDTD == true
+	->  (   DTD = dtd(_, DocType),
+	        dtd_property(DTD, doctype(DocType))
+	    ->	true
+	    ;	true
+	    )
+	;   free_dtd(DTD)
+	).
+
+
 load_sgml_file(File, Term, DTD) :-
 	open(File, read, SgmlIn),
 	new_sgml_parser(Parser, [dtd(DTD)]),
@@ -150,4 +194,30 @@ load_sgml_file(File, Term) :-
 load_html_file(File, Term) :-
 	dtd(html, DTD),
 	load_sgml_file(File, Term, DTD).
+
+
+		 /*******************************
+		 *	      UTIL		*
+		 *******************************/
+
+%	option(Option(?Value), OptionList, Default)
+
+option(Opt, Options) :-
+	memberchk(Opt, Options), !.
+option(Opt, Options) :-
+	functor(Opt, OptName, 1),
+	arg(1, Opt, OptVal),
+	memberchk(OptName=OptVal, Options), !.
+
+option(Opt, Options, _) :-
+	option(Opt, Options), !.
+option(Opt, _, Default) :-
+	arg(1, Opt, Default).
+
+select_option(Opt, Options, Rest) :-
+	select(Options, Opt, Rest), !.
+select_option(Opt, Options, Rest) :-
+	functor(Opt, OptName, 1),
+	arg(1, Opt, OptVal),
+	select(Options, OptName=OptVal, Rest), !.
 

@@ -476,6 +476,8 @@ static int
 write_parser(void *h, char *buf, int len)
 { parser_data *pd = h;
   int i;
+  unsigned char *s = (unsigned char *)buf;
+  unsigned char *e = s+len;
 
   if ( !pd->parser || pd->parser->magic != SGML_PARSER_MAGIC )
   { errno = EINVAL;
@@ -487,8 +489,8 @@ write_parser(void *h, char *buf, int len)
     return -1;
   }
 
-  for(i=0; i<len; i++)
-    putchar_dtd_parser(pd->parser, buf[i]);
+  for(; s<e; s++)
+    putchar_dtd_parser(pd->parser, *s);
 
   return len;
 }

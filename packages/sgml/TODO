@@ -6,3 +6,27 @@ TODO LIST:
 	* Check ID/IDREF
 	* Handle memory-allocation errors
 	* Parsing of processing instructions to end at ?> instead of just >
+	* Proper abort on exceeding error limit
+
+SEARCHING AND INDEXING
+
+sgml_open(Parser,
+	  [ document(Term),
+	    goal(copy_stream_data(In, Out)),
+	    element(_, [id=foobar], _)
+	  ], Out).
+
+Index:
+	element, attributes, file-offset
+
+load_element_at_offset(File, Offset, Term) :-
+	open(File, read, Fd),
+	seek(Fd, Offset, bof, _),
+	sgml_open(Parser,
+		  [ document(Term),
+		    goal(copy_stream_data(Fd, Out)),
+		  ],
+		  Out),
+	close(Fd),
+	close(Out).
+	

@@ -414,7 +414,8 @@ The following entitities are predefined:
 In XML mode, names are treated case-sensitive, except for the DTD
 reserved names (i.e. \const{ELEMENT}, etc.).
     \item [Character classes]
-In XML mode, underscores are allowed in names.
+In XML mode, underscores (\verb$_$) and colon (\verb$:$) are allowed in
+names.
 \end{itemlist}
 
 

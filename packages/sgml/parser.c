@@ -712,6 +712,7 @@ set_dialect_dtd(dtd *dtd, dtd_dialect dialect)
 
       dtd->case_sensitive = TRUE;
       dtd->charclass->class['_'] |= CH_LCNMSTRT;
+      dtd->charclass->class[':'] |= CH_LCNMSTRT;
 
       for(el = xml_entities; *el; el++)
 	process_entity_declaraction(dtd, *el);
