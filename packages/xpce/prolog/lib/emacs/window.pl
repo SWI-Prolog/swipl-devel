@@ -18,8 +18,10 @@
 	   ]).
 :- set_prolog_flag(character_escapes, false).
 
-resource(pinned,	image,	image('pinned.xpm')).
-resource(not_pinned,	image,	image('pin.xpm')).
+resource(pinned,	image, image('pinned.xpm')).
+resource(not_pinned,	image, image('pin.xpm')).
+resource(mode_x_icon,   image, image('32x32/doc_x.xpm')).
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 @current_emacs_mode is a variable  pointing   to  the current emacs-mode
@@ -545,6 +547,10 @@ mode(E, ModeName:mode_name) :->
 	    send(E?text_buffer, mode, ModeName),
 	    send(E, syntax, Mode?syntax),
 	    send(E, setup_mode),
+	    (	get(Mode, icon, Icon)
+	    ->	send(E?frame, icon, Icon)
+	    ;	true
+	    ),
 	    ignore(send(E, fill_menu_bar, E?frame?menu_bar)),
 	    send(E, report, status, 'Switched to ``%s'''' mode', ModeName)
 	).
@@ -704,6 +710,11 @@ initialise(M) :->
 	send(M, slot, name, Name),
 	send(M, slot, syntax, Name),		  % converts to object
 	send(M, bindings).
+
+
+icon(_, I:image) :<-
+	"Return icon for mode"::
+	new(I, image(resource(mode_x_icon))).
 
 
 mode_name(emacs_mode, default) :- !.

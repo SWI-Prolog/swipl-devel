@@ -525,6 +525,10 @@ term_colours((:- pce_extend_class(_)),
 term_colours((:- pce_end_class),
 	     expanded - [ expanded
 			]).
+term_colours(:- pce_end_class(_),
+	     expanded - [ expanded - [ identifier
+				     ]
+			]).
 term_colours(:- use_class_template(_),
 	     expanded - [ expanded - [ classify
 				     ]
@@ -534,7 +538,7 @@ term_colours((:- emacs_begin_mode(_,_,_,_,_)),
 				       classify,
 				       classify,
 				       classify,
-				       comment
+				       classify
 				     ]
 			]).
 term_colours((:- emacs_extend_mode(_,_)),

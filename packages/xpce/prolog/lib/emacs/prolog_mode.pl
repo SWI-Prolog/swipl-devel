@@ -30,6 +30,8 @@ pce_ifhostproperty(prolog(quintus),
 
 :- pce_autoload(prolog_predicate_item, library(prolog_predicate_item)).
 
+resource(mode_pl_icon, image, image('32x32/doc_pl.xpm')).
+
 :- emacs_begin_mode(prolog, language,
 		    "Mode for editing XPCE/Prolog sources",
 					% BINDINGS
@@ -78,6 +80,10 @@ pce_ifhostproperty(prolog(quintus),
 	  paragraph_end('\s *$\|^/\*\|.*\*/\s *$\|^%\|^	\|.*:<?->?\s *$')
 	]).
 		 
+icon(_, I:image) :<-
+	"Return icon for mode"::
+	new(I, image(resource(mode_pl_icon))).
+
 setup_mode(M) :->
 	"Attach styles for errors, warnings, etc."::
 	send(M, send_super, setup_mode),
