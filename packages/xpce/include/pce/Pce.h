@@ -142,7 +142,7 @@ public:
   PceArg(const PceArg &obj)
   { self = obj.self;
   }
-  PceArg(PceStatus s)
+  PceArg(PceStatus /*s*/)
   { self = NULL;			/* error iff SUCCEED */
   }
 					/* PceArg --> C */

@@ -1,3 +1,16 @@
+[VERSION 4.8.18]
+
+* DISTR: Removed various outdated files. 
+
+* FIXED: (hopefully) mispositioned Popup menus on some X11 servers and/or
+  window managers.
+
+* FIXED: Module handing in the Prolog <-> XPCE interface when an exception
+  caused the global variable DefaultModule to be overwritten.  This resulted
+  in messages of the type
+
+     [WARNING: Undefined predicate: pce_realise:use_method/2]
+
 [VERSION 4.8.17]
 
 * FIXED: Win32 class frame: did not send ->displayed to member windows
