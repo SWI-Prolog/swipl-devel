@@ -28,7 +28,7 @@
 #include <h/text.h>
 
 static void	ps_put_string(String);
-static int	postscriptImage(Image, Int);
+static int	postscriptImage(Image, Int, int iscolor);
 static int	header(Any, Area, Bool);
 static int	footer(void);
 static status	fill(Any, Name);
@@ -123,7 +123,8 @@ recognised:
     ~N	    Name 	print text of name
     ~S	    StringObj	Output text of StringObj with postscript escapes
     ~O	    Object	Output comment to start O
-    ~P	    Int, Image	Output pattern of image with depth Int
+    ~P	    Int, Image	Output pattern of grayscale image with depth Int
+    ~I	    Int, Image  Output pattern of colour image with depth Int
     ~p	    Graphical   Output pen of graphical
     ~x	    Graphical	Output X of graphical
     ~y	    Graphical	Output Y of graphical
@@ -224,7 +225,13 @@ _output(char *fm, va_list args)
 	  case 'P':   { Int depth = va_arg(args, Int);
 			Image image = va_arg(args, Image);
 
-			postscriptImage(image, depth);
+			postscriptImage(image, depth, FALSE);
+			continue;
+		      }
+	  case 'I':   { Int depth = va_arg(args, Int);
+			Image image = va_arg(args, Image);
+
+			postscriptImage(image, depth, TRUE);
 			continue;
 		      }
 	  case 'x':   { Graphical gr = va_arg(args, Graphical);
@@ -403,7 +410,7 @@ fill(Any gr, Name sel)
 
 
 status
-postscriptDrawable(int ox, int oy, int w, int h)
+postscriptDrawable(int ox, int oy, int w, int h, int depth, int iscolor)
 { static char print[] = {'0', '1', '2', '3', '4', '5', '6', '7',
 			 '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
   int x, y;
@@ -430,8 +437,8 @@ postscriptDrawable(int ox, int oy, int w, int h)
 
 
 static int
-postscriptImage(Image image, Int depth)
-{ ws_postscript_image(image, depth);
+postscriptImage(Image image, Int depth, int iscolor)
+{ ws_postscript_image(image, depth, iscolor);
 
   succeed;
 }
@@ -851,7 +858,6 @@ static psmacro macrodefs[] =
 	  "\t  /x exch def\n"
 
 	  "\t  gsave\n"
-/*	  " {1 exch sub} settransfer" */
 	  "  region clip"
 	  "\t  x y h add translate\n"
 	  "\t  /w8 w 7 add 8 idiv 8 mul def\n"
@@ -859,6 +865,29 @@ static psmacro macrodefs[] =
 	  "\t  w h neg scale\n"
 	  "\t  w8 h d [w 0 0 h neg 0 h]\n"
 	  "\t  {currentfile picstr readhexstring pop} image\n"
+	  "\t  grestore\n"
+	  "\t} def",
+	  "region"),
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+%	x y w h depth RGBMAP hexdata
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  PSMACRO(NAME_rgbimage,
+	  "\t{ /d exch def\n"
+	  "\t  /h exch def\n"
+	  "\t  /w exch def\n"
+	  "\t  /y exch def\n"
+	  "\t  /x exch def\n"
+
+	  "\t  gsave\n"
+	  "  region clip"
+	  "\t  x y h add translate\n"
+	  "\t  /w8 w 7 add 8 idiv 8 mul def\n"
+	  "\t  /picstr w8 8 idiv string def\n"
+	  "\t  w h neg scale\n"
+	  "\t  w8 h d [w 0 0 h neg 0 h]\n"
+	  "\t  {currentfile picstr readhexstring pop} false 3 colorimage\n"
 	  "\t  grestore\n"
 	  "\t} def",
 	  "region"),
@@ -1518,13 +1547,26 @@ drawPostScriptArc(Arc a)
 
 status
 drawPostScriptBitmap(BitmapObj bm)
-{ if ( psstatus.mkheader )
-  { psdef(NAME_greymap);
-  } else
-  { Int depth = get(bm->image, NAME_postscriptDepth, EAV);
+{ Name format = get(bm->image, NAME_postscriptFormat, EAV);
 
-    ps_output("~x ~y ~w ~h ~d greymap\n~P\n",
-	      bm, bm, bm, bm, depth, depth, bm->image);
+  if ( format == NAME_colour )
+  { if ( psstatus.mkheader )
+    { psdef(NAME_rgbimage);
+    } else
+    { Int depth = get(bm->image, NAME_postscriptDepth, EAV);
+
+      ps_output("~x ~y ~w ~h ~d rgbimage\n~I\n",
+		bm, bm, bm, bm, depth, depth, bm->image);
+    }
+  } else
+  { if ( psstatus.mkheader )
+    { psdef(NAME_greymap);
+    } else
+    { Int depth = get(bm->image, NAME_postscriptDepth, EAV);
+      
+      ps_output("~x ~y ~w ~h ~d greymap\n~P\n",
+		bm, bm, bm, bm, depth, depth, bm->image);
+    }
   }
 
   succeed;
@@ -1533,13 +1575,26 @@ drawPostScriptBitmap(BitmapObj bm)
 
 status
 drawPostScriptImage(Image image)
-{ if ( psstatus.mkheader )
-  { psdef(NAME_greymap);
-  } else
-  { Int depth = get(image, NAME_postscriptDepth, EAV);
+{ Name format = get(image, NAME_postscriptFormat, EAV);
 
-    ps_output("0 0 ~d ~d ~d greymap\n~P\n",
-	      image->size->w, image->size->h, depth, depth, image);
+  if ( format == NAME_colour )
+  { if ( psstatus.mkheader )
+    { psdef(NAME_rgbimage);
+    } else
+    { Int depth = get(image, NAME_postscriptDepth, EAV);
+
+      ps_output("0 0 ~d ~d ~d rgbimage\n~I\n",
+		image->size->w, image->size->h, depth, depth, image);
+    }
+  } else
+  { if ( psstatus.mkheader )
+    { psdef(NAME_greymap);
+    } else
+    { Int depth = get(image, NAME_postscriptDepth, EAV);
+      
+      ps_output("0 0 ~d ~d ~d greymap\n~P\n",
+		image->size->w, image->size->h, depth, depth, image);
+    }
   }
 
   succeed;

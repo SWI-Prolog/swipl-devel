@@ -264,7 +264,7 @@ StringObj	getPostscriptObject(Any obj, Bool ls, Area a);
 void		ps_put_char(int c);
 void		ps_output(char *fm, ...);
 status		ps_font(FontObj font);
-status		postscriptDrawable(int ox, int oy, int w, int h);
+status		postscriptDrawable(int ox, int oy, int w, int h, int depth, int iscolor);
 Sheet		makePSDefinitions(void);
 status		postscriptGraphical(Any obj);
 status		drawPostScriptDevice(Device dev);

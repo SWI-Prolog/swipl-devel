@@ -843,6 +843,17 @@ getPostscriptDepthImage(Image image)
 }
 
 
+static Int
+getPostscriptFormatImage(Image image)
+{ if ( image->kind == NAME_bitmap )
+    return NAME_monochrome;
+  else
+    return NAME_colour;			/* may also return greyscale */
+}
+
+
+
+
 		/********************************
 		*       PREDEFINED IMAGES	*
 		********************************/
@@ -1116,7 +1127,10 @@ static getdecl get_image[] =
   GM(NAME_postscript, 2, "string", T_postscript, getPostscriptObject,
      NAME_postscript, "New string holding PostScript description"),
   GM(NAME_postscriptDepth, 0, "int", NULL, getPostscriptDepthImage,
-     NAME_postscript, "Depth for PostScript image to be generated")
+     NAME_postscript, "Depth for PostScript image to be generated"),
+  GM(NAME_postscriptFormat, 0, "{monochrome,greyscale,colour}",
+     NULL, getPostscriptFormatImage,
+     NAME_postscript, "Format of generated PostScript")
 };
 
 /* Resources */

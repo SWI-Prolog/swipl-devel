@@ -190,7 +190,8 @@ int		shift_for_mask(unsigned long mask);
 status		postscriptXImage(XImage *im,
 				 int x, int y, int w, int h,
 				 Display *disp, Colormap cmap,
-				 int depth);
+				 int depth,
+				 int colorimage);
 int		intensityXColor(XColor *c);
 void		x11_set_gc_foreground(DisplayObj d, Any fg, int gcs, GC *gc);
 #ifdef O_XDND

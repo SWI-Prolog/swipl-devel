@@ -13,7 +13,7 @@ char *		DisplayAtomToString(DisplayObj d, Atom atom);
 Atom		FrameAtom(FrameObj fr, Name name);
 char *		FrameAtomToString(FrameObj fr, Atom a);
 Atom		WmProtocols(FrameObj fr);
-status		postscriptXImage(XImage *im, int fx, int fy, int w, int h, Display *disp, Colormap cmap, int depth);
+status		postscriptXImage(XImage *im, int fx, int fy, int w, int h, Display *disp, Colormap cmap, int depth, int colorimage);
 unsigned long	getPixelColour(Colour c, DisplayObj d);
 void		x11_set_gc_foreground(DisplayObj d, Any fg, int gcs, GC *gc);
 status		allocNearestColour(Display *display, Colormap map, int depth, Name vt, XColor *c);

@@ -1006,7 +1006,7 @@ ws_prepare_image_mask(Image image)
 
 
 void
-ws_postscript_image(Image image, Int depth)
+ws_postscript_image(Image image, Int depth, int iscolor)
 { int w = valInt(image->size->w);
   int h = valInt(image->size->h);
   XImage *i;
@@ -1029,10 +1029,14 @@ ws_postscript_image(Image image, Int depth)
     postscriptXImage(i,
 		     0, 0, i->width, i->height,
 		     r->display_xref,
-		     r->colour_map, isDefault(depth) ? 0 : valInt(depth));
+		     r->colour_map,
+		     isDefault(depth) ? 0 : valInt(depth),
+		     iscolor);
   } else
   { d_image(image, 0, 0, w, h);
-    postscriptDrawable(0, 0, w, h);	/* to be done */
+    postscriptDrawable(0, 0, w, h,
+		       isDefault(depth) ? 0 : valInt(depth),
+		       iscolor);
     d_done();
   }
 

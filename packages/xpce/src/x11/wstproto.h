@@ -192,7 +192,7 @@ status		ws_resize_image(Image image, Int w, Int h);
 Image		ws_scale_image(Image image, int w, int h);
 Image		ws_rotate_image(Image image, float angle);
 Image		ws_monochrome_image(Image image);
-void		ws_postscript_image(Image image, Int depth);
+void		ws_postscript_image(Image image, Int depth, int iscolor);
 status		loadXliImage(Image image, FileObj file, Int bright);
 void		ws_create_image_from_x11_data(Image image, unsigned char *data, int w, int h);
 ColourMap	ws_colour_map_for_image(Image image);

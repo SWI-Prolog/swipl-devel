@@ -1454,7 +1454,7 @@ ws_postscript_frame(FrameObj fr)
     
     ps_output("0 0 ~D ~D ~D greymap\n", iw, ih, psdepthXImage(im));
     postscriptXImage(im, 0, 0, iw, ih,
-		     r->display_xref, r->colour_map, 0);
+		     r->display_xref, r->colour_map, 0, FAIL);
     ps_output("\n");
 
     XDestroyImage(im);

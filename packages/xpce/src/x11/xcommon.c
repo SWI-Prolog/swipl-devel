@@ -184,11 +184,30 @@ WmProtocols(FrameObj fr)
 		 *	     POSTSCRIPT		*
 		 *******************************/
 
-#define putByte(b) { ps_put_char(print[(b >> 4) & 0xf]); \
-		     ps_put_char(print[b & 0xf]); \
- 		     if ( (++bytes % 32) == 0 ) ps_put_char('\n'); \
-		     bits = 8; c = 0; \
-		   }
+typedef struct
+{ int bits;				/* bit remaining */
+  int depth;				/* postscript depth */
+  int val;				/* current value */
+  int count;				/* # emited bytes */
+} ps_stat;
+
+
+static void
+put_value(ps_stat *s, int val)
+{ static char print[] = { '0', '1', '2', '3', '4', '5', '6', '7',
+			  '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+  s->bits -= s->depth;
+  s->val |= val << s->bits;
+
+  if ( s->bits == 0 )
+  { ps_put_char(print[(s->val >> 4) & 0xf]);
+    ps_put_char(print[s->val & 0xf]);
+    if ( (++s->count % 32) == 0 )
+      ps_put_char('\n');
+    s->bits = 8; s->val = 0;
+  }
+}
+
 
 int
 shift_for_mask(unsigned long mask)
@@ -205,37 +224,18 @@ shift_for_mask(unsigned long mask)
 }
 
 
-/*
-static int
-mask_width(unsigned long mask)
-{ unsigned long m = 0x1;
-  int width = 0;
-
-  while((mask&m) == 0)
-    m <<= 1;
-  while((mask&m))
-  { m <<= 1;
-    width++;
-  }
-
-  return width;
-}
-*/
-
 status
 postscriptXImage(XImage *im,
 		 int fx, int fy, int w, int h,
 		 Display *disp,
 		 Colormap cmap,
-		 int depth)
-{ static char print[] = { '0', '1', '2', '3', '4', '5', '6', '7',
-			  '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
-  int x, y, w8;
-  int bits, bytes;
-  int c;
+		 int depth,
+		 int iscolor)
+{ int x, y, w8;
   unsigned char psmap[256];
   int psbright;
   int direct = FALSE;
+  ps_stat stat;
 
   if ( depth == 0 )			/* PostScript depth is 1, 2, 4, or 8 */
   { depth = im->depth;
@@ -273,16 +273,18 @@ postscriptXImage(XImage *im,
   }
 
   w8 = roundup(w, 8);
-  for(bytes = c = 0, bits = 8, y = fy; y < h; y++)
+  stat.count = 0;
+  stat.val = 0;
+  stat.bits = 8;
+  stat.depth = depth;
+
+  for(y = fy; y < h; y++)
   { if ( !direct )
     { for(x = fx; x < w8; x++)
       { int pixval;
 	
-	bits -= depth;
 	pixval = (x < w ? psmap[XGetPixel(im, x, y)] : psbright);
-	c |= pixval << bits;
-	if ( bits == 0 )
-	  putByte(c);
+	put_value(&stat, pixval);
       }
     } else
     { int r_shift = shift_for_mask(im->red_mask);
@@ -309,17 +311,23 @@ postscriptXImage(XImage *im,
 	    pixval = 1;
 	  else
 	    pixval = 0;
+
+	  put_value(&stat, pixval);
 	} else
 	{ r = rescale(r, r_bright, psbright);
 	  g = rescale(g, g_bright, psbright);
 	  b = rescale(b, b_bright, psbright);
-	  pixval = (x < w ? INTENSITY(r, g, b) : psbright);
-	}
 
-	bits -= depth;
-	c |= pixval << bits;
-	if ( bits == 0 )
-	  putByte(c);
+	  if ( iscolor )
+	  { put_value(&stat, r);
+	    put_value(&stat, g);
+	    put_value(&stat, b);
+	  } else
+	  { pixval = (x < w ? INTENSITY(r, g, b) : psbright);
+	  
+	    put_value(&stat, pixval);
+	  }
+	}
       }
       DEBUG(NAME_image, Cprintf("\n"));
     }
@@ -430,7 +438,7 @@ allocNearestColour(Display *display, Colormap map, int depth, Name vt,
       XColor *e = colors;
 
       for(i=0; i<entries; i++, e++)
-      { if ( e->flags != 0xff )		/* tried this one */
+      { if ( e->flags != -1 )		/* tried this one */
 	{ int d = distanceColours(vt, c, e);
 
 	  if ( d < badness )
@@ -451,7 +459,7 @@ allocNearestColour(Display *display, Colormap map, int depth, Name vt,
       { unalloc(entries * sizeof(XColor), colors);
 	succeed;
       } else
-      {	cb->flags = 0xff;		/* don't try this one anymore! */
+      {	cb->flags = -1;			/* don't try this one anymore! */
 	DEBUG(NAME_colour, Cprintf("Can't allocate, trying another one\n"));
       }
     }
