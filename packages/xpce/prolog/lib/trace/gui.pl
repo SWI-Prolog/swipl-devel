@@ -588,5 +588,19 @@ details(B, Item:[dict_item]) :->	% also handle a variable name!
 		[ VarType, VarName, Level, PredName ]),
 	view_term(Value, [comment(Label)]).
 
+append_binding(B, Names:prolog, Value:prolog) :->
+	"Add a binding to the browser"::
+	(   var(Value),
+	    setting(show_unbound, false)
+	->  true
+	;   Names = [V0:ArgN|VT],
+	    new(S, string('%s\t = ', V0)),
+	    forall(member(V:_, VT),
+		   send(S, append, string('%s = ', V))),
+	    sformat(VS, '~p', [Value]),
+	    send(S, append, VS),
+	    send(B, append, dict_item(V0, S, ArgN))
+	).
+
 :- pce_end_class.
 

@@ -472,7 +472,7 @@ show_bindings(Frame, Attributes) :-
 	    ->  frame_bindings(Frame, VarNames, Bindings),
 		display_bindings(Bindings, Browser)
 	    ;   forall(frame_binding(Frame, VarNames, Name=Value),
-		       show_binding([Name]=Value, Browser))
+		       send(Browser, append_binding, [Name], Value))
 	    )
 	).
 show_bindings(_, _).
@@ -484,9 +484,7 @@ show_arguments(Frame, _Attributes) :-
 	goal_arity(Goal, Arity),
 	(   between(1, Arity, ArgN),
 	        prolog_frame_attribute(Frame, argument(ArgN), Value),
-	        sformat(VS, '~p', [Value]),
-	        send(Browser, append,
-		     dict_item(ArgN, string('%2d = %s', ArgN, VS), ArgN)),
+	        send(Browser, append_binding([ArgN:ArgN], Value)),
 	    fail
 	;   true
 	).
@@ -497,23 +495,9 @@ goal_arity(Goal, Arity) :-
 	functor(Goal, _, Arity).
 
 display_bindings([], _).
-display_bindings([B|BT], Browser) :-
-	show_binding(B, Browser),
+display_bindings([Vars=Value|BT], Browser) :-
+	send(Browser, append_binding, Vars, Value),
 	display_bindings(BT, Browser).
-
-show_binding(B, _) :-
-	debug('Binding ~w~n', [B]),
-	fail.
-show_binding([_] = Var, _) :-
-	var(Var),
-	setting(show_unbound, false), !.
-show_binding([V0:ArgN|VT] = Value, Browser) :-
-	new(S, string('%s\t = ', V0)),
-	forall(member(V:_, VT),
-	       send(S, append, string('%s = ', V))),
-	sformat(VS, '~p', [Value]),
-	send(S, append, VS),
-	send(Browser, append, dict_item(V0, S, ArgN)).
 
 frame_binding(Frame, VarNames, (Name:N)=Value) :-
 	arg(N, VarNames, Name),
