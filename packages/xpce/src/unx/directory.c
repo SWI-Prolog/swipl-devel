@@ -73,7 +73,6 @@ static Name	getWorkingDirectoryPce(Pce pce);
 
 #define MODIFIED_NOT_SET ((time_t) ~0L)
 
-
 static status
 initialiseDirectory(Directory d, Name name)
 { char path[MAXPATHLEN];
@@ -118,9 +117,9 @@ loadDirectory(Directory d, IOSTREAM *fd, ClassDef def)
 
 static status
 existsDirectory(Directory d)
-{ struct stat buf;
+{ STAT_TYPE buf;
 
-  if ( stat(nameToFN(d->path), &buf) == -1 ||
+  if ( STAT_FUNC(nameToFN(d->path), &buf) == -1 ||
        (buf.st_mode & S_IFMT) != S_IFDIR )
     fail;
 
@@ -209,9 +208,9 @@ scanDirectory(Directory d, Chain files, Chain dirs, Regex pattern, Bool all)
 
     for (dp=readdir(dirp); dp!=NULL; dp=readdir(dirp))
     { char *name = dp->d_name;
-      struct stat buf;
+      STAT_TYPE buf;
 
-      if ( stat(name, &buf) != 0 )
+      if ( STAT_FUNC(name, &buf) != 0 )
 	continue;
 
       if ( (notNil(files) && (buf.st_mode & S_IFMT) == S_IFREG) )
@@ -348,13 +347,13 @@ getBaseNameDirectory(Directory d)
 
 static Date
 getTimeDirectory(Directory d, Name which)
-{ struct stat buf;
+{ STAT_TYPE buf;
   Name name = d->path;
 
   if ( isDefault(which) )
     which = NAME_modified;
 
-  if ( stat(nameToFN(name), &buf) < 0 )
+  if ( STAT_FUNC(nameToFN(name), &buf) < 0 )
   { errorPce(d, NAME_cannotStat, getOsErrorPce(PCE));
     fail;
   }
@@ -424,9 +423,9 @@ accessDirectory(Directory d, Name mode)
 
 static status
 changedDirectory(Directory d)
-{ struct stat buf;
+{ STAT_TYPE buf;
 
-  if ( stat(nameToFN(d->path), &buf) < 0 )
+  if ( STAT_FUNC(nameToFN(d->path), &buf) < 0 )
     succeed;			/* we signal non-extistence as changed */
 
   if ( d->modified == MODIFIED_NOT_SET )

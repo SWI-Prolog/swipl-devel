@@ -237,7 +237,7 @@ closeFile(FileObj f)
 
 status
 existsFile(FileObj f, Bool mustbefile)
-{ struct stat buf;
+{ STAT_TYPE buf;
   const char *fn = charArrayToFN((CharArray)f->name);
 
 #ifdef HAVE_ACCESS
@@ -247,7 +247,7 @@ existsFile(FileObj f, Bool mustbefile)
     fail;
   }
 #endif
-  if ( stat(fn, &buf) == -1 )
+  if ( STAT_FUNC(fn, &buf) == -1 )
     fail;
   if ( mustbefile != OFF && (buf.st_mode & S_IFMT) != S_IFREG )
     fail;
@@ -509,7 +509,7 @@ getFilterFile(FileObj f)
   { char path[MAXPATHLEN];
     Attribute a = cell->value;
     Name extension = a->name;
-    struct stat buf;
+    STAT_TYPE buf;
 
     if ( !isName(extension) )
     { errorPce(extension, NAME_unexpectedType, TypeName);
@@ -517,7 +517,7 @@ getFilterFile(FileObj f)
     }
 
     sprintf(path, "%s%s", strName(f->name), strName(extension));
-    if ( stat(path, &buf) == 0 &&
+    if ( STAT_FUNC(path, &buf) == 0 &&
 	 (buf.st_mode & S_IFMT) == S_IFREG )
     { if ( !isName(a->value) )
       { errorPce(a->value, NAME_unexpectedType, TypeName);
@@ -783,20 +783,15 @@ flushFile(FileObj f)
 
 
 static int
-statFile(FileObj f, struct stat *buf)
+statFile(FileObj f, STAT_TYPE *buf)
 { int fno;
 
   if ( f->fd != NULL && (fno = Sfileno(f->fd)) )
-  { return fstat(fno, buf);
+  { return FSTAT_FUNC(fno, buf);
   } else
   { Name name = getOsNameFile(f);
 
-    if ( !name )
-    { errno = EINVAL;
-      return -1;
-    }
-
-    return stat(strName(name), buf);
+    return STAT_FUNC(nameToFN(name), buf);
   }
 }
 
@@ -804,7 +799,7 @@ statFile(FileObj f, struct stat *buf)
 
 static Int
 getSizeFile(FileObj f)
-{ struct stat buf;
+{ STAT_TYPE buf;
 
   if ( statFile(f, &buf) == -1 )
   { errorPce(f, NAME_cannotStat, getOsErrorPce(PCE));
@@ -817,7 +812,7 @@ getSizeFile(FileObj f)
 
 static Date
 getTimeFile(FileObj f, Name which)
-{ struct stat buf;
+{ STAT_TYPE buf;
 
   if ( isDefault(which) )
     which = NAME_modified;

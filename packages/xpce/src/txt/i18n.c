@@ -417,7 +417,7 @@ representation is always UTF-8
 Name
 FNToName(const char *name)
 {
-#ifdef XOS
+#ifdef O_XOS
   return UTF8ToName(name);
 #else
   return MBToName(name);
@@ -428,7 +428,7 @@ FNToName(const char *name)
 char *
 charArrayToFN(CharArray ca)
 {
-#ifdef XOS
+#ifdef O_XOS
    return charArrayToUTF8(ca);
 #else
    return charArrayToMB(ca);
@@ -439,7 +439,7 @@ charArrayToFN(CharArray ca)
 char *
 stringToFN(String s)
 {
-#ifdef XOS
+#ifdef O_XOS
    return stringToUTF8(s);
 #else
    return stringToMB(s);

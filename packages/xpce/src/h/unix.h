@@ -60,6 +60,16 @@
 #define IsDirSep(c) ((c) == '/')
 #endif
 
+#ifdef O_XOS
+#define STAT_TYPE struct _stat
+#define STAT_FUNC _xos_stat
+#define FSTAT_FUNC _fstat
+#else
+#define STAT_TYPE struct stat
+#define STAT_FUNC stat
+#define FSTAT_FUNC fstat
+#endif
+
 		 /*******************************
 		 *     AND THE NEAT STUFF!	*
 		 *******************************/
