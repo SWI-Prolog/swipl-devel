@@ -117,7 +117,9 @@ initialiseEvent(EventObj e, Name id, Any window,
   { assign(e, buttons, toInt(valInt(e->buttons) | last_click_type));
   }
 
-  last_window = window;
+  if ( !onFlag(window, F_FREED|F_FREEING) )
+    last_window = window;
+
   if ( e->id != NAME_locMove )
     loc_still_posted = TRUE;
   else
