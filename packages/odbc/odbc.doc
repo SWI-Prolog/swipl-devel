@@ -544,15 +544,15 @@ compatible to this interface. In addition, a number of databases are
 delivered with an ODBC compatible interface. This implies you get the
 portability benefits of ODBC without paying the configuration and
 performance price. Currently this interface is, according to the
-\url[PHP]{www.php.net} documentation on this subject, provided by Adabas
-D, IBM DB2, Solid, and Sybase SQL Anywhere. 
+\url[PHP]{http://www.php.net} documentation on this subject, provided by
+Adabas D, IBM DB2, Solid, and Sybase SQL Anywhere. 
 
 
 \subsubsection{Using unixODBC}
 
 The SWI-Prolog ODBC interface was developed using
-\url[unixODBC]{www.unixodbc.org} and \url[MySQL]{www.mysql.com} on
-\url[SuSE Linux]{www.suse.com}.  
+\url[unixODBC]{http://www.unixodbc.org} and \url[MySQL]{http://www.mysql.com} on
+\url[SuSE Linux]{http://www.suse.com}.  
 
 
 \subsubsection{Using Microsoft ODBC}
@@ -567,9 +567,14 @@ The following issues are indentified and waiting for concrete problems
 and suggestions.
 
 \begin{description}
-    \item[NULL data]
-How to represent NULL in Prolog.  We have seen the atom \verb|$Null$|
-and the compound term 'NULL'(_).
+    \item[Transaction management]
+This certainly requires a high-level interface.  Possibly in combination
+with call_cleanup/3, providing automatic rollback on failure or
+exception and commit on success.
+
+    \item[High-level interface]
+Attaching tables to predicates, partial \emph{DataLog} implementation,
+etc.
 \end{description}
 
 
