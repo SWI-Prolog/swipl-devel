@@ -45,7 +45,7 @@ cat >> libfiles << EOF
 ./licence/licence.tex
 ./man/xpce-client.1
 ./man/xpce.1
-./man/faq/xpce.hlp
+./man/faq/pce.hlp
 ./prolog/lib/man/classification.obj
 EOF
   echo "done"

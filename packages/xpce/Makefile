@@ -29,7 +29,7 @@ SHELL=/bin/sh
 
 prefix=/usr/local
 exec_prefix=${prefix}
-PCEHOME=/staff/jan/src/xpce
+PCEHOME=/swi03/jan/src/xpce
 XINCLUDES=/usr/include
 XLIB=/usr/lib
 
@@ -79,7 +79,7 @@ ETAGS=etags
 SED=sed
 RM=rm
 
-VERSION=4.8.10, May. 1995
+VERSION=4.8.11, June. 1995
 RTSUFFIX=
 ARCH=sparc
 OS=sunos4.1.3
