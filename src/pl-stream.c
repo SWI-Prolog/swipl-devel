@@ -1585,11 +1585,13 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
   if ( flags & SIO_RECORDPOS )
     s->position = &s->posbuf;
 #ifdef O_PLMT
-  if ( !(s->mutex = malloc(sizeof(recursiveMutex))) )
-  { free(s);
-    return NULL;
+  if ( !(flags & SIO_NOMUTEX) )
+  { if ( !(s->mutex = malloc(sizeof(recursiveMutex))) )
+    { free(s);
+      return NULL;
+    }
+    recursiveMutexInit(s->mutex);
   }
-  recursiveMutexInit(s->mutex);
 #endif
   if ( (fd = Sfileno(s)) >= 0 && isatty(fd) )
     s->flags |= SIO_ISATTY;
@@ -2011,7 +2013,7 @@ Sopenmem(char **buffer, int *size, const char* mode)
 IOSTREAM *
 Sopenmem(char **buffer, int *sizep, const char *mode)
 { memfile *mf = malloc(sizeof(memfile));
-  int flags = SIO_FBUF|SIO_RECORDPOS;
+  int flags = SIO_FBUF|SIO_RECORDPOS|SIO_NOMUTEX;
   int size;
 
   if ( !mf )

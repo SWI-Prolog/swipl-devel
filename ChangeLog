@@ -10,6 +10,9 @@
 VERSION 5.2.5 (Jul 31, 2003)
 ============================
 
+  * ADDED: Option SIO_NOMUTEX to make faster temporary streams that are
+    not shared between threads.
+
   * PORT: Bug#83 Added dummy foreign profiler interface on systems that
     do not support the profiler.  This causes problems on Solaris 2.8
     for compiling XPCE as the profiler was not detected correctly.
