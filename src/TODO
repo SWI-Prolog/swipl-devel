@@ -1,0 +1,103 @@
+BUGS:
+-----
+
+	* format('~t~w~72|~n', [ 'hello\0\world' ]) simply writes
+	  hello at the end of the line.
+
+ISO:
+----
+
+	* Complete replacement of warnings by exceptions.
+
+MULTI-LINGUAL SUPPORT:
+----------------------
+
+Provide support for UTF-8 encoding:
+
+	* Known encodings:
+		ascii,
+		iso_latin_1
+		utf_8			# internal
+		unicode			# Stream I/O
+		ucs_2			# = unicode
+		ucs_4
+
+	* set_prolog_flag(encoding, utf_8).
+
+	* File open:
+
+		open(File, read, Stream, [encoding(utf_8)]).
+		set_stream(Stream, encoding(utf_8)).
+
+	* Breaking up atoms
+		+ atom_codes/2
+		+ atom_chars/2
+		+ atom_length/2		# ignore 0x80-0xbf!
+		+ char_code/2
+
+	* get_code/1
+
+	* put_code/1
+
+	* Prolog source?
+		+ Can be entered as UTF-8
+		+ ISO?
+
+
+FOREIGN CLAUSES:
+----------------
+
+Aim: store programs in external resources. Most promising resource is a
+mapped file. External clauses are fully transparent to the user, but
+might be read-only.
+
+Requirements:
+
+	* PIC (Position Independent Code)
+	VM code only uses relative branches, so this is no problem.  8
+	instructions refer to atoms, functors or predicates.  These need
+	to be doubled, where PIC version uses the external symbol-table
+	to relate the symbol to the internal one.
+
+	* Finding clauses
+	firstClause() and findClause() should get hookable at the predicate
+	level.  This implies that the choice-point handle returned to the
+	VM should get abstract.  Possibly this can be unified to the
+	foreign/internal distinction. already present.
+
+	* Hooks into assert/retract
+
+
+REDESIGN:
+---------
+
+With the introduction of `external predicates' we would have three types
+of predicates.  Time to rationalise a bit.  The following operations on
+procedures can be identified:
+
+	* Starting it
+	* Retrying it
+	* Modifying it
+
+STARTING procedures can easily be rationalised by providing special start
+instructions as normal Prolog VM code.  So, a foreign procedure becomes an
+ordinary Prolog procedure whose single clause has a single instruction:
+
+	I_FOREIGN <procedure-pointer>
+or
+	I_NDET_FOREIGN <procedure-pointer>
+
+For RETRYING, there simply are too many options.  The following cases,
+requiring totally different actions can be distinguished:
+
+	* Retry to a jump-location in the current clause
+	* Retry to the next clause (in same predicate)
+	* Retry to the next clause/frame
+	* Retry foreign predicate
+
+Affected:
+
+	* pl-wam.c
+	* pl-comp.c (?)
+	* pl-gc.c
+	* pl-trace.c
