@@ -209,12 +209,8 @@ load_structure(stream(In), Term, Options) :- !,
 	new_sgml_parser(Parser,
 			[ dtd(DTD)
 			]),
-	set_parser_options(Parser, Options2, Options3),
-	sgml_parse(Parser,
-		  [ document(TermRead),
-		    source(In)
-		  | Options3
-		  ]),
+	call_cleanup(parse(Parser, Options2, TermRead, In),
+		     free_sgml_parser(Parser)),
 	(   ExplicitDTD == true
 	->  (   DTD = dtd(_, DocType),
 	        dtd_property(DTD, doctype(DocType))
@@ -231,6 +227,14 @@ load_structure(File, Term, Options) :-
 	open(File, read, In, [type(binary)]),
 	load_structure(stream(In), Term, [file(File)|Options]),
 	close(In).
+
+parse(Parser, Options, Document, In) :-
+	set_parser_options(Parser, Options, Options1),
+	sgml_parse(Parser,
+		   [ document(Document),
+		     source(In)
+		   | Options1
+		   ]).
 
 
 		 /*******************************

@@ -1,3 +1,8 @@
+Sep 12, 2003
+
+  * FIXED: Memory leak in load_structure/3 (not freeing the parser data).
+    Petter Egesund.
+
 Jul 8, 2003
 
   * ADDED: handle UTF-8 sequences producing characters that cannot be
