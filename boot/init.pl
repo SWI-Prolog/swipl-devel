@@ -1313,11 +1313,12 @@ $translate_rule((LP-->List), H) :-
 	nonvar(List),
 	(   List == []
 	->  $t_head(LP, S, S, H)
-	;   List  = [X]
-	->  $t_head(LP, [X|S], S, H)
-	;   List  = [_|_]
-	->  append(List, SR, S),
-	    $extend([S, SR], LP, H)
+	;   List = [X|T],
+	    (	T == []
+	    ->	$t_head(LP, [X|S], S, H)
+	    ;	append(List, SR, S),
+		$extend([S, SR], LP, H)
+	    )
 	), !.
 $translate_rule((LP-->RP), (H:-B)):-
 	$t_head(LP, S, SR, H),
@@ -1337,11 +1338,13 @@ $t_head(LP, S, SR, H) :-
 
 $t_body(Var, S, SR, phrase(Var, S, SR)) :-
 	var(Var), !.
-$t_body([], S, SR, S=SR) :- !.
-$t_body([X], S, SR, 'C'(S, X, SR)) :- !.
+$t_body([], S, SR, S=SR) :- !.		% inline lists
 $t_body(List, S, SR, C) :-
-	List = [_|_], !,
-	C = append(List, SR, S).
+	List = [X|T], !,
+	(   T == []
+	->  C = 'C'(S, X, SR)
+	;   C = append(List, SR, S)
+	).
 $t_body(!, S, S, !) :- !.
 $t_body({T}, S, SR, (T, SR = S)) :- !.
 $t_body((T, R), S, SR, (Tt, Rt)) :- !,
