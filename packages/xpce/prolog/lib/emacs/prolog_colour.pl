@@ -530,21 +530,11 @@ colourise_file_list([H|T], TB, [PH|PT]) :-
 
 %	colourise_class(ClassName, TB, Pos)
 %
-%	Colourise an XPCE class.  Dealing with not-loaded classes is not
-%	very easy as classes cannot easily be resolved using local
-%	cross-referencing.
+%	Colourise an XPCE class.  
 
 colourise_class(ClassName, TB, Pos) :-
-	get(@classes, member, ClassName, Class), !,
-	(   get(Class, creator, built_in)
-	->  colour_item(class(built_in, ClassName), TB, Pos)
-	;   colour_item(class(user, ClassName), TB, Pos)
-	).
-colourise_class(ClassName, TB, Pos) :-
-	pce_prolog_class(ClassName), !,
-	colour_item(class(user, ClassName), TB, Pos).
-colourise_class(ClassName, TB, Pos) :-
-	colour_item(class(unknown, ClassName), TB, Pos).
+	classify_class(ClassName, Classification),
+	colour_item(class(Classification, ClassName), TB, Pos).
 
 %	colourise_term_args(+Term, +TB, +Pos)
 %
@@ -674,7 +664,8 @@ make_fragment(goal(Class, Goal), TB, F, L, Style) :-
 make_fragment(class(Type, Class), TB, F, L, Style) :-
 	atom(Class), !,
 	new(Fragment, emacs_class_fragment(TB, F, L, Style)),
-	send(Fragment, classification, Type),
+	functor(Type, Classification, _),
+	send(Fragment, classification, Classification),
 	send(Fragment, referenced_class, Class).
 make_fragment(Class, TB, F, L, Style) :-
 	new(Fragment, emacs_prolog_fragment(TB, F, L, Style)),
@@ -827,7 +818,7 @@ head_colours(M:_,		    meta-[module(M),extern(M)]).
 
 style(goal(built_in,_),	  style(colour	   := blue)).
 style(goal(imported(_),_),style(colour	   := blue)).
-style(goal(autoload,_),	  style(colour	   := blue)).
+style(goal(autoload,_),	  style(colour	   := navy_blue)).
 style(goal(global,_),	  style(colour	   := navy_blue)).
 style(goal(undefined,_),  style(colour	   := red)).
 style(goal(thread_local,_), style(colour   := magenta,
@@ -865,8 +856,12 @@ style(file(_),		  style(colour	   := blue,
 				underline  := @on)).
 style(class(built_in,_),  style(colour	   := blue,
 				underline  := @on)).
+style(class(library(_),_),style(colour	   := navy_blue,
+				underline  := @on)).
+style(class(user(_),_),	  style(underline  := @on)).
 style(class(user,_),	  style(underline  := @on)).
-style(class(_,_),	  style(underline  := @on)).
+style(class(undefined,_), style(colour	   := red,
+				underline  := @on)).
 
 style(identifier,	  style(bold       := @on)).
 style(expanded,		  style(colour	   := blue,
@@ -1379,19 +1374,70 @@ documentation(F) :->
 identify(F) :->
 	"Provide identification"::
 	get(F, referenced_class, ClassName),
-	(   get(@pce, convert, ClassName, class, Class)
-	->  get(F, classification, Classification),
-	    (   get(Class, summary, Summary)
-	    ->	true
-	    ;	Summary = '<no summary>'
-	    ),
-	    send(F, report, status,
-		     string('XPCE %s class %s: %s',
-			    Classification, ClassName, Summary))
-	;   send(F, report, status, 'Class %s doesn''t exist', ClassName)
+	classify_class(ClassName, Classification),
+	identify_class(F, ClassName, Classification).
+
+identify_class(F, ClassName, built_in) :-
+	class_summary(ClassName, Summary),
+	send(F, report, status,
+	     string('XPCE system class %s: %s',
+		    ClassName, Summary)).
+identify_class(F, ClassName, library(File)) :-
+	file_name_extension(Base, _, File),
+	pce_library_class(ClassName, _, Summary, _),
+	send(F, report, status,
+	     string('XPCE library(%s) class %s: %s',
+		    Base, ClassName, Summary)), !.
+identify_class(F, ClassName, user(File)) :-
+	class_summary(ClassName, Summary),
+	send(F, report, status,
+	     string('XPCE user class %s: %s (from %s)',
+		    ClassName, Summary, File)).
+identify_class(F, ClassName, user) :-
+	class_summary(ClassName, Summary),
+	send(F, report, status,
+	     string('XPCE user class %s: %s',
+		    ClassName, Summary)).
+identify_class(F, ClassName, _Classification) :-
+	send(F, report, status, 'Class %s doesn''t exist', ClassName).
+
+
+class_summary(ClassName, Summary) :-
+	get(@pce, convert, ClassName, class, Class),
+	(   get(Class, summary, Summary)
+	->  true
+	;   Summary = '<no summary>'
 	).
 
 
+%	classify_class(+ClassName, -Classification).
+
+classify_class(Name, built_in) :-
+	get(@classes, member, Name, Class),
+	get(Class, creator, built_in), !.
+classify_class(Name, library(File)) :-
+	pce_library_class(Name, _, _, FileSpec),
+	FileSpec = library(File),
+	(   get(@classes, member, Name, Class),
+	    get(Class, source, source_location(File, _Line))
+	->  absolute_file_name(FileSpec,
+			       [ access(read)
+			       ],
+			       File)
+	;   true
+	), !.
+classify_class(Name, user(File)) :-
+	get(@classes, member, Name, Class),
+	get(Class, source, source_location(File, _Line)).
+classify_class(Name, user(File)) :-
+	pce_prolog_class(Name),
+	pce_principal:pce_class(Name, _Meta, _Super, Attributes),
+	memberchk(send(@class, source, source_location(File, _Line)),
+		  Attributes), !.
+classify_class(Name, user) :-
+	get(@classes, member, Name, _), !.
+classify_class(_, undefined).
+	
 :- pce_end_class(emacs_class_fragment).
 
 

@@ -730,5 +730,4 @@ canonical_source(Source, Src) :-
 canonical_source(Source, Src) :-
 	var(Source), !,
 	Src = Source.
-canonical_source(Source, _) :-
-	throw(error(existence_error(file, Source), _)).
+

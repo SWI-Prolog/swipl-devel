@@ -34,6 +34,7 @@
 	    isa_class/2,		% ?SubClassName, ?SuperClassName
 	    current_class/2,		% ?ClassName, ?ClassObject
 	    to_class_name/2,		% +NameOrClass, -ClassName
+	    pce_library_class/4,	% ?Name, ?Super, ?Comment, ?File
 	    implements/2,		% ?Class, ?SendOrGet(?Name)
 	    implements/3,		% idem, -Method
 	    pce_to_pl_type/2,		% +PceType, -PrologType
@@ -85,10 +86,10 @@ pce_to_method(Method, Method) :-
 
 
 		 /*******************************
-		 *	     BASE-STUFF		*
+		 *	     CLASSES		*
 		 *******************************/
 
-%	isa_class(+Sub, +Super)
+%	isa_class(?Sub, ?Super)
 %
 %	Succeeds if Sub is Super or below Super.  Can be used with any
 %	instantiation.  If class is instantiated the super-chain is
@@ -154,6 +155,67 @@ to_class_name(ClassObj, Name) :-
 	object(ClassObj),
 	send(ClassObj, instance_of, class), !,
 	get(ClassObj, name, Name).
+
+
+		 /*******************************
+		 *	      LIBRARY		*
+		 *******************************/
+
+:- dynamic
+	library_index/4,
+	index_files/1.
+
+%	pce_library_class(?Name, ?Super, ?Comment, ?File)
+%	
+%	Examine the library index for defined classes.
+
+pce_library_class(Name, Super, Comment, library(File)) :-
+	atom(Name), !,
+	(   library_index(Name, Super, Comment, File)
+	*-> true
+	;   update_library_index,
+	    library_index(Name, Super, Comment, File)
+	).
+
+update_library_index :-
+	setof(File, index_file(File), Files),
+	(   index_files(Files)
+	->  true
+	;   retractall(index_files(_)),
+	    retractall(library_index(_,_,_,_)),
+	    load_index_files(Files),
+	    assert(index_files(Files))
+	).
+
+
+index_file(File) :-
+	absolute_file_name(library('CLASSINDEX.pl'),
+			   [ access(read),
+			     solutions(all),
+			     file_errors(fail)
+			   ],
+			   File).
+	
+load_index_files([]).
+load_index_files([H|T]) :-
+	load_index_file(H),
+	load_index_files(T).
+
+load_index_file(File) :-
+	open(File, read, In),
+	read(In, Term),
+	call_cleanup(read_index(Term, In), close(In)).
+
+read_index(end_of_file, _) :- !.
+read_index(class(Name, Super, Comment, File), In) :-
+	assert(library_index(Name, Super, Comment, File)),
+	read(In, Term),
+	read_index(Term, In).
+
+
+		 /*******************************
+		 *	      METHODS		*
+		 *******************************/
 
 %	implements(?Class, SendOrGet(?Method), [Method])
 %	
