@@ -66,3 +66,9 @@
 
 /* Define if position of data-segment isn't more or less constant */
 #undef VARIABLE_POINTER_OFFSET
+
+/* Define if iocll(tty, I_PUSH, "ttcompat") works on your machine */
+#undef HAVE_TTCOMPAT
+
+/* Define if sigaction() supports SA_SIGINFO and passes thechild pid in info */
+#undef USE_SIGINFO

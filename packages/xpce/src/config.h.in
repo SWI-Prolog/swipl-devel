@@ -96,6 +96,12 @@
 /* Define if position of data-segment isn't more or less constant */
 #undef VARIABLE_POINTER_OFFSET
 
+/* Define if iocll(tty, I_PUSH, "ttcompat") works on your machine */
+#undef HAVE_TTCOMPAT
+
+/* Define if sigaction() supports SA_SIGINFO and passes thechild pid in info */
+#undef USE_SIGINFO
+
 /* Define if you have the XmIsMotifWMRunning function.  */
 #undef HAVE_XMISMOTIFWMRUNNING
 
@@ -170,6 +176,9 @@
 
 /* Define if you have the vsscanf function.  */
 #undef HAVE_VSSCANF
+
+/* Define if you have the <bstring.h> header file.  */
+#undef HAVE_BSTRING_H
 
 /* Define if you have the <dirent.h> header file.  */
 #undef HAVE_DIRENT_H

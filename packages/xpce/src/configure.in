@@ -255,29 +255,6 @@ if test "$runtime" = yes; then
   PLTARGET=rt-$PLTARGET
 fi
 
-AC_MSG_CHECKING("tar flags to create including symbolic links")
-mkdir conftest.in conftest.out
-echo "this is a file" > conftest.in/file1
-(cd conftest.in; ln -s file1 file2)
-for flags in ch c; do
-   rm -rf conftest.tmp conftest.out
-   mkdir conftest.tmp
-   ${TAR-tar} ${flags}f - conftest.in | (cd conftest.tmp; tar xf -)
-   mv conftest.tmp/conftest.in conftest.out
-   rm -rf conftest.tmp
-   if cmp conftest.out/file1 conftest.out/file2 >/dev/null 2>&1; then
-	echo "second line" >> conftest.out/file2
-	if cmp conftest.out/file1 conftest.out/file2 >/dev/null 2>&1 ; then
-	    true
-	else
-	    TAR_CP_FLAGS="$flags"
-	    AC_MSG_RESULT($TAR_CP_FLAGS)
-	    break
-	fi
-   fi
-done
-rm -rf conftest*
-
 AC_CHECK_PROGS(ETAGS, etags ctags, ":")
 AC_CHECK_PROGS(GXX, g++, "NONE")
 if test "$GXX" != "NONE"; then
@@ -336,7 +313,7 @@ AC_CHECK_LIB(nsl, t_bind,
 
 AC_CHECK_HEADERS(unistd.h string.h memory.h sys/time.h sys/file.h pwd.h)
 AC_CHECK_HEADERS(sys/select.h sys/param.h malloc.h sys/resource.h stropts.h)
-AC_CHECK_HEADERS(frame.h sys/timeb.h sys/times.h siginfo.h)
+AC_CHECK_HEADERS(frame.h sys/timeb.h sys/times.h siginfo.h bstring.h)
 AC_CHECK_FUNCS(vsscanf on_exit memmove select popen strerror timelocal)
 AC_CHECK_FUNCS(getdtablesize socket fork ftime getpid select getlogin)
 AC_CHECK_FUNCS(getcwd setsid grantpt gethostname fstat gettimeofday)
@@ -420,6 +397,67 @@ main()
     AC_MSG_RESULT("Posix signals"),
     AC_MSG_RESULT("assuming Posix signals"))
 
+dnl The code below checks whether we can use siginfo () to set a signal
+dnl handler that is passed the child's pid.  This code works on Solaris,
+dnl but on irix, it compiles, but the handler is not passed the proper
+dnl information.  Therefore we need to run the program.  If this fails,
+dnl the system will fall back to use signal() and waitpid(), but this
+dnl is more clumsy, and fails to work properly on Solaris.
+
+AC_MSG_CHECKING("for usable siginfo")
+AC_TRY_RUN(
+[
+#include <stdio.h>
+#include <signal.h>
+#include <siginfo.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#ifdef HAVE_STRING_H
+#include <string.h>
+#endif
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
+#ifndef SA_NOMASK
+#define SA_NOMASK 0
+#endif
+
+int child;
+
+static void
+child_changed(int sig, siginfo_t *info, void *uctx)
+{ fprintf(stderr, "child_changed() called, child = %d, info = %p\n",
+	  child, info);
+  if ( info && info->si_pid == child )
+    exit(0);
+
+  exit(1);
+}
+
+int
+main()
+{ struct sigaction action, oaction;
+
+  memset((char *) &action, 0, sizeof(action));
+  action.sa_sigaction = child_changed;
+  action.sa_flags     = SA_SIGINFO|SA_NOMASK|SA_RESTART;
+  sigaction(SIGCHLD, &action, &oaction);
+
+  if ( (child = fork()) == 0 )
+  { sleep(1);
+    exit(0);
+  }
+
+  sleep(8);
+  return 1;
+}
+], AC_DEFINE(USE_SIGINFO)
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no),
+   AC_MSG_RESULT(assuming no))
+
+
 AC_MSG_CHECKING("for union wait")
 if test "$GCC" = yes; then
     ac_oldcflags="$CFLAGS"
@@ -458,6 +496,27 @@ AC_TRY_COMPILE(
 ], AC_DEFINE(TERMIOS_HAS_C_LINE)
    AC_MSG_RESULT(yes),
    AC_MSG_RESULT(no))
+
+
+AC_MSG_CHECKING('ioctl(line, I_PUSH, "ttcompat")')
+AC_TRY_RUN(
+[
+#include <stdio.h>
+#include <fcntl.h>
+#include <stropts.h>
+main()
+{ int line;
+
+  if ( (line = open("/dev/tty", O_RDWR)) >= 0 &&
+       ioctl(line, I_PUSH, "ttcompat") == 0 )
+    exit(0);
+  exit(1);
+}
+], AC_DEFINE(HAVE_TTCOMPAT)
+   AC_MSG_RESULT(yes),
+   AC_MSG_RESULT(no),
+   AC_MSG_RESULT(assuming no))
+
 
 AC_PATH_X
 

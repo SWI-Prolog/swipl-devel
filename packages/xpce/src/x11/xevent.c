@@ -15,6 +15,9 @@
 #ifndef FD_ZERO
 #include <sys/select.h>
 #endif
+#ifdef HAVE_BSTRING_H
+#include <bstring.h>
+#endif
 
 #define MAX_DECORATION_NESTING	4
 

@@ -19,6 +19,9 @@
 #if !defined(FD_ZERO) && HAVE_SELECT
 #include <sys/select.h>
 #endif
+#ifdef HAVE_BSTRING_H
+#include <bstring.h>
+#endif
 
 		/********************************
 		*           C --> PCE		*

@@ -25,10 +25,6 @@
 #include <sys/time.h>
 #endif
 
-#ifndef FD_ZERO
-#include <sys/select.h>
-#endif
-
 static status recordSeparatorStream(Stream s, Any sep);
 static status closeStream(Stream s);
 

@@ -18,6 +18,9 @@
 #include <netdb.h>
 #include <errno.h>
 #include <string.h>
+#ifdef HAVE_BSTRING_H
+#include <bstring.h>
+#endif
 
 #ifdef SYSLIB_H
 #include SYSLIB_H

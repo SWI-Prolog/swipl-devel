@@ -13,6 +13,9 @@
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#ifdef HAVE_BSTRING_H
+#include <bstring.h>
+#endif
 
 #define OsError() getOsErrorPce(PCE)
 

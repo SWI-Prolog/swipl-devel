@@ -1,5 +1,11 @@
 [VERSION 4.9.0]
 
+* PORT: Fixed class process handling for SGI/Irix (both compilation and
+  runtime problems).  Configure has been addapted to check for the
+  differences between Solaris and Irix in this respect (ioctl(tty,
+  I_PUSH, "ttcompat") and the info provided with signal handlers using
+  SA_SIGINFO.
+
 * ADDED/FIXED: Added `tab ->in_event_area' test to fix event-handling and
   cursor management in tab_stack objects.
 

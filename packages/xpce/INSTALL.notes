@@ -5,6 +5,7 @@
 			(jan@swi.psy.uva.nl)
 
 Last updated:	Fri Apr 26, 1996 for version 4.8.17 (complete rewrite)
+		Mon Nov 11  1996 for version 4.9.0  (added runtime building)
 
 Configuration, compilation and installation is based on the GNU autoconf
 package. General comments on installing packages   based on autoconf are
@@ -316,4 +317,46 @@ Which will:
 	executables
 					     
 
-	
+Creating the XPCE/SWI-Prolog runtime system
+===========================================
+
+	# Create the SWI-Prolog runtime system (requires version
+	  2.7.16 or later).  <rt> is used as example build-dir.
+	  Any other directory will do.  You may specify --prefix
+	  and --exec_prefix as normal.
+  
+	  This run will create the SWI-Prolog runtime system in 
+          the directory $prefix/lib/rt-pl-<version>/
+
+
+		% cd .../pl-<version>
+		% mkdir rt
+		% cd rt
+		% ../src/configure --enable-runtime
+		% make install
+		
+	# Create the XPCE runtime system.  The basic sequence is
+	  below.  Give the same --prefix and --exec_prefix as in
+	  the command above.
+
+	  Configure will try to find the SWI-Prolog runtime system,
+	  but will only succeed iff the prefix/exec_prefix options
+	  are the same, the build is run on the same machine and
+	  there is only one SWI-Prolog runtime system around.  If
+	  this is not the case, give:
+
+	  	% export PL=<path-to-runtime-prolog-executable>
+
+	  or (csh)
+
+	  	% setenv PL <path-to-runtime-prolog-executable>
+
+	  where <path-to-runtime-prolog-executable> is normally
+	  something like /usr/local/lib/rt-pl-<version>/bin/<arch>/pl
+
+	        % cd .../xpce-<version>
+		% mkdir rt
+		% cd rt
+		%  ../src/configure --enable-runtime
+		% make
+		% make rt-install

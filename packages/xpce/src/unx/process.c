@@ -71,6 +71,11 @@ extern char **environ;
 #if HAVE_STROPTS_H && HAVE_GRANTPT	/* Solaris */
 #define USE_GRANTPT 1
 #include <stropts.h>
+#ifdef __mips__				/* These prototypes are nowhere!? */
+extern int   grantpt(int filedes);
+extern char *ptsname(int fildes);
+extern int   unlockpt(int fildes);
+#endif
 #endif
 
 static status	killProcess(Process p, Any sig);
@@ -125,6 +130,7 @@ static Name signames[] =
 
 #if defined(SIGCHLD) && defined(HAVE_WAIT)
 
+#ifdef USE_SIGINFO
 #ifdef HAVE_SIGINFO_H
 #include <siginfo.h>
 #endif
@@ -144,6 +150,14 @@ static Name signames[] =
 #ifndef SA_SIGINFO
 #define SA_SIGINFO 0
 #endif
+
+#else /*USE_SIGINFO*/
+
+#undef HAVE_SIGINFO_H			/* just make sure it isn't used */
+#undef SA_SIGINFO
+
+#endifd /*USE_SIGINFO*/
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Catching childs that have changed status. There   appear to be many ways
@@ -459,8 +473,11 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 	     (line = ptsname(master)) == NULL ||
 	     (slave = open(line, O_RDWR)) < 0 ||
 	     ioctl(slave, I_PUSH, "ptem") < 0 ||
-	     ioctl(slave, I_PUSH, "ldterm") < 0 ||
-	     ioctl(slave, I_PUSH, "ttcompat") < 0 )
+	     ioctl(slave, I_PUSH, "ldterm") < 0
+#ifdef HAVE_TTCOMPAT
+	  || ioctl(slave, I_PUSH, "ttcompat") < 0
+#endif
+	   )
 	{ Cprintf("[PCE: failed to get slave pty: %s]\n", strName(OsError()));
 	  exit(1);
 	}
