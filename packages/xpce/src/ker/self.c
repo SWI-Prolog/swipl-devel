@@ -1168,6 +1168,37 @@ getVersionPce(Pce pce, Name how)
 }
 
 		 /*******************************
+		 *	     THREADS		*
+		 *******************************/
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Note that setting this to true will raise some errors while unlocking, but
+that should not be a problem.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+multiThreadingPce(Pce pce, Bool val)
+{ 
+  if ( XPCE_mt == -1 )
+    return errorPce(pce, NAME_threadsInitialised);
+
+#if defined(_REENTRANT) && defined(HAVE_XINITTHREADS)
+  XPCE_mt = (val == ON ? TRUE : FALSE);
+  succeed;
+#endif
+
+  fail;
+}
+
+
+static Bool
+getMultiThreadingPce(Pce pce)
+{ answer(XPCE_mt == TRUE ? ON : OFF);
+}
+
+
+		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
 
@@ -1310,7 +1341,9 @@ static senddecl send_pce[] =
   SM(NAME_hasFeature, 1, "any", hasFeaturePce,
      NAME_version, "Test if feature is defined"),
   SM(NAME_loadDefaults, 1, "source_sink", loadDefaultsPce,
-     NAME_default, "Load class variable defaults from file")
+     NAME_default, "Load class variable defaults from file"),
+  SM(NAME_multiThreading, 1, "bool", multiThreadingPce,
+     NAME_thread, "Enable multi-threaded access")
 };
 
 /* Get Methods */
@@ -1371,7 +1404,9 @@ static getdecl get_pce[] =
   GM(NAME_mclock, 0, "int", NULL, getMclockPce,
      NAME_time, "#Elapsed milliseconds since XPCE was started"),
   GM(NAME_version, 1, "name|int", "how=[{string,name,number}]", getVersionPce,
-     NAME_version, "Representation of the version number")
+     NAME_version, "Representation of the version number"),
+  GM(NAME_multiThreading, 0, "bool", NULL, getMultiThreadingPce,
+     NAME_thread, NULL)
 };
 
 /* Resources */

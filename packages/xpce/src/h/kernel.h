@@ -1524,6 +1524,7 @@ GLOBAL Host	HOST;			/* the one and only Host object */
 GLOBAL SendFunc	DispatchEvents;		/* Dispatch function */
 GLOBAL int	changedLevel;		/* Change forwarding levels */
 GLOBAL HashTable ErrorTable;		/* @error_database */
+GLOBAL int	XPCE_mt;		/* we are multi-threaded */
 
 GLOBAL struct constant ConstantNil;	/* MUST be first! */
 GLOBAL struct constant ConstantDefault;

@@ -17,8 +17,10 @@
 #include <pthread.h>
 
 static pthread_mutex_t mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-#define LOCK() pthread_mutex_lock(&mutex)
-#define UNLOCK() pthread_mutex_unlock(&mutex)
+#define LOCK() \
+	if ( XPCE_mt == TRUE ) pthread_mutex_lock(&mutex)
+#define UNLOCK() \
+	if ( XPCE_mt == TRUE ) pthread_mutex_unlock(&mutex)
 #else
 #define LOCK()
 #define UNLOCK()

@@ -671,6 +671,10 @@ static const error_def errors[] =
   { NAME_moreThanOneIcon,	0,
     "%N: Contains more than 1 icon.  Using first" },
 #endif /*__WINDOWS__*/
+
+  { NAME_threadsInitialised,		0,
+    "%N: Cannot change threading after initialisation" },
+
 					/* List closer */
   { NULL,			0,
     NULL }

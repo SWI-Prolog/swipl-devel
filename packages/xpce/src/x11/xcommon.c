@@ -68,7 +68,12 @@ pceXtAppContext(XtAppContext ctx)
     } else
     {
 #if defined(_REENTRANT) && defined(HAVE_XINITTHREADS)
-      XInitThreads();
+      if ( XPCE_mt == TRUE )
+	XInitThreads();
+      else
+	XPCE_mt = -1;
+#else
+	XPCE_mt = -1;
 #endif
 
       XtToolkitInitialize();
