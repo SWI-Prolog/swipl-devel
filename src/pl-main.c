@@ -32,6 +32,8 @@ static bool	vsysError(const char *fm, va_list args);
 			  } else \
 			    usage(); \
 			}
+#define K * 1024L
+
 
 static char *
 findHome(char *symbols, char *def)
@@ -246,6 +248,32 @@ defaultSystemInitFile(char *a0)
 }
 
 
+#define MEMAREA_INVALID_SIZE (~0L)
+
+static unsigned long
+memarea_limit(const char *s)
+{ number n;
+  char *q;
+
+  if ( get_number(s, &q, &n) && intNumber(&n) )
+  { switch((int)*q)
+    { case 'k':
+      case 'K':
+      case EOS:
+	return n.value.i K;
+      case 'm':
+      case 'M':
+	return n.value.i K K;
+      case 'b':
+      case 'B':
+	return n.value.i;
+    }
+  }
+
+  return MEMAREA_INVALID_SIZE;
+}
+
+
 #if O_LINK_PCE
 foreign_t
 pl_pce_init()
@@ -302,6 +330,7 @@ startProlog(int argc, char **argv, char **env)
     systemDefaults.global      = DEFGLOBAL;
     systemDefaults.trail       = DEFTRAIL;
     systemDefaults.argument    = DEFARGUMENT;
+    systemDefaults.heap	       = DEFHEAP;
     systemDefaults.goal	       = "'$welcome'";
     systemDefaults.toplevel    = "prolog";
 #ifndef NOTTYCONTROL
@@ -366,8 +395,6 @@ startProlog(int argc, char **argv, char **env)
       runtime_vars();
   }
 
-#define K * 1024L
-
   options.systemInitFile = defaultSystemInitFile(mainArgv[0]);
 
   if ( status.boot == FALSE && status.dumped == FALSE )
@@ -404,6 +431,7 @@ startProlog(int argc, char **argv, char **env)
     options.globalSize	  = systemDefaults.global   K;
     options.trailSize	  = systemDefaults.trail    K;
     options.argumentSize  = systemDefaults.argument K;
+    options.heapSize	  = systemDefaults.heap	    K;
     options.goal	  = systemDefaults.goal;
     options.topLevel	  = systemDefaults.toplevel;
     options.initFile      = systemDefaults.startup;
@@ -455,10 +483,24 @@ startProlog(int argc, char **argv, char **env)
 			options.argumentSize = 1 K;
 #endif
 			goto next;
-	case 'L':	options.localSize    = atoi(++s) K; goto next;
-	case 'G':	options.globalSize   = atoi(++s) K; goto next;
-	case 'T':	options.trailSize    = atoi(++s) K; goto next;
-	case 'A':	options.argumentSize = atoi(++s) K; goto next;
+	case 'L':
+	case 'G':
+	case 'T':
+	case 'A':
+	case 'H':
+        { unsigned long size = memarea_limit(&s[1]);
+	  
+	  if ( size == MEMAREA_INVALID_SIZE )
+	    usage();
+
+	  switch(*s)
+	  { case 'L':	options.localSize    = size; goto next;
+	    case 'G':	options.globalSize   = size; goto next;
+	    case 'T':	options.trailSize    = size; goto next;
+	    case 'A':	options.argumentSize = size; goto next;
+	    case 'H':	options.heapSize     = size; goto next;
+	  }
+	}
       }
       s++;
     }
@@ -524,24 +566,24 @@ static void
 usage()
 { static char *lines[] = {
     "%s: Usage:\n",
-    "    1) %s -help     Display this message\n",
-    "    2) %s -v        Display version information\n",
-    "    3) %s -arch     Display architecture\n",
+    "    1) %s -help      Display this message\n",
+    "    2) %s -v         Display version information\n",
+    "    3) %s -arch      Display architecture\n",
     "    4) %s -dump-runtime-variables\n"
-    "                    Dump link info in sh(1) format\n",
+    "                     Dump link info in sh(1) format\n",
     "    5) %s [options]\n",
     "    6) %s [options] [-o output] -c file ...\n",
     "    7) %s [options] [-o output] -b bootfile -c file ...\n",
     "Options:\n",
-    "    -x state        Start from state (must be first)\n",
-   "    -[LGTA]kbytes   Specify {Local,Global,Trail,Argument} stack limits\n",
-    "    -B              Small stack sizes to prepare for boot\n",
-    "    -t toplevel     Toplevel goal\n",
-    "    -g goal         Initialisation goal\n",
-    "    -f file         Initialisation file\n",
-    "    -F file         System Initialisation file\n",
-    "    [+/-]tty        Allow tty control\n",
-    "    -O              Optimised compilation\n",
+    "    -x state         Start from state (must be first)\n",
+    "    -[LGTAH]size[KM] Specify {Local,Global,Trail,Argument,Heap} limits\n",
+    "    -B               Small stack sizes to prepare for boot\n",
+    "    -t toplevel      Toplevel goal\n",
+    "    -g goal          Initialisation goal\n",
+    "    -f file          Initialisation file\n",
+    "    -F file          System Initialisation file\n",
+    "    [+/-]tty         Allow tty control\n",
+    "    -O               Optimised compilation\n",
     NULL
   };
   char **lp = lines;

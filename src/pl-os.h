@@ -25,10 +25,6 @@
 
 #define alloc_t		size_t		/* argument type of Prolog's alloc */
 
-#define Malloc(n)	malloc((size_t) (n))
-#define Free(p)		free((char *)(p))
-#define Realloc(p, n)	realloc((char *)p, (size_t)(n))
-
 #define allocHeap(n)	alloc_heap((alloc_t) (n))
 #define freeHeap(p, n)	free_heap((char *)(p), (alloc_t)(n))
 #define allocGlobal(n)	alloc_global((int) (n))

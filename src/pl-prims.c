@@ -1997,7 +1997,11 @@ pl_statistics(term_t k, term_t value)
     result = makeNum((long)lTop - (long)lBase);
   else if (key == ATOM_locallimit)
     result = makeNum(limitStack(local));
-  else if (key == ATOM_heapused)			/* heap */
+#ifdef MMAP_STACK
+  else if (key == ATOM_heap)				/* heap */
+    result = makeNum(options.heapSize);
+#endif
+  else if (key == ATOM_heapused)			/* heap usage */
     result = makeNum(statistics.heap);
   else if (key == ATOM_trail)				/* trail */
     result = makeNum((long)tMax - (long)tBase);

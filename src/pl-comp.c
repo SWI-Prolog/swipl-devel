@@ -277,7 +277,7 @@ getVarDef(int i)
       vardefs = malloc(sizeof(VarDef) * nvd);
     }
     if ( !vardefs )
-      fatalError("Not enough memory");
+      outOfCore();
 
     for(vdp = &vardefs[nvardefs], n=nvardefs; n++ < nvd; )
       *vdp++ = NULL;
@@ -758,7 +758,7 @@ A ; B, A -> B, A -> B ; C, \+ A
 
     NOTE: A tricky bit now is that we  can  reach  the  same  point  via
     different  paths.   Each of these paths may result in another set of
-    variabled  already  instantiated.   This  gives  troubles  with  the
+    variables  already  instantiated.   This  gives  troubles  with  the
     FIRSTVAR  type  of instructions.  to avoid such trouble the compiler
     generates  SETVAR  instructions  to  balance  both   brances.    See
     balanceVars();

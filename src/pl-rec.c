@@ -331,7 +331,8 @@ copyRecordToGlobal(term_t copy, Record r)
   int n;
 
   b.data = r->buffer;
-  b.vars = alloca(sizeof(Word) * r->nvars);
+  if ( !(b.vars = alloca(sizeof(Word) * r->nvars)) )
+    fatalError("alloca() failed");
   for(p = b.vars, n=r->nvars; --n >= 0;)
     *p++ = 0;
   b.gstore = allocGlobal(r->gsize);

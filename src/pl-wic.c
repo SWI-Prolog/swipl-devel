@@ -77,6 +77,7 @@ Below is an informal description of the format of a `.qlf' file:
 			<globalSize>			% a <word>
 			<trailSize>			% a <word>
 			<argumentSize>			% a <word>
+			<heapSize>			% a <word>
 			<goal>				% a <string>
 			<topLevel>			% a <string>
 			<initFile>			% a <string>
@@ -269,7 +270,8 @@ pushXrIdTable()
   t->previous = loadedXrs;
   loadedXrs = t;
 
-  loadedXRTable = malloc(ALLOCSIZE);
+  if ( !(loadedXRTable = malloc(ALLOCSIZE)) )
+    outOfCore();
   loadedXRTableArrays = 0;
   loadedXRTableId = 0;
 }
@@ -303,7 +305,9 @@ storeXrId(long id, word value)
 { int i = id/SUBENTRIES;
 
   while ( i >= loadedXRTableArrays )
-    loadedXRTable[loadedXRTableArrays++] = malloc(ALLOCSIZE);
+  { if ( !(loadedXRTable[loadedXRTableArrays++] = malloc(ALLOCSIZE)) )
+      outOfCore();
+  }
   
   loadedXRTable[i][id%SUBENTRIES] = value;
 }
@@ -334,13 +338,15 @@ getString(IOSTREAM *fd)
   Char c;
 
   if ( tmp == NULL )
-  { tmp    = malloc(tmpsize);
+  { if ( !(tmp = malloc(tmpsize)) )
+      outOfCore();
     tmpend = &tmp[tmpsize-1];
   }
 
   for( s = tmp; (*s = c = Getc(fd)) != EOS; s++ )
   { if ( s == tmpend )
-    { tmp = realloc(tmp, tmpsize+512);
+    { if ( !(tmp = realloc(tmp, tmpsize+512)) )
+	outOfCore();
       s = &tmp[tmpsize-1];
       tmpsize += 512;
       tmpend = &tmp[tmpsize-1];
@@ -660,9 +666,13 @@ loadWicFd(char *file, IOSTREAM *fd, int flags)
     options.globalSize   = getNum(fd);
     options.trailSize    = getNum(fd);
     options.argumentSize = getNum(fd);
-    DEBUG(2, Sdprintf("local=%ld, global=%ld, trail=%ld, argument=%ld\n",
-		      options.localSize, options.globalSize,
-		      options.trailSize, options.argumentSize));
+    options.heapSize	 = getNum(fd);
+    DEBUG(2,
+	  Sdprintf("local=%ld, global=%ld, trail=%ld, arg=%ld, heap=%ld\n",
+		   options.localSize, options.globalSize,
+		   options.trailSize, options.argumentSize,
+		   options.heapSize
+		  ));
     options.goal         = store_string(getString(fd) );
     options.topLevel     = store_string(getString(fd) );
     options.initFile     = store_string(getString(fd) );
@@ -1465,6 +1475,7 @@ openWic(const char *file, term_t args)
   int   globalSize   = options.globalSize;
   int   trailSize    = options.trailSize;
   int   argumentSize = options.argumentSize;
+  int	heapSize     = options.heapSize;
   char *goal         = options.goal;
   char *topLevel     = options.topLevel;
   char *initFile     = options.initFile;
@@ -1532,6 +1543,7 @@ openWic(const char *file, term_t args)
   putNum(   globalSize,   	  wicFd);
   putNum(   trailSize,    	  wicFd);
   putNum(   argumentSize, 	  wicFd);
+  putNum(   heapSize,		  wicFd);
   DEBUG(2, Sdprintf("String options ...\n"));
   putString(goal,          	  wicFd);
   putString(topLevel,      	  wicFd);

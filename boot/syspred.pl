@@ -555,8 +555,12 @@ statistics :-
 	format('~D atoms, ~D functors, ~D predicates, ~D modules, ~D byte-codes~n~n',
 				    [Atoms, Functors, Predicates, Modules, Codes]),
 	format('                      Limit    Allocated       In use~n'),
-	format('Heap         :                  ~t~D~53| Bytes~n',
-	       [Heapused]),
+	(   statistics(heap, Heap)
+	->  format('Heap         :~t~D~27|          ~t~D~53| Bytes~n',
+		   [Heap, Heapused])
+	;   format('Heap         :                  ~t~D~53| Bytes~n',
+		   [Heapused])
+	),
 	format('Local  stack :~t~D~27| ~t~D~40| ~t~D~53| Bytes~n',
 	       [LocalLimit, Local, LocalUsed]),
 	format('Global stack :~t~D~27| ~t~D~40| ~t~D~53| Bytes~n',

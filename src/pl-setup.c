@@ -1077,9 +1077,8 @@ of the page size.
 
 static void
 initStacks(long local, long global, long trail, long argument)
-{ long heap = 0;			/* malloc() heap */
-  int large = 1;
-  unsigned long base, top, space, large_size;
+{ int large = 0;
+  ulong base, top, space, large_size;
 
   size_alignment = getpagesize();
 #ifdef MMAP_STACK
@@ -1092,10 +1091,10 @@ initStacks(long local, long global, long trail, long argument)
 		  base_alignment, base_alignment));
 #endif
 
-  local    = (long) align_size(local);	/* Round up to page boundary */
-  global   = (long) align_size(global);
-  trail    = (long) align_size(trail);
-  argument = (long) align_size(argument);
+  local    = (ulong) align_size(local);	/* Round up to page boundary */
+  global   = (ulong) align_size(global);
+  trail    = (ulong) align_size(trail);
+  argument = (ulong) align_size(argument);
 
   if ( local    == 0 ) large++;		/* find dynamic ones */
   if ( global   == 0 ) large++;
@@ -1105,31 +1104,29 @@ initStacks(long local, long global, long trail, long argument)
 #ifdef MMAP_MIN_ADDRESS
   base	= MMAP_MIN_ADDRESS;
 #else
-  base  = (long) align_base((long)sbrk(0));
+  base  = (ulong) align_base((ulong)sbrk(0) + options.heapSize);
 #endif
   top   = (long) MMAP_MAX_ADDRESS;
   DEBUG(1, Sdprintf("top = 0x%x, stack at 0x%x\n", top, (unsigned) &top));
   space = top - base;
-  space -= align_base(heap) +
-           align_base(local + STACK_SEPARATION) +
+  space -= align_base(local + STACK_SEPARATION) +
 	   align_base(global + STACK_SEPARATION) +
 	   align_base(trail + STACK_SEPARATION) +
 	   align_base(argument);
   
-  large_size = ((space / large) / base_alignment) * base_alignment;
-  if ( large_size > 64 MB )
-    large_size = 64 MB;
-  if ( large_size < STACK_MINIMUM )
-    fatalError("Can't fit requested stack sizes in address space");
-  DEBUG(1, Sdprintf("Large stacks are %ld\n", large_size));
+  if ( large > 0 )
+  { large_size = ((space / large) / base_alignment) * base_alignment;
+    if ( large_size > 64 MB )
+      large_size = 64 MB;
+    if ( large_size < STACK_MINIMUM )
+      fatalError("Can't fit requested stack sizes in address space");
+    DEBUG(1, Sdprintf("Large stacks are %ld\n", large_size));
 
-  heap                          = large_size;
-  if ( local    == 0 ) local    = large_size;
-  if ( global   == 0 ) global   = large_size;
-  if ( trail    == 0 ) trail    = large_size;
-  if ( argument == 0 ) argument = large_size;
-
-  base += heap;
+    if ( local    == 0 ) local    = large_size;
+    if ( global   == 0 ) global   = large_size;
+    if ( trail    == 0 ) trail    = large_size;
+    if ( argument == 0 ) argument = large_size;
+  }
 
 #define INIT_STACK(name, print, limit, minsize) \
   DEBUG(1, Sdprintf("%s stack at 0x%x; size = %ld\n", print, base, limit)); \
@@ -1279,7 +1276,7 @@ not exist.
 #if tos
 #define MALLOC(p, n)    Allocate(n)
 #else
-#define MALLOC(p, n)	(status.dumped == FALSE ? Malloc(n) : Realloc(p, n))
+#define MALLOC(p, n)	(status.dumped == FALSE ? malloc(n) : realloc(p, n))
 #endif
 
 static void

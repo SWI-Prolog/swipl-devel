@@ -32,11 +32,12 @@
 	  ]).
 :- use_module(library(quintus)).
 
-version('0.8').
+version('0.9').
 
 :- dynamic			
 	html_output_dir/1,		% output relative to this dir
-	html_file_base/1,		% Basename of the main file
+	tex_file_base/1,		% Basename of the main file
+	html_file_base/1,		% Basename of main output file
 	html_split_level/1,		% Split upto this level
 	title/1,			% \title{} storage
 	author/1.			% \auther{} command storage
@@ -47,6 +48,7 @@ version('0.8').
 
 
 html_split_level(2).
+html_file_base('Title').
 
 :- multifile
 	user:file_search_path/2.
@@ -152,6 +154,7 @@ latex2html(TeXFile, Base) :-
 	reset_index,
 	reset_labels,
 	reset_cites,
+	reset_output,
 	tex_tokens(TeXFile, TeXTokens),
 	(   member(env(document, _, _), TeXTokens)
 	->  translate(TeXTokens, preamble, HTML)
@@ -184,27 +187,45 @@ latex2html(Spec) :-
 			   ],
 			   TheTeXFile),
 	asserta(html_output_dir(Base)),
-	asserta(html_file_base(Base)),
+	asserta(tex_file_base(Base)),
 	(   exists_directory(Base)
 	->  true
 	;   sformat(Cmd, 'mkdir ~w~n', [Base]),
 	    shell(Cmd)
 	),
-	latex2html(TheTeXFile, Base),
+	html_file_base(Main),
+	latex2html(TheTeXFile, Main),
 	goodbye,
-	retract(html_file_base(_)),
+	retract(tex_file_base(_)),
 	retract(html_output_dir(_)).
 
+
+:- dynamic
+	current_html_output_db/1,	% Base
+	in_head/1.
+
+reset_output :-
+	retractall(current_html_output_db(_)),
+	retractall(in_head(_)).
 
 open_output(Base) :-
 	html_output_dir(Dir), !,
 	concat_atom([Dir, /, Base, '.html'], HtmlFile),
-	tex_tell(HtmlFile).
-
+	tex_tell(HtmlFile),
+	put_html_token(html('<HTML>')),
+	asserta(current_html_output_db(Base)).
 
 close_output :-
+	(   retract(current_html_output_db(_))
+	->  put_html_token(html('</BODY>')),
+	    put_html_token(html('</HTML>'))
+	;   true
+	),
 	tex_told.
 
+current_html_output(Raw) :-
+	current_html_output_db(File), !,
+	File = Raw.
 
 welcome :-
 	version(Version),
@@ -212,11 +233,11 @@ welcome :-
 
 goodbye :-
 	html_output_dir(Dir),
-	html_file_base(Base),
+	html_file_base(Html),
 	format(user_error, '~*t~72|~n', [0'*]),
 	format(user_error,
 	       'Tranlation completed; output written to "~w/~w.html".~n',
-	       [Dir, Base]),
+	       [Dir, Html]),
 	format(user_error, 'Prolog statistics:~n~n', []),
 	statistics.
 
@@ -264,6 +285,9 @@ translate_2(verbatim(_Cmd, Text), Mode, Mode, 		% \begin{verbatim} ...
 translate_2(verb(_, Text), pcecode, pcecode,
 	    [verb('\n'), verb(Text)]).
 translate_2(vskip(_), pcecode, pcecode, verb('\n')).
+translate_2('\n', Mode, Mode, [html('<BR>')]) :-
+	Mode = group(Atts),
+	memberchk(obeylines, Atts), !.
 :- set_feature(character_escapes, false).
 translate_2(verb(_, Text), Mode, Mode, #code(Text)).	% \verbX...X
 translate_2([Atom], Mode, Mode, nospace(Atom)) :-	% {foo} 
@@ -274,14 +298,16 @@ translate_2(Group, Mode, Mode, HTML) :-			% {...}
 translate_2(~, Mode, Mode, html('&nbsp;')).		% ~
 translate_2(Atom0, Mode, Mode, Atom) :-			% Normal word
 	atomic(Atom0),
-	(   Mode = group(sc)
+	(   Mode = group(Atts),
+	    memberchk(font(sc), Atts)
 	->  upcase_atom(Atom0, Atom)
 	;   Atom = Atom0
 	).
 
 translate_group(Group, [HTML, Close]) :-		% {...}
-	translate(Group, group(-), MEnd, HTML),
-	(   MEnd = group(EndFont),
+	translate(Group, group([]), MEnd, HTML),
+	(   MEnd = group(Attributes),
+	    member(font(EndFont), Attributes),
 	    html_font(EndFont, _, Close)
 	->  true
 	;   Close = []
@@ -340,6 +366,10 @@ language_map(table,	'Table').
 
 #(tell(_File),		[]) :- onefile(true).
 #(tell(File),		tell(File)).
+#(head(Head),		[html('<HEAD>'), HtmlHead, html('</HEAD>')]) :-
+	expand_macros(Head, HtmlHead).
+#(beginbody,		html('<BODY>')).
+#(endbody,		html('</BODY>')).
 #(thetitle,		Title) :-
 	title(Title).
 #(theauthor,		Author) :-
@@ -410,6 +440,13 @@ language_map(table,	'Table').
 	node_header(Tag, HTML).
 #(footer(Tag),		HTML) :-
 	node_footer(Tag, HTML).
+#(next_and_prev_references,
+        [ #iflref(prevfile,  	    '[Previous]'), ' ',
+	  #iflref(nextfile,  	    '[Next]')
+	]).
+#(home_reference,
+ 	[ #iflref(home,  	    '[Home]')
+	]).
 #(Macro, []) :-
 	functor(Macro, Name, Arity),
 	format(user_error,
@@ -518,13 +555,19 @@ do_float(Term, Goal) :-
 		 *******************************/
 
 :- dynamic
-	label/3.			% Label, File, Index
+	label/3,			% Label, File, Index
+	next_file/2.			% File, NextFile
 
 reset_labels :-
-	retractall(label(_, _, _)).
+	retractall(label(_, _, _)),
+	retractall(next_file(_, _)).
 
 collect_labels([], _) :- !.
-collect_labels([tell(File)|T], _) :- !,
+collect_labels([tell(File)|T], PreviousFile) :- !,
+	(   PreviousFile \== File
+	->  assert(next_file(PreviousFile, File))
+	;   true
+	),
 	collect_labels(T, File).
 collect_labels([label(Label, _, Tag)|T], File) :- !,
 	assert(label(Label, File, Tag)),
@@ -553,7 +596,7 @@ label_tag(Tag) :-
 %
 %	Translate an environment.
 
-env(pcecode(_, Tokens), #xmp(HTML)) :-
+env(pcecode(_, Tokens), #pre(HTML)) :-
 	translate(Tokens, pcecode, HTML).
 env(summarylist(_, Summary),
     [ html('<TABLE>'),
@@ -565,7 +608,7 @@ env(htmlonly(_, Tokens), HTML) :-
 env(document(_, Contents), HTML) :- !,
 	translate(Contents, document, HTML).
 env(quote(_, Tokens), #quote(Quote)) :-
-	translate(Tokens, normal, Quote).
+	translate_group(Tokens, Quote).
 %env(abstract(_, Tokens), [html('<HR>'), #quote(Quote), html('<HR>')]) :-
 env(abstract(_, Tokens), #quote([html('<HR>'), Quote, html('<HR>')])) :-
 	translate(Tokens, normal, Quote).
@@ -753,10 +796,12 @@ cmd(vspace(_), [html('<P>')]).
 cmd(hspace(_), []).
 cmd(headheight(_), []).
 cmd(footheight(_), []).
-cmd(vfill, []).
+cmd(vfill, [html('<P>')]).
+cmd(vfil, [html('<P>')]).
 cmd(hfill, []).
 cmd(parskip(_), []).
 cmd(parindent(_), []).
+cmd(raggedright, []).			% Always in HTML
 cmd(tableofcontents,
     [ #tell('Contents'),
       #header,
@@ -813,8 +858,8 @@ cmd(title({Title}), []) :-			% \title
 	retractall(title(_)),
 	translate(Title, normal, HTML),
 	assert(title(HTML)).
-cmd(booktitle({Title}), HTML) :-		% \booktitle
-	cmd(title({Title}), HTML).
+cmd(booktitle(Title), HTML) :-			% \booktitle
+	cmd(title(Title), HTML).
 cmd(author({Author}), []) :-			% \author
 	retractall(author(_)),
 	translate(Author, normal, HTML),
@@ -838,7 +883,7 @@ cmd(cite({Key}),	#cite(Key)).		% \cite
 cmd(yearcite({Key}),	#yearcite(Key)).	% \yearcite
 cmd(opencite({Key}),	#opencite(Key)).	% \opencite
 cmd(bibliography({_}), HTML) :-			% \bibliography
-	html_file_base(File),
+	tex_file_base(File),
 	(   absolute_file_name(tex(File), [ extensions([bbl]),
 					    access(read)
 					  ],
@@ -898,6 +943,8 @@ cmd(item([Tag]),
 cmd(mbox({Boxed}), HTML) :-
 	translate_group(Boxed, HTML).
 cmd(makebox(_, _, {Boxed}), HTML) :-
+	translate_group(Boxed, HTML).
+cmd(parbox(_, _, {Boxed}), HTML) :-
 	translate_group(Boxed, HTML).
 cmd(string({Text}), nospace(Text)).
 cmd(ldots, '...').
@@ -1072,25 +1119,28 @@ cmd(pow({A1}, {A2}), math, [math+A1, '**', +A2]).
 
 cmd(Cmd, Mode0, Mode, HTML) :-
 	user_cmd(Cmd, Mode0, Mode, HTML), !.
-cmd(Font, group(Old), group(Font), HTML) :-
+cmd(obeylines, group(Atts), group([obeylines|Atts]), []).
+cmd(Font, group(Old), group([font(Font)|Old1]), HTML) :-
 	html_font(Font, Open, _), !,
-	(   html_font(Old, _, Close)
+	(   delete(Old, font(OldFont), Old1),
+	    html_font(OldFont, _, Close)
 	->  HTML = [Close,Open]
-	;   HTML = Open
+	;   Old1 = Old,
+	    HTML = Open
 	).
 
-html_font(em, html('<EM>'), html('</EM>')).
-html_font(bf, html('<B>'),  html('</B>')).
-html_font(it, html('<I>'),  html('</I>')).
-html_font(tt, html('<TT>'), html('</TT>')).
-html_font(sf, html('<B>'),  html('</B>')).
-html_font(sc, html('<font size=-1>'), html('</font>')).
-html_font(rm, [],           []).
-html_font(sl, html('<B>'),  html('</B>')).
-html_font(scriptsize,   [], []).
+html_font(em, 		html('<EM>'), 		html('</EM>')).
+html_font(bf, 		html('<B>'),  		html('</B>')).
+html_font(it, 		html('<I>'),  		html('</I>')).
+html_font(tt, 		html('<TT>'), 		html('</TT>')).
+html_font(sf, 		html('<B>'),  		html('</B>')).
+html_font(sc, 		html('<font size=-1>'), html('</font>')).
+html_font(rm, 		[],           		[]).
+html_font(sl, 		html('<B>'),  		html('</B>')).
+html_font(scriptsize,   [], 			[]).
 html_font(footnotesize, html('<font size=-1>'), html('</font>')).
 html_font(small,        html('<font size=-1>'), html('</font>')).
-html_font(normalsize,   [], []).
+html_font(normalsize,   [],			[]).
 html_font(large,        html('<font size=+1>'), html('</font>')).
 html_font('Large',      html('<font size=+2>'), html('</font>')).
 html_font('Huge',       html('<font size=+3>'), html('</font>')).
@@ -1177,6 +1227,11 @@ downcase_atom(Up, Low) :-
 	maplist(downcase, S0, S1),
 	atom_chars(Low, S1).
 
+capitalise_atom(In, Out) :-
+	atom_chars(In, S0),
+	capitalise(S0, S1, up),
+	atom_chars(Out, S1).
+
 upcase(L, U) :-
 	between(0'a, 0'z, L), !,
 	U is L + 0'A - 0'a.
@@ -1187,9 +1242,27 @@ downcase(L, U) :-
 	U is L + 0'a - 0'A.
 downcase(C, C).
 
+capitalise([], [], _).
+capitalise([H0|T0], [H|T], up) :-
+	islower(H0), !,
+	upcase(H0, H),
+	capitalise(T0, T, down).
+capitalise([H|T0], [H|T], up) :-
+	capitalise(T0, T, up).
+capitalise([H|T0], [H|T], down) :-
+	isletter(H), !,
+	capitalise(T0, T, down).
+capitalise([H|T0], [H|T], down) :-
+	capitalise(T0, T, up).
+	
 isletter(C) :- between(0'a, 0'z, C), !.
 isletter(C) :- between(0'A, 0'Z, C), !.
-
+isdigit(C)  :- between(0'0, 0'9, C), !.
+islower(C)  :- between(0'a, 0'z, C), !.
+isspace(32).
+isspace(9).
+isspace(10).
+isspace(13).
 
 		 /*******************************
 		 *	    FOOTNOTES		*
@@ -1498,25 +1571,51 @@ add_separator(Term, _, CL, [ html('<DT>'),
 		 *        STANDARD LINKS	*
 		 *******************************/
 
-node_header([#title(#thetitle)]) :-
+node_header([#head(#title(#thetitle)),
+	     #beginbody
+	    ]) :-
 	onefile(true), !.
-node_header([#title(#thetitle),
+node_header([#head([#title(#thetitle),
+		    link(home),
+		    link(contents),
+		    link(index),
+		    link(summary),
+		    link(previous),
+		    link(next)]),
+	     #beginbody,
 	     html('<HR>'),
-	     #center( [#iflref(fileof('document-contents'), '[Contents]'), ' ',
-		       #iflref(fileof('document-index'),    '[Index]'), ' ',
-		       #iflref(fileof('sec:summary'),  	    '[Summary]')]),
+	     #center( [ body_link(home),
+			body_link(contents),
+			body_link(index),
+			body_link(summary),
+			body_link(previous),
+			body_link(next)
+		      ]),
 	     html('<HR>')
 	    ]).
 	
 node_header(_, []) :-
 	onefile(true), !.
 node_header(SectionTag,
-	    [#title([#thetitle, nospace(:), ' ', 'Section', SectionTag]),
+	    [#head([#title([#thetitle, nospace(:), ' ',
+			    'Section', SectionTag]),
+		    link(home),
+		    link(contents),
+		    link(index),
+		    link(summary),
+		    link(up(UpRef)),
+		    link(previous),
+		    link(next)]),
+	     #beginbody,
 	     html('<HR>'),
-	     #center( [#iflref(fileof(UpRef),	    	    '[Up]'), ' ',
-		       #iflref(fileof('document-contents'), '[Contents]'), ' ',
-		       #iflref(fileof('document-index'),    '[Index]'), ' ',
-		       #iflref(fileof('sec:summary'),  	    '[Summary]')]),
+	     #center( [ body_link(home),
+			body_link(contents),
+			body_link(index),
+			body_link(summary),
+			body_link(up(UpRef)),
+			body_link(previous),
+			body_link(next)
+		      ]),
 	     html('<HR>')
 	    ]) :-
 	parent_tag(SectionTag, UpTag), !,
@@ -1806,15 +1905,30 @@ to_integer(Atom, Integer) :-
 	atom_chars(Atom, Chars),
 	number_chars(Integer, Chars).
 
-column_alignment(l, left).
-column_alignment(c, center).
-column_alignment(r, right).
-column_alignment(X, left) :-
-	format(user_error, 'Unknown multicolumn alignment: "~w"~n', [X]).
+column_alignment(X, Alignment) :-
+	atom_chars(X, Chars),
+	phrase(column_alignment(Alignment), Chars).
+
+column_alignment(A) -->
+	vlines,
+	calignment(A), !,
+	vlines.
+
+vlines -->
+	"|", !,
+	vlines.
+vlines -->
+	[].
+
+calignment(left) --> "l".
+calignment(center) --> "c".
+calignment(right) --> "r".
+calignment(left) --> [X],
+	{format(user_error, 'Unknown multicolumn alignment: "~w"~n', [X])}.
 
 table_cell([], [], []).
-table_cell([' '|T0], R, T) :- !,
-	 table_cell(T0, R, T).
+%table_cell([' '|T0], R, T) :- !,
+%	 table_cell(T0, R, T).
 table_cell([&|L], L, []) :- !.
 table_cell([\(\, A)|L], [\(\, A)|L], []) :- !.
 table_cell([H|T0], R, [H|T]) :-
@@ -2107,6 +2221,21 @@ write_html(ref(Label)) :- !,
 write_html(label(Label, Text, _)) :- !,
 	sformat(Anchor, '<A NAME="~w">', [Label]),
 	write_html([html(Anchor), Text, html('</A>')]).
+write_html(body_link(Link)) :- !,
+	(   translate_ref(Link, Ref, Type)
+	->  sformat(Anchor, '<A HREF="~w">', [Ref]),
+	    capitalise_atom(Type, Text),
+	    write_html([html(Anchor), Text, html('</A>')]),
+	    nl_html
+	;   true
+	).
+write_html(link(Link)) :- !,
+	(   translate_ref(Link, Ref, Type)
+	->  sformat(Html, '<LINK REL=~w HREF="~w">', [Type, Ref]),
+	    write_html(html(Html)),
+	    nl_html
+	;   true
+	).
 write_html(iflref(fileof(Label), Text)) :- !,
 	(   label(Label, _, _)
 	->  write_html(lref(fileof(Label), Text))
@@ -2187,6 +2316,40 @@ write_html(H) :-
 	put_html_token(H), !.
 write_html(_).
 	
+:- set_feature(character_escapes, true).
+nl_html :-
+	write_html(verb('\n')).
+:- set_feature(character_escapes, false).
+
+%	translate_ref(+Label, -Anchor, -TextLabel)
+
+translate_ref(next, Anchor, next) :-
+	current_html_output(Current),
+	next_file(Current, Next),
+	concat(Next, '.html', Anchor).
+translate_ref(previous, Anchor, previous) :-
+	current_html_output(Current),
+	next_file(Prev, Current),
+	concat(Prev, '.html', Anchor).
+translate_ref(up(Label), Anchor, up) :-
+	label(Label, File, _),
+	concat(File, '.html', Anchor).
+translate_ref(home, Anchor, home) :-
+	html_file_base(Home),
+	\+ current_html_output(Home),
+	onefile(false),
+	concat(Home, '.html', Anchor).
+translate_ref(contents, Anchor, contents) :-
+	label('document-contents', File, _),
+	concat(File, '.html', Anchor).
+translate_ref(index, Anchor, index) :-
+	label('document-index', File, _),
+	concat(File, '.html', Anchor).
+translate_ref(summary, Anchor, summary) :-
+	label('sec:summary', File, _),
+	concat(File, '.html', Anchor).
+
+
 cmd_layout('<P>',    2, 0).
 cmd_layout('<DL>',   2, 1).
 cmd_layout('</DL>',  1, 2). 
@@ -2216,6 +2379,11 @@ cmd_layout('<LISTING>',	 2, 0).
 cmd_layout('</LISTING>', 0, 2). 
 cmd_layout('<XMP>',	 2, 0). 
 cmd_layout('</XMP>', 	 0, 2). 
+cmd_layout('<BODY>',	 2, 1). 
+cmd_layout('</BODY>',	 1, 1). 
+cmd_layout('</HEAD>',	 0, 1). 
+cmd_layout('<HTML>',	 0, 1). 
+cmd_layout('</HTML>',	 1, 1). 
 cmd_layout(Cmd,		 1, 1) :-
 	concat('<TABLE', _, Cmd).
 

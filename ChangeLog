@@ -1,6 +1,19 @@
 
 			SWI-Prolog ChangeLog
 			====================
+VERSION 2.8.5
+=============
+
+  * ADDED: For machines using memory-mapped stacks (Linux, SunOs, Solaris,
+    OSF/1 for example), added heap-size switch: -H.  Default is 256Mbytes.
+
+    Size switch now take optional 'm' (Mega), 'k' (Kilo, default) or 'b'
+    (bytes): -L32m specifies 32 Mbytes local stack.
+
+  * FIXED: print error message if heap allocation above prefect fit
+    schema (>1024 bytes) fails (malloc() returns NULL).  All allocation
+    failures now call outOfCore().
+
 VERSION 2.8.4
 =============
 

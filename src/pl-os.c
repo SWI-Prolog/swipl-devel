@@ -338,8 +338,8 @@ PL_clock_wait_ticks(long waited)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Void
-Allocate(long int n)
-{ Void mem = Malloc(n);
+Allocate(long n)
+{ Void mem = malloc(n);
 
   return (Void) mem;
 }

@@ -12,6 +12,7 @@
 /* pl-alloc.c */
 void		free_heap(Void mem, size_t n);
 volatile void	outOf(Stack s);
+volatile void	outOfCore(void);
 Void		alloc_global(int n);
 Void		alloc_heap(size_t n);
 word		globalFunctor(FunctorDef def);
@@ -528,7 +529,7 @@ word		pl_reset_profiler(void);
 void		resetRead(void);
 int		syntaxerrors(int new);
 word		pl_syntaxerrors(term_t old, term_t new);
-int		get_number(char *string, char **end, Number value);
+int		get_number(const char *string, char **end, Number value);
 word		pl_raw_read(term_t term);
 word		pl_read_variables(term_t term, term_t variables);
 word		pl_read_variables3(term_t stream, term_t term,

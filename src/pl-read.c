@@ -289,7 +289,7 @@ reading.
 static void
 clearBuffer()
 { if (rb.size == 0)
-  { if ((rb.base = Malloc(RBSIZE)) == (char *) NULL)
+  { if ((rb.base = malloc(RBSIZE)) == (char *) NULL)
       fatalError("%s", OsError());
     rb.size = RBSIZE;
   }
@@ -305,7 +305,7 @@ clearBuffer()
 static inline void
 addToBuffer(int c)
 { if (rb.left-- == 0)
-  { if ((rb.base = Realloc(rb.base, rb.size * 2)) == (char *)NULL)
+  { if ((rb.base = realloc(rb.base, rb.size * 2)) == (char *)NULL)
       fatalError("%s", OsError());
     DEBUG(8, Sdprintf("Reallocated read buffer at %ld\n", (long) rb.base));
     base = rb.base;
@@ -791,10 +791,10 @@ scan_number(char **s, int b, Number n)
 	{ if ( n >= bufsize ) \
 	  { if ( bufsize == 0 ) \
 	    { bufsize = 512; \
-	      buf = Malloc(bufsize); \
+	      buf = malloc(bufsize); \
 	    } else \
 	    { bufsize *= 2; \
-	      buf = Realloc(buf, bufsize); \
+	      buf = realloc(buf, bufsize); \
 	    } \
 	    if ( buf == NULL ) \
 	      fatalError("%s", OsError()); \
@@ -898,9 +898,10 @@ get_string(char *in, char **end)
 
 
 int
-get_number(char *in, char **end, Number value)
+get_number(const char *cin, char **end, Number value)
 { int negative = FALSE;
   unsigned int c;
+  char *in = (char *)cin;		/* const hack */
 
   if ( *in == '-' )			/* skip optional sign */
   { negative = TRUE;
@@ -1014,9 +1015,6 @@ get_number(char *in, char **end, Number value)
 			               : (double)exponent.value.i);
   }
 
-  if ( isAlpha(c = *in) )
-    fail;				/* illegal number */
-
   if ( negative )
   { if ( intNumber(value) )
       value->value.i = -value->value.i;
@@ -1078,7 +1076,8 @@ get_token(bool must_be_op)
     case_digit:
     case DI:	{ number value;
 
-		  if ( get_number(&here[-1], &here, &value) )
+		  if ( get_number(&here[-1], &here, &value) &&
+		       !isAlpha(here[0]) )
 		  { token.value.number = value;
 		    token.type = T_NUMBER;
 		    break;

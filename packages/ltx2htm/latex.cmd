@@ -90,12 +90,14 @@
 \yearcite{-}
 \opencite{-}
 \index{-}
+\idx{-}
 \tableofcontents
 \printindex
 \appendix
 \string{-}
 \mbox{+}
 \makebox[-][-]{+}
+\parbox[-]{d}{+}
 \begin=begin		2 1
 \end{-}=end		1 2
 \\[d]			0 1
@@ -255,3 +257,6 @@
 {htmlonly}
 {dlist}=list
 {itemlist}=list
+\excludecomment{-}
+\obeylines
+\raggedright

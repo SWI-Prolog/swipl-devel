@@ -22,6 +22,7 @@ GLOBAL struct
   int  global;				/* default global stack size (K) */
   int  trail;				/* default trail stack size (K) */
   int  argument;			/* default argument stack size (K) */
+  int  heap;				/* default heap size (K) */
   char *goal;				/* default initialisation goal */
   char *toplevel;			/* default top level goal */
   bool notty;				/* use tty? */
@@ -34,6 +35,7 @@ GLOBAL struct options
   long		globalSize;		/* size of global stack */
   long		trailSize;		/* size of trail stack */
   long		argumentSize;		/* size of argument stack */
+  long		heapSize;		/* size of the heap */
   char *	goal;			/* initial goal */
   char *	topLevel;		/* toplevel goal */
   char *	initFile;		/* -f initialisation file */
@@ -83,6 +85,7 @@ GLOBAL struct
 #define DEF_DEFLOCAL	2000
 #define DEF_DEFGLOBAL	4000
 #define DEF_DEFTRAIL	4000
+#define DEF_DEFHEAP   256000
 #if O_DYNAMIC_STACKS
 #define DEF_DEFARGUMENT 1000
 #else
@@ -93,6 +96,7 @@ GLOBAL struct
 #define DEF_DEFGLOBAL	400
 #define DEF_DEFTRAIL	200
 #define DEF_DEFARGUMENT 16
+#define DEF_DEFHEAP  256000
 #endif
 
 #ifndef DEFLOCAL
@@ -107,6 +111,6 @@ GLOBAL struct
 #ifndef DEFARGUMENT
 #define DEFARGUMENT DEF_DEFARGUMENT
 #endif
-#ifndef DEFLOCK
-#define DEFLOCK     DEF_DEFLOCK
+#ifndef DEFHEAP
+#define DEFHEAP     DEF_DEFHEAP
 #endif

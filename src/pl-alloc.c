@@ -98,7 +98,9 @@ alloc_heap(register size_t n)
     return f;
   }
 
-  f = (Chunk) Malloc(n);
+  if ( (f = malloc(n)) == NULL )
+    outOfCore();
+
   DEBUG(9, Sdprintf("(b) %ld\n", (unsigned long)f));
 #if ALLOC_DEBUG
   memset((char *) f, ALLOC_MAGIC, n);
@@ -123,7 +125,7 @@ free_heap(register void * mem, register size_t n)
     p->next = freeChains[n];
     freeChains[n] = p;
   } else
-  { Free(p);
+  { free(p);
   }
 }
 
@@ -132,7 +134,7 @@ No perfect fit is available.  We pick memory from the big chunk  we  are
 working  on.   If this is not big enough we will free the remaining part
 of it.  Next we check whether any areas are  assigned  to  be  used  for
 allocation.   If  all  this fails we allocate new core using Allocate(),
-which normally calls Malloc(). Early  versions  of  this  module  called
+which normally calls malloc(). Early  versions  of  this  module  called
 sbrk(),  but  many systems get very upset by using sbrk() in combination
 with other memory allocation functions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -153,7 +155,7 @@ allocate(register size_t n)
     freeHeap(spaceptr, (alloc_t) (spacefree/sizeof(align_type))*sizeof(align_type));
 
   if ((p = (char *) Allocate(ALLOCSIZE)) <= (char *)NULL)
-    fatalError("Not enough core");
+    outOfCore();
 
   spacefree = ALLOCSIZE;
   spaceptr = p + n;
@@ -174,6 +176,12 @@ outOf(Stack s)
 
   pl_abort();
   exit(2);				/* should not happen */
+}
+
+
+volatile void
+outOfCore()
+{ fatalError("Could not allocate memory: %s", OsError());
 }
 
 		 /*******************************
@@ -548,9 +556,10 @@ xmalloc(size_t size)
 
   if ( (mem = malloc(size)) )
     return mem;
+  if ( size )
+    outOfCore();
 
-  fatalError("Not enough core");
-  return NULL;				/* NOTREACHED */
+  return NULL;
 }
 
 
@@ -562,6 +571,7 @@ xrealloc(void *mem, size_t size)
   if ( newmem )
     return newmem;
   if ( size )
-    fatalError("Not enough core");
-  return NULL;				/* NOTREACHED */
+    outOfCore();
+
+  return NULL;
 }

@@ -19,12 +19,12 @@ growBuffer(Buffer b, long int minfree)
   if ( b->base != b->static_buffer )
   { b->base = realloc(b->base, sz);
     if ( !b->base )
-      fatalError("Not enough memory");
+      outOfCore();
   } else
   { char *old = b->base;
     b->base = malloc(sz);
     if ( !b->base )
-      fatalError("Not enough memory");
+      outOfCore();
     memcpy(b->base, old, osz);
   }
 

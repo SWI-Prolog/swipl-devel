@@ -422,7 +422,7 @@ malloc_string(char *s)
     return c;
   }
 
-  sysError("Not enough memory");
+  outOfCore();
   return NULL;
 }
 
