@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 5.0.1
+=============
+
+  * FIXED: configure message if libreadline is not found.
+
   * FIXED: Installing the manuals by Pixel <pixel@mandrakesoft.com>
 
   * UPDATED: web-locations in help and Windows console.

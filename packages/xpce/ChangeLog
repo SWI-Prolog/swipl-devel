@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.0.1, distributed with SWI-Prolog 5.0.1
+================================================
+
 * FIXED: Arrow-heads on lines had disappeared in redraw modifications.
   Anjo Anjewierden.
 

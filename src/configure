@@ -9213,7 +9213,7 @@ cat << _EOM_
 * Could not find a working readline library.  Without this library
 * command-line editing is not supported.  You can continue building
 * SWI-Prolog or first install readline.  After installing
-* readline do `make distclean' and re-configure SWI-Prolog.
+* readline do "make distclean" and re-configure SWI-Prolog.
 *
 * On SuSE Linux, readline is in the RPM package readline-devel
 ****************************************************************
