@@ -218,12 +218,13 @@ show_key_bindings(E, _Arg:[int]) :->
 
 consult(E, F:fragment) :->
 	"Consult fragment of editor"::
-	new(File, file),
+	new(File, file),		% temporary file
 	send(File, open, write),
 	send(File, append, F?string),
 	send(File, newline),
 	send(File, close),
-	send(@prolog, consult, File?name),
+	get(File, name, FileName),
+	consult(FileName),
 	send(E, report, status, 'Fragment consulted'),
 	send(File, remove).
 
