@@ -3281,10 +3281,11 @@ to give the compiler a hint to put ARGP not into a register.
 	  /*NOTREACHED*/
         default:
 	{ LocalFrame lsave = lTop;	/* may do call-back on Prolog */
-	  lTop = (LocalFrame)(n+1);
-	  fid_t fid = PL_open_foreign_frame();
+	  fid_t fid;
 	  int rc;
 
+	  lTop = (LocalFrame)(n+1);
+	  fid = PL_open_foreign_frame();
 	  rc = valueExpression(consTermRef(p), n PASS_LD);
 	  PL_close_foreign_frame(fid);
 	  lTop = lsave;
