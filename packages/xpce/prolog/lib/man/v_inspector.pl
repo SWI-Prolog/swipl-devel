@@ -138,7 +138,15 @@ make_isp_value_text_popup(P) :-
 						   flash)),
 		    menu_item(expand,
 			      message(VT, expand),
-			      condition := Obj)
+			      condition := Obj,
+			      end_group := @on),
+		    menu_item(class_details,
+			      message(VT, class_details),
+			      condition := Obj),
+		    menu_item(class_source,
+			      message(VT, class_source),
+			      condition := and(Obj,
+					       Obj?'_class'?creator \== built_in))
 		  ]).
 
 
@@ -166,6 +174,17 @@ expand(T) :->
 	send(P, plus, point(W+30,0)),
 	send(Window, inspect, Object, P).
 
+class_details(T) :->
+	"Show the class browser"::
+	get(T, object, Object),
+	get(Object, '_class', Class),
+	send(T?frame, request_tool_focus, Class).
+
+class_source(T) :->
+	"Edit source of related class"::
+	get(T, object, Object),
+	get(Object, '_class', Class),
+	send(T?frame, request_source, Class).
 
 pretty_print(T) :->
 	get(T, object, Object),
@@ -327,10 +346,21 @@ link_to(AV, Dest:'name|int') :->
 make_isp_attribute_value_sheet_handler(H) :-
 	new(H, handler_group(popup_gesture(new(P, popup)),
 			     new(move_outline_gesture))),
+	new(IsObjectSheet, message(@arg1, instance_of, isp_object_sheet)),
 	send_list(P, append,
-		  [ menu_item(expose, message(@arg1, expose))
-		  , menu_item(hide,   message(@arg1, hide))
-		  , menu_item(quit,   message(@arg1, quit))
+		  [ menu_item(expose,
+			      message(@arg1, expose)),
+		    menu_item(hide,
+			      message(@arg1, hide)),
+		    menu_item(quit,
+			      message(@arg1, quit), end_group := @on),
+		    menu_item(class_details,
+			      message(@arg1, class_details),
+			      condition := IsObjectSheet),
+		    menu_item(class_source,
+			      message(@arg1, class_source),
+			      condition := and(IsObjectSheet,
+					       @arg1?object?'_class'?creator \== built_in))
 		  ]).
 
 
@@ -504,6 +534,18 @@ rename_att_values(Index, Start, OS) :-
 	send(OS, for_all, Index, message(@arg1, label, Next)),
 	Prev is Index - 1,
 	rename_att_values(Prev, Start, OS).
+
+class_details(OS) :->
+	"Show the class browser"::
+	get(OS, object, Object),
+	get(Object, '_class', Class),
+	send(OS?frame, request_tool_focus, Class).
+
+class_source(OS) :->
+	"Edit source of related class"::
+	get(OS, object, Object),
+	get(Object, '_class', Class),
+	send(OS?frame, request_source, Class).
 
 :- pce_end_class.
 
