@@ -1341,9 +1341,17 @@ termToObject(Term t, PceType type, Atom assoc, int new)
     if ( functor == ATOM_prolog && arity == 1 )
     { PceObject h;
       Term a = NewTerm();
+      double f;
+      long r;
       
       QGetArg(1, t, a);
-      h = makeTermHandle(a);
+
+      if ( GetInteger(a, &r) )		/* pass atoms, ints and floats */
+	return cToPceInteger(r);	/* as xpce objects anyhow */
+      if ( GetFloat(t, &f) )
+	return cToPceReal(f);
+
+      h = makeTermHandle(a);		/* real terms */
       makeAnyHostData(h);		/* make acceptable to any/object */
 
       return h;
@@ -1407,6 +1415,7 @@ termToObject(Term t, PceType type, Atom assoc, int new)
   { double f;
     long r;
 
+    
     if ( GetInteger(t, &r) )
       return cToPceInteger(r);
 
