@@ -67,9 +67,11 @@ install-dtd:
 		done
 
 pdf-install::
+		mkdir -p $(PKGDOC)
 		$(INSTALL_DATA) doc/sgml2pl.pdf $(PKGDOC)
 
 html-install::
+		mkdir -p $(PKGDOC)
 		$(INSTALL_DATA) doc/sgml2pl.html $(PKGDOC)
 
 check:
