@@ -1967,7 +1967,7 @@ process_element_declaraction(dtd_parser *p, const ichar *decl)
     { for(i=0; i<en; i++)
 	def->omit_close = TRUE;
     } else
-      gripe(ERC_SYNTAX_ERROR, "Bad omit-tag declaration", decl);
+      return gripe(ERC_SYNTAX_ERROR, "Bad omit-tag declaration", decl);
 
     decl = s;
   }
@@ -3918,7 +3918,7 @@ add_cdata(dtd_parser *p, int chr)
 
     if ( chr == '\n' )
     { if ( p->map && p->map->ends['\r'] &&
-	   (buf->data[buf->size-1] != '\r' || buf->size > 0) )
+	   (buf->size == 0 || buf->data[buf->size-1] != '\r') )
       { add_ocharbuf(buf, '\r');
 	match_shortref(p);
       }
