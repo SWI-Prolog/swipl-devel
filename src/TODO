@@ -4,6 +4,8 @@ BUGS:
 	* format('~t~w~72|~n', [ 'hello\0\world' ]) simply writes
 	  hello at the end of the line.
 
+	* plcon.exe to delay Control-C in garbage collections.
+
 ISO:
 ----
 

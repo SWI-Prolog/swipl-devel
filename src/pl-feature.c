@@ -635,7 +635,7 @@ initFeatures()
   defFeature("tail_recursion_optimisation", FT_BOOL,
 	     TRUE, TAILRECURSION_FEATURE);
   defFeature("abort_with_exception", FT_BOOL,
-	     TRUE, EX_ABORT_FEATURE);
+	     FALSE, EX_ABORT_FEATURE);
   defFeature("c_libs",	  FT_ATOM|FF_READONLY, C_LIBS);
   defFeature("c_cc",	  FT_ATOM|FF_READONLY, C_CC);
   defFeature("c_ldflags", FT_ATOM|FF_READONLY, C_LDFLAGS);

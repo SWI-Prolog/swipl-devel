@@ -22,6 +22,7 @@ AC_SUBST(COUTOPT)
 AC_SUBST(INSTALLTARGET)
 AC_SUBST(INSTALLRLMAN)
 AC_SUBST(EXTRAOBJ)
+AC_SUBST(BOOTFILE)
 
 if test ! -z "$CIFLAGS"; then
     CFLAGS="$CFLAGS $CIFLAGS"
@@ -414,6 +415,11 @@ AC_FUNC_VFORK
 
 AC_CHECK_SIZEOF(long, 4)
 AC_CHECK_SIZEOF(int,  4)
+
+AC_MSG_CHECKING("Boot filename");
+BOOTFILE=boot`expr ${ac_cv_sizeof_long} \* 8`.prc
+AC_DEFINE_UNQUOTED(BOOTFILE, "$BOOTFILE")
+AC_MSG_RESULT($BOOTFILE)
 
 if test "$GCC" = "yes"; then
 dnl See whether we need to force __register_frame_info to be included.

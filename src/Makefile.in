@@ -41,6 +41,8 @@ srcdir=@srcdir@
 @VPATH@ @srcdir@
 bindir=@bindir@
 PLBASE=$(prefix)/lib/@PL@-$(PLVERSION)
+# NOTE: Also defined in config.h!
+BOOTFILE=@BOOTFILE@
 man_prefix=@mandir@
 mansec=1
 lmansec=3
@@ -258,7 +260,7 @@ install-arch:	idirs iruntime
 		done
 
 install-libs:	idirs iboot ilib iruntime iinclude iman
-		$(INSTALL_DATA) $(STARTUPPATH) $(PLBASE)/boot.prc
+		$(INSTALL_DATA) $(STARTUPPATH) $(PLBASE)/$(BOOTFILE)
 		$(INSTALL_DATA) swipl $(PLBASE)
 		$(INSTALL_DATA) swiplbin $(PLBASE)/bin/swipl
 		# $(INSTALL_DATA) README.bin $(PLBASE)

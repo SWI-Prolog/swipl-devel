@@ -446,6 +446,18 @@ replace_extension(char *path, const char *ext)
 Find the resource database.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifndef BOOTFILE		/* normally delivered through config.h */
+#if SIZEOF_LONG == 4
+#define BOOTFILE "boot32.prc"
+#else
+#if SIZEOF_LONG == 8
+#define BOOTFILE "boot64.prc"
+#else
+#define BOOTFILE "boot.prc"
+#endif
+#endif
+#endif
+
 RcArchive
 openResourceDB(int argc, char **argv)
 { RcArchive rc;
@@ -490,7 +502,8 @@ openResourceDB(int argc, char **argv)
 
   if ( systemDefaults.home )
   { strcpy(tmp, systemDefaults.home);
-    strcat(tmp, "/boot.prc");
+    strcat(tmp, "/");
+    strcat(tmp, BOOTFILE);
 
     return rc_open_archive(tmp, flags);
   }

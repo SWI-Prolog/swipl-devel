@@ -117,3 +117,6 @@
 
 /* Define if it is allowed to access long integers with non-aligned pointers */
 #undef NON_ALIGNED_ACCESS
+
+/* Name of the file to boot from */
+#undef BOOTFILE
