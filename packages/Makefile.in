@@ -31,6 +31,8 @@ PKG=	clib \
 
 MAKE=@MAKE@
 prefix=@prefix@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
 PL=@PL@@RT@
 PLVERSION=@PLVERSION@
 PLBASE=$(prefix)/lib/@PL@-$(PLVERSION)
@@ -45,6 +47,10 @@ INSTALL_DATA=@INSTALL_DATA@
 SO=@SO@
 BUILDDIR=@BUILDDIR@
 PLLIB=$(PLBASE)/library
+
+# These programs should use prolog from the (already installed) $(bindir)
+
+PATH=$(bindir):$(shell echo $$PATH)
 
 # How to run configure.  We pass the information required from SWI-Prolog
 # in the environment.  All configure scripts in the packages are designed
@@ -120,3 +126,7 @@ clean::
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
         done
 
+# test environment
+
+printenv::
+	printenv

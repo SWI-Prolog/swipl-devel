@@ -17,6 +17,7 @@
 #endif
 #include "error.h"
 #include <errno.h>
+#include <string.h>
 
 #define CHARSET 256
 
