@@ -412,6 +412,12 @@ getDirectoryDirectory(Directory d, Name name)
 
 
 static status
+sameDirectory(Directory d1, Directory d2)
+{ return sameOsPath(strName(d1->path), strName(d2->path));
+}
+
+
+static status
 accessDirectory(Directory d, Name mode)
 { int m;
 
@@ -490,6 +496,8 @@ static senddecl send_directory[] =
      NAME_test, "Test if directory has access {read, write}"),
   SM(NAME_exists, 0, NULL, existsDirectory,
      NAME_test, "Test if directory exists"),
+  SM(NAME_same, 1, "directory=directory", sameDirectory,
+     NAME_test, "Test if two paths refer to the same physical directory"),
   SM(NAME_modified, 0, NULL, changedDirectory,
      NAME_time, "Succeed if directory has changed since last test"),
   SM(NAME_cd, 0, NULL, cdDirectory,

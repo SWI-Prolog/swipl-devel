@@ -167,15 +167,9 @@ existsFile(FileObj f, Bool mustbefile)
 }
 
 
-static status
-sameFile(FileObj f1, FileObj f2)
-{ Name n1 = getOsNameFile(f1);
-  Name n2 = getOsNameFile(f2);
-
-  if ( !n1 || !n2 )
-    fail;
-
-  if ( equalCharArray((CharArray)n1, (CharArray)n2) )
+status
+sameOsPath(const char *s1, const char *s2)
+{ if ( streq(s1, s2) )
     succeed;
 
 #if O_XOS
@@ -183,8 +177,8 @@ sameFile(FileObj f1, FileObj f2)
   { char b1[MAXPATHLEN];
     char b2[MAXPATHLEN];
 
-    _xos_limited_os_filename(strName(n1), b1);
-    _xos_limited_os_filename(strName(n2), b2);
+    _xos_limited_os_filename(s1, b1);
+    _xos_limited_os_filename(s2, b2);
     if ( streq(b1, b2) )
       succeed;
   }
@@ -194,8 +188,8 @@ sameFile(FileObj f1, FileObj f2)
   { struct stat buf1;
     struct stat buf2;
 
-    if ( stat(strName(n1), &buf1) == 0 &&
-	 stat(strName(n2), &buf2) == 0 &&
+    if ( stat(s1, &buf1) == 0 &&
+	 stat(s2, &buf2) == 0 &&
 	 buf1.st_ino == buf2.st_ino &&
 	 buf1.st_dev == buf2.st_dev )
       succeed;
@@ -203,6 +197,18 @@ sameFile(FileObj f1, FileObj f2)
 #endif
 
   fail;
+}
+
+
+static status
+sameFile(FileObj f1, FileObj f2)
+{ Name n1 = getOsNameFile(f1);
+  Name n2 = getOsNameFile(f2);
+
+  if ( !n1 || !n2 )
+    fail;
+
+  return sameOsPath(strName(n1), strName(n2));
 }
 
 

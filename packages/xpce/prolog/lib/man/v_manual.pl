@@ -308,7 +308,7 @@ fill_dialog(M, D) :->
 		*         STARTING TOOLS	*
 		********************************/
 
-start_tool(M, ToolName:name) :->
+start_tool(M, ToolName:name, Tool:frame) :<-
 	"Start named tool"::
 	(   get(M?tools, value, ToolName, Tool)
 	->  send(Tool, expose)
@@ -318,6 +318,9 @@ start_tool(M, ToolName:name) :->
 	;   send(@display, inform, 'Failed to start %s', ToolName)
 	).
 	
+start_tool(M, ToolName:name) :->
+	"Start named tool"::
+	get(M, start_tool, ToolName, _).
 
 register_tool(M, Name:name, Tool:man_frame) :->
 	"Register frame as a menual tool"::

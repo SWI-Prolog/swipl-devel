@@ -1,3 +1,5 @@
+* ADDED: `directory->same', analogous with `file->same'.
+
 * ADDED: Lots of extras to the class win_printer, providing printing
   support in Windows.  Added this to PceDraw.
 
