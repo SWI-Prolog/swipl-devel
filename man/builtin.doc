@@ -4767,7 +4767,7 @@ modules         & Total number of module definitions. \\
 codes           & Total amount of byte codes in all clauses. \\
 threads		& MT-version: number of active threads \\
 threads_created & MT-version: number of created threads \\
-threads_cputime & MT-version: seconds CPU time used by finished threads \\
+thread_cputime  & MT-version: seconds CPU time used by finished threads \\
 \hline
 \multicolumn{2}{|c|}{Compatibility keys} \\
 \hline
@@ -4809,96 +4809,16 @@ the number of passes through the call- and redo ports of the
 theoretical 4-port model.
 \end{description}
 
-\section{Finding Performance Bottlenecks}	\label{sec:profile}
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		 %	      PROFILER		%
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\index{profiling}\index{performance}%
-SWI-Prolog offers a statistical program profiler similar to Unix prof(1)
-for C and some other languages.  A profiler is used as an aid to find
-performance pigs in programs.  It provides information on the time spent
-in the various Prolog predicates.
-
-The profiler is based on the assumption that if we monitor the functions
-on the execution stack on time intervals not correlated to the program's
-execution the number of times we find a procedure on the environment
-stack is a measure of the time spent in this procedure.  It is
-implemented by calling a procedure each time slice Prolog is active.
-This procedure scans the local stack and either just counts the
-procedure on top of this stack (\const{plain} profiling) or all procedures
-on the stack (\const{cumulative} profiling).  To get accurate results
-each procedure one is interested in should have a reasonable number of
-counts.  Typically a minute runtime will suffice to get a rough overview
-of the most expensive procedures.
+\input{profile.tex}
 
 
-\subsection{Profiling in the Windows Implementation}	\label{sec:winprofile}
-
-Profiling in the Windows version is similar but, especially on Windows
-95/98/ME one should be aware of the implementation.%
-	\footnote{We hereby acknowledge Lionel Fourquaux, who
-		  suggested the design described here after a
-		  newsnet enquiry.}
-Windows does not provide timers that fire asynchronously, frequent and
-proportional to the CPU time used by the process. Windows does provide
-multi-media timers that can run at high frequency. Such timers however
-run in a seperate thread of execution and they are fired on the
-wall-clock rather than the amount of CPU time used. The profiler
-installs such a timer running, for saving CPU time, rather inaccurately
-at about 100 Hz. Each time it is fired, it determines the millisecons
-CPU time used by Prolog since the last time it was fired. If this value
-is non-zero, active predicates are incremented with this value.
-
-On Windows 95/98/ME (DOS-based Windows), there is no possibility to
-get the CPU-time used by a thread or process. \textbf{Therefore, on
-these systems profiling results does not count CPU-time, but elapsed
-time.}  For sensible results on these systems, ensure the system has
-no other active tasks and be aware that I/O operations include the
-time Prolog is blocked waiting for data.
-
-\subsection{Profiling predicates}
-
-
-\begin{description}
-    \predicate{profile}{3}{+Goal, +Style, +Number}
-Execute \arg{Goal} just like time/1. Collect profiling statistics
-according to style (see profiler/2) and show the top \arg{Number}
-procedures on the current output stream (see show_profile/1). The
-results are kept in the database until reset_profiler/0 or profile/3
-is called and can be displayed again with show_profile/1. profile/3
-is the normal way to invoke the profiler. The predicates below
-are low-level predicates that can be used for special cases.
-    \predicate{show_profile}{1}{+Number}
-Show the collected results of the profiler. Stops the profiler first to
-avoid interference from show_profile/1. It shows the top \arg{Number}
-predicates according the percentage {\sc cpu}-time used.%
-    \footnote{show_profile/1 is defined in Prolog and takes a
-              considerable amount of memory.}
-    \predicate{profiler}{2}{-Old, +New}
-Query or change the status of the profiler. The status is one of
-\const{off}, \const{plain} or \const{cumulative}. \const{plain} implies the
-time used by children of a predicate is not added to the time of the
-predicate. For status \const{cumulative} the time of children is added
-(except for recursive calls). Cumulative profiling implies the stack
-is scanned up to the top on each time slice to find all active
-predicates.  This implies the overhead grows with the number of active
-frames on the stack.  Cumulative profiling starts debugging mode
-to disable tail recursion optimisation, which would otherwise
-remove the necessary parent environments.  Switching status from
-\const{plain} to \const{cumulative} resets the profiler.  Switching to and
-from status \const{off} does not reset the collected statistics, thus
-allowing to suspend profiling for certain parts of the program.
-    \predicate{reset_profiler}{0}{}
-Switches the profiler to \const{off} and clears all collected statistics.
-    \predicate{profile_count}{3}{+Head, -Calls, -Promilage}
-Obtain profile statistics of the predicate specified by \arg{Head}.
-\arg{Head} is an atom for predicates with arity 0 or a term with the
-same name and arity as the predicate required (see
-current_predicate/2). \arg{Calls} is unified with the number of `calls'
-and `redos' while the profiler was active. \arg{Promilage} is unified
-with the relative number of counts the predicate was active
-(\const{cumulative}) or on top of the stack (\const{plain}). \arg{Promilage}
-is an integer between 0 and 1000.
-\end{description}
-
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		 %	GARBAGE COLLECTION	%
+		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Memory Management}		\label{sec:memory}
 
