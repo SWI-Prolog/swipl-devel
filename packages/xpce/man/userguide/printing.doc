@@ -1,0 +1,115 @@
+\section{Printing from \product{} applications} \label{sec:printing}
+
+\index{printing}%
+You're wonderful application is finished \ldots{} but the users want
+{\bf printing???}. What to do? A computer screen is not a set of
+paper-sheets and therefore there is no trivial answer to this
+question.  It depends on the nature of the data that needs to be
+printed, and also on the operating system used.
+
+\index{PostScript}
+\paragraph{In Unix}, printing is achieved by producing a document in a
+format that can be understood by the print-spooler program, normally
+either plain text or PostScript.  If formatted text and/or included
+graphics are required it is often desirable to produce input for a
+formatting program, call the formatter and send the result to the
+printer.
+
+\paragraph{In Windows} the printer is not driven by a document, but
+using a series of calls on a GDI (Graphical Device Interface)
+representing the printer. The good news of this is that whatever you can
+get on the screen you easily get on the printer. The bad news has been
+explained above: paper is not the same as your screen. It has pages, is
+generally worse in colour-handling but provides a much higher
+resolution. The users do not expect a series of screendumps from your
+applications.  Most Windows applications however are WYSIWYG and there
+are no established standards for formatting applications.
+
+
+\subsection{Options for document generation}
+
+Below is a brief overview of the options available.
+
+\begin{itemlist}
+    \item [Generating PostScript]
+All \product{} \class{graphical} objects support the method <-postscript
+that creates an Adobe PostScript representation of the object.  For most
+objects used in diagrams (lines, curves, text), the produced PostScript
+is clean PostScript ready for perfect scaling.  The remaining objects
+(for example a menu or button) are translated into an \class{image}
+which is then translated to PostScript.  Such objects scale poorly.
+
+This facility is useful for creating high-quality diagrams that can be
+imported in a text created on an external application. This is fairly
+portable, but using Microsoft applications you must have a PostScript
+printer attached and there is no previewing. On Windows platform there
+is no well-supported automated way to print a PostScript file unless
+you can asks your users to install a PostScript viewer such as
+\idx{Alladin GsView}\index{gsview}.
+
+    \item [Generating plain text]
+If you need to produce a listing, you can generate a plain ISO-Latin-1
+(or other 8-bit character set) string and print this. On Unix this is
+achieved by sending the text to the printer-spooler. On Windows you can
+save the data to a temporary file and start the command \exam{notepad /p
+"file"}.  This route provides no support for graphics or any kind of
+advanced formatting.
+
+    \item [Generating markup]
+Translating project data to output on a page is a craft that is
+understood by text-manipulation programs that accept a high-level input
+specification such as Troff, \LaTeX{} or an SGML variant.  If you can
+expect your users to have or install a particular package and this
+package can deal with PostScript graphics this is the ideal way to
+generate good-looking documents from your application.  On Unix these
+tools are widely available and installed on most machines.  Most of
+them are available on Windows, but not installed on most systms.
+
+The \pllib{http/html_write} library described in \secref{htmlwrite}
+provides a good infra-structure for emitting documents in HTML or
+another SGML or XML dialect.  There is no such library for \LaTeX{},
+but this can be designed using the same principles.
+
+Using HTML, the application can be transformed into a web-server using
+the infrastructure described in \secref{httpd}. The user can use
+standard web-technologies to process the page. Unfortunately
+well-established web technology does not support vector-drawings, though
+the emerging \idx{SVG} technology may change that.
+
+    \item [Generating a Windows meta-file]
+\index{WMF}\index{EMF}%
+Windows metafiles are implemented in the class \class{win_metafile},
+providing both input and output of metafiles.  Such files preserve
+the vector properties of \product{} graphicals and can be imported
+in most native Windows applications.  Unfortunately the scaling
+properties, especially of text, are much worse than PostScript.
+
+An example of exporting Windows Metafiles is in PceDraw in the file
+\pllib{draw/canvas}.
+
+    \item [Printing to a Windows printer]
+Using class \class{win_printer}, the user can open a device on which
+graphicals can be painted and that can be advanced to the next page.
+This technique only works on Windows and requires you to program all
+details of the page.  For WYSIWYG objects such as most drawings, this
+techinique is appropriate, but rendering textual documents require
+the implementation of a formatter, where you are responsible for
+page headers and footers, alignment, etc.
+
+Formatting text in sections, paragraphs lists, etc.\ is provided by the
+\product{} document-rendering classes described in \secref{docrender}.
+These classes cannot handle pagination though.  Another alternative
+is the use of \class{editor} and friends, drawing the \class{text_image}
+on a page while traversing through the document.
+
+An example of printing using \class{win_printer} is in PceDraw in
+the file \pllib{draw/canvas}.
+\end{itemlist}
+
+
+
+
+
+
+
+

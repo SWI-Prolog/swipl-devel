@@ -34,6 +34,8 @@ Discusses images, icons and cursors.
 Discusses a technique to relate objects.
     \secoverview{ugraphics}{User Defined Graphicals}
 Discusses the definition of new graphical primitives.
+    \secoverview{printing}{Printing}
+Discusses printing from \product{} applications.
 \end{itemize}
 
 \newcommand{\techinput}[1]{\cleardoublepage\input{#1}}
@@ -50,3 +52,4 @@ Discusses the definition of new graphical primitives.
 \techinput{images.tex}
 \techinput{hyper.tex}
 \techinput{ugraphics.tex}
+\techinput{printing}
