@@ -54,7 +54,7 @@
 	  execute_extended_command = key('\\ex'),
 	  sticky_window		   = key('\\es'),
 	  write_region		   = key('\\e\\C-w'),
-	  compile		   = key('\\C-xRET'),
+	  compile		   = key('\\C-x\\C-m'),
 	  
 					% FILE menu
 	  show_buffer_menu	   = key('\\C-x\\C-b') + button(file),
