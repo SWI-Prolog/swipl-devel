@@ -157,3 +157,4 @@
 #define FUNCTOR_warning3     MK_FUNCTOR(156, 3)
 #define FUNCTOR_xor2         MK_FUNCTOR(157, 2)
 #define FUNCTOR_xpceref1     MK_FUNCTOR(158, 1)
+#define FUNCTOR_dprof_node1  MK_FUNCTOR(159, 1)

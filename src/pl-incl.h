@@ -1225,12 +1225,6 @@ struct definition
   ClauseRef	lastClause;		/* last clause of list */
   Module	module;			/* module of the predicate */
   int		references;		/* reference count */
-#ifdef O_PROFILE
-  int		profile_ticks;		/* profiler: call times active */
-  int		profile_calls;		/* profiler: number of calls */
-  int		profile_redos;		/* profiler: number of redos */
-  int		profile_fails;		/* profiler: number of fails */
-#endif /* O_PROFILE */
   unsigned int  erased_clauses;		/* #erased but not reclaimed clauses */
   ClauseIndex 	hash_info;		/* clause hash-tables */
   unsigned long indexPattern;		/* indexed argument pattern */
@@ -1267,6 +1261,7 @@ struct definition_chain
   DefinitionChain 	next;		/* next in chain */
 };
 
+#define PROF_META_NODE ((struct call_node*)0x1)
 
 struct localFrame
 { Code		programPointer;		/* pointer into program */
@@ -1274,13 +1269,19 @@ struct localFrame
   ClauseRef	clause;			/* Current clause of frame */
   Definition	predicate;		/* Predicate we are running */
   Module	context;		/* context module of frame */
+#ifdef O_PROFILE
+  struct call_node *prof_node;		/* Profiling node */
+#endif
 #ifdef O_LOGICAL_UPDATE
   unsigned long generation;		/* generation of the database */
 #endif
   unsigned long flags;			/* packed long holding: */
 		/*	LEVEL	   recursion level (28 bits) */
-		/*	FR_CUT     has frame been cut ? */
 		/*	FR_NODEBUG don't debug this frame ? */
+		/*	FR_SKIPPED skipped in the tracer */
+		/*	FR_MARGED  Marked by GC */
+		/*	FR_WATCHED Watched by the debugger */
+		/*	FR_CATCHED Catched exception here */
 };  
 
 
@@ -1310,6 +1311,9 @@ struct choice
   Choice	parent;			/* Alternative if I fail */
   mark		mark;			/* data mark for undo */
   LocalFrame 	frame;			/* Frame I am related to */
+#ifdef O_PROFILE
+  struct call_node *prof_node;		/* Profiling node */
+#endif
   union
   { ClauseRef	clause;			/* Next candidate clause */
     Code	PC;			/* Next candidate program counter */
@@ -1589,6 +1593,10 @@ Defining built-in predicates using the new interface
 #define A4      (PL__t0+3)
 #define A5      (PL__t0+4)
 #define A6      (PL__t0+5)
+#define A7      (PL__t0+6)
+#define A8      (PL__t0+7)
+#define A9      (PL__t0+8)
+#define A10     (PL__t0+9)
 
 #define CTX_CNTRL ForeignControl(PL__ctx)
 #define CTX_PTR   ForeignContextPtr(PL__ctx)
@@ -1812,11 +1820,6 @@ typedef struct
   int		global_shifts;		/* Shifts of the global stack */
   int		trail_shifts;		/* Shifts of the trail stack */
 } pl_shift_status_t;
-
-
-#define NO_PROFILING		0
-#define CUMULATIVE_PROFILING	1
-#define PLAIN_PROFILING		2
 
 
 		/********************************

@@ -638,14 +638,10 @@ foreign_t	pl_garbage_collect_clauses(void);
 
 /* pl-prof.c */
 void		stopItimer(void);
-word		pl_profiler(term_t old, term_t new);
-word		pl_profile_count(term_t head, term_t calls, term_t prom);
-word		pl_profile_box(term_t head,
-			       term_t calls, term_t redos,
-			       term_t exits, term_t fails);
-word		pl_reset_profiler(void);
-bool		stopProfiler(void);
-
+bool		resetProfiler(void);
+struct call_node* profCall(Definition def);
+void		profExit(struct call_node *node);
+void		profRedo(struct call_node *node);
 
 /* pl-read.c */
 void		resetRead(void);

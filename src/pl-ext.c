@@ -294,11 +294,6 @@ static const PL_extension foreigns[] = {
   FRG("$count",			0, pl_count,			0),
 #endif /* COUNTING */
 
-  FRG("profiler",		2, pl_profiler,			0),
-  FRG("reset_profiler",		0, pl_reset_profiler,		0),
-  FRG("profile_count",		3, pl_profile_count,	     META),
-  FRG("profile_box",		5, pl_profile_box,	     META),
-
   FRG("prolog_current_frame",	1, pl_prolog_current_frame,	0),
   FRG("prolog_frame_attribute",	3, pl_prolog_frame_attribute,	0),
   FRG("prolog_choice_attribute",3, pl_prolog_choice_attribute,	0),
@@ -615,6 +610,7 @@ DECL_PLIST(prims);
 DECL_PLIST(read);
 DECL_PLIST(wam);
 DECL_PLIST(thread);
+DECL_PLIST(profile);
 
 void
 initBuildIns(void)
@@ -632,6 +628,7 @@ initBuildIns(void)
   REG_PLIST(read);
   REG_PLIST(wam);
   REG_PLIST(thread);
+  REG_PLIST(profile);
 
   PROCEDURE_garbage_collect0 = lookupProcedure(FUNCTOR_dgarbage_collect1, m);
   PROCEDURE_block3	     = lookupProcedure(FUNCTOR_block3, 		  m);

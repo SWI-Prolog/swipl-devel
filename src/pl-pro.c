@@ -223,7 +223,7 @@ pl_abort(abort_type type)
   closeFiles(FALSE);
   resetReferences();
 #ifdef O_PROFILE
-  pl_reset_profiler();
+  resetProfiler();
 #endif
   resetStacks();
   resetTracer();

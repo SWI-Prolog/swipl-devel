@@ -1693,8 +1693,10 @@ garbageCollect(LocalFrame fr, Choice ch)
 		   PL_CHARS, "start");
 
 #ifdef O_PROFILE
-  PROCEDURE_garbage_collect0->definition->profile_calls++;
+  if ( LD->profile.active )
+    profCall(PROCEDURE_garbage_collect0->definition);
 #endif
+
 #if O_SECURE
   if ( !scan_global(FALSE) )
     sysError("Stack not ok at gc entry");
@@ -1763,6 +1765,11 @@ garbageCollect(LocalFrame fr, Choice ch)
 		     PL_LONG, usedStack(trail),
 		     PL_LONG, roomStack(global),
 		     PL_LONG, roomStack(trail));
+
+#ifdef O_PROFILE
+  if ( fr && LD->profile.active )
+    profExit(fr->prof_node);
+#endif
 
   unblockGC(PASS_LD1);
   unblockSignals(&mask);

@@ -66,12 +66,6 @@ lookupProcedure(functor_t f, Module m)
     def->definition.clauses = NULL;
     def->lastClause = NULL;
     def->hash_info = NULL;
-  #ifdef O_PROFILE
-    def->profile_ticks = 0;
-    def->profile_calls = 0;
-    def->profile_redos = 0;
-    def->profile_fails = 0;
-  #endif /* O_PROFILE */
     clearFlags(def);
     def->references = 0;
     def->erased_clauses = 0;
@@ -799,12 +793,6 @@ abolishProcedure(Procedure proc, Module module)
     ndef->definition.clauses = NULL;
     ndef->lastClause         = NULL;
     ndef->hash_info	     = NULL;
-#ifdef O_PROFILE
-    ndef->profile_ticks      = 0;
-    ndef->profile_calls      = 0;
-    ndef->profile_redos      = 0;
-    ndef->profile_fails      = 0;
-#endif /* O_PROFILE */
     clearFlags(ndef);
     ndef->references         = 0;
     resetProcedure(proc, TRUE);
@@ -1142,15 +1130,8 @@ static void
 resetReferencesModule(Module m)
 { Definition def;
 
-#ifdef O_PROFILE
-#define ClearProfileTicked(def) clear(def, PROFILE_TICKED)
-#else
-#define ClearProfileTicked(def)
-#endif
-
   for_unlocked_table(m->procedures, s,
 		     { def = ((Procedure) s->value)->definition;
-		       ClearProfileTicked(def);
 		       def->references = 0;
 		       if ( true(def, NEEDSCLAUSEGC|NEEDSREHASH) )
 			 gcClausesDefinition(def);

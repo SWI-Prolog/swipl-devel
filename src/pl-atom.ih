@@ -511,3 +511,5 @@
 #define ATOM_halt         MK_ATOM(510)
 #define ATOM_key_value_pair MK_ATOM(511)
 #define ATOM_system_thread_id MK_ATOM(512)
+#define ATOM_dprof_node   MK_ATOM(513)
+#define ATOM_profile_node MK_ATOM(514)

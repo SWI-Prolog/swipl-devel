@@ -324,16 +324,25 @@ typedef struct PL_local_data
 
   struct
   { ulong	inferences;		/* inferences in this thread */
-#ifdef O_PROFILE
-    int		profiling;		/* profiler is on */
-    ulong	profile_ticks;		/* profile ticks total */
-#endif /* O_PROFILE */
     ulong	last_cputime;		/* milliseconds last CPU time */
     ulong	last_systime;		/* milliseconds last SYSTEM time */
     ulong	last_walltime;		/* milliseconds last Wall time */
     double	user_cputime;		/* User saved CPU time */
     double	system_cputime;		/* Kernel saved CPU time */
   } statistics;
+
+#ifdef O_PROFILE
+  struct
+  { int		active;			/* profiler is on */
+    struct call_node *current;		/* `current' node */
+    struct call_node *roots;		/* list of root-nodes */
+    ulong	ticks;			/* profile ticks total */
+    int		accounting;		/* we are accounting */
+    ulong	accounting_ticks;	/* Ticks in profCall() and friends */
+    ulong	nodes;			/* #Recorded nodes */
+    double	time;			/* recorded CPU time */
+  } profile;
+#endif /* O_PROFILE */
 
   struct
   { Module	typein;			/* module for type in goals */

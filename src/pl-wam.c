@@ -652,6 +652,9 @@ retry:
     ch->parent = BFR;
     ch->mark = m;
     ch->value.foreign = result;
+#ifdef O_PROFILE
+    ch->prof_node = LD->profile.current;
+#endif
     BFR = ch;
 
     frame->clause = (ClauseRef)result; /* for discardFrame() */
@@ -1559,7 +1562,7 @@ copyFrameArguments(LocalFrame from, LocalFrame to, int argc ARG_LD)
 #endif
 
 #ifdef O_PROFILE
-#define Profile(g) if ( LD->statistics.profiling ) g
+#define Profile(g) if ( LD->profile.active ) g
 #else
 #define Profile(g) (void)0
 #endif
@@ -1689,6 +1692,9 @@ newChoice(choice_type type, LocalFrame fr ARG_LD)
   ch->parent = BFR;
   Mark(ch->mark);
   BFR = ch;
+#ifdef O_PROFILE
+  ch->prof_node = LD->profile.current;
+#endif
   DEBUG(3, Sdprintf("NEW %s\n", chp_chars(ch)));
 
   return ch;
@@ -1790,6 +1796,10 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   qf->choice.type   = CHP_TOP;
   qf->choice.parent = NULL;
   qf->choice.frame  = fr;
+#ifdef O_PROFILE
+  qf->choice.prof_node = NULL;
+  fr->prof_node = NULL;			/* true? */
+#endif
   Mark(qf->choice.mark);
 					/* publish environment */
   LD->choicepoints  = &qf->choice;
@@ -3494,6 +3504,9 @@ atom is referenced by the goal-term anyway.
 	    next->flags	         = FR->flags;
 	    next->parent	 = FR;
 	    next->programPointer = PC;
+#ifdef O_PROFILE
+	    next->prof_node      = PROF_META_NODE;	    
+#endif
 #ifdef O_LOGICAL_UPDATE
 	    cl->generation.erased = ~0L;
 	    cl->generation.created = next->generation = GD->generation;
@@ -3804,7 +3817,12 @@ increase lTop too to prepare for asynchronous interrupts.
 	    next->generation     = GD->generation;
 #endif
 	    incLevel(next);
-	    Profile(def->profile_calls++);
+#ifdef O_PROFILE	
+	    if ( LD->profile.active )
+	      next->prof_node = profCall(DEF);
+	    else
+	      next->prof_node = NULL;
+#endif
 	    environment_frame = next;
 
 	    exception_term = 0;
@@ -4085,8 +4103,6 @@ possible to be able to call-back to Prolog.
 	  LD->statistics.inferences++;
 
 
-	Profile(DEF->profile_calls++);
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Undefined predicate detection and handling.   trapUndefined() takes care
 of linking from the public modules or calling the exception handler.
@@ -4099,7 +4115,11 @@ be able to access these!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 	if ( !DEF->definition.clauses && false(DEF, PROC_DEFINED) )	
-	{ FR->predicate = DEF = trapUndefined(DEF);
+	{ 
+#ifdef O_PROFILE
+	  FR->prof_node = LD->profile.current;
+#endif
+	  FR->predicate = DEF = trapUndefined(DEF);
 #ifdef O_LOGICAL_UPDATE
 	  FR->generation = GD->generation;
 #endif
@@ -4114,6 +4134,13 @@ be able to access these!
 	    }
 	  }
 	}
+
+#ifdef O_PROFILE	
+	if ( LD->profile.active )
+	  FR->prof_node = profCall(DEF);
+	else
+	  FR->prof_node = NULL;
+#endif
 
 	if ( false(DEF, METAPRED) )
 	  FR->context = DEF->module;
@@ -4342,6 +4369,17 @@ bit more careful.
 	      frameFinished(FR, FINISH_EXIT PASS_LD);
 	  }
 
+#ifdef O_PROFILE
+          if ( LD->profile.active )
+          { LocalFrame parent = parentFrame(FR);
+
+	    if ( parent )
+	      profExit(parent->prof_node);
+	    else
+	      profExit(NULL);
+	  }
+#endif
+
 	  succeed;
 	}
 
@@ -4358,6 +4396,7 @@ bit more careful.
 	environment_frame = FR = FR->parent;
 	DEF = FR->predicate;
 	ARGP = argFrameP(lTop, 0);
+	Profile(profExit(FR->prof_node));
 
 #if O_DEBUGGER
 	if ( leave )
@@ -4525,7 +4564,7 @@ next_choice:
 	}
       }
 
-      Profile(FR->predicate->profile_fails++);
+      /*Profile(FR->predicate->profile_fails++);*/
       leaveFrame(FR PASS_LD);
       if ( exception_term )
 	goto b_throw;
@@ -4533,7 +4572,7 @@ next_choice:
   } else
 #endif /*O_DEBUGGER*/
   { for(; (void *)FR > (void *)ch; FR = FR->parent)
-    { Profile(FR->predicate->profile_fails++);
+    { /*Profile(FR->predicate->profile_fails++);*/
       leaveFrame(FR PASS_LD);
       if ( exception_term )
 	goto b_throw;
@@ -4552,6 +4591,7 @@ next_choice:
 			predicateName(DEF)));
       PC   = ch->value.PC;
       BFR  = ch->parent;
+      Profile(profRedo(ch->prof_node));
       lTop = (LocalFrame)ch;
       ARGP = argFrameP(lTop, 0);
       NEXT_INSTRUCTION;
@@ -4586,6 +4626,7 @@ next_choice:
 
       clause = CL->clause;
       PC     = clause->codes;
+      Profile(profRedo(ch->prof_node));
       lTop   = (LocalFrame)argFrameP(FR, clause->variables);
 
       if ( next )
@@ -4597,7 +4638,6 @@ next_choice:
 
 			/* require space for the args of the next frame */
       requireStack(local, (int)argFrameP((LocalFrame)NULL, MAXARITY));
-      Profile(DEF->profile_redos++);
       NEXT_INSTRUCTION;
     }
     case CHP_FOREIGN:
@@ -4608,8 +4648,8 @@ next_choice:
 			predicateName(DEF),
 		        ch->value.foreign));
       BFR  = ch->parent;
+      Profile(profRedo(ch->prof_node));
       lTop = (LocalFrame)ch;
-      Profile(DEF->profile_redos++);
 
       SAVE_REGISTERS(qid);
       rval = callForeign(FR, FRG_REDO PASS_LD);
@@ -4623,7 +4663,8 @@ next_choice:
       FRAME_FAILED;
     }
     case CHP_TOP:			/* Query toplevel */
-    { QF = QueryFromQid(qid);
+    { Profile(profRedo(ch->prof_node));
+      QF = QueryFromQid(qid);
       set(QF, PL_Q_DETERMINISTIC);
       fail;
     }
