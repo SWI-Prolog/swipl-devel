@@ -849,9 +849,13 @@ pce_compiling :-
 		 *	      CHECKS		*
 		 *******************************/
 
+%	If we are expanding on behalf of cross-referencing tool, never
+%	send messages anywhere!
+
 pce_ifhostproperty(qpc,
 (realised_class(_ClassName) :- fail),
 (realised_class(ClassName) :-
+	\+ current_prolog_flag(xref, true),
 	get(@classes, member, ClassName, Class),
 	get(Class, realised, @on))).
 
