@@ -1333,7 +1333,7 @@ pl_atom_length(term_t w, term_t n)
     if ( PL_is_variable(n) )
       return PL_unify_integer(n, len);
     else if ( PL_get_integer(n, &nval) )
-      return nval == len ? TRUE	: FALSE;
+      return nval == (int)len ? TRUE	: FALSE;
     else
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, n);
   }
@@ -1721,7 +1721,7 @@ split_atom(term_t list, term_t sep, term_t atom)
     return -1;
   PL_get_nchars(sep, &splen, &sp, CVT_ATOMIC|BUF_RING);
 
-  for(last=i=0; i<=tlen-splen; )
+  for(last=i=0; i<=(int)tlen-(int)splen; )
   { if ( memcmp(sp, text+i, splen) == 0 )
     { if ( !PL_unify_list(tail, head, tail) ||
 	   !PL_unify_atom_nchars(head, i-last, text+last) )
@@ -1922,7 +1922,7 @@ sub_text(term_t atom,
       }
 
       if ( s )				/* `sub' given */
-      { if ( l >= 0 && ls != l )	/* len conflict */
+      { if ( l >= 0 && (int)ls != l )	/* len conflict */
 	  fail;
 	if ( b >= 0 )			/* before given: test */
 	{ if ( memcmp(aa+b, s, ls) == 0 )
@@ -1947,11 +1947,11 @@ sub_text(term_t atom,
       }
 
       if ( b >= 0 )			/* before given */
-      { if ( b > la )
+      { if ( b > (int)la )
 	  fail;
 
 	if ( l >= 0 )			/* len given */
-	{ if ( b+l <= la )		/* deterministic fit */
+	{ if ( b+l <= (int)la )		/* deterministic fit */
 	  { if ( PL_unify_integer(after, la-b-l) &&
 		 (*out)(sub, l, aa+b) )
 	      succeed;
@@ -2051,7 +2051,7 @@ sub_text(term_t atom,
       PL_unify_integer(after, la-b-l);
     out:
       (*out)(sub, l, aa+b);
-      if ( b+l < la )
+      if ( b+l < (int)la )
 	ForeignRedoPtr(state);
       else
 	goto exit_succeed;
@@ -2086,7 +2086,7 @@ sub_text(term_t atom,
       PL_unify_integer(after, a);
       (*out)(sub, l, aa+b);
       if ( a == 0 )
-      { if ( b == la )
+      { if ( b == (int)la )
 	  goto exit_succeed;
 	state->n2 = 0;
 	state->n1++;
