@@ -899,6 +899,7 @@
   BUILTIN_NAME("get_vector")
   BUILTIN_NAME("get_xref")
   BUILTIN_NAME("getsockname")
+  BUILTIN_NAME("gif")
   BUILTIN_NAME("global")
   BUILTIN_NAME("gosmacs_transpose")
   BUILTIN_NAME("goto")
