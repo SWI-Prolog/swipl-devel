@@ -255,8 +255,8 @@ url(A) -->
 	url(A).
 url([protocol(Protocol)|A]) -->
 	identifier(Protocol),
-	":", !,
-	url(Protocol, A).
+	":",
+	url(Protocol, A), !.
 url([protocol(http)|A]) -->
 	implicit_http(A).
 
