@@ -1,0 +1,27 @@
+			SWI-Prolog C++ interface
+
+Author:		Jan Wielemaker
+		SWI
+		University of Amsterdam
+		Roeterstraat 15
+		1018 WB Amsterdam
+		The Netherlands
+		E-mail: jan@swi.psy.uva.nl
+
+Copyright:	SWI, University of Amsterdam
+
+COPYING:	Confidential material.  Please do not (yet) redistribute!
+
+Documentation:	doc/pl2cpp.pdf
+
+Requires:	* SWI-Prolog 3.3 or later
+		* gcc 2.8.x or egcs 1.1 or later:
+		  gcc with exception-handling
+		* Unix with support for shared objects in SWI-Prolog:
+		  Linux, Solaris, Irix and many more.
+
+Demo:		make (must be GNU-make) produces
+
+		* embedded program likes.  See likes.cpp
+		* test.so, load using test.pl holding the examples from
+		  the manual and some more.

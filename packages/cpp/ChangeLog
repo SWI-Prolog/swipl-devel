@@ -1,0 +1,14 @@
+VERSION 1.0.2
+=============
+
+ * FIXED: PlException to pass exceptions other then domain and type errors
+   correctly.  Thanks to Use Lesta.
+
+VERSION 1.0.1
+=============
+
+ * ADDED: conversion between PlTerm and void*
+
+
+VERSION 1.0.0
+=============
