@@ -1,0 +1,55 @@
+.TH XPCE-CLIENT 1 "March 7 1995"
+.SH NAME
+xpce-client \- Contact an XPCE server socket
+.SH SYNOPSIS
+.BR xpce-client " " socket " [\|" \-b "\|]"
+.BR "[\|" \-c " command" "\|]"
+.SH DESCRIPTION
+xpce-client is a small program to contact an
+.I xpce(1)
+server socket and feed the xpce process commands.  A generic server that
+provides the possibility to execute
+.I Prolog goals
+is available in the
+.I library(pce_server).
+This server may be started from xpce using the command
+.PP
+.RS
+.BR "?- " pce_server(socket).
+.RE
+.PP
+after which this server may be contacted using:
+.PP
+.RS
+% xpce-client socket
+.br
+(pce) send(new(P, picture), open).
+.br
+P = @717363
+.br
+(pce) exit
+.br
+%
+.RE
+.PP
+.SS Options
+.TP
+.BI \-b
+Block until the xpce server closes the connection.  Otherwise
+.I xpce-client
+exists as soon as it has send all requests to the server without waiting for
+response.
+.TP
+.BI \-c " command"
+Send
+.I command
+as a command to the server.  Without this option, xpce-client will copy
+standard input to the server socket and copy any output from the socket
+to standard output.
+.SH "SEE ALSO"
+xpce(1), pl(1)
+.SH COPYING
+xpce-client(1) is not copyrighted.  You may use, copy and modify its
+sources and/or binaries as you like.
+.SH AUTHOR
+Jan Wielemaker, SWI, University of Amsterdam

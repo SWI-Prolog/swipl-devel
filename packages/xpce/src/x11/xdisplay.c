@@ -695,6 +695,7 @@ psdepthXImage(XImage *im)
     return im->depth;
   if ( im->depth < 8 )
     return 4;
+  return 8;
 }
 
 

@@ -31,6 +31,7 @@ LIBDIR=		../../$(builddir)/lib
 BINDIR=		../../$(builddir)/bin
 OBJDIR=		../../$(builddir)/pl
 
+CPLIFLAGS=	-I$(PLINCLUDE) -I../../$(builddir) -I../../src
 PL=     	pl
 ITFOBJ= 	$(addprefix $(OBJDIR)/, interface.o link.o)
 SOITF=		$(OBJDIR)/so-interface.o
@@ -42,7 +43,7 @@ XPCESO= 	$(LIBDIR)/xpce4pl.$(SO)
 CRT0=   	$(LIBDIR)/pl-crt0.o
 SOEXTR=		$(addprefix $(OBJDIR)/, $(SOEXTRAOBJ))
 
-CFLAGS= 	$(COFLAGS) $(CMFLAGS) -I$(PLINCLUDE) -I../../src
+CFLAGS= 	$(COFLAGS) $(CMFLAGS) $(CPLIFLAGS)
 ITF=		../../prolog/c/interface.c ../../prolog/c/interface.h
 SOOBJ=		$(SOITF) $(libXPCE) $(SOEXTR) $(GCCLIB)
 
@@ -58,7 +59,8 @@ LIBQLFS=	pce_manual.qlf dialog/dialog.qlf emacs/emacs.qlf pcedraw.qlf
 
 nosoall:	$(QLF) $(CRT0)
 
-soall:		$(PLBASE)/plrc $(PLBASE)/xpce $(XPCESO) $(CRT0) bootqlf
+soall:		$(PLBASE)/plrc $(PLBASE)/xpce $(PLBASE)/xpce/lib/$(PLARCH) \
+		$(XPCESO) $(CRT0) bootqlf
 
 ################################################################
 # Objects for $(OBJDIR)
@@ -115,10 +117,14 @@ bootqlf:	$(addprefix ../../prolog/lib/, $(BOOTQLF))
 ################################################################
 
 $(PLBASE)/plrc:	plrc
-		cp plrc $@
+	cp plrc $@
 
 $(PLBASE)/xpce:
-		(cd $(PLBASE); rm -f xpce; ln -s $(PCEHOME) xpce)
+	(cd $(PLBASE); rm -f xpce; ln -s $(PCEHOME) xpce)
+
+$(PLBASE)/xpce/lib/$(PLARCH):
+	cd ../../lib; rm -f $(PLARCH); ln -s ../$(builddir)/lib $(PLARCH)
+
 
 ################################################################
 # C++ Name mangling.  Not used right now

@@ -52,7 +52,7 @@ static IOSTREAM *S__iob;		/* Windows DLL version */
 #ifndef PROLOG_ITF_INIT
 #define PROLOG_ITF_INIT() { }
 #endif
-#define PROLOG_ONEXIT(f)  { exitpce_hook = f; }
+#define PROLOG_ONEXIT(f)  { exitpce_hook = (OnExitFunction) f; }
 
 static OnExitFunction exitpce_hook;
 

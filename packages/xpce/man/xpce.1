@@ -1,0 +1,124 @@
+.TH XPCE 1 "March 7 1995"
+.SH NAME
+xpce \- SWI-Prolog with graphical user interface (GUI)
+.SH SYNOPSIS
+.BR xpce
+prologoption ...
+.SH DESCRIPTION
+XPCE is a language independant library for GUI (Graphical User Interfaces).
+This manual page discusses XPCE/Prolog: the combination of a Prolog
+environment and XPCE.
+.PP
+XPCE is an object-oriented engine that can have methods defined in
+various languages. XPCE has about 150 predefined classes that deal
+mainly with GUI's.  The object engine of XPE is made available to Prolog
+using the following predicates:
+.SS Predicates:
+.TP
+.BI new(?Ref,\ +Term)
+Create an XPCE object from
+.I Term
+and bind the object to the reference
+.I Ref.
+The functor-name of
+.I Term
+describes the class from which to create an instance.  The arguments of
+.I Term
+are used as initialisation arguments for the new object.  If the object
+was created successfully and
+.I Ref
+is a variable,
+.I Ref
+will be unified with the term @<RefNumber>.  If
+.I Ref
+is a term of the form @<Atom>, this term will serve as a reference for
+the new object.
+
+For example
+.I ?- new(@p, picture('Hello World').
+Creates a graphical window object with title "Hello World".
+.TP
+.BI send(+Ref,\ +Selector,\ +Args ...)
+.I Ref
+is a reference to an existing XPCE object.
+.I Selector
+is the name of a (send-)method defined on (the class of) this object and
+.I Args
+are terms that describe arguments to be passed to the method.
+
+.I send/[2-12]
+will convert the arguments to XPCE data objects, resolve the procedure
+(C-function, Prolog predicate) implementing the method and run the
+implementation.  If the execution is successful, send
+.I succeeds,
+otherwise send
+.I fails.
+
+For example
+.I ?- send(@p,\ open,\ point(400,100)).
+opens the picture created above at position 400,100 on the display.
+.TP
+.BI get(+Ref,\ +Selector,\ +Args\ ...,\ -Value)
+.I Ref
+is a reference to an existing XPCE object.
+.I Selector
+is the name of a (get-)method defined on (the class of) this object and
+.I Args
+are terms to provide additional arguments.
+.I get/[3-13] works similar as
+.I send/[2-12]
+but returns a value rather than succeeding/failing (boolean operation).
+
+For example
+.I get(@p, height, H).
+Unifies
+.I H
+with the height of the graphical window.
+.TP
+.BI free(+Ref)
+If
+.I Ref
+is a reference to an XPCE object, invoke
+.I send(Ref, free).
+to the object.  Otherwise succeed silently.
+.SH "SEE ALSO"
+Jan Wielemaker and Anjo Anjewierden
+.I Programming in XPCE/Prolog,
+University of Amsterdam, Dept. of Social Science and Informatics (SWI).
+.PP
+Jan Wielemaker
+.I SWI-Prolog 1.9 Reference Manual,
+University of Amsterdam, Dept. of Social Science and Informatics (SWI).
+.PP
+The online manual system started with
+.I ?- manpce.
+.PP
+The XPCE WWW home page:
+.I http://swi.psy.uva.nl/projects/xpce/home.html
+.PP
+xpce-client(1), pl(1)
+.SH COPYING
+XPCE/SWI-Prolog is
+.I not
+free software. The only exception to this rule is the binary for
+i386/Linux systems, that may be distributed and used for
+non-comercial purposes free of charge. XPCE/SWI-Prolog is licenced to
+academic institutions at low cost. Such a licence allows for any number
+of machines and users in one research group.
+.PP
+A commercially supported version of XPCE is distributed by Quintus as
+ProWindows-3.  Contact
+.I mark.pinone@quintus.com
+for details.
+.PP
+For further information on available versions and copying you may use
+the XPCE WWW home at
+.I http://www.swi.psy.uva.nl/projects/xpce/home.html
+or ftp to
+.I ftp://swi.psy.uva.nl/pub/xpce/
+or E-mail to
+.I xpce-request@swi.psy.uva.nl
+.PP
+Copyright (C) 1995, SWI, University of Amsterdam
+.SH AUTHOR
+Jan Wielemaker and Anjo Anjewierden
