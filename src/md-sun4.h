@@ -19,7 +19,6 @@ and libraries.  If you are not sure, run `which cc' which should yield
 /usr/ucb/cc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-
 #ifdef USE_CC				/* Sun cc (slower) */
 #define M_CC			cc
 #define M_OPTIMIZE		-O	/* O2 hardly helps */
