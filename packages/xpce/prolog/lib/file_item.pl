@@ -55,7 +55,9 @@ completions(_FI, Tuple:tuple, Matches:chain) :<-
 	->  send(Re, ignore_case, @on)
 	;   true
 	),
-	send(directory(DirName), scan, Matches, Matches, Re).
+	send(directory(DirName), scan, Matches, Matches, Re),
+	send(Matches, delete_all, '.'),
+	send(Matches, delete_all, '..').
 	
 
 split_completion(_FI, Value, Tuple:tuple) :<-

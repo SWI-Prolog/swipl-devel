@@ -1,5 +1,16 @@
 			SWI-Prolog ChangeLog
 			====================
+
+  * ENHANCED: library(url) for breaking down and constructing URL strings
+    with some new functionality.  Additions by Lukas Faulstich.  Also
+    fixed a dangling choice-point in decoding a www-encoded string.
+
+  * ENHANCED: Moved tty_size/2 from library(tty) to built-in, exploiting IOCTL
+    calls to fetch the terminal size when available.  This make tty_size/2
+    return the actual values rather than constant values from the moment of
+    startup.  Reported by Robert van Engelen.
+
+
 VERSION 4.0.2
 =============
 

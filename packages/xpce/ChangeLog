@@ -1,3 +1,5 @@
+* ENHANCED: library(find_file), class file_item not to show . and ..
+
 * FIXED: Crash, notably related to keyboard events destryoing the window
   on which the event happened.  Reported by Lyosha.
 
