@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: User cancel of `display<-win_file_name' (used by find_file.pl
+  to return a filename on a Windows platform).  Reported by Jelmer
+  Jellema.
+
 * FIXED/MODIFIED: `graphical <-{above,below,left,right}' now tell the
   object I'm above, ... rather then *who is* above, ...  This makes
   send(X, below, Y) and get(X, below, Y) behave consistently.  More

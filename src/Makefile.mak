@@ -187,6 +187,12 @@ iprog::
 		$(INSTALL_PROGRAM) $(PLCON) "$(BINDIR)"
 		$(INSTALL_PROGRAM) $(PLDLL) "$(BINDIR)"
 		$(INSTALL_PROGRAM) $(TERMDLL) "$(BINDIR)"
+!IF "$(DBG)" == "true"
+		$(INSTALL_PROGRAM) ..\bin\plwin.pdb "$(BINDIR)"
+		$(INSTALL_PROGRAM) ..\bin\plcon.pdb "$(BINDIR)"
+		$(INSTALL_PROGRAM) ..\bin\libpl.pdb "$(BINDIR)"
+		$(INSTALL_PROGRAM) ..\bin\plterm.pdb "$(BINDIR)"
+!ENDIF
 
 install-libs:	idirs iinclude iboot ilib
 		$(INSTALL_DATA) $(STARTUPPATH) "$(PLBASE)\$(BOOTFILE)"
@@ -222,6 +228,7 @@ install-readme::
 		$(INSTALL_DATA) ..\VERSION "$(PLBASE)"
 		$(INSTALL_DATA) ..\ChangeLog "$(PLBASE)\ChangeLog.TXT"
 		$(INSTALL_DATA) ..\README.WIN "$(PLBASE)\READWIN.TXT"
+		$(INSTALL_DATA) ..\COPYING "$(PLBASE)\COPYING.TXT"
 
 install-dotfiles::
 		$(INSTALL_DATA) ..\dotfiles\dotplrc "$(PLCUSTOM)\pl.ini"

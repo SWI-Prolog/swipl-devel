@@ -25,12 +25,6 @@ get_wise_variable(Name, Value) :-
 	close_dde_conversation(Handle),
 	Value = RawVal.
 
-set_wise_variable(Name, Value) :-
-	open_dde_conversation('WiseInst', Name, Handle),
-	dde_execute(Handle, -, Value),
-	close_dde_conversation(Handle).
-
-
 ensure_group(Group) :-
 	progman_groups(ExistingGroups),
 	(   member(Group, ExistingGroups)
@@ -62,36 +56,22 @@ wise_install :-
 	    progman_make_item(Group, Item, CmdLine, Cwd)
 	;   true
 	), !,
-	(   absolute_file_name(swi(xpce),
-			       [ access(exist),
-				 file_type(directory),
-				 file_errors(fail)
-			       ], _)
-	->  wise_install_xpce
-	;   true
-	),
+	wise_install_xpce,
 	format('~N~nAll done.', []),
 	sleep(2),
 	halt(0).
 wise_install :-
 	halt(1).
 
+wise_install_xpce :-			% no XPCE around
+	\+ absolute_file_name(swi(xpce),
+			      [ access(exist),
+				file_type(directory),
+				file_errors(fail)
+			      ], _), !.
 wise_install_xpce :-
 	qcompile_pce,
 	qcompile_lib,
-	(   get_wise_variable('GROUP', Group),
-	    get_wise_variable('PLCWD', Cwd),
-	    Cwd \== '',
-	    Group \== ''
-	->  Item = 'XPCE',
-	    format('Installing icons in group ~w, for CWD=~w~n', [Group, Cwd]),
-	    ensure_group(Group),
-	    current_prolog_flag(executable, PlFileName),
-	    prolog_to_os_filename(PlFileName, Prog),
-	    concat_atom(['"', Prog, '" -- -pce'], CmdLine),
-	    progman_make_item(Group, Item, CmdLine, Cwd, Prog:1)
-	;   true
-	), !,
 	halt(0).
 wise_install_xpce :-
 	halt(1).

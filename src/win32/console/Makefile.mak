@@ -18,7 +18,7 @@ OBJ=		complete.obj console.obj edit.obj history.obj
 all:		$(OUTLIB) $(OUTINC)
 
 $(OUTLIB):	$(OBJ)
-		$(LD) /out:$(OUTDLL) /implib:$@ /dll $(OBJ) $(LIBS) $(XLIBS)
+		$(LD) $(LDFLAGS) /out:$(OUTDLL) /implib:$@ /dll $(OBJ) $(LIBS) $(XLIBS)
 
 $(OUTINC):	console.h
 		copy console.h $@

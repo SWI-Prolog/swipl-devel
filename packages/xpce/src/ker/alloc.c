@@ -16,7 +16,11 @@
 #endif
 #ifndef ALLOC_DEBUG
 #ifndef O_RUNTIME
+#if defined(_DEBUG) && defined(WIN32)
+#define ALLOC_DEBUG 2
+#else
 #define ALLOC_DEBUG 0			/* 1 or 2 */
+#endif
 #else
 #define ALLOC_DEBUG 0
 #endif /*O_RUNTIME*/
@@ -57,7 +61,7 @@ perfect fit strategy for memory allocation.
 
 static inline Zone
 allocate(int size)
-{ char *p;
+{ unsigned char *p;
   long top, base;
   Zone z;
   int alloc_size = size + offset(struct zone, start);
@@ -161,10 +165,10 @@ alloc(register int n)
       wastedbytes -= n;
 
 #if ALLOC_DEBUG > 1
-      { char *p;
-	for(p = (char *)&z->start + n;
-	    --p >= ((char *)&z->next + sizeof(z->next));
-	    )
+      { unsigned char *p, *e;
+	e = (unsigned char *)&z->next + sizeof(z->next);
+
+	for(p = (unsigned char *)&z->start + n; --p >= e; )
 	  assert(*p == ALLOC_MAGIC_BYTE);
       }
 #else

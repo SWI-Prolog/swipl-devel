@@ -348,6 +348,7 @@ getWinFileNameDisplay(DisplayObj d,
   char filter[1024], *ef = filter;
   char buffer[2048];
   char cwdbin[MAXPATHLEN];
+  BOOL tmpb;
 
   memset(&ofn, 0, sizeof(OPENFILENAME));
   ofn.lStructSize = sizeof(OPENFILENAME);
@@ -433,9 +434,19 @@ getWinFileNameDisplay(DisplayObj d,
 	       
   if ( mode == NAME_open )
   { ofn.Flags |= OFN_FILEMUSTEXIST;
-    GetOpenFileName(&ofn);
+    tmpb = GetOpenFileName(&ofn);
   } else
-    GetSaveFileName(&ofn);
+    tmpb = GetSaveFileName(&ofn);
+
+  if ( !tmpb )
+  { DWORD w;
+
+    if ( !(w=CommDlgExtendedError()) )
+      fail;				/* user canceled */
+
+    Cprintf("Get{Open,Save}FileName() failed: %ld\n", w);
+    fail;
+  }
 
   if ( buffer[0] )
   { char *base = baseName(buffer);

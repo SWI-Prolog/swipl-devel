@@ -17,8 +17,13 @@
 #endif
 
 #ifndef ALLOC_DEBUG
+#if defined(_DEBUG) && defined(WIN32)
+#define ALLOC_DEBUG 1
+#else
 #define ALLOC_DEBUG 0
 #endif
+#endif
+
 #define ALLOC_MAGIC 0xbf
 #define ALLOC_FREE_MAGIC 0x5f
 #define ALLOC_VIRGIN_MAGIC 0x7f
