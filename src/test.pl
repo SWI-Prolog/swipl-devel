@@ -920,6 +920,26 @@ collect_data(C, Fd, [C|T]) :-
 
 
 		 /*******************************
+		 *	      TIMEOUT		*
+		 *******************************/
+
+timeout(pipe-1) :-
+	(   current_prolog_flag(pipe, true)
+	->  open(pipe('echo xx && sleep 2 && echo xx.'), read, In),
+	    set_stream(In, timeout(1)),
+	    wait_for_input([In], [In], infinite),
+	    catch(read(In, _), E1, true),
+	    E1 = error(timeout_error(read, _), _),
+	    wait_for_input([In], [In], infinite),
+	    catch(read(In, Term), E2, true),
+	    var(E2),
+	    Term == xx,
+	    close(In)
+	;   true
+	).
+
+
+		 /*******************************
 		 *	      FILES		*
 		 *******************************/
 
@@ -1056,6 +1076,7 @@ testset(term_atom).
 testset(io).
 testset(popen) :-
 	current_prolog_flag(pipe, true).
+testset(timeout).
 testset(file).
 testset(load_program).
 testset(ctype).

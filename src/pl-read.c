@@ -2170,8 +2170,11 @@ pl_raw_read2(term_t from, term_t term)
   rval = PL_unify_atom_nchars(term, top-s, (char *)s);
 
 out:
-  PL_release_stream(in);
   free_read_data(&rd);
+  if ( Sferror(in) )
+    return streamStatus(in);
+  else
+    PL_release_stream(in);
 
   return rval;
 }
@@ -2198,7 +2201,11 @@ pl_read2(term_t from, term_t term)
   if ( rd.has_exception )
     rval = PL_raise_exception(rd.exception);
   free_read_data(&rd);
-  PL_release_stream(s);
+
+  if ( Sferror(s) )
+    return streamStatus(s);
+  else
+    PL_release_stream(s);
 
   return rval;
 }
@@ -2249,7 +2256,10 @@ PRED_IMPL("read_clause", 2, read_clause, 0)
       if ( !getInputStream(0, &s) )	/* Scurin */
 	fail;
       rval = read_clause(s, A1 PASS_LD);
-      PL_release_stream(s);
+      if ( Sferror(s) )
+	return streamStatus(s);
+      else
+	PL_release_stream(s);
 
       return rval;
     }
@@ -2259,7 +2269,10 @@ PRED_IMPL("read_clause", 2, read_clause, 0)
       if ( !getInputStream(A1, &s) )
 	fail;
       rval = read_clause(s, A2 PASS_LD);
-      PL_release_stream(s);
+      if ( Sferror(s) )
+	return streamStatus(s);
+      else
+	PL_release_stream(s);
 
       return rval;
     }
@@ -2337,7 +2350,10 @@ retry:
     rd.singles = TRUE;
 
   rval = read_term(term, &rd PASS_LD);
-  PL_release_stream(s);
+  if ( Sferror(s) )
+    rval = streamStatus(s);
+  else
+    PL_release_stream(s);
 
   if ( rval )
   { if ( tpos && source_line_no > 0 )

@@ -307,6 +307,11 @@ S__flushbufc(int c, IOSTREAM *s)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+S__fillbuf() fills the read-buffer, returning the first character of it.
+It also realises the SWI-Prolog timeout facility.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 S__fillbuf(IOSTREAM *s)
 { int c;
@@ -322,22 +327,21 @@ S__fillbuf(IOSTREAM *s)
   if ( s->timeout >= 0 )
   { int fd = Sfileno(s);
 
-    Sdprintf("Timeout %d on %d\n", s->timeout, fd);
-
     if ( fd >= 0 )
     { fd_set wait;
       struct timeval time;
+      int rc;
       
       time.tv_sec  = s->timeout / 1000;
       time.tv_usec = (s->timeout % 1000) * 1000;
       FD_ZERO(&wait);
       FD_SET(fd, &wait);
 
-      if ( select(fd+1, &wait, NULL, NULL, &time) < 0 )
+      if ( (rc=select(fd+1, &wait, NULL, NULL, &time)) < 0 )
 	goto error;
 
       if ( !FD_ISSET(fd, &wait) )
-      { s->flags |= SIO_TIMEOUT;
+      { s->flags |= (SIO_TIMEOUT|SIO_FERR);
 	goto error;
       }
     } else
@@ -608,7 +612,7 @@ Sfpasteof(IOSTREAM *s)
 
 void
 Sclearerr(IOSTREAM *s)
-{ s->flags &= ~(SIO_FEOF|SIO_FERR|SIO_FEOF2);
+{ s->flags &= ~(SIO_FEOF|SIO_FERR|SIO_FEOF2|SIO_TIMEOUT);
 }
 
 

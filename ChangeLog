@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: timeout to Prolog streams.
+
   * ADDED: Make Prolog safe for pthread_cancel(), canceling threads
     holding a Prolog engine.
 

@@ -619,15 +619,17 @@ streamStatus(IOSTREAM *s)
     PL_unify_stream_or_alias(stream, s);
 
     if ( s->flags & SIO_INPUT )
-    { op = ATOM_read;
-
-      if ( Sfpasteof(s) )
-      { PL_error(NULL, 0, NULL, ERR_PERMISSION,
-		 ATOM_input, ATOM_past_end_of_stream, stream);
+    { if ( Sfpasteof(s) )
+      { rval = PL_error(NULL, 0, NULL, ERR_PERMISSION,
+			ATOM_input, ATOM_past_end_of_stream, stream);
+	goto out;
       } else if ( s->flags & SIO_TIMEOUT )
-      { PL_error(NULL, 0, NULL, ERR_TIMEOUT,
-		 op, stream);
-      }
+      { rval = PL_error(NULL, 0, NULL, ERR_TIMEOUT,
+			ATOM_read, stream);
+	Sclearerr(s);
+	goto out;
+      } else
+	op = ATOM_read;
     } else
       op = ATOM_write;
 
@@ -635,6 +637,7 @@ streamStatus(IOSTREAM *s)
   } else
     rval = TRUE;
 
+out:
   releaseStream(s);
 
   return rval;
