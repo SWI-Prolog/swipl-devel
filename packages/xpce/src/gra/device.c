@@ -370,13 +370,9 @@ advanceDevice(Device dev, Graphical gr, Bool propagate)
 								      : OFF;
 
   if ( propagate == ON )
-  { send(dev->device, NAME_advance, dev, 0);
-  } else
-  { if ( notNil(first) )
-      keyboardFocusWindow(sw, first);
-    else
-      keyboardFocusWindow(sw, NIL);
-  }
+    send(dev->device, NAME_advance, dev, 0);
+  else
+    keyboardFocusWindow(sw, first);	/* may be NIL */
 
   succeed;
 }
@@ -870,7 +866,7 @@ move_graphical(Graphical gr, int x, int y)
   Int Y = toInt(y);
 
   if ( X != gr->area->x || Y != gr->area->y )
-    setGraphical(gr, X, Y, DEFAULT, DEFAULT);
+    doSetGraphical(gr, X, Y, DEFAULT, DEFAULT);
 }
 
 #define MAXCOLS 1024
