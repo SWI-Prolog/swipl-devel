@@ -1968,12 +1968,35 @@ ffiillee__sseeaarrcchh__ppaatthh((_+_A_l_i_a_s_, _?_P_
          user:file_search_path(foreign, swi(lib)).
 
     The  file_search_path/2expansion  is used by all loading  predicates
-    as well as by absolute_file_name/2.
+    as well as by absolute_file_name/[2,3].
 
 
 eexxppaanndd__ffiillee__sseeaarrcchh__ppaatthh((_+_S_p_e_c_, _-_P_a_t_h))
     Unifies  _P_a_t_h  will   all  possible  expansions  of  the  file  name
     specification _S_p_e_c.  See also absolute_file_name/3.
+
+
+pprroolloogg__ffiillee__ttyyppee((_?_E_x_t_e_n_s_i_o_n_, _?_T_y_p_e))
+    This  dynamic multifile predicate defined in module  user determines
+    the  extensions considered by file_search_path/2.  _E_x_t_e_n_s_i_o_n is  the
+    filename  extension without the leading  dot, _T_y_p_e denotes the  type
+    as  used  by the  file_type(_f_i_l_e___t_y_p_e)  option  of file_search_path/2.
+    Here is the initial definition of prolog_file_type/2:
+
+         user:prolog_file_type(pl,       prolog).
+         user:prolog_file_type(Ext,      prolog) :-
+                 feature(associate, Ext),
+                 Ext \== pl.
+         user:prolog_file_type(qlf,      qlf).
+         user:prolog_file_type(so,       executable) :-
+                 feature(open_shared_object, true).
+         user:prolog_file_type(dll,      executable) :-
+                 feature(dll, true).
+
+    Users  may  wish to  change  the extension  used for  Prolog  source
+    files  to avoid  conflicts (for  example with  perl) as  well as  to
+    be  compatible with  some specific  implementation.   The  preferred
+    alternative extension is .pro.
 
 
 ssoouurrccee__ffiillee((_?_F_i_l_e))
@@ -5331,7 +5354,7 @@ aabbssoolluuttee__ffiillee__nnaammee((_+_F_i_l_e_, _-_
 
 aabbssoolluuttee__ffiillee__nnaammee((_+_S_p_e_c_, _+_O_p_t_i_o_n_s_, _-_A_b_s_o_l_u_t_e))
     Converts  the  given  file  specification  into  an  absolute  path.
-    _O_p_t_i_o_n is a list of options to guide the conformation process:
+    _O_p_t_i_o_n is a list of options to guide the conversion:
 
     eexxtteennssiioonnss((_L_i_s_t_O_f_E_x_t_e_n_s_i_o_n_s))
          List of  file-extensions to  try.   Default is  ''.   For  each
@@ -5350,9 +5373,10 @@ aabbssoolluuttee__ffiillee__nnaammee((_+_S_p_e_c_, _+_
          prolog  implies ['.pl', ''],  executable  implies  ['.so', ''],
          qlf implies ['.qlf', ''] and directory implies [''].
 
-    ffiillee__eerrrroorrss((_f_a_i_l_/_t_r_u_e))
-         Report if  the  path cannot  be resolved  or be  silent.    The
-         default is to stay silent.
+    ffiillee__eerrrroorrss((_f_a_i_l_/_e_r_r_o_r))
+         If error (default), throw and  existence_error exception  if the
+         file cannot  be found.    If  fail, stay  silent.footnoteSilent
+         operation was the default upto version 3.2.6.
 
     ssoolluuttiioonnss((_f_i_r_s_t_/_a_l_l))
          If  first (default),  the  predicates leaves  no  choice-point.
@@ -9950,22 +9974,23 @@ suggest predicates from a keyword.
  prolog_edit:edit_command/2    Specify editor activation
 
  prolog_edit:load/0            Load edit/1 extensions
+ prolog_file_type/2            Define meaning of file extension
  prolog_frame_attribute/3      Obtain information on a goal environment
  prolog_list_goal/1            Hook.  Intercept tracer 'L' command
  prolog_load_context/2         Context information for directives
  prolog_skip_level/2           Indicate deepest recursion to trace
  prolog_to_os_filename/2       Convert between Prolog and OS filenames
  prolog_trace_interception/4   library(user) Intercept the Prolog tracer
- prompt1/1                     Change prompt for 1 line
 
+ prompt1/1                     Change prompt for 1 line
  prompt/2                      Change the prompt used by read/1
  proper_list/1                 Type check for list
  protocol/1                    Make a log of the user interaction
  protocola/1                   Append log of the user interaction to file
  protocolling/1                On what file is user interaction logged
  put/1                         Write a character
- put/2                         Write a character on a stream
 
+ put/2                         Write a character on a stream
  qcompile/1                    Compile source to Quick Load File
  qload/1                       Load Quick Load File as consult/1
  qsave_program/1               Create runtime application
@@ -9973,16 +9998,16 @@ suggest predicates from a keyword.
  read/1                        Read Prolog term
  read/2                        Read Prolog term from stream
  read_clause/1                 Read clause
- read_clause/2                 Read clause from stream
 
+ read_clause/2                 Read clause from stream
  read_history/6                Read using history substitution
  read_link/3                   Read a symbolic link
  read_term/2                   Read term with options
  read_term/3                   Read term with options from stream
  read_variables/2              Read clause including variable names
  read_variables/3              Read clause including variable names from stream
- recorda/2                     Record term in the database (first)
 
+ recorda/2                     Record term in the database (first)
  recorda/3                     Record term in the database (first)
  recorded/2                    Obtain term from the database
  recorded/3                    Obtain term from the database
@@ -9990,16 +10015,16 @@ suggest predicates from a keyword.
  recordz/3                     Record term in the database (last)
  redefine_system_predicate/1   Abolish system definition
  rename_file/2                 Change name of file
- repeat/0                      Succeed, leaving infinite backtrack points
 
+ repeat/0                      Succeed, leaving infinite backtrack points
  require/1                     This file requires these predicates
  reset_profiler/0              Clear statistics obtained by the profiler
  resource/3                    Declare a program resource
  restore/1                     Restore saved-state (save/1, save_program/1)
  retract/1                     Remove clause from the database
  retractall/1                  Remove unifying clauses from the database
- reverse/2                     Inverse the order of the elements in a list
 
+ reverse/2                     Inverse the order of the elements in a list
  same_file/2                   Succeeds if arguments refer to same file
  see/1                         Change the current input stream
  seeing/1                      Query the current input stream
@@ -10007,16 +10032,16 @@ suggest predicates from a keyword.
  seen/0                        Close the current input stream
  select/3                      Select element of a list
  set_feature/2                 Define a system feature
- set_input/1                   Set current input stream from a stream
 
+ set_input/1                   Set current input stream from a stream
  set_output/1                  Set current output stream from a stream
  set_tty/2                     Set `tty' stream
  setarg/3                      Destructive assignment on term
  setenv/2                      Set shell environment variable
  setof/3                       Find all unique solutions to a goal
  sformat/2                     Format on a string
- sformat/3                     Format on a string
 
+ sformat/3                     Format on a string
  shell/0                       Execute interactive subshell
  shell/1                       Execute OS command
  shell/2                       Execute OS command
@@ -10024,16 +10049,16 @@ suggest predicates from a keyword.
  size_file/2                   Get size of a file in characters
  skip/1                        Skip to character in current input
  skip/2                        Skip to character on stream
- rl_add_history/1              Add line to readline(3) history
 
+ rl_add_history/1              Add line to readline(3) history
  rl_read_init_file/1           Read readline(3) init file
  sleep/1                       Suspend execution for specified time
  sort/2                        Sort elements in a list
  source_file/1                 Examine currently loaded source files
  source_file/2                 Obtain source file of predicate
  source_location/2             Location of last read term
- spy/1                         Force tracer on specified predicate
 
+ spy/1                         Force tracer on specified predicate
  stack_parameter/4             Some systems:  Query/Set runtime stack parameter
  statistics/0                  Show execution statistics
  statistics/2                  Obtain collected statistics
@@ -10041,16 +10066,16 @@ suggest predicates from a keyword.
  string/1                      Type check for string
  string_concat/3               concat/3 for strings (non-deterministic)
  string_length/2               Determine length of a string
- string_to_atom/2              Conversion between string and atom
 
+ string_to_atom/2              Conversion between string and atom
  string_to_list/2              Conversion between string and list of ASCII
  style_check/1                 Change level of warnings
  sublist/3                     Determine elements that meet condition
  subset/2                      Generate/check subset relation
  substring/4                   Get part of a string
  subtract/3                    Delete elements that do not meet condition
- succ/2                        Logical integer successor relation
 
+ succ/2                        Logical integer successor relation
  swritef/2                     Formatted write on a string
  swritef/3                     Formatted write on a string
  tab/1                         Output number of spaces
@@ -10058,16 +10083,16 @@ suggest predicates from a keyword.
  tell/1                        Change current output stream
  telling/1                     Query current output stream
  term_expansion/2              (hook) Convert term before compilation
- term_to_atom/2                Convert between term and atom
 
+ term_to_atom/2                Convert between term and atom
  throw/1                       Raise an exception (see catch/3)
  time/1                        Determine time needed to execute goal
  time_file/2                   Get last modification time of file
  tmp_file/2                    Create a temporary filename
  told/0                        Close current output
  trace/0                       Start the tracer
- trace/1                       Set trace-point on predicate
 
+ trace/1                       Set trace-point on predicate
  trace/2                       Set/Clear trace-point on ports
  tracing/0                     Query status of the tracer
  trim_stacks/0                 Release unused memory resources
@@ -10075,16 +10100,16 @@ suggest predicates from a keyword.
  tty_get_capability/3          Get terminal parameter
  tty_goto/2                    Goto position on screen
  tty_put/2                     Write control string to terminal
- ttyflush/0                    Flush output on terminal
 
+ ttyflush/0                    Flush output on terminal
  union/3                       Union of two sets
  unknown/2                     Trap undefined predicates
  unload_foreign_library/1      library(shlib) Detach shared library (.so file)
  unsetenv/1                    Delete shell environment variable
  use_module/1                  Import a module
  use_module/2                  Import predicates from a module
- var/1                         Type check for unbound variable
 
+ var/1                         Type check for unbound variable
  visible/1                     Ports that are visible in the tracer
  volatile/1                    Predicates that are not saved
  wait_for_input/3              Wait for input with optional timeout
@@ -10092,16 +10117,16 @@ suggest predicates from a keyword.
  win_exec/2                    Win32:  spawn Windows task
  write/1                       Write term
  write/2                       Write term to stream
- write_ln/1                    Write term, followed by a newline
 
+ write_ln/1                    Write term, followed by a newline
  write_canonical/1             Write a term with quotes, ignore operators
  write_canonical/2             Write a term with quotes, ignore operators on a stream
  write_term/2                  Write term with options
  write_term/3                  Write term with options to stream
  writef/1                      Formatted write
  writef/2                      Formatted write on stream
- writeq/1                      Write term, insert quotes
 
+ writeq/1                      Write term, insert quotes
  writeq/2                      Write term, insert quotes on stream
 
 
@@ -10282,4 +10307,4 @@ ________________________________________________________________________
                                   New York, 1983.  Major revision  March
                                   1984.
 
-                                                          SWI-Prolog 3.2
+SWI-Prolog 3.2
