@@ -475,23 +475,29 @@ AC_DEFINE(DOUBLE_ALIGNMENT, sizeof(double)),
 AC_MSG_RESULT(assuming sizeof(double))
 AC_DEFINE(DOUBLE_ALIGNMENT, sizeof(double)))
 
+dnl See whether we can access long values over non-aligned pointers.  This
+dnl should also check whether it is actually faster to do so.  Note that on
+dnl the ARM processor it works, but the pointer is truncated, overwriting
+dnl waht is in front of it.  The current check validates this.
+
 AC_MSG_CHECKING("unaligned access")
 AC_TRY_RUN(
 [ main()
   { char l[sizeof(long)*2];
     long *p;
-    int i;
 
 #if defined(__alpha__) || defined(__alpha) || defined(__ia64__)
     exit(1);
 #endif
 
-    for(i=0; i<sizeof(long); i++)
-    { p = (long *)(l+i);
-      *p = 42;
-    }
+    l[0] = 10;
+    p = (long *)(l+1);
+    *p = 0x20406080;
 
-    exit(0);
+    if ( l[0] == 10 && *p == 0x20406080 )
+      exit(0);
+
+    exit(1);
   }
 ],
 AC_MSG_RESULT(allowed)

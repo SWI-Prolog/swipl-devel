@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORT: Improved configure check for non-aligned access on long values.
+    On the ARM processor such access doesn't result in a crash, but in
+    incorrect result.  With help of Sergio Martinez.
+
   * FIXED: Added overflow test for too many (>32 million) atoms.  TBD:
     turn into proper exception, but getting a relyable exception from
     PL_new_atom() is very difficult.  This at least is better than
