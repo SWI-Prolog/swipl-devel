@@ -569,14 +569,15 @@ currentNoChain(Chain ch, Int index)
 
 static Int
 getCurrentNoChain(Chain ch)
-{ register Cell cell;
-  register int n;
+{ Cell cell;
+  int n;
 
   if (isNil(ch->current))
-    n = 0;
-  else
-    for(n=1, cell=ch->head; cell != ch->current; cell=cell->next)
-      n++;
+    fail;
+
+  for(n=1, cell=ch->head; cell != ch->current; cell=cell->next)
+    n++;
+
   answer(toInt(n));
 }
 
