@@ -51,16 +51,17 @@ term_member(X, Compound) :-
 %	Parse and atom into a structured term
 
 parse_atom(Atom, Term) :-
+	atom_to_memory_file(Atom, MemFile),
+	open_memory_file(MemFile, read, Stream),
 	new_sgml_parser(Parser, []),
 	set_sgml_parser(Parser, dialect(xmlns)),
 	sgml_parse(Parser,
-		   [ document(Term),
-		     goal(provide_atom(Atom))
+		   [ source(Stream),
+		     document(Term)
 		   ]),
-	free_sgml_parser(Parser).
-
-provide_atom(Atom, ParserStream) :-
-	write(ParserStream, Atom).
+	free_sgml_parser(Parser),
+	close(Stream),
+	free_memory_file(MemFile).
 
 
 		 /*******************************
