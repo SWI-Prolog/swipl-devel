@@ -478,7 +478,12 @@ AC_DEFINE(DOUBLE_ALIGNMENT, sizeof(double)))
 dnl See whether we can access long values over non-aligned pointers.  This
 dnl should also check whether it is actually faster to do so.  Note that on
 dnl the ARM processor it works, but the pointer is truncated, overwriting
-dnl waht is in front of it.  The current check validates this.
+dnl what is in front of it.  The current check validates this.
+dnl
+dnl Seems we can better play safe and set this to yes on for the Intel
+dnl processors and no otherwise.  On some systems it works, but is sloooow,
+dnl on others it works kind-of, but not relyable, etc.  I've left the
+dnl old test for reference.
 
 AC_MSG_CHECKING("unaligned access")
 AC_TRY_RUN(
@@ -495,7 +500,11 @@ AC_TRY_RUN(
     *p = 0x20406080;
 
     if ( l[0] == 10 && *p == 0x20406080 )
+    {
+#if defined(__i386__)
       exit(0);
+#endif
+    }
 
     exit(1);
   }
