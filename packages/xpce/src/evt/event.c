@@ -147,7 +147,7 @@ considerLocStillEvent()
 { if ( !loc_still_posted )
   { unsigned long now = mclock();
 
-    if ( now - host_last_time < loc_still_time )
+    if ( now - host_last_time < (unsigned long)loc_still_time )
     { DEBUG(NAME_locStill, Cprintf("TimeDiff = %d (ignored)\n", now - host_last_time));
       return;
     }
