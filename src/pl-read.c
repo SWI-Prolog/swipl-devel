@@ -718,7 +718,7 @@ save_var_name(const char *name, ReadData _PL_rd)
 
   addMultipleBuffer(&var_name_buffer, name, l+1, char);
   if ( (nb = baseBuffer(&var_name_buffer, char)) != ob )
-  { int shift = nb - ob;
+  { ptrdiff_t shift = nb - ob;
 
     for_vars(v, v->name += shift);
   }

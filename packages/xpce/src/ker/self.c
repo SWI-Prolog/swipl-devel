@@ -38,7 +38,7 @@
 #define OS ws_os()
 #endif
 
-#if defined(__linux__) || (defined(__sun__) && !STDC_HEADERS)
+#if (defined(__sun__) && !STDC_HEADERS)
 extern int gethostname(char *__name, size_t __len);
 #endif
 

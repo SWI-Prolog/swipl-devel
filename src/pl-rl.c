@@ -54,7 +54,6 @@ SWI-Prolog.h (pl-itf.h) and SWI-Stream.h (pl-strea.h).
 
 #ifdef HAVE_RL_INSERT_CLOSE
 #define PAREN_MATCHING 1
-extern int rl_delete_text(int from, int to);
 #endif
 
 #undef ESC				/* will be redefined ... */
@@ -301,7 +300,7 @@ Sread_readline(void *handle, char *buf, int size)
 }
 
 
-static void
+static int
 prolog_complete(int ignore, int key)
 { if ( rl_point > 0 && rl_line_buffer[rl_point-1] != ' ' )
   { rl_begin_undo_group();
@@ -318,6 +317,8 @@ prolog_complete(int ignore, int key)
     rl_end_undo_group();
   } else
     rl_complete(ignore, key);
+
+  return 0;
 }
 
 
@@ -364,7 +365,7 @@ PL_install_readline()
 #else
   rl_basic_word_break_characters = ":\t\n\"\\'`@$><= [](){}+*!,|%&?";
 #endif
-  rl_add_defun("prolog-complete", (Function *) prolog_complete, '\t');
+  rl_add_defun("prolog-complete", prolog_complete, '\t');
 #if HAVE_RL_INSERT_CLOSE
   rl_add_defun("insert-close", rl_insert_close, ')');
 #endif

@@ -221,7 +221,7 @@ layoutDialogDialogGroup(DialogGroup g)
 { obtainClassVariablesObject(g);
 
   if ( notNil(g->layout_manager) )
-  { if ( notNil(notNil(g->layout_manager->request_compute)) )
+  { if ( notNil(g->layout_manager->request_compute) )
       qadSendv(g->layout_manager, NAME_compute, 0, NULL);
   } else
     layoutDialogDevice((Device)g, g->gap, g->size, g->border);
