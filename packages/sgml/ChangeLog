@@ -1,0 +1,3 @@
+* ADDED: Reporting errors and warnings through print_message/2.
+
+* FIXED: Handling of end-of-file in CDATA 
