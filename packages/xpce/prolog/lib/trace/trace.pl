@@ -221,7 +221,7 @@ do_intercept(cut_exit(PC), Frame, CHP, Action) :-
 	action(Action).
 
 
-show(StartFrame, CHP, Up, exception(Except)) :-
+show(StartFrame, CHP, Up, exception(Except)) :- !,
 	show(StartFrame, CHP, Up, exception, exception),
 	\+ \+ (numbervars(Except, '$VAR', 0, _),
 	       term_to_atom(Except, Atom),

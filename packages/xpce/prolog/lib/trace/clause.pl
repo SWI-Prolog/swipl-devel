@@ -82,13 +82,7 @@ clause_info(ClauseRef, File, TermPos, NameOffset) :-
 	;   strip_module(user:Head, Module, _)
 	),
 	debug('Clause ~w from ~w:~d ...', [ClauseRef, File, LineNo]),
-	open(File, read, Handle),
-	seek_to_line(Handle, LineNo),
-	(   read(Handle, Module, Clause, TermPos0, VarNames)
-	->  close(Handle)
-	;   close(Handle),
-	    fail
-	),
+	read_term_at_line(File, LineNo, Module, Clause, TermPos0, VarNames),
 	debug('read ...', []),
 	unify_clause(Clause, DecompiledClause, TermPos0, TermPos),
 	debug('unified ...', []),
@@ -137,6 +131,15 @@ alternate_syntax(system,    style_check(+dollar),
 system_module(system) :- !.
 system_module(Module) :-
 	sub_atom(Module, 0, _, _, $), !.
+
+read_term_at_line(File, Line, Module, Clause, TermPos, VarNames) :-
+	open(File, read, In),
+	call_cleanup(read(Line, In, Module, Clause, TermPos, VarNames),
+		     close(In)).
+
+read(Line, Handle, Module, Clause, TermPos, VarNames) :-
+	seek_to_line(Handle, Line),
+	read(Handle, Module, Clause, TermPos, VarNames).
 
 read(Handle, Module, Clause, TermPos, VarNames) :-
 	(   system_module(Module)
