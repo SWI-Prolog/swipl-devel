@@ -53,7 +53,8 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-%doc ChangeLog README src/README.bin README.GUI COPYING
+%doc ChangeLog README COPYING
 /usr/lib/pl-%{version}
 /usr/man/man1/*
 /usr/bin/pl*
+/usr/bin/xpce
