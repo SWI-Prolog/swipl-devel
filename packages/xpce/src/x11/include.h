@@ -190,7 +190,6 @@ struct draw_context
   Image		and_pattern;		/* Current andpattern */
   FontObj	font;			/* Current font */
 #ifdef USE_XFT
-  XftDraw     * xft_draw;		/* XFT drawable */
   XftFont     * xft_font;		/* XFT font representation */
 #else
 #ifdef USE_XFONTSET

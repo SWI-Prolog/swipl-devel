@@ -191,9 +191,6 @@ d_push_context(void)
 
   *ctx = context;			/* structure copy! */
   context.parent = ctx;
-#ifdef USE_XFT
-  context.xft_draw = NULL;
-#endif
 }
 
 
@@ -201,9 +198,12 @@ static void
 d_pop_context()
 {
 #ifdef USE_XFT
-  if ( context.depth == 1 && context.xft_draw )
-    XftDrawDestroy(context.xft_draw);
-  context.xft_draw = NULL;
+  if ( context.xft_draw )
+  { if ( !context.parent || context.parent->xft_draw != context.xft_draw )
+    { XftDrawDestroy(context.xft_draw);
+      context.xft_draw = NULL;
+    }
+  }
 #endif
 
   if ( context.parent != NULL )
@@ -337,6 +337,9 @@ d_window(PceWindow sw, int x, int y, int w, int h, int clear, int limit)
   context.origin_x	     = context.offset_x;
   context.origin_y	     = context.offset_y;
   context.drawable	     = (Drawable) XtWindow(widgetWindow(sw));
+#ifdef USE_XFT
+  context.xft_draw	     = NULL;
+#endif
   context.kind		     = NAME_window;
 
   env++;
@@ -377,6 +380,9 @@ d_window(PceWindow sw, int x, int y, int w, int h, int clear, int limit)
       context.cache = d->cache;
       context.window = context.drawable;
       context.drawable = (Drawable) getXrefObject(context.cache, d);
+#ifdef USE_XFT
+      context.xft_draw = NULL;
+#endif
       assign(context.cache, foreground, sw->colour);
       assign(context.cache, background, sw->background);
       context.kind = NAME_pixmap;
@@ -446,6 +452,9 @@ d_image(Image i, int x, int y, int w, int h)
   else
     context.default_background = i->background;
   context.drawable	     = (Drawable) image;
+#ifdef USE_XFT
+  context.xft_draw	     = NULL;
+#endif
   context.kind		     = i->kind;
 
   if ( i->kind == NAME_pixmap )
@@ -479,6 +488,9 @@ d_xwindow(DisplayObj d, Window win, int x, int y, int w, int h)
   context.origin_x	     = 0;
   context.origin_y	     = 0;
   context.drawable	     = (Drawable) win;
+#ifdef USE_XFT
+  context.xft_draw	     = NULL;
+#endif
   context.default_background = d->background;
   context.kind		     = NAME_window;
 
@@ -2454,15 +2466,11 @@ xftDraw()
   { if ( context.depth == 1 )
     { context.xft_draw = XftDrawCreateBitmap(context.display,
 					     (Pixmap)context.drawable);
-    } else if ( !context.gcs->xft_draw )
-    { context.gcs->xft_draw = XftDrawCreate(context.display,
-					    context.drawable,
-					    context.visual,
-					    context.colormap);
-      context.xft_draw = context.gcs->xft_draw;
     } else
-    { XftDrawChange(context.gcs->xft_draw, context.drawable);
-      context.xft_draw = context.gcs->xft_draw;
+    { context.xft_draw = XftDrawCreate(context.display,
+				       context.drawable,
+				       context.visual,
+				       context.colormap);
     }
   }
 
