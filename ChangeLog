@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: compiling pl-atom.c for single-threaded operatation (Barry J Evans).
+
   * FIXED: exitPrologThreads() counting problem.
 
   * FIXED: Syntax error in pl-atom.c

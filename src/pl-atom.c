@@ -505,12 +505,14 @@ pl_garbage_collect_atoms()
     succeed;
 
   PL_LOCK(L_GC);			
+#ifdef O_PLMT
   if ( GD->gc.active ) 			/* GC in progress: delay */
   { DEBUG(2, Sdprintf("GC active; delaying AGC\n"));
     GD->gc.agc_waiting = TRUE;
     PL_UNLOCK(L_GC);
     succeed;
   }
+#endif
 
   if ( verbose )
   {
