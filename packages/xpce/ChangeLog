@@ -2,6 +2,9 @@
 			   ==============
 
 
+VERSION 6.5.6, distributed with SWI-Prolog 5.5.6
+================================================
+
 * FIXED: Bug#14: image->pixel for <-kind = bitmap. Holger Kanwischer.
 
 * FIXED: omitted close in text_buffer->insert, introduced in 5.5.3.

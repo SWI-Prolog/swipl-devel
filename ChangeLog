@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+VERSION 5.5.6 (Februari 11, 2005)
+=================================
+
   * FIXED: Bug#16: plwin.exe: having DISPLAY defined removes the menu.
     Richard Cheek.
 
@@ -35,6 +38,11 @@
    	  are returned as int64_t.  Such code must be recompiled.  In
   	  addition the application should decide how to handle values
   	  outside the domain of a C long.
+
+    Issues: the current implementation may access 64-bit values from
+    the stack and embedded in compiled code at 32-bit alignment.  This
+    surely works on IA32 (PC), appears to work on PPC (Mac).  There are
+    probably processors out there for which it doesn't work.
 
 VERSION 5.5.5 (Februari 01, 2005)
 =================================
@@ -1907,7 +1915,7 @@ VERSION 5.0.5 (April 16, 2002)
 ==============================
 
   * PORT: Hopefully get plld -shared -o test.so test.c to produce foreign
-    libraries on BeOS.  With lots of help from Axel D�rfler.
+    libraries on BeOS.  With lots of help from Axel Drfler.
 
   * FIXED: Avoid re-loading the initial file after qsave_program/2 from
     PLWIN.EXE (Ron Sele).
