@@ -131,10 +131,11 @@ typedef struct
 #define PL_TYPE_FLOAT	  	(5)	/* double */
 #define PL_TYPE_STRING	  	(6)	/* string */
 #define PL_TYPE_COMPOUND	(7)	/* compound term */
+#define PL_TYPE_CONS		(8)	/* list-cell */
 
-#define PL_TYPE_EXT_ATOM	(8)	/* External (inlined) atom */
-#define PL_TYPE_EXT_COMPOUND	(9)	/* External (inlined) functor */
-#define PL_TYPE_EXT_FLOAT	(10)	/* float in standard-byte order */
+#define PL_TYPE_EXT_ATOM	(9)	/* External (inlined) atom */
+#define PL_TYPE_EXT_COMPOUND	(10)	/* External (inlined) functor */
+#define PL_TYPE_EXT_FLOAT	(11)	/* float in standard-byte order */
 
 static void
 addOpCode(CompileInfo info, int code)
@@ -293,15 +294,19 @@ addAtom(CompileInfo info, atom_t a)
 
 static void
 addFunctor(CompileInfo info, functor_t f)
-{ if ( info->external )
-  { FunctorDef fd = valueFunctor(f);
-
-    addOpCode(info, PL_TYPE_EXT_COMPOUND);
-    addSizeInt(info, fd->arity);
-    addAtomValue(info, fd->name);
+{ if ( f == FUNCTOR_dot2 )
+  { addOpCode(info, PL_TYPE_CONS);
   } else
-  { addOpCode(info, PL_TYPE_COMPOUND);
-    addWord(info, f);
+  { if ( info->external )
+    { FunctorDef fd = valueFunctor(f);
+  
+      addOpCode(info, PL_TYPE_EXT_COMPOUND);
+      addSizeInt(info, fd->arity);
+      addAtomValue(info, fd->name);
+    } else
+    { addOpCode(info, PL_TYPE_COMPOUND);
+      addWord(info, f);
+    }
   }
 }
 
@@ -727,6 +732,15 @@ right_recursion:
       goto compound;
     }
   }
+    case PL_TYPE_CONS:
+    { *p = consPtr(b->gstore, TAG_COMPOUND|STG_GLOBAL);
+      *b->gstore++ = FUNCTOR_dot2;
+      p = b->gstore;
+      b->gstore += 2;
+      copy_record(p, b);
+      p++;
+      goto right_recursion;
+    }
     default:
       assert(0);
   }
@@ -841,6 +855,10 @@ right_recursion:
       skipAtom(b);
       while(--arity > 0)
 	unregisterAtomsRecord(b);
+      goto right_recursion;
+    }
+    case PL_TYPE_CONS:
+    { unregisterAtomsRecord(b);
       goto right_recursion;
     }
     default:
@@ -989,6 +1007,16 @@ unref_cont:
 	    fail;
 	}
         goto right_recursion;
+      } else if ( stag == PL_TYPE_CONS )
+      { Functor f = valueTerm(w);
+	
+	if ( f->definition == FUNCTOR_dot2 )
+	{ p = f->arguments;
+	  if ( !se_record(p, info PASS_LD) )
+	    fail;
+	  p++;
+	  goto right_recursion;
+	}
       }
 
       fail;
