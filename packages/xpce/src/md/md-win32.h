@@ -29,6 +29,7 @@
 #pragma warning(4:4244 4305 4018 4550)
 
 #define WIN32_GRAPHICS 1		/* Use Win32 graphics API */
+#define USE_WINSOCK2			/* version 2 of winsock */
 #define UXWIN(unx, win) win
 
 #define HAVE_UXNT_H 1

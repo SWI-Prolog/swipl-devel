@@ -183,7 +183,11 @@ setupSockets(void)
   { 
 #ifdef HAVE_WINSOCK
     WSADATA data;
+#ifdef USE_WINSOCK2
+    WORD wversion = MAKEWORD(2, 0);
+#else
     WORD wversion = MAKEWORD(1, 1);
+#endif
 
     if ( WSAStartup(wversion, &data) != 0 )
       errorPce(NIL, NAME_socket, NAME_initialise, SockError());

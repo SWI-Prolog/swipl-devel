@@ -23,12 +23,10 @@
 */
 
 #define __USE_W32_SOCKETS		/* Use Win32 sockets for cygwin */
-
 #include "include.h"
 #include <h/unix.h>
 #include <h/interface.h>
 #undef send
-#include <winsock.h>
 #define send sendPCE
 #include <process.h>
 

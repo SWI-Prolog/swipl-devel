@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* PORT: MS-Windows Moved from winsock-1 to winsock-2
+
 * FIXED: memory leak due to error in recent change in incremental GC.
 
 * MODIFIED: termToObject() translates Prolog floats that happen to be

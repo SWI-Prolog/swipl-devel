@@ -30,6 +30,11 @@
 
 #define RedrawWindow WinRedrawWindow
 #include <windows.h>
+#ifdef USE_WINSOCK2
+#include <winsock2.h>
+#else
+#include <winsock.h>
+#endif
 #ifndef WM_MOUSEWHEEL			/* sometimes not defined */
 #define WM_MOUSEWHEEL 0x020A
 #endif
