@@ -41,6 +41,7 @@ dlldemo directory.
 	    registry_set_key/3,		% +Path, +Name, +Value
 	    registry_delete_key/1,	% +Path
 	    registry_lookup_key/3,	% +Path, +Access, -Key
+	    win_flush_filetypes/0,	% Flush changes filetypes to shell
 	    
 	    shell_register_file_type/4,	% +Ext, +Type, +Name, +Open
 	    shell_register_file_type/5,	% +Ext, +Type, +Name, +Open, +Icon
@@ -66,7 +67,8 @@ shell_register_prolog(Ext) :-
 	shell_register_dde('prolog.type', consult,
 			   prolog, control, 'consult(''%1'')', Me), 
 	shell_register_dde('prolog.type', edit,
-			   prolog, control, 'edit(''%1'')', Me).
+			   prolog, control, 'edit(''%1'')', Me),
+	win_flush_filetypes.
 
 
 		 /*******************************
@@ -88,10 +90,12 @@ shell_register_file_type(Ext, Type, Name, Open) :-
 	ensure_dot(Ext, DExt),
 	registry_set_key(classes_root/DExt, Type),
 	registry_set_key(classes_root/Type, Name),
-	registry_set_key(classes_root/Type/shell/open/command, Open).
+	registry_set_key(classes_root/Type/shell/open/command, Open),
+	win_flush_filetypes.
 shell_register_file_type(Ext, Type, Name, Open, Icon) :-
 	shell_register_file_type(Ext, Type, Name, Open),
-	registry_set_key(classes_root/Type/'DefaultIcon', Icon).
+	registry_set_key(classes_root/Type/'DefaultIcon', Icon),
+	win_flush_filetypes.
 
 ensure_dot(Ext, Ext) :-
 	atom_concat('.', _, Ext), !.

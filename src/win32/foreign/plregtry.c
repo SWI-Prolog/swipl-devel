@@ -24,6 +24,7 @@
 
 #include <SWI-Prolog.h>
 #include <windows.h>
+#include <shlobj.h>
 #include <malloc.h>
 #include <assert.h>
 
@@ -658,6 +659,16 @@ pl_reg_create_key(term_t h, term_t name,
     return api_exception(rval, "create", name);
 }
 
+		 /*******************************
+		 *	     FLUSH SHELL	*
+		 *******************************/
+
+static foreign_t
+win_flush_filetypes()
+{ SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_FLUSHNOWAIT, NULL, NULL);
+
+  return TRUE;
+}
 
 		 /*******************************
 		 *	      INSTALL		*
@@ -685,4 +696,5 @@ install()
   PL_register_foreign("reg_delete_value",2, pl_reg_delete_value,0);
   PL_register_foreign("reg_flush",       1, pl_reg_flush,       0);
   PL_register_foreign("reg_create_key",	 6, pl_reg_create_key,	0);
+  PL_register_foreign("win_flush_filetypes", 0, win_flush_filetypes, 0);
 }

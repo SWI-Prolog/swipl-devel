@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: MS-Windows: library(registry): win_flush_filetypes/0 to forward
+    changes to registered types to the shell, so the proper icons are
+    displayed.
+
   * FIXED: Source level debugger: ERROR: Arithmetic: `very_deep/0' is
     not a function.  David Reitter.
 

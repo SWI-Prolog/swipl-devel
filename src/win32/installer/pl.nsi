@@ -354,6 +354,7 @@ SectionEnd
 Section "Update library index"
   SectionIn RO			# do not allow to delete this
   ExecWait '"$INSTDIR\bin\plwin.exe" -f none -g "make_library_index(swi(library)),halt"'
+  ExecWait '"$INSTDIR\bin\plwin.exe" -f none -g "win_flush_filetypes,halt"'
 SectionEnd
 
 Section "Precompiled libraries"
