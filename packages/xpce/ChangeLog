@@ -1,3 +1,7 @@
+* FIXED: Win32 native font specification to allow spaces in string
+  arguments, which is needed for the face() argument.  Spotted by
+  Anjo Anjewierden.
+
 VERSION 5.0.9
 =============
 
