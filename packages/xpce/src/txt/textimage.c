@@ -1237,7 +1237,7 @@ getCharacterPositionTextImage(TextImage ti, Int index)
 
   if ( get_character_box_textimage(ti, valInt(index),
 				   &x, &y, &w, &h, &b) )
-    answer(answerObject(ClassPoint, toInt(x), toInt(b), EAV));
+    answer(answerObject(ClassPoint, toInt(x), toInt(y+b), EAV));
 
   fail;
 }
