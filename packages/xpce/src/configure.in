@@ -434,6 +434,3 @@ rm -rf conftest*
 
 
 AC_OUTPUT(Makefile)
-
-chmod +x install-pl-bins install
-echo "chmod +x install-pl-bins install" >> config.status
