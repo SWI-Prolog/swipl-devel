@@ -180,7 +180,14 @@ ws_create_frame(FrameObj fr)
   XtSetArg(args[n], XmNdeleteResponse, XmDO_NOTHING); n++;
 #endif
 
-  w = XtCreatePopupShell(
+  if ( fr->kind == NAME_toplevel )
+    w = XtAppCreateShell(strName(fr->label),
+			 "Pce",		/* Resource Class */
+			 topLevelFrameWidgetClass,
+			 r->display_xref,
+			 args, n);
+  else
+    w = XtCreatePopupShell(
 		    strName(fr->label),
 		    fr->kind == NAME_popup     ? overrideFrameWidgetClass  :
 		    fr->kind == NAME_transient ? transientFrameWidgetClass :
