@@ -2508,7 +2508,9 @@ Succeeds when the \arg{Index}-th element of \arg{List} unifies with
 Succeeds when the \arg{Index}-th element of \arg{List} unifies with
 \arg{Elem}. Counting starts at 1.
 \predicate{last}{2}{?Elem, ?List}
-Succeeds if \arg{Elem} unifies with the last element of \arg{List}.
+Succeeds if \arg{Elem} unifies with the last element of \arg{List}. If
+\arg{List} is a proper list last/2 is deterministic. If \arg{List} has
+an unbound tail, backtracking will cause \arg{List} to grow.
 \predicate{reverse}{2}{+List1, -List2}
 Reverse the order of the elements in \arg{List1} and unify the result
 with the elements of \arg{List2}.

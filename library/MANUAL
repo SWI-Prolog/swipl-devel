@@ -4692,7 +4692,9 @@ nntthh11((_?_I_n_d_e_x_, _?_L_i_s_t_, _?_E_l_e_m))
 
 
 llaasstt((_?_E_l_e_m_, _?_L_i_s_t))
-    Succeeds if _E_l_e_m unifies with the last element of _L_i_s_t.
+    Succeeds  if _E_l_e_m unifies with  the last element of  _L_i_s_t.  If  _L_i_s_t
+    is  a proper list last/2 is deterministic.   If _L_i_s_t has  an unbound
+    tail, backtracking will cause _L_i_s_t to grow.
 
 
 rreevveerrssee((_+_L_i_s_t_1_, _-_L_i_s_t_2))
