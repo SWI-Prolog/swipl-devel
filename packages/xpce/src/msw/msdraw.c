@@ -1115,6 +1115,55 @@ standardWindowsBrush(Any obj)
 }
 
 
+typedef enum
+{ WINUNKNOWN,  
+  WIN32S,
+  WIN95,
+  WIN98,
+  WINME,
+  NT
+} win_platform;
+
+static win_platform
+winPlatform()
+{ static int done = FALSE;
+  win_platform platform;
+
+  if ( !done )
+  { OSVERSIONINFO info;
+
+    info.dwOSVersionInfoSize = sizeof(info);
+    if ( GetVersionEx(&info) )
+    { switch( info.dwPlatformId )
+      { case VER_PLATFORM_WIN32s:
+	  platform = WIN32S;
+	  break;
+	case VER_PLATFORM_WIN32_WINDOWS:
+	  switch( info.dwMinorVersion )
+	  { case 0:
+	      platform = WIN95;
+	      break;
+	    case 10:
+	      platform = WIN98;
+	      break;
+	    case 90:
+	      platform = WINME;
+	      break;
+	    default:
+	      platform = WINUNKNOWN;
+	  }
+	  break;
+	case VER_PLATFORM_WIN32_NT:
+	  platform = NT;
+	  break;
+      }
+    } else
+      platform = WINUNKNOWN;
+  }
+
+  return platform;
+}
+
 static HBRUSH
 r_fillbrush(Any fill)
 { HBRUSH hbrush;
@@ -1127,9 +1176,58 @@ r_fillbrush(Any fill)
   if ( !(hbrush = standardWindowsBrush(fill)) )
   { if ( !(hbrush = lookup_brush(fill)) )
     { if ( instanceOfObject(fill, ClassImage) )
-      { HBITMAP bm = (HBITMAP) getXrefObject(fill, context.display);     
+      { Image img = fill;
+	HBITMAP bm = (HBITMAP) getXrefObject(fill, context.display);     
+	win_platform platform = winPlatform();
 
-	hbrush = ZCreatePatternBrush(bm);
+	if ( (valInt(img->size->w) < 8 || valInt(img->size->h) < 8) &&
+	     platform != NT )
+	{ int sw = valInt(img->size->w);
+	  int sh = valInt(img->size->h);
+	  int fw, fh;
+	  HBITMAP bm2;
+	  HDC hdc = CreateCompatibleDC(context.hdc);
+	  HDC mhdc = CreateCompatibleDC(context.hdc);
+	  HPALETTE opal1, opal2;
+	  HBITMAP obm1, obm2;
+	  int x = 0, y = 0;
+
+	  if ( platform == WIN95 )
+	  { fw = fh = 8;
+	  } else
+	  { fw = max(sw, 8);
+	    fh = max(sh, 8);
+	  }
+	  bm2 = ZCreateCompatibleBitmap(context.hdc, fw, fh);
+
+	  DEBUG(NAME_fill, Cprintf("Created %dx%d fill image\n", fw, fh));
+
+	  if ( context.hpal )
+	  { opal1 = SelectPalette(hdc, context.hpal, FALSE);
+	    opal2 = SelectPalette(mhdc, context.hpal, FALSE);
+	  }
+	  obm1 = ZSelectObject(hdc, bm2);
+	  obm2 = ZSelectObject(mhdc, bm);
+
+	  for(x=0; x<fw; x+=sw)
+	  { for(y=0; y<fh; y+=sh)
+	      BitBlt(hdc, x, y, sw, sh, mhdc, 0, 0, SRCCOPY);
+	  }
+	  ZSelectObject(hdc, obm1);
+	  ZSelectObject(mhdc, obm2);
+	  if ( context.hpal )
+	  { SelectPalette(hdc, opal1, FALSE);
+	    SelectPalette(mhdc, opal2, FALSE);
+	  }
+	  DeleteDC(hdc);
+	  DeleteDC(mhdc);
+	  hbrush = ZCreatePatternBrush(bm2);
+	  ZDeleteObject(bm2);
+	} else
+	  hbrush = ZCreatePatternBrush(bm);
+
+	if ( !hbrush )
+	  Cprintf("Warning: failed to get brush\n");
       } else /* instanceOfObject(fill, ClassColour) */
       { COLORREF rgb = cref_colour(fill);
 
@@ -2279,15 +2377,14 @@ r_copy(int xf, int yf, int xt, int yt, int w, int h)
 
 void
 r_fill(int x, int y, int w, int h, Any fill)
-{ RECT rect;
-  HBRUSH hbrush;
+{ HBRUSH hbrush = r_fillbrush(fill);
+  RECT rect;
 
   rect.left   = x;
   rect.right  = x + w;
   rect.top    = y;
   rect.bottom = y + h;
-
-  hbrush = r_fillbrush(fill);
+  
   FillRect(context.hdc, &rect, hbrush);
 }
 
