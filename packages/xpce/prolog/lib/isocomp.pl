@@ -42,10 +42,28 @@ iso_check_directory(Dir) :-
 			   ],
 			   TheDir),
 	destroy_editors,
-	atom_concat(TheDir, '/*.pl', Pattern),
-	expand_file_name(Pattern, Files),
+	pl_files(TheDir, Files),
 	forall(member(File, Files),
 	       iso_check_file(File)).
+
+pl_files(Dir, Files) :-
+	atom_concat(Dir, '/*.pl', Pattern),
+	expand_file_name(Pattern, PlFiles),
+	subdirs(Dir, SubDirs),
+	maplist(pl_files, SubDirs, SubFiles),
+	flatten([PlFiles,SubFiles], Files).
+
+subdirs(Dir, SubDirs) :-
+	atom_concat(Dir, '/*', Pattern),
+	expand_file_name(Pattern, All),
+	take_dirs(All, SubDirs).
+
+take_dirs([], []).
+take_dirs([H|T0], [H|T]) :-
+	exists_directory(H), !,
+	take_dirs(T0, T).
+take_dirs([_|T0], T) :-
+	take_dirs(T0, T).
 
 iso_check_file(Spec) :-
 	retractall(file_done(_)),
@@ -187,13 +205,13 @@ body(Meta, term_position(_,_,_,_,ArgPos)) :-
 	meta(Templ), !,
 	meta_body(1, Meta, Templ, ArgPos).
 body(get0(_), term_position(_,_,FF,FT,_)) :-
-	change(FF-FT, get_byte, iso).
+	change(FF-FT, get_code, iso).
 body(get0(_,_), term_position(_,_,FF,FT,_)) :-
-	change(FF-FT, get_byte, iso).
+	change(FF-FT, get_code, iso).
 body(put(_), term_position(_,_,FF,FT,_)) :-
-	change(FF-FT, put_byte, iso).
+	change(FF-FT, put_code, iso).
 body(put(_,_), term_position(_,_,FF,FT,_)) :-
-	change(FF-FT, put_byte, iso).
+	change(FF-FT, put_code, iso).
 body(atom_chars(_,_), term_position(_,_,FF,FT,_)) :-
 	change(FF-FT, atom_codes, codes).
 body(number_chars(_,_), term_position(_,_,FF,FT,_)) :-
@@ -236,7 +254,7 @@ meta_body(N, Meta, Templ, [P|T]) :-
 dcg_body(Var, _) :-
 	var(Var), !.
 dcg_body({}(Body), Pos) :- !,
-	dcg_body(Body, Pos).
+	body(Body, Pos).
 dcg_body(Meta, term_position(_,_,_,_,ArgPos)) :-
 	functor(Meta, Name, Arity),
 	functor(Templ, Name, Arity),
@@ -328,6 +346,7 @@ read_source_term(Fd, Term, Pos) :-
 	    Term = Term1		% for further processing
 	;   var(E2)			% fixed for ISO
 	->  Term = Term2
+	;   warn(Pos1, syntax_error)
 	).
 
 report_difference(T1, _P1, T2, _P2) :-
@@ -342,7 +361,7 @@ report_difference(T1, term_position(_, _, _, _, A1),
 		  T2, term_position(_, _, _, _, A2)) :- !,
 	arg_difference(1, T1, A1, T2, A2).
 report_difference(T1, P1, T2, _P2) :-
-	atom(T1),
+	atom(T1), !,
 	(   setting(character_escapes, true)
 	->  T = T2			% this is what it should be
 	;   T = T1
@@ -350,10 +369,40 @@ report_difference(T1, P1, T2, _P2) :-
 	sformat(ISO, '~W', [T, [quoted(true), character_escapes(true)]]),
 	change(P1, ISO, iso_atom).
 report_difference(T1, P1, T2, _P2) :-
+	catch(atom_chars(_, T1), _, fail),
+	catch(atom_chars(_, T2), _, fail), !,
+	(   setting(character_escapes, true)
+	->  T = T2			% this is what it should be
+	;   T = T1
+	),
+	phrase(iso_string(T), S),
+	atom_codes(ISO, S),
+	change(P1, ISO, iso_atom).
+report_difference(T1, P1, T2, _P2) :-
 	arg(1, P1, S1),
 	arg(2, P1, E1),
 	format('Change ~p --> ~p at ~d-~d~n',
 	       [ T1, T2, S1, E1 ]).
+
+iso_string(S) -->
+	"\"",
+	iso_string_chars(S),
+	"\"".
+
+iso_string_chars([]) -->
+	[].
+iso_string_chars([H|T]) -->
+	iso_string_char([H]), !,
+	iso_string_chars(T).
+
+iso_string_char("\a") --> "\\a".
+iso_string_char("\b") --> "\\b".
+iso_string_char("\n") --> "\\n".
+iso_string_char("\r") --> "\\r".
+iso_string_char("\t") --> "\\t".
+iso_string_char("\"") --> "\\\"".
+iso_string_char([C])  --> [C].
+
 
 list_difference([], _, _, [], _, _) :- !.
 list_difference([H1|L1], [P1|PT1], T1, [H2|L2], [P2|PT2], T2) :- !,
@@ -444,6 +493,8 @@ message(op) -->
 	"From SWI-Prolog 3.3.0, operators are local to the module".
 message(dup_stream) -->
 	"dup_stream/2 is no longer supported.  Please check release-notes".
+message(syntax_error) -->
+	"Syntax error?".
 
 style(iso_atom,		 iso_atom,	    style(colour := red)).
 style(iso,		 iso,		    style(colour := red)).
@@ -453,6 +504,7 @@ style(character_escapes, character_escapes, style(colour := red)).
 style(op, 		 warn,		    style(colour := blue)).
 style(dup_stream,	 error,		    style(colour := red)).
 style(done,		 done,		    style(colour := dark_blue)).
+style(syntax_error,	 error,		    style(colour := red)).
 
 change(Pos, To, Message) :-
 	make_fragment(Pos, Fragment),
