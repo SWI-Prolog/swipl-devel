@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: PceEmacs cross-references now deals with the :- meta_predicate
+  declaration.
+
 VERSION 6.1.7, distributed with SWI-Prolog 5.1.7
 ================================================
 
