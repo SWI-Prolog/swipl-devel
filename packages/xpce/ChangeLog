@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: `path->relative_move' for better performance and flexibility.
+
 * ADDED: optional argument to `device->clear' to force destruction of the
   erased objects.
 

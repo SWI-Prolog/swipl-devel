@@ -1105,7 +1105,8 @@ centerYGraphical(Graphical gr, Int c)
 
 status
 relativeMoveGraphical(Graphical gr, Point pos)
-{ return setGraphical(gr, add(gr->area->x, pos->x),
+{ ComputeGraphical(gr);
+  return setGraphical(gr, add(gr->area->x, pos->x),
 		      add(gr->area->y, pos->y),
 		      DEFAULT, DEFAULT);
 }

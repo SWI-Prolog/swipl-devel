@@ -680,6 +680,34 @@ geometryPath(Path p, Int x, Int y, Int w, Int h)
 
 
 static status
+relativeMovePath(Path p,  Point diff, Name method)
+{ Int dx = diff->x;
+  Int dy = diff->y;
+
+  if ( dx != ZERO || dy != ZERO )
+  { CHANGING_GRAPHICAL(p,
+		       { assign(p->area, x, add(p->area->x, dx));
+			 assign(p->area, y, add(p->area->y, dy));
+
+			 if ( method == NAME_points )
+			 { Cell cell;
+
+			   for_cell(cell, p->points)
+			     offsetPoint(cell->value, dx, dy);
+			   if ( notNil(p->interpolation) )
+			     for_cell(cell, p->interpolation)
+			       offsetPoint(cell->value, dx, dy);
+			 } else
+			 { offsetPoint(p->offset, dx, dy);
+			 }
+		       });
+  }
+
+  succeed;
+}
+
+
+static status
 referencePath(Path p, Point r)
 { Int rx, ry, dx, dy;
   Area a = p->area;
@@ -910,6 +938,8 @@ static char *T_insert[] =
         { "point", "point*" };
 static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+static char *T_relativeMove[] =
+	{ "diff=point", "how=[{offset,points}]" };
 
 /* Instance Variables */
 
@@ -941,6 +971,8 @@ static senddecl send_path[] =
      DEFAULT, "Recompute interpolation and area"),
   SM(NAME_geometry, 4, T_geometry, geometryPath,
      DEFAULT, "Move and/or resize the path"),
+  SM(NAME_relativeMove, 2, T_relativeMove, relativeMovePath,
+     NAME_area, "Move path relative to current position"),
   SM(NAME_initialise, 3, T_initialise, initialisePath,
      DEFAULT, "Create from kind and intervals/radius"),
   SM(NAME_resize, 3, T_resize, resizePath,
