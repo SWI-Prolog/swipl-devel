@@ -88,8 +88,9 @@ selecting(G, Val:bool) :->
 	send(G, slot, selecting, Val),
 	get(G, editor, Editor),
 	(   Val == @on
-	->  send(Editor, selection_unit, G?unit),
-	    send(Editor, selection_origin, G?origin)
+	->  get(G, origin, Origin), Origin \== @nil,
+	    send(Editor, selection_unit, G?unit),
+	    send(Editor, selection_origin, Origin)
 	;   send(Editor, mark_status, inactive)
 	).
 

@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Editor text-selection better checking of context (Jakub Jiricek).
+
 * FIXED: When using with multi-threaded SWI-Prolog, avoid deadlock if
   background threads wants to send output.
 

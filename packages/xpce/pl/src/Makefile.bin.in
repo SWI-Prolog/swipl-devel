@@ -31,7 +31,7 @@ mansec=1
 mandir=$(prefix)/man/man$(mansec)
 
 MAKE=@MAKE@
-PL=pl
+PL=@PL@
 XPCE=xpce
 CLIENT=xpce-client
 PLARCH=@PLARCH@
