@@ -2899,7 +2899,9 @@ odbc_fetch(term_t qid, term_t row, term_t options)
   if ( orientation == SQL_FETCH_NEXT )
     ctxt->rc = SQLFetch(ctxt->hstmt);
   else
-    ctxt->rc = SQLFetchScroll(ctxt->hstmt, orientation, offset);
+    ctxt->rc = SQLFetchScroll(ctxt->hstmt,
+			      (SQLSMALLINT)orientation,
+			      (SQLINTEGER)offset);
 
   switch(ctxt->rc)
   { case SQL_NO_DATA_FOUND:		/* no alternative */
