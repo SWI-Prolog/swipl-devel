@@ -119,6 +119,10 @@ selection(TW, Nodes:chain) :<-
 	get(TW, member, toc_tree, Tree),
 	get(Tree, selection, Nodes).
 
+selection(TW, Nodes:'any|chain*') :->
+	"Set selected nodes"::
+	get(TW, member, toc_tree, Tree),
+	send(Tree, selection, Nodes).
 
 node(TW, Id:any, Node:toc_node) :<-
 	"Find node from identifier"::
@@ -217,8 +221,10 @@ normalise_tree(TW, Id:any) :->
 	      make_toc_window_recogniser).
 
 make_toc_window_recogniser(G) :-
-	new(G, key_binding(toc_window)),
-	send_list(G,
+	new(C, click_gesture(left, '', single,
+			     message(@receiver, selection, @nil))),
+	new(KB, key_binding(toc_window)),
+	send_list(KB,
 		  [ function(page_up,
 			     message(@receiver, scroll_vertical, backwards,
 				     page, 900)),
@@ -231,7 +237,8 @@ make_toc_window_recogniser(G) :-
 		    function(end,
 			     message(@receiver, scroll_vertical, goto,
 				     file, 1000))
-		  ]).
+		  ]),
+	new(G, handler_group(C, KB)).
 
 event(TW, Ev:event) :->
 	"Handle key-bindings"::
@@ -252,7 +259,7 @@ drag_and_drop(TW, Val:bool) :->
 	    )
 	).
 
-:- pce_end_class.
+:- pce_end_class(toc_window).
 
 
 		 /*******************************
@@ -280,10 +287,34 @@ selection(TC, SelectedNodes:chain) :<-
 	"Find all toc_nodes that are selected"::
 	get(TC?contains, find_all, @arg1?selected == @on, SelectedNodes).
 
-selection(TC, Nodes:'graphical|chain') :->
+selection(TC, Selection:'any|graphical|chain*') :->
 	"Select the given nodes"::
 	send(TC, compute),
-	send(TC, send_super, selection, Nodes).
+	(   send(Selection, instance_of, chain)
+	->  get(Selection, map, ?(TC, node_image, @arg1), Graphicals),
+	    send_super(TC, selection, Graphicals)
+	;   Selection == @nil
+	->  send_super(TC, selection, Selection)
+	;   get(TC, node_image, Selection, Gr)
+	->  send_super(TC, selection, Gr)
+	).
+	    
+node(TC, From:any, Node:toc_node) :<-
+	"Get node from node or ID"::
+	(   send(From, instance_of, toc_node)
+	->  Node = From
+	;   get(TC?nodes, member, From, Node)
+	).
+
+node_image(TC, From:any, Gr:graphical) :<-
+	"Get node image from graphical, node or ID"::
+	(   send(From, instance_of, graphical)
+	->  Gr = From
+	;   send(From, instance_of, toc_node)
+	->  get(From, image, Gr)
+	;   get(TC?nodes, member, From, Node),
+	    get(Node, image, Gr)
+	).
 
 :- pce_end_class(toc_tree).
 	  
@@ -398,7 +429,7 @@ select(Node, Modified:[bool]) :->
 open(Node) :->
 	send(Node?window, open_node, Node?identifier).
 
-:- pce_end_class.
+:- pce_end_class(toc_node).
 
 
 		 /*******************************
