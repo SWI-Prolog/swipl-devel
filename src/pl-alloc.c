@@ -120,6 +120,7 @@ static void  freeAllBigHeaps(void);
 #if ALLOC_DEBUG
 
 #define INUSE_MAGIC 0x42424242
+#define FREE_MAGIC 0x43434343
 #define ALLOC_FREE_MAGIC 0x5f
 #define ALLOC_MAGIC 0xbf
 #define ALLOC_VIRGIN_MAGIC 0x7f
@@ -133,6 +134,7 @@ freeHeap__LD(void *mem, size_t n ARG_LD)
 
   assert(p[-1] == n);
   assert(p[-2] == INUSE_MAGIC);
+  p[-2] = FREE_MAGIC;			/* trap double free */
   memset(mem, ALLOC_FREE_MAGIC, n);
 
   core_freeHeap__LD(p-3, n+3*sizeof(long) PASS_LD);
@@ -251,15 +253,12 @@ allocate(AllocPool pool, size_t n)
       { *fp = ch->next;
         UNLOCK();
 	
-	if ( ch->size - n >= sizeof(struct chunk) )
-	{ int m = (ch->size - n)/ALIGN_SIZE;
-	  Chunk c = addPointer(ch, n);
+	p = (char *)ch;
+	pool->space = p + n;
+	pool->free  = ch->size - n;
+	pool->allocated += n;
 
-	  c->next = pool->free_chains[m];
-	  pool->free_chains[m] = c;
-	}
-
-	return ch;
+	return p;
       }
     }
     UNLOCK();
@@ -369,6 +368,7 @@ mergeAllocPool(AllocPool to, AllocPool from)
   int i;
 
   assert(to == &GD->alloc_pool);	/* for now */
+  DEBUG(2, Sdprintf("Free pool has %d bytes\n", from->free));
 
   LOCK();
   if ( from->free > ALLOCFAST )
