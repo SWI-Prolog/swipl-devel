@@ -410,10 +410,10 @@ unix_address_socket(Socket s, struct sockaddr_un *address, int *len)
   
   path = strName(name);
   address->sun_family = PF_UNIX;
-  if ( (*len = strlen(path)) > MAX_UN_ADDRESS_LEN )
+  if ( (*len = strlen(path)+1) > MAX_UN_ADDRESS_LEN )
     return errorPce(s, NAME_socket, NAME_address, CtoName("Name too long"));
 
-  strcpy(address->sun_path, path);
+  memcpy(address->sun_path, path, *len);
   *len += sizeof(address->sun_family);
 
   succeed;

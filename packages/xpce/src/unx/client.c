@@ -112,11 +112,11 @@ char *address;
 
     addr = (struct sockaddr *) &a;
     a.sun_family = AF_UNIX;
-    if ( (len = strlen(address)) > MAX_UN_ADDRESS_LEN )
+    if ( (len = strlen(address)+1) > MAX_UN_ADDRESS_LEN )
     { errno = ENAMETOOLONG;
       return -1;
     }
-    strcpy(a.sun_path, address);
+    memcpy(a.sun_path, address, len);
     if ( (id = socket(PF_UNIX, SOCK_STREAM, 0)) < 0 )
       return id;
     len += sizeof(a.sun_family);
