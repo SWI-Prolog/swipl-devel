@@ -26,6 +26,7 @@
 \include{resource}
 \include{techniques}
 \include{debug}
+\include{libs}
 \ifpw{}{\bibliographystyle{name}
 	\bibliography{pce}}
 \appendix

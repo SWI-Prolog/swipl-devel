@@ -56,8 +56,8 @@ XBM	   & -&-&-&  +	  &  +		      &   +  &  -   \\
 \hline
 \multicolumn{8}{|c|}{Large rectangular images} \\
 \hline
-JPEG	   & +&-&-&  +	  &  -		      &   +  &  -   \\
-GIF	   & +&-&+&  +	  &  -		      &   +  &  -   \\
+JPEG	   & +&-&-&  +	  &  +		      &   +  &  +   \\
+GIF	   & +&-&+&  +	  &  +		      &   +  &  +   \\
 BMP	   & +&-&-&  -	  &  -		      &   +  &  -   \\
 PNM	   & +&-&-&  +	  &  +		      &   +  &  +   \\
 \hline
@@ -78,15 +78,8 @@ convert from another format. On Unix, there are two popular conversion
 tools. The \program{xv} program is a good interactive tool for format
 conversion and applying graphical operations to images.
 
-The \idx{netpbm} package consists of a large collection of converters
-from and to the central PNM ({\bf P}ortable a{\bf N}y {\bf M}ap) format.
-This packages also contains applications for graphical operations. A
-Unix pipeline, consisting of a filter `to' PNM, some graphical operators
-and a filter `to' the desired format can be used to convert virtually
-any image into another format, while applying operations such as
-scaling, rotating, colour dithering, etc. Attributes such as the mask
-and hot-spot information are lost in the transformation, and should thus
-be added using an XPM-compatible icon editor such as \program{pixmap}.
+ImageMagic can be found at \url{http://www.simplesystems.org/ImageMagick/}
+and provides a comprehensive toolkit for converting images.
 
 The \program{pixmap} program is a comprehensive icon editor, supporting
 all of XPM's features.  The image tools mentioned here, as well as the
@@ -110,6 +103,8 @@ to_xpm(In, Out) :-
 	free(I).
 \end{code}
 
+Note that the above mentioned ImageMagick toolkit is also available for
+MS-Windows.
 
 \subsubsection{Using Images}
 
@@ -149,5 +144,8 @@ classes.  Table \tabref{imageusage} provides a brief list:
 \caption{GUI classes using \class{image} objects}
 \label{tab:imageusage}
 \end{table}
+
+
+
 
 

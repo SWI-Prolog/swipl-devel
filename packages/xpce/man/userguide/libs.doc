@@ -1,0 +1,20 @@
+\chapter{Commonly used libraries}		\label{sec:libraries}
+
+In this chapter we document some of the libraries from the
+\metafile{<pcehome>/prolog/lib} \productpl{} library. The libraries
+described here are only the commonly used ones. For more information
+check the file \file{Overview} in the library directrory and the
+source-code of the library.
+
+\begin{itemize}
+\newcommand{\secoverview}[2]{\item[\ref{sec:#1}]{\bf #2}\\}
+
+    \secoverview{multi-lingual}{Multi-lingual applications}
+Discusses support for multi-lingual applications.
+
+    \secoverview{dragdrop}{Drag and Drop Interface}
+\end{itemize}
+
+\input{mlingual}
+\input{dragdrop.tex}
+

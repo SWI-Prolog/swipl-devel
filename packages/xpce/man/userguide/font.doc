@@ -33,14 +33,15 @@ display.font_families: \
 	[ screen_fonts, \
 	  courier_fonts, \
 	  helvetica_fonts, \
-	  times_fonts \
+	  times_fonts, \
+	  symbol_fonts
 	]
 \end{code}
 
 Each of these names refers to the name of another resource of class
 \class{display}, enumerating the members of this font family.  The
 default value can be examined using the online manual.  Below is the
-default value for the {\tt screen_fonts} font-set for X11:
+default value for the \const{screen_fonts} font-set for X11:
 
 \begin{code}
 display.screen_fonts: \
@@ -62,24 +63,28 @@ FontViewer demo application accessible through the online manual tools.
 \subsubsection{Defining additional fonts}
 
 If an application needs additional fonts, such fonts can be declared
-using directives. The fourth initialisation argument of class \class{font}
-determines the window-system font that will be mapped.  For example, the
-14-points Adobe symbol font may be approached using the directive below%
-    \footnote{xfontsel(1) was used to locate the font.}
+using directives. The fourth initialisation argument of class
+\class{font} determines the window-system font that will be mapped. The
+syntax for this argument depends on the window-system used. For this
+Unix/X11 version it is a string consisting of 15 `-' seperated fields. A
+font can be searched using \manref{xfontsel}{1} or the much better
+GNOME-project \manref{gfontsel}{1}.
+
+For example, the 14-points `courier new' TrueType font can be registered
+using:
 
 \begin{code}
 :- initialization
-   new(_, font(symbol, roman, 14,
-	       '-*-symbol-*-*-*-*-14-*-*-*-*-*-adobe-*')).
+   new(_, font(courier, roman, 14,
+	       '-winfonts-courier new-medium-r-normal-*-*-140-*-*-m-*-iso8859-1')).
 \end{code}
 
 This specification has various drawbacks. For example, another library
 or application loaded on top of the same \product{} process may be using
 the symbol,roman,14 specification, but bound to another window-system
 font. A user may try to run your application on an environment that does
-not have this font (for example Windows). Part of these problems can be
-eliminated by binding the font to a logical font name. See also
-\secref{fontalias}.
+not have this font. Part of these problems can be eliminated by binding
+the font to a logical font name. See also \secref{fontalias}.
 
 \begin{code}
 :- initialization
@@ -131,6 +136,13 @@ Bold version of huge.
     \fontalias{fixed}{font(screen, roman, 13)}
 Terminal font. To be used for code fragments, code editors, etc. Should
 be easy to read.
+    \fontalias{tt}{font(screen, roman, 13)}
+Same as \const{fixed}.
+    \fontalias{boldtt}{font(screen, bold, 13)}
+Bold terminal font.
+    \fontalias{symbol}{font(symbol, roman, 12)}
+Symbol font using the adobe symbol-font encoding.  This font provides
+many \idx{mathematical symbols}.
 \end{itemize}
 
 The end-user of an \product{} application can define the class-variable

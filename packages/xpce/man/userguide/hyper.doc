@@ -5,169 +5,119 @@ like \class{connection} objects, guarded automatically against
 destruction of one of the related objects.  Special methods allow for
 easy communication between {\em hypered} objects.
 
-Hypers form an adequate answer if objects need to be related that
-depend temporary and incidentally on each other.  It is possible to
-be informed of the destruction of hypers, which enables a hypered object
-to keep track of its environment.  Good examples for the usage of hypers
-are to express the relation between multiple {\em frame} objects working
+Hypers form an adequate answer if objects need to be related that depend
+temporary and incidentally on each other. It is possible to be informed
+of the destruction of hypers, which enables a hypered object to keep
+track of its environment. Good examples for the usage of hypers are to
+express the relation between multiple {\em frame} objects working
 together to form a single application or maintaining the relation
 between an application object (persistent object, model) and its
 visualisation (controller).
 
-Hypers are an alternative for using slots.  Suppose we want to define an
-application consisting of a main frame and a number of {\em slave}
-frames to handle specific tasks in the application.  One approach would
-be to relate a sheet for the slave frames with the master and a pointer
-to the main window in each slave.  The skeleton for this is given below.%
-    \footnote{This example was written before the introduction of
-	      \class{application}.  The principal is still valid, but
-	      this particular problem would now be solved using an
-	      \class{application} object.}
+Of course relations between objects can be maintained using
+instance-variables, but this process requires awareness from both
+related objects as well as sifnificant bookkeeping.
 
-\begin{pcecode}
-:- pce_begin_class(main, frame, "Applications main window").
-
-variable(slaves, sheet, get, "Name --> slave window relations").
-
-initialise(F) :->
-	send(F, send_super, initialise, 'Main Window'),
-	send(F, slot, slaves, new(sheet)),
-	...
-
-
-unlink(F) :->
-	"Destroy all slave windows"::
-	get(F, slaves, Slaves),
-	send(Slaves, for_all, message(@arg1?value, destroy)).
-
-
-slave(F, Name:name, Create:[bool], S:slave) :<-
-	"Return existing slave or create new one"::
-	get(F, slaves, Slaves),
-	(   get(Slaves, value, Name, S)
-	->  true
-	;   (	Create == @off
-	    ->	fail
-	    ;	new(S, slave(Name, F))
-	    )
-	).
-
-register_slave(F, Name:name, Slave:slave) :->
-	send(F?slaves, value, Name, Slave).
-
-unregister_slave(F, Slave:slave) :->
-	get(F, slaves, Slaves),
-	(   get(Slaves?members, find, @arg1?value == Slave, Att)
-	->  send(Slaves, delete, Att)
-	;   true
-	).
-
-:- pce_end_class.
-
-:- pce_begin_class(slave, frame, "Applications slave frame").
-
-variable(main,	main,	get,	"Reference to main frame").
-
-initialise(S, Name:name, Main:main) :->
-	"Create and register with main"::
-	send(S, send_super, initialise, Name),
-	send(S, slot, main, Main),
-	send(Main, register_slave, Name, S),
-	...
-
-unlink(S) :->
-	get(S, main, Main),
-	send(Main, unregister_slave, Main).
-
-:- pce_end_class.
-\end{pcecode}
-
-A similar schema to this is used by the \product{} manual tools
-described in \secref{online}. Using hypers, the same relation can be
-expressed much simpler and less error-prone.
 
 \subsection{Programming existence dependencies}
 
 The example of this section demonstrates a common existence
-relationship. If the `main' object is destroyed, all related slave
-objects should be destroyed too, but if a slave is destroyed, the main
+relationship. If the `main' object is destroyed, all related `part'
+objects should be destroyed too, but if a part is destroyed, the main
 should not be destroyed. This semantic is expressed using a refinement
-of class \class{hyper}.
+of class \class{hyper} that can be found in \pllib{hyper} of the
+\productpl{} libraries.
 
 \begin{pcecode}
-:- pce_begin_class(master_slave_hyper, hyper,
-		   "Maintain a master-slave relationship").
-
-initialise(H, F:object, T:object, FN:[name], TN:[name]) :->
-	default(FN, slave, FromName),
-	default(TN, master, ToName),
-	send(H, send_super, initialise, F, T, FromName, ToName).
+:- pce_begin_class(partof_hyper, hyper,
+		   "<-to is a part of <-from").
 
 unlink_from(H) :->
-	"From-side (master is destroyed)"::
-	get(H, to, To),
-	free(To),
+	"->destroy the <-to part"::
+	get(H, to, Part),
+	(   object(Part),
+	    send(Part, has_send_method, destroy)
+	->  send(Part, destroy)
+	;   free(Part)
+	),
 	free(H).
 
 :- pce_end_class.
 \end{pcecode}
 
-This hyper is demonstrated in the following application.  It defines a
-frame holding a graphical window and a dialog with a {\sf Quit} button and
-also a dialog frame for modifying the label of the first frame.  See
-\figref{hyperdemo}.  If the main window is destroyed, the
-label-editor will be destroyed automatically.
-
-\postscriptfig[width=\textwidth]{hyperdemo}{Two frames related by a hyper-link}
+This hyper is demonstrated in the following application. We have an
+application for editing a graphical representation. The colour of the
+objects can be modified by double-clicking an object and selecting a
+colour in a dialog window. In this example we do not use a modal dialog
+and using the hyper serves two purposes. First of all it tells the
+dialog what object should be changed, but second, it ensures the dialog
+is destroyed if the box is.
 
 \begin{pcecode}
-hyperdemo :-
-	new(F, frame('Main Window')),
-	send(F, append, new(P, picture)),
-	send(new(D, dialog), below, P),
-	send(D, append, button(quit, message(F, destroy))),
-	send(F, open),
+:- use_module(library(hyper)).
 
-	new(E, dialog('Edit label')),
-	send(E, append, text_item(label, F?label,
-				  message(F, label, @arg1))),
-	send(E, append, button(cancel, message(E, destroy))),
-	new(_, master_slave_hyper(F, E)),
-	send(E, open).
+:- pce_begin_class(link_demo, picture).
+
+initialise(P) :->
+	send_super(P, initialise, 'Link Demo'),
+	send(P, recogniser,
+	     click_gesture(left, '', single,
+			   message(P, add_box, @event?position))).
+
+add_box(P, At:point) :->
+	send(P, display, new(link_box), At).
+
+:- pce_end_class(link_demo).
+
+:- pce_begin_class(link_box, box).
+
+handle(w/2, 0, link, north).
+handle(w/2, h, link, south).
+handle(0, h/2, link, west).
+handle(w, h/2, link, east).
+
+initialise(B) :->
+	send_super(B, initialise, 100, 50),
+	send_list(B, recogniser,
+		  [ click_gesture(left, '', double,
+				  message(B, edit)),
+		    new(connect_gesture),
+		    new(move_gesture)
+		  ]).
+
+colour(red).
+colour(green).
+colour(blue).
+colour(yellow).
+
+edit(B) :->
+	"Allow changing colour"::
+	new(D, dialog('Select colour')),
+	send(D, append, new(M, menu(colour, choice,
+				    message(?(D, hypered, box),
+					    fill_pattern,
+					    @arg1)))),
+	(   colour(Colour),
+	    send(M, append,
+		 menu_item(colour(Colour),
+			   @default,
+			   pixmap(@nil,
+				  background := Colour,
+				  width := 32,
+				  height := 16))),
+	    fail
+	;   true
+	),
+	send(D, append, button(done, message(D, destroy))),
+	new(_, partof_hyper(B, D, dialog, box)),
+	get(B, display_position, PosB),
+	get(PosB, plus, point(20,100), PosD),
+	send(D, open, PosD).
+
+:- pce_end_class(link_box).
 \end{pcecode}
 
-Using the \class{master_slave_hyper}, the frame-demo from above can be
-rewritten using the code below:
-
-\begin{code}
-:- pce_begin_class(main, frame, "Applications main window").
-
-slave(F, Name:name, Create:[bool], Slave:slave) :<-
-	"Return existing slave or create new one"::
-	(   get(F, hypered, slave, @arg3?name == Name, Slave)
-	->  true
-	;   (	Create == @off
-	    ->	fail
-	    ;	new(Slave, slave(Name, F))
-	    )
-	).
-
-:- pce_end_class.
-
-:- pce_begin_class(slave, frame, "Applications slave frame").
-
-variable(name, name, get, "Slave name of this frame").
-
-initialise(S, Name:name, M:main) :->
-	"Create and register with main"::
-	send(S, send_super, initialise, 'Slave frame'),
-	send(S, slot, name, Name),
-	new(_, master_slave_hyper(M, S)),
-	...
-
-:- pce_end_class.
-\end{code}
-
+\postscriptfig{linkhyper}{Using a hyper to link a window to an object}
 
 \subsection{Methods for handling hyper objects}
 
@@ -215,3 +165,7 @@ The first matching object is returned.  See also <-all_hypers.
 \end{tabular}
 \end{center}
 \end{description}
+
+
+
+

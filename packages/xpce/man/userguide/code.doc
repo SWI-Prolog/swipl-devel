@@ -1,21 +1,16 @@
 \section{Executable objects}		\label{sec:exeobjects}
 
 \index{statement,as object}\index{executable,object}
-\index{program,as object}\index{lambda functions}
-PCE defines {\em executable} objects.  Executable objects (often
-called \idx{code object}s) can be compared to lambda functions in Lisp.
-They are used in the contexts given below.
+\index{program,as object}\index{lambda functions}%
+PCE defines {\em executable} objects.
+Executable objects (called \idx{code object}s) can be compared to lambda
+functions in Lisp. They are used in the contexts given below.
 
 \begin{itemize}
     \tick{Definition of `\idx{call-back}' actions}
 The most common usage of executable objects is to specify the action
 undertaken by interactive UI components when they are activated.  We
 have seen examples of this in \secref{fileviewer}.
-    \tick{As implementation of a \class{method} object} 
-A method describes an action associated with a class or individual
-object.  It maps a {\em selector} onto an action.  This action is
-either a C-function (used for most internal methods) or an
-executable object. See also \chapref{udc}.
     \tick{As parameter to a method}
 Various methods take an executable object as a parameter to
 specify the action undertaken.  Suppose we want to remove all graphicals
@@ -49,12 +44,16 @@ executed when the button is pressed.  The procedure handed to the
 `chain->for_all' method we have seen above is executed by this method
 for each element of the chain.
 
-Procedures can also be executed explicitly using the method `code
-->execute' and `code->forward'.  The first simply executes the
-procedure.  The latter binds the argument-forwarding objects @arg1, ...,
-then ->execute{}s the procedure and restores the old bindings of @arg1,
-....
+Procedures can also be executed explicitly using the method
+`code->forward'. This binds the argument-forwarding objects @arg1, ...,
+and then executes the procedure and restores the old bindings of
+argument-forwarding objects.  For example:
 
+\begin{code}
+1 ?- new(@m, message(@prolog, format, 'Hello ~w~n', @arg1)).
+2 ?- send(@m, forward, world).
+Hello world
+\end{code}
 
 \begin{shortlist}
     \tick{message(Receiver, Selector, Argument ...)}
@@ -205,9 +204,25 @@ functions in the message and thus create an instance of class
 \end{itemize}
 
 
-\subsection{Example}
+\subsection{Example 1: Finding objects}
 
-Code objects are most commonly used to specify the internal behaviour of
+A common problem is to find objects, notably some specific graphical
+object on a window. If we want to find all instances of class
+\class{box} within a graphical \class{device}, we can use the call
+below, collecting all boxes on the device in a new \class{chain}.
+
+\begin{pcecode}
+	...
+	get(Dev?graphicals, find_all.
+	    message(@arg1, instance_of, box),
+	    Boxes),
+	...
+\end{pcecode}
+
+
+\subsection{Example 2: Internal behaviour of dialog window}
+
+Code are most commonly used to specify the internal behaviour of
 dialog windows, such that the call-back predicate can concentrate on the
 real function.  We have seen an example of this in \secref{fileviewer}.
 
@@ -237,44 +252,49 @@ behaviour in Prolog.  We leave this as an exercise to the user.
 
 \begin{pcecode}
 postscript(Data) :-
-	  new(D, dialog('Print destination')),
-	  send(D, append, new(T, menu(destination, marked))),
-	  send_list(T, append, [printer, file]),
-	  send(T, layout, horizontal),
-	  send(D, append,
-	       new(A, text_item(printer_name, 'PostScript'))),
-	  send(T, message,
-	       if(T?selection == printer,
-		  message(A, label,
-			  ?(A, label_name, printer_name)),
-		  message(A, label,
-			  ?(A, label_name, file_name)))),
-	  send(D, append,
-	       button(ok, and(message(@prolog,
-				      print_postscript,
-				      T?selection,
-				      A?selection,
-				      Data),
-			      message(D, destroy)))),
-	  send(D, append,
-	       button(cancel, message(D, destroy))),
-	  send(D, default_button, ok),
-	  send(D, open).
+	new(D, dialog('Print destination')),
+	send(D, append, new(T, menu(destination, marked))),
+	send_list(T, append, [printer, file]),
+	send(T, layout, horizontal),
+	send(D, append,
+	     new(A, text_item(printer_name, 'PostScript'))),
+	send(T, message,
+	     if(T?selection == printer,
+		message(A, label,
+			?(A, label_name, printer_name)),
+		message(A, label,
+			?(A, label_name, file_name)))),
+	send(D, append,
+	     button(ok, and(message(@prolog,
+				    print_postscript,
+				    T?selection,
+				    A?selection,
+				    Data),
+			    message(D, destroy)))),
+	send(D, append,
+	     button(cancel, message(D, destroy))),
+	send(D, default_button, ok),
+	send(D, open).
 	  
 print_postscript(printer, Address, Data) :- !,
-	  new(F, file),
-	  send(F, open, write),
-	  send(F, append, Data),
-	  send(F, close),
-	  get(F, name, TmpFile),
-	  get(string('lpr -P%s %s &', Address, TmpFile),
-	      value, Command),
-	  unix(shell(Command)).
+	new(F, file),
+	send(F, open, write),
+	send(F, append, Data),
+	send(F, close),
+	get(F, name, TmpFile),
+	get(string('lpr -P%s %s', Address, TmpFile),
+	    value, Command),
+	unix(shell(Command)),	  
+	send(F, remove).
 print_postscript(file, Address, Data) :-
-	  new(F, file(Address)),
-	  send(F, open, write),
-	  send(F, append, Data),
-	  send(F, close).
+	new(F, file(Address)),
+	send(F, open, write),
+	send(F, append, Data),
+	send(F, close).
 \end{pcecode}
 
-% do not remove this line ...
+\postscriptfig{printps}{Print destination dialog using code objects
+			for internal behaviour}
+
+
+

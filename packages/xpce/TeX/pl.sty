@@ -310,13 +310,13 @@
 
 \def\postscriptfig{\@ifnextchar[{\@scaledpostscriptfig}{\@postscriptfig}}
 \def\@scaledpostscriptfig[#1]#2#3{%
-	\begin{figure}%
+	\begin{figure}[htbp]%
 	    \centerline{\includegraphics[#1]{#2}}
 	    \caption{#3}
 	    \label{fig:#2}
 	\end{figure}}
 \def\@postscriptfig#1#2{%
-	\begin{figure}%
+	\begin{figure}[htbp]%
 	    \centerline{\includegraphics{#1}}
 	    \caption{#2}
 	    \label{fig:#1}

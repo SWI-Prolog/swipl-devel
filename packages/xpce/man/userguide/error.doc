@@ -36,11 +36,13 @@ context.  Finally, {\em fatal} errors do not allow execution to
 be continued.  The system will print context information and
 request Prolog to abort back to the Prolog interactive top level.
     \tick{feedback}
-Determines how the error is to be reported.  If {\em print} the
-error is printed in the Prolog window.  If {\em report} the
+Determines how the error is to be reported.  If \const{print} the
+error is printed in the Prolog window.  If \const{report} the
 error is reported using the report mechanism described in
-\secref{report}.  The latter is intended for errors that
+\secref{report}.  The `report' mechanism is for errors that
 may be caused by application users, for example file errors.
+If \const{throw} and there is a Prolog goal on the stack, the
+error is mapped to a Prolog exception.  See below.
 
 In the \idx{runtime-system}, all errors use feedback `report'.
     \tick{format}
@@ -59,19 +61,47 @@ description of errors.
 \index{errors,catching}\index{catch,errors}%
 Sometimes the application wants to anticipate on certain errors.
 Explicit testing of all conditions is a cumbersome solution to this
-problem.  Therefore \product{} allows catching of errors by the application.
-This is supported by the Prolog predicate pce_catch_error/2:
+problem. Therefore \product{} allows catching of errors by the
+application.
+
+There are two mechanism available to do this.  Regardless of the
+`error<-feedback' type of the error, all except fatal errors can
+be silenced using pce_catch_error/2:
+
+\begin{description}
+    \predicate{pce_catch_error}{2}{+ErrorSpec, :Goal}
+Run \arg{Goal} like once/1. It an error matching \arg{ErrorSpec} is
+raised, this error is not reported, but stored in `@pce<-last_error'.
+\arg{ErrorSpec} is the <-id of an error, a chain holding error-ids
+or @default.  The latter implies none but fatat errors are reported.
+
+The example below silently ignores errors from creating a backup
+of \arg{File}.  Note that the call does fail if backup raises an
+error.
 
 \begin{code}
-...,
-pce_catch_error(backup_file, send(File, backup)),
-...
+	...,
+	pce_catch_error(backup_file, send(File, backup)),
+	...
 \end{code}
+\end{description}
 
-If the indicated error occurs while the goal of the second argument is
-active the \product{} goal that raised the error will silently fail and the
-attribute `pce <-last_error' is filled with the id of the error
-trapped.  This may be used to determine the cause of the error.
+If the <-feedback of the error is \const{throw} and the error is not
+silenced with pce_catch_error/2 it is mapped to a Prolog exeption of
+the form
+
+\begin{quote}
+\term{error}{\term{pce}{Id, ContextArgs}, Goal}
+\end{quote}
+
+For example:
+
+\begin{code}
+?- catch(send(@pce, foobar), E, true).
+
+E = error(pce(no_behaviour, [@pce/pce,  (->), foobar]),
+          send(@pce/pce, foobar))
+\end{code}
 
 
 \subsection{Raising errors}
@@ -98,7 +128,7 @@ Note that the names of errors should be unique.  It is advised to
 reuse existing error-id's if possible.
 
 
-\subsection{Exceptions}
+\subsection{Repairable errors}
 
 \index{exception}%
 On trapping certain `repairable` errors, \product{} will first raise an {\em

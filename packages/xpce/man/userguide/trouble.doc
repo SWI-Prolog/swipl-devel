@@ -20,15 +20,6 @@ PCE after a fatal or system error as the system might be corrupted.
 
 This problem is not possible in the Win32 implementation.
 
-    \tick{Failed to convert resource value}
-This implies PCE could not translate a default specified in
-\file{\string~/.Xdefaults}, \file{/usr/lib/X11/app-defaults/Pce} or the PCE
-class resource specification (see `resource <-default') into a PCE
-object of the type of the resource.  PCE will first try the class
-defined default value and generate a fatal error if this fails as well.
-Try to locate the resource that causes the trouble and where it is
-defined.
-
     \tick{Bad integer reference}
 This is a PCE/Prolog interface warning.  It implies the integer
 object reference given to send/[2-12], etc.\ is not valid.  The most

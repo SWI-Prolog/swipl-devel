@@ -62,14 +62,41 @@ Whereas an attribute (argument) of a Prolog term is either a logical
 variable or instantiated to a Prolog data object, an attribute of
 an object may be assigned to.  The assignment is destructive.
     \tick{Types}
-\product{} is a partially dynamically typed language and \product{} object attributes
+\product{} is a dynamically typed language and \product{} object attributes
 may have types. Prolog is untyped.
 \end{itemize}
 
-Because there is no straight-forward translation from Prolog data
-structures into \product{} objects it is not possible to pass Prolog data
-through \product{} control structures.  We will illustrate this using the
-code object declared below:
+
+\section{Dealing with Prolog data}
+
+By nature, \plainproduct{} data is not Prolog data.  This implies that
+anything passed to a \plainproduct{} method must be converted from Prolog
+to something suitable for \plainproduct{}.  A natural mapping with fast
+and automatic translation is defined for atoms, and numbers (both integers
+and floating point).  As we have seen in \secref{starting}, compound terms
+are translated into instances using the functor-name as class-name.
+
+In \plainproduct{} 5.0 we added the possibility to embed arbitrary
+Prolog data in an object. There are three cases where Prolog data is
+passed natively embedded in a instance of the class \class{prolog_term}.
+
+\begin{itemlist}
+    \item [ Explicit usage of \term{prolog}{Data} ]
+By tagging a Prolog term using the functor \functor{prolog}{1},
+\arg{Data} is embedded in an instance of \class{prolog_term}. This term
+is passed unaltered unless it is passed to a method that does not accept
+the type \type{Any}, in which case translation to an object is enforced.
+    \item [ When passed to a method typed \type{Prolog} ]
+Prolog defined methods and instance-variables (see \secref{udc}) can
+define their type as \type{Prolog}.  In this case the data is packed
+in a \class{prolog_term} object.
+    \item [ When passed to a method typed \type{unchecked} ]
+A few methods in the system don't do type-checking themselves.
+\end{itemlist}
+
+
+We will explain the complications using examples.  First we create
+a \class{code} object:
 
 \begin{code}
 1 ?- new(@m, and(message(@prolog, write, @arg1),
@@ -94,8 +121,7 @@ have a natural representation in both languages.  However:
 4 ?- send(@m, forward, 3 + 4).
 7
 5 ?- send(@m, forward, [hello, world]).
-[\product{} warning: new: Unknown class: .
-        in: new(.(world, [])) ]
+@608322
 \end{code}
 
 In all these examples the argument is a Prolog compound term which
@@ -104,12 +130,22 @@ instance of the class of the principal functor.  In 3) this is an
 instance of class \class{chain}.  In 4) this is an instance of class
 \class{+}.  Class \class{+} however is a subclass of the \product{} class
 \class{function} and \idx{function} objects are evaluated when given
-to a method that does not accept a function-type argument.  In 5) this
-Prolog list actually is the term .(hello,.(world,[])) (see the
-Prolog predicate display/2).  As \product{} does not define a class `.'
-an error message results.
+to a method that does not accept a function-type argument.  Example
+5) illustrates that a list is converted to a \plainproduct{} \class{chain}.
 
-Below is a very realistic example of this misconception.
+We can fix these problems using the \functor{prolog}{1} functor.  Example
+7) illustrates that also non-ground terms may be passed.
+
+\begin{code}
+6 ?- send(@m, forward, prolog(chain(hello))).
+chain(hello)
+7 ?- send(@m, forward, prolog(X)).
+_G335
+
+X = _G335
+\end{code}
+
+Below is a another realistic example of this misconception.
 
 \begin{pcecode}
 ?- new(D, dialog('Bug')),
@@ -121,19 +157,44 @@ Below is a very realistic example of this misconception.
         in: new(verbose(on)) ]
 \end{pcecode}
 
-A correct solution for this task is.
+One correct solution for this task is below.  An alternative is to
+call a predicate set_verbose/0 that realises the assertion.
 
 \begin{pcecode}
 make_verbose_dialog :-
 	new(D, dialog('Correct')),
 	send(D, append,
 	     button(verbose,
-		    message(@prolog, set_verbose, on))),
+		    message(@prolog, assert,
+			    prolog(verbose(on))))),
 	send(D, open).
-
-set_verbose(Value) :-
-	retractall(verbose(_)),
-	assert(verbose(Value)).
 \end{pcecode}
 
-\mbox{}
+
+\subsection{Life-time of Prolog terms in \plainproduct{}}.
+
+\index{prolog-term,life-time}%
+\plainproduct{} is connected to Prolog through the foreign language
+interface. Its interface predicates are passed Prolog terms by
+reference.  Such a reference however is only valid during the execution
+of the foreign procedure.  So, why does the example above work?  As soon
+as the send/3 in make_verbose_dialog/0 returns the term-reference holding
+the term \term{verbose}{on} is no longer valid!
+
+To solve this problem, \class{prolog_term} has two alternative
+representations. It is created from a term-reference.  After the
+interface call (send/3 in this case) returns, it checks whether it
+has created Prolog term objects.  If it finds such an object that is
+not referenced, it destroys the object.  If it finds an object that is
+referenced it records Prolog terms into the database and stores a
+reference to the recorded database record.
+
+Summarising, Prolog terms are copied as soon as the method to which they
+are passed returns.  Normally this is the case if a Prolog terms is used
+to fill an instance-variable in \plainproduct{}.
+
+
+
+
+
+

@@ -5,8 +5,12 @@ normally used for storing setting information, such as fonts, colours
 etc. For this reason, the default value for a \class{class_variable} is
 defined with the declaration of it, but this default my be overruled
 using the \file{Defaults} file. The system defaults file is located in
-the \product{} home directory (`@pce <-home'). This file contains a
-\jargon{include} statement, including the file \file{~/.xpce/Defaults},
+the \product{} home directory (`@pce <-home'). This file contains an
+\jargon{include} statement, including the file \file{~/.xpce/Defaults},%
+    \footnote{On Windows systems, \file{~} expands to \file{%HOME%},
+	      \file{%USERPROFILE}, \file{%HOMEDRIVE%/%HOMEPATH} or the
+	      root of the current drive.  See expand_file_name/2 of
+	      the SWI-Prolog manual.}
 which may be used by the developer and application user to specify
 defaults.
 
@@ -162,74 +166,4 @@ expert_level(Obj, Level:{novice,advanced,expert}) :->
 	...
 \end{code}
 
-
-\section{Compatibility with the pre-5.0 \class{resource} construct}
-
-Before XPCE 4.10.1/ProWindows 3.2, \product{} defined class
-\class{resource} and methods similar to the ones describes in this
-chapter. This mechanism was designed to deal with X11 resources, but
-especially with the introduction of the Windows version, lost the direct
-relation to X11. Class \class{resource} and related functions have been
-replaced by class-variable construct to avoid confusion with the new
-resource mechanism described in \secref{resources}, and to get rid of
-the historical, rather illogical design and naming of the old mechanism.
-
-To run old code, there are two possible approaches. One is to modify the
-sources, and the other is to load the compatibility package
-\lib{compatibility/resource}.
-
-
-\subsection{Incompatibilities}		\label{sec:resincompat}
-
-\begin{description}
-    \item[Naming]
-Both for the access methods and the class, the name {\em resource} has
-between replaced by {\em class_variable}.
-    \item[Default Value Definition]
-The `resource<->default' represented the value in its textual form,
-i.e.\ as used in the resource file.  `class_variable<->default' uses
-the actual value, providing consistent syntax in the source-code.
-    \item[Access]
-Class-variables may be accessed using normal method invocation, while
-resources were only accessible using `object <-resource_value'.
-    \item[Default File Format]
-Resources were specified in the file \file{Pce} in the \product{} home
-directory using the syntax \mbox{\const{Pce}.<CapitalisedClass>.<resource>}.
-Class-variables are specified in the file \file{Defaults} using the
-syntax \mbox{<class>.<class-variable>}.  E.i.\ the capitalisation of the
-class-name and the \const{Pce} prefix, both inspired by the X11 resource
-mechanism, have been dropped.
-\end{description}
-
-
-\subsection{Loading the compatibility package} \label{sec:librescompat}
-
-Old code may generally be run unmodified by loading
-\lib{compatibility/resource} {\bf prior} to loading the old code. This
-library performs the following tasks:
-
-\begin{description}
-    \item[Methods]
-Define `object <-resource_value' and `object ->obtain_resources' to call
-the class_variable version.
-    \item[Expansion]
-Define clauses for pce_pre_expansion_hook/2, to expand the
-class-definitions resource/[3,4] into class_variable/[3,4]. This
-expansion analyses the default value and tries to convert this to
-the new syntax (see \secref{resincompat}).  It will issue a warning
-whenever a conversion is required.
-\end{description}
-
-These conversions deal with applications using the old resource
-mechanism as suggested in corresponding versions of this manual, except
-for those cases where the automatic value conversion fails.  Other usage
-of the resource class and methods is not supported.
-
-
-\subsection{Updating the sources}
-
-Updating the source is generally trivial as all places that require
-updating use the name \const{resource}. It is adviced to use the
-technique described in \secref{librescompat} first to locate the value
-fields that need updating. After all values are updated, it will
-normally suffice to replace \const{resource} by \const{class_variable}.
+\mbox{}

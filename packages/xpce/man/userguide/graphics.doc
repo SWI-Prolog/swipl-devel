@@ -35,24 +35,29 @@ picture.
 3 ?- send(@p, display,
 	  new(@ci, circle(50)), point(25,25)).
 4 ?- send(@p, display,
-	  new(@bm, bitmap('pce.bm')), point(100,100)).
+	  new(@bm, bitmap('32x32/books.xpm')), point(100,100)).
 5 ?- send(@p, display,
 	  new(@tx, text('Hello')), point(120, 50)).
+6 ?- send(@p, display,
+	  new(@bz, bezier_curve(point(50,100),
+				point(120,132),
+				point(50, 160),
+				point(120, 200)))).
 \end{code}
-
-The result is shown in \figref{graphics}.
-
-\postscriptfig[width=4in]{graphics}{Example graphics}
 
 \product{}'s graphics infrastructure automatically takes care of the necessary
 repaint operations when graphical objects are manipulated. Try the
-following queries to appreciate this:
+queries below to appreciate this. The result is shown in
+\figref{graphics}.
 
 \begin{code}
-6 ?- send(@bo, radius, 10).
-7 ?- send(@ci, fill_pattern, @grey25_image).
-8 ?- send(@tx, font, font(times, bold, 18)).
+7  ?- send(@bo, radius, 10).
+8  ?- send(@ci, fill_pattern, colour(orange)).
+9  ?- send(@tx, font, font(times, bold, 18)).
+10 ?- send(@bz, arrows, both).
 \end{code}
+
+\postscriptfig[width=4in]{graphics}{Example graphics}
 
 \product{} avoids unnecessary repaint operations and expensive computations
 involved in updating the screen.  The screen is only updated {\em
@@ -101,8 +106,14 @@ overview of the primitive graphicals.
 \class{arrow}	& Arrow-head.  Normally used implicitly
 		  by class \class{line}. \\
 \hline
+\class{bezier}	& Bezier curve.  Both quadratic and cubic Biezer
+ 	          curves are supported. \\
+\hline
 \class{bitmap}	& Visualisation of an image.  Both monochrome and
-		  full-colour images are supported. See \secref{images}. \\
+		  full-colour images are supported.  Images can have
+		  shape. See \secref{images}. \\
+\hline
+\class{pixmap}  & Subclass of bitmap only for coloured images. \\
 \hline
 \class{box}	& Rectangle.  Can be rounded and filled. \\
 \hline
@@ -131,7 +142,7 @@ overview of the primitive graphicals.
 
 \section{Compound graphicals}
 
-Sometimes one would like to combine two or more primitive graphical
+Often one would like to combine two or more primitive graphical
 objects into a single unit.  This is achieved using class \class{device}.
 Below we create an icon, consisting of a bitmap and a textual label
 displayed below it.
@@ -154,7 +165,10 @@ compound graphical objects are shown in \tabref{compoundgraphics}.
 \begin{center}
 \begin{tabularlp}{\class{figure}}
 \hline
-\class{device}	& Most generic compound graphical object. \\
+\class{device}	& Most generic compound graphical object.  The
+		  \class{window} is a subclass of \class{device}
+		  and all graphical operations are defined on
+		  class \class{device}. \\
 \hline
 \class{figure}	& Subclass of \class{device}, provides clipping,
 		  background, containing rectangle, border and the
@@ -164,6 +178,9 @@ compound graphical objects are shown in \tabref{compoundgraphics}.
 \class{format}	& A format object specifies a two-dimensional table
 		  layout.  Formats may be associated to graphical
 		  devices using `device ->format'. \\
+\class{table}	& The successor of \class{format} realises tabular
+		  layout compatible to the HTML-3 model for tables.
+		  See \secref{tabular}.
 \hline
 \end{tabularlp}
 \end{center}

@@ -77,4 +77,5 @@ format using the following simple command:
 \end{code}
 
 This transformation is complete as the \fileext{XPM} image format covers
-all aspects of the Microsoft image formats.
+all aspects of the Microsoft image formats.  For further details on
+image formats and manipulation, see \secref{images}.

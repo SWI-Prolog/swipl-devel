@@ -404,3 +404,23 @@ user-defined classes.  Notably, the editor should support activating and
 defining methods on a user-defined refinement of the containing frame.
 \end{itemize}
 
+
+\section{Summary and Conclusions}
+
+Though the dialog editor has attracted quite some attention when it was
+developed, it remains a difficult product. Using WYSIWYG style of
+interface building appears attractive, but looses generalisations that
+can be made in a programming language.  If you have been in a country
+of which you don't speak the language you understand that pointing is
+a rather crippled way to express your needs. Especially \productpl{} is
+strong in meta-representation and symbolic layout and the combination
+can easily be exploited to automate most of the simple control
+generation.
+
+A good WYSIWYG should provide a smooth transition between the beginners
+choice for WYSIWYG and the expert choice of using language.  It was one
+of the aims of this project to achieve this transaction but modern
+\productpl{} applications are generally programmed in classes and the
+dialog editor presented here is build around direct relations between
+objects.
+

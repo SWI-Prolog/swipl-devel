@@ -26,16 +26,12 @@ Discusses the generic reporting system used to inform the user of
 progress, status and errors.
     \secoverview{errors}{Errors}
 Specifying, handling and generating errors.
-    \secoverview{multi-lingual}{Multi-lingual applications}
-Discusses support for multi-lingual applications.
     \secoverview{font}{Specifying fonts}
 Discusses the indirections in the font-specification mechanism.
     \secoverview{images}{Using images and cursors}
 Discusses images, icons and cursors.
     \secoverview{hyper}{Using Hyper Links to Relate Objects}
 Discusses a technique to relate objects.
-    \secoverview{dragdrop}{Drag and Drop Interface}
-Discusses the \product{} drag-and-drop gesture library.
     \secoverview{ugraphics}{User Defined Graphicals}
 Discusses the definition of new graphical primitives.
 \end{itemize}
@@ -48,9 +44,7 @@ Discusses the definition of new graphical primitives.
 \input{frame.tex}
 \input{report.tex}
 \input{error.tex}
-\input{mlingual}
 \input{font.tex}
 \input{images.tex}
 \input{hyper.tex}
-\input{dragdrop.tex}
 \input{ugraphics.tex}

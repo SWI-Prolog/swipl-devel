@@ -83,6 +83,10 @@ classes.  See the file Overview in the library directory.
 			  to enter a numerical value), completion using
 			  the space-bar if a value-set is provided. \\
 \hline
+\class{int_item}	& Like a \class{text_item}, but providing properly
+			  sized field, buttons for one-up/down, type- and
+			  range-checking. \\
+\hline
 \class{slider}		& Select numerical value in a range.  Handles
 			  both integers and floating point values. \\
 \hline
@@ -90,9 +94,9 @@ classes.  See the file Overview in the library directory.
 			  visual feedback.  Realises \idx{radio-button},
 			  \idx{tick-box}, \idx{combo-box} and much more. \\
 \hline
-\class{menu_bar}	& Row of pulldown menus.  Normally displayed in
-			  a small dialog above the other windows in
-			  the frame. \\
+\class{menu_bar}	& Row of pulldown (\class{popup}) menus.
+			  Normally displayed in a small dialog above
+			  the other windows in the frame. \\
 \hline
 \class{label}		& Image or textual label.  Normally not
 			  sensitive to user actions. \\
@@ -308,6 +312,10 @@ ask_name(Name) :-
 	send(D, destroy),
 	Answer \== @nil,	     % canceled
 	Name = Answer.
+
+?- ask_name(X).
+
+X = 'Bob Worker'
 \end{code}
 
 See also \secref{application} for a discussion on how frames may be

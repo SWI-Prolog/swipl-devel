@@ -1,5 +1,6 @@
-\section{Control-structure of \productpl{} applications}	\label{sec:control}
+\section{Control-structure of \productpl{} applications} \label{sec:control}
 
+\index{control,structure}%
 This section deals with the control-structure of interactive
 applications written in \productpl{}. Interactive graphical
 applications are very different from terminal oriented applications.
@@ -31,13 +32,14 @@ typed by the user.
 
 \subsection{Event-driven applications}
 
+\index{event-driven}%
 One approach is to write a main-loop that reads events, locates the
 UI-component referred to and executes the appropriate actions.  This
 loop, which must take care of repaint-requests, various local feedback
 procedures (changing the mouse-cursor, inverting objects, etc.), is
 complicated.  The approach taken by most graphical programming systems
-including PCE, is to move this loop into the infra-structure (i.e.\ into
-the PCE kernel).  The application programmer creates the desired
+including \plainproduct{}, is to move this loop into the infra-structure (i.e.\ into
+the \plainproduct{} kernel).  The application programmer creates the desired
 UI-components and supplies code fragments that will be called by the
 main-loop when a certain event happens.  This control-structure is
 called {\em event-driven} control.  Consider a button:
@@ -50,7 +52,7 @@ called {\em event-driven} control.  Consider a button:
 
 In this example the application creates and displays a button UI
 component and associates a code fragment (the message) to be executed
-when the button is pressed.  The PCE kernel will loop through the main
+when the button is pressed.  The \plainproduct{} kernel will loop through the main
 event-loop.  For each event it will locate the UI component that should
 handle the event.  When the button has recognised a `click' it will
 execute the code fragment attached to it.  This behaviour is part of the
@@ -58,9 +60,9 @@ definition of class \class{button}.
 
 It is clear that this approach relieves the application programmer of
 many of the complications associated with event-processing.  As a
-consequence, the `main-loop' of a PCE application is no longer in the
-application itself, but in the PCE kernel.  Below is an outline of
-the control structure of a PCE/Prolog application:
+consequence, the `main-loop' of a \plainproduct{} application is no longer in the
+application itself, but in the \plainproduct{} kernel.  Below is an outline of
+the control structure of a \productpl{} application:
 
 \begin{code}
 go :-
@@ -79,7 +81,7 @@ handle_solve :-
 
 The predicate go will exit after it has initialised the application and
 created the UI components.  Assuming the application window has a button
-invoking the predicate handle_help_pressed, PCE will call this
+invoking the predicate handle_help_pressed, \plainproduct{} will call this
 predicate when the user presses the help button.
 
 
@@ -154,6 +156,19 @@ Process events and return on any of the following conditions
 	There is input from the Prolog window.  The message succeeds
 	in this case.
     \end{itemlist}
+
+For example, the following processes events in call-back style until
+the fact quit/0 is in the Prolog database:
+
+\begin{pcecode}
+:- dynamic
+	quit/0.
+
+process_to_quit :-
+	repeat,
+	    send(@display, dispatch),
+        quit, !.
+\end{pcecode}
 \end{description}
 
 
@@ -161,7 +176,7 @@ Process events and return on any of the following conditions
 
 Due to the different control-regime described in the previous section,
 traditional terminal oriented applications are not easily transformed
-into PCE/Prolog graphical applications.  Depending on the application,
+into \productpl{} graphical applications.  Depending on the application,
 there are two ways to proceed.
 
 The first is to keep the existing control-regime.  This implies that
