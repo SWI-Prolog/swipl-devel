@@ -769,6 +769,8 @@ frameFinished(LocalFrame fr, enum finished reason ARG_LD)
       if ( reason == FINISH_EXCEPT )
       {	word pending = *valTermRef(exception_bin);
 
+	exception_term = 0;
+	*valTermRef(exception_bin) = 0;
 	rval = callProlog(fr->context, clean, PL_Q_CATCH_EXCEPTION, &ex);
 	if ( rval || !ex )
 	{ *valTermRef(exception_bin) = pending;
