@@ -36,10 +36,9 @@
 	   ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Class prolog_predicate is  a  rather  simple   class  to  represent  the
-identity of a Prolog  predicate.  It   is  used  with predicate_item for
-locating predicates and an important reason   for  the existence of this
-class is to have the type prolog_predicate available.
+Class prolog_predicate represents the identity of a Prolog predicate. It
+is used with predicate_item  for   locating  predicates and encapsulates
+access to various parts of the development environment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- pce_begin_class(prolog_predicate, object,
@@ -53,16 +52,25 @@ initialise(P, Term:prolog) :->
 	"Create from [Module]:Name/Arity"::
 	(   Term = Module:Name/Arity
 	->  true
-	;   Term = Name/Arity,
-	    Module = @nil
+	;   Term = Name/Arity
+	->  true
+	;   Term = Module:Head,
+	    callable(Head)
+	->  functor(Head, Name, Arity)
+	;   callable(Term)
+	->  functor(Term, Name, Arity)
 	),
 	(   var(Arity)
-	->  TheArity = @default
-	;   TheArity = Arity
+	->  Arity = @default
+	;   true
+	),
+	(   var(Module)
+	->  Module = @nil
+	;   true
 	),
 	send(P, slot, module, Module),
 	send(P, slot, name, Name),
-	send(P, slot, arity, TheArity).
+	send(P, slot, arity, Arity).
 
 convert(_, From:name, P:prolog_predicate) :<-
 	"Convert textual and Prolog term"::
@@ -148,6 +156,16 @@ has_property(P, Prop:prolog) :->
 	"Test predicate property"::
 	get(P, head, Head),
 	predicate_property(Head, Prop).
+
+help(P) :->
+	"Activate the help-system"::
+	get(P, head, @off, Head),
+	help(Head).
+
+summary(P, Summary:name) :<-
+	get(P, name, Name),
+	get(P, arity, Arity),
+	predicate(Name, Arity, Summary, _, _).
 
 :- pce_end_class(prolog_predicate).
 	  
