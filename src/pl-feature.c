@@ -681,8 +681,13 @@ initFeatures()
   defFeature("optimise", FT_BOOL, GD->cmdline.optimise, OPTIMISE_FEATURE);
   defFeature("tail_recursion_optimisation", FT_BOOL,
 	     TRUE, TAILRECURSION_FEATURE);
+#ifdef O_PLMT
+  defFeature("abort_with_exception", FT_BOOL|FF_READONLY,
+	     TRUE, EX_ABORT_FEATURE);
+#else
   defFeature("abort_with_exception", FT_BOOL,
 	     FALSE, EX_ABORT_FEATURE);
+#endif
   defFeature("c_libs",	  FT_ATOM|FF_READONLY, C_LIBS);
   defFeature("c_cc",	  FT_ATOM|FF_READONLY, C_CC);
   defFeature("c_ldflags", FT_ATOM|FF_READONLY, C_LDFLAGS);

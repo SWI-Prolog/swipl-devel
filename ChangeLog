@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Prolog flag abort_with_exception to be true in multi-threaded
+    version and make it read-only.  `Cosmetic' only.
+
   * FIXED: Compilation of (a, ! -> b) to cut the choicepoints of a.
     Sergey Tikhonov.
 
