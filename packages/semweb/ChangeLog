@@ -1,5 +1,7 @@
 Sep 2, 2003
 
+  * ADDED: rdfe_transaction_member/2 to inspect actions inside a transaction.
+
   * FIXED: rdfe_retractall/[3,4] to properly update the journal.
 
   * FIXED: rdf_assert duplicate administration (crashes rdf_retractall on

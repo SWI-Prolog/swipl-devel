@@ -12,6 +12,7 @@
 	    rdfe_delete/1,		% +Resource
 
 	    rdfe_transaction/1,		% :Goal
+	    rdfe_transaction_member/2,	% +Transactions, -Action
 
 	    rdfe_undo/0,		% 
 	    rdfe_redo/0,
@@ -326,7 +327,24 @@ rdfe_can_undo :-
 rdfe_can_undo :-
 	undo_log(_, _, _, _, _).
 
-	
+%	rdfe_transaction_member(+TID, -Action)
+%	
+%	Query actions inside a transaction to allow for quick update
+%	of visualisers.
+
+rdfe_transaction_member(TID, Member) :-
+	append(TID, _, Id),
+	undo_log(Id, Action, Subject, Predicate, Object),
+	user_transaction_member(Action, Subject, Predicate, Object, Member).
+
+user_transaction_member(assert(_), Subject, Predicate, Object,
+			assert(Subject, Predicate, Object)) :- !.
+user_transaction_member(retract(_), Subject, Predicate, Object,
+			retract(Subject, Predicate, Object)) :- !.
+user_transaction_member(Update, Subject, Predicate, Object,
+			update(Subject, Predicate, Object, Update)).
+
+
 		 /*******************************
 		 *	    JOURNALLING		*
 		 *******************************/
