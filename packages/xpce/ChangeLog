@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Windows: text repaint to use int rather than short for very large
+  scrolled objects.  Petter Egesund.
+
 * FIXED: `file<-read_line' no longer has a limit on the line-length and
   reads lines holding 0-bytes.  Anjo Anjewierden.
 

@@ -2897,10 +2897,10 @@ str_size(String s, FontObj font, int *width, int *height)
 #define MAX_TEXT_LINES 200		/* lines in a text object */
 
 typedef struct
-{ short	x;				/* origin x offset */
-  short	y;				/* origin y offset */
-  short	width;				/* pixel width of line */
-  short	height;				/* pixel height of line */
+{ int	x;				/* origin x offset */
+  int	y;				/* origin y offset */
+  int	width;				/* pixel width of line */
+  int	height;				/* pixel height of line */
   string text;				/* text of the line */
 } strTextLine;
 
