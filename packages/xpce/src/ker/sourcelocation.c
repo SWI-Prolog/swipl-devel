@@ -8,7 +8,7 @@
 */
 
 #include <h/kernel.h>
-#if !defined(HAVE_SYS_PARAM_H) || HAVE_SYS_PARAM_H
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #else
 #ifndef MAXPATHLEN

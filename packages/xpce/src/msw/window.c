@@ -54,6 +54,11 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 
   if ( !sw )
     sw = current_window;
+  assert(isProperObject(sw));
+
+  DEBUG(NAME_event,
+	printf("%s(0x%04x): MS-Windows event 0x%04x with 0x%04x/0x%08lx\n",
+	       pp(sw), hwnd, message, wParam, lParam));
 
   switch(message)
   { case WM_CREATE:
@@ -87,6 +92,15 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       return 0;
     }
 
+    case WM_SHOWWINDOW:
+    { HWND hwnd;
+
+      if ( !wParam && (hwnd = getHwndWindow(sw)) )
+	PceWhDeleteWindow(hwnd);
+
+      break;
+    }
+
     case WM_SETFOCUS:
       DEBUG(NAME_focus, printf("Received FocusIn on %s\n", pp(sw)));
       assign(sw, input_focus, ON);
@@ -100,18 +114,20 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     case WM_ERASEBKGND:
     { HDC hdc = (HDC) wParam;
       RECT rect;
+      HBRUSH hbrush;
       COLORREF rgb = (COLORREF) getXrefObject(sw->background,
 					      getDisplayWindow(sw));
-      HBRUSH hbrush = CreateSolidBrush(rgb);
-      
-      DEBUG(NAME_redraw, printf("Clearing background %d %d %d %d of %s\n",
+
+      rgb = GetNearestColor(hdc, rgb);
+      hbrush = CreateSolidBrush(rgb);
+      GetClipBox(hdc, &rect);
+      FillRect(hdc, &rect, hbrush);
+      ZDeleteObject(hbrush);
+
+      DEBUG(NAME_redraw, printf("Cleared background %d %d %d %d of %s\n",
 				rect.left, rect.top,
 				rect.right - rect.left, rect.bottom - rect.top,
 				pp(sw)));
-
-      GetClipBox(hdc, &rect);
-      FillRect(hdc, &rect, hbrush);
-      DeleteObject(hbrush);
 
       return 1;				/* non-zero: I've erased it */
     }
@@ -135,14 +151,40 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     }
 
     case WM_DESTROY:
-      setHwndWindow(sw, 0);
-      break;
+    { HWND hwnd;
+
+      if ( (hwnd = getHwndWindow(sw)) )
+      { PceWhDeleteWindow(hwnd);
+	setHwndWindow(sw, 0);
+	assign(sw, displayed, OFF);
+      }
+
+      return 0;
+    }
+
+    case WM_SETCURSOR:
+    { WsWindow w;
+      WsFrame wfr;
+
+      if ( (fr = getFrameWindow(sw)) &&
+	   (wfr = fr->ws_ref) &&
+	   wfr->hbusy_cursor )
+      { ZSetCursor(wfr->hbusy_cursor);
+      } else
+      { if ( w = sw->ws_ref )
+	{ if ( w->hcursor )
+	    ZSetCursor(w->hcursor);
+	}
+      }
+
+      return 1;
+    }
   }
 
   if ( (fr = getFrameWindow(sw)) &&
        (wfr = fr->ws_ref) &&
        wfr->hbusy_cursor )
-  { SetCursor(wfr->hbusy_cursor);
+  { ZSetCursor(wfr->hbusy_cursor);
   } else
   { EventObj ev;
     AnswerMark mark;
@@ -150,11 +192,13 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     markAnswerStack(mark);
   
     if ( (ev = messageToEvent(hwnd, message, wParam, lParam)) )
-    { addCodeReference(ev);
-      if ( isDownEvent(ev) )
-	ws_grab_pointer_window(sw, ON);	/* needs counting? */
-      if ( isUpEvent(ev) )
-	ws_grab_pointer_window(sw, OFF);
+    { WsWindow w = sw->ws_ref;
+
+      addCodeReference(ev);
+      if ( isDownEvent(ev) && !w->capture )
+	SetCapture(hwnd);
+      else if ( isUpEvent(ev) && !w->capture )
+	ReleaseCapture();
       rval = postEvent(ev, (Graphical) sw, DEFAULT);
       delCodeReference(ev);
       freeableObj(ev);
@@ -164,15 +208,7 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     if ( ev )				/* rval won't update on failing */
       RedrawDisplayManager(TheDisplayManager());
 
-    { WsWindow w = sw->ws_ref;
-
-      if ( w )
-      { if ( w->hcursor && GetCursor() != w->hcursor )
-	  SetCursor(w->hcursor);
-	else
-	  move_big_cursor();
-      }
-    }
+    move_big_cursor();			/* only if we have one */
 
     if ( rval )
       return 0;
@@ -193,9 +229,14 @@ ws_created_window(PceWindow sw)
 
 void
 ws_uncreate_window(PceWindow sw)
-{ if ( ws_created_window(sw) )
-  { DestroyWindow(getHwndWindow(sw));
+{ HWND hwnd;
+
+  if ( (hwnd = getHwndWindow(sw)) )
+  { DEBUG(NAME_window,
+	  printf("ws_uncreate_window(%s) (=0x%04x)\n", pp(sw), hwnd));
     setHwndWindow(sw, 0);
+    PceWhDeleteWindow(hwnd);
+    DestroyWindow(hwnd);
   }
 }
 
@@ -258,7 +299,8 @@ ws_reassociate_ws_window(PceWindow from, PceWindow to)
 { HWND win = getHwndWindow(from);
 
   setHwndWindow(to, win);
-  SetWindowLong(win, GWL_DATA, (LONG) to);
+  if ( win )
+    SetWindowLong(win, GWL_DATA, (LONG) to);
   setHwndWindow(from, NULL);
 }
 
@@ -275,25 +317,23 @@ ws_geometry_window(PceWindow sw, int x, int y, int w, int h, int pen)
 void
 ws_invalidate_window(PceWindow sw, Area a)
 { int clear = FALSE;
+  HWND hwnd = getHwndWindow(sw);
 
   clearing_update = FALSE;
 
-  if ( isDefault(a) )
-    InvalidateRect(getHwndWindow(sw), NULL, TRUE);
-  else					/* actually not used ... */
-  { RECT rect;
+  if ( hwnd && sw->displayed == ON )
+  { if ( isDefault(a) )
+      InvalidateRect(hwnd, NULL, TRUE);
+    else				/* actually not used ... */
+    { RECT rect;
 
-    rect.left   = valInt(a->x) + valInt(sw->scroll_offset->x);
-    rect.right  = rect.left    + valInt(a->w);
-    rect.top    = valInt(a->y) + valInt(sw->scroll_offset->y);
-    rect.bottom = rect.top     + valInt(a->h);
+      rect.left   = valInt(a->x) + valInt(sw->scroll_offset->x);
+      rect.right  = rect.left    + valInt(a->w);
+      rect.top    = valInt(a->y) + valInt(sw->scroll_offset->y);
+      rect.bottom = rect.top     + valInt(a->h);
   
-    DEBUG(NAME_redraw, printf("Invalidating %s: (%d %d %d %d)\n",
-			      pp(sw), rect.left, rect.top,
-			      rect.right - rect.left,
-			      rect.bottom - rect.top));
-
-    InvalidateRect(getHwndWindow(sw), &rect, clear);
+      InvalidateRect(hwnd, &rect, clear);
+    }
   }
 }
 
@@ -302,7 +342,7 @@ void
 ws_redraw_window(PceWindow sw, IArea a, int clear)
 { HWND hwnd = getHwndWindow(sw);
 
-  if ( hwnd )
+  if ( hwnd && sw->displayed == ON )
   { RECT rect;
 
     rect.left   = a->x      + valInt(sw->scroll_offset->x);
@@ -322,7 +362,7 @@ void
 ws_scroll_window(PceWindow sw, int dx, int dy)
 { HWND hwnd;
 
-  if ( (hwnd = getHwndWindow(sw)) )
+  if ( (hwnd = getHwndWindow(sw)) && sw->displayed == ON )
     ScrollWindowEx(hwnd, dx, dy, NULL, NULL, NULL, NULL,
 		   SW_ERASE|SW_INVALIDATE);
 }
@@ -339,10 +379,14 @@ ws_grab_pointer_window(PceWindow sw, Bool val)
 { HWND win;
 
   if ( (win = getHwndWindow(sw)) )
-  { if ( val == ON )
+  { WsWindow w = sw->ws_ref;
+
+    if ( val == ON )
       SetCapture(win);
     else
       ReleaseCapture();
+
+    w->capture = (val == ON);
   }
 }
 
@@ -384,7 +428,7 @@ ws_window_cursor(PceWindow sw, CursorObj c)
     } else
     { w->hcursor = (HCURSOR)getXrefObject(c,
 					  getDisplayGraphical((Graphical)sw));
-      SetCursor(w->hcursor);
+      ZSetCursor(w->hcursor);
     }
   }
 }
@@ -394,7 +438,7 @@ void
 ws_window_background(PceWindow sw, Colour c)
 { HWND hwnd;
 
-  if ( (hwnd = getHwndWindow(sw)) )
+  if ( (hwnd = getHwndWindow(sw)) && sw->displayed == ON )
   { DEBUG(NAME_background, printf("Invalidating %s for clear\n", pp(sw)));
     InvalidateRect(hwnd, NULL, TRUE);
   }

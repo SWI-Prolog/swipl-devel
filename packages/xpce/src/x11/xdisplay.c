@@ -219,6 +219,12 @@ ws_open_display(DisplayObj d)
 }
 
 
+void
+ws_quit_display(DisplayObj d)
+{ fprintf(stderr, "Cannot close display yet\n");
+}
+
+
 static DrawContext
 new_draw_context(DisplayObj d, Drawable drawable, Name kind)
 { DrawContext ctx = alloc(sizeof(struct draw_context));

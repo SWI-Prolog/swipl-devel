@@ -32,6 +32,17 @@ unlinkCharArray(CharArray n)
 }
 
 
+static status
+cloneCharArray(CharArray str, CharArray clone)
+{ clonePceSlots(str, clone);
+  clone->data = str->data;
+  str_alloc(&clone->data);
+  memcpy(clone->data.s_text8, str->data.s_text8, str_datasize(&str->data));
+
+  succeed;
+}
+
+
 static CharArray
 getConvertCharArray(Any ctx, Any val)
 { string s;
@@ -539,6 +550,8 @@ stringToCharArray(String s)
 status
 makeClassCharArray(Class class)
 { sourceClass(class, makeClassCharArray, __FILE__, "$Revision$");
+
+  setCloneFunctionClass(class, cloneCharArray);
 
   localClass(class, NAME_header, NAME_internal, "alien:str_h", NAME_none,
 	     "Header info (packed)");

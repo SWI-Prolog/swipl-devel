@@ -274,6 +274,10 @@ static struct error_def errors[] =
   { NAME_noFontsInFamily, ET_WARNING,
     "%N: No fonts in font-family %s" },
 
+					/* COLOURS */
+  { NAME_replacedColour,	ET_WARNING,
+    "%O: replaced by colour(%N)" },
+
 					/* X-errors */
   { NAME_xOpen,			ET_FATAL,
     "%N: Xopen failed on %s" },
@@ -306,6 +310,10 @@ static struct error_def errors[] =
     "%N: Referenced object %O not loaded" },
   { NAME_noSavedClassDef,	ET_FATAL,
     "%N: Cannot find class-definition from id = %d" },
+  { NAME_loadNoClass,		ET_WARNING,
+    "%N: Referenced class %s does not exist" },
+  { NAME_loadOldSlot,		ET_WARNING,
+    "%N: Slot %s<-%s is is not in current class definition" },
 
 					/* Types */
   { NAME_argumentType,		0,
@@ -562,7 +570,9 @@ static struct error_def errors[] =
 					/* MS-Windows errors */
   { NAME_failedToLoadDll,	EF_REPORT,
     "%N: Failed to load DLL %s: (error %d)" },
-#endif
+  { NAME_moreThanOneIcon,	0,
+    "%N: Contains more than 1 icon.  Using first" },
+#endif /*__WINDOWS__*/
 					/* List closer */
   { NULL,			0,
     NULL }

@@ -1,4 +1,3 @@
-DEBUG	all
 FILE	..\..\pl\src\pl-wam.obj
 FILE	..\..\pl\src\pl-save.obj
 FILE	..\..\pl\src\pl-atom.obj
@@ -35,6 +34,7 @@ FILE	..\..\pl\src\pl-wic.obj
 FILE	..\..\pl\src\pl-write.obj
 FILE	..\..\pl\src\pl-term.obj
 FILE	..\..\pl\src\pl-buffer.obj
+FILE	..\..\pl\src\pl-dde.obj
 FILE	..\..\pl\src\pl-main.obj
 
 FILE	adt\area.obj       
@@ -84,6 +84,7 @@ FILE	gra\colour.obj
 FILE	gra\connecti.obj   
 FILE	gra\cursor.obj     
 FILE	gra\device.obj     
+FILE	gra\elevatio.obj
 FILE	gra\ellipse.obj    
 FILE	gra\figure.obj     
 FILE	gra\font.obj       
@@ -97,6 +98,7 @@ FILE	gra\link.obj
 FILE	gra\listbrow.obj   
 FILE	gra\node.obj       
 FILE	gra\path.obj       
+FILE	gra\pixmap.obj
 FILE	gra\postscri.obj   
 FILE	gra\scrollba.obj   
 FILE	gra\text.obj       
@@ -161,6 +163,7 @@ FILE	msg\equal.obj
 FILE	msg\function.obj   
 FILE	msg\if.obj         
 FILE	msg\message.obj    
+FILE	msg\nameref.obj
 FILE	msg\nonequal.obj   
 FILE	msg\not.obj        
 FILE	msg\obtain.obj     

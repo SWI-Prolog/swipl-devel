@@ -344,6 +344,17 @@ bookmark_line(M) :->
 	get(M, scan, Caret, line, 0, start, SOL),
 	send(@emacs_mark_list, append_hit, M?text_buffer, SOL).
 
+		 /*******************************
+		 *	   PROCESS STUFF	*
+		 *******************************/
+
+has_processes(M) :->
+	"Test if this XPCE version supports processes"::
+	(   send(@pce, has_feature, process)
+	->  true
+	;   send(M, report, error, 'No inferior processes in this OS'),
+	    fail
+	).
 
 		 /*******************************
 		 *	     SPELLING		*
@@ -353,6 +364,7 @@ bookmark_line(M) :->
 
 ispell(M) :->
 	"Start ispell on this text_buffer"::
+	send(M, has_processes),
 	new(Ispell, ispell),
 	get(M, text_buffer, TB),
 	send(Ispell, buffer, TB),
@@ -422,6 +434,7 @@ result(_, no).
 compile(M, Command:string, Label:[name], Pool:[name]) :->
 	"Run Unix (compilation) process in buffer"::
 	send(M, save_some_buffers),
+	send(M, has_processes),
 	default(Label, Command, Lbl),
 	get(M, directory, Dir),
 	new(B, emacs_process_buffer(@default, string('*%s*', Lbl))),
@@ -459,6 +472,7 @@ compile(M, Command:string, Label:[name], Pool:[name]) :->
 grep(M, GrepArgs:'grep_arguments=string') :->
 	"Run Unix grep in compilation buffer"::
 	send(@emacs, save_some_buffers),
+	send(M, has_processes),
 	send(M, compile,
 	     string(@emacs_grep_command, GrepArgs),
 	     string('grep %s', GrepArgs),
@@ -467,6 +481,7 @@ grep(M, GrepArgs:'grep_arguments=string') :->
 
 shell(M) :->
 	"Start interactive shell"::
+	send(M, has_processes),
 	(   get(@emacs, buffer, '*shell*', Buffer)
 	->  send(Buffer, open)
 	;   (	get(@pce, environment_variable, 'SHELL', Shell)
@@ -486,8 +501,9 @@ shell(M) :->
 better_shell('/bin/tcsh', '/bin/csh') :- !.
 better_shell(Shell, Shell).
 
-manual_entry(_M, Spec:name) :->
+manual_entry(M, Spec:name) :->
 	"Lookup Unix manual entry"::
+	send(M, has_processes),
 	new(B, emacs_buffer(@nil, Spec)),
 	send(B, pool, manual_entry),
 	send(B, mode, man),
@@ -496,6 +512,7 @@ manual_entry(_M, Spec:name) :->
 
 gdb(M, Cmd:file) :->
 	"Run Unix GDB on command"::
+	send(M, has_processes),
 	new(X, emacs_gdb_buffer(Cmd)),
 	get(X, process, Process),
 	(   Process \== @nil,

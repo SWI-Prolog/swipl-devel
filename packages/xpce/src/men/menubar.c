@@ -49,9 +49,39 @@ RedrawAreaMenuBar(MenuBar mb, Area a)
       assign(b, device, NIL);
     }
     assign(b->area, x, sub(b->area->x, x));
+    assign(b->area, y, ZERO);
   }
 
   return RedrawAreaGraphical(mb, a);
+}
+
+
+static status
+changedMenuBarButton(MenuBar mb, Any obj)
+{ Button b = DEFAULT;
+
+  if ( instanceOfObject(obj, ClassPopup) )
+  { Cell cell;
+
+    for_cell(cell, mb->buttons)
+    { Button h = cell->value;
+      if ( h->popup == obj )
+      { b = h;
+	break;
+      }
+    }
+  } else
+    b = obj;
+
+  if ( isDefault(b) )
+    changedDialogItem(mb);
+  else if ( instanceOfObject(b, ClassButton) )
+  { Area a = b->area;
+
+    changedImageGraphical(mb, a->x, a->y, a->w, a->h);
+  }
+
+  succeed;
 }
 
 
@@ -79,7 +109,7 @@ computeMenuBar(MenuBar mb)
   CHANGING_GRAPHICAL(mb,
 	assign(mb->area, w, x > 0 ? toInt(x-gap) : ZERO);
 	assign(mb->area, h, toInt(h));
-	changedEntireImageGraphical(mb));
+	changedDialogItem(mb));
 
   succeed;
 }
@@ -158,7 +188,6 @@ static status
 eventMenuBar(MenuBar mb, EventObj ev)
 { int ix, iy;
   PopupObj p;
-  Point pos;
 
   if ( mb->active == OFF )
     fail;
@@ -169,29 +198,31 @@ eventMenuBar(MenuBar mb, EventObj ev)
     if ( isDragEvent(ev) )
     { if ( (p = find_popup_menu_bar(mb, ev, &ix, &iy)) &&
 	   p != mb->current )
-      { send(mb->current, NAME_close, 0);
-	assign(mb, current, p);
-	pos = tempObject(ClassPoint, toInt(ix), toInt(iy), 0);
-	assign(mb->current, button, mb->button);
-	changedDialogItem(mb);
+      { Point pos = tempObject(ClassPoint, toInt(ix), toInt(iy), 0);
+
+	send(mb->current, NAME_close, 0);
+	currentMenuBar(mb, p);
 	send(mb->current, NAME_update, mb, 0);
 	send(mb->current, NAME_open, mb, pos, OFF, OFF, ON, 0);
 	considerPreserveObject(pos);
 	postEvent(ev, (Graphical) mb->current, DEFAULT);
       }
     } else if ( isUpEvent(ev) && mb->button == getButtonEvent(ev) )
-    { send(mb->current, NAME_execute, mb, 0);
+    { PopupObj current = mb->current;
+
       assign(mb, current, NIL);
-      if ( !isFreedObj(mb) )
-	changedDialogItem(mb);
+      send(current, NAME_execute, mb, 0);
+      if ( !isFreedObj(mb) && !isFreeingObj(mb) )
+	changedMenuBarButton(mb, current);
     }
+
+    succeed;
   } else if ( isDownEvent(ev) )
   { assign(mb, button, getButtonEvent(ev));
 
     if ( (p = find_popup_menu_bar(mb, ev, &ix, &iy)) )
-    { assign(mb, current, p);
-      pos = tempObject(ClassPoint, toInt(ix), toInt(iy), 0);
-      changedDialogItem(mb);
+    { Point pos = tempObject(ClassPoint, toInt(ix), toInt(iy), 0);
+      currentMenuBar(mb, p);
       send(p, NAME_update, mb, 0);
       send(p, NAME_open, mb, pos, OFF, OFF, ON, 0);
       considerPreserveObject(pos);
@@ -283,7 +314,7 @@ activeMemberMenuBar(MenuBar mb, PopupObj p, Bool val)
 { if ( p->active != val )
   { CHANGING_GRAPHICAL(mb,
 	assign(p, active, val);
-	changedDialogItem(mb));
+        changedMenuBarButton(mb, p));
   }
   
   succeed;
@@ -342,8 +373,11 @@ allOffMenuBar(MenuBar mb, PopupObj p)
 static status
 currentMenuBar(MenuBar mb, PopupObj p)
 { if ( mb->current != p )
-  { assign(mb, current, p);
-    changedDialogItem(mb);		/* TBD: optimize */
+  { changedMenuBarButton(mb, mb->current);
+    assign(mb, current, p);
+    if ( notNil(p) )
+      assign(mb->current, button, mb->button);
+    changedMenuBarButton(mb, mb->current);
   }
 
   succeed;
@@ -364,8 +398,7 @@ static status
 resetMenuBar(MenuBar mb)
 { if ( notNil(mb->current) )
   { send(mb->current, NAME_close, 0);
-    assign(mb, current, NIL);
-    changedDialogItem(mb);
+    currentMenuBar(mb, NIL);
   }
 
   succeed;

@@ -6,7 +6,8 @@ GRAOBJS=	arc.obj arrow.obj bitmap.obj box.obj circle.obj colour.obj &
 		connection.obj cursor.obj device.obj ellipse.obj figure.obj &
 		font.obj format.obj graphical.obj handle.obj image.obj &
 		joint.obj line.obj link.obj listbrowser.obj node.obj path.obj &
-		postscript.obj scrollbar.obj text.obj tree.obj visual.obj
+		postscript.obj scrollbar.obj text.obj tree.obj visual.obj &
+		elevatio.obj pixmap.obj
 
 objects:	$(GRAOBJS)
 		@%null

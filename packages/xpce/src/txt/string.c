@@ -99,17 +99,6 @@ bitsPerCharacterString(StringObj str, Int bits)
 }
 
 
-static status
-cloneString(StringObj str, StringObj clone)
-{ clonePceSlots(str, clone);
-  clone->data = str->data;
-  str_alloc(&clone->data);
-  memcpy(clone->data.s_text8, str->data.s_text8, str_datasize(&str->data));
-
-  succeed;
-}
-
-
 static StringObj
 getCopyString(StringObj s)
 { answer(answerObject(classOfObject(s), name_procent_s, s, 0));
@@ -543,7 +532,6 @@ makeClassString(Class class)
 { sourceClass(class, makeClassString, __FILE__, "$Revision$");
 
   termClass(class, "string", 1, NAME_value);
-  setCloneFunctionClass(class, cloneString);
   setLoadStoreFunctionClass(class, loadString, storeString);
 
   sendMethod(class, NAME_initialise, DEFAULT, 2,

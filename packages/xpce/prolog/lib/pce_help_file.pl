@@ -13,6 +13,9 @@
 	    pce_registered_help_file/2
 	  ]).
 :- use_module(library(pce)).
+:- require([ concat_atom/2
+	   , prolog_load_context/2
+	   ]).
 
 :- pce_autoload(helper, library(pce_helper)).
 :- pce_global(@helper, new(helper)).
@@ -38,9 +41,14 @@ declarations to load the help-system itself as soon as it is referenced.
 %	an absolute filename.  Normally used as a directive.
 
 pce_help_file(Id, FileName) :-
-	get(file(FileName), absolute_path, Path),
+	(   atom(FileName)
+	->  prolog_load_context(directory, Cwd),
+	    concat_atom([Cwd, /, FileName], Path)
+	;   Path = FileName
+	),
+	absolute_file_name(Path, AbsPath),
 	retractall(pce_registered_help_file(Id, _)),
-	assert(pce_registered_help_file(Id, Path)).
+	assert(pce_registered_help_file(Id, AbsPath)).
 
 %	pce_help(+DataBaseId, +Label)
 %	

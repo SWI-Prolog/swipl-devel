@@ -267,7 +267,8 @@ latex_tabbing_commands(
 :- pce_global(@latex_command_name_type,
 	      new(type(latex_command_name, name_of, new(chain)))).
 
-:- get(@latex_command_name_type, context, Chain),
+:- initialization
+   get(@latex_command_name_type, context, Chain),
    send(Chain, clear),
    latex_lplain_commands(L1),   send_list(Chain, append, L1),
    latex_ordinary_commands(L2), send_list(Chain, append, L2),

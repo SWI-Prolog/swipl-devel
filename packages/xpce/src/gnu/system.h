@@ -108,7 +108,7 @@ extern long timezone;
 #endif
 #endif
 
-#ifndef POSIX
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
 
@@ -141,11 +141,12 @@ struct utimbuf
 int utime ();
 #endif
 
-#if defined(USG) || defined(STDC_HEADERS)
+#if STDC_HEADERS || HAVE_STRING_H
 #include <string.h>
-#ifndef STDC_HEADERS
+/* An ANSI string.h and pre-ANSI memory.h might conflict.  */
+#if !STDC_HEADERS && HAVE_MEMORY_H
 #include <memory.h>
-#endif
+#endif /* not STDC_HEADERS and HAVE_MEMORY_H */
 #ifndef index
 #define index strchr
 #endif
@@ -161,9 +162,10 @@ int utime ();
 #ifndef bcmp
 #define	bcmp(s1, s2, n) memcmp((s1), (s2), (n))
 #endif
-#else
+#else /* not STDC_HEADERS and not HAVE_STRING_H */
 #include <strings.h>
-#endif
+/* memory.h and strings.h conflict on some systems.  */
+#endif /* not STDC_HEADERS and not HAVE_STRING_H */
 
 #include <errno.h>
 #ifdef __STDC__
@@ -176,7 +178,7 @@ char *calloc ();
 extern int errno;
 #endif
 
-#if defined(USG) || defined(POSIX)
+#ifdef HAVE_FCNTL_H
 #include <fcntl.h>
 #ifndef O_XOS				/* conflicts with macro */
 char *getcwd ();
@@ -198,27 +200,26 @@ char *getwd ();
 #define R_OK 4
 #endif
 
-#ifdef DIRECT
+#ifdef __WATCOMC__
 #include <direct.h>
+#else /*__WATCOMC__*/
+#if HAVE_DIRENT_H
+# include <dirent.h>
+# define NAMLEN(dirent) strlen((dirent)->d_name)
 #else
-#ifdef DIRENT
-#include <dirent.h>
-#ifdef direct
-#undef direct
+# define dirent direct
+# define NAMLEN(dirent) (dirent)->d_namlen
+# if HAVE_SYS_NDIR_H
+#  include <sys/ndir.h>
+# endif
+# if HAVE_SYS_DIR_H
+#  include <sys/dir.h>
+# endif
+# if HAVE_NDIR_H
+#  include <ndir.h>
+# endif
 #endif
-#define direct dirent
-#else
-#ifdef SYSNDIR
-#include <sys/ndir.h>
-#else
-#ifdef NDIR
-#include <ndir.h>
-#else /* must be BSD */
-#include <sys/dir.h>
-#endif
-#endif
-#endif
-#endif
+#endif /*__WATCOMC__*/
 
 /* Convert B 512-byte blocks to kilobytes if K is nonzero,
    otherwise return it unchanged. */

@@ -68,7 +68,7 @@
 		********************************/
 
 #define SAVEMAGIC   		"PCE version 4"
-#define SAVEVERSION 		14
+#define SAVEVERSION 		15
 
 		/********************************
 		*             ASSERTS		*
@@ -479,12 +479,6 @@ extern struct name builtin_names[];	/* object-array of built-in's */
 		*         CAREFUL CHECKERS	*
 		********************************/
 
-#define isProperObject(obj) \
-			(isObject(obj) && isAddress(obj) && \
-			 (classOfObject(classOfObject(obj)) == ClassClass || \
-			  (isObject(classOfObject(obj)) && \
-			   isAddress(classOfObject(obj)) && \
-			   instanceOfObject(classOfObject(obj), ClassClass))))
 #define isAddress(a)	((ulong)(a) >= allocBase && \
 			 (ulong)(a) < allocTop && \
 			 !((ulong)(a) & (sizeof(Any)-1)))
@@ -919,6 +913,7 @@ NewClass(pce)
   Name		operating_system;	/* Name of operating system*/
   Int		xt_version;		/* Version of Xt library used */
   Int		xt_revision;		/* Revision of Xt library used */
+  Chain		features;		/* Installed features */
 End;
 
 NewClass(plus)

@@ -87,9 +87,8 @@ advance(T) :->
 
 
 event(T, Ev:event) :->
-	(   send(T, send_super, event, Ev)
-	->  true
-	;   send(@editable_text_gesture, event, Ev)
+	(   send(@editable_text_gesture, event, Ev)
+	;   send(T, send_super, event, Ev)
 	).
 
 :- pce_end_class.

@@ -16,6 +16,7 @@
 :- require([ between/3
 	   , nth1/3
 	   , portray_object/2
+	   , random/3
 	   , send_list/3
 	   , term_to_atom/2
 	   ]).
@@ -40,11 +41,11 @@ event(_T, Event:event) :->
 	send(@isp_selectable_text_handler, event, Event).	
 
 select(T) :->
-	send(T, flash),
+	send(T?window, selection, T),
 	get(T, display, Display),
-	(    get(T, reference, Reference),
-	     object(@Reference)
-	->   flash(@Reference),
+	(    get(T, object, Object)
+	->   flash(Object),
+	     Object = @Reference,
 	     new(S, string('@%s', Reference))
 	;    get(T, string, S)
 	),
@@ -53,6 +54,11 @@ select(T) :->
 
 reference(_T, _) :<-
 	fail.
+
+object(T, Obj:'object|function') :<-
+	get(T, reference, Ref),
+	object(@Ref),
+	Obj = @Ref.
 
 flash(Object) :-
 	object(Object),
@@ -114,13 +120,33 @@ object(T, Object) :<-
 
 %		EVENTS
 
+:- pce_global(@isp_value_text_popup, make_isp_value_text_popup).
+
+make_isp_value_text_popup(P) :-
+	new(P, popup),
+	VT = @arg1,
+	new(Obj, VT?object),
+	send_list(P, append, 
+		  [ menu_item(flash,
+			      message(Obj, flash),
+			      condition := message(Obj, has_send_method,
+						   flash)),
+		    menu_item(expand,
+			      message(VT, expand),
+			      condition := Obj)
+		  ]).
+
+
 :- pce_global(@isp_value_text_handler, 
 	new(handler_group(
 		click_gesture(left, '', single,
 			      and(message(@receiver, select),
 				  message(@receiver, pretty_print))),
 		click_gesture(left, '', double,
-			      message(@receiver, expand))))).
+			      message(@receiver, expand)),
+		handler(ms_right_down, and(message(@receiver, select),
+					   new(or))),
+		popup_gesture(@isp_value_text_popup)))).
 
 
 event(_T, Event:event) :->
@@ -482,12 +508,29 @@ rename_att_values(Index, Start, OS) :-
 
 :- pce_begin_class(isp_inspector_window, picture).
 
-variable(inspected,	hash_table,	get).
+variable(inspected,		hash_table,	get).
 
 initialise(MP) :->
 	send(MP, send_super, initialise, 'PCE Inspector', size(512, 512)),
 	send(MP, slot, inspected, new(hash_table)),
 	send(MP, done_message, message(MP, quit)).
+
+
+selection(MP, Gr:graphical) :<-
+	get(MP, hypered, selection, Gr).
+
+selection(MP, Gr:graphical*) :->
+	"Set (sole) selected object"::
+	(   get(MP, selection, Old)
+	->  send(Old, selected, @off)
+	;   true
+	),
+	send(MP, delete_hypers, selection),
+	new(_, hyper(MP, Gr, selection, window)),
+	(   Gr \== @nil
+	->  send(Gr, selected, @on)
+	;   true
+	).
 
 
 inspect_object(MP, Object:object) :->
@@ -504,8 +547,12 @@ inspect(MP, Object:'object|function', Pos:[point]) :->
 	    (	Pos == @default
 	    ->	get(MP, visible, area(X, Y, W, H)),
 		get(OS, size, size(OW, OH)),
-		OX is X + random(W-OW-20) + 10,
-		OY is Y + random(H-OH-20) + 10,
+		WRI is W-OW-20,
+		HRI is H-OH-20,
+		random(0,WRI,WRAND),
+		random(0,HRI,HRAND),
+		OX is X + WRAND + 10,
+		OY is Y + HRAND + 10,
 		ThePos = point(OX, OY)
 	    ;	ThePos = Pos
 	    ),
@@ -548,6 +595,13 @@ uninspect(MP, Object:'object|function') :->
 	send(Table, delete, Reference),
 	send(Object, '_inspect', @off),
 	send(Monitor, free).
+
+
+unregister(MP) :->
+	"Delete all registrations"::
+	get(MP, inspected, Table),
+	send(Table, for_all,
+	     message(@arg1, '_inspect', @off)).
 
 
 clear(MP) :->
@@ -657,8 +711,8 @@ initialise(F, Manual:man_manual) :->
 	send(D, append, button(quit, message(F, quit))),
 	send(D, append,
 	     new(TI, text_item(inspect, '',
-			       block(message(Inspector, inspect_atom, @arg1),
-				     message(@receiver, clear)))),
+			       and(message(Inspector, inspect_atom, @arg1),
+				   message(@receiver, clear)))),
 	     right),
 	send(TI, length, 15),
 
@@ -668,12 +722,12 @@ initialise(F, Manual:man_manual) :->
 
 
 unlink(F) :->
-	get(F, isp_inspector_window_member, Inspector),
+	get(F, member, isp_inspector_window, Inspector),
 	retractall(inspector_window(Inspector)),
 	get(F, inspect_handler, H),
 	send(@display?inspect_handlers, delete_all, H),
 
-	send(Inspector, clear),
+	send(Inspector, unregister),
 	send(F, send_super, unlink).
 
 

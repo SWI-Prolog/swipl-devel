@@ -310,8 +310,10 @@ static struct class_definition classdefs[] =
   { NAME_popupGesture, NAME_gesture, makeClassPopupGesture,
     &ClassPopupGesture, "Gesture to display a popup menu" },
 
+#ifdef HAVE_FORK
   { NAME_process, NAME_stream, makeClassProcess,
     &ClassProcess, "Unix process" },
+#endif
 
   { NAME_progn, NAME_function, makeClassProgn,
     &ClassProgn, "Sequence (as function)" },
@@ -361,8 +363,10 @@ static struct class_definition classdefs[] =
   { NAME_slider, NAME_dialogItem, makeClassSlider,
     &ClassSlider, "DialogItem to select from a numeric range" },
 
+#ifdef HAVE_SOCKET
   { NAME_socket, NAME_stream, makeClassSocket,
     &ClassSocket, "Unix socket" },
+#endif
 
   { NAME_sourceLocation, NAME_object, makeClassSourceLocation,
     &ClassSourceLocation, "Position in a sourcefile" },

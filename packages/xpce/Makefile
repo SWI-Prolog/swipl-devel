@@ -45,6 +45,7 @@ NETLIBS= -lnsl
 PLLIBS=-lreadline -ltermcap -lm
 XLIBS=-lXt -lX11
 STATICLIBS=
+LDFLAGS=-static
 
 LIBS=	$(XLIBS) $(PLLIBS) $(NETLIBS) $(STATICLIBS)
 COFLAGS=-O2

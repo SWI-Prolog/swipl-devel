@@ -1519,8 +1519,8 @@ str_sub_text_buffer(TextBuffer tb, String s, int start, int len)
   else if ( start + len > tb->size )
     len = tb->size - start;
   
-  if ( start < tb->gap_start && start+len >= tb->gap_start )
-    room(tb, start + len + 1, 1);
+  if ( start < tb->gap_start && start+len > tb->gap_start )
+    room(tb, start + len, 1);
   
   str_cphdr(s, &tb->buffer);
   s->size = len;

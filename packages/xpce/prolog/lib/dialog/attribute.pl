@@ -14,9 +14,9 @@
 	   ]).
 
 
-:- pce_autoload(dia_menu_item_editor, menuitem).
-:- pce_autoload(dia_label_item, label).
-:- pce_autoload(image_item, image_item).
+:- pce_autoload(dia_menu_item_editor, library('dialog/menuitem')).
+:- pce_autoload(dia_label_item, library('dialog/label')).
+:- pce_autoload(image_item, library('dialog/image_item')).
 :- pce_autoload(font_item, library(pce_font_item)).
 
 :- pce_begin_class(dia_attribute_editor, dialog).

@@ -117,7 +117,8 @@ demo('PceDraw',				% Name
 demo('Ispell',
      'Graphical interface to ispell (requires ispell 3)',
      library('demo/ispell'),
-     ispell).
+     ispell) :-
+	send(@pce, has_feature, process).
 
 demo('Emacs',
      'Emacs (Epoch) look-alike editor',
@@ -152,12 +153,15 @@ demo('GraphViewer',
 demo('FtpLog',
      'Examine /usr/adm/xferlog (ftp log file)',
      library('demo/ftplog'),
-     ftplog('/usr/adm/xferlog')).
+     ftplog('/usr/adm/xferlog')) :-
+	send(@pce, has_feature, process).
+
 
 demo('ChessTool',
      'Simple frontend for /usr/games/chess',
      library('demo/chess'),
-     chess).
+     chess) :-
+	send(@pce, has_feature, process).
 
 demo('Example Dialog',
      'Dialog showing all dialog components',

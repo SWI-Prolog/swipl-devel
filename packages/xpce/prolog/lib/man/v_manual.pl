@@ -419,11 +419,10 @@ changelog(_M) :->
 	get(string('%s/ChangeLog', Home), value, Path),
 	send(@emacs, goto_source_location, Path).
 
+:- pce_help_file(pce_faq, '../../../man/faq/pce.hlp').
+
 faq(_M) :->
 	"Start @helper on faq-database"::
-	get(@pce, home, Home),
-	concat(Home, '/man/faq/pce.hlp', HelpFile),
-	pce_help_file(pce_faq, HelpFile),
 	send(@helper, give_help, pce_faq, main).
 
 
@@ -469,7 +468,7 @@ mailing_list(M) :->
 	     button(cancel, message(D, return, @nil))),
 	get(D, confirm_centered, Answer),
 	send(D, destroy),
-	(   Answer \== @nil
+	(   Answer \== @nil, send(@pce, has_feature, process)
 	->  object(Answer, tuple(Op, Address)),
 	    new(P, process(mail, '-s', Op,
 			   'xpce-request@swi.psy.uva.nl')),
@@ -490,6 +489,12 @@ mailing_list(M) :->
 			 '%N failed with status %s', P, Code)
 		)
 	    )
+	;   Answer \== @nil
+	->  send(@display, inform,
+		 '%s\n%s\n%s',
+		 'Cannot send E-mail directly.  Please send an E-mail',
+		 'to xpce-request@swi.psy.uva.nl.  The subject field',
+		 'should be "subscribe"')
 	;   true
 	).
 	
@@ -524,13 +529,12 @@ check_object_base(_M) :->
 
 dialog_editor(_M) :->
 	"Start the dialog editor"::
-	use_module(library(dialog)),
-	send(@prolog, dialog).		% avoid pce_require to find this
+	auto_call(dialog).
 
 
 start_emacs(_M) :->
 	"Start PceEmacs (*scratch* buffer)"::
-	emacs.
+	auto_call(emacs).
 
 
 		/********************************

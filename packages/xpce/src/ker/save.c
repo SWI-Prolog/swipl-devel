@@ -846,7 +846,7 @@ restoreClass(FILE *fd)
   if ( (def->class = checkType(name, TypeClass, NIL)) )
     realiseClass(def->class);
   else
-    printf("\n\tUnknown class: %s ...", pp(name));
+    errorPce(LoadFile, NAME_loadNoClass, name);
   def->slots = slots;
   appendHashTable(savedClassTable, classid, def);
   
@@ -857,8 +857,7 @@ restoreClass(FILE *fd)
     if ( def->class )
     { def->offset[i] = offsetVariable(def->class, name);
       if ( def->offset[i] < 0 )
-      { printf("\n\tSlot %s of class %s out of use ...",
-	       pp(name), pp(def->class));
+      { errorPce(LoadFile, NAME_loadOldSlot, def->class, name);
 	fflush(stdout);
       }
     }
@@ -912,10 +911,7 @@ loadSlotsObject(Any obj, FILE *fd, ClassDef def)
     { Any converted;
       Variable var = def->class->instance_variables->elements[slot];
 
-      if ( !(converted = checkType(slotValue, var->type, inst)) &&
-	   !(isNil(slotValue) && onDFlag(var, D_SAVE_NIL)) )
-	errorPce(obj, NAME_failedToConvert, slotValue, var->name);
-      else
+      if ( (converted = checkType(slotValue, var->type, inst)) )
 	slotValue = converted;
     }
     assignField(inst, &(inst->slots[slot]), slotValue);
@@ -942,7 +938,7 @@ checkConvertedObject(Any obj, ClassDef def)
     { Variable var = getInstanceVariableClass(class, toInt(i));
       Any value = inst->slots[i];
 
-      if ( var == FAIL )
+      if ( !var )
       { printf("Can't find variable %d of %s\n", i, pp(class));
 	continue;
       }

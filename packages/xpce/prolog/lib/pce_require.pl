@@ -380,7 +380,7 @@ compiling_class :-
 %	Find named source file.
 
 find_source_file(library(Spec), Path) :- !,
-	library_directory(Dir),
+	user:library_directory(Dir),
 	extension(Extension),
 	concat_atom([Dir, /, Spec, Extension], Path),
 	exists_file(Path), !.

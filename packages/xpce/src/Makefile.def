@@ -1,16 +1,20 @@
 .NOCHECK
 
-ARCH=mswin-3.1
-VERSION=4.8.0, June 1994
+ARCH=pc
+OS=windows3.1
+VERSION=4.8.4, Nov 1994
 
 MAKE=wmake /h
 CC=wcc386
-CPlusPlus=wpp386
+CXX=wpp386
 CWFLAGS=
 COFLAGS=/d1
 CIFLAGS=-I.. -I..\..\..
-CFLAGS=$(CWFLAGS) $(COFLAGS) $(CIFLAGS) /bt=windows
-LD=wlink system win386
+CMFLAGS=-fpc -bt=windows
+CFLAGS=$(CWFLAGS) $(COFLAGS) $(CIFLAGS) $(CMFLAGS)
+LD=wlink
+#LDFLAGS=system win386 debug all
+LDFLAGS=system win386
 WST=msw
 
 LN=copy
@@ -23,4 +27,4 @@ ETAGS=etags
 	$(CC) /zq $(CFLAGS) $*.c
 
 .cxx.obj
-	$(CPlusPlus) /zq $(CFLAGS) $*.cxx
+	$(CXX) /zq $(CFLAGS) $*.cxx

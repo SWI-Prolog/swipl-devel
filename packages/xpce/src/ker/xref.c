@@ -117,6 +117,23 @@ unregisterXrefObject(Any obj, DisplayObj d)
 }
 
 
+void
+closeAllXrefs()
+{ int i;  
+
+  for(i=0; i<XREF_TABLESIZE; i++)
+  { Xref r = XrefTable[i];
+    Xref nr;
+
+    for(; r; r = nr)
+    { nr = r->next;
+
+      send(r->object, NAME_Xclose, r->display, 0);
+    }
+  }
+}
+
+
 #if KEEP
 static void
 unregisterAllXrefsObject(Any obj)

@@ -36,11 +36,9 @@ int		getdtablesize(void);
 void		killAllProcesses(void);
 status		makeClassProcess(Class class);
 void		killAllProcesses(void);
-status		makeClassProcess(Class class);
 
 /* socket.c */
 status		acceptSocket(Socket s);
-status		makeClassSocket(Class class);
 status		makeClassSocket(Class class);
 
 /* stream.c */

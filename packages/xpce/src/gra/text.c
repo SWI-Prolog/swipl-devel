@@ -661,8 +661,9 @@ showCaretText(TextObj t, Any val)
     succeed;
 
   CHANGING_GRAPHICAL(t,
-	assign(t, show_caret, val);
-	recomputeText(t, NAME_area));
+		     assign(t, show_caret, val);
+		     recomputeText(t, NAME_area);
+		     changedEntireImageGraphical(t));
 
   succeed;
 }

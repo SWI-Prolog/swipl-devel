@@ -51,6 +51,17 @@ ws_expose_console()
 
 
 status
+ws_iconify_console()
+{ HWND hwnd = rlc_hwnd();
+  
+  if ( hwnd )
+    ShowWindow(hwnd, SW_SHOWMINIMIZED);
+
+  succeed;
+}
+
+
+status
 ws_console_label(CharArray label)
 { rlc_title(strName(label));
 

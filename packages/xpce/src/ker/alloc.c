@@ -8,13 +8,39 @@
 */
 
 #include <h/kernel.h>
+#ifdef HAVE_MEMORY_H
 #include <memory.h>
+#endif
+#ifndef ALLOC_DEBUG
 #ifndef O_RUNTIME
-#define ALLOC_DEBUG 1
+#define ALLOC_DEBUG 0			/* 1 or 2 */
 #else
 #define ALLOC_DEBUG 0
-#endif
+#endif /*O_RUNTIME*/
+#endif /*ALLOC_DEBUG*/
 #include "alloc.h"
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Debugging note: This module can run at three debugging levels:
+
+    ALLOC_DEBUG = 0
+	Performs no runtime checks.
+
+    ALLOC_DEBUG = 1
+	Adds a word to each chunk that maintains the size.  Validates
+	that unalloc() is called with the same size as alloc() and that
+	unalloc() is not called twice on the same object.  Clears memory
+	to 0 that has been initially requested from the OS.  This mode
+	requires little runtime overhead.
+
+    ALLOC_DEBUG = 2
+	In this mode all memory that is considered uninitialised is filled
+	with ALLOC_MAGIC_BYTE (0xcc).  unalloc() will fill the memory.
+	alloc() will check that the memory is still all 0xcc, which traps
+	occasions where unalloc'ed memory is changed afterwards.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define ALLOC_MAGIC_BYTE 0xcc
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 PCE allocates  memory for two purposes: for  object structures and for
@@ -48,13 +74,31 @@ alloc(register int n)
       z->in_use = TRUE;
 #endif
 
+#if ALLOC_DEBUG > 1
+      { char *p;
+	for(p = (char *)&z->start + n;
+	    --p >= ((char *)&z->next + sizeof(z->next));
+	    )
+	  assert(*p == ALLOC_MAGIC_BYTE);
+      }
+#else
+      memset(&z->start, 0, n);
+#endif
+
       return &z->start;
     }
 
     return allocate(n);			/* new memory */
   }
 
+#if ALLOC_DEBUG > 1
+{ Any p = malloc(n);
+  memset(p, ALLOC_MAGIC_BYTE, n);
+  return p;
+}
+#else
   return malloc(n);			/* malloc() it */
+#endif
 }
 
 
@@ -89,6 +133,9 @@ unalloc(register int n, Any p)
   { assert((long)z >= allocBase && (long)z <= allocTop);
 
 #if ALLOC_DEBUG
+#if ALLOC_DEBUG > 1
+    memset(p, ALLOC_MAGIC_BYTE, n);
+#endif
     z = (Zone) ((char *)z - offset(struct zone, start));
     assert(z->in_use == TRUE);
     assert(z->size == n);
@@ -107,6 +154,10 @@ unalloc(register int n, Any p)
     
     return;
   }
+
+#if ALLOC_DEBUG > 1
+  memset(p, ALLOC_MAGIC_BYTE, n);
+#endif
 
   free(z);
 }
@@ -131,17 +182,32 @@ allocate(int size)
     return (Zone) &z->start;
   }
 
-#if !ALLOC_DEBUG
   if ( spacefree >= sizeof(struct zone) )
+  {
+    DEBUG(NAME_allocate, printf("Unalloc remainder of %d bytes\n", spacefree));
+#if ALLOC_DEBUG
+    z = (Zone) spaceptr;
+    z->in_use = TRUE;
+    z->size = &spaceptr[spacefree] - (char *) &z->start;
+    unalloc(z->size, &z->start);
+    assert((z->size % ROUNDALLOC) == 0);
+    assert((z->size >= MINALLOC));
+#else
     unalloc(spacefree, spaceptr);
+    assert((spacefree % ROUNDALLOC) == 0);
+    assert((spacefree >= MINALLOC));
 #endif
+  }
+
   if ( !(p = malloc(ALLOCSIZE)) )
   { fprintf(stderr,
 	    "[PCE FATAL ERROR: Malloc(%d) failed.  Swap space full?]\n",
 	    ALLOCSIZE);
     exit(1);
   }
-#if ALLOC_DEBUG
+#if ALLOC_DEBUG > 1
+  memset(p, ALLOC_MAGIC_BYTE, ALLOCSIZE);
+#else
   memset(p, 0, ALLOCSIZE);
 #endif
 
@@ -178,6 +244,7 @@ initAlloc(void)
   allocBase = 0xffffffff;
   alloc(0);				/* initialise Top/Base */
 }
+
 
 
 void

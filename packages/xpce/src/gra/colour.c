@@ -150,6 +150,14 @@ XopenColour(Colour c, DisplayObj d)
 }
 
 
+static status
+XcloseColour(Colour c, DisplayObj d)
+{ ws_uncreate_colour(c, d);
+
+  succeed;
+}
+
+
 Colour
 getHiliteColour(Colour c)
 { Colour c2;
@@ -161,7 +169,7 @@ getHiliteColour(Colour c)
   if ( (c2 = getAttributeObject(c, NAME_hilite)) )
     answer(c2);
   if ( isDefault(c->green) )
-    getXrefObject(c2, CurrentDisplay(NIL));
+    getXrefObject(c, CurrentDisplay(NIL));
   
   r = valInt(c->red);
   g = valInt(c->green);
@@ -190,7 +198,7 @@ getReduceColour(Colour c)
   if ( (c2 = getAttributeObject(c, NAME_reduce)) )
     answer(c2);
   if ( isDefault(c->green) )
-    getXrefObject(c2, CurrentDisplay(NIL));
+    getXrefObject(c, CurrentDisplay(NIL));
   
   r = valInt(c->red);
   g = valInt(c->green);
@@ -225,6 +233,7 @@ makeClassColour(Class class)
 
   termClass(class, "colour", 4, NAME_name, NAME_red, NAME_green, NAME_blue);
   setLoadStoreFunctionClass(class, loadColour, storeColour);
+  cloneStyleClass(class, NAME_none);
 
   sendMethod(class, NAME_initialise, DEFAULT, 4,
 	     "name=name",
@@ -232,8 +241,11 @@ makeClassColour(Class class)
 	     "Create from name and optional rgb",
 	     initialiseColour);
   sendMethod(class, NAME_Xopen, NAME_x, 1, "display",
-	     "Relate X-colour",
+	     "Create window-system counterpart",
 	     XopenColour);
+  sendMethod(class, NAME_Xclose, NAME_x, 1, "display",
+	     "Destroy window-system counterpart",
+	     XcloseColour);
 
   getMethod(class, NAME_convert, NAME_conversion, "colour", 1, "name",
 	    "Convert X-colour name",

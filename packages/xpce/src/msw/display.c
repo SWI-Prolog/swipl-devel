@@ -46,10 +46,19 @@ ws_get_size_display(DisplayObj d, int *w, int *h)
 }
 
 
+Name
+ws_get_visual_type_display(DisplayObj d)
+{ if ( ws_depth_display(d) == 1 )
+    return NAME_monochrome;
+  else
+    return NAME_pseudoColour;
+}
+
+
 int
 ws_depth_display(DisplayObj d)
 { HDC  hdc = GetDC(NULL);
-  int depth = GetDeviceCaps(hdc, COLORRES);
+  int depth = GetDeviceCaps(hdc, BITSPIXEL);
   ReleaseDC(NULL, hdc);
 
   return depth;
@@ -102,6 +111,11 @@ check_redraw()
   RedrawDisplayManager(TheDisplayManager());
 }
 
+void
+ws_quit_display(DisplayObj d)
+{ exitDraw();
+}
+
 		 /*******************************
 		 *	  MOUSE TRACKING	*
 		 *******************************/
@@ -121,20 +135,23 @@ but in a dll, so it can do the   job system-wide.  If this fails we will
 do the job locally, which in any case is better than not at all.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static HHOOK defhook = NULL;
+static HHOOK defhook	  = NULL;
 static HINSTANCE pcewhdll = NULL;
+static FARPROC PceWhEntry = NULL;
+static HINDIR PceWhIH	  = NULL;
+static HWND cwin;
+static int  cwin_deleted;
 
 static DWORD _export FAR PASCAL
 xpce_mouse_hook(int code, WPARAM wParam, LPARAM lParam)
-{ static HWND cwin;			/* current window */
-
-  if ( code >= 0 )
+{ if ( code >= 0 )
   { MOUSEHOOKSTRUCT FAR* data = MK_FP32(lParam);
 
     if ( data->hwnd != cwin )
-    { if ( cwin )
+    { if ( cwin && !cwin_deleted )
 	SendMessage(cwin, WM_WINEXIT, 0, 0L);
-      cwin = data->hwnd;
+      cwin         = data->hwnd;
+      cwin_deleted = FALSE;
       if ( cwin )
 	SendMessage(cwin, WM_WINENTER, 0, 0L);
     }
@@ -152,9 +169,36 @@ unhook_xpce_mouse_hook()
 
 
 static void
+PceWhAddTask(HTASK task)
+{ if ( PceWhEntry )
+    InvokeIndirectFunction(PceWhIH, task, 1);
+}
+
+
+static void
+PceWhDeleteTask(HTASK task)
+{ if ( PceWhEntry )
+    InvokeIndirectFunction(PceWhIH, task, 2);
+}
+
+
+void
+PceWhDeleteWindow(HWND win)
+{ if ( PceWhEntry )
+    InvokeIndirectFunction(PceWhIH, win, 3);
+  else if ( win == cwin )
+    cwin_deleted = TRUE;
+}
+
+
+static void
 unload_pcewhdll()
 { if ( pcewhdll )
+  { PceWhDeleteTask(GetCurrentTask());
+    PceWhEntry = NULL;
+    PceWhIH = NULL;
     FreeLibrary(pcewhdll);
+  }
 }
 
 
@@ -166,21 +210,34 @@ init_area_enter_exit_handling(DisplayObj d)
   if ( isName(dllname = getResourceValueObject(d, NAME_whMouseDll)) )
   { HINSTANCE hlib;
 
+    DEBUG(NAME_dll, printf("loading DLL %s\n", strName(dllname)));
+
     if ( (hlib = LoadLibrary(strName(dllname))) >= HINSTANCE_ERROR )
     { pcewhdll = hlib;
+      DEBUG(NAME_dll, printf("loaded; lookup of \"Win386LibEntry\"\n"));
+      PceWhEntry = GetProcAddress(hlib, "Win386LibEntry");
+      DEBUG(NAME_dll, printf("yields 0x%lx\n", PceWhEntry));
+      PceWhIH    = GetIndirectFunctionHandle(PceWhEntry,
+					     INDIR_WORD, INDIR_WORD,
+					     INDIR_ENDLIST);
+      DEBUG(NAME_dll, printf("indirect fhandle = 0x%x\n", PceWhIH));
+      PceWhAddTask(GetCurrentTask());
+      DEBUG(NAME_dll, printf("DLL loaded and initialised\n"));
       atexit(unload_pcewhdll);
       return;
     } else
       errorPce(d, NAME_failedToLoadDll, dllname, toInt(hlib));
   } 
 
-  if ( !(hookf = MakeProcInstance(xpce_mouse_hook, PceHInstance)) )
-    sysPce("Failed to create instance of xpce_mouse_hook()");
-  if ( !(defhook = SetWindowsHookEx(WH_MOUSE, hookf, PceHInstance,
-				    GetCurrentTask())) )
-    sysPce("Failed to install xpce_mouse_hook()");
+  if ( isDefault(dllname) )
+  { if ( !(hookf = MakeProcInstance(xpce_mouse_hook, PceHInstance)) )
+      sysPce("Failed to create instance of xpce_mouse_hook()");
+    if ( !(defhook = SetWindowsHookEx(WH_MOUSE, hookf, PceHInstance,
+				      GetCurrentTask())) )
+      sysPce("Failed to install xpce_mouse_hook()");
     
-  atexit(unhook_xpce_mouse_hook);
+    atexit(unhook_xpce_mouse_hook);
+  }
 }
 
 
@@ -405,13 +462,13 @@ ws_window_manager(DisplayObj d)
 
 void
 ws_synchronous(DisplayObj d)
-{
+{ rcl_copy_output_to_debug_output = 1;
 }
 
 
 void
 ws_asynchronous(DisplayObj d)
-{
+{ rcl_copy_output_to_debug_output = 0;
 }
 
 
@@ -522,9 +579,9 @@ load_resource_file(char *file)
 	  { for(s++; isblank(*s); s++)
 	      ;
 	    l = strlen(s);
-	    if ( l > 0 && s[l-1] == '\n' ) /* delete the newline */
+					/* delete [\r\n]*$ */
+	    while( l > 0 && (s[l-1] == '\n' || s[l-1] == '\r') )
 	      s[--l] = EOS;
-
 					/* make buffer big enough */
 	    while ( size + l > bufsize )
 	    { bufsize *= 2;

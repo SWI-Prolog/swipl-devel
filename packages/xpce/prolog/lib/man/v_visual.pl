@@ -19,7 +19,7 @@
 	   , term_to_atom/2
 	   ]).
 
-:- pce_autoload(tile_hierarchy, v_tile).
+:- pce_autoload(tile_hierarchy, library('man/v_tile')).
 
 		/********************************
 		*        ICON GENERATION	*

@@ -48,6 +48,9 @@ makeClassWhen(Class class)
 	     "condition=code", "then=any|function", "else=any|function",
 	     "Create from condition, when- and else",
 	     initialiseWhen);
+  sendMethod(class, NAME_unlink, DEFAULT, 0,
+	     "temp; just to trap",
+	     succeedObject);
 
   getMethod(class, NAME_Execute, DEFAULT, "unchecked", 0,
 	     "Test condition and eveluate <-then or <-else",

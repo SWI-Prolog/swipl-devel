@@ -7,6 +7,7 @@
     Copyright (C) 1992 University of Amsterdam. All rights reserved.
 */
 
+#define INLINE_UTILITIES 1
 #include <h/kernel.h>
 #define  PCE_INCLUDED
 #include <h/trace.h>

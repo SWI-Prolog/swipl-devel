@@ -110,6 +110,32 @@ getSourcePixmap(PixmapObj pm)
 }
 
 
+#ifdef __WINDOWS__
+Colour
+getReplacementColourPixmap(PixmapObj pm)
+{ Colour c;
+  Image i;
+  Int grey;
+
+  if ( (c = getAttributeObject(pm, NAME_replacementColour)) )
+    answer(c);
+  if ( (i = getSourcePixmap(pm)) &&
+       instanceOfObject(i, ClassImage) &&
+       (grey = getAttributeObject(i, NAME_postscriptGrey)) )
+  { char buf[100];
+    sprintf(buf, "grey%d", 100-valInt(grey));
+    c = newObject(ClassColour, CtoName(buf), 0);
+  } else
+    c = BLACK_COLOUR;
+    
+  errorPce(pm, NAME_replacedColour, c);
+  attributeObject(pm, NAME_replacementColour, c);
+
+  answer(c);
+}
+#endif /*__WINDOWS__*/
+
+
 status
 makeClassPixmap(Class class)
 { sourceClass(class, makeClassPixmap, __FILE__, "$Revision$");

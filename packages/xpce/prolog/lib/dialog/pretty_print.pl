@@ -15,6 +15,7 @@
 :- require([ atom_length/2
 	   , between/3
 	   , forall/2
+	   , genarg/3
 	   , is_list/1
 	   , member/2
 	   , memberchk/2
@@ -106,13 +107,13 @@ pp(Term, Indent) :-
 	format('~q(', Name),
 	(   term_argument_length(Term, AL),
 	    NewIndent + AL < 72
-	->  forall(arg(I, Term, Arg),
+	->  forall(genarg(I, Term, Arg),
 		   (   I == 1
 		   ->  pp(Arg, NewIndent)
 		   ;   write(', '),
 		       pp(Arg, NewIndent)
 		   ))
-	;   forall(arg(I, Term, Arg),
+	;   forall(genarg(I, Term, Arg),
 		   (   I == 1
 		   ->  pp(Arg, NewIndent)
 		   ;   write(','), nl,

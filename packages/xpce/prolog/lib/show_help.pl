@@ -10,6 +10,9 @@
 :- module(pl_show_help,
 	  [ show_help_hook/2
 	  ]).
+:- use_module(library(pce)).
+:- require([ term_to_atom/2
+	   ]).
 
 :- pce_global(@pl_help_view, make_pl_help_view).
 

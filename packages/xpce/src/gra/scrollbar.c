@@ -877,12 +877,33 @@ static status
 lookScrollBar(ScrollBar s, Name look)
 { CHANGING_GRAPHICAL(s,
 		     assign(s, look, look);
-		     assign(s, distance, look == NAME_x ? -1 : 1);
+		     assign(s, distance, toInt(look == NAME_x ? -1 : 1));
 		     changedEntireImageGraphical(s));
 
   succeed;
 }
 
+
+static status
+convertLoadedObjectScrollBar(ScrollBar sb, Int ov, Int nv)
+{ if ( isName(sb->placement) )
+  { Chain ch = newObject(ClassChain, 0);
+    static char *names[] = {"left", "right", "top", "bottom"};
+    int i;
+
+    for(i=0; i<4; i++)
+    { Name place = CtoKeyword(names[i]);
+
+      if ( send(sb->placement, NAME_sub, place, ON, 0) )
+	appendChain(ch, place);
+    }
+    assign(sb, placement, ch);
+  }
+
+  succeed;
+}
+
+ 
 
 status
 makeClassScrollBar(Class class)
@@ -959,6 +980,9 @@ makeClassScrollBar(Class class)
 	     "Repeat last action (->look: open_look)",
 	     repeatScrollBar);
 #endif
+  sendMethod(class, NAME_convertLoadedObject, DEFAULT, 2, "int", "int",
+	     "Convert placement attribute",
+	     convertLoadedObjectScrollBar);
 
   attach_resource(class, "width", "int", "16",
 		  "Width of the scroll_bar");

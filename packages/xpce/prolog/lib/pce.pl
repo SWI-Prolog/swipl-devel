@@ -60,4 +60,4 @@ pce_ifhostproperty(repeat_meta_declaraction,
 
 	new(?, :))).
 
-:- use_module('../boot/pce_boot').
+:- use_module(library('../boot/pce_boot')).

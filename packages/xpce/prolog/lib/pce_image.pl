@@ -11,6 +11,9 @@
 	  [ pce_image_directory/1
 	  ]).
 :- use_module(library(pce)).
+:- require([ concat_atom/2
+	   , prolog_load_context/2
+	   ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Prepend the given directory  to  the   image  search-path.   Useful  for
@@ -32,7 +35,11 @@ images in a directory.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 pce_image_directory(Dir) :-
-	absolute_file_name(Dir, DirPath),
+	(   atom(Dir),
+	    prolog_load_context(directory, Cwd)
+	->  concat_atom([Cwd, /, Dir], DirPath)
+	;   absolute_file_name(Dir, DirPath)
+	),
 	get(class(image), resource, path, PathResource),
 	get(PathResource, value, Path),
 	send(PathResource, value, string('%s:%s', DirPath, Path)).

@@ -36,10 +36,11 @@ static status
 unlinkView(View v)
 { Editor e = v->editor;
 
+  unlinkWindow((PceWindow) v);
   assign(v, editor, NIL);
   freeObject(e);
 
-  return unlinkWindow((PceWindow) v);
+  succeed;
 }
 
 

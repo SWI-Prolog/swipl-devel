@@ -20,7 +20,7 @@
    ].
 
 
-:- '$version'(PlVersion),
+:- feature(version, PlVersion),
    send(@pce, catch_error_signals, @on),
    concat('SWI-Prolog version ', PlVersion, PlId),
    send(@prolog, system, PlId).
@@ -30,7 +30,7 @@
 		*           SET PCE HOME	*
 		********************************/
 
-:- '$argv'([EXE|_]),
+:- feature(symbol_file, EXE),
    absolute_file_name(EXE, ABSEXE),
    '$file_dir_name'(ABSEXE, EXEDir),
    '$file_dir_name'(EXEDir, Home),

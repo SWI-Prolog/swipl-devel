@@ -39,13 +39,15 @@ typedef struct
 typedef struct
 { int w;				/* width of image */
   int h;				/* height of image */
-  unsigned short *data;			/* the data */
-} ws_bits, *WsBits;
+  BITMAPINFO *msw_info;			/* MS-Windows info structure */
+  void *data;				/* the data */
+} ws_image, *WsImage;
 
 
 typedef struct
 { HWND		hwnd;
   HCURSOR	hcursor;		/* current cursor handle */
+  unsigned capture : 1;			/* has capture */
 } ws_window, *WsWindow;
 
 
@@ -67,9 +69,26 @@ void		setHwndWindow(PceWindow sw, HWND ref);
 EventObj	messageToEvent(HWND hwnd, UINT msg, UINT wParam, LONG lParam);
 status		d_mswindow(PceWindow sw, IArea a, int clear);
 void		initDraw(void);
+void		exitDraw(void);
 void *		ws_image_bits(Image image);
 void *		ws_image_bits_for_cursor(Image image, Name kind, int w, int h);
 PceWindow	get_window_holding_point(FrameObj fr, POINT *pt);
 status		move_big_cursor(void);
 status		exit_big_cursor(void);
 status		start_big_cursor(CursorObj c);
+
+		 /*******************************
+		 *	  DEBUGGING MACROS	*
+		 *******************************/
+
+static int _dobj;
+static int _hcur;
+
+#define ZSelectObject(hdc, obj)	\
+	(assert(obj), SelectObject(hdc, obj))
+#define ZDeleteObject(obj) \
+	(_dobj = DeleteObject(obj), assert(_dobj), _dobj)
+#define ZSetCursor(h) \
+	(_hcur = SetCursor(h), \
+	 (PCEdebugging && memberChain(PCEdebugSubjects, NAME_cursor)) ? \
+	     printf("SetCursor(0x%04x)\n") : 1, _hcur)

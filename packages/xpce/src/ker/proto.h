@@ -298,8 +298,8 @@ status		tracePce(Pce pce, Name val);
 status		exceptionPcev(Pce pce, Name name, int argc, Any *argv);
 status		exceptionPce(Pce pce, Name kind, ...);
 int		getdtablesize(void);
-char *		getlogin(void);
-int		_dosemu_gethostname(char *buf, int len);
+status		featurePce(Pce pce, Any feature);
+status		hasFeaturePce(Pce pce, Any feature);
 Name		getHostnamePce(Pce pce);
 status		catchErrorSignalsPce(Pce pce, Bool val);
 status		resetPce(Pce pce);
@@ -384,6 +384,7 @@ WsRef		getXrefObject(Any obj, DisplayObj d);
 WsRef		getExistingXrefObject(Any obj, DisplayObj d);
 status		registerXrefObject(Any obj, DisplayObj d, WsRef xref);
 Xref		unregisterXrefObject(Any obj, DisplayObj d);
+void		closeAllXrefs(void);
 
 /* error.c */
 Error		getConvertError(Class class, Name id);

@@ -9,7 +9,7 @@
 
 #include <h/kernel.h>
 
-#if !O_NO_PROCESS && !O_NO_SOCKET
+#if defined(HAVE_SOCKET) || defined(HAVE_FORK)
 
 #include <h/unix.h>
 #include <unistd.h>

@@ -287,6 +287,7 @@ status		alertReporteeVisual(Any v);
 status		makeClassVisual(Class class);
 
 /* pixmap.c */
+Colour		getReplacementColourPixmap(PixmapObj pm);
 status		makeClassPixmap(Class class);
 
 /* elevation.c */

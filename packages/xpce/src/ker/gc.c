@@ -73,11 +73,14 @@ _rewindAnswerStack(AnswerMark *mark, Any obj)
     DEBUG(NAME_gc, printf("Cell at 0x%lx\n", (unsigned long)c));
     if ( c->value )
     { if ( c->value != obj )
-      { clearAnswerObj(c->value);
-	DEBUG(NAME_gc, 
-	      if ( isVirginObj(c->value) )
-	        printf("Removing %s from AnswerStack\n", pp(c->value)));
-	freeableObj(c->value);
+      { Any o = c->value;
+
+	if ( noRefsObj(o) && !onFlag(o, F_LOCKED|F_PROTECTED) )
+	{ DEBUG(NAME_gc, 
+		printf("Removing %s from AnswerStack\n", pp(o)));
+	  clearAnswerObj(c->value);
+	  freeObject(o);
+	}
 	unalloc(sizeof(struct to_cell), c);
       } else
       	preserve = c;

@@ -542,10 +542,12 @@ freeFragmentCache(FragmentCache fc)
 
 static void
 resetFragmentCache(FragmentCache fc, TextBuffer tb)
-{ FragmentCell c;
+{ FragmentCell c, c2;
 
-  for(c=fc->active; c; c = c->next)
+  for(c=fc->active; c; c = c2)
+  { c2 = c->next;
     unalloc(sizeof(struct fragment_cell), c);
+  }
 
   fc->active     = NULL;
   fc->current    = (isNil(tb) ? NIL : tb->first_fragment);

@@ -519,7 +519,6 @@ documentation(P) :->
 
 event(P, Ev:event) :->
 	(   send(P, send_super, event, Ev)
-	->  true
 	;   send(@msg_port_recogniser, event, Ev)
 	).
 
@@ -1854,4 +1853,3 @@ user(Goal) :-
 	yesno(Goal, RVal),
 	forall(user_error(Error), send(error(Error), slot, feedback, print)),
 	RVal.
- 

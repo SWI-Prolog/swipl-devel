@@ -41,10 +41,11 @@ static status
 unlinkBrowser(Browser b)
 { ListBrowser lb = b->list_browser;
 
+  unlinkWindow((PceWindow) b);
   assign(b, list_browser, NIL);
   freeObject(lb);
 
-  return unlinkWindow((PceWindow) b);
+  succeed;
 }
 
 		/********************************

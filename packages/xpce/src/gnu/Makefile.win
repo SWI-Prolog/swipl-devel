@@ -10,7 +10,7 @@ objects:	$(GNUOBJS)
 gregex.obj:	gregex.c gregex.h
 		$(CC) /zq $(CFLAGS) -Dpce_source $*.c
 getdate.obj:	getdate.c
-		$(CC) /zq $(COFLAGS) $(CIFLAGS) $*.c
+		$(CC) /zq $(COFLAGS) $(CMFLAGS) $(CIFLAGS) $*.c
 getdate.c:	getdate.y
 		yacc getdate.y
 		mv -f y.tab.c getdate.c

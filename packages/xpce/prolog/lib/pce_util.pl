@@ -43,7 +43,7 @@
 
 :- use_module(library(pce)).
 
-:- use_module('../boot/pce_principal',
+:- use_module(library('../boot/pce_principal'),
 	      [ '$pce_get_object'/4
 	      ]).
 

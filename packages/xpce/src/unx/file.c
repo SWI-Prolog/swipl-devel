@@ -16,7 +16,7 @@
 #include <errno.h>
 #include <string.h>
 
-#if !defined(HAVE_SYS_PARAM_H) || HAVE_SYS_PARAM_H
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #else
 #ifndef MAXPATHLEN
@@ -462,7 +462,7 @@ openFile(FileObj f, Name mode, Name filter, CharArray extension)
       f->fd = fopen(strName(path), fdmode);
     }
   } else
-#ifdef HAVE_POPEN
+#ifndef HAVE_POPEN
   { return errorPce(f, CtoName("no_popen"));
   }
 #else

@@ -88,13 +88,16 @@ follows:
 Any
 allocObject(Class class, int funcs)
 { Instance obj;
+  int size = valInt(class->instance_size);
   int i, slots = valInt(class->slots);
 
-  obj = alloc(valInt(class->instance_size));
+  obj = alloc(size);
   initHeaderObj(obj, class);
 
   if ( class->boot )			/* TBD: use prototypes? */
-  { for (i = 0; i < slots; i++)
+  { slots = (size - ((int) &((Instance) NULL)->slots[0])) / sizeof(Any);
+
+    for (i = 0; i < slots; i++)
       obj->slots[i] = ((i < class->boot) ? NIL : (Any) NULL);
   } else
   { Variable *var = (Variable *) &class->instance_variables->elements[0];
@@ -2348,6 +2351,10 @@ makeClassObject(Class class)
   sendMethod(class, NAME_deleteHyper, NAME_relation, 1, "hyper",
 	     "Detach a hyper from an object",
 	     deleteHyperObject);
+  sendMethod(class, NAME_deleteHypers, NAME_relation, 2,
+	     "name=[name]", "condition=[code]",
+	     "Delete all matching hypers",
+	     freeHypersObject);
   sendMethod(class, NAME_free, NAME_oms, 0,
 	     "Delete object from the object-base",
 	     freeObject);

@@ -720,6 +720,12 @@ resetDisplay(DisplayObj d)
 
 extern postscriptDisplay(DisplayObj d);
 
+static status
+quitDisplay(DisplayObj d)
+{ ws_quit_display(d);
+
+  succeed;
+}
 
 		/********************************
 		*             VISUAL		*
@@ -857,7 +863,9 @@ makeClassDisplay(Class class)
   sendMethod(class, NAME_loadFontFamily, NAME_font, 1, "family=name",
 	     "Create predefined fonts from family",
 	     loadFontFamilyDisplay);
-
+  sendMethod(class, NAME_quit, NAME_quit, 0,
+	     "Destroy all window-system references",
+	     quitDisplay);
 
   getMethod(class, NAME_size, NAME_dimension, "size", 0,
 	    "Size of the display",
@@ -945,7 +953,10 @@ makeClassDisplay(Class class)
   attach_font_families(class);
 
 #ifdef __WINDOWS__
-  attach_resource(class, "wh_mouse_dll", "name*", "pcewh.dll",
+					/* @nil     --> no handling */
+					/* @default --> task-level handling */
+					/* name	    --> external dll */
+  attach_resource(class, "wh_mouse_dll", "[name]*", "pcewh.dll",
 		  "DLL to generate area_enter/area_exit events");
 #endif
 

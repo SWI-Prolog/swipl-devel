@@ -1,6 +1,7 @@
 
 /* xcolour.c */
 status		ws_create_colour(Colour c, DisplayObj d);
+void		ws_uncreate_colour(Colour c, DisplayObj d);
 status		ws_colour_name(DisplayObj d, Name name);
 Colour		ws_pixel_to_colour(DisplayObj d, ulong pixel);
 
@@ -23,6 +24,7 @@ void		ws_init_display(DisplayObj d);
 status		ws_legal_display_name(char *s);
 status		ws_opened_display(DisplayObj d);
 void		ws_open_display(DisplayObj d);
+void		ws_quit_display(DisplayObj d);
 status		ws_init_graphics_display(DisplayObj d);
 void		ws_foreground_display(DisplayObj d, Colour c);
 void		ws_background_display(DisplayObj d, Colour c);
@@ -190,4 +192,5 @@ void		ws_lower_window(PceWindow sw);
 int		ws_version(void);
 int		ws_revision(void);
 status		ws_expose_console(void);
+status		ws_iconify_console(void);
 status		ws_console_label(CharArray label);

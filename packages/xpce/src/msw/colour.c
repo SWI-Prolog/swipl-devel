@@ -76,13 +76,33 @@ ws_create_colour(Colour c, DisplayObj d)
 
   if ( c->kind == NAME_named )
   { if ( (rgb = getMemberHashTable(LoadColourNames(), c->name)) )
+    { COLORREF RGB = (COLORREF) valInt(rgb);
+      int r = GetRValue(RGB);
+      int g = GetGValue(RGB);
+      int b = GetBValue(RGB);
+
+      r = 256*r;
+      g = 256*g;
+      b = 256*b;
+
+      assign(c, red,   toInt(r));
+      assign(c, green, toInt(g));
+      assign(c, blue,  toInt(b));
+
       return registerXrefObject(c, d, (void *)valInt(rgb));
+    }
   } else
-    return registerXrefObject(c, d, (void *)RGB(valInt(c->red),
-						valInt(c->green),
-						valInt(c->blue)));
+    return registerXrefObject(c, d, (void *)RGB(valInt(c->red)/256,
+						valInt(c->green)/256,
+						valInt(c->blue)/256));
 
   fail;
+}
+
+
+void
+ws_uncreate_colour(Colour c, DisplayObj d)
+{ unregisterXrefObject(c, d);
 }
 
 

@@ -757,6 +757,7 @@ sendMethodClass(Class class, SendMethod m)
 	return errorPce(getMethodFromFunction(sendMethodClass),
 			NAME_runtimeVersion);
 #endif
+      break;
     }
   }
 
@@ -807,6 +808,7 @@ getMethodClass(Class class, GetMethod m)
 	return errorPce(getMethodFromFunction(sendMethodClass),
 			NAME_runtimeVersion);
 #endif
+      break;
     }
   }
 					/* Insert new one */
@@ -1789,7 +1791,7 @@ makeClassClass(Class class)
 #ifndef O_RUNTIME
   localClass(class, NAME_source, NAME_manual, "source_location*", NAME_both,
 	     "Location in the sources");
-#endif O_RUNTIME
+#endif /*O_RUNTIME*/
   localClass(class, NAME_rcsRevision, NAME_version, "name*", NAME_get,
 	     "RCS revision of sourcefile");
   localClass(class, NAME_creator, NAME_manual, "{built_in,host}", NAME_both,

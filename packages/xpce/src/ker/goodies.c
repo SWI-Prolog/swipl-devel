@@ -843,7 +843,7 @@ sysPce(char *fm, ...)
 
   printf("[pid = %d]\n", (int) getpid());
   if (confirmTerminal("Continue", "n"))
-    return;
+    return PCE_FAIL;
   if (confirmTerminal("Save core image", "n"))
     abort();
 

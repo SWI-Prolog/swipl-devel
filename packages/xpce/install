@@ -60,7 +60,7 @@ $emulator -x bin/pl.qlf -f none -g true >.plparms << _EOS_
 ),
 halt.
 _EOS_
-. .plparms
+. ./.plparms
 
 if [ "$O_SAVE" != "yes" ]; then
     echo "SWI-Prolog cannot save on this system.  Will create quick"

@@ -17,6 +17,7 @@
 	   , delete/3
 	   , (discontiguous)/1
 	   , forall/2
+	   , genarg/3
 	   , get_chain/3
 	   , list_to_set/2
 	   , maplist/3
@@ -364,7 +365,7 @@ argleft(Atomic) :-
 	atomic(Atomic), !,
 	fail.
 argleft(Term) :-
-	arg(_, Term, Arg),
+	genarg(_, Term, Arg),
 	argleft(Arg), !.
 
 

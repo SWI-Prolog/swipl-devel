@@ -596,6 +596,7 @@ makeClassProcess(Class class)
 	    getEnvironmentProcess);
 
   ProcessChain = globalObject(NAME_runningProcesses, ClassChain, 0);
+  featurePce(PCE, NAME_process);
 
   succeed;
 }
@@ -753,36 +754,6 @@ copyTty(Process p, char *pty, int fd)
 void
 killAllProcesses(void)
 {
-}
-
-status
-makeClassProcess(Class class)
-{ sourceClass(class, makeClassProcess, __FILE__, "$Revision$");
-
-  localClass(class, NAME_name, NAME_command, "char_array", NAME_get,
-	     "Name of command executed");
-  localClass(class, NAME_arguments, NAME_command, "vector", NAME_get,
-	     "Vector with arguments");
-  localClass(class, NAME_status, NAME_status, "name", NAME_get,
-	     "Status of the associated process");
-  localClass(class, NAME_code, NAME_status, "name|int*", NAME_get,
-	     "Signal name or exit status");
-  localClass(class, NAME_useTty, NAME_tty, "bool", NAME_get,
-	     "Use pseudo-tty (@on) or pipes (@off)");
-  localClass(class, NAME_tty, NAME_tty, "name*", NAME_get,
-	     "Pseudo-tty used for communication");
-  localClass(class, NAME_terminateMessage, NAME_input, "code*", NAME_both,
-	     "Forwarded when the process terminates");
-  localClass(class, NAME_pid, NAME_status, "int*", NAME_get,
-	     "Process id of child process");
-  localClass(class, NAME_directory, NAME_environment, "[directory]", NAME_get,
-	     "Directory to start the child");
-  localClass(class, NAME_environment, NAME_environment, "sheet*", NAME_none,
-	     "Environment for the process");
-
-  termClass(class, "process", 1, NAME_name);
-
-  succeed;
 }
 
 #endif /*HAVE_FORK*/

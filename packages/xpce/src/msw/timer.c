@@ -75,6 +75,7 @@ ws_status_timer(Timer tm, Name status)
       { rlc_timer_hook = timer_proc;
 	TimerTable = globalObject(CtoName("active_timers"),
 				  ClassHashTable, 0);
+	assign(TimerTable, refer, OFF);
       }
       appendHashTable(TimerTable, toInt(id), tm);
       setIdTimer(tm, id);

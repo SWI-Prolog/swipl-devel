@@ -84,10 +84,13 @@ pce_ifhostproperty(repeat_meta_declaraction,
 		*       REINITIALISATION	*
 		********************************/
 
-pce_reinitialise :-
-	send(@pce, banner),
+pce_load_init_file :-
 	InitFile = '~/.xpcerc',
 	unix(access(InitFile, 0)),
 	user:ensure_loaded(InitFile), !.
-pce_reinitialise.
+pce_load_init_file.
+
+pce_reinitialise :-
+	pce_load_init_file,
+	send(@pce, banner).
 

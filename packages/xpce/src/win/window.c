@@ -65,6 +65,8 @@ loadWindow(PceWindow sw, FILE *fd, ClassDef def)
 { TRY(loadSlotsObject(sw, fd, def));
 
   sw->ws_ref = NULL;
+  if ( isNil(sw->has_pointer) )
+    assign(sw, has_pointer, OFF);
 
   succeed;
 }
@@ -110,11 +112,11 @@ grabKeyboardWindow(PceWindow sw, Bool val)
 static status
 freeWindow(PceWindow sw)
 { if ( notNil(sw->frame) )
-    send(sw->frame, NAME_free, 0);
-  if ( notNil(sw->decoration) )
-    send(sw->decoration, NAME_free, 0);
-
-  return freeObject(sw);
+    return send(sw->frame, NAME_free, 0);
+  else if ( notNil(sw->decoration) )
+    return send(sw->decoration, NAME_free, 0);
+  else
+    return freeObject(sw);
 }
 
 
@@ -802,6 +804,8 @@ unlink_changes_data_window(PceWindow sw)
   { b = a->next;
     unalloc(sizeof(struct update_area), a);
   }
+
+  deleteChain(ChangedWindows, sw);
 }
 
 

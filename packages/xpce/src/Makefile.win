@@ -30,8 +30,8 @@ interface:
 		in ..\pl\src $(MAKE)
 
 xpce.exe:	objects interface
-		$(LD) name xpce @xpce.lnk
-		wbind xpce -n -q
+		$(LD) $(LDFLAGS) name xpce @xpce.lnk
+		wbind xpce -q
 
 clean:
 		cd adt; $(MAKE) $@

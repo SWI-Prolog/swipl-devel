@@ -363,7 +363,7 @@ sonNode(Node n, Node n2)		/* make n2 a son of n */
   if ( memberChain(n->sons, n2) )
     succeed;
 
-  if ( isParentNode(n2, n) || n2 == n )
+  if ( isParentNode(n, n2) || n2 == n )
     return errorPce(n, NAME_wouldBeCyclic);
 
   if ( isNil(n2->tree) )

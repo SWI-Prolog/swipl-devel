@@ -64,8 +64,14 @@ unlinkFrame(FrameObj fr)
 { if ( fr->destroying == OFF )
   { FrameObj sfr;
     PceWindow sw;
+    Cell cell;
 
     assign(fr, destroying, ON);
+    for_cell(cell, fr->members)		/* suppress any updates */
+    { PceWindow sw = cell->value;
+
+      assign(sw, displayed, OFF);
+    }
 
     if ( notNil(fr->transients) )
       for_chain(fr->transients, sfr, send(sfr, NAME_free, 0));
@@ -101,6 +107,7 @@ static status
 loadFrame(FrameObj fr, FILE *fd, ClassDef def)
 { TRY(loadSlotsObject(fr, fd, def));
   assign(fr, wm_protocols_attached, OFF);
+  assign(fr, input_focus, OFF);
 
   if ( fr->status == NAME_open )
   { assign(fr, status, NAME_unmapped);
@@ -111,6 +118,23 @@ loadFrame(FrameObj fr, FILE *fd, ClassDef def)
   succeed;
 }
 
+
+static status
+convertOldSlotFrame(FrameObj fr, Name var, Any value)
+{ if ( var == NAME_show )
+    assign(fr, status, value == ON ? NAME_open : NAME_hidden);
+
+  succeed;
+}
+
+
+static status
+initialiseNewSlotFrame(FrameObj fr, Variable var)
+{ if ( var->name == NAME_background )
+    assign(fr, background, getResourceValueObject(fr, NAME_background));
+
+  succeed;
+}
 
 		/********************************
 		*          OPEN/CREATE		*
@@ -351,6 +375,18 @@ createFrame(FrameObj fr)
     qadSendv(cell->value, NAME_resize, 0, NULL);
   }
   
+  succeed;
+}
+
+
+static status
+uncreateFrame(FrameObj fr)
+{ Cell cell;
+
+  for_cell(cell, fr->members)
+    send(cell->value, NAME_uncreate, 0);
+
+  ws_uncreate_frame(fr);
   succeed;
 }
 
@@ -864,9 +900,9 @@ DeleteFrame(FrameObj fr, PceWindow sw)
     return DeleteFrame(fr, (PceWindow) sw->device);
 
   deleteChain(fr->members, sw);
-  assign(sw, frame, NIL);
+  assign(sw, frame, NIL);		/* may kill the frame */
 
-  if ( createdFrame(fr) )
+  if ( !isFreedObj(fr) && createdFrame(fr) )
   { ws_unmanage_window(sw);
     TRY(send(sw, NAME_uncreate, 0));
     unrelateTile(sw->tile);
@@ -879,8 +915,11 @@ DeleteFrame(FrameObj fr, PceWindow sw)
 
 static status
 deleteFrame(FrameObj fr, PceWindow sw)
-{ DeleteFrame(fr, sw);
-  frameWindow(sw, newObject(ClassFrame, DEFAULT, DEFAULT, fr->display, 0));
+{ DisplayObj d = fr->display;
+
+  DeleteFrame(fr, sw);
+  if ( !isFreedObj(sw) )
+    frameWindow(sw, newObject(ClassFrame, DEFAULT, DEFAULT, d, 0));
 
   succeed;
 }
@@ -1221,12 +1260,22 @@ makeClassFrame(Class class)
   sendMethod(class, NAME_unlink, DEFAULT, 0,
 	     "Destroy windows and related X-window",
 	     unlinkFrame);
+  sendMethod(class, NAME_convertOldSlot, DEFAULT, 2,
+	     "slot=name", "value=any",
+	     "Convert old `show' slot",
+	     convertOldSlotFrame);
+  sendMethod(class, NAME_initialiseNewSlot, DEFAULT, 1, "var=variable",
+	     "Initialise <-background",
+	     initialiseNewSlotFrame);
   sendMethod(class, NAME_bell, NAME_report, 1, "volume=[int]",
 	     "Ring the bell on display",
 	     bellFrame);
   sendMethod(class, NAME_create, NAME_open, 0,
-	     "Establish X counterpart",
+	     "Establish window-system counterpart",
 	     createFrame);
+  sendMethod(class, NAME_uncreate, NAME_open, 0,
+	     "Destroy window-system counterpart",
+	     uncreateFrame);
   sendMethod(class, NAME_open, NAME_open, 3,
 	     "position=[point]", "grab=[bool]", "normalise=[bool]",
 	     "->create and map on the display",

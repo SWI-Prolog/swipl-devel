@@ -53,6 +53,7 @@ initialisePce(Pce pce)
   assign(pce, operating_system,   CtoName(OS));
   assign(pce, xt_version,	  toInt(ws_version()));
   assign(pce, xt_revision,	  toInt(ws_revision()));
+  assign(pce, features,		  newObject(ClassChain, 0));
 
   hostAction(HOST_ONEXIT, callExitMessagesPce, pce);
 
@@ -114,6 +115,14 @@ formatPcev(Pce pce, CharArray fmt, int argc, Any *argv)
 static status
 exposeConsolePce(Pce pce)
 { ws_expose_console();
+
+  succeed;
+}
+
+
+static status
+iconifyConsolePce(Pce pce)
+{ ws_iconify_console();
 
   succeed;
 }
@@ -521,7 +530,7 @@ infoPce(Pce pce)
   succeed;
 }
 
-#if !defined(HAVE_SYS_TIMES_H) || HAVE_SYS_TIMES_H
+#ifdef HAVE_SYS_TIMES_H
 #include <sys/times.h>
 
 static Real
@@ -540,7 +549,9 @@ getCpuTimePce(Pce pce, Name which)
   answer(CtoReal(f));
 }
 
-#else
+#else /*HAVE_SYS_TIMES_H*/
+
+/* DOS/Windows version */
 
 static Real
 getCpuTimePce(Pce pce, Name which)
@@ -559,6 +570,18 @@ getMaxIntegerPce(Pce pce)
 static Int
 getMinIntegerPce(Pce pce)
 { answer(toInt(PCE_MIN_INT));
+}
+
+
+status
+featurePce(Pce pce, Any feature)
+{ return appendChain(pce->features, feature);
+}
+
+
+status
+hasFeaturePce(Pce pce, Any feature)
+{ return memberChain(pce->features, feature);
 }
 
 
@@ -584,12 +607,17 @@ conflicting prototype for them.
 #define gethostname _dosemu_gethostname
 #define getlogin _dosemu_getlogin
 
-char *
-getlogin()
-{ return getenv("USER");
+static char *
+_dosemu_getlogin()
+{ char *user = getenv("USER");
+
+  if ( !user )
+    user = "unknown";
+
+  return user;
 }
 
-int
+static int
 _dosemu_gethostname(char *buf, int len)
 { char *s;
   
@@ -685,7 +713,6 @@ catchErrorSignalsPce(Pce pce, Bool val)
 { if ( pce->catch_error_signals != val )
   { assign(pce, catch_error_signals, val);
     catchErrorSignals(val);
-
   }
 
   succeed;
@@ -1008,6 +1035,8 @@ makeClassPce(Class class)
 	     "Version of Xt library used to compile xpce");
   localClass(class, NAME_xtRevision, NAME_version, "int", NAME_get,
 	     "Revision of Xt library used to compile xpce");
+  localClass(class, NAME_features, NAME_version, "chain", NAME_get,
+	     "List of installed features");
 
   termClass(class, "pce", 1, NAME_version);
   saveStyleClass(class, NAME_external);
@@ -1067,6 +1096,9 @@ makeClassPce(Class class)
   sendMethod(class, NAME_exposeConsole, NAME_console, 0,
 	     "Expose the PCE/host console window",
 	     exposeConsolePce);
+  sendMethod(class, NAME_iconifyConsole, NAME_console, 0,
+	     "Make PCE/host console window an icon",
+	     iconifyConsolePce);
   sendMethod(class, NAME_consoleLabel, NAME_console, 1, "char_array",
 	     "Set the label for the console window",
 	     consoleLabelPce);
@@ -1134,7 +1166,13 @@ makeClassPce(Class class)
   sendMethod(class, NAME_maxGoalDepth, NAME_debugging, 1, "[int]*",
 	     "Set maximum recursion level",
 	     maxGoalDepthPce);
-
+  sendMethod(class, NAME_feature, NAME_version, 1, "any",
+	     "Define new feature",
+	     featurePce);
+  sendMethod(class, NAME_hasFeature, NAME_version, 1, "any",
+	     "Test if feature is defined",
+	     hasFeaturePce);
+  
   getMethod(class, NAME_coreUsage, NAME_statistics, "bytes=int", 0,
 	    "Total core in active use",
 	    getCoreUsagePce);
@@ -1337,7 +1375,7 @@ pceInitialise(int handles, int argc, char **argv)
     bootClass(NAME_type,
 	      NAME_programObject,
 	      sizeof(struct type),
-	      5,
+	      6,
 	      initialiseType,
 	      4, "name", "name", "any", "any");	/* changed later!! */
   lookupBootClass(ClassType, (Func) getLookupType, 1, "name");

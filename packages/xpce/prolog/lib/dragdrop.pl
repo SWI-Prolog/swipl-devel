@@ -108,6 +108,7 @@ target(G, Source:any, Gr:graphical*) :->
 
 terminate(G, Ev:event) :->
 	"->drop to <-target"::
+	send(Ev?window, focus_cursor, @nil),
 	send(G, cursor, @default),
 	get(G, slot, target, Target),
 	get(G, source, Source),

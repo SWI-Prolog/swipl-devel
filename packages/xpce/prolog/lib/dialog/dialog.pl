@@ -40,10 +40,10 @@ standard XPCE library directory.
 
 :- pce_autoload(drag_and_drop_gesture, library(pce_drag_and_drop)).
 :- pce_autoload(drag_and_drop_dict_item_gesture, library(dragdict)).
-:- pce_autoload(dia_attribute_editor, attribute).
+:- pce_autoload(dia_attribute_editor, library('dialog/attribute')).
 :- pce_autoload(finder, library(find_file)).
 :- pce_global(@finder, new(finder)).
-:- pce_autoload(msg_model_editor, behaviour).
+:- pce_autoload(msg_model_editor, library('dialog/behaviour')).
 
 dia_version('0.3').
 

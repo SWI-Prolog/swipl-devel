@@ -32,6 +32,12 @@ ws_expose_console()
  
 
 status
+ws_iconify_console()
+{ fail;
+}
+ 
+
+status
 ws_console_label(CharArray label)
 { char *t = getenv("TERM");
 

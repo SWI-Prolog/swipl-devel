@@ -15,7 +15,8 @@ objects:	$(KEROBJS)
 		@%null
 
 version.h:	..\makefile.def
-		echo $#define MACHINE "$(ARCH)" > $@
+		echo $#define MACHINE "$(ARCH)"         > $@
+		echo $#define OS "$(OS)" 	       >> $@
 		echo $#define PCE_VERSION "$(VERSION)" >> $@
 
 name.obj:	..\h\names.ic name.c

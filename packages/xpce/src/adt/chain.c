@@ -151,12 +151,13 @@ cloneChain(Chain ch, Chain clone)
 
 status
 clearChain(Chain ch)
-{ register Cell p, q;
+{ Cell p, q;
 
   for_cell_save(p, q, ch)
+  { ch->head = q;
     freeCell(ch, p);
+  }
   ch->head = ch->tail = ch->current = NIL;
-
   assign(ch, size, ZERO);
   ChangedChain(ch, NAME_clear, 0);
 
@@ -317,19 +318,22 @@ deleteChain(Chain ch, register Any obj)
     ch->current = NIL;
 
   if (ch->head == ch->tail)
-  { if (ch->head->value != obj)
+  { Cell head = ch->head;
+
+    if ( head->value != obj )
       fail;
-    freeCell(ch, ch->head);
     ch->head = ch->tail = NIL;
+    freeCell(ch, head);
     assign(ch, size, ZERO);
     ChangedChain(ch, NAME_clear, 0);
     succeed;
   }
 
   if (ch->head->value == obj)
-  { Cell next = ch->head->next;
-    freeCell(ch, ch->head);
-    ch->head = next;
+  { Cell head = ch->head;
+
+    ch->head = head->next;
+    freeCell(ch, head);
     assign(ch, size, dec(ch->size));
     ChangedChain(ch, NAME_delete, ONE);
     succeed;
@@ -368,8 +372,10 @@ deleteCellChain(Chain ch, Cell cell)
   Int i = ONE;
 
   if ( cell == ch->head  && ch->head == ch->tail )
-  { freeCell(ch, ch->head);
+  { Cell head = ch->head;
+
     ch->head = ch->tail = ch->current = NIL;
+    freeCell(ch, head);
     ChangedChain(ch, NAME_clear, 0);
     assign(ch, size, ZERO);
 
@@ -397,7 +403,7 @@ deleteCellChain(Chain ch, Cell cell)
 
 static status
 deleteAllChain(Chain ch, Any obj)
-{ while( deleteChain(ch, obj) != FAIL ) ;	 /* can be more efficient */
+{ while( deleteChain(ch, obj) ) ;	/* can be more efficient */
 
   succeed;
 }

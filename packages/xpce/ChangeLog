@@ -1,3 +1,23 @@
+[VERSION 4.8.4]
+
+* ADDED: `@pce->has_feature' to test for certain features supported in this
+  version.
+
+* ADDED: `@pce->iconify_console' o iconify the console window, provided
+  this is possible.
+
+* FIXED: `window ->unlink' deletes the window from ChangedWindows.  Fixes
+  crashes in the Windows version, but the Unix version may also suffer from
+  this problem.
+
+* Included Quintus PW3 patches (Quintus compatibility).  XPCE 4.8.4 requires
+  SWI-Prolog 1.9.5 or later.
+
+* Improved changes management in class menu_bar (faster screen update).
+
+* Fix in cycle detection in class node.
+
+
 [VERSION 4.8.3]
 
 * Renamed some *[cC]++* files and directories to *cxx* or *CXX*.

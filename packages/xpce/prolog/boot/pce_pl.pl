@@ -14,7 +14,7 @@
 	, require/1
 	, auto_call/1
 	, (meta_predicate)/1
-	, initialization/1
+	, (initialization)/1
 	, 'pceloadc++'/1
 	, 'pceloadc++'/2
 	, 'pceloadcxx'/1
@@ -112,8 +112,10 @@ auto_call(Goal) :-
 		*            BANNER		*
 		********************************/
 
-pce_reinitialise :-
-	pce_boot:pce_reinitialise,
+:- at_initialisation(pce_boot:pce_load_init_file).
+
+pce_banner :-
+	send(@(pce), banner),
 	(   get(@(pce), is_runtime_system, @(off))
 	->  format('~nFor HELP on prolog, please type help. or apropos(topic).~n'),
 	    format('         on xpce, please type manpce.~n~n')
@@ -140,6 +142,7 @@ pce_reinitialise :-
 
 '$load_pce' :-
 	current_predicate('$pce_init', '$pce_init'), !,
+	feature(xpce, true),
 	pce_principal:'$pce_init'.
 
 

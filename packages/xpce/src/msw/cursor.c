@@ -54,6 +54,7 @@ static int cursor_height;		/* only height allowed */
 
 #define SEC(c) (((int)(c) << 24) >> 24)	/* sign-extend-character */
 
+
 		 /*******************************
 		 *    X11 CURSOR DESCRIPTION	*
 		 *******************************/
@@ -524,7 +525,13 @@ ws_destroy_cursor(CursorObj c, DisplayObj d)
 { Xref r;
 
   while( (r = unregisterXrefObject(c, d)) )
-    DestroyCursor((HCURSOR)r->xref);
+  { HCURSOR msc = (HCURSOR) r->xref;
+    
+    if ( msc == GetCursor() )
+      SetCursor(LoadCursor(NULL, IDC_ARROW));      
+
+    DestroyCursor(msc);
+  }
 }
 
 
@@ -566,10 +573,10 @@ save_big_cursor_background()
       fail;
   }
 
-  obm = SelectObject(bmhdc, saved_bits);
+  obm = ZSelectObject(bmhdc, saved_bits);
   BitBlt(bmhdc, 0, 0, big_cursor_width, big_cursor_height,
 	 hdc, saved_x, saved_y, SRCCOPY);
-  SelectObject(bmhdc, obm);
+  ZSelectObject(bmhdc, obm);
   DeleteDC(bmhdc);
   ReleaseDC(NULL, hdc);
 
@@ -584,10 +591,10 @@ restore_big_cursor_background()
     HDC bmhdc = CreateCompatibleDC(hdc);
     HBITMAP obm;
 
-    obm = SelectObject(bmhdc, saved_bits);
+    obm = ZSelectObject(bmhdc, saved_bits);
     BitBlt(hdc, saved_x, saved_y, big_cursor_width, big_cursor_height,
 	   bmhdc, 0, 0, SRCCOPY);
-    SelectObject(bmhdc, obm);
+    ZSelectObject(bmhdc, obm);
     DeleteDC(bmhdc);
     ReleaseDC(NULL, hdc);
   }
@@ -606,13 +613,13 @@ paint_big_cursor()
     DEBUG(NAME_image, printf("Painting BIG cursor at %d, %d\n",
 			      saved_x, saved_y));
 
-    obm = SelectObject(bmhdc, mask);
+    obm = ZSelectObject(bmhdc, mask);
     BitBlt(hdc, saved_x, saved_y, big_cursor_width, big_cursor_height,
 	   bmhdc, 0, 0, MERGEPAINT);
-    SelectObject(bmhdc, image);
+    ZSelectObject(bmhdc, image);
     BitBlt(hdc, saved_x, saved_y, big_cursor_width, big_cursor_height,
 	   bmhdc, 0, 0, SRCINVERT);
-    SelectObject(bmhdc, obm);
+    ZSelectObject(bmhdc, obm);
     DeleteDC(bmhdc);
     ReleaseDC(NULL, hdc);
   }
@@ -638,15 +645,15 @@ mask_image(HBITMAP img, HBITMAP mask, int w, int h)
   HDC dst	= CreateCompatibleDC(src);
   HBITMAP osrc, odst;
 
-  odst = SelectObject(dst, image);
-  osrc = SelectObject(src, mask);
+  odst = ZSelectObject(dst, image);
+  osrc = ZSelectObject(src, mask);
   BitBlt(dst, 0, 0, w, h, src, 0, 0, SRCCOPY);
-  SelectObject(src, img);
+  ZSelectObject(src, img);
   BitBlt(dst, 0, 0, w, h, src, 0, 0, SRCPAINT);
   BitBlt(dst, 0, 0, w, h, src, 0, 0, DSTINVERT);
 
-  SelectObject(src, osrc);
-  SelectObject(dst, odst);
+  ZSelectObject(src, osrc);
+  ZSelectObject(dst, odst);
   DeleteDC(src);
   DeleteDC(dst);
 
@@ -702,7 +709,7 @@ exit_big_cursor()
 { if ( saved_bits )
   { DEBUG(NAME_image, printf("exit_big_cursor()\n"));
     restore_big_cursor_background();
-    DeleteObject(saved_bits);
+    ZDeleteObject(saved_bits);
     saved_bits = NULL;
   }
 
@@ -711,10 +718,13 @@ exit_big_cursor()
     hcursorsave = NULL;
   }
 
-  if ( mask )
-  { DeleteObject(mask);
-    mask = NULL;
+  if ( image )
+  { ZDeleteObject(image);
+    image = NULL;
   }
+
+  if ( mask )				/* is Xref of XPCE image! */
+    mask = NULL;
 
   succeed;
 }

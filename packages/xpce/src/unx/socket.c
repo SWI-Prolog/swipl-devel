@@ -447,35 +447,7 @@ makeClassSocket(Class class)
 	     eofSocket);
 
   SocketChain = globalObject(NAME_openSockets, ClassChain, 0);
-
-  succeed;
-}
-
-#else /*HAVE_SOCKET*/
-
-#include <h/kernel.h>
-
-status
-makeClassSocket(Class class)
-{ sourceClass(class, makeClassSocket, __FILE__, "$Revision$");
-
-  localClass(class, NAME_address, NAME_address, "file|tuple|int*", NAME_get,
-	     "Address for the connection end-point");
-  localClass(class, NAME_domain, NAME_address, "{unix,inet}", NAME_get,
-	     "Domain for the connection");
-  localClass(class, NAME_status, NAME_status,
-	     "{idle,listen,accepted,connected}", NAME_get,
-	     "Status of the associated socket");
-  localClass(class, NAME_acceptMessage, NAME_connect, "code*", NAME_both,
-	     "Message to accept new client");
-  localClass(class, NAME_clients, NAME_server, "chain*", NAME_get,
-	     "Chain with accepted connections");
-  localClass(class, NAME_master, NAME_server, "socket*", NAME_get,
-	     "Socket I accepted a connection for");
-  localClass(class, NAME_authority, NAME_authority, "file*", NAME_get,
-	     "Name of authority-file (if any)");
-
-  termClass(class, "socket", 1, NAME_address);
+  featurePce(PCE, NAME_socket);
 
   succeed;
 }

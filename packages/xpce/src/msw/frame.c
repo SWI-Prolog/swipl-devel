@@ -47,6 +47,35 @@ WinFrameClass()
 }
 
 
+static char *
+WinPopupFrameClass()
+{ static Name winclassname = NULL;
+  static WNDCLASS wndClass;
+
+  if ( !winclassname )
+  { char buf[50];
+
+    sprintf(buf, "PcePopupFrame%d", PceHInstance);
+    winclassname = CtoName(buf);
+
+    wndClass.style		= CS_HREDRAW|CS_VREDRAW|CS_SAVEBITS;
+    wndClass.lpfnWndProc	= (LPVOID) frame_wnd_proc;
+    wndClass.cbClsExtra		= 0;
+    wndClass.cbWndExtra		= sizeof(long);
+    wndClass.hInstance		= PceHInstance;
+    wndClass.hIcon		= NULL; /*LoadIcon(NULL, IDI_APPLICATION);*/
+    wndClass.hCursor		= LoadCursor(NULL, IDC_ARROW);
+    wndClass.hbrBackground	= GetStockObject(WHITE_BRUSH);
+    wndClass.lpszMenuName	= NULL;
+    wndClass.lpszClassName	= strName(winclassname);
+
+    RegisterClass(&wndClass);
+  }
+
+  return strName(winclassname);
+}
+
+
 static int
 IsDownKey(code)
 { int mask = GetKeyState(code);
@@ -74,9 +103,11 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 
   if ( !fr )
     fr = current_frame;
+  assert(isProperObject(fr));
 
-  DEBUG(NAME_event, printf("MS-Windows event 0x%x with 0x%x/0x%lx\n",
-			   message, wParam, lParam));
+  DEBUG(NAME_event,
+	printf("%s(0x%04x): MS-Windows event 0x%04x with 0x%04x/0x%08lx\n",
+	       pp(fr), hwnd, message, wParam, lParam));
 
   switch(message)
   { case WM_CREATE:
@@ -127,11 +158,52 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       return 0;
     }
 
+    case WM_SHOWWINDOW:
+    { HWND hwnd;
+
+      if ( !wParam && (hwnd = getHwndFrame(fr)) )
+      { Cell cell;
+
+	for_cell(cell, fr->members)
+	{ HWND subhwnd = getHwndWindow(cell->value);
+	  
+	  if ( subhwnd )
+	    PceWhDeleteWindow(subhwnd);
+	}
+
+	PceWhDeleteWindow(hwnd);
+      }
+
+      break;
+    }
+
     case WM_SETFOCUS:
+      send(fr, NAME_inputFocus, ON, 0);
       break;
 
     case WM_KILLFOCUS:
+      send(fr, NAME_inputFocus, OFF, 0);
       break;
+
+    case WM_ERASEBKGND:
+    { HDC hdc = (HDC) wParam;
+      RECT rect;
+      COLORREF rgb = (COLORREF) getXrefObject(fr->background, fr->display);
+      HBRUSH hbrush;
+      
+      rgb = GetNearestColor(hdc, rgb);
+      hbrush = CreateSolidBrush(rgb);
+      GetClipBox(hdc, &rect);
+      FillRect(hdc, &rect, hbrush);
+      ZDeleteObject(hbrush);
+
+      DEBUG(NAME_redraw, printf("Cleared background %d %d %d %d of %s\n",
+				rect.left, rect.top,
+				rect.right - rect.left, rect.bottom - rect.top,
+				pp(fr)));
+
+      return 1;				/* non-zero: I've erased it */
+    }
 
     case WM_PAINT:
       if ( IsIconic(hwnd) )
@@ -208,12 +280,14 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       if ( (msg = checkType(getValueSheet(fr->wm_protocols,
 					  CtoName("WM_DELETE_WINDOW")),
 			    TypeCode, fr)) )
-      { forwardReceiverCode(msg, fr, MainWindow(fr), 0);
-
-	return 0;
+      { DEBUG(NAME_close, printf("Running WM_DELETE_WINDOW message %s\n",
+				 pp(msg)));
+	forwardReceiverCode(msg, fr, MainWindow(fr), 0);
+	DEBUG(NAME_close, printf("Finished WM_DELETE_WINDOW. fr=%s, msg=%s\n",
+				 pp(fr), pp(msg)));
       }
 
-      break;
+      return 0;
     }
 
     case WM_DESTROY:
@@ -221,12 +295,9 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       { setHwndFrame(fr, 0);
 	freeObject(fr);
       }
-      break;
-  }
 
-  DEBUG(NAME_event,
-	printf("%s: MS-Windows event 0x%04x with 0x%04x and 0x%08x\n",
-	       pp(fr), message, wParam, lParam));
+      return 0;
+  }
 
   return DefWindowProc(hwnd, message, wParam, lParam);
 }
@@ -324,10 +395,30 @@ ws_created_frame(FrameObj fr)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ws_uncreate_frame(FrameObj fr) is called  by   `frame  ->uncreate'.   It
+calls  DestroyWindow(),  which  in  turn   will  destroy  the  MS-Window
+subwindows, causing the WM_DESTROY action on these windows.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 ws_uncreate_frame(FrameObj fr)
-{ if ( ws_created_frame(fr) )
-    DestroyWindow(getHwndFrame(fr));
+{ HWND hwnd = getHwndFrame(fr);
+
+  if ( hwnd )
+  { Cell cell;
+
+    setHwndFrame(fr, 0);
+    PceWhDeleteWindow(hwnd);
+
+    for_cell(cell, fr->members)
+    { HWND subhwnd = getHwndWindow(cell->value);
+      if ( subhwnd )
+	PceWhDeleteWindow(subhwnd);
+    }
+
+    DestroyWindow(hwnd);
+  }
 }
 
 
@@ -381,7 +472,8 @@ ws_create_frame(FrameObj fr)
   outer_frame_area(fr, &x, &y, &w, &h, TRUE);
 
   current_frame = fr;
-  ref = CreateWindow(WinFrameClass(),
+  ref = CreateWindow(fr->kind == NAME_popup ? WinPopupFrameClass()
+		     			    : WinFrameClass(),
 		     strName(getIconLabelFrame(fr)),
 		     style,
 		     x, y, w, h,
@@ -465,7 +557,10 @@ ws_show_frame(FrameObj fr, Bool grab)
 
 void
 ws_unshow_frame(FrameObj fr)
-{ ShowWindow(getHwndFrame(fr), SW_HIDE);
+{ HWND hwnd = getHwndFrame(fr);
+
+  if ( hwnd )
+    ShowWindow(hwnd, SW_HIDE);
 }
 
 
@@ -580,6 +675,12 @@ ws_geometry_frame(FrameObj fr, Int px, Int py, Int pw, Int ph)
 
 
 void
+ws_frame_background(FrameObj fr, Any c)
+{ printf("ws_frame_background(%s, %s)\n", pp(fr), pp(c));
+}
+
+
+void
 ws_border_frame(FrameObj fr, int b)
 {
 }
@@ -604,9 +705,9 @@ ws_busy_cursor_frame(FrameObj fr, CursorObj c)
 	   instanceOfObject(win, ClassWindow) &&
 	   (ref = win->ws_ref) &&
 	   ref->hcursor )
-      { SetCursor(ref->hcursor);
+      { ZSetCursor(ref->hcursor);
       } else
-	SetCursor(LoadCursor(PceHInstance, IDC_ARROW));
+	ZSetCursor(LoadCursor(NULL, IDC_ARROW));
 
       r->hbusy_cursor = NULL;
       
@@ -617,7 +718,7 @@ ws_busy_cursor_frame(FrameObj fr, CursorObj c)
       if ( c )
       { r->hbusy_cursor = (HCURSOR)getXrefObject(c, fr->display);
 
-	SetCursor(r->hbusy_cursor);
+	ZSetCursor(r->hbusy_cursor);
       }
     }
   }
@@ -629,7 +730,8 @@ ws_set_icon_frame(FrameObj fr)
 { HWND hwnd;
 
   if ( (hwnd = getHwndFrame(fr)) &&
-       IsIconic(hwnd) )
+       IsIconic(hwnd) &&
+       fr->destroying == OFF )
     InvalidateRect(hwnd, NULL, TRUE);
 }
 
@@ -666,7 +768,10 @@ ws_deiconify_frame(FrameObj fr)
 
 void
 ws_set_label_frame(FrameObj fr)
-{ SetWindowText(getHwndFrame(fr), strName(getIconLabelFrame(fr)));
+{ HWND hwnd = getHwndFrame(fr);
+
+  if ( hwnd )
+    SetWindowText(hwnd, strName(getIconLabelFrame(fr)));
 }
 
 
@@ -703,7 +808,7 @@ ws_image_of_frame(FrameObj fr)
     BitBlt(hdcimg, 0, 0, w, h, hdc, rect.left, rect.top, SRCCOPY);
 
     SelectObject(hdcimg, obm);
-    DeleteObject(hdcimg);
+    ZDeleteObject(hdcimg);
     ReleaseDC(hwnd, hdc);
 
     registerXrefObject(image, image->display, (void *) bm);

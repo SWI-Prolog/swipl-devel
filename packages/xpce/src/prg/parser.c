@@ -77,6 +77,35 @@ getBuildTermParser(Parser p, Class class, int argc, Any *argv)
 
 #define getTokenParser(p)	qadGetv((p)->tokeniser, NAME_token, 0, NULL)
 #define ungetTokenParser(p, t)	qadSendv((p)->tokeniser, NAME_token, 1, &(t))
+#define DCHAINCACHESIZE 10
+
+static Chain DelimiterChainCache[DCHAINCACHESIZE];
+
+static Chain
+delimiterChain(Name d1, Name d2)
+{ int i;
+  Chain ch;
+
+  for(i=0; i<DCHAINCACHESIZE; i++)
+  { if ( (ch=DelimiterChainCache[i]) )
+    { if ( ch->size == TWO &&
+	   ch->head->value == d1 &&
+	   ch->tail->value == d2 )
+	return ch;
+    } else
+    { ch = DelimiterChainCache[i] = newObject(ClassChain, d1, d2, 0);
+      protectObject(ch);
+      return ch;
+    }
+  }
+
+  for(i=DCHAINCACHESIZE-1; i>0; i--)
+    DelimiterChainCache[i] = DelimiterChainCache[i-1];
+
+  ch = DelimiterChainCache[i] = newObject(ClassChain, d1, d2, 0);
+  protectObject(ch);
+  return ch;
+}
 
 
 static Any
@@ -101,7 +130,7 @@ getListParser(Parser p, Name end, Name delimiter, Name functor)
   else
     ungetTokenParser(p, token);
 
-  endterm = newObject(ClassChain, end, delimiter, 0);
+  endterm = delimiterChain(end, delimiter);
 					/* TBD: avoid this! */
   for(;;)
   { Any dl;
@@ -112,9 +141,7 @@ getListParser(Parser p, Name end, Name delimiter, Name functor)
     if ( !(dl = getTokenParser(p)) || dl == EndOfFile )
       fail;
     if ( dl == end )
-    { doneObject(endterm);
       answer(getv(p, NAME_buildTerm, argc, argv));
-    }
     if ( isNil(delimiter) )
       ungetTokenParser(p, token);
   }

@@ -8,10 +8,10 @@
 */
 
 #ifndef WM_WINENTER
-#define WM_WINENTER WM_USER
+#define WM_WINENTER (WM_USER+100)
 #endif
 
 #ifndef WM_WINEXIT
-#define WM_WINEXIT WM_USER + 1
+#define WM_WINEXIT (WM_WINENTER+1)
 #endif
 

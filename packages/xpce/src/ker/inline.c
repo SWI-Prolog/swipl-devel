@@ -43,6 +43,20 @@ instanceOfObject(const Any obj, const Class super)
   fail;
 }
 
+
+INLINE status
+isProperObject(const Any obj)
+{ if ( isObject(obj) && isAddress(obj) )
+  { Class class = classOfObject(obj);
+    
+    if ( isAddress(class) && instanceOfObject(class, ClassClass) )
+      succeed;
+  }
+
+  fail;
+}
+
+
 		/********************************
 		*           HASHTABLES		*
 		********************************/
@@ -219,6 +233,7 @@ CheckType(Any val, Type t, Any ctx)
 #else /*USE_INLINE*/
 
 status	 constf instanceOfObject(const Any, const Class);
+status		isProperObject(const Any);
 Any		getSendMethodClass(const Class, const Name);
 Any		getGetMethodClass(const Class, const Name);
 Any		getMemberHashTable(const HashTable, const Any);

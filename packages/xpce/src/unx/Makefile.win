@@ -2,8 +2,6 @@
 
 !include ..\makefile.def
 
-CFLAGS += -DO_NO_SOCKET -DO_NO_PROCESS
-
 UNXOBJS=	directory.obj file.obj process.obj socket.obj stream.obj
 
 objects:	$(UNXOBJS)

@@ -235,7 +235,8 @@ resource(bold_font,	     font,  '@helvetica_bold_12').
 resource(emphasize_font,     font,  '@helvetica_oblique_12').
 resource(size,		     size,  'size(88,20)').
 resource(jump_style,	     style, 'when(@colour_display,
-					  style(colour := lime_green),
+					  style(colour := dark_green,
+						underline := @on),
 					  style(underline := @on))').
 resource(keyword_style,	     style, 'style(font := @helvetica_bold_12)').
 						    

@@ -13,8 +13,12 @@ autoconf/config.h based machine-binding file.
 
 #ifndef _MD_INCLUDED
 #define _MD_INCLUDED
-#include "../config.h"
 
+#ifdef __WINDOWS__
+#include "md/md-mswin.h"
+#else
+#include "../config.h"
+#endif
 		 /*******************************
 		 *	      ALLOCA		*
 		 *******************************/
