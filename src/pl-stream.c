@@ -53,9 +53,6 @@ locking is required.
 #define PL_KERNEL 1
 #include "pl-stream.h"
 #include <sys/types.h>
-#ifdef HAVE_SYS_SELECT_H
-#include <sys/select.h>
-#endif
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #else
@@ -76,6 +73,9 @@ locking is required.
 #include <stdarg.h>
 #include <ctype.h>
 #include <sys/stat.h>
+#ifdef HAVE_SYS_SELECT_H
+#include <sys/select.h>
+#endif
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
