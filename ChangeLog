@@ -8,6 +8,9 @@
 					--------------------------------------
 
 
+VERSION 5.5.1 (December 17, 2004)
+=================================
+
   * FIXED: Protocol issues due to wide character encoding.
 
   * MODIFIED: Cleanup of foreign predicate registration by Salvador
