@@ -292,13 +292,13 @@ isCurrentArithFunction(register FunctorDef f, register Module m)
   return r;
 }
 
-#if O_SIGNAL
+#if HAVE_SIGNAL
 typedef void (*OsSigHandler)(int);
 
 static void
 realExceptionHandler(int sig, int type, SignalContext scp, char *addr)
 {
-#if O_SIG_AUTO_RESET
+#ifndef BSD_SIGNALS
   signal(sig, (OsSigHandler)realExceptionHandler);
 #endif
   if ( status.arithmetic > 0 )
@@ -522,8 +522,7 @@ valueExpression(register Word t, Number r)
   name(n1, r) \
   Word n1; \
   Number r; \
-  { /*extern double op(); normally defined in <math.h> */ \
-    number arg; \
+  { number arg; \
     switch( valueExpression(n1, &arg) ) \
     { case V_INTEGER:	r->f = op((real)arg.i); \
 			return V_REAL; \
@@ -1021,8 +1020,8 @@ static struct arithFunction ar_functions[MAXARITHFUNCTIONS] = {
 void
 initArith(void)
 {
-#if O_SIGNAL
-  pl_signal(SIGFPE, realExceptionHandler);
+#ifdef SIGFPE
+  pl_signal(SIGFPE, (handler_t) realExceptionHandler);
 #endif
 #if __TURBOC__
   setmatherr(realExceptionHandler);

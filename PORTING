@@ -1,35 +1,58 @@
-			Installation Problems
+			Porting SWI-Prolog
 
 
 Below  are some  notes meant for  those who decide  to modify  or port
 SWI-Prolog.  It is by no means complete.
 
-DEBUGGING SWI-Prolog ON A NEW MACHINE
-=====================================
+SAVE/1 AND FRIENDS
+==================
 
-1. Machine Description file.
+If autoconf fails to detect  a  working   save/1,  read  the comments in
+pl-save.c and work on a stand-alone test version of this system using
 
-Create a md- file for the new architecture.  You can use a similar one
-as starting point and look at md-gener.h for a full description of the
-options.  For the first port,  I advice to  set the following flags to
-0:
+	% gcc -DTEST pl-save.c
 
-	- O_FOREIGN
-	- O_SAVE
-	- O_STORE_PROGRAM
-	- O_PCE
-	- O_SHARED_MEMORY
-	- O_CAN_MAP
+Two things generally need attention.  First is   to get the start of the
+data segment right.  Compile and link a very small program and run 
 
-During debugging, make   sure to give  -g   and  -DO_DEBUG  to  the  C
-compiler, so you can debug  the resulting prolog system  using  the -d
-level option.  -DO_DEBUG  also includes some consistency checks.   For
-final installation use  -O and drop  -DO_DEBUG (which makes the system
-about 20% slower).
+	% nm -n a.out
 
-Various options define the memory layout of your machine.  The program
-m-model.c may be used to determine the  right  settings.  Compile this
-file with any C-compiler and run it.
+on the executable.  Find the start of the data-segment and decide on the
+proper definition:
+
+	#define DATA_START
+or
+	#define FIRST_DATA_SYMBOL
+
+The initialised data, uninitialised data and  malloc() heap are supposed
+to be between DATA_START and sbrk(0).  If   not  (like OS2), rewrite the
+code that defines the savable segments.   See   the  #ifdef  OS2's for a
+start.
+
+Second problems is the type of linking used.  See INSTALL.notes.
+
+
+LOAD_FOREIGN AND FRIENDS
+========================
+
+If there is some supported version of foreign loading on your system and
+it is not detected, add it.
+
+ld -A/a.out loading may be detected, but   may  fail to compile, link or
+work.  Add the proper definitions to pl-load.c.
+
+	
+VIRTUAL MEMORY BASED DYNAMIC STACKS
+===================================
+
+Based on mmap()/munmap() of /dev/zero to   allocate  memory at arbitrary
+places  in  the  address   space.    This    doesn't   work   with  many
+implementations of mmap() due to  various   restrictions:  cannot map at
+arbitrary page boundary, can only map limited pages, cannot map private,
+etc.  Work on test/mmap() if the test   fails, but you think your mmap()
+is good enough.  If there are other   ways  to achieve this goal, please
+let me know.  
+
 
 MEMORY ERRORS (BUS ERROR; SEGMENTATION FAULT)
 =============================================
@@ -37,11 +60,6 @@ MEMORY ERRORS (BUS ERROR; SEGMENTATION FAULT)
 It is very likely that the system crashes during  the boot compilation
 called from  make (./pl   -O  -o  ...  -b ...  -c  ...).  Below  is  a
 description of various such problems:
-
-
-
-
-
 
 
 WORKING ON A SMALL PROGRAM

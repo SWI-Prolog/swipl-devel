@@ -9,12 +9,17 @@
 
 #include "pl-incl.h"
 
-#if O_PROFILE
+#ifdef O_PROFILE
 
+#ifdef TIME_WITH_SYS_TIME
 #include <sys/time.h>
-
-#if sun
-extern int setitimer(int, struct itimerval *,struct itimerval *);
+#include <time.h>
+#else
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#else
+#include <time.h>
+#endif
 #endif
 
 forwards void profile(int);
@@ -59,7 +64,7 @@ stopProfiler()
 
   stopItimer();
   statistics.profiling = NO_PROFILING;
-#if _AIX
+#ifdef _AIX
   pl_signal(SIGPROF, SIG_IGN);
 #else
   pl_signal(SIGPROF, SIG_DFL);
@@ -175,7 +180,7 @@ profile(int sig)
     return;
 #endif
 
-#if O_SIG_AUTO_RESET
+#ifndef BSD_SIGNALS
   signal(SIGPROF, profile);
 #endif
 

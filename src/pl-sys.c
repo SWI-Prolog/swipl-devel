@@ -5,14 +5,6 @@
     jan@swi.psy.uva.nl
 */
 
-#if defined(__WINDOWS__) || defined(__NT__)
-#include "windows.h"
-#undef TRANSPARENT
-#undef FD_SET
-#undef FD_ISSET
-#undef FD_ZERO
-#endif
-
 #include "pl-incl.h"
 
 word
@@ -81,68 +73,6 @@ pl_argv(Word list)
   succeed;
 }
 
-#if LINK_THIEF
-#define	POSTFIX	0
-#define	PREFIX	1
-#define	INFIX	2
-
-int
-GetOp(token, type, lhs, op, rhs)
-char *token;
-int type, *lhs, *op, *rhs;
-{ Atom name = lookupAtom(token);
-  int subtype;
-
-  switch(type)
-  { case PREFIX:
-	if ( isPrefixOperator(name, &subtype, op) )
-	{ *lhs = *rhs = (subtype == OP_FX ? *op - 1 : *op);
-	  succeed;
-	}
-	fail;
-    case POSTFIX:
-	if ( isPostfixOperator(name, &subtype, op) )
-	{ *lhs = *rhs = (subtype == OP_XF ? *op - 1 : *op);
-	  succeed;
-	}
-	fail;
-    case INFIX:
-	if ( isInfixOperator(name, &subtype, op) )
-	{ *lhs = (subtype == OP_XFY || subtype == OP_XFX ? *op - 1 : *op);
-	  *rhs = (subtype == OP_XFX || subtype == OP_YFX ? *op - 1 : *op);
-	  succeed;
-	}
-	fail;
-  }
-  return fatalError("Unknown operator type request from thief: %d", type);
-}
-
-word
-pl_thief(args)
-Word args;
-{ int argc = 0;
-  char *argv[50];
-  extern int thief();
-
-  argv[argc++] = "top";
-
-  while( isList(*args) )
-  { Word a = argTermP(*args, 0);
-    deRef(a);
-    if ( !isAtom(*a) )
-      return warning("thief/1: illegal argument list");
-    argv[argc++] = stringAtom(*a);
-    args = argTermP(*args, 1);
-    deRef(args);
-  }
-  if ( !isNil(*args) )
-    return warning("thief/1: illegal argument list");
-
-  if ( thief(argc, argv) == 0 )
-    succeed;
-  fail;
-}
-#endif /* LINK_THIEF */
 
 word
 pl_grep(Word file, Word search, Word line, word h)
@@ -216,9 +146,8 @@ pl_convert_time(Word time, Word year, Word month, Word day, Word hour, Word minu
 
 word
 pl_get_time(Word t)
-{
-  real stime;
-#if O_NOGETTIMEOFDAY
+{ real stime;
+#ifndef HAVE_GETTIMEOFDAY
   stime = (real)time((time_t *)NULL);
 #else
   struct timeval tp;

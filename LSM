@@ -1,6 +1,6 @@
 Begin2
 Title        = SWI-Prolog
-Version      = 1.8.5
+Version      = 1.9.2
 Desc1        = Edinburgh-style Prolog compiler including modules, autoload,
 Desc2        = libraries, Garbage-collector, stack-expandor, C-interface,
 Desc3        = GNU-readline and GNU-Emacs interface, very fast compiler,
@@ -11,11 +11,11 @@ Maintainer   = Jan Wielemaker
 MaintEmail   = jan@swi.psy.uva.nl
 Site1        = swi.psy.uva.nl
 Path1        = /pub/SWI-Prolog
-File1        = pl-1.8.5.tar.gz
+File1        = pl-1.9.2.tgz
 FileSize1    = 894316
 Site2        = sunsite.unc.edu
 Path2        = /pub/Linux/devel/prolog
-File2        = pl-1.8.5.tar.gz
+File2        = pl-1.9.2.tar.gz
 FileSize2    = 894316
 Required1    = GNU-readline installed, kernel later than 99pl6
 CopyPolicy1  = Copy-left
@@ -23,7 +23,7 @@ Keywords     = Prolog, Edinburgh, Programming Language, Symbolic, Logic
 Comment1     = Also available for many other Unix machines, DOS and OS/2.
 Comment2     = Design objectives: compatibility, good developement environment,
 Comment3     = High level GUI (Graphical User Interface) system using XPCE.
-Entered      = 22SEP93
+Entered      = 04NOV94
 EnteredBy    = jan@swi.psy.uva.nl
 CheckedEmail =
 End

@@ -19,7 +19,6 @@ GLOBAL void	(*PL_foreign_reinit_function)(int argc, char **argv);
 GLOBAL struct
 { char *state;				/* system's boot file */
   char *startup;			/* default user startup file */
-  char *version;			/* version of this prolog */
   int  local;				/* default local stack size (K) */
   int  global;				/* default global stack size (K) */
   int  trail;				/* default trail stack size (K) */
@@ -28,8 +27,7 @@ GLOBAL struct
   char *goal;				/* default initialisation goal */
   char *toplevel;			/* default top level goal */
   bool notty;				/* use tty? */
-  char *machine;			/* machine we are using */
-  char *operating_system;		/* operating system it is running */
+  char *arch;				/* machine/OS we are using */
   char *home;				/* systems home directory */
 } systemDefaults; 
 
@@ -65,20 +63,20 @@ GLOBAL struct
 		********************************/
 
 #ifndef DEFSTARTUP
-#define DEFSTARTUP .plrc
+#define DEFSTARTUP ".plrc"
 #endif
 #ifndef SYSTEMHOME
-#define SYSTEMHOME /usr/local/lib/pl
+#define SYSTEMHOME "/usr/local/lib/pl"
 #endif
 
-#ifndef MACHINE
-#define MACHINE	"unknown"
+#ifndef ARCH
+#define ARCH "unknown"
 #endif
-#ifndef OPERATING_SYSTEM
-#define OPERATING_SYSTEM "unknown"
+#ifndef OS
+#define OS "unknown"
 #endif
 
-#if O_CAN_MAP || O_SHARED_MEMORY || O_SHIFT_STACKS
+#if MMAP_STACK || O_SHARED_MEMORY || O_SHIFT_STACKS
 #define DEF_DEFLOCAL	2000
 #define DEF_DEFGLOBAL	4000
 #define DEF_DEFTRAIL	4000

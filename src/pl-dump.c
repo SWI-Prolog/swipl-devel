@@ -202,7 +202,7 @@ pl_save(Word file, Word restore)
   { case SAVE_SAVE:
       return unifyAtomic(restore, consNum(0));
     case SAVE_RESTORE:
-#if unix || EMX
+#ifdef HAVE_SIGNAL
       initSignals();
 #endif
       return unifyAtomic(restore, consNum(1));

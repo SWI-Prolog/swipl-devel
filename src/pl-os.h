@@ -7,10 +7,15 @@
     Purpose: Describe your OS here
 */
 
-#ifdef TIME_INCLUDE
-#include TIME_INCLUDE
+#if TIME_WITH_SYS_TIME
+# include <sys/time.h>
+# include <time.h>
 #else
-#include <sys/time.h>
+# if HAVE_SYS_TIME_H
+#  include <sys/time.h>
+# else
+#  include <time.h>
+# endif
 #endif
 
 #if tos
@@ -33,12 +38,11 @@ extern int	geti(FILE *);
 		*        MEMORY MANAGEMENT      *
 		*********************************/
 
-#define malloc_t	size_t		/* Argument type of malloc(), etc */
 #define alloc_t		size_t		/* argument type of Prolog's alloc */
 
-#define Malloc(n)	malloc((malloc_t) (n))
+#define Malloc(n)	malloc((size_t) (n))
 #define Free(p)		free((char *)(p))
-#define Realloc(p, n)	realloc((char *)p, (malloc_t)(n))
+#define Realloc(p, n)	realloc((char *)p, (size_t)(n))
 
 #define allocHeap(n)	alloc_heap((alloc_t) (n))
 #define freeHeap(p, n)	free_heap((char *)(p), (alloc_t)(n))
@@ -109,7 +113,6 @@ extern long Random(void);
 Char		GetChar(void);
 Atom		TemporaryFile(char *key);
 void		RemoveTemporaryFiles(void);
-int		GetDTableSize(void);
 long		LastModifiedFile(char *name),
 		SizeFile(char *name);
 bool		AccessFile(char *name, int how),
@@ -127,7 +130,16 @@ char 		*AbsoluteFile(char *),
 		*BaseName(char *),
 		*DirName(char *),
 		*PrologPath(char *),
-		*OsPath(char *);
+		*OsPath(char *),
+		*ReadLink(char *),
+		*DeRefLink(char *);
+
+#ifndef HAVE_GETDTABLESIZE
+extern int	getdtablesize(void);
+#endif
+#ifndef HAVE_GETPAGESIZE
+extern int	getpagesize(void);
+#endif
 
 #define ACCESS_EXECUTE	1
 #define ACCESS_READ	2
@@ -146,7 +158,7 @@ extern real	  CpuTime(void);
 		********************************/
 
 #ifndef FD_ZERO
-#if _AIX
+#ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #else
 #define FD_ZERO(s)	{ *((unsigned long *)(s)) = (0L); }
@@ -164,34 +176,32 @@ extern real	  CpuTime(void);
 #define TTY_OUTPUT	 3		/* enable post-processing */
 #define TTY_SAVE	 4		/* just save status */
 
-#if O_TERMIOS
-#ifdef TERMIO_INCLUDE
-#include TERMIO_INCLUDE
-#else
-#if BSD_TERMIOS
-#include <sys/termios.h>
-#else
+#ifdef HAVE_SYS_TERMIO_H
 #include <sys/termio.h>
+#define termios termio
+#define O_TERMIO 1
+#else
+#ifdef HAVE_SYS_TERMIOS_H
+#include <sys/termios.h>
+#define O_TERMIO 1
 #endif
 #endif
+
+#ifdef O_TERMIO
 
 typedef struct
 {
-#if BSD_TERMIOS
   struct termios tab;		/* saved tty status */
-#else
-  struct termio tab;		/* saved tty status */
-#endif
   int		mode;		/* Prolog;'s view on mode */
 } ttybuf;
 
-#else /* !O_TERMIOS */
+#else /* !O_TERMIO */
 
 typedef struct
 { int		mode;		/* Prolog;'s view on mode */
 } ttybuf;
 
-#endif /* O_TERMIOS */
+#endif /* O_TERMIO */
 
 extern ttybuf	ttytab;			/* saved tty status */
 extern int	ttymode;		/* Current tty mode */

@@ -28,14 +28,12 @@ handling times must be cleaned, but that not only holds for this module.
 
 #include "pl-incl.h"
 #include "pl-ctype.h"
-#if unix || EMX
-#include <sys/file.h>
-#include <unistd.h>
-#endif
 
-#if sun && !solaris
-#include <sys/time.h>
-extern int select(int, fd_set *, fd_set *, fd_set *, struct timeval *);
+#ifdef HAVE_SYS_FILE_H
+#include <sys/file.h>
+#endif
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
 #endif
 
 #define MAXSTRINGNEST	20		/* tellString --- Told nesting */
@@ -94,7 +92,7 @@ forwards bool	unifyStreamNo(Word, int);
 forwards bool	setUnifyStreamNo(Word, int);
 forwards bool	unifyStreamMode(Word, int);
 
-#if PIPE
+#ifdef SIGPIPE
 static void
 pipeHandler(int sig)
 { Putf("Broken pipe\n");
@@ -103,18 +101,18 @@ pipeHandler(int sig)
   signal(SIGPIPE, SIG_DFL);		/* should abort fail. */
   kill(getpid(), SIGPIPE);		/* Unix has both pipes and kill() */
 }
-#endif /* PIPE */
+#endif /* SIGPIPE */
 
 void
 initIO(void)
 { int n;
 
   fileerrors = TRUE;
-  if ( maxfiles != GetDTableSize() )
+  if ( maxfiles != getdtablesize() )
   { if ( fileTable != (PlFile) NULL )
-      freeHeap(fileTable, (PlFile) allocHeap(sizeof(struct plfile) * maxfiles));
-    maxfiles = GetDTableSize();
-    fileTable = (PlFile) allocHeap(sizeof(struct plfile) * maxfiles);
+      freeHeap(fileTable, sizeof(struct plfile) * maxfiles);
+    maxfiles = getdtablesize();
+    fileTable = allocHeap(sizeof(struct plfile) * maxfiles);
   }
   inString = (char *) NULL;
   outStringDepth = 0;
@@ -192,11 +190,11 @@ closeStream(int n)
 { if ( n < 3 || fileTable[n].status == F_CLOSED )
     succeed;
 
-#if PIPE
+#ifdef HAVE_POPEN
   if (fileTable[n].pipe == TRUE)
     Pclose(fileTable[n].fd);
   else
-#endif /* PIPE */
+#endif /*HAVE_POPEN*/
     Fclose(fileTable[n].fd);
   fileTable[n].status = F_CLOSED;
   fileTable[n].name = fileTable[n].stream_name = (Atom) NULL;
@@ -500,13 +498,13 @@ openStream(word file, int mode, bool fresh)
     f = (Atom) file;
   } else if (isTerm(file) && functorTerm(file) == FUNCTOR_pipe1)
   {
-#if PIPE
+#ifdef SIGPIPE
     pipe = TRUE;
     f = (Atom) argTerm(file, 0);
     signal(SIGPIPE, pipeHandler);
 #else
     return warning("Pipes are not supported on this OS");
-#endif /* PIPE */
+#endif /*SIGPIPE*/
   } else
     return warning("Illegal stream specification");
 
@@ -554,7 +552,7 @@ openStream(word file, int mode, bool fresh)
   DEBUG(2, printf("Starting Unix open\n"));
   cmode = (mode == F_READ ? "r" : mode == F_WRITE ? "w" : "a");
 
-#if PIPE
+#ifdef HAVE_POPEN
   if (pipe)
   { if ((fd=Popen(stringAtom(f), cmode)) == (FILE *) NULL)
     { if (fileerrors)
@@ -562,7 +560,7 @@ openStream(word file, int mode, bool fresh)
       fail;
     }
   } else
-#endif
+#endif /*HAVE_POPEN*/
   { char *name = ExpandOneFile(stringAtom(f));
 
     if ( name == (char *)NULL )
@@ -602,12 +600,12 @@ static bool
 unifyStreamName(Word f, int n)
 { if ( fileTable[n].status == F_CLOSED )
     fail;
-#if PIPE
+#ifdef HAVE_POPEN
   if (fileTable[n].pipe)
   { TRY( unifyFunctor(f, FUNCTOR_pipe1) );
     f = argTermP(*f, 0);
   }
-#endif
+#endif /*HAVE_POPEN*/
   return unifyAtomic(f, fileTable[n].name);
 }
 
@@ -615,7 +613,8 @@ static bool
 unifyStreamMode(Word m, int n)
 { if ( fileTable[n].status == F_CLOSED )
     fail;
-  return unifyAtomic(m, fileTable[n].status == F_READ ? ATOM_read : ATOM_write);
+  return unifyAtomic(m, fileTable[n].status == F_READ ? ATOM_read
+		     				      : ATOM_write);
 }
 
 static bool
@@ -756,7 +755,7 @@ currentStreamName()
 		*       WAITING FOR INPUT	*
 		********************************/
 
-#if O_NOSELECT
+#ifdef HAVE_SELECT
 
 word
 pl_wait_for_input(streams, available, timeout)
@@ -798,7 +797,7 @@ pl_wait_for_input(Word streams, Word available, Word timeout)
   } else
     to = NULL;
 
-#if hpux
+#ifdef hpux
   select(max+1, (int*) &fds, NULL, NULL, to);
 #else
   select(max+1, &fds, NULL, NULL, to);
@@ -817,7 +816,7 @@ pl_wait_for_input(Word streams, Word available, Word timeout)
   succeed;
 }
 
-#endif /* O_SELECT */
+#endif /* HAVE_SELECT */
 
 		/********************************
 		*      PROLOG CONNECTION        *
@@ -1249,7 +1248,6 @@ word
 pl_stream_position(Word stream, Word old, Word new)
 { int n;
   long oldcharno, charno, linepos, lineno;
-  extern int fseek(FILE *, long int, int);
 
   if ( (n = streamNo(stream, F_READ|F_WRITE)) < 0 )
     fail;
@@ -1440,6 +1438,21 @@ pl_access_file(Word name, Word mode)
     return warning("access_file/2: mode is one of {read, write, execute}");
 
   return AccessFile(n, md);
+}
+
+
+word
+pl_read_link(Word file, Word link, Word to)
+{ char *n, *l, *t;
+
+  if ( (n = primitiveToString(*file, FALSE)) == (char *)NULL )
+    return warning("read_link/2: instantiation fault");
+  if ( (l = ReadLink(n)) )
+    TRY(unifyAtomic(link, lookupAtom(l)));
+  if ( (t = DeRefLink(n)) )
+    return unifyAtomic(to, lookupAtom(t));
+
+  succeed;
 }
 
 

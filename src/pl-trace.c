@@ -725,11 +725,12 @@ again:
   ResetTty();                           /* clear pending input -- atoenne -- */
   c = getSingleChar();
 
-#if O_SIG_AUTO_RESET
-#if OS2 && EMX
+#ifndef BSD_SIGNALS
+#ifdef SIG_ACK
   signal(SIGINT, SIG_ACK);
-#endif
+#else
   signal(SIGINT, interruptHandler);	/* reinsert handler */
+#endif
 #endif
 
   switch(c)
@@ -765,7 +766,7 @@ again:
 void
 initTracer(void)
 { 
-#if O_SIGNAL
+#ifdef SIGINT
   pl_signal(SIGINT, interruptHandler);
 #endif
 

@@ -42,7 +42,7 @@ lookupProcedure(FunctorDef f, Module m)
 
   def->definition.clauses = (Clause) NULL;
   def->lastClause = (Clause) NULL;
-#if O_PROFILE
+#ifdef O_PROFILE
   def->profile_ticks = 0;
   def->profile_calls = 0;
   def->profile_redos = 0;
@@ -261,7 +261,7 @@ abolishProcedure(Procedure proc, Module module)
     def->module = module;
     def->definition.clauses = (Clause) NULL;
     def->lastClause = (Clause) NULL;
-#if O_PROFILE
+#ifdef O_PROFILE
     def->profile_ticks = 0;
     def->profile_calls = 0;
     def->profile_redos = 0;
@@ -397,7 +397,7 @@ resetReferencesModule(Module m)
 
   for_table(s, m->procedures)
   { def = ((Procedure) s->value)->definition;
-#if O_PROFILE
+#ifdef O_PROFILE
     clear(def, PROFILE_TICKED);
 #endif /* O_PROFILE */
     if ( true(def, FOREIGN) )

@@ -25,7 +25,7 @@
 		*********************************/
 
 $welcome :-
-	$version(Version),
+	feature(version, Version),
 	$ttyformat('Welcome to SWI-Prolog (Version ~w)~n', [Version]),
 	$ttyformat('Copyright (c) 1993,1994 University of Amsterdam.  '),
 	$ttyformat('All rights reserved.~n~n').

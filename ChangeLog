@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 1.9.2.  Configuration is  now  based   on  GNU's  autoload.  All
+md-*.h files have been removed from  the distribution.  $arch/2, $home/1
+and $version/1 have been replaced by feature/2.  A predicate read_link/3
+has been added to read symbolic links.   Installation is tested on SunOs
+4.1.3, Solaris 2.3 and Linux 1.0.9 with readline 2.0.3.
+
 Version 1.9.1.  Added: Windows DDE   interface,  Added Unix/System-V (?)
 interface to dlopen() and friends to access shared objects dynamically.
 

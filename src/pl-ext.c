@@ -41,6 +41,7 @@ static struct foreign {
   ADD("tmp_file",		2, pl_tmp_file,			TRACE_ME),
   ADD("delete_file",		1, pl_delete_file,		TRACE_ME),
   ADD("access_file",		2, pl_access_file,		TRACE_ME),
+  ADD("read_link",		3, pl_read_link,		TRACE_ME),
   ADD("exists_file",		1, pl_exists_file,		TRACE_ME),
   ADD("exists_directory",	1, pl_exists_directory,		TRACE_ME),
   ADD("rename_file",		2, pl_rename_file,		TRACE_ME),
@@ -243,13 +244,13 @@ static struct foreign {
 #else
   ADD("$load_foreign",		5, pl_load_foreign,	TRANSPARENT|TRACE_ME),
 #endif
-#if O_DLOPEN
+#if HAVE_DLOPEN
   ADD("open_shared_object",	2, pl_open_shared_object,	TRACE_ME),
   ADD("close_shared_object",	1, pl_close_shared_object,	TRACE_ME),
   ADD("call_shared_object_function",
 				2, pl_call_shared_object_function,
 							TRANSPARENT|TRACE_ME),
-#endif /*O_DLOPEN*/
+#endif /*HAVE_DLOPEN*/
 
 #if O_DDE
   ADD("open_dde_conversation",	3, pl_open_dde_conversation,	TRACE_ME),
@@ -268,7 +269,6 @@ static struct foreign {
   ADD("save",			2, pl_save,			TRACE_ME),
   ADD("restore",		1, pl_restore,			TRACE_ME),
   ADD("$save_program",		2, pl_save_program,		TRACE_ME),
-  ADD("$version",		1, pl_version,			TRACE_ME),
 
   ADD("is_list",		1, pl_is_list,			TRACE_ME),
   ADD("proper_list",		1, pl_proper_list,		TRACE_ME),
@@ -286,9 +286,8 @@ static struct foreign {
 #endif /* O_COMPILE_OR */
   ADD("$atom_hashstat",		2, pl_atom_hashstat,		TRACE_ME),
   ADD("$tty",			0, pl_tty,			TRACE_ME),
-  ADD("$arch",			2, pl_arch,			TRACE_ME),
   ADD("$grep",			3, pl_grep,	NONDETERMINISTIC|TRACE_ME),
-  ADD("$home",			1, pl_home,			TRACE_ME),
+  ADD("feature",		2, pl_feature,	NONDETERMINISTIC|TRACE_ME),
   ADD("limit_stack",		2, pl_limit_stack,		TRACE_ME),
   ADD("trim_stacks",		0, pl_trim_stacks,		TRACE_ME),
 #if O_SHIFT_STACKS

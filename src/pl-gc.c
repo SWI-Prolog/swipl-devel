@@ -1145,7 +1145,7 @@ garbageCollect(LocalFrame fr)
 
   gc_status.active = TRUE;
   DEBUG(0, printf("Garbage collect ... "));
-#if O_PROFILE
+#ifdef O_PROFILE
   PROCEDURE_garbage_collect0->definition->profile_calls++;
 #endif
 #if O_SECURE

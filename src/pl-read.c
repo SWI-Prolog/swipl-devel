@@ -237,8 +237,8 @@ a  stripped  version of the next term.  Contigeous white space is mapped
 on a single space, block and % ... \n comment  is  deleted.   Memory  is
 claimed automatically en enlarged if necessary.
 
-Earlier versions used to local stack for building the term.   This  does
-not  work  with  O_PCE  as  we might be called back via the notifier while
+Earlier versions used to local stack for   building the term.  This does
+not work with O_PCE as we might be  called back via the notifier while
 reading.
 
 (char *) NULL is returned on a syntax error.
@@ -318,7 +318,7 @@ raw_read2(void)
     DEBUG(3, if ( Input == 0 ) printf("getchr() -> %d (%c)\n", c, c));
     DEBUG(3, if ( Input == 0 ) printf("here = %ld, base = %ld",
 				      (long) rb.here, (long) rb.base));
-#if !O_READLINE && O_TERMIOS
+#if !defined(HAVE_LIBREADLINE) && defined(O_TERMIO)
     if ( c == ttytab.tab.c_cc[VEOF] )		/* little hack ... */
       c = EOF ;
 #endif
@@ -932,7 +932,7 @@ build_term(Atom atom, int arity, Word argv)
   while(arity-- > 0)
   { if (isRef(*argv) )
     { Variable var;
-#if O_NO_LEFT_CAST
+#ifndef TAGGED_LVALUE
       Word w;
       deRef2(argv, w);
       var = (Variable) w;
@@ -1236,7 +1236,7 @@ simple_term(bool must_be_op, Word term, bool *name)
 
 		      if (isRef(arg[0]))
 		      { Variable var;
-#if O_NO_LEFT_CAST
+#ifndef TAGGED_LVALUE
 			Word w;
 			deRef2(&arg[0], w);
 			var = (Variable) w;
@@ -1303,7 +1303,7 @@ read_term(Word term, Word variables, bool check)
 
   if ( isRef(result) )	/* term is a single variable! */
   { Variable var;
-#if O_NO_LEFT_CAST
+#ifndef TAGGED_LVALUE
     Word w;
     deRef2(&result, w);
     var = (Variable) w;

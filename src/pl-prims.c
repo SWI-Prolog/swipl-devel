@@ -214,7 +214,7 @@ pl_nonequal(Word t1, Word t2)		/* \== */
 #define EQUAL  0
 #define GREATER  1
 
-#if !O_NO_LEFT_CAST
+#ifdef TAGGED_LVALUE
 #define w1 ((word)t1)
 #define w2 ((word)t2)
 #endif
@@ -225,7 +225,7 @@ compareStandard(register Word t1, register Word t2)
   int arity;
   int n;
   FunctorDef f1, f2;
-#if O_NO_LEFT_CAST
+#ifndef TAGGED_LVALUE
   register word w1, w2;
 #endif
 
@@ -1403,24 +1403,84 @@ pl_statistics(Word k, Word value)
   return unifyAtomic(value, result);
 }
 
-		/********************************
-		*            VERSION            *
-		*********************************/
+		 /*******************************
+		 *	 FEATURE HANDLING	*
+		 *******************************/
 
-word
-pl_version(Word v)
-{ return unifyAtomic(v, lookupAtom(systemDefaults.version));
+typedef struct feature *Feature;
+struct feature
+{ Atom name;
+  Atom value;
+  Feature next;
+};
+
+static Feature features = NULL;
+
+void
+setFeature(Atom name, Atom value)
+{ Feature f;
+
+  for(f=features; f; f = f->next)
+  { if ( f->name == name )
+    { f->value = value;
+      return;
+    }
+  }
+  f = allocHeap(sizeof(struct feature));
+  f->next = features;
+  f->name = name;
+  f->value = value;
+  features = f;
 }
 
-word
-pl_arch(Word m, Word os)
-{ TRY(   unifyAtomic(m,  lookupAtom(systemDefaults.machine)) );
-  return unifyAtomic(os, lookupAtom(systemDefaults.operating_system));
+
+Atom
+getFeature(Atom name)
+{ Feature f;
+
+  for(f=features; f; f = f->next)
+  { if ( f->name == name )
+      return f->value;
+  }
+
+  return NULL;
 }
 
+
 word
-pl_home(Word h)
-{ return unifyAtomic(h, lookupAtom(systemDefaults.home));
+pl_feature(Word key, Word value, word h)
+{ Feature here;
+
+  switch( ForeignControl(h) )
+  { case FRG_FIRST_CALL:
+      if ( isAtom(*key) && isVar(*value) )
+      { Atom val;
+
+	if ( (val=getFeature((Atom)*key)) )
+	  return unifyAtomic(value, val);
+	fail;
+      } else if ( isAtom(*key) && isAtom(*value) )
+      { setFeature((Atom)*key, (Atom)*value);
+	succeed;
+      } else if ( isVar(*key) )
+      { here = features;
+	break;
+      }
+    case FRG_REDO:
+      here = (Feature) ForeignContextAddress(h);
+      break;
+    case FRG_CUTTED:
+    default:
+      succeed;
+  }
+
+  for(; here; here = here->next)
+  { if ( unifyAtomic(key, here->name) && unifyAtomic(value, here->value) )
+    { ForeignRedo(here->next);
+    }
+  }
+
+  fail;
 }
 
 

@@ -15,12 +15,11 @@ realise this is not a proper answer to terminal control from Prolog, but
 I  needed  it  some day and at least it is better than doing things like
 shell(clear), coding terminal sequences hard, etc.   One  day  I  should
 write a decent interface to handle the terminal.  Maybe this will be too
-late;  character  terminals  disappear quickly now.  Use PCE if you want
+late;  character terminals  disappear quickly now.  Use XPCE if you want
 windowing!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if unix || EMX
-
+#ifdef HAVE_TGETENT
 extern int  tgetent();
 extern int  tgetnum();
 extern int  tgetflag();
@@ -191,7 +190,7 @@ pl_set_tty(Word old, Word new)
   succeed;
 }
 
-#else /* ~unix */
+#else /* ~TGETENT */
 
 void resetTerm()
 {
@@ -222,4 +221,4 @@ Word old, new;
 { return notImplemented("set_tty", 2);
 }
 
-#endif /* unix */
+#endif /* TGETENT */

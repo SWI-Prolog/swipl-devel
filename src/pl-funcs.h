@@ -146,6 +146,7 @@ word		vPutf(char *, va_list),
 		pl_time_file(Word, Word),
 		pl_size_file(Word, Word),
 		pl_access_file(Word, Word),
+		pl_read_link(Word file, Word link, Word to),
 		pl_exists_file(Word),
 		pl_exists_directory(Word),
 		pl_delete_file(Word),
@@ -315,11 +316,11 @@ bool		getSymbols(void);
 void		resetLoader(void);
 word		pl_load_foreign(Word, Word, Word, Word, Word);
 word		pl_load_foreign1(Word);
-#if O_DLOPEN
+#if HAVE_DLOPEN
 word		pl_open_shared_object(Word file, Word plhandle),
 		pl_close_shared_object(Word plhandle),
 		pl_call_shared_object_function(Word plhandle, Word name);
-#endif /*O_DLOPEN*/
+#endif /*HAVE_DLOPEN*/
 
 #if O_DDE
 		/* pl-dde.c */
@@ -392,7 +393,6 @@ word		pl_nonvar(Word),
 		pl_integer(Word),
 		pl_float(Word),
 		pl_number(Word),
-		pl_arch(Word, Word),
 		pl_atom(Word),
 		pl_atomic(Word),
 		pl_ground(Word),
@@ -434,14 +434,13 @@ word		pl_nonvar(Word),
 		pl_fail(void),
 		pl_halt(void),
 		pl_statistics(Word, Word),
-		pl_version(Word),
 		pl_option(Word, Word, Word),
 		pl_please(Word, Word, Word),
 		pl_style_check(Word, Word),
 		pl_novice(Word, Word),
 		stringToList(char *),
 		pl_copy_term(Word, Word),
-		pl_home(Word);
+		pl_feature(Word, Word, word);
 int		compareStandard(Word, Word),
 		lengthList(Word),
 		numberVars(Word, FunctorDef, int);
@@ -461,7 +460,8 @@ bool		addHTable(Table, Void, Void),
 		addLocalTable(Table, Void, Void),
 		deleteHTable(Table, Void),
 		unifyStringWithList(char *, Word);
-void		clearHTable(Table);
+void		clearHTable(Table),
+		setFeature(Atom, Atom);
 
 		/* pl-rec.c */
 void		initRecords(void);
@@ -482,8 +482,8 @@ void		setupProlog(void),
 		deallocateStacks(void),
 		initSignals(void);
 bool		restoreStack(Stack);
-#if O_SIGNAL
-void		deliverSignal(int, int, SIGNAL_CONTEXT_TYPE, char *);
+#if HAVE_SIGNAL
+void		deliverSignal(int, int, SignalContext, char *);
 handler_t	pl_signal(int, handler_t);
 #endif
 word		pl_limit_stack(Word, Word),

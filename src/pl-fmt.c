@@ -160,7 +160,7 @@ va_list args;
 { 
 }
 
-#if ANSI
+
 bool
 format(char *fm, ...)
 { va_list args;
@@ -172,24 +172,6 @@ format(char *fm, ...)
 
   return rval;
 }
-
-#else
-
-bool
-format(va_alist)
-va_dcl
-{ va_list args;
-  char *fm;
-  bool rval;
-
-  va_start(args);
-  fm = va_arg(args, char *);
-  rval = vformat(fm, args);
-  va_end(args);
-
-  return rval;
-}
-#endif /* ANSI */
 
 #endif /* O_C_FORMAT */
 		/********************************

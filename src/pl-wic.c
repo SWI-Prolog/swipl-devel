@@ -483,7 +483,7 @@ loadPredicate(FILE *fd)
 	statistics.codes += clause->code_size;
 	clause->codes = (Code) allocHeap(clause->code_size * sizeof(code));
 	bp = clause->codes;
-#if O_VMCODE_IS_ADDRESS
+#if VMCODE_IS_ADDRESS
 	while( bp < &clause->codes[clause->code_size] )
 	{ code op = getNum(fd);
 	  int n;
@@ -655,7 +655,7 @@ saveWicClause(Clause clause, FILE *fd)
 
   putNum(clause->code_size, fd);
   bp = clause->codes;
-#if O_VMCODE_IS_ADDRESS
+#if VMCODE_IS_ADDRESS
   while( bp < &clause->codes[clause->code_size] )
   { code op = decode(*bp++);
     int n;

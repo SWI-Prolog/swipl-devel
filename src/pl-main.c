@@ -19,16 +19,15 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #undef TRANSPARENT
 #endif
 
+#include "parms.h"
 #include "pl-incl.h"
 #include "pl-itf.h"
 #include "pl-save.h"
-#if unix || EMX
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
 
 forwards void	usage(void);
-forwards char * findHome(char *);
-forwards char *	findState();
 
 #define	optionString(s) { if (argc > 1) \
 			  { s = argv[1]; argc--; argv++; \
@@ -37,8 +36,7 @@ forwards char *	findState();
 			}
 
 static char *
-findHome(def)
-char *def;
+findHome(char *symbols, char *def)
 { char *home;
 
   if ( !(home = getenv("SWI_HOME_DIR")) )
@@ -46,7 +44,7 @@ char *def;
   if ( home && (home = PrologPath(home)) && ExistsDirectory(home) )
     return store_string(home);
 
-  if ( (home = Symbols()) )
+  if ( (home = symbols) )
   { char buf[MAXPATHLEN];
     char parent[MAXPATHLEN];
     FILE *fd;
@@ -112,7 +110,6 @@ char *def;
 }
 
 /*
-
   -- atoenne -- convert state to an absolute path. This allows relative
   SWI_HOME_DIR and cleans up non-canonical paths.
 */
@@ -122,9 +119,12 @@ char *def;
 #endif
 
 static char *
-proposeStartupFile()
+proposeStartupFile(char *symbols)
 { char state[MAXPATHLEN];
-  char *symbols = Symbols();
+
+  if ( !symbols )
+    if ( (symbols = Symbols()) )
+      symbols = DeRefLink(symbols);
 
   if ( symbols )
   { char *s, *dot = NULL;
@@ -145,33 +145,64 @@ proposeStartupFile()
   }
 
   sprintf(state, "%s/startup/startup.%s",
-	  systemDefaults.home, systemDefaults.machine);
+	  systemDefaults.home, systemDefaults.arch);
 
   return store_string(AbsoluteFile(state));
 }
 
 
 static char *
-findState()
+findState(char *symbols)
 { char state[MAXPATHLEN];
   char *full;
 
-  full = proposeStartupFile();
-  if ( ExistsFile(state) )
+  full = proposeStartupFile(symbols);
+  if ( AccessFile(full, ACCESS_READ) )
     return full;
 
   sprintf(state, "%s/startup/startup.%s",
-	  systemDefaults.home, systemDefaults.machine);
+	  systemDefaults.home, systemDefaults.arch);
   full = AbsoluteFile(state);
-  if ( ExistsFile(full) )
+  if ( AccessFile(full, ACCESS_READ) )
     return store_string(full);
 
   sprintf(state, "%s/startup/startup", systemDefaults.home);
   full = AbsoluteFile(state);
-  if ( ExistsFile(full) )
+  if ( AccessFile(full, ACCESS_READ) )
     return store_string(full);
 
-  return proposeStartupFile();		/* to give error */
+  return NULL;
+}
+
+
+static void
+warnNoFile(char *file)
+{ AccessFile(file, ACCESS_READ);	/* just to set errno */
+
+  fprintf(stderr, "    no `%s': %s\n", file, OsError());
+}
+
+
+static void
+warnNoState()
+{ char state[MAXPATHLEN];
+  char *full;
+
+  fprintf(stderr, "[FATAL ERROR: Failed to find startup file\n");
+  warnNoFile(proposeStartupFile(NULL));
+  sprintf(state, "%s/startup/startup.%s",
+	  systemDefaults.home, systemDefaults.arch);
+  full = AbsoluteFile(state);
+  warnNoFile(full);
+  sprintf(state, "%s/startup/startup", systemDefaults.home);
+  full = AbsoluteFile(state);
+  warnNoFile(full);
+  fprintf(stderr,
+	  "\nUse\n\t`%s -o startup-file -b boot/init.pl -c boot/load.pl'\n",
+	  mainArgv[0]);
+  fprintf(stderr, "\nto create one]\n");
+
+  Halt(1);
 }
 
 
@@ -185,13 +216,10 @@ pl_pce_init()
 #endif
 
 int
-startProlog(argc, argv, env)
-int argc;
-char **argv;
-char **env;
+startProlog(int argc, char **argv, char **env)
 { char *s;
   int n;
-  char *state;
+  char *state, *symbols;
   bool compile;
   bool explicit_compile_out = FALSE;
 
@@ -205,25 +233,24 @@ char **env;
 
  /* status.debugLevel = 9; */
 
-#ifndef MACHINE_ID
-#define MACHINE_ID MACHINE
-#endif
-
   if ( status.dumped == FALSE )
-  { systemDefaults.machine	    = MACHINE_ID;
-    systemDefaults.home      = findHome(store_string(PrologPath(SYSTEMHOME)));
-    systemDefaults.state	    = findState();
-    systemDefaults.startup	    = store_string(PrologPath(DEFSTARTUP));
-    systemDefaults.version	    = store_string(PLVERSION);
-    systemDefaults.local	    = DEFLOCAL;
-    systemDefaults.global	    = DEFGLOBAL;
-    systemDefaults.trail	    = DEFTRAIL;
-    systemDefaults.argument	    = DEFARGUMENT;
-    systemDefaults.lock		    = DEFLOCK;
-    systemDefaults.goal		    = "'$welcome'";
-    systemDefaults.toplevel	    = "prolog";
-    systemDefaults.notty	    = FALSE;
-    systemDefaults.operating_system = OPERATING_SYSTEM;
+  { symbols = Symbols();
+    if ( symbols ) 
+      symbols = store_string(DeRefLink(symbols));
+
+    systemDefaults.arch        = ARCH;
+    systemDefaults.home	       = findHome(symbols,
+					  store_string(PrologPath(PLHOME)));
+    systemDefaults.state       = findState(symbols);
+    systemDefaults.startup     = store_string(PrologPath(DEFSTARTUP));
+    systemDefaults.local       = DEFLOCAL;
+    systemDefaults.global      = DEFGLOBAL;
+    systemDefaults.trail       = DEFTRAIL;
+    systemDefaults.argument    = DEFARGUMENT;
+    systemDefaults.lock	       = DEFLOCK;
+    systemDefaults.goal	       = "'$welcome'";
+    systemDefaults.toplevel    = "prolog";
+    systemDefaults.notty       = FALSE;
 
   } else
   { DEBUG(1, printf("Restarting from dumped state\n"));
@@ -276,8 +303,11 @@ char **env;
 
 #define K * 1024L
 
-  if ( state != NULL && status.boot == FALSE )
-  { DEBUG(1, printf("Scanning %s for options\n", state));
+  if ( status.boot == FALSE && status.dumped == FALSE )
+  { if ( state == NULL )
+      warnNoState();
+
+    DEBUG(1, printf("Scanning %s for options\n", state));
     if ( loadWicFile(state, TRUE, TRUE) == FALSE )
       Halt(1);
     DEBUG(2, printf("options.localSize    = %ld\n", options.localSize));
@@ -358,7 +388,7 @@ char **env;
 
   if ( status.boot )
   { if ( !explicit_compile_out )
-      options.compileOut = proposeStartupFile();
+      options.compileOut = proposeStartupFile(NULL);
 
     if ( compileFileList(options.compileOut, argc, argv) == TRUE )
     {
@@ -366,6 +396,9 @@ char **env;
       char msg[200];
       sprintf(msg, "Boot compilation has created %s", options.compileOut);
       MessageBox(NULL, msg, "SWI-Prolog", MB_OK|MB_TASKMODAL);
+#else
+      if ( !explicit_compile_out )
+	fprintf(stderr, "Result stored in %s\n", options.compileOut);
 #endif
       Halt(0);
     }

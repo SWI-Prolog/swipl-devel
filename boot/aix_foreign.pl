@@ -32,8 +32,8 @@ load_foreign(File) :-
 	statistics(heapused, OldHeap),
 	statistics(cputime, OldTime),
 
-	(   $arch(Machine, _),
-	    $chk_file(File, Path, [Machine, ''], [''])
+	(   feature(arch, Arch),
+	    $chk_file(File, Path, [Arch, ''], [''])
 	->  true
 	;   $warning('~w: No such foreign file', [File]),
 	    fail
@@ -98,7 +98,7 @@ load_foreign(Files, Entry) :-
 %	Return path-name to file with import declarations
 
 import_file(File) :-
-	$home(Home),
+	feature(home, Home),
 	concat(Home, '/include/SWI-Exports', File).
 
 %	foreign_file(?File)
@@ -137,8 +137,8 @@ check_files([F|R], [A|T]) :- !,
 	check_files(F, A),
 	check_files(R, T).
 check_files(F, A) :-
-	$arch(Machine, _),
-	$chk_file(F, A, [Machine, ''], ['.o', '.a', '.c', '']), !.
+	feature(arch, Arch),
+	$chk_file(F, A, [Arch, ''], ['.o', '.a', '.c', '']), !.
 check_files(F, _) :-
 	$warning('~w: No such foreign file', [F]),
 	fail.

@@ -10,6 +10,7 @@
 /*#define O_DEBUG 1*/
 
 #define GLOBAL				/* allocate global variables here */
+#include "parms.h"
 #include "pl-incl.h"
 #if defined(__WATCOMC__)
 #define lock lock_function		/* avoid lock() name conflict */
@@ -30,6 +31,7 @@ foreign language code or packages with which Prolog was linked together.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 forwards void initStacks(long, long, long, long, long);
+forwards void initFeatures(void);
 
 void
 setupProlog(void)
@@ -39,7 +41,7 @@ setupProlog(void)
   aborted = FALSE;
 
   startCritical;
-#if O_SIGNAL
+#if HAVE_SIGNAL
   DEBUG(1, printf("Prolog Signal Handling ...\n"));
   initSignals();
 #endif
@@ -55,6 +57,8 @@ setupProlog(void)
   if ( status.dumped == FALSE )
   { DEBUG(1, printf("Atoms ...\n"));
     initAtoms();
+    DEBUG(1, printf("Features ...\n"));
+    initFeatures();
     DEBUG(1, printf("Functors ...\n"));
     initFunctors();
     DEBUG(1, printf("Modules ...\n"));
@@ -110,6 +114,44 @@ setupProlog(void)
   DEBUG(1, printf("Heap Initialised\n"));
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Feature interface
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+CSetFeature(char *name, char *value)
+{ setFeature(lookupAtom(name), lookupAtom(value));
+}
+
+static void
+initFeatures()
+{ CSetFeature("arch",		ARCH);
+  CSetFeature("version",	PLVERSION);
+  CSetFeature("home",		systemDefaults.home);
+  CSetFeature("c_libs",		C_LIBS);
+  CSetFeature("c_staticlibs",	C_STATICLIBS);
+  CSetFeature("c_cc",		C_CC);
+  CSetFeature("c_ldflags",	C_LDFLAGS);
+#ifdef O_SAVE
+  CSetFeature("save",	       "true");
+  CSetFeature("save_program",  "true");
+#endif
+#ifdef O_STORE_PROGRAM
+  CSetFeature("save_program", "true");
+#endif
+#if defined(O_FOREIGN) || defined(O_MACH_FOREIGN) || defined(O_AIX_FOREIGN)
+  CSetFeature("load_foreign",  "true");
+#endif
+#ifdef HAVE_LDOPEN
+  CSetFeature("open_shared_object", "true");
+#endif
+#if defined(HAVE_LIBREADLINE)
+  CSetFeature("readline",	"true");
+#endif
+#ifdef HAVE_POPEN
+  CSetFeature("pipe",		"true");
+#endif
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			   SIGNAL HANDLING
@@ -131,7 +173,7 @@ they  define  signal handlers to be int functions.  This should be fixed
 some day.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if O_SIGNAL
+#if HAVE_SIGNAL
 
 static void
 fatal_signal_handler(int sig, int type, SignalContext scp, char *addr)
@@ -155,10 +197,10 @@ initSignals(void)
     pl_signal(SIGTTOU, SIG_IGN);
 #endif
 #if !O_DEBUG				/* just crash when debugging */
-    pl_signal(SIGSEGV, fatal_signal_handler);
-    pl_signal(SIGILL,  fatal_signal_handler);
+    pl_signal(SIGSEGV, (handler_t)fatal_signal_handler);
+    pl_signal(SIGILL,  (handler_t)fatal_signal_handler);
 #ifdef SIGBUS
-    pl_signal(SIGBUS,  fatal_signal_handler);
+    pl_signal(SIGBUS,  (handler_t)fatal_signal_handler);
 #endif
 #endif
   } else
@@ -180,20 +222,23 @@ pl_signal(int sig, handler_t func)
 
 void
 deliverSignal(int sig, int type, SignalContext scp, char *addr)
-{ 
-#if O_SIG_AUTO_RESET
+{ typedef RETSIGTYPE (*uhandler_t)(int, int, void *, char *);
+    
+#ifndef BSD_SIGNALS
   signal(sig, signalHandlers[sig].os);	/* ??? */
 #endif
 
   if ( signalHandlers[sig].user != SIG_DFL )
-  { (*signalHandlers[sig].user)(sig, type, scp, addr);
+  { uhandler_t uh = (uhandler_t)signalHandlers[sig].user;
+
+    (*uh)(sig, type, scp, addr);
     return;
   }
 
   sysError("Unexpected signal: %d\n", sig);
 }
 
-#endif /* unix */
+#endif /*HAVE_SIGNAL*/
 
 #if O_DYNAMIC_STACKS
 
@@ -223,7 +268,6 @@ system-V shared memory primitives (if they meet certain criteria.
 
 #include <errno.h>
 extern int errno;
-extern int getpagesize(void);
 
 static int size_alignment;	/* Stack sizes must be aligned to this */
 static int base_alignment;	/* Stack bases must be aligned to this */
@@ -240,11 +284,10 @@ align_base(long int x)
 { return x % base_alignment ? (x / base_alignment + 1) * base_alignment : x;
 }
 
-#if O_CAN_MAP
+#ifdef MMAP_STACK
 #include <sys/mman.h>
 #include <fcntl.h>
 
-extern int munmap(caddr_t, size_t);
 static int mapfd = -1;			/* File descriptor used for mapping */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -380,16 +423,12 @@ restoreStack(Stack s)
 }
 
 
-#endif /* O_CAN_MAP */
+#endif /* MMAP_STACK */
 
 #if O_SHARED_MEMORY
 #include <sys/stat.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
-extern int shmget();
-extern char *shmat();
-extern int shmdt();
-extern int shmctl();
 #if gould
 #define S_IRUSR SHM_R
 #define S_IWUSR SHM_W
@@ -456,7 +495,7 @@ long size;
 	fatalError("Failed to create shared memory object: %s", OsError());
       if ( (addr = shmat(id, 0, 0)) < 0 )
 	fatalError("Failed to attach shared memory segment: %s", OsError());
-      bcopy(s->segments[n].base, addr, min(size, s->segments[n].size));
+      memcpy(s->segments[n].base, addr, min(size, s->segments[n].size));
       if ( shmdt(addr) < 0 )
       	fatalError("Failed to detach shared memory segment: %s", OsError());
     }    
@@ -555,7 +594,7 @@ Stack s;
 #endif /* O_SHM_ALIGN_FAR_APART */
 #endif /* O_SHARED_MEMORY */
 
-#if !O_NO_SEGV_ADDRESS
+#ifdef SIGNAL_HANDLER_PROVIDES_ADDRESS
 static bool
 expandStack(s, addr)
 Stack s;
@@ -587,14 +626,12 @@ If   your   system   does   not   provide   this  information,  set  the
 O_NO_SEGV_ADDRESS flag.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-typedef void (*OsHandler)(int);
-
-static void
+static RETSIGTYPE
 segv_handler(int sig, int type, SignalContext scp, char *addr)
 { Stack stacka = (Stack) &stacks;
   int i;
 
-#if O_NO_SEGV_ADDRESS
+#ifndef SIGNAL_HANDLER_PROVIDES_ADDRESS
   int mapped = 0;
 
   DEBUG(1, printf("Page fault.  Free room (g+l+t) = %ld+%ld+%ld\n",
@@ -612,19 +649,20 @@ segv_handler(int sig, int type, SignalContext scp, char *addr)
 
   if ( mapped )
   {
-#if O_SIG_AUTO_RESET
-    signal(SIGSEGV, (OsHandler) segv_handler);
+#ifndef BSD_SIGNALS
+    signal(SIGSEGV, (handler_t) segv_handler);
 #endif
     return;
   }
 
-#else
+#else /*O_NO_SEGV_ADDRESS*/
+
   DEBUG(1, printf("Page fault at %ld (0x%x)\n", (long) addr, (unsigned) addr));
   for(i=0; i<N_STACKS; i++)
     if ( expandStack(&stacka[i], addr) )
     {
-#if O_SIG_AUTO_RESET
-      signal(sig, segv_handler);
+#ifndef BSD_SIGNALS
+      signal(sig, (handler_t) segv_handler);
 #endif
       return;
     }
@@ -686,12 +724,12 @@ address,  a limit and a name to each of the stacks.  Finally it installs
 a signal handler for handling  segmentation  faults.   The  segmentation
 fault handler will actually create and expand the stacks on segmentation
 faults.   Currently,  it is assumed memory can be mapped from sbrk(0) to
-MAX_VIRTUAL_ADDRESS and the stack is outside this area.  This is true on
+MMAP_MAX_ADDRESS and the stack is outside this area.  This is true on
 SUN  and  GOULD.   On  other  machines  the  C-stack  might   start   at
-MAX_VIRTUAL_ADDRESS   and   grow   downwards.    In   this   case  lower
-MAX_VIRTUAL_ADDRESS a bit (if you have 100 MB virtual address  space  or
+MMAP_MAX_ADDRESS   and   grow   downwards.    In   this   case  lower
+MMAP_MAX_ADDRESS a bit (if you have 100 MB virtual address  space  or
 more,  I  would  suggest  16 MB), so space is allocated for the C-stack.
-The stacks are allocated right below MAX_VIRTUAL_ADDRESS, at a  distance
+The stacks are allocated right below MMAP_MAX_ADDRESS, at a  distance
 STACK_SEPARATION  from  each other.  STACK_SEPARATION must be a multiple
 of the page size and must be at least  MAXVARIABLES  *  sizeof(word)  as
 this  is the maximum discontinuity in writing the stacks.  On almost any
@@ -710,7 +748,7 @@ initStacks(long int local, long int global, long int trail, long int argument, l
   }
 
   size_alignment = getpagesize();
-#if O_CAN_MAP
+#ifdef MMAP_STACK
   base_alignment = size_alignment;
   mapfd  = swap_fd();
 #endif
@@ -734,8 +772,12 @@ initStacks(long int local, long int global, long int trail, long int argument, l
   if ( argument == 0 ) large++;
   if ( lck      == 0 ) large++;
 
+#ifdef MMAP_MIN_ADDRESS
+  base	= MMAP_MIN_ADDRESS
+#else
   base  = (long) align_base((long)sbrk(0));
-  top   = (long) MAX_VIRTUAL_ADDRESS;
+#endif
+  top   = (long) MMAP_MAX_ADDRESS;
   DEBUG(1, printf("top = 0x%x, stack at 0x%x\n", top, (unsigned) &top));
   space = top - base;
   space -= align_base(heap) +
@@ -772,7 +814,7 @@ initStacks(long int local, long int global, long int trail, long int argument, l
   INIT_STACK(lock,     "lock",     lck,      1 K);
   INIT_STACK(argument, "argument", argument, 1 K);
 
-  pl_signal(SIGSEGV, segv_handler);
+  pl_signal(SIGSEGV, (handler_t) segv_handler);
 }
 
 		/********************************

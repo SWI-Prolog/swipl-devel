@@ -257,7 +257,7 @@ pl_atom_completions(Word prefix, Word alts)
 } 
 
 
-#if O_READLINE
+#ifdef HAVE_LIBREADLINE
 
 static char *
 xmalloc(int size)
@@ -303,4 +303,4 @@ atom_generator(char *prefix, int state)
   return NULL;
 }
 
-#endif /*O_READLINE*/
+#endif /*HAVE_LIBREADLINE*/

@@ -34,13 +34,12 @@ getSymbols(void)
 
   loaderstatus.symbolfile = loaderstatus.orgsymbolfile
 			  = lookupAtom(abs_symbols);
+  setFeature(lookupAtom("symbol_file"), loaderstatus.symbolfile);
 
   succeed;
 }
 
 #if O_FOREIGN
-
-#include <memory.h>
 
 forwards bool create_a_out(char *files, char *entry,
 			   char *options, char *libraries,
@@ -57,7 +56,7 @@ forwards char *symbolString();
 #include <a.out.h>
 #include <unistd.h>
 
-#if __linux__
+#ifdef HAVE_MALLOC_H
 #include <malloc.h>			/* valloc() prototype */
 #endif
 
@@ -101,8 +100,8 @@ a better common basis to get rid of most of these things.
 #    define tsize exec_tsize
 #    define dsize exec_dsize
 #    define bsize exec_bsize
-#    define LD_OPT_OPTIONS	 "-N -a archive"
-#    define LD_OPT_LIBS    	 "-lc /lib/dyncall.o"
+#    define LD_O_OPTIONS	 "-N -a archive"
+#    define LD_O_LIBS    	 "-lc /lib/dyncall.o"
 #  endif
 #  ifdef EXEC_PAGESIZE
 #    define PAGSIZ    EXEC_PAGESIZE
@@ -139,7 +138,7 @@ typedef struct
 char *symbolString();			/* forwards */
 #endif /* O_NOENTRY */
 
-#if ! aout_800
+#ifndef aout_800
 static struct exec header;            /* a.out header */
 #else
 struct aouthdr sysHeader;
@@ -158,8 +157,8 @@ need to start the text and data segment on a page  boundary,  on  others
 not.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if hpux || vax
-#  if ! aout_800
+#if defined(hpux) || defined(vax)
+#  ifndef aout_800
 #define valloc malloc
 #  else
 #define valloc( size )        ADDRESS_ALIGN( malloc( ( size ) + PAGSIZ - 1 ) )
@@ -168,18 +167,14 @@ not.
 
 long
 allocText(long int size)
-{
-#if !hpux && !linux
-    extern char *valloc();
-#endif
-  long base;
+{ long base;
 
   if ( size < sizeof(word) )
     return 0;				/* test run */
 
   size = ROUND(size, sizeof(long));
 
-  if ( (base = (long) valloc((malloc_t) size)) == 0L )
+  if ( !(base = (long) valloc(size)) )
     fatalError("%s", OsError());
 
   statistics.heap += size;
@@ -239,7 +234,7 @@ pl_load_foreign(Word file, Word entry, Word options, Word libraries, Word size)
     nsz = sizeExec();
     if ( sz > 0 )
     { Putf("! Executable %s does not fit in %d bytes\n", sfile, sz);
-#if ! aout_800
+#ifndef aout_800
       Putf("Size: %d bytes (%d text %d data, %d bss) (reloading ...)\n",
 		nsz, header.a_text, header.a_data, header.a_bss);
 #endif
@@ -257,23 +252,23 @@ Create an a.out file from a .o file.
 #ifndef LD_COMMAND
 #define LD_COMMAND	"ld"		/* Unix loader command name */
 #endif
-#ifndef LD_OPT_OPTIONS
-#define LD_OPT_OPTIONS	"-N"		/* General options */
+#ifndef LD_O_OPTIONS
+#define LD_O_OPTIONS	"-N"		/* General options */
 #endif
-#ifndef LD_OPT_SFILE
-#define LD_OPT_SFILE	"-A %s"		/* symbol file of process */
+#ifndef LD_O_SFILE
+#define LD_O_SFILE	"-A %s"		/* symbol file of process */
 #endif
-#ifndef LD_OPT_ADDR
-#define LD_OPT_ADDR	"-R %lx"	/* Base address */
+#ifndef LD_O_ADDR
+#define LD_O_ADDR	"-T %lx"	/* Base address */
 #endif
-#ifndef LD_OPT_ENTRY
-#define LD_OPT_ENTRY	"-e _%s"	/* Entry-point */
+#ifndef LD_O_ENTRY
+#define LD_O_ENTRY	"-e _%s"	/* Entry-point */
 #endif
-#ifndef LD_OPT_OUT
-#define LD_OPT_OUT	"-o %s"		/* output file */
+#ifndef LD_O_OUT
+#define LD_O_OUT	"-o %s"		/* output file */
 #endif
-#ifndef LD_OPT_LIBS
-#define LD_OPT_LIBS	"-lc"		/* standard libraries */
+#ifndef LD_O_LIBS
+#define LD_O_LIBS	"-lc"		/* standard libraries */
 #endif
 
 static bool
@@ -284,17 +279,17 @@ create_a_out(char *files, char *entry, char *options, char *libraries, long int 
 #define next(str) { (str) += strlen(str); *(str)++ = ' '; };
 
   sprintf(s, "%s", LD_COMMAND);					 next(s);
-  sprintf(s, "%s", LD_OPT_OPTIONS);				 next(s);
-  sprintf(s, LD_OPT_SFILE, stringAtom(loaderstatus.symbolfile)); next(s);
-  sprintf(s, LD_OPT_ADDR, base);				 next(s);
+  sprintf(s, "%s", LD_O_OPTIONS);				 next(s);
+  sprintf(s, LD_O_SFILE, stringAtom(loaderstatus.symbolfile));   next(s);
+  sprintf(s, LD_O_ADDR, base);				 	 next(s);
 #if !O_NOENTRY
-  sprintf(s, LD_OPT_ENTRY, entry);				 next(s);
+  sprintf(s, LD_O_ENTRY, entry);				 next(s);
 #endif
-  sprintf(s, LD_OPT_OUT, outfile);				 next(s);
+  sprintf(s, LD_O_OUT, outfile);				 next(s);
   sprintf(s, "%s", options);					 next(s);
   sprintf(s, "%s", files);					 next(s);
   sprintf(s, "%s", libraries);					 next(s);
-  sprintf(s, LD_OPT_LIBS);
+  sprintf(s, LD_O_LIBS);
 
 #undef next
   
@@ -323,7 +318,7 @@ openExec(char *execFile)
     return -1;
   }
 
-#if ! aout_800
+#ifndef aout_800
   if (read(fd, &header, sizeof(struct exec)) != sizeof(struct exec) ||
       N_BADMAG(header) != 0)
   { warning("load_foreign/5: Bad magic number in %s", execFile);
@@ -332,24 +327,21 @@ openExec(char *execFile)
   }
 #else
   if ( read(fd, &fileHeader, sizeof(fileHeader)) != sizeof(fileHeader) )
-    {
-      fprintf( stderr , "{ERROR: Unable to read file header}\n" ) ;
-      close(fd);
-      return -1;
-    }
+  { warning("load_foreign/5: Unable to read file header of %s\n", execFile);
+    close(fd);
+    return -1;
+  }
   if ( fileHeader.aux_header_size == 0 )
-    {
-      fprintf( stderr , "{ERROR: Unable to read aux header}\n" ) ;
-      close(fd);
-      return -1;
-    }
-  lseek( fd , fileHeader.aux_header_location , 0 ) ;
-  if ( read( fd, &sysHeader , sizeof( sysHeader ) ) != sizeof( sysHeader ) )
-    {
-      fprintf( stderr , "{ERROR: Unable to read som header}\n" ) ;
-      close(fd);
-      return -1;
-    }
+  { warning("load_foreign/5: No read aux header in %s\n", execFile);
+    close(fd);
+    return -1;
+  }
+  lseek(fd, fileHeader.aux_header_location, 0 );
+  if ( read(fd, &sysHeader, sizeof(sysHeader)) != sizeof(sysHeader) )
+  { warning("load_foreign/5: Unable to read som header of %s\n", execFile);
+    close(fd);
+    return -1;
+  }
 #endif
 
   return fd;
@@ -359,14 +351,15 @@ openExec(char *execFile)
 static
 int
 sizeExec(void)
-{
-  return
-#if ! aout_800
+{ return
+#ifndef aout_800
     ROUND(header.a_text, 4) +
     ROUND(header.a_data, 4) +
     ROUND(header.a_bss, 4);
 #else
-    PAGE_ROUND_UP( sysHeader.tsize ) + PAGE_ROUND_UP( sysHeader.dsize ) + PAGE_ROUND_UP( sysHeader.bsize ) ;
+    PAGE_ROUND_UP(sysHeader.tsize) +
+    PAGE_ROUND_UP(sysHeader.dsize) +
+    PAGE_ROUND_UP(sysHeader.bsize);
 #endif
 }
 
@@ -378,7 +371,7 @@ loadExec(int fd, unsigned long base, char *sentry)
   long *data, data_off, data_size;
   long *bss, bss_size;
 
-#if ! aout_800
+#ifndef aout_800
   text = (long *)base;			/* address of text in memory */
   text_size = header.a_text;		/* size of text area */
   data = (long *)(base+text_size);	/* address of data in memory */
@@ -421,7 +414,7 @@ loadExec(int fd, unsigned long base, char *sentry)
   }
 #else
 #  if hpux
-#    if ! aout_800
+#    ifndef aout_800
   entry = (Func)(header.a_entry + (long)text);
   DEBUG(2, printf("a_entry = 0x%x; text = 0x%x, entry = 0x%x\n",
 				header.a_entry, text, entry));
@@ -445,7 +438,6 @@ loadExec(int fd, unsigned long base, char *sentry)
 }
 
 #if O_NOENTRY
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Scan the symbol table and try to resolve all textSymbols given  in  `tv'
 (target  vector).   The  first `tc' (target count) members of this array
@@ -460,8 +452,7 @@ symbol  file and the argument `fd' to be an open file descriptor on that
 file.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static
-bool
+static bool
 scanSymbols(fd, tc, tv)
 int fd;
 int tc;
@@ -512,8 +503,7 @@ Return the char string at offset `n' in the string table.   The  strings
 are supposed not to be longer than MAXSYMBOL characters.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static
-char *
+static char *
 symbolString(fd, n)
 int fd;
 long n;
@@ -535,8 +525,8 @@ long n;
 #endif /* O_NOENTRY */
 
 #else
-#if O_AIX_FOREIGN
 
+#if O_AIX_FOREIGN
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The AIX foreign interface  is completely different to the SUN/VAX/HPUX
 version.  The  latter cannot  be used  because ld is  lacking   the -A
@@ -549,7 +539,7 @@ There is  still a problem in  the cooperation with save_program/[1,2].
 Normally, it appears the foreign code is loaded in  the program's data
 area and save nicely  by save_program.  If the loaded   code  is small
 however it will be put below &_data, in  which case save_program won't
-ave it.   Currently,  there is  only detection  of  this  problem.  We
+see it.   Currently,  there is  only detection  of  this  problem.  We
 should try  to figure out  the starting adres  of the loaded code  and
 communicate this to save_program.  How to do this?
 
@@ -630,44 +620,44 @@ Word file;
 }
 
 #else
-#if O_MACH_FOREIGN
-/*
-The NeXT foreign interface  is completely different to the SUN/VAX/HPUX
-version. The  latter cannot  be used  because
-the NeXT uses  MACH format a.out files.  Instead, MACH supplies
-the  rld_load()  and rld_lookup() functions  to   load executable  code in a
-running  image.   This makes   the implementation a   lot  easier (and
-supported by official functions).
 
-The prolog part is identical to the SUN versions. However, 
-the only arguments of load_foreign/5 that are used are 'File', 
-'Libraries', and 'Entry'. The other arguments are ignored. 
-'Libraries' is not expanded by the C code; filenames should be 
-either full pathnames or 'library()' names that expand to a full pathname.
-*/
+#if O_MACH_FOREIGN
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The NeXT foreign interface is completely   different to the SUN/VAX/HPUX
+version.  The latter cannot be used because   the  NeXT uses MACH format
+a.out files.  Instead, MACH  supplies   the  rld_load() and rld_lookup()
+functions to load executable code in a   running  image.  This makes the
+implementation a lot easier (and supported by official functions).
+
+The prolog part is identical to  the   SUN  versions.  However, the only
+arguments of load_foreign/5 that are used   are 'File', 'Libraries', and
+'Entry'.  The other arguments are ignored.   'Libraries' is not expanded
+by the C code; filenames should be  either full pathnames or 'library()'
+names that expand to a full pathname.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include <rld.h>
 #include <strings.h>
 #include <streams/streams.h>
 
-extern int	unlink(const char *), mkstemp (char *template), close(int);
+extern int unlink(const char *), mkstemp (char *template), close(int);
 extern char *mktemp(char *template);
 
-/* the rld_... routines spew their complaints on a stream of
- * type NXStream. We do not want to print these to stderr or stdout, because 
- * the 'current stream' mechanism of prolog is circumvented in this way.
- * We open a temp file instead, informing the user this file exists only
- * if an error occurred and errno == 0.
- *
- * Be aware of the fact rld_load()
- * may fail and not set errno to !0. For example, the call
- * rld_load(rld_err_stream,_,"i_do_not_exist",_) will result in the string
- * "rld(): Can't open: i_do_not_exist (No such file or directory, errno = 2)"
- * being sent to the appropriate stream, with errno == 2, while the call
- * rld_load(rld_err_stream,_,"/dev/null",_) will result in 
- * "rld(): file: /dev/null is empty (not an object or archive)" 
- * being printed, with errno == 0.
- */
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+the rld_...  routines  spew  their  complaints   on  a  stream  of  type
+NXStream.  We do not want to print   these  to stderr or stdout, because
+the 'current stream' mechanism of prolog   is  circumvented in this way.
+We open a temp file instead, informing the user this file exists only if
+an error occurred and errno == 0.
+
+Be aware of the fact rld_load() may fail   and not set errno to !0.  For
+example,  the  call  rld_load(rld_err_stream,_,"i_do_not_exist",_)  will
+result in the string "rld(): Can't open: i_do_not_exist (No such file or
+directory, errno = 2)" being sent to  the appropriate stream, with errno
+==  2,  while  the  call  rld_load(rld_err_stream,_,"/dev/null",_)  will
+result in "rld(): file: /dev/null is empty (not an object or archive)"
+being printed, with errno == 0.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 word
 pl_load_foreign(file, entry, options, libraries, size)
@@ -816,7 +806,7 @@ Word file, entry, options, libraries, size;
 		 *     DLOPEN() AND FRIENDS	*
 		 *******************************/
 
-#if O_DLOPEN
+#ifdef HAVE_DLOPEN
 
 #include <dlfcn.h>
 typedef int (*dl_funcptr)();
@@ -939,4 +929,4 @@ pl_load_shared_object(Word file, Word entry)
 }
 #endif
 
-#endif /*O_DLOPEN*/
+#endif /*HAVE_DLOPEN*/

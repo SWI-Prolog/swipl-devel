@@ -11,20 +11,16 @@
 #define _PL_INCLUDE_H
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Include Machine Desciption (md-*) file.  If -DMD=md-sun.h  or  something
-similar  is  passed  as  cpp  flag,  this  machine  description is used.
-Otherwise "md.h" is used,  which  is  supposed  to  be  a  link  to  the
-appropriate machine description file.
+First, include config.h or, if MD is  specified, this file.  This allows
+for -DMD="md-mswin.h"
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifndef CONFTEST
 #ifdef MD
 #include MD
 #else
-#include "md.h"
+#include "config.h"
 #endif
-
-#ifdef __WATCOMC__
-#include "pl-nodef.h"
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -57,7 +53,7 @@ handy for it someone wants to add a data type to the system.
       the var  = `&&label' construct  and jump to  it using goto *var;
       This construct is known by the GNU-C compiler gcc version 2.  It
       is buggy in gcc-2.0, but seems to works properly in gcc-2.1.
-  O_VMCODE_IS_ADDRESS
+  VMCODE_IS_ADDRESS
       Can only  be set when  O_LABEL_ADDRESSES is  set.  It causes the
       prolog  compiler  to put the  code  (=  label-) addresses in the
       compiled Prolog  code  rather than the  virtual-machine numbers.
@@ -71,24 +67,15 @@ handy for it someone wants to add a data type to the system.
 #define O_STRING		1
 #define O_PROLOG_FUNCTIONS	1
 #define O_BLOCK			1
-
-/*
-   OS/2 : The excellent EMX port of GCC puts the text segment at address
-   0x10000. Since this breaks the 16 bit encoding of VM code addresses, we
-   have to explicitly disable O_VMCODE_IS_ADDRESS
-*/
+#define O_PCE			1	/* doesn't depend any longer */
 
 #ifndef O_LABEL_ADDRESSES
 #if __GNUC__ == 2
 #define O_LABEL_ADDRESSES	1
-#ifndef O_VMCODE_IS_ADDRESS
-#define O_VMCODE_IS_ADDRESS	1
+#ifndef VMCODE_IS_ADDRESS
+#define VMCODE_IS_ADDRESS	1
 #endif
 #endif
-#endif
-
-#if defined(unix) || defined(__unix__)
-#define O_SIGNAL 1
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -102,11 +89,6 @@ hard to write and maintain code that runs on both old and new compilers.
 This has worked on TURBO_C not very long ago.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if O_SHORT_SYMBOLS
-#include "pl-ssymb.h"		/* Redefine long symbols to avoid clashes */
-				/* Probably out-of-date! */
-#endif
-
 #if defined(__unix__) && !defined(unix)
 #define unix 1
 #endif
@@ -115,11 +97,8 @@ This has worked on TURBO_C not very long ago.
 #if O_XOS
 #include <xos/xos.h>
 #endif
-#if O_SIGNAL
-#include <sys/types.h>
-#include <signal.h>
-#endif
 
+#include <sys/types.h>
 #include <setjmp.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -127,15 +106,25 @@ This has worked on TURBO_C not very long ago.
 #include <stddef.h>
 #include <stdarg.h>
 
+#ifdef HAVE_SIGNAL
+#include <signal.h>
+#endif
+
+#if defined(STDC_HEADERS) || defined(HAVE_STRING_H)
+#include <string.h>
+/* An ANSI string.h and pre-ANSI memory.h might conflict.  */
+#if !defined(STDC_HEADERS) && defined(HAVE_MEMORY_H)
+#include <memory.h>
+#endif /* not STDC_HEADERS and HAVE_MEMORY_H */
+#else /* not STDC_HEADERS and not HAVE_STRING_H */
+#include <strings.h>
+/* memory.h and strings.h conflict on some systems.  */
+#endif /* not STDC_HEADERS and not HAVE_STRING_H */
+
 #if OS2 && EMX
 #include <process.h>
 #include <io.h>
-#include <strings.h>
 #endif /* OS2 */
-
-#ifdef O_EXTRA_SYSTEM_TYPES
-#include O_EXTRA_SYSTEM_TYPES
-#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A common basis for C keywords.
@@ -149,7 +138,7 @@ A common basis for C keywords.
 #endif
 
 #if __STRICT_ANSI__
-#define O_NO_LEFT_CAST 1
+#undef TAGGED_LVALUE
 #define ASM_NOP { static int nop; nop++; }
 #endif
 
@@ -167,23 +156,20 @@ platform as well.
 
 typedef int			bool;
 typedef double			real;
-#if O_NO_VOID_POINTER
-typedef char *			Void;
-#else
 typedef void *			Void;
-#endif
 
-#if O_SIGNAL
-#ifdef SIGNAL_HANDLER_TYPE
-typedef SIGNAL_HANDLER_TYPE (*handler_t)();
-#else
-typedef void (*handler_t)();
-#endif
-#ifndef SIGNAL_CONTEXT_TYPE
-typedef struct sigcontext * SignalContext;
-#define SIGNAL_CONTEXT_TYPE SignalContext
-#endif
-#endif /* unix */
+#if HAVE_SIGNAL
+#define MAXSIGNAL		32	/* highest system signal number */
+
+typedef RETSIGTYPE (*handler_t)(int);
+typedef void *SignalContext;		/* struct sigcontext on sun */
+
+GLOBAL struct
+{ handler_t os;				/* Os signal handler */
+  handler_t user;			/* User signal handler */
+  bool catched;				/* Prolog catches this one */
+} signalHandlers[MAXSIGNAL];
+#endif /* HAVE_SIGNAL */
 
 #ifndef TRUE
 #define TRUE			1
@@ -221,7 +207,6 @@ redesign of parts of the compiler.
 #define MAXARITY		128	/* arity of predicate */
 #define MAXVARIABLES		256	/* number of variables/clause */
 #define MAXEXTERNALS	    ((1<<15)-1)	/* external references of a clause */
-#define MAXSIGNAL		32	/* highest system signal number */
 
 				/* Prolog's largest int */
 #define PLMAXINT		((1L<<(32 - MASK_BITS - LMASK_BITS - 1)) - 1)
@@ -266,7 +251,7 @@ consistent  with  the  definitions  in  pl-itf.h, which is included with
 users foreign language code.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if O_DATA_AT_0X4
+#ifdef DATA_AT_0X4
 #define FRG_MASK	(0x20000000L)		/* Mask to indicate redo */
 #define FRG_BITS	3
 #else
@@ -578,7 +563,7 @@ the range of integers to +- 2^25.  (Macros have to be rewritten))
 
 #define REAL_MASK	0x70000000L	/* Header mask on global stack */
 
-#if O_DATA_AT_0X4
+#ifdef DATA_AT_0X4
 #define INDIRECT_MASK	0x20000000L	/* Indirect constant */
 #define INT_MASK	0x10000000L	/* Integer constant */
 #define SIGN_MASK	0x40000000L     /* Sign of an integer */
@@ -586,7 +571,7 @@ the range of integers to +- 2^25.  (Macros have to be rewritten))
 #define SIGN_OFFSET     1               /* Offset of sign bit from M.S. bit */
 #define STRING_MASK	0x30000000L	/* Header mask on global stack */
 #else
-#if O_DATA_AT_0X2
+#ifdef DATA_AT_0X2
 #define INDIRECT_MASK	0x40000000L	/* Indirect constant */
 #define INT_MASK	0x10000000L	/* Integer constant */
 #define MASK_BITS	4		/* high order mask bits */
@@ -596,14 +581,14 @@ the range of integers to +- 2^25.  (Macros have to be rewritten))
 #define INT_MASK	0x20000000L	/* Integer constant */
 #define MASK_BITS	3		/* high order mask bits */
 #define STRING_MASK	0x60000000L	/* Header mask on global stack */
-#endif /* O_DATA_AT_0X2 */
-#endif /* O_DATA_AT_0X4 */
+#endif /* DATA_AT_0X2 */
+#endif /* DATA_AT_0X4 */
 
 #define makeRef(p)	((word)(-(long)(p)))
 #define unRef(w)	((Word)(-(long)(w)))
 #define isRef(w)	((long)(w) < 0)
 
-#if O_DATA_AT_0X8
+#ifdef DATA_AT_0X8
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Masking schema for system which have their malloc()-area in the negative
@@ -626,7 +611,7 @@ as for low addresses (< 0x20000000L), but  we place the reference tag on
 #define makeRef(p)	((word)(p) | REF_MASK)
 #define unRef(w)	((Word)((word)(w) & ~REF_MASK))
 #define isRef(w)	((word)(w) & REF_MASK)
-#endif /* O_DATA_AT_0X8 */
+#endif /* DATA_AT_0X8 */
 
 #define LMASK_BITS	2		/* low order mask bits */
 #define DMASK_BITS	4		/* DATA_TAG_MASK bits */
@@ -753,16 +738,20 @@ AIX  version  we  substract  this value and add it again when converting
 integers to pointers.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if O_DATA_AT_0X4
-#  define PTR_TO_NUM_OFFSET	0x40000000L
+#ifdef DATA_AT_0X8
+#define PTR_TO_NUM_OFFSET	  0x80000000L
 #else
-#  if O_DATA_AT_0X2
-#    define PTR_TO_NUM_OFFSET	0x20000000L
+#  ifdef DATA_AT_0X4
+#    define PTR_TO_NUM_OFFSET	  0x40000000L
 #  else
-#    if O_DATA_AT_OX1
-#      define PTR_TO_NUM_OFFSET 0x10000000L
+#    ifdef DATA_AT_0X2
+#      define PTR_TO_NUM_OFFSET	  0x20000000L
 #    else
-#      define PTR_TO_NUM_OFFSET   0x0L
+#      ifdef DATA_AT_OX1
+#        define PTR_TO_NUM_OFFSET 0x10000000L
+#      else
+#        define PTR_TO_NUM_OFFSET 0x0L
+#      endif
 #    endif
 #  endif
 #endif
@@ -779,7 +768,7 @@ for a pointer.
 #define unMask(w)		((w) & ~MASK_MASK)
 #define mask(w)			(w & MASK_MASK)
 #define consNum(n)		((word) (unMask((n)<<LMASK_BITS) | INT_MASK))
-#if O_DATA_AT_0X4
+#ifdef DATA_AT_0X4
 #define valNum(w)               ((long) ((((w) & SIGN_MASK) << SIGN_OFFSET) | \
 				 (unMask(w) << MASK_BITS)) >> \
 				 (MASK_BITS+LMASK_BITS))
@@ -954,7 +943,7 @@ struct definition
   Clause	lastClause;		/* last clause of list */
   Module	module;			/* module of the predicate */
   SourceFile	source;			/* source file of predicate */
-#if O_PROFILE
+#ifdef O_PROFILE
   int		profile_ticks;		/* profiler: call times active */
   int		profile_calls;		/* profiler: number of calls */
   int		profile_redos;		/* profiler: number of redos */
@@ -1080,7 +1069,7 @@ If we have access to the virtual   memory management of the machine, use
 this to enlarge the runtime stacks.  Otherwise use the stack-shifter.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if O_CAN_MAP || O_SHARED_MEMORY
+#if MMAP_STACK || O_SHARED_MEMORY
 #define O_DYNAMIC_STACKS 1
 #else
 #ifndef O_SHIFT_STACKS
@@ -1208,17 +1197,17 @@ GLOBAL bool	  fileerrors;		/* Report file errors? */
 		*        FAST DISPATCHING	*
 		********************************/
 
-#if O_VMCODE_IS_ADDRESS
+#if VMCODE_IS_ADDRESS
 GLOBAL char  *dewam_table;			/* decoding table */
 GLOBAL code  wam_table[I_HIGHEST+1];		/* code --> address */
 GLOBAL void **interpreter_jmp_table;		/* interpreters table */
 
 #define encode(wam) (wam_table[wam])		/* WAM --> internal */
 #define decode(c)   ((code) dewam_table[c])	/* internal --> WAM */
-#else /* O_VMCODE_IS_ADDRESS */
+#else /* VMCODE_IS_ADDRESS */
 #define encode(wam) (wam)
 #define decode(wam) (wam)
-#endif /* O_VMCODE_IS_ADDRESS */
+#endif /* VMCODE_IS_ADDRESS */
 
 		/********************************
 		*            STATUS             *
@@ -1268,7 +1257,7 @@ GLOBAL struct
   long		collections;		/* No. of garbage collections */
   long		global_gained;		/* No. of cells global stack gained */
   long		trail_gained;		/* No. of cells trail stack gained */
-#if O_PROFILE
+#ifdef O_PROFILE
   int		profiling;		/* profiler is on? */
   long		profile_ticks;		/* profile ticks total */
 #endif /* O_PROFILE */
@@ -1357,14 +1346,6 @@ struct state
 
 GLOBAL State stateList;			/* list of loaded states */
 
-#if O_SIGNAL
-GLOBAL struct
-{ handler_t os;				/* Os signal handler */
-  handler_t user;			/* User signal handler */
-  bool catched;				/* Prolog catches this one */
-} signalHandlers[MAXSIGNAL];
-#endif
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Include debugging info to make it (very) verbose.  SECURE adds  code  to
 check  consistency mainly in the WAM interpreter.  Prolog gets VERY slow
@@ -1387,6 +1368,11 @@ decrease).
 #endif
 
 #include "pl-os.h"			/* OS dependencies */
+
+#ifdef SYSLIB_H
+#include SYSLIB_H
+#endif
+
 #include "pl-funcs.h"			/* global functions */
 #include "pl-main.h"			/* Declarations needed by pl-main.c */
 

@@ -1,0 +1,39 @@
+			         SWI-Prolog
+		   (Frequently) Reported installation problems
+
+[NOTE: I deleted some issues thate are certainly irrelevant after the
+ change to autoconf.  Don't know how relevant the remainder is.
+]
+
+================================================================
+# gcc 2.5.[0123] optimiser bug
+
+Diagnostic: [PROLOG INTERNAL ERROR: Unexpected signal: 11 ...]
+Fixed from: gcc-2.5.4
+
+All these versions of gcc produce bad  code on pl-wam.c.  Either upgrade
+gcc or do
+
+	% gcc -c pl-wam.c
+	% make
+
+Not optimising pl-wam.c degrades  performance  by   about  30%  on  most
+machines.
+
+================================================================
+# RS6000 AIX-3.2
+
+Diagnostic: pl is killed during the boot compilation (pl -O -o ... -b ...
+as run by make).
+
+It appears linking `-static' does not work properly.  Use dynamic linking,
+but explicitely link /usr/lib/libc.a as the last file to get saved states
+working properly.
+
+================================================================
+# Readline version problems.
+
+Make sure readline is compiled with gcc   if you compile SWI-Prolog with
+gcc.  Make sure not to use BSD  compatibility for compiling the readline
+library (signal handling problems).  This applies to any foreign library
+you link to SWI-Prolog.

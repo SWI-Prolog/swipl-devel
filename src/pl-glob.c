@@ -16,26 +16,42 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 
-#if unix || EMX
-#include <sys/param.h>
-#include <sys/stat.h>
-#ifdef DIR_INCLUDE
-#include DIR_INCLUDE
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
+#ifdef __WATCOMC__
+#include <direct.h>
+#else /*__WATCOMC__*/
+#if HAVE_DIRENT_H
+# include <dirent.h>
+# define NAMLEN(dirent) strlen((dirent)->d_name)
 #else
-#include <dirent.h>
+# define dirent direct
+# define NAMLEN(dirent) (dirent)->d_namlen
+# if HAVE_SYS_NDIR_H
+#  include <sys/ndir.h>
+# endif
+# if HAVE_SYS_DIR_H
+#  include <sys/dir.h>
+# endif
+# if HAVE_NDIR_H
+#  include <ndir.h>
+# endif
 #endif
-#ifdef DIR_INCLUDE2
-#include DIR_INCLUDE2
+#endif /*__WATCOMC__*/
+
+#ifdef HAVE_SYS_STAT_H
+#include <sys/stat.h>
 #endif
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+
 #ifndef IS_DIR_SEPARATOR
 #define IS_DIR_SEPARATOR(c)	((c) == '/')
 #endif
-#endif
 
-#if defined(__WATCOMC__)
-#include <direct.h>
-#include <sys/stat.h>
-#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Unix Wildcard Matching.  Recognised:
@@ -74,7 +90,7 @@ intermediate representation:
 #define NOCURL	0
 #define CURL	1
 
-#if !O_UCHAR_PREDEFINED
+#ifdef NEED_UCHAR
 typedef unsigned char uchar;
 #endif
 
@@ -358,11 +374,10 @@ expand(char *f, char **argv, int *argc)
   }
 }
 
-#if unix || EMX || defined(__WATCOMC__)
+#ifdef HAVE_STAT
 static bool
 Exists(char *path)
 { struct stat buf;
-  extern int stat(const char *, struct stat *);
 
   if ( stat(OsPath(path), &buf) == -1 )
     fail;
@@ -459,30 +474,12 @@ expandBag(struct bag *b)
         fail;
       dot = (expanded[0] == '.');			/* do dots as well */
 
-#if unix || EMX || defined(__WATCOMC__)
+#ifdef HAVE_OPENDIR
       { DIR *d;
 	char *ospath = OsPath(path);
-#if O_STRUCT_DIRECT
-	struct direct *e;
-	extern struct direct *readdir();
-#else
 	struct dirent *e;
-	extern struct dirent *readdir(DIR *);
-#endif
-	extern DIR *opendir(const char *);
 
 	d = opendir(ospath);
-
-#ifdef __WATCOMC__
-					/* Grrrr the root has not '.' */
-	if ( !d && streq(ospath, ".") )
-	{ char r[MAXPATHLEN];
-
-	  getcwd(r, MAXPATHLEN);
-	  if ( isLetter(r[0]) && r[1] == ':' && r[2] == '\\' && r[3] == '\0' )
-	    d = opendir("\\");
-	}
-#endif
 
 	if ( d != NULL )
 	{ for(e=readdir(d); e; e = readdir(d))
@@ -505,7 +502,7 @@ expandBag(struct bag *b)
 	  closedir(d);
 	}
       }
-#endif
+#endif /*HAVE_OPENDIR*/
 
 #if tos
       { char dpat[MAXPATHLEN];

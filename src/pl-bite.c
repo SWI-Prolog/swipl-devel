@@ -18,8 +18,11 @@ should be installed as `pl-bite' in a directory that is in the  path  of
 the user (normally /usr/local/bin, next to Prolog itself).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static void usage(void);
+
 char *program;
 
+int
 main(int argc, char **argv)
 { long from, to;
   char *s;
@@ -29,11 +32,15 @@ main(int argc, char **argv)
 
 
   if ( argc != 3 || (s = strchr(argv[1], ':')) == NULL )
-    usage();
+  { usage();
+    exit(1);
+  }
 
   *s = '\0';
   if ( (from = atol(argv[1])) == 0 || (to = atol(&s[1])) == 0 )
-    usage();
+  { usage();
+    exit(1);
+  }
 
   if ( (fd = fopen(argv[2], "r")) == NULL || fseek(fd, from, 0) < 0 )
   { perror(argv[2]);
@@ -55,7 +62,8 @@ main(int argc, char **argv)
   exit(0);
 }
 
+static void
 usage(void)
-{ fprintf(stderr, "usage: %s from:to file\n");
+{ fprintf(stderr, "usage: %s from:to file\n", program);
   exit(1);
 }

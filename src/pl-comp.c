@@ -147,7 +147,7 @@ NOTE:	If the assert() fails, look at pl-wam.c: VMI(C_NOT, ... for
 	more information.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if O_VMCODE_IS_ADDRESS
+#if VMCODE_IS_ADDRESS
 void
 initWamTable(void)
 { int n;
@@ -175,14 +175,14 @@ initWamTable(void)
   checkCodeTable();
 }
 
-#else /* O_VMCODE_IS_ADDRESS */
+#else /* VMCODE_IS_ADDRESS */
 
 void
 initWamTable()
 { checkCodeTable();
 }
 
-#endif /* O_VMCODE_IS_ADDRESS */
+#endif /* VMCODE_IS_ADDRESS */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module forms together  with  the  module  'pl-wam.c'  the  complete

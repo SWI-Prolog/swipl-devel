@@ -46,7 +46,8 @@ indexing only on the first argument as this is default.
 
 static unsigned long variable_mask[][4] =
   { { 0,        0,        0,        0 }, 
-    { VM(1, 0), 0,        0,        0 }, 
+/*  { VM(1, 0), 0,        0,        0 }, */
+    { ~0L,      0,        0,        0 }, 
     { VM(2, 0), VM(2, 1), 0,        0 }, 
     { VM(3, 0), VM(3, 1), VM(3, 2), 0 }, 
     { VM(4, 0), VM(4, 1), VM(4, 2), VM(4, 3) }
@@ -61,7 +62,7 @@ static int mask_shift[][4] =
   };
 
 static unsigned long mask_mask[] =
-  { 0, MASK(1), MASK(2), MASK(3), MASK(4)
+  { 0, /*MASK(1)*/ ~0L, MASK(2), MASK(3), MASK(4)
   };
 
 /*  Determine cardinality (= # 1's) of bit pattern.

@@ -126,7 +126,7 @@ pl_abort()
   closeFiles();
   resetReferences();
   resetForeign();
-#if O_PROFILE
+#ifdef O_PROFILE
   pl_reset_profiler();
 #endif
 

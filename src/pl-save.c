@@ -51,7 +51,7 @@ ASSUMPTIONS
 
 PORTABILITY/OPTIONS
 
-  O_C_STACK_GROWS_UP
+  STACK_DIRECTION > 0
     Each subsequent C-stackframe  is  at a  higher address.  Note that
     addresses are considered unsigned.  By default we assume the stack
     grows downwards.
@@ -63,10 +63,10 @@ PORTABILITY/OPTIONS
     independant of versions of the OS.
 
   STACK_BASE_ALIGN
-    If BASE_OF_C_STACK is  not defined,  we will round  the pointer to
-    argc  of main()  depending  on  O_C_STACK_GROWS_UP down/up  to   a
-    multiple of this value (default: 64 Kbytes).  This generally finds
-    the stack's base address.
+    If BASE_OF_C_STACK is not defined, we   will  round the pointer to
+    argc of main() depending on STACK_DIRECTION  to a multiple of this
+    value (default: 64 Kbytes).  This generally finds the stack's base
+    address.
 
   O_SAVE_STDIO
     When set,  the stdin, stdout and stderr  structures are saved over
@@ -78,8 +78,8 @@ PORTABILITY/OPTIONS
     at runtime?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if OS2 && EMX
-/*                      Notes on the OS/2 port.
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+                       Notes on the OS/2 port.
 			atoenne@mpi-sb.mpg.de
 
     The save/2 primitive had a rather unusual problem in OS/2. The save
@@ -96,11 +96,13 @@ PORTABILITY/OPTIONS
     The routines for determing the stack frame are fine.
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-#endif /* OS2 */
 
 #if TEST
 #undef DEBUG
 #define DEBUG(l, g) {g;}
+#define O_SAVE 1
+#define OsPath(x) x
+#define ResetTty()
 #endif
 
 #if O_SAVE
@@ -109,12 +111,36 @@ PORTABILITY/OPTIONS
 #include <stdio.h>
 #include <setjmp.h>
 #include <fcntl.h>
+#include <errno.h>
 #include "pl-save.h"
 
+#ifdef NEED_DECL_ERRNO
+extern int errno;
+#endif
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Machine dependant stuff.  Should be  generated   by  configure, but some
+things are just too hard to figure out ...
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #if OS2 & EMX
+#define HEAP_START _heap_base
+#define LAST_DATA_SYMBOL _end
 extern caddr _heap_base;
 extern long _heap_end;
 #endif /* OS2 */
+
+#ifdef __linux__
+#define DATA_START ((long) &etext + sizeof(long))
+#endif
+
+#ifdef __solaris__
+#define O_SAVE_STDIO 1
+#endif
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Generic stuff again.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 extern char **environ;
 extern char **etext;
@@ -154,9 +180,11 @@ typedef struct save_header
   long  save_version;		/* Version of the hosting process */
   caddr brk;			/* Value of the break when saved */
   int	nsections;		/* Number of sections available */
-} * SaveHeader;
+} *SaveHeader;
 
+#ifndef TEST
 #define exit(status)	Halt(status);
+#endif
 
 #define SectionOffset(n)	(sizeof(struct save_header) + \
 				 (n) * sizeof(struct save_section))
@@ -256,7 +284,7 @@ baseOfCStack(int *argc, char **argv, char **env)
   unsigned long base = (unsigned long) &argc;
   char **p;
 
-#ifdef O_C_STACK_GROWS_UP
+#if STACK_DIRECTION > 0
 #define BoundStack(a,b) ((a) < (b) ? (a) : (b))
 #else
 #define BoundStack(a,b) ((a) > (b) ? (a) : (b))
@@ -269,11 +297,11 @@ baseOfCStack(int *argc, char **argv, char **env)
   for(p = env; *p; p++)
     base = BoundStack(base, (unsigned long)*p);
 
-# if ( O_C_STACK_GROWS_UP )		/* round-down */
+#if STACK_DIRECTION > 0
   return (caddr) (base & ~(STACK_BASE_ALIGN-1));
-# else
+#else
   return (caddr) ((base+STACK_BASE_ALIGN-1) & ~(STACK_BASE_ALIGN-1));
-# endif
+#endif
 #endif
 }
 
@@ -292,7 +320,7 @@ optimise this file.
 static int
 readCStack(int fd, caddr start, long int length)
 { 
-#if O_C_STACK_GROWS_UP
+#if STACK_DIRECTION > 0
   if ( (unsigned long) &fd - MAXSTACKFRAMESIZE > (unsigned long) ( (unsigned) start + length ) )
 #else
   if ( (unsigned long) &fd + MAXSTACKFRAMESIZE < (unsigned long) start )
@@ -396,7 +424,7 @@ restore(char *file, int (*allocf) (SaveSection))
 		*            SAVE		*
 		********************************/
 
-#if O_ELF
+#ifdef HAVE_LIBELF
 
 #include <libelf.h>
 
@@ -460,7 +488,7 @@ SaveSection sections;
   succeed;
 }
 
-#else /* O_ELF */
+#else /* HAVE_LIBELF */
 
 #ifdef HEAP_START
 #define C_DATA_SECTIONS 2		/* heap separate from data  */
@@ -485,7 +513,7 @@ fill_c_data_sections(char *interpreter, int *nsects, SaveSection sections)
 
   succeed;
 }
-#endif /* ELF */
+#endif /* HAVE_LIBELF */
 
 int
 save(char *file, char *interpreter, int kind,
@@ -536,7 +564,7 @@ save(char *file, char *interpreter, int kind,
       return SAVE_RESTORE;
     } 
     
-#if O_C_STACK_GROWS_UP
+#if STACK_DIRECTION > 0
     stack_sect->start  = c_stack_base;
     stack_sect->length = (unsigned long) topOfCStack() - 
 			 (unsigned long) stack_sect->start;
@@ -589,12 +617,14 @@ main(int argc, char **argv, char **env)
   } else
   { char **av;
 
+#ifndef TEST
     for(av=argv; *av; av++)
       if ( streq(*av, "-d") && av[1] )
 	status.debugLevel = atoi(av[1]);
+#endif
 
     if ( argc >= 3 && streq(argv[1], "-r") )
-#if O_DYNAMIC_STACKS
+#if defined(O_DYNAMIC_STACKS) && !defined(TEST)
     { extern int allocateSection(SaveSection);
 
       if ( !restore(argv[2], allocateSection) )
@@ -636,19 +666,16 @@ char **env;
 #endif
 
 
-#if TEST				/* test stand-alone */
+#ifdef TEST				/* test stand-alone */
 
 static value = 1;
 static dumped = 0;
 
 bool
-warning(va_alist)
-va_dcl
+warning(char *fm, ...)
 { va_list args;
-  char *fm;
 
-  va_start(args);
-  fm = va_arg(args, char *);
+  va_start(args, fm);
   fprintf(stderr, "[WARNING: ");
   vfprintf(stderr, fm, args);
   fprintf(stderr, "]\n");
@@ -660,22 +687,25 @@ va_dcl
 
 char *
 OsError()
-{ static char errmsg[64];
+{
+#ifdef HAVE_STRERROR
+  return strerror(errno);
+#else
+  static char errmsg[64];
   extern int sys_nerr;
   extern char *sys_errlist[];
-  extern int errno;
 
   if ( errno < sys_nerr )
     return sys_errlist[errno];
 
   sprintf(errmsg, "Unknown Error (%d)", errno);
   return errmsg;
+#endif
 }
 
 
-startProlog(argc, argv, env)
-int argc;
-char **argv, **env;
+int
+startProlog(int argc, char **argv, char **env)
 { char *interpreter = argv[0];
 
   argc--; argv++;
@@ -700,4 +730,4 @@ char **argv, **env;
   exit(0);
 }
 
-#endif
+#endif /* TEST */

@@ -346,7 +346,7 @@ PL_new_module(register atomic name)
 		*            SIGNALS            *
 		*********************************/
 
-#if O_SIGNAL
+#if HAVE_SIGNAL
 void
 (*PL_signal(int sig, void (*func) (/* ??? */)))(/* ??? */)
 { void (*old)();

@@ -436,7 +436,7 @@ have to define extra variables, slowing down execution a bit (on the SUN
 this trick saves about 10% on this function).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if !O_NO_LEFT_CAST
+#ifdef TAGGED_LVALUE
 #define w1 ((word)t1)
 #define w2 ((word)t2)
 #endif
@@ -444,7 +444,7 @@ this trick saves about 10% on this function).
 bool
 unify(register Word t1, register Word t2)
 {
-#if O_NO_LEFT_CAST
+#ifndef TAGGED_LVALUE
   register word w1, w2;
 #endif
 
@@ -731,7 +731,7 @@ interpret(Module Context, word Goal, bool debug)
   };
 
 #define VMI(Name, Count, Msg)	Name ## _LBL: Count; DEBUG(8, printf Msg);
-#if O_VMCODE_IS_ADDRESS
+#if VMCODE_IS_ADDRESS
 #define NEXT_INSTRUCTION	goto *(void *)((int)(*PC++))
 #else
 #define NEXT_INSTRUCTION	goto *jmp_table[*PC++]
@@ -744,12 +744,12 @@ interpret(Module Context, word Goal, bool debug)
 
 #endif /* O_LABEL_ADDRESSES */
 
-#if O_VMCODE_IS_ADDRESS
+#if VMCODE_IS_ADDRESS
   interpreter_jmp_table = jmp_table;	/* make it globally known */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 If the assertion below fails, addresses cannot be  stored in VM codes.
-Add #define O_VMCODE_IS_ADDRESS 0 to your md.h file.
+Add #define VMCODE_IS_ADDRESS 0 to your md.h file.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   DEBUG(0, { int i;
@@ -757,7 +757,7 @@ Add #define O_VMCODE_IS_ADDRESS 0 to your md.h file.
 	     for(i=0; i<=I_HIGHEST; i++)
 	       assert((long) jmp_table[i] < (1 << (sizeof(code)*8)));
 	   });
-#endif /* O_VMCODE_IS_ADDRESS */
+#endif /* VMCODE_IS_ADDRESS */
 
   DEBUG(1, { extern int Output;		/* --atoenne-- */
 	     if ( Output )
@@ -1737,14 +1737,14 @@ The   asm("nop")  is a  tricky.    The  problem  is    that  C_NOT and
 C_IFTHENELSE are the same instructions.   The one is generated on \+/1
 and the  other    on (Cond ->   True    ;   False).   Their  different
 virtual-machine   id is  used   by  the   decompiler.  Now,   as   the
-O_VMCODE_IS_ADDRESS is in effect,  these two instruction would  become
+VMCODE_IS_ADDRESS is in effect,  these two instruction would  become
 the same.  The asm("nop") ensures  they have the same *functionality*,
 but a  *different* address.  If your  machine does't like nop,  define
 the  macro ASM_NOP  in your md-file  to do something that 1)  has  *no
 effect* and 2) is *not optimised* away by the compiler.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(C_NOT, {}, ("c_not %d\n", *PC))
-#if O_VMCODE_IS_ADDRESS
+#if VMCODE_IS_ADDRESS
 #ifdef ASM_NOP
       ASM_NOP
 #else
@@ -1958,7 +1958,7 @@ Note: we are working above `lTop' here!
 	statistics.inferences++;
 	DoMark(FR->mark);
 
-#if O_PROFILE
+#ifdef O_PROFILE
 	if (statistics.profiling)
 	  DEF->profile_calls++;
 #endif /* O_PROFILE */
@@ -2307,7 +2307,7 @@ frame_failed:				MARK(FAIL);
 
   for(;;)
   { 
-#if O_PROFILE
+#ifdef O_PROFILE
 	if (statistics.profiling)
 	  FR->procedure->definition->profile_fails++;
 #endif
@@ -2376,7 +2376,7 @@ resume_from_body:
     }
     
     statistics.inferences++;
-#if O_PROFILE
+#ifdef O_PROFILE
     if ( statistics.profiling )
       FR->procedure->definition->profile_redos++;
 #endif /* O_PROFILE */

@@ -21,45 +21,38 @@ static long	wait_ticks;	/* clock ticks not CPU time */
 #if OS2 && EMX
 #include <os2.h>                /* this has to appear before pl-incl.h */
 #endif
-#ifdef linux
-#include <stdio.h>
-#endif
+
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-itf.h"
 
-#if unix || EMX
-#include <sys/param.h>
+#if HAVE_SYS_STAT_H
 #include <sys/stat.h>
-#include <pwd.h>
-#include <sys/file.h>
-#if !sun
-#include <sys/ioctl.h>
 #endif
+#if HAVE_PWD_H
+#include <pwd.h>
+#endif
+#if HAVE_VFORK_H
+#include <vfork.h>
+#endif
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
-#include <errno.h>
+#endif
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+#ifdef HAVE_SYS_FILE_H
+#include <sys/file.h>
 #endif
 
+#include <fcntl.h>
+#include <errno.h>
+
 #if defined(__WATCOMC__)
-#include <sys/stat.h>
 #define lock lock_function
 #include <io.h>
 #undef lock
 #include <dos.h>
-#endif
-
-#if sun
-#if !solaris
-#include <vfork.h>
-#endif
-extern int fstat(/*int, struct stat **/);
-extern int stat(/*char *, struct stat**/);
-extern int unlink(/*char **/);
-extern int link(/*char **/);
-extern int select(/*int *, int*, int*, struct timeval **/);
-extern int ioctl(/*int, int, Void*/);
-extern int srandom(long);
-extern int random(void);
 #endif
 
 #if OS2 && EMX
@@ -71,6 +64,10 @@ forwards void	initRandom(void);
 forwards void	initEnviron(void);
 forwards char *	okToExec(char *);
 forwards char *	Which(char *);
+
+#ifndef DEFAULT_PATH
+#define DEFAULT_PATH "/bin:/usr/bin"
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module is a contraction of functions that used to be all  over  the
@@ -107,8 +104,7 @@ initOs(void)
   wait_ticks = clock();
 #endif
 #if OS2
-  {
-    DATETIME i;
+  { DATETIME i;
     DosGetDateTime((PDATETIME)&i);
     initial_time = (i.hours * 3600.0) 
                    + (i.minutes * 60.0) 
@@ -181,7 +177,7 @@ Halt(int status)
 char *
 OsError(void)
 {
-#if O_STRERROR
+#ifdef HAVE_STRERROR
   return strerror(errno);
 #else
 static char errmsg[64];
@@ -197,14 +193,9 @@ static char errmsg[64];
     return sys_errlist[errno];
 #endif
 
-#if tos
-  if ( errno < sys_nerr )
-    return strerror(errno);
-#endif
-
   sprintf(errmsg, "Unknown Error (%d)", errno);
   return errmsg;
-#endif /*O_STRERROR*/
+#endif /*HAVE_STRERROR*/
 }
 
 		/********************************
@@ -222,25 +213,30 @@ static char errmsg[64];
     consult a file or to execute a query.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if unix
+#ifdef HAVE_TIMES
+#include <sys/times.h>
+
+#if defined(_SC_CLK_TCK)
+#define Hz ((int)sysconf(_SC_CLK_TCK))
+#else
 #ifdef HZ
 #  define Hz HZ
 #else
-#  define Hz        60
+#  define Hz 60				/* if nothing better: guess */
 #endif
-#include <sys/times.h>
-#endif
+#endif /*_SC_CLK_TCK*/
+#endif /*HAVE_TIMES*/
 
 
 real
 CpuTime(void)
 {
-#if unix
+#ifdef HAVE_TIMES
   struct tms t;
 
   times(&t);
 
-  return t.tms_utime / ( real )( Hz ) ;
+  return t.tms_utime / (real)(Hz) ;
 #endif
 
 #if OS2 && EMX
@@ -256,7 +252,6 @@ CpuTime(void)
 #if defined(__WATCOMC__)
   return (real) clock() / (real) CLOCKS_PER_SEC;
 #endif
-
 
 #if tos
   return (real) (clock() - wait_ticks) / 200.0;
@@ -291,30 +286,6 @@ Allocate(long int n)
   return (Void) mem;
 }
 
-#if hpux
-#include <a.out.h>
-int
-getpagesize()
-{  
-#ifdef EXEC_PAGESIZE
-  return EXEC_PAGESIZE;
-#else
-  return 4096;				/* not that important */
-#endif
-}
-#endif
-
-#if tos
-void
-bzero(p, n)
-Void p;
-register size_t n;
-{ char *s = p;
-
-  while( n-- > 0 )
-    *s++ = '\0';
-}
-#endif
 
 
 		/********************************
@@ -355,6 +326,10 @@ va_list args;
 		*     STRING MANIPULATION	*
 		********************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The builtin strcmp() of SunOs is broken on some machines ...
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 #if sun
 int
 strcmp(s1, s2)
@@ -379,19 +354,21 @@ unsigned char *s1, *s2;
 
 static void
 initRandom(void)
-{
-#ifdef SRANDOM
-  SRANDOM(Time());
+{ long init = Time();
+#ifdef HAVE_SRANDOM
+  srandom(init);
 #else
-  srand((unsigned)Time());
+#ifdef HAVE_SRAND
+  srand(init);
+#endif
 #endif
 }
 
 long
 Random(void)
 { 
-#ifdef RANDOM
-  return RANDOM();
+#ifdef HAVE_RANDOM
+  return random();
 #else
   return rand();
 #endif
@@ -490,14 +467,14 @@ macros to deal with 16-bit machines, but are not  defined  as  functions
 here.   Some  more  specific things SWI-Prolog wants to know about files
 are defined here:
 
-    int  GetDTableSize()
+    int  getdtablesize()
 
     SWI-Prolog assumes it can refer to open i/o streams via  read()  and
     write() by small integers, returned by open(). These integers should
-    be  in  the range [0, ..., GetDTableSize()). If your system does not
+    be  in  the range [0, ..., getdtablesize()). If your system does not
     do this you better redefine the Open(), Read() and Write() macros so
     they  do  meet  this  requirement.   Prolog  allocates  a  table  of
-    structures with GetDTableSize entries.
+    structures with getdtablesize() entries.
 
     long LastModifiedFile(path)
 	 char *path;
@@ -547,42 +524,59 @@ are defined here:
     compiler and the creation of stand-alone executables.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifndef HAVE_GETDTABLESIZE
 int
-GetDTableSize(void)
+getdtablesize()
 {
-#ifdef DESCRIPTOR_TABLE_SIZE
-  return DESCRIPTOR_TABLE_SIZE;
+#ifdef OPEN_MAX
+  return OPEN_MAX;
 #else
-#  if USG
-   return sysconf(_SC_OPEN_MAX);
-#  else
-#    if hpux || USG
-#      include <sys/resource.h>
-       struct rlimit rlp;
-       (void) getrlimit(RLIMIT_NOFILE,&rlp);
-       return (rlp.rlim_cur);
-#    else
-     extern int getdtablesize(void);
-
-     return getdtablesize();
-#    endif
-#  endif
+#ifdef _SC_OPEN_MAX			/* POSIX, USG */
+  return sysconf(_SC_OPEN_MAX);
+#else
+#ifdef HAVE_GETRLIMIT
+#ifdef HAVE_SYS_RESOURCE_H
+#include <sys/resource.h>
 #endif
+#ifdef RLIMIT_NOFILE
+  { struct rlimit rlp;
+    getrlimit(RLIMIT_NOFILE,&rlp);
+    return (rlp.rlim_cur);
+  }
+#endif /*RLIMIT_NOFILE*/
+#endif /*HAVE_GETRLIMIT*/
+#endif /*_SC_OPEN_MAX*/
+#endif /*OPEN_MAX*/
 }
-
+#endif /*HAVE_GETDTABLESIZE*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Size of a VM page of memory.  Most BSD machines have this function.  If not,
 here are several alternatives ...
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if solaris
+#ifndef HAVE_GETPAGESIZE
+#ifdef _SC_PAGESIZE
 int
 getpagesize()
 { return sysconf(_SC_PAGESIZE);
 }
-#endif
+#else /*_SC_PAGESIZE*/
 
+#if hpux
+#include <a.out.h>
+int
+getpagesize()
+{  
+#ifdef EXEC_PAGESIZE
+  return EXEC_PAGESIZE;
+#else
+  return 4096;				/* not that important */
+#endif
+}
+#endif /*hpux*/
+#endif /*_SC_PAGESIZE*/
+#endif /*HAVE_GETPAGESIZE*/
 
 /* ********************************************************************
    Design Note -- atoenne@mpi-sb.mpg.de --
@@ -735,7 +729,7 @@ OsPath(char *p)
 long
 LastModifiedFile(char *f)
 {
-#if unix || O_UNIXLIB
+#if HAVE_STAT
   struct stat buf;
 
   if ( stat(OsPath(f), &buf) < 0 )
@@ -780,7 +774,7 @@ LastModifiedFile(char *f)
 bool
 ExistsFile(char *path)
 {
-#if unix || O_UNIXLIB
+#ifdef HAVE_STAT
   struct stat buf;
 
   if ( stat(OsPath(path), &buf) == -1 || (buf.st_mode & S_IFMT) != S_IFREG )
@@ -803,7 +797,7 @@ ExistsFile(char *path)
 bool
 AccessFile(char *path, int mode)
 {
-#if unix || EMX || O_UNIXLIB
+#ifdef HAVE_ACCESS
   int m = 0;
 
   if ( mode & ACCESS_READ    ) m |= R_OK;
@@ -813,7 +807,7 @@ AccessFile(char *path, int mode)
   return access(OsPath(path), m) == 0 ? TRUE : FALSE;
 #endif
 
-#if tos
+#ifdef tos
   struct ffblk buf;
 
   if ( findfirst(OsPath(path), &buf, FA_DIREC|FA_HIDDEN) != 0 )
@@ -828,7 +822,7 @@ AccessFile(char *path, int mode)
 bool
 ExistsDirectory(char *path)
 { char *ospath = OsPath(path);
-#if unix || O_UNIXLIB
+#ifdef HAVE_STAT
   struct stat buf;
 
   if ( stat(ospath, &buf) == 0 && (buf.st_mode & S_IFMT) == S_IFDIR )
@@ -837,7 +831,7 @@ ExistsDirectory(char *path)
   fail;
 #endif
 
-#if tos
+#ifdef tos
   struct ffblk buf;
 
   if ( findfirst(ospath, &buf, FA_DIREC|FA_HIDDEN) == 0 &&
@@ -853,8 +847,10 @@ ExistsDirectory(char *path)
 long
 SizeFile(char *path)
 { struct stat buf;
+#ifdef HAVE_STAT
   if ( stat(OsPath(path), &buf) == -1 )
     return -1;
+#endif
 
   return buf.st_size;
 }
@@ -863,12 +859,10 @@ SizeFile(char *path)
 bool
 DeleteFile(char *path)
 {
-#if unix || O_UNIXLIB
-  return unlink(OsPath(path)) == 0 ? TRUE : FALSE;
-#endif
-
-#if tos
+#ifdef HAVE_REMOVE
   return remove(OsPath(path)) == 0 ? TRUE : FALSE;
+#else
+  return unlink(OsPath(path)) == 0 ? TRUE : FALSE;
 #endif
 }
 #endif
@@ -879,7 +873,9 @@ RenameFile(char *old, char *new)
 {
   char os_old[MAXPATHLEN];
   char os_new[MAXPATHLEN];
-#if unix
+#ifdef HAVE_RENAME
+  return rename(os_old, os_new) == 0 ? TRUE : FALSE;
+#else
   int rval;
 
   strcpy(os_old, OsPath(old));
@@ -894,16 +890,14 @@ RenameFile(char *old, char *new)
     succeed;
 
   fail;
-#else
-  return rename(os_old, os_new) == 0 ? TRUE : FALSE;
-#endif
+#endif /*HAVE_RENAME*/
 }
 
 bool
 SameFile(char *f1, char *f2)
-{ if ( streq(f1, f2) == FALSE )
+{ if ( !streq(f1, f2) )
   { 
-#if unix
+#ifdef unix				/* doesn't work on most not Unix's */
     struct stat buf1;
     struct stat buf2;
 
@@ -912,7 +906,7 @@ SameFile(char *f1, char *f2)
     if ( buf1.st_ino == buf2.st_ino && buf1.st_dev == buf2.st_dev )
       succeed;
 #endif
-#if O_XOS
+#ifdef O_XOS
     char p1[MAXPATHLEN];
     char p2[MAXPATHLEN];
 
@@ -935,13 +929,11 @@ SameFile(char *f1, char *f2)
 bool
 OpenStream(int fd)
 {
-#if unix || O_UNIXLIB
+#ifdef HAVE_FSTAT
   struct stat buf;
 
   return fstat(fd, &buf) == 0 ? TRUE : FALSE;
-#endif
-
-#if tos
+#else
   return fd < 3 ? TRUE : FALSE;	/* stdin, stdout and stderr are open */
 #endif
 }
@@ -950,7 +942,7 @@ OpenStream(int fd)
 bool
 MarkExecutable(char *name)
 {
-#if unix
+#if defined(HAVE_STAT) && defined(HAVE_CHMOD)
   struct stat buf;
   int um;
 
@@ -965,7 +957,7 @@ MarkExecutable(char *name)
   buf.st_mode |= 0111 & ~um;
   if ( chmod(name, buf.st_mode) == -1 )
     return warning("Couldn't turn %s into an executable: %s", name, OsError());
-#endif
+#endif /* defined(HAVE_STAT) && defined(HAVE_CHMOD) */
 
   succeed;
 }
@@ -994,7 +986,9 @@ MarkExecutable(char *name)
     Return the directory name for a file having path `path'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if unix
+#if defined(HAVE_SYMLINKS) && defined(HAVE_STAT)
+#define O_CANONISE_DIRS
+
 typedef struct canonical_dir *CanonicalDir;
 
 static struct canonical_dir
@@ -1007,7 +1001,7 @@ static struct canonical_dir
 
 forwards char	*canonisePath(char *); /* canonise a path-name */
 forwards char   *canoniseDir(char *);
-#endif
+#endif /*O_CANONISE_DIRS*/
 
 static  char    CWDdir[MAXPATHLEN];	/* current directory */
 static  int     CWDlen;			/* Length of CWDdir */
@@ -1015,7 +1009,7 @@ static  int     CWDlen;			/* Length of CWDdir */
 static void
 initExpand(void)
 { 
-#if unix
+#ifdef O_CANONISE_DIRS
   char *dir;
   char *cpaths;
 #endif
@@ -1023,7 +1017,7 @@ initExpand(void)
   CWDdir[0] = EOS;
   CWDlen = 0;
 
-#if unix
+#ifdef O_CANONISE_DIRS
   if ( (cpaths = getenv("CANONICAL_PATHS")) )
   { char buf[MAXPATHLEN];
 
@@ -1049,7 +1043,7 @@ initExpand(void)
 #endif
 }
 
-#if unix
+#ifdef O_CANONISE_DIRS
 
 static char *
 canoniseDir(char *path)
@@ -1117,70 +1111,82 @@ canoniseDir(char *path)
 
 #define canoniseDir(d)
 
-#endif
+#endif /*O_CANONISE_DIRS*/
 
 
 static char *
-canonisePath(char *path)
-{ register char *out = path;
+canoniseFileName(char *path)
+{ char *out = path, *in = path;
   char *osave[100];
   int  osavep = 0;
-  char *bsave = out;
 
-#if O_XOS
+#ifdef O_XOS
 { char b[MAXPATHLEN];
   _xos_limited_os_filename(path, b);
   strcpy(path, b);
 }
 #endif
 
-  while( path[0] == '/' && path[1] == '.' && path[2] == '.' && path[3] == '/' )
-    path += 3;
+  while( in[0] == '/' && in[1] == '.' && in[2] == '.' && in[3] == '/' )
+    in += 3;
+  if ( in[0] == '/' )
+    *out++ = '/';
+  osave[osavep++] = out;
 
-  while(*path)
-  { if (*path == '/')
+  while(*in)
+  { if (*in == '/')
     {
     again:
-      if ( *path )
-      { while( path[1] == '/' )
-	  path++;
-	while( path[1] == '.' && (path[2] == '/' || path[2] == EOS) )
-	{ path += 2;
+      if ( *in )
+      { while( in[1] == '/' )
+	  in++;
+	while( in[1] == '.' && (in[2] == '/' || in[2] == EOS) )
+	{ in += 2;
 	  goto again;
 	}
-	while (path[1] == '.' && path[2] == '.' &&
-	       (path[3] == '/' || path[3] == EOS) )
+	while (in[1] == '.' && in[2] == '.' &&
+	       (in[3] == '/' || in[3] == EOS) && osavep > 0 )
 	{ out = osave[--osavep];
-	  path += 3;
+	  in += 3;
 	  goto again;
 	}
       }
-
+      if ( *in )
+	in++;
+      if ( out > path && out[-1] != '/' )
+	*out++ = '/';
       osave[osavep++] = out;
-      if ( (*out++ = *path) )
-	path++;
     } else
-      *out++ = *path++;
+      *out++ = *in++;
   }
-  *out++ = *path++;
+  *out++ = *in++;
 
-#if unix
+  return path;
+}
+
+
+static char *
+canonisePath(char *path)
+{ canoniseFileName(path);
+
+#ifdef O_CANONISE_DIRS
 { char *e;
   char dirname[MAXPATHLEN];
 
-  e = bsave + strlen(bsave) - 1;
-  for( ; *e != '/' && e > bsave; e-- )
+  e = path + strlen(path) - 1;
+  for( ; *e != '/' && e > path; e-- )
     ;
-  strncpy(dirname, bsave, e-bsave);
-  dirname[e-bsave] = EOS;
+  strncpy(dirname, path, e-path);
+  dirname[e-path] = EOS;
   canoniseDir(dirname);
   strcat(dirname, e);
-  strcpy(bsave, dirname);
+  strcpy(path, dirname);
 }
 #endif
 
-  return bsave;
+  return path;
 }
+
 
 #include <ctype.h>
 
@@ -1215,10 +1221,9 @@ expandVars(char *pattern, char *expanded)
 
   if ( *pattern == '~' )
   {
-#if unix
+#ifdef HAVE_GETPWNAM
     static char fred[20];
     static char fredLogin[MAXPATHLEN];
-    extern struct passwd *getpwnam(const char *);
 #endif
     char *user;
     char *value;
@@ -1227,7 +1232,7 @@ expandVars(char *pattern, char *expanded)
     pattern++;
     user = takeWord(&pattern);
 
-#if unix
+#ifdef HAVE_GETPWNAM
     if ( user[0] != EOS || (value = getenv("HOME")) == (char *) NULL )
     { struct passwd *pwent;
 
@@ -1248,7 +1253,7 @@ expandVars(char *pattern, char *expanded)
     } else
     { value = PrologPath(value);
     }
-#endif
+#endif /*HAVE_GETPWNAM*/
     size += (l = (int) strlen(value));
     if ( size >= MAXPATHLEN )
       return warning("Path name too long");
@@ -1330,11 +1335,11 @@ ExpandOneFile(char *spec)
   }
 }
 
-#if OS2
+#ifdef OS2
 #define getcwd _getcwd2
 #endif
 
-#if O_GETCWD
+#ifdef HAVE_GETCWD
 char *
 getwd(char *buf)
 { strcpy(buf, PrologPath(getcwd(buf, MAXPATHLEN)));
@@ -1342,7 +1347,7 @@ getwd(char *buf)
 }
 #endif
 
-#if tos
+#ifdef tos
 char *
 getwd(char *buf)
 { char path[MAXPATHLEN];
@@ -1357,13 +1362,9 @@ getwd(char *buf)
 }
 #endif
 
-#if unix
+#ifdef unix
 #define isAbsolutePath(p) ( p[0] == '/' )
 #define isRelativePath(p) ( p[0] == '.' )
-#endif
-#if tos
-#define isAbsolutePath(p) ( isLetter(p[0]) && p[1] == ':' )
-#define isRelativePath(p) ( p[0] == '.' || p[0] == '/' || p[0] == '\\' )
 #endif
 #if OS2 || O_HPFS || O_XOS
 #define isAbsolutePath(p) (p[0] == '/' && isLetter(p[1]) && \
@@ -1483,6 +1484,63 @@ DirName(char *f)
   return dir;
 }
 
+char *
+ReadLink(char *f)
+{
+#ifdef HAVE_READLINK
+  static char buf[MAXPATHLEN];
+  int n;
+
+  if ( (n=readlink(f, buf, sizeof(buf)-1)) > 0 )
+  { buf[n] = EOS;
+    return buf;
+  }
+#endif
+
+  return NULL;
+}
+
+
+static char *
+DeRefLink1(char *f)
+{ char *l;
+
+  if ( (l=ReadLink(f)) )
+  { if ( l[0] == '/' )
+    { return l;				/* absolute path */
+    } else
+    { static char buf[MAXPATHLEN];
+      char *q;
+
+      strcpy(buf, f);
+      q = &buf[strlen(buf)];
+      while(q>buf && q[-1] != '/')
+	q--;
+      strcpy(q, l);
+
+      canoniseFileName(buf);
+
+      return buf;
+    }
+  }
+
+  return NULL;
+}
+
+
+char *
+DeRefLink(char *link)
+{ char *f;
+  int n = 20;				/* avoid loop! */
+
+  while((f=DeRefLink1(link)) && n-- > 0)
+    link = f;
+
+  return n > 0 ? link : NULL;
+}
+
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     bool ChDir(path)
 	 char *path;
@@ -1493,8 +1551,7 @@ DirName(char *f)
 
 bool
 ChDir(char *path)
-{ extern int chdir(const char *);
-  char *ospath = OsPath(path);
+{ char *ospath = OsPath(path);
 
   if ( path[0] == EOS ||
        streq(path, CWDdir) ||
@@ -1511,28 +1568,6 @@ ChDir(char *path)
     s--;
   *s = EOS;
   ospath = buf;
-
-#ifdef __WATCOMC__
-					/* chdir("c:") does not work!! */
-  if ( isLetter(buf[0]) && buf[1] == ':' && buf[2] == '\0' )
-  { unsigned int drv = makeLower(buf[0]) - 'a' + 1;
-    unsigned int cdrv;
-
-    _dos_getdrive(&cdrv);
-    if ( cdrv != drv )
-    { unsigned int total;
-
-      _dos_setdrive(drv, &total);
-      _dos_getdrive(&cdrv);
-      if ( cdrv != drv )
-      { errno = 1;  /*ENOENT, but I can't include <errno.h> for some reason*/
-	fail;
-      }
-    }
-
-    ospath = "/";
-  }
-#endif
 }
 #endif
 
@@ -1549,7 +1584,7 @@ ChDir(char *path)
   fail;
 }
 
-#if O_NOGETW
+#ifndef HAVE_GETW
 long
 getw(fd)
 register FILE *fd;
@@ -1574,7 +1609,7 @@ FILE *fd;
 
   return l;
 }
-#endif /* O_NOGETW */
+#endif /* !HAVE_GETW */
 
 		/********************************
 		*        TIME CONVERSION        *
@@ -1610,17 +1645,17 @@ FILE *fd;
 
 struct tm *
 LocalTime(long int *t)
-{ extern struct tm *localtime(const time_t *);
-
-  return localtime((const time_t *) t);
+{ return localtime((const time_t *) t);
 }
+
 
 long
 Time(void)
 { return (long)time((time_t *) NULL);
 }
 
-#if tos
+
+#ifndef HAVE_GETTIMEOFDAY
 void
 gettimeofday(tz, p)
 struct timeval *tz;
@@ -1649,28 +1684,11 @@ PopTty()
 
 static int prompt_next = TRUE;	/* prompt on next GetChar() */
 
-#if O_SAVE && !O_SAVE_STDIO
-static void
-ResetStdin(void)
-{
 #ifdef RESET_STDIN
+static void
+ResetStdin()
+{
   RESET_STDIN;
-#else
-#if unix
-#if linux				/* actually gcc libc (4.3.3) */
-  stdin->_gptr = stdin->_egptr;
-#else
-  stdin->_ptr = stdin->_base;
-  stdin->_cnt = 0;
-#endif
-#endif
-#if EMX
-  stdin->ptr = stdin->buffer;
-  stdin->rcount = 0;
-  stdin->wcount = 0;
-#endif
-  clearerr(stdin);
-#endif
 }
 #else
 #define ResetStdin()
@@ -1678,22 +1696,21 @@ ResetStdin(void)
 
 int (*PL_dispatch_events)() = NULL;	/* event-dIspatching */
 
-#if O_READLINE
+#ifdef HAVE_LIBREADLINE
 
-#if O_RL12
+#ifdef HAVE_RL_INSERT_CLOSE
 #define PAREN_MATCHING 1
 extern rl_delete_text(int from, int to);
 #endif
 
 #undef ESC				/* will be redefined ... */
-#if solaris && !defined(HAVE_STRING_H)
-#define HAVE_STRING_H
-#endif
 #include <readline/readline.h>
 #undef savestring
 extern void add_history(char *);	/* should be in readline.h */
 extern rl_begin_undo_group(void);	/* delete when conflict arrises! */
 extern rl_end_undo_group(void);
+extern Function *rl_event_hook;
+extern char *filename_completion_function(char *, int);
 
 
 static int
@@ -1778,7 +1795,6 @@ GetChar(void)
   } else
   { if ( !line )
     { ttybuf buf;
-      extern Function *rl_event_hook;
       rl_event_hook = (PL_dispatch_events ? (Function *) event_hook
 					  : (Function *) NULL);
 
@@ -1826,7 +1842,7 @@ prolog_complete(int ignore, int key)
     rl_complete(ignore, key);
     if ( rl_point > 0 && rl_line_buffer[rl_point-1] == ' ' )
     {
-#if O_RL12
+#ifdef HAVE_RL_INSERT_CLOSE		/* actually version >= 1.2 */
       rl_delete_text(rl_point-1, rl_point);
       rl_point -= 1;
 #else
@@ -1841,8 +1857,7 @@ prolog_complete(int ignore, int key)
 
 static char **
 prolog_completion(char *text, int start, int end)
-{ extern char *filename_completion_function(char *, int);
-  char **matches = NULL;
+{ char **matches = NULL;
 
   if ( (start == 1 && rl_line_buffer[0] == '[') )	/* [file */
     matches = completion_matches(text,
@@ -1865,12 +1880,12 @@ ResetTty(void)				/* used to initialise readline */
   rl_attempted_completion_function = prolog_completion;
   rl_basic_word_break_characters = "\t\n\"\\'`@$><= [](){}+*!";
   rl_add_defun("prolog-complete", prolog_complete, '\t');
-#if O_RL12
+#if HAVE_RL_INSERT_CLOSE
   rl_add_defun("insert-close", rl_insert_close, ')');
 #endif
 }
 
-#else /*!O_READLINE*/
+#else /*!HAVE_LIBREADLINE*/
 
 Char
 GetChar()
@@ -1938,18 +1953,20 @@ ResetTty()
   prompt_next = TRUE;
 }
 
-#endif /*O_READLINE*/
+#endif /*HAVE_LIBREADLINE*/
 
-#if O_TERMIOS				/* System V/POSIX termio system */
+#ifdef O_TERMIO				/* sys/termios.h or sys/termio.h */
+
+#ifndef NO_SYS_IOCTL_H_WITH_SYS_TERMIOS_H
+#include <sys/ioctl.h>
+#endif
+#ifndef TIOCGETA
+#define TIOCGETA TCGETA
+#endif
 
 bool
 PushTty(ttybuf *buf, int mode)
-{
-#if	BSD_TERMIOS
-  struct termios tio;
-#else
-  struct termio tio;
-#endif	/*BSD_TERMIOS*/
+{ struct termios tio;
 
   buf->mode = ttymode;
   ttymode = mode;
@@ -1957,13 +1974,8 @@ PushTty(ttybuf *buf, int mode)
   if ( status.notty )
     succeed;
 
-#if	BSD_TERMIOS
   if ( ioctl(0, TIOCGETA, &buf->tab) )	/* save the old one */
     fail;
-#else
-  if ( ioctl(0, TCGETA, &buf->tab) )	/* save the old one */
-    fail;
-#endif	/*BSD_TERMIOS*/
   tio = buf->tab;
 
   switch( mode )
@@ -1981,12 +1993,12 @@ PushTty(ttybuf *buf, int mode)
 	/*NOTREACHED*/
   }
 
-#if	BSD_TERMIOS
+#ifdef TIOCSETAW
   ioctl(0, TIOCSETAW, &tio);
 #else
   ioctl(0, TCSETAW, &tio);
   ioctl(0, TCXONC, (void *)1);
-#endif	/*BSD_TERMIOS*/
+#endif
 
   succeed;
 }
@@ -1999,18 +2011,17 @@ PopTty(ttybuf *buf)
   if ( status.notty )
     succeed;
 
-
-#if	BSD_TERMIOS
+#ifdef TIOCSETA
   ioctl(0, TIOCSETA, &buf->tab);
 #else
   ioctl(0, TCSETA, &buf->tab);
   ioctl(0, TCXONC, (void *)1);
-#endif	/*BSD_TERMIOS*/
+#endif
 
   succeed;
 }
 
-#else					/* Use Readline's functions */
+#else /* O_TERMIO */
 
 bool
 PushTty(buf, mode)
@@ -2033,7 +2044,7 @@ ttybuf *buf;
   succeed;
 }
 
-#endif /* O_TERMIOS */
+#endif /* O_TERMIO */
 
 
 		/********************************
@@ -2060,7 +2071,7 @@ requested via getenv/2 from Prolog.  Functions
     value, or NULL if the variable did not exist.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if O_PUTENV
+#if HAVE_PUTENV
 
 char *
 Setenv(char *name, char *value)
@@ -2086,9 +2097,9 @@ initEnviron()
 {
 }
 
-#else /*O_PUTENV*/
+#else /*HAVE_PUTENV*/
 
-#if tos
+#ifdef tos
 char **environ;
 #else
 extern char **environ;		/* Unix predefined environment */
@@ -2147,7 +2158,7 @@ growEnviron(char **e, int amount)
 static void
 initEnviron(void)
 {
-#if tos
+#ifdef tos
   environ = mainEnv;
 #endif
   growEnviron(environ, 0);
@@ -2220,7 +2231,7 @@ Unsetenv(char *name)
   return (char *) NULL;
 }
 
-#endif /*O_PUTENV*/
+#endif /*HAVE_PUTENV*/
 
 		/********************************
 		*       SYSTEM PROCESSES        *
@@ -2243,28 +2254,38 @@ related I/O in the child process.
     an alternative.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if unix
-#if !v7
+#ifdef unix
+#define SPECIFIC_SYSTEM 1
+#ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
+#endif
+#ifndef WEXITSTATUS
+# define WEXITSTATUS(stat_val) ((unsigned)(stat_val) >> 8)
+#endif
+#ifndef WIFEXITED
+# define WIFEXITED(stat_val) (((stat_val) & 255) == 0)
+#endif
+
+#ifdef UNION_WAIT
+#define wait_t union wait
+#else
+#define wait_t int
 #endif
 
 int
 System(char *cmd)
 { int pid;
-  char *shell;
+  char *shell = "/bin/sh";
   int rval;
   void (*old_int)();
   void (*old_stop)();
-#if !O_READLINE
+#ifndef HAVE_LIBREADLINE
   ttybuf buf;
 #endif
 
   Setenv("PROLOGCHILD", "yes");
 
-/*if ((shell = getenv("SHELL")) == (char *)NULL) bourne shell for speed now */
-    shell = "/bin/sh";
-
-#if !O_READLINE
+#ifndef HAVE_LIBREADLINE
   PushTty(&buf, TTY_SAVE);
   PopTty(&ttytab);			/* restore cooked mode */
 #endif
@@ -2274,7 +2295,7 @@ System(char *cmd)
   } else if ( pid == 0 )		/* The child */
   { int i;
 
-    for(i = 3; i < GetDTableSize(); i++)
+    for(i = 3; i < getdtablesize(); i++)
       close(i);
     stopItimer();
 
@@ -2283,30 +2304,7 @@ System(char *cmd)
     fail;
     /*NOTREACHED*/
   } else
-#if v7 || hpux || USG
-  { int waitstat, retstat;		/* the parent */
-
-    old_int  = signal(SIGINT,  SIG_IGN);
-#ifdef SIGTSTP
-    old_stop = signal(SIGTSTP, SIG_DFL);
-#endif /* SIGTSTP */
-
-    for(;;)
-    { while( (waitstat = Wait(&retstat)) != pid && waitstat != -1 )
-        ;
-      if ( waitstat == -1 )
-      {  if ( errno == EINTR )
-           continue;                    /* the for-loop */
-         warning("Failed to execute %s: %s", cmd, OsError());
-         rval = 1;
-      } else
-        rval = retstat;
-
-      break;
-    }
-  }
-#else /* v7 */
-  { union wait status;			/* the parent */
+  { wait_t status;			/* the parent */
     int n;
 
     old_int  = signal(SIGINT,  SIG_IGN);
@@ -2319,9 +2317,9 @@ System(char *cmd)
     { warning("Failed to execute %s", cmd);
       rval = 1;
     } else if (WIFEXITED(status))
-    { rval = status.w_retcode;
+    { rval = WEXITSTATUS(status);
     } else if (WIFSIGNALED(status))
-    { warning("Child %s catched signal %d\n", cmd, status.w_termsig);
+    { warning("Child %s catched signal %d\n", cmd, WTERMSIG(status));
       rval = 1;
     } else
     { rval = 1;				/* make gcc happy */
@@ -2329,13 +2327,12 @@ System(char *cmd)
       /*NOTREACHED*/
     }
   }
-#endif /* v7 */
 
   signal(SIGINT,  old_int);		/* restore signal handlers */
 #ifdef SIGTSTP
   signal(SIGTSTP, old_stop);
 #endif /* SIGTSTP */
-#if !O_READLINE
+#ifndef HAVE_LIBREADLINE
   PopTty(&buf);
 #endif
 
@@ -2343,7 +2340,8 @@ System(char *cmd)
 }
 #endif /* unix */
 
-#if tos
+#ifdef tos
+#define SPECIFIC_SYSTEM 1
 #include <aes.h>
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2426,18 +2424,17 @@ char *command;
 }
 #endif
 
-/* OS/2 does not have the same problems as Unix(tm). We simply fire up a
-   shell that does the job.
-*/
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Nothing special is needed.  Just hope the C-library defines system().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if (OS2 && EMX) || defined(__WATCOMC__)
+#ifndef SPECIFIC_SYSTEM
 int
 System(command)
 char *command;
-{
-  return system(command);
+{ return system(command);
 }
-#endif /* OS2 */
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     char *Symbols()
@@ -2447,27 +2444,46 @@ char *command;
     loader, who gives this path to ld, using ld -A <path>.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if unix || EMX || defined(__WATCOMC__)
 char *
 Symbols(void)
-{ return Which(PrologPath(mainArgv[0]));
-}
-#endif
+{ char *file = Which(PrologPath(mainArgv[0]));
 
-#if tos
-char *
-Symbols()
-{ return "pl1.5";
+  if ( file )
+  { int n, fd;
+    char buf[MAXPATHLEN];
+
+    if ( (fd = open(file, O_RDONLY)) < 0 )
+    { warning("Cannot open %s: %s", file, OsError());
+      return file;
+    }
+
+    if ( (n=read(fd, buf, sizeof(buf)-1)) > 0 )
+    { close(fd);
+
+      buf[n] = EOS;
+      if ( strncmp(buf, "#!", 2) == 0 )
+      { char *s = &buf[2], *q;
+	while(*s && isBlank(*s))
+	  s++;
+	for(q=s; *q && !isBlank(*q); q++)
+	  ;
+	*q = EOS;
+
+	return store_string(s);
+      }
+    }
+
+    close(fd);
+  }
+
+  return file;
 }
-#endif
+
 
 #if unix
 static char *
 okToExec(char *s)
 { struct stat stbuff;
-#if sun
-  extern int access(/*char *, int*/);
-#endif
 
   if (stat(s, &stbuff) == 0 &&			/* stat it */
      (stbuff.st_mode & S_IFMT) == S_IFREG &&	/* check for file */
@@ -2476,74 +2492,43 @@ okToExec(char *s)
   else
     return (char *) NULL;
 }
-
 #define PATHSEP	':'
 #endif /* unix */
 
-#if tos
-static char *
-okToExec(s)
-char *s;
-{ static char path[MAXPATHLEN];
-
-  DEBUG(2, printf("Checking %s\n", s));
-  if ( strpostfix(s, ".ttp" ) || strpostfix(s, ".prg") )
-    return ExistsFile(s) ? s : (char *) NULL;
-
-  strcpy(path, s);
-  strcat(path, ".ttp");
-  DEBUG(2, printf("Checking %s\n", path));
-  if ( ExistsFile(path) == TRUE )
-    return path;
-  strcpy(path, s);
-  strcat(path, ".prg");
-  DEBUG(2, printf("Checking %s\n", path));
-  if ( ExistsFile(path) == TRUE )
-    return path;
-  return (char *) NULL;
-}
-
+#ifdef tos
+#define EXEC_EXTENSIONS { ".ttp", ".prg", NULL }
 #define PATHSEP ','
-#endif /* tos */
+#endif
 
 #if defined(OS2) || defined(__DOS__) || defined(__WINDOWS__)
+#define EXEC_EXTENSIONS { ".exe", ".com", ".bat", ".cmd", NULL }
+#define PATHSEP ';'
+#endif
+
+#ifdef EXEC_EXTENSIONS
 static char *
 okToExec(s)
 char *s;
-{ static char path[MAXPATHLEN];
+{ static char *extensions[] = EXEC_EXTENSIONS;
+  static char **ext;
 
   DEBUG(2, printf("Checking %s\n", s));
-  if (strpostfix(s, ".exe") ||
-      strpostfix(s, ".com") ||
-      strpostfix(s, ".bat") ||
-      strpostfix(s, ".cmd"))
-    return ExistsFile(s) ? s : (char *) NULL;
+  for(ext = extensions; *ext, ext++)
+    if ( strpostfix(s, *ext) )
+      return ExistsFile(s) ? s : (char *) NULL;
 
-  strcpy(path, s);
-  strcat(path, ".exe");
-  DEBUG(2, printf("Checking %s\n", path));
-  if ( ExistsFile(path) == TRUE )
-    return path;
-  strcpy(path, s);
-  strcat(path, ".com");
-  DEBUG(2, printf("Checking %s\n", path));
-  if ( ExistsFile(path) == TRUE )
-    return path;
-  strcpy(path, s);
-  strcat(path, ".cmd");
-  DEBUG(2, printf("Checking %s\n", path));
-  if ( ExistsFile(path) == TRUE )
-    return path;
-  strcpy(path, s);
-  strcat(path, ".bat");
-  DEBUG(2, printf("Checking %s\n", path));
-  if ( ExistsFile(path) == TRUE )
-    return path;
+  for(ext = extensions; *ext, ext++)
+  { static char path[MAXPATHLEN];
+
+    strcpy(path, s);
+    strcat(path, *ext);
+    if ( ExistsFile(path) )
+      return path;
+  }
+
   return (char *) NULL;
 }
-
-#define PATHSEP ';'
-#endif /* OS2 */
+#endif /*EXEC_EXTENSIONS*/
 
 static char *
 Which(char *program)
@@ -2613,21 +2598,10 @@ Which(char *program)
     point,  expressing  the  time  to sleep in seconds.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if unix
-#if O_NOSELECT
-void
-Sleep(time)
-real time;
-{ if ( time < 0.5 )
-    return;
-  sleep( (int)(time+0.5) );
-}
-
-#else
+#ifdef HAVE_SELECT
 
 void
-Sleep(real time)			/* system has select() */
-          
+Sleep(real time)
 { struct timeval timeout;
 
   if ( time <= 0.0 )
@@ -2640,10 +2614,10 @@ Sleep(real time)			/* system has select() */
   } else
     sleep( (int)(time+0.5) );
 }
-#endif /* has select() */
-#endif /* unix */
 
-#if OS2 && EMX                  /* the OS/2 API call for DosSleep allows */
+#else /*!HAVE_SELECT*/
+#ifdef HAVE_DOSSLEEP
+
 void                            /* a millisecond granualrity. */
 Sleep(time)                     /* the EMX function sleep uses a seconds */
 real time;                      /* granularity only. */
@@ -2653,19 +2627,21 @@ real time;                      /* granularity only. */
 
   DosSleep((ULONG)(time * 1000));
 }
-#endif /* OS2 */
 
+#else /*HAVE_DOSSLEEP*/
+#ifdef HAVE_SLEEP
 
-#if defined(__WATCOMC__) && !defined(__NT__)
 void
 Sleep(real t)
-{ if ( t <= 0.0 )
+{ if ( t <= 0.5 )
     return;
 
   sleep((int)(t + 0.5));
 }
-#endif
 
+#endif /*HAVE_SLEEP*/
+#endif /*HAVE_DOSSLEEP*/
+#endif /*HAVE_SELECT*/
 
 #if tos
 void

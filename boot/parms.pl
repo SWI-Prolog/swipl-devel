@@ -9,10 +9,9 @@
 :- user:assert(library_directory('.')).
 :- user:assert(library_directory(lib)).
 :- user:assert(library_directory('~/lib/prolog')).
-:- user:assert(library_directory('/usr/local/lib/pl/library')).
 :- user:assert((
 	library_directory(Lib) :-
-		'$home'(Home),
+		feature(home, Home),
 		concat(Home, '/library', Lib))).
 
 
