@@ -739,7 +739,7 @@ system_thread_id(PL_thread_info_t *info)
 #ifdef WIN32
   return info->w32id;
 #else
-  return info->tid;
+  return (long)info->tid;
 #endif
 #endif
 }
@@ -754,9 +754,6 @@ set_system_thread_id(PL_thread_info_t *info)
 #else
 #ifdef WIN32
   info->w32id = GetCurrentThreadId();
-#else
-  info->tid;
-#endif
 #endif
 }
 
