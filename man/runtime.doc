@@ -80,7 +80,7 @@ environment required is the emulator itself.  The emulator may be built
 in two flavours.  The default is the \jargon{development emulator}.  The 
 \jargon{runtime emulator} is similar, but lacks the tracer.
 
-If the option \exam{stand_alone(on)} is present, the emulator is the
+If the option \exam{stand_alone(true)} is present, the emulator is the
 first part of the state. If the emulator is started it will test whether
 a boot-file (state) is attached to the emulator itself and load this
 state. Provided the application has all libraries loaded, the resulting
