@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#42: starting a saved state with no known Prolog home.
+
   * FIXED: do not show FAIL from ports created by dummy choicepoints.
     Alan Baljeu.
 

@@ -1889,7 +1889,7 @@ pushPathTranslation(IOSTREAM *fd, const char *absloadname, int flags)
   load_state = new;
   
   abssavename = getString(fd);
-  if ( !streq(absloadname, abssavename) )
+  if ( absloadname && !streq(absloadname, abssavename) )
   { char load[MAXPATHLEN];
     char save[MAXPATHLEN];
     char *l, *s, *le, *se; 
