@@ -1,3 +1,9 @@
+Jun 20, 2003
+
+  * FIXED: Memory leak in rdf_reachable/3.
+
+  * FIXED: Various installation issues
+
 Jun 10, 2003
 
   * Initial public version

@@ -2040,6 +2040,7 @@ rdf_reachable(term_t subj, term_t pred, term_t obj, control_t h)
 	  }
 	}
       }
+      empty_agenda(&a);
       return FALSE;
     }
     case PL_REDO:
