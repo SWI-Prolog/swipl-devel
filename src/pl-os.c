@@ -1535,6 +1535,50 @@ void *p;
 }
 #endif
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+			TERMINAL IO MANIPULATION
+
+ResetStdin()
+    Clear the stdin buffer after a saved state.  Only necessary
+    if O_SAVE is defined.
+
+GetChar()
+    Read a character from the terminal.
+
+PushTty()
+    Push the tty to the specified state.
+
+PopTty()
+    Restore the tty state.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if O_SAVE
+static void
+ResetStdin()
+{
+#ifdef RESET_STDIN
+  RESET_STDIN;
+#else
+#if unix
+#if linux				/* actually gcc libc (4.3.3) */
+  stdin->_gptr = stdin->_egptr;
+#else
+  stdin->_ptr = stdin->_base;
+  stdin->_cnt = 0;
+#endif
+#endif
+#if EMX
+  stdin->ptr = stdin->buffer;
+  stdin->rcount = 0;
+  stdin->wcount = 0;
+#endif
+  clearerr(stdin);
+#endif
+}
+#else
+#define ResetStdin()
+#endif /*O_SAVE*/
+
 int (*PL_dispatch_events)() = NULL;	/* event-dIspatching */
 
 #if O_READLINE
@@ -1674,7 +1718,8 @@ int start, end;
 
 void
 ResetTty()				/* used to initialise readline */
-{ stdin->_cnt = 0;			/* empty the buffer */
+{ ResetStdin();
+
   rl_readline_name = "Prolog";
   rl_attempted_completion_function = (Function *)prolog_completion;
   rl_basic_word_break_characters = "\t\n\"\\'`@$><= [](){}+*!";
@@ -1724,7 +1769,9 @@ GetChar()
 
 void
 ResetTty()
-{ prompt_next = TRUE;
+{ ResetStdin();
+
+  prompt_next = TRUE;
 }
 
 #endif /*O_READLINE*/
