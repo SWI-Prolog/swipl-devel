@@ -379,7 +379,12 @@ of the following:
     \termitem{default}{}
 Uses the ODBC function SQLDescribeParam() to obtain information about
 the parameter and apply default rules.  See \secref{sqltypes} for
-details.
+details.  If the interface fails to return a type or the type is
+unknown to the ODBC interface a message is printed and the interface
+handles the type as text, which implies the user must supply an atom.
+The message can be suppressed using the \term{silent}{true} option
+of odbc_set_connection/2.  An alternative mapping can be selected
+using the $>$ option of this predicate described below.
 
     \termitem{\arg{SqlType}}{Specifier, ...}
 Declare the parameter to be of type \arg{SqlType} with the given
