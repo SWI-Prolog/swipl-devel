@@ -76,6 +76,9 @@ Packages
   * SGML: Cleanup stream encoding issues.  Documented with the package
     documentation.  
 
+  * Semweb: fixed quoting of attributes.  Remove XPCE dependency of 
+    rdf_edit.pl.
+
 
 Incompatible changes
 ====================
