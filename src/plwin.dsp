@@ -94,13 +94,6 @@ SOURCE=".\pl-ntmain.c"
 # Begin Source File
 
 SOURCE=.\pl.rc
-
-!IF  "$(CFG)" == "plwin - Win32 Release"
-
-!ELSEIF  "$(CFG)" == "plwin - Win32 Debug"
-
-!ENDIF 
-
 # End Source File
 # End Group
 # Begin Group "Header Files"

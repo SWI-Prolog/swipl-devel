@@ -31,6 +31,10 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #include "morecore.c"
 #endif
 
+#if defined(_DEBUG) && defined(WIN32)
+#include <crtdbg.h>
+#endif
+
 static int	usage(void);
 static int	giveVersionInfo(const char *a);
 static bool	vsysError(const char *fm, va_list args);
@@ -533,16 +537,23 @@ PL_initialise(int argc, char **argv)
   bool compile = FALSE;
   const char *rcpath = "<none>";
 
+#if defined(_DEBUG) && defined(WIN32)
+#if 0
+  extern void initHeapDebug(void);
+  initHeapDebug();
+#endif
+  _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF|
+		 _CRTDBG_CHECK_ALWAYS_DF|
+		 _CRTDBG_CHECK_CRT_DF|
+		 _CRTDBG_DELAY_FREE_MEM_DF/*|
+		 _CRTDBG_LEAK_CHECK_DF*/);
+#endif
+
   LOCK();
   if ( GD->initialised )
   { UNLOCK();
     succeed;
   }
-
-#if defined(_DEBUG) && defined(WIN32) && 0
-  extern void initHeapDebug(void);
-  initHeapDebug();
-#endif
 
   SinitStreams();			/* before anything else */
 

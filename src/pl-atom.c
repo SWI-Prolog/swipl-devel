@@ -837,6 +837,8 @@ state. Horrible! We use the thread-local   structure to store the state,
 so multiple Prolog threads can use this routine.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define is_signalled() (LD->pending_signals != 0)
+
 char *
 PL_atom_generator(char *prefix, int state)
 { long i, mx = entriesBuffer(&atom_array, Atom);
@@ -852,6 +854,9 @@ PL_atom_generator(char *prefix, int state)
     if ( !(a = baseBuffer(&atom_array, Atom)[i]) )
       continue;
     
+    if ( is_signalled() )		/* Notably allow windows version */
+      PL_handle_signals();		/* to break out on ^C */
+
     if ( strprefix(a->name, prefix) &&
 	 allAlpha(a->name) &&
 	 strlen(a->name) < ALT_SIZ )
