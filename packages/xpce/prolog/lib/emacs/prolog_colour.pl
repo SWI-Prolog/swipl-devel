@@ -667,45 +667,15 @@ make_fragment(class(Type, Class), TB, F, L, Style) :-
 	send(Fragment, classification, Type),
 	send(Fragment, referenced_class, Class).
 make_fragment(Class, TB, F, L, Style) :-
-	new(Fragment, emacs_colour_fragment(TB, F, L, Style)),
-	message(Class, Fragment).
-
-
-		 /*******************************
-		 *	POPUP AND MESSAGES	*
-		 *******************************/
-
-:- pce_global(@prolog_mode_file_popup,
-	      make_prolog_mode_file_popup).
-
-make_prolog_mode_file_popup(G) :-
-	new(G, popup(file_actions)),
-	send_list(G, append,
-		  [ menu_item(open,
-			      message(@emacs, open_file, @arg1?message)),
-		    menu_item(open_other_window,
-			      message(@emacs, open_file, @arg1?message, @on))
-		  ]).
-
-%	message(+Class, +Fragment)
-%	
-%	Used to associate messages or popups to the new fragment. See
-%	class emacs_colour_fragment for details.
-
-message(file(Path), F) :- !,
-	send(F, message, Path),		% popup-message
-	send(F, popup, @prolog_mode_file_popup).
-message(type_error(Type), F) :- !,
-	send(F, message, string('Type error: argument must be a %s', Type)).
-message(module(M), F) :-
-	atom(M),
-	current_module(M, Path), !,
-	send(F, message, string('Module %s from file %s', M, Path)),
-	send(F, popup, @prolog_mode_file_popup).	
-message(Class, F) :-
-	functor(Class, Name, _),
-	send(F, message, Name).
-
+	new(Fragment, emacs_prolog_fragment(TB, F, L, Style)),
+	functor(Class, Classification, Arity),
+	send(Fragment, classification, Classification),
+	(   Arity == 1,
+	    arg(1, Class, Context),
+	    atomic(Context)
+	->  send(Fragment, context, Context)
+	;   true
+	).
 
 		 /*******************************
 		 *	  CONFIGURATION		*
@@ -1364,3 +1334,73 @@ identify(F) :->
 
 
 :- pce_end_class(emacs_class_fragment).
+
+
+		 /*******************************
+		 *      GENERIC FRAGMENTS	*
+		 *******************************/
+
+:- pce_begin_class(emacs_prolog_fragment, emacs_colour_fragment,
+		   "Colour fragment in Prolog mode").
+
+variable(classification, name,	both, "XREF classification").
+variable(context,	 any*,	both, "Classification argument").
+
+:- pce_group(popup).
+
+popup(F, Popup:popup) :<-
+	get(F, context, Context),
+	Context \== @nil,
+	(   get(F, classification, file)
+	;   get(F, classification, module)
+	),
+	Popup = @prolog_mode_file_popup.
+
+:- pce_global(@prolog_mode_file_popup,
+	      make_prolog_mode_file_popup).
+
+make_prolog_mode_file_popup(G) :-
+	new(G, popup(file_actions)),
+	send_list(G, append,
+		  [ menu_item(open,
+			      message(@emacs, open_file, @arg1?file)),
+		    menu_item(open_other_window,
+			      message(@emacs, open_file, @arg1?file, @on))
+		  ]).
+
+file(F, File:name) :<-
+	"Return associated file"::
+	get(F, context, Context),
+	(   get(F, classification, file)
+	->  File = Context
+	;   get(F, classification, module)
+	->  current_module(Context, File)
+	).
+
+
+identify(F) :->
+	"Identify in status window"::
+	get(F, classification, Class),
+	(   get(F, context, Context),
+	    Context \== @nil
+	->  Term =.. [Class, Context]
+	;   Term = Class
+	),
+	identify_fragment(Term, F, Summary), !,
+	send(F, report, status, Summary).
+
+identify_fragment(var,  _, 'Variable').
+identify_fragment(file(Path), _, Summary) :-
+	new(Summary, string('File %s', Path)).
+identify_fragment(type_error(Type), _, Summary) :-
+	new(Summary, string('Type error: argument must be a %s', Type)).
+identify_fragment(module(Module), _, Summary) :-
+	current_module(Module, Path),
+	new(Summary, string('Module %s loaded from %s', Module, Path)).
+identify_fragment(method(send), _, 'XPCE send method').
+identify_fragment(method(get), _, 'XPCE get method').
+identify_fragment(Class, _, Summary) :-
+	term_to_atom(Class, Summary).
+
+:- pce_end_class.
+		   
