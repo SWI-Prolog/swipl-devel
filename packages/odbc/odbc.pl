@@ -188,7 +188,7 @@ type_facet(searchable(V), Row)	   :- arg(9, Row, I), searchable_arg(I, V).
 type_facet(unsigned(V), Row)	   :- bool_arg(10, Row, V).
 type_facet(money(V), Row)	   :- bool_arg(11, Row, V).
 type_facet(auto_increment(V), Row) :- bool_arg(12, Row, V).
-type_facet(local_name(V), Row)	   :- arg(13, Row, V).
+type_facet(local_name(V), Row)	   :- non_null_arg(13, Row, V).
 type_facet(minimum_scale(V), Row)  :- non_null_arg(14, Row, V).
 type_facet(maximum_scale(V), Row)  :- non_null_arg(15, Row, V).
 

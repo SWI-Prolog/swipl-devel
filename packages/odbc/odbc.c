@@ -36,6 +36,8 @@ Stefano  De  Giorgi  (s.degiorgi@tin.it).
 
 #ifdef WIN32
 #include <windows.h>
+#define HAVE_MKTIME 1
+#define HAVE_LOCALTIME 1
 #else
 #ifdef HAVE_CONFIG_H
 #include <config.h>

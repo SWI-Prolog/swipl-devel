@@ -63,12 +63,10 @@ types we test this too.
 %	list of values of the alternative type.
 
 type(integer,
-     integer = [-1, 0, 42, Min, Max ],
+     integer = [-1, 0, 42 ],
      [ atom  = integer_to_atom,		% exchange as text
        float = integer_to_float		% exchange as float
-     ]) :-
-	current_prolog_flag(max_integer, Max),
-	current_prolog_flag(min_integer, Min).
+     ]).
 type(double,
      float   = [-1.0, 0.0, 42.0, 3.2747 ],
      [ 
@@ -77,11 +75,11 @@ type(decimal(10,2),
      atom = ['3.43', '4.50', '5.00'],
      [
      ]).
-type(decimal(10),
+type(numeric(10),
      integer = [-1, 0, 42],
      [
      ]).
-type(char(20),
+type(varchar(20),
      atom = [ 'foo',
 	      '',
 	      'this is a long text'
@@ -89,7 +87,7 @@ type(char(20),
      [ codes   = atom_codes,
        string  = atom_to_string
      ]).
-type(char(10),				% can we access as integers?
+type(varchar(10),				% can we access as integers?
      atom = [ '1', '2'
 	    ],
      [ integer = atom_to_integer
@@ -124,19 +122,23 @@ type(timestamp,				% MySQL uses POSIX stamps
 test_type(Type) :-
 	open_db,
 	type(Type, PlType=Values, AltAccess),
-	progress('Type ~w:', [Type]),
-	odbc_query(test, 'drop table if exists test'),
-	odbc_query(test,
-		   'create table ~w (value ~q)'-[test, Type]),
-	progress(' (w)', []),
-	insert_values(test, Type, PlType, Values),
-	progress(' (r)', []),
-	read_values(test, PlType, ReadValues),
-	compare_sets(Values, ReadValues),
-	read_test_alt_types(AltAccess, test, Values),
-	write_test_alt_types(AltAccess, Type, test),
-	progress(' (OK!)~n', []).
-%	odbc_query(test, 'drop table test').
+	Type =.. [ODBCName|Args],
+	(   odbc_type(test, ODBCName, name(DbName))
+	->  CreateType =.. [DbName|Args],
+	    progress('Type ~w:', [Type]),
+	    catch(odbc_query(test, 'drop table test'), _, true),
+	    odbc_query(test,
+		       'create table ~w (testval ~w)'-[test, CreateType]),
+	    progress(' (w)', []),
+	    insert_values(test, Type, PlType, Values),
+	    progress(' (r)', []),
+	    read_values(test, PlType, ReadValues),
+	    compare_sets(Values, ReadValues),
+	    read_test_alt_types(AltAccess, test, Values),
+	    write_test_alt_types(AltAccess, Type, test),
+	    progress(' (OK!)~n', [])
+	;   progress('Skipped ~w: not supported~n', [Type])
+	).
 
 %	read_test_alt_types([Type=Map, ...], Table, Values)
 %	
@@ -178,7 +180,7 @@ write_test_alt_type(Type, Map, SqlType, Table) :-
 insert_values(Table, SqlType, PlType, Values) :-
 	open_db,
 	odbc_prepare(test,
-		     'insert into ~w (value) values (?)'-[Table],
+		     'insert into ~w (testval) values (?)'-[Table],
 		     [ PlType>SqlType ],
 		     Statement),
 	forall(member(V, Values),
@@ -188,7 +190,7 @@ read_values(Table, PlType, Values) :-
 	open_db,
 	findall(Value,
 		odbc_query(test,
-			   'select (value) from ~w'-[Table],
+			   'select (testval) from ~w'-[Table],
 			   row(Value),
 			   [ types([PlType])
 			   ]),
