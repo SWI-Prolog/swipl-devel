@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Don't save prolog_flag `argv'.  Reported by Mark Staples.
+
   * FIXED: MT-Version: wrong saving of undo information in
     run_thread_exit_hooks(), causing a crash when a GC happens inside the
     execution of an exit hook.  Reported by Andrew V. Diatchkov.

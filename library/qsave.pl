@@ -380,10 +380,13 @@ save_imports :-
 save_prolog_flags :-
 	feedback('~nPROLOG FLAGS~n~n', []),
 	$current_prolog_flag(Feature, Value, global, write, _Type),
+	\+ no_save_flag(Feature),
 	feedback('~t~8|~w: ~w~n', [Feature, Value]),
 	$add_directive_wic(qsave:restore_prolog_flag(Feature, Value)),
 	fail.
 save_prolog_flags.
+
+no_save_flag(argv).
 
 %	Deal with possibly protected flags (debug_on_error and
 %	report_error are protected flags for the runtime kernel).
