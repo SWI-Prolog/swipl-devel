@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <ctype.h>
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #endif
@@ -551,6 +552,67 @@ put_element_name(dtd_parser *p, term_t t, dtd_element *e)
 }
 
 
+static ichar *
+istrblank(const ichar *s)
+{ for( ; *s; s++ )
+  { if ( isspace(*s) )
+      return (ichar *)s;
+  }
+
+  return NULL;
+}
+
+
+static int
+unify_listval(term_t t, attrtype type, int len, const char *text)
+{ if ( type == AT_NUMBERS )
+  { char *e;
+    long v = strtol(text, &e, 10);
+
+    if ( e-text == len )
+      return PL_unify_integer(t, v);
+					/* TBD: Error!? */
+  }
+
+  return PL_unify_atom_nchars(t, len, text);
+}
+
+
+static void
+put_attribute_value(term_t t, sgml_attribute *a)
+{ switch(a->definition->type)
+  { case AT_CDATA:
+      PL_put_atom_chars(t, a->value.cdata);
+      break;
+    case AT_NUMBER:
+      PL_put_integer(t, a->value.number);
+      break;
+    default:
+    { const ichar *val = a->value.text;
+      const ichar *e;
+
+      if ( a->definition->islist )	/* multi-valued attribute */
+      { term_t tail, head = PL_new_term_ref();
+
+	PL_put_variable(t);
+	tail = PL_copy_term_ref(t);
+	
+	for(e=istrblank(val); e; val = e+1, e=istrblank(val))
+	{ if ( e == val )
+	    continue;			/* skip spaces */
+	  PL_unify_list(tail, head, tail);
+	  unify_listval(head, a->definition->type, e-val, val);
+	}
+        PL_unify_list(tail, head, tail);
+	unify_listval(head, a->definition->type, istrlen(val), val);
+        PL_unify_nil(tail);
+      } else
+	PL_put_atom_chars(t, val);
+    }
+  }
+}
+
+
 static int
 unify_attribute_list(dtd_parser *p, term_t alist,
 		     int argc, sgml_attribute *argv)
@@ -561,18 +623,7 @@ unify_attribute_list(dtd_parser *p, term_t alist,
 
   for(i=0; i<argc; i++)
   { put_name(p, a+0, argv[i].definition->name);
-
-    switch(argv[i].definition->type)
-    { case AT_CDATA:
-	PL_put_atom_chars(a+1, argv[i].value.cdata);
-        break;
-      case AT_NUMBER:
-	PL_put_integer(a+1, argv[i].value.number);
-        break;
-      default:
-	PL_put_atom_chars(a+1, argv[i].value.text);
-        break;
-    }
+    put_attribute_value(a+1, &argv[i]);
     PL_cons_functor_v(a, FUNCTOR_equal2, a);
     if ( !PL_unify_list(tail, h, tail) ||
 	 !PL_unify(h, a) )
@@ -1386,6 +1437,7 @@ static plattrdef plattrs[] =
   { AT_NUMBERS,	 "number",   TRUE },
   { AT_NUTOKEN,	 "nutoken",  FALSE },
   { AT_NUTOKENS, "nutoken",  TRUE },
+  { AT_NOTATION, "notation", FALSE },
 
   { 0, NULL }
 };

@@ -37,6 +37,7 @@ int             istrcaseeq(const ichar *s1, const ichar *s2);
 int		istrncaseeq(const ichar *s1, const ichar *s2, int len);
 int             istrhash(const ichar *t, int tsize);
 int             istrcasehash(const ichar *t, int tsize);
+ichar *		istrchr(const ichar *s, int c);
 
 #define add_icharbuf(buf, chr) \
 	do { if ( buf->size < buf->allocated ) \

@@ -1,6 +1,5 @@
 TODO LIST:
 
-	* Handle multi-valued attributes
 	* Handling of external entities (both param and normal) in Prolog
 	* Check ID/IDREF
 	* Handle memory-allocation errors

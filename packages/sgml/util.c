@@ -113,6 +113,17 @@ istrprefix(const ichar *pref, const ichar *s)
 
 
 ichar *
+istrchr(const ichar *s, int c)
+{ for( ; *s; s++ )
+  { if ( c == *s )
+      return s;
+  }
+
+  return NULL;
+}
+
+
+ichar *
 istrupper(ichar *s)
 { ichar *r = s;
 

@@ -194,9 +194,10 @@ attributes that appeared in the source. No information is returned on
 other attributes, such as \const{fixed} or \const{default} attributes.
 See dtd_property/2 for accessing the DTD for this information.
 Attributes of type \const{CDATA} are returned literal. Attributes of
-type \const{NUMBER} are returned as a Prolog integer. All other
-attribute values are returned as lowercase atoms.%
-	\bug{List-valued attributes are returned as a single atom.}
+type \const{NUMBER} are returned as a Prolog integer.  Multi-valued
+attributes (\const{NAMES}, etc.) are returned as a list of atoms.
+For the type \const{NUMBERS}, a list of Prolog integers is returned
+for any element of the list that can be converted into an integer.
 
 \arg{ListOfContent} defines the content for the element.
 
@@ -880,15 +881,12 @@ many serious documents, it also fails a number of less-used features
 in SGML and XML.  Known missing SGML features include
 
 \begin{itemlist}
-    \item [SHORTREF]
-The SGML SHORTREF features, binding characters to specific functions
-in specific environments are missing.
     \item [NOTATION on entities]
 Though notation is fully parsed, notation attributes on external
 entity declarations are not handed to the user.
     \item [SGML declaration]
-SGML declarations are fixed, though most of the parameters are handled
-through indirections in the implementation.
+The `SGML declaration' is fixed, though most of the parameters are
+handled through indirections in the implementation.
 \end{itemlist}
 
 In XML mode the parser recognises SGML constructs that are not allowed

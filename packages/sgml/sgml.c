@@ -38,33 +38,89 @@ print_close(dtd_parser *p, dtd_element *e)
   return TRUE;
 }
 
+typedef struct _atdef
+{ attrtype	type;			/* AT_* */
+  const char *	name;			/* name */
+  int	       islist;			/* list-type */
+} atdef;
+
+
+static atdef attrs[] = 
+{ { AT_CDATA,	 "cdata",    FALSE },
+  { AT_ENTITY,	 "entity",   FALSE },
+  { AT_ENTITIES, "entity",   TRUE },
+  { AT_ID,	 "id",	     FALSE },
+  { AT_IDREF,	 "idref",    FALSE },
+  { AT_IDREFS,	 "idref",    TRUE },
+  { AT_NAME,	 "name",     FALSE },
+  { AT_NAMES,	 "name",     TRUE },
+  { AT_NMTOKEN,	 "nmtoken",  FALSE },
+  { AT_NMTOKENS, "nmtoken",  TRUE },
+  { AT_NUMBER,	 "number",   FALSE },
+  { AT_NUMBERS,	 "number",   TRUE },
+  { AT_NUTOKEN,	 "nutoken",  FALSE },
+  { AT_NUTOKENS, "nutoken",  TRUE },
+  { AT_NOTATION, "notation", FALSE },
+
+  { 0, NULL }
+};
+
+
+static const ichar *
+find_attrdef(attrtype type)
+{ atdef *ad = attrs;
+
+  for(; ad->name; ad++)
+  { if ( ad->type == type )
+      return ad->name;
+  }
+
+  assert(0);
+  return NULL;
+}
+
+
+static char *
+mkupper(const ichar *s)
+{ int len = strlen(s)+1;
+  ichar *buf = alloca(len);
+
+  istrcpy(buf, s);
+  return str2ring((char *)istrupper(buf));
+}
+
+
 static int
 print_open(dtd_parser *p, dtd_element *e, int argc, sgml_attribute *argv)
-{ ichar name[MAXNMLEN];
-  int i;
-
-  istrcpy(name, e->name->name);
-  printf("(%s\n", istrupper(name));
+{ int i;
 
   for(i=0; i<argc; i++)
   { switch(argv[i].definition->type)
     { case AT_CDATA:
-	printf("A%s %s\n",
-	       argv[i].definition->name->name,
+	printf("A%s CDATA %s\n",
+	       mkupper(argv[i].definition->name->name),
 	       argv[i].value.cdata);
 	break;
       case AT_NUMBER:
-	printf("A%s %ld\n",
-	       argv[i].definition->name->name,
+	printf("A%s NUMBER %ld\n",
+	       mkupper(argv[i].definition->name->name),
 	       argv[i].value.number);
 	break;
+      case AT_NAMEOF:
+	printf("A%s NAME %s\n",
+	       mkupper(argv[i].definition->name->name),
+	       mkupper(argv[i].value.text));
+	break;
       default:
-	printf("A%s %s\n",
-	       argv[i].definition->name->name,
-	       argv[i].value.text);
+	printf("A%s %s %s\n",
+	       mkupper(argv[i].definition->name->name),
+	       mkupper(find_attrdef(argv[i].definition->type)),
+	       mkupper(argv[i].value.text));
 	break;
     }
   }
+
+  printf("(%s\n", mkupper(e->name->name));
 
   return TRUE;
 }
