@@ -151,13 +151,12 @@ find_dl_entry(term_t h)
     { if ( e->id == id )
 	return e;
     }
-    PL_error(NULL, 0, NULL, ERR_EXISTENCE,
-	     PL_new_atom("shared_object_handle"), h);
+    PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_shared_object_handle, h);
     return NULL;
   }
   
-  PL_error(NULL, 0, NULL, ERR_TYPE,
-	   PL_new_atom("shared_object_handle"), h);
+  PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_shared_object_handle, h);
+
   return NULL;
 }
 
