@@ -251,18 +251,24 @@ fill_dialog(M, D) :->
 	/* BROWSERS menu */
 
 	send_list(V, append,
-	     [ menu_item(manual_tools,      end_group := @on)
-	     , menu_item(class_hierarchy)
-	     , menu_item(class_browser)
-	     , menu_item(global_objects)
-	     , menu_item(errors,    	    end_group := @on)
-	     , menu_item(prolog_predicates)
-	     , menu_item(library_overview,
+	     [ menu_item(manual_tools,
+			 end_group := @on),
+	       menu_item(class_hierarchy),
+	       menu_item(class_browser),
+	       menu_item(global_objects),
+	       menu_item(errors,
+			 end_group := @on),
+	       menu_item(xpce_predicates,
+			 @default,
+			 'XPCE/Prolog predicates'),
+	       menu_item(prolog_predicates,
+			 message(M, help_on_prolog)),
+	       menu_item(library_overview,
 			 message(M, library_overview),
-			 end_group := @on)
-	     , menu_item(search)
-	     , menu_item(group_overview)
-	     , menu_item(examples,	    end_group := @on)
+			 end_group := @on),
+	       menu_item(search),
+	       menu_item(group_overview),
+	       menu_item(examples,	    end_group := @on)
 	     ]),
 	(    get(M, maintainer, @on)
 	->   send_list(V, append,
@@ -361,15 +367,13 @@ tool_class(global_objects,	M, man_object_browser(M)).
 tool_class(errors,		M, man_error_browser(M)).
 tool_class(manual_tools,	M,
 	   man_module_browser(M, tools, man_browser_card, 'Manual Tools')).
-tool_class(prolog_predicates,   M,
+tool_class(xpce_predicates,     M,
 	   man_module_browser(M, predicates,
-			      man_predicate_card, 'Prolog Predicates')).
+			      man_predicate_card, 'XPCE/Prolog Predicates')).
 tool_class(examples,		M,
-	   man_module_browser(M, examples, man_example_card, 'PCE Examples')).
+	   man_module_browser(M, examples, man_example_card, 'XPCE Examples')).
 tool_class(changes,		M,
-	   man_module_browser(M, changes, man_change_card, 'PCE Changes')).
-tool_class(bug_fixes,		M,
-	   man_module_browser(M, bug_fixes, man_bug_card, 'PCE Bug Fixes')).
+	   man_module_browser(M, changes, man_change_card, 'XPCE Changes')).
 tool_class(group_overview,	M,
 	   man_group_browser(M, groups, 'Group Browser')).
 
@@ -547,6 +551,11 @@ faq(_M) :->
 library_overview(_M) :->
 	"Hypertext tool for library overview"::
 	send(@helper, give_help, pce_library, main).
+
+
+help_on_prolog(_M) :->
+	"Start Prolog help-system"::
+	auto_call(user:help).
 
 
 		/********************************
