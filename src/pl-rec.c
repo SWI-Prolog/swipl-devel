@@ -196,7 +196,7 @@ addLong(CompileInfo info, long v)
 
   if ( v != PLMINLONG )
   { long absn = (v >= 0 ? v : -v);
-    long mask = 0x1ff << (LONGBITSIZE-9);
+    long mask = 0x1ffL << (LONGBITSIZE-9);
 
     for(; i>1; i--, mask >>= 8)
     { if ( absn & mask )
