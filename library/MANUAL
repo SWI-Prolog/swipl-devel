@@ -188,27 +188,20 @@ From version 1.6, the sources are now versioned using the CVS version
 control system.
 
 
-1.5 Portability
+1.5 Version 1.7 Release Notes
 
-The table below shows which machine dependent features have been ported to
-which architectures.  `+' means ported; `--' not ported and probably not
-portable; `--?'  not ported, but probably feasible.
-
-  Machine        OS           Dynamic  Dynamic   Saved    Profile
-                              Stacks   Linking   States
-  ATARI          TOS 1.3        --       --?       --       --?
-  DEC MIPS       Ultrix 3.1     --       --?       +         +
-  Gould PN       UTX-2.1        +        --?      --?        +
-  HP 9000s300    HP-UX 8.0      --       --?      --?        +
-  IBM PS2        AIX 2.0        --       --?       +         +
-  IBM RISC-6000  AIX 3.1       --?        +        +         +
-  IBM-PC         LINUX          --        --       --       --?
-  NeXT           MACH          --?        +       --?        +
-  SUN-3 and 4    SunOs 4        +         +        +         +
-  VAX            Ultrix         --        +        +         +
+Version 1.7 intergrates the GNU-readline library, offering powerful
+history and command-line editing both using EMACS and vi key-bindings.
 
 
-1.6 Acknowledgements
+1.6 Version 1.8 Release Notes
+
+Version 1.8 offers a stack-shifter to provide dynamically expanding stacks
+on machines that donot offer operating-system support for implementing
+dynamic stacks.
+
+
+1.7 Acknowledgements
 
 Some small parts of the Prolog code of SWI-Prolog are modified versions of
 the corresponding Edinburgh C-Prolog code:  grammar rule compilation and
@@ -229,7 +222,7 @@ Chapter  2
 
 Overview
 
-                                 8
+                                 9
 
 
 2.1 Starting SWI-Prolog from the Unix Shell
@@ -1003,7 +996,7 @@ Chapter  3
 
 Built-In  Predicates
 
-                                38
+                                39
 
 
 3.1 Notation of Predicate Descriptions
@@ -1444,7 +1437,22 @@ ignore(+Goal)
         ignore(_).
 
 
-3.8 Database
+3.8 Grammar rule interface (phrase)
+
+The predicates below may be called to activate a grammar-rule set:
+
+
+phrase(+RuleSet, +InputList)
+    Equivalent to phrase(RuleSet, InputList, []).
+
+
+phrase(+RuleSet, +InputList, -Rest)
+    Activate the rule-set with given name.  `InputList' is the list of
+    tokens to parse, `Rest' is unified with the remaining tokens if the
+    sentence is parsed correctly.
+
+
+3.9 Database
 
 SWI-Prolog offers three different database mechanisms.  The first one is
 the common assert/retract mechanism for manipulating the clause database.
@@ -1580,7 +1588,7 @@ flag(+Key, -Old, +New)
                fail ; flag(succeeds_n_times, Times, Times).
 
 
-3.9 Declaring Properties of Predicates
+3.10 Declaring Properties of Predicates
 
 This section describes directives which manipulate attributes of predicate
 definitions.  The functors dynamic/1, multifile/1 and discontiguous/1 are
@@ -1651,7 +1659,7 @@ index(+Head)
         ...
 
 
-3.10 Examining the Program
+3.11 Examining the Program
 
 
 current_atom(-Atom)
@@ -1769,7 +1777,25 @@ clause(?Head, ?Body, ?Reference)
     unified with Head and Body.
 
 
-3.11 Input and Output
+nth_clause(?Pred, ?Index, ?Reference)
+    Provides access to the clauses of a predicate using their index
+    number.  Counting starts at 1.  If Reference is specified it unifies
+    Pred with the most general term with the same name/arity as the
+    predicate and Index with the index-number of the clause.  Otherwise
+    the name and arity of Pred are used to determine the predicate.  If
+    Index is provided Reference will be unified with the clause
+    reference.  If Index is unbound, backtracking will yield both the
+    indices and the references of all clauses of the predicate.  The
+    following example finds the 2nd clause of member/2:
+
+        ?- nth_clause(member(_,_), 2, Ref), clause(Head, Body, Ref).
+
+        Ref = 160088
+        Head = system : member(G575, [G578|G579])
+        Body = member(G575, G579)
+
+
+3.12 Input and Output
 
 SWI-Prolog provides two different packages for input and output.  One
 confirms to the Edinburgh standard.  This package has a notion of
@@ -1780,7 +1806,7 @@ reading and writing predicate to specify the source or destination.  Both
 packages are fully integrated; the user may switch freely between them.
 
 
-3.11.1 Input and Output Using Implicit Source and Destination
+3.12.1 Input and Output Using Implicit Source and Destination
 
 The package for implicit input and output destination is upwards
 compatible to DEC-10 and C-Prolog.  The reading and writing predicates
@@ -1863,7 +1889,7 @@ told
     Close the current output stream.  The new output stream becomes user.
 
 
-3.11.2 Explicit Input and Output Streams
+3.12.2 Explicit Input and Output Streams
 
 The predicates below are part of the Quintus compatible stream-based I/O
 package.  In this package streams are explicitely created using the
@@ -1914,7 +1940,7 @@ stream_position(+Stream, -Old, +New)
     is connected to a disk file.
 
 
-3.11.3 Switching Between Implicit and Explicit I/O
+3.12.3 Switching Between Implicit and Explicit I/O
 
 The predicates below can be used for switching between the implicit- and
 the explicit stream based I/O predicates.
@@ -1938,7 +1964,7 @@ current_output(-Stream)
     Get the current output stream.
 
 
-3.12 Status of Input and Output Streams
+3.13 Status of Input and Output Streams
 
 
 wait_for_input(+ListOfStreams, -ReadyList, +TimeOut)
@@ -1987,7 +2013,7 @@ tty_fold(-OldColumn, +NewColumn)
     that do not support line folding.
 
 
-3.13 Primitive Character Input and Output
+3.14 Primitive Character Input and Output
 
 
 nl
@@ -2012,7 +2038,7 @@ put(+Stream, +Char)
 tab(+Amount)
     Writes Amount spaces on the current output stream.  Amount should be
     an expression that evaluates to a positive integer (see
-    section 3.19).
+    section 3.20).
 
 
 tab(+Stream, +Amount)
@@ -2063,7 +2089,7 @@ get_single_char(-Char)
     consisted of blank characters.
 
 
-3.14 Term Reading and Writing
+3.15 Term Reading and Writing
 
 
 display(+Term)
@@ -2191,7 +2217,7 @@ prompt(-Old, +New)
     printed when the current input stream is user.
 
 
-3.15 Analysing and Constructing Terms
+3.16 Analysing and Constructing Terms
 
 
 functor(?Term, ?Functor, ?Arity)
@@ -2200,10 +2226,13 @@ functor(?Term, ?Functor, ?Arity)
     variables.  functor/3 silently fails on instantiation faults
 
 
-arg(+Arg, +Term, ?Value)
+arg(?Arg, ?Term, ?Value)
     Term should be instantiated to a term, Arg to an integer between 1
     and the arity of Term.  Value is unified with the Arg-th argument of
-    Term.
+    Term.  Arg may also be unbound.  In this Value will be unified with
+    the successive arguments of the term.  On successfull unification,
+    Arg is unified with the argument number.  Backtracking yields
+    alternative solutions.
 
 
 ?Term =..  ?List
@@ -2261,7 +2290,7 @@ copy_term(+In, -Out)
                erase(Ref).
 
 
-3.16 Analysing and Constructing Atoms
+3.17 Analysing and Constructing Atoms
 
 
 name(?Atom, ?String)
@@ -2319,7 +2348,7 @@ atom_length(+Atom, -Length)
     of characters output when given to write/1.
 
 
-3.17 Representing Text in Strings
+3.18 Representing Text in Strings
 
 SWI-Prolog supports the data type string.  Strings are a time and space
 efficient mechanism to handle text in Prolog.  Atoms are under some
@@ -2366,7 +2395,7 @@ substring(+String, +Start, +Length, -Sub)
     and has Length characters.  Unify this substring with Sub.
 
 
-3.18 Operators
+3.19 Operators
 
 
 op(+Precedence, +Type, +Name)
@@ -2413,7 +2442,7 @@ current_op(?Precedence, ?Type, ?Name)
     with precedence Precedence.  See also op/3.
 
 
-3.19 Arithmetic
+3.20 Arithmetic
 
 Arithmetic can be divided into some special purpose integer predicates and
 a series of general predicates for floating point and integer arithmetic
@@ -2428,7 +2457,7 @@ cannot be traced, which is why it is optional.
 
 The general arithmetic predicates all handle expressions.  An expression
 is either a simple number or a function.  The arguments of a function are
-expressions.  The functions are described in section 3.20.
+expressions.  The functions are described in section 3.21.
 
 
 between(+Low, +High, ?Value)
@@ -2481,7 +2510,7 @@ plus(?Int1, ?Int2, ?Int3)
     Expr evaluates to.
 
 
-3.20 Arithmetic Functions
+3.21 Arithmetic Functions
 
 Arithmetic functions are terms which are evaluated by the arithmetic
 predicates described above.  SWI-Prolog tries to hide the difference
@@ -2664,7 +2693,7 @@ cputime
     time/1.
 
 
-3.21 Adding Arithmetic Functions
+3.22 Adding Arithmetic Functions
 
 Prolog predicates can be given the role of arithmetic function.  The last
 argument is used to return the result, the arguments before the last are
@@ -2705,7 +2734,7 @@ current_arithmetic_function(?Head)
     the context module with Head.
 
 
-3.22 List Manipulation
+3.23 List Manipulation
 
 
 is_list(+Term)
@@ -2789,7 +2818,7 @@ merge(+List1, +List2, -List3)
     both the elements of List1 and List2.  Duplicates are not removed.
 
 
-3.23 Set Manipulation
+3.24 Set Manipulation
 
 
 is_set(+Set)
@@ -2828,7 +2857,7 @@ merge_set(+Set1, +Set2, -Set3)
     duplicates holding the union of the elements of Set1 and Set2.
 
 
-3.24 Sorting Lists
+3.25 Sorting Lists
 
 
 sort(+List, -Sorted)
@@ -2858,7 +2887,7 @@ predsort(+Pred, +List, -Sorted)
     second.
 
 
-3.25 Finding all Solutions to a Goal
+3.26 Finding all Solutions to a Goal
 
 
 findall(+Var, +Goal, -Bag)
@@ -2910,7 +2939,7 @@ setof(+Var, +Goal, -Set)
     sorted list of alternatives without duplicates.
 
 
-3.26 Invoking Predicates on all Members of a List
+3.27 Invoking Predicates on all Members of a List
 
 All the predicates in this section call a predicate on all members of a
 list or until the predicate called fails.  The predicate is called via
@@ -2939,7 +2968,7 @@ sublist(+Pred, +List1, ?List2)
     applies.
 
 
-3.27 Forall
+3.28 Forall
 
 
 forall(+Cond, +Action)
@@ -2951,7 +2980,7 @@ forall(+Cond, +Action)
                        Result =:= Formula).
 
 
-3.28 Formatted Write
+3.29 Formatted Write
 
 The current version of SWI-Prolog provides two formatted write predicates.
 The first is writef/[1,2], which is compatible with Edinburgh C-Prolog.
@@ -2962,7 +2991,7 @@ defined in C. Otherwise compatibility reasons might tell you which
 predicate to use.
 
 
-3.28.1 Writef
+3.29.1 Writef
 
 
 write_ln(+Term)
@@ -3029,7 +3058,7 @@ swritef(-String, +Format)
     Equivalent to swritef(String, Format, []).
 
 
-3.28.2 Format
+3.29.2 Format
 
 
 format(+Format)
@@ -3152,7 +3181,7 @@ sformat(-String, +Format)
     Equivalent to `sformat(String, Format, []).'
 
 
-3.28.3 Programming Format
+3.29.3 Programming Format
 
 
 format_predicate(+Char, +Head)
@@ -3175,7 +3204,7 @@ format_predicate(+Char, +Head)
                between(1, Ar, _), put(13), put(10), fail ; true.
 
 
-3.29 Terminal Control
+3.30 Terminal Control
 
 The following predicates form a simple access mechanism to the Unix
 termcap library to provide terminal independant I/O for screen terminals.
@@ -3211,7 +3240,7 @@ set_tty(-OldStream, +NewStream)
     stream.  Default is user_output.
 
 
-3.30 Unix Interaction
+3.31 Unix Interaction
 
 
 shell(+Command, -Status)
@@ -3261,7 +3290,7 @@ convert_time(+Time, -Year, -Month, -Day, -Hour, -Minute, -Second, -MilliSeconds)
     on the timing capabilities of the system.
 
 
-3.31 Unix File System Interaction
+3.32 Unix File System Interaction
 
 
 access_file(+File, +Mode)
@@ -3328,7 +3357,7 @@ chdir(+Path)
     Change working directory to Path.
 
 
-3.32 User Toplevel Manipulation
+3.33 User Toplevel Manipulation
 
 
 break
@@ -3365,7 +3394,7 @@ prolog
     terminated (succeeds) by typing control-D.
 
 
-3.33 Creating a Protocol of the User Interaction
+3.34 Creating a Protocol of the User Interaction
 
 SWI-Prolog offers the possibility to log the interaction with the user on
 a file.  All Prolog interaction, including warnings and tracer output, are
@@ -3392,7 +3421,7 @@ protocolling(-File)
     unifies File with the current protocol output file.
 
 
-3.34 Debugging and Tracing Programs
+3.35 Debugging and Tracing Programs
 
 
 trace
@@ -3526,7 +3555,7 @@ style_check(+Spec)
                                characters.
 
 
-3.35 Obtaining Runtime Statistics
+3.36 Obtaining Runtime Statistics
 
 
 statistics(+Key, -Value)
@@ -3571,7 +3600,7 @@ time(+Goal)
     model.
 
 
-3.36 Finding Performance Bottlenecks
+3.37 Finding Performance Bottlenecks
 
 SWI-Prolog offers a statistical program profiler similar to Unix prof(1)
 for C and some other languages.  A profiler is used as an aid to find
@@ -3636,7 +3665,7 @@ profile_count(+Head, -Calls, -Promilage)
     (plain).  Promilage is an integer between 0 and 1000.
 
 
-3.37 Memory Management
+3.38 Memory Management
 
 Note:  limit_stack/2 and trim_stacks/0 have no effect on machines that do
 not offer dynamic stack expansion.  On these machines these predicates
@@ -3694,7 +3723,7 @@ stack_parameter(+Stack, +Key, -Old, +New)
     definition is subject to change.
 
 
-3.38 Miscellaneous
+3.39 Miscellaneous
 
 
 dwim_match(+Atom1, +Atom2)
@@ -3765,7 +3794,7 @@ Chapter  4
 
 Using  Modules
 
-                                393
+                                398
 
 
 4.1 Why Using Modules?
@@ -4274,7 +4303,7 @@ trade-off the user is responsible for type checking and should be careful
 not to violate consistency rules as Prolog provides access to its internal
 data structures.
 
-                                416
+                                421
 
 
 5.1 Overview of the Interface
@@ -5270,7 +5299,7 @@ debugging tools for Prolog.  The predicates described here should be
 handled with some care as it is easy to corrupt the consistency of the
 Prolog system by misusing them.
 
-                                500
+                                505
 
 
 6.1 Examining the Environment Stack
@@ -5334,7 +5363,7 @@ prolog_trace_interception(+Port, +Frame, -Action)
     (retry the current goal) or fail (force the current goal to fail).
     Leaving it a variable is identical to continue.
 
-    Together with the predicates described in section 3.34 and the other
+    Together with the predicates described in section 3.35 and the other
     predicates of this chapter this predicate enables the Prolog user to
     define a complete new debugger in Prolog.  Besides this it enables
     the Prolog programmer monitor the execution of a program.  The
@@ -5613,12 +5642,15 @@ not/1                       Negation by failure (not provable)
 notrace/0                   Stop tracing
 nth0/3                      N-th element of a list (0-based)
 nth1/3                      N-th element of a list (1-based)
+nth_clause/3                N-th clause of a predicate
 number/1                    Type check for integer or float
 numbervars/4                Enumerate unbound variables of a term
 once/1                      Call a goal deterministicaly
 op/3                        Declare an operator
 open/3                      Open a file (creating a stream)
 open_null_stream/1           Open a stream to discard output
+phrase/2                    Activate grammar-rule set
+phrase/3                    Activate grammar-rule set (returning rest)
 pi/0                        Arithmetic:  mathematical constant
 please/3                    Query/change environment parameters
 plus/3                      Logical integer addition
@@ -5748,4 +5780,4 @@ writeq/2                    Write term, insert quotes on stream
 xor/2                       Arithmetic:  exclusive or
 |/2                         Disjunction of goals
 
-                                509
+                                514
