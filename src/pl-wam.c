@@ -4705,18 +4705,30 @@ next_choice:
 	goto next_choice;		/* should not happen */
 
 #ifdef O_DEBUGGER
-      if ( debugstatus.debugging && fr0 != FR )
-      { switch( tracePort(FR, BFR, REDO_PORT, NULL PASS_LD) )
-	{ case ACTION_FAIL:
-	    FRAME_FAILED;
-	  case ACTION_IGNORE:
-	    goto exit_builtin;
-	  case ACTION_RETRY:
+      if ( debugstatus.debugging && !debugstatus.suspendTrace  )
+      { LocalFrame fr;
+
+	if ( !SYSTEM_MODE )		/* find user-level goal to retry */
+	{ for(fr = FR; fr && true(fr, FR_NODEBUG); fr = fr->parent)
+	    ;
+	} else
+	  fr = FR;
+
+	if ( fr &&
+	     (false(fr->predicate, HIDE_CHILDS) ||
+	      levelFrame(fr0) <= levelFrame(FR)) )
+	{ switch( tracePort(fr, BFR, REDO_PORT, NULL PASS_LD) )
+	  { case ACTION_FAIL:
+	      FRAME_FAILED;
+	    case ACTION_IGNORE:
+	      goto exit_builtin;
+	    case ACTION_RETRY:
 #ifdef O_LOGICAL_UPDATE
-	    if ( false(DEF, DYNAMIC) )
-	      FR->generation = GD->generation;
+	      if ( false(DEF, DYNAMIC) )
+		FR->generation = GD->generation;
 #endif
-	    goto retry_continue;
+	      goto retry_continue;
+	  }
 	}
       }
 #endif
@@ -4729,8 +4741,10 @@ next_choice:
       if ( next )
       { ch = newChoice(CHP_CLAUSE, FR PASS_LD);
 	ch->value.clause = next;
+#if 0					/* simplifies tracing */
       } else if ( debugstatus.debugging )
       { ch = newChoice(CHP_DEBUG, FR PASS_LD);
+#endif
       }
 
 			/* require space for the args of the next frame */

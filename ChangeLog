@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: handling of redo in the debugger.
+
   * FIXED: sub_atom('1', _, _, 3, Sub) (2nd or 3th argument longer than
     atom).  Anjo Anjewierden.
 

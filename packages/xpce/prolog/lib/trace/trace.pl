@@ -164,6 +164,13 @@ do_intercept(exception(Except), Frame, CHP, Action) :-
 	),
 	show(Frame, CHP, Up, exception(Except)),
 	action(Action).
+do_intercept(redo, Frame, CHP, Action) :-
+	prolog_frame_attribute(Frame, goal, Goal),
+	(   predicate_property(Goal, built_in)
+	;   predicate_property(Goal, foreign)
+	), !,
+	show(Frame, CHP, 1, redo),
+	action(Action).
 do_intercept(redo, Frame, _CHP, into) :-
 	prolog_frame_attribute(Frame, goal, GT),
 	debug('Redo on ~p~n', [GT]),
