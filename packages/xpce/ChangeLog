@@ -4,6 +4,8 @@
 VERSION 6.0.6, distributed with SWI-Prolog 5.0.6
 ================================================
 
+* FIXED: X11 version: timers sometimes stopped spontaneously.
+
 * ENHANCED: library(find_file).  New and more flexible file-browser.
 
 * FIXED: interface to generate error(instantiation_error,_) exception on

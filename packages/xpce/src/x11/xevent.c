@@ -85,7 +85,7 @@ ws_dispatch(Int FD, Any timeout)
     struct timeval *tp = &to;
     fd_set readfds;
     int setmax = 0;
-    int rval;
+    int ready;
 
     if ( isNil(timeout) )
     { tp = NULL;
@@ -109,10 +109,10 @@ ws_dispatch(Int FD, Any timeout)
       dispatch_fd = fd;
     }
 
-    rval = select(setmax+1, &readfds, NULL, NULL, tp);
+    ready = select(setmax+1, &readfds, NULL, NULL, tp);
     dispatch_fd = ofd;
 
-    return (rval > 0 ? SUCCEED : FAIL);
+    return (ready > 0 ? SUCCEED : FAIL);
   }					/* A display: dispatch until there */
 					/* is input or a timeout */
 
@@ -144,7 +144,7 @@ ws_dispatch(Int FD, Any timeout)
 		    XtIMXEvent|XtIMTimer|XtIMAlternateInput);
   pceMTUnlock(LOCK_PCE);
 
-  if ( tid )
+  if ( tid && rval )			/* if rval = FAIL, we had a timeout */
     XtRemoveTimeOut(tid);
   if ( iid )
     XtRemoveInput(iid);

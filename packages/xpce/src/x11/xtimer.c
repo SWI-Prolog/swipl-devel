@@ -42,6 +42,9 @@ static void
 trapTimer(XtPointer xtm, XtIntervalId *id)
 { Timer tm = (Timer) xtm;
 
+  DEBUG(NAME_timer, Cprintf("trapTimer(%s, %p) (tm->id = %p)\n",
+			    pp(tm), *id, getIdTimer(tm)));
+
   if ( getIdTimer(tm) == *id )
   { setIdTimer(tm, 0);
 
@@ -56,9 +59,9 @@ trapTimer(XtPointer xtm, XtIntervalId *id)
 			   trapTimer,
 			   (XtPointer) tm);
       setIdTimer(tm, id);
-    }
-
-    if ( tm->status == NAME_once )
+      DEBUG(NAME_timer, Cprintf("\tre-registered %s with id=%p\n",
+				pp(tm), id));
+    } else if ( tm->status == NAME_once )
       assign(tm, status, NAME_idle);
   }
 }
