@@ -12,12 +12,15 @@
 	    rdfe_delete/1,		% +Resource
 
 	    rdfe_transaction/1,		% :Goal
+	    rdfe_transaction/2,		% :Goal, +Name
 	    rdfe_transaction_member/2,	% +Transactions, -Action
+	    rdfe_transaction_name/2,	% +Transactions, -Name
+	    rdfe_set_transaction_name/2,% +Transactions, +Name
 
 	    rdfe_undo/0,		% 
 	    rdfe_redo/0,
-	    rdfe_can_undo/0,
-	    rdfe_can_redo/0,
+	    rdfe_can_undo/1,		% -TID
+	    rdfe_can_redo/1,		% -TID
 
 	    rdfe_open_journal/2,	% +File, +Mode
 	    rdfe_close_journal/0,
@@ -26,13 +29,16 @@
 	  ]).
 :- use_module(rdf_db).
 :- use_module(library(broadcast)).
+:- use_module(library(lists)).
 
 :- meta_predicate
-	rdfe_transaction(:).
+	rdfe_transaction(:),
+	rdfe_transaction(:, +).
 
 :- dynamic
 	undo_log/5,			% TID, Action, Subj, Pred, Obj
 	current_transaction/1,		% TID
+	transaction_name/2,		% TID, Name
 	undo_marker/2,			% Mode, TID
 	journal/2.			% Path, Stream
 
@@ -77,6 +83,9 @@ user:goal_expansion(rdfe_delete(Subj0),
 	rdf_global_id(Subj0, Subj).
 user:goal_expansion(rdfe_transaction(G0),
 		    rdfe_transaction(G)) :-
+	expand_goal(G0, G).
+user:goal_expansion(rdfe_transaction(G0, Name),
+		    rdfe_transaction(G, Name)) :-
 	expand_goal(G0, G).
 
 
@@ -182,7 +191,9 @@ rdfe_load(File) :-
 %	rolled-back.
 
 rdfe_transaction(Goal) :-
-	rdfe_begin_transaction,
+	rdfe_transaction(Goal, []).
+rdfe_transaction(Goal, Name) :-
+	rdfe_begin_transaction(Name),
 	(   catch(Goal, E, true)
 	->  (   var(E)
 	    ->	rdfe_commit
@@ -198,13 +209,15 @@ rdfe_transaction(Goal) :-
 %	Start a transaction.  This is followed by either rdfe_end_transaction
 %	or rdfe_rollback.  Transactions may be nested.
 
-rdfe_begin_transaction :-
+rdfe_begin_transaction(Name) :-
 	current_transaction(TID), !,	% nested transaction
 	append(TID, [1], TID2),
-	asserta(current_transaction(TID2)).
-rdfe_begin_transaction :-		% toplevel transaction
+	asserta(current_transaction(TID2)),
+	assert(transaction_name(TID2, Name)).
+rdfe_begin_transaction(Name) :-		% toplevel transaction
 	flag(rdf_edit_tid, TID, TID+1),
-	asserta(current_transaction([TID])).
+	asserta(current_transaction([TID])),
+	assert(transaction_name(TID, Name)).
 
 rdfe_current_transaction(TID) :-
 	current_transaction(TID), !.
@@ -345,17 +358,43 @@ rdfe_redo :-
 	broadcast(rdf_undo(redo, UnDone)).
 
 
-rdfe_can_redo :-
-	undo_marker(undo, _), !.
-rdfe_can_redo :-
-	undo_marker(redo, TID),
-	find_previous_undo(TID, _).
+%	rdfe_can_redo(-TID)
+%	rdfe_can_undo(-TID)
+%	
+%	Check if we can undo and if so return the id of the transaction
+%	that will be un/re-done.  A subsequent call to rdfe_transaction_name
+%	can be used to give a hint in the UI.
 
-rdfe_can_undo :-
+rdfe_can_redo(Redo) :-
+	undo_marker(undo, _), !,
+	last_transaction(TID),
+	find_previous_undo(TID, Redo).
+rdfe_can_redo(Redo) :-
+	undo_marker(redo, TID),
+	find_previous_undo(TID, Redo).
+
+rdfe_can_undo(Undo) :-			% continue undo
 	undo_marker(undo, TID), !,
-	find_previous_undo(TID, _).
-rdfe_can_undo :-
-	undo_log(_, _, _, _, _).
+	find_previous_undo(TID, Undo).
+rdfe_can_undo(Undo) :-			% start undo
+	last_transaction(TID),
+	find_previous_undo(TID, Undo).
+
+%	rdfe_transaction_name(+TID, -Name)
+%	
+%	Return name if the transaction is named.
+
+rdfe_transaction_name(TID, Name) :-
+	transaction_name(TID, Name),
+	Name \== [].
+
+%	rdfe_set_transaction_name(+TID, +Name)
+%	
+%	Set name of the current transaction
+
+rdfe_set_transaction_name(TID, Name) :-
+	current_transaction(TID),
+	assert(transaction_name(TID, Name)).
 
 %	rdfe_transaction_member(+TID, -Action)
 %	

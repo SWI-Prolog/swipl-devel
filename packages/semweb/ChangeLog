@@ -1,3 +1,7 @@
+Sep 18, 2003
+
+  * ADDED: rdf_edit.pl: named transactions.
+
 Sep 13, 2003
 
   * FIXED: rehashing on first access/change.
