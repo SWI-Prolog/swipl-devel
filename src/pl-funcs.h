@@ -614,6 +614,7 @@ word		pl_set_predicate_attribute(term_t pred, term_t k, term_t v);
 void		reindexDefinition(Definition def);
 void		redefineProcedure(Procedure proc, SourceFile sf);
 void		startConsult(SourceFile f);
+void		indexDefinition(Definition def, unsigned long pattern);
 word		pl_index(term_t pred);
 SourceFile	lookupSourceFile(atom_t name);
 SourceFile	indexToSourceFile(int index);

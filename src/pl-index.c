@@ -49,8 +49,8 @@ indexing only on the first argument as this is default.
 /* 1 <= c <= 4 */
 
 #define SHIFT(c, a)	((LONGBITSIZE/(c)) * a)
-#define IDX_MASK(c)	(c == 1 ? ~0L : ((1L << (LONGBITSIZE/(c))) - 1))
-#define VM(c, a)	((unsigned long)(~(IDX_MASK(c) << SHIFT(c, a))))
+#define IDX_MASK(c)	(c == 1 ? ~0UL : ((1UL << (LONGBITSIZE/(c))) - 1))
+#define VM(c, a)	((unsigned long)((IDX_MASK(c) << SHIFT(c, a))))
 
 #define Shift(c, a)	(mask_shift[c][a])
 #define Mask(c)		(mask_mask[c])
@@ -64,7 +64,7 @@ static unsigned long variable_mask[][4] =
 #ifdef DONOT_AVOID_SHIFT_WARNING
     { VM(1, 0), 0,        0,        0 },
 #else
-    { (unsigned long)~0L,      0,        0,        0 },
+    { ~0UL,     0,        0,        0 },
 #endif
     { VM(2, 0), VM(2, 1), 0,        0 }, 
     { VM(3, 0), VM(3, 1), VM(3, 2), 0 }, 
@@ -84,7 +84,7 @@ static unsigned long mask_mask[] =
 #ifdef DONOT_AVOID_SHIFT_WARNING
     IDX_MASK(1),
 #else
-    0L,
+    ~0L,
 #endif
     IDX_MASK(2), IDX_MASK(3), IDX_MASK(4)
   };
@@ -150,7 +150,7 @@ getIndex(Word argv, unsigned long pattern, int card, struct index *index
 	 ARG_LD)
 { if ( pattern == 0x1L )
   { index->key     = indexOfWord(*argv PASS_LD);
-    index->varmask = (index->key ? (unsigned long) ~0L : 0L);
+    index->varmask = (index->key ? ~0UL : 0UL);
 
     return;
   } else
@@ -158,7 +158,7 @@ getIndex(Word argv, unsigned long pattern, int card, struct index *index
     int a;
 
     index->key = 0;
-    index->varmask = (unsigned long) ~0L;			/* all 1s */
+    index->varmask = ~0UL;			/* no variables */
 
     for(a = 0; a < card; a++, pattern >>= 1, argv++)
     { for(;(pattern & 0x1) == 0; pattern >>= 1)
@@ -166,10 +166,11 @@ getIndex(Word argv, unsigned long pattern, int card, struct index *index
 
       key = indexOfWord(*argv PASS_LD);
       if ( !key )
-      { index->varmask &= varMask(card, a);
+      { index->varmask &= ~varMask(card, a);
+      } else
+      { key = key ^ (key >> LMASK_BITS);	/* see hashIndex() */
+	index->key |= ((key & Mask(card)) << Shift(card, a) );
       }
-      key = key ^ (key >> LMASK_BITS);	/* see hashIndex() */
-      index->key |= ((key & Mask(card)) << Shift(card, a) );
     }
   }
 
@@ -201,10 +202,12 @@ nextClauseMultiIndexed(ClauseRef cref, unsigned long generation,
   { if ( matchIndex(idx, cref->clause->index) &&
 	 visibleClause(cref->clause, generation))
     { ClauseRef result = cref;
+      int maxsearch = 100;
     
       for( cref = cref->next; cref; cref = cref->next )
-      { if ( matchIndex(idx, cref->clause->index) &&
-	     visibleClause(cref->clause, generation))
+      { if ( (matchIndex(idx, cref->clause->index) &&
+	      visibleClause(cref->clause, generation)) ||
+	     --maxsearch == 0 )
 	{ *next = cref;
 
 	  DEBUG(2, Sdprintf("ndet\n"));
@@ -232,11 +235,13 @@ nextClauseArg1(ClauseRef cref, unsigned long generation,
     if ( (key & clause->index.varmask) == clause->index.key &&
 	 visibleClause(clause, generation))
     { ClauseRef result = cref;
-      
+      int maxsearch = 100;
+
       for( cref = cref->next; cref; cref = cref->next )
       { clause = cref->clause;
-	if ( (key&clause->index.varmask) == clause->index.key &&
-	     visibleClause(clause, generation))
+	if ( ((key&clause->index.varmask) == clause->index.key &&
+	      visibleClause(clause, generation)) ||
+	     --maxsearch == 0 )
 	{ *next = cref;
 	
 	  return result;
@@ -627,11 +632,6 @@ hashDefinition(Definition def, int buckets)
 { GET_LD
   ClauseRef cref;
 
-  if ( true(def, FOREIGN) )
-    fail;
-  if ( def->indexPattern != 0x1 )
-    fail;
-
   DEBUG(2, Sdprintf("hashDefinition(%s, %d)\n", predicateName(def), buckets));
 
   def->hash_info = newClauseIndexTable(buckets);
@@ -648,21 +648,40 @@ hashDefinition(Definition def, int buckets)
 word
 pl_hash(term_t pred)
 { Procedure proc;
-  word rval = FALSE;
 
   if ( get_procedure(pred, &proc, 0, GP_CREATE) )
   { Definition def = proc->definition;
+    int size, minsize;
 
     if ( true(def, FOREIGN) )
       return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 		      ATOM_hash, ATOM_foreign, def);
 
     LOCKDEF(def);
+    indexDefinition(def, 0x1);		/* index in 1st argument */
+    
+    minsize = def->number_of_clauses / 4,
+    size = 64;
+    while (size < minsize)
+      size *= 2;
+
+					/* == reindexDefinition(), but */
+					/* we cannot call this as it would */
+					/* deadlock */
     if ( def->indexPattern & NEED_REINDEX )
-      reindexDefinition(def);
-    rval = hashDefinition(def, 256);
+    { ClauseRef cref;
+
+      def->indexCardinality = 1;
+      for(cref = def->definition.clauses; cref; cref = cref->next)
+	reindexClause(cref->clause);
+      def->indexPattern = 0x1;
+    }
+
+    hashDefinition(def, size);
     UNLOCKDEF(def);
+
+    succeed;
   }
 
-  return rval;
+  fail;
 }

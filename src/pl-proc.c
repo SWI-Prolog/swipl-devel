@@ -2101,6 +2101,22 @@ reindexDefinition(Definition def)
 }
 
 
+void
+indexDefinition(Definition def, unsigned long pattern)
+{ clear(def, AUTOINDEX);
+
+  if ( (def->indexPattern & ~NEED_REINDEX) != 0x1L &&
+       true(def, DYNAMIC) && def->references == 0 )
+  { if ( def->hash_info )
+    { unallocClauseIndexTable(def->hash_info);
+      def->hash_info = NULL;
+    }
+  }
+
+  def->indexPattern = (pattern | NEED_REINDEX);
+} 
+
+
 word
 pl_index(term_t pred)
 { GET_LD
@@ -2134,11 +2150,13 @@ pl_index(term_t pred)
 	}
       }
       
-      clear(def, AUTOINDEX);
-      if ( (def->indexPattern & ~NEED_REINDEX) == pattern)
-	succeed;
-      def->indexPattern = (pattern | NEED_REINDEX);
+      if ( def->indexPattern != pattern)
+      { LOCKDEF(def);
+	indexDefinition(def, pattern);
+	UNLOCKDEF(def);
+      }
     }
+
     succeed;
   }
 
