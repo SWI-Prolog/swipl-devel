@@ -1,9 +1,18 @@
 			SWI-Prolog ChangeLog
 			====================
 
-  * ADDED: first steps for multi-threading support in the windows version
-    based on pthread-win32, an Open Source emulation of POSIX threads on
-    Win32.  Very incomplete.
+  * ADDED: multi-threading support in the windows version based on
+    pthread-win32, an Open Source emulation of POSIX threads on
+    Win32.  Progress:
+
+	- Kernel running on top of pthread-win32
+	- Console code (plterm.dll/plwin.exe) allows for multiple consoles
+	- Basics seem to work fine.
+
+    Consequences:
+
+	- All access to the console using plterm.dll and console.h is
+	  totally incompatible.
 
 VERSION 5.0.10 (Sep 26, 2002)
 =============================

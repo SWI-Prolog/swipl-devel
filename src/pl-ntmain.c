@@ -770,16 +770,31 @@ install_readline(rlc_console c)
   PL_set_feature("readline",    PL_BOOL, TRUE);
 }
 
+/* destroy the console on exit.  Using PL_on_halt() is the clean, but somewhat
+   uncertain way.  using atexit() is more reliable, but we must be sure we don't
+   do it twice.
+*/
+
+static rlc_console main_console;
+
 static void
 closeWin(int s, void *a)
 { rlc_console c = a;
 
-  rlc_close(c);
+  if ( c == main_console )
+  { main_console = NULL;
+    rlc_close(c);
+  }
 }
 
 void
 atexitfunc(void)
-{ rlc_close(NULL);
+{ rlc_console c;
+
+  if ( (c=main_console) ) 
+  { main_console = NULL;
+    rlc_close(c); 
+  }
 }
 
 int
@@ -790,6 +805,7 @@ win32main(rlc_console c, int argc, char **argv)
   PL_register_extensions(extensions);
   install_readline(c);
   PL_action(PL_ACTION_GUIAPP, TRUE);
+  main_console = c;
   PL_on_halt(closeWin, c);
   atexit(atexitfunc);
 
