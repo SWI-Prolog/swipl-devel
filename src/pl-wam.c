@@ -3819,7 +3819,7 @@ increase lTop too to prepare for asynchronous interrupts.
 	    incLevel(next);
 #ifdef O_PROFILE	
 	    if ( LD->profile.active )
-	      next->prof_node = profCall(DEF PASS_LD);
+	      next->prof_node = profCall(def PASS_LD);
 	    else
 	      next->prof_node = NULL;
 #endif
