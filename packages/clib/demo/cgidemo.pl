@@ -1,3 +1,4 @@
+#!/usr/bin/pl -q -g main -s
 /*  $Id$
 
     Part of SWI-Prolog
@@ -16,9 +17,11 @@ main :-
 	format('<TITLE>Simple SWI-Prolog CGI script output</TITLE>~n', []),
 	format('</HEAD>~n~n', []),
 	format('<BODY>~n', []),
+	format('<H1>Form arguments</H1>'),
 	format('<P>', []),
 	print_args(Arguments),
-	format('<BODY>~n</HTML>~n', []).
+	format('<BODY>~n</HTML>~n', []),
+	halt.
 
 print_args([]).
 print_args([A0|T]) :-
