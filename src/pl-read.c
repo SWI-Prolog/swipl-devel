@@ -180,6 +180,7 @@ typedef struct
   unsigned int	flags;			/* Module syntax flags */
 
   atom_t	on_error;		/* Handling of syntax errors */
+  int		has_exception;		/* exception is raised */
 
   term_t	exception;		/* raised exception */
   term_t	variables;		/* report variables */
@@ -297,6 +298,7 @@ errorWarning(const char *id_str, ReadData _PL_rd)
 		    PL_INTEGER, source_char_no);
   }
 
+  _PL_rd->has_exception = TRUE;
   PL_put_term(_PL_rd->exception, ex);
 }
 
@@ -2062,7 +2064,8 @@ pl_read2(term_t from, term_t term)
     fail;
 
   init_read_data(&rd, s);
-  if ( !(rval = read_term(term, &rd)) )
+  rval = read_term(term, &rd);
+  if ( rd.has_exception )
     rval = PL_raise_exception(rd.exception);
   free_read_data(&rd);
   PL_release_stream(s);
@@ -2093,7 +2096,7 @@ retry:
   init_read_data(&rd, s);
   rd.on_error = ATOM_dec10;
   rd.singles = debugstatus.styleCheck & SINGLETON_CHECK ? TRUE : FALSE;
-  if ( !(rval = read_term(term, &rd)) )
+  if ( !(rval = read_term(term, &rd)) && rd.has_exception )
   { if ( reportReadError(&rd) )
     { Undo(m);
       free_read_data(&rd);
@@ -2188,7 +2191,7 @@ retry:
 			   PL_INTEGER, source_line_no,
 			   PL_INTEGER, 0); /* should be charpos! */
   } else
-  { if ( reportReadError(&rd) )
+  { if ( rd.has_exception && reportReadError(&rd) )
     { Undo(m);
       free_read_data(&rd);
       goto retry;
@@ -2240,7 +2243,7 @@ pl_atom_to_term(term_t atom, term_t term, term_t bindings)
     if ( PL_is_variable(bindings) || PL_is_list(bindings) )
       rd.varnames = bindings;
 
-    if ( !(rval = read_term(term, &rd)) )
+    if ( !(rval = read_term(term, &rd)) && rd.has_exception )
       rval = PL_raise_exception(rd.exception);
     free_read_data(&rd);
     Sclose(stream);
@@ -2262,7 +2265,7 @@ PL_chars_to_term(const char *s, term_t t)
     
   init_read_data(&rd, stream);
   PL_put_variable(t);
-  if ( !(rval = read_term(t, &rd)) )
+  if ( !(rval = read_term(t, &rd)) && rd.has_exception )
     PL_put_term(t, rd.exception);
   free_read_data(&rd);
   Sclose(stream);
