@@ -2,7 +2,7 @@
 			   ==============
 
 * ADDED: Dedicated support for JPEG loading on static-color visuals in
-  the X11 version, more than doubling the speed on non colour-mapped
+  the X11 version, more than triples the speed on non colour-mapped
   displays.
 
 
