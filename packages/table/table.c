@@ -34,10 +34,6 @@
 #include <floatingpoint.h>		/* strtod() prototype */
 #endif
 
-#ifndef HAVE_ALLOCA
-#define MAXFIELDWIDTH 1024
-#endif
-
 #include <SWI-Stream.h>
 
 #ifdef O_DEBUG
@@ -1393,6 +1389,7 @@ match_field(Table t, Field f, QueryField q, table_offset_t start, table_offset_t
 #define DEALLOC()
 #else
       char buf[1024];
+      char *tmp;
 
       if ( len+1<1024 )
 	tmp = buf;

@@ -5,13 +5,13 @@
 
 .SUFFIXES: .obj .c
 
-PLBASE=G:/jan/pl
+PLBASE=E:/jan/src/pl
 
 CC=cl.exe
-COFLAGS=-Ic:\msdev\include
+COFLAGS=
 CFLAGS=/MD $(COFLAGS) -I$(PLBASE)/include /W3 /DWIN32 /nologo
 LDFLAGS=/DLL /nologo
-LIBS=libpl.lib msvcrt.lib kernel32.lib
+LIBS=$(PLBASE)/lib/libpl.lib msvcrt.lib kernel32.lib
 LD=link.exe
 DOC2TEX=$$HOME/src/xpce/bin/doc2tex
 LATEX=latex
