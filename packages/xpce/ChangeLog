@@ -1,6 +1,14 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Error handling default file in finder on Windows.
+
+* FIXED: Metafile handling in PceDraw (proper detection of win_metafile
+  and win_printer classes).
+
+* FIXED: Work around IE 5.5 bug in javascript cookie handling for
+  library(http/html_hierarchy).
+
 * FIXED: Editor->geometry problem with h = @default, introduced with the
   patch handling very small editors.  Shows up with GUI tracer making the
   binding and source window smaller each action.
