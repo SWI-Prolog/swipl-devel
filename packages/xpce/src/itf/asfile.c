@@ -28,6 +28,13 @@
 #include <h/interface.h>
 #include <errno.h>
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Thread objects as SWI-Prolog streams. This module  is used by the Prolog
+interface through pce_open/3. It should be merged with iostream.c, which
+defines almost the same, providing XPCE with uniform access to a variety
+of objects.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 typedef struct pce_file_handle * PceFileHandle;
 
 struct pce_file_handle
@@ -160,17 +167,38 @@ pceWrite(int handle, const char *buf, int size)
     CharArray ca;
     status rval;
     Int where = (h->flags & PCE_APPEND ? (Int) DEFAULT : toInt(h->point));
+    const wchar_t *wbuf = (const wchar_t*)buf;
+    const wchar_t *end = (const wchar_t*)&buf[size];
+    const wchar_t *f;
 
     if ( isFreedObj(h->object) )
     { errno = EIO;
       return -1;
     }
 
-    str_set_n_ascii(&s, size, (char *)buf);
+    assert(size%sizeof(wchar_t) == 0);
+    
+    for(f=wbuf; f<end; f++)
+    { if ( *f > 0xff )
+	break;
+    }
+  
+    if ( f == end )
+    { charA *asc = alloca(size);
+      charA *t = asc;
+  
+      for(f=wbuf; f<end; )
+	*t++ = (charA)*f++;
+  
+      str_set_n_ascii(&s, size/sizeof(wchar_t), asc);
+    } else
+    { str_set_n_wchar(&s, size/sizeof(wchar_t), (wchar_t*)wbuf);
+    }
+
     ca = StringToScratchCharArray(&s);
 
     if ( (rval = send(h->object, NAME_writeAsFile, where, ca, EAV)) )
-      h->point += size;
+      h->point += size/sizeof(wchar_t);
     doneScratchCharArray(ca);
 
     if ( rval )
@@ -227,6 +255,8 @@ pceSeek(int handle, long offset, int whence)
 }
 
 
+/* see also Sread_object() */
+
 int
 pceRead(int handle, char *buf, int size)
 { PceFileHandle h;
@@ -244,14 +274,27 @@ pceRead(int handle, char *buf, int size)
     }
 
     argv[0] = toInt(h->point);
-    argv[1] = toInt(size);
-
+    argv[1] = toInt(size/sizeof(wchar_t));
+  
     if ( (sub = getv(h->object, NAME_readAsFile, 2, argv)) &&
 	 instanceOfObject(sub, ClassCharArray) )
-    { chread = sub->data.size;
-      assert(chread <= size);
-      memcpy(buf, sub->data.s_textA, chread);
-      h->point += chread;
+    { String s = &sub->data;
+  
+      assert(s->size <= size/sizeof(wchar_t));
+  
+      if ( isstrA(s) )
+      { charW *dest = (charW*)buf;
+	const charA *f = s->s_textA;
+	const charA *e = &f[s->size];
+	
+	while(f<e)
+	  *dest++ = *f++;
+      } else
+      { memcpy(buf, s->s_textW, s->size*sizeof(charW));
+      }
+  
+      chread = s->size * sizeof(wchar_t);
+      h->point += s->size;
     } else
     { errno = EIO;
       chread = -1;

@@ -196,6 +196,50 @@ textbuffer(file-1) :-
 
 
 		 /*******************************
+		 *	  OBJECT-AS-FILE	*
+		 *******************************/
+
+asfile(tb-1) :-
+	Term = hello('World'),
+	new(TB, text_buffer),
+	pce_open(TB, write, Out),
+	format(Out, '~q', [Term]),
+	close(Out),
+	get(TB?contents, value, Atom),
+	term_to_atom(Term, Atom).
+asfile(tb-2) :-
+	watom(Wide),
+	Term = hello(Wide),
+	new(TB, text_buffer),
+	pce_open(TB, write, Out),
+	format(Out, '~q', [Term]),
+	close(Out),
+	get(TB?contents, value, Atom),
+	term_to_atom(Term, Atom).
+asfile(tb-3) :-
+	watom(Wide),
+	Terms = [ aap, hello(Wide), hello(42) ],
+	new(TB, text_buffer),
+	pce_open(TB, write, Out),
+	forall(member(T, Terms),
+	       format(Out, '~q.~n', [T])),
+	close(Out),
+	pce_open(TB, read, In),
+	read_stream_to_terms(In, Read),
+	close(In),
+	Read =@= Terms.
+
+read_stream_to_terms(In, Terms) :-
+	read(In, T0),
+	read_stream_to_terms(T0, In, Terms).
+
+read_stream_to_terms(end_of_file, _, []) :- !.
+read_stream_to_terms(H, In, [H|T]) :-
+	read(In, T0),
+	read_stream_to_terms(T0, In, T).
+
+
+		 /*******************************
 		 *	      SCRIPTS		*
 		 *******************************/
 
@@ -273,6 +317,7 @@ testset(wstring).			% Strings holding wide characters
 testset(fmt).				% Formatting actions
 testset(srcsink).			% Source/Sink operations
 testset(textbuffer).
+testset(asfile).			% test pce_open and friends
 
 %	testdir(Dir)
 %	
@@ -291,7 +336,8 @@ testset(textbuffer).
 test :-
 	retractall(failed(_)),
 	retractall(blocked(_,_)),
-	forall(testset(Set), runtest(Set)),
+	forall(testset(Set),		% force XOCE incremental GC
+	       send(@prolog, runtest, Set)),
 	scripts,
 	report_blocked,
 	report_failed.

@@ -2612,6 +2612,8 @@ pl_pce_open(Term t, Term mode, Term plhandle)
     if ( (handle = pceOpen(obj, flags)) >= 0 )
     { IOSTREAM *s = Snew((void *)(long)handle, sflags, &pceFunctions);
 
+      s->encoding = ENC_WCHAR;
+
       return PL_open_stream(plhandle, s);
     } else
     { Atom a = AtomFromString(pceOsError());

@@ -2074,8 +2074,7 @@ done:
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Insert a string into a textbuffer. If  the textbuffer is ISO Latin-1 and
-the string is wide, the textbuffer is promoted. This could be improved a
-bit by checking whether the string really contains wide characters.
+the string is wide, the textbuffer is promoted.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static status
@@ -2087,7 +2086,7 @@ insert_textbuffer_shift(TextBuffer tb, int where, int times,
   if ( s->size == 0 )
     succeed;
 
-  if ( istbA(tb) && s->iswide )
+  if ( istbA(tb) && str_iswide(s) )
     promoteTextBuffer(tb);
 
   grow = times * s->size;
@@ -2097,7 +2096,23 @@ insert_textbuffer_shift(TextBuffer tb, int where, int times,
   register_insert_textbuffer(tb, where, grow);
   start_change(tb, tb->gap_start);
   while(times-- > 0)
-  { memmove(Address(tb, tb->gap_start), s->s_text, str_datasize(s));
+  { if ( tb->buffer.iswide == s->iswide )
+    { memmove(Address(tb, tb->gap_start), s->s_text, str_datasize(s));
+    } else if ( isstrA(s) )		/* insert A in W */
+    { charW *d = &tb->buffer.s_textW[tb->gap_start];
+      const charA *f = s->s_textA;
+      const charA *e = &f[s->size];
+
+      while(f<e)
+	*d++ = *f++;
+    } else				/* inseet W in A */
+    { charA *d = &tb->buffer.s_textA[tb->gap_start];
+      const charW *f = s->s_textW;
+      const charW *e = &f[s->size];
+
+      while(f<e)
+	*d++ = *f++;
+    }
     tb->gap_start += s->size;
     tb->size += s->size;
   }
