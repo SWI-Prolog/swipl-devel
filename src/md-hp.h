@@ -4,7 +4,12 @@
     See ../LICENCE to find out about your rights.
     jan@swi.psy.uva.nl
 
-    Purpose: Machine description for HP9000, HPUX 6.5
+    Purpose: Machine description for HP9000, HPUX 8.0
+*/
+
+/*
+** This file contains changes which are part of a port to HPUX 8.0
+** T. Kielmann, 01 Jun 92
 */
 
 #define M_CC			cc
@@ -18,7 +23,6 @@
 #define O_NO_LEFT_CAST		1
 #define O_NO_VOID_POINTER	0
 #define O_SHORT_SYMBOLS		0
-#define O_ASM_SWITCH		0
 			/* Operating system */
 #define O_PROFILE		1
 #define O_SIG_AUTO_RESET	1
@@ -27,7 +31,7 @@
 #define O_NO_SEGV_ADDRESS	0
 #define MAX_VIRTUAL_ADDRESS	(220 * 1024 *1024)
 #define O_FOREIGN		1
-#define O_STORE_PROGRAM		1
+#define O_STORE_PROGRAM		0
 #define DEFAULT_PATH		":/usr/ucb:/bin:/usr/bin:/usr/local:.:";
 			/* terminal driver */
 #define O_TERMIOS 		1

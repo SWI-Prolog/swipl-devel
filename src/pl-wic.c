@@ -270,16 +270,23 @@ FILE *fd;
 bool toplevel, load_options;
 { char *s;
   Char c;
+  int n;
 
-  while( (c=(Char)Getc(fd)) != '\n' && c != EOF ) ;
-  if ( c == EOF )
-    return fatalError("%s is not a SWI-Prolog intermediate code file", file);
-  
+  for(n=0; n<2; n++)			/* skip first two lines */
+  { while( (c=(Char)Getc(fd)) != '\n' && c != EOF ) ;
+    if ( c == EOF )
+      return fatalError("%s is not a SWI-Prolog intermediate code file", file);
+  }
+
   s = getString(fd);
   if (!streq(s, saveMagic) )
-    return fatalError("Intermediate code file %s has bad magic number", file);
+    return fatalError("%s is not a SWI-Prolog intermediate code file", file);
+
   if (getNum(fd) != VERSION)
-    return fatalError("Intermediate code file %s has incompatible save version", file);
+  { fatalError("Intermediate code file %s has incompatible save version",
+	       file);
+    fail;
+  }
 
   if (load_options && toplevel)
   { options.localSize    = getNum(fd);
@@ -522,14 +529,17 @@ FILE *fd;
   DEBUG(2, printf("loadImport(): %s/%d into %s\n", name, arity, stringAtom(modules.source->name)));
 
   if ((old = isCurrentProcedure(functor, modules.source)) != (Procedure) NULL)
-  { if (!isDefinedProcedure(old) )
+  { if ( old->definition == proc->definition )
+      succeed;			/* already done this! */
+
+    if (!isDefinedProcedure(old) )
     { old->definition = proc->definition;
       succeed;
-    } else
-    { return warning("Failed to import %s into %s", 
-					procedureName(proc), 
-					stringAtom(modules.source->name) );
     }
+
+    return warning("Failed to import %s into %s", 
+		   procedureName(proc), 
+		   stringAtom(modules.source->name) );
   }
   addHTable(modules.source->procedures, functor, proc);
 
@@ -711,14 +721,18 @@ char *file;
   if ( (wicFd = Fopen(file, STREAM_OPEN_BIN_WRITE)) == (FILE *)NULL )
     return warning("Can't open %s: %s", file, OsError());
   DEBUG(1, printf("Searching for executable\n"));
-  TRY( getSymbols() );
-  exec = stringAtom(loaderstatus.orgsymbolfile);
+  if ( loaderstatus.restored_state )
+  { exec = stringAtom(loaderstatus.restored_state);
+  } else
+  { TRY( getSymbols() );
+    exec = stringAtom(loaderstatus.orgsymbolfile);
+  }
   DEBUG(1, printf("Executable = %s\n", exec));
-  if ( (exec = AbsoluteFile(exec)) == (char *)NULL )
+  if ( !(exec = AbsoluteFile(exec)) )
     fail;
   DEBUG(1, printf("Expanded executable = %s\n", exec));
-  DEBUG(2, printf("#!%s -x ...\n", exec));
-  fprintf(wicFd, "#!%s -x\n", exec);
+/*fprintf(wicFd, "#!%s -x\n", exec);*/
+  fprintf(wicFd, "#!/bin/sh\nexec %s -x $0 $*\n", exec);
   DEBUG(2, printf("Magic  ...\n"));
   putString( saveMagic,            wicFd);
   DEBUG(2, printf("Numeric options ...\n"));

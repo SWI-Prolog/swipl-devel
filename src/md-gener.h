@@ -8,39 +8,34 @@
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Compiler flags for making `makefile' from `Makefile' using cpp
+			COMPILER FLAGS
+
+Compiler  flags for  making `xmakefile'   from  `Makefile' using  cpp.
+Default is  gcc,  which is   preferred  on   machines  that  have  it.
+SWI-Prolog needs   to   be loaded statically   when   using O_SAVE  or
+O_STORE_PROGRAM.  Hence the -static.   If  gcc complains it  does  not
+know -static,  this   probably implies the   operating   system has no
+dynamic libraries so you may safely drop -static then.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define M_CC			cc
-#define M_OPTIMIZE	        -O
-#define M_LDFLAGS		
-#define M_CFLAGS		
+#define M_CC			gcc
+#define M_OPTIMIZE	        -O2
+#define M_LDFLAGS		-static
+#define M_CFLAGS		-Wall
 #define M_LIBS			-lm -ltermcap
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-????
-system.  At the bottom of this file a default setting that can  be  used
-as  starting point for a new architecture can be found.  To set up a new
-archtecture, copy this file to a md- file with appropriate name,  delete
-the  comment  and change values as appropriate.  If you are not sure, it
-might be wise to use the default setting of this file as a first guess.
-
-The  #define statements below should be set to 1 if a feature is wanted.
-Otherwise it should be set to 0.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			COMPILER OPTIONS
 
-If it exists for  your  machine,  I  suggest  to  use  the  GNU  project
-C-compiler  GCC.   It is the only compiler I've seen which is capable of
-optimising  the  virtual  machine  interpreter.   Many  compilers  don't
-understand the complex flow control of this gigantic function and either
-tell  you  they  refuse to optimise, silently refuse to optimise or even
-crash.  GCC passes small structures often more efficient than the native
-compiler.  Notably the implementation of clause indexing is improved  by
-this.
+If   it exists for your   machine, I suggest to   use  the GNU project
+C-compiler GCC.  It is the only compiler I've seen which is capable of
+optimising  the virtual  machine  interpreter.   Many  compilers don't
+understand the complex   flow control of  this gigantic  function  and
+either tell you they refuse  to optimise,  silently refuse to optimise
+or even crash.  GCC passes small structures often  more efficient than
+the native compiler.  Notably the implementation of clause indexing is
+improved by this.
 
   ANSI
       This flag indicates the compiler provides ANSI prototypes and  the
@@ -65,12 +60,19 @@ this.
       names of identifiers.  I do not know if pl-ssymb.h still  is  upto
       date.
 
-  O_ASM_SWITCH
-      Modify assembler output of the compiler of  pl-wam.c  to  optimise
-      the  switch  statement.   See  pl-comp.c and pl-wam.c. I have used
-      this on SUN-SPARC, where it provides an performance improvement of
-      about 10%. It is very hairy and clumbersome  to  install  and  for
-      this reason I normally omit it.  Left in for `just in case'.
+  O_ULONG_PREDEFINED
+      The  data type  ulong has been  predefined by the compiler.  Its
+      definition should be `typedef unsigned long ulong'.
+
+  O_UCHAR_PREDEFINED
+      The data type uchar has  been predefined by  the compiler.   Its
+      definition should be `typedef unsigned char uchar'.
+
+  TIME_INCLUDE
+      Include file to get `struct tm'.  Define when not <sys/time.h>
+
+
+		       OPERATING SYSTEM OPTIONS
 
   O_16_BITS
       Indicate global declared structures may be aligned  at  two  bytes
@@ -82,10 +84,20 @@ this.
       on 16 bit machines.  If you change this flag, recompile the entire
       source!
 
-  O_DATA_AT_0X2
-      The data segment starts at 0x20000000.  Many IBM machines do this.
+  O_DATE_AT_0X1
+      The data segment starts at 0x10000000.  Many Ultrix machines
 
-		       OPERATING SYSTEM OPTIONS
+  O_DATA_AT_0X2
+      The data segment starts at 0x20000000.  Many AIX machines
+
+  DATA_START
+      Start     of   the  data  segment.    Needed     when O_SAVE  or
+      O_STORE_PROGRAM  is  defined.   For    O_SAVE  (preferred), only
+      necessary  when not equal   to    &environ  (true for most   BSD
+      systems).  Must often be set on System-V machines.
+
+  TEXT_START
+      Start of the text-segment.  Needed when O_STORE_PROGRAM is set
 
   SIGNAL_HANDLER_TYPE
       Type returned by signal handlers.  If not defined, this defaults
@@ -101,7 +113,8 @@ this.
       slightly decreases overall performance (about 1%).
 
   O_SIG_AUTO_RESET
-      Signals set with signal() automaticaly reset after  a  signal  has
+      Signals set with signal() automatically
+ reset after  a  signal  has
       been catched.  Use this with v7 Unix systems.
 
   DEFAULT_PATH
@@ -136,7 +149,7 @@ this.
       whether  the  signal  handler  is provided with the address of the
       segmentation fault.  If not, set this flag.  Prolog  will  try  to
       find  the  faulting stack using heuristics.  This takes (slightly)
-      longer and might result in a stack beeing expanded  that  did  not
+      longer and might result in a stack being expanded  that  did  not
       actually require expansion, but otherwise it works fine.
 
   MAX_VIRTUAL_ADDRESS
@@ -146,14 +159,23 @@ this.
       grow.  SWI-Prolog places the stacks downwards from this address.
 
   O_FOREIGN
-      Include foreign language code linker.  This  requires  the  (Unix)
-      linker  to accept the -A flag that allows you to generate an image
-      fitting with a existing image.
+      Include foreign language code linker.  This  requires the (Unix)
+      linker to  accept  the -A flag that  allows  you to  generate an
+      image  fitting with  a existing image.   Some systems  (AIX  and
+      MACH) define  functions to load  object-files.  Scan the various
+      existing md-files and pl-load.c
+
+  O_SAVE
+      Define save/[1,2], save_program/[1,2] and restore/1 for handling
+      saved execution states.   This is  the  new and   hopefully more
+      portable   alternative to  O_STORE_PROGRAM.  The  file pl-save.c
+      describes  how  it works.    Only  define   one of   O_SAVE   or
+      O_STORE_PROGRAM.
 
   O_STORE_PROGRAM
       Include saved states.  This is difficult  to  port.   The  current
       version  uses the GNU-emacs code for generating the dump (slightly
-      modified).  If GNU-emacs can be dumped, it should not be too hard.
+      modified).  O_SAVE is to be preferred.
 
   DESCRIPTOR_TABLE_SIZE
       If this macro is defined, it should evaluate to the  size  of  the
@@ -197,21 +219,19 @@ this.
 			/*** WINDOWING INTERFACE ***/
 
   O_PCE
-      Include hooks for the PCE object oriented user interface  package.
-      Currently PCE only runs on SUN.  An X-version is under development
-      and  will  be  available  by  october  1990.  For more information
-      contact:
+      Includes hooks for   the XPCE  object-oriented  user   interface
+      package.  XPCE runs on  various  platforms supporting X11.   For
+      more information contact:
 
-		      anjo@swi.psy.uva.nl (Anjo Anjewierden)
+		      jan@swi.psy.uva.nl (Jan Wielemaker)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 			/* compiler */
-#define ANSI			0
-#define PROTO			0
+#define ANSI			1
+/*#define PROTO			0 not needed when ANSI is set*/
 #define O_NO_LEFT_CAST		0
 #define O_NO_VOID_POINTER	0
 #define O_SHORT_SYMBOLS		0
-#define O_ASM_SWITCH		0
 			/* Operating system */
 #define O_PROFILE		0
 #define O_SIG_AUTO_RESET	0
@@ -220,11 +240,11 @@ this.
 #define O_NO_SEGV_ADDRESS	0
 #define MAX_VIRTUAL_ADDRESS	(220 * 1024 * 1024)
 #define O_FOREIGN		0
-#define O_STORE_PROGRAM		0
+#define O_SAVE			0
 #define DEFAULT_PATH		":/usr/ucb:/bin:/usr/bin:/usr/local:.:"
-/*#define DESCRIPTOR_TABLE_SIZE do what you need to */
+
 			/* terminal driver */
-#define O_TERMIOS 		0
+#define O_TERMIOS 		1
 #define O_EXTEND_ATOMS 		1
 #define O_LINE_EDIT 		1
 #define O_MAP_TAB_ON_ESC	1

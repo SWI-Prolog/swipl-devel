@@ -19,8 +19,8 @@ endif
 
 if ( ! -e src/md-$arch.h ) then
     echo "Machine description file md-$arch.h does not exists."
-    echo "I will copy the generic md file into md-$arcg.h"
-    (cd src; cp md-gener.h md-$arch)
+    echo "I will copy the generic md file into md-$arch.h"
+    (cd src; cp md-gener.h md-$arch.h)
 endif
 
 mkdir $arch

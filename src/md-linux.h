@@ -28,7 +28,6 @@ sources, but not tested afterwards.
 #define O_NO_LEFT_CAST		0
 #define O_NO_VOID_POINTER	0
 #define O_SHORT_SYMBOLS		0
-#define O_ASM_SWITCH		0
 #define O_UCHAR_PREDEFINED	1	/* type uchar is predefined */
 #define O_ULONG_PREDEFINED	1	/* type ulong is predefined */
 
@@ -46,6 +45,7 @@ sources, but not tested afterwards.
 #define DESCRIPTOR_TABLE_SIZE   32
 #define O_STRUCT_DIRECT		0
 #define DIR_INCLUDE		<sys/dir.h>
+#define DIR_INCLUDE2		<dirent.h>
 #define TERMIO_INCLUDE		<termio.h>
 			/* terminal driver */
 #define O_TERMIOS 		1
@@ -55,13 +55,13 @@ sources, but not tested afterwards.
 			/* Interfaces */
 #define O_PCE 			0
 
-#define MACHINE		  "Intel-386"
-#define OPERATING_SYSTEM  "Linux"
+#define MACHINE			"Intel-386"
+#define OPERATING_SYSTEM  	"Linux"
 
 
 		/********************************
 		*      COMPATIBILITY MACROS	*
 		********************************/
 
-#define bcopy(f, t, l)	memcpy(t, f, l)
 #define bzero(t, l)	memset(t, 0, l)
+#define vfork()		fork()

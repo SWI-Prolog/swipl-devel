@@ -33,6 +33,8 @@ save_program.  See pl-load.c and pl-dump.c
 #define FOREIGN_PL		aix_foreign.pl
 
 			/* compiler */
+#pragma alloca
+#define etext _etext
 #define unix			1
 #define _BSD			1	/* BSD compatibility mode */
 #define ANSI			1
@@ -40,9 +42,11 @@ save_program.  See pl-load.c and pl-dump.c
 #define O_NO_LEFT_CAST		1
 #define O_NO_VOID_POINTER	0
 #define O_SHORT_SYMBOLS		0
-#define O_ASM_SWITCH		0
 #define O_ULONG_PREDEFINED	1
 #define O_UCHAR_PREDEFINED	1
+
+			/* C-header-files */
+#define TIME_INCLUDE		<time.h>
 
 			/* Operating system */
 #define O_DATA_AT_0X2		1 /* data space at 0x20000000 - 0x2fffffff */
@@ -55,11 +59,13 @@ save_program.  See pl-load.c and pl-dump.c
 #define MAX_VIRTUAL_ADDRESS	(512 * 1024 *1024) /* redundant */
 #define O_FOREIGN		0
 #define O_AIX_FOREIGN		1
-#define O_STORE_PROGRAM		1
+#define O_SAVE			1
 #define UNEXEC_SOURCE		"gnu/unexaix.c"
 #define TEXT_START		0x10000000
 #define DATA_START		0x20000000
 #define DEFAULT_PATH		":/usr/ucb:/bin:/usr/bin:/usr/local/bin:.:";
+
+#define vfork			fork
 
 			/* terminal driver */
 #define O_TERMIOS 		1

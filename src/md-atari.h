@@ -27,7 +27,6 @@ NOTE:  This port is not yet complete.  Known problems:
 #define O_NO_LEFT_CAST		0
 #define O_NO_VOID_POINTER	0
 #define O_SHORT_SYMBOLS		1
-#define O_ASM_SWITCH		0
 #define O_16_BITS		1
 
 			/* Operating system */
@@ -55,7 +54,6 @@ NOTE:  This port is not yet complete.  Known problems:
 #include <ext.h>
 
 #define SYSTEMHOME		"c:/pl"
-#define SYSTEMSTATE		"pl.wic"
 #define DEFSTARTUP		"pl.rc"
 #define DEFLOCAL		200
 #define DEFGLOBAL		100

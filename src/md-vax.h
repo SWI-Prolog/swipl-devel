@@ -18,7 +18,7 @@ of 1.5 is a bit different this md-file is not guarantied to work.
 #define M_CFLAGS		
 #define M_LIBS			-lm -ltermcap
 
-#define MACHINE			"vaxp"
+#define MACHINE			"vax"
 #define OPERATING_SYSTEM	"ultrix"
 
 			/* Compiler */
@@ -27,7 +27,6 @@ of 1.5 is a bit different this md-file is not guarantied to work.
 #define O_NO_LEFT_CAST		0
 #define O_NO_VOID_POINTER	0
 #define O_SHORT_SYMBOLS		0
-#define O_ASM_SWITCH		0
 			/* Operating system */
 #define O_PROFILE		1
 #define O_SIG_AUTO_RESET	0
@@ -37,7 +36,6 @@ of 1.5 is a bit different this md-file is not guarantied to work.
 #define MAX_VIRTUAL_ADDRESS	(8 * 1024 * 1024) /* actual limit is 21Mb */
 #define O_FOREIGN		1
 #define O_STORE_PROGRAM		1
-#define O_ASM_SWITCH		0
 #define O_NO_LEFT_CAST		0
 #define O_NO_VOID_POINTER	0
 #define DEFAULT_PATH		":/usr/ucb:/bin:/usr/bin:/usr/local/bin:.:";

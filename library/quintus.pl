@@ -92,7 +92,7 @@ no_style_check(QOption) :-
 		*         DIRECTIVES            *
 		*********************************/
 
-:- op(1150, fx, [(mode), (public)]).
+% :- op(1150, fx, [(mode), (public)]).
 
 mode(_).
 public(_).

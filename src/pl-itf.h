@@ -11,7 +11,7 @@
 #define PL_INCLUDED
 
 #ifndef PLVERSION
-#define PLVERSION "1.6.0, May 1992"
+#define PLVERSION "1.6.5, September 1992"
 #endif
 
 #ifndef P
@@ -22,13 +22,18 @@
 #endif
 #endif
 
+#ifdef __GNUC__
+#define constf const			/* const function */
+#else
+#define constf
+#endif
+
 #ifndef PL_KERNEL
 typedef	unsigned long	atomic;		/* atomic Prolog datum */
 typedef unsigned long	functor;	/* name/arity pair as Prolog */
 typedef unsigned long	module;		/* Prolog module */
 typedef unsigned long *	term;		/* general term */
 typedef unsigned long	foreign_t;	/* return type of foreign functions */
-typedef	int		bool;		/* boolean */
 #define O_STRING 1
 #else
 typedef word		atomic;
@@ -49,23 +54,6 @@ typedef struct
 { unsigned long context[2];
 } bktrk_buf;				/* data-backtrack buffer */
 
-		/********************************
-		*     NOTIFIER TRICKS (PCE)     *
-		*********************************/
-
-extern bool aborted;			/* system aborted in critical code */
-
-#ifndef PL_KERNEL
-#include <setjmp.h>
-
-extern struct
-{ int		active;			/* are we in notify code? */
-  bool		dispatching;		/* is notify_do_dispatch() on? */
-  jmp_buf	context;		/* save context of Get0() */
-  bool		called;			/* are we called from Pce? */
-  bool		abort_is_save;		/* an abort is ok */
-} notify_status;
-#endif
 
 		/********************************
 		*            SYMBOLS            *
@@ -95,25 +83,29 @@ extern struct
 #define PL_ATOM		(2)
 #define PL_INTEGER	(3)
 #define PL_FLOAT	(4)
-#if O_STRING
 #define PL_STRING	(5)
-#endif O_STRING
 #define PL_TERM		(6)
 
-int 	PL_type P((term));		/* determine type of a term */
 #define PL_atomic(t)	(*(t))		/* convert term to atomic */
-long	PL_integer_value P((atomic));	/* Prolog int   -> C int */
-double	PL_float_value P((atomic));	/* Prolog float -> C float */
-#if O_STRING
-char *	PL_string_value P((atomic));	/* Prolog string -> C char * */
-#endif O_STRING
-char *  PL_list_string_value P((term));	/* Prolog list of ASCII --> C char * */
-char *	PL_atom_value P((atomic));	/* Prolog atom  -> C char * */
-functor	PL_functor P((term));		/* determine functor of complex term */
-atomic	PL_functor_name P((functor));	/* determine name (atom) of functor */
-int	PL_functor_arity P((functor));	/* determine arity of functor */
-term	PL_arg P((term, int));		/* return argument of complex term */
-term	PL_strip_module P((term, module*)); /* strip module information */
+
+int constf PL_is_var P((const term));
+int constf PL_is_int P((const term));
+int constf PL_is_atom P((const term));
+int constf PL_is_float P((const term));
+int constf PL_is_string P((const term));
+int constf PL_is_term P((const term));
+
+int	constf PL_type P((const term));
+long	constf PL_integer_value P((const atomic));
+double	       PL_float_value P((const atomic));
+char *	       PL_string_value P((const atomic));
+char *         PL_list_string_value P((const term));
+char *	constf PL_atom_value P((const atomic));
+functor constf PL_functor P((const term));
+atomic	constf PL_functor_name P((const functor));
+int	constf PL_functor_arity P((const functor));
+term	constf PL_arg P((const term, int));
+term	constf PL_strip_module P((const term, module*));
 
 		/********************************
 		*         CONSTRUCTION          *
@@ -127,9 +119,9 @@ atomic	PL_new_float P((double));	/* create a new float */
 atomic	PL_new_string P((char *));	/* create a new string */
 #endif O_STRING
 functor	PL_new_functor P((atomic, int)); /* create a new functor */
-bool	PL_unify P((term, term));	/* unify two terms */
-bool	PL_unify_atomic P((term, atomic));  /* unify term with atomic value */
-bool	PL_unify_functor P((term, functor));/* unify term with functor */
+int	PL_unify P((term, term));	/* unify two terms */
+int	PL_unify_atomic P((term, atomic));  /* unify term with atomic value */
+int	PL_unify_functor P((term, functor));/* unify term with functor */
 
 		/********************************
 		*    DETERMINISTIC CALL/RETURN  *
@@ -173,7 +165,7 @@ bool	PL_unify_functor P((term, functor));/* unify term with functor */
 #define PL_FA_TRANSPARENT	(2)	/* foreign is module transparent */
 #define PL_FA_NONDETERMINISTIC	(4)	/* foreign is non-deterministic */
 
-bool	PL_register_foreign P((char *, int, function, ...));
+int	PL_register_foreign P((char *, int, function, ...));
 
 		/********************************
 		*        CALLING PROLOG         *
@@ -182,7 +174,7 @@ bool	PL_register_foreign P((char *, int, function, ...));
 void	PL_mark P((bktrk_buf *));	/* mark global and trail stack */
 void	PL_bktrk P((bktrk_buf *));	/* backtrack global stack to mark */
 
-bool	PL_call P((term, module));	/* invoke term as Prolog goal */
+int	PL_call P((term, module));	/* invoke term as Prolog goal */
 
 		/********************************
 		*            MODULES            *
@@ -228,7 +220,7 @@ void PL_abort_handle P((void (*func)())); /* func called by pl_abort() */
 		*           WARNINGS            *
 		*********************************/
 
-bool	PL_warning P((char *, ...));	/* Print standard Prolog warning */
+int	PL_warning P((char *, ...));	/* Print standard Prolog warning */
 void	PL_fatal_error P((char *, ...));	/* Print warning and die */
 
 		/********************************
@@ -245,7 +237,8 @@ void	PL_fatal_error P((char *, ...));	/* Print warning and die */
 #define PL_ACTION_WRITE		8	/* write via Prolog i/o buffer */
 #define PL_ACTION_FLUSH		9	/* Flush Prolog i/o buffer */
 
-bool	PL_action P((int, void *));	/* perform some action */
+int	PL_action P((int, void *));	/* perform some action */
+void	PL_on_halt P((void (*)(int, void *), void *));
 
 		/********************************
 		*         QUERY PROLOG          *
@@ -258,6 +251,19 @@ bool	PL_action P((int, void *));	/* perform some action */
 #define PL_QUERY_GETC		5	/* Read character from terminal */
 
 long	PL_query P((int));		/* get information from Prolog */
+
+		/********************************
+		*        STATIC LINKING		*
+		********************************/
+
+typedef struct _PL_extension
+{ char 		*predicate_name;	/* Name of the predicate */
+  short		arity;			/* Arity of the predicate */
+  function	function;		/* Implementing functions */
+  short		flags;			/* Or of PL_FA_... */
+} PL_extension;
+
+extern PL_extension PL_extensions[];	/* see pl-extend.c */
 
 #endif PL_INCLUDED
 /* DO NOT WRITE BELOW THIS ENDIF */

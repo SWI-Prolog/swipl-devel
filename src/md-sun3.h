@@ -34,7 +34,6 @@ Note: From SunOs 4.1.1 this fix appears no longer necessary.
 #define O_NO_LEFT_CAST		0
 #define O_NO_VOID_POINTER	0
 #define O_SHORT_SYMBOLS		0
-#define O_ASM_SWITCH		0
 			/* Operating system */
 #define O_PROFILE		1
 #define O_SIG_AUTO_RESET	0
