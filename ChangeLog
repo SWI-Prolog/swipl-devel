@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: tmp_file/2 problem in library(emacs_interface). Tolga Konik.
+
   * ADDED: -nosignals option to inhibit signal handling.  Added a section
     to the manual about embedding in complicated environments. With help of
     David Sitsky.  

@@ -52,12 +52,12 @@ running_under_emacs_interface :-
 
 emacs_tmp_file(File) :-
 	current_prolog_flag(argv, Argv),
-	tmp_file(Argv, File).
+	has_tmp_file(Argv, File).
 
-tmp_file(['+C', Raw|_], File) :- !,
+has_tmp_file(['+C', Raw|_], File) :- !,
 	atom_concat('Emacs:', File, Raw).
-tmp_file([_|T], File) :-
-	tmp_file(T, File).
+has_tmp_file([_|T], File) :-
+	has_tmp_file(T, File).
 
 
 		/********************************
