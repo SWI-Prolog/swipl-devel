@@ -156,7 +156,10 @@ char **env;
 
   argc--; argv++;
 
-  if ( (s = getenv("EMACS")) != NULL && streq(s, "t") )
+					/* EMACS inferior processes */
+					/* PceEmacs inferior processes */
+  if ( ((s = getenv("EMACS")) != NULL && streq(s, "t")) ||
+       ((s = getenv("INFERIOR")) != NULL && streq(s, "yes")) )
     status.notty = TRUE;
 
   for(n=0; n<argc; n++)			/* need to check this first */

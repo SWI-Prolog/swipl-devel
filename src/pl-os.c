@@ -1806,14 +1806,15 @@ ttybuf *buf;
 int mode;
 { struct termio tio;
 
+  buf->mode = ttymode;
+  ttymode = mode;
+
   if ( status.notty )
     succeed;
 
   if ( ioctl(0, TCGETA, &buf->tab) )	/* save the old one */
     fail;
   tio = buf->tab;
-  buf->mode = ttymode;
-  ttymode = mode;
 
   switch( mode )
   { case TTY_RAW:
@@ -1840,13 +1841,13 @@ int mode;
 bool
 PopTty(buf)
 ttybuf *buf;
-{
+{ ttymode = buf->mode;
+
   if ( status.notty )
     succeed;
 
   ioctl(0, TCSETA, &buf->tab);
   ioctl(0, TCXONC, 1);
-  ttymode = buf->mode;
 
   succeed;
 }

@@ -473,7 +473,15 @@ raw_read()
 { char *s;
 
   startRead();
-  s = raw_read2();
+  if ( Input == 0 )
+  { ttybuf tab;
+
+    PushTty(&tab, TTY_SAVE);		/* make sure tty is sane */
+    PopTty(&ttytab);
+    s = raw_read2();
+    PopTty(&tab);
+  } else
+    s = raw_read2();
   stopRead();
 
   return s;
