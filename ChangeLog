@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 3.3.0 (release-5)
+=========================
+
   * WIN32: get_time/1 now returns the time in 1/1000 of a second rather
     then whole seconds.
 
