@@ -512,7 +512,12 @@ do_fill_line(TextImage ti, TextLine l, long index)
 	if ( eof )
 	  l->ends_because |= END_EOF;
       } else if ( ti->wrap == NAME_character )
-      { l->length = i;
+      { as_char:
+	if ( index - l->start <= 1 )	/* make sure at least 1 character */
+	{ i++;
+	  index++;
+	}
+	l->length = i;
 	index--;
 	l->end = index;
 	l->w = tc->x = x;
@@ -528,9 +533,7 @@ do_fill_line(TextImage ti, TextLine l, long index)
 	  index = (*ti->scan)(ti->text, index, 1, TEXT_SKIP_OVER, BL, &eof);
 	  l->end = index;
 	} else				/* doesn't fit on line: as character */
-	{ l->length = i;
-	  l->end = index;
-	  l->w = tc->x = x;
+	{ goto as_char;
 	}
       }
       break;
