@@ -437,77 +437,110 @@ pl_code_type(term_t chr, term_t class, control_t h)
 }
 
 
+static inline int
+get_chr_from_text(const PL_chars_t *t, int index)
+{ switch(t->encoding)
+  { case ENC_ISO_LATIN_1:
+      return t->text.t[index]&0xff;
+    case ENC_WCHAR:
+      return t->text.w[index];
+    default:
+      assert(0);
+  }
+}
+
+
+static foreign_t
+modify_case_atom(term_t in, term_t out, int down)
+{ PL_chars_t tin, tout;
+
+  if ( !PL_get_text_ex(in, &tin, CVT_ATOMIC) )
+    return FALSE;
+
+  if ( PL_get_text(out, &tout, CVT_ATOMIC) )
+  { int i;
+
+    if ( tin.length != tout.length )
+      fail;
+
+    for(i=0; i<tin.length; i++)
+    { int ci = get_chr_from_text(&tin, i);
+      int co = get_chr_from_text(&tout, i);
+
+      if ( down )
+      { if ( co != towlower(ci) )
+	  fail;
+      } else
+      { if ( co != towupper(ci) )
+	  fail;
+      }
+    }
+
+    succeed;
+  } else if ( PL_is_variable(out) )
+  { int i;
+
+    tout.encoding  = tin.encoding;
+    tout.length    = tin.length;
+    tout.canonical = FALSE;		/* or TRUE? Can WCHAR map to ISO? */
+
+    if ( tin.encoding == ENC_ISO_LATIN_1 )
+    { if ( tin.length < sizeof(tout.buf) )
+      { tout.text.t = tout.buf;
+	tout.storage = PL_CHARS_LOCAL;
+      } else
+      { tout.text.t = PL_malloc(tin.length);
+	tout.storage = PL_CHARS_MALLOC;
+      }
+
+      if ( down )
+      { for(i=0; i<tin.length; i++)
+	{ tout.text.t[i] = tolower(tin.text.t[i]);
+	}
+      } else
+      { for(i=0; i<tin.length; i++)
+	{ tout.text.t[i] = toupper(tin.text.t[i]);
+	}
+      } 
+    } else
+    { if ( tin.length*sizeof(pl_wchar_t) < sizeof(tout.buf) )
+      { tout.text.w = (pl_wchar_t*)tout.buf;
+	tout.storage = PL_CHARS_LOCAL;
+      } else
+      { tout.text.w = PL_malloc(tin.length*sizeof(pl_wchar_t));
+	tout.storage = PL_CHARS_MALLOC;
+      }
+
+      if ( down )
+      { for(i=0; i<tin.length; i++)
+	{ tout.text.w[i] = towlower(tin.text.w[i]);
+	}
+      } else
+      { for(i=0; i<tin.length; i++)
+	{ tout.text.w[i] = towupper(tin.text.w[i]);
+	}
+      }
+    }
+
+    PL_unify_text(out, &tout, PL_ATOM);
+    PL_free_text(&tout);
+
+    succeed;
+  } else
+  { return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, out);
+  }
+}
+
+
 foreign_t
 pl_downcase_atom(term_t in, term_t out)
-{ char *s;
-  unsigned int len;
-
-  if ( PL_get_nchars_ex(in, &len, &s, CVT_ATOMIC) )
-  { unsigned int l2;
-    char *s2;
-
-    if ( PL_get_nchars(out, &l2, &s2, CVT_ATOMIC) )
-    { if ( l2 == len )
-      { char *i, *o;
-	int n;
-
-	for(i=s, o=s2, n=len; n-- > 0; o++, i++)
-	{ if ( *o != tolower(*i) )
-	    fail;
-	}
-
-	succeed;
-      }
-    } else
-    { char *tmp = alloca(len);
-      char *i, *o;
-      int n;
-      
-      for(i=s, o=tmp, n=len; n-- > 0; o++, i++)
-	*o = tolower(*i);
-
-      return PL_unify_atom_nchars(out, len, tmp);
-    }
-  }
-
-  fail;
+{ return modify_case_atom(in, out, TRUE);
 }
 
 
 foreign_t
 pl_upcase_atom(term_t in, term_t out)
-{ char *s;
-  unsigned int len;
-
-  if ( PL_get_nchars_ex(in, &len, &s, CVT_ATOMIC) )
-  { unsigned int l2;
-    char *s2;
-
-    if ( PL_get_nchars(out, &l2, &s2, CVT_ATOMIC) )
-    { if ( l2 == len )
-      { char *i, *o;
-	int n;
-
-	for(i=s, o=s2, n=len; n-- > 0; o++, i++)
-	{ if ( *o != toupper(*i) )
-	    fail;
-	}
-
-	succeed;
-      }
-    } else
-    { char *tmp = alloca(len);
-      char *i, *o;
-      int n;
-      
-      for(i=s, o=tmp, n=len; n-- > 0; o++, i++)
-	*o = toupper(*i);
-
-      return PL_unify_atom_nchars(out, len, tmp);
-    }
-  }
-
-  fail;
+{ return modify_case_atom(in, out, FALSE);
 }
 
 #if defined(HAVE_LOCALE_H) && defined(HAVE_SETLOCALE)
