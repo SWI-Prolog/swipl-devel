@@ -340,7 +340,8 @@ getWinFileNameDisplay(DisplayObj d,
 		      Chain filters,	/* tuple(Name, Pattern) */
 		      CharArray title,
 		      CharArray file,	/* default file */
-		      Directory dir)	/* initial dir */
+		      Directory dir,	/* initial dir */
+		      Any owner)	/* owner window */
 { OPENFILENAME ofn;
   HWND hwnd;
   Name rval = 0;
@@ -353,8 +354,12 @@ getWinFileNameDisplay(DisplayObj d,
   memset(&ofn, 0, sizeof(OPENFILENAME));
   ofn.lStructSize = sizeof(OPENFILENAME);
 
-  if ( instanceOfObject(ev, ClassEvent) &&
-       (hwnd = getHwndWindow(ev->window)) )
+  if ( isInteger(owner) )
+    ofn.hwndOwner = (void *)valInt(owner);
+  else if ( instanceOfObject(owner, ClassFrame) )
+    ofn.hwndOwner = getHwndFrame(owner);
+  else if ( instanceOfObject(ev, ClassEvent) &&
+	    (hwnd = getHwndWindow(ev->window)) )
     ofn.hwndOwner = hwnd;
 
   if ( isDefault(filters) )

@@ -119,7 +119,6 @@ static void initHeapDebug(void);
 
 #define ESC 27				/* the escape character */
 
-#define RLC_FONT	 1000		/* < F000 */
 #define WM_RLC_INPUT	 WM_USER+10	/* Just somewhere ... */
 #define WM_RLC_WRITE	 WM_USER+11	/* write data */
 #define WM_RLC_FLUSH	 WM_USER+12	/* flush buffered data */
@@ -255,8 +254,6 @@ static void	rlc_resize(RlcData b, int w, int h);
 static void	rlc_adjust_line(RlcData b, int line);
 static int	text_width(RlcData b, HDC hdc, const char *text, int len);
 static void	rlc_queryfont(RlcData b);
-static void	rlc_add_system_menu(RlcData b, const char *entry, int id);
-static void     rlc_add_system_submenu(RlcData b, const char *entry, HMENU m);
 static void	rlc_flush_output(RlcData b);
 static void     rlc_do_write(RlcData b, char *buf, int count);
 static void     rlc_reinit_line(RlcData b, int line);
@@ -476,13 +473,6 @@ rlc_create_window(RlcData b)
   b->sel_background = GetSysColor(COLOR_HIGHLIGHT);
   if ( GetSystemMetrics(SM_CMOUSEBUTTONS) == 2 )
     emulate_three_buttons = 120;
-
-  rlc_add_system_menu(b, NULL, 0);
-{ HMENU settings = CreatePopupMenu();
-  rlc_add_system_submenu(b, "Settings", settings);
-
-  AppendMenu(settings, MF_STRING, RLC_FONT,       "Font ...");
-}
 
   rlc_add_menu_bar(b->window);
 
@@ -981,6 +971,9 @@ rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	case IDM_BREAK:
 	  rlc_interrupt();
 	  break;
+	case IDM_FONT:
+	  rlc_queryfont(b);
+	  return 0;
 	case IDM_EXIT:
 	  if ( rlc_kill() )
 	    return 0;
@@ -1214,18 +1207,6 @@ rlc_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 
       return 1;				/* non-zero: I've erased it */
     }
-
-    case WM_SYSCOMMAND:
-    { UINT cmd = wParam;
-
-      if ( cmd == RLC_FONT )
-      {	rlc_queryfont(b);
-	return 0;
-      }
-
-      break;
-    }
-
 
     case WM_SYSCOLORCHANGE:
       b->foreground     = GetSysColor(COLOR_WINDOWTEXT);
@@ -1937,36 +1918,6 @@ rlc_resize_pixel_units(RlcData b, int w, int h)
 
   rlc_request_redraw(b);
 }
-
-		 /*******************************
-		 *          SYTEM MENU		*
-		 *******************************/
-
-static void
-rlc_add_system_menu(RlcData b, const char *entry, int id)
-{ if ( b->window )
-  { HMENU hmenu = GetSystemMenu(b->window, FALSE);
-
-    if ( hmenu )
-    { if ( entry )
-	AppendMenu(hmenu, MF_STRING, id, entry);
-      else
-	AppendMenu(hmenu, MF_SEPARATOR, 0, "");
-    }
-  }
-}
-
-static void
-rlc_add_system_submenu(RlcData b, const char *entry, HMENU menu)
-{ if ( b->window )
-  { HMENU hmenu = GetSystemMenu(b->window, FALSE);
-
-    if ( hmenu )
-      AppendMenu(hmenu, MF_STRING|MF_POPUP, (UINT) menu, entry);
-  }
-}
-
-
 
 		 /*******************************
 		 *	       FONT		*

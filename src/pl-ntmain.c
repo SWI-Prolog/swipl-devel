@@ -222,7 +222,7 @@ pl_prolog_insert_menu_item(foreign_t menu, foreign_t label, foreign_t before)
 
 foreign_t
 pl_prolog_insert_menu(foreign_t label, foreign_t before)
-{ char *m, *l, *b;
+{ char *l, *b;
 
   if ( !PL_get_atom_chars(label, &l) ||
        !PL_get_atom_chars(before, &b) )
@@ -450,6 +450,7 @@ win32main(int argc, char **argv)
   
   PL_hidden_window();			/* create in main thread */
   main_thread_id = GetCurrentThreadId();
+  PL_set_feature("hwnd", PL_INTEGER, (long)rlc_hwnd());
   rlc_interrupt_hook(interrupt);
   rlc_menu_hook(menu_select);
 #if !defined(O_DEBUG) && !defined(_DEBUG)

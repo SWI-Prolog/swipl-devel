@@ -11,23 +11,58 @@
 */
 
 :- module(prolog_preferences,
-	  [
+	  [ prolog_edit_preferences/1	% +What
 	  ]).
 :- use_module(library(pce)).
 :- use_module(library(pce_tick_box)).
 
 :- pce_help_file(plprefs, pce_help('plprefs.hlp')).
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Edit the SWI-Prolog preferences that are aved in the Windows registry.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+prolog_edit_preferences(stack_sizes) :-
+	send(new(prolog_preferences), open_centered).
+prolog_edit_preferences(What) :-
+	locate_preferences(What, File),
+	auto_call(start_emacs),
+	(   \+ access_file(File, exist)
+	->  send(@display, confirm,
+		 'Preferences file %s doesn''t exist.\nCreate it?', File)
+	;   access_file(File, write)
+	->  true
+	    ;   send(@display, inform,
+		     'You cannot modify the preferences file %s', File)
+	),
+	send(@emacs, goto_source_location, File).
 
-/*
-prefs :-
-	Prefs = @prefs,
-	free(Prefs),
-	send(new(Prefs, prolog_preferences), open).
-*/
+locate_preferences(xpce, File) :-
+	get(@pce, home, Home),
+	get(string('%s/Defaults', Home), value, File).
+locate_preferences(xpce_user, File) :-
+	ensure_xpce_config_dir(Dir),
+	get(string('%s/Defaults', Dir), value, File).
+locate_preferences(prolog, File) :-
+	'$option'(init_file, Base, Base), % should be in current_prolog_flag!
+	member(Access, [read, write]),
+	absolute_file_name(Base, Here),
+	absolute_file_name(user_profile(Base),
+			   [ access(Access),
+			     file_errors(fail),
+			     solutions(all)
+			   ], File),
+	File \== Here, !.
+	
+
+ensure_xpce_config_dir(Dir) :-
+	catch(expand_file_name('~/.xpce', [Dir]), _, fail),
+	new(D, directory(Dir)),
+	(   send(D, exists)
+	->  true
+	;   send(D, make)
+	).
+
+
+		 /*******************************
+		 *	    STACK SIZES		*
+		 *******************************/
 
 stack(local,  locallimit,  localSize).
 stack(global, globallimit, globalSize).

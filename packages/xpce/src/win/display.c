@@ -1028,13 +1028,15 @@ extern Name getWinFileNameDisplay(DisplayObj obj,
 				  Chain filters,
 				  CharArray title,
 				  CharArray file,
-				  Directory dir);
+				  Directory dir,
+				  Any owner);
 static char *T_win_file_name[] =
 	{ "mode={open,save}",
 	  "filters=[chain]",
 	  "title=[char_array]",
 	  "default=[char_array]",
-	  "directory=[directory]"
+	  "directory=[directory]",
+	  "owner=[frame|int]"
 	};
 #endif
 
@@ -1178,7 +1180,7 @@ static getdecl get_display[] =
   GM(NAME_paste, 0, "string", NULL, getPasteDisplay,
      NAME_selection, "Simple interface to get clipboard value"),
 #ifdef WIN32_GRAPHICS
-  GM(NAME_winFileName, 5, "name", T_win_file_name, getWinFileNameDisplay,
+  GM(NAME_winFileName, 6, "name", T_win_file_name, getWinFileNameDisplay,
      NAME_prompt, "Ask for a filename using Windows standard dialog"),
 #endif
   GM(NAME_windowManager, 0, "[{twm,olwm,mwm,fvwm}|name]", NULL,

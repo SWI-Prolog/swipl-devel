@@ -47,6 +47,7 @@ variable(pool,		[name], both, "Window pool I belong too").
 initialise(F, B:emacs_buffer) :->
 	"Create window for buffer"::
 	send(F, send_super, initialise, B?name, application := @emacs),
+	send(F, fix_colour_map),
 	send(F, slot, sticky_window, @off),
 	send(F, append, new(MBD, emacs_mode_dialog)),
 
@@ -63,6 +64,15 @@ initialise(F, B:emacs_buffer) :->
 	send(F, pool, B?pool),
 	get(E, mode, Mode),
 	ignore(send(Mode, new_buffer)).
+
+
+fix_colour_map(F) :->
+	"Set colour-map to @nil on mapped displays"::
+	(   get(@display, depth, Depth),
+	    Depth =< 8
+	->  send(F, colour_map, @nil)
+	;   true
+	).
 
 
 input_focus(F, Val:bool) :->

@@ -155,7 +155,8 @@ Name		getWinFileNameDisplay(DisplayObj d,
 				      Chain filters,
 				      CharArray title,
 				      CharArray file,
-				      Directory dir);
+				      Directory dir,
+				      Any owner);
 
 #include "msproto.h"
 

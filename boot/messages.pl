@@ -354,17 +354,35 @@ prolog_message(autoload(read_index(Dir))) -->
 		 *	TOPLEVEL MESSAGES	*
 		 *******************************/
 
-prolog_message(welcome) -->
+prolog_message(version) -->
 	{ current_prolog_flag(version, Version),
 	  Major is Version // 10000,
 	  Minor is (Version // 100) mod 100,
 	  Patch is Version mod 100
 	},
-	[ 'Welcome to SWI-Prolog (Version ~w.~w.~w)'-[Major, Minor, Patch], nl,
-	  'Copyright (c) 1990-2000 University of Amsterdam. ', nl,
-	  'Copy policy: GPL-2 (see www.gnu.org)', nl, nl,
-	  'For help, use ?- help(Topic). or ?- apropos(Word).', nl, nl
+	[ '~w.~w.~w'-[Major, Minor, Patch] ].
+prolog_message(copyright) -->
+	[ 'Copyright (c) 1990-2002 University of Amsterdam. ', nl,
+	  'Copy policy: LGPL (see www.gnu.org)'
 	].
+prolog_message(author) -->
+	[ 'Jan Wielemaker (jan@swi-prolog.org)' ].
+prolog_message(welcome) -->
+	[ 'Welcome to SWI-Prolog (Version ' ],
+	prolog_message(version),
+	[ ')', nl ],
+	prolog_message(copyright),
+	[ nl, nl,
+	  'For help, use ?- help(Topic). or ?- apropos(Word).',
+	  nl, nl
+	].
+prolog_message(about) -->
+	[ 'SWI-Prolog version ' ],
+	prolog_message(version),
+	[ ' by ' ],
+	prolog_message(author),
+	[ nl ],
+	prolog_message(copyright).
 prolog_message(halt) -->
 	[ 'halt' ].
 prolog_message(break(enter(Level))) -->

@@ -25,33 +25,31 @@ static char **menuids;
 static int nmenus;
 static int nmenualloc;
 
-static int
-mklabelid(char *buf)
-{ char *s, *o;
+static struct rl_item
+{ UINT	      id;
+  const char *name;
+} rl_items[] =
+{ { IDM_EXIT, "&Exit" },
+  { IDM_CUT,  "&Cut" },
+  { IDM_COPY, "&Copy" },
+  { IDM_PASTE, "&Paste" },
+  { IDM_BREAK, "&Interrupt" },
+  { IDM_FONT,  "&Font ..." },
+  { 0,         NULL }
+};
 
-  for(s=o=buf; *s; s++)
-  { if ( *s != '&' )
-      *o++ = tolower(*s);
-  }
-  *o = EOS;
 
-  return o-buf;
-}
 
 static UINT
 lookupMenuLabel(const char *label)
 { int i;
-  char lbuf[MAXLABELLEN];
   int llen;
+  struct rl_item *builtin;
 
-  strcpy(lbuf, label);
-  llen = mklabelid(lbuf);
-
-  if ( streq(lbuf, "exit") )  return IDM_EXIT;
-  if ( streq(lbuf, "cut") )   return IDM_CUT;
-  if ( streq(lbuf, "copy") )  return IDM_COPY;
-  if ( streq(lbuf, "paste") ) return IDM_PASTE;
-  if ( streq(lbuf, "break") ) return IDM_BREAK;
+  for(builtin = rl_items; builtin->id; builtin++)
+  { if ( streq(builtin->name, label) )
+      return builtin->id;
+  }
 
   for(i=0; i<nmenus; i++)
   { if ( streq(menuids[i], label) )
@@ -68,8 +66,9 @@ lookupMenuLabel(const char *label)
     }
   }
 
+  llen = strlen(label);
   menuids[nmenus] = rlc_malloc(llen+1);
-  memcpy(menuids[nmenus], lbuf, llen+1);
+  memcpy(menuids[nmenus], label, llen+1);
   
   return nmenus++ + IDM_USER;
 }
@@ -77,15 +76,14 @@ lookupMenuLabel(const char *label)
 
 const char *
 lookupMenuId(UINT id)
-{ if ( id >= IDM_USER && (int)id - IDM_USER < nmenus )
+{ struct rl_item *builtin;
+
+  if ( id >= IDM_USER && (int)id - IDM_USER < nmenus )
     return menuids[id-IDM_USER];
 
-  switch(id)
-  { case IDM_EXIT:  return "exit";
-    case IDM_CUT:   return "cut";
-    case IDM_COPY:  return "copy";
-    case IDM_PASTE: return "paste";
-    case IDM_BREAK: return "break";
+  for(builtin = rl_items; builtin->id; builtin++)
+  { if ( builtin->id == id )
+      return builtin->name;
   }
 
   return NULL;
@@ -155,9 +153,7 @@ findPopup(const char *name, int *pos)
 	return NULL;
 
       if ( info.fType == MF_STRING )
-      { mklabelid(nbuf);
-
-	if ( streq(name, nbuf) )
+      { if ( streq(name, nbuf) )
 	{ if ( pos )
 	    *pos = i;
 
@@ -171,24 +167,34 @@ findPopup(const char *name, int *pos)
 }
 
 
+static void
+append_builtin(HMENU menu, UINT id)
+{ AppendMenu(menu, MF_STRING, id, lookupMenuId(id));
+}
+
+
 void
 rlc_add_menu_bar(HWND cwin)
-{ HMENU menu = CreateMenu();
-  HMENU file = CreatePopupMenu();
-  HMENU edit = CreatePopupMenu();
-  HMENU run  = CreatePopupMenu();
+{ HMENU menu     = CreateMenu();
+  HMENU file	 = CreatePopupMenu();
+  HMENU edit     = CreatePopupMenu();
+  HMENU settings = CreatePopupMenu();
+  HMENU run      = CreatePopupMenu();
 
-  AppendMenu(file, MF_STRING, IDM_EXIT,  "&Exit");
+  append_builtin(file, IDM_EXIT);
 
-/*AppendMenu(edit, MF_STRING, IDM_CUT,   "&Cut");*/
-  AppendMenu(edit, MF_STRING, IDM_COPY,  "&Copy");
-  AppendMenu(edit, MF_STRING, IDM_PASTE, "&Paste");
+/*append_builtin(edit, IDM_CUT);*/
+  append_builtin(edit, IDM_COPY);
+  append_builtin(edit, IDM_PASTE);
   
-  AppendMenu(run,  MF_STRING, IDM_BREAK, "&Break");
+  append_builtin(settings, IDM_FONT);
 
-  AppendMenu(menu, MF_POPUP, (UINT)file, "&File");
-  AppendMenu(menu, MF_POPUP, (UINT)edit, "&Edit");
-  AppendMenu(menu, MF_POPUP, (UINT)run,  "&Run");
+  append_builtin(run,  IDM_BREAK);
+
+  AppendMenu(menu, MF_POPUP, (UINT)file,     "&File");
+  AppendMenu(menu, MF_POPUP, (UINT)edit,     "&Edit");
+  AppendMenu(menu, MF_POPUP, (UINT)settings, "&Settings");
+  AppendMenu(menu, MF_POPUP, (UINT)run,      "&Run");
 
   SetMenu(cwin, menu);
 }
