@@ -947,7 +947,7 @@ getPrologOptions()
 
 char *
 shell_quote(char *to, const char *arg)
-{ static const char needq[] = "#!|<>*?$'";
+{ static const char needq[] = "#!|<>*?$'\"";
   const char *s;
   int needquote = FALSE;
 

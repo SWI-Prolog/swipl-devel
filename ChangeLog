@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: plld: properly quote arguments holding "
+
   * ADDED/MODIFIED: The toplevel calls expand_goal/2 before actually
     executing the typed goal.
 
