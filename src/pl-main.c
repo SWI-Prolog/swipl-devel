@@ -705,6 +705,10 @@ PL_initialise(int argc, char **argv)
   { succeed;
   }
 
+#ifdef O_PLMT
+  initPrologThreads();			/* initialise thread system */
+#endif
+
   SinitStreams();			/* before anything else */
 
   script_argv(argc, argv);		/* hande #! arguments */
@@ -734,10 +738,6 @@ properly on Linux. Don't bother with it.
 #endif
 #if O_MALLOC_DEBUG
   malloc_debug(O_MALLOC_DEBUG);
-#endif
-
-#ifdef O_PLMT
-  initPrologThreads();			/* initialise thread system */
 #endif
 
   initOs();				/* Initialise OS bindings */
