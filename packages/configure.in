@@ -65,8 +65,12 @@ while [ "$1" != "" ]; do
 			shift;
 			;;
 	--with-*)	pkg=`echo "$1" | sed 's/--with-//'`
-			delpkg $pkg
-			PKG="$PKG $pkg"
+			if [ -d "$pkg" ]; then
+			  delpkg $pkg
+			  PKG="$PKG $pkg"
+			else
+			  configoptions="$configoptions $1"
+			fi
 			shift;
 			;;
 	*)		configoptions="$configoptions $1"
