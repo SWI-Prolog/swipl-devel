@@ -2,13 +2,29 @@
 
     Part of SWI-Prolog
 
-    Author:  Jan Wielemaker
-    E-mail:  jan@swi.psy.uva.nl
-    WWW:     http://www.swi.psy.uva.nl/projects/SWI-Prolog/
-    Copying: GPL-2.  See the file COPYING or http://www.gnu.org
+    Author:        Jan Wielemaker
+    E-mail:        jan@swi.psy.uva.nl
+    WWW:           http://www.swi-prolog.org
+    Copyright (C): 1985-2002, University of Amsterdam
 
-    Copyright (C) 1990-2000 SWI, University of Amsterdam. All rights reserved.
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
+
+#if defined(WIN32) && !defined(__WIN32__)
+#define __WIN32__ 1
+#endif
 
 #ifdef __WIN32__
 #include <uxnt.h>
@@ -34,7 +50,7 @@ locking is required.
 #endif
 
 #define PL_KERNEL 1
-#include <SWI-Stream.h>
+#include "pl-stream.h"
 #include <sys/types.h>
 #include <errno.h>
 #ifdef HAVE_MALLOC_H
@@ -79,12 +95,12 @@ static void	run_close_hooks(IOSTREAM *s);
 #define S__fupdatefilepos(s, c) S___fupdatefilepos(s, c)
 
 #ifdef O_PLMT
-#define SLOCK(s)    if ( s->mutex ) recursive_mutex_lock(s->mutex)
-#define SUNLOCK(s)  if ( s->mutex ) recursive_mutex_unlock(s->mutex)
+#define SLOCK(s)    if ( s->mutex ) recursiveMutexLock(s->mutex)
+#define SUNLOCK(s)  if ( s->mutex ) recursiveMutexUnlock(s->mutex)
 inline int
 STRYLOCK(IOSTREAM *s)
 { if ( s->mutex &&
-       recursive_mutex_trylock(s->mutex) == EBUSY )
+       recursiveMutexTryLock(s->mutex) == MUTEX_BUSY )
     return FALSE;
 
   return TRUE;
@@ -95,10 +111,10 @@ STRYLOCK(IOSTREAM *s)
 #define STRYLOCK(s) (TRUE)
 #endif
 
-#ifdef O_PLMT
-extern recursive_mutex_t *	newRecursiveMutex(void);
-extern int			freeRecursiveMutex(recursive_mutex_t *m);
-#endif
+#include "pl-error.h"
+extern int 			fatalError(const char *fm, ...);
+extern int 			PL_error(const char *pred, int arity,
+					 const char *msg, int id, ...);
 
 		 /*******************************
 		 *	      BUFFER		*
@@ -154,11 +170,9 @@ int
 Slock(IOSTREAM *s)
 { SLOCK(s);
 
-  if ( s->locks )
-    s->locks++;
-  else if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
-  { s->locks = 1;
-    return S__setbuf(s, NULL, TMPBUFSIZE);
+  if ( !s->locks++ )
+  { if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
+      return S__setbuf(s, NULL, TMPBUFSIZE);
   }
 
   return 0;
@@ -170,11 +184,9 @@ StryLock(IOSTREAM *s)
 { if ( !STRYLOCK(s) )
     return -1;
 
-  if ( s->locks )
-    s->locks++;
-  else if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
-  { s->locks = 1;
-    return S__setbuf(s, NULL, TMPBUFSIZE);
+  if ( --s->locks == 0 )
+  { if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
+      return S__setbuf(s, NULL, TMPBUFSIZE);
   }
 
   return 0;
@@ -183,16 +195,18 @@ StryLock(IOSTREAM *s)
 
 int
 Sunlock(IOSTREAM *s)
-{ if ( s->locks )
+{ int rval = 0;
+
+  if ( s->locks )
   { if ( --s->locks == 0 )
     { if ( (s->flags & (SIO_NBUF|SIO_OUTPUT)) == (SIO_NBUF|SIO_OUTPUT) )
-	S__removebuf(s);
+	rval = S__removebuf(s);
     }
   }
 
   SUNLOCK(s);
 
-  return 0;
+  return rval;
 }
 
 
@@ -321,6 +335,15 @@ ok:
 inline int
 S___fupdatefilepos(IOSTREAM *s, int c)
 { IOPOS *p;
+
+#if 1
+  if ( s->magic != SIO_MAGIC )
+  { if ( s->magic == SIO_CMAGIC )
+      PL_error(NULL, 0, NULL, ERR_CLOSED_STREAM, s);
+					/* PL_error() should not return */
+    fatalError("Did you load a pre-3.1.2 foreign package?"); 
+  }
+#endif
 
   if ( (p = s->position) )
   { switch(c)
@@ -478,9 +501,7 @@ Sfwrite(const void *data, int size, int elms, IOSTREAM *s)
 
 int
 Sfeof(IOSTREAM *s)
-{ int c;
-
-  if ( s->flags & SIO_FEOF )
+{ if ( s->flags & SIO_FEOF )
     return TRUE;
 
   if ( s->bufp < s->limitp )
@@ -491,7 +512,7 @@ Sfeof(IOSTREAM *s)
     return -1;
   }
 
-  if ( (c=S__fillbuf(s)) == -1 )
+  if ( S__fillbuf(s) == -1 )
     return TRUE;
 
   s->bufp--;
@@ -662,7 +683,8 @@ Sclose(IOSTREAM *s)
   }
 
   SLOCK(s);
-  run_close_hooks(s);
+  while(s->locks > 0)			/* remove buffer-locks */
+    rval = Sunlock(s);
 
   if ( s->buffer )
   { if ( (s->flags & SIO_OUTPUT) && S__flushbuf(s) < 0 )
@@ -674,13 +696,17 @@ Sclose(IOSTREAM *s)
     s->buffer = NULL;
   }
 
+  s->flags |= SIO_CLOSING;
   if ( s->functions->close && (*s->functions->close)(s->handle) < 0 )
     rval = -1;
+  run_close_hooks(s);
+
   SUNLOCK(s);
 
 #ifdef O_PLMT
   if ( s->mutex )
-  { freeRecursiveMutex(s->mutex);
+  { recursiveMutexDelete(s->mutex);
+    free(s->mutex);
     s->mutex = NULL;
   }
 #endif
@@ -793,7 +819,7 @@ Svprintf(const char *fm, va_list args)
 }
 
 
-#define OUT(s, c)	do { printed++; \
+#define OUTCHR(s, c)	do { printed++; \
 			     if ( Sputc((c), (s)) < 0 ) goto error; \
 			   } while(0)
 #define valdigit(c)	((c) - '0')
@@ -819,7 +845,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
     { fm++;
 
       if ( *fm == '%' )
-      { OUT(s, *fm);
+      { OUTCHR(s, *fm);
 	fm++;
 	continue;
       } else
@@ -940,11 +966,11 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	  if ( align == A_LEFT )
 	  { int w = 0;
 	    while(*fs)
-	    { OUT(s, *fs++);
+	    { OUTCHR(s, *fs++);
 	      w++;
 	    }
 	    while(w < arg1)
-	    { OUT(s, pad);
+	    { OUTCHR(s, pad);
 	      w++;
 	    }
 	  } else /*if ( align == A_RIGHT ) */
@@ -957,25 +983,28 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 
 	    w = arg1 - w;
 	    while(w > 0 )
-	    { OUT(s, pad);
+	    { OUTCHR(s, pad);
 	      w--;
 	    }
 	    while(*fs)
-	      OUT(s, *fs++);
+	      OUTCHR(s, *fs++);
 	  }
 	} else
 	{ if ( fs == fbuf )		/* unaligned field, just output */
 	  { while(fs < fe)
-	      OUT(s, *fs++);
+	      OUTCHR(s, *fs++);
 	  } else
 	  { while(*fs)
-	      OUT(s, *fs++);
+	      OUTCHR(s, *fs++);
 	  }
 	}
 	fm++;
       }
+    } else if ( *fm == '\\' && fm[1] )
+    { OUTCHR(s, fm[1]);
+      fm += 2;
     } else
-    { OUT(s, *fm);
+    { OUTCHR(s, *fm);
       fm++;
     }
   }
@@ -1402,18 +1431,20 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
     return NULL;
   }
   memset((char *)s, 0, sizeof(IOSTREAM));
-  s->magic     = SIO_MAGIC;
-  s->lastc     = EOF;
-  s->flags     = flags;
-  s->handle    = handle;
-  s->functions = functions;
+  s->magic         = SIO_MAGIC;
+  s->lastc         = EOF;
+  s->flags         = flags;
+  s->handle        = handle;
+  s->functions     = functions;
+  s->posbuf.lineno = 1;
   if ( flags & SIO_RECORDPOS )
-  { s->position = &s->posbuf;
-    s->posbuf.lineno = 1;
-  }
+    s->position = &s->posbuf;
 #ifdef O_PLMT
-  if ( !(s->mutex = newRecursiveMutex()) )
+  if ( !(s->mutex = malloc(sizeof(recursiveMutex))) )
+  { free(s);
     return NULL;
+  }
+  recursiveMutexInit(s->mutex);
 #endif
   if ( (fd = Sfileno(s)) >= 0 && isatty(fd) )
     s->flags |= SIO_ISATTY;
@@ -1426,12 +1457,20 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
 #define O_BINARY 0
 #endif
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Open a file. In addition to the normal  arguments, "lr" means get a read
+(shared-) lock on the file and  "lw"   means  get  an write (exclusive-)
+lock.  How much do we need to test here?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
 IOSTREAM *
 Sopen_file(const char *path, const char *how)
 { int fd;
   int oflags = 0, flags = SIO_FILE|SIO_TEXT|SIO_RECORDPOS;
   int op = *how++;
   long lfd;
+  enum {lnone=0,lread,lwrite} lock = lnone;
 
   for( ; *how; how++)
   { switch(*how)
@@ -1441,6 +1480,16 @@ Sopen_file(const char *path, const char *how)
         break;
       case 'r':				/* no record */
 	flags &= SIO_RECORDPOS;
+        break;
+      case 'l':				/* lock r: read, w: write */
+	if ( *++how == 'r' )
+	  lock = lread;
+        else if ( *how == 'w' )
+	  lock = lwrite;
+        else
+	{ errno = EINVAL;
+	  return NULL;
+	}
         break;
       default:
 	errno = EINVAL;
@@ -1472,6 +1521,27 @@ Sopen_file(const char *path, const char *how)
 
   if ( fd < 0 )
     return NULL;
+
+  if ( lock )
+  { 
+#ifdef FCNTL_LOCKS
+    struct flock buf;
+
+    memset(&buf, 0, sizeof(buf));
+    buf.l_type = (lock == lread ? F_RDLCK : F_WRLCK);
+
+    if ( fcntl(fd, F_SETLKW, &buf) < 0 )
+    { int save = errno;
+      close(fd);
+      errno = save;
+      return NULL;
+    }
+#else					/* we don't have locking */
+    close(fd);
+    errno = EINVAL;
+    return NULL;
+#endif
+  }
 
   lfd = (long)fd;
   return Snew((void *)lfd, flags, &Sfilefunctions);
@@ -1550,15 +1620,16 @@ SinitStreams()
 { static int done;
 
   if ( !done++ )
-  {
+  { int i;
+
+    for(i=0; i<=2; i++)
+    { if ( !isatty(i) )
+	S__iob[i].flags &= ~SIO_ISATTY;
 #ifdef O_PLMT
-    S__iob[0].mutex = newRecursiveMutex();
-    S__iob[1].mutex = newRecursiveMutex();
-    S__iob[2].mutex = newRecursiveMutex();
+      S__iob[i].mutex = malloc(sizeof(recursiveMutex));
+      recursiveMutexInit(S__iob[i].mutex);
 #endif
-    if ( !isatty(0) ) S__iob[0].flags &= ~SIO_ISATTY;
-    if ( !isatty(2) ) S__iob[1].flags &= ~SIO_ISATTY;
-    if ( !isatty(3) ) S__iob[2].flags &= ~SIO_ISATTY;
+    }
   }
 }
 
@@ -1793,7 +1864,7 @@ Sopenmem(char **buffer, int *size, const char* mode)
 IOSTREAM *
 Sopenmem(char **buffer, int *sizep, const char *mode)
 { memfile *mf = malloc(sizeof(memfile));
-  int flags = SIO_FBUF;
+  int flags = SIO_FBUF|SIO_RECORDPOS;
   int size;
 
   if ( !mf )
@@ -1891,13 +1962,12 @@ Sopen_string(IOSTREAM *s, char *buf, int size, const char *mode)
   } else
     flags |= SIO_STATIC;
 
+  memset((char *)s, 0, sizeof(IOSTREAM));
   s->buffer    = buf;
   s->bufp      = buf;
   s->unbuffer  = buf;
-  s->position  = NULL;
   s->handle    = s;			/* for Sclose_string() */
   s->functions = &Sstringfunctions;
-  s->mutex     = NULL;
 
   switch(*mode)
   { case 'r':
@@ -1949,6 +2019,9 @@ run_close_hooks(IOSTREAM *s)
 
   for(p=close_hooks; p; p = p->next)
     (*p->hook)(s);
+
+  if ( s->close_hook )
+    (*s->close_hook)(s->closure);
 }
 
 int
