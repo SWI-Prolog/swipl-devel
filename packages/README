@@ -31,8 +31,12 @@ Provided packages
 	Experimental interface for BerkeleyDB
 
 	# jasmine
-	Experimental interface for Jasmine OO DB.  Runs on Windows only
+	Experimental interface for Jasmine OO DB.  Runs on Windows only.
 	
+	# ltx2htm
+	Prolog-based LaTeX to HTML converter used for converting the
+	SWI-Prolog documentation.
+
 	# mp	
 	Interface to GNU GMP library for arbitrary precission arithmetic
 	First check the GMP requirements in the package!
