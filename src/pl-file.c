@@ -1873,7 +1873,9 @@ pl_see(term_t f)
   mode = PL_new_term_ref();
   PL_put_atom(mode, ATOM_read);
   if ( !(s = openStream(f, mode, 0)) )
+  { UNLOCK();
     fail;
+  }
 
   set(getStreamContext(s), IO_SEE);
   pl_push_input_context();

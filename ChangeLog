@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#76, deadlock in see/1 if the argument file does not exist.
+    Holger Kanwischer.
+
+
 VERSION 5.2.4 (Jul 17, 2003)
 ============================
 
