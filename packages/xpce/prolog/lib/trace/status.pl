@@ -24,6 +24,7 @@ resource(stop,	 image,	image('16x16/stop.xpm')).
 resource(trace,	 image,	image('16x16/eye.xpm')).
 resource(edit,	 image,	image('16x16/edit.xpm')).
 resource(spy,	 image,	library('trace/icons/spy.xpm')).
+resource(icon,	 image, image('32x32/dbgsettings.xpm')).
 
 :- dynamic
 	debug_status_window/1.
@@ -31,12 +32,13 @@ resource(spy,	 image,	library('trace/icons/spy.xpm')).
 :- pce_begin_class(prolog_debug_status, dialog,
 		   "View/change debug_status information").
 
-initialise(D, App:[application]) :->
+initialise(D, App:[application]*) :->
 	send_super(D, initialise('Prolog debugging')),
-	(   App \== @default
+	(   App \== @default, App \== @nil
 	->  send(D, application, App)
 	;   true
 	),
+	send(D, icon, resource(icon)),
 	send(D, append, new(TB, tool_bar(D))),
 	send_list(TB, append,
 		  [ tool_button(cut,

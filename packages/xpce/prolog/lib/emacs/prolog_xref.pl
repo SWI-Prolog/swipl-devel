@@ -432,6 +432,7 @@ xref_source_file(Plain, File, Src) :-
 xref_source_file(Spec, File, _) :-
 	do_xref_source_file(Spec, File), !.
 xref_source_file(Spec, _, _) :-
+	verbose,
 	print_message(warning, error(existence_error(file, Spec), _)),
 	fail.
 

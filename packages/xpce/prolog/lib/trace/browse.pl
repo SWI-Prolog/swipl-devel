@@ -39,6 +39,7 @@ resource(edit,	    image, image('16x16/edit.xpm')).
 resource(up,	    image, image('16x16/up.xpm')).
 resource(refresh,   image, image('16x16/refresh.xpm')).
 resource(butterfly, image, image('butterfly.xpm')).
+resource(debug,	    image, image('16x16/dbgsettings.xpm')).
 
 :- pce_begin_class(prolog_navigator, frame,
 		   "Prolog source navigator").
@@ -70,6 +71,9 @@ fill_tool_bar(SB) :->
 				resource(refresh),
 				'Update view'),
 		    gap,
+		    tool_button(debug_settings,
+				resource(debug),
+				'Edit breakpoints'),
 		    tool_button(edit,
 				resource(edit),
 				'Open file in editor')
@@ -178,6 +182,17 @@ edit(FB) :->
 	    send(@emacs, open_file, File)
 	;   send(FB, report, warning, 'No selected file'),
 	    fail
+	).
+
+debug_settings(FB) :->
+	"Open debug-status editor"::
+	(   get(FB, application, App),
+	    App \== @nil
+	->  (   get(App, member, prolog_debug_status, W)
+	    ->  send(W, expose)
+	    ;   send(prolog_debug_status(App), open)
+	    )
+	;   send(new(prolog_debug_status), open)
 	).
 
 :- pce_group(event).

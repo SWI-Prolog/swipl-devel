@@ -1,6 +1,15 @@
 VERSION 5.1.3
 =============
 
+* MODIFIED: `@pce <-operating_system' now returns one of win32, win95
+  or winnt on Windows system rather then just the fixed win32.
+  @pce<-window_system returns `windows', regardless of the version.
+
+* ENHANCED: Program around 8x8 brush-size limit for DOS-7 based windows
+  system (95,98,ME, ...).  Smaller brushes are enlarged automatically,
+  while filling rectangular areas using larger brushes is performed
+  `by hand'.
+
 * MODIFIED: Moved call to ->unlink *before* releasing assoc and hypers.
 
 * ENHANCED: `frame->return' and `frame<-confirm' type-check to unchecked,

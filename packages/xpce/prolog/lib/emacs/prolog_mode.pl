@@ -46,6 +46,7 @@ resource(breakpoint,   image, image('16x16/stop.xpm')).
 	  (spy)			       = button(prolog),
 	  trace			       = button(prolog),
 	  break_at		       = key('\\C-cb') + button(prolog),
+	  delete_breakpoint	       = button(prolog),
 	  edit_breakpoints	       = button(prolog),
 	  -			       = button(prolog),
 	  check_clause		       = key('\\C-c\\C-s') + button(prolog),
@@ -889,6 +890,16 @@ break_at(M) :->
 	;   send(M, report, error, 'Source file is not loaded')
 	).
 
+
+delete_breakpoint(M) :->
+	"Delete selected breakpoint"::
+	(   get(M, selected_fragment, F),
+	    F \== @nil,
+	    get(F, attribute, clause, ClauseRef),
+	    get(F, attribute, pc, PC)
+	->  '$break_at'(ClauseRef, PC, false)
+	;   send(M, report, warning, 'No selected breakpoint')
+	).
 
 
 		 /*******************************
