@@ -3805,6 +3805,16 @@ the category of file.  The \arg{TmpName} is guaranteed to be unique.
 If the system halts, it will automatically remove all created temporary
 files.
 
+    \predicate{make_directory}{1}{+Directory}
+Create a new directory (folder) on the filesystem.  Raises an exception
+on failure.  On Unix systems, the directory is created with default
+permissions (defined by the process \jargon{umask} setting).
+
+    \predicate{delete_directory}{1}{+Directory}
+Delete directory (folder) from the filesystem.  Raises an exception on
+failure.  Please note that in general it will not be possible to delete
+a non-empty directory.
+
     \predicate{chdir}{1}{+Path}
 Change working directory to \arg{Path}.%
 	\bug{Some of the file-I/O predicates use local filenames.  

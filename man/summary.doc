@@ -139,6 +139,7 @@ suggest predicates from a keyword.
 \predicatesummary{debugging}{0}{Show debugger status}
 \predicatesummary{default_module}{2}{Get the default modules of a module}
 \predicatesummary{delete}{3}{Delete all matching members from a list}
+\predicatesummary{delete_directory}{1}{Remove a folder from the file system}
 \predicatesummary{delete_file}{1}{Remove a file from the file system}
 \oppredsummary{discontiguous}{1}{fx}{1150}{Indicate distributed definition of a predicate}
 \predicatesummary{dwim_match}{2}{Atoms match in ``Do What I Mean'' sense}
@@ -235,6 +236,7 @@ suggest predicates from a keyword.
 \predicatesummary{load_foreign_library}{1}{\pllib{shlib} Load shared library (.so file)}
 \predicatesummary{load_foreign_library}{2}{\pllib{shlib} Load shared library (.so file)}
 \predicatesummary{make}{0}{Reconsult all changed source files}
+\predicatesummary{make_directory}{1}{Create a folder on the file system}
 \predicatesummary{make_fat_filemap}{1}{Win32: Create file containing non-FAT filenames}
 \predicatesummary{make_library_index}{1}{Create autoload file INDEX.pl}
 \predicatesummary{maplist}{3}{Transform all elements of a list}
