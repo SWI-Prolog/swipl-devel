@@ -40,6 +40,7 @@
 \cleardoublepage
 \nopagebreak
 \pagebreak
+\linebreak
 \newpage
 \hyphenpenalty{-}
 \centerline{+}
@@ -73,8 +74,8 @@
 \setlength{-}{-}
 \itemsep{-}
 \settowidth{-}{-}
-\newcommand{-}[-]{-}	1 1
-\renewcommand{-}[-]{-}	1 1
+\newcommand{-}[-]{-}=prolog	1 1
+\renewcommand{-}[-]{-}=prolog	1 1
 \newenvironment{-}{-}{-} 1 1
 \addcontentsline{-}{-}{+}
 \parskip{d}
@@ -146,8 +147,13 @@
 \hfill
 \vskip{d}
 \vspace{d}
+\hspace{d}
+\headheight{d}
+\footheight{d}
+\setlength{-}{d}
 \vbox{-}
 \noindent
+\sloppy
 
 % Special characters
 

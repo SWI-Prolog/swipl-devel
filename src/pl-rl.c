@@ -100,7 +100,8 @@ event_hook()
 
 static int
 Sread_readline(void *handle, char *buf, int size)
-{ int fd = (int) handle;
+{ long h = (long)handle;
+  int fd = (int) h;
   int ttymode = PL_ttymode(fd);
   int rval;
 #ifdef HAVE_CLOCK

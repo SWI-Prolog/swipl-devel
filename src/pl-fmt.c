@@ -60,15 +60,15 @@ forwards void	emit_rubber(char *buf, int, struct rubber *, int);
 
 word
 pl_format_predicate(term_t chr, term_t descr)
-{ int c;
+{ long c;
   Procedure proc;
   Symbol s;
 
-  if ( !PL_get_integer(chr, &c) || c < 0 || c > 255 )
+  if ( !PL_get_long(chr, &c) || c < 0 || c > 255 )
   { char *s;
     
     if ( PL_get_atom_chars(chr, &s) && s[0] && !s[1] )
-      c = s[0];
+      c = s[0] & 0xff;
     else
       return warning("format_predicate/2: illegal character");
   }
@@ -81,10 +81,10 @@ pl_format_predicate(term_t chr, term_t descr)
   if ( format_predicates == NULL )
     format_predicates = newHTable(8);
   
-  if ( (s = lookupHTable(format_predicates, (Void)c)) )
+  if ( (s = lookupHTable(format_predicates, (void *)c)) )
     s->value = (word) proc;
   else
-    addHTable(format_predicates, (Void)c, proc);
+    addHTable(format_predicates, (void *)c, proc);
 
   succeed;
 }

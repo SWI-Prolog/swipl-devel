@@ -1683,9 +1683,10 @@ Swrite_protocol(void *handle, char *buf, int size)
 
 int
 Sread_terminal(void *handle, char *buf, int size)
-{ atom_t sfn = source_file_name;		/* save over call-back */
+{ long h     = (long)handle;
+  atom_t sfn = source_file_name;		/* save over call-back */
   int    sln = source_line_no;
-  int     fd = (int)handle;
+  int     fd = (int)h;
 
   if ( prompt_next && ttymode != TTY_RAW )
   { Putf("%s", PrologPrompt());
@@ -1698,7 +1699,7 @@ Sread_terminal(void *handle, char *buf, int size)
   size = (*org_terminal.read)(handle, buf, size);
 
   if ( size == 0 )			/* end-of-file */
-  { if ( (int) handle == 0 )
+  { if ( fd == 0 )
     { Sclearerr(Sinput);
       prompt_next = TRUE;
     }

@@ -677,7 +677,7 @@ PL_get_arg(int index, term_t t, term_t a)
       deRef(p);
 
       if ( isVar(*p) )
-	w = consPtr(p, TAG_REFERENCE|storage(w)); /* makeRef() */
+	w = makeRef(p);
       else
 	w = *p;
 
@@ -1955,15 +1955,24 @@ PL_fatal_error(const char *fm, ...)
 		*            ACTIONS            *
 		*********************************/
 
-bool
-PL_action(int action, void *arg)
-{ switch(action)
+int
+PL_action(int action, ...)
+{ int rval;
+  va_list args;
+
+  va_start(args, action);
+
+  switch(action)
   { case PL_ACTION_TRACE:
-      return (bool) pl_trace();
+      rval = pl_trace();
+      break;
     case PL_ACTION_DEBUG:
-      return (bool) pl_debug();
+      rval = pl_debug();
+      break;
     case PL_ACTION_BACKTRACE:
 #ifdef O_DEBUGGER
+    { int a = va_arg(args, int);
+
       if ( gc_status.active )
       { Sfprintf(Serror,
 		 "\n[Cannot print stack while in %ld-th garbage collection]\n",
@@ -1975,33 +1984,51 @@ PL_action(int action, void *arg)
 		 "\n[Cannot print stack while initialising]\n");
 	fail;
       }
-      backTrace(environment_frame, (int) arg);
-      succeed;
+      backTrace(environment_frame, a);
+      rval = TRUE;
+    }
 #else
       warning("No Prolog backtrace in runtime version");
-      fail;
+      rval = FALSE;
 #endif
+      break;
     case PL_ACTION_BREAK:
-      return (bool) pl_break();
+      rval = pl_break();
+      break;
     case PL_ACTION_HALT:
-      Halt((int) arg);
-      fail;				/* should not happen */
+    { int a = va_arg(args, int);
+
+      Halt(a);
+      rval = FALSE;
+      break;
+    }
     case PL_ACTION_ABORT:
-      return (bool) pl_abort();
+      rval = pl_abort();
+      break;
     case PL_ACTION_SYMBOLFILE:
-      loaderstatus.symbolfile = lookupAtom((char *) arg);
-      succeed;
+    { char *name = va_arg(args, char *);
+      loaderstatus.symbolfile = lookupAtom(name);
+      rval = TRUE;
+      break;
+    }
     case PL_ACTION_WRITE:
-      Putf("%s", (char *)arg);
-      succeed;
+    { char *s = va_arg(args, char *);
+      Putf("%s", (char *)s);
+      rval = TRUE;
+      break;
+    }
     case PL_ACTION_FLUSH:
-      pl_flush();
-      succeed;
+      rval = pl_flush();
+      break;
     default:
       sysError("PL_action(): Illegal action: %d", action);
       /*NOTREACHED*/
-      fail;
+      rval = FALSE;
   }
+
+  va_end(args);
+
+  return rval;
 }
 
 		/********************************

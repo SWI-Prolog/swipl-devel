@@ -1101,7 +1101,7 @@ of a predicate together.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Table savedXRTable;		/* saved XR entries */
-static int   savedXRTableId;		/* next id */
+static long  savedXRTableId;		/* next id */
 
 static void
 putString(register char *s, IOSTREAM *fd)
@@ -1196,7 +1196,7 @@ putReal(real f, IOSTREAM *fd)
 static void
 saveXR(word xr, IOSTREAM *fd)
 { Symbol s;
-  int id;
+  long id;
 
   if ( isTaggedInt(xr) )		/* TBD: switch */
   { Putc(XR_INT, fd);
@@ -1242,7 +1242,7 @@ saveXR(word xr, IOSTREAM *fd)
 static void
 saveXRFunctor(FunctorDef f, IOSTREAM *fd)
 { Symbol s;
-  int id;
+  long id;
 
   if ( (s = lookupHTable(savedXRTable, f)) )
   { id = (int) s->value;
@@ -1264,7 +1264,7 @@ saveXRFunctor(FunctorDef f, IOSTREAM *fd)
 static void
 saveXRProc(Procedure p, IOSTREAM *fd)
 { Symbol s;
-  int id;
+  long id;
 
   if ( (s = lookupHTable(savedXRTable, p)) )
   { id = (int) s->value;

@@ -23,18 +23,24 @@
 	    current_setting/1,		% +Type(-Value ...)
 	    do_float/2,			% +Float(+Number), :Goal
 	    tex_load_commands/1,	% +BaseName
+	    add_to_index/1,		% +Term
 	    add_to_index/2,		% +Term, +Tag
-	    clean_tt/2			% +Raw, -Clean
+	    clean_tt/2,			% +Raw, -Clean
+	    downcase_atom/2,		% +Atom, -LowerCase
+	    upcase_atom/2		% +Atom, -UpperCase
 	  ]).
 :- use_module(library(quintus)).
 
-version('0.5').
+version('0.7').
 
 :- dynamic			
 	html_output_dir/1,		% output relative to this dir
 	html_file_base/1,		% Basename of the main file
+	html_split_level/1,		% Split upto this level
 	title/1,			% \title{} storage
-	author/1.
+	author/1.			% \auther{} command storage
+
+html_split_level(2).
 
 :- multifile
 	user:file_search_path/2.
@@ -59,7 +65,8 @@ read_tex_inputs :-
 	getenv('TEXINPUTS', Val), !,
 	split(Val, ":", PathElement),
 	retractall(user:file_search_path(tex, _)),
-	forall(member(E, PathElement),
+	reverse(PathElement, RevPath),
+	forall(member(E, RevPath),
 	       asserta(user:file_search_path(tex, E))).
 read_tex_inputs.
 
@@ -117,6 +124,7 @@ current_setting(html_output_dir(Dir)) :-
 
 keep_figures(true).
 onefile(false).
+makeindex(false).
 title('No title').
 author('Anonymous').
 
@@ -547,7 +555,8 @@ env(document(_, Contents), HTML) :- !,
 	translate(Contents, document, HTML).
 env(quote(_, Tokens), #quote(Quote)) :-
 	translate(Tokens, normal, Quote).
-env(abstract(_, Tokens), #quote(Quote)) :-
+%env(abstract(_, Tokens), [html('<HR>'), #quote(Quote), html('<HR>')]) :-
+env(abstract(_, Tokens), #quote([html('<HR>'), Quote, html('<HR>')])) :-
 	translate(Tokens, normal, Quote).
 env(center(_, Tokens), #center(Center)) :-
 	translate(Tokens, normal, Center).
@@ -660,7 +669,8 @@ translate_items([H0|T0], List, [H1|T1]) :-
 		 *******************************/
 
 prolog_function(\(usepackage, [_,{File},_])) :-
-	(   absolute_file_name(tex(File),
+	(   member(Term, [tex(File), library(File)]),
+	    absolute_file_name(Term,
 			       [ extensions([pl, qlf]),
 				 access(read)
 			       ],
@@ -668,6 +678,14 @@ prolog_function(\(usepackage, [_,{File},_])) :-
 	->  ensure_loaded(user:PlFile)
 	;   true
 	).
+prolog_function(\(newcommand, [{Name}, [], {Expanded}])) :-
+	declare_command(Name, 0, Expanded).
+prolog_function(\(newcommand, [{Name}, [Args], {Expanded}])) :-
+	declare_command(Name, Args, Expanded).
+prolog_function(\(renewcommand, [{Name}, [], {Expanded}])) :-
+	declare_command(Name, 0, Expanded).
+prolog_function(\(renewcommand, [{Name}, [Args], {Expanded}])) :-
+	declare_command(Name, Args, Expanded).
 	
 
 		 /*******************************
@@ -692,16 +710,9 @@ cmd(htmlpackage({File}), []) :-
 	).
 cmd(documentclass(_, _), preamble, []).
 cmd(usepackage(_, {_File}, _), preamble, []) :- !.
-/*	(   absolute_file_name(tex(File),
-			       [ extensions([pl, qlf]),
-				 access(read)
-			       ],
-			       PlFile)
-	->  ensure_loaded(user:PlFile)
-	;   true
-	).
-*/
-cmd(makeindex, preamble, []).
+cmd(makeindex, preamble, []) :-
+	retractall(makeindex(_)),
+	asserta(makeindex(true)).
 cmd(newcommand({Name}, [], {Expanded}), []) :-
 	declare_command(Name, 0, Expanded).
 cmd(newcommand({Name}, [Args], {Expanded}), []) :-
@@ -713,19 +724,26 @@ cmd(renewcommand({Name}, [Args], {Expanded}), []) :-
 cmd(def({'\booktitle'}, {Title}), HTML) :-
 	cmd(title({[Title]}), HTML).
 cmd(def(_, _), []).
+cmd(sloppy, []).
 cmd(noindent, []).
 cmd(clearpage, []).
 cmd(cleardoublepage, []).
 cmd(nopagebreak, []).
 cmd(pagebreak, []).
+cmd(linebreak, [html('<BR>')]).
 cmd(newpage, []).
 cmd(hyphenpenalty(_), []).
 cmd(newlength(_), []).
+cmd(setlength(_,_), []).
 cmd(settowidth(_, _), []).
 cmd(setcounter({page}, _), []).
 cmd(vskip(_), [html('<P>')]).
 cmd(vspace(_), [html('<P>')]).
+cmd(hspace(_), []).
+cmd(headheight(_), []).
+cmd(footheight(_), []).
 cmd(vfill, []).
+cmd(hfill, []).
 cmd(parskip(_), []).
 cmd(parindent(_), []).
 cmd(tableofcontents,
@@ -790,11 +808,11 @@ cmd(author({Author}), []) :-			% \author
 	translate(Author, normal, HTML),
 	assert(author(HTML)).
 cmd(maketitle,					% \maketitle
-    [ #center(#h(1, #thetitle)),
-      html('<HR>'),
-      #center(#i(#theauthor)),
-      html('<HR>')
-    ]).
+    #quote(#quote(#quote(#quote([ #center(#h(1, #thetitle)),
+				  html('<HR>'),
+				  #center(#i(#theauthor)),
+				  html('<HR>')
+				]))))).
 
 cmd(newblock, []).				% BiBTeX \newblock
 cmd(protect, []).				% BiBTeX produced?
@@ -916,6 +934,9 @@ cmd(caption({Caption}),
     #center(#b([#nameof(Type), ' ', Number, ':', ' ', +Caption]))) :-
 	current_float(Type, Number).
 
+ps_extension(eps).
+ps_extension(ps).
+
 cmd(psdirectories({Spec}), []) :-
 	split(Spec, ",", Dirs),
 	retractall(user:file_search_path(psfig, _)),
@@ -924,7 +945,8 @@ cmd(psdirectories({Spec}), []) :-
 cmd(psfig({Spec}), html(Img)) :-
 	psfig_options(Spec, Options),
 	member(figure(File), Options),
-	file_name_extension(Base, ps, File),
+	file_name_extension(Base, Ext, File),
+	ps_extension(Ext),
 	file_base_name(Base, GifBase),
 	file_name_extension(GifBase, gif, GifFile),
 	sformat(Img, '<IMG SRC="~w">', GifFile),
@@ -1220,18 +1242,26 @@ appendix :-
 
 translate_section(Level, -, TeXTitle,
 	[ Footer,
-	  #tell(NodeFile),
-	  #header(Tag),
+	  Tell,
+	  Header,
 	  #h(Level, #label(RefName, [Tag, ' ', Title]))
 	]) :- !,
 	translate(TeXTitle, normal, Title),
 	section_tag(OldTag),
 	increment_section_counter(Level, Tag, FirstSubSection),
-	(   FirstSubSection
-	->  Footer = #footer(OldTag)
-	;   Footer = []
+	(   html_split_level(Split),
+	    Level =< Split
+	->  Tell = #tell(NodeFile),
+	    Header = #header(Tag),
+	    section_file(Tag, Title, NodeFile),
+	    (   FirstSubSection
+	    ->  Footer = #footer(OldTag)
+	    ;   Footer = []
+	    )
+	;   Tell = [],
+	    Footer = [],
+	    Header = []
 	),
-        section_file(Tag, Title, NodeFile),
 	sformat(RefName, 'sec:~w', [Tag]),
 	assert(section(Level, Tag, Title)).
 translate_section(Level, *, Title, #h(Level, Title)).
@@ -1317,9 +1347,14 @@ tableofcontents(TagPrefix, [Sections, CloseUL]) :-
 section_html(TagPrefix,
 	     [ FixLevel,
 	       html('<LI>'),
-	       #lref(fileof(RefName), [Open, Tag, ' ', Title, Close])
+	       #lref(Ref, [Open, Tag, ' ', Title, Close])
 	     ]) :-
 	section(Level, Tag, Title),
+	html_split_level(Split),
+	(   Level =< Split
+	->  Ref = fileof(RefName)
+	;   Ref = RefName
+	),
 	concat(TagPrefix, _, Tag),
 	fix_level(Level, FixLevel),
 	sformat(RefName, 'sec:~w', [Tag]),
@@ -1391,6 +1426,8 @@ get_lower_letters([_|T0], T) :-
 
 
 make_index([]) :-
+	makeindex(false), !.
+make_index([]) :-
 	\+ index(_, _, _), !.
 make_index(HTML) :-
 	HTML0 = [ #tell('Index'),
@@ -1413,13 +1450,15 @@ index_html([SortKey|T0], CL0, [Sep, TermHTML|TH]) :-
 	index_html(T0, CL, TH).
 	
 index_terms([], []).
-index_terms([Term|T0], [ html('<DT>'),
+index_terms([Term0|T0], [ html('<DT>'),
 			 HtmlTerm,
 			 html('<DD>'),
 			 Where
 		       | TH
 		       ]) :-
-	findall(Tag, index(_, Term, Tag), Tags),
+	findall(Tag, index(_, Term0, Tag), Tags),
+	tex_atom_to_tokens(Term0, Tokens),
+	translate(Tokens, index, _, Term),
 	(   member(+PrimeTag, Tags)
 	->  HtmlTerm = #lref(PrimeTag, Term)
 	;   HtmlTerm = Term
@@ -1447,7 +1486,7 @@ add_separator(Term, _, CL, [ html('<DT>'),
 		 *        STANDARD LINKS	*
 		 *******************************/
 
-node_header([]) :-
+node_header([#title(#thetitle)]) :-
 	onefile(true), !.
 node_header([#title(#thetitle),
 	     html('<HR>'),
@@ -1529,24 +1568,28 @@ translate_table(Format, Body, HTML) :-
 	atom_chars(Format, Fmt),
 	table_frame(Fmt, Body, FrameAttributes, Fmt2, Body2),
 	expand_table_commands(Body2, Body3),
-	(   table_columns(Fmt2, Ncols, ColHTML)
+	(   table_columns(Fmt2, Ncols, ColAtts)
 	->  true
 	;   format(user_error, 'Failed to parse tabular spec "~s"~n', [Fmt2]),
-	    ColHTML = [],
+	    ColAtts = [],
 	    Ncols = 0
 	),
-	(   table_body(Body3, BodyHTML)
+	(   table_body(Body3, ColAtts, BodyHTML)
 	->  true
 	;   format(user_error, 'Failed to translate table body~n', []),
 	    trace, fail
 	),
 	HTML = [ html(Head),
-		 ColHTML,
+%		 ColHTML,
 		 BodyHTML,
 		 html('</TABLE>')
 	       ],
-	sformat(Head, '<TABLE COLS=~d FRAME=~w RULES=group>',
-		[Ncols, FrameAttributes]).
+	(   FrameAttributes == void
+	->  Border = 0
+	;   Border = 2
+	),
+	sformat(Head, '<TABLE BORDER=~d COLS=~d FRAME=~w RULES=group>',
+		[Border, Ncols, FrameAttributes]).
 
 %	expand_table_commands(+BodyIn, -BodyOut)
 %
@@ -1614,27 +1657,29 @@ table_columns(Fmt, Ncols, Cols) :-
 	table_columns(Fmt, 0, Ncols, Cols).
 
 table_columns([],      Ncols, Ncols, []).
-table_columns([0'l|T], NC0,   NC,    [html('<COL>')|TH]) :-
+table_columns([0'l|T], NC0,   NC,    [[]|TH]) :-
 	NC1 is NC0 + 1,
 	table_columns(T, NC1, NC, TH).
-table_columns([0'c|T], NC0,   NC,    [html('<COL ALIGN=center>')|TH]) :-
+table_columns([0'c|T], NC0,   NC,    [['ALIGN'=center]|TH]) :-
 	NC1 is NC0 + 1,
 	table_columns(T, NC1, NC, TH).
-table_columns([0'r|T], NC0,   NC,    [html('<COL ALIGN=right>')|TH]) :-
+table_columns([0'r|T], NC0,   NC,    [['ALIGN'=right]|TH]) :-
 	NC1 is NC0 + 1,
 	table_columns(T, NC1, NC, TH).
-table_columns([0'p|T0], NC0,   NC,   [html(Col)|TH]) :-
-	phrase(parbox_width(W), T0, T),
-	(   integer(W)
-	->  sformat(Col, '<COL WIDTH=~d%>', [W])
+table_columns([0'p|T0], NC0,   NC,   [Col|TH]) :-
+	phrase(parbox_width(_W), T0, T),
+	Col = [],
+/*	(   integer(W)
+	->  Col = ['WIDTH'=W]
 	;   append(Done, T, T0),
 	    format(user_error,
 		   'Could not determing column width from "~s"~n', [Done]),
-	    Col = '<COL>'
+	    Col = []
 	),
+*/
 	NC1 is NC0 + 1,
 	table_columns(T, NC1, NC, TH).
-table_columns([0'||T], NC0,  NC,     [html('<COLGROUP>')|TH]) :-
+table_columns([0'||T], NC0,  NC,     TH) :-
 	table_columns(T, NC0, NC, TH).
 
 parbox_width(W) -->
@@ -1698,38 +1743,56 @@ relative_width(mm, N, W) :- W is integer(100 * (N/25.4) / 6).
 
 :- set_feature(character_escapes, true).
 
-table_body([], []).
-table_body([\(\, _)|T], []) :-
-	 all_white_space(T).
-table_body([' '|T0], T) :-
-	 table_body(T0, T).
-table_body(['\n'|T0], T) :- !,
-	table_body(T0, T).
-table_body([\hline|T0], [html('<TBODY>')|T]) :-
-	 table_body(T0, T).
-table_body(Body, [[ html('<TR VALIGN=top>'),
-		    Row,
-		    html('</TR>')
-		  ]|Rest]) :-
-	table_row(Body, BodyRest, Row),
-	table_body(BodyRest, Rest).
+table_body([], _, []).
+table_body([\(\, _)|T], _, []) :-
+	all_white_space(T).
+table_body([' '|T0], ColAtts, T) :-
+	table_body(T0, ColAtts, T).
+table_body(['\n'|T0], ColAtts, T) :- !,
+	table_body(T0, ColAtts, T).
+table_body([\hline|T0], ColAtts, [html('<TBODY>')|T]) :-
+	table_body(T0, ColAtts, T).
+table_body(Body, ColAtts, [[ html('<TR VALIGN=top>'),
+			     Row,
+			     html('</TR>')
+			  ]|Rest]) :-
+	table_row(Body, 1, ColAtts, BodyRest, Row),
+	table_body(BodyRest, ColAtts, Rest).
 
-table_row([], [], []) :- !.
-table_row([' '|T0], T, TH) :- !,
-	table_row(T0, T, TH).
-table_row(['\n'|T0], T, TH) :- !,
-	table_row(T0, T, TH).
-table_row([\(\, _)|Rest], Rest, []) :- !.
-table_row([\(multicolumn, [{N}, {A}, {Tokens}])|R0], R,
+table_row([], _, _, [], []) :- !.
+table_row([' '|T0], C, ColAtts, T, TH) :- !,
+	table_row(T0, C, ColAtts, T, TH).
+table_row(['\n'|T0], C, ColAtts, T, TH) :- !,
+	table_row(T0, C, ColAtts, T, TH).
+table_row([\(\, _)|Rest], _, _, Rest, []) :- !.
+table_row([\(multicolumn, [{N}, {A}, {Tokens}])|R0], C, ColAtts, R,
 	  [html(MC), Item|THtml]) :-
 	column_alignment(A, Alignment), !,
-	sformat(MC, '<TD COLSPAN=~w HALIGN=~w>', [N, Alignment]),
+	sformat(MC, '<TD COLSPAN=~w ALIGN=~w>', [N, Alignment]),
 	translate_group(Tokens, Item),
-	table_row(R0, R, THtml).
-table_row(L,  R,  [html('<TD>'), Chtml|THtml]) :-
+	to_integer(N, N2),
+	C2 is C + N2,
+	table_cell(R0, R1, _),		% discard tokens upto &
+	table_row(R1, C2, ColAtts, R, THtml).
+table_row(L, C, ColAtts, R,  [html(CellHeader), Chtml|THtml]) :-
+	cell_header(C, ColAtts, CellHeader),
 	table_cell(L, T, Tokens),
 	translate_group(Tokens, Chtml),
-	table_row(T, R, THtml).
+	C2 is C + 1,
+	table_row(T, C2, ColAtts, R, THtml).
+
+cell_header(C, ColAtts, Header) :-
+	nth1(C, ColAtts, Spec),
+	maplist(sgml_attribute, Spec, Attributes),
+	concat_atom(['<TD'|Attributes], ' ', H0),
+	concat(H0, '>', Header).
+
+sgml_attribute(Name=Value, Att) :-
+	concat_atom([Name, =, Value], Att).
+
+to_integer(Atom, Integer) :-
+	atom_chars(Atom, Chars),
+	number_chars(Integer, Chars).
 
 column_alignment(l, left).
 column_alignment(c, center).
@@ -1923,6 +1986,13 @@ option(tmp,	Tmp) :-
 ps2gif(In, Out) :-
 	ps2gif(In, Out, []).
 
+ps2gif(In, Out, _Options) :-
+	absolute_file_name(In, [ access(read),
+				 extensions([gif])
+			       ],
+			   InFile), !,
+	concat_atom(['cp ', InFile, ' ', Out], Cmd),
+	shell(Cmd).
 ps2gif(In, Out, Options) :-
 	get_option(Options, tmp(Tmp)),
 	get_option(Options, res(Res0)),
@@ -2053,7 +2123,8 @@ write_html(lref(Label, Text)) :-
 	write_html(lref(FixedLabel, Text)).
 write_html(lref(Label, Text)) :- !,
 	format(user_error, 'No label for reference "~w"~n', [Label]),
-	write_html(Text).
+	macro_expand(#b(Text), Expanded),
+	write_html(Expanded).
 write_html(lforw(Label, Text)) :- !,
 	concat('back-to-', Label, BackName),
 	(   label(Label, File, _)
@@ -2133,7 +2204,8 @@ cmd_layout('<LISTING>',	 2, 0).
 cmd_layout('</LISTING>', 0, 2). 
 cmd_layout('<XMP>',	 2, 0). 
 cmd_layout('</XMP>', 	 0, 2). 
-     
+cmd_layout(Cmd,		 1, 1) :-
+	concat('<TABLE', _, Cmd).
 
 :- initialization
    read_tex_inputs.

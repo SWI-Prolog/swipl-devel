@@ -618,7 +618,9 @@ clause should belong to.
     return NULL;
 
   if ( (ci.arity = proc->definition->functor->arity) > MAXARITY )
-    return (Clause) warning("Compiler: arity too high (%d)\n", ci.arity);
+  { warning("Compiler: arity too high (%d)\n", ci.arity);
+    return (Clause) NULL;
+  }
 
   DEBUG(9, Sdprintf("Splitted and found proc\n"));
 

@@ -1125,25 +1125,33 @@ out:
 
 static int
 Sread_file(void *handle, char *buf, int size)
-{ return read((int)handle, buf, size);
+{ long h = (long) handle;
+
+  return read((int)h, buf, size);
 }
 
 
 static int
 Swrite_file(void *handle, char *buf, int size)
-{ return write((int)handle, buf, size);
+{ long h = (long) handle;
+
+  return write((int)h, buf, size);
 }
 
 
 static long
 Sseek_file(void *handle, long pos, int whence)
-{ return lseek((int)handle, pos, whence);
+{ long h = (long) handle;
+
+  return lseek((int)h, pos, whence);
 }
 
 
 static int
 Sclose_file(void *handle)
-{ return close((int) handle);
+{ long h = (long) handle;
+
+  return close((int) h);
 }
 
 
@@ -1186,6 +1194,7 @@ Sopen_file(const char *path, char *how)
 { int fd;
   int oflags = 0, flags = SIO_FILE|SIO_TEXT|SIO_RECORDPOS;
   int op = *how++;
+  long lfd;
 
   for( ; *how; how++)
   { switch(*how)
@@ -1227,13 +1236,15 @@ Sopen_file(const char *path, char *how)
   if ( fd < 0 )
     return NULL;
 
-  return Snew((void *)fd, flags, &Sfilefunctions);
+  lfd = (long)fd;
+  return Snew((void *)lfd, flags, &Sfilefunctions);
 }
 
 
 IOSTREAM *
 Sfdopen(int fd, char *type)
 { int flags;
+  long lfd;
 
   if ( fd < 0 )
     return NULL;
@@ -1243,14 +1254,18 @@ Sfdopen(int fd, char *type)
   else
     flags = SIO_FILE|SIO_OUTPUT;
 
-  return Snew((void *)fd, flags, &Sfilefunctions);
+  lfd = (long)fd;
+
+  return Snew((void *)lfd, flags, &Sfilefunctions);
 }
 
 
 int
 Sfileno(IOSTREAM *s)
 { if ( s->flags & SIO_FILE )
-    return (int)s->handle;
+  { long h = (long)s->handle;
+    return (int)h;
+  }
   if ( s->flags & SIO_PIPE )
     return fileno((FILE *)s->handle);
 

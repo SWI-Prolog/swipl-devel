@@ -33,8 +33,8 @@ indexing only on the first argument as this is default.
 
 /* 1 <= c <= 4 */
 
-#define SHIFT(c, a)	((32/(c)) * a)
-#define MASK(c)		(c == 1 ? ~0L : ((1L << (32/(c))) - 1))
+#define SHIFT(c, a)	((LONGBITSIZE/(c)) * a)
+#define MASK(c)		(c == 1 ? ~0L : ((1L << (LONGBITSIZE/(c))) - 1))
 #define VM(c, a)	((unsigned long)(~(MASK(c) << SHIFT(c, a))))
 
 #define Shift(c, a)	(mask_shift[c][a])
@@ -522,6 +522,8 @@ gcClauseChain(ClauseChain ch, int dirty)
 }
 
 
+#define INFINT (~(1<<(INTBITSIZE-1)))
+
 void
 gcClauseIndex(ClauseIndex ci)
 { ClauseChain ch = ci->entries;
@@ -529,7 +531,7 @@ gcClauseIndex(ClauseIndex ci)
     
   if ( ci->alldirty )
   { for(; n; n--, ch++)
-      ci->size -= gcClauseChain(ch, PLMAXINT);
+      ci->size -= gcClauseChain(ch, INFINT);
   } else
   { for(; n; n--, ch++)
     { if ( ch->dirty )

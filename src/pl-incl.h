@@ -338,6 +338,8 @@ them.  Descriptions:
 #define SMALLSTACK		200 * 1024 /* GC policy */
 
 #define WORDBITSIZE		(8 * sizeof(word))
+#define LONGBITSIZE		(8 * sizeof(long))
+#define INTBITSIZE		(8 * sizeof(int))
 
 				/* Prolog's integer range */
 #define PLMINTAGGEDINT		(-(long)(1L<<(WORDBITSIZE - LMASK_BITS - 1)))
@@ -396,7 +398,7 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 	  ForeignRedoPtr(v); \
 	}
 
-#define NEED_REINDEX (1L << (8*sizeof(long)-1)) /* defenition reindexing */
+#define NEED_REINDEX (1L << (LONGBITSIZE-1)) /* definition reindexing */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Foreign language interface definitions.  Note that these macros MUST  be

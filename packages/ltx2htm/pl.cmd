@@ -34,6 +34,7 @@
 
 \versionshort
 \arg{+}
+\var{+}
 \bnfmeta{+}
 \bnfor
 \url[+]{-}
@@ -92,15 +93,7 @@
 \lineno{-}
 \tool{+}
 \demo{+}
-\sendmethod*{-}{-}{+}=item
-\bothmethod*{-}{-}{+}=item
-\getmethod*{-}{-}{+}=item
-\manualtool{+}{+}=item
-\secoverview{-}{+}=item
-\glossitem{-}=item
-\classsummary*{-}{+}{-}=item
 \noargpredicate{-}=item
-\fontalias{-}{+}=item
 \idx{-}
 \postscriptfig[-]{-}{+}
 \g{-}

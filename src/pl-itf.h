@@ -446,7 +446,7 @@ __pl_export void PL_interrupt(int sig);
 #define PL_ACTION_WRITE		8	/* write via Prolog i/o buffer */
 #define PL_ACTION_FLUSH		9	/* Flush Prolog i/o buffer */
 
-__pl_export int	 PL_action(int, void *); /* perform some action */
+__pl_export int	 PL_action(int, ...);	/* perform some action */
 __pl_export void PL_on_halt(void (*)(int, void *), void *);
 
 		/********************************

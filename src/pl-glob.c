@@ -88,9 +88,7 @@ intermediate representation:
 #define NOCURL	0
 #define CURL	1
 
-#ifdef NEED_UCHAR
-typedef unsigned char uchar;
-#endif
+typedef unsigned char matchcode;
 
 struct bag
 { int	 in;			/* in index */
@@ -102,12 +100,12 @@ struct bag
 };
 
 static struct out
-{ int	size;
-  uchar	code[MAXCODE];
+{ int		size;
+  matchcode	code[MAXCODE];
 } cbuf;
 
 forwards char	*compile_pattern(struct out *, char *, int);
-forwards bool	match_pattern(uchar *, char *);
+forwards bool	match_pattern(matchcode *, char *);
 forwards int	stringCompare(const void *, const void *);
 forwards bool	expand(char *, char **, int *);
 #ifdef O_EXPANDS_TESTS_EXISTS
@@ -124,7 +122,7 @@ forwards bool	expandBag(struct bag *);
 			}
 
 static inline void
-setMap(uchar *map, int c)
+setMap(matchcode *map, int c)
 { if ( !status.case_sensitive_files )
     c = makeLower(c);
 
@@ -163,7 +161,7 @@ compile_pattern(struct out *Out, char *p, int curl)
 	Output(STAR);
 	continue;
       case '[':
-	{ uchar *map;
+	{ matchcode *map;
 	  int n;
 
 	  Output(ANYOF);
@@ -257,9 +255,9 @@ matchPattern(char *s)
 
 
 static bool
-match_pattern(uchar *p, char *str)
-{ uchar c;
-  uchar *s = (uchar *) str;
+match_pattern(matchcode *p, char *str)
+{ matchcode c;
+  matchcode *s = (matchcode *) str;
 
   for(;;)
   { switch( c = *p++ )
@@ -271,7 +269,7 @@ match_pattern(uchar *p, char *str)
 	  s++;
 	  continue;
       case ANYOF:					/* [...] */
-        { uchar c2 = *s;
+        { matchcode c2 = *s;
 
 	  if ( !status.case_sensitive_files )
 	    c2 = makeLower(c2);

@@ -2,6 +2,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 2.8.1
+=============
+
+  * FIXED: PL_get_arg() when using -L0 -G0 (maximized stacks).  Probably
+    only breaks tracing code under these circumstances.
+
+
 VERSION 2.8.0
 =============
 
