@@ -878,7 +878,7 @@ tcp_get_sockaddr(term_t Address, struct sockaddr_in *addr)
   if ( hostName )
   { if( !(host = gethostbyname(hostName)) )
       return tcp_error(h_errno, h_errno_codes);
-    if ( sizeof(addr->sin_addr) < host->h_length )
+    if ( (int)sizeof(addr->sin_addr) < host->h_length )
       return PL_warning("Oops, host address too long!");
     memcpy(&addr->sin_addr, host->h_addr, host->h_length);
   } else

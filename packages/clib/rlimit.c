@@ -88,7 +88,7 @@ pl_rlimit(term_t what, term_t old, term_t new)
       if ( PL_get_long(new, &n) )
       { 
       set:
-	if ( rlim.rlim_cur != n )
+	if ( rlim.rlim_cur != (unsigned long) n )
 	{ rlim.rlim_cur = n;
 	  if ( !setrlimit(resource, &rlim) == 0 )
 	    return pl_error("rlimit", 3, NULL, ERR_ERRNO, errno);
