@@ -455,7 +455,7 @@ contentsTextBuffer(TextBuffer tb, CharArray ca)
 static StringObj
 getSubTextBuffer(TextBuffer tb, Int from, Int to)
 { string s;
-  int f = valInt(from);
+  int f = (isDefault(from) ? 0 : valInt(from));
   int t = (isDefault(to) ? tb->size : valInt(to));
 
   str_sub_text_buffer(tb, &s, f, t-f);
