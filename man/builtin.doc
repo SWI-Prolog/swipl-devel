@@ -2499,13 +2499,20 @@ string_concat/3.
 if \arg{Atom} can be unified with the concatenated elements of \arg{List}. If
 \arg{List} has exactly 2 elements it is equivalent to atom_concat/3,
 allowing for variables in the list.
-    \predicate{concat_atom}{3}{+List, +Separator, -Atom}
+    \predicate{concat_atom}{3}{?List, +Separator, ?Atom}
 Creates an atom just like concat_atom/2, but inserts \arg{Separator}
 between each pair of atoms.  For example:
 \begin{code}
 ?- concat_atom([gnu, gnat], ', ', A).
 
 A = 'gnu, gnat'
+\end{code}
+This predicate can also be used to split atoms by instantiating
+\arg{Separator} and \arg{Atom}:
+\begin{code}
+?- concat_atom(L, -, 'gnu-gnat').
+
+L = [gnu, gnat]
 \end{code}
     \predicate{atom_length}{2}{+Atom, -Length}
 Succeeds if \arg{Atom} is an atom of \arg{Length} characters long. This

@@ -1700,6 +1700,37 @@ pl_atom_concat(term_t a1, term_t a2, term_t a3, control_t ctx)
 }
 
 
+static int
+split_atom(term_t list, term_t sep, term_t atom)
+{ char *sp, *text;
+  int splen, tlen;
+  int i, last;
+  term_t tail = PL_copy_term_ref(list);
+  term_t head = PL_new_term_ref();
+
+  if ( !PL_get_nchars(atom, &tlen,  &text, CVT_ATOMIC|BUF_RING) )
+    return -1;
+  PL_get_nchars(sep, &splen, &sp, CVT_ATOMIC|BUF_RING);
+
+  for(last=i=0; i<=tlen-splen; )
+  { if ( memcmp(sp, text+i, splen) == 0 )
+    { if ( !PL_unify_list(tail, head, tail) ||
+	   !PL_unify_atom_nchars(head, i-last, text+last) )
+	fail;
+      i += splen;
+      last = i;
+    } else
+      i++;
+  }
+
+  if ( !PL_unify_list(tail, head, tail) ||
+       !PL_unify_atom_nchars(head, tlen-last, text+last) )
+    fail;
+
+  return PL_unify_nil(tail);
+}
+
+
 word
 pl_concat_atom3(term_t list, term_t sep, term_t atom)
 { term_t l = PL_copy_term_ref(list);
@@ -1724,7 +1755,14 @@ pl_concat_atom3(term_t list, term_t sep, term_t atom)
 
     if ( !PL_get_nchars(head, &slen, &s, CVT_ATOMIC) )
     { discardBuffer(&b);
-      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, head);
+      switch(split_atom(list, sep, atom))
+      { case -1:
+	  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, head);
+	case 0:
+	  fail;
+	default:
+	  succeed;
+      }
     }
 
     if ( first )
@@ -1747,7 +1785,14 @@ pl_concat_atom3(term_t list, term_t sep, term_t atom)
   }
 
   discardBuffer(&b);
-  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
+  switch(split_atom(list, sep, atom))
+  { case -1:
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
+    case 0:
+      fail;
+    default:
+      succeed;
+  }
 }
 
 
