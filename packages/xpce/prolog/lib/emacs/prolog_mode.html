@@ -1,0 +1,306 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+
+<html>  
+  <head>  
+    <title>PceEmacs Prolog mode</title>
+  </head>  
+<body>
+
+<h1 align=center>Using PceEmacs in Prolog mode</h1>
+
+<h2>Activating Prolog mode</h2>
+
+<p>
+Prolog mode is activated by loading a file that ends in the right
+extension.  The default extension for Prolog files is <b>.pl</b> and it
+is therefore strongly adviced to give your Prolog sourcefiles the
+extension <b>.pl</b>.
+
+<p>
+Alternatively the editor may always be switched to Prolog mode using the
+<b>Mode</b> submenu of the <b>File</b> menu or using <b>M-x mode RET
+prolog RET</b>
+
+
+<h2>Using Prolog Mode</h2>
+
+<p>
+PceEmacs Prolog mode provides support in the following areas
+
+<ul>  
+  <li><a href="#layout">Layout (indentation)</a>
+  <li><a href="#syntax">Syntax colouring based on parsing and cross-referencing</a>
+  <li><a href="#browsing">Browsing by jumping to definitions and showing help</a>
+  <li><a href="#loading">Loading files into Prolog</a>
+</ul>
+
+<h3><a name=layout>Layout (indentation)</a></h3>
+
+<p>
+Layout support is provided by automatic indentation and placement of
+comments.  This is achieved using the following commands:
+
+<dl>
+  <dt><b>TAB</b><dd>
+Indent the current line.  If the system figures out your are typing
+arguments to a term or list the alignment is based on the opening brace.
+Otherwise it aligns clause-heads and bodies. The example below
+illustrates the typical layout for which automatic indentation is
+designed:
+
+<p>
+<PRE>
+head(Arg1, Arg2) :-
+	subclause(with, arguments),
+	(   if
+	->  then
+	;   else
+	),
+	subclause(with,
+		  many,
+		  arguments).
+</PRE>
+
+  <dt><b>M-q</b><dd>
+Meta-q formats a paragraph.  If the caret is in a long comment, this
+behaviour is retained, but if the caret is in a clause all lines of
+the clause will re-indented using the same rules as used for <b>TAB</b>
+</dl>
+
+
+<h3><a name=syntax>Syntax checking and colouring</a></h3>
+
+<p>
+After the user types a <b>full-stop</b> character not inside a string or
+comment, the system will parse the current clause and colourise it.
+If the syntax is not correct, the clause is not colourised and the
+Prolog warning is displayed in the PceEmacs status window.
+In addition, if the syntax is correct and the clause contains <b>singleton</b>
+variables a query-replace loop is started that allows the user to map
+each singleton to <tt>_</tt> or <tt>_Name</tt>.  A clause can be checked
+explictly using the <b>\C-c\C-s</b> command.
+
+<p>
+After a 2 seconds <b>idle</b> time, and if the file is shorter than the
+class-variable <tt>emacs_prolog_mode.auto_colourise_size_limit</tt>,
+PceEmacs performs a parsing, cross-referencing and colouring of the
+whole buffer.  By default it will colour the following entities:
+
+<dl>
+  <dt><table bgcolor="#e8e8e8"><tr><td><tt>:- directive</tt></table><dd>
+Directives are displayed with a light-grey background to make them
+stand-out in the file.
+
+  <dt><b><tt>normal head :-</tt></b><dd>
+The head of a `normal' clause is displayed in a bold font to make the
+clause stand-out.
+
+  <dt><font color=blue><b><tt>exported head :-</tt></b></font><dd>
+The heads of clauses exported from the current file are bold-blue.
+
+  <dt><font color=blue><b><tt>unused head :-</tt></b></font><dd>
+The heads of unused clauses are bold-red. Unused means the
+cross-referencer, only working on the current file does not find a
+reference. This might not be an error if the cross-referencer is not
+able to resolve the call or the file is not a module-file and the
+predicate is called from another file or directly by the user.
+
+  <dt><font color=black><tt>normal call</tt></font><dd>
+Calls to locally defined predicates are displayed in the current font.
+
+  <dt><font color=blue><tt>built-in or imported call</tt></font><dd>
+Calls to built-in predicates or imported predicates (through
+<b>use_module/1</b> and friends) are displayed in blue.
+
+  <dt><font color=red><tt>undefined call</tt></font><dd>
+Calls to predicates for which the system finds no definition are painted
+in red.  If you work top-down, this nicely highlights the loose ends of
+your code.  If you intended to call a built-in you know you made an
+error.
+
+  <dt><font color=purple><tt>call</tt></font><dd>
+Call to a declared dynamic procedure are highlighted in purple.
+</dl>
+
+<p>
+In addition, the argument to the <b>file-loading</b> directives
+are displayed in <font color=blue><u>underlined blue</u></font> if
+the file was found and in <font color=red>red</font> otherwise.  Found
+files have an associated <b>popup</b> to open them.
+
+
+<h4>Extending the colouring</h4>
+
+<p>
+Colouring may be extended by defining rules for the multifile predicates
+<b>emacs_prolog_colours:term_colours/2</b> and
+<b>emacs_prolog_colours:goal_classification/2</b>. This interface is
+rather immature. Please check the library file
+<tt>emacs/prolog_colour.pl</tt> for more information.
+
+
+<h3><a name=browsing>Browsing</a></h3>
+
+<p>
+This section describes the most important commands for finding your way
+around.
+
+<dl>
+  <dt><b>M-.</b><dd>
+Bound to <b>find_definition</b> and also available from the Prolog menu,
+this command locates predicate definitions. It also finds built-in
+predicates if they are defined in Prolog.  It works by inspecting the
+Prolog database and therefore works best if PceEmacs is run from a
+Prolog with a copy of the program under development loaded.  See also
+<a href="#tips">the tips section</a>
+
+  <dt><b>Browse/Bookmark Line</b> and <b>Browse/Show bookmarks</b><dd>
+Add a line to the bookmarks. This also opens the bookmark editor.
+Bookmarks are useful if development or debugging requires several
+pieces of the source from very different locations.
+
+  <dt><b>M-s</b> and the <b>pin</b> at the bottom-left<dd>
+Normally, switching to another file causes the same window to be used.
+You can toggle the pin at the bottom with the mouse or <b>M-s</b>
+command.  With the pin `in', the window is not reused for another
+file.
+
+  <dt><b>\C-x2</b> and <b>\C-x1</b> to split windows<dd>
+<b>\C-x2</b> makes a clone of the current window. Both windows operate
+on the same file.  This often used to examine related code in the same
+file.
+
+  <dt><b>Prolog/Prolog manual</b><dd>
+This menu option prompts for a topic (using completion) of the
+SWI-Prolog online manual also available through <b>help/1</b>.  Without
+a specified topic it calls <b>help/0</b>.
+
+  <dt><b>Prolog/Explain</b><dd>
+This menu option provides access to the `explain' facility of the online
+help system, forcing the system to tell anything it knows about an
+identifier.  One of the useful things is to <b>find references</b> to an
+atom or <b>calls to a predicate</b>.
+</dl>
+
+
+<h3><a name=loading>Loading files into Prolog</a></h3>
+
+<p>
+The <b>Prolog menu</b> has various entries for loading the current file
+or a part thereof. The most commonly used option is <b>Make</b>,
+updating all loaded and modified files.
+
+
+<h3><a name=tips>Tips</a></h3>
+
+<p>
+Over the years we have developed a discipline for working with Prolog
+projects.  We share this knowledge with you in this section.
+
+
+<h4>The files for a project</h4>
+
+<p>
+Every file, possibly except for <tt>load.pl</tt> and <tt>run.pl</tt> is
+declared as a <b>module file</b>.  Why?  It provides <em>documentation</em>
+and <em>hiding</em> at practically no cost.  The same information makes
+PceEmacs cross-referencing work efficiently and providing the most
+relyable information.
+
+<p>
+Projects generally have four files for project maintenance. These are
+normal Prolog source-files helping you to load, run and maintain the
+project.
+
+<dl>
+  <dt><b>load.pl</b><dd>
+This file defines rules for <b>file_search_path/2</b> that enable
+different parts of the program to find each other, possibly other path
+declarations and then loads the files required by the project. Modules
+needing each other do so using <b>use_module/1</b>, normally using the
+symbolic path defined with <b>file_search_path/2</b> in
+<tt>load.pl</tt>.  Here is an example.
+
+<pre>
+/* File load.pl */
+
+:- multifile
+	file_search_path/2.
+
+file_search_path(rules, rules).
+file_search_path(gui,   xpce).
+
+:- use_module(infer).
+</pre>
+
+<pre>
+/* File infer.pl */
+
+:- module(infer,
+	  [ infer/2			% +Key, -Value
+	  ]).
+:- use_module(rules(rules)).
+
+...
+</pre>
+
+  <dt><b>run.pl</b><dd>
+Normally simply loads <b>load.pl</b> and starts the toplevel goal.
+Having this file makes it clear how the application is started and
+allows you to start it just activating this file.
+
+  <dt><b>save.pl</b><dd>
+Loads <b>load.pl</b>, defines the work to be done to create a
+saved-state and calls this.
+
+  <dt><b>debug.pl</b><dd>
+In this file you stick whatever is needed to debug and develop the
+program.  Traditionally this are clauses for <b>portray/1</b> to
+redefine the printing of large or otherwise unreadable terms.  You
+can add settings for the debugger, loading the graphical debugger,
+rules for syntax-colouring in PceEmacs, test and debug queries, etc.
+</dl>
+
+<p>
+Having all this basic stuff in a file on their own is especially handy
+on MS-Windows, where double-clicking the right file in the explorer now
+satisfies for running, saving or debugging/developing the program. The
+load-file contains the common ground for these three functions. 
+
+<p>
+On Unix, the same is achieved using <tt>pl -f &lt;file&gt;</tt>.
+
+
+<h4>Using PceEmacs</h4>
+
+<p>
+There are three reasonable options.  The first, only applicable to
+Unix platyforms, is to start a <b>PceEmacs server</b> as part of the X11
+setup and use this as a server.  The details are in the general help
+on PceEmacs. The second option is to run <b>PceEmacs in a separate
+Prolog</b> and the final option is to use the <b>same Prolog</b> as for
+debugging your application.
+
+<p>
+Running in the <b>same process</b> is attractive, as it provides PceEmacs
+access to all resources for optimal browsing and relyable
+cross-referencing.  Unfortunately you cannot edit if your program is
+actively running and fatal crashes of your program bring your editor
+down, loosing unsaved work, undo-information, open buffers, bookmarks,
+etc.
+
+<p>
+A good alternative is to run PceEmacs is a separate Prolog that has your
+program loaded, but is not used to run it.  This provides PceEmacs with
+all required information without the risc for loosing information if you
+have to restart the Prolog holding your running program.
+
+<p>
+Which option is best depends on the nature of your program, your
+experience and discipline.
+
+<p>
+In any case, use the SWI-Prolog <b>make/0</b> command to update the
+system after changing the sources.
+</body>
+</html>
