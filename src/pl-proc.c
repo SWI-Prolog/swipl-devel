@@ -1491,7 +1491,7 @@ trapUndefined(LocalFrame fr, Procedure proc ARG_LD)
   lTop = lSafe;
   PL_mutex_unlock(GD->thread.MUTEX_load);
 #else
-  lTop = argFrameP(fr, proc->definition->functor->arity);
+  lTop = (LocalFrame)argFrameP(fr, proc->definition->functor->arity);
   def = trapUndefined_unlocked(fr, proc PASS_LD);
   lTop = lSafe;
 #endif
