@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: error handling if alias(Alias) option is used in thread_create/3
+    with an already used thread or queue name.  Part of Bug#28, Mike Elston.
+
   * MODIFIED: succ/2 now only handles natural (>= 0) numbers.  Compatibility.
     See discussion in the mailing list (Richard O'Keefe):
     http://www.swi.psy.uva.nl/projects/SWI-Prolog/mailinglist/archive/2833.html

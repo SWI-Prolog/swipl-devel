@@ -556,24 +556,27 @@ exitPrologThreads()
 
 bool
 aliasThread(int tid, atom_t name)
-{ int rval;
-
-  LOCK();
+{ LOCK();
   if ( !threadTable )
     threadTable = newHTable(16);
 
   if ( (threadTable && lookupHTable(threadTable, (void *)name)) ||
-       (queueTable &&    lookupHTable(queueTable,    (void *)name)) )
-    return PL_error("thread_create", 1, NULL, ERR_PERMISSION,
-		    ATOM_thread, ATOM_create, name);
+       (queueTable  && lookupHTable(queueTable,  (void *)name)) )
+  { term_t obj = PL_new_term_ref();
 
-  if ( (rval = addHTable(threadTable, (void *)name, (void *)tid)) )
-  { PL_register_atom(name);
-    threads[tid].name = name;
+    UNLOCK();
+    PL_put_atom(obj, name);
+    return PL_error("thread_create", 1, "Alias name already taken",
+		    ERR_PERMISSION, ATOM_thread, ATOM_create, obj);
   }
+
+  addHTable(threadTable, (void *)name, (void *)tid);
+  PL_register_atom(name);
+  threads[tid].name = name;
+
   UNLOCK();
 
-  return rval;
+  succeed;
 }
 
 static void
@@ -841,8 +844,11 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   info->module = PL_context();
 
   if ( alias )
-    aliasThread(info->pl_tid, alias);
-
+  { if ( !aliasThread(info->pl_tid, alias) )
+    { free_thread_info(info);
+      fail;
+    }
+  }
 					/* copy settings */
 
   PL_register_atom(LD->prompt.current);
@@ -2288,7 +2294,12 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
   info->tid = pthread_self();		/* we are complete now */
   set_system_thread_id(info);
   if ( attr && attr->alias )
-    aliasThread(info->pl_tid, PL_new_atom(attr->alias));
+  { if ( !aliasThread(info->pl_tid, PL_new_atom(attr->alias)) )
+    { free_thread_info(info);
+      errno = EPERM;
+      return -1;
+    }
+  }
 
   return info->pl_tid;
 }
