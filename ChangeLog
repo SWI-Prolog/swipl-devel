@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Avoid reentrence of the GNU readline library, as this upsets
+    the readline signal handling.
+
   * ISO: load_files/2 now throws an exception rather then printing a
     message if a target file does not exist.
 
