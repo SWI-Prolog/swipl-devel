@@ -1393,6 +1393,15 @@ The local-, global- and trail-stack are limited to 128 Mbytes on 32 bit
 processors, or more in general to $\pow{2}{\mbox{bits-per-long} - 5}$
 bytes.
 
+The PrologScript facility described in \secref{plscript} provides a 
+mechanism for specifying options with the load-file.  On Windows the
+default stack-sizes are controlled using the Windows \idx{registry}
+on the key \verb$HKEY_CURRENT_USER\Software\SWI\Prolog$ using the
+names \const{localSize}, \const{globalSize} and \const{trailSize}.  The
+value is a \const{DWORD} expressing the default stack size in Kbytes.
+A GUI for modifying these values of provided using the XPCE package.
+
+
 \begin{table}
 \begin{center}
 \begin{tabular}{|c|c|l|p{5cm}|}
@@ -1470,7 +1479,7 @@ not limited.
 Integers are 32-bit to the user, but integers upto the value of the
 \const{max_tagged_integer} prolog-flag are represented more efficiently.
     \item[Floats]
-Floating point numbers are represented as native double precision
+Floating point numbers are represented as C-native double precision
 floats, 64 bit IEEE on most machines.
 \end{description}
 
