@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: library(pce_progress): provide progress bars.
+
 * FIXED: Bug#28: avoid strtod() locale-specific interpretation of resource
   strings.   Jiri Spitz.
 
