@@ -147,7 +147,6 @@ setup_print_editor(_TB, E:editor, From:[editor]) :->
 
 print_pages(Printer, Editor, End, Margin, BG, Page, Pages) :-
 	get(Editor, image, Image),
-%	format('Printing page~n'),
 	Margin = margin(MX, MY),
 	(   get(BG, member, pageno, PageNoText)
 	->  send(PageNoText, string, string('%s %d', page?label_name, Page)),
@@ -158,19 +157,18 @@ print_pages(Printer, Editor, End, Margin, BG, Page, Pages) :-
 	send(Printer, draw_in, BG),
 	get(Image, end, EndImg),
 	(   EndImg > End
-	->  get(Image, character_position, End, point(_,BaseY)),
-%	    format('BaseY = ~w~n', [BaseY]),
-	    send(Editor, do_set, height := BaseY)
+	->  get(Image, start, Start),
+	    get(Image, character_position, End, point(_,BaseY)),
+	    send(Editor, do_set, height := BaseY),
+	    send(Editor, scroll_to, Start, 1) % make sure it doesn't move
 	;   true
 	),
 	send(Printer, draw_in, Image, point(MX, MY)),
-%	format('Ok, done upto ~w~n', [EndImg]),
 	(   (   EndImg >= End
 	    ;	get(Image, eof_in_window, @on)
 	    )
 	->  Pages = Page
 	;   send(Printer, next_page),
-%	    format('Next page from ~w~n', [EndImg]),
 	    send(Editor, scroll_to, EndImg, 1),
 	    NextPage is Page+1,
 	    print_pages(Printer, Editor, End, Margin, BG, NextPage, Pages)
