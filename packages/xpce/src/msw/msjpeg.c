@@ -482,7 +482,7 @@ write_gif_file(IOSTREAM *fd, Image image, HBITMAP bm, HBITMAP mask)
 	  });
 
     data = pceMalloc(info.bmiHeader.biSizeImage);
-    height = -info.bmiHeader.biHeight;
+    height = abs(info.bmiHeader.biHeight);
     width  = info.bmiHeader.biWidth;
 
     if ( !GetDIBits(hdc, bm,
@@ -571,7 +571,7 @@ mask_bits(HBITMAP mask)
 
 					/* get the bits */
   data = pceMalloc(info->bmiHeader.biSizeImage);
-  height = -info->bmiHeader.biHeight;
+  height = abs(info->bmiHeader.biHeight);
   width  = info->bmiHeader.biWidth;
 
   if ( !GetDIBits(hdc, mask,
