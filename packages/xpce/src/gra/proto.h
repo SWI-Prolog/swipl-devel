@@ -111,6 +111,7 @@ FrameObj	getFrameGraphical(Graphical gr);
 DisplayObj	getDisplayGraphical(Graphical gr);
 Application	getApplicationGraphical(Graphical gr);
 Device		getCommonDeviceGraphical(Graphical gr1, Graphical gr2);
+int		get_extension_margin_graphical(Graphical gr);
 status		changedAreaGraphical(Any obj, Int x, Int y, Int w, Int h);
 status		changedImageGraphical(Any obj, Int x, Int y, Int w, Int h);
 status		changedEntireImageGraphical(Any obj);

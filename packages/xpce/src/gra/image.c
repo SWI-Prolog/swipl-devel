@@ -418,6 +418,7 @@ drawInImage(Image image, Graphical gr, Point pos)
   int x, y, w, h;
   int iw = valInt(image->size->w);
   int ih = valInt(image->size->h);
+  int m;
 
   TRY(verifyAccessImage(image, NAME_drawIn));
 
@@ -459,12 +460,9 @@ drawInImage(Image image, Graphical gr, Point pos)
   if ( y+h > ih )
     h = ih - y;
 
-					/* HACKS ... changedAreaGraphical() */
-  if ( instanceOfObject(gr, ClassText) ||
-       instanceOfObject(gr, ClassTextItem) )
-  { x -= 5; y -= 0; w += 10; h += 5;
+  if ( (m=get_extension_margin_graphical(gr)) )
+  { x -= m; y -= m; w += m*2; h += 2*m;
   }
-					/* end hacks! */
 
   CHANGING_IMAGE(image,
     d_image(image, x, y, w, h);

@@ -417,7 +417,7 @@ getCommonDeviceGraphical(Graphical gr1, Graphical gr2)
 		*            CHANGES		*
 		********************************/
 
-static int
+int
 get_extension_margin_graphical(Graphical gr)
 { if ( instanceOfObject(gr, ClassText) ||
        instanceOfObject(gr, ClassDialogItem) )
@@ -717,8 +717,12 @@ RedrawArea(Any obj, Area area)
 
   ComputeGraphical(obj);		/* should not be necessary: */
   
-  if ( gr->displayed == OFF ||
-       !overlapExtendedAreaGraphical(gr, area) )
+  if ( !( gr->area == area ||		/* image->draw_in and friends */
+	  ( gr->displayed == ON &&
+	    overlapExtendedAreaGraphical(gr, area)
+	  )
+	)
+     )
     succeed;
 
   if ( gr->active == OFF )
