@@ -555,7 +555,7 @@ keyboard_event_frame(FrameObj fr, Any id,
   }
 
   addCodeReference(ev);
-  rval = postEvent(ev, receiver, DEFAULT);
+  rval = postNamedEvent(ev, receiver, DEFAULT, NAME_postEvent);
   delCodeReference(ev);
   freeableObj(ev);
 
