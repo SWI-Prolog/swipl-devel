@@ -98,7 +98,8 @@ xmakefile:	Makefile md.h ../config.h
 		@rm -f junk.c make.h
 
 $(SYS):		$(OBJ) $(DEPOBJ) $(EXT)
-		$(CC) $(LDFLAGS) -o $(SYS) $(OBJ) $(DEPOBJ) $(EXT) $(LIBS)
+		$(CC) $(LDFLAGS) $(OPTIMIZE) -o $(SYS) \
+		$(OBJ) $(DEPOBJ) $(EXT) $(LIBS)
 
 $(STARTUPDIR):	
 		-mkdir $@

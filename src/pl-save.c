@@ -101,6 +101,8 @@ typedef struct save_header
   int	nsections;		/* Number of sections available */
 } * SaveHeader;
 
+#define exit(status)	Halt(status);
+
 #define SectionOffset(n)	(sizeof(struct save_header) + \
 				 (n) * sizeof(struct save_section))
 
@@ -151,6 +153,28 @@ saveVersion()
   }
 
   return save_version;
+}
+
+
+		/********************************
+		*              IO		*
+		********************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The FILE related IO buffer  will be restored  in the same  state as it
+was  before the saved state  was created.  We want  to  read new input
+instead  of saved input   and therefore we   have to  clear  the input
+stream.  Currently this is done by setting the _cnt slot of  the stdio
+structure to 0.  This is not very portable.
+
+Alternatives?   One  would be  to allocate  new  IO buffers, but then,
+assigning these to stdin is not very neat either.   I guess a macro is
+best ...
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+resetIO()
+{ ResetTty();
 }
 
 
@@ -209,6 +233,7 @@ long length;
   { DEBUG(1, printf("&fd = 0x%x\n", (unsigned) &fd));
     tryRead(fd, start, length);
     DEBUG(1, printf("C-stack read; starting longjmp\n"));
+    resetIO();
     longjmp(ret_return_ctx, 1);
   } else
     return readCStack(fd, start, length);
@@ -280,6 +305,7 @@ int (*allocf) P((SaveSection));
 
     memcpy(ret_main_ctx, restore_ctx, sizeof(restore_ctx));
 
+    resetIO();
     longjmp(ret_main_ctx, 1);
     /*NOTREACHED*/
   }

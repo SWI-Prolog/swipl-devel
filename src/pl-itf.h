@@ -11,7 +11,7 @@
 #define PL_INCLUDED
 
 #ifndef PLVERSION
-#define PLVERSION "1.6.3, July 1992"
+#define PLVERSION "1.6.4, September 1992"
 #endif
 
 #ifndef P
@@ -238,6 +238,7 @@ void	PL_fatal_error P((char *, ...));	/* Print warning and die */
 #define PL_ACTION_FLUSH		9	/* Flush Prolog i/o buffer */
 
 int	PL_action P((int, void *));	/* perform some action */
+void	PL_on_halt P((void (*)(int, void *), void *));
 
 		/********************************
 		*         QUERY PROLOG          *

@@ -80,10 +80,40 @@ initOs()
   succeed;
 }
 
+
+typedef void (*halt_function) P((int, Void));
+typedef struct on_halt *OnHalt;
+
+struct on_halt
+{ halt_function	function;
+  Void		argument;
+  OnHalt	next;
+};
+
+static OnHalt on_halt_list;
+
+void
+PL_on_halt(f, arg)
+halt_function f;
+Void arg;
+{ OnHalt h = allocHeap(sizeof(struct on_halt));
+
+  h->function = f;
+  h->argument = arg;
+  h->next = on_halt_list;
+  on_halt_list = h;
+}
+
+
 volatile void
 Halt(status)
 int status;
-{ dieIO();
+{ OnHalt h;
+
+  for(h = on_halt_list; h; h = h->next)
+    (*h->function)(status, h->argument);
+
+  dieIO();
   RemoveTemporaryFiles();
 
   exit(status);
@@ -1592,15 +1622,19 @@ ttybuf *buf;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     void ResetTty()
 
-    Reset terminal to a sensible state after an abort.
+    Reset terminal to a sensible state after an abort ore restore()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
 ResetTty()
 {
-#if hpux || sun || AIX || vax || mips
+#ifdef RESET_STDIN
+  RESET_STDIN;
+#else
+#if unix
   stdin->_ptr = stdin->_base;
-  stdin->_cnt = 0;			/* measure for save_program */
+  stdin->_cnt = 0;
+#endif
   clearerr(stdin);
 #endif
 #if O_LINE_EDIT

@@ -14,12 +14,19 @@ the terminal interface does not operate properly.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
+#ifdef USE_CC				/* Sun cc (slower) */
+#define M_CC			cc
+#define M_OPTIMIZE		-O	/* O2 hardly helps */
+#define M_LDFLAGS		-Bstatic
+#define M_CFLAGS		""
+#else					/* gcc (preferred) */
 #define M_CC			gcc
 /*#define M_OPTIMIZE		-g -DO_DEBUG*/
 #define M_OPTIMIZE	        -O2
-/*#define M_OPTIMIZE	        -O -finline-functions*/
 #define M_LDFLAGS		-static
 #define M_CFLAGS		-Wall
+#endif
+
 #define M_LIBS			-lm -ltermcap
 
 			/* compiler */
