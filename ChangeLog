@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED/ENHANCED: Allow goal_expansion/2 to return the same term, in
+    which case recursion is stopped.
+
   * FIXED: possible deadlock when there are Prolog threads created using
     PL_thread_attach_engine() (Unix implementation).
 

@@ -1371,7 +1371,8 @@ $do_expand_body(forall(A, B), forall(EA, EB)) :- !,
         $do_expand_body(B, EB).
 $do_expand_body(A, B) :-
         $goal_expansion_module(M),
-        M:goal_expansion(A, B0), !,
+        M:goal_expansion(A, B0),
+	B0 \== A, !,			% avoid a loop
 	$do_expand_body(B0, B).
 $do_expand_body(A, A).
 
