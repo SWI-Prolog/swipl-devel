@@ -220,6 +220,7 @@ createCodeVectorv(int argc, const Any argv[])
   initHeaderObj(v, ClassCodeVector);
   v->offset      = ZERO;
   v->size        = toInt(argc);
+  v->allocated   = v->size;
   v->elements    = alloc(argc * sizeof(Any));
 
   for(n=0; n < argc; n++)
@@ -255,7 +256,7 @@ unlinkCodeVector(Vector v)
 	delRefObj(argv[n]);
     }
 
-    unalloc(valInt(v->size)*sizeof(Any), v->elements);
+    unalloc(valInt(v->allocated)*sizeof(Any), v->elements);
     v->elements = NULL;
   }
 
