@@ -39,7 +39,7 @@
 SHELL=@MAKESHELL@
 MAKE=@MAKE@
 
-builddir=@builddir@
+builddir=@buildsubdir@
 srcdir=@srcdir@
 vpath %.c @srcdir@
 vpath %.h @srcdir@
