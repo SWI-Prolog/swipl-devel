@@ -947,7 +947,7 @@ get_number(char *in, char **end, Number value)
   { if ( tp == V_INTEGER )
       value->i = -value->i;
     else
-      value->f *= -value->f;
+      value->f = -value->f;
   }
 
   *end = in;
@@ -1495,6 +1495,7 @@ static bool
 read_term(term_t term, term_t variables, bool check)
 { Token token;
   term_t result;
+  Word p;
 
   if ( !(base = raw_read()) )
     fail;
@@ -1505,13 +1506,16 @@ read_term(term_t term, term_t variables, bool check)
 
   result = PL_new_term_ref();
   TRY(complex_term(NULL, result));
+  p = valTermRef(result);
+  if ( isVarAtom(*p) )			/* reading a single variable */
+    readValHandle(result, p);
 
   if ( !(token = get_token(FALSE)) )
     fail;
   if (token->type != T_FULLSTOP)
     syntaxError("End of clause expected");
 
-  TRY(PL_unify(term, result) );
+  TRY(PL_unify(term, result));
   if ( variables )
     TRY(bind_variables(variables) );
   if ( check )

@@ -1020,6 +1020,10 @@ be redone from scratch. I won't be doing   this  before I get a complete
 spec explaining all an implementor needs to   know  about DCG. I'm a too
 basic user of this facility myself (though   I  learned some tricks from
 people reporting bugs :-)
+
+The original version contained  $t_tidy/2  to   convert  ((a,b),  c)  to
+(a,(b,c)), but as the  SWI-Prolog  compiler   doesn't  really  care (the
+resulting code is simply the same), I've removed that.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 $translate_rule((LP-->List), H) :-
@@ -1033,8 +1037,7 @@ $translate_rule((LP-->List), H) :-
 	), !.
 $translate_rule((LP-->RP), (H:-B)):-
 	$t_head(LP, S, SR, H),
-	$t_body(RP, S, SR, B1),
-	$t_tidy(B1, B).
+	$t_body(RP, S, SR, B).
 
 $tailvar(X, X) :-
 	var(X), !.
@@ -1098,20 +1101,6 @@ $extend(More, OldT, NewT) :-
 	OldT =.. OldL,
 	append(OldL, More, NewL),
 	NewT =.. NewL.
-
-$t_tidy(Var, Var) :-
- 	var(Var), !.
-$t_tidy((P1;P2), (Q1;Q2)) :- !,
-	$t_tidy(P1, Q1),
-	$t_tidy(P2, Q2).
-$t_tidy(((Conj, P2), P3), Q) :-		% Fix my Michael Huebner: test nonvar!
-        nonvar(Conj),
-	Conj = (P1, P2),
-	$t_tidy((P1, (P2, P3)), Q).
-$t_tidy((P1, P2), (Q1, Q2)) :- !,
-	$t_tidy(P1, Q1),
-	$t_tidy(P2, Q2).
-$t_tidy(A, A).
 
 'C'([X|S], X, S).
 
