@@ -886,12 +886,18 @@ scan_syntax_textbuffer(TextBuffer tb,
     if ( tisquote(syntax, c) )
     { int quoteisescape = tisstringescape(syntax, c, c);
 
-					/* Prolog 0char syntax */
+					/* Prolog 0'char syntax */
       if ( c == '\'' && syntax->name == NAME_prolog && here > 0 )
       { int c0 = fetch(here-1);
 
 	if ( isdigit(c0) )		/* or <digit><number> */
+	{ if ( c0 == '0' )
+	  { here++;			/* ignore this char */
+	    if ( here == 0 )
+	      return SST_STRING;
+	  }
 	  continue;
+	}
       }
 
       state = SST_STRING|c;
