@@ -20,6 +20,7 @@
 #ifdef HAVE_UNISTD_H
 #include <unistd.h> 
 #endif
+#include <string.h>
 #include <signal.h>
 #include <errno.h>
 #include <SWI-Prolog.h>

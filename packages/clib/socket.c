@@ -787,7 +787,6 @@ tcp_close_socket(term_t Socket)
 
   if ( true(s, SOCK_OUTSTREAM|SOCK_INSTREAM) )
   { int flags = s->flags;		/* may drop out! */
-//    int msk = sigblock(~0L);
 
     if ( flags & SOCK_INSTREAM )
     { assert(s->input);
@@ -797,8 +796,6 @@ tcp_close_socket(term_t Socket)
     { assert(s->output);
       Sclose(s->output);
     }
-
-//    sigblock(msk);
   } else
   {
 #ifdef WIN32
@@ -1118,7 +1115,8 @@ again:
   wait_socket(m, master);
 #endif
 
-  if ( (slave = accept(master, (struct sockaddr*)&addr, &addrlen)) == -1 )
+  slave = accept(master, (struct sockaddr*)&addr, &addrlen);
+  if ( slave == SOCKET_ERROR )
   {
 #ifdef WIN32
     if ( WSAGetLastError() == WSAEWOULDBLOCK )

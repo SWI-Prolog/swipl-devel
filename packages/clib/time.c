@@ -43,6 +43,7 @@
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #endif
+#include <string.h>
 #include <errno.h>
 #include <assert.h>
 
@@ -196,7 +197,7 @@ free_schedule(void *closure)
   PL_free(s);
 }
 
-#else _REENTRANT
+#else /*_REENTRANT*/
 
 static schedule the_schedule;		/* the schedule */
 
