@@ -5,6 +5,12 @@
     filename_completion_function into rl_filename_completion_function.
     Thanks to Lourens van der Meij.
 
+  * ADDED: edit/1 now merges more specific with more general matches:
+    matching just a file is overruled by a match on the same file with
+    a line number.  This implies that edit(Pred), where Pred is the
+    name of a predicate in a file with the same name will immediately
+    jump to the predicate.
+
   * FIXED: Two more mutex handling problems with patch contributed by
     Emerson dos Santos.
 
