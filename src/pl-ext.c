@@ -70,6 +70,8 @@ static const struct foreign {
   FRG("skip",			1, pl_skip,			TRACE_ME),
   FRG("skip",			2, pl_skip2,			TRACE_ME),
   FRG("get_single_char",	1, pl_get_single_char,		TRACE_ME),
+  FRG("$push_input_context",	0, pl_push_input_context,	TRACE_ME),
+  FRG("$pop_input_context",	0, pl_pop_input_context,	TRACE_ME),
   FRG("seeing",			1, pl_seeing,			TRACE_ME),
   FRG("telling",		1, pl_telling,			TRACE_ME),
   FRG("seen",			0, pl_seen,			TRACE_ME),

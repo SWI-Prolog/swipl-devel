@@ -721,8 +721,8 @@ protocol(const char *str, int n)
 }
 
 
-static void
-pushInputContext()
+word
+pl_push_input_context()
 { InputContext c = allocHeap(sizeof(struct input_context));
 
   c->stream           = Scurin;
@@ -730,11 +730,13 @@ pushInputContext()
   c->term_line        = source_line_no;
   c->previous         = input_context_stack;
   input_context_stack = c;
+
+  succeed;
 }
 
 
-void
-popInputContext()
+word
+pl_pop_input_context()
 { InputContext c = input_context_stack;
 
   if ( c )
@@ -743,8 +745,12 @@ popInputContext()
     source_line_no      = c->term_line;
     input_context_stack = c->previous;
     freeHeap(c, sizeof(struct input_context));
+
+    succeed;
   } else
-    Scurin		= Sinput;
+  { Scurin		= Sinput;
+    fail;
+  }
 }
 
 
@@ -1557,7 +1563,7 @@ pl_see(term_t f)
   if ( !(s = openStream(f, mode, 0)) )
     fail;
 
-  pushInputContext();
+  pl_push_input_context();
   Scurin = s;
 
   succeed;
@@ -1572,7 +1578,7 @@ word
 pl_seen()
 { IOSTREAM *s = Scurin;
 
-  popInputContext();
+  pl_pop_input_context();
 
   if ( s->flags & SIO_NOFEOF )
     succeed;

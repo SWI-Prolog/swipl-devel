@@ -301,7 +301,8 @@ prolog_load_context(module, Module) :-
 prolog_load_context(file, F) :-
 	source_location(F, _).
 prolog_load_context(stream, S) :-
-	current_input(S).
+	flag($load_input, S, S),
+	S \== -1.
 prolog_load_context(directory, D) :-
 	source_location(F, _),
 	file_directory_name(F, D).

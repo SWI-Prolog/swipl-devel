@@ -211,6 +211,8 @@ bool		LockStream(void);
 bool		UnlockStream(void);
 IOSTREAM *	PL_current_input(void);
 IOSTREAM *	PL_current_output(void);
+word		pl_push_input_context(void);
+word		pl_pop_input_context(void);
 word		pl_told(void);
 word		pl_flush_output(void);
 word		pl_see(term_t f);

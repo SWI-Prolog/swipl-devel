@@ -576,35 +576,45 @@ preprocessor(Old, New) :-
 	flag($preprocessor, Old, New).
 
 $open_source(user, user_input, Goal) :- !,
-	$open_source_call(user, Goal, True),
+	$push_input_context,
+	$open_source_call(user_input, user, Goal, True),
+	$pop_input_context,
 	True == yes.
 $open_source(File, In, Goal) :-
 	preprocessor(none, none), !,
+	$push_input_context,
 	open(File, read, In),
-	$open_source_call(File, Goal, True),
+	$open_source_call(In, File, Goal, True),
 	close(In),
+	$pop_input_context,
 	True == yes.
 $open_source(File, In, Goal) :-
 	preprocessor(Pre, Pre),
 	(   $substitute_atom('%f', File, Pre, Command)
-	->  open(pipe(Command), read, In),
-	    $open_source_call(File, Goal, True),
+	->  $push_input_context,
+	    open(pipe(Command), read, In),
+	    $open_source_call(In, File, Goal, True),
 	    close(In),
+	    $pop_input_context,
 	    True == yes
 	;   throw(error(domain_error(preprocessor, Pre), _))
 	).
 
 
-$open_source_call(File, Goal, Status) :-
+:- flag($load_input, _, -1).
+
+$open_source_call(File, In, Goal, Status) :-
 	flag($compilation_level, Level, Level+1),
-	ignore(user:$start_compilation(File, Level)),
+	flag($load_input, OldIn, In),
+	ignore(user:'$start_compilation'(File, Level)),
 	(   catch(Goal, E,
 		  (print_message(error, E),
 		   fail))
 	->  Status = yes
 	;   Status = no
 	),
-	ignore(user:$end_compilation(File, Level)),
+	ignore(user:'$end_compilation'(File, Level)),
+	flag($load_input, _, OldIn),
 	flag($compilation_level, _, Level).
 
 
@@ -1084,10 +1094,12 @@ $expand_include(File, FileInto) :-
 			   [ file_type(prolog),
 			     access(read)
 			   ], Path),
+	$push_input_context,
 	open(Path, read, In),
 	read_clause(In, Term0),
 	$read_include_file(Term0, In, Terms),
 	close(In),
+	$pop_input_context,
 	$consult_clauses(Terms, FileInto).
 
 $read_include_file(end_of_file, _, []) :- !.
