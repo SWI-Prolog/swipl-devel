@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: saving numbers like 0x00ff0000 to saved-state (numbers with
+    more than 22 bits, all whose bytes are either 00 or ff).  Found by
+    Stefan Mueller.
+
   * PORT: Fixes to configure to deal with alloca() and dlopen() on
     SCO-Unix, both for gcc and native SCO cc.  Thanks to Tamas Laufer.  
 
