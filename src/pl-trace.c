@@ -481,7 +481,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr, bool interactive)
 
   switch( *s )
   { case 'a':	FeedBack("abort\n");
-		pl_abort();
+		pl_abort(ABORT_NORMAL);
     case 'b':	FeedBack("break\n");
 		pl_break();
 		return ACTION_AGAIN;
@@ -1110,7 +1110,7 @@ again:
   switch(c)
   { case 'a':	Sfputs("abort\n", Sdout);
 		unblockSignal(sig);
-    		pl_abort();
+    		pl_abort(ABORT_NORMAL);
 		break;
     case 'b':	Sfputs("break\n", Sdout);
 		unblockSignal(sig);	/* into pl_break() itself */

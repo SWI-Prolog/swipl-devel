@@ -457,3 +457,5 @@
 #define ATOM_delete       MK_ATOM(456)
 #define ATOM_foreign_function MK_ATOM(457)
 #define ATOM_signal_handler MK_ATOM(458)
+#define ATOM_asserta      MK_ATOM(459)
+#define ATOM_assert       MK_ATOM(460)

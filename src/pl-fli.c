@@ -2779,7 +2779,7 @@ PL_action(int action, ...)
       break;
     }
     case PL_ACTION_ABORT:
-      rval = pl_abort();
+      rval = pl_abort(ABORT_NORMAL);
       break;
     case PL_ACTION_GUIAPP:
     { int guiapp = va_arg(args, int);

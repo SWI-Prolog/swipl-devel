@@ -336,6 +336,9 @@ static const struct foreign {
   FRG("noprotocol",		0, pl_noprotocol,		TRACE_ME),
   FRG("protocolling",		1, pl_protocolling,		TRACE_ME),
 
+#ifdef O_PROLOG_HOOK
+  FRG("set_prolog_hook",	3, pl_set_prolog_hook,	        TRACE_ME),
+#endif
   FRG("$current_module",	2, pl_current_module,	   NDET|TRACE_ME),
   FRG("$module",		2, pl_module,			TRACE_ME),
   FRG("$set_source_module",	2, pl_set_source_module,	TRACE_ME),

@@ -468,6 +468,8 @@ A dcatch		"$catch"
 A delete		"delete"
 A foreign_function	"$foreign_function"
 A signal_handler	"signal_handler"
+A asserta		"asserta"
+A assert		"assert"
 
 F abs			1
 F acos			1
@@ -618,3 +620,5 @@ F dcall			1
 F frame			3
 F trace			1
 F foreign_function	1
+F asserta		1
+F assert		1

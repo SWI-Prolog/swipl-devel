@@ -936,7 +936,7 @@ endCritical to end it.
 
 #define startCritical (void)(GD->critical++)
 #define endCritical   if ( --(GD->critical) == 0 && LD->aborted ) \
-			pl_abort()
+			pl_abort(ABORT_NORMAL)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 LIST processing macros.
@@ -1262,6 +1262,9 @@ struct module
   Table		public;		/* public predicates associated */
   Table		operators;	/* local operator declarations */
   Module	super;		/* Import predicates from here */
+#ifdef O_PROLOG_HOOK
+  Procedure	hook;		/* Hooked module */
+#endif
   unsigned int  flags;		/* booleans: */
 		/*	SYSTEM	   system module */
   		/*	DBLQ_INHERIT inherit from default module */
@@ -1666,6 +1669,7 @@ typedef struct debuginfo
 #define AUTOLOAD_FEATURE	0x4000	/* do autoloading */
 #define CHARCONVERSION_FEATURE	0x8000	/* do character-conversion */
 #define TAILRECURSION_FEATURE	0x10000	/* Tail recursion enabled? */
+#define EX_ABORT_FEATURE	0x20000	/* abort with exception */
 
 typedef struct
 { unsigned long flags;			/* the feature flags */
@@ -1679,6 +1683,11 @@ typedef struct
 #define DEPTH_NO_LIMIT	(~0x0L)		/* Highest value */
 #endif
 
+typedef enum
+{ ABORT_NORMAL,				/* normal abort */
+  ABORT_FATAL				/* abort on fatal error */
+} abort_type;
+   
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Administration of loaded intermediate code files  (see  pl-wic.c).  Used
 with the -c option to include all these if necessary.

@@ -4062,7 +4062,7 @@ retry:					MARK(RETRY);
     }
   }
   Sdprintf("[Could not find retry-point]\n");
-  pl_abort();
+  pl_abort(ABORT_NORMAL);		/* dubious */
 
 do_retry:
   if ( rframe0 != rframe )

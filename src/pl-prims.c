@@ -115,12 +115,12 @@ termHashValue(word term, long *hval)
 	*hval = valInteger(term);
         succeed;
       case TAG_FLOAT:
-      { union { real f;
-		long l[2];
-	      } v;
-
-        v.f = valReal(term);
-	*hval = v.l[0] ^ v.l[1];
+      { int i;
+	long *p = valIndirectP(term);
+	
+	*hval = *p;
+	for(p++, i=WORDS_PER_DOUBLE-1; --i >= 0; )
+	  *hval ^= *p++;
 
 	succeed;
       }

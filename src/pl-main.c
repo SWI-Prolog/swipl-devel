@@ -859,7 +859,7 @@ action:
   ResetTty();
   switch(getSingleChar(Sinput))
   { case 'a':
-      pl_abort();
+      pl_abort(ABORT_FATAL);
       break;
     case EOF:
       Sfprintf(Serror, "EOF: exit\n");
@@ -874,7 +874,7 @@ action:
       goto action;
   }
 
-  pl_abort();
+  pl_abort(ABORT_FATAL);
   Halt(3);
   PL_fail;
 }

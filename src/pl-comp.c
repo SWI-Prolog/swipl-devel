@@ -1472,10 +1472,37 @@ assert_term(term_t term, int where, SourceLoc loc)
     return NULL;			/* not callable, arity too high */
   if ( !(proc = lookupProcedureToDefine(fdef, mhead)) )
     return NULL;			/* redefine a system predicate */
+
   h = valTermRef(head);
   b = valTermRef(body);
   deRef(h);
   deRef(b);
+
+#ifdef O_PROLOG_HOOK
+  if ( mhead->hook && isDefinedProcedure(mhead->hook) )
+  { fid_t fid = PL_open_foreign_frame();
+    term_t t = PL_new_term_ref();
+    int rval;
+    functor_t f = (where == CL_START ? FUNCTOR_asserta1 : FUNCTOR_assert1);
+
+    if ( *b == ATOM_true )
+      PL_unify_term(t,
+		    PL_FUNCTOR, f,
+		      PL_TERM, head);
+    else
+      PL_unify_term(t,
+		    PL_FUNCTOR, f,
+		      PL_FUNCTOR, FUNCTOR_prove2,
+		        PL_TERM, head,
+		        PL_TERM, body);
+
+    rval = PL_call_predicate(mhead, PL_Q_NORMAL, mhead->hook, t);
+
+    PL_discard_foreign_frame(fid);
+    if ( rval )
+      return (Clause)-1;
+  }
+#endif /*O_PROLOG_HOOK*/
 
   DEBUG(2,
 	Sdprintf("compiling ");

@@ -61,7 +61,7 @@ pl_length(term_t list, term_t l)
     fail;			/* both variables: generate in Prolog */
   }
   
-  return warning("length/2: instantiation fault");
+  return PL_error("length", 2, NULL, ERR_TYPE, ATOM_integer, l);
 }  
 
 
@@ -134,7 +134,7 @@ pl_sort(term_t list, term_t sorted)
   int n, size;
 
   if ( !(array=list_to_sorted_array(list, &size)) )
-    return warning("sort/1: first argument is not a proper list");
+    fail;
   for(n = 0; n < size; n++)
   { if ( n == 0 || !pl_equal(array+n-1, array+n) )
     { if ( !PL_unify_list(l, h, l) ||

@@ -39,6 +39,9 @@ _lookupModule(atom_t name)
   m->name = name;
   m->file = (SourceFile) NULL;
   m->operators = NULL;
+#ifdef O_PROLOG_HOOK
+  m->hook = NULL;
+#endif
   clearFlags(m);
   set(m, CHARESCAPE|UNKNOWN_ERROR);
 
@@ -305,6 +308,33 @@ pl_set_source_module(term_t old, term_t new)
 
   fail;
 }
+
+
+#ifdef O_PROLOG_HOOK
+word
+pl_set_prolog_hook(term_t module, term_t old, term_t new)
+{ Module m;
+  atom_t mname;
+
+  if ( !PL_get_atom(module, &mname) )
+    PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, module);
+  m = lookupModule(mname);
+
+  if ( m->hook )
+  { if ( !unify_definition(old, m->hook->definition, 0, GP_HIDESYSTEM) )
+      return FALSE;
+  } else
+  { if ( !PL_unify_nil(old) )
+      return FALSE;
+  }
+
+  if ( PL_get_nil(new) )
+  { m->hook = NULL;
+    return TRUE;
+  } else
+    return get_procedure(new, &m->hook, 0, GP_NAMEARITY|GP_CREATE);
+}
+#endif
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

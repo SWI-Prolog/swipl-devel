@@ -480,7 +480,7 @@ valueExpression(term_t t, Number r ARG_LD)
       backTrace(NULL, 10);
       Sfprintf(Serror, "]\n");
 #endif
-      pl_abort();
+      pl_abort(ABORT_NORMAL);
     }
 #else /*HAVE___TRY*/
     LD->in_arithmetic--;

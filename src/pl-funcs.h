@@ -395,6 +395,10 @@ word		pl_export(term_t head);
 word		pl_check_export(void);
 word		pl_context_module(term_t module);
 word		pl_import(term_t pred);
+#ifdef O_PROLOG_HOOK
+word		pl_set_prolog_hook(term_t module, term_t old, term_t new);
+#endif
+
 
 /* pl-op.c */
 int		currentOperator(Module m, atom_t name, int kind,
@@ -552,7 +556,7 @@ word		pl_depth_limit_false(term_t limit,
 				     term_t res);
 #endif /*O_LIMIT_DEPTH*/
 int		callProlog(Module module, term_t goal, int flags, term_t *ex);
-word		pl_abort(void);
+word		pl_abort(abort_type type);
 bool		prologToplevel(atom_t toplevel);
 word		pl_metacut(void);
 int 		trap_gdb(void);

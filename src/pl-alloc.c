@@ -312,7 +312,7 @@ outOfStack(Stack s, int how)
       LD->outofstack = s;
       warning("Out of %s stack", s->name);
 
-      pl_abort();
+      pl_abort(ABORT_FATAL);
       assert(0);
     case STACK_OVERFLOW_SIGNAL_IMMEDIATELY:
       LD->outofstack = NULL;

@@ -348,7 +348,7 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseRef *next ARG_LD)
 #ifdef O_LOGICAL_UPDATE
   unsigned long gen = fr->generation;
 #else
-  #define gen 0L
+# define gen 0L
 #endif
 
 again:

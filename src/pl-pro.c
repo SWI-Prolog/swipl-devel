@@ -177,7 +177,7 @@ pl_throw_abort()
 #ifdef O_ABORT_WITH_THROW
 
 word
-pl_abort()
+pl_abort(abort_type type)
 { return pl_throw_abort();
 }
 
@@ -187,8 +187,9 @@ static jmp_buf abort_context;		/* jmp buffer for abort() */
 static int can_abort;			/* embeded code can't abort */
 
 word
-pl_abort()
-{ if ( !can_abort )
+pl_abort(abort_type type)
+{ if ( !can_abort ||
+       (trueFeature(EX_ABORT_FEATURE) && type == ABORT_NORMAL) )
     return pl_throw_abort();
 
   if ( GD->critical > 0 )		/* abort in critical region: delay */
