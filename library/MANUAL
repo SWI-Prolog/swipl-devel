@@ -7179,7 +7179,7 @@ ddddee__rreeggiisstteerr__sseerrvviiccee((_+_T_e_m_p_
     the  client example  above).   _T_o_p_i_c is either  an atom,  indicating
     _G_o_a_l  only handles requests  on this topic  or a variable that  also
     appears  in _G_o_a_l.  _I_t_e_m and _V_a_l_u_e are variables that also  appear in
-    _G_o_a_l.
+    _G_o_a_l.  _I_t_e_m represents the request data as a Prolog atom.
 
     The   example  below  registers   the  Prolog  current_prolog_flag/2
     predicate  to be accessible  from other applications.   The  request
@@ -9168,9 +9168,9 @@ char * PPLL__qquuoottee(_i_n_t _c_h_r_, _c_o_n_s_t _c_h_a
 
 55..66..66 CCaalllliinngg PPrroolloogg ffrroomm CC
 
-The Prolog  engine can  be called from  C. There  are to interfaces  for
-this.    For  the  first,  a term  is  created  that could  be  used  as
-an  argument to  call/1  and  next PL_call()  is  used to  call  Prolog.
+The  Prolog engine  can  be called  from  C.  There are  two  interfaces
+for  this.    For the  first,  a  term is  created  that could  be  used
+as an  argument to  call/1 and next  PL_call() is used  to call  Prolog.
 This  system is  simple, but  does not  allow to  inspect the  different
 answers  to a  non-deterministic  goal and  is  relatively slow  as  the
 runtime  system needs  to  find the  predicate.    The  other  interface
