@@ -270,6 +270,19 @@ del_list(list *list, void *value)
 }
 
 
+static void
+free_list(list *list)
+{ cell *c, *n;
+
+  for(c=list->head; c; c=n)
+  { n = c->next;
+    PL_free(c);
+  }
+
+  list->head = list->tail = NULL;
+}
+
+
 		 /*******************************
 		 *	    PREDICATES		*
 		 *******************************/
@@ -307,47 +320,175 @@ lookup_predicate(atom_t name)
 }
 
 
+static predicate *
+alloc_dummy_root_predicate()
+{ predicate *p;
+
+  p = PL_malloc(sizeof(*p));
+  memset(p, 0, sizeof(*p));
+  p->name = 0;				/* dummy roots have no name */
+  p->root = p;
+  p->oldroot = NULL;
+
+  return p;
+}
+
+
+static void				/* currently only frees dummy root */
+free_predicate(predicate *p)
+{ assert(!p->name);
+
+  free_list(&p->siblings);
+  free_list(&p->subPropertyOf);
+  PL_free(p);
+}
+
+
+static inline int
+is_dummy_root(predicate *p)
+{ return p && !p->name;			/* no name --> dummy root */
+}
+
+
+static inline int
+is_virgin_dummy_root(predicate *p)
+{ return is_dummy_root(p) && !p->siblings.head;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Change the root if we put a new root   on  top of a hierarchy. We should
+*not* assign to predicates that already have a root!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void				/* make root the root of p */
+set_dummy_root_r(predicate *p, predicate *root)
+{ if ( p->root && p->root != root )
+  { cell *c;
+
+    if ( p->root && p->root != (predicate*)1 && is_dummy_root(p->root) )
+      del_list(&p->root->siblings, p);
+    p->root = root;
+    add_list(&root->siblings, p);
+
+    for(c=p->siblings.head; c; c=c->next)
+    { set_dummy_root_r(c->value, root);
+    }
+  }
+}
+
+
+static void				/* make root the root of p */
+set_dummy_root(predicate *p, predicate *root)
+{ p->root = (predicate*)1;		/* not-null */
+  set_dummy_root_r(p, root);
+}
+
+
+
+static const char *
+pname(predicate *p)
+{ if ( p->name )
+    return PL_atom_chars(p->name);
+  else
+  { static char *ring[10];
+    static int ri = 0;
+    char buf[25];
+    char *r;
+
+    Ssprintf(buf, "__D%p", p);
+    ring[ri++] = r = strdup(buf);
+    if ( ri == 10 )
+    { ri = 0;
+      free(ring[ri]);
+    }
+
+    return (const char*)r;
+  }
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 predicate *root_predicate(predicate *p)
 
-Find the root of a predicate. This function should find the one and only
+Find the root of a  predicate.  This   function  finds  the one and only
 origin of the sub-property graph, dealing   with possible cycles. If the
 graph has multiple roots it constructs an artificial parent of all roots
 and returns this parent.
-
-TBD: Most of the work.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static predicate*
 root_predicate(predicate *p0, int vindex)
 { predicate *p = p0;
 
+  DEBUG(3, Sdprintf("root_predicate(%s) ...", pname(p)));
+
   for(;;)
-  { predicate *super = 0;
-    cell *c;
+  { cell *c;
 
     if ( p->root )
+    { DEBUG(3, Sdprintf("%s (old)\n", pname(p->root)));
       return p->root;
+    }
     if ( p->visited == vindex )
+    { DEBUG(3, Sdprintf("%s (cycle)\n", pname(p)));
       return p;				/* cycle */
+    }
 
     p->visited = vindex;
-    for(super=NULL, c=p->subPropertyOf.head; c; c=c->next)
-    { predicate *p2 = c->value;
-
-      if ( !super )
-	super = p2;
-      else
-	Sdprintf("Predicate %s has multiple super; not yet supported\n",
-		 PL_atom_chars(p->name));
+    if ( !p->subPropertyOf.head )
+    { DEBUG(3, Sdprintf("%s (root)\n", pname(p)));
+      return p;				/* no super */
     }
-    if ( super )
-    { p = super;
-    } else
-      return p;
-  }
+    if ( !p->subPropertyOf.head->next )
+      p = p->subPropertyOf.head->value;	/* exactly one super */
+    else				/* multiple supers */
+    { predicate *root = root_predicate(p->subPropertyOf.head->value, vindex);
+      
+      DEBUG(2, Sdprintf("%s has multiple roots\n", pname(p)));
 
-  return p;
+      for(c=p->subPropertyOf.head->next; c; c=c->next)
+      { predicate *r2 = root_predicate(c->value, vindex);
+
+	if ( r2 != root )		/* multiple roots */
+	{ if ( is_dummy_root(root) )
+	  { if ( is_dummy_root(r2) )
+	    { cell *c;
+
+	      for(c=r2->siblings.head; c; c=c->next)
+		set_dummy_root(c->value, root);
+	      free_predicate(r2);
+	    } else
+	    { set_dummy_root(r2, root);
+	    }
+	  } else if ( is_dummy_root(r2) )
+	  { set_dummy_root(root, r2);
+	    root = r2;
+	  } else
+	  { predicate *nr;
+
+	    if ( is_virgin_dummy_root(root->oldroot) )
+	      nr = root->oldroot;
+	    else if ( is_virgin_dummy_root(r2->oldroot) )
+	      nr = r2->oldroot;
+	    else
+	      nr = alloc_dummy_root_predicate();
+
+	    set_dummy_root(root, nr);
+	    set_dummy_root(r2, nr);
+
+	    DEBUG(1, Sdprintf("New virtual root %s for %s and %s\n",
+			      pname(nr),
+			      pname(root),
+			      pname(r2)));
+	    root = nr;
+	  }
+	}
+      }
+
+      return root;
+    }
+  }
 }
 
 
@@ -370,8 +511,10 @@ organise_predicates()
 
     for( p = *ht; p; p = p->next )
     { p->oldroot = p->root;
+      if ( is_dummy_root(p->oldroot) )
+	free_list(&p->oldroot->siblings);
       p->root = NULL;
-      p->visited = 0;
+      p->visited = -1;
     }
   }
 
@@ -382,16 +525,23 @@ organise_predicates()
     { predicate *root = root_predicate(p, seen);
 
       p->root = root;
+      seen++;
+    }
+  }
+
+  for(i=0,ht = pred_table; i<pred_table_size; i++, ht++)
+  { predicate *p;
+
+    for( p = *ht; p; p = p->next )
+    { if ( p->oldroot != p->root )
+	changed++;
+      if ( is_virgin_dummy_root(p->oldroot) )
+	free_predicate(p->oldroot);	/* has not been reused: discard */
+      p->oldroot = NULL;
       DEBUG(1,
 	    if ( p->root != p )
-	    { Sdprintf("Root of %s = %s\n",
-		       PL_atom_chars(p->name),
-		       PL_atom_chars(p->root->name));
+	    { Sdprintf("Root of %s = %s\n", pname(p), pname(p->root));
 	    })
-      if ( p->oldroot != root )
-	changed++;
-      p->oldroot = NULL;
-      seen++;
     }
   }
 
@@ -403,21 +553,25 @@ organise_predicates()
 
 static unsigned long
 predicate_hash(predicate *p)
-{ return atom_hash(p->root->name);
+{ return (unsigned long)p >> 2;
 }
 
 
 static void
 addSubPropertyOf(predicate *sub, predicate *super)
 { if ( add_list(&sub->subPropertyOf, super) )
+  { add_list(&super->siblings, sub);
     need_update++;
+  }
 }
 
 
 static void
 delSubPropertyOf(predicate *sub, predicate *super)
 { if ( del_list(&sub->subPropertyOf, super) )
+  { del_list(&super->siblings, sub);
     need_update++;
+  }
 }
 
 
@@ -570,10 +724,10 @@ triple_hash(triple *t, int which)
       v = atom_hash(object_hash(t));
       break;
     case BY_SP:
-      v = atom_hash(t->subject ^ t->predicate->root->name);
+      v = atom_hash(t->subject) ^ predicate_hash(t->predicate->root);
       break;
     case BY_OP:
-      v = atom_hash(t->predicate->root->name ^ object_hash(t));
+      v = predicate_hash(t->predicate->root) ^ object_hash(t);
       break;
     default:
       assert(0);

@@ -50,12 +50,11 @@ typedef struct list
 typedef struct predicate
 { atom_t	    name;		/* name of the predicate */
   list	            subPropertyOf;	/* the one I'm subPropertyOf */
+  list		    siblings;		/* my subProperties */
   struct predicate *root;		/* Root of property tree */
   struct predicate *next;		/* next in hash-table */
   struct predicate *oldroot;		/* from previous run */
   int		    visited;		/* loop detection */
-//  unsigned	erased  : 1;
-  unsigned	virtual : 1;		/* Artificial root */
 } predicate;
 
 

@@ -1,10 +1,18 @@
+Sep 13, 2003
+
+  * FIXED: rehashing on first access/change.
+
+  * FIXED: goal expansion for rdf_retractall/[3,4].
+
+  * ADDED: Handle predicates with multiple rdfs:subPropertyOf triples.
+
 Sep 11, 2003
 
   * ENHANCED: Duplicate handling
 
 Sep 10, 2003
 
-  * FIXED: Undo redo administration in rdf_edit.pl
+  * FIXED: Undo/redo administration in rdf_edit.pl
 
 Sep 8, 2003
 
