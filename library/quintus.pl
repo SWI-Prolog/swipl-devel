@@ -76,7 +76,10 @@
 	  midstring/3,			% ABC, B, AC
 	  midstring/4,			% ABC, B, AC, LenA
 	  midstring/5,			% ABC, B, AC, LenA, LenB
-	  midstring/6			% ABC, B, AC, LenA, LenB, LenC
+	  midstring/6,			% ABC, B, AC, LenA, LenB, LenC
+
+	  raise_exception/1,		% +Exception
+	  on_exception/3		% +Ball, :Goal, :Recover
 	]).
 
 		/********************************
@@ -382,3 +385,21 @@ midstring(ABC, B, AC, LenA, LenB, LenC) :-
 	atom_concat(A, C, AC).
 
 
+		 /*******************************
+		 *	     EXCEPTIONS		*
+		 *******************************/
+
+%	raise_exception(+Term)
+%
+%	Quintus compatible exception handling
+
+raise_exception(Term) :-
+	throw(Term).
+
+%	on_exception(+Template, :Goal, :Recover)
+
+:- meta_predicate
+	on_exception(+, :, :).
+
+on_exception(Except, Goal, Recover) :-
+	catch(Goal, Except, Recover).
