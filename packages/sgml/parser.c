@@ -1933,8 +1933,11 @@ make_model(dtd *dtd, const ichar *decl, const ichar **end)
   { decl = s;
     m->cardinality = MC_REP;
   } else if ( (s=isee_func(dtd, decl, CF_PLUS)) )
-  { decl = s;
-    m->cardinality = MC_PLUS;
+  {					/* ROK: watch out for (x) +(y) */
+    if ( isee_func(dtd, iskip_layout(dtd, s), CF_GRPO) == NULL )
+    { decl = s;
+      m->cardinality = MC_PLUS;
+    }
   } else
     m->cardinality = MC_ONE;
     
