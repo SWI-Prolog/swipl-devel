@@ -11,6 +11,7 @@
 */
 
 #include "dtd.h"
+#include "catalog.h"
 #include <SWI-Stream.h>
 #include <SWI-Prolog.h>
 #include <errno.h>
@@ -1355,6 +1356,31 @@ pl_dtd_property(term_t ref, term_t property)
 }
 
 		 /*******************************
+		 *	     CATALOG		*
+		 *******************************/
+
+static foreign_t
+pl_sgml_register_catalog_file(term_t file, term_t where)
+{ char *fn, *w;
+  catalog_location loc;
+
+  if ( !PL_get_atom_chars(file, &fn) )
+    return pl_error(ERR_TYPE, "atom", file);
+  if ( !PL_get_atom_chars(where, &w) )
+    return pl_error(ERR_TYPE, "atom", where);
+
+  if ( streq(w, "start") )
+    loc = CTL_START;
+  else if ( streq(w, "end") )
+    loc = CTL_END;
+  else
+    return pl_error(ERR_DOMAIN, "location", where);
+  
+  return register_catalog_file(fn, loc);
+}
+
+
+		 /*******************************
 		 *	      INSTALL		*
 		 *******************************/
 install_t
@@ -1370,6 +1396,8 @@ install()
   PL_register_foreign("open_dtd",         3, pl_open_dtd,	  0);
   PL_register_foreign("sgml_parse",       2, pl_sgml_parse,
 		      PL_FA_TRANSPARENT);
+  PL_register_foreign("sgml_register_catalog_file", 2,
+		      pl_sgml_register_catalog_file, 0);
 
   PL_register_foreign("$dtd_property",	  2, pl_dtd_property,
 		      PL_FA_NONDETERMINISTIC);

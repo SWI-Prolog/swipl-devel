@@ -25,6 +25,20 @@
 #ifndef EOS
 #define EOS '\0'
 #endif
+#ifndef TRUE
+#define TRUE 1
+#define FALSE 0
+#endif
+
+#define streq(s1, s2) strcmp(s1, s2) ==	0
+
+
+typedef struct _catalog_file
+{ char *file;
+  struct _catalog_file *next;
+} catalog_file;
+
+static catalog_file *catalog;
 
 static char *
 skip_layout(const char *in)
@@ -143,25 +157,74 @@ find_public_entity_in_catalog(const char *catfile,
 }
 
 
+int
+register_catalog(const char *file, catalog_location where)
+{ catalog_file **f = &catalog;
+  catalog_file *cf;
+
+  for(; *f; f = &(*f)->next )
+  { cf = *f;
+
+    if ( streq(cf->file, file) )
+      return TRUE;			/* existing, move? */
+  }
+  
+  cf = malloc(sizeof(*cf));
+  cf->file = strdup(file);
+  
+  if ( where == CTL_END )
+  { cf->next = NULL;
+    *f = cf;
+  } else
+  { cf->next = catalog;
+    catalog = cf;
+  }
+
+  return TRUE;
+}
+
+
+static void
+init_catalog()
+{ static int done = FALSE;
+
+  if ( !done )
+  { if ( !catalog )
+    { char *path = getenv("SGML_CATALOG_FILES");
+
+      if ( !path )
+	return;
+      
+      while(*path)
+      { char buf[MAXPATHLEN];
+	char *s;
+
+	if ( (s=strchr(path, ':')) )
+	{ strncpy(buf, path, s-path);
+	  buf[s-path] = '\0';
+	  path = s+1;
+	} else
+	{ register_catalog(path, CTL_START);
+	  return;
+	}
+
+	register_catalog(buf, CTL_START);
+      }
+    }
+  }
+}
+
+
 char *
 find_in_catalog(const char *key, const char *name)
-{ char *path = getenv("SGML_CATALOG_FILES");
-  char *s;
-  char buf[MAXPATHLEN];
+{ catalog_file *cf;
 
-  if ( !path )
-    return NULL;
+  init_catalog();
 
-  while(*path)
-  { if ( (s=strchr(path, ':')) )
-    { strncpy(buf, path, s-path);
-      buf[s-path] = '\0';
-      path = s+1;
-    } else
-    { return find_public_entity_in_catalog(path, key, name);
-    }
+  for(cf = catalog; cf; cf = cf->next)
+  { char *s;
 
-    if ( (s=find_public_entity_in_catalog(buf, key, name)) )
+    if ( (s=find_public_entity_in_catalog(cf->file, key, name)) )
       return s;
   }
 

@@ -13,6 +13,12 @@
 #ifndef CATALOG_H_INCLUDED
 #define CATALOG_H_INCLUDED
 
-char *find_in_catalog(const char *key, const char *name);
+typedef enum
+{ CTL_START,
+  CTL_END
+} catalog_location;
+
+char   *find_in_catalog(const char *key, const char *name);
+int	register_catalog_file(const char *file, catalog_location where);
 
 #endif /*CATALOG_H_INCLUDED*/

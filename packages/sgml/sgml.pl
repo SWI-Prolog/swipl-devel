@@ -29,7 +29,9 @@
 	    free_sgml_parser/1,		% +Parser
 	    set_sgml_parser/2,		% +Parser, +Options
 	    get_sgml_parser/2,		% +Parser, +Options
-	    sgml_parse/2		% +Parser, +Options
+	    sgml_parse/2,		% +Parser, +Options
+
+	    sgml_register_catalog_file/2 % +File, +StartOrEnd
 	  ]).
 
 :- multifile user:file_search_path/2.
@@ -43,8 +45,20 @@ load_foreign :-
 load_foreign :-
 	load_foreign_library(foreign(sgml2pl)).
 
+init :-
+	load_foreign,
+	(   absolute_file_name(dtd('HTML'),
+			       [ extensions([soc]),
+				 access(read),
+				 file_errors(fail)
+			       ],
+			       SocFile)
+	->  sgml_register_catalog_file(SocFile)
+	;   true
+	).
+
 :- initialization
-	load_foreign.
+	init.
 	
 
 		 /*******************************
