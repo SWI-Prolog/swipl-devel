@@ -91,7 +91,7 @@ open_navigator(IDE, Where:[directory|source_location]) :->
 	"Open Source Navigator"::
 	(   send(Where, instance_of, directory)
 	->  get(IDE, navigator, Where, Navigator),
-	    send(Navigator, directory, directory)
+	    send(Navigator, directory, Where)
 	;   send(Where, instance_of, source_location)
 	->  get(Where, file_name, File),
 	    file_directory_name(File, Dir),

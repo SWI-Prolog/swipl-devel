@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Documentation on obsolete prolog_navigator/1 replaced by new
+    prolog_ide/1.  Fixed prolog_ide(open_navigator(Dir)) (Tolga Konik).
+
   * MODIFIED: Home/End keys in PLWIN.EXE to go to the start/end of the line.
 
   * ADDED: Wheelmouse support to PLWIN.EXE
