@@ -634,7 +634,9 @@ OpenLookEventScrollBar(ScrollBar s, EventObj ev)
   } else if ( isAEvent(ev, NAME_msLeftUp) )
   { if ( s->status != NAME_dragging )
     { forwardScrollBar(s);
-      computeScrollBar(s);
+      if ( instanceOfObject(s->object, ClassGraphical) )
+	ComputeGraphical(s->object);
+      ComputeGraphical(s);
     }
     assign(s, status, NAME_inactive);
     detachTimerScrollBar(s);
