@@ -818,7 +818,7 @@ info -->
 	      ]).
 
 :- pce_global(@started, new(date)).
-:- object(@started).
+:- get(@started, class, _).		% just create it
 
 uptime -->
 	{ get(new(date), difference, @started, minute, UpMinutes),
