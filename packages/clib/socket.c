@@ -205,7 +205,42 @@ fcntl(int fd, int op, int arg)
 }
 
 static HINSTANCE hinstance;		/* hinstance */
-static HWND sock_hidden_window;		/* Our secret window */
+
+typedef struct
+{ HWND hwnd;				/* our window */
+} local_state;
+
+#ifdef _REENTRANT
+static pthread_key_t key;
+
+static void
+free_local_state(void *closure)
+{ local_state *s = closure;
+
+  if ( s->hwnd )
+    DestroyWindow(s->hwnd);
+  PL_free(s);
+}
+
+static local_state *
+State()
+{ local_state *s;
+
+  if ( !(s=pthread_getspecific(key)) )
+  { s = PL_malloc(sizeof(*s));
+    memset(s, 0, sizeof(*s));
+    pthread_setspecific(key, s);
+  }
+
+  return s;
+}
+
+#else
+
+static local_state state;
+#define State() (&state);
+
+#endif
 
 static int WINAPI
 socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
@@ -287,26 +322,32 @@ HiddenFrameClass()
 
 static void
 destroyHiddenWindow(int rval, void *closure)
-{ if ( sock_hidden_window )
-  { DestroyWindow(sock_hidden_window);
-    sock_hidden_window = 0;
+{ local_state *s = State();
+
+  if ( s->hwnd )
+  { DestroyWindow(s->hwnd);
+    s->hwnd = 0;
   }
 }
 
 
 static HWND
 SocketHiddenWindow()
-{ if ( !sock_hidden_window )
-  { sock_hidden_window = CreateWindow(HiddenFrameClass(),
-				      "SWI-Prolog socket window",
-				      WS_POPUP,
-				      0, 0, 32, 32,
-				      NULL, NULL, hinstance, NULL);
+{ local_state *s = State();
+
+  if ( !s->hwnd )
+  { s->hwnd = CreateWindow(HiddenFrameClass(),
+			   "SWI-Prolog socket window",
+			   WS_POPUP,
+			   0, 0, 32, 32,
+			   NULL, NULL, hinstance, NULL);
+    assert(s->hwnd);
+#ifndef _REENTRANT
     PL_on_halt(destroyHiddenWindow, NULL);
-    assert(sock_hidden_window);
+#endif
   }
 
-  return sock_hidden_window;
+  return s->hwnd;
 }
 
 #else /*WIN32*/
@@ -659,6 +700,9 @@ tcp_init()
     return PL_warning("tcp_init() - WSAStartup failed.");
   }
 }
+#ifdef _REENTRANT
+  pthread_key_create(&key, free_local_state);
+#endif
 #endif /*WIN32*/
 
   UNLOCK();
@@ -1288,6 +1332,9 @@ uninstall_socket()
   {
 #ifdef WIN32
     WSACleanup();
+#ifdef _REENTRANT
+    pthread_key_delete(key);
+#endif
 #endif
   }
 }

@@ -1,3 +1,8 @@
+Nov 29, 2002
+
+ * ADDED: Make library(socket) suitable for multi-threaded operation in
+   MS-Windows.
+
 Nov 26, 2002
 
  * ADDED: Make library(time) suitable for multi-threaded operation.
