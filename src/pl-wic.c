@@ -800,7 +800,8 @@ loadPredicate(IOSTREAM *fd, int skip)
       redefineProcedure(proc, currentSource);
     addProcedureSourceFile(currentSource, proc);
   }
-  def->indexPattern |= NEED_REINDEX;
+  if ( def->references == 0 && !def->hash_info )
+    def->indexPattern |= NEED_REINDEX;
   loadPredicateFlags(def, fd, skip);
 
   for(;;)
@@ -808,7 +809,12 @@ loadPredicate(IOSTREAM *fd, int skip)
     { case 'X':
       { unsigned long pattern = getNum(fd);
 
-	def->indexPattern = (pattern | NEED_REINDEX);
+	if ( (def->indexPattern & ~NEED_REINDEX) != pattern )
+	{ if ( def->references == 0 && !def->hash_info )
+	    def->indexPattern = (pattern | NEED_REINDEX);
+	  else if ( false(def, MULTIFILE|DYNAMIC) )
+	    Sdprintf("Cannot change indexing of %s\n", predicateName(def));
+	}
 
 	DEBUG(3, Sdprintf("ok\n"));
 	succeed;
@@ -903,7 +909,10 @@ loadPredicate(IOSTREAM *fd, int skip)
 	if ( skip )
 	  freeClause(clause);
 	else
-	{ assertProcedure(proc, clause, CL_END);
+	{ if ( def->hash_info )
+	  { reindexClause(clause);
+	  }
+	  assertProcedure(proc, clause, CL_END);
 	}
       }
     }
