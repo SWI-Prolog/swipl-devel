@@ -51,7 +51,8 @@ LINK32=link.exe
 # ADD LINK32 ..\lib\libpl.lib user32.lib /nologo /subsystem:console /machine:I386
 # Begin Special Build Tool
 SOURCE=$(InputPath)
-PostBuild_Cmds=..\bin\plcon.exe -O -o ../boot.prc -b ../boot/init.pl
+PostBuild_Cmds=..\bin\plcon.exe -O -o ../boot.prc -b ../boot/init.pl\
+	..\bin\plcon.exe -g "make_library_index('../library')" -t halt
 # End Special Build Tool
 
 !ELSEIF  "$(CFG)" == "plcon - Win32 Debug"

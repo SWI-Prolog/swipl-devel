@@ -33,8 +33,9 @@ embedded application.
 #define PROG_LD "link.exe"
 #define PROG_OUT "plout.exe"
 #define LIB_PL	 "libpl.lib"
+#define LIB_PL_DEBUG "libplD.lib"
 #define EXT_OBJ "obj"
-#define OPT_DEBUG "/debug"
+#define OPT_DEBUG "/DEBUG"
 #else /*WIN32*/
 #include "pl-incl.h"
 
@@ -117,6 +118,8 @@ static arglist libs;			/* (C) libraries */
 static arglist lastlibs;		/* libs that must be at the end */
 static arglist libdirs;			/* -L library directories */
 static arglist includedirs;		/* -I include directories */
+
+static char *pllib = LIB_PL;    /* libpl option -lpl, libpl.lib or libplD.lib */
 
 static char *pl;			/* Prolog executable */
 static char *cc;			/* CC executable */
@@ -541,6 +544,9 @@ parseOptions(int argc, char **argv)
     { appendArgList(&coptions, OPT_DEBUG);
       appendArgList(&cppoptions, OPT_DEBUG);
       appendArgList(&ldoptions, OPT_DEBUG);
+#ifdef WIN32
+	  pllib = LIB_PL_DEBUG;
+#endif
     } else if ( streq(opt, "-nostate") ) 	/* -nostate */
     { nostate = TRUE;
     } else if ( streq(opt, "-o") ) 		/* -o out */
@@ -663,7 +669,8 @@ fillDefaultOptions()
   defaultProgram(&ld,  PROG_LD);
 
 #ifdef WIN32
-  ensureOption(&coptions, "/MD");
+  if (strcmp(LIB_PL_DEBUG,pllib) == 0) ensureOption(&coptions, "/MDd");
+  else ensureOption(&coptions, "/MD");
   ensureOption(&coptions, "/DWIN32");
   ensureOption(&coptions, "/nologo");
   ensureOption(&ldoptions, "/nologo");
@@ -902,7 +909,7 @@ linkBaseExecutable()
 #else
   concatArgList(&ldoptions, "-L", &libdirs);    /* library directories */
 #endif
-  appendArgList(&ldoptions, LIB_PL);		/* -lpl */
+  appendArgList(&ldoptions, pllib);		/* -lpl */
 #ifdef WIN32
   concatArgList(&ldoptions, "", &libs);		/* libraries */
 #else
@@ -1159,3 +1166,4 @@ main(int argc, char **argv)
 
   return 0;
 }
+

@@ -628,7 +628,10 @@ gcClausesDefinition(Definition def)
       DEBUG(0, removed++);
 #if O_DEBUGGER
       if ( PROCEDURE_event_hook1 && def != PROCEDURE_event_hook1->definition )
+      { def->references++;		/* prevent recursion */
 	callEventHook(PLEV_ERASED, c->clause);
+	def->references--;
+      }
 #endif
       freeClause(c->clause);
       freeClauseRef(c);

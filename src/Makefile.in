@@ -219,10 +219,7 @@ install:	@INSTALLTARGET@
 dv-install:	install-arch install-libs install-bins
 
 install-bins:	install-arch
-		-if [ ! -d $(bindir)  ];    then $(MKDIR) $(bindir);     fi
-		if [ -r $(bindir)/$(PL) ]; then \
-		    mv -f $(bindir)/$(PL) $(bindir)/$(PL).old; \
-		fi
+		-if [ ! -d $(bindir)  ]; then $(MKDIR) $(bindir); fi
 		for f in $(PL) pl-bite plld plrc; do \
 		    ( cd $(bindir); rm -f $$f; ln -s $(PLBASE)/bin/$(ARCH)/$$f . ); \
 		done
