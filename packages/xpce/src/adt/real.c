@@ -99,11 +99,14 @@ getConvertReal(Class class, Any obj)
   if ( isInteger(obj) || instanceOfObject(obj, ClassNumber) )
     answer(answerObjectv(ClassReal, 1, &obj));
   else if ( (s = toCharp(obj)) && s[0] != EOS )
-  { char *end;
+  { char *end, *es = s + strlen(s);
     double f;
 
+    f = cstrtod(s, &end);
+    if ( end == es )
+      return CtoReal(f);
     f = StrTod(s, &end);
-    if (end == s + strlen(s))
+    if ( end == es )
       return CtoReal(f);
   }
 

@@ -1,6 +1,6 @@
 #define COMMON(type) type SO_LOCAL
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/alloc.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/alloc.c */
 COMMON(Any)	alloc(unsigned int n);
 COMMON(void)	unalloc(unsigned int n, Any p);
 COMMON(void)	initAlloc(void);
@@ -10,7 +10,7 @@ COMMON(status)	listWastedCorePce(Pce pce, Bool ppcells);
 COMMON(char *)	save_string(const char *s);
 COMMON(void)	free_string(char *s);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/assoc.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/assoc.c */
 COMMON(PceITFSymbol) newSymbol(Any obj, Name name);
 COMMON(void)	deleteAssoc(Any obj);
 COMMON(void)	newAssoc(Name name, Any obj);
@@ -20,11 +20,11 @@ COMMON(status)	renameAssoc(Name old, Name new);
 COMMON(status)	forSomeAssoc(Code code);
 COMMON(void)	initAssoc(int handles);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/behaviour.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/behaviour.c */
 COMMON(status)	initialiseBehaviour(Behaviour b, Name name, Any ctx);
 COMMON(status)	makeClassBehaviour(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/class.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/class.c */
 COMMON(Class)	typeClass(Name name);
 COMMON(Class)	nameToTypeClass(Name name);
 COMMON(Class)	defineClass(Name name, Name super, StringObj summary, SendFunc makefunction);
@@ -79,7 +79,7 @@ COMMON(Any)	getFeatureClass(Class class, Name name);
 COMMON(Chain)	getSendMethodsClass(Class class);
 COMMON(status)	makeClassClass(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/conversion.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/conversion.c */
 COMMON(status)	toString(Any obj, String s);
 COMMON(char *)	toCharp(Any obj);
 COMMON(Int)	toInteger(Any obj);
@@ -91,21 +91,21 @@ COMMON(char *)	pcePP(Any obj);
 COMMON(char *)	pcePP(Any obj);
 COMMON(Any)	expandFunction(Any obj);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/debug.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/debug.c */
 COMMON(void)	catchErrorSignals(Bool yes);
 COMMON(status)	confirmTerminal(char *question, char *def);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/declarations.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/declarations.c */
 COMMON(void)	initClassDefs(void);
 COMMON(void)	initTypeAliases(void);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/error.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/error.c */
 COMMON(Error)	getConvertError(Class class, Name id);
 COMMON(status)	makeClassError(Class class);
 COMMON(status)	errorPce(Any obj, Name id, ...);
 COMMON(status)	errorTypeMismatch(Any rec, Any impl, int arg, Type type, Any val);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/gc.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/gc.c */
 COMMON(void)	pushAnswerObject(Any obj);
 COMMON(void)	deleteAnswerObject(Any obj);
 COMMON(export void) _rewindAnswerStack(AnswerMark *mark, Any obj);
@@ -113,22 +113,23 @@ COMMON(void)	initAnswerStack(void);
 COMMON(void)	resetAnswerStack(void);
 COMMON(Int)	countAnswerStack(void);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/getmethod.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/getmethod.c */
 COMMON(GetMethod) createGetMethod(Name name, Type rtype, Vector types, StringObj doc, Func action);
 COMMON(status)	initialiseGetMethod(GetMethod m, Name name, Type rtype, Vector types, Function msg, StringObj doc, SourceLocation loc, Name group);
 COMMON(status)	makeClassGetMethod(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/glob.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/glob.c */
 COMMON(int)	IAmAGlobalFunctionToMakeMeLoad(void);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/global.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/global.c */
 COMMON(Any)	findGlobal(Name name);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/goodies.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/goodies.c */
 COMMON(long)	rdouble(double f);
 COMMON(int)	isqrt(long a);
 COMMON(int)	distance(int x1, int y1, int x2, int y2);
 COMMON(int)	rfloat(double f);
+COMMON(double)	cstrtod(const char *in, char **end);
 COMMON(char *)	strcpyskip(char *t, char *f);
 COMMON(status)	substr(register char *str, register char *sb);
 COMMON(status)	prefixstr(char *s1, char *s2);
@@ -156,7 +157,18 @@ COMMON(int)	pceAssert(int expr, char *text, char *file, int line);
 COMMON(void)	at_pce_exit(atexit_function f, int flags);
 COMMON(void)	run_pce_exit_hooks(int rval);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/passing.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/passing.c */
+COMMON(int)	pceMTTryLock(int lock);
+COMMON(void)	LOCK(void);
+COMMON(void)	UNLOCK(void);
+COMMON(int)	pceMTinit(void);
+COMMON(int)	pceMTTryLock(int lock);
+COMMON(int)	pceMTTryLock(int lock);
+COMMON(int)	pceMTinit(void);
+COMMON(int)	pceMTinit(void);
+COMMON(int)	pceMTTryLock(int lock);
+COMMON(void)	pceMTLock(int lock);
+COMMON(void)	pceMTUnlock(int lock);
 COMMON(status)	vm_send(Any receiver, Name selector, Class class, int argc, const Any argv []);
 COMMON(Any)	vm_get(Any receiver, Name selector, Class class, int argc, const Any argv []);
 COMMON(status)	sendSendMethod(SendMethod sm, Any receiver, int argc, const Any argv []);
@@ -170,7 +182,7 @@ COMMON(Any)	get(Any receiver, Name selector, ...);
 COMMON(Any)	resolveSendMethodObject(Any obj, Class class, Name sel, Any *receiver);
 COMMON(Any)	resolveGetMethodObject(Any obj, Class class, Name sel, Any *receiver);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/method.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/method.c */
 COMMON(status)	createMethod(Method m, Name name, Vector types, StringObj doc, Func action);
 COMMON(status)	initialiseMethod(Method m, Name name, Vector types, Code msg, StringObj doc, SourceLocation loc, Name group);
 COMMON(Type)	getArgumentTypeMethod(Method m, Int n);
@@ -178,7 +190,7 @@ COMMON(Method)	getInheritedFromMethod(Method m);
 COMMON(Method)	getMethodFromFunction(Any f);
 COMMON(status)	makeClassMethod(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/name.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/name.c */
 COMMON(void)	trapGdb(void);
 COMMON(void)	initNamesPass1(void);
 COMMON(void)	initNamesPass2(void);
@@ -193,7 +205,7 @@ COMMON(Name)	CtoKeyword(const char *s);
 COMMON(char *)	saveStringName(Name n);
 COMMON(status)	makeClassName(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/object.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/object.c */
 COMMON(void)	unreferencedObject(Any obj);
 COMMON(void)	addRefObject(Any from, Any to);
 COMMON(void)	delRefObject(Any from, Any to);
@@ -274,14 +286,14 @@ COMMON(status)	errorObjectv(Any obj, Error e, int argc, Any *argv);
 COMMON(Name)	getManIdObject(Any obj);
 COMMON(status)	makeClassObject(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/programobject.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/programobject.c */
 COMMON(status)	initialiseProgramObject(Any obj);
 COMMON(status)	initialiseNewSlotProgramObject(ProgramObject obj, Variable var);
 COMMON(void)	setDFlagProgramObject(Any obj, unsigned long mask);
 COMMON(void)	clearDFlagProgramObject(Any obj, unsigned long mask);
 COMMON(status)	makeClassProgramObject(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/save.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/save.c */
 COMMON(Int)	isSavedObject(Any obj);
 COMMON(status)	saveInFileObject(Any obj, FileObj file);
 COMMON(status)	storeObject(Any obj, FileObj file);
@@ -294,7 +306,7 @@ COMMON(Any)	getObjectSourceSink(SourceSink f);
 COMMON(Any)	loadObject(IOSTREAM *fd);
 COMMON(status)	loadSlotsObject(Any obj, IOSTREAM *fd, ClassDef def);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/self.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/self.c */
 COMMON(status)	formatPcev(Pce pce, CharArray fmt, int argc, Any *argv);
 COMMON(Name)	getOsErrorPce(Pce pce);
 COMMON(status)	catchErrorPce(Pce pce, Any ids);
@@ -313,15 +325,15 @@ COMMON(Any)	getObjectFromReferencePce(Pce pce, Any ref);
 COMMON(status)	makeClassPce(Class class);
 COMMON(export status) pceInitialise(int handles, const char *home, int argc, char **argv);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/sendmethod.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/sendmethod.c */
 COMMON(SendMethod) createSendMethod(Name name, Vector types, StringObj doc, SendFunc action);
 COMMON(status)	makeClassSendMethod(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/srclocation.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/srclocation.c */
 COMMON(status)	initialiseSourceLocation(SourceLocation loc, Name file, Int line);
 COMMON(status)	makeClassSourceLocation(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/timer.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/timer.c */
 COMMON(status)	intervalTimer(Timer tm, Real interval);
 COMMON(status)	executeTimer(Timer tm);
 COMMON(status)	statusTimer(Timer tm, Name stat);
@@ -329,13 +341,13 @@ COMMON(status)	startTimer(Timer tm, Name mode);
 COMMON(status)	stopTimer(Timer tm);
 COMMON(status)	makeClassTimer(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/trace.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/trace.c */
 COMMON(void)	resetDebugger(void);
 COMMON(void)	initDebugger(void);
 COMMON(void)	writeErrorGoal(void);
 COMMON(int)	pceDebugging(Name subject);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/type.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/type.c */
 COMMON(status)	initialiseType(Type t, Name name, Name kind, Any context, Chain supers);
 COMMON(Type)	getLookupType(Class class, Name name);
 COMMON(Type)	createType(Name name, Name kind, Any context);
@@ -356,7 +368,7 @@ COMMON(void)	resetTypes(void);
 COMMON(void)	initTypes(void);
 COMMON(Type)	defineType(char *name, char *def);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/variable.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/variable.c */
 COMMON(Variable) createVariable(Name name, Type type, Name access);
 COMMON(status)	cloneStyleVariable(Variable var, Name style);
 COMMON(status)	saveStyleVariable(Variable var, Name style);
@@ -368,14 +380,14 @@ COMMON(Any)	getGetVariable(Variable var, Any rec);
 COMMON(Name)	getGroupVariable(Variable v);
 COMMON(status)	makeClassVariable(Class class);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/xref.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/xref.c */
 COMMON(WsRef)	getXrefObject(Any obj, DisplayObj d);
 COMMON(WsRef)	getExistingXrefObject(Any obj, DisplayObj d);
 COMMON(status)	registerXrefObject(Any obj, DisplayObj d, WsRef xref);
 COMMON(Xref)	unregisterXrefObject(Any obj, DisplayObj d);
 COMMON(void)	closeAllXrefs(void);
 
-/* /staff/jan/src/pl/packages/xpce/src/ker/classvar.c */
+/* /swi40/jan/src/pl/packages/xpce/src/ker/classvar.c */
 COMMON(Any)	getValueClassVariable(ClassVariable cv);
 COMMON(ClassVariable) getClassVariableClass(Class class, Name name);
 COMMON(status)	classVariableValueClass(Class cl, Name name, Any val);

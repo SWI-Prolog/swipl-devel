@@ -89,6 +89,90 @@ rfloat(double f)
   return (int) (f-0.4999999);
 }
 
+		 /*******************************
+		 *	STRING <-> NUMBER	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+cstrtod() is like strtod(), but not locale dependent.  It is used for
+translating things such as resource values.  Although one can do
+
+	const char *old = setlocale(LC_NUMERIC, "C");
+	strtod(...)
+	setlocale(LC_NUMERIC, old);
+
+this is not acceptable to  us  as   it  is  not  thread-safe. XPCE isn't
+multi-threading anyway, but it is  designed   to  operate  in a threaded
+environment.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define cisdigit(c)	((c) >= '0' && (c) <= '9')
+#define digitval(c)	((c)-'0')
+
+double
+cstrtod(const char *in, char **end)
+{ double rval;
+
+  if ( cisdigit(*in) )
+  { rval = digitval(*in);
+    in++;
+
+    while(cisdigit(*in))
+    { rval = rval*10.0 + digitval(*in);
+      in++;
+    }
+  } else if ( *in == '.' )
+  { rval = 0.0;
+  } else
+  { *end = (char *)in;
+    return 0.0;
+  }
+
+  if ( *in == '.' && cisdigit(in[1]) )
+  { double n = 10.0;
+    in++;
+
+    while(cisdigit(*in))
+    { rval += digitval(*in)/n;
+      n *= 10.0;
+      in++;
+    }
+  }
+
+  if ( *in == 'e' || *in == 'E' )
+  { int esign;
+    long exp;
+    const char *eend = in;
+
+    in++;
+    if ( *in == '-' )
+    { esign = -1;
+      in++;
+    } else if ( *in == '+' )
+    { esign = 1;
+      in++;
+    } else
+      esign = 1;
+
+    if ( cisdigit(*in) )
+    { exp = digitval(*in);
+      in++;
+    } else
+    { *end = (char *)eend;
+      return rval;
+    }
+    while(cisdigit(*in))
+    { exp = exp*10+digitval(*in);
+      in++;
+    }
+    rval *= pow(10.0, (double)(esign*exp));
+  }
+
+  *end = (char *)in;
+  return rval;
+}
+
+
 		/********************************
 		*           STRINGS             *
 		*********************************/

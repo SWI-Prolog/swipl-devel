@@ -1302,13 +1302,13 @@ real_range_type(StrPart str)
   Type type;
   Real l = NIL, h = NIL;
 
-  low = StrTod(str->start, &e0);
+  low = cstrtod(str->start, &e0);
   for( e=e0; *e == ' '; e++ )
     ;
   if ( e[0] != '.' || e[1] != '.' )
     fail;
   e += 2;
-  high = StrTod(e, &e2);
+  high = cstrtod(e, &e2);
   if ( e2 != str->end+1 )
     fail;
   if ( e2 == e && e0 == str->start )

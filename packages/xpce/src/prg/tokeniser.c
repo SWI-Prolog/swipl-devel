@@ -457,7 +457,7 @@ getTokenTokeniser(Tokeniser t)
       answer(toInt(f));
     } else
     { char *e;
-      double f = StrTod(buf, &e);
+      double f = cstrtod(buf, &e);
       if ( e != q )
       { DEBUG(NAME_tokeniser,
 	      Cprintf("Num = '%s' (%f), e = %d, q = %d\n",
