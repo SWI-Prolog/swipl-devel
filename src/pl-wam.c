@@ -149,7 +149,7 @@ pl_count()
 		 *	     DEBUGGING		*
 		 *******************************/
 
-#ifdef O_DEBUG				/* use counting for debugging */
+#if defined(O_DEBUG) || defined(SECURE_GC) /* use counting for debugging */
 
 static long
 loffset(void *p)
@@ -160,7 +160,10 @@ loffset(void *p)
   return (Word)p-(Word)lBase;
 }
 
+#endif
 
+
+#ifdef O_DEBUG
 static void
 DbgPrintInstruction(LocalFrame FR, Code PC)
 { static LocalFrame ofr = NULL;
