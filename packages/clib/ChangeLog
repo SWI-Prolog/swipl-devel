@@ -1,3 +1,8 @@
+Jun 20, 2002
+
+ * FIXED: Handle WSAEWOULDBLOCK in tcp_acept() to get a blocking accept
+   call.
+
 Jun 11, 2002
 
  * ADDED: library(files), providing uncommon access to file objects.

@@ -835,8 +835,23 @@ tcp_accept(term_t Master, term_t Slave, term_t Peer)
   if ( !tcp_get_socket(Master, &master) )
     return FALSE;
 
+#ifdef WIN32
+again:
+#else
+  PL_dispatch(master, PL_DISPATCH_WAIT);
+#endif
+
   if ( (slave = accept(master, (struct sockaddr*)&addr, &addrlen)) == -1 )
+  {
+#ifdef WIN32
+    if ( WSAGetLastError() == WSAEWOULDBLOCK )
+    { waitMsg();
+
+      goto again;
+    }
+#endif  
     return tcp_error(errno, NULL);
+  }
 
   lookupSocket(slave)->flags |= SOCK_ACCEPT;
   
