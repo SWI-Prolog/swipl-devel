@@ -53,7 +53,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386
-# ADD LINK32 wsock32.lib xpm.lib ..\..\pl\lib\uxnt.lib ..\..\pl\lib\libpl.lib jpeglib2.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386 /out:"..\..\pl\bin/xpce.dll" /implib:"E:\pl\lib/xpce.lib"
+# ADD LINK32 wsock32.lib xpm.lib ..\..\pl\lib\uxnt.lib ..\..\pl\lib\libpl.lib jpeglib2.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /dll /machine:I386 /out:"..\..\pl\bin/xpce.dll"
 # SUBTRACT LINK32 /pdb:none
 
 !ELSEIF  "$(CFG)" == "xpce - Win32 Debug"
@@ -95,7 +95,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /I ".." /I "." /I "c:\jan\pl\include" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "pce_source" /YX /c
 # SUBTRACT BASE CPP /Fr
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "." /I "d:\development\pl\include" /I "..\include" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "pce_source" /D "O_RUNTIME" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "..\include" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "pce_source" /D "O_RUNTIME" /YX /FD /c
 # SUBTRACT CPP /Fr
 # ADD BASE MTL /nologo /D "NDEBUG" /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32

@@ -163,7 +163,6 @@ computeLabelBox(LabelBox lb)
   succeed;
 }
 
-
 		 /*******************************
 		 *	       REDRAW		*
 		 *******************************/

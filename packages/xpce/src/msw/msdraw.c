@@ -1033,6 +1033,11 @@ static HBRUSH
 r_fillbrush(Any fill)
 { HBRUSH hbrush;
 
+  if ( isDefault(fill) )
+    fill = context.colour;
+  else if ( fill == NAME_current )
+    fill = context.fill_pattern;
+
   if ( !(hbrush = standardWindowsBrush(fill)) )
   { if ( !(hbrush = lookup_brush(fill)) )
     { if ( instanceOfObject(fill, ClassImage) )
@@ -1058,6 +1063,11 @@ r_fillpattern(Any fill, Name which)			/* colour or image */
 { if ( context.fixed_colours && !instanceOfObject(fill, ClassImage) )
     fill = (which == NAME_foreground ? context.colour
 				     : context.background);
+
+  if ( isDefault(fill) )
+    fill = context.colour;
+  else if ( fill == NAME_current )
+    return;
 
   if ( context.fill_pattern != fill )
   { HBRUSH new, old;
@@ -1303,6 +1313,44 @@ r_elevation(Elevation e)
   }
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+r_elevation_fillpattern(Elevation e, int up)
+    Sets the fill-pattern for the interior of elevated areas and returns
+    TRUE if the interior needs to be filled.  Returns FALSE otherwise.
+    The special colours `reduced' and `hilited' are interpreted as relative
+    colours to the background.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+r_elevation_fillpattern(Elevation e, int up)
+{ Any fill = NIL;
+
+  if ( up && notDefault(e->colour) )
+  { fill = e->colour;
+  } else if ( !up && notDefault(e->background) )
+  { fill = e->background;
+  }
+
+  if ( isNil(fill) )
+    fail;
+
+  if ( fill == NAME_reduced || fill == NAME_hilited )
+  { Any bg = context.background;
+
+    if ( instanceOfObject(bg, ClassColour) && context.depth != 1 )
+    { if ( fill == NAME_reduced )
+	fill = getReduceColour(bg);
+      else
+	fill = getHiliteColour(bg);
+    } else
+      fail;
+  }
+  
+  r_fillpattern(fill, NAME_background);
+
+  succeed;
+}
+
 
 typedef struct
 { int x1, y1;				/* start of line */
@@ -1429,6 +1477,7 @@ void
 r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
 { int pen = 1;
   int shadow = valInt(e->height);
+  int fill;				/* fill interior */
   HPEN top_left_pen, bottom_right_pen;
 
   if ( e->kind == NAME_shadow )
@@ -1503,6 +1552,7 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
 
   if ( !up )
     shadow = -shadow;
+  fill = r_elevation_fillpattern(e, up);
 
   if ( shadow )
   { r_elevation(e);
@@ -1606,8 +1656,8 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
     }
   }
 
-  if ( notDefault(e->colour) )
-    r_fill(x+shadow, y+shadow, w-2*shadow, h-2*shadow, e->colour);
+  if ( fill )
+    r_fill(x+shadow, y+shadow, w-2*shadow, h-2*shadow, NAME_current);
 }
 
 

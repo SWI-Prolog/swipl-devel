@@ -1,0 +1,54 @@
+#!/bin/sh
+# build the pw3 executable
+
+PWVERSION=3.2
+PWPACKAGE=prowindows$PWVERSION
+
+RUNDIR=$QPHOME/bin$VERSION/$ARCHDIR
+OWLIB=/usr/openwin/lib
+PATH=$PATH:/usr/ccs/bin:$RUNDIR
+BANNER="ProWindows $PWVERSION"
+XLIBS="-lXt -lX11"
+[ $ARCHDIR = 'sun4-5' ] && EXTRALIBS="-lsocket -lnsl"
+
+installf()
+{	chown $2 $1 2> /dev/null	# ignore errors for chown/chgrp
+	chgrp $3 $1 2> /dev/null
+	chmod $4 $1
+}
+
+if [ -f $OWLIB/libX11.so ]
+then
+	XLIBDIR=$OWLIB
+else
+	# try to find X11 library in LD_LIBRARY_PATH
+	for dir in `echo $LD_LIBRARY_PATH | sed 's/[:;]/ /g'`
+	do
+		if [ -f $dir/libX11.so -o -f $dir/libX11.so.4.* ]
+		then
+			XLIBDIR=$dir
+			break
+		fi
+	done
+	if [ -z "$XLIBDIR" ]
+	then
+		echo "! libX11.so not found - try setting LD_LIBRARY_PATH"
+	else
+		echo "* $OWLIB/libX11.so not found, using $XLIBDIR/libX11.so"
+	fi
+fi
+
+LD_LIBRARY_PATH=
+export PATH LD_LIBRARY_PATH
+
+# make pw3
+echo '% Building pw3'
+( rm -f $RUNDIR/pw3
+  qld -Ddvh -a $PWPACKAGE -o $RUNDIR/pw3 'library(pw3)' \
+      -LD -L$XLIBDIR $XLIBS $EXTRALIBS >> $LOG &&
+  qsetpath $RUNDIR/pw3 -q$QPHOME -r$RUNDIR -h/$ARCHDIR -b"$BANNER" &&
+  installf $RUNDIR/pw3 bin bin 555
+) || exit 1
+
+exit 0
+

@@ -112,6 +112,7 @@ variable(search_patterns,	chain*,		both,
 initialise(M, Dir:[directory]) :->
 	"Create the manual main object"::
 	send(M, send_super, initialise, 'PCE Manual'),
+	send(M, can_resize, @off),
 	send(M, done_message, message(M, quit)),
 	default(Dir, directory('$PCEHOME/man/reference'), Directory),
 	get(M, class_variable_value, user_scope, Scope),
@@ -369,7 +370,7 @@ destroy_tool(M, Tool:man_frame) :->
 quit(M) :->
 	"Quit Manual Tool"::
 	send(M, save_if_modified),
-	send(@display, confirm, 'Quit all manual tools?'),
+%	send(@display, confirm, 'Quit all manual tools?'),
 	send(M?tools, for_all, message(@arg1?value, quit)),
 	send(M, destroy).
 

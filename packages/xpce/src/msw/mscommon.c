@@ -49,35 +49,67 @@ itself. As of 4.10.1, XPCE objects can  be bound to existing MS-Windows,
 and we want to make as  few   as  possible assumptions on these windows.
 Hence, we use out own hashtable.
 
-Note that HWND is wrapped in  an   XPCE  integer. A little dubious, bnut
+Note that HWND is wrapped in  an   XPCE  integer.  A little dubious, but
 guarded by an assert(), so we will know if and when this fails.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static HashTable wintable;
+#define WINASSOC_TABLESIZE 256
+
+typedef struct _winassoc
+{ HWND			hwnd;		/* MS-Windows window handle */
+  Any			object;		/* Associated object */
+  struct _winassoc     *next;		/* Next in chain */
+} winassoc, *WinAssoc;
+  
+static WinAssoc wintable[WINASSOC_TABLESIZE];
+
+static int
+handleKey(HWND handle)
+{ const char *p = (const char *)&handle;
+  int i;
+  int key = 0;
+
+  for(i=0; i<sizeof(handle); i++)
+    key ^= *p++;
+
+  return key & (WINASSOC_TABLESIZE-1);
+}
 
 void
 assocObjectToHWND(HWND hwnd, Any obj)
-{ if ( !wintable )
-  { wintable = globalObject(CtoName("win_windows"), ClassHashTable, 0);
-    assert(wintable);
-    assign(wintable, refer, NAME_none);
+{ int key = handleKey(hwnd);
+  WinAssoc *p = &wintable[key];
+  WinAssoc  a = *p;
+
+  if ( isNil(obj) )			/* delete from table */
+  { for( ; a ; p = &a->next, a = a->next )
+    { if ( a->hwnd == hwnd )
+      { *p = a->next;
+        unalloc(sizeof(winassoc), a);
+	return;
+      }
+    }
+					/* not in the table!? */
+  } else
+  { WinAssoc n = alloc(sizeof(winassoc));
+    n->next   = *p;
+    n->hwnd   = hwnd;
+    n->object = obj;
+    *p = n;
   }
-
-  assert((HWND)valInt(toInt(hwnd)) == hwnd);
-
-  if ( isNil(obj) )
-    deleteHashTable(wintable, toInt(hwnd));
-  else
-    appendHashTable(wintable, toInt(hwnd), obj);
 
   DEBUG(NAME_window, Cprintf("Binding 0x%04x --> %s\n", hwnd, pp(obj)));
 }
 
-
 Any
 getObjectFromHWND(HWND hwnd)
-{ if ( wintable )
-    return getMemberHashTable(wintable, toInt(hwnd));
+{ int key = handleKey(hwnd);
+  WinAssoc a = wintable[key];
+  
+  for( ; a; a=a->next )
+  { if ( a->hwnd == hwnd )
+      return a->object;
+  }
   
   fail;
 }
