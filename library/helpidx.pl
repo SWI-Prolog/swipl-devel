@@ -494,20 +494,20 @@ predicate(load_foreign_library, 2, 'library(shlib) Load shared library (.so file
 predicate(load_foreign_library, 1, 'library(shlib) Load shared library (.so file)', 364525, 364976).
 predicate(unload_foreign_library, 1, 'library(shlib) Detach shared library (.so file)', 364979, 365414).
 predicate(current_foreign_library, 2, 'library(shlib) Examine loaded shared libraries (.so files)', 365417, 366362).
-predicate(qsave_program, 2, 'Create runtime application', 479382, 483187).
-predicate(qsave_program, 1, 'Create runtime application', 483190, 483294).
-predicate(autoload, 0, 'Autoload all predicates now', 483297, 484961).
-predicate((volatile), 1, 'Predicates that are not saved', 484964, 485317).
-predicate(resource, 3, 'Declare a program resource', 490311, 492118).
-predicate(open_resource, 3, 'Open a program resource as a stream', 492121, 493267).
-predicate(prolog_current_frame, 1, 'Reference to goal''s environment stack', 499358, 499767).
-predicate(prolog_frame_attribute, 3, 'Obtain information on a goal environment', 499770, 502713).
-predicate(prolog_trace_interception, 4, 'library(user) Intercept the Prolog tracer', 502795, 504690).
-predicate(prolog_skip_level, 2, 'Indicate deepest recursion to trace', 504693, 505352).
-predicate(prolog_list_goal, 1, 'Hook.  Intercept tracer ''L'' command', 505355, 505774).
-predicate(exception, 3, 'Hook (user) Handle runtime exceptions', 506392, 507867).
-predicate(rl_read_init_file, 1, 'Read readline(3) init file', 508174, 508428).
-predicate(rl_add_history, 1, 'Add line to readline(3) history', 508431, 508590).
+predicate(qsave_program, 2, 'Create runtime application', 479993, 483798).
+predicate(qsave_program, 1, 'Create runtime application', 483801, 483905).
+predicate(autoload, 0, 'Autoload all predicates now', 483908, 485572).
+predicate((volatile), 1, 'Predicates that are not saved', 485575, 485928).
+predicate(resource, 3, 'Declare a program resource', 490922, 492729).
+predicate(open_resource, 3, 'Open a program resource as a stream', 492732, 493878).
+predicate(prolog_current_frame, 1, 'Reference to goal''s environment stack', 499969, 500378).
+predicate(prolog_frame_attribute, 3, 'Obtain information on a goal environment', 500381, 503324).
+predicate(prolog_trace_interception, 4, 'library(user) Intercept the Prolog tracer', 503406, 505301).
+predicate(prolog_skip_level, 2, 'Indicate deepest recursion to trace', 505304, 505963).
+predicate(prolog_list_goal, 1, 'Hook.  Intercept tracer ''L'' command', 505966, 506385).
+predicate(exception, 3, 'Hook (user) Handle runtime exceptions', 507003, 508478).
+predicate(rl_read_init_file, 1, 'Read readline(3) init file', 508785, 509039).
+predicate(rl_add_history, 1, 'Add line to readline(3) history', 509042, 509201).
 
 
 %   Predicate section/4
@@ -651,7 +651,7 @@ section([4, 7], 'Dynamic Modules', 348920, 350356).
 section([4, 8], 'Module Handling Predicates', 350358, 353623).
 section([4, 9], 'Compatibility of the Module System', 353625, 357068).
 section([4, 9, 1], 'Emulating meta_predicate/1', 356129, 357068).
-section([5], 'FOREIGN LANGUAGE INTERFACE', 357070, 478104).
+section([5], 'FOREIGN LANGUAGE INTERFACE', 357070, 478715).
 section([5, 1], 'Overview of the Interface', 358116, 358964).
 section([5, 2], 'Linking Foreign Modules', 358966, 360890).
 section([5, 2, 1], 'What linking is provided?', 359535, 360027).
@@ -663,7 +663,7 @@ section([5, 5], 'Interface Data types', 368368, 376281).
 section([5, 5, 1], 'Type term_t:  a reference to a Prolog term', 368438, 374289).
 section([5, 5, 1, 1], 'Interaction with the garbage collector and stack-shifter', 373501, 374289).
 section([5, 5, 2], 'Other foreign interface types', 374291, 376281).
-section([5, 6], 'The Foreign Include File', 376283, 465184).
+section([5, 6], 'The Foreign Include File', 376283, 465795).
 section([5, 6, 1], 'Argument Passing and Control', 376363, 381926).
 section([5, 6, 1, 1], 'Non-deterministic Foreign Predicates', 377128, 381926).
 section([5, 6, 2], 'Atoms and functors', 381928, 384754).
@@ -683,48 +683,48 @@ section([5, 6, 7], 'Discarding Data', 423536, 425843).
 section([5, 6, 8], 'Foreign Code and Modules', 425845, 427545).
 section([5, 6, 9], 'Prolog exceptions in foreign code', 427547, 431784).
 section([5, 6, 10], 'Foreign code and Prolog threads', 431786, 435252).
-section([5, 6, 11], 'Miscellaneous', 435254, 439881).
-section([5, 6, 11, 1], 'Term Comparison', 435316, 435590).
-section([5, 6, 11, 2], 'Recorded database', 435592, 439881).
-section([5, 6, 12], 'Catching Signals (Software Interrupts)', 439883, 441563).
-section([5, 6, 13], 'Errors and warnings', 441565, 442234).
-section([5, 6, 14], 'Environment Control from Foreign Code', 442236, 445074).
-section([5, 6, 15], 'Querying Prolog', 445076, 446702).
-section([5, 6, 16], 'Registering Foreign Predicates', 446704, 449417).
-section([5, 6, 17], 'Foreign Code Hooks', 449419, 452374).
-section([5, 6, 18], 'Storing foreign data', 452376, 460971).
-section([5, 6, 18, 1], 'Examples for storing foreign data', 455884, 460971).
-section([5, 6, 19], 'Embedding SWI-Prolog in a C-program', 460973, 465184).
-section([5, 7], 'Linking embedded applications using plld', 465186, 471577).
-section([5, 7, 1], 'A simple example', 469907, 471577).
-section([5, 8], 'The Prolog `home'' directory', 471579, 473055).
-section([5, 9], 'Example of Using the Foreign Interface', 473057, 474533).
-section([5, 10], 'Notes on Using Foreign Code', 474535, 478104).
-section([5, 10, 1], 'Memory Allocation', 474625, 474955).
-section([5, 10, 2], 'Debugging Foreign Code', 474957, 475823).
-section([5, 10, 3], 'Name Conflicts in C modules', 475825, 476696).
-section([5, 10, 4], 'Compatibility of the Foreign Interface', 476698, 478104).
-section([6], 'GENERATING RUNTIME APPLICATIONS', 478106, 498764).
-section([6, 1], 'Limitations of qsave_program', 485320, 486118).
-section([6, 2], 'Runtimes and Foreign Code', 486120, 488528).
-section([6, 3], 'Using program resources', 488530, 494226).
-section([6, 3, 1], 'Predicates Definitions', 490227, 493268).
-section([6, 3, 2], 'The plrc program', 493270, 494226).
-section([6, 4], 'Finding Application files', 494228, 496088).
-section([6, 4, 1], 'Passing a path to the application', 495505, 496088).
-section([6, 5], 'The Runtime Environment', 496090, 498764).
-section([6, 5, 1], 'The Runtime Emulator', 496169, 498764).
-section([7], 'HACKERS CORNER', 498766, 508591).
-section([7, 1], 'Examining the Environment Stack', 499257, 502714).
-section([7, 2], 'Intercepting the Tracer', 502716, 505775).
-section([7, 3], 'Hooks using the exception/3 predicate', 505777, 507868).
-section([7, 4], 'Readline Interaction', 507870, 508591).
-section([8], 'GLOSSARY OF TERMS', 508593, 521484).
-section([9], 'SUMMARY', 521486, 554355).
-section([9, 1], 'Predicates', 521541, 549667).
-section([9, 2], 'Arithmetic Functions', 549669, 551753).
-section([9, 3], 'Operators', 551755, 554355).
-section([10], 'Bibliography', 554357, 583650).
+section([5, 6, 11], 'Miscellaneous', 435254, 440099).
+section([5, 6, 11, 1], 'Term Comparison', 435316, 435808).
+section([5, 6, 11, 2], 'Recorded database', 435810, 440099).
+section([5, 6, 12], 'Catching Signals (Software Interrupts)', 440101, 441781).
+section([5, 6, 13], 'Errors and warnings', 441783, 442452).
+section([5, 6, 14], 'Environment Control from Foreign Code', 442454, 445292).
+section([5, 6, 15], 'Querying Prolog', 445294, 446920).
+section([5, 6, 16], 'Registering Foreign Predicates', 446922, 450028).
+section([5, 6, 17], 'Foreign Code Hooks', 450030, 452985).
+section([5, 6, 18], 'Storing foreign data', 452987, 461582).
+section([5, 6, 18, 1], 'Examples for storing foreign data', 456495, 461582).
+section([5, 6, 19], 'Embedding SWI-Prolog in a C-program', 461584, 465795).
+section([5, 7], 'Linking embedded applications using plld', 465797, 472188).
+section([5, 7, 1], 'A simple example', 470518, 472188).
+section([5, 8], 'The Prolog `home'' directory', 472190, 473666).
+section([5, 9], 'Example of Using the Foreign Interface', 473668, 475144).
+section([5, 10], 'Notes on Using Foreign Code', 475146, 478715).
+section([5, 10, 1], 'Memory Allocation', 475236, 475566).
+section([5, 10, 2], 'Debugging Foreign Code', 475568, 476434).
+section([5, 10, 3], 'Name Conflicts in C modules', 476436, 477307).
+section([5, 10, 4], 'Compatibility of the Foreign Interface', 477309, 478715).
+section([6], 'GENERATING RUNTIME APPLICATIONS', 478717, 499375).
+section([6, 1], 'Limitations of qsave_program', 485931, 486729).
+section([6, 2], 'Runtimes and Foreign Code', 486731, 489139).
+section([6, 3], 'Using program resources', 489141, 494837).
+section([6, 3, 1], 'Predicates Definitions', 490838, 493879).
+section([6, 3, 2], 'The plrc program', 493881, 494837).
+section([6, 4], 'Finding Application files', 494839, 496699).
+section([6, 4, 1], 'Passing a path to the application', 496116, 496699).
+section([6, 5], 'The Runtime Environment', 496701, 499375).
+section([6, 5, 1], 'The Runtime Emulator', 496780, 499375).
+section([7], 'HACKERS CORNER', 499377, 509202).
+section([7, 1], 'Examining the Environment Stack', 499868, 503325).
+section([7, 2], 'Intercepting the Tracer', 503327, 506386).
+section([7, 3], 'Hooks using the exception/3 predicate', 506388, 508479).
+section([7, 4], 'Readline Interaction', 508481, 509202).
+section([8], 'GLOSSARY OF TERMS', 509204, 522095).
+section([9], 'SUMMARY', 522097, 554966).
+section([9, 1], 'Predicates', 522152, 550278).
+section([9, 2], 'Arithmetic Functions', 550280, 552364).
+section([9, 3], 'Operators', 552366, 554966).
+section([10], 'Bibliography', 554968, 584350).
 
 
 %   Predicate function/3
@@ -845,27 +845,29 @@ function('PL_thread_self', 433196, 433480).
 function('PL_thread_attach_engine', 433483, 434486).
 function('PL_thread_destroy_engine', 434489, 435251).
 function('PL_compare', 435388, 435589).
-function('PL_record', 436427, 436757).
-function('PL_recorded', 436760, 437060).
-function('PL_erase', 437063, 438655).
-function('PL_record_external', 438658, 439325).
-function('PL_recorded_external', 439328, 439679).
-function('PL_erase_external', 439682, 439880).
-function('PL_signal', 440851, 441562).
-function('PL_warning', 441874, 442233).
-function('PL_action', 442362, 445073).
-function('PL_query', 445142, 446701).
-function('PL_register_foreign', 446813, 448141).
-function('PL_register_extensions', 448144, 449416).
-function('PL_dispatch_hook', 449551, 450169).
-function('PL_abort_hook', 450172, 450644).
-function('PL_abort_unhook', 450647, 450857).
-function('PL_on_halt', 450860, 451322).
-function('PL_agc_hook', 451325, 452373).
-function('PL_initialise', 461993, 464160).
-function('PL_is_initialised', 464163, 464617).
-function('PL_install_readline', 464620, 464878).
-function('PL_toplevel', 464881, 465036).
-function('PL_halt', 465039, 465183).
+function('PL_same_compound', 435592, 435807).
+function('PL_record', 436645, 436975).
+function('PL_recorded', 436978, 437278).
+function('PL_erase', 437281, 438873).
+function('PL_record_external', 438876, 439543).
+function('PL_recorded_external', 439546, 439897).
+function('PL_erase_external', 439900, 440098).
+function('PL_signal', 441069, 441780).
+function('PL_warning', 442092, 442451).
+function('PL_action', 442580, 445291).
+function('PL_query', 445360, 446919).
+function('PL_register_foreign', 447031, 448359).
+function('PL_load_extensions', 448362, 449051).
+function('PL_register_extensions', 449054, 450027).
+function('PL_dispatch_hook', 450162, 450780).
+function('PL_abort_hook', 450783, 451255).
+function('PL_abort_unhook', 451258, 451468).
+function('PL_on_halt', 451471, 451933).
+function('PL_agc_hook', 451936, 452984).
+function('PL_initialise', 462604, 464771).
+function('PL_is_initialised', 464774, 465228).
+function('PL_install_readline', 465231, 465489).
+function('PL_toplevel', 465492, 465647).
+function('PL_halt', 465650, 465794).
 
 

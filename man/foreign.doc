@@ -1915,6 +1915,8 @@ information is wanted. The  options are given in \tabref{query}.
 \end{description}
 
 \subsection{Registering Foreign Predicates}
+
+
 \begin{description}
 \cfunction{int}{PL_register_foreign}{const char *name, int arity,
 				     foreign_t (*function)(), int flags}
@@ -1937,9 +1939,12 @@ forms bitwise or'ed list of options for the installation. These are:
 \const{PL_FA_VARARGS}	       & Use alternative calling convention. \\
 \hline
 \end{tabular}
-\cfunction{void}{PL_register_extensions}{PL_extension *e}
-Register foreign predicates from a table of structures.	 The type
-\ctype{PL_extension} is defined as:
+
+    \cfunction{void}{PL_load_extensions}{PL_extension *e}
+Register foreign predicates from a table of structures. This is an
+alternative to multiple calls to PL_register_foreign() and simplifies
+code that wishes to use PL_register_extensions() as an alternative.
+The type \ctype{PL_extension} is defined as:
 
 \begin{code}
 typedef struct _PL_extension
@@ -1949,6 +1954,14 @@ typedef struct _PL_extension
   short		flags;		 /* Or of PL_FA_... */
 } PL_extension;
 \end{code}
+
+    \cfunction{void}{PL_register_extensions}{PL_extension *e}
+The function PL_register_extensions() behaves as PL_load_extensions(),
+but is the only PL_* function that may be called \strong{before}
+PL_initialise(). The predicates are registered {\bf into the module
+\const{user}} after registration of the SWI-Prolog builtin foreign
+predicates and before loading the initial saved state. This implies that
+initialization/1 directives can refer to them.
 
 Here is an example of its usage:
 
@@ -1968,13 +1981,8 @@ main(int argc, char **argv)
   ...
 }
 \end{code}
-
-The function PL_register_extensions() is the only PL_* function that may
-be called \strong{before} PL_initialise().  The functions are registered
-after registration of the SWI-Prolog builtin foreign predicates and 
-before loading the initial saved state. This implies that
-initialization/1 directives can refer to them.
 \end{description}
+
 
 \subsection{Foreign Code Hooks}
 

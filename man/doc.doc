@@ -82,7 +82,7 @@ is converted into HTML using a converter distributed with the SWI-Prolog
 sources. From the same source we generate the plain-text version and
 index used by the online help system (located in the file \file{MANUAL}
 in the library directory) as well as the PDF version. Sources, binaries
-and documentation can be downloaded from the \url[SWi-Prolog download
+and documentation can be downloaded from the \url[SWI-Prolog download
 page]{http://www.swi.psy.uva.nl/projects/SWI-Prolog/download.html}.
 
 The SWI-Prolog project {\bf home page} is located
