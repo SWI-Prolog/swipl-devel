@@ -457,12 +457,12 @@ write_gif_file(IOSTREAM *fd, Image image, HBITMAP bm, HBITMAP mask)
   }
 
   memset(&info, 0, sizeof(info));
-  info.bmiHeader.biSize = sizeof(info);
+  info.bmiHeader.biSize = sizeof(info.bmiHeader);
   info.bmiHeader.biWidth = width;
   info.bmiHeader.biHeight = -height;	/* work top-down */
   info.bmiHeader.biPlanes = 1;
   info.bmiHeader.biBitCount = 24;
-  info.bmiHeader.biCompression = BI_RGB;
+  info.bmiHeader.biCompression = BI_RGB; /* from WINGDI, this is 0 */
 
   if ( !(sl = GetDIBits(hdc, bm,
 			0, height,
@@ -552,7 +552,7 @@ mask_bits(HBITMAP mask)
   /*Cprintf("Mask is %dx%d\n", bitmap.bmWidth, bitmap.bmHeight);*/
 
   memset(info, 0, sizeof(*info));
-  info->bmiHeader.biSize = sizeof(*info);
+  info->bmiHeader.biSize = sizeof(info->bmiHeader);
   info->bmiHeader.biWidth = bitmap.bmWidth;
   info->bmiHeader.biHeight = -bitmap.bmHeight;
   info->bmiHeader.biPlanes = 1;
