@@ -62,7 +62,6 @@ join(Times) :-
 	       )).
 
 join_ok(Id) :-
-	current_thread(Id, S),
 	thread_join(Id, Return),
 	(   Return == true
 	->  true

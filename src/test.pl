@@ -548,6 +548,9 @@ string_handling(sub-1) :-
 		 *	       DYNAMIC		*
 		 *******************************/
 
+cpxx.					% for test current_predicate-1
+cpxx(_,_).
+
 proc(retractall-1) :-
 	forall(foo(A,B), assert(myfoo(A,B))),
 	retractall(myfoo(2, _)),
@@ -566,7 +569,9 @@ proc(retract-2) :-
 	assert((test(X, Y) :- X is Y + 3)),
 	retract((test(A, B) :- Body)),
 	Body == (A is B + 3).
-
+proc(current_predicate-1) :-
+	findall(X, current_predicate(cpxx/X), L),
+	L == [0, 2].
 
 		 /*******************************
 		 *	       CLAUSE		*
