@@ -68,6 +68,8 @@ NOTE:	Formats are a rather hacky solution.  There are plans to
 initialise(M) :->
 	send(M, send_super, initialise, 'Icons'),
 	send(M, gap, size(0,0)),
+	send(M, ver_shrink, 100),
+	send(M, ver_stretch, 100),
 	send(M, display, new(P, menu(proto, choice, message(@arg1, activate)))),
 	send(P, layout, vertical),
 	send(P, show_label, @off),
