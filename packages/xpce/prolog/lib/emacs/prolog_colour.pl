@@ -230,7 +230,7 @@ colourise_term((Head --> Body), TB,			% TBD: expansion!
 	       term_position(F,T,FF,FT,[HP,BP])) :- !,
 	colour_item(grammar_rule,	TB, F-T),
 	colour_item(neck(grammar_rule),	TB, FF-FT),
-	colourise_dcg_head(Head,	TB, HP),
+	colourise_extended_head(Head, 2, TB, HP),
 	colourise_dcg(Body, Head,	TB, BP).
 colourise_term(:->(Head, Body), TB,
 	       term_position(F,T,FF,FT,[HP,BP])) :- !,
@@ -257,10 +257,11 @@ colourise_term(Fact, TB, Pos) :- !,
 	colour_item(clause, TB,	Pos),
 	colourise_clause_head(Fact, TB, Pos).
 
-colourise_dcg_head(Head, TB, Pos) :-
+colourise_extended_head(Head, N, TB, Pos) :-
 	functor_position(Pos, FPos, _),
 	Head =.. List,
-	append(List, [_,_], List1),
+	length(Extra, N),
+	append(List, Extra, List1),
 	TheHead =.. List1,
 	classify_head(TB, TheHead, Class),
 	colour_item(head(Class), TB, FPos),
@@ -995,6 +996,9 @@ specified_item(classify, Term, TB, Pos) :- !,
 					% classify as head
 specified_item(head, Term, TB, Pos) :- !,
 	colourise_clause_head(Term, TB, Pos).
+					% expanded head (DCG=2, ...)
+specified_item(head(+N), Term, TB, Pos) :- !,
+	colourise_extended_head(Term, N, TB, Pos).
 					% M:Head
 specified_item(extern(M), Term, TB, Pos) :- !,
 	colourise_extern_head(Term, M, TB, Pos).
@@ -1056,6 +1060,11 @@ specified_item(FuncSpec-ArgSpecs, Term, TB,
 	       term_position(_,_,FF,FT,ArgPos)) :- !,
 	specified_item(FuncSpec, Term, TB, FF-FT),
 	specified_items(ArgSpecs, Term, TB, ArgPos).
+					% Nested for {...}
+specified_item(FuncSpec-[ArgSpec], {Term}, TB,
+	       brace_term_position(F,T,ArgPos)) :- !,
+	specified_item(FuncSpec, {Term}, TB, F-T),
+	specified_item(ArgSpec, Term, TB, ArgPos).
 					% Specified
 specified_item(Class, _, TB, Pos) :-
 	colour_item(Class, TB, Pos).
