@@ -2259,7 +2259,13 @@ update_triple(term_t action, triple *t)
   LOCK();
   erase_triple(t);
   new = PL_malloc(sizeof(*new));
-  *new = tmp;
+  memset(new, 0, sizeof(*new));
+  new->subject	 = tmp.subject;
+  new->predicate = tmp.predicate;
+  new->object	 = tmp.object;
+  new->objtype	 = tmp.objtype;
+  new->source	 = tmp.source;
+  new->line	 = tmp.line;
 
   lock_atoms(new);
   link_triple(new);

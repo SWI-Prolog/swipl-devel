@@ -213,6 +213,12 @@ user:goal_expansion(rdf_retractall(Subj0, Pred0, Obj0, PayLoad),
 	rdf_global_id(Subj0, Subj),
 	rdf_global_id(Pred0, Pred),
 	rdf_global_id(Obj0, Obj).
+user:goal_expansion(rdf_update(Subj0, Pred0, Obj0, Action0),
+		    rdf_update(Subj, Pred, Obj, Action)) :-
+	rdf_global_id(Subj0, Subj),
+	rdf_global_id(Pred0, Pred),
+	rdf_global_id(Obj0, Obj),
+	rdf_global_term(Action0, Action).
 user:goal_expansion(rdf_equal(SubjA0, SubjB0),
 		    rdf_equal(SubjA, SubjB)) :-
 	rdf_global_id(SubjA0, SubjA),

@@ -1,5 +1,7 @@
 Oct 7, 2003
 
+  * FIXED: rdf_update/[4,5].  Duplicate administration error.
+
   * MODIFIED: rdfs_label(+Resource, -Label) first returns labels registered
     with rdfs:label and only afterwards with sub-properties thereof.
 
