@@ -7,6 +7,17 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Handling of 0'\n and friends in character-escapes are enabled
+    (default).  Richard O'Keefe.  Note:
+
+    MODIFIED: as a consequence, 0'\ is not interpreted as the character
+    code for '\', but as the start of an escape sequence.  Replace this
+    by 0'\\.  In most cases the old code will raise a syntax error while
+    being parsed.  You can also grep for potential conflicts.  On Unix
+    systems:
+
+    	fgrep -n "0'\\" `find . -name '*.pl'`
+
   * FIXED: Handling "x" in arithmetic (e.g. A =:= "a").  Richard O'Keefe.
 
   * FIXED: Wrong usage of the term ASCII in the manual.  Suggested

@@ -131,7 +131,7 @@ rl_initread(S, EOF, StopChars) :-
 	rl_readrest(K, S, EOF, StopChars).
 
 rl_readrest(-1, [], end_of_file, _) :- !.
-rl_readrest(0'\, [K1|R], EOF, StopChars) :-
+rl_readrest(0'\\, [K1|R], EOF, StopChars) :-
 	get0(K1),			% skip it, take next char
 	get0(K2),
 	rl_readrest(K2, R, EOF, StopChars).

@@ -204,7 +204,7 @@ string([C0|T]) -->
 	string_char(C0),
 	string(T).
 
-string_char(0'\) -->
+string_char(0'\\) -->
 	"\\\\".
 string_char(0'") -->
 	"\\\"".

@@ -965,7 +965,83 @@ scan_number(cucharp *s, int b, Number n)
 }
 
 
-#define NEXT(v)	do { c = (v); goto next; } while(0) 
+static int
+escape_char(cucharp in, ucharp *end, int newline)
+{ int base, xdigits;
+  int chr;
+  unsigned c;
+
+#define OK(v)	do { chr = (v); goto ok; } while(0) 
+
+again:
+  switch((c = *in++))
+  { case 'a':
+      OK(7);				/* 7 is ASCII BELL */
+    case 'b':
+      OK('\b');
+    case 'c':				/* skip \c<blank>* */
+      if ( newline )
+      { while(isBlank(*in))
+	  in++;
+	goto again;
+      }
+      OK('c');
+    case '\n':				/* \LF<blank>* */
+      if ( newline )
+      { while(isBlank(*in) && *in != '\n' )
+	  in++;
+	goto again;
+      }
+      OK('\n');
+    case 'f':
+      OK('\f');
+    case '\\':
+      OK('\\');
+    case 'n':
+      OK('\n');
+    case 'r':
+      OK('\r');
+    case 't':
+      OK('\t');
+    case 'v':
+      OK(11);				/* 11 is ASCII Vertical Tab */
+    case 'x':
+      c = *in++;
+      if ( digitValue(16, c) >= 0 )
+      { base = 16;
+	xdigits = 1;
+	goto numchar;
+      } else
+	OK('x');
+    default:
+      if ( c >= '0' && c <= '7' )	/* octal number */
+      { int dv;
+
+	base = 8;
+	xdigits = 2;
+
+      numchar:
+	chr = digitValue(base, c);
+	c = *in++;
+	while(xdigits-- > 0 &&
+	      (dv = digitValue(base, c)) >= 0 )
+	{ chr = chr * base + dv;
+	  c = *in++;
+	}
+	if ( c != '\\' )
+	  in--;
+	OK(chr);
+      } else
+	OK(c);
+  }
+
+#undef OK
+
+ok:
+  if ( end )
+    *end = (ucharp)in;
+  return chr;
+}
 
 static void
 get_string(unsigned char *in, unsigned char **end, Buffer buf,
@@ -981,72 +1057,11 @@ get_string(unsigned char *in, unsigned char **end, Buffer buf,
     if ( c == quote )
     { if ( *in == quote )
       { in++;
-	NEXT(quote);
-      }
+      } else
+	break;
+    } else if ( c == '\\' && DO_CHARESCAPE )
+      c = escape_char(in, &in, TRUE);
 
-      break;
-    }
-    if ( c == '\\' && DO_CHARESCAPE )
-    { int c2;
-      int base;
-      int xdigits;
-      
-      switch((c2 = *in++))
-      { case 'a':
-	  NEXT(7);			/* 7 is ASCII BELL */
-	case 'b':
-	  NEXT('\b');
-	case 'c':
-	  while(isBlank(*in))
-	    in++;
-	  continue;
-	case 10:			/* linefeed */
-	  while(isBlank(*in) && *in != 10 )
-	    in++;
-	  continue;
-	case 'f':
-	  NEXT('\f');
-	case 'n':
-	  NEXT('\n');
-	case 'r':
-	  NEXT('\r');
-	case 't':
-	  NEXT('\t');
-	case 'v':
-	  NEXT(11);			/* 11 is ASCII Vertical Tab */
-	case 'x':
-	  c2 = *in++;
-	  if ( digitValue(16, c2) >= 0 )
-	  { base = 16;
-	    xdigits = 1;
-	    goto numchar;
-	  } else
-	    NEXT('x');
-	default:
-	  if ( c2 >= '0' && c2 <= '7' )	/* octal number */
-	  { int chr;
-	    int dv;
-
-	    base = 8;
-	    xdigits = 2;
-
-	  numchar:
-	    chr = digitValue(base, c2);
-	    c2 = *in++;
-	    while(xdigits-- > 0 &&
-		  (dv = digitValue(base, c2)) >= 0 )
-	    { chr = chr * base + dv;
-	      c2 = *in++;
-	    }
-	    if ( c2 != '\\' )
-	      in--;
-	    NEXT(chr);
-	  } else
-	    NEXT(c2);
-      }
-    }
-
-  next:
     addBuffer(buf, c, char);
   }
 
@@ -1056,7 +1071,7 @@ get_string(unsigned char *in, unsigned char **end, Buffer buf,
 
 
 int
-get_number(cucharp in, ucharp *end, Number value)
+get_number(cucharp in, ucharp *end, Number value, int escape)
 { int negative = FALSE;
   unsigned int c;
 
@@ -1071,13 +1086,22 @@ get_number(cucharp in, ucharp *end, Number value)
 
     switch(in[1])
     { case '\'':			/* 0'<char> */
-      { if ( isAlpha(in[3]) )
+      { int chr;
+
+	if ( escape && in[2] == '\\' )	/* 0'\n, etc */
+	{ chr = escape_char(in+3, end, FALSE);
+	} else
+	{ chr = in[2] & 0xff;
+	  *end = (ucharp)in+3;
+	}
+
+	if ( isAlpha(**end) )
 	  fail;				/* illegal number */
-	value->value.i = (long)in[2] & 0xff;
+	value->value.i = (long)chr;
 	if ( negative )			/* -0'a is a bit dubious! */
 	  value->value.i = -value->value.i;
-	*end = (ucharp)in+3;
 	value->type = V_INTEGER;
+
 	succeed;
       }
       case 'b':
@@ -1244,7 +1268,8 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
     case_digit:
     case DI:	{ number value;
 
-		  if ( get_number(&rdhere[-1], &rdhere, &value) &&
+		  if ( get_number(&rdhere[-1],
+				  &rdhere, &value, DO_CHARESCAPE) &&
 		       !isAlpha(rdhere[0]) )
 		  { cur_token.value.number = value;
 		    cur_token.type = T_NUMBER;

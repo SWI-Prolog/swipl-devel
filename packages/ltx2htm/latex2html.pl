@@ -1358,7 +1358,7 @@ clean_tt(Raw, Clean) :-
 	atom_codes(Clean, S6).
 
 clean_specials([], []).
-clean_specials([0'\, Special|T0], [Special|T]) :-
+clean_specials([0'\\, Special|T0], [Special|T]) :-
 	memberchk(Special, "#$&%{}"), !,
 	clean_specials(T0, T).
 clean_specials([H|T0], [H|T]) :-

@@ -91,11 +91,11 @@ $writefs([0'%, D|Rest], [Head|Tail]) :-	%   %<columns><just>
 	$getpad(Size, Just, [D|Rest], More),  !,
 	$padout(Head, Size, Just),
 	$writefs(More, Tail).
-$writefs([0'\, C|Rest], List) :-	%   \<special>
+$writefs([0'\\, C|Rest], List) :-	%   \<special>
 	$special(C, Char), !,
 	put(Char),
 	$writefs(Rest, List).
-$writefs([0'\|Rest], List) :-		%   \<character code in decimal>
+$writefs([0'\\|Rest], List) :-		%   \<character code in decimal>
 	$getcode(Char, Rest, More), !,
 	put(Char),
 	$writefs(More, List).
@@ -127,7 +127,7 @@ $special(0'n, 10).		/*  n  */
 $special(0'l, 10).		/*  l  */
 $special(0'r, 10).		/*  r  */
 $special(0't,  9).		/*  t  */
-$special(0'\, 0'\).		/*  \  */
+$special(0'\\, 0'\\).		/*  \  */
 $special(0'%, 0'%).		/*  %  */
 
 $getcode(Char, In, Out) :-

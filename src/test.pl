@@ -59,6 +59,12 @@ syntax(op-7) :-
 syntax(atom-1) :-
 	atom_codes('\003\\'\n\x80\', X),
 	X = [3, 39, 10, 128].
+syntax(char-1) :-
+	10 = 0'\n.
+syntax(char-2) :-
+	52 = 0'\x34.
+syntax(char-2) :-
+	"\\" =:= 0'\\.
 syntax(number-1) :-			% check integer overflow translation
 	Chars = "41234567891",
 	name(X, Chars),

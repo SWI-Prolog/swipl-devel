@@ -647,7 +647,7 @@ void		profRedo(struct call_node *node ARG_LD);
 void		resetRead(void);
 int		get_number(const unsigned char *string,
 			   unsigned char **end,
-			   Number value);
+			   Number value, bool escape);
 word		pl_raw_read(term_t term);
 word		pl_raw_read2(term_t stream, term_t term);
 word		pl_read(term_t term);

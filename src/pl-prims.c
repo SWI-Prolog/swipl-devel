@@ -1596,7 +1596,7 @@ x_chars(const char *pred, term_t atom, term_t string, int how)
     { number n;
       unsigned char *q;
 
-      if ( get_number((unsigned char *)s, &q, &n) && *q == EOS )
+      if ( get_number((unsigned char *)s, &q, &n, FALSE) && *q == EOS )
       { if ( intNumber(&n) )
 	  return PL_unify_integer(atom, n.value.i);
 	else
@@ -1671,7 +1671,7 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
   { number n;
     unsigned char *q;
 
-    if ( get_number((unsigned char *)s, &q, &n) && *q == EOS )
+    if ( get_number((unsigned char *)s, &q, &n, FALSE) && *q == EOS )
     { if ( intNumber(&n) )
 	return PL_unify_integer(A2, n.value.i);
       else
@@ -2875,7 +2875,7 @@ set_pl_option(const char *name, const char *value)
 	  number n;
 	  unsigned char *q;
 
-	  if ( get_number((unsigned char *)value, &q, &n) &&
+	  if ( get_number((unsigned char *)value, &q, &n, FALSE) &&
 	       *q == EOS &&
 	       intNumber(&n) )
 	  { *val = n.value.i;
