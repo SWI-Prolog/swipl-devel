@@ -249,7 +249,9 @@ int_to_atom(Int, Atom) :-
 
 gensym(Base, Atom) :-
 	atom_concat($gs_, Base, Key),
-	flag(Key, Old, Old+1),
+	flag(Key, Old, Old),
+	succ(Old, New),
+	flag(Key, _, New),
 	atom_concat(Base, New, Atom).
 
 dwim_match(A1, A2) :-
