@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ENHANCED: thread memory pooling could waste memory, especially in
+    designs where a pool of threads is fired, waited for, re-started,
+    etc.  Sergey Tikhonov.
+
 VERSION 5.2.3 (Jul 04, 2003)
 ============================
 

@@ -409,9 +409,9 @@ being compiled, and then on the \const{user} module.
 
 Only goals apearing in the body of clauses when reading a source-file
 are expanded using mechanism, and only if they appear literally in the
-clause, or as an argument to the meta-predicates not/1, call/1 or
-forall/2. A real predicate definition is required to deal with
-dynamically constructed calls.
+clause, or as an argument to the meta-predicates not/1, call/1, once/1,
+ignore/1, findall/3, bagof/3, setof/3 or forall/2. A real predicate
+definition is required to deal with dynamically constructed calls.
 
     \predicate{expand_goal}{2}{+Goal1, -Goal2}
 This predicate is normally called by the compiler to perform

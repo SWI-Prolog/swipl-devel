@@ -87,8 +87,9 @@ GD.  Rules:
 
   * Memory is first allocated from the thread-pool.  If this is empty,
     a quick-and-dirty access to the global pool is tried.  If there
-    appears to be memory it will try to nicely import the chain from
-    the global pool.  If it fails, allocate() allocates new memory.
+    appears to be memory it will try to nicely import the first 100
+    cells of the same size from the global pool.  If it fails, allocate()
+    allocates new memory.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef ALIGN_SIZE
@@ -309,9 +310,19 @@ allocHeap__LD(size_t n ARG_LD)
     if ( LD )			/* deal with alloc before PL_initialise() */
     { if ( !(mem = allocFromPool(&LD->alloc_pool, m)) )
       { if ( GD->alloc_pool.free_chains[m] )
-	{ LOCK();
+	{ Chunk c;
+	  int i = 100;
+
+	  LOCK();
 	  LD->alloc_pool.free_chains[m] = GD->alloc_pool.free_chains[m];
-	  GD->alloc_pool.free_chains[m] = NULL;
+	  for(c=LD->alloc_pool.free_chains[m]; c && --i > 0; c = c->next)
+	    ;
+	  if ( c )
+	  { GD->alloc_pool.free_chains[m] = c->next;
+	    c->next = NULL;
+	  } else
+	  { GD->alloc_pool.free_chains[m] = NULL;
+	  }
 	  UNLOCK();
 	  
 	  if ( !(mem = allocFromPool(&LD->alloc_pool, m)) )
