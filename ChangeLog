@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#216: Random() name conflict with MacOS libraries. 
+    Helmar Spangenberg.
 
   * FIXED: Bug#215: Encoding documentation issues.  Holger Kanwischer.
 

@@ -491,7 +491,7 @@ COMMON(word) 		pl_builtin_op(term_t prec, term_t type, term_t name,
 COMMON(bool) 		initOs(void);
 COMMON(void) 		cleanupOs(void);
 COMMON(char *) 		OsError(void);
-COMMON(long) 		Random(void);
+COMMON(long) 		_PL_Random(void);
 COMMON(char *) 		canonisePath(char *path);
 COMMON(char *) 		OsPath(const char *plpath, char *ospath);
 COMMON(char *) 		PrologPath(const char *ospath, char *plpath);

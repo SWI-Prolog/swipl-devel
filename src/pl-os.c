@@ -357,7 +357,7 @@ FreeMemory(void)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    long Random()
+    long _PL_Random()
 
     Return a random number. Used for arithmetic only. More trouble. On
     some systems (WIN32) the seed of rand() is thread-local, while on
@@ -401,7 +401,7 @@ initRandom(void)
 }
 
 long
-Random(void)
+_PL_Random(void)
 { if ( !LD->os.rand_initialised )
   { initRandom();
     LD->os.rand_initialised = TRUE;

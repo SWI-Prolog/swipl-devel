@@ -908,9 +908,20 @@ features: options compiled in, version, home, etc. With both arguments
 unbound, it will generate all defined prolog-flags. With the `Key'
 instantiated it unify the value of the prolog-flag. Features come in
 three types: boolean prolog-flags, prolog-flags with an atom value and
-prolog-flags with an integer value. A boolean prolog-flag is true iff
-the prolog-flag is present {\bf and} the \arg{Value} is the atom
-\const{true}. Currently defined keys in alphabetical order:
+prolog-flags with an integer value. Some prolog flags are not defined in
+all versions, which is normally indicated in the documentation below as
+\textit{``if present and true''}. A boolean prolog-flag is true iff the
+prolog-flag is present {\bf and} the \arg{Value} is the atom
+\const{true}.   Tests for such flags should be written as below.
+
+\begin{code}
+	(   current_prolog_flag(windows, true)
+	->  <Do MS-Windows things>
+	;   <Do normal things>
+	)
+\end{code}
+
+
 
 \begin{description}
     \prologflagitem{abort_with_exception}{bool}{rw}
@@ -1140,11 +1151,11 @@ SWI-Prolog behaviour.  Currently it has the following effect:
 \end{itemize}
 
     \prologflagitem{large_files}{bool}{r}
-If true, SWI-Prolog has been compiled with \jargon{large file support}
-(LFS) and is capable to access files larger than 2GB on 32-bit hardware.
-Large file-support is default on installations built using
-\program{configure} that support it and may be switched off using
-the configure option \const{--disable-largefile}.%
+If present and \const{true}, SWI-Prolog has been compiled with
+\jargon{large file support} (LFS) and is capable to access files larger
+than 2GB on 32-bit hardware. Large file-support is default on
+installations built using \program{configure} that support it and may be
+switched off using the configure option \const{--disable-largefile}.%
     \bug{As SWI-Prolog integers are 32-bits, SWI-Prolog cannot represent
 	 offsets in large files.  Therefore, calls involving file sizes
 	 or offsets do not work properly.}
@@ -1213,11 +1224,13 @@ changed.  See also the {\tt debug_on_error} prolog-flag.  Default is {\tt
 true}, except for the runtime version.  
 
     \prologflagitem{runtime}{bool}{r}
-If true, SWI-Prolog is compiled with -DO_RUNTIME, disabling various
-useful development features (currently the tracer and profiler).
+If present and \const{true}, SWI-Prolog is compiled with -DO_RUNTIME,
+disabling various useful development features (currently the tracer and
+profiler).
 
     \prologflagitem{saved_program}{bool}{r}
-If true, Prolog is started from a state saved with qsave_program/[1,2].
+If present and \const{true}, Prolog is started from a state saved with
+qsave_program/[1,2].
 
     \prologflagitem{shared_object_extension}{atom}{r}
 Extension used by the operating system for shared objects. \fileext{so}
@@ -1267,10 +1280,10 @@ be set.  See also the \cmdlineoption{+/-tty} command-line option.
 
     \prologflagitem{unix}{bool}{r}
 \index{unix}%
-If \const{true}, the operating system is some version of Unix.
-Defined if the C-compiler used to compile this version of SWI-Prolog
-either defines \verb$__unix__$ or \const{unix}.  On other systems this
-flag is not available.
+If present and \const{true}, the operating system is some version of
+Unix. Defined if the C-compiler used to compile this version of
+SWI-Prolog either defines \verb$__unix__$ or \const{unix}. On other
+systems this flag is not available.
 
     \prologflagitem{unknown}{fail,warning,error}{rw}
 Determines the behaviour if an undefined procedure is encountered.  If
@@ -1304,9 +1317,9 @@ easier for implementing version-conditional statements.
 
     \prologflagitem{windows}{bool}{r}
 \index{windows}%
-If \const{true}, the operating system is an implementation of
-Microsoft Windows (3.1, 95/98/ME, NT/2000/XP, etc.).  This flag
-is only available on MS-Windows based versions.
+If present and \const{true}, the operating system is an implementation
+of Microsoft Windows (3.1, 95/98/ME, NT/2000/XP, etc.). This flag is
+only available on MS-Windows based versions.
 
     \prologflagitem{write_attributes}{atom}{rw}
 Defines how write/1 an friends write attributed variables.  The option
@@ -1314,14 +1327,15 @@ values are described with the \const{attributes} option of
 write_term/3.  Default is \const{ignore}.
 
     \prologflagitem{write_help_with_overstrike}{bool}{r}
-Internal flag used by help/1 when writing to a terminal. If \const{true}
-it prints bold and underlined text using \jargon{overstrike}.
+Internal flag used by help/1 when writing to a terminal. If
+present and \const{true} it prints bold and underlined text using
+\jargon{overstrike}.
 
     \prologflagitem{xpce}{bool}{r}
-Set to \const{true} if the XPCE graphics system is loaded.
+Available and set to \const{true} if the XPCE graphics system is loaded.
 
     \prologflagitem{xpce_version}{atom}{r}
-Set to the version of the loaded XPCE system.
+Available and set to the version of the loaded XPCE system.
 \end{description}
 
     \predicate{set_prolog_flag}{2}{+Key, +Value}

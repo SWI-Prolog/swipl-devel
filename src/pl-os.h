@@ -50,12 +50,6 @@ extern Void Allocate(long);
 extern char *OsError(void);
 extern bool initOs(void);
 
-		/********************************
-		*           ARITHMETIC          *
-		*********************************/
-
-extern long Random(void);
-
 
 		/********************************
 		*              FILES            *

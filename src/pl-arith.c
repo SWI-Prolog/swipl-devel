@@ -1186,7 +1186,7 @@ ar_random(Number n1, Number r)
     return PL_error("random", 1, NULL, ERR_DOMAIN, ATOM_not_less_than_zero, i);
   }
 
-  r->value.i = Random() % n1->value.i;
+  r->value.i = _PL_Random() % n1->value.i;
   r->type = V_INTEGER;
 
   succeed;
