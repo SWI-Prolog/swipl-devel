@@ -54,7 +54,8 @@
 	   , genarg/3
 	   ]).
 
-:- op(100, xfx, user:(<-)).
+% leave this to the user
+% :- op(100, xfx, user:(<-)).
 
 %   debugpce/0
 %   nodebugpce/0
