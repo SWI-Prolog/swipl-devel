@@ -156,6 +156,10 @@ pce_message(pce(no_help(What))) -->
 	[ 'No XPCE help on ~w'-[What]
 	].
 
+pce_message(pce(update_library_index(Dir))) -->
+	[ 'Updating class-index in ~w'-[Dir] ].
+
+
 		 /*******************************
 		 *	     CONTEXT		*
 		 *******************************/

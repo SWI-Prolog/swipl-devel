@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Auto-update of library class index.
+
 * FIXED: Class persistent_frame to be more careful about changed window
   layout when restoring the layout.
 

@@ -45,8 +45,9 @@ pce_update_library_index :-
 				 solutions(all),
 				 file_errors(fail)
 			       ], 
-			       File),
-	    file_directory_name(File, Dir),
+			       AbsFile),
+	    file_directory_name(AbsFile, Dir),
+	    pce_info(pce(update_library_index(Dir))),
 	    pce_update_library_index(Dir),
 	    fail
 	;   true
