@@ -116,7 +116,7 @@ ichar *
 istrchr(const ichar *s, int c)
 { for( ; *s; s++ )
   { if ( c == *s )
-      return s;
+      return (ichar *)s;
   }
 
   return NULL;
