@@ -172,7 +172,7 @@ fill_menu_bar(F) :->
 					% the menu-bar
 	send(D, append, new(MB, menu_bar)),
 	send(MB, append, new(File, popup(file))),
-	send(MB, append, new(Edit, popup(edit))),
+	send(MB, append, new(Settings, popup(settings))),
 	send(MB, append, new(View, popup(view))),
 	send(MB, append, new(Hist, popup(go, message(F, go, @arg1)))),
 	send(MB, append, new(Help, popup(help))),
@@ -182,7 +182,7 @@ fill_menu_bar(F) :->
 			      message(F, destroy))
 		  ]),
 
-	send_list(Edit, append,
+	send_list(Settings, append,
 		  [ menu_item('User init file ...',
 			      message(F, edit_preferences, prolog))
 		  ]),
