@@ -42,7 +42,6 @@ typedef struct dirent
 { void *      		data;		/* actually WIN32_FIND_DATA * */
   int			first;
   void *		handle;		/* actually HANDLE */
-  void *		map;		/* win32s long filename mapping */
 					/* dirent */
   char			d_name[NAME_MAX+1];
 } DIR;

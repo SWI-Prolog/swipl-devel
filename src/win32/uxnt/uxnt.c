@@ -77,23 +77,6 @@ static int  xerrno;
 #define XENOMAP 1
 #define XENOMEM 2
 
-		 /*******************************
-		 *	    VERSION ...		*
-		 *******************************/
-
-static int
-iswin32s()
-{ static int _iswin32s = -1;
-
-  if ( _iswin32s < 0 )
-  { if( GetVersion() & 0x80000000 && (GetVersion() & 0xFF) ==3)
-      _iswin32s = TRUE;
-    else
-      _iswin32s = FALSE;
-  }
-
-  return _iswin32s;
-}
 
 		 /*******************************
 		 *	       ERRNO		*
@@ -249,9 +232,6 @@ _xos_canonical_filename(const char *spec, char *xname)
   for(; *s; s++, p++)
     *p = (*s == '\\' ? '/' : *s);
   *p = '\0';
-
-  if ( iswin32s() )
-    strlwr(xname);
 
   return xname;
 }
@@ -515,15 +495,6 @@ opendir(const char *path)
   }
   dp->first = 1;
   dp->handle = FindFirstFile(buf, dp->data);
-  if ( iswin32s() )
-  { if ( !(dp->map = load_dirmap(path)) )
-    { if ( xerrno == XENOMEM )
-      { errno = ENOMEM;
-	return NULL;
-      }
-    }
-  } else
-    dp->map = NULL;
 
   if ( dp->handle == INVALID_HANDLE_VALUE )
   { if ( _access(path, 04) )		/* does not exist */
@@ -542,8 +513,6 @@ closedir(DIR *dp)
   { if ( dp->handle )
       FindClose(dp->handle);
     free(dp->data);
-    if ( dp->map )
-      free_dirmap(dp->map);
     free(dp);
 
     return 0;
@@ -561,13 +530,7 @@ translate_data(DIR *dp)
     return NULL;
 
   data = dp->data;
-  if ( dp->map )
-    strcpy(dp->d_name, map_fat_name(dp->map, data->cFileName));
-  else
-    strcpy(dp->d_name, data->cFileName);
-
-  if ( iswin32s() )
-    strlwr(dp->d_name);
+  strcpy(dp->d_name, data->cFileName);
 
   return dp;
 }
@@ -870,106 +833,5 @@ _xos_fat_name(const char *fullname, char *fatname)
 
 char *
 _xos_os_existing_filename(const char *cname, char *osname)
-{ if ( iswin32s() )
-  { char *s;
-
-    if ( (s = _xos_fat_name(cname, osname)) )
-      return s;
-  }
-
-  return _xos_os_filename(cname, osname);
+{ return _xos_os_filename(cname, osname);
 }
-
-
-		 /*******************************
-		 *	 OPENDIR() MAPPING	*
-		 *******************************/
-
-struct dir_name_map
-{ DirNameMapEntry entries;
-};
-
-
-struct dir_name_map_entry
-{ char            *fullname;
-  char            *fatname;
-  DirNameMapEntry  next;
-};
-
-
-static char *
-store_string(const char *s)
-{ int l = strlen(s);
-  char *copy = malloc(l+1);
-
-  if ( copy )
-    strcpy(copy, s);
-
-  return copy;
-}
-
-
-static DirNameMap
-load_dirmap(const char *dir)
-{ FILE *mapfd;
-  DirNameMap map;
-  struct map_entry entry;
-
-  if ( !(mapfd = open_dirmap(dir, "r")) )
-  { xerrno = XENOMAP;
-    return NULL;
-  }
-
-  if ( !(map = malloc(sizeof(struct dir_name_map))) )
-  { xerrno = XENOMEM;
-    return NULL;
-  }
-  map->entries = NULL;
-
-  while ( read_map_entry(mapfd, NULL, &entry) )
-  { DirNameMapEntry e = malloc(sizeof(struct dir_name_map_entry));
-
-    e->next = map->entries;
-    map->entries = e;
-    if ( !(e->fullname = store_string(entry.fullname)) ||
-	 !(e->fatname  = store_string(entry.fatname)) )
-    { fclose(mapfd);
-      xerrno = XENOMEM;
-      return NULL;
-    }
-  }
-
-  fclose(mapfd);
-
-  return map;
-}
-
-
-static void
-free_dirmap(DirNameMap map)
-{ DirNameMapEntry n, e = map->entries;
-
-  for( ; e; e = n)
-  { n = e->next;
-
-    free(e->fullname);
-    free(e->fatname);
-    free(e);
-  }
-       
-  free(map);
-}
-
-
-static const char *
-map_fat_name(DirNameMap map, const char *fatname)
-{ DirNameMapEntry e = map->entries;
-
-  for( ; e; e = e->next )
-  { if ( stricmp(e->fatname, fatname) == 0 )
-      return e->fullname;
-  }
-
-  return fatname;
-}
-
