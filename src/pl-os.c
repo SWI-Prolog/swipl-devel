@@ -121,7 +121,7 @@ int status;
 }
 
 		/********************************
-		*            MODULES            *
+		*            OS ERRORS          *
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -210,9 +210,7 @@ Allocate(n)
 long n;
 { Void mem = Malloc(n);
 
-  SECURE( if ( malloc_verify() != 1 )
-	    printf("Memory Corrupted in Allocate()\n");
-	);
+  SECURE(assert(malloc_verify() == 1));
 
   return (Void) mem;
 }
@@ -235,7 +233,7 @@ register size_t n;
   while( n-- > 0 )
     *s++ = '\0';
 }
-#endif hpux
+#endif
 
 
 		/********************************
@@ -271,6 +269,22 @@ va_list args;
 { return _doprnt(fm, args, fd);
 }
 #endif
+
+		/********************************
+		*     STRING MANIPULATION	*
+		********************************/
+
+#if sun
+int
+strcmp(s1, s2)
+unsigned char *s1, *s2;
+{ while(*s1 && *s1 == *s2)
+    s1++, s2++;
+
+  return *s1 - *s2;
+}
+#endif
+
 
 		/********************************
 		*           ARITHMETIC          *
@@ -2141,13 +2155,6 @@ related I/O in the child process.
     completion. If you are not running Unix your C-library might provide
     an alternative.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#if gould			/* gould vfork() appears to be broken */
-int
-vfork()
-{ return fork();
-}
-#endif
 
 #if unix
 #if !v7

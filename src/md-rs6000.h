@@ -16,8 +16,12 @@ NOTES:
 The  interface for   loading foreign   (C)  code differs from  the one
 supported for SUN and documented in the manual.
 
-There  are  porblems with  the interaction   between  load_foreign and
-save_program.  See pl-load.c and pl-dump.c
+There  are porblems  with the   interaction  between load_foreign  and
+save_program.  See  pl-load.c and  pl-dump.c.   Save  is now  based on
+pl-save.c, but I guess the problems remain.  Use static linking.
+
+Gcc  2.1 has a  bug.  Add a line #define  O_LABEL_ADDRESSES 0 to  this
+file.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define M_CC			cc
