@@ -1,3 +1,7 @@
+Sep 4, 2003
+
+  * FIXED: add goal-expaction to rdfe_retractall/3
+
 Sep 2, 2003
 
   * ADDED: rdfe_transaction_member/2 to inspect actions inside a transaction.

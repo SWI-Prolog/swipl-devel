@@ -56,8 +56,8 @@ user:goal_expansion(rdfe_assert(Subj0, Pred0, Obj0),
 	rdf_global_id(Subj0, Subj),
 	rdf_global_id(Pred0, Pred),
 	rdf_global_id(Obj0, Obj).
-user:goal_expansion(rdfe_retract(Subj0, Pred0, Obj0),
-		    rdfe_retract(Subj, Pred, Obj)) :-
+user:goal_expansion(rdfe_retractall(Subj0, Pred0, Obj0),
+		    rdfe_retractall(Subj, Pred, Obj)) :-
 	rdf_global_id(Subj0, Subj),
 	rdf_global_id(Pred0, Pred),
 	rdf_global_id(Obj0, Obj).
