@@ -1,3 +1,13 @@
+* ADDED: `char_array <-base64_encode' and <-base64_decode supporting
+  rfc-2045 conform base-64 encoding and decoding.
+
+* FIXED: Crash in `graphical <-abolute_position' if the receiving
+  graphical is not displayed on the provided device (now fails).
+
+* ADDED: `pixmap <-convert' to deal with graphicals and files.  Graphicals
+  used to be indirected over class image, resulting in a black-and-white
+  pixmap after an unnecessary and expensive intermediate conversion. 
+
 * MODIFIED: PceEmacs Prolog mode never to move the caret on automatic
   checking launced by typing a full-stop.  Also singleton-replace mode
   is now only activated on explicit request.
