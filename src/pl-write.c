@@ -11,8 +11,6 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 
-extern int Output;
-
 forwards int	priorityOperator(atom_t);
 forwards bool	writeTerm2(term_t term, int pri, int flags);
 

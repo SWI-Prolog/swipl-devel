@@ -158,8 +158,9 @@ char *		tostr(char *buf, const char *fmt, ...);
 void		initIO(void);
 void		dieIO(void);
 void		closeFiles(int all);
-void		protocol(char *s, int n);
+void		protocol(const char *s, int n);
 int		currentLinePosition(void);
+IOSTREAM *	prologStream(int n);
 void		setCurrentSourceLocation(void);
 int		getSingleChar(void);
 word		pl_rawtty(term_t goal);
@@ -181,7 +182,7 @@ word		pl_noprotocol(void);
 bool		seeString(char *s);
 bool		seeingString(void);
 bool		seenString(void);
-bool		tellString(char **s, int size);
+bool		tellString(char **s, int *size);
 bool		toldString(void);
 atom_t		currentStreamName(void);
 word		pl_wait_for_input(term_t streams, term_t avail, term_t tmo);
@@ -451,6 +452,7 @@ char *		formatInteger(bool split, int div, int radix,
 			      bool small, long n, char *out);
 word		pl_format_number(term_t format, term_t number,
 				 term_t string);
+atom_t		code_to_atom(unsigned int code);
 word		pl_name(term_t atom, term_t string);
 word		pl_atom_chars(term_t atom, term_t string);
 word		pl_number_chars(term_t number, term_t string);
@@ -469,8 +471,6 @@ word		pl_substring(term_t str, term_t offset,
 word		pl_write_on_atom(term_t goal, term_t atom);
 word		pl_write_on_string(term_t goal, term_t string);
 word		pl_write_on_list(term_t goal, term_t string);
-word		pl_term_to_atom(term_t term, term_t atom,
-				term_t bindings, term_t e);
 word		pl_repeat(word h);
 word		pl_fail(void);
 word		pl_true(void);
@@ -557,8 +557,6 @@ word		pl_reset_profiler(void);
 
 /* pl-read.c */
 void		resetRead(void);
-int		syntaxerrors(int new);
-word		pl_syntaxerrors(term_t old, term_t new);
 int		get_number(const unsigned char *string,
 			   unsigned char **end,
 			   Number value);
@@ -573,6 +571,8 @@ word		pl_read_clause(term_t term);
 word		pl_read_clause2(term_t stream, term_t term);
 word		pl_read_term(term_t term, term_t pos);
 word		pl_read_term3(term_t stream, term_t term, term_t pos);
+word		pl_term_to_atom(term_t term, term_t atom,
+				term_t bindings, term_t e);
 
 /* pl-rec.c */
 void		initRecords(void);

@@ -168,9 +168,16 @@ typedef struct
     Procedure	portray;		/* portray/1 */
   } procedures;
 
+  atom_t code_to_atom[256];		/* map codes to atoms */
+
   struct
   { buffer	source_files;
   } files;
+
+  struct
+  { int		protocol_stream;	/* stream used for protocolling */
+    int		file_max;		/* max index of a file */
+  } IO;
 } PL_global_data_t;
 
 
@@ -192,6 +199,17 @@ typedef struct
   int		trim_stack_requested;	/* perform a trim-stack */
   int		autoload;		/* do autoloading */
   int		in_arithmetic;		/* doing arithmetic */
+
+  struct
+  { int		active;			/* doing pipe I/O */
+    jmp_buf	context;		/* context of longjmp() */
+  } pipe;
+
+  struct
+  { atom_t	current;		/* current global prompt */
+    char *	first;			/* how to prompt first line */
+    int		first_used;		/* did we do the first line? */
+  } prompt;
 
   struct
   { atom_t	  file;			/* current source file */
@@ -259,6 +277,11 @@ typedef struct
     buffer	_buffer_ring[BUFFER_RING_SIZE];
     int		_current_buffer_id;
   } fli;
+
+  struct				/* Local IO stuff */
+  { int input;				/* current input */
+    int output;				/* current output */
+  } IO;
 
 #ifdef O_LIMIT_DEPTH
   struct

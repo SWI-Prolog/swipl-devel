@@ -929,10 +929,9 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   Word ap;
   ClauseRef clause;
 
-  DEBUG(4, { extern int Output;		/* --atoenne-- */
-	     FunctorDef f = proc->definition->functor;
+  DEBUG(4, { FunctorDef f = proc->definition->functor;
 
-	     if ( Output )
+	     if ( LD->IO.output )
 	     { int n;
 
 	       Putf("PL_open_query: %s(", stringAtom(f->name));

@@ -20,6 +20,8 @@
 #define TRACE_FIND_NAME	2
 #define TRACE_FIND_TERM	3
 
+#define Output (LD->IO.output)		/* Current output stream */
+
 typedef struct find_data_tag
 { int	 port;				/* Port to find */
   bool	 searching;			/* Currently searching? */
@@ -186,7 +188,6 @@ returns to the WAM interpreter how to continue the execution:
 int
 tracePort(LocalFrame frame, LocalFrame bfr, int port, Code PC)
 { int OldOut;
-  extern int Output;
   int action = ACTION_CONTINUE;
   Definition def = frame->predicate;
   LocalFrame fr;
@@ -698,7 +699,6 @@ exceptionDetails()
   fid_t cid = PL_open_foreign_frame();
   term_t av = PL_new_term_refs(2);
   predicate_t pred = PL_predicate("print_message", 2, "system");
-  extern int Output;
   int OldOut = Output;
 
   pl_flush();
@@ -721,7 +721,6 @@ listGoal(LocalFrame frame)
 { fid_t cid = PL_open_foreign_frame();
   term_t goal = PL_new_term_ref();
   predicate_t pred = PL_predicate("$prolog_list_goal", 1, "system");
-  extern int Output;
   int OldOut = Output;
 
   Output = 1;
@@ -735,8 +734,7 @@ listGoal(LocalFrame frame)
 
 void
 backTrace(LocalFrame frame, int depth)
-{ extern int Output;
-  int OldOut = Output;
+{ int OldOut = Output;
   LocalFrame same_proc_frame = NULL;
   Definition def = NULL;
   int same_proc = 0;
@@ -946,8 +944,7 @@ helpInterrupt(void)
 
 static void
 interruptHandler(int sig)
-{ extern int Output;
-  int OldOut = Output;
+{ int OldOut = Output;
   Char c; 
 
   if ( !GD->initialised )

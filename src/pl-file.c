@@ -57,18 +57,11 @@ static struct plfile
   char		type;			/* ST_FILE, ST_PIPE, ST_STRING */
 } *fileTable = (PlFile) NULL;		/* Our file table */
 
-int 	Input;				/* current input */
-int	Output;				/* current output */
+#define Input  (LD->IO.input)
+#define Output (LD->IO.output)
 
 ttybuf	ttytab;				/* saved terminal status on entry */
 int	ttymode;			/* Current tty mode */
-
-static atom_t prompt_atom;		/* current prompt */
-static char *first_prompt;		/* First-line prompt */
-static int first_prompt_used;		/* flag */
-static int protocolStream = -1;		/* doing protocolling on stream <n> */
-
-static int   maxfiles;			/* maximum file index */
 
 typedef struct input_context * InputContext;
 typedef struct output_context * OutputContext;
@@ -93,15 +86,11 @@ forwards bool	setUnifyStreamNo(term_t, int);
 forwards bool	unifyStreamMode(term_t, int);
 forwards int	Get0();
 
-static jmp_buf pipe_context;		/* jmp buffer for pipe operations */
-static int inpipe;			/* doing a pipe operation */
-
-
 #ifdef SIGPIPE
 static void
 pipeHandler(int sig)
-{ if ( inpipe )
-  { longjmp(pipe_context, 1);
+{ if ( LD->pipe.active )
+  { longjmp(LD->pipe.context, 1);
   }
 
   warning("Broken pipe\n");		/* Unexpected broken pipe */
@@ -130,14 +119,14 @@ brokenPipe(int n, atom_t rw)
 
 #define TRYPIPE(no, rw, code, err) \
 	if ( fileTable[(no)].type == ST_PIPE ) \
-	{ if ( setjmp(pipe_context) != 0 ) \
-	  { inpipe--; \
+	{ if ( setjmp(LD->pipe.context) != 0 ) \
+	  { LD->pipe.active--; \
 	    brokenPipe(no, rw); \
 	    err; \
 	  } else \
-	  { inpipe++; \
+	  { LD->pipe.active++; \
 	    code; \
-	    inpipe--; \
+	    LD->pipe.active--; \
 	  } \
 	} else \
 	{ code; \
@@ -149,11 +138,13 @@ initIO(void)
 { int n;
 
   fileerrors = TRUE;
-  if ( maxfiles != getdtablesize() )
+  GD->IO.protocol_stream = -1;
+
+  if ( GD->IO.file_max != getdtablesize() )
   { if ( fileTable != (PlFile) NULL )
-      freeHeap(fileTable, sizeof(struct plfile) * maxfiles);
-    maxfiles = getdtablesize();
-    fileTable = allocHeap(sizeof(struct plfile) * maxfiles);
+      freeHeap(fileTable, sizeof(struct plfile) * GD->IO.file_max);
+    GD->IO.file_max = getdtablesize();
+    fileTable = allocHeap(sizeof(struct plfile) * GD->IO.file_max);
   }
 
 #ifdef __unix__
@@ -166,7 +157,7 @@ Initilise user input, output and error  stream.   How  to do this neatly
 without the Unix assumptions?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  for(n=0; n<maxfiles; n++)
+  for(n=0; n<GD->IO.file_max; n++)
   { PlFile f = &fileTable[n];
 
     switch(n)
@@ -210,8 +201,8 @@ without the Unix assumptions?
   Input = 0;
   Output = 1;
 
-  if ( prompt_atom == NULL_ATOM )
-    prompt_atom = ATOM_prompt;
+  if ( LD->prompt.current == NULL_ATOM )
+    LD->prompt.current = ATOM_prompt;
 }
 
 
@@ -257,12 +248,8 @@ closeStream(int n)
 void
 closeFiles(int all)
 { volatile int n;
-#if O_PCE
-  extern int read_nesting;
-  read_nesting = 0;
-#endif
 
-  for(n=0; n<maxfiles; n++)
+  for(n=0; n<GD->IO.file_max; n++)
   { IOSTREAM *s;
 
     if ( (s=fileTable[n].stream) )
@@ -280,15 +267,16 @@ closeFiles(int all)
 
 
 void
-protocol(char *s, int n)
-{ if ( protocolStream >= 0 )
-  { int out;
-  
-    out = Output;
-    Output = protocolStream;
-    for( ; n > 0; s++, n--)
-      Put((int)*s & 0xff);
-    Output = out;
+protocol(const char *str, int n)
+{ int ps;
+
+  if ( (ps=GD->IO.protocol_stream) >= 0 )
+  { IOSTREAM *s = fileTable[ps].stream;
+
+    if ( s )
+    { while( --n >= 0 )
+	Sputc(*str++, s);
+    }
   }
 }
 
@@ -363,10 +351,19 @@ currentLinePosition()
 }
 
 
+IOSTREAM *
+prologStream(int n)
+{ if ( n >= 0 && n < GD->IO.file_max )
+    return fileTable[n].stream;
+
+  return NULL;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Get a single character from the terminal without waiting for  a  return.
-The  character  should  not  be  echoed.   If  GD->cmdline.notty is true this
-function will read the first character and then skip all character  upto
+Get a single character from the terminal   without waiting for a return.
+The character should not be echoed.   If  GD->cmdline.notty is true this
+function will read the first character and  then skip all character upto
 and including the newline.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -624,7 +621,7 @@ PL_open_stream(term_t handle, IOSTREAM *s)
 { int n;
   PlFile f;
 
-  for(n=3, f=&fileTable[n]; n<maxfiles; n++, f++)
+  for(n=3, f=&fileTable[n]; n<GD->IO.file_max; n++, f++)
   { if ( !f->stream )
     { f->stream = s;
       f->name   = NULL_ATOM;
@@ -697,7 +694,7 @@ openStream(term_t file, int mode, int flags)
   }
     
   if ( !(flags & OPEN_OPEN) )		/* see/1, tell/1, append/1 */
-  { for( n=0; n<maxfiles; n++ )
+  { for( n=0; n<GD->IO.file_max; n++ )
     { if ( fileTable[n].name == name && fileTable[n].type == type )
       { if ( fileTable[n].status == mode )
 	{ switch(mode)
@@ -753,11 +750,11 @@ openStream(term_t file, int mode, int flags)
     }
   }
 
-  for(n=3; n<maxfiles; n++)
+  for(n=3; n<GD->IO.file_max; n++)
   { if ( !fileTable[n].stream )
       break;
   }
-  if ( n >= maxfiles )			/* non-ISO */
+  if ( n >= GD->IO.file_max )			/* non-ISO */
     return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_files);
 
   fileTable[n].name        = name;
@@ -890,7 +887,7 @@ openProtocol(term_t f, bool appnd)
   { IOSTREAM *s = fileTable[Output].stream;
 
     s->flags |= SIO_NOCLOSE;
-    protocolStream = Output;
+    GD->IO.protocol_stream = Output;
     Output = out;
 
     succeed;
@@ -903,9 +900,9 @@ openProtocol(term_t f, bool appnd)
 
 word
 pl_noprotocol()
-{ if ( protocolStream >= 0 )
-  { closeStream(protocolStream);
-    protocolStream = -1;
+{ if ( GD->IO.protocol_stream >= 0 )
+  { closeStream(GD->IO.protocol_stream);
+    GD->IO.protocol_stream = -1;
   }
 
   succeed;
@@ -923,7 +920,7 @@ seeString(char *s)
   PlFile f;
   int n;
   
-  for(n=3, f=&fileTable[n]; n<maxfiles; n++, f++)
+  for(n=3, f=&fileTable[n]; n<GD->IO.file_max; n++, f++)
   { if ( !f->stream )
     { f->stream = stream;
       f->name   = NULL_ATOM;
@@ -962,16 +959,14 @@ seenString()
 
 
 bool
-tellString(char **s, int size)
-{ static int sbuf;
-  IOSTREAM *stream;
+tellString(char **s, int *size)
+{ IOSTREAM *stream;
   PlFile f;
   int n;
   
-  sbuf = size;
-  stream = Sopenmem(s, &sbuf, "w");
+  stream = Sopenmem(s, size, "w");
  
-  for(n=3, f=&fileTable[n]; n<maxfiles; n++, f++)
+  for(n=3, f=&fileTable[n]; n<GD->IO.file_max; n++, f++)
   { if ( !f->stream )
     { f->stream = stream;
       f->name   = NULL_ATOM;
@@ -1244,8 +1239,8 @@ pl_protocola(term_t file)
 
 word
 pl_protocolling(term_t file)
-{ if ( protocolStream >= 0 )
-    return unifyStreamName(protocolStream, file);
+{ if ( GD->IO.protocol_stream >= 0 )
+    return unifyStreamName(GD->IO.protocol_stream, file);
 
   fail;
 }
@@ -1255,9 +1250,9 @@ word
 pl_prompt(term_t old, term_t new)
 { atom_t a;
 
-  if ( PL_unify_atom(old, prompt_atom) &&
+  if ( PL_unify_atom(old, LD->prompt.current) &&
        PL_get_atom(new, &a) )
-  { prompt_atom = a;
+  { LD->prompt.current = a;
     succeed;
   }
 
@@ -1267,10 +1262,10 @@ pl_prompt(term_t old, term_t new)
 
 void
 prompt1(char *prompt)
-{ if ( first_prompt )
-    remove_string(first_prompt);
-  first_prompt = store_string(prompt);
-  first_prompt_used = FALSE;
+{ if ( LD->prompt.first )
+    remove_string(LD->prompt.first);
+  LD->prompt.first = store_string(prompt);
+  LD->prompt.first_used = FALSE;
 }
 
 
@@ -1307,14 +1302,14 @@ pl_tab(term_t spaces)
 
 char *
 PrologPrompt()
-{ if ( !first_prompt_used && first_prompt )
-  { first_prompt_used = TRUE;
+{ if ( !LD->prompt.first_used && LD->prompt.first )
+  { LD->prompt.first_used = TRUE;
 
-    return first_prompt;
+    return LD->prompt.first;
   }
 
   if ( Sinput->position && Sinput->position->linepos == 0 )
-    return stringAtom(prompt_atom);
+    return stringAtom(LD->prompt.current);
   else
     return "";
 }
@@ -1338,7 +1333,7 @@ setUnifyStreamNo(term_t stream, int n)
   if ( PL_get_atom(stream, &a) )
   { register int i;
 
-    for(i = 0; i < maxfiles; i++ )
+    for(i = 0; i < GD->IO.file_max; i++ )
     { if ( fileTable[i].status != F_CLOSED &&
 	   fileTable[i].stream_name == a )
       { term_t obj = PL_new_term_ref();
@@ -1507,7 +1502,7 @@ Sclose_null(void *handle)
 }
 
 
-static IOFUNCTIONS nullFunctions =
+static const IOFUNCTIONS nullFunctions =
 { Sread_null,
   Swrite_null,
   Sseek_null,
@@ -1518,7 +1513,7 @@ static IOFUNCTIONS nullFunctions =
 word
 pl_open_null_stream(term_t stream)
 { int sflags = SIO_NBUF|SIO_RECORDPOS;
-  IOSTREAM *s = Snew((void *)NULL, sflags, &nullFunctions);
+  IOSTREAM *s = Snew((void *)NULL, sflags, (IOFUNCTIONS *)&nullFunctions);
 
   return PL_open_stream(stream, s);
 }
@@ -1543,7 +1538,7 @@ streamNo(term_t spec, int mode)
       else
       { int i;
 
-	for(i = 3; i < maxfiles; i++)
+	for(i = 3; i < GD->IO.file_max; i++)
 	{ if ( fileTable[i].stream_name == name )
 	  { n = i;
 	    break;
@@ -1553,7 +1548,7 @@ streamNo(term_t spec, int mode)
     }
   }
 
-  if ( n < 0 || n >= maxfiles )
+  if ( n < 0 || n >= GD->IO.file_max )
   { PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_stream_or_alias, spec);
     return -1;
   }
@@ -1628,7 +1623,7 @@ pl_current_stream(term_t file, term_t mode,
       succeed;
   }
   
-  for( ; n < maxfiles; n++)
+  for( ; n < GD->IO.file_max; n++)
   { fid_t fid = PL_open_foreign_frame();
 
     if ( unifyStreamName(file, n) == FALSE ||
@@ -1640,7 +1635,7 @@ pl_current_stream(term_t file, term_t mode,
 
     PL_close_foreign_frame(fid);
 
-    if ( ++n < maxfiles )
+    if ( ++n < GD->IO.file_max )
       ForeignRedoInt(n);
 
     succeed;

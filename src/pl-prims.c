@@ -1463,6 +1463,27 @@ pl_atom_char(term_t atom, term_t chr)
 }
 
 
+atom_t
+code_to_atom(unsigned int code)
+{ if ( code < 256 )
+  { atom_t a;
+
+    if ( !(a=GD->code_to_atom[code]) )
+    { char tmp[2];
+      tmp[0] = code;
+      tmp[1] = EOS;
+
+      a = GD->code_to_atom[code] = lookupAtom(tmp);
+    }
+
+    return a;
+  }
+
+  assert(0);
+  return ATOM_nil;
+}
+
+
 static bool
 isPrefix(char *s, char *q)		/* s is prefix of q */
 { while(*s && *s == *q)
@@ -1723,10 +1744,11 @@ pl_substring(term_t str, term_t offset,
 static word
 write_on(term_t goal, int how, term_t target)
 { char buf[1024];
+  int bufsize = sizeof(buf);
   char *string = buf;
   bool rval;
 
-  tellString(&string, 1024);
+  tellString(&string, &bufsize);
   rval = callProlog(MODULE_user, goal, FALSE);
   toldString();
   TRY(rval);
@@ -1769,50 +1791,6 @@ pl_write_on_list(term_t goal, term_t list)
 { return write_on(goal, WR_LIST, list);
 } 
 
-
-word
-pl_term_to_atom(term_t term, term_t atom,
-		term_t bindings, term_t errors)
-{ char *s;
-
-  if ( PL_is_variable(atom) )
-  { char buf[1024];
-    word rval;
-
-    s = buf;
-    tellString(&s, sizeof(buf));
-    pl_writeq(term);
-    toldString();
-
-    rval = PL_unify_atom_chars(atom, s);
-    if ( s != buf )
-      free(s);
-
-    return rval;
-  }
-
-  if ( PL_get_chars(atom, &s, CVT_ALL) )
-  { word rval;
-    int ose;
-    int se;
-    int ti;
-
-    se = (PL_get_integer(errors, &ti) && ti);
-
-    seeString(s);
-    ose = syntaxerrors(se);
-    if ( PL_is_variable(bindings) )
-      rval = pl_read_variables(term, bindings);
-    else
-      rval = pl_read(term);
-    syntaxerrors(ose);
-    seenString();
-
-    return rval;
-  }
-
-  return warning("term_to_atom/2: instantiation fault");
-}
 
 		/********************************
 		*            CONTROL            *

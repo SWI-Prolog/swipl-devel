@@ -6,7 +6,11 @@
     Copyright (C) 1993 University of Amsterdam. All rights reserved.
 */
 
+#ifndef BUFFER_H_INCLUDED
+#define BUFFER_H_INCLUDED
+
 #define STATIC_BUFFER_SIZE (512)
+#define BUFFER_USES_MALLOC 1
 
 typedef struct
 { char *	base;			/* allocated base */
@@ -64,10 +68,18 @@ void	growBuffer(Buffer, long);
 				  sizeof((b)->static_buffer))
 #define emptyBuffer(b)           ((b)->top  = (b)->base)
 
+#ifdef BUFFER_USES_MALLOC
 #define discardBuffer(b) \
 	do \
 	{ if ( (b)->base != (b)->static_buffer ) \
 	    free((b)->base); \
 	} while(0)
+#else
+#define discardBuffer(b) \
+	do \
+	{ if ( (b)->base != (b)->static_buffer ) \
+	    freeHeap((b)->base, (b)->max - (b)->base); \
+	} while(0)
+#endif
 
-
+#endif /*BUFFER_H_INCLUDED*/

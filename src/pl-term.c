@@ -32,7 +32,6 @@ extern int  tputs();
 #define STAT_OK		1
 #define STAT_ERROR	2
 
-extern int Output;			/* Current output stream */
 #ifdef TERMCAP_NEEDS_VARS
 char	PC;				/* Term lib variables */
 char   *BC;

@@ -581,23 +581,23 @@ Files and streams.  Don't change the numbers, or change FOPENMODE below.
 
 #define streamOutput(stream, goal) \
 	{ int SOn = streamNo(stream, F_WRITE); \
-	  int SOout = Output; \
+	  int SOout = LD->IO.output; \
 	  if ( SOn < 0 ) fail; \
-	  Output = SOn; \
+	  LD->IO.output = SOn; \
 	  LockStream(); \
 	  goal; \
 	  UnlockStream(); \
-	  Output = SOout; \
+	  LD->IO.output = SOout; \
 	}
 
 #define streamInput(stream, goal) \
 	{ int SOn = streamNo(stream, F_READ); \
-	  int SOin = Input; \
+	  int SOin = LD->IO.input; \
 	  word SOrval; \
 	  if ( SOn < 0 ) fail; \
-	  Input = SOn; \
+	  LD->IO.input = SOn; \
 	  SOrval = goal; \
-	  Input = SOin; \
+	  LD->IO.input = SOin; \
 	  return SOrval; \
 	}
 

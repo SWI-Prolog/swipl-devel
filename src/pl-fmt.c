@@ -246,6 +246,7 @@ do_format(const char *fmt, int argc, term_t argv)
 	    term_t av = PL_new_term_refs(fdef->arity);
 	    char buf[BUFSIZE];
 	    char *str = buf;
+	    int bufsize = BUFSIZE;
 	    int i;
 	    qid_t qid;
 
@@ -260,7 +261,7 @@ do_format(const char *fmt, int argc, term_t argv)
 	      SHIFT;
 	    }
 
-	    tellString(&str, BUFSIZE);
+	    tellString(&str, &bufsize);
 	    qid = PL_open_query(proc->definition->module, PL_Q_NODEBUG,
 				proc, av);
 	    PL_next_solution(qid);
@@ -376,8 +377,10 @@ do_format(const char *fmt, int argc, term_t argv)
 
 		  NEED_ARG;
 		  if ( pending_rubber )
-		  { str = buf;
-		    tellString(&str, BUFSIZE);
+		  { int bufsize = BUFSIZE;
+
+		    str = buf;
+		    tellString(&str, &bufsize);
 		    (*f)(argv);
 		    toldString();
 		    OUTSTRING(str);
@@ -389,8 +392,10 @@ do_format(const char *fmt, int argc, term_t argv)
 		    { (*f)(argv);
 		      column = s->position->linepos;
 		    } else
-		    { str = buf;
-		      tellString(&str, BUFSIZE);
+		    { int bufsize = BUFSIZE;
+
+		      str = buf;
+		      tellString(&str, &bufsize);
 		      (*f)(argv);
 		      toldString();
 		      OUTSTRING(str);

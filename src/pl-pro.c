@@ -41,11 +41,10 @@ pl_break()
 
 word
 pl_break1(term_t goal)
-{ extern int Input, Output;
-  bool rval;
+{ bool rval;
 
-  int  inSave    = Input;
-  int  outSave   = Output;
+  int  inSave    = LD->IO.input;
+  int  outSave   = LD->IO.output;
   long skipSave  = debugstatus.skiplevel;
   int  suspSave  = debugstatus.suspendTrace;
   int  traceSave, debugSave;
@@ -53,8 +52,8 @@ pl_break1(term_t goal)
   tracemode(FALSE, &traceSave);
   debugmode(FALSE, &debugSave);
 
-  Input = 0;
-  Output = 1;
+  LD->IO.input = 0;
+  LD->IO.output = 1;
 
   resetTracer();
 
@@ -70,8 +69,8 @@ pl_break1(term_t goal)
   tracemode(traceSave, NULL);
   debugmode(debugSave, NULL);
 
-  Output = outSave;
-  Input = inSave;
+  LD->IO.output = outSave;
+  LD->IO.input  = inSave;
 
   return rval;
 }
@@ -154,7 +153,6 @@ pl_abort()
   if ( !trueFeature(READLINE_FEATURE) )
     PopTty(&ttytab);
   LD->outofstack = NULL;
-  resetRead();
   closeFiles(FALSE);
   resetReferences();
 #ifdef O_PROFILE

@@ -2091,16 +2091,15 @@ PL_ttymode(int fd)
 void
 PL_write_prompt(int fd, int dowrite)
 { if ( fd == 0 )
-  { if ( dowrite )
-    { extern int Output;
-      int old = Output;
-      Output = 1;
-      Putf("%s", PrologPrompt());
-      pl_flush();
-      Output = old;
+  { IOSTREAM *s = prologStream(1);
+
+    if ( s )
+    { if ( dowrite )
+	Sfputs(PrologPrompt(), s);
+
+      Sflush(s);
     }
 
-    pl_ttyflush();
     GD->os.prompt_next = FALSE;
   }
 }
@@ -2124,7 +2123,7 @@ PL_prompt_string(int fd)
 
 void
 PL_add_to_protocol(const char *buf, int n)
-{ protocol((char *)buf, n);
+{ protocol(buf, n);
 }
 
 

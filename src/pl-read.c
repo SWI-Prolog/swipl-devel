@@ -32,17 +32,15 @@ This module is considerably faster when compiled  with  GCC,  using  the
 -finline-functions option.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-forwards void	startRead(void);
-forwards void	stopRead(void);
-forwards void	errorWarning(char *);
-forwards void	singletonWarning(atom_t *, int);
-forwards void	clearBuffer(void);
-forwards void	addToBuffer(int);
-forwards char *	raw_read2(void);
-forwards char *	raw_read(void);
-
 typedef struct token * Token;
-typedef struct variable * Variable;
+
+typedef struct
+{ char *	name;		/* Name of the variable */
+  term_t	variable;	/* Term-reference to the variable */
+  int		times;		/* Number of occurences */
+  word		signature;	/* Pseudo atom */
+} variable, *Variable;
+
 
 struct token
 { int type;			/* type of token */
@@ -58,14 +56,19 @@ struct token
 };
 
 
-struct variable
-{ char *	name;		/* Name of the variable */
-  term_t	variable;	/* Term-reference to the variable */
-  int		times;		/* Number of occurences */
-  word		signature;	/* Pseudo atom */
-  Variable 	next;		/* Next of chain */
+struct read_buffer
+{ int	size;			/* current size of read buffer */
+  int	left;			/* left space in read buffer */
+  unsigned char *base;		/* base of read buffer */
+  unsigned char *here;		/* current position in read buffer */
+  int   stream;			/* stream we are reading from */
 };
 
+
+struct var_table
+{ buffer _var_name_buffer;	/* stores the names */
+  buffer _var_buffer;		/* array of struct variables */
+};
 
 #define T_FUNCTOR	0	/* name of a functor (atom, followed by '(') */
 #define T_NAME		1	/* ordinary name */
@@ -76,124 +79,101 @@ struct variable
 #define T_PUNCTUATION	6	/* punctuation character */
 #define T_FULLSTOP	7	/* Prolog end of clause */
 
-extern int Input;		/* current input stream (from pl-file.c) */
-static unsigned char *here;		/* current character */
-static unsigned char *base;		/* base of clause */
-static unsigned char *token_start;	/* start of most recent read token */
-static char *last_syntax_error; /* last syntax error */
-static struct token token;	/* current token */
-static bool unget = FALSE;	/* unget_token() */
-
-#define CHARESCAPE trueFeature(CHARESCAPE_FEATURE)
+#define Input (LD->IO.input)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The reading function (raw_read()) can  be   called  recursively  via the
-notifier when running under event-driven packages  (like PCE).  To avoid
-corruption of the database we push the read buffer rb on a stack and pop
-in back when finished.  See raw_read() and raw_read2().
+Bundle all data required by the  various   passes  of read into a single
+structure.  This  makes  read  truly  reentrant,  fixing  problems  with
+interrupt and XPCE  call-backs  as   well  as  transparently  supporting
+multi-threading.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define RBSIZE	512		/* initial size of read buffer */
-#define MAX_READ_NESTING 5	/* nesting of read (O_PCE only) */
+typedef struct
+{ unsigned char *here;			/* current character */
+  unsigned char *base;			/* base of clause */
+  unsigned char *token_start;		/* start of most recent read token */
+  struct token token;			/* current token */
+  bool _unget;				/* unget_token() */
+  struct read_buffer _rb;		/* keep read characters here */
+  struct var_table vt;			/* Data about variables */
 
-static
-struct read_buffer
-{ int	size;			/* current size of read buffer */
-  int	left;			/* left space in read buffer */
-  unsigned char *base;		/* base of read buffer */
-  unsigned char *here;		/* current position in read buffer */
-  int   stream;			/* stream we are reading from */
-} rb;
+  char *	syntax_error;		/* syntax error (if any) */
+  bool		report_syntax_errors;	/* if TRUE, print syntax errors */
 
-#if O_PCE
-static struct read_buffer rb_stack[MAX_READ_NESTING];
-int read_nesting = 0;		/* current nesting level */
-#endif /* O_PCE */
+  term_t	varnames;		/* Report variables */
+  term_t	singles;		/* Report singleton variables */
+  term_t	subtpos;		/* Report Subterm positions */
+} read_data, *ReadData;
 
-void
-resetRead(void)
-{ 
-#if O_PCE
-  read_nesting = 0;
-#endif
-}
+#define	rdhere		  (_PL_rd->here)
+#define	rdbase		  (_PL_rd->base)
+#define	last_token_start  (_PL_rd->token_start)
+#define	cur_token	  (_PL_rd->token)
+#define	unget		  (_PL_rd->_unget)
+#define	rb		  (_PL_rd->_rb)
 
-static
-void
-startRead(void)
-{
-#if O_PCE
-  if (read_nesting >= MAX_READ_NESTING)
-  { warning("Read stack too deeply nested");
-    pl_abort();
-  }
-  rb_stack[read_nesting++] = rb;
-  rb = rb_stack[read_nesting];
-#endif /* O_PCE */
-  rb.stream = Input;
-  source_file_name = currentStreamName();
+#define var_name_buffer	  (_PL_rd->vt._var_name_buffer)
+#define var_buffer	  (_PL_rd->vt._var_buffer)
+
+static void
+init_read_data(ReadData _PL_rd)
+{ memset(_PL_rd, 0, sizeof(*_PL_rd));	/* optimise! */
+
+  initBuffer(&var_name_buffer);
+  initBuffer(&var_buffer);
 }
 
 static void
-stopRead(void)
-{
-#if O_PCE
-  rb_stack[read_nesting] = rb;
-  rb = rb_stack[--read_nesting];
-  if (read_nesting < 0)
-    fatalError("Read stack underflow???");
-#endif /* O_PCE */
+free_read_data(ReadData _PL_rd)
+{ if ( rdbase )
+    free(rdbase);
+
+  discardBuffer(&var_name_buffer);
+  discardBuffer(&var_buffer);
+}
+
+#define CHARESCAPE trueFeature(CHARESCAPE_FEATURE)
+
+#define RBSIZE	512		/* initial size of read buffer */
+
+static void
+startRead(ReadData _PL_rd)
+{ rb.stream = Input;
+  source_file_name = currentStreamName();
 }
 
 		/********************************
 		*         ERROR HANDLING        *
 		*********************************/
 
-static int give_syntaxerrors = TRUE;
-
-int
-syntaxerrors(int new)
-{ int old = give_syntaxerrors;
-  give_syntaxerrors = new;
-
-  return old;
-}
-
-
-word
-pl_syntaxerrors(term_t old, term_t new)
-{ return setBoolean(&give_syntaxerrors, "syntaxerrors", old, new);
-}
-
-
-#define syntaxError(what) { errorWarning(what); fail; }
+#define syntaxError(what, rd) { errorWarning(what, rd); fail; }
 
 static void
-errorWarning(char *what)
+errorWarning(char *what, ReadData _PL_rd)
 { unsigned int c;
   
-  if ( !give_syntaxerrors )
-  { source_char_no += token_start - base;
-    last_syntax_error = what;
+  if ( !_PL_rd->report_syntax_errors )
+  { source_char_no += last_token_start - rdbase;
+    _PL_rd->syntax_error = what;
     return;
   }
 
-  c = *token_start;
+  c = *last_token_start;
 
   if ( !ReadingSource )			/* not reading from a file */
   { Sfprintf(Serror, "\n[WARNING: Syntax error: %s \n", what);
-    *token_start = EOS;
-    Sfprintf(Serror, "%s\n** here **\n", base);  
+    *last_token_start = EOS;
+    Sfprintf(Serror, "%s\n** here **\n", rdbase);  
     if (c != EOS)
-    { *token_start = c;
-      Sfprintf(Serror, "%s]\n", token_start);
+    { *last_token_start = c;
+      Sfprintf(Serror, "%s]\n", last_token_start);
     }
   } else
   { predicate_t pred = PL_pred(FUNCTOR_exception3, MODULE_user);
     int rval;
     unsigned char *s;
 
-    for(s = base; s < token_start; s++ )
+    for(s = rdbase; s < last_token_start; s++ )
     { if ( *s == '\n' )
       	source_line_no++;
     }
@@ -287,28 +267,24 @@ reading.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-clearBuffer()
+clearBuffer(ReadData _PL_rd)
 { if (rb.size == 0)
   { if ( !(rb.base = (unsigned char *)malloc(RBSIZE)) )
       fatalError("%s", OsError());
     rb.size = RBSIZE;
   }
-  SECURE( if ( rb.base == 0 ) fatalError("read/1: nesting=%d, size=%d",
-						read_nesting, rb.size) );
   rb.left = rb.size;
-  base = rb.here = rb.base;
-  DEBUG(8, Sdprintf("Cleared read buffer.rb at %ld, base at %ld\n",
-		  (long) &rb, (long) rb.base));
+  rdbase = rb.here = rb.base;
 }      
 
 
 static inline void
-addToBuffer(int c)
+addToBuffer(int c, ReadData _PL_rd)
 { if (rb.left-- == 0)
   { if ( !(rb.base = (unsigned char *)realloc(rb.base, rb.size * 2)) )
       fatalError("%s", OsError());
     DEBUG(8, Sdprintf("Reallocated read buffer at %ld\n", (long) rb.base));
-    base = rb.base;
+    rdbase = rb.base;
     rb.here = rb.base + rb.size;
     rb.left = rb.size - 1;
     rb.size *= 2;
@@ -321,7 +297,7 @@ addToBuffer(int c)
 
 #define ensure_space(c) { if ( something_read && \
 			       (c == '\n'|| !isBlank(rb.here[-1])) ) \
-			   addToBuffer(c); \
+			   addToBuffer(c, _PL_rd); \
 		        }
 #define set_start_line { if ( !something_read ) \
 			 { setCurrentSourceLocation(); \
@@ -329,13 +305,13 @@ addToBuffer(int c)
 			 } \
 		       }
 
-#define rawSyntaxError(what) { addToBuffer(EOS); \
-			       base = rb.base, token_start = rb.here-1; \
-			       syntaxError(what); \
+#define rawSyntaxError(what) { addToBuffer(EOS, _PL_rd); \
+			       rdbase = rb.base, last_token_start = rb.here-1; \
+			       syntaxError(what, _PL_rd); \
 			     }
 
 static char *
-raw_read2()
+raw_read2(ReadData _PL_rd)
 { int c;
   bool something_read = FALSE;
   int newlines;
@@ -347,7 +323,7 @@ raw_read2()
     goto handle_c;
   }
   
-  clearBuffer();				/* clear input buffer */
+  clearBuffer(_PL_rd);				/* clear input buffer */
   source_line_no = -1;
 
   for(;;)
@@ -357,10 +333,10 @@ raw_read2()
     switch(c)
     { case EOF:
 		if (seeingString())		/* do not require '. ' when */
-		{ addToBuffer(' ');		/* reading from a string */
-		  addToBuffer('.');
-		  addToBuffer(' ');
-		  addToBuffer(EOS);
+		{ addToBuffer(' ', _PL_rd);     /* reading from a string */
+		  addToBuffer('.', _PL_rd);
+		  addToBuffer(' ', _PL_rd);
+		  addToBuffer(EOS, _PL_rd);
 		  return rb.base;
 		}
 		if (something_read)
@@ -368,7 +344,7 @@ raw_read2()
 		  { if ( rb.here - rb.base == 1 )
 		      rawSyntaxError("Unexpected end of clause");
 		    ensure_space(' ');
-		    addToBuffer(EOS);
+		    addToBuffer(EOS, _PL_rd);
 		    return rb.base;
 		  }
 		  rawSyntaxError("Unexpected end of file");
@@ -389,9 +365,9 @@ raw_read2()
 		    rawSyntaxError("End of file in ``/* ... */'' comment");
 
 		  if ( something_read )
-		  { addToBuffer(' ');	/* positions */
-		    addToBuffer(' ');
-		    addToBuffer(last == '\n' ? last : ' ');
+		  { addToBuffer(' ', _PL_rd);	/* positions */
+		    addToBuffer(' ', _PL_rd);
+		    addToBuffer(last == '\n' ? last : ' ', _PL_rd);
 		  }
 
 		  for(;;)
@@ -410,14 +386,14 @@ raw_read2()
 			break;
 		    }
 		    if ( something_read )
-		      addToBuffer(c == '\n' ? c : ' ');
+		      addToBuffer(c == '\n' ? c : ' ', _PL_rd);
 		    last = c;
 		  }
 		} else
-		{ addToBuffer('/');
+		{ addToBuffer('/', _PL_rd);
 		  if ( isSymbol(c) )
 		  { while( c != EOF && isSymbol(c) )
-		    { addToBuffer(c);
+		    { addToBuffer(c, _PL_rd);
 		      c = getchr();
 		    }
 		  }
@@ -425,18 +401,18 @@ raw_read2()
 		  goto handle_c;
 		}
       case '%': if ( something_read )
-		  addToBuffer(' ');	/* positions */
+		  addToBuffer(' ', _PL_rd);	/* positions */
 		while((c=getchr()) != EOF && c != '\n')
-		{ if ( something_read )	/* record positions */
-		    addToBuffer(' ');
+		{ if ( something_read )		/* record positions */
+		    addToBuffer(' ', _PL_rd);
 		}
 		c = '\n';
 		goto handle_c;
      case '\'': if ( rb.here > rb.base && isDigit(rb.here[-1]) )
-		{ addToBuffer(c);			/* <n>' */
+		{ addToBuffer(c, _PL_rd); 		/* <n>' */
 		  if ( rb.here[-2] == '0' )		/* 0'<c> */
 		  { if ( (c=getchr()) != EOF )
-		    { addToBuffer(c);
+		    { addToBuffer(c, _PL_rd);
 		      break;
 		    }
 		    rawSyntaxError("Unexpected end of file");
@@ -447,10 +423,10 @@ raw_read2()
 
 		set_start_line;
 		newlines = 0;
-		addToBuffer(c);
+		addToBuffer(c, _PL_rd);
 		while((c=getchr()) != EOF && c != '\'')
 		{ if ( c == '\\' && CHARESCAPE )
-		  { addToBuffer(c);
+		  { addToBuffer(c, _PL_rd);
 		    if ( (c = getchr()) == EOF )
 		      goto eofinquoted;
 		  } else if (c == '\n' &&
@@ -458,43 +434,43 @@ raw_read2()
 			     (debugstatus.styleCheck & LONGATOM_CHECK))
 		    rawSyntaxError("Atom too long");
 
-		  addToBuffer(c);
+		  addToBuffer(c, _PL_rd);
 		}
 		if (c == EOF)
 		{ eofinquoted:
 		  rawSyntaxError("End of file in quoted atom");
 		}
-		addToBuffer(c);
+		addToBuffer(c, _PL_rd);
 		dotseen = FALSE;
 		break;
       case '"':	set_start_line;
 		newlines = 0;
-		addToBuffer(c);
+		addToBuffer(c, _PL_rd);
 		while((c=getchr()) != EOF && c != '"')
 		{ if ( c == '\\' && CHARESCAPE )
-		  { addToBuffer(c);
+		  { addToBuffer(c, _PL_rd);
 		    if ( (c = getchr()) == EOF )
 		      goto eofinstr;
 		  } else if (c == '\n' &&
 			     newlines++ > MAXNEWLINES &&
 			     (debugstatus.styleCheck & LONGATOM_CHECK))
 		    rawSyntaxError("String too long");
-		  addToBuffer(c);
+		  addToBuffer(c, _PL_rd);
 		}
 		if (c == EOF)
 		{ eofinstr:
 		  rawSyntaxError("End of file in string");
 		}
-		addToBuffer(c);
+		addToBuffer(c, _PL_rd);
 		dotseen = FALSE;
 		break;
-      case '.': addToBuffer(c);
+      case '.': addToBuffer(c, _PL_rd);
 		set_start_line;
 		dotseen++;
 		c = getchr();
 		if ( isSymbol(c) )
 		{ while( c != EOF && isSymbol(c) )
-		  { addToBuffer(c);
+		  { addToBuffer(c, _PL_rd);
 		    c = getchr();
 		  }
 		  dotseen = FALSE;
@@ -506,12 +482,12 @@ raw_read2()
 		    { if ( rb.here - rb.base == 1 )
 			rawSyntaxError("Unexpected end of file");
 		      ensure_space(c);
-		      addToBuffer(EOS);
+		      addToBuffer(EOS, _PL_rd);
 		      return rb.base;
 		    }
 		    do
-		    { if ( something_read )
-			addToBuffer(c == '\n' ? c : ' '); /* positions */
+		    { if ( something_read ) /* positions */
+			addToBuffer(c == '\n' ? c : ' ', _PL_rd);
 		      else
 			ensure_space(c);
 		      c = getchr();
@@ -520,7 +496,7 @@ raw_read2()
 		  case SY:
 		    set_start_line;
 		    do
-		    { addToBuffer(c);
+		    { addToBuffer(c, _PL_rd);
 		      c = getchr();
 		    } while( c != EOF && isSymbol(c) == SY );
 		    dotseen = FALSE;
@@ -529,13 +505,13 @@ raw_read2()
 		  case UC:
 		    set_start_line;
 		    do
-		    { addToBuffer(c);
+		    { addToBuffer(c, _PL_rd);
 		      c = getchr();
 		    } while( c != EOF && isAlpha(c) );
 		    dotseen = FALSE;
 		    goto handle_c;
 		  default:
-		    addToBuffer(c);
+		    addToBuffer(c, _PL_rd);
 		    dotseen = FALSE;
 		    set_start_line;
 		}
@@ -544,20 +520,19 @@ raw_read2()
 }
 
 static char *
-raw_read(void)
+raw_read(ReadData _PL_rd)
 { char *s;
 
-  startRead();
+  startRead(_PL_rd);
   if ( Input == 0 )
   { ttybuf tab;
 
     PushTty(&tab, TTY_SAVE);		/* make sure tty is sane */
     PopTty(&ttytab);
-    s = raw_read2();
+    s = raw_read2(_PL_rd);
     PopTty(&tab);
   } else
-    s = raw_read2();
-  stopRead();
+    s = raw_read2(_PL_rd);
 
   return s;
 }
@@ -574,9 +549,9 @@ reference to a `struct variable'. The first  part of this structure is a
 struct atom, so if a garbage   collection happens, the garbage collector
 will simply assume an atom.
 
-The buffer `var_buffer' is a  list  if   pointers  to  a  stock of these
+The buffer `var_buffer' is a  list  of   pointers  to  a  stock of these
 variable structures. This list is dynamically expanded if necessary. The
-buffer var_name_buffer contains the actually   strings.  They are packed
+buffer var_name_buffer contains the  actual   strings.  They  are packed
 together to avoid memory fragmentation. This   buffer too is reallocated
 if necessary. In this  case,  the   pointers  of  the  existing variable
 structures are relocated.
@@ -584,31 +559,14 @@ structures are relocated.
 
 #define MAX_SINGLETONS 256
 
-static buffer	 var_name_buffer;	/* stores the names */
-static buffer	 var_buffer;		/* array of Variables */
-static int	 var_allocated;		/* # allocated slots there */
-static int	 var_free;		/* 1-st free slot there */
-static Variable	 var_list;		/* linked list of vars */
-static Variable  var_tail;		/* tail of linked list */
-
-static void
-initVarTable()
-{ static int done = 0;
-
-  if ( !done )
-  { initBuffer(&var_name_buffer);
-    initBuffer(&var_buffer);
-    done++;
-  }
-
-  var_list = var_tail = NULL;
-  var_free = 0;
-  emptyBuffer(&var_name_buffer);
-}
-
+#define for_vars(v, code) \
+	{ Variable v   = baseBuffer(&var_buffer, variable); \
+	  Variable _ev = topBuffer(&var_buffer, variable); \
+	  for( ; v < _ev; v++ ) { code; } \
+	}
 
 static char *
-save_var_name(const char *name)
+save_var_name(const char *name, ReadData _PL_rd)
 { int l = strlen(name);
   char *nb, *ob = baseBuffer(&var_name_buffer, char);
   int e = entriesBuffer(&var_name_buffer, char);
@@ -616,10 +574,8 @@ save_var_name(const char *name)
   addMultipleBuffer(&var_name_buffer, name, l+1, char);
   if ( (nb = baseBuffer(&var_name_buffer, char)) != ob )
   { int shift = nb - ob;
-    Variable v;
 
-    for(v = var_list; v; v = v->next)
-      v->name += shift;
+    for_vars(v, v->name += shift);
   }
 
   return baseBuffer(&var_name_buffer, char) + e;
@@ -628,79 +584,64 @@ save_var_name(const char *name)
 					/* use hash-key? */
 
 static Variable
-isVarAtom(word w)
+isVarAtom(word w, ReadData _PL_rd)
 { if ( tagex(w) == (TAG_ATOM|STG_GLOBAL) )
-    return baseBuffer(&var_buffer, Variable)[w>>7];
+    return &baseBuffer(&var_buffer, variable)[w>>7];
   
   return NULL;
 }
 
 
 static Variable
-lookupVariable(const char *name)
-{ Variable v;
+lookupVariable(const char *name, ReadData _PL_rd)
+{ variable next;
+  Variable var;
+  int nv;
 
-  for( v = var_list; v; v = v->next )
-  { if ( streq(name, v->name) )
-    { v->times++;
-      return v;
-    }
-  }
+  for_vars(v,
+	   if ( streq(name, v->name) )
+	   { v->times++;
+	     return v;
+	   })
        
-  while ( var_free >= var_allocated )
-  { Variable v = allocHeap(sizeof(struct variable));
-    addBuffer(&var_buffer, v, Variable);
-    v->signature = (var_allocated<<7)|TAG_ATOM|STG_GLOBAL;
-    var_allocated++;
-  }
+  nv = entriesBuffer(&var_buffer, variable);
+  next.name      = save_var_name(name, _PL_rd);
+  next.times     = 1;
+  next.variable  = 0;
+  next.signature = (nv<<7)|TAG_ATOM|STG_GLOBAL;
+  addBuffer(&var_buffer, next, variable);
+  var = topBuffer(&var_buffer, variable);
 
-  v = baseBuffer(&var_buffer, Variable)[var_free++];
-  v->next     = NULL;
-  v->name     = save_var_name(name);
-  v->times    = 1;
-  v->variable = 0;
-  if ( var_tail )
-  { var_tail->next = v;
-    var_tail = v;
-  } else
-    var_list = var_tail = v;
-  
-  return v;
+  return var-1;
 }
 
 
 static bool
-check_singletons(term_t singles)
-{ Variable var;
-
-  if ( singles != TRUE )		/* returns <name> = var bindings */
-  { term_t list = PL_copy_term_ref(singles);
+check_singletons(ReadData _PL_rd)
+{ if ( _PL_rd->singles != TRUE )	/* returns <name> = var bindings */
+  { term_t list = PL_copy_term_ref(_PL_rd->singles);
     term_t head = PL_new_term_ref();
 
-    for(var = var_list; var; var=var->next)
-    { if ( var->times == 1 && var->name[0] != '_' )
-      {	if ( !PL_unify_list(list, head, list) ||
-	     !PL_unify_term(head,
-			    PL_FUNCTOR, FUNCTOR_equals2,
-			    PL_CHARS,	var->name,
-			    PL_TERM,    var->variable) )
-	  fail;
-      }
-    }
+    for_vars(var,
+	     if ( var->times == 1 && var->name[0] != '_' )
+	     {	if ( !PL_unify_list(list, head, list) ||
+		     !PL_unify_term(head,
+				    PL_FUNCTOR, FUNCTOR_equals2,
+				    PL_CHARS,	var->name,
+				    PL_TERM,    var->variable) )
+		  fail;
+	     });
 
     return PL_unify_nil(list);
   } else				/* just report */
   { atom_t singletons[MAX_SINGLETONS];
     int i = 0;
 
-    for(var = var_list; var; var=var->next)
-    { if ( var->times == 1 && var->name[0] != '_' )
-      { if ( singles == 1 )
-	{ if ( i < MAX_SINGLETONS )
-	    singletons[i++] = lookupAtom(var->name);
-	}
-      }
-    }
+    for_vars(var,
+	     if ( var->times == 1 && var->name[0] != '_' )
+	     { if ( i < MAX_SINGLETONS )
+		 singletons[i++] = lookupAtom(var->name);
+	     });
 
     if ( i > 0 )
       singletonWarning(singletons, i);
@@ -711,23 +652,21 @@ check_singletons(term_t singles)
 
 
 static bool
-bind_variables(term_t bindings)
-{ Variable var;
-  term_t list = PL_copy_term_ref(bindings);
+bind_variables(ReadData _PL_rd)
+{ term_t list = PL_copy_term_ref(_PL_rd->varnames);
   term_t head = PL_new_term_ref();
   term_t a    = PL_new_term_ref();
 
-  for(var = var_list; var; var=var->next)
-  { if ( var->name[0] != '_' )
-    { if ( !PL_unify_list(list, head, list) ||
-	   !PL_unify_functor(head, FUNCTOR_equals2) ||
-	   !PL_get_arg(1, head, a) ||
-	   !PL_unify_atom_chars(a, var->name) ||
-	   !PL_get_arg(2, head, a) ||
-	   !PL_unify(a, var->variable) )
-	fail;
-    }
-  }
+  for_vars(var,
+	   if ( var->name[0] != '_' )
+	   { if ( !PL_unify_list(list, head, list) ||
+		  !PL_unify_functor(head, FUNCTOR_equals2) ||
+		  !PL_get_arg(1, head, a) ||
+		  !PL_unify_atom_chars(a, var->name) ||
+		  !PL_get_arg(2, head, a) ||
+		  !PL_unify(a, var->variable) )
+	       fail;
+	   });
 
   return PL_unify_nil(list);
 }
@@ -737,13 +676,10 @@ bind_variables(term_t bindings)
 		*           TOKENISER           *
 		*********************************/
 
-#define skipSpaces	{ while(isBlank(*here) ) here++; c = *here++; }
+#define skipSpaces	{ while(isBlank(*rdhere) ) rdhere++; c = *rdhere++; }
 #define unget_token()	{ unget = TRUE; }
 
-forwards Token	get_token(bool);
-forwards void	build_term(term_t term, atom_t name, int arity, term_t *args);
-forwards bool	complex_term(const char *end, term_t term, term_t positions);
-forwards bool	simple_term(bool, term_t term, bool *isname, term_t positions);
+forwards Token	get_token(bool, ReadData _PL_rd);
 
 static int
 scan_number(char **s, int b, Number n)
@@ -785,28 +721,10 @@ scan_number(char **s, int b, Number n)
 
 
 #define NEXT(v)	do { c = (v); goto next; } while(0) 
-#define AddChar(c) \
-	do \
-	{ if ( n >= bufsize ) \
-	  { if ( bufsize == 0 ) \
-	    { bufsize = 512; \
-	      buf = malloc(bufsize); \
-	    } else \
-	    { bufsize *= 2; \
-	      buf = realloc(buf, bufsize); \
-	    } \
-	    if ( buf == NULL ) \
-	      fatalError("%s", OsError()); \
-	  } \
-	  buf[n++] = (c); \
-	} while(0)
-		
 
-static char *
-get_string(unsigned char *in, unsigned char **end)
-{ static char *buf;
-  static int bufsize = 0;
-  int n;
+static void
+get_string(unsigned char *in, unsigned char **end, Buffer buf)
+{ int n;
   int quote;
   char c;
 
@@ -885,14 +803,13 @@ get_string(unsigned char *in, unsigned char **end)
     }
 
   next:
-    AddChar(c);
+    addBuffer(buf, c, char);
   }
 
-  AddChar(EOS);
+  addBuffer(buf, EOS, char);
+
   if ( end )
     *end = in;
-
-  return buf;
 }  
 
 
@@ -1029,145 +946,152 @@ get_number(const unsigned char *cin, unsigned char **end, Number value)
 
 
 static Token
-get_token(bool must_be_op)
+get_token(bool must_be_op, ReadData _PL_rd)
 { unsigned int c;
   unsigned char *start;
   int end;
 
   if ( unget )
   { unget = FALSE;
-    return &token;
+    return &cur_token;
   }
 
   skipSpaces;
-  token_start = here - 1;
-  token.start = source_char_no + token_start - base;
+  last_token_start = rdhere - 1;
+  cur_token.start = source_char_no + last_token_start - rdbase;
   switch(_PL_char_types[c])
-  { case LC:	{ start = here-1;
-		  while(isAlpha(*here) )
-		    here++;
-		  c = *here;
-		  *here = EOS;
-		  token.value.atom = lookupAtom(start);
-		  *here = c;
-		  token.type = (c == '(' ? T_FUNCTOR : T_NAME);
+  { case LC:	{ start = rdhere-1;
+		  while(isAlpha(*rdhere) )
+		    rdhere++;
+		  c = *rdhere;
+		  *rdhere = EOS;
+		  cur_token.value.atom = lookupAtom(start);
+		  *rdhere = c;
+		  cur_token.type = (c == '(' ? T_FUNCTOR : T_NAME);
 		  DEBUG(9, Sdprintf("%s: %s\n", c == '(' ? "FUNC" : "NAME",
-				    stringAtom(token.value.atom)));
+				    stringAtom(cur_token.value.atom)));
 
 		  break;
 		}
-    case UC:	{ start = here-1;
-		  while(isAlpha(*here) )
-		    here++;
-		  c = *here;
-		  *here = EOS;
+    case UC:	{ start = rdhere-1;
+		  while(isAlpha(*rdhere) )
+		    rdhere++;
+		  c = *rdhere;
+		  *rdhere = EOS;
 		  if ( c == '(' && trueFeature(ALLOW_VARNAME_FUNCTOR) )
-		  { token.value.atom = lookupAtom(start);
-		    token.type = T_FUNCTOR;
-		    *here = c;
+		  { cur_token.value.atom = lookupAtom(start);
+		    cur_token.type = T_FUNCTOR;
+		    *rdhere = c;
 		    break;
 		  }
-		  if (start[0] == '_' && here == start + 1)
+		  if (start[0] == '_' && rdhere == start + 1)
 		  { DEBUG(9, Sdprintf("VOID\n"));
-		    token.type = T_VOID;
+		    cur_token.type = T_VOID;
 		  } else
-		  { token.value.variable = lookupVariable(start);
+		  { cur_token.value.variable = lookupVariable(start, _PL_rd);
 		    DEBUG(9, Sdprintf("VAR: %s\n",
-				      token.value.variable->name));
-		    token.type = T_VARIABLE;
+				      cur_token.value.variable->name));
+		    cur_token.type = T_VARIABLE;
 		  }
-		  *here = c;
+		  *rdhere = c;
 
 		  break;
 		}
     case_digit:
     case DI:	{ number value;
 
-		  if ( get_number(&here[-1], &here, &value) &&
-		       !isAlpha(here[0]) )
-		  { token.value.number = value;
-		    token.type = T_NUMBER;
+		  if ( get_number(&rdhere[-1], &rdhere, &value) &&
+		       !isAlpha(rdhere[0]) )
+		  { cur_token.value.number = value;
+		    cur_token.type = T_NUMBER;
 		    break;
 		  } else
-		    syntaxError("Illegal number");
+		    syntaxError("Illegal number", _PL_rd);
 		}
     case SO:	{ char tmp[2];
 
 		  tmp[0] = c, tmp[1] = EOS;
-		  token.value.atom = lookupAtom(tmp);
-		  token.type = (*here == '(' ? T_FUNCTOR : T_NAME);
+		  cur_token.value.atom = lookupAtom(tmp);
+		  cur_token.type = (*rdhere == '(' ? T_FUNCTOR : T_NAME);
 		  DEBUG(9, Sdprintf("%s: %s\n",
-				  *here == '(' ? "FUNC" : "NAME",
-				  stringAtom(token.value.atom)));
+				  *rdhere == '(' ? "FUNC" : "NAME",
+				  stringAtom(cur_token.value.atom)));
 
 		  break;
 		}
-    case SY:	{ start = here - 1;
-		  while( isSymbol(*here) )
-		    here++;
+    case SY:	{ start = rdhere - 1;
+		  while( isSymbol(*rdhere) )
+		    rdhere++;
 
-		  if ( here == start+1 )
+		  if ( rdhere == start+1 )
 		  { if ( (c == '+' || c == '-') &&	/* +- number */
 			 !must_be_op &&
-			 isDigit(*here) )
+			 isDigit(*rdhere) )
 		    { goto case_digit;
 		    }
-		    if ( c == '.' && isBlank(*here) )	/* .<blank> */
-		    { token.type = T_FULLSTOP;
+		    if ( c == '.' && isBlank(*rdhere) )	/* .<blank> */
+		    { cur_token.type = T_FULLSTOP;
 		      break;
 		    }
 		  }
 
-		  end = *here, *here = EOS;
-		  token.value.atom = lookupAtom((char *)start);
-		  *here = end;
+		  end = *rdhere, *rdhere = EOS;
+		  cur_token.value.atom = lookupAtom((char *)start);
+		  *rdhere = end;
 
-		  token.type = (end == '(' ? T_FUNCTOR : T_NAME);
+		  cur_token.type = (end == '(' ? T_FUNCTOR : T_NAME);
 		  DEBUG(9, Sdprintf("%s: %s\n",
 				    end == '(' ? "FUNC" : "NAME",
-				    stringAtom(token.value.atom)));
+				    stringAtom(cur_token.value.atom)));
 
 		  break;
 		}
     case PU:	{ switch(c)
 		  { case '{':
 		    case '[':
-		      while( isBlank(*here) )
-			here++;
-		      if (here[0] == matchingBracket(c))
-		      { here++;
-			token.value.atom = (c == '[' ? ATOM_nil : ATOM_curl);
-			token.type = here[0] == '(' ? T_FUNCTOR : T_NAME;
+		      while( isBlank(*rdhere) )
+			rdhere++;
+		      if (rdhere[0] == matchingBracket(c))
+		      { rdhere++;
+			cur_token.value.atom = (c == '[' ? ATOM_nil : ATOM_curl);
+			cur_token.type = rdhere[0] == '(' ? T_FUNCTOR : T_NAME;
 			DEBUG(9, Sdprintf("NAME: %s\n",
-					  stringAtom(token.value.atom)));
+					  stringAtom(cur_token.value.atom)));
 			goto out;
 		      }
 		  }
-		  token.value.character = c;
-		  token.type = T_PUNCTUATION;
-		  DEBUG(9, Sdprintf("PUNCT: %c\n", token.value.character));
+		  cur_token.value.character = c;
+		  cur_token.type = T_PUNCTUATION;
+		  DEBUG(9, Sdprintf("PUNCT: %c\n", cur_token.value.character));
 
 		  break;
 		}
-    case SQ:	{ char *s = get_string(here-1, &here);
+    case SQ:	{ tmp_buffer b;
 
-		  token.value.atom = lookupAtom(s);
-		  token.type = (here[0] == '(' ? T_FUNCTOR : T_NAME);
+		  initBuffer(&b);
+		  get_string(rdhere-1, &rdhere, (Buffer)&b);
+		  cur_token.value.atom = lookupAtom(baseBuffer(&b, char));
+		  cur_token.type = (rdhere[0] == '(' ? T_FUNCTOR : T_NAME);
+		  discardBuffer(&b);
 		  break;
 		}
-    case DQ:	{ char *s = get_string(here-1, &here);
+    case DQ:	{ tmp_buffer b;
 		  term_t t = PL_new_term_ref();
+		  char *s;
 
+		  initBuffer(&b);
+		  get_string(rdhere-1, &rdhere, (Buffer)&b);
+		  s = baseBuffer(&b, char);
 #if O_STRING
  		  if ( debugstatus.styleCheck & STRING_STYLE )
 		    PL_put_string_chars(t, s);
 		  else
+#endif
 		    PL_put_list_chars(t, s);
-#else
-		  PL_put_list_chars(t, s);
-#endif /* O_STRING */
-  		  token.value.term = t;
-		  token.type = T_STRING;
+
+  		  cur_token.value.term = t;
+		  cur_token.type = T_STRING;
+		  discardBuffer(&b);
 		  break;
 		}
     default:	{ sysError("read/1: tokeniser internal error");
@@ -1176,9 +1100,9 @@ get_token(bool must_be_op)
   }
 
 out:
-  token.end = source_char_no + here - base;
+  cur_token.end = source_char_no + rdhere - rdbase;
 
-  return &token;
+  return &cur_token;
 }
 
 		 /*******************************
@@ -1197,11 +1121,11 @@ statically allocated and thus unique.
 #define setHandle(h, w)		(*valTermRef(h) = (w))
 
 static inline void
-readValHandle(term_t term, Word argp)
+readValHandle(term_t term, Word argp, ReadData _PL_rd)
 { word w = *valTermRef(term);
   Variable var;
 
-  if ( (var = isVarAtom(w)) )
+  if ( (var = isVarAtom(w, _PL_rd)) )
   { DEBUG(9, Sdprintf("readValHandle(): var at 0x%x\n", var));
 
     if ( !var->variable )		/* new variable */
@@ -1217,7 +1141,7 @@ readValHandle(term_t term, Word argp)
 
 
 static void
-build_term(term_t term, atom_t atom, int arity, term_t *argv)
+build_term(term_t term, atom_t atom, int arity, term_t *argv, ReadData _PL_rd)
 { functor_t functor = lookupFunctorDef(atom, arity);
   Word argp = allocGlobal(arity+1);
 
@@ -1226,7 +1150,7 @@ build_term(term_t term, atom_t atom, int arity, term_t *argv)
   *argp++ = functor;
 
   for( ; arity-- > 0; argv++, argp++)
-    readValHandle(*argv, argp);
+    readValHandle(*argv, argp, _PL_rd);
 
   DEBUG(9, Sdprintf("result: "); pl_write(term); Sdprintf("\n") );
 }
@@ -1251,6 +1175,11 @@ one-token pushback efficiently.  It consists  of  two  mutual  recursive
 functions:  complex_term()  which is involved with operator handling and
 simple_term() which reads everything, except for operators.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+simple_term(bool must_be_op, term_t term, bool *name,
+	    term_t positions,
+	    ReadData _PL_rd);
 
 typedef struct
 { atom_t op;				/* Name of the operator */
@@ -1296,12 +1225,14 @@ isOp(atom_t atom, int kind, op_entry *e)
 }
 
 static void
-build_op_term(term_t term, atom_t atom, int arity, out_entry *argv)
+build_op_term(term_t term,
+	      atom_t atom, int arity, out_entry *argv,
+	      ReadData _PL_rd)
 { term_t av[2];
 
   av[0] = argv[0].term;
   av[1] = argv[1].term;
-  build_term(term, atom, arity, av);
+  build_term(term, atom, arity, av, _PL_rd);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1350,7 +1281,7 @@ the values.
 			      stringAtom(side[side_p].op))); \
 	    rmo++; \
 	    tmp = PL_new_term_ref(); \
-	    build_op_term(tmp, side[side_p].op, 1, &out[out_n-1]); \
+	    build_op_term(tmp, side[side_p].op, 1, &out[out_n-1], _PL_rd); \
 	    out[out_n-1].pri  = side[side_p].op_pri; \
 	    out[out_n-1].term = tmp; \
 	    side[side_p].kind = OP_POSTFIX; \
@@ -1441,26 +1372,26 @@ can_reduce(out_entry *out, op_entry *op)
 }
 
 static int
-bad_operator(out_entry *out, op_entry *op)
+bad_operator(out_entry *out, op_entry *op, ReadData _PL_rd)
 { char buf[1024];
   term_t t;
   atom_t name;
   int arity;
   char *opname = stringAtom(op->op);
 
-  token_start = op->token_start;
+  last_token_start = op->token_start;
 
   switch(op->kind)
   { case OP_INFIX:
       if ( op->left_pri < out[0].pri )
 	t = out[0].term;
       else
-      { token_start += strlen(opname);
+      { last_token_start += strlen(opname);
 	t = out[1].term;
       }
       break;
     case OP_PREFIX:
-      token_start += strlen(opname);
+      last_token_start += strlen(opname);
       /*FALL THROUGH*/
     default:
       t = out[0].term;
@@ -1473,7 +1404,7 @@ bad_operator(out_entry *out, op_entry *op)
   { Ssprintf(buf, "Unknown conflict with operator `%s'", opname);
   }
 
-  syntaxError(buf);
+  syntaxError(buf, _PL_rd);
 }
 
 #define Reduce(cpri) \
@@ -1483,14 +1414,14 @@ bad_operator(out_entry *out, op_entry *op)
 	  if ( arity > out_n ) break; \
 	  if ( !can_reduce(&out[out_n-arity], &side[side_p]) ) \
           { if ( (cpri) == (OP_MAXPRIORITY+1) ) \
-              return bad_operator(&out[out_n-arity], &side[side_p]); \
+              return bad_operator(&out[out_n-arity], &side[side_p], _PL_rd); \
 	    break; \
 	  } \
 	  DEBUG(9, Sdprintf("Reducing %s/%d\n", \
 			    stringAtom(side[side_p].op), arity));\
 	  tmp = PL_new_term_ref(); \
 	  out_n -= arity; \
-	  build_op_term(tmp, side[side_p].op, arity, &out[out_n]); \
+	  build_op_term(tmp, side[side_p].op, arity, &out[out_n], _PL_rd); \
 	  out[out_n].pri  = side[side_p].op_pri; \
 	  out[out_n].term = tmp; \
 	  out[out_n].tpos = opPos(&side[side_p], &out[out_n]); \
@@ -1501,7 +1432,7 @@ bad_operator(out_entry *out, op_entry *op)
 
 
 static bool
-complex_term(const char *stop, term_t term, term_t positions)
+complex_term(const char *stop, term_t term, term_t positions, ReadData _PL_rd)
 { out_entry *out  = NULL;
   op_entry  *side = NULL;
   op_entry  in_op;
@@ -1521,7 +1452,7 @@ complex_term(const char *stop, term_t term, term_t positions)
       pin = 0;
   
     if ( out_n != 0 || side_n != 0 )	/* Check for end of term */
-    { if ( (token = get_token(rmo == 1)) == (Token) NULL )
+    { if ( !(token = get_token(rmo == 1, _PL_rd)) )
 	fail;
       unget_token();			/* only look-ahead! */
 
@@ -1538,14 +1469,14 @@ complex_term(const char *stop, term_t term, term_t positions)
     }
 
 					/* Read `simple' term */
-    TRY( simple_term(rmo == 1, in, &isname, pin) );
+    TRY( simple_term(rmo == 1, in, &isname, pin, _PL_rd) );
 
     if ( isname )			/* Check for operators */
     { atom_t name;
 
       PL_get_atom(in, &name);
       in_op.tpos = pin;
-      in_op.token_start = token_start;
+      in_op.token_start = last_token_start;
 
       DEBUG(9, Sdprintf("name %s, rmo = %d\n", stringAtom(name), rmo));
 
@@ -1582,7 +1513,7 @@ complex_term(const char *stop, term_t term, term_t positions)
     }
 
     if ( rmo != 0 )
-      syntaxError("Operator expected");
+      syntaxError("Operator expected", _PL_rd);
     rmo++;
     realloca(out, sizeof(*out), out_n+1);
     out[out_n].pri = 0;
@@ -1608,22 +1539,23 @@ exit:
     succeed;
   }
 
-  syntaxError("Unbalanced operators");
+  syntaxError("Unbalanced operators", _PL_rd);
 }
 
 
 static bool
-simple_term(bool must_be_op, term_t term, bool *name, term_t positions)
+simple_term(bool must_be_op, term_t term, bool *name,
+	    term_t positions, ReadData _PL_rd)
 { Token token;
 
   *name = FALSE;
 
-  if ( !(token = get_token(must_be_op)) )
+  if ( !(token = get_token(must_be_op, _PL_rd)) )
     fail;
 
   switch(token->type)
   { case T_FULLSTOP:
-      syntaxError("Unexpected end of clause");
+      syntaxError("Unexpected end of clause", _PL_rd);
     case T_VOID:
       setHandle(term, 0L);		/* variable */
       goto atomic_out;
@@ -1684,7 +1616,7 @@ simple_term(bool must_be_op, term_t term, bool *name, term_t positions)
 
 	  functor = token->value.atom;
 	  argc = 0, argv;
-	  get_token(must_be_op); /* skip '(' */
+	  get_token(must_be_op, _PL_rd); /* skip '(' */
 
 	  do
 	  { if ( argc == avn )
@@ -1697,9 +1629,9 @@ simple_term(bool must_be_op, term_t term, bool *name, term_t positions)
 	    if ( positions )
 	    { PL_unify_list(pa, ph, pa);
 	    }
-	    TRY( complex_term(",)", argv[argc], ph) );
+	    TRY( complex_term(",)", argv[argc], ph, _PL_rd) );
 	    argc++;
-	    token = get_token(must_be_op); /* `,' or `)' */
+	    token = get_token(must_be_op, _PL_rd); /* `,' or `)' */
 	  } while(token->value.character == ',');
 
 	  if ( positions )
@@ -1707,7 +1639,7 @@ simple_term(bool must_be_op, term_t term, bool *name, term_t positions)
 	    PL_unify_nil(pa);
 	  }
 
-	  build_term(term, functor, argc, argv);
+	  build_term(term, functor, argc, argv, _PL_rd);
 	}
 	succeed;
       }
@@ -1716,8 +1648,8 @@ simple_term(bool must_be_op, term_t term, bool *name, term_t positions)
 	{ case '(':
 	    { int start = token->start;
 
-	      TRY( complex_term(")", term, positions) );
-	      token = get_token(must_be_op);	/* skip ')' */
+	      TRY( complex_term(")", term, positions, _PL_rd) );
+	      token = get_token(must_be_op, _PL_rd);	/* skip ')' */
 
 	      if ( positions )
 	      { Word p = argTermP(*valTermRef(positions), 0);
@@ -1744,11 +1676,11 @@ simple_term(bool must_be_op, term_t term, bool *name, term_t positions)
 	      } else
 		pe = pa = 0;
 
-	      TRY( complex_term("}", arg, pa) );
-	      token = get_token(must_be_op);
+	      TRY( complex_term("}", arg, pa, _PL_rd) );
+	      token = get_token(must_be_op, _PL_rd);
 	      if ( positions )
 		PL_unify_integer(pe, token->end);
-	      build_term(term, ATOM_curl, 1, &arg);
+	      build_term(term, ATOM_curl, 1, &arg, _PL_rd);
 
 	      succeed;
 	    }
@@ -1785,16 +1717,16 @@ term is to be written.
 
 		if ( positions )
 		  PL_unify_list(pa, p2, pa);
-		TRY( complex_term(",|]", tmp, p2) );
+		TRY( complex_term(",|]", tmp, p2, _PL_rd) );
 		argp = allocGlobal(3);
 		*unRef(*valTermRef(tail)) = consPtr(argp,
 						    TAG_COMPOUND|STG_GLOBAL);
 		*argp++ = FUNCTOR_dot2;
-		readValHandle(tmp, argp++);
+		readValHandle(tmp, argp++, _PL_rd);
 		setVar(*argp);
 		setHandle(tail, makeRef(argp));
 		
-		token = get_token(must_be_op);
+		token = get_token(must_be_op, _PL_rd);
 
 		switch(token->value.character)
 		{ case ']':
@@ -1806,10 +1738,10 @@ term is to be written.
 		      return PL_unify_nil(tail);
 		    }
 		  case '|':
-		    { TRY( complex_term("]", tmp, pt) );
+		    { TRY( complex_term("]", tmp, pt, _PL_rd) );
 		      argp = unRef(*valTermRef(tail));
-		      readValHandle(tmp, argp);
-		      token = get_token(must_be_op); /* discard ']' */
+		      readValHandle(tmp, argp, _PL_rd);
+		      token = get_token(must_be_op, _PL_rd); /* discard ']' */
 		      if ( positions )
 		      { PL_unify_nil(pa);
 			PL_unify_integer(pe, token->end);
@@ -1827,22 +1759,10 @@ term is to be written.
 	  case '}':
 	  case ']':
 	  default:
-	    { static atom_t cache[256];
-	      int c = token->value.character;
+	    *name = TRUE;
+	    PL_put_atom(term, code_to_atom(token->value.character));
 
-	      if ( !cache[c] )
-	      { char tmp[2];
-
-		tmp[0] = c;
-		tmp[1] = EOS;
-		cache[c] = lookupAtom(tmp);
-	      }
-
-	      *name = TRUE; 
-	      PL_put_atom(term, cache[c]);
-
-	      succeed;
-	    }
+	    succeed;
 	}
       } /* case T_PUNCTUATION */
     default:;
@@ -1854,34 +1774,32 @@ term is to be written.
 
 
 static bool
-read_term(term_t term, term_t variables, term_t positions, term_t singles)
+read_term(term_t term, ReadData rd)
 { Token token;
   term_t result;
   Word p;
 
-  if ( !(base = raw_read()) )
+  if ( !(rd->base = raw_read(rd)) )
     fail;
 
-  initVarTable();
-  here = base;
-  unget = FALSE;
+  rd->here = rd->base;
 
   result = PL_new_term_ref();
-  TRY(complex_term(NULL, result, positions));
+  TRY(complex_term(NULL, result, rd->subtpos, rd));
   p = valTermRef(result);
-  if ( isVarAtom(*p) )			/* reading a single variable */
-    readValHandle(result, p);
+  if ( isVarAtom(*p, rd) )		/* reading a single variable */
+    readValHandle(result, p, rd);
 
-  if ( !(token = get_token(FALSE)) )
+  if ( !(token = get_token(FALSE, rd)) )
     fail;
-  if (token->type != T_FULLSTOP)
-    syntaxError("End of clause expected");
+  if ( token->type != T_FULLSTOP )
+    syntaxError("End of clause expected", rd);
 
   TRY(PL_unify(term, result));
-  if ( variables )
-    TRY(bind_variables(variables));
-  if ( singles )
-    TRY(check_singletons(singles));
+  if ( rd->varnames )
+    TRY(bind_variables(rd));
+  if ( rd->singles )
+    TRY(check_singletons(rd));
 
   succeed;
 }
@@ -1893,8 +1811,11 @@ read_term(term_t term, term_t variables, term_t positions, term_t singles)
 word
 pl_raw_read(term_t term)
 { char *s, *top;
+  read_data rd;
+  word rval;
 
-  s = raw_read();
+  init_read_data(&rd);
+  s = raw_read(&rd);
 
   if ( s == (char *) NULL )
     fail;
@@ -1907,9 +1828,14 @@ pl_raw_read(term_t term)
   }
   top[1] = EOS;
 
-  for(; isBlank(*s); s++);
+  for(; isBlank(*s); s++)
+    ;
 
-  return PL_unify_atom_chars(term, s);
+  rval = PL_unify_atom_chars(term, s);
+
+  free_read_data(&rd);
+
+  return rval;
 }
 
 
@@ -1921,7 +1847,16 @@ pl_raw_read2(term_t stream, term_t term)
 
 word
 pl_read_variables(term_t term, term_t variables)
-{ return read_term(term, variables, 0, FALSE);
+{ read_data rd;
+  int rval;
+
+  init_read_data(&rd);
+  rd.varnames = variables;
+  rd.report_syntax_errors = TRUE;
+  rval = read_term(term, &rd);
+  free_read_data(&rd);
+
+  return rval;
 }
 
 word
@@ -1931,7 +1866,15 @@ pl_read_variables3(term_t stream, term_t term, term_t variables)
 
 word
 pl_read(term_t term)
-{ return read_term(term, 0, 0, FALSE);
+{ read_data rd;
+  int rval;
+
+  init_read_data(&rd);
+  rd.report_syntax_errors = TRUE;
+  rval = read_term(term, &rd);
+  free_read_data(&rd);
+
+  return rval;
 }
 
 word
@@ -1941,8 +1884,16 @@ pl_read2(term_t stream, term_t term)
 
 word
 pl_read_clause(term_t term)
-{ return read_term(term, 0, 0,
-		   debugstatus.styleCheck & SINGLETON_CHECK ? TRUE : FALSE);
+{ read_data rd;
+  int rval;
+
+  init_read_data(&rd);
+  rd.report_syntax_errors = TRUE;
+  rd.singles = debugstatus.styleCheck & SINGLETON_CHECK ? TRUE : FALSE;
+  rval = read_term(term, &rd);
+  free_read_data(&rd);
+
+  return rval;
 }
 
 word
@@ -1962,46 +1913,52 @@ static const opt_spec read_term_options[] =
 word
 pl_read_term(term_t term, term_t options)
 { term_t syntax_errors = 0;		/* default */
-  term_t varnames      = 0;
-  term_t singles       = 0;
   term_t tpos	       = 0;
-  term_t subtpos       = 0;
-  int osyntax 	       = give_syntaxerrors;
   int rval;
   atom_t w;
+  read_data rd;
+
+  init_read_data(&rd);
 
   if ( !scan_options(options, 0, ATOM_read_option, read_term_options,
-		     &syntax_errors, &varnames, &singles, &tpos, &subtpos) )
+		     &syntax_errors,
+		     &rd.varnames,
+		     &rd.singles,
+		     &tpos,
+		     &rd.subtpos) )
     return warning("read_term/2: illegal option list");
 
   if ( !syntax_errors ||
        (PL_get_atom(syntax_errors, &w) && w != ATOM_quiet) )
-    give_syntaxerrors = TRUE;
+    rd.report_syntax_errors = TRUE;
   else
-    give_syntaxerrors = FALSE;
-  if ( singles && PL_get_atom(singles, &w) && w == ATOM_warning )
-    singles = TRUE;
-  rval = read_term(term, varnames, subtpos, singles);
-  give_syntaxerrors = osyntax;
+    rd.report_syntax_errors = FALSE;
+
+  if ( rd.singles && PL_get_atom(rd.singles, &w) && w == ATOM_warning )
+    rd.singles = TRUE;
+
+  rval = read_term(term, &rd);
 
   if ( rval )
   { if ( tpos && source_line_no > 0 )
-      TRY(PL_unify_term(tpos,
-			PL_FUNCTOR, FUNCTOR_stream_position3,
-			PL_INTEGER, source_char_no,
-			PL_INTEGER, source_line_no,
-			PL_INTEGER, 0)); /* should be charpos! */
-    if ( syntax_errors && PL_is_variable(syntax_errors) )
-      return PL_unify_atom(syntax_errors, ATOM_none);
+      rval = PL_unify_term(tpos,
+			   PL_FUNCTOR, FUNCTOR_stream_position3,
+			   PL_INTEGER, source_char_no,
+			   PL_INTEGER, source_line_no,
+			   PL_INTEGER, 0); /* should be charpos! */
+    else
+    { if ( syntax_errors && PL_is_variable(syntax_errors) )
+	rval = PL_unify_atom(syntax_errors, ATOM_none);
+    }
   } else
   { if ( syntax_errors && PL_is_variable(syntax_errors) )
-      return PL_unify_term(syntax_errors,
+      rval = PL_unify_term(syntax_errors,
 			   PL_FUNCTOR, FUNCTOR_module2,
 			     PL_FUNCTOR, FUNCTOR_stream_position3,
 			       PL_INTEGER, source_char_no,
 			       PL_INTEGER, source_line_no,
 			       PL_INTEGER, 0, /* should be charpos! */
-			     PL_CHARS, last_syntax_error);
+			     PL_CHARS, rd.syntax_error);
   }
 
   return rval;
@@ -2011,3 +1968,55 @@ word
 pl_read_term3(term_t stream, term_t term, term_t options)
 { streamInput(stream, pl_read_term(term, options));
 }
+
+		 /*******************************
+		 *	   TERM <->ATOM		*
+		 *******************************/
+
+word
+pl_term_to_atom(term_t term, term_t atom,
+		term_t bindings, term_t errors)
+{ char *s;
+
+  if ( PL_is_variable(atom) )
+  { char buf[1024];
+    int bufsize = sizeof(buf);
+    word rval;
+
+    s = buf;
+    tellString(&s, &bufsize);
+    pl_writeq(term);
+    toldString();
+
+    rval = PL_unify_atom_chars(atom, s);
+    if ( s != buf )
+      free(s);
+
+    return rval;
+  }
+
+  if ( PL_get_chars(atom, &s, CVT_ALL) )
+  { read_data rd;
+    word rval;
+    int se;
+
+    init_read_data(&rd);
+    if ( PL_get_integer(errors, &se) && se )
+      rd.report_syntax_errors = TRUE;
+    if ( PL_is_variable(bindings) )
+      rd.varnames = bindings;
+
+    seeString(s);
+    rval = read_term(term, &rd);
+    free_read_data(&rd);
+    seenString();
+
+    return rval;
+  }
+
+  return PL_error("term_to_atom", 2, NULL, ERR_INSTANTIATION);
+}
+
+
+
+

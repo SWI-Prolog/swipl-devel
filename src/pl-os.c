@@ -159,10 +159,9 @@ PL_on_halt(halt_function f, Void arg)
 volatile void
 Halt(int rval)
 { OnHalt h;
-  extern int Output;
 
   pl_notrace();				/* avoid recursive tracing */
-  Output = 1;				/* reset output stream to user */
+  LD->IO.output = 1;			/* reset output stream to user */
 
   if ( !GD->os.halting++ )
   { for(h = GD->os.on_halt_list; h; h = h->next)

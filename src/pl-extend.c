@@ -32,10 +32,10 @@ In the latter case, proceed as follows:
 
 	plld -o myprog myprog.c myprog.pl
 
-     See main plld and/or the SWI-Prolog manuals for further details.
+     See man plld and/or the SWI-Prolog manuals for further details.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-PL_extension predicates[] =
+static const PL_extension predicates[] =
 {
 /*{ "name",	arity,  function,	PL_FA_<flags> },*/
 

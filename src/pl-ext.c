@@ -101,7 +101,6 @@ static const struct foreign {
   FRG("$on_signal",		4, pl_on_signal,	   META|TRACE_ME),
 
   FRG("fileerrors",		2, pl_fileerrors,		TRACE_ME),
-  FRG("$syntaxerrors",		2, pl_syntaxerrors,		TRACE_ME),
   FRG("chdir",			1, pl_chdir,			TRACE_ME),
 
   FRG("halt",			1, pl_halt,			TRACE_ME),
@@ -481,7 +480,7 @@ struct extension_cell
 #define extensions_loaded	(GD->foreign._loaded)
 
 static void
-bindExtensions(PL_extension *e)
+bindExtensions(const PL_extension *e)
 { Definition def;
 
   for(; e->predicate_name; e++)
@@ -504,12 +503,13 @@ bindExtensions(PL_extension *e)
 
 
 void
-PL_register_extensions(PL_extension *e)
+PL_register_extensions(const PL_extension *e)
 { if ( extensions_loaded )
     bindExtensions(e);
   else
   { ExtensionCell cell = malloc(sizeof *cell);
-    cell->extensions = e;
+
+    cell->extensions = (PL_extension *) e;
     cell->next = NULL;
     if ( ext_tail )
     { ext_tail->next = cell;
