@@ -217,10 +217,6 @@ swi_context(context(Caller, _Msg)) -->
 	{ ground(Caller)
 	}, !,
 	caller(Caller).
-swi_context(context(Module:Name/Arity, _Msg)) -->
-	{ nonvar(Name)
-	}, !,
-	[ '~q/~w: '-[Name, Arity] ].
 swi_context(file(Path, Line, LinePos, _CharNo)) -->
 	[ '~w:~d:~d: '-[Path, Line, LinePos] ].
 swi_context(stream(Stream, Line, LinePos, _CharNo)) -->
@@ -235,6 +231,9 @@ caller(Module:Name/Arity) --> !,
 	).
 caller(Name/Arity) -->
 	[ '~q/~w: '-[Name, Arity] ].
+caller(Caller) -->
+	[ '~p: '-[Caller] ].
+
 
 swi_extra(X) -->
 	{ var(X)

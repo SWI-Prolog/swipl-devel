@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Various new predicates to the ordsets compatibility library,
+    used for the new CHR version.
+   
   * ENHANCED: Provide better error context.  Suggested by Paulo Moura.
 
   * FIXED: library(readutil): complete dispatch of options. Wim Delvaux.
@@ -1966,7 +1969,7 @@ VERSION 5.0.5 (April 16, 2002)
     dereference (Fabien Todescato).
 
   * PORT: Added (non-tested) support for loading shared objects in BeOS
-    (with help by Axel D�rfler)
+    (with help by Axel Drfler)
 
   * PORT: Detect <SupportDefs.h> in recent BeOS and use it (Axel D�rfler).
 

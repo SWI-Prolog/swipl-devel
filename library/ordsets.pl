@@ -30,11 +30,17 @@
 */
 
 :- module(ordsets,
-	  [ list_to_ord_set/2,
-	    ord_intersect/2,
-	    ord_add_element/3,
-	    ord_subset/2,
-	    ord_union/3
+	  [ list_to_ord_set/2,		% +List, -OrdSet
+	    ord_add_element/3,		% +Set, +Element, -NewSet
+	    ord_del_element/3,		% +Set, +Element, -NewSet
+	    ord_intersect/2,		% +Set1, +Set2 (test non-empty)
+	    ord_intersect/3,		% +Set1, +Set2, -Intersection
+	    ord_subtract/3,		% +Set, +Delete, -Remaining
+	    ord_union/3,		% +Set1, +Set2, -Union
+	    ord_subset/2,		% +Sub, +Super (test Sub is in Super)
+					% Non-Quintus extensions
+	    ord_empty/1,		% ?Set
+	    ord_memberchk/2		% +Element, +Set
 	  ]).
 :- use_module(library(oset)).
 :- set_prolog_flag(generate_debug_info, false).
@@ -45,8 +51,16 @@ library, partially based on the   contributed  SWI-Prolog library(oset).
 Please complete the implementation and contribute   it to the SWI-Prolog
 community.
 
-This library was implemented to run the threetap theorem prover.
+This library was implemented to run the threetap theorem prover.  It was
+extended to satisfy requirements by CHR.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+%	ord_empty(List)
+%	
+%	True if List is the empty ordered set.  Not part of Quintus
+
+ord_empty([]).
+
 
 %	list_to_ord_set(+List, -OrdSet)
 %
@@ -75,12 +89,40 @@ ord_intersect__(>, H1, T1,  _H2, T2) :-
 	ord_intersect_(T2, H1, T1).
 
 
+%	ord_intersect(+Set1, +Set2, -Intersection)
+%	
+%	Intersection holds the common elements of Set1 and Set2.
+
+ord_intersect(Set1, Set2, Intersection) :-
+	oset_int(Set1, Set2, Intersection).
+
+
 %	ord_add_element(+Set1, +Element, ?Set2)
 %
 %	Insert an element into the set
 
 ord_add_element(Set1, Element, Set2) :-
 	oset_addel(Set1, Element, Set2).
+
+
+%	ord_del_element(+Set, +Element, -NewSet)
+%	
+%	Delete an element from an ordered set
+
+ord_del_element(Set, Element, NewSet) :-
+	oset_addel(Set, Element, NewSet).
+
+
+%	ord_memberchk(+Element, +Set)
+%	
+%	Check membership. This could stop comparing   we have passed the
+%	right value, saving scanning  (on  average)   half  the  list if
+%	Element is not in Set. Probably the built-in memberchk/2 will be
+%	faster.  Not part of Quintus.
+
+ord_memberchk(Element, Set) :-
+	memberchk(Element, Set).
+
 
 %	ord_subset(+Sub, +Super)
 %
@@ -96,6 +138,16 @@ ord_subset_(>, H1, T1, [H2|T2]) :-
 	ord_subset_(Order, H1, T1, T2).
 ord_subset_(=, _, T1, T2) :-
 	ord_subset(T1, T2).
+
+
+%	ord_subtract(+InOSet, +NotInOSet, -Diff)
+%
+%	Diff is the set holding all elements of InOSet that are not in
+%	NotInOSet.
+
+ord_subtract(InOSet, NotInOSet, Diff) :-
+	oset_diff(InOSet, NotInOSet, Diff).
+
 
 %	ord_union(+Set1, +Set2, ?Union)
 %
