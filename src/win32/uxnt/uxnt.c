@@ -110,8 +110,7 @@ _xos_home()				/* expansion of ~ */
   { char h[MAXPATHLEN];
 
 					/* Unix, set by user */
-    if ( GetEnvironmentVariable("HOME", h, sizeof(h)) ||
-	 GetEnvironmentVariable("USERPROFILE", h, sizeof(h)) )
+    if ( GetEnvironmentVariable("HOME", h, sizeof(h)) )
     { _xos_canonical_filename(h, home);
     } else
     { char d[100];
@@ -132,6 +131,8 @@ _xos_home()				/* expansion of ~ */
 	_xos_canonical_filename(tmp, home);
       } else if ( havep )
       { _xos_canonical_filename(p, home);
+      } else if ( GetEnvironmentVariable("USERPROFILE", h, sizeof(h)) )
+      { _xos_canonical_filename(h, home);
       } else
       { int drv = _getdrive();		/* A=1 */
 
