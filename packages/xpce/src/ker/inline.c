@@ -218,16 +218,16 @@ CheckType(Any val, Type t, Any ctx)
 
 #else /*USE_INLINE*/
 
-status	 constf instanceOfObject P((const Any, const Class));
-Any		getSendMethodClass P((const Class, const Name));
-Any		getGetMethodClass P((const Class, const Name));
-Any		getMemberHashTable P((const HashTable, const Any));
-status		executeCode P((Code));
-Any		getExecuteFunction P((Function));
-status		forwardCodev P((Code, int, const Any[]));
-status		forwardBlockv P((Block, int, const Any[]));
-Any		expandCodeArgument P((Any));
-Any		CheckType P((Any val, Type t, Any ctx));
+status	 constf instanceOfObject(const Any, const Class);
+Any		getSendMethodClass(const Class, const Name);
+Any		getGetMethodClass(const Class, const Name);
+Any		getMemberHashTable(const HashTable, const Any);
+status		executeCode(Code);
+Any		getExecuteFunction(Function);
+status		forwardCodev(Code, int, const Any[]);
+status		forwardBlockv(Block, int, const Any[]);
+Any		expandCodeArgument(Any);
+Any		CheckType(Any val, Type t, Any ctx);
 
 /* Donot write below this line */
 #endif /*USE_INLINE*/

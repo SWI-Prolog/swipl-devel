@@ -9,9 +9,9 @@
 
 :- module(emacs, []).
 
-
 :- use_module(library(pce)).
-:- require([ send_list/3
+:- require([ declare_emacs_mode/2
+	   , send_list/3
 	   ]).
 
 		/********************************

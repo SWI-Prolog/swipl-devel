@@ -10,8 +10,8 @@
 #include <h/kernel.h>
 #include "../unx/proto.h"		/* file operations */
 
-forwards Cell	newCell P((Chain, Any));
-forwards Cell	previousCell P((Chain, Cell));
+forwards Cell	newCell(Chain, Any);
+forwards Cell	previousCell(Chain, Cell);
 static status	deleteCurrentChain(Chain ch);
 static Int	getCellIndexChain(Chain ch, Cell c);
 

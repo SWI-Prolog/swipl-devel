@@ -15,7 +15,7 @@
 extern time_t get_date(char *p, struct timeb *now);
 
 #ifndef HAVE_TIMELOCAL
-static long timelocal P((struct tm *));
+static long timelocal(struct tm *);
 #endif
 
 static status	setDate(Date d, Int s, Int m, Int h, Int D, Int M, Int Y);

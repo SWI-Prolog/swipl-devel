@@ -12,24 +12,23 @@
 #include <h/text.h>
 #include <h/unix.h>
 
-forwards Int	getMatchingQuoteTextBuffer P((TextBuffer, Int, Name));
-forwards int	match P((TextBuffer, int, String, int, int));
-forwards int	room P((TextBuffer, int, int));
-forwards int	count_lines_textbuffer P((TextBuffer, int, int));
-forwards status capitalise_textbuffer P((TextBuffer, int, int));
-forwards status clear_textbuffer P((TextBuffer));
-forwards status downcase_textbuffer P((TextBuffer, int, int));
-forwards void	end_change P((TextBuffer, int));
-forwards Int    getSizeTextBuffer P((TextBuffer));
-forwards status store_textbuffer P((TextBuffer, int, wchar));
-forwards status transpose_textbuffer P((TextBuffer, int, int, int, int));
-forwards status upcase_textbuffer P((TextBuffer, int, int));
-forwards status save_textbuffer P((TextBuffer, int, int, FileObj));
-forwards status insert_file_textbuffer P((TextBuffer, int, int, FileObj));
-forwards status shift_fragments P((TextBuffer, long, long));
-forwards void	start_change P((TextBuffer, int));
-forwards status insert_textbuffer_shift P((TextBuffer, int, int,
-					   String, int));
+forwards Int	getMatchingQuoteTextBuffer(TextBuffer, Int, Name);
+forwards int	match(TextBuffer, int, String, int, int);
+forwards int	room(TextBuffer, int, int);
+forwards int	count_lines_textbuffer(TextBuffer, int, int);
+forwards status capitalise_textbuffer(TextBuffer, int, int);
+forwards status clear_textbuffer(TextBuffer);
+forwards status downcase_textbuffer(TextBuffer, int, int);
+forwards void	end_change(TextBuffer, int);
+forwards Int    getSizeTextBuffer(TextBuffer);
+forwards status store_textbuffer(TextBuffer, int, wchar);
+forwards status transpose_textbuffer(TextBuffer, int, int, int, int);
+forwards status upcase_textbuffer(TextBuffer, int, int);
+forwards status save_textbuffer(TextBuffer, int, int, FileObj);
+forwards status insert_file_textbuffer(TextBuffer, int, int, FileObj);
+forwards status shift_fragments(TextBuffer, long, long);
+forwards void	start_change(TextBuffer, int);
+forwards status insert_textbuffer_shift(TextBuffer, int, int, String, int);
 
 #define ALLOC (256)		/* increment allocation by this amount */
 #define ROUND(n, r)		( (((n) + (r)-1) / (r)) * (r) )

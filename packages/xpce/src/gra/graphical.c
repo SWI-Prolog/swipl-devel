@@ -11,7 +11,7 @@
 #include <h/graphics.h>
 #include <math.h>
 
-static int	distance_area P((int, int, int, int, int, int, int, int));
+static int	distance_area(int, int, int, int, int, int, int, int);
 static status	orientationGraphical(Graphical gr, Name orientation);
 static Point	getCenterGraphical(Graphical gr);
 static status	updateHideExposeConnectionsGraphical(Graphical gr);

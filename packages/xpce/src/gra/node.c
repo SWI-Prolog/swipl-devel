@@ -10,10 +10,10 @@
 #include <h/kernel.h>
 #include <h/graphics.h>
 
-static void	swap_parents P((Node, Node, Chain));
-static int	isSonNode2 P((Node, Node));
-static int	isParentNode2 P((Node, Node));
-static status	unrelate_node P((Node, Node));
+static void	swap_parents(Node, Node, Chain);
+static int	isSonNode2(Node, Node);
+static int	isParentNode2(Node, Node);
+static status	unrelate_node(Node, Node);
 static status	unlinkParentsNode(Node n);
 static status	unlinkSonsNode(Node n);
 static status	relateNode(Node n, Node n2);

@@ -24,18 +24,20 @@
 extern int gethostname(char *__name, size_t __len);
 #endif
 
-extern char *getlogin(void);
-
-static void	callExitMessagesPce P((int, Pce));
+static void	callExitMessagesPce(int, Pce);
+#ifndef O_RUNTIME
 static status	debuggingPce(Pce pce, Bool val);
+#endif
 
 static status
 initialisePce(Pce pce)
 { if ( PCE && notNil(PCE) )
     return errorPce(classOfObject(pce), NAME_cannotCreateInstances);
 
+#ifndef O_RUNTIME
   assign(pce, debugging,          OFF);
   assign(pce, trace, 	          NAME_never);
+#endif
   assign(pce, catched_errors,	  newObject(ClassChain, 0));
   assign(pce, catch_error_signals,OFF);
   assign(pce, print_c_stack,	  OFF);
@@ -148,7 +150,7 @@ getOsErrorPce(Pce pce)
 #endif /*HAVE_STRERROR*/
 }
 
-
+#ifndef O_RUNTIME
 static Chain
 getUnresolvedTypesPce(Pce pce)
 { Chain ch = answerObject(ClassChain, 0);
@@ -170,6 +172,7 @@ getUnresolvedTypesPce(Pce pce)
   
   answer(ch);
 }
+#endif /*O_RUNTIME*/
 
 
 static status
@@ -238,9 +241,22 @@ callExitMessagesPce(int stat, Pce pce)
 		*            DEBUGGING		*
 		********************************/
 
+static Bool
+getIsRuntimeSystemPce(Pce pce)
+{
+#ifdef O_RUNTIME
+  answer(ON);
+#else
+  answer(OFF);
+#endif
+}
+
+
+#ifndef O_RUNTIME
+
 static status
 debugSubjectPce(Pce pce, Name what)
-{ if ( memberChain(PCEdebugSubjects, what) != SUCCEED )
+{ if ( !memberChain(PCEdebugSubjects, what) )
     appendChain(PCEdebugSubjects, what);
 
   return debuggingPce(pce, ON);
@@ -289,6 +305,7 @@ printStackPce(Pce pce, Int depth, Bool all)
 
   succeed;
 }
+#endif /*O_RUNTIME*/
 
 
 static status
@@ -425,10 +442,13 @@ bannerPce(Pce pce)
 { Name host = get(HostObject(), NAME_system, 0);
 
 #ifdef __WINDOWS__
-  writef("PCE Release %s for %I%IMS-Windows %d.%d\n",
+  writef("PCE %s (%s for %I%IMS-Windows %d.%d)\n",
 #else
-  writef("PCE Release %s for %s-%s and X%dR%d\n",
+  writef("PCE %s (%s for %s-%s and X%dR%d)\n",
 #endif
+	 CtoString(getIsRuntimeSystemPce(pce) == ON
+		   	? "Runtime system"
+		        : "Development environment"),
 	 pce->version,
 	 pce->machine,
 	 pce->operating_system,
@@ -777,6 +797,7 @@ succeedPce(Pce pce)
 }
 
 
+#ifndef O_RUNTIME
 static status
 benchPce(Pce pce, Message msg, Int count, Name how)
 { int cnt = valInt(count);
@@ -821,14 +842,17 @@ benchPce(Pce pce, Message msg, Int count, Name how)
 
   succeed;
 }
-
+#endif /*O_RUNTIME*/
 
 status
 resetPce(Pce pce)
 { Any dm;
 
   if ( notNil(pce) )
-  { tracePce(pce, NAME_never);
+  {
+#ifndef O_RUNTIME
+    tracePce(pce, NAME_never);
+#endif
     clearChain(pce->catched_errors);
   }
 
@@ -952,10 +976,12 @@ status
 makeClassPce(Class class)
 { sourceClass(class, makeClassPce, __FILE__, "$Revision$");
 
+#ifndef O_RUNTIME
   localClass(class, NAME_debugging, NAME_debugging, "bool", NAME_get,
 	     "Add consistency checks");
   localClass(class, NAME_trace,NAME_debugging, "{never,user,always}", NAME_get,
 	     "Trace message passing");
+#endif
   localClass(class, NAME_lastError, NAME_exception, "name*", NAME_both,
 	     "Id of last occurred error");
   localClass(class, NAME_catchedErrors, NAME_exception, "chain", NAME_get,
@@ -976,8 +1002,7 @@ makeClassPce(Class class)
 	     "Version indication");
   localClass(class, NAME_machine, NAME_version, "name", NAME_get,
 	     "Name of this machine/architecture");
-  localClass(class, NAME_operatingSystem, NAME_version,
-	     "{sun_os,solaris,aix,linux,hpux,irix,ms-windows}", NAME_get,
+  localClass(class, NAME_operatingSystem, NAME_version, "name", NAME_get,
 	     "Name of operating system");
   localClass(class, NAME_xtVersion, NAME_version, "int", NAME_get,
 	     "Version of Xt library used to compile xpce");
@@ -989,11 +1014,14 @@ makeClassPce(Class class)
   cloneStyleClass(class, NAME_none);
 
   storeMethod(class, NAME_catchErrorSignals, catchErrorSignalsPce);
+#ifndef O_RUNTIME
   storeMethod(class, NAME_debugging, debuggingPce);
+#endif
 
   sendMethod(class, NAME_initialise, DEFAULT, 0,
 	     "Create @pce (done only once)",
 	     initialisePce);
+#ifndef O_RUNTIME
   sendMethod(class, NAME_trace, NAME_debugging, 1,
 	     "level=[{never,user,always}]",
 	     "Set trace mode (default = user)",
@@ -1002,15 +1030,16 @@ makeClassPce(Class class)
 	     "depth=[int]", "always=[bool]",
 	     "Print PCE message stack to host-window",
 	     printStackPce);
-  sendMethod(class, NAME_banner, NAME_initialise, 0,
-	     "Write standard banner to terminal",
-	     bannerPce);
   sendMethod(class, NAME_debugSubject, NAME_debugging, 1, "subject=name",
 	     "Report internal event on terminal",
 	     debugSubjectPce);
   sendMethod(class, NAME_nodebugSubject, NAME_debugging, 1, "subject=name",
 	     "Don't Report internal event on terminal",
 	     nodebugSubjectPce);
+#endif
+  sendMethod(class, NAME_banner, NAME_initialise, 0,
+	     "Write standard banner to terminal",
+	     bannerPce);
   sendMethod(class, NAME_die, NAME_quit, 1, "status=[int]",
 	     "Exit this (Unix) process with status",
 	     diePce);
@@ -1056,10 +1085,12 @@ makeClassPce(Class class)
 { extern listWastedCorePce(Pce pce, Bool ppcells);
   extern forNamePce(Pce pce, Code code);
 
+#ifndef O_RUNTIME
   sendMethod(class, NAME_listWastedCore, NAME_debugging, 1,
 	     "list_content=[bool]",
 	     "List wasted core map",
 	     listWastedCorePce);
+#endif
   sendMethod(class, NAME_forName, NAME_name, 1, "message=code",
 	     "Execute code on all defined names",
 	     forNamePce);
@@ -1070,11 +1101,13 @@ makeClassPce(Class class)
 	     "Specify language compatible syntax",
 	     syntaxPce);
 
+#ifndef O_RUNTIME
   sendMethod(class, NAME_bench, NAME_statistics, 3,
 	     "message=message", "times=int",
 	     "how={forward,execute,qad,send,invoke}",
 	     "Benchmark for message passing",
 	     benchPce);
+#endif
   sendMethod(class, NAME_fail, NAME_control, 0,
 	     "Simply fails",
 	     failPce);	
@@ -1176,21 +1209,26 @@ makeClassPce(Class class)
 	    "user=[name]",
 	    "Get information on user (from the passwd file)",
 	    getUserInfoPce);
+
+#ifndef O_RUNTIME
   getMethod(class, NAME_cSymbolFile, NAME_debugging, "path=name", 0,
 	    "Name of Unix format symbol-file",
 	    getCSymbolFilePce);
-
   getMethod(class, NAME_cFunctionName, NAME_debugging, "function=name", 1,
 	    "address=int",
 	    "Translate address into C-function name",
 	    getCFunctionNamePce);
-
   getMethod(class, NAME_unresolvedTypes, NAME_debugging, "chain", 0,
 	    "New chain with unresolved types",
 	    getUnresolvedTypesPce);
+#endif
+
   getMethod(class, NAME_maxGoalDepth, NAME_debugging, "int*", 0,
 	    "Maximum recursion level",
 	    getMaxGoalDepthPce);
+  getMethod(class, NAME_isRuntimeSystem, NAME_runtime, "bool", 0,
+	    "@on if this is the runtime library",
+	    getIsRuntimeSystemPce);
 
   PCE = globalObject(NAME_pce, ClassPce, 0);
   protectObject(PCE);
@@ -1232,12 +1270,14 @@ pceInitialise(int handles, int argc, char **argv)
   MaxGoalDepth = PCE_MAX_INT;
   initAnswerStack();
 
+#ifndef O_RUNTIME
   PCEdebugging = FALSE;
   if ( getenv("PCEDEBUGBOOT") != NULL )
   { PCEdebugBoot = TRUE;
     DEBUG_BOOT(printf("Debugging boot cycle\n"));
   } else
     PCEdebugBoot = FALSE;
+#endif
 
   PCE = NIL;
   pceReset();				/* reset important globals */
@@ -1405,7 +1445,9 @@ pceInitialise(int handles, int argc, char **argv)
   
   initGlobals();
   classTable		= globalObject(NAME_classes,       ClassHashTable, 0);
+#ifndef O_RUNTIME
   PCEdebugSubjects	= globalObject(NAME_DebugSubjects, ClassChain, 0);
+#endif
   initDebugger();
 
   TypeTable->class = ClassHashTable;

@@ -17,7 +17,7 @@
 #define pl_get2		pce_get2
 
 typedef term	Term;			/* generic Prolog term */
-typedef void (*OnExitFunction) P((int, void *));
+typedef void (*OnExitFunction)(int, void *);
 
 static atomic	ATOM_call;		/* call */
 static atomic	FUNCTOR_ref1;		/* @/1 */

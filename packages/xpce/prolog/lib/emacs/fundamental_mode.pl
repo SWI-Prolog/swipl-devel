@@ -12,11 +12,7 @@
 :- initialization ensure_loaded(library(pce_selection)).
 :- require([ manpce/0
 	   , between/3
-	   , editpce/1
 	   , ignore/1
-	   , manpce/1
-	   , pcedraw/1
-	   , show_key_bindings/1
 	   ]).
 
 
@@ -211,8 +207,7 @@ find_file(_M, File:file) :->
 	"Find file (other window)"::
 	get(File, name, Name),
 	(   send(Name, suffix, '.pd')
-	->  ensure_loaded(library(pcedraw)),
-	    pcedraw(Name)
+	->  auto_call(pcedraw(Name))
 	;   new(B, emacs_buffer(File)),
 	    send(B, open)
 	).

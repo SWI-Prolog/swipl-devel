@@ -114,8 +114,11 @@ auto_call(Goal) :-
 
 pce_reinitialise :-
 	pce_boot:pce_reinitialise,
-	format('~nFor HELP on prolog, please type help. or apropos(topic).~n'),
-	format('         on xpce, please type manpce.~n~n').
+	(   get(@(pce), is_runtime_system, @(off))
+	->  format('~nFor HELP on prolog, please type help. or apropos(topic).~n'),
+	    format('         on xpce, please type manpce.~n~n')
+	;   true
+	).
 
 
 		/********************************

@@ -11,7 +11,7 @@
 #include <h/text.h>		/* text_buffer */
 #include <gnu/gregex.h>
 
-forwards Int getRegisterStartRegex P((Regex, Int));
+forwards Int getRegisterStartRegex(Regex, Int);
 
 #define BYTEWIDTH 8
 #define FASTMAPSIZE (1<<BYTEWIDTH)

@@ -12,7 +12,7 @@
 #include "rclass.h"			/* provides RESOURCE_CLASS */
 					/* generated from Makefile */
 
-static status	backgroundDisplay P((DisplayObj, Colour));
+static status	backgroundDisplay(DisplayObj, Colour);
 static status	foregroundDisplay(DisplayObj d, Colour c);
 static void	attach_font_families(Class class);
 

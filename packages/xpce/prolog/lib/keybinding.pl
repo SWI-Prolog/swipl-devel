@@ -13,8 +13,10 @@
 :- use_module(library(pce)).
 :- require([ concat_atom/2
 	   , portray_object/2
+	   , send_list/3
 	   , term_to_atom/2
 	   ]).
+
 
 :- pce_global(@show_key_bindings_recogniser,
 	      make_show_key_bindings_recogniser).
@@ -31,11 +33,11 @@ make_show_key_bindings_recogniser(R) :-
 
 show_source(TextImage) :-
 	method(TextImage, Method),
-	editpce(Method).
+	auto_call(editpce(Method)).
 
 show_documentation(TextImage) :-
 	method(TextImage, Method),
-	manpce(Method).
+	auto_call(manpce(Method)).
 
 method(TextImage, Method) :-
 	get(TextImage, window, View),

@@ -10,7 +10,7 @@
 #include <h/kernel.h>
 #include <h/dialog.h>
 
-static status closePopup P((PopupObj));
+static status closePopup(PopupObj);
 
 static status
 initialisePopup(PopupObj p, Name label, Code msg)

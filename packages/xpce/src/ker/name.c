@@ -13,9 +13,9 @@
 
 #define BENCHNAMES 0			/* include benchmark code */
 
-static void	insertName P((Name));
-static void	deleteName P((Name));
-static Name	getLookupName P((Class, CharArray));
+static void	insertName(Name);
+static void	deleteName(Name);
+static Name	getLookupName(Class, CharArray);
 static status	registerName(Name n);
 
 

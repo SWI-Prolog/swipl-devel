@@ -13,7 +13,7 @@
 
 #define X_MARGIN    3			/* Space from the border */
 
-forwards Fragment scan_fragment_icons P((TextMargin, SendFunc, Name, Any));
+forwards Fragment scan_fragment_icons(TextMargin, SendFunc, Name, Any);
 
 static status
 initialiseTextMargin(TextMargin m, Editor e, Int w, Int h)

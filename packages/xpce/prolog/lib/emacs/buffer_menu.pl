@@ -10,6 +10,7 @@
 :- module(emacs_buffer_menu, []).
 :- use_module(library(pce)).
 :- require([ ignore/1
+	   , pce_help_file/2
 	   , send_list/3
 	   ]).
 
@@ -175,7 +176,7 @@ check_saved_at_exit(BM) :->
 	    ->	true
 	    ;	repeat,
 			send(@display, dispatch),
-			format('Dispatch running; discarding input~n'),
+			format('Dispatch running; discarding input~n', []),
 			get0(_),
 			fail
 	    )

@@ -132,6 +132,9 @@ angleInArc(Arc a, int angle)
   { start += size;
     size = -size;
   }
+  while(start < 0)
+    start += 360;
+  start = start % 360;
 
   if ( (angle >= start && angle <= start + size) ||
        (angle <  start && angle <= start + size - 360) )

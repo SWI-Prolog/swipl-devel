@@ -10,8 +10,8 @@
 #include <h/kernel.h>
 #include <h/graphics.h>
 
-static void	clipDevice P((Device, Area));
-static void	unclipDevice P((Device));
+static void	clipDevice(Device, Area);
+static void	unclipDevice(Device);
 static status	updateConnectionsDevice(Device dev, Int level);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

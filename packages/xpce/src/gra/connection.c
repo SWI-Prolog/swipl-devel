@@ -11,8 +11,8 @@
 #include <h/graphics.h>
 #include <math.h>
 
-forwards int	bestConnectionPoint P((Device, Name, int, int,
-				       Graphical, Handle *, int *, int *));
+forwards int	bestConnectionPoint(Device, Name, int, int,
+				    Graphical, Handle *, int *, int *);
 
 static status
 initialiseConnection(Connection c, Graphical from, Graphical to,

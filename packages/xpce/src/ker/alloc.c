@@ -9,7 +9,11 @@
 
 #include <h/kernel.h>
 #include <memory.h>
+#ifndef O_RUNTIME
 #define ALLOC_DEBUG 1
+#else
+#define ALLOC_DEBUG 0
+#endif
 #include "alloc.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -19,7 +23,7 @@ about  the same  relative numbers.    For  this reason  PCE addopts  a
 perfect fit strategy for memory allocation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static Zone allocate P((int));		/* forwards */
+static Zone allocate(int);		/* forwards */
 
 Any
 alloc(register int n)

@@ -26,7 +26,7 @@
 typedef void (*VoidFunc)();
 
 #if HOSTACTION
-typedef void (*OnExitFunction) P((int, void *));
+typedef void (*OnExitFunction)(int, void *);
 
 #if HAVE_atexit && !HAVE_on_exit
 #define HAVE_on_exit 1

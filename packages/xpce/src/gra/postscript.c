@@ -11,14 +11,14 @@
 #include <h/graphics.h>
 #include <h/unix.h>
 
-static void	initOutput P((void));
-static void	closeOutput P((void));
-static void	ps_put_string P((String));
-static int	postscriptImage P((Image));
-static int	header P((Any, Area, Bool));
-static int	macros P((void));
-static int	footer P((void));
-static status	fill P((Any, Name));
+static void	initOutput(void);
+static void	closeOutput(void);
+static void	ps_put_string(String);
+static int	postscriptImage(Image);
+static int	header(Any, Area, Bool);
+static int	macros(void);
+static int	footer(void);
+static status	fill(Any, Name);
 static status	paintPostscriptArrow(Arrow a, Int x1, Int y1, Int x2, Int y2);
 
 struct

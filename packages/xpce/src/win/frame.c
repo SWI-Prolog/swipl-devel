@@ -11,11 +11,10 @@
 #include <h/graphics.h>
 #include <unistd.h>
 
-TileObj		getTileFrame P((FrameObj));
-forwards int	get_position_from_center_frame P((FrameObj, Point,
-						  int *, int *));
-static void	ensure_on_display P((FrameObj, int *, int *));
-static status	closedFrame P((FrameObj, Bool));
+TileObj		getTileFrame(FrameObj);
+forwards int	get_position_from_center_frame(FrameObj, Point, int *, int *);
+static void	ensure_on_display(FrameObj, int *, int *);
+static status	closedFrame(FrameObj, Bool);
 static status	openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise);
 static status	doneMessageFrame(FrameObj fr, Code msg);
 static status	geometryFrame(FrameObj fr, Name spec);
@@ -228,7 +227,7 @@ resizeFrame(FrameObj fr)
 { Area a = fr->area;
   TileObj t = getTileFrame(fr);
 
-  if ( t != FAIL )
+  if ( t )
     send(t, NAME_set, ZERO, ZERO, a->w, a->h, 0);
 
   succeed;

@@ -13,7 +13,7 @@
 
 static EventTreeObj  EventTree;		/* tree of event types */
 
-forwards void		init_event_tree P((void));
+forwards void init_event_tree(void);
 
 extern EventNodeObj getNodeEventTree(EventTreeObj t, Any value);
 

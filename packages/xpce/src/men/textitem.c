@@ -11,13 +11,13 @@
 #include <h/dialog.h>
 #include <h/text.h>
 
-static Any	getSelectionTextItem P((TextItem));
-static Type	getSelectionTypeTextItem P((TextItem));
-static Bool	getModifiedTextItem P((TextItem));
-static Any	getDefaultTextItem P((TextItem));
-static void	compute_label_text_item P((TextItem, int *, int *));
-static status	applyTextItem P((TextItem, Bool));
-static status	WantsKeyboardFocusTextItem P((TextItem));
+static Any	getSelectionTextItem(TextItem);
+static Type	getSelectionTypeTextItem(TextItem);
+static Bool	getModifiedTextItem(TextItem);
+static Any	getDefaultTextItem(TextItem);
+static void	compute_label_text_item(TextItem, int *, int *);
+static status	applyTextItem(TextItem, Bool);
+static status	WantsKeyboardFocusTextItem(TextItem);
 static status	restoreTextItem(TextItem ti);
 static status	selectionTextItem(TextItem ti, Any selection);
 static status	resetTextItem(TextItem ti);

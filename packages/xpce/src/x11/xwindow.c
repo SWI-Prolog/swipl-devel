@@ -80,6 +80,11 @@ ws_create_window(PceWindow sw, PceWindow parent)
     Cardinal n = 0;
     int pen = valInt(sw->pen);
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Actually, it appears Xt is ignoring the geometry parameters.  Hence, 
+ws_realise_frame() sends ->geometry to all windows.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
     XtSetArg(args[n], XtNx,	      valInt(sw->area->x)); n++;
     XtSetArg(args[n], XtNy,	      valInt(sw->area->y)); n++;
     XtSetArg(args[n], XtNwidth,       valInt(sw->area->w) - 2*pen); n++;

@@ -10,9 +10,9 @@
 #include <h/kernel.h>
 #include <h/graphics.h>
 
-static status	initOffsetText P((TextObj, int));
-static status	initPositionText P((TextObj));
-static status	initAreaText P((TextObj));
+static status	initOffsetText(TextObj, int);
+static status	initPositionText(TextObj);
+static status	initAreaText(TextObj);
 static status	recomputeText(TextObj t, Name what);
 static status	get_char_pos_text(TextObj t, Int chr, int *X, int *Y);
 static status	prepareEditText(TextObj t);

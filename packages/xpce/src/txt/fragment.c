@@ -11,8 +11,8 @@
 #include <h/text.h>
 #include <h/unix.h>
 
-static int	unlink_fragment P((Fragment));
-static int	link_fragment P((Fragment));
+static int	unlink_fragment(Fragment);
+static int	link_fragment(Fragment);
 static status	normaliseFragment(Fragment f);
 
 #define normalize_tb(tb, index) \

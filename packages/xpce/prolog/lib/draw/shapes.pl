@@ -14,8 +14,9 @@
 
 :- use_module(library(pce)).
 :- use_module(library('dialog/lib/template')).
-:- require([ ignore/1
-	   , memberchk/2
+:- require([ forall/2
+	   , ignore/1
+	   , member/2
 	   ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -26,7 +26,9 @@ createMethod(Method m, Name name, Vector types, StringObj doc, Func action)
   m->function    = action;
   m->summary	 = NIL;
   m->context     = NIL;
+#ifndef O_RUNTIME
   m->source	 = NIL;
+#endif
   m->dflags      = (ulong) ZERO;
 
   initialiseMethod(m, name, types, NIL, doc, NIL, DEFAULT);
@@ -50,7 +52,9 @@ initialiseMethod(Method m, Name name, Vector types, Code msg, StringObj doc, Sou
   assign(m, group,   group);
   assign(m, message, msg);
   assign(m, summary, doc);
+#ifndef O_RUNTIME
   assign(m, source,  loc);
+#endif
 
   return typesMethod(m, types);
 }
@@ -72,6 +76,19 @@ loadMethod(Method m, FILE *fd, ClassDef def)
   m->function = (Func) loadWord(fd);;
 
   succeed;
+}
+
+
+static Method
+getInstantiateTemplateMethod(Method m)
+{ Method m2 = getCloneObject(m);
+
+  if ( m2 )
+  { setFlag(m2, F_TEMPLATE_METHOD);
+    assign(m2, context, NIL);
+  }
+
+  answer(m2);
 }
 
 
@@ -346,6 +363,7 @@ invokeMethod(Method m, Name c, Any receiver, int argc, const Any argv[])
 		*            TRACING		*
 		********************************/
 
+#ifndef O_RUNTIME
 static void
 traceMethod(Method m, Goal g, Name port)
 { Vector args;
@@ -380,6 +398,7 @@ printTraceMessageMethod(Method m, Name port, Any rec, Vector args)
 
   succeed;
 }
+#endif /*O_RUNTIME*/
 
 
 Method
@@ -465,6 +484,7 @@ getAccessArrowMethod(Method m)
 }
 
 
+#ifndef O_RUNTIME
 static Name
 getManIdMethod(Method m)
 { char buf[LINESIZE];
@@ -531,6 +551,15 @@ getManSummaryMethod(Method m)
   answer(CtoString(buf));
 }
 
+#else
+
+static status
+rtSourceMethod(Method m, SourceLocation src)
+{ succeed;
+}
+
+#endif /*O_RUNTIME*/
+
 
 Method
 getMethodFromFunction(Any f)
@@ -579,8 +608,10 @@ makeClassMethod(Class class)
 	     "Argument type specification");
   localClass(class, NAME_summary, NAME_manual, "string*", NAME_get,
 	     "Summary documentation");
+#ifndef O_RUNTIME
   localClass(class, NAME_source, NAME_manual, "source_location*", NAME_both,
 	     "Location of definition in the sources");
+#endif
   localClass(class, NAME_message, NAME_implementation, "code*", NAME_both,
 	     "If implemented in PCE: the code object");
   localClass(class, NAME_function, NAME_implementation, "alien:Func", NAME_none,
@@ -590,6 +621,11 @@ makeClassMethod(Class class)
 	    5, NAME_name, NAME_types, NAME_message, NAME_summary, NAME_source);
   setLoadStoreFunctionClass(class, loadMethod, storeFdMethod);
   setTraceFunctionClass(class, traceMethod);
+					/* for efficient sharing of templates */
+  cloneStyleVariableClass(class, NAME_types, NAME_reference);
+  cloneStyleVariableClass(class, NAME_summary, NAME_reference);
+  cloneStyleVariableClass(class, NAME_source, NAME_reference);
+  cloneStyleVariableClass(class, NAME_message, NAME_reference);
 
   sendMethod(class, NAME_initialise, DEFAULT, 6,
 	     "name=name", "types=[vector]", "implementation=code",
@@ -599,10 +635,17 @@ makeClassMethod(Class class)
   sendMethod(class, NAME_types, NAME_type, 1, "[vector]",
 	     "Set type-check",
 	     typesMethod);
+#ifndef O_RUNTIME
   sendMethod(class, NAME_printTraceMessage, NAME_debugging, 3,
-	     "port={enter,exit,fail}*", "receiver=unchecked", "arguments=vector",
+	     "port={enter,exit,fail}*",
+	     "receiver=unchecked", "arguments=vector",
 	     "Print standard trace message",
 	     printTraceMessageMethod);
+#else /*O_RUNTIME*/
+  sendMethod(class, NAME_source, NAME_runtime, 1, "source_location*",
+	     "Dummy method",
+	     rtSourceMethod);
+#endif /*O_RUNTIME*/
 
   getMethod(class, NAME_argumentType, NAME_meta, "type", 1, "int",
 	    "Get type for nth-1 argument",
@@ -610,18 +653,20 @@ makeClassMethod(Class class)
   getMethod(class, NAME_argumentCount, NAME_meta, "int", 0,
 	    "Minimum number of arguments required",
 	    getArgumentCountMethod);
+#ifndef O_RUNTIME
   getMethod(class, NAME_manIndicator, NAME_manual, "name", 0,
 	    "Manual type indicator (`M')",
 	    getManIndicatorMethod);
   getMethod(class, NAME_manId, NAME_manual, "name", 0,
 	    "Card Id for method",
 	    getManIdMethod);
-  getMethod(class, NAME_printName, NAME_textual, "name", 0,
-	    "Class <->Selector",
-	    getPrintNameMethod);
   getMethod(class, NAME_manSummary, NAME_manual, "string", 0,
 	    "New string with documentation summary",
 	    getManSummaryMethod);
+#endif /*O_RUNTIME*/
+  getMethod(class, NAME_printName, NAME_textual, "name", 0,
+	    "Class <->Selector",
+	    getPrintNameMethod);
   getMethod(class, NAME_accessArrow, NAME_manual, "{<-,->}", 0,
 	    "Arrow indicating send- or get-access",
 	    getAccessArrowMethod);
@@ -631,6 +676,9 @@ makeClassMethod(Class class)
   getMethod(class, NAME_inheritedFrom, NAME_meta, "method", 0,
 	    "Method I'm a refinement of",
 	    getInheritedFromMethod);
+  getMethod(class, NAME_instantiateTemplate, NAME_template, "method", 0,
+	    "Instantiate a method for use_class_template/1",
+	    getInstantiateTemplateMethod);
 
   succeed;
 }

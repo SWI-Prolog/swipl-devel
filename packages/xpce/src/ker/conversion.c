@@ -213,14 +213,16 @@ int sig;
 
 char *
 pcePP(Any obj)
-{ int old = PCEdebugging;
-  char *s;
-  SIGNAL_HANDLER_TYPE (*old_segv)() = signal(SIGSEGV, pp_sig);
+{ char *s;
+  RETSIGTYPE (*old_segv)() = signal(SIGSEGV, pp_sig);
 #ifdef SIGBUS
-  SIGNAL_HANDLER_TYPE (*old_bus)() = signal(SIGBUS, pp_sig);
+  RETSIGTYPE (*old_bus)() = signal(SIGBUS, pp_sig);
 #endif
+#ifndef O_RUNTIME
+  int old = PCEdebugging;
 
   PCEdebugging = FALSE;
+#endif
 
   if ( setjmp(pp_env) == 0 )
   { s = do_pp(obj);
@@ -230,7 +232,9 @@ pcePP(Any obj)
     s = save_string(tmp);
   }
 
+#ifndef O_RUNTIME
   PCEdebugging = old;
+#endif
 
   signal(SIGSEGV, old_segv);
 #ifdef SIGBUS

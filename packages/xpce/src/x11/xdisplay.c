@@ -584,10 +584,9 @@ static void
 loose_selection_widget(Widget w, Atom *selection)
 { DisplayObj d = widgetToDisplay(w);
 
-  Name which = atomToSelectionName(d, *selection);
-
   DEBUG(NAME_selection,
-	printf("%s: Loosing %s selection", pp(d), pp(which)));
+	printf("%s: Loosing %s selection",
+	       pp(d), pp(atomToSelectionName(d, *selection))));
     
   if ( d )
     looseSelectionDisplay(d, atomToSelectionName(d, *selection));

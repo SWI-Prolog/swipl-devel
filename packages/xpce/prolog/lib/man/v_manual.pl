@@ -105,6 +105,13 @@ variable(exit_message,		code*,		get,
 initialise(M, Dir:[directory]) :->
 	"Create the manual main object"::
 	send(M, send_super, initialise, 'PCE Manual'),
+	(   get(@pce, is_runtime_system, @on)
+	->  send(@display, inform,
+		 '%s\n%s',
+		 'This is a runtime version of XPCE.  Most of the manual will not work.',
+		 'Contact xpce-request@swi.psy.uva.nl for a information on the development version')
+	;   true
+	),
 	default(Dir, directory('$PCEHOME/man/reference'), Directory),
 	send(M, check_directory, Directory),
 	send(M, slot, space, new(Space, man_space(reference, Directory))),
@@ -217,11 +224,6 @@ fill_dialog(D) :-
 	     , menu_item(keywords,	    @default, @default, @off)
 	     , menu_item(group_overview,    @default, @default, @off)
 	     , menu_item(examples,	    @default, @default, @on)
-/*
-	     , menu_item(topics,            @default, @default, @on)
-	     , menu_item(changes,	    @default, @default, @off)
-	     , menu_item(bug_fixes,   	    @default, @default, @on)
-*/
 	     ]),
 	(    get(M, maintainer, @on)
 	->   send_list(V, append,

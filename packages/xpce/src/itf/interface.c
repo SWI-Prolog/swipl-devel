@@ -390,25 +390,36 @@ pceReset(void)
 
 void
 pceTrace(int on)
-{ tracePce(PCE, on ? NAME_user : NAME_never);
+{
+#ifndef O_RUNTIME
+  tracePce(PCE, on ? NAME_user : NAME_never);
+#endif
 }
 
 
 void
 pceTraceBack(int depth)
-{ traceBackPce(toInt(depth), NAME_always);
+{
+#ifndef O_RUNTIME
+  traceBackPce(toInt(depth), NAME_always);
+#endif
 }
 
 
 void
 pceWriteCurrentGoal(void)
-{ writeGoal(CurrentGoal, NIL);
+{
+#ifndef O_RUNTIME
+  writeGoal(CurrentGoal, NIL);
+#endif
 }
 
 
 void
 pceWriteErrorGoal(void)
-{ Goal g = CurrentGoal;
+{
+#ifndef O_RUNTIME
+  Goal g = CurrentGoal;
 
   while(g && offGFlag(g, G_EXCEPTION))
     g = g->parent;
@@ -417,4 +428,5 @@ pceWriteErrorGoal(void)
     writeGoal(g, NIL);
   else
     writef("\t<No exception goal>\n");
+#endif
 }

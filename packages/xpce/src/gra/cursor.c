@@ -10,7 +10,7 @@
 #include <h/kernel.h>
 #include <h/graphics.h>
 
-forwards status XcloseCursor P((CursorObj, DisplayObj));
+forwards status XcloseCursor(CursorObj, DisplayObj);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Creating cursors.

@@ -28,8 +28,8 @@ string to be used with XCreateBitmapFromData().  Functions provided:
 unsigned char *read_bitmap_data(FILE *fd, int *w, int *h)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static unsigned char *read_x11_bitmap_file P((FILE *, int *, int *));
-static unsigned char *read_sun_icon_file P((FILE *, int *, int *));
+static unsigned char *read_x11_bitmap_file(FILE *, int *, int *);
+static unsigned char *read_sun_icon_file(FILE *, int *, int *);
 #if O_CONVERT_SUNVIEW_IMAGES
 static unsigned char *read_sun_image_file(FILE *fd, int *width, int *height);
 #include <pixrect/pixrect.h>

@@ -65,6 +65,7 @@ catchErrorSignals(Bool yes)
   hostAction(HOST_SIGNAL, SIGFPE,  handler);
 }
 
+#ifndef O_RUNTIME
 #if defined(sun) && defined(HAVE_FRAME_H)
 
 static int	printFrame(long pc, int an, long *av, long sigpc);
@@ -216,6 +217,16 @@ int depth, sigpc;
 { printf("Cannot print stack on this machine\n");
 }
 
+#endif /*sun*/
+
+#else /*O_RUNTIME*/
+
+static void
+_pcePrintStack(depth, sigpc)
+int depth, sigpc;
+{ printf("Runtime system does not support traceback\n");
+}
+
 #endif
 
 void
@@ -223,6 +234,8 @@ pcePrintStack(int depth)
 { _pcePrintStack(depth, 0);
 }
 
+
+#ifndef O_RUNTIME
 
 status
 confirmTerminal(char *question, char *def)
@@ -242,3 +255,5 @@ confirmTerminal(char *question, char *def)
 		return confirmTerminal(question, def);
   }
 }
+
+#endif /*O_RUNTIME*/

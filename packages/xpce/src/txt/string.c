@@ -10,7 +10,7 @@
 #include <h/kernel.h>
 #include <h/unix.h>
 
-static status	appendString P((StringObj, CharArray));
+static status	appendString(StringObj, CharArray);
 static status	setString(StringObj str, String s);
 static status	CsetString(StringObj str, char *txt);
 

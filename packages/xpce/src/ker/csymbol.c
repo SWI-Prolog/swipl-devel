@@ -8,6 +8,8 @@
 */
 
 #include <h/kernel.h>
+
+#ifndef O_RUNTIME
 #include <h/interface.h>
 
 typedef struct
@@ -111,7 +113,7 @@ initCSymbolsPce(Pce pce)
 	  if ( streq(&name[1], "initCSymbolsPce") )
 	  { offset = (long) initCSymbolsPce - value;
 	    if ( offset )
-	      DEBUG(NAME_cSymbols, printf("\toffset = %ld\n", offset))
+	      DEBUG(NAME_cSymbols, printf("\toffset = %ld\n", offset));
 	  }
 	}
       }
@@ -178,3 +180,4 @@ getCFunctionNamePce(Pce pce, Int address)
   fail;
 }
 
+#endif /*O_RUNTIME*/

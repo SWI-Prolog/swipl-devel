@@ -140,9 +140,9 @@ typedef struct text_screen	* TextScreen;
 typedef struct text_char	* TextChar;
 typedef struct text_line	* TextLine;
 
-typedef void (*SeekFunction) P((Any, long));
-typedef long (*ScanFunction) P((Any, long, int, int, int, int *));
-typedef long (*FetchFunction) P((Any, TextChar));
+typedef void (*SeekFunction)(Any, long);
+typedef long (*ScanFunction)(Any, long, int, int, int, int *);
+typedef long (*FetchFunction)(Any, TextChar);
 
 struct text_char
 { int		c;			/* The character at this position */

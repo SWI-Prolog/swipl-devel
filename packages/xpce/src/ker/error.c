@@ -67,6 +67,7 @@ displayError(Error e, int argc, Any *argv)
     if ( swritefv(buf, (CharArray) e->format, argc, argv) )
       hostAction(HOST_WRITE, buf);
 
+#ifndef O_RUNTIME
     if ( e->kind == NAME_fatal ||
 	 (e->feedback == NAME_print &&
 	  e->kind != NAME_inform &&
@@ -78,6 +79,7 @@ displayError(Error e, int argc, Any *argv)
       writef("%c", toInt(07));		/* ^G: ASCII bell */
       tracePce(PCE, NAME_user);
     }
+#endif
 
     writef("]\n");
   }
@@ -392,8 +394,13 @@ static struct error_def errors[] =
     "%N: Illegal selector: %O" },
   { NAME_freedObject,		0,
     "%N: Freed object: %O" },
+#ifndef O_RUNTIME
   { NAME_noBehaviour,		ET_WARNING,
     "%N: No implementation for: %O %s%s" },
+#else
+  { NAME_noBehaviour,		ET_WARNING,
+    "%N: Failed on not-implemented method" },
+#endif /*O_RUNTIME*/
   { NAME_noTextBehaviour,	ET_WARNING,
     "%O: No implementation for interactive function: ->%s" },
   { NAME_noClass,		0,
@@ -547,6 +554,9 @@ static struct error_def errors[] =
     "%O: operation not supported on 16-bit strings" },
   { NAME_formatBufferOverFlow,  ET_FATAL,
     "%O: format buffer overflow (size = %d)" },
+  { NAME_runtimeVersion,	0,
+    "%N: operation not supported in runtime system"
+  },
 
 #ifdef __WINDOWS__
 					/* MS-Windows errors */
@@ -576,10 +586,14 @@ initErrorDatabase(HashTable db)
       case ET_IGNORED:	kind = NAME_ignored;	break;
     }
 
+#ifndef O_RUNTIME
     switch(err->flags & EF_MASK)
     { case EF_REPORT:	feedback = NAME_report;	break;
       case EF_PRINT:	feedback = NAME_print;	break;
     }
+#else
+    feedback = NAME_report;
+#endif /*O_RUNTIME*/
 
     e = newObject(ClassError, err->id, CtoString(err->format),
 		  kind, feedback, 0);
@@ -633,9 +647,12 @@ _errorPce(Any obj, Name id, va_list args)
     { Mode(MODE_SYSTEM, sendv(obj, isFunction(obj) ? NAME_Error : NAME_error,
 			      argc, argv));
       if ( e->kind == NAME_fatal )
-      { traceBackPce(toInt(20), NAME_always);
+      {
+#ifndef O_RUNTIME
+	traceBackPce(toInt(20), NAME_always);
 	if ( PCE->print_c_stack == ON )
 	  pcePrintStack(20);
+#endif
 	hostAction(HOST_RECOVER_FROM_FATAL_ERROR);
 	hostAction(HOST_HALT);
 	exit(1);

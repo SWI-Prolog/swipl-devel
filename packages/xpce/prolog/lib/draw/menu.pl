@@ -268,7 +268,7 @@ initialise(I, Proto:'graphical|link*', Mode:name, Cursor:cursor) :->
 
 can_delete(I) :->
 	"Can I delete this icon?"::
-	get(I, mode, create_proto).
+	get(I, mode, draw_proto).
 
 
 		/********************************

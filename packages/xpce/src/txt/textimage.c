@@ -71,9 +71,9 @@ been changed, so we can forward this to the device's update algorithm.
 #define END_NL	 (8)			/* Line ends due to newline */
 
 
-forwards long	do_fill_line P((TextImage, TextLine, long));
+forwards long	do_fill_line(TextImage, TextLine, long);
 static TextLine line_from_y(TextImage ti, int y);
-forwards status reinitTextImage P((TextImage ti));
+forwards status reinitTextImage(TextImage ti);
 static int	char_from_x(TextLine tl, int x);
 static void	copy_line_attributes(TextLine from, TextLine to);
 static void	copy_line_chars(TextLine from, int start, TextLine to);

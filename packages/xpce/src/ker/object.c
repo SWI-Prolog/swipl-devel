@@ -12,7 +12,7 @@
 #include <h/graphics.h>
 #include <h/interface.h>
 
-static int	check_object P((Any, Bool, HashTable, int));
+static int	check_object(Any, Bool, HashTable, int);
 static status	makeTempObject(Any obj);
 static status	unlinkObject(Any obj);
 
@@ -590,6 +590,7 @@ getLockObject(Any obj)
 }
 
 
+#ifndef O_RUNTIME
 status
 inspectObject(Any obj, Bool val)
 { if ( val == ON )
@@ -606,6 +607,7 @@ Bool
 getInspectObject(Any obj)
 { answer(onFlag(obj, F_INSPECT) ? ON : OFF);
 }
+#endif /*O_RUNTIME*/
 
 
 Name
@@ -2364,9 +2366,11 @@ makeClassObject(Class class)
   sendMethod(class, NAME_protect, NAME_oms, 0,
 	     "Lock object for destruction with ->free",
 	     protectObject);
+#ifndef O_RUNTIME
   sendMethod(class, NAME_inspect, NAME_debugging, 1, "bool",
 	     "Forward changes via classes' changed_messages",
 	     inspectObject);
+#endif
   sendMethod(class, NAME_nameReference, NAME_reference, 1, "name*",
 	     "Change named (atomic) reference",
 	     nameReferenceObject);
@@ -2425,9 +2429,11 @@ makeClassObject(Class class)
 	     "format=[char_array]", "argument=any ...",
 	     "Report message (send to @event <-receiver)",
 	     reportObject);
+#ifndef O_RUNTIME
   sendMethod(class, NAME_Check, NAME_debugging, 1, "recursive=[bool]",
 	     "Check types for all instance-variables of object",
 	     CheckObject);
+#endif
   sendMethod(class, NAME_obtainResources, NAME_resource, 0,
 	     "Obtain resources for @default-valued slots",
 	     obtainResourcesObject);
@@ -2470,9 +2476,11 @@ makeClassObject(Class class)
   getMethod(class, NAME_protect, NAME_oms, "bool", 0,
 	    "Boolean to indicate locked for ->free",
 	    getProtectObject);
+#ifndef O_RUNTIME
   getMethod(class, NAME_inspect, NAME_debugging, "bool", 0,
 	    "Boolean to indicate changes forwarding",
 	    getInspectObject);
+#endif
   getMethod(class, NAME_objectReference, NAME_reference, "name|int", 0,
 	    "Name of the object (e.g. @pce)",
 	    getObjectReferenceObject);
@@ -2551,9 +2559,11 @@ makeClassObject(Class class)
   sendMethod(class, NAME_Free, NAME_function, 0,
 	     "Equivalent to ->free",
 	     freeObject);
+#ifndef O_RUNTIME
   sendMethod(class, NAME_Inspect, NAME_function, 1, "bool",
 	     "Equivalent to ->inspect",
 	     inspectObject);
+#endif
   sendMethod(class, NAME_InstanceOf, NAME_function, 1, "class",
 	     "Equivalent to ->instance_of",
 	     instanceOfObject);
@@ -2573,19 +2583,22 @@ makeClassObject(Class class)
   getMethod(class, NAME_References, NAME_function, "int", 0,
 	    "Equivalent to <-references",
 	    getReferencesObject);
+
+#ifndef O_RUNTIME
   getMethod(class, NAME_Inspect, NAME_function, "bool", 0,
 	    "Equivalent to <-inspect",
 	    getInspectObject);
   getMethod(class, NAME_ManId, NAME_function, "name", 0,
 	    "Equivalent to <-man_id",
 	    getManIdObject);
-
   getMethod(class, NAME_manId, NAME_manual, "name", 0,
 	    "Card Id for global object",
 	    getManIdObject);
   getMethod(class, NAME_manIndicator, NAME_manual, "name", 0,
 	    "Manual type indicator (`O')",
 	    getManIndicatorObject);
+#endif /*O_RUNTIME*/
+
   getMethod(class, NAME_resourceValue, NAME_resource, "any", 1, "name",
 	    "Get value of associated resource",
 	    getResourceValueObject);

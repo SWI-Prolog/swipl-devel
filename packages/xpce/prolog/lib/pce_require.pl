@@ -15,9 +15,8 @@
 	  ]).
 
 :- use_module(library(pce)).
-:- consult('xref/quintus.def').		% built-in's
-:- require([ append/3
-	   , built_in/1
+:- require([ '$warning'/2
+	   , append/3
 	   , call_emacs/2
 	   , concat_atom/2
 	   , exists_file/1
@@ -26,14 +25,15 @@
 	   , ignore/1
 	   , member/2
 	   , sformat/3
-	   , source_warning/2
 	   ]).
 
+target_prolog(quintus).
+:- consult('xref/quintus.def').		% built-in's
 
 :- dynamic
 	called/1,			% called head
 	defined/1,			% defined head
-	compiling/1,			% classname
+	compiling_class/1,			% classname
 	output_to/2,			% output is emacs buffer
 	current_require_declaration/1.	% Current declaration
 
@@ -77,7 +77,7 @@ pce_require_all(Pattern) :-
 clean :-
 	retractall(called(_)),
 	retractall(defined(_)),
-	retractall(compiling(_)),
+	retractall(compiling_class(_)),
 	retractall(current_require_declaration(_)).
 	
 
@@ -96,7 +96,7 @@ collect(File) :-
 process((:- Directive)) :- !,
 	process_directive(Directive), !.
 process(PceClassTerm) :-
-	compiling,
+	compiling_class,
 	process_pce(PceClassTerm), !.
 process((Head :- Body)) :- !,
 	assert_defined(Head),
@@ -133,21 +133,33 @@ process_directive(emacs_end_mode) :-
 	process_directive(pce_end_class),
 	process_body(emacs_end_mode).
 
+						  % BEGIN/END PceDraw shape
+process_directive(draw_begin_shape(Class, Super, Summ, Recs)) :-
+	process_directive(pce_begin_class(Class, Super, Summ)),
+	process_body(draw_begin_shape(Class, Super, Summ, Recs)).
+process_directive(draw_end_shape) :-
+	process_directive(pce_end_class),
+	process_body(draw_end_shape).
+
 						  % BEGIN/END class
 process_directive(pce_begin_class(Class, Super)) :-
 	process_directive(pce_begin_class(Class, Super, "")).
 process_directive(pce_begin_class(Class, _, _)) :-
 	functor(Class, ClassName, _),
-	asserta(compiling(ClassName)),
+	asserta(compiling_class(ClassName)),
 	pce_compile:push_compile_operators.
 process_directive(pce_extend_class(ClassName)) :-
-	asserta(compiling(ClassName)),
+	asserta(compiling_class(ClassName)),
 	pce_compile:push_compile_operators.
 process_directive(pce_end_class) :-
-	retractall(compiling(_)),
+	retractall(compiling_class(_)),
 	pce_compile:pop_compile_operators.
 process_directive(op(P, A, N)) :-
 	op(P, A, N).			% should be local ...
+process_directive(pce_compile:push_compile_operators) :-
+	pce_compile:push_compile_operators.
+process_directive(pce_compile:pop_compile_operators) :-
+	pce_compile:pop_compile_operators.
 process_directive(Goal) :-
 	process_body(Goal).
 
@@ -282,6 +294,7 @@ assert_defined(Goal) :-
 assert_defined(Goal) :-
 	functor(Goal, Name, Arity),
 	functor(Term, Name, Arity),
+	check_system_predicate(Term),
 	asserta(defined(Term)).
 
 assert_import([]) :- !.
@@ -306,6 +319,19 @@ assert_current_require_declaration([Name/Arity|Rest]) :-
 	assert(current_require_declaration(Head)),
 	assert_current_require_declaration(Rest).
 				   
+check_system_predicate(Head) :-
+	built_in(Head), !,
+	functor(Head, Name, Arity),
+	target_prolog(Prolog),
+	source_warning('Redefined ~w system predicate: ~w/~d',
+		       [Prolog, Name, Arity]).
+check_system_predicate(Head) :-
+	predicate_property(system:Head, built_in), !,
+	functor(Head, Name, Arity),
+	Prolog = 'SWI-Prolog',
+	source_warning('Redefined ~w system predicate: ~w/~d',
+		       [Prolog, Name, Arity]).
+check_system_predicate(_).
 
 		/********************************
 		*             REPORT		*
@@ -343,11 +369,11 @@ report_undefined([H|T]) :-
 		*            UTILITIES		*
 		********************************/
 
-%	compiling/0
-%	Succeeds if we are compiling some PCE class
+%	compiling_class/0
+%	Succeeds if we are compiling_class some PCE class
 
-compiling :-
-	compiling(_).
+compiling_class :-
+	compiling_class(_).
 	
 
 %	find_source_file(+Spec, -File)
@@ -413,3 +439,6 @@ output_compatibility(Fmt) :-
 	output_compatibility(Fmt, []).
 output_compatibility(Fmt, Args) :-
 	source_warning(Fmt, Args).
+
+source_warning(Fmt, Args) :-
+	'$warning'(Fmt, Args).

@@ -16,8 +16,8 @@
 #include <Xm/Xm.h>
 #endif
 
-static void	xEventFrame P((Widget, FrameObj, XEvent *));
-static void	destroyFrame P((Widget, FrameObj, XtPointer));
+static void	xEventFrame(Widget, FrameObj, XEvent *);
+static void	destroyFrame(Widget, FrameObj, XtPointer);
 static status   updateAreaFrame(FrameObj fr);
 
 #define MainWindow(fr)	     ( isNil(fr->members->head) ? (Any) fr : \
@@ -169,6 +169,9 @@ ws_realise_frame(FrameObj fr)
 
   XtManageChildren(children, n);
   XtRealizeWidget(w);
+
+  for_cell(cell, fr->members)
+    send(cell->value, NAME_geometry, 0); /* see note at ws_create_window */
 
   if ( notNil(fr->transient_for) )
   { XSetTransientForHint(r->display_xref,

@@ -72,7 +72,7 @@ ARFLAGS=ru
 ETAGS=etags
 SED=sed
 
-VERSION=4.8.2, October 1994
+VERSION=4.8.3, Nov 1994
 ARCH=sparc
 OS=sunos4.1.3
 RESOURCE_CLASS=Pce
@@ -157,5 +157,8 @@ clean:
 
 realclean:
 	for d in src pl/src; do (cd $$d; $(MAKE) realclean); done
-	rm -f config.log config.cache
+	rm -f bin/xpce bin/xpce-client bin/xpce-sicstus bin/xpce.base
+	rm -f config.log config.cache Pce
+
+distclean:	realclean
 

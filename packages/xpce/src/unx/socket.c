@@ -39,7 +39,7 @@ extern int connect(int s, struct sockaddr *name, int namelen);
 
 #define MAX_UN_ADDRESS_LEN (sizeof(struct sockaddr_un) - sizeof(short))
 
-static status	closeSocket P((Socket));
+static status	closeSocket(Socket);
 
 #define OsError() getOsErrorPce(PCE)
 

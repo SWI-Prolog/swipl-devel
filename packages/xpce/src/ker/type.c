@@ -15,8 +15,8 @@
 
 #define MAX_TYPE_TRANSLATE_NESTING 10
 
-static status	failType P((Type, Any, Any));
-static Any	getFailType P((Type, Any, Any));
+static status	failType(Type, Any, Any);
+static Any	getFailType(Type, Any, Any);
 static status	kindType(Type t, Name kind);
 
 status
@@ -360,10 +360,12 @@ out:
 }
 
 
+#ifndef O_RUNTIME
 static void
 traceType(Type t, Goal g, Name port)
 { writef("Convert %O to %N", g->receiver, t);
 }
+#endif
 
 
 Any
@@ -920,9 +922,9 @@ typedef struct
 } tmp_string, *TmpString;
 
 
-forwards void	strip_string P((TmpString));
-forwards void	init_string P((TmpString, String));
-forwards int	suffix_string P((TmpString, char *));
+forwards void	strip_string(TmpString);
+forwards void	init_string(TmpString, String);
+forwards int	suffix_string(TmpString, char *);
 
 static void
 strip_string(TmpString s)

@@ -27,7 +27,7 @@ NewClass(tokeniser)
   int		caret;			/* current location */
 End;
 
-static status	closeTokeniser P((Tokeniser));
+static status	closeTokeniser(Tokeniser);
 
 #define IsEof(c)	((c) == EOF)
 

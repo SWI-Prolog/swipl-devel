@@ -11,7 +11,7 @@
 #include <h/graphics.h>
 #include <h/lang.h>
 
-forwards Name getResourceClassNameResource P((Resource));
+forwards Name getResourceClassNameResource(Resource);
 
 static Constant NotObtained;
 

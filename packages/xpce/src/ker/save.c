@@ -11,10 +11,10 @@
 #include <h/graphics.h>		/* resource handling */
 #include <h/unix.h>
 
-static Any	loadNameObject P((FILE *));
-static int	pceSlotsClass P((Class));
-static status	checkConvertedObject P((Any, ClassDef));
-static Int	storeClass P((Class, FileObj));
+static Any	loadNameObject(FILE *);
+static int	pceSlotsClass(Class);
+static status	checkConvertedObject(Any, ClassDef);
+static Int	storeClass(Class, FileObj);
 static status	storeExtensionsObject(Any obj, FileObj file);
 static status	storeIdObject(Any obj, Int id, FileObj file);
 static status	storeSlotsClass(Class class, FileObj file);
@@ -679,7 +679,9 @@ loadExtensionsObject(Instance obj, FILE *fd)
 Any
 loadObject(FILE *fd)
 { char c;
+#ifndef O_RUNTIME
   long start = 0;
+#endif
 
   DEBUG(NAME_save, start = ftell(fd));
 

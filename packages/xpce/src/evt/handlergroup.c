@@ -9,7 +9,7 @@
 
 #include <h/kernel.h>
 
-static status appendHandlerGroup P((HandlerGroup, Recogniser));
+static status appendHandlerGroup(HandlerGroup, Recogniser);
 
 static status
 initialiseHandlerGroupv(HandlerGroup h, int argc, Any *argv)

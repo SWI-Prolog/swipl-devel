@@ -36,8 +36,8 @@ as SWI-Prolog will  inherit the PCE system  predicates from the module
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- use_module(library(pce)).
-
 :- require([ concat/3
+	   , pce_help_file/2
 	   , send_list/3
 	   ]).
 

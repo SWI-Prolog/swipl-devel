@@ -10,9 +10,9 @@
 #include <h/kernel.h>
 #include <h/dialog.h>
 
-static void	compute_slider P((Slider, int *, int *, int *, int *,
-				  int *, int *, int *, int *, int *));
-static status	applySlider P((Slider, Bool));
+static void	compute_slider(Slider, int *, int *, int *, int *,
+			       int *, int *, int *, int *, int *);
+static status	applySlider(Slider, Bool);
 static status	restoreSlider(Slider s);
 
 #define SLIDER_HEIGHT 20

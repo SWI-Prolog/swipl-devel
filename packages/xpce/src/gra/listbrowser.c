@@ -11,22 +11,22 @@
 #include <h/graphics.h>
 #include <h/text.h>
 
-static Int    normalise_index P((ListBrowser, Int));
-static status clearSelectionListBrowser P((ListBrowser));
-static status ChangeItemListBrowser P((ListBrowser, DictItem));
-static status ChangedListBrowser P((ListBrowser));
-static status geometryListBrowser P((ListBrowser, Int, Int, Int, Int));
-static status executeSearchListBrowser P((ListBrowser));
-static status forwardListBrowser P((ListBrowser, DictItem, Name));
-static status deselectListBrowser P((ListBrowser, DictItem));
-static status showLabelListBrowser P((ListBrowser, Bool));
-static status setSelectionListBrowser P((ListBrowser, DictItem));
-static status toggleSelectionListBrowser P((ListBrowser, DictItem));
-static status openListBrowser P((ListBrowser, DictItem));
-static status selectListBrowser P((ListBrowser, DictItem));
-static status scrollUpListBrowser P((ListBrowser, Int));
-static status scrollDownListBrowser P((ListBrowser, Int));
-static status extendPrefixListBrowser P((ListBrowser));
+static Int    normalise_index(ListBrowser, Int);
+static status clearSelectionListBrowser(ListBrowser);
+static status ChangeItemListBrowser(ListBrowser, DictItem);
+static status ChangedListBrowser(ListBrowser);
+static status geometryListBrowser(ListBrowser, Int, Int, Int, Int);
+static status executeSearchListBrowser(ListBrowser);
+static status forwardListBrowser(ListBrowser, DictItem, Name);
+static status deselectListBrowser(ListBrowser, DictItem);
+static status showLabelListBrowser(ListBrowser, Bool);
+static status setSelectionListBrowser(ListBrowser, DictItem);
+static status toggleSelectionListBrowser(ListBrowser, DictItem);
+static status openListBrowser(ListBrowser, DictItem);
+static status selectListBrowser(ListBrowser, DictItem);
+static status scrollUpListBrowser(ListBrowser, Int);
+static status scrollDownListBrowser(ListBrowser, Int);
+static status extendPrefixListBrowser(ListBrowser);
 
 #define dictItemName(di) (isDefault(di->label) ? di->key : di->label)
 

@@ -1807,10 +1807,10 @@ yesno(Goal, Result) :-
 	).
 
 
-sleep(Time) :-
+wait(Time) :-
 	MSecs is Time * 1000,
 	send(@display_manager, dispatch, @default, MSecs), !.
-sleep(_).
+wait(_).
 
 
 :- dynamic flashed/0.
@@ -1836,7 +1836,7 @@ feedback(Gr, Attr := Value, Goal) :-
 	    ;   assert(flashed),
 	        between(1, 5, _),
 		send(Gr, flash),
-		sleep(0.1),
+		wait(0.1),
 		fail
 	    )
 	).

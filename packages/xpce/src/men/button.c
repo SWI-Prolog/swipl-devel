@@ -10,7 +10,7 @@
 #include <h/kernel.h>
 #include <h/dialog.h>
 
-forwards Bool getDefaultButtonButton P((Button));
+forwards Bool getDefaultButtonButton(Button);
 
 static status
 initialiseButton(Button b, Name name, Message msg, Name acc)

@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
@@ -84,14 +85,6 @@
 		/********************************
 		*        COMPILER STUFF		*
 		********************************/
-
-#ifdef __STDC__				/* Prototype handling */
-#define P(s) s
-#include <stdarg.h>
-#else
-#define P(s) ()
-#include <varargs.h>
-#endif
 
 #if __STRICT_ANSI__
 #undef TAGGED_LVALUE 1
@@ -305,8 +298,8 @@ provided.
 #define makeDFlag(n)		(1L << ((n) - 1 + TAG_BITS))
 #define DFlags(obj)		(((ProgramObject)(obj))->dflags)
 #ifndef TAGGED_LVALUE
-void	setDFlagProgramObject P((Any, ulong));
-void	clearDFlagProgramObject P((Any, ulong));
+void	setDFlagProgramObject(Any, ulong);
+void	clearDFlagProgramObject(Any, ulong);
 #define setDFlag(obj, mask)     setDFlagProgramObject((obj), (mask))
 #define clearDFlag(obj, mask)	clearDFlagProgramObject((obj), (mask))
 #else
@@ -410,6 +403,7 @@ extern struct name builtin_names[];	/* object-array of built-in's */
 #define F_ITFNAME		makeFlag(16) /* Name known to itf table */
 #define F_SOLID			makeFlag(17) /* Solid graphical object */
 #define F_RESOURCES_OBTAINED	makeFlag(18) /* obtainResourcesObject() */
+#define F_TEMPLATE_METHOD	makeFlag(19) /* method <-instantiate_template */
 
 #define initHeaderObj(obj, cl) \
   { obj->class	      = cl; \
@@ -617,6 +611,7 @@ End;
   Any		init_function;		/* Function to initialise */ \
   Any		alloc_value;		/* Allocate value of variable */
 
+#ifndef O_RUNTIME
 #define ABSTRACT_METHOD \
   ABSTRACT_BEHAVIOUR \
   Name		group;			/* Conceptual group */ \
@@ -624,7 +619,18 @@ End;
   StringObj	summary;		/* Summary of this method */ \
   SourceLocation source;		/* Location of def in sources */ \
   Code		message;		/* message implementing method */ \
-  Func		function;		/* C-function implementing method */ \
+  Func		function;		/* C-function implementing method */
+
+#else /*O_RUNTIME*/
+
+#define ABSTRACT_METHOD \
+  ABSTRACT_BEHAVIOUR \
+  Name		group;			/* Conceptual group */ \
+  Vector 	types;			/* type checking codes */ \
+  StringObj	summary;		/* Summary of this method */ \
+  Code		message;		/* message implementing method */ \
+  Func		function;		/* C-function implementing method */
+#endif/*O_RUNTIME*/
 
 NewClass(behaviour)
   ABSTRACT_BEHAVIOUR
@@ -706,7 +712,9 @@ NewClass(class)
   Int		instance_size;		/* Instance size in bytes */
   Int		slots;			/* # instance variables */
   StringObj	summary;		/* Summary of the class */
+#ifndef O_RUNTIME
   SourceLocation source;		/* Source location */
+#endif
   Name		rcs_revision;		/* Current rcs-revision of source */
   Name		creator;		/* Created from where? */
   Chain		changed_messages;	/* Trap instance changes */
@@ -893,8 +901,10 @@ NewClass(number)
 End;
 
 NewClass(pce)
+#ifndef O_RUNTIME
   Bool		debugging;		/* debugging? (watching spy points) */
   Name		trace;			/* Current trace mode */
+#endif
   Name		last_error;		/* Last error occured */
   Chain		catched_errors;		/* Stack of catched error-id's */
   Bool		catch_error_signals;	/* Catch Unix signals */
@@ -1226,8 +1236,8 @@ typedef long	AnswerMark;
 status		makeClassC(Class class);
 status		initialiseHost(Host h, Name which);
 status		makeClassHost(Class class);
-Host		HostObject P((void));
-int		hostGetc P((void));
+Host		HostObject(void);
+int		hostGetc(void);
 void		pceWriteErrorGoal(void);
 status		attach_resource(Class cl, char *name, char *type,
 				char *def, char *doc);
@@ -1288,10 +1298,14 @@ GLOBAL char    *SaveMagic;		/* Magic string for saved objects */
 GLOBAL int	inBoot;			/* is the system in the boot cycle? */
 GLOBAL ulong	allocBase;		/* lowest allocated memory */
 GLOBAL ulong 	allocTop;		/* highest allocated memory */
+#ifndef O_RUNTIME
 GLOBAL int	PCEdebugging;		/* PCE->debugging == ON */
 GLOBAL int	PCEdebugBoot;		/* Debug booting phase? */
 GLOBAL Chain	PCEdebugSubjects;	/* Names of things we are debugging */
 GLOBAL char    *symbolFile;		/* current symbol file */
+#else
+#define PCEdebugging FALSE
+#endif /*O_RUNTIME*/
 GLOBAL int	PCEargc;		/* main() argument count */
 GLOBAL char   **PCEargv;		/* main() argument vector */
 GLOBAL char    *(*getFunctionNameFromAddress)();
@@ -1406,6 +1420,7 @@ GLOBAL int	qsortReverse;		/* used by qsortCompareObjects() */
  */
 #define NormaliseArea(x,y,w,h)	OrientateArea(x,y,w,h,NAME_northWest)
 
+#ifndef O_RUNTIME
 #define DEBUG(subject, goal)	{ if ( PCEdebugging && \
 				       memberChain(PCEdebugSubjects, subject) \
 								== SUCCEED ) \
@@ -1417,8 +1432,16 @@ GLOBAL int	qsortReverse;		/* used by qsortCompareObjects() */
 				  { goal; \
 				  } \
 				}
+#else /*O_RUNTIME*/
+#define DEBUG(subject, goal)
+#define DEBUG_BOOT(goal)
+#endif
 
+#ifndef O_RUNTIME
 #define O_COUNT 1
+#else
+#define O_COUNT 0
+#endif
 
 #if O_COUNT
 #define COUNT(g) {g;}

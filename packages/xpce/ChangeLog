@@ -1,3 +1,20 @@
+[VERSION 4.8.3]
+
+* Renamed some *[cC]++* files and directories to *cxx* or *CXX*.
+
+* Updated for SWI-Prolog 1.9.4, which no longer allows for local redefinitions
+  os system predicates.  Also updated pce_require.pl (to generate the require
+  directives) to watch for system-predicate redefinitions.
+
+* FIX: Window (re)size problem that could result in bad window layouts,
+  notably for fixed-size windows (happens very rarely).
+
+* FIX: PceDraw: Proto/Delete (was never activated).
+
+* FIX: area calculation of class arc.  Fixes redraw problems on arcs where
+  start_angle + size_angle < 0.
+
+
 [VERSION 4.8.2]
 
 * INSTALLATION: XPCE is now configured using GNU's autoconf toolkit, simplifying

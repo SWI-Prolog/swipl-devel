@@ -816,13 +816,17 @@ Int scanstr(char *str, char *fmt, Any *r)
 
 #include <h/interface.h>
 
-static void
-_sysPce(char *fm, va_list args)
-{ catchErrorSignalsPce(PCE, OFF);
+status
+sysPce(char *fm, ...)
+{ va_list args;
+
+  va_start(args, fm);
+  catchErrorSignalsPce(PCE, OFF);
 
   printf("[PCE system error: ");
   vprintf(fm, args);
 
+#ifndef O_RUNTIME
   printf("\n\tStack:\n");
   pceTraceBack(20);
   printf("]\n");
@@ -845,17 +849,13 @@ _sysPce(char *fm, va_list args)
 
   hostAction(HOST_HALT);
   exit(1);
-  /*NOTREACED*/
-}
+#else /*O_RUNTIME*/
+  hostAction(HOST_RECOVER_FROM_FATAL_ERROR);
+  hostAction(HOST_HALT);
+  exit(1);
+#endif /*O_RUNTIME*/
 
-status
-sysPce(char *fm, ...)
-{ va_list args;
-
-  va_start(args, fm);
-  _sysPce(fm, args);
   va_end(args);
-
   return PCE_FAIL;
 }
 
@@ -863,6 +863,7 @@ sysPce(char *fm, ...)
 		/********************************
 		*            SLEEP		*
 		********************************/
+
 #if defined(__WATCOMC__)
 #include <dos.h>
 

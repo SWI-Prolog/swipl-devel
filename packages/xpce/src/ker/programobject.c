@@ -10,11 +10,13 @@
 #include <h/kernel.h>
 #include <h/trace.h>
 
-static status	breakConditionProgramObject P((ProgramObject, Code));
+#ifndef O_RUNTIME
+static status	breakConditionProgramObject(ProgramObject, Code);
 static status	traceConditionProgramObject(ProgramObject obj, Code c);
 
 static HashTable TraceConditionTable;
 static HashTable BreakConditionTable;
+#endif /*O_RUNTIME*/
 
 status
 initialiseProgramObject(Any obj)
@@ -39,6 +41,7 @@ initialiseNewSlotProgramObject(ProgramObject obj, Variable var)
 }
 
 
+#ifndef O_RUNTIME
 ulong
 nameToTraceFlag(Name name)
 { if ( name == NAME_enter )
@@ -128,6 +131,7 @@ getBreakProgramObject(ProgramObject obj, Name what)
   answer(onDFlag(obj, flag) ? ON : OFF);
 }
 
+#endif /*O_RUNTIME*/
 
 status
 systemProgramObject(ProgramObject obj, Bool val)
@@ -145,6 +149,7 @@ getSystemProgramObject(ProgramObject obj)
 { answer(onDFlag(obj, D_SYSTEM) ? ON : OFF);
 }
 
+#ifndef O_RUNTIME
 
 		/********************************
 		*          CONDITIONS		*
@@ -253,8 +258,9 @@ ulong mask;
 
   po->dflags &= ~mask;
 }
-#endif
 
+#endif /*TAGGED_LVALUE*/
+#endif /*O_RUNTIME*/
 
 status
 makeClassProgramObject(Class class)
@@ -267,6 +273,7 @@ makeClassProgramObject(Class class)
   sendMethod(class, NAME_initialise, DEFAULT, 0,
 	     "Create program_object",
 	     initialiseProgramObject);
+#ifndef O_RUNTIME
   sendMethod(class, NAME_trace, NAME_debugging, 3,
 	     "value=[bool]", "ports=[{full,enter,exit,fail}]",
 	     "condition=[code]",
@@ -283,6 +290,7 @@ makeClassProgramObject(Class class)
   sendMethod(class, NAME_breakCondition, NAME_debugging, 1, "code*",
 	     "Condition associated with this break-point",
 	     breakConditionProgramObject);
+#endif /*O_RUNTIME*/
   sendMethod(class, NAME_system, NAME_meta, 1, "bool",
 	     "System defined object?",
 	     systemProgramObject);
@@ -290,6 +298,7 @@ makeClassProgramObject(Class class)
 	     "Initialise <-dflags",
 	     initialiseNewSlotProgramObject);
 
+#ifndef O_RUNTIME
   getMethod(class, NAME_trace, NAME_debugging, "bool", 1,
 	    "port=[{enter,exit,fail}]",
 	    "Current setting of trace-point",
@@ -298,18 +307,21 @@ makeClassProgramObject(Class class)
 	    "port=[{enter,exit,fail}]",
 	    "Current setting of break-point",
 	    getBreakProgramObject);
-  getMethod(class, NAME_system, NAME_meta, "bool", 0,
-	    "System defined object?",
-	    getSystemProgramObject);
   getMethod(class, NAME_traceCondition, NAME_debugging, "code", 0,
 	    "Associated trace-condition",
 	    getTraceConditionProgramObject);
   getMethod(class, NAME_breakCondition, NAME_debugging, "code", 0,
 	    "Associated break-condition",
 	    getBreakConditionProgramObject);
+#endif /*O_RUNTIME*/
+  getMethod(class, NAME_system, NAME_meta, "bool", 0,
+	    "System defined object?",
+	    getSystemProgramObject);
 
+#ifndef O_RUNTIME
   TraceConditionTable = globalObject(NAME_traceConditions, ClassHashTable, 0);
   BreakConditionTable = globalObject(NAME_breakConditions, ClassHashTable, 0);
+#endif
 
   succeed;
 }

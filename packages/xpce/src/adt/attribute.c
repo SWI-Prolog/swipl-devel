@@ -75,6 +75,7 @@ out:
 		*            TRACING		*
 		********************************/
 
+#ifndef O_RUNTIME
 static void
 traceAttribute(Attribute att, Goal g, Name port)
 { int i;
@@ -87,6 +88,7 @@ traceAttribute(Attribute att, Goal g, Name port)
       writef(", %O", g->argv[i]);
   }
 }
+#endif
 
 
 static Type

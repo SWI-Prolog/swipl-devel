@@ -13,7 +13,11 @@
 static status	recordInstancesClass(Class class, Bool keep, Bool recursive);
 static status	fill_slots_class(Class class, Class super);
 
+#ifndef O_RUNTIME
 #define CLASS_PCE_SLOTS 43
+#else
+#define CLASS_PCE_SLOTS 42		/* no source slot! */
+#endif
 
 #define InstanceSize(c)	((int) &((Instance) NULL)->slots[valInt((c)->slots)])
 #define SlotsClass(c) \
@@ -209,7 +213,9 @@ fill_slots_class(Class class, Class super)
   assign(class, resource_table,  NIL);
   assign(class, selection_style, NIL);
   assign(class, rcs_revision,	 NIL);
+#ifndef O_RUNTIME
   assign(class, source,		 NIL);
+#endif
   if ( isDefault(class->summary) )
     assign(class, summary,	 NIL);
 
@@ -608,7 +614,12 @@ instanceVariableClass(Class class, Variable var)
   { if ( old->context != class )
       errorPce(class, NAME_cannotRefineVariable, var->name);
 
+#ifndef O_RUNTIME
     offset = old->offset;
+#else
+    errorPce(getMethodFromFunction(sendMethodClass), NAME_runtimeVersion);
+    fail;
+#endif
   } else
   { if ( !inBoot )
     { if ( class->no_created != class->no_freed )
@@ -736,7 +747,17 @@ sendMethodClass(Class class, SendMethod m)
   { SendMethod old = cell->value;
 
     if ( old->name == m->name && old != m )
+    {
+#ifndef O_RUNTIME
       deleteChain(class->send_methods, old);
+#else
+      if ( onFlag(old, F_TEMPLATE_METHOD) )
+	deleteChain(class->send_methods, old);
+      else
+	return errorPce(getMethodFromFunction(sendMethodClass),
+			NAME_runtimeVersion);
+#endif
+    }
   }
 
   appendChain(class->send_methods, m);
@@ -776,7 +797,17 @@ getMethodClass(Class class, GetMethod m)
   { GetMethod old = cell->value;
 
     if ( old->name == m->name && old != m )
+    {
+#ifndef O_RUNTIME
       deleteChain(class->get_methods, old);
+#else
+      if ( onFlag(old, F_TEMPLATE_METHOD) )
+	deleteChain(class->get_methods, old);
+      else
+	return errorPce(getMethodFromFunction(sendMethodClass),
+			NAME_runtimeVersion);
+#endif
+    }
   }
 					/* Insert new one */
   appendChain(class->get_methods, m);
@@ -795,13 +826,14 @@ setChangedFunctionClass(Class class, SendFunc func)
 }
 
 
+#ifndef O_RUNTIME
 status
 setTraceFunctionClass(Class class, VoidFunc func)
 { class->trace_function = func;
 
   succeed;
 }
-
+#endif
 
 status
 setInEventAreaFunctionClass(Class class, SendFunc func)
@@ -1117,7 +1149,9 @@ sourceClass(Class class, SendFunc f, char *file, char *rcs)
   int l;
 
   class->make_class_function = f;
+#ifndef O_RUNTIME
   assign(class, source, newObject(ClassSourceLocation, CtoName(file), 0));
+#endif
   
   for(s=rcs, q=rev; *q && *s == *q; s++, q++)
     ;
@@ -1130,6 +1164,14 @@ sourceClass(Class class, SendFunc f, char *file, char *rcs)
 
   succeed;
 }
+
+
+#ifdef O_RUNTIME
+static status
+rtSourceClass(Class class, SourceLocation src)
+{ succeed;
+}
+#endif
 
 
 void
@@ -1446,6 +1488,7 @@ getSuperClassNameClass(Class cl)
   answer((Name) NIL);
 }
 
+#ifndef O_RUNTIME
 
 		/********************************
 		*        MANUAL SUPPORT		*
@@ -1671,6 +1714,7 @@ getManSummaryClass(Class cl)
 
   answer(CtoString(buf));
 }
+#endif /*O_RUNTIME*/
 
 
 status
@@ -1742,8 +1786,10 @@ makeClassClass(Class class)
 	     "Total number of instance variables");
   localClass(class, NAME_summary, NAME_manual, "string*", NAME_both,
 	     "Summary documentation for class");
+#ifndef O_RUNTIME
   localClass(class, NAME_source, NAME_manual, "source_location*", NAME_both,
 	     "Location in the sources");
+#endif O_RUNTIME
   localClass(class, NAME_rcsRevision, NAME_version, "name*", NAME_get,
 	     "RCS revision of sourcefile");
   localClass(class, NAME_creator, NAME_manual, "{built_in,host}", NAME_both,
@@ -1837,9 +1883,11 @@ makeClassClass(Class class)
   sendMethod(class, NAME_unlink, DEFAULT, 0,
 	     "Remove from tables",
 	     unlinkClass);
+#ifndef O_RUNTIME
   sendMethod(class, NAME_info, NAME_manual, 0,
 	     "Dump class definition to the terminal",
 	     infoClass);
+#endif
   sendMethod(class, NAME_changedMessage, NAME_change, 1, "code",
 	     "Add message to trap changed slots",
 	     changedMessageClass);
@@ -1891,6 +1939,11 @@ makeClassClass(Class class)
   sendMethod(class, NAME_install, NAME_behaviour, 0,
 	     "Prepare class for creating instances",
 	     installClass);
+#ifdef O_RUNTIME
+  sendMethod(class, NAME_source, NAME_runtime, 1, "source_location*",
+	     "Dummy method",
+	     rtSourceClass);
+#endif
 
   getMethod(class, NAME_instance, NAME_oms, "object", 1,
 	    "argument=unchecked ...",
@@ -1899,6 +1952,7 @@ makeClassClass(Class class)
   getMethod(class, NAME_instanceVariable, NAME_meta, "variable", 1, "name|int",
 	    "Get instance variable from name of offset",
 	    getInstanceVariableClass);
+#ifndef O_RUNTIME
   getMethod(class, NAME_manId, NAME_manual, "name", 0,
 	    "Card Id for method",
 	    getManIdClass);
@@ -1911,6 +1965,7 @@ makeClassClass(Class class)
   getMethod(class, NAME_manSummary, NAME_manual, "string", 0,
 	    "New string with header and summary",
 	    getManSummaryClass);
+#endif
   getMethod(class, NAME_getMethod, NAME_meta, "get_method|variable", 1, "name",
 	    "Method implementing named get behaviour",
 	    getGetMethodClass);

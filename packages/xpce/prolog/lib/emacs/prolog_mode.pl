@@ -9,7 +9,9 @@
 
 :- module(emacs_prolog_mode, []).
 :- use_module(library(pce)).
-:- require([ make/0
+:- require([ emacs_end_mode/0
+	   , make/0
+	   , emacs_begin_mode/5
 	   , forall/2
 	   , list_to_set/2
 	   , member/2

@@ -10,7 +10,7 @@
 #include <h/kernel.h>
 #include <h/graphics.h>
 
-static status	updateHandlesTree P((Tree));
+static status	updateHandlesTree(Tree);
 static status	rootTree(Tree t, Node root);
 
 

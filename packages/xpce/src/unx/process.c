@@ -37,16 +37,16 @@ extern char **environ;
 #include <stropts.h>
 #endif
 
-static status	closeInputProcess P((Process));
+static status	closeInputProcess(Process);
 static status	killProcess(Process p, Any sig);
 
 #define OsError() getOsErrorPce(PCE)
 
 #ifndef USE_GRANTPT
 forwards int		getSlave(Process p, char *line);
-forwards int		getMaster P((Process, char *));
+forwards int		getMaster(Process, char *);
 #endif
-forwards status		copyTty P((Process, char *, int));
+forwards status		copyTty(Process, char *, int);
 
 static Chain		ProcessChain;	/* running process objects */
 static int		initialised;	/* signals initialised */

@@ -27,11 +27,11 @@
 		*          PROTOTYPES		*
 		********************************/
 
-#ifndef P
+#ifndef __P
 #ifdef __STDC__				/* Prototype handling */
-# define P(s) s
+# define __P(s) s
 #else
-# define P(s) ()
+# define __P(s) ()
 #endif
 #endif
 
@@ -49,8 +49,8 @@ typedef void *		PceName;	/* PCE's view of a name */
 
 typedef void *		AnswerMark;	/* Mark on AnswerStack */
 
-void	  _markAnswerStack P((AnswerMark *));
-void	  _rewindAnswerStack P((AnswerMark *, PceObject));
+void	  _markAnswerStack __P((AnswerMark *));
+void	  _rewindAnswerStack __P((AnswerMark *, PceObject));
 
 #define markAnswerStack(mark)	_markAnswerStack(&(mark))
 #define rewindAnswerStack(mark, obj) _rewindAnswerStack(&(mark), obj)
@@ -66,7 +66,7 @@ typedef struct pceITFSymbol    *PceITFSymbol;
 #define PceObject	Any
 #define PceName		Name
 
-char *	getHostSymbolTable P((void));
+char *	getHostSymbolTable __P((void));
 
 #define PCE_MAX_HOSTHANDLES 10
 
@@ -92,12 +92,12 @@ struct pceITFSymbol
 };
 
 
-PceITFSymbol	pceLookupHandle P((int, hostHandle));
-void 		pceRegisterName P((int, hostHandle, PceName));
-void		pceRegisterAssoc P((int, hostHandle, PceObject));
-int		pceHostHandles P((int));
+PceITFSymbol	pceLookupHandle __P((int, hostHandle));
+void 		pceRegisterName __P((int, hostHandle, PceName));
+void		pceRegisterAssoc __P((int, hostHandle, PceObject));
+int		pceHostHandles __P((int));
 
-PceITFSymbol	getITFSymbolName P((PceName));
+PceITFSymbol	getITFSymbolName __P((PceName));
 
 		/********************************
 		*           CONSTANTS		*
@@ -127,27 +127,27 @@ typedef union
 #define PCE_ASSOC	4 
 #define PCE_REAL	5
 
-int		pceToC P((PceObject datum, PceCValue *rval));
-int		pceToCReference P((PceObject datum, PceCValue *rval));
-char *		pceCharArrayToC P((PceObject datum));
-char *		pceStringToC P((PceObject datum));
+int		pceToC __P((PceObject datum, PceCValue *rval));
+int		pceToCReference __P((PceObject datum, PceCValue *rval));
+char *		pceCharArrayToC __P((PceObject datum));
+char *		pceStringToC __P((PceObject datum));
 
 
 		/********************************
 		*             VMI		*
 		********************************/
 
-PceObject	pceNew P((char *, PceObject, int, PceObject *));
-int		pceSend P((PceObject, PceName, int, PceObject *));
-PceObject	pceGet P((PceObject, PceName, int, PceObject *));
+PceObject	pceNew __P((char *, PceObject, int, PceObject *));
+int		pceSend __P((PceObject, PceName, int, PceObject *));
+PceObject	pceGet __P((PceObject, PceName, int, PceObject *));
 
 
 		/********************************
 		*          PCE CALLING C	*
 		********************************/
 
-int		hostSend P((PceObject, PceName, int, PceObject *));
-PceObject	hostGet P((PceObject, PceName, int, PceObject *));
+int		hostSend __P((PceObject, PceName, int, PceObject *));
+PceObject	hostGet __P((PceObject, PceName, int, PceObject *));
 
 #define HOST_QUERY	0	/* execute interactive query on host */
 #define HOST_TRACE	1	/* start debugger on host */
@@ -163,36 +163,36 @@ PceObject	hostGet P((PceObject, PceName, int, PceObject *));
 #define HOST_FLUSH	11	/* Flush terminal */
 #define HOST_ONEXIT	12	/* Callback on exit */
 
-int		hostQuery P((int, PceCValue *));
-int		hostAction P((int, ...));
+int		hostQuery __P((int, PceCValue *));
+int		hostAction __P((int, ...));
 
 		/********************************
 		*         INITIALISATION	*
 		********************************/
 
-int		pceInitialise P((int handles, int argc, char **argv));
-int		pceReInitialise P((int argc, char **argv));
+int		pceInitialise __P((int handles, int argc, char **argv));
+int		pceReInitialise __P((int argc, char **argv));
 
 
 		/********************************
 		*           C --> PCE		*
 		********************************/
 
-PceObject	cToPceName P((char *));
-PceObject	cToPceInteger P((long));
-PceObject	cToPceReal P((double));
-PceObject	cToPceString P((char *, char *));
-PceObject	cToPceAssoc P((char *));
-PceObject	cToPceReference P((unsigned long));
-int		pceLock P((PceObject));
+PceObject	cToPceName __P((char *));
+PceObject	cToPceInteger __P((long));
+PceObject	cToPceReal __P((double));
+PceObject	cToPceString __P((char *, char *));
+PceObject	cToPceAssoc __P((char *));
+PceObject	cToPceReference __P((unsigned long));
+int		pceLock __P((PceObject));
 
-PceObject	cToPceTmpCharArray P((char *text));
-void		donePceTmpCharArray P((PceObject));
+PceObject	cToPceTmpCharArray __P((char *text));
+void		donePceTmpCharArray __P((PceObject));
 
-int		pceExistsReference P((long));
-int		pceExistsAssoc P((char *));
+int		pceExistsReference __P((long));
+int		pceExistsAssoc __P((char *));
 
-int		pceInstanceOf P((PceObject obj, PceObject class));
+int		pceInstanceOf __P((PceObject obj, PceObject class));
 
 		/********************************
 		*            EVENTS		*
@@ -201,19 +201,19 @@ int		pceInstanceOf P((PceObject obj, PceObject class));
 #define PCE_DISPATCH_INPUT	(0)
 #define PCE_DISPATCH_TIMEOUT	(1)
 
-int		pceDispatch P((int fd, int msecs));
-void		pceRedraw P((void));
-/* XtAppContext pceXtAppContext P((XtAppContext)); */
+int		pceDispatch __P((int fd, int msecs));
+void		pceRedraw __P((void));
+/* XtAppContext pceXtAppContext __P((XtAppContext)); */
 
 
 		/********************************
 		*       DEBUGGER INTERFACE	*
 		********************************/
 
-void		pceReset P((void));
-void		pceTrace P((int));		/* 1: trace; 0: notrace */
-void		pcePrintStack P((int depth));	/* dump C-stack */
-void		pceTraceBack P((int depth));    /* dump PCE message stack */
-void		pceWriteCurrentGoal P((void));	/* dump top of PCE stack */
+void		pceReset __P((void));
+void		pceTrace __P((int));		/* 1: trace; 0: notrace */
+void		pcePrintStack __P((int depth));	/* dump C-stack */
+void		pceTraceBack __P((int depth)); /* dump PCE message stack */
+void		pceWriteCurrentGoal __P((void)); /* dump top of PCE stack */
 
 

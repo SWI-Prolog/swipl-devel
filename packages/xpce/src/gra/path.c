@@ -15,7 +15,7 @@ static void	smooth_path(Path p);
 static void	curve_fit(float *x, float *y, int ii,
 			  float *u, float *v, int jj, int intervals);
 static void	points_to_path(Path p, float *x, float *y, int n);
-static status   computeBoundingBoxPath P((Path));
+static status   computeBoundingBoxPath(Path);
 
 static status
 initialisePath(Path p, Name kind, Int radius_or_interval)

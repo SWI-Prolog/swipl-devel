@@ -49,7 +49,7 @@
 static Chain DirectoryStack;
 static Name  ExpandProblem;
 
-static char *	canonisePath P((char *));
+static char *	canonisePath(char *);
 static Name	getWorkingDirectoryPce(Pce pce);
 
 /*  Sun Common Lisp 3.0 apparently redefines readdir(3) and associated

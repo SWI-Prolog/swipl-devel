@@ -69,7 +69,7 @@ s_string(s, f, x, y, w, h, had, vad)
 #include <h/graphics.h>
 #include "include.h"
 
-static void	clip_area P((int *, int *, int *, int *));
+static void	clip_area(int *, int *, int *, int *);
 static void	r_andpattern(Image i);
 
 		/********************************

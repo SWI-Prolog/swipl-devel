@@ -227,16 +227,26 @@ initialValueVariable(Variable var, Any value)
 		*          EXECUTION		*
 		********************************/
 
+#ifdef O_RUNTIME
+#undef failGoal
+#undef outGoal
+#define failGoal rval = FAIL; goto out
+#define outGoal(v) rval = (v); goto out
+#endif
+
+
 status
 sendVariable(Variable var, Any rec, int argc, const Any argv[])
-{ goal goal;
-  Goal g = &goal;
-  status rval;
+{ status rval;
   Any value, old;
   Any *field = &(((Instance)rec)->slots[valInt(var->offset)]);
+#ifndef O_RUNTIME
+  goal goal;
+  Goal g = &goal;
 
   pushGoal(g, var, rec, var->name, argc, argv);
   traceEnter(g);
+#endif
 
   if ( argc != 1 )
   { errorPce(var, NAME_argumentCount, ONE);
@@ -259,26 +269,33 @@ sendVariable(Variable var, Any rec, int argc, const Any argv[])
       addRefObject(rec, value);
     if ( isObject(old) && !isProtectedObj(old) )
       delRefObject(rec, old);
+#ifndef O_RUNTIME
     if ( onFlag(rec, F_INSPECT) )
       (*(classOfObject(rec))->changedFunction)(rec, field);
+#endif
   }
 
 out:
+#ifndef O_RUNTIME
   traceReturn(g, rval);
   popGoal();
+#endif
   return rval;
 }
 
 
 Any
 getGetVariable(Variable var, Any rec, int argc, const Any argv[])
-{ goal goal;
-  Goal g = &goal;
-  Any *field = &(((Instance)rec)->slots[valInt(var->offset)]);
+{ Any *field = &(((Instance)rec)->slots[valInt(var->offset)]);
   Any rval = *field;
+
+#ifndef O_RUNTIME
+  goal goal;
+  Goal g = &goal;
 
   pushGoal(g, var, rec, var->name, argc, argv);
   traceEnter(g);
+#endif
 
   if ( argc != 0 )
   { errorPce(var, NAME_argumentCount, ZERO);
@@ -309,8 +326,10 @@ getGetVariable(Variable var, Any rec, int argc, const Any argv[])
   }
 
 out:
+#ifndef O_RUNTIME
   traceAnswer(g, rval);
   popGoal();
+#endif
   return rval;
 }
 
@@ -319,6 +338,7 @@ out:
 		*            TRACING		*
 		********************************/
 
+#ifndef O_RUNTIME
 static void
 traceVariable(Variable v, Goal g, Name port)
 { int i;
@@ -331,6 +351,7 @@ traceVariable(Variable v, Goal g, Name port)
       writef(", %O", g->argv[i]);
   }
 }
+#endif
 
 
 Name
@@ -384,6 +405,7 @@ getContextNameVariable(Variable v)
 }
 
 
+#ifndef O_RUNTIME
 static Name
 getManIdVariable(Variable v)
 { char buf[LINESIZE];
@@ -429,6 +451,7 @@ getManSummaryVariable(Variable v)
 
   answer(CtoString(buf));
 }
+#endif /*O_RUNTIME*/
 
 
 static Name
@@ -503,6 +526,7 @@ makeClassVariable(Class class)
 	    "receiver=object", "unchecked ...",
 	    "Invoke (read) variable in object",
 	    getGetVariable);
+#ifndef O_RUNTIME
   getMethod(class, NAME_manId, NAME_manual, "name", 0,
 	    "Card Id for variable",
 	    getManIdVariable);
@@ -512,6 +536,7 @@ makeClassVariable(Class class)
   getMethod(class, NAME_manSummary, NAME_manual, "string", 0,
 	    "New string with summary",
 	    getManSummaryVariable);
+#endif /*O_RUNTIME*/
   getMethod(class, NAME_argumentType, NAME_meta, "type", 1, "index=[int]",
 	    "Type of n-th1 argument if <-access includes `send'",
 	    getArgumentTypeVariable);

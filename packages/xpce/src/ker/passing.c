@@ -318,11 +318,19 @@ vm_send(Any receiver, Name selector, Class class, int argc, const Any argv[])
 	  assign(PCE, last_error, NIL);
       } else
       { if ( PCE->last_error == NAME_noBehaviour )
+#ifndef O_RUNTIME
 	  errorPce(VmiSend, NAME_noBehaviour, rec, CtoName("->"), selector);
+#else
+	  errorPce(VmiSend, NAME_noBehaviour);
+#endif
       }
     } else 
     { if ( resolve_errno == RE_NOIMPLEMENTATION )
+#ifndef O_RUNTIME
 	errorPce(VmiSend, NAME_noBehaviour, rec, CtoName("->"), selector);
+#else
+	errorPce(VmiSend, NAME_noBehaviour);
+#endif
 
       rval = FAIL;			/* undefined method */
     }
@@ -448,11 +456,19 @@ vm_get(Any receiver, Name selector, Class class, int argc, const Any argv[])
 	  assign(PCE, last_error, NIL);
       } else
       { if ( PCE->last_error == NAME_noBehaviour )
+#ifndef O_RUNTIME
 	  errorPce(VmiGet, NAME_noBehaviour, rec, CtoName("<-"), selector);
+#else
+	  errorPce(VmiGet, NAME_noBehaviour);
+#endif
       }
     } else
     { if ( resolve_errno == RE_NOIMPLEMENTATION )
+#ifndef O_RUNTIME
 	errorPce(VmiGet, NAME_noBehaviour, rec, CtoName("<-"), selector);
+#else
+	errorPce(VmiGet, NAME_noBehaviour);
+#endif
 
       rval = FAIL;	
     }

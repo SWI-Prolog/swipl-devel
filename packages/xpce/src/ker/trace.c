@@ -12,7 +12,7 @@
 #include <h/interface.h>
 #include <h/graphics.h>
 
-forwards char *get_line P((char *));
+forwards char *get_line(char *);
 
 void
 resetDebugger(void)
@@ -52,6 +52,8 @@ parentGoal(ProgramObject obj, Any rec, Name sel) /* goal is on stack */
   fail;
 }
 
+
+#ifndef O_RUNTIME
 
 static int
 tracingGoal(Goal g, Name port)
@@ -434,6 +436,7 @@ traceBackPce(Int depth, Name mode)
   }
 }
 
+#endif /*O_RUNTIME*/
 
 int
 getModeGoal(Any obj)
@@ -454,6 +457,7 @@ getModeGoal(Any obj)
 		/********************************
 		*            SUPPORT		*
 		********************************/
+#ifndef O_RUNTIME
 
 static char *
 get_line(char *buf)
@@ -490,3 +494,5 @@ get_line(char *buf)
     c = hostGetc();
   }
 }
+
+#endif /*O_RUNTIME*/

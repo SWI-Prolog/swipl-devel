@@ -10,7 +10,7 @@
 #include <h/kernel.h>
 #include <h/graphics.h>
 
-static status arrowsJoint P((Joint, Name));
+static status arrowsJoint(Joint, Name);
 
 status
 initialiseJoint(Joint jt, Int x, Int y, Int w, Int h, Name arrows)

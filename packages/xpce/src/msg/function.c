@@ -145,9 +145,11 @@ makeClassFunction(Class class)
   sendMethod(class, NAME_Free, DEFAULT, 0,
 	     "Free obtainer instead of result",
 	     freeObject);
+#ifndef O_RUNTIME
   sendMethod(class, NAME_Inspect, DEFAULT, 1, "bool",
 	     "Inspect obtainer instead of result",
 	     inspectObject);
+#endif
   sendMethod(class, NAME_InstanceOf, DEFAULT, 1, "class",
 	     "Test class of obtainer instead of result",
 	     instanceOfObject);
@@ -203,12 +205,14 @@ makeClassFunction(Class class)
   getMethod(class, NAME_Flags, DEFAULT, "name", 0,
 	    "Flags instead of result's",
 	    getFlagsObject);
+#ifndef O_RUNTIME
   getMethod(class, NAME_Inspect, DEFAULT, "bool", 0,
 	    "Inspect instead of result's",
 	    getInspectObject);
   getMethod(class, NAME_ManId, DEFAULT, "name", 0,
 	    "Manual identifier instead of result's",
 	    getManIdObject);
+#endif
 
   getMethod(class,  NAME_forward, NAME_execute, "unchecked", 1, "any ...",
 	    "Push @arg1, ...; execute and return value",

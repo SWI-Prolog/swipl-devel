@@ -90,6 +90,8 @@ typedef struct _goal
 #define failGoal     outGoal(FAIL)
 
 
+#ifndef O_RUNTIME
+
 #define traceEnter(g) \
   { if ( TraceMode ) \
       doTraceEnter(g); \
@@ -104,5 +106,14 @@ typedef struct _goal
   { if ( TraceMode ) \
       doTraceAnswer(g, rval); \
   }
+
+#else /*O_RUNTIME*/
+
+#define traceEnter(g)
+#define traceReturn(g, rval)
+#define traceAnswer(g, rval)
+#define setTraceFunctionClass(class, f)
+
+#endif /*O_RUNTIME*/
 
 #endif /*PCE_TRACE_H*/

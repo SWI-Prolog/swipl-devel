@@ -32,9 +32,9 @@ struct bubble_info
   int   bar_length;
 };
 
-static void	compute_bubble P((ScrollBar, struct bubble_info *,
-				  int start, int min_bubble,
-				  int fixed_bubble));
+static void	compute_bubble(ScrollBar, struct bubble_info *,
+			       int start, int min_bubble,
+			       int fixed_bubble);
 static status	orientationScrollBar(ScrollBar s, Name or);
 static status	lookScrollBar(ScrollBar s, Name look);
 static status   OpenLookRedrawAreaScrollBar(ScrollBar s, Area a);

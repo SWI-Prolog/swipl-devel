@@ -9,7 +9,7 @@
 
 #include <h/kernel.h>
 
-forwards void initVars P((void));
+forwards void initVars(void);
 
 static HashTable VarTable;
 
