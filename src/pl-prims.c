@@ -2252,29 +2252,64 @@ split_atom(term_t list, term_t sep, term_t atom)
 }
 
 
+static void
+append_text_to_buffer(Buffer b, PL_chars_t *txt, IOENC *enc)
+{ if ( txt->encoding == *enc )
+  { if ( txt->encoding == ENC_ISO_LATIN_1 )
+    { addMultipleBuffer(b, txt->text.t, txt->length, char);
+    } else
+    { addMultipleBuffer(b, txt->text.w, txt->length, pl_wchar_t);
+    }
+  } else if ( txt->encoding == ENC_ISO_LATIN_1 )
+  { const unsigned char *s = (const unsigned char*)txt->text.t;
+    const unsigned char *e = &s[txt->length];
+
+    for( ;s<e; s++)
+    { pl_wchar_t chr = *s;
+
+      addBuffer(b, chr, pl_wchar_t);
+    }
+  } else				/* promote our buffer */
+  { int len = entriesBuffer(b, char);
+    unsigned char *tmp = PL_malloc(len);
+    const unsigned char *s = tmp;
+    const unsigned char *e = &s[len];
+
+    memcpy(tmp, baseBuffer(b, char), len);
+    discardBuffer(b);
+    initBuffer(b);
+    
+    for( ;s<e; s++)
+    { pl_wchar_t chr = *s;
+
+      addBuffer(b, chr, pl_wchar_t);
+    }
+
+    PL_free(tmp);
+    *enc = ENC_WCHAR;
+					/* and add new text */
+    addMultipleBuffer(b, txt->text.w, txt->length, pl_wchar_t);
+  }
+}
+
+
 word
 pl_concat_atom3(term_t list, term_t sep, term_t atom)
 { term_t l = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
-  int first = TRUE;
-  char *sp;
-  unsigned int splen;
+  IOENC enc = ENC_ISO_LATIN_1;
   tmp_buffer b;
+  PL_chars_t st;			/* separator text */
+  int ntxt = 0;
   
-  if ( sep )
-  { if ( !PL_get_nchars(sep, &splen, &sp, CVT_ATOMIC|BUF_RING) )
-      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, sep);
-  } else
-  { sp = NULL;
-    splen = 0;
-  }
+  if ( sep && !PL_get_text(sep, &st, CVT_ATOMIC) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, sep);
 
   initBuffer(&b);
   while( PL_get_list(l, head, l) )
-  { char *s;
-    unsigned int slen;
+  { PL_chars_t txt;
 
-    if ( !PL_get_nchars(head, &slen, &s, CVT_ATOMIC) )
+    if ( !PL_get_text(head, &txt, CVT_ATOMIC) )
     { discardBuffer(&b);
       switch(split_atom(list, sep, atom))
       { case -1:
@@ -2286,23 +2321,30 @@ pl_concat_atom3(term_t list, term_t sep, term_t atom)
       }
     }
 
-    if ( first )
-      first = FALSE;
-    else if ( splen )
-      addMultipleBuffer(&b, sp, splen, char);
+    if ( ntxt > 0 && sep )
+      append_text_to_buffer((Buffer)&b, &st, &enc);
 
-    addMultipleBuffer(&b, s, slen, char);
+    append_text_to_buffer((Buffer)&b, &txt, &enc);
+    PL_free_text(&txt);
+    ntxt++;
   }
 
   if ( PL_get_nil(l) )
-  { int rval;
-    unsigned int len = entriesBuffer(&b, char);
-    char *s = baseBuffer(&b, char);
-
-    rval = PL_unify_atom_nchars(atom, len, s);
-    discardBuffer(&b);
+  { PL_chars_t sum;
     
-    return rval;
+    sum.encoding  = enc;
+    sum.storage   = PL_CHARS_HEAP;
+    sum.canonical = TRUE;
+
+    if ( enc == ENC_ISO_LATIN_1 )
+    { sum.text.t = baseBuffer(&b, char);
+      sum.length = entriesBuffer(&b, char);
+    } else
+    { sum.text.w = baseBuffer(&b, pl_wchar_t);
+      sum.length = entriesBuffer(&b, pl_wchar_t);
+    }
+
+    return PL_unify_text(atom, &sum, PL_ATOM);
   }
 
   discardBuffer(&b);

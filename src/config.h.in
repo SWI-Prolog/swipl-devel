@@ -374,9 +374,6 @@
 /* Define to 1 if you have the <sys/file.h> header file. */
 #undef HAVE_SYS_FILE_H
 
-/* Define to 1 if you have the <sys/malloc.h> header file. */
-#undef HAVE_SYS_MALLOC_H
-
 /* Define to 1 if you have the <sys/mman.h> header file. */
 #undef HAVE_SYS_MMAN_H
 
