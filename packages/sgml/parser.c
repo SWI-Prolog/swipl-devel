@@ -4017,38 +4017,23 @@ on the state and the start-location of the error.
 
 int
 end_document_dtd_parser(dtd_parser *p)
-{ switch(p->state)
+{ int rval;
+
+  switch(p->state)
   { case S_RCDATA:
     case S_CDATA:
     case S_PCDATA:
-    { if ( p->dmode == DM_DATA )
-      { sgml_environment *env;
-
-	process_cdata(p, TRUE);
-
-	if ( (env=p->environments) )
-	{ dtd_element *e;
-
-	  while(env->parent)
-	    env = env->parent;
-
-	  pop_to(p, env, CDATA_ELEMENT);
-	  e = env->element;
-	  if ( e->structure && !e->structure->omit_close )
-	    gripe(ERC_OMITTED_CLOSE, e->name->name);
-	  close_element(p, e, FALSE);
-	}
-      }
-      return TRUE;
-    }
+      rval = TRUE;
+      break;
     case S_CMT:
     case S_CMTE0:
     case S_CMTE1:
     case S_DECLCMT0:
     case S_DECLCMT:
     case S_DECLCMTE0:
-      return gripe(ERC_SYNTAX_ERROR,
+      rval = gripe(ERC_SYNTAX_ERROR,
 		   "Unexpected end-of-file in comment", "");
+      break;
     case S_ECDATA1:
     case S_ECDATA2:
     case S_EMSC1:
@@ -4062,28 +4047,56 @@ end_document_dtd_parser(dtd_parser *p)
     case S_PENT:
     case S_ENT:
     case S_ENT0:
-      return gripe(ERC_SYNTAX_ERROR,
+      rval = gripe(ERC_SYNTAX_ERROR,
 		   "Unexpected end-of-file", "");
+      break;
 #ifdef UTF8
     case S_UTF8:
-      return gripe(ERC_SYNTAX_ERROR,
+      rval = gripe(ERC_SYNTAX_ERROR,
 		   "Unexpected end-of-file in UTF-8 sequence", "");
+      break;
 #endif
     case S_MSCDATA:
     case S_EMSCDATA1:
     case S_EMSCDATA2:
-      return gripe(ERC_SYNTAX_ERROR,
+      rval = gripe(ERC_SYNTAX_ERROR,
 		   "Unexpected end-of-file in CDATA marked section", "");
+      break;
     case S_PI:
     case S_PI2:
-      return gripe(ERC_SYNTAX_ERROR,
+      rval = gripe(ERC_SYNTAX_ERROR,
 		   "Unexpected end-of-file in processing instruction", "");
+      break;
     case S_SHORTTAG_CDATA:
-      return gripe(ERC_SYNTAX_ERROR,
-		   "Unexpected end-of-file SHORTTAG element");
+      rval = gripe(ERC_SYNTAX_ERROR,
+		   "Unexpected end-of-file in SHORTTAG element");
+      break;
+    default:
+      rval = gripe(ERC_SYNTAX_ERROR,
+		   "Unexpected end-of-file in ???");
+      break;
   }
 
-  return FALSE;				/* ?? */
+  if ( p->dmode == DM_DATA )
+  { sgml_environment *env;
+
+    process_cdata(p, TRUE);
+
+    if ( (env=p->environments) )
+    { dtd_element *e;
+
+      while(env->parent)
+	env = env->parent;
+
+      pop_to(p, env, CDATA_ELEMENT);
+      e = env->element;
+      if ( e->structure && !e->structure->omit_close )
+	gripe(ERC_OMITTED_CLOSE, e->name->name);
+      close_element(p, e, FALSE);
+    }
+  }
+
+  return rval;
 }
 
 

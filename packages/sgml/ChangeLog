@@ -1,3 +1,12 @@
+* FIXED: option shorttag was spelled shortag.
+
+* FIXED: Ensure the output is properly closed, even if the parser encounters
+  an unexpected end-of-file.
+
+
+SWI-Prolog VERSION 4.0.6
+========================
+
 * FIXED: Data overwriting in <DOCTYPE ... [local stuff]> if local stuff
   is too long (Andrew Dadakov).
 

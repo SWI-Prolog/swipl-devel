@@ -198,7 +198,7 @@ initConstants()
   FUNCTOR_allowed1       = mkfunctor("allowed", 1);
   FUNCTOR_context1       = mkfunctor("context", 1);
   FUNCTOR_defaults1	 = mkfunctor("defaults", 1);
-  FUNCTOR_shorttag1	 = mkfunctor("shortag", 1);
+  FUNCTOR_shorttag1	 = mkfunctor("shorttag", 1);
 
   ATOM_true = PL_new_atom("true");
   ATOM_false = PL_new_atom("false");
@@ -1258,7 +1258,7 @@ write_parser(void *h, char *buf, int len)
     return -1;
   }
   
-  if ( pd->errors > pd->max_errors || pd->stopped )
+  if ( (pd->errors > pd->max_errors && pd->max_errors >= 0) || pd->stopped )
   { errno = EIO;
     return -1;
   }
@@ -1524,7 +1524,7 @@ pl_sgml_parse(term_t parser, term_t options)
     while( (chr = Sgetc(in)) != EOF )
     { putchar_dtd_parser(p, chr);
 
-      if ( pd->errors > pd->max_errors )
+      if ( pd->errors > pd->max_errors && pd->max_errors >= 0 )
 	return sgml2pl_error(ERR_LIMIT, "max_errors", (long)pd->max_errors);
       if ( pd->stopped )
       { pd->stopped = FALSE;
@@ -1578,7 +1578,7 @@ pl_sgml_parse(term_t parser, term_t options)
     PL_discard_foreign_frame(fid);
     Sclose(s);
 
-    if ( pd->errors > pd->max_errors )
+    if ( pd->errors > pd->max_errors && pd->max_errors >= 0 )
       return sgml2pl_error(ERR_LIMIT, "max_errors", (long)pd->max_errors);
 
     return sgml2pl_error(ERR_FAIL, goal);
