@@ -30,11 +30,14 @@ MsObjectTable()
 
 void
 ws_discard_input(const char *msg)
-{ char buf[1024];
+{
+/*
+  char buf[1024];
 
   Cprintf("%s; discarding input ...", msg);
   Cgetline(buf, sizeof(buf));
   Cprintf("ok\n");
+*/
 }
 
 		 /*******************************
