@@ -1,22 +1,22 @@
 
-/* ../src/gra/arc.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/arc.c */
 void		points_arc(Arc a, int *sx, int *sy, int *ex, int *ey);
 status		makeClassArc(Class class);
 
-/* ../src/gra/arrow.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/arrow.c */
 status		makeClassArrow(Class class);
 
-/* ../src/gra/bitmap.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/bitmap.c */
 status		updateSolidBitmap(BitmapObj bm);
 status		makeClassBitmap(Class class);
 
-/* ../src/gra/box.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/box.c */
 status		makeClassBox(Class class);
 
-/* ../src/gra/circle.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/circle.c */
 status		makeClassCircle(Class class);
 
-/* ../src/gra/colour.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/colour.c */
 Int		getRedColour(Colour c);
 Int		getGreenColour(Colour c);
 Int		getBlueColour(Colour c);
@@ -24,15 +24,15 @@ Colour		getHiliteColour(Colour c, Real h);
 Colour		getReduceColour(Colour c, Real re);
 status		makeClassColour(Class class);
 
-/* ../src/gra/connection.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/connection.c */
 status		updateHideExposeConnection(Connection c);
 status		updateDeviceConnection(Connection c);
 status		makeClassConnection(Class class);
 
-/* ../src/gra/cursor.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/cursor.c */
 status		makeClassCursor(Class class);
 
-/* ../src/gra/device.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/device.c */
 status		initialiseDevice(Device dev);
 status		unlinkDevice(Device dev);
 CursorObj	getDisplayedCursorDevice(Device dev);
@@ -67,15 +67,15 @@ status		updateConnectionsDevice(Device dev, Int level);
 status		geometryDevice(Device dev, Int x, Int y, Int w, Int h);
 status		makeClassDevice(Class class);
 
-/* ../src/gra/ellipse.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/ellipse.c */
 status		makeClassEllipse(Class class);
 
-/* ../src/gra/figure.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/figure.c */
 status		initialiseFigure(Figure f);
 Any		RedrawBoxFigure(Figure f, Area area);
 status		makeClassFigure(Class class);
 
-/* ../src/gra/font.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/font.c */
 status		replaceFont(FontObj f, DisplayObj d);
 status		makeBuiltinFonts(void);
 Int		getWidthFont(FontObj f, CharArray txt);
@@ -88,10 +88,10 @@ Bool		getFixedWidthFont(FontObj f);
 Bool		getB16Font(FontObj f);
 status		makeClassFont(Class class);
 
-/* ../src/gra/format.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/format.c */
 status		makeClassFormat(Class class);
 
-/* ../src/gra/graphical.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/graphical.c */
 status		initialiseGraphical(Any obj, Int x, Int y, Int w, Int h);
 status		unlinkGraphical(Graphical gr);
 status		copyGraphical(Any obj1, Any obj2);
@@ -185,18 +185,19 @@ Node		getNodeGraphical(Graphical gr);
 status		pointerGraphical(Graphical gr, Point pos);
 Any		getMasterGraphical(Graphical gr);
 status		nameGraphical(Graphical gr, Name name);
+Any		getContainedInGraphical(Graphical gr);
 status		initialiseNewSlotGraphical(Graphical gr, Variable new);
 status		clipGraphical(Graphical gr, Area a);
 status		unclipGraphical(Graphical gr);
 status		makeClassGraphical(Class class);
 
-/* ../src/gra/handle.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/handle.c */
 status		getXYHandle(Handle h, Graphical gr, Device dev, Int *X, Int *Y);
 Int		getXHandle(Handle h, Graphical gr, Device dev);
 Int		getYHandle(Handle h, Graphical gr, Device dev);
 status		makeClassHandle(Class class);
 
-/* ../src/gra/image.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/image.c */
 status		initialiseImage(Image image, SourceSink data, Int w, Int h, Name kind);
 Image		getConvertImage(Class class, Any obj);
 status		XopenImage(Image image, DisplayObj d);
@@ -206,13 +207,13 @@ status		fillImage(Image image, Any pattern, Area area);
 Image		getMonochromeImage(Image image);
 status		makeClassImage(Class class);
 
-/* ../src/gra/joint.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/joint.c */
 status		initialiseJoint(Joint jt, Int x, Int y, Int w, Int h, Name arrows);
 status		copyJoint(Joint jt1, Joint jt2);
 status		setArrowsJoint(Joint jt, Graphical first, Graphical second);
 status		makeClassJoint(Class class);
 
-/* ../src/gra/line.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/line.c */
 status		initialiseLine(Line ln, Int xa, Int ya, Int xb, Int yb, Name arrows);
 status		adjustFirstArrowLine(Line ln);
 status		adjustSecondArrowLine(Line ln);
@@ -225,10 +226,10 @@ Point		getIntersectionLine(Line l1, Line l2);
 Real		getAngleLine(Line ln, Point p);
 status		makeClassLine(Class class);
 
-/* ../src/gra/link.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/link.c */
 status		makeClassLink(Class class);
 
-/* ../src/gra/listbrowser.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/listbrowser.c */
 status		requestGeometryListBrowser(ListBrowser lb, Int x, Int y, Int w, Int h);
 Size		getSizeListBrowser(ListBrowser lb);
 status		executeSearchListBrowser(ListBrowser lb);
@@ -246,7 +247,7 @@ DictItem	getMemberListBrowser(ListBrowser lb, Any key);
 Chain		getContainsListBrowser(ListBrowser lb);
 status		makeClassListBrowser(Class class);
 
-/* ../src/gra/node.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/node.c */
 status		updateDisplayedTree(Tree t);
 status		relateImageNode(Node n, Node n2);
 status		forAllNode(Node n, Code msg);
@@ -254,12 +255,12 @@ status		forSomeNode(Node n, Code msg);
 Node		getFindNodeNode(Node n, Graphical gr);
 status		makeClassNode(Class class);
 
-/* ../src/gra/path.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/path.c */
 status		adjustFirstArrowPath(Path p);
 status		adjustSecondArrowPath(Path p);
 status		makeClassPath(Class class);
 
-/* ../src/gra/postscript.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/postscript.c */
 StringObj	getPostscriptObject(Any obj, Bool ls, Area a);
 void		ps_put_char(int c);
 void		ps_output(char *fm, ...);
@@ -284,13 +285,13 @@ status		drawPostScriptText(TextObj t);
 status		postscriptFrame(FrameObj fr);
 status		postscriptDisplay(DisplayObj d);
 
-/* ../src/gra/scrollbar.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/scrollbar.c */
 Int		getMarginScrollBar(ScrollBar sb);
 status		placeScrollBar(ScrollBar sb, Graphical gr);
 status		bubbleScrollBar(ScrollBar sb, Int l, Int s, Int v);
 status		makeClassScrollBar(Class class);
 
-/* ../src/gra/text.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/text.c */
 void		str_format(String out, const String in, const int width, const FontObj font);
 status		repaintText(TextObj t, int x, int y, int w, int h);
 Int		get_pointed_text(TextObj t, int x, int y);
@@ -304,14 +305,14 @@ status		lengthText(TextObj t, Int l);
 status		marginText(TextObj t, Int width, Name wrap);
 status		makeClassText(Class class);
 
-/* ../src/gra/tree.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/tree.c */
 status		requestComputeTree(Tree t);
 status		displayTree(Tree t, Node n);
 status		unzoomTree(Tree t);
 status		zoomTree(Tree t, Node n);
 status		makeClassTree(Class class);
 
-/* ../src/gra/visual.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/visual.c */
 status		resetVisual(VisualObj v);
 status		destroyVisual(VisualObj v);
 Any		getReportToVisual(VisualObj v);
@@ -319,28 +320,28 @@ status		reportVisual(VisualObj v, Name kind, CharArray fmt, int argc, Any *argv)
 status		alertReporteeVisual(Any v);
 status		makeClassVisual(Class class);
 
-/* ../src/gra/pixmap.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/pixmap.c */
 Colour		getReplacementColourPixmap(PixmapObj pm);
 status		makeClassPixmap(Class class);
 
-/* ../src/gra/elevation.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/elevation.c */
 Elevation	getModifyElevation(Elevation e, Name att, Any val);
 status		makeClassElevation(Class class);
 
-/* ../src/gra/pen.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/pen.c */
 status		makeClassPen(Class class);
 
-/* ../src/gra/draw.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/draw.c */
 void		r_3d_rectangular_polygon(int n, IPoint pts, Elevation e, int flags);
 
-/* ../src/gra/colourmap.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/colourmap.c */
 status		makeClassColourMap(Class class);
 
-/* ../src/gra/bezier.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/bezier.c */
 status		adjustFirstArrowBezier(Bezier b);
 status		adjustSecondArrowBezier(Bezier b);
 status		makeClassBezier(Class class);
 
-/* ../src/gra/hsv.c */
+/* /swi40/jan/src/pl/packages/xpce/src/gra/hsv.c */
 void		RGBToHSV(float r, float g, float b, float *H, float *S, float *V);
 void		HSVToRGB(float hue, float sat, float V, float *R, float *G, float *B);

@@ -3,6 +3,7 @@
 
 * FIXED: Class node (part of tree) placement of constrained graphicals using
   ->geometry instead of ->set, so windows can be displayed in hierarchy nodes.
+  Also ensure `window<-contained_in' returns the node in this case.
 
 * FIXED: pce_identifier_item.pl: declare the used error (not filled).
 

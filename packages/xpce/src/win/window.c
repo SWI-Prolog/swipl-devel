@@ -2030,10 +2030,10 @@ hideWindow(PceWindow sw)
 
 static Any
 getContainedInWindow(PceWindow sw)
-{ if ( notNil(sw->frame) )  answer(sw->frame);
-  if ( notNil(sw->device) ) answer(sw->device);
+{ if ( notNil(sw->frame) )
+    answer(sw->frame);
 
-  fail;
+  return getContainedInGraphical((Graphical)sw);
 }
 
 

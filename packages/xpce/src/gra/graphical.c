@@ -2899,7 +2899,7 @@ layoutInterfaceGraphical(Graphical gr, LayoutInterface itf)
 		*              VISUAL		*
 		********************************/
 
-static Any
+Any
 getContainedInGraphical(Graphical gr)
 { if ( notNil(gr->device) )
   { if ( instanceOfObject(gr->device, ClassTree) )
