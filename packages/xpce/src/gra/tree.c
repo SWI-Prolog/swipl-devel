@@ -416,12 +416,10 @@ computeFigureTree(Tree t)
 { if ( notNil(t->request_compute) )
   { if ( t->pen != ZERO || notNil(t->background) )
     { CHANGING_GRAPHICAL(t, { computeGraphicalsDevice((Device) t);
-			      computeFormatDevice((Device) t);
 			      computeBoundingBoxFigureTree(t);
 			    });
     } else
     { computeGraphicalsDevice((Device) t);
-      computeFormatDevice((Device) t);
       computeBoundingBoxFigureTree(t);
     }
 

@@ -1,4 +1,42 @@
+[VERSION 4.10.0]
+
+* ADDED: Classes layout_manager, layout_interface, table, table_slice,
+  table_column, table_row, table_cell: Generic interface for associating
+  layout managers to graphical devices and realisation of HTML-3 like
+  tables (tabular layout) in this framework.
+
+* INCOMPATIBILITIES: The old class `table', representing a relational
+  database-like table has been renamed to relation_table.  Code using
+  this should be modified.
+
+* ADDED: library(pce_set_item): check for adding duplicates using the new
+  method `->check_duplicate'.
+
+* ADDED: `char_array <-strip' for deleting and cononising blank space in
+  char_array objects.
+
+* MODIFIED: library(editable_text) ->loose_focus renamed to ->release_focus
+  for better consistency.
+
+* FIXED: text objects holding an empty string now have zero-width (actually,
+  2 times the <-border).
+
+* FIXED: if a format is attached to a device, align the graphicals using
+  ->do_set, rather than ->set.
+
+* MODIFIED: `vector->element'.  `Gaps' are filled with @nil, instead of
+  @default.
+
 [VERSION 4.9.7]
+
+[#3]
+
+* ADDED `image<-rotate' for Windows 95.  Now uses same algorithm for NT,
+  as it produces clearly better results.
+
+* FIXED: displaying boxes with negative <-width or <-height.
+
+[#2]
 
 * FIXED: Displaying 3-d rectangles with radius > min(w,h)/2 (Unix/X11 version)
 

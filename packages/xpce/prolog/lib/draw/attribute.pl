@@ -119,7 +119,7 @@ open(A, Pos:[point]) :->
 	    send(Pos1, plus, Diff)
 	;   Pos1 = Pos
 	),
-	send(A, send_super, open, Pos1).
+	send(A, send_super, open, Pos1, normalise := @on).
 
 
 unlink(A) :->
@@ -214,8 +214,8 @@ make_arrow_menu(Menu, _Draw, Attribute) :-
 	send(Menu, attribute, equal_predicate, equal_arrows).
 
 equal_arrows(A1, A2) :-
-	send(A1, instance_of, Arrow),
-	send(A2, instance_of, Arrow),
+	send(A1, instance_of, arrow),
+	send(A2, instance_of, arrow),
 	equal_attributes([ length, wing,
 			   pen, texture, style,
 			   fill_pattern, colour

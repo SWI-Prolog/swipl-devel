@@ -1012,7 +1012,7 @@ getMatchingBracketTextBuffer(TextBuffer tb, Int idx, Int bracket)
   int depth = 1;
   int ic;
   SyntaxTable syntax = tb->syntax;
-  char c;
+  int c;
 
   c = (notDefault(bracket) ? valInt(bracket) : fetch(i));
   stack[0] = c;

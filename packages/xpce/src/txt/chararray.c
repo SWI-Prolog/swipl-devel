@@ -277,6 +277,40 @@ getUpcaseCharArray(CharArray n)
 }
 
 
+static CharArray
+getStripCharArray(CharArray n, Name how)
+{ String s = &n->data;
+  int size = s->size;
+  LocalString(buf, s, size);
+  int i=0, o=0, lnb=0;
+
+  if ( isDefault(how) )
+    how = NAME_canonise;
+
+  if ( how == NAME_canonise || how == NAME_leading || how == NAME_both )
+  { for(; i<size && islayout(str_fetch(s, i)); i++)
+      ;
+  }
+  for( ; i<size; i++)
+  { int c = str_fetch(s, i);
+
+    str_store(buf, o++, c);
+    if ( !islayout(c) )
+      lnb = o;
+    else if ( how == NAME_canonise )
+    { for( ; i+1<size && islayout(str_fetch(s, i+1)); i++)
+	;
+    }
+  }
+  if ( how == NAME_canonise || how == NAME_trailing || how == NAME_both )
+    buf->size = lnb;
+  else
+    buf->size = o;
+
+  answer(ModifiedCharArray(n, buf));
+}
+
+
 CharArray
 getAppendCharArray(CharArray n1, CharArray n2)
 { String s1 = &n1->data;
@@ -639,6 +673,8 @@ static getdecl get_charArray[] =
      NAME_case, "Default name used for labels"),
   GM(NAME_upcase, 0, "char_array", NULL, getUpcaseCharArray,
      NAME_case, "Map all lowercase letters to uppercase"),
+  GM(NAME_strip, 1, "char_array", "[{canonise,leading,trailing,both}]", getStripCharArray,
+     NAME_content, "Strip leading/trailing blanks"),
   GM(NAME_compare, 2, "{smaller,equal,larger}", T_compare, getCompareCharArray,
      NAME_compare, "Alphabetical comparison"),
   GM(NAME_append, 1, "char_array", "char_array ...", getAppendCharArrayv,

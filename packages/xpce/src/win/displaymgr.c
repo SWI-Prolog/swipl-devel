@@ -100,26 +100,26 @@ eventQueuedDisplayManager(DisplayManager dm)
   fail;
 }
 
-#define TestBreakDraw() if ( eventQueuedDisplayManager(dm) ) fail;
+#define TestBreakDraw(dm) if ( eventQueuedDisplayManager(dm) ) fail;
 
 status
 RedrawDisplayManager(DisplayManager dm)
 { if ( ChangedWindows && !emptyChain(ChangedWindows) )
   { PceWindow sw = WindowOfLastEvent();
 
-    TestBreakDraw();
+    TestBreakDraw(dm);
     if ( sw && memberChain(ChangedWindows, sw) )
       RedrawWindow(sw);
 
     while( !emptyChain(ChangedWindows) )
-    { TestBreakDraw();
+    { TestBreakDraw(dm);
 
       for_chain(ChangedWindows, sw,
 		{ if ( !instanceOfObject(sw, ClassWindowDecorator) )
 		    RedrawWindow(sw);
 		});
 
-      TestBreakDraw();
+      TestBreakDraw(dm);
 
       for_chain(ChangedWindows, sw,
 		{ if ( instanceOfObject(sw, ClassWindowDecorator) )

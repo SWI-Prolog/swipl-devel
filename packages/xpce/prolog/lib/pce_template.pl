@@ -19,7 +19,7 @@
 :- pce_end_class.
 
 
-%	use_template(+TemplateClassName)
+%	use_class_template(+TemplateClassName)
 %
 %	Include methods and variables from `TemplateClassName' into the
 %	current class (i.e. between :- pce_begin_class/3 and

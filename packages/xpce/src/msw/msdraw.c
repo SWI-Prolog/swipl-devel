@@ -1215,7 +1215,9 @@ r_box(int x, int y, int w, int h, int r, Any fill)
 
 void
 r_shadow_box(int x, int y, int w, int h, int r, int shadow, Image fill)
-{ if ( !shadow )
+{ NormaliseArea(x,y,w,h);
+
+  if ( !shadow )
   { r_box(x, y, w, h, r, fill);
   } else
   { if ( shadow > h ) shadow = h;
@@ -1965,8 +1967,6 @@ r_op_image(Image image, int sx, int sy, int x, int y, int w, int h, Name op)
   ZSelectObject(mhdc, obm);
   DeleteDC(mhdc);
 }
-
-#define O_IMGLIB 1
 
 #ifdef O_IMGLIB
 #include "imglib.h"

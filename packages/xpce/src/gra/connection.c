@@ -348,7 +348,7 @@ Connections cannot be moved themselves.  The only method understood by
 a connection that changes it's start and end-position is ->points.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static in_points = 0;
+static int in_points = 0;
 
 static status
 pointsConnection(Connection c, Int x1, Int y1, Int x2, Int y2)

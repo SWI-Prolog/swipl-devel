@@ -18,6 +18,7 @@ variable(editable,	bool := @on,	get,	"Text is editable").
 variable(message,	'name|code*',	both,	"Action on enter").
 
 :- pce_global(@editable_text_gesture, make_edit_text_recogniser).
+:- pce_global(@editable_text_key_binding, make_key_binding).
 
 make_edit_text_recogniser(R) :-
 	new(Text, @event?receiver),
@@ -30,10 +31,11 @@ make_edit_text_recogniser(R) :-
 	new(R, handler_group(handler(obtain_keyboard_focus,
 				     message(Text, obtain_focus)),
 			     handler(release_keyboard_focus,
-				     message(Text, loose_focus)),
-			     C,
-			     new(KB, key_binding(editable_text, text)))),
-	send(KB, condition, @event?receiver?show_caret == @on),
+				     message(Text, release_focus)),
+			     C)).
+
+make_key_binding(KB) :-
+	new(KB, key_binding(editable_text, text)),
 	send(KB, function, 'TAB', advance),
 	send(KB, function, '\e',  enter),
 	send(KB, function, 'RET', enter).
@@ -55,15 +57,18 @@ cancel(T) :->
 
 obtain_focus(T) :->
 	"Called when focus is obtained: show the caret"::
-	get(T, pen, OldPen),
-	get(T, border, OldBorder),
-	send(T, attribute, edit_saved_parms, chain(OldPen, OldBorder)),
-	send(T, pen, 1),
-	send(T, border, 2),
+	(   get(T, attribute, edit_saved_parms, _)  % pointer in/out of window
+	->  true
+	;   get(T, pen, OldPen),
+	    get(T, border, OldBorder),
+	    send(T, attribute, edit_saved_parms, chain(OldPen, OldBorder)),
+	    send(T, pen, 1),
+	    send(T, border, 2)
+	),
 	send(T, show_caret, @on).
 
 
-loose_focus(T) :->
+release_focus(T) :->
 	"Called when focus is lost: remove the caret"::
 	(   get(T, attribute, edit_saved_parms, chain(OldPen, OldBorder))
 	->  send(T, pen, OldPen),
@@ -95,6 +100,12 @@ advance(T) :->
 '_wants_keyboard_focus'(T) :->
 	"True if text is <-editable"::
 	get(T, editable, @on).
+
+
+typed(T, Id:event_id) :->
+	"Handle keyboard input"::
+	get(T, show_caret, @on),
+	send(@editable_text_key_binding, typed, Id, T).
 
 
 event(T, Ev:event) :->

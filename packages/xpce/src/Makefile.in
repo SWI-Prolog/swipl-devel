@@ -26,7 +26,7 @@
 #	+ If you want a licence, contact xpce-request@swi.psy.uva.nl
 #	+ Please inform us where you found the illegal copy.
 #
-# Copyright (C) 1994, University of Amsterdam
+# Copyright (C) 1997, University of Amsterdam
 ################################################################
 
 .EXPORT_ALL_VARIABLES:
@@ -120,7 +120,7 @@ BOOTPL=@BOOTPL@
 
 PLRUNTIME=$(PLBASE)/runtime/$(PLARCH)
 PLOBJ=pl$(RTSUFFIX).o
-PLINCLUDE=$(PLBASE)/include
+PLINCLUDE=@PLINCLUDE@
 
 PLTARGET=@PLTARGET@
 
@@ -136,7 +136,7 @@ SICSTARGET=xpce-sicstus
 VMAJOR=@VMAJOR@
 VMINOR=@VMINOR@
 VPATCH=@VPATCH@
-PCEVERSIONDATE=December 1997
+PCEVERSIONDATE=February 1998
 RESOURCE_CLASS=Pce
 
 SOMAJOR=$(VMAJOR)
@@ -267,7 +267,7 @@ Initialize.o:
 # XPCE's modules
 ################################################################
 
-MODULES=	adt ari evt gnu gra itf ker men msg prg rel txt unx win img
+MODULES=	adt ari evt gnu gra itf ker men fmt msg prg rel txt unx win img
 
 ################################################################
 # PROTOTYPES (must be made in the source directory)
@@ -442,7 +442,7 @@ ker/self.o:	version.h
 
 ker/name.o:	h/names.ih
 
-ker/glob.o:	h/kernel.h h/types.h h/graphics.h h/lang.h
+ker/glob.o:	h/kernel.h h/types.h h/graphics.h h/lang.h h/layout.h
 
 
 ################################################################
@@ -456,6 +456,18 @@ MENSRC=		$(addprefix men/, $(MENOBJS:.o=.c))
 
 men/proto.h:	$(MENSRC)
 		$(MKPROTO) $(MENSRC) | $(CLPROTO) > $@
+
+
+################################################################
+# FMT 		--- Layout managers
+################################################################
+
+FMTOBJS=	layoutmgr.o layoutitf.o \
+		table.o tabcell.o tabslice.o
+FMTSRC=		$(addprefix fmt/, $(FMTOBJS:.o=.c))
+
+fmt/proto.h:	$(FMTSRC)
+		$(MKPROTO) $(FMTSRC) | $(CLPROTO) > $@
 
 
 ################################################################
@@ -580,6 +592,7 @@ OBJECTS=	$(addprefix adt/, $(ADTOBJS)) \
 		$(addprefix itf/, $(ITFOBJS)) \
 		$(addprefix ker/, $(KEROBJS)) \
 		$(addprefix men/, $(MENOBJS)) \
+		$(addprefix fmt/, $(FMTOBJS)) \
 		$(addprefix msg/, $(MSGOBJS)) \
 		$(addprefix prg/, $(PRGOBJS)) \
 		$(addprefix rel/, $(RELOBJS)) \

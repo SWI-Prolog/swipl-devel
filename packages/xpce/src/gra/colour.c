@@ -10,7 +10,7 @@
 #include <h/kernel.h>
 #include <h/graphics.h>
 
-static XCloseColour(Colour c, DisplayObj d);
+static status XCloseColour(Colour c, DisplayObj d);
 
 static Int
 defcolourname(Int r, Int g, Int b)

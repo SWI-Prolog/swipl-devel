@@ -17,6 +17,7 @@
 # $(PL)		SWI-Prolog executable
 # $(PLBASE)	SWI-Prolog's home directory
 # $(PLARCH)	SWI-Prolog's architecture identifier
+# $(PLINCLUDE)  SWI-Prolog's include files
 # $(builddir)	Path from XPCE home to build directory
 # $(C?FLAGS)	The various C-compiler flags
 # $(SOEXTRAOBJ)	Possibly non-standard .o files for creating pl2xpce.so

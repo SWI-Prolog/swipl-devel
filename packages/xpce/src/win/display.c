@@ -838,7 +838,7 @@ resetDisplay(DisplayObj d)
   return resetVisual((VisualObj) d);
 }
 
-extern postscriptDisplay(DisplayObj d);
+extern status postscriptDisplay(DisplayObj d);
 
 static status
 quitDisplay(DisplayObj d)

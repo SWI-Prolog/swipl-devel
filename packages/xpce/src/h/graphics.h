@@ -9,6 +9,7 @@
 
 #ifndef _PCE_GRA_INCLUDED
 #define _PCE_GRA_INCLUDED
+#include <h/layout.h>
 
 #define MAX_WRAP_LINES	100		/* line-wraps in text-objects */
 
@@ -17,32 +18,34 @@ typedef struct colour_context *ColourContext; /* for selection/inactive */
 
 #define ABSTRACT_GRAPHICAL \
   ABSTRACT_VISUAL \
-  Device     device;			/* device on which displayed */ \
-  Area	     area;			/* area (bounding box) */ \
-  Bool       displayed;			/* is graphical object displayed? */ \
-  Int        pen;			/* pen thickness for this object */ \
-  Name	     texture;			/* dash pattern for lines */ \
-  Any        colour;			/* colour of the graphical */ \
-  Chain	     handles;			/* handles connected to graphical */ \
-  Chain	     connections;		/* Available connections */ \
-  Name       name;			/* name to find it */ \
-  Bool	     selected;			/* is graphical selected? */ \
-  Bool	     inverted;			/* inverted image */ \
-  Bool	     active;			/* (de)activated */ \
-  CursorObj  cursor;			/* cursor of the graphical */ \
-  Any	     request_compute;		/* graphical needs recomputed */
+  Device     	device;			/* device on which displayed */ \
+  Area	     	area;			/* area (bounding box) */ \
+  Bool       	displayed;		/* is graphical object displayed? */ \
+  Int        	pen;			/* pen thickness for this object */ \
+  Name	     	texture;		/* dash pattern for lines */ \
+  Any		colour;			/* colour of the graphical */ \
+  Chain		handles;		/* handles connected to graphical */ \
+  Chain		connections;		/* Available connections */ \
+  Name		name;			/* name to find it */ \
+  Bool		selected;		/* is graphical selected? */ \
+  Bool		inverted;		/* inverted image */ \
+  Bool		active;			/* (de)activated */ \
+  CursorObj	cursor;			/* cursor of the graphical */ \
+  LayoutInterface layout_interface;	/* Interface to layout manager */ \
+  Any	     	request_compute;	/* graphical needs recomputed */
 
 #define ABSTRACT_DEVICE \
   ABSTRACT_GRAPHICAL \
-  Int	     level;			/* Level from root */ \
-  Point	     offset;			/* Origin offset */ \
-  Area	     clip_area;			/* Visible subarea */ \
-  Chain	     graphicals;		/* Displayed graphicals */ \
-  Chain	     pointed;			/* Graphicals on last event */ \
-  Format     format;			/* Row/Column formatting */ \
-  Bool	     badFormat;			/* Formats needs to be recomputed */ \
-  Bool	     badBoundingBox;		/* BoundingBox needs recomputed */ \
-  Chain	     recompute;			/* Graphicals requesting recompute */
+  Int	        level;			/* Level from root */ \
+  Point	        offset;			/* Origin offset */ \
+  Area	        clip_area;		/* Visible subarea */ \
+  Chain	        graphicals;		/* Displayed graphicals */ \
+  Chain	        pointed;		/* Graphicals on last event */ \
+  LayoutManager layout_manager;		/* Manage graphicals layout */ \
+  Format        format;			/* Row/Column formatting */ \
+  Bool	        badFormat;		/* Formats needs to be recomputed */ \
+  Bool	        badBoundingBox;		/* BoundingBox needs recomputed */ \
+  Chain	        recompute;		/* Graphicals requesting recompute */
 
 #define ABSTRACT_FIGURE \
   ABSTRACT_DEVICE \

@@ -215,6 +215,8 @@ event_window(Widget w, XtPointer xsw, XtPointer xevent)
 		    freeableObj(ev);
 		  }
 		  
+		  RedrawDisplayManager(TheDisplayManager()); /* optional? */
+
 		  rewindAnswerStack(mark, NIL);
 		}
 	      })

@@ -6,16 +6,17 @@ compress=gzip
 
 rm -f xpce-$version
 if [ ! "o$1" = "o-q" ]; then
-  cp /dev/null srcfiles
+  cp /dev/null cvsfiles
   echo -n "Collecting distribution files "
   for d in `find . -name CVS -type d -print`; do
       echo -n "."
       dir=`dirname $d`
-      awk -F/ '{printf("%s/%s\n", "'$dir'", $2)}' $dir/CVS/Entries >> srcfiles
+      grep '^/' $dir/CVS/Entries | \
+          awk -F/ '{printf("%s/%s\n", "'$dir'", $2)}' >> cvsfiles
   done
 
+cp /dev/null srcfiles
 find ./bitmaps \( -name '*.bm' -o -name '*.xpm' -o -name '*.xbm' \) -print >> srcfiles
-echo ./bitmaps/README >> srcfiles
 find ./appl-help -name '*.hlp' -print >> srcfiles
 
 cat >> srcfiles << EOF
@@ -26,13 +27,15 @@ EOF
   echo "done"
 fi
 
-grep -v src/msw/ srcfiles | \
-grep -v prolog/pwboot/ | \
-grep -v quintus/ | \
-grep -v /prowindows | \
-	sed "s@^\./@xpce-$version/@" > tapefiles
+cat cvsfiles srcfiles | \
+  grep -v src/msw/ | \
+  grep -v prolog/pwboot/ | \
+  grep -v quintus/ | \
+  grep -v /prowindows | \
+	  sed "s@^\./@xpce-$version/@" > tapefiles
 
 cd ..
+rm -f xpce-$version
 ln -s xpce xpce-$version
 tar cvfT - xpce/tapefiles | $compress > $out
 rm -f xpce-$version

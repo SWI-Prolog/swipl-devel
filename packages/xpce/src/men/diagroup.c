@@ -50,10 +50,7 @@ initialiseDialogGroup(DialogGroup g, Name name, Name kind)
 
 void
 compute_label_size_dialog_group(DialogGroup g, int *w, int *h)
-{ if ( isDefault(g->label_font) )
-    obtainResourcesObject(g);
-
-  if ( instanceOfObject(g->label, ClassImage) )
+{ if ( instanceOfObject(g->label, ClassImage) )
   { Image i = g->label;
 
     *w = valInt(i->size->w);
@@ -62,6 +59,9 @@ compute_label_size_dialog_group(DialogGroup g, int *w, int *h)
   { if ( instanceOfObject(g->label, ClassCharArray) )
     { CharArray ca = g->label;
 
+      if ( isDefault(g->label_font) )
+	obtainResourcesObject(g);
+      
       str_size(&ca->data, g->label_font, w, h);
     } else
     { *w = *h = 0;
@@ -72,22 +72,33 @@ compute_label_size_dialog_group(DialogGroup g, int *w, int *h)
 
 static void
 compute_label(DialogGroup g, int *x, int *y, int *w, int *h)
-{ int tw, th;
+{ if ( notNil(g->label) )
+  { int tw, th;
 
-  compute_label_size_dialog_group(g, &tw, &th);
-
-  if ( w ) *w = tw;
-  if ( h ) *h = th;
-  if ( y )
-  { if ( g->label_format == NAME_top )
-      *y = -th;
-    else if ( g->label_format == NAME_bottom )
-      *y = 0;
-    else /* center */
-      *y = -th/2;
+    compute_label_size_dialog_group(g, &tw, &th);
+  
+    if ( w ) *w = tw;
+    if ( h ) *h = th;
+    if ( y )
+    { if ( g->label_format == NAME_top )
+	*y = -th;
+      else if ( g->label_format == NAME_bottom )
+	*y = 0;
+      else /* center */
+	*y = -th/2;
+    }
+    if ( x )
+    { if ( isDefault(g->label_font) )
+	  obtainResourcesObject(g);
+	
+      *x = valInt(g->radius) + valInt(getExFont(g->label_font));
+    }
+  } else
+  { if ( x ) *x = 0;
+    if ( y ) *y = 0;
+    if ( w ) *w = 0;
+    if ( h ) *h = 0;
   }
-  if ( x )
-    *x = valInt(g->radius) + valInt(getExFont(g->label_font));
 }
 
 
@@ -339,7 +350,7 @@ kindDialogGroup(DialogGroup g, Name kind)
   } else if ( kind == NAME_group )
   { assign(g, pen, toInt(0));
     assign(g, border, newObject(ClassSize, 0));
-    assign(g, label, NAME_);
+    assign(g, label, NIL);
   } else
     fail;
 

@@ -1157,12 +1157,13 @@ NewClass(times)
   ABSTRACT_BINARY_EXPRESSION
 End;
 
-/* NOTE: context and name share with class method!!! */
+#define ABSTRACT_VECTOR \
+  Int		offset;			/* index of element 0 of array */ \
+  Int		size;			/* number of valid entries */ \
+  Any		*elements;		/* array of elements */
 
 NewClass(vector)
-  Int		offset;			/* index of element 0 of array */
-  Int		size;			/* number of valid entries */
-  Any		*elements;		/* array of elements */
+  ABSTRACT_VECTOR
 End;
 
 NewClass(visual)
@@ -1561,6 +1562,16 @@ GLOBAL int	qsortReverse;		/* used by qsortCompareObjects() */
   { int _iv, _sizev = valInt((v)->size); \
     for(_iv = 0; _iv < _sizev; _iv++) \
     { val = (v)->elements[_iv]; \
+      code; \
+    } \
+  }
+
+#define for_vector_i(v, val, i, code) \
+  { int _iv, _sizev = valInt((v)->size); \
+    int _offv = valInt((v)->offset)+1; \
+    for(_iv = 0; _iv < _sizev; _iv++) \
+    { int i = _iv + _offv; \
+      val = (v)->elements[_iv]; \
       code; \
     } \
   }

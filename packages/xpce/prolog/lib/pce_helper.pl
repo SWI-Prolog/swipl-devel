@@ -79,7 +79,7 @@ give_help(Helper, Database:name, Label:name) :->
 	    ;	get(Buffer, open, Editor)
 	    ),
 	    send(Editor, goto, Label),
-	    send(Editor, expose)
+	    send(Editor?frame, expose)
 	;   (	get(Helper, value, Database, File)
 	    ;	pce_registered_help_file(Database, Path),
 		absolute_file_name(Path, FileName),

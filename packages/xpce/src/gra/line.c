@@ -372,7 +372,7 @@ distanceLineToPoint(int x1, int y1, int x2, int y2, int px, int py)
 static status
 inEventAreaLine(Line ln, Int x, Int y)
 { int d;
-  static evtol = -1;
+  static int evtol = -1;
 
   if ( evtol < 0 )
   { Int v = getResourceValueObject(ln, NAME_eventTolerance);

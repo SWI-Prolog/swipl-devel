@@ -197,7 +197,7 @@ static struct class_definition classdefs[] =
     &ClassFont, "Text font" },
 
   { NAME_format, NAME_object, makeClassFormat,
-    &ClassFormat, "Tabular specification for device" },
+    &ClassFormat, "Table specification for device" },
 
   { NAME_fragment, NAME_visual, makeClassFragment,
     &ClassFragment, "Fragment (range) of a text_buffer" },
@@ -417,8 +417,8 @@ static struct class_definition classdefs[] =
   { NAME_labelBox, NAME_dialogGroup, makeClassLabelBox,
     &ClassLabelBox, "Labeled (compound) dialog item" },
 
-  { NAME_table, NAME_object, makeClassAtable,
-    &ClassTable, "Table of association vectors" },
+  { NAME_relationTable, NAME_object, makeClassAtable,
+    &ClassRelationTable, "Simple relational database table" },
 
   { NAME_tabStack, NAME_device, makeClassTabStack,
     &ClassTabStack, "Stack of tabbed control-windows" },
@@ -498,6 +498,31 @@ static struct class_definition classdefs[] =
 
   { NAME_windowDecorator, NAME_window, makeClassWindowDecorator,
     &ClassWindowDecorator, "Attach scrollbars and label to a window" },
+
+		 /*******************************
+		 *	LAYOUT MANAGEMENT	*
+		 *******************************/
+
+  { NAME_layoutManager, NAME_object, makeClassLayoutManager,
+    &ClassLayoutManager, "Manage layout of graphical objects" },
+
+  { NAME_layoutInterface, NAME_object, makeClassLayoutInterface,
+    &ClassLayoutInterface, "Interface between graphical and layout_manager" },
+
+  { NAME_table, NAME_layoutManager, makeClassTable,
+    &ClassTable, "Table layout of graphicals" },
+
+  { NAME_tableSlice, NAME_vector, makeClassTableSlice,
+    &ClassTableSlice, "Row/column of a table" },
+
+  { NAME_tableRow, NAME_tableSlice, makeClassTableRow,
+    &ClassTableRow, "Row of a table" },
+
+  { NAME_tableColumn, NAME_tableSlice, makeClassTableColumn,
+    &ClassTableColumn, "Column of a table" },
+
+  { NAME_tableCell, NAME_layoutInterface, makeClassTableCell,
+    &ClassTableCell, "Cell in a table" },
 
   { NULL, NULL, NULL, NULL, NULL }
 };

@@ -56,6 +56,7 @@ this file.
 variable(modified,	bool := @off,	both, "Modified status").
 variable(message,	code*,		both, "Associated message").
 variable(browser,	graphical,	get,  "Browser for the set").
+variable(single_item,	graphical*,	get,  "Editor for single item").
 
 initialise(SE, One:item=graphical, Label:name=[name], Msg:message=[code]*,
 	   LB0:browser=[graphical]) :->
@@ -73,9 +74,12 @@ initialise(SE, One:item=graphical, Label:name=[name], Msg:message=[code]*,
 	send(LB, multiple_selection, @on),
 	make_browser_stretchable(LB, 100),
 	send(LB, select_message,
-	     if(message(LB?selection, empty),
-		message(RM, active, @off),
-		message(RM, active, @on))),
+	     and(if(message(LB?selection, empty),
+		    message(RM, active, @off),
+		    message(RM, active, @on)),
+		 if(LB?selection?size == 1,
+		    message(SE, edit_selection, LB?selection?head),
+		    message(One, clear)))),
 	send(LB, open_message,
 	     if(LB?selection?size == 1,
 		message(SE, edit_selection, LB?selection?head))),
@@ -84,7 +88,7 @@ initialise(SE, One:item=graphical, Label:name=[name], Msg:message=[code]*,
 	->  send(One, show_label, @off)
 	;   true
 	),
-	send(One, name, one),
+	send(SE, slot, single_item, One),
 	send(SE, append, new(Add, button(add)), right),
 	send(RM, reference, point(0,0)),
 	send(RM, active, @off),
@@ -110,7 +114,7 @@ size(SE, Size:size) :->
 
 modified_item(SE, Item:graphical, Modified:bool) :->
 	Modified == @on,
-	get(SE, member, one, Item),
+	get(SE, single_item, Item),
 	get(SE, member, add, Add),
 	send(Add, active, @on).
 
@@ -137,7 +141,8 @@ remove(SE) :->
 	get(LB, selection, Chain),
 	(   send(Chain, empty)
 	->  true
-	;   send(Chain, for_all, message(LB, delete, @arg1)),
+	;   send(Chain, for_some,	% allow for cancel
+		 message(SE, remove_item, @arg1)),
 	    get(SE, member, remove, Remove),
 	    send(Remove, active, off),
 	    send(SE, modified, @on)
@@ -145,15 +150,29 @@ remove(SE) :->
 
 add(SE) :->
 	"Add selection of single item to browser"::
-	get(SE, member, one, One),
+	get(SE, single_item, One),
 	get(One, selection, Selection),
 	get(SE, browser, LB),
+	send(SE, check_duplicate, Selection),
 	send(LB, append, Selection),
 	send(One, clear),
 	send(One, modified, @off),
 	get(SE, member, add, Add),
 	send(Add, active, @off),
 	send(SE, modified, @on).
+
+check_duplicate(SE, Item:any) :->
+	get(SE, browser, LB),
+	(   send(LB, member, Item)
+	->  send(LB, report, error, '"%s" is already in the set', Item),
+	    fail
+	;   true
+	).
+
+remove_item(SE, Item:'dict_item|any') :->
+	"Called by ->remove to delete the items from the browser":: 
+	get(SE, browser, Browser),
+	send(Browser, delete, Item).
 
 edit_selection(SE, Sel:any) :->
 	"Edit object opened in browser"::
@@ -162,7 +181,7 @@ edit_selection(SE, Sel:any) :->
 	    get(Sel, key, Value)
 	;   Value = Sel
 	),
-	get(SE, member, one, One),
+	get(SE, single_item, One),
 	send(One, selection, Value).
 	
 

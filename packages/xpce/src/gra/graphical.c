@@ -28,19 +28,21 @@ initialiseGraphical(Any obj, Int x, Int y, Int w, Int h)
 { Graphical gr = obj;
   Class class = classOfObject(gr);
 
-  assign(gr, displayed,       OFF);
-  assign(gr, device,          NIL);
-  assign(gr, area,            newObject(ClassArea, 0));
-  assign(gr, pen,             ONE);
-  assign(gr, texture,         NAME_none);
-  assign(gr, colour,          getResourceValueObject(obj, NAME_colour));
-  assign(gr, selected,        OFF);
-  assign(gr, name,            class->name);
-  assign(gr, handles,         NIL);
-  assign(gr, inverted,        OFF);
-  assign(gr, active,	      ON);
-  assign(gr, cursor,          NIL);
-  assign(gr, request_compute, NIL);
+  assign(gr, displayed,        OFF);
+  assign(gr, area,             newObject(ClassArea, 0));
+  assign(gr, pen,              ONE);
+  assign(gr, texture,          NAME_none);
+  assign(gr, colour,           getResourceValueObject(obj, NAME_colour));
+  assign(gr, selected,         OFF);
+  assign(gr, name,             class->name);
+  assign(gr, inverted,         OFF);
+  assign(gr, active,	       ON);
+/*assign(gr, handles,          NIL);	// defaults
+  assign(gr, device,           NIL);
+  assign(gr, cursor,           NIL);
+  assign(gr, layout_interface, NIL);
+  assign(gr, request_compute,  NIL);
+*/
   if ( class->solid == ON )
     setFlag(gr, F_SOLID);
 
@@ -51,7 +53,10 @@ initialiseGraphical(Any obj, Int x, Int y, Int w, Int h)
 
 status
 unlinkGraphical(Graphical gr)
-{ disconnectGraphical(gr, DEFAULT, DEFAULT, DEFAULT, DEFAULT);
+{ if ( notNil(gr->layout_interface) )
+    freeObject(gr->layout_interface);	/* another message? */
+
+  disconnectGraphical(gr, DEFAULT, DEFAULT, DEFAULT, DEFAULT);
   DeviceGraphical(gr, NIL);
 
   succeed;
@@ -406,6 +411,8 @@ changedAreaGraphical(Any obj, Int x, Int y, Int w, Int h)
 
     requestComputeDevice(gr->device, DEFAULT);
     updateConnectionsGraphical(gr, gr->device->level);
+    if ( notNil(gr->layout_interface) )
+      changedAreaLayoutInterface(gr->layout_interface);
 
     for(d = gr->device; notNil(d); d = d->device)
     { if ( d->displayed == OFF )
@@ -454,56 +461,60 @@ changedAreaGraphical(Any obj, Int x, Int y, Int w, Int h)
 status
 changedImageGraphical(Any obj, Int x, Int y, Int w, Int h)
 { Graphical gr = obj;
+  Device d;
+  int ox=0, oy=0;			/* Offset to the window */
 
-  if ( notNil(gr->device) && gr->displayed == ON )
-  { Device d;
-    int ox=0, oy=0;			/* Offset to the window */
+  if ( instanceOfObject(obj, ClassWindow) )
+    d = obj;
+  else if ( gr->displayed != ON )
+    succeed;
+  else
+    d = gr->device;
 
-    for(d = gr->device; notNil(d); d = d->device)
-    { if ( d->displayed == OFF )
+  for(; notNil(d); d = d->device)
+  { if ( d->displayed == OFF )
+      succeed;
+    ox += valInt(d->offset->x);
+    oy += valInt(d->offset->y);
+
+    if ( instanceOfObject(d, ClassWindow) )
+    { PceWindow sw = (PceWindow) d;
+      int cx, cy, cw, ch;
+
+      if ( !createdWindow(sw) )
 	succeed;
-      ox += valInt(d->offset->x);
-      oy += valInt(d->offset->y);
 
-      if ( instanceOfObject(d, ClassWindow) )
-      { PceWindow sw = (PceWindow) d;
-	int cx, cy, cw, ch;
+      if ( isDefault(x) ) x = ZERO;
+      if ( isDefault(y) ) y = ZERO;
+      if ( isDefault(w) ) w = gr->area->w;
+      if ( isDefault(h) ) h = gr->area->h;
 
-	if ( !createdWindow(sw) )
-	  succeed;
+      cx = valInt(x) + valInt(gr->area->x),
+      cy = valInt(y) + valInt(gr->area->y),
+      cw = valInt(w),
+      ch = valInt(h);
 
-	if ( isDefault(x) ) x = ZERO;
-	if ( isDefault(y) ) y = ZERO;
-	if ( isDefault(w) ) w = gr->area->w;
-	if ( isDefault(h) ) h = gr->area->h;
+      NormaliseArea(cx, cy, cw, ch);
+      cx += ox;
+      cy += oy;
 
-	cx = valInt(x) + valInt(gr->area->x),
-	cy = valInt(y) + valInt(gr->area->y),
-	cw = valInt(w),
-	ch = valInt(h);
+      if ( instanceOfObject(gr, ClassText) ||
+	   instanceOfObject(gr, ClassTextItem) )
+      { cx -= 5; cy -= 0; cw += 10; ch += 5;
+      } else if ( instanceOfObject(gr, ClassDialogItem) )
+      { cx -= 6; cy -= 6; cw += 12; ch += 12;
+      }				/* Motif hack */
 
-	NormaliseArea(cx, cy, cw, ch);
-	cx += ox;
-	cy += oy;
+      DEBUG(NAME_changesData,
+	    Cprintf("Change of %s --> %d %d %d %d%s\n",
+		    pp(obj),
+		    cx, cy, cw, ch,
+		    offFlag(gr, F_SOLID) ? " clear" : " no clear"));
 
-	if ( instanceOfObject(gr, ClassText) ||
-	     instanceOfObject(gr, ClassTextItem) )
-	{ cx -= 5; cy -= 0; cw += 10; ch += 5;
-	} else if ( instanceOfObject(gr, ClassDialogItem) )
-	{ cx -= 6; cy -= 6; cw += 12; ch += 12;
-	}				/* Motif hack */
+      changed_window(sw, cx, cy, cw, ch, offFlag(gr, F_SOLID));
 
-	DEBUG(NAME_changesData,
-	      Cprintf("Change of %s --> %d %d %d %d%s\n",
-		      pp(obj),
-		      cx, cy, cw, ch,
-		      offFlag(gr, F_SOLID) ? " clear" : " no clear"));
-
-	changed_window(sw, cx, cy, cw, ch, offFlag(gr, F_SOLID));
-
-	addChain(ChangedWindows, sw);
-	break;
-      }
+      addChain(ChangedWindows, sw);
+      break;
     }
   }
 
@@ -2409,7 +2420,7 @@ inEventAreaGraphical(Graphical gr, Int xc, Int yc)
   int ax = valInt(a->x), ay = valInt(a->y),
       aw = valInt(a->w), ah = valInt(a->h);
   int x = valInt(xc), y = valInt(yc);
-  static evtol = -1;
+  static int evtol = -1;
 
   if ( evtol < 0 )
   { Int v = getResourceValueObject(gr, NAME_eventTolerance);
@@ -2704,7 +2715,7 @@ initialiseNewSlotGraphical(Graphical gr, Variable new)
 		 *	    POSTSCRIPT		*
 		 *******************************/
 
-extern postscriptGraphical(Any obj);
+extern status postscriptGraphical(Any obj);
 
 static status
 drawPostScriptGraphical(Graphical gr)
@@ -3017,6 +3028,8 @@ static vardecl var_graphical[] =
      NAME_event, "If @off, greyed out and insensitive"),
   SV(NAME_cursor, "cursor*", IV_GET|IV_STORE, cursorGraphical,
      NAME_cursor, "Cursor when in focus of events"),
+  IV(NAME_layoutInterface, "layout_interface*", IV_GET,
+     NAME_layout, "Interface to layout-manager"),
   IV(NAME_requestCompute, "any*", IV_GET,
      NAME_update, "Graphical requests recomputing")
 };
@@ -3365,6 +3378,7 @@ makeClassGraphical(Class class)
   saveStyleVariableClass(class, NAME_device, NAME_nil);
   cloneStyleVariableClass(class, NAME_device, NAME_nil);
   setRedrawFunctionClass(class, RedrawAreaGraphical);
+  delegateClass(class, NAME_layoutInterface);
 
   ChangedWindows = globalObject(NAME_changedWindows, ClassChain, 0);
 

@@ -16,18 +16,23 @@
 #define indexVector(v, e)	( valInt(e) - valInt(v->offset) - 1 )
 #define validIndex(v, i)	{ if ( i < 0 || i >= valInt(v->size) ) fail; }
 
+static status clearVector(Vector v);
+
 status
 initialiseVectorv(Vector v, int argc, Any *argv)
 { int n;
   
   v->offset = ZERO;
   v->size = toInt(argc);
-  v->elements = alloc(argc * sizeof(Any));
+  if ( argc > 0 )
+  { v->elements = alloc(argc * sizeof(Any));
   
-  for(n=0; n < argc; n++)
-  { v->elements[n] = NIL;
-    assignVector(v, n, argv[n]);
-  }
+    for(n=0; n < argc; n++)
+    { v->elements[n] = NIL;
+      assignVector(v, n, argv[n]);
+    }
+  } else
+    v->elements = NULL;
 
   succeed;
 }
@@ -104,29 +109,106 @@ loadVector(Vector v, FILE *fd, ClassDef def)
 }
 
 
-static status
+status
 unlinkVector(Vector v)
 { if ( v->elements != NULL )
-  { fillVector(v, NIL, DEFAULT, DEFAULT);
+    return clearVector(v);
 
-    unalloc(valInt(v->size)*sizeof(Any), v->elements);
-    v->elements = NULL;
-    assign(v, size, ZERO);
+  succeed;
+}
+
+
+Int
+getLowIndexVector(Vector v)
+{ answer(add(v->offset, ONE));
+}
+
+
+Int
+getHighIndexVector(Vector v)
+{ answer(add(v->size, v->offset));
+}
+
+
+static status
+highIndexVector(Vector v, Int high)
+{ int h  = valInt(high);
+  int oh = valInt(v->offset) + valInt(v->size);
+
+  if ( oh > h )				/* too long */
+  { int size = h - valInt(v->offset);
+    if ( size > 0 )
+    { Any *elms = alloc(size * sizeof(Any));
+
+      fillVector(v, NIL, inc(high), DEFAULT); /* dereference */
+      memcpy(elms, v->elements, size * sizeof(Any));
+      unalloc(valInt(v->size)*sizeof(Any), v->elements);
+      v->elements = elms;
+      assign(v, size, toInt(size));
+
+      succeed;
+    } else
+    { return clearVector(v);
+    }
+  } else if ( oh < h )			/* too, short */
+  { return fillVector(v, NIL, toInt(oh+1), inc(high));
   }
 
   succeed;
 }
 
 
-static Int
-getLowIndexVector(Vector v)
-{ answer(add(v->offset, ONE));
+static status
+lowIndexVector(Vector v, Int low)
+{ int l  = valInt(low);
+  int ol = valInt(v->offset) + 1;
+
+  if ( l > ol )				/* too long */
+  { int size = valInt(v->size) + valInt(v->offset) - l;
+    if ( size > 0 )
+    { Any *elms = alloc(size * sizeof(Any));
+
+      fillVector(v, NIL, toInt(l), toInt(ol-1)); /* dereference */
+      memcpy(elms, &v->elements[l-ol], size * sizeof(Any));
+      unalloc(valInt(v->size)*sizeof(Any), v->elements);
+      v->elements = elms;
+      assign(v, size, toInt(size));
+
+      succeed;
+    } else
+    { return clearVector(v);
+    }
+  } else if ( l < ol )			/* too, short */
+  { return fillVector(v, NIL, toInt(l), toInt(ol-1));
+  }
+
+  succeed;
 }
 
 
-static Int
-getHighIndexVector(Vector v)
-{ answer(add(v->size, v->offset));
+status
+rangeVector(Vector v, Int low, Int high)
+{ if ( notDefault(low) )
+    lowIndexVector(v, low);
+  if ( notDefault(high) )
+    highIndexVector(v, high);
+
+  succeed;
+}
+
+
+static status
+clearVector(Vector v)
+{ if ( v->elements )
+  { fillVector(v, NIL, DEFAULT, DEFAULT);
+
+    unalloc(valInt(v->size)*sizeof(Any), v->elements);
+    v->elements = NULL;
+  }
+  assign(v, size, ZERO);
+  assign(v, offset, ZERO);
+
+  succeed;
 }
 
 
@@ -139,7 +221,7 @@ getTailVector(Vector v)
 }
 
 
-static Any
+Any
 getHeadVector(Vector v)
 { if ( v->size != ZERO )
     answer(v->elements[0]);
@@ -174,7 +256,8 @@ fillVector(Vector v, Any obj, Int from, Int to)
 
     assign(v, offset, toInt(f - 1));
     assign(v, size,   toInt(size));
-    unalloc(0, v->elements);
+    if ( v->elements )
+      unalloc(0, v->elements);
     v->elements = alloc(sizeof(Any) * size);
     for(n=0; n<size; n++)
     { v->elements[n] = NIL;
@@ -236,11 +319,13 @@ elementVector(Vector v, Int e, Any obj)
   { Any *newElements = alloc((valInt(v->size)-n)*sizeof(Any));
     int m;
 
-    memcpy(&newElements[-n], v->elements, valInt(v->size)*sizeof(Any));
-    unalloc(valInt(v->size)*sizeof(Any), v->elements);
+    if ( v->elements )
+    { memcpy(&newElements[-n], v->elements, valInt(v->size)*sizeof(Any));
+      unalloc(valInt(v->size)*sizeof(Any), v->elements);
+    }
     v->elements = newElements;
     for( m = 0; m < -n; m++ )
-      v->elements[m] = DEFAULT;
+      v->elements[m] = NIL;
     assignVector(v, 0, obj);
 
     assign(v, size, toInt(valInt(v->size)-n));
@@ -253,11 +338,13 @@ elementVector(Vector v, Int e, Any obj)
   { Any *newElements = alloc((n+1) * sizeof(Any));
     int m;
 
-    memcpy(newElements, v->elements, valInt(v->size)*sizeof(Any));
-    unalloc(valInt(v->size)*sizeof(Any), v->elements);
+    if ( v->elements )
+    { memcpy(newElements, v->elements, valInt(v->size)*sizeof(Any));
+      unalloc(valInt(v->size)*sizeof(Any), v->elements);
+    }
     v->elements = newElements;
     for( m = valInt(v->size); m <= n ; m++ )
-      v->elements[m] = DEFAULT;
+      v->elements[m] = NIL;
     assignVector(v, n, obj);
 
     assign(v, size, toInt(n+1));
@@ -280,6 +367,33 @@ appendVector(Vector v, int argc, Any obj[])
     for( ; argc-- > 0; start++, obj++ )
       elementVector(v, toInt(start), *obj);
   }
+
+  succeed;
+}
+
+
+status
+insertVector(Vector v, Int where, Any obj)
+{ int size   = valInt(v->size);
+  int offset = valInt(v->offset);
+  int i = indexVector(v, where);
+  Any *s, *p;
+
+  if ( valInt(where) <= offset+1 )
+  { assign(v, offset, toInt(offset+1));
+
+    return elementVector(v, where, obj);
+  }
+  if ( valInt(where) > size+offset )
+    return elementVector(v, where, obj);
+
+  elementVector(v, toInt(size+offset+1), NIL);
+  s = &v->elements[i];
+  p = &v->elements[size];		/* point to last element */
+  for( ; p>s; p-- )
+  { p[0] = p[-1];
+  }
+  assignVector(v, i, obj);
 
   succeed;
 }
@@ -438,6 +552,8 @@ static char *T_swap[] =
         { "index_1=int", "index_2=int" };
 static char *T_fill[] =
         { "value=any", "from=[int]", "to=[int]" };
+static char *T_range[] =
+        { "from=[int]", "to=[int]" };
 
 /* Instance Variables */
 
@@ -459,6 +575,8 @@ static senddecl send_vector[] =
      DEFAULT, "Deallocates -elements"),
   SM(NAME_element, 2, T_element, elementVector,
      NAME_element, "Set specified element"),
+  SM(NAME_insert, 2, T_element, insertVector,
+     NAME_element, "Insert at location, shifting higher elements"),
   SM(NAME_fill, 3, T_fill, fillVector,
      NAME_element, "Fill index range with one value"),
   SM(NAME_forAll, 1, "action=code", forAllVector,
@@ -472,7 +590,11 @@ static senddecl send_vector[] =
   SM(NAME_swap, 2, T_swap, swapVector,
      NAME_order, "Swap two elements"),
   SM(NAME_shift, 1, "places=int", shiftVector,
-     NAME_range, "Shift contents by n places")
+     NAME_range, "Shift contents by n places"),
+  SM(NAME_clear, 0, NULL, clearVector,
+     NAME_range, "Delete all elements"),
+  SM(NAME_range, 2, T_range, rangeVector,
+     NAME_range, "Determine range")
 };
 
 /* Get Methods */

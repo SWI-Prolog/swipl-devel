@@ -11,6 +11,7 @@
 #include <h/graphics.h>
 
 static status	updateConnectionsDevice(Device dev, Int level);
+static status	computeFormatDevice(Device dev);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Class device is an abstract superclass used to define method common
@@ -445,12 +446,24 @@ computeGraphicalsDevice(Device dev)
    
 
 status
+computeLayoutDevice(Device dev)
+{ if ( notNil(dev->format) )
+    computeFormatDevice(dev);
+  else if ( notNil(dev->layout_manager) &&
+	    notNil(dev->layout_manager->request_compute) )
+    qadSendv(dev->layout_manager, NAME_compute, 0, NULL);
+
+  succeed;
+}
+
+
+status
 computeDevice(Any obj)
 { Device dev = obj;
 
   if ( notNil(dev->request_compute) )
   { computeGraphicalsDevice(dev);
-    computeFormatDevice(dev);
+    computeLayoutDevice(dev);
     computeBoundingBoxDevice(dev);
 
     assign(dev, request_compute, NIL);
@@ -468,21 +481,23 @@ computeBoundingBoxDevice(Device dev)
     Int od[4];				/* ax, ay, aw, ah */
     od[0] = a->x; od[1] = a->y; od[2] = a->w; od[3] = a->h;
 
-    clearArea(a);
-
     DEBUG(NAME_compute,
 	  Cprintf("computeBoundingBoxDevice(%s) %ld %ld %ld %ld\n",
 		  pp(dev),
 		  valInt(od[0]), valInt(od[1]), valInt(od[2]), valInt(od[3])));
 
 
-    for_cell(cell, dev->graphicals)
-    { Graphical gr = cell->value;
+    if ( isNil(dev->layout_manager) ||
+	 !qadSendv(dev->layout_manager, NAME_computeBoundingBox, 0, NULL) )
+    { clearArea(a);
 
-      if ( gr->displayed == ON )
-	unionNormalisedArea(a, gr->area);
+      for_cell(cell, dev->graphicals)
+      { Graphical gr = cell->value;
+
+	if ( gr->displayed == ON )
+	  unionNormalisedArea(a, gr->area);
+      }
     }
-
     relativeMoveArea(a, dev->offset);
 
     if ( od[0] != a->x || od[1] != a->y || od[3] != a->w || od[4] != a->h )
@@ -591,6 +606,9 @@ RedrawAreaDevice(Device dev, Area a)
 
   if ( EnterRedrawAreaDevice(dev, a, &ctx) )
   { Cell cell;
+
+    if ( notNil(dev->layout_manager) )
+      qadSendv(dev->layout_manager, NAME_RedrawArea, 1, (Any*)&a);
 
     for_cell(cell, dev->graphicals)
     { Graphical gr = cell->value;
@@ -839,6 +857,24 @@ getSelectionDevice(Device dev)
 }
 
 
+		 /*******************************
+		 *	      LAYOUT		*
+		 *******************************/
+
+static status
+layoutManagerDevice(Device dev, LayoutManager mgr)
+{ if ( dev->layout_manager != mgr )
+  { if ( notNil(dev->layout_manager) )
+      qadSendv(dev->layout_manager, NAME_detach, 0, NULL);
+    assign(dev, layout_manager, mgr);
+    if ( notNil(mgr) )
+      qadSendv(mgr, NAME_attach, 1, (Any *)&dev);
+  }
+
+  succeed;
+}
+
+
 		/********************************
 		*           FORMATTING          *
 		*********************************/
@@ -872,7 +908,7 @@ move_graphical(Graphical gr, int x, int y)
 #define MAXCOLS 1024
 #define MAXROWS 1024
 
-status
+static status
 computeFormatDevice(Device dev)
 { Format l;
 
@@ -1003,7 +1039,7 @@ computeFormatDevice(Device dev)
 
 
 		/********************************
-		*            LAYOUT		*
+		*	  DIALOG LAYOUT		*
 		********************************/
 
 static HashTable PlacedTable = NULL;	/* placed objects */
@@ -1703,8 +1739,7 @@ roomDevice(Device dev, Area area)
   for_cell(cell, dev->graphicals)
   { Graphical gr = cell->value;
 
-    if ( gr->displayed == ON &&
-         overlapArea(gr->area, area) != FAIL )
+    if ( gr->displayed == ON && overlapArea(gr->area, area) )
       fail;
   }
 
@@ -1721,7 +1756,7 @@ getInsideDevice(Device dev, Area a)
 
   ComputeGraphical(dev);
   for_cell(cell, dev->graphicals)
-  { if (insideArea(a, ((Graphical) cell->value)->area) == SUCCEED)
+  { if ( insideArea(a, ((Graphical) cell->value)->area) )
       appendChain(ch, cell->value);
   }
 
@@ -2041,6 +2076,8 @@ static vardecl var_device[] =
      NAME_organisation, "Displayed graphicals (members)"),
   IV(NAME_pointed, "chain", IV_GET,
      NAME_event, "Graphicals pointed-to by the mouse"),
+  SV(NAME_layoutManager, "layout_manager*", IV_GET|IV_STORE, layoutManagerDevice,
+     NAME_layout, "Layout manager for <-graphicals"),
   IV(NAME_format, "format*", IV_GET,
      NAME_layout, "Use tabular layout"),
   IV(NAME_badFormat, "bool", IV_NONE,

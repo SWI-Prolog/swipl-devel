@@ -106,12 +106,12 @@ computeFigure(Figure f)
 { if ( notNil(f->request_compute) )
   { if ( f->pen != ZERO || notNil(f->background) )
     { CHANGING_GRAPHICAL(f, { computeGraphicalsDevice((Device) f);
-			      computeFormatDevice((Device) f);
+			      computeLayoutDevice((Device) f);
 			      computeBoundingBoxFigure(f);
 			    });
     } else
     { computeGraphicalsDevice((Device) f);
-      computeFormatDevice((Device) f);
+      computeLayoutDevice((Device) f);
       computeBoundingBoxFigure(f);
     }
 
@@ -273,7 +273,7 @@ convertOldSlotFigure(Figure f, Name slot, Any value)
 }
 
 
-extern drawPostScriptFigure(Figure f);
+extern status drawPostScriptFigure(Figure f);
 
 status
 makeClassFigure(Class class)

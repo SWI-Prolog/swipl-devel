@@ -2422,6 +2422,9 @@ s_width_(String s, int from, int to)
     int width;
     int n = to-from;
 
+    if ( from >= to )
+      return 0;
+
     if ( isstr8(s) )
     { char8 *q = &s->s_text8[from];
 

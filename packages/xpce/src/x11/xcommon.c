@@ -49,6 +49,15 @@ x_error_handler(Display *display, XErrorEvent *error)
 }
 
 
+#define USE_XDEFAUL_APP_CONTEXT 1
+
+#ifdef USE_XDEFAUL_APP_CONTEXT
+extern XtAppContext _XtDefaultAppContext(void);
+#undef XtCreateApplicationContext
+#define XtCreateApplicationContext _XtDefaultAppContext
+#endif
+
+
 XtAppContext
 pceXtAppContext(XtAppContext ctx)
 { if ( ThePceXtAppContext == NULL )

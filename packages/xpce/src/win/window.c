@@ -817,7 +817,7 @@ static status
 computeWindow(PceWindow sw)
 { if ( notNil(sw->request_compute) )
   { computeGraphicalsDevice((Device) sw);
-    computeFormatDevice((Device) sw);
+    computeLayoutDevice((Device) sw);
     computeBoundingBoxWindow(sw);
 
     assign(sw, request_compute, NIL);
@@ -1117,6 +1117,9 @@ RedrawAreaWindow(PceWindow sw, IArea a, int clear)
 static status
 redrawAreaWindow(PceWindow sw, Area a)
 { Cell cell;
+
+  if ( notNil(sw->layout_manager) )
+      qadSendv(sw->layout_manager, NAME_RedrawArea, 1, (Any*)&a);
 
   for_cell(cell, sw->graphicals)
   { Graphical gr = cell->value;

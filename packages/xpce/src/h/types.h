@@ -256,7 +256,7 @@ PUBLIC_GLOBAL Class ClassApplication;
 PUBLIC_GLOBAL Class ClassArc;
 PUBLIC_GLOBAL Class ClassArea;
 PUBLIC_GLOBAL Class ClassArrow;
-PUBLIC_GLOBAL Class ClassTable;
+PUBLIC_GLOBAL Class ClassRelationTable;
 PUBLIC_GLOBAL Class ClassAttribute;
 PUBLIC_GLOBAL Class ClassBehaviour;
 PUBLIC_GLOBAL Class ClassBinaryCondition;

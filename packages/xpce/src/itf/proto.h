@@ -54,7 +54,7 @@ Host		HostObject(void);
 /* itf/interface.c */
 Any		cToPceInteger(long int i);
 Any		cToPceReal(double f);
-Any		cToPceString(Name assoc, char *s);
+Any		cToPceString(Name assoc, char *s, int translate);
 Any		cToPceName(const char *text);
 Any		cToPcePointer(void *ptr);
 void *		pcePointerToC(PceObject obj);

@@ -1491,7 +1491,7 @@ getCatchAllFramev(FrameObj fr, Name name)
 }
 
 
-extern postscriptFrame(FrameObj fr);
+extern status postscriptFrame(FrameObj fr);
 
 		/********************************
 		*             VISUAL		*

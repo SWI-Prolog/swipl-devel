@@ -15,6 +15,7 @@
 	  ]).
 
 :- use_module(library(pce)).
+:- use_module(library(pce_edit)).
 :- pce_autoload(toc_window, library(pce_toc)).
 :- use_module(library(helpidx)).
 :- require([ start_emacs/0
@@ -367,7 +368,8 @@ regex(predicate2, '\w+/\[\sd+[-,]\sd+\]').
 regex(function,   'PL_\w+()').
 regex(section,	  '\([Ss]ection\|[Cc]hapter\)\s +\sd+\(\.\sd+\)*').
 regex(location,	  '\([a-zA-Z]:\)?\(/[-_a-zA-Z0-9~+=.]*\)+:\sd+').
-regex(clause,	  '\sd+-th clause of \w+:\w+/\sd+').
+regex(clause,	  '\sd+-th clause of \w+:.*/\sd+').
+regex(method,     '\w+\(->\|<-\)\w+').
 
 regex_object(Id, Re) :-
 	regex_db(Id, Re), !.
@@ -706,7 +708,7 @@ do_explain(V, TextToExplain) :-
 
 try_to_edit(Spec) :-
 	atom_chars(Spec, S),
-	phrase(source(File, Line), S),
+	phrase(source(File, Line), S), !,
 	start_emacs,
 	send(@emacs, goto_source_location, source_location(File, Line)).
 
@@ -720,12 +722,34 @@ source(File, Line) -->			% n-th clause of module:name/arity
 	integer(NClause),
 	"-th clause of ",
 	[M0|MT], ":",
-	name_and_arity(Name, Arity),
-	{ atom_chars(Module, [M0|MT]),
+	[N0|NT], "/",
+	integer(Arity),
+	{ atom_chars(Name, [N0|NT]),
+	  atom_chars(Module, [M0|MT]),
 	  functor(Head, Name, Arity),
 	  nth_clause(Module:Head, NClause, CRef),
 	  clause_property(CRef, file(File)),
 	  clause_property(CRef, line_count(Line))
+	}.
+source(File, Line) -->			% XPCE method
+	blanks,
+	identifier(ClassChars),
+	blanks,
+        (   "->"
+	->  { Method = '->'(Class, Selector)
+	    }
+	;   "<-",
+	    { Method = '<-'(Class, Selector)
+	    }
+	),
+	identifier(SelectorChars),
+	{ atom_chars(Class, ClassChars),
+	  atom_chars(Selector, SelectorChars),
+	  pce_edit:method(Method, Obj),
+	  get(Obj, source, Location),
+	  Location \== @nil,
+	  get(Location, file_name, File),
+	  get(Location, line_no, Line)
 	}.
 	
 	

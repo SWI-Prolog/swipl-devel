@@ -10,6 +10,7 @@ AC_SUBST(PLLIBS)
 AC_SUBST(PLBASE)
 AC_SUBST(PLARCH)
 AC_SUBST(BOOTPL)
+AC_SUBST(PLINCLUDE)
 AC_SUBST(XLIB)
 AC_SUBST(XINCLUDES)
 AC_SUBST(XLIBS)
@@ -181,6 +182,19 @@ if test "$swipl" = "yes"; then
 else
   ALLTARGET=xpce
 fi
+
+dnl Frank C: find the pl development include dir, should be same
+dnl version. Is up to the user?
+
+AC_ARG_WITH(pl-include,[  --with-pl-include=DIR   find the pl include files in DIR],
+	[ case $withval in
+		no|yes) echo 'Specify dir for pl-include please (ignored)';;
+		*)	PLINCLUDE="$withval";;
+	  esac
+	],
+	[
+		PLINCLUDE="$PLBASE/include"
+	])
 
 dnl The following part is to decide for making a shared library or
 dnl other dynamic linkable object.  This isn't easy and and is mostly
@@ -587,9 +601,24 @@ esac
 AC_CHECK_LIB(jpeg, main,
 	     [XLIBS="$XLIBS -ljpeg"]
 	     AC_DEFINE(HAVE_LIBJPEG))
+
+AC_ARG_WITH(xpm,[  --with-xpm=<dir>	  Location of Xpm include/lib],
+	[case $withval in 
+		no|yes)	echo 'Specify dir for XPM please';
+			exit 1 ;;
+		*)	[LIBS="-L${withval}/lib ${LIBS}"
+			XLIB="${XLIB} -L${withval}/lib"
+			x_libraries="$x_libraries -L${withval}/lib"
+			XINCLUDES="$XINCLUDES -I${withval}/include"
+			echo "${XINCLUDES} ${LIBS}"
+			]
+	esac])
+
+	
 AC_CHECK_LIB(Xpm, main,
 	     [XLIBS="$XLIBS -lXpm"]
 	     AC_DEFINE(HAVE_LIBXPM))
+
 if test "$ac_cv_lib_Xpm_main" != "yes"; then
 cat << _EOM_
 *****************************************************************

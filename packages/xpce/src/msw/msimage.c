@@ -1015,6 +1015,70 @@ ws_scale_image(Image image, int w, int h)
   answer(copy);
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+XFORM is a transformation matrix of the format:
+
+	( eM11, eM21, 0 )	(  a   b  0 )
+	( eM12, eM22, 0 )   =	(  c   d  0 )
+	( eDx,  eDy,  1 )       ( Tx  Ty  1 )
+
+This realises the transformation:
+
+	Xdev = eM11*x + eM12*y + eDx
+	Ydev = eM21*x + eM22*y + eDy
+
+		     =
+
+	Xdev = ax + cy + Tx
+	Ydev = bx + dy + Ty
+
+The current implementation of copy_bits() is   incorrect. It assumes the
+transformation  represented  is  the  combination   of  a  rotation  and
+translation, instead of being a general  matrix inversion. Also, it uses
+the fact that M$  XFORM  represents   clockwise  rotation,  while  we do
+anti-clockwise rotation.
+
+The copy_bits() gives much better  results   then  the  Windows-NT (4.0)
+world transform and is thus both on Windows 95 and NT.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static inline int
+rfloat(float f)
+{ if (f > 0.0)
+    return (int) (f+0.4999999);
+
+  return (int) (f-0.4999999);
+}
+
+
+static void
+copy_bits(HDC dst, int dx0, int dy0, int dx1, int dy1,
+	  HDC src, int sx0, int sy0,
+	  XFORM *xform)
+{ int dx, dy;
+  float a = xform->eM11;
+  float b = xform->eM21;
+  float c = xform->eM12;
+  float d = xform->eM22;
+  int  Tx = rfloat(xform->eDx);
+  int  Ty = rfloat(xform->eDy);
+
+  for(dy = dy0; dy < dy1; dy++)
+  { for(dx = dx0; dx < dx1; dx++)
+    { int sx, sy;
+      COLORREF pxl;
+
+      sx = rfloat(a*(float)(dx-Tx) + c*(float)(dy-Ty)) + sx0;
+      sy = rfloat(b*(float)(dx-Tx) + d*(float)(dy-Ty)) + sy0;
+
+      pxl = GetPixel(src, sx, sy);
+      if ( pxl != CLR_INVALID )
+	SetPixel(dst, dx, dy, pxl);
+    }
+  }
+}
+
+
 #define falmost(f1, f2) (fabs((f1)-(f2)) < 0.001)
 
 Image
@@ -1072,7 +1136,9 @@ ws_rotate_image(Image image, int a)	/* 0<angle<360 */
       HBITMAP  dbm = ZCreateCompatibleBitmap(hdcsrc, w, h);
       HBITMAP odbm = ZSelectObject(hdcdst, dbm);
       XFORM xform;
+#if 0					/* see below */
       int ogm;
+#endif
       float acangle = angle;		/* anti-clockwise-angle */
 
       angle = -angle;			/* Windows wants clockwise */
@@ -1102,26 +1168,32 @@ ws_rotate_image(Image image, int a)	/* 0<angle<360 */
       xform.eDx  = 0;
       xform.eDy  = 0;
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Determine the required translation.  Note that w = 64 means pixels 0..63,
+hence the -1 applied to the w and h here.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
       if ( acangle < M_PI/2 )		/* 0<angle<90 */
-      { xform.eDy = sin(acangle) * (float)ow;
+      { xform.eDy = sin(acangle) * (float)(ow-1);
       } else if ( acangle < M_PI )	/* 90<angle<180 */
-      { xform.eDy = h;
-	xform.eDx = -cos(acangle) * (float)ow;
+      { xform.eDy = h-1;
+	xform.eDx = -cos(acangle) * (float)(ow-1);
       } else if ( acangle < 3*M_PI/2 )	/* 180<angle<270 */
-      { xform.eDx = w;
-	xform.eDy = h + (sin(acangle) * (float)ow);
+      { xform.eDx = w-1;
+	xform.eDy = h-1 + (sin(acangle) * (float)(ow-1));
       } else				/* 270<angle<360 */
-      { xform.eDx = -sin(acangle) * (float)oh;
+      { xform.eDx = -sin(acangle) * (float)(oh-1);
       }
 
       DEBUG(NAME_rotate,
 	    Cprintf("dx=%g, dy=%g, w = %d, h = %d\n",
 		    xform.eDx, xform.eDy, w, h));
 
+#if 0					/* use Win32 native algorithm */
       if ( (ogm = SetGraphicsMode(hdcdst, GM_ADVANCED)) &&
 	   SetWorldTransform(hdcdst, &xform) )
       { BitBlt(hdcdst,
-	       0, 0, ow, oh,		/* dest rectangle */
+	       0, 0, w, h,		/* dest rectangle */
 	       hdcsrc,
 	       0, 0,
 	       SRCCOPY);
@@ -1136,9 +1208,11 @@ ws_rotate_image(Image image, int a)	/* 0<angle<360 */
 	SetWorldTransform(hdcdst, &xform);
 	SetGraphicsMode(hdcdst, ogm);
       } else
-      { Cprintf("No image rotation in win32s\n");
-	freeObject(copy);
-	copy = FAIL;
+#endif
+      { copy_bits(hdcdst,
+		  0, 0, w, h,		/* dest rectangle */
+		  hdcsrc,
+		  0, 0, &xform);
       }
 
       ZSelectObject(hdcsrc, osbm);
