@@ -234,7 +234,7 @@ Optimised compilation. See current_prolog_flag/2.
     \cmdlineoptionitem{-s}{file}
 Use \arg{file} as a script-file.  The script file is loaded after
 the initialisation file specified with the \argoption{-f}{file}
-option.  Unlike \argoption{-f}{file}, using \cmdlineoptionitem{-s}
+option.  Unlike \argoption{-f}{file}, using \argoption{-s}
 does not stop Prolog from loading the personal initialisation file.
 
     \cmdlineoptionitem{-f}{file}
