@@ -157,7 +157,7 @@ PutToken(const char *s, IOSTREAM *stream)
 
 static bool
 PutTokenN(const char *s, unsigned int len, IOSTREAM *stream)
-{ if ( s[0] )
+{ if ( len > 0 )
     return PutOpenToken(s[0], stream) && PutStringN(s, len, stream);
 
   return TRUE;

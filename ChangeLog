@@ -1,8 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Correctly perform unquoted write on atoms starting with a 0-byte.
+    Mike Elston.
+
   * FIXED: make exists_file/1 and exists_directory/1 properly say no if the
-    filesystem object is not of the right type.
+    filesystem object is not of the right type.  Dr. Werner Wolff.
 
   * ADDED: Windows: mkboot.bat script to the bin-directory to easily redo
     the boot-compilation.
