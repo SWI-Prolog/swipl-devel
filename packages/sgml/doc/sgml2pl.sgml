@@ -520,6 +520,11 @@ Query an element. <aref/Type/ is one of <c/cdata/, <c/entity/, <c/id/,
 <verb>(a|b|...)</verb> is mapped to the term
 <term>nameof(ListOfValues)</term>. 
 
+<p>
+<aref/Default/ describes the sgml default. It is one <c/required/,
+<c/current/, <c/conref/ or <c/implied/. If a real default is present, it
+is one of <term>default(Value)</term> or <term>fixed(Value)</term>. 
+
     <termitem>entities(ListOfEntities)
 <aref/ListOfEntities/ is a list of atoms representing the names of the 
 defined entities. 

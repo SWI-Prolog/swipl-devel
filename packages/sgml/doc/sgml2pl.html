@@ -744,6 +744,13 @@ Query an element. <var>Type</var> is one of <a name="const:cdata%2"><b><tt>cdata
 <code>(a|b|...)</code> is mapped to the term
 <code>nameof(ListOfValues)</code>. 
 
+
+
+<p>
+<var>Default</var> describes the sgml default. It is one <a name="const:required"><b><tt>required</tt></b></a>,
+<a name="const:current"><b><tt>current</tt></b></a>, <a name="const:conref"><b><tt>conref</tt></b></a> or <a name="const:implied"><b><tt>implied</tt></b></a>. If a real default is present, it
+is one of <code>default(Value)</code> or <code>fixed(Value)</code>. 
+
     
 <dt>&nbsp;<br>
 <b>entities(<var>ListOfEntities</var>)</b><dd>
@@ -933,11 +940,11 @@ the conversion fails (e.g. due to overflow) a warning is issued and the
 value is passed as an atom.
     
 <dt>&nbsp;<br>
-<b>first_element(<var>Element</var>)</b><dd>
+<b>doctype(<var>Element</var>)</b><dd>
 Defines the toplevel element expected. If a <code>&lt;!DOCTYPE</code>
 declaration has been parsed, the default is the defined doctype. The
 parser can be instructed to accept the first element encountered as the
-toplevel element using <code>first_element(_)</code>. This feature is
+toplevel using <code>doctype(_)</code>. This feature is especially
 useful when parsing part of a document (see the <a name="const:parse"><b><tt>parse</tt></b></a> option to
 <a href="#sgml_parse/2"><b>sgml_parse/2</b></a>.
 </dl>
@@ -1015,9 +1022,56 @@ The current event is caused by the expansion of a
 
     
 <dt>&nbsp;<br>
+<b>doctype(<var>-Element</var>)</b><dd>
+Return the defined document-type (= toplevel element).  See also
+<a href="#set_sgml_parser/2"><b>set_sgml_parser/2</b></a>.
+
+    
+<dt>&nbsp;<br>
 <b>dtd(<var>-DTD</var>)</b><dd>
 Return the currently used DTD.  See dtd_property/2 for obtaining information
 on the DTD such as element and attribute properties.
+
+    
+<dt>&nbsp;<br>
+<b>allowed(<var>-Elements</var>)</b><dd>
+Determines which elements may be inserted at the current location.  This
+information is returned as a list of element-names. If character data is
+allowed in the current location, <a name="const:#pcdata%2"><b><tt>#pcdata</tt></b></a> is part of <var>Elements</var>.
+If no element is open, the <b><em>doctype</em></b> is returned.
+
+
+
+<p>
+This option is intended to support syntax-sensitive editors.  Such an
+editor should load the DTD, find an appropriate starting point and then
+feed all data between the starting point and the caret into the parser.
+Next it can use this option to determine the elements allowed at this
+point.  Below is a code fragment illustrating this use given a parser
+with loaded DTD, an input stream and a start-location.
+
+
+<p>
+<table width="90%" align="center" border="2" bgcolor="#f0f0f0">
+<tr><td>
+<pre>
+	...,
+	seek(In, Start, bof, _),
+	set_sgml_parser(Parser, charpos(Start)),
+	set_sgml_parser(Parser, doctype(_)),
+	Len is Caret - Start,
+	sgml_parse(Parser,
+		   [ goal(feed(In, Len)),
+		     parse(input)	% do not complete document
+		   ]),
+        get_sgml_parser(Parser, allowed(Allowed)),
+	...
+
+feed(In, Len, Parser) :-
+	copy_stream_data(In, Parser, Len).
+</pre>
+</td></tr>
+</table>
 </dl>
 
 
@@ -1100,19 +1154,45 @@ X = [element(h1, [], ['hello world'])]
     
 <dt>&nbsp;<br>
 <b>parse(<var>Unit</var>)</b><dd>
-If <a name="const:file"><b><tt>file</tt></b></a> (default), parse everything upto the end of the input. If
-<a name="const:element"><b><tt>element</tt></b></a>, the parser will stop after reading the first element. Using
-<code> source(Stream)</code>, this implies reading is stopped as soon as
-the element is complete, and another call may be issued on the same
-stream to read the next element. Using <code>goal(Goal)</code> as input,
-the stream reports an I/O error after completing the first element. This
+Defines how much of the input is parsed.  This option is used to parse
+only parts of a file.
+    
+<dl>
+<dt>&nbsp;<br>
+<b><a name="const:file"><b><tt>file</tt></b></a></b><dd>
+Default.  Parse everything upto the end of the input.
+	
+<dt>&nbsp;<br>
+<b><a name="const:element"><b><tt>element</tt></b></a></b><dd>
+The parser stops after reading the first element. Using <code>source(Stream)</code>, this implies reading is stopped as soon as the
+element is complete, and another call may be issued on the same stream
+to read the next element. Using <code>goal(Goal)</code> as input, the
+stream reports an I/O error after completing the first element. This
 exception destroyes the built <code>document(Term)</code>, making this
-option useless using `Goal' driven input. The value <a name="const:content"><b><tt>content</tt></b></a> may be
-used in a call-back from <code>call(<a name="const:on_begin%2"><b><tt>on_begin</tt></b></a>, Pred)</code> to parse
-individual elements after validating their headers.  Finally, the value
-<a name="const:declaration"><b><tt>declaration</tt></b></a> may be used to stop the parser after reading the first
+option useless using `Goal' driven input.
+	
+<dt>&nbsp;<br>
+<b><a name="const:content"><b><tt>content</tt></b></a></b><dd>
+The value <a name="const:content%2"><b><tt>content</tt></b></a> is like <a name="const:element%2"><b><tt>element</tt></b></a> but assumes the element has
+already been opened. It may be used in a call-back from
+<code>call(<a name="const:on_begin%2"><b><tt>on_begin</tt></b></a>, Pred)</code> to parse individual elements after
+validating their headers.
+	
+<dt>&nbsp;<br>
+<b><a name="const:declaration"><b><tt>declaration</tt></b></a></b><dd>
+This may be used to stop the parser after reading the first
 declaration.  This is especially useful to parse only the <code>doctype</code>
 declaration.
+	
+<dt>&nbsp;<br>
+<b><a name="const:input"><b><tt>input</tt></b></a></b><dd>
+This option is intended to be used in conjunction with the
+<code>allowed(Elements)</code> option of <a href="#get_sgml_parser/2"><b>get_sgml_parser/2</b></a>.
+It disables the parser's default to complete the parse-tree by closing
+all open elements.
+    
+</dl>
+
 
     
 <dt>&nbsp;<br>
@@ -1532,7 +1612,7 @@ deleted. This is not yet implemented.
 
 <ul>
 <li><a href="#const:#IMPLIED"><b><tt>#IMPLIED</tt></b></a>
-<li><a href="#const:#pcdata"><b><tt>#pcdata</tt></b></a>
+<li><a href="#const:#pcdata"><b><tt>#pcdata</tt></b></a> [ <a href="#const:#pcdata%2">2</a>]
 <li><a href="#const:-"><b><tt>-</tt></b></a>
 <li><a href="#const::"><b><tt>:</tt></b></a>
 <li><a href="#const:CDATA"><b><tt>CDATA</tt></b></a> [ <a href="#const:CDATA%2">2</a> <a href="#const:CDATA%3">3</a> <a href="#const:CDATA%4">4</a> <a href="#const:CDATA%5">5</a> <a href="#const:CDATA%6">6</a> <a href="#const:CDATA%7">7</a>]
@@ -1551,12 +1631,14 @@ deleted. This is not yet implemented.
 <li><a href="#const:apos"><b><tt>apos</tt></b></a>
 <li><a href="#const:begin"><b><tt>begin</tt></b></a>
 <li><a href="#const:cdata"><b><tt>cdata</tt></b></a> [ <a href="#const:cdata%2">2</a>]
-<li><a href="#const:content"><b><tt>content</tt></b></a>
+<li><a href="#const:conref"><b><tt>conref</tt></b></a>
+<li><a href="#const:content"><b><tt>content</tt></b></a> [ <a href="#const:content%2">2</a>]
+<li><a href="#const:current"><b><tt>current</tt></b></a>
 <li><a href="#const:declaration"><b><tt>declaration</tt></b></a>
 <li><a href="#const:default"><b><tt>default</tt></b></a> [ <a href="#const:default%2">2</a>]
 <li><a href="#dtd/2"><b>dtd/2</b></a>
 <li><a href="#dtd_property/2"><b>dtd_property/2</b></a>
-<li><a href="#const:element"><b><tt>element</tt></b></a>
+<li><a href="#const:element"><b><tt>element</tt></b></a> [ <a href="#const:element%2">2</a>]
 <li><a href="#const:empty"><b><tt>empty</tt></b></a>
 <li><a href="#const:end"><b><tt>end</tt></b></a> [ <a href="#const:end%2">2</a>]
 <li><a href="#const:entity"><b><tt>entity</tt></b></a>
@@ -1571,6 +1653,8 @@ deleted. This is not yet implemented.
 <li><a href="#const:gt"><b><tt>gt</tt></b></a>
 <li><a href="#const:id"><b><tt>id</tt></b></a>
 <li><a href="#const:idref"><b><tt>idref</tt></b></a>
+<li><a href="#const:implied"><b><tt>implied</tt></b></a>
+<li><a href="#const:input"><b><tt>input</tt></b></a>
 <li><a href="#const:integer"><b><tt>integer</tt></b></a> [ <a href="#const:integer%2">2</a>]
 <li><a href="#load_dtd/2"><b>load_dtd/2</b></a>
 <li><a href="#load_html_file/2"><b>load_html_file/2</b></a>
@@ -1594,6 +1678,7 @@ deleted. This is not yet implemented.
 <li><a href="#const:rdf"><b><tt>rdf</tt></b></a> [ <a href="#const:rdf%2">2</a>]
 <li><a href="#const:rdf-syntax"><b><tt>rdf-syntax</tt></b></a>
 <li><a href="#const:remove"><b><tt>remove</tt></b></a>
+<li><a href="#const:required"><b><tt>required</tt></b></a>
 <li><a href="#set_sgml_parser/2"><b>set_sgml_parser/2</b></a>
 <li><a href="#const:sgml"><b><tt>sgml</tt></b></a> [ <a href="#const:sgml%2">2</a> <a href="#const:sgml%3">3</a> <a href="#const:sgml%4">4</a> <a href="#const:sgml%5">5</a>]
 <li><a href="#sgml_parse/2"><b>sgml_parse/2</b></a>
