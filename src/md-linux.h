@@ -28,7 +28,6 @@ sources, but not tested afterwards.
 #define O_NO_LEFT_CAST		0
 #define O_NO_VOID_POINTER	0
 #define O_SHORT_SYMBOLS		0
-#define O_ASM_SWITCH		0
 #define O_UCHAR_PREDEFINED	1	/* type uchar is predefined */
 #define O_ULONG_PREDEFINED	1	/* type ulong is predefined */
 

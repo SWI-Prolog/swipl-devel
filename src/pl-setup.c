@@ -9,6 +9,7 @@
 
 #define GLOBAL				/* allocate global variables here */
 #include "pl-incl.h"
+#include <sys/stat.h>
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module initialises the system and defines the global variables.  It
@@ -645,7 +646,7 @@ initStacks(local, global, trail, argument, lock)
 long local, global, trail, argument, lock;
 { long heap = 0;			/* malloc() heap */
   int large = 1;
-  long base, top, space, large_size;
+  ulong base, top, space, large_size;
 
   if ( status.dumped == FALSE )
   { hBase = (char *)0x20000000L;

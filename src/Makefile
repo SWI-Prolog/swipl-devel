@@ -1,20 +1,4 @@
-#   Makefile for SWI-prolog version 1.6
-#   $Id$
-#
-#   Jan Wielemaker December 6, 1989
-#
-#   Copyright in the whole and every part of this software is owned  by  the
-#   University  of  Amsterdam.   No reproduction of the whole or any part of
-#   this software is to be made without the authority of the  University  of
-#   Amsterdam.
-#
-#   Copyright (c) 1989, University of Amsterdam
-#
-
 #include "make.h"
-
-# The following parameters are loaded from md.h (using cpp)
-
 CC=M_CC
 OPTIMIZE=M_OPTIMIZE
 CFLAGS=${OPTIMIZE} M_CFLAGS
@@ -32,8 +16,6 @@ FOREIGN=FOREIGN_PL
 FOREIGN=foreign.pl
 #endif
 
-# paths and file names for installation
-
 SYSTEMHOME=M_SYSTEMHOME
 DEFSTARTUP=M_DEFSTARTUP
 PROLOG=M_PROLOG
@@ -50,8 +32,6 @@ CPP=/lib/cpp
 EXPORTS=../include/SWI-Exports
 CINCLUDE=../include/SWI-Prolog.h
 
-# NOTE: pl-wam.o MUST be first to get it into low addresses when using the
-# O_ASM_SWITCH flag
 
 OBJ=	pl-wam.o pl-save.o \
 	pl-atom.o pl-alloc.o pl-arith.o pl-bag.o pl-comp.o pl-dump.o \
@@ -90,16 +70,17 @@ xruntime:	$(RUNTIME)
 
 xmakefile:	Makefile md.h ../config.h
 		@-rm -f junk.c make.h
-		@sed 's/"//g' md.h ../config.h > make.h
+		@sed 's/[ 	][ 	]*/ /g' md.h ../config.h > make.h
 		@sed -f make.sed Makefile > junk.c
 		@$(CPP) junk.c | \
-		sed -e 's/^[ 	]*$$//' -e 's/^ /	/' | \
+		sed -e 's/^[ 	]*$$//' \
+		    -e 's/^ /	/' \
+		    -e 's/\([^\]\)"/\1/g' | \
 		sed -n -e '/^..*$$/p' > xmakefile
 		@rm -f junk.c make.h
 
 $(SYS):		$(OBJ) $(DEPOBJ) $(EXT)
-		$(CC) $(LDFLAGS) $(OPTIMIZE) -o $(SYS) \
-		$(OBJ) $(DEPOBJ) $(EXT) $(LIBS)
+		$(CC) $(LDFLAGS) -o $(SYS) $(OBJ) $(DEPOBJ) $(EXT) $(LIBS)
 
 $(STARTUPDIR):	
 		-mkdir $@
@@ -115,7 +96,7 @@ $(RUNTIME):	$(OBJ) $(DEPOBJ) $(RUNTIMEDIR)
 		$(LD) -r -o $@ $(OBJ) $(DEPOBJ)
 
 $(EXPORTS):	xmakefile pl-export
-		echo \#!$(BINDIR)/$(PROLOG) > $(EXPORTS)
+		echo \#\!$(BINDIR)/$(PROLOG) > $(EXPORTS)
 		cat pl-export >> $(EXPORTS)
 
 $(CINCLUDE):	pl-itf.h
@@ -169,13 +150,6 @@ clean:		xmakefile
 xclean:
 		rm -f *.o a.out core makefile pl-bite
 		rm $(SYS)
-
-# GCC is buggy on this one if you haven't ran `fixincludes' (see gcc
-# distribution
-
-#pl-os.o:	pl-os.c
-#		cc -c -O pl-os.c
-
 .c.s:
 		$(CC) -S $(CFLAGS) $*.c
 
@@ -184,3 +158,12 @@ xclean:
 
 saber_src:
 		#load $(OBJ) $(DEPOBJ) $(CFLAGS) $(LIBS)
+
+
+
+
+
+
+
+
+

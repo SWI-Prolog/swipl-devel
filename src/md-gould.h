@@ -18,7 +18,6 @@
 #define O_NO_LEFT_CAST		1
 #define O_NO_VOID_POINTER	1
 #define O_SHORT_SYMBOLS		0
-#define O_ASM_SWITCH		0
 			/* Operating system */
 #define O_PROFILE		1
 #define O_SIG_AUTO_RESET	0
@@ -31,6 +30,9 @@
 #define DEFAULT_PATH		":/usr/ucb:/bin:/usr/bin:/usr/local:.:";
 #define DIR_INCLUDE		<dir.h>
 #define O_STRUCT_DIRECT		1
+
+#define vfork()			fork()
+
 			/* terminal driver */
 #define O_TERMIOS 		1
 #define O_EXTEND_ATOMS 		1

@@ -350,7 +350,7 @@ SaveSection sections;
   section_offset = sizeof(header) + sects_size;
 
 #ifdef DATA_START
-  sects[0].start	= (long) DATA_START;
+  sects[0].start	= (caddr) DATA_START;
 #else
   sects[0].start	= &environ;
 #endif

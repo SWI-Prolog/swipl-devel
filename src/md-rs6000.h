@@ -42,7 +42,6 @@ save_program.  See pl-load.c and pl-dump.c
 #define O_NO_LEFT_CAST		1
 #define O_NO_VOID_POINTER	0
 #define O_SHORT_SYMBOLS		0
-#define O_ASM_SWITCH		0
 #define O_ULONG_PREDEFINED	1
 #define O_UCHAR_PREDEFINED	1
 
