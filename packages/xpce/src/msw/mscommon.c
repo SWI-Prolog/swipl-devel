@@ -432,8 +432,11 @@ messageToEvent(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       mouse_ev++;
       break;
     }
+#ifndef WM_MOUSEWHEEL
+#define WM_MOUSEWHEEL 0x020A
+#endif
 #ifdef WM_MOUSEWHEEL
-    case WM_MOUSEWHEEL
+    case WM_MOUSEWHEEL:
     { id = NAME_wheel;
       ctx_name = NAME_rotation;
       ctx = toInt(HIWORD(wParam));
