@@ -15,8 +15,8 @@
 
 static status
 initialiseDisplayManager(DisplayManager dm)
-{ assign(dm, members, newObject(ClassChain, 0));
-  assign(dm, current, newObject(ClassChain, 0));
+{ assign(dm, members, newObject(ClassChain, EAV));
+  assign(dm, current, newObject(ClassChain, EAV));
   
   protectObject(dm);
 
@@ -250,7 +250,7 @@ status
 makeClassDisplayManager(Class class)
 { declareClass(class, &displayManager_decls);
 
-  globalObject(NAME_displayManager, ClassDisplayManager, 0);
+  globalObject(NAME_displayManager, ClassDisplayManager, EAV);
   DispatchEvents = dispatch_events;
 
   succeed;

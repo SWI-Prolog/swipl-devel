@@ -29,7 +29,7 @@ initialiseClassStub(ClassStub cstub, Name name, Class super, StringObj summary)
 
   if ( notNil(super) )
   { if ( isNil(super->sub_classes) )
-      assign(super, sub_classes, newObject(ClassChain, cstub, 0));
+      assign(super, sub_classes, newObject(ClassChain, cstub, EAV));
     else
       addChain(super->sub_classes, cstub);
   }

@@ -14,7 +14,7 @@
 
 static status
 createRelation(Relation r, Any from, Any to)
-{ return send(r, NAME_forwards, from, to, 0);
+{ return send(r, NAME_forwards, from, to, EAV);
 }
 
 static status

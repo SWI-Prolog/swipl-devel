@@ -20,7 +20,7 @@ appendChainTable(ChainTable ct, Any name, Any value)
   if ( (ch = getMemberHashTable((HashTable) ct, name)) )
     appendChain(ch, value);
   else
-    appendHashTable((HashTable) ct, name, newObject(ClassChain, value, 0));
+    appendHashTable((HashTable) ct, name, newObject(ClassChain, value, EAV));
 
   succeed;
 }
@@ -33,7 +33,7 @@ addChainTable(ChainTable ct, Any name, Any value)
   if ( (ch = getMemberHashTable((HashTable) ct, name)) )
     addChain(ch, value);
   else
-    appendHashTable((HashTable) ct, name, newObject(ClassChain, value, 0));
+    appendHashTable((HashTable) ct, name, newObject(ClassChain, value, EAV));
 
   succeed;
 }
@@ -46,7 +46,7 @@ prependChainTable(ChainTable ct, Any name, Any value)
   if ( (ch = getMemberHashTable((HashTable) ct, name)) )
     prependChain(ch, value);
   else
-    appendHashTable((HashTable) ct, name, newObject(ClassChain, value, 0));
+    appendHashTable((HashTable) ct, name, newObject(ClassChain, value, EAV));
 
   succeed;
 }

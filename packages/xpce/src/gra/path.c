@@ -37,15 +37,15 @@ initialisePath(Path p, Name kind, Int radius_or_interval, Chain points)
   }
 
   initialiseGraphical(p, ZERO, ZERO, ZERO, ZERO);
-  assign(p, offset,	   newObject(ClassPoint, 0));
+  assign(p, offset,	   newObject(ClassPoint, EAV));
   assign(p, kind,          kind);
-  assign(p, points,        newObject(ClassChain, 0));
+  assign(p, points,        newObject(ClassChain, EAV));
   assign(p, interpolation, NIL);
   assign(p, fill_pattern,  NIL);
   assign(p, closed,	   OFF);
 
   if ( notDefault(points) )
-    send(p, NAME_points, points, 0);
+    send(p, NAME_points, points, EAV);
 
   succeed;
 }
@@ -317,7 +317,7 @@ smooth_path(Path p)
   { if ( notNil(p->interpolation) )
       clearChain(p->interpolation);
     else
-      assign(p, interpolation, newObject(ClassChain, 0));
+      assign(p, interpolation, newObject(ClassChain, EAV));
 
     return;
   }
@@ -460,7 +460,7 @@ points_to_path(Path p, float *x, float *y, int n)
 { int i, ix, iy, X, Y;
 
   if ( isNil(p->interpolation) )
-    assign(p, interpolation, newObject(ClassChain, 0));
+    assign(p, interpolation, newObject(ClassChain, EAV));
   else
     clearChain(p->interpolation);
 
@@ -474,7 +474,7 @@ points_to_path(Path p, float *x, float *y, int n)
     X = ix, Y = iy;
 
     appendChain(p->interpolation,
-		newObject(ClassPoint, toInt(X), toInt(Y), 0));
+		newObject(ClassPoint, toInt(X), toInt(Y), EAV));
   }
 }
 
@@ -815,7 +815,7 @@ getSegmentPath(Path p, Point pos)
 static status
 initialiseNewSlotPath(Path p, Variable var)
 { if ( var->name == NAME_offset )
-    assign(p, offset, newObject(ClassPoint, 0));
+    assign(p, offset, newObject(ClassPoint, EAV));
   else
     initialiseNewSlotGraphical((Graphical) p, var);
 

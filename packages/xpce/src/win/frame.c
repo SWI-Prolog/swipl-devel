@@ -48,23 +48,23 @@ initialiseFrame(FrameObj fr, Name label, Name kind,
   assign(fr, label,         	    label);
   assign(fr, display,       	    display);
   assign(fr, border,		    DEFAULT);
-  assign(fr, area,	    	    newObject(ClassArea, 0));
-  assign(fr, members,	    	    newObject(ClassChain, 0));
+  assign(fr, area,	    	    newObject(ClassArea, EAV));
+  assign(fr, members,	    	    newObject(ClassChain, EAV));
   assign(fr, kind,	    	    kind);
   assign(fr, status,	    	    NAME_unmapped);
   assign(fr, can_delete,    	    ON);
   assign(fr, input_focus,   	    OFF);
   assign(fr, fitting,		    OFF);
-  assign(fr, wm_protocols,  	    newObject(ClassSheet, 0));
+  assign(fr, wm_protocols,  	    newObject(ClassSheet, EAV));
   assign(fr, wm_protocols_attached, OFF);
   obtainClassVariablesObject(fr);
 
-  doneMessageFrame(fr, newObject(ClassMessage, RECEIVER, NAME_wmDelete, 0));
+  doneMessageFrame(fr, newObject(ClassMessage, RECEIVER, NAME_wmDelete, EAV));
 
   fr->ws_ref = NULL;			/* Window System Reference */
 
   if ( notNil(app) )
-    send(app, NAME_append, fr, 0);
+    send(app, NAME_append, fr, EAV);
 
   succeed;
 }
@@ -87,9 +87,9 @@ unlinkFrame(FrameObj fr)
 
     ws_enable_modal(fr, ON);
     if ( notNil(fr->transients) )
-      for_chain(fr->transients, sfr, send(sfr, NAME_destroy, 0));
+      for_chain(fr->transients, sfr, send(sfr, NAME_destroy, EAV));
     if ( notNil(fr->transient_for) && notNil(fr->transient_for->transients) )
-      send(fr->transient_for, NAME_detachTransient, fr, 0);
+      send(fr->transient_for, NAME_detachTransient, fr, EAV);
 
     ws_uncreate_frame(fr);
     deleteChain(fr->display->frames, fr);
@@ -129,7 +129,7 @@ loadFrame(FrameObj fr, IOSTREAM *fd, ClassDef def)
   if ( isOpenFrameStatus(fr->status) )
   { assign(fr, status, NAME_unmapped);
     restoreMessage(newObject(ClassMessage, fr, NAME_open,
-			     get(fr->area, NAME_position, 0), 0));
+			     get(fr->area, NAME_position, EAV), EAV));
   }
 
   succeed;
@@ -196,11 +196,11 @@ getConfirmCenteredFrame(FrameObj fr, Point pos, Bool grab)
   Point p2;
   Any rval;
 
-  TRY( send(fr, NAME_create, 0) );
+  TRY( send(fr, NAME_create, EAV) );
 
   get_position_from_center_frame(fr, pos, &x, &y);
   ensure_on_display(fr, &x, &y);
-  p2 = tempObject(ClassPoint, toInt(x), toInt(y), 0);
+  p2 = tempObject(ClassPoint, toInt(x), toInt(y), EAV);
 
   rval = getConfirmFrame(fr, p2, grab, OFF);
   considerPreserveObject(p2);
@@ -222,7 +222,7 @@ openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
   Int w = DEFAULT, h = DEFAULT;
     
   if ( !createdFrame(fr) )
-    TRY( send(fr, NAME_create, 0) );
+    TRY( send(fr, NAME_create, EAV) );
   
   if ( notDefault(pos) )
   { x = pos->x;
@@ -272,11 +272,11 @@ openCenteredFrame(FrameObj fr, Point pos, Bool grab)
   int rval;
   Point p2;
 
-  TRY( send(fr, NAME_create, 0) );
+  TRY( send(fr, NAME_create, EAV) );
 
   get_position_from_center_frame(fr, pos, &x, &y);
   ensure_on_display(fr, &x, &y);
-  p2 = answerObject(ClassPoint, toInt(x), toInt(y), 0);
+  p2 = answerObject(ClassPoint, toInt(x), toInt(y), EAV);
   rval = openFrame(fr, p2, grab, OFF);
   doneObject(p2);
 
@@ -290,7 +290,7 @@ resizeFrame(FrameObj fr)
   TileObj t = getTileFrame(fr);
 
   if ( t )
-    send(t, NAME_layout, ZERO, ZERO, a->w, a->h, 0);
+    send(t, NAME_layout, ZERO, ZERO, a->w, a->h, EAV);
 
   succeed;
 }
@@ -337,10 +337,10 @@ wmDeleteFrame(FrameObj fr)
   
   if ( fr->confirm_done == ON )
   { TRY(send(fr->display, NAME_confirm,
-	     CtoName("Delete window ``%s''"), fr->label, 0));
+	     CtoName("Delete window ``%s''"), fr->label, EAV));
   }
   
-  return send(fr, NAME_destroy, 0);    
+  return send(fr, NAME_destroy, EAV);    
 }
 
 
@@ -393,12 +393,12 @@ createFrame(FrameObj fr)
   TRY(openDisplay(fr->display));
   appendChain(fr->display->frames, fr);
 
-  TRY(send(fr, NAME_fit, 0));
+  TRY(send(fr, NAME_fit, EAV));
 
   ws_create_frame(fr);
 
   for_cell(cell, fr->members)
-    send(cell->value, NAME_create, 0);
+    send(cell->value, NAME_create, EAV);
 
   ws_realise_frame(fr);
   assign(fr, status, NAME_hidden);
@@ -422,7 +422,7 @@ uncreateFrame(FrameObj fr)
 { Cell cell;
 
   for_cell(cell, fr->members)
-    send(cell->value, NAME_uncreate, 0);
+    send(cell->value, NAME_uncreate, EAV);
 
   ws_uncreate_frame(fr);
   succeed;
@@ -443,7 +443,7 @@ fitFrame(FrameObj fr)
   enforceTile(t, OFF);
 
   for_cell(cell, fr->members)
-    send(cell->value, NAME_ComputeDesiredSize, 0);
+    send(cell->value, NAME_ComputeDesiredSize, EAV);
 
   enforceTile(t, ON);
   border = mul(t->border, TWO);
@@ -462,7 +462,7 @@ fitFrame(FrameObj fr)
 static status
 statusFrame(FrameObj fr, Name stat)
 { if ( stat != NAME_unmapped && !createdFrame(fr) )
-    TRY(send(fr, NAME_create, 0));
+    TRY(send(fr, NAME_create, EAV));
 
   if ( stat == NAME_open )
     stat = NAME_window;
@@ -504,7 +504,7 @@ frame_is_upto_date(FrameObj fr)
 static status
 waitFrame(FrameObj fr)
 { if ( fr->status == NAME_unmapped )
-    TRY(send(fr, NAME_open, 0));
+    TRY(send(fr, NAME_open, EAV));
 
   while( !frame_is_upto_date(fr) )
   { if ( dispatchDisplay(fr->display) )
@@ -629,7 +629,7 @@ getBoundingBoxFrame(FrameObj fr)
 { int x, y, w, h;
 
   if ( ws_frame_bb(fr, &x, &y, &w, &h) )
-    answer(answerObject(ClassArea, ZERO, ZERO, toInt(w), toInt(h), 0));
+    answer(answerObject(ClassArea, ZERO, ZERO, toInt(w), toInt(h), EAV));
 
   fail;
 }
@@ -975,7 +975,7 @@ appendFrame(FrameObj fr, PceWindow sw)
 
 static Chain
 getMembersFrame(FrameObj fr)
-{ Chain rval = answerObject(ClassChain, 0);
+{ Chain rval = answerObject(ClassChain, EAV);
   Cell cell;
 
   for_cell(cell, fr->members)
@@ -996,17 +996,17 @@ AppendFrame(FrameObj fr, PceWindow sw)
 { appendChain(fr->members, sw);
 
   if ( createdFrame(fr) )
-  { TRY(send(sw, NAME_create, 0));
+  { TRY(send(sw, NAME_create, EAV));
 
     ws_manage_window(sw);
 
     if ( getClassVariableValueObject(fr, NAME_fitAfterAppend) == ON )
-      send(fr, NAME_fit, 0);
+      send(fr, NAME_fit, EAV);
     else
-      send(fr, NAME_resize, 0);
+      send(fr, NAME_resize, EAV);
 
     if ( isOpenFrameStatus(fr->status) )
-      send(sw, NAME_displayed, ON, 0);
+      send(sw, NAME_displayed, ON, EAV);
   }
 
   succeed;
@@ -1026,12 +1026,12 @@ DeleteFrame(FrameObj fr, PceWindow sw)
 
   if ( !isFreedObj(fr) && createdFrame(fr) )
   { ws_unmanage_window(sw);
-    TRY(send(sw, NAME_uncreate, 0));
+    TRY(send(sw, NAME_uncreate, EAV));
     unrelateTile(sw->tile);
     if ( getClassVariableValueObject(fr, NAME_fitAfterAppend) == ON )
-      send(fr, NAME_fit, 0);
+      send(fr, NAME_fit, EAV);
     else
-      send(fr, NAME_resize, 0);
+      send(fr, NAME_resize, EAV);
   }
 
   succeed;
@@ -1095,9 +1095,9 @@ static status
 applicationFrame(FrameObj fr, Application app)
 { if ( fr->application != app )
   { if ( notNil(app) )
-      return send(app, NAME_append, fr, 0);
+      return send(app, NAME_append, fr, EAV);
     else if ( notNil(fr->application) )
-      return send(fr->application, NAME_delete, fr, 0);
+      return send(fr->application, NAME_delete, fr, EAV);
   }
 
   succeed;
@@ -1114,13 +1114,13 @@ keyboardFocusFrame(FrameObj fr, PceWindow sw)
     freeHypersObject(fr, NAME_keyboardFocus, DEFAULT);
 
   if ( instanceOfObject(sw, ClassWindow) )
-  { newObject(ClassHyper, fr, sw, NAME_keyboardFocus, NAME_KeyboardFocus, 0);
+  { newObject(ClassHyper, fr, sw, NAME_keyboardFocus, NAME_KeyboardFocus, EAV);
     if ( fr->input_focus == ON )
-      send(fr, NAME_inputWindow, sw, 0);
+      send(fr, NAME_inputWindow, sw, EAV);
   } else if ( fr->input_focus == ON )
   { PceWindow iw = getPointerWindowFrame(fr);
 
-    send(fr, NAME_inputWindow, iw, 0);
+    send(fr, NAME_inputWindow, iw, EAV);
   }
   
   succeed;
@@ -1281,10 +1281,10 @@ resizeTileEventFrame(FrameObj fr, EventObj ev)
 
       if ( t->super->orientation == NAME_vertical )
 	send(t, NAME_height,
-	     toInt(valInt(getYEvent(ev, fr)) - valInt(t->area->y) - 1), 0);
+	     toInt(valInt(getYEvent(ev, fr)) - valInt(t->area->y) - 1), EAV);
       else
 	send(t, NAME_width,
-	     toInt(valInt(getXEvent(ev, fr)) - valInt(t->area->x) - 1), 0);
+	     toInt(valInt(getXEvent(ev, fr)) - valInt(t->area->x) - 1), EAV);
 
       succeed;
     } else
@@ -1326,14 +1326,14 @@ resizeTileEventFrame(FrameObj fr, EventObj ev)
 	  dx = 1; dy = 0;
 	}
 	attributeObject(fr, NAME_ResizingFeedback,
-			dev = newObject(ClassDevice, 0));
+			dev = newObject(ClassDevice, EAV));
 	displayDevice(dev, newObject(ClassLine,
 				     toInt(x1-dx), toInt(y1-dy),
-				     toInt(x2-dx), toInt(y2-dy), 0),
+				     toInt(x2-dx), toInt(y2-dy), EAV),
 		      DEFAULT);
 	displayDevice(dev, newObject(ClassLine,
 				     toInt(x1+dx), toInt(y1+dy),
-				     toInt(x2+dx), toInt(y2+dy), 0),
+				     toInt(x2+dx), toInt(y2+dy), EAV),
 		      DEFAULT);
 	drawFeedbackLines(fr);
 	grabPointerFrame(fr, ON, c);
@@ -1394,15 +1394,15 @@ eventFrame(FrameObj fr, EventObj ev)
     if ( (bfr=blockedByModalFrame(fr)) )
     { 
     blocked:
-      send(bfr, NAME_expose, 0);
-      send(fr, NAME_bell, 0);
+      send(bfr, NAME_expose, EAV);
+      send(fr, NAME_bell, EAV);
       fail;
     }
 
     if ( (sw = getKeyboardFocusFrame(fr)) )
       return postEvent(ev, (Graphical) sw, DEFAULT);
 
-    return send(fr, NAME_typed, ev->id, 0);
+    return send(fr, NAME_typed, ev->id, EAV);
   }
 
   if ( isDownEvent(ev) && (bfr=blockedByModalFrame(fr)) )
@@ -1450,7 +1450,7 @@ typedFrame(FrameObj fr, EventId id)
 { PceWindow sw;
 
   for_chain(fr->members, sw,
-	    if ( send(sw, NAME_typed, id, 0) )
+	    if ( send(sw, NAME_typed, id, EAV) )
 	      succeed;);
 
   fail;
@@ -1486,12 +1486,12 @@ transientForFrame(FrameObj fr, FrameObj fr2)
       kindFrame(fr, NAME_transient);
 
     if ( notNil(fr->transient_for) && notNil(fr->transient_for->transients) )
-      send(fr->transient_for, NAME_detachTransient, fr, 0);
+      send(fr->transient_for, NAME_detachTransient, fr, EAV);
 
     assign(fr, transient_for, fr2);
 
     if ( notNil(fr2) )
-    { send(fr2, NAME_attachTransient, fr, 0);
+    { send(fr2, NAME_attachTransient, fr, EAV);
 
       if ( fr->kind == NAME_transient )
 	ws_transient_frame(fr, fr2);
@@ -1505,7 +1505,7 @@ transientForFrame(FrameObj fr, FrameObj fr2)
 static status
 attachTransientFrame(FrameObj fr, FrameObj tr)
 { if ( isNil(fr->transients) )
-    assign(fr, transients, newObject(ClassChain, tr, 0));
+    assign(fr, transients, newObject(ClassChain, tr, EAV));
   else
     addChain(fr->transients, tr);
 
@@ -1896,7 +1896,7 @@ makeClassFrame(Class class)
   ConstantNotReturned = globalObject(NAME_NotReturned, ClassConstant,
 				     NAME_NotReturned,
 				     CtoString("Used for `frame <-confirm'"),
-				     0);
+				     EAV);
   succeed;
 }
 

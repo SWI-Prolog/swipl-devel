@@ -15,7 +15,7 @@
 
 Number
 CtoNumber(long i)
-{ Number n = answerObject(ClassNumber, ZERO, 0);
+{ Number n = answerObject(ClassNumber, ZERO, EAV);
   
   n->value = i;
   answer(n);
@@ -43,7 +43,7 @@ initialiseNumber(Number n, Any i)
 
 static Number
 getCopyNumber(Number n)
-{ Number n2 = answerObject(ClassNumber, ZERO, 0);
+{ Number n2 = answerObject(ClassNumber, ZERO, EAV);
 
   n2->value = n->value;
   answer(n2);
@@ -83,7 +83,7 @@ getConvertNumber(Class class, Any obj)
 { Int i;
 
   TRY( i = toInteger(obj) );
-  answer( answerObject(ClassNumber, i, 0) );
+  answer( answerObject(ClassNumber, i, EAV) );
 }
 
 

@@ -16,7 +16,7 @@
 status
 initialiseMoveGesture(MoveGesture g, Name button, Modifier modifier)
 { initialiseGesture((Gesture) g, button, modifier);
-  assign(g, offset, newObject(ClassPoint, ZERO, ZERO, 0));
+  assign(g, offset, newObject(ClassPoint, ZERO, ZERO, EAV));
   
   succeed;
 }
@@ -49,13 +49,13 @@ static status
 dragMoveGesture(MoveGesture g, EventObj ev)
 { Int x, y;
 
-  get_xy_event(ev, get(ev->receiver, NAME_device, 0), OFF, &x, &y);
+  get_xy_event(ev, get(ev->receiver, NAME_device, EAV), OFF, &x, &y);
   DEBUG(NAME_drag, writef("Receiver = %s; x = %d; y = %d\n",
 			  ev->receiver, x, y));
   x = sub(x, g->offset->x);
   y = sub(y, g->offset->y);
 
-  send(ev->receiver, NAME_doSet, x, y, 0);
+  send(ev->receiver, NAME_doSet, x, y, EAV);
 
   succeed;
 }

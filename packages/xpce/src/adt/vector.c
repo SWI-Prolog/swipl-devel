@@ -591,7 +591,7 @@ getFindVector(Vector v, Code code, Int from, Int to)
 
 static Chain
 getFindAllVector(Vector v, Code code, Int from, Int to)
-{ Chain result = answerObject(ClassChain, 0);
+{ Chain result = answerObject(ClassChain, EAV);
   int f, t;
 
   if ( get_range(v, from, to, &f, &t) )
@@ -666,7 +666,7 @@ changedVector(Vector v, Any *field)
     { int index = field - v->elements;
 
       if ( index >= 0 && index < valInt(v->size) )
-	return changedObject(v, toName((Any) toInt(index)), 0);
+	return changedObject(v, toName((Any) toInt(index)), EAV);
 
       return changedFieldObject(v, field);
     }

@@ -61,16 +61,16 @@ initialisePce(Pce pce)
   assign(pce, debugging,              OFF);
   assign(pce, trap_errors,	      ON);
 #endif
-  assign(pce, catched_errors,	      newObject(ClassChain, 0));
+  assign(pce, catched_errors,	      newObject(ClassChain, EAV));
   assign(pce, catch_error_signals,    OFF);
 
-  assign(pce, exit_messages,	      newObject(ClassChain, 0));
-  assign(pce, exception_handlers,     newObject(ClassSheet, 0));
+  assign(pce, exit_messages,	      newObject(ClassChain, EAV));
+  assign(pce, exception_handlers,     newObject(ClassSheet, EAV));
 
   assign(pce, home,		      DEFAULT);
   assign(pce, defaults,		      newObject(ClassFile,
 						CtoString("$PCEHOME/Defaults"),
-						0));
+						EAV));
 
   assign(pce, version,                CtoName(PCE_VERSION));
   assign(pce, machine,                CtoName(MACHINE));
@@ -82,7 +82,7 @@ initialisePce(Pce pce)
 #endif
   assign(pce, window_system_version,  toInt(ws_version()));
   assign(pce, window_system_revision, toInt(ws_revision()));
-  assign(pce, features,		      newObject(ClassChain, 0));
+  assign(pce, features,		      newObject(ClassChain, EAV));
 
   at_pce_exit(exit_pce, ATEXIT_FIFO);
 
@@ -193,7 +193,7 @@ getOsErrorPce(Pce pce)
 #ifndef O_RUNTIME
 static Chain
 getUnresolvedTypesPce(Pce pce)
-{ Chain ch = answerObject(ClassChain, 0);
+{ Chain ch = answerObject(ClassChain, EAV);
   
   for_hash_table(TypeTable, s,
 	         { Type t = s->value;
@@ -283,7 +283,7 @@ getEnvironmentVariablePce(Pce pce, Name name)
 #else
   if ( streq(strName(name), "PCEHOME") )
 #endif
-    answer(get(PCE, NAME_home, 0));
+    answer(get(PCE, NAME_home, EAV));
 
   fail;
 }
@@ -304,7 +304,7 @@ callExitMessagesPce(int stat, Pce pce)
 
     for_cell_save(cell, q, pce->exit_messages)
     { addCodeReference(cell->value);
-      forwardCode(cell->value, toInt(stat), 0);
+      forwardCode(cell->value, toInt(stat), EAV);
     }
   }
 }
@@ -573,7 +573,7 @@ licenceInfoPce(Pce pce)
 
 static status
 bannerPce(Pce pce)
-{ Name host = get(HostObject(), NAME_system, 0);
+{ Name host = get(HostObject(), NAME_system, EAV);
 
 #ifdef __WIN32__
   writef("XPCE %s (%s for %I%IWin32: NT and '9x%I%I)\n",
@@ -944,14 +944,14 @@ syntaxPce(Pce pce, Name casemap, Int ws)
 { Code msg;
 
 					/* realise all classes */
-  msg = answerObject(ClassMessage, Arg(2), NAME_realise, 0);
-  send(classTable, NAME_forAll, msg, 0);
+  msg = answerObject(ClassMessage, Arg(2), NAME_realise, EAV);
+  send(classTable, NAME_forAll, msg, EAV);
   doneObject(msg);
 
   if ( isDefault(ws) )
     ws = toInt('_');
 
-  msg = answerObject(ClassMessage, Arg(1), NAME_syntax, casemap, ws, 0);
+  msg = answerObject(ClassMessage, Arg(1), NAME_syntax, casemap, ws, EAV);
   DEBUG(NAME_name, checkNames(1));
   TRY(forNamePce(pce, msg));
   DEBUG(NAME_name, checkNames(1));
@@ -1047,7 +1047,7 @@ resetPce(Pce pce)
 
   resetApplications();
   if ( (dm = getObjectAssoc(NAME_displayManager)) )
-    send(dm, NAME_reset, 0);
+    send(dm, NAME_reset, EAV);
 
   succeed;
 }
@@ -1086,7 +1086,7 @@ getConvertPce(Pce pce, Any obj, Type type)
 static status
 makeClassUsingCode(Class class)
 { if ( notNil(class->make_class_message) )
-    return forwardCode(class->make_class_message, class->name, 0);
+    return forwardCode(class->make_class_message, class->name, EAV);
 
   fail;
 }
@@ -1465,7 +1465,7 @@ makeClassPce(Class class)
   saveStyleClass(class, NAME_external);
   cloneStyleClass(class, NAME_none);
 
-  PCE = globalObject(NAME_pce, ClassPce, 0);
+  PCE = globalObject(NAME_pce, ClassPce, EAV);
   protectObject(PCE);
 
   succeed;
@@ -1478,7 +1478,7 @@ makeClassPce(Class class)
 
 static HashTable
 objectAttributeTable(Name name)
-{ HashTable ht = globalObject(name, ClassHashTable, 0);
+{ HashTable ht = globalObject(name, ClassHashTable, EAV);
   assign(ht, refer, NAME_value);
 
   return ht;
@@ -1676,9 +1676,9 @@ pceInitialise(int handles, const char *home, int argc, char **argv)
 
   DEBUG_BOOT(Cprintf("Initialised boot classes\n"));
   
-  classTable		= globalObject(NAME_classes,       ClassHashTable, 0);
+  classTable		= globalObject(NAME_classes,       ClassHashTable, EAV);
 #ifndef O_RUNTIME
-  PCEdebugSubjects	= globalObject(NAME_DebugSubjects, ClassChain, 0);
+  PCEdebugSubjects	= globalObject(NAME_DebugSubjects, ClassChain, EAV);
 #endif
   initDebugger();
 
@@ -1686,7 +1686,7 @@ pceInitialise(int handles, const char *home, int argc, char **argv)
   newAssoc(NAME_types, TypeTable);
   createdClass(ClassHashTable, TypeTable, NAME_new);
 
-  TypeExpression = newObject(ClassType, NAME_expression, NAME_compound, 0);
+  TypeExpression = newObject(ClassType, NAME_expression, NAME_compound, EAV);
   superType(TypeExpression, TypeInt);
   superType(TypeExpression, nameToType(NAME_function));
   superType(TypeExpression, nameToType(NAME_number));
@@ -1760,7 +1760,7 @@ pceInitialise(int handles, const char *home, int argc, char **argv)
   DEBUG_BOOT(Cprintf("C/C++ global objects\n"));
   initCGlobals();
   if ( home )
-    send(PCE, NAME_home, CtoName(home), 0);
+    send(PCE, NAME_home, CtoName(home), EAV);
 
   rewindAnswerStack(mark, NIL);
   inBoot = FALSE;
@@ -1804,7 +1804,7 @@ extern void ws_timer();
 
 int
 check_licence()
-{ Name h = get(PCE, NAME_home, 0);
+{ Name h = get(PCE, NAME_home, EAV);
   char pwdfile[MAXPATHLEN];
 
   if ( h )

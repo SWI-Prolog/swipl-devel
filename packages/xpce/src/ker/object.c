@@ -38,7 +38,7 @@ addRefObject(Any from, Any to)
 
   if ( onFlag(to, F_INSPECT) )
   { addCodeReference(from);
-    changedObject(to, NAME_addReference, from, 0);
+    changedObject(to, NAME_addReference, from, EAV);
     delCodeReference(from);
   }
 }
@@ -51,7 +51,7 @@ delRefObject(Any from, Any to)
   if ( onFlag(to, F_INSPECT) )
   { addCodeReference(to);
     addCodeReference(from);
-    changedObject(to, NAME_delReference, from, 0);
+    changedObject(to, NAME_delReference, from, EAV);
     delCodeReference(from);
     delCodeReference(to);
   }
@@ -348,7 +348,7 @@ createObjectv(Name assoc, Class class, int argc, const Any argv[])
 					/* Check assoc redefinition */
   if ( notNil(assoc) )
   { if ( getObjectAssoc(assoc) )
-      exceptionPce(PCE, NAME_redefinedAssoc, assoc, 0);
+      exceptionPce(PCE, NAME_redefinedAssoc, assoc, EAV);
     if ( getObjectAssoc(assoc) )
     { errorPce(PCE, NAME_redefinedAssoc, assoc, 0);
       fail;
@@ -858,7 +858,7 @@ nameReferenceObject(Any obj, Name name)
   if ( (old = getObjectAssoc(name)) == obj )
     succeed;
   if ( old )
-    exceptionPce(PCE, NAME_redeclaredReference, name, 0);
+    exceptionPce(PCE, NAME_redeclaredReference, name, EAV);
   if ( (old = getObjectAssoc(name)) )
     errorPce(obj, NAME_redeclaredReference, name);
 
@@ -971,7 +971,7 @@ attributeObject(Any obj, Any name, Any value)
     if ( getInstanceVariableClass(classOfObject(obj), name) )
       return errorPce(obj, NAME_classHasVariable, name);
 
-    return appendChain(ch, newObject(ClassAttribute, name, value, 0));
+    return appendChain(ch, newObject(ClassAttribute, name, value, EAV));
   }
 }
 
@@ -1061,7 +1061,7 @@ getSendMethodObject(Any obj, Name selector)
 
   TRY( m = resolveSendMethodObject(obj, NULL, selector, &rec) );
 
-  answer(answerObject(ClassTuple, rec, m, 0));
+  answer(answerObject(ClassTuple, rec, m, EAV));
 }
 
 
@@ -1071,7 +1071,7 @@ getGetMethodObject(Any obj, Name selector)
 
   TRY( m = resolveGetMethodObject(obj, NULL, selector, &rec) );
 
-  answer(answerObject(ClassTuple, rec, m, 0));
+  answer(answerObject(ClassTuple, rec, m, EAV));
 }
 
 
@@ -1151,7 +1151,7 @@ mergeSendMethodsObject(Any obj, Chain ch, HashTable done, Code cond)
 
 static Chain
 getFindAllSendMethodsObject(Any obj, Code cond)
-{ Chain ch = answerObject(ClassChain, 0);
+{ Chain ch = answerObject(ClassChain, EAV);
   static HashTable done = NULL;
   
   if ( !done )
@@ -1174,7 +1174,7 @@ getAllConstraintsObject(Any obj, Bool create)
     answer(getMemberHashTable(ObjectConstraintTable, obj));
 
   if ( create == ON )
-  { Chain ch = newObject(ClassChain, 0);
+  { Chain ch = newObject(ClassChain, EAV);
 
     setFlag(obj, F_CONSTRAINT);
     appendHashTable(ObjectConstraintTable, obj, ch);
@@ -1192,7 +1192,7 @@ getAllHypersObject(Any obj, Bool create)
     answer(getMemberHashTable(ObjectHyperTable, obj));
 
   if ( create == ON )
-  { Chain ch = newObject(ClassChain, 0);
+  { Chain ch = newObject(ClassChain, EAV);
 
     setFlag(obj, F_HYPER);
     appendHashTable(ObjectHyperTable, obj, ch);
@@ -1210,7 +1210,7 @@ getAllAttributesObject(Any obj, Bool create)
     answer(getMemberHashTable(ObjectAttributeTable, obj));
 
   if ( create == ON )
-  { Chain ch = newObject(ClassChain, 0);
+  { Chain ch = newObject(ClassChain, EAV);
 
     setFlag(obj, F_ATTRIBUTE);
     appendHashTable(ObjectAttributeTable, obj, ch);
@@ -1228,7 +1228,7 @@ getAllSendMethodsObject(Any obj, Bool create)
     answer(getMemberHashTable(ObjectSendMethodTable, obj));
 
   if ( create == ON )
-  { Chain ch = newObject(ClassChain, 0);
+  { Chain ch = newObject(ClassChain, EAV);
 
     setFlag(obj, F_SENDMETHOD);
     appendHashTable(ObjectSendMethodTable, obj, ch);
@@ -1246,7 +1246,7 @@ getAllGetMethodsObject(Any obj, Bool create)
     answer(getMemberHashTable(ObjectGetMethodTable, obj));
 
   if ( create == ON )
-  { Chain ch = newObject(ClassChain, 0);
+  { Chain ch = newObject(ClassChain, EAV);
 
     setFlag(obj, F_GETMETHOD);
     appendHashTable(ObjectGetMethodTable, obj, ch);
@@ -1314,7 +1314,7 @@ getCloneObject(Any obj)
 
     if ( kf->flags & D_CLONE_REFCHAIN )
     { Cell cell;
-      Chain clch = newObject(ClassChain, 0);
+      Chain clch = newObject(ClassChain, EAV);
 
       assignField(kf->instance, kf->field, clch);
       for_cell(cell, (Chain)kf->old_value)
@@ -1477,7 +1477,7 @@ getArgObject(Any obj, Int arg)
     fail;
 
   if ( isName(selector = getElementVector(class->term_names, arg)) )
-    answer( get(obj, selector, 0) );
+    answer( get(obj, selector, EAV) );
 
   fail;
 }
@@ -1514,7 +1514,7 @@ slotObject(Any obj, Any which, Any value)
 
 static status
 isOnObject(Any obj, Name selector)
-{ if ( get(obj, selector, 0) == ON)
+{ if ( get(obj, selector, EAV) == ON)
     succeed;
   fail;
 }
@@ -1522,7 +1522,7 @@ isOnObject(Any obj, Name selector)
 
 static status
 isOffObject(Any obj, Name selector)
-{ if ( get(obj, selector, 0) == OFF)
+{ if ( get(obj, selector, EAV) == OFF)
     succeed;
   fail;
 }
@@ -1530,7 +1530,7 @@ isOffObject(Any obj, Name selector)
 
 static status
 hasValueObject(Any obj, Name selector, Any value)
-{ if (get(obj, selector, 0) == value)
+{ if (get(obj, selector, EAV) == value)
     succeed;
   fail;
 }
@@ -1538,7 +1538,7 @@ hasValueObject(Any obj, Name selector, Any value)
 
 static status
 notHasValueObject(Any obj, Name selector, Any value)
-{ if (get(obj, selector, 0) != value)
+{ if (get(obj, selector, EAV) != value)
     succeed;
   fail;
 }
@@ -1863,11 +1863,11 @@ getFindHyperObject(Any obj, Name hname, Code cond)
 
       if ( h->from == obj )
       { if ( (hname == h->forward_name || isDefault(hname)) &&
-	     (isDefault(cond) || forwardCode(cond, h->from, h, h->to, 0)) )
+	     (isDefault(cond) || forwardCode(cond, h->from, h, h->to, EAV)) )
 	  answer(h);
       } else
       { if ( (hname == h->backward_name || isDefault(hname)) &&
-	     (isDefault(cond) || forwardCode(cond, h->to, h, h->from, 0)) )
+	     (isDefault(cond) || forwardCode(cond, h->to, h, h->from, EAV)) )
 	  answer(h);
       }
     }
@@ -1899,12 +1899,12 @@ freeHypersObject(Any obj, Name hname, Code cond)
 	      { if ( h->from == obj )
 		{ if ( (hname == h->forward_name || isDefault(hname)) &&
 		       (isDefault(cond) ||
-			forwardCode(cond, h->from, h, h->to, 0)) )
+			forwardCode(cond, h->from, h, h->to, EAV)) )
 		    freeObject(h);
 		} else
 		{ if ( (hname == h->backward_name || isDefault(hname)) &&
 		       (isDefault(cond) ||
-			forwardCode(cond, h->to, h, h->from, 0)) )
+			forwardCode(cond, h->to, h, h->from, EAV)) )
 		    freeObject(h);
 		}
 	      });
@@ -1983,7 +1983,7 @@ changedFieldObject(Any obj, Any *field)
 	}
 	changedLevel++;
 	for_cell(cell, class->changed_messages)
-	  forwardCode(cell->value, obj, v->name, 0);
+	  forwardCode(cell->value, obj, v->name, EAV);
 	changedLevel--;
       }
     }
@@ -2077,7 +2077,7 @@ getConvertObject(Any ctx, Any x)
   Any rval = FAIL;
 
   if ( isInteger(x) )
-    rval = answerObject(ClassNumber, x, 0);
+    rval = answerObject(ClassNumber, x, EAV);
 
   if ( (s = toCharp(x)) )
   { char *start;
@@ -2360,7 +2360,7 @@ for_slot_reference_object(Any obj, Code msg, Bool recursive, HashTable done)
       if ( isDefault(value) && getClassVariableClass(class, var->name) )
 	value = getGetVariable(var, inst);
 
-      forwardCode(msg, inst, NAME_slot, var->name, value, 0);
+      forwardCode(msg, inst, NAME_slot, var->name, value, EAV);
       if ( recursive == ON && isObject(value) )
 	for_slot_reference_object(value, msg, recursive, done);
     }
@@ -2371,7 +2371,7 @@ for_slot_reference_object(Any obj, Code msg, Bool recursive, HashTable done)
     int n = 1;
 
     for_cell(cell, (Chain) obj)
-    { forwardCode(msg, obj, NAME_cell, toInt(n), cell->value, 0);
+    { forwardCode(msg, obj, NAME_cell, toInt(n), cell->value, EAV);
 
       if ( recursive == ON && isObject(cell->value) )
 	for_slot_reference_object(cell->value, msg, recursive, done);
@@ -2379,12 +2379,12 @@ for_slot_reference_object(Any obj, Code msg, Bool recursive, HashTable done)
     }
   } else if ( instanceOfObject(obj, ClassVector) )
   { for_vector((Vector) obj, Any value,
-	       forwardCode(msg, NAME_element, obj, toInt(_iv), value, 0);
+	       forwardCode(msg, NAME_element, obj, toInt(_iv), value, EAV);
 	       if ( recursive == ON && isObject(value) )
 		 for_slot_reference_object(value, msg, recursive, done););
   } else if ( instanceOfObject(obj, ClassHashTable) )
   { for_hash_table((HashTable) obj, s,
-		   { forwardCode(msg, obj, NAME_key, s->name, s->value, 0);
+		   { forwardCode(msg, obj, NAME_key, s->name, s->value, EAV);
 
 		     if ( recursive == ON )
 		     { if ( isObject(s->name) )
@@ -2485,7 +2485,7 @@ static status
 reportObject(Any obj, Name kind, CharArray fmt, int argc, Any *argv)
 { Any to;
 
-  if ( !(to = get(obj, NAME_reportTo, 0)) )
+  if ( !(to = get(obj, NAME_reportTo, EAV)) )
   {
 #ifdef O_RUNTIME
     to = CurrentDisplay(NIL);
@@ -2560,7 +2560,7 @@ getPrintNameObject(Any obj)
 { CharArray name;
 
   if ( hasGetMethodObject(obj, NAME_name) &&
-       (name = get(obj, NAME_name, 0)) &&
+       (name = get(obj, NAME_name, EAV)) &&
        (name = checkType(name, TypeCharArray, NIL)) )
     answer(name);
   else

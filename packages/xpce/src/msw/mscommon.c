@@ -21,7 +21,7 @@ MsObjectTable()
 { static HashTable table;
 
   if ( !table )
-    table = globalObject(CtoName("ms_objects"), ClassHashTable, 0);
+    table = globalObject(CtoName("ms_objects"), ClassHashTable, EAV);
 
   return table;
 }
@@ -504,7 +504,7 @@ messageToEvent(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 		      window,
 		      x, y,
 		      buttons,
-		      0);
+		      EAV);
 
     if ( ctx_name )
       attributeObject(ev, ctx_name, ctx);

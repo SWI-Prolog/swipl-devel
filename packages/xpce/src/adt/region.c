@@ -34,23 +34,23 @@ initialiseRegion(RegionObj r, Equation x, Equation y, Equation w, Equation h)
 
 static Int
 getAreaXRegion(RegionObj r, Area a)
-{ answer(getValueExpression(r->x, XYWH, 0));
+{ answer(getValueExpression(r->x, XYWH, EAV));
 }
 
 
 static Int
 getAreaYRegion(RegionObj r, Area a)
-{ answer(getValueExpression(r->y, XYWH, 0));
+{ answer(getValueExpression(r->y, XYWH, EAV));
 }
 
 static Int
 getAreaWRegion(RegionObj r, Area a)
-{ answer(getValueExpression(r->w, XYWH, 0));
+{ answer(getValueExpression(r->w, XYWH, EAV));
 }
 
 static Int
 getAreaHRegion(RegionObj r, Area a)
-{ answer(getValueExpression(r->h, XYWH, 0));
+{ answer(getValueExpression(r->h, XYWH, EAV));
 }
 
 
@@ -81,11 +81,11 @@ getAreaRegion(RegionObj r, Area a)
 { Int x=a->x, y=a->y, w=a->w, h=a->h;
 
   answer(answerObject(ClassArea, 
-    getValueExpression(r->x, VarX, x, VarW, w, VarY, y, VarH, h, 0), 
-    getValueExpression(r->y, VarX, x, VarW, w, VarY, y, VarH, h, 0), 
-    getValueExpression(r->w, VarX, x, VarW, w, VarY, y, VarH, h, 0), 
-    getValueExpression(r->h, VarX, x, VarW, w, VarY, y, VarH, h, 0), 
-    0));
+    getValueExpression(r->x, VarX, x, VarW, w, VarY, y, VarH, h, EAV), 
+    getValueExpression(r->y, VarX, x, VarW, w, VarY, y, VarH, h, EAV), 
+    getValueExpression(r->w, VarX, x, VarW, w, VarY, y, VarH, h, EAV), 
+    getValueExpression(r->h, VarX, x, VarW, w, VarY, y, VarH, h, EAV), 
+    EAV));
 }
 
 		 /*******************************

@@ -9,6 +9,7 @@
 #define _XOPEN_SOURCE
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include <SWI-Prolog.h>
 #include "clib.h"
 

@@ -331,7 +331,7 @@ getPrintNameSocket(Socket s)
     an = 3;
     fmt = CtoName("%s(%s:%d)");
   } else
-  { av[1] = get(s->address, NAME_printName, 0);
+  { av[1] = get(s->address, NAME_printName, EAV);
     an = 2;
     fmt = CtoName("%s(%s)");
   }
@@ -521,13 +521,13 @@ acceptSocket(Socket s)
 	client_address = newObject(ClassTuple,
 				   CtoName(hp->h_name), 
 				   toInt(address.sin_port),
-				   0);
+				   EAV);
       else
 	client_address = NIL;
     }
   }
   
-  if ( !(s2 = get(s, NAME_clone, 0)) )
+  if ( !(s2 = get(s, NAME_clone, EAV)) )
     return errorPce(s, NAME_failedToClone);
 
 #ifdef HAVE_WINSOCK
@@ -541,7 +541,7 @@ acceptSocket(Socket s)
   registerClientSocket(s, s2);
 
   if ( notNil(s->accept_message) )
-    forwardReceiverCode(s->accept_message, s, s2, 0);
+    forwardReceiverCode(s->accept_message, s, s2, EAV);
 
   inputStream((Stream) s2, DEFAULT);
 
@@ -562,7 +562,7 @@ listenSocket(Socket s, Code accept_message, Int backlog, Bool reuse)
   assign(s, status, NAME_listen);
   if ( notDefault(accept_message) )
     assign(s, accept_message, accept_message);
-  assign(s, clients, newObject(ClassChain, 0));
+  assign(s, clients, newObject(ClassChain, EAV));
   registerSocket(s);
 
 #ifndef RANDOM
@@ -581,10 +581,10 @@ listenSocket(Socket s, Code accept_message, Int backlog, Bool reuse)
     { Tuple t = s->address;
 
       send(s->authority, NAME_format, CtoName("inet %s:%d\n%d\n"),
-	   t->first, t->second, passwd, 0);
+	   t->first, t->second, passwd, EAV);
     } else
     { send(s->authority, NAME_format, CtoName("inet %s:%d\n%d\n"),
-	   getHostnamePce(PCE), s->address, passwd, 0);
+	   getHostnamePce(PCE), s->address, passwd, EAV);
     }
 
     TRY(closeFile(s->authority));
@@ -676,7 +676,7 @@ getPeerNameSocket(Socket s)
 	    (int)((addr >>  8) & 0xff),
 	    (int) (addr        & 0xff));
 
-    answer(answerObject(ClassTuple, CtoName(aname), toInt(port), 0));
+    answer(answerObject(ClassTuple, CtoName(aname), toInt(port), EAV));
   }
 }
 
@@ -813,7 +813,7 @@ makeClassSocket(Class class)
 #endif
   featureClass(class, NAME_inetDomain, ON);
 
-  SocketChain = globalObject(NAME_openSockets, ClassChain, 0);
+  SocketChain = globalObject(NAME_openSockets, ClassChain, EAV);
 
   succeed;
 }

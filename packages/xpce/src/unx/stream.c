@@ -45,7 +45,7 @@ initialiseStream(Stream s, Int rfd, Int wfd, Code input, Any sep)
   if ( isDefault(rfd) )   rfd = NIL;
   if ( isDefault(wfd) )   wfd = NIL;
   if ( isDefault(input) ) input = NIL;
-  if ( isDefault(sep) )   sep = newObject(ClassRegex, CtoName("\n"), 0);
+  if ( isDefault(sep) )   sep = newObject(ClassRegex, CtoName("\n"), EAV);
 
   if ( notNil(rfd) ) s->rdfd = valInt(rfd);
   if ( notNil(wfd) ) s->wrfd = valInt(wfd);
@@ -317,8 +317,8 @@ handleInputStream(Stream s)
 	  else
 	    Cprintf("%s: Got 0 characters: EOF\n", pp(s));
 	 );
-    send(s, NAME_closeInput, 0);
-    send(s, NAME_endOfFile, 0);
+    send(s, NAME_closeInput, EAV);
+    send(s, NAME_endOfFile, EAV);
   }
 
   succeed;

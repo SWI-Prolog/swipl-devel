@@ -20,10 +20,10 @@ static status
 initialiseTable(Table tab)
 { initialiseLayoutManager(tab);
 
-  assign(tab, rows,    newObject(ClassVector, 0));
-  assign(tab, columns, newObject(ClassVector, 0));
-  assign(tab, current, newObject(ClassPoint, ONE, ONE, 0));
-  assign(tab, area,    newObject(ClassArea, 0));
+  assign(tab, rows,    newObject(ClassVector, EAV));
+  assign(tab, columns, newObject(ClassVector, EAV));
+  assign(tab, current, newObject(ClassPoint, ONE, ONE, EAV));
+  assign(tab, area,    newObject(ClassArea, EAV));
   assign(tab, changed, OFF);
   assign(tab, width,   DEFAULT);
 
@@ -147,7 +147,7 @@ getRowTable(Table tab, Any y, Bool create)
       row = FAIL;
   
     if ( !row && create == ON )
-    { elementVector(tab->rows, y, (row=newObject(ClassTableRow, 0)));
+    { elementVector(tab->rows, y, (row=newObject(ClassTableRow, EAV)));
       assign(row, table, tab);
       assign(row, index, y);
     }
@@ -168,7 +168,7 @@ getColumnTable(Table tab, Any x, Bool create)
       col = FAIL;
   
     if ( !col && create == ON )
-    { elementVector(tab->columns, x, (col=newObject(ClassTableColumn, 0)));
+    { elementVector(tab->columns, x, (col=newObject(ClassTableColumn, EAV)));
       assign(col, table, tab);
       assign(col, index, x);
     }
@@ -253,7 +253,7 @@ getColumnRangeTable(Table tab)
 
   table_column_range(tab, &cmin, &cmax);
   
-  answer(answerObject(ClassTuple, toInt(cmin), toInt(cmax), 0));
+  answer(answerObject(ClassTuple, toInt(cmin), toInt(cmax), EAV));
 }
 
 
@@ -263,7 +263,7 @@ getRowRangeTable(Table tab)
 
   table_row_range(tab, &rmin, &rmax);
   
-  answer(answerObject(ClassTuple, toInt(rmin), toInt(rmax), 0));
+  answer(answerObject(ClassTuple, toInt(rmin), toInt(rmax), EAV));
 }
 
 
@@ -279,7 +279,7 @@ appendTable(Table tab, TableCell cell, Int x, Int y)
     y = tab->current->y;
 
   if ( notNil(tab->device) && notNil(cell->image) )
-    send(tab->device, NAME_display, cell->image, 0);
+    send(tab->device, NAME_display, cell->image, EAV);
 
   assign(cell, layout_manager, tab);
   assign(cell, column, x);
@@ -309,7 +309,7 @@ nextRowTable(Table tab, Bool end_group)
 { if ( end_group == ON )
   { TableRow r = getRowTable(tab, tab->current->y, ON);
 
-    send(r, NAME_endGroup, ON, 0);
+    send(r, NAME_endGroup, ON, EAV);
   }
 
   assign(tab->current, x, ONE);
@@ -746,7 +746,7 @@ sortRowsTable(Table tab, Code cmp, Int from, Int to)
     }
   }
 
-  send(rows, NAME_sort, cmp, toInt(ymin), toInt(ymax), 0);
+  send(rows, NAME_sort, cmp, toInt(ymin), toInt(ymax), EAV);
   
   for(y=ymin; y<=ymax; y++)		/* correct row-offsets */
   { TableRow r = getRowTable(tab, toInt(y), OFF);
@@ -775,7 +775,7 @@ static status
 clearSelectionTable(Table tab)
 { for_cells_table(tab, cell,
 		  if ( cell->selected == ON )
-		  { send(cell, NAME_selected, OFF, 0);
+		  { send(cell, NAME_selected, OFF, EAV);
 		  }, ;);
 
   succeed;
@@ -798,7 +798,7 @@ selectTable(Table tab, Any selection)
   } else if ( isNil(selection) )
   { succeed;
   } else
-    return send(selection, NAME_selected, ON, 0);
+    return send(selection, NAME_selected, ON, EAV);
 }
 
 
@@ -817,7 +817,7 @@ getSelectionTable(Table tab)
   for_cells_table(tab, cell,
 		  { if ( cell->selected == ON )
 		    { if ( !rval )
-			rval = answerObject(ClassChain, cell, 0);
+			rval = answerObject(ClassChain, cell, EAV);
 		      else
 			appendChain(rval, cell);
 		    }
@@ -877,7 +877,7 @@ getCellFromPositionTable(Table tab, Any pos, Bool onborder)
 					  answer(answerObject(ClassPoint,
 							      col->index,
 							      row->index,
-							      0));
+							      EAV));
 				      }
 				    });
 		   }
@@ -897,7 +897,7 @@ getCellsInRegionTable(Table tab, Area reg)
   int miny = valInt(reg->y);
   int maxy = miny + valInt(reg->h);
   int y;
-  Chain rval = answerObject(ClassChain, 0);
+  Chain rval = answerObject(ClassChain, EAV);
 
   if ( maxx < minx )
     swapint(maxx, minx);
@@ -932,7 +932,7 @@ userResizeSliceTable(Table tab, TableSlice slice, Int size)
     if ( valInt(slice->index) >= xmax )
     { int tabw = valInt(size) + valInt(slice->position);
 
-      send(tab, NAME_width, toInt(tabw), 0);
+      send(tab, NAME_width, toInt(tabw), EAV);
     } else
     { int i;
 
@@ -943,7 +943,7 @@ userResizeSliceTable(Table tab, TableSlice slice, Int size)
 	  assign(col, fixed, i <= valInt(slice->index) ? ON : OFF);
       }
 
-      send(slice, NAME_width, size, 0);
+      send(slice, NAME_width, size, EAV);
     }
   } else
   { int ymin, ymax;
@@ -952,9 +952,9 @@ userResizeSliceTable(Table tab, TableSlice slice, Int size)
     if ( valInt(slice->index) >= ymax )
     { int tabh = valInt(size) + valInt(slice->position);
 
-      send(tab, NAME_height, toInt(tabh), 0);
+      send(tab, NAME_height, toInt(tabh), EAV);
     } else
-      send(slice, NAME_height, size, 0);
+      send(slice, NAME_height, size, EAV);
   }
 
   succeed;
@@ -1005,7 +1005,7 @@ span(TableCell cell, Name which)
 static void
 addSpannedCell(Chain *rval, TableCell tc, Name which)
 { if ( ! *rval )
-    *rval = answerObject(ClassChain, tc, 0);
+    *rval = answerObject(ClassChain, tc, EAV);
   else
   { Cell cell;
     int myspan = span(tc, which);
@@ -1223,7 +1223,7 @@ computeRowsTable(Table tab)
   { TableRow row = getRowTable(tab, toInt(y), OFF);
 
     if ( row && row->fixed != ON )
-      send(row, NAME_compute, 0);
+      send(row, NAME_compute, EAV);
   }
 
   if ( (spanned = getSpannedCellsTable(tab, NAME_rowSpan)) )
@@ -1276,7 +1276,7 @@ computeColsTable(Table tab)
   { TableColumn col = getColumnTable(tab, toInt(x), ON);
 
     if ( col && col->fixed != ON )
-      send(col, NAME_compute, 0);
+      send(col, NAME_compute, EAV);
   }
 
   if ( notDefault(tab->width) )
@@ -1744,7 +1744,7 @@ widthTable(Table tab, Int width)
 static status
 cellPaddingTable(Table tab, Any padding)
 { if ( isInteger(padding) )
-    padding = answerObject(ClassSize, padding, padding, 0);
+    padding = answerObject(ClassSize, padding, padding, EAV);
 
   return assignTable(tab, NAME_cellPadding, padding, TRUE);
 }
@@ -1753,7 +1753,7 @@ cellPaddingTable(Table tab, Any padding)
 static status
 cellSpacingTable(Table tab, Any spacing)
 { if ( isInteger(spacing) )
-    spacing = answerObject(ClassSize, spacing, spacing, 0);
+    spacing = answerObject(ClassSize, spacing, spacing, EAV);
 
   return assignTable(tab, NAME_cellSpacing, spacing, TRUE);
 }

@@ -160,12 +160,12 @@ ComputeScrollBar(ScrollBar sb)
 	    pointerGraphical((Graphical) sb,
 			     answerObject(ClassPoint,
 					  div(sb->area->w, TWO),
-					  toInt(y), 0));
+					  toInt(y), EAV));
 	  else
 	    pointerGraphical((Graphical) sb,
 			     answerObject(ClassPoint,
 					  toInt(y),
-					  div(sb->area->h, TWO), 0));
+					  div(sb->area->h, TWO), EAV));
 	} else if ( sb->unit == NAME_page )
 	{ int y = -1;
 
@@ -181,12 +181,12 @@ ComputeScrollBar(ScrollBar sb)
 	      pointerGraphical((Graphical) sb,
 			       answerObject(ClassPoint,
 					  div(sb->area->w, TWO),
-					  toInt(y), 0));
+					  toInt(y), EAV));
 	    else
 	      pointerGraphical((Graphical) sb,
 			     answerObject(ClassPoint,
 					  toInt(y),
-					  div(sb->area->h, TWO), 0));
+					  div(sb->area->h, TWO), EAV));
 
 	    LastOffset = y;
 	  }
@@ -257,7 +257,7 @@ static status
 computeScrollBar(ScrollBar sb)
 { if ( notNil(sb->request_compute) )
   { if ( hasSendMethodObject(sb->object, NAME_bubbleScrollBar) )
-      send(sb->object, NAME_bubbleScrollBar, sb, 0);
+      send(sb->object, NAME_bubbleScrollBar, sb, EAV);
     else if ( hasGetMethodObject(sb->object, NAME_start) &&
 	      hasGetMethodObject(sb->object, NAME_view) &&
 	      hasGetMethodObject(sb->object, NAME_length) )
@@ -579,7 +579,7 @@ scrollBarRepeatTimer()
 					ClassTimer, CtoReal(0.08),
 					( ScrollBarRepeatMessage =
 					  newObject(ClassMessage, NIL,
-						    NAME_repeat, 0)), 0);
+						    NAME_repeat, EAV)), EAV);
   return ScrollBarRepeatTimer;
 }
 
@@ -1108,10 +1108,10 @@ forwardScrollBar(ScrollBar s)
 	 (equalName(s->orientation, NAME_horizontal)
 	  ? NAME_scrollHorizontal
 	  : NAME_scrollVertical),
-	 s->direction, s->unit, s->amount, 0);
+	 s->direction, s->unit, s->amount, EAV);
   } else
     forwardReceiverCode(s->message, s->object,
-			s->direction, s->unit, s->amount, 0);
+			s->direction, s->unit, s->amount, EAV);
   
   succeed;
 }
@@ -1141,7 +1141,7 @@ updateCursorScrollBar(ScrollBar s, Name which)
       name = NAME_sbDownArrow;
   }
 
-  send(s, NAME_cursor, name, 0);
+  send(s, NAME_cursor, name, EAV);
 
   succeed;
 }
@@ -1293,12 +1293,12 @@ bubbleScrollBar(ScrollBar sb, Int l, Int s, Int v)
        hasSendMethodObject(sb->object, NAME_showScrollBar) )
   { if ( s == ZERO && valInt(v) >= valInt(l) ) /* all is shown */
     { if ( sb->displayed == ON )
-      { if ( send(sb->object, NAME_showScrollBar, OFF, sb, 0) )
+      { if ( send(sb->object, NAME_showScrollBar, OFF, sb, EAV) )
 	  succeed;
       }
     } else
     { if ( sb->displayed == OFF )
-      { send(sb->object, NAME_showScrollBar, ON, sb, 0);
+      { send(sb->object, NAME_showScrollBar, ON, sb, EAV);
       }
     }
   }
@@ -1332,14 +1332,14 @@ lookScrollBar(ScrollBar s, Name look)
 static status
 convertLoadedObjectScrollBar(ScrollBar sb, Int ov, Int nv)
 { if ( isName(sb->placement) )
-  { Chain ch = newObject(ClassChain, 0);
+  { Chain ch = newObject(ClassChain, EAV);
     static char *names[] = {"left", "right", "top", "bottom"};
     int i;
 
     for(i=0; i<4; i++)
     { Name place = CtoKeyword(names[i]);
 
-      if ( send(sb->placement, NAME_sub, place, ON, 0) )
+      if ( send(sb->placement, NAME_sub, place, ON, EAV) )
 	appendChain(ch, place);
     }
     assign(sb, placement, ch);

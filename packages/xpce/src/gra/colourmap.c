@@ -39,7 +39,7 @@ getConvertColourMap(Class class, Name name)
 
   if ( isstr8(&name->data) &&
        sscanf(strName(name), "colour_cube_%d", &size) == 1 )
-  { cm = newObject(ClassColourMap, name, NIL, 0);
+  { cm = newObject(ClassColourMap, name, NIL, EAV);
     lockObject(cm, ON);
 
     ws_colour_cube(cm, size);
@@ -123,7 +123,7 @@ status
 makeClassColourMap(Class class)
 { declareClass(class, &colour_map_decls);
 
-  ColourMaps = globalObject(NAME_colourMaps, ClassHashTable, toInt(8), 0);
+  ColourMaps = globalObject(NAME_colourMaps, ClassHashTable, toInt(8), EAV);
 
   succeed;
 }

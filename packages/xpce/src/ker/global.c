@@ -95,7 +95,7 @@ realiseClassOfGlobal(Name ref)
 #if 1
       class = getMemberHashTable(classTable, g->classname);
       if ( class && !instanceOfObject(class, ClassClass) )
-	class = get(class, NAME_realise, 0);
+	class = get(class, NAME_realise, EAV);
 #else
       class = getConvertClass(ClassClass, g->classname);
 #endif
@@ -144,7 +144,7 @@ findGlobal(Name name)
   if ( name == NAME_postscriptDefs )
     answer(makePSDefinitions());
 
-  if ( exceptionPce(PCE, NAME_undefinedAssoc, name, 0) &&
+  if ( exceptionPce(PCE, NAME_undefinedAssoc, name, EAV) &&
        (obj = getObjectAssoc(name)) )
     answer(obj);
 

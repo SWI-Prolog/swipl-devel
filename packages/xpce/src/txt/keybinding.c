@@ -80,7 +80,7 @@ getConvertKeyBinding(Any ctx, Name name)
   if ( (kb = getMemberHashTable(BindingTable, name)) )
     answer(kb);
 
-  answer(newObject(ClassKeyBinding, name, 0));
+  answer(newObject(ClassKeyBinding, name, EAV));
 }
 
 
@@ -90,7 +90,7 @@ receiverKeyBinding(KeyBinding kb, Any receiver)
     freeHypersObject(kb, NAME_receiver, DEFAULT);
   
   if ( notNil(receiver) )
-    newObject(ClassHyper, kb, receiver, NAME_receiver, NAME_keyBinding, 0);
+    newObject(ClassHyper, kb, receiver, NAME_receiver, NAME_keyBinding, EAV);
   
   succeed;
 }
@@ -192,8 +192,8 @@ static status
 eventKeyBinding(KeyBinding kb, EventObj ev)
 { if ( isAEvent(ev, NAME_keyboard) &&
        (isNil(kb->condition) ||
-	forwardReceiverCode(kb->condition, kb, ev, 0)) )
-    return send(kb, NAME_typed, getIdEvent(ev), ev->receiver, 0);
+	forwardReceiverCode(kb->condition, kb, ev, EAV)) )
+    return send(kb, NAME_typed, getIdEvent(ev), ev->receiver, EAV);
 
   fail;
 }
@@ -230,7 +230,7 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
   { cmd = NAME_insertQuoted;
     reset |= RESET_STATUS;
   } else
-  { cmd = get(kb, NAME_function, key, 0);
+  { cmd = get(kb, NAME_function, key, EAV);
   }
 
   if ( cmd )
@@ -263,7 +263,7 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
 	     includesType(argt, TypeInt) )
 	{ if ( isNil(kb->saved_column) &&
 	       hasGetMethodObject(receiver, NAME_upDownColumn) )
-	    assign(kb, saved_column, get(receiver, NAME_upDownColumn, 0));
+	    assign(kb, saved_column, get(receiver, NAME_upDownColumn, EAV));
 	  argv[argc++] = kb->saved_column;
 	}
 
@@ -308,7 +308,7 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
 
       rval = sendv(kb, NAME_fillArgumentsAndExecute, argc, argv);
     } else if ( instanceOfObject(cmd, ClassCode) )
-    { rval = forwardReceiverCode(cmd, receiver, kb->argument, id, 0);
+    { rval = forwardReceiverCode(cmd, receiver, kb->argument, id, EAV);
     }
   } else
   { reset = (RESET_COLUMN|RESET_ARGUMENT|RESET_STATUS);
@@ -335,10 +335,10 @@ fillArgumentsAndExecuteKeyBinding(KeyBinding kb,
 { Tuple t;
   Any impl;
 
-  t = get(receiver, NAME_sendMethod, cmd, 0);
+  t = get(receiver, NAME_sendMethod, cmd, EAV);
   if ( !t && cmd == NAME_insertQuoted )
   { cmd = NAME_insertSelf;
-    t = get(receiver, NAME_sendMethod, cmd, 0);
+    t = get(receiver, NAME_sendMethod, cmd, EAV);
   }
   if ( t )
   { impl = t->second;
@@ -361,7 +361,7 @@ fillArgumentsAndExecuteKeyBinding(KeyBinding kb,
     { argv[argc] = av[argc];
     }
 
-    while( (type = get(impl, NAME_argumentType, toInt(argc+1), 0)) &&
+    while( (type = get(impl, NAME_argumentType, toInt(argc+1), EAV)) &&
 	   argc < MAX_ARGS )
     { if ( includesType(type, toType(NAME_eventId)) ||
 	   (includesType(type, toType(NAME_char)) && isInteger(id)) )
@@ -373,7 +373,7 @@ fillArgumentsAndExecuteKeyBinding(KeyBinding kb,
 	argv[argc++] = DEFAULT;
       else if ( hasGetMethodObject(receiver, NAME_interactiveArgument) )
       { if ( (val = get(receiver, NAME_interactiveArgument,
-			impl, toInt(argc+1), 0)) )
+			impl, toInt(argc+1), EAV)) )
 	{ if ( (val = checkType(val, type, receiver)) )
 	    argv[argc++] = val;
 	  else
@@ -516,7 +516,7 @@ status
 makeClassKeyBinding(Class class)
 { declareClass(class, &keyBinding_decls);
 
-  BindingTable = globalObject(NAME_keyBindings, ClassHashTable, 0);
+  BindingTable = globalObject(NAME_keyBindings, ClassHashTable, EAV);
 
   succeed;
 }
@@ -818,7 +818,7 @@ initPredefinedKeyBinding(KeyBinding kb)
 
   for( ; table->key; table++ )
   { if ( table->key == SUPER )
-    { KeyBinding kb2 = newObject(ClassKeyBinding, table->function, 0);
+    { KeyBinding kb2 = newObject(ClassKeyBinding, table->function, EAV);
 
       if ( kb2 )
 	appendChain(kb->defaults, kb2);
@@ -846,7 +846,7 @@ KeyBindingText(void)
 { static KeyBinding kb = NULL;
 
   if ( !kb )
-    kb = globalObject(NIL, ClassKeyBinding, NAME_text, 0);
+    kb = globalObject(NIL, ClassKeyBinding, NAME_text, EAV);
 
   return kb;
 }
@@ -857,7 +857,7 @@ KeyBindingTextItem(void)
 { static KeyBinding kb = NULL;
 
   if ( !kb )
-    kb = globalObject(NIL, ClassKeyBinding, NAME_textItem, 0);
+    kb = globalObject(NIL, ClassKeyBinding, NAME_textItem, EAV);
 
   return kb;
 }
@@ -868,7 +868,7 @@ KeyBindingTextItemView(void)
 { static KeyBinding kb = NULL;
 
   if ( !kb )
-    kb = globalObject(NIL, ClassKeyBinding, NAME_textItemView, 0);
+    kb = globalObject(NIL, ClassKeyBinding, NAME_textItemView, EAV);
 
   return kb;
 }

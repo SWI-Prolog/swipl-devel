@@ -30,8 +30,8 @@ static status
 initialiseNode(Node n, Graphical gr)
 { assign(n, tree,      NIL);
   assign(n, image,     gr);
-  assign(n, parents,   newObject(ClassChain,0));
-  assign(n, sons,      newObject(ClassChain,0));
+  assign(n, parents,   newObject(ClassChain,EAV));
+  assign(n, sons,      newObject(ClassChain,EAV));
   assign(n, sons_size, ZERO);
   assign(n, my_size,   ZERO);
   assign(n, level,     ZERO);
@@ -84,7 +84,7 @@ unlinkNode(Node n)
     }
 
     if ( notNil(n->image) && !isFreedObj(n->image) )
-      send(n->image, NAME_device, NIL, 0);
+      send(n->image, NAME_device, NIL, EAV);
 
     assign(n, tree, NIL);
     assign(n, image, NIL);
@@ -117,7 +117,7 @@ getConvertNode(Class class, Graphical gr)
 { if ( instanceOfObject(gr->device, ClassTree) )
     answer(getNodeGraphical(gr));
 
-  answer(newObject(ClassNode, gr, 0));
+  answer(newObject(ClassNode, gr, EAV));
 }
 
 
@@ -205,24 +205,24 @@ computeLayoutNode(Node n, Int l, Int x, Int y)
 
   if ( (Tree) n->image->device != n->tree ||
        n->image->displayed == OFF )
-    send(n->tree, NAME_display, n->image, 0);
+    send(n->tree, NAME_display, n->image, EAV);
   if ( n->image->area->x != x2 || n->image->area->y != y2 )
-    send(n->image, NAME_set, x2, y2, 0);
+    send(n->image, NAME_set, x2, y2, EAV);
 
   if ( n->collapsed == ON )
     succeed;
 
   if ( list )
   { x2 = add(x2, n->tree->levelGap);
-    y2 = add(y2, add(get(n->image, NAME_height, 0), n->tree->neighbourGap));
+    y2 = add(y2, add(get(n->image, NAME_height, EAV), n->tree->neighbourGap));
   } else if ( hor )
-  { x2 = add(x, add(get(n->image, NAME_width, 0), n->tree->levelGap));
+  { x2 = add(x, add(get(n->image, NAME_width, EAV), n->tree->levelGap));
     if ( valInt(n->sons_size) > valInt(size) )
       y2 = y;
     else
       y2 = add(y, div(sub(size, n->sons_size), TWO));
   } else
-  { y2 = add(y, add(get(n->image, NAME_height, 0), n->tree->levelGap));
+  { y2 = add(y, add(get(n->image, NAME_height, EAV), n->tree->levelGap));
     if ( valInt(n->sons_size) > valInt(size) )
       x2 = x;
     else
@@ -394,10 +394,10 @@ imageNode(Node n, Graphical gr)		/* change image of node */
   }
 
   unrelateImagesNode( n );
-  send(n->image, NAME_device, NIL, 0);
+  send(n->image, NAME_device, NIL, EAV);
 
-  send(gr, NAME_handle,     n->tree->sonHandle, 0);
-  send(gr, NAME_handle,     n->tree->parentHandle, 0);
+  send(gr, NAME_handle,     n->tree->sonHandle, EAV);
+  send(gr, NAME_handle,     n->tree->parentHandle, EAV);
 
   assign(n, image, gr);
   relateImagesNode( n );
@@ -730,7 +730,7 @@ forAllNode(Node n, Code msg)
 
   for_cell_save(cell, c2, n->sons)
     TRY( forAllNode(cell->value, msg) );
-  TRY( forwardCode(msg, n, 0) );
+  TRY( forwardCode(msg, n, EAV) );
 
   succeed;
 }
@@ -742,7 +742,7 @@ forSomeNode(Node n, Code msg)
 
   for_cell_save(cell, c2, n->sons)
     forSomeNode(cell->value, msg);
-  forwardCode(msg, n, 0);
+  forwardCode(msg, n, EAV);
 
   succeed;
 }
@@ -769,7 +769,7 @@ getFindNode(Node n, Code msg)
 { Cell cell;
   Node n2;
 
-  if ( forwardCode(msg, n, 0) != FAIL )
+  if ( forwardCode(msg, n, EAV) != FAIL )
     answer(n);
 
   for_cell(cell, n->sons)
@@ -786,7 +786,7 @@ getFindNode(Node n, Code msg)
 
 static Chain
 getContainsNode(Node n)
-{ answer(answerObject(ClassChain, n->image, 0));
+{ answer(answerObject(ClassChain, n->image, EAV));
 }
 
 

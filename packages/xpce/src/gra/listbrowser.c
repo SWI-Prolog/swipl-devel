@@ -37,12 +37,12 @@ initialiseListBrowser(ListBrowser lb, Dict dict, Int w, Int h)
 { int fw, fh, iw, ih;
 
   if ( isDefault(dict) )
-    dict = newObject(ClassDict, 0);
+    dict = newObject(ClassDict, EAV);
 
   if ( notNil(dict->browser) )
     return errorPce(lb, NAME_alreadyShown, dict, dict->browser);
 
-  assign(lb, size, newObject(ClassSize, 0));
+  assign(lb, size, newObject(ClassSize, EAV));
   copySize(lb->size, getClassVariableValueObject(lb, NAME_size));
   if ( notDefault(w) ) assign(lb->size, w, w);
   if ( notDefault(h) ) assign(lb->size, h, h);
@@ -54,7 +54,7 @@ initialiseListBrowser(ListBrowser lb, Dict dict, Int w, Int h)
   assign(dict, browser,               lb);
   assign(lb,   status, 		      NAME_inactive);
   assign(lb,   key_binding,	      newObject(ClassKeyBinding, NIL,
-						NAME_listBrowser, 0));
+						NAME_listBrowser, EAV));
   assign(lb,   select_message,        NIL);
   assign(lb,   open_message,          NIL);
   assign(lb,   cancel_message,	      NIL);
@@ -65,7 +65,7 @@ initialiseListBrowser(ListBrowser lb, Dict dict, Int w, Int h)
   assign(lb,   search_origin,         ZERO);
   assign(lb,   search_hit,	      toInt(-1));
   assign(lb,   label_text,	      NIL);
-  assign(lb,   styles,		      newObject(ClassSheet, 0));
+  assign(lb,   styles,		      newObject(ClassSheet, EAV));
   assign(lb,   selection_style,       getClassVariableValueObject(lb,
 						      NAME_selectionStyle));
 
@@ -77,13 +77,13 @@ initialiseListBrowser(ListBrowser lb, Dict dict, Int w, Int h)
   iw = valInt(lb->size->w) * fw + 2 * TXT_X_MARGIN;
   ih = valInt(lb->size->h) * fh + 2 * TXT_Y_MARGIN;
 
-  assign(lb, image, newObject(ClassTextImage, lb, toInt(iw), toInt(ih), 0));
+  assign(lb, image, newObject(ClassTextImage, lb, toInt(iw), toInt(ih), EAV));
   assign(lb->image, wrap, NAME_none);
-  assign(lb, scroll_bar, newObject(ClassScrollBar, lb, NAME_vertical, 0));
+  assign(lb, scroll_bar, newObject(ClassScrollBar, lb, NAME_vertical, EAV));
 
-  send(lb->image, NAME_cursor, getClassVariableValueObject(lb, NAME_cursor), 0);
+  send(lb->image, NAME_cursor, getClassVariableValueObject(lb, NAME_cursor), EAV);
   send(lb->image, NAME_set,
-       lb->scroll_bar->area->w, ZERO, DEFAULT, toInt(ih), 0);
+       lb->scroll_bar->area->w, ZERO, DEFAULT, toInt(ih), EAV);
   displayDevice(lb, lb->scroll_bar, DEFAULT);
   displayDevice(lb, lb->image, DEFAULT);
   if ( notNil(lb->scroll_bar) )
@@ -175,7 +175,7 @@ static status
 labelListBrowser(ListBrowser lb, Name lbl)
 { showLabelListBrowser(lb, ON);
 
-  send(lb->label_text, NAME_string, lbl, 0);
+  send(lb->label_text, NAME_string, lbl, EAV);
   geometryListBrowser(lb, DEFAULT, DEFAULT, DEFAULT, DEFAULT);
 
   succeed;
@@ -197,7 +197,7 @@ showLabelListBrowser(ListBrowser lb, Bool val)
   { if ( val == ON )
     { assign(lb, label_text,
 	     newObject(ClassText, GetLabelNameName(lb->name), NAME_left,
-		       getClassVariableValueObject(lb, NAME_labelFont), 0));
+		       getClassVariableValueObject(lb, NAME_labelFont), EAV));
       marginText(lb->label_text, lb->area->w, NAME_clip);
       displayDevice(lb, lb->label_text, DEFAULT);
       return geometryListBrowser(lb, DEFAULT, DEFAULT,
@@ -250,7 +250,7 @@ statusListBrowser(ListBrowser lb, Name stat)
 
 static status
 nextListBrowser(ListBrowser lb)
-{ return send(lb->device, NAME_advance, lb, 0);
+{ return send(lb->device, NAME_advance, lb, EAV);
 }
 
 
@@ -326,14 +326,14 @@ geometryListBrowser(ListBrowser lb, Int x, Int y, Int w, Int h)
   
   ix = (sw < 0 ? -sw : 0);
   if ( getShowLabelListBrowser(lb) == ON )
-  { send(lb->label_text, NAME_set, ZERO, ZERO, w, 0);
+  { send(lb->label_text, NAME_set, ZERO, ZERO, w, EAV);
     iy = valInt(lb->label_text->area->h) - pen;
   } else
   { iy = 0;
   }
   ih = valInt(h) - iy;
 
-  send(lb->image, NAME_set, toInt(ix), toInt(iy), toInt(iw), toInt(ih), 0);
+  send(lb->image, NAME_set, toInt(ix), toInt(iy), toInt(iw), toInt(ih), EAV);
   if ( notNil(lb->scroll_bar) )
     placeScrollBar(lb->scroll_bar, (Graphical) lb->image);
 
@@ -735,7 +735,7 @@ extendToCurrentListBrowser(ListBrowser lb)
 
     if ( notNil(lb->dict) && (di=getFindIndexDict(lb->dict, lb->search_hit)) )
     { assign(lb, search_string,
-	     newObject(ClassString, name_procent_s, getLabelDictItem(di), 0));
+	     newObject(ClassString, name_procent_s, getLabelDictItem(di), EAV));
       return executeSearchListBrowser(lb);
     }
   }
@@ -849,7 +849,7 @@ insertSelfListBrowser(ListBrowser lb, Int times, Int chr)
     } else
     { if ( !instanceOfObject(lb->search_string, ClassString) )
 	assign(lb, search_string,
-	       newObject(ClassString, name_procent_s, lb->search_string, 0));
+	       newObject(ClassString, name_procent_s, lb->search_string, EAV));
       str_insert_string(lb->search_string, DEFAULT, s);
     }
 
@@ -878,7 +878,7 @@ enterListBrowser(ListBrowser lb)
     fail;
 
   if ( (di=getFindIndexDict(lb->dict, lb->search_hit)) )
-  { send(lb, NAME_changeSelection, NAME_set, di, 0);
+  { send(lb, NAME_changeSelection, NAME_set, di, EAV);
     return forwardListBrowser(lb, NAME_open);
   }
 
@@ -913,7 +913,7 @@ selectBrowserGesture()
 { static Any g = NULL;
 
   if ( !g )
-    g = globalObject(NAME_browserSelectGesture, ClassBrowserSelectGesture, 0);
+    g = globalObject(NAME_browserSelectGesture, ClassBrowserSelectGesture, EAV);
   
   return g;
 }
@@ -924,10 +924,10 @@ static status
 eventListBrowser(ListBrowser lb, EventObj ev)
 { if ( isAEvent(ev, NAME_focus) )
   { if ( isAEvent(ev, NAME_activateKeyboardFocus) )
-      return send(lb, NAME_status, NAME_active, 0);
+      return send(lb, NAME_status, NAME_active, EAV);
     if ( isAEvent(ev, NAME_deactivateKeyboardFocus) )
     { cancelSearchListBrowser(lb);
-      return send(lb, NAME_status, NAME_inactive, 0);
+      return send(lb, NAME_status, NAME_inactive, EAV);
     }
   }
 
@@ -935,7 +935,7 @@ eventListBrowser(ListBrowser lb, EventObj ev)
     succeed;
 
   if ( isAEvent(ev, NAME_keyboard) )
-    return send(lb, NAME_typed, getIdEvent(ev), 0);
+    return send(lb, NAME_typed, getIdEvent(ev), EAV);
 
   if ( mapWheelMouseEvent(ev, lb) )
     succeed;
@@ -944,10 +944,10 @@ eventListBrowser(ListBrowser lb, EventObj ev)
   { DictItem di = getDictItemListBrowser(lb, ev);
 
     if ( di && notNil(lb->popup) && isAEvent(ev, NAME_msRightDown) )
-    { send(popupGesture(), NAME_context, di, 0);
+    { send(popupGesture(), NAME_context, di, EAV);
 
       if ( !postEvent(ev, (Graphical) lb, popupGesture()) )
-	send(popupGesture(), NAME_context, NIL, 0);
+	send(popupGesture(), NAME_context, NIL, EAV);
       else
 	succeed;
     } else
@@ -981,7 +981,7 @@ changeSelectionListBrowser(ListBrowser lb, Name action, DictItem di)
     if ( instanceOfObject(lb->cancel_message, ClassCode) )
       forwardReceiverCode(lb->cancel_message,
 			  lbReceiver(lb),
-			  0);
+			  EAV);
 
     succeed;
   }
@@ -1049,7 +1049,7 @@ forwardListBrowser(ListBrowser lb, Name action)
 { if ( notNil(lb->selection) )
   { if ( notNil(lb->select_message) )
       forwardReceiverCode(lb->select_message, lbReceiver(lb),
-			  lb->selection, 0);
+			  lb->selection, EAV);
 
     if ( action == NAME_open )
     { if ( notNil(lb->open_message) )
@@ -1057,7 +1057,7 @@ forwardListBrowser(ListBrowser lb, Name action)
 
 	busyCursorDisplay(d, DEFAULT, DEFAULT);
 	forwardReceiverCode(lb->open_message, lbReceiver(lb),
-			    lb->selection, 0);
+			    lb->selection, EAV);
 	busyCursorDisplay(d, NIL, DEFAULT);
       }
     }
@@ -1303,7 +1303,7 @@ nextLineListBrowser(ListBrowser lb, Int lines)
 	if ( !prefixCharArray(lbl, (CharArray)lb->search_string, ign_case) ||
 	     getSizeCharArray(lb->search_string) == ZERO )
 	{ assign(lb, search_string,
-		 newObject(ClassString, name_procent_s, lbl, 0));
+		 newObject(ClassString, name_procent_s, lbl, EAV));
 	  assign(lb, search_origin, newi);
 	}
 	assign(lb, search_hit, newi);
@@ -1352,11 +1352,11 @@ nextLineListBrowser(ListBrowser lb, Int lines)
 	{ EventObj ev = EVENT->value;
 
 	  if ( valInt(ev->buttons) & BUTTON_shift )
-	    send(lb, NAME_changeSelection, NAME_extend, di, 0);
+	    send(lb, NAME_changeSelection, NAME_extend, di, EAV);
 	  else
-	    send(lb, NAME_changeSelection, NAME_set, di, 0);
+	    send(lb, NAME_changeSelection, NAME_set, di, EAV);
 	} else
-	  send(lb, NAME_changeSelection, NAME_set, di, 0);
+	  send(lb, NAME_changeSelection, NAME_set, di, EAV);
       }
     }
 
@@ -1434,9 +1434,9 @@ multipleSelectionListBrowser(ListBrowser lb, Bool val)
 { if ( lb->multiple_selection != val )
   { if ( val == ON )
     { if ( isNil(lb->selection) )
-        assign(lb, selection, newObject(ClassChain, 0));
+        assign(lb, selection, newObject(ClassChain, EAV));
       else
-      	assign(lb, selection, newObject(ClassChain, lb->selection, 0));
+      	assign(lb, selection, newObject(ClassChain, lb->selection, EAV));
     } else
     { if ( emptyChain(lb->selection) )
       { assign(lb, selection, NIL);
@@ -1541,7 +1541,7 @@ tabStopsListBrowser(ListBrowser lb, Vector v)
 static status
 clearListBrowser(ListBrowser lb)
 { if ( notNil(lb->dict) )
-    send(lb->dict, NAME_clear, 0);
+    send(lb->dict, NAME_clear, EAV);
 
   succeed;
 }
@@ -1569,7 +1569,7 @@ referenceListBrowser(ListBrowser lb, Point ref)
 Chain
 getContainsListBrowser(ListBrowser lb)
 { if ( notNil(lb->dict) )
-    answer(answerObject(ClassChain, lb->dict, 0));
+    answer(answerObject(ClassChain, lb->dict, EAV));
 
   fail;
 }

@@ -32,7 +32,7 @@ initialiseGraphical(Any obj, Int x, Int y, Int w, Int h)
   Class class = classOfObject(gr);
 
   assign(gr, displayed,        OFF);
-  assign(gr, area,             newObject(ClassArea, 0));
+  assign(gr, area,             newObject(ClassArea, EAV));
   assign(gr, selected,         OFF);
   assign(gr, name,             class->name);
   assign(gr, inverted,         OFF);
@@ -98,7 +98,7 @@ getConvertGraphical(Class class, Any obj)
 
   if ( isObject(obj) &&
        hasGetMethodObject(obj, NAME_image) &&
-       (gr = get(obj, NAME_image, 0)) &&
+       (gr = get(obj, NAME_image, EAV)) &&
        instanceOfObject(gr, ClassGraphical) )
     answer(gr);
 
@@ -316,7 +316,7 @@ getAbsoluteAreaGraphical(Graphical gr, Device device)
     }
 
     answer(answerObject(ClassArea, toInt(x), toInt(y),
-			gr->area->w, gr->area->h, 0));
+			gr->area->w, gr->area->h, EAV));
   }
 }
 
@@ -641,7 +641,7 @@ drawGraphical(Graphical gr, Point offset, Area area)
     if ( !large_area )
       large_area = globalObject(NIL, ClassArea,
 				toInt(PCE_MIN_INT/2), toInt(PCE_MIN_INT/2),
-				toInt(PCE_MAX_INT), toInt(PCE_MAX_INT), 0);
+				toInt(PCE_MAX_INT), toInt(PCE_MAX_INT), EAV);
 
     area = large_area;
   }
@@ -1284,7 +1284,7 @@ topSideGraphical(Graphical gr, Int top)
 Point
 getPositionGraphical(Graphical gr)
 { answer(answerObject(ClassPoint,getAreaGraphical(gr)->x,
-		      getAreaGraphical(gr)->y,0));
+		      getAreaGraphical(gr)->y,EAV));
 }
 
 
@@ -1350,7 +1350,7 @@ getAbsolutePositionGraphical(Graphical gr, Device dev)
 
   TRY( get_absolute_xy_graphical(gr, &dev, &x, &y) );
 
-  answer(answerObject(ClassPoint, x, y, 0));
+  answer(answerObject(ClassPoint, x, y, EAV));
 }
 
 
@@ -1377,7 +1377,7 @@ getDisplayPositionGraphical(Graphical gr)
   x = toInt(valInt(x) + ox + wx);
   y = toInt(valInt(y) + oy + wy);
   
-  answer(answerObject(ClassPoint, x, y, 0));
+  answer(answerObject(ClassPoint, x, y, EAV));
 }
 
 
@@ -1385,7 +1385,7 @@ Size
 getSizeGraphical(Graphical gr)
 { answer(answerObject(ClassSize,
 		      getAreaGraphical(gr)->w,
-		      getAreaGraphical(gr)->h, 0));
+		      getAreaGraphical(gr)->h, EAV));
 }
 
 
@@ -1393,7 +1393,7 @@ static Point
 getCornerGraphical(Graphical gr)
 { Area a = getAreaGraphical(gr);
 
-  answer(answerObject(ClassPoint, add(a->x,a->w), add(a->y,a->h), 0));
+  answer(answerObject(ClassPoint, add(a->x,a->w), add(a->y,a->h), EAV));
 }
 
 
@@ -1401,7 +1401,7 @@ static Point
 getCenterGraphical(Graphical gr)
 { Area a = getAreaGraphical(gr);
 
-  answer(answerObject(ClassPoint, mid(a->x,a->w), mid(a->y,a->h), 0));
+  answer(answerObject(ClassPoint, mid(a->x,a->w), mid(a->y,a->h), EAV));
 }
 
 
@@ -1454,17 +1454,17 @@ appendDialogItemNetworkDevice(Device dev, Graphical gr1)
 { Graphical gr2;
 
   if ( notNil(gr1) && ((Graphical)getContainerGraphical(gr1))->device != dev )
-  { send(gr1, NAME_autoAlign, ON, 0);
+  { send(gr1, NAME_autoAlign, ON, EAV);
     DEBUG(NAME_dialog, Cprintf("Adding %s to %s\n", pp(gr1), pp(dev)));
     displayDevice(dev, gr1, DEFAULT);
 
-    if ( (gr2 = get(gr1, NAME_left, 0)) )
+    if ( (gr2 = get(gr1, NAME_left, EAV)) )
       appendDialogItemNetworkDevice(dev, gr2);
-    if ( (gr2 = get(gr1, NAME_right, 0)) )
+    if ( (gr2 = get(gr1, NAME_right, EAV)) )
       appendDialogItemNetworkDevice(dev, gr2);
-    if ( (gr2 = get(gr1, NAME_above, 0)) )
+    if ( (gr2 = get(gr1, NAME_above, EAV)) )
       appendDialogItemNetworkDevice(dev, gr2);
-    if ( (gr2 = get(gr1, NAME_below, 0)) )
+    if ( (gr2 = get(gr1, NAME_below, EAV)) )
       appendDialogItemNetworkDevice(dev, gr2);
   }
 
@@ -1524,7 +1524,7 @@ aboveGraphical(Graphical gr1, Graphical gr2)
   { belowGraphical(gr2, NIL);
     assignDialogItem(gr2, NAME_below, gr1);
   }
-  if ( (gr = get(gr1, NAME_above, 0)) && notNil(gr) )
+  if ( (gr = get(gr1, NAME_above, EAV)) && notNil(gr) )
     assignDialogItem(gr, NAME_below, NIL);
   
   assignDialogItem(gr1, NAME_above, gr2);
@@ -1543,7 +1543,7 @@ belowGraphical(Graphical gr1, Graphical gr2)
   { aboveGraphical(gr2, NIL);
     assignDialogItem(gr2, NAME_above, gr1);
   }
-  if ( (gr = get(gr1, NAME_below, 0)) && notNil(gr) )
+  if ( (gr = get(gr1, NAME_below, EAV)) && notNil(gr) )
     assignDialogItem(gr, NAME_above, NIL);
   
   assignDialogItem(gr1, NAME_below, gr2);
@@ -1563,7 +1563,7 @@ rightGraphical(Graphical gr1, Graphical gr2)
   { leftGraphical(gr2, NIL);
     assignDialogItem(gr2, NAME_left, gr1);
   }
-  if ( (gr = get(gr1, NAME_right, 0)) && notNil(gr) )
+  if ( (gr = get(gr1, NAME_right, EAV)) && notNil(gr) )
     assignDialogItem(gr, NAME_left, NIL);
   
   assignDialogItem(gr1, NAME_right, gr2);
@@ -1583,7 +1583,7 @@ leftGraphical(Graphical gr1, Graphical gr2)
   { rightGraphical(gr2, NIL);
     assignDialogItem(gr2, NAME_right, gr1);
   }
-  if ( (gr = get(gr1, NAME_right, 0)) && notNil(gr) )
+  if ( (gr = get(gr1, NAME_right, EAV)) && notNil(gr) )
     assignDialogItem(gr, NAME_right, NIL);
   
   assignDialogItem(gr1, NAME_left, gr2);
@@ -1762,7 +1762,7 @@ getDisplayColourGraphical(Graphical gr)
 
 static status
 toggleSelectedGraphical(Graphical gr)
-{ return send(gr, NAME_selected, gr->selected == ON ? OFF : ON, 0);
+{ return send(gr, NAME_selected, gr->selected == ON ? OFF : ON, EAV);
 }
 
 
@@ -1784,7 +1784,7 @@ selectedGraphical(Graphical gr, Bool val)
 static status
 handleGraphical(Graphical gr, Handle h)
 { if (isNil(gr->handles))
-    assign(gr, handles, newObject(ClassChain, 0));
+    assign(gr, handles, newObject(ClassChain, EAV));
 
   return appendChain(gr->handles, h);
 }
@@ -1831,7 +1831,7 @@ getHandlePositionGraphical(Graphical gr, Name name, Device dev)
   TRY(x = getXHandle(h, gr, dev));
   TRY(y = getYHandle(h, gr, dev));
   
-  answer(answerObject(ClassPoint, x, y, 0));
+  answer(answerObject(ClassPoint, x, y, EAV));
 }
 
 
@@ -1870,7 +1870,7 @@ getHandlesGraphical(Graphical gr, Point pos, Name kind, Int distance)
       }
 
       if ( isNil(rval) )
-	rval = answerObject(ClassChain, h, 0);
+	rval = answerObject(ClassChain, h, EAV);
       else
 	appendChain(rval, h);
     }
@@ -1893,7 +1893,7 @@ getHandlesGraphical(Graphical gr, Point pos, Name kind, Int distance)
       }
 
       if ( isNil(rval) )
-	rval = answerObject(ClassChain, h, 0);
+	rval = answerObject(ClassChain, h, EAV);
       else
 	appendChain(rval, h);
     }
@@ -2031,7 +2031,7 @@ updateHideExposeConnectionsGraphical(Graphical gr)
 
 status
 connectGraphical(Graphical gr, Graphical gr2, Link link, Name from, Name to)
-{ if ( get(link, NAME_connection, gr, gr2, from, to, 0) )
+{ if ( get(link, NAME_connection, gr, gr2, from, to, EAV) )
     succeed;
 
   fail;
@@ -2041,7 +2041,7 @@ connectGraphical(Graphical gr, Graphical gr2, Link link, Name from, Name to)
 status
 attachConnectionGraphical(Graphical gr, Connection c)
 { if ( isNil(gr->connections) )
-    assign(gr, connections, newObject(ClassChain, c, 0));
+    assign(gr, connections, newObject(ClassChain, c, EAV));
   else
     appendChain(gr->connections, c);
 
@@ -2129,7 +2129,7 @@ getConnectionsGraphical(Graphical gr, Graphical gr2,
       if ( (isDefault(gr2) || c->to == gr2 || c->from == gr2) &&
 	   match_connection(c, link, from, to) )
       { if ( isNil(rval) )
-	  rval = newObject(ClassChain, c, 0);
+	  rval = newObject(ClassChain, c, EAV);
 	else
 	  appendChain(rval, c);
       }
@@ -2171,7 +2171,7 @@ static Chain
 getNetworkGraphical(Graphical gr, Link link, Name from, Name to)
 { Chain connections;
 
-  connections = answerObject(ClassChain, 0);
+  connections = answerObject(ClassChain, EAV);
 
   extendNetworkGraphical(gr, link, from, to, connections);
 
@@ -2250,7 +2250,7 @@ layoutGraphical(Graphical gr, Real argC1, Real argC2, Real argC3, Int argC4, Int
   if (isNil(p = (Picture) gr->device))
     fail;
 
-  network = get(gr, NAME_network, 0);
+  network = get(gr, NAME_network, EAV);
 
   n = valInt(getSizeChain(network));
 
@@ -2332,7 +2332,7 @@ layoutGraphical(Graphical gr, Real argC1, Real argC2, Real argC3, Int argC4, Int
   }
 
   for (i=0; i<n; i++)	/* update display */
-    send(g[i], NAME_set, toInt(fx[i]), toInt(fy[i]), DEFAULT, DEFAULT, 0);
+    send(g[i], NAME_set, toInt(fx[i]), toInt(fy[i]), DEFAULT, DEFAULT, EAV);
 
   for(i=0; i<n; i++)
   { pceFree(r[i]);
@@ -2418,9 +2418,9 @@ keyboardFocusGraphical(Graphical gr, Bool val)
 
   if ( sw )
   { if ( val == OFF )
-      send(sw, NAME_keyboardFocus, NIL, 0);
-    else if ( send(gr, NAME_WantsKeyboardFocus, 0) )
-      send(sw, NAME_keyboardFocus, gr, 0);
+      send(sw, NAME_keyboardFocus, NIL, EAV);
+    else if ( send(gr, NAME_WantsKeyboardFocus, EAV) )
+      send(sw, NAME_keyboardFocus, gr, EAV);
   }
 
   succeed;
@@ -2441,7 +2441,7 @@ getKeyboardFocusGraphical(Graphical gr)
 status
 generateEventGraphical(Graphical gr, Name name)
 { int rval;
-  EventObj ev = tempObject(ClassEvent, name, getWindowGraphical(gr), 0);
+  EventObj ev = tempObject(ClassEvent, name, getWindowGraphical(gr), EAV);
 
   rval = postEvent(ev, gr, DEFAULT);
   considerPreserveObject(ev);
@@ -2522,7 +2522,7 @@ getAllRecognisersGraphical(Any obj, Bool create)
     answer(getMemberHashTable(ObjectRecogniserTable, obj));
 
   if ( create == ON )
-  { Chain ch = newObject(ClassChain, 0);
+  { Chain ch = newObject(ClassChain, EAV);
 
     setFlag(obj, F_RECOGNISER);
     appendHashTable(ObjectRecogniserTable, obj, ch);
@@ -2567,7 +2567,7 @@ bellGraphical(Graphical gr, Int volume)
 
   TRY( d = getDisplayGraphical(gr) );
 
-  return send(d, NAME_bell, volume, 0);
+  return send(d, NAME_bell, volume, EAV);
 }
 
 
@@ -2599,7 +2599,7 @@ flashGraphical(Graphical gr, Area a, Int time)
       h = a->h;
     }
 
-    a2 = answerObject(ClassArea, toInt(x), toInt(y), w, h, 0);
+    a2 = answerObject(ClassArea, toInt(x), toInt(y), w, h, EAV);
     flashWindow(sw, a2, time);
     doneObject(a2);
   }
@@ -2611,9 +2611,9 @@ flashGraphical(Graphical gr, Area a, Int time)
 status
 alertGraphical(Graphical gr)
 { if ( getClassVariableValueObject(gr, NAME_visualBell) == ON )
-    return send(gr, NAME_flash, 0);
+    return send(gr, NAME_flash, EAV);
   else
-    return send(gr, NAME_bell, 0);
+    return send(gr, NAME_bell, EAV);
 }
 
 
@@ -2631,11 +2631,11 @@ getNodeGraphical(Graphical gr)
 static status
 popupGraphical(Graphical gr, PopupObj popup)
 { if ( getInstanceVariableClass(classOfObject(gr), NAME_popup) )
-    return send(gr, NAME_slot, NAME_popup, popup, 0);
+    return send(gr, NAME_slot, NAME_popup, popup, EAV);
 
   send(gr, NAME_attribute,  newObject(ClassAttribute,
-				      NAME_popup, popup, 0), 0);
-  send(gr, NAME_recogniser, popupGesture(), 0);
+				      NAME_popup, popup, EAV), EAV);
+  send(gr, NAME_recogniser, popupGesture(), EAV);
 
   succeed;
 }
@@ -2656,7 +2656,7 @@ pointerGraphical(Graphical gr, Point pos)
   if ( instanceOfObject(sw, ClassWindow) )
   { Point p2;
 
-    p2 = tempObject(ClassPoint, add(x, pos->x), add(y, pos->y), 0);
+    p2 = tempObject(ClassPoint, add(x, pos->x), add(y, pos->y), EAV);
     pointerWindow(sw, p2);
     considerPreserveObject(p2);
   }    
@@ -2772,10 +2772,10 @@ drawPostScriptGraphical(Graphical gr)
 { Image i;
 
   if ( (i=checkType(gr, nameToType(NAME_image), gr)) )
-  { BitmapObj bm = answerObject(ClassBitmap, i, 0);
+  { BitmapObj bm = answerObject(ClassBitmap, i, EAV);
     
     setGraphical(bm, gr->area->x, gr->area->y, DEFAULT, DEFAULT);
-    send(bm, NAME_DrawPostScript, 0);
+    send(bm, NAME_DrawPostScript, EAV);
     doneObject(bm);
     doneObject(i);
 
@@ -3442,7 +3442,7 @@ makeClassGraphical(Class class)
   setRedrawFunctionClass(class, RedrawAreaGraphical);
   delegateClass(class, NAME_layoutInterface);
 
-  ChangedWindows = globalObject(NAME_changedWindows, ClassChain, 0);
+  ChangedWindows = globalObject(NAME_changedWindows, ClassChain, EAV);
 
   succeed;
 }

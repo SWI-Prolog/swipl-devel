@@ -35,9 +35,9 @@ initialiseSyntaxTable(SyntaxTable t, Name name, SyntaxTable def)
   { flags = char_flags;
     context = char_context;
     assign(t, sentence_end,
-	   newObject(ClassRegex, CtoName("[.?!]\\s "), 0));
+	   newObject(ClassRegex, CtoName("[.?!]\\s "), EAV));
     assign(t, paragraph_end,
-	   newObject(ClassRegex, CtoName("\\s *$"), 0));
+	   newObject(ClassRegex, CtoName("\\s *$"), EAV));
   }
     
   assign(t, name, name);
@@ -113,7 +113,7 @@ getConvertSyntaxTable(Any ctx, Name name)
   if ( (t = getLookupSyntaxTable(ctx, name)) )
     answer(t);
 
-  answer(answerObject(ClassSyntaxTable, name, 0));
+  answer(answerObject(ClassSyntaxTable, name, EAV));
 }
 
 
@@ -426,9 +426,9 @@ makeClassSyntaxTable(Class class)
 	    "Name holding 1- or 2 character comment-end sequence",
 	    getCommentEndSyntax);
 
-  SyntaxTables = globalObject(NAME_syntaxTables, ClassHashTable, 0);
+  SyntaxTables = globalObject(NAME_syntaxTables, ClassHashTable, EAV);
   DefaultSyntaxTable = globalObject(NAME_defaultSyntaxTable, class,
-				    NAME_default, 0);
+				    NAME_default, EAV);
 
   succeed;
 }

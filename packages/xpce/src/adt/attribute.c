@@ -26,7 +26,7 @@ initialiseAttribute(Attribute att, Any name, Any value)
 
 static Attribute
 getConvertAttribute(Class class, Any name)
-{ answer(answerObject(ClassAttribute, name, NIL, 0));
+{ answer(answerObject(ClassAttribute, name, NIL, EAV));
 }
 
 

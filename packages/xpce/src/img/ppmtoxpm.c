@@ -572,7 +572,7 @@ write_pnm_file(FILE *fd, XImage *img,
     encode = PNM_RAWBITS;
 
   fprintf(fd, "P%c\n", fmt + encode + '0');
-  fprintf(fd, "# Creator: XPCE version %s\n", strName(get(PCE,NAME_version,0)));
+  fprintf(fd, "# Creator: XPCE version %s\n", strName(get(PCE,NAME_version,EAV)));
   if ( fmt != PNM_PBM )
   { fprintf(fd, "# %d colours found\n", colours);
     fprintf(fd, "%d %d\n", width, height);

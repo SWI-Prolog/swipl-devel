@@ -57,7 +57,7 @@ getSpaceHBoxFont(FontObj f)
 		      getAscentFont(f),
 		      getDescentFont(f),
 		      findGlobal(NAME_spaceRubber),
-		      0);
+		      EAV);
 }
 
 

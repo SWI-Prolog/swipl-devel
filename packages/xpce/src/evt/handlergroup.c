@@ -18,7 +18,7 @@ static status
 initialiseHandlerGroupv(HandlerGroup h, int argc, Any *argv)
 { int i;
 
-  assign(h, members, newObject(ClassChain, 0));
+  assign(h, members, newObject(ClassChain, EAV));
   assign(h, active, ON);
 
   for (i=0; i<argc; i++)

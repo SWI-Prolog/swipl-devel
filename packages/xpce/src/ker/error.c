@@ -47,7 +47,7 @@ getConvertError(Class class, Name id)
   if ( (e=getMemberHashTable(ErrorTable, id)) )
     answer(e);
 
-  exceptionPce(PCE, NAME_undefinedError, id, 0);
+  exceptionPce(PCE, NAME_undefinedError, id, EAV);
 
   return getMemberHashTable(ErrorTable, id);
 }
@@ -84,7 +84,7 @@ displayError(Error e, int argc, Any *argv)
 	  e->kind != NAME_warning) )
     { Cprintf("\n\tin: ");
       pceWriteErrorGoal();
-      send(PCE, NAME_exposeConsole, 0);
+      send(PCE, NAME_exposeConsole, EAV);
       Cputchar('\007');			/* ^G: ASCII bell */
       debuggingPce(PCE, ON);
     }
@@ -178,7 +178,7 @@ status
 makeClassError(Class class)
 { declareClass(class, &error_decls);
 
-  ErrorTable = globalObject(NAME_errors, ClassHashTable, 0);
+  ErrorTable = globalObject(NAME_errors, ClassHashTable, EAV);
   initErrorDatabase(ErrorTable);
 
   succeed;
@@ -722,7 +722,7 @@ initErrorDatabase(HashTable db)
 #endif /*O_RUNTIME*/
 
     e = newObject(ClassError, err->id, CtoString(err->format),
-		  kind, feedback, 0);
+		  kind, feedback, EAV);
   }
 }
 

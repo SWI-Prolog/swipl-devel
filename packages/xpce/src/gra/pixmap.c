@@ -35,9 +35,9 @@ initialisePixmap(PixmapObj pm, Any from, Colour fg, Colour bg, Int w, Int h)
     if ( notDefault(bg) )
       assign(pm, background, bg);
 
-    TRY(send(pm, NAME_copy, i, 0));
+    TRY(send(pm, NAME_copy, i, EAV));
 
-    newObject(ClassHyper, from, pm, NAME_pixmap, NAME_image, 0);
+    newObject(ClassHyper, from, pm, NAME_pixmap, NAME_image, EAV);
     succeed;
   }
 
@@ -51,7 +51,7 @@ initialisePixmap(PixmapObj pm, Any from, Colour fg, Colour bg, Int w, Int h)
     assign(pm, file,	   f);
     assign(pm, access,	   NAME_read);
     assign(pm, depth,	   DEFAULT);
-    assign(pm, size,	   newObject(ClassSize,	0));
+    assign(pm, size,	   newObject(ClassSize,	EAV));
     ws_init_image((Image) pm);
     TRY(loadImage((Image) pm, DEFAULT, DEFAULT));
     protectObject(pm);
@@ -117,13 +117,13 @@ getConvertPixmap(Class class, Any obj)
     if ( (pm = newObject(ClassPixmap, NIL,
 			  DEFAULT, DEFAULT, /* fg, bg */
 			  gr->area->w, gr->area->h,
-			  0)) )
-    { send(pm, NAME_drawIn, gr, answerObject(ClassPoint, 0), 0);
+			  EAV)) )
+    { send(pm, NAME_drawIn, gr, answerObject(ClassPoint, EAV), EAV);
       answer(pm);
     }
   }
 
-  return answerObject(ClassPixmap, obj, 0);
+  return answerObject(ClassPixmap, obj, EAV);
 }
 
 
@@ -154,7 +154,7 @@ getReplacementColourPixmap(PixmapObj pm)
        (grey = getAttributeObject(i, NAME_postscriptGrey)) )
   { char buf[100];
     sprintf(buf, "grey%d", 100-valInt(grey));
-    c = newObject(ClassColour, CtoName(buf), 0);
+    c = newObject(ClassColour, CtoName(buf), EAV);
   } else
     c = BLACK_COLOUR;
     

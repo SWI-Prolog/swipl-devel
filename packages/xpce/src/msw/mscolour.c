@@ -33,7 +33,7 @@ LoadColourNames()
 { if ( !ColourNames )
   { xcolourdef *cd;
 
-    ColourNames = globalObject(NAME_colourNames, ClassHashTable, 0);
+    ColourNames = globalObject(NAME_colourNames, ClassHashTable, EAV);
     
     for(cd = x11_colours; cd->name; cd++)
     { COLORREF rgb = RGB(cd->red, cd->green, cd->blue);
@@ -63,10 +63,10 @@ LoadColourNames()
 static HashTable
 LoadColourNames()
 { if ( !ColourNames )
-  { FileObj f = answerObject(ClassFile, CtoName("$PCEHOME/lib/rgb.txt"), 0);
-    ColourNames = globalObject(NAME_colourNames, ClassHashTable, 0);
+  { FileObj f = answerObject(ClassFile, CtoName("$PCEHOME/lib/rgb.txt"), EAV);
+    ColourNames = globalObject(NAME_colourNames, ClassHashTable, EAV);
     
-    if ( send(f, NAME_open, NAME_read, 0) )
+    if ( send(f, NAME_open, NAME_read, EAV) )
     { char line[256];
       int r, g, b;
       char name[80];
@@ -100,7 +100,7 @@ LoadColourNames()
 	}
       }
 
-      send(f, NAME_close, 0);
+      send(f, NAME_close, EAV);
     }
   }
 
@@ -118,7 +118,7 @@ LoadX11ColourNames()
   { xcolourdef *cd;
 
     X11ColourNames = globalObject(CtoName("_x11_colour_names"),
-				  ClassHashTable, 0);
+				  ClassHashTable, EAV);
 
     for(cd = x11_colours; cd->name; cd++)
     { COLORREF rgb = RGB(cd->red, cd->green, cd->blue);
@@ -135,11 +135,11 @@ LoadX11ColourNames()
 static HashTable
 LoadX11ColourNames()
 { if ( !X11ColourNames )
-  { FileObj f = answerObject(ClassFile, CtoName("$PCEHOME/lib/rgb.txt"), 0);
+  { FileObj f = answerObject(ClassFile, CtoName("$PCEHOME/lib/rgb.txt"), EAV);
     X11ColourNames = globalObject(CtoName("_x11_colour_names"),
-				  ClassHashTable, 0);
+				  ClassHashTable, EAV);
     
-    if ( send(f, NAME_open, NAME_read, 0) )
+    if ( send(f, NAME_open, NAME_read, EAV) )
     { char line[256];
       int r, g, b;
       char name[80];
@@ -163,7 +163,7 @@ LoadX11ColourNames()
 	}
       }
 
-      send(f, NAME_close, 0);
+      send(f, NAME_close, EAV);
     }
   }
 
@@ -388,7 +388,7 @@ ws_system_colour(DisplayObj d, const char *name, COLORREF rgb)
   g = g*256 + g;
   b = b*256 + b;
 
-  if ( (c = newObject(ClassColour, ref, toInt(r), toInt(g), toInt(b), 0)) )
+  if ( (c = newObject(ClassColour, ref, toInt(r), toInt(g), toInt(b), EAV)) )
   { lockObject(c, ON);
     registerXrefObject(c, d, (void *)rgb);
   }
@@ -566,7 +566,7 @@ ws_colour_map_colours(ColourMap cm)
       GetPaletteEntries(hpal, 0, entries, lpe);
     }
   
-    assign(cm, colours, newObject(ClassVector, 0));
+    assign(cm, colours, newObject(ClassVector, EAV));
     elementVector(cm->colours, ONE, NIL);
     elementVector(cm->colours, toInt(entries), NIL);
     for(n=0; n<entries; n++)
@@ -574,7 +574,7 @@ ws_colour_map_colours(ColourMap cm)
 		    newObject(ClassColour, DEFAULT,
 			      XIntensity(lpe[n].peRed),
 			      XIntensity(lpe[n].peGreen),
-			      XIntensity(lpe[n].peBlue), 0));
+			      XIntensity(lpe[n].peBlue), EAV));
     }
   }
 }

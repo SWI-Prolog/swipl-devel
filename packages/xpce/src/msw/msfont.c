@@ -356,7 +356,7 @@ ws_system_fonts(DisplayObj d)
 
     newObject(ClassFont,
 	      NAME_win, CtoKeyword(sf->name), DEFAULT,
-	      CtoName(buf), 0);
+	      CtoName(buf), EAV);
   }
 
   succeed;

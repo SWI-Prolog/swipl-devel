@@ -105,7 +105,7 @@ typesMethod(Method m, Vector types)
   Type type;
 
   if ( isDefault(types) )
-  { assign(m, types, newObject(ClassVector, 0));
+  { assign(m, types, newObject(ClassVector, EAV));
     succeed;
   }
 
@@ -358,7 +358,7 @@ getManSummaryMethod(Method m)
   { strcat(buf, "\t");
     strcat(buf, strName(s));
   }
-  if ( send(m, NAME_manDocumented, 0) )
+  if ( send(m, NAME_manDocumented, EAV) )
     strcat(buf, " (+)");
 
   answer(CtoString(buf));

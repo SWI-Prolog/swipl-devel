@@ -89,7 +89,7 @@ executeLabel(Label lb)
 { if ( notNil(lb->message) && notDefault(lb->message) )
   { statusLabel(lb, NAME_execute);
     flushGraphical(lb);
-    forwardReceiverCode(lb->message, lb, 0);
+    forwardReceiverCode(lb->message, lb, EAV);
     if ( !isFreedObj(lb) )
     { statusLabel(lb, NAME_inactive);
       flushGraphical(lb);
@@ -169,10 +169,10 @@ getReferenceLabel(Label lb)
   if ( !(ref = getReferenceDialogItem(lb)) )
   { if ( instanceOfObject(lb->selection, ClassCharArray) )
       ref = answerObject(ClassPoint,
-			 ZERO, getAscentFont(lb->font), 0);
+			 ZERO, getAscentFont(lb->font), EAV);
     else
       ref = answerObject(ClassPoint,
-			 ZERO, ((Image) lb->selection)->size->h, 0);
+			 ZERO, ((Image) lb->selection)->size->h, EAV);
   }
 
   answer(ref);
@@ -274,7 +274,7 @@ catchAllLabelv(Label lb, Name selector, int argc, Any *argv)
   { status rval;
 
     assign(lb, selection, newObject(ClassString,
-				    name_procent_s, lb->selection, 0));
+				    name_procent_s, lb->selection, EAV));
     if ( (rval = sendv(lb->selection, selector, argc, argv)) )
       requestComputeGraphical(lb, DEFAULT);
 
@@ -316,7 +316,7 @@ reportLabel(Label lb, Name kind, CharArray fmt, int argc, Any *argv)
   { TRY(formatLabel(lb, fmt, argc, argv));
 
     if ( kind == NAME_error || kind == NAME_warning )
-    { send(lb, NAME_flash, 0); 
+    { send(lb, NAME_flash, EAV); 
       alertReporteeVisual((VisualObj) lb);
     } else if ( kind == NAME_progress )
       flushGraphical(lb);

@@ -23,7 +23,7 @@ initialiseTextMargin(TextMargin m, Editor e, Int w, Int h)
 { initialiseGraphical(m, ZERO, ZERO, w, h);
   assign(m, editor, e);
   assign(m, background, getClassVariableValueObject(m, NAME_background));
-  assign(m, gap, newObject(ClassSize, 0));
+  assign(m, gap, newObject(ClassSize, EAV));
   copySize(m->gap, getClassVariableValueObject(m, NAME_gap));
 
   succeed;
@@ -241,9 +241,9 @@ eventTextMargin(TextMargin m, EventObj ev)
   { Fragment f = getFragmentTextMargin(m, ev);
 
     if ( f )
-      send(e, NAME_selectedFragment, f, 0);
+      send(e, NAME_selectedFragment, f, EAV);
     else
-      send(e, NAME_selectedFragment, NIL, 0);
+      send(e, NAME_selectedFragment, NIL, EAV);
 
     succeed;
   }

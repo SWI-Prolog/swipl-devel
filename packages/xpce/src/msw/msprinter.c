@@ -64,7 +64,7 @@ initialiseWinPrinter(WinPrinter prt, Name jobname)
   assign(prt, job_name,   jobname);
   assign(prt, job,        NIL);
   assign(prt, resolution, DEFAULT);
-  assign(prt, origin,	  newObject(ClassPoint, 0));
+  assign(prt, origin,	  newObject(ClassPoint, EAV));
 
   prt->ws_ref = alloc(sizeof(ws_printer));
   memset(prt->ws_ref, 0, sizeof(ws_printer));
@@ -208,7 +208,7 @@ setupWinPrinter(WinPrinter prt, FrameObj fr)
     { /* TBD: define kernel error and pass Windows message */
 
       send(CurrentDisplay(NIL), NAME_report, NAME_error,
-	   CtoString("Unable to set up printer"), 0);
+	   CtoString("Unable to set up printer"), EAV);
     }
     fail;
   }
@@ -292,11 +292,11 @@ openWinPrinter(WinPrinter prt)
 			      ClassChain,
 			      newObject(ClassTuple,
 					NAME_printFile,
-					CtoName("*.prn"), 0),
+					CtoName("*.prn"), EAV),
 			      newObject(ClassTuple,
 					NAME_allFiles,
-					CtoName("*.*"), 0),
-			      0);
+					CtoName("*.*"), EAV),
+			      EAV);
 
       if ( (to = getWinFileNameDisplay(CurrentDisplay(NIL),
 				       NAME_save,
@@ -526,7 +526,7 @@ getSizeWinPrinter(WinPrinter prt)
   { int w = GetDeviceCaps(prt->ws_ref->hdc, PHYSICALWIDTH);
     int h = GetDeviceCaps(prt->ws_ref->hdc, PHYSICALHEIGHT);
 
-    answer(answerObject(ClassSize, toInt(w), toInt(h), 0));
+    answer(answerObject(ClassSize, toInt(w), toInt(h), EAV));
   }
 
   fail;
@@ -539,7 +539,7 @@ getOffsetWinPrinter(WinPrinter prt)
   { int x = GetDeviceCaps(prt->ws_ref->hdc, PHYSICALOFFSETX);
     int y = GetDeviceCaps(prt->ws_ref->hdc, PHYSICALOFFSETY);
 
-    answer(answerObject(ClassPoint, toInt(x), toInt(y), 0));
+    answer(answerObject(ClassPoint, toInt(x), toInt(y), EAV));
   }
 
   fail;
@@ -552,7 +552,7 @@ getDotsPerInchWinPrinter(WinPrinter prt)
   { int x = GetDeviceCaps(prt->ws_ref->hdc, LOGPIXELSX);
     int y = GetDeviceCaps(prt->ws_ref->hdc, LOGPIXELSY);
 
-    answer(answerObject(ClassSize, toInt(x), toInt(y), 0));
+    answer(answerObject(ClassSize, toInt(x), toInt(y), EAV));
   }
 
   fail;
@@ -652,7 +652,7 @@ drawInWinPrinter(WinPrinter prt, Any obj, Point pos)
   } else /* if ( instanceOfObject(obj, ClassChain) ) */
   { Cell cell;
 
-    bb = answerObject(ClassArea, 0);
+    bb = answerObject(ClassArea, EAV);
     for_cell(cell, (Chain)obj)
     { Graphical gr = cell->value;
 
@@ -788,7 +788,7 @@ status
 makeClassWinPrinter(Class class)
 { declareClass(class, &winprinter_decls);
 
-  WinPrinters = globalObject(CtoName("win_printers"), ClassChain, 0);
+  WinPrinters = globalObject(CtoName("win_printers"), ClassChain, EAV);
 
   at_pce_exit(closeAllWinPrinters, ATEXIT_FIFO);
 

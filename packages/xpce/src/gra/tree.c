@@ -29,16 +29,16 @@ initialiseTree(Tree t, Node node)
   initialiseFigure((Figure) t);
   assign(t, auto_layout, 	ON);
   assign(t, link, 		newObject(ClassLink,
-					  NAME_parent, NAME_son, 0));
-  assign(t, rootHandlers,	newObject(ClassChain, 0));
-  assign(t, leafHandlers,	newObject(ClassChain, 0));
-  assign(t, nodeHandlers,	newObject(ClassChain, 0));
-  assign(t, collapsedHandlers,	newObject(ClassChain, 0));
+					  NAME_parent, NAME_son, EAV));
+  assign(t, rootHandlers,	newObject(ClassChain, EAV));
+  assign(t, leafHandlers,	newObject(ClassChain, EAV));
+  assign(t, nodeHandlers,	newObject(ClassChain, EAV));
+  assign(t, collapsedHandlers,	newObject(ClassChain, EAV));
 
   obtainClassVariablesObject(t);
     
   if ( !div_h_2 )
-  { div_h_2 = newObject(ClassDivide, NAME_h, TWO, 0);
+  { div_h_2 = newObject(ClassDivide, NAME_h, TWO, EAV);
     protectObject(div_h_2);
   }
 
@@ -46,12 +46,12 @@ initialiseTree(Tree t, Node node)
 	 newObject(ClassHandle,
 		   minInt(t->linkGap),
 		   div_h_2,
-		   NAME_son, 0));
+		   NAME_son, EAV));
   assign(t, parentHandle,
 	 newObject(ClassHandle,
-		   newObject(ClassPlus, NAME_w, t->linkGap, 0),
+		   newObject(ClassPlus, NAME_w, t->linkGap, EAV),
 		   div_h_2,
-		   NAME_parent, 0));
+		   NAME_parent, EAV));
 
   assign(t, root, NIL);
   assign(t, displayRoot, NIL);
@@ -86,7 +86,7 @@ rootTree(Tree t, Node root, Bool relink)
 	assign(t, root, root);
 	assign(t, displayRoot, root);
 	assign(root, collapsed, OFF);
-	send(root, NAME_son, oldroot, 0);
+	send(root, NAME_son, oldroot, EAV);
 	delCodeReference(oldroot);
 
 	return requestComputeTree(t);
@@ -340,7 +340,7 @@ eventTree(Tree t, EventObj ev)
     if ( (n=getNodeToCollapseOrExpand(t->displayRoot,
 				      valInt(x), valInt(y),
 				      cimg, eimg)) )
-    { send(n, NAME_collapsed, n->collapsed == ON ? OFF : ON, 0);
+    { send(n, NAME_collapsed, n->collapsed == ON ? OFF : ON, EAV);
       succeed;
     }
   }
@@ -369,8 +369,8 @@ displayTree(Tree t, Node n)
     if ( notNil(n->tree) )
       return errorPce(t, NAME_alreadyShown, n, n->tree);
 
-    send(n->image, NAME_handle,     t->sonHandle, 0);
-    send(n->image, NAME_handle,     t->parentHandle, 0);
+    send(n->image, NAME_handle,     t->sonHandle, EAV);
+    send(n->image, NAME_handle,     t->parentHandle, EAV);
 
     assign(n, tree, t);
     for_cell(cell, n->parents)
@@ -458,7 +458,7 @@ computeTree(Tree t)
     { Any old = t->request_compute;
 
       assign(t, request_compute, NIL);	/* hack ... */
-      send(t, NAME_layout, 0);
+      send(t, NAME_layout, EAV);
       assign(t, request_compute, old);
     }
 
@@ -478,9 +478,9 @@ layoutTree(Tree t)
 
   ex = leading_x_tree(t);
 
-  if ( send(t->displayRoot, NAME_computeLevel, ZERO, 0) &&
-       get(t->displayRoot, NAME_computeSize, ZERO, 0) &&
-       send(t->displayRoot, NAME_computeLayout, ZERO, toInt(ex), ZERO, 0) )
+  if ( send(t->displayRoot, NAME_computeLevel, ZERO, EAV) &&
+       get(t->displayRoot, NAME_computeSize, ZERO, EAV) &&
+       send(t->displayRoot, NAME_computeLayout, ZERO, toInt(ex), ZERO, EAV) )
     succeed;
 
   fail;
@@ -492,7 +492,7 @@ autoLayoutTree(Tree t, Bool val)
 { if ( t->auto_layout != val )
   { assign(t, auto_layout, val);
     if ( val == ON )
-      send(t, NAME_layout, 0);
+      send(t, NAME_layout, EAV);
   }
 
   succeed;
@@ -516,28 +516,28 @@ static int
 updateHandlesTree(Tree t)
 { if ( equalName(t->direction, NAME_horizontal) )
   { send(t->parentHandle, NAME_xPosition,
-	 newObject(ClassPlus, NAME_w, t->linkGap, 0), 0);
-    send(t->parentHandle, NAME_yPosition, div_h_2, 0);
-    send(t->sonHandle,    NAME_xPosition, minInt(t->linkGap), 0);
-    send(t->sonHandle,    NAME_yPosition, div_h_2, 0);
-    send(t->parentHandle, NAME_kind,      NAME_parent, 0);
-    send(t->sonHandle,    NAME_kind,      NAME_son, 0);
+	 newObject(ClassPlus, NAME_w, t->linkGap, EAV), EAV);
+    send(t->parentHandle, NAME_yPosition, div_h_2, EAV);
+    send(t->sonHandle,    NAME_xPosition, minInt(t->linkGap), EAV);
+    send(t->sonHandle,    NAME_yPosition, div_h_2, EAV);
+    send(t->parentHandle, NAME_kind,      NAME_parent, EAV);
+    send(t->sonHandle,    NAME_kind,      NAME_son, EAV);
   } else if ( equalName(t->direction, NAME_vertical) )
   { if ( !div_w_2)
-    { div_w_2 = newObject(ClassDivide, NAME_w, TWO, 0);
+    { div_w_2 = newObject(ClassDivide, NAME_w, TWO, EAV);
       protectObject(div_w_2);
     }
 
-    send(t->parentHandle, NAME_xPosition, div_w_2, 0);
+    send(t->parentHandle, NAME_xPosition, div_w_2, EAV);
     send(t->parentHandle, NAME_yPosition,
-	 newObject(ClassPlus, NAME_h, t->linkGap, 0), 0);
-    send(t->sonHandle,    NAME_xPosition, div_w_2, 0);
-    send(t->sonHandle,    NAME_yPosition, minInt(t->linkGap), 0);
-    send(t->parentHandle, NAME_kind,      NAME_parent, 0);
-    send(t->sonHandle,    NAME_kind,      NAME_son, 0);
+	 newObject(ClassPlus, NAME_h, t->linkGap, EAV), EAV);
+    send(t->sonHandle,    NAME_xPosition, div_w_2, EAV);
+    send(t->sonHandle,    NAME_yPosition, minInt(t->linkGap), EAV);
+    send(t->parentHandle, NAME_kind,      NAME_parent, EAV);
+    send(t->sonHandle,    NAME_kind,      NAME_son, EAV);
   } else
-  { send(t->parentHandle, NAME_kind,      NAME_none, 0);
-    send(t->sonHandle,    NAME_kind,      NAME_none, 0);
+  { send(t->parentHandle, NAME_kind,      NAME_none, EAV);
+    send(t->sonHandle,    NAME_kind,      NAME_none, EAV);
   }
 
   succeed;
@@ -627,7 +627,7 @@ add_nodes_tree(Node n, Chain ch)
 
 static Chain
 getContainsTree(Tree t)
-{ Chain ch = answerObject(ClassChain, 0);
+{ Chain ch = answerObject(ClassChain, EAV);
 
   add_nodes_tree(t->root, ch);
   answer(ch);

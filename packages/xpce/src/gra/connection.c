@@ -35,7 +35,7 @@ initialiseConnection(Connection c, Graphical from, Graphical to,
 
   if ( isDefault(link) )
   { if ( isNil(default_link) )
-      default_link = globalObject(NAME_defaultLink, ClassLink, 0);
+      default_link = globalObject(NAME_defaultLink, ClassLink, EAV);
     link = default_link;
   }
 
@@ -91,7 +91,7 @@ updateLineConnection(Connection c, Int x1, Int y1, Int x2, Int y2)
        y1 != getStartYLine((Line) c) ||
        x2 != getEndXLine((Line) c) ||
        y2 != getEndYLine((Line) c) )
-    send(c, NAME_points, x1, y1, x2, y2, 0);
+    send(c, NAME_points, x1, y1, x2, y2, EAV);
 
   succeed;
 }

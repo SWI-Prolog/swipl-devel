@@ -152,10 +152,10 @@ makeBuiltinFonts(void)
   done = TRUE;
 
   if ( (d = CurrentDisplay(NIL)) &&
-       send(d, NAME_loadFonts, 0) &&	/* XPCE predefined fonts */
+       send(d, NAME_loadFonts, EAV) &&	/* XPCE predefined fonts */
        ws_system_fonts(d) &&		/* Window-system fonts */
-       send(d, NAME_loadFontAliases, NAME_systemFonts, 0) )
-  { send(d, NAME_loadFontAliases, NAME_userFonts, 0);
+       send(d, NAME_loadFontAliases, NAME_systemFonts, EAV) )
+  { send(d, NAME_loadFontAliases, NAME_userFonts, EAV);
     succeed;
   }
 
@@ -267,7 +267,7 @@ getDescentFont(FontObj f)
 
 static Size
 getSizeFont(FontObj f)
-{ answer(answerObject(ClassSize, getExFont(f), getHeightFont(f), 0));
+{ answer(answerObject(ClassSize, getExFont(f), getHeightFont(f), EAV));
 }
 
 
@@ -316,7 +316,7 @@ getDomainFont(FontObj f, Name which)
     which = NAME_x;
 
   f_domain(f, which, &a, &z);
-  return answerObject(ClassTuple, toInt(a), toInt(z), 0);
+  return answerObject(ClassTuple, toInt(a), toInt(z), EAV);
 }
 
 
@@ -433,7 +433,7 @@ makeClassFont(Class class)
   saveStyleClass(class, NAME_external);
   cloneStyleClass(class, NAME_none);
 
-  FontTable = globalObject(NAME_fonts, ClassHashTable, toInt(101), 0);
+  FontTable = globalObject(NAME_fonts, ClassHashTable, toInt(101), EAV);
 
   succeed;
 }

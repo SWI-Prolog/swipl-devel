@@ -47,7 +47,7 @@ initialiseTextItem(TextItem ti, Name name, Any val, Code msg)
 
   assign(ti, advance,          NAME_next);
   assign(ti, show_label,       ON);
-  assign(ti, value_text,       newObject(ClassText, 0));
+  assign(ti, value_text,       newObject(ClassText, EAV));
   assign(ti, editable,	       ON);
 
   assign(ti, default_value,    val);
@@ -57,7 +57,7 @@ initialiseTextItem(TextItem ti, Name name, Any val, Code msg)
   assign(ti, hor_stretch,      toInt(100));
   assign(ti, style,	       NAME_normal);
 
-  if ( (str = get(ti, NAME_printNameOfValue, val, 0)) )
+  if ( (str = get(ti, NAME_printNameOfValue, val, EAV)) )
     valueString(ti->print_name, str);
   resetTextItem(ti);
 
@@ -180,7 +180,7 @@ updateShowCaretTextItem(TextItem ti)
     showCaretText(ti->value_text, OFF);
 
   if ( old != ti->value_text->show_caret )
-  { send(ti, NAME_activate, ti->value_text->show_caret == ON ? ON : OFF, 0);
+  { send(ti, NAME_activate, ti->value_text->show_caret == ON ? ON : OFF, EAV);
 
     return requestComputeGraphical(ti, DEFAULT);
   }
@@ -194,10 +194,10 @@ activateTextItem(TextItem ti, Bool val)
 { if ( getClassVariableValueObject(ti, NAME_autoSelect) == ON )
   { if ( val == ON )
     { send(ti->value_text, NAME_selection,
-	   ZERO, getSizeCharArray(ti->value_text->string), 0);
-      send(ti, NAME_caret, DEFAULT, 0);
+	   ZERO, getSizeCharArray(ti->value_text->string), EAV);
+      send(ti, NAME_caret, DEFAULT, EAV);
     } else
-      send(ti->value_text, NAME_selection, NIL, 0);
+      send(ti->value_text, NAME_selection, NIL, EAV);
   }
 
   succeed;
@@ -207,7 +207,7 @@ activateTextItem(TextItem ti, Bool val)
 static status
 selectAllTextItem(TextItem ti)
 { send(ti->value_text, NAME_selection,
-       ZERO, getSizeCharArray(ti->value_text->string), 0);
+       ZERO, getSizeCharArray(ti->value_text->string), EAV);
 
   return requestComputeGraphical(ti, DEFAULT);
 }
@@ -306,7 +306,7 @@ getReferenceTextItem(TextItem ti)
     if ( ti->show_label == ON )
       ry = max(valInt(getAscentFont(ti->label_font)), ry);
 
-    ref = answerObject(ClassPoint, ZERO, toInt(ry), 0);
+    ref = answerObject(ClassPoint, ZERO, toInt(ry), EAV);
   }
   
   answer(ref);
@@ -334,9 +334,9 @@ CompletionBrowser()
     Any client;
     Any quit;
 
-    Completer = globalObject(NAME_completer, ClassBrowser, 0);
-    client    = newObject(ClassObtain, Completer, NAME_client, 0);
-    quit      = newObject(ClassMessage, client, NAME_keyboardQuit, 0);
+    Completer = globalObject(NAME_completer, ClassBrowser, EAV);
+    client    = newObject(ClassObtain, Completer, NAME_client, EAV);
+    quit      = newObject(ClassMessage, client, NAME_keyboardQuit, EAV);
 
     protectObject(Completer);
     protectObject(Completer->frame);
@@ -346,16 +346,16 @@ CompletionBrowser()
     send(Completer, NAME_selectMessage,
 	 newObject(ClassMessage, client, NAME_selectedCompletion,
 		   newObject(ClassObtain, Arg(1), NAME_key,
-			     0),
-		   0),
-	 0);
-    send(Completer, NAME_cancelMessage, quit, 0);
-    send(get(Completer, NAME_tile, 0), NAME_border, ZERO, 0);
-    send(Completer, NAME_kind, NAME_popup, 0);
-    send(Completer, NAME_create, 0);
-    send(Completer->frame, NAME_border, ZERO, 0);
+			     EAV),
+		   EAV),
+	 EAV);
+    send(Completer, NAME_cancelMessage, quit, EAV);
+    send(get(Completer, NAME_tile, EAV), NAME_border, ZERO, EAV);
+    send(Completer, NAME_kind, NAME_popup, EAV);
+    send(Completer, NAME_create, EAV);
+    send(Completer->frame, NAME_border, ZERO, EAV);
 
-    kb = get(Completer, NAME_keyBinding, 0);
+    kb = get(Completer, NAME_keyBinding, EAV);
     functionKeyBinding(kb, CtoName("\\C-g"), quit);
     functionKeyBinding(kb, CtoName("\\e"),   quit);
     functionKeyBinding(kb, CtoName("SPC"),   NAME_extendPrefix);
@@ -385,10 +385,10 @@ quitCompleterDialogItem(Any di)
       focusWindow(sw, NIL, NIL, NIL, NIL);
     }
 
-    send(c, NAME_clear, 0);
-    send(c, NAME_client, NIL, 0);
-    send(c, NAME_show, OFF, 0);
-    send(c, NAME_transientFor, NIL, 0);
+    send(c, NAME_clear, EAV);
+    send(c, NAME_client, NIL, EAV);
+    send(c, NAME_show, OFF, EAV);
+    send(c, NAME_transientFor, NIL, EAV);
     if ( text_item_combo_width(di) )
       changedDialogItem(di);		/* indicator will change */
   }
@@ -415,7 +415,7 @@ selectCompletionDialogItem(Any item, Chain matches,
   ComputeGraphical(di);
 
   if ( isDefault(di->label_width) )
-    lw = valInt(get(di, NAME_labelWidth, 0));
+    lw = valInt(get(di, NAME_labelWidth, EAV));
   else
     lw = valInt(di->label_width);
   fw = valInt(di->area->w) - lw;
@@ -426,13 +426,13 @@ selectCompletionDialogItem(Any item, Chain matches,
   if ( isDefault(autohide) )
     autohide = (notNil(searchstring) ? getSizeCharArray(searchstring) : ZERO);
 
-  send(c, NAME_client, di, 0);
-  send(c, NAME_autoHide, autohide, 0);
+  send(c, NAME_client, di, EAV);
+  send(c, NAME_autoHide, autohide, EAV);
   if ( notNil(matches) )
-  { send(c, NAME_clear, 0);
+  { send(c, NAME_clear, EAV);
 
     for_chain(matches, val,
-	      send(c, NAME_append, get(val, NAME_printName, 0), 0));
+	      send(c, NAME_append, get(val, NAME_printName, EAV), EAV));
   }
 
   lines = valInt(getSizeChain(c->list_browser->dict->members));
@@ -447,24 +447,24 @@ selectCompletionDialogItem(Any item, Chain matches,
   bh = lines * valInt(getHeightFont(c->list_browser->font));
   bh += 2 * TXT_X_MARGIN + 2;
 
-  send((pos = get(di, NAME_displayPosition, 0)), NAME_offset,
-       toInt(lw), di->area->h, 0);
-  send(c, NAME_transientFor, getFrameGraphical((Graphical) di), 0);
-  send(c->frame, NAME_set, pos->x, pos->y, toInt(fw), toInt(bh), 0);
+  send((pos = get(di, NAME_displayPosition, EAV)), NAME_offset,
+       toInt(lw), di->area->h, EAV);
+  send(c, NAME_transientFor, getFrameGraphical((Graphical) di), EAV);
+  send(c->frame, NAME_set, pos->x, pos->y, toInt(fw), toInt(bh), EAV);
   ws_topmost_frame(c->frame, ON);
-  send(c, NAME_open, pos, ON, 0);	/* pos, normalise */
+  send(c, NAME_open, pos, ON, EAV);	/* pos, normalise */
   if ( (sw = getWindowGraphical((Graphical)di)) )
   { grabPointerWindow(sw, ON);
     focusWindow(sw, (Graphical)di, DEFAULT, DEFAULT, NIL);
   }
-  send(c, NAME_cancelSearch, 0);
+  send(c, NAME_cancelSearch, EAV);
   if ( isDefault(searchstring) )
-  { send(c, NAME_extendPrefix, 0);
+  { send(c, NAME_extendPrefix, EAV);
   } else if ( notNil(searchstring) )
   { assign(c->list_browser, search_string,
-	   newObject(ClassString, name_procent_s, searchstring, 0));
+	   newObject(ClassString, name_procent_s, searchstring, EAV));
     if ( !executeSearchListBrowser(c->list_browser) )
-      send(c, NAME_cancelSearch, 0);
+      send(c, NAME_cancelSearch, EAV);
   }
 
   succeed;
@@ -485,7 +485,7 @@ forwardCompletionEvent(EventObj ev)
     if ( insideEvent(ev, (Graphical)lb->image) )
     { if ( isAEvent(ev, NAME_msLeftDrag) ||
 	   isAEvent(ev, NAME_locMove) )
-      { EventObj ev2 = answerObject(ClassEvent, NAME_msLeftDown, 0);
+      { EventObj ev2 = answerObject(ClassEvent, NAME_msLeftDown, EAV);
 	PceWindow sw = ev2->window;
 
 	postEvent(ev2, (Graphical) Completer, DEFAULT);
@@ -509,7 +509,7 @@ selectCompletionTextItem(TextItem ti, Chain matches,
   if ( isDefault(prefix) || isNil(prefix) )
     prefix = (CharArray)NAME_;
 
-  send(c, NAME_prefix, prefix, 0);
+  send(c, NAME_prefix, prefix, EAV);
 
   if ( text_item_combo_width(ti) )
     changedDialogItem(ti);
@@ -522,7 +522,7 @@ selectCompletionTextItem(TextItem ti, Chain matches,
 static status
 enterCompleterTextItem(TextItem ti)
 { if ( completerShownDialogItem(ti) )
-  { send(CompletionBrowser(), NAME_enter, 0);
+  { send(CompletionBrowser(), NAME_enter, EAV);
 
     quitCompleterDialogItem(ti);
   }
@@ -534,13 +534,13 @@ enterCompleterTextItem(TextItem ti)
 static status
 selectedCompletionTextItem(TextItem ti, CharArray value, Bool apply)
 { Any c = CompletionBrowser();
-  Any prefix = get(c, NAME_prefix, 0);
+  Any prefix = get(c, NAME_prefix, EAV);
 
   displayedValueTextItem(ti, getAppendCharArray(prefix, value));
   quitCompleterDialogItem(ti);
 
   if ( apply != OFF )
-    send(ti, NAME_apply, ON, 0);
+    send(ti, NAME_apply, ON, EAV);
 
   succeed;
 }
@@ -557,7 +557,7 @@ completions(TextItem ti, CharArray prefix, Bool all,
 	    CharArray *dirp, CharArray *filep, Chain *filesp)
 { Any split;
 
-  if ( (split = get(ti, NAME_splitCompletion, prefix, 0)) )
+  if ( (split = get(ti, NAME_splitCompletion, prefix, EAV)) )
   { Chain files;
 
     if ( all == ON )
@@ -567,7 +567,7 @@ completions(TextItem ti, CharArray prefix, Bool all,
 	split = NAME_;
     }
 
-    if ( (files = get(ti, NAME_completions, split, 0)) &&
+    if ( (files = get(ti, NAME_completions, split, EAV)) &&
 	 (files = checkType(files, TypeChain, NIL)) )
     { if ( instanceOfObject(split, ClassTuple) )
       { *dirp  = ((Tuple)split)->first;
@@ -592,7 +592,7 @@ completeTextItem(TextItem ti, EventId id)
 { Any c = CompletionBrowser();
 
   if ( completerShownDialogItem(ti) )
-  { send(c, NAME_extendPrefix, 0);
+  { send(c, NAME_extendPrefix, EAV);
   } else
   { CharArray dir, file;
     Chain files;
@@ -609,9 +609,9 @@ completeTextItem(TextItem ti, EventId id)
       { int unique = (getSizeChain(t->first) == ONE);
 	StringObj path;
 
-	path = answerObject(ClassString, CtoName("%s%s"), dir, t->second, 0);
+	path = answerObject(ClassString, CtoName("%s%s"), dir, t->second, EAV);
 	if ( unique && dirmode )
-	  send(ti, NAME_indicateDirectory, path, 0);
+	  send(ti, NAME_indicateDirectory, path, EAV);
 	if ( equalCharArray((CharArray) path,
 			    (CharArray) ti->value_text->string) )
 	{ if ( unique )
@@ -621,7 +621,7 @@ completeTextItem(TextItem ti, EventId id)
 		 t->first,
 		 dirmode ? dir : DEFAULT,
 		 file,
-		 0);
+		 EAV);
 	} else
 	  displayedValueTextItem(ti, (CharArray) path);
 	doneObject(path);
@@ -629,7 +629,7 @@ completeTextItem(TextItem ti, EventId id)
       } else
 	errorPce(file, NAME_completeNoMatch);
     } else if ( isInteger(id) )
-      send(ti, NAME_insertSelf, ONE, id, 0);
+      send(ti, NAME_insertSelf, ONE, id, EAV);
   }
 
   succeed;
@@ -639,9 +639,9 @@ completeTextItem(TextItem ti, EventId id)
 static status
 completeOrNextTextItem(TextItem ti, EventId id)
 { if ( ti->style == NAME_comboBox )
-    return send(ti, NAME_complete, id, 0);
+    return send(ti, NAME_complete, id, EAV);
   else
-    return send(ti, NAME_next, 0);
+    return send(ti, NAME_next, EAV);
 }
 
 
@@ -662,7 +662,7 @@ getCompletionsTextItem(TextItem ti, Any base)
   if ( instanceOfObject(ti->value_set, ClassChain) )
     answer(ti->value_set);
   if ( isFunction(ti->value_set) &&
-       (rval = getForwardReceiverFunction(ti->value_set, ti, base, 0)) )
+       (rval = getForwardReceiverFunction(ti->value_set, ti, base, EAV)) )
     answer(rval);
 
   fail;
@@ -706,7 +706,7 @@ getHasCompletionsTextItem(TextItem ti)
 status
 styleTextItem(TextItem ti, Name style)
 { if ( isDefault(style) )
-  { if ( get(ti, NAME_hasCompletions, 0) == ON )
+  { if ( get(ti, NAME_hasCompletions, EAV) == ON )
       style = NAME_comboBox;
     else
       style = NAME_normal;
@@ -719,7 +719,7 @@ styleTextItem(TextItem ti, Name style)
 static status
 typeTextItem(TextItem ti, Type type)
 { assign(ti, type, type);
-  send(ti, NAME_style, DEFAULT, 0);
+  send(ti, NAME_style, DEFAULT, EAV);
   succeed;
 }
 
@@ -727,7 +727,7 @@ typeTextItem(TextItem ti, Type type)
 static status
 valueSetTextItem(TextItem ti, Chain set)
 { assign(ti, value_set, set);
-  send(ti, NAME_style, DEFAULT, 0);
+  send(ti, NAME_style, DEFAULT, EAV);
   succeed;
 }
 
@@ -781,7 +781,7 @@ showComboBoxTextItem(TextItem ti, Bool val)
     if ( completions(ti, ti->value_text->string, ON, &dir, &file, &files) &&
 	 !emptyChain(files) )
     { return send(ti, NAME_selectCompletion,
-		  files, dir, ti->value_text->string, ZERO, 0);
+		  files, dir, ti->value_text->string, ZERO, EAV);
     }
 
     fail;
@@ -824,7 +824,7 @@ attachTimerTextItem(TextItem ti)
 
   if ( delay )
   { Timer t = newObject(ClassTimer, delay,
-			newObject(ClassMessage, ti, NAME_repeat, 0), 0);
+			newObject(ClassMessage, ti, NAME_repeat, EAV), EAV);
     attributeObject(ti, NAME_Timer, t);
     startTimer(t, NAME_once);
   }
@@ -853,7 +853,7 @@ repeatTextItem(TextItem ti)
 
   if ( ti->status == NAME_increment ||
        ti->status == NAME_decrement )
-    send(ti, ti->status, 0);
+    send(ti, ti->status, EAV);
 
   if ( (t = getAttributeObject(ti, NAME_Timer)) )
   { intervalTimer(t, i);
@@ -883,12 +883,12 @@ eventTextItem(TextItem ti, EventObj ev)
        isAEvent(ev, NAME_msLeft) &&
        (dir=getIncDecTextItem(ti, ev)) )
   { if ( isUpEvent(ev) )
-    { send(ti, dir, 0);
+    { send(ti, dir, EAV);
       detachTimerTextItem(ti);
       statusTextItem(ti, NAME_active);
     } else
     { if ( isDownEvent(ev) )
-      { send(ti, NAME_keyboardFocus, 0);
+      { send(ti, NAME_keyboardFocus, EAV);
 	attachTimerTextItem(ti);
       }
 
@@ -925,7 +925,7 @@ eventTextItem(TextItem ti, EventObj ev)
 	succeed;
       }
 
-      return send(ti, NAME_typed, id, 0);
+      return send(ti, NAME_typed, id, EAV);
     }	 
     
     if ( forwardCompletionEvent(ev) )
@@ -949,7 +949,7 @@ eventTextItem(TextItem ti, EventObj ev)
     { int cbw;
       int wasactive = (ti->status == NAME_active);
 
-      send(ti, NAME_keyboardFocus, 0);
+      send(ti, NAME_keyboardFocus, EAV);
       
       if ( (cbw = text_item_combo_width(ti)) > 0 )
       { Int X, Y;
@@ -963,19 +963,19 @@ eventTextItem(TextItem ti, EventObj ev)
 	     x >= valInt(ti->area->w) - cbw )
 	{ Bool val = (completerShownDialogItem(ti) ? OFF : ON);
 
-	  send(ti, NAME_showComboBox, val, 0);
+	  send(ti, NAME_showComboBox, val, EAV);
 	  succeed;
 	}
       }
 
       if ( getMulticlickEvent(ev) == NAME_double )
-      { send(ti, NAME_selectAll, 0);
+      { send(ti, NAME_selectAll, EAV);
 	succeed;
       } else
       { origin = getPointedTextItem(ti, getPositionEvent(ev, ti));
 	if ( origin && wasactive )
-	{ send(ti->value_text, NAME_selection, NIL, 0);
-	  send(ti, NAME_caret, origin, 0);
+	{ send(ti->value_text, NAME_selection, NIL, EAV);
+	  send(ti, NAME_caret, origin, EAV);
 
 	  succeed;
 	}
@@ -986,18 +986,18 @@ eventTextItem(TextItem ti, EventObj ev)
   { Int here = getPointedTextItem(ti, getPositionEvent(ev, ti));
     
     if ( here )
-    { send(ti->value_text, NAME_selection, origin, here, 0);
-      send(ti, NAME_caret, here, 0);
+    { send(ti->value_text, NAME_selection, origin, here, EAV);
+      send(ti, NAME_caret, here, EAV);
     }
   } else if ( isAEvent(ev, NAME_msLeftUp) )
   { if ( notNil(ti->selection) &&
 	 getClassVariableValueObject(ti, NAME_autoCopy) == ON )
-      send(ti, NAME_copy, 0);
+      send(ti, NAME_copy, EAV);
   } else if ( isAEvent(ev, NAME_focus) )
   { if ( isAEvent(ev, NAME_obtainKeyboardFocus) )
-    { send(ti, NAME_status, NAME_active, 0);
+    { send(ti, NAME_status, NAME_active, EAV);
     } else if ( isAEvent(ev, NAME_releaseKeyboardFocus) )
-    { send(ti, NAME_status, NAME_inactive, 0);
+    { send(ti, NAME_status, NAME_inactive, EAV);
     }
 
     return updateShowCaretTextItem(ti);
@@ -1005,7 +1005,7 @@ eventTextItem(TextItem ti, EventObj ev)
 
   if ( ti->status != NAME_inactive )
   { if ( isAEvent(ev, NAME_keyboard) )
-    { return send(ti, NAME_typed, ev->id, 0);
+    { return send(ti, NAME_typed, ev->id, EAV);
     } else
     { if ( isAEvent(ev, NAME_msMiddleUp) )
 	return pasteTextItem(ti, DEFAULT);
@@ -1019,7 +1019,7 @@ eventTextItem(TextItem ti, EventObj ev)
 static status
 keyboardQuitTextItem(TextItem ti)
 { quitCompleterDialogItem(ti);
-  send(ti, NAME_alert, 0);
+  send(ti, NAME_alert, EAV);
 
   succeed;
 }
@@ -1034,7 +1034,7 @@ executeTextItem(TextItem ti)
 static status
 keyTextItem(TextItem ti, Name key)
 { if ( ti->accelerator == key && WantsKeyboardFocusTextItem(ti) )
-    return send(ti, NAME_keyboardFocus, 0);
+    return send(ti, NAME_keyboardFocus, EAV);
 
   fail;
 }
@@ -1050,7 +1050,7 @@ typedTextItem(TextItem ti, EventId id)
 
 static status
 nextTextItem(TextItem ti)
-{ return send(ti->device, NAME_advance, ti, 0);
+{ return send(ti->device, NAME_advance, ti, EAV);
 }
 
 
@@ -1066,7 +1066,7 @@ enterTextItem(TextItem ti, EventId id)
 
   if ( !(notNil(dev) &&
 	 !instanceOfObject(dev, ClassEditor) && /* HACK */
-	 send(dev, NAME_typed, id, ON, 0)) &&
+	 send(dev, NAME_typed, id, ON, EAV)) &&
        !isFreedObj(ti) )
   { int modified = (getModifiedTextItem(ti) == ON);
 
@@ -1128,7 +1128,7 @@ restoreTextItem(TextItem ti)
 { Any val;
 
   TRY(val = getDefaultTextItem(ti));
-  return send(ti, NAME_selection, val, 0);
+  return send(ti, NAME_selection, val, EAV);
 }
 
 
@@ -1139,7 +1139,7 @@ applyTextItem(TextItem ti, Bool always)
   if ( instanceOfObject(ti->message, ClassCode) &&
        (always == ON || getModifiedTextItem(ti) == ON) &&
        (val = getv(ti, NAME_selection, 0, NULL)) )
-    return forwardReceiverCode(ti->message, ti, val, 0);
+    return forwardReceiverCode(ti->message, ti, val, EAV);
 
   fail;
 }
@@ -1178,12 +1178,12 @@ getSelectionTextItem(TextItem ti)
 { enterCompleterTextItem(ti);
 
   if ( getModifiedTextItem(ti) == ON ||
-       !send(ti->type, NAME_validate, ti->selection, 0) )
+       !send(ti->type, NAME_validate, ti->selection, EAV) )
   { Any value;
     Chain set;
     int ok = 0;
 
-    if ( (value = get(ti->type, NAME_check, ti->value_text->string, 0)) )
+    if ( (value = get(ti->type, NAME_check, ti->value_text->string, EAV)) )
     { valueString(ti->print_name, ti->value_text->string);
       assign(ti, selection, value);
       ok++;
@@ -1228,7 +1228,7 @@ clearTextItem(TextItem ti)
   stringText(ti->value_text, (CharArray) NAME_);
   valueString(ti->print_name, (CharArray) NAME_);
   if ( modified && hasSendMethodObject(ti->device, NAME_modifiedItem) )
-    send(ti->device, NAME_modifiedItem, ti, ON, 0);
+    send(ti->device, NAME_modifiedItem, ti, ON, EAV);
   
   quitCompleterDialogItem(ti);
   return requestComputeGraphical(ti, DEFAULT);
@@ -1276,7 +1276,7 @@ displayedValueTextItem(TextItem ti, CharArray txt)
   { TRY(stringText(ti->value_text, txt));
     requestComputeGraphical(ti, DEFAULT);
     if ( hasSendMethodObject(ti->device, NAME_modifiedItem) )
-      send(ti->device, NAME_modifiedItem, ti, ON, 0);
+      send(ti->device, NAME_modifiedItem, ti, ON, EAV);
   }
 
   succeed;
@@ -1298,7 +1298,7 @@ editableTextItem(TextItem ti, Bool val)
 { if ( ti->editable != val )
   { assign(ti, editable, val);
     if ( val == OFF && notNil(ti->device) )
-      send(ti->device, NAME_advance, ti, 0);
+      send(ti->device, NAME_advance, ti, EAV);
     changedDialogItem(ti);
   }
 
@@ -1414,7 +1414,7 @@ catchAllTextItem(TextItem ti, Name sel, int argc, Any *argv)
       requestComputeGraphical(ti, DEFAULT);
       if ( (new = getModifiedTextItem(ti)) != old &&
 	   hasSendMethodObject(ti->device, NAME_modifiedItem) )
-	send(ti->device, NAME_modifiedItem, ti, new, 0);
+	send(ti->device, NAME_modifiedItem, ti, new, EAV);
     }
 
     return rval;

@@ -20,7 +20,7 @@ initialiseSourceSink(SourceSink ss)
 
 static SourceSink
 getConvertSourceSink(Class class, Name name)
-{ answer(answerObject(ClassFile, name, 0));
+{ answer(answerObject(ClassFile, name, EAV));
 }
 
 		 /*******************************
@@ -58,7 +58,7 @@ getContentsSourceSink(SourceSink ss, Int from, Int len)
     Sclose(fd);
 
     if ( ok )
-    { StringObj str = answerObject(ClassString, 0);
+    { StringObj str = answerObject(ClassString, EAV);
 
       str_unalloc(&str->data);
       str->data = s;

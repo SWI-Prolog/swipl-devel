@@ -1,6 +1,14 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 4.0.6
+=============
+
+  * PORT: Fixed string-handling on 64-bit platforms.  Made the compilation
+    of all tools and standard libraries fairly clean on the INTEL Itanium
+    (Merced) processor using gcc and Linux.  Thanks to the SuSE team for
+    providing access to their hardware.
+
   * PORT: Included some patches from the SuSE team.
 
   * ENHANCED: MT-Version: install libpl.a as libplmt.a for the

@@ -148,7 +148,7 @@ considerLocStillEvent()
 		    e = newObject(ClassEvent,
 				  NAME_locStill, last_window,
 				  DEFAULT, DEFAULT, DEFAULT,
-				  toInt(last_time + now - host_last_time), 0);
+				  toInt(last_time + now - host_last_time), EAV);
 		    addCodeReference(e);
 		    postEvent(e, (Graphical) last_window, DEFAULT);
 		    delCodeReference(e);
@@ -576,7 +576,7 @@ getPositionEvent(EventObj ev, Any obj)
   TRY( get_xy_event(ev, obj, OFF, &x, &y) );
   
   if ( isNil(ev->position) )
-    assign(ev, position, newObject(ClassPoint, x, y, 0));
+    assign(ev, position, newObject(ClassPoint, x, y, EAV));
   else
     setPoint(ev->position, x, y);
 
@@ -594,7 +594,7 @@ getAreaPositionEvent(EventObj ev, Graphical gr)
   TRY( get_xy_event(ev, gr, ON, &x, &y) );
 
   if ( isNil(ev->position) )
-    assign(ev, position, newObject(ClassPoint, x, y, 0));
+    assign(ev, position, newObject(ClassPoint, x, y, EAV));
   else
     setPoint(ev->position, x, y);
 
@@ -811,7 +811,7 @@ mapWheelMouseEvent(EventObj ev, Any rec)
       count = toInt(200);
     }
   
-    send(rec, NAME_scrollVertical, dir, unit, count, 0);
+    send(rec, NAME_scrollVertical, dir, unit, count, EAV);
     succeed;				/* Or return? */
   }
 
@@ -1062,9 +1062,9 @@ static struct namepair
 static void
 add_node(Name n, Name super)
 { EventNodeObj sn = getNodeEventTree(EventTree, super);
-  EventNodeObj s  = newObject(ClassEventNode, n, 0);
+  EventNodeObj s  = newObject(ClassEventNode, n, EAV);
 
-  send(sn, NAME_son, s, 0);
+  send(sn, NAME_son, s, EAV);
 }
 
 
@@ -1072,9 +1072,9 @@ static void
 init_event_tree(void)
 { struct namepair *np;
 
-  EventTree = globalObject(NAME_eventTree, ClassEventTree, 0);
+  EventTree = globalObject(NAME_eventTree, ClassEventTree, EAV);
 
-  send(EventTree, NAME_root, newObject(ClassEventNode, NAME_any, 0), 0);
+  send(EventTree, NAME_root, newObject(ClassEventNode, NAME_any, EAV), EAV);
 
   for(np = initial_tree; np->son; np++)
     add_node(np->son, np->parent);

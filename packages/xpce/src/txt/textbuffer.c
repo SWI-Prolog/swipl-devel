@@ -51,7 +51,7 @@ initialiseTextBuffer(TextBuffer tb, CharArray ca)
 
   assign(tb, first_fragment, NIL);
   assign(tb, last_fragment,  NIL);
-  assign(tb, editors,	     newObject(ClassChain, 0));
+  assign(tb, editors,	     newObject(ClassChain, EAV));
   assign(tb, generation,     ZERO);
   obtainClassVariablesObject(tb);	/* dubious: subclassing? */
 
@@ -77,7 +77,7 @@ unlinkTextBuffer(TextBuffer tb)
 { Any editor;
 
   for_chain(tb->editors, editor,
-	    send(ReceiverOfEditor(editor), NAME_lostTextBuffer, 0));
+	    send(ReceiverOfEditor(editor), NAME_lostTextBuffer, EAV));
   clearChain(tb->editors);
 
   while( notNil(tb->first_fragment) )	/* destroy fragments */
@@ -130,7 +130,7 @@ loadTextBuffer(TextBuffer tb, IOSTREAM *fd, ClassDef def)
   if ( isNil(tb->syntax) )
     assign(tb, syntax, getClassVariableValueObject(tb, NAME_syntax));
 
-  assign(tb, editors, newObject(ClassChain, 0));
+  assign(tb, editors, newObject(ClassChain, EAV));
   tb->size = loadWord(fd);
   tb->allocated = ROUND(tb->size, ALLOC);
   str_cphdr(&tb->buffer, str_nl(NULL));	/* ASCII */
@@ -506,7 +506,7 @@ forAllFragmentsTextBuffer(TextBuffer tb, Code msg)
 
 static Chain
 getFindAllFragmentsTextBuffer(TextBuffer tb, Code msg)
-{ Chain result = answerObject(ClassChain, 0);
+{ Chain result = answerObject(ClassChain, EAV);
   Fragment f;
 
   for(f = tb->first_fragment; notNil(f); f = f->next)
@@ -1287,7 +1287,7 @@ forAllCommentsTextBuffer(TextBuffer tb, Code msg, Int from, Int to)
     { int endc = valInt(getSkipCommentTextBuffer(tb, toInt(here),
 						 DEFAULT, OFF));
 
-      forwardReceiverCode(msg, tb, toInt(here), toInt(endc), 0);
+      forwardReceiverCode(msg, tb, toInt(here), toInt(endc), EAV);
 
       here = endc;
     }
@@ -2149,13 +2149,13 @@ shift_fragments(TextBuffer tb, long int from, long int shift)
 
       if ( f->length == 0 && oldlen != 0 )
       { DEBUG(NAME_shift, Cprintf("Invoking %s->emptied\n", pp(f)));
-	send(f, NAME_emptied, 0);
+	send(f, NAME_emptied, EAV);
       }
     }
   }
 
   for_cell(cell, tb->editors)
-    send(cell->value, NAME_InsertEditor, toInt(from), toInt(shift), 0);
+    send(cell->value, NAME_InsertEditor, toInt(from), toInt(shift), EAV);
 
   succeed;
 }

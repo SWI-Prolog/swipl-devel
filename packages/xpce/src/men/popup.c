@@ -44,7 +44,7 @@ createPopupWindow(DisplayObj d)
   Any frame;
 
   if ( isNil(windows) )
-    windows = globalObject(NAME_PopupWindows, ClassChain, 0);
+    windows = globalObject(NAME_PopupWindows, ClassChain, EAV);
 
   for_cell(cell, windows)
   { sw = cell->value;
@@ -54,14 +54,14 @@ createPopupWindow(DisplayObj d)
   }
 
 
-  sw = newObject(ClassDialog, NAME_popup, DEFAULT, d, 0);
+  sw = newObject(ClassDialog, NAME_popup, DEFAULT, d, EAV);
 
-  send(sw, NAME_kind, NAME_popup, 0);
-  send(sw, NAME_pen, ZERO, 0);
-  send(sw, NAME_create, 0);
-  frame = get(sw, NAME_frame, 0);
-  send(frame, NAME_border, ONE, 0);
-  send(getTileFrame(frame), NAME_border, ZERO, 0);
+  send(sw, NAME_kind, NAME_popup, EAV);
+  send(sw, NAME_pen, ZERO, EAV);
+  send(sw, NAME_create, EAV);
+  frame = get(sw, NAME_frame, EAV);
+  send(frame, NAME_border, ONE, EAV);
+  send(getTileFrame(frame), NAME_border, ZERO, EAV);
 
   appendChain(windows, sw);
   
@@ -80,7 +80,7 @@ updatePopup(PopupObj p, Any context)
 { updateContext = context;
 
   if ( notNil(p->update_message) )
-    forwardReceiverCode(p->update_message, p, context, 0);
+    forwardReceiverCode(p->update_message, p, context, EAV);
 
   return updateMenu((Menu) p, context);
 }
@@ -157,7 +157,7 @@ openPopup(PopupObj p, Graphical gr, Point pos,
   dh = valInt(getHeightDisplay(d));
 
   sw = createPopupWindow(d);
-  send(sw, NAME_display, p, 0);
+  send(sw, NAME_display, p, EAV);
 
   if ( !(offset = getDisplayPositionGraphical(gr)) )
     return errorPce(p, NAME_graphicalNotDisplayed, gr);
@@ -213,17 +213,17 @@ openPopup(PopupObj p, Graphical gr, Point pos,
   swfr = getFrameGraphical((Graphical) sw);
   fr   = getFrameGraphical(gr);
   if ( fr )
-    send(swfr, NAME_application, fr->application, 0);
-  send(swfr, NAME_set, toInt(px), toInt(py), toInt(pw), toInt(ph), 0);
-  send(sw, NAME_show, ON, 0);
+    send(swfr, NAME_application, fr->application, EAV);
+  send(swfr, NAME_set, toInt(px), toInt(py), toInt(pw), toInt(ph), EAV);
+  send(sw, NAME_show, ON, EAV);
   ws_topmost_frame(swfr, ON);
   if ( moved && warp_pointer == ON )
-  { Point pos = tempObject(ClassPoint, toInt(dx), toInt(dy), 0);
-    send(sw, NAME_pointer, pos, 0);
+  { Point pos = tempObject(ClassPoint, toInt(dx), toInt(dy), EAV);
+    send(sw, NAME_pointer, pos, EAV);
     considerPreserveObject(pos);
   }
 
-  send(sw, NAME_sensitive, ON, 0);
+  send(sw, NAME_sensitive, ON, EAV);
 
   succeed;
 }
@@ -234,14 +234,14 @@ closePopup(PopupObj p)
 { PceWindow sw;
 
   if ( notNil(p->pullright) )
-  { send(p->pullright, NAME_close, 0);
+  { send(p->pullright, NAME_close, EAV);
     assign(p, pullright, NIL);
   }
 
   if ( notNil(sw = (PceWindow) p->device) )
-  { send(sw, NAME_show, OFF, 0);
-    send(sw, NAME_sensitive, OFF, 0);
-    send(sw, NAME_clear, 0);
+  { send(sw, NAME_show, OFF, EAV);
+    send(sw, NAME_sensitive, OFF, EAV);
+    send(sw, NAME_clear, EAV);
     assign(p, displayed, OFF);
   }
 
@@ -307,15 +307,15 @@ executePopup(PopupObj p, Any context)
 	       if ( isDefault(mi->message) )
 	       { if ( notDefault(def_msg) && notNil(def_msg) )
 		   forwardReceiverCode(def_msg, p,
-				       mi->value, mi->selected, context, 0);
+				       mi->value, mi->selected, context, EAV);
 	       } else if ( notNil(mi->message) )
-		 forwardReceiverCode(mi->message, p, mi->selected, context, 0);
+		 forwardReceiverCode(mi->message, p, mi->selected, context, EAV);
 	     } else
 	     { if ( isDefault(mi->message) )
 	       { if ( notDefault(def_msg) && notNil(def_msg) )
-		   forwardReceiverCode(def_msg, p, mi->value, context, 0);
+		   forwardReceiverCode(def_msg, p, mi->value, context, EAV);
 	       } else if ( notNil(mi->message) )
-		 forwardReceiverCode(mi->message, p, context, 0);
+		 forwardReceiverCode(mi->message, p, context, EAV);
 	     })
 
 	succeed;
@@ -332,7 +332,7 @@ showPullrightMenuPopup(PopupObj p, MenuItem mi, EventObj ev, Any context)
 { if ( isDefault(context) && validPceDatum(updateContext) )
     context = updateContext;
 
-  send(mi->popup, NAME_update, context, 0);
+  send(mi->popup, NAME_update, context, EAV);
 
   if ( !emptyChain(mi->popup->members) )
   { Point pos;		/* Create PULLRIGHT */
@@ -346,10 +346,10 @@ showPullrightMenuPopup(PopupObj p, MenuItem mi, EventObj ev, Any context)
       rx = ix+iw-8;
 
     previewMenu((Menu) p, mi);
-    pos = tempObject(ClassPoint, toInt(rx), toInt(iy), 0);
+    pos = tempObject(ClassPoint, toInt(rx), toInt(iy), EAV);
 	    
     assign(p, pullright, mi->popup);
-    send(p->pullright, NAME_open, p, pos, OFF, OFF, ON, 0);
+    send(p->pullright, NAME_open, p, pos, OFF, OFF, ON, EAV);
     considerPreserveObject(pos);
     assign(p->pullright, button, p->button);
     if ( notDefault(ev) )
@@ -385,7 +385,7 @@ dragPopup(PopupObj p, EventObj ev, Bool check_pullright)
 
 	get_xy_event(ev, p, ON, &ex, &ey);
 	if ( valInt(ex) > rx )
-	  send(p, NAME_showPullrightMenu, mi, ev, 0);
+	  send(p, NAME_showPullrightMenu, mi, ev, EAV);
       }
     } else
       previewMenu((Menu) p, NIL);
@@ -399,11 +399,11 @@ static status
 kbdSelectPopup(PopupObj p, MenuItem mi)
 { if ( notNil(mi->popup) )
   { previewMenu((Menu) p, mi);
-    send(p, NAME_showPullrightMenu, mi, 0);
+    send(p, NAME_showPullrightMenu, mi, EAV);
     previewMenu((Menu)mi->popup, getHeadChain(mi->popup->members));
   } else
   { assign(p, selected_item, mi);
-    send(p, NAME_close, 0);
+    send(p, NAME_close, EAV);
   }
 
   succeed;
@@ -443,7 +443,7 @@ typedPopup(PopupObj p, Any id)
 	return kbdSelectPopup(p, mi);
     }
 
-    send(p, NAME_alert, 0);
+    send(p, NAME_alert, EAV);
   }
   
   fail;
@@ -461,9 +461,9 @@ eventPopup(PopupObj p, EventObj ev)
       { MenuItem mi;
 
 	if ( (mi = getItemFromEventMenu((Menu) p, ev)) )
-	{ send(p->pullright, NAME_close, 0);
+	{ send(p->pullright, NAME_close, EAV);
 	  assign(p, pullright, NIL);
-	  return send(p, NAME_drag, ev, 0);
+	  return send(p, NAME_drag, ev, EAV);
 	}
       }
     } else if ( isAEvent(ev, NAME_locMove) )
@@ -472,12 +472,12 @@ eventPopup(PopupObj p, EventObj ev)
 
 	if ( (mi = getItemFromEventMenu((Menu) p, ev)) &&
 	     mi->popup != p->pullright )
-	{ send(p->pullright, NAME_close, 0);
+	{ send(p->pullright, NAME_close, EAV);
 	  assign(p, pullright, NIL);
 	  if ( mi->active == ON && notNil(mi->popup) )
 	    goto still;
 	  else
-	    return send(p, NAME_drag, ev, 0);
+	    return send(p, NAME_drag, ev, EAV);
 	}
       }
     } else if ( ((isUpEvent(ev) &&	/* execute it */
@@ -491,7 +491,7 @@ eventPopup(PopupObj p, EventObj ev)
       else
       	assign(p, selected_item, NIL);
       assign(p, pullright, NIL);
-      send(p, NAME_close, 0);
+      send(p, NAME_close, EAV);
     }
 
     succeed;
@@ -503,19 +503,19 @@ eventPopup(PopupObj p, EventObj ev)
 	 notNil(p->preview->popup) &&
 	 valInt(getClickTimeEvent(ev)) < 400 &&
 	 valInt(getClickDisplacementEvent(ev)) < 10 )
-      send(p, NAME_showPullrightMenu, p->preview, 0);
+      send(p, NAME_showPullrightMenu, p->preview, EAV);
     else if ( getButtonEvent(ev) == p->button )
     { assign(p, selected_item, p->preview);
-      send(p, NAME_close, 0);
+      send(p, NAME_close, EAV);
       succeed;
     }
   } else if ( isDownEvent(ev) )		/* DOWN: set button */
   { assign(p, selected_item, NIL);
     assign(p, button, getButtonEvent(ev));
-    send(p, NAME_drag, ev, OFF, 0);
+    send(p, NAME_drag, ev, OFF, EAV);
     succeed;
   } else if ( isDragEvent(ev) )		/* DRAG: highlight entry */
-  { send(p, NAME_drag, ev, 0);
+  { send(p, NAME_drag, ev, EAV);
     succeed;
   } else if ( isAEvent(ev, NAME_locMove) )
   { MenuItem mi = getItemFromEventMenu((Menu) p, ev);
@@ -529,7 +529,7 @@ eventPopup(PopupObj p, EventObj ev)
 
     if ( mi && mi->active == ON && notNil(mi->popup) )
     { previewMenu((Menu) p, mi);
-      send(p, NAME_showPullrightMenu, mi, 0);
+      send(p, NAME_showPullrightMenu, mi, EAV);
 
       succeed;
     }
@@ -549,7 +549,7 @@ eventPopup(PopupObj p, EventObj ev)
 static status
 endGroupPopup(PopupObj p, Bool val)
 { if ( notNil(p->context) )
-    return send(p->context, NAME_endGroup, val, 0);
+    return send(p->context, NAME_endGroup, val, EAV);
 
   fail;
 }
@@ -561,7 +561,7 @@ appendPopup(PopupObj p, Any obj)
   { MenuItem tail = getTailChain(p->members);
 
     if ( tail )
-      send(tail, NAME_endGroup, ON, 0);
+      send(tail, NAME_endGroup, ON, EAV);
 
     succeed;
   } else
@@ -596,7 +596,7 @@ showCurrentPopup(PopupObj p, Bool show)
 static status
 activePopup(PopupObj p, Bool active)
 { if ( instanceOfObject(p->context, ClassMenuBar) )
-    send(p->context, NAME_activeMember, p, active, 0);
+    send(p->context, NAME_activeMember, p, active, EAV);
 
   return activeGraphical((Graphical)p, active);
 }

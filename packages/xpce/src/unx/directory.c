@@ -112,7 +112,7 @@ initialiseDirectory(Directory d, Name name)
 
 static Directory
 getConvertDirectory(Class class, Name name)
-{ answer(answerObject(ClassDirectory, name, 0));
+{ answer(answerObject(ClassDirectory, name, EAV));
 }
 
 
@@ -288,7 +288,7 @@ scanDirectory(Directory d, Chain files, Chain dirs, Regex pattern, Bool all)
 
 static Chain
 getDirectoriesDirectory(Directory d, Regex pattern, Bool all)
-{ Chain dirs = answerObject(ClassChain, 0);
+{ Chain dirs = answerObject(ClassChain, EAV);
 
   TRY(scanDirectory(d, NIL, dirs, pattern, all));
 
@@ -298,7 +298,7 @@ getDirectoriesDirectory(Directory d, Regex pattern, Bool all)
 
 static Chain
 getFilesDirectory(Directory d, Regex pattern, Bool all)
-{ Chain files = answerObject(ClassChain, 0);
+{ Chain files = answerObject(ClassChain, EAV);
 
   TRY(scanDirectory(d, files, NIL, pattern, all));
 
@@ -321,13 +321,13 @@ getParentDirectory(Directory d)
 #endif
 
   answer(answerObject(ClassDirectory,
-		      CtoName(dirName(here)), 0));
+		      CtoName(dirName(here)), EAV));
 }
 
 
 static Chain
 getRootsDirectory(Directory dir)
-{ Chain ch = answerObject(ClassChain, 0);
+{ Chain ch = answerObject(ClassChain, EAV);
 #ifdef WIN32
   char buf[1024];
   extern int get_logical_drive_strings(int, char *);
@@ -381,13 +381,13 @@ getFileDirectory(Directory d, Name name)
 { char *fn = strName(name);
 
   if ( isAbsolutePath(fn) )
-    answer(answerObject(ClassFile, name, 0));
+    answer(answerObject(ClassFile, name, EAV));
   else
   { char buf[MAXPATHLEN];
 
     sprintf(buf, "%s/%s", strName(d->path), fn);
 
-    answer(answerObject(ClassFile, CtoName(buf), 0));
+    answer(answerObject(ClassFile, CtoName(buf), EAV));
   }
 }
 
@@ -397,7 +397,7 @@ getDirectoryDirectory(Directory d, Name name)
 { char *dn = strName(name);
 
   if ( isAbsolutePath(dn) )
-    answer(answerObject(ClassDirectory, name, 0));
+    answer(answerObject(ClassDirectory, name, EAV));
 
   if ( streq(dn, "..") )
     return getParentDirectory(d);
@@ -406,7 +406,7 @@ getDirectoryDirectory(Directory d, Name name)
 
     sprintf(buf, "%s/%s", strName(d->path), dn);
 
-    answer(answerObject(ClassDirectory, CtoName(buf), 0));
+    answer(answerObject(ClassDirectory, CtoName(buf), EAV));
   }
 }
 
@@ -557,7 +557,7 @@ makeClassDirectory(Class class)
 { declareClass(class, &directory_decls);
   setLoadStoreFunctionClass(class, loadDirectory, storeDirectory);
 
-  DirectoryStack = globalObject(NAME_directoryStack, ClassChain, 0);
+  DirectoryStack = globalObject(NAME_directoryStack, ClassChain, EAV);
   DEBUG(NAME_directory, Cprintf("DirectoryStack = %s\n", pp(DirectoryStack)));
 
   succeed;

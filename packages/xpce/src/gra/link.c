@@ -20,7 +20,7 @@ initialiseLink(Link link, Name from, Name to, Line line, Class cl)
 
   assign(link, from, from);
   assign(link, to, isDefault(to) ? from : to);
-  assign(link, line, isDefault(line) ? (Line) newObject(ClassLine, 0) :	line);
+  assign(link, line, isDefault(line) ? (Line) newObject(ClassLine, EAV) :	line);
   assign(link, connection_class, cl);
 
   succeed;
@@ -38,7 +38,7 @@ getConnectionLink(Link link, Graphical gr, Graphical gr2, Name from, Name to)
 { if ( !instanceOfObject(link->connection_class, ClassClass) )
     assign(link, connection_class, ClassConnection);
 
-  return newObject(link->connection_class, gr, gr2, link, from, to, 0);
+  return newObject(link->connection_class, gr, gr2, link, from, to, EAV);
 }
 
 

@@ -104,7 +104,7 @@ socket_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	  case FD_CLOSE:
 	    DEBUG(NAME_stream, Cprintf("Close on %s\n", pp(s)));
 	    closeInputStream((Stream) s);
-	    send(s, NAME_endOfFile, 0);
+	    send(s, NAME_endOfFile, EAV);
 	    break;
 	}
       } else
@@ -320,7 +320,7 @@ ws_write_stream_data(Stream s, void *data, int len)
   { char *str = data;
 #undef send
     while( len > 0 )
-    { int n = send((SOCKET)s->ws_ref, str, len, 0);
+    { int n = send((SOCKET)s->ws_ref, str, len, EAV);
       if ( n < 0 )
 	return errorPce(s, NAME_ioError, SockError());
       len -= n;
@@ -426,7 +426,7 @@ process_thread(void *context)
 static void
 eof_process(Process p, int status)
 { closeInputProcess(p);
-  send(p, NAME_exited, toInt(status), 0);
+  send(p, NAME_exited, toInt(status), EAV);
 }
 
 

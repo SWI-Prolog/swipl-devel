@@ -218,11 +218,11 @@ reinitTextImage(TextImage ti)
   ti->change_end   = INFINITE;
   ti->inserted     = 0;
 
-  ti->seek   = (SeekFunction)   get(obj, NAME_SeekFunction, 0);
-  ti->scan   = (ScanFunction)   get(obj, NAME_ScanFunction, 0);
-  ti->fetch  = (FetchFunction)  get(obj, NAME_FetchFunction, 0);
-  ti->margin = (MarginFunction) get(obj, NAME_MarginFunction, 0);
-  ti->rewind = (RewindFunction) get(obj, NAME_RewindFunction, 0);
+  ti->seek   = (SeekFunction)   get(obj, NAME_SeekFunction, EAV);
+  ti->scan   = (ScanFunction)   get(obj, NAME_ScanFunction, EAV);
+  ti->fetch  = (FetchFunction)  get(obj, NAME_FetchFunction, EAV);
+  ti->margin = (MarginFunction) get(obj, NAME_MarginFunction, EAV);
+  ti->rewind = (RewindFunction) get(obj, NAME_RewindFunction, EAV);
 
   if ( !ti->seek || !ti->scan || !ti->fetch )
     return errorPce(ti, NAME_noFetchFunction, obj);
@@ -1402,7 +1402,7 @@ eventTextImage(TextImage ti, EventObj ev)
 	  tc = e->text_cursor;
 	  if ( notNil(tc) )
 	    tcon = tc->active;
-	  send(tc, NAME_active, OFF, 0);
+	  send(tc, NAME_active, OFF, EAV);
 	}
 
 	while( !onFlag(sw, F_FREED|F_FREEING) &&
@@ -1412,7 +1412,7 @@ eventTextImage(TextImage ti, EventObj ev)
 	}
 
 	if ( notNil(tcon) && !onFlag(tc, F_FREED|F_FREEING) )
-	  send(tc, NAME_active, tcon, 0);
+	  send(tc, NAME_active, tcon, EAV);
       }
       if ( !onFlag(gr, F_FREED|F_FREEING) &&
 	   !onFlag(ti, F_FREED|F_FREEING) )

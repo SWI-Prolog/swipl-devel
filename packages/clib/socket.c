@@ -1,6 +1,13 @@
 /*  $Id$
 
     Part of SWI-Prolog
+
+    Author:  Jan Wielemaker
+    E-mail:  jan@swi.psy.uva.nl
+    WWW:     http://www.swi.psy.uva.nl/projects/SWI-Prolog/
+    Copying: GPL-2.  See the file COPYING or http://www.gnu.org
+
+    Copyright (C) 1990-2001 SWI, University of Amsterdam. All rights reserved.
 */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -481,15 +488,17 @@ tcp_listen(term_t Sock, term_t BackLog)
 		 *	  IO-STREAM STUFF	*
 		 *******************************/
 
+#define fdFromHandle(p) ((int)((long)(p)))
+
 static int
 tcp_read(void *sock, char *buf, int bufSize)
-{ return recv((int)sock, buf, bufSize, 0);
+{ return recv(fdFromHandle(sock), buf, bufSize, 0);
 }
 
 
 static int
 tcp_write(void *sock, char * buf, int bufSize)
-{ return send((int)sock, buf, bufSize, 0);
+{ return send(fdFromHandle(sock), buf, bufSize, 0);
 }
 
 
@@ -501,7 +510,7 @@ tcp_seek_null(void *handle, long offset, int whence)
 
 static int
 tcp_close_input(void *handle)
-{ int socket = (int) handle;
+{ int socket = fdFromHandle(handle);
 
   plsocket *s = lookupSocket(socket);
   s->flags &= ~SOCK_INSTREAM;
@@ -515,7 +524,7 @@ tcp_close_input(void *handle)
 
 static int
 tcp_close_output(void *handle)
-{ int socket = (int) handle;
+{ int socket = fdFromHandle(handle);
 
   plsocket *s = lookupSocket(socket);
   s->flags &= ~SOCK_OUTSTREAM;
@@ -553,13 +562,13 @@ tcp_streams(term_t Socket, term_t Read, term_t Write)
     return FALSE;
   
   pls = lookupSocket(socket);
-  in  = Snew((void *)socket, SIO_FILE|SIO_INPUT,  &readFunctions);
+  in  = Snew((void *)(long)socket, SIO_FILE|SIO_INPUT,  &readFunctions);
   if ( !PL_open_stream(Read, in) )
     return FALSE;
   pls->flags |= SOCK_INSTREAM;
 
   if ( !(pls->flags & SOCK_LISTEN) )
-  { out = Snew((void *)socket, SIO_FILE|SIO_OUTPUT, &writeFunctions);
+  { out = Snew((void *)(long)socket, SIO_FILE|SIO_OUTPUT, &writeFunctions);
     if ( !PL_open_stream(Write, out) )
       return FALSE;
     pls->flags |= SOCK_OUTSTREAM;

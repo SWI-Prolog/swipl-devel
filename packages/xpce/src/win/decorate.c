@@ -26,10 +26,10 @@ initialiseWindowDecorator(WindowDecorator dw, PceWindow w,
   if ( notDefault(bars) )
     scrollbarsWindowDecorator(dw, bars);
   if ( notDefault(label) )
-    send(dw, NAME_label, label, 0);
+    send(dw, NAME_label, label, EAV);
 
   assign(dw, window, w);
-  send(w, NAME_decorate, NAME_grow, ZERO, ZERO, ZERO, ZERO, dw, 0); /* TBD */
+  send(w, NAME_decorate, NAME_grow, ZERO, ZERO, ZERO, ZERO, dw, EAV); /* TBD */
 
   succeed;
 }
@@ -56,13 +56,13 @@ static status
 horizontalScrollbarWindowDecorator(WindowDecorator dw, Bool val)
 { if ( val == ON && isNil(dw->horizontal_scrollbar) )
   { assign(dw, horizontal_scrollbar,
-	   newObject(ClassScrollBar, dw->window, NAME_horizontal, 0));
+	   newObject(ClassScrollBar, dw->window, NAME_horizontal, EAV));
     displayDevice(dw, dw->horizontal_scrollbar, DEFAULT);
-    send(dw, NAME_rearrange, 0);
+    send(dw, NAME_rearrange, EAV);
   } else if ( val == OFF && notNil(dw->horizontal_scrollbar) )
   { freeObject(dw->horizontal_scrollbar);
     assign(dw, horizontal_scrollbar, NIL);
-    send(dw, NAME_rearrange, 0);
+    send(dw, NAME_rearrange, EAV);
   }
   
   succeed;
@@ -73,13 +73,13 @@ static status
 verticalScrollbarWindowDecorator(WindowDecorator dw, Bool val)
 { if ( val == ON && isNil(dw->vertical_scrollbar) )
   { assign(dw, vertical_scrollbar,
-	   newObject(ClassScrollBar, dw->window, NAME_vertical, 0));
+	   newObject(ClassScrollBar, dw->window, NAME_vertical, EAV));
     displayDevice(dw, dw->vertical_scrollbar, DEFAULT);
-    send(dw, NAME_rearrange, 0);
+    send(dw, NAME_rearrange, EAV);
   } else if ( val == OFF && notNil(dw->vertical_scrollbar) )
   { freeObject(dw->vertical_scrollbar);
     assign(dw, vertical_scrollbar, NIL);
-    send(dw, NAME_rearrange, 0);
+    send(dw, NAME_rearrange, EAV);
   }
   
   succeed;
@@ -238,7 +238,7 @@ static status
 geometryWindowDecorator(WindowDecorator dw, Int x, Int y, Int w, Int h)
 { geometryWindow((PceWindow)dw, x, y, w, h);
 
-  send(dw, NAME_rearrange, 0);
+  send(dw, NAME_rearrange, EAV);
 
   succeed;
 }
@@ -257,7 +257,7 @@ requestGeometryWindowDecorator(WindowDecorator dw, Int x, Int y, Int w, Int h)
   { setTile(dw->tile, DEFAULT, DEFAULT, nw, nh);
 
     if ( notNil(dw->frame) )
-      send(dw->frame, NAME_fit, 0);
+      send(dw->frame, NAME_fit, EAV);
   } else
     geometryWindowDecorator(dw, x, y, nw, nh);
 
@@ -287,7 +287,7 @@ displayedWindowDecorator(WindowDecorator dw, Bool val)
 
 static status
 ComputeDesiredSizeWindowDecorator(WindowDecorator dw)
-{ return send(dw->window, NAME_ComputeDesiredSize, 0);
+{ return send(dw->window, NAME_ComputeDesiredSize, EAV);
 }
 
 
@@ -311,14 +311,14 @@ labelWindowDecorator(WindowDecorator dw, CharArray fmt, int argc, Any *argv)
 
     TRY(swritefv(buf, fmt, argc, argv));
     if ( isNil(dw->label_text) )
-    { assign(dw, label_text, newObject(ClassText, DEFAULT, DEFAULT, font, 0));
+    { assign(dw, label_text, newObject(ClassText, DEFAULT, DEFAULT, font, EAV));
       displayDevice(dw, dw->label_text, DEFAULT);
     }
     transparentText(dw->label_text, ON);
     stringText(dw->label_text, (CharArray) CtoString(buf));
   }
 
-  send(dw, NAME_rearrange, 0);
+  send(dw, NAME_rearrange, EAV);
 
   succeed;
 }

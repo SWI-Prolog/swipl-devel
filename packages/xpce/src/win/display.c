@@ -29,9 +29,9 @@ initialiseDisplay(DisplayObj d, Name address)
 
   assign(d, size,        	NIL);
   assign(d, address,     	address);
-  assign(d, font_table,		newObject(ClassHashTable, 0));
-  assign(d, frames,	 	newObject(ClassChain, 0));
-  assign(d, inspect_handlers,	newObject(ClassChain, 0));
+  assign(d, font_table,		newObject(ClassHashTable, EAV));
+  assign(d, frames,	 	newObject(ClassChain, EAV));
+  assign(d, inspect_handlers,	newObject(ClassChain, EAV));
   assign(d, cache,	 	NIL);
   assign(d, colour_map,		DEFAULT);
   assign(d, display_manager,	dm);
@@ -57,11 +57,11 @@ getConvertDisplay(Class class, Any obj)
     answer(CurrentDisplay(obj));
 
   if ( instanceOfObject(obj, ClassVisual) )
-    answer(get(obj, NAME_display, 0));
+    answer(get(obj, NAME_display, EAV));
 
   if ( (address = checkType(obj, TypeName, class)) &&
        ws_legal_display_name(strName(address)) )
-    answer(answerObject(ClassDisplay, address, 0));
+    answer(answerObject(ClassDisplay, address, EAV));
 
   fail;
 }
@@ -75,7 +75,7 @@ attachCacheDisplay(DisplayObj d)
     sz = getSizeDisplay(d);
     
   send(d, NAME_cache, newObject(ClassImage, DEFAULT, sz->w, sz->h,
-				NAME_pixmap, 0), 0);
+				NAME_pixmap, EAV), EAV);
 
   succeed;
 }
@@ -103,8 +103,8 @@ openDisplay(DisplayObj d)
   ws_background_display(d, d->background);
   ws_init_graphics_display(d);
 
-  BLACK_COLOUR = newObject(ClassColour, NAME_black, 0);
-  WHITE_COLOUR = newObject(ClassColour, NAME_white, 0);
+  BLACK_COLOUR = newObject(ClassColour, NAME_black, EAV);
+  WHITE_COLOUR = newObject(ClassColour, NAME_white, EAV);
 
   attachCacheDisplay(d);
 
@@ -299,7 +299,7 @@ getSizeDisplay(DisplayObj d)
 
   openDisplay(d);
   ws_get_size_display(d, &w, &h);
-  assign(d, size, newObject(ClassSize, toInt(w), toInt(h), 0));
+  assign(d, size, newObject(ClassSize, toInt(w), toInt(h), EAV));
 
   answer(d->size);
 }
@@ -321,7 +321,7 @@ static Area
 getBoundingBoxDisplay(DisplayObj d)
 { Size s = getSizeDisplay(d);
 
-  answer( answerObject(ClassArea, ZERO, ZERO, s->w, s->h, 0) );
+  answer( answerObject(ClassArea, ZERO, ZERO, s->w, s->h, EAV) );
 }
 
 
@@ -344,7 +344,7 @@ getDotsPerInchDisplay(DisplayObj d)
 { int rx, ry;
 
   if ( ws_resolution_display(d, &rx, &ry) )
-    answer(answerObject(ClassSize, toInt(rx), toInt(ry), 0));
+    answer(answerObject(ClassSize, toInt(rx), toInt(ry), EAV));
 
   fail;
 }
@@ -444,7 +444,7 @@ looseSelectionDisplay(DisplayObj d, Name which)
   if ( (h = getFindHyperObject(d, hypername, DEFAULT)) &&
        (msg = getAttributeObject(h, NAME_looseMessage)) &&
        (msg = checkType(msg, TypeCode, NIL)) )
-    forwardReceiverCode(msg, h->to, which, 0);
+    forwardReceiverCode(msg, h->to, which, EAV);
 
   freeHypersObject(d, hypername, DEFAULT);
 
@@ -478,12 +478,12 @@ selectionOwnerDisplay(DisplayObj d, Any owner, Name selection,
       looseSelectionDisplay(d, selection);
 
     if ( old != owner )
-      h = newObject(ClassHyper, d, owner, hypername, 0);
+      h = newObject(ClassHyper, d, owner, hypername, EAV);
     else
       h = getFindHyperObject(d, hypername, DEFAULT);
 
     attributeObject(h, NAME_convertFunction,
-		     newObject(ClassQuoteFunction, convert, 0));
+		     newObject(ClassQuoteFunction, convert, EAV));
     attributeObject(h, NAME_looseMessage, loose);
     attributeObject(h, NAME_type, type);
 
@@ -506,7 +506,7 @@ selectionOwnerDisplay(DisplayObj d, Any owner, Name selection,
 
 static status
 selectionDisplay(DisplayObj d, Name which, StringObj data)
-{ StringObj s2 = get(data, NAME_copy, 0);
+{ StringObj s2 = get(data, NAME_copy, EAV);
 
   if ( s2 )
   { lockObject(s2, ON);
@@ -514,9 +514,9 @@ selectionDisplay(DisplayObj d, Name which, StringObj data)
     return selectionOwnerDisplay(d,
 				 s2, which,
 				 newObject(ClassObtain,
-					   RECEIVER, NAME_self, 0),
+					   RECEIVER, NAME_self, EAV),
 				 newObject(ClassMessage,
-					   RECEIVER, NAME_free, 0),
+					   RECEIVER, NAME_free, EAV),
 				 NAME_text);
   }
 
@@ -526,9 +526,9 @@ selectionDisplay(DisplayObj d, Name which, StringObj data)
 
 static status
 copyDisplay(DisplayObj d, StringObj data)
-{ int rval = (send(d, NAME_cutBuffer, ZERO, data, 0) |
-	      send(d, NAME_selection, NAME_primary, data, 0) |
-	      send(d, NAME_selection, NAME_clipboard, data, 0));
+{ int rval = (send(d, NAME_cutBuffer, ZERO, data, EAV) |
+	      send(d, NAME_selection, NAME_primary, data, EAV) |
+	      send(d, NAME_selection, NAME_clipboard, data, EAV));
 
 
   return rval ? SUCCEED : FAIL;
@@ -541,9 +541,9 @@ getPasteDisplay(DisplayObj d)
   status rval;
 
   catchErrorPce(PCE, NAME_getSelection);
-  rval = ((s=get(d, NAME_selection, 0)) ||
-	  (s=get(d, NAME_selection, DEFAULT, NAME_string, 0)) ||
-	  (s=get(d, NAME_cutBuffer, ZERO, 0)));
+  rval = ((s=get(d, NAME_selection, EAV)) ||
+	  (s=get(d, NAME_selection, DEFAULT, NAME_string, EAV)) ||
+	  (s=get(d, NAME_cutBuffer, ZERO, EAV)));
   catchPopPce(PCE);
 
   if ( rval )
@@ -588,27 +588,27 @@ create_confirmer(DisplayObj d)
   if ( getAttributeObject(d, NAME_confirmer) )
     succeed;
 
-  TRY( p = newObject(ClassWindow, DEFAULT, DEFAULT, d, 0) );
-  TRY( m = newObject(ClassText, CtoName(""), NAME_center, 0) );
-  TRY( h = newObject(ClassText, CtoName(""), NAME_center, 0) );
+  TRY( p = newObject(ClassWindow, DEFAULT, DEFAULT, d, EAV) );
+  TRY( m = newObject(ClassText, CtoName(""), NAME_center, EAV) );
+  TRY( h = newObject(ClassText, CtoName(""), NAME_center, EAV) );
 
-  send(m, NAME_font, getClassVariableValueObject(d, NAME_labelFont), 0);
-  send(h, NAME_font, getClassVariableValueObject(d, NAME_valueFont), 0);
-  send(p, NAME_display, m, 0);
-  send(p, NAME_display, h, 0);
-  send(p, NAME_kind, NAME_popup, 0);
-  send(p, NAME_cursor, newObject(ClassCursor, NAME_mouse, 0), 0);
-  send(p, NAME_border, toInt(3), 0);
-  send(p, NAME_pen, toInt(3), 0);
-  send(p, NAME_create, 0);
-  send(get(p, NAME_frame, 0), NAME_border, ONE, 0);
+  send(m, NAME_font, getClassVariableValueObject(d, NAME_labelFont), EAV);
+  send(h, NAME_font, getClassVariableValueObject(d, NAME_valueFont), EAV);
+  send(p, NAME_display, m, EAV);
+  send(p, NAME_display, h, EAV);
+  send(p, NAME_kind, NAME_popup, EAV);
+  send(p, NAME_cursor, newObject(ClassCursor, NAME_mouse, EAV), EAV);
+  send(p, NAME_border, toInt(3), EAV);
+  send(p, NAME_pen, toInt(3), EAV);
+  send(p, NAME_create, EAV);
+  send(get(p, NAME_frame, EAV), NAME_border, ONE, EAV);
   
   send(p, NAME_recogniser,
           newObject(ClassHandler, NAME_button,
 		    newObject(ClassMessage,
-			      d, NAME_ConfirmPressed, Arg(1), 0),
-		    0),
-       0);
+			      d, NAME_ConfirmPressed, Arg(1), EAV),
+		    EAV),
+       EAV);
 
   attributeObject(d, NAME_SeenDown, OFF);
   attributeObject(d, NAME_confirmer, p);
@@ -622,15 +622,15 @@ create_confirmer(DisplayObj d)
 static status
 ConfirmPressedDisplay(DisplayObj d, EventObj ev)
 { if ( isDownEvent(ev) )
-    send(d, NAME_SeenDown, ON, 0);
+    send(d, NAME_SeenDown, ON, EAV);
   else if ( isUpEvent(ev) )
-  { if ( get(d, NAME_SeenDown, 0) == ON )
+  { if ( get(d, NAME_SeenDown, EAV) == ON )
     { Name code = getButtonEvent(ev);
 
-      send(get(d, NAME_confirmer, 0), NAME_return, code, 0);
+      send(get(d, NAME_confirmer, EAV), NAME_return, code, EAV);
     } else
-    { send(get(d, NAME_confirmer, 0), NAME_grabPointer, OFF, 0); /* HACK */
-      send(get(d, NAME_confirmer, 0), NAME_grabPointer, ON, 0);
+    { send(get(d, NAME_confirmer, EAV), NAME_grabPointer, OFF, EAV); /* HACK */
+      send(get(d, NAME_confirmer, EAV), NAME_grabPointer, ON, EAV);
     }
   }
 
@@ -650,9 +650,9 @@ display_help(DisplayObj d, StringObj hlp, Name msg)
   TRY( hlp_text = getAttributeObject(p, NAME_helpText));
   TRY( msg_text = getAttributeObject(p, NAME_messageText));
   
-  send(hlp_text, NAME_string, hlp, 0);
-  send(msg_text, NAME_string, msg, 0);
-  send(p, NAME_compute, 0);
+  send(hlp_text, NAME_string, hlp, EAV);
+  send(msg_text, NAME_string, msg, EAV);
+  send(p, NAME_compute, EAV);
 
   fw = max(valInt(hlp_text->area->w), valInt(msg_text->area->w)) + 40;
   fh = valInt(hlp_text->area->h) + valInt(msg_text->area->h) + 50;
@@ -661,20 +661,20 @@ display_help(DisplayObj d, StringObj hlp, Name msg)
   fy = (valInt(d->size->h) - fh) / 2;
 
   tx = (fw - 12 - valInt(hlp_text->area->w)) / 2;
-  send(hlp_text, NAME_set, toInt(tx), toInt(20), DEFAULT, DEFAULT, 0);
+  send(hlp_text, NAME_set, toInt(tx), toInt(20), DEFAULT, DEFAULT, EAV);
   tx = (fw - 12 - valInt(msg_text->area->w)) / 2;
   ty = valInt(hlp_text->area->h) + 30;
-  send(msg_text, NAME_set, toInt(tx), toInt(ty), DEFAULT, DEFAULT, 0);
+  send(msg_text, NAME_set, toInt(tx), toInt(ty), DEFAULT, DEFAULT, EAV);
 
-  send(get(p, NAME_frame, 0), NAME_set, toInt(fx), toInt(fy),
-       					toInt(fw), toInt(fh), 0);
+  send(get(p, NAME_frame, EAV), NAME_set, toInt(fx), toInt(fy),
+       					toInt(fw), toInt(fh), EAV);
 
-  send(d, NAME_SeenDown, OFF, 0);
-  send(p, NAME_show, ON, 0);
-  send(p, NAME_grabPointer, ON, 0);
-  rval = get(p, NAME_confirm, DEFAULT, ON, 0);
-  send(p, NAME_grabPointer, OFF, 0);
-  send(p, NAME_show, OFF, 0);
+  send(d, NAME_SeenDown, OFF, EAV);
+  send(p, NAME_show, ON, EAV);
+  send(p, NAME_grabPointer, ON, EAV);
+  rval = get(p, NAME_confirm, DEFAULT, ON, EAV);
+  send(p, NAME_grabPointer, OFF, EAV);
+  send(p, NAME_show, OFF, EAV);
 
   return rval;
 }
@@ -824,7 +824,7 @@ inspectDisplay(DisplayObj d, Graphical gr, EventObj ev)
   { Handler h = cell->value;
 
     if ( isAEvent(ev, h->event) &&
-      	 forwardReceiverCode(h->message, gr, gr, ev, 0) )
+      	 forwardReceiverCode(h->message, gr, gr, ev, EAV) )
       succeed;
   }
 
@@ -852,7 +852,7 @@ resetDisplay(DisplayObj d)
   grabServerDisplay(d, OFF);
 
   if ( (sw = getAttributeObject(d, NAME_confirmer)) )
-    send(sw, NAME_show, OFF, 0);
+    send(sw, NAME_show, OFF, EAV);
 
   if ( d->busy_locks != ZERO )
   { assign(d, busy_locks, ONE);
@@ -902,7 +902,7 @@ loadFontsDisplay(DisplayObj d)
   { Cell cell;
 
     for_cell(cell, fams)
-      send(d, NAME_loadFontFamily, cell->value, 0);
+      send(d, NAME_loadFontFamily, cell->value, EAV);
   }
 
   succeed;
@@ -944,7 +944,7 @@ loadFontAliasesDisplay(DisplayObj d, Name res)
 	   !(font = checkType(f, type_font, d)) )
 	errorPce(d, NAME_badFontAlias, n, f);
       else
-	send(d, NAME_fontAlias, name, font, 0);
+	send(d, NAME_fontAlias, name, font, EAV);
     }
 
     succeed;
@@ -1249,10 +1249,10 @@ makeClassDisplay(Class class)
   saveStyleClass(class, NAME_external);
   cloneStyleClass(class, NAME_none);
 
-  TheDisplay = globalObject(NAME_display, ClassDisplay, 0);
+  TheDisplay = globalObject(NAME_display, ClassDisplay, EAV);
   globalObject(NAME_colourDisplay, ClassGreater,
-	       newObject(ClassObtain, TheDisplay, NAME_depth, 0),
-	       ONE, 0);
+	       newObject(ClassObtain, TheDisplay, NAME_depth, EAV),
+	       ONE, EAV);
 
   attach_font_families(class);
 

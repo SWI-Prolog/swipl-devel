@@ -96,7 +96,7 @@ static Area
 getIntersectionArea(Area a, Area b)
 { Area c;
 
-  c = answerObject(ClassArea, a->x, a->y, a->w, a->h, 0);
+  c = answerObject(ClassArea, a->x, a->y, a->w, a->h, EAV);
   if ( intersectionArea(c, b) )
     answer(c);
 
@@ -177,7 +177,7 @@ static Area
 getUnionArea(Area a, Area b)
 { Area c;
 
-  c = answerObject(ClassArea, a->x, a->y, a->w, a->h, 0);
+  c = answerObject(ClassArea, a->x, a->y, a->w, a->h, EAV);
   unionArea(c, b);
   answer(c);
 }
@@ -194,7 +194,7 @@ sizeArea(Area a, Size s)
 
 Size
 getSizeArea(Area a)
-{ answer(answerObject(ClassSize, a->w, a->h, 0));
+{ answer(answerObject(ClassSize, a->w, a->h, EAV));
 }
 
 
@@ -256,7 +256,7 @@ positionArea(Area a, Point p)
 
 Point
 getPositionArea(Area a)
-{ answer(answerObject(ClassPoint, a->x, a->y, 0));
+{ answer(answerObject(ClassPoint, a->x, a->y, EAV));
 }
 
 
@@ -286,7 +286,7 @@ copyArea(Area a, Area b)
 
 Area
 getCopyArea(Area a)
-{ answer(answerObject(classOfObject(a), a->x, a->y, a->w, a->h, 0));
+{ answer(answerObject(classOfObject(a), a->x, a->y, a->w, a->h, EAV));
 }
 
 
@@ -429,7 +429,7 @@ getBottomSideArea(Area a)
 
 static Point
 getCenterArea(Area a)
-{ answer(answerObject(ClassPoint, mid(a->x,a->w), mid(a->y,a->h), 0));
+{ answer(answerObject(ClassPoint, mid(a->x,a->w), mid(a->y,a->h), EAV));
 }
 
 
@@ -451,7 +451,7 @@ cornerArea(Area a, Point pos)
 
 static Point
 getCornerArea(Area a)
-{ answer(answerObject(ClassPoint, add(a->x,a->w), add(a->y,a->h), 0));
+{ answer(answerObject(ClassPoint, add(a->x,a->w), add(a->y,a->h), EAV));
 }
 
 
@@ -511,7 +511,7 @@ getNormalisedArea(Area a)
   NormaliseArea(ax, ay, aw, ah);
 
   answer(answerObject(ClassArea,
-		      toInt(ax), toInt(ay), toInt(aw), toInt(ah), 0));
+		      toInt(ax), toInt(ay), toInt(aw), toInt(ah), EAV));
 }
 
 

@@ -20,7 +20,7 @@ initialiseMenuItem(MenuItem m, Any value, Message msg, Any label,
 		   Bool eg, Code cond, Name acc)
 { if ( isDefault(eg) )
     eg = OFF;
-  if ( isDefault(label) && !(label = get(m, NAME_defaultLabel, value, 0)) )
+  if ( isDefault(label) && !(label = get(m, NAME_defaultLabel, value, EAV)) )
     return errorPce(m, NAME_noDefaultLabel, value);
   if ( isDefault(cond) )
     cond = NIL;
@@ -55,7 +55,7 @@ static MenuItem
 getConvertMenuItem(Class class, Any value)
 { if ( instanceOfObject(value, ClassPopup) )
   { PopupObj popup = value;
-    MenuItem mi = newObject(ClassMenuItem, popup->name, 0);
+    MenuItem mi = newObject(ClassMenuItem, popup->name, EAV);
 
     assign(mi, popup, popup);
     assign(popup, context, mi);
@@ -63,7 +63,7 @@ getConvertMenuItem(Class class, Any value)
     answer(mi);
   }
 
-  answer(newObject(ClassMenuItem, value, 0));
+  answer(newObject(ClassMenuItem, value, EAV));
 }
 
 
@@ -95,7 +95,7 @@ labelMenuItem(MenuItem mi, Any label)
 
 static status
 valueMenuItem(MenuItem mi, Any value, Any label)
-{ if ( isDefault(label) && !(label = get(mi, NAME_defaultLabel, value, 0)) )
+{ if ( isDefault(label) && !(label = get(mi, NAME_defaultLabel, value, EAV)) )
     return errorPce(mi, NAME_noDefaultLabel, value);
 
   assign(mi, value, value);
@@ -230,9 +230,9 @@ getDefaultLabelMenuItem(MenuItem m, Any value)
   if ( (gr = checkType(value, nameToType(NAME_graphical), m)) )
   { Image image = answerObject(ClassImage, NIL,
 			       getAreaGraphical(gr)->w,
-			       getAreaGraphical(gr)->h, 0);
-    Point p = tempObject(ClassPoint, 0);
-    TRY( send(image, NAME_drawIn, gr, p, 0) );
+			       getAreaGraphical(gr)->h, EAV);
+    Point p = tempObject(ClassPoint, EAV);
+    TRY( send(image, NAME_drawIn, gr, p, EAV) );
     considerPreserveObject(p);
 
     answer(image);
@@ -241,7 +241,7 @@ getDefaultLabelMenuItem(MenuItem m, Any value)
   if ( (name = checkType(value, TypeName, m)) )
     answer(GetLabelNameName(name));
   
-  if ( isObject(value) && (name = get(value, NAME_name, 0)) )
+  if ( isObject(value) && (name = get(value, NAME_name, EAV)) )
     answer(GetLabelNameName(name));
 
   answer((Any) CtoName(pp(value)));

@@ -30,7 +30,7 @@ initialisePen(Pen p, Int thickness, Name texture, Any colour)
 
 static Pen
 getConvertPen(Class class, Int thickness)
-{ answer(newObject(ClassPen, thickness, 0));
+{ answer(newObject(ClassPen, thickness, EAV));
 }
 
 

@@ -486,7 +486,7 @@ drawInWinMF(WinMF mf, Any obj, Point pos)
   } else /* if ( instanceOfObject(obj, ClassChain) ) */
   { Cell cell;
 
-    bb = answerObject(ClassArea, 0);
+    bb = answerObject(ClassArea, EAV);
     for_cell(cell, (Chain)obj)
     { Graphical gr = cell->value;
 
@@ -547,8 +547,8 @@ saveALDUS(WinMF mf, HMETAFILE ghmf, FileObj file,
   dwHigh = 0;
   dwLow  = uiSize + APMSIZE;
 
-  if ( !send(file, NAME_kind, NAME_binary, 0) ||
-       !send(file, NAME_open, NAME_write, 0) )
+  if ( !send(file, NAME_kind, NAME_binary, EAV) ||
+       !send(file, NAME_open, NAME_write, EAV) )
     fail;
 
   if ( uiSize )
@@ -792,7 +792,7 @@ ws_on_clipboard_metafile(WinMF mf, Name type)
 
 WinMF
 CtoWinMetafile(HENHMETAFILE hmf)
-{ WinMF mf = answerObject(ClassWinMF, 0);
+{ WinMF mf = answerObject(ClassWinMF, EAV);
 
   mf->hmf = hmf;
   getDimensionsWinMF(mf);
@@ -873,7 +873,7 @@ makeClassWinMF(Class class)
 { declareClass(class, &winmf_decls);
 
   setRedrawFunctionClass(class, RedrawAreaWinMF);
-  WinMetaFiles = globalObject(NAME_winMetafiles, ClassChain, 0);
+  WinMetaFiles = globalObject(NAME_winMetafiles, ClassChain, EAV);
   setLoadStoreFunctionClass(class, loadFdWinMF, storeWinMF);
   setCloneFunctionClass(class, cloneWinMF);
 

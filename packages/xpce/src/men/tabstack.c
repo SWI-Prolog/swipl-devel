@@ -24,7 +24,7 @@ initialiseTabStack(TabStack t, int argc, Tab tabs[])
 
   initialiseDevice((Device) t);
   for(n=0; n<argc; n++)
-    TRY(send(t, NAME_append, tabs[n], 0));
+    TRY(send(t, NAME_append, tabs[n], EAV));
 
   succeed;
 }
@@ -76,7 +76,7 @@ eventTabStack(TabStack t, EventObj ev)
 	     y > -valInt(tab->label_size->h) &&
 	     x > valInt(tab->label_offset) &&
 	     x < valInt(tab->label_offset) + valInt(tab->label_size->w) )
-	{ send(t, NAME_onTop, tab, 0);	/* TBD: use gesture? */
+	{ send(t, NAME_onTop, tab, EAV);	/* TBD: use gesture? */
 	  succeed;
 	}
       }
@@ -97,10 +97,10 @@ appendTabStack(TabStack ts, Tab t)
   displayDevice(ts, t, DEFAULT);
 
   if ( ts->graphicals->size == ONE )
-  { send(t, NAME_status, NAME_onTop, 0);
+  { send(t, NAME_status, NAME_onTop, EAV);
   } else
-  { send(t, NAME_status, NAME_hidden, 0);
-    send(ts, NAME_layoutLabels, 0);
+  { send(t, NAME_status, NAME_hidden, EAV);
+    send(ts, NAME_layoutLabels, EAV);
   }
 
   succeed;
@@ -120,7 +120,7 @@ layoutLabelsTabStack(TabStack ts)
   { Tab t = cell->value;
 
     if ( instanceOfObject(t, ClassTab) )
-    { send(t, NAME_labelOffset, toInt(offset), 0);
+    { send(t, NAME_labelOffset, toInt(offset), EAV);
       offset += valInt(t->label_size->w);
     }
   }
@@ -149,7 +149,7 @@ layoutDialogTabStack(TabStack ts, Size s)
       Bool old = gr->displayed;
 
       assign(gr, displayed, ON);	/* why? */
-      send(cell->value, NAME_layoutDialog, 0);
+      send(cell->value, NAME_layoutDialog, EAV);
       assign(gr, displayed, old);
     }
     
@@ -175,9 +175,9 @@ layoutDialogTabStack(TabStack ts, Size s)
   h -= valInt(first->label_size->h);
 
   for_cell(cell, ts->graphicals)
-  { Size sz = answerObject(ClassSize, toInt(w), toInt(h), 0);
+  { Size sz = answerObject(ClassSize, toInt(w), toInt(h), EAV);
 
-    send(cell->value, NAME_size, sz, 0);
+    send(cell->value, NAME_size, sz, EAV);
   }
 
   succeed;
@@ -190,10 +190,10 @@ onTopTabStack(TabStack ts, Tab t)
 
   for_cell(cell, ts->graphicals)
   { send(cell->value, NAME_status,
-	 (Tab)cell->value == t ? NAME_onTop : NAME_hidden, 0);
+	 (Tab)cell->value == t ? NAME_onTop : NAME_hidden, EAV);
   }
 
-  send(t, NAME_advance, 0);		/* initialise keyboard focus */
+  send(t, NAME_advance, EAV);		/* initialise keyboard focus */
 
   succeed;
 }

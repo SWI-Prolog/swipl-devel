@@ -26,13 +26,13 @@ static status
 eventEditTextGesture(EditTextGesture g, EventObj ev)
 { Graphical t = ev->receiver;
 
-  if ( get(t, NAME_showCaret, 0) == ON &&
+  if ( get(t, NAME_showCaret, EAV) == ON &&
        isAEvent(ev, NAME_keyboard) )
-    return send(t, NAME_typed, ev, 0);
+    return send(t, NAME_typed, ev, EAV);
   else if ( isAEvent(ev, NAME_obtainKeyboardFocus) )
-    return send(t, NAME_showCaret, ON, 0);
+    return send(t, NAME_showCaret, ON, EAV);
   else if ( isAEvent(ev, NAME_releaseKeyboardFocus) )
-    return send(t, NAME_showCaret, OFF, 0);
+    return send(t, NAME_showCaret, OFF, EAV);
   
   return eventGesture(g, ev);
 }
@@ -45,17 +45,17 @@ eventEditTextGesture(EditTextGesture g, EventObj ev)
 static status
 initiateEditTextGesture(EditTextGesture g, EventObj ev)
 { Graphical t = ev->receiver;
-  Int origin = get(t, NAME_pointed, getPositionEvent(ev, DEFAULT), 0);
+  Int origin = get(t, NAME_pointed, getPositionEvent(ev, DEFAULT), EAV);
 
   if ( origin )
   { PceWindow sw = getWindowGraphical((Graphical)t);
 
     assign(g, selection_origin, origin);
-    send(t, NAME_caret, origin, 0);
-    send(t, NAME_selection, NIL, 0);
+    send(t, NAME_caret, origin, EAV);
+    send(t, NAME_selection, NIL, EAV);
 
     if ( sw )
-      send(sw, NAME_keyboardFocus, t, 0);
+      send(sw, NAME_keyboardFocus, t, EAV);
     
     succeed;
   }
@@ -67,11 +67,11 @@ initiateEditTextGesture(EditTextGesture g, EventObj ev)
 static status
 dragEditTextGesture(EditTextGesture g, EventObj ev)
 { Graphical t = ev->receiver;
-  Int end = get(t, NAME_pointed, getPositionEvent(ev, DEFAULT), 0);
+  Int end = get(t, NAME_pointed, getPositionEvent(ev, DEFAULT), EAV);
 
   if ( end )
-  { send(t, NAME_selection, g->selection_origin, end, 0);
-    send(t, NAME_caret, end, 0);
+  { send(t, NAME_selection, g->selection_origin, end, EAV);
+    send(t, NAME_caret, end, EAV);
 
     succeed;
   }

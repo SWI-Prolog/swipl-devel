@@ -227,7 +227,7 @@ initialiseTableColumn(TableColumn col, Name halign)
 static status
 unlinkTableColumn(TableColumn col)
 { if ( notNil(col->table) && !isFreeingObj(col->table) )
-    send(col->table, NAME_delete, col, 0);
+    send(col->table, NAME_delete, col, EAV);
 
   return unlinkVector((Vector)col);
 }
@@ -388,7 +388,7 @@ computeRubberTableColumn(TableColumn col)
 		  ONE,
 		  toInt(joined.stretch),
 		  toInt(joined.shrink),
-		  0);
+		  EAV);
     assign(r, minimum, toInt(joined.minimum));
     assign(r, maximum, toInt(joined.maximum));
     assign(r, natural, toInt(joined.ideal));
@@ -489,7 +489,7 @@ initialiseTableRow(TableRow col, Name valign)
 static status
 unlinkTableRow(TableRow row)
 { if ( notNil(row->table) && !isFreeingObj(row->table) )
-    send(row->table, NAME_delete, row, 0);
+    send(row->table, NAME_delete, row, EAV);
 
   return unlinkVector((Vector)row);
 }

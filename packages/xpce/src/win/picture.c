@@ -18,7 +18,7 @@ static status
 initialisePicture(Picture p, Name name, Size size, DisplayObj display)
 { initialiseWindow((PceWindow) p, name, size, display);
 
-  return send(p, NAME_scrollbars, NAME_both, 0);
+  return send(p, NAME_scrollbars, NAME_both, EAV);
 }
 
 

@@ -17,7 +17,7 @@ initialiseAndv(And a, int argc, Any *argv)
 { int n;
 
   initialiseCode((Code) a);
-  assign(a, members, newObject(ClassChain, 0));
+  assign(a, members, newObject(ClassChain, EAV));
 
   for(n=0; n<argc; n++)
     appendChain(a->members, argv[n]);

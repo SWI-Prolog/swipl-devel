@@ -21,8 +21,8 @@ initialiseMenuBar(MenuBar mb, Name name)
 
   createDialogItem(mb, name);
 
-  assign(mb, members, newObject(ClassChain, 0));
-  assign(mb, buttons, newObject(ClassChain, 0));
+  assign(mb, members, newObject(ClassChain, EAV));
+  assign(mb, buttons, newObject(ClassChain, EAV));
 
   succeed;
 }
@@ -99,7 +99,7 @@ computeMenuBar(MenuBar mb)
   int h = 0;
 
   if ( hasSendMethodObject(mb, NAME_assignAccelerators) ) /* TBD */
-    send(mb, NAME_assignAccelerators, 0);
+    send(mb, NAME_assignAccelerators, EAV);
 
   obtainClassVariablesObject(mb);
   gap = valInt(mb->gap);
@@ -139,13 +139,13 @@ getReferenceMenuBar(MenuBar mb)
 static status
 showPopupMenuBar(MenuBar mb, PopupObj p)
 { Button b = getButtonMenuBar(mb, p);
-  Point pos = tempObject(ClassPoint, b->area->x, mb->area->h, 0);
+  Point pos = tempObject(ClassPoint, b->area->x, mb->area->h, EAV);
   
   if ( notNil(mb->current) && mb->current->displayed == ON )
-    send(mb->current, NAME_close, 0);
+    send(mb->current, NAME_close, EAV);
   currentMenuBar(mb, p);
-  send(mb->current, NAME_update, mb, 0);
-  send(mb->current, NAME_open, mb, pos, OFF, OFF, ON, 0);
+  send(mb->current, NAME_update, mb, EAV);
+  send(mb->current, NAME_open, mb, pos, OFF, OFF, ON, EAV);
   considerPreserveObject(pos);
 
   succeed;
@@ -159,7 +159,7 @@ cancelMenuBar(MenuBar mb, EventObj ev)
   if ( notNil(mb->current) && mb->current->displayed == ON )
   { PopupObj current = mb->current;
 
-    send(mb->current, NAME_close, 0);
+    send(mb->current, NAME_close, EAV);
     assign(mb, current, NIL);
 
     changedMenuBarButton(mb, current);
@@ -281,7 +281,7 @@ eventMenuBar(MenuBar mb, EventObj ev)
 	{ PopupObj current = mb->current;
 
 	  assign(mb, current, NIL);
-	  send(current, NAME_execute, mb, 0);
+	  send(current, NAME_execute, mb, EAV);
 	  if ( !onFlag(mb, F_FREED|F_FREEING) )
 	    changedMenuBarButton(mb, current);
 	}
@@ -329,7 +329,7 @@ eventMenuBar(MenuBar mb, EventObj ev)
   
 	  if ( notNil(mb->current->selected_item) )
 	  { assign(mb, current, NIL);
-	    send(current, NAME_execute, mb, 0);
+	    send(current, NAME_execute, mb, EAV);
 	    if ( !onFlag(mb, F_FREED|F_FREEING) )
 	      changedMenuBarButton(mb, current);
 	  }
@@ -432,7 +432,7 @@ clearMenuBar(MenuBar mb)
 static status
 appendMenuBar(MenuBar mb, PopupObj p, Name alignment)
 { if ( !memberChain(mb->members, p) )
-  { Button b = newObject(ClassButton, p->name, NIL, 0);
+  { Button b = newObject(ClassButton, p->name, NIL, EAV);
 
     labelDialogItem((DialogItem)b, p->label);
     appendChain(mb->members, p);
@@ -466,7 +466,7 @@ appendMenuBar(MenuBar mb, PopupObj p, Name alignment)
       assign(b, pen,        mb->pen);
       assign(b, radius,     mb->radius);
     }
-    send(p, NAME_format, getSlotObject(mb, NAME_format), 0);
+    send(p, NAME_format, getSlotObject(mb, NAME_format), EAV);
     requestComputeGraphical(mb, DEFAULT);
   }
   
@@ -533,7 +533,7 @@ onMenuBar(MenuBar mb, Any obj)
 { Cell cell;
 
   for_cell(cell, mb->members)
-    send(cell->value, NAME_on, obj, 0);
+    send(cell->value, NAME_on, obj, EAV);
 
   succeed;
 }
@@ -544,7 +544,7 @@ offMenuBar(MenuBar mb, Any obj)
 { Cell cell;
 
   for_cell(cell, mb->members)
-    send(cell->value, NAME_off, obj, 0);
+    send(cell->value, NAME_off, obj, EAV);
 
   succeed;
 }
@@ -552,13 +552,13 @@ offMenuBar(MenuBar mb, Any obj)
 
 static status
 allOnMenuBar(MenuBar mb, PopupObj p)
-{ return send(p, NAME_allOn, 0);
+{ return send(p, NAME_allOn, EAV);
 }
 
 
 static status
 allOffMenuBar(MenuBar mb, PopupObj p)
-{ return send(p, NAME_allOff, 0);
+{ return send(p, NAME_allOff, EAV);
 }
 
 
@@ -599,7 +599,7 @@ getContainsMenuBar(MenuBar mb)
 static status
 resetMenuBar(MenuBar mb)
 { if ( notNil(mb->current) )
-  { send(mb->current, NAME_close, 0);
+  { send(mb->current, NAME_close, EAV);
     currentMenuBar(mb, NIL);
   }
 

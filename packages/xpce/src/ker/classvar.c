@@ -123,34 +123,34 @@ TheObjectParser()
 { static Parser p;
 
   if ( !p )
-  { SyntaxTable  st = newObject(ClassSyntaxTable, 0);
-    Tokeniser     t = newObject(ClassTokeniser, st, 0);
+  { SyntaxTable  st = newObject(ClassSyntaxTable, EAV);
+    Tokeniser     t = newObject(ClassTokeniser, st, EAV);
     struct TAGop *o = operators;
  
-    p = globalObject(NAME_objectParser, ClassParser, t, 0);
+    p = globalObject(NAME_objectParser, ClassParser, t, EAV);
     
     send(p, NAME_active, CtoName("@"),
 	 newObject(ClassObtain, PCE, NAME_objectFromReference,
-		   newObject(ClassObtain, RECEIVER, NAME_token, 0),
-		   0),
-	 0);
+		   newObject(ClassObtain, RECEIVER, NAME_token, EAV),
+		   EAV),
+	 EAV);
     send(p, NAME_active, CtoName("["),
 	 newObject(ClassObtain, RECEIVER, NAME_list,
-		   CtoName("]"), CtoName(","), NAME_chain, 0),
-	 0);
+		   CtoName("]"), CtoName(","), NAME_chain, EAV),
+	 EAV);
     send(p, NAME_sendMethod,
 	 newObject(ClassSendMethod,
 		   NAME_syntaxError,
-		   newObject(ClassVector, NAME_charArray, 0),
-		   newObject(ClassOr, 0),
+		   newObject(ClassVector, NAME_charArray, EAV),
+		   newObject(ClassOr, EAV),
 		   CtoString("Just fail on syntax-error"),
-		   0),
-	 0);
+		   EAV),
+	 EAV);
 
     for( ; o->name; o++)
       send(p, NAME_operator,
 	   newObject(ClassOperator,
-		     CtoName(o->name), toInt(o->priority), o->kind, 0), 0);
+		     CtoName(o->name), toInt(o->priority), o->kind, EAV), EAV);
   }
 
   return p;
@@ -201,7 +201,7 @@ getSubClassVariable(ClassVariable cv, Class class)
     Name name = class->name;
 
     if ( (val = getDefault(class, name, FALSE)) )
-    { ClassVariable clone = get(cv, NAME_clone, 0);
+    { ClassVariable clone = get(cv, NAME_clone, EAV);
 
       assert(clone);
       contextClassVariable(clone, class);
@@ -323,7 +323,7 @@ getClassVariableClass(Class class, Name name)
   realiseClass(class);
 
   if ( isNil(class->class_variable_table) )
-    assign(class, class_variable_table, newObject(ClassHashTable, 0));
+    assign(class, class_variable_table, newObject(ClassHashTable, EAV));
   else if ( (cv=getMemberHashTable(class->class_variable_table, name)) )
     answer(cv);
  
@@ -389,7 +389,7 @@ attach_class_variable(Class cl,
 
 					/* TBD: Default value! */
   if ( (cv = newObject(ClassClassVariable,
-		       cl, name, DEFAULT, tp, s, 0)) )
+		       cl, name, DEFAULT, tp, s, EAV)) )
   { assign(cv, cv_default, staticCtoString(def));
     setDFlag(cv, DCV_TEXTUAL);		/* value is textual */
 
@@ -415,7 +415,7 @@ refine_class_variable(Class cl, const char *name_s, const char *def)
       { ClassVariable cv2;
 
 	if ( (cv2 = newObject(ClassClassVariable,
-			      cl, name, DEFAULT, cv->type, cv->summary, 0)) )
+			      cl, name, DEFAULT, cv->type, cv->summary, EAV)) )
 	{ assign(cv2, cv_default, staticCtoString(def));
 	  setDFlag(cv2, DCV_TEXTUAL);		/* value is textual */
 
@@ -473,7 +473,7 @@ getManSummaryClassVariable(ClassVariable cv)
   { strcat(buf, "\t");
     strcat(buf, strName(tmp));
   }
-  if ( send(cv, NAME_manDocumented, 0) )
+  if ( send(cv, NAME_manDocumented, EAV) )
     strcat(buf, " (+)");
 
   answer(CtoString(buf));
@@ -597,7 +597,7 @@ makeClassClassVariable(Class class)
   NotObtained=globalObject(NAME_notObtained, ClassConstant,
 			   NAME_notObtained,
 			   CtoString("Value of not-obtained class-variable"),
-			   0);
+			   EAV);
 
   succeed;
 }
@@ -693,9 +693,9 @@ loadDefaultClassVariables(SourceSink f)
 	    s++;
 	  if ( s )
 	  { StringObj fn = getword(s, NULL);
-	    Any fincluded = newObject(ClassFile, fn, 0);
+	    Any fincluded = newObject(ClassFile, fn, EAV);
 	    
-	    if ( send(fincluded, NAME_exists, 0) )
+	    if ( send(fincluded, NAME_exists, EAV) )
 	      loadDefaultClassVariables(fincluded);
 
 	    doneObject(fincluded);
@@ -802,12 +802,12 @@ loadDefaultClassVariables(SourceSink f)
 status
 loadDefaultsPce(Pce pce, SourceSink from)
 { if ( !ClassVariableTable )
-    ClassVariableTable = globalObject(NAME_defaultTable, ClassChainTable, 0);
+    ClassVariableTable = globalObject(NAME_defaultTable, ClassChainTable, EAV);
 
   if ( isDefault(from) )
     from = pce->defaults;
 
-  if ( send(from, NAME_access, NAME_read, 0) )
+  if ( send(from, NAME_access, NAME_read, EAV) )
   { loadDefaultClassVariables(from);
 
     succeed;

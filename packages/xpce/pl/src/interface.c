@@ -29,11 +29,15 @@
 #include <sys/types.h>
 #include <ctype.h>
 #include <h/interface.h>
+#include <string.h>
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #endif
 #ifdef HAVE_SIGNAL_H
 #include <signal.h>
+#endif
+#ifdef HAVE_ALLOCA_H
+#include <alloca.h>
 #endif
 
 #ifdef _REENTRANT
@@ -2409,28 +2413,29 @@ pceContextModule()
 		 *******************************/
 
 #ifdef SWI
+#define fdFromHandle(h) ((int)((long)(h)))
 
 static int
 Swrite_pce(void *handle, char *buf, int size)
-{ return pceWrite((int)handle, buf, size);
+{ return pceWrite(fdFromHandle(handle), buf, size);
 }
 
 
 static int
 Sread_pce(void *handle, char *buf, int size)
-{ return pceRead((int)handle, buf, size);
+{ return pceRead(fdFromHandle(handle), buf, size);
 }
 
 
 static long
 Sseek_pce(void *handle, long offset, int whence)
-{ return pceSeek((int)handle, offset, whence);
+{ return pceSeek(fdFromHandle(handle), offset, whence);
 }
 
 
 static int
 Sclose_pce(void *handle)
-{ return pceClose((int)handle);
+{ return pceClose(fdFromHandle(handle));
 }
 
 
@@ -2473,7 +2478,7 @@ pl_pce_open(Term t, Term mode, Term plhandle)
     }
 
     if ( (handle = pceOpen(obj, flags)) >= 0 )
-    { IOSTREAM *s = Snew((void *)handle, sflags, &pceFunctions);
+    { IOSTREAM *s = Snew((void *)(long)handle, sflags, &pceFunctions);
 
       return PL_open_stream(plhandle, s);
     } else
@@ -2731,7 +2736,7 @@ PrologAction(int action, va_list args)
       return PCE_SUCCEED;
     case HOST_BACKTRACE:
     { int frames = va_arg(args, int);
-      PL_action(PL_ACTION_BACKTRACE, (void *) frames);
+      PL_action(PL_ACTION_BACKTRACE, (void *) (long)frames);
       return PCE_SUCCEED;
     }
     case HOST_ATEXIT:

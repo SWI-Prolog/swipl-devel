@@ -38,7 +38,7 @@ initialiseMenu(Menu m, Name name, Name kind, Code msg)
 { createDialogItem(m, name);
  
   assign(m, message,		msg);
-  assign(m, members,	        newObject(ClassChain, 0));
+  assign(m, members,	        newObject(ClassChain, EAV));
   assign(m, multiple_selection, OFF);
 
   assign(m, preview,		NIL);
@@ -49,8 +49,8 @@ initialiseMenu(Menu m, Name name, Name kind, Code msg)
   assign(m, left_offset,	ZERO);
   assign(m, right_offset,	ZERO);
   assign(m, label_area,		NIL);
-  assign(m, item_offset,	newObject(ClassPoint, 0));
-  assign(m, item_size,		newObject(ClassSize, 0));
+  assign(m, item_offset,	newObject(ClassPoint, EAV));
+  assign(m, item_size,		newObject(ClassSize, EAV));
   obtainClassVariablesObject(m);
 
   kindMenu(m, kind);
@@ -151,7 +151,7 @@ computeLabelMenu(Menu m)
   { int w, h;
 
     if ( isNil(m->label_area) )
-      assign(m, label_area, newObject(ClassArea, 0));
+      assign(m, label_area, newObject(ClassArea, EAV));
     
     dia_label_size(m, &w, &h, NULL);
     if ( m->layout == NAME_horizontal )
@@ -306,7 +306,7 @@ computeMenu(Menu m)
     int aw, ah;
 
     if ( m->request_compute == NAME_assignAccelerators )
-      send(m, NAME_assignAccelerators, 0);
+      send(m, NAME_assignAccelerators, EAV);
     if ( m->multiple_selection == OFF )
       ensureSingleSelectionMenu(m);
 
@@ -398,7 +398,7 @@ getReferenceMenu(Menu m)
 	ry = valInt(m->item_offset->y) + valInt(m->item_size->h);
     }
 
-    ref = answerObject(ClassPoint, ZERO, toInt(ry), 0);
+    ref = answerObject(ClassPoint, ZERO, toInt(ry), EAV);
   }
 
   answer(ref);
@@ -990,7 +990,7 @@ forwardMenu(Menu m, Code msg, EventObj ev)
 
   if ( notDefault(mi->message) )
   { if ( notNil(mi->message) )
-    { forwardReceiverCode(mi->message, m, mi->value, ev, 0);
+    { forwardReceiverCode(mi->message, m, mi->value, ev, EAV);
       succeed;
     }
     succeed;
@@ -999,8 +999,8 @@ forwardMenu(Menu m, Code msg, EventObj ev)
   if ( notNil(m->message) && notDefault(m->message) )
   { Any val;
 
-    if ( (val = get(m, NAME_selection, 0)) )
-      forwardReceiverCode(m->message, m, val, ev, 0);
+    if ( (val = get(m, NAME_selection, EAV)) )
+      forwardReceiverCode(m->message, m, val, ev, EAV);
   }
 
   succeed;
@@ -1013,7 +1013,7 @@ selectedCompletionMenu(Menu m, DictItem di)
 { selectionMenu(m, di->key);
   quitCompleterDialogItem(m);
   flushGraphical(m);
-  if ( !send(m->device, NAME_modifiedItem, m, ON, 0) )
+  if ( !send(m->device, NAME_modifiedItem, m, ON, EAV) )
     forwardMenu(m, m->message, EVENT->value);
 
   succeed;
@@ -1034,21 +1034,21 @@ openComboBoxMenu(Menu m)
   Cell cell;
   DictItem selection = NIL;
 
-  send(c, NAME_clear, 0);
+  send(c, NAME_clear, EAV);
   for_cell(cell, m->members)
   { MenuItem mi = cell->value;
     DictItem di;
 
     if ( mi->active == ON )
     { send(c, NAME_append,
-	   (di=newObject(ClassDictItem, mi->value, mi->label, 0)), 0);
+	   (di=newObject(ClassDictItem, mi->value, mi->label, EAV)), EAV);
       if ( mi->selected == ON )
 	selection = di;
     }
   }
 
   if ( notNil(selection) )
-    send(c, NAME_selection, selection, 0);
+    send(c, NAME_selection, selection, EAV);
 
   selectCompletionDialogItem(m, NIL, NIL, ZERO);
 
@@ -1071,7 +1071,7 @@ executeMenu(Menu m, EventObj ev)
     else
     { nextMenu(m);
       flushGraphical(m);
-      if ( !send(m->device, NAME_modifiedItem, m, ON, 0) )
+      if ( !send(m->device, NAME_modifiedItem, m, ON, EAV) )
 	forwardMenu(m, m->message, ev);
       succeed;
     }
@@ -1084,27 +1084,27 @@ executeMenu(Menu m, EventObj ev)
   if ( m->multiple_selection == ON )
   { toggleMenu(m, mi);
     flushGraphical(m);
-    send(m->device, NAME_modifiedItem, m, ON, 0);
+    send(m->device, NAME_modifiedItem, m, ON, EAV);
     
     if ( notDefault(mi->message) )
     { if ( notNil(mi->message) )
 	forwardReceiverCode(mi->message, m,
-			    mi, mi->selected, ev, 0);
+			    mi, mi->selected, ev, EAV);
     } else if ( !modifiedMenu(m, ON) &&
 		notNil(m->message) &&
 		notDefault(m->message) )
     { forwardReceiverCode(m->message, m,
-			  mi->value, mi->selected, ev, 0);
+			  mi->value, mi->selected, ev, EAV);
     }
   } else
   { selectionMenu(m, mi);
     flushGraphical(m);
-    send(m->device, NAME_modifiedItem, m, ON, 0);
+    send(m->device, NAME_modifiedItem, m, ON, EAV);
 
     if ( notDefault(mi->message) )
     { if ( notNil(mi->message) )
 	forwardReceiverCode(mi->message, m,
-			    mi->value, ev, 0);
+			    mi->value, ev, EAV);
     } else if ( !modifiedMenu(m, ON) )
       forwardMenu(m, m->message, ev);
   }
@@ -1142,7 +1142,7 @@ getSelectionMenu(Menu m)
     TRY( mi = getItemSelectionMenu(m) );
     assign(m, selection, mi->value);
   } else
-  { Chain ch = answerObject(ClassChain, 0);
+  { Chain ch = answerObject(ClassChain, EAV);
     Cell cell;
 
     for_cell(cell, m->members)
@@ -1406,8 +1406,8 @@ static status
 membersMenu(Menu m, Chain members)
 { Any val;
 
-  send(m, NAME_clear, 0);
-  for_chain(members, val, TRY(send(m, NAME_append, val, 0)));
+  send(m, NAME_clear, EAV);
+  for_chain(members, val, TRY(send(m, NAME_append, val, EAV)));
 
   succeed;
 }
@@ -1445,7 +1445,7 @@ updateMenu(Menu m, Any context)
   { MenuItem mi = cell->value;
 
     if ( notNil(mi->condition) )
-    { Bool a = (forwardReceiverCode(mi->condition, mi, context, 0) ? ON : OFF);
+    { Bool a = (forwardReceiverCode(mi->condition, mi, context, EAV) ? ON : OFF);
 
       if ( a != mi->active )
       { changed = TRUE;
@@ -1637,7 +1637,7 @@ kindMenu(Menu m, Name kind)
     assign(m, auto_value_align, OFF),
     multipleSelectionMenu(m, OFF);
     if ( m->look != NAME_win )
-    { assign(m, popup, newObject(ClassPopup, 0));
+    { assign(m, popup, newObject(ClassPopup, EAV));
       assign(m->popup, members, m->members);
       kindMenu((Menu) m->popup,  NAME_cyclePopup);
     }
@@ -1736,7 +1736,7 @@ static status
 columnsMenu(Menu m, Int n)
 { assignGraphical(m, NAME_columns, n);
   if ( m->feedback == NAME_showSelectionOnly && notNil(m->popup) )
-    send(m->popup, NAME_columns, n, 0);
+    send(m->popup, NAME_columns, n, EAV);
 
   succeed;
 }
@@ -1921,7 +1921,7 @@ restoreMenu(Menu m)
 { Any val;
 
   TRY(val = getDefaultMenu(m));
-  return send(m, NAME_selection, val, 0);
+  return send(m, NAME_selection, val, EAV);
 }
 
 
@@ -1931,8 +1931,8 @@ applyMenu(Menu m, Bool always)
 
   if ( instanceOfObject(m->message, ClassCode) &&
        (always == ON || getModifiedMenu(m) == ON) &&
-       (val = get(m, NAME_selection, 0)) )
-  { forwardReceiverCode(m->message, m, val, 0);
+       (val = get(m, NAME_selection, EAV)) )
+  { forwardReceiverCode(m->message, m, val, EAV);
     succeed;
   }
 

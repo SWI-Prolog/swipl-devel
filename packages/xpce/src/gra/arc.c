@@ -31,8 +31,8 @@ initialiseArc(Arc a, Int radius, Real start_angle, Real size_angle)
   if ( isDefault(size_angle) )
     size_angle = CtoReal(90.0);
 
-  assign(a, size,	  newObject(ClassSize, radius, radius, 0));
-  assign(a, position,	  newObject(ClassPoint, 0));
+  assign(a, size,	  newObject(ClassSize, radius, radius, EAV));
+  assign(a, position,	  newObject(ClassPoint, EAV));
   assign(a, start_angle,  start_angle);
   assign(a, size_angle,	  size_angle);
   assign(a, close,	  NAME_none);
@@ -380,7 +380,7 @@ getStartArc(Arc a)
 { int sx, sy;
 
   points_arc(a, &sx, &sy, NULL, NULL);
-  answer(answerObject(ClassPoint, toInt(sx), toInt(sy), 0));
+  answer(answerObject(ClassPoint, toInt(sx), toInt(sy), EAV));
 }
 
 
@@ -389,7 +389,7 @@ getEndArc(Arc a)
 { int ex, ey;
 
   points_arc(a, NULL, NULL, &ex, &ey);
-  answer(answerObject(ClassPoint, toInt(ex), toInt(ey), 0));
+  answer(answerObject(ClassPoint, toInt(ex), toInt(ey), EAV));
 }
 
 

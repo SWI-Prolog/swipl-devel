@@ -17,7 +17,7 @@ initialiseBlockv(Block b, int argc, Any *argv)
 { int n;
 
   initialiseCode((Code) b);
-  assign(b, members, newObject(ClassChain, 0));
+  assign(b, members, newObject(ClassChain, EAV));
 
   for(n=0; n<argc; n++)
   { if ( instanceOfObject(argv[n], ClassVar) )

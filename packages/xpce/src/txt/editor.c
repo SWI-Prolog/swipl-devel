@@ -89,10 +89,10 @@ initialiseEditor(Editor e, TextBuffer tb, Int w, Int h, Int tmw)
 { Int fw, fh, iw, ih, ew;
   Size sz = getClassVariableValueObject(e, NAME_size);
 
-  if ( isDefault(tb) ) tb = newObject(ClassTextBuffer, 0);
+  if ( isDefault(tb) ) tb = newObject(ClassTextBuffer, EAV);
   if ( isDefault(tmw)) tmw = ZERO;
 
-  assign(e, size, newObject(ClassSize, sz->w, sz->h, 0));
+  assign(e, size, newObject(ClassSize, sz->w, sz->h, EAV));
   if ( notDefault(w) ) assign(e->size, w, w);
   if ( notDefault(h) ) assign(e->size, h, h);
 
@@ -105,21 +105,21 @@ initialiseEditor(Editor e, TextBuffer tb, Int w, Int h, Int tmw)
   iw = toInt(valInt(e->size->w) * valInt(fw) + 2 * TXT_X_MARGIN);
   ih = toInt(valInt(e->size->h) * valInt(fh) + 2 * TXT_Y_MARGIN);
 
-  assign(e, image, newObject(ClassTextImage, e, iw, ih, 0));
-  assign(e, scroll_bar, newObject(ClassScrollBar, e, NAME_vertical, 0));
+  assign(e, image, newObject(ClassTextImage, e, iw, ih, EAV));
+  assign(e, scroll_bar, newObject(ClassScrollBar, e, NAME_vertical, EAV));
 
   if ( valInt(tmw) > 0 )
-    assign(e, margin, newObject(ClassTextMargin, e, tmw, ih, 0));
+    assign(e, margin, newObject(ClassTextMargin, e, tmw, ih, EAV));
   else
     assign(e, margin, NIL);
-  assign(e, text_cursor, newObject(ClassTextCursor, e->font, 0));
-  send(e->text_cursor, NAME_active, OFF, 0);
+  assign(e, text_cursor, newObject(ClassTextCursor, e->font, EAV));
+  send(e->text_cursor, NAME_active, OFF, EAV);
   assign(e, caret, ZERO);
   assign(e, mark, toInt(tb->size));
   assign(e, selected_fragment, NIL);
-  assign(e, selected_fragment_style, newObject(ClassStyle, 0));
+  assign(e, selected_fragment_style, newObject(ClassStyle, EAV));
   boldStyle(e->selected_fragment_style, ON);
-  assign(e, bindings, newObject(ClassKeyBinding, NIL, NAME_editor, 0));
+  assign(e, bindings, newObject(ClassKeyBinding, NIL, NAME_editor, EAV));
   assign(e, focus_function, NIL);
 /*assign(e, fill_mode, getClassVariableValueObject(e, NAME_fillMode));
   assign(e, exact_case, getClassVariableValueObject(e, NAME_exactCase));*/
@@ -142,13 +142,13 @@ initialiseEditor(Editor e, TextBuffer tb, Int w, Int h, Int tmw)
   assign(e, dabbrev_reject, NIL);
   assign(e, dabbrev_pos, NIL);
   assign(e, dabbrev_origin, NIL);
-  assign(e, styles, newObject(ClassSheet, 0));
+  assign(e, styles, newObject(ClassSheet, EAV));
 
   e->selection_start = e->selection_end = 0;
   e->fragment_cache = newFragmentCache(e);
 
-  send(e->image, NAME_cursor, getClassVariableValueObject(e, NAME_cursor), 0);
-  send(e->image, NAME_set, e->scroll_bar->area->w, ZERO, 0);
+  send(e->image, NAME_cursor, getClassVariableValueObject(e, NAME_cursor), EAV);
+  send(e->image, NAME_set, e->scroll_bar->area->w, ZERO, EAV);
 /*tabDistanceEditor(e, getClassVariableValueObject(e, NAME_tabDistance));*/
   tabDistanceTextImage(e->image, mul(e->tab_distance, getExFont(e->font)));
   heightGraphical((Graphical) e->scroll_bar, ih);
@@ -158,13 +158,13 @@ initialiseEditor(Editor e, TextBuffer tb, Int w, Int h, Int tmw)
   ew = add(e->scroll_bar->area->w,e->image->area->w);
 
   if ( notNil(e->margin) )
-  { send(e->margin, NAME_set, ew, 0);
+  { send(e->margin, NAME_set, ew, EAV);
     ew = add(ew, e->margin->area->w);
     displayDevice(e, e->margin, DEFAULT);
   }
 
   updateStyleCursorEditor(e);		/* also does position */
-  send(tb, NAME_attach, e, 0);
+  send(tb, NAME_attach, e, EAV);
   geometryEditor(e, ZERO, ZERO, ew, ih);
   
   succeed;
@@ -187,7 +187,7 @@ unlinkEditor(Editor e)
   }
    
   if ( notNil(e->text_buffer) )
-  { send(e->text_buffer, NAME_detach, e, 0);
+  { send(e->text_buffer, NAME_detach, e, EAV);
     assign(e, text_buffer, NIL);
   }
   if ( e->fragment_cache != NULL )
@@ -202,7 +202,7 @@ unlinkEditor(Editor e)
   freeObject(e->text_cursor);
 
   if ( instanceOfObject(view, ClassView) && !isFreedObj(view) )
-    send(view, NAME_free, 0);
+    send(view, NAME_free, EAV);
 
   succeed;
 }
@@ -211,7 +211,7 @@ unlinkEditor(Editor e)
 static status
 lostTextBufferEditor(Editor e)
 { if ( !onFlag(e, F_FREED|F_FREEING) )
-    send(Receiver(e), NAME_free, 0);
+    send(Receiver(e), NAME_free, EAV);
 
   succeed;
 }
@@ -293,7 +293,7 @@ textBufferEditor(Editor e, TextBuffer tb)
   { TextImage ti = e->image;
 
     selectedFragmentEditor(e, NIL);
-    send(e->text_buffer, NAME_detach, e, 0);
+    send(e->text_buffer, NAME_detach, e, EAV);
 
     assign(e, text_buffer, tb);
     assign(e, caret, ZERO);
@@ -302,7 +302,7 @@ textBufferEditor(Editor e, TextBuffer tb)
     if ( e->fragment_cache )
       resetFragmentCache(e->fragment_cache, e->text_buffer);
 
-    send(tb, NAME_attach, e, 0);
+    send(tb, NAME_attach, e, EAV);
 
     ChangedEntireTextImage(ti);
     requestComputeGraphical(e, DEFAULT);
@@ -356,8 +356,8 @@ electricCaretEditor(Editor e, Int caret, Real time)
 
     ElectricTimer = globalObject(NAME_electricTimer, ClassTimer, time,
 				 newObject(ClassMessage, e,
-					   NAME_showCaretAt, 0),
-				 0);
+					   NAME_showCaretAt, EAV),
+				 EAV);
   } else
   { assign((Message)ElectricTimer->message, receiver, e);
     if ( notDefault(time) )
@@ -370,7 +370,7 @@ electricCaretEditor(Editor e, Int caret, Real time)
 
 static status
 updateStyleCursorEditor(Editor e)
-{ send(e->text_cursor, NAME_font, e->font, 0);
+{ send(e->text_cursor, NAME_font, e->font, EAV);
 
   return updateCursorEditor(e);
 }
@@ -440,7 +440,7 @@ static status
 labelEditor(Editor e, Name lbl)
 { showLabelEditor(e, ON);
 
-  send(e->label_text, NAME_string, lbl, 0);
+  send(e->label_text, NAME_string, lbl, EAV);
   geometryEditor(e, DEFAULT, DEFAULT, DEFAULT, DEFAULT);
 
   succeed;
@@ -453,7 +453,7 @@ showLabelEditor(Editor e, Bool val)
   { if ( val == ON )
     { assign(e, label_text,
 	     newObject(ClassText, GetLabelNameName(e->name), NAME_left,
-		       getClassVariableValueObject(e, NAME_labelFont), 0));
+		       getClassVariableValueObject(e, NAME_labelFont), EAV));
       marginText(e->label_text, e->area->w, NAME_clip);
       displayDevice(e, e->label_text, DEFAULT);
       return geometryEditor(e, DEFAULT, DEFAULT, DEFAULT, DEFAULT);
@@ -487,7 +487,7 @@ static status
 marginWidthEditor(Editor e, Int width)
 { if ( getMarginWidthEditor(e) != width )
   { if ( isNil(e->margin) )
-    { assign(e, margin, newObject(ClassTextMargin, e, width, e->area->h, 0));
+    { assign(e, margin, newObject(ClassTextMargin, e, width, e->area->h, EAV));
       displayDevice(e, e->margin, DEFAULT);
     } else
       setGraphical(e->margin, DEFAULT, DEFAULT, width, DEFAULT);
@@ -584,7 +584,7 @@ geometryEditor(Editor e, Int x, Int y, Int w, Int h)
   if ( notNil(e->label_text) && e->label_text->displayed == ON )
   { marginText(e->label_text, w, NAME_clip);
     ComputeGraphical(e->label_text);
-    send(e->label_text, NAME_set, ZERO, ZERO, DEFAULT, DEFAULT, 0);
+    send(e->label_text, NAME_set, ZERO, ZERO, DEFAULT, DEFAULT, EAV);
     iy = valInt(e->label_text->area->h);
     ih = valInt(h);
   } else
@@ -613,9 +613,9 @@ geometryEditor(Editor e, Int x, Int y, Int w, Int h)
       sbobj = e->margin;
   }
 
-  send(e->image, NAME_set, toInt(ix), toInt(iy), toInt(iw), toInt(ih-iy), 0);
+  send(e->image, NAME_set, toInt(ix), toInt(iy), toInt(iw), toInt(ih-iy), EAV);
   if ( notNil(e->margin) )
-    send(e->margin, NAME_set, toInt(mx), toInt(iy), DEFAULT, toInt(ih-iy), 0);
+    send(e->margin, NAME_set, toInt(mx), toInt(iy), DEFAULT, toInt(ih-iy), EAV);
   if ( notNil(e->scroll_bar) )
     placeScrollBar(e->scroll_bar, sbobj);
 
@@ -950,7 +950,7 @@ fetch_editor(Any obj, TextChar tc)
        Fetch(e, index+2) == GRAPHICS_START &&
        hasGetMethodObject(e, NAME_diagram) )
   { int grindex = Fetch(e, index+1);
-    Graphical gr = get(e, NAME_diagram, toInt(grindex), 0);
+    Graphical gr = get(e, NAME_diagram, toInt(grindex), EAV);
 
     if ( gr )
     { tc->value.graphical = gr;
@@ -1210,7 +1210,7 @@ getLinesVisibleEditor(Editor e)
   last = add(countLinesEditor(e, getStartTextImage(e->image, ONE),
 			      e->image->end), first);
 
-  answer(answerObject(ClassPoint, first, sub(last, ONE), 0));
+  answer(answerObject(ClassPoint, first, sub(last, ONE), EAV));
 }
 
 		/********************************
@@ -1239,7 +1239,7 @@ reportEditor(Editor e, Name kind, CharArray fm, int argc, Any *argv)
     str = CtoTempString(msg);
 
     forwardReceiverCode(e->error_message, Receiver(e),
-			e, kind, str, 0);
+			e, kind, str, EAV);
     considerPreserveObject(str);
 
     succeed;
@@ -1254,7 +1254,7 @@ forwardModifiedEditor(Editor e, Bool val)
 { abortIsearchEditor(e);
 
   if ( notNil(e->modified_message) )
-    forwardReceiverCode(e->modified_message, Receiver(e), val, 0);
+    forwardReceiverCode(e->modified_message, Receiver(e), val, EAV);
 
   succeed;
 }
@@ -1284,7 +1284,7 @@ keyBindingEditor(Editor e, Name key, Any function)
 static status
 typedEditor(Editor e, EventId id)
 { if ( notNil(e->focus_function) )
-  { if ( send(e, e->focus_function, id, 0) )
+  { if ( send(e, e->focus_function, id, EAV) )
       succeed;
     else
       assign(e, focus_function, NIL);
@@ -1298,9 +1298,9 @@ static status
 event_editor(Editor e, EventObj ev)
 { if ( isAEvent(ev, NAME_focus) )
   { if ( isAEvent(ev, NAME_activateKeyboardFocus) )
-      send(e->text_cursor, NAME_active, ON, 0);
+      send(e->text_cursor, NAME_active, ON, EAV);
     else if ( isAEvent(ev, NAME_deactivateKeyboardFocus) )
-      send(e->text_cursor, NAME_active, OFF, 0);
+      send(e->text_cursor, NAME_active, OFF, EAV);
 
     succeed;
   }
@@ -1309,14 +1309,14 @@ event_editor(Editor e, EventObj ev)
     succeed;
 
   if ( isAEvent(ev, NAME_keyboard) )
-    return send(e, NAME_typed, getIdEvent(ev), 0);
+    return send(e, NAME_typed, getIdEvent(ev), EAV);
 
   					/* delete mode on button down */
   if ( isDownEvent(ev) )
   { PceWindow sw = getWindowGraphical((Graphical)e);
 
     if ( sw && notNil(sw) && sw->keyboard_focus != (Graphical)e )
-      send(e, NAME_keyboardFocus, ON, 0);
+      send(e, NAME_keyboardFocus, ON, EAV);
 
     endIsearchEditor(e);
     assign(e, focus_function, NIL);
@@ -1332,7 +1332,7 @@ event_editor(Editor e, EventObj ev)
   { Any recogniser = getObjectFromReferencePce(PCE, NAME_editorRecogniser);
 
     if ( recogniser && instanceOfObject(recogniser, ClassRecogniser) )
-      return send(recogniser, NAME_event, ev, 0);
+      return send(recogniser, NAME_event, ev, EAV);
   }
 					/* Built-in version */
 
@@ -1423,7 +1423,7 @@ eventEditor(Editor e, EventObj ev)
 static status
 verify_editable_editor(Editor e)
 { if ( e->editable == OFF )
-  { send(e, NAME_report, NAME_warning, CtoName("Text is read-only"), 0);
+  { send(e, NAME_report, NAME_warning, CtoName("Text is read-only"), EAV);
     fail;
   }
 
@@ -1505,7 +1505,7 @@ showMatchingBracketEditor(Editor e, Int arg)
 				  ZERO, NAME_end);
       Int len = toInt(valInt(eol) - valInt(sol));
       StringObj line = getContentsTextBuffer(e->text_buffer, sol, len);
-      send(e, NAME_report, NAME_status, CtoName("Matches %s"), line, 0);
+      send(e, NAME_report, NAME_status, CtoName("Matches %s"), line, EAV);
     }
   } else
     return errorPce(e, NAME_noMatchingBracket);
@@ -1733,7 +1733,7 @@ nextLineEditor(Editor e, Int arg, Int column)
        e->editable == ON )
   { endOfLineEditor(e, DEFAULT);
 
-    return send(e, NAME_newline, ONE, 0);
+    return send(e, NAME_newline, ONE, EAV);
   }
 
   assign(e, caret, caret);
@@ -1768,9 +1768,9 @@ cutOrDeleteCharEditor(Editor e, Int arg)
 { MustBeEditable(e);
 
   if ( isDefault(arg) && e->selection_start != e->selection_end )
-    return send(e, NAME_cut, 0);
+    return send(e, NAME_cut, EAV);
   else
-    return send(e, NAME_deleteChar, arg, 0);
+    return send(e, NAME_deleteChar, arg, EAV);
 }
 
 
@@ -1779,9 +1779,9 @@ cutOrBackwardDeleteCharEditor(Editor e, Int arg)
 { MustBeEditable(e);
 
   if ( isDefault(arg) && e->selection_start != e->selection_end )
-    return send(e, NAME_cut, 0);
+    return send(e, NAME_cut, EAV);
   else
-    return send(e, NAME_backwardDeleteChar, arg, 0);
+    return send(e, NAME_backwardDeleteChar, arg, EAV);
 }
 
 
@@ -1791,7 +1791,7 @@ copyEditor(Editor e)
   DisplayObj d = getDisplayGraphical((Graphical)e);
 
   if ( s && d )
-    return send(d, NAME_copy, s, 0);
+    return send(d, NAME_copy, s, EAV);
 
   fail;
 }
@@ -1801,7 +1801,7 @@ static status
 cutEditor(Editor e)
 { MustBeEditable(e);
 
-  if ( send(e, NAME_copy, 0) )
+  if ( send(e, NAME_copy, EAV) )
     return deleteSelectionEditor(e);
 
   fail;
@@ -1813,7 +1813,7 @@ pasteEditor(Editor e)
 { DisplayObj d = getDisplayGraphical((Graphical)e);
   CharArray selection;
 
-  if ( d && (selection=get(d, NAME_paste, 0)) )
+  if ( d && (selection=get(d, NAME_paste, EAV)) )
   { if ( HasSelection(e) &&
 	 getClassVariableValueObject(e, NAME_insertDeletesSelection) == ON )
       deleteSelectionEditor(e);
@@ -2063,7 +2063,7 @@ grabEditor(Editor e, Int from, Int to)
   length = sub(to, from);
 
   newKill((CharArray) getContentsTextBuffer(e->text_buffer, from, length));
-  send(e, NAME_report, NAME_status, CtoName("Grabbed"), 0);
+  send(e, NAME_report, NAME_status, CtoName("Grabbed"), EAV);
   assign(e, kill_location, NIL);
 
   succeed;
@@ -2167,7 +2167,7 @@ killOrGrabRegionEditor(Editor e, Int arg)
     return grabEditor(e, e->caret, e->mark);
   }
 
-  send(e, NAME_report, NAME_warning, CtoName("No mark"), 0);
+  send(e, NAME_report, NAME_warning, CtoName("No mark"), EAV);
   succeed;
 }
 
@@ -2177,7 +2177,7 @@ killOrGrabRegionEditor(Editor e, Int arg)
 
 static status
 undefinedEditor(Editor e)
-{ send(e, NAME_report, NAME_warning, CtoName("Undefined"), 0);
+{ send(e, NAME_report, NAME_warning, CtoName("Undefined"), EAV);
 
   succeed;
 }
@@ -2186,8 +2186,8 @@ undefinedEditor(Editor e)
 static status
 keyboardQuitEditor(Editor e, Int arg)
 { assign(e, focus_function, NIL);
-  send(e->text_cursor, NAME_displayed, ON, 0);
-  send(e, NAME_report, NAME_warning, CtoName("Quit"), 0);
+  send(e->text_cursor, NAME_displayed, ON, EAV);
+  send(e, NAME_report, NAME_warning, CtoName("Quit"), EAV);
 
   succeed;
 }
@@ -2201,7 +2201,7 @@ undoEditor(Editor e)
   { return CaretEditor(e, caret);
   } else
   { send(e, NAME_report, NAME_warning,
-	 CtoName("No (further) undo information"), 0);
+	 CtoName("No (further) undo information"), EAV);
     fail;
   }
 }
@@ -2214,7 +2214,7 @@ setMarkEditor(Editor e, Int arg)
   else
     assign(e, mark, normalise_index(e, arg));
 
-  send(e, NAME_report, NAME_status, CtoName("Mark set"), 0);
+  send(e, NAME_report, NAME_status, CtoName("Mark set"), EAV);
   succeed;
 }
 
@@ -2227,7 +2227,7 @@ switchCaseModeEditor(Editor e, Int arg)
     assign(e, exact_case, UArg(arg) > 0 ? OFF : ON);
 
   send(e, NAME_report, NAME_status, CtoName("%s case"),
-       e->exact_case == ON ? CtoName("Exact") : CtoName("Either"), 0);
+       e->exact_case == ON ? CtoName("Exact") : CtoName("Either"), EAV);
 
   succeed;
 }
@@ -2249,7 +2249,7 @@ exchangePointAndMarkEditor(Editor e)
     return CaretEditor(e, tmp);
   }
 
-  send(e, NAME_report, NAME_warning, CtoName("No mark"), 0);
+  send(e, NAME_report, NAME_warning, CtoName("No mark"), EAV);
   fail;
 }
 
@@ -2416,18 +2416,18 @@ saveBufferEditor(Editor e, Int arg)
     { if ( saveEditor(e, DEFAULT) )
       { CmodifiedTextBuffer(e->text_buffer, OFF);
 	send(e, NAME_report, NAME_status,
-	     CtoName("Buffer saved in %N"), e->file, 0);
+	     CtoName("Buffer saved in %N"), e->file, EAV);
       } else
       { send(e, NAME_report, NAME_error,
-	     CtoName("Failed to save buffer into %N"), e->file, 0);
+	     CtoName("Failed to save buffer into %N"), e->file, EAV);
 	rval = FAIL;
       }      
     } else
-    { send(e, NAME_report, NAME_error, CtoName("No current file"), 0);
+    { send(e, NAME_report, NAME_error, CtoName("No current file"), EAV);
       rval = FAIL;
     }
   } else
-  { send(e, NAME_report, NAME_status, CtoName("No changes need saving"), 0);
+  { send(e, NAME_report, NAME_status, CtoName("No changes need saving"), EAV);
   }
 
   return rval;
@@ -2834,7 +2834,7 @@ autoFillModeEditor(Editor e, Int arg)
     val = (UArg(arg) > 0 ? ON : OFF);
   assign(e, fill_mode, val);
   send(e, NAME_report, NAME_status,
-       CtoName("%sAuto Fill"), val == ON ? CtoName("") : CtoName("No "), 0);
+       CtoName("%sAuto Fill"), val == ON ? CtoName("") : CtoName("No "), EAV);
   succeed;
 }
 
@@ -2844,7 +2844,7 @@ setFillColumnEditor(Editor e, Int arg)
 { if ( isDefault(arg) )
     send(e, NAME_report, NAME_inform,
 	 CtoName("Left margin: %d, Right margin: %d"),
-	 e->left_margin, e->right_margin, 0);
+	 e->left_margin, e->right_margin, EAV);
   else if ( UArg(arg) > 0 )
     assign(e, right_margin, arg);
   else
@@ -3036,7 +3036,7 @@ findCutBufferEditor(Editor e, Int arg)
   }
   
   if ( (str = get(getDisplayGraphical((Graphical) e),
-		  NAME_cutBuffer, toInt(buffer), 0)) == FAIL )
+		  NAME_cutBuffer, toInt(buffer), EAV)) == FAIL )
   { send(e, NAME_report, NAME_warning,
 	 CtoName("Failed to get cut buffer %d"), toInt(buffer+1));
     fail;
@@ -3047,7 +3047,7 @@ findCutBufferEditor(Editor e, Int arg)
 			      &str->data,
 			      1, 'a', !ign, FALSE);
   if ( hit_start < 0 )
-  { send(e, NAME_report, NAME_warning, CtoName("Failed search: %s"), str, 0);
+  { send(e, NAME_report, NAME_warning, CtoName("Failed search: %s"), str, EAV);
     fail;
   }
     
@@ -3088,7 +3088,7 @@ beginIsearchEditor(Editor e, Name direction)
   assign(e, focus_function,   NAME_StartIsearch);
   attributeObject(e, NAME_SavedDisplayedCaret, e->text_cursor->displayed);
   selection_editor(e, e->caret, e->caret); /* clear the selection */
-  send(e, NAME_report, NAME_status, CtoName("isearch %s"), direction, 0);
+  send(e, NAME_report, NAME_status, CtoName("isearch %s"), direction, EAV);
 
   succeed;
 }
@@ -3120,7 +3120,7 @@ endIsearchEditor(Editor e)
 
     CaretEditor(e, toInt(caret));
     abortIsearchEditor(e);
-    send(e, NAME_report, NAME_status, NAME_, 0);
+    send(e, NAME_report, NAME_status, NAME_, EAV);
   }
 
   succeed;
@@ -3177,7 +3177,7 @@ executeSearchEditor(Editor e, Int chr)
 
   if ( notDefault(chr) )
   { if ( isNil(e->search_string) )
-      assign(e, search_string, newObject(ClassString, 0));
+      assign(e, search_string, newObject(ClassString, EAV));
 
     insertCharacterString(e->search_string, chr, DEFAULT, DEFAULT);
   }
@@ -3187,7 +3187,7 @@ executeSearchEditor(Editor e, Int chr)
   start = e->selection_start;
 
   if ( isNil(e->search_string) || l == 0 )
-  { send(e, NAME_report, NAME_warning, CtoName("No search string"), 0);
+  { send(e, NAME_report, NAME_warning, CtoName("No search string"), EAV);
     abortIsearchEditor(e);
     succeed;
   }
@@ -3201,7 +3201,7 @@ executeSearchEditor(Editor e, Int chr)
 			      times, 'a', !ign, FALSE);
   if ( hit_start < 0 )
   { send(e, NAME_report, NAME_warning,
-	 CtoName("Failing ISearch: %s"), e->search_string, 0);
+	 CtoName("Failing ISearch: %s"), e->search_string, EAV);
 
     if ( notDefault(chr) )
       backwardDeleteCharSearchStringEditor(e);
@@ -3305,7 +3305,7 @@ get_dabbrev_target(Editor e)
   
   for(n=valInt(sow); n < valInt(caret); n++)
   { if ( !tisalnum(tb->syntax, fetch_textbuffer(tb, n)) )
-    { send(e, NAME_report, NAME_warning, CtoName("Not at end of word"), 0);
+    { send(e, NAME_report, NAME_warning, CtoName("Not at end of word"), EAV);
       fail;
     }
   }
@@ -3327,7 +3327,7 @@ dabbrevExpandEditor(Editor e)
   if ( notNil(e->dabbrev_reject) )
     clearChain(e->dabbrev_reject);
   else
-    assign(e, dabbrev_reject, newObject(ClassChain, 0));
+    assign(e, dabbrev_reject, newObject(ClassChain, EAV));
   appendChain(e->dabbrev_reject, target);
 
   assign(e, dabbrev_pos, sub(e->caret, toInt(target->data.size+1)));
@@ -3439,7 +3439,7 @@ DabbrevExpandEditor(Editor e, EventId id)
         continue;
       }
 
-      send(e, NAME_report, NAME_warning, CtoName("No more hits"), 0);
+      send(e, NAME_report, NAME_warning, CtoName("No more hits"), EAV);
       assign(e, focus_function, NIL);
       succeed;
     }
@@ -3518,7 +3518,7 @@ scrollDownEditor(Editor e, Int arg)
     unit = NAME_page;
   }
 
-  return send(e, NAME_scrollVertical, NAME_backwards, unit, arg, 0);
+  return send(e, NAME_scrollVertical, NAME_backwards, unit, arg, EAV);
 }
 
 
@@ -3531,7 +3531,7 @@ scrollUpEditor(Editor e, Int arg)
     unit = NAME_page;
   }
 
-  return send(e, NAME_scrollVertical, NAME_forwards, unit, arg, 0);
+  return send(e, NAME_scrollVertical, NAME_forwards, unit, arg, EAV);
 }
 
 
@@ -3726,7 +3726,7 @@ getSelectionEditor(Editor e)
 
   if ( f != t )
   { Before(f, t);
-    answer(answerObject(ClassPoint, f, t, 0));
+    answer(answerObject(ClassPoint, f, t, EAV));
   }
   
   fail;
@@ -3770,7 +3770,7 @@ getSelectedEditor(Editor e)
 
 #define SelectionRegion(e, from, to) \
   { if ( e->selection_start == e->selection_end ) \
-    { send(e, NAME_report, NAME_warning, CtoName("No selection"), 0); \
+    { send(e, NAME_report, NAME_warning, CtoName("No selection"), EAV); \
       fail; \
     } \
     from = toInt(e->selection_start); \
@@ -3836,7 +3836,7 @@ selectionToCutBufferEditor(Editor e, Int arg)
 
   if ( buffer < 0 || buffer > 7 )
   { send(e, NAME_report, NAME_error,
-	 CtoName("Illegal cut buffer: %d"), toInt(buffer+1), 0);
+	 CtoName("Illegal cut buffer: %d"), toInt(buffer+1), EAV);
     fail;
   }
 
@@ -3844,7 +3844,7 @@ selectionToCutBufferEditor(Editor e, Int arg)
     fail;				/* no selection */
 
   return send(getDisplayGraphical((Graphical) e), NAME_cutBuffer,
-	      toInt(buffer), getSelectedEditor(e), 0);
+	      toInt(buffer), getSelectedEditor(e), EAV);
 }
 
 
@@ -3857,14 +3857,14 @@ insertCutBufferEditor(Editor e, Int arg)
 
   if ( buffer < 0 || buffer > 7 )
   { send(e, NAME_report, NAME_error,
-	 CtoName("Illegal cut buffer: %d"), toInt(buffer+1), 0);
+	 CtoName("Illegal cut buffer: %d"), toInt(buffer+1), EAV);
     fail;
   }
   
   if ( (str = get(getDisplayGraphical((Graphical) e),
-		  NAME_cutBuffer, toInt(buffer), 0)) == FAIL )
+		  NAME_cutBuffer, toInt(buffer), EAV)) == FAIL )
   { send(e, NAME_report, NAME_warning,
-	 CtoName("Failed to get cut buffer %d"), toInt(buffer+1), 0);
+	 CtoName("Failed to get cut buffer %d"), toInt(buffer+1), EAV);
     fail;
   }
 
@@ -4112,10 +4112,10 @@ loadEditor(Editor e, SourceSink file)
 
   clearTextBuffer(tb);
   if ( (rval = insertFileTextBuffer(tb, ZERO, file, ONE)) ) 
-  { Bool editable = (send(file, NAME_access, NAME_write, 0) ? ON : OFF);
+  { Bool editable = (send(file, NAME_access, NAME_write, EAV) ? ON : OFF);
 
     assign(e, file, file);
-    send(e, NAME_editable, editable, 0);
+    send(e, NAME_editable, editable, EAV);
     CaretEditor(e, ZERO);
     CmodifiedTextBuffer(tb, OFF);
     resetUndoTextBuffer(tb);
@@ -4135,7 +4135,7 @@ saveEditor(Editor e, SourceSink file)
   
   if ( instanceOfObject(file, ClassFile) &&
        existsFile((FileObj)file, DEFAULT) )
-    TRY(send(file, NAME_backup, 0));
+    TRY(send(file, NAME_backup, EAV));
 
   TRY(saveTextBuffer(e->text_buffer, file, DEFAULT, DEFAULT));
   assign(e, file, file);
@@ -4187,7 +4187,7 @@ getTabStopsEditor(Editor e)
 
 static status
 wrapEditor(Editor e, Name wrap)
-{ return send(e->image, NAME_wrap, wrap, 0);
+{ return send(e->image, NAME_wrap, wrap, EAV);
 }
 
 
@@ -4926,7 +4926,7 @@ TextKillRing(void)
 { static Vector	ring;			/* @text_kill_ring */
 
   if ( !ring )
-  { ring = globalObject(NAME_textKillRing, ClassVector, 0);
+  { ring = globalObject(NAME_textKillRing, ClassVector, EAV);
     fillVector(ring, NIL, ZERO, toInt(9));
   }
 

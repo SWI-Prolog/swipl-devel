@@ -190,7 +190,7 @@ void
 ws_init_cursor_font()
 { struct standardCursor *sc;
 
-  cursorNames = globalObject(NAME_cursorNames, ClassSheet, 0);
+  cursorNames = globalObject(NAME_cursorNames, ClassSheet, EAV);
 
   for(sc = standard_cursors; sc->name; sc++)
     valueSheet(cursorNames, (Any) CtoName(sc->name), toInt(sc->id));
@@ -487,11 +487,11 @@ X11Glyhps()
   if ( !glyphs )
   { FileObj f = answerObject(ClassFile,
 			     CtoName("$PCEHOME/lib/X11.crs"),
-			     NAME_binary, 0);
+			     NAME_binary, EAV);
     
-    if ( send(f, NAME_open, NAME_read, 0) )
+    if ( send(f, NAME_open, NAME_read, EAV) )
     { glyphs = read_cursor_glyphs(f->fd);
-      send(f, NAME_close, 0);
+      send(f, NAME_close, EAV);
     }
 
     if ( !glyphs )

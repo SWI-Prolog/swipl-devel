@@ -89,7 +89,6 @@ generate warnings on accidental use of them.
 		********************************/
 
 #define PCE_MAX_RECURSION	1000	/* maximum send() recursion */
-#define VA_PCE_MAX_ARGS		10	/* send(), etc. */
 #define METHOD_MAX_ARGS		16	/* maximum # args for C-method */
 #define FWD_PCE_MAX_ARGS	10	/* @arg1 ... @arg10 */
 #define SCAN_MAX_ARGS 		32	/* scanstr maximum arguments */
@@ -120,6 +119,20 @@ generate warnings on accidental use of them.
 #define ATEXIT_FIFO	0x2
 
 typedef void			(*atexit_function)(int status);
+
+		 /*******************************
+		 *	 VARARG FUNCTIONS	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Handling of send(Receiver, Method, ..., EAV),  etc. Note that EAV cannot
+be just 0, as  on  some  machines   int  and  pointers  are  promoted to
+different types when passed to a vararg function.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define VA_PCE_MAX_ARGS		10	/* send(), etc. */
+#define EAV			((Any)0) /* End of the list */
+
 
 		/********************************
 		*       SAVING OBJECTS		*

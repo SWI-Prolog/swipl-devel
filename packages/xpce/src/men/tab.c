@@ -48,7 +48,7 @@ computeLabelTab(Tab t)
     if ( t->label_size != minsize )
       setSize(t->label_size, toInt(w), toInt(h));
     else				/* do not write the class-variable! */
-      assign(t, label_size, newObject(ClassSize, toInt(w), toInt(h), 0));
+      assign(t, label_size, newObject(ClassSize, toInt(w), toInt(h), EAV));
   }
 
   succeed;
@@ -113,7 +113,7 @@ geometryTab(Tab t, Int x, Int y, Int w, Int h)
     if ( isDefault(h) )
       h = getHeightGraphical((Graphical) t);
 
-    size = newObject(ClassSize, w, h, 0);
+    size = newObject(ClassSize, w, h, EAV);
     qadSendv(t, NAME_size, 1, &size);
   }
 
@@ -304,7 +304,7 @@ eventTab(Tab t, EventObj ev)
 	 y > -valInt(t->label_size->h) &&
 	 x > valInt(t->label_offset) &&
 	 x < valInt(t->label_offset) + valInt(t->label_size->w) )
-    { send(t->device, NAME_onTop, t, 0); /* TBD: use gesture? */
+    { send(t->device, NAME_onTop, t, EAV); /* TBD: use gesture? */
       succeed;
     }
 
@@ -327,11 +327,11 @@ flashTab(Tab t, Area a, Int time)
   { a = answerObject(ClassArea,
 		     ZERO, ZERO,
 		     t->area->w,
-		     sub(t->area->h, t->label_size->h), 0);
+		     sub(t->area->h, t->label_size->h), EAV);
   } else
   { a = answerObject(ClassArea,
 		     t->label_offset, neg(t->label_size->h),
-		     t->label_size->w, t->label_size->h, 0);
+		     t->label_size->w, t->label_size->h, EAV);
   }
 
   flashDevice((Device)t, a, DEFAULT);

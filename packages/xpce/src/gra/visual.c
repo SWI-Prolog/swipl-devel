@@ -17,7 +17,7 @@ containedInVisual(VisualObj v, VisualObj super)
 { while( v != FAIL && notNil(v) )
   { if ( v == super )
       succeed;
-    v = get(v, NAME_containedIn, 0);
+    v = get(v, NAME_containedIn, EAV);
   }
 
   fail;
@@ -61,13 +61,13 @@ getMasterVisual(VisualObj v)
 
 status
 resetVisual(VisualObj v)
-{ Chain ch = get(v, NAME_contains, 0);
+{ Chain ch = get(v, NAME_contains, EAV);
 
   if ( ch != FAIL )
   { Cell cell;
     
     for_cell(cell, ch)
-      send(cell->value, NAME_reset, 0);
+      send(cell->value, NAME_reset, EAV);
 
     doneObject(ch);
   }
@@ -94,7 +94,7 @@ collectSubsVisual(VisualObj v, Chain ch, int root)
 status
 destroyVisual(VisualObj v)
 { if ( !onFlag(v, F_PROTECTED|F_FREED) )
-  { Chain subs = newObject(ClassChain, 0);
+  { Chain subs = newObject(ClassChain, EAV);
     VisualObj sub;
 
     collectSubsVisual(v, subs, TRUE);
@@ -118,7 +118,7 @@ getFrameVisual(VisualObj v)
   { if ( instanceOfObject(v, ClassFrame) )
       answer(v);
     if ( !instanceOfObject(v, ClassVisual) ||
-         !(v = get(v, NAME_containedIn, 0)) )
+         !(v = get(v, NAME_containedIn, EAV)) )
       fail;
   }
 }
@@ -143,7 +143,7 @@ reportVisual(VisualObj v, Name kind, CharArray fmt, int argc, Any *argv)
     copyArgs(argc, argv, &av[2]);
 
     if ( isNil(REPORTEE->value) )
-    { Chain visited = answerObject(ClassChain, v, 0);
+    { Chain visited = answerObject(ClassChain, v, EAV);
 
       withLocalVars(assignVar(REPORTEE, visited, NAME_local);
 		    rval = sendv(super, NAME_report, argc+2, av));
@@ -167,7 +167,7 @@ alertReporteeVisual(Any v)
     obj = getv(obj, NAME_containedIn, 0, NULL);
 
   if ( obj && !isNil(obj) )
-    send(obj, NAME_alert, 0);
+    send(obj, NAME_alert, EAV);
 
   succeed;
 }

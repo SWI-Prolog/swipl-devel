@@ -227,14 +227,14 @@ getConvertColour(Class class, Name name)
 	} 
 
 	answer(answerObject(ClassColour, name,
-			    toInt(r), toInt(g), toInt(b), 0));
+			    toInt(r), toInt(g), toInt(b), EAV));
       }
     }
 
     fail;
   }
 
-  answer(answerObject(ClassColour, name, 0));
+  answer(answerObject(ClassColour, name, EAV));
 }  
 
 
@@ -348,7 +348,7 @@ getHiliteColour(Colour c)
   b = b + (int)((float)(65535 - b) * hf);
   
   n2 = getAppendName(CtoName("hilited_"), c->name);
-  c2 = newObject(ClassColour, n2, toInt(r), toInt(g), toInt(b), 0);
+  c2 = newObject(ClassColour, n2, toInt(r), toInt(g), toInt(b), EAV);
   attributeObject(c, NAME_hilite, c2);
 
   answer(c2);
@@ -379,7 +379,7 @@ getReduceColour(Colour c)
   b = (int)((float)b * rf);
 
   n2 = getAppendName(CtoName("reduced_"), c->name);
-  c2 = newObject(ClassColour, n2, toInt(r), toInt(g), toInt(b), 0);
+  c2 = newObject(ClassColour, n2, toInt(r), toInt(g), toInt(b), EAV);
   attributeObject(c, NAME_reduce, c2);
 
   answer(c2);
@@ -494,7 +494,7 @@ makeClassColour(Class class)
   setLoadStoreFunctionClass(class, loadColour, storeColour);
   cloneStyleClass(class, NAME_none);
 
-  ColourTable = globalObject(NAME_colours, ClassHashTable, toInt(32), 0);
+  ColourTable = globalObject(NAME_colours, ClassHashTable, toInt(32), EAV);
   assign(ColourTable, refer, NAME_none);
 
   ws_colour_name(CurrentDisplay(NIL), NAME_black);

@@ -114,7 +114,7 @@ do_frame_wnd_proc(FrameObj fr,
 
       if ( (wpos->flags & SWP_NOSIZE|SWP_NOMOVE|SWP_NOZORDER) ==
 						   SWP_NOSIZE|SWP_NOMOVE )
-	send(fr, NAME_exposed, 0);
+	send(fr, NAME_exposed, EAV);
 /*
       Cprintf("hwnd = 0x%x, insertAfter = 0x%x, flags = 0x%x\n",
 	      wpos->hwnd, wpos->hwndInsertAfter,
@@ -147,7 +147,7 @@ do_frame_wnd_proc(FrameObj fr,
 	  if ( IsWindowVisible(hwnd) )
 	  { Cell cell;
 
-	    send(fr, NAME_resize, 0);
+	    send(fr, NAME_resize, EAV);
 	    SetWindowText(hwnd, strName(fr->label));
 	    assign(fr, status, wParam == SIZE_MAXIMIZED ? NAME_fullScreen
 		   					: NAME_window);
@@ -192,23 +192,23 @@ do_frame_wnd_proc(FrameObj fr,
       { for_cell(cell, fr->members)
 	{ extern void unlink_changes_data_window(PceWindow sw);
 
-	  send(cell->value, NAME_displayed, ON, 0);
+	  send(cell->value, NAME_displayed, ON, EAV);
 	  ComputeGraphical(cell->value);
 	  unlink_changes_data_window(cell->value);
 	}
 
-	send(fr, NAME_mapped, ON, 0);
+	send(fr, NAME_mapped, ON, EAV);
 
 	assign(fr, status, NAME_window); /* Or full_screen? */
 	ws_set_icon_frame(fr);
       } else				/* show off */
       { for_cell(cell, fr->members)
 	{ if ( !onFlag(cell->value, F_FREED|F_FREEING) )
-	    send(cell->value, NAME_displayed, OFF, 0);
+	    send(cell->value, NAME_displayed, OFF, EAV);
 	}
 
 	if ( !isFreedObj(fr) || isFreeingObj(fr) )
-	  send(fr, NAME_mapped, OFF, 0);
+	  send(fr, NAME_mapped, OFF, EAV);
 
 	assign(fr, status, NAME_hidden);
       }
@@ -220,7 +220,7 @@ do_frame_wnd_proc(FrameObj fr,
     case WM_KILLFOCUS:
     { Bool val = (message == WM_SETFOCUS ? ON : OFF);
 
-      send(fr, NAME_inputFocus, val, 0);
+      send(fr, NAME_inputFocus, val, EAV);
       goto repaint;
     }
 
@@ -311,7 +311,7 @@ do_frame_wnd_proc(FrameObj fr,
 			    TypeCode, fr)) )
       { DEBUG(NAME_close, Cprintf("Running WM_DELETE_WINDOW message %s\n",
 				  pp(msg)));
-	forwardReceiverCode(msg, fr, MainWindow(fr), 0);
+	forwardReceiverCode(msg, fr, MainWindow(fr), EAV);
 	DEBUG(NAME_close, Cprintf("Finished WM_DELETE_WINDOW. fr=%s, msg=%s\n",
 				  pp(fr), pp(msg)));
       }
@@ -377,7 +377,7 @@ do_frame_wnd_proc(FrameObj fr,
 	PceEventInWindow(hwnd);
 
       addCodeReference(ev);
-      rval = send(fr, NAME_event, ev, 0);
+      rval = send(fr, NAME_event, ev, EAV);
       delCodeReference(ev);
       freeableObj(ev);
     }
@@ -494,7 +494,7 @@ keyboard_event_frame(FrameObj fr, Any id,
   { pt.x -= valInt(sw->area->x) + valInt(sw->pen);
     pt.y -= valInt(sw->area->y) + valInt(sw->pen);
   }
-  ev = answerObject(ClassEvent, id, receiver, toInt(pt.x), toInt(pt.y), 0);
+  ev = answerObject(ClassEvent, id, receiver, toInt(pt.x), toInt(pt.y), EAV);
   m = valInt(ev->buttons);
   m &= ~(BUTTON_shift|BUTTON_control|BUTTON_meta);
   m |= bmask;
@@ -735,7 +735,7 @@ ws_place_frame(FrameObj fr)
   last_x = max(xborder, last_x);
   last_y = max(yborder, last_y);
 
-  send(fr, NAME_set, toInt(last_x), toInt(last_y), 0);
+  send(fr, NAME_set, toInt(last_x), toInt(last_y), EAV);
 }
 
 
@@ -1071,7 +1071,7 @@ ws_image_of_frame(FrameObj fr)
 
     DEBUG(NAME_image, Cprintf("hdc = %d, size = %dx%d\n", (int) hdc, w, h));
     image = answerObject(ClassImage, NIL,
-			 toInt(w), toInt(h), NAME_pixmap, 0);
+			 toInt(w), toInt(h), NAME_pixmap, EAV);
     assign(image, display, fr->display);
     bm = ZCreateCompatibleBitmap(hdc, w, h);
     hdcimg = CreateCompatibleDC(hdc);

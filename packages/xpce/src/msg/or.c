@@ -17,7 +17,7 @@ initialiseOrv(Or or, int argc, Any *argv)
 { int n;
 
   initialiseCode((Code) or);
-  assign(or, members,   newObject(ClassChain, 0));
+  assign(or, members,   newObject(ClassChain, EAV));
 
   for(n=0; n<argc; n++)
     appendChain(or->members, argv[n]);

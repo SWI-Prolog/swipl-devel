@@ -21,7 +21,7 @@ initialiseResizeGesture(ResizeGesture g, Name button, Modifier modifier)
 
   assign(g, h_mode, NAME_keep);
   assign(g, v_mode, NAME_keep);
-  assign(g, min_size, ms != FAIL ? ms : newObject(ClassSize, 0));
+  assign(g, min_size, ms != FAIL ? ms : newObject(ClassSize, EAV));
   
   succeed;
 }
@@ -91,7 +91,7 @@ setCursorResizeGesture(ResizeGesture g, PceWindow sw)
   for(i=0; i<8; i++)
     if ( g->h_mode == cursors[i].h_mode &&
 	 g->v_mode == cursors[i].v_mode )
-    { send(sw, NAME_focusCursor, cursors[i].cursor, 0);
+    { send(sw, NAME_focusCursor, cursors[i].cursor, EAV);
       succeed;
     }
     
@@ -127,7 +127,7 @@ setPointerResizeGesture(ResizeGesture g, Graphical gr, EventObj ev)
       NOTREACHED;
   }
     
-  pos = tempObject(ClassPoint, px, py, 0);
+  pos = tempObject(ClassPoint, px, py, EAV);
   pointerGraphical(gr, pos);
   considerPreserveObject(pos);
 
@@ -202,7 +202,7 @@ dragResizeGesture(ResizeGesture g, EventObj ev)
     fail;
   }
 
-  return send(gr, NAME_doSet, toInt(sx), toInt(sy), toInt(sw), toInt(sh), 0);
+  return send(gr, NAME_doSet, toInt(sx), toInt(sy), toInt(sw), toInt(sh), EAV);
 }
 
 

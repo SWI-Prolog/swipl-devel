@@ -159,7 +159,7 @@ subCharArray(CharArray n1, CharArray n2, Bool ign_case)
 
 static CharArray
 getModifyCharArray(CharArray n, CharArray n2)
-{ answer(answerObject(classOfObject(n), n2, 0));
+{ answer(answerObject(classOfObject(n), n2, EAV));
 }
 
 
@@ -174,7 +174,7 @@ ModifiedCharArray(CharArray n, String buf)
     return (CharArray) StringToString(buf);	/* ??? */
   else
   { CharArray scratch = StringToScratchCharArray(buf);
-    CharArray rval = get(n, NAME_modify, scratch, 0);
+    CharArray rval = get(n, NAME_modify, scratch, EAV);
 
     doneScratchCharArray(scratch);
     answer(rval);
@@ -322,7 +322,7 @@ getSplitCharArray(CharArray in, CharArray br)
 { String s1 = &in->data;
   int size = s1->size;
   int i=0, last=0;
-  Chain ch = answerObject(ClassChain, 0);
+  Chain ch = answerObject(ClassChain, EAV);
   string buf;
 
   str_cphdr(&buf, s1);
@@ -781,7 +781,7 @@ doneScratchCharArray(CharArray n)
 CharArray
 CtoCharArray(char *s)
 { CharArray name = CtoScratchCharArray(s);
-  CharArray rval = answerObject(ClassCharArray, name, 0);
+  CharArray rval = answerObject(ClassCharArray, name, EAV);
   
   doneScratchCharArray(name);
   return rval;
@@ -791,7 +791,7 @@ CtoCharArray(char *s)
 static CharArray
 stringToCharArray(String s)
 { CharArray name = StringToScratchCharArray(s);
-  CharArray rval = answerObject(ClassCharArray, name, 0);
+  CharArray rval = answerObject(ClassCharArray, name, EAV);
   
   doneScratchCharArray(name);
   return rval;

@@ -123,7 +123,7 @@ cloneRegex(Regex re, Regex clone)
 
 static Regex
 getConvertRegex(Class class, Any name)
-{ answer(answerObject(ClassRegex, name, 0));
+{ answer(answerObject(ClassRegex, name, EAV));
 }
 
 
@@ -596,7 +596,7 @@ forAllRegex(Regex re, Any obj, Code code, Int from, Int to)
   { int oe = re->registers->end[0];
     int ne;
 
-    TRY(forwardCode(code, re, obj, 0));
+    TRY(forwardCode(code, re, obj, EAV));
 
     ne = re->registers->end[0];
     if ( ne == valInt(from) && oe == valInt(from) )

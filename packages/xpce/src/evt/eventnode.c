@@ -34,7 +34,7 @@ sonEventNode(EventNodeObj n, EventNodeObj son)
     return errorPce(son, NAME_alreadyHasParent);
 
   if ( isNil(n->sons) )
-    assign(n, sons, newObject(ClassChain, 0));
+    assign(n, sons, newObject(ClassChain, EAV));
 
   appendChain(n->sons, son);
   son->parent = n;

@@ -121,7 +121,7 @@ ws_realise_frame() sends ->geometry to all windows.
 
   if ( notDefault(parent) )		/* make a sub-window */
   { XtManageChild(w);
-    send(sw, NAME_displayed, ON, 0);
+    send(sw, NAME_displayed, ON, EAV);
   }
 
   succeed;
@@ -211,9 +211,9 @@ event_window(Widget w, XtPointer xsw, XtPointer xevent)
   { switch( event->xany.type )
     { case ButtonRelease:
       case KeyPress:
-	send(fr, NAME_bell, 0);
+	send(fr, NAME_bell, EAV);
       case ButtonPress:
-	send(bfr, NAME_expose, 0);
+	send(bfr, NAME_expose, EAV);
     }
 
     return;
@@ -252,7 +252,7 @@ expose_window(Widget w, XtPointer xsw, XtPointer xregion)
   XClipBox(region, &rect);
   ServiceMode(is_service_window(sw),
 	      a = tempObject(ClassArea, toInt(rect.x), toInt(rect.y),
-			     toInt(rect.width), toInt(rect.height), 0);
+			     toInt(rect.width), toInt(rect.height), EAV);
 	      redrawWindow(sw, a);
 	      considerPreserveObject(a));
 }
@@ -289,7 +289,7 @@ destroy_window(Widget w, XtPointer xsw, XtPointer data)
 void
 ws_grab_pointer_window(PceWindow sw, Bool val)
 { if ( isNil(grabbedWindows) )
-    grabbedWindows = globalObject(NAME_GrabbedWindows, ClassChain, 0);
+    grabbedWindows = globalObject(NAME_GrabbedWindows, ClassChain, EAV);
 
   if ( widgetWindow(sw) != NULL )
   { if ( val == ON )
@@ -385,7 +385,7 @@ do_grab_window(PceWindow sw)
 void
 ws_grab_pointer_window(PceWindow sw, Bool val)
 { if ( isNil(grabbedWindows) )
-    grabbedWindows = globalObject(NAME_GrabbedWindows, ClassChain, 0);
+    grabbedWindows = globalObject(NAME_GrabbedWindows, ClassChain, EAV);
 
   if ( widgetWindow(sw) != NULL )
   { if ( val == ON )

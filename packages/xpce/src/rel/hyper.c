@@ -168,7 +168,7 @@ static status
 unlinkFromChainHyper(Hyper h)
 { if ( isObject(h->to) && !isFreeingObj(h->to) )
   { if ( hasSendMethodObject(h->to, NAME_destroy) )
-      send(h->to, NAME_destroy, 0);
+      send(h->to, NAME_destroy, EAV);
     else
       freeObject(h->to);
   }
@@ -181,7 +181,7 @@ static status
 unlinkToChainHyper(Hyper h)
 { if ( isObject(h->from) && !isFreeingObj(h->from) )
   { if ( hasSendMethodObject(h->from, NAME_destroy) )
-      send(h->from, NAME_destroy, 0);
+      send(h->from, NAME_destroy, EAV);
     else
       freeObject(h->from);
   }

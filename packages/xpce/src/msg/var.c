@@ -158,7 +158,7 @@ makeClassVar(Class class)
 { declareClass(class, &var_decls);
   saveStyleClass(class, NAME_external);
 
-  VarTable = globalObject(NAME_variables, ClassHashTable, 0);
+  VarTable = globalObject(NAME_variables, ClassHashTable, EAV);
   initVars();
 
   succeed;
@@ -167,13 +167,13 @@ makeClassVar(Class class)
 
 static Var
 initVar(Name name, char *type, Any value)
-{ return globalObject(name, ClassVar, CtoType(type), name, value, 0);
+{ return globalObject(name, ClassVar, CtoType(type), name, value, EAV);
 }
 
 
 static Var
 initGrVar(Name ref, Name name)
-{ return globalObject(ref, ClassVar, TypeInt, name, ZERO, 0);
+{ return globalObject(ref, ClassVar, TypeInt, name, ZERO, EAV);
 }
 
 

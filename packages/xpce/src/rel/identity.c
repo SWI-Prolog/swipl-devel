@@ -36,8 +36,8 @@ forwardsIdentity(Identity id, Any from, Any to)
 { Any value;
   status rval;
 
-  TRY(value = get(from, id->from, 0));
-  rval = send(to, id->to, value, 0);
+  TRY(value = get(from, id->from, EAV));
+  rval = send(to, id->to, value, EAV);
   if ( isObject(value) )
     doneObject(value);
   
@@ -50,8 +50,8 @@ backwardsIdentity(Identity id, Any from, Any to)
 { Any value;
   status rval;
 
-  TRY(value = get(to, id->to, 0));
-  rval = send(from, id->from, value, 0);
+  TRY(value = get(to, id->to, EAV));
+  rval = send(from, id->from, value, EAV);
   if ( isObject(value) )
     doneObject(value);
   

@@ -159,17 +159,17 @@ geometryLBox(LBox lb, Int x, Int y, Int w, Int h)
 static status
 appendLBox(LBox lb, Graphical label, Graphical item)
 { if ( isDefault(label) )
-    label = get(lb, NAME_newLabel, 0);
+    label = get(lb, NAME_newLabel, EAV);
   if ( isDefault(item) )
-    item  = get(lb, NAME_newItem, 0);
+    item  = get(lb, NAME_newItem, EAV);
 
   if ( item && (item = checkType(item, TypeGraphical, lb)) )
   { if ( label && (label = checkType(label, TypeGraphical, lb)) )
-    { send(lb, NAME_display, label, 0);
-      send(lb, NAME_display, item,  0);
-      newObject(ClassChainHyper, label, item, NAME_item, NAME_label, 0);
+    { send(lb, NAME_display, label, EAV);
+      send(lb, NAME_display, item,  EAV);
+      newObject(ClassChainHyper, label, item, NAME_item, NAME_label, EAV);
     } else
-      send(lb, NAME_display, item,  0);
+      send(lb, NAME_display, item,  EAV);
 
     succeed;
   }
@@ -186,7 +186,7 @@ getNewLabelLBox(LBox lb)
 
 static Graphical
 getNewItemLBox(LBox lb)
-{ answer(answerObject(ClassParBox, getItemWidthLBox(lb), 0));
+{ answer(answerObject(ClassParBox, getItemWidthLBox(lb), EAV));
 }
 
 

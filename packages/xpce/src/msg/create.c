@@ -53,7 +53,7 @@ argumentCreate(Create c, Int n, Any val)
     fail;
 
   if ( isNil(c->arguments) )
-    assign(c, arguments, newObject(ClassVector, 0));
+    assign(c, arguments, newObject(ClassVector, EAV));
 
   return elementVector(c->arguments, n, val);
 }

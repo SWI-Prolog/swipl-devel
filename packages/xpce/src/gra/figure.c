@@ -225,7 +225,7 @@ shadowFigure(Figure f, Int shadow)
 							     : f->background,
 					DEFAULT, /* edge colours */
 					DEFAULT,
-					NAME_shadow, 0));
+					NAME_shadow, EAV));
 }
 
 

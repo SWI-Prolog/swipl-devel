@@ -297,7 +297,7 @@ ws_load_windows_ico_file(Image image)
       if ( !info.fIcon )
 	assign(image, hot_spot, newObject(ClassPoint,
 					  toInt(info.xHotspot),
-					  toInt(info.yHotspot), 0));
+					  toInt(info.yHotspot), EAV));
 
       if ( info.hbmColor && GetObject(info.hbmColor, sizeof(bm), &bm) )
       { HBITMAP copy = CopyImage(info.hbmColor, IMAGE_BITMAP, 
@@ -346,7 +346,7 @@ ws_load_windows_ico_file(Image image)
 
 	  assign(image, mask, newObject(ClassImage, NIL,
 					image->size->w, image->size->h,
-					NAME_bitmap, 0));
+					NAME_bitmap, EAV));
 
 	  registerXrefObject(image, image->display, bimg);
 	  registerXrefObject(image->mask, image->display, bmsk);
@@ -365,7 +365,7 @@ ws_load_windows_ico_file(Image image)
 
 	assign(image, mask, newObject(ClassImage, NIL,
 				      image->size->w, image->size->h,
-				      NAME_bitmap, 0));
+				      NAME_bitmap, EAV));
 	mask = image->mask;
 
 	assign(mask->size, w, toInt(bm.bmWidth));
@@ -455,7 +455,7 @@ out:
 
 Image
 ws_std_xpm_image(Name name, Image *global, char **data)
-{ Image image = globalObject(name, ClassImage, name, ZERO, ZERO, 0);
+{ Image image = globalObject(name, ClassImage, name, ZERO, ZERO, EAV);
   XpmImage img;
   XpmInfo info;
 
@@ -494,7 +494,7 @@ ws_attach_xpm_image(Image image, XpmImage* xpmimg, XpmInfo* xpminfo)
   if ( xpminfo->valuemask & XpmHotspot )
   { assign(image, hot_spot, newObject(ClassPoint,
 				      toInt(xpminfo->x_hotspot),
-				      toInt(xpminfo->y_hotspot), 0));
+				      toInt(xpminfo->y_hotspot), EAV));
   } else
   { assign(image, hot_spot, NIL);
   }
@@ -601,7 +601,7 @@ palette.
   { assign(image, mask, newObject(ClassImage, NIL,
 				  toInt(shape->width),
 				  toInt(shape->height),
-				  NAME_bitmap, 0));
+				  NAME_bitmap, EAV));
     registerXrefObject(image->mask, d, shape->bitmap);
     XImageFree(shape);
   }
@@ -1029,7 +1029,7 @@ ws_resize_image(Image image, Int w, Int h)
 Image
 ws_scale_image(Image image, int w, int h)
 { Image copy = answerObject(ClassImage, NIL,
-			    toInt(w), toInt(h), image->kind, 0);
+			    toInt(w), toInt(h), image->kind, EAV);
   DisplayObj d = image->display;
 
   if ( isNil(d) )
@@ -1126,7 +1126,7 @@ buildIndex(unsigned width, unsigned rwidth)
 Image
 ws_scale_image(Image image, int w, int h)
 { Image copy = answerObject(ClassImage, NIL,
-			    toInt(w), toInt(h), image->kind, 0);
+			    toInt(w), toInt(h), image->kind, EAV);
   DisplayObj d = image->display;
 
   if ( isNil(d) )
@@ -1317,7 +1317,7 @@ ws_rotate_image(Image image, int a)	/* 0<angle<360 */
   }
 
   copy = answerObject(ClassImage, NIL,
-		      toInt(w), toInt(h), image->kind, 0);
+		      toInt(w), toInt(h), image->kind, EAV);
   d = image->display;
 
   if ( isNil(d) )
@@ -1439,7 +1439,7 @@ ws_monochrome_image(Image image)
   Int w = image->size->w;
   Int h = image->size->h;
 
-  mono = answerObject(ClassImage, NIL, w, h, NAME_bitmap, 0);
+  mono = answerObject(ClassImage, NIL, w, h, NAME_bitmap, EAV);
   d_image(mono, 0, 0, valInt(w), valInt(h));
   d_modify();
   r_image(image, 0, 0, 0, 0, valInt(w), valInt(h), OFF);
@@ -1701,9 +1701,9 @@ black_mask(int w, int h)
 { static Image img = NULL;
 
   if ( ! img )
-  { img = newObject(ClassImage, NIL, toInt(w), toInt(h), NAME_bitmap, 0);
+  { img = newObject(ClassImage, NIL, toInt(w), toInt(h), NAME_bitmap, EAV);
     lockObject(img, ON);
-    send(img, NAME_invert, 0);
+    send(img, NAME_invert, EAV);
   }
 
   return img;
@@ -1724,8 +1724,8 @@ ws_icon_from_image(Image img)
 #ifdef O_SCALE_ICON
     if ( valInt(img->size->w) != iw || valInt(img->size->h) != ih )
       image = get(img, NAME_scale,
-		  answerObject(ClassSize, toInt(iw), toInt(ih), 0),
-		  0);
+		  answerObject(ClassSize, toInt(iw), toInt(ih), EAV),
+		  EAV);
     else
 #endif
       image = img;
@@ -1875,7 +1875,7 @@ ws_system_brushes(DisplayObj d)
 
     if ( brush )
     { Image image = globalObject(name, ClassImage, name,
-				 toInt(16), toInt(16), NAME_pixmap, 0);
+				 toInt(16), toInt(16), NAME_pixmap, EAV);
       assign(image, access, NAME_read);
       declareWindowsBrush(image, brush);
     } else
@@ -1913,7 +1913,7 @@ ws_system_images()
 			   toInt(bitmap.bmWidth),
 			   toInt(bitmap.bmHeight),
 			   kind,
-			   0);
+			   EAV);
       assign(image, depth, toInt(depth));
       registerXrefObject(image, d, (void *)bm);
       assign(image, access, NAME_read);

@@ -83,7 +83,7 @@ getConvertElevation(Any receiver, Any val)
     return e;
 
   if ( (i = toInteger(val)) )
-    answer(answerObject(ClassElevation, i, i, 0));
+    answer(answerObject(ClassElevation, i, i, EAV));
 
   fail;
 }
@@ -165,7 +165,7 @@ getModifyElevation(Elevation e, Name att, Any val)
     else if ( att == NAME_background ) bg = val;
     
     answer(answerObject(ClassElevation, NIL, height, colour,
-			relief, shadow, kind, bg, 0));
+			relief, shadow, kind, bg, EAV));
   } else
   { attributeElevation(e, att, val);
     answer(e);
@@ -259,7 +259,7 @@ makeClassElevation(Class class)
 
   cloneStyleClass(class, NAME_none);
 
-  ElevationTable = globalObject(NAME_elevations, ClassHashTable, 0);
+  ElevationTable = globalObject(NAME_elevations, ClassHashTable, EAV);
 
   succeed;
 }

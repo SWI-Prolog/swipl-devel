@@ -305,13 +305,13 @@ endYLine(Line ln, Int y)
 
 static Point
 getStartLine(Line ln)
-{ answer(answerObject(ClassPoint, ln->start_x, ln->start_y, 0));
+{ answer(answerObject(ClassPoint, ln->start_x, ln->start_y, EAV));
 }
 
 
 static Point
 getEndLine(Line ln)
-{ answer(answerObject(ClassPoint, ln->end_x, ln->end_y, 0));
+{ answer(answerObject(ClassPoint, ln->end_x, ln->end_y, EAV));
 }
 
 
@@ -461,7 +461,7 @@ getIntersectionLine(Line l1, Line l2)
     xy = a1 + rfloat(b1 * xx);
   }
 
-  answer(answerObject(ClassPoint, toInt(rfloat(xx)), toInt(xy), 0));
+  answer(answerObject(ClassPoint, toInt(rfloat(xx)), toInt(xy), EAV));
 }
 
 

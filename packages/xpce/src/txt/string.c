@@ -20,7 +20,7 @@ static status	CsetString(StringObj str, char *txt);
 StringObj
 StringToString(String s)
 { CharArray c = StringToScratchCharArray(s);
-  StringObj str = answerObject(ClassString, name_procent_s, c, 0);
+  StringObj str = answerObject(ClassString, name_procent_s, c, EAV);
   doneScratchCharArray(c);
 
   return str;
@@ -30,7 +30,7 @@ StringToString(String s)
 StringObj
 CtoString(const char *s)
 { CharArray c = CtoScratchCharArray(s);
-  StringObj str =  answerObject(ClassString, name_procent_s, c, 0);
+  StringObj str =  answerObject(ClassString, name_procent_s, c, EAV);
   doneScratchCharArray(c);
 
   return str;
@@ -43,7 +43,7 @@ staticCtoString(const char *s)
   StringObj str;
 
   c->data.readonly = TRUE;
-  str = answerObject(ClassString, name_procent_s, c, 0);
+  str = answerObject(ClassString, name_procent_s, c, EAV);
   doneScratchCharArray(c);
 
   return str;
@@ -53,7 +53,7 @@ staticCtoString(const char *s)
 StringObj
 CtoTempString(char *s)
 { CharArray c = CtoScratchCharArray(s);
-  StringObj str =  tempObject(ClassString, name_procent_s, c, 0);
+  StringObj str =  tempObject(ClassString, name_procent_s, c, EAV);
   doneScratchCharArray(c);
 
   return str;
@@ -62,7 +62,7 @@ CtoTempString(char *s)
 
 static StringObj
 getModifyString(StringObj str, CharArray value)
-{ answer(answerObject(classOfObject(str), name_procent_s, value, 0));
+{ answer(answerObject(classOfObject(str), name_procent_s, value, EAV));
 }
 
 
@@ -122,7 +122,7 @@ bitsPerCharacterString(StringObj str, Int bits)
 
 static StringObj
 getCopyString(StringObj s)
-{ answer(answerObject(classOfObject(s), name_procent_s, s, 0));
+{ answer(answerObject(classOfObject(s), name_procent_s, s, EAV));
 }
 
 
@@ -131,7 +131,7 @@ convertString(Class class, Any obj)
 { if ( instanceOfObject(obj, ClassString) ) 
     answer((StringObj) obj);
   else if ( instanceOfObject(obj, ClassCharArray) )
-    answer(answerObject(ClassString, name_procent_s, obj, 0));
+    answer(answerObject(ClassString, name_procent_s, obj, EAV));
   else
   { char *s = toCharp(obj);
 
@@ -528,7 +528,7 @@ setString(StringObj str, String s)
     str->data = *s;
 
   if ( notNil(class->changed_messages) )
-    changedObject(str, NAME_text, 0);
+    changedObject(str, NAME_text, EAV);
 
   succeed;
 }

@@ -191,8 +191,8 @@ syncSend(Any rec, Name sel, int argc, const Any *argv)
   t = newObject(ClassTimer, ZERO,
 		newObject(ClassAnd,
 			  newObjectv(ClassMessage, ac, av),
-			  newObject(ClassMessage, RECEIVER, NAME_free, 0),
-			  0), 0);
+			  newObject(ClassMessage, RECEIVER, NAME_free, EAV),
+			  EAV), EAV);
 
   statusTimer(t, NAME_once);
 }
@@ -408,7 +408,7 @@ initEnvironment(Process p)
 
     for_cell(cell, p->environment->attributes)
     { Attribute a = cell->value;
-      StringObj str = answerObject(ClassString, fmt, a->name, a->value, 0);
+      StringObj str = answerObject(ClassString, fmt, a->name, a->value, EAV);
 
       environ[i++] = save_string(strName(str));
       doneObject(str);
@@ -423,7 +423,7 @@ getEnvironmentProcess(Process p)
 { if ( isNil(p->environment) )
   { char **env = environ;
 
-    assign(p, environment, newObject(ClassSheet, 0));
+    assign(p, environment, newObject(ClassSheet, EAV));
     for(; *env; env++)
     { char buf[LINESIZE];
       char *q;
@@ -747,7 +747,7 @@ static status
 endOfFileProcess(Process p)
 { DEBUG(NAME_stream, Cprintf("Process %s: end of input\n", pp(p)));
 
-  send(p, NAME_exited, ZERO, 0);
+  send(p, NAME_exited, ZERO, EAV);
 
   succeed;
 }
@@ -868,7 +868,7 @@ status
 makeClassProcess(Class class)
 { declareClass(class, &process_decls);
 
-  ProcessChain = globalObject(NAME_runningProcesses, ClassChain, 0);
+  ProcessChain = globalObject(NAME_runningProcesses, ClassChain, EAV);
 
   succeed;
 }

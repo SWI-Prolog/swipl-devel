@@ -20,7 +20,7 @@ static Int	getCellIndexChain(Chain ch, Cell c);
 
 #define ChangedChain(ch, op, ctx) \
 	if ( onFlag(ch, F_INSPECT) && notNil(ClassChain->changed_messages) ) \
-	  changedObject(ch, op, ctx, 0)
+	  changedObject(ch, op, ctx, EAV)
 
 /* (JW)	Class chain is not a truely object oriented class as its internal
 	representation as cell is no class.  assign() is used such that
@@ -75,7 +75,7 @@ initialiseChainv(Chain ch, int argc, Any *argv)
 
 static Chain
 getConvertChain(Any ctx, Vector v)
-{ Chain ch = answerObject(ClassChain, 0);
+{ Chain ch = answerObject(ClassChain, EAV);
   int n = valInt(v->size);
   Any *e = v->elements;
 
@@ -670,7 +670,7 @@ getFindChain(Chain ch, Code code)
 
 Chain
 getFindAllChain(Chain ch, Code code)
-{ Chain result = answerObject(ClassChain, 0);
+{ Chain result = answerObject(ClassChain, EAV);
   Cell cell;
   Any av[2];
   int i = 1;
@@ -689,7 +689,7 @@ getFindAllChain(Chain ch, Code code)
 
 static Chain
 getMapChain(Chain ch, Function f)
-{ Chain result = answerObject(ClassChain, 0);
+{ Chain result = answerObject(ClassChain, EAV);
   Any av[2];
   int i = 1;
   Cell cell;
@@ -837,7 +837,7 @@ emptyChain(Chain ch)
 Chain
 getCopyChain(Chain ch)
 { if ( notNil(ch) )
-  { Chain r = answerObject(classOfObject(ch), 0); /* Same class */
+  { Chain r = answerObject(classOfObject(ch), EAV); /* Same class */
     Cell cell;
 
     for_cell(cell, ch)
@@ -855,7 +855,7 @@ getMergeChain(Chain ch, Chain ch2)
 { register Cell cell;
   Chain r;
 
-  r = answerObject(ClassChain, 0);
+  r = answerObject(ClassChain, EAV);
 
   for_cell(cell, ch)
     appendChain(r, cell->value);
@@ -871,7 +871,7 @@ getUnionChain(Chain ch, Chain ch2)
 { register Cell cell;
   Chain r;
 
-  r = answerObject(classOfObject(ch), 0);
+  r = answerObject(classOfObject(ch), EAV);
 
   for_cell(cell, ch)
   { if (memberChain(r, cell->value) != FAIL)
@@ -1049,7 +1049,7 @@ getCompleteNameChain(Chain ch, CharArray prefix, Function map,
 	    (ignore_case != ON && str_prefix(&prt, &prefix->data))) &&
 	   prt.size < LINESIZE ) /* hit */
       { if ( isNil(matches) )
-	{ matches = answerObject(ClassChain, obj, 0);
+	{ matches = answerObject(ClassChain, obj, EAV);
 	  str_cpy(common, &prt);
 	} else
 	{ if ( ignore_case == ON )
@@ -1068,7 +1068,7 @@ getCompleteNameChain(Chain ch, CharArray prefix, Function map,
 
   if ( notNil(matches) )
   { str_pad(common);
-    answer(answerObject(ClassTuple, matches, StringToString(common), 0));
+    answer(answerObject(ClassTuple, matches, StringToString(common), EAV));
   } else
     fail;
 }
@@ -1079,7 +1079,7 @@ getIntersectionChain(Chain ch, Chain ch2)
 { register Cell cell;
   Chain r;
   
-  r = answerObject(classOfObject(ch), 0);
+  r = answerObject(classOfObject(ch), EAV);
   
   for_cell(cell, ch)
   { if (memberChain(ch2, cell->value) != FAIL)
@@ -1127,7 +1127,7 @@ getTailChain(Chain ch)
 static Chain
 getSubChain(Chain ch, Int start, Int end)
 { int f, t;
-  Chain r = answerObject(classOfObject(ch), 0);
+  Chain r = answerObject(classOfObject(ch), EAV);
   int i = 0;
   Cell cell;
 

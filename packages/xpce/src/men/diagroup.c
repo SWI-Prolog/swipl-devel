@@ -183,7 +183,7 @@ geometryDialogGroup(DialogGroup g, Int x, Int y, Int w, Int h)
 	h = toInt(valInt(h) + ly);
     }
 
-    size = newObject(ClassSize, w, h, 0);
+    size = newObject(ClassSize, w, h, EAV);
     qadSendv(g, NAME_size, 1, &size);
     doneObject(size);
   }
@@ -206,7 +206,7 @@ sizeDialogGroup(DialogGroup g, Size s)
   else
     assign(g, size, s);
   
-  send(g, NAME_layoutDialog, 0);
+  send(g, NAME_layoutDialog, EAV);
 
   return requestComputeGraphical(g, DEFAULT);
 }
@@ -235,7 +235,7 @@ gapDialogGroup(DialogGroup g, Size gap)
 { if ( !equalSize(gap, g->gap) )
   { assign(g, gap, gap);
     if ( isNil(g->request_compute) && notNil(g->device) )
-      send(g, NAME_layoutDialog, 0);
+      send(g, NAME_layoutDialog, EAV);
   }
 
   succeed;
@@ -250,7 +250,7 @@ borderDialogGroup(DialogGroup g, Size border)
 	!equalSize(border, g->border)) )
   { assign(g, border, border);
     if ( isNil(g->request_compute) && notNil(g->device) )
-      send(g, NAME_layoutDialog, 0);
+      send(g, NAME_layoutDialog, EAV);
   }
 
   succeed;
@@ -268,7 +268,7 @@ nameDialogGroup(DialogGroup g, Name name)
   assign(g, name, name);
 
   if ( notNil(g->label) &&
-       (label = get(g, NAME_labelName, name, 0)) )
+       (label = get(g, NAME_labelName, name, EAV)) )
     labelDialogGroup(g, label ? label : name);
 
   succeed;
@@ -336,7 +336,7 @@ labelFormatDialogGroup(DialogGroup g, Name fmt)
 
 static CharArray
 getLabelNameDialogGroup(DialogGroup g, Name name)
-{ Any suffix, label = get(name, NAME_labelName, 0);
+{ Any suffix, label = get(name, NAME_labelName, EAV);
 
   if ( label && (suffix = getClassVariableValueObject(g, NAME_labelSuffix)) )
     label = getEnsureSuffixCharArray(label, suffix);
@@ -369,7 +369,7 @@ kindDialogGroup(DialogGroup g, Name kind)
     nameDialogGroup(g, g->name);
   } else if ( kind == NAME_group )
   { assign(g, pen, toInt(0));
-    assign(g, border, newObject(ClassSize, 0));
+    assign(g, border, newObject(ClassSize, EAV));
     assign(g, label, NIL);
   } else
     fail;
@@ -526,7 +526,7 @@ WantsKeyboardFocusTextItem(DialogGroup g)
 status
 eventDialogGroup(DialogGroup g, EventObj ev)
 { if ( isAEvent(ev, NAME_obtainKeyboardFocus) )
-    return send(g, NAME_advance, 0);
+    return send(g, NAME_advance, EAV);
   else
     return eventDevice((Device)g, ev);
 }
@@ -548,7 +548,7 @@ getDefaultButtonDialogGroup(DialogGroup g)
 
   for(d= g->device; notNil(d); d = d->device)
   { if ( hasGetMethodObject(d, NAME_defaultButton) )
-      answer(get(d, NAME_defaultButton, 0));
+      answer(get(d, NAME_defaultButton, EAV));
   }
 
   fail;
@@ -560,9 +560,9 @@ applyDialogGroup(DialogGroup g, Bool always)
 { DialogItem di;
   Graphical defb;
   
-  for_chain(g->graphicals, di, send(di, NAME_apply, always, 0));
-  if ( (defb = get(g, NAME_defaultButton, 0)) )
-    send(defb, NAME_active, OFF, 0);
+  for_chain(g->graphicals, di, send(di, NAME_apply, always, EAV));
+  if ( (defb = get(g, NAME_defaultButton, EAV)) )
+    send(defb, NAME_active, OFF, EAV);
 
   succeed;
 }
@@ -573,9 +573,9 @@ restoreDialogGroup(DialogGroup g)
 { DialogItem di;
   Graphical defb;
   
-  for_chain(g->graphicals, di, send(di, NAME_restore, 0));
-  if ( (defb = get(g, NAME_defaultButton, 0)) )
-    send(defb, NAME_active, OFF, 0);
+  for_chain(g->graphicals, di, send(di, NAME_restore, EAV));
+  if ( (defb = get(g, NAME_defaultButton, EAV)) )
+    send(defb, NAME_active, OFF, EAV);
 
   succeed;
 }
@@ -586,10 +586,10 @@ modifiedItemDialogGroup(DialogGroup g, Graphical gr, Bool m)
 { Button b;
 
   if ( m == ON )
-  { if ( (b = get(g, NAME_defaultButton, 0)) )
-      return send(b, NAME_active, ON, 0);
+  { if ( (b = get(g, NAME_defaultButton, EAV)) )
+      return send(b, NAME_active, ON, EAV);
     if ( notNil(g->device) )
-      return send(g->device, NAME_modifiedItem, g, ON, 0); /* or gr? */
+      return send(g->device, NAME_modifiedItem, g, ON, EAV); /* or gr? */
   }
 
   fail;

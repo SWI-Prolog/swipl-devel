@@ -380,7 +380,7 @@ setXpmAttributesImage(Image image, XImage *shape, XpmAttributes *atts)
 { if ( atts->valuemask & XpmHotspot )
     assign(image, hot_spot, newObject(ClassPoint,
 				      toInt(atts->x_hotspot),
-				      toInt(atts->y_hotspot), 0));
+				      toInt(atts->y_hotspot), EAV));
   else
     assign(image, hot_spot, NIL);
 
@@ -388,7 +388,7 @@ setXpmAttributesImage(Image image, XImage *shape, XpmAttributes *atts)
   { assign(image, mask, newObject(ClassImage, NIL,
 				  toInt(shape->width),
 				  toInt(shape->height),
-				  NAME_bitmap, 0));
+				  NAME_bitmap, EAV));
     setXImageImage(image->mask, shape);
   }
 }

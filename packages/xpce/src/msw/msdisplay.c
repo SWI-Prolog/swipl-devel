@@ -129,9 +129,9 @@ ws_open_display(DisplayObj d)
 
   if ( isDefault(d->colour_map) )
   { if ( ws_has_colourmap(d) )
-      send(d, NAME_colourMap, newObject(ClassColourMap, NAME_pce, 0), 0);
+      send(d, NAME_colourMap, newObject(ClassColourMap, NAME_pce, EAV), EAV);
     else
-      send(d, NAME_colourMap, NIL, 0);
+      send(d, NAME_colourMap, NIL, EAV);
   }
 
   ws_init_loc_still_timer();
@@ -588,7 +588,7 @@ ws_provide_selection(int format)
     DEBUG(NAME_selection, Cprintf("Provide %s selection of type %s\n",
 				  pp(which), pp(type)));
 
-    if ( !(val = getForwardReceiverFunction(msg, h->to, which, type, 0)) )
+    if ( !(val = getForwardReceiverFunction(msg, h->to, which, type, EAV)) )
       return FALSE;
 
     DEBUG(NAME_selection, Cprintf("Got %s\n", pp(val)));
@@ -750,7 +750,7 @@ ws_grab_image_display(DisplayObj d, int x, int y, int width, int height)
   h = rect.bottom - rect.top;
 
   image = answerObject(ClassImage, NIL,
-		       toInt(w), toInt(h), NAME_pixmap, 0);
+		       toInt(w), toInt(h), NAME_pixmap, EAV);
   assign(image, display, d);
   bm = ZCreateCompatibleBitmap(hdc, w, h);
   hdcimg = CreateCompatibleDC(hdc);

@@ -120,11 +120,11 @@ start:
         goto again;
       case 'b':
 	if ( !hostAction(HOST_BREAK) )
-	  send(HostObject(), NAME_break, 0);
+	  send(HostObject(), NAME_break, EAV);
         goto again;
       case 'a':
 	if ( !hostAction(HOST_ABORT) )
-	  send(HostObject(), NAME_abort, 0);
+	  send(HostObject(), NAME_abort, EAV);
         goto again;			/* should not happen */
       case 'e':
       { Error e;
@@ -169,7 +169,7 @@ start:
       }
       case 'q':
 	debuggingPce(PCE, OFF);
-	send(PCE, NAME_die, 0);
+	send(PCE, NAME_die, EAV);
         exit(1);			/* should not happen */
       case 'c':
       case EOS:

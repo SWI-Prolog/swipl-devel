@@ -63,7 +63,7 @@ unlinkTableCell(TableCell cell)
 
 static LayoutInterface
 getConvertTableCell(Any context, Graphical image)
-{ answer(answerObject(ClassTableCell, image, 0));
+{ answer(answerObject(ClassTableCell, image, EAV));
 }
 
 
@@ -381,7 +381,7 @@ getAreaTableCell(TableCell c)
     dims_table_cell(c, &d);
     answer(answerObject(ClassArea,
 			toInt(d.x), toInt(d.y), toInt(d.w), toInt(d.h),
-			0));
+			EAV));
   }
 
   fail;
@@ -464,7 +464,7 @@ placeImageTableCell(TableCell cell)
 
   qadSendv(gr, NAME_doSet, 4, av);
   if ( gr->device != tab->device )
-    send(tab->device, NAME_display, gr, 0);
+    send(tab->device, NAME_display, gr, EAV);
 
   succeed;
 }

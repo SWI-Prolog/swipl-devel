@@ -41,7 +41,7 @@ unlinkDictItem(DictItem di)
 
 static DictItem
 getConvertDictItem(Class class, Any key)
-{ answer(newObject(ClassDictItem, key, 0));
+{ answer(newObject(ClassDictItem, key, EAV));
 }
 
 
@@ -50,7 +50,7 @@ labelDictItem(DictItem di, CharArray str)
 { assign(di, label, str);
 
   if (notNil(di->dict) && notNil(di->dict->browser))
-    send(di->dict->browser, NAME_ChangeItem, di, 0);
+    send(di->dict->browser, NAME_ChangeItem, di, EAV);
 
   succeed;
 }
@@ -84,7 +84,7 @@ keyDictItem(DictItem di, Any key)
     assign(di, key, key);
 
   if (notNil(di->dict) && notNil(di->dict->browser) && isDefault(di->label))
-    send(di->dict->browser, NAME_ChangeItem, di, 0);
+    send(di->dict->browser, NAME_ChangeItem, di, EAV);
 
   succeed;
 }
@@ -95,7 +95,7 @@ styleDictItem(DictItem di, Name style)
 { assign(di, style, style);
 
   if ( notNil(di->dict) && notNil(di->dict->browser) )
-    send(di->dict->browser, NAME_ChangeItem, di, 0);
+    send(di->dict->browser, NAME_ChangeItem, di, EAV);
 
   succeed;
 }
@@ -141,7 +141,7 @@ getPositionDictItem(DictItem di)
     { x += valInt(lb->image->area->x);
       y += valInt(lb->image->area->y);
 
-      answer(answerObject(ClassPoint, toInt(x), toInt(y), 0));
+      answer(answerObject(ClassPoint, toInt(x), toInt(y), EAV));
     }
   }
 

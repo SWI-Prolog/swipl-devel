@@ -22,19 +22,19 @@ initialiseBrowser(Browser b, Name name, Size size, DisplayObj display)
   if ( isDefault(size) )
     size = getClassVariableValueObject(b, NAME_size);
 
-  TRY(lb = newObject(ClassListBrowser, DEFAULT, size->w, size->h, 0) );
-  send(lb, NAME_pen, ZERO, 0);		/* leave to window */
+  TRY(lb = newObject(ClassListBrowser, DEFAULT, size->w, size->h, EAV) );
+  send(lb, NAME_pen, ZERO, EAV);		/* leave to window */
   initialiseWindow((PceWindow)b, name,
 		   getSizeGraphical((Graphical) lb), display);
-  t = get(b, NAME_tile, 0);
+  t = get(b, NAME_tile, EAV);
   assign(t, horShrink,  ZERO);
   assign(t, horStretch, ZERO);
   assign(b, list_browser, lb);
-  send(lb, NAME_set, ZERO, ZERO, 0);
-  send(b, NAME_display, lb, 0);
+  send(lb, NAME_set, ZERO, ZERO, EAV);
+  send(b, NAME_display, lb, EAV);
   send(b, NAME_resizeMessage,
-       newObject(ClassMessage, lb, NAME_Size, Arg(2), 0),
-       0);
+       newObject(ClassMessage, lb, NAME_Size, Arg(2), EAV),
+       EAV);
   assign(b, keyboard_focus, lb);
 
   succeed;
@@ -108,7 +108,7 @@ clearBrowser(Browser b)
 
 static status
 cursorBrowser(Browser b, CursorObj cursor)
-{ return send(b->list_browser->image, NAME_cursor, cursor, 0);
+{ return send(b->list_browser->image, NAME_cursor, cursor, EAV);
 }
 
 

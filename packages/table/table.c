@@ -54,7 +54,7 @@
 #endif
 
 #undef offsetof
-#define offsetof(t, f) ((int)&(((t*)0)->f))
+#define offsetof(t, f) ((long)&(((t*)0)->f))
 
 #define sizeofquery(t) offsetof(query, field[t->nfields])
 

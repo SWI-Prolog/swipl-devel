@@ -409,7 +409,7 @@ write_pnm_file(IOSTREAM *fd, HBITMAP bm, int scale, int fmt, int encode)
 
   Sfprintf(fd, "P%c\n", fmt + encode + '0');
   Sfprintf(fd, "# Creator: XPCE version %s\n",
-	   strName(get(PCE, NAME_version, 0)));
+	   strName(get(PCE, NAME_version, EAV)));
   if ( fmt != PNM_PBM )
   { Sfprintf(fd, "%d %d\n", width, height);
     Sfprintf(fd, "%d\n", scale);

@@ -116,9 +116,9 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 
 	ServiceMode(is_service_window(sw),
 		    { markAnswerStack(mark);
-		      files = answerObject(ClassChain, 0);
+		      files = answerObject(ClassChain, EAV);
 		      pos   = answerObject(ClassPoint,
-					   toInt(pt.x), toInt(pt.y), 0);
+					   toInt(pt.x), toInt(pt.y), EAV);
 
 		      for(i=0; i<nfiles; i++)
 		      { int namlen;
@@ -130,7 +130,7 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 			  
 		      DragFinish(hdrop);		/* reclaims memory */
 	
-		      send(sw, NAME_dropFiles, files, pos, 0);
+		      send(sw, NAME_dropFiles, files, pos, EAV);
 		      rewindAnswerStack(mark, NIL);
 		      RedrawDisplayManager(TheDisplayManager());
 		    })
@@ -196,7 +196,7 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       ServiceMode(is_service_window(sw),
 		  DEBUG(NAME_focus,
 			Cprintf("Received Focus %s on %s\n", pp(val), pp(sw)));
-		  send(sw, NAME_inputFocus, val, 0);
+		  send(sw, NAME_inputFocus, val, EAV);
 		  RedrawDisplayManager(TheDisplayManager()));
 		  /*assign(sw, input_focus, val)*/
 
@@ -274,7 +274,7 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 				clearing_update ? "" : "no"));
 
 		  if ( sw->displayed == OFF )
-		    send(sw, NAME_displayed, ON, 0);
+		    send(sw, NAME_displayed, ON, EAV);
 
 		  if ( d_mswindow(sw, &a, clearing_update) )
 		  { DEBUG(NAME_redraw,
@@ -362,10 +362,10 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	case WM_LBUTTONDOWN:
 	case WM_MBUTTONDOWN:
 	case WM_RBUTTONDOWN:
-	  send(fr, NAME_bell, 0);
+	  send(fr, NAME_bell, EAV);
 #ifdef WM_MOUSEWHEEL
 	case WM_MOUSEWHEEL:
-	  send(bfr, NAME_expose, 0);
+	  send(bfr, NAME_expose, EAV);
 #endif
       }
 
@@ -475,7 +475,7 @@ ws_create_window(PceWindow sw, PceWindow parent)
   current_window = NULL;
 
   if ( notDefault(parent) )		/* make a sub-window */
-    send(sw, NAME_displayed, ON, 0);
+    send(sw, NAME_displayed, ON, EAV);
 
   succeed;
 }
@@ -756,7 +756,7 @@ winHandleWindow(PceWindow sw, Int handle)
 		changedUnionWindow(sw, a->x, a->y, ow, oh);
 	      });
 
-  send(sw, NAME_displayed, ON, 0);
+  send(sw, NAME_displayed, ON, EAV);
 
   succeed;
 }

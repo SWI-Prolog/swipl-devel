@@ -124,7 +124,7 @@ Swrite_object(void *handle, char *buf, int size)
   s.s_text8  = (unsigned char *)buf;
 
   ca = StringToScratchCharArray(&s);
-  if ( (rval = send(h->object, NAME_writeAsFile, where, ca, 0)) )
+  if ( (rval = send(h->object, NAME_writeAsFile, where, ca, EAV)) )
     h->point += size;
   doneScratchCharArray(ca);
 
@@ -155,7 +155,7 @@ Sseek_object(void *handle, long pos, int whence)
       break;
     case SIO_SEEK_END:
     { if ( hasGetMethodObject(h->object, NAME_sizeAsFile) &&
-	   (size = get(h->object, NAME_sizeAsFile, 0)) )
+	   (size = get(h->object, NAME_sizeAsFile, EAV)) )
       { h->point = valInt(size) - pos;
 	break;
       } else

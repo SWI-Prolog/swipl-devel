@@ -1,6 +1,15 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 5.1.6
+=============
+
+* PORT: Various issues to make the system compile and run on the
+  INTEL Itanium (Merced) processor using gcc and Linux.  Thanks to
+  the SuSE team for providing access to their hardware.  The most
+  important patch affects all hardware where int passed different
+  to an `stdarg' function as void*.
+  
 * FIXED: Removed incomplete reference to library('overview.hlp').
 
 * FIXED: Stop combobox browser from scrolling after a loc-still.

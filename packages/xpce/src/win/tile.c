@@ -35,9 +35,9 @@ static status
 initialiseTile(TileObj t, Any object, Int w, Int h)
 { if ( notNil(object) )
   { if ( isDefault(w) )
-      w = get(object, NAME_width, 0);
+      w = get(object, NAME_width, EAV);
     if ( isDefault(h) )
-      h = get(object, NAME_height, 0);
+      h = get(object, NAME_height, EAV);
   } 
 
   assign(t, enforced,	 OFF);		/* building stage */
@@ -52,7 +52,7 @@ initialiseTile(TileObj t, Any object, Int w, Int h)
   assign(t, super,   NIL);		/* super-tile */
   assign(t, object,  object);		/* managed object */
 					/* Actual area */
-  assign(t, area, newObject(ClassArea, ZERO, ZERO, w, h, 0));
+  assign(t, area, newObject(ClassArea, ZERO, ZERO, w, h, EAV));
 
   return obtainClassVariablesObject(t);
 }
@@ -122,7 +122,7 @@ toTile(Any obj)
 { if ( instanceOfObject(obj, ClassTile) )
     return (TileObj) obj;
 
-  return answerObject(ClassTile, obj, 0);
+  return answerObject(ClassTile, obj, EAV);
 }
 
 
@@ -221,12 +221,12 @@ nonDelegatingLeftRightTile(TileObj t, TileObj t2, Name where)
   } else
   { Chain ch;
 
-    super = newObject(ClassTile, NIL, ZERO, ZERO, 0);
+    super = newObject(ClassTile, NIL, ZERO, ZERO, EAV);
     
     if ( where == NAME_right )
-      ch = newObject(ClassChain, t2, t, 0);
+      ch = newObject(ClassChain, t2, t, EAV);
     else
-      ch = newObject(ClassChain, t, t2, 0);
+      ch = newObject(ClassChain, t, t2, EAV);
 
     assign(super, orientation, NAME_horizontal);
     assign(super, members, ch);
@@ -273,9 +273,9 @@ leftTile(TileObj t, Any obj, Bool delegate)
   { super = t2->super;
     prependChain(super->members, t);
   } else
-  { super = newObject(ClassTile, NIL, ZERO, ZERO, 0);
+  { super = newObject(ClassTile, NIL, ZERO, ZERO, EAV);
     assign(super, orientation, NAME_horizontal);
-    assign(super, members, newObject(ClassChain, t, t2, 0));
+    assign(super, members, newObject(ClassChain, t, t2, EAV));
     assign(super->area, x, t->area->x);
     assign(super->area, y, t->area->y);
   }
@@ -315,12 +315,12 @@ nonDelegatingAboveBelowTile(TileObj t, TileObj t2, Name where)
   } else
   { Chain ch;
 
-    super = newObject(ClassTile, NIL, ZERO, ZERO, 0);
+    super = newObject(ClassTile, NIL, ZERO, ZERO, EAV);
     
     if ( where == NAME_below )
-      ch = newObject(ClassChain, t2, t, 0);
+      ch = newObject(ClassChain, t2, t, EAV);
     else
-      ch = newObject(ClassChain, t, t2, 0);
+      ch = newObject(ClassChain, t, t2, EAV);
 
     assign(super, orientation, NAME_vertical);
     assign(super, members, ch);
@@ -367,9 +367,9 @@ aboveTile(TileObj t, Any obj, Bool delegate)
   { super = t2->super;
     prependChain(super->members, t);
   } else
-  { super = newObject(ClassTile, NIL, ZERO, ZERO, 0);
+  { super = newObject(ClassTile, NIL, ZERO, ZERO, EAV);
     assign(super, orientation, NAME_vertical);
-    assign(super, members, newObject(ClassChain, t, t2, 0));
+    assign(super, members, newObject(ClassChain, t, t2, EAV));
     assign(super->area, x, t->area->x);
     assign(super->area, y, t->area->y);
   }
@@ -765,7 +765,7 @@ layoutTile(TileObj t, Int ax, Int ay, Int aw, Int ah)
 
   if ( t->orientation == NAME_none )
     return send(t->object, NAME_doSet,
-		toInt(x), toInt(y), toInt(w), toInt(h), 0);
+		toInt(x), toInt(y), toInt(w), toInt(h), EAV);
 
   DEBUG(NAME_tile, Cprintf("enter: layoutTile(%s) (%s)\n",
 			   pp(t), pp(t->orientation)));

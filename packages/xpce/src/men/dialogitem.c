@@ -167,7 +167,7 @@ getLabelNameDialogItem(DialogItem di, Name name)
 
 static status
 nameDialogItem(DialogItem di, Name name)
-{ Any label = get(di, NAME_labelName, name, 0);
+{ Any label = get(di, NAME_labelName, name, EAV);
 
   assign(di, name, name);
   if ( !label )
@@ -213,7 +213,7 @@ eventDialogItem(Any obj, EventObj ev)
     succeed;
 
   if ( di->active == ON && notNil(di->popup) && isDownEvent(ev) &&
-       send(popupGesture(), NAME_event, ev, 0) )
+       send(popupGesture(), NAME_event, ev, EAV) )
     succeed;
 
   fail;
@@ -231,7 +231,7 @@ statusDialogItem(DialogItem di, Name stat)
 
 static status
 cancelDialogItem(DialogItem di)
-{ return send(di, NAME_status, NAME_inactive, 0);
+{ return send(di, NAME_status, NAME_inactive, EAV);
 }
 
 
@@ -257,7 +257,7 @@ showDialogItem(DialogItem di, Bool val)
   { PceWindow sw = getWindowGraphical((Graphical) di);
 
     if ( sw != FAIL && sw->keyboard_focus == (Graphical) di )
-      send(di->device, NAME_advance, di, 0);
+      send(di->device, NAME_advance, di, EAV);
   }
 
   return DisplayedGraphical(di, val);
@@ -288,7 +288,7 @@ getReferenceDialogItem(Any obj)
 
 static status
 resetDialogItem(DialogItem i)
-{ send(i, NAME_status, NAME_inactive, 0);
+{ send(i, NAME_status, NAME_inactive, EAV);
 
   succeed;
 }
@@ -299,11 +299,11 @@ openDialogItem(DialogItem di)
 { if ( isNil(di->device) )
   { Dialog d;
 
-    TRY( d = newObject(ClassDialog, 0) );
-    TRY( send(d, NAME_append, di, 0) );
+    TRY( d = newObject(ClassDialog, EAV) );
+    TRY( send(d, NAME_append, di, EAV) );
   }
 
-  return send(di->device, NAME_open, 0);
+  return send(di->device, NAME_open, EAV);
 }
 
 
@@ -322,7 +322,7 @@ modifiedDialogItem(Any di, Bool modified)
 { Dialog d = di;
 
   if ( modified == ON )
-    return send(d->device, NAME_modifiedItem, d, ON, 0);
+    return send(d->device, NAME_modifiedItem, d, ON, EAV);
 
   succeed;
 }
@@ -450,7 +450,7 @@ assignAccelerators(Chain objects, Name prefix, Name label_method)
       continue;
 
     if ( hasGetMethodObject(cell->value, label_method) &&
-	 (lbl = get(cell->value, label_method, 0)) &&
+	 (lbl = get(cell->value, label_method, EAV)) &&
 	 ( !instanceOfObject(lbl, ClassCharArray) ||
 	   !((CharArray)lbl)->data.b16 ) &&
 	 (s = toCharp(lbl)) )
@@ -464,9 +464,9 @@ assignAccelerators(Chain objects, Name prefix, Name label_method)
 	      Cprintf("Proposing %c for %s\n", a->acc, pp(cell->value)));
 	a++;
       } else
-	send(cell->value, NAME_accelerator, NIL, 0);
+	send(cell->value, NAME_accelerator, NIL, EAV);
     } else
-      send(cell->value, NAME_accelerator, NIL, 0);
+      send(cell->value, NAME_accelerator, NIL, EAV);
   }
 
   size = a - bins;
@@ -499,9 +499,9 @@ assignAccelerators(Chain objects, Name prefix, Name label_method)
     { char buf[100];
 
       sprintf(buf, "%s%c", strName(prefix), acc);
-      send(bins[n].object, NAME_accelerator, CtoKeyword(buf), 0);
+      send(bins[n].object, NAME_accelerator, CtoKeyword(buf), EAV);
     } else
-      send(bins[n].object, NAME_accelerator, NIL, 0);
+      send(bins[n].object, NAME_accelerator, NIL, EAV);
   }
 
   succeed;

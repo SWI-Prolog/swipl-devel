@@ -29,7 +29,7 @@ static status	operatorParser(Parser p, Operator op);
 static status
 initialiseParserv(Parser p, Tokeniser t, int nops, Any *ops)
 { assign(p, tokeniser, t);
-  assign(p, operators, newObject(ClassChainTable, 0));
+  assign(p, operators, newObject(ClassChainTable, EAV));
 
   for(; nops > 0; nops--, ops++)
     operatorParser(p, *ops);
@@ -53,9 +53,9 @@ operatorParser(Parser p, Operator op)
 static status
 activeParser(Parser p, Any token, Any msg)
 { if ( isFunction(msg) )
-    msg = newObject(ClassQuoteFunction, msg, 0);
+    msg = newObject(ClassQuoteFunction, msg, EAV);
   if ( isNil(p->active) )
-    assign(p, active, newObject(ClassHashTable, 0));
+    assign(p, active, newObject(ClassHashTable, EAV));
 
   return appendHashTable(p->active, token, msg);
 }
@@ -96,7 +96,7 @@ delimiterChain(Name d1, Name d2)
 	   ch->tail->value == d2 )
 	return ch;
     } else
-    { ch = DelimiterChainCache[i] = newObject(ClassChain, d1, d2, 0);
+    { ch = DelimiterChainCache[i] = newObject(ClassChain, d1, d2, EAV);
       protectObject(ch);
       return ch;
     }
@@ -105,7 +105,7 @@ delimiterChain(Name d1, Name d2)
   for(i=DCHAINCACHESIZE-1; i>0; i--)
     DelimiterChainCache[i] = DelimiterChainCache[i-1];
 
-  ch = DelimiterChainCache[i] = newObject(ClassChain, d1, d2, 0);
+  ch = DelimiterChainCache[i] = newObject(ClassChain, d1, d2, EAV);
   protectObject(ch);
   return ch;
 }
@@ -348,7 +348,7 @@ getTermParser(Parser p, Chain end)
       if ( (t2 = getTokenParser(p)) != openbracket )
 	ungetTokenParser(p, t2);
       else
-	TRY(token = get(p, NAME_list, closebracket, comma, token, 0));
+	TRY(token = get(p, NAME_list, closebracket, comma, token, EAV));
     }
 					/* end detection */
     if ( notDefault(end) && memberChain(end, token) )
@@ -397,7 +397,7 @@ getTermParser(Parser p, Chain end)
       DEBUG(NAME_term, Cprintf("Pushing %s\n", pp(token)));
       pushStack(out, token);
     } else
-    { send(p, NAME_syntaxError, CtoName("Operator expected"), 0);
+    { send(p, NAME_syntaxError, CtoName("Operator expected"), EAV);
       fail;
     }
   }
@@ -416,7 +416,7 @@ exit:
 
     rval = op->name;
   } else
-  { send(p, NAME_syntaxError, CtoName("Unbalanced operators"), 0);
+  { send(p, NAME_syntaxError, CtoName("Unbalanced operators"), EAV);
     rval = FAIL;
   }
 

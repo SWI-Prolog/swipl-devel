@@ -48,12 +48,12 @@ getPostscriptObject(Any obj, Bool ls, Area a)
   int  size = 0;
 
   if ( isNil(documentFonts) )
-    documentFonts = globalObject(NAME_DocumentFonts, ClassChain, 0);
+    documentFonts = globalObject(NAME_DocumentFonts, ClassChain, EAV);
   else
     clearChain(documentFonts);
 
   if ( isNil(documentDefs) )
-    documentDefs = globalObject(NAME_DocumentDefs, ClassChain, 0);
+    documentDefs = globalObject(NAME_DocumentDefs, ClassChain, EAV);
   else
     clearChain(documentDefs);
 
@@ -63,13 +63,13 @@ getPostscriptObject(Any obj, Bool ls, Area a)
   psoutput = Sopenmem(&PostScript, &size, "w");
 
   if ( hasSendMethodObject(obj, NAME_compute) )
-    send(obj, NAME_compute, 0);
+    send(obj, NAME_compute, EAV);
   if ( !header(obj, a, ls) )
   { Sclose(psoutput);
     free(PostScript);
     fail;
   }
-  send(obj, NAME_Postscript, 0);
+  send(obj, NAME_Postscript, EAV);
   footer();
 
   Sclose(psoutput);
@@ -174,7 +174,7 @@ _output(char *fm, va_list args)
 			continue;
 		      }
 
-	  case 'T':   { Name texture = get(va_arg(args, Any), NAME_texture, 0);
+	  case 'T':   { Name texture = get(va_arg(args, Any), NAME_texture, EAV);
 
 			if ( texture == NAME_none )
 			{ putString("nodash");
@@ -188,7 +188,7 @@ _output(char *fm, va_list args)
 			continue;
 		      }
 	  case 'C':   { Graphical gr = va_arg(args, Graphical);
-			Colour c = get(gr, NAME_colour, 0);
+			Colour c = get(gr, NAME_colour, EAV);
 
 			ps_colour(c, 100);
 
@@ -296,8 +296,8 @@ ps_put_string(String s)
 
 status
 ps_font(FontObj font)
-{ Name family = (Name) get(font, NAME_postscriptFont, 0);
-  Int  points = (Int)  get(font, NAME_postscriptSize, 0);
+{ Name family = (Name) get(font, NAME_postscriptFont, EAV);
+  Int  points = (Int)  get(font, NAME_postscriptSize, EAV);
 
   if ( !family ) family = CtoName("Courier");
   if ( !points ) points = font->points;
@@ -338,7 +338,7 @@ getPostScriptGreyPattern(Any pattern)
 { Int rval;
 
   if ( hasGetMethodObject(pattern, NAME_postscriptGrey) &&
-       (rval = get(pattern, NAME_postscriptGrey, 0)) &&
+       (rval = get(pattern, NAME_postscriptGrey, EAV)) &&
        (rval = toInteger(rval)) &&
        valInt(rval) >= 0 &&
        valInt(rval) <= 100 )
@@ -350,7 +350,7 @@ getPostScriptGreyPattern(Any pattern)
 
 static status
 fill(Any gr, Name sel)
-{ Image pattern = get(gr, sel, 0);
+{ Image pattern = get(gr, sel, EAV);
   Int greyLevel;
 
   if ( instanceOfObject(pattern, ClassColour) )
@@ -361,7 +361,7 @@ fill(Any gr, Name sel)
     ps_output(" fill grestore\n");
   } else if ( instanceOfObject(pattern, ClassImage) )
   { if ( (greyLevel = getPostScriptGreyPattern(pattern)) )
-    { Colour c = get(gr, NAME_displayColour, 0);
+    { Colour c = get(gr, NAME_displayColour, EAV);
 
       if ( c )
       { ps_output("gsave ");
@@ -449,12 +449,12 @@ header(Any gr, Area area, Bool ls)
   }
 
   ps_output("%!PS-Adobe-3.0 EPSF-3.0\n");
-  ps_output("%%Creator: PCE ~N\n", get(PCE, NAME_version, 0));
-  ps_output("%%CreationDate: ~S\n", get(PCE, NAME_date, 0));
+  ps_output("%%Creator: PCE ~N\n", get(PCE, NAME_version, EAV));
+  ps_output("%%CreationDate: ~S\n", get(PCE, NAME_date, EAV));
   ps_output("%%Pages: 1\n");
   ps_output("%%DocumentFonts: (atend)\n");
 
-  { Area bb = get(gr, NAME_boundingBox, 0);
+  { Area bb = get(gr, NAME_boundingBox, EAV);
     xgr = valInt(bb->x);
     ygr = valInt(bb->y);
     wgr = valInt(bb->w);
@@ -484,7 +484,7 @@ header(Any gr, Area area, Bool ls)
   ps_output("%%EndComments\n\n");
   
   psstatus.mkheader = TRUE;
-  TRY(send(gr, NAME_Postscript, 0));
+  TRY(send(gr, NAME_Postscript, EAV));
   psstatus.mkheader = FALSE;
 
   ps_output("gsave\n\n");
@@ -889,11 +889,11 @@ static psmacro macrodefs[] =
 
 Sheet
 makePSDefinitions()
-{ Sheet sh = globalObject(NAME_postscriptDefs, ClassSheet, 0);
+{ Sheet sh = globalObject(NAME_postscriptDefs, ClassSheet, EAV);
   psmacro *m;
 
   for(m=macrodefs; m->def; m++)
-    send(sh, NAME_value, m->name, CtoString(m->def), 0);
+    send(sh, NAME_value, m->name, CtoString(m->def), EAV);
 
   return sh;
 }
@@ -941,7 +941,7 @@ psdef(Name macro)
 
 static void
 psdef_texture(Any obj)
-{ Name texture = get(obj, NAME_texture, 0);
+{ Name texture = get(obj, NAME_texture, EAV);
 
   if ( texture == NAME_none )
     psdef(NAME_nodash);
@@ -952,7 +952,7 @@ psdef_texture(Any obj)
 
 static void
 psdef_fill(Any gr, Name sel)
-{ Any pattern = get(gr, sel, 0);
+{ Any pattern = get(gr, sel, EAV);
 
   if ( instanceOfObject(pattern, ClassImage) &&
        !getPostScriptGreyPattern(pattern) )
@@ -980,7 +980,7 @@ postscriptGraphical(Any obj)
 { if ( !psstatus.mkheader )
     ps_output("\n%%Object: ~O\n", obj);
 
-  return send(obj, NAME_DrawPostScript, 0);
+  return send(obj, NAME_DrawPostScript, EAV);
 }
 
 
@@ -995,7 +995,7 @@ drawPostScriptDevice(Device dev)
   { Graphical gr = cell->value;
 
     if ( gr->displayed == ON )
-      send(gr, NAME_Postscript, 0);
+      send(gr, NAME_Postscript, EAV);
   }
 
   if ( !psstatus.mkheader )
@@ -1042,7 +1042,7 @@ ps_image(Image img,
   if ( psstatus.mkheader )
   { psdef(NAME_greymap);
   } else
-  { Int depth = get(img, NAME_postscriptDepth, 0);
+  { Int depth = get(img, NAME_postscriptDepth, EAV);
 
     ps_output("~D ~D ~D ~D ~d greymap\n~P\n",
 	      x, y, w, h, depth, depth, img);
@@ -1502,7 +1502,7 @@ drawPostScriptBitmap(BitmapObj bm)
 { if ( psstatus.mkheader )
   { psdef(NAME_greymap);
   } else
-  { Int depth = get(bm->image, NAME_postscriptDepth, 0);
+  { Int depth = get(bm->image, NAME_postscriptDepth, EAV);
 
     ps_output("~x ~y ~w ~h ~d greymap\n~P\n",
 	      bm, bm, bm, bm, depth, depth, bm->image);
@@ -1517,7 +1517,7 @@ drawPostScriptImage(Image image)
 { if ( psstatus.mkheader )
   { psdef(NAME_greymap);
   } else
-  { Int depth = get(image, NAME_postscriptDepth, 0);
+  { Int depth = get(image, NAME_postscriptDepth, EAV);
 
     ps_output("0 0 ~d ~d ~d greymap\n~P\n",
 	      image->size->w, image->size->h, depth, depth, image);

@@ -85,7 +85,7 @@ getAttributeNamesSheet(Sheet sh)
 { Chain chain;
   Cell cell;
 
-  chain = answerObject(ClassChain, 0);
+  chain = answerObject(ClassChain, EAV);
   for_cell(cell, sh->attributes)
     appendChain(chain, ((Attribute) cell->value)->name);
 
@@ -122,7 +122,7 @@ valueSheet(Sheet sh, Any name, Any value)
   }
 
   return appendChain(sh->attributes,
-		     newObject(ClassAttribute, name, value, 0));
+		     newObject(ClassAttribute, name, value, EAV));
 }
 
 
@@ -178,7 +178,7 @@ forAllSheet(Sheet sh, Code msg)
 { Cell cell, c2;
 
   for_cell_save(cell, c2, sh->attributes)
-    TRY( forwardCode(msg, cell->value, 0) );
+    TRY( forwardCode(msg, cell->value, EAV) );
 
   succeed;
 }
@@ -189,7 +189,7 @@ forSomeSheet(Sheet sh, Code msg)
 { Cell cell, c2;
 
   for_cell_save(cell, c2, sh->attributes)
-    forwardCode(msg, cell->value, 0);
+    forwardCode(msg, cell->value, EAV);
 
   succeed;
 }

@@ -19,7 +19,7 @@ static status
 initialiseDictv(Dict dict, int argc, Any *argv)
 { int i;
 
-  assign(dict, members, newObject(ClassChain, 0));
+  assign(dict, members, newObject(ClassChain, EAV));
   assign(dict, browser, NIL);
   assign(dict, table,   NIL);
 
@@ -33,7 +33,7 @@ initialiseDictv(Dict dict, int argc, Any *argv)
 static status
 unlinkDict(Dict dict)
 { if ( notNil(dict->browser) && !isFreeingObj(dict->browser) )
-    send(dict->browser, NAME_dict, NIL, 0);
+    send(dict->browser, NAME_dict, NIL, EAV);
 
   clearDict(dict);
   
@@ -55,7 +55,7 @@ getTableDict(Dict dict)
 { if ( isNil(dict->table) )
   { Cell cell;
 
-    assign(dict, table, newObject(ClassHashTable, 0));
+    assign(dict, table, newObject(ClassHashTable, EAV));
     for_cell(cell, dict->members)
     { DictItem di = cell->value;
       appendHashTable(dict->table, di->key, di);
@@ -149,7 +149,7 @@ deleteDict(Dict dict, Any obj)
 
     addCodeReference(dict);
     if ( notNil(dict->browser) && !isFreeingObj(dict->browser) )
-      send(dict->browser, NAME_DeleteItem, di, 0);
+      send(dict->browser, NAME_DeleteItem, di, EAV);
     if ( notNil(dict->table) )
       deleteHashTable(dict->table, di->key);
     assign(di, dict, NIL);
@@ -180,7 +180,7 @@ appendDict(Dict dict, DictItem di)
   appendChain(dict->members, di);
 
   if ( notNil(dict->browser) )
-    send(dict->browser, NAME_InsertItem, di, 0);
+    send(dict->browser, NAME_InsertItem, di, EAV);
 
   succeed;
 }
@@ -190,9 +190,9 @@ static status
 membersDict(Dict dict, Chain members)
 { Cell cell;
 
-  TRY(send(dict, NAME_clear, 0));
+  TRY(send(dict, NAME_clear, EAV));
   for_cell(cell, members)
-    TRY(send(dict, NAME_append, cell->value, 0));
+    TRY(send(dict, NAME_append, cell->value, EAV));
 
   succeed;
 }
@@ -221,7 +221,7 @@ insertAfterDict(Dict dict, DictItem di, Any after)
   renumberDict(dict);
 
   if ( notNil(dict->browser) )
-    send(dict->browser, NAME_InsertItem, di, 0);
+    send(dict->browser, NAME_InsertItem, di, EAV);
 
   succeed;
 }
@@ -364,7 +364,7 @@ insertDict(Dict dict, DictItem di)
   renumberDict(dict);
   
   if ( notNil(dict->browser) )
-    send(dict->browser, NAME_InsertItem, di, 0);
+    send(dict->browser, NAME_InsertItem, di, EAV);
 
   succeed;
 }
@@ -419,11 +419,11 @@ sortDict(Dict dict, Any code_or_ign_case, Bool ign_blanks, Bool reverse)
   }
 
   if ( notNil(dict->browser) )
-    send(dict->browser, NAME_Clear, 0);
+    send(dict->browser, NAME_Clear, EAV);
 
   old = dict->members;
   lockObject(old, ON);
-  assign(dict, members, newObject(ClassChain, 0));
+  assign(dict, members, newObject(ClassChain, EAV));
   
   if ( notNil(dict->table) )
   { clearHashTable(dict->table);
@@ -446,7 +446,7 @@ static status
 sortByDict(Dict dict, Code code)
 { assign(dict, sort_by, code);
   if ( notNil(code) )
-    return send(dict, NAME_sort, 0);
+    return send(dict, NAME_sort, EAV);
 
   succeed;
 }
@@ -457,7 +457,7 @@ getMatchDict(Dict dict, CharArray name)
 { Cell cell;
   Chain matching;
 
-  matching = answerObject(ClassChain, 0);
+  matching = answerObject(ClassChain, EAV);
 
   for_cell(cell, dict->members)
   { DictItem di = cell->value;
@@ -479,7 +479,7 @@ clearDict(Dict dict)
     succeed;
 
   if ( notNil(dict->browser) && !isFreeingObj(dict->browser) )
-    send(dict->browser, NAME_Clear, 0);
+    send(dict->browser, NAME_Clear, EAV);
 
   if ( notNil(dict->table) )
   { clearHashTable(dict->table);

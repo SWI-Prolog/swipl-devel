@@ -56,7 +56,7 @@ getConvertModifier(Class class, Name name)
       }
     }
   
-    m = answerObject(ClassModifier, shift, control, meta, 0);
+    m = answerObject(ClassModifier, shift, control, meta, EAV);
     protectObject(m);
     appendHashTable(ModifierTable, name, m);
 
@@ -122,12 +122,12 @@ makeClassModifier(Class class)
 { declareClass(class, &modifier_decls);
 
   MODIFIER_shift   = globalObject(NAME_ModifierShift, ClassModifier,
-				  NAME_down, NAME_up, NAME_up, 0);
+				  NAME_down, NAME_up, NAME_up, EAV);
   MODIFIER_control = globalObject(NAME_ModifierControl, ClassModifier,
-				  NAME_up, NAME_down, NAME_up, 0);
+				  NAME_up, NAME_down, NAME_up, EAV);
   MODIFIER_allup   = globalObject(NAME_ModifierAllUp, ClassModifier,
-				  NAME_up, NAME_up, NAME_up, 0);
-  ModifierTable = globalObject(NAME_modifiers, ClassHashTable, 0);
+				  NAME_up, NAME_up, NAME_up, EAV);
+  ModifierTable = globalObject(NAME_modifiers, ClassHashTable, EAV);
 
   succeed;
 }

@@ -65,7 +65,7 @@ ws_create_colour(Colour c, DisplayObj d)
   }
 
   if ( allocNearestColour(display, r->colour_map, r->depth, 
-			  get(d, NAME_visualType, 0),
+			  get(d, NAME_visualType, EAV),
 			  &exact) )
   { XColor *color = alloc(sizeof(XColor));
       

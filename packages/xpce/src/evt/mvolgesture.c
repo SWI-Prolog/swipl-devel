@@ -18,11 +18,11 @@ initialiseMoveOutlineGesture(MoveOutlineGesture g,
 			     Name button, Modifier modifier)
 { initialiseMoveGesture((MoveGesture) g, button, modifier);
   obtainClassVariablesObject(g);
-  assign(g, outline, newObject(ClassBox, 0));
+  assign(g, outline, newObject(ClassBox, EAV));
   send(g->outline, NAME_texture,
-       getClassVariableValueObject(g, NAME_texture), 0);
+       getClassVariableValueObject(g, NAME_texture), EAV);
   send(g->outline, NAME_recogniser,
-       newObject(ClassMoveGesture, g->button, g->modifier, 0), 0);
+       newObject(ClassMoveGesture, g->button, g->modifier, EAV), EAV);
   
   succeed;
 }
@@ -38,8 +38,8 @@ initiateMoveOutlineGesture(MoveOutlineGesture g, EventObj ev)
 
   if ( !instanceOfObject(gr, ClassGraphical) )
     fail;
-  send(g->outline, NAME_area, gr->area, 0);
-  send(gr->device, NAME_display, g->outline, 0);
+  send(g->outline, NAME_area, gr->area, EAV);
+  send(gr->device, NAME_display, g->outline, EAV);
   postEvent(ev, (Graphical) g->outline, DEFAULT);
 
   succeed;
@@ -58,11 +58,11 @@ static status
 terminateMoveOutlineGesture(MoveOutlineGesture g, EventObj ev)
 { Area a;
 
-  send(g, NAME_drag, ev, 0);
+  send(g, NAME_drag, ev, EAV);
 
   a = g->outline->area;
-  send(ev->receiver, NAME_doSet, a->x, a->y, a->w, a->h, 0);
-  send(g->outline, NAME_device, NIL, 0);
+  send(ev->receiver, NAME_doSet, a->x, a->y, a->w, a->h, EAV);
+  send(g->outline, NAME_device, NIL, EAV);
 
   succeed;
 }

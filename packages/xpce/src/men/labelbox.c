@@ -29,7 +29,7 @@ initialiseLabelBox(LabelBox lb, Name name, Code msg)
     msg = NIL;
 
   assign(lb, pen, 		toInt(0));
-  assign(lb, border, 		newObject(ClassSize, 0));
+  assign(lb, border, 		newObject(ClassSize, EAV));
   assign(lb, auto_label_align,	ON);
   assign(lb, message,		msg);
   assign(lb, modified,		OFF);
@@ -61,10 +61,10 @@ compute_label(LabelBox lb, int *w, int *h, int *y)
     if ( instanceOfObject(lb->label, ClassCharArray) )
     { Graphical gr = getHeadChain(lb->graphicals);
 
-      for( ; gr && notNil(gr); gr = get(gr, NAME_right, 0))
+      for( ; gr && notNil(gr); gr = get(gr, NAME_right, EAV))
       { Point pt;
 
-	if ( (pt = get(gr, NAME_reference, 0)) )
+	if ( (pt = get(gr, NAME_reference, EAV)) )
 	{ int ry = valInt(pt->y);
 	  int af = valInt(getAscentFont(lb->label_font));
 	
@@ -186,7 +186,7 @@ geometryLabelBox(LabelBox lb, Int x, Int y, Int w, Int h)
     if ( isDefault(h) )
       h = getHeightGraphical((Graphical) lb);
 
-    size = newObject(ClassSize, w, h, 0);
+    size = newObject(ClassSize, w, h, EAV);
     qadSendv(lb, NAME_size, 1, &size);
     doneObject(size);
   }
@@ -258,7 +258,7 @@ getReferenceLabelBox(LabelBox lb)
 
   obtainClassVariablesObject(lb);
 
-  answer(answerObject(ClassPoint, ZERO, getAscentFont(lb->label_font), 0));
+  answer(answerObject(ClassPoint, ZERO, getAscentFont(lb->label_font), EAV));
 }
 
 		 /*******************************
@@ -270,7 +270,7 @@ modifiedLabelBox(LabelBox lb, Bool m)
 { assign(lb, modified, m);
 
   if ( m == ON && notNil(lb->device) )
-    send(lb->device, NAME_modifiedItem, lb, ON, 0);
+    send(lb->device, NAME_modifiedItem, lb, ON, EAV);
 
   succeed;
 }
@@ -279,7 +279,7 @@ modifiedLabelBox(LabelBox lb, Bool m)
 static status
 modifiedItemLabelBox(LabelBox lb, Graphical item, Bool m)
 { if ( m == ON )
-    send(lb, NAME_modified, ON, 0);
+    send(lb, NAME_modified, ON, EAV);
 
   succeed;
 }
@@ -308,7 +308,7 @@ restoreLabelBox(LabelBox lb)
 { Any val;
 
   TRY(val = getDefaultLabelBox(lb));
-  return send(lb, NAME_selection, val, 0);
+  return send(lb, NAME_selection, val, EAV);
 }
 
 
@@ -319,7 +319,7 @@ applyLabelBox(LabelBox lb, Bool always)
   if ( instanceOfObject(lb->message, ClassCode) &&
        (always == ON || lb->modified == ON) &&
        (val = getv(lb, NAME_selection, 0, NULL)) )
-    return forwardReceiverCode(lb->message, lb, val, 0);
+    return forwardReceiverCode(lb->message, lb, val, EAV);
 
   fail;
 }

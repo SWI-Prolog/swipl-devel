@@ -91,7 +91,7 @@ getCopyType(Type t, Name name)
 { Type t2 = newObject(ClassType, name,
 		      t->kind, t->context,
 		      getCopyChain(t->supers),
-		      0);
+		      EAV);
   if ( t2 )
     assign(t2, vector, t->vector);
 
@@ -156,7 +156,7 @@ getNameType(Type t)
 void
 superType(Type t, Type t2)
 { if ( isNil(t->supers) )
-    assign(t, supers, newObject(ClassChain, t2, 0));
+    assign(t, supers, newObject(ClassChain, t2, EAV));
   else
     appendChain(t->supers, t2);
 }
@@ -367,20 +367,20 @@ value_set_type(Type t, Any ctx, Chain *set)
       { appendChain(ch, ON);
 	appendChain(ch, OFF);
       } else
-	ch = answerObject(ClassChain, ON, OFF, 0);
+	ch = answerObject(ClassChain, ON, OFF, EAV);
     }
   } else if ( t->kind == NAME_value )
   { if ( ch )
       appendChain(ch, t->context);
     else
-      ch = answerObject(ClassChain, t->context, 0);
+      ch = answerObject(ClassChain, t->context, EAV);
   } else if ( t->kind == NAME_intRange )
   { Tuple tpl = t->context;
     int n;
 
     if ( valInt(tpl->second) - valInt(tpl->first) < 10 )
     { if ( !ch )
-	ch = answerObject(ClassChain, 0);
+	ch = answerObject(ClassChain, EAV);
       for(n=valInt(tpl->first); n<=valInt(tpl->second); n++)
 	appendChain(ch, toInt(n));
     }
@@ -903,7 +903,7 @@ getRealRangeType(const Type t, const Any val, const Any ctx)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This method should just call `get(ctx, NAME_member, 0)'; but this is not
+This method should just call `get(ctx, NAME_member, EAV)'; but this is not
 possible as this might give typing errors.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -1217,7 +1217,7 @@ static Type
 name_of_type(TmpString str)
 { if ( *str->start == '{' && *str->end == '}' )
   { Type type = newObject(ClassType, CtoName(str->start),
-			  NAME_nameOf, newObject(ClassChain, 0), 0);
+			  NAME_nameOf, newObject(ClassChain, EAV), EAV);
     char *s, *e;
 
     str->start++;
@@ -1266,10 +1266,10 @@ int_range_type(TmpString str)
     if ( e2 != str->end+1 )
       fail;
   }
-  type = newObject(ClassType, CtoName(str->start), NAME_intRange, 0);
+  type = newObject(ClassType, CtoName(str->start), NAME_intRange, EAV);
 
   assign(type, context, newObject(ClassTuple,
-				  toInt(low), toInt(high), 0));
+				  toInt(low), toInt(high), EAV));
 
   return type;
 }
@@ -1291,10 +1291,10 @@ real_range_type(TmpString str)
     high = StrTod(e, &e2);
     if ( e2 != str->end+1 )
       fail;
-    type = newObject(ClassType, CtoName(str->start), NAME_realRange, 0);
+    type = newObject(ClassType, CtoName(str->start), NAME_realRange, EAV);
 
     assign(type, context, newObject(ClassTuple,
-				    CtoReal(low), CtoReal(high), 0));
+				    CtoReal(low), CtoReal(high), EAV));
 
     return type;
   }
@@ -1353,7 +1353,7 @@ kind_type(TmpString str)
   str->start = e + 1;
   strip_string(str);
 
-  TRY(type = newObject(ClassType, name, kind, 0));
+  TRY(type = newObject(ClassType, name, kind, EAV));
 
   if ( equalName(kind, NAME_alien) )
     assign(type, context, CtoName(str->start));
@@ -1392,7 +1392,7 @@ named_type(TmpString str)
   strip_string(str);
 
   TRY(type = CtoType(str->start));
-  TRY(rval = newObject(ClassType, name, NAME_alias, type, 0));
+  TRY(rval = newObject(ClassType, name, NAME_alias, type, EAV));
   assign(rval, vector, type->vector);
   assign(rval, argument_name, argname);
 
@@ -1414,7 +1414,7 @@ nameToType(Name name)
     return type;
 
   if ( prefix_string(&str, "alien:") )
-  { TRY(type = newObject(ClassType, name, NAME_alien, 0));
+  { TRY(type = newObject(ClassType, name, NAME_alien, EAV));
     assign(type, context, CtoName(str.start));
 
     return type;
@@ -1754,7 +1754,7 @@ pceCheckFloatType(PceType t, double f)
 { static Real tmp = NULL;
 
   if ( !tmp )
-  { tmp = newObject(ClassReal, ZERO, 0);
+  { tmp = newObject(ClassReal, ZERO, EAV);
     assert(tmp);
     lockObj(tmp);
   }

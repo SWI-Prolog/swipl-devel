@@ -109,7 +109,7 @@ void
 ws_init_cursor_font()
 { struct standardCursor *sc;
 
-  cursorNames = globalObject(NAME_cursorNames, ClassSheet, 0);
+  cursorNames = globalObject(NAME_cursorNames, ClassSheet, EAV);
 
   for(sc = standard_cursors; sc->name; sc++)
     valueSheet(cursorNames, (Any) CtoName(sc->name), toInt(sc->id));

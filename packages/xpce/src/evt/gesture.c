@@ -58,20 +58,20 @@ eventGesture(Any obj, EventObj ev)
   if ( isDownEvent(ev) &&
        hasModifierEvent(ev, g->modifier) &&
        getButtonEvent(ev) == g->button &&
-       (isNil(g->condition) || forwardReceiverCode(g->condition, g, ev, 0)) &&
-       send(g, NAME_verify, ev, 0) )
-  { TRY( send(g, NAME_initiate, ev, 0) );
+       (isNil(g->condition) || forwardReceiverCode(g->condition, g, ev, EAV)) &&
+       send(g, NAME_verify, ev, EAV) )
+  { TRY( send(g, NAME_initiate, ev, EAV) );
     assign(g, status, NAME_active);
     send(ev->window, NAME_focus,
-	 ev->receiver, g, g->cursor, getButtonEvent(ev), 0);
+	 ev->receiver, g, g->cursor, getButtonEvent(ev), EAV);
     succeed;
   } else if ( g->status != NAME_inactive )
   { if ( isDragEvent(ev) )
-    { send(g, NAME_drag, ev, 0);
+    { send(g, NAME_drag, ev, EAV);
       succeed;
     } else if ( isUpEvent(ev) && getButtonEvent(ev) == g->button )
     { cancelDragScrollGesture(g);
-      send(g, NAME_terminate, ev, 0);
+      send(g, NAME_terminate, ev, EAV);
       assign(g, status, NAME_inactive);
       succeed;
     }
@@ -104,13 +104,13 @@ cancelGesture(Gesture g, EventObj ev)
 
   addCodeReference(fe);
   assign(g, active, OFF);
-  send(sw, NAME_focus, NIL, 0);
-  send(sw, NAME_event, fe, 0);
+  send(sw, NAME_focus, NIL, EAV);
+  send(sw, NAME_event, fe, EAV);
 
   addCodeReference(ev);
   oev = sw->current_event;
   assign(sw, current_event, NIL);
-  send(sw, NAME_event, ev, 0);
+  send(sw, NAME_event, ev, EAV);
   assign(sw, current_event, oev);
   delCodeReference(ev);
 
@@ -281,7 +281,7 @@ scrollGesture(Gesture g)
   }
 
   if ( hasSendMethodObject(gr, msg) &&
-       send(gr, msg, dir, NAME_line, amount, 0) )
+       send(gr, msg, dir, NAME_line, amount, EAV) )
   { EventObj ev = getCloneObject(g->drag_scroll_event); /* TBD: optimise? */
     
     DEBUG(NAME_dragScroll,
@@ -290,7 +290,7 @@ scrollGesture(Gesture g)
 
     ComputeGraphical(gr);
     restrictAreaEvent(ev, gr);		/* Normalise to area of rec */
-    send(g, NAME_drag, ev, 0);
+    send(g, NAME_drag, ev, EAV);
     synchroniseGraphical(gr, ON);
     doneObject(ev);
   }
@@ -321,7 +321,7 @@ tryDragScrollGesture(Gesture g, EventObj ev)
     { assign(g, drag_scroll_timer,
 	     newObject(ClassTimer, CtoReal(0.06), /* TBD */
 		       newObject(ClassMessage, g,
-				 NAME_scroll, 0), 0));
+				 NAME_scroll, EAV), EAV));
       startTimer(g->drag_scroll_timer, NAME_repeat);
       assign(g, drag_scroll_event, getCloneObject(ev));
     }

@@ -348,7 +348,7 @@ getWinFileNameDisplay(DisplayObj d,
     ofn.hwndOwner = hwnd;
 
   if ( isDefault(filters) )
-  { Name nm = get((Any)NAME_allFiles, NAME_labelName, 0);
+  { Name nm = get((Any)NAME_allFiles, NAME_labelName, EAV);
     strapp(ef, strName(nm));
     *ef++ = '\0';
     strapp(ef, "*.*");

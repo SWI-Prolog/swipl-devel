@@ -18,7 +18,7 @@ static status	rootEventTree(EventTreeObj t, EventNodeObj n);
 static status
 initialiseEventTree(EventTreeObj t, EventNodeObj n)
 { assign(t, root,  NIL);
-  assign(t, table, newObject(ClassHashTable, toInt(101), 0));
+  assign(t, table, newObject(ClassHashTable, toInt(101), EAV));
 
   if ( notDefault(n) )
     rootEventTree(t, n);

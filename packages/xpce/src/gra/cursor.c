@@ -55,7 +55,7 @@ initialiseCursor(CursorObj c, Name name,
 	mask = image;
     }
     if ( isDefault(hot) )
-      hot  = newObject(ClassPoint, 0);
+      hot  = newObject(ClassPoint, EAV);
     if ( notNil(image->hot_spot) )
       copyPoint(hot, image->hot_spot);
 
@@ -117,7 +117,7 @@ getConvertCursor(Class class, Name name)
        (c = getMemberHashTable(CursorTable, CtoKeyword(strName(name)))) )
     answer(c);
     
-  return answerObject(ClassCursor, name, 0);
+  return answerObject(ClassCursor, name, EAV);
 }
 
 
@@ -195,7 +195,7 @@ makeClassCursor(Class class)
 { declareClass(class, &cursor_decls);
 
   cloneStyleClass(class, NAME_none);
-  CursorTable = globalObject(NAME_cursors, ClassHashTable, toInt(32), 0);
+  CursorTable = globalObject(NAME_cursors, ClassHashTable, toInt(32), EAV);
   ws_init_cursor_font();
 
   succeed;

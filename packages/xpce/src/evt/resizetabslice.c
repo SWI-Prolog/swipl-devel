@@ -31,7 +31,7 @@ initialiseResizeTableSliceGesture(ResizeTableSliceGesture g, Name mode,
   initialiseGesture((Gesture) g, button, modifier);
 
   assign(g, mode, mode);
-  assign(g, min_size, ms != FAIL ? ms : newObject(ClassSize, 0));
+  assign(g, min_size, ms != FAIL ? ms : newObject(ClassSize, EAV));
 
   succeed;
 }
@@ -168,7 +168,7 @@ setPointerResizeTableSliceGesture(ResizeTableSliceGesture g, EventObj ev)
       px = cx;
     }
     
-    pos = tempObject(ClassPoint, px, py, 0);
+    pos = tempObject(ClassPoint, px, py, EAV);
     pointerGraphical(ev->receiver, pos);
     considerPreserveObject(pos);
 
@@ -202,13 +202,13 @@ dragResizeTableSliceGesture(ResizeTableSliceGesture g, EventObj ev)
       int nw = valInt(cx) - valInt(col->position);
 
       nw = max(valInt(g->min_size->w), nw);
-      send(tab, NAME_userResizeSlice, col, toInt(nw), 0);
+      send(tab, NAME_userResizeSlice, col, toInt(nw), EAV);
     } else
     { TableRow row = getRowTable(tab, g->row, ON);
       int nh = valInt(cy) - valInt(row->position);
 
       nh = max(valInt(g->min_size->h), nh);
-      send(tab, NAME_userResizeSlice, row, toInt(nh), 0);
+      send(tab, NAME_userResizeSlice, row, toInt(nh), EAV);
     }
 
     succeed;

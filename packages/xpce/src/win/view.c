@@ -22,16 +22,16 @@ initialiseView(View v, Name name, Size size, DisplayObj display, Editor editor)
   { Size s2;
 
     if ( isDefault(size) && (s2 = getClassVariableValueObject(v, NAME_size)) )
-      size = newObject(ClassSize, s2->w, s2->h, 0);
+      size = newObject(ClassSize, s2->w, s2->h, EAV);
 
-    TRY(e = get(v, NAME_createEditor, size, 0));
+    TRY(e = get(v, NAME_createEditor, size, EAV));
   } else
     e = editor;
 
   initialiseWindow((PceWindow) v, name,
 		   getSizeGraphical((Graphical) e), display);
 
-  return send(v, NAME_editor, e, 0);
+  return send(v, NAME_editor, e, EAV);
 }
 
 
@@ -51,13 +51,13 @@ static status
 editorView(View v, Editor editor)
 { if ( notNil(v->editor) )
   { assign(v, editor, NIL);
-    send(v->editor, NAME_destroy, 0);
+    send(v->editor, NAME_destroy, EAV);
   }
   assign(v, editor, editor);
-  send(editor, NAME_set, ZERO, ZERO, 0);
-  send(v, NAME_display, editor, 0);
+  send(editor, NAME_set, ZERO, ZERO, EAV);
+  send(v, NAME_display, editor, EAV);
   send(v, NAME_resizeMessage,
-       newObject(ClassMessage, editor, NAME_Size, Arg(2), 0), 0);
+       newObject(ClassMessage, editor, NAME_Size, Arg(2), EAV), EAV);
   assign(v, keyboard_focus, editor);
 
   succeed;
@@ -75,11 +75,11 @@ getCreateEditorView(View v, Size size)
   } else
     w = h = DEFAULT;
 
-  if ( (e = newObject(ClassEditor, DEFAULT, w, h, 0)) )
+  if ( (e = newObject(ClassEditor, DEFAULT, w, h, EAV)) )
   { FontObj f;
 
     if ( (f = getClassVariableValueObject(v, NAME_font)) )
-      send(e, NAME_font, f, 0);
+      send(e, NAME_font, f, EAV);
 
     answer(e);
   }

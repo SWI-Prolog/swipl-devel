@@ -96,7 +96,7 @@ nameToTypeClass(Name name)
 static void
 linkSubClass(Class super, Class sub)
 { if ( isNil(super->sub_classes) )
-  { assign(super, sub_classes, newObject(ClassChain, sub, 0));
+  { assign(super, sub_classes, newObject(ClassChain, sub, EAV));
   } else
   { Cell cell;
     int done = FALSE;
@@ -269,12 +269,12 @@ fill_slots_class(Class class, Class super)
 #endif
 
   assign(class, realised,             ON);
-  assign(class, send_methods,         newObject(ClassChain, 0));
-  assign(class, get_methods,          newObject(ClassChain, 0));
-  assign(class, class_variables,      newObject(ClassChain, 0));
-  assign(class, send_table,           newObject(ClassHashTable, 0));
-  assign(class, get_table,            newObject(ClassHashTable, 0));
-  assign(class, local_table,          newObject(ClassHashTable, 0));
+  assign(class, send_methods,         newObject(ClassChain, EAV));
+  assign(class, get_methods,          newObject(ClassChain, EAV));
+  assign(class, class_variables,      newObject(ClassChain, EAV));
+  assign(class, send_table,           newObject(ClassHashTable, EAV));
+  assign(class, get_table,            newObject(ClassHashTable, EAV));
+  assign(class, local_table,          newObject(ClassHashTable, EAV));
   assign(class, class_variable_table, NIL);
   assign(class, selection_style,      NIL);
   assign(class, rcs_revision,	      NIL);
@@ -328,8 +328,8 @@ fill_slots_class(Class class, Class super)
     class->in_event_area_function	= super->in_event_area_function;
   } else
   { assign(class, term_names,	        NIL);
-    assign(class, delegate,	        newObject(ClassChain, 0));
-    assign(class, instance_variables,	newObject(ClassVector, 0));
+    assign(class, delegate,	        newObject(ClassChain, EAV));
+    assign(class, instance_variables,	newObject(ClassVector, EAV));
     assign(class, cloneStyle,	        NAME_recursive);
     assign(class, saveStyle,	        NAME_normal);
     assign(class, features,		NIL);
@@ -481,7 +481,7 @@ getConvertClass(Class class_class, Any obj)
 
   if ( (name = toName(obj)) )
   { if ( !(class = getMemberHashTable(classTable, name)) )
-    { exceptionPce(PCE, NAME_undefinedClass, name, 0);
+    { exceptionPce(PCE, NAME_undefinedClass, name, EAV);
       if ( !(class = getMemberHashTable(classTable, name)) )
 	fail;
     }
@@ -632,7 +632,7 @@ getLookupClass(Class class, Name name, Class super)
     if ( name == NAME_object )		/* class(object) has no super! */
       answer(cl);
   } else if ( isDefault(super) )	/* lookup: class(box) or so */
-  { exceptionPce(PCE, NAME_undefinedClass, name, 0);
+  { exceptionPce(PCE, NAME_undefinedClass, name, EAV);
     if ( (cl = getMemberHashTable(classTable, name)) )
       answer(cl);
   }
@@ -663,7 +663,7 @@ getSubClassClass(Class super, Name name)
     }
   }
   
-  answer(newObject(super->class, name, super, 0));
+  answer(newObject(super->class, name, super, EAV));
 }
 
 
@@ -1256,7 +1256,7 @@ static status
 handleClass(Class class, Handle handle)
 { realiseClass(class);
   if ( isNil(class->handles) )
-    assign(class, handles, newObject(ClassChain, handle, 0));
+    assign(class, handles, newObject(ClassChain, handle, EAV));
   else
     appendChain(class->handles, handle);
 
@@ -1281,7 +1281,7 @@ sourceClass(Class class, SendFunc f, char *file, char *rcs)
   int l;
 
 #ifndef O_RUNTIME
-  assign(class, source, newObject(ClassSourceLocation, CtoName(file), 0));
+  assign(class, source, newObject(ClassSourceLocation, CtoName(file), EAV));
 #endif
   
   for(s=rcs, q=rev; *q && *s == *q; s++, q++)
@@ -1654,7 +1654,7 @@ bindMethod(Class class, Name code, Name selector)
       { DEBUG(NAME_class,
 	      Cprintf("Asking host to resolve %s %s %s\n",
 		      pp(code), pp(class->name), pp(selector)));
-	rval = forwardCode(c, code, class->name, selector, 0);
+	rval = forwardCode(c, code, class->name, selector, EAV);
       }
     }
     bind_nesting--;
@@ -1934,7 +1934,7 @@ createdClass(Class class, Any instance, Name how)
 
     addCodeReference(instance);		/* avoid drop-out */
     for_cell(cell, class->created_messages)
-      forwardCode(cell->value, class->name, instance, how, 0);
+      forwardCode(cell->value, class->name, instance, how, EAV);
     delCodeReference(instance);
   } 
      
@@ -1955,7 +1955,7 @@ freedClass(Class class, Any instance)
 
     addCodeReference(instance);		/* avoid looping */
     for_cell(cell, class->freed_messages)
-      forwardCode(cell->value, class->name, instance, 0);
+      forwardCode(cell->value, class->name, instance, EAV);
     if ( !isFreedObj(instance) )
       delCodeReference(instance);
   } 
@@ -1992,7 +1992,7 @@ changedMessageClass(Class class, Code msg)
 { realiseClass(class);
 
   if ( isNil(class->changed_messages) )
-  { assign(class, changed_messages, newObject(ClassChain, msg, 0));
+  { assign(class, changed_messages, newObject(ClassChain, msg, EAV));
     succeed;
   }
   
@@ -2005,7 +2005,7 @@ createdMessageClass(Class class, Code msg)
 { realiseClass(class);
 
   if ( isNil(class->created_messages) )
-  { assign(class, created_messages, newObject(ClassChain, msg, 0));
+  { assign(class, created_messages, newObject(ClassChain, msg, EAV));
     succeed;
   }
   
@@ -2018,7 +2018,7 @@ freedMessageClass(Class class, Code msg)
 { realiseClass(class);
 
   if ( isNil(class->freed_messages) )
-  { assign(class, freed_messages, newObject(ClassChain, msg, 0));
+  { assign(class, freed_messages, newObject(ClassChain, msg, EAV));
     succeed;
   }
   
@@ -2115,7 +2115,7 @@ getManSummaryClass(Class cl)
   { strcat(buf, "\t");
     strcat(buf, strName(cl->summary));
   }
-  if ( send(cl, NAME_manDocumented, 0) != FAIL )
+  if ( send(cl, NAME_manDocumented, EAV) != FAIL )
     strcat(buf, " (+)");
 
   answer(CtoString(buf));
@@ -2160,7 +2160,7 @@ featureClass(Class class, Name name, Any value)
     value = ON;
 
   if ( isNil(class->features) )
-    assign(class, features, newObject(ClassSheet, 0));
+    assign(class, features, newObject(ClassSheet, EAV));
 
   return valueSheet(class->features, name, value);
 }

@@ -40,7 +40,7 @@ copyJoint(Joint jt1, Joint jt2)
 
 static Graphical
 getDefaultArrowJoint(Joint jt)
-{ answer(newObject(ClassArrow, 0));
+{ answer(newObject(ClassArrow, EAV));
 }
 
 

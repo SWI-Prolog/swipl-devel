@@ -93,7 +93,7 @@ draw_generic_button_face(Button b,
 	{ static Elevation e = NULL;
   
 	  if ( !e )
-	    e = newObject(ClassElevation, ONE, 0);
+	    e = newObject(ClassElevation, ONE, EAV);
   
 	  bx -= 4; by -= 4; bw += 8; bh += 8;
 	  r_3d_box(bx, by, bw, bh, r, e, FALSE);
@@ -315,7 +315,7 @@ getReferenceButton(Button b)
     if ( b->look == NAME_winMenuBar )
       rx = valInt(getExFont(b->label_font));
 
-    ref = answerObject(ClassPoint, toInt(rx), toInt((h - fh)/2 + ascent), 0);
+    ref = answerObject(ClassPoint, toInt(rx), toInt((h - fh)/2 + ascent), EAV);
   }
   
   answer(ref);
@@ -348,10 +348,10 @@ makeButtonGesture()
   GESTURE_button =
     globalObject(NAME_ButtonGesture, ClassClickGesture,
 		 NAME_left, DEFAULT, DEFAULT,
-		 newObject(ClassMessage, RECEIVER, NAME_execute, 0),
-		 newObject(ClassMessage, RECEIVER, NAME_status,NAME_preview,0),
-		 newObject(ClassMessage, RECEIVER, NAME_cancel, 0),
-		 0);
+		 newObject(ClassMessage, RECEIVER, NAME_execute, EAV),
+		 newObject(ClassMessage, RECEIVER, NAME_status,NAME_preview,EAV),
+		 newObject(ClassMessage, RECEIVER, NAME_cancel, EAV),
+		 EAV);
 
   assert(GESTURE_button);
   succeed;
@@ -377,7 +377,7 @@ eventButton(Button b, EventObj ev)
   infocus = (getKeyboardFocusGraphical((Graphical) b) == ON);
 
   if ( ev->id == toInt(9) && infocus )
-  { send(b->device, NAME_advance, b, 0);
+  { send(b->device, NAME_advance, b, EAV);
     succeed;
   }
 
@@ -385,12 +385,12 @@ eventButton(Button b, EventObj ev)
   { makeButtonGesture();
 
     if ( ev->id == toInt(13) && infocus ) /* RETURN */
-    { send(b, NAME_execute, 0);
+    { send(b, NAME_execute, EAV);
       succeed;
     }
     
     if ( isAEvent(ev, NAME_msLeftDown) && !infocus )
-      send(b, NAME_keyboardFocus, ON, 0);
+      send(b, NAME_keyboardFocus, ON, EAV);
 
     if ( isAEvent(ev, NAME_focus) )
     { changedDialogItem(b);
@@ -414,7 +414,7 @@ keyButton(Button b, Name key)
 
     if ( b->accelerator == key ||
 	 (b->default_button == ON && key == ret) )
-      return send(b, NAME_execute, 0);
+      return send(b, NAME_execute, EAV);
   }
 
   fail;
@@ -430,7 +430,7 @@ executeButton(Button b)
     flushGraphical(b);
     if ( d )
       busyCursorDisplay(d, DEFAULT, DEFAULT);
-    send(b, NAME_forward, 0);
+    send(b, NAME_forward, EAV);
     if ( d )
       busyCursorDisplay(d, NIL, DEFAULT);
 
@@ -448,9 +448,9 @@ forwardButton(Button b)
     succeed;
 
   if ( notDefault(b->message) )
-    return forwardReceiverCode(b->message, b, 0);
+    return forwardReceiverCode(b->message, b, EAV);
 
-  return send(b->device, b->name, 0);
+  return send(b->device, b->name, EAV);
 }
 
 
@@ -464,7 +464,7 @@ defaultButtonButton(Button b, Bool val)
     val = ON;
 
   if ( hasSendMethodObject(b->device, NAME_defaultButton) )
-    return send(b->device, NAME_defaultButton, b, 0);
+    return send(b->device, NAME_defaultButton, b, EAV);
   else
     assign(b, default_button, val);
 
@@ -505,13 +505,13 @@ getPopupButton(Button b, Bool create)
 { if ( notNil(b->popup) || create != ON )
     answer(b->popup);
   else
-  { PopupObj p = newObject(ClassPopup, b->label, 0);
+  { PopupObj p = newObject(ClassPopup, b->label, EAV);
 
     send(p, NAME_append,
 	 newObject(ClassMenuItem,
 		   b->name,
-		   newObject(ClassMessage, Arg(1), NAME_execute, 0),
-		   b->label, 0), 0);
+		   newObject(ClassMessage, Arg(1), NAME_execute, EAV),
+		   b->label, EAV), EAV);
     popupButton(b, p);
     answer(p);
   }

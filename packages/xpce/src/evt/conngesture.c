@@ -18,13 +18,13 @@ initialiseConnectGesture(ConnectGesture g,
 			 Name button, Modifier modifier, Link link)
 { initialiseGesture((Gesture) g, button, modifier);
 
-  assign(g, line, 	     newObject(ClassLine, 0));
-  assign(g, link,   	     isDefault(link) ? (Link) newObject(ClassLink, 0)
+  assign(g, line, 	     newObject(ClassLine, EAV));
+  assign(g, link,   	     isDefault(link) ? (Link) newObject(ClassLink, EAV)
 	 				     : link);
   assign(g, from_handle,     DEFAULT);
   assign(g, to_handle,       DEFAULT);
-  assign(g, from_indicators, newObject(ClassChain, 0));
-  assign(g, to_indicators,   newObject(ClassChain, 0));
+  assign(g, from_indicators, newObject(ClassChain, EAV));
+  assign(g, to_indicators,   newObject(ClassChain, EAV));
   assign(g, mark,	     getClassVariableValueObject(g, NAME_mark));
 
   succeed;
@@ -60,13 +60,13 @@ initiateConnectGesture(ConnectGesture g, EventObj ev)
   dev = g->device;
   pos = getPositionEvent(ev, dev);
 
-  send(g->line, NAME_copy, g->link->line, 0);
-  send(g->line, NAME_texture, NAME_dotted, 0);
-  send(g->line, NAME_points, pos->x, pos->y, pos->x, pos->y, 0);
-  send(dev, NAME_display, g->line, 0);
+  send(g->line, NAME_copy, g->link->line, EAV);
+  send(g->line, NAME_texture, NAME_dotted, EAV);
+  send(g->line, NAME_points, pos->x, pos->y, pos->x, pos->y, EAV);
+  send(dev, NAME_display, g->line, EAV);
   send(g, NAME_indicate,
        ev->receiver, ev, g->link->from,
-       g->from_indicators, NAME_fromHandle, 0);
+       g->from_indicators, NAME_fromHandle, EAV);
 
   succeed;
 }
@@ -82,10 +82,10 @@ static status
 dragConnectGesture(ConnectGesture g, EventObj ev)
 { Device dev = g->device;
   Point pos = getPositionEvent(ev, dev);
-  Chain pointed = get(g, NAME_pointed, ev, 0);
+  Chain pointed = get(g, NAME_pointed, ev, EAV);
   Cell cell;
 
-  send(g->line, NAME_end, pos, 0);
+  send(g->line, NAME_end, pos, EAV);
   if ( instanceOfObject(pointed, ClassChain) )
   { for_cell(cell, pointed)
     { Graphical gr = cell->value;
@@ -95,7 +95,7 @@ dragConnectGesture(ConnectGesture g, EventObj ev)
 	   (handles = getHandlesGraphical(gr, DEFAULT, g->link->to, DEFAULT)) )
       { doneObject(handles);
 	send(g, NAME_indicate, gr, ev, g->link->to,
-	     g->to_indicators, NAME_toHandle, 0);
+	     g->to_indicators, NAME_toHandle, EAV);
 
 	assign(g, to, gr);
 	doneObject(pointed);
@@ -116,7 +116,7 @@ static status
 terminateConnectGesture(ConnectGesture g, EventObj ev)
 { Cell cell;
 
-  send(g, NAME_drag, ev, 0);
+  send(g, NAME_drag, ev, EAV);
 
   DeviceGraphical(g->line, NIL);
   for_cell(cell, g->to_indicators)
@@ -126,7 +126,7 @@ terminateConnectGesture(ConnectGesture g, EventObj ev)
 
   if ( notNil(g->to) )
   { send(g, NAME_connect, ev->receiver, g->to, g->link,
-	 g->from_handle, g->to_handle, 0);
+	 g->from_handle, g->to_handle, EAV);
     assign(g, to, NIL);
     assign(g, device, NIL);
   }
@@ -154,18 +154,18 @@ indicateConnectGesture(ConnectGesture g, Graphical gr, EventObj ev,
 
   if ( chain == g->from_indicators && notDefault(g->from_handle) &&
        (h = getHandleGraphical(gr, g->from_handle)) )
-  { send(g, NAME_indicateHandle, gr, h->name, chain, 0);
+  { send(g, NAME_indicateHandle, gr, h->name, chain, EAV);
   } else if ( (handles = getHandlesGraphical(gr, pos, kind, toInt(10))) )
   { h = getHeadChain(handles);
 
-    send(g, NAME_indicateHandle, gr, h->name, chain, 0);
+    send(g, NAME_indicateHandle, gr, h->name, chain, EAV);
     slotObject(g, slot, h->name);
     doneObject(handles);
   } else if ( (handles = getHandlesGraphical(gr, pos, kind, DEFAULT)) )
   { for_cell(cell, handles)
     { h = cell->value;
 
-      send(g, NAME_indicateHandle, gr, h->name, chain, 0);
+      send(g, NAME_indicateHandle, gr, h->name, chain, EAV);
     }
     slotObject(g, slot, DEFAULT);
     doneObject(handles);
@@ -198,15 +198,15 @@ indicateHandleConnectGesture(ConnectGesture g,
 
     if ( bm->name == NAME_unused )
     { centerGraphical((Graphical) bm, pos);
-      send(dev, NAME_display, bm, 0);
+      send(dev, NAME_display, bm, EAV);
       assign(bm, name, NAME_used);
       succeed;
     }
   }
   
-  bm = newObject(ClassBitmap, g->mark, 0);
+  bm = newObject(ClassBitmap, g->mark, EAV);
   centerGraphical((Graphical) bm, pos);
-  send(dev, NAME_display, bm, 0);
+  send(dev, NAME_display, bm, EAV);
   assign(bm, name, NAME_used);
   appendChain(ch, bm);
   
@@ -217,7 +217,7 @@ indicateHandleConnectGesture(ConnectGesture g,
 static status
 connectConnectGesture(ConnectGesture g, Graphical gr1, Graphical gr2,
 		      Link link, Name fh, Name th)
-{ return send(gr1, NAME_connect, gr2, link, fh, th, 0);
+{ return send(gr1, NAME_connect, gr2, link, fh, th, EAV);
 }
 
 

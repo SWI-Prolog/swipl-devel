@@ -581,7 +581,7 @@ convert_selection_display(Widget w,
   { CharArray ca;
     Name tname = atomToSelectionName(d, *target);
 
-    if ( (ca = getForwardReceiverFunction(msg, h->to, which, tname, 0)) &&
+    if ( (ca = getForwardReceiverFunction(msg, h->to, which, tname, EAV)) &&
 	 (ca = checkType(ca, TypeCharArray, NIL)) )
     { String s = &ca->data;
       int data = str_datasize(s);
@@ -743,7 +743,7 @@ ws_grab_image_display(DisplayObj d, int x, int y, int width, int height)
     fail;
 
   i = answerObject(ClassImage, NIL,
-		   toInt(width), toInt(height), NAME_pixmap, 0);
+		   toInt(width), toInt(height), NAME_pixmap, EAV);
   im = XGetImage(r->display_xref, atts.root,
 		 x, y, width, height, AllPlanes, ZPixmap);
     

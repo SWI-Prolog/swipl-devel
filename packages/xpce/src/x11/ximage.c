@@ -247,7 +247,7 @@ ws_std_xpm_image(Name name, Image *global, char **data)
 #ifdef HAVE_LIBXPM
   extern XImage *attachXpmImageImage(Image image, XpmImage *xpm);
 
-  Image image = globalObject(name, ClassImage, name, ZERO, ZERO, 0);
+  Image image = globalObject(name, ClassImage, name, ZERO, ZERO, EAV);
   XpmImage img;
   XpmInfo info;
   XImage *i;
@@ -684,7 +684,7 @@ ZoomXImage(Display *dsp, Visual *v, XImage *oimage,
 Image
 ws_scale_image(Image image, int w, int h)
 { Image copy = answerObject(ClassImage, NIL,
-			    toInt(w), toInt(h), image->kind, 0);
+			    toInt(w), toInt(h), image->kind, EAV);
   XImage *i;
   DisplayObj d = image->display;
   DisplayWsXref r;
@@ -877,7 +877,7 @@ ws_rotate_image(Image image, int angle)	/* 0<angle<360 */
     ic   = RotateXImage(r->display_xref, i, ((float)angle * M_PI)/180.0, bg);
     copy = answerObject(ClassImage, NIL,
 			toInt(ic->width), toInt(ic->height),
-			image->kind, 0);
+			image->kind, EAV);
     assign(copy, background, image->background);
     assign(copy, foreground, image->foreground);
     setXImageImage(copy, ic);
@@ -905,7 +905,7 @@ ws_monochrome_image(Image image)
   Int w = image->size->w;
   Int h = image->size->h;
 
-  mono = answerObject(ClassImage, NIL, w, h, NAME_bitmap, 0);
+  mono = answerObject(ClassImage, NIL, w, h, NAME_bitmap, EAV);
   d_image(mono, 0, 0, valInt(w), valInt(h));
   d_modify();
   r_image(image, 0, 0, 0, 0, valInt(w), valInt(h), OFF);

@@ -23,11 +23,11 @@ status
 initialiseWindow(PceWindow sw, Name label, Size size, DisplayObj display)
 { initialiseDevice((Device) sw);
 
-  assign(sw, scroll_offset,	   newObject(ClassPoint, 0));
+  assign(sw, scroll_offset,	   newObject(ClassPoint, EAV));
   assign(sw, input_focus,	   OFF);
   assign(sw, has_pointer,	   OFF);
   assign(sw, sensitive,		   ON);
-  assign(sw, bounding_box,	   newObject(ClassArea, 0));
+  assign(sw, bounding_box,	   newObject(ClassArea, EAV));
   obtainClassVariablesObject(sw);
 
   if ( isDefault(size) )
@@ -38,7 +38,7 @@ initialiseWindow(PceWindow sw, Name label, Size size, DisplayObj display)
   sw->ws_ref = NULL;
 
   if ( notDefault(label) || notDefault(display) )
-    frameWindow(sw, newObject(ClassFrame, label, DEFAULT, display, 0));
+    frameWindow(sw, newObject(ClassFrame, label, DEFAULT, display, EAV));
 
   succeed;
 }
@@ -117,9 +117,9 @@ grabKeyboardWindow(PceWindow sw, Bool val)
 static status
 freeWindow(PceWindow sw)
 { if ( notNil(sw->frame) )
-    return send(sw->frame, NAME_free, 0);
+    return send(sw->frame, NAME_free, EAV);
   else if ( notNil(sw->decoration) )
-    return send(sw->decoration, NAME_free, 0);
+    return send(sw->decoration, NAME_free, EAV);
   else
     return freeObject(sw);
 }
@@ -158,9 +158,9 @@ unlinkWindow(PceWindow sw)
 
 static status
 openWindow(PceWindow sw, Point pos, Bool normalise)
-{ if ( send(sw, NAME_create, 0) &&
+{ if ( send(sw, NAME_create, EAV) &&
        send(getFrameWindow(sw, DEFAULT), NAME_open,
-	    pos, DEFAULT, normalise, 0) )
+	    pos, DEFAULT, normalise, EAV) )
   succeed;
 
   fail;
@@ -169,8 +169,8 @@ openWindow(PceWindow sw, Point pos, Bool normalise)
 
 static status
 openCenteredWindow(PceWindow sw, Point pos)
-{ if ( send(sw, NAME_create, 0) && 
-       send(getFrameWindow(sw, DEFAULT), NAME_openCentered, pos, 0) )
+{ if ( send(sw, NAME_create, EAV) && 
+       send(getFrameWindow(sw, DEFAULT), NAME_openCentered, pos, EAV) )
     succeed;
 
   fail;
@@ -179,7 +179,7 @@ openCenteredWindow(PceWindow sw, Point pos)
 
 static Any
 getConfirmWindow(PceWindow sw, Point pos, Bool grab, Bool normalise)
-{ TRY( send(sw, NAME_create, 0) );
+{ TRY( send(sw, NAME_create, EAV) );
 
   answer(getConfirmFrame(getFrameWindow(sw, DEFAULT), pos, grab, normalise));
 }
@@ -187,7 +187,7 @@ getConfirmWindow(PceWindow sw, Point pos, Bool grab, Bool normalise)
 
 static Any
 getConfirmCenteredWindow(PceWindow sw, Point pos, Bool grab)
-{ TRY( send(sw, NAME_create, 0) );
+{ TRY( send(sw, NAME_create, EAV) );
 
   answer(getConfirmCenteredFrame(getFrameWindow(sw, DEFAULT), pos, grab));
 }
@@ -203,17 +203,17 @@ createWindow(PceWindow sw, PceWindow parent)
   if ( isDefault(parent) )		/* do my manager first */
   { if ( notNil(sw->decoration) )
     { if ( !createdWindow(sw->decoration) )
-	return send(sw->decoration, NAME_create, 0);
+	return send(sw->decoration, NAME_create, EAV);
       succeed;
     } else
     { if ( isNil(sw->frame) )
 	frameWindow(sw, DEFAULT);
       if ( !createdFrame(sw->frame) )
-	return send(sw->frame, NAME_create, 0);
+	return send(sw->frame, NAME_create, EAV);
     }
   } else
   { if ( !createdWindow(parent) )
-      send(parent, NAME_create, 0);
+      send(parent, NAME_create, EAV);
   }
 
 					/* fix the default colours */
@@ -263,7 +263,7 @@ decorateWindow(PceWindow sw, Name how, Int lb, Int tb, Int rb, Int bb,
   if ( isDefault(rb) ) rb = ZERO;
   if ( isDefault(tb) ) tb = ZERO;
   if ( isDefault(bb) ) bb = ZERO;
-  if ( isDefault(dw) ) dw = newObject(ClassWindow, 0);
+  if ( isDefault(dw) ) dw = newObject(ClassWindow, EAV);
 
   if ( isDefault(dw->colour) )     assign(dw, colour, sw->colour);
   if ( isDefault(dw->background) ) assign(dw, background, sw->background);
@@ -291,13 +291,13 @@ decorateWindow(PceWindow sw, Name how, Int lb, Int tb, Int rb, Int bb,
 	 sub(sw->area->x, lb),
 	 sub(sw->area->y, tb),
 	 add(sw->area->w, add(lb, rb)),
-	 add(sw->area->h, add(tb, bb)), 0);
-    send(sw, NAME_set, lb, tb, 0);
+	 add(sw->area->h, add(tb, bb)), EAV);
+    send(sw, NAME_set, lb, tb, EAV);
   } else
   { send(sw, NAME_set,
 	 lb, tb,
 	 sub(sw->area->w, add(lb, rb)),
-	 sub(sw->area->h, add(tb, bb)), 0);
+	 sub(sw->area->h, add(tb, bb)), EAV);
   }
 
   DeviceGraphical(sw, (Device) dw);
@@ -343,7 +343,7 @@ updatePositionWindow(PceWindow sw)
     h  = valInt(sw->area->h);
 
     if ( !createdWindow(sw) )
-      TRY(send(sw, NAME_create, parent, 0));
+      TRY(send(sw, NAME_create, parent, EAV));
 
     ws_geometry_window(sw, x, y, w, h, pen);
   } else
@@ -383,7 +383,7 @@ static status
 deviceWindow(PceWindow sw, Device dev)
 { if ( notNil(dev) )
   { if ( notNil(sw->frame) )
-      send(sw->frame, NAME_delete, sw, 0);
+      send(sw->frame, NAME_delete, sw, EAV);
 
     if ( notNil(sw->decoration) && dev != (Device) sw->decoration )
       return DeviceGraphical(sw->decoration, dev);
@@ -410,7 +410,7 @@ displayedWindow(PceWindow sw, Bool val)
 status
 resizeWindow(PceWindow sw)
 { if ( notNil(sw->resize_message) )
-    forwardReceiverCode(sw->resize_message, sw, sw, getSizeArea(sw->area), 0);
+    forwardReceiverCode(sw->resize_message, sw, sw, getSizeArea(sw->area), EAV);
 
   succeed;
 }
@@ -590,16 +590,16 @@ eventWindow(PceWindow sw, EventObj ev)
   { FrameObj fr = getFrameWindow(sw, DEFAULT);
 
     if ( notNil(fr) && !getKeyboardFocusFrame(fr) )
-      send(fr, NAME_inputWindow, sw, 0);
-    send(sw, NAME_hasPointer, ON, 0);
+      send(fr, NAME_inputWindow, sw, EAV);
+    send(sw, NAME_hasPointer, ON, EAV);
   } else if ( isAEvent(ev, NAME_areaExit) )
-    send(sw, NAME_hasPointer, OFF, 0);
+    send(sw, NAME_hasPointer, OFF, EAV);
 
   if ( inspectWindow(sw, ev) )
     goto out;
 
   if ( isDownEvent(ev) && sw->input_focus == OFF )
-    send(getFrameWindow(sw, DEFAULT), NAME_keyboardFocus, sw, 0);
+    send(getFrameWindow(sw, DEFAULT), NAME_keyboardFocus, sw, EAV);
 
   if ( isAEvent(ev, NAME_keyboard) )
   { PceWindow iw;
@@ -658,7 +658,7 @@ out:
   if ( isFreedObj(sw) )
     goto destroyed;
   if ( rval == FAIL && isAEvent(ev, NAME_keyboard) )
-  { if ( (rval = send(sw, NAME_typed, ev, ON, 0)) )
+  { if ( (rval = send(sw, NAME_typed, ev, ON, EAV)) )
       goto out;
   }
 
@@ -676,10 +676,10 @@ status
 typedWindow(PceWindow sw, EventId id, Bool delegate)
 {  if ( delegate == ON )
    { if ( notNil(sw->frame) )
-       return send(sw->frame, NAME_typed, id, 0);
+       return send(sw->frame, NAME_typed, id, EAV);
      else if ( notNil(sw->device) &&
 	       (sw = getWindowGraphical((Graphical)(sw->device))) )
-       return send(sw, NAME_typed, id, delegate, 0);
+       return send(sw, NAME_typed, id, delegate, EAV);
    }
 
   fail;
@@ -717,7 +717,7 @@ keyboardFocusWindow(PceWindow sw, Graphical gr)
   { FrameObj fr = getFrameWindow(sw, OFF);
   
     if ( fr )
-      send(fr, NAME_keyboardFocus, sw, 0);
+      send(fr, NAME_keyboardFocus, sw, EAV);
     
   }
 
@@ -1083,7 +1083,7 @@ RedrawAreaWindow(PceWindow sw, IArea a, int clear)
     markAnswerStack(mark);
 
     if ( !oa )
-    { oa = newObject(ClassArea, 0);
+    { oa = newObject(ClassArea, EAV);
       protectObject(oa);
     }
 
@@ -1273,7 +1273,7 @@ normaliseWindow(PceWindow sw, Any obj, Name mode)
   assert(instanceOfObject(obj, ClassChain));
   { Chain ch = obj;
     Cell cell;
-    Area a = tempObject(ClassArea, 0);
+    Area a = tempObject(ClassArea, EAV);
     Graphical gr;
 
     for_cell(cell, ch)
@@ -1515,11 +1515,11 @@ requestGeometryWindow(PceWindow sw, Int X, Int Y, Int W, Int H)
     setTile(sw->tile, DEFAULT, DEFAULT, ww, wh);
 
     if ( notNil(sw->frame) )
-      send(sw->frame, NAME_fit, 0);
+      send(sw->frame, NAME_fit, EAV);
 
     succeed;
   } else if ( notNil(sw->decoration) )
-  { return send(sw->decoration, NAME_requestGeometry, X, Y, W, H, 0);
+  { return send(sw->decoration, NAME_requestGeometry, X, Y, W, H, EAV);
   } else
     return geometryWindow(sw, X, Y, W, H);
 }
@@ -1549,7 +1549,7 @@ getVisibleWindow(PceWindow sw)
   x -= valInt(sw->scroll_offset->x) + p;
   y -= valInt(sw->scroll_offset->y) + p;
 
-  answer(answerObject(ClassArea, toInt(x), toInt(y), toInt(w), toInt(h), 0));
+  answer(answerObject(ClassArea, toInt(x), toInt(y), toInt(w), toInt(h), EAV));
 }
 
 
@@ -1569,7 +1569,7 @@ static status
 tileWindow(PceWindow sw, TileObj tile)
 { if ( isDefault(tile) )
   { if ( isNil(sw->tile) )
-      assign(sw, tile, newObject(ClassTile, sw, 0));
+      assign(sw, tile, newObject(ClassTile, sw, EAV));
   } else
     assign(sw, tile, tile);		/* TBD: check */
 
@@ -1632,7 +1632,7 @@ frameWindow(PceWindow sw, FrameObj frame)
 
   if ( isDefault(frame) )
   { if ( isNil(sw->frame) )
-      frame = newObject(ClassFrame, 0);
+      frame = newObject(ClassFrame, EAV);
     else
       succeed;
   }
@@ -1716,7 +1716,7 @@ relateWindow(PceWindow sw, Name how, Any to)
   }
 
   if ( createdWindow(sw) && notNil(sw->frame) )
-    send(sw->frame, NAME_delete, sw, 0);
+    send(sw->frame, NAME_delete, sw, EAV);
   
   tileWindow(sw, DEFAULT);
 
@@ -1725,18 +1725,18 @@ relateWindow(PceWindow sw, Name how, Any to)
 
   if ( instanceOfObject(wto, ClassWindow) && createdWindow(wto) )
   { TileObj t = getRootTile(sw->tile);
-    Any msg = newObject(ClassMessage, Arg(1), NAME_ComputeDesiredSize, 0);
+    Any msg = newObject(ClassMessage, Arg(1), NAME_ComputeDesiredSize, EAV);
 
-    send(t, NAME_forAll, msg, 0);
+    send(t, NAME_forAll, msg, EAV);
     freeObject(msg);
   }
 
   if ( notNil(w2) )
-  { TRY(send(sw->tile, how, w2->tile, 0));
+  { TRY(send(sw->tile, how, w2->tile, EAV));
   } else
   { TileObj t2 = to;
 
-    TRY(send(sw->tile, how, t2, OFF, 0));
+    TRY(send(sw->tile, how, t2, OFF, EAV));
     while( isNil(t2->object) )
     { t2 = getHeadChain(t2->members);
       assert(t2);
@@ -1956,7 +1956,7 @@ resetWindow(PceWindow sw)
 static status
 catchAllWindowv(PceWindow sw, Name selector, int argc, Any *argv)
 { if ( getSendMethodClass(ClassWindowDecorator, selector) )
-  { newObject(ClassWindowDecorator, sw, 0);
+  { newObject(ClassWindowDecorator, sw, EAV);
 
     if ( notNil(sw->decoration) )
       return sendv(sw->decoration, selector, argc, argv);

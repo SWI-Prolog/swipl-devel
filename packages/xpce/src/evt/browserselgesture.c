@@ -25,7 +25,7 @@ status
 initialiseBrowserSelectGesture(BrowserSelectGesture g)
 { initialiseGesture((Gesture) g,
 		    NAME_left,
-		    newObject(ClassModifier, DEFAULT, DEFAULT, NAME_up, 0));
+		    newObject(ClassModifier, DEFAULT, DEFAULT, NAME_up, EAV));
   assign(g, scrolling, OFF);
   
   succeed;
@@ -57,14 +57,14 @@ eventBrowserSelectGesture(BrowserSelectGesture g, EventObj ev)
 
 					/* Handle the browsers scrollbar */
   if ( g->scrolling == ON )
-  { send(lb->scroll_bar, NAME_event, ev, 0);
+  { send(lb->scroll_bar, NAME_event, ev, EAV);
     if ( isUpEvent(ev) )
       assign(g, scrolling, OFF);
     succeed;
   }
   if ( isDownEvent(ev) && insideEvent(ev, (Graphical)lb->scroll_bar) )
   { assign(g, scrolling, ON);
-    send(lb->scroll_bar, NAME_event, ev, 0);
+    send(lb->scroll_bar, NAME_event, ev, EAV);
     succeed;
   }
 
@@ -73,7 +73,7 @@ eventBrowserSelectGesture(BrowserSelectGesture g, EventObj ev)
   if ( g->status == NAME_active &&
        (isAEvent(ev, NAME_locMove) ||
 	isAEvent(ev, NAME_wheel)) )
-  { send(g, NAME_drag, ev, 0);
+  { send(g, NAME_drag, ev, EAV);
     succeed;
   }
 
@@ -97,14 +97,14 @@ selectBrowserSelectGesture(BrowserSelectGesture g, EventObj ev)
 
   if ( lb && (di = getDictItemListBrowser(lb, ev)) )
   { if ( lb->multiple_selection == OFF )
-    { send(lb, NAME_changeSelection, NAME_set, di, 0);
+    { send(lb, NAME_changeSelection, NAME_set, di, EAV);
     } else
     { if ( valInt(ev->buttons) & BUTTON_shift )
-      { send(lb, NAME_changeSelection, NAME_extend, di, 0);
+      { send(lb, NAME_changeSelection, NAME_extend, di, EAV);
       } else if ( valInt(ev->buttons) & BUTTON_control )
-      { send(lb, NAME_changeSelection, NAME_toggle, di, 0);
+      { send(lb, NAME_changeSelection, NAME_toggle, di, EAV);
       } else
-	send(lb, NAME_changeSelection, NAME_set, di, 0);
+	send(lb, NAME_changeSelection, NAME_set, di, EAV);
     }
 
     succeed;
@@ -130,7 +130,7 @@ initiateBrowserSelectGesture(BrowserSelectGesture g, EventObj ev)
   if ( selectBrowserSelectGesture(g, ev) )
     succeed;
 
-  send(lb, NAME_changeSelection, NAME_clear, 0);
+  send(lb, NAME_changeSelection, NAME_clear, EAV);
 
   succeed;
 }
@@ -148,7 +148,7 @@ terminateBrowserSelectGesture(BrowserSelectGesture g, EventObj ev)
 
   if ( lb )
   { if ( !insideEvent(ev, (Graphical)lb) )		/* cancel action */
-    { send(lb, NAME_changeSelection, NAME_cancel, g->saved_selection, 0);
+    { send(lb, NAME_changeSelection, NAME_cancel, g->saved_selection, EAV);
     } else
     { if ( notNil(lb->open_message) &&
 	   getMulticlickEvent(ev) == NAME_double )

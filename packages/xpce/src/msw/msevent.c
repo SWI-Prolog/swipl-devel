@@ -75,7 +75,7 @@ ws_event_in_subwindow(EventObj ev, Any root)
     Any obj;
 
     if ( (obj=getObjectFromHWND(win)) )
-      return get(obj, NAME_frame, 0);
+      return get(obj, NAME_frame, EAV);
   } else if ( instanceOfObject(root, ClassFrame) )
   { PceWindow sw = get_window_holding_point(root, &pt);
 

@@ -488,7 +488,7 @@ XPCE_CHost(void)
 { static XPCE_Object me = NULL;
 
   if ( !me )
-  { me = globalObject(NAME_c, ClassC, 0);
+  { me = globalObject(NAME_c, ClassC, EAV);
     protectObject(me);
   }
 
@@ -611,7 +611,7 @@ XPCE_makeclass(XPCE_Object name, XPCE_Object super, XPCE_Object summary)
     fail;
   }
 
-  TRY(class = newObject(superclass->class, name, superclass, 0));
+  TRY(class = newObject(superclass->class, name, superclass, EAV));
   
   if ( instanceOfObject(summary, ClassCharArray) )
     assign(class, summary, summary);
@@ -635,7 +635,7 @@ XPCE_defvar(XPCE_Object class,
   if ( !(type = checkType(type, TypeType, NIL)) )
     type = TypeAny;
 
-  var = newObject(ClassObjOfVariable, name, type, access, summary, group, 0);
+  var = newObject(ClassObjOfVariable, name, type, access, summary, group, EAV);
   initialValueVariable(var, initial);
   TRY(instanceVariableClass(class, var));
 
@@ -648,7 +648,7 @@ NoCode()
 { static XPCE_Object me = NULL;
 
   if ( !me )
-  { me = newObject(ClassAnd, 0);
+  { me = newObject(ClassAnd, EAV);
     protectObject(me);
   }
 
@@ -671,7 +671,7 @@ XPCE_defsendmethodv(XPCE_Object class,
   method = newObject(ClassSendMethod, name,
 		     newObjectv(ClassVector, argc, types),
 		     NoCode(),		/* hack to avoid type-conflict */
-		     summary, DEFAULT, group, 0);
+		     summary, DEFAULT, group, EAV);
   assign(method, message, NIL);
   setDFlag(method, D_CXX);
   method->function = (SendFunc)implementation;
@@ -695,7 +695,7 @@ XPCE_defgetmethodv(XPCE_Object class,
   method = newObject(ClassGetMethod, name, return_type,
 		     newObjectv(ClassVector, argc, types),
 		     Arg(1),		/* hack to avoid type-conflict */
-		     summary, DEFAULT, group, 0);
+		     summary, DEFAULT, group, EAV);
   assign(method, message, NIL);
   setDFlag(method, D_CXX);
   method->function = (Func)implementation;

@@ -20,7 +20,7 @@ initialiseDialog(Dialog d, Name name, Size size, DisplayObj display)
 
   initialiseWindow((PceWindow) d, name, size, display);
 
-  assign(d, gap, newObject(ClassSize, 0));
+  assign(d, gap, newObject(ClassSize, EAV));
   copySize(d->gap, getClassVariableValueObject(d, NAME_gap));
   assign(d, size_given, NAME_none);
 
@@ -39,7 +39,7 @@ displayDialog(Dialog d, Graphical item, Point pos)
 { if ( displayDevice(d, item, pos) )
   { if ( instanceOfObject(item, ClassDialogItem) )
       d->graphicals->current = d->graphicals->tail;
-    if ( isNil(d->keyboard_focus) && send(item, NAME_WantsKeyboardFocus, 0) )
+    if ( isNil(d->keyboard_focus) && send(item, NAME_WantsKeyboardFocus, EAV) )
       keyboardFocusWindow((PceWindow) d, item);
 
     succeed;
@@ -59,11 +59,11 @@ typedDialog(Dialog d, EventId id, Bool delegate)
   Graphical gr;
 
   for_chain(d->graphicals, gr,
-	    if ( send(gr, NAME_key, key, 0) )
+	    if ( send(gr, NAME_key, key, EAV) )
 	      succeed);
 
   if ( delegate == ON && notNil(d->frame) )
-    return send(d->frame, NAME_typed, id, 0);
+    return send(d->frame, NAME_typed, id, EAV);
 
   fail;
 }
@@ -85,10 +85,10 @@ static status
 ComputeDesiredSizeDialog(Dialog d)
 { Name given;
 
-  TRY(send(d, NAME_layout, 0));
+  TRY(send(d, NAME_layout, EAV));
 
   if ( isNil(d->keyboard_focus) )
-    send(d, NAME_advance, NIL, 0);	/* select first text item */
+    send(d, NAME_advance, NIL, EAV);	/* select first text item */
 
   ComputeGraphical(d);
 
@@ -113,7 +113,7 @@ ComputeDesiredSizeDialog(Dialog d)
     else if ( given == NAME_height )
       h = DEFAULT;
 
-    send(d, NAME_set, DEFAULT, DEFAULT, w, h, 0);
+    send(d, NAME_set, DEFAULT, DEFAULT, w, h, EAV);
   }
 
   succeed;
@@ -263,9 +263,9 @@ applyDialog(Dialog d, Bool always)
 { DialogItem di;
   Graphical defb;
   
-  for_chain(d->graphicals, di, send(di, NAME_apply, always, 0));
-  if ( (defb = get(d, NAME_defaultButton, 0)) )
-    send(defb, NAME_active, OFF, 0);
+  for_chain(d->graphicals, di, send(di, NAME_apply, always, EAV));
+  if ( (defb = get(d, NAME_defaultButton, EAV)) )
+    send(defb, NAME_active, OFF, EAV);
 
   succeed;
 }
@@ -276,9 +276,9 @@ restoreDialog(Dialog d)
 { DialogItem di;
   Graphical defb;
   
-  for_chain(d->graphicals, di, send(di, NAME_restore, 0));
-  if ( (defb = get(d, NAME_defaultButton, 0)) )
-    send(defb, NAME_active, OFF, 0);
+  for_chain(d->graphicals, di, send(di, NAME_restore, EAV));
+  if ( (defb = get(d, NAME_defaultButton, EAV)) )
+    send(defb, NAME_active, OFF, EAV);
 
   succeed;
 }
@@ -289,8 +289,8 @@ modifiedItemDialog(Dialog d, Graphical gr, Bool m)
 { Button b;
 
   if ( (b = getDefaultButtonDialog(d)) )
-  { send(b, NAME_active, ON, 0);
-    if ( send(b, NAME_isApply, 0) )
+  { send(b, NAME_active, ON, EAV);
+    if ( send(b, NAME_isApply, EAV) )
       succeed;
   }
     
@@ -305,7 +305,7 @@ static Any
 getReportToDialog(Dialog d)
 { Any reporter;
 
-  if ( (reporter = get(d, NAME_member, NAME_reporter, 0)) )
+  if ( (reporter = get(d, NAME_member, NAME_reporter, EAV)) )
     answer(reporter);
 
   answer(getReportToVisual((VisualObj) d));

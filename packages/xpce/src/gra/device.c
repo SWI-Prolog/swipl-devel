@@ -39,14 +39,14 @@ initialiseDevice(Device dev)
 { initialiseGraphical(dev, ZERO, ZERO, ZERO, ZERO);
 
   assign(dev, level, ZERO);
-  assign(dev, offset, newObject(ClassPoint, 0));
-  assign(dev, graphicals, newObject(ClassChain, 0));
+  assign(dev, offset, newObject(ClassPoint, EAV));
+  assign(dev, graphicals, newObject(ClassChain, EAV));
   assign(dev, badBoundingBox, OFF);
   assign(dev, badFormat, OFF);
   assign(dev, format, NIL);
-  assign(dev, pointed, newObject(ClassChain, 0));
+  assign(dev, pointed, newObject(ClassChain, EAV));
   assign(dev, clip_area, NIL);
-  assign(dev, recompute, newObject(ClassChain, 0));
+  assign(dev, recompute, newObject(ClassChain, EAV));
 
   succeed;
 }
@@ -90,7 +90,7 @@ get_pointed_objects_device(Device dev, Int x, Int y, Chain ch)
 { Cell cell;
 
   if ( isDefault(ch) )
-    ch = answerObject(ClassChain, 0);
+    ch = answerObject(ClassChain, EAV);
   else
     clearChain(ch);
 
@@ -333,7 +333,7 @@ typedDevice(Device dev, EventId id, Bool delegate)
 	      succeed);
 
   if ( delegate == ON && notNil(dev->device) )
-    return send(dev->device, NAME_typed, id, delegate, 0);
+    return send(dev->device, NAME_typed, id, delegate, EAV);
 
   fail;
 }
@@ -354,7 +354,7 @@ advanceDevice(Device dev, Graphical gr, Bool propagate)
   for_cell(cell, dev->graphicals)
   { if ( skip )
     { if ( isNil(first) &&
-	   send(cell->value, NAME_WantsKeyboardFocus, 0) )
+	   send(cell->value, NAME_WantsKeyboardFocus, EAV) )
 	first = cell->value;
       if ( cell->value == gr )
         skip = FALSE;
@@ -362,7 +362,7 @@ advanceDevice(Device dev, Graphical gr, Bool propagate)
       continue;
     }
       
-    if ( send(cell->value, NAME_WantsKeyboardFocus, 0) )
+    if ( send(cell->value, NAME_WantsKeyboardFocus, EAV) )
     { keyboardFocusWindow(sw, cell->value);
       succeed;
     }
@@ -373,7 +373,7 @@ advanceDevice(Device dev, Graphical gr, Bool propagate)
 								      : OFF;
 
   if ( propagate == ON )
-    send(dev->device, NAME_advance, dev, 0);
+    send(dev->device, NAME_advance, dev, EAV);
   else
     keyboardFocusWindow(sw, first);	/* may be NIL */
 
@@ -646,7 +646,7 @@ flashDevice(Device dev, Area a, Int time)
     int nx = valInt(a->x) + valInt(dev->offset->x) - valInt(dev->area->x);
     int ny = valInt(a->y) + valInt(dev->offset->y) - valInt(dev->area->y);
 
-    a2 = answerObject(ClassArea, toInt(nx), toInt(ny), a->w, a->h, 0);
+    a2 = answerObject(ClassArea, toInt(nx), toInt(ny), a->w, a->h, EAV);
     flashGraphical((Graphical)dev, a2, time);
     doneObject(a2);
   }
@@ -847,16 +847,16 @@ selectionDevice(Device dev, Any obj)
 	  break;
       }
       if ( i < size )
-	send(cell->value, NAME_selected, ON, 0);
+	send(cell->value, NAME_selected, ON, EAV);
       else
-	send(cell->value, NAME_selected, OFF, 0);
+	send(cell->value, NAME_selected, OFF, EAV);
     }
 
     succeed;
   }
 
   for_cell(cell, dev->graphicals)
-    send(cell->value, NAME_selected, cell->value == obj ? ON : OFF, 0);
+    send(cell->value, NAME_selected, cell->value == obj ? ON : OFF, EAV);
 
   succeed;
 }
@@ -864,7 +864,7 @@ selectionDevice(Device dev, Any obj)
 
 static Chain
 getSelectionDevice(Device dev)
-{ Chain ch = answerObject(ClassChain, 0);
+{ Chain ch = answerObject(ClassChain, EAV);
   Cell cell;
 
   for_cell(cell, dev->graphicals)
@@ -906,9 +906,9 @@ formatDevice(Device dev, Any obj, Any arg)
   { assign(dev, format, obj);
   } else 
   { if ( isNil(dev->format) )
-      assign(dev, format, newObject(ClassFormat, 0));
+      assign(dev, format, newObject(ClassFormat, EAV));
 
-    rval = send(dev->format, (Name)obj, arg, 0);
+    rval = send(dev->format, (Name)obj, arg, EAV);
   }
   requestComputeDevice(dev, DEFAULT);
 
@@ -1170,7 +1170,7 @@ placeDialogItem(Device d, Matrix m, Graphical i,
 { Graphical gr;
 
   if ( IsPlaced(i) ||
-       get(i, NAME_autoAlign, 0) != ON  )
+       get(i, NAME_autoAlign, EAV) != ON  )
     succeed;
 
   if ( isNil(i->device) )
@@ -1191,17 +1191,17 @@ placeDialogItem(Device d, Matrix m, Graphical i,
   while( y >= *max_y ) expand_y_matrix(m, max_x, max_y); 
 
   m->units[x][y].item = i;
-  m->units[x][y].alignment = get(i, NAME_alignment, 0);
+  m->units[x][y].alignment = get(i, NAME_alignment, EAV);
   if ( !m->units[x][y].alignment )
     m->units[x][y].alignment = NAME_left;
 
-  if ( instanceOfObject((gr = get(i, NAME_above, 0)), ClassGraphical) )
+  if ( instanceOfObject((gr = get(i, NAME_above, EAV)), ClassGraphical) )
     placeDialogItem(d, m, gr, x, y-1, max_x, max_y);
-  if ( instanceOfObject((gr = get(i, NAME_below, 0)), ClassGraphical) )
+  if ( instanceOfObject((gr = get(i, NAME_below, EAV)), ClassGraphical) )
     placeDialogItem(d, m, gr, x, y+1, max_x, max_y);
-  if ( instanceOfObject((gr = get(i, NAME_right, 0)), ClassGraphical) )
+  if ( instanceOfObject((gr = get(i, NAME_right, EAV)), ClassGraphical) )
     placeDialogItem(d, m, gr, x+1, y, max_x, max_y);
-  if ( instanceOfObject((gr = get(i, NAME_left, 0)), ClassGraphical)  )
+  if ( instanceOfObject((gr = get(i, NAME_left, EAV)), ClassGraphical)  )
     placeDialogItem(d, m, gr,  x-1, y, max_x, max_y);
 
   succeed;
@@ -1398,13 +1398,13 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
       gap = getClassVariableValueClass(ClassDialog, NAME_gap);
 
     if ( !gap )
-      gap = answerObject(ClassSize, toInt(15), toInt(8), 0);
+      gap = answerObject(ClassSize, toInt(15), toInt(8), EAV);
   }
   if ( isDefault(border) )
     border = gap;
 
   for_cell(cell, d->graphicals)
-    send(cell->value, NAME_layoutDialog, 0);
+    send(cell->value, NAME_layoutDialog, EAV);
 
   if ( !PlacedTable )
     PlacedTable = createHashTable(toInt(32), NAME_none);
@@ -1413,7 +1413,7 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
 
   for_cell(cell, d->graphicals)
   { if ( !IsPlaced(cell->value) &&
-	 get(cell->value, NAME_autoAlign, 0) == ON )
+	 get(cell->value, NAME_autoAlign, EAV) == ON )
     { placeDialogItem(d, &m, cell->value, 0, 0, &max_x, &max_y);
       found++;
       break;
@@ -1447,8 +1447,8 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
 	     m.units[x][y].alignment == NAME_column )
 	{ int w;
 
-	  if ( get(gr, NAME_autoLabelAlign, 0) == ON )
-	  { if ( (w = valInt(get(gr, NAME_labelWidth, 0))) != lw )
+	  if ( get(gr, NAME_autoLabelAlign, EAV) == ON )
+	  { if ( (w = valInt(get(gr, NAME_labelWidth, EAV))) != lw )
 	    { if ( lw >= 0 )
 		chl++;
 	      lw = max(w, lw);
@@ -1456,8 +1456,8 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
 	    align_flags[y] |= AUTO_ALIGN_LABEL;
 	  }
 
-	  if ( get(gr, NAME_autoValueAlign, 0) == ON )
-	  { if ( (w = valInt(get(gr, NAME_valueWidth, 0))) != vw )
+	  if ( get(gr, NAME_autoValueAlign, EAV) == ON )
+	  { if ( (w = valInt(get(gr, NAME_valueWidth, EAV))) != vw )
 	    { if ( vw >= 0 )
 		chv++;
 	      vw = max(w, vw);
@@ -1471,7 +1471,7 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
 
 	for(y=0; y<max_y; y++)
 	{ if ( (align_flags[y] & AUTO_ALIGN_LABEL) )
-	    send(m.units[x][y].item, NAME_labelWidth, toInt(lw), 0);
+	    send(m.units[x][y].item, NAME_labelWidth, toInt(lw), EAV);
 	}
       }
       if ( chv )
@@ -1479,7 +1479,7 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
 
 	for(y=0; y<max_y; y++)
 	{ if ( (align_flags[y] & AUTO_ALIGN_VALUE) )
-	    send(m.units[x][y].item, NAME_valueWidth, toInt(vw), 0);
+	    send(m.units[x][y].item, NAME_valueWidth, toInt(vw), EAV);
 	}
       }
     }
@@ -1491,11 +1491,11 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
       { Unit u = &m.units[x][y];
 
 	if ( notNil(gr = u->item) && gr->displayed == ON )
-	{ Point reference = get(gr, NAME_reference, 0);
+	{ Point reference = get(gr, NAME_reference, EAV);
 	  int rx = (reference ? valInt(reference->x) : 0);
 	  int ry = (reference ? valInt(reference->y) : 0);
-	  Int hs = get(gr, NAME_horStretch, 0);
-	  Int vs = get(gr, NAME_verStretch, 0);
+	  Int hs = get(gr, NAME_horStretch, EAV);
+	  Int vs = get(gr, NAME_verStretch, EAV);
 	
 	  if ( !hs ) hs = ZERO;
 	  if ( !vs ) vs = ZERO;
@@ -1578,7 +1578,7 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
       for(x = 0; x < max_x; x++)
       { if ( notNil(gr = m.units[x][y].item) &&
 	     gr->displayed == ON )
-	{ Point reference = get(gr, NAME_reference, 0);
+	{ Point reference = get(gr, NAME_reference, EAV);
 	  int rx = (reference ? valInt(reference->x) : 0);
 	  int ry = (reference ? valInt(reference->y) : 0);
 	  int ix, iy = py + m.units[x][y].height;
@@ -1737,13 +1737,13 @@ layoutDialogDevice(Device d, Size gap, Size bb, Size border)
   free_matrix_columns(&m, max_x);
 
   if ( hasSendMethodObject(d, NAME_assignAccelerators) )
-    send(d, NAME_assignAccelerators, 0);
+    send(d, NAME_assignAccelerators, EAV);
 
   { PceWindow sw;
 
     if ( (sw = getWindowGraphical((Graphical) d)) &&
 	 isNil(sw->keyboard_focus) )
-      send(d, NAME_advance, NIL, 0);
+      send(d, NAME_advance, NIL, EAV);
   }
       
   succeed;
@@ -1757,7 +1757,7 @@ appendDialogItemDevice(Device d, Graphical item, Name where)
   if ( emptyChain(d->graphicals) )
     return appendDialogItemNetworkDevice(d, item);
 
-  send(item, NAME_autoAlign, ON, 0);
+  send(item, NAME_autoAlign, ON, EAV);
 
   di = getTailChain(d->graphicals);
   if ( isDefault(where) )
@@ -1767,13 +1767,13 @@ appendDialogItemDevice(Device d, Graphical item, Name where)
     else
       where = NAME_nextRow;
   } else if ( where == NAME_right &&
-	      (algmnt = get(di, NAME_alignment, 0)) != NAME_column )
-    send(item, NAME_alignment, algmnt, 0);
+	      (algmnt = get(di, NAME_alignment, EAV)) != NAME_column )
+    send(item, NAME_alignment, algmnt, EAV);
 
   if ( where == NAME_nextRow )
   { Graphical left;
 
-    while ( (left = get(di, NAME_left, 0)) && notNil(left) )
+    while ( (left = get(di, NAME_left, EAV)) && notNil(left) )
       di = left;
     where = NAME_below;
   }
@@ -1791,7 +1791,7 @@ appendDialogItemDevice(Device d, Graphical item, Name where)
 static status
 convertLoadedObjectDevice(Device dev, Int ov, Int cv)
 { if ( isNil(dev->recompute) )
-    assign(dev, recompute, newObject(ClassChain, 0));
+    assign(dev, recompute, newObject(ClassChain, EAV));
     
   succeed;
 }
@@ -1834,7 +1834,7 @@ getInsideDevice(Device dev, Area a)
 { register Cell cell;
   Chain ch;
 
-  ch = answerObject(ClassChain, 0);
+  ch = answerObject(ClassChain, EAV);
 
   ComputeGraphical(dev);
   for_cell(cell, dev->graphicals)
@@ -1859,9 +1859,9 @@ resizeDevice(Device dev, Real xfactor, Real yfactor, Point origin)
     succeed;
 
   p = tempObject(ClassPoint, toInt(ox - valInt(dev->offset->x)),
-		 	     toInt(oy - valInt(dev->offset->y)), 0);
+		 	     toInt(oy - valInt(dev->offset->y)), EAV);
   for_cell(cell, dev->graphicals)
-    send(cell->value, NAME_resize, xfactor, yfactor, p, 0);
+    send(cell->value, NAME_resize, xfactor, yfactor, p, EAV);
   considerPreserveObject(p);
 
   succeed;
@@ -1895,7 +1895,7 @@ forSomeDevice(Device dev, Name name, Code msg)
   { Graphical gr = cell->value;
 
     if ( isDefault(name) || gr->name == name )
-      forwardReceiverCode(msg, dev, gr, 0);
+      forwardReceiverCode(msg, dev, gr, EAV);
   }
   
   succeed;
@@ -1910,7 +1910,7 @@ forAllDevice(Device dev, Name name, Code msg)
   { Graphical gr = cell->value;
 
     if ( isDefault(name) || gr->name == name )
-      TRY(forwardReceiverCode(msg, dev, gr, 0));
+      TRY(forwardReceiverCode(msg, dev, gr, EAV));
   }
   
   succeed;
@@ -1985,7 +1985,7 @@ referenceDevice(Device dev, Point pos)
 
   if ( x != ZERO || y != ZERO )
   { Cell cell;
-    Point move = tempObject(ClassPoint, sub(ZERO, x), sub(ZERO, y), 0);
+    Point move = tempObject(ClassPoint, sub(ZERO, x), sub(ZERO, y), EAV);
 
     offsetPoint(dev->offset, x, y);
     for_cell(cell, dev->graphicals)

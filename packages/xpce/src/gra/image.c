@@ -33,7 +33,7 @@ initialiseImage(Image image, SourceSink data, Int w, Int h, Name kind)
     data = (SourceSink) NIL;
 
   if ( notNil(data) && hasGetMethodObject(data, NAME_name) )
-    name = get(data, NAME_name, 0);
+    name = get(data, NAME_name, EAV);
   if ( !name )
     name = NIL;
     
@@ -50,13 +50,13 @@ initialiseImage(Image image, SourceSink data, Int w, Int h, Name kind)
     assign(image, kind,   kind);
     assign(image, file,   NIL);
     assign(image, depth,  kind == NAME_bitmap ? ONE : (Int) DEFAULT);
-    assign(image, size,	  newObject(ClassSize, w, h, 0));
+    assign(image, size,	  newObject(ClassSize, w, h, EAV));
     assign(image, access, NAME_both);
   } else
   { assign(image, kind,	  NAME_bitmap);
     assign(image, file,	  data);
     assign(image, depth,  ONE);
-    assign(image, size,	  newObject(ClassSize, 0));
+    assign(image, size,	  newObject(ClassSize, EAV));
     TRY(loadImage(image, DEFAULT, DEFAULT));
     assign(image, access, NAME_read);
   }
@@ -127,14 +127,14 @@ getConvertImage(Class class, Any obj)
     if ( (image = getMemberHashTable(ImageTable, rc->name)) )
       answer(image);
 
-    answer(answerObject(ClassImage, obj, 0));
+    answer(answerObject(ClassImage, obj, EAV));
   }
 
   if ( (name = checkType(obj, TypeName, class)) )
   { if ( (image = getMemberHashTable(ImageTable, name)) )
       answer(image);
     else
-      answer(answerObject(ClassImage, name, 0));
+      answer(answerObject(ClassImage, name, EAV));
   }
 
   if ( instanceOfObject(obj, ClassGraphical) )
@@ -142,8 +142,8 @@ getConvertImage(Class class, Any obj)
     Image img;
     
     ComputeGraphical(gr);
-    if ( (img = newObject(ClassImage, NIL, gr->area->w, gr->area->h, 0)) )
-    { drawInImage(img, gr, answerObject(ClassPoint, 0));
+    if ( (img = newObject(ClassImage, NIL, gr->area->w, gr->area->h, EAV)) )
+    { drawInImage(img, gr, answerObject(ClassPoint, EAV));
       answer(img);
     }
   }
@@ -278,7 +278,7 @@ loadImage(Image image, SourceSink file, CharArray path)
   { if ( isDefault(path) )
       TRY(path = getClassVariableValueObject(image, NAME_path));
 
-    TRY(send(image->file, NAME_find, path, NAME_read, 0));
+    TRY(send(image->file, NAME_find, path, NAME_read, EAV));
   }
 
   CHANGING_IMAGE(image,
@@ -693,14 +693,14 @@ getClipImage(Image image, Area area)
     w = valInt(area->w); h = valInt(area->h);
   }
 
-  i2 = answerObject(ClassImage, NIL, toInt(w), toInt(h), image->kind, 0);
+  i2 = answerObject(ClassImage, NIL, toInt(w), toInt(h), image->kind, EAV);
 
   if ( notNil(image->hot_spot) )
   { int hx = valInt(image->hot_spot->x) - x;
     int hy = valInt(image->hot_spot->y) - y;
 
     if ( hx >= 0 && hx <= w && hy >= 0 && hy <= h )
-      assign(i2, hot_spot, newObject(ClassPoint, toInt(hx), toInt(hy), 0));
+      assign(i2, hot_spot, newObject(ClassPoint, toInt(hx), toInt(hy), EAV));
   }
   if ( notNil(image->mask) )
     assign(i2, mask, getClipImage(image->mask, area));
@@ -732,7 +732,7 @@ getScaleImage(Image image, Size size)
   if ( equalSize(size, image->size) )	/* just make a copy */
     return getClipImage(image, DEFAULT);
   if ( size->w == ZERO || size->h == ZERO )
-    return answerObject(ClassImage, NIL, size->w, size->h, image->kind, 0);
+    return answerObject(ClassImage, NIL, size->w, size->h, image->kind, EAV);
   
   i2 = ws_scale_image(image, valInt(size->w), valInt(size->h));
 
@@ -748,7 +748,7 @@ getScaleImage(Image image, Size size)
 						    valInt(image->size->w);
     int hy = (valInt(image->hot_spot->y) * valInt(size->h)) /
 						    valInt(image->size->h);
-    assign(i2, hot_spot, newObject(ClassPoint, toInt(hx), toInt(hy), 0));
+    assign(i2, hot_spot, newObject(ClassPoint, toInt(hx), toInt(hy), EAV));
   }
 
   answer(i2);
@@ -790,7 +790,7 @@ getRotateImage(Image image, Int degrees)
       { nhx -= rfloat(sin(rads) * (double)valInt(image->size->h));
       }
   
-      assign(rimg, hot_spot, newObject(ClassPoint, toInt(nhx), toInt(nhy), 0));
+      assign(rimg, hot_spot, newObject(ClassPoint, toInt(nhx), toInt(nhy), EAV));
     }
 
     if ( notNil(image->mask) )
@@ -808,7 +808,7 @@ getRotateImage(Image image, Int degrees)
 static Area
 getBoundingBoxImage(Image image)
 { answer(answerObject(ClassArea,
-		      ZERO, ZERO, image->size->w, image->size->h, 0));
+		      ZERO, ZERO, image->size->w, image->size->h, EAV));
 }
 
 
@@ -850,7 +850,7 @@ getPostscriptDepthImage(Image image)
 
 static Image
 stdImage(Name name, Image *global, char *bits, int w, int h)
-{ Image image = globalObject(name, ClassImage, name, toInt(w), toInt(h), 0);
+{ Image image = globalObject(name, ClassImage, name, toInt(w), toInt(h), EAV);
   
   assign(image, access, NAME_read);
   if ( bits )
@@ -1114,7 +1114,7 @@ makeClassImage(Class class)
   setLoadStoreFunctionClass(class, loadFdImage, storeImage);
   cloneStyleClass(class, NAME_none);	/* just copy reference */
 
-  ImageTable = globalObject(NAME_images, ClassHashTable, toInt(32), 0);
+  ImageTable = globalObject(NAME_images, ClassHashTable, toInt(32), EAV);
   standardImages();
 
   succeed;

@@ -22,7 +22,7 @@ initialiseParBox(ParBox pb, Int width, Name alignment)
 { initialiseDevice((Device) pb);
 
   obtainClassVariablesObject(pb);
-  assign(pb, content, newObject(ClassVector, 0));
+  assign(pb, content, newObject(ClassVector, EAV));
 
   if ( notDefault(alignment) ) assign(pb, alignment,  alignment);
   if ( notDefault(width) )     assign(pb, line_width, width);
@@ -63,7 +63,7 @@ makeDefaultSpace(TBox refbox, Style style)
   FontObj f;
 
   if ( notNil(refbox) )
-  { if ( (hb=get(refbox, NAME_space, 0)) )
+  { if ( (hb=get(refbox, NAME_space, EAV)) )
       return hb;
   }
 
@@ -117,7 +117,7 @@ cdataParBox(ParBox pb, StringObj cdata,
 
       n = StringToName(&s);
 
-      appendParBox(pb, (refbox=newObject(ClassTBox, n, style, 0)));
+      appendParBox(pb, (refbox=newObject(ClassTBox, n, style, EAV)));
     }
   }
 
@@ -211,7 +211,7 @@ RedrawAreaParBox(ParBox pb, Area a)
 	{ Area a2 = pb->area;
 
 	  r_fill(valInt(a2->x), valInt(a2->y), valInt(a2->w), valInt(a2->h),
-	       newObject(ClassColour, CtoName("light_blue"), 0));
+	       newObject(ClassColour, CtoName("light_blue"), EAV));
 	});
 
 
@@ -397,7 +397,7 @@ getBoxAreaParBox(ParBox pb, Any target, Device relto)
 	  
 	    a = answerObject(ClassArea,
 			     toInt(pc->x), toInt(y),
-			     toInt(pc->w), toInt(l.ascent+l.descent), 0);
+			     toInt(pc->w), toInt(l.ascent+l.descent), EAV);
 	  }
 
 	  if ( notDefault(relto) )
@@ -513,7 +513,7 @@ static long
 test_get_find_parbox(ParBox pb, HBox hb, long index, void *closure)
 { testcl *cl = closure;
 
-  if ( forwardReceiverCode(cl->test, pb, hb, toInt(index), 0) )
+  if ( forwardReceiverCode(cl->test, pb, hb, toInt(index), EAV) )
   { cl->parbox = pb;
     cl->index  = index;
     return TRUE;
@@ -530,7 +530,7 @@ getFindParBox(ParBox pb, Code test)
   cl.test = test;
 
   if ( for_parbox(pb, test_get_find_parbox, &cl) )
-  { answer(answerObject(ClassTuple, cl.parbox, toInt(cl.index), 0));
+  { answer(answerObject(ClassTuple, cl.parbox, toInt(cl.index), EAV));
   }
 
   fail;
@@ -1287,7 +1287,7 @@ geometryParBox(ParBox pb, Int x, Int y, Int w, Int h)
 			 assign(a, y, y);
 			 if ( chw )
 			 { if ( pb->line_width != toInt(lw) )
-			   { send(pb, NAME_lineWidth, toInt(lw), 0);
+			   { send(pb, NAME_lineWidth, toInt(lw), EAV);
 			     computeParBox(pb); /* update ->height */
 			   }
 			 }

@@ -23,7 +23,7 @@ initialiseClickGesture(ClickGesture g, Name button,
 
   TRY(initialiseGesture((Gesture) g, button, modifier));
 
-  assign(g, down_position,     newObject(ClassPoint, 0));
+  assign(g, down_position,     newObject(ClassPoint, EAV));
   assign(g, multiclick,        multi);
   assign(g, execute_message,   execute);
   assign(g, preview_message,   preview);
@@ -51,7 +51,7 @@ verifyClickGesture(ClickGesture g, EventObj ev)
 static status
 initiateClickGesture(ClickGesture g, EventObj ev)
 { if ( notNil(g->preview_message) )
-    return forwardReceiverCode(g->preview_message, getMasterEvent(ev), ev, 0);
+    return forwardReceiverCode(g->preview_message, getMasterEvent(ev), ev, EAV);
 
   succeed;
 }
@@ -65,7 +65,7 @@ dragClickGesture(ClickGesture g, EventObj ev)
     if ( instanceOfObject((sw=ev->window), ClassWindow) &&
 	 valInt(getDistanceEvent(sw->focus_event, ev)) >
 	 valInt(g->max_drag_distance) )
-      send(g, NAME_cancel, ev, 0);
+      send(g, NAME_cancel, ev, EAV);
   }
   
   succeed;
@@ -75,7 +75,7 @@ dragClickGesture(ClickGesture g, EventObj ev)
 static status
 cancelClickGesture(ClickGesture g, EventObj ev)
 { if ( notNil(g->cancel_message) )
-    forwardReceiverCode(g->cancel_message, getMasterEvent(ev), ev, 0);
+    forwardReceiverCode(g->cancel_message, getMasterEvent(ev), ev, EAV);
   
   return cancelGesture((Gesture) g, ev);
 }
@@ -88,18 +88,18 @@ terminateClickGesture(ClickGesture g, EventObj ev)
 			       getPositionEvent(ev, DEFAULT))) < 5 )
   { if ( notNil(g->execute_message) )
     { if ( getMulticlickEvent(ev) == NAME_single )
-      { forwardReceiverCode(g->execute_message, getMasterEvent(ev), ev, 0);
+      { forwardReceiverCode(g->execute_message, getMasterEvent(ev), ev, EAV);
       } else
       { DisplayObj d = getDisplayGraphical((Graphical) ev->window);
 
 	busyCursorDisplay(d, DEFAULT, DEFAULT);
-	forwardReceiverCode(g->execute_message, getMasterEvent(ev), ev, 0);
+	forwardReceiverCode(g->execute_message, getMasterEvent(ev), ev, EAV);
 	busyCursorDisplay(d, NIL, DEFAULT);
       }
     }
   } else
   { if ( notNil(g->cancel_message) )
-      forwardReceiverCode(g->cancel_message, getMasterEvent(ev), ev, 0);
+      forwardReceiverCode(g->cancel_message, getMasterEvent(ev), ev, EAV);
   }
     
   succeed;

@@ -42,7 +42,7 @@ static status	closeTokeniser(Tokeniser);
 static status
 initialiseTokeniser(Tokeniser t, SyntaxTable syntax)
 { assign(t, syntax,  syntax);
-  assign(t, symbols, newObject(ClassHashTable, 0));
+  assign(t, symbols, newObject(ClassHashTable, EAV));
 
   t->access = A_NONE;
   t->line = t->caret = 0;
@@ -93,7 +93,7 @@ getOpenTokeniser(Tokeniser t, Any source)
   t->caret = 0;
 
   if ( instanceOfObject(source, ClassFile) )
-  { if ( !send(t->source, NAME_open, NAME_read, 0) )
+  { if ( !send(t->source, NAME_open, NAME_read, EAV) )
     { assign(t, source, NIL);
       fail;
     }
@@ -112,7 +112,7 @@ static status
 closeTokeniser(Tokeniser t)
 { switch(t->access)
   { case A_FILE:
-      send(t->source, NAME_close, 0);
+      send(t->source, NAME_close, EAV);
   }
 
   assign(t, source, NIL);
@@ -263,7 +263,7 @@ getReportToTokeniser(Tokeniser t)
 static status
 tokenTokeniser(Tokeniser t, Any token)
 { if ( isNil(t->stack) )
-    assign(t, stack, newObject(ClassChain, 0));
+    assign(t, stack, newObject(ClassChain, EAV));
 
   return appendChain(t->stack, token);
 }
@@ -592,7 +592,7 @@ makeClassTokeniser(Class class)
   EndOfFile = globalObject(NAME_endOfFile, ClassConstant,
 			   NAME_endOfFile,
 			   CtoString("End-of-file marker"),
-			   0);
+			   EAV);
 
   succeed;
 }

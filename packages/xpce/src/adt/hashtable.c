@@ -405,7 +405,7 @@ forAllHashTable(HashTable ht, Code code, Bool safe)
   if ( safe == OFF )
   { for(n=size, s=ht->symbols; n-->0; s++)
       if ( s->name )
-	TRY(forwardCode(code, s->name, s->value, 0));
+	TRY(forwardCode(code, s->name, s->value, EAV));
   } else
   { Symbol symbols = (Symbol)alloca(sizeof(struct symbol) * valInt(ht->size));
     Symbol q = symbols;
@@ -417,7 +417,7 @@ forAllHashTable(HashTable ht, Code code, Bool safe)
     for(n=valInt(ht->size), q=symbols; n-- > 0; q++)
       if ( (nonObject(q->name) || !isFreedObj(q->name)) &&
 	   (nonObject(q->value) || !isFreedObj(q->value)) )
-	TRY(forwardCode(code, q->name, q->value, 0));
+	TRY(forwardCode(code, q->name, q->value, EAV));
   }
 
   succeed;
@@ -432,7 +432,7 @@ forSomeHashTable(HashTable ht, Code code, Bool safe)
   if ( safe == OFF )
   { for(n=size, s=ht->symbols; n-->0; s++)
       if ( s->name )
-	forwardCode(code, s->name, s->value, 0);
+	forwardCode(code, s->name, s->value, EAV);
   } else
   { Symbol symbols = (Symbol)alloca(sizeof(struct symbol) * valInt(ht->size));
     Symbol q = symbols;
@@ -444,7 +444,7 @@ forSomeHashTable(HashTable ht, Code code, Bool safe)
     for(n=valInt(ht->size), q=symbols; n-- > 0; q++)
       if ( (nonObject(q->name) || !isFreedObj(q->name)) &&
 	   (nonObject(q->value) || !isFreedObj(q->value)) )
-	forwardCode(code, q->name, q->value, 0);
+	forwardCode(code, q->name, q->value, EAV);
   }
 
   succeed;
@@ -458,7 +458,7 @@ getFindKeyHashTable(HashTable ht, Code code)
 
   for(n=size, s=ht->symbols; n-->0; s++)
     if ( s->name )
-      if ( forwardCode(code, s->name, s->value, 0) )
+      if ( forwardCode(code, s->name, s->value, EAV) )
 	answer(s->name);
 
   fail;
@@ -472,7 +472,7 @@ getFindValueHashTable(HashTable ht, Code code)
 
   for(n=size, s=ht->symbols; n-->0; s++)
     if ( s->name )
-      if ( forwardCode(code, s->name, s->value, 0) )
+      if ( forwardCode(code, s->name, s->value, EAV) )
 	answer(s->value);
 
   fail;

@@ -27,7 +27,7 @@ static status	setDate(Date d, Int s, Int m, Int h, Int D, Int M, Int Y);
 
 Date
 CtoDate(long int time)
-{ Date d = newObject(ClassDate, 0);
+{ Date d = newObject(ClassDate, EAV);
 
   d->unix_date = time;
 
@@ -91,7 +91,7 @@ getConvertDate(Class class, StringObj str)
   { long t = get_date((char *)str->data.s_text8, NULL);
 
     if ( t != -1 )
-    { Date d = answerObject(ClassDate, 0);
+    { Date d = answerObject(ClassDate, EAV);
       d->unix_date = t;
 
       answer(d);

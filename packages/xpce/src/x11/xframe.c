@@ -183,7 +183,7 @@ ws_realise_frame(FrameObj fr)
   XtRealizeWidget(w);
 
   for_cell(cell, fr->members)
-    send(cell->value, NAME_geometry, 0); /* see note at ws_create_window */
+    send(cell->value, NAME_geometry, EAV); /* see note at ws_create_window */
 
   if ( notNil(fr->transient_for) )
   { XSetTransientForHint(r->display_xref,
@@ -239,7 +239,7 @@ ws_raise_frame(FrameObj fr)
     XRaiseWindow(r->display_xref, XtWindow(w));
   }
 
-  send(fr, NAME_exposed, 0);		/* doesn't appear to generate a */
+  send(fr, NAME_exposed, EAV);		/* doesn't appear to generate a */
 					/* CirculateNotify event */
 }
 
@@ -330,7 +330,7 @@ x_event_frame(Widget w, FrameObj fr, XEvent *event)
 	name = CtoName(FrameAtomToString(fr, event->xclient.data.l[0]));
 	if ( (msg = checkType(getValueSheet(fr->wm_protocols, name),
 			      TypeCode, fr)) )
-	  forwardReceiverCode(msg, fr, MainWindow(fr), 0);
+	  forwardReceiverCode(msg, fr, MainWindow(fr), EAV);
       }
       return;
     }
@@ -349,9 +349,9 @@ x_event_frame(Widget w, FrameObj fr, XEvent *event)
     { Cell cell;
 
       for_cell(cell, fr->members)
-	send(cell->value, NAME_displayed, ON, 0);
+	send(cell->value, NAME_displayed, ON, EAV);
       updateAreaFrame(fr, DEFAULT);
-      send(fr, NAME_mapped, ON, 0);
+      send(fr, NAME_mapped, ON, EAV);
       assign(fr, status, NAME_window);
       return;
     }
@@ -359,17 +359,17 @@ x_event_frame(Widget w, FrameObj fr, XEvent *event)
     { Cell cell;
 
       for_cell(cell, fr->members)
-	send(cell->value, NAME_displayed, OFF, 0);
+	send(cell->value, NAME_displayed, OFF, EAV);
       if ( !isFreedObj(fr) || isFreeingObj(fr) )
-	send(fr, NAME_mapped, OFF, 0);
+	send(fr, NAME_mapped, OFF, EAV);
       assign(fr, status, NAME_hidden);
       return;
     }
     case CirculateNotify:
       if ( event->xcirculate.place == PlaceOnTop )
-      	send(fr, NAME_exposed, 0);
+      	send(fr, NAME_exposed, EAV);
       else
-	send(fr, NAME_hidden, 0);
+	send(fr, NAME_hidden, EAV);
       return;
     case FocusIn:
 #if 0
@@ -391,10 +391,10 @@ x_event_frame(Widget w, FrameObj fr, XEvent *event)
     }
 #endif
 
-      send(fr, NAME_inputFocus, ON, 0);
+      send(fr, NAME_inputFocus, ON, EAV);
       return;
     case FocusOut:
-      send(fr, NAME_inputFocus, OFF, 0);
+      send(fr, NAME_inputFocus, OFF, EAV);
       return;
     case KeyPress:
     { EventObj ev;
@@ -416,7 +416,7 @@ x_event_frame(Widget w, FrameObj fr, XEvent *event)
   
       if ( (ev = CtoEvent(fr, event)) )
       { addCodeReference(ev);
-	send(fr, NAME_event, ev, 0);
+	send(fr, NAME_event, ev, EAV);
 	delCodeReference(ev);
 	freeableObj(ev);
       }
@@ -513,7 +513,7 @@ updateAreaFrame(FrameObj fr, Int border)
 	assign(fr, border, border);
 
       if ( a->w != ow || a->h != oh )
-	send(fr, NAME_resize, 0);
+	send(fr, NAME_resize, EAV);
     }
 
     succeed;
@@ -598,7 +598,7 @@ ws_x_geometry_frame(FrameObj fr, Name spec)
     W = ( mask & WidthValue  ? toInt(w) : (Int) DEFAULT );
     H = ( mask & HeightValue ? toInt(h) : (Int) DEFAULT );
 
-    send(fr, NAME_set, X, Y, W, H, 0);
+    send(fr, NAME_set, X, Y, W, H, EAV);
   }
 }
 
@@ -919,7 +919,7 @@ ws_image_of_frame(FrameObj fr)
       bw = valInt(fr->border);
     
     TRY(im = answerObject(ClassImage, NIL,
-			  toInt(w+2*bw), toInt(h+2*bw), NAME_pixmap, 0));
+			  toInt(w+2*bw), toInt(h+2*bw), NAME_pixmap, EAV));
     
     ix = XGetImage(d, root,
 		   x-bw, y-bw, w+2*bw, h+2*bw, AllPlanes, ZPixmap);

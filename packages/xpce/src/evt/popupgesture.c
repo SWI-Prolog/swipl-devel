@@ -43,12 +43,12 @@ updatePopupGesture(PopupGesture g, EventObj ev)
   { if ( instanceOfObject(g->popup, ClassFunction) )
     { Any rec = getMasterEvent(ev);
       TRY( p = getForwardReceiverFunction((Function) g->popup, rec,
-				  rec, ev, 0) );
+				  rec, ev, EAV) );
       TRY( p = checkType(p, nameToType(NAME_popup), g));
     } else
       p = g->popup;
   } else
-  { TRY( p = get(getMasterEvent(ev), NAME_popup, 0) );
+  { TRY( p = get(getMasterEvent(ev), NAME_popup, EAV) );
   }
 
   assign(g, current, p);
@@ -56,7 +56,7 @@ updatePopupGesture(PopupGesture g, EventObj ev)
     assign(g, context, notNil(g->current->context) ? g->current->context
 	   					   : getMasterEvent(ev));
 
-  send(p, NAME_update, g->context, 0);
+  send(p, NAME_update, g->context, EAV);
   if ( p->active == OFF || emptyChain(p->members) )
   { cancelPopupGesture(g);
     fail;
@@ -78,7 +78,7 @@ eventPopupGesture(PopupGesture g, EventObj ev)
       grabPointerWindow(sw, ON);
       focusWindow(sw, ev->receiver, (Recogniser) g, g->cursor, NIL);
     } else
-    { send(g, NAME_terminate, 0);
+    { send(g, NAME_terminate, EAV);
       if ( isNil(g->current) )
       { grabPointerWindow(sw, OFF);
 	focusWindow(sw, NIL, NIL, NIL, NIL);
@@ -100,14 +100,14 @@ eventPopupGesture(PopupGesture g, EventObj ev)
     TRY(updatePopupGesture(g, ev));
     key = characterName(getIdEvent(ev));
 
-    if ( send(g->current, NAME_key, key, 0) )
+    if ( send(g->current, NAME_key, key, EAV) )
     { Any context = g->context;
       PopupObj current = g->current;
       
       assign(g, context, NIL);
       assign(g, current, NIL);
 
-      send(current, NAME_execute, context, 0);
+      send(current, NAME_execute, context, EAV);
       succeed;
     } else
       cancelPopupGesture(g);
@@ -130,7 +130,7 @@ verifyPopupGesture(PopupGesture g, EventObj ev)
 static status
 initiatePopupGesture(PopupGesture g, EventObj ev)
 { send(g->current, NAME_open, ev->receiver,
-       getAreaPositionEvent(ev, DEFAULT), 0);
+       getAreaPositionEvent(ev, DEFAULT), EAV);
   postEvent(ev, (Graphical) g->current, DEFAULT);
   succeed;
 }
@@ -163,7 +163,7 @@ terminatePopupGesture(PopupGesture g, EventObj ev)
       assign(g, current, NIL);
 
       grabPointerWindow(ev->window, OFF);
-      send(current, NAME_execute, context, 0);
+      send(current, NAME_execute, context, EAV);
       focusWindow(ev->window, NIL, NIL, NIL, NIL);
     }
   }
@@ -249,7 +249,7 @@ makeClassPopupGesture(Class class)
 Recogniser
 popupGesture()
 { if ( GESTURE_popup == NULL )
-    GESTURE_popup = globalObject(NAME_PopupGesture, ClassPopupGesture, 0);
+    GESTURE_popup = globalObject(NAME_PopupGesture, ClassPopupGesture, EAV);
 
   return (Recogniser) GESTURE_popup;
 }

@@ -221,7 +221,7 @@ exitDraw(int rval)
   { Cell cell;
 
     for_cell(cell, d->frames)
-      send(cell->value, NAME_uncreate, 0);
+      send(cell->value, NAME_uncreate, EAV);
   }
 
   SetCursor(LoadCursor(NULL, IDC_WAIT));

@@ -18,7 +18,7 @@ static Chain TheApplications;
 static status
 initialiseApplication(Application app, Name name)
 { assign(app, name,    name);
-  assign(app, members, newObject(ClassChain, 0));
+  assign(app, members, newObject(ClassChain, EAV));
   assign(app, kind,    NAME_user);
 /*assign(app, modal,   NIL);*/
 
@@ -33,7 +33,7 @@ unlinkApplication(Application app)
 { if ( notNil(app->members) )
   { FrameObj fr;
 
-    for_chain(app->members, fr, send(fr, NAME_destroy, 0));
+    for_chain(app->members, fr, send(fr, NAME_destroy, EAV));
   }
 
   deleteChain(TheApplications, app);
@@ -46,7 +46,7 @@ static status
 appendApplication(Application app, FrameObj fr)
 { if ( fr->application != app )
   { if ( notNil(fr->application) )
-      send(fr->application, NAME_delete, fr, 0);
+      send(fr->application, NAME_delete, fr, EAV);
 
     assign(fr, application, app);
     appendChain(app->members, fr);
@@ -109,7 +109,7 @@ resetApplications()
 { if ( TheApplications )
   { Application app;
 
-    for_chain(TheApplications, app, send(app, NAME_reset, 0));
+    for_chain(TheApplications, app, send(app, NAME_reset, EAV));
   }
 }
 
@@ -117,7 +117,7 @@ resetApplications()
 static status
 modalApplication(Application app, FrameObj fr)
 { if ( fr->application != app )
-  { TRY(send(fr, NAME_application, app, 0));
+  { TRY(send(fr, NAME_application, app, EAV));
   }
 
   assign(app, modal, fr);
@@ -187,7 +187,7 @@ status
 makeClassApplication(Class class)
 { declareClass(class, &application_decls);
 
-  TheApplications = globalObject(NAME_applications, ClassChain, 0);
+  TheApplications = globalObject(NAME_applications, ClassChain, EAV);
 
   succeed;
 }

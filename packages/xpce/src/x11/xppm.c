@@ -573,7 +573,7 @@ write_pnm_file(IOSTREAM *fd, XImage *img,
     encode = PNM_RAWBITS;
 
   Sfprintf(fd, "P%c\n", fmt + encode + '0');
-  Sfprintf(fd, "# Creator: XPCE version %s\n", strName(get(PCE,NAME_version,0)));
+  Sfprintf(fd, "# Creator: XPCE version %s\n", strName(get(PCE,NAME_version,EAV)));
   if ( fmt != PNM_PBM )
   { Sfprintf(fd, "# %d colours found\n", colours);
     Sfprintf(fd, "%d %d\n", width, height);

@@ -366,7 +366,7 @@ getModifyName(Name n, Name n2)
   if ( (name = getLookupName(ClassName, (CharArray) n2)) )
     answer(name);
 
-  answer(newObject(ClassName, n2, 0));
+  answer(newObject(ClassName, n2, EAV));
 }
 
 
@@ -426,7 +426,7 @@ syntaxName(Name n, Name casemap, Int ws)
       succeed;
   }
 
-  str = newObject(ClassString, name_procent_s, n, 0);
+  str = newObject(ClassString, name_procent_s, n, EAV);
   upcaseString(str);
   if ( notDefault(ws) )
   { s = &str->data;
@@ -527,7 +527,7 @@ StringToName(String s)
   { CharArray scratch = StringToScratchCharArray(s);
     Name name;
 
-    ServiceMode(PCE_EXEC_SERVICE, name = newObject(ClassName, scratch, 0));
+    ServiceMode(PCE_EXEC_SERVICE, name = newObject(ClassName, scratch, EAV));
 
     doneScratchCharArray(scratch);
     return name;

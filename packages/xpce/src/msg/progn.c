@@ -18,7 +18,7 @@ initialisePrognv(Progn p, int argc, Any *argv)
 { int n;
 
   initialiseFunction((Function) p);
-  assign(p, members, newObject(ClassChain, 0));
+  assign(p, members, newObject(ClassChain, EAV));
 
   for(n=0; n<argc; n++)
     appendChain(p->members, argv[n]);

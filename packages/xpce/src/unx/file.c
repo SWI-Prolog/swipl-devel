@@ -125,7 +125,7 @@ loadFile(FileObj f, IOSTREAM *fd, ClassDef def)
 
 static FileObj
 getConvertFile(Class class, Name name)
-{ answer(answerObject(ClassFile, name, 0));
+{ answer(answerObject(ClassFile, name, EAV));
 }
 
 
@@ -440,7 +440,7 @@ getBackupFileNameFile(FileObj f, Name ext)
 static status
 backupFile(FileObj f, Name ext)
 { if ( existsFile(f, ON) )
-  { Name newname = get(f, NAME_backupFileName, ext, 0);
+  { Name newname = get(f, NAME_backupFileName, ext, EAV);
     char *new;
     char *old = strName(getOsNameFile(f));
     int fdfrom = -1, fdto = -1;
@@ -600,7 +600,7 @@ openFile(FileObj f, Name mode, Name filter, CharArray extension)
   { if ( isNil(filter) && mode == NAME_read && errno == ENOENT )
     { Attribute a;
 
-      if ( (a = get(f, NAME_filter, 0)) )
+      if ( (a = get(f, NAME_filter, EAV)) )
       { if ( !isName(a->value) || !isName(a->name) )
 	  fail;
 	return openFile(f, mode, a->value, a->name);
@@ -848,7 +848,7 @@ getReadFile(FileObj f, Int n)
   }
 
   size = valInt(n);
-  s = answerObject(ClassString, 0);
+  s = answerObject(ClassString, EAV);
   str_unalloc(&s->data);
   str_inithdr(&s->data, ENC_ASCII);
   s->data.size = size;
@@ -1195,12 +1195,12 @@ makeClassFile(Class class)
 			     newObject(ClassAttribute,
 				       CtoName(".Z"),
 				       CtoName("uncompress"),
-				       0),
+				       EAV),
 			     newObject(ClassAttribute,
 				       CtoName(".gz"),
 				       CtoName("gunzip"),
-				       0),
-			     0);
+				       EAV),
+			     EAV);
 
   succeed;
 }

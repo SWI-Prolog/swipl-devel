@@ -432,7 +432,7 @@ swritefv(char *buf, CharArray format, int argc, const Any argv[])
 	      { Any pn;
 
 		ServiceMode(PCE_EXEC_SERVICE,
-			    pn = get(argv[0], NAME_printName, 0));
+			    pn = get(argv[0], NAME_printName, EAV));
 		if ( !(a = toCharp(pn)) )
 		  a = pp(argv[0]);
 	      }

@@ -133,7 +133,7 @@ static status
 candidateSaveRelation(Any r)
 { if ( !isSavedObject(r) )
   { if ( !candidateSaveRelations )
-      candidateSaveRelations = newObject(ClassChain, r, 0);
+      candidateSaveRelations = newObject(ClassChain, r, EAV);
     else
       appendChain(candidateSaveRelations, r);
   }
@@ -149,7 +149,7 @@ saveRelations(FileObj f)
   while( candidateSaveRelations &&
 	 (r = getDeleteHeadChain(candidateSaveRelations)) )
   { if ( !isSavedObject(r) )
-      TRY(send(r, NAME_SaveRelation, f, 0));
+      TRY(send(r, NAME_SaveRelation, f, EAV));
   }
 
   succeed;
@@ -206,8 +206,8 @@ status
 saveInFileObject(Any obj, FileObj file)
 { status result;
 
-  TRY(send(file, NAME_kind, NAME_binary, 0) &&
-      send(file, NAME_open, NAME_write, 0));
+  TRY(send(file, NAME_kind, NAME_binary, EAV) &&
+      send(file, NAME_open, NAME_write, EAV));
 
   if ( SaveMagic == NULL )
     SaveMagic = SAVEMAGIC;
@@ -280,7 +280,7 @@ storeObject(Any obj, FileObj file)
       } else if ( class->name == NAME_lispSymbol ) /* HACK */
       { storeCharFile(file, 'S');
 	storeNameFile(file, obj);
-	storeNameFile(file, get(obj, NAME_package, 0));
+	storeNameFile(file, get(obj, NAME_package, EAV));
 	succeed;
       }
     }
@@ -548,7 +548,7 @@ loadName(IOSTREAM *fd)
 void
 restoreMessage(Any msg)
 { if ( !restoreMessages )
-    restoreMessages = newObject(ClassChain, 0);
+    restoreMessages = newObject(ClassChain, EAV);
 
   appendChain(restoreMessages, msg);
 }
@@ -596,7 +596,7 @@ loadReferenceChain(IOSTREAM *fd)
     return errorPce(LoadFile, NAME_referencedObjectNotLoaded, r1);
     
   if ( def->offset[offset] >= 0 )
-  { Chain ch = newObject(ClassChain, 0);
+  { Chain ch = newObject(ClassChain, EAV);
     int c;
 
     assignField(f, &(f->slots[def->offset[offset]]), ch);
@@ -930,7 +930,7 @@ loadObject(IOSTREAM *fd)
 	  Name name = CtoName(name_string);
 	  Name package = CtoName(package_string);
 	  Class symbol_class = getConvertClass(ClassClass, NAME_lispSymbol);
-	  Any  symbol = newObject(symbol_class, name, package, 0);
+	  Any  symbol = newObject(symbol_class, name, package, EAV);
 
 	  free_string(name_string);
 	  free_string(package_string);
@@ -1039,7 +1039,7 @@ loadSlotsObject(Any obj, IOSTREAM *fd, ClassDef def)
       fail;
     if ( (slot = def->offset[i]) < 0 )	/* slot out of use */
     { if ( hasSendMethodObject(inst, NAME_convertOldSlot) )
-	send(inst, NAME_convertOldSlot, def->name[i], slotValue, 0);
+	send(inst, NAME_convertOldSlot, def->name[i], slotValue, EAV);
       continue;
     }
     if ( restoreVersion != SAVEVERSION || PCEdebugging )
@@ -1066,7 +1066,7 @@ checkConvertedObject(Any obj, ClassDef def)
   if ( hasSendMethodObject(inst, NAME_convertLoadedObject) )
     send(inst, NAME_convertLoadedObject,
 	 toInt(restoreVersion),
-	 toInt(SAVEVERSION), 0);
+	 toInt(SAVEVERSION), EAV);
 
   for(i=0; i<slots; i++)
   { if ( isPceSlot(class, i) )
@@ -1083,7 +1083,7 @@ checkConvertedObject(Any obj, ClassDef def)
 
       if ( hasSendMethodObject(inst, NAME_initialiseNewSlot) &&
 	   !definedSlotClassDef(def, var->name) )
-	send(inst, NAME_initialiseNewSlot, var, 0);
+	send(inst, NAME_initialiseNewSlot, var, EAV);
       value = inst->slots[i];
 
       if ( !checkType(value, var->type, inst) &&

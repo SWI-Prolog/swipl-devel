@@ -120,7 +120,7 @@ makeClassRubber(Class class)
 	       toInt(100),
 	       toInt(1),
 	       NAME_allow,
-	       0);
+	       EAV);
 
   succeed;
 }

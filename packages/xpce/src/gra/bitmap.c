@@ -20,7 +20,7 @@ static status	transparentBitmap(BitmapObj bm, Bool transparent);
 static status
 initialiseBitmap(BitmapObj b, Image image, Bool transparent)
 { if ( isDefault(image) )
-    TRY(image = newObject(ClassImage, NIL, 0));
+    TRY(image = newObject(ClassImage, NIL, EAV));
   if ( isDefault(transparent) )
     transparent = OFF;
   
@@ -51,7 +51,7 @@ getConvertBitmap(Class class, Name name)
 { Image im;
 
   if ( (im = getConvertImage(ClassImage, (Any) name)) != FAIL )
-    answer(answerObject(ClassBitmap, im, 0));
+    answer(answerObject(ClassBitmap, im, EAV));
 
   fail;
 }
@@ -83,7 +83,7 @@ geometryBitmap(BitmapObj b, Int x, Int y, Int w, Int h)
 
 static BitmapObj
 getCopyBitmap(BitmapObj bm)
-{ BitmapObj copy = answerObject(ClassBitmap, 0);
+{ BitmapObj copy = answerObject(ClassBitmap, EAV);
 
   copyGraphical(copy, bm);
   imageBitmap(copy, bm->image);
@@ -157,7 +157,7 @@ loadBitmap(BitmapObj bm, FileObj file, CharArray path)
 
   TRY(findFile(file, path, NAME_read));
 
-  TRY(image = newObject(ClassImage, file->name, 0));
+  TRY(image = newObject(ClassImage, file->name, EAV));
 
   return imageBitmap(bm, image);
 }
@@ -180,12 +180,12 @@ loadFdBitmap(BitmapObj bm, IOSTREAM *fd, ClassDef def)
 
   if ( restoreVersion < 7 )
   { if ( restoreVersion == 1 )
-    { Image image = newObject(ClassImage, 0);
+    { Image image = newObject(ClassImage, EAV);
 
       ws_load_old_image(image, fd);
       assign(bm, image, image);
     } else if ( restoreVersion <= 5 )
-    { assign(bm, image, newObject(ClassImage, 0));
+    { assign(bm, image, newObject(ClassImage, EAV));
       assign(bm, pen, ZERO);
       assign(bm, request_compute, NIL);
 
@@ -216,7 +216,7 @@ loadFdBitmap(BitmapObj bm, IOSTREAM *fd, ClassDef def)
 
 static Chain
 getContainsBitmap(BitmapObj bm)
-{ answer(answerObject(ClassChain, bm->image, 0));
+{ answer(answerObject(ClassChain, bm->image, EAV));
 }
 
 

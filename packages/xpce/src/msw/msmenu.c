@@ -44,7 +44,7 @@ sb_image(Name which, int up)
   for(sd = sbimages; sd->which; sd++)
   { if ( sd->which == which && up == sd->status )
     { if ( !sd->img )
-	sd->img = newObject(ClassImage, CtoKeyword(sd->imgname), 0);
+	sd->img = newObject(ClassImage, CtoKeyword(sd->imgname), EAV);
 
       return sd->img;
     }
@@ -168,7 +168,7 @@ init_button_colours()
     button_colours[3] = thumb_colours[3];
     button_colours[4] = thumb_colours[4];
 
-    button_face = newObject(ClassColour, CtoKeyword("win_btnface"), 0);
+    button_face = newObject(ClassColour, CtoKeyword("win_btnface"), EAV);
 
     done = TRUE;
   }
@@ -268,9 +268,9 @@ init_entry_resources()
 
   if ( !done )
   { init_button_colours();
-    elevation1    = globalObject(NIL, ClassElevation, ONE, 0);
-    WinBackground = newObject(ClassColour, CtoKeyword("win_window"), 0);
-    WinCombo      = newObject(ClassImage, CtoKeyword("win_combo"), 0);
+    elevation1    = globalObject(NIL, ClassElevation, ONE, EAV);
+    WinBackground = newObject(ClassColour, CtoKeyword("win_window"), EAV);
+    WinCombo      = newObject(ClassImage, CtoKeyword("win_combo"), EAV);
 
     edit_colours[0] = thumb_colours[3];
     edit_colours[1] = thumb_colours[4];
@@ -403,14 +403,14 @@ init_checkboxes()
 
     done = TRUE;
 
-    CheckBoxes = newObject(ClassImage, CtoKeyword("win_checkboxes"), 0);
-    img = newObject(ClassImage, CtoKeyword("win_btncorners"), 0);
-    bm = answerObject(ClassBitmap, img, 0);
+    CheckBoxes = newObject(ClassImage, CtoKeyword("win_checkboxes"), EAV);
+    img = newObject(ClassImage, CtoKeyword("win_btncorners"), EAV);
+    bm = answerObject(ClassBitmap, img, EAV);
     BtnCorners = globalObject(CtoName("_checkbox_mask"), ClassImage, NIL,
-			      img->size->w, img->size->h, 0);
-    send(BtnCorners, NAME_drawIn, bm, 0);
+			      img->size->w, img->size->h, EAV);
+    send(BtnCorners, NAME_drawIn, bm, EAV);
 #ifdef USE_MASKBLT
-    send(BtnCorners, NAME_invert, 0);
+    send(BtnCorners, NAME_invert, EAV);
 #endif
     doneObject(bm);
   }

@@ -30,7 +30,7 @@ initialiseRC(RC rc, Name name, Class rc_class)
 
 static RC
 getConvertRC(Class class, Name name)
-{ answer(answerObject(ClassRC, name, 0));
+{ answer(answerObject(ClassRC, name, EAV));
 }
 
 

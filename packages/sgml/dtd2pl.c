@@ -13,6 +13,8 @@
 #include "dtd.h"
 #include "prolog.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define streq(s,q) strcmp((s), (q)) == 0
 

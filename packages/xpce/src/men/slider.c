@@ -259,7 +259,7 @@ getReferenceSlider(Slider s)
     compute_slider(s, &ny, &vx, &vy, &lx, &ly, &sx, &sy, &hx, &hy);
     ascent = valInt(getAscentFont(s->label_font));
 
-    ref = answerObject(ClassPoint, ZERO, toInt(ascent + ny), 0);
+    ref = answerObject(ClassPoint, ZERO, toInt(ascent + ny), EAV);
   }
   
   answer(ref);
@@ -334,7 +334,7 @@ eventSlider(Slider s, EventObj ev)
     fail;
 
   if ( isAEvent(ev, NAME_msLeftDown) )
-    return send(s, NAME_focus, 0);
+    return send(s, NAME_focus, EAV);
 
   if ( isAEvent(ev, NAME_msLeft) &&
        hasModifierEvent(ev, findGlobal(NAME_ModifierAllUp)) )
@@ -364,11 +364,11 @@ eventSlider(Slider s, EventObj ev)
 	val = CtoReal(((float)(ex - sx) * (h - l) / (float) (se - sx)) + l);
       }
 
-      send(s, NAME_displayedValue, val, 0);
-      if ( isUpEvent(ev) && !send(s->device, NAME_modifiedItem, s, ON, 0) )
+      send(s, NAME_displayedValue, val, EAV);
+      if ( isUpEvent(ev) && !send(s->device, NAME_modifiedItem, s, ON, EAV) )
 	applySlider(s, ON);		/* TBD: or ->modified_item! */
       else if ( s->drag == ON && instanceOfObject(s->message, ClassCode) )
-	forwardReceiverCode(s->message, s, s->displayed_value, 0);
+	forwardReceiverCode(s->message, s, s->displayed_value, EAV);
     }
   } else if ( isAEvent(ev, NAME_areaCancel) )
     sendv(s, NAME_displayedValue, 1, (Any *) &s->selection);
@@ -518,7 +518,7 @@ applySlider(Slider s, Bool always)
   if ( instanceOfObject(s->message, ClassCode) &&
        (always == ON || getModifiedSlider(s) == ON) &&
        (val = getSelectionSlider(s)) )
-  { forwardReceiverCode(s->message, s, val, 0);
+  { forwardReceiverCode(s->message, s, val, EAV);
     succeed;
   }
 

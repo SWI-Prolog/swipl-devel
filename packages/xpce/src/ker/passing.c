@@ -192,7 +192,7 @@ resolveImplementationGoal(PceGoal g)
   int issend = (g->flags & PCE_GF_SEND);
 
   if ( isInteger(obj) )
-    g->receiver = obj = answerObject(ClassNumber, obj, 0);
+    g->receiver = obj = answerObject(ClassNumber, obj, EAV);
 
   if ( !g->class )
   { if ( onFlag(obj, F_ACTIVE|F_ATTRIBUTE|F_SENDMETHOD|F_GETMETHOD) )
@@ -207,7 +207,7 @@ resolveImplementationGoal(PceGoal g)
 
 	if ( (obj = getExecuteFunction((Function) obj)) )
 	{ if ( isInteger(obj) )
-	    obj = answerObject(ClassNumber, obj, 0);
+	    obj = answerObject(ClassNumber, obj, EAV);
 	  g->receiver = obj;
 	} else
 	  return pceSetErrorGoal(g, PCE_ERR_FUNCTION_FAILED, obj);
@@ -459,7 +459,7 @@ pcePushNamedArgument(PceGoal g, PceName name, Any arg)
     return pcePushArgument(g, arg);
 
   if ( g->argn >= g->argc && g->va_type )
-    return pcePushArgument(g, answerObject(ClassBinding, name, arg, 0));
+    return pcePushArgument(g, answerObject(ClassBinding, name, arg, EAV));
 
   g->argn = -1;
 

@@ -44,10 +44,10 @@ static SourceLocation
 getConvertSourceLocation(SourceLocation loc, Any spec)
 { if ( instanceOfObject(spec, ClassFile) )
   { FileObj f = spec;
-    Name abs = get(f, NAME_absolutePath, 0);
+    Name abs = get(f, NAME_absolutePath, EAV);
 
     if ( abs )
-      answer(newObject(ClassSourceLocation, abs, 0));
+      answer(newObject(ClassSourceLocation, abs, EAV));
   } else /* if ( instanceOfObject(spec, ClassCharArray) */
   { char buf[MAXPATHLEN];
     int line;
@@ -56,9 +56,9 @@ getConvertSourceLocation(SourceLocation loc, Any spec)
 
     if ( isstr8(s) )
     { if ( sscanf((char *)s->s_text, "%[^: ]:%d", buf, &line) == 2 )
-	answer(newObject(ClassSourceLocation, CtoName(buf), toInt(line), 0));
+	answer(newObject(ClassSourceLocation, CtoName(buf), toInt(line), EAV));
       else
-	answer(newObject(ClassSourceLocation, spec, 0));
+	answer(newObject(ClassSourceLocation, spec, EAV));
     }
   }
 
@@ -76,7 +76,7 @@ getPathSourceLocation(SourceLocation loc)
   { Name home;
     char buf[LINESIZE];
 
-    TRY(home = get(PCE, NAME_home, 0));
+    TRY(home = get(PCE, NAME_home, EAV));
     sprintf(buf, "%s/src/%s", strName(home), name);
 
     answer(CtoName(buf));

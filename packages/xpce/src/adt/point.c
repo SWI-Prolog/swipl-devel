@@ -34,7 +34,7 @@ getConvertPoint(Class class, Any obj)
 
     if ( isstr8(&ca->data) &&
 	 sscanf((char *)ca->data.s_text8, "%d,%d", &x, &y) == 2 )
-      answer(newObject(ClassPoint, toInt(x), toInt(y), 0));
+      answer(newObject(ClassPoint, toInt(x), toInt(y), EAV));
   }
 
   fail;
@@ -69,7 +69,7 @@ copyPoint(Point p1, Point p2)
 
 static Point
 getCopyPoint(Point p)
-{ answer(answerObject(p->class, p->x, p->y, 0));
+{ answer(answerObject(p->class, p->x, p->y, EAV));
 }
 
 
@@ -93,7 +93,7 @@ offsetPoint(Point pt, Int x, Int y)
 
 static Point
 getDifferencePoint(Point p, Point q)
-{ answer(answerObject(ClassPoint, sub(p->x,q->x), sub(p->y,q->y),0));
+{ answer(answerObject(ClassPoint, sub(p->x,q->x), sub(p->y,q->y),EAV));
 }
 
 
@@ -117,7 +117,7 @@ getMidPoint(Point p, Point q)
 { answer(answerObject(ClassPoint,
 		      toInt((valInt(p->x)+valInt(q->x)+1)/2),
 		      toInt((valInt(p->y)+valInt(q->y)+1)/2),
-		      0));
+		      EAV));
 }
 
 

@@ -770,7 +770,7 @@ CtoEvent(Any window, XEvent *event)	/* window or frame */
 		    window,
 		    toInt(x), toInt(y),
 		    state_to_buttons(state, name),
-		    0);		   
+		    EAV);		   
   if ( ctx_name )
     attributeObject(ev, ctx_name, ctx);
 

@@ -51,10 +51,10 @@ initialiseArrow(Arrow a, Int length, Int wing, Name style, Any fill)
   if ( notDefault(style) )	assign(a, style, style);
   if ( notDefault(fill) )	assign(a, fill_pattern, fill);
 
-  assign(a, tip,       newObject(ClassPoint, toInt(10), toInt(10), 0));
-  assign(a, reference, newObject(ClassPoint, 0));
-  assign(a, left,      newObject(ClassPoint, 0));
-  assign(a, right,     newObject(ClassPoint, 0));
+  assign(a, tip,       newObject(ClassPoint, toInt(10), toInt(10), EAV));
+  assign(a, reference, newObject(ClassPoint, EAV));
+  assign(a, left,      newObject(ClassPoint, EAV));
+  assign(a, right,     newObject(ClassPoint, EAV));
 
   obtainClassVariablesObject(a);
 

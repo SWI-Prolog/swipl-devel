@@ -57,7 +57,7 @@ intervalTimer(Timer tm, Real interval)
 status
 executeTimer(Timer tm)
 { if ( notNil(tm->message) )
-    return forwardReceiverCode(tm->message, tm, 0);
+    return forwardReceiverCode(tm->message, tm, EAV);
 
   fail;
 }

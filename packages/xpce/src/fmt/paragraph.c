@@ -52,7 +52,7 @@ initialiseParagraph(Paragraph par, TextBuffer tb)
 { initialiseDevice(par);
 
   if ( isDefault(tb) )
-    tb = newObject(ClassTextBuffer, 0);
+    tb = newObject(ClassTextBuffer, EAV);
 
   assign(c, text_buffer, tb);
 

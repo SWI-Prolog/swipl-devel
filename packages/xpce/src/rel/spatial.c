@@ -80,8 +80,8 @@ forwardsSpatial(Spatial s, Any from, Any to)
   Int tX, tY, tW, tH;
   Area f, t;
 
-  TRY(f = get(from, NAME_area, 0));
-  TRY(t = get(to, NAME_area, 0));
+  TRY(f = get(from, NAME_area, EAV));
+  TRY(t = get(to, NAME_area, EAV));
 
   CALC(xref,s->xFrom,getVar(s->xFrom,VarXref,VarX,f->x,VarW,f->w,0),f->x);
   CALC(yref,s->yFrom,getVar(s->yFrom,VarYref,VarY,f->y,VarH,f->h,0),f->y);
@@ -97,7 +97,7 @@ forwardsSpatial(Spatial s, Any from, Any to)
 		valInt(tX), valInt(tY), valInt(tW), valInt(tH)));
 
   if (t->x != tX || t->y != tY || t->w != tW || t->h != tH)
-    return send(to, NAME_set, tX, tY, tW, tH, 0);
+    return send(to, NAME_set, tX, tY, tW, tH, EAV);
 
   succeed;
 }
@@ -110,8 +110,8 @@ backwardsSpatial(Spatial s, Any from, Any to)
 
   Area f, t;
 
-  TRY(f = get(from, NAME_area, 0));
-  TRY(t = get(to, NAME_area, 0));
+  TRY(f = get(from, NAME_area, EAV));
+  TRY(t = get(to, NAME_area, EAV));
 
   CALC(xref, s->xTo, getVar(s->xTo,VarXref,VarX,t->x,VarW,t->w,0), t->x);
   CALC(yref, s->yTo, getVar(s->yTo,VarYref,VarY,t->y,VarH,t->h,0), t->y);
@@ -127,7 +127,7 @@ backwardsSpatial(Spatial s, Any from, Any to)
 		valInt(fX), valInt(fY), valInt(fW), valInt(fH)));
 
   if (f->x != fX || f->y != fY || f->w != fW || f->h != fH)
-    return send(from, NAME_set, fX, fY, fW, fH, 0);
+    return send(from, NAME_set, fX, fY, fW, fH, EAV);
 
   succeed;
 }

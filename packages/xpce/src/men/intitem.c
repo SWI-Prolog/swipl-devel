@@ -38,7 +38,7 @@ initialiseIntItem(IntItem ii, Name name, Int selection, Code msg,
   rangeIntItem(ii, low, high);
 
   if ( isDefault(selection) )
-    send(ii, NAME_clear, 0);
+    send(ii, NAME_clear, EAV);
 
   succeed;
 }

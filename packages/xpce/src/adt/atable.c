@@ -54,9 +54,9 @@ rehashAtable(Atable t)
   { Name kind = t->keys->elements[n];
 
     if ( equalName(kind, NAME_key) )
-      av[n] = newObject(ClassChainTable, 0);
+      av[n] = newObject(ClassChainTable, EAV);
     else if ( equalName(kind, NAME_unique) )
-      av[n] = newObject(ClassHashTable, 0);
+      av[n] = newObject(ClassHashTable, EAV);
     else
       av[n] = NIL;
   }
@@ -74,7 +74,7 @@ clearAtable(Atable t)
   { Any ht = t->tables->elements[n];
 
     if ( notNil(ht) )
-      send(ht, NAME_clear, 0);
+      send(ht, NAME_clear, EAV);
   }
 
   succeed;
@@ -92,7 +92,7 @@ appendAtable(Atable t, Vector v)
   { HashTable ht = t->tables->elements[n];
 
     if ( notNil(ht) )
-      send(ht, NAME_append, v->elements[n], v, 0);
+      send(ht, NAME_append, v->elements[n], v, EAV);
   }
 
   succeed;
@@ -107,7 +107,7 @@ deleteAtable(Atable t, Vector v)
   { HashTable ht = t->tables->elements[n];
 
     if ( notNil(ht) )
-      send(ht, NAME_delete, v->elements[n], v, 0);
+      send(ht, NAME_delete, v->elements[n], v, EAV);
   }
 
   succeed;
@@ -143,7 +143,7 @@ getVectorsAtable(Atable t, Name name, Any key)
 static Chain
 getMembersATable(Atable t)
 { int n, size = valInt(t->tables->size);
-  Chain rval = answerObject(ClassChain, 0);
+  Chain rval = answerObject(ClassChain, EAV);
 
   for(n=0; n<size; n++)	
     if ( notNil(t->tables->elements[n]) )
@@ -237,7 +237,7 @@ getMatchATable(Atable t, Vector v)
   { Vector vm = getMemberHashTable(ht, val);
 
     if ( matchingVectors(v, vm) )
-      answer(newObject(ClassChain, vm, 0));
+      answer(newObject(ClassChain, vm, EAV));
     else
       fail;
   } else if ( match == NAME_key )
@@ -251,7 +251,7 @@ getMatchATable(Atable t, Vector v)
       { if ( rval )
 	  appendChain(rval, cell->value);
 	else
-	  rval = newObject(ClassChain, cell->value, 0);
+	  rval = newObject(ClassChain, cell->value, EAV);
       }
     }
 
@@ -268,7 +268,7 @@ getMatchATable(Atable t, Vector v)
 			 { if ( rval )
 			     appendChain(rval, cell->value);
 			   else
-			     rval = newObject(ClassChain, cell->value, 0);
+			     rval = newObject(ClassChain, cell->value, EAV);
 			 }
 		       }
 		     });
@@ -279,7 +279,7 @@ getMatchATable(Atable t, Vector v)
 		       { if ( rval )
 			   appendChain(rval, s->value);
 		         else
-			   rval = newObject(ClassChain, s->value, 0);
+			   rval = newObject(ClassChain, s->value, EAV);
 		       }
 		     });
     }

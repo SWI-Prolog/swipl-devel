@@ -15,7 +15,7 @@
 #include <math.h>
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-New reals  can be created  using newObject(ClassReal, value,  0).  The
+New reals  can be created  using newObject(ClassReal, value,  EAV).  The
 argument should be a proper PCE data type, which is converted into a C
 double by initialiseReal.  When a Real should be created from a C double
 use the function CtoReal().
@@ -50,7 +50,7 @@ valReal(Real r)
 
 Real
 CtoReal(double f)
-{ Real r = answerObject(ClassReal, ZERO, 0);
+{ Real r = answerObject(ClassReal, ZERO, EAV);
   setReal(r, f);
 
   return r;
@@ -259,7 +259,7 @@ getCompareReal(Real r1, Real r2)
 
 static Real
 getCatchAllReal(Real r, Name selector, int argc, Any *argv)
-{ Real result = answerObject(classOfObject(r), r, 0);
+{ Real result = answerObject(classOfObject(r), r, EAV);
 
   TRY(sendv(result, selector, argc, argv));
 

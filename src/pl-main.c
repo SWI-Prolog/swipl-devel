@@ -565,7 +565,7 @@ stack-parameters.
 #define MAXLINE 1024
 #endif
 #ifndef MAXARGV
-#define MAXARGV 256
+#define MAXARGV 1024
 #endif
 
 static void

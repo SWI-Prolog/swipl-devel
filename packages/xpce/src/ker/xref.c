@@ -40,7 +40,7 @@ getXrefObject(Any obj, DisplayObj d)
     }
 
   if ( openDisplay(d) == SUCCEED )
-  { if ( send(obj, NAME_Xopen, d, 0) == SUCCEED )
+  { if ( send(obj, NAME_Xopen, d, EAV) == SUCCEED )
     { for( r = XrefTable[v]; r != NULL; r = r->next)
 	if ( r->object == obj && r->display == d )
 	{ DEBUG(NAME_getXref, Cprintf("getXrefObject(%s, %s) --> 0x%lx\n",
@@ -132,7 +132,7 @@ closeAllXrefs()
     for(; r; r = nr)
     { nr = r->next;
 
-      send(r->object, NAME_Xclose, r->display, 0);
+      send(r->object, NAME_Xclose, r->display, EAV);
     }
   }
 }

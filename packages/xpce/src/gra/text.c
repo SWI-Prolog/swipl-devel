@@ -52,7 +52,7 @@ initialiseText(TextObj t, CharArray string, Name format, FontObj font)
   assign(t, string,       string);
   assign(t, margin,	  toInt(100));
   assign(t, wrap,         NAME_extend);
-  assign(t, position,     newObject(ClassPoint, 0));
+  assign(t, position,     newObject(ClassPoint, EAV));
   assign(t, caret,        getSizeCharArray(string));
   assign(t, show_caret,   OFF);
   assign(t, background,   NIL);
@@ -533,7 +533,7 @@ getCharacterPositionText(TextObj t, Int chr)
 
   get_char_pos_text(t, chr, &x, &y);
 
-  answer(answerObject(ClassPoint, toInt(x), toInt(y), 0));
+  answer(answerObject(ClassPoint, toInt(x), toInt(y), EAV));
 }
 
 
@@ -815,7 +815,7 @@ getSelectionText(TextObj t)
 
     GetSel(t->selection, &from, &to);
 
-    answer(answerObject(ClassPoint, toInt(from), toInt(to), 0));
+    answer(answerObject(ClassPoint, toInt(from), toInt(to), EAV));
   }
 
   fail;
@@ -846,7 +846,7 @@ copyText(TextObj t)
   }
 
   if ( s && d )
-    return send(d, NAME_copy, s, 0);
+    return send(d, NAME_copy, s, EAV);
 
   fail;
 }
@@ -873,7 +873,7 @@ deleteSelectionText(TextObj t)
 
 static status
 cutText(TextObj t)
-{ if ( send(t, NAME_copy, 0) )
+{ if ( send(t, NAME_copy, EAV) )
   { int from, to;
 
     GetSel(t->selection, &from, &to);
@@ -952,7 +952,7 @@ eventText(TextObj t, EventObj ev)
   }
 
   if ( t->show_caret == ON && isAEvent(ev, NAME_keyboard) )
-    return send(t, NAME_typed, ev, 0);
+    return send(t, NAME_typed, ev, EAV);
 
   fail;
 }
@@ -1149,7 +1149,7 @@ static void
 prepareInsertText(TextObj t)
 { if ( !instanceOfObject(t->string, ClassString) )
     assign(t, string, newObject(ClassString, name_procent_s,
-				t->string, 0));
+				t->string, EAV));
 
   if ( getClassVariableValueObject(t, NAME_insertDeletesSelection) == ON )
     deleteSelectionText(t);
@@ -1160,7 +1160,7 @@ static status
 prepareEditText(TextObj t)
 { if ( !instanceOfObject(t->string, ClassString) )
     assign(t, string, newObject(ClassString, name_procent_s,
-				t->string, 0));
+				t->string, EAV));
 
   return selectionText(t, NIL, DEFAULT);
 }
@@ -1171,7 +1171,7 @@ pasteText(TextObj t, Int buffer)
 { CharArray str;
   DisplayObj d = CurrentDisplay(t);
 
-  TRY((str = get(d, NAME_cutBuffer, buffer, 0)) &&
+  TRY((str = get(d, NAME_cutBuffer, buffer, EAV)) &&
       (str = checkType(str, nameToType(NAME_charArray), NIL)));
   prepareInsertText(t);
   insertString((StringObj) t->string, t->caret, str);

@@ -20,7 +20,7 @@ initialiseHost(Host h, Name which)
 { assign(h, system, which);
   assign(h, callBack, ON);
   assign(h, language, NAME_prolog);
-  assign(h, messages, newObject(ClassChain, 0));
+  assign(h, messages, newObject(ClassChain, EAV));
 
   succeed;
 }
@@ -199,7 +199,7 @@ makeClassHost(Class class)
 { declareClass(class, &host_decls);
   saveStyleClass(class, NAME_external);
 
-  HOST = globalObject(NAME_host, ClassHost, NAME_unknown, 0);
+  HOST = globalObject(NAME_host, ClassHost, NAME_unknown, EAV);
   protectObject(HOST);
 
   succeed;

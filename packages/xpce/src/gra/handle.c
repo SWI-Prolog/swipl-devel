@@ -43,14 +43,14 @@ getXYHandle(Handle h, Graphical gr, Device dev, Int *X, Int *Y)
   { TRY(x = getValueExpression(h->xPosition,
 			       VarW, gr->area->w,
 			       VarH, gr->area->h,
-			       0));
+			       EAV));
     *X = add(x, gx);
   }
   if ( Y )
   { TRY(y = getValueExpression(h->yPosition,
 			       VarW, gr->area->w,
 			       VarH, gr->area->h,
-			       0));
+			       EAV));
     *Y = add(y, gy);
   }
   DEBUG(NAME_handle,
@@ -67,7 +67,7 @@ getPositionHandle(Handle h, Graphical gr, Device dev)
 
   TRY(getXYHandle(h, gr, dev, &x, &y));
 
-  answer(answerObject(ClassPoint, x, y, 0));
+  answer(answerObject(ClassPoint, x, y, EAV));
 }
 
 

@@ -135,7 +135,7 @@ executeConstraint(Constraint c, Any obj)
 
   return send(c->relation, 
 	      obj == c->from ? NAME_forwards : NAME_backwards, 
-	      c->from, c->to, 0);
+	      c->from, c->to, EAV);
 }
 
 
