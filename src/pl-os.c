@@ -1335,7 +1335,6 @@ takeWord(const char **string, char *wrd)
 bool
 expandVars(const char *pattern, char *expanded)
 { int size = 0;
-  char c;
   char word[MAXPATHLEN];
 
   if ( *pattern == '~' )
@@ -1404,7 +1403,9 @@ expandVars(const char *pattern, char *expanded)
   }
 
   for( ;; )
-  { switch( c = *pattern++ )
+  { int c = *pattern++;
+
+    switch( c )
     { case EOS:
 	break;
       case '$':
@@ -2133,7 +2134,7 @@ char *
 getenv3(const char *name, char *buf, unsigned int len)
 { char *s = getenv(name);
 
-  if ( s && strlen(s) < len )
+  if ( s && strlen(s)+1 < len )
   { strcpy(buf, s);
 
     return buf;
