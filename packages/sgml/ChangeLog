@@ -1,3 +1,5 @@
+* ADDED: Partial SHORTTAG support
+
 * ADDED: Prolog interface: map multi-valued attributes to a list.
 
 * FIXED: ESIS output of the sgml utility to provide better compliant output

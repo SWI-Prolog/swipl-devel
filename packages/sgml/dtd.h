@@ -369,6 +369,7 @@ typedef struct _dtd
   dtd_charmap	       *charmap;	/* ichar ->ochar */
   dtd_char_encoding	encoding;	/* document encoding */
   dtd_space_mode	space_mode;	/* Default for handling white-space */
+  int			shorttag;	/* support SHORTTAG */
   int			references;	/* destruction reference count */
 } dtd;
 

@@ -74,7 +74,8 @@ typedef enum
   S_GROUP,				/* inside [...] */
   S_CLOSEMARK,				/* seen ]] */
   S_PENT,				/* Seen % */
-  S_ENT					/* Seen & */
+  S_ENT,				/* Seen & */
+  S_SHORTTAG_CDATA			/* Seen <tag/ */
 } dtdstate;
 
 

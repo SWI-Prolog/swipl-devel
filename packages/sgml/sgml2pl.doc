@@ -884,6 +884,11 @@ in SGML and XML.  Known missing SGML features include
     \item [NOTATION on entities]
 Though notation is fully parsed, notation attributes on external
 entity declarations are not handed to the user.
+    \item [SHORTTAG]
+The SGML SHORTTAG syntax is only partially implemented.  Currently,
+\verb$<tag/content/$ is a valid abbreviation for
+\verb$<tag>content</tag>$, which can also be written as
+\verb$<tag>content</>$.
     \item [SGML declaration]
 The `SGML declaration' is fixed, though most of the parameters are
 handled through indirections in the implementation.

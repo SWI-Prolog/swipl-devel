@@ -790,6 +790,7 @@ new_dtd(const ichar *doctype)
   dtd->charmap	 = new_charmap();
   dtd->space_mode = SP_SGML;
   dtd->ent_case_sensitive = TRUE;	/* case-sensitive entities */
+  dtd->shorttag  = TRUE;		/* allow for <tag/value/ */
 
   return dtd;
 }
@@ -835,6 +836,7 @@ set_dialect_dtd(dtd *dtd, dtd_dialect dialect)
   { case DL_SGML:
     { dtd->case_sensitive = FALSE;
       dtd->space_mode = SP_SGML;
+      dtd->shorttag = TRUE;
       break;
     }
     case DL_XML:
@@ -846,6 +848,7 @@ set_dialect_dtd(dtd *dtd, dtd_dialect dialect)
       dtd->charclass->class[':'] |= CH_LCNMSTRT;
       dtd->encoding = ENC_UTF8;
       dtd->space_mode = SP_PRESERVE;
+      dtd->shorttag = FALSE;
 
       for(el = xml_entities; *el; el++)
 	process_entity_declaraction(dtd, *el);
@@ -2165,6 +2168,19 @@ close_element(dtd_parser *p, dtd_element *e)
 }
 
 
+static int
+close_current_element(dtd_parser *p)
+{ if ( p->environments )
+  { dtd_element *e = p->environments->element;
+    
+    emit_cdata(p, TRUE);
+    return close_element(p, e);
+  }
+
+  return gripe(ERC_SYNTAX_ERROR, "No element to close", "");
+}
+
+
 static const ichar *
 get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
 { ichar buf[MAXSTRINGLEN];
@@ -2395,6 +2411,9 @@ process_end_element(dtd_parser *p, const ichar *decl)
   emit_cdata(p, TRUE);
   if ( (s=itake_name(dtd, decl, &id)) && *s == '\0' )
     return close_element(p, find_element(dtd, id));
+
+  if ( p->dtd->shorttag && *decl == '\0' )
+    return close_current_element(p);
 
   return gripe(ERC_SYNTAX_ERROR, "Bad close-element tag", decl);
 }
@@ -3135,6 +3154,9 @@ end_document_dtd_parser(dtd_parser *p)
     case S_PI2:
       return gripe(ERC_SYNTAX_ERROR,
 		   "Unexpected end-of-file in processing instruction", "");
+    case S_SHORTTAG_CDATA:
+      return gripe(ERC_SYNTAX_ERROR,
+		   "Unexpected end-of-file SHORTTAG element");
   }
 
   return FALSE;				/* ?? */
@@ -3404,6 +3426,16 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	empty_icharbuf(p->buffer);
 	return;
       }
+      if ( dtd->shorttag && f[CF_ETAGO2] == chr && p->buffer->size > 0 )
+      { prepare_cdata(p);
+	p->state = S_SHORTTAG_CDATA;
+	terminate_icharbuf(p->buffer);
+	if ( p->mark_state == MS_INCLUDE )
+	{ WITH_PUBLIC_PARSER(p, process_declaration(p, p->buffer->data));
+	}
+	empty_icharbuf(p->buffer);
+	return;
+      }
       if ( f[CF_LIT] == chr )
       { add_icharbuf(p->buffer, chr);
 	p->state = S_STRING;
@@ -3433,6 +3465,16 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	return;
       }
       add_icharbuf(p->buffer, chr);
+      return;
+    }
+    case S_SHORTTAG_CDATA:
+    { if ( f[CF_ETAGO2] == chr )	/* / */
+      { process_cdata(p, TRUE);
+	p->state = S_PCDATA;
+	close_current_element(p);
+      } else
+	add_cdata(p, dtd->charmap->map[chr]);
+
       return;
     }
     case S_PI:
@@ -3743,7 +3785,8 @@ gripe(dtd_error_id e, ...)
     { const char *elem  = va_arg(args, char *); /* element */
       const char *value = va_arg(args, char *); /* attribute value */
 
-      sprintf(buf, "Element <%s> has no attribute with value \"%s\"", elem, value);
+      sprintf(buf, "Element <%s> has no attribute with value \"%s\"",
+	      elem, value);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
 
