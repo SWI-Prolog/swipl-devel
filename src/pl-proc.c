@@ -278,6 +278,11 @@ assertProcedure(Procedure proc, Clause clause, int where)
   ClauseRef cref = newClauseRef(clause);
 
   startCritical;
+
+  if ( def->references && (debugstatus.styleCheck & DYNAMIC_STYLE) )
+    warning("assert/[1,2]: %s has %d references",
+	    predicateName(def), def->references);
+
   if ( !def->lastClause )
   { def->definition.clauses = def->lastClause = cref;
   } else if ( where == CL_START )
@@ -737,6 +742,10 @@ pl_retract(Word term, word h)
     if ( true(def, LOCKED) && false(def, DYNAMIC) )
       return warning("retract/1: Attempt to retract from a system predicate");
 
+    if ( def->references && (debugstatus.styleCheck & DYNAMIC_STYLE) )
+      warning("retract/1: %s has %d references",
+	      predicateName(def), def->references);
+
     cref = def->definition.clauses;
     def->references++;			/* reference the predicate */
   } else
@@ -825,13 +834,16 @@ pl_retractall(Word head)
     if ( cref )
     { mark m;
     
+      if ( det )
+	leaveDefinition(def);
+
       Mark(m);
       if ( decompileHead(cref->clause, head) )
 	retractClauseProcedure(proc, cref->clause);
       Undo(m);
 
       if ( det )
-	break;
+	succeed;
     } else
       break;
   }

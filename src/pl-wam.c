@@ -395,7 +395,7 @@ leaveForeignFrame(LocalFrame fr)
     case 9:	(*f)(U, U, U, U, U, U, U, U, U, context);	return;
     case 10:	(*f)(U, U, U, U, U, U, U, U, U, U, context);	return;
     default:	sysError("Too many arguments (%d) to leaveForeignFrame()",
-		       def->functor->arity);
+			 def->functor->arity);
   }
 #undef U
 }
@@ -1463,7 +1463,8 @@ backtrack that makes it difficult to understand the tracer's output.
 	set(FR, FR_CUT);
 	for(fr = BFR; fr > FR; fr = fr->backtrackFrame)
 	{ for(fr2 = fr; fr2->clause && fr2 > FR; fr2 = fr2->parent)
-	  { DEBUG(3, Sdprintf("discard %d\n", (Word)fr2 - (Word)lBase) );
+	  { DEBUG(3, Sdprintf("discard frame of %s\n",
+			      predicateName(fr2->predicate)));
 	    leaveFrame(fr2);
 	    fr2->clause = NULL;
 	  }

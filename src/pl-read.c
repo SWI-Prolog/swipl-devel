@@ -936,7 +936,7 @@ get_token(bool must_be_op)
 		    { if (here[1] != '"')
 		      { end = *s, *s = EOS;
 #if O_STRING
-			if ( debugstatus.styleCheck & O_STRING_STYLE )
+			if ( debugstatus.styleCheck & STRING_STYLE )
 			  token.value.prolog = globalString(start);
 			else
 			  token.value.prolog = (word) stringToList(start);

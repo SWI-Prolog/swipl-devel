@@ -860,10 +860,10 @@ Handling environment (or local stack) frames.
 				}
 #endif /*O_DEBUG*/
 
-#define leaveFrame(fr) { if ( true(fr->predicate, FOREIGN) & \
-			      true(fr->predicate, NONDETERMINISTIC) ) \
-			   leaveForeignFrame(fr); \
-			 else \
+#define leaveFrame(fr) { if ( true(fr->predicate, FOREIGN) ) \
+			 { if ( true(fr->predicate, NONDETERMINISTIC) ) \
+			     leaveForeignFrame(fr); \
+			 } else \
 			   leaveDefinition(fr->predicate); \
 		       }
 
@@ -1521,8 +1521,9 @@ Tracer communication declarations.
 #define DOLLAR_STYLE	    0x4		/* dollar is lower case */
 #define DISCONTIGUOUS_STYLE 0x8		/* warn on discontiguous predicates */
 #if O_STRING
-#define O_STRING_STYLE	    0x10	/* read ".." as string instead of list */
+#define STRING_STYLE	    0x10	/* read ".." as string object */
 #endif /* O_STRING */
+#define DYNAMIC_STYLE	    0x20	/* warn on assert/retract active */
 #define MAXNEWLINES	    5		/* maximum number of newlines in atom */
 #define SYSTEM_MODE	    (debugstatus.styleCheck & DOLLAR_STYLE)
 
