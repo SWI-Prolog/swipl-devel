@@ -1824,7 +1824,7 @@ pl_qlf_close()
 
 word
 pl_qlf_load(term_t file, term_t module)
-{ Module m, target = NULL, oldsrc = modules.source;
+{ Module m, oldsrc = modules.source;
   char fbuf[MAXPATHLEN];
   char *fn;
   bool rval;
@@ -1835,7 +1835,6 @@ pl_qlf_load(term_t file, term_t module)
   if ( !(fn = get_filename(name, fbuf, sizeof(fbuf))) )
     return warning("$qlf_load/2: instantiation fault");
 
-  modules.source = target;
   rval = qlfLoad(fn, &m);
   modules.source = oldsrc;
 

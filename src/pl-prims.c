@@ -463,8 +463,8 @@ structeql(Word t1, Word t2, Buffer buf)
 
     if ( !todo )
     { if ( nextch )
-      { p1 = nextch->alist1;
-	p2 = nextch->alist2;
+      { t1 = nextch->alist1;
+	t2 = nextch->alist2;
 	todo = nextch->size;
 	nextch = nextch->next;
       } else
@@ -496,7 +496,7 @@ structeql(Word t1, Word t2, Buffer buf)
   
     if ( w1 == w2 )
       continue;
-    if ( w1 & MARK_MASK || w2 & MARK_MASK )
+    if ( (w1 & MARK_MASK) || (w2 & MARK_MASK) || isVar(w2) )
       fail;
   
     if ( isIndirect(w1) )
@@ -520,7 +520,7 @@ structeql(Word t1, Word t2, Buffer buf)
     p1 = argTermP(w1, 0);
     p2 = argTermP(w2, 0);
 
-    if ( todo == 0 )
+    if ( todo == 0 )			/* right-most argument recursion */
     { todo = arity;
       t1 = p1;
       t2 = p2;
@@ -563,7 +563,7 @@ pl_structural_equal(term_t t1, term_t t2)
   }
   discardBuffer(&buf);
 
-  return rval == FALSE ? FALSE : TRUE;
+  return rval;
 }
 
 

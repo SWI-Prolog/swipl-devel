@@ -26,6 +26,8 @@ bindir=$(exec_prefix)/bin
 PLBASE=$(prefix)/lib/pl-$(PLVERSION)
 mansec=1
 mandir=$(prefix)/man/man$(mansec)
+lmansec=3
+lmandir=$(prefix)/man/man$(lmansec)
 
 CC=gcc
 LIBS=-ldl -lreadline -ltermcap -lm 
@@ -64,8 +66,8 @@ LIBRARYDIR=${PLBASE}/library
 
 OBJ=	pl-wam.o pl-save.o pl-stream.o \
 	pl-atom.o pl-arith.o pl-bag.o pl-comp.o pl-dump.o \
-	pl-dwim.o pl-ext.o pl-file.o pl-flag.o pl-fmt.o pl-funct.o \
-	pl-gc.o pl-glob.o pl-itf.o pl-list.o pl-load.o pl-fli.o \
+	pl-dwim.o pl-ext.o pl-file.o pl-flag.o pl-fli.o pl-fmt.o pl-funct.o \
+	pl-gc.o pl-glob.o pl-itf.o pl-list.o pl-load.o \
 	pl-modul.o pl-op.o pl-os.o pl-prims.o pl-pro.o pl-proc.o \
 	pl-prof.o pl-read.o pl-rec.o pl-setup.o pl-sys.o pl-table.o \
 	pl-trace.o pl-util.o pl-wic.o pl-write.o pl-term.o pl-buffer.o
@@ -148,6 +150,7 @@ parms.h:	Makefile
 
 pl-main.o:	parms.h
 pl-setup.o:	parms.h
+pl-wic.o:	parms.h
 pl-funct.o:	$(srcdir)/pl-funct.ih
 pl-atom.o:	$(srcdir)/pl-funct.ih
 pl-wam.o:	pl-alloc.c pl-index.c
@@ -159,10 +162,10 @@ $(srcdir)/pl-atom.ih:	$(srcdir)/ATOMS
 		cd $(srcdir) ; $(AWK) -f defatom.awk < ATOMS
 
 pl-bite:	$(srcdir)/pl-bite.c
-		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $<
+		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/pl-bite.c
 
 chpl:		$(srcdir)/chpl.c
-		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $<
+		$(CC) -I. -I$(srcdir) $(CFLAGS) -o $@ $(srcdir)/chpl.c
 
 tags:		TAGS
 
@@ -236,8 +239,10 @@ iinclude:
 iman:
 		$(SED) 's/PL/$(PL)/' $(srcdir)/pl.1 > $(PLBASE)/man/$(PL).$(mansec)
 		$(INSTALL_DATA) $(srcdir)/chpl.1 $(PLBASE)/man/chpl.$(mansec)
+		$(INSTALL_DATA) $(srcdir)/readline.3 $(PLBASE)/man/readline.$(lmansec)
 		-$(INSTALL_DATA) $(PLBASE)/man/$(PL).$(mansec) $(mandir)
 		-$(INSTALL_DATA) $(PLBASE)/man/chpl.$(mansec) $(mandir)
+		-$(INSTALL_DATA) $(PLBASE)/man/readline.$(lmansec) $(lmandir)
  
 #
 # runtime-only environment installation

@@ -83,7 +83,7 @@
 /* Define if (type)var = value is allowed */
 #define TAGGED_LVALUE 1
 
-/* Define as 0 if it gives problems (shouldn't do anymore) */
+/* Define as 0 if text addresses start above 40K */
 /* #undef VMCODE_IS_ADDRESS */
 
 /* Define if first data symbol not is environ */
@@ -128,7 +128,7 @@
 /* Define to make runtime version */
 /* #undef O_RUNTIME */
 
-/* Define if you don't have termio(s), but struct sgttyb */
+/* Define if your tty library defines struct sgttyb */
 /* #undef HAVE_SGTTYB */
 
 /* Define if you have the access function.  */
@@ -203,8 +203,17 @@
 /* Define if you have the sigaction function.  */
 #define HAVE_SIGACTION 1
 
+/* Define if you have the sigblock function.  */
+/* #undef HAVE_SIGBLOCK */
+
+/* Define if you have the siggetmask function.  */
+/* #undef HAVE_SIGGETMASK */
+
 /* Define if you have the signal function.  */
 #define HAVE_SIGNAL 1
+
+/* Define if you have the sigsetmask function.  */
+/* #undef HAVE_SIGSETMASK */
 
 /* Define if you have the sleep function.  */
 #define HAVE_SLEEP 1
@@ -223,6 +232,9 @@
 
 /* Define if you have the stricmp function.  */
 #define HAVE_STRICMP 1
+
+/* Define if you have the strlwr function.  */
+/* #undef HAVE_STRLWR */
 
 /* Define if you have the tgetent function.  */
 #define HAVE_TGETENT 1

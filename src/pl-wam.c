@@ -2658,6 +2658,7 @@ Leave the clause:
 	if ( debugstatus.debugging )
 	{ int action;
 	  LocalFrame lSave = lTop;
+	  environment_frame = FR;
 
 	  if ( lTop < (LocalFrame)argFrameP(FR, DEF->functor->arity) )
 	    lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);

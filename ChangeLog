@@ -1,6 +1,18 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.5.5
+=============
+
+  * FIXED: Important bug in =@=, also used by bagof/setof, leading to
+    crashes on some structures and failure on structural equal terms
+    on others.
+
+  * FIXED: Crash in the tracer under some circumstances, reported
+    by Michael Schulz.  
+
+  * FIXED: loading Quick Load Files that do not contain modules.
+
 Version 2.5.4
 =============
 
