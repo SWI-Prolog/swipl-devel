@@ -1,3 +1,5 @@
+* FIXED: distribution of table-slices with `table->width' not to negotiate.
+
 VERSION 5.0.10
 ==============
 
