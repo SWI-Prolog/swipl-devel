@@ -1143,7 +1143,7 @@ processing external entities, so Prolog-based file-location and Prolog
 resources can be used to store external entities.
 
 
-<s1>Missing functionality</title>
+<s1>Unsupported features</title>
 
 <p>
 The current parser is rather limited. While it is able to deal with many
@@ -1152,8 +1152,22 @@ Known missing SGML features include
 
 <ul>
     <tag>NOTATION on entities
-Though notation is fully parsed, notation attributes on external entity 
+Though notation is parsed, notation attributes on external entity 
 declarations are not handed to the user. 
+    <tag>NOTATION attributes
+SGML notations may have attributes, declared using <verb><!ATTLIST
+#NOTATION name attributes></verb>. Those data attributes are provided
+when you declare an external CDATA, NDATA, or SDATA entity.
+
+<p>
+XML does not include external CDATA, NDATA, or SDATA entities,
+nor any of the other uses to which data attributes are put in SGML,
+so it doesn't include data attributes for notations either.
+
+<p>
+Sgml2pl does not support this feature and is unlikely to;
+you should be aware that SGML documents using this feature cannot
+be converted faithfully to XML.
     <tag>SHORTTAG
 The SGML SHORTTAG syntax is only partially implemented. Currently,
 <verb><tag/content/</verb> is a valid abbreviation for
@@ -1215,8 +1229,8 @@ The Prolog representation for parsed documents is based on the
 SWI-Prolog interface to SP by Anjo Anjewierden.
 
 <p>
-Richard O'Keefe pointed out a number of mistakes in a earlier version of
-this parser, and made many suggestions for improving this document.
-
+Richard O'Keefe has put a lot of effort testing and providing bug
+reports consisting of an illustrative example and explanation of the
+standard.  He also made many suggestions for improving this document.
 </pldoc>
 
