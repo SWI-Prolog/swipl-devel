@@ -164,20 +164,21 @@ FILE *fd;
   static char *tmpend;
   static int  tmpsize = 512;
   char *s;
+  Char c;
 
   if ( tmp == NULL )
   { tmp    = malloc(tmpsize);
     tmpend = &tmp[tmpsize-1];
   }
 
-  for( s = tmp; (*s = Getc(fd)) != EOS; s++ )
+  for( s = tmp; (c = Getc(fd)) != EOS, *s = c; s++ )
   { if ( s == tmpend )
     { tmp = realloc(tmp, tmpsize+512);
       s = &tmp[tmpsize-1];
       tmpsize += 512;
       tmpend = &tmp[tmpsize-1];
     }
-    if ( *s == EOF )
+    if ( c == EOF )
       fatalError("Unexpected EOF on intermediate code file at offset %d",
 		 ftell(fd));
   }

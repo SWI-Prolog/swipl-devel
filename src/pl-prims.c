@@ -783,7 +783,7 @@ register word list;
   while(isList(list) && !isNil(list))
   { arg = argTermP(list, 0);
     deRef(arg);
-    if (isInteger(*arg) && (c=(int)valNum(*arg)) > 0 && c < 128)
+    if (isInteger(*arg) && (c=(int)valNum(*arg)) > 0 && c < 256)
     { *s++ = (char) c;
       STACKVERIFY( if (s > (char *)lMax) outOf((Stack)&stacks.local) );
       tail = argTermP(list, 1);
@@ -872,7 +872,7 @@ Word number, base, atom;
     fail;
   }
 
-  if (b == 0 && n > 0 && n < 128)
+  if (b == 0 && n > 0 && n < 256)
   { *s-- = (char) n;
     *s-- = '\'';
     *s = '0';

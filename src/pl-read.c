@@ -425,7 +425,7 @@ raw_read2()
 		strcpy(rb.base, "end_of_file. ");
 		return rb.base;
       case '*':	if ( rb.here-rb.base >= 1 && rb.here[-1] == '/' )
-		{ register char last;
+		{ register Char last;
 		  int level = 1;
 
 		  rb.here--, rb.left++;	/* delete read '/' */

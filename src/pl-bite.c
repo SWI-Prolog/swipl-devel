@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 extern char *index();
+typedef int Char;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This is a very simple stand alone program that picks  a  region  from  a
@@ -42,7 +43,7 @@ char **argv;
   }
 
   while(from++ < to)
-  { char c;
+  { Char c;
 
     if ( (c = getc(fd)) == EOF )
     { fprintf(stderr, "%s: %s: premature EOF\n", program, argv[2]);

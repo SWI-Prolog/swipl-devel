@@ -1898,8 +1898,6 @@ forwards bool	tty_endsline P((struct tty_driver *, Char));
 forwards void	tty_putc P((Char));
 forwards void	tty_putstr P((char *));
 
-#define isPrint(c) ((c >= ' ' && c < 127) || c == '\t' || c == '\n')
-
 static void
 tty_putc(c)
 Char c;
@@ -1945,7 +1943,7 @@ register struct tty_driver *d;
     default:		if ( c < ' ' || c == 127 )
 			{ tty_putstr("\b\b  \b\b");
 			  d->column -= 2;
-			} else if ( c < 127 )
+			} else
 			{ d->column--;
 			  tty_putstr("\b \b");
 			  break;
@@ -2010,7 +2008,7 @@ Char c;
 	  { tty_putc('^');
 	    tty_putc(c < ' ' ? c + '@' : '?');
 	    d->column += 2;
-	  } else if ( c < 127 )
+	  } else
 	  { tty_putc(c);
 	    d->column++;
 	  }
