@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * PORT: Fixed various problems on SGI (IRIX 6.5), including realisation
+    of dynamic stacks based on MAP_AUTOGROW|MAP_AUTORESRV.
+
   * FIXED: only open /dev/zero once in multi-threaded version where
     MAP_ANON is not supported.
 

@@ -162,3 +162,6 @@
 
 /* Define if you have atomic_inc() and atomic_dec() with atomic_t == int */
 #undef HAVE_ATOMIC_INC
+
+/* Define if SGI-style mmap() is provided: MAP_AUTOGROW|MAP_AUTORESRV */
+#undef SGIMMAP

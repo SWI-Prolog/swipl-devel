@@ -984,8 +984,8 @@ calling  trim_stacks/0  and  the  garbage  collector.    It   might   be
 interesting  to  do  this  automatically  at  certain points to minimise
 memory requirements.  How?
 
-Currently this mechanism can use mmap() and munmap() of SunOs 4.0 or the
-system-V shared memory primitives (if they meet certain criteria).
+Currently this mechanism uses mmap()  and   munmap()  available  in most
+todays Unix systems or VirtualAlloc() and friends in Win32.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include <errno.h>
@@ -1022,17 +1022,25 @@ removed on exit.
 #define MAP_FAILED ((void *)-1)
 #endif
 
+#ifdef SGIMMAP
+#define MAPCOMMON  (MAP_PRIVATE|MAP_AUTOGROW|MAP_AUTORESRV)
+#define MAPPROTECT (PROT_READ|PROT_WRITE)
+#else
+#define MAPCOMMON (MAP_PRIVATE|MAP_NORESERVE)
+#define MAPPROTECT (PROT_NONE)
+#endif
+
 #ifdef HAVE_MAP_ANON
 #if !defined(MAP_ANON) && defined(MAP_ANONYMOUS)
 #define MAP_ANON MAP_ANONYMOUS
 #endif
 
-#define MAP_FLAGS (MAP_ANON|MAP_NORESERVE|MAP_PRIVATE)
+#define MAP_FLAGS (MAP_ANON|MAPCOMMON)
 #define get_map_fd() (-1)
 
 #else /*HAVE_MAP_ANON*/
 
-#define MAP_FLAGS (MAP_NORESERVE|MAP_PRIVATE)
+#define MAP_FLAGS (MAPCOMMON)
 
 static int
 get_map_fd()
@@ -1086,9 +1094,11 @@ mapOrOutOf(Stack s)
   if ( newroom < 0 )
     outOfStack(s, STACK_OVERFLOW_FATAL);
 
+#ifndef SGIMMAP
   if ( mprotect(s->max, incr, PROT_READ|PROT_WRITE) < 0 )
     fatalError("mprotect() failed at 0x%x for %d bytes: %s\n",
 	       s->max, incr, OsError());
+#endif /*SGIMMAP*/
 
   DEBUG(1, Sdprintf("Expanded %s stack with %d bytes from %p\n",
 		    s->name, incr, s->max));
@@ -1129,7 +1139,7 @@ unmap(Stack s)
 
 #ifdef MAP_FIXED
     munmap(addr, len);
-    if ( mmap(addr, len, PROT_NONE, MAP_FIXED|MAP_FLAGS, mapfd, 0L) !=
+    if ( mmap(addr, len, MAPPROTECT, MAP_FIXED|MAP_FLAGS, mapfd, 0L) !=
 	 addr )
       fatalError("Failed to remap 0x%x bytes at %p: %s",
 		 len, addr, OsError());
@@ -1184,9 +1194,9 @@ allocStacks(long local, long global, long trail, long argument)
   argument = (long) align_size(argument);
   glsize   = global+tsep+local+lsep;
 
-  tbase = mmap(NULL, trail+tsep,    PROT_NONE, MAP_FLAGS, mapfd, 0L);
-  abase = mmap(NULL, argument+tsep, PROT_NONE, MAP_FLAGS, mapfd, 0L);
-  gbase = mmap(NULL, glsize,        PROT_NONE, MAP_FLAGS, mapfd, 0L);
+  tbase = mmap(NULL, trail+tsep,    MAPPROTECT, MAP_FLAGS, mapfd, 0L);
+  abase = mmap(NULL, argument+tsep, MAPPROTECT, MAP_FLAGS, mapfd, 0L);
+  gbase = mmap(NULL, glsize,        MAPPROTECT, MAP_FLAGS, mapfd, 0L);
   lbase = addPointer(gbase, global + tsep);
 
   if ( tbase == MAP_FAILED || abase == MAP_FAILED || gbase == MAP_FAILED )

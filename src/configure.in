@@ -891,14 +891,19 @@ AC_TRY_COMPILE(
 
 dnl ****************************************************************
 dnl More tricky stuff.  Try to find out whether or not we can use mmap()
-dnl to implement dynamic stacks.  The program test/mmap.c tests for this.
+dnl to implement dynamic stacks.
+dnl
+dnl First test is test/sgimmap.c, which uses MAP_AUTOGROW|MAP_AUTORESRV.
+dnl Second test is test/mmap.c, with SEGV handling
+dnl Third test is test/mmap.c, without SEGV handling
 dnl ****************************************************************
 
-mmap_tried=segv;
-while test ! "$MMAP_STACK" = "1" -a ! $mmap_tried = "stop"; do
+mmap_tried=sgi;
+mmap_test=sgimmap.c
 AC_MSG_CHECKING("if we can use mmap for stack allocation")
+while test ! "$MMAP_STACK" = "1" -a ! $mmap_tried = "stop"; do
 echo '#include "confdefs.h"' > conftest.c
-cat $srcdir/test/mmap.c >> conftest.c
+cat $srcdir/test/$mmap_test >> conftest.c
 (eval $ac_link) 2>&5
 if test -s conftest; then
     res=`./conftest`
@@ -906,11 +911,13 @@ if test -s conftest; then
 	if test "$MMAP_STACK" = "1"; then
 	    if test "$HAVE_MAP_ANON" = "1"; then
 		AC_DEFINE(HAVE_MAP_ANON)
-		AC_MSG_RESULT("Using MAP_ANON")
-	    else
-		AC_MSG_RESULT("Using MAP_PRIVATE")
 	    fi
 	    AC_DEFINE(MMAP_STACK)
+	    if test "$mmap_tried" = "sgi"; then
+	      AC_DEFINE(SGIMMAP)
+	      AC_DEFINE(NO_SEGV_HANDLING)
+	    fi
+	    AC_MSG_RESULT(yes)
 	    AC_MSG_CHECKING("if SA_SIGINFO is usable")
 	    if test "$SIGNAL_HANDLER_PROVIDES_ADDRESS" = "1"; then
 	      AC_MSG_RESULT(yes)
@@ -924,15 +931,19 @@ if test -s conftest; then
     else
         AC_MSG_RESULT("could not run mmap test");
     fi
-else
-    AC_MSG_RESULT("could not compile mmap test");
 fi
 rm -fr conftest*
-if test ! "$MMAP_STACK" = "1" -a "$mmap_tried" = "segv"; then
+if test ! "$MMAP_STACK" = "1"; then
+  if test "$mmap_tried" = "sgi"; then
+    mmap_tried=segv
+    mmap_test=mmap.c
+  elif test "$mmap_tried" = "segv"; then
     mmap_tried=nosegv
     AC_DEFINE(NO_SEGV_HANDLING)
-    AC_MSG_CHECKING("Retrying without handling SEGV")
-    AC_MSG_RESULT("")
+  else
+    mmap_tried=stop
+    AC_MSG_RESULT("no");
+  fi
 else
     mmap_tried=stop
 fi
