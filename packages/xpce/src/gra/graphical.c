@@ -2491,7 +2491,7 @@ keyboardFocusGraphical(Graphical gr, Bool val)
   if ( sw )
   { if ( val == OFF )
       send(sw, NAME_keyboardFocus, NIL, EAV);
-    else if ( send(gr, NAME_WantsKeyboardFocus, EAV) )
+    else if ( val == ON || send(gr, NAME_WantsKeyboardFocus, EAV) )
       send(sw, NAME_keyboardFocus, gr, EAV);
   }
 

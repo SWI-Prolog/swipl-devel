@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Allow non-editing interaction (select, scroll) on text_items that
+  handle editable: @off.  By Amir ?
+
 * FIXED: Various overflow issues concerning path and distance calculations
   when using graphicals extending the range of 16-bit (short) integers.
 

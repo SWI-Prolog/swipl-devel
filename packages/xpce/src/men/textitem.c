@@ -901,7 +901,7 @@ eventTextItem(TextItem ti, EventObj ev)
 { static Int origin;			/* Multithread dubious! */
   Name dir;
 
-  if ( WantsKeyboardFocusTextItem(ti) &&
+  if ( ti->editable == ON &&
        isAEvent(ev, NAME_msLeft) &&
        (dir=getIncDecTextItem(ti, ev)) )
   { if ( isUpEvent(ev) )
@@ -910,7 +910,7 @@ eventTextItem(TextItem ti, EventObj ev)
       statusTextItem(ti, NAME_active);
     } else
     { if ( isDownEvent(ev) )
-      { send(ti, NAME_keyboardFocus, EAV);
+      { send(ti, NAME_keyboardFocus, ON, EAV);
 	attachTimerTextItem(ti);
       }
 
@@ -966,7 +966,7 @@ eventTextItem(TextItem ti, EventObj ev)
   { if ( isAEvent(ev, NAME_keyboard) )
     { return send(ti, NAME_typed, ev, EAV);
     } else
-    { if ( isAEvent(ev, NAME_msMiddleUp) )
+    { if ( ti->editable == ON && isAEvent(ev, NAME_msMiddleUp) )
 	return pasteTextItem(ti, DEFAULT);
     }
   }
@@ -978,13 +978,14 @@ eventTextItem(TextItem ti, EventObj ev)
     fail;
 
   if ( isAEvent(ev, NAME_msLeftDown) )
-  { if ( WantsKeyboardFocusTextItem(ti) )
+  { if ( 1 /* WantsKeyboardFocusTextItem(ti) */ )
     { int cbw;
       int wasactive = (ti->status == NAME_active);
 
-      send(ti, NAME_keyboardFocus, EAV);
+      send(ti, NAME_keyboardFocus, ON, EAV);
       
-      if ( (cbw = text_item_combo_width(ti)) > 0 )
+      if ( (cbw = text_item_combo_width(ti)) > 0 &&
+	   ti->editable == ON )
       { Int X, Y;
 	int x, y;
 
@@ -1062,7 +1063,7 @@ executeTextItem(TextItem ti)
 static status
 keyTextItem(TextItem ti, Name key)
 { if ( ti->accelerator == key && WantsKeyboardFocusTextItem(ti) )
-    return send(ti, NAME_keyboardFocus, EAV);
+    return send(ti, NAME_keyboardFocus, ON, EAV);
 
   fail;
 }
