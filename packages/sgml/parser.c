@@ -3970,6 +3970,7 @@ process_entity(dtd_parser *p, const ichar *name)
     const ichar *text;
     const ichar *s;
     int   chr;
+    const char *file;
 
     if ( !(id=dtd_find_entity_symbol(dtd, name)) ||
 	 !(e=id->entity) )
@@ -3978,6 +3979,19 @@ process_entity(dtd_parser *p, const ichar *name)
       else
 	return gripe(ERC_EXISTENCE, "entity", name);
     }
+
+#if 0					/* TBD */
+    if ( !e->value && e->content == EC_SGML && (file=entity_file(p->dtd, e)) )
+    { locbuf oldloc;
+
+      push_location(p, &oldloc);
+      set_src_dtd_parser(p, IN_ENTITY, e->name->name);
+      empty_icharbuf(p->buffer);		/* dubious */
+      for(s=text; *s; s++)
+	putchar_dtd_parser(p, *s);
+      pop_location(p, &oldloc);
+    }
+#endif
 
     if ( !(text = entity_value(p, e, &len)) )
       return gripe(ERC_NO_VALUE, e->name->name);
@@ -4820,7 +4834,7 @@ sgml_process_file(dtd_parser *p, const char *file)
   set_mode_dtd_parser(p, DM_DATA);
 
   if ( (fd = fopen(file, "rb")) )
-    rval = sgml_process_stream(p, fd);
+    sgml_process_stream(p, fd);
   else
     rval = FALSE;
 
