@@ -207,7 +207,7 @@ pceInitApplication(int argc, char *argv[])
   makeClassNamed();
   me->makeDialog();
 
-  PceDialog d("XPCE console");
+  PceDialog d(PceArg("XPCE console"));
   d.send("append", PceButton("trace",
 			     PceAnd(PceMessage(PceClass("vmi"), "trace", "on"),
 				    PceMessage(ThePce, "trace", "user"))));

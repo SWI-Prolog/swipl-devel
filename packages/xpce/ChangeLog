@@ -1,5 +1,25 @@
 [VERSION 4.8.0]
 
+* Added: make `graphical ->_redraw_area' an explicit method.  For the time
+  being this just allows for traceing this method for debugging redraw
+  problems.
+
+* Fixed: <-summary of `boot-classes' (classes created in a special way to
+  avoid the chicked-and-egg problem) has no summary description.  Fixed.
+
+* Fixed: class(object), now correctly translates to the object reference.
+  (special case as object has no <-supers).
+
+* Fixed: `frame <-image' and `frame <-postscript' for frames that are displayed
+  partly off the screen.
+
+* Class Hierarchy Browser (Manual Tools): added resources to let the user
+  distinguish between user-defined and built-in classes.
+
+* Introduced class `elevation', to describe an elevated area: height,
+  colour and colour of the edges.   Also added `colour <-hilite' and
+  `colour <-reduce'.
+
 * Introduced class `pixmap'.  Basically an image of <-kind: pixmap.  The
   explicit class facilates type specification and conversion.
 
@@ -37,7 +57,9 @@
 
   See `resource <-convert_string' for details on the new syntax.
 
-* Class resource changes:
+* Resource handling and representation:
+
+  + Class resource changes:
 
 	# deleted: `resource <-obtained'
 	A resource is not obtained if its <-value equals @not_obtained
@@ -50,15 +72,18 @@
 	# Added: @resource_parser
 	This global object parses resource specifications.
 
-* Modified resource inheritance.  Resource definitions with classes need no
+  + Modified resource inheritance.  Resource definitions with classes need no
   longer to be redefined at each sub-class to be able for the user to
   modify the resource.  The system takes care of refinement of resources
   when necessary, while sharing as much as possible of the data-structures.
   Lookup of resources has been speeded up drastically.
 
+  + Flag to speed-up `object ->obtain_resources' on multiple calls to this
+  method.
+
 * Improved colour-handling:
-	- Allow (window) background to be both an image or a colour.
-	- Allow graphical colour to be both image or a colour.
+	- Allow (window) background to be both an pixmap or a colour.
+	- Allow graphical colour to be both pixmap or a colour.
 	
 
 * Added `timer ->delay' to allow suspension of the XPCE process in a
