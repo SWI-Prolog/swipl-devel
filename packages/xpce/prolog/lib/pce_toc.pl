@@ -79,7 +79,7 @@ initialise(TW) :->
 	send(TW, send_super, initialise),
 	send(TW, scrollbars, both),
 	send(TW, hor_shrink, 0),
-	send(TW, hor_stretch, 0),
+	send(TW, hor_stretch, 1),
 	send(TW, display, new(toc_tree), point(10, 5)).
 
 :- pce_group(parts).
