@@ -1158,13 +1158,16 @@ linkSharedObject()
   }
 #else
   prependArgList(&ldoptions, SO_LDFLAGS);
-#endif
+#endif /*SO_FORMAT_LDFLAGS*/
   prependArgList(&ldoptions, soout);
   prependArgList(&ldoptions, "-o");		/* -o ctmp */
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
   concatArgList(&ldoptions, "-L", &libdirs);    /* library directories */
   concatArgList(&ldoptions, "-l", &libs);	/* libraries */
   concatArgList(&ldoptions, "-l", &lastlibs);	/* libraries */
+#ifdef __BEOS__
+  appendArgList(&ldoptions, plexe);		/* last is executable */
+#endif
 #endif /*__CYGWIN32__*/
 #endif /*WIN32*/
 

@@ -8379,12 +8379,12 @@ EOF
 	SO_pic=""
 	SO_PIC=""
 	;;
-  *beos*)
-	cat >>confdefs.h <<\EOF
-#define SO_FORMAT_LDFLAGS "-nostart -Xlinker -soname=\"%s\"", soout
-EOF
-
-	;;
+# Seems we can simple add the executable add the end.  This is arranged
+# in plld.c based on the the __BEOS__ symbol.
+# *beos*)
+#	AC_DEFINE(SO_FORMAT_LDFLAGS,
+#		  ["-nostart -Xlinker -soname=\"%s\"", soout])
+#	;;
   *)
 	;;
 esac

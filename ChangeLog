@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 5.0.5
+=============
+
+  * PORT: Hopefully get plld -shared -o test.so test.c to produce foreign
+    libraries on BeOS.  With lots of help from Axel Dörfler.
+
   * FIXED: Avoid re-loading the initial file after qsave_program/2 from
     PLWIN.EXE (Ron Sele).
 

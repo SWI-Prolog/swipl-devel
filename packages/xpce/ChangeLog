@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.0.5, distributed with SWI-Prolog 5.0.5
+================================================
+
 * ADDED: `editor->show_caret'.  If the caret it invisible, the up/down
   arrow-keys scroll the editor.
 
