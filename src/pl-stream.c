@@ -52,6 +52,7 @@ locking is required.
 
 #define PL_KERNEL 1
 #include "pl-stream.h"
+#include <sys/types.h>
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #endif
@@ -60,7 +61,6 @@ locking is required.
 #else
 #include <time.h>
 #endif
-#include <sys/types.h>
 #include <errno.h>
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
