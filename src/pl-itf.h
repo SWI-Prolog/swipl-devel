@@ -28,7 +28,7 @@ before loading this file.  See end of this file.
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
 
 #ifndef PLVERSION
-#define PLVERSION 20907
+#define PLVERSION 20908
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -47,7 +47,7 @@ _declspec(dllexport) is used by MSVC++ 2.0 to declare exports from DLL's.
 #endif
 #endif
 
-#ifdef __WIN32__
+#if defined(__WIN32__) && !defined(__LCC__)
 #ifdef PL_KERNEL
 #define __pl_export	 _declspec(dllexport)
 #define __pl_export_data _declspec(dllexport)

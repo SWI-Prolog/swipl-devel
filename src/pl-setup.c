@@ -919,7 +919,6 @@ expandStack(Stack s, caddress addr)
 
 #ifdef HAVE_VIRTUAL_ALLOC
 
-#undef TRANSPARENT			/* conflicts */
 #undef FD_ZERO
 #undef FD_ISSET
 #undef FD_SET

@@ -58,19 +58,20 @@ exec_var(const char *name)
 static char *
 findHome(char *symbols)
 { char *home = NULL;
+  char envbuf[MAXPATHLEN];
   char plp[MAXPATHLEN];
   const char *val = exec_var("homevar");
   
   if ( (val  = exec_var("homevar")) &&
-       (home = getenv(val)) &&
+       (home = getenv3(val, envbuf, sizeof(envbuf))) &&
        (home = PrologPath(home, plp)) )
     return store_string(home);
   if ( (val = exec_var("home")) &&
        (home = PrologPath(home, plp)) )
     return store_string(home);
 
-  if ( !(home = getenv("SWI_HOME_DIR")) )
-    home = getenv("SWIPL");
+  if ( !(home = getenv3("SWI_HOME_DIR", envbuf, sizeof(envbuf))) )
+    home = getenv3("SWIPL", envbuf, sizeof(envbuf));
   if ( home && (home = PrologPath(home, plp)) && ExistsDirectory(home) )
     return store_string(home);
 
@@ -382,9 +383,12 @@ startProlog(int argc, char **argv)
 
 					/* EMACS inferior processes */
 					/* PceEmacs inferior processes */
-  if ( ((s = getenv("EMACS")) != NULL && streq(s, "t")) ||
-       ((s = getenv("INFERIOR")) != NULL && streq(s, "yes")) )
+{ char envbuf[4];
+
+  if ( ((s = getenv3("EMACS", envbuf, sizeof(envbuf))) && streq(s, "t")) ||
+       ((s = getenv3("INFERIOR", envbuf, sizeof(envbuf))) && streq(s, "yes")) )
     GD->cmdline.notty = TRUE;
+}
 
   for(n=0; n<argc; n++)			/* need to check this first */
   { DEBUG(2, Sdprintf("argv[%d] = %s\n", n, argv[n]));

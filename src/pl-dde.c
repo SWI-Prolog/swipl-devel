@@ -42,9 +42,9 @@
 
 #define INCLUDE_DDEML_H
 #include "windows.h"
-#undef TRANSPARENT       /* defined in win16.h (which we can't avoid);
-                            redef'd in pl-incl.h (we don't need
-			    the win16 version) */
+#ifdef __LCC__
+#include "ddeml.h"
+#endif
 #include "pl-incl.h"
 
 #if O_DDE
@@ -328,7 +328,6 @@ dde_initialise()
 	!= DMLERR_NO_ERROR)
     { ddeInst = (DWORD) -1;
       return dde_warning("initialise");
-      fail;
     }
 
     MODULE_dde = lookupModule(lookupAtom("win_dde"));
@@ -399,13 +398,11 @@ pl_open_dde_conversation(term_t service, term_t topic,
 
   if ( !(conv_handle[i] = DdeConnect(ddeInst, Hservice, Htopic, 0)) )
     fail;
-  else
-    return PL_unify_integer(handle, i);
 
   DdeFreeStringHandle(ddeInst, Hservice);
   DdeFreeStringHandle(ddeInst, Htopic);
 
-  succeed;
+  return PL_unify_integer(handle, i);
 }
 
 
@@ -448,20 +445,20 @@ pl_dde_request(term_t handle, term_t item,
   HSZ Hitem;
   DWORD result, valuelen;
   HDDEDATA Hvalue;
-  DWORD tmo;
+  long tmo;
 
   if ( !get_conv_handle(handle, &hdl) )
     return warning("dde_request/4: invalid handle");
   if ( !get_hsz(item, &Hitem) )
     return warning("dde_request/4: invalid item");
-  if ( !PL_get_integer(timeout, &tmo) )
+  if ( !PL_get_long(timeout, &tmo) )
     return warning("dde_request/4: invalid timeout");
 
   if ( tmo <= 0 )
     tmo = TIMEOUT_VERY_LONG;
 
   Hvalue = DdeClientTransaction(NULL, 0, conv_handle[hdl], Hitem, CF_TEXT,
-				XTYP_REQUEST, tmo, &result);
+				XTYP_REQUEST, (DWORD)tmo, &result);
   ddeErr = DdeGetLastError(ddeInst);
   DdeFreeStringHandle(ddeInst, Hitem);
 
@@ -493,13 +490,13 @@ pl_dde_execute(term_t handle, term_t command, term_t timeout)
   char *cmdstr;
   HDDEDATA Hvalue, data;
   DWORD result;
-  DWORD tmo;
+  long tmo;
 
   if ( !get_conv_handle(handle, &hdl) )
     return warning("dde_execute/3: invalid handle");
   if ( !PL_get_chars(command, &cmdstr, CVT_ALL) )
     return warning("dde_execute/3: invalid command");
-  if ( !PL_get_integer(timeout, &tmo) )
+  if ( !PL_get_long(timeout, &tmo) )
     return warning("dde_execute/2: invalid timeout");
 
   if ( tmo <= 0 )
@@ -511,7 +508,7 @@ pl_dde_execute(term_t handle, term_t command, term_t timeout)
 
   Hvalue = DdeClientTransaction((LPBYTE) data, (DWORD) -1,
 				conv_handle[hdl], 0L, 0,
-				XTYP_EXECUTE, tmo, &result);
+				XTYP_EXECUTE, (DWORD) tmo, &result);
   if ( Hvalue )
     succeed;
 
@@ -525,7 +522,7 @@ pl_dde_poke(term_t handle, term_t item, term_t data, term_t timeout)
   char *datastr;
   HDDEDATA Hvalue;
   HSZ Hitem;
-  DWORD tmo;
+  long tmo;
 
   if ( !get_conv_handle(handle, &hdl) )
     return warning("dde_poke/4: invalid handle");
@@ -533,7 +530,7 @@ pl_dde_poke(term_t handle, term_t item, term_t data, term_t timeout)
     return warning("dde_poke/4: invalid item");
   if ( !PL_get_chars(data, &datastr, CVT_ALL) )
     return warning("dde_poke/4: invalid data");
-  if ( !PL_get_integer(timeout, &tmo) )
+  if ( !PL_get_long(timeout, &tmo) )
     return warning("dde_poke/4: invalid timeout");
 
   if ( tmo <= 0 )
@@ -541,7 +538,7 @@ pl_dde_poke(term_t handle, term_t item, term_t data, term_t timeout)
 
   Hvalue = DdeClientTransaction(datastr, strlen(datastr)+1,
 				conv_handle[hdl], Hitem, CF_TEXT,
-				XTYP_POKE, tmo, NULL);
+				XTYP_POKE, (DWORD)tmo, NULL);
   if ( !Hvalue )
     return dde_warning("dde_poke/2");
 

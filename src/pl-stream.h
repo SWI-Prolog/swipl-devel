@@ -30,7 +30,7 @@ extern "C" {
 #endif
 #endif
 
-#ifdef __WIN32__
+#if defined(__WIN32__) && !defined(__LCC__)
 #ifdef PL_KERNEL
 #define __pl_export	 _declspec(dllexport)
 #define __pl_export_data _declspec(dllexport)

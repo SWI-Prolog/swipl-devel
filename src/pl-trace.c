@@ -252,7 +252,7 @@ All failed.  Things now are upto the normal Prolog tracer.
 
 again:
   Put( true(def, SPY_ME) ? '*' : ' ' );
-  Put( true(def, TRANSPARENT) ? '^' : ' ');
+  Put( true(def, METAPRED) ? '^' : ' ');
 
   switch(port)
   { case CALL_PORT:	 Putf(" Call:  ");	break;
@@ -927,26 +927,24 @@ resetTracer(void)
 #ifdef O_INTERRUPT
   signal(SIGINT, interruptHandler);
 #endif
+
+  debugstatus.tracing      =
+  debugstatus.debugging    = FALSE;
+  debugstatus.suspendTrace = FALSE;
+  debugstatus.skiplevel    = 0;
+  debugstatus.retryFrame   = NULL;
 }
 
 
 void
 initTracer(void)
-{ 
-#if defined(SIGINT) && defined(O_INTERRUPT)
-  pl_signal(SIGINT, interruptHandler);
-#endif
-
-  debugstatus.visible      = 
+{ debugstatus.visible      = 
   debugstatus.leashing     = CALL_PORT|FAIL_PORT|REDO_PORT|EXIT_PORT|
 			     BREAK_PORT|EXCEPTION_PORT;
-  debugstatus.tracing      =
-  debugstatus.debugging    = FALSE;
-  debugstatus.suspendTrace = FALSE;
-  debugstatus.skiplevel    = 0;
   debugstatus.style        = GD->bootsession ? W_WRITE : W_PRINT; 
   debugstatus.showContext  = FALSE;
-  debugstatus.retryFrame   = NULL;
+
+  resetTracer();
 }
 
 		/********************************

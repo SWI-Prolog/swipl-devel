@@ -447,9 +447,11 @@ atom_t
 TemporaryFile(const char *id)
 { char temp[MAXPATHLEN];
   TempFile tf = allocHeap(sizeof(struct tempfile));
+  char envbuf[MAXPATHLEN];
   char *tmpdir;
 
-  if ( !((tmpdir = getenv("TEMP")) || (tmpdir = getenv("TMP"))) )
+  if ( !((tmpdir = getenv3("TEMP", envbuf, sizeof(envbuf))) ||
+	 (tmpdir = getenv3("TMP",  envbuf, sizeof(envbuf)))) )
     tmpdir = DEFTMPDIR;
 
 #if unix
@@ -464,7 +466,11 @@ TemporaryFile(const char *id)
 { char *tmp;
   static int temp_counter = 0;
 
+#ifdef __LCC__
+  if ( (tmp = tmpnam(NULL)) )
+#else
   if ( (tmp = _tempnam(tmpdir, id)) )
+#endif
   { PrologPath(tmp, temp);
   } else
     Ssprintf(temp, "%s/pl_%s_%d", tmpdir, id, temp_counter++);
@@ -1045,7 +1051,9 @@ initExpand(void)
   CWDlen = 0;
 
 #ifdef O_CANONISE_DIRS
-  if ( (cpaths = getenv("CANONICAL_PATHS")) )
+{ char envbuf[MAXPATHLEN];
+
+  if ( (cpaths = getenv3("CANONICAL_PATHS", envbuf, sizeof(envbuf))) )
   { char buf[MAXPATHLEN];
 
     while(*cpaths)
@@ -1065,9 +1073,10 @@ initExpand(void)
     }
   }
 
-  if ( (dir = getenv("HOME")) ) canoniseDir(dir);
-  if ( (dir = getenv("PWD"))  ) canoniseDir(dir);
-  if ( (dir = getenv("CWD"))  ) canoniseDir(dir);
+  if ( (dir = getenv3("HOME", envbuf, sizeof(envbuf))) ) canoniseDir(dir);
+  if ( (dir = getenv3("PWD",  envbuf, sizeof(envbuf))) ) canoniseDir(dir);
+  if ( (dir = getenv3("CWD",  envbuf, sizeof(envbuf))) ) canoniseDir(dir);
+}
 #endif
 }
 
@@ -1259,7 +1268,9 @@ expandVars(const char *pattern, char *expanded)
       value = _xos_home();
 #else /*O_XOS*/
       if ( !(value = GD->os.myhome) )
-      { if ( (value = getenv("HOME")) )
+      { char envbuf[MAXPATHLEN];
+
+	if ( (value = getenv3("HOME", envbuf, sizeof(envbuf))) )
 	{ value = GD->os.myhome = store_string(PrologPath(value, word));
 	} else
 	{ value = GD->os.myhome = "/";
@@ -1310,8 +1321,9 @@ expandVars(const char *pattern, char *expanded)
     { case EOS:
 	break;
       case '$':
-	{ char *var = takeWord(&pattern, word);
-	  char *value = getenv(var);
+	{ char envbuf[MAXPATHLEN];
+	  char *var = takeWord(&pattern, word);
+	  char *value = getenv3(var, envbuf, sizeof(envbuf));
 	  int l;
 
 	  if ( value == (char *) NULL )
@@ -1996,23 +2008,49 @@ requested via getenv/2 from Prolog.  Functions
     value, or NULL if the variable did not exist.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if HAVE_PUTENV
-
+#ifndef __WIN32__
 char *
-Setenv(char *name, char *value)
-{ char *rval;
-  char buf[256];
+getenv3(const char *name, char *buf, int len)
+{ char *s = getenv(name);
 
-  if ( (rval = getenv(name)) )
-    rval = store_string(rval);
-  Ssprintf(buf, "%s=%s", name, value);
-  if ( putenv(store_string(buf)) < 0 )
-    PL_error("setenv", 2, NULL, ERR_NOMEM);
+  if ( s && strlen(s) < len )
+  { strcpy(buf, s);
 
-  return rval;
+    return buf;
+  }
+
+  return NULL;
 }
 
-char *
+int
+getenvl(const char *name)
+{ char *s;
+
+  if ( (s = getenv(name)) )
+    return strlen(s);
+
+  return -1;
+}
+#endif
+
+#if HAVE_PUTENV
+
+int
+Setenv(char *name, char *value)
+{ char *buf = alloca(strlen(name) + strlen(value) + 2);
+
+  if ( buf )
+  { Ssprintf(buf, "%s=%s", name, value);
+
+    if ( putenv(store_string(buf)) < 0 )
+      return PL_error("setenv", 2, NULL, ERR_NOMEM);
+  } else
+    return PL_error("setenv", 2, NULL, ERR_NOMEM);
+
+  succeed;
+}
+
+int
 Unsetenv(char *name)
 { return Setenv(name, "");
 }

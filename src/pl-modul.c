@@ -308,6 +308,8 @@ pl_term_expansion_module(term_t name, word h)
       m = MODULE_user;
     }
   }
+
+  PL_fail;				/* should not get here */
 }
 
 

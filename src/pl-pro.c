@@ -147,7 +147,8 @@ pl_abort()
   }
 
   if ( GD->critical > 0 )		/* abort in critical region: delay */
-  { LD->aborted = TRUE;
+  { pl_notrace();
+    LD->aborted = TRUE;
     succeed;
   }
 
@@ -157,13 +158,13 @@ pl_abort()
   resetRead();
   closeFiles();
   resetReferences();
-  resetForeign();
 #ifdef O_PROFILE
   pl_reset_profiler();
 #endif
   resetStacks();
   resetTracer();
   resetSignals();
+  resetForeign();
 
   longjmp(abort_context, 1);
   /*NOTREACHED*/

@@ -40,7 +40,7 @@ day.
 #define HAVE_ISNAN
 #endif
 
-#ifdef WIN32
+#ifdef HAVE___TRY
 #include <excpt.h>
 #endif
 
@@ -446,9 +446,14 @@ valueExpression(term_t t, Number r)
   }
 #endif
 
+  DEBUG(3, Sdprintf("Starting __try ...\n"));
+
   { int rval;
 
-#ifdef WIN32
+#ifdef HAVE___TRY
+#ifndef EXCEPTION_EXECUTE_HANDLER	/* lcc */
+#define EXCEPTION_EXECUTE_HANDLER 1
+#endif
     __try
     {
 #else
@@ -492,7 +497,7 @@ valueExpression(term_t t, Number r)
 	sysError("Illegal arity for arithmic function");
         rval = FALSE;
     }
-#if defined(WIN32)
+#if defined(HAVE___TRY)
     } __except(EXCEPTION_EXECUTE_HANDLER)
     { warning("Floating point exception");
 #ifndef O_RUNTIME
@@ -502,9 +507,9 @@ valueExpression(term_t t, Number r)
 #endif
       pl_abort();
     }
-#else
+#else /*HAVE___TRY*/
     LD->in_arithmetic--;
-#endif
+#endif /*HAVE___TRY*/
 
     if ( r->type == V_REAL )
     {

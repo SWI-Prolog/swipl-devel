@@ -36,12 +36,12 @@ Link all foreign language predicates.  The arguments to FRG are:
 
 Flags almost always is TRACE_ME.  Additional common flags:
 
-	TRANSPARENT		Predicate is module transparent
+	METAPRED		Predicate is module transparent
 	NONDETERMINISTIC	Predicate can be resatisfied
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define NDET NONDETERMINISTIC		/* make a bit shorter */
-#define META TRANSPARENT		/* same */
+#define META METAPRED		/* same */
 
 #define FRG(n, a, f, flags) { n, f, flags, a }
 
@@ -469,7 +469,7 @@ bindExtensions(PL_extension *e)
   { short flags = TRACE_ME;
 
     if ( e->flags & PL_FA_NOTRACE )	     flags &= ~TRACE_ME;
-    if ( e->flags & PL_FA_TRANSPARENT )	     flags |= TRANSPARENT;
+    if ( e->flags & PL_FA_TRANSPARENT )	     flags |= METAPRED;
     if ( e->flags & PL_FA_NONDETERMINISTIC ) flags |= NONDETERMINISTIC;
 
     def = lookupProcedure(lookupFunctorDef(lookupAtom(e->predicate_name),

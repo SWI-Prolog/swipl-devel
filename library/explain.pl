@@ -121,8 +121,11 @@ explain_functor(Head, Explanation) :-
 	explain_predicate(Module:Head, Explanation).
 explain_functor(Head, Explanation) :-
 	predicate_property(M:Head, undefined),
-	functor(Head, N, A),
-	utter(Explanation, '~w:~w/~d is an undefined predicate', [M,N,A]).
+	(   functor(Head, N, A),
+	    utter(Explanation, '~w:~w/~d is an undefined predicate', [M,N,A])
+	;   referenced(M:Head, Explanation)
+	).
+	
 	
 		/********************************
 		*           PREDICATE           *
@@ -181,13 +184,9 @@ referenced(Term, Explanation) :-
 	Module:Head \= help_index:predicate(_,_,_,_,_),
 	Head \= '$user_query'(_,_),
 	nth_clause(Module:Head, N, Ref),
-	(   functor(Term, _, A), A > 0, Term \= _M:_H
-	->  '$xr_member'(Ref, user:Term)
-	;   '$xr_member'(Ref, Term)
-	),
-	functor(Head, Name, Arity),
-	utter(Explanation, '~t~8|Referenced from ~d-th clause of ~w:~w/~d',
-	                   [N, Module, Name, Arity]).
+	'$xr_member'(Ref, Term),
+	utter_referenced(Module:Head, N, Ref,
+			 'Referenced', Explanation).
 
 referenced(_Module:Head, Explanation) :-
 	current_predicate(_, Module:Head),
@@ -195,10 +194,54 @@ referenced(_Module:Head, Explanation) :-
 	\+ predicate_property(Module:Head, imported_from(_)),
 	nth_clause(Module:Head, N, Ref),
 	'$xr_member'(Ref, Head),
+	utter_referenced(Module:Head, N, Ref,
+			 'Possibly referenced', Explanation).
+
+utter_referenced(_Module:class(_,_,_,_,_,_), _, _, _, _) :-
+	feature(xpce, true), !,
+	fail.
+utter_referenced(_Module:lazy_send_method(_,_,_), _, _, _, _) :-
+	feature(xpce, true), !,
+	fail.
+utter_referenced(_Module:lazy_get_method(_,_,_), _, _, _, _) :-
+	feature(xpce, true), !,
+	fail.
+utter_referenced(Module:Head, _N, Ref, Text, Explanation) :-
+	feature(xpce, true),
+	functor(Head, Name, _Arity),
+	concat(send_, Class, Name),
+	selector(Ref, Selector),
+	check_xpce_method(Module, Class, send, Selector), !,
+	utter(Explanation,
+	      '~t~8|~w from ~w->~w',
+	      [Text, Class, Selector]).
+utter_referenced(Module:Head, _N, Ref, Text, Explanation) :-
+	feature(xpce, true),
+	functor(Head, Name, _Arity),
+	concat(get_, Class, Name),
+	selector(Ref, Selector),
+	check_xpce_method(Module, Class, get, Selector), !,
+	utter(Explanation,
+	      '~t~8|~w from ~w<-~w',
+	      [Text, Class, Selector]).
+utter_referenced(Module:Head, N, _Ref, Text, Explanation) :-
 	functor(Head, Name, Arity),
 	utter(Explanation,
-	      '~t~8|Possibly Referenced from ~d-th clause of ~w:~w/~d',
-	      [N, Module, Name, Arity]).
+	      '~t~8|~w from ~d-th clause of ~w:~w/~d',
+	      [Text, N, Module, Name, Arity]).
+	
+selector(Ref, Selector) :-
+	clause(Head, _Body, Ref),
+	'$strip_module'(Head, _, Plain),
+	arg(1, Plain, Selector),
+	atom(Selector).
+
+%	Verifies the detection of a clause implementing an XCE method.
+
+check_xpce_method(Module, Class, send, Selector) :-
+	catch(Module:lazy_send_method(Selector, Class, _), _, fail).
+check_xpce_method(Module, Class, get, Selector) :-
+	catch(Module:lazy_get_method(Selector, Class, _), _, fail).
 
 		/********************************
 		*             UTTER            *

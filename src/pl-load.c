@@ -563,8 +563,15 @@ pl_load_foreign1(term_t file)
   atom_t name;
   long rval;
   Func entry;
-  char *libpath = (getenv("LIBPATH") == NULL ? "/lib:/usr/lib" : NULL);
+  char *libpath;
+  int len;
   extern int _data;
+
+  if ( (len = getenvl("LIBPATH")) >= 0 )
+  { libpath = alloca(len+1);
+    getenv3("LIBPATH", libpath, len+1);
+  } else
+    libpath = "/lib:/usr/lib";
 
   if ( !PL_get_atom(file, &name) )
     return warning("pl_load_foreign/5: instantiation fault");

@@ -914,12 +914,34 @@ copyFrameArguments(LocalFrame from, LocalFrame to, int argc)
 
 qid_t
 PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
-{ QueryFrame qf     = (QueryFrame) lTop;
-  LocalFrame fr     = &qf->frame;
-  Definition def    = proc->definition;
-  int arity	    = def->functor->arity;
+{ QueryFrame qf;
+  LocalFrame fr;
+  Definition def;
+  int arity;
   Word ap;
   ClauseRef clause;
+
+  DEBUG(4, { extern int Output;		/* --atoenne-- */
+	     FunctorDef f = proc->definition->functor;
+
+	     if ( Output )
+	     { int n;
+
+	       Putf("PL_open_query: %s(", stringAtom(f->name));
+	       for(n=0; n < f->arity; n++)
+	       { if ( n > 0 )
+		   Putf(", ");
+		 pl_write(args+n);
+	       }
+	       Putf(")\n");
+	     } else
+	       Sdprintf("PL_open_query in unitialized environment.\n");
+	   });
+
+  qf	= (QueryFrame) lTop;
+  fr    = &qf->frame;
+  def   = proc->definition;
+  arity	= def->functor->arity;
 
   SECURE(checkStacks(environment_frame));
   assert((ulong)fli_context > (ulong)environment_frame);
@@ -940,23 +962,6 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   qf->solutions         = 0;
   qf->bfr		= fr;
   qf->exception		= 0;
-
-  DEBUG(1, { extern int Output;		/* --atoenne-- */
-	     FunctorDef f = proc->definition->functor;
-
-	     if ( Output )
-	     { int n;
-
-	       Putf("PL_open_query: %s(", stringAtom(f->name));
-	       for(n=0; n < f->arity; n++)
-	       { if ( n > 0 )
-		   Putf(", ");
-		 pl_write(args+n);
-	       }
-	       Putf(")\n");
-	     } else
-	       Sdprintf("PL_open_query in unitialized environment.\n");
-	   });
 
   lTop = (LocalFrame) argFrameP(fr, arity);
   verifyStack(local);
@@ -982,18 +987,29 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   { fr->clause = clause;
   }
 					/* context module */
-  if ( true(def, TRANSPARENT) )
+  if ( true(def, METAPRED) )
   { if ( ctx )
       fr->context = ctx;
     else if ( environment_frame )
       fr->context = environment_frame->context;
     else
-      fr->context = def->module;
+      fr->context = MODULE_user;
   } else
     fr->context = def->module;
 
   clearFlags(fr);
-  setLevelFrame(fr, !parentFrame(fr) ? 0L : levelFrame(parentFrame(fr)) + 1);
+{ LocalFrame parent;
+  long plevel;
+
+  if ( (parent = parentFrame(fr)) )
+    plevel = levelFrame(parent);
+  else
+    plevel = 0L;
+
+  setLevelFrame(fr, plevel);
+}
+			
+  DEBUG(3, Sdprintf("Level = %d\n", levelFrame(fr)));
   if ( true(qf, PL_Q_NODEBUG) )
   { set(fr, FR_NODEBUG);
     debugstatus.suspendTrace++;
@@ -1009,6 +1025,8 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   fr->predicate = def;
   Mark(fr->mark);
   environment_frame = fr;
+
+  DEBUG(2, Sdprintf("QID=%d\n", QidFromQuery(qf)));
 
   return QidFromQuery(qf);
 }
@@ -2853,7 +2871,7 @@ increase lTop too to prepare for asynchronous interrupts.
 	    next = lTop;
 	    h0 = argFrameP(next, 0) - (Word)lBase;
 	    lTop = (LocalFrame) argFrameP(next, nvars);
-	    if ( true(def, TRANSPARENT) )
+	    if ( true(def, METAPRED) )
 	      next->context = FR->context;
 	    else
 	      next->context = def->module;
@@ -3130,7 +3148,7 @@ Testing is suffices to find out that the predicate is defined.
 	  }
 	}
 
-	if ( false(DEF, TRANSPARENT) )
+	if ( false(DEF, METAPRED) )
 	  FR->context = DEF->module;
 	if ( false(DEF, SYSTEM) )
 	  clear(FR, FR_NODEBUG);

@@ -2604,6 +2604,29 @@ pl_xr_member(term_t ref, term_t term, word h)
 
 	PC = stepPC(PC);
       }
+    } else if ( PL_get_functor(term, &fd) && fd != FUNCTOR_module2 )
+    { while( PC < end )
+      { code op = decode(*PC);
+
+	if ( codeTable[op].argtype == CA1_FUNC )
+	{ functor_t fa = (functor_t)PC[1];
+
+	  if ( fa == fd )
+	  { DEBUG(1,
+		  { term_t ref = PL_new_term_ref();
+		    long i;
+		    
+		    PL_unify_pointer(ref, clause);
+		    PL_get_long(ref, &i);
+		    Sdprintf("Got it, clause %d at %d\n",
+			     i, PC-clause->codes);
+		  });
+	    succeed;
+	  }
+	}
+
+	PC = stepPC(PC);
+      }
     } else if ( get_procedure(term, &proc, 0, GP_FIND) )
     { while( PC < end )
       { code op = decode(*PC);
@@ -2615,19 +2638,6 @@ pl_xr_member(term_t ref, term_t term, word h)
 	    succeed;
 	  if ( pa->definition->functor == proc->definition->functor &&
 	       wouldBindToDefinition(pa->definition, proc->definition) )
-	    succeed;
-	}
-
-	PC = stepPC(PC);
-      }
-    } else if ( PL_get_functor(term, &fd) )
-    { while( PC < end )
-      { code op = decode(*PC);
-
-	if ( codeTable[op].argtype == CA1_FUNC )
-	{ functor_t fa = (functor_t)PC[1];
-
-	  if ( fa == fd )
 	    succeed;
 	}
 

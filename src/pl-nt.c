@@ -11,7 +11,6 @@
 
 #include <windows.h>
 #include <process.h>
-#undef TRANSPARENT
 #include "pl-incl.h"
 #include "pl-ctype.h"
 #include <stdio.h>
@@ -263,6 +262,22 @@ pl_win_exec(term_t cmd, term_t how)
     return warning("win_exec/2: instantiation fault");
 }
 
+
+char *
+getenv3(const char *name, char *buf, int len)
+{ if ( GetEnvironmentVariable(name, buf, len) )
+    return buf;
+  
+  return NULL;
+}
+
+/* What does this return if the variable is not defined?
+*/
+
+int
+getenvl(const char *name)
+{ return GetEnvironmentVariable(name, NULL, 0);
+}
 
 #endif /*__WINDOWS__*/
 

@@ -817,7 +817,7 @@ with one operation, it turns out to be faster as well.
 #define SPY_ME			(0x00000080L) /* predicate */
 #define SYSTEM			(0x00000100L) /* predicate, module */
 #define TRACE_ME		(0x00000200L) /* predicate */
-#define TRANSPARENT		(0x00000400L) /* predicate */
+#define METAPRED		(0x00000400L) /* predicate */
 #define GC_SAFE			(0x00000800L) /* predicate */
 #define TRACE_CALL		(0x00001000L) /* predicate */
 #define TRACE_REDO		(0x00002000L) /* predicate */
@@ -1068,7 +1068,7 @@ struct definition
 		/*	DYNAMIC		   dynamic predicate? */
 		/*	MULTIFILE	   defined over more files? */
 		/*	SYSTEM		   system predicate */
-		/*	TRANSPARENT	   procedure transparent to modules */
+		/*	METAPRED	   procedure transparent to modules */
 		/*	DISCONTIGUOUS	   procedure might be discontiguous */
 		/*	NONDETERMINISTIC   deterministic foreign (not used) */
 		/*	GC_SAFE		   Save to perform GC while active */

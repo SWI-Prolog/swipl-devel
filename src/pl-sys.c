@@ -30,10 +30,20 @@ pl_getenv(term_t var, term_t value)
 { char *n;
 
   if ( PL_get_chars(var, &n, CVT_ALL) )
-  { char *v;
+  { int len = getenvl(n);
 
-    if ( (v = getenv(n)) )
-      return PL_unify_atom_chars(value, v);
+    if ( len >= 0 )
+    { char *buf	= alloca(len+1);
+      
+      if ( buf )
+      { char *s;
+
+	if ( (s=getenv3(n, buf, len+1)) )
+	  return PL_unify_atom_chars(value, s);
+      } else
+	return PL_error("getenv", 2, NULL, ERR_NOMEM);
+    }
+
     fail;
   }
 

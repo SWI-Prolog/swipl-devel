@@ -1,6 +1,26 @@
 
 			SWI-Prolog ChangeLog
 			====================
+
+VERSION 2.9.8
+=============
+
+  * WIN32: Replaced various C runtime functions by their native Win32
+    versions.
+
+  * FIXED: Calling module transparent predicates from the outer foreign
+    context using context module NULL to call in module "user", rather than
+    in the definition module of the predicate.  Found by Stephane Berhault.
+
+  * FIXED: Early switch off the tracer after an abort to avoid tracing
+    the hooks.
+
+  * ADDED: explain/1 reporting references to undefined predicates (i.e. which
+    clauses reference the undefined predicate).  Also explain/1 reporting
+    references to XPCE methods.
+
+  * FIXED: explain/1 reporting non-existing references to compound terms.
+
 VERSION 2.9.7
 =============
 

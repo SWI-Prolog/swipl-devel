@@ -20,7 +20,6 @@ handling times must be cleaned, but that not only holds for this module.
 
 #if defined(__WINDOWS__) || defined(__NT__)
 #include "windows.h"
-#undef TRANSPARENT
 #undef FD_SET
 #undef FD_ISSET
 #undef FD_ZERO

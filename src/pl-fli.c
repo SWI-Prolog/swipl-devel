@@ -1531,9 +1531,8 @@ PL_predicate_info(predicate_t pred, atom_t *name, int *arity, module_t *m)
 		 *******************************/
 
 int
-PL_call_predicate(Module ctx, int debug, predicate_t pred, term_t h0)
+PL_call_predicate(Module ctx, int flags, predicate_t pred, term_t h0)
 { int rval;
-  int flags = (debug ? PL_Q_NORMAL : PL_Q_NODEBUG);
 
   qid_t qid = PL_open_query(ctx, flags, pred, h0);
   rval = PL_next_solution(qid);
@@ -1646,7 +1645,7 @@ PL_register_foreign(const char *name, int arity, Func f, int flags)
   clear(def, NONDETERMINISTIC);
 
   if ( (flags & PL_FA_NOTRACE) )	  clear(def, TRACE_ME);
-  if ( (flags & PL_FA_TRANSPARENT) )	  set(def, TRANSPARENT);
+  if ( (flags & PL_FA_TRANSPARENT) )	  set(def, METAPRED);
   if ( (flags & PL_FA_NONDETERMINISTIC) ) set(def, NONDETERMINISTIC);
 
   notify_registered_foreign(fdef, m);
@@ -1669,7 +1668,7 @@ PL_load_extensions(PL_extension *ext)
     register Procedure proc;
 
     if ( e->flags & PL_FA_NOTRACE )	     flags &= ~TRACE_ME;
-    if ( e->flags & PL_FA_TRANSPARENT )	     flags |= TRANSPARENT;
+    if ( e->flags & PL_FA_TRANSPARENT )	     flags |= METAPRED;
     if ( e->flags & PL_FA_NONDETERMINISTIC ) flags |= NONDETERMINISTIC;
 
     proc = lookupProcedure(lookupFunctorDef(lookupAtom(e->predicate_name),

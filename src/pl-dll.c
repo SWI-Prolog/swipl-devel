@@ -8,8 +8,6 @@
 #if defined(__WINDOWS__) || defined(__WIN32__)
 
 #include "windows.h"
-#undef TRANSPARENT
-
 #include "pl-incl.h"
 #include <stdio.h>
 

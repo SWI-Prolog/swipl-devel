@@ -35,9 +35,6 @@ extern Void Allocate(long);
 		*         MISCELLANEOUS         *
 		*********************************/
 
-extern char *Setenv(char *name, char *value);
-extern char *Unsetenv(char *name);
-
 extern char *OsError(void);
 extern bool initOs(void);
 extern volatile void Halt(int);

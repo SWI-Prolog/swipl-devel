@@ -1091,7 +1091,7 @@ attribute_mask(atom_t key)
   if (key == ATOM_trace_fail)	 return TRACE_FAIL;
   if (key == ATOM_trace_any)	 return TRACE_ANY;
   if (key == ATOM_hide_childs)	 return HIDE_CHILDS;
-  if (key == ATOM_transparent)	 return TRANSPARENT;
+  if (key == ATOM_transparent)	 return METAPRED;
   if (key == ATOM_discontiguous) return DISCONTIGUOUS;
   if (key == ATOM_volatile)	 return VOLATILE;
 

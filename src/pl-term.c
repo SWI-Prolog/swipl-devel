@@ -74,10 +74,10 @@ initTerm(void)
   static char *string_area = NULL;
 
   if ( term_initialised == STAT_START )
-  { char *term;
+  { char term[100];
 
     term_initialised = STAT_ERROR;
-    if ( (term = getenv("TERM")) == NULL )
+    if ( !getenv3("TERM", term, sizeof(term)) )
       return warning("No variable TERM");
 
     if ( buf == NULL )         buf         = allocHeap(MAX_TERMBUF);
