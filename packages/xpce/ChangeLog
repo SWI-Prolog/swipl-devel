@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+
+VERSION 6.0.4, distributed with SWI-Prolog 5.0.4
+================================================
+
 * FIXED: Win32: ->geometry to use SystemParametersInfo(SPI_GETWORKAREA, ..)
   to determine boundaries.
 
