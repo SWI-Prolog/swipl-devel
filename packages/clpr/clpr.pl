@@ -96,20 +96,28 @@ prolog:message(query(YesNo,Bindings)) --> !,
         '$messages':prolog_message(query(YesNo,Bindings)).
 
 dump_toplevel_bindings(Bindings,Constraints) :-
-	dump_vars_names(Bindings,Vars,Names),
+	dump_vars_names(Bindings,[],Vars,Names),
 	dump(Vars,Names,Constraints).
 
-dump_vars_names([],[],[]).
-dump_vars_names([Name=Term|Rest],Vars,Names) :-
-	( var(Term) ->
+dump_vars_names([],_,[],[]).
+dump_vars_names([Name=Term|Rest],Seen,Vars,Names) :-
+	( var(Term), \+ memberchk_eq(Term,Seen) ->
 		Vars = [Term|RVars],
-		Names = [Name|RNames]
+		Names = [Name|RNames],
+		NSeen = [Term|Seen]
 	;
 		Vars = RVars,
-		Names = RNames
+		Names = RNames,
+		Seen = NSeen
 	),
-	dump_vars_names( Rest,RVars,RNames).
+	dump_vars_names( Rest,NSeen,RVars,RNames).
 
 dump_format([],[]).
 dump_format([X|Xs],['{~w}'-[X],nl|Rest]) :-
 	dump_format(Xs,Rest).
+
+memberchk_eq(X, [Y|Ys]) :-
+   (   X == Y
+   ->  true
+   ;   memberchk_eq(X, Ys)
+   ).
