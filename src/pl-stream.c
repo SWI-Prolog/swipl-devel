@@ -307,8 +307,6 @@ S__flushbufc(int c, IOSTREAM *s)
 }
 
 
-#define ReadF(s) (s)->functions->read
-
 int
 S__fillbuf(IOSTREAM *s)
 { int c;
@@ -318,11 +316,43 @@ S__fillbuf(IOSTREAM *s)
     goto error;
   }
 
+#ifdef HAVE_SELECT
+  s->flags &= ~SIO_TIMEOUT;
+
+  if ( s->timeout >= 0 )
+  { int fd = Sfileno(s);
+
+    Sdprintf("Timeout %d on %d\n", s->timeout, fd);
+
+    if ( fd >= 0 )
+    { fd_set wait;
+      struct timeval time;
+      
+      time.tv_sec  = s->timeout / 1000;
+      time.tv_usec = (s->timeout % 1000) * 1000;
+      FD_ZERO(&wait);
+      FD_SET(fd, &wait);
+
+      if ( select(fd+1, &wait, NULL, NULL, &time) < 0 )
+	goto error;
+
+      if ( !FD_ISSET(fd, &wait) )
+      { s->flags |= SIO_TIMEOUT;
+	goto error;
+      }
+    } else
+    { errno = EPERM;			/* no permission to select */
+      goto error;
+    }
+  }
+#endif
+
+
   if ( s->flags & SIO_NBUF )
   { char chr;
     int n;
 
-    if ( (n=(*ReadF(s))(s->handle, &chr, 1)) == 1 )
+    if ( (n=(*s->functions->read)(s->handle, &chr, 1)) == 1 )
     { c = char_to_int(chr);
       goto ok;
     } else if ( n == 0 )
@@ -342,7 +372,7 @@ S__fillbuf(IOSTREAM *s)
       s->limitp = s->buffer;
     }
 
-    if ( (n=(*ReadF(s))(s->handle, s->buffer, s->bufsize)) > 0 )
+    if ( (n=(*s->functions->read)(s->handle, s->buffer, s->bufsize)) > 0 )
     { s->bufp = s->buffer;
       s->limitp = &s->buffer[n];
       c = char_to_int(*s->bufp++);
@@ -1486,6 +1516,7 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
   s->flags         = flags;
   s->handle        = handle;
   s->functions     = functions;
+  s->timeout       = -1;		/* infinite */
   s->posbuf.lineno = 1;
   if ( flags & SIO_RECORDPOS )
     s->position = &s->posbuf;
@@ -1645,7 +1676,9 @@ Sfileno(IOSTREAM *s)
 #define STDIO(n, f) { NULL, NULL, NULL, NULL, \
 		      EOF, SIO_MAGIC, 0, f, {0, 0, 0}, NULL, \
 		      ((void *)(n)), &Sfilefunctions, \
-		      0, NULL \
+		      0, NULL, \
+		      NULL, NULL, \
+		      -1 \
 		    }
 
 #define SIO_STDIO (SIO_FILE|SIO_STATIC|SIO_NOCLOSE|SIO_ISATTY)
@@ -2013,6 +2046,7 @@ Sopen_string(IOSTREAM *s, char *buf, int size, const char *mode)
     flags |= SIO_STATIC;
 
   memset((char *)s, 0, sizeof(IOSTREAM));
+  s->timeout   = -1;
   s->buffer    = buf;
   s->bufp      = buf;
   s->unbuffer  = buf;

@@ -512,6 +512,8 @@ A yfx			"yfx"
 A yfy			"yfy"
 A zero_divisor		"zero_divisor"
 A infinite		"infinite"
+A timeout		"timeout"
+A timeout_error		"timeout_error"
 
 F abs			1
 F acos			1
@@ -670,3 +672,4 @@ F warning		3
 F xor			2
 F xpceref		1
 F access		1
+F timeout_error		2

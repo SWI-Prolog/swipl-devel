@@ -155,3 +155,4 @@
 #define FUNCTOR_xor2         MK_FUNCTOR(154, 2)
 #define FUNCTOR_xpceref1     MK_FUNCTOR(155, 1)
 #define FUNCTOR_access1      MK_FUNCTOR(156, 1)
+#define FUNCTOR_timeout_error2 MK_FUNCTOR(157, 2)

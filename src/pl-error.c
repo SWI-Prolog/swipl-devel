@@ -218,6 +218,17 @@ PL_error(const char *pred, int arity, const char *msg, int id, ...)
 
       break;
     }
+    case ERR_TIMEOUT:
+    { atom_t op   = va_arg(args, atom_t);
+      term_t obj  = va_arg(args, term_t);
+
+      PL_unify_term(formal,
+			PL_FUNCTOR, FUNCTOR_timeout_error2,
+			  PL_ATOM, op,
+			  PL_TERM, obj);
+
+      break;
+    }
     case ERR_EXISTENCE:
     { atom_t type = va_arg(args, atom_t);
       term_t obj  = va_arg(args, term_t);
@@ -531,6 +542,15 @@ PL_get_bool_ex(term_t t, int *i)
     succeed;
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_bool, t);
+}
+
+
+int
+PL_get_float_ex(term_t t, double *f)
+{ if ( PL_get_float(t, f) )
+    succeed;
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_float, t);
 }
 
 

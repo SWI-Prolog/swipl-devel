@@ -195,6 +195,7 @@ int		PL_get_atom_ex(term_t t, atom_t *a);
 int		PL_get_integer_ex(term_t t, int *i);
 int		PL_get_long_ex(term_t t, long *i);
 int		PL_get_bool_ex(term_t t, int *i);
+int		PL_get_float_ex(term_t t, double *f);
 int		PL_unify_list_ex(term_t l, term_t h, term_t t);
 int		PL_unify_nil_ex(term_t l);
 int		PL_get_list_ex(term_t l, term_t h, term_t t);

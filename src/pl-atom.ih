@@ -499,3 +499,5 @@
 #define ATOM_yfy          MK_ATOM(498)
 #define ATOM_zero_divisor MK_ATOM(499)
 #define ATOM_infinite     MK_ATOM(500)
+#define ATOM_timeout      MK_ATOM(501)
+#define ATOM_timeout_error MK_ATOM(502)

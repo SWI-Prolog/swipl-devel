@@ -619,11 +619,15 @@ streamStatus(IOSTREAM *s)
     PL_unify_stream_or_alias(stream, s);
 
     if ( s->flags & SIO_INPUT )
-    { if ( Sfpasteof(s) )
+    { op = ATOM_read;
+
+      if ( Sfpasteof(s) )
       { PL_error(NULL, 0, NULL, ERR_PERMISSION,
 		 ATOM_input, ATOM_past_end_of_stream, stream);
+      } else if ( s->flags & SIO_TIMEOUT )
+      { PL_error(NULL, 0, NULL, ERR_TIMEOUT,
+		 op, stream);
       }
-      op = ATOM_read;
     } else
       op = ATOM_write;
 
@@ -1122,6 +1126,21 @@ pl_set_stream(term_t stream, term_t attr)
 	setFileNameStream(s, fn);
 	UNLOCK();
 
+	goto ok;
+      } else if ( aname == ATOM_timeout )
+      { double f;
+	atom_t v;
+	
+	if ( PL_get_atom(a, &v) && v == ATOM_infinite )
+	{ s->timeout = -1;
+	  goto ok;
+	}
+	if ( !PL_get_float_ex(a, &f) )
+	  goto error;
+
+	s->timeout = (int)(f*1000.0);
+	if ( s->timeout < 0 )
+	  s->timeout = 0;
 	goto ok;
       }
     }

@@ -54,6 +54,7 @@
 #define ERR_DDE_OP	       29	/* op, error */
 #define ERR_SYNTAX	       30	/* what */
 #define ERR_SHARED_OBJECT_OP   31	/* op, error */
+#define ERR_TIMEOUT	       32	/* op, object */
 
 #define MSG_ERRNO		((char *)(-1))
 

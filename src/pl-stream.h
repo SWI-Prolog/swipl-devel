@@ -138,6 +138,8 @@ typedef struct io_stream
 					/* SWI-Prolog 4.0.7 */
   void			(*close_hook)(void* closure);
   void *		closure;
+					/* SWI-Prolog 5.1.3 */
+  int			timeout;	/* timeout (milliseconds) */
 } IOSTREAM;
 
 #define SmakeFlag(n)	(1<<(n-1))
@@ -165,6 +167,7 @@ typedef struct io_stream
 #define SIO_UPDATE	SmakeFlag(21)	/* opened in update-mode */
 #define SIO_ISATTY	SmakeFlag(22)	/* Stream is a tty */
 #define SIO_CLOSING	SmakeFlag(23)	/* We are closing the stream */
+#define SIO_TIMEOUT	SmakeFlag(24)	/* We had a timeout */
 
 #define	SIO_SEEK_SET	0	/* From beginning of file.  */
 #define	SIO_SEEK_CUR	1	/* From current position.  */
