@@ -151,7 +151,7 @@ removeDirectory(Directory d)
 
 status
 cdDirectory(Directory d)
-{ if ( chdir(nameToFN(d->path)) )
+{ if ( chdir(nameToFN(d->path)) != 0 )
     return errorPce(d, NAME_chdir, d->path, getOsErrorPce(PCE));
 
   succeed;
