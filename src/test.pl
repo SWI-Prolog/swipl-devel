@@ -83,7 +83,10 @@ arithmetic(between-4) :-
 arithmetic(succ-1) :-
 	succ(0, X), X == 1.
 arithmetic(succ-2) :-
-	succ(X, 0), X == -1.
+	\+ succ(_, 0).
+arithmetic(succ-3) :-
+	catch(succ(_, -1), E, true),
+	E = error(domain_error(not_less_than_zero, -1), _).
 arithmetic(plus-1) :-
 	plus(1, 2, 3).
 
