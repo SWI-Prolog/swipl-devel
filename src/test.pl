@@ -1,8 +1,25 @@
 /*  $Id$
 
-    E-mail: jan@swi.psy.uva.nl
+    Part of SWI-Prolog
 
-    Copyright (C) 1996 University of Amsterdam. All rights reserved.
+    Author:        Jan Wielemaker and Anjo Anjewierden
+    E-mail:        jan@science.uva.nl
+    WWW:           http://www.swi-prolog.org
+    Copyright (C): 1985-2004, University of Amsterdam
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 :- set_prolog_flag(optimise, true).
@@ -280,6 +297,31 @@ chars(chars-1) :-
 chars(chars-2) :-
 	A is [a],			% if "a" --> [a]
 	A == 97.
+
+
+		 /*******************************
+		 *	 WIDE CHARACTERS	*
+		 *******************************/
+
+wchar_string("abc").				% ISO Latin-1
+wchar_string([1097, 1098, 1099]).		% UCS
+wchar_string([97, 98, 99, 1097, 1098, 1099]).   % Mixed
+wchar_string([1097, 1098, 1099, 97, 98, 99]).	% Mixed
+
+wchars(cmp-1) :-
+	forall(( wchar_string(S1),
+		 wchar_string(S2)),
+	       ( atom_codes(A1, S1),
+		 atom_codes(A2, S2),
+		 compare(Diff, A1, A2),
+		 compare(Diff, S1, S2))).
+wchars(cmp-2) :-
+	forall(( wchar_string(S1),
+		 wchar_string(S2)),
+	       ( string_to_list(A1, S1),
+		 string_to_list(A2, S2),
+		 compare(Diff, A1, A2),
+		 compare(Diff, S1, S2))).
 
 
 		 /*******************************
@@ -1629,6 +1671,7 @@ testset(arithmetic).
 testset(arithmetic_functions).
 testset(floattest).
 testset(chars).
+testset(wchars).
 testset(depth_limit) :-
 	current_predicate(_, user:call_with_depth_limit(_,_,_)).
 testset(type_test).

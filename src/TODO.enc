@@ -34,6 +34,13 @@ TBD:
 
 		- file-name handling (PL_get_filename)
 		- Put, unify/get 
+		- PL_get_term_value() issues
+
+Performance analysis:
+
+	- Reading files
+	- Atom operations
+		+ Sort list of atoms?
 
 TBD Documentation:
 	encoding property of streams

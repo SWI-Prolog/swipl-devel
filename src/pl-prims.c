@@ -410,6 +410,11 @@ PRED_IMPL("hash_term", 2, hash_term, 0)
 		*        STANDARD ORDER         *
 		*********************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+There are atoms of different  type.   We  only define comparison between
+atoms of the same type, except for mixed ISO Latin-1 and UCS atoms.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 compareAtoms(atom_t w1, atom_t w2)
 { Atom a1 = atomValue(w1);
@@ -426,6 +431,16 @@ compareAtoms(atom_t w1, atom_t w2)
 	return v;
       return (int)a1->length - (int)a2->length;
     }
+  } else if ( true(a1->type, PL_BLOB_TEXT) &&
+	      true(a2->type, PL_BLOB_TEXT) )
+  { PL_chars_t t1, t2;
+    unsigned len;
+
+    get_atom_text(w1, &t1);
+    get_atom_text(w2, &t2);
+    len = t1.length > t2.length ? t1.length : t2.length;
+
+    return PL_cmp_text(&t1, 0, &t2, 0, len);
   } else
   { return a1->type->rank - a2->type->rank;
   }

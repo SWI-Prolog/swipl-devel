@@ -454,6 +454,7 @@ PL_EXPORT(int)		PL_get_attr(term_t v, term_t a);
 #define PL_BLOB_UNIQUE	0x01		/* Blob content is unique */
 #define PL_BLOB_TEXT	0x02		/* blob contains text */
 #define PL_BLOB_NOCOPY	0x04		/* do not copy the data */
+#define PL_BLOB_WCHAR	0x08		/* wide character string */
 
 typedef struct PL_blob_t
 { unsigned long		magic;		/* PL_BLOB_MAGIC */

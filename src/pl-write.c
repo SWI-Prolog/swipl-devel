@@ -414,7 +414,7 @@ writeAtom(atom_t a, write_options *options)
 
 
 int
-writeUSCAtom(IOSTREAM *fd, atom_t atom, int flags)
+writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags)
 { Atom a = atomValue(atom);
   pl_wchar_t *s = (pl_wchar_t*)a->name;
   int len = a->length/sizeof(pl_wchar_t);

@@ -323,13 +323,16 @@ PL_functor_arity(functor_t f)
 		 *    WIDE CHARACTER SUPPORT	*
 		 *******************************/
 
+static int compareUCSAtom(atom_t h1, atom_t h2);
+
 static PL_blob_t ucs_atom =
 { PL_BLOB_MAGIC,
-  PL_BLOB_UNIQUE|PL_BLOB_TEXT,		/* unique representation of text */
+  PL_BLOB_UNIQUE|PL_BLOB_TEXT|PL_BLOB_WCHAR,
+					/* unique representation of text */
   "ucs_text",
   NULL,					/* release */
-  NULL,					/* compare */
-  writeUSCAtom				/* write */
+  compareUCSAtom,			/* compare */
+  writeUCSAtom				/* write */
 };
 
 
@@ -383,6 +386,25 @@ get_string_text(word w, PL_chars_t *text ARG_LD)
   text->canonical = TRUE;
 
   succeed;
+}
+
+
+static int
+compareUCSAtom(atom_t h1, atom_t h2)
+{ Atom a1 = atomValue(h1);
+  Atom a2 = atomValue(h2);
+  const pl_wchar_t *s1 = (const pl_wchar_t*)a1->name;
+  const pl_wchar_t *s2 = (const pl_wchar_t*)a2->name;
+  unsigned len = a1->length < a2->length ? a1->length : a2->length;
+
+  len /= sizeof(pl_wchar_t);
+  
+  for( ; len-- > 0; s1++, s2++)
+  { if ( *s1 != *s2 )
+      return *s1 - *s2;
+  }
+
+  return a1->length - a2->length;
 }
 
 
