@@ -1225,8 +1225,18 @@ index_item_menu(Menu m, Any spec)
     }
   } else
   { Cell cell;
-    int n = 1;
+    int n;
     
+    n = 1;				/* exact match */
+    for_cell(cell, m->members)
+    { MenuItem mi = cell->value;
+
+      if ( mi->value == spec )
+        return n;
+      n++;
+    }
+
+    n = 1;				/* equal string representation */
     for_cell(cell, m->members)
     { if ( hasValueMenuItem(cell->value, spec) )
         return n;

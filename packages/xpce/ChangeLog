@@ -1,6 +1,11 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#23.  Menu selection handling.  Holger Kanwischer.
+
+VERSION 6.5.8, distributed with SWI-Prolog 5.5.8
+================================================
+
 * ENHANCED: xpce-stub.exe to show a messagebox if initialisation or execution
   fails.  Simplifies debugging.
 

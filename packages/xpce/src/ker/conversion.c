@@ -24,9 +24,12 @@
 
 #include <h/kernel.h>
 
+static char *ppsavestring(const char *s);
+
 status
 toString(Any obj, String s)
-{ static char tmp[25];
+{ char tmp[25];
+  char *str;
   status rval = FAIL;
 
   if ( instanceOfObject(obj, ClassCharArray) )
@@ -37,17 +40,20 @@ toString(Any obj, String s)
     succeed;
   } else if ( isInteger(obj) )
   { sprintf(tmp, "%ld", valInt(obj));
+    str = ppsavestring(tmp);
     rval = SUCCEED;
   } else if ( instanceOfObject(obj, ClassReal) )
   { sprintf(tmp, "%g", valReal(obj));
+    str = ppsavestring(tmp);
     rval = SUCCEED;
   } else if ( instanceOfObject(obj, ClassNumber) )
   { sprintf(tmp, "%ld", ((Number)obj)->value);
+    str = ppsavestring(tmp);
     rval = SUCCEED;
   }
 
   if ( rval )
-  { str_set_ascii(s, tmp);
+  { str_set_ascii(s, str);
   }
 
   return rval;
