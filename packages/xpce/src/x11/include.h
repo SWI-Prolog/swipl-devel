@@ -164,6 +164,8 @@ XImage *	read_ppm_file(Display *disp, Colormap map,
 int		write_pnm_file(IOSTREAM *fd, XImage *img,
 			       Display *disp, Colormap cmap,
 			       int scale, int fmt, int asascii);
+int		write_jpeg_file(IOSTREAM *fd, XImage *img,
+				Display *disp, Colormap cmap);
 
 /* xcolour.c */
 status		allocNearestColour(Display *display, Colormap map,

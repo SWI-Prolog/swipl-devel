@@ -318,6 +318,30 @@ ws_save_image_file(Image image, FileObj file, Name fmt)
 #else /*HAVE_LIBXPM*/
     return errorPce(image, NAME_noImageFormat, NAME_xpm);
 #endif /*HAVE_LIBXPM*/
+  } else if ( fmt == NAME_jpeg )
+  {
+#ifdef HAVE_LIBJPEG
+    XImage *i;
+    status rval;
+    IOSTREAM *fd;
+      
+    if ( !(i=getXImageImage(image)) )
+    { getXImageImageFromScreen(image);
+      if ( !(i=getXImageImage(image)) )
+	fail;
+    }
+  
+    if ( !(fd=Sopen_object(file, "wbr")) )
+      fail;
+    if ( write_jpeg_file(fd, i, r->display_xref, 0) < 0 )
+      rval = errorPce(image, NAME_xError);
+    else
+      rval = SUCCEED;
+    Sclose(fd);
+    return rval;
+#else
+    return errorPce(image, NAME_noImageFormat, NAME_jpeg);
+#endif /*HAVE_LIBJPEG*/
   } else
   { int pnm_fmt;
     XImage *i;

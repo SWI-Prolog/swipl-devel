@@ -504,3 +504,84 @@ readJPEGFile(Image image, IOSTREAM *fd)
 }
 #endif /*HAVE_LIBJPEG*/
 #endif /*HAVE_LIBXPM*/
+
+#ifdef HAVE_LIBJPEG
+#undef GLOBAL				/* conflict */
+#include <jpeglib.h>
+#include <jerror.h>
+#define XBRIGHT ((1L<<16)-1)
+
+extern void jpeg_iostream_dest(j_compress_ptr cinfo, IOSTREAM *outfile);
+
+
+		 /*******************************
+		 *	   WRITING JPEG		*
+		 *******************************/
+
+/*#define rescale(v, o, n)	((v) * (n) / (o))*/
+#define rescale(v,o,n) ((v)>>8)
+
+int
+write_jpeg_file(IOSTREAM *fd, XImage *img, Display *disp, Colormap cmap)
+{ int width  = img->width;
+  int height = img->height;
+  int depth  = img->depth;
+  int colours;
+  XColor **colorinfo = NULL;
+  int y;
+  struct jpeg_compress_struct cinfo;
+  struct jpeg_error_mgr jerr;
+  JSAMPLE *row = pceMalloc(sizeof(JSAMPLE)*3*width);
+
+  if ( !cmap )
+    cmap = DefaultColormap(disp, DefaultScreen(disp));
+
+  if ( depth > 16 )
+  { Cprintf("JPEG generation not yet supported for depth > 16\n");
+    return -1;
+  }
+  if ( !(colorinfo = makeSparceCInfo(disp, cmap, img, &colours)) )
+    return -1;
+
+  cinfo.err = jpeg_std_error(&jerr);
+  jpeg_create_compress(&cinfo);
+  jpeg_iostream_dest(&cinfo, fd);
+
+  cinfo.image_width = width;
+  cinfo.image_height = height;
+  cinfo.input_components = 3;
+  cinfo.in_color_space = JCS_RGB;
+  jpeg_set_defaults(&cinfo);
+
+  jpeg_start_compress(&cinfo, TRUE);
+
+  for(y=0; y<height; y++)
+  { int x;
+    JSAMPLE *s = row;
+
+    for(x=0; x<width; x++)
+    { XColor *c;
+  
+      c = colorinfo[XGetPixel(img, x, y)];
+      *s++ = rescale(c->red,   XBRIGHT, 256);
+      *s++ = rescale(c->green, XBRIGHT, 256);
+      *s++ = rescale(c->blue,  XBRIGHT, 256);
+    }
+
+    jpeg_write_scanlines(&cinfo, &row, 1);
+  }
+
+  jpeg_finish_compress(&cinfo);
+  jpeg_destroy_compress(&cinfo);
+
+  if ( colorinfo )
+    freeSparceCInfo(colorinfo, img->depth);
+  pceFree(row);
+
+  return 0;
+}
+
+
+#endif /*HAVE_LIBJPEG*/
+
+

@@ -568,7 +568,7 @@ $(srcdir)/win/proto.h:	$(WINSRC)
 # IMG 		--- Platform independent low-level image stuff
 ################################################################
 
-IMGOBJS=	jdatasrc.o jpegtoxpm.o gifread.o giftoxpm.o
+IMGOBJS=	jdatasrc.o jdatadst.o jpegtoxpm.o gifread.o giftoxpm.o
 IMGSRC=		$(addprefix $(srcdir)/img/, $(IMGOBJS:.o=.c))
 
 $(srcdir)/img/proto.h:	$(IMGSRC)
