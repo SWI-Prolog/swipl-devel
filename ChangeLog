@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 4.0.1
+=============
+
+  * PACKAGE: Many installation patches, added libraries, notably to
+    the XPCE subsystem.
+
   * ADDED: Skeleton dotfiles for both Prolog and XPCE to the dotfiles
     directory.
 
