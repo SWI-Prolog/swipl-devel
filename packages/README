@@ -53,8 +53,13 @@ Provided packages
 (*) flagged packages are installed by default
 
 	# clib (*)
-	Common Unix process management (fork, exec, etc.) and socket
-	interface based on SWI-Prolog I/O streams.
+	Consists of various sub-packages.  Currently defined:
+
+		unix		fork, exec, pipe, kill, etc.
+		socket		tcp/ip sockets
+		cgi		get CGI form-data (GET and POST)
+		memfile		Memory-hosted temporary `files`
+		mime		parse MIME documents
 
 	# cpp (*)
 	C++ wrapper for foreign language interface
