@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Memory corruption problem in prompt handling of threads.
+    Sergey Tikhonov.
+
   * FIXED: Deal with EINTR in sem_wait (Sergey Tikhonov).
 
   * FIXED: AGC problem.  With patch from Sergey Tikhonov.

@@ -933,6 +933,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
   PL_register_atom(LD->prompt.current);
   ldnew->prompt			 = LD->prompt;
+  ldnew->prompt->first		 = store_string(LD->prompt->first);
   ldnew->modules		 = LD->modules;
   ldnew->IO			 = LD->IO;
   ldnew->_fileerrors		 = LD->_fileerrors;
