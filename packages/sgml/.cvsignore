@@ -19,3 +19,7 @@ t.pl
 .plrc
 html
 ldoc.sh
+Makefile
+config.log
+config.h
+.coflags

@@ -1,2 +1,7 @@
 *.opt
 *.plg
+Makefile
+config.h
+config.log
+clib.log
+clib.aux

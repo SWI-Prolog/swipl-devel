@@ -3,3 +3,5 @@ config.h
 Online-requests
 Literature
 Tests
+Makefile
+config.log

@@ -3,3 +3,6 @@ tapefiles
 table.exp
 table.lib
 table.dll
+Makefile
+config.log
+config.h
