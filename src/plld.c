@@ -1491,6 +1491,17 @@ main(int argc, char **argv)
 
     return 0;
   }
+  if ( argc > 0 && streq(argv[0], "-v") )
+  { arglist coptions;
+
+    memset(&coptions, 0, sizeof(coptions));
+    for(; argc > 0; argc--, argv++)
+      appendArgList(&coptions, argv[0]);
+
+    callprog(PROG_CC, &coptions);
+
+    return 0;
+  }
 
   parseOptions(argc, argv);
   defaultProgram(&pl, PROG_PL);
