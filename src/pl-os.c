@@ -403,7 +403,7 @@ initRandom(void)
 #endif
 }
 
-int64_t
+uint64_t
 _PL_Random(void)
 { if ( !LD->os.rand_initialised )
   { initRandom();
@@ -412,7 +412,12 @@ _PL_Random(void)
 
 #ifdef HAVE_RANDOM
 #if SIZEOF_LONG == 4
-  return random() ^ (random()<<32);
+  { uint64_t l = random();
+    
+    l ^= (uint64_t)random()<<32;
+
+    return l;
+  }
 #else
   return random();
 #endif
