@@ -279,10 +279,10 @@ putQuoted(int c, int quote, int flags, IOSTREAM *stream)
 	    else
 	      assert(0);			/* to be done */
 	}
-	if ( !Putc('\\', stream) ||
-	     !PutString(esc, stream) )
-	  fail;
       }
+      if ( !Putc('\\', stream) ||
+	   !PutString(esc, stream) )
+	fail;
     }
   } else
   { if ( c == quote )
