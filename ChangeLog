@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#73, GUI tracer using decompiled code where it shouldn't.
+    Holger Kanwischer.
+
   * ENHANCED: More thread-allocation issues.  Avoid memory floating
     uncontrolled between threads through message exchange or other dynamic
     datastructures allocated by thread 1 and consumed by thread 2.

@@ -323,12 +323,12 @@ ubody(((A0,B0),C0), (A,B,C),
       term_position(F1,T1,FF1,TT1,
 		    [ term_position(F2,T2,FF2,FT2, [PA,PB]),
 		      PC
-		    ])) :- !,
-	ubody(A0,A,PA0,PA),
+		    ])) :-		% Is this clause needed?  Shouldn't the
+	ubody(A0,A,PA0,PA),		% next cover all cases?
 	ubody(B0,B,PB0,PB),
-	ubody(C0,C,PC0,PC).
+	ubody(C0,C,PC0,PC), !.
 ubody(C0, C, P0, P) :-
-	C0 = (_,_), !,
+	C0 = (_,_), C = (_,_), !,
       conj(C0, P0, GL, PL),
       mkconj(C,  P,  GL, PL).
 ubody(((A,B),C), (A,B,C),		% {},X expansion
