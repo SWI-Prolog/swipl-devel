@@ -53,8 +53,14 @@ typedef struct lqueued
   struct lqueued* next;			/* Next in queue */
 } lqueued, *LQueued;
 
+typedef struct dchar
+{ wchar_t	code;			/* UNICODE character */
+  unsigned	colour : 4;		/* one of the 16 VGA colours */
+  unsigned	underline : 1;		/* underline character */
+} dchar;
+
 typedef struct
-{ char *	 text;			/* the storage */
+{ dchar *	 text;			/* the storage */
   unsigned short size;			/* #characters in line */
   unsigned	 adjusted : 1;		/* line has been adjusted? */
   unsigned	 changed : 1;		/* line needs redraw */

@@ -5,7 +5,7 @@
     Author:        Jan Wielemaker
     E-mail:        jan@swi.psy.uva.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2002, University of Amsterdam
+    Copyright (C): 1985-2004, University of Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -49,21 +49,6 @@ is to be read, rlc_read() posts  a   WM_RLC_FLUSH,  and then waits while
 dispatching events, for the display-thread to   fill the buffer and send
 WM_RLC_INPUT (which is just sent  to   make  GetMessage()  in rlc_read()
 return).
-
-Towards an MT version on Windows
---------------------------------
-
-If we want to move towards a  multi-threaded version for MS-Windows, the
-console code needs to be changed significantly, as we need to be able to
-create multiple consoles to support thread_attach_console/0.
-
-The most logical solution seems to   be to reverse the thread-structure,
-Prolog starting and running in the   main-thread  and creating a console
-creates a new thread for this console. There  are two ways to keep track
-of the console to use. Cleanest might be to add an argument denoting the
-allocated console and alternatively we could   use thread-local data. We
-can also combine the two: add an  additional argument, but allow passing
-NULL to use the default console for this thread.
 
 Menus
 -----
@@ -199,7 +184,8 @@ static void	rlc_redraw(RlcData b);
 static int	rlc_breakargs(char *program, char *line, char **argv);
 static void	rlc_resize(RlcData b, int w, int h);
 static void	rlc_adjust_line(RlcData b, int line);
-static int	text_width(RlcData b, HDC hdc, const char *text, int len);
+static int	text_width(RlcData b, HDC hdc, const dchar *text, int len);
+static int	wchar_width(RlcData b, HDC hdc, const wchar_t *text, int len);
 static void	rlc_queryfont(RlcData b);
 static void     rlc_do_write(RlcData b, char *buf, int count);
 static void     rlc_reinit_line(RlcData b, int line);
@@ -1495,7 +1481,7 @@ rlc_translate_mouse(RlcData b, int x, int y, int *line, int *chr)
   } else if ( tl->size == 0 )
   { *chr = 0;
   } else
-  { char *s = tl->text;
+  { dchar *s = tl->text;
     HDC hdc = GetDC(b->window);
     int f = 0;
     int t = tl->size;
@@ -1511,7 +1497,7 @@ rlc_translate_mouse(RlcData b, int x, int y, int *line, int *chr)
       if ( x > w )
       { int cw;
 
-	GetCharWidth32(hdc, s[m], s[m], &cw);
+	GetCharWidth32(hdc, s[m].code, s[m].code, &cw);
 	if ( x < w+cw )
 	{ *chr = m;
 	  return;
@@ -1572,12 +1558,12 @@ rlc_word_selection(RlcData b, int x, int y)
   if ( rlc_between(b, b->first, b->last, l) )
   { TextLine tl = &b->lines[l];
 
-    if ( c < tl->size && iswordchar(tl->text[c]) )
+    if ( c < tl->size && iswordchar(tl->text[c].code) )
     { int f, t;
 
-      for(f=c; f>0 && iswordchar(tl->text[f-1]); f--)
+      for(f=c; f>0 && iswordchar(tl->text[f-1].code); f--)
 	;
-      for(t=c; t<tl->size && iswordchar(tl->text[t]); t++)
+      for(t=c; t<tl->size && iswordchar(tl->text[t].code); t++)
 	;
       rlc_set_selection(b, l, f, l, t);
     }
@@ -1597,8 +1583,8 @@ rlc_extend_selection(RlcData b, int x, int y)
     { if ( rlc_between(b, b->first, b->last, l) )
       { TextLine tl = &b->lines[l];
 
-	if ( c < tl->size && iswordchar(tl->text[c]) )
-	  for(; c > 0 && iswordchar(tl->text[c-1]); c--)
+	if ( c < tl->size && iswordchar(tl->text[c].code) )
+	  for(; c > 0 && iswordchar(tl->text[c-1].code); c--)
 	    ;
       }
     } else if ( b->sel_unit == SEL_LINE )
@@ -1609,8 +1595,8 @@ rlc_extend_selection(RlcData b, int x, int y)
     { if ( rlc_between(b, b->first, b->last, l) )
       { TextLine tl = &b->lines[l];
 
-	if ( c < tl->size && iswordchar(tl->text[c]) )
-	  for(; c < tl->size && iswordchar(tl->text[c]); c++)
+	if ( c < tl->size && iswordchar(tl->text[c].code) )
+	  for(; c < tl->size && iswordchar(tl->text[c].code); c++)
 	    ;
       }
     } else if ( b->sel_unit == SEL_LINE )
@@ -1645,7 +1631,7 @@ rlc_read_from_window(RlcData b, int sl, int sc, int el, int ec)
 	  if ( !(buf = rlc_realloc(buf, bufsize)) )
 	    return NULL;		/* not enough memory */
 	}
-	buf[i++] = tl->text[sc++];
+	buf[i++] = tl->text[sc++].code & 0xff;	/* TBD: UNICODE */
       }
     }
       
@@ -1725,16 +1711,16 @@ rlc_place_caret(RlcData b)
       { SetCaretPos((b->caret_x + 1) * b->cw, line * b->ch);
       } else
       { HDC hdc = GetDC(b->window);
-	SIZE tsize;
+	int twidth;
 	TextLine tl = &b->lines[b->caret_y];
 	HFONT old;
 
 	old = SelectObject(hdc, b->hfont);
-	GetTextExtentPoint32(hdc, tl->text, b->caret_x, &tsize);
+	twidth = text_width(b, hdc, tl->text, b->caret_x);
 	SelectObject(hdc, old);
 	ReleaseDC(b->window, hdc);
 
-	SetCaretPos(b->cw + tsize.cx, line * b->ch);
+	SetCaretPos(b->cw + twidth, line * b->ch);
       }
       if ( !b->caret_is_shown )
       { ShowCaret(b->window);
@@ -1815,17 +1801,23 @@ rlc_redraw(RlcData b)
 
   for(; pl <= el; l = NextLine(b, l), pl++)
   { TextLine tl = &b->lines[l];
-    char text[MAXLINE];
+    wchar_t text[MAXLINE];		/* UNICODE for line to paint */
     int ty = b->ch * pl;
     int cx = b->cw;
 
     if ( !tl->text )
-    { tl->size = 0;
-      memset(text, ' ', b->width);
+    { int i;
+
+      tl->size = 0;
+      for(i=0; i<b->width; i++)
+	text[i] = ' ';
     } else
-    { memcpy(text, tl->text, tl->size);
-      if ( b->width > tl->size )
-	memset(&text[tl->size], ' ', b->width - tl->size);
+    { int i;
+
+      for(i=0; i<tl->size; i++)
+	text[i] = tl->text[i].code;
+      for( ; i <b->width; i++)
+	text[i] = ' ';
     }
 
     rect.top    = ty;
@@ -1837,33 +1829,33 @@ rlc_redraw(RlcData b)
       int ce = (b->sel_end_line != b->sel_start_line ? b->width
 						     : b->sel_end_char);
       if ( cf > 0 )
-      {	TextOut(hdc, cx, ty, text, cf);
-	cx += text_width(b, hdc, text, cf);
+      {	TextOutW(hdc, cx, ty, text, cf);
+	cx += wchar_width(b, hdc, text, cf);
       }
       SetBkColor(hdc, b->sel_background);
       SetTextColor(hdc, b->sel_foreground);
-      TextOut(hdc, cx, ty, &text[cf], ce-cf);
-      cx += text_width(b, hdc, &text[cf], ce-cf);
+      TextOutW(hdc, cx, ty, &text[cf], ce-cf);
+      cx += wchar_width(b, hdc, &text[cf], ce-cf);
       if ( l == b->sel_end_line )
       { SetBkColor(hdc, b->background);
 	SetTextColor(hdc, b->foreground);
-	TextOut(hdc, cx, ty, &text[ce], b->width - ce);
-	cx += text_width(b, hdc, &text[ce], b->width - ce);
+	TextOutW(hdc, cx, ty, &text[ce], b->width - ce);
+	cx += wchar_width(b, hdc, &text[ce], b->width - ce);
       } else
 	insel = TRUE;
     } else if ( l == b->sel_end_line )	/* end of selection */
     { int ce = b->sel_end_char;
 
       insel = FALSE;
-      TextOut(hdc, cx, ty, text, ce);
-      cx += text_width(b, hdc, text, ce);
+      TextOutW(hdc, cx, ty, text, ce);
+      cx += wchar_width(b, hdc, text, ce);
       SetBkColor(hdc, b->background);
       SetTextColor(hdc, b->foreground);
-      TextOut(hdc, cx, ty, &text[ce], b->width - ce);
-      cx += text_width(b, hdc, &text[ce], b->width - ce);
+      TextOutW(hdc, cx, ty, &text[ce], b->width - ce);
+      cx += wchar_width(b, hdc, &text[ce], b->width - ce);
     } else				/* entire line in/out selection */
-    { TextOut(hdc, cx, ty, text, b->width);
-      cx += text_width(b, hdc, text, b->width);
+    { TextOutW(hdc, cx, ty, text, b->width);
+      cx += wchar_width(b, hdc, text, b->width);
     }
 
 					/* clear remainder of line */
@@ -2032,13 +2024,31 @@ rlc_init_text_dimensions(RlcData b, HFONT font)
 
 
 static int
-text_width(RlcData b, HDC hdc, const char *text, int len)
+wchar_width(RlcData b, HDC hdc, const wchar_t *text, int len)
 { if ( b->fixedfont )
   { return len * b->cw;
   } else
   { SIZE size;
 
-    GetTextExtentPoint32(hdc, text, len, &size);
+    GetTextExtentPoint32W(hdc, text, len, &size);
+    return size.cx;
+  }
+}
+
+
+static int
+text_width(RlcData b, HDC hdc, const dchar *text, int len)
+{ if ( b->fixedfont )
+  { return len * b->cw;
+  } else
+  { SIZE size;
+    wchar_t *t = alloca(len*sizeof(wchar_t));
+    int i;
+
+    for(i=0; i<len; i++)
+      t[i] = text[i].code;
+
+    GetTextExtentPoint32W(hdc, t, len, &size);
     return size.cx;
   }
 }
@@ -2202,15 +2212,15 @@ rlc_resize(RlcData b, int w, int h)
 	DEBUG(Dprint_lines(b, b->first, b->first));
 	DEBUG(Dprintf("b->first = %d, b->last = %d\n", b->first, b->last));
 	pl = &b->lines[PrevLine(b, i)];	/* this is the moved line */
-	tl->text = rlc_malloc(pl->size - w);
-	memmove(tl->text, &pl->text[w], pl->size - w);
+	tl->text = rlc_malloc((pl->size - w)*sizeof(dchar));
+	memmove(tl->text, &pl->text[w], (pl->size - w)*sizeof(dchar));
 	DEBUG(Dprintf("Copied %d chars from line %d to %d\n",
 		      pl->size - w, pl - b->lines, i));
 	tl->size = pl->size - w;
 	tl->adjusted = TRUE;
 	tl->softreturn = FALSE;
 	pl->softreturn = TRUE;
-	pl->text = rlc_realloc(pl->text, w);
+	pl->text = rlc_realloc(pl->text, w*sizeof(dchar));
 	pl->size = w;
 	pl->adjusted = TRUE;
 	i = pl - b->lines;
@@ -2222,9 +2232,9 @@ rlc_resize(RlcData b, int w, int h)
 	if ( i == b->last )
 	  rlc_add_line(b);
 	nl = &b->lines[NextLine(b, i)];
-	nl->text = rlc_realloc(nl->text, nl->size + move);
-	memmove(&nl->text[move], nl->text, nl->size);
-	memmove(nl->text, &tl->text[w], move);
+	nl->text = rlc_realloc(nl->text, (nl->size + move)*sizeof(dchar));
+	memmove(&nl->text[move], nl->text, nl->size*sizeof(dchar));
+	memmove(nl->text, &tl->text[w], move*sizeof(dchar));
 	nl->size += move;
 	tl->size = w;
       }	
@@ -2235,9 +2245,9 @@ rlc_resize(RlcData b, int w, int h)
 	rlc_add_line(b);
       nl = &b->lines[NextLine(b, i)];
 
-      nl->text = rlc_realloc(nl->text, nl->size + tl->size);
-      memmove(&nl->text[tl->size], nl->text, nl->size);
-      memmove(nl->text, tl->text, tl->size);
+      nl->text = rlc_realloc(nl->text, (nl->size + tl->size)*sizeof(dchar));
+      memmove(&nl->text[tl->size], nl->text, nl->size*sizeof(dchar));
+      memmove(nl->text, tl->text, tl->size*sizeof(dchar));
       nl->size += tl->size;
       nl->adjusted = TRUE;
       rlc_shift_lines_up(b, i);
@@ -2290,7 +2300,8 @@ rlc_adjust_line(RlcData b, int line)
 { TextLine tl = &b->lines[line];
 
   if ( tl->text && !tl->adjusted )
-  { tl->text = rlc_realloc(tl->text, tl->size == 0 ? 4 : tl->size);
+  { tl->text = rlc_realloc(tl->text, tl->size == 0 ? sizeof(dchar)
+						   : tl->size*sizeof(dchar));
     tl->adjusted = TRUE;
   }
 }
@@ -2302,11 +2313,11 @@ rlc_unadjust_line(RlcData b, int line)
 
   if ( tl->text )
   { if ( tl->adjusted )
-    { tl->text = rlc_realloc(tl->text, b->width + 1);
+    { tl->text = rlc_realloc(tl->text, (b->width + 1)*sizeof(dchar));
       tl->adjusted = FALSE;
     }
   } else
-  { tl->text = rlc_malloc(b->width + 1);
+  { tl->text = rlc_malloc((b->width + 1)*sizeof(dchar));
     tl->adjusted = FALSE;
     tl->size = 0;
   }
@@ -2324,7 +2335,7 @@ rlc_open_line(RlcData b)
     b->first = NextLine(b, b->first);
   }
 
-  b->lines[i].text       = rlc_malloc(b->width + 1);
+  b->lines[i].text       = rlc_malloc((b->width + 1)*sizeof(dchar));
   b->lines[i].adjusted   = FALSE;
   b->lines[i].size       = 0;
   b->lines[i].softreturn = FALSE;
@@ -2450,7 +2461,7 @@ rlc_tab(RlcData b)
   { rlc_unadjust_line(b, b->caret_y);
 
     while ( tl->size < b->caret_x )
-      tl->text[tl->size++] = ' ';
+      tl->text[tl->size++].code = ' ';
   }
 
   b->changed |= CHG_CARET;
@@ -2518,8 +2529,8 @@ rlc_put(RlcData b, int chr)
 
   rlc_unadjust_line(b, b->caret_y);
   while( tl->size < b->caret_x )
-    tl->text[tl->size++] = ' ';
-  tl->text[b->caret_x] = chr;
+    tl->text[tl->size++].code = ' ';
+  tl->text[b->caret_x].code = chr;
   if ( tl->size <= b->caret_x )
     tl->size = b->caret_x + 1;
   tl->changed |= CHG_CHANGED;
@@ -3546,13 +3557,16 @@ Dprintf(const char *fmt, ...)
 
 static void
 Dprint_lines(RlcData b, int from, int to)
-{ char buf[1024];
+{ char buf[1024];			/* TBD: UNICODE */
 
   for( ; ; from = NextLine(b, from))
   { TextLine tl = &b->lines[from];
+    int i;
 
-    memcpy(buf, tl->text, tl->size);
-    buf[tl->size] = EOS;
+    for(i=0; i<tl->size; i++)
+      buf[i] = tl->text[i].code;
+    buf[i] = EOS;
+
     Dprintf("%03d: (0x%08x) \"%s\"\n", from, tl->text, buf);
 
     if ( from == to )
