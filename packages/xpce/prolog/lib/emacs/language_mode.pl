@@ -60,6 +60,7 @@ variable(show_line_numbers,	[bool], get,  "Show line numbers?").
 
 setup_mode(E) :->
 	"Switch editor into fill-mode"::
+	send_super(E, setup_mode),
 	send(E, fill_mode, @on).
 
 initialise(M) :->

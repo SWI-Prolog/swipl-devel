@@ -75,8 +75,9 @@ reload_styles(M) :->
 	"Force reloading the styles"::
 	retractall(style_name(_,_)),
 	(   style(Class, Name, Style),
-	    send(M, style, Name, Style),
 	    assert(style_name(Class, Name)),
+	    Style \== @default,
+	    send(M, style, Name, Style),
 	    fail
 	;   true
 	).
@@ -93,7 +94,7 @@ colourise_term(M, Term:prolog, TermPos:prolog) :->
 
 colourise_buffer(M) :->
 	"Do cross-referencing and colourising of the whole buffer"::
-	OldTime is cputime,
+	statistics(runtime, _),
 	new(Class, class(emacs_colour_fragment)),
 	get(Class, no_created, OldCreated),
 
@@ -106,7 +107,8 @@ colourise_buffer(M) :->
 	send(M, report, progress, 'Colourising buffer ...'),
 	colourise_text_buffer(TB),
 	send(M, colourise_comments),
-	Used is cputime - OldTime,
+	statistics(runtime, [_,UsedMilliSeconds]),
+	Used is UsedMilliSeconds/1000,
 	get(Class, no_created, NewCreated),
 	Created is NewCreated - OldCreated,
 	send(M, report, done,
@@ -145,14 +147,29 @@ colourise_text_buffer(TB) :-
 		  (   %print_message(error, _E),
 		      fail
 		  )),
-	    once(colourise_term(Term, TB, TermPos)),
 	    fix_operators(Term),
+	    (	colourise_term(Term, TB, TermPos)
+	    ->	true
+	    ;	print_message(warning,
+			      format('Failed to colourise ~p~n', [Term]))
+	    ),
 	    Term == end_of_file, !,
 	'$style_check'(_, Old),
 	close(Fd).
 
+%	fix_operators(+Term)
+%	
+%	Fix flags that affect the syntax, such as operators and some
+%	style checking options.
+
 fix_operators((:-style_check(X))) :- !,
 	style_check(X).
+fix_operators((:-module($Name,_))) :-
+	atom(Name),
+	style_check(+dollar),
+	fail.				% allow for other expansions
+fix_operators('$:-'(_)) :- !,		% deal with swi('boot/init.pl')
+	style_check(+dollar).
 fix_operators((:-Directive)) :- !,
 	asserta(user:message_hook(_,_,_), Ref),
 	ignore(xref_expand((:-Directive), _)),
@@ -248,6 +265,16 @@ colourise_clause_head(Head, TB, Pos) :-
 	colour_item(head(Class), TB, FPos),
 	colourise_term_args(Head, TB, Pos).
 
+%	colourise_extern_head(+Head, +Module, +TB, +Pos)
+%	
+%	Colourise the head specified as Module:Head. Normally used for
+%	adding clauses to multifile predicates in other modules.
+
+colourise_extern_head(Head, M, TB, Pos) :-
+	functor_position(Pos, FPos, _),
+	colour_item(head(extern(M)), TB, FPos),
+	colourise_term_args(Head, TB, Pos).
+
 colour_method_head(SGHead, TB, Pos) :-
 	arg(1, SGHead, Head),
 	functor(SGHead, SG, _),
@@ -324,9 +351,18 @@ colourise_dcg_goal(Goal, TB, Pos) :-
 	colourise_term_args(Goal, TB, Pos).
 
 
-%	colourise_goal(+Goal, +TB, +Pos).
+%	colourise_goal(+Goal, +TB, +Pos)
 
 colourise_goal(Goal, TB, Pos) :-
+	colourise_goal(Goal, Goal, TB, Pos).
+
+%	colourise_goal(+Goal, +MetaExpanded, +TB, +Pos)
+%	
+%	Colourise a goal, using MetaExpanded for classifying and
+%	labeling the goal. The latter is used to deal with goals from
+%	meta-predicates such as maplist/2.
+
+colourise_goal(Goal, _Meta, TB, Pos) :-
 	nonvar(Goal),
 	goal_colours(Goal, ClassSpec-ArgSpecs), !, % specified
 	functor_position(Pos, FPos, ArgPos),
@@ -336,14 +372,85 @@ colourise_goal(Goal, TB, Pos) :-
 	),
 	colour_item(goal(Class, Goal), TB, FPos),
 	specified_items(ArgSpecs, Goal, TB, ArgPos).
-colourise_goal(Goal, TB, Pos) :-
-	goal_classification(TB, Goal, Class),
+colourise_goal(Module:Goal, _, TB, term_position(_,_,_,_,[PM,PG])) :- !,
+	colour_item(module(Module), TB, PM),
+	(   PG = term_position(_,_,FF,FT,_)
+	->  FP = FF-FT
+	;   FP = PG
+	),
+	colour_item(goal(extern(Module), Goal), TB, FP),
+	colourise_goal_args(Goal, TB, PG).
+colourise_goal(Goal, Meta, TB, Pos) :-
+	goal_classification(TB, Meta, Class),
 	(   Pos = term_position(_,_,FF,FT,_ArgPos)
 	->  FPos = FF-FT
 	;   FPos = Pos
 	),
-	colour_item(goal(Class, Goal), TB, FPos),
+	colour_item(goal(Class, Meta), TB, FPos),
+	colourise_goal_args(Goal, TB, Pos).
+
+%	colourise_goal_args(+Goal, +TB, +Pos)
+%	
+%	Colourise the arguments to a goal. This predicate deals with
+%	meta- and database-access predicates.
+
+colourise_goal_args(Goal, TB, term_position(_,_,_,_,ArgPos)) :-
+	meta_args(Goal, MetaArgs), !,
+	colourise_meta_args(1, Goal, MetaArgs, TB, ArgPos).
+colourise_goal_args(Goal, TB, Pos) :-
 	colourise_term_args(Goal, TB, Pos).
+
+colourise_meta_args(_, _, _, _, []) :- !.
+colourise_meta_args(N, Goal, MetaArgs, TB, [P0|PT]) :-
+	arg(N, Goal, Arg),
+	arg(N, MetaArgs, MetaSpec),
+	(   expand_meta(MetaSpec, Arg, Expanded)
+	->  colourise_goal(Arg, Expanded, TB, P0)
+	;   colourise_term_arg(Arg, TB, P0)
+	),
+	NN is N + 1,
+	colourise_meta_args(NN, Goal, MetaArgs, TB, PT).
+
+%	meta_args(+Goal, -ArgSpec)
+%	
+%	Return a copy of Goal, where each meta-argument is an integer
+%	representing the number of extra arguments. The non-meta
+%	arguments are unbound variables.
+%	
+%	E.g. meta_args(maplist(foo,x,y), X) --> X = maplist(2,_,_)
+%	
+%	NOTE: this could be cached if performance becomes an issue.
+
+meta_args(Goal, VarGoal) :-
+	xref_meta(Goal, _),
+	functor(Goal, Name, Arity),
+	functor(VarGoal, Name, Arity),
+	xref_meta(VarGoal, MetaArgs),
+	instantiate_meta(MetaArgs).
+
+instantiate_meta([]).
+instantiate_meta([H|T]) :-
+	(   var(H)
+	->  H = 0
+	;   H = V+N
+	->  V = N
+	),
+	instantiate_meta(T).
+
+%	expand_meta(+MetaSpec, +Goal, -Expanded)
+%	
+%	Add extra arguments to the goal if the meta-specifier is an
+%	integer (see above).
+
+expand_meta(MetaSpec, Goal, Goal) :-
+	MetaSpec == 0.
+expand_meta(MetaSpec, Goal, Expanded) :-
+	integer(MetaSpec),
+	callable(Goal), !,
+	length(Extra, MetaSpec),
+	Goal =.. List0,
+	append(List0, Extra, List),
+	Expanded =.. List.
 
 %	colourise_files(+Arg, +TB, +Pos)
 %
@@ -427,6 +534,57 @@ colourise_list_args([HP|TP], Tail, [H|T], TB, How) :-
 colourise_list_args([], none, _, _, _) :- !.
 colourise_list_args([], TP, T, TB, How) :-
 	specified_item(How, T, TB, TP).
+
+
+%	colourise_exports(+List, +TB, +Pos)
+%	
+%	Colourise the module export-list (or any other list holding
+%	terms of the form Name/Arity referring to predicates).
+
+colourise_exports([], _, _) :- !.
+colourise_exports(List, TB, list_position(_,_,ElmPos,Tail)) :- !,
+	(   Tail == none
+	->  true
+	;   colour_item(type_error(list), TB, Tail)
+	),
+	colourise_exports2(List, TB, ElmPos).
+colourise_exports(_, TB, Pos) :-
+	colour_item(type_error(list), TB, Pos).
+
+colourise_exports2([G0|GT], TB, [P0|PT]) :- !,
+	colourise_declaration(G0, TB, P0),
+	colourise_exports2(GT, TB, PT).
+colourise_exports2(_, _, _).
+
+%	colourise_declarations(+Term, +TB, +Pos)
+%	
+%	Colourise the Name/Arity lists of dynamic, multifile, etc
+%	declarations.
+
+colourise_declarations((Head,Tail), TB,
+		       term_position(_,_,_,_,[PH,PT])) :- !,
+	colourise_declaration(Head, TB, PH),
+	colourise_declarations(Tail, TB, PT).
+colourise_declarations(Last, TB, Pos) :-
+	colourise_declaration(Last, TB, Pos).
+
+colourise_declaration($Name/Arity, TB, Pos) :-
+	style_check(?dollar), !,	% deal with system boot-files
+	atom_concat($, Name, TheName),
+	colourise_declaration(TheName/Arity, TB, Pos).
+colourise_declaration(Name/Arity, TB, Pos) :-
+	atom(Name), integer(Arity), !,
+	functor(Goal, Name, Arity),
+	goal_classification(TB, Goal, Class),
+	colour_item(goal(Class, Goal), TB, Pos).
+colourise_declaration(Module:Name/Arity, TB,
+		      term_position(_,_,_,_,[PM,PG])) :-
+	atom(Module), atom(Name), integer(Arity), !,
+	colour_item(module(M), TB, PM),
+	functor(Goal, Name, Arity),
+	colour_item(goal(extern(M), Goal), TB, PG).
+colourise_declaration(_, TB, Pos) :-
+	colour_item(type_error(name_arity), TB, Pos).
 
 
 %	colour_item(+Class, +TB, +Pos)
@@ -539,7 +697,12 @@ edit_goal(M, Goal:emacs_prolog_mode_goal, NewWindow:[bool]) :->
 	"Open Prolog predicate [in new window]"::
 	get(Goal, name, Name),
 	get(Goal, arity, Arity),
-	send(M, find_definition, prolog_predicate(Name/Arity), NewWindow).
+	get(Goal, module, Module),
+	(   Module == @nil
+	->  Spec = Name/Arity
+	;   Spec = Module:Name/Arity
+	),
+	send(M, find_definition, prolog_predicate(Spec), NewWindow).
 
 goal_documentation(_, Goal:emacs_prolog_mode_goal) :->
 	get(Goal, name, Name),
@@ -558,10 +721,25 @@ message(file(Path), F) :- !,
 message(class(_, Class), F) :- !,
 	send(F, context, Class),
 	send(F, popup, @prolog_mode_class_popup).
-message(goal(Class, Goal), F) :- !,
+message(goal(Class, Goal), F) :-
+	callable(Goal), !,
 	functor(Goal, Name, Arity),
-	send(F, context, emacs_prolog_mode_goal(Class, Name, Arity)),
+	functor(Class, ClassName, _),
+	send(F, context,
+	     new(G, emacs_prolog_mode_goal(ClassName, Name, Arity))),
+	(   Class = extern(Module),
+	    atom(Module)
+	->  send(G, module, Module)
+	;   true			% (Still) unbound module
+	),
 	send(F, popup, @prolog_mode_goal_popup).
+message(type_error(Type), F) :- !,
+	send(F, message, string('Type error: argument must be a %s', Type)).
+message(module(M), F) :-
+	atom(M),
+	current_module(M, Path), !,
+	send(F, message, Path),
+	send(F, popup, @prolog_mode_file_popup).	
 message(_, _).
 
 
@@ -617,8 +795,12 @@ built_in_predicate(module(_, _)).
 %	highlight file references, so we can jump to them and are indicated
 %	on missing files.
 
+goal_colours(module(_,_),	     built_in-[identifier,exports]).
 goal_colours(use_module(_),	     built_in-[file]).
 goal_colours(use_module(_,_),	     built_in-[file,classify]).
+goal_colours(dynamic(_),	     built_in-[predicates]).
+goal_colours(multifile(_),	     built_in-[predicates]).
+goal_colours(volatile(_),	     built_in-[predicates]).
 goal_colours(consult(_),	     built_in-[file]).
 goal_colours(include(_),	     built_in-[file]).
 goal_colours(ensure_loaded(_),	     built_in-[file]).
@@ -658,7 +840,7 @@ head_colours(M:H, Colours) :-
 	head_colours(H, HC),
 	HC = hook - _, !,
 	Colours = hook - [ hook, HC ].
-head_colours(M:_,		    built_in-[module(M),head]).
+head_colours(M:_,		    meta-[module(M),extern(M)]).
 
 
 		 /*******************************
@@ -678,16 +860,22 @@ style(goal(dynamic,_),	  style(colour	   := magenta)).
 style(goal(multifile,_),  style(colour	   := navy_blue)).
 style(goal(expanded,_),	  style(colour	   := blue,
 				underline  := @on)).
+style(goal(extern(_),_),  style(colour	   := blue,
+				underline  := @on)).
+style(goal(local(_),_),	  @default).
 
 style(head(exported),	  style(bold	   := @on, colour := blue)).
-style(head(local(_)),	  style(bold	   := @on)).
+style(head(extern(_)),	  style(bold	   := @on, colour := blue)).
+style(head(dynamic),	  style(bold	   := @on, colour := magenta)).
+style(head(multifile),	  style(bold	   := @on, colour := navy_blue)).
 style(head(unreferenced), style(bold	   := @on, colour := red)).
-style(head(hook),	  style(colour	   := blue,
-				underline  := @on)).
+style(head(hook),	  style(underline  := @on, colour := blue)).
+style(head(meta),	  @default).
+style(head(_),	  	  style(bold	   := @on)).
+
 style(comment,		  style(colour	   := dark_green)).
 
 style(directive,	  style(background := grey90)).
-style(syntax_error,	  style(background := red)).
 style(method(_),	  style(bold       := @on)).
 
 style(var,		  style(colour	   := red4)).
@@ -705,9 +893,13 @@ style(class(_,_),	  style(underline  := @on)).
 style(identifier,	  style(bold       := @on)).
 style(expanded,		  style(colour	   := blue,
 				underline  := @on)).
+
 style(hook,		  style(colour	   := blue,
 				underline  := @on)).
+
 style(error,		  style(background := orange)).
+style(type_error(_),	  style(background := orange)).
+style(syntax_error,	  style(background := red)).
 
 :- dynamic
 	style_name/2.
@@ -839,12 +1031,21 @@ specified_item(classify, Term, TB, Pos) :- !,
 					% classify as head
 specified_item(head, Term, TB, Pos) :- !,
 	colourise_clause_head(Term, TB, Pos).
+					% M:Head
+specified_item(extern(M), Term, TB, Pos) :- !,
+	colourise_extern_head(Term, M, TB, Pos).
 					% classify as body
 specified_item(body, Term, TB, Pos) :- !,
 	colourise_body(Term, TB, Pos).
 					% files
 specified_item(file, Term, TB, Pos) :- !,
 	colourise_files(Term, TB, Pos).
+					% [Name/Arity, ...]
+specified_item(exports, Term, TB, Pos) :- !,
+	colourise_exports(Term, TB, Pos).
+					% Name/Arity, ...
+specified_item(predicates, Term, TB, Pos) :- !,
+	colourise_declarations(Term, TB, Pos).
 					% XPCE new argument
 specified_item(pce_new, Term, TB, Pos) :- !,
 	(   atom(Term)
@@ -924,6 +1125,7 @@ specified_argspec([P0|PT], Spec, N, T, TB) :-
 variable(classification,	name,	get, "Xref classification").
 variable(name,			name,	get, "Name of the predicate").
 variable(arity,			int,	get, "Arity of the predicate").
+variable(module,		name*,	both, "Declared external pred").
 
 initialise(G, Class:name, Name:name, Arity:int) :->
 	"Create from class, name and arity"::

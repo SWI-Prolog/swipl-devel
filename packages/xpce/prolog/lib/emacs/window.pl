@@ -1262,7 +1262,7 @@ event(M, Ev:event) :->
 		Fragments),
 	    send(Fragments, sort, ?(@arg1?length, compare, @arg2?length)),
 	    get(Fragments, find, message(@arg1, has_get_method, popup), F),
-	    get(F, popup, P),
+	    get(F, popup, P), P \== @nil,
 	    new(G, popup_gesture(P)),
 	    send(G, context, F),	% make fragment available as @arg1
 	    send(G, event, Ev)

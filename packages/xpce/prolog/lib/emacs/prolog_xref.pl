@@ -133,17 +133,25 @@ xref_called(Source, Called) :-
 	canonical_source(Source, Src),
 	called(Called, Src).
 
+%	xref_defined(+Source, +Goal, ?How)
+%	
+%	Test if Goal is accessible in Source. If this is the case, How
+%	specifies the reason why the predicate is accessible. Note that
+%	this predicate does not deal with built-in or global predicates,
+%	just locally defined and imported ones.
+
 xref_defined(Source, Called, How) :-
 	canonical_source(Source, Src),
-	(   defined(Called, Src, Line),
-	    How = local(Line)
-	;   imported(Called, Src),
-	    How = imported
-	;   dynamic(Called, Src),
-	    How = (dynamic)
-	;   multifile(Called, Src),
-	    How = (multifile)
-	).
+	xref_defined2(How, Src, Called).
+
+xref_defined2((dynamic), Src, Called) :-
+	dynamic(Called, Src).
+xref_defined2((multifile), Src, Called) :-
+	multifile(Called, Src).
+xref_defined2(local(Line), Src, Called) :-
+	defined(Called, Src, Line).
+xref_defined2(imported, Src, Called) :-
+	imported(Called, Src).
 
 xref_exported(Source, Called) :-
 	canonical_source(Source, Src),

@@ -119,7 +119,7 @@ icon(_, I:image) :<-
 
 setup_mode(M) :->
 	"Attach styles for errors, warnings, etc."::
-	send(M, send_super, setup_mode),
+	send_super(M, setup_mode),
 	send(M, style, singleton,  style(bold := @on)),
 	send(M,	style, breakpoint, style(icon := resource(breakpoint))),
 	send(M,	style, error,	   style(background := red)),
@@ -355,7 +355,7 @@ find_definition(M, For:prolog_predicate, NewWindow:[bool]) :->
 	->  (   NewWindow == @on
 	    ->	get(M, text_buffer, TB),
 		new(W2, emacs_frame(TB)),
-		send(W2, goto_line, Line)
+		send(W2?editor, goto_line, Line)
 	    ;	send(M, goto_line, Line)
 	    )
 	;   get(For, source, SourceLocation)
