@@ -240,11 +240,11 @@ Section "Shell Extensions" SecShell
   Label1:
   WriteRegStr HKCR ${EXT} "" "PrologFile"
 
-  ReadRegStr $0 HKCR "NSISFile" ""
+  ReadRegStr $0 HKCR "PrologFile" ""
   StrCmp $0 "" 0 skipNSIAssoc
 	WriteRegStr HKCR "PrologFile" "" "Prolog Source"
 	WriteRegStr HKCR "PrologFile\shell" "" "open"
-	WriteRegStr HKCR "PrologFile\DefaultIcon" "" $INSTDIR\makensisw.exe,1
+	WriteRegStr HKCR "PrologFile\DefaultIcon" "" $INSTDIR\bin\plwin.exe,1
   skipNSIAssoc:
   ; OPEN
   WriteRegStr HKCR "PrologFile\shell\open\command" "" '"$INSTDIR\bin\plwin.exe" "%1"'
