@@ -1889,7 +1889,7 @@ cont:
       break;
     case PL_NCHARS:
     { unsigned int len = va_arg(args, unsigned int);
-      const char *s = va_arg(args, const char *)
+      const char *s = va_arg(args, const char *);
 
       rval = PL_unify_atom_nchars(t, len, s);
       break;
