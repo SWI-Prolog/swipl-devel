@@ -43,6 +43,7 @@ dlldemo directory.
 	    registry_lookup_key/3,	% +Path, +Access, -Key
 	    
 	    shell_register_file_type/4,	% +Ext, +Type, +Name, +Open
+	    shell_register_file_type/5,	% +Ext, +Type, +Name, +Open, +Icon
 	    shell_register_dde/6,	% +Type, +Action,
 					% +Service, Topic, +DDECommand
 					% +IfNotRunning
@@ -72,27 +73,25 @@ shell_register_prolog(Ext) :-
 		 *     WINDOWS SHELL STUFF	*
 		 *******************************/
 
-%	shell_register_file_type(+Extension, +Type, +Name, +OpenCommand)
+%	shell_register_file_type(+Extension, +Type, +Name, +Open, [+Icon])
 %
 %	Register an extension to a type.  The open command for the type
 %	is defined and files with this extension will be given Name as
 %	their description in the explorer.  For example:
 % 
 %	?- shell_register_file_type(pl, 'prolog.type', 'Prolog Source',
-%				    '"c:\pl\bin\plwin.exe" "%1"').
+%				    '"c:\\pl\\bin\\plwin.exe" "%1"').
+%				    
+%	The icon command is of the form File.exe,N or File.ico,0
 
 shell_register_file_type(Ext, Type, Name, Open) :-
-	shell_register_file_type(Ext, Type, Name, Open, []).
-
-shell_register_file_type(Ext, Type, Name, Open, Icon) :-
 	ensure_dot(Ext, DExt),
 	registry_set_key(classes_root/DExt, Type),
 	registry_set_key(classes_root/Type, Name),
-	(   Icon \== []
-	->  registry_set_key(classes_root/'DefaultIcon', Icon)
-	;   true
-	),
 	registry_set_key(classes_root/Type/shell/open/command, Open).
+shell_register_file_type(Ext, Type, Name, Open, Icon) :-
+	shell_register_file_type(Ext, Type, Name, Open),
+	registry_set_key(classes_root/Type/'DefaultIcon', Icon).
 
 ensure_dot(Ext, Ext) :-
 	atom_concat('.', _, Ext), !.
@@ -105,7 +104,7 @@ ensure_dot(Ext, DExt) :-
 %
 %	shell_register_dde('prolog.type', consult,
 %			   prolog, control, 'consult(''%1'')',
-%			   'c:\pl\bin\plwin.exe -g "edit(''%1'')"').
+%			   'c:\\pl\\bin\\plwin.exe -g "edit(''%1'')"').
 
 shell_register_dde(Type, Action, Service, Topic, DDECommand, IfNotRunning) :-
 	registry_make_key(classes_root/Type/shell/Action/ddeexec,
