@@ -646,10 +646,12 @@ ws_load_image_file(Image image)
 		    NAME_read, getOsErrorPce(PCE));
 
   if ( read_jpeg_file(fd, image) )
-    succeed;
+  { rval = SUCCEED;
+    goto out;
+  }
 
 #ifdef O_XPM
-{ int rval;
+{ int xpmrval;
   XpmImage xpmimg;
   XpmInfo  xpminfo;
 
@@ -662,18 +664,21 @@ register the colours.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   xpminfo.valuemask = (XpmColorTable|XpmReturnColorTable);
-  rval = readXpmImage(fd, image, &xpmimg, &xpminfo);
-  switch(rval)
+  xpmrval = readXpmImage(fd, image, &xpmimg, &xpminfo);
+  switch(xpmrval)
   { case XpmFileInvalid:
       break;
     case XpmNoMemory:
+      Sclose(fd);
       return sysPce("Not enough memory");
     case XpmSuccess:
+      Sclose(fd);
       rval = ws_attach_xpm_image(image, &xpmimg, &xpminfo);
       XpmFreeXpmImage(&xpmimg);
       return rval;
     default:
-      return errorPce(image, NAME_unknownError, toInt(rval));
+      Sclose(fd);
+      return errorPce(image, NAME_unknownError, toInt(xpmrval));
   }
 }
 #endif /*O_XPM*/
@@ -693,6 +698,7 @@ register the colours.
       rval = loadPNMImage(image, fd);
   }
 
+out:
   Sclose(fd);
 
   return rval;

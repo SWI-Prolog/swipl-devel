@@ -2294,7 +2294,7 @@ r_image(Image image,
   if ( w > 0 && h > 0 &&
        image->size->w != ZERO && image->size->h != ZERO )
   { if ( image->ws_ref && ((WsImage)image->ws_ref)->msw_info &&
-	 isNil(image->mask) && 0 )
+	 isNil(image->mask) /*&& 0*/ )
     { WsImage wsi = image->ws_ref;
 
       if ( transparent == ON )
