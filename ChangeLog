@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Wipe the anonymous clauses for meta-calling on $dcall/1 as
+    soon as possible.  Reported by Stefan Mueller.
+
   * ADDED: Save home in saved-state for class development and kernel.  This
     enables saved-states to find the installed SWI-Prolog.  Especially
     useful for Windows.
