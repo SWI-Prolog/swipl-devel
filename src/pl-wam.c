@@ -1695,40 +1695,16 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
     for( n = arity; n-- > 0; p++ )
       *ap++ = linkVal(p);
   }
+					/* lTop above the arguments */
   lTop = (LocalFrame)ap;
 
-					/* find definition and clause */
-  if ( !(clause = def->definition.clauses) && false(def, PROC_DEFINED) )
-  { def = trapUndefined(def);
-    clause = def->definition.clauses;
-  }
-  if ( true(def, FOREIGN) )
-  { fr->clause = NULL;			/* initial context */
-  } else
-  { fr->clause = clause;
-  }
-					/* context module */
-  if ( true(def, METAPRED) )
-  { if ( ctx )
-      fr->context = ctx;
-    else if ( environment_frame )
-      fr->context = environment_frame->context;
-    else
-      fr->context = MODULE_user;
-  } else
-    fr->context = def->module;
-
+					/* initialise flags and level */
   clearFlags(fr);
-{ LocalFrame parent;
-  long plevel;
-
-  if ( (parent = parentFrame(fr)) )
-    plevel = levelFrame(parent);
-  else
-    plevel = 0L;
-
-  setLevelFrame(fr, plevel+1);
-}
+  if ( qf->saved_environment )
+  { setLevelFrame(fr, levelFrame(qf->saved_environment)+1);
+  } else
+  { setLevelFrame(fr, 1);
+  }
 			
   DEBUG(3, Sdprintf("Level = %d\n", levelFrame(fr)));
   if ( true(qf, PL_Q_NODEBUG) )
@@ -1743,16 +1719,39 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 #endif
   }
   fr->predicate      = def;
-#ifdef O_LOGICAL_UPDATE
-  fr->generation = GD->generation;
-#endif
-
+  fr->clause         = NULL;
+					/* create initial choicepoint */
   qf->choice.type   = CHP_TOP;
   qf->choice.parent = NULL;
   qf->choice.frame  = fr;
   Mark(qf->choice.mark);
+					/* publish environment */
   LD->choicepoints  = &qf->choice;
   environment_frame = fr;
+
+					/* find definition and clause */
+  if ( !(clause = def->definition.clauses) && false(def, PROC_DEFINED) )
+  { fr->predicate = def = trapUndefined(def);
+    clause = def->definition.clauses;
+  }
+  if ( true(def, FOREIGN) )
+  { fr->clause = NULL;			/* initial context */
+  } else
+  { fr->clause = clause;
+  }
+#ifdef O_LOGICAL_UPDATE
+  fr->generation = GD->generation;
+#endif
+					/* context module */
+  if ( true(def, METAPRED) )
+  { if ( ctx )
+      fr->context = ctx;
+    else if ( qf->saved_environment )
+      fr->context = qf->saved_environment->context;
+    else
+      fr->context = MODULE_user;
+  } else
+    fr->context = def->module;
 
   DEBUG(2, Sdprintf("QID=%d\n", QidFromQuery(qf)));
 

@@ -630,6 +630,7 @@ run_interactor(void *closure)
 
   PL_thread_attach_engine(NULL);
   pthread_cleanup_push(free_interactor, NULL);
+  
 
   pred = PL_predicate("thread_run_interactor", 0, "user");
   PL_call_predicate(NULL, PL_Q_NORMAL, pred, 0);

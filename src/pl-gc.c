@@ -1707,10 +1707,9 @@ garbageCollect(LocalFrame fr, Choice ch)
   gc_status.active = FALSE;
 
   SECURE(if ( checkStacks(fr, ch) != key )
-	 { Sdprintf("Stack checksum failure\n");
+	 { Sdprintf("ERROR: Stack checksum failure\n");
 	   trap_gdb();
-	 } else if ( verbose )
-	   Sdprintf("(OK) "));
+	 });
 
   if ( verbose )
     printMessage(ATOM_informational,

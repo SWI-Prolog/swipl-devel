@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: PL_open_query() on auto-loaded procedures cause data corruption.
+
+  * FIXED: IOSTREAM Locking problem in set_stream/2.
+
   * FIXED: Extranous unlock in format/[2,3].  Diagnosed by Sergey Tikhonov.
 
   * FIXED: Proper handling of pthread error codes.
