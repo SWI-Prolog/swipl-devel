@@ -1,10 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
-VERSION 5.0.6 (May 15, 2002)
+VERSION 5.0.6 (May 21, 2002)
 ============================
 
-  * FIXED: Be more consistent on attempts to redefine system predicates
+  * ADDED: absolute_file_name/3 file-type `source' and option relative_to
+    for easier compatibility to SICStus (who changes the argument-order as
+    well). Nikolaos Angelopoulos.
+
+  * FIXED: Be more consistent on attempts to redefine system predicates.
+    Tolga Konik.
 
   * ADDED: type-check on 2nd argument of absolute_file_name/2 as well as
     a new option expand(Boolean) to control expanding meta-characters.

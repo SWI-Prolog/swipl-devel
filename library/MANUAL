@@ -39,7 +39,7 @@ primitives.
 This  document gives an overview of the features, system limits
 and built-in predicates.
 
-Copyright Oc 1990--2002, University of Amsterdam
+Copyright Oc 1990{2002,University of Amsterdam
 
 
 CChhaapptteerr 11..  IINNTTRROODDUUCCTTIIOONN
@@ -7308,6 +7308,14 @@ aabbssoolluuttee__ffiillee__nnaammee((_+_S_p_e_c_, _+_
          tried.   Extensions  may be specified  both as  ..ext or  plain
          ext.
 
+    rreellaattiivvee__ttoo((_+_F_i_l_e_O_r_D_i_r))
+         Resolve  the   path  relative   to  the   given  directory   or
+         directory  the  holding   the  given  file.      Without   this
+         option, paths  are resolved relative  to the working  directory
+         (see   working_directory/2)   or,   if   _S_p_e_c  is   atomic   and
+         absolute_file_name/[2,3] is executed  in a  directive, it  uses
+         the current source-file as reference.
+
     aacccceessss((_M_o_d_e))
          Imposes the condition  access_file(_F_i_l_e, _M_o_d_e).   _M_o_d_e is on  of
          read, write, append, exist or none.  See also access_file/2.
@@ -7315,7 +7323,9 @@ aabbssoolluuttee__ffiillee__nnaammee((_+_S_p_e_c_, _+_
     ffiillee__ttyyppee((_T_y_p_e))
          Defines  extensions.    Current  mapping:   txt  implies  [''],
          prolog  implies ['.pl', ''],  executable  implies  ['.so', ''],
-         qlf implies ['.qlf', ''] and directory implies [''].
+         qlf implies  ['.qlf', '']  and  directory implies  [''].    The
+         file-type source is  an alias for  prolog for compatibility  to
+         SICStus Prolog.  See also prolog_file_type/2.
 
     ffiillee__eerrrroorrss((_f_a_i_l_/_e_r_r_o_r))
          If error (default), throw and  existence_error exception  if the
@@ -7357,10 +7367,10 @@ ffiillee__nnaammee__eexxtteennssiioonn((_?_B_a_s_e_, _
 eexxppaanndd__ffiillee__nnaammee((_+_W_i_l_d_C_a_r_d_, _-_L_i_s_t))
     Unify  _L_i_s_t with  a  sorted list  of files  or directories  matching
     _W_i_l_d_C_a_r_d.   The  normal Unix wildcard  constructs `?', `*',  `[...]'
-    and  `{...}'  are recognised.    The  interpretation  of `{...}'  is
+    and  `{...}'  are  recognised.    The interpretation  of  `{...}'  is
     interpreted  slightly different  from  the C  shell (csh(1)).    The
     comma  separated  argument  can  be  arbitrary  patterns,  including
-    `{...}'  patterns.  The empty pattern is legal as  well:  `\{.pl,\}'
+    `{...}'  patterns.  The empty pattern is  legal as well:  `\{.pl,\}'
     matches either `.pl' or the empty string.
 
     If  the pattern  does contains  wildcard  characters, only  existing
@@ -14214,7 +14224,7 @@ absolute_file_name/3, 54,  56, 99,     PL_on_halt(), 843
       108,  528,  529, 671,  890,      PL_open_foreign_frame(), 798
       891                              PL_open_query(), 791
 absolute_file_name/[2                  PL_pred(), 787
-   3], 54, 107                         PL_predicate(), 788
+   3], 54, 107, 529                    PL_predicate(), 788
 access_file/2, 518                     PL_predicate_info(), 789
 access_file/2, 54, 529                 PL_put_atom(), 753
 acos/1, 426                            PL_put_atom_chars(), 754
@@ -14330,7 +14340,7 @@ concat_atom/2, 358                     prolog_edit:edit_source/1,  78, 95,
 consult/1,  29, 32,  47, 56,  87,            126
       99--102,   123,  124,  229,      prolog_edit:locate/3,  125,   126,
       330, 597                               128, 129
-context_module/1, 653                  prolog_file_type/2, 99, 109
+context_module/1, 653                  prolog_file_type/2, 99, 109, 529
 context_module/1, 653, 791             prolog_frame_attribute/3, 244, 916
 convert_time/2, 513                    prolog_frame_attribute/4, 916
 convert_time/8, 512                    prolog_ide/1, 93
@@ -14618,35 +14628,35 @@ load_foreign_library/[1                Window interface, 8
 log/1, 429                             with_mutex/2, 560
 log10/1, 430                           with_mutex/2, 555, 811
 logical                                working_directory/2, 538
-   update view, 224                    working_directory/2, 509, 539
+   update view, 224                    working_directory/2,   509,   529,
 
-main/0, 52                             write/1, 54, 321, 325, 354,  359,
-make/0, 7, 57, 80, 87, 95, 105               481, 486, 720, 750
-make_directory/1, 536                  write/2, 322
-make_library_index/1, 58               write_canonical/1, 319
-make_library_index/2, 59               write_canonical/2, 320
-make_library_index/1, 57               write_term/2, 317
-make_library_index/2, 57               write_term/3, 318
-manpce/0, 66                           write_canonical/[1
-maplist/3, 473, 644, 866                  2], 17
-max/2, 402                             write_term/2, 45,  54, 152,  317--
-member/2, 45, 180, 243, 443, 444,            319, 368, 481, 486
-      446, 529, 940                    write_term/3, 56
-memberchk/2, 444                       write_term/[2
-memory                                    3], 17
-   layout, 67                          writef/1, 480
-merge/3, 453                           writef/2, 25, 63, 316, 481, 482
-merge_set/3, 461                       writef/[1
-message_hook/3, 56, 190                   2], 477
-message_to_string/2, 191               writeln/1, 479
-message_hook/3, 20, 187--189           writeq/1, 323, 481, 486
-message_to_string/2, 188, 190          writeq/2, 324
-meta_predicate/1, 650, 659             www_form_encode/2, 908
-meta_predicate/1, 658, 659             www_open_url/1, 893
-min/2, 403                             X11, 8
-mod/2, 397                             xor/2, 419
-module/1, 657                          XPCE, 8
-module/2, 114, 635, 648, 654
+main/0, 52                                   539
+make/0, 7, 57, 80, 87, 95, 105         write/1, 54, 321, 325, 354,  359,
+make_directory/1, 536                        481, 486, 720, 750
+make_library_index/1, 58               write/2, 322
+make_library_index/2, 59               write_canonical/1, 319
+make_library_index/1, 57               write_canonical/2, 320
+make_library_index/2, 57               write_term/2, 317
+manpce/0, 66                           write_term/3, 318
+maplist/3, 473, 644, 866               write_canonical/[1
+max/2, 402                                2], 17
+member/2, 45, 180, 243, 443, 444,      write_term/2, 45,  54, 152,  317--
+      446, 529, 940                          319, 368, 481, 486
+memberchk/2, 444                       write_term/3, 56
+memory                                 write_term/[2
+   layout, 67                             3], 17
+merge/3, 453                           writef/1, 480
+merge_set/3, 461                       writef/2, 25, 63, 316, 481, 482
+message_hook/3, 56, 190                writef/[1
+message_to_string/2, 191                  2], 477
+message_hook/3, 20, 187--189           writeln/1, 479
+message_to_string/2, 188, 190          writeq/1, 323, 481, 486
+meta_predicate/1, 650, 659             writeq/2, 324
+meta_predicate/1, 658, 659             www_form_encode/2, 908
+min/2, 403                             www_open_url/1, 893
+mod/2, 397                             X11, 8
+module/1, 657                          xor/2, 419
+module/2, 114, 635, 648, 654           XPCE, 8
 module_transparent/1, 649
 module_transparent/1,   239,  658,
       791, 929

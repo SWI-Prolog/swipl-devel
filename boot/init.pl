@@ -466,6 +466,8 @@ absolute_file_name(Spec, Args, Path) :-
 	    )
 	).
 
+$file_type_extensions(source, Exts) :- !, 	% SICStus 3.9 compatibility
+	$file_type_extensions(prolog, Exts).
 $file_type_extensions(Type, Exts) :-
 	'$current_module'('$bags', _File), !,
 	findall(Ext, user:prolog_file_type(Ext, Type), Exts0),
@@ -500,7 +502,7 @@ $dochk_file(Spec, Extensions, Cond, FullName) :-
 	compound(Spec),
 	functor(Spec, Alias, 1),
 	user:file_search_path(Alias, _), !,
-	working_directory(CWD, CWD),
+	$relative_to(Cond, cwd, CWD),
 	$chk_alias_file(Spec, Extensions, Cond, CWD, FullName).
 $dochk_file(Term, Ext, Cond, FullName) :-	% allow a/b, a-b, etc.
 	\+ atomic(Term), !,
@@ -515,9 +517,8 @@ $dochk_file(File, Exts, Cond, FullName) :-
 	$file_condition(Cond, Extended),
 	$absolute_file_name(Extended, FullName).
 $dochk_file(File, Exts, Cond, FullName) :-
-	source_location(ContextFile, _Line),
-	file_directory_name(ContextFile, ContextDir),
-	$concat_atom([ContextDir, /, File], AbsFile),
+	$relative_to(Cond, source, Dir),
+	$concat_atom([Dir, /, File], AbsFile),
 	$extend_file(AbsFile, Exts, Extended),
 	$file_condition(Cond, Extended), !,
 	$absolute_file_name(Extended, FullName).
@@ -525,6 +526,26 @@ $dochk_file(File, Exts, Cond, FullName) :-
 	$extend_file(File, Exts, Extended),
 	$file_condition(Cond, Extended),
 	$absolute_file_name(Extended, FullName).
+
+%	$relative_to(+Condition, +Default, -Dir)
+%	
+%	Determine the directory to work from.  This can be specified
+%	explicitely using one or more relative_to(FileOrDir) options
+%	or implicitely relative to the working directory or current
+%	source-file.
+
+$relative_to(Conditions, Default, Dir) :-
+	(   member(relative_to(FileOrDir), Conditions)
+	*-> (   exists_directory(FileOrDir)
+	    ->  Dir = FileOrDir
+	    ;   file_directory_name(FileOrDir, Dir)
+	    )
+	;   Default == cwd
+	->  working_directory(Dir, Dir)
+	;   Default == source
+	->  source_location(ContextFile, _Line),
+	    file_directory_name(ContextFile, Dir)
+	).
 
 :- dynamic
 	$search_path_file_cache/5.
@@ -569,14 +590,14 @@ $file_condition(exists, File) :- !,
 $file_condition(file_type(directory), File) :- !,
 	exists_directory(File).
 $file_condition(file_type(file), File) :- !,
-	exists_file(File),
-	\+ exists_directory(File).
+	exists_file(File).
 $file_condition(access([A1|AT]), File) :- !,
 	$file_condition(access(A1), File),
 	$file_condition(access(AT), File).
 $file_condition(access([]), _) :- !.
 $file_condition(access(Access), File) :- !,
 	access_file(File, Access).
+$file_condition(relative_to(_), _File).		% This isn't a condition
 
 $extend_file(File, Exts, FileEx) :-
 	$ensure_extensions(Exts, File, Fs),

@@ -4189,22 +4189,36 @@ extension, absolute_file_name/3 will first add the extension and then
 verify the conditions imposed by the other options.  If the condition
 fails, the next extension of the list is tried.  Extensions may be
 specified both as \fileext{.ext} or plain \const{ext}.
+
+    \termitem{relative_to}{+FileOrDir}
+Resolve the path relative to the given directory or directory the
+holding the given file.  Without this option, paths are resolved
+relative to the working directory (see working_directory/2) or,
+if \arg{Spec} is atomic and absolute_file_name/[2,3] is executed
+in a directive, it uses the current source-file as reference.
+
     \termitem{access}{Mode}
 Imposes the condition access_file(\arg{File}, \arg{Mode}).  \arg{Mode}
 is on of \const{read}, \const{write}, \const{append}, \const{exist} or \const{none}.  See also access_file/2.
+
     \termitem{file_type}{Type}
 Defines extensions. Current mapping: \const{txt} implies \const{['']},
 \const{prolog} implies \const{['.pl', '']}, \const{executable} implies
 \const{['.so', '']}, \const{qlf} implies \const{['.qlf', '']} and
-\const{directory} implies \const{['']}.
+\const{directory} implies \const{['']}.  The file-type \const{source}
+is an alias for \const{prolog} for compatibility to SICStus Prolog.
+See also prolog_file_type/2.
+
     \termitem{file_errors}{fail/error}
 If \const{error} (default), throw and \const{existence_error} exception
 if the file cannot be found.  If \const{fail}, stay silent.%
 	\footnote{Silent operation was the default up to version 3.2.6.}
+
     \termitem{solutions}{first/all}
 If \const{first} (default), the predicates leaves no choice-point.
 Otherwise a choice-point will be left and backtracking may yield
 more solutions.
+
     \termitem{expand}{true/false}
 If \const{true} (default is \const{false}) and \arg{Spec} is atomic,
 call expand_file_name/2 followed by member/2 on \arg{Spec} before
