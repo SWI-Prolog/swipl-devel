@@ -1735,11 +1735,17 @@ Open a stream that produces no output.  All counting functions are
 enabled on such a stream.  An attempt to read from a null-stream will
 immediately signal end-of-file.  Similar to Unix \file{/dev/null}.
 \arg{Stream} can be an atom, giving the null-stream an alias name.
-\predicate{close}{1}{+Stream}
 
+    \predicate{close}{1}{+Stream}
 Close the specified stream.  If \arg{Stream} is not open an error
 message is displayed.  If the closed stream is the current input or
 output stream the terminal is made the current input or output.
+
+    \predicate{close}{2}{+Stream, +Options}
+Provides \term{close}{Stream, [force(true)]} as the only option.  Called
+this way, any resource error (such as write-errors while flushing the
+output buffer) are ignored.  
+
     \predicate{stream_property}{2}{?Stream, ?StreamProperty}
 ISO compatible predicate for querying status of open I/O streams.  
 \arg{StreamProperty} is one of:
@@ -1791,16 +1797,10 @@ name of the file opened if the stream refers to an open file, an
 integer file-descriptor if the stream encapsulates an operating-system
 stream or the atom \const{[]} if the stream refers to some other object.
 \arg{Mode} is one of \const{read} or \const{write}.
-    \predicate{stream_position}{3}{+Stream, -Old, +New}
-Unify the position parameters of \arg{Stream} with \arg{Old} and set them to
-\arg{New}.  A position is represented by the following term:
-\begin{code}
-'$stream_position'(CharNo, LineNo, LinePos).
-\end{code}
-It is only possible to change the position parameters if the stream is
-connected to a disk file. If the position is changed, the \arg{CharNo}
-field determines the new position in the file.  The \arg{LineNo} and
-\arg{LinePos} are copied in the stream administration.  See also seek/4.
+    \predicate{set_stream_position}{2}{+Stream, +Pos}
+Set the current position of \arg{Stream} to \arg{Pos}.  \arg{Pos} is
+a term as returned by stream_property/2 using the \term{position}{Pos}
+property.  See also seek/4.
     \predicate{seek}{4}{+Stream, +Offset, +Method, -NewLocation}
 Reposition the current point of the given \arg{Stream}.  \arg{Method}
 is one of \const{bof}, \arg{current} or \arg{eof}, indicating

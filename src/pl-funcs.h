@@ -213,10 +213,11 @@ word		pl_open(term_t file, term_t mode, term_t stream);
 word		pl_open_null_stream(term_t stream);
 int		streamNo(term_t spec, int mode);
 word		pl_close(term_t stream);
+word		pl_close2(term_t stream, term_t options);
 void		release_stream_handle(term_t spec);
 foreign_t	pl_stream_property(term_t stream, term_t property, word h);
 word		pl_flush_output(term_t stream);
-word		pl_stream_position(term_t stream, term_t old, term_t new);
+word		pl_set_stream_position(term_t stream, term_t pos);
 word		pl_seek(term_t stream,
 			term_t offset, term_t method, term_t newloc);
 word		pl_set_input(term_t stream);

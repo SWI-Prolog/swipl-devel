@@ -92,6 +92,7 @@ suggest predicates from a keyword.
 \predicatesummary{clause}{3}{Get clauses of a predicate}
 \predicatesummary{clause_property}{2}{Get properties of a clause}
 \predicatesummary{close}{1}{Close stream}
+\predicatesummary{close}{2}{Close stream (forced)}
 \predicatesummary{close_dde_conversation}{1}{Win32: Close DDE channel}
 \predicatesummary{close_shared_object}{1}{UNIX:  Close shared library (.so file)}
 \predicatesummary{compare}{3}{Compare, using a predicate to determine the order}
@@ -361,10 +362,11 @@ suggest predicates from a keyword.
 \predicatesummary{seek}{4}{Modify the current position in a stream}
 \predicatesummary{seen}{0}{Close the current input stream}
 \predicatesummary{select}{3}{Select element of a list}
-\predicatesummary{set_prolog_flag}{2}{Define a system feature}
 \predicatesummary{set_input}{1}{Set current input stream from a stream}
 \predicatesummary{set_output}{1}{Set current output stream from a stream}
+\predicatesummary{set_prolog_flag}{2}{Define a system feature}
 \predicatesummary{set_stream}{2}{Set stream attribute}
+\predicatesummary{set_stream_position}{2}{Seek stream to position}
 \predicatesummary{set_tty}{2}{Set `tty' stream}
 \predicatesummary{setarg}{3}{Destructive assignment on term}
 \predicatesummary{setenv}{2}{Set shell environment variable}
@@ -389,7 +391,6 @@ suggest predicates from a keyword.
 \predicatesummary{stack_parameter}{4}{Some systems: Query/Set runtime stack parameter}
 \predicatesummary{statistics}{0}{Show execution statistics}
 \predicatesummary{statistics}{2}{Obtain collected statistics}
-\predicatesummary{stream_position}{3}{Get/seek to position in file}
 \predicatesummary{stream_property}{2}{Get stream properties}
 \predicatesummary{string}{1}{Type check for string}
 \predicatesummary{string_concat}{3}{atom_concat/3 for strings}

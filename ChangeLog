@@ -1,11 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: ISO predicates close/2, unify_with_occurs_check/2,
+    stream_property/2, sub_atom/5.  Moved stream_position/3 and
+    current_stream/3 from built-in to library(quintus).
+
   * FIXED: $term_complexity/2, which determines whether or not a term is
     too large to store as a toplevel variable.  Together with the other
     changes, the toplevel and debugger no longer crash on cyclic terms.
-
-  * ADDED: unify_with_occurs_check/2 (ISO).
 
   * ADDED: {put,get,peek}_{byte,char,code}/[1,2] predicates, providing
     ISO compliant character I/O.

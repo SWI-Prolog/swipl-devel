@@ -45,7 +45,6 @@ dvi:		$(TEXFILES)
 html:		$(TEXFILES) $(STYFILES) doc.bbl
 		rm -rf Manual
 		latex2html doc
-		(cd Manual; ln -s Title.html index.html)
 
 pdf:		$(PDF)
 

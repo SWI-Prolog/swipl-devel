@@ -7,26 +7,29 @@
 */
 
 :- module(quintus, 
-	[ unix/1
-%	, file_exists/1
+	[ unix/1,
+%	  file_exists/1,
 
-	, abs/2
-	, sin/2
-	, cos/2
-	, tan/2
-	, log/2
-	, sqrt/2
-	, random/3
+	  abs/2,
+	  sin/2,
+	  cos/2,
+	  tan/2,
+	  log/2,
+	  sqrt/2,
+	  random/3,
 
-	, genarg/3
+	  genarg/3,
 
-	, (mode)/1
-	, (public)/1
-	, (meta_predicate)/1
-	, no_style_check/1
-	, otherwise/0
-	, numbervars/3
-	, statistics/2
+	  (mode)/1,
+	  (public)/1,
+	  (meta_predicate)/1,
+	  no_style_check/1,
+	  otherwise/0,
+	  numbervars/3,
+	  statistics/2,
+
+	  current_stream/3,		% ?File, ?Mode, ?Stream
+	  stream_position/3		% +Stream, -Old, +New
 	]).
 
 		/********************************
@@ -205,3 +208,34 @@ meta_predicate(_, _).		% just a mode declaration
 
 module_expansion_argument(:).
 module_expansion_argument(N) :- integer(N).
+
+
+		 /*******************************
+		 *	      STREAMS		*
+		 *******************************/
+
+%	current_stream(?Object, ?Mode, ?Stream)
+%
+%	SICStus/Quintus and backward compatible predicate.  New code should
+%	be using the ISO compatible stream_property/2.
+
+current_stream(Object, Mode, Stream) :-
+	stream_property(Stream, mode(FullMode)),
+	stream_mode(FullMode, Mode),
+	(   stream_property(Stream, file_name(Object))
+	->  true
+	;   stream_property(Stream, file_no(Object))
+	->  true
+	;   Object = []
+	).
+
+stream_mode(read,   read).
+stream_mode(write,  write).
+stream_mode(append, write).
+stream_mode(update, write).
+
+%	stream_position(+Stream, -Old, +New)
+
+stream_position(Stream, Old, New) :-
+	stream_property(Stream, position(Old)),
+	set_stream_position(Stream, New).

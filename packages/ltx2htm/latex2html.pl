@@ -1618,7 +1618,7 @@ make_index([]) :-
 make_index([]) :-
 	\+ index(_, _, _), !.
 make_index(HTML) :-
-	HTML0 = [ #tell('Index'),
+	HTML0 = [ #tell('DocIndex'),
 		  #header(index),
 		  #h(1, #label('document-index', 'Index')),
 		  html('<DL>'),

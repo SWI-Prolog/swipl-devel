@@ -8,7 +8,7 @@
 % Configure latex2html
 
 \htmloutput{Manual}				% Output directory
-\htmlmainfile{Title}				% Main document file
+\htmlmainfile{index}				% Main document file
 \bodycolor{white}				% Page colour
 \linkimage{home}{home.gif}			% Images for links
 \linkimage{index}{yellow_pages.gif}

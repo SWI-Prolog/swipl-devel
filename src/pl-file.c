@@ -1557,6 +1557,41 @@ pl_close(term_t stream)
   fail;
 }
 
+
+static const opt_spec close2_options[] = 
+{ { ATOM_force,		 OPT_BOOL },
+  { NULL_ATOM,		 0 }
+};
+
+
+word
+pl_close2(term_t stream, term_t options)
+{ IOSTREAM *s;
+  bool force = FALSE;
+
+  if ( !scan_options(options, 0, ATOM_close_option, close2_options, &force) )
+    fail;
+
+  if ( !force )
+    return pl_close(stream);
+
+  if ( !PL_get_stream_handle(stream, &s) )
+    fail;
+
+  if ( s == Sinput )
+    Sclearerr(s);
+  else if ( s == Soutput || s == Serror )
+  { Sflush(s);
+    Sclearerr(s);
+  } else
+  { Sflush(s);
+    Sclose(s);
+  }
+  
+  succeed;
+}
+
+
 		 /*******************************
 		 *	 STREAM-PROPERTY	*
 		 *******************************/
@@ -1948,51 +1983,33 @@ getStreamWithPosition(term_t stream, IOSTREAM **sp)
 
 
 word
-pl_stream_position(term_t stream, term_t old, term_t new)
+pl_set_stream_position(term_t stream, term_t pos)
 { IOSTREAM *s;
-  long oldcharno, charno, linepos, lineno;
+  long charno, linepos, lineno;
   term_t a = PL_new_term_ref();
-  functor_t f;
+
+
+  if ( !PL_is_functor(pos, FUNCTOR_stream_position3) ||
+       !PL_get_arg(1, pos, a) ||
+       !PL_get_long(a, &charno) ||
+       !PL_get_arg(2, pos, a) ||
+       !PL_get_long(a, &lineno) ||
+       !PL_get_arg(3, pos, a) ||
+       !PL_get_long(a, &linepos) )
+    return PL_error("stream_position", 3, NULL,
+		    ERR_DOMAIN, ATOM_stream_position, pos);
 
   if ( !(getStreamWithPosition(stream, &s)) )
     fail;
 
-  charno  = s->position->charno;
-  lineno  = s->position->lineno;
-  linepos = s->position->linepos;
-  oldcharno = charno;
-
-  if ( !PL_unify_term(old,
-		      PL_FUNCTOR, FUNCTOR_stream_position3,
-		        PL_INTEGER, charno,
-		        PL_INTEGER, lineno,
-		        PL_INTEGER, linepos) )
-  { releaseStream(s);
-    fail;
-  }
-
-  if ( !(PL_get_functor(new, &f) && f == FUNCTOR_stream_position3) ||
-       !PL_get_arg(1, new, a) ||
-       !PL_get_long(a, &charno) ||
-       !PL_get_arg(2, new, a) ||
-       !PL_get_long(a, &lineno) ||
-       !PL_get_arg(3, new, a) ||
-       !PL_get_long(a, &linepos) )
-  { releaseStream(s);
-    return PL_error("stream_position", 3, NULL,
-		    ERR_DOMAIN, ATOM_stream_position, new);
-  }
-
-  if ( charno != oldcharno && Sseek(s, charno, 0) < 0 )
-  { releaseStream(s);
-    return PL_error("stream_position", 3, OsError(),
-		    ERR_STREAM_OP, ATOM_position, stream);
-  }
+  if ( Sseek(s, charno, SIO_SEEK_SET) != 0 )
+    return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
+		    ATOM_position, ATOM_stream, stream);
 
   s->position->charno  = charno;
   s->position->lineno  = lineno;
   s->position->linepos = linepos;
-  
+
   releaseStream(s);
 
   succeed;

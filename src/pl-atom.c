@@ -366,7 +366,8 @@ pl_complete_atom(term_t prefix, term_t common, term_t unique)
   if ( extendAtom(p, &u, cmm) )
   { strcat(buf, cmm);
     if ( PL_unify_list_codes(common, buf) &&
-	 PL_unify_atom(unique, u ? ATOM_unique : ATOM_not_unique) )
+	 PL_unify_atom(unique, u ? ATOM_unique
+				 : ATOM_not_unique) )
       succeed;
   }
 
