@@ -90,3 +90,6 @@ status		makeClassEditTextGesture(Class class);
 
 /* ../src/evt/browserselgesture.c */
 status		makeClassBrowserSelectGesture(Class class);
+
+/* ../src/evt/resizetabslice.c */
+status		makeClassResizeTableSliceGesture(Class class);

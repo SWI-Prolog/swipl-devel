@@ -380,6 +380,9 @@ static struct class_definition classdefs[] =
   { NAME_resizeOutlineGesture, NAME_resizeGesture, makeClassResizeOutlineGesture,
     &ClassResizeOutlineGesture, "Gesture to resize an object by outline" },
 
+  { NAME_resizeTableSliceGesture, NAME_gesture, makeClassResizeTableSliceGesture,
+    &ClassResizeTableSliceGesture, "Resize table rows/columns" },
+
   { NAME_scrollBar, NAME_graphical, makeClassScrollBar,
     &ClassScrollBar, "Scroll windows, text or other objects" },
 

@@ -1756,6 +1756,7 @@
   BUILTIN_NAME("resize_gesture")
   BUILTIN_NAME("resize_message")
   BUILTIN_NAME("resize_outline_gesture")
+  BUILTIN_NAME("resize_table_slice_gesture")
   BUILTIN_NAME("resolution")
   BUILTIN_NAME("resolve_method_message")
   BUILTIN_NAME("resource")

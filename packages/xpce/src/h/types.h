@@ -209,7 +209,7 @@ typedef struct undo_buffer		* UndoBuffer;
 typedef struct view			* View;
 typedef struct windowobj		* PceWindow;
 typedef struct window_decorator 	* WindowDecorator;
-
+typedef struct resize_table_slice_gesture * ResizeTableSliceGesture;
 
 typedef Any				EventId;
 
@@ -379,6 +379,7 @@ PUBLIC_GLOBAL Class ClassRegion;
 PUBLIC_GLOBAL Class ClassRelation;
 PUBLIC_GLOBAL Class ClassResizeGesture;
 PUBLIC_GLOBAL Class ClassResizeOutlineGesture;
+PUBLIC_GLOBAL Class ClassResizeTableSliceGesture;
 PUBLIC_GLOBAL Class ClassClassVariable;
 PUBLIC_GLOBAL Class ClassScrollBar;
 PUBLIC_GLOBAL Class ClassSendMethod;

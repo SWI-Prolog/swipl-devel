@@ -361,7 +361,7 @@ EVTOBJS=	clickgesture.o conngesture.o event.o \
 		handlergroup.o modifier.o movegesture.o \
 		mvolgesture.o popupgesture.o recogniser.o \
 		resizegesture.o rzolgesture.o edittextgest.o \
-		browserselgesture.o
+		browserselgesture.o resizetabslice.o
 EVTSRC=		$(addprefix $(srcdir)/evt/, $(EVTOBJS:.o=.c))
 
 $(srcdir)/evt/proto.h:	$(EVTSRC)
