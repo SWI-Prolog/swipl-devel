@@ -2493,6 +2493,15 @@ str_width(String s, int from, int to, FontObj f)
 }
 
 
+int
+str_advance(String s, int from, int to, FontObj f)
+{ if ( !f ) 
+    f = context.font;
+
+  return str_width(s, from, to, f);
+}
+
+
 void
 s_print8(char8 *s, int l, int x, int y, FontObj f)
 { if ( l > 0 )

@@ -73,7 +73,10 @@ collect(File) :-
 	find_source_file(File, Source),
 	seeing(Old), see(Source),
 	repeat,
-	    read(Term),
+	    catch(read(Term), E,
+		  (   print_message(error, E),
+		      fail
+		  )),
 	    req_expand(Term, T),
 	    (   T == end_of_file
 	    ->  !, seen, see(Old)

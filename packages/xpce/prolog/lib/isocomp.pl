@@ -222,6 +222,8 @@ body(set_feature(_,_), term_position(_,_,FF,FT,_)) :-
 	change(FF-FT, set_prolog_flag, iso).
 body(concat(_,_,_), term_position(_,_,FF,FT,_)) :-
 	change(FF-FT, atom_concat, iso).
+body(flush, Pos) :-
+	change(Pos, flush_output, iso).
 body(dup_stream(_,_), term_position(_,_,FF,FT,_)) :-
 	warn(FF-FT, dup_stream).
 body(op(_,_,Scope), Pos) :-

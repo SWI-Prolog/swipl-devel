@@ -23,12 +23,16 @@ expandable(get_super, A)  :- A >= 3.
 %	Convert old send/get into new format.
 
 expand(OldSend, Send) :-
+	compound(OldSend),
 	OldSend =.. [ send, R, Sel | Args ],
+	atom(Sel),
 	Args \== [], !,
 	Msg =.. [Sel|Args],
 	Send = send(R, Msg).
 expand(OldGet, Get) :-
+	compound(OldGet),
 	OldGet =.. [ get, R, Sel | AllArgs ],
+	atom(Sel),
 	append(Args, [Result], AllArgs),
 	Args \== [], !,
 	Msg =.. [Sel|Args],
@@ -37,11 +41,15 @@ expand(OldGet, Get) :-
 %	Deal with send-super
 
 expand(send(R, Msg), send_class(R, Super, SuperMsg)) :-
+	compound(Msg),
 	Msg =.. [send_super, Selector | Args], !,
+	atom(Selector),
 	current_super_class(send_super, Super),
 	SuperMsg =.. [Selector|Args].
 expand(get(R, Msg, Answer), get_class(R, Super, SuperMsg, Answer)) :-
+	compound(Msg),
 	Msg =.. [get_super, Selector | Args], !,
+	atom(Selector),
 	current_super_class(get_super, Super),
 	SuperMsg =.. [Selector|Args].
 expand(send_super(R, Msg), send_class(R, Super, Msg)) :-
@@ -49,11 +57,15 @@ expand(send_super(R, Msg), send_class(R, Super, Msg)) :-
 expand(get_super(R, Msg, V), get_class(R, Super, Msg, V)) :-
 	current_super_class(get_super, Super).
 expand(SendSuperN, send_class(R, Super, Msg)) :-
+	compound(SendSuperN),
 	SendSuperN =.. [send_super, R, Sel | Args],
+	atom(Sel),
 	Msg =.. [Sel|Args],
 	current_super_class(send_super, Super).
 expand(GetSuperN, get_class(R, Super, Msg, Answer)) :-
+	compound(GetSuperN),
 	GetSuperN =.. [get_super, R, Sel | AllArgs],
+	atom(Sel),
 	append(Args, [Answer], AllArgs),
 	Msg =.. [Sel|Args],
 	current_super_class(get_super, Super).

@@ -16,21 +16,23 @@
 	]).
 :- use_module(pce_boot(pce_operator)).
 :- use_module(pce_boot(pce_principal)).
-:- require([ append/3
-	   , between/3
-	   , concat/3
-	   , concat_atom/2
-	   , file_base_name/2
-	   , flatten/2
-	   , forall/2
-	   , genarg/3
-	   , maplist/3
-	   , pce_error/1
+:- require([ pce_error/1
 	   , pce_info/1
 	   , pce_warn/1
+	   , string/1
+	   , concat_atom/2
+	   , expand_goal/2
+	   , flatten/2
+	   , forall/2
 	   , reverse/2
 	   , source_location/2
-	   , term_to_atom/2
+	   , string_to_list/2
+	   , append/3
+	   , atom_concat/3
+	   , between/3
+	   , genarg/3
+	   , maplist/3
+	   , sub_atom/5
 	   ]).
 
 :- dynamic
@@ -403,7 +405,7 @@ template_clause((M:send_implementation(Id, Msg, R) :- Body),
 		  (M:(send_implementation(Id, Msg, R) :-
 		  	send_implementation(Tid, IClassMsg, R)))
 		]) :- !,
-	concat('T-', Id, Tid),
+	atom_concat('T-', Id, Tid),
 	Msg =.. Args,
 	append(Args, [Class], Args2),
 	ClassMsg =.. Args2,
@@ -415,7 +417,7 @@ template_clause((M:get_implementation(Id, Msg, R, V) :- Body),
 		  (M:(get_implementation(Id, Msg, R, V) :-
 		  	get_implementation(Tid, IClassMsg, R, V)))
 		]) :- !,
-	concat('T-', Id, Tid),
+	atom_concat('T-', Id, Tid),
 	Msg =.. Args,
 	append(Args, [Class], Args2),
 	ClassMsg =.. Args2,
@@ -496,7 +498,7 @@ use_template_send_method(Template, pce_principal:Clause) :-
 	    Msg =.. Args,
 	    append(Args, [SuperClass], Args1),
 	    IClassMsg =.. Args1,
-	    concat('T-', Id, Tid)
+	    atom_concat('T-', Id, Tid)
 	).
 	  
 use_template_get_methods(Template, Clauses) :-
@@ -518,7 +520,7 @@ use_template_get_method(Template, pce_principal:Clause) :-
 	    Msg =.. Args,
 	    append(Args, [SuperClass], Args1),
 	    IClassMsg =.. Args1,
-	    concat('T-', Id, Tid)
+	    atom_concat('T-', Id, Tid)
 	).
 
 type_arity(@default, 0) :- !.
@@ -698,10 +700,10 @@ pce_type(Prolog, Pce) :-
 	canonise_type(RawPce, Pce).
 
 canonise_type(T0, T0) :-
-	concat(_, ' ...', T0), !.
+	sub_atom(T0, _, _, 0, ' ...'), !.
 canonise_type(T0, T) :-
-	concat(T1, '...', T0), !,
-	concat(T1, ' ...', T).
+	atom_concat(T1, '...', T0), !,
+	atom_concat(T1, ' ...', T).
 canonise_type(T, T).
 
 to_atom(Atom, Atom) :-

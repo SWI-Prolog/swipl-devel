@@ -75,6 +75,7 @@ NewClass(parbox)
   Int		line_width;		/* Max width of a line */
   Chain		content;		/* Contained hboxes */
   Name		alignment;		/* left,right,center,justify */
+  Bool		auto_crop;		/* Crop content */
 End;
 
 

@@ -2370,8 +2370,7 @@ static int
 rbearing(unsigned int c, XFontStruct *info)
 { XCharStruct *def = s_char_struct(info, c);
 
-/*return def ? def->rbearing : info->max_bounds.width;*/
-  return def ? def->width - def->lbearing : info->max_bounds.width;
+  return def ? def->rbearing : info->max_bounds.width;
 }
 
 
@@ -2479,9 +2478,12 @@ str_width(String s, int from, int to, FontObj f)
 }
 
 
-static int
-s_advance_x(String s, int from, int to)
-{ if ( !context.gcs->char_widths )
+int
+str_advance(String s, int from, int to, FontObj f)
+{ if ( f ) 
+    s_font(f);
+
+  if ( !context.gcs->char_widths )
   { return context.gcs->font_info->max_bounds.width * (to-from);
   } else
   { cwidth *widths = context.gcs->char_widths;
@@ -2543,7 +2545,7 @@ str_stext(String s, int f, int len, int x, int y, Style style)
     int w = 0;				/* make compiler happy */
 
     if ( notNil(style) )
-    { w = s_advance_x(s, f, f+len);
+    { w = str_advance(s, f, f+len, NULL);
 
       if ( notDefault(style->background) )
       { int a = context.gcs->font_info->ascent;
@@ -2804,13 +2806,13 @@ str_selected_string(String s, FontObj font,
 
       sf = (f <= here     ?      0 : f-here);
       sl = (t >= here+len ? len-sf : t-here-sf);
-      sx = s_advance_x(&line->text, 0, sf);
+      sx = str_advance(&line->text, 0, sf, NULL);
       
       str_stext(&line->text, 0,  sf, line->x,    line->y+baseline, NIL);
       str_stext(&line->text, sf, sl, line->x+sx, line->y+baseline, style);
       if ( sf+sl < len )
       { int a  = sf+sl;
-	int ax = sx + s_advance_x(&line->text, sf, a);
+	int ax = sx + str_advance(&line->text, sf, a, NULL);
 
 	str_stext(&line->text, a, len-a, line->x+ax, line->y+baseline, NIL);
       }

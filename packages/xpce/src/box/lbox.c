@@ -94,6 +94,7 @@ computeLBox(LBox lb)
 	  lh = valInt(label->area->h);
 	} else
 	  lh = 0;
+
 	PlaceLBox(lb, cell->value, toInt(lm), toInt(cy), toInt(iw));
 
 	cy += max(lh, valInt(item->area->h));
@@ -243,7 +244,7 @@ static classvardecl rc_lbox[] =
   RC(NAME_itemSep,	NULL,  "10",	   NULL),
   RC(NAME_labelSep,	NULL,  "5",	   NULL),
   RC(NAME_labelWidth,	NULL,  "@default", NULL),
-  RC(NAME_width,	"0..", "500",	   "Default initial width")
+  RC(NAME_width,	"0..", "0",	   "Default initial width")
 };
 
 /* Class Declaration */

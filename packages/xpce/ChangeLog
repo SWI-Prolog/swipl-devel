@@ -1,3 +1,15 @@
+VERSION 5.0.7-beta-4
+====================
+
+* ADDED: Experimental document-rendering classes (undocumented):
+  hbox, lbox, tbox, grbox, parbox and rubber.
+
+* ISO: Avoid instantiation errors on =../2; replace concat/3 using
+  atom_concat/3 and deal with syntax errors in PceEmacs
+  pce_insert_require_directive and friends.
+
+* FIXED: Font metrics error (X11 version).
+
 * ADDED: Symbol font to standard font list and `symbol' font alias.  See
   FontViewer demo.
 

@@ -15,6 +15,7 @@ status		makeClassTBox(Class class);
 status		makeClassParBox(Class class);
 
 /* ../src/box/grbox.c */
+status		computeGrBox(GrBox grb);
 status		computeAscentDescentGrBox(GrBox grb);
 status		makeClassGrBox(Class class);
 

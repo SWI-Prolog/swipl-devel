@@ -221,6 +221,14 @@ getWidthFont(FontObj f, CharArray txt)
 }
 
 
+static Int
+getAdvanceFont(FontObj f, CharArray txt)
+{ d_ensure_display();			/* TBD */
+
+  return toInt(str_advance(&txt->data, 0, txt->data.size, f));
+}
+
+
 Int
 getExFont(FontObj f)
 { if ( isNil(f->ex) )
@@ -384,6 +392,8 @@ static getdecl get_font[] =
      NAME_dimension, "New size from <-width and <-height"),
   GM(NAME_width, 1, "int", "[char_array]", getWidthFont,
      NAME_dimension, "Width of string (default \"x\")"),
+  GM(NAME_advance, 1, "int", "char_array", getAdvanceFont,
+     NAME_dimension, "X-origin advancement of string"),
   GM(NAME_b16, 0, "bool", NULL, getB16Font,
      NAME_encoding, "Boolean to indicate font is 16-bits"),
   GM(NAME_lookup, 3, "font", T_lookup, getLookupFont,

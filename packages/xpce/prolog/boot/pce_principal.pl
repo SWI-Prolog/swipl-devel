@@ -321,7 +321,7 @@ send_implementation(fail, _Args, _Obj) :- fail.
 send_implementation(once(Id), Args, Obj) :-
 	send_implementation(Id, Args, Obj), !.
 send_implementation(spy(Id), Args, Obj) :-
-	(   '$debugging'		% SWI-Prolog
+	(   current_prolog_flag(debug, true)
 	->  trace,
 	    send_implementation(Id, Args, Obj)
 	;   send_implementation(Id, Args, Obj)
@@ -337,7 +337,7 @@ get_implementation(fail, _Args, _Obj, _Rval) :- fail.
 get_implementation(once(Id), Args, Obj, Rval) :-
 	get_implementation(Id, Args, Obj, Rval), !.
 get_implementation(spy(Id), Args, Obj, Rval) :-
-	(   '$debugging'		% SWI-Prolog
+	(   current_prolog_flag(debug, true)
 	->  trace,
 	    get_implementation(Id, Args, Obj, Rval)
 	;   get_implementation(Id, Args, Obj, Rval)

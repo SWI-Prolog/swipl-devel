@@ -240,6 +240,9 @@ appendTable(Table tab, TableCell cell, Int x, Int y)
   if ( isDefault(y) )
     y = tab->current->y;
 
+  if ( notNil(tab->device) && notNil(cell->image) )
+    send(tab->device, NAME_display, cell->image, 0);
+
   assign(cell, layout_manager, tab);
   assign(cell, column, x);
   assign(cell, row, y);

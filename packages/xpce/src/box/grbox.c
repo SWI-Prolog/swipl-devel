@@ -9,17 +9,21 @@
 
 #include "boxes.h"
 
-static status computeGrBox(GrBox grb);
-
 static status
-initialiseGrBox(GrBox grb, Graphical gr, Any baseline, Rubber rubber)
+initialiseGrBox(GrBox grb, Graphical gr,
+		Any baseline,
+		Any align,		/* left, right or @nil */
+		Rubber rubber)
 { if ( isDefault(baseline) )
     baseline = NAME_bottom;
+  if ( isDefault(align) )
+    align = NIL;
   if ( isDefault(rubber) )
     rubber = NIL;
 
   assign(grb, graphical, gr);
   assign(grb, baseline,  baseline);
+  assign(grb, alignment, align);
   assign(grb, rubber,    rubber);
 
   return computeGrBox(grb);
@@ -30,7 +34,7 @@ initialiseGrBox(GrBox grb, Graphical gr, Any baseline, Rubber rubber)
 		 *	      COMPUTE		*
 		 *******************************/
 
-static status
+status
 computeGrBox(GrBox grb)
 { Graphical gr = grb->graphical;
 
@@ -80,6 +84,7 @@ computeAscentDescentGrBox(GrBox grb)
 static char *T_initialise[] =
         { "graphical=graphical",
 	  "baseline=[{top,center,bottom}|int]",
+	  "alignment=[{left,right}]*",
 	  "rubber=[rubber]*"
 	};
 
@@ -97,7 +102,7 @@ static vardecl var_grbox[] =
 /* Send Methods */
 
 static senddecl send_grbox[] =
-{ SM(NAME_initialise, 3, T_initialise, initialiseGrBox,
+{ SM(NAME_initialise, 4, T_initialise, initialiseGrBox,
      DEFAULT, "Create grbox from graphical and baseline")
 };
 
@@ -121,7 +126,7 @@ static classvardecl rc_grbox[] =
 
 /* Class Declaration */
 
-static Name grbox_termnames[] = { NAME_garphical };
+static Name grbox_termnames[] = { NAME_graphical };
 
 ClassDecl(grbox_decls,
           var_grbox, send_grbox, get_grbox, rc_grbox,
