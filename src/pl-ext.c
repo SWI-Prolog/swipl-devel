@@ -53,7 +53,6 @@ static struct foreign {
   ADD("append",			1, pl_append,			TRACE_ME),
   ADD("ttyflush",		0, pl_ttyflush,			TRACE_ME),
   ADD("flush",			0, pl_flush,			TRACE_ME),
-  ADD("tty_fold",		2, pl_tty_fold,			TRACE_ME),
   ADD("prompt",			2, pl_prompt,			TRACE_ME),
   ADD("prompt1",		1, pl_prompt1,			TRACE_ME),
   ADD("expand_file_name",	2, pl_expand_file_name,		TRACE_ME),

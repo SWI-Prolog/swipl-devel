@@ -1274,7 +1274,7 @@ pl_term_to_atom(Word term, Word atom, Word bindings)
     return unifyAtomic(atom, lookupAtom(s) );
   }
 
-  if ( (s = primitiveToString(*atom, FALSE)) != (char *)NULL )
+  if ( (s = primitiveToString(*atom, FALSE)) )
   { word rval;
 
     seeString(s);

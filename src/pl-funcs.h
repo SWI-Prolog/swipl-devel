@@ -7,8 +7,6 @@
     Copyright (C) 1994 University of Amsterdam. All rights reserved.
 */
 
-#define Put(c)			put_character((Char) (c))
-#define Get0()			get_character()
 #define unifyAtomic(p, w)	unify_atomic(p, (word)(w))
 
 /* pl-alloc.c */
@@ -134,11 +132,10 @@ bool		seen(void);
 bool		seeString(char *s);
 bool		seeingString(void);
 bool		seenString(void);
-bool		tellString(char *s, long int n);
+bool		tellString(char *s, int n);
 bool		toldString(void);
 Atom		currentStreamName(void);
 word		pl_wait_for_input(Word streams, Word available, Word timeout);
-word		pl_tty_fold(Word old, Word new);
 word		pl_put(Word c);
 word		pl_put2(Word stream, Word chr);
 word		pl_get(Word chr);
@@ -197,6 +194,9 @@ word		pl_chdir(Word dir);
 word		pl_file_base_name(Word f, Word b);
 word		pl_file_dir_name(Word f, Word b);
 word		pl_prolog_to_os_filename(Word pl, Word os);
+int		Get0(void);
+int		Put(int c);
+void		protocol(int c);
 
 /* pl-flag.c */
 void		initFlags(void);

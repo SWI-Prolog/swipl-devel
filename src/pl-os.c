@@ -291,41 +291,6 @@ Allocate(long int n)
 }
 
 
-
-		/********************************
-		*             PRINT             *
-		*********************************/
-
-#if gould
-char *
-vsprintf(buf, fm, args)
-char *buf, *fm;
-va_list args;
-{ FILE f;
-#define BIGBUF 10000000
-
-  f._cnt    = BIGBUF;		/* Hack oh dear hack!!! */
-  f._ptr    = f._base = buf;	/* down with gould (they are in military */
-  f._bufsiz = BIGBUF;		/* bussiness anyway!) */
-  f._flag   = 0; 		/* was _IOLBF; */
-  f._file   = '\0';
-  
-  DEBUG(9, printf("calling _doprnt(%s, ...)\n", fm));
-  _doprnt(fm, args, &f);
-  *f._ptr++ = '\0';
-
-  return buf;
-}
-
-int
-vfprintf(fd, fm, args)
-FILE *fd;
-char *fm;
-va_list args;
-{ return _doprnt(fm, args, fd);
-}
-#endif
-
 		/********************************
 		*     STRING MANIPULATION	*
 		********************************/
@@ -1587,32 +1552,6 @@ ChDir(char *path)
   fail;
 }
 
-#ifndef HAVE_GETW
-long
-getw(fd)
-register FILE *fd;
-{ register unsigned long r;
-
-  r = getc(fd);
-  r = (r << 8) | getc(fd);
-  r = (r << 8) | getc(fd);
-  r = (r << 8) | getc(fd);
-
-  return r;
-}
-
-long
-putw(l, fd)
-long l;
-FILE *fd;
-{ putc((char)((l >> 24) & 0xff), fd);
-  putc((char)((l >> 16) & 0xff), fd);
-  putc((char)((l >>  8) & 0xff), fd);
-  putc((char)((l)       & 0xff), fd);
-
-  return l;
-}
-#endif /* !HAVE_GETW */
 
 		/********************************
 		*        TIME CONVERSION        *
@@ -1675,9 +1614,6 @@ ResetStdin()
     Clear the stdin buffer after a saved state.  Only necessary
     if O_SAVE is defined.
 
-GetChar()
-    Read a character from the terminal.
-
 PushTty()
     Push the tty to the specified state.
 
@@ -1687,17 +1623,22 @@ PopTty()
 
 static int prompt_next = TRUE;	/* prompt on next GetChar() */
 
-#ifdef RESET_STDIN
 static void
 ResetStdin()
-{
-  RESET_STDIN;
+{ Sinput->limitp = Sinput->bufp = Sinput->buffer;
 }
-#else
-#define ResetStdin()
-#endif /*O_SAVE*/
 
-int (*PL_dispatch_events)() = NULL;	/* event-dIspatching */
+int (*PL_dispatch_events)() = NULL;	/* event-dispatching */
+
+static int
+Swrite_protocol(void *handle, char *buf, int size)
+{ int n;
+
+  for(n=0; n<size; n++)
+    protocol(buf[n]);
+
+  return write((int)handle, buf, size);
+}
 
 #ifdef HAVE_LIBREADLINE
 
@@ -1729,20 +1670,6 @@ event_hook(void)
 }
 
 
-#define xmalloc PL_xmalloc		/* avoid conflicts */
-
-static char *
-xmalloc(int size)
-{ char *result = malloc(size);
-
-  if ( !result )
-    fatalError("Not enough core");
-
-  return result;
-}
-
-#define savestring(x) strcpy(xmalloc(1 + strlen(x)), (x))
-
 static Char
 GetRawChar(void)
 { if ( PL_dispatch_events )
@@ -1769,20 +1696,24 @@ GetRawChar(void)
 }
 
 
-
-Char
-GetChar(void)
-{ static char *line;			/* read line */
-  static char *line_p;			/* pointer in it */
-  Atom sfn = source_file_name;		/* save over call-back */
+static int
+Sread_readline(void *handle, char *buf, int size)
+{ Atom sfn = source_file_name;		/* save over call-back */
   int  sln = source_line_no;
-  Char c;
+  int rval;
 
   if ( ttymode == TTY_RAW )
-  { if ( (c = GetRawChar()) == '\n' )
+  { int c = GetRawChar();
+
+    if ( c == '\n' )
       prompt_next = TRUE;
-  } else if ( status.notty )
-  { if ( prompt_next )
+
+    buf[0] = c & 0xff;
+    rval = 1;
+  } else if ( status.notty )		/* do not use readline */
+  { int n;
+
+    if ( prompt_next )
     { extern int Output;
       int old = Output;
       Output = 1;
@@ -1793,48 +1724,58 @@ GetChar(void)
       prompt_next = FALSE;
     }
 
-    if ( (c=GetRawChar()) == '\n' )
+    n = read((int)handle, buf, size);
+    if ( n > 0 && buf[n-1] == '\n' )
       prompt_next = TRUE;
-  } else
-  { if ( !line )
-    { ttybuf buf;
-      rl_event_hook = (PL_dispatch_events ? (Function *) event_hook
-					  : (Function *) NULL);
 
-      PushTty(&buf, TTY_SAVE);
-      line = readline(PrologPrompt());
-      PopTty(&buf);
+    rval = n;
+  } else				/* use readline */
+  { ttybuf tbuf;
+    char *line;
 
-      if ( !line )
-      { return EOF;
-      } else
-      { char *s;
+    rl_event_hook = (PL_dispatch_events ? (Function *) event_hook
+					: (Function *) NULL);
+
+    PushTty(&tbuf, TTY_SAVE);
+    line = readline(PrologPrompt());
+    PopTty(&tbuf);
+
+    if ( line )
+    { char *s;
+      int l = strlen(line);
 	  
-	for(s = line; *s; s++)
-	{ if ( !isBlank(*s) )
-	  { add_history(savestring(line));
-	    break;
-	  }
-	}
-
-	line_p = line;
+      if ( l > size )
+      { warning("Input line too long");	/* must be tested! */
+	l = size-1;
       }
-    }
+      memcpy(buf, line, l);
+      buf[l++] = '\n';
+      rval = l;
 
-    if ( *line_p )
-    { c = *line_p++;
-    } else
-    { if ( line )
+      for(s = line; *s; s++)
+      { if ( !isBlank(*s) )
+	{ add_history(line);
+	  break;
+	}
+      }
+
+      if ( !*s )			/* blanks only! */
 	free(line);
-      line = NULL;
-      c = '\n';
-    }
+    } else
+      rval = 0;
+  }
+
+  if ( ttymode != TTY_RAW )
+  { int n;
+
+    for(n=0; n<rval; n++)
+      protocol(buf[n]);
   }
 
   source_line_no   = sln;
   source_file_name = sfn;
 
-  return c;
+  return rval;
 }
 
 
@@ -1877,23 +1818,34 @@ prolog_completion(char *text, int start, int end)
 
 void
 ResetTty(void)				/* used to initialise readline */
-{ ResetStdin();
+{ static IOFUNCTIONS funcs;
+
+  ResetStdin();
 
   rl_readline_name = "Prolog";
   rl_attempted_completion_function = prolog_completion;
-  rl_basic_word_break_characters = "\t\n\"\\'`@$><= [](){}+*!";
+  rl_basic_word_break_characters = ":\t\n\"\\'`@$><= [](){}+*!";
   rl_add_defun("prolog-complete", prolog_complete, '\t');
 #if HAVE_RL_INSERT_CLOSE
   rl_add_defun("insert-close", rl_insert_close, ')');
 #endif
+
+  funcs = *Sinput->functions;		/* structure copy */
+  funcs.read = Sread_readline;		/* read through readline */
+  funcs.write = Swrite_protocol;	/* protocol output */
+
+  Sinput->functions  = &funcs;
+  Soutput->functions = &funcs;
+  Serror->functions  = &funcs;
 }
 
 #else /*!HAVE_LIBREADLINE*/
 
-Char
-GetChar()
-{ Char c;
-  Atom sfn = source_file_name;		/* save over call-back */
+/* TBD: for Stream package!*/
+
+int
+Sread_terminal(void *handle, char *buf, int size)
+{ Atom sfn = source_file_name;		/* save over call-back */
   int  sln = source_line_no;
 
   if ( prompt_next && ttymode != TTY_RAW )
@@ -1907,51 +1859,58 @@ GetChar()
   { for(;;)
     { if ( (*PL_dispatch_events)() == PL_DISPATCH_INPUT )
 #ifdef __WATCOMC__
-      { printf("dispatching input!\n");
-	if ( ttymode == TTY_RAW )
-	  c = getch();
-        else
-	  c = getche();
+      { int c = (ttymode == TTY_RAW) ? getch() : getche();
+
+	if ( c == EOF || c == '\04' )
+	  size = 0;
+	else
+	{ buf[0] = c & 0xff;
+	  size = 1;
+	}
       }
 #else	
-      { char chr;
-	
-	if (read(0, &chr, 1) == 0)
-	  c = EOF;
-	else
-	  c = (Char) chr;
-	break;
+      { size = read((int)handle, buf, size);
       }
-#endif
+#endif /*__WATCOMC__*/
     }
   } else
   {
 #if defined(__WATCOMC__)
-    if ( ttymode == TTY_RAW )
-      c = getch();
+    int c = (ttymode == TTY_RAW) ? getch() : getche();
+
+    if ( c == EOF || c == '\04' )
+      size = 0;
     else
-      c = getchar();
+    { buf[0] = c & 0xff;
+      size = 1;
+    }
 #else
-    c = getchar();
+    size = read((int)handle, buf, size);
 #endif
   }
 
-  if ( c == '\n' )
+  if ( size > 0 && buf[size-1] == '\n' )
     prompt_next = TRUE;
-#if defined(__WATCOMC__)
-  else if ( c == 04 )		/* map ^D to end_of_file */
-    c = -1;
-#endif
 
   source_line_no   = sln;
   source_file_name = sfn;
 
-  return c;
+  return size;
 }
 
 void
 ResetTty()
-{ ResetStdin();
+{ static IOFUNCTIONS funcs;
+
+  ResetStdin();
+
+  funcs = *Sinput->functions;
+  funcs.read = Sread_readline;
+  funcs.write = Swrite_protocol;
+
+  Sinput->functions  = &funcs;
+  Soutput->functions = &funcs;
+  Serror->functions  = &funcs;
 
   prompt_next = TRUE;
 }

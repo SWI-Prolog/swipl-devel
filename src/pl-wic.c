@@ -8,6 +8,7 @@
 */
 
 /*#define O_DEBUG 1*/
+#define IOSTREAM_REPLACES_STDIO
 #include "pl-incl.h"
 
 forwards char *	getString(FILE *);

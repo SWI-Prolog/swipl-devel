@@ -38,20 +38,19 @@ handling times must be cleaned, but that not only holds for this module.
 #undef lock
 #endif
 
-#define MAXSTRINGNEST	20		/* tellString --- Told nesting */
+#define ST_TERMINAL 0			/* terminal based stream */
+#define ST_FILE	    1			/* File bound stream */
+#define ST_PIPE	    2			/* Pipe bound stream */
+#define ST_STRING   3			/* String bound stream */
 
 typedef struct plfile *	PlFile;
 
 static struct plfile
 { Atom		name;			/* name of file */
   Atom		stream_name;		/* stream identifier name */
-  FILE *	fd;			/* Unix file descriptor */
-  int		lineno;			/* current line no */
-  long		charno;			/* character count */
-  int		linepos;		/* position in line */
-  int		status;			/* opened, how ? */
-  bool		pipe;			/* opened as a pipe ? */
-  bool		isatty;			/* Stream connects to a terminal */
+  IOSTREAM *	stream;			/* IOSTREAM package descriptor */
+  int		status;			/* F_CLOSED, F_READ, F_WRITE */
+  int		type;			/* ST_FILE, ST_PIPE, ST_STRING */
 } *fileTable = (PlFile) NULL;		/* Our file table */
 
 int 	Input;				/* current input */
@@ -65,24 +64,10 @@ static char *first_prompt;		/* First-line prompt */
 static int first_prompt_used;		/* flag */
 static int protocolStream = -1;		/* doing protocolling on stream <n> */
 
-static struct
-{ char *string;
-  long  left;
-} outStringStack[MAXSTRINGNEST];	/* maximum depth to nest string i/o */
-static int outStringDepth = 0;		/* depth of nesting */
-static char *inString;			/* string for reading */
-
 static int   maxfiles;			/* maximum file index */
-static int   ttyLinePos;		/* current column on tty */
-static int   ttyLineNo;			/* terminal line number count */
-static int   ttyCharNo;			/* terminal character count */
-#if O_FOLD
-static int   fold = O_FOLD;		/* default line folding */
-#else
-static int   fold = -1;			/* line folding */
-#endif
 
 typedef struct input_context * InputContext;
+typedef struct output_context * OutputContext;
 
 static struct input_context
 { int	stream;				/* pushed input */
@@ -91,13 +76,16 @@ static struct input_context
   InputContext previous;		/* previous context */
 } *input_context_stack = NULL;
 
-forwards void	protocol(Char c, int mode);
+static struct output_context
+{ int	stream;				/* pushed input */
+  OutputContext previous;		/* previous context */
+} *output_context_stack = NULL;
+
 forwards bool	openStream(word file, int mode, int fresh);
 forwards bool	flush(void);
 forwards bool	openProtocol(Atom, bool appnd);
 forwards bool	closeProtocol(void);
 forwards bool	closeStream(int);
-forwards void	updateCounts(Char, PlFile);
 forwards bool	unifyStreamName(Word, int);
 forwards bool	unifyStreamNo(Word, int);
 forwards bool	setUnifyStreamNo(Word, int);
@@ -106,7 +94,7 @@ forwards bool	unifyStreamMode(Word, int);
 #ifdef SIGPIPE
 static void
 pipeHandler(int sig)
-{ Putf("Broken pipe\n");
+{ warning("Broken pipe\n");
   pl_abort();
 
   signal(SIGPIPE, SIG_DFL);		/* should abort fail. */
@@ -125,58 +113,50 @@ initIO(void)
     maxfiles = getdtablesize();
     fileTable = allocHeap(sizeof(struct plfile) * maxfiles);
   }
-  inString = (char *) NULL;
-  outStringDepth = 0;
-
-  for(n=0; n<maxfiles; n++)
-  { fileTable[n].name = (Atom) NULL;
-    fileTable[n].status = F_CLOSED;
-    fileTable[n].fd = (FILE *) NULL;
-    fileTable[n].lineno = 1;
-    fileTable[n].linepos = 0;
-    fileTable[n].charno = 0L;
-    fileTable[n].pipe = FALSE;
-  }
-
-  ttyCharNo = ttyLinePos = 0;
-  ttyLineNo = 1;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Initilise user input, output and error stream.  How to do this neat without
-the Unix assumptions?
+Initilise user input, output and error  stream.   How  to do this neatly
+without the Unix assumptions?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  for(n=0; n<3; n++)
-  { if ( OpenStream(n) )
-    { fileTable[n].isatty = IsaTty(n);
+  for(n=0; n<maxfiles; n++)
+  { PlFile f = &fileTable[n];
 
-      switch(n)
-      { case 0:
-	  if ( fileTable[n].isatty == FALSE )
-	    status.notty = TRUE;
-	  fileTable[n].name = ATOM_user;
-	  fileTable[n].stream_name = ATOM_user_input;
-	  fileTable[n].status = F_READ;
-	  fileTable[n].fd = stdin;
-	  break;
-	case 1:
-	  fileTable[n].name = ATOM_user;
-	  fileTable[n].stream_name = ATOM_user_output;
-	  fileTable[n].status = F_WRITE;
-	  fileTable[n].fd = stdout;
-	  break;
-	case 2:
-	  fileTable[n].name = ATOM_stderr;
-	  fileTable[n].stream_name = ATOM_user_error;
-	  fileTable[n].status = F_WRITE;
-	  fileTable[n].fd = stderr;
-	  break;
-      }
-    } else
-      warning("Stream %d is not open", n);
+    switch(n)
+    { case 0:
+	f->name	       = ATOM_user;
+	f->stream_name = ATOM_user_input;
+	f->stream      = Sinput;
+	f->status      = F_READ;
+	f->type	       = ST_TERMINAL;
+	break;
+      case 1:
+	f->name        = ATOM_user;
+	f->stream_name = ATOM_user_output;
+	f->stream      = Soutput;
+	f->status      = F_WRITE;
+	f->type	       = ST_TERMINAL;
+	break;
+      case 2:
+	f->name        = ATOM_stderr;
+	f->stream_name = ATOM_user_error;
+	f->stream      = Serror;
+	f->status      = F_WRITE;
+	f->type	       = ST_TERMINAL;
+	break;
+      default:
+	f->name        = NULL;
+        f->stream      = NULL;
+	f->type        = ST_FILE;
+	f->status      = F_CLOSED;
+    }
   }
 
   ResetTty();
+  Sinput->position  = &Sinput->posbuf;	/* position logging */
+  Soutput->position = &Sinput->posbuf;
+  Serror->position  = &Sinput->posbuf;
+
   ttymode = TTY_COOKED;
   PushTty(&ttytab, TTY_SAVE);
 
@@ -187,6 +167,7 @@ the Unix assumptions?
     prompt_atom = ATOM_prompt;
 }
 
+
 void
 dieIO()
 { if ( status.io_initialised == TRUE )
@@ -196,23 +177,21 @@ dieIO()
   }
 }
 
+
 static bool
 closeStream(int n)
-{ if ( n < 3 || fileTable[n].status == F_CLOSED )
-    succeed;
+{ PlFile f = &fileTable[n];
 
-#ifdef HAVE_POPEN
-  if (fileTable[n].pipe == TRUE)
-    Pclose(fileTable[n].fd);
-  else
-#endif /*HAVE_POPEN*/
-    Fclose(fileTable[n].fd);
-  fileTable[n].status = F_CLOSED;
-  fileTable[n].name = fileTable[n].stream_name = (Atom) NULL;
-  fileTable[n].pipe = FALSE;
+  if ( n >= 3 && f->stream )
+  { Sclose(f->stream);
+    f->stream = NULL;
+    f->name   = NULL;
+    f->status = F_CLOSED;
+  }
 
   succeed;
 }
+
 
 void
 closeFiles(void)
@@ -231,29 +210,10 @@ closeFiles(void)
   Output = 1;
 }
 
-static void
-protocol(register Char c, int mode)
-{ if ( mode == F_READ && ttymode >= TTY_RAW ) /* Non-echo mode: do not log */
-    return;
 
-  ttyCharNo++;
-
-  switch(c)
-  { case '\n':	ttyLinePos = 0;
-		ttyLineNo++;
-		break;
-    case '\t':	ttyLinePos |= 7;
-		ttyLinePos++;
-		break;
-    case '\b':	if (ttyLinePos > 0)
-		  ttyLinePos--;
-		break;
-    case EOF:	return;
-    default:	ttyLinePos++;
-		break;
-  }
-
-  if ( protocolStream >= 0 )
+void
+protocol(int c)
+{ if ( protocolStream >= 0 )
   { int out;
   
     out = Output;
@@ -300,92 +260,39 @@ popInputContext()
     Input = 0;
 }
 
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-read() first checks the input stream and calls  getc(fd)  directly  when
-reading from a file.  This procedure checks whether this is possible and
-returns the file descriptor.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-void
-newLineInput(void)
-{ fileTable[Input].lineno++;
-  fileTable[Input].linepos = 0;
-}
-
-FILE *
-checkInput(int stream)
-{ if ( inString ||
-       fileTable[stream].status != F_READ ||
-       stream == 0)
-    return (FILE *) NULL;
-
-  return fileTable[Input].fd;
-}
-       
 static void
-updateCounts(register Char c, register PlFile f)
-{ f->charno++;
-  switch(c)
-  { case '\n':  f->lineno++;
-		f->linepos = 0;
-		break;
-    case '\t':  f->linepos |= 7;
-		f->linepos++;
-		break;
-    case '\b':  if ( f->linepos > 0 )
-		  f->linepos--;
-		break;
-    default:	f->linepos++;
-  }
+pushOutputContext()
+{ OutputContext c = allocHeap(sizeof(struct output_context));
+
+  c->stream            = Output;
+  c->previous          = output_context_stack;
+  output_context_stack = c;
+}
+
+
+static void
+popOutputContext()
+{ OutputContext c = output_context_stack;
+
+  if ( c )
+  { Output               = c->stream;
+    output_context_stack = c->previous;
+    freeHeap(c, sizeof(struct output_context));
+  } else
+    Output = 0;
 }
 
 
 int
 currentLinePosition()
-{ if ( outStringDepth > 0 )
-  { return 0;				/* TBD */
-  } else
-    return fileTable[Output].isatty ? ttyLinePos : fileTable[Output].linepos;
+{ IOSTREAM *stream = fileTable[Output].stream;
+
+  if ( stream && stream->position )
+    return stream->position->linepos;
+
+  return 0;
 }
 
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Get a character from the current input stream, which is either a file or
-a string.  Reading from strings is used to implement predicates such  as
-atom_to_term/2.   This  function  is  of  type `Char' (an int) to ensure
-portable transfer of EOF.
-
-This function is normally called via the macro Get0().
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-Char
-get_character(void)
-{ Char c;
-
-  if ( inString )
-  { if ( *inString == EOS )
-      return EOF;
-    return (Char) *inString++;
-  }
-
-  if (fileTable[Input].status != F_READ)
-  { warning("No current input stream");
-    return (Char) EOF;
-  }
-
-  if ( fileTable[Input].isatty )
-  { if ( ttyLinePos != 0 )
-      pl_ttyflush();
-    c = (Input == 0 ? GetChar() : Getc(fileTable[Input].fd));
-    protocol(c, F_READ);
-  } else
-  { c = Getc(fileTable[Input].fd);
-    updateCounts(c, &fileTable[Input]);
-  }
-      
-  return c;
-}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Get a single character from the terminal without waiting for  a  return.
@@ -402,66 +309,43 @@ getSingleChar(void)
     
   Input = 0;
   debugstatus.suspendTrace++;
+  PushTty(&buf, TTY_RAW);		/* just donot prompt */
   
   if ( status.notty )
   { Char c2;
 
-    PushTty(&buf, TTY_RAW);		/* just donot prompt */
     c2 = Get0();
     while( c2 == ' ' || c2 == '\t' )	/* skip blanks */
       c2 = Get0();
     c = c2;
     while( c2 != EOF && c2 != '\n' )	/* read upto newline */
       c2 = Get0();
-    PopTty(&buf);
   } else
-  { PushTty(&buf, TTY_RAW);		/* switch to raw mode */
     c = Get0();
-    PopTty(&buf);			/* restore tty */
-  }
 
-  Input = OldIn;
+  PopTty(&buf);
   debugstatus.suspendTrace--;
+  Input = OldIn;
 
   return c;
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The central character output function.  Normally called  via  the  macro
-Put(c) which includes automatic casting of the argument to `Char', so no
-problems  arise  on  machines with different argument passing for `char'
-and `int'
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 bool
-put_character(Char c)
-{ if ( outStringDepth > 0 )
-  { if ( outStringStack[outStringDepth].left-- <= 0 )
-      fail;
-    *outStringStack[outStringDepth].string++ = (char) c;
+Put(int c)
+{ IOSTREAM *s = fileTable[Output].stream;
 
-    succeed;
-  }
-
-  if ( fileTable[Output].status != F_WRITE )
-    return warning("No current output stream");
-
-  Putc(c, fileTable[Output].fd);
-
-  if ( fileTable[Output].isatty )
-  { protocol(c, F_WRITE);
-    if ( fold > 0 && ttyLinePos > fold )
-      Put('\n');
-    if ( ttyLinePos == 0 )			/* just put a newline */
-    { Fflush(fileTable[Output].fd);
-    }
-  } else
-  { updateCounts(c, &fileTable[Output]);
-  }
-
-  succeed;
+  return (s && Sputc(c, s)) < 0 ? FALSE : TRUE;
 }
+
+
+int
+Get0()
+{ IOSTREAM *s = fileTable[Input].stream;
+  
+  return s ? Sgetc(s) : -1;
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Formated put.  It would be better to define our own formated  write  for
@@ -472,26 +356,20 @@ etc) and C data structures.
 word
 Putf(char *fm, ...)
 { va_list args;
+  int rval;
 
   va_start(args, fm);
-  vPutf(fm, args);
+  rval = Svfprintf(fileTable[Output].stream, fm, args);
   va_end(args);
 
-  succeed;
+  return rval < 0 ? FALSE : TRUE;
 }
 
 word
 vPutf(char *fm, va_list args)
-{ char tmp[10240];
-  char *s;
-
-  vsprintf(tmp, fm, args);
-
-  for(s=tmp; *s; s++)
-    TRY(Put(*s) );
-
-  succeed;
+{ return Svfprintf(fileTable[Output].stream, fm, args) < 0 ? FALSE : TRUE;
 }
+
 
 bool
 readLine(char *buffer, int stream)
@@ -507,12 +385,12 @@ readLine(char *buffer, int stream)
     { case '\n':
       case '\r':
       case EOF:
-  PopTty(&tbuf);
+	PopTty(&tbuf);
 
-  *buf++ = EOS;
-  Input = oldin;
+        *buf++ = EOS;
+        Input = oldin;
 
-  return c == EOF ? FALSE : TRUE;
+	return c == EOF ? FALSE : TRUE;
       case '\b':
 	if ( buf > buffer )
 	{ buf--;
@@ -528,27 +406,34 @@ readLine(char *buffer, int stream)
   }
 }
 
+
 int
-currentInputLine(void)
-{ return fileTable[Input].isatty ? ttyLineNo : fileTable[Input].lineno;
+currentInputLine()
+{ IOSTREAM *stream = fileTable[Input].stream;
+
+  if ( stream && stream->position )
+    return stream->position->lineno;
+  else
+    return -1;
 }
+
 
 static bool
 openStream(word file, int mode, bool fresh)
 { int n;
-  FILE *fd;
+  IOSTREAM *stream;
   char *cmode;
   Atom f;
-  bool pipe;
+  int type;
 
   DEBUG(2, printf("openStream file=0x%lx, mode=%d\n", file, mode));
-  if (isAtom(file))
-  { pipe = FALSE;
+  if ( isAtom(file) )
+  { type = ST_FILE;
     f = (Atom) file;
   } else if (isTerm(file) && functorTerm(file) == FUNCTOR_pipe1)
   {
 #ifdef SIGPIPE
-    pipe = TRUE;
+    type = ST_PIPE;
     f = (Atom) argTerm(file, 0);
     signal(SIGPIPE, pipeHandler);
 #else
@@ -558,7 +443,7 @@ openStream(word file, int mode, bool fresh)
     return warning("Illegal stream specification");
 
   DEBUG(3, printf("File/command name = %s\n", stringAtom(f)));
-  if ( pipe == FALSE )
+  if ( type == ST_FILE )
   { if ( mode == F_READ )
     { if ( f == ATOM_user || f == ATOM_user_input )
       { Input = 0;
@@ -574,15 +459,13 @@ openStream(word file, int mode, bool fresh)
 	succeed;
       }
     }
-  } else
-  { if ( mode == F_APPEND )
-      return warning("Cannot open a pipe in `append' mode");
-  }
+  } else if ( type == ST_PIPE && mode == F_APPEND )
+    return warning("Cannot open a pipe in `append' mode");
     
   if ( !fresh )				/* see/1, tell/1, append/1 */
-  { for(n=0; n<maxfiles; n++)
-    { if (fileTable[n].name == f && fileTable[n].pipe == pipe)
-      { if (fileTable[n].status == mode)
+  { for( n=0; n<maxfiles; n++ )
+    { if ( fileTable[n].name == f && fileTable[n].type == type )
+      { if ( fileTable[n].status == mode )
 	{ switch(mode)
 	  { case F_READ:	Input = n; break;
 	    case F_WRITE:
@@ -605,9 +488,9 @@ openStream(word file, int mode, bool fresh)
   cmode = (mode == F_READ ? "r" : mode == F_WRITE ? "w" : "a");
 
 #ifdef HAVE_POPEN
-  if (pipe)
-  { if ((fd=Popen(stringAtom(f), cmode)) == (FILE *) NULL)
-    { if (fileerrors)
+  if ( type == ST_PIPE )
+  { if ( !(stream=Sopen_pipe(stringAtom(f), cmode)) )
+    { if ( fileerrors )
 	warning("Cannot open pipe %s: %s", stringAtom(f), OsError());
       fail;
     }
@@ -618,24 +501,24 @@ openStream(word file, int mode, bool fresh)
     if ( name == (char *)NULL )
       fail;
 
-    if ((fd=Fopen(name, cmode)) == (FILE *) NULL)
-    { if (fileerrors)
+    if ( !(stream=Sopen_file(name, cmode)) )
+    { if ( fileerrors )
 	warning("Cannot open %s: %s", stringAtom(f), OsError());
       fail;
     }
   }
 
-  DEBUG(2, printf("Unix open succeeded in fd=%d\n", n));
+  for(n=3; n<maxfiles; n++)
+    if ( !fileTable[n].stream )
+      break;
+  if ( n >= maxfiles )
+    return warning("Cannot handle more than %d open files", maxfiles);
 
-  n = fileno(fd);
   fileTable[n].name = f;
   fileTable[n].stream_name = NULL;
-  fileTable[n].pipe = pipe;
-  fileTable[n].fd = fd;
+  fileTable[n].type = type;
+  fileTable[n].stream = stream;
   fileTable[n].status = (mode == F_APPEND ? F_WRITE : mode);
-  fileTable[n].lineno = 1;
-  fileTable[n].charno = fileTable[n].linepos = 0;
-  fileTable[n].isatty = IsaTty(n);
 
   switch(mode)
   { case F_READ:		Input = n; break;
@@ -653,7 +536,7 @@ unifyStreamName(Word f, int n)
 { if ( fileTable[n].status == F_CLOSED )
     fail;
 #ifdef HAVE_POPEN
-  if (fileTable[n].pipe)
+  if ( fileTable[n].type == ST_PIPE )
   { TRY( unifyFunctor(f, FUNCTOR_pipe1) );
     f = argTermP(*f, 0);
   }
@@ -694,8 +577,8 @@ told()
 
 static bool
 flush()
-{ if ( fileTable[Output].status == F_WRITE )
-    Fflush(fileTable[Output].fd);
+{ if ( fileTable[Output].stream )
+    Sflush(fileTable[Output].stream);
 
   succeed;
 }
@@ -722,7 +605,7 @@ openProtocol(Atom f, bool appnd)
 
   closeProtocol();
 
-  if ( openStream((word)f, appnd ? F_APPEND : F_WRITE, TRUE) == TRUE )
+  if ( openStream((word)f, appnd ? F_APPEND : F_WRITE, TRUE) )
   { protocolStream = Output;
     Output = out;
 
@@ -735,7 +618,7 @@ openProtocol(Atom f, bool appnd)
 
 static bool
 closeProtocol()
-{ if (protocolStream >= 0)
+{ if ( protocolStream >= 0 )
   { closeStream(protocolStream);
     protocolStream = -1;
   }
@@ -748,47 +631,88 @@ closeProtocol()
 		*          STRING I/O           *
 		*********************************/
 
+
 bool
 seeString(char *s)
-{ inString = s;
+{ IOSTREAM *stream = Sopen_string(NULL, s, -1, "r");
+  PlFile f;
+  int n;
+  
+  for(n=3, f=&fileTable[n]; n<maxfiles; n++, f++)
+  { if ( !f->stream )
+    { f->stream = stream;
+      f->name   = NULL;
+      f->status = F_READ;
+      f->type   = ST_STRING;
 
-  succeed;
+      pushInputContext();
+      Input = n;
+      succeed;
+    }
+  }
+
+  return warning("Out of IO streams");
 }
+
 
 bool
 seeingString()
-{ return inString == (char *)NULL ? FALSE : TRUE;
+{ return fileTable[Input].type == ST_STRING;
 }
+
 
 bool
 seenString()
-{ inString = (char *) NULL;
+{ PlFile f = &fileTable[Input];
+
+  if ( f->stream )
+  { Sclose(f->stream);
+    f->stream = NULL;
+    f->status = F_CLOSED;
+    popInputContext();
+  }
 
   succeed;
 }
+
 
 bool
-tellString(char *s, long int n)
-{ outStringDepth++;
-  if ( outStringDepth >= MAXSTRINGNEST )
-  { warning("Exeeded maximum string based i/o nesting");
-    pl_abort();
-  }
-  outStringStack[outStringDepth].string = s;
-  outStringStack[outStringDepth].left = n - 1;		/* 1 for the EOS */
+tellString(char *s, int size)
+{ IOSTREAM *stream = Sopen_string(NULL, s, size, "w");
+  PlFile f;
+  int n;
+  
+  for(n=3, f=&fileTable[n]; n<maxfiles; n++, f++)
+  { if ( !f->stream )
+    { f->stream = stream;
+      f->name   = NULL;
+      f->status = F_WRITE;
+      f->type   = ST_STRING;
 
-  succeed;
+      pushOutputContext();
+      Output = n;
+      succeed;
+    }
+  }
+
+  return warning("Out of IO streams");
 }
+
 
 bool
 toldString()
-{ if ( outStringDepth > 0 )
-  { *outStringStack[outStringDepth].string = EOS;
-    outStringDepth--;
+{ PlFile f = &fileTable[Output];
+
+  if ( f->stream )
+  { Sclose(f->stream);
+    f->stream = NULL;
+    f->status = F_CLOSED;
+    popOutputContext();
   }
 
   succeed;
 }
+
 
 		/********************************
 		*        INPUT FILE NAME        *
@@ -796,10 +720,9 @@ toldString()
 
 Atom
 currentStreamName()
-{ if ( inString )
-    return NULL;
+{ PlFile f = &fileTable[Input];
 
-  return fileTable[Input].name;
+  return f->name;
 }
 
 		/********************************
@@ -822,17 +745,21 @@ pl_wait_for_input(Word streams, Word available, Word timeout)
   struct timeval t, *to;
   real time;
   int n, max = 0;
+  char fdmap[256];
 
   FD_ZERO(&fds);
   while( isList(*streams) )
   { Word head = HeadList(streams);
-    int fd;
+    IOSTREAM *s;
+    int n, fd;
 
     deRef(head);
-    fd = streamNo(head, F_READ);
-
-    if ( fd < 0 )
+    if ( (n = streamNo(head, F_READ)) < 0 )
       fail;
+    if ( !(s = fileTable[n].stream) || (fd=Sfileno(s)) < 0 )
+      fail;
+    fdmap[fd] = n;
+
     FD_SET(fd, &fds);
     if (fd > max) max = fd;
     streams = TailList(streams);
@@ -857,7 +784,7 @@ pl_wait_for_input(Word streams, Word available, Word timeout)
   for(n=0; n <= max; n++)
   { if ( FD_ISSET(n, &fds) )
     { TRY(unifyFunctor(available, FUNCTOR_dot2) );
-      TRY(unifyStreamName(HeadList(available), n));
+      TRY(unifyStreamName(HeadList(available), fdmap[n]));
       available = TailList(available);
       deRef(available);
     }
@@ -874,22 +801,11 @@ pl_wait_for_input(Word streams, Word available, Word timeout)
 		*********************************/
 
 word
-pl_tty_fold(Word old, Word new)
-{ TRY( unifyAtomic(old, consNum(fold)) );
-  if ( !isInteger(*new) )
-    return warning("tty_fold/2: instantiation fault");
-  fold = (int) valNum(*new);
-
-  succeed;
-}
-
-
-word
 pl_put(Word c)
 { Char chr;
   char *s;
 
-  if (isInteger(*c))
+  if ( isInteger(*c) )
   { chr = (int) valNum(*c);
     if (chr < 0 || chr > 255)
       return warning("put/1: argument is not an ascii character");
@@ -1147,7 +1063,7 @@ pl_open(Word file, Word mode, Word stream)
   if ( m == F_READ )
   { int in = Input;
     if ( openStream(*file, m, TRUE) )
-    { if ( setUnifyStreamNo(stream, Input) == TRUE )
+    { if ( setUnifyStreamNo(stream, Input) )
       { Input = in;
         succeed;
       }
@@ -1161,7 +1077,7 @@ pl_open(Word file, Word mode, Word stream)
   } else
   { int out = Output;
     if ( openStream(*file, m, TRUE) )
-    { if ( setUnifyStreamNo(stream, Output) == TRUE )
+    { if ( setUnifyStreamNo(stream, Output) )
       { Output = out;
         succeed;
       }
@@ -1290,29 +1206,39 @@ pl_flush_output(Word stream)
 
   if ( (n = streamNo(stream, F_WRITE)) < 0 )
     fail;
-  Fflush(fileTable[n].fd);
+  Sflush(fileTable[n].stream);
 
   succeed;
 }
 
-word
-pl_stream_position(Word stream, Word old, Word new)
+
+static IOSTREAM *
+ioStreamWithPosition(Word stream)
 { int n;
-  long oldcharno, charno, linepos, lineno;
+  IOSTREAM *s;
 
   if ( (n = streamNo(stream, F_READ|F_WRITE)) < 0 )
     fail;
-
-  TRY( unifyFunctor(old, FUNCTOR_stream_position3) );
-  if ( fileTable[n].isatty )
-  { charno  = ttyCharNo;
-    lineno  = ttyLineNo;
-    linepos = ttyLinePos;
-  } else
-  { charno  = fileTable[n].charno;
-    lineno  = fileTable[n].lineno;
-    linepos = fileTable[n].linepos;
+  s = fileTable[n].stream;
+  if ( !s->position )
+  { warning("Stream doesn't maintain position");
+    return NULL;
   }
+  
+  return s;
+}
+
+
+word
+pl_stream_position(Word stream, Word old, Word new)
+{ IOSTREAM *s;
+  long oldcharno, charno, linepos, lineno;
+
+  if ( !(s = ioStreamWithPosition(stream)) )
+    fail;
+  charno  = s->position->charno;
+  lineno  = s->position->lineno;
+  linepos = s->position->linepos;
   oldcharno = charno;
   TRY( unifyAtomic(argTermP(*old, 0), consNum(charno)) );
   TRY( unifyAtomic(argTermP(*old, 1), consNum(lineno)) );
@@ -1330,11 +1256,12 @@ pl_stream_position(Word stream, Word old, Word new)
   lineno = valNum(argTerm(*new, 1));
   linepos= valNum(argTerm(*new, 2));
 
-  if ( charno != oldcharno && fseek(fileTable[n].fd, charno, 0) < 0 )
+  if ( charno != oldcharno && Sseek(s, charno, 0) < 0 )
     return warning("Failed to set stream position: %s", OsError());
-  fileTable[n].charno = charno;
-  fileTable[n].lineno = (int) lineno;
-  fileTable[n].linepos = (int) linepos;
+
+  s->position->charno  = charno;
+  s->position->lineno  = lineno;
+  s->position->linepos = linepos;
   
   succeed;
 }
@@ -1373,38 +1300,32 @@ pl_current_output(Word stream)
 
 word
 pl_character_count(Word stream, Word count)
-{ int n;
-  long c;
+{ IOSTREAM *s = ioStreamWithPosition(stream);
 
-  if ( (n = streamNo(stream, F_WRITE|F_READ)) < 0 )
-    fail;
-  c = fileTable[n].isatty ? ttyCharNo : fileTable[n].charno;
+  if ( s )
+    return unifyAtomic(count, consNum(s->position->charno));
 
-  return unifyAtomic(count, consNum(c));
+  fail;
 }
 
 word
 pl_line_count(Word stream, Word count)
-{ int n;
-  long c;
+{ IOSTREAM *s = ioStreamWithPosition(stream);
 
-  if ( (n = streamNo(stream, F_WRITE|F_READ)) < 0 )
-    fail;
-  c = fileTable[n].isatty ? ttyLineNo : fileTable[n].lineno;
+  if ( s )
+    return unifyAtomic(count, consNum(s->position->lineno));
 
-  return unifyAtomic(count, consNum(c));
+  fail;
 }
 
 word
 pl_line_position(Word stream, Word count)
-{ int n;
-  long c;
+{ IOSTREAM *s = ioStreamWithPosition(stream);
 
-  if ( (n = streamNo(stream, F_WRITE|F_READ)) < 0 )
-    fail;
-  c = fileTable[n].isatty ? ttyLinePos : fileTable[n].linepos;
+  if ( s )
+    return unifyAtomic(count, consNum(s->position->linepos));
 
-  return unifyAtomic(count, consNum(c));
+  fail;
 }
 
 
@@ -1663,6 +1584,7 @@ pl_file_dir_name(Word f, Word b)
 
   return unifyAtomic(b, lookupAtom(DirName(stringAtom(*f))));
 }
+
 
 word
 pl_prolog_to_os_filename(Word pl, Word os)

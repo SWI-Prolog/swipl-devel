@@ -30,7 +30,6 @@ STATICLIBS=@STATICLIBS@
 AWK=@AWK@
 SED=sed
 LD_R=@LD_R@
-RM=rm
 ETAGS=@ETAGS@
 ARCH=@ARCH@
 INSTALL=@INSTALL@
@@ -57,7 +56,7 @@ RUNTIME=$(RUNTIMEDIR)/$(PL).o
 LIBRARYDIR=${PLBASE}/library
 
 
-OBJ=	pl-wam.o pl-save.o \
+OBJ=	pl-wam.o pl-save.o pl-stream.o \
 	pl-atom.o pl-arith.o pl-bag.o pl-comp.o pl-dump.o \
 	pl-dwim.o pl-ext.o pl-file.o pl-flag.o pl-fmt.o pl-funct.o \
 	pl-gc.o pl-glob.o pl-itf.o pl-list.o pl-load.o \
@@ -214,11 +213,12 @@ iman:
 #
 
 clean:
-		$(RM) -f *.o a.out core *~ #* parms.h
+		rm -f *.o a.out core *~ #* parms.h
 
 distclean:	clean
-		$(RM) -f $(STARTUPPATH)
-		$(RM) -f config.log config.cache
-		$(RM) -rf $(PL) pl-bite ../startup ../include ../runtime
+		rm -f config.log config.cache
 
-realclean:	distclean
+realclean:	clean
+		rm -f $(STARTUPPATH)
+		rm -f config.log config.cache
+		rm -rf $(PL) pl-bite ../startup ../include ../runtime

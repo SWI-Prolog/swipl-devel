@@ -39,7 +39,6 @@ forwards void	errorWarning(char *);
 forwards void	singletonWarning(Atom *, int);
 forwards void	clearBuffer(void);
 forwards void	addToBuffer(char);
-forwards Char	getchr(void);
 forwards char *	raw_read2(void);
 forwards char *	raw_read(void);
 
@@ -96,7 +95,6 @@ struct read_buffer
   char *base;			/* base of read buffer */
   char *here;			/* current position in read buffer */
   int   stream;			/* stream we are reading from */
-  FILE *fd;			/* file descriptor we are reading from */
 } rb;
 
 #if O_PCE
@@ -125,7 +123,6 @@ startRead(void)
   rb = rb_stack[read_nesting];
 #endif /* O_PCE */
   rb.stream = Input;
-  rb.fd = checkInput(rb.stream);
   source_file_name = currentStreamName();
 }
 
@@ -137,10 +134,6 @@ stopRead(void)
   rb = rb_stack[--read_nesting];
   if (read_nesting < 0)
     fatalError("Read stack underflow???");
-  if (read_nesting > 0)
-  { rb.fd = checkInput(rb.stream);
-  /*source_file_name = currentStreamName();*/
-  }
 #endif /* O_PCE */
 }
 
@@ -276,18 +269,7 @@ addToBuffer(register char c)
 }
 
 
-static Char
-getchr(void)
-{ register Char c;
-
-  if (rb.fd == (FILE *)NULL)
-  { c =  Get0();
-    base = rb.base;
-  } else if ((c = (Char) Getc(rb.fd)) == '\n')
-    newLineInput();
-
-  return c;
-}
+#define getchr() Get0()
 
 #define ensure_space(c) { if ( something_read && \
 			       (c == '\n'|| !isBlank(rb.here[-1])) ) \

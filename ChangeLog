@@ -1,6 +1,14 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.0.5
+=============
+
+  * MODIFIED: Replaced libc based stream IO with more general IOSTREAM
+    package.  Deleted folding capabilities as just about any IO device
+    has these built-in these days.  These changes are to facilate embedding
+    in window-based environments that do not support stdio.  See pl-stream.c
+
 Version 2.0.4
 =============
 

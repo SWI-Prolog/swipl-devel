@@ -168,7 +168,7 @@ pl_tty_goto(Word x, Word y)
   s = tgoto(stringAtom(e->value), (int)valNum(*x), (int)valNum(*y));
   if ( streq(s, "OOPS") )
     fail;
-  streamOutput(&tty_stream, (tputs(s, 1, put_character), TRUE));
+  streamOutput(&tty_stream, (tputs(s, 1, Put), TRUE));
 }
 
 word
@@ -177,7 +177,7 @@ pl_tty_put(Word a, Word affcnt)
 
   if ( s == NULL || !isInteger(*affcnt) )
     return warning("tty_put: instantiation fault");
-  streamOutput(&tty_stream, (tputs(s, (int)valNum(*affcnt), put_character), TRUE));
+  streamOutput(&tty_stream, (tputs(s, (int)valNum(*affcnt), Put), TRUE));
 }
 
 word

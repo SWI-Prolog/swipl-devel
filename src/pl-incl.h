@@ -112,6 +112,7 @@ This has worked on TURBO_C not very long ago.
 #if O_XOS
 #include <xos/xos.h>
 #endif
+#include "pl-stream.h"
 
 #include <sys/types.h>
 #include <setjmp.h>

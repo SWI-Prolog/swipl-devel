@@ -18,7 +18,7 @@
 PLVERSION=2.0.4
 
 PL=pl
-prefix=/staff/jan
+prefix=/usr/local
 exec_prefix=${prefix}
 bindir=$(exec_prefix)/bin
 PLBASE=$(prefix)/lib/pl-$(PLVERSION)
@@ -31,7 +31,6 @@ STATICLIBS=
 AWK=nawk
 SED=sed
 LD_R=ld -r
-RM=rm
 ETAGS=etags
 ARCH=sparc-sunos4.1.3
 INSTALL=/usr/gnu/bin/install -c
@@ -58,7 +57,7 @@ RUNTIME=$(RUNTIMEDIR)/$(PL).o
 LIBRARYDIR=${PLBASE}/library
 
 
-OBJ=	pl-wam.o pl-save.o \
+OBJ=	pl-wam.o pl-save.o pl-stream.o \
 	pl-atom.o pl-arith.o pl-bag.o pl-comp.o pl-dump.o \
 	pl-dwim.o pl-ext.o pl-file.o pl-flag.o pl-fmt.o pl-funct.o \
 	pl-gc.o pl-glob.o pl-itf.o pl-list.o pl-load.o \
@@ -215,12 +214,12 @@ iman:
 #
 
 clean:
-		$(RM) -f *.o a.out core *~ #* parms.h
+		rm -f *.o a.out core *~ #* parms.h
 
 distclean:	clean
-		$(RM) -f config.log config.cache
+		rm -f config.log config.cache
 
-distrealclean:	clean
-		$(RM) -f $(STARTUPPATH)
-		$(RM) -f config.log config.cache
-		$(RM) -rf $(PL) pl-bite ../startup ../include ../runtime
+realclean:	clean
+		rm -f $(STARTUPPATH)
+		rm -f config.log config.cache
+		rm -rf $(PL) pl-bite ../startup ../include ../runtime
