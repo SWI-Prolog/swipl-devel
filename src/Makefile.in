@@ -14,11 +14,13 @@
 #
 ################################################################
 
+PLVERSION=2.0.1
+
 PL=pl
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 bindir=$(exec_prefix)/bin
-PLBASE=$(prefix)/lib/$(PL)
+PLBASE=$(prefix)/lib/$(PL)-$(PLVERSION)
 mansec=1
 mandir=$(prefix)/man/man$(mansec)
 
@@ -83,7 +85,7 @@ banner:
 		@echo "****************"
 		@echo "Making SWI-Prolog $(PLVERSION) for $(ARCH)"
 		@echo "To be installed in $(prefix)/bin/$(PL)"
-		@echo "Home (libraries) in $(prefix)/lib/$(PL)"
+		@echo "Home (libraries) in $(PLBASE)
 		@echo "****************"
 
 $(PL):		$(ALLOBJ)
@@ -154,6 +156,9 @@ pl-funcs.h:	$(SRC)
 
 install:	idirs iboot ilib iinclude iruntime iman
 		$(INSTALL_DATA) $(STARTUPPATH) $(PLBASE)/startup/startup.$(ARCH)
+		if [ -r $(bindir)/$(PL) ]; then \
+			mv $(bindir)/$(PL) $(bindir)/$(PL).old; \
+		fi
 		$(INSTALL_PROGRAM) $(PL) $(bindir)
 		$(INSTALL_PROGRAM) pl-bite $(bindir)
 		cd $(PLBASE)/library; \
