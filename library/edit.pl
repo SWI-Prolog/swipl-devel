@@ -131,10 +131,14 @@ do_edit_source(Location) :-
 	edit_source(Location), !.
 do_edit_source(Location) :-
 	external_edit_command(Location, Command),
-	catch(shell(Command), E,
-	      (print_message(warning, E),
-	       fail)),
-	make.
+	print_message(informational, edit(waiting_for_editor)),
+	(   catch(shell(Command), E,
+		  (print_message(warning, E),
+		   fail))
+	->  print_message(informational, edit(make)),
+	    make
+	;   print_message(informational, edit(canceled))
+	).
 
 external_edit_command(Location, Command) :-
 	memberchk(file(File), Location),
@@ -192,6 +196,7 @@ edit_command(emacs,	  '%e +%d ''%f''').
 edit_command(emacs,	  '%e ''%f''').
 edit_command(notepad,     '"%e" "%f"').
 edit_command(wordpad,     '"%e" "%f"').
+edit_command(uedit32,     '%e "%f/%d/0"').	% ultraedit (www.ultraedit.com)
 edit_command(edit,        '%e %f:%d').		% private stuff
 edit_command(edit,        '%e %f').
 
@@ -315,6 +320,12 @@ prolog:message(edit(target(Location-Spec, N))) -->
 	edit_specifier(Spec),
 	[ '~t~32|' ],
 	edit_location(Location).
+prolog:message(edit(waiting_for_editor)) -->
+	[ 'Waiting for editor ... ', flush ].
+prolog:message(edit(make)) -->
+	[ 'Running make to reload modified files' ].
+prolog:message(edit(canceled)) -->
+	[ 'Editor returned failure; skipped make/0 to reload files' ].
 
 edit_specifier(Module:Name/Arity) -->
 	[ '~w:~w/~w'-[Module, Name, Arity] ].

@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: edit/1 to include definition for uedit32 (Tolga Konik)
+
+  * IMPROVED: edit/1 feedback when calling user editor through shell/2.
+
   * FIXED: Cleanup after exceptions inside the generator of
     bagof/setof/findall.  Left inconsistent linked-list with possibility
     for random crashes on further use of these predicates.  Spotted by
