@@ -756,6 +756,28 @@ ws_save_image_file(Image image, FileObj file, Name fmt)
 #else
     return errorPce(image, NAME_noImageFormat, NAME_xpm);
 #endif
+  } else if ( fmt == NAME_jpeg )
+  {
+#ifdef HAVE_LIBJPEG
+    HBITMAP bm;
+    IOSTREAM *fd;
+
+    if ( !(bm = getXrefObject(image, d)) )
+      fail;
+
+    if ( (fd = Sopen_object(file, "wbr")) )
+    { if ( write_jpeg_file(fd, bm) < 0 )
+	rval = errorPce(image, NAME_xError);
+      else
+	rval = SUCCEED;
+
+      Sclose(fd);
+    }
+
+    fail;
+#else
+    return errorPce(image, NAME_noImageFormat, NAME_xpm);
+#endif
   } else
   { int pnm_fmt;
     HBITMAP bm;
