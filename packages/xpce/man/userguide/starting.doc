@@ -18,10 +18,10 @@ Below we started \product{}/SWI-Prolog.
 % xpce
 ~/.xpcerc compiled, 0.09 sec, 10,636 bytes.
 .plrc compiled, 0.10 sec, 11,772 bytes.
-\product{} Development system (5.1.0, February 2001 for i686-linux and X11R6)
+XPCE Development system (5.1.0, February 2001 for i686-linux and X11R6)
 Copyright 1993-2001, University of Amsterdam.
 Copying: GPL-2 (see file COPYING or www.gnu.org)
-The host-language is SWI-Prolog version 3.4.5
+The host-language is SWI-Prolog version 4.0.0
 
 For HELP on prolog, please type help. or apropos(topic).
          on xpce, please type manpce.
@@ -32,7 +32,7 @@ For HELP on prolog, please type help. or apropos(topic).
 \index{version}%
 SWI-Prolog's prompt is ``<n> ?-'' where <n> is the
 history-number of the command. The banner indicates the \product{} version.
-The indicated version is 4.8 and the patch-level is 16.
+The indicated version is 5.1 and the patch-level is 0.
 \end{xpceonly}
 
 \begin{pwonly}
@@ -140,13 +140,15 @@ the default value described in the class definition.
 \subsection{Modifying object state: send}
 
 The state of an object may be manipulated using the predicate
-send/[2-12] (send(+Receiver, +Selector, ...Args...)).  The first two
-arguments of this predicate are an object reference and the name of
-the operation to perform, often called the {\em selector}:
+send/2 (send(+Receiver, +Selector(...Args...))).  The first 
+argument of this predicate is an object reference.  The second
+is a term.  The principal functor of which is the name of the
+method to invoke ({\em selector}) and the arguments are arguments
+to the operation.
     
 \begin{code}
-3 ?- send(@772024, x, 15).
-4 ?- send(@demo, append, text_item(name)).
+3 ?- send(@772024, x(15)).
+4 ?- send(@demo, append(text_item(name))).
 \end{code}
 
 The first example invokes the {\em method} `x' of the point object. It
@@ -173,22 +175,21 @@ an error of any kind appears, please refer to
 
 \subsection{Querying objects: get}
 
-The next fundamental interface predicate is get/[3-13].  It is used to
-obtain information on the state of objects.  Again, the first two
-arguments are the reference and selector.  The last argument is
-unified with the return-value and the remaining arguments are
-treated the same as with send/[2-12].  The return value is normally
-an object reference, except for \product{} \class{name} objects, that are
-returned as a Prolog \idx{atom},  \product{} integers (\idx{int}) that are
-translated to Prolog integers and \product{} \class{real} objects, that are
-translated to Prolog \idx{floating point} numbers.  Examples:
+The next fundamental interface predicate is get/3. It is used to obtain
+information on the state of objects. The first two arguments are the
+same as for send/2. The last argument is unified with the return-value.
+The return value is normally an object reference, except for \product{}
+\class{name} objects, that are returned as a Prolog \idx{atom},
+\product{} integers (\idx{int}) that are translated to Prolog integers
+and \product{} \class{real} objects, that are translated to Prolog
+\idx{floating point} numbers. Examples:
 
 \begin{code}
 6 ?- get(@772024, y, Y).
 Y = 20
 7 ?- get(@demo, display, D).
 D = @display/display
-8 ?- get(@772024, distance, point(100,100), Distance).
+8 ?- get(@772024, distance(point(100,100)), Distance).
 Distance = 117
 \end{code}
 
@@ -197,17 +198,17 @@ The second example returns the display object on which @demo is
 displayed.  This is the reference to an object of class display that
 represents your screen.%
     \footnote{Prolog would normally print `@display'.  The
-    	      library(pce_portray) defines a clause for the Prolog predicate
-	      portray/1 that prints object references as
-	      `@Reference/Class'.  This library is used throughout
-	      all the examples of this manual.}
+    	      \pllib{pce_portray} defines a clause for the Prolog
+	      predicate portray/1 that prints object references as
+	      `@Reference/Class'. This library is used throughout all
+	      the examples of this manual.}
 The last example again shows the creation of objects from the
-arguments to send/[2-12] and get/[3-13] and also shows that the
+arguments to send/2 and get/3 and also shows that the
 returned value does not need to be a direct instance variable of the
 object.  The return value is an integer representing the (rounded)
 distance between @772024 and point(100,100).
 
-The second example illustrates that get/[3-13] returns objects by
+The second example illustrates that get/3 returns objects by
 their reference.  This reference may be used for further queries.
 The example below computes the width and height of your screen.
 
@@ -222,7 +223,7 @@ As a final example, type something in the text entry field and try
 the following:
 
 \begin{code}
-10 ?- get(@demo, member, name, TextItem),
+10 ?- get(@demo, member(name), TextItem),
       get(TextItem, selection, Text).
 TextItem = @573481/text_item, Text = hello
 \end{code}
@@ -238,7 +239,7 @@ object appended to the dialog.  The next request obtains the
 
 \index{remove,objects}\index{object,remove}
 The final principal interface predicate is free/1.  Its argument is
-an object reference as returned by new/2 or get/[3-13].  It will remove
+an object reference as returned by new/2 or get/3.  It will remove
 the object from the \product{} object base.  Examples:
 
 \begin{code}
@@ -256,7 +257,7 @@ have been protected against freeing.
 
 \section{Optional arguments}
 
-\index{default arguments}\index{optional arguments}\index{argument,optional}
+\index{default arguments}\index{optional arguments}\index{argument,optional}%
 Arguments to \product{} methods are identified by their position.  Many
 methods have both obligatory and optional arguments.  If obligatory
 arguments are omitted \product{} will generate a warning.  If optional
@@ -294,7 +295,7 @@ The following example illustrates the usage of this method:
 
 \begin{code}
 1 ?- new(A, area),
-     send(A, set, y := 10, height := 50).
+     send(A, set(y := 10, height := 50)).
 \end{code}
 
 
@@ -314,7 +315,7 @@ from their name. The natural way to specify a box should be coloured
 
 \begin{code}
 ...,
-send(Box, colour, colour(red)),
+send(Box, colour(colour(red))),
 ...
 \end{code}
 
@@ -325,7 +326,7 @@ same goal:
 
 \begin{code}
 ...,
-send(Box, colour, red),
+send(Box, colour(red)),
 ...
 \end{code}
 
@@ -336,12 +337,34 @@ thus valid:
 
 \begin{code}
 ...,
-send(Box, x, '10'),		% atom --> int
-send(Box, selected, true),	% atom --> boolean
-send(Text, font, bold),		% atom --> font
-send(Text, string, 10),		% int  --> string
+send(Box, x('10')),		% atom --> int
+send(Box, selected(true)),	% atom --> boolean
+send(Text, font(bold)),		% atom --> font
+send(Text, string(10)),		% int  --> string
 ...
 \end{code}
+
+
+\section{Send and get with more arguments}	\label{sec:sendmanyargs}
+
+Though the principal predicates for invoking behaviour are send/2 and
+get/3, \product{} provides an alternative using send/[2-12] and
+get/[3-13].  The following goals are all identical.
+
+\begin{center}
+\begin{tabular}{ll}
+\tt send(Box, width(100)) &
+\tt send(Box, width, 100) \\
+\tt get(Point, distance(point(10,10), D) &
+\tt get(Point, distance, point(10,1), D) \\
+\end{tabular}
+\end{center}
+
+This alternative is provided for compatibility to pre-5.0 versions as
+well as to support users that dislike the new-style send/2 and get/3. It
+is realised using goal_expansion/2 and thus poses only a small
+compile-time overhead.
+
 
 \section{Notation}
 
@@ -385,19 +408,19 @@ the user to view a file.  \Figref{fileviewer} shows the result.
 \begin{pcecode}
 fileviewer(Dir) :-
 	new(F, frame('File Viewer')),
-	send(F, append, new(B, browser)),
-	send(new(D, dialog), below, B),
-	send(D, append,
-	     button(view, message(@prolog, view,
-				  B?selection?key))),
-	send(D, append,
-	     button(quit, message(F, destroy))),
-	send(B, members, directory(Dir)?files),
+	send(F, append(new(B, browser))),
+	send(new(D, dialog), below(B)),
+	send(D, append(button(view,
+			      message(@prolog, view,
+				      B?selection?key)))),
+	send(D, append(button(quit,
+			      message(F, destroy)))),
+	send(B, members(directory(Dir)?files)),
 	send(F, open).
 
 view(F) :-
 	send(new(V, view(F)), open),
-	send(V, load, F).
+	send(V, load(F)).
 \end{pcecode}
 
 The main window of the application consists of a \class{frame} holding
@@ -410,7 +433,7 @@ also \secref{framelayout}.
 
 In line 3, a \class{browser} is ->append{}ed to the frame object. A
 browser is a window specialised for displaying a list of objects.
-Browsers handle very large numbers of items effectively.  Next,
+Browsers handle very large numbers of items efficiently.  Next,
 a \class{dialog} is positioned below the browser.  A dialog is
 a window specialised in handling the layout of controllers, or
 \class{dialog_item} objects as \product{} calls them.
@@ -456,8 +479,8 @@ Line 8 appends a second button to the dialog window.  The dialog window
 will automatically align this one to the right of the first.  The action
 sends a message directly to another \product{} object and ->destroys the
 frame object if the quit button is pressed.  Note that this will erase
-all UI objects associated with the frame.  The garbage collector will
-destroy all related objects.
+all UI objects associated with the frame.  The garbage collector 
+destroys all related objects.
 
 Line 10 fills the \class{browser} with the files from the specified
 directory. The expression \mbox{\tt directory(Dir)?files} defines an
@@ -473,8 +496,8 @@ the names of all files in the directory. This expression is the same as:
 	...
 \end{code}
 
-Again, the garbage collector will take care of the directory and chain
-objects.  The browser will automatically convert the given names to
+Again, the garbage collector takes care of the directory and chain
+objects.  The browser automatically converts the given names to
 \class{dict_item} objects.%
     \footnote{This conversion is implemented with class
 	      \class{dict_item}.  In fact, the browser just specifies

@@ -17,11 +17,9 @@
 
 \include{intro}
 \include{starting}
-\include{globalarch}
 \include{online}
 \include{dialog}
 \include{graphics}
-\include{diaedit}
 \include{pceprolog}
 \include{udc}
 \include{classvar}
@@ -31,6 +29,9 @@
 \ifpw{}{\bibliographystyle{name}
 	\bibliography{pce}}
 \appendix
+\include{diaedit}
+\include{mswin}
+\include{globalarch}
 \include{interface}
 \include{memory}
 \include{trouble}

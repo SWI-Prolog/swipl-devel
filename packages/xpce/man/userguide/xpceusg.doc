@@ -1,5 +1,5 @@
-\documentclass{book}		% ProWindows (A5)
-%\documentclass[11pt]{book}	% XPCE (A4)
+%\documentclass{book}		% ProWindows (A5)
+\documentclass[11pt]{book}	% XPCE (A4)
 \usepackage{times}
 \usepackage{pl}
 \usepackage{xpce}
@@ -19,11 +19,11 @@
 \newcommand{\product}{{\sc xpce}}
 \newcommand{\plainproduct}{XPCE}
 \newcommand{\productpl}{{\sc xpce/p}rolog}
-\newcommand{\productversion}{4.9.3}
+\newcommand{\productversion}{5.1.0}
 \newcommand{\quintus}{Quintus}
 \newenvironment{xpceonly}{}{}
 \excludecomment{pwonly}
-\newcommand{\productdate}{May 1997}
+\newcommand{\productdate}{February 2001}
 
 \renewcommand{\runningtitle}{\product{} \productversion}
 \def\booktitle{Programming in XPCE/Prolog}
@@ -38,7 +38,7 @@
 
 \makeindex
 
-%\includeonly{techniques}
+\includeonly{intro}
 
 \begin{document}
 
@@ -64,7 +64,7 @@ in \productpl{} are portable across the supported X11 and Win32 (Windows
 %    \item \url[SICStus Prolog]{http://www.sics.se/isl/sicstus.html}
 %\end{itemize}
 
-{\it {\bf Partly} updated February 5, 1999 for \product{} version
+{\it Last updated February 12, 2001 for \product{} version
  \productversion}
 
 Copyright \copyright\ 1992-2001 University of Amsterdam
@@ -119,18 +119,44 @@ Anjo Anjewierden \\[1cm]
 object-oriented programming for Graphical User Interfaces.  Applications
 in \productpl{} are fully compatible across the supported X11 and
 Win32 (Windows 95 and Windows NT) platforms.\\[10pt]
+
+\noindent
+\ifpw{
+%% ProWindows version
 This document also applies to ProWindows 3.1, distributed by \\[5pt]
 AI International Ltd \\
 Castle Chambers, High Street, \\
 Berkhamsted, Hertfordshire, \\
 HP4 2DF, United Kingdom \\
-E-mail: \email{sales@aiil.co.uk}
+E-mail: \email{sales@aiil.co.uk}}{
+%% Open source XPCE/SWI-Prolog version
+This document also applies to XPCE/Prolog \productversion{} distributed
+as integrated packages to SWI-Prolog. Sources and binaries may be
+downloaded from
+
+\begin{quote}
+\url{http://www.swi.psy.uva.nl/products/SWI-Prolog/download.html}
+\end{quote}
+
+\noindent
+\product{} is distributed under the GPL (General Public Licence) version
+2 as available from the file COPYING or from \url{http://www.gnu.org}.
+{\bf Commercial licences}, preventing the GPL to be forced upon your
+proprietary code are available from the information URL mentioned
+below.}%ifpw
+Product information, documentation and additional resources specific to
+\product{} are available from
+
+\begin{quote}
+\url{http://www.swi.psy.uva.nl/products/xpce/}
+\end{quote}
+
 \vfil\vfil
 \noindent
 Titlepage created using \product{} \productversion{} on Windows-NT 4.0
 \vfil
 \noindent
-Last updated March 17, 1997 for \product{} version \productversion
+Last updated February 2001 for \product{} version \productversion
 \vfil
 \noindent
 Copyright \copyright\ 1992-1997 University of Amsterdam
@@ -140,3 +166,12 @@ Copyright \copyright\ 1992-1997 University of Amsterdam
 \input{body.tex}
 
 \end{document}
+
+
+
+
+
+
+
+
+

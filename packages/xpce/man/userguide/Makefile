@@ -18,7 +18,8 @@ COMMON=	intro.tex starting.tex globalarch.tex online.tex debug.tex \
 	udc.tex dragdrop.tex dragdropdemo.tex control.tex whoiswho.tex \
 	namedref.tex ugraphics.tex code.tex classvar.tex diaedit.tex \
 	dialog.tex wysiwyg.tex frame.tex error.tex application.tex \
-	resource.tex images.tex mlingual.tex summary.tex body.tex
+	resource.tex images.tex mlingual.tex summary.tex body.tex \
+	mswin.tex
 
 XPCETEX=	xpceusg.tex $(COMMON)
 PWTEX=		pwusg.tex pwinfo.tex $(COMMON)

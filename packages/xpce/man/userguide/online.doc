@@ -69,7 +69,7 @@ that documents the tool.
 
 The `Demo Programs' entry of the `File' menu starts an overview of the
 available demo programs. A demo can be started by double-clicking it.
-The sources of the demos may be found in \file{<home>/prolog/demo},
+The sources of the demos may be found in \metafile{<home>/prolog/demo},
 where <home> refers to the \product{} installation directory, which may
 be obtained using
 

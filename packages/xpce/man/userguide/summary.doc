@@ -54,7 +54,7 @@ send(Dialog, append,
 Class \class{@=} assigns a symbolic reference name to the argument
 object. It is used to define global objects in the class-variable
 display.initialise. See the system defaults file
-\file{<pcehome>/Defaults}. The following example from \file{Defaults}
+\metafile{<pcehome>/Defaults}. The following example from \file{Defaults}
 creates the objects @_dialog_bg and @_win_pen depending on whether or
 not the display is monochrome or colour.
 \begin{code}
