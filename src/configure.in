@@ -4,6 +4,7 @@ AC_INIT(pl-wam.c)
 
 AC_CONFIG_HEADER(config.h)
 AC_SUBST(PLBASE)
+AC_SUBST(FINALBASE)
 AC_SUBST(COFLAGS)
 AC_SUBST(CWFLAGS)
 AC_SUBST(CMFLAGS)
@@ -48,6 +49,11 @@ MKLIBS=staticlib
 RT=""
 PLVERSION=`cat ../VERSION`
 PLBASE="$prefix/lib/$PL-$PLVERSION"
+if test -z "FINALPREXIX"; then
+  FINALBASE="$PLBASE"
+else
+  FINALBASE="$FINALPREFIX/lib/$PL-$PLVERSION"
+fi
 CNFG=""				dnl Package configuration options
 
 dnl ****************************************************************
