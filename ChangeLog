@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORT: Check whether mmap() can map regular files and check for
+    the need of _XOPEN_SOURCE.  Fixes QNX portability. See
+    http://gollem.swi.psy.uva.nl/twiki/pl/bin/view/Porting/BuildQNX
+    
   * ENHANCED: allocate clause as one chunck, reducing allocations and
     memory-requirements and improving locality.
 

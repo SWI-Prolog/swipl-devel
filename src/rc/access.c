@@ -160,7 +160,7 @@ make_file_tag_def()
 }
 
 
-#ifdef MAPPED_ARCHIVE
+#if MAPPED_ARCHIVE
 
 static char *
 decode_member_header(RcArchive rca, const char *p0, RcMember mbr)
@@ -264,7 +264,7 @@ contentlength(const char *tag)
   return len;
 }
 
-#ifdef MAPPED_ARCHIVE
+#if MAPPED_ARCHIVE
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Find the location of the real  archive.   The  real  archive starts with
@@ -381,7 +381,7 @@ find_archive_dimensions(RcArchive rca)
 #endif /*MAPPED_ARCHIVE*/
 
 
-#ifdef MAPPED_ARCHIVE
+#if MAPPED_ARCHIVE
 
 static int
 scan_archive(RcArchive rca)
@@ -430,6 +430,7 @@ scan_archive(RcArchive rca)
 static int
 attach_archive(RcArchive rca)
 {
+#if MAPPED_ARCHIVE
 #ifdef HAVE_MMAP
   int fd;
 
@@ -510,7 +511,9 @@ errio:
     rc_errno = RCE_WINERRNO;
     return FALSE;
   }
-#else  /*WIN32*/
+#endif  /*WIN32*/
+#endif /*HAVE_MMAP*/
+#else /*MAPPED_ARCHIVE*/
 					/* bottom line, use files */
   if ( (rca->fd = fopen(rca->path, "rb")) )
   { struct stat buf;
@@ -526,8 +529,7 @@ errio:
   rc_errno = RCE_ERRNO;
   return FALSE;
 
-#endif /*WIN32*/
-#endif /*HAVE_MMAP*/
+#endif /*MAPPED_ARCHIVE*/
 }
 
 		 /*******************************
@@ -612,7 +614,7 @@ rc_seek(RcObject o, rc_offset to, int whence)
 }
 
 
-#ifndef MAPPED_ARCHIVE
+#if !MAPPED_ARCHIVE
 
 int
 updateFilePtr(RcObject o)
@@ -648,7 +650,7 @@ rc_read(RcObject o, void *buf, int bytes)
   if ( m->data )
   { mdata = m->data;
   } else
-#ifdef MAPPED_ARCHIVE
+#if MAPPED_ARCHIVE
   { mdata = (char *)m->archive->data + m->offset;
   }
 #else
@@ -722,7 +724,7 @@ rc_data(RcObject o, int *size)
   if ( m->data )
     return m->data;
   else
-#ifdef MAPPED_ARCHIVE
+#if MAPPED_ARCHIVE
     return (char *)m->archive->data + m->offset;
 #else
   { if ( (m->data = malloc(m->size)) )

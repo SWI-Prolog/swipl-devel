@@ -71,8 +71,10 @@
 #define RCE_WINERRNO	RCE_MKERRNO(5)
 #endif
 
-#if defined(HAVE_MMAP) || defined(WIN32)
+#ifndef MAPPED_ARCHIVE
+#if defined(CAN_MMAP_FILES) || defined(WIN32)
 #define MAPPED_ARCHIVE 1
+#endif
 #endif
 
 extern int	rc_errno;

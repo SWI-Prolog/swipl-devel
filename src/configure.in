@@ -799,6 +799,51 @@ fi
 rm -fr conftest*
 
 
+if test "$ac_cv_func_mmap" = "yes"; then
+  AC_MSG_CHECKING("whether mmap() maps regular files")
+  echo "dummy file" >> conftest.dummy
+  AC_TRY_RUN(
+  [
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+#ifdef HAVE_SYS_MMAN_H
+#include <sys/mman.h>
+#endif
+#ifndef MAP_FAILED
+#define MAP_FAILED ((void *)-1)
+#endif
+#ifndef MAP_NORESERVE
+#define MAP_NORESERVE 0
+#endif
+
+    main()
+    { int fd = open("conftest.dummy", O_RDONLY);
+      void *ptr;
+
+      ptr = mmap(NULL, 100,
+		 PROT_READ,
+		 MAP_SHARED|MAP_NORESERVE,
+		 fd,
+		 0);
+
+      if ( ptr == MAP_FAILED )
+        exit(1);
+    }
+  ],
+  AC_MSG_RESULT(yes)
+  AC_DEFINE(CAN_MMAP_FILES),
+  AC_MSG_RESULT(no),
+  AC_DEFINE(CAN_MMAP_FILES)
+  AC_MSG_RESULT(assuming yes))
+rm -f conftest.dummy
+fi
+
+
+
 if test "$ac_cv_func_mmap" = "yes" -a "$configmmappedstacks" = "yes"; then
 dnl ****************************************************************
 dnl First lets see whether our signal handler is POSIX.1b
