@@ -2,6 +2,8 @@
 			   ==============
 
 
+* ADDED: XFT-based font support for the Unix/X11 version.
+
 * FIXED: Environment handling for class process (Unix).
 
 * ADDED: Ongoing work on wide-character support.  Currently dealing with

@@ -432,7 +432,9 @@ d_image(Image i, int x, int y, int w, int h)
 
   if ( i->kind == NAME_bitmap )
   { DisplayWsXref r = d->ws_ref;
-    context.gcs = r->bitmap_context;
+
+    context.gcs   = r->bitmap_context;
+    context.depth = 1;
   }
 
   if ( isDefault(i->foreground) )
@@ -2450,8 +2452,8 @@ static XftDraw *
 xftDraw()
 { if ( !context.xft_draw )
   { if ( context.depth == 1 )
-    { context.gcs->xft_draw = XftDrawCreateBitmap(context.display,
-						  (Pixmap)context.drawable);
+    { context.xft_draw = XftDrawCreateBitmap(context.display,
+					     (Pixmap)context.drawable);
     } else if ( !context.gcs->xft_draw )
     { context.gcs->xft_draw = XftDrawCreate(context.display,
 					    context.drawable,
@@ -2553,7 +2555,7 @@ s_advance(String s, int from, int to)
 		     (FcChar32*)s->s_textW, s->size, &info);
   }
 
-  return info.width;			/* Xoff? */
+  return info.xOff;			/* Xoff? */
 }
 
 
@@ -2566,41 +2568,38 @@ lbearing(wint_t c)
   XftTextExtents32(context.display, context.gcs->xft_font, 
 		   s, 1, &info);
 
-  return -info.x;
+  return info.x;
 }
+
+
+static void
+xft_color(XftColor *c)
+{ if ( instanceOfObject(context.gcs->colour, ClassColour) )
+  { Colour cobj = context.gcs->colour;
+
+    c->pixel = getPixelColour(cobj, context.pceDisplay);
+    c->color.red   = valInt(cobj->red);
+    c->color.green = valInt(cobj->green);
+    c->color.blue  = valInt(cobj->blue);
+  } else				/* Pixmap colour.  Use black */
+  { c->color.red   = 0;
+    c->color.green = 0;
+    c->color.blue  = 0;
+  }
+  c->color.alpha = 0xffff;
+}
+
 
 
 void
 s_printA(charA *s, int l, int x, int y, FontObj f)
 { if ( l > 0 )
-  { XftColor color, c2;
+  { XftColor color;
 
-    if ( instanceOfObject(context.gcs->colour, ClassColour) )
-    { Colour c = context.gcs->colour;
-
-      getXrefObject(c, context.pceDisplay); /* open the colour */
-
-      color.color.red   = valInt(c->red);
-      color.color.green = valInt(c->green);
-      color.color.blue  = valInt(c->blue);
-    } else
-    { color.color.red	= 0;
-      color.color.green = 0;
-      color.color.blue  = 0;
-    }
-    color.color.alpha = 0xffff;
-    XftColorAllocValue(context.display,
-		       context.visual,
-		       context.colormap,
-		       &color.color,
-		       &c2);
+    xft_color(&color);
     Translate(x, y);
     s_font(f);
-    XftDrawString8(xftDraw(), &c2, context.gcs->xft_font, x, y, s, l);
-    XftColorFree(context.display,
-		 context.visual,
-		 context.colormap,
-		 &c2);
+    XftDrawString8(xftDraw(), &color, context.gcs->xft_font, x, y, s, l);
   }
 }
 
@@ -2610,19 +2609,7 @@ s_printW(charW *s, int l, int x, int y, FontObj f)
 { if ( l > 0 )
   { XftColor color;
 
-    color.pixel = getPixelColour(context.gcs->colour, context.pceDisplay);
-    if ( instanceOfObject(context.gcs->colour, ClassColour) )
-    { Colour c = context.gcs->colour;
-      color.color.red   = valInt(c->red);
-      color.color.green = valInt(c->green);
-      color.color.blue  = valInt(c->blue);
-    } else
-    { color.color.red	= 0;
-      color.color.green = 0;
-      color.color.blue  = 0;
-    }
-    color.color.alpha = 0xffff;
-
+    xft_color(&color);
     Translate(x, y);
     s_font(f);
     

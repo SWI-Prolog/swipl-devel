@@ -77,7 +77,7 @@ initialisePixmap(PixmapObj pm, Any from, Colour fg, Colour bg, Int w, Int h)
 
 
 static PixmapObj
-getLookupPixmap(Any receiver, Image i, Colour fg, Colour bg)
+getLookupPixmap(Any receiver, Image i, Colour fg, Colour bg, Int w, Int h)
 { Chain ch;
 
   if ( (ch = getAllHypersObject(i, OFF)) )
@@ -105,7 +105,7 @@ static PixmapObj
 getConvertPixmap(Class class, Any obj)
 { PixmapObj pm;
 
-  if ( (pm = getLookupPixmap(class, obj, DEFAULT, DEFAULT)) )
+  if ( (pm = getLookupPixmap(class, obj, DEFAULT, DEFAULT, DEFAULT, DEFAULT)) )
     answer(pm);
 
   if ( (pm = getConvertObject(class, obj)) )
@@ -190,7 +190,8 @@ static char *T_initialise[] =
         { "source=[image|file]*", "foreground=[colour]",
 	  "background=[colour]", "width=[int]", "height=[int]" };
 static char *T_lookup[] =
-        { "source=image", "foreground=[colour]", "background=[colour]" };
+        { "source=image", "foreground=[colour]", "background=[colour]",
+	  "width=[int]", "height=[int]"};
 
 /* Instance Variables */
 
@@ -215,7 +216,7 @@ static senddecl send_pixmap[] =
 static getdecl get_pixmap[] =
 { GM(NAME_convert, 1, "pixmap", "name|image|graphical|file", getConvertPixmap,
      NAME_oms, "Convert @name, image, graphical or file-data"),
-  GM(NAME_lookup, 3, "pixmap", T_lookup, getLookupPixmap,
+  GM(NAME_lookup, 5, "pixmap", T_lookup, getLookupPixmap,
      NAME_oms, "Lookup already made conversion"),
   GM(NAME_source, 0, "image|file*", NULL, getSourcePixmap,
      NAME_term, "Determine source for term representation")

@@ -226,7 +226,8 @@ ws_open_display(DisplayObj d)
   } else
   { int screen = DefaultScreen(display);
 
-    XSynchronize(display, True);
+    DEBUG(NAME_display,
+	  XSynchronize(display, True));
 
     ref->display_xref = display;
     ref->screen	      = screen;
