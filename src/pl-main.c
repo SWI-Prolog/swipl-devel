@@ -714,7 +714,7 @@ PL_initialise(int argc, char **argv)
   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF|
 		 _CRTDBG_CHECK_CRT_DF|
 		 //_CRTDBG_CHECK_ALWAYS_DF| 	/* very expensive */
-		 _CRTDBG_DELAY_FREE_MEM_DF|
+		 //_CRTDBG_DELAY_FREE_MEM_DF|   /* does not reuse freed mem */
 		 //_CRTDBG_LEAK_CHECK_DF|
 		 0);
 #endif
