@@ -559,7 +559,7 @@ utf8tobuffer(wchar_t c, Buffer buf)
     char *e = b;
     const char *s;
     
-    utf8_put_char(e, c);
+    e = utf8_put_char(e, c);
     for(s=b; s<e; s++)
       addBuffer(buf, *s, char);
   }

@@ -3874,7 +3874,7 @@ pl_prolog_to_os_filename(term_t pl, term_t os)
     char buf[MAXPATHLEN];
 
     _xos_long_file_nameW(wn, lbuf, MAXPATHLEN);
-    _xos_canonical_filenameW(lbuf, buf, MAXPATHLEN);
+    _xos_canonical_filenameW(lbuf, buf, MAXPATHLEN, 0);
 
     return PL_unify_chars(pl, PL_ATOM|REP_UTF8, -1, buf);
   }
