@@ -15,7 +15,6 @@
 forwards Int	getMatchingQuoteTextBuffer(TextBuffer, Int, Name);
 forwards int	match(TextBuffer, int, String, int, int);
 forwards int	room(TextBuffer, int, int);
-forwards int	count_lines_textbuffer(TextBuffer, int, int);
 forwards status capitalise_textbuffer(TextBuffer, int, int);
 forwards status clear_textbuffer(TextBuffer);
 forwards status downcase_textbuffer(TextBuffer, int, int);
@@ -73,7 +72,8 @@ static status
 unlinkTextBuffer(TextBuffer tb)
 { Any editor;
 
-  for_chain(tb->editors, editor, freeObject(editor));
+  for_chain(tb->editors, editor,
+	    send(ReceiverOfEditor(editor), NAME_lostTextBuffer, 0));
   clearChain(tb->editors);
 
   while( notNil(tb->first_fragment) )	/* destroy fragments */
@@ -134,6 +134,11 @@ loadTextBuffer(TextBuffer tb, FILE *fd, ClassDef def)
   fread(Address(tb, 0), sizeof(char), tb->size, fd); /* TBD */
   tb->gap_start = tb->size;
   tb->gap_end = tb->allocated - 1;
+
+  if ( tb->lines == 0 )
+  { tb->lines = -1;			/* indicate invalid */
+    tb->lines = count_lines_textbuffer(tb, 0, tb->size);
+  }
 
   tb->changed_start = tb->size;
   tb->changed_end = 0;  
@@ -1215,14 +1220,8 @@ inCommentTextBuffer(TextBuffer tb, Int pos, Int from)
 Int
 getLineNumberTextBuffer(TextBuffer tb, Int i)
 { int e = (isDefault(i) ? tb->size : valInt(i));
-  int n, l;
 
-  e = NormaliseIndex(tb, e);
-  for( n=0,l=1; n < e; n++ )
-    if ( tisendsline(tb->syntax, fetch_textbuffer(tb, n)) )
-      l++;
-
-  answer(toInt(l));
+  answer(toInt(count_lines_textbuffer(tb, 0, e) + 1));
 }
   
 
@@ -1262,7 +1261,7 @@ find_textbuffer(TextBuffer tb, int here, String str,
 
 
 static int
-match(register TextBuffer tb, int here, String s, int ec, int wm)
+match(TextBuffer tb, int here, String s, int ec, int wm)
 { int l = s->size;
   int i;
 
@@ -1306,7 +1305,7 @@ static void
 distribute_spaces(TextBuffer tb, int spaces, int nbreaks, long int *breaks)
 { int s = spaces / (nbreaks-1);
   int n, m;
-  int *extra = alloca(nbreaks * sizeof(int));
+  int *extra = (int *)alloca(nbreaks * sizeof(int));
   String space = str_spc(&tb->buffer);
 
   DEBUG(NAME_justify, Cprintf("%d spaces (each %d)\n", spaces, s));
@@ -1477,28 +1476,113 @@ sortTextBuffer(TextBuffer tb, Int from, Int to)
   return changedTextBuffer(tb);
 }
 
+		 /*******************************
+		 *	    LINE COUNTS		*
+		 *******************************/
 
-		/********************************
-		*     PRIMITIVE OPERATIONS      *
-		*********************************/
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Counting lines and finding lines.  This   is  in  some applications done
+quite often on long buffers and  therefore   we  have  written this at a
+rather low level. 
 
-static int
+count_lines_textbuffer()       finds the number of newlines in a region.
+start_of_line_n_textbuffer()   finds the character index of the nth-1 line.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
 count_lines_textbuffer(TextBuffer tb, int f, int t)
 { int lines = 0;
+  SyntaxTable syntax = tb->syntax;
 
   f = NormaliseIndex(tb, f);
   t = NormaliseIndex(tb, t);
 
-  for( ; f < t; f++ )
-    if ( tisendsline(tb->syntax, fetch(f)) )
-      lines++;
+  if ( f == 0 && t == tb->size && tb->lines >= 0 )
+    return tb->lines;			/* use the total count */
+
+  if ( istb8(tb) )
+  { char8 *b = tb->tb_buffer8;
+    int end1 = min(tb->gap_start, t);
+
+    for( ; f<end1; f++)
+    { if ( tisendsline(syntax, b[f]) )
+	lines++;
+    }
+    b += tb->gap_end - tb->gap_start + 1;
+    for( ; f<t; f++)
+    { if ( tisendsline(syntax, b[f]) )
+	lines++;
+    }
+  } else
+  { char16 *b = tb->tb_buffer16;
+    int end1 = min(tb->gap_start, t);
+
+    for( ; f<end1; f++)
+    { if ( tisendsline(syntax, b[f]) )
+	lines++;
+    }
+    b += tb->gap_end - tb->gap_start + 1;
+    for( ; f<t; f++)
+    { if ( tisendsline(syntax, b[f]) )
+	lines++;
+    }
+  }
 
   return lines;
 }
 
 
 int
-fetch_textbuffer(register TextBuffer tb, register int where)
+start_of_line_n_textbuffer(TextBuffer tb, int lineno)
+{ int i;
+  SyntaxTable syntax = tb->syntax;
+
+  if ( --lineno <= 0 )
+    return 0;
+
+  if ( istb8(tb) )
+  { char8 *b = tb->tb_buffer8;
+
+    for(i=0 ; i<tb->gap_start; i++)
+    { if ( tisendsline(syntax, b[i]) )
+      { if ( --lineno <= 0 )
+	  return i+1;
+      }
+    }
+    b += tb->gap_end - tb->gap_start + 1;
+    for( ; i<tb->size; i++)
+    { if ( tisendsline(syntax, b[i]) )
+      { if ( --lineno <= 0 )
+	  return i+1;
+      }
+    }
+  } else
+  { char16 *b = tb->tb_buffer16;
+
+    for(i=0 ; i<tb->gap_start; i++)
+    { if ( tisendsline(syntax, b[i]) )
+      { if ( --lineno <= 0 )
+	  return i+1;
+      }
+    }
+    b += tb->gap_end - tb->gap_start + 1;
+    for( ; i<tb->size; i++)
+    { if ( tisendsline(syntax, b[i]) )
+      { if ( --lineno <= 0 )
+	  return i+1;
+      }
+    }
+  }
+
+  return tb->size;
+}
+
+		/********************************
+		*     PRIMITIVE OPERATIONS      *
+		*********************************/
+
+int
+fetch_textbuffer(TextBuffer tb, int where)
 { int idx;
 
   if ( where < 0 || where >= tb->size )
@@ -1512,19 +1596,24 @@ fetch_textbuffer(register TextBuffer tb, register int where)
 static status
 store_textbuffer(TextBuffer tb, int where, wchar c)
 { long idx;
+  int old;
 
   if ( where < 0 || where >= tb->size )
     fail;
   idx = Index(tb, where);
 
   if ( istb8(tb) )
-  { if ( tb->tb_buffer8[idx] == c )
-      succeed;
-  } else
-  { if ( tb->tb_buffer16[idx] == c )
-      succeed;
-  }
+    old = tb->tb_buffer8[idx];
+  else
+    old = tb->tb_buffer16[idx];
     
+  if ( old == c )
+    succeed;
+  if ( tisendsline(tb->syntax, old) )
+    tb->lines--;
+  if ( tisendsline(tb->syntax, c) )
+    tb->lines++;
+
   start_change(tb, where);
   register_change_textbuffer(tb, where, 1);
 
@@ -1544,7 +1633,7 @@ status
 change_textbuffer(TextBuffer tb, int where, void *s, int len)
 { int w, n;
 
-  if ( len < 0 || where < 0 || where+len >= tb->size )
+  if ( len < 0 || where < 0 || where+len > tb->size )
     fail;
 
   register_change_textbuffer(tb, where, len);
@@ -1553,19 +1642,27 @@ change_textbuffer(TextBuffer tb, int where, void *s, int len)
   { char8 *s2 = s;
 
     for( w=where, n=0; n < len; n++, w++ )
-    { if ( tb->gap_start <= w )
-	tb->tb_buffer8[tb->gap_end + (w - tb->gap_start) + 1] = s2[n];
-      else
-	tb->tb_buffer8[w] = s2[n];
+    { long i = Index(tb, w);
+      if ( tb->tb_buffer8[i] != s2[n] )
+      { if ( tisendsline(tb->syntax, tb->tb_buffer8[i]) )
+	  tb->lines--;
+	if ( tisendsline(tb->syntax, s2[n]) )
+	  tb->lines++;
+	tb->tb_buffer8[i] = s2[n];
+      }
     }
   } else
   { char16 *s2 = s;
 
     for( w=where, n=0; n < len; n++, w++ )
-    { if ( tb->gap_start <= w )
-	tb->tb_buffer16[tb->gap_end + (w - tb->gap_start) + 1] = s2[n];
-      else
-	tb->tb_buffer16[w] = s2[n];
+    { long i = Index(tb, w);
+      if ( tb->tb_buffer16[i] != s2[n] )
+      { if ( tisendsline(tb->syntax, tb->tb_buffer16[i]) )
+	  tb->lines--;
+	if ( tisendsline(tb->syntax, s2[n]) )
+	  tb->lines++;
+	tb->tb_buffer16[i] = s2[n];
+      }
     }
   }
 
@@ -1735,6 +1832,7 @@ insert_file_textbuffer(TextBuffer tb, int where, int times, FileObj file)
 { int size;
   char8 *addr;
   int unitsize = (istb8(tb) ? sizeof(char8) : sizeof(char16));
+  int grow, here;
 
   if ( times <= 0 )
     succeed;
@@ -1750,12 +1848,13 @@ insert_file_textbuffer(TextBuffer tb, int where, int times, FileObj file)
   room(tb, where, times*size);
   start_change(tb, tb->gap_start);
   addr = Address(tb, tb->gap_start);
+  grow = times*size;
 
   size = fread(addr, unitsize, size, file->fd);
-  TRY(checkErrorFile(file));
-  TRY(closeFile(file));
+  TRY(checkErrorFile(file) &&
+      closeFile(file));
 
-  register_insert_textbuffer(tb, where, times*size);
+  register_insert_textbuffer(tb, where, grow);
 
   tb->gap_start += size;
   tb->size += size;
@@ -1766,6 +1865,12 @@ insert_file_textbuffer(TextBuffer tb, int where, int times, FileObj file)
     tb->size += size;
   }
   end_change(tb, tb->gap_start);
+
+					/* update <-lines */
+  for(here=where; here<where+grow; here++)
+  { if ( tisendsline(tb->syntax, fetch(here)) )
+      tb->lines++;
+  }
 
   shift_fragments(tb, where, times*size);
   CmodifiedTextBuffer(tb, ON);
@@ -1780,6 +1885,7 @@ insert_textbuffer_shift(TextBuffer tb, int where, int times,
 { int grow;
   int unitsize;
   int size;
+  int here;
 
   if ( istb8(tb) )
   { unitsize = sizeof(char8);
@@ -1802,8 +1908,14 @@ insert_textbuffer_shift(TextBuffer tb, int where, int times,
   }
   end_change(tb, tb->gap_start);  
 
+  for(here=where; here<where+grow; here++)
+  { if ( tisendsline(tb->syntax, fetch(here)) )
+      tb->lines++;
+  }
+
   if ( shift )
     shift_fragments(tb, where, grow);
+
   CmodifiedTextBuffer(tb, ON);
 
   succeed;
@@ -1818,14 +1930,16 @@ insert_textbuffer(TextBuffer tb, int where, int times, String s)
 
 static status
 clear_textbuffer(TextBuffer tb)
-{ if ( tb->tb_buffer8 != NULL )
-    pceFree(tb->tb_buffer8);
+{ register_delete_textbuffer(tb, 0, tb->size);
 
-  register_delete_textbuffer(tb, 0, tb->size);
+  if ( tb->tb_buffer8 != NULL )
+    pceFree(tb->tb_buffer8);
+  
   start_change(tb, 0);
   end_change(tb, tb->size);
 
   tb->size = 0;
+  tb->lines = 0;
   tb->allocated = ALLOC;
   tb->tb_buffer8 = pceMalloc(istb8(tb) ? ALLOC : ALLOC*2);
 
@@ -2105,6 +2219,8 @@ static vardecl var_textBuffer[] =
      NAME_storage, "End of gap in buffer"),
   IV(NAME_size, "alien:int", IV_NONE,
      NAME_cardinality, "Number of valid characters in buffer"),
+  IV(NAME_lines, "alien:int", IV_NONE,
+     NAME_cardinality, "Number of newlines in the buffer"),
   IV(NAME_allocated, "alien:int", IV_NONE,
      NAME_storage, "Total size of buffer"),
   IV(NAME_undoBuffer, "alien:UndoBuffer", IV_NONE,

@@ -172,7 +172,7 @@ sub subheader
   while (<ARGV>)
   { if ( /^\s+\*\s+((\s*\S+)+)\s+\*\s$/ )
     { $header = &lower($1);
-      print "\n\\$subsectionkind{\u$header}\n\n";
+      print "\n\\$subsectionkind{$header}\n\n";
     } elsif (/\*\//)
     { return;
     }

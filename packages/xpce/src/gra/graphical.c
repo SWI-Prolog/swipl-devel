@@ -2687,7 +2687,7 @@ drawPolyGraphical(Graphical gr, Any points, Bool closed, Any fill)
   { Chain ch = points;
     Cell cell;
 
-    pts = alloca(sizeof(ipoint) * valInt(ch->size));
+    pts = (IPoint)alloca(sizeof(ipoint) * valInt(ch->size));
     for_cell(cell, ch)
     { Point pt = cell->value;
 
@@ -2703,7 +2703,7 @@ drawPolyGraphical(Graphical gr, Any points, Bool closed, Any fill)
   { Vector vector = points;
     Point pt;
     
-    pts = alloca(sizeof(ipoint) * valInt(vector->size));
+    pts = (IPoint) alloca(sizeof(ipoint) * valInt(vector->size));
 
     for_vector(vector, pt,
 	       { if ( instanceOfObject(pt, ClassPoint) )
@@ -2950,7 +2950,7 @@ static senddecl send_graphical[] =
      NAME_area, "Move origin to argument"),
   SM(NAME_normalise, 0, NULL, normaliseGraphical,
      NAME_area, "Make top-left corner the origin"),
-  SM(NAME_orientation, 1, "{north_west,south_east,north_east,south_east}",
+  SM(NAME_orientation, 1, "{north_west,south_west,north_east,south_east}",
      orientationGraphical,
      NAME_area, "Put origin at {north,south}_{west,east}"),
   SM(NAME_position, 1, "point", positionGraphical,
@@ -3132,7 +3132,7 @@ static getdecl get_graphical[] =
      NAME_area, "Height of graphical"),
   GM(NAME_leftSide, 0, "int", NULL, getLeftSideGraphical,
      NAME_area, "Left-side of graphical"),
-  GM(NAME_orientation, 0, "{north_west,south_east,north_east,south_east}",
+  GM(NAME_orientation, 0, "{north_west,south_west,north_east,south_east}",
      NULL, getOrientationGraphical,
      NAME_area, "Current orientation"),
   GM(NAME_position, 0, "point", NULL, getPositionGraphical,

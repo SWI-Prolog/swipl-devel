@@ -177,7 +177,8 @@ resolveGetMethodObject(Any obj, Class class, Name sel, Any *receiver)
 { Any m;
   Cell cell;
 
-  *receiver = obj;
+  if ( receiver )
+    *receiver = obj;
 
   if ( !class )
   { if ( onFlag(obj, F_ACTIVE|F_GETMETHOD|F_ATTRIBUTE) )
@@ -188,7 +189,8 @@ resolveGetMethodObject(Any obj, Class class, Name sel, Any *receiver)
 	if ( (obj = getExecuteFunction((Function) obj)) )
 	{ if ( isInteger(obj) )
 	    obj = answerObject(ClassNumber, obj, 0);
-	  *receiver = obj;
+	  if ( receiver )
+	    *receiver = obj;
 	} else
 	{ resolve_errno = RE_FUNCTION_FAILED;
 	  fail;
@@ -228,7 +230,8 @@ resolveGetMethodObject(Any obj, Class class, Name sel, Any *receiver)
 
     if ( (val = getGetVariable(var, obj, 0, NULL)) &&
 	 (m = resolveGetMethodObject(val, NULL, sel, &r)) )
-    { *receiver = r;
+    { if ( receiver )
+	*receiver = r;
       return m;
     }
   }

@@ -98,7 +98,6 @@ static int		display_depth;	/* depth of the display */
 
 static void	r_update_pen(void);	/* Update the pen context */
 static void	r_default_background(Any bg);
-static COLORREF cref_colour(Colour c);
 static void	push_context(void);
 static void	empty_brush_cache(void);
 static void	make_default_context(void);
@@ -290,7 +289,7 @@ d_flush(void)
 
 status
 d_mswindow(PceWindow sw, IArea a, int clear)
-{ FrameObj fr = getFrameWindow(sw);
+{ FrameObj fr = getFrameWindow(sw, DEFAULT);
   HPALETTE hpal = NULL;
 
   push_context();
@@ -776,15 +775,24 @@ r_update_pen()
 	} else
 	  style = PS_SOLID;
       } else if ( context.texture == NAME_dotted )
+      { LOGBRUSH lbrush;
+
+	lbrush.lbStyle = BS_SOLID;
+	lbrush.lbColor = context.rgb;
+	lbrush.lbHatch = 0L;
+
+	context.hpen = ExtCreatePen(PS_COSMETIC|PS_ALTERNATE, 1,
+				    &lbrush, 0, NULL);
+	context.stockpen = FALSE;
+	goto out;
+      } else if ( context.texture == NAME_dashed )
 	style = PS_DOT;
-      else if ( context.texture == NAME_dashed )
-	style = PS_DASH;
       else if ( context.texture == NAME_dashdot )
 	style = PS_DASHDOT;
       else if ( context.texture == NAME_dashdotted )
 	style = PS_DASHDOTDOT;
       else if ( context.texture == NAME_longdash )
-	style = PS_DASH;		/* not supported */
+	style = PS_DASH;
       
       context.hpen = ZCreatePen(style, context.thickness, context.rgb);
       context.stockpen = FALSE;
@@ -944,7 +952,7 @@ declareWindowsBrush(Any obj, HBRUSH brush)
 }
 
 
-static HBRUSH
+HBRUSH
 standardWindowsBrush(Any obj)
 { Int b;
 
@@ -1081,7 +1089,7 @@ r_translate(int x, int y, int *ox, int *oy)
 
 
 void
-r_box(int x, int y, int w, int h, int r, Image fill)
+r_box(int x, int y, int w, int h, int r, Any fill)
 { if ( context.thickness > 0 || notNil(fill) )
   { if ( context.thickness > 0 || r > 1 )
     { int da = context.thickness / 2;
@@ -1130,7 +1138,7 @@ r_shadow_box(int x, int y, int w, int h, int r, int shadow, Image fill)
 
 #define MAX_SHADOW 10
 
-static COLORREF
+COLORREF
 cref_colour(Colour c)
 { COLORREF r = (COLORREF) getXrefObject(c, context.display);
   int exact;
@@ -1476,7 +1484,7 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
       
       for(i=0, os=0; os < shadow; os += pen)
       { s[i].x1 = xt+os;	s[i].y1 = yt+h-1-os;	/* bottom-side */
-	s[i].x2 = xt+w-1-os;	s[i].y2 = yt+h-1-os;
+	s[i].x2 = xt+w/*-1*/-os;	s[i].y2 = yt+h-1-os;
 	i++;
 	s[i].x1 = xt+w-1-os;	s[i].y1 = yt+os;	/* right-side */
 	s[i].x2 = xt+w-1-os;	s[i].y2 = yt+h-1-os;
@@ -1488,6 +1496,50 @@ r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up)
 
   if ( notDefault(e->colour) )
     r_fill(x+shadow, y+shadow, w-2*shadow, h-2*shadow, e->colour);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Draw a 3-d rectangle a-la Windows  95.   The  colours are hard to figure
+out. The first z elements array   colours  contain the highlighted side.
+The middle one the top and the final z the side in the shadow.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+r_3d_rectangle(int x, int y, int w, int h, int z, COLORREF *colours)
+{ RECT rect;
+  HBRUSH hbrush;
+  HDC hdc = context.hdc;
+  int i;
+					/* fill the top */
+  hbrush = ZCreateSolidBrush(colours[z]);
+  rect.left   = x + z;
+  rect.right  = x + w - z;
+  rect.top    = y + z;
+  rect.bottom = y + h - z;
+
+  FillRect(context.hdc, &rect, hbrush);
+  ZDeleteObject(hbrush);
+
+  for(i=0; i < z; i++)
+  { HPEN pen = ZCreatePen(PS_SOLID, 1, colours[i]);
+    HPEN old = ZSelectObject(hdc, pen);
+
+    MoveTo(hdc, x+i, y+i); LineTo(hdc, x+w-1-i, y+i); /* top-side */
+    MoveTo(hdc, x+i, y+i); LineTo(hdc, x+i, y+h-1-i); /* left-side */
+    ZSelectObject(hdc, old);
+    ZDeleteObject(pen);
+  }
+
+  for(i=0; i < z; i++)
+  { HPEN pen = ZCreatePen(PS_SOLID, 1, colours[z*2-i]);
+    HPEN old = ZSelectObject(hdc, pen);
+
+    MoveTo(hdc, x+i, y+h-1-i); LineTo(hdc, x+w-i,   y+h-1-i); /* bottom-side */
+    MoveTo(hdc, x+w-1-i, y+i); LineTo(hdc, x+w-1-i, y+h-1-i); /* right-side */
+    ZSelectObject(hdc, old);
+    ZDeleteObject(pen);
+  }
 }
 
 
@@ -2434,27 +2486,16 @@ ps_string(String s, FontObj font, int x, int y, int w, Name format)
 }
 
 
-void
-str_label(String s, int acc, FontObj font, int x, int y, int w, int h,
-	  Name hadjust, Name vadjust)
-{ strTextLine lines[MAX_TEXT_LINES];
-  strTextLine *line;
-  int nlines, n;
-  int baseline;
-  UINT oalign;
-
-  if ( s->size == 0 )
-    return;
-
-  s_font(font);
-  baseline = s_ascent(font);
-  str_break_into_lines(s, lines, &nlines);
-  str_compute_lines(lines, nlines, font, x, y, w, h, hadjust, vadjust);
-
-  oalign = SetTextAlign(context.hdc, TA_BASELINE|TA_LEFT|TA_NOUPDATECP);
+static void
+str_draw_text_lines(int acc, FontObj font,
+		    int nlines, strTextLine *lines,
+		    int ox, int oy)
+{ strTextLine *line;
+  int n;
+  int baseline = s_ascent(font);
 
   for(n=0, line = lines; n++ < nlines; line++)
-  { str_text(&line->text, line->x, line->y+baseline);
+  { str_text(&line->text, line->x+ox, line->y+baseline+oy);
 
     if ( acc )
     { int cx = line->x;
@@ -2465,7 +2506,7 @@ str_label(String s, int acc, FontObj font, int x, int y, int w, int h,
 	int cw = c_width(c, font);
 
 	if ( tolower(c) == acc )
-	{ r_line(cx, line->y+baseline+1, cx+cw, line->y+baseline+1);
+	{ r_line(cx+ox, line->y+baseline+1+oy, cx+cw, line->y+baseline+1);
 	  acc = 0;
 	  break;
 	}
@@ -2474,6 +2515,34 @@ str_label(String s, int acc, FontObj font, int x, int y, int w, int h,
       }
     }
   }
+}
+
+
+void
+str_label(String s, int acc, FontObj font, int x, int y, int w, int h,
+	  Name hadjust, Name vadjust, int flags)
+{ strTextLine lines[MAX_TEXT_LINES];
+  int nlines;
+  UINT oalign;
+
+  if ( s->size == 0 )
+    return;
+
+  s_font(font);
+  str_break_into_lines(s, lines, &nlines);
+  str_compute_lines(lines, nlines, font, x, y, w, h, hadjust, vadjust);
+
+  oalign = SetTextAlign(context.hdc, TA_BASELINE|TA_LEFT|TA_NOUPDATECP);
+
+  if ( flags & LABEL_INACTIVE )
+  { COLORREF old = SetTextColor(context.hdc, RGB(255,255,255));
+
+    str_draw_text_lines(acc, font, nlines, lines, 1, 1);
+    SetTextColor(context.hdc, ws_3d_grey());
+    str_draw_text_lines(acc, font, nlines, lines, 0, 0);
+    SetTextColor(context.hdc, old);
+  } else
+    str_draw_text_lines(acc, font, nlines, lines, 0, 0);
 
   SetTextAlign(context.hdc, oalign);
 }

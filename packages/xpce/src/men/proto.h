@@ -1,5 +1,6 @@
 
 /* men/button.c */
+int		accelerator_code(Name a);
 status		RedrawAreaButton(Button b, Area a);
 Point		getReferenceButton(Button b);
 status		makeButtonGesture(void);
@@ -8,7 +9,10 @@ status		makeClassButton(Class class);
 /* men/dialogitem.c */
 status		createDialogItem(Any obj, Name name);
 status		unlinkDialogItem(DialogItem di);
-status		labelDialogItem(DialogItem di, Name label);
+status		RedrawLabelDialogItem(Any obj, int acc, int x, int y, int w, int h, Name hadjust, Name vadjust, int flags);
+status		dia_label_size(Any obj, int *w, int *h, int *isimage);
+status		labelDialogItem(DialogItem di, Any label);
+status		labelFontDialogItem(DialogItem di, FontObj font);
 status		forwardDialogItem(DialogItem di, Code msg, EventObj ev);
 status		eventDialogItem(Any obj, EventObj ev);
 status		changedDialogItem(Any obj);
@@ -52,6 +56,10 @@ status		makeClassPopup(Class class);
 status		makeClassSlider(Class class);
 
 /* men/textitem.c */
+Browser		CompletionBrowser(void);
+status		completerShownDialogItem(Any di);
+status		quitCompleterDialogItem(Any di);
+status		selectCompletionDialogItem(Any item, Chain matches, CharArray searchstring, Int autohide);
 status		makeClassTextItem(Class class);
 
 /* men/tab.c */

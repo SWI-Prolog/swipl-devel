@@ -9,7 +9,6 @@ status		makeClassWindowDecorator(Class class);
 
 /* win/dialog.c */
 status		displayDialog(Dialog d, Graphical item, Point pos);
-Name		defaultAccelerator(void);
 status		makeClassDialog(Class class);
 
 /* win/display.c */
@@ -97,6 +96,7 @@ status		createdWindow(PceWindow sw);
 status		grabPointerWindow(PceWindow sw, Bool val);
 status		grabKeyboardWindow(PceWindow sw, Bool val);
 status		unlinkWindow(PceWindow sw);
+PceWindow	userWindow(PceWindow sw);
 status		updatePositionWindow(PceWindow sw);
 status		resizeWindow(PceWindow sw);
 void		offset_window(PceWindow sw, int *x, int *y);
@@ -122,6 +122,6 @@ status		get_display_position_window(PceWindow sw, int *X, int *Y);
 PceWindow	getUserWindow(PceWindow sw);
 status		frameWindow(PceWindow sw, FrameObj frame);
 TileObj		getTileWindow(PceWindow sw);
-FrameObj	getFrameWindow(PceWindow sw);
+FrameObj	getFrameWindow(PceWindow sw, Bool create);
 status		flushWindow(PceWindow sw);
 status		makeClassWindow(Class class);

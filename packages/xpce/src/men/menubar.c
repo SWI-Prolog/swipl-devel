@@ -96,6 +96,9 @@ computeMenuBar(MenuBar mb)
   int gap;
   int h = 0;
 
+  if ( hasSendMethodObject(mb, NAME_assignAccelerators) ) /* TBD */
+    send(mb, NAME_assignAccelerators, 0);
+
   obtainResourcesObject(mb);
   gap = valInt(mb->gap);
 
@@ -147,6 +150,26 @@ showPopupMenuBar(MenuBar mb, PopupObj p)
 }
 
 
+static status
+cancelMenuBar(MenuBar mb, EventObj ev)
+{ PceWindow sw = ev->window;
+
+  if ( notNil(mb->current) && mb->current->displayed == ON )
+  { PopupObj current = mb->current;
+
+    send(mb->current, NAME_close, 0);
+    assign(mb, current, NIL);
+
+    changedMenuBarButton(mb, current);
+  }
+
+  grabPointerWindow(sw, OFF);
+  focusWindow(sw, NIL, NIL, NIL, NIL);
+
+  succeed;
+}
+
+
 		/********************************
 		*            EVENTS		*
 		********************************/
@@ -188,34 +211,19 @@ keyMenuBar(MenuBar mb, Name key)
 
   if ( mb->active == OFF )
     fail;
-
 					/* show popup if matching key */
   for_cell(cell, mb->buttons)
   { Button b = cell->value;
     
-    if ( b->accelerator == key )
+    if ( b->active == ON && b->accelerator == key )
     { PceWindow sw = getWindowGraphical((Graphical)mb);
 
       attributeObject(mb, NAME_Stayup, ON);
       showPopupMenuBar(mb, b->popup);
+      previewMenu((Menu)b->popup, getHeadChain(b->popup->members));
 
       grabPointerWindow(sw, ON);
       focusWindow(sw, (Graphical) mb, DEFAULT, DEFAULT, NIL);
-
-      succeed;
-    }
-  }
-
-					/* immediately execute items? */
-  for_cell(cell, mb->members)
-  { PopupObj p = cell->value;
-
-    if ( keyPopup(p, key) )
-    { currentMenuBar(mb, p);
-      flushGraphical(mb);
-      send(p, NAME_execute, mb, 0);
-      if ( !isFreedObj(mb) )
-	currentMenuBar(mb, NIL);
 
       succeed;
     }
@@ -228,6 +236,8 @@ keyMenuBar(MenuBar mb, Name key)
 static status
 eventMenuBar(MenuBar mb, EventObj ev)
 { PopupObj p;
+  static Int lastx;
+  static Int lasty;
 
   if ( mb->active == OFF )
     fail;
@@ -237,9 +247,11 @@ eventMenuBar(MenuBar mb, EventObj ev)
 
   if ( notNil(mb->current) )
   { if ( isDragEvent(ev) || isAEvent(ev, NAME_locMove) )
-    { if ( (p = getPopupFromEventMenuBar(mb, ev)) && p != mb->current )
-	showPopupMenuBar(mb, p);
-      postEvent(ev, (Graphical) mb->current, DEFAULT);
+    { if ( ev->x != lastx || ev->y != lasty )
+      { if ( (p = getPopupFromEventMenuBar(mb, ev)) && p != mb->current )
+	  showPopupMenuBar(mb, p);
+	postEvent(ev, (Graphical) mb->current, DEFAULT);
+      }
     } else if ( isUpEvent(ev) )
     { PceWindow sw = ev->window;
       PopupObj p;
@@ -282,8 +294,50 @@ eventMenuBar(MenuBar mb, EventObj ev)
 	  }
 	}
       }
+    } else if ( isAEvent(ev, NAME_keyboard) )
+    { PopupObj current = mb->current;
+      int pref;
+
+      if ( (pref = isAEvent(ev, NAME_cursorLeft)) ||
+	   isAEvent(ev, NAME_cursorRight) )
+      { PopupObj next;
+
+	if ( pref )
+	{ if ( !(next = getPreviousChain(mb->members, mb->current)) )
+	    next = getTailChain(mb->members);
+	} else
+	{ if ( !(next = getNextChain(mb->members, mb->current)) )
+	    next = getHeadChain(mb->members);
+	}
+
+	showPopupMenuBar(mb, next);
+
+	if ( !emptyChain(next->members) )
+	  previewMenu((Menu)next, getHeadChain(next->members));
+      } else if ( ev->id == toInt(27) )	/* ESC ... */
+      {	cancelMenuBar(mb, ev);
+      } else
+      { PceWindow sw = ev->window;
+      
+	postEvent(ev, (Graphical)current, DEFAULT);
+
+	if ( mb->current->displayed == OFF )
+	{ grabPointerWindow(sw, OFF);
+	  focusWindow(sw, NIL, NIL, NIL, NIL);
+  
+	  if ( notNil(mb->current->selected_item) )
+	  { assign(mb, current, NIL);
+	    send(current, NAME_execute, mb, 0);
+	    if ( !onFlag(mb, F_FREED|F_FREEING) )
+	      changedMenuBarButton(mb, current);
+	  }
+	}
+      }
     } else
-      postEvent(ev, (Graphical) mb->current, DEFAULT);
+      postEvent(ev, (Graphical)mb->current, DEFAULT);
+
+    lastx = ev->x;
+    lasty = ev->y;
 
     succeed;
   } else
@@ -293,10 +347,16 @@ eventMenuBar(MenuBar mb, EventObj ev)
 	postEvent(ev, (Graphical) mb->current, DEFAULT);
 	focusCursorGraphical((Graphical)mb,
 			     getResourceValueObject(p, NAME_cursor));
+	lastx = ev->x;
+	lasty = ev->y;
+
 	succeed;
       }
     }
   }
+
+  lastx = ev->x;
+  lasty = ev->y;
 
   return eventDialogItem(mb, ev);
 }
@@ -357,17 +417,6 @@ geometryMenuBar(MenuBar mb, Int x, Int y, Int w, Int h)
 		/********************************
 		*          ATTRIBUTES		*
 		********************************/
-
-static status
-labelFontMenuBar(MenuBar mb, FontObj font)
-{ if ( mb->label_font != font )
-  { assign(mb, label_font, font);
-    requestComputeGraphical(mb, DEFAULT);
-  }
-
-  succeed;
-}
-
 
 static status
 clearMenuBar(MenuBar mb)
@@ -564,8 +613,6 @@ static vardecl var_menuBar[] =
      NAME_organisation, "The pulldown menus"),
   IV(NAME_format, "{left,center,right}", IV_GET,
      NAME_appearance, "Format of labels in their box"),
-  SV(NAME_labelFont, "font", IV_GET|IV_STORE, labelFontMenuBar,
-     NAME_appearance, "Font used to display the labels"),
   IV(NAME_current, "popup*", IV_GET,
      NAME_event, "Currently visible popup"),
   IV(NAME_button, "button_name*", IV_NONE,

@@ -28,6 +28,8 @@ variable(saved_caret,	  int,		both, "Saved caret on last quit").
 variable(saved_fill,	  bool,		both, "Saved fill_mode on quit").
 variable(pool,		  [name],	both, "Window pool I belong too").
 
+resource(undo_buffer_size, int,	20000).
+
 initialise(B, File:file*, Name:[name]) :->
 	"Create from file and name"::
 	send(B, send_super, initialise),

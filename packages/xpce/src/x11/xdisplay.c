@@ -450,7 +450,7 @@ ws_get_cutbuffer(DisplayObj d, int n)
 
   str_inithdr(&str, ENC_ASCII);
   str.size = size;
-  str.s_text = data;
+  str.s_text = (unsigned char *)data;
   rval = StringToString(&str);
 
   XFree(data);
@@ -513,11 +513,11 @@ collect_selection_display(Widget w, XtPointer xtp,
     if ( *format == 8 )
     { str_inithdr(&s, ENC_ASCII);
       s.size = *len;
-      s.s_text = value;
+      s.s_text = (unsigned char *)value;
     } else if ( *format == 16 )
     { str_inithdr(&s, ENC_UNICODE);
       s.size = *len / 2;
-      s.s_text = value;
+      s.s_text = (unsigned char *)value;
     } else
     { selection_error = CtoName("Bad format");
       selection_complete = TRUE;
@@ -638,7 +638,7 @@ ws_disown_selection(DisplayObj d, Name selection)
 
 
 status
-ws_own_selection(DisplayObj d, Name selection)
+ws_own_selection(DisplayObj d, Name selection, Name type)
 { DisplayWsXref r = d->ws_ref;
 
   if ( XtOwnSelection(r->shell_xref, nameToSelectionAtom(d, selection),
@@ -712,7 +712,7 @@ ws_postscript_display(DisplayObj d)
 
   iw = atts.width; ih = atts.height;
   im = XGetImage(r->display_xref, atts.root,
-		 0, 0, iw, ih, AllPlanes, XYPixmap);
+		 0, 0, iw, ih, AllPlanes, ZPixmap);
 
   ps_output("0 0 ~D ~D ~D greymap\n", iw, ih, psdepthXImage(im));
   postscriptXImage(im, 0, 0, iw, ih, r->display_xref, r->colour_map, 0);
@@ -720,6 +720,59 @@ ws_postscript_display(DisplayObj d)
 
   XDestroyImage(im);
   succeed;
+}
+
+
+Image
+ws_grab_image_display(DisplayObj d, int x, int y, int width, int height)
+{ XWindowAttributes atts;
+  XImage *im = NULL;
+  Image i = NULL;
+  Window root;
+  DisplayWsXref r;
+
+  openDisplay(d);
+  r = d->ws_ref;
+
+				/* display attributes */
+  XGetWindowAttributes(r->display_xref, XtWindow(r->shell_xref), &atts);
+  root = atts.root;
+  XGetWindowAttributes(r->display_xref, root, &atts);
+
+  if ( x < 0 )			/* clip to display size */
+  { width += x;
+    x = 0;
+  }
+  if ( y < 0 )
+  { height += y;
+    y = 0;
+  }
+  if ( x + width > atts.width )
+    width = atts.width - x;
+  if ( y + height > atts.height )
+    height = atts.height - y;
+
+  if ( width <= 0 || height <= 0 )
+    fail;
+
+  i = answerObject(ClassImage, NIL,
+		   toInt(width), toInt(height), NAME_pixmap, 0);
+  im = XGetImage(r->display_xref, atts.root,
+		 x, y, width, height, AllPlanes, ZPixmap);
+    
+  if ( i && im )
+  { setXImageImage(i, im);
+    assign(i, depth, toInt(im->depth));
+  } else
+  { if ( im )
+      XDestroyImage(im);
+    if ( i )
+    { freeObject(i);
+      i = NULL;
+    }
+  }
+
+  answer(i);
 }
 
 #ifndef O_NOX11RESOURCES

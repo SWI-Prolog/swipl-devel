@@ -1,5 +1,30 @@
 				XPCE ToDo List
 
+Simple things to check and fix:
+===============================
+
+* Win32: typing in a PceEmacs window if the pointer is on the border?
+
+* Completer: remove after delete before starting point.
+
+* Win32: click on popup that is repositioned is not interpreted correctly.
+  Unix version doesn't move the pointer.  Maybe this is better?  Who is
+  doing that?
+
+* Win32: Combo boxes.
+
+* Text (items): interaction with selection.
+
+* Editor/text-item: delete of selection on delete button.
+
+* Choice on handling BACKSPACE and DELETE keys.
+
+* General preferences editor?  Should this still be using the X11
+  resource database?
+
+* Colourmap handling (also for metafiles).
+
+================================================================
 *) Merge device <->bad_bouding_box and <->bad_format into request_compute 
    member.
 
@@ -48,10 +73,6 @@ Issue list:
    of the modification and so you should switch it if you want to modify.
    I'll put it on the `todo' list ...
 
-
-*) Browser: too long items may be selected when the pointer is
-   below all items.  Scrollbar is strange then.
-
 *) Editor
 	1) Allow for editing fragments?  How difficult is this?
 	2) Flag to stop it moving the caret on scrolling.
@@ -69,6 +90,6 @@ Issue list:
 
 *) Improve consistency of functional group identifiers.
 
-*) Print \t as space for xwn-draw.c text functions
+*) Print \t as space for xdraw.c text functions
 
 *) Modify node->displayed to work as one should expect?

@@ -339,7 +339,7 @@ static senddecl send_line[] =
      DEFAULT, "Create line (X1,Y1) - (X2,Y2) with arrows"),
   SM(NAME_normalise, 0, NULL, normaliseLine,
      DEFAULT, "Redefined from graphical: no-op"),
-  SM(NAME_orientation, 1, "{north_west,south_east,north_east,south_east}", orientationLine,
+  SM(NAME_orientation, 1, "{north_west,south_west,north_east,south_east}", orientationLine,
      DEFAULT, "Redefined from graphical: no-op"),
   SM(NAME_copy, 1, "line", copyLine,
      NAME_copy, "Copy attributes from other line"),

@@ -96,7 +96,9 @@ fill_dialog(F, D) :->
 	send(D, append, new(FI, text_item(file, ''))),
 	send_list([DI, FI], width, 50),
 
-	send(FI, value_set, ?(@prolog, complete_file, DI?selection, @arg1)),
+	send(FI, value_set,
+	     ?(F, complete_file, DI?selection, F?extension, @arg1)),
+	send(FI, style, normal),	% just use it for completion
 
 	new(Sub, device),
 	send(Sub, display, button(up, message(F, up)), point(0, 0)),
@@ -119,13 +121,24 @@ fill_dialog(F, D) :->
 	send(L, bottom_side, Sub?bottom_side).
 
 
-complete_file(Dir, Prefix, Files) :-
-	new(Re, regex(string('^%s', Prefix))),
+complete_file(_F,
+	      Dir:char_array, Prefix:char_array, Extension:name,
+	      Files:chain) :<-
+	extension_regex(Extension, Ext),
+	new(Re, regex(string('^%s.*%s$', Prefix, Ext))),
 	(   send(class(file), has_feature, case_sensitive, @off)
 	->  send(Re, ignore_case, @on)
 	;   true
 	),	     
 	get(directory(Dir), files, Re, Files).
+
+
+extension_regex('', '') :- !.
+extension_regex(Ext, Re) :-
+	     concat('.', _, Ext), !,
+	     concat(\, Ext, Re).
+extension_regex(Ext, Re) :-
+	     concat('\.', Ext, Re).
 
 
 select(F, Name:string, Type:{directory,file}) :->

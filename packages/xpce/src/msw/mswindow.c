@@ -113,6 +113,7 @@ window_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	
 	send(sw, NAME_dropFiles, files, pos, 0);
 	rewindAnswerStack(mark, NIL);
+	RedrawDisplayManager(TheDisplayManager());
       }
 
       return 0;

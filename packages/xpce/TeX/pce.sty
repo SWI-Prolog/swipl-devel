@@ -1,6 +1,6 @@
 %			PCE DOCUMENTATION STYLE
 
-\newcommand{\pceversion}{4.8.16, January 1996}
+\newcommand{\pceversion}{4.8.18, January 1996}
 
 %	Other styles
 
@@ -184,21 +184,18 @@
 %       \bottomleft    - page -    \bottomright
 
 \def\arabicday{\number\year-\number\month-\number\day}
-\def\ps@pce{\let\@mkboth\markboth
-\def\@oddfoot{\makebox[0pt][l]{\sl \bottomleft} \hfil
-		-- \thepage\ -- \hfil
-	      \makebox[0pt][r]{\sl \bottomright}}%
-\def\@evenfoot{\makebox[0pt][l]{\sl \bottomleft} \hfil
-		-- \thepage\ -- \hfil
-	      \makebox[0pt][r]{\sl \bottomright}}%
-\def\@oddhead{\parbox{\textwidth}{%
-	    \makebox[\textwidth]{\rightmark \hfill \rm\arabicday}
-	    \vspace{-7pt}\hrule}}%
-\def\@evenhead{\parbox{\textwidth}{%
-	    \makebox[\textwidth]{\rightmark \hfill \rm\arabicday}
-	    \vspace{-7pt}\hrule}}%
-\def\chaptermark##1{\markright {\uppercase{\ifnum \c@secnumdepth >\m@ne
-  \@chapapp\ \thechapter. \ \fi ##1}}}}
+
+\pagestyle{fancyplain}
+\def\chaptermark{\mbox{}}
+\renewcommand{\chaptermark}[1]{\markboth{#1}{#1}} % remember chapter title
+\renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}}
+
+\lhead[\fancyplain{}{\bf\thepage}]{\fancyplain{}{\bf\rightmark}}
+\rhead[\fancyplain{}{\bf\leftmark}]{\fancyplain{}{\bf\thepage}}
+\footrulewidth 0.2pt
+\lfoot[\tiny XPCE course notes \today]{}
+\rfoot[]{\tiny XPCE course notes \today}
+\cfoot{}
 
 %	Turn @ into a symbol
 

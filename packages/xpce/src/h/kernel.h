@@ -54,9 +54,11 @@ environments. We undefine these  symbols  here   to  make  the  compiler
 generate warnings on accidental use of them.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifndef __osf__
 #undef stdin
 #undef stdout
 #undef stderr
+#endif
 #undef printf
 #undef putchar
 #undef getchar
@@ -144,7 +146,7 @@ typedef void			(*atexit_function)(void);
 #define Promote(type) type
 #endif
 
-#if !O_INLINE
+#if !O_INLINE || defined(__osf__)
 #define inline
 #endif
 
@@ -401,7 +403,7 @@ void	clearDFlagProgramObject(Any, ulong);
 
 #define LocalString(name, proto, size) \
   string _s_ ## name ## _hdr; \
-  void  *_s_ ## name ## _buf = alloca((proto)->b16 ? (size) * sizeof(char16) \
+  void  *_s_ ## name ## _buf = (void *)alloca((proto)->b16 ? (size) * sizeof(char16) \
 						   : (size) * sizeof(char8)); \
   String name = str_init(&_s_ ## name ## _hdr, (proto), _s_ ## name ## _buf)
 
@@ -666,8 +668,7 @@ End;
   Vector 	types;			/* type checking codes */ \
   StringObj	summary;		/* Summary of this method */ \
   SourceLocation source;		/* Location of def in sources */ \
-  Code		message;		/* message implementing method */ \
-  Func		function;		/* C-function implementing method */
+  Code		message;		/* message implementing method */
 
 #else /*O_RUNTIME*/
 
@@ -676,8 +677,7 @@ End;
   Name		group;			/* Conceptual group */ \
   Vector 	types;			/* type checking codes */ \
   StringObj	summary;		/* Summary of this method */ \
-  Code		message;		/* message implementing method */ \
-  Func		function;		/* C-function implementing method */
+  Code		message;		/* message implementing method */
 #endif/*O_RUNTIME*/
 
 NewClass(behaviour)
@@ -686,14 +686,17 @@ End;
 
 NewClass(method)
   ABSTRACT_METHOD
+  Func		function;		/* C-function implementing method */
 End;
 
 NewClass(send_method)
   ABSTRACT_METHOD
+  Func		function;		/* C-function implementing method */
 End;
 
 NewClass(get_method)
   ABSTRACT_METHOD
+  GetFunc	function;		/* C-function implementing method */
   Type		return_type;		/* Type of returned value */
 End;
 
@@ -816,7 +819,7 @@ typedef struct _classdecl
 	{ vs, ss, gs, rs, \
 	  IVEntries(vs), SMEntries(ss), GMEntries(gs), RCEntries(rs), \
 	  ta, tn, __FILE__, rcs \
-	};
+	}
 
 					/* Dont change IV_GET and IV_SEND */
 #define IV_NONE		0x00		/* No access, nothing */
@@ -923,7 +926,7 @@ NewClass(constraint)
 End;
  
 NewClass(date)
-  unsigned long	date;			/* Unix view of time */
+  time_t	date;			/* Unix view of time */
 End;
 
 NewClass(dict)
@@ -1065,8 +1068,9 @@ NewClass(pce)
   Name		version;		/* Version number of PCE */
   Name		machine;		/* Architecture */
   Name		operating_system;	/* Name of operating system*/
-  Int		xt_version;		/* Version of Xt library used */
-  Int		xt_revision;		/* Revision of Xt library used */
+  Name		window_system;		/* X or windows */
+  Int		window_system_version;	/* Version of Xt library used */
+  Int		window_system_revision;	/* Revision of Xt library used */
   Chain		features;		/* Installed features */
 End;
 
@@ -1524,7 +1528,7 @@ GLOBAL int	qsortReverse;		/* used by qsortCompareObjects() */
 
 #define for_chain(ch, val, code) \
   { int _i=0, _size  = valInt(ch->size); \
-    Any *_array = alloca(_size * sizeof(Any)); \
+    Any *_array = (Any *)alloca(_size * sizeof(Any)); \
     Cell _cell = ch->head; \
 	\
     for( ; notNil(_cell); _cell = _cell->next, _i++ ) \

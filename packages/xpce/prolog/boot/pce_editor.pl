@@ -9,7 +9,9 @@
 
 :- module(pce_editor_buttons, []).
 :- use_module(pce_global).
-:- use_module(pce_principal, [send/2, send/3, send/4, send/6, get/3, new/2]).
+:- use_module(pce_principal, [send/2, send/3, send/4, send/6,
+			      get/3, get/4,
+			      new/2]).
 :- use_module(pce_realise, [pce_extended_class/1]).
 :- use_module(pce_error, [pce_catch_error/2]).
 

@@ -75,6 +75,7 @@ rootTree(Tree t, Node root)
       clearFlag(t, F_FREEING);
       assign(t, root, NIL);
       assign(t, displayRoot, NIL);
+      clearDevice((Device)t);
     }
   } else
   { if ( notNil(t->root) )

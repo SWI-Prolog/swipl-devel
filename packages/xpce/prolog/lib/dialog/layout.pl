@@ -17,7 +17,6 @@
 	   , forall/2
 	   , get_chain/3
 	   , ignore/1
-	   , last/2
 	   , maplist/3
 	   , member/2
 	   , sublist/3
@@ -203,9 +202,9 @@ make_row_alignment(Row) :-
 	findall(align_row(Sub, Alignment),
 		row_alignment(Row, Sub, Alignment),
 		Alignments),
-format('~p~n', [Alignments]),
+%format('~p~n', [Alignments]),
 	delete_sub_alignments(Alignments, Alignments, Cleaned),
-format('~p~n', [Cleaned]),
+%format('~p~n', [Cleaned]),
 	checklist(call, Cleaned).
 
 
@@ -233,7 +232,7 @@ row_alignment(Row, Sub, Alignment) :-
 	\+((member(X, Sub), get(X, alignment, column))),
 	left_to_right(Sub),
 	first(Head, Sub),
-	last(Tail, Sub),
+	tail(Tail, Sub),
 	get(Head, left_side, Left),
 	get(Tail, right_side, Right),
 	left_aligned(LeftEdge, RightEdge, Left, Right, LH),
@@ -249,7 +248,7 @@ row_alignment(Row, Sub, Alignment) :-
 left([], Device, Left) :-
 	get(Device?bounding_box, left_side, Left).
 left(L, _, Left) :-
-	last(T, L),
+	tail(T, L),
 %	get(T, alignment, column),
 	get(T, right_side, Left).
 
@@ -259,6 +258,13 @@ right(L, _, Right) :-
 	first(H, L),
 %	get(H, alignment, column),
 	get(H, left_side, Right).
+
+%	tail/2 is defined here as the system definitions of SICStus and
+%	SWI-Prolog differ in the argument order.
+
+tail(Elem, [Elem]) :- !.
+tail(Elem, [_|T]) :-
+	tail(Elem, T).
 
 first(H, [H|_]).
 

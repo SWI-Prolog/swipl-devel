@@ -910,6 +910,7 @@ static struct namepair
   { NAME_cancel,	NAME_namedFunction },
   { NAME_help,		NAME_namedFunction },
   { NAME_break,		NAME_namedFunction },
+  { NAME_backspace,	NAME_namedFunction },
 
   { NAME_cursorHome,	NAME_cursor },
   { NAME_cursorLeft,	NAME_cursor },

@@ -12,6 +12,10 @@
 #include "include.h"
 #include <memory.h>
 
+#ifdef HAVE_LIBXPM
+#include <X11/xpm.h>
+static XImage *readXpmFile(Image image, FILE *fd);
+#endif
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -57,24 +61,26 @@ read_bitmap_data(FILE *fd, int *w, int *h)
 		********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The call to _XInitImageFuncPtrs() is  an   undocumented  X11 call, which
-proved to be necessary on IRIX machines   (thanks  to Fred Kwakkel).  If
-your machine reports this function as   undefined,  remove the call.  If
-the system then crashes while opening an image object, we have a problem
-:-)
+We should pass the display into these functions!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-XImage *
-CreateXImageFromData(unsigned char *data, int width, int height)
+static Display *
+defaultXDisplay()
 { DisplayObj d = CurrentDisplay(NIL);
   DisplayWsXref r;
-  Display *disp;
-  XImage *image;
 
   openDisplay(d);
   r = d->ws_ref;
-  disp = r->display_xref;
-  
+
+  return r->display_xref;
+}
+
+
+XImage *
+CreateXImageFromData(unsigned char *data, int width, int height)
+{ Display *disp = defaultXDisplay();
+  XImage *image;
+
   image = XCreateImage(disp,
 		       DefaultVisual(disp, DefaultScreen(disp)),
 		       1,
@@ -93,39 +99,17 @@ CreateXImageFromData(unsigned char *data, int width, int height)
   return image;
 }
 
-#if 0
-  extern void _XInitImageFuncPtrs(XImage *);
-  XImage *image = (XImage *) XMalloc(sizeof(XImage));
-
-  if ( image )
-  { memset(image, 0, sizeof(XImage));
-
-    image->height = height;
-    image->width = width;
-    image->depth = bits_per_pixel = 1;
-    image->xoffset = 0;
-    image->format = XYBitmap /*ZPixmap*/;
-    image->data = (char *)data;
-    image->byte_order = LSBFirst;
-    image->bitmap_unit = 8;
-    image->bitmap_bit_order = LSBFirst;
-    image->bitmap_pad = 8;
-    image->bytes_per_line = (width+7)/8;
-    _XInitImageFuncPtrs(image);		/* see comment above! */
-  }
-
-  return image;
-}
-#endif
-
 
 XImage *
-readImageFile(FILE *fd)
+readImageFile(Image image, FILE *fd)
 { unsigned char *data;
   int w, h;
 
   if ( (data = read_bitmap_data(fd, &w, &h)) != NULL )
     return CreateXImageFromData(data, w, h);
+#ifdef HAVE_LIBXPM
+  return readXpmFile(image, fd);
+#endif
 
   return NULL;
 }
@@ -411,3 +395,61 @@ read_sun_image_file(FILE *fd, int *width, int *height)
 }
 
 #endif
+
+#ifdef HAVE_LIBXPM
+#include <sys/stat.h>
+
+		 /*******************************
+		 *          XPM SUPPORT		*
+		 *******************************/
+
+static XImage *
+readXpmFile(Image image, FILE *fd)
+{ int offset = ftell(fd);
+  char *buffer = NULL;			/* make compiler happy */
+  XImage *i = NULL;
+  XImage *shape = NULL;
+  int malloced = FALSE;
+  Display *disp = defaultXDisplay();
+
+  if ( offset == 0 )			/* only entire file for now */
+  { struct stat buf;
+
+    if ( fstat(fileno(fd), &buf) == 0 )
+    { int size = buf.st_size;
+
+      if ( size < 10000 )
+      { buffer = (char *)alloca(size+1);
+      } else
+      { buffer = pceMalloc(size+1);
+	malloced = TRUE;
+      }
+
+      if ( fread(buffer, sizeof(char), size, fd) != size )
+	goto out;
+
+      buffer[size] = '\0';
+      if ( XpmCreateImageFromBuffer(disp, buffer,
+				    &i, &shape, NULL) != XpmSuccess )
+	i = NULL;
+
+      if ( shape )
+      {	assign(image, mask, newObject(ClassImage, NIL,
+				      toInt(shape->width),
+				      toInt(shape->height),
+				      NAME_bitmap, 0));
+	setXImageImage(image->mask, shape);
+      }
+    }
+  }
+
+out:
+  if ( malloced )
+    pceFree(buffer);
+  if ( !i )
+    fseek(fd, offset, 0);
+
+  return i;
+}
+
+#endif /*HAVE_LIBXPM*/

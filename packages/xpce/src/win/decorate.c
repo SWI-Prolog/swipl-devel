@@ -12,6 +12,7 @@
 
 static status scrollbarsWindowDecorator(WindowDecorator dw, Name bars);
 static status labelWindowDecorator(WindowDecorator, CharArray, int, Any *);
+static status rearrangeWindowDecorator(WindowDecorator dw);
 
 
 static status
@@ -125,6 +126,19 @@ requestComputeScrollbarsWindowDecorator(WindowDecorator dw)
   succeed;
 }
 
+
+static status
+showScrollBarWindowDecodaror(WindowDecorator dw, Bool show, ScrollBar sb)
+{ if ( sb == dw->horizontal_scrollbar ||
+       sb == dw->vertical_scrollbar )
+  { DisplayedGraphical(sb, show);
+    rearrangeWindowDecorator(dw);
+  }
+
+  succeed;
+}
+
+
 		 /*******************************
 		 *	    ARRANGING		*
 		 *******************************/
@@ -167,9 +181,11 @@ rearrangeWindowDecorator(WindowDecorator dw)
 		 lm, tm,
 		 sub(dw->area->w, add(lm, rm)),
 		 sub(dw->area->h, add(tm, bm)));
-  if ( notNil(dw->horizontal_scrollbar) )
+  if ( notNil(dw->horizontal_scrollbar) && 
+       dw->horizontal_scrollbar->displayed == ON )
     placeScrollBar(dw->horizontal_scrollbar, DEFAULT);
-  if ( notNil(dw->vertical_scrollbar) )
+  if ( notNil(dw->vertical_scrollbar) &&
+       dw->vertical_scrollbar->displayed == ON )
     placeScrollBar(dw->vertical_scrollbar, DEFAULT);
 
   succeed;
@@ -283,6 +299,8 @@ getLabelWindowDecorator(WindowDecorator dw)
 
 static char *T_label[] =
         { "format=char_array*", "argument=any ..." };
+static char *T_showScrollBar[] =
+        { "show=[bool]", "which=[scroll_bar]" };
 static char *T_initialise[] =
         { "window=window", "scrollbars=[{none,vertical,horizontal,both}]", "label=[char_array]" };
 static char *T_xADintD_yADintD_widthADintD_heightADintD[] =
@@ -327,7 +345,9 @@ static senddecl send_windowDecorator[] =
   SM(NAME_scrollbars, 1, "{none,horizontal,vertical,both}", scrollbarsWindowDecorator,
      NAME_scroll, "Set/remove scrollbars"),
   SM(NAME_verticalScrollbar, 1, "bool", verticalScrollbarWindowDecorator,
-     NAME_scroll, "Attach/detach horizontal scrollbar")
+     NAME_scroll, "Attach/detach horizontal scrollbar"),
+  SM(NAME_showScrollBar, 2, T_showScrollBar, showScrollBarWindowDecodaror,
+     NAME_scroll, "Control visibility of the indicated scroll_bar")
 };
 
 /* Get Methods */

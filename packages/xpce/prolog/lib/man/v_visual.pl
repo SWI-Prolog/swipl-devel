@@ -18,7 +18,6 @@
 	   , send_list/3
 	   , shell/1
 	   , term_to_atom/2
-	   , tmp_file/2
 	   ]).
 
 :- pce_autoload(tile_hierarchy, library('man/v_tile')).
@@ -334,13 +333,13 @@ selection(F, Node:vis_node*) :->
 
 print(F) :->
 	"Print on Postscript printer"::
-	tmp_file(visual, FileName),
-	new(File, file(FileName)),
+	new(File, file),
 	send(File, open, write),
 	send(File, append, F?tree?postscript),
 	send(File, append, showpage),
 	send(File, close),
 	get(F, resource_value, postscript_print_command, Lpr),
+	get(File, name, FileName),
 	concat_atom([Lpr, ' ', FileName], Cmd),
 	(   shell(Cmd)
 	->  send(File, remove),

@@ -592,7 +592,7 @@ validateType(Type t, Any val, Any ctx)
       return sysPce("%s: Invalid type.  Kind is %s, validate = 0x%x",
 		    pp(t), pp(t->kind), (int)t->validate_function);
   }
-#endif USE_FUNCP
+#endif/*USE_FUNCP*/
 
   if ( rval )
     return rval;
@@ -664,7 +664,7 @@ getCharType(Type t, Any val, Any ctx)
 
     if ( s->size == 1 )
       return toInt(str_fetch(s, 0));
-    if ( isstr8(s) && (c = charpToChar(s->s_text)) >= 0 )
+    if ( isstr8(s) && (c = charpToChar((char *)s->s_text)) >= 0 )
       return toInt(c);
   } else
   { Int i = toInteger(val);
@@ -1037,7 +1037,7 @@ strip_string(TmpString s)
 static void
 init_string(TmpString s, String t)
 { assert(isstr8(t));
-  strcpy(s->text, t->s_text);
+  strcpy(s->text, (char *)t->s_text);
   s->start = s->text;
   s->end = &s->text[t->size - 1];
   strip_string(s);

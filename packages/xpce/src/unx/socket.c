@@ -365,10 +365,10 @@ inet_address_socket(Socket s, struct sockaddr_in *address, int *len)
     if ( !(hp = gethostbyname(strName(hostname))) )
       return errorPce(s, NAME_noHost, hostname);
 	 
-    address->sin_port = valInt(port);
+    address->sin_port = htons((unsigned short)valInt(port));
     memcpy(&address->sin_addr, hp->h_addr, hp->h_length);
   } else if ( isInteger(s->address) )	/* server */
-  { address->sin_port = valInt(s->address);
+  { address->sin_port = htons((unsigned short)valInt(s->address));
     address->sin_addr.s_addr = htonl(INADDR_ANY);
   } else
     return errorPce(s->address, NAME_unexpectedType, CtoType("tuple"));

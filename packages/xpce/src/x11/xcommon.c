@@ -210,7 +210,7 @@ postscriptXImage(XImage *im,
   }
 
   if ( im->format == XYBitmap )
-  { psmap = "\1\0";
+  { psmap = (unsigned char *)"\1\0";
     psbright = 1;
   } else
   { int entries	= 1<<im->depth;
@@ -493,6 +493,11 @@ keycode_to_name(XEvent *event)
   KeySym sym;
 
   bytes = XLookupString((XKeyEvent *) event, buf, 256, &sym, NULL);
+
+  switch(sym)				/* special ones */
+  { case XK_BackSpace:	return NAME_backspace;
+  }
+
   if ( bytes == 1 )
   { int c = buf[0];
 

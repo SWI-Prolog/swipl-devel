@@ -22,6 +22,7 @@
 :- meta_predicate(pce_register_class(:)).
 :- meta_predicate(pce_extended_class(:)).
 :- use_module(pce_principal).
+:- use_module(pce_global).
 :- require([ pce_error/1
 	   , call/3
 	   , strip_module/3
@@ -30,8 +31,7 @@
 :- dynamic
 	class_module/2.			% ClassName, Module
 
-:- initialization
-	new(@class, var(class, class, @nil)).
+:- pce_global(@class, new(var(class, class, @nil))).
 
 		 /*******************************
 		 *	      REGISTER		*
@@ -58,7 +58,8 @@ pce_extended_class(Spec) :-
 	register_class(ClassName, Module),
 	(   get(@classes, member, ClassName, Class),
 	    send(Class, instance_of, class)
-	->  send(Class, clear_cache),
+	->  attach_class_attributes(ClassName, Module),
+	    send(Class, clear_cache),
 	    resolve_method_message(Msg),
 	    send(Class, resolve_method_message, Msg)
 	;   true
@@ -90,21 +91,30 @@ check_loaded_class(_).
 
 pce_realise_class(ClassName) :-
 	class_module(ClassName, Module),
-	Module:class(ClassName, MetaClassName, SuperName,
-		     Variables,
-		     Resources,
-		     Directives),
-	create_class(ClassName, MetaClassName, SuperName, Class),
+	Module:class(ClassName, MetaClassName, SuperName, _, _, _),
+	MetaClassName \== -,
+	create_class(ClassName, MetaClassName, SuperName, Class), !,
 	get(Class, realised, Realised),
 	resolve_method_message(Msg),
 	send(Class, resolve_method_message, Msg),
-	attach_variables(Variables, Class),
-	attach_resources(Resources, Class),
-	run_directives(Directives, Class, Module),
+	attach_class_attributes(ClassName, _Module),
 	(   Realised == @on
 	->  delete_prolog_methods(Class, Module)
 	;   true
 	).
+
+attach_class_attributes(ClassName, Module) :-
+	get(@classes, member, ClassName, Class),
+	class_module(ClassName, Module),
+	Module:class(ClassName, _, _,
+		     Variables,
+		     Resources,
+		     Directives),
+	attach_variables(Variables, Class),
+	attach_resources(Resources, Class),
+	run_directives(Directives, Class, Module),
+	fail ; true.
+
 
 %	pce_prolog_class(?ClassName, [?SuperName])
 %

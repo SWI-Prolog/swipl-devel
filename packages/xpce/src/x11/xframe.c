@@ -216,6 +216,28 @@ ws_unshow_frame(FrameObj fr)
     XtPopdown(w);
 }
 
+		 /*******************************
+		 *   FIND WINDOW HOLDING POINT	*
+		 *******************************/
+
+PceWindow
+ws_window_holding_point_frame(FrameObj fr)
+{ Cell cell;
+
+  for_cell(cell, fr->members)
+  { PceWindow sw = cell->value;
+
+    if ( instanceOfObject(sw, ClassWindowDecorator) )
+    { WindowDecorator dw = (WindowDecorator) sw;
+      sw = dw->window;
+    }
+
+    if ( sw->has_pointer == ON )
+      answer(sw);
+  }
+
+  fail;
+}
 
 		 /*******************************
 		 *	    HIDE/EXPOSE		*
@@ -249,8 +271,8 @@ ws_lower_frame(FrameObj fr)
 
 status
 ws_attach_wm_prototols_frame(FrameObj fr)
-{ Atom *pr = alloca(valInt(getSizeChain(fr->wm_protocols->attributes))
-		    * sizeof(Atom));
+{ Atom *pr = (Atom *)alloca(valInt(getSizeChain(fr->wm_protocols->attributes))
+			    * sizeof(Atom));
   Cell cell;
   int n = 0;
   DisplayWsXref r = fr->display->ws_ref;
@@ -362,6 +384,8 @@ xEventFrame(Widget w, FrameObj fr, XEvent *event)
 	delCodeReference(ev);
 	freeableObj(ev);
       }
+
+      return;
     }
     default:
     { EventObj ev;
@@ -829,7 +853,7 @@ ws_image_of_frame(FrameObj fr)
 			  toInt(w+2*bw), toInt(h+2*bw), NAME_pixmap, 0));
     
     ix = XGetImage(d, root,
-		   x-bw, y-bw, w+2*bw, h+2*bw, AllPlanes, XYPixmap);
+		   x-bw, y-bw, w+2*bw, h+2*bw, AllPlanes, ZPixmap);
     setXImageImage(im, ix);
     assign(im, depth, toInt(ix->depth));
     answer(im);
@@ -895,7 +919,7 @@ ws_postscript_frame(FrameObj fr)
 
     DEBUG(NAME_postscript, Cprintf("frame at %d %d %d %d\n", x, y, iw, ih));
 
-    im = XGetImage(d, root, x, y, iw, ih, AllPlanes, XYPixmap);
+    im = XGetImage(d, root, x, y, iw, ih, AllPlanes, ZPixmap);
     
     ps_output("0 0 ~D ~D ~D greymap\n", iw, ih, psdepthXImage(im));
     postscriptXImage(im, 0, 0, iw, ih,

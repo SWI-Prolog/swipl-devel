@@ -139,7 +139,7 @@ alloc(register int n)
 #if ALLOC_DEBUG
       assert((long) z >= allocBase && (long) z <= allocTop);
       assert(z->in_use == FALSE);
-      assert(z->magic  == ALLOC_MAGIC_WORD;
+      assert(z->magic  == ALLOC_MAGIC_WORD);
 
       z->in_use = TRUE;
 #endif
@@ -191,7 +191,7 @@ unalloc(register int n, Any p)
     memset(p, ALLOC_MAGIC_BYTE, n);
 #endif
     z = (Zone) ((char *)z - offset(struct zone, start));
-    assert(s->magic  == ALLOC_MAGIC_WORD;
+    assert(z->magic  == ALLOC_MAGIC_WORD);
     assert(z->in_use == TRUE);
     assert(z->size   == n);
     z->in_use = FALSE;

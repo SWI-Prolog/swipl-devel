@@ -12,8 +12,7 @@
 	  , pce_make_manual_index/2	% +File, -Reference
 	  ]).
 :- use_module(library(pce)).
-:- require([ access_file/2
-	   , concat_atom/2
+:- require([ concat_atom/2
 	   ]).
 
 :- pce_begin_class(man_index_manager, object,
@@ -34,6 +33,10 @@ make_index(_IM, IndexFile:name, Index:chain_table) :<-
 %	At the moment only all class-related cards (classes, variables,
 %	methods and resources are processed.
 
+
+pce_ifhostproperty(prolog(quintus),
+(   access_file(File, Mode) :-
+	can_open_file(File, Mode))).
 
 pce_make_manual_index(File, @man_tmp_index) :-
 	pce_make_manual_index(File).

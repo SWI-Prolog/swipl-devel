@@ -25,8 +25,8 @@ getConvertSize(Class class, Name name)
 { int w, h;
 
   if ( isstr8(&name->data) &&
-       (sscanf(name->data.s_text8, "%dx%d", &w, &h) == 2 ||
-       (syntax.uppercase && sscanf(name->data.s_text8, "%dX%d", &w, &h) == 2)))
+       (sscanf((char *)name->data.s_text8, "%dx%d", &w, &h) == 2 ||
+       (syntax.uppercase && sscanf((char *)name->data.s_text8, "%dX%d", &w, &h) == 2)))
     answer(newObject(ClassSize, toInt(w), toInt(h), 0));
 
   fail;

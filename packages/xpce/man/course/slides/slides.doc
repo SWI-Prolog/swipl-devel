@@ -1,4 +1,4 @@
-\documentstyle[sli,local,psfig,pce]{article}
+\documentstyle[sli,pceslide,psfig]{article}
 
 \renewcommand{\slinote}{Programming in XPCE/Prolog}
 \psdirectories{figs,../../userguide/figs,../../../TeX/figs}

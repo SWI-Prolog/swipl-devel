@@ -16,7 +16,7 @@
 		********************************/
 
 #ifndef PCE_VERSION
-#define PCE_VERSION "4.8.17, April 1996"
+#define PCE_VERSION "4.9.0, September 1996"
 #endif
 
 #ifndef OS_VERSION
@@ -192,8 +192,8 @@ typedef struct
   int	    (*Cputchar)	   __P((int));
   void	    (*Cflush)	   __P((void));
   char *    (*Cgetline)	   __P((char *line, int size));
-  void *    (*malloc)	   __P((unsigned int size));
-  void *    (*realloc)	   __P((void *ptr, unsigned int size));
+  void *    (*malloc)	   __P((size_t size));
+  void *    (*realloc)	   __P((void *ptr, size_t size));
   void      (*free)	   __P((void *ptr));
   void *    pad13;			/* future enhancements */
   void *    pad14;

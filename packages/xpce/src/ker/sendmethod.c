@@ -82,7 +82,7 @@ sendSendMethod(SendMethod m, Any receiver, int argc, const Any argv[])
 	  withReceiver(receiver, m->context,
 		       rval = callCPlusPlusPceMethodProc(receiver,cppf,0,NULL));
 	} else
-#endif O_CPLUSPLUS
+#endif/*O_CPLUSPLUS*/
         { rval = (*f)(receiver);
 	}
       } else				/* code implementation */
@@ -136,7 +136,7 @@ sendSendMethod(SendMethod m, Any receiver, int argc, const Any argv[])
 	withReceiver(receiver, m->context,
 		     rval = callCPlusPlusPceMethodProc(receiver,cppf,1,&arg));
       } else
-#endif O_CPLUSPLUS
+#endif /*O_CPLUSPLUS*/
       { rval = (*f)(receiver, arg);
       }
     } else				/* code implementation */

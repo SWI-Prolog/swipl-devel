@@ -31,15 +31,15 @@ initialise(S, Manual:man_manual) :->
 	send(D, append, new(CW, text_item(core_wasted,    0))),
 	send(D, append, new(OU, text_item(objects_in_use, 0))),
 	Items = [CU, CW, OU],
-	send_list(Items, pen, 0),
 	send_list(Items, length, 10),
 	send_list(Items, editable, @off),
 
 	new(T, timer(5,
-		     block(message(CU, selection, @pce?core_usage),
-			   message(CW, selection, @pce?core_wasted),
-			   message(OU, selection, @pce?objects_allocated -
-				   		  @pce?objects_freed)))),
+		     and(message(CU, selection, @pce?core_usage),
+			 message(CW, selection, @pce?core_wasted),
+			 message(OU, selection, @pce?objects_allocated -
+				                @pce?objects_freed)))),
+
 	send(S, slot, timer, T),
 	send(T, execute),
 	send(T, start),
@@ -53,7 +53,6 @@ initialise(S, Manual:man_manual) :->
 
 unlink(S) :->
 	send(S?timer, stop),
-	send(S, slot, timer, @nil),
 	send(S, send_super, unlink).
 
 :- pce_end_class.

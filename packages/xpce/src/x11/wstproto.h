@@ -8,8 +8,7 @@ void		ws_colour_cube(ColourMap cm, int size);
 void		ws_colour_map_colours(ColourMap cm);
 status		ws_create_colour_map(ColourMap cm, DisplayObj d);
 status		ws_uncreate_colour_map(ColourMap cm, DisplayObj d);
-ColourMap	ws_colour_map_for_image(Image img);
-	
+
 /* x11/xcursor.c */
 void		ws_init_cursor_font(void);
 Int		ws_cursor_font_index(Name name);
@@ -44,12 +43,13 @@ ulong		ws_get_selection_timeout(void);
 void		ws_set_selection_timeout(ulong time);
 Any		ws_get_selection(DisplayObj d, Name which, Name target);
 void		ws_disown_selection(DisplayObj d, Name selection);
-status		ws_own_selection(DisplayObj d, Name selection);
+status		ws_own_selection(DisplayObj d, Name selection, Name type);
 Name		ws_window_manager(DisplayObj d);
 void		ws_synchronous(DisplayObj d);
 void		ws_asynchronous(DisplayObj d);
 status		ws_postscript_display(DisplayObj d);
 StringObj	ws_get_resource_value(DisplayObj d, Name cc, Name cn, Name rc, Name rn, int accept_default);
+Image		ws_grab_image_display(DisplayObj d, int x, int y, int w, int h);
 
 /* x11/xdraw.c */
 void		resetDraw(void);
@@ -80,7 +80,7 @@ void		r_swap_background_and_foreground(void);
 void		r_subwindow_mode(Bool val);
 void		r_invert_mode(Bool val);
 void		r_translate(int x, int y, int *ox, int *oy);
-void		r_box(int x, int y, int w, int h, int r, Image fill);
+void		r_box(int x, int y, int w, int h, int r, Any fill);
 void		r_shadow_box(int x, int y, int w, int h, int r, int shadow, Image fill);
 void		r_3d_segments(int n, ISegment s, Elevation e, int light);
 void		r_3d_box(int x, int y, int w, int h, int radius, Elevation e, int up);
@@ -120,7 +120,7 @@ void		s_print(String s, int x, int y, FontObj f);
 void		str_size(String s, FontObj font, int *width, int *height);
 void		str_string(String s, FontObj font, int x, int y, int w, int h, Name hadjust, Name vadjust);
 void		ps_string(String s, FontObj font, int x, int y, int w, Name format);
-void		str_label(String s, int acc, FontObj font, int x, int y, int w, int h, Name hadjust, Name vadjust);
+void		str_label(String s, int acc, FontObj font, int x, int y, int w, int h, Name hadjust, Name vadjust, int flags);
 
 /* x11/xevent.c */
 status		ws_dispatch(Int FD, Int timeout);
@@ -139,6 +139,7 @@ status		ws_create_frame(FrameObj fr);
 void		ws_realise_frame(FrameObj fr);
 void		ws_show_frame(FrameObj fr, Bool grab);
 void		ws_unshow_frame(FrameObj fr);
+PceWindow	ws_window_holding_point_frame(FrameObj fr);
 void		ws_raise_frame(FrameObj fr);
 void		ws_lower_frame(FrameObj fr);
 status		ws_attach_wm_prototols_frame(FrameObj fr);
@@ -174,9 +175,11 @@ status		ws_open_image(Image image, DisplayObj d);
 void		ws_close_image(Image image, DisplayObj d);
 status		ws_resize_image(Image image, Int w, Int h);
 Image		ws_scale_image(Image image, int w, int h);
+Image		ws_rotate_image(Image image, int angle);
 void		ws_postscript_image(Image image, Int depth);
 status		loadXliImage(Image image, FileObj file, Int bright);
 void		ws_create_image_from_x11_data(Image image, unsigned char *data, int w, int h);
+ColourMap	ws_colour_map_for_image(Image image);
 
 /* x11/xstream.c */
 void		ws_close_input_stream(Stream s);
@@ -220,6 +223,17 @@ status		ws_expose_console(void);
 status		ws_iconify_console(void);
 status		ws_console_label(CharArray label);
 Int		ws_default_scrollbar_width(void);
+
+/* x11/xmenu.c */
+status		ws_draw_scrollbar_arrow(ScrollBar s, int x, int y, int w, int h, Name which, int up);
+int		ws_arrow_height_scrollbar(ScrollBar s);
+status		ws_draw_sb_thumb(int x, int y, int w, int h);
+status		ws_draw_button_face(Button b, int x, int y, int w, int h, int up, int defb, int focus);
+int		ws_combo_box_width(void);
+status		ws_entry_field(int x, int y, int w, int h, int flags);
+status		ws_draw_checkbox(int x, int y, int w, int h, int b, int flags);
+status		ws_checkbox_size(int flags, int *w, int *h);
+int		ws_message_box(Any msg, int flags);
 
 /* gra/graphstate.c */
 void		g_save(void);

@@ -258,6 +258,7 @@ fill_dialog(Draw, D:dialog) :->
 	new(NonEmptySelection, not(message(Selection, empty))),
 	new(NonEmptyDrawing, not(message(Canvas?graphicals, empty))),
 	new(HasCurrentFile, Canvas?file \== @nil),
+	new(HasMetaFile, ?(@pce, convert, win_metafile, class)),
 
 	send(D, append, new(MB, menu_bar(actions))),
 	send(D, append, label(reporter, 'Welcome to PceDraw'), right),
@@ -300,10 +301,11 @@ fill_dialog(Draw, D:dialog) :->
 		  , menu_item(save_and_postscript,
 			      and(message(Canvas, save),
 				  message(Canvas, postscript)),
-			      @default, @off,
+			      @default, @on,
 			      and(NonEmptyDrawing,
 				  Canvas?modified == @on,
 				  HasCurrentFile))
+		  , new(SaveAsMetaFile, popup(save_as_metafile))
 		  , menu_item(print,
 			      message(Canvas, print),
 			      @default, @on,
@@ -369,6 +371,7 @@ fill_dialog(Draw, D:dialog) :->
 			      message(Canvas, paste),
 			      @default, @on,
 			      message(@prolog, exists_clipboard))
+		  , new(ClipBoard, popup(clipboard))
 		  , menu_item(import_image,
 			      message(Canvas, import_image),
 			      @default, @on)
@@ -381,9 +384,53 @@ fill_dialog(Draw, D:dialog) :->
 			      NonEmptyDrawing)
 		  ]),
 
+	send(ClipBoard, end_group, @on),
+	send(ClipBoard?context, condition, HasMetaFile),
+	send_list(ClipBoard, append,
+		  [ menu_item(clip_as_picture,
+			      message(Canvas, export_win_metafile,
+				      drawing, wmf),
+			      condition := NonEmptyDrawing),
+		    menu_item(clip_as_enhanced_metafile,
+			      message(Canvas, export_win_metafile,
+				      drawing, emf),
+			      condition := NonEmptyDrawing),
+		    menu_item(clip_selection_as_picture,
+			      message(Canvas, export_win_metafile,
+				      selection, wmf),
+			      condition := NonEmptySelection),
+		    menu_item(clip_selection_as_metafile,
+			      message(Canvas, export_win_metafile,
+				      selection, emf),
+			      condition := NonEmptySelection,
+			      end_group := @on),
+		    menu_item(paste,
+			      message(Canvas, import_win_metafile))
+		  ]),
+
+	send(SaveAsMetaFile, end_group, @on),
+	send(SaveAsMetaFile?context, condition, and(NonEmptyDrawing,
+						    HasMetaFile)),
+	send_list(SaveAsMetaFile, append,
+		  [ menu_item(picture,
+			      message(Canvas, windows_metafile,
+				      ?(Canvas, default_file, wmf), aldus),
+			      condition := HasCurrentFile),
+		    menu_item(enhanced_metafile,
+			      message(Canvas, windows_metafile,
+				      ?(Canvas, default_file, emf), emf),
+			      condition := HasCurrentFile),
+		    menu_item(picture_as,
+			      message(Canvas, windows_metafile,
+				      @default, aldus)),
+		    menu_item(enhanced_metafile_as,
+			      message(Canvas, windows_metafile,
+				      @default, emf))
+		  ]),
+
 	send(S, multiple_selection, @on),
 	send(S, show_current, @on),
-	send(S, on_image, @mark_image),
+%	send(S, on_image, @mark_image),
 	send_list(S, append,
 		  [ menu_item(auto_align,
 			      message(Canvas, auto_align_mode, @arg1))
@@ -493,10 +540,9 @@ package.
 
 about(_Draw) :->
 	"Print `about' message"::
-	send(@display, inform, '%s\n\n%s\n%s\n%s\n',
-	     'PceDraw version 1.2',
-	     'By',
-	     'Jan Wielemaker',
+	send(@display, inform, '%s\n\n%s\n%s\n',
+	     'PceDraw version 2.0',
+	     'Author: Jan Wielemaker',
 	     'E-mail: jan@swi.psy.uva.nl').
 
 
@@ -551,9 +597,12 @@ quit(Draw) :->
 	    ;   Rval == quit
 	    ->  send(Draw, destroy)
 	    )
-	;   (   send(@display, confirm, 'Quit PceDraw?')
-	    ->  send(Draw, destroy)
-	    ;   fail
+	;   (   get(Draw, resource_value, confirm_done, @off)
+	    ->	send(Draw, destroy)
+	    ;	(   send(@display, confirm, 'Quit PceDraw?')
+		->  send(Draw, destroy)
+		;   fail
+		)
 	    )
 	).
 

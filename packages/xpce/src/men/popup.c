@@ -397,36 +397,54 @@ dragPopup(PopupObj p, EventObj ev, Bool check_pullright)
 
 
 static status
-typedPopup(PopupObj p, Any id)
-{ if ( id == toInt(13) )		/* RETURN ... */
-  { assign(p, selected_item, p->preview);
+kbdSelectPopup(PopupObj p, MenuItem mi)
+{ if ( notNil(mi->popup) )
+  { previewMenu((Menu) p, mi);
+    send(p, NAME_showPullrightMenu, mi, 0);
+    previewMenu((Menu)mi->popup, getHeadChain(mi->popup->members));
+  } else
+  { assign(p, selected_item, mi);
     send(p, NAME_close, 0);
+  }
 
-    succeed;
-  } else if ( id == NAME_cursorUp )
+  succeed;
+}
+
+
+static status
+typedPopup(PopupObj p, Any id)
+{ int prev;				
+
+  if ( id == toInt(13) )			/* RETURN ... */
+  { return kbdSelectPopup(p, p->preview);
+  } else if ( (prev = (id == NAME_cursorUp)) || /* cursor up/down */
+	      id == NAME_cursorDown )
   { MenuItem mi;
 
-    if ( notNil(p->preview) )
-      mi = getPreviousChain(p->members, p->preview);
-    else
-      mi = getTailChain(p->members);
+    if ( prev )
+    { if ( !(mi = getPreviousChain(p->members, p->preview)) )
+	mi = getTailChain(p->members);
+    } else
+    { if ( !(mi = getNextChain(p->members, p->preview)) )
+	mi = getHeadChain(p->members);
+    }
 
     if ( mi )
       previewMenu((Menu) p, mi);
 
     succeed;
-  } else if ( id == NAME_cursorDown )
-  { MenuItem mi;
+  } else
+  { Name key = characterName(id);		/* accelerator of item */
+    Cell cell;
 
-    if ( notNil(p->preview) )
-      mi = getNextChain(p->members, p->preview);
-    else
-      mi = getHeadChain(p->members);
+    for_cell(cell, p->members)
+    { MenuItem mi = cell->value;
 
-    if ( mi )
-      previewMenu((Menu) p, mi);
+      if ( mi->accelerator == key )
+	return kbdSelectPopup(p, mi);
+    }
 
-    succeed;
+    send(p, NAME_alert, 0);
   }
   
   fail;
@@ -437,7 +455,7 @@ static status
 eventPopup(PopupObj p, EventObj ev)
 { 					/* Showing PULLRIGHT menu */
   if ( notNil(p->pullright) )
-  { postEvent(ev, (Graphical) p->pullright, DEFAULT);
+  { status rval = postEvent(ev, (Graphical) p->pullright, DEFAULT);
 
     if ( isDragEvent(ev) )
     { if ( isNil(p->pullright->preview) )
@@ -463,8 +481,11 @@ eventPopup(PopupObj p, EventObj ev)
 	    return send(p, NAME_drag, ev, 0);
 	}
       }
-    } else if ( isUpEvent(ev) &&
-		getButtonEvent(ev) == p->pullright->button &&
+    } else if ( ((isUpEvent(ev) &&	/* execute it */
+		  getButtonEvent(ev) == p->pullright->button) ||
+		 (rval &&
+		  isAEvent(ev, NAME_keyboard) &&
+		  !isAEvent(ev, NAME_cursor))) &&
 		isNil(p->pullright->pullright) )
     { if ( notNil(p->pullright->selected_item) )
     	assign(p, selected_item, p->pullright);
@@ -539,9 +560,9 @@ status
 defaultPopupImages(PopupObj p)
 { if ( p->show_current == ON )
   { if ( p->multiple_selection == ON && p->look == NAME_win )
-      assign(p, on_image, MS_MARK_IMAGE);
-    else
       assign(p, on_image, NAME_marked);
+    else
+      assign(p, on_image, MS_MARK_IMAGE);
   } else
     assign(p, on_image, NIL);
 

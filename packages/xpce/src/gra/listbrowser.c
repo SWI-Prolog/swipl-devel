@@ -16,7 +16,6 @@ static status clearSelectionListBrowser(ListBrowser);
 static status ChangeItemListBrowser(ListBrowser, DictItem);
 static status ChangedListBrowser(ListBrowser);
 static status geometryListBrowser(ListBrowser, Int, Int, Int, Int);
-static status executeSearchListBrowser(ListBrowser);
 static status forwardListBrowser(ListBrowser, DictItem, Name);
 static status deselectListBrowser(ListBrowser, DictItem);
 static status showLabelListBrowser(ListBrowser, Bool);
@@ -300,6 +299,9 @@ geometryListBrowser(ListBrowser lb, Int x, Int y, Int w, Int h)
 { int ix, iw, sw, iy, ih;
   int pen = valInt(lb->pen);
 
+  if ( isDefault(w) || isDefault(h) )
+    computeBoundingBoxDevice((Device)lb);
+
   if ( isDefault(x) ) x = lb->area->x;
   if ( isDefault(y) ) y = lb->area->y;
   if ( isDefault(w) ) w = lb->area->w;
@@ -341,9 +343,9 @@ SizeListBrowser(ListBrowser lb, Size size)
 }
 
 
-static status
+status
 requestGeometryListBrowser(ListBrowser lb, Int x, Int y, Int w, Int h)
-{ Any v;
+{ PceWindow v;
 
   if ( notDefault(w) )
   { w = mul(w, getExFont(lb->font));
@@ -358,8 +360,15 @@ requestGeometryListBrowser(ListBrowser lb, Int x, Int y, Int w, Int h)
   }
 
   if ( instanceOfObject(v = lbReceiver(lb), ClassWindow) )
+  { int b = (valInt(v->tile->border) + valInt(v->pen)) * 2;
+
+    if ( notDefault(w) )
+      w = add(w, toInt(b));
+    if ( notDefault(h) )
+      h = add(h, toInt(b));
+
     requestGeometryWindow(v, x, y, w, h);
-  else
+  } else
     requestGeometryGraphical(lb, x, y, w, h);
 
   succeed;
@@ -747,7 +756,7 @@ cancelSearchListBrowser(ListBrowser lb)
 }
 
 
-static status
+status
 executeSearchListBrowser(ListBrowser lb)
 { DictItem di;
 
@@ -938,8 +947,10 @@ eventListBrowser(ListBrowser lb, EventObj ev)
 	return forwardListBrowser(lb, di, getButtonEvent(ev));
       } else				/* Multiple selection */
       { if ( hasModifierEvent(ev, findGlobal(NAME_ModifierShift)) )
+	  send(lb, NAME_changeSelection, NAME_extend, di, 0);
+        else if ( hasModifierEvent(ev, findGlobal(NAME_ModifierControl)) )
 	  send(lb, NAME_changeSelection, NAME_toggle, di, 0);
-        else
+	else
 	  send(lb, NAME_changeSelection, NAME_set, di, 0);
 
 	return forwardListBrowser(lb, di, getButtonEvent(ev));
@@ -991,6 +1002,43 @@ changeSelectionListBrowser(ListBrowser lb, Name action, DictItem di)
       deselectListBrowser(lb, di);
     else
       selectListBrowser(lb, di);
+  } else if ( action == NAME_extend )
+  { if ( isNil(lb->selection) )
+      selectListBrowser(lb, di);
+    else
+    { Chain ch = lb->selection;
+      if ( getSizeChain(ch) == ONE )
+      { DictItem start = getHeadChain(ch);
+
+	if ( start->index == di->index )
+	  deselectListBrowser(lb, di);	/* toggle */
+	else
+	{ DictItem f, t;
+	  Cell cell;
+
+	  if ( valInt(start->index) < valInt(di->index) )
+	  { f = start;
+	    t = di;
+	  } else
+	  { t = start;
+	    f = di;
+	  }
+
+	  if ( (cell = find_cell_dict(lb->dict, f->index)) )
+	  { for( ; notNil(cell); cell = cell->next )
+	    { DictItem di2 = cell->value;
+
+	      selectListBrowser(lb, di2);
+	      if ( di2 == t )
+		break;
+	    }
+	  }
+	}
+      } else
+      { clearSelectionListBrowser(lb);
+	selectListBrowser(lb, di);
+      }
+    }
   } else /* clear */
   { clearSelectionListBrowser(lb);
   }
@@ -1166,20 +1214,24 @@ recenterListBrowser(ListBrowser lb, Int arg)
 
 static status
 scrollVerticalListBrowser(ListBrowser lb, Name dir, Name unit, Int amount)
-{ if ( equalName(unit, NAME_file) )
-  { if ( equalName(dir, NAME_goto) )
+{ if ( unit == NAME_file )
+  { if ( dir == NAME_goto )
     { int size = (isNil(lb->dict) ? 0 : valInt(lb->dict->members->size));
-      int h = (size * valInt(amount)) / 1000;
+      int view = valInt(getLinesTextImage(lb->image));
+      int h = ((size-view) * valInt(amount)) / 1000;
+
+      if ( h < 0 )
+	h = 0;
 
       scrollToListBrowser(lb, toInt(h));
     }
-  } else if ( equalName(unit, NAME_page) )
+  } else if ( unit == NAME_page )
   { int d = (valInt(getLinesTextImage(lb->image)) * valInt(amount)) / 1000;
 
     if ( d < 1 )
       d = 1;
 
-    if ( equalName(dir, NAME_forwards) )
+    if ( dir == NAME_forwards )
       scrollUpListBrowser(lb, toInt(d));
     else
       scrollDownListBrowser(lb, toInt(d));
@@ -1192,6 +1244,19 @@ scrollVerticalListBrowser(ListBrowser lb, Name dir, Name unit, Int amount)
 
   succeed;
 }
+
+
+static status
+showScrollBarListBrowser(ListBrowser lb, Bool show, ScrollBar sb)
+{ if ( isDefault(sb) || sb == lb->scroll_bar )
+  { computeBoundingBoxDevice((Device) lb);
+    DisplayedGraphical(lb->scroll_bar, show);
+    geometryListBrowser(lb, DEFAULT, DEFAULT, lb->area->w, lb->area->h);
+  }
+
+  succeed;
+}
+
 
 		 /*******************************
 		 *	  LINE UP/DOWN		*
@@ -1213,7 +1278,8 @@ nextLineListBrowser(ListBrowser lb, Int lines)
 
 	ChangeItemListBrowser(lb, di2);
 
-	if ( !prefixCharArray(lbl, (CharArray)lb->search_string) )
+	if ( !prefixCharArray(lbl, (CharArray)lb->search_string) ||
+	     getSizeCharArray(lb->search_string) == ZERO )
 	{ assign(lb, search_string,
 		 newObject(ClassString, name_procent_s, lbl, 0));
 	  assign(lb, search_origin, newi);
@@ -1481,8 +1547,10 @@ getMasterListBrowser(ListBrowser lb)
 
 static char *T_scrollVertical[] =
         { "{forwards,backwards,goto}", "{file,page,line}", "int" };
+static char *T_showScrollBar[] =
+        { "show=[bool]", "which=[scroll_bar]" };
 static char *T_changeSelection[] =
-        { "action={set,toggle,clear}", "context=[dict_item]" };
+        { "action={set,toggle,extend,clear}", "context=[dict_item]" };
 static char *T_initialise[] =
         { "dict=[dict]", "width=[int]", "height=[int]" };
 static char *T_style[] =
@@ -1507,7 +1575,8 @@ static vardecl var_listBrowser[] =
      NAME_event, "Handle typing?"),
   IV(NAME_keyBinding, "key_binding", IV_BOTH,
      NAME_accelerator, "Key binding table"),
-  SV(NAME_selection, "chain|member:dict_item*", IV_NONE|IV_STORE, selectionListBrowser,
+  SV(NAME_selection, "chain|member:dict_item*", IV_NONE|IV_STORE,
+     selectionListBrowser,
      NAME_selection, "Selected items"),
   IV(NAME_selectionStyle, "[style]", IV_GET,
      NAME_appearance, "Style for selection feedback"),
@@ -1596,6 +1665,8 @@ static senddecl send_listBrowser[] =
      NAME_scroll, "Recenter current line (to be implemented)"),
   SM(NAME_scrollVertical, 3, T_scrollVertical, scrollVerticalListBrowser,
      NAME_scroll, "Handle scroll_bar request"),
+  SM(NAME_showScrollBar, 2, T_showScrollBar, showScrollBarListBrowser,
+     NAME_scroll, "Control visibility of the <-scroll_bar"),
   SM(NAME_nextLine, 1, "[int]", nextLineListBrowser,
      NAME_selection, "Set selection to next item"),
   SM(NAME_previousLine, 1, "[int]", previousLineListBrowser,

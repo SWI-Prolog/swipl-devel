@@ -118,10 +118,12 @@ status
 makeClassModifier(Class class)
 { declareClass(class, &modifier_decls);
 
-  MODIFIER_shift = globalObject(NAME_ModifierShift, ClassModifier,
-				NAME_down, NAME_up, NAME_up, 0);
-  MODIFIER_allup = globalObject(NAME_ModifierAllUp, ClassModifier,
-				NAME_up, NAME_up, NAME_up, 0);
+  MODIFIER_shift   = globalObject(NAME_ModifierShift, ClassModifier,
+				  NAME_down, NAME_up, NAME_up, 0);
+  MODIFIER_control = globalObject(NAME_ModifierControl, ClassModifier,
+				  NAME_up, NAME_down, NAME_up, 0);
+  MODIFIER_allup   = globalObject(NAME_ModifierAllUp, ClassModifier,
+				  NAME_up, NAME_up, NAME_up, 0);
   ModifierTable = globalObject(NAME_modifiers, ClassHashTable, 0);
 
   succeed;

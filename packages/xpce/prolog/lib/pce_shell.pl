@@ -11,8 +11,7 @@
 	  [ pce_shell_command/1
 	  ]).
 :- use_module(library(pce)).
-:- require([ flatten/2
-	   , maplist/3
+:- require([ concat_atom/3
 	   ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -64,16 +63,3 @@ pce_shell_command(Cmd) :-
 	    send(V, open),
 	    fail
 	).
-                            
-concat_atom([], _, '').
-concat_atom([X], _, X) :- !.
-concat_atom(List, Between, Atom) :-
-	maplist(atom_chars, List, CharList),
-	atom_chars(Between, BetweenChars),
-	concat_strings(CharList, BetweenChars, NestedChars),
-	flatten(NestedChars, Chars),
-	atom_chars(Atom, Chars).
-
-concat_strings([X], _, X) :- !.
-concat_strings([H|T0], B, [H,B|T]) :-
-	concat_strings(T0, B, T).

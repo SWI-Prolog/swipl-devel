@@ -529,7 +529,7 @@ str_store(String s, int idx, unsigned int chr)
 
 static void
 str_from_char(String s, char c)
-{ char *text = alloc(sizeof(char)*2);
+{ unsigned char *text = alloc(sizeof(char)*2);
   text[0] = c;
   text[1] = '\0';
 

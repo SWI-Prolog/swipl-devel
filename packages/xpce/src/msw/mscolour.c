@@ -174,28 +174,15 @@ ws_system_colours(DisplayObj d)
     int b = GetBValue(rgb);
     Colour c;
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This is odd, these report the same as their window!?
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-    if ( sc->id == COLOR_SCROLLBAR || sc->id == COLOR_BTNFACE )
-    { DWORD fg = GetSysColor(COLOR_MENU);
-
-      if ( rgb == fg )
-      { r = (r+256)/2;
-	g = (g+256)/2;
-	b = (b+256)/2;
-	rgb = RGB(r, g, b);
-      }
-    }
-
     DEBUG(NAME_win, Cprintf("Colour %s = %d %d %d\n", sc->name, r, g, b));
     
     r = r*256 + r;
     g = g*256 + g;
     b = b*256 + b;
 
+#if 0
     rgb |= EXACT_COLOUR_MASK;	/* Avoid GetNearestColor() */
+#endif
 
     if ( (c = newObject(ClassColour, ref, toInt(r), toInt(g), toInt(b), 0)) )
     { lockObject(c, ON);
@@ -246,6 +233,44 @@ CreateCCPalette(int size)
 }
 
 
+static void
+ws_open_colourmap(ColourMap cm)
+{ if ( !cm->ws_ref && notNil(cm->colours) )
+  { int size = valInt(cm->colours->size);
+    LOGPALETTE *lp = pceMalloc(offset(LOGPALETTE, palPalEntry[size]));
+    PALETTEENTRY *pe = &lp->palPalEntry[0];
+    HPALETTE hpal;
+    int n, nc = 0;
+
+    for(n=0; n<size; n++)
+    { Colour c = cm->colours->elements[n];
+
+      if ( instanceOfObject(c, ClassColour) )
+      { if ( c->kind == NAME_named )
+	  ws_create_colour(c, CurrentDisplay(NIL));
+
+	pe->peRed   = valInt(c->red) >> 8;
+	pe->peGreen = valInt(c->green) >> 8;
+	pe->peBlue  = valInt(c->blue) >> 8;
+
+	pe++;
+	nc++;
+      }
+    }
+    
+    lp->palVersion    = 0x300;
+    lp->palNumEntries = nc;
+
+    DEBUG(NAME_colourMap, Cprintf("Created %s with %d colours\n", pp(cm), nc));
+
+    if ( !(hpal = CreatePalette(lp)) )
+      Cprintf("%s: failed to create logpalette\n", pp(cm));
+
+    setPaletteColourMap(cm, hpal);
+  }
+}
+
+
 void
 setPaletteColourMap(ColourMap cm, HPALETTE hpal)
 { cm->ws_ref = hpal;
@@ -254,7 +279,9 @@ setPaletteColourMap(ColourMap cm, HPALETTE hpal)
 
 HPALETTE
 getPaletteColourMap(ColourMap cm)
-{ return cm->ws_ref;
+{ ws_open_colourmap(cm);
+
+  return cm->ws_ref;
 }
 
 

@@ -28,7 +28,7 @@ Open flags recognised:
 	PCE_WRONLY	Writing only
 	PCE_RDWR	Reading and writing
 	PCE_APPEND	Keep appending
-	PCE_TRUNC	Tuncate object prioir to writing
+	PCE_TRUNC	Tuncate object prior to writing
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static PceFileHandle *handles;		/* array of handles */
@@ -147,7 +147,7 @@ pceWrite(int handle, const char *buf, int size)
 
     str_inithdr(&s, ENC_ASCII);
     s.size     = size;
-    s.s_text8  = (char *)buf;
+    s.s_text8  = (unsigned char *)buf;
 
     ca = StringToScratchCharArray(&s);
     if ( (rval = send(h->object, NAME_writeAsFile, where, ca, 0)) )

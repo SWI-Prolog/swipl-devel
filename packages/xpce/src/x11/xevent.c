@@ -145,6 +145,7 @@ ws_event_in_subwindow(EventObj ev, Any root)
 			  valInt(ev->x), valInt(ev->y),
 			  &dx, &dy, &child);
 
+#if 0
     DEBUG(NAME_pointer,
 					/* TEST STUFF */
 	  ({ Window rr, cr;
@@ -152,10 +153,11 @@ ws_event_in_subwindow(EventObj ev, Any root)
 	    
 	    if ( XQueryPointer(r->display_xref, atts.root, &rr, &cr,
 			       &rx, &ry, &wx, &wy, &mask) )
-	    { Cprintf("XTranslateCoordinates --> %d\n"
-		      "XQueryPointer --> %d\n", child, cr);
+	    { Cprintf("XTranslateCoordinates --> %d\nXQueryPointer --> %d\n",
+		      child, cr);
 	    }
 	  }));
+#endif
 
     while ( child != None && depth-- > 0 )
     { Cell cell;

@@ -67,7 +67,7 @@ char *address;
     memset(&a, 0, sizeof(a));
 
     a.sin_family = AF_INET;
-    a.sin_port   = port;
+    a.sin_port   = htons(port);
  
     if ( !(hp = gethostbyname(host)) )
       return -1;

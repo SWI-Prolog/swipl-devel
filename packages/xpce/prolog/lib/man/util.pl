@@ -17,7 +17,6 @@
 	, man_relation/1
 	, apropos_class/6
 	, class_of/2
-	, concat_atom/3
 	, ifmaintainer/1
 	, group_objects/2
 	, indent/2
@@ -31,7 +30,6 @@
 
 :- use_module(library(pce)).
 :- require([ chain_list/2
-	   , concat_atom/2
 	   , forall/2
 	   , get_chain/3
 	   , member/2
@@ -372,19 +370,6 @@ order_groups(Sheet) :-
 	     ?(?(Table, member, @arg1?name)?index, compare,
 	       ?(Table, member, @arg2?name)?index)),
 	send(Chain, merge, Unordered).
-
-
-		/********************************
-		*             CONCAT		*
-		********************************/
-
-%	concat_atom(+ListOfAtoms, +Separator, -Result).
-
-concat_atom([], _, '').
-concat_atom([X], _, X).
-concat_atom([X|Y], Sep, Result) :-
-	concat_atom(Y, Sep, R0),
-	concat_atom([X, Sep, R0], Result).
 
 
 		/********************************

@@ -38,7 +38,6 @@ standard XPCE library directory.
 	   , pce_image_directory/1
 	   , postscript/2
 	   , send_list/3
-	   , tmp_file/2
 	   ]).
 
 
@@ -633,12 +632,11 @@ fit_size(D) :->
 		 *******************************/
 
 pretty_print(Term, String) :-
-	tmp_file(xpcepp, TmpNam),
-%	get(string('/tmp/xpce-pp-%d', @pce?pid), value, TmpNam),
+	new(F, file),
+	get(F, name, TmpNam),
 	telling(Old), tell(TmpNam),
 	pretty_print(Term),
 	told, tell(Old),
-	new(F, file(TmpNam)),
 	send(F, open, read),
 	get(F, read, String),
 	send(F, remove),

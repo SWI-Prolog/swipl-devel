@@ -1,4 +1,4 @@
-/*  prompt.pl,v 1.0.0.1 1992/07/27 09:17:31 toussain Exp
+/*  $Id$
 
     Part of XPCE
     Designed and implemented by Anjo Anjewierden and Jan Wielemaker
@@ -38,6 +38,9 @@ Last updated:	Wed Sep 13 1995 by Jan Wielemaker
 		- Added menu/browser for multiple values.
 		- Added automatic stretching of dialog items on resize
 		- Improved type and error handling
+		Thu Aug  1 1996 by Jan Wielemaker
+		- Fixed passing quoted types such as '0..100'
+		- Added support for sliders for int- and real-ranges.
 
 NOTE:	Package is under development.  Needs support for more types;
 	optional/obligatory fields and better error-messages.
@@ -82,6 +85,8 @@ prompter(Title, Attributes) :-
 canonise_attribute(Label:Type = Value, Label:PceType = Value) :-
 	pce_type(Type, PceType).
 
+pce_type(Type, Type) :-
+	atom(Type), !.
 pce_type(Term, Type) :-
 	term_to_atom(Term, A0),
 	atom_chars(A0, S0),
@@ -125,6 +130,10 @@ append_prompter(P, Label:Type = Value) :-
 						  % TBD: specialised types
 make_dialog_item(Type, Label, DI) :-
 	get(@pce, convert, Type, type, PceType),
+	get(PceType, kind, Kind),
+	dialog_item_from_type_kind(Kind, PceType, Label, DI), !.
+make_dialog_item(Type, Label, DI) :-
+	get(@pce, convert, Type, type, PceType),
 	get(PceType, value_set, Set), !,
 	get(Set, size, Size),
 	(   Size < 6
@@ -137,6 +146,15 @@ make_dialog_item(Type, Label, DI) :-
 make_dialog_item(Type, Label, DI) :-
 	new(DI, text_item(Label, '')),
 	send(DI, type, Type).
+
+
+dialog_item_from_type_kind(Range, Type, Label, DI) :-
+	(   Range == int_range
+	;   Range == real_range
+	), !,
+	get(Type?context, first, Low),
+	get(Type?context, second, High),
+	new(DI, slider(Label, Low, High, (Low+High)/2)).
 
 
 		/********************************

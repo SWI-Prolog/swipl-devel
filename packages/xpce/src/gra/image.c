@@ -44,9 +44,11 @@ initialiseImage(Image image, Name name, Int w, Int h, Name kind)
     assign(image, depth,  ONE);
     assign(image, size,	  newObject(ClassSize, 0));
     TRY(loadImage(image, DEFAULT, DEFAULT));
-    protectObject(image);
-    if ( notNil(name) )
-      appendHashTable(ImageTable, name, image);
+  }
+
+  if ( notNil(name) )
+  { protectObject(image);
+    appendHashTable(ImageTable, name, image);
   }
 
   succeed;
@@ -565,6 +567,13 @@ getPixelImage(Image image, Int x, Int y)
   fail;
 }
 
+
+static status
+maskImage(Image image, Image mask)
+{ return assignGraphical(image, NAME_mask, mask);
+}
+
+
 		/********************************
 		*      LOGICAL OPERATIONS	*
 		********************************/
@@ -648,6 +657,20 @@ getScaleImage(Image image, Size size)
     return answerObject(ClassImage, NIL, size->w, size->h, image->kind, 0);
   
   return ws_scale_image(image, valInt(size->w), valInt(size->h));
+}
+
+
+static Image
+getRotateImage(Image image, Int degrees)
+{ int a = valInt(degrees);
+
+  a %= 360;
+  if ( a < 0 )				/* normalise 0<=a<360 */
+    a += 360;
+  else if ( a == 0 )				/* just copy */
+    answer(getClipImage(image, DEFAULT));
+
+  return ws_rotate_image(image, a);
 }
 
 
@@ -741,9 +764,9 @@ standardImages(void)
   stdImage(NAME_nomarkImage, &NOMARK_IMAGE,
 	   nomark_bm_bits, nomark_bm_width, nomark_bm_height);
   stdImage(NAME_msMarkImage, &MS_MARK_IMAGE,
-	   ms_mark_bits, ms_mark_width, ms_mark_height);
+	   (char *)ms_mark_bits, ms_mark_width, ms_mark_height);
   stdImage(NAME_msNomarkImage, &MS_NOMARK_IMAGE,
-	   ms_nomark_bits, ms_nomark_width, ms_nomark_height);
+	   (char *)ms_nomark_bits, ms_nomark_width, ms_nomark_height);
   stdImage(NAME_pullRightImage, &PULLRIGHT_IMAGE,
 	   pullright_bm_bits, pullright_bm_width, pullright_bm_height);
   stdImage(NAME_markHandleImage, &MARK_HANDLE_IMAGE,
@@ -771,7 +794,7 @@ static char *T_initialise[] =
 static char *T_image_atADpointD[] =
         { "image", "at=[point]" };
 static char *T_save[] =
-        { "in=[file]", "format=[{xbm,pnm,pbm,pgm,ppm}]" };
+        { "in=[file]", "format=[{xbm,xpm,pnm,pbm,pgm,ppm}]" };
 static char *T_postscript[] =
         { "landscape=[bool]", "maximum_area=[area]" };
 static char *T_resize[] =
@@ -810,6 +833,8 @@ static vardecl var_image[] =
      NAME_organisation, "Access both and displayed on this bitmap"),
   IV(NAME_hotSpot, "point*", IV_BOTH,
      NAME_dimension, "Hot-spot position"),
+  SV(NAME_mask, "image*", IV_GET|IV_STORE, maskImage,
+     NAME_area, "Image for masked painting"),
   IV(NAME_wsRef, "alien:WsRef", IV_NONE,
      NAME_storage, "Window System Reference")
 };
@@ -878,6 +903,8 @@ static getdecl get_image[] =
      NAME_copy, "Get a subimage"),
   GM(NAME_scale, 1, "image", "size", getScaleImage,
      NAME_copy, "Get copy with different dimensions"),
+  GM(NAME_rotate, 1, "image", "degrees=int", getRotateImage,
+     NAME_copy, "Get anti-clockwise rotated copy"),
   GM(NAME_lookup, 1, "image", "name", getLookupImage,
      NAME_oms, "Lookup in @images table"),
   GM(NAME_pixel, 2, "value=bool|colour", T_xAint_yAint, getPixelImage,

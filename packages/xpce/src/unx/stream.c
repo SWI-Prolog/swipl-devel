@@ -29,13 +29,13 @@
 #include <sys/select.h>
 #endif
 
-static status recordSeparatorStream(Stream s, Regex re);
+static status recordSeparatorStream(Stream s, Any sep);
 static status closeStream(Stream s);
 
 #define OsError() getOsErrorPce(PCE)
 
 status
-initialiseStream(Stream s, Int rfd, Int wfd, Code input, Regex sep)
+initialiseStream(Stream s, Int rfd, Int wfd, Code input, Any sep)
 { s->rdfd = s->wrfd = -1;
   s->ws_ref = 0;
   s->input_buffer = NULL;
@@ -128,9 +128,9 @@ inputStream(Stream s, Int fd)
 
 
 #define BLOCKSIZE 1024
-#define ALLOCSIZE 256
+#define ALLOCSIZE 1024
 
-#define Round(n, r) ((((n) + (r) - 1)/(r)) * (r))
+#define Round(n, r) (((n) + (r) - 1) & ~((r)-1))
 
 void
 add_data_stream(Stream s, char *data, int len)
@@ -145,22 +145,142 @@ add_data_stream(Stream s, char *data, int len)
     s->input_buffer = pceRealloc(s->input_buffer, s->input_allocated);
   }
 
-  q = &s->input_buffer[s->input_p];
-  strncpy(q, data, len);
+  q = (char *)&s->input_buffer[s->input_p];
+  memcpy(q, data, len);
   s->input_p += len;
 }
 
 
+static void
+write_byte(int byte)
+{ if ( byte < 32 || (byte >= 127 && byte < 128+32) || byte == 255 )
+  { char buf[10];
+    char *prt = buf;
+
+    switch(byte)
+    { case '\t':
+	prt = "\\t";
+        break;
+      case '\r':
+	prt = "\\r";
+	break;
+      case '\n':
+	prt = "\\n";
+	break;
+      case '\b':
+	prt = "\\b";
+	break;
+      default:
+	sprintf(buf, "<%d>", byte);
+    }
+
+    Cprintf("%s", prt);
+  } else
+    Cputchar(byte);
+}
+
+
+static void
+write_buffer(char *buf, int size)
+{ if ( size > 50 )
+  { write_buffer(buf, 25);
+    Cprintf(" ... ");
+    write_buffer(buf + size - 25, 25);
+  } else
+  { int n;
+
+    for(n=0; n<size; n++)
+    { write_byte(buf[n]);
+    }
+  }
+}
+
+
+static void
+dispatch_stream(Stream s, int size)
+{ string q;
+  AnswerMark mark;
+  Any str;
+
+  markAnswerStack(mark);
+  str_inithdr(&q, ENC_ASCII);
+  q.size = size;
+  q.s_text8 = s->input_buffer;
+  str = StringToString(&q);
+  memcpy((char *)s->input_buffer,
+	  (char *)&s->input_buffer[size],
+	  s->input_p - size);
+  s->input_p -= size;
+
+  DEBUG(NAME_stream,
+	{ int n = valInt(getSizeCharArray(str));
+
+	  Cprintf("Sending: %d characters, `", n);
+	  write_buffer(strName(str), n);
+	  Cprintf("'\n\tLeft: %d characters, `", s->input_p);
+	  write_buffer(s->input_buffer, s->input_p);
+	  Cprintf("'\n");
+	});
+  
+  if ( notNil(s->input_message) )
+  { addCodeReference(s);
+    forwardReceiverCodev(s->input_message, s, 1, &str);
+    delCodeReference(s);
+  }
+
+  rewindAnswerStack(mark, NIL);
+}
+
+
+static void
+dispatch_input_stream(Stream s)
+{ while( !onFlag(s, F_FREED|F_FREEING) && s->input_buffer && s->input_p > 0 )
+  { if ( isNil(s->record_separator) )
+    { dispatch_stream(s, s->input_p);
+      if ( s->input_buffer )
+      { pceFree(s->input_buffer);
+	s->input_buffer = NULL;
+      }
+
+      return;
+    }
+
+    if ( isInteger(s->record_separator) )
+    { int bsize = valInt(s->record_separator);
+
+      if ( bsize <= s->input_p )
+      {	dispatch_stream(s, bsize);
+	continue;
+      }
+
+      return;
+    }
+
+    if ( search_regex(s->record_separator,
+		      (char *)s->input_buffer, s->input_p,
+		      NULL, 0, 0, s->input_p) )
+    { int size = valInt(getRegisterEndRegex(s->record_separator, ZERO));
+
+      dispatch_stream(s, size);
+      continue;
+    }
+
+    return;
+  }
+}
+
+
+
 status
 handleInputStream(Stream s)
-{ char buf[BLOCKSIZE+1];
+{ char buf[BLOCKSIZE];
   int n;
 
   if ( onFlag(s, F_FREED|F_FREEING) )
     fail;
 
   if ( (n = ws_read_stream_data(s, buf, BLOCKSIZE)) > 0 )
-  { if ( isNil(s->record_separator) )
+  { if ( isNil(s->record_separator) && !s->input_buffer )
     { string q;
       Any str;
       AnswerMark mark;
@@ -168,7 +288,7 @@ handleInputStream(Stream s)
 
       str_inithdr(&q, ENC_ASCII);
       q.size = n;
-      q.s_text8 = buf;
+      q.s_text8 = (unsigned char *)buf;
       str = StringToString(&q);
       addCodeReference(s);
       forwardReceiverCodev(s->input_message, s, 1, &str);
@@ -179,42 +299,12 @@ handleInputStream(Stream s)
     { add_data_stream(s, buf, n);
 
       DEBUG(NAME_stream,
-	    { s->input_buffer[s->input_p] = EOS;
-	      Cprintf("Read (%d chars): `%s'\n",
-		      n,
-		      &s->input_buffer[s->input_p-n]);
+	    { Cprintf("Read (%d chars): `", n);
+	      write_buffer(&s->input_buffer[s->input_p-n], n);
+	      Cprintf("'\n");
 	    });
 
-      while ( !onFlag(s, F_FREED|F_FREEING) && /* may drop out! */
-	      search_regex(s->record_separator,
-			   s->input_buffer, s->input_p,
-			   NULL, 0, 0, s->input_p) )
-      { Any str;
-	string q;
-	int size;
-	AnswerMark mark;
-
-	markAnswerStack(mark);
-	size = valInt(getRegisterEndRegex(s->record_separator, ZERO));
-	str_inithdr(&q, ENC_ASCII);
-	q.size = size;
-	q.s_text8 = s->input_buffer;
-	str = StringToString(&q);
-	strncpy(s->input_buffer, &s->input_buffer[size], s->input_p - size);
-	s->input_p -= size;
-
-	DEBUG(NAME_stream, Cprintf("Sending: `%s'\n", strName(str)));
-	addCodeReference(s);
-	forwardReceiverCodev(s->input_message, s, 1, &str);
-	delCodeReference(s);
-	rewindAnswerStack(mark, NIL);
-      }
-
-      DEBUG(NAME_stream,
-	    if ( s->input_p )
-	    { s->input_buffer[s->input_p] = EOS;
-	      Cprintf("Left in buffer: `%s'\n", s->input_buffer);
-	    });
+      dispatch_input_stream(s);
     }
   } else
   { DEBUG(NAME_stream,
@@ -296,10 +386,15 @@ endOfFileStream(Stream s)
 
 
 static status
-recordSeparatorStream(Stream s, Regex re)
-{ assign(s, record_separator, re);
-  if ( notNil(re) )
-    compileRegex(re, ON);
+recordSeparatorStream(Stream s, Any re)
+{ if ( s->record_separator != re )
+  { assign(s, record_separator, re);
+
+    if ( instanceOfObject(re, ClassRegex) )
+      compileRegex(re, ON);
+
+    dispatch_input_stream(s);		/* handle possible pending data */
+  }
 
   succeed;
 }
@@ -314,14 +409,14 @@ recordSeparatorStream(Stream s, Regex re)
 static char *T_format[] =
         { "format=char_array", "argument=any ..." };
 static char *T_initialise[] =
-        { "rfd=[int]", "wfd=[int]", "input_message=[code]", "record_separator=[regex]" };
+        { "rfd=[int]", "wfd=[int]", "input_message=[code]", "record_separator=[regex|int]" };
 
 /* Instance Variables */
 
 static vardecl var_stream[] =
 { IV(NAME_inputMessage, "code*", IV_BOTH,
      NAME_input, "Forwarded on input from the stream"),
-  SV(NAME_recordSeparator, "regex*", IV_GET|IV_STORE, recordSeparatorStream,
+  SV(NAME_recordSeparator, "regex|int*", IV_GET|IV_STORE, recordSeparatorStream,
      NAME_input, "Regex that describes the record separator"),
   IV(NAME_wrfd, "alien:int", IV_NONE,
      NAME_internal, "File-handle to write to stream"),
@@ -408,7 +503,7 @@ makeClassStream(Class class)
 static vardecl var_stream[] =
 { IV(NAME_inputMessage, "code*", IV_BOTH,
      NAME_input, "Forwarded on input from the stream"),
-  IV(NAME_recordSeparator, "regex*", IV_GET,
+  IV(NAME_recordSeparator, "regex|int*", IV_GET,
      NAME_input, "Regex that describes the record separator"),
   IV(NAME_wrfd, "alien:int", IV_NONE,
      NAME_internal, "File-handle to write to stream"),

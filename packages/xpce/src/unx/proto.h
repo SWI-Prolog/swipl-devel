@@ -2,8 +2,8 @@
 /* unx/directory.c */
 status		cdDirectory(Directory d);
 status		makeClassDirectory(Class class);
-char *		dirName(char *f);
-char *		baseName(register char *f);
+char *		dirName(const char *f);
+char *		baseName(const char *f);
 int		isAbsolutePath(const char *p);
 char *		absolutePath(char *file);
 char *		expandFileName(char *pattern);
@@ -45,7 +45,7 @@ status		acceptSocket(Socket s);
 status		makeClassSocket(Class class);
 
 /* unx/stream.c */
-status		initialiseStream(Stream s, Int rfd, Int wfd, Code input, Regex sep);
+status		initialiseStream(Stream s, Int rfd, Int wfd, Code input, Any sep);
 status		closeInputStream(Stream s);
 status		closeOutputStream(Stream s);
 status		inputStream(Stream s, Int fd);

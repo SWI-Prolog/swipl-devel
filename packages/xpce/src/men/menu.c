@@ -1,5 +1,5 @@
 /*  $Id$
-    Part of XPCE
+
     Designed and implemented by Anjo Anjewierden and Jan Wielemaker
     E-mail: jan@swi.psy.uva.nl
 
@@ -43,7 +43,6 @@ initialiseMenu(Menu m, Name name, Name kind, Code msg)
   assign(m, feedback,		DEFAULT);
   assign(m, pen,		DEFAULT);
   assign(m, show_label,         DEFAULT); /* resource */
-  assign(m, label_font,         NIL);	  /* resource if show_label != OFF */
   assign(m, label_width,        DEFAULT); /* dialog layout system */
   assign(m, value_font,         DEFAULT); /* resource */
   assign(m, value_width,        DEFAULT); /* minimum width of values */
@@ -69,7 +68,7 @@ initialiseMenu(Menu m, Name name, Name kind, Code msg)
 
   kindMenu(m, kind);
 
-  return requestComputeGraphical(m, DEFAULT);
+  return requestComputeGraphical(m, NAME_assignAccelerators);
 }
 
 
@@ -157,6 +156,7 @@ computeLabelMenu(Menu m)
 { int iox;				/* item_offset <- x */
   int ioy;				/* item_offset <- y */
 
+  obtainResourcesObject(m);
   if ( isDefault(m->show_label) )
     assign(m, show_label, getResourceValueObject(m, NAME_showLabel));
 
@@ -165,10 +165,8 @@ computeLabelMenu(Menu m)
 
     if ( isNil(m->label_area) )
       assign(m, label_area, newObject(ClassArea, 0));
-    if ( isNil(m->label_font) )
-      assign(m, label_font, getResourceValueObject(m, NAME_labelFont));
     
-    str_size(&m->label->data, m->label_font, &w, &h);
+    dia_label_size(m, &w, &h, NULL);
     if ( m->layout == NAME_horizontal )
       w += valInt(getExFont(m->label_font));
     setArea(m->label_area, DEFAULT, DEFAULT, toInt(w), toInt(h));
@@ -193,9 +191,11 @@ computeLabelMenu(Menu m)
   if ( m->feedback == NAME_showSelectionOnly )
   { Any ci = getResourceValueObject(m, NAME_cycleIndicator);
     
-    if ( instanceOfObject(ci, ClassElevation) )
-      iox += CYCLE_DROP_WIDTH + CYCLE_DROP_DISTANCE;
-    else /* if ( instanceOfObject(ci, ClassImage) ) */
+    if ( (Name)ci == NAME_comboBox )
+    { iox += 0;
+    } else if ( instanceOfObject(ci, ClassElevation) )
+    { iox += CYCLE_DROP_WIDTH + CYCLE_DROP_DISTANCE;
+    } else /* if ( instanceOfObject(ci, ClassImage) ) */
     { Image i = ci;
       iox += valInt(i->size->w) + CYCLE_DROP_DISTANCE;
     }
@@ -226,15 +226,6 @@ size_menu_item(Menu m, MenuItem mi, int *w, int *h)
 }
 
 
-static int
-named_image_width(Menu m)
-{ if ( m->look == NAME_motif )
-    return max(MARK_DIAMOND_SIZE, MARK_BOX_SIZE);
-  else /* if ( m->look == NAME_win ) */
-    return MARK_CIRCLE_SIZE + 2;
-}
-
-
 static status
 computeItemsMenu(Menu m)
 { int w = 0, h = 0, iw, ih;
@@ -261,18 +252,31 @@ computeItemsMenu(Menu m)
   w += 2 * border;
   h += 2 * border;
 
-  if ( notNil(m->on_image) || notNil(m->off_image) )
-  { if ( instanceOfObject(m->on_image, ClassImage) )
-      lm = valInt(m->on_image->size->w);
-    else if ( notNil(m->on_image) )
-      lm = named_image_width(m);
+  if ( m->feedback == NAME_showSelectionOnly )
+  { Image ci = getResourceValueObject(m, NAME_cycleIndicator);
 
-    if ( instanceOfObject(m->off_image, ClassImage) )
-      lm = max(lm, valInt(m->off_image->size->w));
-    else if ( notNil(m->off_image) )
-      lm = max(lm, named_image_width(m));
+    if ( (Name)ci == NAME_comboBox )
+      rm = ws_combo_box_width();
+  } else
+  { if ( notNil(m->on_image) || notNil(m->off_image) )
+    { int cw, ch;
 
-    lm += 5;				/* TBD: Parameter? */
+      if ( instanceOfObject(m->on_image, ClassImage) )
+	lm = valInt(m->on_image->size->w);
+      else if ( (Name)m->on_image == NAME_marked )
+      { ws_checkbox_size(0, &cw, &ch);
+	lm = cw;
+      }
+  
+      if ( instanceOfObject(m->off_image, ClassImage) )
+	lm = max(lm, valInt(m->off_image->size->w));
+      else if ( (Name)m->off_image == NAME_marked )
+      { ws_checkbox_size(0, &cw, &ch);
+	lm = max(lm, cw);
+      }
+  
+      lm += 5;				/* TBD: Parameter? */
+    }
   }
   
   if ( isDefault(m->accelerator_font) )
@@ -313,6 +317,10 @@ computeMenu(Menu m)
   { int x, y, w, h;
     int ix, iy, iw, ih;
     int aw, ah;
+
+    if ( m->request_compute == NAME_assignAccelerators &&
+	 hasSendMethodObject(m, NAME_assignAccelerators) )
+      send(m, NAME_assignAccelerators, 0);
 
     if ( m->multiple_selection == OFF )
       ensureSingleSelectionMenu(m);
@@ -530,6 +538,8 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation iz)
   Image fill = NIL;
   Any colour = mi->colour;
   Elevation z = iz;
+  int lblflags = (mi->active == ON && m->active == ON ? 0 : LABEL_INACTIVE);
+  int flags = 0;
 
   DEBUG(NAME_menu, Cprintf("Redraw %s at %d %d %d %d\n",
 			   pp(mi->value), x, y, w, h));
@@ -630,51 +640,60 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation iz)
       draw_popup_indicator(m, mi, x, y, w, h, b);
   }
 
-  if ( instanceOfObject(leftmark, ClassImage) )
-  { int bw, bh, by;
-    Elevation mz = getResourceValueObject(m, NAME_markElevation);
-    
-    bw = valInt(leftmark->size->w);
-    bh = valInt(leftmark->size->h);
-    by = item_mark_y(m, y, h, bh);
+  if ( mi->selected == ON )
+    flags |= CHECKBOX_SELECTED;
+  if ( mi->active == ON && m->active == ON )
+    flags |= CHECKBOX_ACTIVE;
+  if ( m->multiple_selection == ON )
+    flags |= CHECKBOX_MULTIPLE;
 
-    if ( instanceOfObject(mz, ClassElevation) && mz->height != ZERO )
-    { int h = valInt(mz->height);
-      r_3d_box(x+b-h, by-h, bw+2*h, bh+2*h, 0, mz, FALSE);
-/*    if ( m->look == NAME_win )
-	r_fill(x+b, by, bw, bh, WHITE_COLOUR);
-*/
-    }
-
-    r_image(leftmark, 0, 0, x+b, by, bw, bh, ON);
-  } else if ( (Name) leftmark == NAME_marked )
-  { if ( m->look == NAME_motif )
-    { Elevation mz = getResourceValueObject(m, NAME_markElevation);
-
-      if ( m->multiple_selection == ON )
-      { int dy = item_mark_y(m, y, h, MARK_BOX_SIZE);
-
-	r_3d_box(x+b, dy, MARK_BOX_SIZE, MARK_BOX_SIZE,
-		 0, mz, mi->selected == OFF);
-      } else
-      { int dy = item_mark_y(m, y, h, MARK_DIAMOND_SIZE);
-
-	r_3d_diamond(x+b, dy, MARK_DIAMOND_SIZE, MARK_DIAMOND_SIZE,
-		     mz, mi->selected == OFF);
+  if ( ((mi->selected == ON  && (Name)m->on_image == NAME_marked ) ||
+	(mi->selected == OFF && (Name)m->off_image == NAME_marked)) )
+  { ws_draw_checkbox(x, y, w, h, b, flags);
+  } else
+  { if ( instanceOfObject(leftmark, ClassImage) )
+    { int bw, bh, by;
+      Elevation mz = getResourceValueObject(m, NAME_markElevation);
+      
+      bw = valInt(leftmark->size->w);
+      bh = valInt(leftmark->size->h);
+      by = item_mark_y(m, y, h, bh);
+  
+      if ( instanceOfObject(mz, ClassElevation) && mz->height != ZERO )
+      { int h = valInt(mz->height);
+	r_3d_box(x+b-h, by-h, bw+2*h, bh+2*h, 0, mz, FALSE);
       }
-    } else if ( m->look == NAME_win )
-    { if ( m->multiple_selection == OFF )
-      { int d = MARK_CIRCLE_SIZE;
-	int zh = valInt(z->height);
-	int dy = item_mark_y(m, y, h, d);
-	int dx = x+b+lm - (MARK_CIRCLE_SIZE+5);
-	int mw = 3;			/* mark-width */
-
-	r_3d_ellipse(dx-zh, dy-zh, d+2*zh, d+2*zh, z, FALSE);
-	r_thickness(0);
-	r_ellipse(dx, dy, d, d, WHITE_COLOUR);
-	if ( mi->selected == ON )
-	  r_fill(dx+(d-mw)/2, dy+(d-mw)/2, mw, mw, BLACK_COLOUR);
+  
+      r_image(leftmark, 0, 0, x+b, by, bw, bh, ON);
+    } else if ( (Name) leftmark == NAME_marked )
+    { if ( m->look == NAME_motif )
+      { Elevation mz = getResourceValueObject(m, NAME_markElevation);
+  
+	if ( m->multiple_selection == ON )
+	{ int dy = item_mark_y(m, y, h, MARK_BOX_SIZE);
+  
+	  r_3d_box(x+b, dy, MARK_BOX_SIZE, MARK_BOX_SIZE,
+		   0, mz, mi->selected == OFF);
+	} else
+	{ int dy = item_mark_y(m, y, h, MARK_DIAMOND_SIZE);
+  
+	  r_3d_diamond(x+b, dy, MARK_DIAMOND_SIZE, MARK_DIAMOND_SIZE,
+		       mz, mi->selected == OFF);
+	}
+      } else if ( m->look == NAME_win )
+      { if ( m->multiple_selection == OFF )
+	{ int d = MARK_CIRCLE_SIZE;
+	  int zh = valInt(z->height);
+	  int dy = item_mark_y(m, y, h, d);
+	  int dx = x+b+lm - (MARK_CIRCLE_SIZE+5);
+	  int mw = 3;			/* mark-width */
+  
+	  r_3d_ellipse(dx-zh, dy-zh, d+2*zh, d+2*zh, z, FALSE);
+	  r_thickness(0);
+	  r_ellipse(dx, dy, d, d, WHITE_COLOUR);
+	  if ( mi->selected == ON )
+	    r_fill(dx+(d-mw)/2, dy+(d-mw)/2, mw, mw, BLACK_COLOUR);
+	}
       }
     }
   }
@@ -683,8 +702,12 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation iz)
   { FontObj f = m->accelerator_font;
     int fw = valInt(getExFont(f));
 
-    str_string(&mi->accelerator->data, f, x, y, w-fw/2, h,
-	       NAME_right, m->vertical_format);
+    str_label(&mi->accelerator->data,
+	      0,
+	      f,
+	      x, y, w-fw/2, h,
+	      NAME_right, m->vertical_format,
+	      lblflags);
   }
 
   ix = x + lm + b;
@@ -698,8 +721,14 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation iz)
   if ( instanceOfObject(mi->label, ClassCharArray) )
   { FontObj f = getFontMenuItemMenu(m, mi);
     int fw = valInt(getExFont(f));
-    str_string(&((Name) mi->label)->data, f,
-	       ix+fw/2, iy, iw-fw, ih, m->format, m->vertical_format);
+
+    str_label(&((Name) mi->label)->data,
+	      accelerator_code(mi->accelerator),
+	      f,
+	      ix+fw/2, iy, iw-fw, ih,
+	      m->format, m->vertical_format, 
+	      lblflags);
+
   } else if ( instanceOfObject(mi->label, ClassImage) )
   { int bx, by, bw, bh;
     Image image = (Image) mi->label;
@@ -744,15 +773,19 @@ RedrawAreaMenu(Menu m, Area a)
   NormaliseArea(x, y, w, h);
   
   if ( m->show_label == ON )
-  { int lw = (isDefault(m->label_width) ? valInt(m->label_area->w)
+  { int flags = (m->active == ON ? 0 : LABEL_INACTIVE);
+    int lw = (isDefault(m->label_width) ? valInt(m->label_area->w)
 				        : valInt(m->label_width));
     if ( m->layout == NAME_horizontal )
       lw -= valInt(getExFont(m->label_font));
 
-    str_string(&m->label->data, m->label_font,
-	       x + valInt(m->label_area->x), y + valInt(m->label_area->y),
-	       lw, valInt(m->label_area->h),
-	       m->label_format, m->vertical_format);
+    RedrawLabelDialogItem(m,
+			  accelerator_code(m->accelerator),
+			  x + valInt(m->label_area->x),
+			  y + valInt(m->label_area->y),
+			  lw,
+			  valInt(m->label_area->h),
+			  m->label_format, m->vertical_format, flags);
   }
   
   bx = cx = x + valInt(m->item_offset->x);
@@ -764,7 +797,14 @@ RedrawAreaMenu(Menu m, Area a)
   { MenuItem mi = getItemSelectionMenu(m);
     Any ci = getResourceValueObject(m, NAME_cycleIndicator);
 
-    if ( instanceOfObject(ci, ClassElevation) )
+    if ( (Name)ci == NAME_comboBox )
+    { int flags = TEXTFIELD_COMBO;
+
+      if ( mi && mi->active == ON && m->active == ON )
+	flags |= TEXTFIELD_EDITABLE;
+
+      ws_entry_field(cx, by, iw, ih, flags);
+    } else if ( instanceOfObject(ci, ClassElevation) )
     { int bw = CYCLE_DROP_WIDTH;
 
       draw_cycle_blob(cx-(bw+CYCLE_DROP_DISTANCE), cy, ci, TRUE);
@@ -871,7 +911,7 @@ getCenterYMenuItemMenu(Menu m, Any obj)
 
 static Int
 getLabelWidthMenu(Menu m)
-{ computeLabelMenu(m);
+{ ComputeGraphical(m);
 
   if ( m->show_label == ON )
     answer(m->label_area->w);
@@ -929,7 +969,11 @@ getItemFromEventMenu(Menu m, EventObj ev)
 
 static status
 eventMenu(Menu m, EventObj ev)
-{ if ( eventDialogItem(m, ev) )
+{ if ( completerShownDialogItem(m) &&
+       postEvent(ev, (Graphical) CompletionBrowser(), DEFAULT) )
+    succeed;
+
+  if ( eventDialogItem(m, ev) )
     succeed;
 
   if ( m->active == ON )
@@ -962,15 +1006,64 @@ forwardMenu(Menu m, Code msg, EventObj ev)
   
 
 static status
+selectedCompletionMenu(Menu m, DictItem di)
+{ selectionMenu(m, di->key);
+  quitCompleterDialogItem(m);
+  flushGraphical(m);
+  if ( !send(m->device, NAME_modifiedItem, m, ON, 0) )
+    forwardMenu(m, m->message, EVENT->value);
+
+  succeed;
+}
+
+
+static status
+openComboBoxMenu(Menu m)
+{ Browser c = CompletionBrowser();
+  Cell cell;
+  DictItem selection = NIL;
+
+  send(c, NAME_clear, 0);
+  for_cell(cell, m->members)
+  { MenuItem mi = cell->value;
+    DictItem di;
+
+    if ( mi->active == ON )
+    { send(c, NAME_append,
+	   (di=newObject(ClassDictItem, mi->value, mi->label, 0)), 0);
+      if ( mi->selected == ON )
+	selection = di;
+    }
+  }
+
+  if ( notNil(selection) )
+    send(c, NAME_selection, selection, 0);
+
+  selectCompletionDialogItem(m, NIL, NIL, ZERO);
+
+  changedDialogItem(m);
+
+  succeed;
+}
+
+
+
+static status
 executeMenu(Menu m, EventObj ev)
 { MenuItem mi;
 
   if ( m->feedback == NAME_showSelectionOnly )
-  { nextMenu(m);
-    flushGraphical(m);
-    if ( !send(m->device, NAME_modifiedItem, m, ON, 0) )
-      forwardMenu(m, m->message, ev);
-    succeed;
+  { Any img = getResourceValueObject(m, NAME_cycleIndicator); /* TBD */
+
+    if ( img == NAME_comboBox )
+      return openComboBoxMenu(m);
+    else
+    { nextMenu(m);
+      flushGraphical(m);
+      if ( !send(m->device, NAME_modifiedItem, m, ON, 0) )
+	forwardMenu(m, m->message, ev);
+      succeed;
+    }
   }
 
   if ( isDefault(ev) )
@@ -1105,7 +1198,10 @@ index_item_menu(Menu m, Any spec)
 
 status
 previewMenu(Menu m, MenuItem mi)
-{ if ( notNil(m->preview) )
+{ if ( !mi )
+    mi = NIL;
+
+  if ( notNil(m->preview) )
     ChangedItemMenu(m, m->preview);
   assign(m, preview, mi);
   if ( notNil(m->preview) )
@@ -1248,7 +1344,7 @@ append_menu(Menu m, MenuItem mi, Name where)
 
   assign(mi, menu, m);
 
-  return requestComputeGraphical(m, DEFAULT);
+  return requestComputeGraphical(m, NAME_assignAccelerators);
 }
 
 
@@ -1272,7 +1368,7 @@ deleteMenu(Menu m, Any obj)
 
   assign(mi, menu, NIL);
   deleteChain(m->members, mi);
-  return requestComputeGraphical(m, DEFAULT);
+  return requestComputeGraphical(m, NAME_assignAccelerators);
 }
 
 
@@ -1494,8 +1590,8 @@ kindMenu(Menu m, Name kind)
       { assign(m, on_image, NAME_marked);
 	assign(m, off_image, NAME_marked);
       } else
-      { assign(m, on_image, MS_MARK_IMAGE);
-	assign(m, off_image, MS_NOMARK_IMAGE);
+      { assign(m, on_image, NAME_marked);
+	assign(m, off_image, NAME_marked);
       }
       assign(m, feedback, NAME_image);
       assign(m, pen, ZERO);
@@ -1514,6 +1610,8 @@ kindMenu(Menu m, Name kind)
 
       assign(m, kind, kind);
       return requestComputeGraphical(m, DEFAULT);
+    } else if ( kind == NAME_cycle )
+    { assign(m, border, toInt(4));
     }
   }
 
@@ -1524,9 +1622,11 @@ kindMenu(Menu m, Name kind)
     assign(m, layout,   NAME_horizontal);
     assign(m, accelerator_font, NIL);
     multipleSelectionMenu(m, OFF);
-    assign(m, popup,    newObject(ClassPopup, 0));
-    assign(m->popup,    members, m->members);
-    kindMenu((Menu) m->popup,  NAME_cyclePopup);
+    if ( m->look != NAME_win )
+    { assign(m, popup, newObject(ClassPopup, 0));
+      assign(m->popup, members, m->members);
+      kindMenu((Menu) m->popup,  NAME_cyclePopup);
+    }
   } else if ( equalName(kind, NAME_marked) )
   { assign(m, on_image, MARK_IMAGE);
     assign(m, off_image, NOMARK_IMAGE);
@@ -1625,12 +1725,6 @@ columnsMenu(Menu m, Int n)
 
 
 static status
-labelFontMenu(Menu m, FontObj font)
-{ return assignGraphical(m, NAME_labelFont, font);
-}
-
-
-static status
 valueFontMenu(Menu m, FontObj font)
 { return assignGraphical(m, NAME_valueFont, font);
 }
@@ -1720,7 +1814,7 @@ static status
 sortMenu(Menu m, Code msg)
 { sortChain(m->members, msg);
 
-  return requestComputeGraphical(m, DEFAULT);
+  return requestComputeGraphical(m, NAME_assignAccelerators);
 }
 
 
@@ -1868,8 +1962,6 @@ static vardecl var_menu[] =
      NAME_selection, "If @on, more than one item may be selected"),
   SV(NAME_showLabel, "show=bool", IV_GET|IV_STORE, showLabelMenu,
      NAME_appearance, "Whether label is visible"),
-  SV(NAME_labelFont, "font=font*", IV_GET|IV_STORE, labelFontMenu,
-     NAME_appearance, "Font for label"),
   SV(NAME_valueFont, "font=font", IV_GET|IV_STORE, valueFontMenu,
      NAME_appearance, "Font for value"),
   SV(NAME_valueWidth, "width=0..", IV_GET|IV_STORE, valueWidthMenu,
@@ -1974,7 +2066,9 @@ static senddecl send_menu[] =
   SM(NAME_selected, 2, T_selected, selectedMenu,
      NAME_selection, "(De)select a single menu_item or value"),
   SM(NAME_selection, 1, "selection=member:menu_item|chain*", selectionMenu,
-     NAME_selection, "Select menu_item or value (or chain)")
+     NAME_selection, "Select menu_item or value (or chain)"),
+  SM(NAME_selectedCompletion, 1, "dict_item", selectedCompletionMenu,
+     NAME_internal, "Handle combo_box message"),
 };
 
 /* Get Methods */
@@ -2011,7 +2105,7 @@ static resourcedecl rc_menu[] =
      "Show the accelerators"),
   RC(NAME_border, "int", "0",
      "Border around each item"),
-  RC(NAME_cycleIndicator, "image|elevation", "@cycle_image",
+  RC(NAME_cycleIndicator, "{combo_box}|image|elevation", "@cycle_image",
      "Indication of a ->kind: cycle menu"),
   RC(NAME_feedback, "name", "image",
      "Type of feedback for selection"),

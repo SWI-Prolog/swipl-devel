@@ -82,7 +82,7 @@ unlinkWinMF(WinMF mf)
 { closeWinMF(mf);
   deleteChain(WinMetaFiles, mf);
 
-  succeed;
+  return unlinkGraphical((Graphical) mf);
 }
 
 
@@ -534,11 +534,9 @@ drawInWinMF(WinMF mf, Any obj, Point pos)
 
 
 static status
-saveALDUS(WinMF mf, HMETAFILE ghmf, const char *szFile,
+saveALDUS(WinMF mf, HMETAFILE ghmf, FileObj file,
 	  int width, int height, int mapping)
 { UINT            uiSize;
-  HANDLE          hFile, hMapFile;
-  LPVOID          pMapFile;
   DWORD           dwHigh, dwLow;
   int		  rval = TRUE;
 
@@ -546,32 +544,14 @@ saveALDUS(WinMF mf, HMETAFILE ghmf, const char *szFile,
   dwHigh = 0;
   dwLow  = uiSize + APMSIZE;
 
-  if ( (hFile = CreateFile(szFile, GENERIC_READ|GENERIC_WRITE,
-			   FILE_SHARE_READ, NULL, CREATE_ALWAYS,
-			   FILE_ATTRIBUTE_NORMAL, NULL)) == (HANDLE)-1)
-  { errorPce(mf, NAME_winMetafile, NAME_open, APIError());
+  if ( !send(file, NAME_kind, NAME_binary, 0) ||
+       !send(file, NAME_open, NAME_write, 0) )
     fail;
-  }
-
-  if ( !(hMapFile=CreateFileMapping(hFile, NULL,
-				   PAGE_READWRITE,
-				   dwHigh, dwLow, "MapF")) )
-  { errorPce(mf, NAME_winMetafile, NAME_map, APIError());
-    rval = FALSE;
-    goto ErrorExit1;
-  }
-
-  if ( !(pMapFile=MapViewOfFile(hMapFile, FILE_MAP_WRITE, 0, 0, dwLow)))
-  { errorPce(mf, NAME_winMetafile, NAME_view, APIError());
-    rval = FALSE;
-    goto ErrorExit2;
-  }
 
   if ( uiSize )
   { APMFILEHEADER   AldHdr;
-    PAPMFILEHEADER  pAldHdr;
-    PBYTE           pjTmp;
-    INT             iSize;
+    WORD	   *p;
+    void *	    buf;
 
     AldHdr.key = ALDUS_ID;
     AldHdr.hmf = 0;                                 // Unused; must be zero
@@ -632,32 +612,28 @@ saveALDUS(WinMF mf, HMETAFILE ghmf, const char *szFile,
 
     AldHdr.reserved = 0;
     AldHdr.checksum = 0;
-  { WORD    *p;
-
     for (p = (WORD *)&AldHdr; p < (WORD *)&(AldHdr.checksum); ++p)
       AldHdr.checksum ^= *p;
-  }
 
-    pAldHdr = &AldHdr;
-    pjTmp = (PBYTE)pMapFile;
-
-    iSize = APMSIZE;
-
-    while (iSize--) {
-        *(((PBYTE)pjTmp)++) = *(((PBYTE)pAldHdr)++);
+    if ( fwrite(&AldHdr, APMSIZE, 1, file->fd) != 1 )
+    { reportErrorFile(file);
+      closeFile(file);
+      fail;
     }
+    
+    buf = pceMalloc(uiSize);
+    GetMetaFileBitsEx(ghmf, uiSize, buf);
+    if ( fwrite(buf, sizeof(char), uiSize, file->fd) != uiSize )
+    { reportErrorFile(file);
+      closeFile(file);
+      pceFree(buf);
 
-    pMapFile = (PBYTE)pMapFile + APMSIZE;
-    GetMetaFileBitsEx(ghmf, uiSize, pMapFile);
+      fail;
+    }
+    pceFree(buf);
+
+    return closeFile(file);
   }
-
-
-  UnmapViewOfFile(pMapFile);
-
-ErrorExit2:
-  CloseHandle(hMapFile);
-ErrorExit1:
-  CloseHandle(hFile);
 
   return rval;
 }
@@ -665,7 +641,9 @@ ErrorExit1:
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Get a Windows 3.x format metafile  from   the  XPCE object. I'm not sure
-whether the allocated memory block should be freed or not.
+whether the allocated  memory  block  should   be  freed  or  not.  Some
+analogous cases in  mfedit  indicate   me  SetMetaFileBitsEx()  probably
+copies the data, so the code below should be fine.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static HMETAFILE
@@ -674,6 +652,7 @@ convert_enh_metafile(WinMF mf, HDC hdc)
   int len, l2;
   int fnMapMode = MM_ANISOTROPIC;
   int omap = SetMapMode(hdc, fnMapMode);
+  HMETAFILE hmf;
 					/* get old format bits */
     
   if ( !(len = GetWinMetaFileBits(mf->hmf, 0, NULL, fnMapMode, hdc)) )
@@ -682,12 +661,15 @@ convert_enh_metafile(WinMF mf, HDC hdc)
     return NULL;
   }
 
-  data = malloc(len);
+  data = pceMalloc(len);
   l2 = GetWinMetaFileBits(mf->hmf, len, data, fnMapMode, hdc);
   SetMapMode(hdc, omap);
   assert(l2 == len);
 					/* make old format metafile */
-  return SetMetaFileBitsEx(l2, data);
+  hmf = SetMetaFileBitsEx(l2, data);
+  pceFree(data);
+
+  return hmf;
 }
 
 
@@ -730,7 +712,7 @@ saveWinMF(WinMF mf, FileObj file, Name format)
 			CtoName("CopyMetaFile"), APIError());
       }
     } else /* ALDUS */
-      rval = saveALDUS(mf, ohmf, fn,
+      rval = saveALDUS(mf, ohmf, file,
 		       valInt(mf->area->w), valInt(mf->area->h),
 		       MM_TEXT);
 

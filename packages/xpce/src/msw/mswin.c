@@ -205,7 +205,7 @@ ws_initialise(int argc, char **argv)
 
 Int
 ws_default_scrollbar_width()
-{ int w = GetSystemMetrics(SM_CXVSCROLL);	/* Is this the right one? */
+{ int w = GetSystemMetrics(SM_CXHSCROLL);	/* Is this the right one? */
 
   return toInt(w);
 }

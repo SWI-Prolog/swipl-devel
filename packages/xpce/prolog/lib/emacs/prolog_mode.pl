@@ -10,16 +10,22 @@
 :- module(emacs_prolog_mode, []).
 :- use_module(library(pce)).
 :- require([ make/0
+	   , absolute_file_name/3
 	   , auto_call/1
+	   , chain_list/2
 	   , concat/3
+	   , concat_atom/2
 	   , default/3
 	   , forall/2
+	   , ignore/1
 	   , list_to_set/2
 	   , member/2
+	   , memberchk/2
+	   , seek/4
 	   , strip_module/3
-	   , tmp_file/2
 	   ]).
-
+pce_ifhostproperty(prolog(quintus),
+		   (:- use_module(library(strings), [concat_chars/2]))).
 
 :- emacs_begin_mode(prolog, outline,
 		    "Mode for editing XPCE/Prolog sources",
@@ -74,8 +80,24 @@ source_file_chain(Ch) :-
 
 user_source_file(F) :-
 	source_file(F),
-	\+ (user:library_directory(D),
-	    concat(D, _, F)).
+	\+ (lib_dir(D), concat(D, _, F)).
+
+ignore_paths_from(library).
+ignore_paths_from(pce_boot).
+
+lib_dir(D) :-
+	ignore_paths_from(Category),
+	user:file_search_path(Category, X),
+	expand_path(X, D0),
+	absolute_file_name(D0, D).	% canonise
+
+expand_path(X, X) :-
+	atomic(X), !.
+expand_path(Term, D) :-
+	Term =.. [New, Sub],
+	user:file_search_path(New, D0),
+	expand_path(D0, D1),
+	concat_atom([D1, /, Sub], D).
 
 
 :- pce_global(@prolog_neck_regex,
@@ -368,12 +390,12 @@ consult_region(M, From:[int], To:[int]) :->
 	->  Start = F, Size = S
 	;   Start = T, Size is -S
 	),
-	tmp_file(consult, TmpNam),
-	new(File, file(TmpNam)),
+	new(File, file),		% temporary file
 	send(File, open, write),
 	send(File, append, ?(M, contents, Start, Size)),
 	send(File, newline),		% make sure it ends with a newline
 	send(File, close),
+	get(File, name, TmpNam),
 	consult(user:TmpNam),
 	send(M, report, status, 'Region consulted'),
 	send(File, remove).
@@ -413,23 +435,36 @@ pce_check_require_directives(M, Dir:directory) :->
 		     ?(Dir, directory, @arg1))).
 
 
+no_check(library(pce)).
+no_check(library('xref/common')).
+no_check(library('xref/mkcommon')).
+no_check(library('xref/quintus')).
+no_check(library('xref/sicstus')).
+
+do_not_check(File) :-
+	  no_check(Spec),
+	  absolute_file_name(Spec, [access(read), extensions([pl])], Expanded),
+	  send(File, same, Expanded).
+
 pce_check_require(M, File:file) :->
-	"Open of there is no :- require"::
-	get(File, name, Name),
-	send(M, report, status, 'Checking %s', Name),
-	send(M, synchronise),
-	ensure_loaded(library(pce_require)),
-	auto_call(pce_require(Name, _Directive, Message)),
-	(   send(Message, sub, 'up-to-date')
-	->  true
-	;   new(B, emacs_buffer(File)),
-	    (	get(regex('^:-\s *require('), search, B, Index)
-	    ->	true
-	    ;	Index = 0
-	    ),
-	    send(@emacs_mark_list, append_hit, B, Index)
-	),
-	send(M, report, done).
+	  "Open of there is no :- require"::
+	  (   do_not_check(File)
+	  ->  true
+	  ;   get(File, name, Name),
+	      send(M, report, status, 'Checking %s', Name),
+	      send(M, synchronise),
+	      auto_call(pce_require(Name, _Directive, Message)),
+	      (   send(Message, sub, 'up-to-date')
+	      ->  true
+	      ;   new(B, emacs_buffer(File)),
+		  (   get(regex('^:-\s *require('), search, B, Index)
+		  ->  true
+		  ;   Index = 0
+		  ),
+		  send(@emacs_mark_list, append_hit, B, Index)
+	      ),
+	      send(M, report, done)
+	  ).
 
 	    
 		 /*******************************
@@ -499,7 +534,6 @@ alternate_syntax(pce_class, pce_expansion:push_compile_operators,
 check_clause(M, From:[int], End:int) :<-
 	"Check clause, returning the end of it"::
 	send(M, style, singleton, style(bold := @on)),
-	retractall(syntax_error(_)),
         (   From == @default
 	->  get(M, caret, C),
 	    get(M, beginning_of_clause, C, Start),
@@ -510,39 +544,93 @@ check_clause(M, From:[int], End:int) :<-
 	),
 	get(M, text_buffer, TB),
 	pce_open(TB, read, Fd),
-	(   alternate_syntax(_Name, Setup, Restore),
-	    Setup,
-	    seek(Fd, Start, start),
-	    read_term(Fd, T, [ syntax_errors(Error),
-			       singletons(S),
-			       subterm_positions(P)
-			     ]),
-	    (	Error == none
-	    ->  !, close(Fd),
-		Restore,
-	        unmark_singletons(M, P),
-		(   S == []
-		->  (   Verbose
-		    ->  send(M, report, status, 'Clause checked')
-		    ;	true
-		    )
-		;   mark_singletons(M, T, S, P),
-		    replace_singletons(M, P)
-		),
-		arg(2, P, E0),
-		get(TB, find, E0, '.', 1, end, End)
-	    ;   Restore,
-		assert(syntax_error(Error)),
-		fail
-	    )
-	->  true
-	;   setof(E, syntax_error(E), Es),
-	    last('$stream_position'(EPos, _, _):Msg, Es),
+	read_term_from_stream(Fd, Start, T, Error, S, P),
+	close(Fd),
+	(   Error == none
+	->  unmark_singletons(M, P),
+	    (   S == []
+	    ->  (   Verbose
+		->  send(M, report, status, 'Clause checked')
+		;   true
+		)
+	    ;   mark_singletons(M, T, S, P),
+		replace_singletons(M, P)
+	    ),
+	    arg(2, P, E0),
+	    get(TB, find, E0, '.', 1, end, End)
+	;   Error = EPos:Msg,
 	    send(M, caret, EPos),
 	    send(M, report, warning, 'Syntax error: %s', Msg),
 	    fail
 	).
 
+read_term_from_stream(Fd, Start, T, Error, S, P) :-
+	retractall(syntax_error(_)),
+	alternate_syntax(_Name, Setup, Restore),
+	Setup,
+	seek(Fd, Start, bof, _),
+	read_with_errors(Fd, Start, T, Error, S, P),
+	Restore,
+	(   Error == none
+	->  true
+	;   assert(syntax_error(Error)),
+	    fail
+	), !.
+read_term_from_stream(_, _, _, Error, _, _) :-
+	setof(E, retract(syntax_error(E)), Es),
+	last(Error, Es).
+
+pce_ifhostproperty(prolog(swi),
+(read_with_errors(Fd, _Start, T, Error, Singletons, TermPos) :-
+	read_term(Fd, T, [ syntax_errors(Error0),
+			   singletons(Singletons),
+			   subterm_positions(TermPos)
+			 ]),
+	pl_error_message(Error0, Error))).
+pce_ifhostproperty(prolog(quintus),
+(read_with_errors(Fd, Start, T, Error, Singletons, TermPos) :-
+	on_exception(syntax_error(_G, _Pos,
+				  Message,
+				  Pre, Post, _),
+		     read_term(Fd, [ syntax_errors(error),
+				     singletons(Singletons),
+				     subterm_positions(TermPos)
+				   ], T),
+		     qp_error_message(Message, Start, Pre, Post, Error)),
+	(var(Error) -> Error = none ; true))).
+
+pl_error_message(none, none) :- !.
+pl_error_message('$stream_position'(EP, _, _):Msg, EP:Msg).
+
+pce_ifhostproperty(prolog(quintus),
+(qp_error_message(Msg, Start, Pre, Post, EP:TheMsg) :-
+	length(Pre, EP0),
+	(   EP0 > 10
+	->  length(PreM, 10),
+	    append(_, PreM, Pre)
+	;   PreM = Pre
+	),
+	length(Post, PL),
+	(   PL > 10
+	->  length(PosM, 10),
+	    append(PosM, _, Post)
+	;   PosM = Post
+	),
+	(   Msg == ''
+	->  MsgChars0 = ''
+	;   atom_chars(Msg, MsgChars0)
+	),
+	concat_chars([ MsgChars0,
+		       "between `..", PreM, "' and `", PosM, "..'"
+		     ],
+		     MsgChars),
+	atom_chars(TheMsg, MsgChars),
+	EP is EP0 + Start)).
+
+
+last(X, [X]).
+last(X, [_|T]) :-
+	last(X, T).
 
 check_clause(M, From:[int]) :->
 	"Check syntax of clause"::
@@ -627,34 +715,46 @@ prepare_replace_singletons(M) :-
 	send(M, report, status,
 	     'Replace singleton? (''y'' --> _Name, ''_'' --> _, ''n'')').
 
-seek(Fd, Pos, start) :-
-	stream_position(Fd, _Old, '$stream_position'(Pos, 0, 0)).
+pce_ifhostproperty(prolog(swi),		% should become built-in
+(seek(Fd, Pos, bof, Old) :-
+	stream_position(Fd,
+			'$stream_position'(Old, _, _),
+			'$stream_position'(Pos, 0, 0)))).
 
 		 /*******************************
 		 *	      HELP		*
 		 *******************************/
 
-make_prolog_help_topic :-
-	object(@prolog_help_topic_type), !.
-make_prolog_help_topic :-
+pce_ifhostproperty(prolog(swi),
+[ (make_prolog_help_topic :-
+	object(@prolog_help_topic_type), !),
+  (make_prolog_help_topic :-
 	new(Topics, quote_function(@prolog?help_topics)),
 	new(@prolog_help_topic_type,
-	    type(prolog_help_topic, value_set, Topics)).
+	    type(prolog_help_topic, value_set, Topics))),
 
-:- initialization make_prolog_help_topic.
+  (:- initialization make_prolog_help_topic),
 
-help_topics(@prolog_help_topics) :-
-	object(@prolog_help_topics), !.
-help_topics(@prolog_help_topics) :-
+  (help_topics(@prolog_help_topics) :-
+	object(@prolog_help_topics), !),
+  (help_topics(@prolog_help_topics) :-
 	setof(Name, prolog_help_topic(Name), Names),
 	chain_list(Chain, [''|Names]),
-	send(Chain, name_reference, prolog_help_topics).
+	send(Chain, name_reference, prolog_help_topics)),
 
-prolog_manual(_M, What:prolog_help_topic) :->
+  (do_help(M, What) :-
 	(   What == ''
 	->  help
 	;   help(What)
-	).
+	))
+],
+[ (do_help(M, What) :-
+	send(M, report, warning, 'No manual interface for this Prolog'))
+]).
+
+prolog_manual(M, What:prolog_help_topic) :->
+	"Display section from the Prolog manual"::
+	do_help(M, What).
 
 
 		 /*******************************

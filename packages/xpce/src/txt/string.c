@@ -149,7 +149,7 @@ Load/store a string to/from file. Format:
 static status
 storeString(StringObj s, FileObj file)
 { TRY(storeSlotsObject(s, file));
-  return storeCharpFile(file, s->data.s_text8); /* TBD: full store! */
+  return storeCharpFile(file, (char *)s->data.s_text8); /* TBD: full store! */
 }
 
 

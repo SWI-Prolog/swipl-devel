@@ -17,6 +17,27 @@
 :- use_module(library(pce)).
 :- pce_autoload(toc_window, library(pce_toc)).
 :- use_module(library(helpidx)).
+:- require([ start_emacs/0
+	   , '$apropos_match'/2
+	   , absolute_file_name/3
+	   , append/3
+	   , atom_length/2
+	   , between/3
+	   , chain_list/2
+	   , concat/3
+	   , concat_atom/2
+	   , concat_atom/3
+	   , default/3
+	   , explain/2
+	   , forall/2
+	   , ignore/1
+	   , maplist/3
+	   , member/2
+	   , send_list/3
+	   , term_to_atom/2
+	   , (volatile)/1
+	   ]).
+
 
 		 /*******************************
 		 *	      TOPLEVEL		*
@@ -313,7 +334,7 @@ regex(predicate,  '\(\w+\)/\(\sd+\)').
 regex(predicate2, '\w+/\[\sd+[-,]\sd+\]').
 regex(function,   'PL_\w+()').
 regex(section,	  '\([Ss]ection\|[Cc]hapter\)\s +\sd+\(\.\sd+\)*').
-regex(location,	  '\(/[-_a-zA-Z0-9~+=.]*\)+:\sd+').
+regex(location,	  '\([a-zA-Z]:\)?\(/[-_a-zA-Z0-9~+=.]*\)+:\sd+').
 regex(clause,	  '\sd+-th clause of \w+:\w+/\sd+').
 
 regex_object(Id, Re) :-

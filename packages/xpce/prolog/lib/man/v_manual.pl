@@ -178,6 +178,7 @@ check_licence(M) :->
 
 
 fill_dialog(M, D) :->
+	send(D, gap, size(5, 8)),
 	send(D, append, new(MB, menu_bar)),
 	send(MB, append, new(F, popup(file))),
 	send(MB, append, new(V, popup(browsers,
@@ -489,17 +490,20 @@ library_overview(_M) :->
 		*	   ABOUT/LICENCE	*
 		********************************/
 
-about('XPCE version %s'+[@pce?version], boldhuge).
-about('Copyright 1992-1996, University of Amsterdam', normal).
-about('xpce-request@swi.psy.uva.nl', bold).
-about('Jan Wielemaker\nAnjo Anjewierden', italic).
-about('SWI\nUniversity of Amsterdam\nRoetersstraat 15\n1018 WB  Amsterdam\nThe Netherlands', normal).
-about('Licenced to "%s"'+[Holder], bold) :-
-	get(@pce, attribute, licence_holder, Holder).
-about('Licence will expire in %d days'+[Days]) :-
-	get(@pce, attribute, days_to_expiration, Days).
-about('Unregistered copy\nXPCE will CRASH after about 20 minutes', bold) :-
-	get(@pce, attribute, unlicenced_copy, @on).
+pce_ifhostproperty(prolog(quintus),
+(   about(Fmt, Font) :- pce_host:about(Fmt, Font)),
+[ about('XPCE version %s'+[@pce?version], boldhuge),
+  about('Copyright 1992-1996, University of Amsterdam', normal),
+  about('xpce-request@swi.psy.uva.nl', bold),
+  about('Jan Wielemaker\nAnjo Anjewierden', italic),
+  about('SWI\nUniversity of Amsterdam\nRoetersstraat 15\n1018 WB  Amsterdam\nThe Netherlands', normal),
+  (about('Licenced to "%s"'+[Holder], bold) :-
+	get(@pce, attribute, licence_holder, Holder)),
+  (about('Licence will expire in %d days'+[Days], normal) :-
+	get(@pce, attribute, days_to_expiration, Days)),
+  (about('Unregistered copy\nXPCE will CRASH after about 20 minutes', bold) :-
+	get(@pce, attribute, unlicenced_copy, @on))
+]).
 
 about(M) :->
 	"Print about and licence info"::

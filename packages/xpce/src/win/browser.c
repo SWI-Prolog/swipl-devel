@@ -56,12 +56,8 @@ status
 requestGeometryBrowser(Browser b, Int x, Int y, Int w, Int h)
 { ListBrowser lb = b->list_browser;
 
-  if ( notDefault(w) )
-    w = mul(w, getExFont(lb->font));
-  if ( notDefault(h) )
-    h = mul(h, getHeightFont(lb->font));
-
-  return requestGeometryWindow((PceWindow) b, x, y, w, h);
+					/* pushes upto window! */
+  return requestGeometryListBrowser(lb, x, y, w, h);
 }
 
 static Any

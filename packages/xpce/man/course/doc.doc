@@ -25,7 +25,7 @@ for a course in programming XPCE/Prolog.
 \vfil
 \vfil
 \begin{quote}
-Copyright \copyright\ 1994 University of Amsterdam
+Copyright \copyright\ 1994-1996 University of Amsterdam
 \end{quote}
 \end{titlepage}
 
@@ -36,7 +36,7 @@ on types, custom-dialog design and interprocess communication to
 edition~1. Please E-mail comments and suggestions to jan@swi.psy.uva.nl.
 \vfil\vfil\vfil\vfil\vfil\vfil\vfil\vfil\vfil\vfil\vfil\vfil\vfil\vfil\vfil
 \noindent
-Copyright \copyright~1994 University of Amsterdam
+Copyright \copyright~1994-1996 University of Amsterdam
 \vfil
 
 \noindent
@@ -48,17 +48,13 @@ the XPCE/Prolog drawing tool.
 
 \noindent
 An electronic version of this manual is available using anonymous ftp
-to swi.psy.uva.nl (145.18.124.17), directory /pub/xpce/doc/course.
+to swi.psy.uva.nl (145.18.114.17), directory /pub/xpce/doc/course.
 \vfil
 \noindent
 Premission is granted to make and distribute verbatim copies of this
 manual provided the copyright notice and this permission notice are
 preserved on all copies.
 \end{titlepage}
-
-\pagestyle{esprit}
-\newcommand{\bottomleft}{\mbox{}}
-\newcommand{\bottomright}{\mbox{}}
 
 {\parskip 0pt
 \tableofcontents

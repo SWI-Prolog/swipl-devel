@@ -409,11 +409,11 @@ postscriptDrawable(int ox, int oy, int w, int h)
   DEBUG(NAME_postscript,
 	Cprintf("postscriptDrawable(%d %d %d %d) ...", ox, oy, w, h));
 
-  ps_output("1 greymap\n\n");
+/*ps_output("1 greymap\n\n");*/
 
   for(bytes = y = c = 0, bits = 8; y < h; y++)
   { for(x=0; x < w; x++)
-    { c |= (r_get_mono_pixel(x+ox, y+oy) << --bits);
+    { c |= ((TRUE-(r_get_mono_pixel(x+ox, y+oy))) << --bits);
       if ( bits == 0 )
         putByte(c);
     }
@@ -919,7 +919,7 @@ status
 drawPostScriptBitmap(BitmapObj bm)
 { Int depth = get(bm->image, NAME_postscriptDepth, 0);
 
-  ps_output("~x ~y ~w ~h ~d greymap ~P\n",
+  ps_output("~x ~y ~w ~h ~d greymap\n~P\n",
 	    bm, bm, bm, bm, depth, depth, bm->image);
 
   succeed;
@@ -930,7 +930,7 @@ status
 drawPostScriptImage(Image image)
 { Int depth = get(image, NAME_postscriptDepth, 0);
 
-  ps_output("0 0 ~d ~d ~d greymap ~P\n",
+  ps_output("0 0 ~d ~d ~d greymap\n~P\n",
 	    image->size->w, image->size->h, depth, depth, image);
 
   succeed;

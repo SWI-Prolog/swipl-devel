@@ -585,7 +585,7 @@ RedrawAreaDevice(Device dev, Area a)
 		********************************/
 
 
-static status
+status
 clearDevice(Device dev)
 { Chain ch = dev->graphicals;
 
@@ -1117,9 +1117,23 @@ layoutDialogDevice(Device d, Size gap, Size bb)
   int px, py;
   Graphical gr;
   Cell cell;
+  int ln;
+  int found = 0;
 
-  if ( isDefault(gap) )			/* TBD: proper integration */
-    gap = answerObject(ClassSize, toInt(15), toInt(8), 0);
+  if ( isDefault(gap) )
+  { PceWindow sw = getWindowGraphical((Graphical) d);
+
+    if ( instanceOfObject(sw, ClassDialog) )
+      gap = getResourceValueObject(sw, NAME_gap);
+    else
+    { Resource r = get(ClassDialog, NAME_resource, NAME_gap, 0);
+      if ( r )
+	gap = get(r, NAME_value, 0);
+    }
+
+    if ( !gap )
+      gap = answerObject(ClassSize, toInt(15), toInt(8), 0);
+  }
 
   if ( notNil(d->request_compute) )
   { Cell cell;
@@ -1133,22 +1147,20 @@ layoutDialogDevice(Device d, Size gap, Size bb)
   else
     clearHashTable(PlacedTable);	
 
-  for(;;)
-  { int found = 0;
-
-    for_cell(cell, d->graphicals)
-    { if ( !IsPlaced(cell->value) &&
-	   get(cell->value, NAME_autoAlign, 0) == ON )
-      { placeDialogItem(d, &m, cell->value, 0, 0, &max_x, &max_y);
-	found++;
-  	break;
-      }
+  for_cell(cell, d->graphicals)
+  { if ( !IsPlaced(cell->value) &&
+	 get(cell->value, NAME_autoAlign, 0) == ON )
+    { placeDialogItem(d, &m, cell->value, 0, 0, &max_x, &max_y);
+      found++;
+      break;
     }
+  }
 
-    if ( !found )
-      succeed;				/* finished */
+  if ( !found )
+    succeed;				/* finished */
 
-    for(x=0; x<max_x; x++)		/* Align labels and values */
+  for(ln = 0; ln < 4; ln++)		/* avoid endless recursion */
+  { for(x=0; x<max_x; x++)		/* Align labels and values */
     { int lw = -1;
       int vw = -1;
       int align_flags[MAXCOLLUMNS];
@@ -1269,7 +1281,7 @@ layoutDialogDevice(Device d, Size gap, Size bb)
     { int extra_y = valInt(bb->h) - ideal_y;
 
       if ( extra_y > 0 )
-      { int *distributed = alloca(sizeof(int) * ngaps);
+      { int *distributed = (int *)alloca(sizeof(int) * ngaps);
 	int ngap = 0;
 
 	distribute(extra_y, ngaps, distributed);
@@ -1322,7 +1334,7 @@ layoutDialogDevice(Device d, Size gap, Size bb)
 	      iw = toInt(nx - gapw - (ix - rx));
 	  }
 
-	  setGraphical(gr, toInt(ix - rx), toInt(iy - ry), iw, DEFAULT);
+	  doSetGraphical(gr, toInt(ix - rx), toInt(iy - ry), iw, DEFAULT);
 	  lx = valInt(gr->area->x) + valInt(gr->area->w) + gapw;
 	}
 	px += m.units[x][y].left + m.units[x][y].right + gapw;
@@ -1410,6 +1422,9 @@ layoutDialogDevice(Device d, Size gap, Size bb)
   }
   
   free_matrix_columns(&m, max_x);
+
+  if ( hasSendMethodObject(d, NAME_assignAccelerators) )
+    send(d, NAME_assignAccelerators, 0);
 
   { PceWindow sw;
 

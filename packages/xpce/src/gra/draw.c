@@ -56,8 +56,8 @@ r_3d_rectangular_polygon(int n, IPoint pts, Elevation e, int flags)
   }
 
   if ( h )
-  { ISegment dark  = alloca(sizeof(isegment) * n * h);
-    ISegment light = alloca(sizeof(isegment) * n * h);
+  { ISegment dark  = (ISegment)alloca(sizeof(isegment) * n * h);
+    ISegment light = (ISegment)alloca(sizeof(isegment) * n * h);
     int ndark = 0, nlight = 0;
     int m;
     IPoint p1, p2;

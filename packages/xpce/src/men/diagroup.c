@@ -99,7 +99,7 @@ computeDialogGroup(DialogGroup g)
     }
 
     if ( ly < 0 )
-    h -= ly;
+      h -= ly;
     x = valInt(g->offset->x);
     y = valInt(g->offset->y) + (ly < 0 ? ly : 0);
 
@@ -246,33 +246,37 @@ static status
 RedrawAreaDialogGroup(DialogGroup g, Area a)
 { int x, y, w, h;
   int lx, ly, lw, lh;
-  Elevation e = getResourceValueObject(g, NAME_elevation);
   int eh;
   int ex = valInt(getExFont(g->label_font));
 
   initialiseDeviceGraphical(g, &x, &y, &w, &h);
   compute_label(g, &lx, &ly, &lw, &lh);
 
-  if ( e && instanceOfObject(e, ClassElevation) )
-  { int bx = x;
-    int by = y-ly;
-    int bw = w;
-    int bh = h+ly;
-    
-    eh = valInt(e->height);
-    r_3d_box(bx, by, bw, bh, valInt(g->radius), e, FALSE);
-    bx += eh;
-    by += eh;
-    bw -= 2*eh;
-    bh -= 2*eh;
-    r_3d_box(bx, by, bw, bh, valInt(g->radius), e, TRUE);
-  } else
-  { eh = valInt(g->pen);
+  if ( g->pen != ZERO )
+  { Elevation e = getResourceValueObject(g, NAME_elevation);
 
-    r_thickness(eh);
-    r_dash(g->texture);
-    r_box(x, y-ly, w, h+ly, valInt(g->radius), NIL);
-  }
+    if ( e && instanceOfObject(e, ClassElevation) )
+    { int bx = x;
+      int by = y-ly;
+      int bw = w;
+      int bh = h+ly;
+      
+      eh = valInt(e->height);
+      r_3d_box(bx, by, bw, bh, valInt(g->radius), e, FALSE);
+      bx += eh;
+      by += eh;
+      bw -= 2*eh;
+      bh -= 2*eh;
+      r_3d_box(bx, by, bw, bh, valInt(g->radius), e, TRUE);
+    } else
+    { eh = valInt(g->pen);
+  
+      r_thickness(eh);
+      r_dash(g->texture);
+      r_box(x, y-ly, w, h+ly, valInt(g->radius), NIL);
+    }
+  } else
+    eh = 0;
 
   r_clear(x+lx-ex/2, y, lw+ex, lh);
   str_string(&g->label->data, g->label_font,
@@ -340,7 +344,7 @@ getDefaultButtonDialogGroup(DialogGroup g)
   { if ( instanceOfObject(cell->value, ClassButton) )
     { Button b = cell->value;
 
-      if ( b->accelerator == defaultAccelerator() )
+      if ( b->default_button == ON )
 	answer(b);
     }
   }

@@ -602,7 +602,7 @@ scanstr(char *str, char *fmt, Any *r)
     	{ case 'u':
 	    if ( !supress )
 	    { types[argn] = length|T_INT|S_UNSIGNED;
-	      ptrs[argn]  = alloca(sizeof(long));
+	      ptrs[argn]  = (void *)alloca(sizeof(long));
 	      argn++;
 	    }
 	    s++;
@@ -614,7 +614,7 @@ scanstr(char *str, char *fmt, Any *r)
 	  case 'n':
 	    if ( !supress )
 	    { types[argn] = length|T_INT;
-	      ptrs[argn]  = alloca(sizeof(long));
+	      ptrs[argn]  = (void *)alloca(sizeof(long));
 	      argn++;
 	    }
 	    s++;
@@ -624,8 +624,8 @@ scanstr(char *str, char *fmt, Any *r)
 	  case 'g':
 	    if ( !supress )
 	    { types[argn] = length|T_FLOAT;
-	      ptrs[argn]  = alloca(length == L_LONG ? sizeof(double)
-				                    : sizeof(float));
+	      ptrs[argn]  = (void *)alloca(length == L_LONG ? sizeof(double)
+				                            : sizeof(float));
 	      argn++;
 	    }
 	    s++;
@@ -639,7 +639,7 @@ scanstr(char *str, char *fmt, Any *r)
 	  case 's':
 	    if ( !supress )
 	    { types[argn]  = T_CHARP;
-	      ptrs[argn] = alloca(LINESIZE);
+	      ptrs[argn] = (void *)alloca(LINESIZE);
 	      argn++;
 	    }
 	    s++;
@@ -647,7 +647,7 @@ scanstr(char *str, char *fmt, Any *r)
 	  case 'c':
 	    if ( !supress )
 	    { types[argn] = T_CHAR;
-	      ptrs[argn]  = alloca(sizeof(char));
+	      ptrs[argn]  = (void *)alloca(sizeof(char));
 	      argn++; 
 	    }
 	    s++;

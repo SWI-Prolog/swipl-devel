@@ -10,6 +10,7 @@
 #include <h/kernel.h>
 
 forwards void initVars(void);
+forwards VarBinding findVarEnvironment(VarEnvironment ev, Var v);
 
 static HashTable VarTable;
 
@@ -41,8 +42,18 @@ initialiseVar(Var v, Type type, Name name, Any value)
 
 static status
 unlinkVar(Var v)
-{ if ( isObject(v->value) )
+{ VarEnvironment ev = varEnvironment;
+
+  for(; ev; ev = ev->parent)
+  { VarBinding b;
+
+    if ( (b = findVarEnvironment(ev, v)) )
+      b->variable = NULL;
+  }
+
+  if ( isObject(v->value) )
     delCodeReference(v->value);
+  
 
   succeed;
 }
@@ -285,9 +296,11 @@ popVarEnvironment(void)
 
   b = ev->bindings; i = 0;
   while( i < ev->size )
-  { if ( isObject(b->variable->value) )
-      delCodeReference(b->variable->value);
-    b->variable->value = b->value;
+  { if ( b->variable )			/* may be ->unlink'ed! */
+    { if ( isObject(b->variable->value) )
+	delCodeReference(b->variable->value);
+      b->variable->value = b->value;
+    }
 
     DEBUG(NAME_var, Cprintf("Restoring %s to %s\n",
 			    pp(b->variable), pp(b->value)));

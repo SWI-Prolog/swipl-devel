@@ -846,7 +846,7 @@ sortChain(Chain ch, Code msg)
     return sortNamesChain(ch);
   else
   { int size = valInt(ch->size);
-    Any *buf = alloca(sizeof(Any) * size);
+    Any *buf = (Any *)alloca(sizeof(Any) * size);
     Cell cell;
     int i;
     Code old = qsortCompareCode;		/* make reentrant */
@@ -891,7 +891,7 @@ compare_names(const void *p1, const void *p2)
 status
 sortNamesChain(Chain ch)
 { int size = valInt(ch->size);
-  Scell buf = alloca(sizeof(scell) * size);
+  Scell buf = (Scell)alloca(sizeof(scell) * size);
   Cell cell;
   int i;
 

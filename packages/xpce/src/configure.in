@@ -183,7 +183,7 @@ dnl Rest needs to be validated.
 
 if test -z "$MAKE_SHARED_OBJECT"; then
   case "$OS" in
-    *solaris* | *sunos* | *linux* | *irix*)
+    *solaris* | *sunos* | *linux* | *irix* | *osf*)
       MAKE_SHARED_OBJECT=yes;;
   esac
 fi
@@ -232,7 +232,13 @@ EOF
 				;;
     *linux*)			;;
     *irix*)			;;
-    *osf1*)			;;
+    *osf*)			if test -z "$GCC"; then
+				  LD=ld
+				  LDSOFLAGS="-shared -expect_unresolved \*"
+				  CMFLAGS="$CMFLAGS -std"
+				fi
+				AC_DEFINE(VARIABLE_POINTER_OFFSET)
+				;;
     *aix*)			SO="o"
 				LDSOFLAGS="-bI:$PLBASE/include/SWI-Exports"
 				;;
@@ -484,6 +490,9 @@ if test ! -z "$x_libraries"; then
 else
   LIBS="$XLIBS $ac_oldlibs"
 fi
+AC_CHECK_LIB(Xpm, main,
+	     [XLIBS="$XLIBS -lXpm"]
+	     AC_DEFINE(HAVE_LIBXPM))
 AC_CHECK_FUNCS(XtPopupSpringLoaded XmIsMotifWMRunning)
 LIBS="$ac_oldlibs"
 

@@ -765,7 +765,7 @@ getReadFile(FileObj f, Int n)
     }
     buf[m] = EOS;
 
-    answer(CtoString(buf));
+    answer(CtoString((char *)buf));
   }
 }
 

@@ -13,6 +13,9 @@
 /* Define if you have the dl library (-ldl).  */
 #undef HAVE_LIBDL
 
+/* Define if you have the Xpm library (-lXpm).  */
+#undef HAVE_LIBXPM
+
 /* Define if you have the elf library (-lelf).  */
 #undef HAVE_LIBELF
 
@@ -60,3 +63,6 @@
 
 /* Define to include the password checking code */
 #undef O_LICENCE
+
+/* Define if position of data-segment isn't more or less constant */
+#undef VARIABLE_POINTER_OFFSET

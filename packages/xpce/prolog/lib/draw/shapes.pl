@@ -320,6 +320,20 @@ handle(w,   h/2, link, east).
 
 :- draw_end_shape.
 
+		 /*******************************
+		 *	      METAFILE		*
+		 *******************************/
+
+:- draw_begin_shape(draw_metafile, win_metafile, "PceDraw Windows Metafile",
+		    [@draw_resizable_shape_recogniser]).
+
+handle(w/2, 0,   link, north).
+handle(w/2, h,   link, south).
+handle(0,   h/2, link, west).
+handle(w,   h/2, link, east).
+
+:- draw_end_shape.
+
 
 		/********************************
 		*            TEXT		*

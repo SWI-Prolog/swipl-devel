@@ -104,8 +104,9 @@ fill_dialog(D) :-
 expand_classname(Prefix, Classes) :-
 	new(Classes, chain),
 	send(@classes, for_all,
-	     if(message(@arg2?name, prefix, Prefix),
-		message(Classes, append, @arg2))).
+	     if(message(@arg1, prefix, Prefix),
+		message(Classes, append, @arg1))),
+	send(Classes, sort).
 
 
 :- pce_global(@man_hierarchy_popup, make_popup).

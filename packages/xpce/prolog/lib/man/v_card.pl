@@ -46,11 +46,12 @@ fill_dialog(D) :-
 	send(D, append, button(help, message(CE, help))),
 	send(D, append, button(quit, message(CE, quit))),
 	send(D, append,
-	     behaviour_item(goto, '',
-			    if(@arg1 \== @nil,
-			       and(message(CE, request_selection, @arg1),
-				   message(@receiver, clear)))),
+	     new(Goto, behaviour_item(goto, '',
+				      if(@arg1 \== @nil,
+					 message(CE, request_selection,
+						 @arg1)))),
 	     right),
+	send(Goto, advance, clear),
 	send(D, append, new(label), right).	% reporter
 
 

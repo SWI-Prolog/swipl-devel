@@ -98,12 +98,11 @@ req_expand(Term, _) :-
 	user:ensure_loaded(Lib),
 	fail.
 req_expand(Term, T) :-
-	user:term_expansion(Term, Expanded), !,
+	expand_term(Term, Expanded),
 	(   is_list(Expanded)
 	->  member(T, Expanded)
 	;   T = Expanded
 	).
-req_expand(Term, Term).
 
 
 %	requires_library(+Term, -Library)
@@ -123,6 +122,8 @@ process((:- Directive)) :- !,
 process((Head :- Body)) :- !,
 	assert_defined(Head),
 	process_body(Body).
+process('$source_location'(_File, _Line):Clause) :- !,
+	process(Clause).
 process(Head) :-
 	assert_defined(Head).
 
@@ -338,11 +339,20 @@ report :-
 report_undefined([]).
 report_undefined([L]) :- !,
 	functor(L, Name, Arity),
-	output('~q/~d~n	   ', [Name, Arity]).
+	report_name_arity(Name, Arity),
+	output('~n	   ', []).
 report_undefined([H|T]) :-
 	functor(H, Name, Arity),
-	output('~q/~d~n	   , ', [Name, Arity]),
+	report_name_arity(Name, Arity),
+	output('~n	   , ', []),
 	report_undefined(T).
+
+report_name_arity(Name, Arity) :-
+	current_op(P, _, Name),
+	P >= 1000, !,
+	output('(~q)/~d', [Name, Arity]).
+report_name_arity(Name, Arity) :-
+	output('~q/~d', [Name, Arity]).
 
 
 		/********************************

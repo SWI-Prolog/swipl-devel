@@ -119,8 +119,13 @@ void		setPaletteColourMap(ColourMap cm, HPALETTE hpal);
 HPALETTE	getPaletteColourMap(ColourMap cm);
 HDC		d_current_hdc(void);
 status		postscriptDC(HDC hdc, int fx, int fy, int w, int h, int depth);
+HBRUSH		standardWindowsBrush(Any obj);
+void		r_3d_rectangle(int x, int y, int w, int h,
+			       int z, COLORREF *colours);
 status		ws_on_clipboard_metafile(WinMF mf, Name type);
 WinMF		CtoWinMetafile(HENHMETAFILE hmf);
+COLORREF	cref_colour(Colour c);
+COLORREF	ws_3d_grey();
 
 		 /*******************************
 		 *	    PNM FORMATS		*

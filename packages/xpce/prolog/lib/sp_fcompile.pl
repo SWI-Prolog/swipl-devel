@@ -16,11 +16,10 @@
 	  , pce_frecompile_libraries/0
 	  ]).
 :- use_module(library(pce)).
-:- require([ absolute_file_name/3
-	   , chain_list/2
-	   , fcompile/1
+:- require([ chain_list/2
 	   , forall/2
 	   , member/2
+	   , absolute_file_name/3
 	   ]).
 
 :- prolog_flag(character_escapes, _, off).
@@ -74,7 +73,7 @@ pce_frecompile(Dir, File) :-
 	get(PL, delete_suffix, '.pl', Base),
 	get(Base, ensure_suffix, '.ql', QL),
 	(   (	\+ send(file(QL), exists)
-	    ;   send(file(PL)?time, after, file(QL)?time)
+	    |   send(file(PL)?time, after, file(QL)?time)
 	    )
 	->  pce_fcompile(PL)
 	;   true
@@ -112,7 +111,7 @@ pce_prolog_directory(pce('library/emacs')) :-
 	ensure_loaded(user:library(pce_emacs)),
 	user:start_emacs.
 pce_prolog_directory(pce('library/dialog')) :-
-	ensure_loaded(user:library(dialog)).
+	ensure_loaded(user:library(edit_dialog)).
 pce_prolog_directory(pce('demo')).
 pce_prolog_directory(pce('contrib')).
 

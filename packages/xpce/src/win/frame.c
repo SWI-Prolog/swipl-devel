@@ -91,7 +91,7 @@ unlinkFrame(FrameObj fr)
 
 static FrameObj
 getConvertFrame(Class class, PceWindow sw)
-{ answer(getFrameWindow(sw));
+{ answer(getFrameWindow(sw, DEFAULT));
 }
 
 		 /*******************************
@@ -1041,9 +1041,42 @@ keyboardFocusFrame(FrameObj fr, PceWindow sw)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Find the window  for  redirecting  keyboard   strokes.  If  there  is an
+explicit focus, this is easy.  Otherwise,  use   the  window  that has a
+keyboard-focus or the window that has a focus (in this order).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 PceWindow
 getKeyboardFocusFrame(FrameObj fr)
-{ return getHyperedObject(fr, NAME_keyboardFocus, DEFAULT);
+{ PceWindow sw;
+  Cell cell;
+
+  if ( (sw = getHyperedObject(fr, NAME_keyboardFocus, DEFAULT)) )
+    answer(sw);
+
+  if ( getSizeChain(fr->members) == ONE )
+  { sw = getHeadChain(fr->members);
+
+    if ( instanceOfObject(sw, ClassWindowDecorator) )
+    { WindowDecorator dw = (WindowDecorator)sw;
+      answer(dw->window);
+    }
+  }
+
+  for_cell(cell, fr->members)
+  { PceWindow sw2 = cell->value;
+
+    if ( instanceOfObject(sw2, ClassWindowDecorator) )
+    { WindowDecorator dw = (WindowDecorator)sw2;
+      sw2 = dw->window;
+    }
+
+    if ( notNil(sw2->focus) )
+      answer(sw2);
+  }
+
+  answer(sw);
 }
 
 
@@ -1077,11 +1110,11 @@ inputFocusFrame(FrameObj fr, Bool val)
 
     assign(fr, input_focus, val);
     if ( val == ON )
-    { PceWindow iw = getKeyboardFocusFrame(fr);
+    { PceWindow iw;
 
-      if ( !iw )
-	iw = getPointerWindowFrame(fr);
-      inputWindowFrame(fr, iw);
+      if ( (iw = getKeyboardFocusFrame(fr)) ||
+	   (iw = ws_window_holding_point_frame(fr)) )
+	inputWindowFrame(fr, iw);
     } else
     { for_cell(cell, fr->members)
       { PceWindow sw = cell->value;
@@ -1238,6 +1271,8 @@ eventFrame(FrameObj fr, EventObj ev)
 
     if ( (sw = getKeyboardFocusFrame(fr)) )
       return postEvent(ev, (Graphical) sw, DEFAULT);
+
+    return send(fr, NAME_typed, ev->id, 0);
   }
 
   return resizeTileEventFrame(fr, ev);

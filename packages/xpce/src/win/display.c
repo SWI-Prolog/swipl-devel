@@ -182,6 +182,28 @@ drawInDisplay(DisplayObj d, Graphical gr, Point pos, Bool invert, Bool subtoo)
 }
 
 
+static Image
+getImageDisplay(DisplayObj d, Area a)
+{ int x, y, w, h;
+
+  openDisplay(d);
+  if ( isDefault(a) )
+  { Size sz = getSizeDisplay(d);
+
+    x = y = 0;
+    w = valInt(sz->w);
+    h = valInt(sz->h);
+  } else
+  { x = valInt(a->x);
+    y = valInt(a->y);
+    w = valInt(a->w);
+    h = valInt(a->h);
+  }
+
+  return ws_grab_image_display(d, x, y, w, h);
+}
+
+
 status
 grabServerDisplay(DisplayObj d, Bool val)
 { if ( ws_opened_display(d) )
@@ -374,7 +396,7 @@ getSelectionDisplay(DisplayObj d, Name which, Name target, Type type)
   TRY(openDisplay(d));
 
   if ( isDefault(which) )  which  = NAME_primary;
-  if ( isDefault(target) ) target = NAME_string;
+  if ( isDefault(target) ) target = NAME_text;
   if ( isDefault(type) )   type   = nameToType(NAME_string);
   
   if ( (sel = ws_get_selection(d, which, target)) )
@@ -425,11 +447,13 @@ looseSelectionDisplay(DisplayObj d, Name which)
 
 static status
 selectionOwnerDisplay(DisplayObj d, Any owner, Name selection,
-		      Function convert, Code loose)
+		      Function convert, Code loose, Name type)
 { TRY(openDisplay(d));
 
   if ( isDefault(selection) )
     selection = NAME_primary;
+  if ( isDefault(type) )
+    type = NAME_text;
 
   if ( isNil(owner) )
   { Any old = getSelectionOwnerDisplay(d, selection);
@@ -454,9 +478,12 @@ selectionOwnerDisplay(DisplayObj d, Any owner, Name selection,
     attributeObject(h, NAME_convertFunction,
 		     newObject(ClassQuoteFunction, convert, 0));
     attributeObject(h, NAME_looseMessage, loose);
+    attributeObject(h, NAME_type, type);
 
+#ifndef __WINDOWS__
     if ( !old )
-    { if ( !ws_own_selection(d, selection) )
+#endif
+    { if ( !ws_own_selection(d, selection, type) )
       { freeHypersObject(d, hypername, DEFAULT);
 	return errorPce(owner, NAME_cannotBecomeSelectionOwner, selection);
       }
@@ -597,7 +624,6 @@ display_help(DisplayObj d, StringObj hlp, Name msg)
 status
 confirmDisplay(DisplayObj d, CharArray fmt, int argc, Any *argv)
 { StringObj str;
-  Name msg = CtoName("Press LEFT button to confirm, RIGHT button to cancel");
   ArgVector(av, argc+1);
   int i;
   Name button;
@@ -607,11 +633,24 @@ confirmDisplay(DisplayObj d, CharArray fmt, int argc, Any *argv)
     av[i+1] = argv[i];
 
   TRY(str = answerObjectv(ClassString, argc+1, av));
-  TRY(button = display_help(d, str, msg));
-  doneObject(str);
 
-  if ( equalName(button, NAME_left) )
-    succeed;
+  switch( ws_message_box(str, MBX_CONFIRM) )
+  { case MBX_OK:
+      succeed;
+    case MBX_CANCEL:
+      fail;
+    default:
+    { Name msg;
+
+      msg = CtoName("Press LEFT button to confirm, RIGHT button to cancel");
+      TRY(button = display_help(d, str, msg));
+      doneObject(str);
+
+      if ( button == NAME_left )
+	succeed;
+    }
+  }
+
   fail;
 }
 
@@ -619,33 +658,52 @@ confirmDisplay(DisplayObj d, CharArray fmt, int argc, Any *argv)
 status
 informDisplay(DisplayObj d, CharArray fmt, int argc, Any *argv)
 { StringObj str;
-  Name msg = CtoName("Press any button to remove message");
   ArgVector(av, argc+1);
   int i;
+  Name button;
 
   av[0] = (Any) fmt;
   for(i=0; i<argc; i++)
     av[i+1] = argv[i];
+
   TRY(str = answerObjectv(ClassString, argc+1, av));
-  display_help(d, str, msg);
-  doneObject(str);
-  
+
+  switch( ws_message_box(str, MBX_INFORM) )
+  { case MBX_NOTHANDLED:
+    { Name msg;
+
+      msg = CtoName("Press any button to remove message");
+      TRY(button = display_help(d, str, msg));
+      doneObject(str);
+    }
+  }
+
   succeed;
 }
 
 
 static status
 reportDisplay(DisplayObj d, Name kind, CharArray fmt, int argc, Any *argv)
-{ if ( equalName(kind, NAME_error) || equalName(kind, NAME_inform) )
+{ if ( kind == NAME_error || kind == NAME_inform )
   { ArgVector(av, argc+1);
+    StringObj str;
 
     av[0] = isDefault(fmt) ? (CharArray) CtoName("") : fmt;
     copyArgs(argc, argv, &av[1]);
+    TRY(str = answerObjectv(ClassString, argc+1, av));
     if ( kind == NAME_error )
       alertReporteeVisual(d);
 
-    sendv(d, NAME_inform, argc+1, av);
-  } else if ( equalName(kind, NAME_warning) )
+    switch( ws_message_box(str, MBX_ERROR) )
+    { case MBX_NOTHANDLED:
+      { Name msg, button;
+
+	msg = CtoName("Press any button to remove message");
+	TRY(button = display_help(d, str, msg));
+	doneObject(str);
+      }
+    }
+  } else if ( kind == NAME_warning )
     alertReporteeVisual(d);
 
   succeed;
@@ -881,7 +939,13 @@ static char *T_name_any_XXX[] =
         { "name", "any ..." };
 static char *T_selectionOwner[] =
         { "owner=object*", "which=[name]", "convert=[function]",
-	  "loose=[code]" };
+	  "loose=[code]",
+#ifdef __WINDOWS__
+	  "type=[{text,emf,wmf}]"	/* metafile types */
+#else
+	  "type=[{text}]"
+#endif
+	};
 static char *T_selection[] =
         { "which=[name]", "target=[name]", "type=[type]" };
 
@@ -969,7 +1033,7 @@ static senddecl send_display[] =
      NAME_root, "Draw graphical in root window"),
   SM(NAME_cutBuffer, 2, T_cutBuffer, cutBufferDisplay,
      NAME_selection, "Set value of numbered X-cut buffer"),
-  SM(NAME_selectionOwner, 4, T_selectionOwner, selectionOwnerDisplay,
+  SM(NAME_selectionOwner, 5, T_selectionOwner, selectionOwnerDisplay,
      NAME_selection, "Define the owner of the X11 selection"),
   SM(NAME_selectionTimeout, 1, "real", selectionTimeoutDisplay,
      NAME_selection, "Set the timeout-time for getting the selection value"),
@@ -1006,6 +1070,8 @@ static getdecl get_display[] =
      NAME_postscript, "PostScript bounding box for the display"),
   GM(NAME_postscript, 2, "string", T_postscript, getPostscriptObject,
      NAME_postscript, "Get PostScript or (area of) display"),
+  GM(NAME_image, 1, "image", "[area]", getImageDisplay,
+     NAME_conversion, "Image with the pixels of a region from the display"),
   GM(NAME_cutBuffer, 1, "string", "buffer=[0..7]", getCutBufferDisplay,
      NAME_selection, "New string with value of cut-buffer"),
   GM(NAME_selection, 3, "any", T_selection, getSelectionDisplay,

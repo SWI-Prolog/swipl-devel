@@ -169,32 +169,16 @@ getActiveDialog(Dialog d)
 		*         COMMUNICATION		*
 		********************************/
 
-Name
-defaultAccelerator()
-{ static Name acc = NULL;
-
-  if ( !acc )
-    acc = CtoName("RET");
-
-  return acc;
-}
-
-
 static status
 defaultButtonDialog(Dialog d, Button b)
-{ Cell cell;	
+{ Cell cell;
 
   for_cell(cell, d->graphicals)
-  { if ( instanceOfObject(cell->value, ClassButton) )
-    { Button b2 = cell->value;
+  { Button b2 = cell->value;
 
-      if ( b2->accelerator == defaultAccelerator() )
-	send(b2, NAME_accelerator, NIL, 0);
-    }
+    if ( instanceOfObject(b2, ClassButton) )
+      assign(b2, default_button, b == b2 ? ON : OFF);
   }
-
-  if ( notNil(b) )
-    send(b, NAME_accelerator, defaultAccelerator(), 0);
 
   succeed;
 }
@@ -202,15 +186,14 @@ defaultButtonDialog(Dialog d, Button b)
 
 static Button
 getDefaultButtonDialog(Dialog d)
-{ Cell cell;	
+{ Cell cell;
 
   for_cell(cell, d->graphicals)
-  { if ( instanceOfObject(cell->value, ClassButton) )
-    { Button b = cell->value;
+  { Button b = cell->value;
 
-      if ( b->accelerator == defaultAccelerator() )
-	answer(b);
-    }
+    if ( instanceOfObject(b, ClassButton) &&
+	 b->default_button == ON )
+      answer(b);
   }
 
   fail;

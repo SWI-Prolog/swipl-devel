@@ -20,7 +20,6 @@ static Int		normalise_index(Editor, Int);
 static FragmentCache	newFragmentCache(Editor);
 static void		freeFragmentCache(FragmentCache);
 static void		resetFragmentCache(FragmentCache, TextBuffer);
-static Any		Receiver(Editor);
 static status		CaretEditor(Editor, Int);
 static status		caretEditor(Editor, Int);
 static status		IsearchEditor(Editor, EventId);
@@ -52,15 +51,21 @@ static status		newKill(CharArray);
 static CharArray	killRegister(Int);
 static status		tabDistanceEditor(Editor e, Int tab);
 static status		isisearchingEditor(Editor e);
+static status		showLabelEditor(Editor e, Bool val);
+static Int		countLinesEditor(Editor e, Int from, Int to);
 
 static Timer	ElectricTimer;
 
 #define Caret(e)	valInt(e->caret)
+#define Receiver(e)	ReceiverOfEditor(e)
 #define Round(n, r)	((((n) + ((r)-1)) / (r)) * (r))
 #define Before(f, t)	{ if ( valInt(f) > valInt(t) ) \
 			  { Int _tmp = t; t = f; f = _tmp; \
 			  } \
 			}
+
+/* Scroll using line-parameters upto this size for the buffer */
+#define MAXLINEBASEDSCROLLING 25000
 
 
 		/********************************
@@ -69,7 +74,7 @@ static Timer	ElectricTimer;
 
 static status
 initialiseEditor(Editor e, TextBuffer tb, Int w, Int h, Int tmw)
-{ Int fw, fh, iw, ih;
+{ Int fw, fh, iw, ih, ew;
   Size sz = getResourceValueObject(e, NAME_size);
 
   if ( isDefault(tb) ) tb = newObject(ClassTextBuffer, 0);
@@ -137,16 +142,17 @@ initialiseEditor(Editor e, TextBuffer tb, Int w, Int h, Int tmw)
   displayDevice(e, e->scroll_bar, DEFAULT);
   displayDevice(e, e->image, DEFAULT);
   displayDevice(e, e->text_cursor, DEFAULT);
+  ew = add(e->scroll_bar->area->w,e->image->area->w);
 
   if ( notNil(e->margin) )
-  { send(e->margin, NAME_set,
-	 add(e->scroll_bar->area->w,e->image->area->w),
-	 0);
+  { send(e->margin, NAME_set, ew, 0);
+    ew = add(ew, e->margin->area->w);
     displayDevice(e, e->margin, DEFAULT);
   }
 
   updateStyleCursorEditor(e);		/* also does position */
   send(tb, NAME_attach, e, 0);
+  geometryEditor(e, ZERO, ZERO, ew, ih);
   
   succeed;
 }
@@ -189,6 +195,15 @@ unlinkEditor(Editor e)
 }
 
 
+static status
+lostTextBufferEditor(Editor e)
+{ if ( !onFlag(e, F_FREED|F_FREEING) )
+    send(Receiver(e), NAME_free, 0);
+
+  succeed;
+}
+
+
 		 /*******************************
 		 *		REDRAW		*
 		 *******************************/
@@ -201,8 +216,11 @@ RedrawAreaEditor(Editor e, Area a)
   if ( e->pen != ZERO )
   { int p = valInt(e->pen);
     int x, y, w, h;
+    int th = valInt(e->image->area->y);
 
     initialiseDeviceGraphical(e, &x, &y, &w, &h);
+    y += th;
+    h -= th;
 
 					/* test for overlap with border */
     if ( valInt(a->x) < p || valInt(a->y) < p ||
@@ -294,6 +312,7 @@ showCaretAtEditor(Editor e, Int caret)
   if ( get_character_box_textimage(e->image, valInt(caret),
 				   &x, &y, &w, &h, &b) )
   { x += valInt(e->image->area->x);
+    y += valInt(e->image->area->y);
     w = valInt(getExFont(e->font));
 
     setTextCursor(e->text_cursor,
@@ -347,6 +366,33 @@ updateStyleCursorEditor(Editor e)
 		*          SCROLLBAR		*
 		********************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Scrollbar updates. This can all be   optimised  further, bot by scanning
+the text only once, avoiding fetch() while scanning and finally and most
+importantly, by caching some of these values,  such as the start-line of
+the view and the number of lines in the buffer.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static status
+bubbleScrollBarEditor(Editor e, ScrollBar sb)
+{ TextBuffer tb = e->text_buffer;
+  Int start = getStartTextImage(e->image, ONE);
+
+  if ( tb->size < MAXLINEBASEDSCROLLING )		/* short, work line-based */
+  { Int len   = countLinesEditor(e, ZERO, toInt(tb->size));
+    Int first = sub(getLineNumberEditor(e, start), ONE); /* 1-based! */
+    Int view  = countLinesEditor(e, start, e->image->end);
+    
+    return bubbleScrollBar(sb, len, first, view);
+  } else				/* long, work character-based */
+  { Int len  = toInt(tb->size);
+    Int view = getViewTextImage(e->image);
+
+    return bubbleScrollBar(sb, len, start, view);
+  }
+}
+
+
 static Int
 getStartEditor(Editor e, Int line)
 { answer(getStartTextImage(e->image, line));
@@ -362,6 +408,61 @@ getViewEditor(Editor e)
 static Int
 getLengthEditor(Editor e)
 { answer(toInt(e->text_buffer->size));
+}
+
+		/********************************
+		*            LABEL		*
+		********************************/
+
+static status
+labelEditor(Editor e, Name lbl)
+{ showLabelEditor(e, ON);
+
+  send(e->label_text, NAME_string, lbl, 0);
+  geometryEditor(e, DEFAULT, DEFAULT, DEFAULT, DEFAULT);
+
+  succeed;
+}
+
+
+Name
+getLabelEditor(Editor e)
+{ if ( notNil(e->label_text) )
+    answer(getValueCharArray((CharArray) e->label_text->string));
+
+  fail;
+}
+
+
+static status
+showLabelEditor(Editor e, Bool val)
+{ if ( isNil(e->label_text) )
+  { if ( val == ON )
+    { assign(e, label_text,
+	     newObject(ClassText, getLabelNameName(e->name), NAME_left,
+		       getResourceValueObject(e, NAME_labelFont), 0));
+      marginText(e->label_text, e->area->w, NAME_clip);
+      displayDevice(e, e->label_text, DEFAULT);
+      return geometryEditor(e, DEFAULT, DEFAULT, DEFAULT, DEFAULT);
+    } else
+      succeed;
+  }
+
+  if ( e->label_text->displayed != val )
+  { DisplayedGraphical(e->label_text, val);
+    return geometryEditor(e, DEFAULT, DEFAULT, DEFAULT, DEFAULT);
+  }
+
+  succeed;
+}
+
+
+static Bool
+getShowLabelEditor(Editor e)
+{ if ( notNil(e->label_text) )
+    answer(e->label_text->displayed);
+
+  answer(OFF);
 }
 
 
@@ -434,30 +535,67 @@ selectedFragmentStyleEditor(Editor e, Style style)
 
 static status
 geometryEditor(Editor e, Int x, Int y, Int w, Int h)
-{ int ix, iw, mx, mw, sw;
+{ int ix, iy, iw, ih, mx, mw, sw;
   int pen = valInt(e->pen);
+  Area a = e->area;
+  
+  if ( e->badBoundingBox == ON && (isDefault(w) || isDefault(h)) )
+  { Cell cell;
+    clearArea(a);
 
-  if ( isDefault(x) ) x = e->area->x;
-  if ( isDefault(y) ) y = e->area->y;
-  if ( isDefault(w) ) w = e->area->w;
-  if ( isDefault(h) ) h = e->area->h;
+				/* simplyfied computeBoundingBoxDevice() */
+				/* we should consider non-displayed grs */
+				/* too ... See label and scrollbar hiding */
+    for_cell(cell, e->graphicals)
+    { Graphical gr = cell->value;
+
+      unionNormalisedArea(a, gr->area);
+    }
+
+    relativeMoveArea(a, e->offset);
+    assign(e, badBoundingBox, OFF);
+  }
+
+  if ( isDefault(x) ) x = a->x;
+  if ( isDefault(y) ) y = a->y;
+  if ( isDefault(w) ) w = a->w;
+  if ( isDefault(h) ) h = a->h;
 
   if ( valInt(w) < 50 ) w = toInt(50);
   if ( valInt(h) < 20 ) h = toInt(20);
+
+  DEBUG(NAME_editor, Cprintf("geometryEditor(%s, %d, %d, %d, %d)\n",
+			     pp(e),
+			     valInt(x), valInt(y),
+			     valInt(w), valInt(h)));
+
+  if ( notNil(e->label_text) && e->label_text->displayed == ON )
+  { marginText(e->label_text, w, NAME_clip);
+    ComputeGraphical(e->label_text);
+    send(e->label_text, NAME_set, ZERO, ZERO, DEFAULT, DEFAULT, 0);
+    iy = valInt(e->label_text->area->h);
+    ih = valInt(h);
+  } else
+  { iy = 0;
+    ih = valInt(h) - iy;
+  }
 
   sw = isNil(e->scroll_bar) ? 0 : valInt(getMarginScrollBar(e->scroll_bar));
   mw = notNil(e->margin) ? valInt(e->margin->area->w) : 0;
   iw = valInt(w) - abs(sw) - mw;
   
+  DEBUG(NAME_editor, Cprintf("sw = %d, mw = %d, iw = %d\n",
+			     sw, mw, iw));
+
   assign(e->size, w, div(toInt(iw), getExFont(e->font)));
   assign(e->size, h, div(h,  getHeightFont(e->font)));
 
   ix = (sw < 0 ? -sw : 0);
   mx = ix + iw - pen;
 
-  send(e->image, NAME_set, toInt(ix), ZERO, toInt(iw), h, 0);
+  send(e->image, NAME_set, toInt(ix), toInt(iy), toInt(iw), toInt(ih-iy), 0);
   if ( notNil(e->margin) )
-    send(e->margin, NAME_set, toInt(mx), ZERO, DEFAULT, h, 0);
+    send(e->margin, NAME_set, toInt(mx), toInt(iy), DEFAULT, toInt(ih-iy), 0);
   if ( notNil(e->scroll_bar) )
     placeScrollBar(e->scroll_bar, (sw > 0 && notNil(e->margin))
 					? (Graphical) e->margin
@@ -1041,16 +1179,8 @@ getFirstEditor(Editor e)
 
 static Int
 countLinesEditor(Editor e, Int from, Int to)
-{ int lines = 0;
-  TextBuffer tb = e->text_buffer;
-  long f = valInt(from);
-  long t = valInt(to);
-
-  for( ; f < t; f++ )
-    if ( tisendsline(tb->syntax, fetch_textbuffer(tb, f)) )
-      lines++;
-
-  answer(toInt(lines));
+{ answer(toInt(count_lines_textbuffer(e->text_buffer,
+				      valInt(from), valInt(to))));
 }
 
 
@@ -1069,8 +1199,8 @@ getLinesVisibleEditor(Editor e)
 		*            FEEDBACK		*
 		********************************/
 
-static Any
-Receiver(Editor e)
+Any
+ReceiverOfEditor(Editor e)
 { if ( isObject(e->device) && instanceOfObject(e->device, ClassView) )
     return e->device;
 
@@ -1146,13 +1276,7 @@ typedEditor(Editor e, EventId id)
 
 static status
 event_editor(Editor e, EventObj ev)
-{ if ( eventDevice(e, ev) )
-    succeed;
-
-  if ( isAEvent(ev, NAME_keyboard) )
-    return send(e, NAME_typed, getIdEvent(ev), 0);
-
-  if ( isAEvent(ev, NAME_focus) )
+{ if ( isAEvent(ev, NAME_focus) )
   { if ( isAEvent(ev, NAME_activateKeyboardFocus) )
       send(e->text_cursor, NAME_active, ON, 0);
     else if ( isAEvent(ev, NAME_deactivateKeyboardFocus) )
@@ -1161,7 +1285,13 @@ event_editor(Editor e, EventObj ev)
     succeed;
   }
 
-					/* delete mode on button down */
+  if ( eventDevice(e, ev) )
+    succeed;
+
+  if ( isAEvent(ev, NAME_keyboard) )
+    return send(e, NAME_typed, getIdEvent(ev), 0);
+
+  					/* delete mode on button down */
   if ( isDownEvent(ev) )
   { PceWindow sw = getWindowGraphical((Graphical)e);
 
@@ -2410,7 +2540,10 @@ setFillColumnEditor(Editor e, Int arg)
 
 
 static status
-fillEditor(Editor e, Int from, Int to, Int left_margin, Int right_margin, Bool justify)
+fillEditor(Editor e,
+	   Int from, Int to,
+	   Int left_margin, Int right_margin,
+	   Bool justify)
 { TextBuffer tb = e->text_buffer;
   int rm  = valInt(isDefault(right_margin) ? e->right_margin : right_margin);
   int lm  = valInt(isDefault(left_margin)  ? e->left_margin  : left_margin);
@@ -2419,6 +2552,8 @@ fillEditor(Editor e, Int from, Int to, Int left_margin, Int right_margin, Bool j
   int ep;				/* end of paragraph */
   int col;
   int p;
+
+  MustBeEditable(e);
 
   end = valInt(normalise_index(e, to));
 
@@ -3104,13 +3239,29 @@ recenterEditor(Editor e, Int arg)
 
 static status
 scrollVerticalEditor(Editor e, Name dir, Name unit, Int amount)
-{ if ( equalName(unit, NAME_file) )
-  { if ( dir == NAME_goto )
-    { int h = (e->text_buffer->size * valInt(amount)) / 1000;
+{ TextBuffer tb = e->text_buffer;
 
-      scrollToEditor(e, toInt(h));
+  if ( unit == NAME_file )
+  { if ( dir == NAME_goto )
+    { if ( tb->size < MAXLINEBASEDSCROLLING ) /* do it line-based */
+      { int size = valInt(countLinesEditor(e, ZERO, toInt(tb->size)));
+	int view = valInt(getLinesTextImage(e->image));
+	int target = ((size-view)*valInt(amount))/1000;
+	int cp;				/* character-position */
+	
+	if ( target < 0 )
+	  target = 0;
+	
+	cp = start_of_line_n_textbuffer(tb, target+1);
+	centerTextImage(e->image, toInt(cp), ONE);
+	ensureCaretInWindowEditor(e);
+      } else
+      { int h = (tb->size * valInt(amount)) / 1000;
+
+	scrollToEditor(e, toInt(h));
+      }
     }
-  } else if ( equalName(unit, NAME_page) )
+  } else if ( unit == NAME_page )
   { int d = (valInt(getLinesTextImage(e->image)) * valInt(amount)) / 1000;
 
     if ( d < 1 )
@@ -3125,6 +3276,18 @@ scrollVerticalEditor(Editor e, Name dir, Name unit, Int amount)
       scrollUpEditor(e, amount);
     else
       scrollDownEditor(e, amount);
+  }
+
+  succeed;
+}
+
+
+static status
+showScrollBarEditor(Editor e, Bool show, ScrollBar sb)
+{ if ( isDefault(sb) || sb == e->scroll_bar )
+  { computeBoundingBoxDevice((Device)e);
+    DisplayedGraphical(e->scroll_bar, show);
+    geometryEditor(e, DEFAULT, DEFAULT, e->area->w, e->area->h);
   }
 
   succeed;
@@ -3208,7 +3371,7 @@ selectLineEditor(Editor e, Int line, Bool newline)
   TextBuffer tb = e->text_buffer;
 
   if ( notDefault(line) )
-    from = getScanTextBuffer(tb, ZERO, NAME_line, sub(line, ONE), NAME_start);
+    from = toInt(start_of_line_n_textbuffer(tb, valInt(line)));
   else
     from = getScanTextBuffer(tb, e->caret, NAME_line, ZERO, NAME_start);
 
@@ -3817,6 +3980,8 @@ static char *T_align[] =
 static char *T_scrollVertical[] =
         { "direction={forwards,backwards,goto}",
 	  "unit={file,page,line}", "amount=int" };
+static char *T_showScrollBar[] =
+        { "show=[bool]", "which=[scroll_bar]" };
 static char *T_formatAchar_array_argumentAany_XXX[] =
         { "format=char_array", "argument=any ..." };
 static char *T_style[] =
@@ -3856,13 +4021,15 @@ static vardecl var_editor[] =
 { SV(NAME_textBuffer, "text_buffer", IV_GET|IV_STORE, textBufferEditor,
      NAME_delegate, "Underlying text"),
   IV(NAME_image, "text_image", IV_GET,
-     NAME_visualisation, "Screen/redisplay management"),
+     NAME_components, "Screen/redisplay management"),
   IV(NAME_scrollBar, "scroll_bar", IV_GET,
-     NAME_visualisation, "Scrollbar for the text"),
+     NAME_components, "Scrollbar for the text"),
   IV(NAME_margin, "text_margin*", IV_GET,
-     NAME_visualisation, "Margin for annotations"),
+     NAME_components, "Margin for annotations"),
   IV(NAME_textCursor, "text_cursor", IV_GET,
-     NAME_visualisation, "The caret"),
+     NAME_components, "The caret"),
+  IV(NAME_labelText, "text*", IV_GET,
+     NAME_components, "Text object that displays the label"),
   SV(NAME_font, "font", IV_GET|IV_STORE, fontEditor,
      NAME_appearance, "Default font for the text"),
   IV(NAME_size, "size", IV_GET,
@@ -3948,6 +4115,8 @@ static senddecl send_editor[] =
      DEFAULT, "Map size to character units"),
   SM(NAME_unlink, 0, NULL, unlinkEditor,
      DEFAULT, "Unlink from buffer, margin, etc."),
+  SM(NAME_lostTextBuffer, 0, NULL, lostTextBufferEditor,
+     DEFAULT, "<-text_buffer is being freed"),
   SM(NAME_keyBinding, 2, T_keyBinding, keyBindingEditor,
      NAME_accelerator, "Set a local key binding"),
   SM(NAME_style, 2, T_style, styleEditor,
@@ -4070,6 +4239,8 @@ static senddecl send_editor[] =
      NAME_event, "Test if ready to accept input (true)"),
   SM(NAME_event, 1, "event", eventEditor,
      NAME_event, "Handle a general event"),
+  SM(NAME_label, 1, "name", labelEditor,
+     NAME_label, "Set the name of the label"),
   SM(NAME_load, 1, "file=file", loadEditor,
      NAME_file, "Clear editor and load a file"),
   SM(NAME_save, 1, "file=[file]", saveEditor,
@@ -4134,6 +4305,8 @@ static senddecl send_editor[] =
      NAME_insert, "Insert text at caret (auto_newline)"),
   SM(NAME_typed, 1, "event_id", typedEditor,
      NAME_insert, "Process a keystroke"),
+  SM(NAME_showLabel, 1, "show=bool", showLabelEditor,
+     NAME_appearance, "Show/unshow the label"),
   SM(NAME_yank, 1, "[int]", yankEditor,
      NAME_insert, "Yank current kill-buffer"),
   SM(NAME_justOneSpace, 0, NULL, justOneSpaceEditor,
@@ -4186,6 +4359,10 @@ static senddecl send_editor[] =
      NAME_scroll, "Scroll lines (1 screen) upward"),
   SM(NAME_scrollVertical, 3, T_scrollVertical, scrollVerticalEditor,
      NAME_scroll, "Trap scroll_bar request"),
+  SM(NAME_showScrollBar, 2, T_showScrollBar, showScrollBarEditor,
+     NAME_scroll, "Control visibility of the <-scroll_bar"),
+  SM(NAME_bubbleScrollBar, 1, "scroll_bar", bubbleScrollBarEditor,
+     NAME_scroll, "Update bubble of given scroll_bar object"),
   SM(NAME_findCutBuffer, 1, "[int]", findCutBufferEditor,
      NAME_search, "Find string in X-cut buffer"),
   SM(NAME_isearchBackward, 0, NULL, isearchBackwardEditor,
@@ -4283,6 +4460,8 @@ static getdecl get_editor[] =
      NAME_selection, "Index for end of selection"),
   GM(NAME_selectionStart, 0, "int", NULL, getSelectionStartEditor,
      NAME_selection, "Index for start of selection"),
+  GM(NAME_showLabel, 0, "bool", NULL, getShowLabelEditor,
+     NAME_appearance, "Bool indicating if label is visible"),
   GM(NAME_marginWidth, 0, "pixels=int", NULL, getMarginWidthEditor,
      NAME_visualisation, "Width of annotation margin")
 };
@@ -4302,6 +4481,8 @@ static resourcedecl rc_editor[] =
      "If @on, auto-fill"),
   RC(NAME_font, "font", "fixed",
      "Default font"),
+  RC(NAME_labelFont, "font", "bold",
+     "Font used to display the label"),
   RC(NAME_indentIncrement, "int", "2",
      "Indent/undent amount"),
   RC(NAME_isearchStyle, "style", "style(highlight := @on)",

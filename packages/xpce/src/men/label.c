@@ -48,7 +48,8 @@ RedrawAreaLabel(Label lb, Area a)
   if ( instanceOfObject(lb->selection, ClassCharArray) )
   { CharArray s = lb->selection;
 
-    str_string(&s->data, lb->font, x, y, w, h, NAME_left, NAME_top);
+    str_label(&s->data, 0, lb->font, x, y, w, h, NAME_left, NAME_top,
+	      lb->active == ON ? 0 : LABEL_INACTIVE);
   } else /*if ( instanceOfObject(lb->selection, ClassImage) )*/
   { Image image = (Image) lb->selection;
 

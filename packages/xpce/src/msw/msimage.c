@@ -7,6 +7,7 @@
     Copyright (C) 1994 University of Amsterdam. All rights reserved.
 */
 
+#define OEMRESOURCE 1			/* get OBM_* constants */
 #include "include.h"
 #include <h/unix.h>
 #include <math.h>
@@ -491,6 +492,7 @@ windows_bitmap_from_bits(Image image)
 status
 ws_open_image(Image image, DisplayObj d)
 { HBITMAP bm;
+  HBRUSH brush = 0;
   int w = valInt(image->size->w);
   int h = valInt(image->size->h);
 
@@ -518,7 +520,11 @@ ws_open_image(Image image, DisplayObj d)
     fail;
   }
 
-  if ( w != 0 && h != 0 && image->access == NAME_both )
+  if ( image->access == NAME_read )
+    brush = standardWindowsBrush(image);
+
+  if ( w != 0 && h != 0 &&
+       (image->access == NAME_both || brush) )
   { assign(image, display, d);
 
     if ( image->kind == NAME_pixmap )
@@ -542,7 +548,11 @@ ws_open_image(Image image, DisplayObj d)
     if ( bm )
     { registerXrefObject(image, d, (void *) bm);
       d_image(image, 0, 0, w, h);
-      r_clear(0, 0, w, h);
+      if ( brush )
+      { r_clear(0, 0, w, h);		/* clear to deal with hollow, etc */
+	r_fill(0, 0, w, h, image);	/* @win_..._brush */
+      } else
+	r_clear(0, 0, w, h);
       d_done();
 
       succeed;
@@ -1010,23 +1020,70 @@ struct system_brush
   int  id;
 };
 
+struct system_image
+{ char *name;
+  int  id;
+};
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Windows system colors as obtained from GetSysColor()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static struct system_brush window_brushes[] =
-{ { "win_black_image",	BLACK_BRUSH },
-  { "win_dkgray_image",	DKGRAY_BRUSH },
-  { "win_gray_image",	GRAY_BRUSH },
-  { "win_hollow_image",	HOLLOW_BRUSH },
-  { "win_ltgray_image",	LTGRAY_BRUSH },
-  { "win_null_image",	NULL_BRUSH },
+{ { "win_black_brush",	BLACK_BRUSH },
+  { "win_dkgray_brush",	DKGRAY_BRUSH },
+  { "win_gray_brush",	GRAY_BRUSH },
+  { "win_hollow_brush",	HOLLOW_BRUSH },
+  { "win_ltgray_brush",	LTGRAY_BRUSH },
+  { "win_null_brush",	NULL_BRUSH },
+  { NULL,		0 }
+};
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Win32 predefined images.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static struct system_image window_images[] =
+{ { "win_btncorners",	OBM_BTNCORNERS },	
+  { "win_btsize", 	OBM_BTSIZE },
+  { "win_check",	OBM_CHECK },	
+  { "win_checkboxes",	OBM_CHECKBOXES },	
+  { "win_close",	OBM_CLOSE },	
+  { "win_combo",	OBM_COMBO },	
+  { "win_dnarrow",	OBM_DNARROW },	
+  { "win_dnarrowd",	OBM_DNARROWD },	
+  { "win_dnarrowi",	OBM_DNARROWI },	
+  { "win_lfarrow",	OBM_LFARROW },	
+  { "win_lfarrowd",	OBM_LFARROWD },	
+  { "win_lfarrowi",	OBM_LFARROWI },	
+  { "win_mnarrow",	OBM_MNARROW },	
+  { "win_old_close",	OBM_OLD_CLOSE },	
+  { "win_old_dnarrow",	OBM_OLD_DNARROW },	
+  { "win_old_lfarrow",	OBM_OLD_LFARROW },	
+  { "win_old_reduce",	OBM_OLD_REDUCE },	
+  { "win_old_restore",	OBM_OLD_RESTORE },
+  { "win_old_rgarrow",	OBM_OLD_RGARROW },
+  { "win_old_uparrow",	OBM_OLD_UPARROW },
+  { "win_old_zoom",	OBM_OLD_ZOOM }, 
+  { "win_reduce",	OBM_REDUCE },
+  { "win_reduced",	OBM_REDUCED },
+  { "win_restore",	OBM_RESTORE },
+  { "win_restored",	OBM_RESTORED },
+  { "win_rgarrow",	OBM_RGARROW },
+  { "win_rgarrowd",	OBM_RGARROWD },
+  { "win_rgarrowi",	OBM_RGARROWI },
+  { "win_size",		OBM_SIZE },
+  { "win_uparrow",	OBM_UPARROW },
+  { "win_uparrowd",	OBM_UPARROWD },
+  { "win_uparrowi",	OBM_UPARROWI },	
+  { "win_zoom",		OBM_ZOOM },
+  { "win_zoomd",	OBM_ZOOMD },
   { NULL,		0 }
 };
 
 
-void
-ws_system_images(DisplayObj d)
+static void
+ws_system_brushes(DisplayObj d)
 { struct system_brush *sb = window_brushes;
 
   for( ; sb->name; sb++)
@@ -1035,12 +1092,47 @@ ws_system_images(DisplayObj d)
 
     if ( brush )
     { Image image = globalObject(name, ClassImage, name,
-				 toInt(16), toInt(16), 0);
+				 toInt(16), toInt(16), NAME_pixmap, 0);
       assign(image, access, NAME_read);
       declareWindowsBrush(image, brush);
     } else
       Cprintf("Could not GetStockObject for %s\n", sb->name);
   }
+}
+
+
+void
+ws_system_images(DisplayObj d)
+{ struct system_image *si = window_images;
+
+  for( ; si->name; si++)
+  { Name name = CtoKeyword(si->name);
+    HBITMAP bm = LoadBitmap(NULL, (const char *)si->id);
+
+    if ( bm )
+    { BITMAP bitmap;
+      Image image;
+      Name kind;
+      int depth;
+
+      if ( !GetObject(bm, sizeof(BITMAP), &bitmap) )
+	Cprintf("ws_system_images(): GetObject() failed\n");
+
+      depth = bitmap.bmPlanes * bitmap.bmBitsPixel;
+      kind = (depth == 1 ? NAME_bitmap : NAME_pixmap);
+      image = globalObject(name, ClassImage, name,
+			   toInt(bitmap.bmWidth),
+			   toInt(bitmap.bmHeight),
+			   kind,
+			   0);
+      assign(image, depth, toInt(depth));
+      registerXrefObject(image, d, (void *)bm);
+      assign(image, access, NAME_read);
+    } else
+      Cprintf("Could not LoadBitmap for %s\n", si->name);
+  }
+
+  ws_system_brushes(d);
 }
 
 

@@ -112,7 +112,8 @@ fill_dialog(D) :-
 	make_shadow_menu(Shadow),
 	make_interpolation_menu(Interpolation),
 
-	send_list([Interpolation, Shadow, Y, W, H], alignment, left),
+	send_list([Interpolation, Shadow], alignment, right),
+        send_list([Y, W, H], alignment, left),
 
 	send_list(D, append,
 		  [Pen, Texture, Arrows, FillPattern, Colour, Radius]),

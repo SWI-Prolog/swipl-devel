@@ -80,14 +80,18 @@ user:term_expansion((:- require(_)), []).
      pce_boot(pce_expansion),
      pce_boot(pce_realise),
      pce_boot(pce_autoload),
-     pce_boot(pce_editor)
+     pce_boot(pce_editor),
+     pce_boot(pce_accelerator)
    ].
 
 
 set_version :-
 	feature(version, PlVersion),
 	send(@pce, catch_error_signals, @on),
-	concat('SWI-Prolog version ', PlVersion, PlId),
+	Major is PlVersion // 10000,
+	Minor is (PlVersion // 100) mod 100,
+	Patch is PlVersion mod 100,
+	sformat(PlId, 'SWI-Prolog version ~w.~w.~w', [Major, Minor, Patch]),
 	send(@prolog, system, PlId).
 
 :- initialization set_version.

@@ -23,7 +23,9 @@ CharArray	stringToCharArray(String s);
 status		makeClassCharArray(Class class);
 
 /* txt/editor.c */
+Name		getLabelEditor(Editor e);
 status		normaliseEditor(Editor e, Int start, Int end);
+Any		ReceiverOfEditor(Editor e);
 status		forwardModifiedEditor(Editor e, Bool val);
 status		scrollToEditor(Editor e, Int pos);
 status		selectionEditor(Editor e, Int from, Int to);
@@ -142,7 +144,9 @@ Int		getLineNumberTextBuffer(TextBuffer tb, Int i);
 int		find_textbuffer(TextBuffer tb, int here, String str, int times, char az, int ec, int wm);
 long		fill_line_textbuffer(TextBuffer tb, long int here, long int to, int sc, int rm, int justify);
 status		sortTextBuffer(TextBuffer tb, Int from, Int to);
-int		fetch_textbuffer(register TextBuffer tb, register int where);
+int		count_lines_textbuffer(TextBuffer tb, int f, int t);
+int		start_of_line_n_textbuffer(TextBuffer tb, int lineno);
+int		fetch_textbuffer(TextBuffer tb, int where);
 status		change_textbuffer(TextBuffer tb, int where, void *s, int len);
 status		str_sub_text_buffer(TextBuffer tb, String s, int start, int len);
 status		insert_textbuffer(TextBuffer tb, int where, int times, String s);
@@ -183,5 +187,5 @@ status		markUndoTextBuffer(TextBuffer tb);
 status		resetUndoTextBuffer(TextBuffer tb);
 status		checkpointUndoTextBuffer(TextBuffer tb);
 void		register_insert_textbuffer(TextBuffer tb, long int where, long int len);
-void		register_delete_textbuffer(TextBuffer tb, long int where, long int len);
+void		register_delete_textbuffer(TextBuffer tb, long where, long len);
 void		register_change_textbuffer(TextBuffer tb, long int where, long int len);

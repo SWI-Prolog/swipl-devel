@@ -10,17 +10,15 @@
 #include <h/kernel.h>
 #include <h/dialog.h>
 
-forwards Bool getDefaultButtonButton(Button);
-
 static status
 initialiseButton(Button b, Name name, Message msg, Name acc)
 { createDialogItem(b, name);
 
-  assign(b, pen,          DEFAULT);	/* resources */
-  assign(b, radius,       DEFAULT);
-  assign(b, label_font,   DEFAULT);
-  assign(b, shadow,       DEFAULT);
-  assign(b, popup_image,  DEFAULT);
+  assign(b, pen,            DEFAULT);	/* resources */
+  assign(b, radius,         DEFAULT);
+  assign(b, shadow,         DEFAULT);
+  assign(b, popup_image,    DEFAULT);
+  assign(b, default_button, OFF);
 
   assign(b, message, msg);
   if ( notDefault(acc) )
@@ -30,13 +28,15 @@ initialiseButton(Button b, Name name, Message msg, Name acc)
 }
 
 
-static int
+int
 accelerator_code(Name a)
 { if ( isName(a) )
   { char *s = strName(a);
     
-    if ( s[0] == '\\' && s[1] == 'e' && s[3] == EOS )
+    if ( s[0] == '\\' && s[1] == 'e' && isletter(s[2]) && s[3] == EOS )
       return s[2];
+    if ( s[1] == EOS && isletter(s[0]) )
+      return s[0];
   }
 
   return 0;
@@ -47,6 +47,7 @@ static status
 RedrawWinMenuBarButton(Button b, Area a)
 { int x, y, w, h;
   Any ofg = NIL;
+  int flags = 0;
 
   initialiseDeviceGraphical(b, &x, &y, &w, &h);
   NormaliseArea(x, y, w, h);
@@ -61,9 +62,12 @@ RedrawWinMenuBarButton(Button b, Area a)
     ofg = r_colour(fg);
   }
 
-  str_label(&b->label->data, accelerator_code(b->accelerator), b->label_font,
-	    x, y, w, h,
-	    NAME_center, NAME_center);
+  if ( b->active == OFF )
+    flags |= LABEL_INACTIVE;
+
+  RedrawLabelDialogItem(b, accelerator_code(b->accelerator),
+			x, y, w, h,
+			NAME_center, NAME_center, flags);
 
   if ( notNil(ofg) )
     r_colour(ofg);
@@ -72,40 +76,20 @@ RedrawWinMenuBarButton(Button b, Area a)
 }
 
 
-status
-RedrawAreaButton(Button b, Area a)
-{ int x, y, w, h;
-  int defb;
-  int rm = 0;				/* right-margin */
-  Elevation z;
-
-  if ( b->look == NAME_winMenuBar )
-    return RedrawWinMenuBarButton(b, a);
-
-  defb = (getDefaultButtonButton(b) == ON);
-  z = getResourceValueObject(b, NAME_elevation);
-  initialiseDeviceGraphical(b, &x, &y, &w, &h);
-  NormaliseArea(x, y, w, h);
+static void
+draw_generic_button_face(Button b,
+			 int x, int y, int w, int h,
+			 int up, int defb, int focus)
+{ Elevation z = getResourceValueObject(b, NAME_elevation);
   
   if ( z && notNil(z) )			/* 3-d style */
   { int up = (b->status == NAME_inactive || b->status == NAME_active);
-   
+     
     if ( b->look == NAME_motif || b->look == NAME_win )
     { int bx = x, by = y, bw = w, bh = h;
-      PceWindow sw;
-      int kbf;				/* Button has keyboard focus */
-      int obhf;				/* Other button has focus */
-      int focus;
-
-      if ( (sw = getWindowGraphical((Graphical)b)) )
-      { kbf   = (sw->keyboard_focus == (Graphical) b);
-	obhf  = (!kbf && instanceOfObject(sw->keyboard_focus, ClassButton));
-	focus = (sw->input_focus == ON);
-      } else
-	kbf = obhf = focus = FALSE;	/* should not happen */
 
       if ( b->look == NAME_motif )
-      { if ( (defb && !obhf) || (focus && kbf) )
+      { if ( focus ) /* was: (defb && !obhf) || (focus && kbf) ) */
 	{ static Elevation e = NULL;
   
 	  if ( !e )
@@ -114,7 +98,7 @@ RedrawAreaButton(Button b, Area a)
 	  bx -= 4; by -= 4; bw += 8; bh += 8;
 	  r_3d_box(bx, by, bw, bh, valInt(b->radius), e, FALSE);
 	}
-	if ( kbf && focus )
+	if ( focus )			/* was kbf && focus */
 	{ int pen = valInt(b->pen);
   
 	  bx -= pen; by -= pen; bw += 2*pen; bh += 2*pen;
@@ -133,35 +117,7 @@ RedrawAreaButton(Button b, Area a)
     }
 
     r_3d_box(x, y, w, h, valInt(b->radius), z, up);
-
-    if ( notNil(b->popup) )
-    { if ( b->look == NAME_motif )
-      { int bw = 12;
-	int bh = 8;
-
-	rm = bw+8;
-	r_3d_box(x+w-bw-8, y+(h-bh)/2, bw, bh, 0, z, TRUE);
-      } else
-      { int th = (b->look == NAME_win ? 5 : 8);
-	int tw = (b->look == NAME_win ? 7 : 9);
-	int tx, ty;
-
-	rm = tw+8;
-	tx = x+w-rm;
-	ty = y + (h-th)/2;
-
-	if ( b->look == NAME_win )
-	{ r_fillpattern(BLACK_COLOUR);
-	  r_fill_triangle(tx+tw/2, ty+th, tx, ty, tx+tw, ty);
-	} else
-	  r_3d_triangle(tx+tw/2, ty+th, tx, ty, tx+tw, ty, z, up, 0x3);
-      }
-    }
-
-    str_label(&b->label->data, accelerator_code(b->accelerator), b->label_font,
-	      x, y, w-rm, h,
-	      NAME_center, NAME_center);
-  } else				/* x, 2D-open_look */
+  } else				/* 2-d style */
   { int swapc  = 0;
     int pen    = valInt(b->pen);
     int radius = valInt(b->radius);
@@ -173,7 +129,7 @@ RedrawAreaButton(Button b, Area a)
     r_thickness(pen);
     r_dash(b->texture);
 
-    if ( b->status == NAME_inactive || b->status == NAME_active )
+    if ( up )
     { r_shadow_box(x, y, w, h, radius, shadow, NIL);
     } else if ( b->status == NAME_preview )
     { r_shadow_box(x, y, w, h, radius, shadow, BLACK_IMAGE);
@@ -186,26 +142,101 @@ RedrawAreaButton(Button b, Area a)
       r_swap_background_and_foreground();
   
     if ( defb && b->look == NAME_openLook )
-    { int g = 0;			/* ??? */
-      r_box(x+pen+g, y+pen+g, w-2*pen-2*g-shadow, h-2*pen-2*g-shadow,
-	    radius, NIL);
-    }
-
-    if ( notNil(b->popup) && notNil(b->popup_image) )
-    { int iw = valInt(b->popup_image->size->w);
-      int ih = valInt(b->popup_image->size->h);
-
-      rm = iw+8;
-      r_image(b->popup_image, 0, 0, x+w-rm, y + (h-ih)/2, iw, ih, ON);
-    }
-
-    str_label(&b->label->data, accelerator_code(b->accelerator), b->label_font,
-	      x, y, w-rm, h,
-	      NAME_center, NAME_center);
+      r_box(x+pen, y+pen, w-2*pen-shadow, h-2*pen-shadow, radius, NIL);
 
     if ( swapc )
       r_swap_background_and_foreground();
   }
+}
+
+
+static int
+draw_button_popup_indicator(Button b, int x, int y, int w, int h, int up)
+{ int rm;				/* required right margin */
+
+  if ( notNil(b->popup_image) )
+  { int iw = valInt(b->popup_image->size->w);
+    int ih = valInt(b->popup_image->size->h);
+
+    rm = iw+8;
+    r_image(b->popup_image, 0, 0, x+w-rm, y + (h-ih)/2, iw, ih, ON);
+  } else
+  { Elevation z = getResourceValueObject(b, NAME_elevation);
+
+    if ( b->look == NAME_motif )
+    { int bw = 12;
+      int bh = 8;
+
+      rm = bw+8;
+      r_3d_box(x+w-bw-8, y+(h-bh)/2, bw, bh, 0, z, TRUE);
+    } else
+    { int th = 8;
+      int tw = 9;
+      int tx, ty;
+  
+      rm = tw+8;
+      tx = x+w-rm;
+      ty = y + (h-th)/2;
+  
+      r_3d_triangle(tx+tw/2, ty+th, tx, ty, tx+tw, ty, z, up, 0x3);
+      rm = tw;
+    }
+  }
+
+  return rm;
+}
+
+
+status
+RedrawAreaButton(Button b, Area a)
+{ int x, y, w, h;
+  int defb;
+  int rm = 0;				/* right-margin */
+  PceWindow sw;
+  int kbf;				/* Button has keyboard focus */
+  int obhf;				/* Other button has focus */
+  int focus;
+  int swapbg = FALSE;
+  int up;
+  int flags = 0;
+  Elevation z;
+
+  if ( b->look == NAME_winMenuBar )
+    return RedrawWinMenuBarButton(b, a);
+
+  if ( b->active == OFF )
+    flags |= LABEL_INACTIVE;
+
+  up = (b->status == NAME_active || b->status == NAME_inactive);
+  defb = (b->default_button == ON);
+  initialiseDeviceGraphical(b, &x, &y, &w, &h);
+  NormaliseArea(x, y, w, h);
+
+  if ( (sw = getWindowGraphical((Graphical)b)) )
+  { kbf   = (sw->keyboard_focus == (Graphical) b);
+    obhf  = (!kbf && instanceOfObject(sw->keyboard_focus, ClassButton));
+    focus = (sw->input_focus == ON);
+  } else
+    kbf = obhf = focus = FALSE;		/* should not happen */
+
+  if ( !ws_draw_button_face(b, x, y, w, h, up, defb, kbf && focus) )
+    draw_generic_button_face(b, x, y, w, h, up, defb, kbf && focus);
+
+  if ( b->look == NAME_openLook && b->status == NAME_preview &&
+       !((z = getResourceValueObject(b, NAME_elevation)) && notNil(z)) )
+  { swapbg = TRUE;
+    r_swap_background_and_foreground();
+  }
+
+  if ( notNil(b->popup) )
+    rm = draw_button_popup_indicator(b, x, y, w, h, up);
+
+  RedrawLabelDialogItem(b, accelerator_code(b->accelerator),
+			x, y, w-rm, h,
+			NAME_center, NAME_center, flags);
+
+  if ( swapbg )
+    r_swap_background_and_foreground();
 
   return RedrawAreaGraphical(b, a);
 }
@@ -214,29 +245,38 @@ RedrawAreaButton(Button b, Area a)
 static status
 computeButton(Button b)
 { if ( notNil(b->request_compute) )
-  { int w, h;
+  { int w, h, isimage;
 
     TRY(obtainResourcesObject(b));
 
+    dia_label_size(b, &w, &h, &isimage);
+
     if ( b->look == NAME_winMenuBar )
-    { str_size(&b->label->data, b->label_font, &w, &h);
-      w += valInt(getExFont(b->label_font)) * 2;
-    } else
-    { Size size = getResourceValueObject(b, NAME_size);
-
-      str_size(&b->label->data, b->label_font, &w, &h);
-      h += 6; w += 10;
-      if ( notNil(b->popup) )
-      { if ( notNil(b->popup->popup_image) )
-	  w += valInt(b->popup->popup_image->size->w) + 5;
-	else if ( b->look == NAME_motif )
-	  w += 12 + 5;
-	else
-	  w += 9 + 5;
+    { if ( !isimage )
+	w += valInt(getExFont(b->label_font)) * 2;
+      else
+      { w += 4;
+	h += 4;
       }
+    } else
+    { if ( isimage )
+      { w += 4;
+	h += 4;
+      } else
+      { Size size = getResourceValueObject(b, NAME_size);
 
-      w = max(valInt(size->w), w);
-      h = max(valInt(size->h), h);
+	h += 6; w += 10 + valInt(b->radius);
+	if ( notNil(b->popup) )
+	{ if ( notNil(b->popup->popup_image) )
+	    w += valInt(b->popup->popup_image->size->w) + 5;
+	  else if ( b->look == NAME_motif )
+	    w += 12 + 5;
+	  else
+	    w += 9 + 5;
+	}
+	w = max(valInt(size->w), w);
+	h = max(valInt(size->h), h);
+      }
     }
 
     CHANGING_GRAPHICAL(b,
@@ -254,7 +294,8 @@ Point
 getReferenceButton(Button b)
 { Point ref;
 
-  if ( !(ref = getReferenceDialogItem(b)) )
+  if ( !(ref = getReferenceDialogItem(b)) &&
+       !instanceOfObject(b->label, ClassImage) )
   { int fh, ascent, h, rx = 0;
 
     ComputeGraphical(b);
@@ -356,8 +397,16 @@ eventButton(Button b, EventObj ev)
 
 static status
 keyButton(Button b, Name key)
-{ if ( b->accelerator == key && b->active == ON )
-    return send(b, NAME_execute, 0);
+{ if ( b->active == ON )
+  { static Name ret;
+
+    if ( !ret )
+      ret = CtoName("RET");
+
+    if ( b->accelerator == key ||
+	 (b->default_button == ON && key == ret) )
+      return send(b, NAME_execute, 0);
+  }
 
   fail;
 }
@@ -391,15 +440,15 @@ executeButton(Button b)
 
 static status
 defaultButtonButton(Button b, Bool val)
-{ assignGraphical(b, NAME_accelerator, val != OFF ? CtoName("RET") : NIL);
+{ if ( isDefault(val) )
+    val = ON;
+
+  if ( hasSendMethodObject(b->device, NAME_defaultButton) )
+    return send(b->device, NAME_defaultButton, b, 0);
+  else
+    assign(b, default_button, val);
 
   succeed;
-}
-
-
-static Bool
-getDefaultButtonButton(Button b)
-{ answer(b->accelerator == CtoName("RET") ? ON : OFF);
 }
 
 
@@ -434,8 +483,16 @@ getPopupButton(Button b, Bool create)
 
 
 static status
-labelFontButton(Button b, FontObj font)
-{ return assignGraphical(b, NAME_labelFont, font);
+labelButton(Button b, Any label)
+{ int ltype = instanceOfObject(label, ClassImage);
+  int sametype = (instanceOfObject(b->label, ClassImage) == ltype);
+
+  assign(b, label, label);
+  if ( !sametype )
+  { assign(b, radius, ltype ? ZERO : getResourceValueObject(b, NAME_radius));
+  }
+
+  return requestComputeGraphical(b, DEFAULT);
 }
 
 
@@ -472,12 +529,10 @@ static vardecl var_button[] =
      NAME_appearance, "Rounding radius for corners"),
   SV(NAME_shadow, "int", IV_GET|IV_STORE, shadowButton,
      NAME_appearance, "Shadow shown around the box"),
-  SV(NAME_labelFont, "font", IV_GET|IV_STORE, labelFontButton,
-     NAME_appearance, "Font of command text"),
-  IV(NAME_accelerator, "key=name*", IV_BOTH,
-     NAME_accelerator, "Activate when ->key: name is received"),
   SV(NAME_popupImage, "image*", IV_GET|IV_STORE, popupImageButton,
-     NAME_appearance, "Indication that button has a popup menu")
+     NAME_appearance, "Indication that button has a popup menu"),
+  SV(NAME_defaultButton, "[bool]", IV_GET|IV_STORE, defaultButtonButton,
+     NAME_accelerator, "Button is default button for its <-device")
 };
 
 /* Send Methods */
@@ -493,17 +548,17 @@ static senddecl send_button[] =
      DEFAULT, "Status for event-processing"),
   SM(NAME_popup, 1, "popup*", popupButton,
      DEFAULT, "Associated popup menu"),
-  SM(NAME_defaultButton, 1, "bool", defaultButtonButton,
-     NAME_accelerator, "@on sets <-accelerator to `RET'"),
   SM(NAME_key, 1, "key=name", keyButton,
      NAME_accelerator, "Handle accelerator key `name'"),
   SM(NAME_execute, 0, NULL, executeButton,
      NAME_action, "Execute associated command"),
-  SM(NAME_font, 1, "font", labelFontButton,
+  SM(NAME_font, 1, "font", labelFontDialogItem,
      NAME_appearance, "same as ->label_font"),
   SM(NAME_WantsKeyboardFocus, 0, NULL, WantsKeyboardFocusButton,
      NAME_event, "Test if ready to accept input"),
-  SM(NAME_selection, 1, "name", labelDialogItem,
+  SM(NAME_label, 1, "char_array|image*", labelButton,
+     NAME_label, "Sets the visible label"),
+  SM(NAME_selection, 1, "char_array|image*", labelButton,
      NAME_label, "Equivalent to ->label")
 };
 
@@ -514,8 +569,6 @@ static getdecl get_button[] =
      DEFAULT, "Associated popup (make one if create = @on)"),
   GM(NAME_reference, 0, "point", NULL, getReferenceButton,
      DEFAULT, "Left, baseline of label"),
-  GM(NAME_defaultButton, 0, "bool", NULL, getDefaultButtonButton,
-     NAME_accelerator, "@on iff <-accelerator == `RET'"),
   GM(NAME_selection, 0, "name", NULL, getSelectionButton,
      NAME_label, "Equivalent to <-label")
 };

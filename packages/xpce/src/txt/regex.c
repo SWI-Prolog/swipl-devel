@@ -40,9 +40,9 @@ unlink_registers(Regex re)
 { if ( re->registers != NULL )
   {
     if ( re->registers->start )
-      free(re->registers->start);	/* malloc'ed by gnu-regex.c */
+      pceFree(re->registers->start);	/* malloc'ed by gnu-regex.c */
     if ( re->registers->end )
-      free(re->registers->end);		/* same */
+      pceFree(re->registers->end);		/* same */
     unalloc(sizeof(struct re_registers), re->registers);
     re->registers = NULL;
   }
@@ -53,11 +53,11 @@ static void
 unlink_compiled_buffer(Regex re)
 { if ( re->compiled != NULL )
   { if ( re->compiled->buffer != NULL )
-    { free(re->compiled->buffer);		/* malloc'ed by gnu-regex.c */
+    { pceFree(re->compiled->buffer);		/* malloc'ed by gnu-regex.c */
       re->compiled->buffer = NULL;
     }
     if ( re->compiled->fastmap != NULL )
-    { free(re->compiled->fastmap);
+    { pceFree(re->compiled->fastmap);
       re->compiled->fastmap = NULL;
     }
   }
@@ -254,7 +254,7 @@ searchRegex(Regex re, Any obj, Int start, Int end)
 
   if ( instanceOfObject(obj, ClassCharArray) )
   { CharArray ca = obj;			/* TBD: 16-bit? */
-    char *s = ca->data.s_text;
+    char *s = (char *)ca->data.s_text;
     int ls = ca->data.size;
 
     return search_regex(re, s, ls, NULL, 0,
@@ -272,9 +272,9 @@ searchRegex(Regex re, Any obj, Int start, Int end)
 			  (isDefault(end) ? tb->size : valInt(end))*2);
     else
       return search_regex(re,
-			  &tb->tb_buffer8[0],
+			  (char *)&tb->tb_buffer8[0],
 			  tb->gap_start,
-			  &tb->tb_buffer8[tb->gap_end+1],
+			  (char *)&tb->tb_buffer8[tb->gap_end+1],
 			  tb->size - tb->gap_start,
 			  from,
 			  isDefault(end) ? tb->size : valInt(end));
@@ -293,8 +293,8 @@ searchRegex(Regex re, Any obj, Int start, Int end)
 			  		  : valInt(end)+frag->start)*2);
     else
       rval = search_regex(re,
-			  tb->tb_buffer8, tb->gap_start,
-			  &tb->tb_buffer8[tb->gap_end+1],
+			  (char *)tb->tb_buffer8, tb->gap_start,
+			  (char *)&tb->tb_buffer8[tb->gap_end+1],
 			  tb->size - tb->gap_start,
 			  from+frag->start,
 			  isDefault(end) ? frag->start + frag->length
@@ -375,7 +375,7 @@ getMatchRegex(Regex re, Any obj, Int start, Int end)
 
   if ( instanceOfObject(obj, ClassCharArray) )
   { CharArray ca = obj;
-    char *s = ca->data.s_text;
+    char *s = (char *)ca->data.s_text;
     int ls = ca->data.size;
 
     return match_regex(re, s, ls, NULL, 0,
@@ -392,8 +392,8 @@ getMatchRegex(Regex re, Any obj, Int start, Int end)
 			 (isDefault(end) ? tb->size : valInt(end))*2);
     else
       return match_regex(re,
-			 tb->tb_buffer8, tb->gap_start,
-			 &tb->tb_buffer8[tb->gap_end+1],
+			 (char *)tb->tb_buffer8, tb->gap_start,
+			 (char *)&tb->tb_buffer8[tb->gap_end+1],
 			 tb->size - tb->gap_start,
 			 from, isDefault(end) ? tb->size : valInt(end));
   } else if ( instanceOfObject(obj, ClassFragment) )
@@ -411,8 +411,8 @@ getMatchRegex(Regex re, Any obj, Int start, Int end)
 			 		 : valInt(end)+frag->start)*2);
     else
       rval = match_regex(re,
-			 tb->tb_buffer8, tb->gap_start,
-			 &tb->tb_buffer8[tb->gap_end+1],
+			 (char *)tb->tb_buffer8, tb->gap_start,
+			 (char *)&tb->tb_buffer8[tb->gap_end+1],
 			 tb->size - tb->gap_start,
 			 from+frag->start,
 			 isDefault(end) ? frag->start + frag->length

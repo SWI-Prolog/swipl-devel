@@ -26,6 +26,7 @@ createDialogItem(Any obj, Name name)
     name = getClassNameObject(di);
   nameDialogItem(di, name);
 
+  assign(di, label_font,	 DEFAULT); /* resource */
   assign(di, label_format,	 DEFAULT); /* resource */
   assign(di, background,	 DEFAULT); /* resource */
   assign(di, status,		 NAME_inactive);
@@ -60,6 +61,74 @@ unlinkDialogItem(DialogItem di)
 }
 
 
+status
+RedrawLabelDialogItem(Any obj, int acc,
+		      int x, int y, int w, int h,
+		      Name hadjust, Name vadjust, int flags)
+{ DialogItem di = obj;
+
+  if ( instanceOfObject(di->label, ClassImage) )
+  { Image i = di->label;
+    int iw = valInt(i->size->w);
+    int ih = valInt(i->size->h);
+    int ix, iy;
+
+    if ( hadjust == NAME_left )
+      ix = x;
+    else if ( hadjust == NAME_center )
+      ix = x + (w-iw)/2;
+    else 
+      ix = x + w-iw;
+    
+    if ( vadjust == NAME_top )
+      iy = y;
+    else if ( vadjust == NAME_center )
+      iy = y + (h-ih)/2;
+    else 
+      iy = y + h-ih;
+    
+    r_image(i, 0, 0, ix, iy, iw, ih, ON);
+  } else if ( instanceOfObject(di->label, ClassCharArray) )
+  { CharArray label = di->label;
+
+    str_label(&label->data, acc, di->label_font,
+	      x, y, w, h,
+	      hadjust, vadjust, flags);
+  }
+
+  succeed;
+}
+
+
+status
+dia_label_size(Any obj, int *w, int *h, int *isimage)
+{ DialogItem di = obj;
+
+  if ( instanceOfObject(di->label, ClassImage) )
+  { Image i = di->label;
+
+    *w = valInt(i->size->w);
+    *h = valInt(i->size->h);
+    if ( isimage )
+      *isimage = TRUE;
+  } else
+  { if ( isimage )
+      *isimage = FALSE;
+
+    if ( instanceOfObject(di->label, ClassCharArray) )
+    { CharArray ca = di->label;
+
+      str_size(&ca->data, di->label_font, w, h);
+    } else
+    { *w = *h = 0;
+    }
+  }
+
+  succeed;
+}
+
+
+
 static status
 deviceDialogItem(DialogItem di, Device dev)
 { if ( di->device != dev )
@@ -80,8 +149,14 @@ deviceDialogItem(DialogItem di, Device dev)
 		********************************/
 
 status
-labelDialogItem(DialogItem di, Name label)
+labelDialogItem(DialogItem di, Any label)
 { return assignGraphical(di, NAME_label, label);
+}
+
+
+status
+labelFontDialogItem(DialogItem di, FontObj font)
+{ return assignGraphical(di, NAME_labelFont, font);
 }
 
 
@@ -101,13 +176,22 @@ nameDialogItem(DialogItem di, Name name)
 { Any label = get(di, NAME_labelName, name, 0);
 
   assign(di, name, name);
-  return labelDialogItem(di, label ? label : name);
+  if ( !label )
+    label = name;
+
+  return sendv(di, NAME_label, 1, &label);
 }
 
 
 static status
 lookDialogItem(DialogItem di, Name look)
 { return assignGraphical(di, NAME_look, look);
+}
+
+
+static status
+acceleratorDialogItem(DialogItem di, Name acc)
+{ return assignGraphical(di, NAME_accelerator, acc);
 }
 
 
@@ -280,8 +364,10 @@ modifiedDialogItem(Any di, Bool modified)
 /* Instance Variables */
 
 static vardecl var_dialogItem[] =
-{ SV(NAME_label, "name", IV_GET|IV_STORE, labelDialogItem,
+{ SV(NAME_label, "char_array|image*", IV_GET|IV_STORE, labelDialogItem,
      NAME_label, "Label of the item"),
+  SV(NAME_labelFont, "font*", IV_GET|IV_STORE, labelFontDialogItem,
+     NAME_label, "Font used for the label if not an image"),
   IV(NAME_labelWidth, "[int]", IV_NONE,
      NAME_layout, "Width of the label in pixels"),
   SV(NAME_labelFormat, "{left,center,right}", IV_GET|IV_STORE,
@@ -315,6 +401,8 @@ static vardecl var_dialogItem[] =
   IV(NAME_autoLabelAlign, "bool", IV_BOTH,
      NAME_layout, "Automatically align label"),
   IV(NAME_autoValueAlign, "bool", IV_BOTH,
+     NAME_layout, "Automatically align value"),
+  SV(NAME_accelerator, "name*", IV_GET|IV_STORE, acceleratorDialogItem,
      NAME_layout, "Automatically align value")
 };
 

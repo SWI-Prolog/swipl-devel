@@ -210,7 +210,7 @@ initNamesPass1(void)
 
   for( name=(Name)builtin_names; name->data.s_text != NULL; name++)
   { str_inithdr(&name->data, ENC_ASCII);
-    name->data.size = strlen(name->data.s_text);
+    name->data.size = strlen((char *)name->data.s_text);
   }
 }
 
@@ -244,6 +244,8 @@ initNamesPass2(void)
 
 static int shifted;
 
+/*#define WRITE_BAD_NAMES 1 ... */
+
 void
 checkNames(int prt)
 { int n;
@@ -253,6 +255,9 @@ checkNames(int prt)
 
   for(n=0; n < buckets; n++)
   { Name name = name_table[n];
+#ifdef WRITE_BAD_NAMES
+    Name n2;
+#endif
 
     if ( name != NULL )
     { cnt++;
@@ -261,7 +266,17 @@ checkNames(int prt)
       assert(classOfObject(name) == ClassName);
       assert(isProtectedObj(name));
       assert(name->data.s_text != NULL);
+#ifdef WRITE_BAD_NAMES
+      if ( (n2=getLookupName(NULL, (CharArray) name)) != name )
+	Cprintf("@%ld: getLookupName('%s') --> %s; "
+		"len = %d, strlen = %d (data at @%ld)\n",
+		valInt(PointerToInt(name)),
+		strName(name), n2 ? strName(n2) : "(NULL)",
+	        name->data.size, strlen(strName(name)),
+		valInt(PointerToInt(strName(name))));
+#else
       assert(getLookupName(NULL, (CharArray) name) == name);
+#endif
     }
   }
 
@@ -427,7 +442,7 @@ syntaxName(Name n, Name casemap, Int ws)
 
 status
 forNamePce(Pce pce, Code code)
-{ Name *a = alloca(sizeof(Name) * names);
+{ Name *a = (Name *)alloca(sizeof(Name) * names);
   Name *i=name_table, *o = a;
   int nms = names;			/* might change: copy */
   int n;
@@ -531,7 +546,7 @@ CtoKeyword(const char *s)
   { CharBuf(buf, strlen(s));
     char *q;
 
-    for(q=buf; *s; s++)
+    for(q=(char *)buf; *s; s++)
     { if ( islower(*s) )
 	*q++ = toupper(*s);
       else if ( *s == '_' )
@@ -541,7 +556,7 @@ CtoKeyword(const char *s)
     }
     *q = EOS;
 
-    return CtoName(buf);
+    return CtoName((char *)buf);
   }
 
   return CtoName(s);
@@ -551,7 +566,7 @@ CtoKeyword(const char *s)
 char *
 saveStringName(Name n)
 { if ( isProperObject(n) && instanceOfObject(n, ClassName) )
-    return save_string(n->data.s_text8);
+    return save_string((char *)n->data.s_text8);
   else
   { char buf[100];
 

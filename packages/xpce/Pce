@@ -35,6 +35,10 @@ Pce.Display.system_fonts:	[ normal    := font(helvetica, roman, 12), \
 				  fixed     := font(screen, roman, 13) \
 				]
 
+Pce.KeyBinding.emacs_edit_basics: [ DEL	    := backward_delete_char, \
+				    '\eDEL' := backward_kill_word \
+				  ]
+
 ! This one is often slow on colour displays.  Prefer the beep then.
 Pce.*.visual_bell:		when(@colour_display, @off, @on)
 
@@ -65,6 +69,7 @@ Pce.Slider.look:		when(@colour_display, motif, open_look)
 
 Pce.Menu.value_font:		normal
 Pce.Menu.pen:			when(@colour_display, 0, 1)
+Pce.Menu.border:		2
 Pce.Menu.elevation:		when(@colour_display, 0, @nil)
 Pce.Menu.item_elevation:	when(@colour_display, button, @nil)
 Pce.Menu.mark_elevation:	when(@colour_display, mark, @nil)
@@ -79,9 +84,10 @@ Pce.Popup.margin:		1
 Pce.Popup.elevation:		when(@colour_display, 1, @nil)
 Pce.Popup.item_elevation:	when(@colour_display, 0, @nil)
 Pce.Popup.preview_elevation:	1
-Pce.Popup.border:		2
+Pce.Popup.border:		4
 Pce.Popup.preview_feedback:	rounded_box
 Pce.Popup.popup_image:		when(@colour_display, @nil, 'ol_pullright.bm')
+Pce.Popup.accelerator_font:	@nil
 
 Pce.DialogGroup.radius:		when(@colour_display, 8, 12)
 
@@ -112,7 +118,7 @@ Pce.Label.border:			1
 Pce.Dialog.background:			@_dialog_bg
 Pce.Browser.background:			@_dialog_bg
 Pce.Browser.pen:			0
-Pce.View.background:			white
+Pce.View.background:			@_dialog_bg
 Pce.Window.pen:				@_win_pen
 Pce.Window.background:			white
 Pce.Window.selection_feedback:		when(@colour_display, \

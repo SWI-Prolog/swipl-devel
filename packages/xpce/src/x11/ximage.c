@@ -10,8 +10,20 @@
 #include <h/kernel.h>
 #include <h/unix.h>
 #include <h/graphics.h>
+#include <math.h>
 #include "include.h"
 
+#ifdef HAVE_LIBXPM
+#include <X11/xpm.h>
+#endif
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+#ifndef ROUNDUP
+#define ROUNDUP(v, n) ((((v)+(n)-1)/(n)) * (n))
+#endif
 
 static XImage *
 getXImageImage(Image image)
@@ -199,7 +211,7 @@ loadPNMImage(Image image, FILE *fd)
 
 status
 ws_load_old_image(Image image, FILE *fd)
-{ XImage *im = readImageFile(fd);
+{ XImage *im = readImageFile(image, fd);
 
   setXImageImage(image, im);
   if ( im )
@@ -214,7 +226,7 @@ ws_load_image_file(Image image)
 { XImage *i;
 
   TRY( openFile(image->file, NAME_read, DEFAULT, DEFAULT) );
-  if ( !(i = readImageFile(image->file->fd)) )
+  if ( !(i = readImageFile(image, image->file->fd)) )
   { DisplayWsXref r;
     Display *d;
 
@@ -264,6 +276,27 @@ ws_save_image_file(Image image, FileObj file, Name fmt)
 			  valInt(image->size->w), valInt(image->size->h),
 			  -1, -1) != BitmapSuccess )
       return errorPce(image, NAME_xError);
+  } else if ( fmt == NAME_xpm )
+  {
+#ifdef HAVE_LIBXPM
+    Pixmap pix = (Pixmap) getXrefObject(image, d);
+    int as = XpmAttributesSize();
+    XpmAttributes *atts = (XpmAttributes *)alloca(as);
+
+    memset(atts, 0, as);
+    atts->width     = valInt(image->size->w);
+    atts->height    = valInt(image->size->h);
+    atts->valuemask = XpmSize;
+
+    if ( XpmWriteFileFromPixmap(r->display_xref,
+				strName(file->name),
+				pix,
+				0,	/* shape */
+				atts) != XpmSuccess )
+      return errorPce(image, NAME_xError);
+#else
+    return errorPce(image, NAME_noImageFormat, NAME_xpm);
+#endif
   } else
   { int pnm_fmt;
     XImage *i;
@@ -432,6 +465,40 @@ ws_resize_image(Image image, Int w, Int h)
 
   return setSize(image->size, w, h);
 }
+		 /*******************************
+		 *	   CREATE XIMAGE	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+MakeXImage() creates an Ximage structure  with   the  same properties as
+oimage of the `prototype' XImage structure. Used  by scale and rotate to
+create the target image.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static XImage *
+MakeXImage(Display *dpy, XImage *oimage, int w, int h)
+{ XImage *I;
+  char *data;
+  int bytes_per_line = ROUNDUP((w * oimage->depth + 7)/8,
+			       oimage->bitmap_pad/8);
+    
+  /* reserve memory for image */
+  data = malloc(bytes_per_line * h);
+  if ( data == NULL )
+    return NULL;
+  memset(data, 0, bytes_per_line * h);
+    
+  /* create the XImage */
+  I = XCreateImage(dpy, DefaultVisual(dpy, DefaultScreen(dpy)),
+		   oimage->depth, oimage->format,
+		   0, data,
+		   w, h,
+		   oimage->bitmap_pad, bytes_per_line);
+  if ( I == NULL )
+    return NULL;
+    
+  return I;
+}
 
 		 /*******************************
 		 *	SCALE/ZOOM IMAGES	*
@@ -481,10 +548,6 @@ buildIndex(unsigned width, unsigned rwidth)
   return index;
 }
 
-#ifndef ROUNDUP
-#define ROUNDUP(v, n) ((((v)+(n)-1)/(n)) * (n))
-#endif
-
 XImage *
 ZoomXImage(Display *dsp, Visual *v, XImage *oimage,
 	   unsigned xwidth, unsigned ywidth)
@@ -492,25 +555,12 @@ ZoomXImage(Display *dsp, Visual *v, XImage *oimage,
   unsigned int *xindex, *yindex;
   unsigned int  x, y, xsrc, ysrc;
   unsigned long value;
-  int bytes_per_line;
-  char *data;
 
   xindex = buildIndex(oimage->width,  xwidth);
   yindex = buildIndex(oimage->height, ywidth);
 
 					/* determine dimensions */
-  bytes_per_line = ROUNDUP((xwidth * oimage->depth + 7)/8,
-			   oimage->bitmap_pad/8);
-  data = pceMalloc(bytes_per_line * ywidth);
-
-					/* Create the destination XImage */
-  image = XCreateImage(dsp, v,
-		       oimage->depth,
-		       oimage->format,
-		       0,
-		       data,
-		       xwidth, ywidth,
-		       oimage->bitmap_pad, bytes_per_line);
+  image = MakeXImage(dsp, oimage, xwidth, ywidth);
 
   switch( oimage->format )
   { case XYBitmap:
@@ -564,6 +614,188 @@ ws_scale_image(Image image, int w, int h)
 
   answer(copy);
 }
+
+
+		 /*******************************
+		 *	       ROTATE		*
+		 *******************************/
+
+
+#define falmost(f1, f2) (fabs((f1)-(f2)) < 0.001)
+
+
+XImage *
+RotateXImage(Display *dsp, XImage *oimage, float angle, Pixel bg)
+{ int ow = oimage->width;
+  int oh = oimage->height;
+  int w, h;
+  float sina, cosa;
+  XImage *nimage;
+  float dj;
+  int byte_w_in, byte_w_out;
+  float xl, xr, xinc;
+  int it, jt;
+  int i, j;
+  int rot90;				/* rotation by 0,90,180,270 */
+
+					/* angle = 0.0 has been handled! */
+  if ( falmost(angle, M_PI/2) )		/* 90 degrees */
+  { w = oh;
+    h = ow;
+    sina = 1.0;
+    cosa = 0.0;
+    rot90 = TRUE;
+  } else if ( falmost(angle, M_PI) )	/* 180 degrees */
+  { w = ow;
+    h = oh;
+    cosa = -1.0;
+    sina = 0.0;
+    rot90 = TRUE;
+  } else if ( falmost(angle, 3*M_PI/2) ) /* 270 degrees */
+  { w = oh;
+    h = ow;
+    sina = -1.0;
+    cosa = 0.0;
+    rot90 = TRUE;
+  } else
+  { rot90 = FALSE;
+    sina = sin(angle);
+    cosa = cos(angle);
+
+    w = fabs((float)oh*sina) + fabs((float)ow*cosa) + 0.99999 + 2;
+    h = fabs((float)oh*cosa) + fabs((float)ow*sina) + 0.99999 + 2;
+    if ( w%2 == 0 )
+      w++;
+    if ( h%2 == 0 )
+      h++;
+  }
+
+					/* make a new image */
+  if ( !(nimage = MakeXImage(dsp, oimage, w, h)) )
+    return NULL;
+    
+  byte_w_in  = oimage->bytes_per_line;
+  byte_w_out = nimage->bytes_per_line;
+    
+  /* vertical distance from centre */
+  dj = 0.5-(float)h/2;
+
+  /* where abouts does text actually lie in rotated image? */
+  if ( rot90 )
+  { xl = 0;
+    xr = (float)w;
+    xinc = 0;
+  } else if ( angle < M_PI )
+  { xl = (float)w/2 + (dj-(float)oh/(2*cosa)) / tan(angle)-2;
+    xr = (float)w/2 + (dj+(float)oh/(2*cosa)) / tan(angle)+2;
+    xinc = 1./tan(angle);
+  } else
+  { xl=(float)w/2 + (dj+(float)oh/(2*cosa)) / tan(angle)-2;
+    xr=(float)w/2 + (dj-(float)oh/(2*cosa)) / tan(angle)+2;
+	
+    xinc=1./tan(angle);
+  }
+
+  DEBUG(NAME_rotate, Cprintf("bg = %ld\n", bg));
+
+  /* loop through all relevent bits in rotated image */
+  for(j=0; j<h; j++)
+  { /* no point re-calculating these every pass */
+    float di=(float)((xl<0)?0:(int)xl)+0.5-(float)w/2;
+    int byte_out=(h-j-1)*byte_w_out;
+	
+    /* loop through meaningful columns */
+    for(i=((xl<0)?0:(int)xl); i<((xr>=w)?w:(int)xr); i++)
+    {	    
+      /* rotate coordinates */ 
+      it=(float)ow/2 + ( di*cosa + dj*sina);
+      jt=(float)oh/2 - (-di*sina + dj*cosa);
+	    
+      /* set pixel if required */
+      if ( it>=0 && it<ow && jt>=0 && jt<oh )
+      { if ( oimage->depth == 1 )	/* monochrome */
+	{ if ( oimage->bitmap_bit_order == MSBFirst )
+	  { if ( (oimage->data[jt*byte_w_in+it/8] & 128>>(it%8))>0 )
+	      nimage->data[byte_out+i/8]|=128>>i%8;
+	  } else
+	  { if ( (oimage->data[jt*byte_w_in+it/8] & 1<<(it%8))>0 )
+	      nimage->data[byte_out+i/8]|=1<<i%8;
+	  }
+	} else				/* General case (colour) */
+	{ unsigned long pxl = XGetPixel(oimage, it, jt);
+	  XPutPixel(nimage, i, h-j-1, pxl);
+	}
+      } else
+      { if ( oimage->depth != 1 )	/* fill background */
+	  XPutPixel(nimage, i, h-j-1, bg);
+      }
+
+      di+=1;
+    }
+
+    for(i=0; i<xl; i++)			/* more background */
+      XPutPixel(nimage, i, h-j-1, bg);
+    for(i=xr; i<w; i++)
+      XPutPixel(nimage, i, h-j-1, bg);
+
+    dj+=1;
+    xl+=xinc;
+    xr+=xinc;
+  }
+
+  return nimage;
+}
+
+
+Image
+ws_rotate_image(Image image, int angle)	/* 0<angle<360 */
+{ XImage *i;
+  DisplayObj d = image->display;
+  DisplayWsXref r;
+
+  if ( isNil(d) )
+    d = CurrentDisplay(image);
+  r = d->ws_ref;
+
+  if ( !(i=getXImageImage(image)) )
+  { getXImageImageFromScreen(image);
+    i=getXImageImage(image);
+  }
+
+  if ( i )
+  { XImage *ic;
+    Image copy;
+    Pixel bg;
+
+    if ( image->kind == NAME_pixmap )
+    { if ( instanceOfObject(image->background, ClassColour) )
+	bg = getPixelColour(image->background, d);
+      else
+      { DisplayWsXref r = d->ws_ref;
+	
+	bg = r->pixmap_context->background_pixel;
+      }
+    } else
+      bg = 0L;
+
+    ic   = RotateXImage(r->display_xref, i, ((float)angle * M_PI)/180.0, bg);
+    copy = answerObject(ClassImage, NIL,
+			toInt(ic->width), toInt(ic->height),
+			image->kind, 0);
+    assign(copy, background, image->background);
+    assign(copy, foreground, image->foreground);
+    setXImageImage(copy, ic);
+    assign(copy, depth, toInt(ic->depth));
+
+    return(copy);
+  }
+
+  fail;
+}
+
+		 /*******************************
+		 *	     POSTSCRIPT		*
+		 *******************************/
 
 
 void
@@ -642,7 +874,7 @@ loadXliImage(Image image, FileObj file, Int bright)
     fail;
 }
 
-#endif O_XLI
+#endif /*O_XLI*/
 
 		 /*******************************
 		 *	     X11 SOURCE		*

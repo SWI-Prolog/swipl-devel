@@ -194,6 +194,7 @@ child_changed(int sig)
 		    send(p, NAME_exited, toInt(-1), 0);
 		    break;
 		  case CLD_CONTINUED:
+		    break;
 		}
 	      }
 	    });
@@ -484,7 +485,8 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 	for(i=3; i < maxfd; i++)	/* close remaining open fd's */
 	  close(i);
 
-	argv = alloca(sizeof(char *) * (valInt(p->arguments->size) + 2));
+	argv = (char **)alloca(sizeof(char *) *
+			       (valInt(p->arguments->size) + 2));
 	argc = valInt(p->arguments->size);
 
 	argv[0] = strName(p->name);
@@ -543,7 +545,8 @@ openProcess(Process p, CharArray cmd, int argc, CharArray *argv)
 	close(wrfd[0]);
 	close(rdfd[1]);
 
-	argv = alloca(sizeof(char *) * (valInt(p->arguments->size) + 2));
+	argv = (char **)alloca(sizeof(char *) *
+			       (valInt(p->arguments->size) + 2));
 	argc = valInt(p->arguments->size);
 
 	argv[0] = strName(p->name);
@@ -956,4 +959,4 @@ copyTty(Process p, char *pty, int fd)
   succeed;
 }
 
-#endif HAVE_PTYS
+#endif /*HAVE_PTYS*/

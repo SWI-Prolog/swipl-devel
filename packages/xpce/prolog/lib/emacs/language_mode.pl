@@ -18,9 +18,8 @@
 :- emacs_begin_mode(language, fundamental,
 		    "Edit (programming) languages",
 	[ indent_line			= key('TAB'),
-	  backward_delete_char_untabify	= key('DEL'),
+	  backward_delete_char_untabify	= key(backspace) + key('DEL'),
 	  align_close_bracket		= key(']') + key('}') + key(')'),
-	  insert_file_header		= key('\e\C-h'),
 	  insert_section_header		= key('\eh'),
 	  insert_comment_block		= key('\C-c\C-q'),
 	  insert_line_comment		= key('\e;'),
@@ -186,9 +185,13 @@ backward_delete_char_untabify(M, Times:[int]) :->
 		 *	      TAGS		*
 		 *******************************/
 
-visit_tag_table(M, Table:'tag_file=file') :->
+visit_tag_table(M, Table:tag_file='file|directory') :->
 	"Load specified GNU-Emacs (etags) tag-table"::
-	get(Table, absolute_path, TagFileName),
+	(   send(Table, instance_of, directory)
+	->  get(Table, file, 'TAGS', TagFile)
+	;   TagFile = Table
+	),
+	get(TagFile, absolute_path, TagFileName),
 	auto_call(emacs_init_tags(TagFileName)),
 	send(M, report, status, 'Loaded TAG table %s', TagFileName).
 
@@ -207,7 +210,8 @@ expand_tag(M, Tag:[name], TheTag:name) :<-
 	(   Tag == @default
 	->  get(M, word, DefTag),
 	    new(I, emacs_tag_item('Find tag', DefTag)),
-	    get(M, prompt_using, I, TheTag)
+	    get(M, prompt_using, I, TagString),
+	    get(TagString, value, TheTag)
 	;   TheTag = Tag
 	).
 

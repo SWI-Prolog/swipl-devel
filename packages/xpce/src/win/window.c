@@ -158,19 +158,22 @@ unlinkWindow(PceWindow sw)
 
 static status
 openWindow(PceWindow sw, Point pos, Bool normalise)
-{ TRY( send(sw, NAME_create, 0) );
-  TRY( send(getFrameWindow(sw), NAME_open, pos, DEFAULT, normalise, 0) );
-  
+{ if ( send(sw, NAME_create, 0) &&
+       send(getFrameWindow(sw, DEFAULT), NAME_open,
+	    pos, DEFAULT, normalise, 0) )
   succeed;
+
+  fail;
 }
 
 
 static status
 openCenteredWindow(PceWindow sw, Point pos)
-{ TRY( send(sw, NAME_create, 0) );
-  TRY( send(getFrameWindow(sw), NAME_openCentered, pos, 0) );
+{ if ( send(sw, NAME_create, 0) && 
+       send(getFrameWindow(sw, DEFAULT), NAME_openCentered, pos, 0) )
+    succeed;
 
-  succeed;
+  fail;
 }
 
 
@@ -178,7 +181,7 @@ static Any
 getConfirmWindow(PceWindow sw, Point pos, Bool grab, Bool normalise)
 { TRY( send(sw, NAME_create, 0) );
 
-  answer(getConfirmFrame(getFrameWindow(sw), pos, grab, normalise));
+  answer(getConfirmFrame(getFrameWindow(sw, DEFAULT), pos, grab, normalise));
 }
 
 
@@ -186,7 +189,7 @@ static Any
 getConfirmCenteredWindow(PceWindow sw, Point pos, Bool grab)
 { TRY( send(sw, NAME_create, 0) );
 
-  answer(getConfirmCenteredFrame(getFrameWindow(sw), pos, grab));
+  answer(getConfirmCenteredFrame(getFrameWindow(sw, DEFAULT), pos, grab));
 }
 
 
@@ -301,6 +304,18 @@ decorateWindow(PceWindow sw, Name how, Int lb, Int tb, Int rb, Int bb,
   assign(sw, decoration, dw);
 
   succeed;
+}
+
+
+PceWindow
+userWindow(PceWindow sw)
+{ if ( instanceOfObject(sw, ClassWindowDecorator) )
+  { WindowDecorator dw = (WindowDecorator)sw;
+
+    answer(dw->window);
+  }
+
+  answer(sw);
 }
 
 
@@ -562,7 +577,7 @@ eventWindow(PceWindow sw, EventObj ev)
   assign(sw, current_event, ev);
 
   if ( isAEvent(ev, NAME_areaEnter) )
-  { FrameObj fr = getFrameWindow(sw);
+  { FrameObj fr = getFrameWindow(sw, DEFAULT);
 
     if ( notNil(fr) && !getKeyboardFocusFrame(fr) )
       send(fr, NAME_inputWindow, sw, 0);
@@ -573,9 +588,12 @@ eventWindow(PceWindow sw, EventObj ev)
   if ( inspectWindow(sw, ev) )
     goto out;
 
+  if ( isDownEvent(ev) && sw->input_focus == OFF )
+    send(getFrameWindow(sw, DEFAULT), NAME_keyboardFocus, sw, 0);
+
   if ( isAEvent(ev, NAME_keyboard) )
   { PceWindow iw;
-    FrameObj fr = getFrameWindow(sw);
+    FrameObj fr = getFrameWindow(sw, DEFAULT);
 
     if ( notNil(fr) &&
 	 (iw = getKeyboardFocusFrame(fr)) &&
@@ -648,7 +666,9 @@ typedWindow(PceWindow sw, EventId id, Bool delegate)
 
 status
 inputFocusWindow(PceWindow sw, Bool val)
-{ if ( sw->input_focus != val )
+{ DEBUG(NAME_keyboard, Cprintf("inputFocusWindow(%s, %s)\n", pp(sw), pp(val)));
+
+  if ( sw->input_focus != val )
   { assign(sw, input_focus, val);
 
     if ( notNil(sw->keyboard_focus) )
@@ -661,9 +681,22 @@ inputFocusWindow(PceWindow sw, Bool val)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Should we fetch the keyboard focus  of   our  frame? For keyboard driven
+operation, this appears necessary. Otherwise, I don't know.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 status
 keyboardFocusWindow(PceWindow sw, Graphical gr)
-{ if ( sw->keyboard_focus != gr )
+{ if ( !isNil(gr) && sw->input_focus == OFF )
+  { FrameObj fr = getFrameWindow(sw, OFF);
+  
+    if ( fr )
+      send(fr, NAME_keyboardFocus, sw, 0);
+    
+  }
+
+  if ( sw->keyboard_focus != gr )
   { if ( notNil(sw->keyboard_focus) )
       generateEventGraphical(sw->keyboard_focus, NAME_releaseKeyboardFocus);
 
@@ -672,8 +705,7 @@ keyboardFocusWindow(PceWindow sw, Graphical gr)
     if ( notNil(gr) )
       generateEventGraphical(gr,
 			     sw->input_focus == ON ? NAME_activateKeyboardFocus
-			     			   : NAME_obtainKeyboardFocus);
-  }
+			     			   : NAME_obtainKeyboardFocus);  }
 
   succeed;
 }
@@ -806,7 +838,7 @@ changed_window(PceWindow sw, int x, int y, int w, int h, int clear)
   na = new.w * new.h;
 
   for(a=sw->changes_data; a; a = a->next)
-  { if ( inside_iarea(&a->area, &new ) )
+  { if ( inside_iarea(&a->area, &new) && a->clear == clear )
     { return;				/* perfect */
     } else if ( clear == a->clear )
     { iarea u;
@@ -1523,11 +1555,12 @@ getTileWindow(PceWindow sw)
 
 
 FrameObj
-getFrameWindow(PceWindow sw)
+getFrameWindow(PceWindow sw, Bool create)
 { PceWindow root = (PceWindow) getRootGraphical((Graphical) sw);
   
   if ( instanceOfObject(root, ClassWindow) )
-  { frameWindow(root, DEFAULT);
+  { if ( create != OFF )
+      frameWindow(root, DEFAULT);
     answer(root->frame);
   }    
 
@@ -1800,7 +1833,7 @@ catchAllWindowv(PceWindow sw, Name selector, int argc, Any *argv)
   }
 
   if ( getSendMethodClass(ClassFrame, selector) )
-  { FrameObj fr = getFrameWindow(sw);
+  { FrameObj fr = getFrameWindow(sw, DEFAULT);
     assign(PCE, last_error, NIL);
     return sendv(fr, selector, argc, argv);
   }	
@@ -2003,7 +2036,7 @@ static getdecl get_window[] =
      DEFAULT, "Frame/graphical device I'm contained in"),
   GM(NAME_convert, 1, "window", "graphical", getConvertWindow,
      DEFAULT, "Return graphical's <-window"),
-  GM(NAME_frame, 0, "frame", NULL, getFrameWindow,
+  GM(NAME_frame, 1, "frame", "create=[bool]", getFrameWindow,
      DEFAULT, "Frame of window (create if not there)"),
   GM(NAME_tile, 0, "tile", NULL, getTileWindow,
      DEFAULT, "Tile of window (create if not there)"),

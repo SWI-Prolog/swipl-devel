@@ -245,14 +245,20 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
       { resetKeyBinding(kb, receiver);
 	rval = SUCCEED;
       } else if ( cmd == NAME_nextLine || cmd == NAME_previousLine )
-      { int preservescolumn = hasGetMethodObject(receiver, NAME_column);
-
-	if ( isNil(kb->saved_column) && preservescolumn )
-	  assign(kb, saved_column, get(receiver, NAME_column, 0));
+      { Method impl = resolveSendMethodObject(receiver, NULL, cmd, NULL, NULL);
+	Type argt;
 
 	argv[argc++] = kb->argument;
-	if ( preservescolumn )
+
+	if ( impl &&
+	     instanceOfObject(impl, ClassSendMethod) &&
+	     (argt = getArgumentTypeMethod(impl, toInt(2))) &&
+	     includesType(argt, TypeInt) )
+	{ if ( isNil(kb->saved_column) )
+	    assign(kb, saved_column, get(receiver, NAME_column, 0));
 	  argv[argc++] = kb->saved_column;
+	}
+
 	reset |= RESET_ARGUMENT;
 					/* Universal argument specification */
       } else if ( cmd == NAME_digitArgument && isInteger(id) )
@@ -469,12 +475,21 @@ static getdecl get_keyBinding[] =
 
 /* Resources */
 
-#define rc_keyBinding NULL
-/*
 static resourcedecl rc_keyBinding[] =
-{ 
+{ RC(NAME_insert,           "chain", "[]", "Bind printable to ->insert_self"),
+  RC(NAME_argument,         "chain", "[]", "C-u and M-digit binding"),
+  RC(NAME_emacsSpecial,     "chain", "[]", "argument, prefix, quote and quit"),
+  RC(NAME_emacsCaretBasics, "chain", "[]", "Basic caret movement"),
+  RC(NAME_emacsPage,        "chain", "[]", "Moving by pages"),
+  RC(NAME_emacsEditBasics,  "chain", "[]", "Basic emacs editing commands"),
+  RC(NAME_emacsViewBasics,  "chain", "[]", "Basic emacs browse commands"),
+  RC(NAME_emacsBasics,      "chain", "[]", "All emacs basic commands"),
+  RC(NAME_editor,           "chain", "[]", "Default editor binding"),
+  RC(NAME_text,             "chain", "[]", "Default text binding"),
+  RC(NAME_textItem,         "chain", "[]", "Default text_item binding"),
+  RC(NAME_textItemView,     "chain", "[]", "Default non-editible text_item"),
+  RC(NAME_listBrowser,      "chain", "[]", "Default list_browser binding")
 };
-*/
 
 /* Class Declaration */
 
@@ -561,7 +576,6 @@ static kbDef emacs_caret_basics[] =
   { "\\C-f", 		NAME_forwardChar },
   { "\\C-n", 		NAME_nextLine },
   { "\\C-p", 		NAME_previousLine },
-  { "DEL",		NAME_backwardDeleteChar },
 
   { "\\eb",		NAME_backwardWord },
   { "\\ef",		NAME_forwardWord },
@@ -579,13 +593,15 @@ static kbDef emacs_edit_basics[] =
 { { SUPER,		NAME_insert },
 
   { "\\C-d", 		NAME_deleteChar },
+  { "DEL",		NAME_deleteChar },
   { "\\C-h", 		NAME_backwardDeleteChar },
   { "\\C-t", 		NAME_transposeChars },
   { "\\C-k", 		NAME_killLine },
   { "\\C-o", 		NAME_openLine },
 
   { "\\ed",		NAME_killWord },
-  { "\\eDEL",		NAME_backwardKillWord },
+  { "backspace",	NAME_backwardDeleteChar },
+  { "\\e\\C-h",		NAME_backwardKillWord },
 
   { NULL,		NULL }
 };
@@ -659,7 +675,7 @@ static kbDef list_browser[] =
   { "\\C-p", 		NAME_previousLine },
   { "cursor_up", 	NAME_previousLine },
 
-  { DEFAULT_FUNCTION,	NAME_alert },
+/*{ DEFAULT_FUNCTION,	NAME_alert },*/
 
   { NULL,		NULL }
 };
@@ -723,6 +739,26 @@ static kbDef editor[] =
 };
 
 
+static status
+bindResourcesKeyBinding(KeyBinding kb)
+{ Chain ch = getResourceValueObject(kb, kb->name);
+
+  if ( instanceOfObject(ch, ClassChain) )
+  { Cell cell;
+
+    for_cell(cell, ch)
+    { Binding b = cell->value;
+
+      if ( instanceOfObject(b, ClassBinding) &&
+	   isName(b->name) && isName(b->value) )
+      { functionKeyBinding(kb, b->name, b->value);
+      }
+    }
+  }
+
+  succeed;
+}
+
 
 static status
 initPredefinedKeyBinding(KeyBinding kb)
@@ -775,7 +811,7 @@ initPredefinedKeyBinding(KeyBinding kb)
 			 table->function);
   }
 
-  succeed;
+  return bindResourcesKeyBinding(kb);
 }
 
 		/********************************

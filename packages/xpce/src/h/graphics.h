@@ -53,7 +53,8 @@ typedef struct update_area *UpdateArea;	/* Window changes data  */
 
 #define ABSTRACT_DIALOGITEM \
   ABSTRACT_GRAPHICAL \
-  Name	     label;			/* Label of the item */ \
+  Any	     label;			/* Label of the item */ \
+  FontObj    label_font;		/* Font used for the label */ \
   Int	     label_width;		/* Width of the label */ \
   Name	     label_format;		/* Alignment of label in box */ \
   Any	     background;		/* Colour or Image for background */ \
@@ -69,7 +70,8 @@ typedef struct update_area *UpdateArea;	/* Window changes data  */
   DialogItem left;			/* Item left of me */ \
   Name	     alignment;			/* Align in the column? */ \
   Bool	     auto_label_align;		/* Automatically align label? */ \
-  Bool	     auto_value_align;		/* Automatically align value? */
+  Bool	     auto_value_align;		/* Automatically align value? */ \
+  Name	     accelerator;		/* Associated accelerator */
 
 
 #define ABSTRACT_JOINT \
@@ -291,9 +293,8 @@ NewClass(button)
   ABSTRACT_DIALOGITEM
   Int	     radius;			/* Rounding radius */
   Int	     shadow;			/* shadow around button */
-  FontObj    label_font;		/* Font of the button */
-  Name	     accelerator;		/* activate on this key */
   Image	     popup_image;		/* Image to indicate popup */
+  Bool	     default_button;		/* Button is the default button */
 End;
 
 NewClass(textitem)
@@ -306,12 +307,12 @@ NewClass(textitem)
   Name	     advance;			/* Clear value after return? */
   Int	     length;			/* Length in x's */
   FontObj    value_font;		/* Font for entry-field */
-  FontObj    label_font;		/* Font of the label */
   Bool	     show_label;		/* Show the label */
   TextObj    value_text;		/* Displayed text value */
   Bool	     editable;			/* TextItem is editable */
   Int	     value_width;		/* Width of value-field in pixels */
   Int	     hor_stretch;		/* Horizontal stretchability */
+  Name	     style;			/* normal, combo_box */
 End;
 
 NewClass(slider)
@@ -319,7 +320,6 @@ NewClass(slider)
   Any	     selection;			/* Current value (selection) */
   Any	     default_value;		/* Default valur (or function) */
   Any	     displayed_value;		/* Currently displayed value */
-  FontObj    label_font;		/* Font of the label */
   FontObj    value_font;		/* Font of the value */
   Bool	     show_label;		/* Display the label */
   Bool	     show_value;		/* Display the value numerical */
@@ -341,7 +341,6 @@ End;
   Name	     feedback;			/* Visual feedback */ \
   Bool	     multiple_selection;	/* radio-button? */ \
   Bool       show_label;		/* Show label of menu? */ \
-  FontObj    label_font;		/* Font of the label */ \
   FontObj    value_font;		/* Font of the value */ \
   Int	     value_width;		/* Minimum width for a value */ \
   Name	     layout;			/* Horizontal or vertical */ \
@@ -382,7 +381,6 @@ NewClass(menu_bar)
   ABSTRACT_DIALOGITEM
   Chain	     members;			/* The popups */
   Name	     format;			/* format of labels in their box */
-  FontObj    label_font;		/* Font to set the labels */
   PopupObj   current;			/* Currently visible popup */
   Name	     button;			/* Button that activated me */
   Chain	     buttons;			/* Chain of buttons */
@@ -428,6 +426,8 @@ NewClass(scrollbar)
   Int		amount;			/* Amount to scroll */
   Name		direction;		/* Direction in which to scroll */
   Name		unit;			/* Unit to scroll */
+  Int		offset;			/* offset of down from bubble-start */
+  Bool		auto_hide;		/* if @on, hide automatically */
 End;  
 
 NewClass(menu_item)
@@ -539,7 +539,7 @@ NewClass(list_browser)
   Int		search_hit;		/* Current item found */
   StringObj	search_string;		/* Incremental search string */
 					/* Start private data */
-  Cell		start_cell;		/* Cell corresponding to <-first */
+  Cell		start_cell;		/* Cell corresponding to <-start */
 End;
 
 
@@ -592,6 +592,7 @@ End;
   DisplayObj	display;		/* Display of read-write's */ \
   BitmapObj	bitmap;			/* Bitmap for read-write's */ \
   Point		hot_spot;		/* Indication of hot-spot */ \
+  Image		mask;			/* Masking image */ \
   WsRef		ws_ref;			/* Window system reference */
 
 NewClass(image)
@@ -911,6 +912,7 @@ GLOBAL Image MARK_HANDLE_IMAGE;		/* connect_gesture */
 GLOBAL Image NULL_IMAGE;		/* empty image */
 
 GLOBAL Modifier MODIFIER_shift;		/* Demands `shift-is-down' */
+GLOBAL Modifier MODIFIER_control;	/* Demands `control-is-down' */
 GLOBAL Modifier MODIFIER_allup;		/* Demands all modifiers up */
 
 GLOBAL PopupGesture GESTURE_popup;	/* Displays a popup menu */
@@ -925,6 +927,28 @@ GLOBAL	HashTable FontTable;		/* FontName --> Font */
 GLOBAL	HashTable ImageTable;		/* ImageName --> Image */
 GLOBAL  HashTable WindowTable;		/* X-Window --> PceWindow|FrameObj */
 GLOBAL  Class ClassImage;		/* @image_class */
+
+		 /*******************************
+		 *     MENU LAYER CONSTANTS	*
+		 *******************************/
+
+#define TEXTFIELD_EDITABLE	0x1	/* if editable field */
+#define TEXTFIELD_COMBO		0x2	/* if combo-box displayed */
+#define TEXTFIELD_COMBO_DOWN	0x4	/* after combo-box has been clicked */
+
+#define LABEL_INACTIVE		0x1	/* str_label() flags */
+
+#define CHECKBOX_SELECTED	0x1	/* item is selected */
+#define CHECKBOX_ACTIVE		0x2	/* item is active */
+#define CHECKBOX_MULTIPLE	0x4	/* more than one may be selected */
+		 
+#define MBX_INFORM		0x1	/* infomational message */
+#define MBX_CONFIRM		0x2	/* confirm action */
+#define MBX_ERROR		0x4	/* error message */
+
+#define MBX_NOTHANDLED		0x0	/* not handled by virtual controller */
+#define MBX_OK			0x1	/* user confirmed */
+#define MBX_CANCEL		0x2	/* user canceled */
 
 
 		/********************************

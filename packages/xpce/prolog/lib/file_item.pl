@@ -17,6 +17,11 @@
 :- pce_begin_class(file_item, text_item,
 		   "text_item with file-name completion").
 
+initialise(FI, Name:[name], Def:[any|function], Msg:[code]*) :->
+	clean_file_name(Def, Clean),
+	send(FI, send_super, initialise, Name, Clean, Msg).
+
+
 completions(_FI, Tuple:tuple, Matches:chain) :<-
 	"Chain with completions of FileName in DirName"::
 	get(Tuple, first, DirName),
@@ -35,7 +40,7 @@ split_completion(_FI, Value, Tuple:tuple) :<-
 	new(S, string('%s', Value)),
 						% delete ...// or ...~
 	get(S, size, L),
-	(   get(regex('//\|~'), search, S, L, 0, Start)
+	(   get(regex('//\|~\|\w:[/\]'), search, S, L, 0, Start)
 	->  send(S, delete, 0, Start),
 	    (   send(S, prefix, '//')
 	    ->  send(S, delete, 0, 1)
@@ -44,12 +49,15 @@ split_completion(_FI, Value, Tuple:tuple) :<-
 	;   true
 	),
 	
-	new(F, file(S)),
-	get(F, directory_name, DirName),
-	get(F, base_name, BaseName),
-	path(DirName, Path),
+	(   send(S, suffix, /)
+	->  Path = S,
+	    BaseName = ''
+	;   new(F, file(S)),
+	    get(F, directory_name, DirName),
+	    get(F, base_name, BaseName),
+	    path(DirName, Path)
+	),
 	new(Tuple, tuple(Path, BaseName)).
-
 
 path('', '') :- !.
 path(Path, WithSlash) :-
@@ -77,6 +85,14 @@ selection(FI, FileName:name) :<-
 	    get(S, value, FileName)
 	;   get(RawName, value, FileName)
 	).
+
+clean_file_name(Def, Clean) :-
+	\+ send(Def, '_instance_of', function),
+	get(@pce, convert, Def, string, Clean), !,
+	send(regex('//'), for_all, Clean,
+	     message(@arg1, replace, @arg2, '/')).
+clean_file_name(Def, Def).
+	
 
 :- pce_end_class.
 

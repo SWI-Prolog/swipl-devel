@@ -25,9 +25,9 @@
 :- pce_begin_class(man_class_browser(label), man_frame,
 		   "Online manual for a class").
 
-resource(value_font,	font,	'font(helvetica, roman, 12)').
-resource(label_font,	font,	'font(helvetica, bold, 12)').
-resource(active_font,	font,	'font(helvetica, oblique, 12)').
+resource(value_font,	font,	normal).
+resource(label_font,	font,	bold).
+resource(active_font,	font,	italic).
 
 variable(tool_focus,	 class,		get,
 	 "Currently displayed class").
@@ -127,12 +127,13 @@ fill_dialog(D) :-
 expand_classname(Prefix, Classes) :-
 	new(Classes, chain),
 	send(@classes, for_all,
-	     if(message(@arg2?name, prefix, Prefix),
-		message(Classes, append, @arg2))).
+	     if(message(@arg1, prefix, Prefix),
+		message(Classes, append, @arg1))),
+	send(Classes, sort).
 
 fill_picture(P) :-
 	send(P, name, window),
-	send(P, gap, when(@colour_display, size(0, 3), size(5,3))),
+	send(P, gap, size(5,3)),
 	send(P, hor_stretch, 100),
 	send(P, hor_shrink, 100),
 	get(P?frame, resource_value, label_font, Font),
@@ -246,6 +247,7 @@ apply(CB) :->
 	apropos_class(Class, Scope, Types, Fields, Keyword, Matches),
 	send(CB, report, done),
 	send(Browser, members, Matches),
+	send(CB, keyboard_focus, Browser),
 	send(Dialog?apply_member, active, @off).
 	
 

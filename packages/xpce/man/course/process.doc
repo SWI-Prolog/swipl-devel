@@ -62,7 +62,7 @@ There are various options for calling such applications:
 The communication between the child-process and XPCE is arranged
 using Unix pipes, and optionally using a Unix pseudo-tty.  Data
 may be sent and received incrementally.  XPCE can assign a call-back
-to be executed upon newly available data and/or termination of
+to be executed for newly available data and/or termination of
 the process or wait for either of these events.
     \tick{Using Prolog's unix/1}
 Generally only allows for the schema ``prepare input-file, call

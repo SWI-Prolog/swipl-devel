@@ -194,7 +194,7 @@ static void
 event_window(Widget w, XtPointer xsw, XtPointer xevent)
 { EventObj ev;
   PceWindow sw = (PceWindow) xsw;
-  XEvent *event = xevent;
+  XEvent *event = (XEvent *)xevent;
 
   if ( isFreeingObj(sw) || isFreedObj(sw) )
     return;
@@ -233,7 +233,7 @@ expose_window(Widget w, XtPointer xsw, XtPointer xregion)
 { XRectangle rect;
   Area a;
   PceWindow sw = (PceWindow) xsw;
-  Region region = xregion;
+  Region region = (Region) xregion;
   Window win;
 
   DEBUG(NAME_window, Cprintf("Window %ld ---> %s\n", XtWindow(w), pp(sw)));

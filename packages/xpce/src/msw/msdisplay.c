@@ -418,7 +418,7 @@ ws_events_queued_display(DisplayObj d)
 
 static HGLOBAL
 ws_string_to_global_mem(String s)
-{ int bytes = str_datasize(s);
+{ int bytes = str_datasize(s) + str_count_chr(s, 0, s->size, '\n');
   HGLOBAL mem = GlobalAlloc(GMEM_MOVEABLE, bytes + 1);
   char far *data;
   int i;
@@ -430,7 +430,10 @@ ws_string_to_global_mem(String s)
   data = GlobalLock(mem);
 
   for(i=0; i<bytes; i++)
+  { if ( s->s_text8[i] == '\n' )
+      *data++ = '\r';
     *data++ = s->s_text8[i];
+  }
   *data = EOS;
 
   GlobalUnlock(mem);
@@ -473,8 +476,14 @@ get_clipboard_data(DisplayObj d, Name type)
       ;
     q = copy = pceMalloc(i + 1);
 
-    while(*q++ = *data++)
-      ;
+    for(; *data; data++)
+    { if ( *data == '\r' && data[1] == '\n' )
+      { data++;
+	*q++ = '\n';
+      } else
+	*q++ = *data;
+    }
+    *q = EOS;
     rval = CtoString(copy);
     pceFree(copy);
     GlobalUnlock(mem);
@@ -697,3 +706,43 @@ ws_postscript_display(DisplayObj d)
   succeed;
 }
 
+
+Image
+ws_grab_image_display(DisplayObj d, int x, int y, int width, int height)
+{ HDC hdc = GetDC(NULL);
+  RECT rect;
+  Image image;
+  int w, h;
+  HBITMAP obm, bm;
+  HDC hdcimg;
+  Size size = getSizeDisplay(d);
+
+  rect.left   = x;
+  rect.top    = y;
+  rect.right  = x + width;
+  rect.bottom = y + height;
+  if ( rect.left < 0 ) rect.left = 0;
+  if ( rect.top < 0 )  rect.top  = 0;
+  if ( rect.bottom > valInt(size->h) ) rect.bottom = valInt(size->h);
+  if ( rect.right >  valInt(size->w) ) rect.right  = valInt(size->w);
+  
+  w = rect.right - rect.left;
+  h = rect.bottom - rect.top;
+
+  image = answerObject(ClassImage, NIL,
+		       toInt(w), toInt(h), NAME_pixmap, 0);
+  assign(image, display, d);
+  bm = ZCreateCompatibleBitmap(hdc, w, h);
+  hdcimg = CreateCompatibleDC(hdc);
+  obm = SelectObject(hdcimg, bm);
+
+  BitBlt(hdcimg, 0, 0, w, h, hdc, rect.left, rect.top, SRCCOPY);
+
+  SelectObject(hdcimg, obm);
+  ZDeleteObject(hdcimg);
+  ReleaseDC(NULL, hdc);
+
+  registerXrefObject(image, image->display, (void *) bm);
+
+  return image;
+}

@@ -58,7 +58,8 @@ initialise(F, B:emacs_buffer) :->
 	send(V, send_method, @emacs_drop_files),
 	send(new(MW, emacs_mini_window), below, V),
 	send(E?image,  recogniser, @emacs_image_recogniser),
-	send(E, recogniser, handler(keyboard, message(MW, event, @arg1))),
+	send(E, recogniser, handler(keyboard,
+				    message(MW, editor_event, @arg1))),
 
 	get(B, mode, ModeName),
 	send(V, mode, ModeName),
@@ -115,9 +116,7 @@ active(F, Val:bool) :->
 	(   Val == @on
 	->  send(@emacs, selection, View?text_buffer)
 	;   send(@emacs, selection, @nil)
-	),
-	get(View, text_cursor, C),
-	send(C, active, Val).
+	).
 
 
 sticky_window(F, Val:[bool]) :->
@@ -170,6 +169,7 @@ prompt_using(F, Item:dialog_item, Rval:any) :<-
 	
 	send(F, keyboard_focus, W),
 	get(F, confirm, RawVal),
+	object(F),			% may be freed!
 	get(F, member, view, View),
 	send(F, keyboard_focus, View),
 
@@ -233,27 +233,40 @@ prompt(F, Label:char_array, Default:[any], Type:[type], Rval:any) :<-
 	send(Item, length, 60),
 	send(Item, pen, 0),
 	
-	get(F, prompt_using, Item, Rval),
-	send(Item, free).
+	get(F, prompt_using, Item, RawRval),
+	send(Item, free),
+	fix_rval(Type, RawRval, Rval).
+
+%	If the user entered a directory while requested for a file,
+%	start the finder in the specified directory to provide the file.
+
+fix_rval(Type, RawRval, RVal) :-
+	send(Type, instance_of, type),
+	send(Type, includes, file),
+	\+ send(Type, includes, directory),
+	atom(RawRval),
+	send(directory(RawRval), exists), !,
+	get(@finder, file, directory := RawRval, RVal).
+fix_rval(_, Rval, Rval).
 
 
 :- pce_end_class.
 
 :- pce_begin_class(emacs_command_item, text_item).
 
-cannonise(TI) :->
+canonise(TI) :->
 	get(TI, value_text, Text),
 	get(Text, string, String),
-	get(String, copy, Str2),
+	new(Str2, string('%s', String)),	% make sure it is a string
 	send(Str2, translate, -, '_'),
 	send(TI, displayed_value, Str2).
 
 complete(TI, Ev:[event_id]) :->
-	send(TI, cannonise),
+	send(TI, canonise),
 	send(TI, send_super, complete, Ev).
 
 selection(TI, Name:name) :<-
-	send(TI, cannonise),
+	send(TI, canonise),
 	get(TI, get_super, selection, Name).
 
 :- pce_end_class.
@@ -321,26 +334,31 @@ make_emacs_mini_window_bindings(B) :-
 	send(B, function, '\en', m_x_next),
 	send(B, function, '\ep', m_x_previous).
 	      
+editor_event(D, Ev:event) :->
+	"Process event typed in the editor"::
+	(   get(D, prompter, Prompter),
+	    Prompter \== @nil
+	->  (   send(@emacs_mini_window_bindings, event, Ev)
+	    ->  true
+	    ;   get(D, member, reporter, Reporter),
+		send(Reporter, displayed, @off),
+		ignore(send(Ev, post, Prompter))
+	    )
+	;   send(D, report_type, @nil),
+	    get(D, report_count, RC),
+	    send(RC, minus, 1),
+	    (   send(RC, equal, 0)
+	    ->  send(D, report, status, '')
+	    ),
+	    fail
+	).
+
 
 event(D, Ev:event) :->
-	"Process event"::
-	(   send(Ev, is_a, keyboard)
-	->  (   get(D, prompter, Prompter),
-	        Prompter \== @nil
-	    ->  (   send(@emacs_mini_window_bindings, event, Ev)
-		->  true
-		;   get(D, member, reporter, Reporter),
-		    send(Reporter, displayed, @off),
-		    ignore(send(Ev, post, Prompter))
-		)
-	    ;   send(D, report_type, @nil),
-%		send(Ev, is_a, keyboard),
-		get(D, report_count, RC),
-		send(RC, minus, 1),
-		send(RC, equal, 0),
-		send(D, report, status, ''),
-		fail			% never accept this
-	    )
+	"Process direct event"::
+	(   get(D, prompter, Prompter),
+	    Prompter \== @nil
+	->  send(D, editor_event, Ev)
 	;   send(D, send_super, event, Ev)
 	).
 

@@ -187,8 +187,8 @@ current class.%
 	      behaviour.}
     \item[Browsers/Global Objects] visualises all predefined (named) objects:
 @pce, @prolog, @display, @arg1, @event, etc.
-    \item[Keywords] shows a list of keywords and related information.
-Note that typing in the keyword list searches!
+    \item[Browsers/Search]
+Provides a {\sc wais} search facility for the entire hypercard system.
     \item[Browsers/Group OverView] provides an overview of functionally related
 methods.  Typing in the window searches.
     \item[Tools/Visual Hierarchy] provides an overview of the consists
@@ -214,7 +214,7 @@ Start the PCE manual tools and find answers to the following questions:
     \item What is the super-class of class `device'?
     \item Find the description of class `tree'.  Which different layouts
 	  are provided by class tree?
-    \item Which attributes describe the `look' of a button?
+    \item Which attributes describe the appearance of a box?
     \item Which classes (re)define the ->report method?
 \end{enumerate}
 }
@@ -240,8 +240,12 @@ a box with a centered text object.   Test your predicate using:
 Class tree and class node define primitives for creating a hierarchy
 of graphical objects.  The method `directory <-directories' allow
 you to query the Unix directory structure.  Write a predicate
-show_directory_hierarchy(+DirName) with displays the Unix directory
-hierarchy from the given root.
+show_directory_hierarchy(+{\em DirName}) with displays the Unix
+directory hierarchy from the given root.
+
+Some methods and classes you might want to use are: class picture,
+class tree, class node, class directory and the methods `node->son',
+`directory <-directories' and `directory <-directory'.
 }
 
 \end{exercises}
@@ -622,7 +626,7 @@ xy_name(X, Y, Name) :-
 
 \begin{exercises}
 \exercise{%
-Extend class matrix with a get-method <-element.  Check what happens if
+Extend class matrix with a get-method <-element.  See what happens if
 you define the return-type incorrect (for example as `int').
 }
 
@@ -692,9 +696,10 @@ type-description to a type object.  Here is a brief summary of the
 syntax used by `type <-convert':
 
 
-\begin{tabular}{ll}
+\begin{tabular}{lp{4in}}
 \tt Name=Type		&Argument named `Name' of type `Type' \\
-\tt Type ...		&Zero or more of these arguments \\
+\tt Type ...		&Zero or more of these arguments.
+			 Used in variable-arguments methods. \\
 \verb$Type1|Type2$	&Disjunction (either of the types) \\
 \tt Type*		&The type or the constant @nil \\
 \tt [Type]		&The type or @default (optional argument) \\
@@ -703,6 +708,7 @@ syntax used by `type <-convert':
 \tt 3..5		&An integer 3 $\leq$ value $\leq$ 5 \\
 \tt 3.2..5.6		&A real (float) in this range \\
 \tt 3..			&An integer $\geq$ 3 \\
+\tt ..3			&An integer $\leq$ 3 \\
 \tt ClassName		&Any instance of this class (or sub-class) \\
 \tt alien:char *	&Alien (C) data.  In this case a char *
 \end{tabular}
@@ -717,8 +723,8 @@ object to an instance of the specified class.
 \begin{exercises}
 
 \exercise{%
-Find out what the alternative specifications for `bool' arguments
-are.
+If an argument is specified as type `bool', what values are acceptable
+as input.
 }
 
 \exercise{%
@@ -812,7 +818,7 @@ using:
 ?- send(@vmi_send, trace, @on, full, @receiver == @284737).
 \end{code}
 
-If ---for example--- if you finally discovery that the object is sent
+If---for example---you finally discovered that the object is sent
 the message ->device: @nil, you can trap the tracer using:
 
 \begin{code}
@@ -836,10 +842,10 @@ an object if the {\em Cut} operation is activated.
 
 \section{Modal Dialogue Windows (Prompters)}
 
-A common use is to query or inform the user during an ongoing task.  The
-task is supposed to be blocked until the user presses some button. For
-example, the user selected `Quit' and you want to give the user the
-opportunity to save before doing so or cancel the quit all the way.
+A common use is to query or inform the user during an ongoing task. The
+task is blocked until the user presses some button. For example, the
+user selected `Quit' and you want to give the user the opportunity to
+save before doing so or cancel the quit all the way.
 
 {\em Model} dialog windows are the answer to the problem.  In XPCE,
 Windows by themselves are not {\em modal}, but any window may be
@@ -1235,7 +1241,7 @@ rename(TB) :->
 \end{code}
 
 
-\section{Graphs: Using Connections}
+\section{Graphs: Using Connections} \label{sec:connect}
 
 A connection is a line connecting two graphical objects.   A connection
 has typed end-points that can attach to a {\em handle} of the same

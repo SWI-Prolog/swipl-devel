@@ -7,6 +7,11 @@
     Copyright (C) 1995 University of Amsterdam. All rights reserved.
 */
 
+#ifdef __WIN32__
+#define HAVE_MALLOC_H 1
+#define HAVE_SIGNAL_H 1
+#endif
+
 #include <stdarg.h>
 #include <assert.h>
 #include <sys/types.h>			/* size_t */
@@ -15,10 +20,12 @@
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #endif
+#ifdef HAVE_SIGNAL_H
+#include <signal.h>
+#endif
 
 #ifdef __WIN32__
 #include <windows.h>
-#define RaiseException PceRaiseException /* conflict */
 #endif
 
 /*#define SICSTUS 1*/			/* SICStus Prolog version 3.x */
@@ -220,14 +227,21 @@ initPceConstants()
 #define Unify(t1, t2)		SP_unify((t1), (t2))
 #define PutAtom(t, a)		SP_put_atom((t), (a))
 #define PutTerm(t, f)		SP_put_term((t), (f))
-#define RaiseException(t)	SP_raise_exception(t)
+#define PceRaiseException(t)	SP_raise_exception(t)
 #define FindPredicate(n, a, m)	SP_pred(n, a, m)
 #define OpenForeign()		SP_new_term_refs(0)
 #define CloseForeign(fid)	SP_reset_term_refs(fid)
 #define InstallPredicate(n, a, f, flags)
 
+#if defined(__WIN32__)
+#define PROLOG_INSTALL_DISPATCH_FUNCTION(f) {}
+#else
 #define PROLOG_INSTALL_DISPATCH_FUNCTION(f) \
 				{ SP_read_hook = f; }
+#endif
+
+#define PROLOG_INSTALL_RESET_FUNCTION(f) \
+				{ SP_set_reinit_hook(f); }
 
 static int
 GetChars(Term t, char **s)
@@ -380,7 +394,7 @@ GetChars(Term t, char **s)
 
 
 static void
-RaiseException(Term t)
+PceRaiseException(Term t)
 { predicate_t pred = PL_predicate("pce_error", 1, "user");
 
   PL_call_predicate(MODULE_user, TRUE, pred, t);
@@ -472,7 +486,7 @@ PceException(Atom which, int argc, ...)
   }
   va_end(args);
 
-  RaiseException(et);
+  PceRaiseException(et);
 }
 
 
@@ -1466,7 +1480,7 @@ PrologSend(PceObject prolog, PceObject sel, int argc, PceObject *argv)
   PL_close_query(qid);
 #else /*~SWI*/
   if ( pred )
-  { SP_term_ref terms[argc];
+  { SP_term_ref *terms = alloca(sizeof(SP_term_ref) * argc);
     SP_qid qid;
 
     for(i=0; i<argc; i++)
@@ -1530,7 +1544,7 @@ PrologGet(PceObject prolog, PceObject sel, int argc, PceObject *argv)
 #else /*~SWI*/
 
   if ( pred )
-  { SP_term_ref terms[argc+1];
+  { SP_term_ref *terms = alloca(sizeof(SP_term_ref) * (argc+1));
     SP_qid qid;
 
     for(i=0; i<argc; i++)
@@ -1982,9 +1996,33 @@ pce_dispatch(int fd)
 
 #ifdef SICSTUS
 
+#ifdef __WIN32__
+
+void *
+pl_malloc(unsigned int size)
+{ return SP_malloc(size);
+}
+
+
+void *
+pl_realloc(void *ptr, unsigned int size)
+{ return SP_realloc(ptr, size);
+}
+
+
+void
+pl_free(void *ptr)
+{ SP_free(ptr);
+}
+
+#else /* __WIN32__ */
+
 #define pl_malloc SP_malloc
 #define pl_realloc SP_realloc
 #define pl_free SP_free
+
+#endif /*__WIN32__*/
+
 
 		 /*******************************
 		 *	    CONSOLE I/O		*
@@ -2010,7 +2048,7 @@ pl_Cputchar(int c)
 
 
 static void
-pl_Cflush()
+pl_Cflush(void)
 { SP_fflush(SP_stdout);
 }
 

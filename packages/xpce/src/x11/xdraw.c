@@ -916,7 +916,7 @@ r_translate(int x, int y, int *ox, int *oy)
 
 
 void
-r_box(int x, int y, int w, int h, int r, Image fill)
+r_box(int x, int y, int w, int h, int r, Any fill)
 { int mwh, pen = context.gcs->pen;
   int drawpen = ((context.gcs->dash == NAME_none) && quick ? 1 : pen);
 
@@ -1138,7 +1138,7 @@ r_elevation_fillpattern(Elevation e, int up)
 
 void
 r_3d_segments(int n, ISegment s, Elevation e, int light)
-{ XSegment *xs = alloca(sizeof(XSegment) * n);
+{ XSegment *xs = (XSegment *)alloca(sizeof(XSegment) * n);
   XSegment *xp = xs;
   ISegment p   = s;
   int i;
@@ -1693,7 +1693,7 @@ r_line(int x1, int y1, int x2, int y2)
 void
 r_polygon(IPoint pts, int n, int close)
 { if ( context.gcs->pen > 0 )
-  { XPoint *points = alloca(n * sizeof(XPoint));
+  { XPoint *points = (XPoint *)alloca(n * sizeof(XPoint));
     int i;
 
     for(i=0; i<n; i++)
@@ -1824,7 +1824,9 @@ r_image(Image image,
 	int sx, int sy,
 	int x, int y, int w, int h,
 	Bool transparent)
-{ if ( image->size->w == ZERO || image->size->h == ZERO )
+{ XGCValues values;
+    
+  if ( image->size->w == ZERO || image->size->h == ZERO )
     return;
 
   DEBUG(NAME_image, Cprintf("image <-kind %s on drawable kind %s\n",
@@ -1832,9 +1834,7 @@ r_image(Image image,
 
   if ( (image->kind == NAME_bitmap && context.kind != NAME_bitmap) ||
        (image->kind != NAME_bitmap && context.kind == NAME_bitmap) )
-  { XGCValues values;
-
-    NormaliseArea(x, y, w, h);
+  { NormaliseArea(x, y, w, h);
     Translate(x, y);
     if ( image->kind != NAME_bitmap )
     { if ( env->area.x > x ) sx += env->area.x - x;
@@ -1842,6 +1842,15 @@ r_image(Image image,
     }
     values.ts_x_origin = x-sx;
     values.ts_y_origin = y-sy;
+
+    if ( notNil(image->mask) )
+    { values.clip_mask = (Pixmap)getXrefObject(image->mask,
+					       context.pceDisplay);
+      values.clip_x_origin = x;
+      values.clip_y_origin = y;
+    } else
+      values.clip_mask = None;
+
     Clip(x, y, w, h);
 
     if ( w > 0 && h > 0 )
@@ -1856,6 +1865,7 @@ r_image(Image image,
 			      			  : FillOpaqueStippled);
 
 	  XChangeGC(context.display, context.gcs->bitmapGC,
+		    GCClipXOrigin|GCClipYOrigin|GCClipMask|
 		    GCForeground|GCBackground|GCFillStyle|
 		    GCStipple|GCTileStipXOrigin|GCTileStipYOrigin,
 		    &values);
@@ -1882,6 +1892,7 @@ r_image(Image image,
 	  values.clip_mask     = pix;
 
 	  GCtmp = XCreateGC(context.display, context.drawable,
+			    GCClipXOrigin|GCClipYOrigin|GCClipMask|
 			    GCClipXOrigin|GCClipYOrigin|GCClipMask,
 			    &values);
 
@@ -1898,9 +1909,11 @@ r_image(Image image,
 	int i;
 
 	if ( fpixel != bpixel )
-	  for(i=1; i++ <= (sizeof(ulong) * 8); plane <<= 1)
-	    if ( (fpixel & plane) != (bpixel & plane) )
+	{ for(i=1; i++ <= (sizeof(ulong) * 8); plane <<= 1)
+	  { if ( (fpixel & plane) != (bpixel & plane) )
 	      break;
+	  }
+	}
 
         DEBUG(NAME_image, Cprintf("fpixel = %ld, bpixel = %ld, plane = %ld\n",
 				  fpixel, bpixel, plane));
@@ -1909,6 +1922,7 @@ r_image(Image image,
 	{ values.foreground = 0;
 	  values.background = 1;
 	  XChangeGC(context.display, context.gcs->copyGC,
+		    GCClipXOrigin|GCClipYOrigin|GCClipMask|
 		    GCForeground|GCBackground,
 		    &values);
 	}
@@ -1922,16 +1936,45 @@ r_image(Image image,
         if ( (fpixel & plane) == 0 )
 	{ values.foreground = 1;
 	  values.background = 0;
+	  values.clip_mask = None;
 	  XChangeGC(context.display, context.gcs->copyGC,
-		    GCForeground|GCBackground,
+		    GCClipMask|GCForeground|GCBackground,
 		    &values);
 	}
       }
     }
   } else if ( transparent == ON && image->kind == NAME_bitmap )
-    r_op_image(image, sx, sy, x, y, w, h, NAME_or);
-  else
-    r_op_image(image, sx, sy, x, y, w, h, NAME_copy);
+  { r_op_image(image, sx, sy, x, y, w, h, NAME_or);
+  } else
+  { Pixmap pm = (Pixmap)getXrefObject(image, context.pceDisplay);
+
+    if ( notNil(image->mask) )
+    { values.clip_mask = (Pixmap)getXrefObject(image->mask,
+					       context.pceDisplay);
+      values.clip_x_origin = X(x);
+      values.clip_y_origin = Y(y);
+      XChangeGC(context.display, context.gcs->copyGC,
+		GCClipXOrigin|GCClipYOrigin|GCClipMask, &values);
+    }
+
+    NormaliseArea(x, y, w, h);
+    Translate(x, y);
+    if ( env->area.x > x ) sx += env->area.x - x;
+    if ( env->area.y > y ) sy += env->area.y - y;
+    Clip(x, y, w, h);
+
+    if ( w > 0 && h > 0 )
+      XCopyArea(context.display, pm, context.drawable, context.gcs->copyGC,
+		sx, sy, w, h, x, y);
+
+    if ( notNil(image->mask) )
+    { values.clip_mask = None;
+      values.clip_x_origin = 0;
+      values.clip_y_origin = 0;
+      XChangeGC(context.display, context.gcs->copyGC,
+		GCClipXOrigin|GCClipYOrigin|GCClipMask, &values);
+    }
+  }
 }
 
 
@@ -1954,7 +1997,7 @@ This is all we need sofar (cursors and arrow heads).
 
 void
 r_fill_polygon(IPoint pts, int n)
-{ XPoint *points = alloca(n * sizeof(XPoint));
+{ XPoint *points = (XPoint *) alloca(n * sizeof(XPoint));
   int i;
 
   for(i=0; i<n; i++)
@@ -2108,7 +2151,7 @@ r_get_pixel(int x, int y)
       iw = dw; ih = dh;
       Clip(ix, iy, iw, ih);
       image = XGetImage(last_display, last_drawable,
-			ix, iy, iw, ih, AllPlanes, XYPixmap);
+			ix, iy, iw, ih, AllPlanes, ZPixmap);
     }
     
     return XGetPixel(image, x-ix, y-iy);
@@ -2574,25 +2617,16 @@ Draws a string, just  like  str_string(),   but  underscores  the  first
 character matching the accelerator (case-insensitive).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-void
-str_label(String s, int acc, FontObj font, int x, int y, int w, int h,
-	   Name hadjust, Name vadjust)
-{ strTextLine lines[MAX_TEXT_LINES];
-  strTextLine *line;
-  int nlines, n;
-  int baseline;
-
-  if ( s->size == 0 )
-    return;
-
-  Translate(x, y);
-  s_font(font);
-  baseline = context.gcs->font_info->ascent;
-  str_break_into_lines(s, lines, &nlines);
-  str_compute_lines(lines, nlines, font, x, y, w, h, hadjust, vadjust);
+static void
+str_draw_text_lines(int acc, FontObj font,
+		    int nlines, strTextLine *lines,
+		    int ox, int oy)
+{ strTextLine *line;
+  int n;
+  int baseline = context.gcs->font_info->ascent;
 
   for(n=0, line = lines; n++ < nlines; line++)
-  { str_text(&line->text, line->x, line->y+baseline);
+  { str_text(&line->text, line->x+ox, line->y+baseline+oy);
 
     if ( acc )
     { int cx = line->x;
@@ -2607,7 +2641,7 @@ str_label(String s, int acc, FontObj font, int x, int y, int w, int h,
 	if ( tolower(c) == acc )
 	{			/* not r_line to avoid double Translate() */
 	  XDrawLine(context.display, context.drawable, context.gcs->workGC,
-		    cx, line->y+baseline+1, cx+cw, line->y+baseline+1);
+		    cx, line->y+baseline+1, cx+cw-2, line->y+baseline+1);
 	  acc = 0;
 	  break;
 	}
@@ -2616,5 +2650,40 @@ str_label(String s, int acc, FontObj font, int x, int y, int w, int h,
       }
     }
   }
+}
+
+
+void
+str_label(String s, int acc, FontObj font, int x, int y, int w, int h,
+	   Name hadjust, Name vadjust, int flags)
+{ strTextLine lines[MAX_TEXT_LINES];
+  int nlines;
+
+  if ( s->size == 0 )
+    return;
+
+  Translate(x, y);
+  s_font(font);
+  str_break_into_lines(s, lines, &nlines);
+  str_compute_lines(lines, nlines, font, x, y, w, h, hadjust, vadjust);
+  if ( acc )
+    r_thickness(1);
+
+  if ( flags & LABEL_INACTIVE )
+  { if ( context.depth > 1 )
+    { Any old = r_colour(WHITE_COLOUR);
+
+      str_draw_text_lines(acc, font, nlines, lines, 1, 1);
+      r_colour(ws_3d_grey());
+      str_draw_text_lines(acc, font, nlines, lines, 0, 0);
+      r_colour(old);
+    } else
+    { Any old = r_colour(GREY50_IMAGE);
+      
+      str_draw_text_lines(acc, font, nlines, lines, 0, 0);
+      r_colour(old);
+    }
+  } else
+    str_draw_text_lines(acc, font, nlines, lines, 0, 0);
 }
 

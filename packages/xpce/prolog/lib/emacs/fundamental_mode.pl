@@ -107,7 +107,7 @@ quit(M) :->
 		 *******************************/
 
 region(M, Tuple:tuple) :<-
-	"Get region start end end (sorted)"::
+	"Get region start and end (sorted)"::
 	get(M, mark, Mark),
 	get(M, caret, Caret),
 	(   Caret > Mark
@@ -115,6 +115,57 @@ region(M, Tuple:tuple) :<-
 	;   Mark > Caret
 	->  new(Tuple, tuple(Caret, Mark))
 	).
+
+warn_big_region(M, Action:name, N:int) :->
+	"Warn if region exceeds size"::
+	get(M, region, tuple(Start, End)),
+	(   End - Start > N
+	->  send(@display, confirm,
+		 'Region is > %d characters; %s?', N, Action)
+	;   true
+	).
+
+warn_big_paragraph(M, Action:name, N:int) :->
+	"Warn if paragraph exceeds size"::
+	get(M, caret, Caret),
+	get(M, text_buffer, TB),
+	get(TB, scan, Caret+1, paragraph, 0, start, SP),
+	get(TB, scan, Caret-1, paragraph, 0, end, EP),
+	(   EP - SP > N
+	->  send(@display, confirm,
+		 'Paragraph is > %d characters; %s?', N, Action)
+	;   true
+	).
+
+
+		 /*******************************
+		 *      DANGEROUS ACTIONS	*
+		 *******************************/
+
+upcase_region(M) :->
+	"Upcase region, but warn if dangerous"::
+	send(M, warn_big_region, upcase, 100),
+	send(M, send_super, upcase_region).
+
+downcase_region(M) :->
+	"Downcase region, but warn if dangerous"::
+	send(M, warn_big_region, downcase, 100),
+	send(M, send_super, downcase_region).
+
+fill_region(M) :->
+	"Fill region, but warn if dangerous"::
+	send(M, warn_big_region, fill, 1000),
+	send(M, send_super, fill_region).
+
+justify_paragraph(M) :->
+	"Justify paragraph, but warn if dangerous"::
+	send(M, warn_big_paragraph, justify, 1000),
+	send(M, send_super, justify_paragraph).
+
+fill_paragraph(M) :->
+	"Fill paragraph, but warn if dangerous"::
+	send(M, warn_big_paragraph, justify, 1000),
+	send(M, send_super, fill_paragraph).
 
 
 		 /*******************************

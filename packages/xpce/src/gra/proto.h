@@ -50,6 +50,7 @@ status		computeDevice(Any obj);
 status		computeBoundingBoxDevice(Device dev);
 status		changedUnionDevice(Device dev, Int ox, Int oy, Int ow, Int oh);
 status		RedrawAreaDevice(Device dev, Area a);
+status		clearDevice(Device dev);
 status		displayDevice(Any Dev, Any Gr, Point pos);
 status		appendDevice(Device dev, Graphical gr);
 status		eraseDevice(Device dev, Graphical gr);
@@ -191,6 +192,7 @@ status		initialiseImage(Image image, Name name, Int w, Int h, Name kind);
 Image		getConvertImage(Class class, Any obj);
 status		XopenImage(Image image, DisplayObj d);
 status		XcloseImage(Image image, DisplayObj d);
+ColourMap	getColourMapImage(Image image);
 status		loadImage(Image image, FileObj file, CharArray path);
 status		resizeImage(Image image, Int w, Int h);
 status		fillImage(Image image, Any pattern, Area area);
@@ -219,7 +221,9 @@ status		makeClassLink(Class class);
 
 /* gra/listbrowser.c */
 Name		getLabelListBrowser(ListBrowser lb);
+status		requestGeometryListBrowser(ListBrowser lb, Int x, Int y, Int w, Int h);
 Size		getSizeListBrowser(ListBrowser lb);
+status		executeSearchListBrowser(ListBrowser lb);
 status		typedListBrowser(ListBrowser lb, EventId id);
 status		selectedListBrowser(ListBrowser lb, DictItem di);
 status		selectionListBrowser(ListBrowser lb, Any obj);

@@ -29,7 +29,6 @@ static status
 initialiseSlider(Slider s, Name name, Any low, Any high, Any def, Message msg)
 { createDialogItem(s, name);
 
-  assign(s, label_font,    DEFAULT);
   assign(s, label_width,   DEFAULT);
   assign(s, value_font,    DEFAULT);
   assign(s, show_label,    ON);
@@ -77,6 +76,7 @@ RedrawAreaSlider(Slider s, Area a)
   float lv = convert_value(s->low);
   float hv = convert_value(s->high);
   float dv = convert_value(s->displayed_value);
+  int lflags = (s->active == ON ? 0 : LABEL_INACTIVE);
 
   if ( dv < lv )
     dv = lv;
@@ -99,8 +99,11 @@ RedrawAreaSlider(Slider s, Area a)
   if ( s->show_label == ON )
   { int ex = valInt(getExFont(s->label_font));
 
-    str_string(&s->label->data, s->label_font, x, y+ny, vx-ex, 0,
-	       s->label_format, NAME_top);
+    RedrawLabelDialogItem(s,
+			  accelerator_code(s->accelerator),
+			  x, y+ny, vx-ex, 0,
+			  s->label_format, NAME_top,
+			  lflags);
   }
       
   if ( s->look == NAME_motif )
@@ -136,13 +139,16 @@ RedrawAreaSlider(Slider s, Area a)
     format_value(s, &buf[1], s->displayed_value);
     strcat(buf, "]");
     str_set_ascii(&str, buf);
-    str_string(&str, s->value_font, x+vx, y+vy, 0, 0, NAME_left, NAME_top);
+    str_label(&str, 0, s->value_font,
+	      x+vx, y+vy, 0, 0, NAME_left, NAME_top, lflags);
     format_value(s, buf, s->low);
     str_set_ascii(&str, buf);
-    str_string(&str, s->value_font, x+lx, y+ly, 0, 0, NAME_left, NAME_top);
+    str_label(&str, 0, s->value_font,
+	      x+lx, y+ly, 0, 0, NAME_left, NAME_top, lflags);
     format_value(s, buf, s->high);
     str_set_ascii(&str, buf);
-    str_string(&str, s->value_font, x+hx, y+hy, 0, 0, NAME_left, NAME_top);
+    str_label(&str, 0, s->value_font,
+	      x+hx, y+hy, 0, 0, NAME_left, NAME_top, lflags);
   }
 
   return RedrawAreaGraphical(s, a);
@@ -155,7 +161,7 @@ compute_label_slider(Slider s, int *lw, int *lh)
   { if ( isDefault(s->label_font) )
       obtainResourcesObject(s);
 
-    str_size(&s->label->data, s->label_font, lw, lh);
+    dia_label_size(s, lw, lh, NULL);
     *lw += valInt(getExFont(s->label_font));
     if ( notDefault(s->label_width) )
       *lw = max(valInt(s->label_width), *lw);
@@ -340,7 +346,7 @@ eventSlider(Slider s, EventObj ev)
     compute_slider(s, &ny, &vx, &vy, &lx, &ly, &sx, &sy, &hx, &hy);
     se = sx + valInt(s->width);
 
-    if ( ex > sx - 10 && ex < se + 10 )
+/*  if ( ex > sx - 10 && ex < se + 10 ) */
     { Any val;
 
       if ( ex < sx ) ex = sx;
@@ -372,12 +378,6 @@ eventSlider(Slider s, EventObj ev)
 		/********************************
 		*          ATTRIBUTES		*
 		********************************/
-
-
-static status
-labelFontSlider(Slider s, FontObj font)
-{ return assignGraphical(s, NAME_labelFont, font);
-}
 
 
 static status
@@ -544,8 +544,6 @@ static vardecl var_slider[] =
      NAME_apply, "The default selection or function to get it"),
   SV(NAME_displayedValue, "int|real", IV_GET|IV_STORE, displayedValueSlider,
      NAME_selection, "Currently displayed value"),
-  SV(NAME_labelFont, "font", IV_GET|IV_STORE, labelFontSlider,
-     NAME_appearance, "Font for label"),
   SV(NAME_valueFont, "font", IV_GET|IV_STORE, valueFontSlider,
      NAME_appearance, "Font for current selection"),
   SV(NAME_showLabel, "bool", IV_GET|IV_STORE, showLabelSlider,

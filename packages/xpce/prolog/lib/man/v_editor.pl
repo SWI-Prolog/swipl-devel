@@ -167,7 +167,7 @@ make_editor_recogniser(G) :-
 			      message(E, jump_on_fragment, JF),
 			      @default, @off,
 			      JF \== @nil)
-		  , menu_item(previous,
+		  , menu_item(back,
 			      message(E, jump_previous),
 			      @default, @on,
 			      Manual?selection_history?size > 1)
@@ -262,7 +262,8 @@ selection(E, Objects:'chain|object') :->
 	;   send(E, display_cluster, chain(Objects))
 	),	    
 	send(E, mark_jumpable),
-	send(E, mark_search).
+	send(E, mark_search),
+	send(E, keyboard_focus, E?editor).
 
 
 display_group(E, Group:name, Members:chain) :->

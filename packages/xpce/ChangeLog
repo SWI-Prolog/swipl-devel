@@ -1,3 +1,164 @@
+[VERSION 4.9.0]
+
+* ADDED: `editor ->lost_text_buffer' to program the behaviour if the
+  text-buffer of an editor is deleted.
+
+* ADDED: @pce<-window_system.  Renamed @pce<-xt_version into
+  @pce<-window_system_version and @pce<-rt_revision into
+  @pce<-window_system_revision.
+
+* ADDED: `stream ->record_separator: int' to make the socket break the
+  input in fixed-size records.  The record separator may now be switched
+  on open communication lines, and binary data is handled correctly by
+  it.
+
+* FIXED: PceEmacs and editor: management around the undo buffer.  This
+  should fix various problems in this area.
+
+* FIXED: PceEmacs completion items to explicitely convert to a string
+  in canonise.
+
+* FIXED: Class socket: convert port to network byte-order in the address
+  specification.  Also fixed in xpce-client.  Only affects big-endian 
+  (e.g. Intel) machines.
+
+* ADDED: `image->mask' to support non-rectangular images.
+
+* ADDED: Read and write of XPM colour images when compiled and linked
+  to -lXpm (auto-detected by configure).
+
+* ADDED: `display <-image', to get an image from a rectangular portion
+  of the display.
+
+* PERFORMANCE: Much better performance for various graphics operations
+  on images.
+
+* FIXED: Redraw management for `opaque' graphical objects.  Moving
+  Such objects sometimes caused parts of the window not to update
+  correctly.
+
+* ADDED: Resource-based rebinding of all the XPCE keyboard-editable
+  classes: editor, text_item, list_browser, etc.
+
+* MODIFIED: Non-editable text_item will not show its line.
+
+* ADDED: ListBrowsers shift-click to extend and control-click to toggle
+  the selection.
+
+* FIXED: Win32 cut/copy of text to translate between internal and external
+  text format.
+
+* CHANGED: Menu's of kind ->cycle to show as a combo-box.
+
+* FIXED: Undo for editor/textbuffer.  The bug was associated with resizing
+  an undo-cell, which almost exclusively happens in case-conversion
+  commands.
+
+* CHANGED: {Dialog,DialogGroup,Button} <->default_button are now implemented
+  on the basis of the attribute `button<->default_button', rather than the
+  accelerator.
+
+* FIXED: details regarding geometry management of browsers to ensure
+  a browser of height 2 can actually display 2 lines.
+
+* ADDED: ScrollBar <->auto_hide: automatically hides a scrollbar if it
+  is no longer needed as all data is visible and redisplay it again if
+  too much data arrives.
+
+* ADDED: ComboBox implementation, based on the completion mechanism of
+  class text_item.  See text_item->style.
+
+* FIXED: and improved: numerous issues concerning completion-browsers
+  for text-items to make them feel much more natural.
+
+* FIXED: Behaviour of scrollbars if the object scrolled is not too much
+  bigger than the window (provide more `natuaral' scrolling).
+
+* ARCH: Slightly modified the relation between XPCE and the window
+  environment for handling dialog objects (controllers).  In the old
+  version, all dialog work was done entirely by XPCE, based upon the
+  virtual-window-system graphical layer.  In the current version, part
+  of the dialog handling is directly handed to the `virtual-dialog'
+  layer.  This layer implements the item for the look-and-feel it
+  belongs to using both the virtual-window-system and direct access
+  to the underlying system.
+
+  At the moment, this layer is restricted to graphical operations. 
+  For example, vd_draw_button_face() is supposed to draw the face of
+  a button according to the current look-and-feel, giving its state
+  and bounding box.  
+
+  This approach allows for a simpler and more garanteed compatibility
+  in look-and-feel.  This is currently being implemented realising more
+  of the Windows 95 look-and-feel for Win32.
+
+* FIXED: Win32: Made standard window brushes (available as @win_*_brush) work
+  as images, as their name suggests.
+
+* ADDED: Win32: Access to standard Win32 images.  All these are named
+  @win_* image.
+
+* MODIF: PceEmacs Prolog/Source File entry to only show `user' source
+  files.
+
+* FIXED: Win32: Colour compatibility of non-bubble part of the scrollbars
+
+* FIXED: Win32: Bottom-right pixel of elevated areas was not painted.
+
+* Win32: Improved alignment and layout of triangles in the arrows of
+  scrollbars.
+
+* GUI: PceEmacs: when entering a directory if a file is requested, the
+  system will open the standard viewer.
+
+* GUI: TextItem completer improvements:	Deleting text when the completer
+  is show back to the point where it was started now removes the completer.
+  If no `prefix' is specified, cursor up/down will properly highlight the
+  selection now.
+
+* FIXED: X11: avoid sending characters twice to the window holding the
+  keyboard focus in a frame if the pointer is on the border of the frame.
+
+* FIXED: Win32: Force immediate window update after drop of files.
+
+* ADDED: Win32: Class win_metafile: full encapsulation of Windows metafiles,
+  both Win32 enhanced metafiles and Windows 3.x metafiles: load
+  and display them, save them in any format, put them on the clipboard
+  and get them from the clipboard.  This provides easy exchange of
+  drawings with the popular Microsoft Tools.  These features have been
+  exploited in PceDraw.  If someone has a library for Unix ...
+
+* FIXED: Win32: creating PostScript from images, frames and display.
+
+* FIXED: Creating HBITMAP handles for images of <-kind: bitmap.
+
+* FIXED: return-type warning for PceEmacs find_definition command.
+
+* FIXED: `var->unlink' to remove the variable from the binding-block.
+  Thanks the Lourens van der Meij for providing me with a program that
+  demonstrated the problem deterministically.
+
+* FIXED: `device ->layout_dialog' to use ->do_set instead of ->set for
+  resizing sizeable objects.  Makes list-browsers and editors behave
+  normally in this context.
+
+* FIXED: The scrollbar of an editor sometimes appears at the left-side,
+  despite the preference is set to right.
+
+* ADDED: ->label and similar methods to class editor.
+
+
+[VERSION 4.8.19]
+
+* ADDED: maintenance of correct source-location for Prolog clauses
+  implementing methods. REQUIRES SWI-Prolog 2.7.12 or later!
+
+* FIXED: ->orientation type check to accept 'south_west'.  Thanks to
+  Donalt Kwakkel. 
+
+* FIXED: pce_extend_class to accept variable, resource and class-directives.
+
+
 [VERSION 4.8.18]
 
 * FIXED: XPCE/SWI-Prolog detect now on basis of the *basename* of the

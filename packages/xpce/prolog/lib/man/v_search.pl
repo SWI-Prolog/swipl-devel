@@ -387,7 +387,7 @@ execute_search(prefix(W), DB, Result) :-
 	send(Words, for_all,
 	     message(Result, merge, ?(DB, member, @arg1))),
 	send(Result, unique).
-execute_search(and(not(S1), S2), Result) :-
+execute_search(and(not(S1), S2), DB, Result) :-
 	execute_search(S1, DB, R1),
 	execute_search(S2, DB, R2),
 	get(R2, copy, Result),

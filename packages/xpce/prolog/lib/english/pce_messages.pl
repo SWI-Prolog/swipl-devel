@@ -14,6 +14,8 @@
 	  [ pce_message/3,
 	    pce_message_context/3
 	  ]).
+:- require([ append/3
+	   ]).
 
 					% Messages from the interface
 pce_message(pce(bad_object_description, Culprit)) -->

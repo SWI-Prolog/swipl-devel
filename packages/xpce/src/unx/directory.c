@@ -301,6 +301,12 @@ getParentDirectory(Directory d)
 
   if ( IsDirSep(here[0]) && here[1] == EOS ) /* the root */
     fail;
+#ifdef O_XOS
+					/* DOS root: <Drive>:[\/] */
+  if ( isletter(here[0]) && here[1] == ':' &&
+       (here[2] == EOS || (IsDirSep(here[2]) && here[3] == EOS)) )
+    fail;
+#endif
 
   answer(answerObject(ClassDirectory,
 		      CtoName(dirName(here)), 0));
@@ -525,14 +531,15 @@ canonisePath(register char *path)
 
 
 char *
-dirName(char *f)
+dirName(const char *f)
 { if ( f )
   { static char dir[MAXPATHLEN];
-    char *base, *p;
+    const char *base, *p;
 
     for(base = p = f; *p; p++)
-      if ( IsDirSep(*p) )
+    { if ( IsDirSep(*p) && !IsDirSep(f[1]) && p[1] != EOS )
 	base = p;
+    }
     strncpy(dir, f, base-f);
     dir[base-f] = EOS;
     if ( IsDirSep(*f) && dir[0] == EOS )
@@ -548,15 +555,24 @@ dirName(char *f)
 
 
 char *
-baseName(register char *f)
+baseName(const char *f)
 { if ( f )
-  { char *base;
+  { const char *base;
+    static char buf[MAXPATHLEN];
+    int len;
 
     for(base = f; *f; f++)
-      if ( IsDirSep(*f) )
+    { if ( IsDirSep(*f) && !IsDirSep(f[1]) && f[1] != EOS )
 	base = f+1;
+    }
 
-    return base;
+    len = f - base;
+    strcpy(buf, base);
+    while ( len > 0 && buf[len-1] == '/' )
+      len--;
+    buf[len] = EOS;
+
+    return buf;
   }
 
   return NULL;

@@ -50,24 +50,29 @@ initialisePce(Pce pce)
     return errorPce(classOfObject(pce), NAME_cannotCreateInstances);
 
 #ifndef O_RUNTIME
-  assign(pce, debugging,          OFF);
-  assign(pce, trap_errors,	  ON);
-  assign(pce, trace, 	          NAME_error);
+  assign(pce, debugging,              OFF);
+  assign(pce, trap_errors,	      ON);
+  assign(pce, trace, 	              NAME_error);
 #endif
-  assign(pce, catched_errors,	  newObject(ClassChain, 0));
-  assign(pce, catch_error_signals,OFF);
+  assign(pce, catched_errors,	      newObject(ClassChain, 0));
+  assign(pce, catch_error_signals,    OFF);
 
-  assign(pce, exit_messages,	  newObject(ClassChain, 0));
-  assign(pce, exception_handlers, newObject(ClassSheet, 0));
+  assign(pce, exit_messages,	      newObject(ClassChain, 0));
+  assign(pce, exception_handlers,     newObject(ClassSheet, 0));
 
-  assign(pce, home,		  DEFAULT);
+  assign(pce, home,		      DEFAULT);
 
-  assign(pce, version,            CtoName(PCE_VERSION));
-  assign(pce, machine,            CtoName(MACHINE));
-  assign(pce, operating_system,   CtoName(OS));
-  assign(pce, xt_version,	  toInt(ws_version()));
-  assign(pce, xt_revision,	  toInt(ws_revision()));
-  assign(pce, features,		  newObject(ClassChain, 0));
+  assign(pce, version,                CtoName(PCE_VERSION));
+  assign(pce, machine,                CtoName(MACHINE));
+  assign(pce, operating_system,       CtoName(OS));
+#ifdef __WINDOWS__
+  assign(pce, window_system,	      NAME_windows);
+#else
+  assign(pce, window_system,	      CtoName("X"));
+#endif
+  assign(pce, window_system_version,  toInt(ws_version()));
+  assign(pce, window_system_revision, toInt(ws_revision()));
+  assign(pce, features,		      newObject(ClassChain, 0));
 
   at_pce_exit(exit_pce, ATEXIT_FIFO);
 
@@ -553,8 +558,8 @@ bannerPce(Pce pce)
 	 pce->version,
 	 pce->machine,
 	 pce->operating_system,
-	 pce->xt_version,
-	 pce->xt_revision);
+	 pce->window_system_version,
+	 pce->window_system_revision);
 
   writef("Copyright 1993-1996, University of Amsterdam.  All rights reserved.\n");
 
@@ -589,11 +594,13 @@ infoPce(Pce pce)
   writef("	System:             %s\n", pce->machine);
   writef("	Operating System:   %s\n", pce->operating_system);
 #ifdef __WINDOWS__
-  writef("	Window System:      MS-Windows %s.%s\n", pce->xt_version,
-	 				       		 pce->xt_revision);
+  writef("	Window System:      windows %s.%s\n",
+	 pce->window_system_version,
+	 pce->window_system_revision);
 #else
-  writef("	Window System:      X%sR%s\n", pce->xt_version,
-	 				       pce->xt_revision);
+  writef("	Window System:      X%sR%s\n",
+	 pce->window_system_version,
+	 pce->window_system_revision);
 #endif
   writef("\n");
   writef("Memory allocation:\n");
@@ -616,7 +623,7 @@ infoPce(Pce pce)
   writef("	Jan Wielemaker\n");
   writef("\n");
 
-  writef("Copyright (c) 1993-1995 University of Amsterdam.  All rights reserved.");
+  writef("Copyright (c) 1993-1996 University of Amsterdam.  All rights reserved.");
   writef("\n\n");
 
   succeed;
@@ -1215,9 +1222,11 @@ static vardecl var_pce[] =
      NAME_version, "Name of this machine/architecture"),
   IV(NAME_operatingSystem, "name", IV_GET,
      NAME_version, "Name of operating system"),
-  IV(NAME_xtVersion, "int", IV_GET,
+  IV(NAME_windowSystem, "{X,windows}", IV_GET,
+     NAME_version, "Basic window system used"),
+  IV(NAME_windowSystemVersion, "int", IV_GET,
      NAME_version, "Version of Xt library used to compile xpce"),
-  IV(NAME_xtRevision, "int", IV_GET,
+  IV(NAME_windowSystemRevision, "int", IV_GET,
      NAME_version, "Revision of Xt library used to compile xpce"),
   IV(NAME_features, "chain", IV_GET,
      NAME_version, "List of installed features")

@@ -22,6 +22,7 @@
 	   , random/3
 	   , send_list/3
 	   , term_to_atom/2
+	   , callable_predicate/1
 	   ]).
 
 
@@ -820,7 +821,7 @@ verify_predicate(Host, Head) :-
 	user:consult(Path),
 	verify_predicate(Host, Head).
 verify_predicate(_, Head) :-
-	pce_host:callable_predicate(user:Head), !.
+	callable_predicate(user:Head), !.
 verify_predicate(Host, Head) :-
 	get(Host, file, File),
 	get(File, absolute_path, Path),
@@ -942,7 +943,7 @@ edit(P) :->
 	    send(Set, unique),
 	    get(Set, head, ArgC),
 	    (	functor(Head, Selector, ArgC),
-		pce_host:callable_predicate(user:Head)
+		callable_predicate(user:Head)
 	    ->	user:ed(Head)
 	    ;	get(Object, file, File),
 		new(B, emacs_buffer(File)),

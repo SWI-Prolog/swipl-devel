@@ -15,15 +15,14 @@
 	  pce_end_recording/0
 	]).
 :- use_module(pce_operator).
-:- require([ between/3
+:- require([ append/3
+	   , between/3
 	   , concat/3
 	   , concat_atom/2
-	   , delete/3
-	   , append/3
+	   , file_base_name/2
 	   , flatten/2
 	   , forall/2
 	   , genarg/3
-	   , is_list/1
 	   , maplist/3
 	   , pce_error/1
 	   , pce_info/1
@@ -42,6 +41,17 @@
 
 pce_ifhostproperty(prolog(swi), (:- index(attribute(1,1,0)))).
 
+pce_ifhostproperty(prolog(sicstus),
+[(get(R, S, A)	     :- pce_principal:get(R, S, A)),
+ (get(R, S, P1, A)   :- pce_principal:get(R, S, P1, A)),
+ (send(R, S, P1, P2) :- pce_principal:send(R, S, P1, P2))
+]).
+
+pce_ifhostproperty(prolog(quintus),
+[(get(R, S, A)	     :- pce_principal:get(R, S, A)),
+ (get(R, S, P1, A)   :- pce_principal:get(R, S, P1, A)),
+ (send(R, S, P1, P2) :- pce_principal:send(R, S, P1, P2))
+]).
 
 		 /*******************************
 		 *	     OPERATORS		*
@@ -73,7 +83,7 @@ pop_compile_operators :-
 
 pce_term_expansion(In, Out) :-
 	pce_pre_expand(In, In0),
-	(   is_list(In0)
+	(   list(In0)
 	->  maplist(map_term_expand, In0, In1),
 	    flatten(In1, Out0),
 	    (	Out0 = [X]
@@ -82,6 +92,9 @@ pce_term_expansion(In, Out) :-
 	    )
 	;   do_term_expand(In0, Out)
 	).
+
+list([]).
+list([_|_]).
 
 map_term_expand(X, Y) :-
 	do_term_expand(X, Y), !.
@@ -210,24 +223,28 @@ do_expand((:- pce_end_class), Result) :-
 	pce_compiling(ClassName),
 	findall(M, retract(attribute(ClassName, send_method, M)), SMS),
 	findall(M, retract(attribute(ClassName, get_method,  M)), SGS),
+	findall(V, retract(attribute(ClassName, variable, V)),  Variables),
+	findall(R, retract(attribute(ClassName, resource, R)),  Resources),
+	findall(D, retract(attribute(ClassName, directive, D)), Directs),
 	dynamic_declaration(SMS, Decl1),
 	dynamic_declaration(SGS, Decl2),
 	method_clauses(ClassName, Clauses),
 	(   attribute(ClassName, extending, true)
-	->  dynamic_declaration([class(_,_,_,_,_,_)], ClassDecl),
+	->  ClassFact = class(ClassName, -, -,
+			      Variables,
+			      Resources,
+			      Directs),
+	    dynamic_declaration([ClassFact], ClassDecl),
 	    term_expand((:- initialization(pce_extended_class(ClassName))),
 			ExtendDecl),
 	    flatten([ Clauses,
-		      Decl1, SMS,
-		      Decl2, SGS,
-		      ClassDecl,
+		      Decl1,     SMS,
+		      Decl2,     SGS,
+		      ClassDecl, ClassFact,
 		      ExtendDecl
 		    ], Result)
 	;   retract(attribute(ClassName, super, Super)),
 	    retract(attribute(ClassName, meta, MetaClass)),
-	    findall(V, retract(attribute(ClassName, variable, V)),  Variables),
-	    findall(R, retract(attribute(ClassName, resource, R)),  Resources),
-	    findall(D, retract(attribute(ClassName, directive, D)), Directs),
 	    ClassFact = class(ClassName, MetaClass, Super,
 			      Variables,
 			      Resources,
@@ -272,8 +289,7 @@ do_expand(delegate_to(Var), []) :-
 		      send(@class, delegate, Var)).
 do_expand((:- pce_class_directive(Goal)), [(:- Goal)]) :-
 	pce_compiling(ClassName),
-	get(@classes, member, ClassName, C),
-	get(C, realised, @on), !.
+	realised_class(ClassName), !.
 do_expand((:- pce_class_directive(Goal)), []) :-
 	pce_compiling(ClassName),
 	add_attribute(ClassName, directive, Goal).
@@ -286,7 +302,8 @@ do_expand((Head :-> DocBody), []) :-
 	functor(PlHead, PredName, _),
 	strip_defaults([Group, Loc, Doc], NonDefArgs),
 	LSM =.. [bind_send_method, PredName, Types | NonDefArgs],
-	add_attribute(ClassName, method_clause, (PlHead :- Body)),
+	make_clause(PlHead, Body, Clause),
+	add_attribute(ClassName, method_clause, Clause),
 	add_attribute(ClassName, send_method,
 		      lazy_send_method(Selector, ClassName, LSM)),
 	feedback(expand_send(ClassName, Selector)).
@@ -300,7 +317,8 @@ do_expand((Head :<- DocBody), []) :-
 	functor(PlHead, PredName, _),
 	strip_defaults([Group, Loc, Doc], NonDefArgs),
 	LGM =.. [bind_get_method, RType, PredName, Types | NonDefArgs],
-	add_attribute(ClassName, method_clause, (PlHead :- Body)),
+	make_clause(PlHead, Body, Clause),
+	add_attribute(ClassName, method_clause, Clause),
 	add_attribute(ClassName, get_method,
 		      lazy_get_method(Selector, ClassName, LGM)),
 	feedback(expand_get(ClassName, Selector)).
@@ -368,6 +386,13 @@ break_class_specification(Term, ClassName, @default, TermArgs) :-
 	Term =.. [ClassName|TermArgs].
 
 
+pce_ifhostproperty(prolog(swi),
+(make_clause(Head, Body, '$source_location'(File, Line):(Head :- Body)) :-
+	source_location(File, Line))).
+make_clause(Head, Body, (Head :- Body)).
+
+
+
 		 /*******************************
 		 *	   DECLARATIONS		*
 		 *******************************/
@@ -416,11 +441,10 @@ push_class(ClassName) :-
 	;   push_compile_operators
 	),
 	asserta(compiling(ClassName)),
-	(   get(@classes, member, ClassName, Class),
-	    get(Class, realised, @on)
+	(   realised_class(ClassName)
 	->  get(@class, '_value', OldClassVal),
 	    asserta(attribute(ClassName, old_class_val, OldClassVal)),
-	    send(@class, assign, Class, global)
+	    send(@class, assign, ClassName, global)
 	;   true
 	).
 
@@ -694,6 +718,17 @@ pce_compiling(ClassName) :-
 
 pce_compiling :-
 	compiling(_), !.
+
+
+		 /*******************************
+		 *	      CHECKS		*
+		 *******************************/
+
+pce_ifhostproperty(qpc,
+(realised_class(_ClassName) :- fail),
+(realised_class(ClassName) :-
+	get(@classes, member, ClassName, Class),
+	get(Class, realised, @on))).
 
 
 		/********************************

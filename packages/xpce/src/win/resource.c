@@ -477,7 +477,7 @@ getResourceClassNameResource(Resource r)
 
 static Name
 getManIdResource(Resource r)
-{ char8 buf[LINESIZE];
+{ char buf[LINESIZE];
 
   sprintf(buf, "R.%s.%s",
 	  strName(instanceOfObject(r->context, ClassClass)
@@ -497,7 +497,7 @@ getManIndicatorResource(Resource r)
 
 static StringObj
 getManSummaryResource(Resource r)
-{ char8 buf[LINESIZE];
+{ char buf[LINESIZE];
 
   buf[0] = EOS;
   strcat(buf, "R\t");
@@ -524,7 +524,7 @@ getManSummaryResource(Resource r)
 
 static Name
 getPrintNameResource(Resource r)
-{ char8 buf[LINESIZE];
+{ char buf[LINESIZE];
 
   sprintf(buf, "%s.%s",
 	  strName(getResourceClassNameResource(r)),

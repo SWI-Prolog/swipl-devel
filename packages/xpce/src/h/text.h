@@ -39,6 +39,7 @@ NewClass(text_buffer)
   int		gap_start;		/* first location of the gap */
   int		gap_end;		/* last location of the gap */
   int		size;			/* # characters in buffer */
+  int		lines;			/* total number of lines */
   int		allocated;		/* allocated size */
   UndoBuffer	undo_buffer;		/* Undo log */
   string	buffer;			/* Actual buffer (with gap) */
@@ -80,6 +81,7 @@ NewClass(editor)
   ScrollBar	scroll_bar;		/* The scrollbar */
   TextMargin	margin;			/* The margin */
   TextCursor	text_cursor;		/* The cursor */
+  TextObj	label_text;		/* Text for the label */
   FontObj	font;			/* editors default font */
   Size		size;			/* Size in characters */
   Int		caret;			/* position of the caret */

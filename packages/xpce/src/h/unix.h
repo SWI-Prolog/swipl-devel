@@ -49,7 +49,7 @@
 
 #define ABSTRACT_STREAM \
   Code		input_message;		/* Message forwarded on input */ \
-  Regex		record_separator;	/* Separate input records */ \
+  Any		record_separator;	/* Separate input records */ \
   int		wrfd;			/* FD to write to process */ \
   int		rdfd;			/* FD to read from process */ \
   FILE *	rdstream;		/* Stream to read from process */ \

@@ -395,7 +395,7 @@ forAllHashTable(HashTable ht, Code code, Bool safe)
       if ( s->name )
 	TRY(forwardCode(code, s->name, s->value, 0));
   } else
-  { Symbol symbols = alloca(sizeof(struct symbol) * valInt(ht->size));
+  { Symbol symbols = (Symbol)alloca(sizeof(struct symbol) * valInt(ht->size));
     Symbol q = symbols;
 
     for(n=size, s=ht->symbols; n-- > 0; s++)
@@ -422,7 +422,7 @@ forSomeHashTable(HashTable ht, Code code, Bool safe)
       if ( s->name )
 	forwardCode(code, s->name, s->value, 0);
   } else
-  { Symbol symbols = alloca(sizeof(struct symbol) * valInt(ht->size));
+  { Symbol symbols = (Symbol)alloca(sizeof(struct symbol) * valInt(ht->size));
     Symbol q = symbols;
 
     for(n=size, s=ht->symbols; n-- > 0; s++)

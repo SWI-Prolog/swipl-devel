@@ -50,20 +50,20 @@ cloneCharArray(CharArray str, CharArray clone)
 static status
 storeCharArray(CharArray s, FileObj file)
 { TRY(storeSlotsObject(s, file));
-  return storeCharpFile(file, s->data.s_text8); /* TBD: full store! */
+  return storeCharpFile(file, (char *)s->data.s_text8); /* TBD: full store! */
 }
 
 
 static status
 loadCharArray(CharArray s, FILE *fd, ClassDef def)
-{ char *data;
+{ unsigned char *data;
 
   TRY(loadSlotsObject(s, fd, def));
-  if ( (data = loadCharp(fd)) )
+  if ( (data = (unsigned char *)loadCharp(fd)) )
   { String str = &s->data;
     
     str_inithdr(str, ENC_ASCII);
-    str->size     = strlen(data);
+    str->size     = strlen((char *)data);
     str->s_text8  = data;
   }
 
@@ -459,7 +459,9 @@ getScanCharArray(CharArray n, CharArray fmt)
   { Any argv[SCAN_MAX_ARGS];
     Int argc;
 
-    TRY(argc = scanstr(n->data.s_text8, fmt->data.s_text8, argv));
+    TRY(argc = scanstr((char *)n->data.s_text8,
+		       (char *)fmt->data.s_text8,
+		       argv));
     
     answer(answerObjectv(ClassVector, valInt(argc), argv));
   } else
@@ -502,8 +504,10 @@ void
 initCharArrays(void)
 { CharArray ca;
   int n;
+  int size = sizeof(struct char_array) * SCRATCH_CHAR_ARRAYS;
 
-  scratch_char_arrays = alloc(sizeof(struct char_array) * SCRATCH_CHAR_ARRAYS);
+  scratch_char_arrays = alloc(size);
+  memset(scratch_char_arrays, 0, size);
 
   for(ca=scratch_char_arrays, n = 0; n < SCRATCH_CHAR_ARRAYS; ca++, n++)
   { initHeaderObj(ca, ClassCharArray);
@@ -522,7 +526,7 @@ CtoScratchCharArray(const char *s)
     if ( name->data.s_text8 == NULL )
     { str_inithdr(&name->data, ENC_ASCII);
       name->data.size = strlen(s);
-      name->data.s_text8 = (char *) s;
+      name->data.s_text8 = (unsigned char *) s;
 
       return name;
     }

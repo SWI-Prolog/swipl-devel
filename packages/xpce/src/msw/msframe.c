@@ -195,16 +195,16 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	assign(fr, status, NAME_hidden);
       }
 
-      break;
+      goto repaint;
     }
 
     case WM_SETFOCUS:
       send(fr, NAME_inputFocus, ON, 0);
-      break;
+      goto repaint;
 
     case WM_KILLFOCUS:
       send(fr, NAME_inputFocus, OFF, 0);
-      break;
+      goto repaint;
 
     case WM_QUERYNEWPALETTE:
     case WM_PALETTECHANGED:
@@ -303,12 +303,17 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
       break;
 
     case WM_CHAR:
+    { Any id = toInt(wParam);
+
       if ( wParam == ' ' && IsDownKey(VK_CONTROL) )
-        wParam = 0;			/* ^-space --> ^@ */
-      if ( keyboard_event_frame(fr, toInt(wParam)) )
+        id = ZERO;			/* ^-space --> ^@ */
+      else if ( wParam == 8 && !IsDownKey(VK_CONTROL) )
+	id = NAME_backspace;
+
+      if ( keyboard_event_frame(fr, id) )
 	return 0;
       break;
-
+    }
     case WM_SYSCOMMAND:			/* prevent loosing the mouse on ALT */
       if ( (wParam & 0xfff0) == SC_KEYMENU )
 	return 0;
@@ -394,8 +399,13 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
     rewindAnswerStack(mark, NIL);
 
     if ( rval )
+    { RedrawDisplayManager(TheDisplayManager());
       return 0;
+    }
   }
+
+repaint:
+  RedrawDisplayManager(TheDisplayManager());
 
   return DefWindowProc(hwnd, message, wParam, lParam);
 }
@@ -452,25 +462,25 @@ keyboard_event_frame(FrameObj fr, Any id)
   EventObj ev;
   AnswerMark mark;
   status rval = FALSE;
-  
-  if ( id == toInt(8) )			/* should be conditional!!!! */
-    id = toInt(127);
-  if ( id == toInt(8+META_OFFSET) )
-    id = toInt(127+META_OFFSET);
+  Any receiver;
 
   get_point_frame(fr, &pt);
   if ( !(sw = get_window_holding_point(fr, &pt)) &&
        !(sw = getKeyboardFocusFrame(fr)) )
-    fail;
-  
+    receiver = fr;
+  else
+    receiver = sw;
+
   markAnswerStack(mark);
 
-  pt.x -= valInt(sw->area->x) + valInt(sw->pen);
-  pt.y -= valInt(sw->area->y) + valInt(sw->pen);
-  ev = answerObject(ClassEvent, id, sw, toInt(pt.x), toInt(pt.y), 0);
+  if ( sw )
+  { pt.x -= valInt(sw->area->x) + valInt(sw->pen);
+    pt.y -= valInt(sw->area->y) + valInt(sw->pen);
+  }
+  ev = answerObject(ClassEvent, id, receiver, toInt(pt.x), toInt(pt.y), 0);
 
   addCodeReference(ev);
-  rval = postEvent(ev, (Graphical) sw, DEFAULT);
+  rval = postEvent(ev, receiver, DEFAULT);
   delCodeReference(ev);
   freeableObj(ev);
 
@@ -478,7 +488,16 @@ keyboard_event_frame(FrameObj fr, Any id)
 
   RedrawDisplayManager(TheDisplayManager());
 
-  return rval;
+  succeed;
+}
+
+
+PceWindow
+ws_window_holding_point_frame(FrameObj fr)
+{ POINT pt;
+
+  get_point_frame(fr, &pt);
+  return userWindow(get_window_holding_point(fr, &pt));
 }
 
 

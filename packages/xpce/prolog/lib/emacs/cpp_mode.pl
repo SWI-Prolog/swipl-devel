@@ -7,26 +7,20 @@
     Copyright (C) 1993 University of Amsterdam. All rights reserved.
 */
 
-:- module('emacs_c++_mode', []).
+:- module(emacs_cpp_mode, []).
 :- use_module(library(pce)).
 :- require([ forall/2
 	   , ignore/1
 	   ]).
 
-:- pce_begin_class('emacs_c++_mode', emacs_c_mode).
-
-:- initialization
-	new(_KB, emacs_key_binding('c++', c)).
-
-:- initialization
-	new(_X, syntax_table('c++', c)).
-
-:- initialization
-	new(MM, emacs_mode_menu('c++', c)),
-	send(MM, append, pce, pce_insert_include_files),
-	send(MM, append, pce, pce_collect_selectors),
-	send(MM, append, pce, pce_replace_selectors),
-	send(MM, append, pce, pce_unreplace_selectors).
+:- emacs_begin_mode(cpp, c,
+		    "Mode for (XPCE) C++ programs",
+		    [ pce_insert_include_files = button(pce),
+		      pce_collect_selectors    = button(pce),
+		      pce_replace_selectors    = button(pce),
+		      pce_unreplace_selectors  = button(pce)
+		    ],
+		    []).
 
 from_pce('Arg',			'Pce').
 from_pce('Object',		'Pce').
@@ -106,4 +100,4 @@ collect(M, Re:regex, Reg:[int], Result) :<-
 	send(Result, sort),
 	send(Result, unique).
 
-:- pce_end_class.
+:- emacs_end_mode.

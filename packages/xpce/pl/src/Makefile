@@ -141,7 +141,7 @@ $(PLBASE)/xpce/lib/$(PLARCH):
 	(cd ../../lib; rm -f $(PLARCH); ln -s ../$(builddir) $(PLARCH))
 
 $(PLBASE)/Makefile: Makefile.bin
-	cp Makefile.bin $@
+	-cp Makefile.bin $@
 
 ################################################################
 # C++ Name mangling.  Not used right now

@@ -157,7 +157,7 @@ void		freeSparceCInfo(XColor **table, int depth);
 void		x11_set_gc_foreground(DisplayObj d, Any fg, int gcs, GC *gc);
 
 /* x11-conversion.c */
-XImage *	readImageFile(FILE *fd);
+XImage *	readImageFile(Image image, FILE *fd);
 XImage *	CreateXImageFromData(unsigned char *data, int w, int h);
 XImage *	read_ppm_file(Display *disp, Colormap map,
 			      int depth, FILE *fd);
@@ -171,6 +171,9 @@ status		findNearestColour(Display *display, Colormap map,
 int		intensityXColor(XColor *c);
 
 extern XtAppContext ThePceXtAppContext;	/* X toolkit application context */
+
+/* xmenu.c */
+Any		ws_3d_grey(void);
 
 #endif /*_PCE_X11_INCLUDED*/
 

@@ -304,6 +304,8 @@ static struct error_def errors[] =
     "%N: Cannot get %s selection: %s" },
   { NAME_cannotBecomeSelectionOwner, EF_REPORT,
     "%N: Cannot become selection owner" },
+  { NAME_noSelectionType,	ET_WARNING,
+    "%N: Selectiontype %s is not supported" },
 
 					/* Fonts */
   { NAME_noDefaultFont,		ET_FATAL,
@@ -405,7 +407,8 @@ static struct error_def errors[] =
     "%IMismatched bracket" },
   { NAME_noMatchingBracket,	EF_REPORT|ET_WARNING,
     "%INo matching bracket" },
-
+  { NAME_undoOverflow,		EF_REPORT|ET_IGNORED,
+    "%ICouldn't store undo information; check Pce.TextBuffer.undo_size" },
 					/* Tables */
   { NAME_badParameterKeyVector,	0,
     "%O: Bad parameter- or key-vector" },
@@ -565,6 +568,9 @@ static struct error_def errors[] =
 					/* Host */
   { NAME_noCallBack,		0,
     "%N: Host does not support call-back" },
+					/* Images */
+  { NAME_noImageFormat,		EF_REPORT,
+    "%N: Image format %s is not supported by this version" },
 					/* Miscellaneous */
   { NAME_readOnly,		0,
     "%N: Read only" },

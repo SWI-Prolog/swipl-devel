@@ -415,7 +415,8 @@ ClassDecl(date_decls,
 
 status
 makeClassDate(Class class)
-{ declareClass(class, &date_decls);
+{ assert(sizeof(time_t) == sizeof(Any));
+  declareClass(class, &date_decls);
 
   setLoadStoreFunctionClass(class, loadDate, storeDate);
 
