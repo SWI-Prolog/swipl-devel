@@ -43,12 +43,10 @@ encryption and finally, the
 communication.
 
 <P>Currently only <CODE>library(socket)</CODE> and <CODE>library(cgi)</CODE> 
-are available on MS-Windows based systems. The <CODE>library(unix)</CODE> 
-is very Unix specific, though it might be possible to compile it using 
-the Cygnus win32 tool-chain. The <CODE>library(crypt)</CODE> could be 
-ported using one of the available open-source implementations of the 
-crypt() function, but as it implements Unix password encryption it isn't 
-worth much on non-Unix systems.
+are available on the default MS-Windows distribution. The <CODE>library(unix)</CODE> 
+and
+<CODE>library(crypt)</CODE> libraries can be used if the whole 
+SWI-Prolog suite is compiled using <A HREF="http://www.cygwin.com">Cywin</A>.
 </TABLE>
 
 <H1><A NAME="document-contents">Table of Contents</A></H1>
@@ -175,12 +173,16 @@ remaining stream to communicate. Here is a simple example:
 <P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
 <PRE>
 
-pipe_demo(Result) :-
+:- use_module(library(unix)).
+
+fork_demo(Result) :-
         pipe(Read, Write),
         fork(Pid),
         (   Pid == child
         -&gt;  close(Read),
-            format(Write, '~w.~n', [hello(world)]),
+            format(Write, '~q.~n',
+                   [hello(world)]),
+            flush_output(Write),
             halt
         ;   close(Write),
             read(Read, Result),
