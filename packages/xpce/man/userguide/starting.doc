@@ -23,12 +23,11 @@ announce the \product{} library with the banner:
 
 \begin{code}
 % xpce
-~/.xpcerc compiled, 0.09 sec, 10,636 bytes.
-.plrc compiled, 0.10 sec, 11,772 bytes.
-XPCE Development system (5.1.0, February 2001 for i686-linux and X11R6)
-Copyright 1993-2001, University of Amsterdam.
-Copying: GPL-2 (see file COPYING or www.gnu.org)
-The host-language is SWI-Prolog version 4.0.0
+XPCE 6.0.0, February 2002 for i686-gnu-linux-gnu and X11R6
+Copyright (C) 1993-2002 University of Amsterdam.
+XPCE comes with ABSOLUTELY NO WARRANTY. This is free software,
+and you are welcome to redistribute it under certain conditions.
+The host-language is SWI-Prolog version 5.0.0
 
 For HELP on prolog, please type help. or apropos(topic).
          on xpce, please type manpce.

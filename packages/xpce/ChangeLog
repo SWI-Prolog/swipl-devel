@@ -1,11 +1,17 @@
 			   XPCE ChangeLog
 			   ==============
 
+VERSION 6.0.0, distributed with SWI-Prolog 5.0.0
+================================================
+
+* LICENSE: The license conditions have been changed to allow for building
+  non-free applications (LGPL and GPL+Exception)
+
 * ADDED: Bind cursor left/right to ->advance in dialog items.
   `device->advance' has a new `direction' argument.
 
 * MODIFIED: Unix/X11 version look-and-feel aspects of the classes button,
-  menu_bar, scroll_bar: including `gtk' look and feel.
+  menu_bar, scroll_bar, text_item, int_item: including `gtk' look and feel.
 
 * FIXED: Minor redraw issues when uncovering windows involving dialog items
   or text `with things sticking out'.

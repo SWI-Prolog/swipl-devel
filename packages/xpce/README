@@ -20,43 +20,32 @@ programmer and has bindings for X-windows (X11) and MS-Windows (Win32).
 
 Copyrights
 
-The copyright to XPCE is owned by  the University of Amsterdam, XPCE may
-be distributed under the terms of the   General Public License version 2
-(GPL-2),   which   is   available   in   the    file   COPYING   or   at
-http://www.gnu.org.
-
-As with the default hosting language SWI-Prolog, commercial licences are
-available that allow for the use with proprietary software. Please check
-the SWI-Prolog home-page for details at
-
-http://www.swi.psy.uva.nl/projects/SWI-Prolog
-
-or contact the author at
-
-	Jan Wielemaker
-	Dept. of Social Science Informatics (SWI)
-	University of Amsterdam
-	Roetersstraat 15
-	1018 WB  Amsterdam
-	The Netherlands
-	E-mail: jan@swi.psy.uva.nl
+The copyright to XPCE is owned by  the University of Amsterdam. The XPCE
+kernel (the C sources) are  distributed   under  the  Lesser GNU General
+Public License (LGPL). The XPCE/Prolog   libraries  are distibuted under
+the normal GNU General Public License (GPL) with an additional statement
+that allows using these files to   create  an executable program without
+the requirement on the licence  conditions.  This   is  the  same as the
+SWI-Prolog  copyright.  See  http://www.swi-prolog.org/license.html  for
+details and discussion.
 
 
 Installation
 
-See the file INSTALL for installing the binary version.  See COMPILATION
-for installing from the sources.
+See the file INSTALL for installing  the binary version. See COMPILATION
+for installing from the sources. Further information on building XPCE is
+also available from the SWI-Prolog and XPCE web pages.
 
 
 Bugs
 
-Bugs may be reported to  xpce-bugs@swi.psy.uva.nl.   Please indicate the
-PCE version, Prolog/Lisp system used.  If the  error can be isolated, it
-will generally be fixed, so it is in  your interrest to report the error
-in such a way that we can reproduce it.
+Bugs should be reported to xpce-bugs@swi.psy.uva.nl. Please indicate the
+XPCE version and Prolog/Lisp system  used   (if  not SWI-Prolog). If the
+error can be isolated, it will generally  be   fixed,  so  it is in your
+interrest to report the error in such a way that we can reproduce it.
 
 
 Warranty
 
 The authors, nor the Department or University PROVIDE ANY WARRANTY.  See
-the licence agreement for further details.
+the license agreement for further details.

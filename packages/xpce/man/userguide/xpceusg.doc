@@ -23,11 +23,11 @@
 \newcommand{\product}{{\sc xpce}}
 \newcommand{\plainproduct}{XPCE}
 \newcommand{\productpl}{{\sc xpce/p}rolog}
-\newcommand{\productversion}{5.1.0}
+\newcommand{\productversion}{6.0.0}
 \newcommand{\quintus}{Quintus}
 \newenvironment{xpceonly}{}{}
 \excludecomment{pwonly}
-\newcommand{\productdate}{March 2001}
+\newcommand{\productdate}{February 2002}
 
 \renewcommand{\runningtitle}{\product{} \productversion}
 \def\booktitle{Programming in XPCE/Prolog}
@@ -112,58 +112,49 @@ super-section, and sections that have subsections contain a
 \vfil
 
 \noindent
-{\bf Programming in \productpl{}} \\[2cm]
-Jan Wielemaker \\
-Anjo Anjewierden \\[1cm]
-\email{jan@swi.psy.uva.nl} \\
-\email{anjo@swi.psy.uva.nl}
-\vfil
-\noindent
+{\bf Programming in \productpl{}} \\[1cm]
+\begin{tabular}{ll}
+Jan Wielemaker   & \email{jan@swi.psy.uva.nl} \\
+Anjo Anjewierden & \email{anjo@swi.psy.uva.nl}
+\end{tabular}
+
+\vfil\noindent
 \productpl{} is a hybrid environment integrating logic programming and
 object-oriented programming for Graphical User Interfaces.  Applications
 in \productpl{} are fully compatible across the supported X11 and
-Win32 (Windows 95 and Windows NT) platforms.\\[10pt]
+Win32 (Windows 95/98/ME, NT/2000/XP) platforms.\\[10pt]
 
-\noindent
-\ifpw{
-%% ProWindows version
-This document also applies to ProWindows 3.1, distributed by \\[5pt]
-AI International Ltd \\
-Castle Chambers, High Street, \\
-Berkhamsted, Hertfordshire, \\
-HP4 2DF, United Kingdom \\
-E-mail: \email{sales@aiil.co.uk}}{
-%% Open source XPCE/SWI-Prolog version
+\vfil\noindent
 This document also applies to XPCE/Prolog \productversion{} distributed
 as integrated packages to SWI-Prolog. Sources and binaries may be
-downloaded from
+downloaded from \url{http://www.swi-prolog.org}
 
-\begin{quote}
-\url{http://www.swi.psy.uva.nl/products/SWI-Prolog/download.html}
-\end{quote}
+\vfil\noindent
+\product{} is distributed as Free Software with sufficient escapes to
+allow for producing non-free applications.  The kernel is distributed
+under the \emph{Lesser GNU Public License} (LGPL) and the Prolog sources
+under the \emph{GNU Public License} (GPL) with explicit permission to
+generate non-free executables.
 
-\noindent
-\product{} is distributed under the GPL (General Public Licence) version
-2 as available from the file COPYING or from \url{http://www.gnu.org}.
-{\bf Commercial licences}, preventing the GPL to be forced upon your
-proprietary code are available from the information URL mentioned
-below.}%ifpw
+\vfil\noindent
 Product information, documentation and additional resources specific to
-\product{} are available from
+\product{} are available from \url{http://www.swi.psy.uva.nl/products/xpce/}.
 
-\begin{quote}
-\url{http://www.swi.psy.uva.nl/products/xpce/}
-\end{quote}
+\vfil\noindent
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+(Lesser) GNU General Public License for more details.
 
 \vfil\vfil
 \noindent
 Titlepage created using \product{} 4.8.10 on Windows-NT 4.0
 \vfil
 \noindent
-Last updated February 2001 for \product{} version \productversion
+Last updated February 2002 for \product{} version \productversion
 \vfil
 \noindent
-Copyright \copyright\ 1992-2001 University of Amsterdam
+Copyright \copyright\ 1992-2002 University of Amsterdam
 \end{titlepage}
 \end{xpceonly}
 

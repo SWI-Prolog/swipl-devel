@@ -254,6 +254,12 @@ mixture of graphics and text.
 
 As of XPCE 5.1, the license terms have been changed from a proprietary
 license schema to the open source GPL-2 licence.
+
+As of XPCE 6.0, the licence terms have been changed from GPL to the
+more permissive LGPL for the XPCE kernel (compiled C-part) and GPL
+with an exception allowing for generating non-free applications with
+XPCE for the Prolog libraries.  Please visit the SWI-Prolog home page
+at \url{http://www.swi-prolog.org} for details.
 \end{xpceonly}
 
 \begin{pwonly}

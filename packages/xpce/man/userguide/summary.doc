@@ -1687,6 +1687,11 @@ Tiles are used to realise the `tile-layout' of windows in a
 can also be used to realise tabular layout of other re-sizable graphical
 objects.
 
+#class tile_adjuster "tile_adjuster(tile)"
+Small window displayed on top of a \class{frame} at the right/bottom
+of a user-adjustable window. Dragging this window allows the user the
+adjust the subwindow layout.
+
 #class timer "timer(interval, message)"
 Timers are used to initiate messages at regular intervals, schedule
 a single message in the future or delay execution for a specified

@@ -1,13 +1,25 @@
 /*  $Id$
 
-    Part of XPCE
+    Part of XPCE --- The SWI-Prolog GUI toolkit
 
-    Author:  Jan Wielemaker and Anjo Anjewierden
-    E-mail:  jan@swi.psy.uva.nl
-    WWW:     http://www.swi.psy.uva.nl/projects/xpce/
-    Copying: GPL-2.  See the file COPYING or http://www.gnu.org
+    Author:        Jan Wielemaker and Anjo Anjewierden
+    E-mail:        jan@swi.psy.uva.nl
+    WWW:           http://www.swi.psy.uva.nl/projects/xpce/
+    Copyright (C): 1985-2002, University of Amsterdam
 
-    Copyright (C) 1990-2001 SWI, University of Amsterdam. All rights reserved.
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #if !defined(WIN32) && !defined(__WIN32__)
@@ -26,10 +38,6 @@
 #include <h/graphics.h>
 #include <h/unix.h>
 #include <errno.h>
-
-#ifdef O_LICENCE
-#include "../../../licence/licence.h"
-#endif
 
 #ifdef __WIN32__
 #undef MACHINE
@@ -550,52 +558,28 @@ getNoFreedPce(Pce pce)
 
 
 static status
-licenceInfoPce(Pce pce)
-{ Name holder    = getAttributeObject(pce, NAME_licenceHolder);
-  Int  left      = getAttributeObject(pce, NAME_daysToExpiration);
-  Bool nolicence = getAttributeObject(pce, NAME_unlicencedCopy);
-
-  if ( nolicence == ON )
-  { if ( holder )
-      writef("Licence to %s has expired\n", holder);
-    else
-      writef("Unlicenced copy\n");
-  } else if ( holder )
-  { if ( left && valInt(left) < 15 )
-      writef("Licenced to %s, %d days to expiration\n", holder, left);
-    else
-      writef("Licenced to %s\n", holder);
-  }
-
-  succeed;
-}
-
-
-static status
 bannerPce(Pce pce)
 { Name host = get(HostObject(), NAME_system, EAV);
 
 #ifdef __WIN32__
-  writef("XPCE %s (%s for %I%IWin32: NT and '9x%I%I)\n",
+  writef("XPCE %s for %I%IWin32: NT and '9x%I%I\n",
 #else
-  writef("XPCE %s (%s for %s-%s and X%dR%d)\n",
+  writef("XPCE %s for %s-%s and X%dR%d\n",
 #endif
-	 CtoString(getIsRuntimeSystemPce(pce) == ON
-		   	? "Runtime system"
-		        : "Development system"),
 	 pce->version,
 	 pce->machine,
 	 pce->operating_system,
 	 pce->window_system_version,
 	 pce->window_system_revision);
-
-  writef("Copyright 1993-2001, University of Amsterdam.\n");
-  writef("Copying: GPL-2 (see file COPYING or www.gnu.org)\n");
+  writef("Copyright (C) 1993-2002 University of Amsterdam.\n"
+	 "XPCE comes with ABSOLUTELY NO WARRANTY. "
+	 "This is free software,\nand you are welcome to redistribute it "
+	 "under certain conditions.\n");
 
   if ( host != NAME_unknown )
     writef("The host-language is %s\n", host);
 
-  return licenceInfoPce(pce);
+  succeed;
 }
 
 
@@ -648,9 +632,7 @@ infoPce(Pce pce)
   writef("	Jan Wielemaker\n");
   writef("\n");
 
-  writef("Copyright (C) 1993-2001 University of Amsterdam.\n");
-  writef("Copying: GPL-2 (see file COPYING or www.gnu.org)\n");
-  writef("\n\n");
+  bannerPce(PCE);
 
   succeed;
 }
@@ -1777,90 +1759,6 @@ pceInitialise(int handles, const char *home, int argc, char **argv)
 #endif
   }
 
-#ifdef O_LICENCE
-  if ( check_licence() != LICENCE_MAGIC )
-    ClassEvent->initialise_method = (SendMethod)0x47;
-#endif
-
   DEBUG_BOOT(Cprintf("Initialisation complete.\n"));
   succeed;
 }
-
-		 /*******************************
-		 *	  LICENCE STUFF		*
-		 *******************************/
-
-#ifdef O_LICENCE
-extern void ws_timer();
-
-#ifndef MAXPATHLEN
-#define MAXPATHLEN 1024
-#endif
-
-#undef TEST
-#define check_passwd pceSetup
-#include "../../../licence/licence.c"
-
-
-int
-check_licence()
-{ Name h = get(PCE, NAME_home, EAV);
-  char pwdfile[MAXPATHLEN];
-
-  if ( h )
-  { FILE *fd;
-
-    sprintf(pwdfile, "%s/passwd", strName(h));
-
-    if ( (fd = fopen(pwdfile, "r")) )
-    { char holder[100];
-      int left;
-      int ok;
-      
-      holder[0] = EOS;
-
-      switch((left = check_passwd(fd, "xpce", holder)))
-      { case LIC_NONE:
-	case LIC_EXPIRED:
-	{ int rleft;
-
-	  rewind(fd);
-	  switch((rleft = check_passwd(fd, "xpce-runtime", holder)))
-	  { case LIC_NONE:
-	    case LIC_EXPIRED:
-	      rleft = 0;
-	      /* setup runtime stuff */
-	      ok = FALSE;
-	      break;
-	    case LIC_OK:
-	      rleft = 0;
-	    default:
-	      ok = TRUE;
-	  }
-	  left = rleft;
-	  break;
-	}
-	case LIC_OK:			/* permanent licence */
-	  left = 0;
-	default:			/* temp licence */
-	  ok = TRUE;
-      }
-
-      fclose(fd);
-      if ( holder[0] )
-	attributeObject(PCE, NAME_licenceHolder, CtoName(holder));
-      if ( left )
-	attributeObject(PCE, NAME_daysToExpiration, toInt(left));
-
-      if ( ok )
-	return LICENCE_MAGIC;
-    }
-  }
-
-  attributeObject(PCE, NAME_unlicencedCopy, ON);
-  ws_timer(20*60);
-
-  return LICENCE_MAGIC;
-}
-
-#endif /*O_LICENCE*/
