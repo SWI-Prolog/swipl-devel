@@ -11,6 +11,7 @@
 \cmacro{-}{-}{+}=item		1 0
 \fmtchar{+}=item		1 0
 \prologflagitem{-}{-}{-}=item	1 0
+\glossitem{-}=item
 \predref{+}{-}
 \functor{+}{-}
 \compound{+}{+}

@@ -2379,7 +2379,6 @@ implicit_par(html('<H4>')).
 implicit_par(html('<PRE>')).
 implicit_par(html('<XMP>')).
 implicit_par(html('<DL>')).
-implicit_par(html('<DT>')).
 implicit_par(html('<TABLE>')).
 %implicit_par(html('<CENTER>')).
 implicit_par(html('<BLOCKQUOTE>')).

@@ -192,6 +192,51 @@ cmd(texcmd({Name}), #code([nospace(\), Name])).
 cmd(texenv({Name}), #code(Name)).
 cmd(texmode({Name}), #var(Name)).
 
+cmd(glossitem({Term}), #defitem(#label(RefName, #strong(Term)))) :-
+	canonise_glossitem(Term, Ref),
+	sformat(RefName, 'gloss:~w', [Ref]).
+cmd(g({Term}),	#lref(RefName, Term)) :-
+	canonise_glossitem(Term, Ref),
+	sformat(RefName, 'gloss:~w', [Ref]).
+
+
+		 /*******************************
+		 *	     GLOSSARY		*
+		 *******************************/
+
+canonise_glossitem(In, Out) :-
+	downcase_atom(In, In1),
+	atom_codes(In1, Chars0),
+	(   append(CharsPre, [0'[|_], Chars0)
+	->  remove_trailing_spaces(CharsPre, Chars1)
+	;   Chars1 = Chars0
+	),
+	(   append(Chars2, "s", Chars1)
+	->  true
+	;   Chars2 = Chars1
+	),
+	maplist(canonical_char, Chars2, Chars),
+	atom_codes(Out0, Chars),
+	canonical(Out0, Out).
+
+canonical(unified, unify) :- !.
+canonical(bound, binding) :- !.
+canonical(proven, prove) :- !.
+canonical(succeeded, succeed) :- !.
+canonical(compiled, compile) :- !.
+canonical(propertie, property) :- !.	% s has alredy gone
+canonical(X, X).
+
+canonical_char(0' , 0'-) :- !.
+canonical_char(0'_, 0'-) :- !.
+canonical_char(X, X).
+
+remove_trailing_spaces([], []).
+remove_trailing_spaces([0' |T], []) :-
+	checklist(=(0' ), T), !.
+remove_trailing_spaces([H|T0], [H|T]) :-
+	remove_trailing_spaces(T0, T).
+
 		 /*******************************
 		 *               C		*
 		 *******************************/
