@@ -2519,7 +2519,11 @@ PL_dispatch_hook(PL_dispatch_hook_t hook)
 }
 
 
-#ifdef HAVE_SELECT
+#if defined(HAVE_SELECT) && !defined(WIN32)
+
+#ifdef WIN32
+#include <winsock2.h>
+#endif
 
 static int
 input_on_fd(int fd)
