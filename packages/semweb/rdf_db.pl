@@ -159,8 +159,8 @@ user:goal_expansion(rdf_assert(Subj0, Pred0, Obj0),
 	rdf_global_id(Subj0, Subj),
 	rdf_global_id(Pred0, Pred),
 	rdf_global_id(Obj0, Obj).
-user:goal_expansion(rdf_retract(Subj0, Pred0, Obj0),
-		    rdf_retract(Subj, Pred, Obj)) :-
+user:goal_expansion(rdf_retractall(Subj0, Pred0, Obj0),
+		    rdf_retractall(Subj, Pred, Obj)) :-
 	rdf_global_id(Subj0, Subj),
 	rdf_global_id(Pred0, Pred),
 	rdf_global_id(Obj0, Obj).
@@ -179,8 +179,8 @@ user:goal_expansion(rdf_assert(Subj0, Pred0, Obj0, PayLoad),
 	rdf_global_id(Subj0, Subj),
 	rdf_global_id(Pred0, Pred),
 	rdf_global_id(Obj0, Obj).
-user:goal_expansion(rdf_retract(Subj0, Pred0, Obj0, PayLoad),
-		    rdf_retract(Subj, Pred, Obj, PayLoad)) :-
+user:goal_expansion(rdf_retractall(Subj0, Pred0, Obj0, PayLoad),
+		    rdf_retractall(Subj, Pred, Obj, PayLoad)) :-
 	rdf_global_id(Subj0, Subj),
 	rdf_global_id(Pred0, Pred),
 	rdf_global_id(Obj0, Obj).
