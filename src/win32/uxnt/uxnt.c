@@ -109,6 +109,7 @@ _xos_home()				/* expansion of ~ */
   if ( !done )
   { char h[MAXPATHLEN];
 
+					/* Unix, set by user */
     if ( GetEnvironmentVariable("HOME", h, sizeof(h)) )
     { _xos_canonical_filename(h, home);
     } else
@@ -120,7 +121,7 @@ _xos_home()				/* expansion of ~ */
       haved = GetEnvironmentVariable("HOMEDRIVE", d, sizeof(d));
       havep = GetEnvironmentVariable("HOMEPATH",  p, sizeof(p));
 
-      if ( haved && havep )
+      if ( haved && havep )		/* Windows-NT */
       { strcpy(tmp, d);
 	strcat(tmp, p);
 	_xos_canonical_filename(tmp, home);
@@ -131,7 +132,10 @@ _xos_home()				/* expansion of ~ */
       } else if ( havep )
       { _xos_canonical_filename(p, home);
       } else
-      { strcpy(home, "/");
+      { int drv = _getdrive();		/* A=1 */
+
+	home[0] = drv-1+'a';
+	strcpy(home+1, ":/");
       }
     }
 
