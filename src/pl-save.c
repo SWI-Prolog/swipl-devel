@@ -512,7 +512,7 @@ save(char *file, char *interpreter, int kind,
 #if OS2
   sprintf(buf, "/* Self-starting SWI-Prolog state */\r\n'@ECHO OFF'\r\nparse source . . name\r\n\"%s -r \" name arg(1)\r\nexit\r\n\032", OsPath(interpreter));
 #else
-  sprintf(buf, "#!/bin/sh\nexec %s -r $0 $@\n", OsPath(interpreter));
+  sprintf(buf, "#!/bin/sh\nexec %s -r $0 \"$@\"\n", OsPath(interpreter));
 #endif
   header_offset = strlen(buf) + 1; /* +1 to write the EOS too */
   DEBUG(1, printf("header_offset = %d\n", header_offset));

@@ -115,7 +115,7 @@ word		Putf();
 #else 
 word		Putf(char *, ...);
 #endif
-word		vPutf(char *, char *),
+word		vPutf(char *, va_list),
 		pl_tty(void),
 		pl_tty_fold(Word, Word),
 		pl_put(Word),
@@ -333,9 +333,9 @@ word		pl_dde_request(Word handle, Word item, Word value);
 bool		sysError(char *fm , ...),
 		fatalError(char *fm , ...),
 		warning(char *fm , ...),
-		vsysError(char *fm , char *),
-		vfatalError(char *fm , char *),
-		vwarning(char *fm , char *);
+		vsysError(char *fm , va_list),
+		vfatalError(char *fm , va_list),
+		vwarning(char *fm , va_list);
 int		startProlog(int, char **, char **);
 
 		/* pl-modul.c */

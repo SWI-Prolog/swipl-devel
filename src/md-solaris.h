@@ -14,9 +14,9 @@ NOTE:	/lri2/jan/{lib,include} hold the GNU readline library.  Modify
 
 #define M_CC			gcc
 #define M_OPTIMIZE	        -O2
-#define M_LDFLAGS		-L/lri2/jan/lib
+#define M_LDFLAGS		-L/lri2/jan/lib -Wl,-Bstatic
 #define M_CFLAGS		-Wall -funsigned-char -I/lri2/jan/include
-#define M_LIBS			-lm -ltermcap -lreadline -lelf
+#define M_LIBS			-lm -ltermcap -lreadline -lelf -Wl,-Bdynamic -ldl
 
 			/* compiler */
 #define solaris			1
@@ -32,6 +32,8 @@ NOTE:	/lri2/jan/{lib,include} hold the GNU readline library.  Modify
 #define O_NO_SEGV_ADDRESS	1
 #define MAX_VIRTUAL_ADDRESS	(512 * 1024 *1024)
 #define O_FOREIGN		0
+#define O_DLOPEN		1
+#define O_GETCWD		1
 #define O_SAVE			1
 #define O_ELF			1
 #define O_SAVE_STDIO		1
