@@ -60,5 +60,5 @@ if confirm "Tag the CVS repository with $cvstag? "; then
     cvs rtag $cvstag pl
 fi
 if confirm "Upload new LSM entry to lsm@execpc.com? "; then
-    mail -s add < pl.lsm
+    mail -s add lsm@execpc.com < pl.lsm
 fi
