@@ -3682,7 +3682,7 @@ process_pi(dtd_parser *p, const ichar *decl)
     { dtd_symbol *nm;
 
       if ( (s=itake_name(dtd, decl, &nm)) &&
-	   (s=isee_func(dtd, s, CF_VI)) )
+	   (s=isee_func(dtd, s, CF_VI)) ) 		/* = */
       { ichar *start; int len;
 	char buf[MAXSTRINGLEN];
 	const ichar *end;
@@ -3694,12 +3694,20 @@ process_pi(dtd_parser *p, const ichar *decl)
 	}
 
 	if ( end )
-	{ const char *enc = "encoding";
-	  int l = strlen(enc);
-	  decl = end;
+	{ decl = end;
 
-	  if ( l == len && istrncaseeq(nm->name, enc, len) )
-	    set_encoding(p, buf);
+	  if ( istrcaseeq(nm->name, "encoding") )
+	  { char tmp[256];
+
+	    if ( len < sizeof(tmp)-1 )
+	    { strncpy(tmp, start, len);
+	      tmp[len] = '\0';
+	      
+	      set_encoding(p, tmp);
+	    } else
+	    { gripe(ERC_SYNTAX_ERROR, "Unterminated encoding?", decl);
+	    }
+	  }
 
 	  /* fprintf(stderr, "XML %s = %s\n", nm->name, buf); */
 
