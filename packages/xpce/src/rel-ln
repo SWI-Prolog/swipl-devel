@@ -1,0 +1,75 @@
+#!/bin/sh
+# Author: Stepan Kasal <kasal@suse.cz>
+#
+# Version: 0.1
+#	this shell script is public domain ;-)
+# Modified: Thu Feb 17 2000 (JW)
+#	Avoid use of ln -sf (GNU specific)
+#	Avoid use of GNU sed extensions
+#	If all fails due to other links, make an absolute link.
+# Modified: Thu Mar  9 2000 (JW)
+#	Avoid using grep -q (GNU specific)
+#
+# Purpose: Make relative links between the binary and lib directory to
+# achieve a relocatable object.  Notably useful for generating RPM files.
+
+check_path()
+{ case "$1" in
+    /*) ;;
+    *)  echo "Error: $1 isn't absolute path" >&2
+        exit 1
+        ;;
+  esac
+}
+
+compare()
+{ test $# = 4 && test "$1" = "$3" && from=$2 && to=$4
+}
+
+if test $# != 2 ; then
+  echo "usage:  $0 from to
+	creates relative symbolic link from \$1 to \$2" >&2
+  exit 1
+fi
+
+from=$1
+to=$2
+
+check_path $from
+check_path $to
+
+# Make sure $to points to destination file instead of dir
+
+if [ -d $to ]; then
+  to=$to/`basename $from`;
+fi
+
+abs_to="$to"
+abs_from="$from"
+
+# Remove leading / and replace repeated // into a single /
+
+from=`echo $from | sed -e 's,//*,/,g' -e 's,/,,'`
+to=`echo $to | sed -e 's,//*,/,g' -e 's,/,,'`
+
+# Now get rid of the common start.
+
+while compare `echo $from|sed "s,/, ,"` `echo $to|sed "s,/, ,"`
+do test a = a
+done
+
+# Remove all but the last segment of $to into .. and put the from after this
+
+relf="`echo $to | sed -e 's,[^/][^/]*/,../,g' -e 's,[^/][^/]*$,,'`$from"
+
+rm -f "$abs_to"
+
+# Now, all can be in vain due to other symbolic links.  If this is the case,
+# link absolute after all.
+
+if (cd `dirname $abs_to` && test -f $relf); then
+   ln -s "$relf" "$abs_to"
+else
+   echo "`basename $0`: Making abolute link to $abs_from"
+   ln -s "$abs_from" "$abs_to"
+fi

@@ -69,6 +69,7 @@ ARFLAGS=ru
 ETAGS=@ETAGS@
 SED=sed
 RM=rm
+REL_LN=$(srcdir)/rel-ln
 INSTALL=./xpce-install
 INSTALL_PROGRAM=./xpce-install -m 755
 INSTALL_DATA=./xpce-install -m 644
@@ -654,19 +655,19 @@ dv-install:	rt-install dv-home dv-lib dv-boot dv-help \
 	        dv-link dv-pl-files dv-manual dv-man \
 		dv-misc cxx-install dv-qlf dv-bins
 
-rpm-install:	$(MANINDEX)
-		make RTHOME=$(libdir)/xpce-$(PCEVERSION) rpm-do-install
-
-rpm-do-install:	rt-home rt-misc rt-bitmaps rt-bins rpm-link \
+rpm-install:	manindex rt-home rt-misc rt-bitmaps rt-bins rpm-link \
 		dv-lib dv-boot dv-help dv-pl-files dv-manual dv-man \
 		dv-misc cxx-install rpm-bins
 
-rpm-bins:
-		(cd $(bindir); \
-		 rm -f xpce; ln -s $(PLBINDIR)/xpce xpce)
+manindex:	$(MANINDEX)
+
+rpm-bins::
+		rm -f $(bindir)/xpce
+		$(REL_LN) $(PLBINDIR)/pl $(bindir)/xpce
 		$(INSTALL_PROGRAM) xpce-client $(bindir)
-rpm-link:
-		cd $(PLBASE); rm -f xpce; ln -s $(RTHOME) xpce
+rpm-link::
+		rm -f $(PLBASE)/xpce
+		$(REL_LN) $(RTHOME) $(PLBASE)/xpce
 
 #	runtime only stuff
 
