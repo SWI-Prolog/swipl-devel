@@ -180,6 +180,12 @@ Set options on an existing connection. Defined options are:
 <DL>
 
 <P>
+<DT><STRONG>access_mode</STRONG>(<VAR>Mode</VAR>)<DD>
+If <CODE>read</CODE>, tell the driver we only access the database in 
+read mode. If <CODE>update</CODE> (default), tell the driver we may 
+execute update commands.
+
+<P>
 <DT><STRONG>auto_commit</STRONG>(<VAR>bool</VAR>)<DD>
 If <CODE>true</CODE> (default), each update statement is committed 
 immediately. If <CODE>false</CODE>, an update statement starts a 
@@ -198,6 +204,48 @@ The representation <CODE>null(_)</CODE> is a commonly used alternative.
 connection. Changing the connection default does not affect already 
 prepared or running statements. The null-value can also be specified at 
 the statement level.
+</DL>
+
+<P>
+<DT><A NAME="odbc_get_connection/2"><STRONG>odbc_get_connection</STRONG>(<VAR>+Connection, 
+?Property</VAR>)</A><DD>
+Query for properties of the connection. <VAR>Property</VAR> is a term of 
+the format <CODE><VAR>Name</VAR>(<VAR>Value</VAR>)</CODE>. If <VAR>Property</VAR> 
+is unbound all defined properties are enumerated on backtracking. 
+Currently the following properties are defined.
+
+<DL>
+
+<P>
+<DT><STRONG>database_name</STRONG>(<VAR>Name</VAR>)<DD>
+Name of the database associated to the connection.
+
+<P>
+<DT><STRONG>dbms_name</STRONG>(<VAR>Name</VAR>)<DD>
+Name of the database engine. This constant can be used to identify the 
+engine.
+
+<P>
+<DT><STRONG>dbms_version</STRONG>(<VAR>Name</VAR>)<DD>
+Version identifier from the database engine.
+
+<P>
+<DT><STRONG>driver_name</STRONG>(<VAR>Name</VAR>)<DD>
+ODBC Dynamic Link Library providing the interface between ODBC and the 
+database.
+
+<P>
+<DT><STRONG>driver_odbc_version</STRONG>(<VAR>driver_odbc_version</VAR>)<DD>
+DBC version supported by the driver.
+
+<P>
+<DT><STRONG>driver_version</STRONG>(<VAR>driver_version</VAR>)<DD>
+he drivers version identifier.
+
+<P>
+<DT><STRONG>active_statements</STRONG>(<VAR>active_statements</VAR>)<DD>
+aximum number of statements that can be active at the same time on this 
+connection. Returns 0 (zero) if this is unlimited.
 </DL>
 
 </DL>

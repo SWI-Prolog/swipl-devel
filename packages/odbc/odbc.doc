@@ -167,6 +167,9 @@ the database.
 ODBC version supported by the driver.
     \termitem{driver_version}
 The drivers version identifier.
+    \termitem{active_statements}
+Maximum number of statements that can be active at the same time on
+this connection.  Returns 0 (zero) if this is unlimited.
 \end{description}
 \end{description}
 

@@ -930,16 +930,19 @@ Options for SQLGetInfo() from http://msdn.microsoft.com/library/default.asp?url=
 typedef struct
 { const char *name;
   UWORD id;
+  enum { text, sword } type;
   functor_t functor;
 } conn_option;
 
 static conn_option conn_option_list[] = 
-{ { "database_name",	   SQL_DATABASE_NAME },
-  { "dbms_name",           SQL_DBMS_NAME },
-  { "dbms_version",        SQL_DBMS_VER },
-  { "driver_name",         SQL_DRIVER_NAME },
-  { "driver_odbc_version", SQL_DRIVER_ODBC_VER },
-  { "driver_version",      SQL_DRIVER_VER },
+{ { "database_name",	   SQL_DATABASE_NAME, text },
+  { "dbms_name",           SQL_DBMS_NAME, text },
+  { "dbms_version",        SQL_DBMS_VER, text },
+  { "driver_name",         SQL_DRIVER_NAME, text },
+  { "driver_odbc_version", SQL_DRIVER_ODBC_VER, text },
+  { "driver_version",      SQL_DRIVER_VER, text },
+  { "driver_version",      SQL_DRIVER_VER, text },
+  { "active_statements",   SQL_ACTIVE_STATEMENTS, sword },
   { NULL, 0 }
 };
 
@@ -948,7 +951,7 @@ odbc_get_connection(term_t conn, term_t option, control_t h)
 { connection *cn;
   conn_option *opt;
   functor_t f;
-  term_t a;
+  term_t a, val;
 
   switch(PL_foreign_control(h))
   { case PL_FIRST_CALL:
@@ -978,6 +981,7 @@ odbc_get_connection(term_t conn, term_t option, control_t h)
   }
 
 find:
+  val = PL_new_term_ref();
   a = PL_new_term_ref();
   PL_get_arg(1, option, a);
 
@@ -998,11 +1002,27 @@ find:
 	  continue;
       }
 
-      if ( f )
-	return PL_unify_atom_nchars(a, len, buf);
+      switch( opt->type )
+      { case text:
+	  PL_put_atom_nchars(val, len, buf);
+	  break;
+	case sword:
+	{ SQLSMALLINT v = *((SQLSMALLINT*)buf);
+	  PL_put_integer(val, v);
+	  break;
+	}
+	default:
+	  assert(0);
+	return FALSE;
+      }
 
-      PL_unify_term(option, PL_FUNCTOR, opt->functor,
-		    PL_NCHARS, len, buf);
+
+      if ( f )
+	return PL_unify(a, val);
+
+      PL_unify_term(option,
+		    PL_FUNCTOR, opt->functor,
+		    PL_TERM, val);
 
       if ( opt[1].name )
 	PL_retry_address(opt+1);
