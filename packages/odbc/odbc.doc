@@ -410,7 +410,14 @@ Prolog.
 \end{description}
 
 \arg{Options} defines a list of options for executing the statement.  See
-odbc_query/4 for details.
+odbc_query/4 for details. In addition, the following option is provided:
+
+    \begin{description}
+        \termitem{fetch}{FetchType}
+Determine the \arg{FetchType}, which is one of \const{auto} (default) to
+extract the result-set on backtracking or \const{fetch} to prepare the
+result-set to be fetched using odbc_fetch/3.
+    \end{description}
 
     \predicate{odbc_execute}{3}{+Statement, +ParameterValues, -RowOrAffected}
 Execute a statement prepared with odbc_prepare/4 with the given
@@ -450,13 +457,93 @@ destruction is delayed until the execution terminates.
 \end{description}
 
 
+\subsubsection{Fetching rows explicitely}	\label{sec:sqlfetch}
+
+Normally SQL queries return a result-set that is enumerated on
+backtracking.  Using this approach a result-set is similar to a
+predicate holding facts.  There are some cases where fetching the
+rows one-by-one, much like read/1 reads terms from a file is more
+appropriate and there are cases where only part of the result-set
+is to be fetched.  These cases can be dealt with using odbc_fetch/3,
+which provides an interface to SQLFetchScroll().
+
+As a general rule of thumb, stay away from these functions if you do
+not really need them.  Experiment before deciding on the strategy and
+often you'll discover the simply backtracking approach is much easier
+to deal with and about as fast.
+
+\begin{description}
+    \predicate{odbc_fetch}{3}{+Statement, -Row, +Option}
+Fetch a row from the result-set of \arg{Statement}.  \arg{Statement}
+must be created with odbc_prepare/5 using the option \term{fetch}{fetch}
+and be executed using odbc_execute/2.  \arg{Row} is unified to the 
+fetched row or the atom \const{end_of_file}%
+	\footnote{This atom was selected to emphasise the similarity
+		  to read.}
+after the end of the data is reached.  Calling odbc_fetch/2 after all
+data is retrieved causes a permission-error exception. \arg{Option} is
+one of:
+
+    \begin{description}
+	\termitem{next}{}
+Fetch the next row.  
+	\termitem{prior}{}
+Fetch the result-set going backwards.
+	\termitem{first}{}
+Fetch the first row.
+	\termitem{last}{}
+Fetch the last row.
+	\termitem{absolute}{Offset}
+Fetch absolute numbered row.  Rows count from one.
+	\termitem{relative}{Offset}
+Fetch relative to the current row.  \term{relative}{1} is the same
+as \term{next}{}, except that the first row extracted is row 2.
+	\termitem{bookmark}{Offset}
+Reserved.  Bookmarks are not yet supported in this interface.
+    \end{description}
+
+In many cases, depending on the driver and RDBMS, the cursor-type
+must be changed using odbc_set_connection/2 for anything different
+from \term{next}{} to work.
+
+Here is example code each time skipping a row from a table `test'
+holding a single column of integers that represent the row-number.
+This test was executed using unixODBC and MySQL on SuSE Linux.
+
+\begin{code}
+fetch(Options) :-
+	odbc_set_connection(test, cursor_type(static)),
+	odbc_prepare(test,
+		     'select (testval) from test',
+		     [],
+		     Statement,
+		     [ fetch(fetch)
+		     ]),
+	odbc_execute(Statement, []),
+	fetch(Statement, Options).
+
+fetch(Statement, Options) :-
+	odbc_fetch(Statement, Row, Options),
+	(   Row == end_of_file
+	->  true
+	;   writeln(Row),
+	    fetch(Statement, Options)
+	).
+\end{code}
+    
+    \predicate{odbc_close_statement}{+Statement}
+Closes the given statement (without freeing it).  This must be used
+if not the whole result-set is retrieved using odbc_fetch/3.
+\end{description}
+
+
 \subsection{Transaction management}		\label{sec:sqltrans}
 
 ODBC can run in two modi. By default, all update actions are immediately
-committed on the server.  Using odbc_set_connection/2 this behaviour can
+committed on the server. Using odbc_set_connection/2 this behaviour can
 be switched off, after which each SQL statement that can be inside a
-transaction implicitly starts a new transaction.   This transaction can
-be ended using odbc_end_transaction/2.
+transaction implicitly starts a new transaction. This transaction can be
+ended using odbc_end_transaction/2.
 
 \begin{description}
     \predicate{odbc_end_transaction}{2}{+Connection, +Action}

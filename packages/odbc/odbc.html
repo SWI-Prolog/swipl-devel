@@ -54,6 +54,7 @@ interface only covers the first layer.
 <UL>
 <LI><A HREF="#sec:2.2.1">2.2.1 One-time invocation</A>
 <LI><A HREF="#sec:2.2.2">2.2.2 Parameterised queries</A>
+<LI><A HREF="#sec:2.2.3">2.2.3 Fetching rows explicitely</A>
 </UL>
 <LI><A HREF="#sec:2.3">2.3 Transaction management</A>
 <LI><A HREF="#sec:2.4">2.4 Accessing the database dictionary</A>
@@ -77,6 +78,7 @@ interface only covers the first layer.
 </UL>
 <LI><A HREF="#sec:4"><B>4 Acknowledgments</B></A>
 </UL>
+<LI><A HREF="#sec:1"><STRONG>1 Bibliography</STRONG></A>
 
 <H2><A NAME="sec:1">1 Introduction</A></H2>
 
@@ -522,21 +524,30 @@ representation in Prolog.
 <P><VAR>Options</VAR> defines a list of options for executing the 
 statement. See
 <A NAME="idx:odbcquery4:19"></A><A HREF="#odbc_query/4">odbc_query/4</A> 
-for details.
+for details. In addition, the following option is provided:
+
+<DL>
+
+<P>
+<DT><STRONG>fetch</STRONG>(<VAR>FetchType</VAR>)<DD>
+Determine the <VAR>FetchType</VAR>, which is one of <CODE>auto</CODE> 
+(default) to extract the result-set on backtracking or <CODE>fetch</CODE> 
+to prepare the result-set to be fetched using <A NAME="idx:odbcfetch3:20"></A><A HREF="#odbc_fetch/3">odbc_fetch/3</A>.
+</DL>
 
 <P>
 <DT><A NAME="odbc_execute/3"><STRONG>odbc_execute</STRONG>(<VAR>+Statement, 
 +ParameterValues, -RowOrAffected</VAR>)</A><DD>
-Execute a statement prepared with <A NAME="idx:odbcprepare4:20"></A><A HREF="#odbc_prepare/4">odbc_prepare/4</A> 
+Execute a statement prepared with <A NAME="idx:odbcprepare4:21"></A><A HREF="#odbc_prepare/4">odbc_prepare/4</A> 
 with the given
 <VAR>ParameterValues</VAR> and return the rows or number of affected 
-rows as <A NAME="idx:odbcquery4:21"></A><A HREF="#odbc_query/4">odbc_query/4</A>. 
+rows as <A NAME="idx:odbcquery4:22"></A><A HREF="#odbc_query/4">odbc_query/4</A>. 
 This predicate may return type_error exceptions if the provided 
 parameter values cannot be converted to the declared types.
 
 <P>ODBC doesn't appear to allow for multiple cursors on the same 
 result-set.<A NAME=back-to-note-4 HREF="index.html#note-4"> (4)</A> This 
-would imply there can only be one active <A NAME="idx:odbcexecute3:22"></A><A HREF="#odbc_execute/3">odbc_execute/3</A> 
+would imply there can only be one active <A NAME="idx:odbcexecute3:23"></A><A HREF="#odbc_execute/3">odbc_execute/3</A> 
 (i.e. with a choice-point) on a prepared statement. Suppose we have a 
 table <CODE>age (name char(25), age integer)</CODE> bound to the 
 predicate <B>age/2</B> we cannot write the code below without special 
@@ -557,16 +568,116 @@ same_age(X, Y) :-
 <P>
 <DT><A NAME="odbc_execute/2"><STRONG>odbc_execute</STRONG>(<VAR>+Statement, 
 +ParameterValues</VAR>)</A><DD>
-Like <A NAME="idx:odbcquery2:23"></A><A HREF="#odbc_query/2">odbc_query/2</A>, 
+Like <A NAME="idx:odbcquery2:24"></A><A HREF="#odbc_query/2">odbc_query/2</A>, 
 this predicate is meant to execute simple SQL statements without 
 interest in the result.
 
 <P>
 <DT><A NAME="odbc_free_statement/1"><STRONG>odbc_free_statement</STRONG>(<VAR>+Statement</VAR>)</A><DD>
-Destroy a statement prepared with <A NAME="idx:odbcprepare4:24"></A><A HREF="#odbc_prepare/4">odbc_prepare/4</A>. 
-If the statement is currently executing (i.e. <A NAME="idx:odbcexecute3:25"></A><A HREF="#odbc_execute/3">odbc_execute/3</A> 
+Destroy a statement prepared with <A NAME="idx:odbcprepare4:25"></A><A HREF="#odbc_prepare/4">odbc_prepare/4</A>. 
+If the statement is currently executing (i.e. <A NAME="idx:odbcexecute3:26"></A><A HREF="#odbc_execute/3">odbc_execute/3</A> 
 left a choice-point), the destruction is delayed until the execution 
 terminates.
+</DL>
+
+<H4><A NAME="sec:2.2.3">2.2.3 Fetching rows explicitely</A></H4>
+
+<A NAME="sec:sqlfetch"></A>
+
+<P>Normally SQL queries return a result-set that is enumerated on 
+backtracking. Using this approach a result-set is similar to a predicate 
+holding facts. There are some cases where fetching the rows one-by-one, 
+much like <A NAME="idx:read1:27"></A><B>read/1</B> reads terms from a 
+file is more appropriate and there are cases where only part of the 
+result-set is to be fetched. These cases can be dealt with using <A NAME="idx:odbcfetch3:28"></A><A HREF="#odbc_fetch/3">odbc_fetch/3</A>, 
+which provides an interface to SQLFetchScroll().
+
+<P>As a general rule of thumb, stay away from these functions if you do 
+not really need them. Experiment before deciding on the strategy and 
+often you'll discover the simply backtracking approach is much easier to 
+deal with and about as fast.
+
+<DL>
+
+<P>
+<DT><A NAME="odbc_fetch/3"><STRONG>odbc_fetch</STRONG>(<VAR>+Statement, 
+-Row, +Option</VAR>)</A><DD>
+Fetch a row from the result-set of <VAR>Statement</VAR>. <VAR>Statement</VAR> 
+must be created with <A NAME="idx:odbcprepare5:29"></A><A HREF="#odbc_prepare/5">odbc_prepare/5</A> 
+using the option <CODE>fetch(fetch)</CODE> and be executed using <A NAME="idx:odbcexecute2:30"></A><A HREF="#odbc_execute/2">odbc_execute/2</A>. <VAR>Row</VAR> 
+is unified to the fetched row or the atom <CODE>end_of_file</CODE><A NAME=back-to-note-6 HREF="index.html#note-6"> (6)</A> 
+after the end of the data is reached. Calling <A NAME="idx:odbcfetch2:31"></A><B>odbc_fetch/2</B> 
+after all data is retrieved causes a permission-error exception. <VAR>Option</VAR> 
+is one of:
+
+<DL>
+
+<P>
+<DT><STRONG>next</STRONG><DD>
+Fetch the next row.
+
+<P>
+<DT><STRONG>prior</STRONG><DD>
+Fetch the result-set going backwards.
+
+<P>
+<DT><STRONG>first</STRONG><DD>
+Fetch the first row.
+
+<P>
+<DT><STRONG>last</STRONG><DD>
+Fetch the last row.
+
+<P>
+<DT><STRONG>absolute</STRONG>(<VAR>Offset</VAR>)<DD>
+Fetch absolute numbered row. Rows count from one.
+
+<P>
+<DT><STRONG>relative</STRONG>(<VAR>Offset</VAR>)<DD>
+Fetch relative to the current row. <CODE>relative(1)</CODE> is the same 
+as <CODE>next()</CODE>, except that the first row extracted is row 2.
+
+<P>
+<DT><STRONG>bookmark</STRONG>(<VAR>Offset</VAR>)<DD>
+Reserved. Bookmarks are not yet supported in this interface.
+</DL>
+
+<P>In many cases, depending on the driver and RDBMS, the cursor-type 
+must be changed using <A NAME="idx:odbcsetconnection2:32"></A><A HREF="#odbc_set_connection/2">odbc_set_connection/2</A> 
+for anything different from <CODE>next()</CODE> to work.
+
+<P>Here is example code each time skipping a row from a table `test' 
+holding a single column of integers that represent the row-number. This 
+test was executed using unixODBC and MySQL on SuSE Linux.
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+fetch(Options) :-
+        odbc_set_connection(test, cursor_type(static)),
+        odbc_prepare(test,
+                     'select (testval) from test',
+                     [],
+                     Statement,
+                     [ fetch(fetch)
+                     ]),
+        odbc_execute(Statement, []),
+        fetch(Statement, Options).
+
+fetch(Statement, Options) :-
+        odbc_fetch(Statement, Row, Options),
+        (   Row == end_of_file
+        -&gt;  true
+        ;   writeln(Row),
+            fetch(Statement, Options)
+        ).
+</PRE>
+</TABLE>
+
+<P>
+<DT><A NAME="odbc_close_statement/+Statement"><STRONG>odbc_close_statement</STRONG>(<VAR>+Statement</VAR>)</A><DD>
+loses the given statement (without freeing it). This must be used if not 
+the whole result-set is retrieved using <A NAME="idx:odbcfetch3:33"></A><A HREF="#odbc_fetch/3">odbc_fetch/3</A>.
 </DL>
 
 <H3><A NAME="sec:2.3">2.3 Transaction management</A></H3>
@@ -574,10 +685,10 @@ terminates.
 <A NAME="sec:sqltrans"></A>
 
 <P>ODBC can run in two modi. By default, all update actions are 
-immediately committed on the server. Using <A NAME="idx:odbcsetconnection2:26"></A><A HREF="#odbc_set_connection/2">odbc_set_connection/2</A> 
+immediately committed on the server. Using <A NAME="idx:odbcsetconnection2:34"></A><A HREF="#odbc_set_connection/2">odbc_set_connection/2</A> 
 this behaviour can be switched off, after which each SQL statement that 
 can be inside a transaction implicitly starts a new transaction. This 
-transaction can be ended using <A NAME="idx:odbcendtransaction2:27"></A><A HREF="#odbc_end_transaction/2">odbc_end_transaction/2</A>.
+transaction can be ended using <A NAME="idx:odbcendtransaction2:35"></A><A HREF="#odbc_end_transaction/2">odbc_end_transaction/2</A>.
 
 <DL>
 
@@ -650,7 +761,7 @@ call SQLColumns(). Defined facets are:
 
 <P>
 <DT><STRONG>table_name</STRONG>(<VAR>Table</VAR>)<DD>
-See <A NAME="idx:odbccurrenttable3:28"></A><A HREF="#odbc_current_table/3">odbc_current_table/3</A>.
+See <A NAME="idx:odbccurrenttable3:36"></A><A HREF="#odbc_current_table/3">odbc_current_table/3</A>.
 
 <P>
 <DT><STRONG>data_type</STRONG>(<VAR>DataType</VAR>)<DD>
@@ -774,11 +885,11 @@ Get statistical data on the ODBC interface. Currently defined keys are:
 <P>
 <DT><STRONG>statements</STRONG>(<VAR>Created, Freed</VAR>)<DD>
 Number of SQL statements that have been <VAR>Created</VAR> and <VAR>Freed</VAR> 
-over all connections. Statements executed with <A NAME="idx:odbcquery23:29"></A><A HREF="#odbc_query/2">odbc_query/[2-3]</A> 
+over all connections. Statements executed with <A NAME="idx:odbcquery23:37"></A><A HREF="#odbc_query/2">odbc_query/[2-3]</A> 
 increment <VAR>Created</VAR> as the query is created and <VAR>Freed</VAR> 
 if the query is terminated due to deterministic success, failure, cut or 
-exception. Statements created with <A NAME="idx:odbcprepare45:30"></A><A HREF="#odbc_prepare/4">odbc_prepare/[4-5]</A> 
-are freed by <A NAME="idx:odbcfreestatement1:31"></A><A HREF="#odbc_free_statement/1">odbc_free_statement/1</A> 
+exception. Statements created with <A NAME="idx:odbcprepare45:38"></A><A HREF="#odbc_prepare/4">odbc_prepare/[4-5]</A> 
+are freed by <A NAME="idx:odbcfreestatement1:39"></A><A HREF="#odbc_free_statement/1">odbc_free_statement/1</A> 
 or due to a fatal error with the statement.
 </DL>
 
@@ -800,8 +911,8 @@ integer may be the proper choice for a specific application.
 <P>The Prolog/ODBC interface defines the following Prolog result types 
 with the indicated default transformation. Different result-types can be 
 requested using the <CODE>types(TypeList)</CODE> option for the
-<A NAME="idx:odbcquery4:32"></A><A HREF="#odbc_query/4">odbc_query/4</A> 
-and <A NAME="idx:odbcprepare5:33"></A><A HREF="#odbc_prepare/5">odbc_prepare/5</A> 
+<A NAME="idx:odbcquery4:40"></A><A HREF="#odbc_query/4">odbc_query/4</A> 
+and <A NAME="idx:odbcprepare5:41"></A><A HREF="#odbc_prepare/5">odbc_prepare/5</A> 
 interfaces.
 
 <DL>
@@ -870,7 +981,7 @@ section explains how results from the ODBC layer are reported to Prolog.
 <A NAME="sec:successwithinfo"></A>
 
 <P>If an ODBC operation returns `with info', the info is extracted from 
-the interface and handled to the Prolog message dispatcher <A NAME="idx:printmessage2:34"></A><B>print_message/2</B>. 
+the interface and handled to the Prolog message dispatcher <A NAME="idx:printmessage2:42"></A><B>print_message/2</B>. 
 The level of the message is <CODE>informational</CODE> and the term is 
 of the form:
 
@@ -930,7 +1041,7 @@ and suggestions.
 <P>
 <DT><B>Transaction management</B><DD>
 This certainly requires a high-level interface. Possibly in combination 
-with <A NAME="idx:callcleanup3:35"></A><B>call_cleanup/3</B>, providing 
+with <A NAME="idx:callcleanup3:43"></A><B>call_cleanup/3</B>, providing 
 automatic rollback on failure or exception and commit on success.
 
 <P>
@@ -970,6 +1081,19 @@ Stefano De Giorgi. Mike Elston suggested programmable
 null-representation with many other suggestions while doing the first 
 field-tests with this package.
 
+<P>
+
+<H1><A NAME="sec:1">1 Bibliography</A></H1>
+
+<DL>
+
+<P>George Miller. Wordnet: An on-line lexical database.
+<EM>International Journal of Lexicography</EM>, 3(4), 1990. (Special 
+Issue).
+
+<P>
+</DL>
+
 <H1><A NAME="document-notes">Footnotes</A></H1>
 
 <DL>
@@ -979,7 +1103,7 @@ field-tests with this package.
 An SQL version of WordNet is available from <A HREF="http://wordnet2sql.infocity.cjb.net/">http://wordnet2sql.infocity.cjb.net/</A>
 <DT><A NAME=note-2 HREF="index.html#back-to-note-2">note-2</A><DD>
 Microsoft SQL server can have multiple active statements after setting 
-the option <CODE>cursor_type</CODE> to <CODE>dynamic</CODE>. See <A NAME="idx:odbcsetconnection2:36"></A><A HREF="#odbc_set_connection/2">odbc_set_connection/2</A>.
+the option <CODE>cursor_type</CODE> to <CODE>dynamic</CODE>. See <A NAME="idx:odbcsetconnection2:44"></A><A HREF="#odbc_set_connection/2">odbc_set_connection/2</A>.
 <DT><A NAME=note-3 HREF="index.html#back-to-note-3">note-3</A><DD>
 This is one possible interface to this information. In many cases it is 
 more efficient and convenient to provide this information separately as 
@@ -989,6 +1113,8 @@ Is this right?
 <DT><A NAME=note-5 HREF="index.html#back-to-note-5">note-5</A><DD>
 The code is prepared to maintain a cache of statements. Practice should 
 tell us whether it is worthwhile activating this.
+<DT><A NAME=note-6 HREF="index.html#back-to-note-6">note-6</A><DD>
+This atom was selected to emphasise the similarity to read.
 </DL>
 
 <H1><A NAME="document-index">Index</A></H1>
@@ -998,13 +1124,14 @@ tell us whether it is worthwhile activating this.
 <P>
 <DT><STRONG>C</STRONG><DD>
 <DT>call_cleanup/3<DD>
-<A HREF="#idx:callcleanup3:35">2.9</A>
+<A HREF="#idx:callcleanup3:43">2.9</A>
 <DT><STRONG>F</STRONG><DD>
 <DT>findall/3<DD>
 <A HREF="#idx:findall3:11">2.2.1</A> <A HREF="#idx:findall3:13">2.2.1</A>
 <DT>format/2<DD>
 <A HREF="#idx:format2:6">2.2.1</A>
 <DT><STRONG>O</STRONG><DD>
+<DT><A HREF="#odbc_close_statement/+Statement">odbc_close_statement/+Statement</A><DD>
 <DT>odbc_connect/2<DD>
 <A HREF="#idx:odbcconnect2:2">2.1</A>
 <DT><A HREF="#odbc_connect/3">odbc_connect/3</A><DD>
@@ -1012,41 +1139,49 @@ tell us whether it is worthwhile activating this.
 <DT><A HREF="#odbc_current_connection/2">odbc_current_connection/2</A><DD>
 <DT><A HREF="#odbc_current_table/2">odbc_current_table/2</A><DD>
 <DT><A HREF="#odbc_current_table/3">odbc_current_table/3</A><DD>
-<A HREF="#idx:odbccurrenttable3:28">2.4</A>
+<A HREF="#idx:odbccurrenttable3:36">2.4</A>
 <DT><A HREF="#odbc_data_source/2">odbc_data_source/2</A><DD>
 <DT><A HREF="#odbc_disconnect/1">odbc_disconnect/1</A><DD>
 <DT><A HREF="#odbc_end_transaction/2">odbc_end_transaction/2</A><DD>
-<A HREF="#idx:odbcendtransaction2:27">2.3</A>
+<A HREF="#idx:odbcendtransaction2:35">2.3</A>
 <DT><A HREF="#odbc_execute/2">odbc_execute/2</A><DD>
+<A HREF="#idx:odbcexecute2:30">2.2.3</A>
 <DT><A HREF="#odbc_execute/3">odbc_execute/3</A><DD>
-<A HREF="#idx:odbcexecute3:22">2.2.2</A> <A HREF="#idx:odbcexecute3:25">2.2.2</A>
+<A HREF="#idx:odbcexecute3:23">2.2.2</A> <A HREF="#idx:odbcexecute3:26">2.2.2</A>
 <DT>odbc_execute/[2-3]<DD>
 <A HREF="#idx:odbcexecute23:18">2.2.2</A>
+<DT>odbc_fetch/2<DD>
+<A HREF="#idx:odbcfetch2:31">2.2.3</A>
+<DT><A HREF="#odbc_fetch/3">odbc_fetch/3</A><DD>
+<A HREF="#idx:odbcfetch3:20">2.2.2</A> <A HREF="#idx:odbcfetch3:28">2.2.3</A> <A HREF="#idx:odbcfetch3:33">2.2.3</A>
 <DT><A HREF="#odbc_free_statement/1">odbc_free_statement/1</A><DD>
-<A HREF="#idx:odbcfreestatement1:31">2.5</A>
+<A HREF="#idx:odbcfreestatement1:39">2.5</A>
 <DT><A HREF="#odbc_get_connection/2">odbc_get_connection/2</A><DD>
 <DT><A HREF="#odbc_prepare/4">odbc_prepare/4</A><DD>
-<A HREF="#idx:odbcprepare4:20">2.2.2</A> <A HREF="#idx:odbcprepare4:24">2.2.2</A>
+<A HREF="#idx:odbcprepare4:21">2.2.2</A> <A HREF="#idx:odbcprepare4:25">2.2.2</A>
 <DT><A HREF="#odbc_prepare/5">odbc_prepare/5</A><DD>
-<A HREF="#idx:odbcprepare5:15">2.2.2</A> <A HREF="#idx:odbcprepare5:33">2.6</A>
+<A HREF="#idx:odbcprepare5:15">2.2.2</A> <A HREF="#idx:odbcprepare5:29">2.2.3</A> <A HREF="#idx:odbcprepare5:41">2.6</A>
 <DT>odbc_prepare/[4-5]<DD>
-<A HREF="#idx:odbcprepare45:30">2.5</A>
+<A HREF="#idx:odbcprepare45:38">2.5</A>
 <DT><A HREF="#odbc_query/2">odbc_query/2</A><DD>
-<A HREF="#idx:odbcquery2:7">2.2.1</A> <A HREF="#idx:odbcquery2:23">2.2.2</A>
+<A HREF="#idx:odbcquery2:7">2.2.1</A> <A HREF="#idx:odbcquery2:24">2.2.2</A>
 <DT><A HREF="#odbc_query/3">odbc_query/3</A><DD>
 <A HREF="#idx:odbcquery3:10">2.2.1</A> <A HREF="#idx:odbcquery3:12">2.2.1</A> <A HREF="#idx:odbcquery3:14">2.2.1</A> <A HREF="#idx:odbcquery3:16">2.2.2</A>
 <DT><A HREF="#odbc_query/4">odbc_query/4</A><DD>
-<A HREF="#idx:odbcquery4:3">2.1</A> <A HREF="#idx:odbcquery4:5">2.2.1</A> <A HREF="#idx:odbcquery4:19">2.2.2</A> <A HREF="#idx:odbcquery4:21">2.2.2</A> <A HREF="#idx:odbcquery4:32">2.6</A>
+<A HREF="#idx:odbcquery4:3">2.1</A> <A HREF="#idx:odbcquery4:5">2.2.1</A> <A HREF="#idx:odbcquery4:19">2.2.2</A> <A HREF="#idx:odbcquery4:22">2.2.2</A> <A HREF="#idx:odbcquery4:40">2.6</A>
 <DT>odbc_query/[2-3]<DD>
-<A HREF="#idx:odbcquery23:29">2.5</A>
+<A HREF="#idx:odbcquery23:37">2.5</A>
 <DT><A HREF="#odbc_set_connection/2">odbc_set_connection/2</A><DD>
-<A HREF="#idx:odbcsetconnection2:1">2.1</A> <A HREF="#idx:odbcsetconnection2:9">2.2.1</A> <A HREF="#idx:odbcsetconnection2:17">2.2.2</A> <A HREF="#idx:odbcsetconnection2:26">2.3</A> <A HREF="#idx:odbcsetconnection2:36">4</A>
+<A HREF="#idx:odbcsetconnection2:1">2.1</A> <A HREF="#idx:odbcsetconnection2:9">2.2.1</A> <A HREF="#idx:odbcsetconnection2:17">2.2.2</A> <A HREF="#idx:odbcsetconnection2:32">2.2.3</A> <A HREF="#idx:odbcsetconnection2:34">2.3</A> <A HREF="#idx:odbcsetconnection2:44">1</A>
 <DT><A HREF="#odbc_statistics/1">odbc_statistics/1</A><DD>
 <DT><A HREF="#odbc_table_column/3">odbc_table_column/3</A><DD>
 <DT><A HREF="#odbc_type/3">odbc_type/3</A><DD>
 <DT><STRONG>P</STRONG><DD>
 <DT>print_message/2<DD>
-<A HREF="#idx:printmessage2:34">2.7.1</A>
+<A HREF="#idx:printmessage2:42">2.7.1</A>
+<DT><STRONG>R</STRONG><DD>
+<DT>read/1<DD>
+<A HREF="#idx:read1:27">2.2.3</A>
 </DL>
 
 </BODY></HTML>

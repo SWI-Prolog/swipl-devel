@@ -46,6 +46,8 @@
 	    odbc_prepare/5,		% +Conn, +SQL, +Parms, -Qid, +Options
 	    odbc_execute/2,		% +Qid, +Parms
 	    odbc_execute/3,		% +Qid, +Parms, -Row
+	    odbc_fetch/3,		% +Qid, -Row, +Options
+	    odbc_close_statement/1,	% +Statement
 	    odbc_clone_statement/2,	% +Statement, -Clone
 	    odbc_free_statement/1,	% +Statement
 

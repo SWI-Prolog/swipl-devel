@@ -454,6 +454,43 @@ test(decimal) :-
 	odbc_query(test, 'select * from test', row('17.45')),
 	progress(' OK!~n', []).
 
+
+		 /*******************************
+		 *	       FETCH		*
+		 *******************************/
+
+create_fetch_table :-
+	open_db,
+	create_test_table(integer),
+	odbc_prepare(test,
+		     'insert into test (testval) values (?)',
+		     [ integer ],
+		     Statement),
+	forall(between(1, 100, X),
+	       odbc_execute(Statement, [X])),
+	odbc_free_statement(Statement).
+
+fetch(Options) :-
+	open_db,
+	odbc_set_connection(test, cursor_type(static)),
+	odbc_prepare(test,
+		     'select (testval) from test',
+		     [],
+		     Statement,
+		     [ fetch(fetch)
+		     ]),
+	odbc_execute(Statement, []),
+	fetch(Statement, Options).
+
+fetch(Statement, Options) :-
+	odbc_fetch(Statement, Row, Options),
+	(   Row == end_of_file
+	->  true
+	;   writeln(Row),
+	    fetch(Statement, Options)
+	).
+	
+
 		 /*******************************
 		 *	       META		*
 		 *******************************/

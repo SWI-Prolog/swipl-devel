@@ -113,6 +113,16 @@ static atom_t    ATOM_dynamic;
 static atom_t	 ATOM_forwards_only;
 static atom_t	 ATOM_keyset_driven;
 static atom_t	 ATOM_static;
+static atom_t	 ATOM_auto;
+static atom_t	 ATOM_fetch;
+static atom_t	 ATOM_end_of_file;
+static atom_t	 ATOM_next;
+static atom_t	 ATOM_prior;
+static atom_t	 ATOM_first;
+static atom_t	 ATOM_last;
+static atom_t	 ATOM_absolute;
+static atom_t	 ATOM_relative;
+static atom_t	 ATOM_bookmark;
 
 static functor_t FUNCTOR_timestamp7;	/* timestamp/7 */
 static functor_t FUNCTOR_time3;		/* time/7 */
@@ -124,6 +134,7 @@ static functor_t FUNCTOR_domain_error2;	/* domain_error(Term, Expected) */
 static functor_t FUNCTOR_existence_error2; /* existence_error(Term, Expected) */
 static functor_t FUNCTOR_representation_error1; /* representation_error(What) */
 static functor_t FUNCTOR_resource_error1; /* resource_error(Error) */
+static functor_t FUNCTOR_permission_error3;
 static functor_t FUNCTOR_odbc_statement1; /* $odbc_statement(Id) */
 static functor_t FUNCTOR_odbc_connection1;
 static functor_t FUNCTOR_user1;
@@ -144,6 +155,7 @@ static functor_t FUNCTOR_cursor_type1;
 static functor_t FUNCTOR_silent1;
 static functor_t FUNCTOR_findall2;	/* findall(Term, row(...)) */
 static functor_t FUNCTOR_affected1;
+static functor_t FUNCTOR_fetch1;
 
 #define SQL_PL_DEFAULT  0		/* don't change! */
 #define SQL_PL_ATOM	1		/* return as atom */
@@ -245,6 +257,7 @@ static struct
 #define CTX_COLUMNS	0x0100		/* this is an SQLColumns() statement */
 #define CTX_TABLES	0x0200		/* this is an SQLTables() statement */
 #define CTX_GOT_QLEN	0x0400		/* got SQL_MAX_QUALIFIER_NAME_LEN */
+#define CTX_NOAUTO	0x0800		/* fetch by hand */
 
 #define FND_SIZE(n)	((int)&((findall*)NULL)->codes[n])
 
@@ -431,6 +444,21 @@ context_error(term_t term, const char *error, const char *what)
 }
 
 
+static int
+permission_error(const char *op, const char *type, term_t obj)
+{ term_t ex = PL_new_term_ref();
+
+  PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
+		      PL_FUNCTOR, FUNCTOR_permission_error3,
+		        PL_CHARS, op,
+			PL_CHARS, type,
+			PL_TERM, obj,
+		      PL_VARIABLE);
+
+  return PL_raise_exception(ex);
+}
+
+
 static void *
 odbc_malloc(size_t bytes)
 { void *ptr = malloc(bytes);
@@ -453,6 +481,8 @@ odbc_malloc(size_t bytes)
 	PL_get_typed_arg_ex(i, t, PL_get_atom, "atom", n)
 #define get_int_arg_ex(i, t, n)   \
 	PL_get_typed_arg_ex(i, t, PL_get_integer, "integer", n)
+#define get_long_arg_ex(i, t, n)   \
+	PL_get_typed_arg_ex(i, t, PL_get_long, "integer", n)
 #define get_bool_arg_ex(i, t, n)   \
 	PL_get_typed_arg_ex(i, t, PL_get_bool, "boolean", n)
 #define get_float_arg_ex(i, t, n) \
@@ -2007,6 +2037,20 @@ set_statement_options(context *ctxt, term_t options)
       } else if ( PL_is_functor(head, FUNCTOR_findall2) )
       { if ( !(ctxt->findall = compile_findall(head, ctxt->flags)) )
 	  return FALSE;
+      } else if ( PL_is_functor(head, FUNCTOR_fetch1) )
+      { atom_t a;
+
+	if ( !get_atom_arg_ex(1, head, &a) )
+	  return FALSE;
+	if ( a == ATOM_auto )
+	  clear(ctxt, CTX_NOAUTO);
+	else if ( a == ATOM_fetch )
+	  set(ctxt, CTX_NOAUTO);
+	else
+	{ term_t a = PL_new_term_ref();
+	  PL_get_arg(1, head, a);
+	  return domain_error(a, "fetch");
+	}
       } else
 	return domain_error(head, "odbc_option");
     }
@@ -2746,7 +2790,7 @@ odbc_execute(term_t qid, term_t args, term_t row, control_t handle)
       if ( true(ctxt, CTX_INUSE) )
       { context *clone;
 
-	if ( !(clone = clone_context(ctxt)) )
+	if ( true(ctxt, CTX_NOAUTO) || !(clone = clone_context(ctxt)) )
 	  return context_error(qid, "in_use", "statement");
 	else
 	  ctxt = clone;
@@ -2758,6 +2802,9 @@ odbc_execute(term_t qid, term_t args, term_t row, control_t handle)
       set(ctxt, CTX_INUSE);
       clear(ctxt, CTX_PREFETCHED);
       TRY(ctxt, SQLExecute(ctxt->hstmt));
+
+      if ( true(ctxt, CTX_NOAUTO) )
+	return TRUE;
 
       return odbc_row(ctxt, row);
     }
@@ -2773,6 +2820,117 @@ odbc_execute(term_t qid, term_t args, term_t row, control_t handle)
       assert(0);
       return FALSE;
   }
+}
+
+
+static int
+get_scroll_param(term_t param, int *orientation, long *offset)
+{ atom_t name;
+  int arity;
+
+  if ( PL_get_name_arity(param, &name, &arity) )
+  { if ( name == ATOM_next && arity == 0 )
+    { *orientation = SQL_FETCH_NEXT;
+      *offset = 0;
+      return TRUE;
+    } else if ( name == ATOM_prior && arity == 0 )
+    { *orientation = SQL_FETCH_PRIOR;
+      *offset = 0;
+      return TRUE;
+    } else if ( name == ATOM_first && arity == 0 )
+    { *orientation = SQL_FETCH_FIRST;
+      *offset = 0;
+      return TRUE;
+    } else if ( name == ATOM_last && arity == 0 )
+    { *orientation = SQL_FETCH_LAST;
+      *offset = 0;
+      return TRUE;
+    } else if ( name == ATOM_absolute && arity == 1 )
+    { *orientation = SQL_FETCH_ABSOLUTE;
+      return get_long_arg_ex(1, param, offset);
+    } else if ( name == ATOM_relative && arity == 1 )
+    { *orientation = SQL_FETCH_RELATIVE;
+      return get_long_arg_ex(1, param, offset);
+    } else if ( name == ATOM_bookmark && arity == 1 )
+    { *orientation = SQL_FETCH_BOOKMARK;
+      return get_long_arg_ex(1, param, offset);
+    } else
+      return domain_error(param, "fetch_option");
+  }
+
+  return type_error(param, "fetch_option");
+}
+
+
+
+static foreign_t
+odbc_fetch(term_t qid, term_t row, term_t options)
+{ context *ctxt;
+  term_t local_trow = PL_new_term_ref();
+  int orientation;
+  long offset;
+
+  if ( !getStmt(qid, &ctxt) )
+    return FALSE;
+  if ( false(ctxt, CTX_NOAUTO) || false(ctxt, CTX_INUSE) )
+    return permission_error("fetch", "statement", qid);
+
+  if ( !true(ctxt, CTX_BOUND) )
+  { if ( !prepare_result(ctxt) )
+      return FALSE;
+    set(ctxt, CTX_BOUND);
+  }
+
+  if ( PL_get_nil(options) )
+  { orientation = SQL_FETCH_NEXT;
+  } else if ( PL_is_list(options) )
+  { term_t tail = PL_copy_term_ref(options);
+    term_t head = PL_new_term_ref();
+
+    while(PL_get_list(tail, head, tail))
+    { if ( !get_scroll_param(head, &orientation, &offset) )
+	return FALSE;
+    }
+    if ( !PL_get_nil(tail) )
+      return type_error(tail, "list");
+  } else if ( !get_scroll_param(options, &orientation, &offset) )
+    return FALSE;
+
+  if ( orientation == SQL_FETCH_NEXT )
+    ctxt->rc = SQLFetch(ctxt->hstmt);
+  else
+    ctxt->rc = SQLFetchScroll(ctxt->hstmt, orientation, offset);
+
+  switch(ctxt->rc)
+  { case SQL_NO_DATA_FOUND:		/* no alternative */
+      close_context(ctxt);
+      return PL_unify_atom(row, ATOM_end_of_file);
+    case SQL_SUCCESS_WITH_INFO:
+      report_status(ctxt);
+      /*FALLTHROUGH*/
+    case SQL_SUCCESS:
+      if ( !pl_put_row(local_trow, ctxt) )
+      { close_context(ctxt);
+	return FALSE;			/* with pending exception */
+      }
+
+      return PL_unify(local_trow, row);
+    default:
+      return report_status(ctxt);
+  }
+}
+
+
+static foreign_t
+odbc_close_statement(term_t qid)
+{ context *ctxt;
+
+  if ( !getStmt(qid, &ctxt) )
+    return FALSE;
+
+  close_context(ctxt);
+
+  return TRUE;
 }
 
 
@@ -2842,6 +3000,16 @@ install_odbc4pl()
    ATOM_forwards_only = PL_new_atom("forwards_only");
    ATOM_keyset_driven = PL_new_atom("keyset_driven");
    ATOM_static	      = PL_new_atom("static");
+   ATOM_auto	      = PL_new_atom("auto");
+   ATOM_fetch	      = PL_new_atom("fetch");
+   ATOM_end_of_file   = PL_new_atom("end_of_file");
+   ATOM_next          = PL_new_atom("next");
+   ATOM_prior         = PL_new_atom("prior");
+   ATOM_first         = PL_new_atom("first");
+   ATOM_last          = PL_new_atom("last");
+   ATOM_absolute      = PL_new_atom("absolute");
+   ATOM_relative      = PL_new_atom("relative");
+   ATOM_bookmark      = PL_new_atom("bookmark");
 
    FUNCTOR_timestamp7		 = MKFUNCTOR("timestamp", 7);
    FUNCTOR_time3		 = MKFUNCTOR("time", 3);
@@ -2852,6 +3020,7 @@ install_odbc4pl()
    FUNCTOR_domain_error2	 = MKFUNCTOR("domain_error", 2);
    FUNCTOR_existence_error2	 = MKFUNCTOR("existence_error", 2);
    FUNCTOR_resource_error1	 = MKFUNCTOR("resource_error", 1);
+   FUNCTOR_permission_error3	 = MKFUNCTOR("permission_error", 3);
    FUNCTOR_representation_error1 = MKFUNCTOR("representation_error", 1);
    FUNCTOR_odbc_statement1	 = MKFUNCTOR("$odbc_statement", 1);
    FUNCTOR_odbc_connection1	 = MKFUNCTOR("$odbc_connection", 1);
@@ -2874,6 +3043,7 @@ install_odbc4pl()
    FUNCTOR_silent1		 = MKFUNCTOR("silent", 1);
    FUNCTOR_findall2		 = MKFUNCTOR("findall", 2);
    FUNCTOR_affected1		 = MKFUNCTOR("affected", 1);
+   FUNCTOR_fetch1		 = MKFUNCTOR("fetch", 1);
 
    DET("odbc_connect",		   3, pl_odbc_connect);
    DET("odbc_disconnect",	   1, pl_odbc_disconnect);
@@ -2886,6 +3056,8 @@ install_odbc4pl()
    DET("odbc_clone_statement",	   2, odbc_clone_statement);
    DET("odbc_free_statement",	   1, odbc_free_statement);
    NDET("odbc_execute",		   3, odbc_execute);
+   DET("odbc_fetch",		   3, odbc_fetch);
+   DET("odbc_close_statement",	   1, odbc_close_statement);
 
    NDET("odbc_query",		   4, pl_odbc_query);
    NDET("odbc_tables",	           2, odbc_tables);
