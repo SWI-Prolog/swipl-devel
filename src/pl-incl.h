@@ -422,13 +422,6 @@ them.  Descriptions:
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Allocation Parameters
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define ALLOCSIZE	(1<<15)	/* size of allocation chunks (64K) */
-#define ALLOCFAST	512	/* big enough for all structures */
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Macros to handle hash tables.  See pl-table.c for  details.   First  the
 sizes  of  the  hash  tables are defined.  Note that these should all be
 2^N.
@@ -1445,6 +1438,27 @@ struct table_enum
   TableEnum	next;		/* More choice points */
 };
 
+		 /*******************************
+		 *	 MEMORY ALLOCATION	*
+		 *******************************/
+
+#define ALLOCSIZE	(1<<15)	/* size of allocation chunks (64K) */
+#define ALLOCFAST	512	/* big enough for all structures */
+
+typedef struct chunk *Chunk;		/* Allocation-chunk */
+typedef struct alloc_pool *AllocPool;	/* Allocation pool */
+
+struct chunk
+{ Chunk next;				/* next of chain */
+};
+
+struct alloc_pool
+{ char	       *space;			/* pointer to free space */
+  size_t	free;			/* size of free space */
+  long 		allocated;		/* total bytes allocated */
+					/* fast perfect fit chains */
+  Chunk  	free_chains[ALLOCFAST/sizeof(Chunk)+1];
+};
 
 
 		 /*******************************

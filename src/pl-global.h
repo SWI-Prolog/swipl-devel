@@ -233,6 +233,8 @@ typedef struct
     Table  _capabilities;		/* User-level capability table */
   } terminal;
 #endif
+
+  struct alloc_pool alloc_pool;		/* Main allocation pool */
 } PL_global_data_t;
 
 

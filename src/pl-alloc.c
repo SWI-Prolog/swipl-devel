@@ -60,7 +60,6 @@ word to store the size of the memory segment.
 #define LOCK()   PL_LOCK(L_ALLOC)
 #define UNLOCK() PL_UNLOCK(L_ALLOC)
 
-typedef struct chunk *	Chunk;
 #ifndef ALIGN_SIZE
 #if defined(__sgi) && !defined(__GNUC__)
 #define ALIGN_SIZE sizeof(double)
@@ -70,24 +69,15 @@ typedef struct chunk *	Chunk;
 #endif
 #define ALLOC_MIN  sizeof(Chunk)
 
-struct chunk
-{ Chunk		next;		/* next of chain */
-};
-
 typedef struct big_heap
 { struct big_heap *next;
   struct big_heap *prev;
 } *BigHeap;
 
-static Chunk allocate(size_t size);
+static void *allocate(AllocPool pool, size_t size);
 static void *allocBigHeap(size_t size);
 static void  freeBigHeap(void *p);
 static void  freeAllBigHeaps(void);
-
-static char   *spaceptr;	/* alloc: pointer to first free byte */
-static size_t spacefree;	/* number of free bytes left */
-
-static Chunk  freeChains[ALLOCFAST/sizeof(Chunk)+1];
 
 #define ALLOCROUND(n) ROUND(n, ALIGN_SIZE)
 			   
@@ -102,115 +92,63 @@ The rest of the code uses the macro allocHeap() to access this function
 to avoid problems with 16-bit machines not supporting an ANSI compiler.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-void *
-allocHeap(size_t n)
-{ Chunk f;
-  size_t m;
+		 /*******************************
+		 *	       FREE		*
+		 *******************************/
+
+static void
+freeToPool(AllocPool pool, void *mem, size_t n)
+{ Chunk p = (Chunk) mem;
   
-  if ( n == 0 )
-    return NULL;
+  pool->allocated -= n;
+  DEBUG(9, Sdprintf("freed %ld bytes at %ld\n",
+		    (unsigned long)n, (unsigned long)p));
 
-  DEBUG(9, Sdprintf("allocated %ld bytes at ", (unsigned long)n));
-  n = ALLOCROUND(n);
-  LOCK();
-  GD->statistics.heap += n;
-
-  if (n <= ALLOCFAST)
-  { m = n / (int) ALIGN_SIZE;
-    if ( (f = freeChains[m]) )
-    { freeChains[m] = f->next;
-      f->next = NULL;
-      DEBUG(9, Sdprintf("(r) %p\n", f));
-#if ALLOC_DEBUG
-      { int i;
-	char *s = (char *) f;
-
-	for(i=sizeof(struct chunk); i<(int)n; i++)
-	  assert(s[i] == ALLOC_FREE_MAGIC);
-
-	memset(f, ALLOC_MAGIC, n);
-      }
-#endif
-      UNLOCK();
-      goto out;
-    }
-    f = allocate(n);			/* allocate from core */
-    UNLOCK();
-
-    SetHBase(f);
-    SetHTop((char *)f + n);
-
-    DEBUG(9, Sdprintf("(n) %p\n", f));
-#if ALLOC_DEBUG
-    memset((char *) f, ALLOC_MAGIC, n);
-#endif
-    goto out;
-  }
-
-  if ( !(f = allocBigHeap(n)) )
-  { UNLOCK();
-    outOfCore();
-  }
-
-  SetHBase(f);
-  SetHTop((char *)f + n);
-
-  UNLOCK();
-
-  DEBUG(9, Sdprintf("(b) %ld\n", (unsigned long)f));
-#if ALLOC_DEBUG
-  memset((char *) f, ALLOC_MAGIC, n);
-#endif
-out:
-
-  return f;
+  n /= ALIGN_SIZE;
+  p->next = pool->free_chains[n];
+  pool->free_chains[n] = p;
 }
 
 
 void
 freeHeap(void *mem, size_t n)
-{ Chunk p = (Chunk) mem;
-
-  if ( mem == NULL )
+{ if ( mem == NULL )
     return;
-
   n = ALLOCROUND(n);
+  
 #if ALLOC_DEBUG
   memset((char *) mem, ALLOC_FREE_MAGIC, n);
 #endif
+
   LOCK();
-  GD->statistics.heap -= n;
-  DEBUG(9, Sdprintf("freed %ld bytes at %ld\n",
-		    (unsigned long)n, (unsigned long)p));
-
-  if (n <= ALLOCFAST)
-  { n /= ALIGN_SIZE;
-    p->next = freeChains[n];
-    freeChains[n] = p;
-  } else
-  { freeBigHeap(p);
+  if ( n <= ALLOCFAST )
+    freeToPool(&GD->alloc_pool, mem, n);
+  else
+  { freeBigHeap(mem);
+    GD->statistics.heap += n;
   }
-
   UNLOCK();
 }
 
+
+		 /*******************************
+		 *	     ALLOCATE		*
+		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 No perfect fit is available.  We pick memory from the big chunk  we  are
 working  on.   If this is not big enough we will free the remaining part
 of it.  Next we check whether any areas are  assigned  to  be  used  for
 allocation.   If  all  this fails we allocate new core using Allocate(),
-which normally calls malloc(). Early  versions  of  this  module  called
-sbrk(),  but  many systems get very upset by using sbrk() in combination
-with other memory allocation functions.
+which normally calls malloc().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static Chunk
-allocate(size_t n)
+static void *
+allocate(AllocPool pool, size_t n)
 { char *p;
 
-  if ( n <= spacefree )
-  { p = spaceptr;
+  if ( n <= pool->free )
+  { p = pool->space;
 #if ALLOC_DEBUG
     { int i;
       char *s = p;
@@ -221,38 +159,101 @@ allocate(size_t n)
       memset(p, ALLOC_MAGIC, n);
     }
 #endif
-    spaceptr += n;
-    spacefree -= n;
-    return (Chunk) p;
+    pool->space += n;
+    pool->free -= n;
+    return p;
   }
 
-  if ( spacefree >= sizeof(struct chunk) )
-  { int m = spacefree/ALIGN_SIZE;
-
-    if ( m <= (ALLOCFAST/ALIGN_SIZE) )	/* this is freeHeap(), but avoids */
-    { Chunk ch = (Chunk)spaceptr;	/* recursive LOCK() */
+  if ( pool->free >= sizeof(struct chunk) )
+  { int m = pool->free/ALIGN_SIZE;
+    Chunk ch = (Chunk)pool->space;
 
 #if ALLOC_DEBUG
-      memset(spaceptr, ALLOC_FREE_MAGIC, spacefree);
+    assert(m <= ALLOCFAST/ALIGN_SIZE);
+    memset(ch, ALLOC_FREE_MAGIC, spacefree);
 #endif
-      ch->next = freeChains[m];
-      freeChains[m] = ch;
-    }
+
+    ch->next = pool->free_chains[m];
+    pool->free_chains[m] = ch;
   }
 
   if ( !(p = allocBigHeap(ALLOCSIZE)) )
     outOfCore();
 
-  spacefree = ALLOCSIZE;
-  spaceptr = p + n;
-  spacefree -= n;
+  pool->space = p + n;
+  pool->free  = ALLOCSIZE - n;
 
 #if ALLOC_DEBUG
   memset(spaceptr, ALLOC_VIRGIN_MAGIC, spacefree);
   memset(p, ALLOC_MAGIC, n);
 #endif
 
-  return (Chunk) p;
+  return p;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+allocFromPool() allocates a rounded amount of bytes upto ALLOCFAST
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void *
+allocFromPool(AllocPool pool, size_t n)
+{ Chunk f;
+  size_t m = n / (int) ALIGN_SIZE;;
+  
+  pool->allocated += n;			/* n is already rounded */
+
+  if ( (f = pool->free_chains[m]) )
+  { pool->free_chains[m] = f->next;
+    DEBUG(9, Sdprintf("(r) %p\n", f));
+#if ALLOC_DEBUG
+    { int i;
+      char *s = (char *) f;
+
+      for(i=sizeof(struct chunk); i<(int)n; i++)
+	assert(s[i] == ALLOC_FREE_MAGIC);
+
+      memset(f, ALLOC_MAGIC, n);
+    }
+#endif
+    return f;
+  }
+  f = allocate(pool, n);		/* allocate from core */
+
+  DEBUG(9, Sdprintf("(n) %p\n", f));
+#if ALLOC_DEBUG
+  memset((char *) f, ALLOC_MAGIC, n);
+#endif
+  return f;
+}
+
+
+void *
+allocHeap(size_t n)
+{ void *mem;
+
+  if ( n == 0 )
+    return NULL;
+  n = ALLOCROUND(n);
+
+  LOCK();
+  if ( n <= ALLOCFAST )
+    mem = allocFromPool(&GD->alloc_pool, n);
+  else
+  { mem = allocBigHeap(n);
+    GD->statistics.heap += n;
+  }
+  UNLOCK();
+
+  return mem;
+}
+
+
+static void
+destroyAllocPool(AllocPool pool)
+{ memset(pool->free_chains, 0, sizeof(pool->free_chains));
+  pool->free  = 0;
+  pool->space = NULL;
 }
 
 
@@ -282,9 +283,7 @@ void
 cleanupMemAlloc(void)
 { freeAllBigHeaps();
 
-  memset(freeChains, 0, sizeof(freeChains));
-  spacefree = 0;
-  spaceptr = NULL;
+  destroyAllocPool(&GD->alloc_pool);
 }
 
 
@@ -302,15 +301,25 @@ allocBigHeap(size_t size)
 { BigHeap h = malloc(size+sizeof(*h));
 
   if ( !h )
+  { outOfCore();
     return NULL;
+  }
   
   h->next = big_heaps;
   h->prev = NULL;
   if ( big_heaps )
     big_heaps->prev = h;
   big_heaps = h;
+  h++;					/* point to user-data */
 
-  return (void *)(h+1);
+  SetHBase(h);
+  SetHTop((char *)h + size);
+
+#if ALLOC_DEBUG
+  memset(h, ALLOC_MAGIC, size);
+#endif
+
+  return (void *)h;
 }
 
 

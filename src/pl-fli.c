@@ -93,7 +93,7 @@ variation, which is a bit longer, a function might actually be faster.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static word
-_ld_linkVal(Word p ARG_LD)
+linkVal__LD(Word p ARG_LD)
 { word w = *p;
 
   if ( isVar(w) )
@@ -109,11 +109,7 @@ _ld_linkVal(Word p ARG_LD)
   return w;
 }
 
-#ifdef O_PLMT
-#define linkVal(p) _ld_linkVal(p, LD)
-#else
-#define linkVal(p) _ld_linkVal(p)
-#endif
+#define linkVal(p) linkVal__LD(p PASS_LD)
 
 term_t
 wordToTermRef(Word p)

@@ -2413,7 +2413,7 @@ pl_statistics(term_t k, term_t value)
   else if (key == ATOM_heap)
     fail;
   else if (key == ATOM_heapused)			/* heap usage */
-    result = makeNum(GD->statistics.heap);
+    result = makeNum(GD->statistics.heap + GD->alloc_pool.allocated);
   else if (key == ATOM_trail)				/* trail */
     result = makeNum(sizeStack(trail));
   else if (key == ATOM_trailused)	
