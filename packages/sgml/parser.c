@@ -1834,7 +1834,7 @@ process_doctype(dtd_parser *p, const ichar *decl)
   else if ( (s=isee_identifier(dtd, decl, "public")) )
     et->type = ET_PUBLIC;
   else
-    return gripe(ERC_SYNTAX_ERROR, "SYSTEM or PUBLIC expected", decl);
+    goto local;
   decl = s;
 
   if ( !(s=process_entity_value_declaration(dtd, decl, et)) )
@@ -1859,6 +1859,7 @@ process_doctype(dtd_parser *p, const ichar *decl)
 
   free_entity_list(et);
 
+local:
   if ( (s=isee_func(dtd, decl, CF_DSO)) ) /* [...] */
   { int grouplevel = 1;
     data_mode oldmode  = p->dmode;
