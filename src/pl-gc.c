@@ -1737,9 +1737,12 @@ considerGarbageCollect(Stack s)
     long limit = (char *)s->limit - (char *)s->base;
 
     if ( used > s->factor*s->gced_size + s->small )
-    { gc_status.requested = TRUE;
+    { DEBUG(2, Sdprintf("GC: request on %s, factor=%d, last=%ld, small=%ld\n",
+			s->name, s->factor, s->gced_size, s->small));
+      gc_status.requested = TRUE;
     } else if ( free < limit/8 && used > s->gced_size + limit/32 ) 
-    { gc_status.requested = TRUE;
+    { DEBUG(2, Sdprintf("GC: request on low free\n"));
+      gc_status.requested = TRUE;
     }
 
     DEBUG(1, if ( gc_status.requested)
