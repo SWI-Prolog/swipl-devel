@@ -175,3 +175,10 @@ Database design:
 	* Symbol-table
 	* Adapted compiler
 	* Clause Index
+
+MISC ISSUES:
+------------
+
+	* Is it safe to create a foreign frame and call-back while another
+	  query is in progress?  I think it is, but this should be checked,
+	  documented and handled by a test-procedure.

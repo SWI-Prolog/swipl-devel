@@ -558,8 +558,13 @@ dispatchFile(const char *name)
 static void
 usage()
 { fprintf(stderr,
+	  "SWI-Prolog linker utility\n"
+	  "plld comes with ABSOLUTELY NO WARRANTY. This is free software,\n"
+	  "and you are welcome to redistribute it under certain conditions.\n"
+	  "Please visit http://www.swi-prolog.org for details.\n\n"
 	  "usage: %s -help\n"
 	  "       %s [options] inputfile ...\n"
+	  "       %s -shared -o out inputfile ...\n"
 	  "       %s -E cppargument ...\n"
 	  "\n"
 	  "options:\n"
@@ -598,7 +603,7 @@ usage()
 	  "       -Iincludedir     Include directory (C/C++)\n"
 	  "       -Llibdir         Library directory (C/C++ link)\n"
 	  "       -llib            library (C/C++)\n",
-	plld, plld, plld);
+	plld, plld, plld, plld);
 
   exit(1);
 }
@@ -1143,15 +1148,17 @@ linkSharedObject()
   concatArgList(&ldoptions, "", &lastlibs);	/* libraries */
 #else /*WIN32*/
 #ifdef __CYGWIN32__
+#ifndef SO_FORMAT_LDFLAGS			/* done below */
   prependArgList(&ldoptions, soout);
   prependArgList(&ldoptions, "-o");		/* -o ctmp */
+#endif
   concatArgList(&ldoptions, "", &ofiles);	/* object files */
   appendArgList(&ldoptions, "-lplimp");		/* kernel import library */
   concatArgList(&ldoptions, "-L", &libdirs);    /* library directories */
   concatArgList(&ldoptions, "-l", &libs);	/* libraries */
   concatArgList(&ldoptions, "-l", &lastlibs);	/* libraries */
 #else /*__CYGWIN32__*/
-#ifdef SO_FORMAT_LDFLAGS
+#ifdef SO_FORMAT_LDFLAGS			/* must specify output too */
   { char tmp[MAXPATHLEN];
     sprintf(tmp, SO_FORMAT_LDFLAGS);
     prependArgList(&ldoptions, tmp);
