@@ -34,11 +34,11 @@
 :- require([ default/3
 	   ]).
 
-:- pce_autoload(sub_dialog, library('dialog/sub_dialog')).
 :- pce_autoload(drag_and_drop_dict_item_gesture, library(dragdict)).
 
 
-:- pce_begin_class(dia_menu_item_editor, sub_dialog).
+:- pce_begin_class(dia_menu_item_editor, dialog_group,
+		   "Edit items of a menu").
 
 variable(default,	'chain|function',	get,	"Default value").
 variable(message,	'code*',		get,	"Change message").
@@ -51,121 +51,20 @@ initialise(ME, Name:[name], Def:[chain|function], Msg:[code]*,
 
 	send(ME, slot, message, Message),
 
-	send(ME, send_super, initialise),
-	send(ME, name, Nm),
-	send(ME, pen, 1),
-	send(ME, border, 5),
-	send(ME, radius, 7),
-
-	send(ME, append_dialog_item,
+	send_super(ME, initialise, Nm, box),
+	send(ME, append,
 	     new(B, list_browser(width := 30, height := 7))),
 	send(B, style, end_group, style(underline := @on)),
 	send(B, label, Nm?label_name),
 	send(B, select_message,
-	     and(message(ME, mode, edit),
-		 message(ME, current, @arg1?object))),
+	     and(message(ME, current, @arg1?object))),
 	send(B, recogniser,
 	     new(G, drag_and_drop_dict_item_gesture)),
 	send(G, get_source, @arg1?object),
-	send(ME, append_dialog_item, new(A, sub_dialog), right),
-	fill_attribute_dialog(A, Attributes, create),
+	Term =.. [dia_menu_item_properties, ME | Attributes],
+	send(ME, append, new(Term), right),
 	send(ME, layout_dialog),
 	send(ME, default, Default).
-
-
-fill_attribute_dialog(D, Attributes, Mode) :-
-	get(D, device, Dev),
-	new(MI, Dev?current),
-
-	send(D, append_dialog_item,
-	     new(M, menu(mode, choice,
-			 and(message(Dev, mode, @arg1),
-			     message(Dev, current, @nil))))),
-	send(M, append, create),
-	send(M, append, edit),
-	send(D, append_dialog_item,
-	     new(Name, text_item(name,
-				 when(MI, MI?value, ''),
-				 message(MI, value, @arg1)))),
-	send(D, append_dialog_item,
-	     dia_label_item(label,
-			    when(MI, MI?label, ''),
-			    if(@arg1 \== '', message(MI, label, @arg1)))),
-	forall(member(A, Attributes),
-	       append_attribute(D, A)),
-
-	send(D, send_method,
-	     send_method(modified_item, vector(graphical, bool),
-			 if(@arg1 == Name,
-			    message(Dev, changed_name_item),
-			    new(or)))),
-
-	send(Dev, mode, Mode).
-
-append_attribute(D, end_group) :-
-	get(D, device, Dev),
-	new(MI, Dev?current),
-	send(D, append_dialog_item, new(EG, menu(end_group, choice))),
-	send(EG, append, @off),
-	send(EG, append, @on),
-	send(EG, default, when(MI, MI?end_group, @off)),
-	send(EG, message, message(MI, end_group, @arg1)).
-					% To be extended (generic)
-					% and integrated with toplevel
-
-
-delete_item(Device, Member) :-
-	get(Device, member, Member, Gr), !,
-	send(Gr, free).
-delete_item(_, _).
-
-mode(ME, Mode:{edit,create}) :->
-	"Switch to indicated mode"::
-	get(ME, member, sub_dialog, SD),
-	delete_item(SD, create_item),
-	delete_item(SD, modify_item),
-	delete_item(SD, delete),
-
-	get(SD, member, name, Name),
-	get(SD, member, label, Label),
-	get(SD, member, mode, ModeMenu),
-	
-	send(ModeMenu, selection, Mode),
-
-	(   Mode == create
-	->  send(SD, append_dialog_item,
-		 button(create_item,
-			and(message(ME, create, Name?selection),
-			    message(Name, clear),
-			    message(Label, clear),
-			    message(@receiver, default_button, @off))))
-	;   send(SD, append_dialog_item,
-		 button(modify_item,
-			and(message(ME, modify_current),
-			    message(@receiver, default_button, @off)))),
-	    send(SD, append_dialog_item,
-		 button(delete, message(ME, delete_current)))
-	),
-	send(SD, layout_dialog).
-
-mode(ME, Mode:{edit,create}) :<-
-	get(ME, member, sub_dialog, SD),
-	get(SD, member, mode, Menu),
-	get(Menu, selection, Mode).
-
-changed_name_item(ME) :->
-	"Name changed: prepare create"::
-	get(ME, member, sub_dialog, SD),
-	(   get(ME, mode, create)
-	->  get(SD, member, create_item, Button)
-	;   get(SD, member, modify_item, Button),
-	    (	get(SD, member, label, LabelItem),
-		get(LabelItem, kind, text)
-	    ->	send(LabelItem, selection, '')
-	    ;	true
-	    )
-	),
-	send(Button, default_button, @on).
 
 
 		 /*******************************
@@ -177,11 +76,11 @@ browser(ME, B:list_browser) :<-
 	get(ME, member, list_browser, B).
 name_item(ME, I:text_item) :<-
 	"Find the text-item displaying the name"::
-	get(ME, member, sub_dialog, SD),
+	get(ME, member, attributes, SD),
 	get(SD, member, name, I).
 label_item(ME, I:dia_label_item) :<-
 	"Find the dia_label_item displaying the label"::
-	get(ME, member, sub_dialog, SD),
+	get(ME, member, attributes, SD),
 	get(SD, member, label, I).
 
 
@@ -201,8 +100,8 @@ current(ME, MI:menu_item*, Restore:[bool]) :->
 	;   send(Browser, selection, @nil)
 	),
 	(   Restore \== @off
-	->  get(ME, member, sub_dialog, SD),
-	    send(SD?graphicals, for_some, message(@arg1, restore))
+	->  get(ME, member, attributes, SD),
+	    send(SD, restore)
 	;   true
 	).
 
@@ -213,19 +112,19 @@ current(ME, MI:menu_item*, Restore:[bool]) :->
 
 apply_sub(ME) :->
 	"Apply members of the sub-dialog"::
-	get(ME, member, sub_dialog, SD),
-	send(SD?graphicals, for_some,
-	     if(@arg1?name \== mode, message(@arg1, apply))).
+	get(ME, member, attributes, SD),
+	send(SD, apply).
 
-create(ME, Name:name) :->
+
+create_item(ME, Name:name) :->
 	"Create new item from name"::
 	(   Name == ''
 	->  send(ME, report, warning, 'Please enter a name first'),
 	    fail
 	;   true
 	),
-	send(ME, append, new(MI, dia_proto_menu_item(Name))),
-	send(ME, current, MI, @off),
+	send(ME, append_item, new(dia_proto_menu_item(Name))),
+	send(ME, current, @nil, @on),
 	send(ME, apply_sub),
 	send(ME, apply).
 
@@ -256,7 +155,7 @@ delete_current(ME) :->
 	send(ME, apply).
 
 
-append(ME, Item:menu_item) :->
+append_item(ME, Item:menu_item) :->
 	"Append menu-item to the browser"::
 	get(ME, browser, B),
 	send(B, append, new(DI, dict_item(Item?value, @default, Item))),
@@ -281,7 +180,7 @@ apply(ME, _Modified:[bool]) :->
 	get(ME, message, Msg),
 	(   Msg \== @nil
 	->  get(ME, selection, Selection),
-	    send(Msg, forward, Selection)
+	    send(Msg, forward_receiver, ME, Selection)
 	;   true
 	).
 
@@ -295,7 +194,67 @@ restore(ME) :->
 	"Reload values from the Client"::
 	send(ME?browser, clear),
 	get(@pce, convert, ME?default, chain, Members),
-	send(Members, for_all, message(ME, append, @arg1)).
+	send(Members, for_all, message(ME, append_item, @arg1)).
 
 
 :- pce_end_class.
+
+:- pce_begin_class(dia_menu_item_properties, dialog_group).
+
+initialise(MIP, Dev:dia_menu_item_editor, Attributes:name ...) :->
+	send_super(MIP, initialise, attributes),
+	new(MI, Dev?current),
+
+	send(MIP, append,
+	     new(Name, dia_name_item(name,
+				     when(MI, MI?value, ''),
+				     message(MI, value, @arg1)))),
+	send(MIP, append,
+	     new(LI, dia_label_item(label,
+				    when(MI, MI?label, ''),
+				    if(@arg1 \== '',
+				       message(MI, label, @arg1))))),
+	new(_, hyper(Name, LI, label_item, name_item)),
+
+	forall(member(A, Attributes),
+	       append_attribute(MIP, MI, A)),
+
+	send(MIP, append,
+	     new(Add, button('<< add',
+			     message(Dev, create_item, Name?selection)))),
+	send(MIP, append,
+	     button(edit, message(Dev, modify_current))),
+	send(MIP, append,
+	     button(delete, message(Dev, delete_current))),
+
+	send(Add, default_button, @on).
+
+append_attribute(MIP, MI, end_group) :-
+	send(MIP, append_dialog_item, new(EG, menu(end_group, choice))),
+	send(EG, append, @off),
+	send(EG, append, @on),
+	send(EG, default, when(MI, MI?end_group, @off)),
+	send(EG, message, message(MI, end_group, @arg1)).
+					% To be extended (generic)
+					% and integrated with toplevel
+
+:- pce_end_class(dia_menu_item_properties).
+
+
+:- pce_begin_class(dia_name_item, text_item,
+		   "Edit a name, constraining the label").
+
+event(NI, Ev:event) :->
+	send_super(NI, event, Ev),
+	(   get(NI, hypered, label_item, LabelItem)
+	->  get(NI?value_text?string, label_name, DefLabel),
+	    send(LabelItem, selection, DefLabel)
+	;   true
+	).
+
+:- pce_end_class.
+
+
+
+
+
