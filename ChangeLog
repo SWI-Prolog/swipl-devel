@@ -1,6 +1,21 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: assertion-error in get_stream_handle() if a stream is set to
+    be the alias for multiple of the `standard' stream and the stream is
+    closed.
+
+  * ADDED: Atoms can now hold 0-bytes.  API: *_nchars() FLI-functions 
+    added to put, unify and get text using length/char *.  No consequences
+    in Prolog.
+
+  * ADDED: atom garbage collection.  See release-notes in the manual.
+    API: prolog-flag `agc_margin', garbage_collect_atoms/0, PL_register_atom(),
+    PL_unregister_atom().
+
+  * FIXED: get_single_har/1 to read from user_input, seeing and friends
+    *not* to return current_input ...  Thanks to Cortelli Paolo.
+
   * ADDED: sub_string/5 modelled after ISO sub_atom/5.  moved substring/4
     to library(backcomp).
 
