@@ -1,0 +1,3 @@
+Remarks concerning the sysvr[34] version for i386/486 machines:
+
+# Replace CPP=cc -E with CPP=/lib/cpp in sysvr[34]/Makefile
