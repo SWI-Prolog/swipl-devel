@@ -29,3 +29,22 @@ New features in 5.4.x relative to 5.2.x and their status
 
   * JPL: Integrated Java/Prolog interface package
     Does not yet support MacOS and various (notably COFF based) systems.
+
+
+Patches in 5.4.1 relative to 5.4.0
+==================================
+
+  * Bug in nb_setarg/3 causing crashes
+
+  * Incorrect standard order of term handling for attributed variables.
+
+
+Packages
+========
+
+  * Semweb: crash in statistics supporting SeRQL query optimisation
+
+
+Incompatible changes
+
+  (none)

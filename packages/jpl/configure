@@ -3040,7 +3040,10 @@ echo "${ECHO_T}Using /etc/java/java2.conf" >&6
   fi
 fi
 
-if test "x$JAVAC" = x; then		  JAVAC=javac				fi
+
+if test "x$JAVAC" = x; then
+  JAVAC=javac
+fi
 
 
 
@@ -3141,7 +3144,7 @@ else
 JAVA_TEST=Test.java
 CLASS_TEST=Test.class
 cat << \EOF > $JAVA_TEST
-/* #line 3144 "configure" */
+/* #line 3147 "configure" */
 public class Test {
 }
 EOF
