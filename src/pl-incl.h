@@ -372,10 +372,8 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 #define FUNCTORHASHSIZE		512	/* global functor table */
 #define PROCEDUREHASHSIZE	256	/* predicates in module user */
 #define MODULEPROCEDUREHASHSIZE 16	/* predicates in other modules */
-#define RECORDHASHSIZE		16	/* global recorda/recordz table */
 #define MODULEHASHSIZE		16	/* global module table */
 #define PUBLICHASHSIZE		8	/* Module export table */
-#define OPERATORHASHSIZE	32	/* global operator table */
 #define FLAGHASHSIZE		16	/* global flag/3 table */
 #define ARITHHASHSIZE		16	/* arithmetic function table */
 

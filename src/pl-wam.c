@@ -17,7 +17,7 @@
 #define MARK(label)
 #endif
 
-forwards inline bool	callForeign(const Definition, LocalFrame);
+forwards inline bool	callForeign(const Definition, LocalFrame ARG_LD);
 forwards void		leaveForeignFrame(LocalFrame);
 
 #if COUNTING
@@ -280,10 +280,9 @@ finish_foreign_frame(ARG1_LD)
 }
 
 
-fid_t
-PL_open_foreign_frame()
-{ GET_LD
-  FliFrame fr = (FliFrame) lTop;
+static fid_t
+open_foreign_frame(ARG1_LD)
+{ FliFrame fr = (FliFrame) lTop;
 
   finish_foreign_frame(PASS_LD1);
   requireStack(local, sizeof(struct fliFrame));
@@ -297,15 +296,32 @@ PL_open_foreign_frame()
 }
 
 
-void
-PL_close_foreign_frame(fid_t id)
-{ GET_LD
-  FliFrame fr = (FliFrame) valTermRef(id);
+static void
+close_foreign_frame(fid_t id ARG_LD)
+{ FliFrame fr = (FliFrame) valTermRef(id);
 
   fli_context = fr->parent;
   lTop = (LocalFrame) fr;
 }
 
+
+fid_t
+PL_open_foreign_frame()
+{ GET_LD
+
+  return open_foreign_frame(PASS_LD1);
+}
+
+
+void
+PL_close_foreign_frame(fid_t id)
+{ GET_LD
+  
+  close_foreign_frame(id PASS_LD);
+}
+
+#define PL_open_foreign_frame()    open_foreign_frame(PASS_LD1)
+#define PL_close_foreign_frame(id) close_foreign_frame((id) PASS_LD)
 
 void
 PL_rewind_foreign_frame(fid_t id)
@@ -436,9 +452,8 @@ given as `backtrack control'.
 
 
 static inline bool
-callForeign(const Definition def, LocalFrame frame)
-{ GET_LD
-  Func function = def->definition.function;
+callForeign(const Definition def, LocalFrame frame ARG_LD)
+{ Func function = def->definition.function;
   int argc = def->functor->arity;
   word result;
   term_t h0 = argFrameP(frame, 0) - (Word)lBase;
@@ -532,7 +547,8 @@ leaveForeignFrame(LocalFrame fr)
 #if O_DEBUGGER
 static void
 frameFinished(LocalFrame fr)
-{ fid_t cid = PL_open_foreign_frame();
+{ GET_LD
+  fid_t cid = PL_open_foreign_frame();
 
   callEventHook(PLEV_FRAMEFINISHED, fr);
 
@@ -3620,7 +3636,7 @@ be able to access these!
 	  CL = (ClauseRef) FIRST_CALL;
 	call_builtin:			/* foreign `redo' action */
 	  SAVE_REGISTERS(qid);
-	  rval = callForeign(DEF, FR);
+	  rval = callForeign(DEF, FR PASS_LD);
 	  LOAD_REGISTERS(qid);
 	  if ( rval )
 	    goto exit_builtin;

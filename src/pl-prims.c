@@ -605,7 +605,10 @@ pl_functor(term_t t, term_t f, term_t a)
 
 word
 pl_arg(term_t n, term_t term, term_t arg, word b)
-{ atom_t name;
+{ GET_LD
+#undef LD
+#define LD LOCAL_LD
+  atom_t name;
   int arity;
 
   switch( ForeignControl(b) )
@@ -670,6 +673,8 @@ pl_arg(term_t n, term_t term, term_t arg, word b)
     default:
       succeed;
   }
+#undef LD
+#define LD GLOBAL_LD
 }
 	
 

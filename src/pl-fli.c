@@ -2151,7 +2151,8 @@ PL_throw(term_t exception)
 static void
 notify_registered_foreign(functor_t fd, Module m)
 { if ( GD->initialised )
-  { fid_t cid = PL_open_foreign_frame();
+  { GET_LD
+    fid_t cid = PL_open_foreign_frame();
     term_t argv = PL_new_term_refs(2);
     predicate_t pred = _PL_predicate("$foreign_registered", 2, "system",
 				     &GD->procedures.foreign_registered2);
@@ -2305,7 +2306,8 @@ IOSTREAM *
 PL_open_resource(Module m,
 		 const char *name, const char *rc_class,
 		 const char *mode)
-{ IOSTREAM *s = NULL;
+{ GET_LD
+  IOSTREAM *s = NULL;
   fid_t fid = PL_open_foreign_frame();
   static predicate_t MTOK_pred;
   term_t t0 = PL_new_term_refs(4);
