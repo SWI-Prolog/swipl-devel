@@ -197,6 +197,7 @@ NewClass(text_image)			/* TBD: subclass of bitmap? */
   Name		wrap;			/* Wrap mode in effect */
   Int		tab_distance;		/* Tab distance in pixels */
   Vector	tab_stops;		/* Vector of tab-stops (pixels) */
+  Graphical	pointed;		/* Graphical under the pointer */
   Bool		eof_in_window;		/* EOF is in the window */
 					/* start private data */
   int		w;			/* Used width in pixels */

@@ -749,39 +749,41 @@ t_grey(int x, int y, int w, int h)
 
 static void
 ascent_and_descent_graphical(Graphical gr, int *ascent, int *descent)
-{ if ( instanceOfObject(gr, ClassDevice) )
-  { Device dev = (Device)gr;
+{ Point r;
 
-    *ascent  = valInt(dev->offset->y) - valInt(dev->area->h);
-    *descent = valInt(dev->area->h) - *ascent;
-
+  if ( instanceOfObject(gr, ClassDialogItem) )
+  { if ( (r = qadGetv(gr, NAME_reference, 0, NULL)) )
+      *ascent = valInt(r->y);
+    else
+      *ascent = valInt(gr->area->h);
+  } else if ( onFlag(gr, F_ATTRIBUTE) &&
+	      (r = getAttributeObject(gr, NAME_reference)) )
+  { *ascent = valInt(r->y);
   } else
-  { *ascent  = valInt(gr->area->h);
-    *descent = 0;
-  }
+    *ascent = valInt(gr->area->h);
+
+  if ( descent )
+    *descent = valInt(gr->area->h) - *ascent;
 }
 
 
 static void
 paint_graphical(TextImage ti, Area a, Graphical gr, int x, int base)
 { int dx, dy;
+  int asc;
+  Int ox = a->x;
+  Int oy = a->y;
 
-  if ( instanceOfObject(gr, ClassDevice) )
-  { Device dev = (Device)gr;
-
-    dx = x    - (valInt(dev->offset->x) + valInt(dev->area->x));
-    dy = base - (valInt(dev->offset->y));
-  } else
-  { dx = x - valInt(gr->area->x);
-    dy = base - (valInt(gr->area->y) + valInt(gr->area->h));
-  }
+  ascent_and_descent_graphical(gr, &asc, NULL);
+  dx = x    - valInt(gr->area->x);
+  dy = base - (valInt(gr->area->y) + asc);
 
   r_offset(dx, dy);
   assign(a, x, toInt(valInt(a->x) - dx));
   assign(a, y, toInt(valInt(a->y) - dy));
   RedrawArea(gr, a);
-  assign(a, x, toInt(valInt(a->x) + dx));
-  assign(a, y, toInt(valInt(a->y) + dy));
+  assign(a, x, ox);
+  assign(a, y, oy);
   r_offset(-dx, -dy);
 }
 
@@ -1173,6 +1175,17 @@ getLineTextImage(TextImage ti, Int pos)
 		*            EVENTS		*
 		********************************/
 
+static status
+resetTextImage(TextImage ti)
+{ if ( notNil(ti->pointed) )
+  { DeviceGraphical(ti->pointed, NIL);
+    assign(ti, pointed, NIL);
+  }
+
+  succeed;
+}
+
+
 Int
 getIndexTextImage(TextImage ti, EventObj ev)
 { Int X, Y;
@@ -1190,45 +1203,127 @@ getIndexTextImage(TextImage ti, EventObj ev)
 
 
 static status
+updatePointedTextImage(TextImage ti, EventObj ev, long *where)
+{ Int x, y;
+  TextLine tl;
+  TextChar tc;
+  Graphical gr;
+
+  if ( isAEvent(ev, NAME_areaExit) )
+  { if ( notNil(ti->pointed) )
+    { PceWindow sw = getWindowGraphical((Graphical) ti->device);
+
+      if ( sw )
+      { if ( sw->focus == ti->pointed )
+	  focusWindow(sw, NIL, NIL, NIL, NIL);
+	else if ( sw->keyboard_focus == ti->pointed )
+	  keyboardFocusWindow(sw, NIL);
+      }
+    }	     
+
+    gr = NIL;
+    
+  } else
+  { get_xy_event(ev, ti, ON, &x, &y);
+    if ( (tl = line_from_y(ti, valInt(y))) &&
+	 (tc = &tl->chars[char_from_x(tl, valInt(x))]) &&
+	 tc->is_graphical )
+    { *where = tl->start + tc->index;
+      gr = tc->value.graphical;
+    } else
+      gr = NIL;
+  }
+
+  if ( gr != ti->pointed )
+  { Name enter, exit;
+
+    if ( allButtonsUpEvent(ev) )
+    { enter = NAME_areaEnter;
+      exit  = NAME_areaExit;
+    } else
+    { enter = NAME_areaResume;
+      exit  = NAME_areaCancel;
+    }
+
+    if ( notNil(ti->pointed) )
+      generateEventGraphical(ti->pointed, exit);
+
+    assign(ti, pointed, gr);
+
+    if ( notNil(gr) )
+    { Int ty, tx = toInt(valInt(ti->area->x) + tc->x);
+      int asc;
+
+      ascent_and_descent_graphical(gr, &asc, NULL);
+      ty = toInt(valInt(ti->area->y) + tl->y + tl->base - asc);
+
+      doSetGraphical(gr, tx, ty, DEFAULT, DEFAULT);
+
+      generateEventGraphical(ti->pointed, enter);
+    }
+  }
+
+  succeed;
+}
+
+
+static CursorObj
+getDisplayedCursorTextImage(TextImage ti)
+{ if ( notNil(ti->pointed) )
+  { CursorObj c;
+    PceWindow sw;
+
+    if ( notNil(c=qadGetv(ti->pointed, NAME_displayedCursor, 0, NULL)) )
+      answer(c);
+
+    answer(NIL);
+  }
+
+  answer(ti->cursor);
+}
+
+
+static status
 eventTextImage(TextImage ti, EventObj ev)
 { if ( eventGraphical(ti, ev) )
   { succeed;
   } else
-  { Int x, y;
-    TextLine tl;
-    TextChar tc;
+  { long where;
 
-    get_xy_event(ev, ti, ON, &x, &y);
-    if ( (tl = line_from_y(ti, valInt(y))) &&
-	 (tc = &tl->chars[char_from_x(tl, valInt(x))]) &&
-	 tc->is_graphical )
-    { Graphical gr = tc->value.graphical;
+    updatePointedTextImage(ti, ev, &where);
+
+    if ( notNil(ti->pointed) )
+    { Graphical gr = ti->pointed;
       status rval;
-      PceWindow sw;
+      PceWindow sw = getWindowGraphical((Graphical) ti->device);
       Area a = gr->area;
       Int ow = a->w, oh = a->h;
 
-      if ( instanceOfObject(gr, ClassDevice) )
-      { Cprintf("Should move %s\n", pp(gr));
-      } else
-      { setGraphical(gr,
-		     toInt(valInt(ti->area->x) + tc->x),
-		     toInt(valInt(ti->area->y) +
-			   tl->y + tl->base - valInt(gr->area->h)),
-		     DEFAULT,
-		     DEFAULT);
-      }
       DeviceGraphical(gr, ti->device);
       DisplayedGraphical(gr, ON);
       rval = postEvent(ev, gr, DEFAULT);
-      if ( (sw = getWindowGraphical((Graphical) ti->device)) &&
-	   (sw->focus == gr) )
+      if ( sw && sw->focus == gr || sw->keyboard_focus == gr )
       { DisplayObj d = getDisplayGraphical((Graphical) sw);
+	TextCursor tc;
+	Any tcon = NIL;
 
-	while( !onFlag(sw, F_FREED|F_FREEING) && sw->focus == gr )
+	if ( sw->keyboard_focus == gr &&
+	     instanceOfObject(ti->device, ClassEditor) )
+	{ Editor e = (Editor) ti->device;
+	  tc = e->text_cursor;
+	  if ( notNil(tc) )
+	    tcon = tc->active;
+	  send(tc, NAME_active, OFF, 0);
+	}
+
+	while( !onFlag(sw, F_FREED|F_FREEING) &&
+	       (sw->focus == gr || sw->keyboard_focus == gr) )
 	{ if ( dispatchDisplay(d) )
 	    ws_discard_input("Focus on graphical in editor");
 	}
+
+	if ( notNil(tcon) && !onFlag(tc, F_FREED|F_FREEING) )
+	  send(tc, NAME_active, tcon, 0);
       }
       if ( !onFlag(gr, F_FREED|F_FREEING) &&
 	   !onFlag(ti, F_FREED|F_FREEING) )
@@ -1236,9 +1331,7 @@ eventTextImage(TextImage ti, EventObj ev)
 	a = gr->area;
 
 	if ( ow != a->w || oh != a->h )
-	{ int where = tl->start + tc->index;
-
-	  DEBUG(NAME_diagram, Cprintf("%s: Changed %d\n", pp(ti), where));
+	{ DEBUG(NAME_diagram, Cprintf("%s: Changed %d\n", pp(ti), where));
 	  ChangedRegionTextImage(ti, toInt(where), toInt(where+1));
 	}
       }
@@ -1710,6 +1803,8 @@ static vardecl var_textImage[] =
      NAME_appearance, "Pixel distance between tab stops"),
   SV(NAME_tabStops, "vector*", IV_GET|IV_STORE, tabStopsTextImage,
      NAME_appearance, "Vector of tab-stops in pixels"),
+  IV(NAME_pointed, "graphical*", IV_GET,
+     NAME_event, "Graphical under the pointer"),
   IV(NAME_eofInWindow, "bool", IV_GET,
      NAME_repaint, "Is end-of-file inside window?"),
   IV(NAME_width, "alien:int", IV_NONE,
@@ -1741,6 +1836,8 @@ static vardecl var_textImage[] =
 static senddecl send_textImage[] =
 { SM(NAME_compute, 0, NULL, computeTextImage,
      DEFAULT, "Recompute text-image if necessary"),
+  SM(NAME_reset, 0, NULL, resetTextImage,
+     DEFAULT, "Reset <-pointed after an abort"),
   SM(NAME_event, 1, "event", eventTextImage,
      DEFAULT, "Forward event to included graphicals"),
   SM(NAME_geometry, 4, T_geometry, geometryTextImage,
@@ -1772,6 +1869,8 @@ static getdecl get_textImage[] =
      NAME_scroll, "Number of lines visible"),
   GM(NAME_start, 1, "line=int", "index=[int]", getStartTextImage,
      NAME_scroll, "Character index for start of screenline"),
+  GM(NAME_displayedCursor, 0, "cursor*", NULL, getDisplayedCursorTextImage,
+     NAME_cursor, "Currently displayed cursor"),
   GM(NAME_view, 0, "int", NULL, getViewTextImage,
      NAME_scroll, "Number of characters visible")
 };

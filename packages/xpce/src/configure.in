@@ -3,6 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_INIT(Pce.in)
 
 AC_CONFIG_HEADER(config.h)
+AC_SUBST(YACC)
 AC_SUBST(NETLIBS)
 AC_SUBST(PL)
 AC_SUBST(PLLIBS)
@@ -210,21 +211,22 @@ EOF
   CMFLAGS="$CMFLAGS -fPIC"
   fi
 
-  SO="so"				# Default shared object extension
-  LD="gcc"				# Default linking through gcc
-  LDSOFLAGS="-shared"			# Create a shared object
-  SONAMEFLAG="-Wl,-soname"		# Set the internal name
-  SOWHOLEARCHIVE="-Wl,-whole-archive"	# Link the whole archive
-  PLTARGET=soall			# Link XPCE dynamically to prolog
+  SO="so"				 # Default shared object extension
+  LD="gcc"				 # Default linking through gcc
+  LDSOFLAGS="-shared"			 # Create a shared object
+  SONAMEFLAG='-Wl,-soname,$(LIBXPCESOM)' # Set the internal name
+  SOWHOLEARCHIVE="-Wl,-whole-archive"	 # Link the whole archive
+  PLTARGET=soall			 # Link XPCE dynamically to prolog
 
   case "$OS" in
     *solaris* | *sunos5*)	LD=ld
 				LDSOFLAGS="-G"
-				SONAMEFLAG="-h "
-				SOWHOLEARCHIVE="-u pceSend"
+				SONAMEFLAG="-h $(LIBXPCESOM)"
+				SOWHOLEARCHIVE="-u pceSend -u pceOpen"
     				;;
-    *sunos*)			LDSOFLAGS=""
-				SOWHOLEARCHIVE="-u pceSend"
+    *sunos*)			LD=ld
+				LDSOFLAGS=""
+				SOWHOLEARCHIVE="-u _pceSend -u _pceOpen"
 				SONAMEFLAG=""
 				SOEXTRAOBJ=Initialize.o
 				;;
@@ -298,6 +300,9 @@ AC_PROG_RANLIB
 AC_PROG_INSTALL
 AC_C_INLINE
 AC_FUNC_ALLOCA
+
+AC_CHECK_PROGS(YACC, bison yacc, yacc)
+if test $YACC = "bison"; then YACC="bison -y"; fi
 
 AC_CHECK_LIB(socket, socket,
 	     [NETLIBS="$NETLIBS -lsocket"; LIBS="$LIBS -lsocket"]
@@ -439,21 +444,6 @@ else
     XLIBS="-lXt -lX11"
 fi
 
-case "$OS" in			# Linux/ELF only.  How to test?
-    *linux*)	XLIBS="$XLIBS -lSM -lICE"
-		;;
-    *)		;;
-esac
-
-ac_oldlibs="$LIBS"
-LIBS="$XLIBS $LIBS"
-if test ! -z "$x_libraries"; then
-  LIBS="-L$x_libraries $LIBS"
-fi
-echo "	XLIBS=$LIBS"
-AC_CHECK_FUNCS(XtPopupSpringLoaded XmIsMotifWMRunning)
-LIBS="$ac_oldlibs"
-
 if test "$x_libraries" = ""; then
     XLIB=/usr/lib
 else
@@ -464,6 +454,23 @@ XINCLUDES=/usr/include
 else
 XINCLUDES="$x_includes"
 fi
+
+ac_oldlibs="$LIBS"
+if test ! -z "$x_libraries"; then
+  LIBS="-L$x_libraries $LIBS"
+fi
+AC_CHECK_LIB(SM, main,
+	     XLIBS="$XLIBS -lSM -lICE",
+	     ,
+	     -lX11 -lXt -lICE)
+echo "	XLIBS=$XLIBS"
+if test ! -z "$x_libraries"; then
+  LIBS="-L$x_libraries $XLIBS $ac_oldlibs"
+else
+  LIBS="$XLIBS $ac_oldlibs"
+fi
+AC_CHECK_FUNCS(XtPopupSpringLoaded XmIsMotifWMRunning)
+LIBS="$ac_oldlibs"
 
 AC_MSG_CHECKING("memory model")
 echo '#include "confdefs.h"' > conftest.c
@@ -483,3 +490,6 @@ fi
 rm -rf conftest*
 
 AC_OUTPUT(Makefile ../CXX/demo/Makefile)
+
+
+

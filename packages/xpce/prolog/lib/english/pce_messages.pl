@@ -23,7 +23,7 @@ pce_message(pce(bad_selector, Culprit)) -->
 pce_message(pce(bad_reference, Culprit)) -->
 	['Illegal reference: `~w'''-[Culprit], nl].
 pce_message(pce(bad_integer_reference, Culprit)) -->
-	['Invalid integer reference: `@~w'''-[Culprit], nl].
+	['Invalid integer reference: `~w'''-[Culprit], nl].
 pce_message(pce(bad_string_argument, Culprit)) -->
 	['Cannot create string from: `~w'''-[Culprit], nl].
 pce_message(pce(unknown_reference, Culprit)) -->

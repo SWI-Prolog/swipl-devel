@@ -113,6 +113,32 @@ pceExistsReference(ulong ref)
 }
 
 
+char *
+pcePPReference(PceObject ref)
+{ if ( isInteger(ref) )
+  { Any addr = longToPointer(valInt(ref));
+    char *rval = pp(addr);
+
+    if ( rval[0] != '@' )
+    { char tmp[256];
+      sprintf(tmp, "@%ld", valInt(ref));
+      return save_string(tmp);
+    } else
+      return rval;
+  } else if ( isName(ref) )
+  { Any addr;
+
+    if ( !(addr = getObjectAssoc(ref)) )
+    { char tmp[256];
+
+      sprintf(tmp, "@%s", strName(ref));
+      return save_string(tmp);
+    } else
+      return pp(addr);
+  }
+}
+
+
 int
 pceExistsAssoc(PceName assoc)
 { Any addr;

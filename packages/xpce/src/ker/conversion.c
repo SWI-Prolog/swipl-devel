@@ -188,6 +188,11 @@ do_pp(Any obj)
 	sprintf(tmp, "@%ld/%s", valInt(PointerToInt(obj)), s);
     }
 
+    if ( isFreedObj(obj) )
+      strcat(tmp, " (freed)");
+    else if ( isFreeingObj(obj) )
+      strcat(tmp, " (unlinking)");
+
     return save_string(tmp);
   }
 

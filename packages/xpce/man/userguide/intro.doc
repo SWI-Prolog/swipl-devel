@@ -4,15 +4,15 @@ XPCE is an object-oriented library for building Graphical User
 Interfaces (GUI's) for symbolic or strongly typed languages. It provides
 high level GUI specification primitives and dynamic modification of the
 program to allow for rapid development of interfaces. It integrates a
-graphical tool for the specification of interfaces, but also
-sufficiently powerful and uniform mechanism to facilitate automatic
-generation of GUI's.
+graphical tool for the specification of interfaces, in addition to
+powerful and uniform mechanisms to facilitate automatic generation of
+GUI's.
 
-XPCE is not a programming language in the traditional sense. Constructs
-of the system do not have a syntactical representation. The interface to
-the `hosting' language defines what XPCE looks like from the programmers
-point of view. As a consequence, the programmer will first of all
-experience XPCE as a {\em library}.
+XPCE is not a programming language in the traditional sense. Language
+constructs and objects of the system do not have a syntactical
+representation. The interface to the `hosting' language defines what
+XPCE looks like from the programmers point of view. As a consequence,
+the programmer will first of all experience XPCE as a {\em library}.
 
 XPCE however, does provide the semantic elements that can be found in
 many object-oriented programming languages: classes, objects, methods,
@@ -103,14 +103,14 @@ for reporting bugs.
 The interface between XPCE and the application (host) language is very
 small. This feature makes it easy to connect XPCE to a new language. XPCE
 fits best with dynamically typed or strongly statically typed languages
-with programmable type-conversion.  XPCE itself is dynamically typed.
-Cooperating with languages with the named properties avoid the need
-for explicitly programmed type-conversion.  For a dynamically typed
-host-language such as Prolog or Lisp, the interface determines the
-type of the host-language construct passed and translates it into the
-corresponding XPCE object. For \idx{C++}, the rules for translating C
-data structures to XPCE objects can be handled by the programmable
-type-casting mechanism of C++.
+with type-conversion facilities that can be programmed. XPCE itself is
+dynamically typed. Cooperating with languages with the named properties
+avoid the need for explicitly programmed type-conversion. For a
+dynamically typed host-language such as Prolog or Lisp, the interface
+determines the type of the host-language construct passed and translates
+it into the corresponding XPCE object. For \idx{C++}, the rules for
+translating C data structures to XPCE objects can be handled by the
+programmable type-casting mechanism of C++.
 
 \begin{itemize}
     \tick{SWI-Prolog}

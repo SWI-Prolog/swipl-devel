@@ -1,30 +1,41 @@
 				Compiling XPCE
 				Jan Wielemaker
-				   01/11/94
+				   14/02/96
 
-Updated for xpce-4.8.13 at Tue Sep  5 18:09:18 1995
+Updated for xpce-4.8.16 at Wed Feb 14 14:08:28 1996
 
 Prerequisites:
 ==============
 
 * A source LICENCE agreement!
 
-* A supported Unix machine with a supported operating system.
+* A supported Unix machine with a supported operating system.  Most Unix
+  X11 brands will do.  Configure does the proper job for SunOs 4.1.x,
+  Solaris, Linux/ELF and probably IRIX 5.3.  It will do most of the
+  work for you on other platforms, but notably the details for making
+  shared libraries might need to be fixed in the resulting Makefile.
+
+* X11 include and library files.  X11R4 to R6 should configure properly.
+  R3 might be a problem, at least it is not tested for a while.
 
 * A recent copy of the GNU-Project C-compiler gcc.  Versions known to
-  work are gcc-2.x.y, where 3<=x<=5 and y>x or gcc 2.6.3. Some others
-  are fine too. The C++ interface is written in C++ and therefore you
-  need to have g++ installed too to include this (configure is clever
-  enough to omit the C++ interface if you have g++ not installed).
+  work are gcc-2.x.y, where 3<=x<=5 and y>x, gcc 2.6.3 and gcc 2.7.x.
+  Some others are fine too. The C++ interface is written in C++ and
+  therefore you need to have g++ installed too to include this
+  (configure is clever enough to omit the C++ interface if you do
+  not have g++).
 
 * A recent copy of the GNU-Project `make' utility.  Versions tested are
   3.62 and 3.71 and 3.74.  Most versions will do.  The native make
   utility provided with many operating systems won't.
 
 * If you want to link to SWI-Prolog to create XPCE/SWI-Prolog, SWI-Prolog
-  version 2.1.5 or later must be installed (using make install) as one
-  of `pl', `swipl' or `swi-prolog'. The automatic configuration script
-  will call SWI-Prolog to determine system parameters of it.
+  version 2.5.2 or later must be installed (using make install) as
+  one of `pl', `swipl' or `swi-prolog'. The automatic configuration
+  script will call SWI-Prolog to determine system parameters of it.
+
+* If you want to link to SICStus Prolog, you need SICStus Prolog
+  version 3 installed.
 
 
 Preparation:
@@ -36,158 +47,105 @@ multiple versions from the same sources   (for  example both the runtime
 and the development version or versions for different hardware).  In the
 first case simply
 
-	cd src
+	% cd src
 
 in the latter case, invent a nice directory name and do (for example):
 
-	mkdir sunos
-	cd sunos
+	% mkdir sunos
+	% cd sunos
 
-* Run configure.  The example works always, but of course you can simply
-  use `sh configure' if you compile in the source directory.
+* Run configure. 
 
 	% sh ../src/configure
 
-  If you do not want to install XPCE with SWI-Prolog, you should do
+  If you do not want to install XPCE with SWI-Prolog, but with
+  SICStus or another language you should do
 
 	% sh ../src/configure --without-pl
 
   configure creates config.h, describing many aspects of your compiler
-  and C-libraries.
+  and C-libraries as well as Makefile.  Check them if you know your
+  compilation environment and your machine is not listed above.
 
-  When configuring for linking to SWI-Prolog, configure will also
-  determine which of the two linking schemas is used:
+* Make the XPCE library
 
-     * Shared library based
+	% make xpce
 
-     If it detects the SWI-Prolog feature `open_shared_object' it
-     assumes SWI-Prolog can dynamically load shared object files
-     (extension .so on sysvr4 Unix systems) and will try to make
-     the target lib/xpce4pl.<so>, where <so> is the extension used for
-     shared objects on this Unix platform.
+  Time for a coffee break now.  This stage creates libXPCE.a in the
+  current directory.
 
-     In addition, it will target a couple of `.qlf' (SWI-Prolog
-     Quick Load Files) that allow for quick dynamic loading of
-     xpce in the plain SWI-Prolog executable.
+* Make a shared library
 
-     The target for pl/src/Makefile is `soall'
+  Notably if you are planning to use the XPCE/C++ interface, it is wise
+  to create a shared version of these libraries. Note that this will not
+  work on all platforms.
 
-     * Statically linked version
-     
-     If SWI-Prolog cannot load shared objects, configure will set
-     up the target bin/xpce, a statically linked SWI-Prolog
-     version that includes XPCE.  NOTE: `statically linked' here
-     is the opposite of dynamic linking of shared objects in the
-     running executable.  It does *not* necessarily mean using
-     static C libraries.
+  	% make so
 
-     It will also create the target bin/xpce.qlf, a Prolog boot
-     image containing the normal Prolog boot files as well as the
-     XPCE kernel files.
+  Will create libXPCE.so.<version> and libXPCEmain.a.  The first is
+  the shared library used for both C++ and the Prolog versions, the
+  latter is the C++ main-stub library.  Now, become root and run
 
-     The target for pl/src/Makefile is `nosoall'
+	% su
+	# make so-install
 
-  Note that, unlike previous versions, XPCE/SWI-Prolog is no longer
-  created using SWI-Prolog's save_program/1 predicate.  The current
-  schema is portable to machines not supporting save_program/1 and
-  in general exploits more of dynamic linking and libraries.
+  To install these libraries in /usr/local/lib.  If you prefer another
+  location, edit the Makefile variable prefix or do (for example) the
+  following to install in /usr/lib:
 
+  	% su
+	# make prefix=/usr so-install
 
-XPCE/SICStus Prolog (make target `xpce-sicstus'):
--------------------------------------------------
+* Link to SWI-Prolog
+====================
 
-[ Unfortunately version 4.8.13 is not updated for SICStus Prolog.  It
-  will *not* to run without modifications.  Our SICStus market
-  is very small, so please contact me if you have troubles/plans.
-]
+  There are two ways to link to SWI-Prolog: create a shared object
+  containing the interface, so XPCE can be loaded as a library on
+  top of SWI-Prolog.  This is the default if shared objects are
+  supported.  Otherwise, the interface can be linked into a new
+  version of SWI-Prolog.  The make targets are:
 
-Either first install using SWI-Prolog, or configure using:
+  	% make pl-itf
+	Uses the default, which implies create a library if possible
+	or a new Prolog if unavoidable.
 
-	% ./configure --without-pl
+	% make pl-so
+	Makes a library.  This will fail if it can't be done on this
+	platform.
 
-edit the Makefile to fix the definition of:
+	% make pl-static
+	Makes a new SWI-Prolog
 
-	# SICSHOME
-	Absolute path to the installation directory of SICS Prolog
-	(Version 2.1#9 or later).
+* Testing the shared object version
 
-	# SICSTARGET
-	Place where the binary should be dumped
+  Now simply start pl and do XPCE calls, for example:
 
-Compilation:
-============
+  	% pl
+	?- manpce.
 
-* After editing Makefile, give the following command to create the
-  XPCE/SWI-Prolog target:
-  
-	% make clean; make
+  This is dynamically load XPCE and start the manual.
 
-  where `make' MUST BE GNU-MAKE!!!!
+* Testing the `new prolog' version
 
-  This is what the *start* of the compilation should look like
-  (on a SUN sparc workstation running SunOs 4.1.3, using gcc
-  2.6.3 and gnu-make 3.74):
+	% ./xpce
+	?- manpce.
 
-  ================================================================
-  swisun31 (sunos) 7_> make
-  ****************
-  Making XPCE 4.8.13, Sep 1995 for sparc-sunos4.1.3
-  ****************
-  mkdir bin
-  mkdir lib
-  ln -s ../src/h .
-  if [ ! -d ../src/names ]; then mkdir ../src/names; fi
-  if [ ! -d names ]; then ln -s ../src/names .; fi
-  gcc  -O2 -I. -I../src -fPIC -funsigned-char -DHAVE_CONFIG_H -o Names.Gen ../src/Names.Gen.c
-  gcc  -O2 -I. -I../src -fPIC -funsigned-char -DHAVE_CONFIG_H -o Names.X ../src/Names.X.c
-  ../src/FN -a ../src/h/*.h ../src/???/*.c
-  gcc -c  -O2 -I. -I../src -fPIC -funsigned-char -DHAVE_CONFIG_H ../src/adt/area.c -o area.o
-  ar: creating libXPCE.a
-  gcc -c  -O2 -I. -I../src -fPIC -funsigned-char -DHAVE_CONFIG_H ../src/adt/atable.c -o atable.o
-  gcc -c  -O2 -I. -I../src -fPIC -funsigned-char -DHAVE_CONFIG_H ../src/adt/attribute.c -o attribute.o
-  ================================================================
+* Installation
 
-* If you just want libXPCE.a, use the target `make xpce' instead of just
-  `make', which is equivalent to `make xpce-pl'.  NOTE: if you ran configure
-  with the option `--without-pl', the default target is just `xpce'.
+  To install the development system inside the Prolog distribution, run:
 
-* If you want XPCE connected to SICStus Prolog, you need SICStus Prolog
-  version 2.1#9 (tested) or later.  Edit the Makefile variables
-  SICSHOME and type
+  	% make dv-install
 
-	% make xpce-sicstus
-
-* NEVER run make in one of the subdirectories; the toplevel make exports
-  necessary context to the sub-makes.
-
-* To REBUILD ALL, you need the utilities `mkproto' and `etags'.  If you
-  don't have mkproto (for generating the proto.h files), you can ftp
-  this public domain utility from
-
-	ftp://swi.psy.uva.nl/pub/xpce/mkproto.tgz.
-
-  etags is the GNU-Emacs tag-generation program distributed with
-  GNU-Emacs and available from many ftp-sites.
-
-  If you have these programs, you can do:
-
-	% make distclean
-	% make
+  Note that this installs a *lot*.  If configure didn't find a matching
+  `install' executable, it will use the shell script install-sh and the
+  installation will take *long*.  If you have to do this more often, 
+  consider installing GNU install on your system.
 
 
-Public Installation 
-===================
+Link to SICStus Prolog
+======================
 
-There are two install-options to install the XPCE files with SWI-Prolog.
-The first option only copies the runtime  files, while the second option
-compies the entire development environment.   To install the DEVELOPMENT
-environment, now type:
-
-	make dv-install
-
-To just build the runtime environment, type:
-
-	make rt-install
+See README.sicstus for further details.
 
 Overview of the compilation process
 ===================================
@@ -217,20 +175,18 @@ short overview of the compilation process:
 
 	1) make is fired in pl/src using the target `soall'
 
-	2) This make creates shitf.o, the interface object. This object
-	is very similar to the normal interface, but contains the
+	2) This make creates so-interface.o, the interface object. This
+	object is very similar to the normal interface, but contains the
 	functions install() and uninstall() rather than using the link.c
 	stub to make the entry-point known.
 
-	3) ld is used to create xpce4pl.so
+	3) ld is used to create pl2xpce.so
 
-	4) ../$(PLARCH) is created to hold xpce4pl.so and pl-crt0.o
-
-	5) The SWI-Prolog installation directory is modified.  plrc
+	4) The SWI-Prolog installation directory is modified.  plrc
 	is copied to this directory and a link named `xpce' is made
 	from SWI-Prolog's home directory to XPCE.
 	
-	6) The new system is ran to create .qlf files for various
+	5) The new system is ran to create .qlf files for various
 	XPCE libraries.
 
 	* Statically linked version
@@ -243,25 +199,14 @@ short overview of the compilation process:
 	with the created .o files, src/XPCE.a and the necessary Unix
 	libraries to create pl/src/xpce.base; the basic Unix executable.
 
-	3) For C++, `mangle' is make'ed from mangle.c and the symbols
-	mentioned in pl/src/mlist are changed in xpce.base to some
-	unique meaningless name.
-
-	4) Next, xpce -O -g pce_welcome -b $(PLHOME)/boot/init.pl -c
+	3) Next, xpce -O -g pce_welcome -b $(PLHOME)/boot/init.pl -c
 	load.pl is started to create the xpce.qlf boot image.
 
-
-    XPCE/SICStus Prolog
-    -------------------
-
-	This installation process is very similar to XPCE/SWI-Prolog.
 
 Problems:
 =========
 
 * If anything goes wrong while building XPCE.a:
-
-	- Check the paths: PCEHOME, XBASE, ARCH
 
 	- Are you running the proper programs:
 	
@@ -273,8 +218,9 @@ Problems:
 		/usr/local/lib/gcc-lib/sparc-sun-sunos4.1/2.5.8/specs
 		gcc version 2.5.8
 
-	- Any local overrules of include files, libraries, shell utilities?
-	  XPCE should build using both native Unix and GNU-Project utilities,
-	  except for make and (g)cc that should be the GNU versions.
+	- Any locally overruled include files, libraries, shell
+	  utilities? XPCE should build using both native Unix and
+	  GNU-Project utilities, except for make and (g)cc that should be
+	  the GNU versions.
 
 

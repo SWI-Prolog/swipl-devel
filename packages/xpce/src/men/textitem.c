@@ -511,7 +511,10 @@ enterTextItem(TextItem ti, EventId id)
     id = (instanceOfObject(ev, ClassEvent) ? getIdEvent(ev) : toInt('\r'));
   }
 
-  if ( !(notNil(dev) && send(dev, NAME_typed, id, ON, 0)) && !isFreedObj(ti) )
+  if ( !(notNil(dev) &&
+	 !instanceOfObject(dev, ClassEditor) && /* HACK */
+	 send(dev, NAME_typed, id, ON, 0)) &&
+       !isFreedObj(ti) )
   { int modified = (getModifiedTextItem(ti) == ON);
 
     if ( applyTextItem(ti, OFF) && !isFreedObj(ti) )

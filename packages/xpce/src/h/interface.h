@@ -228,6 +228,7 @@ __pce_export PceObject	cToPceTmpCharArray __P((const char *text));
 __pce_export void	donePceTmpCharArray __P((PceObject));
 
 __pce_export int	pceExistsReference __P((unsigned long));
+__pce_export char *	pcePPReference __P((PceObject ref));
 __pce_export int	pceExistsAssoc __P((PceName assoc));
 
 __pce_export int	pceInstanceOf __P((PceObject obj, PceObject class));

@@ -1,11 +1,10 @@
 \chapter{Simple graphics}	\label{sec:graphics}
 
-In chapter~\ref{sec:starting} we introduced the basic notions of PCE.
-For the examples we used controllers, because these common and for their
-task specialised GUI components are relatively easy to use. In this
-section we present the basic graphical components. These are more
-general and therefore can be applied in many more situations, but they
-are also more difficult to use.
+In chapter~\ref{sec:starting} we introduced the principal predicates of
+XPCE.  For the examples we used controllers, because these are
+relatively easy to use.  In this section we present the basic graphical
+components.  These are more general and therefore can be applied in many
+more situations, but they are also more difficult to use.
 
 This section only introduces the basics of graphics in XPCE. See also
 \cite{XPCE:draw}. The online manual and the demo programs provide more
@@ -14,11 +13,12 @@ information on using XPCE's graphics.
 
 \section{Graphical building blocks}
 
-\index{graphical,window}\index{window,coordinates}% A \class{window} is
-the most generic window class of XPCE. Drawings are often displayed on a
-\class{picture}, which is a window with scrollbars. The drawing area
-of a window is two-dimensional and infinitely large (both positive and
-negative). The query below creates a picture and opens it on the screen.
+\index{graphical,window}\index{window,coordinates}%
+A \class{window} is the most generic window class of XPCE.  Drawings are
+often displayed on a \class{picture}, which is a window with scrollbars.
+The drawing area of a window is two-dimensional and infinitely large
+(both positive and negative).  The query below creates a picture and
+opens it on the screen.
 
 \begin{code}
 1 ?- new(@p, picture('Demo Picture')),
@@ -106,7 +106,7 @@ overview of the primitive graphicals.
 \hline
 \class{ellipse} & Elliptical shape.  May be filled. \\
 \hline
-\class{arc}	& Part of ellipse.  Can have arrows.  Can show
+\class{arc}	& Part of an ellipse.  Can have arrows.  Can show
 		  as \idx{pie-slice}. \\
 \hline
 \class{line}	& Straight line segment.  Can have arrows. \\

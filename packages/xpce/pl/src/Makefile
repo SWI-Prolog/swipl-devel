@@ -43,7 +43,6 @@ XPCESO= 	$(LIBDIR)/pl2xpce.$(SO)
 SOEXTR=		$(addprefix $(OBJDIR)/, $(SOEXTRAOBJ))
 
 CFLAGS= 	$(COFLAGS) $(CMFLAGS) $(CPLIFLAGS)
-SOOBJ=		$(SOITF) $(SOEXTR)
 
 PCEPLS=		pce_expand.pl ../lib/english/pce_messages.pl pce_pl.pl \
 		pce_principal.pl pce_error.pl pce_autoload.pl pce_global.pl \
@@ -94,7 +93,17 @@ $(OBJDIR)/Initialize.o:
 		ar x $(XLIB)/libXt.a $@
 
 $(XPCESO):	$(SOITF) $(libXPCE) $(SOEXTR)
-		$(LD) $(LDSOFLAGS) $(SOOBJ) -L$(LIBDIR) -lXPCE $(GCCLIB) $(XLIBS) -o $@
+		@if [ -r $(LIBDIR)/libXPCE.so ]; then \
+		    $(MAKE) sopce$(XPCESO); \
+		else \
+		    $(MAKE) axpce$(XPCESO); \
+		fi
+
+sopce$(XPCESO):
+		$(LD) $(LDSOFLAGS) $(SOITF) -L$(LIBDIR) -lXPCE -o $(XPCESO);
+axpce$(XPCESO):
+		$(LD) $(LDSOFLAGS) $(SOITF) $(SOEXTR) -L$(LIBDIR) \
+		-lXPCE $(GCCLIB) $(XLIBS) -o $(XPCESO);
 
 ################################################################$
 # QLF generation

@@ -142,7 +142,11 @@ The next fundamental interface predicate is get/[3-13].  It is used to
 obtain information on the state of objects.  Again, the first two
 arguments are the reference and selector.  The last argument is
 unified with the return-value and the remaining arguments are
-treated the same as with send/[2-12].  Examples:
+treated the same as with send/[2-12].  The return value is normally
+an object reference, except for XPCE \class{name} objects, that are
+returned as a Prolog \idx{atom},  XPCE integers (\idx{int}) that are
+translated to Prolog integers and XPCE \class{real} objects, that are
+translated to Prolog \idx{floating point} numbers.  Examples:
 
 \begin{code}
 6 ?- get(@772024, y, Y).

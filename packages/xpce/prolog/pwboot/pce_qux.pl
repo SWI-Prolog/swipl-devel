@@ -191,8 +191,6 @@ print_source_location:-
 %
 % Provide (prolog-part) PCE interface messages
 
-:- extern(pce_error(+term)).
-
 pce_error(Error) :-
 	print_message(error, Error).
 
@@ -201,6 +199,8 @@ pce_warn(Warning) :-
 
 pce_info(Info) :-
 	print_message(informational, Info).
+
+:- extern(pce_error(+term)).
 
 % ignore(+Goal)
 %

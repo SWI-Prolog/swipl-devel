@@ -70,7 +70,7 @@ getDisplayedCursorDevice(Device dev)
   Cell cell;
 
   for_cell(cell, dev->pointed)
-  { if ( (c2 = qadGetv(cell->value, NAME_displayedCursor, 0, NULL)) )
+  { if ( notNil(c2 = qadGetv(cell->value, NAME_displayedCursor, 0, NULL)) )
       answer(c2);
   }
 
@@ -306,8 +306,9 @@ eventDevice(Any obj, EventObj ev)
     updatePointedDevice(dev, ev);
   
     for_cell(cell, dev->pointed)
-      if ( postEvent(ev, cell->value, DEFAULT) )
+    { if ( postEvent(ev, cell->value, DEFAULT) )
 	succeed;
+    }
 
     return eventGraphical(dev, ev);
   }
@@ -1534,6 +1535,34 @@ geometryDevice(Device dev, Int x, Int y, Int w, Int h)
   succeed;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Quick and dirty	move as used by class text_image to move devices for
+event-handling.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+status
+textMoveDevice(Device dev, Int x, Int y)
+{ ComputeGraphical(dev);
+
+  if ( x != dev->area->x || y != dev->area->y )
+  { Int dx = sub(x, dev->area->x);
+    Int dy = sub(y, dev->area->y);
+
+    assign(dev->offset, x, add(dev->offset->x, dx));
+    assign(dev->offset, y, add(dev->offset->y, dy));
+
+    if ( notNil(dev->clip_area) )
+    { assign(dev, badBoundingBox, ON); /* TBD: ??? */
+      computeBoundingBoxDevice(dev);
+    } else
+    { assign(dev->area, x, x);
+      assign(dev->area, y, y);
+    }
+  }
+
+  succeed;
+}
 
 		/********************************
 		*           REFERENCE		*

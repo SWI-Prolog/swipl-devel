@@ -301,9 +301,9 @@ initialise(D, W:int, H:int, Str:string) :->
 
 The most commonly redefined methods are ->initialise and ->unlink to
 redefine object creation and destruction.  {\bf Note that none of these
-methods should ever be called directly}, because the implementation
-often makes assumptions that are always true in the context they are
-normally invoked by the kernel.
+methods should ever be invoked directly on an object}, because the
+implementation often makes assumptions that are only true in the context
+they are normally invoked by the kernel.
 
 \begin{description}
     \sendmethod{object}{initialise}{<Class-Defined>}
@@ -401,8 +401,8 @@ Notably most subclasses of class \class{dialog_item}, the standard
 controllers, redefine ->event.
 
 The method ->event is commonly redefined in user-defined graphicals to
-make them sensitive to the mouse. The following fragment makes it
-possible to resize and move instances of this class.
+make them sensitive to the mouse.  The following fragment of a class
+definition makes it possible to resize and move instances.
 
 \begin{code}
 :- pce_global(@resize_and_move_recogniser,

@@ -44,7 +44,7 @@ pcerc.o:	pcerc.c
 # default rules for non GNU-make
 
 .C.o:
-		$(CXX) -fpic -c $(CXXFLAGS) $*.C
+		$(CXX) -c $(CXXFLAGS) $*.C
 
 .o.so:		
 		$(LD) $(LDSOFLAGS) -o $@ -lXPCE pcerc.o $*.o

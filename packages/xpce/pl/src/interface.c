@@ -554,7 +554,11 @@ refToObject(Term arg)
 
       if ( r.type == PL_INTEGER )
       { if ( !(obj = cToPceReference(r.value.i)) )
-	{ PceException(ATOM_badIntegerReference, 1, arg);
+	{ Term a = NewTerm();
+	  char *descr = pcePPReference(cToPceInteger(r.value.i));
+
+	  PutCharp(a, descr);
+	  PceException(ATOM_badIntegerReference, 1, a);
 
 	  return PCE_FAIL;
 	}
@@ -599,7 +603,11 @@ referenceToObject(Term arg)
 #endif
     
     if ( !(obj = cToPceReference(r)) )
-    { PceException(ATOM_badIntegerReference, 1, arg);
+    { Term a = NewTerm();
+      char *descr = pcePPReference(cToPceInteger(r));
+
+      PutCharp(a, descr);
+      PceException(ATOM_badIntegerReference, 1, a);
 
       return PCE_FAIL;
     }
@@ -813,6 +821,11 @@ termToObject(Term t, Atom assoc, int new)
       PceException(ATOM_badStringArgument, 1, a);
       return PCE_FAIL;
     }
+
+#ifdef HAVE_XPCEREF			/* avoid new() on bad-references */
+    if ( functor == ATOM_ref && arity == 1 )
+      return PCE_FAIL;
+#endif
 
 					/* Class(Args) */
     { ArgVector(argv, arity);

@@ -1,5 +1,8 @@
 [VERSION 4.8.16]
 
+* DEBUG: Improved error reporting when sending a message to a freed
+  or otherwise invalid object-reference.
+
 * ADDED: optional `ignore_case' argument to `char_array->suffix' and
   `string->ensure_suffix'.  Should be added to some more of the text
   analysis methods.

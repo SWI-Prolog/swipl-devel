@@ -65,7 +65,10 @@ initialise(F, B:emacs_buffer) :->
 input_focus(F, Val:bool) :->
 	"Activate the window"::
 	send(F, send_super, input_focus, Val),
-	send(F, active, Val).
+	(   send(F, unlinking)
+	->  true
+	;   send(F, active, Val)
+	).
 
 
 buffer(F, B:emacs_buffer) :->
