@@ -127,7 +127,13 @@ AC_TRY_COMPILE(
    AC_MSG_RESULT(no))
 
 AC_CHECK_HEADERS(malloc.h alloca.h unistd.h sys/time.h fcntl.h)
-AC_CHECK_FUNCS(setsid strerror)
+AC_CHECK_FUNCS(setsid strerror setitimer)
+
+if test "$ac_cv_func_setitimer" = "yes"; then
+  TARGETS="$TARGETS time.$SO"
+else
+  echo "WARNING: no setitimer(); dropping time.pl from targets"
+fi
 
 AC_OUTPUT(Makefile)
 
