@@ -12,11 +12,42 @@
 
 #include "dtd.h"
 #include "prolog.h"
+#include <stdio.h>
+
+#define streq(s,q) strcmp((s), (q)) == 0
+
+char *program;
+
+static void
+usage()
+{ fprintf(stderr, "Usage: %s [-xml|sgml] file.dtd\n", program);
+}
 
 int
 main(int argc, char **argv)
-{ if ( argc == 2 )
-  { dtd *dtd = file_to_dtd(argv[1], "test");
+{ dtd_dialect dialect = DL_SGML;
+
+  program = argv[0];
+  argv++;
+  argc--;
+  
+  while(argc > 0 && argv[0][0] == '-')
+  { if ( streq(argv[0], "-xml") )
+    { dialect = DL_XML;
+      argc--;
+      argv++;
+    } else if ( streq(argv[0], "-sgml") )
+    { dialect = DL_SGML;
+      argc--;
+      argv++;
+    } else
+    { usage();
+      exit(1);
+    }
+  }
+
+  if ( argc == 1 )
+  { dtd *dtd = file_to_dtd(argv[0], "test", dialect);
 
     if ( dtd )
     { prolog_print_dtd(dtd, PL_PRINT_ALL & ~PL_PRINT_PENTITIES);
@@ -24,5 +55,11 @@ main(int argc, char **argv)
     }
   }
 
+  usage();
   return 1;
 }
+
+
+
+
+

@@ -214,6 +214,9 @@ prolog_print_content(dtd_element *e)
     case C_CDATA:
       printf("cdata");
       break;
+    case C_ANY:
+      printf("any");
+      break;
     default:
       if ( def->content )
 	prolog_print_model(def->content);
@@ -226,6 +229,33 @@ prolog_print_content(dtd_element *e)
       }
       break;
   }
+}
+
+
+static ichar *
+istrblank(const ichar *s)
+{ for( ; *s; s++ )
+  { if ( isspace(*s) )
+      return (ichar *)s;
+  }
+
+  return NULL;
+}
+
+
+static void
+print_listval(attrtype type, int len, const char *text)
+{ char *t = malloc(len+1);
+
+  strncpy(t, text, len);
+  t[len] = '\0';
+
+  if ( type == AT_NUMBERS )
+    printf("%s", t);
+  else
+    printf("%s", atom(t));
+
+  free(t);
 }
 
 
@@ -313,20 +343,44 @@ prolog_print_attribute(dtd_element *e, dtd_attr *at)
     case AT_FIXED:
     { char *f = (at->def == AT_DEFAULT ? "default" : "fixed");
 
+      printf("%s(", f);
+
       switch( at->type )
       { case AT_CDATA:
-	  printf("%s(%s)", f, atom(at->att_def.cdata));
+	  printf("%s", atom(at->att_def.cdata));
+	  break;
+	case AT_NUMBER:
+	  printf("%ld", at->att_def.number);
 	  break;
 	case AT_NAME:
 	case AT_NAMEOF:
+	case AT_NUTOKEN:
 	  printf("%s(%s)", f, atom(at->att_def.name->name));
 	  break;
-	case AT_NUMBER:
-	  printf("%s(%ld)", f, at->att_def.number);
-	  break;
 	default:
+	  if ( at->islist )
+	  { const ichar *val = at->att_def.list;
+	    const ichar *e;
+	    int an = 0;
+
+	    printf("[");
+	    for(e=istrblank(val); e; val = e+1, e=istrblank(val))
+	    { if ( e == val )
+		continue;			/* skip spaces */
+	      if ( an++ > 0 )
+		printf(", ");
+	      print_listval(at->type, e-val, val);
+	    }
+            if ( an++ > 0 )
+	      printf(", ");
+	    print_listval(at->type, strlen(val), val);
+	    printf("]");
+	    break;
+	  }
 	  assert(0);
       }
+
+      printf(")");
     }
   }
 

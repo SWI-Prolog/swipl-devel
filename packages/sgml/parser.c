@@ -41,7 +41,7 @@ static const ichar *	iskip_layout(dtd *dtd, const ichar *in);
 static int		process_chars(dtd_parser *p, const ichar *name, const ichar *s);
 static dtd_parser *	clone_dtd_parser(dtd_parser *p);
 static void		free_model(dtd_model *m);
-static int		process_entity_declaraction(dtd *dtd,
+static int		process_entity_declaraction(dtd_parser *p,
 						    const ichar *decl);
 static void		free_notations(dtd_notation *n);
 static void		free_shortrefs(dtd_shortref *sr);
@@ -186,9 +186,10 @@ free_entity_list(dtd_entity *e)
   for( ; e; e=next)
   { next = e->next;
 
-    if ( e->value ) free(e->value);
-    if ( e->extid ) free(e->extid);
-    if ( e->exturl ) free(e->exturl);
+    if ( e->value )   free(e->value);
+    if ( e->extid )   free(e->extid);
+    if ( e->exturl )  free(e->exturl);
+    if ( e->baseurl ) free(e->baseurl);
 
     free(e);
   }
@@ -212,16 +213,24 @@ static const char *
 entity_file(dtd *dtd, dtd_entity *e)
 { switch(e->type)
   { case ET_SYSTEM:
-      return (char *)isee_text(dtd, e->exturl, "file:");
+    et_system:
+    { const ichar *f = isee_text(dtd, e->exturl, "file:");
+      const ichar *b;
+
+      if ( is_absolute_path(f) ||
+	   !e->baseurl ||
+	   !(b=isee_text(dtd, e->baseurl, "file:")) )
+	return f;
+      
+      return localpath(b, f);
+    }
     case ET_PUBLIC:
     { char *f;
 
       if ( (f=find_in_catalog("PUBLIC", e->extid)) )
 	return f;
       if ( e->exturl )
-      { fprintf(stderr, "TBD: Trying '%s'\n", e->exturl);
-	exit(1);
-      }
+	goto et_system;
     }
     default:
       return NULL;
@@ -230,7 +239,7 @@ entity_file(dtd *dtd, dtd_entity *e)
 
 
 static const ichar *
-entity_value(dtd *dtd, dtd_entity *e, int *len)
+entity_value(dtd_parser *p, dtd_entity *e, int *len)
 { const char *file;
 
   if ( e->value )
@@ -239,7 +248,7 @@ entity_value(dtd *dtd, dtd_entity *e, int *len)
     return e->value;
   }
   
-  if ( (file=entity_file(dtd, e)) )
+  if ( (file=entity_file(p->dtd, e)) )
     e->value = load_file_to_charp(file, &e->length);
 
   if ( len )
@@ -250,8 +259,9 @@ entity_value(dtd *dtd, dtd_entity *e, int *len)
 
 
 static int
-expand_pentities(dtd *dtd, const ichar *in, ichar *out, int len)
-{ const ichar *s;
+expand_pentities(dtd_parser *p, const ichar *in, ichar *out, int len)
+{ dtd *dtd = p->dtd;
+  const ichar *s;
 
   while(*in)
   { if ( (s = isee_func(dtd, in, CF_PERO)) ) 	/* % */
@@ -269,10 +279,10 @@ expand_pentities(dtd *dtd, const ichar *in, ichar *out, int len)
 	if ( !e )
 	  return gripe(ERC_EXISTENCE, "parameter entity", id->name);
 
-	if ( !(eval = entity_value(dtd, e, NULL)) )
+	if ( !(eval = entity_value(p, e, NULL)) )
 	  return FALSE;
 
-	if ( !expand_pentities(dtd, eval, out, len) )
+	if ( !expand_pentities(p, eval, out, len) )
 	  return FALSE;
 	l = strlen(out);		/* could be better */
 	out += l;
@@ -390,7 +400,7 @@ expand_entities(dtd_parser *p, const ichar *in, ochar *out, int len)
 	  goto recover;
 	}
   
-	if ( !(eval = entity_value(dtd, e, NULL)) )
+	if ( !(eval = entity_value(p, e, NULL)) )
 	{ gripe(ERC_NO_VALUE, e->name->name);
 	  in = estart;
 	  goto recover;
@@ -911,6 +921,7 @@ set_dialect_dtd(dtd *dtd, dtd_dialect dialect)
     case DL_XML:
     case DL_XMLNS:
     { char **el;
+      dtd_parser p;
 
       dtd->case_sensitive = TRUE;
       dtd->charclass->class['_'] |= CH_LCNMSTRT;
@@ -919,8 +930,10 @@ set_dialect_dtd(dtd *dtd, dtd_dialect dialect)
       dtd->space_mode = SP_PRESERVE;
       dtd->shorttag = FALSE;
 
+      memset(&p, 0, sizeof(p));
+      p.dtd = dtd;
       for(el = xml_entities; *el; el++)
-	process_entity_declaraction(dtd, *el);
+	process_entity_declaraction(&p, *el);
 
       break;
     }
@@ -930,14 +943,32 @@ set_dialect_dtd(dtd *dtd, dtd_dialect dialect)
 }
 
 
+static ichar *
+baseurl(dtd_parser *p)
+{ if ( p->location.file )
+  { ichar buf[MAXSTRINGLEN];
+
+    strcpy(buf, "file:");
+    strcat(buf, p->location.file);
+    return istrdup(buf);
+  }
+
+  return NULL;
+}
+
+
 static const ichar *
-process_entity_value_declaration(dtd *dtd, const ichar *decl, dtd_entity *e)
-{ const ichar *s;
+process_entity_value_declaration(dtd_parser *p,
+				 const ichar *decl, dtd_entity *e)
+{ dtd *dtd = p->dtd;
+  const ichar *s;
 
   switch ( e->type )
   { case ET_SYSTEM:
     { if ( (s=itake_url(dtd, decl, &e->exturl)) )
+      { e->baseurl = baseurl(p);
 	return s;
+      }
 
       goto string_expected;
     }
@@ -948,7 +979,9 @@ process_entity_value_declaration(dtd *dtd, const ichar *decl, dtd_entity *e)
       if ( isee_func(dtd, decl, CF_LIT) ||
 	   isee_func(dtd, decl, CF_LITA) )
       { if ( (s=itake_url(dtd, decl, &e->exturl)) )
+	{ e->baseurl = baseurl(p);
 	  decl = s;
+	}
       }
       return decl;
     }
@@ -971,8 +1004,9 @@ string_expected:
 
 
 static int
-process_entity_declaraction(dtd *dtd, const ichar *decl)
-{ const ichar *s;
+process_entity_declaraction(dtd_parser *p, const ichar *decl)
+{ dtd *dtd = p->dtd;
+  const ichar *s;
   dtd_symbol *id;
   dtd_entity *e = calloc(1, sizeof(*e));
   int isparam;
@@ -1021,7 +1055,7 @@ process_entity_declaraction(dtd *dtd, const ichar *decl)
     }
   }
 
-  if ( (decl=process_entity_value_declaration(dtd, decl, e)) )
+  if ( (decl=process_entity_value_declaration(p, decl, e)) )
   { if ( e->type != ET_LITERAL && *decl )
     { dtd_symbol *nname;
 
@@ -1065,8 +1099,9 @@ process_entity_declaraction(dtd *dtd, const ichar *decl)
 		 *******************************/
 
 static int
-process_notation_declaration(dtd *dtd, const ichar *decl)
-{ dtd_symbol *nname;
+process_notation_declaration(dtd_parser *p, const ichar *decl)
+{ dtd *dtd = p->dtd;
+  dtd_symbol *nname;
   const ichar *s;
   ichar *file;
   dtd_notation **n;
@@ -1202,13 +1237,14 @@ shortref_add_map(dtd *dtd, const ichar *decl, dtd_shortref *sr)
 
 
 static int
-process_shortref_declaration(dtd *dtd, const ichar *decl)
-{ ichar buf[MAXDECL];
+process_shortref_declaration(dtd_parser *p, const ichar *decl)
+{ dtd *dtd = p->dtd;
+  ichar buf[MAXDECL];
   dtd_shortref *sr = calloc(1, sizeof(*sr));
-  dtd_shortref **p;
+  dtd_shortref **pr;
   const ichar *s;
 
-  if ( !expand_pentities(dtd, decl, buf, sizeof(buf)) )
+  if ( !expand_pentities(p, decl, buf, sizeof(buf)) )
     return FALSE;
   decl = buf;
 
@@ -1221,8 +1257,8 @@ process_shortref_declaration(dtd *dtd, const ichar *decl)
   if ( *decl )
     return gripe(ERC_SYNTAX_ERROR, "Map expected", decl);
   
-  for(p=&dtd->shortrefs; *p; p = &(*p)->next)
-  { dtd_shortref *r = *p;
+  for(pr=&dtd->shortrefs; *pr; pr = &(*pr)->next)
+  { dtd_shortref *r = *pr;
 
     if ( r->name == sr->name )
     { gripe(ERC_REDEFINED, "shortref", r->name->name);
@@ -1234,7 +1270,7 @@ process_shortref_declaration(dtd *dtd, const ichar *decl)
     }
   }
 
-  *p = sr;
+  *pr = sr;
 
   return TRUE;
 }
@@ -1554,6 +1590,10 @@ process_model(dtd *dtd, dtd_edef *e, const ichar *decl)
   { e->type = C_CDATA;
     return s;
   }
+  if ( (s = isee_identifier(dtd, decl, "any")) )
+  { e->type = C_ANY;
+    return s;
+  }
   
   e->type = C_PCDATA;
   if ( !(e->content = make_model(dtd, decl, &decl)) )
@@ -1650,8 +1690,9 @@ add_element_list(dtd_element_list **l, dtd_element *e)
 
 
 static int
-process_element_declaraction(dtd *dtd, const ichar *decl)
-{ ichar buf[MAXDECL];
+process_element_declaraction(dtd_parser *p, const ichar *decl)
+{ dtd *dtd = p->dtd;
+  ichar buf[MAXDECL];
   const ichar *s;
   dtd_symbol *eid[MAXATTELEM];
   dtd_edef *def;
@@ -1659,7 +1700,7 @@ process_element_declaraction(dtd *dtd, const ichar *decl)
   int i;
 
 					/* expand parameter entities */
-  if ( !expand_pentities(dtd, decl, buf, sizeof(buf)) )
+  if ( !expand_pentities(p, decl, buf, sizeof(buf)) )
     return FALSE;
   decl = buf;
 
@@ -1800,14 +1841,15 @@ add_attribute(dtd *dtd, dtd_element *e, dtd_attr *a)
 
 
 static int
-process_attlist_declaraction(dtd *dtd, const ichar *decl)
-{ dtd_symbol *eid[MAXATTELEM];
+process_attlist_declaraction(dtd_parser *p, const ichar *decl)
+{ dtd *dtd = p->dtd;
+  dtd_symbol *eid[MAXATTELEM];
   int i, en;
   ichar buf[MAXDECL];
   const ichar *s;
 
 					/* expand parameter entities */
-  if ( !expand_pentities(dtd, decl, buf, sizeof(buf)) )
+  if ( !expand_pentities(p, decl, buf, sizeof(buf)) )
     return FALSE;
   decl = iskip_layout(dtd, buf);
   DEBUG(printf("Expanded to %s\n", decl));
@@ -2029,7 +2071,9 @@ in_or_excluded(sgml_environment *env, dtd_element *e)
 
 static int
 complete(sgml_environment *env)
-{ if ( env->element->structure && !env->element->undefined )
+{ if ( env->element->structure &&
+       !env->element->undefined &&
+       env->element->structure->type != C_ANY )
   { dtd_edef *def = env->element->structure;
 
     if ( !same_state(def->final_state, env->state) )
@@ -2183,6 +2227,12 @@ open_element(dtd_parser *p, dtd_element *e)
       return TRUE;
     }
 
+    if ( env->element->structure &&
+	 env->element->structure->type == C_ANY )
+    { push_element(p, e, FALSE);
+      return TRUE;
+    }
+
     switch(in_or_excluded(env, e))
     { case IE_INCLUDED:
         push_element(p, e, FALSE);
@@ -2215,6 +2265,10 @@ open_element(dtd_parser *p, dtd_element *e)
 	      return TRUE;
 	    }
 	  }
+
+	  if ( !env->element->structure ||
+	       !env->element->structure->omit_close )
+	    break;
 	}
     }
     if ( e == CDATA_ELEMENT )
@@ -2558,7 +2612,7 @@ process_doctype(dtd_parser *p, const ichar *decl)
     goto local;
   decl = s;
 
-  if ( !(s=process_entity_value_declaration(dtd, decl, et)) )
+  if ( !(s=process_entity_value_declaration(p, decl, et)) )
     return FALSE;
   decl = s;
 
@@ -2708,15 +2762,15 @@ process_declaration(dtd_parser *p, const ichar *decl)
   { decl = s;
 
     if ( (s = isee_identifier(dtd, decl, "entity")) )
-      process_entity_declaraction(dtd, s);
+      process_entity_declaraction(p, s);
     else if ( (s = isee_identifier(dtd, decl, "element")) )
-      process_element_declaraction(dtd, s);
+      process_element_declaraction(p, s);
     else if ( (s = isee_identifier(dtd, decl, "attlist")) )
-      process_attlist_declaraction(dtd, s);
+      process_attlist_declaraction(p, s);
     else if ( (s = isee_identifier(dtd, decl, "notation")) )
-      process_notation_declaration(dtd, s);
+      process_notation_declaration(p, s);
     else if ( (s = isee_identifier(dtd, decl, "shortref")) )
-      process_shortref_declaration(dtd, s);
+      process_shortref_declaration(p, s);
     else if ( (s = isee_identifier(dtd, decl, "usemap")) )
       process_usemap_declaration(p, s);
     else if ( (s = isee_identifier(dtd, decl, "doctype")) )
@@ -2829,7 +2883,7 @@ process_include(dtd_parser *p, const ichar *entity_name)
 
   if ( (id=dtd_find_entity_symbol(dtd, entity_name)) &&
        (pe=find_pentity(p->dtd, id)) )
-  { const ichar *text = entity_value(dtd, pe, NULL);
+  { const ichar *text = entity_value(p, pe, NULL);
 
     if ( !text )
       return gripe(ERC_NO_VALUE, pe->name->name);
@@ -2873,7 +2927,7 @@ process_marked_section(dtd_parser *p)
 
   if ( (decl=isee_func(dtd, decl, CF_MDO2)) && /* ! */
        (decl=isee_func(dtd, decl, CF_DSO)) && /* [ */
-       expand_pentities(dtd, decl, buf, sizeof(buf)) )
+       expand_pentities(p, decl, buf, sizeof(buf)) )
   { dtd_symbol *kwd;
 
     decl = buf;
@@ -3150,7 +3204,7 @@ process_entity(dtd_parser *p, const ichar *name)
     if ( (id=dtd_find_entity_symbol(dtd, name)) &&
 	 (e=id->entity) )
     { int len;
-      const ichar *text = entity_value(dtd, e, &len);
+      const ichar *text = entity_value(p, e, &len);
       const ichar *s;
       int   chr;
 
@@ -3709,8 +3763,10 @@ load_dtd_from_file(dtd_parser *p, const char *file)
 
 
 dtd *
-file_to_dtd(const char *file, const char *doctype)
+file_to_dtd(const char *file, const char *doctype, dtd_dialect dialect)
 { dtd_parser *p = new_dtd_parser(new_dtd(doctype));
+
+  set_dialect_dtd(p->dtd, dialect);
 
   if ( load_dtd_from_file(p, file) )
   { dtd *dtd = p->dtd;

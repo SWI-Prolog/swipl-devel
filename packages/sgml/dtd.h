@@ -75,7 +75,8 @@ typedef enum
 typedef enum
 { C_CDATA,				/* pure cdata */
   C_PCDATA,				/* parsed character data */
-  C_EMPTY				/* empy element */
+  C_EMPTY,				/* empy element */
+  C_ANY					/* element may contain anything */
 } contenttype;
 
 typedef enum
@@ -243,6 +244,7 @@ typedef struct _dtd_entity
   ichar *value;				/* literal value */
   ichar *extid;				/* external identifier */
   ichar *exturl;			/* url to fetch from */
+  ichar *baseurl;			/* base url for exturl */
   struct _dtd_entity *next;		/* list-link */
 } dtd_entity;
 
@@ -397,7 +399,8 @@ typedef void *	dtd_parser;		/* abstract parser handle */
 #include "parser.h"
 #endif
 
-dtd *		file_to_dtd(const char *file, const char *doctype);
+dtd *		file_to_dtd(const char *file, const char *doctype,
+			    dtd_dialect dialect);
 int		sgml_process_file(dtd_parser *p, const char *file);
 
 dtd_parser *	new_dtd_parser(dtd *dtd);

@@ -20,5 +20,7 @@ typedef enum
 
 char   *find_in_catalog(const char *key, const char *name);
 int	register_catalog_file(const char *file, catalog_location where);
+int	is_absolute_path(const char *name);
+char   *localpath(const char *ref, const char *name);
 
 #endif /*CATALOG_H_INCLUDED*/

@@ -107,9 +107,22 @@ DirName(const char *f, char *dir)
 }
 
 
+int
+is_absolute_path(const char *name)
+{ if ( name[0] == '/'
+#ifdef WIN32
+       || (isalpha(name[0]) && name[1] == ':')
+       || name[0] == '\\'
+#endif
+     )
+    return TRUE;
+
+  return FALSE;
+} 
+
 char *
 localpath(const char *ref, const char *name)
-{ if ( name[0] == '/' )
+{ if ( !ref || is_absolute_path(name) )
     return strdup(name);
   else
   { char buf[MAXPATHLEN];

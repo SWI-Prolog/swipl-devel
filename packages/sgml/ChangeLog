@@ -1,3 +1,13 @@
+* MODIFIED: Only insert missing close-tags that should not be on closing
+  outer environments, not because an element is encountered that fits in
+  an outer environment.  Improves error behaviour.
+
+* ADDED: Print default list values in dtd2pl
+
+* ADDED: Support for the content-model ANY.
+
+* ADDED: option -xml to pl2dtd to force it loading a DTD in XML mode.
+
 * FIXED: Do not expand SHORTREF inside CDATA marked sections and elements.
 
 * ADDED: Properly deal with NUTOKEN: handling DTD default and validate type.

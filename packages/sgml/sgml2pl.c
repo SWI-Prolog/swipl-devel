@@ -127,6 +127,7 @@ static atom_t ATOM_false;
 static atom_t ATOM_cdata;
 static atom_t ATOM_pcdata;
 static atom_t ATOM_empty;
+static atom_t ATOM_any;
 
 #define mkfunctor(n, a) PL_new_functor(PL_new_atom(n), a)
 
@@ -174,6 +175,7 @@ initConstants()
   ATOM_cdata = PL_new_atom("cdata");
   ATOM_pcdata = PL_new_atom("#pcdata");
   ATOM_empty = PL_new_atom("empty");
+  ATOM_any = PL_new_atom("any");
 }
 
 		 /*******************************
@@ -1329,6 +1331,9 @@ put_content(term_t t, dtd_edef *def)
       return;
     case C_CDATA:
       PL_put_atom(t, ATOM_cdata);
+      return;
+    case C_ANY:
+      PL_put_atom(t, ATOM_any);
       return;
     default:
       if ( def->content )
