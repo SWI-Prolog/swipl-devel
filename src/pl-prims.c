@@ -1625,7 +1625,7 @@ pl_concat_atom3(term_t list, term_t sep, term_t atom)
   
   if ( sep )
   { if ( !PL_get_chars(sep, &sp, CVT_ATOMIC|BUF_RING) )
-      return warning("concat_atom/3: illegal separator");
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, sep);
     splen = strlen(sp);
   } else
   { sp = NULL;
@@ -1633,9 +1633,13 @@ pl_concat_atom3(term_t list, term_t sep, term_t atom)
   }
 
   initBuffer(&b);
-  while( PL_get_list(l, head, l) &&
-	 PL_get_chars(head, &s, CVT_ATOMIC) )
-  { if ( first )
+  while( PL_get_list(l, head, l) )
+  { if ( !PL_get_chars(head, &s, CVT_ATOMIC) )
+    { discardBuffer(&b);
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, head);
+    }
+
+    if ( first )
       first = FALSE;
     else if ( splen )
       addMultipleBuffer(&b, sp, splen, char);
@@ -1654,7 +1658,7 @@ pl_concat_atom3(term_t list, term_t sep, term_t atom)
   }
 
   discardBuffer(&b);
-  return warning("concat_atom/2: instantiation fault");
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
 }
 
 
@@ -1666,7 +1670,7 @@ pl_concat_atom(term_t list, term_t atom)
 
 word
 pl_apropos_match(term_t a1, term_t a2)
-{ char *s1, *s2;
+{ char *s1=NULL, *s2=NULL;
 
   if ( PL_get_chars(a1, &s1, CVT_ALL|BUF_RING) &&
        PL_get_chars(a2, &s2, CVT_ALL) )
@@ -1683,7 +1687,269 @@ pl_apropos_match(term_t a1, term_t a2)
     fail;
   }
   
-  return warning("$apropos_match/2: instantiation fault");
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, s1 ? a2 : a1);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ISO compliant hacking  into  atoms.  The   state  is  represented  by  a
+`redo-int', of which we use the first 15   bits for the `before' and the
+second 15 bits for the `after'.
+
+There are many possibilities (think the semantics are a bit overloaded).
+
+    * sub is given
+        + if len conflicts: fail
+	+ if before or after given: test deterministically
+	+ otherwise: search (non-deterministic)
+    * two of the integers are given
+        + generate (deterministic)
+    * before is given:
+        + split the remainder (non-deterministic)
+    * len is given:
+        + enumerate breaks (non-deterministic)
+    * after is given:
+        + split the remainder (non-deterministic)
+    * non given:
+        + enumerate using before and len (non-deterministic)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+enum sub_type
+{ SUB_SEARCH,				/* sub given, but no position */
+  SUB_SPLIT_TAIL,			/* before given, split tail */
+  SUB_SPLIT_HEAD,			/* after given, split head */
+  SUB_SPLIT_LEN,			/* len given, move it */
+  SUB_ENUM				/* all free */
+};
+
+typedef struct
+{ enum sub_type type;			/* Type of enumeration */
+  int n1;				/* 1-st state id */
+  int n2;				/* 2-nd state id */
+  int n3;
+} sub_state;
+
+
+foreign_t
+pl_sub_atom(term_t atom, term_t before, term_t len, term_t after, term_t sub,
+	    word h)
+{ char *aa, *s = NULL;			/* the string */
+  int b = -1, l = -1, a = -1;		/* the integers */
+  int la;				/* length of `atom' */
+  int ls;				/* length of `sub' */
+  sub_state *state;			/* non-deterministic state */
+
+  switch( ForeignControl(h) )
+  { case FRG_FIRST_CALL:
+    { if ( !PL_get_chars(atom, &aa, CVT_ATOMIC) )
+	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, atom);
+
+      la = strlen(aa);
+
+      if ( !PL_get_integer(before, &b) )
+      { if ( !PL_is_variable(before) )
+	  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, before);
+	if ( b < 0 )
+	  return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			  ATOM_not_less_than_zero, before);
+      }
+      if ( !PL_get_integer(len, &l) )
+      { if ( !PL_is_variable(len) )
+	  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, len);
+	if ( l < 0 )
+	  return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			  ATOM_not_less_than_zero, len);
+      }
+      if ( !PL_get_integer(after, &a) )
+      { if ( !PL_is_variable(after) )
+	  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, after);
+	if ( a < 0 )
+	  return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			  ATOM_not_less_than_zero, after);
+      }
+      if ( !PL_get_chars(sub, &s, CVT_ATOMIC) )
+      { if ( !PL_is_variable(sub) )
+	  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, sub);
+      }
+
+      if ( s )				/* `sub' given */
+      { ls = strlen(s);
+
+	if ( l >= 0 && ls != l )	/* len conflict */
+	  fail;
+	if ( b >= 0 )			/* before given: test */
+	{ if ( strncmp(aa+b, s, ls) == 0 )
+	  { return (PL_unify_integer(len, ls) &&
+		    PL_unify_integer(after, la-ls-b)) ? TRUE : FALSE;
+	  }
+	  fail;
+	}
+	if ( a >= 0 )			/* after given: test */
+	{ if ( strncmp(aa+la-a-ls, s, ls) == 0 )
+	  { return (PL_unify_integer(len, ls) &&
+		    PL_unify_integer(before, la-ls-a)) ? TRUE : FALSE;
+	  }
+	  fail;
+	}
+	state = allocHeap(sizeof(*state));
+	state->type = SUB_SEARCH;
+	state->n1   = 0;
+	state->n2   = la;
+	state->n3   = ls;
+	break;
+      }
+
+      if ( b >= 0 )			/* before given */
+      { if ( b > la )
+	  fail;
+
+	if ( l >= 0 )			/* len given */
+	{ if ( b+l <= la )		/* deterministic fit */
+	  { if ( PL_unify_integer(after, la-b-l) &&
+		 PL_unify_atom_nchars(sub, l, aa+b) )
+	      succeed;
+	  }
+	  fail;
+	}
+	if ( a >= 0 )			/* after given */
+	{ if ( (l = la-a-b) >= 0 )
+	  { if ( PL_unify_integer(len, l) &&
+		 PL_unify_atom_nchars(sub, l, aa+b) )
+	      succeed;
+	  }
+
+	  fail;
+	}
+	state = allocHeap(sizeof(*state));
+	state->type = SUB_SPLIT_TAIL;
+	state->n1   = 0;		/* len of the split */
+	state->n2   = la;		/* length of the atom */
+	state->n3   = b;		/* length before */
+	break;
+      }
+
+      if ( l >= 0 )			/* no before, len given */
+      { if ( a >= 0 )			/* len and after */
+	{ if ( (b = la-a-l) >= 0 )
+	  { if ( PL_unify_integer(before, b) &&
+		 PL_unify_atom_nchars(sub, l, aa+b) )
+	      succeed;
+	  }
+
+	  fail;
+	}
+	state = allocHeap(sizeof(*state));
+	state->type = SUB_SPLIT_LEN;
+	state->n1   = 0;		/* before */
+	state->n2   = l;		/* length */
+	state->n3   = la;
+	break;
+      }
+
+      if ( a >= 0 )			/* only after given */
+      { state = allocHeap(sizeof(*state));
+	state->type = SUB_SPLIT_HEAD;
+	state->n1   = 0;		/* before */
+	state->n2   = la;
+	state->n3   = a;
+	break;
+      }
+
+      state = allocHeap(sizeof(*state));
+      state->type = SUB_ENUM;
+      state->n1	= 0;			/* before */
+      state->n2 = 0;			/* len */
+      state->n3 = la;			/* total length */
+      break;
+    }
+    case FRG_REDO:
+      state = ForeignContextPtr(h);
+      PL_get_chars(atom, &aa, CVT_ATOMIC);
+      break;
+    case FRG_CUTTED:
+    exit_succeed:
+      state = ForeignContextPtr(h);
+      freeHeap(state, sizeof(*state));
+      succeed;
+    default:
+      assert(0);
+      fail;
+  }
+
+  switch(state->type)
+  { case SUB_SEARCH:
+    { PL_get_chars(sub,  &s,  CVT_ATOMIC);
+      la = state->n2;
+      ls = state->n3;
+
+      for( ; state->n1+ls <= la; state->n1++ )
+      { if ( strncmp(aa+state->n1, s, ls) == 0 )
+	{ PL_unify_integer(before, state->n1);
+	  PL_unify_integer(len,    ls);
+	  PL_unify_integer(after,  la-ls-state->n1);
+	  
+	  state->n1++;
+	  ForeignRedoPtr(state);
+	}
+      }
+      goto exit_fail;
+    }
+    case SUB_SPLIT_TAIL:		/* before given, rest unbound */
+    { la = state->n2;
+      b  = state->n3;
+      l  = state->n1++;
+
+      PL_unify_integer(len, l);
+      PL_unify_integer(after, la-b-l);
+    out:
+      PL_unify_atom_nchars(sub, l, aa+b);
+      if ( b+l < la )
+	ForeignRedoPtr(state);
+      else
+	goto exit_succeed;
+    }
+    case SUB_SPLIT_LEN:
+    { b  = state->n1++;
+      l  = state->n2;
+      la = state->n3;
+
+      PL_unify_integer(before, b);
+      PL_unify_integer(after, la-b-l);
+      goto out;
+    }
+    case SUB_SPLIT_HEAD:
+    { b  = state->n1++;
+      la = state->n2;
+      a  = state->n3;
+      l  = la - a - b;
+
+      PL_unify_integer(before, b);
+      PL_unify_integer(len, l);
+      goto out;
+    }
+    case SUB_ENUM:
+    { b  = state->n1;
+      l  = state->n2++;
+      la = state->n3;
+      a  = la-b-l;
+
+      PL_unify_integer(before, b);
+      PL_unify_integer(len, l);
+      PL_unify_integer(after, a);
+      PL_unify_atom_nchars(sub, l, aa+b);
+      if ( a == 0 )
+      { if ( b == la )
+	  goto exit_succeed;
+	state->n2 = 0;
+	state->n1++;
+      }
+      ForeignRedoPtr(state);
+    }
+  }
+
+exit_fail:
+  freeHeap(state, sizeof(*state));
+  fail;
 }
 
 
@@ -1702,7 +1968,7 @@ pl_string_length(term_t str, term_t l)
   if ( PL_get_chars(str, &s, CVT_ALL) )
     return PL_unify_integer(l, strlen(s));
 
-  return warning("string_length/2: instantiation fault");
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_string, str);
 }
 
 

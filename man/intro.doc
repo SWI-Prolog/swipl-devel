@@ -33,7 +33,9 @@ has been taken to maintain the advantages of decompilation and tracing
 of compiled code. The extensions include specialised instructions for
 unification, predicate invocation, some frequently used built-in
 predicates, arithmetic, and control (\predref{;}{2}, \predref{|}{2}),
-if-then (\predref{->}{2}) and not (\predref{\+}{1}).
+if-then (\predref{->}{2}) and negation-by-failure (\predref{\+}{1}).
+
+\subsection{Other books about Prolog}
 
 This manual does not describe the full syntax and semantics of Prolog,
 nor how one should write a program in Prolog. These subjects have been
@@ -53,20 +55,20 @@ ISO compliant predicates are based on ``Prolog: The Standard'',
 
 \section{Status}
 
-This manual describes version \versionshort\ of SWI-Prolog.  SWI-Prolog has
-been used now for several years. The application range includes Prolog course
-material, meta-interpreters, simulation of parallel Prolog, learning
-systems, natural language processing and two large workbenches for
-knowledge engineering. Although we experienced rather obvious and
-critical bugs can remain unnoticed for a remarkable long period, we can
-assume the basic Prolog system is fairly stable. Bugs can be expected
-in infrequently used builtin predicates.
+This manual describes version \versionshort\ of SWI-Prolog. SWI-Prolog
+has been used now for many years. The application range includes Prolog
+course material, meta-interpreters, simulation of parallel Prolog,
+learning systems, natural language processing and two large workbenches
+for knowledge engineering. Although we experienced rather obvious and
+critical bugs can remain unnoticed for a remarkable long period, we
+assume the basic Prolog system is fairly stable. Bugs can be expected in
+infrequently used built-in predicates.
 
 Some bugs are known to the author. They are described as footnotes in
 this manual.
 
 
-\section{Should you be Using SWI-Prolog?}
+\section{Should you be using SWI-Prolog?}
 
 There are a number of reasons why you better choose a commercial Prolog
 system, or another academic product:
@@ -92,29 +94,28 @@ On the other hand, SWI-Prolog offers some nice facilities:
     \item [Nice environment]
 This includes `Do What I Mean', automatic completion of atom names,
 history mechanism and a tracer that operates on single key-strokes.
-Interfaces to standard Unix editors are provided, as well as a facility
-to maintain programs (see make/0).
+Interfaces to some standard editors are provided (and can be extended),
+as well as a facility to maintain programs (see make/0).
     \item [Very fast compiler]
 Even very large applications can be loaded in seconds on most machines.
 If this is not enough, there is a Quick Load Format that is slightly
 more compact and loading is almost always I/O bound.
     \item [Transparent compiled code]
 SWI-Prolog compiled code can be treated just as interpreted code: you
-can list it, trace it, assert to or retract from it, etc. This implies
-you do not have to decide beforehand whether a module should be loaded
-for debugging or not. Also, performance is much better than the
-performance of most interpreters.
+can list it, trace it, etc. This implies you do not have to decide
+beforehand whether a module should be loaded for debugging or not. Also,
+performance is much better than the performance of most interpreters.
     \item [Profiling]
 SWI-Prolog offers tools for performance analysis, which can be very
 useful to optimise programs. Unless you are very familiar with Prolog
 and Prolog performance considerations this might be more helpful than a
 better compiler without these facilities.
     \item [Flexibility]
-SWI-Prolog allows for easy and flexible integration with C, both
-Prolog calling C functions as C calling Prolog predicates.  SWI-Prolog
-is provided in source form, which implies SWI-Prolog can be linked in
-with another package.  Command line options and predicates to obtain
-information from the system and feedback into the system are provided.
+SWI-Prolog can easily be integrated with C, supporting non-determinism
+in Prolog calling C as well as C calling Prolog (see \secref{foreign}.
+It can also be \jargon{embedded} embedded in external programs (see
+\secref{plld}). System predicates can be redefined locally to provide
+compatibility with other Prolog systems.
     \item [Integration with XPCE]
 SWI-Prolog offers a tight integration to the Object Oriented Package
 for User Interface Development, called XPCE \cite{P1098:C1.6}.
@@ -347,7 +348,7 @@ Has been deleted.  New stream-aliases can deal with most of the problems
 for which dup_stream/2 was designed and dup/2 from the \jargon{clib}
 package can with most others.
     \item [op/3]
-Operators are not {\bf local to modules}.  This implies any modification
+Operators are now {\bf local to modules}.  This implies any modification
 of the operator-table does not influence other modules. This is
 consistent with the proposed ISO behaviour and a necessity to have
 any usable handling of operators in a multi-threaded environment.

@@ -11,6 +11,64 @@ and `?' denotes `either input or output'.%
     var(+Var)).} Constructs like `op/3' refer to the predicate `op' with
     arity `3'.
 
+\section{Character representation}		\label{sec:chars}
+
+In traditional (Edinburgh-) Prolog, characters are represented using
+\jargon{character-codes}. Character codes are integer indices into
+a specific character set.  Traditionally the character set was 7-bits
+US-ASCII. Since a long while 8-bit character sets are allowed, providing
+support for national character sets, of which iso-latin-1 (ISO 8859-1)
+is applicable to many western languages.  Text-files are supposed to
+represent a sequence of character-codes.
+
+ISO Prolog introduces three types, two of which are used for characters
+and one for accessing binary streams (see open/4).  These types are:
+
+\begin{itemlist}
+    \item [code]
+A \jargon{character-code} is an integer representing a single character.
+As files may use multi-byte encoding for supporting different character
+sets (\idx{utf-8} encoding for example), reading a code from a text-file
+is in general not the same as reading a byte.
+    \item [char]
+Alternatively, characters may be represented as
+\jargon{one-character-atoms}.  This is a very natural representation,
+hiding encoding problems from the programmer as well as providing much
+easier debugging.
+    \item [byte]
+Bytes are used for accessing binary-streams. 
+\end{itemlist}
+
+The current version of SWI-Prolog does not provide support for
+multi-byte character encoding. This implies for example that it is not
+capable of breaking a multi-byte encoded atom into characters.  For
+SWI-Prolog, bytes and codes are the same and one-character-atoms are
+simple atoms containing one byte.
+
+To ease the pain of these multiple representations, SWI-Prolog's
+built-in predicates dealing with character-data work as flexible as
+possible: they accept data in any of these formats as long as the
+interpretation is unambiguous.  In addition, for output arguments
+that are instantiated, the character is extracted before unification.
+This implies that the following two calls are identical, both testing
+whether the next input characters is an \const{a}.
+
+\begin{code}
+peek_code(Stream, a).
+peek_code(Stream, 97).
+\end{code}
+
+These multiple-representations are handled by a large number of built-in
+predicates, all of which are ISO-compatible. For converting betweem code
+and character there is char_code/2. For breaking atoms and numbers into
+characters are are atom_chars/2, atom_codes/2, number_codes/2 and
+number_chars/2. For character I/O on streams there is get_char/[1,2],
+get_code/[1,2], get_byte/[1,2], peek_char/[1,2], peek_code/[1,2],
+peek_byte/[1,2], put_code/[1,2], put_char/[1,2] and put_byte/[1,2]. The
+prolog-flag \const{double_quotes} (see current_prolog_flag/2) controls
+how text between double-quotes is interpreted.
+
+
 \section{Consulting Prolog Source files}	\label{sec:consulting}
 
 SWI-Prolog source files normally have a suffix `\fileext{pl}'.
@@ -549,6 +607,24 @@ identical to a sharing variable.
 Equivalent to \exam{\Snot Term1 == Term2}.
 \infixop{=}{+Term1}{+Term2}
 Unify \arg{Term1} with \arg{Term2}. Succeeds if the unification succeeds.
+\predicate{unify_with_occurs_check}{2}{+Term1, +Term2}
+As \predref{=}{2}, but using \jargon{sound-unification}. That is, a
+variable only unifies to a term if this term does not contain the
+variable itself.  To illustrate this, consider the two goals below:
+
+\begin{code}
+1 ?- A = f(A).
+
+A = f(f(f(f(f(f(f(f(f(f(...))))))))))
+2 ?- unify_with_occurs_check(A, f(A)).
+
+No
+\end{code}
+
+I.e.\ the first creates a \jargon{cyclic-term}, which is printed as
+an infinitly nested \functor{f}{1} term (see the \const{max_depth}
+option of write_term/2). The second executes logically sound unification
+and thus fails.
 \infixop{\=}{+Term1}{+Term2}
 Equivalent to \exam{\Snot Term1 = Term2}.
 \infixop{=@=}{+Term1}{+Term2}
@@ -1615,11 +1691,15 @@ bytes will be read or written without any translation. Note there is no
 difference between the two on Unix systems.
 
     \termitem{alias}{Atom}
-Gives the stream a name. The following two calls are identical, but only
-the latter is allowed in ISO Prolog.
+Gives the stream a name.   Below is an example.   Be careful with this
+option as stream-names are global.  See also set_stream/2.
+
 \begin{code}
-?- open(foo, read, in, []).
-?- open(foo, read, S, [alias(in)]).
+?- open(data, read, Fd, [alias(input)]).
+
+	...,
+	read(input, Term),
+	...
 \end{code}
 
     \termitem{eof_action}{Action}
@@ -1660,6 +1740,50 @@ immediately signal end-of-file.  Similar to Unix \file{/dev/null}.
 Close the specified stream.  If \arg{Stream} is not open an error
 message is displayed.  If the closed stream is the current input or
 output stream the terminal is made the current input or output.
+    \predicate{stream_property}{2}{?Stream, ?StreamProperty}
+ISO compatible predicate for querying status of open I/O streams.  
+\arg{StreamProperty} is one of:
+\begin{description}
+    \termitem{file_name}{Atom}
+If \arg{Stream} is associated to a file, unify \arg{Atom} to the
+name of this file.
+    \termitem{mode}{IOMode}
+Unify \arg{IOMode} to the mode given to open/4 for opening the stream.
+Values are: \const{read}, \const{write}, \const{append} and the
+SWI-Prolog extension \const{update}.
+    \termitem{input}{}
+True if \arg{Stream} has mode \const{read}.
+    \termitem{output}{}
+True if \arg{Stream} has mode \const{write}, \const{append} or
+\const{update}.
+    \termitem{alias}{Atom}
+If \arg{Atom} is bound, test of the stream has the specified alias.
+Otherwise unify \arg{Atom} with the first alias of the stream.%
+	\bug{Backtracking does not give other aliases.}
+    \termitem{position}{Term}
+Unify \arg{Term} with the current stream-position.  A stream-position
+is a term of format \term{\$stream_position}{CharIndex, LineNo,
+LinePos}.  See also term_position/3.
+    \termitem{end_of_stream}{E}
+If \arg{Stream} is an input stream, unify \arg{E} with one of the
+atoms \const{not}, \const{at} or \const{past}. See also
+at_end_of_stream/[0,1].
+    \termitem{eof_action}{A}
+Unify \arg{A} with one of \const{eof_code}, \const{reset} or
+\const{error}.  See open/4 for details.
+    \termitem{reposition}{Bool}
+Unify \arg{Bool} with \arg{true} if the position of the stream can
+be set (see seek/4).  It is assumed the position can be set if the
+stream has a \jargon{seek-function} and is not based on a POSIX
+file-descriptor that is not associated to a regular file.
+    \termitem{type}{T}
+Unify \arg{Bool} with \const{text} or \const{binary}.
+    \termitem{file_no}{Integer}
+If the stream is associated with a POSIX file-descriptor, unify
+\arg{Integer} with the descriptor number.  SWI-Prolog extension used
+primarily for integration with foreign code.  See also Sfileno() from
+\file{SWI-Stream.h}.
+\end{description}
     \predicate{current_stream}{3}{?Object, ?Mode, ?Stream}
 The predicate current_stream/3 is used to access the status of a
 stream as well as to generate all open streams.  \arg{Object} is the
@@ -1722,7 +1846,7 @@ Get the current output stream.
 \section{Status of Input and Output Streams}
 
 \begin{description}
-\predicate{wait_for_input}{3}{+ListOfStreams, -ReadyList, +TimeOut}
+    \predicate{wait_for_input}{3}{+ListOfStreams, -ReadyList, +TimeOut}
 Wait for input on one of the streams in \arg{ListOfStreams} and return
 a list of streams on which input is available in \arg{ReadyList}.
 wait_for_input/3 waits for at most \arg{TimeOut} seconds.  \arg{Timeout} may be specified as a floating point number to specify
@@ -1738,19 +1862,19 @@ explicitly opened second terminal.  On return, \arg{Inputs} may hold
    wait_for_input([user, P4], Inputs, 0).
 \end{code}
 
-\predicate{character_count}{2}{+Stream, -Count}
+    \predicate{character_count}{2}{+Stream, -Count}
 Unify \arg{Count} with the current character index.  For input streams
 this is the number of characters read since the open, for output
 streams this is the number of characters written. Counting starts at 0.
 \predicate{line_count}{2}{+Stream, -Count}
 Unify \arg{Count} with the number of lines read or written.  Counting
 starts at 1.
-\predicate{line_position}{2}{+Stream, -Count}
+    \predicate{line_position}{2}{+Stream, -Count}
 Unify \arg{Count} with the position on the current line. Note that this
 assumes the position is 0 after the open.  Tabs are assumed to be
 defined on each 8-th character and backspaces are assumed to reduce the
 count by one, provided it is positive.
-\predicate{fileerrors}{2}{-Old, +New}
+    \predicate{fileerrors}{2}{-Old, +New}
 Define error behaviour on errors when opening a file for reading or
 writing. Valid values are the atoms \const{on} (default) and \const{off}.
 First \arg{Old} is unified with the current value. Then the new value is
@@ -1762,71 +1886,113 @@ set to \arg{New}.%
 
 \section{Primitive Character Input and Output}
 
+See \secref{chars} for an overview of supported character
+representations.
+
 \begin{description}
-\predicate{nl}{0}{}
+    \predicate{nl}{0}{}
 Write a newline character to the current output stream.  On Unix systems
 nl/0 is equivalent to \exam{put(10)}.
-\predicate{nl}{1}{+Stream}
+    \predicate{nl}{1}{+Stream}
 Write a newline to \arg{Stream}.
-\predicate{put}{1}{+Char}
+    \predicate{put}{1}{+Char}
 Write \arg{Char} to the current output stream, \arg{Char} is either an
 integer-expression evaluating to an ASCII value
 ($0 \leq \arg{Char} \leq 255$) or an atom of one character.
-\predicate{put}{2}{+Stream, +Char}
+    \predicate{put}{2}{+Stream, +Char}
 Write \arg{Char} to \arg{Stream}.
-\predicate{tab}{1}{+Amount}
+    \predicate{put_byte}{1}{+Byte}
+Alias for put/1.
+    \predicate{put_byte}{2}{+Stream, +Byte}
+Alias for put/2
+    \predicate{put_char}{1}{+Char}
+Alias for put_char/1.
+    \predicate{put}{2}{+Stream, +Char}
+Alias for put/2
+    \predicate{put_code}{1}{+Code}
+Alias for put/1.
+    \predicate{put_code}{2}{+Stream, +Code}
+Alias for put/2
+    \predicate{tab}{1}{+Amount}
 Writes \arg{Amount} spaces on the current output stream.  \arg{Amount}
 should be an expression that evaluates to a positive integer (see
 \secref{arith}).
-\predicate{tab}{2}{+Stream, +Amount}
+    \predicate{tab}{2}{+Stream, +Amount}
 Writes \arg{Amount} spaces to \arg{Stream}.
-\predicate{flush}{0}{}
+    \predicate{flush}{0}{}
 Flush pending output on current output stream.  flush/0 is automatically
 generated by read/1 and derivatives if the current input stream is \const{user} and the cursor is not at the left margin.
-\predicate{flush_output}{1}{+Stream}
+    \predicate{flush_output}{1}{+Stream}
 Flush output on the specified stream.  The stream must be open for
 writing.
-\predicate{ttyflush}{0}{}
+    \predicate{ttyflush}{0}{}
 Flush pending output on stream \arg{user}. See also flush/0.
-\predicate{get0}{1}{-Char}
-Read the current input stream and unify the next character with \arg{Char}.
-\arg{Char} is unified with -1 on end of file.
+    \predicate{get_byte}{1}{-Byte}
+Read the current input stream and unify the next byte with \arg{Byte}
+(an integer between 0 and 255. \arg{Byte} is unified with -1 on end of
+file.
+    \predicate{get_byte}{2}{+Stream, -Byte}
+Read the next byte from \arg{Stream}.
+    \predicate{get_code}{1}{-Code}
+Read the current input stream and unify \arg{Code} with the character
+code of the next character.  \arg{Char} is unified with -1 on end of file.
+See also get_char/1.
+    \predicate{get_code}{2}{+Stream, -Code}
+Read the next character-code from \arg{Stream}.
+    \predicate{get_char}{1}{-Char}
+Read the current input stream and unify \arg{Char} with the next
+character as a one-character-atom.  See also atom_chars/2.
+On end-of-file, \arg{Char} is unified to the atom \const{end_of_file}.
+    \predicate{get_char}{2}{+Stream, -Char}
+Unify \arg{Char} with the next character from \arg{Stream} as a
+one-character-atom.  See also get_char/2, get_byte/2 and get_code/2.
+    \predicate{get0}{1}{-Char}
+Edinburgh version of the ISO get_byte/1 predicate.
 \predicate{get0}{2}{+Stream, -Char}
-Read the next character from \arg{Stream}.
-\predicate{get}{1}{-Char}
+Edinburgh version of the ISO get_byte/2 predicate.
+    \predicate{get}{1}{-Char}
 Read the current input stream and unify the next non-blank character
 with \arg{Char}. \arg{Char} is unified with -1 on end of file.
-\predicate{get}{2}{+Stream, -Char}
+    \predicate{get}{2}{+Stream, -Char}
 Read the next non-blank character from \arg{Stream}.
-\predicate{peek_byte}{1}{-Char}
-Reads the next input character like get0/1, but does not remove it from
-the input stream.  This predicate is ISO compliant.
-\predicate{peek_byte}{2}{+Stream, -Char}
-Reads the next input character like get0/2, but does not remove it from
-the stream.  This predicate is ISO compliant.
-\predicate{skip}{1}{+Char}
+    \predicate{peek_byte}{1}{-Byte}
+Reads the next input byte like get_byte/1, but does not remove it
+from the input stream.
+    \predicate{peek_byte}{2}{+Stream, -Byte} Reads the next input byte
+like get_byte/2, but does not remove it from the stream.
+    \predicate{peek_code}{1}{-Code}
+Reads the next input code like get_code/1, but does not remove it
+from the input stream.
+    \predicate{peek_code}{2}{+Stream, -Code} Reads the next input code
+like get_code/2, but does not remove it from the stream.
+    \predicate{peek_char}{1}{-Char}
+Reads the next input character like get_char/1, but does not remove it
+from the input stream.
+    \predicate{peek_char}{2}{+Stream, -Char} Reads the next input
+character like get_char/2, but does not remove it from the stream.
+    \predicate{skip}{1}{+Char}
 Read the input until \arg{Char} or the end of the file is encountered.
 A subsequent call to get0/1 will read the first character after \arg{Char}.
 \predicate{skip}{2}{+Stream, +Char}
 Skip input (as skip/1) on \arg{Stream}.
-\predicate{get_single_char}{1}{-Char}
+    \predicate{get_single_char}{1}{-Char}
 Get a single character from input stream `user' (regardless of the
 current input stream). Unlike get0/1 this predicate does not wait for a
 return. The character is not echoed to the user's terminal. This
-predicate is meant for keyboard menu selection etc.. If SWI-Prolog was
+predicate is meant for keyboard menu selection etc. If SWI-Prolog was
 started with the \cmdlineoption{-tty} option this predicate reads an entire
 line of input and returns the first non-blank character on this line, or
 the ASCII code of the newline (10) if the entire line consisted of blank
 characters.
-\predicate{at_end_of_stream}{0}{}
+    \predicate{at_end_of_stream}{0}{}
 Succeeds after the last character of the current input stream has
 been read.  Also succeeds if there is no valid current input stream.
-\predicate{at_end_of_stream}{1}{+Stream}
+    \predicate{at_end_of_stream}{1}{+Stream}
 Succeeds after the last character of the named stream is read, or
 \arg{Stream} is not a valid input stream.
-\predicate{copy_stream_data}{3}{+StreamIn, +StreamOut, +Len}
+    \predicate{copy_stream_data}{3}{+StreamIn, +StreamOut, +Len}
 Copy \arg{Len} bytes from stream \arg{StreamIn} to \arg{StreamOut}.
-\predicate{copy_stream_data}{2}{+StreamIn, +StreamOut}
+    \predicate{copy_stream_data}{2}{+StreamIn, +StreamOut}
 Copy data all (remaining) data from stream \arg{StreamIn} to
 \arg{StreamOut}.
 \end{description}
@@ -1856,11 +2022,19 @@ predicates.  Valid options are:
     \termitem{quoted}{\const{true} or \const{false}}
 If \const{true}, atoms and functors that needs quotes will be quoted.
 The default is \const{false}.
+    \termitem{character_escapes}{\const{true} or \const{false}}
+If \const{true}, and \term{quoted}{true} is active, special characters
+in quoted atoms and strings are emitted as ISO escape-sequences.
+Default is taken from the reference module (see below).
     \termitem{ignore_ops}{\const{true} or \const{false}}
 If \const{true}, the generic term-representation (<functor>(<args>
 \ldots)) will be used for all terms,  Otherwise (default), operators,
 list-notation and \verb${}$/1 will be written using their special
 syntax.
+    \termitem{module}{Module}
+Define the reference module (default \const{user}).  This defines
+the default value for the \const{character_escapes} option as well
+as the operator definitions to use.  See also op/3.
     \termitem{numbervars}{\const{true} or \const{false}}
 If \const{true}, terms of the format \verb|$VAR(N)|, where <N> is a
 positive integer, will be written as a variable name. The default is
@@ -1870,7 +2044,23 @@ If \const{true}, the hook portray/1 is called before printing a term
 that is not a variable.  If portray/1 succeeds, the term is considered
 printed.  See also print/1.  The default is \const{false}.  This option
 is an extension to the ISO write_term options.
+    \termitem{max_depth}{Integer}
+If the term is nested deaper than \arg{Integer}, print the remainder
+as eclipse (\ldots).  A 0 (zero) value (default) imposes no depth limit.
+This option also delimits the number of printed for a list.  Example:
+
+\begin{code}
+?- write_term(a(s(s(s(s(0)))), [a,b,c,d,e,f]), [max_depth(3)]).
+a(s(s(...)), [a, b|...])
+
+Yes
+\end{code}
+
+Used by the toplevel and debugger to limit screen output.  See also
+the prolog-flags \const{toplevel_print_options} and
+\const{debugger_print_options}.
 \end{description}
+
     \predicate{write_term}{3}{+Stream, +Term, +Options}
 As write_term/2, but output is sent to \arg{Stream} rather than the
 current output.
@@ -2224,6 +2414,23 @@ characters output when given to write/1.
     \predicate{atom_prefix}{2}{+Atom, +Prefix}
 Succeeds if \arg{Atom} starts with the characters from \arg{Prefix}.
 Its behaviour is equivalent to \exam{?- concat(\arg{Prefix}, _, \arg{Atom})}, but avoids the construction of an atom for the `remainder'.
+    \predicate{sub_atom}{5}{+Atom, ?Before, ?Len, ?After, ?Sub}
+ISO predicate for breaking atoms.  It maintains the following relation:
+\arg{Sub} is a sub-atom of \arg{Atom} that starts at \arg{Before}, has
+\arg{Len} characters and \arg{Atom} contains \arg{After} characters
+after the match.
+
+\begin{code}
+?- sub_atom(abc, 1, 1, A, S).
+
+A = 1, S = b
+\end{code}
+
+The implementation minimalises non-determinism and creation of atoms.
+This is a very flexible predicate that can do search, prefix- and
+suffix-matching, etc.  Please note however that SWI-Prolog does not
+provide atom garbage-collection. Non-deterministic usage with unbound
+\arg{Sub} on long atoms polutes the atom-space considerably!
 \end{description}
 
 

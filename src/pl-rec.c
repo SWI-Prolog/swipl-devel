@@ -830,11 +830,14 @@ count_term(Word t, int left)
 right_recursion:
   deRef(t);
 
+  if ( --left < 0 )
+    return -1;
+  count++;
+
   if ( isTerm(*t) )
   { int arity = arityTerm(*t);
     int me;
 
-    count++;				/* the functor */
     for(t = argTermP(*t, 0); arity-- > 0; count += me, t++ )
     { if ( arity == 0 )
 	goto right_recursion;

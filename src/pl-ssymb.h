@@ -30,7 +30,6 @@
 #define pl_collect_parms	Scollparms
 #define pl_current_arithmetic_function Scfa
 #define pl_current_atom		Sca
-#define pl_current_stream	Scs
 #define pl_current_input	Scin
 #define pl_current_output	Scout
 #define pl_current_functor	Scfunctor

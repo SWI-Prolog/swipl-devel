@@ -16,6 +16,7 @@ typedef struct
 { int   flags;				/* PL_WRT_* flags */
   int   max_depth;			/* depth limit */
   int   depth;				/* current depth */
+  Module module;			/* Module for operators */
   IOSTREAM *out;			/* stream to write to */
 } write_options;
 
@@ -162,8 +163,8 @@ writeAtom(atom_t a, write_options *options)
 
 	TRY(Putc('\'', stream));
 	while( (c = *s++) != EOS )
-	{ if ( trueFeature(CHARESCAPE_FEATURE) )
-	  { if ( c >= ' ' && c != 127 && c != '\'' )
+	{ if ( true(options, PL_WRT_CHARESCAPES) )
+	  { if ( c >= ' ' && c != 127 && c != '\'' && c != '\\' )
 	    { TRY(Putc(c, stream));
 	    } else
 	    { char esc[4];
@@ -427,7 +428,8 @@ writeTerm2(term_t t, int prec, write_options *options)
 	  }
 	}
 					  /* op <term> */
-	if ( currentOperator(NULL, functor, OP_PREFIX, &op_type, &op_pri) )
+	if ( currentOperator(options->module, functor, OP_PREFIX,
+			     &op_type, &op_pri) )
 	{ term_t arg = PL_new_term_ref();
   
 	  PL_get_arg(1, t, arg);
@@ -446,7 +448,8 @@ writeTerm2(term_t t, int prec, write_options *options)
 	}
   
 					  /* <term> op */
-	if ( currentOperator(NULL, functor, OP_POSTFIX, &op_type, &op_pri) )
+	if ( currentOperator(options->module, functor, OP_POSTFIX,
+			     &op_type, &op_pri) )
 	{ term_t arg = PL_new_term_ref();
   
 	  PL_get_arg(1, t, arg);
@@ -488,7 +491,8 @@ writeTerm2(term_t t, int prec, write_options *options)
 	}
   
 					  /* <term> op <term> */
-	if ( currentOperator(NULL, functor, OP_INFIX, &op_type, &op_pri) )
+	if ( currentOperator(options->module, functor, OP_INFIX,
+			     &op_type, &op_pri) )
 	{ term_t l = PL_new_term_ref();
 	  term_t r = PL_new_term_ref();
   
@@ -535,7 +539,9 @@ static const opt_spec write_term_options[] =
   { ATOM_ignore_ops,	    OPT_BOOL },
   { ATOM_numbervars,        OPT_BOOL },
   { ATOM_portray,           OPT_BOOL },
+  { ATOM_character_escapes, OPT_BOOL },
   { ATOM_max_depth,	    OPT_INT  },
+  { ATOM_module,	    OPT_ATOM },
   { NULL_ATOM,	     	    0 }
 };
 
@@ -545,6 +551,8 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   bool ignore_ops = FALSE;
   bool numbervars = FALSE;
   bool portray    = FALSE;
+  bool charescape = -1;			/* not set */
+  atom_t mname    = ATOM_user;
   IOSTREAM *s;
   write_options options;
 
@@ -554,17 +562,22 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
 
   if ( !scan_options(opts, 0, ATOM_write_option, write_term_options,
 		     &quoted, &ignore_ops, &numbervars, &portray,
-		     &options.max_depth) )
+		     &charescape, &options.max_depth, &mname) )
     fail;
 
   if ( !getOutputStream(stream, &s) )
     fail;
   
+  options.module = lookupModule(mname);
+  if ( charescape == TRUE ||
+       (charescape == -1 && true(options.module, CHARESCAPE)) )
+    options.flags |= PL_WRT_CHARESCAPES;
+  
   if ( quoted )     options.flags |= PL_WRT_QUOTED;
   if ( ignore_ops ) options.flags |= PL_WRT_IGNOREOPS;
   if ( numbervars ) options.flags |= PL_WRT_NUMBERVARS;
   if ( portray )    options.flags |= PL_WRT_PORTRAY;
-    
+
   options.out = s;
   PutOpenToken(EOF, s);			/* reset this */
   writeTerm(term, 1200, &options);
@@ -587,6 +600,7 @@ PL_write_term(IOSTREAM *s, term_t term, int precedence, int flags)
   options.max_depth = 0;
   options.depth     = 0;
   options.out	    = s;
+  options.module    = MODULE_user;
 
   PutOpenToken(EOF, s);			/* reset this */
   return writeTerm(term, precedence, &options);
@@ -604,6 +618,7 @@ do_write2(term_t stream, term_t term, int flags)
     options.max_depth = 0;
     options.depth     = 0;
     options.out	      = s;
+    options.module    = MODULE_user;
 
     PutOpenToken(EOF, s);		/* reset this */
     writeTerm(term, 1200, &options);

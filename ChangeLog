@@ -1,6 +1,24 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: $term_complexity/2, which determines whether or not a term is
+    too large to store as a toplevel variable.  Together with the other
+    changes, the toplevel and debugger no longer crash on cyclic terms.
+
+  * ADDED: unify_with_occurs_check/2 (ISO).
+
+  * ADDED: {put,get,peek}_{byte,char,code}/[1,2] predicates, providing
+    ISO compliant character I/O.
+
+  * ADDED: write_term/[2,3] options `module' for defining the module
+    from which to use operators and character_escapes to explicitly
+    override character-escape handling.
+
+  * FIXED: Don't set system-mode and hide-childs for already defined
+    predicates (for XPCE's spypce/1 problems.  Reported by Peter Mott).
+
+  * FIXED: handling portray(Bool) option of write_term/2.
+
   * ADDED: Prolog flags toplevel_print_options and debugger_print_options
     to control printing of answers and goals by the debugger.
 

@@ -13,8 +13,8 @@ itself and its utility programs are documented using standard Unix
 application simply by starting the program:
 
 \begin{code}
-% pl
-/staff/jan/.plrc compiled, 0.00 sec, 1,016 bytes.
+machine% pl
+% /staff/jan/.plrc compiled, 0.00 sec, 1,016 bytes.
 Welcome to SWI-Prolog (Version 3.2.9)
 Copyright (c) 1993-1998 University of Amsterdam.  All rights reserved.
 
@@ -31,7 +31,7 @@ the predicates likes/2:
 
 \begin{code}
 ?- [likes].
-likes compiled, 0.00 sec, 596 bytes.
+% likes compiled, 0.00 sec, 596 bytes.
 
 Yes
 ?- 
@@ -118,16 +118,43 @@ otherwise the file is searched for using the same conventions as for
 the default startup file. Finally, if \arg{file} is
 \const{none}, no file is loaded.
 
-\section{Initialisation goals}		\label{sec:initgoal}
 
-After loading the startup file SWI-Prolog executes a user
-initialisation goal. The default goal is a system predicate that prints
-the banner message. The default can be modified with the
-`\argoption{-g}{goal}' option. Next the toplevel goal is started.
-Default is the interactive Prolog loop (see prolog/0). The user can
-overwrite this default with the `\argoption{-t}{toplevel}' option.
+\section{Initialisation files and goals}		\label{sec:initgoal}
 
-\section{Command Line Options}
+Using commandline arguments (see \secref{cmdline}), SWI-Prolog can be
+forced to load files and execute queries for initialisation purposes
+or non-interactive operation.  The most commonly used options
+are \argoption{-f}{file} to make Prolog load an initialisation file,
+\argoption{-g}{goal} to define an initialisation goal and
+\argoption{-t}{goal} to define the \jargon{toplevel goal}. The following
+is a typical example for starting an application directly from the
+commandline.
+
+\begin{code}
+machine% pl -f load.pl -g go -t halt
+\end{code}
+
+It tells SWI-Prolog to load \file{load.pl}, start the application using
+the \jargon{entry-point} go/0 and ---instead of entering the interactive
+toplevel--- exit after completing go/0.
+
+In MS-Windows, the same can be achieved using a short-cut with
+appropriately defined commandline arguments. A typically seen
+alternative is to write a file \file{run.pl} with content as illustrated
+below. Double-clicking \file{run.pl} will start the application.
+
+\begin{code}
+:- [load].			% load program
+:- go.				% run it
+:- halt.			% and exit
+\end{code}
+
+\Chapref{runtime} discusses the generation of runtime executables.
+Runtime executables are a mean to deliver executables that do not
+require the Prolog system. 
+
+
+\section{Command line options}			\label{sec:cmdline}
 
 The full set of command line options is given below:
 
@@ -141,7 +168,8 @@ architecture identifier.
 
     \cmdlineoptionitem{-arch}{}
 When given as the only option, it prints the architecture identifier
-(see current_prolog_flag(arch, Arch)) and exits.
+(see current_prolog_flag(arch, Arch)) and exits. See also
+\cmdlineoption{-dump-runtime-variables}.
 
     \cmdlineoptionitem{-dump-runtime-variables}{}
 When given as the only option, it prints a sequence of variable settings
@@ -165,7 +193,7 @@ specifies 32 Mbytes local stack.
 \end{code}
 A maximum is useful to stop buggy programs from claiming all memory
 resources. \cmdlineoption{-L0} sets the limit to the highest possible
-value.
+value. See \secref{limits}.
 
     \cmdlineoptionitem*{-G}{size[km]}
 Give global stack limit (4 Mbytes default). See \cmdlineoption{-L} for
@@ -173,7 +201,7 @@ more details.
 
     \cmdlineoptionitem*{-T}{size[km]}
 Give trail stack limit (4 Mbytes default). This limit is relatively high
-because trail-stack overflows are not often caused program bugs. See
+because trail-stack overflows are not often caused by program bugs. See
 \cmdlineoption{-L} for more details.
 
     \cmdlineoptionitem*{-A}{size[km]}
@@ -182,12 +210,6 @@ the maximum nesting of terms that can be compiled and executed.
 SWI-Prolog does `last-argument optimisation' to avoid many deeply nested
 structure using this stack. Enlarging this limit is only necessary in
 extreme cases. See \cmdlineoption{-L} for more details.
-
-    \cmdlineoptionitem*{-H}{size[km]}
-Give \funcref{malloc}{} heap limit. The default is to raise the limit as
-high as possible. This option only applies to machines using the
-\funcref{mmap}{} function for allocating the Prolog stacks. See
-\cmdlineoption{-L} for more details.
 
     \cmdlineoptionitem{-c}{file \ldots}
 Compile files into an `intermediate code file'. See \secref{compilation}.
@@ -231,11 +253,12 @@ you want to stop the user from entering interactive mode start the
 application with `\argoption{-g}{goal}' and give `halt' as toplevel.
 
     \cmdlineoptionitem{-tty}{}
-Switches tty control (using ioctl(2)) on (\cmdlineoption{+tty}) or off
-(\cmdlineoption{-tty}). Normally tty control is switched on. This default
-depends on the installation.  You may wish to switch tty control off if
-Prolog is used from an editor such as Emacs.  If switched off
-get_single_char/1 and the tracer will wait for a return.
+Unix only.  Switches controlling the terminal for allowing
+single-character commands to the tracer and get_single_char/1. By
+default manipulating the terminal is enabled unless the system detects
+it is not connected to a terminal or it is running as a GNU-Emacs
+inferior process. This flag is sometimes required for smooth interaction
+with other applications.
 
     \cmdlineoptionitem{-x}{bootfile}
 Boot from \arg{bootfile} instead of the system's default boot file. A
@@ -252,8 +275,10 @@ using asserta/1, so they precede predefined values for the alias.  See
 file_search_path/2 for details on using this file-location mechanism.
 
     \cmdlineoptionitem{{\tt --}}{}
+\index{commandline, arguments}%
 Stops scanning for more arguments, so you can pass arguments for your
-application after this one.
+application after this one.  See current_prolog_flag/2 using the
+flag \const{argv} for obtaining the commandline arguments.
 \end{description}
 
 The following options are for system maintenance. They are given
@@ -343,6 +368,11 @@ Examples:
 \exam{?- help('PL_retry').}& Give help on interface function PL_retry() \\
 \end{tabular}\end{center}
 
+See also apropos/1, and the SWI-Prolog home page at
+\url{http://www.swi.psy.uva.nl/projects/SWI-Prolog/}, which provides
+a FAQ, an HTML version of manual for online browsing and HTML and PDF
+versions for downloading.
+
     \predicate{apropos}{1}{+Pattern}
 Display all predicates, functions and sections that have {\em
 Pattern} in their name or summary description.  Lowercase letters in
@@ -391,7 +421,6 @@ the first, second, etc.\ argument should be defined.%
               arguments}
 
 The available history commands are shown in \tabref{history}.
-\Figref{history} gives some examples.
 
 \begin{table}
 \begin{center}
@@ -415,81 +444,15 @@ The available history commands are shown in \tabref{history}.
     \label{tab:history}
 \end{table}
 
-\begin{figure}
-\begin{code}
-/staff/jan/.plrc consulted, 0.066667 seconds, 591 bytes
-Welcome to SWI-Prolog (Version \plversion)
-Copyright (c) 1993-1996 University of Amsterdam.  All rights reserved.
-
-For help, use ?- help(Topic). or ?- apropos(Word).
-
-1 ?- append("Hello ", "World", L).
-
-L = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100] 
-
-Yes
-2 ?- !!, writef('L = %s\n', [L]).
-append("Hello ", "World", L), writef('L = %s\n', [L]).
-L = Hello World
-
-L = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100] 
-
-Yes
-3 ?- sublist(integer, [3, f, 3.4], L).
-
-L = [3] 
-
-Yes
-4 ?- ^integer^number.
-sublist(number, [3, f, 3.4], L).
-
-L = [3, 3.400000] 
-
-Yes
-5 ?- h.
-    1   append("Hello ", "World", L).
-    2   append("Hello ", "World", L), writef('L = %s\n', [L]).
-    3   sublist(integer, [3, f, 3.4], L).
-    4   sublist(number, [3, f, 3.4], L).
-
-5 ?- !2^World^Universe.
-append("Hello ", "Universe", L), writef('L = %s\n', [L]).
-L = Hello Universe
-
-L = [72, 101, 108, 108, 111, 32, 85, 110, 105, 118, 101, 114, 115, 101] 
-
-Yes
-6 ?- halt.
-\end{code}
-
-    \caption{Some examples of the history facility}
-    \label{fig:history}
-\end{figure}
 
 \subsection{Limitations of the History System}
 
-When in top level SWI-Prolog reads the user's queries using
-read_history/6 rather than read/1.  This predicate first reads the
-current input stream up to a full stop.  While doing so it maps all
-contiguous blank space onto a single space and deletes
-\exam{/* \ldots */} and \exam{\% \ldots <cr>} comments.  Parts between double quotes
-(\const{"}) or single quotes (\const{'}) are left unaltered.  Note that a
-Prolog full stop consists of a `non-symbol' character, followed by a
-period (\const{.}), followed by a blank character.  `Symbol' characters
-are: \verb!#$&*+-./:<=>?@^`~!. A single quote immediately preceded by
-a digit (0-9) is considered part of the \mbox{<digit>'<digit>\ldots}
-(e.g.\ \exam{2'101}; binary number 101) sequence.
-
-After this initial parsing the result is first checked for the special
-\mbox{\Shat<old>\Shat<new>.} construction. If this fails the
-string is checked for all occurrences of the \const{!}, followed by a
-\const{!}, \const{?}, a digit, a letter or an underscore. These special
-sequences are analysed and the appropriate substitution from the history
-list is made.
-
-From the above it follows that it is hard or impossible to
-correct quotation with single or double quotes, comment delimiters and
-spacing.
+History expansion is executed after \jargon{raw-reading}. This is the
+first stage of read_term/2 and friends, reading the term into a string
+while deleting comment and canonising blank. This makes it hard to use
+it for correcting syntax errors. Command-line editing as provided using
+the GNU-readline library is more suitable for this. History expansion is
+first of all useful for executing or combining commands from long ago.
 
 
 \section{Reuse of toplevel bindings}    \label{sec:topvars}
@@ -510,6 +473,7 @@ Yes
 ifmmp
 
 Yes
+3 ?-
 \end{code}
     \caption{Reusing toplevel bindings}
     \label{fig:topevelvars}
@@ -535,6 +499,7 @@ Global stack :    4,096,000       16,384          968 Bytes
 Trail  stack :    4,096,000        8,192          432 Bytes
 
 Yes
+8 ?-
 \end{code}
 
 \section{Overview of the Debugger}
@@ -553,9 +518,9 @@ command, when a spy point is reached and the system is in debugging mode
 The interactive toplevel goal trace/0 means ``trace the next query''.
 The tracer shows the port, displaying the port name, the current depth
 of the recursion and the goal. The goal is printed using the Prolog
-predicate write_term/2.  The style can be modified to include the
-\const{ignore_ops} and/or \const{portray} options using the \const{w},
-\const{p} or \const{d} command.
+predicate write_term/2.  The style is defined by the prolog-flag
+\const{debugger_print_options} and can be modified using this flag
+or using the \const{w}, \const{p} and \const{d} commands of the tracer.
 
 \begin{figure}
 \begin{code}
@@ -628,7 +593,9 @@ Enter a Prolog break environment (see break/0).}
     \traceoption{c}{Creep}{
 Continue execution, stop at next port. (Also return, space).} 
     \traceoption{d}{Display}{
-Write goals using \const{ignore_ops} option.}
+Set the \term{max_depth}{Depth} option of
+\const{debugger_print_options}, limiting the depth to which terms are
+printed.  See also the \const{w} and \const{p} options.}
     \traceoption{e}{Exit}{
 Terminate Prolog (see halt/0).} 
     \traceoption{f}{Fail}{
@@ -645,7 +612,9 @@ Continue execution, stop at next spy point.}
     \traceoption{n}{No debug}{
 Continue execution in `no debug' mode.} 
     \traceoption{p}{Print}{
-Write goals using the \const{portray} option (default).} 
+Set the prolog-flag \const{debugger_print_options} to
+\exam{[quoted(true), portray(true), max_depth(10)]}. This is the
+default.}
     \traceoption{r}{Retry}{
 Undo all actions (except for database and i/o actions) back to the call
 port of the current goal and resume execution at the call port.} 
@@ -657,7 +626,8 @@ Continue execution, stop at the next port of {\bf the parent} goal (thus
 skipping this goal and all calls to children of this goal). This option
 is useful to stop tracing a failure driven loop.} 
     \traceoption{w}{Write}{
-Write goals without using the \const{portray} option.} 
+Set the prolog-flag \const{debugger_print_options} to
+\exam{[quoted(true)]}, bypassing portray/1, etc.}
 \end{description}
 
 The ideal 4 port model as described in many Prolog books
@@ -726,12 +696,13 @@ arguments.
 base=<absolute-path-to-source>
 PL=pl
 
-exec $PL -f none -g "load_files(['$base/load'],[silent(true)])" -t go -- $*
+exec $PL -f none -g "load_files(['$base/load'],[silent(true)])" \
+	 -t go -- $*
 \end{code}
 
 \begin{code}
 go :-
-	unix(argv(Arguments)),
+	current_prolog_flag(argv, Arguments),
 	append(_SytemArgs, [--|Args], Arguments), !,
 	go(Args).
 
@@ -794,9 +765,6 @@ This performs exactly the same as executing
 		 ]).
 ?- halt.
 \end{code}
-
-See also unix/1.
-
 
 \section{Environment Control (Prolog flags)}
 
@@ -897,11 +865,11 @@ a copy requires only 4 additional bytes).
 Start of the tagged-integer value range.
     \prologflagitem{float_format}{atom}{rw}
 C {\tt printf()} format specification used by write/1 and friends to
-determine how floating point numbers are printed.  The default is {\tt
-\%g}.  May be changed.  The specified value is passed to printf()
-without further checking.  For example, if you want more digits printed,
-{\tt \%.12g} will print all floats using 12 digits instead of the
-default 6.  See also format/[1,2], write/1, print/1 and portray/1.
+determine how floating point numbers are printed. The default is {\tt
+\%g}. The specified value is passed to printf() without further
+checking. For example, if you want more digits printed, {\tt \%.12g}
+will print all floats using 12 digits instead of the default 6. See also
+format/[1,2], write/1, print/1 and portray/1.
     \prologflagitem{toplevel_print_options}{term}{rw}
 This argument is given as option-list to write_term/2 for printing results
 of queries.  Default is \exam{[quoted(true), portray(true), max_depth(10)]}.
@@ -1031,11 +999,12 @@ be changed afterwards.
 \end{description}
 
 
-\section{Hooks, an overview}
+\section{An overview of hook predicates}
 
 \index{hooks}
-SWI-Prolog knows about various other hooks that are implemented using
-their own predicates.  Below is an overview with indication of their
+SWI-Prolog provides a large number of hooks, mainly to control handling
+messages, debugging, startup, shut-down, macro-expansion, etc.  Below
+is a summary of all defined hooks with an indication of their
 portability.
 
 \begin{itemlist}
@@ -1069,8 +1038,7 @@ Hook into the tracer to handle trace-events (SWI).
     \item [resource/3]
 Defines a new resource (not really a hook, but similar) (SWI).    
     \item [exception/3]
-Old attempt to a generic hook mechanism.  Handles undefined predicates
-and old-style warnings (SWI).
+Old attempt to a generic hook mechanism.  Handles undefined predicates (SWI).
 \end{itemlist}
 
 
@@ -1234,7 +1202,7 @@ insist using writef, either switch \const{character_escapes} to
 \const{false}, or use double \fmtseq{\\}, as in \verb$writef('\\l')$.
 
 
-\subsubsection{Syntax for Non-Decimal Numbers}
+\subsubsection{Syntax for non-decimal numbers}
 
 SWI-Prolog implements both Edinburgh and ISO representations for
 non-decimal numbers. According to Edinburgh syntax, such numbers are
@@ -1244,9 +1212,9 @@ and 36. ISO defines binary, octal and hexadecimal numbers using
 a valid expression. Such numbers are always unsigned.
 
 
-\section{System Limits}
+\section{System limits}				\label{sec:limits}
 
-\subsection{Limits on Memory Areas}
+\subsection{Limits on memory areas}
 
 SWI-Prolog has a number of memory areas which are only enlarged to a
 certain limit. The default sizes for these areas should suffice for most
@@ -1351,7 +1319,3 @@ we need some way to avoid name clashes with the user's predicates,
 database keys, etc.  Like Edinburgh C-Prolog \cite{CPROLOG:manual} all
 predicates, database keys, etc.\ that should be hidden from the user
 start with a dollar (\chr{\$}) sign (see style_check/1).
-
-The compiler uses the special functor \const{\$VAR\$/1} while analysing the
-clause to compile.  Using this functor in a program causes unpredictable
-behaviour of the compiler and resulting program.

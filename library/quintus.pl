@@ -160,11 +160,6 @@ no_style_check(QOption) :-
 	q_style_option(QOption, SWIOption), 
 	style_check(-SWIOption).
 
-		/********************************
-		*            OPERATORS          *
-		*********************************/
-
-:- op(0, fy, not).
 
 		/********************************
 		*         DIRECTIVES            *

@@ -103,7 +103,7 @@ forwards void		alternatives(LocalFrame);
 static void		exceptionDetails(void);
 forwards void		listGoal(LocalFrame frame);
 forwards int		traceInterception(LocalFrame, LocalFrame, int, Code);
-forwards void		writeFrameGoal(LocalFrame frame, int how);
+forwards void		writeFrameGoal(LocalFrame frame);
 forwards void		interruptHandler(int sig);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -263,7 +263,7 @@ tracePort(LocalFrame frame, LocalFrame bfr, int port, Code PC)
     if ( fmt )
     { writeThread(Sdout);
       Sfprintf(Sdout, fmt, levelFrame(frame));
-      writeFrameGoal(frame, debugstatus.style);
+      writeFrameGoal(frame);
       Sputc('\n', Sdout);
     }
   }
@@ -340,7 +340,7 @@ again:
   Sputc(true(def, METAPRED) ? '^' : ' ', Sdout);
   Sfputs(portPrompt(port), Sdout);
   Sfprintf(Sdout, "(%3ld) ", levelFrame(frame));
-  writeFrameGoal(frame, debugstatus.style);
+  writeFrameGoal(frame);
 
   if (debugstatus.leashing & port)
   { char buf[LINESIZ];
@@ -684,38 +684,17 @@ than normal unification, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-writeFrameGoal(LocalFrame frame, int how)
+writeFrameGoal(LocalFrame frame)
 { int debugSave;
   fid_t cid = PL_open_foreign_frame();
   term_t goal    = PL_new_term_ref();
   term_t options = PL_new_term_ref();
   term_t tmp     = PL_new_term_ref();
-  int flags;
 
   if ( debugstatus.showContext )
     Sfprintf(Sdout, "[%s] ", stringAtom(contextModule(frame)->name));
   put_frame_goal(goal, frame);
   
-  if ( GD->bootsession )
-    flags = PL_WRT_QUOTED;
-  else
-  { switch(how)
-    { case W_PRINT:
-	flags = PL_WRT_QUOTED|PL_WRT_PORTRAY;
-	break;
-      case W_WRITEQ:
-	flags = PL_WRT_QUOTED;
-	break;
-      case W_DISPLAY:
-        flags = PL_WRT_QUOTED|PL_WRT_IGNOREOPS;
-	break;
-      case W_WRITE:
-      default:
-	flags = 0;
-	break;
-    }
-  }
-
   debugSave = debugstatus.debugging;
   debugstatus.debugging = FALSE;
 
@@ -739,7 +718,7 @@ alternatives(LocalFrame frame)
   { if (hasAlternativesFrame(frame) &&
 	 (false(frame, FR_NODEBUG) || SYSTEM_MODE) )
     { Sfprintf(Sdout, "    [%3ld] ", levelFrame(frame));
-      writeFrameGoal(frame, debugstatus.style);
+      writeFrameGoal(frame);
       Sputc('\n', Sdout);
     }
   }
@@ -823,7 +802,7 @@ backTrace(LocalFrame frame, int depth)
     { if ( same_proc_frame != NULL )
       { if ( false(same_proc_frame, FR_NODEBUG) || SYSTEM_MODE )
         { Sfprintf(Sdout, "    [%3ld] ", levelFrame(same_proc_frame));
-	  writeFrameGoal(same_proc_frame, debugstatus.style);
+	  writeFrameGoal(same_proc_frame);
 	  depth--;
 	  Sputc('\n', Sdout);
 	}
@@ -835,7 +814,7 @@ backTrace(LocalFrame frame, int depth)
 
     if (false(frame, FR_NODEBUG) || SYSTEM_MODE)
     { Sfprintf(Sdout, "    [%3ld] ", levelFrame(frame));
-      writeFrameGoal(frame, debugstatus.style);
+      writeFrameGoal(frame);
       depth--;
       Sputc('\n', Sdout);
     }
@@ -1069,7 +1048,6 @@ initTracer(void)
 { debugstatus.visible      = 
   debugstatus.leashing     = CALL_PORT|FAIL_PORT|REDO_PORT|EXIT_PORT|
 			     BREAK_PORT|EXCEPTION_PORT;
-  debugstatus.style        = GD->bootsession ? W_WRITE : W_PRINT; 
   debugstatus.showContext  = FALSE;
 
   resetTracer();

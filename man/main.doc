@@ -64,15 +64,18 @@
 
 \begin{abstract}
 SWI-Prolog is a Prolog implementation based on a subset of the WAM
-(Warren Abstract Machine \cite{Warren:83b}). SWI-Prolog has been
-designed and implemented such that it can easily be modified for
-experiments with logic programming and the relation between logic
-programming and other programming paradigms (such as the object
-oriented XPCE environment \cite{P1098:C1.6}).  SWI-Prolog has a rich
-set of built-in predicates and reasonable performance, which makes it
-possible to develop substantial applications in it.  The current
-version offers a module system, garbage collection and an interface to
-the C language.
+(Warren Abstract Machine). SWI-Prolog was developed as an `open' Prolog
+environment, providing a powerful and bi-directional interface to C in
+an era this was unknown to other Prolog implementations. This
+environment is required to deal with XPCE, an object-oriented GUI system
+developed at SWI. XPCE is used at SWI for the development of
+knowledge-intensive graphical applications.
+
+As SWI-Prolog became more popular, a large user-community provided
+requirements that guided its development. Compatibility, portability,
+scalability, stability and providing a powerful development environment
+have been the most important requirements. `Edinburgh', Quintus, SICStus
+and the ISO-standard guide the development of the SWI-Prolog primitives.
 
 This document gives an overview of the features, system limits and
 built-in predicates.
@@ -130,22 +133,25 @@ Copyright \copyright\ 1990--\year, University of Amsterdam
 	 \LARGE Reference Manual}		\\[3mm]
         {\it Updated for version \versionlong}	\\[1.5cm]
 	{\large \it Jan Wielemaker}		\\[7mm]
-	{\large jan@swi.psy.uva.nl}
+	{\large jan@swi.psy.uva.nl}		\\
 	{\large	http://www.swi.psy.uva.nl/projects/SWI-Prolog/}
 
 \end{center}
 \vfil
 \begin{quote}
 SWI-Prolog is a Prolog implementation based on a subset of the WAM
-(Warren Abstract Machine \cite{Warren:83b}). SWI-Prolog has been
-designed and implemented such that it can easily be modified for
-experiments with logic programming and the relation between logic
-programming and other programming paradigms (such as the object
-oriented XPCE environment \cite{P1098:C1.6}).  SWI-Prolog has a rich
-set of built-in predicates and reasonable performance, which makes it
-possible to develop substantial applications in it.  The current
-version offers a module system, garbage collection and an interface to
-the C language.
+(Warren Abstract Machine). SWI-Prolog was developed as an `open' Prolog
+environment, providing a powerful and bi-directional interface to C in
+an era this was unknown to other Prolog implementations. This
+environment is required to deal with XPCE, an object-oriented GUI system
+developed at SWI. XPCE is used at SWI for the development of
+knowledge-intensive graphical applications.
+
+As SWI-Prolog became more popular, a large user-community provided
+requirements that guided its development. Compatibility, portability,
+scalability, stability and providing a powerful development environment
+have been the most important requirements. `Edinburgh', Quintus, SICStus
+and the ISO-standard guide the development of the SWI-Prolog primitives.
 
 This document gives an overview of the features, system limits and
 built-in predicates.

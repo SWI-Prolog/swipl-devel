@@ -292,6 +292,10 @@ typedef void *			caddress;
 #define ESC			((char) 27)
 #define streq(s, q)		((strcmp((s), (q)) == 0))
 
+#define CHAR_MODE 0		/* See PL_unify_char() */
+#define CODE_MODE 1
+#define BYTE_MODE 2
+
 #ifndef abs
 #define abs(x)			((x) < 0 ? -(x) : (x))
 #endif
@@ -1574,7 +1578,6 @@ typedef struct debuginfo
   bool		debugging;		/* are we debugging? */
   int		leashing;		/* ports we are leashing */
   int	        visible;		/* ports that are visible */
-  int		style;			/* print style of tracer */
   bool		showContext;		/* tracer shows context module */
   int		styleCheck;		/* source style checking */
   int		suspendTrace;		/* tracing is suspended now */

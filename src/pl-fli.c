@@ -1437,6 +1437,21 @@ PL_unify_atom_chars(term_t t, const char *chars)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+If we make (char *)/len atoms we should revise this!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+PL_unify_atom_nchars(term_t t, unsigned int len, const char *chars)
+{ char *tmp = alloca(len+1);
+
+  strncpy(tmp, chars, len);
+  tmp[len] = EOS;
+
+  return unifyAtomic(t, lookupAtom(tmp));
+}
+
+
 atom_t
 codeToAtom(int code)
 { atom_t a;

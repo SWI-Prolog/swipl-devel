@@ -778,6 +778,152 @@ can_unify(Word t1, Word t2)
 }
 
 		 /*******************************
+		 *	   OCCURS-CHECK		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+int var_occurs_in(Word v, Word t)
+    Succeeds of the term `v' occurs in `t'.  v must be dereferenced on
+    entry.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+var_occurs_in(Word v, Word t)
+{ GET_LD
+#undef LD
+#define LD LOCAL_LD
+  
+right_recursion:
+  deRef(t);
+  if ( v == t )
+    succeed;
+
+  if ( isTerm(*t) )
+  { Functor f = valueTerm(*t);
+    int arity = arityFunctor(f->definition);
+
+    t = f->arguments;
+    for( ; --arity > 0; t++)
+    { if ( var_occurs_in(v, t) )
+	succeed;
+    }
+    goto right_recursion;
+  }
+
+  fail;
+#undef LD
+#define LD GLOBAL_LD
+}
+
+
+static bool
+unify_with_occurs_check(Word t1, Word t2, LocalFrame fr)
+{ GET_LD
+#undef LD
+#define LD LOCAL_LD
+  word w1;
+  word w2;
+
+right_recursion:
+  w1 = *t1;
+  w2 = *t2;
+
+  while(isRef(w1))			/* this is deRef() */
+  { t1 = unRef(w1);
+    w1 = *t1;
+  }
+  while(isRef(w2))
+  { t2 = unRef(w2);
+    w2 = *t2;
+  }
+
+  if ( isVar(w1) )
+  { if ( isVar(w2) )
+    { if ( t1 < t2 )			/* always point downwards */
+      { *t2 = makeRef(t1);
+	Trail(t2, fr);
+	succeed;
+      }
+      if ( t1 == t2 )
+	succeed;
+      *t1 = makeRef(t2);
+      Trail(t1, fr);
+      succeed;
+    }
+    if ( var_occurs_in(t1, t2) )
+      fail;
+    *t1 = w2;
+    Trail(t1, fr);
+    succeed;
+  }
+  if ( isVar(w2) )
+  { if ( var_occurs_in(t2, t1) )
+      fail;
+
+    *t2 = w1;
+    Trail(t2, fr);
+    succeed;
+  }
+
+  if ( w1 == w2 )
+    succeed;
+  if ( tag(w1) != tag(w2) )
+    fail;
+
+  switch(tag(w1))
+  { case TAG_ATOM:
+      fail;
+    case TAG_INTEGER:
+      if ( storage(w1) == STG_INLINE ||
+	   storage(w2) == STG_INLINE )
+	fail;
+    case TAG_STRING:
+    case TAG_FLOAT:
+      return equalIndirect(w1, w2);
+    case TAG_COMPOUND:
+    { int arity;
+      Functor f1 = valueTerm(w1);
+      Functor f2 = valueTerm(w2);
+
+      if ( f1->definition != f2->definition )
+	fail;
+
+      arity = arityFunctor(f1->definition);
+      t1 = f1->arguments;
+      t2 = f2->arguments;
+
+      for(; --arity > 0; t1++, t2++)
+      { if ( !unify_with_occurs_check(t1, t2, fr) )
+	  fail;
+      }
+      goto right_recursion;
+    }
+  }
+
+  succeed;
+#undef LD
+#define LD GLOBAL_LD
+}
+
+
+word
+pl_unify_with_occurs_check(term_t t1, term_t t2)
+{ mark m;
+  Word p1, p2;
+  word rval;
+
+  Mark(m);
+  p1 = valTermRef(t1);
+  p2 = valTermRef(t2);
+  rval = unify_with_occurs_check(p1, p2, environment_frame);
+  if ( !rval )
+    Undo(m);
+
+  return rval;
+}
+
+
+		 /*******************************
 		 *   FOREIGN-LANGUAGE INTERFACE *
 		 *******************************/
 

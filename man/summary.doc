@@ -187,6 +187,12 @@ suggest predicates from a keyword.
 \predicatesummary{get}{2}{Read first non-blank character from a stream}
 \predicatesummary{get0}{1}{Read next character}
 \predicatesummary{get0}{2}{Read next character from a stream}
+\predicatesummary{get_byte}{1}{Read next byte (ISO)}
+\predicatesummary{get_byte}{2}{Read next byte from a stream (ISO)}
+\predicatesummary{get_char}{1}{Read next character as an atom (ISO)}
+\predicatesummary{get_char}{2}{Read next character from a stream (ISO)}
+\predicatesummary{get_code}{1}{Read next character (ISO)}
+\predicatesummary{get_code}{2}{Read next character from a stream (ISO)}
 \predicatesummary{get_single_char}{1}{Read next character from the terminal}
 \predicatesummary{get_time}{1}{Get current time}
 \predicatesummary{getenv}{2}{Get shell environment variable}
@@ -273,8 +279,12 @@ suggest predicates from a keyword.
 \predicatesummary{open_resource}{3}{Open a program resource as a stream}
 \predicatesummary{open_shared_object}{2}{UNIX: Open shared library (.so file)}
 \predicatesummary{open_shared_object}{3}{UNIX: Open shared library (.so file)}
-\predicatesummary{peek_byte}{1}{Read character without removing}
-\predicatesummary{peek_byte}{2}{Read character without removing}
+\predicatesummary{peek_byte}{1}{Read byte without removing}
+\predicatesummary{peek_byte}{2}{Read byte without removing}
+\predicatesummary{peek_char}{1}{Read character without removing}
+\predicatesummary{peek_char}{2}{Read character without removing}
+\predicatesummary{peek_code}{1}{Read character-code without removing}
+\predicatesummary{peek_code}{2}{Read character-code without removing}
 \predicatesummary{phrase}{2}{Activate grammar-rule set}
 \predicatesummary{phrase}{3}{Activate grammar-rule set (returning rest)}
 \predicatesummary{please}{3}{Query/change environment parameters}
@@ -313,6 +323,12 @@ suggest predicates from a keyword.
 \predicatesummary{protocolling}{1}{On what file is user interaction logged}
 \predicatesummary{put}{1}{Write a character}
 \predicatesummary{put}{2}{Write a character on a stream}
+\predicatesummary{put_byte}{1}{Write a byte}
+\predicatesummary{put_byte}{2}{Write a byte on a stream}
+\predicatesummary{put_char}{1}{Write a character}
+\predicatesummary{put_char}{2}{Write a character on a stream}
+\predicatesummary{put_code}{1}{Write a character-code}
+\predicatesummary{put_code}{2}{Write a character-code on a stream}
 \predicatesummary{qcompile}{1}{Compile source to Quick Load File}
 \predicatesummary{qsave_program}{1}{Create runtime application}
 \predicatesummary{qsave_program}{2}{Create runtime application}
@@ -374,12 +390,14 @@ suggest predicates from a keyword.
 \predicatesummary{statistics}{0}{Show execution statistics}
 \predicatesummary{statistics}{2}{Obtain collected statistics}
 \predicatesummary{stream_position}{3}{Get/seek to position in file}
+\predicatesummary{stream_property}{2}{Get stream properties}
 \predicatesummary{string}{1}{Type check for string}
 \predicatesummary{string_concat}{3}{atom_concat/3 for strings}
 \predicatesummary{string_length}{2}{Determine length of a string}
 \predicatesummary{string_to_atom}{2}{Conversion between string and atom}
 \predicatesummary{string_to_list}{2}{Conversion between string and list of ASCII}
 \predicatesummary{style_check}{1}{Change level of warnings}
+\predicatesummary{sub_atom}{5}{Take a substring from an atom}
 \predicatesummary{sublist}{3}{Determine elements that meet condition}
 \predicatesummary{subset}{2}{Generate/check subset relation}
 \predicatesummary{substring}{4}{Get part of a string}
@@ -419,7 +437,8 @@ suggest predicates from a keyword.
 \predicatesummary{tty_put}{2}{Write control string to terminal}
 \predicatesummary{ttyflush}{0}{Flush output on terminal}
 \predicatesummary{union}{3}{Union of two sets}
-\predicatesummary{unix}{1}{OS interaction (get command-line arguments)}
+\predicatesummary{unify_with_occurs_check}{2}{Logically sound unification}
+\predicatesummary{unix}{1}{OS interaction}
 \predicatesummary{unknown}{2}{Trap undefined predicates}
 \predicatesummary{unload_foreign_library}{1}{\pllib{shlib} Detach shared library (.so file)}
 \predicatesummary{unsetenv}{1}{Delete shell environment variable}

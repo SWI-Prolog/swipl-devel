@@ -1778,18 +1778,24 @@ hook is returned. The type \ctype{PL_dispatch_hook_t} is defined as:
 \begin{code}
 typedef int  (*PL_dispatch_hook_t)(void);
 \end{code}
-\cfunction{void}{PL_abort_hook}{PL_abort_hook_t}
+    \cfunction{void}{PL_abort_hook}{PL_abort_hook_t}
 Install a hook when abort/0 is executed. SWI-Prolog abort/0 is
 implemented using C setjmp()/longjmp() construct.  The hooks are
 executed in the reverse order of their registration after the longjmp()
 took place and before the Prolog toplevel is reinvoked. The type
-\ctype{PL_abort_hook_t} is defined as:
+    \ctype{PL_abort_hook_t} is defined as:
 \begin{code}
 typedef void (*PL_abort_hook_t)(void);
 \end{code}
-\cfunction{int}{PL_abort_unhook}{PL_abort_hook_t}
+    \cfunction{int}{PL_abort_unhook}{PL_abort_hook_t}
 Remove a hook installed with PL_abort_hook(). Returns \const{FALSE} if no
 such hook is found, \const{TRUE} otherwise.
+    \cfunction{void}{PL_on_halt}{void (*f)(int, void *), void *closure}
+Register the function \arg{f} to be called if SWI-Prolog is halted.  The
+function is called with two arguments: the exit code of the process (0
+if this cannot be determined on your operating system) and the
+\arg{closure} argument passed to the PL_on_halt() call.  See also
+at_halt/1.
 \end{description}
 
 

@@ -283,6 +283,9 @@ initIO()
   Scurout      = Soutput;
   Sprotocol    = NULL;			/* protocolling */
 
+  getStreamContext(Sinput);		/* add for enumeration */
+  getStreamContext(Soutput);
+  getStreamContext(Serror);
   for( i=0, np = standardStreams; *np; np++, i++ )
     addHTable(streamAliases, (void *)*np, (void *)i);
 
@@ -986,6 +989,35 @@ PL_get_char(term_t c, int *p)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PL_unify_char(term_t chr, int c, int how)
+    Unify a character.  Try to be as flexible as possible, only binding a
+    variable `chr' to a code or one-char-atom.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+PL_unify_char(term_t chr, int c, int how)
+{ int c2;
+
+  if ( PL_is_variable(chr) )
+  { switch(how)
+    { case CHAR_MODE:
+      { atom_t a = (c == -1 ? ATOM_end_of_file : codeToAtom(c));
+
+	return PL_unify_atom(chr, a);
+      }
+      case CODE_MODE:
+      case BYTE_MODE:
+      default:
+	return PL_unify_integer(chr, c);
+    }
+  } else if ( PL_get_char(chr, &c2) )
+    return c == c2;
+
+  fail;
+}
+
+
 word
 pl_put2(term_t stream, term_t chr)
 { IOSTREAM *s;
@@ -1080,19 +1112,19 @@ pl_get_single_char(term_t chr)
 }
 
 word
-pl_get02(term_t in, term_t chr)
+pl_get_byte2(term_t in, term_t chr)
 { IOSTREAM *s;
 
   if ( getInputStream(in, &s) )
   { int c = Sgetc(s);
 
-    if ( c == EOF )
-    { PL_unify_integer(chr, -1);
+    if ( PL_unify_integer(chr, c) )
       return streamStatus(s);
-    }
 
-    releaseStream(s);
-    return PL_unify_integer(chr, c);
+    if ( Sferror(s) )
+      return streamStatus(s);
+
+    PL_get_char(chr, &c);		/* set type-error */
   }
 
   fail;
@@ -1100,8 +1132,34 @@ pl_get02(term_t in, term_t chr)
 
 
 word
-pl_get0(term_t c)
-{ return pl_get02(0, c);
+pl_get_byte(term_t c)
+{ return pl_get_byte2(0, c);
+}
+
+
+word
+pl_get_char2(term_t in, term_t chr)
+{ IOSTREAM *s;
+
+  if ( getInputStream(in, &s) )
+  { int c = Sgetc(s);
+
+    if ( PL_unify_atom(chr, codeToAtom(c)) )
+      return streamStatus(s);
+
+    if ( Sferror(s) )
+      return streamStatus(s);
+
+    PL_get_char(chr, &c);		/* set type-error */
+  }
+
+  fail;
+}
+
+
+word
+pl_get_char(term_t c)
+{ return pl_get_char2(0, c);
 }
 
 word
@@ -1499,119 +1557,355 @@ pl_close(term_t stream)
   fail;
 }
 
+		 /*******************************
+		 *	 STREAM-PROPERTY	*
+		 *******************************/
 
-static bool
-unifyStreamName(term_t t, IOSTREAM *s)
+static int
+stream_file_name_propery(IOSTREAM *s, term_t prop)
 { atom_t name;
-  int fd;
 
-  if ( (name = fileNameStream(s)) )
-    return PL_unify_atom(t, name);
-  if ( (fd = Sfileno(s)) >= 0 )
-    return PL_unify_integer(t, fd);
-  else
-    return PL_unify_nil(t);
+  if ( (name = getStreamContext(s)->filename) )
+    return PL_unify_atom(prop, name);
+
+  fail;
 }
 
 
-static bool
-unifyStreamMode(term_t t, IOSTREAM *s)
-{ if ( s->flags & SIO_INPUT )
-    return PL_unify_atom(t, ATOM_read);
+static int
+stream_mode_property(IOSTREAM *s, term_t prop)
+{ atom_t mode;
+
+  if ( s->flags & SIO_INPUT )
+    mode = ATOM_read;
   else
-    return PL_unify_atom(t, ATOM_write);
+  { assert(s->flags & SIO_OUTPUT);
+
+    if ( s->flags & SIO_APPEND )
+      mode = ATOM_append;
+    else if ( s->flags & SIO_UPDATE )
+      mode = ATOM_update;
+    else
+      mode = ATOM_write;
+  }
+
+  return PL_unify_atom(prop, mode);
 }
 
 
-word
-pl_current_stream(term_t file, term_t mode,
-		  term_t stream, word h)
-{ IOSTREAM **sp = NULL;
-  IOSTREAM **spstart = &LD->IO.streams[0];
-  IOSTREAM **spend   = &LD->IO.streams[6];
-  TableEnum e = NULL;
-  Symbol symb;
-  mark m;
+static int
+stream_input_prop(IOSTREAM *s)
+{ return (s->flags & SIO_INPUT) ? TRUE : FALSE;
+}
 
-  switch( ForeignControl(h) )
-  { case FRG_FIRST_CALL:
-      if ( !PL_is_variable(stream) )
-      { IOSTREAM *s;
 
-	if ( PL_get_stream_handle(stream, &s) )
-	{ int rval = ((unifyStreamName(file, s) &&
-		       unifyStreamMode(mode, s)) ? TRUE : FALSE);
-	  releaseStream(s);
-	  return rval;
-	}
+static int
+stream_output_prop(IOSTREAM *s)
+{ return (s->flags & SIO_OUTPUT) ? TRUE : FALSE;
+}
 
-	fail;
-      }
-      sp = LD->IO.streams;
-      e = newTableEnum(streamContext);
-      break;
-    case FRG_REDO:
-    { void *ctx = ForeignContextPtr(h);
 
-      if ( (IOSTREAM **)ctx >= spstart &&
-	   (IOSTREAM **)ctx <  spend )
-	sp = ctx;
-      else
-	e = ctx;
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Incomplete: should be non-deterministic if the stream has multiple aliases!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-      break;
+static int
+stream_alias_prop(IOSTREAM *s, term_t prop)
+{ atom_t name;
+  stream_context *ctx = getStreamContext(s);
+  
+  if ( PL_get_atom(prop, &name) )
+  { alias *a;
+
+    for( a = ctx->alias_head; a; a = a->next )
+    { if ( a->name == name )
+	return TRUE;
     }
-    case FRG_CUTTED:
-    { void *ctx = ForeignContextPtr(h);
-
-      if ( !((IOSTREAM **)ctx >= spstart &&
-	     (IOSTREAM **)ctx < spend) )
-        freeTableEnum(ctx);
-    }
-    default:
-      succeed;
+    
+    return FALSE;
   }
 
-  Mark(m);
-  if ( sp )
-  { for( ; sp < spend; sp++ )
-    { if ( *sp )
-      { IOSTREAM *s = getStream(*sp);
-  
-	if ( unifyStreamName(file, s) &&
-	     unifyStreamMode(mode, s) &&
-	     PL_unify_atom(stream, standardStreams[sp-spstart]) )
-	{ releaseStream(s);
-	  ForeignRedoPtr(sp+1);
-	}
-  
-	releaseStream(s);
-	Undo(m);
-      }
-    }
-    e = newTableEnum(streamContext);
-  }
+  if ( ctx->alias_head )
+    return PL_unify_atom(prop, ctx->alias_head->name);
 
-  while( (symb=advanceTableEnum(e)) )
-  { IOSTREAM *s = symb->name;
+  return FALSE;
+}
 
-					/* don't do standard streams again */
-    if ( standardStreamIndexFromStream(s) < 0 )
-    { s = getStream(s);
-      if ( unifyStreamName(file, s) &&
-	   unifyStreamMode(mode, s) &&
-	   PL_unify_stream(stream, s) )
-      { releaseStream(s);
-	ForeignRedoPtr(e);
-      }
 
-      releaseStream(s);
-      Undo(m);
-    }
+static int
+stream_position_prop(IOSTREAM *s, term_t prop)
+{ if ( s->position )
+  { return PL_unify_term(prop,
+			 PL_FUNCTOR, FUNCTOR_stream_position3,
+			   PL_INTEGER, s->position->charno,
+			   PL_INTEGER, s->position->lineno,
+			   PL_INTEGER, s->position->linepos);
   }
 
   fail;
-}      
+}
+
+
+static int
+stream_end_of_stream_prop(IOSTREAM *s, term_t prop)
+{ if ( s->flags & SIO_INPUT )
+  { atom_t val;
+
+    if ( s->flags & SIO_FEOF2 )
+      val = ATOM_past;
+    else if ( s->flags & SIO_FEOF )
+      val = ATOM_at;
+    else
+      val = ATOM_not;
+
+    return PL_unify_atom(prop, val);
+  }
+
+  return FALSE;
+}
+
+
+static int
+stream_eof_action_prop(IOSTREAM *s, term_t prop)
+{ atom_t val;
+
+  if ( s->flags & SIO_NOFEOF )
+    val = ATOM_reset;
+  else if ( s->flags & SIO_FEOF2ERR )
+    val = ATOM_error;
+  else
+    val = ATOM_eof_code;
+
+  return PL_unify_atom(prop, val);
+}
+
+
+#ifdef HAVE_FSTAT
+#include <sys/stat.h>
+#endif
+
+static int
+stream_reposition_prop(IOSTREAM *s, term_t prop)
+{ atom_t val;
+
+  if ( s->functions->seek )
+  {
+#ifdef HAVE_FSTAT
+    int fd = Sfileno(s);
+    struct stat buf;
+
+    if ( fstat(fd, &buf) == 0 && (buf.st_mode & S_IFMT) == S_IFREG )
+      val = ATOM_true;
+    else
+      val = ATOM_false;
+#else
+    val = ATOM_true;
+#endif
+  } else
+    val = ATOM_false;
+  
+  return PL_unify_atom(prop, val);
+}
+
+
+static int
+stream_type_prop(IOSTREAM *s, term_t prop)
+{ return PL_unify_atom(prop, s->flags & SIO_TEXT ? ATOM_text : ATOM_binary);
+}
+
+
+static int
+stream_file_no_prop(IOSTREAM *s, term_t prop)
+{ int fd;
+
+  if ( (fd = Sfileno(s)) >= 0 )
+    return PL_unify_integer(prop, fd);
+
+  fail;
+}
+
+
+
+
+typedef struct
+{ functor_t functor;			/* functor of property */
+  int (*function)();			/* function to generate */
+} sprop;
+
+
+static const sprop sprop_list [] =
+{ { FUNCTOR_file_name1,	    stream_file_name_propery },
+  { FUNCTOR_mode1,	    stream_mode_property },
+  { FUNCTOR_input0,	    stream_input_prop },
+  { FUNCTOR_output0,	    stream_output_prop },
+  { FUNCTOR_alias1,	    stream_alias_prop },
+  { FUNCTOR_position1,	    stream_position_prop },
+  { FUNCTOR_end_of_stream1, stream_end_of_stream_prop },
+  { FUNCTOR_eof_action1,    stream_eof_action_prop },
+  { FUNCTOR_reposition1,    stream_reposition_prop },
+  { FUNCTOR_type1,    	    stream_type_prop },
+  { FUNCTOR_file_no1,	    stream_file_no_prop },
+  { 0,			    NULL }
+};
+
+
+typedef struct
+{ TableEnum e;				/* Enumerator on stream-table */
+  IOSTREAM *s;				/* Stream we are enumerating */
+  const sprop *p;			/* Pointer in properties */
+} prop_enum;
+
+
+foreign_t
+pl_stream_property(term_t stream, term_t property, word h)
+{ IOSTREAM *s;
+  prop_enum *pe;
+  mark m;
+  term_t a1;
+
+  switch( ForeignControl(h) )
+  { case FRG_FIRST_CALL:
+      a1 = PL_new_term_ref();
+      
+      if ( PL_is_variable(stream) )	/* generate */
+      {	pe = allocHeap(sizeof(*pe));
+
+	pe->e = newTableEnum(streamContext);
+	pe->s = NULL;
+	pe->p = sprop_list;
+
+	break;
+      } else if ( PL_get_stream_handle(stream, &s) )
+      { functor_t f;
+
+	if ( PL_is_variable(property) )	/* generate properties */
+	{ pe = allocHeap(sizeof(*pe));
+
+	  pe->e = NULL;
+	  pe->s = s;
+	  pe->p = sprop_list;
+	  releaseStream(s);		/* no locked stream? */
+
+	  break;
+	} else if ( PL_get_functor(property, &f) )
+	{ const sprop *p = sprop_list;
+
+	  for( ; p->functor; p++ )
+	  { if ( f == p->functor )
+	    { int rval;
+
+	      switch(arityFunctor(f))
+	      { case 0:
+		  rval = (*p->function)(s);
+		  break;
+		case 1:
+		{ term_t a1 = PL_new_term_ref();
+
+		  _PL_get_arg(1, property, a1);
+		  rval = (*p->function)(s, a1);
+		  break;
+		}
+		default:
+		  assert(0);
+		  rval = FALSE;
+	      }
+	      releaseStream(s);
+	      return rval;
+	    }
+	  }
+	} else
+	  return PL_error(NULL, 0, NULL, ERR_TYPE,
+			  ATOM_stream_property, property);
+      } else
+	fail;				/* bad stream handle */
+    case FRG_REDO:
+    { pe = ForeignContextPtr(h);
+      a1 = PL_new_term_ref();
+      
+      break;
+    }
+    case FRG_CUTTED:
+    { pe = ForeignContextPtr(h);
+
+      if ( pe->e )
+	freeTableEnum(pe->e);
+
+      freeHeap(pe, sizeof(*pe));
+      succeed;
+    }
+    default:
+      assert(0);
+      fail;
+  }
+
+
+  Mark(m);
+  for(;;)
+  { if ( pe->s )				/* given stream */
+    { mark m2;
+  
+      if ( PL_is_variable(stream) )
+      { if ( !PL_unify_stream(stream, pe->s) )
+	  goto enum_e;
+      }
+
+      Mark(m2);
+      for( ; pe->p->functor ; pe->p++ )
+      { if ( PL_unify_functor(property, pe->p->functor) )
+	{ int rval;
+
+	  switch(arityFunctor(pe->p->functor))
+	  { case 0:
+	      rval = (*pe->p->function)(pe->s);
+	      break;
+	    case 1:
+	    { _PL_get_arg(1, property, a1);
+
+	      rval = (*pe->p->function)(pe->s, a1);
+	      break;
+	    }
+	    default:
+	      assert(0);
+	      rval = FALSE;
+	  }
+	  if ( rval )
+	  { pe->p++;
+	    ForeignRedoPtr(pe);
+	  }
+	}
+	Undo(m2);
+      }
+      pe->s = NULL;
+    }
+  
+  enum_e:
+    if ( pe->e )
+    { Symbol symb;
+
+      while ( (symb=advanceTableEnum(pe->e)) )
+      { Undo(m);
+	if ( PL_unify_stream(stream, symb->name) )
+	{ pe->s = symb->name;
+	  pe->p = sprop_list;
+	  break;
+	}
+      } 
+    }
+
+    if ( !pe->s )
+    { if ( pe->e )
+	freeTableEnum(pe->e);
+
+      freeHeap(pe, sizeof(*pe));
+      fail;
+    }
+  }
+}
+
+
+		 /*******************************
+		 *	      FLUSH		*
+		 *******************************/
 
 
 word
@@ -1863,9 +2157,8 @@ pl_at_end_of_stream0()
 { return pl_at_end_of_stream1(0);
 }
 
-
 word
-pl_peek_byte2(term_t stream, term_t chr)
+peek(term_t stream, term_t chr, int how)
 { IOSTREAM *s;
   IOPOS pos;
   int c;
@@ -1881,13 +2174,41 @@ pl_peek_byte2(term_t stream, term_t chr)
     return streamStatus(s);
   releaseStream(s);
 
-  return PL_unify_integer(chr, c);
+  return PL_unify_char(chr, c, how);
+}
+
+
+word
+pl_peek_byte2(term_t stream, term_t chr)
+{ return peek(stream, chr, BYTE_MODE);
 }
 
 
 word
 pl_peek_byte1(term_t chr)
-{ return pl_peek_byte2(0, chr);
+{ return peek(0, chr, BYTE_MODE);
+}
+
+word
+pl_peek_code2(term_t stream, term_t chr)
+{ return peek(stream, chr, CODE_MODE);
+}
+
+
+word
+pl_peek_code1(term_t chr)
+{ return peek(0, chr, CODE_MODE);
+}
+
+word
+pl_peek_char2(term_t stream, term_t chr)
+{ return peek(stream, chr, CHAR_MODE);
+}
+
+
+word
+pl_peek_char1(term_t chr)
+{ return peek(0, chr, CHAR_MODE);
 }
 
 

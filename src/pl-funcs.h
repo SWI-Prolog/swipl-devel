@@ -46,6 +46,7 @@ void		TrailAssignment(Word p);
 void		DoTrail(Word p);
 void		do_undo(mark *m);
 void		fix_term_ref_count(void);
+word		pl_unify_with_occurs_check(term_t t1, term_t t2);
 
 /* pl-atom.c */
 word		lookupAtom(const char *s);
@@ -189,8 +190,10 @@ word		pl_skip(term_t chr);
 word		pl_skip2(term_t stream, term_t chr);
 word		pl_get2(term_t stream, term_t chr);
 word		pl_get_single_char(term_t c);
-word		pl_get0(term_t c);
-word		pl_get02(term_t stream, term_t c);
+word		pl_get_byte(term_t c);
+word		pl_get_byte2(term_t stream, term_t c);
+word		pl_get_char(term_t c);
+word		pl_get_char2(term_t stream, term_t c);
 word		pl_seeing(term_t f);
 word		pl_telling(term_t f);
 word		pl_tell(term_t f);
@@ -211,7 +214,7 @@ word		pl_open_null_stream(term_t stream);
 int		streamNo(term_t spec, int mode);
 word		pl_close(term_t stream);
 void		release_stream_handle(term_t spec);
-word		pl_current_stream(term_t file, term_t mode, term_t s, word h);
+foreign_t	pl_stream_property(term_t stream, term_t property, word h);
 word		pl_flush_output(term_t stream);
 word		pl_stream_position(term_t stream, term_t old, term_t new);
 word		pl_seek(term_t stream,
@@ -229,6 +232,10 @@ word		pl_at_end_of_stream1(term_t stream);
 word		pl_at_end_of_stream0();
 word		pl_peek_byte2(term_t stream, term_t chr);
 word		pl_peek_byte1(term_t chr);
+word		pl_peek_code2(term_t stream, term_t chr);
+word		pl_peek_code1(term_t chr);
+word		pl_peek_char2(term_t stream, term_t chr);
+word		pl_peek_char1(term_t chr);
 bool		unifyTime(term_t t, long time);
 word		pl_time_file(term_t name, term_t t);
 word		pl_size_file(term_t name, term_t len);
@@ -256,6 +263,7 @@ word		pl_make_fat_filemap(term_t dir);
 word		pl_copy_stream_data3(term_t in, term_t out, term_t len);
 word		pl_copy_stream_data2(term_t in, term_t out);
 int		PL_get_char(term_t c, int *p);
+int		PL_unify_char(term_t chr, int c, int mode);
 
 /* pl-flag.c */
 void		initFlags(void);
@@ -455,6 +463,9 @@ word		pl_atom_concat(term_t a1, term_t a2, term_t a3, control_t ctx);
 word		pl_concat_atom(term_t list, term_t atom);
 word		pl_concat_atom3(term_t list, term_t sep, term_t atom);
 word		pl_apropos_match(term_t a1, term_t a2);
+foreign_t	pl_sub_atom(term_t atom,
+			    term_t before, term_t len, term_t after,
+			    term_t sub, word h);
 word		pl_string_length(term_t str, term_t l);
 word		pl_string_concat(term_t a1, term_t a2, term_t a3, word h);
 word		pl_string_to_atom(term_t str, term_t a);

@@ -1409,11 +1409,11 @@ Sopen_file(const char *path, const char *how)
       break;
     case 'a':
       fd = open(path, O_WRONLY|O_CREAT|O_APPEND|oflags, 0666);
-      flags |= SIO_OUTPUT;
+      flags |= SIO_OUTPUT|SIO_APPEND;
       break;
     case 'u':
       fd = open(path, O_WRONLY|O_CREAT|oflags, 0666);
-      flags |= SIO_OUTPUT;
+      flags |= SIO_OUTPUT|SIO_UPDATE;
       break;
     case 'r':
       fd = open(path, O_RDONLY|oflags);

@@ -225,28 +225,6 @@ advanceGen(generator *gen)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-unify_char(term_t chr, int c, int how)
-    Unify a character.  Try to be as flexible as possible, only binding a
-    variable `chr' to a code or one-char-atom.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static int
-unify_char(term_t chr, int c, int how)
-{ int c2;
-
-  if ( PL_is_variable(chr) )
-  { if ( how == CODE_MODE )
-      return PL_unify_integer(chr, c);
-    else
-      return PL_unify_atom(chr, codeToAtom(c));
-  } else if ( PL_get_char(chr, &c2) )
-    return c == c2;
-
-  fail;
-}
-
-
 static int
 unify_char_type(term_t type, const char_type *ct, int context, int how)
 { if ( ct->arity == 0 )
@@ -258,7 +236,7 @@ unify_char_type(term_t type, const char_type *ct, int context, int how)
       _PL_get_arg(1, type, a);
 
       if ( ct->ctx_type == CTX_CHAR )
-	return unify_char(a, context, how);
+	return PL_unify_char(a, context, how);
       else
 	return PL_unify_integer(a, context);
     }
@@ -311,7 +289,7 @@ do_char_type(term_t chr, term_t class, word h, int how)
 	    _PL_get_arg(1, class, a);
 
 	    if ( cc->ctx_type == CTX_CHAR )
-	      return unify_char(a, rval, how);
+	      return PL_unify_char(a, rval, how);
 	    else
 	      return PL_unify_integer(a, rval);
 	  }
@@ -330,7 +308,7 @@ do_char_type(term_t chr, term_t class, word h, int how)
 	    if ( c < 0 )
 	      fail;
 
-	    return unify_char(chr, c, how);
+	    return PL_unify_char(chr, c, how);
 	  }
 	  fail;				/* error */
 	}
@@ -365,7 +343,7 @@ do_char_type(term_t chr, term_t class, word h, int how)
 
     if ( (rval = (*gen->class->test)(gen->current)) )
     { if ( (!(gen->do_enum & ENUM_CHAR) ||
-	    unify_char(chr, gen->current, how)) &&
+	    PL_unify_char(chr, gen->current, how)) &&
 	   (!(gen->do_enum & ENUM_CLASS) ||
 	    unify_char_type(class, gen->class, rval, how)) )
       { if ( advanceGen(gen) )

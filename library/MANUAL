@@ -13,24 +13,28 @@
                           SSWWII--PPrroolloogg 33..33
 
                          RReeffeerreennccee MMaannuuaall
-
              _U_p_d_a_t_e_d _f_o_r _v_e_r_s_i_o_n _3_._3_._0_, _N_o_v_e_m_b_e_r _1_9_9_9
 
                           _J_a_n _W_i_e_l_e_m_a_k_e_r
 
-jan@swi.psy.uva.nl http://www.swi.psy.uva.nl/projects/SWI-Prolog/
+jan@swi.psy.uva.nl  http://www.swi.psy.uva.nl/projects/SWI-Prolog/
 
  SWI-Prolog  is  a Prolog  implementation based  on a  subset of
- the  WAM (Warren Abstract Machine  [Warren, 1983]).  SWI-Prolog
- has  been  designed and  implemented  such that  it  can easily
- be  modified  for experiments  with logic  programming  and the
- relation   between  logic  programming  and  other  programming
- paradigms   (such  as  the  object  oriented  XPCE  environment
- [Anjewierden & Wielemaker, 1989]).   SWI-Prolog has  a rich set
- of  built-in predicates and reasonable performance, which makes
- it  possible to  develop substantial applications  in it.   The
- current  version offers a module system, garbage collection and
- an interface to the C language.
+ the  WAM (Warren Abstract  Machine).   SWI-Prolog was developed
+ as  an  `open'  Prolog environment,  providing  a  powerful and
+ bi-directional  interface  to  C in  an  era  this was  unknown
+ to   other  Prolog  implementations.      This  environment  is
+ required  to  deal  with XPCE,  an  object-oriented  GUI system
+ developed  at SWI. XPCE is  used at SWI for  the development of
+ knowledge-intensive graphical applications.
+
+ As  SWI-Prolog  became  more  popular,  a large  user-community
+ provided  requirements that  guided its  development.   Compat-
+ ibility,  portability,   scalability,  stability and  providing
+ a   powerful  development   environment  have  been   the  most
+ important  requirements.    `Edinburgh',  Quintus,  SICStus and
+ the  ISO-standard  guide  the  development  of  the  SWI-Prolog
+ primitives.
 
  This  document gives an overview of the features, system limits
  and built-in predicates.
@@ -74,7 +78,10 @@ set care  has been  taken to  maintain the  advantages of  decompilation
 and  tracing of  compiled  code.    The extensions  include  specialised
 instructions  for unification,  predicate  invocation,  some  frequently
 used built-in  predicates, arithmetic, and  control (;/2, |/2),  if-then
-(->/2) and not (\+/1).
+(->/2) and negation-by-failure (\+/1).
+
+
+11..11..11 OOtthheerr bbooookkss aabboouutt PPrroolloogg
 
 This manual does not  describe the full syntax and semantics  of Prolog,
 nor how  one should  write a  program in Prolog.    These subjects  have
@@ -94,19 +101,19 @@ ISO  compliant  predicates  are based  on  ``Prolog:    The  Standard'',
 11..22 SSttaattuuss
 
 This manual describes  version 3.3 of SWI-Prolog.   SWI-Prolog has  been
-used  now for  several years.    The application  range includes  Prolog
-course  material,  meta-interpreters,  simulation  of  parallel  Prolog,
-learning systems, natural language processing and  two large workbenches
-for knowledge engineering.   Although we experienced rather  obvious and
-critical bugs can remain unnoticed for a remarkable long  period, we can
+used now for many  years.  The application range includes  Prolog course
+material,  meta-interpreters, simulation  of parallel  Prolog,  learning
+systems,  natural  language processing  and  two large  workbenches  for
+knowledge  engineering.    Although we  experienced rather  obvious  and
+critical bugs  can remain  unnoticed for  a remarkable  long period,  we
 assume the basic Prolog  system is fairly stable.  Bugs can  be expected
-in infrequently used builtin predicates.
+in infrequently used built-in predicates.
 
 Some bugs are known to  the author.  They are described as  footnotes in
 this manual.
 
 
-11..33 SShhoouulldd yyoouu bbee UUssiinngg SSWWII--PPrroolloogg??
+11..33 SShhoouulldd yyoouu bbee uussiinngg SSWWII--PPrroolloogg??
 
 There are a number of reasons why you better  choose a commercial Prolog
 system, or another academic product:
@@ -132,8 +139,8 @@ On the other hand, SWI-Prolog offers some nice facilities:
   o _N_i_c_e _e_n_v_i_r_o_n_m_e_n_t
     This includes `Do  What I Mean', automatic completion of atom names,
     history mechanism and  a tracer that operates on single key-strokes.
-    Interfaces  to standard  Unix editors  are  provided, as  well as  a
-    facility to maintain programs (see make/0).
+    Interfaces  to  some  standard  editors are  provided  (and  can  be
+    extended), as well as a facility to maintain programs (see make/0).
 
   o _V_e_r_y _f_a_s_t _c_o_m_p_i_l_e_r
     Even  very  large applications  can  be loaded  in seconds  on  most
@@ -142,10 +149,10 @@ On the other hand, SWI-Prolog offers some nice facilities:
 
   o _T_r_a_n_s_p_a_r_e_n_t _c_o_m_p_i_l_e_d _c_o_d_e
     SWI-Prolog  compiled code can be  treated just as interpreted  code:
-    you  can list  it,  trace it,  assert to  or retract  from it,  etc.
-    This  implies you do not have to decide beforehand whether  a module
-    should  be loaded for debugging or  not.  Also, performance  is much
-    better than the performance of most interpreters.
+    you  can list it, trace  it, etc.  This  implies you do not have  to
+    decide  beforehand whether a module  should be loaded for  debugging
+    or  not.  Also, performance  is much better than the  performance of
+    most interpreters.
 
   o _P_r_o_f_i_l_i_n_g
     SWI-Prolog offers tools  for performance analysis, which can be very
@@ -154,12 +161,11 @@ On the other hand, SWI-Prolog offers some nice facilities:
     helpful than a better compiler without these facilities.
 
   o _F_l_e_x_i_b_i_l_i_t_y
-    SWI-Prolog  allows  for   easy  and  flexible  integration  with  C,
-    both  Prolog calling  C functions  as C  calling Prolog  predicates.
-    SWI-Prolog  is provided  in source  form,  which implies  SWI-Prolog
-    can  be linked in  with another package.   Command line options  and
-    predicates  to obtain information from the system and  feedback into
-    the system are provided.
+    SWI-Prolog  can  easily   be  integrated  with  C,  supporting  non-
+    determinism  in Prolog calling  C as well  as C calling Prolog  (see
+    section  5.  It can  also be _e_m_b_e_d_d_e_d embedded in external  programs
+    (see  section 5.7).  System  predicates can be redefined locally  to
+    provide compatibility with other Prolog systems.
 
   o _I_n_t_e_g_r_a_t_i_o_n _w_i_t_h _X_P_C_E
     SWI-Prolog   offers  a   tight  integration  to   the  Object   Ori-
@@ -226,9 +232,9 @@ Prolog as well  as some Lisp dialects and  C++.  The Quintus version  is
 commercially distributed and supported as ProWindows-3tm.
 
 IInnffoo.. further        information        is         available        from
-http://www.swi.psy.uva.nl/projects/xpce/home.html   or  by   E-mail   to
-xpce-request@swi.psy.uva.nl.   There are demo  versions for Windows  95,
-98, NT and i386/Linux available from the XPCE download page.
+http://www.swi.psy.uva.nl/projects/xpce/   or   by   E-mail   to   xpce-
+request@swi.psy.uva.nl.  There are demo versions for Windows  95, 98, NT
+and i386/Linux available from the XPCE download page.
 
 
 11..55 RReelleeaassee NNootteess
@@ -417,13 +423,13 @@ Quintus  and SICStus  Prolog compatible  print_message/2,  message_hook/3
 and print_message_lines/3.
 
 As of version  3.3, SWI-Prolog adheres the  ISO _l_o_g_i_c_a_l _u_p_d_a_t_e _v_i_e_w  for
-dynamic predicates.  See section 3.12.1 for details.
+dynamic predicates.  See section 3.13.1 for details.
 
 Finally, an  alpha version of a  multi-threaded SWI-Prolog for Linux  is
 added.    This version  is still  much slower  than the  single-threaded
 version due  to frequent access to  `thread-local-data' as well as  some
 too detailed  mutex locks.   The basic thread  API is ready for  serious
-use and testing however.  See section 3.37.
+use and testing however.  See section 3.38.
 
 
 11..55..1111..11 IInnccoommppaattiibbllee cchhaannggeess
@@ -460,7 +466,7 @@ all easily fixed however.
     _c_l_i_b package can with most others.
 
   o op/3
-    Operators  are not llooccaall ttoo mmoodduulleess.  This implies  any modification
+    Operators  are now llooccaall ttoo mmoodduulleess.  This implies  any modification
     of  the operator-table does  not influence other  modules.  This  is
     consistent  with the proposed ISO behaviour and a necessity  to have
     any usable handling of operators in a multi-threaded environment.
@@ -513,8 +519,8 @@ SWI-Prolog  itself  and  its  utility  programs   are  documented  using
 standard  Unix  man pages.     SWI-Prolog  is normally  operated  as  an
 interactive application simply by starting the program:
 
-% pl
-/staff/jan/.plrc compiled, 0.00 sec, 1,016 bytes.
+machine% pl
+% /staff/jan/.plrc compiled, 0.00 sec, 1,016 bytes.
 Welcome to SWI-Prolog (Version 3.2.9)
 Copyright (c) 1993-1998 University of Amsterdam.  All rights reserved.
 
@@ -529,7 +535,7 @@ following  goal loads  the  file  likes.pl containing  clauses  for  the
 predicates likes/2:
 
 ?- [likes].
-likes compiled, 0.00 sec, 596 bytes.
+% likes compiled, 0.00 sec, 596 bytes.
 
 Yes
 ?-
@@ -601,17 +607,37 @@ conventions as for the default startup file.  Finally,  if _f_i_l_e is none,
 no file is loaded.
 
 
-22..33 IInniittiiaalliissaattiioonn ggooaallss
+22..33 IInniittiiaalliissaattiioonn ffiilleess aanndd ggooaallss
 
-After   loading   the   startup  file   SWI-Prolog   executes   a   user
-initialisation  goal.   The  default  goal is  a system  predicate  that
-prints  the banner  message.    The default  can  be modified  with  the
-`-g goal' option.   Next the toplevel goal  is started.  Default is  the
-interactive Prolog  loop (see prolog/0).   The  user can overwrite  this
-default with the `-t toplevel' option.
+Using  commandline  arguments  (see  section  2.4),  SWI-Prolog  can  be
+forced to  load files  and execute queries  for initialisation  purposes
+or  non-interactive operation.    The  most  commonly used  options  are
+-f file to  make Prolog load an  initialisation file, -g goal to  define
+an initialisation  goal and -t goal  to define the _t_o_p_l_e_v_e_l  _g_o_a_l.   The
+following  is a  typical example  for starting  an application  directly
+from the commandline.
+
+machine% pl -f load.pl -g go -t halt
+
+It tells  SWI-Prolog to load  load.pl, start  the application using  the
+_e_n_t_r_y_-_p_o_i_n_t go/0 and ---instead of entering  the interactive toplevel---
+exit after completing go/0.
+
+In  MS-Windows,  the  same  can  be  achieved  using  a  short-cut  with
+appropriately  defined  commandline   arguments.     A  typically   seen
+alternative  is to  write  a file  run.pl  with content  as  illustrated
+below.  Double-clicking run.pl will start the application.
+
+:- [load].                      % load program
+:- go.                          % run it
+:- halt.                        % and exit
+
+Chapter 6  discusses the  generation of  runtime executables.    Runtime
+executables are a  mean to deliver executables  that do not require  the
+Prolog system.
 
 
-22..44 CCoommmmaanndd LLiinnee OOppttiioonnss
+22..44 CCoommmmaanndd lliinnee ooppttiioonnss
 
 The full set of command line options is given below:
 
@@ -625,7 +651,17 @@ The full set of command line options is given below:
 
 --aarrcchh
     When   given  as  the  only  option,  it  prints   the  architecture
-    identifier (see current_prolog_flag(arch, Arch)) and exits.
+    identifier  (see  current_prolog_flag(arch,  Arch)) and  exits.    See
+    also -dump-runtime-variables.
+
+--dduummpp--rruunnttiimmee--vvaarriiaabblleess
+    When  given as  the only option,  it prints  a sequence of  variable
+    settings  that can  be  used in  shell-scripts to  deal with  Prolog
+    parameters.   This feature is  also used by plld (see section  5.7).
+    Below is a typical example of using this feature.
+
+    eval `pl -dump-runtime-variables`
+    cc -I$PLBASE/include -L$PLBASE/runtime/$PLARCH ...
 
 --LL_s_i_z_e_[_k_m_]
     Give  local stack limit (2 Mbytes default).   Note that there  is no
@@ -637,7 +673,8 @@ The full set of command line options is given below:
     % pl -L32m
 
     A maximum is  useful to stop buggy programs from claiming all memory
-    resources.  -L0 sets the limit to the highest possible value.
+    resources.   -L0 sets the limit to the highest possible value.   See
+    section 2.16.
 
 --GG_s_i_z_e_[_k_m_]
     Give  global  stack limit  (4 Mbytes  default).    See -L  for  more
@@ -646,7 +683,7 @@ The full set of command line options is given below:
 --TT_s_i_z_e_[_k_m_]
     Give  trail  stack  limit  (4  Mbytes  default).     This  limit  is
     relatively  high because trail-stack overflows are not  often caused
-    program bugs.  See -L for more details.
+    by program bugs.  See -L for more details.
 
 --AA_s_i_z_e_[_k_m_]
     Give  argument stack limit (1 Mbytes  default).  The argument  stack
@@ -654,12 +691,6 @@ The full set of command line options is given below:
     executed.    SWI-Prolog does `last-argument  optimisation' to  avoid
     many  deeply nested  structure  using this  stack.   Enlarging  this
     limit is only necessary in extreme cases.  See -L for more details.
-
---HH_s_i_z_e_[_k_m_]
-    Give  malloc() heap limit.   The  default is to  raise the limit  as
-    high  as possible.  This  option only applies to machines using  the
-    mmap()  function for allocating the Prolog stacks.  See -L  for more
-    details.
 
 --cc _f_i_l_e _._._.
     Compile files into an `intermediate code file'.  See section 2.10.
@@ -702,11 +733,12 @@ The full set of command line options is given below:
     `halt' as toplevel.
 
 --ttttyy
-    Switches  tty  control (using  ioctl(2)) on  (+tty)  or off  (-tty).
-    Normally  tty  control is  switched on.    This  default depends  on
-    the  installation.    You may  wish  to switch  tty control  off  if
-    Prolog  is used  from an  editor such  as Emacs.    If switched  off
-    get_single_char/1 and the tracer will wait for a return.
+    Unix  only.      Switches  controlling  the  terminal  for  allowing
+    single-character  commands to the tracer and  get_single_char/1.   By
+    default  manipulating  the terminal  is  enabled unless  the  system
+    detects  it is not  connected to a  terminal or it  is running as  a
+    GNU-Emacs  inferior process.   This flag  is sometimes required  for
+    smooth interaction with other applications.
 
 --xx _b_o_o_t_f_i_l_e
     Boot  from _b_o_o_t_f_i_l_e instead  of the system's default  boot file.   A
@@ -724,7 +756,8 @@ The full set of command line options is given below:
 
 --
     Stops  scanning for more  arguments, so you  can pass arguments  for
-    your application after this one.
+    your  application after this  one.   See current_prolog_flag/2 using
+    the flag argv for obtaining the commandline arguments.
 
 The following options  are for system maintenance.   They are given  for
 reference only.
@@ -807,6 +840,11 @@ hheellpp((_+_W_h_a_t))
        ?- help(3-4).        Display section 3.4 of the manual
        ?- help('PL_retry'). Give    help   on    interface   function
                             PL_retry()
+
+    See   also   apropos/1,    and   the   SWI-Prolog   home   page   at
+    http://www.swi.psy.uva.nl/projects/SWI-Prolog/,   which  provides  a
+    FAQ, an HTML version  of manual for online browsing and HTML and PDF
+    versions for downloading.
 
 
 aapprrooppooss((_+_P_a_t_t_e_r_n))
@@ -848,8 +886,7 @@ queries and  syntax errors.    SWI-Prolog does  not offer  the Unix  csh
 capabilities to  include arguments.   This is omitted  as it is  unclear
 how the first, second, etc. argument should be defined.
 
-The available  history commands  are shown  in table  2.1.   Figure  2.1
-gives some examples.
+The available history commands are shown in table 2.1.
        __________________________________________________________
        | !!.            |Repeat last query                        |
 
@@ -865,78 +902,17 @@ gives some examples.
        |_!h.____________|Show_this_list__________________________ |
 
                       Table 2.1:  History commands
-
-/staff/jan/.plrc consulted, 0.066667 seconds, 591 bytes
-Welcome to SWI-Prolog (Version \plversion)
-
-Copyright (c) 1993-1996 University of Amsterdam.  All rights reserved.
-
-For help, use ?- help(Topic). or ?- apropos(Word).
-
-1 ?- append("Hello ", "World", L).
-
-L = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100]
-
-Yes
-2 ?- !!, writef('L = %s\n', [L]).
-append("Hello ", "World", L), writef('L = %s\n', [L]).
-L = Hello World
-
-L = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100]
-
-Yes
-3 ?- sublist(integer, [3, f, 3.4], L).
-
-L = [3]
-
-Yes
-4 ?- ^integer^number.
-
-sublist(number, [3, f, 3.4], L).
-
-L = [3, 3.400000]
-
-Yes
-5 ?- h.
-    1   append("Hello ", "World", L).
-    2   append("Hello ", "World", L), writef('L = %s\n', [L]).
-
-    3   sublist(integer, [3, f, 3.4], L).
-    4   sublist(number, [3, f, 3.4], L).
-
-5 ?- !2^World^Universe.
-append("Hello ", "Universe", L), writef('L = %s\n', [L]).
-L = Hello Universe
-
-L = [72, 101, 108, 108, 111, 32, 85, 110, 105, 118, 101, 114, 115, 101]
-
-Yes
-6 ?- halt.
-
-           Figure 2.1:  Some examples of the history facility
 
 
 22..77..11 LLiimmiittaattiioonnss ooff tthhee HHiissttoorryy SSyysstteemm
 
-When  in   top  level   SWI-Prolog  reads  the   user's  queries   using
-read_history/6 rather  than  read/1.   This  predicate first  reads  the
-current input  stream up to  a full stop.   While doing  so it maps  all
-contiguous blank  space onto  a single  space and  deletes /* ...*/  and
-% ...<_c_r> comments.   Parts between double quotes  (") or single  quotes
-(') are  left unaltered.   Note that  a Prolog full  stop consists of  a
-`non-symbol' character,  followed by a period  (.), followed by a  blank
-character.    `Symbol' characters  are:   #$&*+-./:<=>?@^`~.   A  single
-quote immediately preceded  by a digit (0-9)  is considered part of  the
-<_d_i_g_i_t>'<_d_i_g_i_t>...(e.g. 2'101; binary number 101) sequence.
-
-After this initial parsing  the result is first checked for  the special
-^<_o_l_d>^<_n_e_w>.construction.  If this fails the string is  checked for all
-occurrences of  the !,  followed by  a !,  ?, a  digit, a  letter or  an
-underscore.   These special sequences  are analysed and the  appropriate
-substitution from the history list is made.
-
-From the  above it  follows that  it is  hard or  impossible to  correct
-quotation with single or double quotes, comment delimiters and spacing.
+History expansion  is executed  after _r_a_w_-_r_e_a_d_i_n_g.   This  is the  first
+stage of read_term/2 and friends,  reading the term into a  string while
+deleting comment  and canonising blank.   This makes  it hard to use  it
+for correcting  syntax errors.   Command-line editing as provided  using
+the GNU-readline library is  more suitable for this.   History expansion
+is first  of all useful  for executing or  combining commands from  long
+ago.
 
 
 22..88 RReeuussee ooff ttoopplleevveell bbiinnddiinnggss
@@ -954,7 +930,9 @@ ifmmp
 
 Yes
 
-                 Figure 2.2:  Reusing toplevel bindings
+3 ?-
+
+                 Figure 2.1:  Reusing toplevel bindings
 
 Note that variables may be set by executing =/2:
 
@@ -975,6 +953,7 @@ Global stack :    4,096,000       16,384          968 Bytes
 Trail  stack :    4,096,000        8,192          432 Bytes
 
 Yes
+8 ?-
 
 
 22..99 OOvveerrvviieeww ooff tthhee DDeebbuuggggeerr
@@ -983,7 +962,7 @@ SWI-Prolog has  a 6-port  tracer, extending the  standard 4-port  tracer
 [Clocksin & Melish, 1987]  with two  additional  ports.    The  optional
 _u_n_i_f_y port allows  the user to inspect  the result after unification  of
 the head.  The _e_x_c_e_p_t_i_o_n port shows exceptions raised  by throw/1 or one
-of the built-in predicates.  See section 3.8.
+of the built-in predicates.  See section 3.9.
 
 The standard  ports are called call,  exit, redo, fail  and unify.   The
 tracer is started  by the trace/0 command,  when a spy point is  reached
@@ -991,10 +970,11 @@ and the system is  in debugging mode (see spy/1 and debug/0) or  when an
 exception is raised.
 
 The interactive  toplevel goal trace/0 means  ``trace the next  query''.
-The tracer shows the  port, displaying the port name, the  current depth
-of the  recursion and the goal.   The goal  is printed using the  Prolog
-predicate  write_term/2.    The  style  can be  modified to  include  the
-ignore_ops and/or portray options using the w, p or d command.
+The  tracer shows  the  port,  displaying  the port  name,  the  current
+depth of  the recursion and  the goal.   The goal  is printed using  the
+Prolog predicate write_term/2.  The style is defined  by the prolog-flag
+debugger_print_options  and can be modified using this flag or  using the
+w, p and d commands of the tracer.
 1 ?- visible(+all), leash(-exit).
 
 Yes
@@ -1016,7 +996,7 @@ Yes
 Yes
 [trace] 3 ?-
 
-                       Figure 2.3:  Example trace
+                       Figure 2.2:  Example trace
 
 On _l_e_a_s_h_e_d  _p_o_r_t_s (set  with the  predicate leash/1,  default are  call,
 exit, redo and  fail) the user is prompted  for an action.  All  actions
@@ -1072,7 +1052,9 @@ c ((CCrreeeepp))
     Continue execution, stop at next port.  (Also return, space).
 
 d ((DDiissppllaayy))
-    Write goals using ignore_ops option.
+    Set  the max_depth(_D_e_p_t_h) option of debugger_print_options,  limiting
+    the  depth  to which  terms are  printed.    See also  the  w and  p
+    options.
 
 e ((EExxiitt))
     Terminate Prolog (see halt/0).
@@ -1098,7 +1080,9 @@ n ((NNoo ddeebbuugg))
     Continue execution in `no debug' mode.
 
 p ((PPrriinntt))
-    Write goals using the portray option (default).
+    Set       the       prolog-flag       debugger_print_options       to
+    [quoted(true), portray(true), max_depth(10)].        This   is   the
+    default.
 
 r ((RReettrryy))
     Undo  all actions (except for database and i/o actions) back  to the
@@ -1115,7 +1099,8 @@ u ((UUpp))
     option is useful to stop tracing a failure driven loop.
 
 w ((WWrriittee))
-    Write goals without using the portray option.
+    Set   the  prolog-flag   debugger_print_options  to   [quoted(true)],
+    bypassing portray/1, etc.
 
 The   ideal  4   port  model   as  described   in   many  Prolog   books
 [Clocksin & Melish, 1987] is not visible in many  Prolog implementations
@@ -1176,11 +1161,11 @@ below, followed by the Prolog code to obtain the program arguments.
 base=<absolute-path-to-source>
 PL=pl
 
-exec $PL -f none -g "load_files(['$base/load'],[silent(true)])" -t go -
-- $*
+exec $PL -f none -g "load_files(['$base/load'],[silent(true)])" \
+         -t go -- $*
 
 go :-
-        unix(argv(Arguments)),
+        current_prolog_flag(argv, Arguments),
         append(_SytemArgs, [--|Args], Arguments), !,
         go(Args).
 
@@ -1232,8 +1217,6 @@ This performs exactly the same as executing
                    stand_alone(true)
                  ]).
 ?- halt.
-
-See also unix/1.
 
 
 22..1111 EEnnvviirroonnmmeenntt CCoonnttrrooll ((PPrroolloogg ffllaaggss))
@@ -1366,13 +1349,24 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          Start of the tagged-integer value range.
 
     ffllooaatt__ffoorrmmaatt _(_a_t_o_m_, _c_h_a_n_g_e_a_b_l_e_)
-         C printf()  format specification  used by  write/1 and  friends
-         to determine  how  floating point  numbers are  printed.    The
-         default is %g.  May be changed.  The  specified value is passed
-         to printf()  without further  checking.   For  example, if  you
-         want more  digits printed,  %.12g will print  all floats  using
-         12 digits  instead of the  default 6.   See also  format/[1,2],
-         write/1, print/1 and portray/1.
+         C printf() format specification used by write/1  and friends to
+         determine how floating point numbers are printed.   The default
+         is %g.    The  specified value  is passed  to printf()  without
+         further  checking.    For  example,  if you  want  more  digits
+         printed, %.12g  will print all floats  using 12 digits  instead
+         of the default 6.  See also format/[1,2],  write/1, print/1 and
+         portray/1.
+
+    ttoopplleevveell__pprriinntt__ooppttiioonnss _(_t_e_r_m_, _c_h_a_n_g_e_a_b_l_e_)
+         This  argument   is  given   as  option-list   to  write_term/2
+         for   printing    results   of   queries.         Default    is
+         [quoted(true), portray(true), max_depth(10)].
+
+    ddeebbuuggggeerr__pprriinntt__ooppttiioonnss _(_t_e_r_m_, _c_h_a_n_g_e_a_b_l_e_)
+         This  argument is  given  as  option-list to  write_term/2  for
+         printing  goals  by  the  debugger.     Modified  by  the  `w',
+         `p'  and  `<_N>  d'  commands  of  the  debugger.    Default  is
+         [quoted(true), portray(true), max_depth(10)].
 
     ccoommppiilleedd__aatt _(_a_t_o_m_)
          Describes when the  system has been  compiled.  Only  available
@@ -1390,7 +1384,7 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          module.    If codes  (default), a  list  of character-codes  is
          returned,  if chars  a list  of  one-character atoms,  if  atom
          double  quotes  are the  same  as  single-quotes  and  finally,
-         string reads the text into a Prolog string  (see section 3.22).
+         string reads the text into a Prolog string  (see section 3.23).
          See also atom_chars/2 and atom_codes/2.
 
     aallllooww__vvaarriiaabbllee__nnaammee__aass__ffuunnccttoorr _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
@@ -1427,7 +1421,7 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
              convert  floats  to integers  if  the float  represents  an
              integer.
 
-           o In  the standard order  of terms (see  section 3.5.1),  all
+           o In  the standard order  of terms (see  section 3.6.1),  all
              floats are before all integers.
 
     ooppttiimmiissee _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
@@ -1517,10 +1511,11 @@ sseett__pprroolloogg__ffllaagg((_+_K_e_y_, _+_V_a_l_u_
     and cannot be changed afterwards.
 
 
-22..1122 HHooookkss,, aann oovveerrvviieeww
+22..1122 AAnn oovveerrvviieeww ooff hhooookk pprreeddiiccaatteess
 
-SWI-Prolog knows  about various other hooks  that are implemented  using
-their own  predicates.   Below is an overview  with indication of  their
+SWI-Prolog provides a large number of hooks, mainly  to control handling
+messages, debugging,  startup, shut-down, macro-expansion,  etc.   Below
+is  a  summary  of  all  defined  hooks  with  an  indication  of  their
 portability.
 
   o portray/1
@@ -1566,7 +1561,7 @@ portability.
 
   o exception/3
     Old  attempt  to  a  generic  hook mechanism.     Handles  undefined
-    predicates and old-style warnings (SWI).
+    predicates (SWI).
 
 
 22..1133 AAuuttoommaattiicc llooaaddiinngg ooff lliibbrraarriieess
@@ -1730,7 +1725,7 @@ writef, either switch  character_escapes to  false, or use double \\,  as
 in writef('\\l').
 
 
-22..1155..11..22 SSyynnttaaxx ffoorr NNoonn--DDeecciimmaall NNuummbbeerrss
+22..1155..11..22 SSyynnttaaxx ffoorr nnoonn--ddeecciimmaall nnuummbbeerrss
 
 SWI-Prolog  implements  both  Edinburgh  and  ISO   representations  for
 non-decimal numbers.   According to  Edinburgh syntax, such numbers  are
@@ -1740,10 +1735,10 @@ For example:  A is 0b100 \/ 0xf00  is a valid expression.   Such numbers
 are always unsigned.
 
 
-22..1166 SSyysstteemm LLiimmiittss
+22..1166 SSyysstteemm lliimmiittss
 
 
-22..1166..11 LLiimmiittss oonn MMeemmoorryy AArreeaass
+22..1166..11 LLiimmiittss oonn mmeemmoorryy aarreeaass
 
 SWI-Prolog has  a number of  memory areas which are  only enlarged to  a
 certain limit.   The  default sizes for these  areas should suffice  for
@@ -1871,10 +1866,6 @@ way to  avoid name clashes  with the  user's predicates, database  keys,
 etc.   Like Edinburgh C-Prolog [Pereira, 1986] all predicates,  database
 keys, etc. that should  be hidden from the user start with a  dollar ($)
 sign (see style_check/1).
-
-The  compiler uses  the  special  functor $VAR$/1  while  analysing  the
-clause  to  compile.      Using  this   functor  in  a  program   causes
-unpredictable behaviour of the compiler and resulting program.
 
 
 CChhaapptteerr 33..  BBUUIILLTT--IINN PPRREEDDIICCAATTEESS
@@ -1890,7 +1881,64 @@ denotes output and  `?'  denotes `either  input or output'.   Constructs
 like `op/3' refer to the predicate `op' with arity `3'.
 
 
-33..22 CCoonnssuullttiinngg PPrroolloogg SSoouurrccee ffiilleess
+33..22 CChhaarraacctteerr rreepprreesseennttaattiioonn
+
+In  traditional (Edinburgh-)  Prolog, characters  are represented  using
+_c_h_a_r_a_c_t_e_r_-_c_o_d_e_s.   Character codes are  integer indices into a  specific
+character set.   Traditionally  the character  set was 7-bits  US-ASCII.
+Since a long while  8-bit character sets are allowed,  providing support
+for  national character  sets,  of  which  iso-latin-1 (ISO  8859-1)  is
+applicable  to many  western  languages.    Text-files are  supposed  to
+represent a sequence of character-codes.
+
+ISO Prolog introduces three types, two of which  are used for characters
+and one for accessing binary streams (see open/4).  These types are:
+
+  o _c_o_d_e
+    A  _c_h_a_r_a_c_t_e_r_-_c_o_d_e is  an  integer representing  a single  character.
+    As  files  may  use  multi-byte encoding  for  supporting  different
+    character  sets (utf-8 encoding for example), reading a code  from a
+    text-file is in general not the same as reading a byte.
+
+  o _c_h_a_r
+    Alternatively,  characters  may  be  represented  as  _o_n_e_-_c_h_a_r_a_c_t_e_r_-
+    _a_t_o_m_s.    This is  a  very natural  representation, hiding  encoding
+    problems  from  the  programmer as  well  as providing  much  easier
+    debugging.
+
+  o _b_y_t_e
+    Bytes are used for accessing binary-streams.
+
+The  current  version  of  SWI-Prolog  does  not   provide  support  for
+multi-byte character encoding.  This implies for example  that it is not
+capable of  breaking a  multi-byte encoded  atom into characters.    For
+SWI-Prolog, bytes  and codes  are the same  and one-character-atoms  are
+simple atoms containing one byte.
+
+To  ease  the  pain  of  these  multiple  representations,  SWI-Prolog's
+built-in  predicates dealing  with character-data  work  as flexible  as
+possible:   they accept  data in  any of these  formats as  long as  the
+interpretation  is unambiguous.     In addition,  for  output  arguments
+that are  instantiated, the character  is extracted before  unification.
+This implies  that the following two  calls are identical, both  testing
+whether the next input characters is an a.
+
+peek_code(Stream, a).
+peek_code(Stream, 97).
+
+These  multiple-representations  are  handled  by  a   large  number  of
+built-in  predicates,   all   of  which   are  ISO-compatible.       For
+converting  betweem  code and  character  there  is  char_code/2.     For
+breaking  atoms  and  numbers  into  characters  are  are  atom_chars/2,
+atom_codes/2,  number_codes/2 and  number_chars/2.    For  character  I/O
+on  streams  there  is get_char/[1,2],  get_code/[1,2],  get_byte/[1,2],
+peek_char/[1,2],   peek_code/[1,2],   peek_byte/[1,2],   put_code/[1,2],
+put_char/[1,2]  and  put_byte/[1,2].     The  prolog-flag  double_quotes
+(see current_prolog_flag/2) controls how  text between double-quotes  is
+interpreted.
+
+
+33..33 CCoonnssuullttiinngg PPrroolloogg SSoouurrccee ffiilleess
 
 SWI-Prolog source files  normally have a suffix  `.pl'.  Specifying  the
 suffix  is optional.    All predicates  that handle  source files  first
@@ -2214,7 +2262,7 @@ pprreepprroocceessssoorr((_-_O_l_d_, _+_N_e_w))
     Old = none
 
 
-33..22..11 QQuuiicckk LLooaadd FFiilleess
+33..33..11 QQuuiicckk LLooaadd FFiilleess
 
 The features described in this section should be regarded aallpphhaa.
 
@@ -2232,7 +2280,7 @@ generally make old compiled files unusable.
 
 Quick Load Files  are created using qcompile/1.   They are loaded  using
 consult/1  or one  of  the other  file-loading predicates  described  in
-section 3.2.   If consult is given  the explicit .pl file, it will  load
+section 3.3.   If consult is given  the explicit .pl file, it will  load
 the Prolog  source.  When  given the .qlf file,  it will load the  file.
 When no extension is specified, it will load the  .qlf file when present
 and the fileextpl file otherwise.
@@ -2256,7 +2304,7 @@ qqccoommppiillee((_+_F_i_l_e))
     the Prolog source file from which the compiled code originates.
 
 
-33..33 LLiissttiinngg aanndd EEddiittoorr IInntteerrffaaccee
+33..44 LLiissttiinngg aanndd EEddiittoorr IInntteerrffaaccee
 
 SWI-Prolog  offers an  extensible  interface which  allows the  user  to
 edit objects  of the program:   predicates,  modules, files,  etc.   The
@@ -2375,7 +2423,7 @@ ppoorrttrraayy__ccllaauussee((_+_C_l_a_u_s_e))
     `<_H_e_a_d> :- true'.
 
 
-33..44 VVeerriiffyy TTyyppee ooff aa TTeerrmm
+33..55 VVeerriiffyy TTyyppee ooff aa TTeerrmm
 
 
 vvaarr((_+_T_e_r_m))
@@ -2420,10 +2468,10 @@ ggrroouunndd((_+_T_e_r_m))
     Succeeds if _T_e_r_m holds no free variables.
 
 
-33..55 CCoommppaarriissoonn aanndd UUnniiffiiccaattiioonn oorr TTeerrmmss
+33..66 CCoommppaarriissoonn aanndd UUnniiffiiccaattiioonn oorr TTeerrmmss
 
 
-33..55..11 SSttaannddaarrdd OOrrddeerr ooff TTeerrmmss
+33..66..11 SSttaannddaarrdd OOrrddeerr ooff TTeerrmmss
 
 Comparison and  unification of arbitrary  terms.   Terms are ordered  in
 the so called ``standard order''.  This order is defined as follows:
@@ -2458,6 +2506,24 @@ _+_T_e_r_m_1 \== _+_T_e_r_m_2
 
 _+_T_e_r_m_1 = _+_T_e_r_m_2
     Unify _T_e_r_m_1 with _T_e_r_m_2.  Succeeds if the unification succeeds.
+
+
+uunniiffyy__wwiitthh__ooccccuurrss__cchheecckk((_+_T_e_r_m_1_, _+_T_e_r_m_2))
+    As  =/2, but  using _s_o_u_n_d_-_u_n_i_f_i_c_a_t_i_o_n.    That is,  a variable  only
+    unifies  to  a term  if  this term  does  not contain  the  variable
+    itself.  To illustrate this, consider the two goals below:
+
+    1 ?- A = f(A).
+
+    A = f(f(f(f(f(f(f(f(f(f(...))))))))))
+    2 ?- unify_with_occurs_check(A, f(A)).
+
+    No
+
+    I.e.   the  first  creates  a  _c_y_c_l_i_c_-_t_e_r_m,  which  is   printed  as
+    an   infinitly  nested  f/1  term  (see  the   max_depth   option  of
+    write_term/2).  The second executes  logically sound unification and
+    thus fails.
 
 
 _+_T_e_r_m_1 \= _+_T_e_r_m_2
@@ -2505,7 +2571,7 @@ ccoommppaarree((_?_O_r_d_e_r_, _+_T_e_r_m_1_, _+_T_e_r
     of terms.  _O_r_d_e_r is one of <, >  or =, with the obvious meaning.
 
 
-33..66 CCoonnttrrooll PPrreeddiiccaatteess
+33..77 CCoonnttrrooll PPrreeddiiccaatteess
 
 The predicates of  this section implement control structures.   Normally
 these constructs  are translated  into virtual  machine instructions  by
@@ -2605,7 +2671,7 @@ _+_C_o_n_d_i_t_i_o_n *-> _+_A_c_t_i_o_n _; _+_E_l_s_e
     negation).
 
 
-33..77 MMeettaa--CCaallll PPrreeddiiccaatteess
+33..88 MMeettaa--CCaallll PPrreeddiiccaatteess
 
 Meta call  predicates are used  to call terms  constructed at run  time.
 The basic meta-call mechanism offered by SWI-Prolog is  to use variables
@@ -2698,7 +2764,7 @@ ccaallll__wwiitthh__ddeepptthh__lliimmiitt((_+_G_o_a_
     discussion with Steve Moyle smoyle@ermine.ox.ac.uk.
 
 
-33..88 IISSOO ccoommpplliiaanntt EExxcceeppttiioonn hhaannddlliinngg
+33..99 IISSOO ccoommpplliiaanntt EExxcceeppttiioonn hhaannddlliinngg
 
 SWI-Prolog defines the predicates catch/3 and throw/1  for ISO compliant
 raising  and catching  of exceptions.    In  the current  implementation
@@ -2729,7 +2795,7 @@ tthhrrooww((_+_E_x_c_e_p_t_i_o_n))
     the exception context can be retrieved using PL_exception().
 
 
-33..88..11 DDeebbuuggggiinngg aanndd eexxcceeppttiioonnss
+33..99..11 DDeebbuuggggiinngg aanndd eexxcceeppttiioonnss
 
 Before  the introduction  of exceptions  in SWI-Prolog  a runtime  error
 was handled  by printing  an error  message, after  which the  predicate
@@ -2768,7 +2834,7 @@ While looking for the  context in which an exception takes place,  it is
 adviced to switch on debug mode using the predicate debug/0.
 
 
-33..88..22 TThhee eexxcceeppttiioonn tteerrmm
+33..99..22 TThhee eexxcceeppttiioonn tteerrmm
 
 Builtin  predicates  generates exceptions  using  a  term  error(_F_o_r_m_a_l_,
 _C_o_n_t_e_x_t).    The  first argument  is  the  `formal' description  of  the
@@ -2782,7 +2848,7 @@ description of the error.  Any part of this structure  may be a variable
 if no information was present.
 
 
-33..88..33 PPrriinnttiinngg mmeessssaaggeess
+33..99..33 PPrriinnttiinngg mmeessssaaggeess
 
 The predicate print_message/2 may be  used to print a message term  in a
 human readable  format.   The other predicates  from this section  allow
@@ -2858,7 +2924,7 @@ mmeessssaaggee__hhooookk((_+_T_e_r_m_, _+_K_i_n_d_, _+
     other modules defining clauses for it too.
 
 
-33..99 HHaannddlliinngg ssiiggnnaallss
+33..1100 HHaannddlliinngg ssiiggnnaallss
 
 As  of  version  3.1.0,   SWI-Prolog  is  capable  to   handle  software
 interrupts  (signals) in  Prolog as  well as  in foreign  (C) code  (see
@@ -2889,7 +2955,7 @@ oonn__ssiiggnnaall((_+_S_i_g_n_a_l_, _-_O_l_d_, _:_N_e
 
     Two  predicate-names have  special meaning.    throw implies  Prolog
     will  map  the  signal  onto  a Prolog  exception  as  described  in
-    section  3.8.   default resets  the handler  to the settings  active
+    section  3.9.   default resets  the handler  to the settings  active
     before SWI-Prolog manipulated the handler.
 
     After  receiving a signal mapped to throw, the exception  raised has
@@ -2955,7 +3021,7 @@ ccuurrrreenntt__ssiiggnnaall((_?_N_a_m_e_, _?_I_d_, _?
     currently defined handler (see on_signal/3).
 
 
-33..99..11 NNootteess oonn ssiiggnnaall hhaannddlliinngg
+33..1100..11 NNootteess oonn ssiiggnnaall hhaannddlliinngg
 
 Before  deciding  to deal  with  signals  in  your  application,  please
 consider the following:
@@ -2986,7 +3052,7 @@ consider the following:
     section'.  The critical sections are generally very short.
 
 
-33..1100 AAddvvaanncceedd ccoonnttrrooll--ssttrruuccttuurreess::  bblloocckkss
+33..1111 AAddvvaanncceedd ccoonnttrrooll--ssttrruuccttuurreess::  bblloocckkss
 
 The predicates of this section form a tightly related  set for realising
 premature successful or  failing exits from a  _b_l_o_c_k.  These  predicates
@@ -3042,7 +3108,7 @@ digit(D, [D|R], R)  :- between(0'0, 0'9, D).
 letter(D, [D|R], R) :- between(0'a, 0'z, D).
 
 
-33..1111 GGrraammmmaarr rruullee iinntteerrffaaccee ((pphhrraassee))
+33..1122 GGrraammmmaarr rruullee iinntteerrffaaccee ((pphhrraassee))
 
 The predicates below may be called to activate a grammar-rule set:
 
@@ -3057,7 +3123,7 @@ pphhrraassee((_+_R_u_l_e_S_e_t_, _+_I_n_p_u_t_L_i_s_t_
     sentence is parsed correctly.
 
 
-33..1122 DDaattaabbaassee
+33..1133 DDaattaabbaassee
 
 SWI-Prolog offers  three different database mechanisms.   The first  one
 is  the common  assert/retract  mechanism  for manipulating  the  clause
@@ -3207,7 +3273,7 @@ ffllaagg((_+_K_e_y_, _-_O_l_d_, _+_N_e_w))
             fail ; flag(succeeds_n_times, Times, Old).
 
 
-33..1122..11 UUppddaattee vviieeww
+33..1133..11 UUppddaattee vviieeww
 
 Traditionally,  Prolog systems  used  the _i_m_m_e_d_i_a_t_e  _u_p_d_a_t_e _v_i_e_w:    new
 clauses  became   visible  to   predicates  backtracking  over   dynamic
@@ -3228,7 +3294,7 @@ well as  the generation  it was  erased.   Only  clauses with  `created'
 are considered visible.
 
 
-33..1122..22 IInnddeexxiinngg ddaattaabbaasseess
+33..1133..22 IInnddeexxiinngg ddaattaabbaasseess
 
 By  default,   SWI-Prolog,  as   most  other  implementations,   indexes
 predicates  on their  first argument.    SWI-Prolog  allows indexing  on
@@ -3251,7 +3317,7 @@ hhaasshh__tteerrmm((_+_T_e_r_m_, _-_H_a_s_h_K_e_y))
     SWI-Prolog.
 
 
-33..1133 DDeeccllaarriinngg PPrrooppeerrttiieess ooff PPrreeddiiccaatteess
+33..1144 DDeeccllaarriinngg PPrrooppeerrttiieess ooff PPrreeddiiccaatteess
 
 This  section  describes  directives  which  manipulate   attributes  of
 predicate  definitions.     The  functors  dynamic/1,   multifile/1  and
@@ -3325,7 +3391,7 @@ iinnddeexx((_+_H_e_a_d))
     ...
 
 
-33..1144 EExxaammiinniinngg tthhee PPrrooggrraamm
+33..1155 EExxaammiinniinngg tthhee PPrrooggrraamm
 
 
 ccuurrrreenntt__aattoomm((_-_A_t_o_m))
@@ -3493,7 +3559,7 @@ ccllaauussee__pprrooppeerrttyy((_+_C_l_a_u_s_e_R_e_f_
          because it is referenced.
 
 
-33..1155 IInnppuutt aanndd OOuuttppuutt
+33..1166 IInnppuutt aanndd OOuuttppuutt
 
 SWI-Prolog provides two  different packages for input  and output.   One
 confirms  to  the  Edinburgh  standard.    This  package  has  a  notion
@@ -3505,7 +3571,7 @@ destination.   Both packages are fully  integrated; the user may  switch
 freely between them.
 
 
-33..1155..11 IInnppuutt aanndd OOuuttppuutt UUssiinngg IImmpplliicciitt SSoouurrccee aanndd DDeessttiinnaattiioonn
+33..1166..11 IInnppuutt aanndd OOuuttppuutt UUssiinngg IImmpplliicciitt SSoouurrccee aanndd DDeessttiinnaattiioonn
 
 The  package  for  implicit input  and  output  destination  is  upwards
 compatible to DEC-10 and  C-Prolog.  The reading and  writing predicates
@@ -3590,7 +3656,7 @@ ttoolldd
     _u_s_e_r.
 
 
-33..1155..22 EExxpplliicciitt IInnppuutt aanndd OOuuttppuutt SSttrreeaammss
+33..1166..22 EExxpplliicciitt IInnppuutt aanndd OOuuttppuutt SSttrreeaammss
 
 The predicates  below are  part of the  Quintus compatible  stream-based
 I/O package.   In this package streams are explicitly created  using the
@@ -3618,11 +3684,15 @@ ooppeenn((_+_S_r_c_D_e_s_t_, _+_M_o_d_e_, _-_S_t_r_e_a
          is no difference between the two on Unix systems.
 
     aalliiaass((_A_t_o_m))
-         Gives  the  stream  a name.     The  following  two  calls  are
-         identical, but only the latter is allowed in ISO Prolog.
+         Gives the  stream a name.   Below  is an example.   Be  careful
+         with  this  option  as stream-names  are  global.     See  also
+         set_stream/2.
 
-         ?- open(foo, read, in, []).
-         ?- open(foo, read, S, [alias(in)]).
+         ?- open(data, read, Fd, [alias(input)]).
+
+                 ...,
+                 read(input, Term),
+                 ...
 
     eeooff__aaccttiioonn((_A_c_t_i_o_n))
          Defines  what  happens  if the  end  of  the  input  stream  is
@@ -3668,6 +3738,58 @@ cclloossee((_+_S_t_r_e_a_m))
     Close the specified stream.   If _S_t_r_e_a_m is not open an error message
     is  displayed.  If the closed stream is the current input  or output
     stream the terminal is made the current input or output.
+
+
+ssttrreeaamm__pprrooppeerrttyy((_?_S_t_r_e_a_m_, _?_S_t_r_e_a_m_P_r_o_p_e_r_t_y))
+    ISO  compatible predicate for querying  status of open I/O  streams.
+    _S_t_r_e_a_m_P_r_o_p_e_r_t_y is one of:
+
+    ffiillee__nnaammee((_A_t_o_m))
+         If _S_t_r_e_a_m is  associated to a file,  unify _A_t_o_m to the name  of
+         this file.
+
+    mmooddee((_I_O_M_o_d_e))
+         Unify  _I_O_M_o_d_e to  the  mode given  to  open/4 for  opening  the
+         stream.   Values are:  read,  write, append and the  SWI-Prolog
+         extension update.
+
+    iinnppuutt
+         True if _S_t_r_e_a_m has mode read.
+
+    oouuttppuutt
+         True if _S_t_r_e_a_m has mode write, append or update.
+
+    aalliiaass((_A_t_o_m))
+         If _A_t_o_m is bound,  test of the stream has the  specified alias.
+         Otherwise unify _A_t_o_m with the first alias of the stream.
+
+    ppoossiittiioonn((_T_e_r_m))
+         Unify  _T_e_r_m  with the  current  stream-position.     A  stream-
+         position  is  a  term   of  format  $stream_position(_C_h_a_r_I_n_d_e_x_,
+         _L_i_n_e_N_o_, _L_i_n_e_P_o_s).  See also term_position/3.
+
+    eenndd__ooff__ssttrreeaamm((_E))
+         If _S_t_r_e_a_m is  an input stream,  unify _E with  one of the  atoms
+         not, at or past.  See also at_end_of_stream/[0,1].
+
+    eeooff__aaccttiioonn((_A))
+         Unify _A with one of  eof_code,  reset or error.  See  open/4 for
+         details.
+
+    rreeppoossiittiioonn((_B_o_o_l))
+         Unify _B_o_o_l  with _t_r_u_e  if  the position  of the  stream can  be
+         set (see seek/4).   It  is assumed the  position can be set  if
+         the stream  has a  _s_e_e_k_-_f_u_n_c_t_i_o_n and is  not based  on a  POSIX
+         file-descriptor that is not associated to a regular file.
+
+    ttyyppee((_T))
+         Unify _B_o_o_l with text or binary.
+
+    ffiillee__nnoo((_I_n_t_e_g_e_r))
+         If  the stream  is  associated  with a  POSIX  file-descriptor,
+         unify  _I_n_t_e_g_e_r  with   the  descriptor  number.      SWI-Prolog
+         extension used  primarily  for integration  with foreign  code.
+         See also Sfileno() from SWI-Stream.h.
 
 
 ccuurrrreenntt__ssttrreeaamm((_?_O_b_j_e_c_t_, _?_M_o_d_e_, _?_S_t_r_e_a_m))
@@ -3717,7 +3839,7 @@ sseett__ssttrreeaamm((_+_S_t_r_e_a_m_, _+_A_t_t_r_i_b_
     input is read from this stream.  See also interactor/0.
 
 
-33..1155..33 SSwwiittcchhiinngg BBeettwweeeenn IImmpplliicciitt aanndd EExxpplliicciitt II//OO
+33..1166..33 SSwwiittcchhiinngg BBeettwweeeenn IImmpplliicciitt aanndd EExxpplliicciitt II//OO
 
 The predicates  below can be  used for  switching between the  implicit-
 and the explicit stream based I/O predicates.
@@ -3741,7 +3863,7 @@ ccuurrrreenntt__oouuttppuutt((_-_S_t_r_e_a_m))
     Get the current output stream.
 
 
-33..1166 SSttaattuuss ooff IInnppuutt aanndd OOuuttppuutt SSttrreeaammss
+33..1177 SSttaattuuss ooff IInnppuutt aanndd OOuuttppuutt SSttrreeaammss
 
 
 wwaaiitt__ffoorr__iinnppuutt((_+_L_i_s_t_O_f_S_t_r_e_a_m_s_, _-_R_e_a_d_y_L_i_s_t_, _+_T_i_m_e_O_u_t))
@@ -3785,7 +3907,9 @@ ffiilleeeerrrroorrss((_-_O_l_d_, _+_N_e_w))
     to _N_e_w.
 
 
-33..1177 PPrriimmiittiivvee CChhaarraacctteerr IInnppuutt aanndd OOuuttppuutt
+33..1188 PPrriimmiittiivvee CChhaarraacctteerr IInnppuutt aanndd OOuuttppuutt
+
+See section 3.2 for an overview of supported character representations.
 
 
 nnll
@@ -3807,10 +3931,34 @@ ppuutt((_+_S_t_r_e_a_m_, _+_C_h_a_r))
     Write _C_h_a_r to _S_t_r_e_a_m.
 
 
+ppuutt__bbyyttee((_+_B_y_t_e))
+    Alias for put/1.
+
+
+ppuutt__bbyyttee((_+_S_t_r_e_a_m_, _+_B_y_t_e))
+    Alias for put/2
+
+
+ppuutt__cchhaarr((_+_C_h_a_r))
+    Alias for put_char/1.
+
+
+ppuutt((_+_S_t_r_e_a_m_, _+_C_h_a_r))
+    Alias for put/2
+
+
+ppuutt__ccooddee((_+_C_o_d_e))
+    Alias for put/1.
+
+
+ppuutt__ccooddee((_+_S_t_r_e_a_m_, _+_C_o_d_e))
+    Alias for put/2
+
+
 ttaabb((_+_A_m_o_u_n_t))
     Writes  _A_m_o_u_n_t  spaces  on  the  current  output  stream.     _A_m_o_u_n_t
     should  be an expression that  evaluates to a positive integer  (see
-    section 3.24).
+    section 3.25).
 
 
 ttaabb((_+_S_t_r_e_a_m_, _+_A_m_o_u_n_t))
@@ -3832,13 +3980,42 @@ ttttyyfflluusshh
     Flush pending output on stream _u_s_e_r.  See also flush/0.
 
 
+ggeett__bbyyttee((_-_B_y_t_e))
+    Read the current input  stream and unify the next byte with _B_y_t_e (an
+    integer between 0 and 255.  _B_y_t_e is unified with -1 on end of file.
+
+
+ggeett__bbyyttee((_+_S_t_r_e_a_m_, _-_B_y_t_e))
+    Read the next byte from _S_t_r_e_a_m.
+
+
+ggeett__ccooddee((_-_C_o_d_e))
+    Read  the current  input stream  and unify _C_o_d_e  with the  character
+    code  of the  next character.   _C_h_a_r is  unified with  -1 on end  of
+    file.  See also get_char/1.
+
+
+ggeett__ccooddee((_+_S_t_r_e_a_m_, _-_C_o_d_e))
+    Read the next character-code from _S_t_r_e_a_m.
+
+
+ggeett__cchhaarr((_-_C_h_a_r))
+    Read  the  current  input  stream  and  unify  _C_h_a_r  with  the  next
+    character  as a  one-character-atom.   See  also atom_chars/2.    On
+    end-of-file, _C_h_a_r is unified to the atom end_of_file.
+
+
+ggeett__cchhaarr((_+_S_t_r_e_a_m_, _-_C_h_a_r))
+    Unify   _C_h_a_r   with   the   next  character   from   _S_t_r_e_a_m   as   a
+    one-character-atom.  See also get_char/2, get_byte/2 and get_code/2.
+
+
 ggeett00((_-_C_h_a_r))
-    Read  the current  input stream  and unify the  next character  with
-    _C_h_a_r.  _C_h_a_r is unified with -1 on end of file.
+    Edinburgh version of the ISO get_byte/1 predicate.
 
 
 ggeett00((_+_S_t_r_e_a_m_, _-_C_h_a_r))
-    Read the next character from _S_t_r_e_a_m.
+    Edinburgh version of the ISO get_byte/2 predicate.
 
 
 ggeett((_-_C_h_a_r))
@@ -3850,14 +4027,34 @@ ggeett((_+_S_t_r_e_a_m_, _-_C_h_a_r))
     Read the next non-blank character from _S_t_r_e_a_m.
 
 
-ppeeeekk__bbyyttee((_-_C_h_a_r))
-    Reads  the next input character like get0/1, but does not  remove it
-    from the input stream.  This predicate is ISO compliant.
+ppeeeekk__bbyyttee((_-_B_y_t_e))
+    Reads  the next input byte  like get_byte/1, but does not remove  it
+    from the input stream.
 
 
-ppeeeekk__bbyyttee((_+_S_t_r_e_a_m_, _-_C_h_a_r))
-    Reads  the next input character like get0/2, but does not  remove it
-    from the stream.  This predicate is ISO compliant.
+ppeeeekk__bbyyttee((_+_S_t_r_e_a_m_, _-_B_y_t_e))
+    Reads  the next input byte  like get_byte/2, but does not remove  it
+    from the stream.
+
+
+ppeeeekk__ccooddee((_-_C_o_d_e))
+    Reads  the next input code  like get_code/1, but does not remove  it
+    from the input stream.
+
+
+ppeeeekk__ccooddee((_+_S_t_r_e_a_m_, _-_C_o_d_e))
+    Reads  the next input code  like get_code/2, but does not remove  it
+    from the stream.
+
+
+ppeeeekk__cchhaarr((_-_C_h_a_r))
+    Reads the  next input character like get_char/1,  but does not remove
+    it from the input stream.
+
+
+ppeeeekk__cchhaarr((_+_S_t_r_e_a_m_, _-_C_h_a_r))
+    Reads the  next input character like get_char/2,  but does not remove
+    it from the stream.
 
 
 sskkiipp((_+_C_h_a_r))
@@ -3870,14 +4067,14 @@ sskkiipp((_+_S_t_r_e_a_m_, _+_C_h_a_r))
 
 
 ggeett__ssiinnggllee__cchhaarr((_-_C_h_a_r))
-    Get  a single character from input stream `user' (regardless  of the
-    current  input stream).  Unlike get0/1 this predicate does  not wait
-    for  a return.  The character is not echoed to the  user's terminal.
-    This  predicate  is meant  for keyboard  menu selection  etc..    If
-    SWI-Prolog was started  with the -tty option this predicate reads an
-    entire  line of input and  returns the first non-blank character  on
-    this line, or the  ASCII code of the newline (10) if the entire line
-    consisted of blank characters.
+    Get  a  single character  from input  stream  `user' (regardless  of
+    the  current input stream).   Unlike get0/1 this predicate does  not
+    wait  for a  return.   The  character is  not echoed  to the  user's
+    terminal.   This predicate is meant for keyboard menu selection etc.
+    If SWI-Prolog was  started with the -tty option this predicate reads
+    an  entire line of input  and returns the first non-blank  character
+    on  this line, or the ASCII code  of the newline (10) if  the entire
+    line consisted of blank characters.
 
 
 aatt__eenndd__ooff__ssttrreeaamm
@@ -3899,7 +4096,7 @@ ccooppyy__ssttrreeaamm__ddaattaa((_+_S_t_r_e_a_m_I_n_
     Copy data all (remaining) data from stream _S_t_r_e_a_m_I_n to _S_t_r_e_a_m_O_u_t.
 
 
-33..1188 TTeerrmm RReeaaddiinngg aanndd WWrriittiinngg
+33..1199 TTeerrmm RReeaaddiinngg aanndd WWrriittiinngg
 
 This section  describes the basic term  reading and writing  predicates.
 The  predicates  term_to_atom/2 and  atom_to_term/3  provide  means  for
@@ -3924,11 +4121,21 @@ wwrriittee__tteerrmm((_+_T_e_r_m_, _+_O_p_t_i_o_n_s))
          If true, atoms and  functors that needs quotes will  be quoted.
          The default is false.
 
+    cchhaarraacctteerr__eessccaappeess((true _o_r false))
+         If true,  and  quoted(_t_r_u_e) is  active,  special characters  in
+         quoted atoms and  strings are emitted as ISO  escape-sequences.
+         Default is taken from the reference module (see below).
+
     iiggnnoorree__ooppss((true _o_r false))
          If true, the generic term-representation (<_f_u_n_c_t_o_r>(<_a_r_g_s> ...))
          will be  used for  all terms,  Otherwise (default),  operators,
          list-notation and  {}/1  will be  written using  their  special
          syntax.
+
+    mmoodduullee((_M_o_d_u_l_e))
+         Define the reference module  (default user).  This  defines the
+         default value for  the character_escapes option as well as  the
+         operator definitions to use.  See also op/3.
 
     nnuummbbeerrvvaarrss((true _o_r false))
          If true, terms  of the format $VAR(N), where  <_N> is a positive
@@ -3940,6 +4147,21 @@ wwrriittee__tteerrmm((_+_T_e_r_m_, _+_O_p_t_i_o_n_s))
          that is not  a variable.   If portray/1  succeeds, the term  is
          considered printed.  See  also print/1.  The default  is false.
          This option is an extension to the ISO write_term options.
+
+    mmaaxx__ddeepptthh((_I_n_t_e_g_e_r))
+         If the term is nested deaper than _I_n_t_e_g_e_r,  print the remainder
+         as eclipse (...).  A 0 (zero) value (default)  imposes no depth
+         limit.  This option  also delimits the number of printed  for a
+         list.  Example:
+
+         ?- write_term(a(s(s(s(s(0)))), [a,b,c,d,e,f]), [max_depth(3)]).
+         a(s(s(...)), [a, b|...])
+
+         Yes
+
+         Used   by  the   toplevel   and   debugger  to   limit   screen
+         output.   See also the  prolog-flags toplevel_print_options  and
+         debugger_print_options.
 
 
 wwrriittee__tteerrmm((_+_S_t_r_e_a_m_, _+_T_e_r_m_, _+_O_p_t_i_o_n_s))
@@ -4128,7 +4350,7 @@ pprroommpptt11((_+_P_r_o_m_p_t))
     will be read using the prompt defined by prompt/2.
 
 
-33..1199 AAnnaallyyssiinngg aanndd CCoonnssttrruuccttiinngg TTeerrmmss
+33..2200 AAnnaallyyssiinngg aanndd CCoonnssttrruuccttiinngg TTeerrmmss
 
 
 ffuunnccttoorr((_?_T_e_r_m_, _?_F_u_n_c_t_o_r_, _?_A_r_i_t_y))
@@ -4215,7 +4437,7 @@ ccooppyy__tteerrmm((_+_I_n_, _-_O_u_t))
             erase(Ref).
 
 
-33..2200 AAnnaallyyssiinngg aanndd CCoonnssttrruuccttiinngg AAttoommss
+33..2211 AAnnaallyyssiinngg aanndd CCoonnssttrruuccttiinngg AAttoommss
 
 These predicates  convert between  Prolog constants and  lists of  ASCII
 values.   The predicates atom_codes/2, number_codes/2 and name/2  behave
@@ -4348,7 +4570,24 @@ aattoomm__pprreeffiixx((_+_A_t_o_m_, _+_P_r_e_f_i_x))
     the construction of an atom for the `remainder'.
 
 
-33..2211 CCllaassssiiffyyiinngg cchhaarraacctteerrss
+ssuubb__aattoomm((_+_A_t_o_m_, _?_B_e_f_o_r_e_, _?_L_e_n_, _?_A_f_t_e_r_, _?_S_u_b))
+    ISO  predicate  for breaking  atoms.    It maintains  the  following
+    relation:  _S_u_b is  a sub-atom of _A_t_o_m that starts at _B_e_f_o_r_e, has _L_e_n
+    characters and _A_t_o_m contains _A_f_t_e_r characters after the match.
+
+    ?- sub_atom(abc, 1, 1, A, S).
+
+    A = 1, S = b
+
+    The  implementation  minimalises  non-determinism  and  creation  of
+    atoms.    This  is a  very flexible  predicate that  can do  search,
+    prefix-  and suffix-matching, etc.   Please  note however that  SWI-
+    Prolog does not  provide atom garbage-collection.  Non-deterministic
+    usage  with  unbound  _S_u_b  on  long  atoms  polutes  the  atom-space
+    considerably!
+
+
+33..2222 CCllaassssiiffyyiinngg cchhaarraacctteerrss
 
 SWI-Prolog   offers  two   comprehensive  predicates   for   classifying
 characters and character-codes.  These predicates are  defined as built-
@@ -4459,7 +4698,7 @@ ccooddee__ttyyppee((_?_C_o_d_e_, _?_T_y_p_e))
     prolog-flag double_quotes, atom_chars/2 and atom_codes/2.
 
 
-33..2222 RReepprreesseennttiinngg TTeexxtt iinn SSttrriinnggss
+33..2233 RReepprreesseennttiinngg TTeexxtt iinn SSttrriinnggss
 
 SWI-Prolog  supports the  data type  _s_t_r_i_n_g.   Strings  are  a time  and
 space efficient  mechanism to handle  text in Prolog.   Atoms are  under
@@ -4517,7 +4756,7 @@ ssuubbssttrriinngg((_+_S_t_r_i_n_g_, _+_S_t_a_r_t_, _+
     base) and has _L_e_n_g_t_h characters.  Unify this substring with _S_u_b.
 
 
-33..2233 OOppeerraattoorrss
+33..2244 OOppeerraattoorrss
 
 Operators  are  defined  to  improve  the  readibility  of  source-code.
 For  example, without  operators, to  write  2*3+4*5 one  would have  to
@@ -4593,7 +4832,7 @@ ccuurrrreenntt__oopp((_?_P_r_e_c_e_d_e_n_c_e_, _?_T_y_
     with precedence _P_r_e_c_e_d_e_n_c_e.  See also op/3.
 
 
-33..2244 AArriitthhmmeettiicc
+33..2255 AArriitthhmmeettiicc
 
 Arithmetic can be  divided into some special purpose integer  predicates
 and  a series  of  general predicates  for  floating point  and  integer
@@ -4609,7 +4848,7 @@ optional.
 
 The  general  arithmetic   predicates  all  handle  _e_x_p_r_e_s_s_i_o_n_s.      An
 expression is either a simple number or a _f_u_n_c_t_i_o_n.   The arguments of a
-function are expressions.  The functions are described in section 3.25.
+function are expressions.  The functions are described in section 3.26.
 
 
 bbeettwweeeenn((_+_L_o_w_, _+_H_i_g_h_, _?_V_a_l_u_e))
@@ -4680,7 +4919,7 @@ _-_N_u_m_b_e_r iiss _+_E_x_p_r
          ?- 1.0 =:= sin(pi/2).        Succeeds as expected.
 
 
-33..2255 AArriitthhmmeettiicc FFuunnccttiioonnss
+33..2266 AArriitthhmmeettiicc FFuunnccttiioonnss
 
 Arithmetic functions  are terms  which are evaluated  by the  arithmetic
 predicates described  above.   SWI-Prolog tries  to hide the  difference
@@ -4911,7 +5150,7 @@ ccppuuttiimmee
     time/1.
 
 
-33..2266 AAddddiinngg AArriitthhmmeettiicc FFuunnccttiioonnss
+33..2277 AAddddiinngg AArriitthhmmeettiicc FFuunnccttiioonnss
 
 Prolog predicates  can be given  the role of arithmetic  function.   The
 last  argument is  used  to  return the  result,  the  arguments  before
@@ -4953,7 +5192,7 @@ ccuurrrreenntt__aarriitthhmmeettiicc__ffuunnccttiioon
     the context module with _H_e_a_d.
 
 
-33..2277 LLiisstt MMaanniippuullaattiioonn
+33..2288 LLiisstt MMaanniippuullaattiioonn
 
 
 iiss__lliisstt((_+_T_e_r_m))
@@ -5035,12 +5274,12 @@ lleennggtthh((_?_L_i_s_t_, _?_I_n_t))
 
 mmeerrggee((_+_L_i_s_t_1_, _+_L_i_s_t_2_, _-_L_i_s_t_3))
     _L_i_s_t_1  and _L_i_s_t_2 are  lists, sorted to  the standard order of  terms
-    (see  section 3.5).    _L_i_s_t_3 will be  unified with  an ordered  list
+    (see  section 3.6).    _L_i_s_t_3 will be  unified with  an ordered  list
     holding  both the elements of _L_i_s_t_1  and _L_i_s_t_2.  Duplicates are  nnoott
     removed.
 
 
-33..2288 SSeett MMaanniippuullaattiioonn
+33..2299 SSeett MMaanniippuullaattiioonn
 
 
 iiss__sseett((_+_S_e_t))
@@ -5084,12 +5323,12 @@ mmeerrggee__sseett((_+_S_e_t_1_, _+_S_e_t_2_, _-_S_e_t
     duplicates holding the union of the elements of _S_e_t_1 and _S_e_t_2.
 
 
-33..2299 SSoorrttiinngg LLiissttss
+33..3300 SSoorrttiinngg LLiissttss
 
 
 ssoorrtt((_+_L_i_s_t_, _-_S_o_r_t_e_d))
     Succeeds  if _S_o_r_t_e_d can be unified with a list holding  the elements
-    of  _L_i_s_t, sorted to the standard  order of terms (see section  3.5).
+    of  _L_i_s_t, sorted to the standard  order of terms (see section  3.6).
     Duplicates  are removed.  Implemented by translating the  input list
     into  a temporary  array,  calling the  C-library function  qsort(3)
     using  PL_compare() for  comparing  the  elements, after  which  the
@@ -5118,7 +5357,7 @@ pprreeddssoorrtt((_+_P_r_e_d_, _+_L_i_s_t_, _-_S_o_r_t
     the result is the same as sort/2.  See also keysort/2.
 
 
-33..3300 FFiinnddiinngg aallll SSoolluuttiioonnss ttoo aa GGooaall
+33..3311 FFiinnddiinngg aallll SSoolluuttiioonnss ttoo aa GGooaall
 
 
 ffiinnddaallll((_+_V_a_r_, _+_G_o_a_l_, _-_B_a_g))
@@ -5171,7 +5410,7 @@ sseettooff((_+_V_a_r_, _+_G_o_a_l_, _-_S_e_t))
     sorted list of alternatives without duplicates.
 
 
-33..3311 IInnvvookkiinngg PPrreeddiiccaatteess oonn aallll MMeemmbbeerrss ooff aa LLiisstt
+33..3322 IInnvvookkiinngg PPrreeddiiccaatteess oonn aallll MMeemmbbeerrss ooff aa LLiisstt
 
 All the predicates in this section call a predicate on  all members of a
 list or until the  predicate called fails.  The predicate is  called via
@@ -5202,7 +5441,7 @@ ssuubblliisstt((_+_P_r_e_d_, _+_L_i_s_t_1_, _?_L_i_s_t
     applies.
 
 
-33..3322 FFoorraallll
+33..3333 FFoorraallll
 
 
 ffoorraallll((_+_C_o_n_d_, _+_A_c_t_i_o_n))
@@ -5214,7 +5453,7 @@ ffoorraallll((_+_C_o_n_d_, _+_A_c_t_i_o_n))
                      Result =:= Formula).
 
 
-33..3333 FFoorrmmaatttteedd WWrriittee
+33..3344 FFoorrmmaatttteedd WWrriittee
 
 The  current  version   of  SWI-Prolog  provides  two  formatted   write
 predicates.    The  first  is writef/[1,2],  which  is  compatible  with
@@ -5225,7 +5464,7 @@ format/[1,2] as this predicate is defined in  C. Otherwise compatibility
 reasons might tell you which predicate to use.
 
 
-33..3333..11 WWrriitteeff
+33..3344..11 WWrriitteeff
 
 
 wwrriittee__llnn((_+_T_e_r_m))
@@ -5311,7 +5550,7 @@ sswwrriitteeff((_-_S_t_r_i_n_g_, _+_F_o_r_m_a_t))
     Equivalent to swritef(String, Format, []).
 
 
-33..3333..22 FFoorrmmaatt
+33..3344..22 FFoorrmmaatt
 
 
 ffoorrmmaatt((_+_F_o_r_m_a_t))
@@ -5390,7 +5629,7 @@ ffoorrmmaatt((_+_F_o_r_m_a_t_, _+_A_r_g_u_m_e_n_t_s))
       R  Same as rr, but uses upper case letters for digits above 9.
 
       s  Output a string of  ASCII characters or a string  (see string/1
-         and section 3.22) from the next argument.
+         and section 3.23) from the next argument.
 
       t  All remaining space between 2 tabs tops  is distributed equally
          over ~t  statements  between the  tabs  tops.   This  space  is
@@ -5409,6 +5648,9 @@ ffoorrmmaatt((_+_F_o_r_m_a_t_, _+_A_r_g_u_m_e_n_t_s))
          same as ~|.
 
       w  Give the next argument to write/1.
+
+      W  Give the  next two argument  to write_term/2.   This option  is
+         SWI-Prolog specific.
 
     Example:
 
@@ -5443,7 +5685,7 @@ ssffoorrmmaatt((_-_S_t_r_i_n_g_, _+_F_o_r_m_a_t))
     Equivalent to `sformat(String, Format, []).'
 
 
-33..3333..33 PPrrooggrraammmmiinngg FFoorrmmaatt
+33..3344..33 PPrrooggrraammmmiinngg FFoorrmmaatt
 
 
 ffoorrmmaatt__pprreeddiiccaattee((_+_C_h_a_r_, _+_H_e_a_d))
@@ -5474,7 +5716,7 @@ ccuurrrreenntt__ffoorrmmaatt__pprreeddiiccaattee((_?_
     the definition module of the predicate.
 
 
-33..3344 TTeerrmmiinnaall CCoonnttrrooll
+33..3355 TTeerrmmiinnaall CCoonnttrrooll
 
 The  following  predicates  form  a  simple  access   mechanism  to  the
 Unix  termcap library  to provide  terminal independent  I/O for  screen
@@ -5511,7 +5753,7 @@ sseett__ttttyy((_-_O_l_d_S_t_r_e_a_m_, _+_N_e_w_S_t_r_
     specific stream.  Default is user_output.
 
 
-33..3355 OOppeerraattiinngg SSyysstteemm IInntteerraaccttiioonn
+33..3366 OOppeerraattiinngg SSyysstteemm IInntteerraaccttiioonn
 
 
 sshheellll((_+_C_o_m_m_a_n_d_, _-_S_t_a_t_u_s))
@@ -5621,11 +5863,11 @@ ccoonnvveerrtt__ttiimmee((_+_T_i_m_e_, _-_Y_e_a_r_, _-
 ccoonnvveerrtt__ttiimmee((_+_T_i_m_e_, _-_S_t_r_i_n_g))
     Convert  a time-stamp as  obtained though get_time/1 into a  textual
     representation  using the C-library function ctime().  The  value is
-    returned  as a  SWI-Prolog string object  (see section  3.22).   See
+    returned  as a  SWI-Prolog string object  (see section  3.23).   See
     also convert_time/8.
 
 
-33..3366 FFiillee SSyysstteemm IInntteerraaccttiioonn
+33..3377 FFiillee SSyysstteemm IInntteerraaccttiioonn
 
 
 aacccceessss__ffiillee((_+_F_i_l_e_, _+_M_o_d_e))
@@ -5789,7 +6031,7 @@ cchhddiirr((_+_P_a_t_h))
     Change working directory to _P_a_t_h.
 
 
-33..3377 MMuullttii--tthhrreeaaddiinngg ((aallpphhaa ccooddee))
+33..3388 MMuullttii--tthhrreeaaddiinngg ((aallpphhaa ccooddee))
 
 TThhee ffeeaattuurreess ddeessccrriibbeedd iinn tthhiiss sseeccttiioonn aarree oonnllyy eennaabblleedd  oonn UUnniixx ssyysstteemmss
 pprroovviiddiinngg  PPOOSSIIXX tthhrreeaaddss  aanndd  iiff tthhee  ssyysstteemm  iiss ccoonnffiigguurreedd  uussiinngg  tthhee
@@ -5930,7 +6172,7 @@ tthhrreeaadd__aatt__eexxiitt((_:_G_o_a_l))
     already available through current_thread/2.
 
 
-33..3377..11 TThhrreeaadd ccoommmmuunniiccaattiioonn
+33..3388..11 TThhrreeaadd ccoommmmuunniiccaattiioonn
 
 Prolog  threads can  exchange data  using dynamic  predicates,  database
 records, and  other globally shared  data.  In  addition, they can  send
@@ -5993,7 +6235,7 @@ tthhrreeaadd__ssiiggnnaall((_+_T_h_r_e_a_d_I_d_, _:_G_
     the receiving thread.
 
 
-33..3377..22 TThhrreeaadd ssyynncchhrroonniissaattiioonn
+33..3388..22 TThhrreeaadd ssyynncchhrroonniissaattiioonn
 
 All  internal Prolog  operations  are thread-safe.    This  implies  two
 Prolog  threads  can  operate on  the  same  dynamic  predicate  without
@@ -6088,7 +6330,7 @@ wwiitthh__mmuutteexx((_+_M_u_t_e_x_I_d_, _:_G_o_a_l))
     as once/1.
 
 
-33..3377..33 TThhrreeaadd--ssuuppppoorrtt lliibbrraarryy((tthhrreeaadduuttiill))
+33..3388..33 TThhrreeaadd--ssuuppppoorrtt lliibbrraarryy((tthhrreeaadduuttiill))
 
 This library  defines a  couple of useful  predicates for  demonstrating
 and debugging  multi-threaded applications.   This library is  certainly
@@ -6122,14 +6364,14 @@ aattttaacchh__ccoonnssoollee
     ?- thread_signal(10, (attach_console, trace)).
 
 
-33..3377..44 SSttaattuuss ooff tthhee tthhrreeaadd iimmpplleemmeennttaattiioonn
+33..3388..44 SSttaattuuss ooff tthhee tthhrreeaadd iimmpplleemmeennttaattiioonn
 
 It is assumed that  the basic Prolog execution is thread-safe.   Various
 problems  are  to  be  expected  though,  both  dead-locks  as  well  as
 not-thread-safe code in builtin-predicates.
 
 
-33..3388 UUsseerr TToopplleevveell MMaanniippuullaattiioonn
+33..3399 UUsseerr TToopplleevveell MMaanniippuullaattiioonn
 
 
 bbrreeaakk
@@ -6203,7 +6445,7 @@ eexxppaanndd__aannsswweerr((_+_B_i_n_d_i_n_g_s_, _-_E_
     be unified with the bindings the toplevel should print.
 
 
-33..3399 CCrreeaattiinngg aa PPrroottooccooll ooff tthhee UUsseerr IInntteerraaccttiioonn
+33..4400 CCrreeaattiinngg aa PPrroottooccooll ooff tthhee UUsseerr IInntteerraaccttiioonn
 
 SWI-Prolog offers the  possibility to log the interaction with  the user
 on  a file.    All  Prolog interaction,  including warnings  and  tracer
@@ -6230,7 +6472,7 @@ pprroottooccoolllliinngg((_-_F_i_l_e))
     and unifies _F_i_l_e with the current protocol output file.
 
 
-33..4400 DDeebbuuggggiinngg aanndd TTrraacciinngg PPrrooggrraammss
+33..4411 DDeebbuuggggiinngg aanndd TTrraacciinngg PPrrooggrraammss
 
 
 ttrraaccee
@@ -6295,7 +6537,7 @@ ddeebbuuggggiinngg
 
 ssppyy((_+_P_r_e_d))
     Put   a  spy   point  on  all   predicates  meeting  the   predicate
-    specification _P_r_e_d.  See section 3.3.
+    specification _P_r_e_d.  See section 3.4.
 
 
 nnoossppyy((_+_P_r_e_d))
@@ -6377,7 +6619,7 @@ ssttyyllee__cchheecckk((_+_S_p_e_c))
     |_______________|________|(current_prolog_flag/2).__________________|
 
 
-33..4411 OObbttaaiinniinngg RRuunnttiimmee SSttaattiissttiiccss
+33..4422 OObbttaaiinniinngg RRuunnttiimmee SSttaattiissttiiccss
 
 
 ssttaattiissttiiccss((_+_K_e_y_, _-_V_a_l_u_e))
@@ -6435,7 +6677,7 @@ ttiimmee((_+_G_o_a_l))
     theoretical 4-port model.
 
 
-33..4422 FFiinnddiinngg PPeerrffoorrmmaannccee BBoottttlleenneecckkss
+33..4433 FFiinnddiinngg PPeerrffoorrmmaannccee BBoottttlleenneecckkss
 
 SWI-Prolog  offers  a  statistical  program  profiler  similar  to  Unix
 prof(1) for C  and some other languages.   A profiler is used as  an aid
@@ -6501,7 +6743,7 @@ pprrooffiillee__ccoouunntt((_+_H_e_a_d_, _-_C_a_l_l_s_
     stack (plain).  _P_r_o_m_i_l_a_g_e is an integer between 0 and 1000.
 
 
-33..4433 MMeemmoorryy MMaannaaggeemmeenntt
+33..4444 MMeemmoorryy MMaannaaggeemmeenntt
 
 Note:    limit_stack/2 and  trim_stacks/0 have  no  effect  on  machines
 that do  not offer  dynamic stack expansion.    On these machines  these
@@ -6561,7 +6803,7 @@ ssttaacckk__ppaarraammeetteerr((_+_S_t_a_c_k_, _+_K_e_
     definition is subject to change.
 
 
-33..4444 WWiinnddoowwss DDDDEE iinntteerrffaaccee
+33..4455 WWiinnddoowwss DDDDEE iinntteerrffaaccee
 
 The  predicates in  this  section  deal with  MS-Windows  `Dynamic  Data
 Exchange'  or DDE  protocol.    A Windows  DDE  conversation is  a  form
@@ -6571,7 +6813,7 @@ between the communicating processes.
 See also section 5.4 for loading Windows DLL's into SWI-Prolog.
 
 
-33..4444..11 DDDDEE cclliieenntt iinntteerrffaaccee
+33..4455..11 DDDDEE cclliieenntt iinntteerrffaaccee
 
 The DDE client interface  allows Prolog to talk to DDE  server programs.
 We  will demonstrate  the use  of the  DDE interface  using the  Windows
@@ -6619,7 +6861,7 @@ ddddee__rreeqquueesstt((_+_H_a_n_d_l_e_, _+_I_t_e_m_, 
     successful.    If unsuccessful, _V_a_l_u_e  will be  unified with a  term
     of  form error(<_R_e_a_s_o_n>),  identifying the problem.   This call  uses
     SWI-Prolog  string objects  to return  the value  rather then  atoms
-    to  reduce the  load on  the atom-space.    See section  3.22 for  a
+    to  reduce the  load on  the atom-space.    See section  3.23 for  a
     discussion on this data type.
 
 
@@ -6634,7 +6876,7 @@ ddddee__ppookkee((_+_H_a_n_d_l_e_, _+_I_t_e_m_, _+_C_o
     is passed as data of type CF_TEXT.
 
 
-33..4444..22 DDDDEE sseerrvveerr mmooddee
+33..4455..22 DDDDEE sseerrvveerr mmooddee
 
 The (autoload)  library(dde) defines  primitives to  realise simple  DDE
 server applications in  SWI-Prolog.  These  features are provided as  of
@@ -6693,7 +6935,7 @@ ddddee__ccuurrrreenntt__ccoonnnneeccttiioonn((_-_S_e_
     Find currently open conversations.
 
 
-33..4455 MMiisscceellllaanneeoouuss
+33..4466 MMiisscceellllaanneeoouuss
 
 
 ddwwiimm__mmaattcchh((_+_A_t_o_m_1_, _+_A_t_o_m_2))
@@ -7003,7 +7245,7 @@ invoke(I, S, Args) :-
         Class:Goal.
 
 The construct  <_M_o_d_u_l_e>:<_G_o_a_l> explicitly  calls _G_o_a_l  in module  _M_o_d_u_l_e.
-It is discussed in more detail in section 3.7.
+It is discussed in more detail in section 3.8.
 
 
 44..66 MMeettaa--PPrreeddiiccaatteess iinn MMoodduulleess
@@ -8930,7 +9172,7 @@ void PPLL__eerraassee(_r_e_c_o_r_d___t _r_e_c_o_r_d)
 55..66..1111 CCaattcchhiinngg SSiiggnnaallss ((SSooffttwwaarree IInntteerrrruuppttss))
 
 SWI-Prolog offers both  a C and Prolog  interface to deal with  software
-interrupts (signals).   The  Prolog mapping is  defined in section  3.9.
+interrupts (signals).   The Prolog mapping  is defined in section  3.10.
 This subsection deals with handling signals from C.
 
 If a signal is not  used by Prolog and the handler does not  call Prolog
@@ -8966,7 +9208,7 @@ void (*)() PPLL__ssiiggnnaall(_s_i_g_, _f_u_n_c)
 PL_warning() prints a  standard Prolog warning  message to the  standard
 error (user_error) stream.   Please note  that new code should  consider
 using  PL_raise_exception() to  raise a  Prolog  exception.    See  also
-section 3.8.
+section 3.9.
 
 
 int PPLL__wwaarrnniinngg(_f_o_r_m_a_t_, _a_1_, _._._.)
@@ -9145,6 +9387,14 @@ int PPLL__aabboorrtt__uunnhhooookk(_P_L___a_b_o_r_t___h
     such hook is found, TRUE otherwise.
 
 
+void PPLL__oonn__hhaalltt(_v_o_i_d _(_*_f_)_(_i_n_t_, _v_o_i_d _*_)_, _v_o_i_d _*_c_l_o_s_u_r_e)
+    Register  the function _f to be called if SWI-Prolog is halted.   The
+    function  is  called with  two  arguments:   the  exit code  of  the
+    process  (0 if this cannot  be determined on your operating  system)
+    and  the _c_l_o_s_u_r_e argument passed to the PL_on_halt()call.   See also
+    at_halt/1.
+
+
 55..66..1177 SSttoorriinngg ffoorreeiiggnn ddaattaa
 
 This section  provides some hints for  handling foreign data in  Prolog.
@@ -9319,7 +9569,7 @@ netmask/4, holding the 4 submasks as integer arguments.
 
 As the implementation is trivial, we will omit this here.
 
-TThhee DDDDEE  iinntteerrffaaccee (see section  3.44) represents  another common  usage
+TThhee DDDDEE  iinntteerrffaaccee (see section  3.45) represents  another common  usage
 of  the foreign  interface:   providing communication  to new  operating
 system features.  The DDE interface requires knowledge  about active DDE
 server and  client channels.   These  channels contains various  foreign
@@ -10351,7 +10601,7 @@ pprroolloogg__ttrraaccee__iinntteerrcceeppttiioonn((_
     or fail (force the  current goal to fail).  Leaving it a variable is
     identical to continue.
 
-    Together  with  the predicates  described in  section  3.40 and  the
+    Together  with  the predicates  described in  section  3.41 and  the
     other  predicates of this chapter this predicate enables  the Prolog
     user  to define a complete new debugger in Prolog.  Besides  this it
     enables  the Prolog programmer monitor  the execution of a  program.
@@ -10642,153 +10892,171 @@ suggest predicates from a keyword.
  get/2                         Read first non-blank character from a stream
  get0/1                        Read next character
  get0/2                        Read next character from a stream
+ get_byte/1                    Read next byte (ISO)
+ get_byte/2                    Read next byte from a stream (ISO)
+
+ get_char/1                    Read next character as an atom (ISO)
+ get_char/2                    Read next character from a stream (ISO)
+ get_code/1                    Read next character (ISO)
+ get_code/2                    Read next character from a stream (ISO)
  get_single_char/1             Read next character from the terminal
  get_time/1                    Get current time
-
  getenv/2                      Get shell environment variable
+
  goal_expansion/2              Hook for macro-expanding goals
  ground/1                      Verify term holds no unbound variables
  halt/0                        Exit from Prolog
  halt/1                        Exit from Prolog with status
  hash_term/2                   Hash-value of ground term
  help/0                        Give help on help
-
  help/1                        Give help on predicates and show parts of manual
  ignore/1                      Call the argument, but always succeed
+
  import/1                      Import a predicate from a module
  index/1                       Change clause indexing
  initialization/1              Initialization directive
  int_to_atom/2                 Convert from integer to atom
  int_to_atom/3                 Convert from integer to atom (non-decimal)
  integer/1                     Type check for integer
-
  interactor/0                  Start new thread with console and toplevel
+
  intersection/3                Set intersection
  is/2                          Evaluate arithmetic expression
  is_absolute_file_name/1       True if arg defines an absolute path
  is_list/1                     Type check for a list
  is_set/1                      Type check for a set
  keysort/2                     Sort, using a key
-
  last/2                        Last element of a list
  leash/1                       Change ports visited by the tracer
+
  length/2                      Length of a list
  library_directory/1           (hook) Directories holding Prolog libraries
  limit_stack/2                 Limit stack expansion
  line_count/2                  Line number on stream
  line_position/2               Character position in line on stream
  list_to_set/2                 Remove duplicates
-
  listing/0                     List program in current module
+
  listing/1                     List predicate
  load_files/2                  Load source files with options
  load_foreign_library/1        library(shlib) Load shared library (.so file)
  load_foreign_library/2        library(shlib) Load shared library (.so file)
  make/0                        Reconsult all changed source files
  make_fat_filemap/1            Win32:  Create file containing non-FAT filenames
-
  make_library_index/1          Create autoload file INDEX.pl
  maplist/3                     Transform all elements of a list
+
  member/2                      Element is member of a list
  memberchk/2                   Deterministic member/2
  merge/3                       Merge two sorted lists
  merge_set/3                   Merge two sorted sets
  message_hook/3                Intercept print_message/2
  meta_predicate/1              Quintus compatibility
-
  module/1                      Query/set current type-in module
+
  module/2                      Declare a module
  module_transparent/1          Indicate module based meta predicate
  msort/2                       Sort, do not remove duplicates
  multifile/1                   Indicate distributed definition of predicate
  mutex_create/1                Create a thread-synchronisation device
  mutex_destroy/1               Destroy a mutex
-
  mutex_lock/1                  Become owner of a mutex
  mutex_trylock/1               Become owner of a mutex (non-blocking)
+
  mutex_unlock/1                Release ownership of mutex
  mutex_unlock_all/0            Release ownership of all mutexes
  name/2                        Convert between atom and list of ASCII characters
  nl/0                          Generate a newline
  nl/1                          Generate a newline on a stream
  nodebug/0                     Disable debugging
-
  nonvar/1                      Type check for bound term
+
  noprotocol/0                  Disable logging of user interaction
  nospy/1                       Remove spy point
  nospyall/0                    Remove all spy points
  not/1                         Negation by failure (argument not provable).  Same as \+/1
  notrace/0                     Stop tracing
  notrace/1                     Do not debug argument goal
-
  nth0/3                        N-th element of a list (0-based)
  nth1/3                        N-th element of a list (1-based)
+
  nth_clause/3                  N-th clause of a predicate
  number/1                      Type check for integer or float
  number_chars/2                Convert between number and one-char atoms
  number_codes/2                Convert between number and ASCII values
  numbervars/4                  Enumerate unbound variables of a term using a given base
  on_signal/3                   Handle a software signal
-
  once/1                        Call a goal deterministically
+
  op/3                          Declare an operator
  open/3                        Open a file (creating a stream)
  open/4                        Open a file (creating a stream)
  open_dde_conversation/3       Win32:  Open DDE channel
  open_null_stream/1            Open a stream to discard output
  open_resource/3               Open a program resource as a stream
-
  open_shared_object/2          UNIX: Open shared library (.so file)
  open_shared_object/3          UNIX: Open shared library (.so file)
- peek_byte/1                   Read character without removing
- peek_byte/2                   Read character without removing
+
+ peek_byte/1                   Read byte without removing
+ peek_byte/2                   Read byte without removing
+ peek_char/1                   Read character without removing
+ peek_char/2                   Read character without removing
+ peek_code/1                   Read character-code without removing
+ peek_code/2                   Read character-code without removing
  phrase/2                      Activate grammar-rule set
+
  phrase/3                      Activate grammar-rule set (returning rest)
  please/3                      Query/change environment parameters
  plus/3                        Logical integer addition
-
  portray/1                     (hook) Modify behaviour of print/1
  portray_clause/1              Pretty print a clause
  predicate_property/2          Query predicate attributes
  predsort/3                    Sort, using a predicate to determine the order
  preprocessor/2                Install a preprocessor before the compiler
+
  print/1                       Print a term
  print/2                       Print a term on a stream
-
  print_message/2               Print message from (exception) term
  print_message_lines/3         Print message to stream
  profile/3                     Obtain execution statistics
  profile_count/3               Obtain profile results on a predicate
  profiler/2                    Obtain/change status of the profiler
+
  prolog/0                      Run interactive toplevel
  prolog_current_frame/1        Reference to goal's environment stack
  prolog_edit:locate/2          Locate targets for edit/1
-
  prolog_edit:locate/3          Locate targets for edit/1
  prolog_edit:edit_source/1     Call editor for edit/1
  prolog_edit:edit_command/2    Specify editor activation
  prolog_edit:load/0            Load edit/1 extensions
  prolog_file_type/2            Define meaning of file extension
+
  prolog_frame_attribute/3      Obtain information on a goal environment
  prolog_list_goal/1            Hook.  Intercept tracer 'L' command
-
  prolog_load_context/2         Context information for directives
  prolog_skip_level/2           Indicate deepest recursion to trace
  prolog_to_os_filename/2       Convert between Prolog and OS filenames
  prolog_trace_interception/4   library(user) Intercept the Prolog tracer
  prompt1/1                     Change prompt for 1 line
+
  prompt/2                      Change the prompt used by read/1
  proper_list/1                 Type check for list
  protocol/1                    Make a log of the user interaction
-
  protocola/1                   Append log of the user interaction to file
  protocolling/1                On what file is user interaction logged
  put/1                         Write a character
  put/2                         Write a character on a stream
+ put_byte/1                    Write a byte
+
+ put_byte/2                    Write a byte on a stream
+ put_char/1                    Write a character
+ put_char/2                    Write a character on a stream
+ put_code/1                    Write a character-code
+ put_code/2                    Write a character-code on a stream
  qcompile/1                    Compile source to Quick Load File
  qsave_program/1               Create runtime application
- qsave_program/2               Create runtime application
 
+ qsave_program/2               Create runtime application
  read/1                        Read Prolog term
  read/2                        Read Prolog term from stream
  read_clause/1                 Read clause
@@ -10796,16 +11064,16 @@ suggest predicates from a keyword.
  read_history/6                Read using history substitution
  read_link/3                   Read a symbolic link
  read_term/2                   Read term with options
- read_term/3                   Read term with options from stream
 
+ read_term/3                   Read term with options from stream
  recorda/2                     Record term in the database (first)
  recorda/3                     Record term in the database (first)
  recorded/2                    Obtain term from the database
  recorded/3                    Obtain term from the database
  recordz/2                     Record term in the database (last)
  recordz/3                     Record term in the database (last)
- redefine_system_predicate/1   Abolish system definition
 
+ redefine_system_predicate/1   Abolish system definition
  rename_file/2                 Change name of file
  repeat/0                      Succeed, leaving infinite backtrack points
  require/1                     This file requires these predicates
@@ -10813,16 +11081,16 @@ suggest predicates from a keyword.
  resource/3                    Declare a program resource
  retract/1                     Remove clause from the database
  retractall/1                  Remove unifying clauses from the database
- reverse/2                     Inverse the order of the elements in a list
 
+ reverse/2                     Inverse the order of the elements in a list
  same_file/2                   Succeeds if arguments refer to same file
  see/1                         Change the current input stream
  seeing/1                      Query the current input stream
  seek/4                        Modify the current position in a stream
  seen/0                        Close the current input stream
  select/3                      Select element of a list
- set_prolog_flag/2             Define a system feature
 
+ set_prolog_flag/2             Define a system feature
  set_input/1                   Set current input stream from a stream
  set_output/1                  Set current output stream from a stream
  set_stream/2                  Set stream attribute
@@ -10830,16 +11098,16 @@ suggest predicates from a keyword.
  setarg/3                      Destructive assignment on term
  setenv/2                      Set shell environment variable
  setof/3                       Find all unique solutions to a goal
- sformat/2                     Format on a string
 
+ sformat/2                     Format on a string
  sformat/3                     Format on a string
  shell/0                       Execute interactive subshell
  shell/1                       Execute OS command
  shell/2                       Execute OS command
  show_profile/1                Show results of the profiler
  size_file/2                   Get size of a file in characters
- skip/1                        Skip to character in current input
 
+ skip/1                        Skip to character in current input
  skip/2                        Skip to character on stream
  rl_add_history/1              Add line to readline(3) history
  rl_read_init_file/1           Read readline(3) init file
@@ -10847,88 +11115,92 @@ suggest predicates from a keyword.
  sort/2                        Sort elements in a list
  source_file/1                 Examine currently loaded source files
  source_file/2                 Obtain source file of predicate
- source_location/2             Location of last read term
 
+ source_location/2             Location of last read term
  spy/1                         Force tracer on specified predicate
  stack_parameter/4             Some systems:  Query/Set runtime stack parameter
  statistics/0                  Show execution statistics
  statistics/2                  Obtain collected statistics
  stream_position/3             Get/seek to position in file
+ stream_property/2             Get stream properties
+
  string/1                      Type check for string
  string_concat/3               atom_concat/3for strings
-
  string_length/2               Determine length of a string
  string_to_atom/2              Conversion between string and atom
  string_to_list/2              Conversion between string and list of ASCII
  style_check/1                 Change level of warnings
+ sub_atom/5                    Take a substring from an atom
  sublist/3                     Determine elements that meet condition
+
  subset/2                      Generate/check subset relation
  substring/4                   Get part of a string
  subtract/3                    Delete elements that do not meet condition
-
  succ/2                        Logical integer successor relation
  swritef/2                     Formatted write on a string
  swritef/3                     Formatted write on a string
  tab/1                         Output number of spaces
+
  tab/2                         Output number of spaces on a stream
  tell/1                        Change current output stream
  telling/1                     Query current output stream
-
  term_expansion/2              (hook) Convert term before compilation
  term_to_atom/2                Convert between term and atom
  thread_at_exit/1              Register goal to be called at exit
  thread_create/3               Create a new Prolog task
  thread_exit/1                 Terminate Prolog task with value
+
  thread_get_message/1          Wait for message
  thread_join/2                 Wait for Prolog task-completion
  thread_peek_message/1         Test for message in queue
-
  thread_self/1                 Get identifier of current thread
  thread_send_message/2         Send message to another thread
  thread_signal/2               Execute goal in another thread
  threads/0                     List running threads
+
  throw/1                       Raise an exception (see catch/3)
  time/1                        Determine time needed to execute goal
  time_file/2                   Get last modification time of file
-
  tmp_file/2                    Create a temporary filename
  told/0                        Close current output
  trace/0                       Start the tracer
  trace/1                       Set trace-point on predicate
  trace/2                       Set/Clear trace-point on ports
+
  tracing/0                     Query status of the tracer
  trim_stacks/0                 Release unused memory resources
  true/0                        Succeed
-
  tty_get_capability/3          Get terminal parameter
  tty_goto/2                    Goto position on screen
  tty_put/2                     Write control string to terminal
  ttyflush/0                    Flush output on terminal
- union/3                       Union of two sets
- unix/1                        OS interaction (get command-line arguments)
- unknown/2                     Trap undefined predicates
 
+ union/3                       Union of two sets
+ unify_with_occurs_check/2     Logically sound unification
+ unix/1                        OS interaction
+ unknown/2                     Trap undefined predicates
  unload_foreign_library/1      library(shlib) Detach shared library (.so file)
  unsetenv/1                    Delete shell environment variable
  use_module/1                  Import a module
  use_module/2                  Import predicates from a module
+
  var/1                         Type check for unbound variable
  visible/1                     Ports that are visible in the tracer
  volatile/1                    Predicates that are not saved
  wait_for_input/3              Wait for input with optional timeout
-
  wildcard_match/2              Csh(1) style wildcard match
  win_exec/2                    Win32:  spawn Windows task
  with_mutex/2                  Run goal while holding mutex
+
  write/1                       Write term
  write/2                       Write term to stream
  write_ln/1                    Write term, followed by a newline
  write_canonical/1             Write a term with quotes, ignore operators
-
  write_canonical/2             Write a term with quotes, ignore operators on a stream
  write_term/2                  Write term with options
  write_term/3                  Write term with options to stream
  writef/1                      Formatted write
+
  writef/2                      Formatted write on stream
  writeq/1                      Write term, insert quotes
  writeq/2                      Write term, insert quotes on stream
@@ -11109,4 +11381,4 @@ Bibliography
                                   New York, 1983.  Major revision  March
                                   1984.
 
-                                  785
+                                  807

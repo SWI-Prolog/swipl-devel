@@ -319,6 +319,9 @@ __pl_export void	PL_cons_list(term_t l, term_t h, term_t t);
 __pl_export int		PL_unify(term_t t1, term_t t2);
 __pl_export int		PL_unify_atom(term_t t, atom_t a);
 __pl_export int		PL_unify_atom_chars(term_t t, const char *chars);
+__pl_export int		PL_unify_atom_nchars(term_t t,
+					     unsigned int len,
+					     const char *chars);
 __pl_export int		PL_unify_list_chars(term_t t, const char *chars);
 __pl_export int		PL_unify_list_codes(term_t t, const char *chars);
 __pl_export int		PL_unify_string_chars(term_t t, const char *chars);
@@ -432,10 +435,11 @@ __pl_export IOSTREAM *PL_open_resource(module_t m,
 				       const char *rc_class,
 				       const char *mode);
 
-#define PL_WRT_QUOTED		0x1	/* quote atoms */
-#define PL_WRT_IGNOREOPS	0x2	/* ignore list/operators */
-#define PL_WRT_NUMBERVARS	0x4	/* print $VAR(N) as a variable */
-#define PL_WRT_PORTRAY		0x8	/* call portray */
+#define PL_WRT_QUOTED		0x01	/* quote atoms */
+#define PL_WRT_IGNOREOPS	0x02	/* ignore list/operators */
+#define PL_WRT_NUMBERVARS	0x04	/* print $VAR(N) as a variable */
+#define PL_WRT_PORTRAY		0x08	/* call portray */
+#define PL_WRT_CHARESCAPES	0x10	/* Output ISO escape sequences */
 
 __pl_export int PL_write_term(IOSTREAM *s,
 			      term_t term,

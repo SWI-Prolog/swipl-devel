@@ -126,6 +126,8 @@ typedef struct io_stream
 #define SIO_FEOF2	SmakeFlag(17)	/* attempt to read past eof */
 #define SIO_FEOF2ERR	SmakeFlag(18)	/* Sfpasteof() */
 #define SIO_NOCLOSE     SmakeFlag(19)	/* Do not close on abort */
+#define SIO_APPEND	SmakeFlag(20)	/* opened in append-mode */
+#define SIO_UPDATE	SmakeFlag(21)	/* opened in update-mode */
 
 #define	SIO_SEEK_SET	0	/* From beginning of file.  */
 #define	SIO_SEEK_CUR	1	/* From current position.  */

@@ -21,7 +21,8 @@
 	    read_variables/2,
 	    read_variables/3,
 	    feature/2,
-	    set_feature/2
+	    set_feature/2,
+	    current_stream/3
 	  ]).
 
 '$arch'(Arch, unknown) :-
@@ -81,3 +82,24 @@ set_feature(Key, Value) :-
 
 atom_char(Char, Code) :-
 	char_code(Char, Code).
+
+%	current_stream(?Object, ?Mode, ?Stream)
+%
+%	SICStus/Quintus and backward compatible predicate.  New code should
+%	be using the ISO compatible stream_property/2.
+
+current_stream(Object, Mode, Stream) :-
+	stream_property(Stream, mode(FullMode)),
+	stream_mode(FullMode, Mode),
+	(   stream_property(Stream, file_name(Object))
+	->  true
+	;   stream_property(Stream, file_no(Object))
+	->  true
+	;   Object = []
+	).
+
+stream_mode(read,   read).
+stream_mode(write,  write).
+stream_mode(append, write).
+stream_mode(update, write).
+
