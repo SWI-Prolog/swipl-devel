@@ -44,6 +44,9 @@ save_program.  See pl-load.c and pl-dump.c
 #define O_ULONG_PREDEFINED	1
 #define O_UCHAR_PREDEFINED	1
 
+			/* C-header-files */
+#define TIME_INCLUDE		<time.h>
+
 			/* Operating system */
 #define O_DATA_AT_0X2		1 /* data space at 0x20000000 - 0x2fffffff */
 #define O_PROFILE		1
