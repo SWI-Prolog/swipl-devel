@@ -72,6 +72,7 @@ int		str_cmp(String s1, String s2);
 int		str_icase_cmp(String s1, String s2);
 int		str_eq(String s1, String s2);
 int		str_icase_eq(String s1, String s2);
+int		str_prefix_offset(String s1, unsigned int offset, String s2);
 int		str_prefix(String s1, String s2);
 int		str_icase_prefix(String s1, String s2);
 int		str_suffix(String s1, String s2);
@@ -172,8 +173,8 @@ status		bubbleScrollBarTextImage(TextImage ti, ScrollBar sb);
 Int		getScrollStartTextImage(TextImage ti, Name dir, Name unit, Int amount);
 Int		getUpDownColumnTextImage(TextImage ti, Int here);
 Int		getUpDownCursorTextImage(TextImage ti, Int here, Int updown, Int column);
-Int		getBeginningOfLineCursorTextImage(TextImage ti, Int caret);
-Int		getEndOfLineCursorTextImage(TextImage ti, Int caret);
+Int		getBeginningOfLineCursorTextImage(TextImage ti, Int here);
+Int		getEndOfLineCursorTextImage(TextImage ti, Int here);
 status		ensureVisibleTextImage(TextImage ti, Int caret);
 status		makeClassTextImage(Class class);
 

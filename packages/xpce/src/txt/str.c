@@ -252,15 +252,15 @@ str_icase_eq(String s1, String s2)
 }
 
 
-int
-str_prefix(String s1, String s2)	/* s2 is prefix of s1 */
+int					/* s2 is prefix of s1+offset */
+str_prefix_offset(String s1, unsigned int offset, String s2)
 { sameEncoding(s1, s2);
 
-  if ( s2->size <= s1->size )
+  if ( s2->size <= s1->size-offset )
   { int n = s2->size;
 
     if ( isstr8(s1) )
-    { char8 *d1 = s1->s_text8;
+    { char8 *d1 = s1->s_text8+offset;
       char8 *d2 = s2->s_text8;
 
       while(n-- > 0)
@@ -269,7 +269,7 @@ str_prefix(String s1, String s2)	/* s2 is prefix of s1 */
 
       return TRUE;
     } else
-    { char16 *d1 = s1->s_text16;
+    { char16 *d1 = s1->s_text16+offset;
       char16 *d2 = s2->s_text16;
 
       while(n-- > 0)
@@ -281,6 +281,12 @@ str_prefix(String s1, String s2)	/* s2 is prefix of s1 */
   } 
 
   return FALSE;
+}
+
+
+int
+str_prefix(String s1, String s2)	/* s2 is prefix of s1 */
+{ return str_prefix_offset(s1, 0, s2);
 }
 
 

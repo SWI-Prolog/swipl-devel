@@ -314,6 +314,76 @@ getStripCharArray(CharArray n, Name how)
 }
 
 
+static Chain
+getSplitCharArray(CharArray in, CharArray br)
+{ String s1 = &in->data;
+  int size = s1->size;
+  int i=0, last=0;
+  Chain ch = answerObject(ClassChain, 0);
+  string buf;
+
+  str_cphdr(&buf, s1);
+
+  if ( notDefault(br) )			/* given pattern */
+  { String b = &br->data;
+
+    while( i<=size-b->size )
+    { if ( str_prefix_offset(s1, i, b) )
+      { if ( isstr8(s1) )
+	  buf.s_text8 = s1->s_text8+last;
+	else
+	  buf.s_text16 = s1->s_text16+last;
+
+	buf.size = i-last;
+	appendChain(ch, ModifiedCharArray(in, &buf));
+
+	i = last = i+b->size;
+      } else
+	i++;
+    }
+  } else
+  { for(; i<size && islayout(str_fetch(s1, i)); i++) /* strip leading */
+      ;
+    last = i;
+
+    while( i<size )
+    { if ( islayout(str_fetch(s1, i)) )
+      { if ( isstr8(s1) )
+	  buf.s_text8 = s1->s_text8+last;
+	else
+	  buf.s_text16 = s1->s_text16+last;
+
+	buf.size = i-last;
+	appendChain(ch, ModifiedCharArray(in, &buf));
+
+	while(i < size && islayout(str_fetch(s1, i)))
+	  i++;
+	last = i;
+	if ( i == size )		/* trailing blanks */
+	  answer(ch);
+      } else
+	i++;
+    }
+  }
+	   
+  if ( isstr8(s1) )
+    buf.s_text8 = s1->s_text8+last;
+  else
+    buf.s_text16 = s1->s_text16+last;
+
+  buf.size = size-last;
+  appendChain(ch, ModifiedCharArray(in, &buf));
+
+  answer(ch);
+}
+
+
+
+
+
+
+
+
 CharArray
 getAppendCharArray(CharArray n1, CharArray n2)
 { String s1 = &n1->data;
@@ -430,6 +500,113 @@ getSubCharArray(CharArray n, Int start, Int end)
     s.s_text16 = &n->data.s_text16[x];
   
   answer(ModifiedCharArray(n, &s));
+}
+
+
+		 /*******************************
+		 *	 BASE-64 ENCODING	*
+		 *******************************/
+
+static int
+base64_char(unsigned int in)
+{ if ( in < 26 ) return 'A'+in;
+  if ( in < 52 ) return 'a'+in-26;
+  if ( in < 62 ) return '0'+in-52;
+  if ( in == 62 ) return '+';
+  assert(in == 63);
+  return '/';
+}
+
+
+static unsigned long
+base64_code(unsigned int in)
+{ if ( in == '+' ) return 62;
+  if ( in == '/' ) return 63;
+  if ( in <  '0' ) return ~0L;
+  if ( in <= '9' ) return in - '0' + 52;
+  if ( in <  'A' ) return ~0L;
+  if ( in <= 'Z' ) return in - 'A';
+  if ( in <  'a' ) return ~0L;
+  if ( in <= 'z' ) return in - 'a' + 26;
+  return ~0L;
+}
+
+
+static CharArray
+getBase64EncodeCharArray(CharArray in)
+{ String s = &in->data;
+  int size = s->size;
+  int triples = (size+2)/3;
+  LocalString(buf, s, triples*4);
+  int i, o=0;
+  unsigned long v;
+
+  for(i=0; i+2<size;)
+  { v = (str_fetch(s, i++)<<16) + (str_fetch(s, i++)<<8) + str_fetch(s, i++);
+    str_store(buf, o++, base64_char((v>>18)&0x3f));
+    str_store(buf, o++, base64_char((v>>12)&0x3f));
+    str_store(buf, o++, base64_char((v>> 6)&0x3f));
+    str_store(buf, o++, base64_char((v>> 0)&0x3f));
+  }
+
+  if ( size - i == 2 )
+  { v = (str_fetch(s, i++)<<16) + (str_fetch(s, i)<<8);
+    str_store(buf, o++, base64_char((v>>18)&0x3f));
+    str_store(buf, o++, base64_char((v>>12)&0x3f));
+    str_store(buf, o++, base64_char((v>> 6)&0x3f));
+    str_store(buf, o++, '=');
+  } else if ( size - i == 1)
+  { v = (str_fetch(s, i)<<16);
+    str_store(buf, o++, base64_char((v>>18)&0x3f));
+    str_store(buf, o++, base64_char((v>>12)&0x3f));
+    str_store(buf, o++, '=');
+    str_store(buf, o++, '=');
+  }
+
+  buf->size = o;
+  answer(ModifiedCharArray(in, buf));
+}
+
+
+static CharArray
+getBase64DecodeCharArray(CharArray in)
+{ String s = &in->data;
+  int size = s->size;
+  LocalString(buf, s, (size/4)*3);
+  int i, o = 0;
+  unsigned long v = 0L;
+    
+  for(i=0; i+3<size; )
+  { int c;
+
+    v = (base64_code(str_fetch(s, i++)) << 18) |
+	(base64_code(str_fetch(s, i++)) << 12);
+    c = str_fetch(s, i++);
+    if ( c == '=' )
+    { i++;				/* skip last (must be =) */
+      str_store(buf, o++, (v>>16) & 0xff);
+      break;
+    }
+    v |= base64_code(c) << 6;
+    c = str_fetch(s, i++);
+    if ( c == '=' )
+    { str_store(buf, o++, (v>>16) & 0xff);
+      str_store(buf, o++, (v>>8) & 0xff);
+      break;
+    }
+    v |= base64_code(c);
+    if ( v == ~0L )
+      fail;
+    str_store(buf, o++, (v>>16) & 0xff);
+    str_store(buf, o++, (v>>8) & 0xff);
+    str_store(buf, o++, (v>>0) & 0xff);
+  }
+
+  if ( i != size || v == ~0L )
+    fail;
+
+  buf->size = o;
+  answer(ModifiedCharArray(in, buf));
 }
 
 
@@ -700,6 +877,8 @@ static getdecl get_charArray[] =
      NAME_conversion, "Value as a name"),
   GM(NAME_copy, 0, "char_array", NULL, getCopyCharArray,
      NAME_copy, "Copy representing the same text"),
+  GM(NAME_split, 1, "chain", "separator=[char_array]", getSplitCharArray,
+     NAME_content, "Split text using separator"),
   GM(NAME_modify, 1, "char_array", "char_array", getModifyCharArray,
      NAME_internal, "New instance of my class"),
   GM(NAME_lineNo, 1, "line=int", "index=[int]", getLineNoCharArray,
@@ -709,7 +888,11 @@ static getdecl get_charArray[] =
   GM(NAME_rindex, 2, "int", T_ofAchar_fromADintD, getRindexCharArray,
      NAME_parse, "Get 0-based index starting at pos (backwards)"),
   GM(NAME_scan, 1, "vector", "format=char_array", getScanCharArray,
-     NAME_parse, "C-scanf like parsing of string")
+     NAME_parse, "C-scanf like parsing of string"),
+  GM(NAME_base64Encode, 0, "char_array", NULL, getBase64EncodeCharArray,
+     NAME_mime, "Perform base-64 encoding on the argument"),
+  GM(NAME_base64Decode, 0, "char_array", NULL, getBase64DecodeCharArray,
+     NAME_mime, "Perform base-64 decoding on the argument")
 };
 
 /* Resources */
