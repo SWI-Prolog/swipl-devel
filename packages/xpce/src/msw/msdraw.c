@@ -274,8 +274,16 @@ r_offset(int x, int y)
 
 static void
 d_set_filloffset()
-{ int tsx = context.fill_offset_x - context.cache_x;
-  int tsy = context.fill_offset_y - context.cache_y;
+{ int tsx = (context.fill_offset_x - context.cache_x);
+  int tsy = (context.fill_offset_y - context.cache_y);
+
+  if ( context.cache )
+  { tsx += context.r_offset_x;
+    tsy += context.r_offset_y;
+  } else
+  { tsx += context.offset_x;
+    tsy += context.offset_y;
+  }
 
   SetBrushOrgEx(context.hdc, tsx, tsy, NULL);
 }
@@ -403,6 +411,8 @@ d_mswindow(PceWindow sw, IArea a, int clear)
     { context.cache_x = 0;
       context.cache_y = 0;
       r_default_background(sw->background);
+//    SetViewportOrg(context.hdc, 0, 0);
+//    SetBrushOrgEx(context.hdc, 0, 0, NULL);
       if ( clear )
 	r_clear(a->x, a->y, a->w, a->h);
     }
