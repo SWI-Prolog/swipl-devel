@@ -6,7 +6,9 @@
     Copyright (C) 1999 SWI, University of Amsterdam. All rights reserved.
 */
 
+#ifdef __linux__
 #define _XOPEN_SOURCE
+#endif
 
 #include "pl-incl.h"
 #if defined(HAVE_GRANTPT) && defined(O_PLMT)

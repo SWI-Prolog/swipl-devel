@@ -157,6 +157,7 @@ free_prolog_thread(void *data)
   
   if ( ld->feature.table )
     destroyHTable(ld->feature.table);
+  PL_unregister_atom(ld->prompt.current);
 
   freeThreadMessages(ld);
   freeThreadSignals(ld);
@@ -343,6 +344,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
 					/* copy settings */
 
+  PL_register_atom(LD->prompt.current);
   ldnew->prompt			 = LD->prompt;
   ldnew->modules		 = LD->modules;
   ldnew->IO			 = LD->IO;
@@ -897,7 +899,13 @@ unlocked_pl_mutex_create(term_t mutex)
   { pthread_mutexattr_t attr;		/* can this be local? */
 
     pthread_mutexattr_init(&attr);
+#ifdef HAVE_PTHREAD_MUTEXATTR_SETKIND_NP
     pthread_mutexattr_setkind_np(&attr, PTHREAD_MUTEX_RECURSIVE_NP);
+#else
+#ifdef HAVE_PTHREAD_MUTEXATTR_SETTYPE
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+#endif
+#endif
     pthread_mutex_init(&m->mutex, &attr);
   }
   m->count = 0;
@@ -1213,7 +1221,15 @@ static sem_t sem_mark;
 
 static void
 threadMarkAtoms(int sig)
-{ markAtomsOnStacks(LD);
+{ pthread_t me = pthread_self();
+  int i;
+
+  for(i=0; i<MAX_THREADS; i++)
+  { if ( threads[i].tid == me )
+    { markAtomsOnStacks(threads[i].thread_data);
+      break;
+    }
+  }
 
   sem_post(&sem_mark);
 }

@@ -1676,7 +1676,7 @@ Clear the FR_MARKED flags left after traversing all reachable frames.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static QueryFrame
-unmark_environments(LocalFrame fr)
+unmark_environments(PL_local_data_t *ld, LocalFrame fr)
 { if ( fr == NULL )
     return NULL;
 
@@ -1684,7 +1684,7 @@ unmark_environments(LocalFrame fr)
   { if ( false(fr, FR_MARKED) )
       return NULL;
     clear(fr, FR_MARKED);
-    local_frames--;
+    ld->gc._local_frames--;
     
     if ( fr->parent )
       fr = fr->parent;
@@ -1909,10 +1909,10 @@ Void lb, gb, tb;			/* bases addresses */
     for(fr = addPointer(frame, ls); fr; fr = qf->saved_environment)
     { LocalFrame bfr;
 
-      qf = unmark_environments(fr);
+      qf = unmark_environments(LD, fr);
 
       for(bfr = fr->backtrackFrame; bfr; bfr = bfr->backtrackFrame)
-	unmark_environments(bfr);
+	unmark_environments(LD, bfr);
     }
     assert(local_frames == 0);
 
@@ -2131,7 +2131,7 @@ frame has a clause we must consider all variables of this clause.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static QueryFrame
-mark_atoms_in_environments(LocalFrame fr)
+mark_atoms_in_environments(PL_local_data_t *ld, LocalFrame fr)
 { Code PC = NULL;
 
   if ( fr == NULL )
@@ -2151,7 +2151,7 @@ mark_atoms_in_environments(LocalFrame fr)
 	       levelFrame(fr),
 	       predicateName(fr->predicate));
 #endif
-    local_frames++;
+    ld->gc._local_frames++;
     clearUninitialisedVarsFrame(fr, PC);
 
     if ( true(fr->predicate, FOREIGN) ||
@@ -2202,16 +2202,16 @@ markAtomsInTermReferences(PL_local_data_t *ld)
 
 
 static void
-markAtomsInEnvironments(LocalFrame frame, LocalFrame bfr0)
+markAtomsInEnvironments(PL_local_data_t *ld)
 { QueryFrame qf;
   LocalFrame fr, bfr;
 
-  local_frames = 0;
+  ld->gc._local_frames = 0;
 
-  for( fr = frame, bfr = bfr0;
+  for( fr = ld->environment, bfr = ld->choicepoints;
        fr;
        fr = qf->saved_environment, bfr = qf->saved_bfr )
-  { qf = mark_atoms_in_environments(fr);
+  { qf = mark_atoms_in_environments(ld, fr);
     assert(qf->magic == QID_MAGIC);
 
     for(; bfr; bfr = bfr->backtrackFrame)
@@ -2221,27 +2221,27 @@ markAtomsInEnvironments(LocalFrame frame, LocalFrame bfr0)
 	Sfprintf(atomLogFd, "Marking atom from choicepoint [%ld] %s\n",
 		 levelFrame(bfr), predicateName(bfr->predicate));
 #endif
-      mark_atoms_in_environments(bfr);
+      mark_atoms_in_environments(ld, bfr);
     }
   }
 
-  for( fr = frame, bfr = bfr0;
+  for( fr = ld->environment, bfr = ld->choicepoints;
        fr;
        fr = qf->saved_environment, bfr = qf->saved_bfr )
-  { qf = unmark_environments(fr);
+  { qf = unmark_environments(ld, fr);
 
     for(; bfr; bfr = bfr->backtrackFrame)
-      unmark_environments(bfr);
+      unmark_environments(ld, bfr);
   }
 
-  assert(local_frames == 0);
+  assert(ld->gc._local_frames == 0);
 }
 
 
 void
 markAtomsOnStacks(PL_local_data_t *ld)
 { markAtomsOnGlobalStack(ld);
-  markAtomsInEnvironments(ld->environment, ld->choicepoints);
+  markAtomsInEnvironments(ld);
   markAtomsInTermReferences(ld);
 }
 

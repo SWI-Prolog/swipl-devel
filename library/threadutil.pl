@@ -56,29 +56,34 @@ run_prolog :-
 %	it.
 
 :- dynamic
-	has_console/1.			% which thread has a console?
+	has_console/3.			% which thread has a console?
 
 has_console(main).			% we assume main has one.
+has_console(Id) :-
+	has_console(Id, _, _).
 
 attach_console :-
 	thread_self(Id),
-	has_console(Id), !.
+	has_console(Id, _, _), !.
 attach_console :-
 	thread_self(Id),
 	'$get_pid'(Pid),
-	assert(has_console(Id)),
 	sformat(Title, 'SWI-Prolog Thread ~w (pid ~d) interactor', [Id, Pid]),
 	open_xterm(Title, In, Out),
+	assert(has_console(Id, In, Out)),
 	set_stream(In,  alias(user_input)),
 	set_stream(Out, alias(user_output)),
 	set_stream(Out, alias(user_error)),
 	set_stream(In,  alias(current_input)),
 	set_stream(Out, alias(current_output)),
-	thread_at_exit(close(In)),
-	thread_at_exit(close(Out)),
-	thread_at_exit(retractall(has_console(Id))).
+	thread_at_exit(detach_console(Id)).
 
+detach_console(Id) :-
+	retract(has_console(Id, In, Out)),
+	catch(close(In), _, true),
+	catch(close(Out), _, true).
 
+		
 		 /*******************************
 		 *	       HOOKS		*
 		 *******************************/
