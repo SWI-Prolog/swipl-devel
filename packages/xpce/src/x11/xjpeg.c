@@ -28,7 +28,7 @@ all image formats into the internal structure   of  an XPM image to make
 XPM handle color-spaces and other complicated   stuff.  This works nice,
 but has two drawbacks. XPM is a colormapped format, thus we loose detail
 if the source is not colormapped or has a richer colormap (>256 entries)
-and there is a not of unnecessary computation going on.
+and there is a lot of unnecessary computation going on.
 
 This is the first module (PPM and  GIF   to  go)  that bypasses this for
 `static' visuals. For static visuals  we   can  create  a ZPixmap format
@@ -36,9 +36,9 @@ XImage structure that has mask and shift   for  the color components, so
 all we need to do is to create   the  XImage, get the pixels one-by-one,
 map the brightness values and call XPutPixel(). 
 
-It would be nice to avoid the indirect  call to XPutPixel() as well, but
-this depends on the byte-order. Maybe we   should do so for some popular
-formats and use XPutPixel() as backup.
+For some popular formats we also   bypass  XPutPixel(), storing our bits
+directly into the XImage structure and saving another 30% (Linux on dual
+AMD system).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include <h/kernel.h>
