@@ -656,9 +656,9 @@ started clipping.  But ...  the region   returned  by GetClipBox() is in
 void
 d_clip(int x, int y, int w, int h)
 { if ( context.clip_depth < MAX_CLIP_DEPTH )
-  { HRGN hrgn;
-    RECT *rect = &context.clip_stack[context.clip_depth].orect;
-
+  { RECT *rect = &context.clip_stack[context.clip_depth].orect;
+/*  HRGN hrgn; */
+    
     GetClipBox(context.hdc, rect);
 
     DEBUG(NAME_clip, { Cprintf("d_clip(%d %d %d %d): ", x, y, w, h);
@@ -668,6 +668,21 @@ d_clip(int x, int y, int w, int h)
 			       rect->bottom - rect->top);
 		     });
     
+#if 1
+  { POINT pts[5];
+    pts[0].x = x;   pts[0].y = y;
+    pts[1].x = x+w; pts[1].y = y;
+    pts[2].x = x+w; pts[2].y = y+h;
+    pts[3].x = x;   pts[3].y = y+h;
+    pts[4].x = x;   pts[4].y = y;
+
+    if ( !BeginPath(context.hdc) ||
+	 !Polygon(context.hdc, pts, 5) ||
+	 !EndPath(context.hdc) ||
+	 !SelectClipPath(context.hdc, RGN_AND) )
+      Cprintf("Failed to set clip-path\n");
+  }
+#else
     if ( context.cache )
     { x += context.r_offset_x - context.cache_x; /* TRY ... */
       y += context.r_offset_y - context.cache_y;
@@ -682,6 +697,7 @@ d_clip(int x, int y, int w, int h)
     hrgn = ZCreateRectRgn(x, y, x+w, y+h);
     ZSelectObject(context.hdc, hrgn);
     ZDeleteObject(hrgn);
+#endif
 
     DEBUG(NAME_clip, { RECT nrect;
 		       GetClipBox(context.hdc, &nrect);
@@ -774,7 +790,7 @@ d_done(void)
 void
 d_clip_done(void)
 { RECT *rect;
-  HRGN hrgn;
+/*HRGN hrgn;*/
   int ox=0, oy=0;
 
   if ( context.clip_depth-- < 0 )
@@ -786,6 +802,22 @@ d_clip_done(void)
 			    rect->right - rect->left,
 			    rect->bottom - rect->top));
 
+#if 1
+{ POINT pts[5];
+  pts[0].x = rect->left;  pts[0].y = rect->top;
+  pts[1].x = rect->right; pts[1].y = rect->top;
+  pts[2].x = rect->right; pts[2].y = rect->bottom;
+  pts[3].x = rect->left;  pts[3].y = rect->bottom;
+  pts[4].x = rect->left;  pts[4].y = rect->top;
+
+  if ( !BeginPath(context.hdc) ||
+       !Polygon(context.hdc, pts, 5) ||
+       !EndPath(context.hdc) ||
+       !SelectClipPath(context.hdc, RGN_COPY) )
+    Cprintf("Failed to set UN-clip-path\n");
+}
+
+#else
   if ( context.cache )
   { ox = context.r_offset_x - context.cache_x;
     oy = context.r_offset_y - context.cache_y;
@@ -804,6 +836,7 @@ d_clip_done(void)
   hrgn = ZCreateRectRgnIndirect(rect);
   ZSelectObject(context.hdc, hrgn);
   ZDeleteObject(hrgn);
+#endif
 
   DEBUG(NAME_clip, { RECT nrect;
 		     GetClipBox(context.hdc, &nrect);
