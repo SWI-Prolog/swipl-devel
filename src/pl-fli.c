@@ -2990,7 +2990,9 @@ static struct license
 
 void
 PL_license(const char *license, const char *module)
-{ if ( GD->initialised )
+{ GET_LD
+
+  if ( GD->initialised )
   { fid_t fid = PL_open_foreign_frame();
     predicate_t pred = PL_predicate("license", 2, "system");
     term_t av = PL_new_term_refs(2);
