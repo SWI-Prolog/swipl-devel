@@ -53,7 +53,7 @@ ws_create_font(FontObj f, DisplayObj d)
     XftNameUnparse(p, buf, sizeof(buf));
     Cprintf("Pattern = '%s'\n", buf);
 
-    match = XftFontMatch(r->display_xref, r->screen, ???);
+//  match = XftFontMatch(r->display_xref, r->screen, ???);
 
     xft = XftFontOpenPattern(r->display_xref, p);
     XftPatternDestroy(p);

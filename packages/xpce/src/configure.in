@@ -420,7 +420,7 @@ EOF
 		  "Define to use WIN32 graphics interface")
 	AC_DEFINE(XPM_NO_X, 1, "Define to use XPM without X11 (Cygwin)")
 	LIBS="-L/usr/lib/noX $LIBS"
-	XINCLUDES=/home/jan/cygwin/include
+	XINCLUDES="-I/home/jan/cygwin/include"
 	XLIBS="-lwsock32 -lcomdlg32 -lkernel32 -luser32 -lgdi32"
 	XLIB=/home/jan/cygwin/lib
 	LD=plld
@@ -775,6 +775,10 @@ main()
    AC_MSG_RESULT(no),
    AC_MSG_RESULT(assuming no))
 
+dnl ****************************************************************
+dnl * X11 configuration
+dnl ****************************************************************
+
 if test "$WITHX11" = true; then
 BEFOREXLIBS="$LIBS"
 
@@ -792,9 +796,9 @@ else
     XLIB="$x_libraries"
 fi
 if test "$x_includes" = ""; then
-XINCLUDES=/usr/include
+XINCLUDES="-I/usr/include"
 else
-XINCLUDES="$x_includes"
+XINCLUDES="-I$x_includes"
 fi
 
 ac_oldlibs="$LIBS"
@@ -821,8 +825,8 @@ case "$OS" in
   *sunos*) LIBS="$BEFOREXLIBS -lX11 $XSMLIBS";;
 esac
 
-CPPFLAGS="-I$XINCLUDES ${CPPFLAGS}"
-CIFLAGS="-I$XINCLUDES ${CIFLAGS}"
+CPPFLAGS="$XINCLUDES ${CPPFLAGS}"
+CIFLAGS="$XINCLUDES ${CIFLAGS}"
 
 fi dnl WITHX11
 
@@ -936,6 +940,24 @@ if test "$WITHX11" = true; then
   AC_CHECK_FUNCS(XtPopupSpringLoaded XmIsMotifWMRunning XInitThreads)
   LIBS="$ac_oldlibs"
 fi
+
+dnl ****************************************************************
+dnl * X11 extensions
+dnl * XFT: The Xfree font management system
+dnl ****************************************************************
+
+AC_CHECK_PROGS(XFTCONF, xft-config, "true")
+if test "$XFTCONF" != "true" ; then
+   AC_DEFINE(USE_XFT, 1,
+	     "Define to use the Xft scalable and anti-aliasing font system")
+   XLIBS="$XLIBS `$XFTCONF --libs`"
+   XINCLUDES="$XINCLUDES `$XFTCONF --cflags`"
+fi;
+
+
+dnl ****************************************************************
+dnl * Final tests
+dnl ****************************************************************
 
 AC_MSG_CHECKING("memory model")
 echo '#include "confdefs.h"' > conftest.c

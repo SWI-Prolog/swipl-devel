@@ -279,9 +279,9 @@
 /* If using the C implementation of alloca, define if you know the
    direction of stack growth for your system; otherwise it will be
    automatically deduced at run-time.
-        STACK_DIRECTION > 0 => grows toward higher addresses
-        STACK_DIRECTION < 0 => grows toward lower addresses
-        STACK_DIRECTION = 0 => direction of growth unknown */
+	STACK_DIRECTION > 0 => grows toward higher addresses
+	STACK_DIRECTION < 0 => grows toward lower addresses
+	STACK_DIRECTION = 0 => direction of growth unknown */
 #undef STACK_DIRECTION
 
 /* Define to 1 if you have the ANSI C header files. */
@@ -302,6 +302,9 @@
 /* "Define if sigaction() supports SA_SIGINFO and passes thechild pid in info"
    */
 #undef USE_SIGINFO
+
+/* "Define to use the Xft scalable and anti-aliasing font system" */
+#undef USE_XFT
 
 /* "Define if position of data-segment isn't more or less constant" */
 #undef VARIABLE_POINTER_OFFSET
@@ -330,6 +333,8 @@
 /* "Define if your system is Unix-like" */
 #undef __unix__
 
-/* Define as `__inline' if that's what the C compiler calls it, or to nothing
-   if it is not supported. */
+/* Define to `__inline__' or `__inline' if that's what the C compiler
+   calls it, or to nothing if 'inline' is not supported under any name.  */
+#ifndef __cplusplus
 #undef inline
+#endif
