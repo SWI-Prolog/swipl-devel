@@ -2390,6 +2390,7 @@ EOF
 else
     echo "configure: warning: "Failed to compile test/memmodel.c"" 1>&2
 fi
+rm -fr conftest*
 
 
 echo $ac_n "checking "for nop"""... $ac_c" 1>&4;
@@ -2405,6 +2406,7 @@ EOF
 
     echo "$ac_t""no" 1>&4
 fi
+rm -fr conftest*
 
 
 
@@ -2451,11 +2453,12 @@ EOF
 else
     echo "$ac_t"""could not compile mmap test"" 1>&4;
 fi
+rm -fr conftest*
 
 
 echo $ac_n "checking "_data_start"""... $ac_c" 1>&4
 cat > conftest.$ac_ext <<EOF
-#line 2459 "configure"
+#line 2462 "configure"
 #include "confdefs.h"
 extern int _data_start;
 int main() { return 0; }
@@ -2479,7 +2482,7 @@ rm -f conftest*
 
 echo $ac_n "checking "_data"""... $ac_c" 1>&4
 cat > conftest.$ac_ext <<EOF
-#line 2483 "configure"
+#line 2486 "configure"
 #include "confdefs.h"
 extern int _data;
 int main() { return 0; }
@@ -2568,7 +2571,7 @@ test -n "$LDD" || LDD=""none""
 	echo $ac_n "checking "what kind of static linking is required"""... $ac_c" 1>&4
 
 cat > conftest.$ac_ext <<EOF
-#line 2572 "configure"
+#line 2575 "configure"
 #include "confdefs.h"
 
 int main() { return 0; }
@@ -2600,7 +2603,7 @@ esac
 echo $ac_n "checking "how to reset stdin"""... $ac_c" 1>&4
 # BSD Unix
 cat > conftest.$ac_ext <<EOF
-#line 2604 "configure"
+#line 2607 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -2626,7 +2629,7 @@ rm -f conftest*
 if test "$reset_stdin" != "yes"; then
 # Older GNU clibs
 cat > conftest.$ac_ext <<EOF
-#line 2630 "configure"
+#line 2633 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -2652,7 +2655,7 @@ fi
 if test "$reset_stdin" != "yes"; then
 # New GNU clibs
 cat > conftest.$ac_ext <<EOF
-#line 2656 "configure"
+#line 2659 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -2679,7 +2682,7 @@ fi
 if test "$reset_stdin" != "yes"; then
 # EMX
 cat > conftest.$ac_ext <<EOF
-#line 2683 "configure"
+#line 2686 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -2710,7 +2713,7 @@ fi
 
 echo $ac_n "checking "foreign C-interface"""... $ac_c" 1>&4
 cat > conftest.$ac_ext <<EOF
-#line 2714 "configure"
+#line 2717 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -2743,7 +2746,7 @@ rm -f conftest*
 
 if test "$ac_foreign" != "yes"; then
 cat > conftest.$ac_ext <<EOF
-#line 2747 "configure"
+#line 2750 "configure"
 #include "confdefs.h"
 
 #include <rld.h>
@@ -2798,7 +2801,7 @@ EOF
 rm -rf conftest*
 echo $ac_n "checking "BSD a.out based loading"""... $ac_c" 1>&4
 cat > conftest.$ac_ext <<EOF
-#line 2802 "configure"
+#line 2805 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>

@@ -283,6 +283,7 @@ if test -s conftest && eval `./conftest`; then
 else
     AC_MSG_WARN("Failed to compile test/memmodel.c")
 fi
+rm -fr conftest*
 
 dnl ****************************************************************
 dnl Test whether we can use asm("nop") to separate instructions.
@@ -299,6 +300,7 @@ else
     AC_DEFINE(NO_ASM_NOP)
     AC_MSG_RESULT(no)
 fi
+rm -fr conftest*
 
 
 dnl ****************************************************************
@@ -336,6 +338,7 @@ if test -s conftest && eval `./conftest`; then
 else
     AC_MSG_RESULT("could not compile mmap test");
 fi
+rm -fr conftest*
 
 dnl ****************************************************************
 dnl The real thing.  See whether we can use save/1 and friends.  The
