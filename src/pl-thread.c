@@ -1005,6 +1005,8 @@ pl_thread_peek_message(term_t msg)
     { UNLOCK();
       succeed;
     }
+
+    Undo(m);
   }
      
   UNLOCK();
