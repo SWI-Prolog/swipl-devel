@@ -827,11 +827,18 @@ Word pred, what, value;
   if (!isVar(*value) && (!isInteger(*value) || (valNum(*value) & ~1)))
     return warning("$predicate_attribute/3: illegal 3rd argument");
 
+#define TRACE_ANY (TRACE_CALL|TRACE_REDO|TRACE_EXIT|TRACE_FAIL)
+
   if (key == ATOM_dynamic)	return attribute(def, value, DYNAMIC);
   if (key == ATOM_multifile)	return attribute(def, value, MULTIFILE);
   if (key == ATOM_system)	return attribute(def, value, SYSTEM);
   if (key == ATOM_spy)		return attribute(def, value, SPY_ME);
   if (key == ATOM_trace)	return attribute(def, value, TRACE_ME);
+  if (key == ATOM_trace_call)	return attribute(def, value, TRACE_CALL);
+  if (key == ATOM_trace_redo)	return attribute(def, value, TRACE_REDO);
+  if (key == ATOM_trace_exit)	return attribute(def, value, TRACE_EXIT);
+  if (key == ATOM_trace_fail)	return attribute(def, value, TRACE_FAIL);
+  if (key == ATOM_trace_any)	return attribute(def, value, TRACE_ANY);
   if (key == ATOM_hide_childs)	return attribute(def, value, HIDE_CHILDS);
   if (key == ATOM_transparent)	return attribute(def, value, TRANSPARENT);
   if (key == ATOM_discontiguous) return attribute(def,value, DISCONTIGUOUS);

@@ -647,21 +647,25 @@ with one operation, it turns out to be faster as well.
 #define clear(s, a)		((s)->flags &= ~(a))
 #define clearFlags(s)		((s)->flags = 0)
 
-#define NONDETERMINISTIC	(0x0002)
-#define DISCONTIGUOUS		(0x0004)
-#define DYNAMIC			(0x0008)
-#define ERASED			(0x0010)
-#define FOREIGN			(0x0020)
-#define HIDE_CHILDS		(0x0040)
-#define MULTIFILE		(0x0080)
-#define PROFILE_TICKED		(0x0100)
-#define SPY_ME			(0x0200)
-#define SYSTEM			(0x0400)
-#define TRACE_ME		(0x0800)
-#define TRANSPARENT		(0x1000)
-#define AUTOINDEX		(0x2000)
-#define INDEXABLE		(0x4000)
-#define UNKNOWN			(0x8000)
+#define NONDETERMINISTIC	(0x0001) /* predicate */
+#define DISCONTIGUOUS		(0x0002) /* predicate */
+#define DYNAMIC			(0x0004) /* predicate */
+#define FOREIGN			(0x0008) /* predicate */
+#define HIDE_CHILDS		(0x0010) /* predicate */
+#define MULTIFILE		(0x0020) /* predicate */
+#define PROFILE_TICKED		(0x0040) /* predicate */
+#define SPY_ME			(0x0080) /* predicate */
+#define SYSTEM			(0x0100) /* predicate */
+#define TRACE_ME		(0x0200) /* predicate */
+#define TRANSPARENT		(0x0400) /* predicate */
+#define GC_SAVE			(0x0800) /* predicate */
+#define TRACE_CALL		(0x1000) /* predicate */
+#define TRACE_REDO		(0x2000) /* predicate */
+#define TRACE_EXIT		(0x4000) /* predicate */
+#define TRACE_FAIL		(0x8000) /* predicate */
+
+#define ERASED			(0x0001) /* clause */
+#define UNKNOWN			(0x0002) /* module */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Handling environment (or local stack) frames.
@@ -870,7 +874,6 @@ struct clause
   code		slots;		/* # variables holding Prolog data */
   ushort	flags;		/* Flag field holding: */
 		/* ERASED	   Clause is retracted, but referenced */
-		/* INDEXABLE	   Clause has indexable 1st argument */
 };
 
 struct code_info
@@ -924,7 +927,7 @@ struct definition
   short		source_count;		/* times (re)consulted */
   ushort	flags;			/* booleans: */
 		/*	FOREIGN		   foreign predicate? */
-		/*	PROFILE_TICKED	   has been ticked this time ? */
+		/*	PROFILE_TICKED	   has been ticked this time? */
 		/*	TRACE_ME	   is my call visible? */
 		/*	HIDE_CHILDS	   hide childs for the debugger? */
 		/*	SPY_ME		   spy point set? */
@@ -933,8 +936,12 @@ struct definition
 		/*	SYSTEM		   system predicate */
 		/*	TRANSPARENT	   procedure transparent to modules */
 		/*	DISCONTIGUOUS	   procedure might be discontiguous */
-		/*	DETERMINISTIC	   deterministic foreign (not used) */
-		/*	AUTOINDEX	   Apply heuristically best index */
+		/*	NONDETERMINISTIC   deterministic foreign (not used) */
+		/*	GC_SAVE		   Save to perform GC while active */
+		/*	TRACE_CALL	   Trace call-port */
+		/*	TRACE_REDO	   Trace redo-port */
+		/*	TRACE_EXIT	   Trace exit-port */
+		/*	TRACE_FAIL	   Trace fail-port */
 };
 
 struct localFrame

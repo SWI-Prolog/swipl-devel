@@ -556,7 +556,7 @@ Allocate the clause and fill initialise the field we already know.
   clause = (Clause) allocHeap(sizeof(struct clause));
   clause->next = (Clause) NULL;
   clause->references = 0;
-  clear(clause, ERASED|INDEXABLE);
+  clear(clause, ERASED);
   clause->XR_size = clause->code_size = 0;
   clause->subclauses = 0;
   clause->procedure = proc;

@@ -113,8 +113,38 @@ int port;
   LocalFrame fr;
 
   if ( (true(frame, FR_NODEBUG) && !(SYSTEM_MODE))	|| /* hidden */
-       debugstatus.suspendTrace				|| /* called back */
-       (!debugstatus.tracing && false(def, SPY_ME))	|| /* non-tracing */
+       debugstatus.suspendTrace )			   /* called back */
+    return ACTION_CONTINUE;
+
+  if ( true(def, TRACE_CALL|TRACE_REDO|TRACE_EXIT|TRACE_FAIL) )
+  { char *fmt = NULL;
+
+    switch(port)
+    { case CALL_PORT:
+	if ( true(def, TRACE_CALL) )
+	  fmt = "T Call:  (%3ld) ";
+        break;
+      case REDO_PORT:
+	if ( true(def, TRACE_REDO) )
+	  fmt = "T Redo:  (%3ld) ";
+        break;
+      case EXIT_PORT:
+	if ( true(def, TRACE_EXIT) )
+	  fmt = "T Exit:  (%3ld) ";
+        break;
+      case FAIL_PORT:
+	if ( true(def, TRACE_FAIL) )
+	  fmt = "T Fail:  (%3ld) ";
+        break;
+    }
+    if ( fmt )
+    { Putf(fmt, levelFrame(frame));
+      writeFrameGoal(frame, debugstatus.style);
+      Put('\n');
+    }
+  }
+
+  if ( (!debugstatus.tracing && false(def, SPY_ME))	|| /* non-tracing */
        debugstatus.skiplevel < levelFrame(frame)	|| /* skipped */
        false(def, TRACE_ME)				|| /* non-tracing */
        (!(debugstatus.visible & port))			|| /* wrong port */

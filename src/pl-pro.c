@@ -7,7 +7,7 @@
     Purpose: Support for virtual machine
 */
 
-/*#define O_SECURE 1*/
+#define O_SECURE 1
 #include "pl-incl.h"
 
 		/********************************

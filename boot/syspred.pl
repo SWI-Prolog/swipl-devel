@@ -13,6 +13,8 @@
 	, please/3
 	, (spy)/1
 	, (nospy)/1
+	, trace/1
+	, trace/2
 	, nospyall/0
 	, debugging/0
 	, concat_atom/2
@@ -106,8 +108,61 @@ please(Key, Old, New) :-
 	$please(Key, Old, New).
 
 :- module_transparent
+	trace/1,
+	trace/2,
+	$trace/2,
 	spy/1,
 	nospy/1.
+
+trace(Preds) :-
+	trace(Preds, +all).
+
+trace([], _) :- !.
+trace([H|T], Ps) :- !,
+	trace(H, Ps),
+	trace(T, Ps).
+trace(Pred, Ports) :-
+	debug,
+	$find_predicate(Pred, Preds),
+	Preds \== [],
+	(   member(Head, Preds),
+	        $trace(Ports, Head),
+	        show_trace_point(Head),
+	    fail
+	;   true
+	).
+
+
+trace_alias(all,  [trace_call, trace_redo, trace_exit, trace_fail]).
+trace_alias(call, [trace_call]).
+trace_alias(redo, [trace_redo]).
+trace_alias(exit, [trace_exit]).
+trace_alias(fail, [trace_fail]).
+
+$trace([], _) :- !.
+$trace([H|T], Head) :- !,
+	$trace(H, Head),
+	$trace(T, Head).
+$trace(+H, Head) :-
+	trace_alias(H, A0), !,
+	tag_list(A0, +, A1),
+	$trace(A1, Head).
+$trace(+H, Head) :- !,
+	$predicate_attribute(Head, H, 1).
+$trace(-H, Head) :-
+	trace_alias(H, A0), !,
+	tag_list(A0, -, A1),
+	$trace(A1, Head).
+$trace(-H, Head) :- !,
+	$predicate_attribute(Head, H, 0).
+$trace(H, Head) :-
+	$predicate_attribute(Head, H, 1).
+
+tag_list([], _, []).
+tag_list([H0|T0], F, [H1|T1]) :-
+	H1 =.. [F, H0],
+	tag_list(T0, F, T1).
+
 
 spy([]) :- !.
 spy([H|T]) :- !,
@@ -143,8 +198,11 @@ nospyall.
 
 debugging :-
 	$debugging, !,
-	format('Debug mode is on; spy points on:~n'),
-	$show_spy_points.
+	format('Debug mode is on; spy points (see spy/1) on:~n'),
+	$show_spy_points,
+	format('Trace points (see trace/1) on:~n'),
+	show_trace_points.
+
 debugging :-
 	format('Debug mode is off~n').
 
@@ -157,6 +215,33 @@ $show_spy_points :-
 	format('~t~8|~w~n', [Name]),
 	fail.
 $show_spy_points.
+
+show_trace_points :-
+	current_predicate(_, Module:Head),
+	$predicate_attribute(Module:Head, trace_any, True),
+	True == 1,
+	\+ predicate_property(Module:Head, imported_from(_)),
+	show_trace_point(Module:Head),
+	fail.
+show_trace_points.
+
+:- module_transparent
+	show_trace_point/1,
+	show_trace_ports/1.
+
+show_trace_point(Head) :-
+	$predicate_name(Head, Name),
+	format('~t~8|~w:', [Name]),
+	show_trace_ports(Head),
+	nl.
+
+show_trace_ports(Head) :-
+	trace_alias(Port, [AttName]),
+	$predicate_attribute(Head, AttName, True),
+	True == 1,
+	format(' ~w', [Port]),
+	fail.
+show_trace_ports(_).
 
 
 		/********************************
@@ -395,12 +480,17 @@ statistics :-
 	format('~D byte codes; ~D external references~n~n',
 				    [Codes, Externals]),
 	format('                      Limit    Allocated       In use~n'),
-	format('Heap         :                  ~t~D~53| Bytes~n', [Heapused]),
-	format('Local  stack :~t~D~27| ~t~D~40| ~t~D~53| Bytes~n', [LocalLimit, Local, LocalUsed]),
-	format('Global stack :~t~D~27| ~t~D~40| ~t~D~53| Bytes~n', [GlobalLimit, Global, GlobalUsed]),
-	format('Trail  stack :~t~D~27| ~t~D~40| ~t~D~53| Bytes~n', [TrailLimit, Trail, TrailUsed]),
+	format('Heap         :                  ~t~D~53| Bytes~n',
+	       [Heapused]),
+	format('Local  stack :~t~D~27| ~t~D~40| ~t~D~53| Bytes~n',
+	       [LocalLimit, Local, LocalUsed]),
+	format('Global stack :~t~D~27| ~t~D~40| ~t~D~53| Bytes~n',
+	       [GlobalLimit, Global, GlobalUsed]),
+	format('Trail  stack :~t~D~27| ~t~D~40| ~t~D~53| Bytes~n',
+	       [TrailLimit, Trail, TrailUsed]),
 
-	gc_statistics.
+	gc_statistics,
+	shift_statistics.
 
 gc_statistics :-
 	statistics(collections, Collections),
@@ -408,8 +498,22 @@ gc_statistics :-
 	statistics(collected, Collected),
 	statistics(gctime, GcTime),
 
-	format('~n~D garbage collections gained ~D bytes in ~2f seconds.~n', [Collections, Collected, GcTime]).
+	format('~n~D garbage collections gained ~D bytes in ~2f seconds.~n',
+	       [Collections, Collected, GcTime]).
 gc_statistics.
+
+shift_statistics :-
+	statistics(local_shifts, LS),
+	statistics(global_shifts, GS),
+	statistics(trail_shifts, TS),
+	(   LS > 0
+	;   GS > 0
+	;   TS > 0
+	), !,
+	format('~nStack shifts: ~D local, ~D global, ~D trail.~n',
+	       [LS, GS, TS]).
+shift_statistics.
+
 
 		/********************************
 		*      SYSTEM INTERACTION       *
