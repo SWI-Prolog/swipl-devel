@@ -1363,6 +1363,17 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Text operations:
+
+	unify()
+	canonise()			/* 32 --> 8 bit if possible */
+	promote()			/* 8 --> 32 */
+	demote()			/* 32 --> 8 (or fail) */
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
 char *
 PL_quote(int chr, const char *s)
 { Buffer b = findBuffer(BUF_RING);
