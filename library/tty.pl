@@ -204,7 +204,7 @@ process_answer(D, List, _, _, Choice, yes) :-
 	name(N, [D]),
 	nth1(N, List, Choice:Name), !,
 	feedback(Name).
-process_answer(N, _, _, [], _, no) :-
+process_answer(D, _, _, [], _, no) :-
 	code_type(D, digit),
 	feedback(''),
 	tty_flash.
