@@ -157,7 +157,9 @@ about(_F) :->
 
 help(_F) :->
 	send(@display, inform,
-	     'No help yet').
+	     'No online help yet\n\
+	      The profiler is described in the SWI-Prolog Reference Manual\n\
+	      available from www.swi-prolog.org').
 
 :- pce_end_class(prof_frame).
 
@@ -289,6 +291,7 @@ variable(node,    prolog,  get, "Currently shown node").
 
 initialise(W) :->
 	send_super(W, initialise),
+	send(W, pen, 0),
 	send(W, label, 'Details'),
 	send(W, background, colour(grey80)),
 	send(W, scrollbars, vertical),

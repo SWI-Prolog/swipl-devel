@@ -110,8 +110,9 @@ callTimer(UINT id, UINT msg, DWORD dwuser, DWORD dw1, DWORD dw2)
 
 
 static bool
-startProfiler(int how)
-{ MMRESULT rval;
+startProfiler(void)
+{ GET_LD
+  MMRESULT rval;
 
   DuplicateHandle(GetCurrentProcess(),
 		  GetCurrentThread(),
@@ -121,14 +122,14 @@ startProfiler(int how)
 		  FALSE,
 		  DUPLICATE_SAME_ACCESS);
 
-  my_LD = LD;
-
   if ( prof_new_ticks(mythread) < 0 )
   { printMessage(ATOM_informational,
 		 ATOM_profile_no_cpu_time);
   }
   virtual_events = 0;
   events = 0;
+
+  my_LD = LD;
 
   rval = timeSetEvent(10,
 		      5,		/* resolution (milliseconds) */
@@ -140,7 +141,7 @@ startProfiler(int how)
   else
     return PL_error(NULL, 0, NULL, ERR_SYSCALL, "timeSetEvent");
 
-  LD->profile.profiling = how;
+  LD->profile.active = TRUE;
 
   succeed;
 }

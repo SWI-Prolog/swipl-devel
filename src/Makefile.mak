@@ -70,7 +70,7 @@ HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h pl-itf.h pl-main.h \
 PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/license.pl \
 	../boot/sort.pl ../boot/bags.pl ../boot/apply.pl \
 	../boot/writef.pl ../boot/history.pl \
-	../boot/profile.pl ../boot/dwim.pl ../boot/rc.pl \
+	../boot/dwim.pl ../boot/rc.pl \
 	../boot/parms.pl ../boot/autoload.pl ../boot/qlf.pl \
 	../boot/topvars.pl ../boot/messages.pl ../boot/load.pl ../boot/menu.pl
 PLWINLIBS=	wise.pl dde.pl progman.pl registry.pl
