@@ -646,7 +646,7 @@ do_write2(term_t stream, term_t term, int flags)
     options.depth     = 0;
     options.out	      = s;
     options.module    = MODULE_user;
-    if ( true(options.module, CHARESCAPE) )
+    if ( options.module && true(options.module, CHARESCAPE) )
       options.flags |= PL_WRT_CHARESCAPES;
 
     PutOpenToken(EOF, s);		/* reset this */
