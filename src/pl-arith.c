@@ -479,7 +479,7 @@ toIntegerNumber(Number n)
   { long l;
 
 #ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
-    if ( !(n->value.f >= PLMININT) && (n->value.f <= PLMAXINT) )
+    if ( !((n->value.f >= PLMININT) && (n->value.f <= PLMAXINT)) )
       fail;
 #endif
 
@@ -503,7 +503,7 @@ canoniseNumber(Number n)
   { long l;
 
 #ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
-    if ( !(n->value.f >= PLMININT) && (n->value.f <= PLMAXINT) )
+    if ( !((n->value.f >= PLMININT) && (n->value.f <= PLMAXINT)) )
       return;
 #endif
 

@@ -1,6 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.7.5
+=============
+
+  * FIXED: typo in float <-> long conversion problem.
+
+  * FIXED: plld now passes -D* to the compiler rather then the linker.
+
 Version 2.7.4
 =============
 

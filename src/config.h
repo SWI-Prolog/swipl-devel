@@ -1,6 +1,19 @@
 /* config.h.  Generated automatically by configure.  */
 /* config.h.in.  Generated automatically from configure.in by autoheader.  */
 
+/* Define if using alloca.c.  */
+/* #undef C_ALLOCA */
+
+/* Define to one of _getb67, GETB67, getb67 for Cray-2 and Cray-YMP systems.
+   This function is required for alloca.c support on those systems.  */
+/* #undef CRAY_STACKSEG_END */
+
+/* Define if you have alloca, as a function or macro.  */
+#define HAVE_ALLOCA 1
+
+/* Define if you have <alloca.h> and it should be used (not on Ultrix).  */
+#define HAVE_ALLOCA_H 1
+
 /* Define if you have <sys/wait.h> that is POSIX.1 compatible.  */
 #define HAVE_SYS_WAIT_H 1
 
@@ -163,6 +176,9 @@
 
 /* Define if you have the getwd function.  */
 #define HAVE_GETWD 1
+
+/* Define if you have the isnan function.  */
+#define HAVE_ISNAN 1
 
 /* Define if you have the memmove function.  */
 #define HAVE_MEMMOVE 1

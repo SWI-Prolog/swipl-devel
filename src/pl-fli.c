@@ -487,7 +487,7 @@ PL_get_integer(term_t t, int *i)
     long l;
 
 #ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
-    if ( !(f >= PLMININT) && (f <= PLMAXINT) )
+    if ( !((f >= PLMININT) && (f <= PLMAXINT)) )
       fail;
 #endif
 
@@ -518,7 +518,7 @@ PL_get_long(term_t t, long *i)
     long l;
     
 #ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
-    if ( !(f >= PLMININT) && (f <= PLMAXINT) )
+    if ( !((f >= PLMININT) && (f <= PLMAXINT)) )
       fail;
 #endif
 

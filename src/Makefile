@@ -1,6 +1,6 @@
 # Generated automatically from Makefile.in by configure.
 ################################################################
-# Makefile for SWI-Prolog 2.1
+# Makefile for SWI-Prolog 2.7
 # $Id$
 #
 # Author:	Jan Wielemaker
@@ -11,11 +11,23 @@
 #		1018 WB  Amsterdam
 #		The Netherlands
 #
-# @configure-input@
+# Public targets:
+# 
+#	* make			Simply makes all programs in the current tree
+#	* make install		Installs the libraries and public executables
+#	* make install-libs	Installs only the libraries
 #
+# Copyright (c) University of Amsterdam, all rights reserved
+# 
+# Copyright policy:
+#	
+#	* Free for personal, academic and internal prototyping purposes
+#
+#	* A licence is required for distributing commercial applications
+#	  based on SWI-Prolog.  Contact prolog-request@swi.psy.uva.nl.
 ################################################################
 
-PLVERSION=2.7.2
+PLVERSION=2.7.5
 
 PL=pl
 prefix=/usr/local
@@ -100,8 +112,7 @@ banner:
 		@echo "****************"
 
 $(PL):		$(ALLOBJ)
-		LD_RUN_PATH=$(prefix)/lib ; \
-		    $(CC) $(LDFLAGS) -o $(PL) $(ALLOBJ) $(LIBS) $(STATICLIBS) 
+		$(CC) $(LDFLAGS) -o $(PL) $(ALLOBJ) $(LIBS) $(STATICLIBS) 
 
 
 $(STARTUPPATH):	$(PLINIT) pl-wam.o pl-wic.o
@@ -184,7 +195,12 @@ swiplbin:
 pl-funcs.h:	$(SRC)
 		mkproto -p $(SRC) > $@
 
-install:	idirs iboot ilib iinclude iruntime iman
+install:	install-libs
+		for f in $(PL) pl-bite chpl plld; do \
+		    ( cd $(bindir); rm -f $$f; ln -s $(PLBASE)/bin/$(ARCH)/$$f . ); \
+		done
+
+install-libs:	idirs iboot ilib iinclude iruntime iman
 		$(INSTALL_DATA) $(STARTUPPATH) $(PLBASE)/startup/startup
 		$(INSTALL_DATA) swipl $(PLBASE)
 		$(INSTALL_DATA) swiplbin $(PLBASE)/bin/swipl
@@ -202,9 +218,6 @@ install:	idirs iboot ilib iinclude iruntime iman
 			-f none \
 			-g make_library_index\('.'\) \
 			-t halt
-		-for f in $(PL) pl-bite chpl plld; do \
-		    ( cd $(bindir); rm -f $$f; ln -s $(PLBASE)/bin/$(ARCH)/$$f . ); \
-		done
 
 installdirs=	bin bin/$(ARCH) lib lib/$(ARCH) man boot library startup \
 		include runtime runtime/$(ARCH)

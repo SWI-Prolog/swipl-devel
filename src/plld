@@ -17,7 +17,7 @@ clibs=
 clibdirs=
 ldflags=
 cfiles=
-cflags=
+cflags="-D__SWI_PROLOG__ -D__SWI_EMBEDDED__"
 plfiles=
 plout="pl.out$$"			# temporary file for saved-state
 cout="c.out$$"				# temporary file for emulator
@@ -47,7 +47,7 @@ while [ -n "$1" ]; do
 	clibs="$clibs $1";;
     -L*)
         clibdirs="$clibdirs $1";;
-    -g|-I*)
+    -g|-I*|-D*)
 	cflags="$cflags $1";;
     *.o|*.c|*.C|*.cxx|*.cpp)
 	cfiles="$cfiles $1";;

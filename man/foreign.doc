@@ -1529,9 +1529,15 @@ libraries needed by the Prolog kernel are given.
     \option{-L{\em library-directory}}
 Specifies a library directory for the C-compiler.  By default the
 directory containing -lpl for the current architecture is passed.
-    \option{-g {\rm or} -I{\em include-directory}}
+    \option{-g {\rm or} -I{\em include-directory} {\rm or} -D{\em definition}}
 These options are passed to the C-compiler.  By default, the include
-directory containing \verb$<SWI-Prolog.h>$ is passed.
+directory containing \verb$<SWI-Prolog.h>$ is passed.  {\tt plld} adds
+two additional {\tt -D\em def} flags:
+\begin{description}
+\item[\tt -D__SWI_PROLOG__] Indicates the code is to be connected
+to SWI-Prolog.
+\item[\tt -D__SWI_EMBEDDED__] Indicates the creation of an embedded program.
+\end{description}
     \option{*.o {\rm or} *.c {\rm or} *.C {\rm or} *.cxx {\rm or} *.cpp}
 Passed as input files to the C-compiler
     \option{*.pl {\rm or} *.qlf}

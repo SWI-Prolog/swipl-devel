@@ -11,7 +11,7 @@
 
                    Reference Manual
 
-       Updated for version 2.7.0, April 1996
+        Updated for version 2.7.5, May 1996
 
                     Jan Wielemaker
 
@@ -7196,9 +7196,16 @@ options are passed.
      Specifies a library directory for the C-compiler. By default the
      directory containing -lpl for the current architecture is passed.
 
--g or -Iinclude-directory
+-g or -Iinclude-directory or -Ddefinition
      These options are passed to the C-compiler. By default, the
-     include directory containing <SWI-Prolog.h> is passed.
+     include directory containing <SWI-Prolog.h> is passed. plld
+     adds two additional -Ddef flags:
+
+     -D__SWI_PROLOG__  Indicates the code is to be connected to
+         SWI-Prolog.
+
+     -D__SWI_EMBEDDED__   Indicates the creation of an embedded
+         program.
 
 *.o or *.c or *.C or *.cxx or *.cpp
      Passed as input files to the C-compiler
@@ -7227,7 +7234,7 @@ The Prolog file is simple:
 
 The C-part of the application parses the command-line options,
 initialises the Prolog engine, locates the calc/1 predicate and calls it.
-The coder is in figure ??.
+The coder is in figure 5.5.
 
      #include <stdio.h>
      #include <SWI-Prolog.h>
@@ -7299,8 +7306,8 @@ The following indicates the usage of the application:
 
 Below is an example showing all stages of the declaration of a foreign
 predicate that transforms atoms possibly holding uppercase letters into
-an atom only holding lower case letters. Figure ?? shows the C-source
-file, figure ?? illustrates compiling and loading of foreign code.
+an atom only holding lower case letters. Figure 5.6 shows the C-source
+file, figure 5.7 illustrates compiling and loading of foreign code.
 
      /*  Include file depends on local installation */
      #include <SWI-Prolog.h>
