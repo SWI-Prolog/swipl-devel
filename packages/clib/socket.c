@@ -748,6 +748,10 @@ tcp_close_socket(term_t Socket)
   if ( !tcp_get_socket(Socket, &socket) )
     return FALSE;
 
+#ifdef WIN32
+  shutdown(socket, SD_BOTH);
+#endif
+
   freeSocket(socket);
 
   return TRUE;

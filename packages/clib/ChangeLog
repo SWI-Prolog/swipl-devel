@@ -1,3 +1,7 @@
+Dec 4, 2002
+
+  * FIXED: tcp_close_socket/1 to work on the listened socket. Peter Marks.
+
 Dec 2, 2002
 
  * ADDED: tcp_bind(+Socket, -Port) to bind with an arbitrary free port.
