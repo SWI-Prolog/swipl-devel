@@ -1034,13 +1034,13 @@ pl_set_stream(term_t stream, term_t attr)
 	int i;
   
 	if ( !PL_get_atom_ex(a, &alias) )
-	  fail;
+	  goto error;
 	
 	if ( (i=standardStreamIndexFromName(alias)) >= 0 )
 	{ LD->IO.streams[i] = s;
 	  if ( i == 0 )
 	    LD->prompt.next = TRUE;	/* changed standard input: prompt! */
-	  succeed;
+	  goto ok;
 	}
   
 	LOCK();
@@ -1048,13 +1048,13 @@ pl_set_stream(term_t stream, term_t attr)
 	  unaliasStream(symb->value, alias);
 	aliasStream(s, alias);
 	UNLOCK();
-	succeed;
+	goto ok;
       } else if ( aname == ATOM_buffer ) /* buffer(Buffering) */
       { atom_t b;
 
 #define SIO_ABUF (SIO_FBUF|SIO_LBUF|SIO_NBUF)
 	if ( !PL_get_atom_ex(a, &b) )
-	  fail;
+	  goto error;
 	if ( b == ATOM_full )
 	{ s->flags &= ~SIO_ABUF;
 	  s->flags |= SIO_FBUF;
@@ -1066,9 +1066,11 @@ pl_set_stream(term_t stream, term_t attr)
 	  s->flags &= ~SIO_ABUF;
 	  s->flags |= SIO_NBUF;
 	} else
-	  return PL_error("set_stream", 2, NULL, ERR_DOMAIN,
-			  ATOM_buffer, a);
-	succeed;
+	{ PL_error("set_stream", 2, NULL, ERR_DOMAIN,
+		   ATOM_buffer, a);
+	  goto error;
+	}
+	goto ok;
       } else if ( aname == ATOM_eof_action ) /* eof_action(Action) */
       { atom_t action;
 
@@ -1083,51 +1085,59 @@ pl_set_stream(term_t stream, term_t attr)
 	{ s->flags &= ~SIO_NOFEOF;
 	  s->flags |= SIO_FEOF2ERR;
 	} else
-	  return PL_error("set_stream", 2, NULL, ERR_DOMAIN,
-			  ATOM_eof_action, a);
+	{ PL_error("set_stream", 2, NULL, ERR_DOMAIN,
+		   ATOM_eof_action, a);
+	  goto error;
+	}
 
-	succeed;
+	goto ok;
       } else if ( aname == ATOM_close_on_abort ) /* close_on_abort(Bool) */
       { int close;
 
 	if ( !PL_get_bool_ex(a, &close) )
-	  fail;
+	  goto error;
 
 	if ( close )
 	  s->flags &= ~SIO_NOCLOSE;
 	else
 	  s->flags |= SIO_NOCLOSE;
 
-	succeed;
+	goto ok;
       } else if ( aname == ATOM_record_position )
       { int rec;
 
 	if ( !PL_get_bool_ex(a, &rec) )
-	  fail;
+	  goto error;
 
 	if ( rec )
 	  s->position = &s->posbuf;
 	else
 	  s->position = NULL;
 
-	succeed;
+	goto ok;
       } else if ( aname == ATOM_file_name ) /* file_name(Atom) */
       {	atom_t fn;
 
 	if ( !PL_get_atom_ex(a, &fn) )
-	  fail;
+	  goto error;
 
 	LOCK();
 	setFileNameStream(s, fn);
 	UNLOCK();
 
-	succeed;
+	goto ok;
       }
     }
   }
 
   return PL_error("set_stream", 2, NULL, ERR_TYPE,
 		  PL_new_atom("stream_attribute"), attr);
+ok:
+  releaseStream(s);
+  succeed;
+error:
+  releaseStream(s);
+  fail;
 }
 
 
