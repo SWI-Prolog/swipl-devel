@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: error message for illegal export list (Holger Kanwischer).
+
   * PORT: Check for -lexc on Tru64/DUnix when compiling for multi-threading
     (Sergey Tikhonov).
 
