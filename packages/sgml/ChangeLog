@@ -1,6 +1,10 @@
 VERSION 1.0.5
 =============
 
+* MODIFIED: Get SYSTEM entities relative to the file in which the
+  entity is declared.  Get PUBLIC entities from the second argument
+  if the catalog (entry) is not found.
+
 * FIXED: Deal with elements only containing shortref references
 
 * MODIFIED: Only insert missing close-tags that should not be on closing
