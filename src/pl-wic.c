@@ -32,14 +32,14 @@
 #endif
 
 static char *	getString(IOSTREAM *, unsigned *len);
-static long	getNum(IOSTREAM *);
+static int64_t	getNum(IOSTREAM *);
 static real	getReal(IOSTREAM *);
 static bool	loadWicFd(IOSTREAM *);
 static bool	loadPredicate(IOSTREAM *, int skip ARG_LD);
 static bool	loadImport(IOSTREAM *, int skip ARG_LD);
 static void	putString(const char *, unsigned len, IOSTREAM *);
 static void	putAtom(atom_t, IOSTREAM *);
-static void	putNum(long, IOSTREAM *);
+static void	putNum(int64_t, IOSTREAM *);
 static void	putReal(real, IOSTREAM *);
 static void	saveWicClause(Clause, IOSTREAM *);
 static void	closeProcedureWic(IOSTREAM *);
@@ -396,9 +396,9 @@ getMagicString(IOSTREAM *fd, char *buf, int maxlen)
 }
 
 
-static long
+static int64_t
 getNum(IOSTREAM *fd)
-{ long first = Getc(fd);
+{ int64_t first = Getc(fd);
   int bytes, shift, b;
 
   if ( !(first & 0xc0) )		/* 99% of them: speed up a bit */    
@@ -418,7 +418,7 @@ getNum(IOSTREAM *fd)
       first |= Getc(fd) & 0xff;
     }
 
-    shift = (sizeof(long)-1-bytes)*8 + 2;
+    shift = (sizeof(first)-1-bytes)*8 + 2;
   } else
   { int m;
 
@@ -429,7 +429,7 @@ getNum(IOSTREAM *fd)
     { first <<= 8;
       first |= Getc(fd) & 0xff;
     }
-    shift = (sizeof(long)-bytes)*8;
+    shift = (sizeof(first)-bytes)*8;
   }
 
   first <<= shift;
@@ -923,6 +923,14 @@ loadPredicate(IOSTREAM *fd, int skip ARG_LD)
 	      *bp++ = getNum(fd);
 	      n++;
 	      break;
+	    case CA1_INT64:
+	    { int64_t val = getNum(fd);
+	      Word p = (Word)&val;
+	      
+	      cpInt64Data(bp, p);
+	      n += WORDS_PER_INT64;
+	      break;
+	    }
 	    case CA1_FLOAT:
 	    { union
 	      { word w[WORDS_PER_DOUBLE];
@@ -1218,13 +1226,13 @@ First byte:  bits 8&7  bits 1-6 (low order)
 #define PLMINLONG   ((long)(-1L<<(LONGBITSIZE-1)))
 
 static void
-putNum(long n, IOSTREAM *fd)
+putNum(int64_t n, IOSTREAM *fd)
 { int m;
-  long absn = (n >= 0 ? n : -n);
+  int64_t absn = (n >= 0 ? n : -n);
 
   DEBUG(8, Sdprintf("0x%x at %ld\n", (unsigned long)n, Stell(fd)));
 
-  if ( n != PLMINLONG )
+  if ( n != PLMININT )
   { if ( absn < (1L << 5) )
     { Sputc((n & 0x3f), fd);
       return;
@@ -1537,6 +1545,15 @@ saveWicClause(Clause clause, IOSTREAM *fd)
       case CA1_INTEGER:
       { putNum(*bp++, fd);
 	n++;
+	break;
+      }
+      case CA1_INT64:
+      { int64_t val;
+	Word p = (Word)&val;
+
+	cpInt64Data(p, bp);
+	n += WORDS_PER_INT64;
+	putNum(val, fd);
 	break;
       }
       case CA1_FLOAT:

@@ -2602,6 +2602,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    *p++ = mkIndHdr(WORDS_PER_INT64, TAG_FLOAT);
 			    cpInt64Data(p, PC);
 			    *p   = mkIndHdr(WORDS_PER_INT64, TAG_FLOAT);
+			    continue;
 			  }
 	case B_FLOAT:
 	case A_DOUBLE:
