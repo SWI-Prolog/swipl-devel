@@ -966,7 +966,7 @@ scan_number(cucharp *s, int b, Number n)
 
 
 static int
-escape_char(cucharp in, ucharp *end, int newline)
+escape_char(cucharp in, ucharp *end, int quote)
 { int base, xdigits;
   int chr;
   unsigned c;
@@ -980,21 +980,25 @@ again:
     case 'b':
       OK('\b');
     case 'c':				/* skip \c<blank>* */
-      if ( newline )
+      if ( quote )
       { while(isBlank(*in))
 	  in++;
-	if ( (c=*in++) == '\\' )
+      skip_cont:
+	c = *in;
+	if ( c == '\\' )
+	{ in++;
 	  goto again;
+	}
+	if ( c == quote )		/* \c ' --> no output */
+	  OK(EOF);
 	OK(c);
       }
       OK('c');
     case '\n':				/* \LF<blank>* */
-      if ( newline )
+      if ( quote )
       { while(isBlank(*in) && *in != '\n' )
 	  in++;
-	if ( (c=*in++) == '\\' )
-	  goto again;
-	OK(c);
+	goto skip_cont;
       }
       OK('\n');
     case 'f':
@@ -1064,7 +1068,10 @@ get_string(unsigned char *in, unsigned char **end, Buffer buf,
       } else
 	break;
     } else if ( c == '\\' && DO_CHARESCAPE )
-      c = escape_char(in, &in, TRUE);
+    { c = escape_char(in, &in, quote);
+      if ( c == EOF )
+	continue;
+    }
 
     addBuffer(buf, c, char);
   }
@@ -1093,7 +1100,7 @@ get_number(cucharp in, ucharp *end, Number value, int escape)
       { int chr;
 
 	if ( escape && in[2] == '\\' )	/* 0'\n, etc */
-	{ chr = escape_char(in+3, end, FALSE);
+	{ chr = escape_char(in+3, end, 0);
 	} else
 	{ chr = in[2] & 0xff;
 	  *end = (ucharp)in+3;

@@ -10,6 +10,8 @@
 VERSION 5.2.0 (May 22, 2003)
 ============================
 
+  * FIXED: '\<NL>' to read as '' (JAcques).
+
   * ENHANCED: Source-level debugger only to disactivate the binding view
     on abort, so you can cut-and-paste bindings to the interaction window.
 
