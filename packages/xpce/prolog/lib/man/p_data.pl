@@ -437,12 +437,11 @@ man_module_name(_Obj, Module) :<-
 man_module(Obj, Create:[bool], Module) :<-
 	"Module for global objects"::
 	get(@manual, space, Space),
-	get(Obj, get_sub, man_module_name, ModuleName),
-	(   send(Space, ensure_loaded, ModuleName)
-	->  get(Space, module, ModuleName, Module)
+	get(Obj, man_module_name, ModuleName),
+	(   get(Space, module, ModuleName, @on, Module)
+	->  true
 	;   Create == @on
 	->  new(Module, man_module(Space, ModuleName))
-	;   fail
 	).
 
 
@@ -453,7 +452,6 @@ man_card(Obj, Create:[bool], Card) :<-
 	->  true
 	;   Create == @on
 	->  get(Obj, man_create_card, Card)
-	;   fail
 	).
 
 

@@ -18,7 +18,7 @@ standard XPCE library directory.
 
 :- module(dia_dialog, []).
 :- use_module(library(pce)).
-:- use_module(library('dialog/prompter')).
+:- use_module(library(pce_prompter)).
 :- [ proto,
      layout,
      generate,
@@ -47,7 +47,7 @@ standard XPCE library directory.
 :- pce_autoload(finder, library(find_file)).
 :- pce_global(@finder, new(finder)).
 
-dia_version('0.5').
+dia_version('0.6').
 
 :- initialization pce_help_file(dialog, pce_help('dialog.hlp')).
 :- initialization pce_image_directory(library('dialog/bitmaps')).
@@ -75,7 +75,7 @@ make_dia_proto_recogniser(R) :-
 
 	new(R, handler_group(
 		new(RG, resize_gesture(@default, c)),
-		new(_DG, drag_and_drop_gesture(middle, '', @off)),
+		new(_DG, drag_and_drop_gesture(left, '', @off)),
 		new(_,  click_gesture(left, '', single,
 				      message(DI, help_ui))),
 		new(EG, click_gesture(left, '', double,
@@ -438,18 +438,40 @@ drop(D, DI:graphical, Pos:point) :->
 	).
 	    
 
+preview_drop(D, DI:graphical*, Pos:[point]) :->
+	(   DI == @nil			% stop the preview
+	->  (   get(D, attribute, preview_outline, OL)
+	    ->	send(OL, device, @nil),
+		send(D, delete_attribute, preview_outline)
+	    ;	true
+	    )
+	;   get(D, attribute, preview_outline, OL) % moving outline
+	->  send(OL, position, Pos)
+	;   (   send(DI, instance_of, msg_object)
+	    ->	get(DI, ui_object, UI)
+	    ;	UI = DI
+	    ),
+	    get(UI?area, size, size(W, H)), % move or import
+	    send(D, attribute, preview_outline, new(OL, box(W, H))),
+	    send(OL, texture, dotted),
+	    send(D, display, OL, Pos)
+	).
+
+
+
 :- pce_global(@dia_dialog_recogniser, make_dia_dialog_recogniser).
 :- free(@dia_dialog_recogniser).
 
 make_dia_dialog_recogniser(G) :-
 	D = @receiver, 
+	new(NoRunMode, @arg1?receiver?(mode) \== run), % @arg1 is the event
 	new(G, handler_group(new(C, click_gesture(left, '', single,
 						  message(D, make_current))),
 			     new(A, click_gesture(left, '', double,
 						  message(D,
 							  edit_attributes))))),
-	send(C, condition, @event?receiver?(mode) \== run),
-	send(A, condition, @event?receiver?(mode) \== run).
+	send(C, condition, NoRunMode),
+	send(A, condition, NoRunMode).
 
 
 event(D, Ev:event) :->
@@ -667,7 +689,7 @@ make_dia_proto_icon_recogniser(G) :-
 			       @receiver?identify))),
 	new(O, handler(area_exit,
 		       message(@receiver, report, status, ''))),
-	new(D, drag_and_drop_gesture(middle, @default, @off)),
+	new(D, drag_and_drop_gesture(left, @default, @off)),
 	send(D, get_source, @arg1?prototype),
 	new(H, click_gesture(left, '', single,
 			     message(@event?receiver, report, status,
@@ -697,6 +719,26 @@ drop(D, DI:graphical, _Pos) :->
 	->  true
 	;   send(DI, free)		% delete
 	).
+
+
+preview_drop(D, DI:graphical*) :->
+	send(@event, instance_of, event),
+	get(@event, window, Window),
+	(   DI == @nil
+	->  (   get(D, attribute, saved_drag_cursor, Cursor)
+	    ->	send(Window, focus_cursor, Cursor),
+		send(D, delete_attribute, saved_drag_cursor)
+	    ;	true
+	    )
+	;   (   (   get(DI, device, D)
+		;	get(DI, device, @nil)
+		)
+	    ->  fail
+	    ;   send(D, attribute, saved_drag_cursor, Window?focus_cursor),
+		send(Window, focus_cursor, pirate)
+	    )
+	).
+
 
 fill(D) :->
 	"Append all prototypes"::

@@ -27,6 +27,24 @@
 typedef void (*VoidFunc)();
 typedef void (*sig_handler_t)(int);
 typedef void (*atexit_hook_t)(void);
+typedef void (*onexit_hook_t)(void *);
+
+static char * host_action_names[] =
+{ "HOST_QUERY",
+  "HOST_TRACE",
+  "HOST_BACKTRACE",
+  "HOST_HALT",
+  "HOST_BREAK",
+  "HOST_SYMBOLFILE",
+  "HOST_ABORT",
+  "HOST_SIGNAL",
+  "HOST_RECOVER_FROM_FATAL_ERROR",
+  "HOST_WRITE",
+  "HOST_FLUSH",
+  "HOST_ATEXIT"
+};
+
+#define HIGHEST_HOST_ACTION_NAME (sizeof(host_action_names) / sizeof(char *))
 
 int
 Stub__HostActionv(int action, va_list args)
@@ -41,13 +59,21 @@ Stub__HostActionv(int action, va_list args)
       break;
     }
 #endif
+#if HAVE_ON_EXIT
+    { onexit_hook_t func = va_arg(args, onexit_hook_t);
+
+      on_exit(func);
+      break;
+    }
+#endif
     case HOST_TRACE:
     case HOST_BACKTRACE:
     case HOST_BREAK:
     case HOST_ABORT:
     case HOST_RECOVER_FROM_FATAL_ERROR:
       fprintf(stderr,
-	      "hostAction(%d) not supported for C++-interface\n", action);
+	      "hostAction(%d (=%s)) not supported for C++-interface\n",
+	      action, host_action_names[action]);
       rval = PCE_FAIL;
       break;
     case HOST_HALT:

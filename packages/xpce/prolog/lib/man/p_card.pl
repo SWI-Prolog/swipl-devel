@@ -65,10 +65,21 @@ module(S, ModuleName:name, Load:[bool], Module) :<-
 	).
 
 
-module_file(S, Module, File) :<-
+module_file(S, Module:name, File:file) :<-
 	"Find file for storing module"::
 	concat(Module, '.doc', FileName),
-	get(S?directory, file, FileName, File).
+	(   concat('class/', ClassName, Module),
+	    get(@pce, convert, ClassName, class, Class),
+	    get(Class, creator, host),
+	    get(Class, source, source_location(Path, _)),
+	    file_directory_name(Path, SrcDir),
+	    concat_atom([SrcDir, '/doc'], DocDirName),
+	    new(DocDir, directory(DocDirName)),
+	    send(DocDir, exists)
+	->  true
+	;   get(S, directory, DocDir)
+	),
+	get(DocDir, file, FileName, File).
 
 
 save_some(S) :->

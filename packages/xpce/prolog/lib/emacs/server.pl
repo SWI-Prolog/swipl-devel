@@ -37,13 +37,17 @@ make_emacs_server(Socket) :-
 server_action_atom(Socket, Action) :-
 	get(Action, value, Atom),
 	term_to_atom(Term, Atom),
-	server_action(Term, Socket).
+	(   server_action(Term, Socket)
+	->  true
+	;   send(Socket, format, 'Request failed: %s\n', Action),
+	    send(Socket, free)
+	).
 
 
-server_action((A,B), Socket) :-
+server_action((A,B), Socket) :- !,
 	server_action(A, Socket),
 	server_action(B, Socket).
-server_action(edit(File), Socket) :-
+server_action(edit(File), Socket) :- !,
 	new(B, emacs_buffer(File)),
 	new(W, emacs_window(B)),
 	send(W, sticky_window),

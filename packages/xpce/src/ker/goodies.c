@@ -552,6 +552,11 @@ str_writefv(String s, CharArray format, int argc, Any *argv)
 extern int vsscanf(const char *, const char *, va_list);
 #endif
 
+#ifdef ALLOCA_BUG
+#undef alloca
+#define alloca(n) malloc(n)
+#endif /*ALLOCA_BUG*/
+
 Int
 scanstr(char *str, char *fmt, Any *r)
 { int types[SCAN_MAX_ARGS];
@@ -635,7 +640,8 @@ scanstr(char *str, char *fmt, Any *r)
 	  case 's':
 	    if ( !supress )
 	    { types[argn]  = T_CHARP;
-	      ptrs[argn++] = alloca(LINESIZE);
+	      ptrs[argn] = alloca(LINESIZE);
+	      argn++;
 	    }
 	    s++;
 	    continue;
@@ -802,10 +808,15 @@ scanstr(char *str, char *fmt, Any *r)
 	break;
     }
 
+#ifdef ALLOCA_BUG
+    free(ptrs[n]);
+#endif
+
     r[n] = val;
   }
 
 #undef arg
+
 
   return toInt(ar);
 }

@@ -291,6 +291,7 @@ NewClass(textitem)
   Bool	     show_label;		/* Show the label */
   TextObj    value_text;		/* Displayed text value */
   Bool	     editable;			/* TextItem is editable */
+  Int	     value_width;		/* Width of value-field in pixels */
 End;
 
 NewClass(slider)

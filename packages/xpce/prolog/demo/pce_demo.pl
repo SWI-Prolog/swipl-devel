@@ -93,32 +93,11 @@ view_source(Browser) :-
 	    )
 	).
 
-pce_ifhostproperty(prolog(quintus),
-	       (   locate_file(Base, File) :-
-	       		absolute_file_name(Base,
-					   [ file_type(prolog),
-					     access(read)
-					   ], File)),
-	       [
-(locate_file(Base, File) :-
-	atom(Base),
-	member(Ext, ['.pl', '']),
-	new(S, string('%s%s', Base, Ext)),
-	send(file(S), exists), !,
-	get(S, value, File)),
-(locate_file(Spec, Path) :-
-	functor(Spec, Alias, 1),
-	user:file_search_path(Alias, Dir),
-	(   atom(Dir)
-	->  arg(1, Spec, Base),
-	    concat_atom([Dir, /, Base], Exp),
-	    locate_file(Exp, Path)
-	;   functor(Dir, NewAlias, 1),
-	    arg(1, Dir, C),
-	    concat_atom([C, /, Base], C2),
-	    NSpec =.. [NewAlias, C2],
-	    locate_file(NSpec, Path)
-	))]).
+locate_file(Base, File) :-
+	absolute_file_name(Base,
+			   [ file_type(prolog),
+			     access(read)
+			   ], File).
 
 
 		/********************************

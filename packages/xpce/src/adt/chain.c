@@ -218,7 +218,7 @@ addChain(register Chain ch, Any obj)
 }
 
 
-static status
+status
 insertChain(Chain ch, Any obj)
 { Cell cell, prev, current = ch->current;
 

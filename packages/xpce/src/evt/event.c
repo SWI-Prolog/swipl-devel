@@ -1,5 +1,6 @@
 /*  $Id$
 
+
     Part of XPCE
     Designed and implemented by Anjo Anjewierden and Jan Wielemaker
     E-mail: jan@swi.psy.uva.nl
@@ -396,8 +397,12 @@ get_xy_event_display(EventObj ev, DisplayObj d, int *rx, int *ry)
 static void
 get_xy_event_device(EventObj ev, Device dev, int *rx, int *ry)
 { int ox, oy;
+  PceWindow sw = getWindowGraphical((Graphical) dev);
 
-  get_xy_event_window(ev, ev->window, OFF, rx, ry);
+  if ( !sw )
+    sw = ev->window;			/* error? */
+
+  get_xy_event_window(ev, sw, OFF, rx, ry);
   offsetDeviceGraphical(dev, &ox, &oy);
   *rx -= ox + valInt(dev->offset->x);
   *ry -= oy + valInt(dev->offset->y);
@@ -532,10 +537,23 @@ insideEvent(EventObj ev, Graphical gr)
   if ( isDefault(gr) )
     gr = ev->receiver;
 
-  if ( instanceOfObject(gr, ClassWindow) )
-    succeed;				/* TBD: visible area? */
-
   TRY( get_xy_event(ev, gr, ON, &x, &y) );
+  if ( instanceOfObject(gr, ClassWindow) )
+  { int vx, vy, vw, vh; 
+    PceWindow sw = (PceWindow) gr;
+    int p = valInt(sw->pen);
+    int ex = valInt(x);
+    int ey = valInt(y);
+
+    compute_window(sw, &vx, &vy, &vw, &vh);
+    vx -= valInt(sw->scroll_offset->x) + p;
+    vy -= valInt(sw->scroll_offset->y) + p;
+    if ( ex >= vx && ex <= vx+vw &&
+	 ey >= vy && ey <= vy+vh )
+      succeed;
+
+    fail;
+  }
 
   return inEventAreaGraphical(gr, add(gr->area->x, x), add(gr->area->y, y));
 }

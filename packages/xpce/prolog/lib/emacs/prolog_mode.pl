@@ -417,20 +417,23 @@ preview_drop(M, Obj:object*) :->
 	"Preview the upcomming drop action"::
 	(   Obj == @nil
 	->  send(M, report, status, '')
-	;   get(Obj, get_method, prolog_source, tuple(_, Method)),
-	    (	get(Method, summary, Summary), Summary \== @nil
+	;   get(Obj, get_method, prolog_source, tuple(_, Method))
+	->  (	get(Method, summary, Summary), Summary \== @nil
 	    ->	send(M, report, status, 'Drop to include %s', Summary)
 	    ;   send(M, report, status,
 		     'Please drop to include source at caret')
 	    )
+	;   send(M, send_super, preview_drop, Obj)
 	).
 
 drop(M, Obj:object) :->
 	"Import source-code from object"::
-	send(Obj, has_get_method, prolog_source),
-	send(M, insert, Obj?prolog_source),
-	send(M, mark_undo),
-	send(M, report, status, 'Source included').
+	(   send(Obj, has_get_method, prolog_source)
+	->  send(M, insert, Obj?prolog_source),
+	    send(M, mark_undo),
+	    send(M, report, status, 'Source included')
+	;   send(M, send_super, drop, Obj)
+	).
 
 :- emacs_end_mode.
 

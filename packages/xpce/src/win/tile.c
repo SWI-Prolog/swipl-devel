@@ -305,6 +305,7 @@ static status
 distribute_stretches(stretch *s, int n, int w)
 { int ok = FALSE;
   int i;
+  int maxloop = n;
   
   if ( w <= 0 )
   { for(i=0; i<n; i++)
@@ -313,7 +314,7 @@ distribute_stretches(stretch *s, int n, int w)
     succeed;
   }
 
-  while( !ok )
+  while( !ok && maxloop-- > 0 )
   { int total_ideal = 0, total_stretch = 0, total_shrink = 0;
     int grow, growed;
     int is_pos;
@@ -322,6 +323,8 @@ distribute_stretches(stretch *s, int n, int w)
     { total_ideal   += s[i].ideal;
       total_stretch += s[i].stretch;
       total_shrink  += s[i].shrink;
+      DEBUG(NAME_tile, Cprintf("%-2d %-3d <- %-3d -> %-3d\n",
+			       i, s[i].shrink, s[i].ideal, s[i].stretch));
     }
 
     grow = w - total_ideal;
@@ -332,6 +335,8 @@ distribute_stretches(stretch *s, int n, int w)
 	  is_pos++;
     } else
       is_pos = n;
+
+    DEBUG(NAME_tile, Cprintf("grow = %d, is_pos = %d\n", grow, is_pos));
 
     for(growed = 0, i = 0; i < n; i++)
     { int grow_this;
@@ -354,6 +359,10 @@ distribute_stretches(stretch *s, int n, int w)
     { int do_grow = (grow > 0);
       int stretchables;
       int per_stretchable;
+      int stretchall;
+      int m;
+
+      DEBUG(NAME_tile, Cprintf("Show grow %d, done %d\n", grow, growed));
 
       if ( grow < 0 )			/* normalise */
       { grow = -grow;
@@ -361,21 +370,31 @@ distribute_stretches(stretch *s, int n, int w)
       }
 
       for(i=0, stretchables=0; i < n; i++)
-	if ( (do_grow ? s[i].stretch : s[i].shrink) > 0)
+      { if ( (do_grow ? s[i].stretch : s[i].shrink) > 0)
 	  stretchables++;
+      }
 					/* No one wants, so all have to */
       if ( stretchables == 0 )
-	stretchables = n;
-
+      { stretchables = is_pos;
+	stretchall = FALSE;
+      } else
+      { stretchall = TRUE;
+      }
 					/* distribute outside --> inside */
       per_stretchable = (grow - growed + stretchables - 1) / stretchables;
 
-      for( i=0; growed < grow; i++ )
+      for( i=0, m=n; growed < grow, m-- > 0; i++ )
       { int j = (i%2 ? i : n - i - 1);
 
-	if ( stretchables == n || s[j].stretch > 0 )
+	if ( stretchall ||
+	     (do_grow ? s[j].stretch : s[i].shrink) > 0 )
 	{ int to_grow = (grow - growed < per_stretchable ? grow - growed
 							 : per_stretchable);
+	  
+					/* don't make negative */
+	  if ( !do_grow	&& to_grow > s[j].size )
+	    to_grow = s[j].size;
+
 	  s[j].size += (do_grow ? to_grow : -to_grow);
 	  growed += to_grow;
 	}
@@ -387,6 +406,7 @@ distribute_stretches(stretch *s, int n, int w)
     { if ( s[i].size < 0 )
       { s[i].ideal = 0;
         s[i].shrink = 0;
+	DEBUG(NAME_tile, Cprintf("%d is negative; setting to 0\n", i));
 	ok = FALSE;
       }
     }

@@ -307,6 +307,67 @@ compare_dict_items(const void *d1, const void *d2)
 
 
 static status
+insertDict(Dict dict, DictItem di)
+{ int codesort = FALSE;
+  Cell cell;
+  DictItem di2;
+  int cmp;
+
+					/* not sorted or empty: just append */
+  if ( isNil(dict->sort_by) || dict->members->size == ZERO )
+    return appendDict(dict, di);
+
+					/* delete from possible old dict */
+  if ( notNil(di->dict) )
+  { addCodeReference(di);
+    deleteDict(di->dict, di);
+    delCodeReference(di);
+  }
+
+					/* find out sorting rules */
+  if ( isDefault(dict->sort_by) )
+  { sort_ignore_case   = FALSE;
+    sort_ignore_blanks = FALSE;
+  } else
+  { qsortCompareCode = dict->sort_by;
+    codesort++;
+  }
+
+					/* after the last: use append */
+  di2 = getTailChain(dict->members);
+  cmp = codesort ? qsortCompareObjects(&di, &di2) 
+	         : compare_dict_items(&di, &di2);
+  if ( cmp >= 0 )
+    return appendDict(dict, di);
+
+					/* associate with the dict */
+  assign(di, dict, dict);
+  if ( notNil(dict->table) )
+    appendHashTable(dict->table, di->key, di);
+  
+					/* find its place */
+  for_cell(cell, dict->members)
+  { di2 = cell->value;
+
+    cmp = codesort ? qsortCompareObjects(&di, &di2) 
+		   : compare_dict_items(&di, &di2);
+    if ( cmp < 0 )
+    { dict->members->current = cell;
+      insertChain(dict->members, di);
+      break;
+    }
+  }
+
+  renumberDict(dict);
+  
+  if ( notNil(dict->browser) )
+    send(dict->browser, NAME_InsertItem, di, 0);
+
+  succeed;
+}
+
+
+static status
 sortDict(Dict dict, Any code_or_ign_case, Bool ign_blanks, Bool reverse)
 { int count, i=0;
   DictItem *items;
@@ -314,12 +375,15 @@ sortDict(Dict dict, Any code_or_ign_case, Bool ign_blanks, Bool reverse)
   Chain old;				/* reference count */
   int codesort = FALSE;
   int oldrev = qsortReverse;
+  Code sortcode;
 
   if ( valInt(dict->members->size) <= 1 )
     succeed;
 
-  if ( instanceOfObject(code_or_ign_case, ClassCode) )
-  { qsortCompareCode = code_or_ign_case;
+  if ( instanceOfObject((sortcode=code_or_ign_case), ClassCode) ||
+       (isDefault(code_or_ign_case) &&
+	instanceOfObject((sortcode=dict->sort_by), ClassCode)) )
+  { qsortCompareCode = sortcode;
     codesort++;
   } else
   { if ( isDefault(code_or_ign_case) )
@@ -331,9 +395,6 @@ sortDict(Dict dict, Any code_or_ign_case, Bool ign_blanks, Bool reverse)
     sort_ignore_blanks = (ign_blanks == ON);
   }
 
-  old = dict->members;
-  lockObject(old, ON);
-
   count = valInt(dict->members->size);
   items = malloc((count*sizeof(DictItem)));
   for_cell(cell, dict->members)
@@ -344,15 +405,27 @@ sortDict(Dict dict, Any code_or_ign_case, Bool ign_blanks, Bool reverse)
 	codesort ? qsortCompareObjects : compare_dict_items);
   qsortReverse = oldrev;
 
+					/* see whether something changed */
+  for(i=0, cell = dict->members->head; i < count; i++, cell = cell->next)
+  { if ( cell->value != items[i] )
+      break;
+  }
+  if ( i == count )			/* no change */
+  { free(items);
+    succeed;
+  }
+
+  if ( notNil(dict->browser) )
+    send(dict->browser, NAME_Clear, 0);
+
+  old = dict->members;
+  lockObject(old, ON);
   assign(dict, members, newObject(ClassChain, 0));
   
   if ( notNil(dict->table) )
   { clearHashTable(dict->table);
     assign(dict, table, NIL);
   }
-
-  if ( notNil(dict->browser) )
-    send(dict->browser, NAME_Clear, 0);
 
   for (i=0; i<count; i++)
   { assign(items[i], dict, NIL);
@@ -361,6 +434,16 @@ sortDict(Dict dict, Any code_or_ign_case, Bool ign_blanks, Bool reverse)
   free(items);
 
   freeObject(old);
+
+  succeed;
+}
+
+
+static status
+sortByDict(Dict dict, Code code)
+{ assign(dict, sort_by, code);
+  if ( notNil(code) )
+    return send(dict, NAME_sort, 0);
 
   succeed;
 }
@@ -469,9 +552,13 @@ makeClassDict(Class class)
 	     "Objects in the dictionary");
   localClass(class, NAME_table, NAME_hashing, "hash_table*", NAME_none,
 	     "Hashtable for access on key");
+  localClass(class, NAME_sortBy, NAME_order, "[code]*", NAME_get,
+	     "Sorting rule to apply");
 
   termClass(class, "dict", 0);
   saveStyleVariableClass(class, NAME_table, NAME_nil);
+
+  storeMethod(class, NAME_sortBy, sortByDict);
 
   sendMethod(class, NAME_initialise, DEFAULT, 1, "member=dict_item ...",
 	     "Create a dict and append the arguments",
@@ -479,6 +566,9 @@ makeClassDict(Class class)
   sendMethod(class, NAME_unlink, DEFAULT, 0,
 	     "Destroy hash-table and unlink from browser",
 	     unlinkDict);
+  sendMethod(class, NAME_insert, NAME_add, 1, "item=dict_item",
+	     "Insert dict_item according to <-sort_by",
+	     insertDict);
   sendMethod(class, NAME_append, NAME_add, 1, "item=dict_item",
 	     "Append dict_item at the end",
 	     appendDict);

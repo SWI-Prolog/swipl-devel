@@ -10,12 +10,15 @@
 :- module(pce_help, []).
 :- use_module(library(pce)).
 :- use_module(library(pce_prompter)).
-:- require([ default/3
+:- require([ concat/3
+	   , default/3
 	   , forall/2
 	   , ignore/1
+	   , manpce/1
 	   , pce_help_file/2
 	   , pce_registered_help_file/2
 	   , send_list/3
+	   , term_to_atom/2
 	   ]).
 
 
@@ -95,6 +98,11 @@ give_help(Helper, Database:name, Label:name) :->
 		     'Illegal data-format in %N', File),
 		fail
 	    )
+	;   term_to_atom(DBTerm, Database),
+	    functor(DBTerm, _, 1),
+	    arg(1, DBTerm, DBname)
+	->  assert(pce_registered_help_file(DBname, DBTerm)),
+	    send(Helper, give_help, DBname, Label)
 	;   send(Helper, report, error,
 		 'No help-database called %s', Database),
 	    fail
@@ -277,7 +285,8 @@ initialise(E, Data:[file|text_buffer]) :->
 	send(E, editable, @off),
 
 	send(E?image, recogniser,
-	     new(C, click_gesture(left, '', double, message(E, follow)))),
+	     new(C, click_gesture(left, '', double,
+				  message(E, follow)))),
 	send(C, condition, E?button),
 	send(E?image, recogniser,
 	     popup_gesture(@hlp_editor_popup, right, c)),
@@ -587,16 +596,47 @@ make_keyword(E) :->
 	get(E, region, point(Start, End)),
 	new(_, hlp_fragment(E, Start, End - Start, keyword)).
 
+default_link_destination(E, Dest:name) :<-
+	"Label of fragment at mark"::
+	(   get(E, mark, Mark),
+	    get(E, find_all_fragments,
+		and(message(@arg1, overlap, Mark),
+		    @arg1?label \== @nil),
+		Frags),
+	    get(Frags, head, DestFrag)
+	->  get(DestFrag, label, Dest)
+	;   Dest = ''
+	).
+
 make_button(E) :->
 	"Turn region into a button"::
 	get(E, region, point(Start, End)),
 	new(F, hlp_fragment(E, Start, End - Start, button)),
-	(   prompter('Label for fragment',
-		     [ label:name = Label
+	get(E, default_link_destination, Dest),
+	(   prompter('Make a button',
+		     [ type:{label,prolog,manpce} = Type/label,
+		       destination:name = Label/Dest
 		     ])
-	->  send(F, label, Label)
+	->  make_label(Type, Label, TheLabel),
+	    send(F, label, TheLabel)
 	;   send(F, free)
 	).
+
+make_label(label, Label, Label) :- !,
+	(   Label == ''
+	->  send(@nil, report, error, 'No label specified'),
+	    fail
+	;   true
+	).
+make_label(prolog, Goal, Label) :-
+	(   term_to_atom(_Term, Goal)
+	->  concat('prolog://', Goal, Label)
+	;   send(@nil, report, error, 'Syntax error in Prolog goal'),
+	    fail
+	).
+make_label(manpce, Where, Label) :-
+	concat('manpce://', Where, Label).
+
 
 		 /*******************************
 		 *	       KEYWORDS		*
@@ -629,10 +669,20 @@ keyword_fragments(E, Frags:chain) :<-
 		 *	       ISPELL		*
 		 *******************************/
 
-:- pce_autoload(ispell, demo(ispell)).
+%	Start the ispell tool on this buffer.  This used to be included
+%	using a pce_autoload/2 declaration, but this forces ispell to
+%	go into each stand-alone executable.  Hence this solution.
 
 ispell(E) :->
 	"Start ispell on this help-file"::
+	(   absolute_file_name(demo(ispell),
+			       [ file_type(prolog),
+				 access(read)
+			       ], _)
+	->  ensure_loaded(demo(ispell))
+	;   send(E, report, error, 'Cannot find demo(ispell)'),
+	    fail
+	),
 	new(Ispell, ispell),
 	get(E, text_buffer, TB),
 	send(Ispell, buffer, TB),
@@ -646,18 +696,59 @@ ispell(E) :->
 		 *******************************/
 
 
+:- pce_global(@hlp_external_regex, new(regex('^\(.+\):\(\w+$\)'))).
+:- pce_global(@hlp_prolog_regex, new(regex('^prolog://\(.*\)$'))).
+:- pce_global(@hlp_manpce_regex, new(regex('^manpce://\(.*\)$'))).
+
 button(E, Button:hlp_fragment) :<-
 	"Find button at caret"::
 	get(E, fragment, @arg1?style == button, Button).
 
 
+caret(E, Index:[int]) :->
+	"Move the caret, but preview links"::
+	send(E, send_super, caret, Index),
+	(   get(E, button, Button)
+	->  send(E, report, status, 'Goto "%s"?', Button?label)
+	;   true
+	).
+
+
 follow(E) :->
 	"Follow button"::
-	send(E, goto, E?button?label).
+	get(E, button, Button),
+	send(E, goto, Button?label, Button).
 
 
-goto(E, Label:name) :->
+goto(E, Label:name, Button:[hlp_fragment]) :->
 	"Goto named label and select it"::
+	goto(E, Label, Button).
+
+goto(E, Label, _) :-
+	send(@hlp_prolog_regex, match, Label), !,
+	get(@hlp_prolog_regex, register_value, Label, 1, name, GoalAtom),
+	(   atom_to_term(GoalAtom, Goal, Bindings)
+	->  (   user:Goal
+	    ->  report_bindings(E, Bindings)
+	    ;   send(E, report, status, 'Failed: %s', GoalAtom)
+	    )
+	;   send(E, report, error, 'Syntax error in %s', GoalAtom)
+	).
+goto(_, Label, Button) :-
+	send(@hlp_manpce_regex, match, Label), !,
+	get(@hlp_manpce_regex, register_value, Label, 1, name, Dest0),
+	(   Dest0 == ''
+	->  get(Button, string, Dest1),
+	    get(Dest1, value, Dest)
+	;   Dest = Dest0
+	),
+	manpce(Dest).
+goto(_, Label, _) :-
+	send(@hlp_external_regex, match, Label), !,
+	get(@hlp_external_regex, register_value, Label, 1, name, DB),
+	get(@hlp_external_regex, register_value, Label, 2, name, Lbl),
+	send(@helper, give_help, DB, Lbl).
+goto(E, Label, _) :-
 	get(E, find_all_fragments,
 	    and(@arg1?style \== button,
 		@arg1?label == Label),
@@ -668,6 +759,20 @@ goto(E, Label:name) :->
 	;   send(E, goto_fragment, Fragments?head)
 	).
 
+report_bindings(E, []) :- !,
+	send(E, report, status, 'Yes').
+report_bindings(E, Bindings) :- !,
+	new(S, string),
+	forall(member(N=V, Bindings),
+	       (   (   get(S, size, 0)
+		   ->  true
+		   ;   send(S, append, ', ')
+		   ),
+		   sformat(Str, '~w = ~p', [N, V]),
+		   send(S, append, Str)
+	       )),
+	send(S, translate, 10, 32),	% newlines to spaces
+	send(E, report, status, S).
 
 goto_fragment(E, Frag:fragment) :->
 	"Make fragment the current one"::

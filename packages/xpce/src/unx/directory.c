@@ -56,6 +56,8 @@ static Name  ExpandProblem;
 static char *	canonisePath(char *);
 static Name	getWorkingDirectoryPce(Pce pce);
 
+#define MODIFIED_NOT_SET ((unsigned long) ~0L)
+
 /*  Sun Common Lisp 3.0 apparently redefines readdir(3) and associated
     functions by redefining the dirent structure.  In order to avoid
     having to generate two versions of PCE.o, we assume that when PCE
@@ -95,6 +97,7 @@ initialiseDirectory(Directory d, Name name)
 
   assign(d, path, CtoName(absolutePath(expanded)));
   assign(d, name, CtoName(baseName(expanded)));
+  d->modified = MODIFIED_NOT_SET;
 
   succeed;
 }
@@ -209,10 +212,11 @@ scanDirectory(Directory d, Chain files, Chain dirs, Regex pattern, Bool all)
 	  }
 	  doneScratchCharArray(ca);
 	}
-	appendChain(files, CtoName(name));
 
 	if ( all != ON && name[0] == '.' )
 	  continue;
+
+	appendChain(files, CtoName(name));
       } else if ( (notNil(dirs) && (buf.st_mode & S_IFMT) == S_IFDIR) )
       { if ( all != ON && name[0] == '.' )
 	  continue;
@@ -339,6 +343,26 @@ accessDirectory(Directory d, Name mode)
 }
 
 
+static status
+changedDirectory(Directory d)
+{ struct stat buf;
+
+  if ( stat(strName(d->path), &buf) < 0 )
+    succeed;			/* we signal non-extistence as changed */
+
+  if ( d->modified == MODIFIED_NOT_SET )
+  { d->modified = buf.st_mtime;
+    fail;
+  } 
+  if ( buf.st_mtime > d->modified )
+  { d->modified = buf.st_mtime;
+    succeed;
+  }
+
+  fail;
+}
+
+
 static Name
 getPrintNameDirectory(Directory dir)
 { answer(isName(dir->path) ? dir->path : dir->name);
@@ -353,6 +377,8 @@ makeClassDirectory(Class class)
 	     "Name of the directory");
   localClass(class, NAME_path, NAME_name, "name", NAME_get,
 	     "Full path name");
+  localClass(class, NAME_modified, NAME_time, "alien:ulong", NAME_none,
+	     "Time stamp for ->changed");
 
   termClass(class, "directory", 1, NAME_name);
 
@@ -385,6 +411,9 @@ makeClassDirectory(Class class)
 	     "pattern=[regex]", "hidden_too=[bool]",
 	     "Get member files and directories",
 	     scanDirectory);
+  sendMethod(class, NAME_modified, NAME_time, 0,
+	     "Succeed if directory has changed since last test",
+	     changedDirectory);
 
   getMethod(class, NAME_parent, NAME_hierarchy, "directory", 0,
 	    "New directory for parent directory",

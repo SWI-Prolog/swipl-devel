@@ -859,9 +859,14 @@ findFile(FileObj f, CharArray path, Name mode)
     pathstr = strName(path);
 
   while( pathstr && *pathstr )
-  { char *end;
+  { char *end = pathstr;
 
-    if ( (end = strchr(pathstr, ':')) == NULL )
+#ifdef __WIN32__
+    if ( isletter(end[0]) && end[1] == ':' )
+      end += 2;
+#endif
+
+    if ( (end = strchr(end, ':')) == NULL )
     { strcpy(name, pathstr);
       pathstr = NULL;
     } else

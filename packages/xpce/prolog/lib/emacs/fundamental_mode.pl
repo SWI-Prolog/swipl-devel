@@ -684,13 +684,23 @@ spypce(M, Method:behaviour*) :->
 	).
 
 
+		 /*******************************
+		 *	       DROP		*
+		 *******************************/
+	
 preview_drop(M, Obj:object*) :->
 	"Preview the upcomming drop action"::
 	(   Obj == @nil
 	->  send(M, report, status, '')
-	;   send(Obj, has_get_method, prolog_source),
-	    send(M, report, warning, 'Not in Prolog mode!'),
-	    fail
+	;   send(Obj, instance_of, file)
+	->  send(M, report, status,
+		 'Please drop to switch to %s', Obj?absolute_path)
+	).
+
+drop(M, Obj:object) :->
+	"Import source-code from object"::
+	(   send(Obj, instance_of, file)
+	->  send(M, find_file, Obj)
 	).
 
 :- pce_end_class.

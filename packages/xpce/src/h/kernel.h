@@ -846,6 +846,7 @@ NewClass(dict)
   Any		browser;		/* browser showing contents */
   Chain		members;		/* list of dict_items */
   HashTable	table;			/* hash table for associative lookup */
+  Code		sort_by;		/* Sort cirterium */
 End;
 
 NewClass(dictitem)

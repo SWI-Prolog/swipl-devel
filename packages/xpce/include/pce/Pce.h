@@ -165,26 +165,29 @@ public:
   { return self;
   }
 
-  PceStatus send(PceArg& sel)
+  PceStatus send(const PceArg& sel)
   { return XPCE_sendv(self, sel.self, 0, NULL);
   }
-  PceStatus send(PceArg& sel, PceArg& a1)
+  PceStatus send(const PceArg& sel, const PceArg& a1)
   { return XPCE_sendv(self, sel.self, 1, &a1.self); 
   }
-  PceStatus send(PceArg& sel, PceArg& a1, PceArg& a2)
+  PceStatus send(const PceArg& sel, const PceArg& a1, const PceArg& a2)
   { Any av[2];
     av[0] = a1.self;
     av[1] = a2.self;
     return XPCE_sendv(self, sel.self, 2, av);
   }
-  PceStatus send(PceArg& sel, PceArg& a1, PceArg& a2, PceArg& a3)
+  PceStatus send(const PceArg& sel,
+		 const PceArg& a1, const PceArg& a2, const PceArg& a3)
   { Any av[3];
     av[0] = a1.self;
     av[1] = a2.self;
     av[2] = a3.self;
     return XPCE_sendv(self, sel.self, 3, av);
   }
-  PceStatus send(PceArg& sel, PceArg& a1, PceArg& a2, PceArg& a3, PceArg& a4)
+  PceStatus send(const PceArg& sel,
+		 const PceArg& a1, const PceArg& a2,
+		 const PceArg& a3, const PceArg& a4)
   { Any av[4];
     av[0] = a1.self;
     av[1] = a2.self;
@@ -192,8 +195,10 @@ public:
     av[3] = a4.self;
     return XPCE_sendv(self, sel.self, 4, av);
   }
-  PceStatus send(PceArg& sel, PceArg& a1, PceArg& a2, PceArg& a3, PceArg& a4,
-		 PceArg& a5)
+  PceStatus send(const PceArg& sel,
+		 const PceArg& a1, const PceArg& a2,
+		 const PceArg& a3, const PceArg& a4,
+		 const PceArg& a5)
   { Any av[5];
     av[0] = a1.self;
     av[1] = a2.self;
@@ -203,19 +208,20 @@ public:
     return XPCE_sendv(self, sel.self, 5, av);
   }
 					/* GET */
-  PceArg get(PceArg& sel)
+  PceArg get(const PceArg& sel)
   { return PceArg(XPCE_getv(self, sel.self, 0, NULL));
   }
-  PceArg get(PceArg& sel, PceArg& a1)
+  PceArg get(const PceArg& sel, const PceArg& a1)
   { return PceArg(XPCE_getv(self, sel.self, 1, &a1.self));
   }
-  PceArg get(PceArg& sel, PceArg& a1, PceArg& a2)
+  PceArg get(const PceArg& sel, const PceArg& a1, const PceArg& a2)
   { Any av[2];
     av[0] = a1.self;
     av[1] = a2.self;
     return PceArg(XPCE_getv(self, sel.self, 2, av));
   }
-  PceArg get(PceArg& sel, PceArg& a1, PceArg& a2, PceArg& a3)
+  PceArg get(const PceArg& sel,
+	     const PceArg& a1, const PceArg& a2, const PceArg& a3)
   { Any av[3];
     av[0] = a1.self;
     av[1] = a2.self;

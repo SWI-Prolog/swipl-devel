@@ -43,6 +43,7 @@ initialiseTextItem(TextItem ti, Name name, Any val, Code msg)
   assign(ti, value_font,    DEFAULT);
   assign(ti, length,	    DEFAULT);
   assign(ti, pen,	    DEFAULT);
+  assign(ti, value_width,   DEFAULT);
   assign(ti, advance,       NAME_next);
   assign(ti, show_label,    ON);
   assign(ti, value_text,    newObject(ClassText, 0));
@@ -160,11 +161,16 @@ static status
 computeTextItem(TextItem ti)
 { if ( notNil(ti->request_compute) )
   { int lw, lh, w, h;
+    Int b = getResourceValueObject(ti, NAME_border);
 
     obtainResourcesObject(ti);
     fontText(ti->value_text, ti->value_font);
-    lengthText(ti->value_text, ti->length);
-    borderText(ti->value_text, getResourceValueObject(ti, NAME_border));
+    borderText(ti->value_text, b);
+    if ( notDefault(ti->value_width) )
+    { Int vw = toInt(valInt(ti->value_width) - 2 * valInt(b));
+      marginText(ti->value_text, vw, NAME_clip);
+    } else
+      lengthText(ti->value_text, ti->length);
     ComputeGraphical(ti->value_text);
 
     compute_label_text_item(ti, &lw, &lh);
@@ -731,6 +737,8 @@ static status
 lengthTextItem(TextItem ti, Int w)
 { if ( ti->length != w )
   { assign(ti, length, w);
+    assign(ti, value_width, DEFAULT);
+
     requestComputeGraphical(ti, DEFAULT);
   }
 
@@ -789,6 +797,37 @@ labelWidthTextItem(TextItem ti, Int w)
   }
 
   succeed;
+}
+
+
+static status
+valueWidthTextItem(TextItem ti, Int val)
+{ assign(ti, value_width, val);
+  if ( notDefault(val) && instanceOfObject(ti->value_font, ClassFont) )
+  { Int ex = getExFont(ti->value_font);
+    int chars = valInt(val) / valInt(ex);
+
+    if ( chars < 2 )
+      chars = 2;
+    
+    assign(ti, length, toInt(chars));
+  }
+
+  succeed;
+}
+
+
+static status
+geometryTextItem(TextItem ti, Int x, Int y, Int w, Int h)
+{ if ( notDefault(w) )
+  { int lw, lh;
+
+    compute_label_text_item(ti, &lw, &lh);
+    valueWidthTextItem(ti, toInt(valInt(w) - lw));
+    requestComputeGraphical(ti, DEFAULT);
+  }
+
+  return geometryGraphical(ti, x, y, w, DEFAULT);
 }
 
 		/********************************
@@ -861,6 +900,8 @@ makeClassTextItem(Class class)
 	     "Graphical text object for selection");
   localClass(class, NAME_editable, NAME_event, "bool", NAME_get,
 	     "TextItem may be edited");
+  localClass(class, NAME_valueWidth, NAME_layout, "[int]", NAME_none,
+	     "Width of the value-part in pixels");
 
   termClass(class, "text_item", 3, NAME_label, NAME_selection, NAME_message);
   setRedrawFunctionClass(class, RedrawAreaTextItem);
@@ -880,6 +921,10 @@ makeClassTextItem(Class class)
   sendMethod(class, NAME_compute, DEFAULT, 0,
 	     "Compute desired size",
 	     computeTextItem);
+  sendMethod(class, NAME_geometry, DEFAULT, 4,
+	     "x=[int]", "y=[int]", "width=[int]", "height=[int]",
+	     "Resize the image",
+	     geometryTextItem);
   sendMethod(class, NAME_clear, NAME_selection, 0,
 	     "Clear entry field",
 	     clearTextItem);

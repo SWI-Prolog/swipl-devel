@@ -26,7 +26,7 @@
 
 :- pce_autoload(editable_text, library(pce_editable_text)).
 :- pce_autoload(tagged_connection, library(pce_tagged_connection)).
-:- use_module(library('dialog/prompter')).
+:- use_module(library(pce_prompter)).
 :- use_module(proto).
 :- use_module(generate, [new_term/2]).
 :- consult(meta).
@@ -466,7 +466,7 @@ object(P, Object:'msg_object|msg_model') :<-
 make_msg_port_recogniser(R) :-
 	new(R, handler_group(@msg_identify,
 %			     new(move_port_gesture),
-			     new(drag_and_drop_gesture(middle)),
+			     drag_and_drop_gesture(left, c),
 			     connect_port_gesture(@default, @default,
 						  @msg_links),
 			     popup_gesture(new(P, popup)))),
@@ -1022,8 +1022,7 @@ documentation(P) :->
 	get(P, value, Value),
 	(   Value = @Atom,
 	    atom(Atom)
-	->  new(Global, man_global(Atom)),
-	    auto_call(manpce(Global))
+	->  auto_call(manpce(Value))
 	;   get(Value, class, Class),
 	    auto_call(manpce(Class))
 	).
@@ -1372,8 +1371,8 @@ make_msg_object_recogniser(R) :-
 		  ]),
 	new(R, handler_group(@msg_identify,
 			     P,
-			     drag_and_drop_gesture(middle),
-			     resize_gesture(middle, c))),
+			     resize_gesture(left),
+			     new(drag_and_drop_gesture))),
 	add_port_popup(CP, send),  send(C, popup, CP),
 	add_port_popup(VP, get), send(V, popup, VP),
 	add_port_popup(EP, event), send(E, popup, EP).
@@ -1399,19 +1398,40 @@ typed(O, Ev:event) :->
 	send(O?window, keyboard_focus, Port).
 
 
-preview_drop(O, Obj:any*) :->
+preview_drop(O, Obj:any*, Pos:[point]) :->
 	"Provide drop-feedback"::
 	(   Obj == @nil
-	->  send(O, report, status, '')
-	;   send(Obj, instance_of, msg_port),
-	    (	get(Obj, device, O)
-	    ->	send(O, report, status, 'Moving port')
-	    ;	send(O, report, status,
-		     'Drop moves port %s to %s', Obj?identify, O?identify)
+	->  send(O, report, status, ''),
+	    (	get(O, attribute, preview_outline, OL)
+	    ->	send(OL, device, @nil),
+		send(O, delete_attribute, preview_outline)
+	    ;	true
 	    )
-	;   port_type_from_object(Obj, Type)
-	->  send(O, report, status,
-		 'Drop adds %s port "%s"', Type, Obj?name)
+	;   (   get(O, attribute, preview_outline, OL)
+	    ->  send(OL, position, Pos)
+	    ;   send(Obj, instance_of, msg_port)
+	    ->	(   get(Obj, device, O)
+		->  send(O, report, status, 'Moving port'),
+		    get(Obj, size, size(W, H)),
+		    send(O, attribute, preview_outline, new(OL, box(W, H))),
+		    send(OL, texture, dotted),
+		    send(O, display, OL, Pos)
+		;   \+ send(Obj, instance_of, msg_constant_port),
+		    send(O, report, status,
+			 'Drop moves port %s to %s', Obj?identify, O?identify),
+		    send(O, attribute, preview_outline,
+			 new(OL, msg_port(Obj?name))),
+		    send(OL, colour, @grey50_image),
+		    send(O, display, OL, Pos)
+		)
+	    ;   port_type_from_object(Obj, Type)
+	    ->  send(O, attribute, preview_outline,
+		     new(OL, msg_port(Obj?name))),
+		send(OL, colour, @grey50_image),
+		send(O, display, OL, Pos),
+	        send(O, report, status,
+		     'Drop adds %s port "%s"', Type, Obj?name)
+	    )
 	).
 	
 
@@ -1686,6 +1706,44 @@ drop(E, Obj:any, Pos:point) :->
 	    send(O, ui_object, Obj)
 	).
 
+
+preview_drop(P, Obj:any, Pos:[point]) :->
+	"Preview feedback for dropping"::
+	(   Obj == @nil
+	->  send(P, report, status, ''),
+	    (	get(P, attribute, preview_outline, OL)
+	    ->	send(OL, device, @nil),
+		send(P, delete_attribute, preview_outline)
+	    ;	true
+	    )
+	;   (   get(P, attribute, preview_outline, OL)
+	    ->  send(OL, position, Pos)
+	    ;	send(Obj, instance_of, graphical), % moving things around
+		get(Obj, device, P)
+	    ->	get(Obj?area, size, size(W, H)),
+		send(P, attribute, preview_outline, new(OL, box(W, H))),
+		send(OL, texture, dotted),
+		send(P, display, OL, Pos)
+	    ;	(   port_type_from_object(Obj, Type),
+		    send(P, report, status, 'Drop to add "%s" port "%s"',
+			 Type, Obj?name)
+		;   send(Obj, instance_of, msg_port),
+		    send(P, report, status, 'Drop to move port to dialog')
+		)
+	    ->	send(P, attribute, preview_outline,
+		     new(OL, msg_port(Obj?name))),
+		send(OL, colour, @grey50_image),
+		send(P, display, OL, Pos)
+	    ;	send(Obj, has_get_method, proto)
+	    ->	send(P, attribute, preview_outline,
+		     new(OL, msg_object(Obj?name))),
+		send(OL, colour, @grey50_image),
+		send(P, display, OL, Pos),
+		send(P, report, status, 'Drop to add "%s" named "%s" to model',
+		     Obj?proto, Obj?name)
+	    )
+	).
+	
 
 postscript_as(E) :->
 	"Write PostScript to file"::

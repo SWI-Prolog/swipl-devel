@@ -63,6 +63,9 @@
 /* Define if (type)pointer = value is allowed */
 #undef TAGGED_LVALUE
 
+/* Define if you want to include the C++ interface */
+#undef O_CPLUSPLUS
+
 /* Define if struct termios has a member c_line */
 #undef TERMIOS_HAS_C_LINE
 
@@ -81,11 +84,17 @@
 /* Define if struct tm has tm_gmtoff field */
 #undef HAVE_TM_GMTOFF
 
+/* Define if you want the C++ interface compiled in */
+#undef O_CPLUSPLUS
+
 /* Define if you have the XmIsMotifWMRunning function.  */
 #undef HAVE_XMISMOTIFWMRUNNING
 
 /* Define if you have the XtPopupSpringLoaded function.  */
 #undef HAVE_XTPOPUPSPRINGLOADED
+
+/* Define if you have the atexit function.  */
+#undef HAVE_ATEXIT
 
 /* Define if you have the fork function.  */
 #undef HAVE_FORK

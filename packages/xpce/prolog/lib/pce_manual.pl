@@ -46,7 +46,11 @@ manpce :-
 
 
 manpce(Spec) :-
-	(   method(Spec, Object)
+	(   (   method(Spec, Object)
+	    ;	atom(Spec),
+		term_to_atom(S0, Spec),
+		method(S0, Object)
+	    )
 	->  send(@manual, manual, Object)
 	;   term_to_atom(Spec, Atom),
 	    send(@pce, report, warning,
@@ -57,12 +61,20 @@ manpce(Spec) :-
 
 method(Obj, Obj) :-
 	object(Obj), !.
-method(->(ClassName, Selector), Method) :- !,
-	get(@pce, convert, ClassName, class, Class),
-	get(Class, send_method, Selector, Method).
-method(<-(ClassName, Selector), Method) :- !,
-	get(@pce, convert, ClassName, class, Class),
-	get(Class, get_method, Selector, Method).
 method(ClassName, Class) :-
 	atom(ClassName),
 	get(@pce, convert, ClassName, class, Class).
+method(->(Receiver, Selector), Method) :- !,
+	(   atom(Receiver)
+	->  get(@pce, convert, Receiver, class, Class),
+	    get(Class, send_method, Selector, Method)
+	;   object(Receiver)
+	->  get(Receiver, send_method, Selector, tuple(_, Method))
+	).
+method(<-(Receiver, Selector), Method) :- !,
+	(   atom(Receiver)
+	->  get(@pce, convert, Receiver, class, Class),
+	    get(Class, get_method, Selector, Method)
+	;   object(Receiver)
+	->  get(Receiver, get_method, Selector, tuple(_, Method))
+	).

@@ -215,19 +215,22 @@ fill_dialog(D) :-
 	/* BROWSERS menu */
 
 	send_list(V, append,
-	     [ menu_item(manual_tools,      @default, @default, @on)
-	     , menu_item(class_hierarchy,   @default, @default, @off)
-	     , menu_item(class_browser,     @default, @default, @off)
-	     , menu_item(global_objects,    @default, @default, @off)
-	     , menu_item(errors,    	    @default, @default, @off)
-	     , menu_item(prolog_predicates, @default, @default, @on)
-	     , menu_item(keywords,	    @default, @default, @off)
-	     , menu_item(group_overview,    @default, @default, @off)
-	     , menu_item(examples,	    @default, @default, @on)
+	     [ menu_item(manual_tools,      end_group := @on)
+	     , menu_item(class_hierarchy)
+	     , menu_item(class_browser)
+	     , menu_item(global_objects)
+	     , menu_item(errors,    	    end_group := @on)
+	     , menu_item(prolog_predicates)
+	     , menu_item(library_overview,
+			 message(M, library_overview),
+			 end_group := @on)
+	     , menu_item(keywords)
+	     , menu_item(group_overview)
+	     , menu_item(examples,	    end_group := @on)
 	     ]),
 	(    get(M, maintainer, @on)
 	->   send_list(V, append,
-	     [ menu_item(class_finder,	    @default, @default, @off)
+	     [ menu_item(class_finder,	    end_group := @off)
 	     ])
 	;    true
 	),
@@ -449,14 +452,16 @@ changelog(_M) :->
 	auto_call(start_emacs),
 	send(@emacs, goto_source_location, Path).
 
-:- initialization
-   get(@pce, home, Home),
-   concat(Home, '/man/faq/pce.hlp', HelpFile),
-   pce_help_file(pce_faq, HelpFile).
+:- pce_help_file(pce_faq,     pce_help('pcefaq.hlp')).
+:- pce_help_file(pce_library, pce_help('lib/overview.hlp')).
 
 faq(_M) :->
 	"Start @helper on faq-database"::
 	send(@helper, give_help, pce_faq, main).
+
+library_overview(_M) :->
+	"Hypertext tool for library overview"::
+	send(@helper, give_help, pce_library, main).
 
 
 		/********************************
@@ -584,13 +589,23 @@ inspect(M, V:object) :->
 		 *	 EXTERNAL INVOKES	*
 		 *******************************/
 
-manual(M, Object:'class|variable|method|resource') :->
+manual(M, Object:'class|variable|method|resource|object') :->
 	"Open manual on object"::
 	send(M, open),
 	(   send(Object, instance_of, class)
 	->  send(M, start_tool, class_browser),
 	    send(M, request_tool_focus, Object)
-	;   send(M, request_selection, @nil, Object, @on)
+	;   (   send(Object, instance_of, variable)
+	    ;	send(Object, instance_of, method)
+	    ;	send(Object, instance_of, resource)
+	    ;	send(Object, instance_of, man_global)
+	    )
+	->  send(M, request_selection, @nil, Object, @on)
+	;   Object = @Ref,
+	    atom(Ref)
+	->  send(M, request_selection, @nil, man_global(Ref), @on)
+	;   send(M, report, error, 'Cannot start manual from %O', Object),
+	    fail
 	).
 
 

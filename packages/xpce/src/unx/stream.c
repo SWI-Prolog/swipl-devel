@@ -137,7 +137,7 @@ handleInputStream(Stream s)
 { char buf[BLOCKSIZE+1];
   int n;
 
-  if ( isFreedObj(s) )
+  if ( onFlag(s, F_FREED|F_FREEING) )
     fail;
 
   if ( (n = ws_read_stream_data(s, buf, BLOCKSIZE)) > 0 )
@@ -178,7 +178,8 @@ handleInputStream(Stream s)
 	      Cprintf("Read (%d chars): `%s'\n", n, q);
 	    });
 
-      while ( search_regex(s->record_separator,
+      while ( !onFlag(s, F_FREED|F_FREEING) && /* may drop out! */
+	      search_regex(s->record_separator,
 			   s->input_buffer, s->input_p,
 			   NULL, 0, 0, s->input_p) )
       { Any str;

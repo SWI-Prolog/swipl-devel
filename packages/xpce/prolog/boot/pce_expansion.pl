@@ -114,14 +114,18 @@ is_string([H|T]) :-
 typed_head(T) :-
 	functor(T, _, Arity),
 	Arity > 1,
-	forall(genarg(N, T, A),
-	       (   N > 1
-	       ->  nonvar(A),
-		   A = TP:_,
-		   ground(TP)
-	       ;   true
-	       )).
+	forall(genarg(N, T, A), head_arg(N, A)).
 
+head_arg(1, A) :- !,
+	var(A).
+head_arg(_, A) :-
+	nonvar(A),
+	(   A = _Var:TP
+	->  true
+	;   A = _Var:Name=TP,
+	    atom(Name)
+	),
+	ground(TP).
 
 %	pce_pre_expand(+In, -Out)
 %
@@ -595,6 +599,7 @@ pl_head_args(SG, [ArgAndType|RA], [T|RT], [Arg|TA]) :- !,
 head_arg(Var, Var, any) :-
 	var(Var), !.
 head_arg(Arg:Type, Arg, Type).
+head_arg(Arg:Name=Type, Arg, Name=Type).
 
 	
 		 /*******************************

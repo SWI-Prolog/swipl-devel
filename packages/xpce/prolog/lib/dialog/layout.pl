@@ -207,7 +207,7 @@ make_row_alignment(Row) :-
 	right(After, Device, RightEdge),
 	\+((member(X, Sub), get(X, alignment, column))),
 	left_to_right(Sub),
-format('Sub is ~p~n', [Sub]),
+%format('Sub is ~p~n', [Sub]),
 	first(Head, Sub),
 	last(Tail, Sub),
 	get(Head, left_side, Left),

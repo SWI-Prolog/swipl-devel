@@ -16,6 +16,8 @@
 	   , shell/1
 	   ]).
 
+:- use_module(library(file_item)).	% Class directory_item
+
 image_viewer :-
 	new(P, picture),
 	send(P, scrollbars, vertical),
@@ -26,7 +28,7 @@ image_viewer :-
 	send(P?frame, label, 'Image Viewer'),
 	get(@pce, home, Home),
 	concat(Home, '/bitmaps', DefDir),
-	send(D, append, new(Dir, text_item(directory, DefDir))),
+	send(D, append, new(Dir, directory_item(directory, DefDir))),
 	send(D, append, new(File, text_item(file_pattern, regex('\.bm$')))),
 	send(D, append, button(apply,
 			       message(@prolog, view, P,

@@ -9,14 +9,13 @@
 
 :- module(pce_drag_and_drop_browser, []).
 :- use_module(library(pce)).
-
-:- pce_autoload(drag_and_drop_gesture, library(dragdrop)).
+:- use_module(library(dragdrop)).	% no autoload, we need it now
 
 :- pce_begin_class(drag_and_drop_dict_item_gesture,
 		   drag_and_drop_gesture,
 		   "Drag and drop items from a browser").
 
-resource(button, button_name, middle, "By default drag-and-drop from middle").
+resource(button, button_name, left, "By default drag-and-drop from left").
 
 set_source(G, Ev:event) :->
 	"Set <-source to dict_item or <-get_source(dict_item)"::
@@ -32,28 +31,31 @@ set_source(G, Ev:event) :->
 
 cursor(G, LB:list_browser, Ev:event, Cursor:cursor) :<-
 	"Make cursor for the dict_item"::
-	get(LB, dict_item, Ev, DI),
-	get(DI, label, Label),
-	font(DI, Font),
-	new(T, text(Label, left, Font)),
-	get(T, size, size(W, H)),
-	new(BM, image(@nil, W, H)),
-	send(BM, draw_in, T),
-	get(DI, image, LB),
-	get(DI, position, DiPos),
-	(   get(G, warp, @on)
-	->  new(HotSpot, point(W/2, H/2)),
-	    send(DiPos, plus, HotSpot),
-	    send(LB, pointer, DiPos)
-	;   get(Ev, position, LB, EvPos),
-	    get(EvPos, difference, DiPos, HotSpot),
-	    get(HotSpot, x, HX),
-	    get(HotSpot, y, HY),
-	    ( HX > W-8 -> send(HotSpot, x, W-8) ; true ),
-	    ( HY > H -> send(HotSpot, y, H) ; true )
-	),
-	send(BM, or, image('cross.bm'), point(HotSpot?x-8, HotSpot?y-8)),
-	new(Cursor, cursor(@nil, BM, @default, HotSpot)).
+	(   get(G, resource_value, cursor, Cursor), Cursor \== @nil
+	->  send(G?offset, set, 0, 0)
+	;   get(LB, dict_item, Ev, DI),
+	    get(DI, label, Label),
+	    font(DI, Font),
+	    new(T, text(Label, left, Font)),
+	    get(T, size, size(W, H)),
+	    new(BM, image(@nil, W, H)),
+	    send(BM, draw_in, T),
+	    get(DI, image, LB),
+	    get(DI, position, DiPos),
+	    (   get(G, warp, @on)
+	    ->  new(HotSpot, point(W/2, H/2)),
+		send(DiPos, plus, HotSpot),
+		send(LB, pointer, DiPos)
+	    ;   get(Ev, position, LB, EvPos),
+		get(EvPos, difference, DiPos, HotSpot),
+		get(HotSpot, x, HX),
+		get(HotSpot, y, HY),
+		( HX > W-8 -> send(HotSpot, x, W-8) ; true ),
+		( HY > H -> send(HotSpot, y, H) ; true )
+	    ),
+	    send(BM, or, image('cross.bm'), point(HotSpot?x-8, HotSpot?y-8)),
+	    new(Cursor, cursor(@nil, BM, @default, HotSpot))
+	).
 
 font(DI, Font) :-
 	get(DI, style, StyleName),

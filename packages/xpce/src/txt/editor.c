@@ -21,6 +21,7 @@ static FragmentCache	newFragmentCache(Editor);
 static void		freeFragmentCache(FragmentCache);
 static void		resetFragmentCache(FragmentCache, TextBuffer);
 static Any		Receiver(Editor);
+static status		CaretEditor(Editor, Int);
 static status		caretEditor(Editor, Int);
 static status		IsearchEditor(Editor, EventId);
 static status		DabbrevExpandEditor(Editor, EventId);
@@ -1181,7 +1182,7 @@ event_editor(Editor e, EventObj ev)
 
 	if ( hasModifierEvent(ev, caret_modifier) &&
 	     getMulticlickEvent(ev) == NAME_single )
-	  rval = caretEditor(e, where);
+	  rval = CaretEditor(e, where);
 
 	return rval;
       }
@@ -1345,7 +1346,7 @@ openLineEditor(Editor e, Int arg)
   MustBeEditable(e);
   insert_textbuffer(e->text_buffer, Caret(e), UArg(arg),
 		    str_nl(&e->text_buffer->buffer));
-  return caretEditor(e, caret);		/* do not move the caret */
+  return CaretEditor(e, caret);		/* do not move the caret */
 }
 
 
@@ -1360,20 +1361,26 @@ caretEditor(Editor e, Int c)
 
 
 static status
+CaretEditor(Editor e, Int c)
+{ return qadSendv(e, NAME_caret, 1, (Any *)&c);
+}
+
+
+static status
 forwardCharEditor(Editor e, Int arg)
-{ return caretEditor(e, toInt(Caret(e) + UArg(arg)));
+{ return CaretEditor(e, toInt(Caret(e) + UArg(arg)));
 }
 
 
 static status
 backwardCharEditor(Editor e, Int arg)
-{ return caretEditor(e, toInt(Caret(e) - UArg(arg)));
+{ return CaretEditor(e, toInt(Caret(e) - UArg(arg)));
 }
 
 
 static status
 forwardWordEditor(Editor e, Int arg)
-{ return caretEditor(e,
+{ return CaretEditor(e,
 		     getScanTextBuffer(e->text_buffer,
 				       e->caret, NAME_word, toInt(UArg(arg)-1),
 				       NAME_end));
@@ -1383,7 +1390,7 @@ forwardWordEditor(Editor e, Int arg)
 static status
 backwardWordEditor(Editor e, Int arg)
 { backwardCharEditor(e, ONE);
-  return caretEditor(e,
+  return CaretEditor(e,
 		     getScanTextBuffer(e->text_buffer,
 				       e->caret, NAME_word, toInt(1-UArg(arg)),
 				       NAME_start));
@@ -1392,7 +1399,7 @@ backwardWordEditor(Editor e, Int arg)
 
 static status
 beginningOfLineEditor(Editor e, Int arg)
-{ return caretEditor(e,
+{ return CaretEditor(e,
 		     getScanTextBuffer(e->text_buffer,
 				       e->caret, NAME_line, toInt(1-UArg(arg)),
 				       NAME_start));
@@ -1401,7 +1408,7 @@ beginningOfLineEditor(Editor e, Int arg)
 
 static status
 endOfLineEditor(Editor e, Int arg)
-{ return caretEditor(e,
+{ return CaretEditor(e,
 		     getScanTextBuffer(e->text_buffer,
 				       e->caret, NAME_line, toInt(UArg(arg)-1),
 				       NAME_end));
@@ -1410,7 +1417,7 @@ endOfLineEditor(Editor e, Int arg)
 
 static status
 forwardSentenceEditor(Editor e, Int arg)
-{ return caretEditor(e, getScanTextBuffer(e->text_buffer,
+{ return CaretEditor(e, getScanTextBuffer(e->text_buffer,
 					  e->caret,
 					  NAME_sentence,
 					  toInt(UArg(arg)-1),
@@ -1420,7 +1427,7 @@ forwardSentenceEditor(Editor e, Int arg)
 
 static status
 backwardSentenceEditor(Editor e, Int arg)
-{ return caretEditor(e, getScanTextBuffer(e->text_buffer,
+{ return CaretEditor(e, getScanTextBuffer(e->text_buffer,
 					  e->caret,
 					  NAME_sentence,
 					  toInt(1-UArg(arg)),
@@ -1430,7 +1437,7 @@ backwardSentenceEditor(Editor e, Int arg)
 
 static status
 forwardParagraphEditor(Editor e, Int arg)
-{ return caretEditor(e, getScanTextBuffer(e->text_buffer,
+{ return CaretEditor(e, getScanTextBuffer(e->text_buffer,
 					  e->caret,
 					  NAME_paragraph,
 					  toInt(UArg(arg)-1),
@@ -1440,7 +1447,7 @@ forwardParagraphEditor(Editor e, Int arg)
 
 static status
 backwardParagraphEditor(Editor e, Int arg)
-{ return caretEditor(e, getScanTextBuffer(e->text_buffer,
+{ return CaretEditor(e, getScanTextBuffer(e->text_buffer,
 					  e->caret,
 					  NAME_paragraph,
 					  toInt(1-UArg(arg)),
@@ -1450,7 +1457,7 @@ backwardParagraphEditor(Editor e, Int arg)
 
 static status
 forwardTermEditor(Editor e, Int arg)
-{ return caretEditor(e, getScanTextBuffer(e->text_buffer,
+{ return CaretEditor(e, getScanTextBuffer(e->text_buffer,
 					  e->caret,
 					  NAME_term,
 					  toInt(UArg(arg)),
@@ -1460,7 +1467,7 @@ forwardTermEditor(Editor e, Int arg)
 
 static status
 backwardTermEditor(Editor e, Int arg)
-{ return caretEditor(e, getScanTextBuffer(e->text_buffer,
+{ return CaretEditor(e, getScanTextBuffer(e->text_buffer,
 					  e->caret,
 					  NAME_term,
 					  toInt(-UArg(arg)),
@@ -1474,7 +1481,7 @@ skipBlanksEditor(Editor e, Int arg)
   Name direction = (UArg(arg) >= 0 ? NAME_forward : NAME_backward);
   Bool skipnl    = (UArg(arg) >= 4 || UArg(arg) <= -4 ? ON : OFF);
 
-  return caretEditor(e, getSkipBlanksTextBuffer(tb, e->caret,
+  return CaretEditor(e, getSkipBlanksTextBuffer(tb, e->caret,
 						direction, skipnl));
 }
 
@@ -1487,7 +1494,7 @@ pointToTopOfFileEditor(Editor e, Int arg)
 
 static status
 pointToBottomOfFileEditor(Editor e, Int arg)
-{ return caretEditor(e, getScanTextBuffer(e->text_buffer,
+{ return CaretEditor(e, getScanTextBuffer(e->text_buffer,
 					  toInt(e->text_buffer->size),
 					  NAME_line, toInt(1-UArg(arg)),
 					  NAME_end));
@@ -1496,7 +1503,7 @@ pointToBottomOfFileEditor(Editor e, Int arg)
 
 static status
 pointToTopOfWindowEditor(Editor e, Int arg)
-{ return caretEditor(e, getStartTextImage(e->image, arg));
+{ return CaretEditor(e, getStartTextImage(e->image, arg));
 }
 
 
@@ -1505,7 +1512,7 @@ pointToBottomOfWindowEditor(Editor e, Int arg)
 { if ( isDefault(arg) )
     arg = ONE;
 
-  return caretEditor(e, getStartTextImage(e->image, neg(arg)));
+  return CaretEditor(e, getStartTextImage(e->image, neg(arg)));
 }
 
 
@@ -1727,7 +1734,7 @@ undoEditor(Editor e)
 { Int caret;
 
   if ( (caret = getUndoTextBuffer(e->text_buffer)) )
-  { return caretEditor(e, caret);
+  { return CaretEditor(e, caret);
   } else
   { send(e, NAME_report, NAME_warning,
 	 CtoName("No (further) undo information"), 0);
@@ -1764,7 +1771,7 @@ switchCaseModeEditor(Editor e, Int arg)
 
 static status
 pointToMarkEditor(Editor e)
-{ return caretEditor(e, e->mark);
+{ return CaretEditor(e, e->mark);
 }
 
 
@@ -1775,7 +1782,7 @@ exchangePointAndMarkEditor(Editor e)
   if ( notDefault(e->mark) )
   { tmp = e->mark;
     assign(e, mark,  e->caret);
-    return caretEditor(e, tmp);
+    return CaretEditor(e, tmp);
   }
 
   send(e, NAME_report, NAME_warning, CtoName("No mark"), 0);
@@ -1794,7 +1801,7 @@ transposeWordEditor(Editor e)
   forwardWordEditor(e, ONE);	t2 = e->caret;
   backwardWordEditor(e, ONE);	f2 = e->caret;
   if ( transposeTextBuffer(e->text_buffer, f1, t1, f2, t2) )
-    caretEditor(e, add(caret, sub(sub(t2, f2), sub(t1, f1))));  
+    CaretEditor(e, add(caret, sub(sub(t2, f2), sub(t1, f1))));  
 
   succeed;
 }
@@ -1837,7 +1844,7 @@ transposeTermsEditor(Editor e)
   f1 = getScanTextBuffer(tb, t1,       NAME_term, toInt(-1), NAME_start);
 
   if ( transposeTextBuffer(tb, f1, t1, f2, t2) )
-    caretEditor(e, add(e->caret, sub(sub(t2,f2), sub(t1, f1))));
+    CaretEditor(e, add(e->caret, sub(sub(t2,f2), sub(t1, f1))));
 
   succeed;
 }
@@ -1862,7 +1869,7 @@ deleteHorizontalSpaceEditor(Editor e, Int arg)
   delete_textbuffer(tb, f, t-f);
   insert_textbuffer(tb, f, spaces, str_spc(&tb->buffer));
 
-  return caretEditor(e, toInt(f+spaces));
+  return CaretEditor(e, toInt(f+spaces));
 }
 
 
@@ -1886,7 +1893,7 @@ deleteBlankLinesEditor(Editor e)
   
   if ( valInt(to) > valInt(from) )
   { deleteTextBuffer(tb, from, sub(to, from));
-    caretEditor(e, from);
+    CaretEditor(e, from);
   }  
 
   succeed;
@@ -2046,7 +2053,7 @@ downcaseWordEditor(Editor e, Int arg)
 			     NAME_end);
   MustBeEditable(e);
   downcaseTextBuffer(e->text_buffer, e->caret, sub(to, e->caret));
-  return caretEditor(e, to);
+  return CaretEditor(e, to);
 }
 
 
@@ -2057,7 +2064,7 @@ upcaseWordEditor(Editor e, Int arg)
 			     NAME_end);
   MustBeEditable(e);
   upcaseTextBuffer(e->text_buffer, e->caret, sub(to, e->caret));
-  return caretEditor(e, to);
+  return CaretEditor(e, to);
 }
 
 
@@ -2068,7 +2075,7 @@ capitaliseWordEditor(Editor e, Int arg)
 			     NAME_end);
   MustBeEditable(e);
   capitaliseTextBuffer(e->text_buffer, e->caret, sub(to, e->caret));
-  return caretEditor(e, to);
+  return CaretEditor(e, to);
 }
 
 
@@ -2626,11 +2633,11 @@ endIsearchEditor(Editor e)
   { int caret = (e->search_direction == NAME_forward ? e->selection_end
 						     : e->selection_start);
 
-    caretEditor(e, toInt(caret));
+    CaretEditor(e, toInt(caret));
     abortIsearchEditor(e);
+    send(e, NAME_report, NAME_status, CtoName(""), 0);
   }
 
-  send(e, NAME_report, NAME_status, CtoName(""), 0);
   succeed;
 }
 
@@ -3363,7 +3370,7 @@ appendEditor(Editor e, CharArray str)
   appendTextBuffer(e->text_buffer, str, ONE);
   if ( e->auto_newline == ON )
     newlineEditor(e, ONE);
-  return caretEditor(e, DEFAULT);
+  return CaretEditor(e, DEFAULT);
 
   succeed;
 }
@@ -3413,7 +3420,7 @@ printEditor(Editor e, CharArray str)
 status
 clearEditor(Editor e)
 { clearTextBuffer(e->text_buffer);
-  caretEditor(e, ZERO);
+  CaretEditor(e, ZERO);
   e->selection_start = e->selection_end = 0;
   assign(e, file, NIL);
 
@@ -3450,7 +3457,7 @@ replaceLineEditor(Editor e, CharArray str)
 
   deleteTextBuffer(e->text_buffer, from, sub(to, from));
   insertTextBuffer(e->text_buffer, from, str, ONE);
-  return caretEditor(e, from);
+  return CaretEditor(e, from);
 }
 
 
@@ -3501,7 +3508,7 @@ getReadLineEditor(Editor e)
     fail;
   to = getScanTextBuffer(e->text_buffer, e->caret, NAME_line, 0, NAME_end);
   rval = getContentsTextBuffer(e->text_buffer, e->caret, sub(to, e->caret));
-  caretEditor(e, add(to, ONE));
+  CaretEditor(e, add(to, ONE));
   
   answer(rval);  
 }
@@ -3549,7 +3556,7 @@ columnEditor(Editor e, Int c)
   for(col = 0; col < dcol && pos < size; pos++)
   { switch( fetch_textbuffer(tb, pos) )
     { case '\n':
-        return caretEditor(e, toInt(pos));
+        return CaretEditor(e, toInt(pos));
       case '\t':
         col++;
 	col = Round(col, valInt(e->tab_distance));
@@ -3559,13 +3566,13 @@ columnEditor(Editor e, Int c)
     }
   }
     
-  return caretEditor(e, toInt(pos));
+  return CaretEditor(e, toInt(pos));
 }
 
 
 static status
 lineNumberEditor(Editor e, Int line)
-{ return caretEditor(e, getScanTextBuffer(e->text_buffer,
+{ return CaretEditor(e, getScanTextBuffer(e->text_buffer,
 					  ZERO, NAME_line, sub(line, ONE),
 					  NAME_start));
 }
@@ -3593,7 +3600,7 @@ loadEditor(Editor e, FileObj file)
   clearTextBuffer(tb);
   if ( (rval = insertFileTextBuffer(tb, ZERO, file, ONE)) == SUCCEED ) 
   { assign(e, file, file);
-    caretEditor(e, ZERO);
+    CaretEditor(e, ZERO);
     CmodifiedTextBuffer(tb, OFF);
     resetUndoTextBuffer(tb);
   }

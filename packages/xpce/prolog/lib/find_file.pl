@@ -189,8 +189,8 @@ directory(F, Dir:[directory], Ext:[name]) :->
 	send(P?file_member, clear).
 
 
-file(F, Exists:[bool], Ext:[name],
-     Dir:[directory], Default:[file], File:name) :<-
+file(F, Exists:exists=[bool], Ext:extension=[name],
+     Dir:directory=[directory], Default:default=[file], File:name) :<-
  	"Get [existing] file with [extension]"::
 	send(F, report, status, ''),
 	(   Exists \== @default -> send(F, exists, Exists) ; true ),

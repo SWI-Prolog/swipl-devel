@@ -16,7 +16,9 @@ forwards Name getResourceClassNameResource(Resource);
 static Constant NotObtained;
 
 static status
-initialiseResource(Resource r, Name name, Name class, Type type, StringObj def, Any context, StringObj doc)
+initialiseResource(Resource r,
+		   Name name, Name class, Type type,
+		   StringObj def, Any context, StringObj doc)
 { if ( isDefault(context) )
     context = NIL;
   if ( isDefault(class) )
@@ -279,6 +281,8 @@ obtainResource(Resource r, Any obj)
 
     if ( !(rval = qadGetv(r, NAME_convertString, 1, (Any *)&str)) )
     { errorPce(r, NAME_cannotConvertResource, str);
+      if ( equalCharArray(str, (CharArray) r->r_default) )
+	fail;				/* default is same, no use */
       if ( !(rval = qadGetv(r, NAME_convertString, 1, (Any *)&r->r_default)) )
       { errorPce(r, NAME_cannotConvertResourceDefault, r->r_default);
 	fail;

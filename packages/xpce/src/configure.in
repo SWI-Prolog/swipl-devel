@@ -25,6 +25,7 @@ AC_SUBST(RTSUFFIX)
 AC_SUBST(LD)
 AC_SUBST(SO)
 AC_SUBST(LDSOFLAGS)
+AC_SUBST(CXXTARGETS)
 AC_SUBST(GCCLIB)
 AC_SUBST(SOEXTRAOBJ)
 AC_SUBST(PLTARGET)
@@ -64,6 +65,10 @@ AC_ARG_ENABLE(runtime, [  --enable-runtime	  Runtime system only],
 		   no)  runtime=no ;;
 	       esac])
 
+
+if test -z "$PWD"; then
+  PWD=`pwd`
+fi
 
 RAWHOME=`dirname $PWD`
 AC_MSG_CHECKING("canonical path to $RAWHOME")
@@ -238,7 +243,13 @@ rm -rf conftest*
 
 AC_CHECK_PROGS(ETAGS, etags ctags, ":")
 AC_CHECK_PROGS(GXX, g++, "NONE")
-if test "$GXX" != "NONE"; then CXX="$GXX"; fi
+if test "$GXX" != "NONE"; then
+  AC_DEFINE(O_CPLUSPLUS)
+  CXXTARGETS=cpp.o
+  CXX="$GXX"
+else
+  CXXTARGETS=""
+fi
 AC_PROG_LN_S
 AC_PROG_CPP
 AC_PROG_CXX
@@ -275,6 +286,7 @@ AC_CHECK_HEADERS(frame.h sys/timeb.h sys/times.h)
 AC_CHECK_FUNCS(vsscanf on_exit memmove select popen strerror timelocal)
 AC_CHECK_FUNCS(getdtablesize socket fork ftime getpid select getlogin)
 AC_CHECK_FUNCS(getcwd setsid grantpt gethostname fstat gettimeofday)
+AC_CHECK_FUNCS(atexit on_exit)
 AC_HEADER_TIME
 AC_HEADER_DIRENT
 AC_C_CHAR_UNSIGNED
