@@ -833,8 +833,7 @@ dv-pl-files:
 
 dv-qlf::		
 ifeq ($(DESTDIR),)
-		cd $(DESTDIR)/$(RTHOME)/prolog/lib; \
-		$(MAKE) PL=$(PLBINDIR)/xpce
+		cd $(PLBASE); $(MAKE) xpce-qlfs
 endif
 
 dv-bins:

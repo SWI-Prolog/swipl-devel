@@ -36,9 +36,8 @@ PL=bin/@PLARCH@/$(PLNAME)
 XPCE=xpce
 CLIENT=xpce-client
 PLARCH=@PLARCH@
-BOOTPL=@BOOTPL@
 
-BPL=		bin/$(PLARCH)/$(BOOTPL)
+BPL=		bin/$(PLARCH)/$(PLNAME)
 PWD=`pwd`
 
 # Make this boot64 for 64-bit processors
