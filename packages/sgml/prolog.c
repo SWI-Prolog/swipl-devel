@@ -18,9 +18,6 @@
 #include "util.h"
 #include "prolog.h"
 #include <time.h>
-#ifdef HAVE_MALLOC_H
-#include <malloc.h>
-#endif
 
 static int errors;
 
@@ -247,7 +244,7 @@ istrblank(const ichar *s)
 
 static void
 print_listval(attrtype type, int len, const char *text)
-{ char *t = malloc(len+1);
+{ char *t = sgml_malloc(len+1);
 
   strncpy(t, text, len);
   t[len] = '\0';
@@ -257,7 +254,7 @@ print_listval(attrtype type, int len, const char *text)
   else
     printf("%s", atom(t));
 
-  free(t);
+  sgml_free(t);
 }
 
 

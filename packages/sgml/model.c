@@ -262,7 +262,7 @@ find_omitted_path(dtd_state *state, dtd_element *e, dtd_element **path)
 
 dtd_state *
 new_dtd_state()
-{ dtd_state *s = calloc(1, sizeof(*s));
+{ dtd_state *s = sgml_calloc(1, sizeof(*s));
 
   return s;
 }
@@ -270,7 +270,7 @@ new_dtd_state()
 
 static void
 link(dtd_state *from, dtd_state *to, dtd_element *e)
-{ transition *t = calloc(1, sizeof(*t));
+{ transition *t = sgml_calloc(1, sizeof(*t));
 
   t->state = to;
   t->element = e;
@@ -285,7 +285,7 @@ link(dtd_state *from, dtd_state *to, dtd_element *e)
 
 static void
 add_model_list(dtd_model_list **list, dtd_model *m)
-{ dtd_model_list *l = calloc(1, sizeof(*l));
+{ dtd_model_list *l = sgml_calloc(1, sizeof(*l));
 
   l->model = m;
 
@@ -311,7 +311,7 @@ state_transitions(dtd_state *state)
 	} else
 	{ for( ; left; left = left->next )
 	  { dtd_state *tmp = new_dtd_state();
-	    expander *nex = calloc(1, sizeof(*nex));
+	    expander *nex = sgml_calloc(1, sizeof(*nex));
 	    dtd_model_list *l;
 
 	    translate_model(left->model, state, tmp);
@@ -358,7 +358,7 @@ translate_one(dtd_model *m, dtd_state *from, dtd_state *to)
       return;
     }
     case MT_AND:			/* a&b&... */
-    { expander *ex = calloc(1, sizeof(*ex));
+    { expander *ex = sgml_calloc(1, sizeof(*ex));
       dtd_model *sub;
 
       ex->target = to;
@@ -453,7 +453,7 @@ free_model_list(dtd_model_list *l)
   for( ; l; l=next)
   { next = l->next;
 
-    free(l);
+    sgml_free(l);
   }
 }
 
@@ -470,7 +470,7 @@ free_expander(expander *e, visited *visited)
       ;
   }
 
-  free(e);
+  sgml_free(e);
 }
 
 
@@ -484,13 +484,13 @@ do_free_state_engine(dtd_state *state, visited *visited)
     if ( visit(t->state, visited) )
       do_free_state_engine(t->state, visited);
 
-    free(t);
+    sgml_free(t);
   }
 
   if ( state->expander )
     free_expander(state->expander, visited);
 
-  free(state);
+  sgml_free(state);
 }
 
 

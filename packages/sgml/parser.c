@@ -17,9 +17,6 @@
 #include "catalog.h"
 #include "parser.h"
 #include <stdlib.h>
-#ifdef HAVE_MALLOC_H
-#include <malloc.h>
-#endif
 #include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -75,9 +72,9 @@ void			free_dtd_parser(dtd_parser *p);
 
 static dtd_symbol_table *
 new_symbol_table()
-{ dtd_symbol_table *t = calloc(1, sizeof(*t));
+{ dtd_symbol_table *t = sgml_calloc(1, sizeof(*t));
   t->size    = SYMBOLHASHSIZE;
-  t->entries = calloc(t->size, sizeof(dtd_symbol*));
+  t->entries = sgml_calloc(t->size, sizeof(dtd_symbol*));
 
   return t;
 }
@@ -93,13 +90,13 @@ free_symbol_table(dtd_symbol_table *t)
     for(s=t->entries[i]; s; s=next)
     { next = s->next;
 
-      free((char *)s->name);
-      free(s);
+      sgml_free((char *)s->name);
+      sgml_free(s);
     }
   }
 
-  free(t->entries);
-  free(t);
+  sgml_free(t->entries);
+  sgml_free(t);
 }
 
 
@@ -166,7 +163,7 @@ dtd_add_symbol(dtd *dtd, const ichar *name)
       return s;
   }
 
-  s = calloc(1, sizeof(*s));
+  s = sgml_calloc(1, sizeof(*s));
   s->name = istrdup(name);
   s->next = t->entries[k];
   t->entries[k] = s;
@@ -186,12 +183,12 @@ free_entity_list(dtd_entity *e)
   for( ; e; e=next)
   { next = e->next;
 
-    if ( e->value )   free(e->value);
-    if ( e->extid )   free(e->extid);
-    if ( e->exturl )  free(e->exturl);
-    if ( e->baseurl ) free(e->baseurl);
+    if ( e->value )   sgml_free(e->value);
+    if ( e->extid )   sgml_free(e->extid);
+    if ( e->exturl )  sgml_free(e->exturl);
+    if ( e->baseurl ) sgml_free(e->baseurl);
 
-    free(e);
+    sgml_free(e);
   }
 }
 
@@ -449,7 +446,7 @@ find_element(dtd *dtd, dtd_symbol *id)
   if ( id->element )
     return id->element;			/* must check */
 
-  e = calloc(1, sizeof(*e));
+  e = sgml_calloc(1, sizeof(*e));
   e->space_mode = SP_INHERIT;
   e->name = id;
   id->element = e;
@@ -466,7 +463,7 @@ def_element(dtd *dtd, dtd_symbol *id)
 { dtd_element *e = find_element(dtd, id);
 
   if ( !e->structure )
-  { e->structure = calloc(1, sizeof(*e->structure));
+  { e->structure = sgml_calloc(1, sizeof(*e->structure));
     e->structure->references = 1;
   }
 
@@ -481,7 +478,7 @@ free_name_list(dtd_name_list *nl)
   for( ; nl; nl=next)
   { next = nl->next;
 
-    free(nl);
+    sgml_free(nl);
   }
 }
 
@@ -499,15 +496,15 @@ free_attribute(dtd_attr *a)
     switch(a->def)
     { case AT_DEFAULT:
       { if ( a->type == AT_CDATA )
-	  free(a->att_def.cdata);
+	  sgml_free(a->att_def.cdata);
 	else if ( a->islist )
-	  free(a->att_def.list);
+	  sgml_free(a->att_def.list);
       }
       default:
 	;
     }
 
-    free(a);
+    sgml_free(a);
   }
 }
 
@@ -520,7 +517,7 @@ free_attribute_list(dtd_attr_list *l)
   { next = l->next;
 
     free_attribute(l->attribute);
-    free(l);
+    sgml_free(l);
   } 
 }
 
@@ -532,7 +529,7 @@ free_element_list(dtd_element_list *l)
   for( ; l; l=next)
   { next = l->next;
 
-    free(l);
+    sgml_free(l);
   }
 }
 
@@ -546,7 +543,7 @@ free_element_definition(dtd_edef *def)
     free_element_list(def->excluded);
     free_state_engine(def->initial_state);
 
-    free(def);
+    sgml_free(def);
   }
 }
 
@@ -562,7 +559,7 @@ free_elements(dtd_element *e)
       free_element_definition(e->structure);
     free_attribute_list(e->attributes);
 
-    free(e);
+    sgml_free(e);
   }
 }
 
@@ -875,7 +872,7 @@ isee_func(dtd *dtd, const ichar *in, charfunc func)
 
 dtd *
 new_dtd(const ichar *doctype)
-{ dtd *dtd = calloc(1, sizeof(*dtd));
+{ dtd *dtd = sgml_calloc(1, sizeof(*dtd));
 
   dtd->magic	 = SGML_DTD_MAGIC;
   dtd->implicit  = TRUE;
@@ -899,7 +896,7 @@ void
 free_dtd(dtd *dtd)
 { if ( --dtd->references == 0 )
   { if ( dtd->doctype )
-      free(dtd->doctype);
+      sgml_free(dtd->doctype);
   
     free_entity_list(dtd->entities);
     free_entity_list(dtd->pentities);
@@ -907,12 +904,12 @@ free_dtd(dtd *dtd)
     free_shortrefs(dtd->shortrefs);
     free_elements(dtd->elements);
     free_symbol_table(dtd->symbols);
-    free(dtd->charfunc);
-    free(dtd->charclass);
-    free(dtd->charmap);
+    sgml_free(dtd->charfunc);
+    sgml_free(dtd->charclass);
+    sgml_free(dtd->charmap);
     dtd->magic = 0;
   
-    free(dtd);
+    sgml_free(dtd);
   }
 }
 
@@ -1028,7 +1025,7 @@ process_entity_declaraction(dtd_parser *p, const ichar *decl)
 { dtd *dtd = p->dtd;
   const ichar *s;
   dtd_symbol *id;
-  dtd_entity *e = calloc(1, sizeof(*e));
+  dtd_entity *e = sgml_calloc(1, sizeof(*e));
   int isparam;
 					/* parameter entity */
   if ( (s=isee_func(dtd, decl, CF_PERO)) )
@@ -1142,13 +1139,13 @@ process_notation_declaration(dtd_parser *p, const ichar *decl)
   for(n=&dtd->notations; *n; n = &(*n)->next)
   { if ( (*n)->name == nname )
     { gripe(ERC_REDEFINED, "notation", nname->name);
-      free((*n)->file);
+      sgml_free((*n)->file);
       (*n)->file = file;
       return FALSE;
     }
   }
 
-  not = calloc(1, sizeof(*not));
+  not = sgml_calloc(1, sizeof(*not));
   not->name = nname;
   not->file = file;
   not->next = NULL;
@@ -1165,9 +1162,9 @@ free_notations(dtd_notation *n)
   for( ; n; n=next)
   { next = n->next;
 
-    if ( n->file ) free(n->file);
+    if ( n->file ) sgml_free(n->file);
 
-    free(n);
+    sgml_free(n);
   }
 }
 
@@ -1182,8 +1179,8 @@ free_maps(dtd_map *map)
   for( ; map; map=next)
   { next = map->next;
     if ( map->from )
-      free(map->from);
-    free(map);
+      sgml_free(map->from);
+    sgml_free(map);
   }
 }
 
@@ -1195,7 +1192,7 @@ free_shortrefs(dtd_shortref *sr)
   for( ; sr; sr=next)
   { next = sr->next;
     free_maps(sr->map);
-    free(sr);
+    sgml_free(sr);
   }
 }
 
@@ -1245,7 +1242,7 @@ shortref_add_map(dtd *dtd, const ichar *decl, dtd_shortref *sr)
   for(p=&sr->map; *p; p = &(*p)->next)
     ;
   
-  m = calloc(1, sizeof(*m));
+  m = sgml_calloc(1, sizeof(*m));
   m->from = istrdup(from);
   m->len  = istrlen(from);
   m->to   = to;
@@ -1260,7 +1257,7 @@ static int
 process_shortref_declaration(dtd_parser *p, const ichar *decl)
 { dtd *dtd = p->dtd;
   ichar buf[MAXDECL];
-  dtd_shortref *sr = calloc(1, sizeof(*sr));
+  dtd_shortref *sr = sgml_calloc(1, sizeof(*sr));
   dtd_shortref **pr;
   const ichar *s;
 
@@ -1285,7 +1282,7 @@ process_shortref_declaration(dtd_parser *p, const ichar *decl)
 
       free_maps(r->map);
       r->map = sr->map;
-      free(sr);
+      sgml_free(sr);
       return TRUE;
     }
   }
@@ -1303,7 +1300,7 @@ find_map(dtd *dtd, dtd_symbol *name)
 
   if ( istrcaseeq(name->name, "#empty") )
   { if ( !empty )
-    { empty = calloc(1, sizeof(*empty));
+    { empty = sgml_calloc(1, sizeof(*empty));
       empty->name = dtd_add_symbol(dtd, "#EMPTY");
     }
 
@@ -1504,14 +1501,14 @@ free_model(dtd_model *m)
       ;
   }
 
-  free(m);
+  sgml_free(m);
 }
 
 
 static dtd_model *
 make_model(dtd *dtd, const ichar *decl, const ichar **end)
 { const ichar *s;
-  dtd_model *m = calloc(1, sizeof(*m));
+  dtd_model *m = sgml_calloc(1, sizeof(*m));
   dtd_symbol *id;
 
   decl = iskip_layout(dtd, decl);
@@ -1603,7 +1600,7 @@ make_model(dtd *dtd, const ichar *decl, const ichar **end)
       
     *m = *sub;
     m->cardinality = card;
-    free(sub);
+    sgml_free(sub);
   }
 
 out:
@@ -1714,7 +1711,7 @@ itake_el_or_model_element_list(dtd *dtd, const ichar *decl, dtd_symbol **names, 
 
 static void
 add_element_list(dtd_element_list **l, dtd_element *e)
-{ dtd_element_list *n = calloc(1, sizeof(*n));
+{ dtd_element_list *n = sgml_calloc(1, sizeof(*n));
 
   n->value = e;
 
@@ -1745,7 +1742,7 @@ process_element_declaraction(dtd_parser *p, const ichar *decl)
   if ( en == 0 )
     return TRUE;			/* 0 elements */
 
-  def = calloc(1, sizeof(*def));
+  def = sgml_calloc(1, sizeof(*def));
   for(i=0; i<en; i++)
   { find_element(dtd, eid[i]);
     eid[i]->element->structure = def;
@@ -1810,7 +1807,7 @@ process_element_declaraction(dtd_parser *p, const ichar *decl)
 
 static void
 add_name_list(dtd_name_list **nl, dtd_symbol *s)
-{ dtd_name_list *n = calloc(1, sizeof(*n));
+{ dtd_name_list *n = sgml_calloc(1, sizeof(*n));
   
   n->value = s;
 
@@ -1866,7 +1863,7 @@ add_attribute(dtd *dtd, dtd_element *e, dtd_attr *a)
     }
   }
 
-  n = calloc(1, sizeof(*n));
+  n = sgml_calloc(1, sizeof(*n));
 
   n->attribute = a;
   a->references++;
@@ -1894,7 +1891,7 @@ process_attlist_declaraction(dtd_parser *p, const ichar *decl)
 
 					/* fetch attributes */
   while(*decl)
-  { dtd_attr *at = calloc(1, sizeof(*at));
+  { dtd_attr *at = sgml_calloc(1, sizeof(*at));
 
 					/* name of attribute */
     if ( !(s = itake_name(dtd, decl, &at->name)) )
@@ -2134,7 +2131,7 @@ validate_completeness(sgml_environment *env)
 static sgml_environment *
 push_element(dtd_parser *p, dtd_element *e, int callback)
 { if ( e != CDATA_ELEMENT )
-  { sgml_environment *env = calloc(1, sizeof(*env));
+  { sgml_environment *env = sgml_calloc(1, sizeof(*env));
 
     emit_cdata(p, FALSE);
 
@@ -2172,7 +2169,7 @@ free_environment(sgml_environment *env)
     xmlns_free(env);
 #endif
 
-  free(env);
+  sgml_free(env);
 }
 
 
@@ -2215,7 +2212,7 @@ allow_for(dtd_element *in, dtd_element *e)
 
   if ( def->type == C_EMPTY )
   { def->type = C_PCDATA;
-    def->content = calloc(1, sizeof(*def->content));
+    def->content = sgml_calloc(1, sizeof(*def->content));
     def->content->type = MT_OR;
     def->content->cardinality = MC_REP;
   }
@@ -2230,7 +2227,7 @@ allow_for(dtd_element *in, dtd_element *e)
     { if ( g->type == MT_PCDATA )
 	return;
     }
-    m = calloc(1, sizeof(*m));
+    m = sgml_calloc(1, sizeof(*m));
     m->type	   = MT_PCDATA;
     m->cardinality = MC_ONE;		/* ignored */
     add_submodel(def->content, m);
@@ -2241,7 +2238,7 @@ allow_for(dtd_element *in, dtd_element *e)
     { if ( g->type == MT_ELEMENT && g->content.element == e )
 	return;
     }
-    m = calloc(1, sizeof(*m));
+    m = sgml_calloc(1, sizeof(*m));
     m->type	   = MT_ELEMENT;
     m->cardinality = MC_ONE;		/* ignored */
     m->content.element = e;
@@ -2510,7 +2507,7 @@ process_attributes(dtd_parser *p, dtd_element *e, const ichar *decl,
 
 	decl = s;
 	if ( !(a=find_attribute(e, nm)) )
-	{ a = calloc(1, sizeof(*a));
+	{ a = sgml_calloc(1, sizeof(*a));
 
 	  a->name = nm;
 	  a->type = AT_CDATA;
@@ -2578,9 +2575,9 @@ free_attribute_values(int argc, sgml_attribute *argv)
 
   for(i=0; i<argc; i++, argv++)
   { if ( argv->value.cdata )
-      free(argv->value.cdata);
+      sgml_free(argv->value.cdata);
     if ( argv->value.text )
-      free(argv->value.text);
+      sgml_free(argv->value.text);
   }
 }
 
@@ -2686,7 +2683,7 @@ process_doctype(dtd_parser *p, const ichar *decl)
 { dtd *dtd = p->dtd;
   dtd_symbol *id;
   const ichar *s;
-  dtd_entity *et = calloc(1, sizeof(*et));
+  dtd_entity *et = sgml_calloc(1, sizeof(*et));
 
   if ( !(s=itake_name(dtd, decl, &id)) )
     return gripe(ERC_SYNTAX_ERROR, "Name expected", decl);
@@ -2916,7 +2913,7 @@ set_mode_dtd_parser(dtd_parser *p, data_mode m)
 
 dtd_parser *
 new_dtd_parser(dtd *dtd)
-{ dtd_parser *p = calloc(1, sizeof(*p));
+{ dtd_parser *p = sgml_calloc(1, sizeof(*p));
   
   if ( !dtd )
     dtd = new_dtd(NULL);
@@ -2938,7 +2935,7 @@ new_dtd_parser(dtd *dtd)
 
 static dtd_parser *
 clone_dtd_parser(dtd_parser *p)
-{ dtd_parser *clone = calloc(1, sizeof(*p));
+{ dtd_parser *clone = sgml_calloc(1, sizeof(*p));
   
   *clone = *p;
   clone->dtd->references++;
@@ -2963,7 +2960,7 @@ free_dtd_parser(dtd_parser *p)
 
   free_dtd(p->dtd);
 
-  free(p);
+  sgml_free(p);
 }
 
 
@@ -3026,7 +3023,7 @@ process_marked_section(dtd_parser *p)
     decl = buf;
     if ( (s=itake_name(dtd, decl, &kwd)) &&
 	 isee_func(dtd, s, CF_DSO) )	/* [ */
-    { dtd_marked *m = calloc(1, sizeof(*m));
+    { dtd_marked *m = sgml_calloc(1, sizeof(*m));
 
       m->keyword = kwd;			/* push on the stack */
       m->parent = p->marked;
@@ -3071,7 +3068,7 @@ pop_marked_section(dtd_parser *p)
 
   if ( m )
   { p->marked = m->parent;
-    free(m);
+    sgml_free(m);
     p->mark_state = (p->marked ? p->marked->type : MS_INCLUDE);
   }
 } 

@@ -13,9 +13,6 @@
 #include "dtd.h"
 #include "parser.h"
 #include <stdlib.h>
-#ifdef HAVE_MALLOC_H
-#include <malloc.h>
-#endif
 
 #ifdef XMLNS
 
@@ -29,7 +26,7 @@ xmlns_push(dtd_parser *p, const ichar *ns, const ochar *url)
     (*p->on_xmlns)(p, n, u);
 
   if ( env )
-  { xmlns *x = malloc(sizeof(*n));
+  { xmlns *x = sgml_malloc(sizeof(*n));
 
     x->name = n;
     x->url  = u;
@@ -50,7 +47,7 @@ xmlns_free(sgml_environment *env)
   for(n = env->xmlns; n; n = next)
   { next = n->next;
 
-    free(n);
+    sgml_free(n);
   }
 }
 

@@ -14,6 +14,8 @@
 #define DTD_UTIL_H_INCLUDED
 #include "sgmldefs.h"
 
+#include <sys/types.h>
+
 typedef struct 
 { int allocated;
   int size;
@@ -39,6 +41,10 @@ int             istrhash(const ichar *t, int tsize);
 int             istrcasehash(const ichar *t, int tsize);
 ichar *		istrchr(const ichar *s, int c);
 int		istrtol(const ichar *s, long *val);
+void *		sgml_malloc(size_t size);
+void *		sgml_calloc(size_t n, size_t size);
+void		sgml_free(void *mem);
+void *		sgml_realloc(void *old, size_t size);
 
 #define add_icharbuf(buf, chr) \
 	do { if ( buf->size < buf->allocated ) \

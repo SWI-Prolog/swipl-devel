@@ -24,9 +24,6 @@
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
-#ifdef HAVE_MALLOC_H
-#include <malloc.h>
-#endif
 
 #define streq(s1, s2) (strcmp(s1, s2) == 0)
 
@@ -82,7 +79,7 @@ typedef struct _parser_data
   term_t      list;			/* output term (if any) */
   term_t      tail;			/* tail of the list */
   env 	     *stack;			/* environment stack */
-  int	      free_on_close;		/* free parser on close */
+  int	      free_on_close;		/* sgml_free parser on close */
 } parser_data;
 
 
@@ -710,7 +707,7 @@ on_begin(dtd_parser *p, dtd_element *e, int argc, sgml_attribute *argv)
 		    PL_TERM, content);
     if ( PL_unify_list(pd->tail, h, pd->tail) &&
 	 PL_unify(h, et) )
-    { env *env = calloc(1, sizeof(env));
+    { env *env = sgml_calloc(1, sizeof(env));
 
       env->tail   = pd->tail;
       env->parent = pd->stack;
@@ -762,7 +759,7 @@ on_end(dtd_parser *p, dtd_element *e)
     { env *parent = pd->stack->parent;
 
       pd->tail = pd->stack->tail;
-      free(pd->stack);
+      sgml_free(pd->stack);
       pd->stack = parent;
 
       if ( !parent && pd->stopat == SA_ELEMENT )
@@ -1027,7 +1024,7 @@ close_parser(void *h)
   else
     p->closure = NULL;
 
-  free(pd);
+  sgml_free(pd);
 
   return 0;
 }
@@ -1053,7 +1050,7 @@ pl_open_dtd(term_t ref, term_t options, term_t stream)
     return FALSE;
   p = new_dtd_parser(dtd);
   
-  pd = calloc(1, sizeof(*pd));
+  pd = sgml_calloc(1, sizeof(*pd));
   pd->parser = p;
   pd->free_on_close = TRUE;
   pd->max_errors = MAX_ERRORS;
@@ -1137,7 +1134,7 @@ pl_sgml_parse(term_t parser, term_t options)
     if ( oldpd->magic != PD_MAGIC || oldpd->parser != p )
       return sgml2pl_error(ERR_MISC, "sgml", "Parser associated with illegal data");
     
-    pd = calloc(1, sizeof(*pd));
+    pd = sgml_calloc(1, sizeof(*pd));
     *pd = *oldpd;
     p->closure = pd;
 
@@ -1156,7 +1153,7 @@ pl_sgml_parse(term_t parser, term_t options)
     p->on_error	        = on_error;
     p->on_xmlns		= on_xmlns;
   
-    pd = calloc(1, sizeof(*pd));
+    pd = sgml_calloc(1, sizeof(*pd));
     pd->magic = PD_MAGIC;
     pd->parser = p;
     pd->max_errors = MAX_ERRORS;
@@ -1257,7 +1254,7 @@ pl_sgml_parse(term_t parser, term_t options)
     }
 
     pd->magic = 0;			/* invalidate */
-    free(pd);
+    sgml_free(pd);
 
     return TRUE;
   }

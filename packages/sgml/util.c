@@ -25,7 +25,6 @@
 #ifdef HAVE_IO_H
 #include <io.h>
 #endif
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 
@@ -42,7 +41,7 @@ istrlen(const ichar *s)
 
 ichar *
 istrdup(const ichar *s)
-{ ichar *dup = malloc((istrlen(s)+1)*sizeof(ichar));
+{ ichar *dup = sgml_malloc((istrlen(s)+1)*sizeof(ichar));
   ichar *d = dup;
 
   while(*s)
@@ -208,7 +207,7 @@ istrtol(const ichar *s, long *val)
 
 icharbuf *
 new_icharbuf()
-{ icharbuf *buf = malloc(sizeof(*buf));
+{ icharbuf *buf = sgml_malloc(sizeof(*buf));
 
   buf->allocated = 0;
   buf->size = 0;
@@ -221,9 +220,9 @@ new_icharbuf()
 void
 free_icharbuf(icharbuf *buf)
 { if ( buf->data )
-    free(buf->data);
+    sgml_free(buf->data);
 
-  free(buf);
+  sgml_free(buf);
 }
 
 
@@ -233,9 +232,9 @@ __add_icharbuf(icharbuf *buf, int chr)
   { buf->allocated = (buf->allocated ? buf->allocated*2 : 128);
 
     if ( buf->data )
-      buf->data = realloc(buf->data, buf->allocated);
+      buf->data = sgml_realloc(buf->data, buf->allocated);
     else
-      buf->data = malloc(buf->allocated);
+      buf->data = sgml_malloc(buf->allocated);
   }
   
   buf->data[buf->size++] = chr;
@@ -279,7 +278,7 @@ ostrlen(const ochar *s)
 
 ochar *
 ostrdup(const ochar *s)
-{ ochar *dup = malloc((ostrlen(s)+1)*sizeof(ochar));
+{ ochar *dup = sgml_malloc((ostrlen(s)+1)*sizeof(ochar));
   ochar *d = dup;
 
   while(*s)
@@ -296,7 +295,7 @@ ostrdup(const ochar *s)
 
 ocharbuf *
 new_ocharbuf()
-{ ocharbuf *buf = malloc(sizeof(*buf));
+{ ocharbuf *buf = sgml_malloc(sizeof(*buf));
 
   buf->allocated = 0;
   buf->size = 0;
@@ -309,9 +308,9 @@ new_ocharbuf()
 void
 free_ocharbuf(ocharbuf *buf)
 { if ( buf->data )
-    free(buf->data);
+    sgml_free(buf->data);
 
-  free(buf);
+  sgml_free(buf);
 }
 
 
@@ -321,9 +320,9 @@ __add_ocharbuf(ocharbuf *buf, int chr)
   { buf->allocated = (buf->allocated ? buf->allocated*2 : 128);
 
     if ( buf->data )
-      buf->data = realloc(buf->data, buf->allocated);
+      buf->data = sgml_realloc(buf->data, buf->allocated);
     else
-      buf->data = malloc(buf->allocated);
+      buf->data = sgml_malloc(buf->allocated);
   }
   
   buf->data[buf->size++] = chr;
@@ -381,7 +380,7 @@ str2ring(const char *in)
 { char *copy = strdup(in);
 
   if ( ring[ringp] )
-    free(ring[ringp]);
+    sgml_free(ring[ringp]);
   ring[ringp++] = copy;
   if ( ringp == RINGSIZE )
     ringp = 0;
@@ -403,7 +402,7 @@ load_file_to_charp(const char *file, int *length)
 
     if ( fstat(fd, &buf) == 0 )
     { long len = buf.st_size;
-      char *r = malloc(len+1);
+      char *r = sgml_malloc(len+1);
 
       if ( r )
       { char *s = r;
@@ -416,7 +415,7 @@ load_file_to_charp(const char *file, int *length)
 
 	  if ( (n=read(fd, s, len)) < 0 )
 	  { close(fd);			/* I/O error */
-	    free(r);
+	    sgml_free(r);
 	    return NULL;
 	  }
 	  len -= n;
@@ -431,4 +430,75 @@ load_file_to_charp(const char *file, int *length)
   }
 
   return NULL;
+}
+
+
+		 /*******************************
+		 *	     ALLOCATION		*
+		 *******************************/
+
+#ifdef WINDOWS
+#include <windows.h>
+#endif
+
+void
+nomem()
+{ fprintf(stderr, "SGML: Fatal: out of memory\n");
+
+#ifdef WINDOWS
+   MessageBox(NULL, "SGML: Fatal: out of memory", "SGML", MB_OK|MB_TASKMODAL);
+#endif
+
+  exit(1);
+}
+
+
+void *
+sgml_malloc(size_t size)
+{ void *mem;
+
+  if ( size == 0 )
+    return NULL;
+
+  if ( (mem = malloc(size)) )
+    return mem;
+
+  nomem();
+  return NULL;
+}
+
+
+void *
+sgml_realloc(void *old, size_t size)
+{ void *mem;
+
+  if ( old )
+  { if ( (mem = realloc(old, size)) )
+      return mem;
+  } else
+  { if ( (mem = malloc(size)) )
+      return mem;
+  }
+
+  nomem();
+  return NULL;
+}
+
+
+void *
+sgml_calloc(size_t n, size_t size)
+{ void *mem;
+
+  if ( (mem=calloc(n, size)) )
+    return mem;
+
+  nomem();
+  return NULL;
+}
+
+
+void
+sgml_free(void *mem)
+{ if ( mem )
+    free(mem);
 }

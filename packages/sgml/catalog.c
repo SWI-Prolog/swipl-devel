@@ -10,6 +10,7 @@
     Copyright (C) 1990-2000 SWI, University of Amsterdam. All rights reserved.
 */
 
+#include "util.h"
 #include "catalog.h"
 #include <stdio.h>
 #include <ctype.h>
@@ -182,7 +183,7 @@ register_catalog_file(const char *file, catalog_location where)
       return TRUE;			/* existing, move? */
   }
   
-  cf = malloc(sizeof(*cf));
+  cf = sgml_malloc(sizeof(*cf));
   cf->file = strdup(file);
   
   if ( where == CTL_END )

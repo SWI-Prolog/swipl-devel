@@ -12,13 +12,10 @@
 
 #include "dtd.h"
 #include <stdlib.h>
-#ifdef HAVE_MALLOC_H
-#include <malloc.h>
-#endif
 
 dtd_charclass *
 new_charclass()
-{ dtd_charclass *map = calloc(1, sizeof(*map));
+{ dtd_charclass *map = sgml_calloc(1, sizeof(*map));
   unsigned char *ca = map->class;
   int i;
 
@@ -43,7 +40,7 @@ new_charclass()
 
 dtd_charfunc *
 new_charfunc()
-{ dtd_charfunc *f = calloc(1, sizeof(*f));
+{ dtd_charfunc *f = sgml_calloc(1, sizeof(*f));
   ichar *cf = f->func;
 
   cf[CF_STAGO]	= '<';
@@ -84,7 +81,7 @@ new_charfunc()
 
 dtd_charmap *
 new_charmap()
-{ dtd_charmap *map = malloc(sizeof(*map));
+{ dtd_charmap *map = sgml_malloc(sizeof(*map));
   int i;
 
   for(i=0 ; i<INPUT_CHARSET_SIZE; i++)
