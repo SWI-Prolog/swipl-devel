@@ -926,7 +926,7 @@ struct index
 
 struct functorDef
 { FunctorDef	next;		/* next in chain */
-  word		functor;	/* as apearing on the global stack */
+  word		functor;	/* as appearing on the global stack */
   word		name;		/* Name of functor */
   int		arity;		/* arity of functor */
   unsigned short	flags;	/* Flag field holding: */
@@ -1349,7 +1349,7 @@ GLOBAL char *	hBase;			/* lowest allocated heap address */
 #ifdef NO_SEGV_HANDLING
 #define requireStack(s, n) \
 	{ if ( roomStack(s) < (int)(n) ) \
- 	    mapOrOutOf((Stack)&stacks.s); \
+ 	    ensureRoomStack((Stack)&stacks.s, n); \
 	}
 #define verifyStack(s) requireStack(s, 64)
 #else /*NO_SEGV_HANDLING*/

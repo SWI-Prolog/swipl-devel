@@ -2859,7 +2859,7 @@ true:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
       normal_call:
-	requireStack(local, argFrameP((LocalFrame)NULL, MAXARITY));
+	requireStack(local, (int)argFrameP((LocalFrame)NULL, MAXARITY));
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Initialise those slots of the frame that are common to Prolog predicates

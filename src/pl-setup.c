@@ -518,7 +518,7 @@ SunOs  4.0.0  on SUN-3 has a bug that causes the various mapped pages to
 point to the same physical memory.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-void
+static void
 mapOrOutOf(Stack s)
 { ulong incr;
 
@@ -541,6 +541,14 @@ mapOrOutOf(Stack s)
   s->max = addPointer(s->max, incr);
   considerGarbageCollect(s);
 }
+
+
+void
+ensureRoomStack(Stack s, int bytes)
+{ while((char *)s->max - (char *)s->top < (int)bytes)
+    mapOrOutOf(s);
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 unmap() returns all memory resources of a stack that are  no  longer  in
@@ -806,7 +814,7 @@ expandStack(Stack s, caddress addr)
 #include <windows.h>
 #undef small
 
-void
+static void
 mapOrOutOf(Stack s)
 { ulong incr;
 
@@ -829,6 +837,13 @@ mapOrOutOf(Stack s)
 
   s->max = addPointer(s->max, incr);
   considerGarbageCollect(s);
+}
+
+
+void
+ensureRoomStack(Stack s, int bytes)
+{ while((char *)s->max - (char *)s->top < (int)bytes)
+    mapOrOutOf(s);
 }
 
 

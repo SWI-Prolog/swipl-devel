@@ -154,7 +154,8 @@ tracePort(LocalFrame frame, LocalFrame bfr, int port, Code PC)
   }
 
   if ( port != BREAK_PORT &&
-       ((!debugstatus.tracing && false(def, SPY_ME))	|| /* non-tracing */
+       ((!debugstatus.tracing &&
+	 (false(def, SPY_ME) || (port & CUT_PORT)))	|| /* non-tracing */
 	debugstatus.skiplevel < levelFrame(frame)	|| /* skipped */
 	((port & (BREAK_PORT|CUT_PORT)) &&
 	 ((debugstatus.skiplevel == levelFrame(frame)) ||

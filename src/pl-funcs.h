@@ -583,7 +583,7 @@ void		resetStacks(void);
 word		pl_trim_stacks(void);
 word		pl_limit_stack(term_t s, term_t l);
 word		pl_stack_parameter(term_t s, term_t k, term_t o, term_t n);
-void		mapOrOutOf(Stack s);
+void		ensureRoomStack(Stack s, int n);
 
 
 /* pl-sys.c */

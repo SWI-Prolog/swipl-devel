@@ -2,6 +2,18 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 2.7.21
+==============
+
+  * FIXED: globalAlloc() for allocations larger than a page on machines
+    with sparse memory management, not handling stack-overflows as
+    exceptions (Win32).  Fixes handling of long string objects on these
+    platforms.
+
+  * FIXED: (GUI Tracer) Stopped `cut-port' from activating when in
+    `leap' mode.
+
+
 VERSION 2.7.20
 ==============
 
