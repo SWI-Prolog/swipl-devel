@@ -306,12 +306,19 @@ $confirm_(_) :-
 
 $warning(Format) :-
 	$warning(Format, []).
-
 $warning(Format, Args) :-
-	format(user_output, '[WARNING: ', []), 
-	format(user_output, Format, Args), 
-	format(user_output, ']~n', []),
-	trace.
+	source_location(File, Line), !,
+	sformat(Msg, Format, Args),
+	(   user:exception(warning, warning(File, Line, Msg), _)
+	->  true
+	;   format(user_error, '[WARNING: (~w:~d)~n~t~8|~w]~n',
+		   [File, Line, Msg])
+	).
+$warning(Format, Args) :-
+	format(user_error, '[WARNING: ', []), 
+	format(user_error, Format, Args), 
+	format(user_error, ']~n', []).
+
 
 %	$warn_undefined(+Goal, +Dwims)
 %	Tell the user that the predicate implied by `Goal' does not exists,
@@ -535,7 +542,7 @@ use_module(File, ImportList) :-
 $use_module(Spec, Import, _) :-
 	$strip_module(Spec, _, File),
 	$check_file(File, FullFile),
-	$module_file(FullFile, module(Module, _)),
+	$module_file(FullFile, Module),
 	context_module(Context),
 	$import_list(Context, Module, Import).	
 $use_module(Spec, Import, Options) :-
@@ -576,8 +583,7 @@ $consult_file(Spec, Options) :-
 
 	$strip_module(Spec, Module, File),
 	$check_file(File, Absolute),
-	$break($consult_file(Absolute, Module, Import, IsModule)),
-	flag($loaded_in, LM, LM),	% hack; $break/1 undos bindings
+	$consult_file(Absolute, Module, Import, IsModule, LM),
 
 	(   memberchk(verbose, Options),
 	    (flag($autoloading, 0, 0) ; flag($verbose_autoload, on, on))
@@ -589,7 +595,7 @@ $consult_file(Spec, Options) :-
 	    $confirm_module(LM, ConfirmModule),
 
 	    $ttyformat('~w compiled~w, ~2f sec, ~D bytes.~n',
-		    [ConfirmFile, ConfirmModule, TimeUsed, HeapUsed])
+		       [ConfirmFile, ConfirmModule, TimeUsed, HeapUsed])
 	;   true
 	).
 
@@ -604,7 +610,7 @@ $read_clause(Clause) :-				% get the first non-syntax
 	repeat,					% error
 	    read_clause(Clause), !.
 
-$consult_file(Absolute, Module, Import, IsModule) :-
+$consult_file(Absolute, Module, Import, IsModule, LM) :-
 	$set_source_module(OldModule, Module),	% Inform C we start loading
 	$start_consult(Absolute),
 	(   compiling
@@ -618,7 +624,6 @@ $consult_file(Absolute, Module, Import, IsModule) :-
 	    $read_clause(First),
 	    $load_file(First, Absolute, Import, IsModule, LM))),
 
-	flag($loaded_in, _, LM),
 	$style_check(_, OldStyle),		% Restore old style
 	(   compiling
 	->  $add_directive_wic($style_check(_, OldStyle))
@@ -662,38 +667,34 @@ $load_file(FirstClause, File, _, false, Module) :- !,
 	    read_clause(Clause),
 	    $consult_clause(Clause, File), !.
 
-$module_file(File, module(Module, Public)) :-
-	recorded($module_file, File/module(Module, Public), _), !.
+:- dynamic
+	$module_file/3.
 
-$assert_module_file(module_file(File, module(Module, Public))) :-
-	$module_file(File, module(Module, Public)), !.
-$assert_module_file(module_file(File, module(Module, Public))) :-
-	recorda($module_file, File/module(Module, Public), _), !.
+$module_file(File, Module) :-
+	$module_file(File, _Base, Module), !.
+$module_file(File, Module) :-
+	$file_base_name(File, Base),
+	$module_file(LoadedFile, Base, Module),
+	same_file(File, LoadedFile), !,
+	$assert_module_file(LoadedFile, Module).
 
-%	Actually load the module.  When the a module with the same name
-%	and same public list is already loaded from another file, we'll
-%	assume these to be the same and just import the requested
-%	predicates.  This is slightly dangerous, but avoids trouble when
-%	restarting saved states when the library has been moved or `pwd`
-%	yields different results.  As from version 1.5.5
+$assert_module_file(File, Module) :-
+	$file_base_name(File, Base),
+	(   $module_file(File, Base, Module)
+	->  true
+	;   asserta($module_file(File, Base, Module))
+	).
 
-$load_module(Module, Public, Import, ThisFile) :-
-	$module_file(LoadedFile, module(Module, Public)),
-	ThisFile \== LoadedFile, !,
-	$ttyformat('Linking module ~w from ~w~n', [Module, LoadedFile]),
-	$set_source_module(OldModule, OldModule),
-	$import_list(OldModule, Module, Import).
 $load_module(Module, Public, Import, File) :-
 	$set_source_module(OldModule, OldModule),
 	(   compiling
 	->  $start_module_wic(Module, File),
-	    $add_directive_wic(
-		$assert_module_file(module_file(File, module(Module, Public))))
+	    $add_directive_wic($assert_module_file(File, Module))
 	;   true
 	),
 	$declare_module(Module, File),
 	$export_list(Module, Public),
-	$assert_module_file(module_file(File, module(Module, Public))),
+	$assert_module_file(File, Module),
 	repeat,
 	    read_clause(Clause),
 	    $consult_clause(Clause, File), !,
@@ -715,8 +716,20 @@ $import_list(Module, Source, [Name/Arity|Rest]) :- !,
 	ignore(Module:import(Source:Term)),
 	$import_list(Module, Source, Rest).
 $import_list(Context, Module, all) :- !,
-	$module_file(_, module(Module, Import)),
-	$import_list(Context, Module, Import).
+	export_list(Module, Exports),
+	$import_all(Exports, Context, Module).
+
+
+$import_all([], _, _).
+$import_all([Head|Rest], Context, Source) :-
+	ignore(Context:import(Source:Head)),
+	(   compiling
+	->  functor(Head, Name, Arity),
+	    $import_wic(Source, Name, Arity)
+	;   true
+	),
+	$import_all(Rest, Context, Source).
+
 
 $export_list(_, []) :- !.
 $export_list(Module, [Name/Arity|Rest]) :- !,

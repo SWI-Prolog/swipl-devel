@@ -111,14 +111,6 @@ pl_abort()
   { aborted = TRUE;
     succeed;
   }
-#if O_PCE				/* abort from notifier function */
-  if ( notify_status.active && !notify_status.abort_is_save )
-  { aborted = TRUE;
-    if (notify_status.called == TRUE)
-      longjmp(notify_status.context, 1);
-    succeed;
-  }
-#endif O_PCE
   PopTty(&ttytab);
   resetRead();
   closeFiles();
@@ -161,10 +153,6 @@ volatile word goal;
 
   debugstatus.tracing = FALSE;
   debugstatus.suspendTrace = 0;
-#if O_PCE
-  notify_status.active = 0;
-  notify_status.called = FALSE;
-#endif O_PCE
 
   return interpret(MODULE_system, goal, FALSE);
 }

@@ -7,8 +7,12 @@
     Purpose: load foreign files
 */
 
-#include "pl-incl.h"
+/*
+** This file contains changes which are part of a port to HPUX 8.0
+** T. Kielmann, 01 Jun 92
+*/
 
+#include "pl-incl.h"
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Make sure the symbolfile and  orgsymbolfile  attributes  of  the  global
 structure status are filled properly.
@@ -46,10 +50,12 @@ forwards char *symbolString();
 #include <sys/file.h>
 #include <a.out.h>
 
+#if !hpux
 extern char *sbrk(/*int*/);
+extern int lseek(/*int, long, int*/);
+#endif
 extern int system(/*char **/);
 extern int unlink(/*char **/);
-extern int lseek(/*int, long, int*/);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Load an object file and link it to the system.  The intented  schema  is
@@ -131,7 +137,10 @@ not.
 long
 allocText(size)
 long size;
-{ extern char *valloc();
+{
+#if !hpux
+    extern char *valloc();
+#endif
   long base;
 
   if ( size < sizeof(word) )
@@ -353,7 +362,7 @@ ulong base;
 
   DEBUG(1, printf("Cleaning BSS %d bytes from 0x%x (=%d)\n", 
 	      bss_size, bss, bss));
-  bzero(bss, bss_size);
+  memset(bss, 0, bss_size);
 
   return entry;
 }
@@ -448,7 +457,8 @@ long n;
 
 #endif NOENTRY
 
-#elif O_AIX_FOREIGN
+#else
+#if O_AIX_FOREIGN
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The AIX foreign interface  is completely different to the SUN/VAX/HPUX
@@ -542,6 +552,170 @@ Word file;
   succeed;
 }
 
+#else
+#if O_MACH_FOREIGN
+/*
+The NeXT foreign interface  is completely different to the SUN/VAX/HPUX
+version. The  latter cannot  be used  because
+the NeXT uses  MACH format a.out files.  Instead, MACH supplies
+the  rld_load()  and rld_lookup() functions  to   load executable  code in a
+running  image.   This makes   the implementation a   lot  easier (and
+supported by official functions).
+
+The prolog part is identical to the SUN versions. However, 
+the only arguments of load_foreign/5 that are used are 'File', 
+'Libraries', and 'Entry'. The other arguments are ignored. 
+'Libraries' is not expanded by the C code; filenames should be 
+either full pathnames or 'library()' names that expand to a full pathname.
+*/
+
+#include <rld.h>
+#include <strings.h>
+#include <streams/streams.h>
+
+extern int	unlink(const char *), mkstemp (char *template), close(int);
+extern char *mktemp(char *template);
+
+/* the rld_... routines spew their complaints on a stream of
+ * type NXStream. We do not want to print these to stderr or stdout, because 
+ * the 'current stream' mechanism of prolog is circumvented in this way.
+ * We open a temp file instead, informing the user this file exists only
+ * if an error occurred and errno == 0.
+ *
+ * Be aware of the fact rld_load()
+ * may fail and not set errno to !0. For example, the call
+ * rld_load(rld_err_stream,_,"i_do_not_exist",_) will result in the string
+ * "rld(): Can't open: i_do_not_exist (No such file or directory, errno = 2)"
+ * being sent to the appropriate stream, with errno == 2, while the call
+ * rld_load(rld_err_stream,_,"/dev/null",_) will result in 
+ * "rld(): file: /dev/null is empty (not an object or archive)" 
+ * being printed, with errno == 0.
+ */
+
+word
+pl_load_foreign(file, entry, options, libraries, size)
+Word file, entry, options, libraries, size;
+{ char *sfile, *sentry, *soptions, *slibraries;
+
+  struct mach_header *m_header;
+  long rld_result, rval;
+  unsigned long rld_adress;
+  Func entry_func;
+  char **object_filenames;
+  char *tmp;
+  int stringno, maxstrings, i;
+
+  /* errorhandling */
+  char      *errorBuffer;
+  int        streamLength, maxLength;
+  NXStream  *rld_err_stream;
+  
+  char underscore = '_';
+
+  status.debugLevel = 1;
+  rld_err_stream = NXOpenMemory(NULL,0,NX_WRITEONLY);
+
+  if ( !isAtom(*file) ||
+       !isAtom(*entry) ||
+       !isAtom(*libraries) ) 
+    return warning("pl_load_foreign/5: instantiation fault");
+
+  sfile = stringAtom(*file);
+  sentry = stringAtom(*entry);
+  slibraries = stringAtom(*libraries);
+  DEBUG(1, 
+   printf("** sfile = \"%s\"\n",sfile);
+   printf("** sentry = \"%s\"\n",sentry);
+   printf("** slibraries = \"%s\"\n",slibraries);
+   fflush(stdout));
+  
+  /* append object-files and libraries */
+  if (strlen(slibraries) > 0)
+    sfile = strcat(strcat(sfile," "),slibraries);
+  
+  /* as *file as well as *libraries may point to a string containing >1
+   * filename, we have to break *sfile up in pieces, in order to get 
+   * the type of argument rld_load() expects: char **
+   */
+   
+  	/* estimate max number of sub-strings in string */
+   maxstrings = (strlen(sfile)/ 2) +1;
+   if ((object_filenames = 
+      (char **)calloc((size_t)maxstrings,sizeof(char *))) == (void *)NULL)
+   fatalError("%s", OsError());
+
+   stringno = 0;
+   if (*sfile != '\0') 
+      do {
+        object_filenames[stringno] = sfile; /* sub-string */
+        tmp = index(sfile,' '); /* try to find a space */
+        if (tmp != (char *)0) /* space found */
+        {  *tmp = '\0'; /* terminate previous string (replace ' ' by '\0') */
+           stringno++;
+   	   tmp++; sfile = tmp;            
+        } else { /* no space left in string pointed to by tmp */
+           object_filenames[stringno + 1] = NULL; /* signals end of char** to rld_load */
+        }
+      } while (tmp != (char *)0); /* end of sfile reached */
+   else /* sfile == "" */
+     object_filenames[0] = NULL;
+   
+  DEBUG(1, 
+    printf("Calling rld_load(), file(s):\n");
+    for (i = 0; i <= stringno; i++)
+      printf("\t \"%s\"\n",object_filenames[i]);
+    fflush(stdout));
+  
+  rld_result = rld_load(rld_err_stream,&m_header,object_filenames,NULL);
+  /* get rid of these as soon as we can */
+  free((void *)object_filenames);
+
+  if (rld_result == 0) 
+  { 	
+    NXFlush(rld_err_stream);
+	NXGetMemoryBuffer(rld_err_stream, &errorBuffer, &streamLength, &maxLength);
+	warning("load_foreign/5: rld_load() failed (%s)",errorBuffer);
+    NXCloseMemory (rld_err_stream, NX_FREEBUFFER);
+	fail;
+  } 
+  DEBUG(1, printf("\nrld_load returned ok (adress of mach-header: %ld)\n",m_header));
+
+  DEBUG(1, printf("Calling rld_lookup()\n"); fflush(stdout));
+  /* Add an underscore to sentry (as in symbol-table looked at by 
+   * rld_lookup())
+   *
+   * 	Problems:
+   *
+   * Rld_error_stream not used here; rld_lookup() seems to alter
+   * the stream; even if the stream * is NOT passed to it !!
+   * Functions using the stream dump core on us;
+   * unfortunately I can't replicate the error in a small program.
+   */ 
+  if ( rld_lookup(NULL,strcat(&underscore,sentry), &rld_adress) == 0 )
+  {
+	warning("load_foreign/5: rld_lookup() of \"%s()\" failed",sentry);
+	fail;
+  }
+  DEBUG(1, printf("rld_lookup returned ok\n"));
+
+  entry_func = (Func)rld_adress;
+  DEBUG(1, printf("Calling entry-point at 0x%x\n", entry_func));
+  rval = (*entry_func)();
+  if (!rval > 0) {
+  	warning("load_foreign/5: entry-function failed (%s())",sentry);
+	fail;
+  }
+  DEBUG(1, printf("Entry point returned successfully\n"));
+  DEBUG(1, printf("rval = %d (0x%x)\n", rval, rval));
+  
+  succeed;
+}
+
+void
+resetLoader()
+{ loaderstatus.symbolfile = loaderstatus.orgsymbolfile = NULL;
+}
+
 #else					/* No foreign language interface */
 
 void
@@ -557,4 +731,6 @@ Word file, entry, options, libraries, size;
   fail;
 }
 
+#endif O_MACH_FOREIGN
+#endif O_AIX_FOREIGN
 #endif O_FOREIGN

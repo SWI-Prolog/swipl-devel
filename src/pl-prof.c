@@ -13,10 +13,10 @@
 
 #include <sys/time.h>
 
-#if !ANSI
+#if PROTO
 extern int setitimer P((int, struct itimerval *,struct itimerval *));
-extern int perror P((char *));
 #endif
+
 forwards void profile P((void));
 
 struct itimerval value, ovalue;		/* itmer controlling structures */
