@@ -138,7 +138,12 @@ prop(attribute(E, A, _, _), DTD) :-
 	;   '$dtd_property'(DTD, attributes(E, AL)),
 	    member(A, AL)
 	).
-
+prop(notation(N, _), DTD) :-
+	(   nonvar(N)
+	->  true
+	;   '$dtd_property'(DTD, notations(NL)),
+	    member(N, NL)
+	).
 
 dtd_property(DTD, Prop) :-
 	prop(Prop, DTD),

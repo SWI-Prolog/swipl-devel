@@ -1,4 +1,10 @@
-* ADDED: Passing processing instructions to the user.
+* FIXED: NUMBER attribute declaration with default (skip layout afterwards)
+
+* ADDED: Support for NOTATION attribute
+
+* FIXED: memory allocation/free bug in model-reduction ((a|b)*)
+
+* ADDED: Passing processing instructions to the user
 
 * FIXED: Independent case-sensitivity switch for entities (SGML entities are
   case sensitive).

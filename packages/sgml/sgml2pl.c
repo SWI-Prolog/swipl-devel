@@ -99,6 +99,7 @@ static functor_t FUNCTOR_line1;
 static functor_t FUNCTOR_list1;
 static functor_t FUNCTOR_max_errors1;
 static functor_t FUNCTOR_nameof1;
+static functor_t FUNCTOR_notation1;
 static functor_t FUNCTOR_omit2;
 static functor_t FUNCTOR_opt1;
 static functor_t FUNCTOR_plus1;
@@ -144,6 +145,7 @@ initConstants()
   FUNCTOR_fixed1       = mkfunctor("fixed", 1);
   FUNCTOR_list1        = mkfunctor("list", 1);
   FUNCTOR_nameof1      = mkfunctor("nameof", 1);
+  FUNCTOR_notation1    = mkfunctor("notation", 1);
   FUNCTOR_file1        = mkfunctor("file", 1);
   FUNCTOR_line1        = mkfunctor("line", 1);
   FUNCTOR_dialect1     = mkfunctor("dialect", 1);
@@ -1350,7 +1352,6 @@ static plattrdef plattrs[] =
 /*{ AT_NAMEOF,	 "nameof",   FALSE },*/
   { AT_NMTOKEN,	 "nmtoken",  FALSE },
   { AT_NMTOKENS, "nmtoken",  TRUE },
-  { AT_NOTATION, "notation", FALSE },
   { AT_NUMBER,	 "number",   FALSE },
   { AT_NUMBERS,	 "number",   TRUE },
   { AT_NUTOKEN,	 "nutoken",  FALSE },
@@ -1377,13 +1378,16 @@ unify_attribute_type(term_t type, dtd_attr *a)
     }
   }
 
-  if ( a->type == AT_NAMEOF )
+  if ( a->type == AT_NAMEOF || a->type == AT_NOTATION )
   { dtd_name_list *nl;
     term_t tail = PL_new_term_ref();
     term_t head = PL_new_term_ref();
     term_t elem = PL_new_term_ref();
 
-    if ( !PL_unify_functor(type, FUNCTOR_nameof1) )
+    if ( !PL_unify_functor(type,
+			   a->type == AT_NAMEOF ?
+			     FUNCTOR_nameof1 :
+			     FUNCTOR_notation1) )
       return FALSE;
     PL_get_arg(1, type, tail);
 
@@ -1432,6 +1436,7 @@ unify_attribute_default(term_t defval, dtd_attr *a)
 	  case AT_NAME:
 	  case AT_NMTOKEN:
 	  case AT_NAMEOF:
+	  case AT_NOTATION:
 	    return PL_unify_atom_chars(tmp, a->att_def.name->name);
 	  case AT_NUMBER:
 	    return PL_unify_integer(tmp, a->att_def.number);
@@ -1534,6 +1539,45 @@ dtd_prop_entity(dtd *dtd, term_t ename, term_t value)
 }
 
 
+static int
+dtd_prop_notations(dtd *dtd, term_t list)
+{ dtd_notation *n;
+  term_t tail = PL_copy_term_ref(list);
+  term_t head = PL_new_term_ref();
+
+  for(n=dtd->notations; n; n=n->next)
+  { if ( PL_unify_list(tail, head, tail) &&
+	 PL_unify_atom_chars(head, n->name->name) )
+      continue;
+      
+    return FALSE;
+  }
+
+  return PL_unify_nil(tail);
+}
+
+
+static int
+dtd_prop_notation(dtd *dtd, term_t nname, term_t file)
+{ char *s;
+  dtd_symbol *id;
+
+  if ( !PL_get_atom_chars(nname, &s) )
+    return sgml2pl_error(ERR_TYPE, "atom", nname);
+
+  if ( (id=dtd_find_symbol(dtd, s)) )
+  { dtd_notation *n;
+
+    for(n=dtd->notations; n; n=n->next)
+    { if ( n->name == id )
+	return PL_unify_atom_chars(file, n->file);
+    }
+  }
+
+  return FALSE;
+}
+
+
 
 typedef struct _prop
 { int (*func)();
@@ -1551,6 +1595,8 @@ static prop dtd_props[] =
   { dtd_prop_attribute,	 "attribute",  4, },
   { dtd_prop_entities,	 "entities",   1, },
   { dtd_prop_entity,	 "entity",     2, },
+  { dtd_prop_notations,	 "notations",  1, },
+  { dtd_prop_notation,	 "notation",   2, },
   { NULL }
 };
 
@@ -1577,6 +1623,8 @@ dtd_property(DTD, attributes(ElementName, ListOfAttributes)),
 dtd_property(DTD, attribute(ElementName, AttributeName, Type, Default))
 dtd_property(DTD, entities(ListOfEntityNames))
 dtd_property(DTD, entity(Name, Type))
+dtd_property(DTD, notations(ListOfNotationNames)
+dtd_property(DTD, notation(Name, File))
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static foreign_t

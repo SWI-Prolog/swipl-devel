@@ -127,6 +127,15 @@ typedef enum
 
 
 typedef enum
+{ EC_SGML,				/* SGML data */
+  EC_CDATA,				/* CDATA entity */
+  EC_SDATA,				/* SDATA entity */
+  EC_NDATA,				/* non-sgml data */
+  EC_PI					/* Programming instruction */
+} entity_content;
+
+
+typedef enum
 { DL_SGML,				/* Use SGML */
   DL_XML,				/* Use XML */
   DL_XMLNS				/* Use XML + Namespaces */
@@ -219,11 +228,19 @@ typedef struct _dtd_symbol_table
 typedef struct _dtd_entity
 { dtd_symbol *name;			/* its name */
   entity_type type;			/* ET_* */
+  entity_content content;		/* EC_* */
   ichar *value;				/* literal value */
   ichar *extid;				/* external identifier */
   ichar *exturl;			/* url to fetch from */
   struct _dtd_entity *next;		/* list-link */
 } dtd_entity;
+
+
+typedef struct _dtd_notation
+{ dtd_symbol *name;			/* name of the notation */
+  ichar *file;				/* file with info */
+  struct _dtd_notation *next;		/* list-link */
+} dtd_notation;
 
 
 typedef struct _dtd_element_list
@@ -242,11 +259,13 @@ typedef struct _dtd_attr
 { dtd_symbol  *name;			/* name of attribute */
   attrtype type;			/* type (AT_*) */
   attrdef  def;				/* AT_REQUIRED/AT_IMPLIED */
+  int islist;				/* attribute is a list */
   union
   { dtd_name_list *nameof;		/* (name1|name2|...) */
   } typeex;
   union
   { ochar *cdata;			/* default for CDATA */
+    ichar *list;			/* text for list-data */
     dtd_symbol *name;			/* AT_NAME or AT_NAMEOF */
     long number;			/* AT_NUMBER */
   } att_def;
@@ -320,6 +339,7 @@ typedef struct _dtd
   dtd_symbol_table     *symbols;	/* symbol-table */
   dtd_entity           *pentities;	/* defined parameter entities */
   dtd_entity	       *entities;	/* defined entities */
+  dtd_notation	       *notations;	/* Declared notations */
   dtd_element          *elements;	/* defined elements */
   dtd_charfunc	       *charfunc;	/* CF_ --> ichar */
   dtd_charclass	       *charclass;	/* ichar -> CH_-mask */

@@ -40,6 +40,7 @@ static dtd_parser *	clone_dtd_parser(dtd_parser *p);
 static void		free_model(dtd_model *m);
 static int		process_entity_declaraction(dtd *dtd,
 						    const ichar *decl);
+static void		free_notations(dtd_notation *n);
 static int		process_cdata(dtd_parser *p, int last);
 static int		emit_cdata(dtd_parser *p, int last);
 static dtd_space_mode	istr_to_space_mode(const ichar *val);
@@ -422,6 +423,7 @@ free_attribute(dtd_attr *a)
 { if ( --a->references == 0 )
   { switch(a->type)
     { case AT_NAMEOF:
+      case AT_NOTATION:
 	free_name_list(a->typeex.nameof);
       default:
 	;
@@ -430,6 +432,8 @@ free_attribute(dtd_attr *a)
     { case AT_DEFAULT:
       { if ( a->type == AT_CDATA )
 	  free(a->att_def.cdata);
+	else if ( a->islist )
+	  free(a->att_def.list);
       }
       default:
 	;
@@ -649,7 +653,7 @@ itake_number(dtd *dtd, const ichar *in, long *v)
 
   *v = strtol((const char *)in, &end, 10);
   if ( end > (char *)in )
-    return (const ichar *)end;
+    return iskip_layout(dtd, (const ichar *)end);
 
   return NULL;
 }
@@ -750,6 +754,7 @@ free_dtd(dtd *dtd)
   
     free_entity_list(dtd->entities);
     free_entity_list(dtd->pentities);
+    free_notations(dtd->notations);
     free_elements(dtd->elements);
     free_symbol_table(dtd->symbols);
     free(dtd->charfunc);
@@ -866,28 +871,58 @@ process_entity_declaraction(dtd *dtd, const ichar *decl)
   if ( !(s = itake_entity_name(dtd, decl, &id)) )
     return gripe(ERC_SYNTAX_ERROR, "Name expected", decl);
   decl = s;
+
   e->name = id;
 
   if ( (s = isee_identifier(dtd, decl, "system")) )
   { e->type = ET_SYSTEM;
+    e->content = EC_SGML;
     decl = s;
   } else if ( (s = isee_identifier(dtd, decl, "public")) )
   { e->type = ET_PUBLIC;
+    e->content = EC_SGML;
     decl = s;
   } else
-  { if ( isparam )
-      e->type = ET_LITERAL;
-    else				/* optional cdata!? */
+  { e->type = ET_LITERAL;
+
+    if ( !isparam )
     { if ( (s=isee_identifier(dtd, decl, "cdata")) )
       { decl = s;
-	e->type = ET_LITERAL;
+	e->content = EC_CDATA;
+      } else if ( (s=isee_identifier(dtd, decl, "sdata")) )
+      { decl = s;
+	e->content = EC_SDATA;
+      } else if ( (s=isee_identifier(dtd, decl, "pi")) )
+      { decl = s;
+	e->content = EC_PI;
       } else
-	e->type = ET_LITERAL;
+	e->content = EC_SGML;
     }
   }
 
   if ( (decl=process_entity_value_declaration(dtd, decl, e)) )
-  { if ( *decl )
+  { if ( e->type != ET_LITERAL && *decl )
+    { dtd_symbol *nname;
+
+      if ( (s=isee_identifier(dtd, decl, "cdata")) )
+      { decl = s;
+	e->content = EC_CDATA;
+      } else if ( (s=isee_identifier(dtd, decl, "sdata")) )
+      { decl = s;
+	e->content = EC_SDATA;
+      } else if ( (s=isee_identifier(dtd, decl, "ndata")) )
+      { decl = s;
+	e->content = EC_NDATA;
+      } else
+	return gripe(ERC_SYNTAX_ERROR, "Bad datatype declaration", decl);
+
+      if ( (s=itake_name(dtd, decl, &nname)) )
+      { decl = s;
+      } else
+	return gripe(ERC_SYNTAX_ERROR, "Bad notation declaration", decl);
+    }
+
+    if ( *decl )
       return gripe(ERC_SYNTAX_ERROR, "Unexpected end of declaraction", decl);
   }
 
@@ -901,6 +936,59 @@ process_entity_declaraction(dtd *dtd, const ichar *decl)
   }
   
   return TRUE;
+}
+
+
+static int
+process_notation_declaration(dtd *dtd, const ichar *decl)
+{ dtd_symbol *nname;
+  const ichar *s;
+  ichar *file;
+  dtd_notation **n;
+  dtd_notation *not;
+
+  if ( !(s=itake_name(dtd, decl, &nname)) )
+    return gripe(ERC_SYNTAX_ERROR, "Notation name expected", decl);
+  decl = s;
+  if ( !(s=isee_identifier(dtd, decl, "system")) )
+    return gripe(ERC_SYNTAX_ERROR, "SYSTEM expected", decl);
+  decl = s;
+  if ( !(s=itake_dubbed_string(dtd, decl, &file)) )
+    return gripe(ERC_SYNTAX_ERROR, "file-name expected", decl);
+  decl = s;
+  if ( *s )
+    return gripe(ERC_SYNTAX_ERROR, "Unexpected end of declaraction", decl);
+
+  for(n=&dtd->notations; *n; n = &(*n)->next)
+  { if ( (*n)->name == nname )
+    { gripe(ERC_REDEFINED, "notation", nname->name);
+      free((*n)->file);
+      (*n)->file = file;
+      return FALSE;
+    }
+  }
+
+  not = calloc(1, sizeof(*not));
+  not->name = nname;
+  not->file = file;
+  not->next = NULL;
+  *n = not;
+
+  return TRUE;
+}
+
+
+static void
+free_notations(dtd_notation *n)
+{ dtd_notation *next;
+
+  for( ; n; n=next)
+  { next = n->next;
+
+    if ( n->file ) free(n->file);
+
+    free(n);
+  }
 }
 
 
@@ -1030,7 +1118,7 @@ make_model(dtd *dtd, const ichar *decl, const ichar **end)
       
     *m = *sub;
     m->cardinality = card;
-    free_model(sub);
+    free(sub);
   }
 
 out:
@@ -1326,6 +1414,7 @@ process_attlist_declaraction(dtd *dtd, const ichar *decl)
     } else if ( (s=isee_identifier(dtd, decl, "entities")) )
     { decl = s;
       at->type = AT_ENTITIES;
+      at->islist = TRUE;
     } else if ( (s=isee_identifier(dtd, decl, "id")) )
     { decl = s;
       at->type = AT_ID;
@@ -1335,30 +1424,48 @@ process_attlist_declaraction(dtd *dtd, const ichar *decl)
     } else if ( (s=isee_identifier(dtd, decl, "idrefs")) )
     { decl = s;
       at->type = AT_IDREFS;
+      at->islist = TRUE;
     } else if ( (s=isee_identifier(dtd, decl, "name")) )
     { decl = s;
       at->type = AT_NAME;
     } else if ( (s=isee_identifier(dtd, decl, "names")) )
     { decl = s;
       at->type = AT_NAMES;
+      at->islist = TRUE;
     } else if ( (s=isee_identifier(dtd, decl, "nmtoken")) )
     { decl = s;
       at->type = AT_NMTOKEN;
     } else if ( (s=isee_identifier(dtd, decl, "nmtokens")) )
     { decl = s;
       at->type = AT_NMTOKENS;
+      at->islist = TRUE;
     } else if ( (s=isee_identifier(dtd, decl, "number")) )
     { decl = s;
       at->type = AT_NUMBER;
     } else if ( (s=isee_identifier(dtd, decl, "numbers")) )
     { decl = s;
       at->type = AT_NUMBERS;
+      at->islist = TRUE;
     } else if ( (s=isee_identifier(dtd, decl, "nutoken")) )
     { decl = s;
-      at->type = AT_NMTOKEN;
+      at->type = AT_NUTOKEN;
     } else if ( (s=isee_identifier(dtd, decl, "nutokens")) )
     { decl = s;
       at->type = AT_NUTOKENS;
+      at->islist = TRUE;
+    } else if ( (s=isee_identifier(dtd, decl, "notation")) )
+    { dtd_symbol *ng[MAXNAMEGROUP];
+      int ns;
+
+      at->type = AT_NOTATION;
+      decl=s;
+      if ( (s=itake_namegroup(dtd, decl, ng, &ns)) )
+      { decl = s;
+
+	for(i=0; i<ns; i++)
+	  add_name_list(&at->typeex.nameof, ng[i]);
+      } else
+	return gripe(ERC_SYNTAX_ERROR, "name-group expected", decl);
     } else
       return gripe(ERC_SYNTAX_ERROR, "Attribute-type expected", decl);
 
@@ -1388,7 +1495,7 @@ process_attlist_declaraction(dtd *dtd, const ichar *decl)
 
 	  if ( (s=itake_nmtoken(dtd, decl, &value)) )
 	  { decl = s;
-	    at->att_def.cdata = (ichar *)value->name;
+	    at->att_def.cdata = istrdup((ichar *)value->name);
 	  } else if ( (s=itake_dubbed_string(dtd, decl, &at->att_def.cdata)) )
 	  { decl = s;
 	  } else
@@ -1396,6 +1503,7 @@ process_attlist_declaraction(dtd *dtd, const ichar *decl)
 	  break;
 	}
 	case AT_ENTITY:
+	case AT_NOTATION:
 	case AT_NAME:
 	{ if ( (s=itake_name(dtd, decl, &at->att_def.name)) )
 	  { decl = s;
@@ -1414,6 +1522,19 @@ process_attlist_declaraction(dtd *dtd, const ichar *decl)
 	case AT_NUMBER:
 	{ if ( !(decl = itake_number(dtd, decl, &at->att_def.number)) )
 	     return gripe(ERC_DOMAIN, "number", decl);
+	  break;
+	}
+	case AT_NAMES:
+	case AT_ENTITIES:
+	case AT_IDREFS:
+	case AT_NMTOKENS:
+	case AT_NUMBERS:
+	case AT_NUTOKENS:
+	{ if ( (s=itake_dubbed_string(dtd, decl, &at->att_def.list)) )
+	  { decl = s;
+	  } else
+	    return gripe(ERC_DOMAIN, "list", decl);
+
 	  break;
 	}
 	default:
@@ -1725,7 +1846,6 @@ get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
       expand_entities(p, buf, cdata, MAXSTRINGLEN);
       att->value.cdata = ostrdup(cdata);
       return end;
-    case AT_ENTITY:			/* entity-name */
     case AT_ID:				/* identifier */
     case AT_IDREF:			/* identifier reference */
     case AT_NAME:			/* name token */
@@ -1737,14 +1857,19 @@ get_attribute_value(dtd_parser *p, const ichar *decl, sgml_attribute *att)
 	istrlower(buf);
       att->value.text = istrdup(buf);	/* TBD: more validation */
       return end;
+    case AT_ENTITY:			/* entity-name */
+      att->value.text = istrdup(buf);	/* TBD: more validation */
+      return end;
     case AT_NAMES:			/* list of names */
     case AT_NMTOKENS:			/* name-token list */
     case AT_NUMBERS:			/* number list */
     case AT_NUTOKENS:
     case AT_IDREFS:			/* list of identifier references */
-    case AT_ENTITIES:			/* entity-name list */
       if ( !dtd->case_sensitive )
 	istrlower(buf);
+      att->value.text = istrdup(buf);	/* TBD: break-up */
+      return end;
+    case AT_ENTITIES:			/* entity-name list */
       att->value.text = istrdup(buf);	/* TBD: break-up */
       return end;
   }
@@ -1794,12 +1919,12 @@ process_attributes(dtd_parser *p, dtd_element *e, const ichar *decl,
 	for(al=e->attributes; al; al=al->next)
 	{ dtd_attr *a = al->attribute;
 
-	  if ( a->type == AT_NAMEOF )
+	  if ( a->type == AT_NAMEOF || a->type == AT_NOTATION )
 	  { dtd_name_list *nl;
 
 	    for(nl=a->typeex.nameof; nl; nl = nl->next)
 	    { if ( nl->value == nm )
-	      { if ( dtd->dialect == DL_SGML )
+	      { if ( dtd->dialect != DL_SGML )
 		  gripe(ERC_SYNTAX_WARNING,
 			"Value short-hand in XML mode", decl);
 		atts[attn].definition = a;
@@ -2094,6 +2219,8 @@ process_declaration(dtd_parser *p, const ichar *decl)
       process_element_declaraction(dtd, s);
     else if ( (s = isee_identifier(dtd, decl, "attlist")) )
       process_attlist_declaraction(dtd, s);
+    else if ( (s = isee_identifier(dtd, decl, "notation")) )
+      process_notation_declaration(dtd, s);
     else if ( (s = isee_identifier(dtd, decl, "doctype")) )
     { if ( p->dmode != DM_DTD )
 	process_doctype(p, s);
@@ -2745,6 +2872,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	   f[CF_MDC] == chr )
       { p->cdata->size -= p->etaglen+2;	/* 2 for </ */
 	terminate_ocharbuf(p->cdata);
+	terminate_icharbuf(p->buffer);
 	if ( p->mark_state == MS_INCLUDE )
 	{ WITH_PUBLIC_PARSER(p,
 			     process_cdata(p, TRUE);
