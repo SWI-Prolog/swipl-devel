@@ -1,6 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#101: @finder<-file using a specified default file (MS-Windows
+  version).  Laurens van der Meij.
+
+
 VERSION 6.2.9, distributed with SWI-Prolog 5.2.9
 ================================================
 
