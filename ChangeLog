@@ -7,6 +7,12 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * DOC: Bug #24: Rearranged description of Prolog flags to be alphabetical
+    and added missing documentation.  Holger Kanwischer.
+
+  * ADDED: flag toplevel_print_anon to hide variables starting with an _
+    After comments from Attila Csenki.
+
   * ADDED: pthread_setconcurrency/2 to query/set thread concurrency.
 
   * FIXED: Alignment problems in message_queue_create/1.
