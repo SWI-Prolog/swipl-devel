@@ -124,6 +124,30 @@ pl_convert_time(term_t time, term_t year, term_t month,
 
 
 word
+pl_convert_time2(term_t time, term_t string)
+{ double tf;
+
+  if ( PL_get_float(time, &tf) && tf < PLMAXINT && tf > PLMININT )
+  { long t  = (long) tf;
+    char *s = ctime(&t);
+
+    if ( s )
+    { char *e = s + strlen(s);
+      while(e>s && e[-1] == '\n')
+	e--;
+      *e = EOS;
+
+      return PL_unify_string_chars(string, s);
+    }
+
+    return warning("convert_time/2: %s", OsError());
+  }
+  
+  return warning("convert_time/2: instantiation fault");
+}
+
+
+word
 pl_get_time(term_t t)
 { double stime;
 #ifndef HAVE_GETTIMEOFDAY

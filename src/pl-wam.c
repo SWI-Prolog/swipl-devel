@@ -1871,7 +1871,7 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	     *valTermRef(exception_printed) != except )
 	{ QF = QueryFromQid(qid);	/* reload for relocation */
 
-	  if ( false(QF, PL_Q_CATCH_EXCEPTION|PL_Q_PASS_EXCEPTION) ||
+	  if ( false(QF, PL_Q_CATCH_EXCEPTION|PL_Q_PASS_EXCEPTION) &&
 	       trueFeature(DEBUG_ON_ERROR_FEATURE) )
 	  { fid_t fid = PL_open_foreign_frame();
 	    term_t t0 = PL_new_term_refs(2);
@@ -1913,7 +1913,7 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	}
 
 	if ( catchfr )
-	{ code exit_instruction;
+	{ static code exit_instruction;		/* may be gone otherwise */
 	  Word p = argFrameP(FR, 1);
 
 	  deRef(p);
@@ -1930,6 +1930,7 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	  argFrame(lTop, 0) = argFrame(FR, 2);  /* copy recover goal */
 	  *valTermRef(exception_printed) = 0;   /* consider it handled */
 	  *valTermRef(exception_bin)     = 0;
+	  exception_term		 = 0;
 
 	  exit_instruction = encode(I_EXIT);    /* we must continue with */
 	  PC = &exit_instruction;		/* an I_EXIT. Use catch? */
@@ -1946,6 +1947,7 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	  QF->exception = PL_new_term_ref();
 	  *valTermRef(exception_printed) = 0;   /* consider it handled */
 	  *valTermRef(exception_bin)     = 0;
+	  exception_term		 = 0;
 
 	  p = valTermRef(QF->exception);
 	  *p = except;
@@ -3643,6 +3645,11 @@ foreign frame we have to set BFR and do data backtracking.
       if ( exception_term )
 	goto b_throw;
     }
+
+    if ( (unsigned long)usedStack(global) < LD->stacks.global.gced_size )
+      LD->stacks.global.gced_size = (unsigned long)usedStack(global);
+    if ( (unsigned long)usedStack(trail) < LD->stacks.trail.gced_size )
+      LD->stacks.trail.gced_size = (unsigned long)usedStack(trail);
 
     if ( false(DEF, FOREIGN) )
       goto resume_frame;

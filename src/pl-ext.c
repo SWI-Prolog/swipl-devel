@@ -113,6 +113,7 @@ static const struct foreign {
   FRG("$apropos_match",		2, pl_apropos_match,		TRACE_ME),
   FRG("$argv",			1, pl_argv,			TRACE_ME),
   FRG("$option",		3, pl_option,		   NDET|TRACE_ME),
+  FRG("convert_time",		2, pl_convert_time2,		TRACE_ME),
   FRG("convert_time",		8, pl_convert_time,		TRACE_ME),
   FRG("sleep",			1, pl_sleep,			TRACE_ME),
   FRG("break",			0, pl_break,			TRACE_ME),

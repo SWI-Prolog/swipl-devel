@@ -103,7 +103,7 @@ PutCloseBrace()
 
 static bool
 writeAtom(atom_t a, bool quote)
-{ char *s = stringAtom(a);
+{ unsigned char *s = stringAtom(a);
 
   if ( quote )
   { switch( atomType(a) )

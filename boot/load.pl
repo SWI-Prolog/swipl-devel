@@ -8,7 +8,7 @@
 	, messages
 	, toplevel
 	, listing
-	, edit
+	, make
 	, sort
 	, bags
 	, apply

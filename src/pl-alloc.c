@@ -214,6 +214,7 @@ outOfStack(Stack s, int how)
 		        PL_ATOM, ATOM_stack,
 		      PL_CHARS, s->name);
       PL_throw(LD->exception.tmp);
+      warning("Out of %s stack while not in Prolog!?", s->name);
       assert(0);
     case STACK_OVERFLOW_SIGNAL:
       LD->outofstack = s;

@@ -576,7 +576,7 @@ PL_get_list_chars(term_t l, char **s, unsigned flags)
 int
 PL_get_chars(term_t l, char **s, unsigned flags)
 { word w = valHandle(l);
-  char tmp[24];
+  char tmp[100];
   char *r;
   int type;
 
@@ -589,7 +589,7 @@ PL_get_chars(term_t l, char **s, unsigned flags)
     r = tmp;
   } else if ( (flags & CVT_FLOAT) && isReal(w) )
   { type = PL_FLOAT;
-    Ssprintf(tmp, "%f", valReal(w) );
+    Ssprintf(tmp, stringAtom(float_format), valReal(w) );
     r = tmp;
 #ifdef O_STRING
   } else if ( (flags & CVT_STRING) && isString(w) )
@@ -1774,6 +1774,8 @@ PL_register_foreign(const char *name, int arity, Func f, int flags)
   def->flags = 0;
   set(def, FOREIGN|TRACE_ME);
   clear(def, NONDETERMINISTIC);
+  if ( SYSTEM_MODE )
+    set(def, SYSTEM|HIDE_CHILDS);
 
   if ( (flags & PL_FA_NOTRACE) )	  clear(def, TRACE_ME);
   if ( (flags & PL_FA_TRANSPARENT) )	  set(def, METAPRED);
@@ -1869,11 +1871,11 @@ PL_open_resource(Module m,
     PL_put_atom_chars(t0+1, rc_class);
   PL_put_atom_chars(t0+2, mode[0] == 'r' ? "read" : "write");
   
-  if ( PL_call_predicate(m, PL_Q_NORMAL, MTOK_pred, t0) &&
+  if ( PL_call_predicate(m, PL_Q_CATCH_EXCEPTION, MTOK_pred, t0) &&
        PL_get_stream_handle(t0+3, &s) )
-  { release_stream_handle(t0+3);	/* see pl-file.c */
+    release_stream_handle(t0+3);	/* see pl-file.c */
+  else
     errno = ENOENT;
-  }
 
   PL_discard_foreign_frame(fid);
   return s;

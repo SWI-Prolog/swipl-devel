@@ -126,11 +126,6 @@ bootfile is a file resulting from a Prolog compilation using the
 \cmdlineoption{-b} or \cmdlineoption{-c} option or a program saved using
 qsave_program/[1,2].
 
-    \cmdlineoptionitem{-r}{restorefile}
-Restore a state created by save_program/[1,2] or save/[1,2] using
-the new-style saved-states.  Equivalent to \exam{restore(restorefile)} from
-Prolog.
-
     \cmdlineoptionitem{-p}{alias=path1[:path2 \ldots]}
 Define a path alias for file_search_path. \arg{alias} is the name of
 the alias, \arg{path1 ...} is a \chr{:} separated list of values for
@@ -834,6 +829,15 @@ a commandline editor is provided (see feature \const{readline}) and
 If true (default), the garbage collector is active.  If false, neither
 garbage-collection, nor stack-shifts will take place, even not on
 explicit request.  May be changed.
+    \featureoption{iso}{bool}
+Include some weird ISO compatibility that is incompatible to normal
+SWI-Prolog behaviour.  Currently it has the following effect:
+\begin{itemize}
+    \item is/2 and evaluation under flag/3 do not automatically convert
+          floats to integers if the float represents an integer.
+    \item In the standard order of terms (see \secref{standardorder}),
+          all floats are before all integers.
+\end{itemize}
     \featureoption{trace_gc}{bool}
 If true (false is the default), garbage collections and stack-shifts
 will be reported on the terminal.  May be changed.

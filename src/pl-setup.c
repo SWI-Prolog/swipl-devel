@@ -557,6 +557,7 @@ blockSignals()
   sigfillset(&set);			/* only part? */
   
   sigprocmask(SIG_BLOCK, &set, NULL);
+  DEBUG(1, Sdprintf("Blocked all signals\n"));
 #endif
 }
 
@@ -570,6 +571,7 @@ unblockSignals()
   sigfillset(&set);			/* only part? */
   
   sigprocmask(SIG_UNBLOCK, &set, NULL);
+  DEBUG(1, Sdprintf("UnBlocked all signals\n"));
 #endif
 }
 
@@ -712,14 +714,22 @@ term-references that must be low on  the   stack  to  ensure they remain
 valid while the stack is unrolled after an exception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static void
+emptyStack(Stack s)
+{ s->top       = s->base;
+  s->gced_size = 0L;
+}
+
+
 void
 emptyStacks()
 { environment_frame = NULL;
   fli_context       = NULL;
-  lTop = lBase;
-  tTop = tBase;
-  gTop = gBase;
-  aTop = aBase;
+
+  emptyStack((Stack)&LD->stacks.local);
+  emptyStack((Stack)&LD->stacks.global);
+  emptyStack((Stack)&LD->stacks.trail);
+  emptyStack((Stack)&LD->stacks.argument);
 
   PL_open_foreign_frame();
   exception_bin        = PL_new_term_ref();
@@ -736,10 +746,10 @@ static void gcPolicy(Stack s, int policy);
 
 #ifndef NO_SEGV_HANDLING
 #ifdef SIGNAL_HANDLER_PROVIDES_ADDRESS
-static RETSIGTYPE segv_handler(int sig, int type,
+RETSIGTYPE _PL_segv_handler(int sig, int type,
 			       SignalContext scp, char *addr);
 #else
-static RETSIGTYPE segv_handler(int sig);
+RETSIGTYPE _PL_segv_handler(int sig);
 #endif
 #endif
 
@@ -1019,9 +1029,14 @@ unmap(Stack s)
   caddress addr = (caddress) align_size((long) top + size_alignment);
 
   if ( addr < s->max )
-  { if ( munmap(addr, (char *)s->max - (char *)addr) != 0 )
+  { unsigned long used = (char *)s->top - (char *)s->base;
+
+    if ( munmap(addr, (char *)s->max - (char *)addr) != 0 )
       fatalError("Failed to unmap memory: %s", OsError());
     s->max = addr;
+
+    if ( used < s->gced_size )
+      s->gced_size = used;
   }
 }
 
@@ -1393,7 +1408,7 @@ initStacks(long local, long global, long trail, long argument)
   INIT_STACK(argument, "argument", argument, 1 K);
 
 #ifndef NO_SEGV_HANDLING
-  set_sighandler(SIGSEGV, (handler_t) segv_handler);
+  set_sighandler(SIGSEGV, (handler_t) _PL_segv_handler);
 #endif
 }
 
@@ -1419,11 +1434,11 @@ SIGNAL_HANDLER_PROVIDES_ADDRESS flag.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef NO_SEGV_HANDLING
-static RETSIGTYPE
+RETSIGTYPE
 #ifdef SIGNAL_HANDLER_PROVIDES_ADDRESS
-segv_handler(int sig, int type, SignalContext scp, char *addr)
+_PL_segv_handler(int sig, int type, SignalContext scp, char *addr)
 #else
-segv_handler(int sig)
+_PL_segv_handler(int sig)
 #endif
 { Stack stacka = (Stack) &LD->stacks;
   int i;
@@ -1622,7 +1637,7 @@ initStacks(long local, long global, long trail, long argument)
   assert(top == 0L || (ulong)aLimit <= top);
 
 #ifndef NO_SEGV_HANDLING
-  set_sighandler(SIGSEGV, (handler_t) segv_handler);
+  set_sighandler(SIGSEGV, (handler_t) _PL_segv_handler);
 #endif
 }
 

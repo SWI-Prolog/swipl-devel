@@ -360,6 +360,7 @@ A seek_method		"seek_method"
 A callpred		"$callpred"
 A throw			"throw"
 A stack			"stack"
+A iso			"iso"
 
 F abs			1
 F acos			1

@@ -89,32 +89,15 @@ at_initialization(Spec) :-
 $run_at_initialization :-
 	\+ feature(saved_program, true), !.
 $run_at_initialization :-
-	$argv(Argv),
-	memberchk('-d', Argv), !,
 	(   $at_initialization(Goal),
-	    (   $feedback('initialization(~p) ... ', [Goal]),
-		Goal
-	    ->  $feedback('ok~n', []),
-		fail
-	    ;   $feedback('FAILED~n', []),
-		$warning('at_initialization goal ~p failed~n', [Goal]),
-		fail
-	    )
-	;   true
-	).
-$run_at_initialization :-
-	(   $at_initialization(Goal),
-	    (   Goal
+	    (   catch(Goal, E,
+		      print_message(error, initialization_exception(Goal, E)))
 	    ->  fail
 	    ;   $warning('at_initialization goal ~p failed~n', [Goal]),
 		fail
 	    )
 	;   true
 	).
-
-$feedback(Fmt, Args) :-
-	format(Fmt, Args),
-	flush_output(user_output).
 
 %	initialization(+Goal)
 %
@@ -206,6 +189,12 @@ $load_associated_file.
 :- flag($qid, _, 1).
 
 $initialise :-
+	catch(initialise_prolog, E,
+	      (print_message(error, initialization_exception(E)),
+	       fail
+	      )).
+
+initialise_prolog :-
 	$clean_history,
 	$set_file_search_paths,
 	$run_at_initialization,
@@ -335,7 +324,7 @@ set_default_history :-
 :- dynamic
 	$prompt/1.
 
-$prompt("%m%l%! ?- ").
+$prompt("%m%d%l%! ?- ").
 
 $set_prompt(P) :-
 	atom_chars(P, S),
@@ -353,7 +342,13 @@ $system_prompt(Module, BrekLev, Prompt) :-
 	->   $substitute("%l", ["[", BrekLev, "] "], P1, P2)
 	;    $substitute("%l", [], P1, P2)
 	),
-	atom_chars(Prompt, P2).
+	(    tracing
+	->   $substitute("%d", ["[trace] "], P2, P3)
+	;    $debugging
+	->   $substitute("%d", ["[debug] "], P2, P3)
+	;    $substitute("%d", [], P2, P3)
+	),
+	atom_chars(Prompt, P3).
 	
 $substitute(From, T, Old, New) :-
 	convert_to(T, T0),

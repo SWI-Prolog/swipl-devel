@@ -15,7 +15,7 @@ Note  that  the  help-tool  for   XPCE    provides   a   nice  graphical
 cross-referencer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-:- module(explain,
+:- module(prolog_explain,
 	  [ explain/1,
 	    explain/2
 	  ]).
@@ -206,42 +206,28 @@ utter_referenced(_Module:lazy_send_method(_,_,_), _, _, _, _) :-
 utter_referenced(_Module:lazy_get_method(_,_,_), _, _, _, _) :-
 	feature(xpce, true), !,
 	fail.
-utter_referenced(Module:Head, _N, Ref, Text, Explanation) :-
-	feature(xpce, true),
-	functor(Head, Name, _Arity),
-	concat(send_, Class, Name),
-	selector(Ref, Selector),
-	check_xpce_method(Module, Class, send, Selector), !,
-	utter(Explanation,
-	      '~t~8|~w from ~w->~w',
-	      [Text, Class, Selector]).
-utter_referenced(Module:Head, _N, Ref, Text, Explanation) :-
-	feature(xpce, true),
-	functor(Head, Name, _Arity),
-	concat(get_, Class, Name),
-	selector(Ref, Selector),
-	check_xpce_method(Module, Class, get, Selector), !,
-	utter(Explanation,
-	      '~t~8|~w from ~w<-~w',
-	      [Text, Class, Selector]).
+utter_referenced(pce_principal:send_implementation(_, _, _),
+		 _, Ref, Text, Explanation) :-
+	feature(xpce, true), !,
+	xpce_method_id(Ref, Id),
+	utter(Explanation, '~t~8|~w from ~w', [Text, Id]).
+utter_referenced(pce_principal:get_implementation(Id, _, _, _),
+		 _, Ref, Text, Explanation) :-
+	feature(xpce, true), !,
+	xpce_method_id(Ref, Id),
+	utter(Explanation, '~t~8|~w from ~w', [Text, Id]).
 utter_referenced(Module:Head, N, _Ref, Text, Explanation) :-
 	functor(Head, Name, Arity),
 	utter(Explanation,
 	      '~t~8|~w from ~d-th clause of ~w:~w/~d',
 	      [Text, N, Module, Name, Arity]).
 	
-selector(Ref, Selector) :-
+xpce_method_id(Ref, Id) :-
 	clause(Head, _Body, Ref),
-	'$strip_module'(Head, _, Plain),
-	arg(1, Plain, Selector),
-	atom(Selector).
+	'$strip_module'(Head, _, H),
+	arg(1, H, Id).
 
-%	Verifies the detection of a clause implementing an XCE method.
 
-check_xpce_method(Module, Class, send, Selector) :-
-	catch(Module:lazy_send_method(Selector, Class, _), _, fail).
-check_xpce_method(Module, Class, get, Selector) :-
-	catch(Module:lazy_get_method(Selector, Class, _), _, fail).
 
 		/********************************
 		*             UTTER            *
@@ -249,3 +235,5 @@ check_xpce_method(Module, Class, get, Selector) :-
 
 utter(Explanation, Fmt, Args) :-
 	sformat(Explanation, Fmt, Args).
+
+

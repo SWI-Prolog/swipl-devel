@@ -101,7 +101,8 @@ suggest predicates from a keyword.
 \predicatesummary{concat_atom}{3}{Append a list of atoms with separator}
 \predicatesummary{consult}{1}{Read (compile) a Prolog source file}
 \predicatesummary{context_module}{1}{Get context module of current goal}
-\predicatesummary{convert_time}{8}{Convert time stamp}
+\predicatesummary{convert_time}{8}{Break time stamp into fields}
+\predicatesummary{convert_time}{2}{Convert time stamp to string}
 \predicatesummary{copy_term}{2}{Make a copy of a term}
 \predicatesummary{current_arithmetic_function}{1}{Examine evaluable functions}
 \predicatesummary{current_atom}{1}{Examine existing atoms}
@@ -136,11 +137,7 @@ suggest predicates from a keyword.
 \predicatesummary{dwim_match}{3}{Atoms match in ``Do What I Mean'' sense}
 \predicatesummary{dwim_predicate}{2}{Find predicate in ``Do What I Mean'' sense}
 \oppredsummary{dynamic}{1}{fx}{1150}{Indicate predicate definition may change}
-\predicatesummary{ed}{0}{Edit last edited predicate}
-\predicatesummary{ed}{1}{Edit a predicate}
-\predicatesummary{edit}{0}{Edit last edited file}
 \predicatesummary{edit}{1}{Edit a file}
-\predicatesummary{edit_source}{1}{\hook{user} Intercept editing}
 \predicatesummary{ensure_loaded}{1}{Consult a file if that has not yet been done}
 \predicatesummary{erase}{1}{Erase a database record or clause}
 \predicatesummary{exception}{3}{\hook{user} Handle runtime exceptions}
@@ -282,6 +279,11 @@ suggest predicates from a keyword.
 \predicatesummary{profiler}{2}{Obtain/change status of the profiler}
 \predicatesummary{prolog}{0}{Run interactive toplevel}
 \predicatesummary{prolog_current_frame}{1}{Reference to goal's environment stack}
+\predicatesummary{prolog_edit:locate}{2}{Locate targets for edit/1}
+\predicatesummary{prolog_edit:locate}{3}{Locate targets for edit/1}
+\predicatesummary{prolog_edit:edit_source}{1}{Call editor for edit/1}
+\predicatesummary{prolog_edit:edit_command}{2}{Specify editor activation}
+\predicatesummary{prolog_edit:load}{0}{Load edit/1 extensions}
 \predicatesummary{prolog_frame_attribute}{3}{Obtain information on a goal environment}
 \predicatesummary{prolog_list_goal}{1}{Hook.  Intercept tracer 'L' command}
 \predicatesummary{prolog_load_context}{2}{Context information for directives}

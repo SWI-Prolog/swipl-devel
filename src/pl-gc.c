@@ -679,12 +679,8 @@ mark_stacks(LocalFrame fr)
     if ( false(&query->frame, FR_CHOICEPT) ) /* top one is always choicept */
     { LocalFrame bfr = &query->frame;
 
-      set(bfr, FR_CHOICEPT);
-      assert(te >= (GCTrailEntry)bfr->mark.trailtop-1);
-      te = (GCTrailEntry)bfr->mark.trailtop-1;
-      needsRelocation(&bfr->mark.trailtop);
-      alien_into_relocation_chain(&bfr->mark.trailtop, STG_TRAIL, STG_LOCAL);
-      SECURE(trailtops_marked--);
+      DEBUG(2, Sdprintf("Marking toplevel frame as choicepoint\n"));
+      te = mark_choicepoints(bfr, te);
     }
   }
   

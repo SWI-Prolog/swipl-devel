@@ -1,6 +1,94 @@
-
 			SWI-Prolog ChangeLog
 			====================
+ 
+VERSION 3.1.2
+============= 
+
+  * ADDED: Indicate debugger status in prompt.
+
+  * FIXED: Windows: correctly maintains stream character-count when
+    writing newlines to a text-stream.  Reported by Pete Yule.
+
+    MODIFIED: Calling interface for S__updatefilepos(), making binary
+    foreign code using Sgetc() or Sgetchar() incompatible. Code is
+    compatible at the source-level.  This includes XPCE 5.0.0!
+
+  * FIXED/MODIFIED: PL_get_chars to convert floats using the feature
+    float_format.  Hinted by Pete Yule.
+
+  * FIXED: Increased tmp buffer-size in PL_get_chars() to deal with
+    printing very large floating point numbers.
+
+  * FIXED: handling of PL_Q_CATCH_EXCEPTION/PL_Q_PASS_EXCEPTION
+
+  * FIXED: PL_open_resource() now passes exceptions, instead of
+    catching (and printing) them.  Also fixed setting errno to
+    ENOENT.
+
+  * ADDED: feature(iso, Bool) to select ISO conformance in weird
+    places, such as the ISO standard order of terms which dictates
+    all floats precede all integers.  Default is false.
+
+  * MODIFIED: compare/3 affecting sort, msort, keysort and @</2 and
+    family now compare compound terms based on arity first and then
+    alphabetically instead of the other way around!  The new behaviour
+    is compliant to the ISO standard and (at least) Quintus Prolog.
+    Noted by Jonathan Hodgson.
+
+  * MODIFIED: predsort/3 to call the comparison as compare/3, so
+    predsort(compare, L1, L2) has the same semantics as sort(L1, L2).
+    NB:	This implies the programs using predsort/3 should be MODIFIED!
+    Try explain(predsort/3) to find references in your program.
+
+  * FIXED: writing quoted atoms holding characters >= 128.  Reported
+    by Lukas Faulstich.
+
+  * ADDED: convert_time(+TimeStamp, -String) as an interface to
+    the POSIX ctime() function.
+
+  * MODIFIED: edit/[0,1], ed/[0,1] are replaced by a new extensible
+    dynamic-load library(edit), providing only edit/1.  This predicate
+    can be extended to locate any type of `object' and call any editor.
+    See manual for details.
+
+  * ADDED: module support for DCG expansion, correctly translating
+    <module>:<head> --> <body> as well as <head> --> <module>:<dcg-goal>.
+
+  * ADDED: guarding and printing of exceptions during initialisation,
+    making debugging a little easier.
+
+  * FIXED: PL_register_foreign() to lock up predicates as system
+    predicates when called in `system' mode.
+
+  * FIXED: passing frame references for the tracer-interception.
+
+  * MODIFIED: renamed module explain (from library(explain)) into 
+    prolog_explain to avoid conflicts with user module names.
+
+  * FIXED: catch/3 using pointer to non-static local variable.  Could
+    cause a crash by jumping into hyper-space.
+
+  * ADDED: manpage for plrc(1)
+
+  * DELETED: chpl and its manpage.  This command is replaced by plrc(1),
+    manipulating the SWI-Prolog 3.x resource database.
+
+  * FIXED: Reset gced_size of stacks after an abort to make the garbage
+    collector work properly afterwards.  Also fixed detection of
+    trail-garbage for specific (deterministic) callbacks from C.  This
+    could result in situations where no trail-garbage at all was detected,
+    leading to trail-stack overflows.
+
+  * FIXED: Added configure test for sigprocmask.  This fixes repeated signals
+    on many Unix platforms (Control-C).
+
+  * FIXED: Determinism of maplist/checklist predicates.
+
+  * FIXED: free_variables/2 typo in 3.1.0, causing it to report variables
+    more than once.  Thanks to Luc Van Oostenryck.
+
+VERSION 3.1.1
+=============
 
   * FIXED: catch(Goal, template(Vars), handle(Vars)), i.e. catching
     exceptions based on patterns and using the variable-bindings in

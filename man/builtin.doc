@@ -318,50 +318,110 @@ iff \arg{File} refers to a `Quick Load File'.
 \end{description}
 
 
-\section{Listing Predicates and Editor Interface}	\label{sec:listing}
+\section{Listing and Editor Interface}	\label{sec:listing}
 
-SWI-Prolog offers an interface to the Unix \program{vi} editor and
-the GNU~Emacs invocations \program{emacs} and \program{emacsclient}. Which
-editor is used is determined by the Unix environment variable
-\env{EDITOR}, which should hold the full pathname of the editor. If this
-variable is not defined, \program{vi} is used.%
-    \footnote{When using XPCE, you may wish to load
-              \file{library('emacs/swi_prolog')} to use XPCE/Prolog's
-              built-in editor.}
+SWI-Prolog offers an extensible interface which allows the user to
+edit objects of the program: predicates, modules, files, etc.  The
+editor interface is implemented by edit/1 and consists of three parts:
+{\em locating}, {\em selecting} and {\em starting the editor}.
 
-After the user quits the editor, make/0 is invoked to reload all
-modified source files using consult/1. If the editor can be quit such
-that an exit status non-equal to 0 is returned make/0 will not be
-invoked. \arg{top} can do this by typing control-C, \arg{vi} cannot do
-this.
+Any of these parts may be extended or redefined by adding clauses to
+various multi-file (see multifile/1) predicates defined in the module
+\module{prolog_edit}.
 
-A predicate specification is either a term with the same functor and arity
-as the predicate wanted, a term of the form \arg{Functor}/\arg{Arity} or a
-single atom.  In the latter case the database is searched for a
-predicate of this name and arbitrary arity (see current_predicate/2).
-When more than one such predicate exists the system will prompt for
-confirmation on each of the matched predicates. Predicates specifications
-are given to the `Do What I Mean' system (see dwim_predicate/2) if the
-requested predicate does not exist.
+The built-in edit specifications for edit/1 (see prolog_edit:locate/3)
+are described below.
+
+\begin{center}
+\begin{tabular}{|l|p{3.5in}|}
+\hline
+\multicolumn{2}{|c|}{\bf Fully specified objects} \\
+\hline
+<Module>:<Name>/<Arity>	& Refers a predicate \\
+module(<Module>)	& Refers to a module \\
+file(<Path>)		& Refers to a file \\
+source_file(<Path>)	& Refers to a loaded source-file \\
+\hline
+\multicolumn{2}{|c|}{\bf Ambiguous specifications} \\
+\hline
+<Name>/<Arity>		& Refers this predicate in any module \\
+<Name>			& Refers to (1) named predicate in any
+		          module with any arity, (2) a (source) file or
+			  (3) a module. \\
+\hline
+\end{tabular}
+\end{center}
+
 
 \begin{description}
-    \predicate{ed}{1}{+Pred}
-Invoke the user's preferred editor on the source file of \arg{Pred}, 
-providing a search specification which searches for the predicate at
-the start of a line.
+    \predicate{edit}{1}{+Specification}
+First exploits prolog_edit:locate/3 to translate \arg{Specification}
+into a list of \jargon{Locations}. If there is more than one `hit', the
+user is allows to select from the found locations. Finally,
+prolog_edit:edit_source/1 is used to invoke the user's preferred editor.
 
-    \predicate{ed}{0}{}
-Invoke ed/1 on the predicate last edited using ed/1.  Asks the user to
-confirm before starting the editor.
+    \predicate{prolog_edit:locate}{3}{+Spec, -FullSpec, -Location}
+Where \arg{Spec} is the specification provided through edit/1.  This
+multifile predicate is used to enumerate locations at with an object
+satisfying the given \arg{Spec} can be found.  \arg{FullSpec} is unified
+with the complete specification for the object.  This distinction is used
+to allow for ambiguous specifications.  For example, if \arg{Spec} is
+an atom, which appears as the base-name of a loaded file and as the
+name of a predicate, \arg{FullSpec} will be bound to \term{file}{Path}
+or \arg{Name}/\arg{Arity}.
 
-    \predicate{edit}{1}{+File}
-Invoke the user's preferred editor on \arg{File}.  \arg{File} is a file
-specification as for consult/1 (but not a list).  Note that the file
-should exist.
+\arg{Location} is a list of attributes of the location.  Normally, this
+list will contain the term \term{file}{File} and ---if available--- the
+term \term{line}{Line}.
 
-    \predicate{edit}{0}{}
-Invoke edit/1 on the file last edited using edit/1.  Asks the user to
-confirm before starting the editor.
+    \predicate{prolog_edit:locate}{2}{+Spec, -Location}
+Same as prolog_edit:locate/3, but only deals with fully-sepecified
+objects.
+
+    \predicate{prolog_edit:edit_source}{1}{+Location}
+Start editor on \arg{Location}.  See locate/3 for the format of a
+location term.  This multi-file predicate is normally not defined.
+If it succeeds, edit/1 assumes the editor is started.
+
+If it fails, edit/1 will invoke an external editor.  The editor
+to be invoked is determined from the evironment variable \env{EDITOR},
+which may be set from the operating system or from the Prolog
+initialisation file using setenv/2.  If no editor is defined,
+\program{vi} is the default in Unix systems, and \program{notepad}
+on Windows.
+
+The predicate prolog_edit:edit_command/2 defines how the editor will
+be invoked.
+
+    \predicate{prolog_edit:edit_command}{2}{+Editor, -Command}
+Determines how \arg{Editor} is to be invoked using shell/1.  
+\arg{Editor} is the determined editor (see edit_source/1), without
+the full path specification, and without possible (exe) extension.
+\arg{Command} is an atom describing the command.  The pattern
+\verb$%f$ is replaced by the full file-name of the location, and
+\verb$%d$ by the line number.  If the editor can deal with starting
+at a specified line, two clauses should be provided, one holding only
+the \verb$%f$ pattern, and one holding both patterns.
+
+The default contains definitions for \program{vi}, \program{emacs},
+\program{emacsclient}, \program{vim} and \program{notepad} (latter
+without line-number version).
+
+Please contribute your specifications to \email{jan@swi.psy.uva.nl}.
+
+    \predicate{prolog_edit:load}{0}{}
+Normally not-defined multifile predicate.  This predicate may be defined
+to provide loading hooks for user-extensions to the edit module.  For
+example, XPCE provides the code below to load \pllib{swi_edit}, containing
+definitions to locate classes and methods as well as to bind this package
+to the PceEmacs built-in editor.
+
+\begin{code}
+:- multifile prolog_edit:load/0.
+
+prolog_edit:load :-
+	ensure_loaded(library(swi_edit)).
+\end{code}
 
     \predicate{listing}{1}{+Pred}
 List specified predicates (when an atom is given all predicates with
@@ -375,23 +435,8 @@ List all predicates of the database using listing/1.
 Pretty print a clause as good as we can.  A clause should be specified
 as a term `\exam{<Head> :- <Body>}' (put brackets around it to avoid operator
 precedence problems).  Facts are represented as `\exam{<Head> :- true}'.
-
-    \predicate{edit_source}{1}{+Spec}
-A hook that may be defined in the module \const{user} to specify how
-the predicates ed/1 and edit/1 call the editor.  If ed/1 is invoking
-this hook, \arg{Spec} is a term of the format
-
-\begin{quote}
-\exam{\arg{File}:\arg{LineNo}:\arg{Name}/\arg{Arity}}
-\end{quote}
-
-Where \arg{File} and \arg{LineNo} represents the location of the
-predicate remembered by Prolog, and \arg{Name} and \arg{Arity} specify
-the predicate.  If invoked by edit/1, \arg{Spec} is an atom denoting the
-name of the file to be edited.  This hook is defined by the library
-\pllib{swi_prolog} distributed with the XPCE package for using XPCE
-to edit Prolog files.
 \end{description}
+
 
 \section{Verify Type of a Term}
 
@@ -422,7 +467,7 @@ Succeeds if \arg{Term} holds no free variables.
 
 \section{Comparison and Unification or Terms}	\label{sec:compare}
 
-\subsection{Standard Order of Terms}
+\subsection{Standard Order of Terms}		\label{sec:standardorder}
 
 Comparison and unification of arbitrary terms. Terms are ordered in the
 so called ``standard order''. This order is defined as follows:
@@ -441,10 +486,14 @@ so called ``standard order''. This order is defined as follows:
     \item \arg{Strings} are compared alphabetically.
     \item \arg{Numbers} are compared by value. Integers and floats are
           treated identically.
-    \item \arg{Terms} are first checked on their functor
-          (alphabetically), then on their arity and finally recursively on
-          their arguments, leftmost argument first.     
+    \item \arg{Compound} terms are first checked on their arity, then 
+          on their functor-name (alphabetically) and finally recursively
+	  on their arguments, leftmost argument first. 
 \end{enumerate}
+
+If the feature (see feature/2) \const{iso} is defined, all floating
+point numbers precede all integers.
+
 
 \begin{description}
 \infixop{==}{+Term1}{+Term2}
@@ -914,8 +963,8 @@ The garbage collector will block all signals that are handled by Prolog.
 While handling a signal, the garbage-collector is disabled.
     \item[Time of delivery]
 Normally delivery is immediate (or as defined by the operating system
-used).  Signals are blocked with the garbage collector is active, and
-internally delayed if they occur will in a `critical section'.  The
+used).  Signals are blocked when the garbage collector is active, and
+internally delayed if they occur within in a `critical section'.  The
 critical sections are generally very short.
 \end{itemlist}
 
@@ -2511,10 +2560,13 @@ using terms as keys, putting the first criterion as argument 1, the
 second as argument 2, etc. The order of multiple elements that have the
 same \arg{Key} is not changed.
 \predicate{predsort}{3}{+Pred, +List, -Sorted}
-Sorts similar to msort/2, but determines the order of two terms by
-applying \arg{Pred} to pairs of elements from \arg{List} (see apply/2).
-The predicate should succeed if the first element should be before the
-second.
+Sorts similar to sort/2, but determines the order of two terms by
+calling \mbox{\arg{Pred}(-\arg{Delta}, +\arg{E1}, +\arg{E2})}.  This
+call must unify \arg{Delta} with one of \const{<}, const{>} or
+\const{=}.  If built-in predicate compare/3 is used, the result is
+the same as sort/2.  See also keysort/2.%
+	\footnote{Please note that the semantics have changed between
+		  3.1.1 and 3.1.2}
 \end{description}
 
 \section{Finding all Solutions to a Goal}
@@ -2925,7 +2977,12 @@ Convert a time stamp, provided by get_time/1, time_file/2, etc.  \arg{Year} is u
 \arg{Hour} with the hour of the day (0--23), \arg{Minute} with the
 minute (0--59). \arg{Second} with the second (0--59) and \arg{MilliSecond} with the milliseconds (0--999).  Note that the latter
 might not be accurate or might always be 0, depending on the timing
-capabilities of the system.
+capabilities of the system.  See also convert_time/2.
+\predicate{convert_time}{2}{+Time, -String}
+Convert a time-stamp as obtained though get_time/1 into a textual
+representation using the C-library function \funcref{ctime}{}.  The
+value is returned as a SWI-Prolog string object (see \secref{strings}).
+See also convert_time/8.
 \end{description}
 
 \section{File System Interaction}

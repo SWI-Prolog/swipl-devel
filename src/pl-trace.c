@@ -33,8 +33,54 @@ typedef struct find_data_tag
   } goal;
 } find_data;
 
-#define PrologRef(fr)	 ((Word)fr - (Word)lBase)
-#define FrameRef(w)	 ((LocalFrame)((Word)lBase + w))
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Convert between integer frame reference and LocalFrame pointer.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+PL_unify_frame(term_t t, LocalFrame fr)
+{ if ( fr )
+  { assert(fr >= lBase && fr < lTop);
+
+    return PL_unify_integer(t, (Word)fr - (Word)lBase);
+  } else
+    return PL_unify_atom(t, ATOM_none);
+}
+
+
+static void
+PL_put_frame(term_t t, LocalFrame fr)
+{ if ( fr )
+  { assert(fr >= lBase && fr < lTop);
+
+    PL_put_integer(t, (Word)fr - (Word)lBase);
+  } else
+    PL_put_atom(t, ATOM_none);
+}
+
+
+static int
+PL_get_frame(term_t r, LocalFrame *fr)
+{ long i;
+  atom_t a;
+
+  if ( PL_get_long(r, &i) )
+  { LocalFrame f = ((LocalFrame)((Word)lBase + i));
+
+    assert(f >= lBase && f < lTop);
+    *fr = f;
+
+    succeed;
+  } else if ( PL_get_atom(r, &a) && a == ATOM_none )
+  { *fr = NULL;
+
+    succeed;
+  }
+
+  fail;
+}
+
 
 #ifdef O_DEBUGGER
 
@@ -768,8 +814,8 @@ traceInterception(LocalFrame frame, LocalFrame bfr, int port, Code PC)
 		    PL_INTEGER, pcn);
     }
 
-    PL_put_integer(argv+1, PrologRef(frame));
-    PL_put_integer(argv+2, PrologRef(bfr));
+    PL_put_frame(argv+1, frame);
+    PL_put_frame(argv+2, bfr);
     PL_put_variable(rarg);
 
     qid = PL_open_query(MODULE_user, PL_Q_NODEBUG, proc, argv);
@@ -789,11 +835,11 @@ traceInterception(LocalFrame frame, LocalFrame bfr, int port, Code PC)
 	else if ( a == ATOM_ignore )
 	  rval = ACTION_IGNORE;
       } else if ( PL_is_functor(rarg, FUNCTOR_retry1) )
-      { long w;
+      { LocalFrame fr;
 	term_t arg = PL_new_term_ref();
 
-	if ( PL_get_arg(1, rarg, arg) && PL_get_long(arg, &w) )
-	{ debugstatus.retryFrame = FrameRef(w);
+	if ( PL_get_arg(1, rarg, arg) && PL_get_frame(arg, &fr) )
+	{ debugstatus.retryFrame = fr;
 	  rval = ACTION_RETRY;
 	} else
 	  warning("prolog_trace_interception/3: bad argument to retry/1");
@@ -1129,7 +1175,7 @@ pl_prolog_current_frame(term_t frame)
   if ( fr->predicate->definition.function == pl_prolog_current_frame )
     fr = parentFrame(fr);		/* thats me! */
 
-  return PL_unify_integer(frame, PrologRef(fr));
+  return PL_unify_frame(frame, fr);
 }
 
 
@@ -1140,16 +1186,12 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
   atom_t key;
   int arity;
   term_t result = PL_new_term_ref();
-  long fri;
 
-  if ( !PL_get_long(frame, &fri) ||
+  if ( !PL_get_frame(frame, &fr) ||
        !PL_get_name_arity(what, &key, &arity) )
   { ierr:
     return warning("prolog_frame_attribute/3: instantiation fault");
   }
-
-  if ((fr = FrameRef(fri)) < lBase || fr > lTop)
-    return warning("prolog_frame_attribute/3: illegal frame reference");
 
   set(fr, FR_WATCHED);			/* explicit call to do this? */
 
@@ -1193,7 +1235,7 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
   } else if (key == ATOM_alternative)
   { if (fr->backtrackFrame == (LocalFrame) NULL)
       fail;
-    PL_put_integer(result, PrologRef(fr->backtrackFrame));
+    PL_put_frame(result, fr->backtrackFrame);
   } else if (key == ATOM_parent)
   { LocalFrame parent;
 
@@ -1201,7 +1243,7 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
       clearUninitialisedVarsFrame(fr->parent, fr->programPointer);
 
     if ( (parent = parentFrame(fr)) )
-      PL_put_integer(result, PrologRef(parent));
+      PL_put_frame(result, parent);
     else
       fail;
   } else if (key == ATOM_top)
@@ -1317,9 +1359,11 @@ callEventHook(int ev, ...)
       }
       case PLEV_FRAMEFINISHED:
       { LocalFrame fr = va_arg(args, LocalFrame);
+	term_t ref = PL_new_term_ref();
 
+	PL_put_frame(ref, fr);
 	PL_unify_term(arg, PL_FUNCTOR, FUNCTOR_frame_finished1,
-		           PL_INTEGER, PrologRef(fr));
+		           PL_TERM, ref);
 	break;
       }
       default:

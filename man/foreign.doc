@@ -1086,10 +1086,11 @@ pl_get_environ(term_t env)
 { term_t l = PL_copy_term_ref(env);
   term_t a = PL_new_term_ref();
   extern char **environ;
+  char **e;
 
-  while(*environ)
+  for(e = environ; *e; e++)
   { if ( !PL_unify_list(l, a, l) ||
-         !PL_unify_atom_chars(a, *environ) )
+         !PL_unify_atom_chars(a, *e) )
       PL_fail;
   }
 
@@ -1292,7 +1293,8 @@ PL_open_query() in this context.
     \cfunction{void}{PL_close_query}{qid}
 As PL_cut_query(), but all data and bindings created by the query are
 destroyed.
-    \cfunction{int}{PL_call_predicate}{module_t m, int debug, predicate_t pred, term_t +t0}
+    \cfunction{int}{PL_call_predicate}{module_t m, int flags,
+				       predicate_t pred, term_t +t0}
 Shorthand for PL_open_query(), PL_next_solution(), PL_cut_query(),
 generating a single solution.  The arguments are the same as for
 PL_open_query(), the return value is the same as PL_next_solution().
@@ -2161,7 +2163,7 @@ main(int argc, char **argv)
     int rval;
 
     PL_put_atom_chars(h0, expression);
-    rval = PL_call_predicate(NULL, FALSE, pred, h0);
+    rval = PL_call_predicate(NULL, PL_Q_NORMAL, pred, h0);
 
     PL_halt(rval ? 0 : 1);
   }

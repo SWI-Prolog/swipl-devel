@@ -30,6 +30,7 @@ cmd(fileext({Ext}), #code(Text)) :-
 cmd(var(		{A1}), #var(+A1)).
 cmd(arg(		{A1}), #var(+A1)).
 cmd(file(		{A1}), #code(+A1)).
+cmd(module(		{A1}), #code(+A1)).
 cmd(clib(		{A1}), #code(+A1)).
 cmd(cglobalvar(		{A1}), #code(+A1)).
 cmd(ctype(		{A1}), #code(+A1)).

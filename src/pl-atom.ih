@@ -349,3 +349,4 @@
 #define ATOM_callpred     MK_ATOM(348)
 #define ATOM_throw        MK_ATOM(349)
 #define ATOM_stack        MK_ATOM(350)
+#define ATOM_iso          MK_ATOM(351)

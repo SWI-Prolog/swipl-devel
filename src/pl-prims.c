@@ -259,7 +259,7 @@ pl_nonequal(term_t t1, term_t t2) /* \== */
     Atom:	alphabetically
     Strings:	alphabetically
     number:	value
-    Term:	alphabetically / arity / recursive
+    Term:	arity / alphabetically / recursive
 
  ** Tue Apr 26 16:25:50 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
@@ -288,16 +288,18 @@ tail_recursion:
   t2 = tag(w2);
 
   if ( t1 != t2 )
-  { if ( t1 == TAG_INTEGER && t2 == TAG_FLOAT )
-    { real f1 = (real)valInteger(w1);
-      real f2 = valReal(w2);
-
-      return f1 < f2 ? LESS : f1 == f2 ? EQUAL : GREATER;
-    } else if ( t1 == TAG_FLOAT && t2 == TAG_INTEGER )
-    { real f1 = valReal(w1);
-      real f2 = (real)valInteger(w2);
-
-      return f1 < f2 ? LESS : f1 == f2 ? EQUAL : GREATER;
+  { if ( !trueFeature(ISO_FEATURE) )
+    { if ( t1 == TAG_INTEGER && t2 == TAG_FLOAT )
+      { real f1 = (real)valInteger(w1);
+	real f2 = valReal(w2);
+  
+	return f1 < f2 ? LESS : f1 == f2 ? EQUAL : GREATER;
+      } else if ( t1 == TAG_FLOAT && t2 == TAG_INTEGER )
+      { real f1 = valReal(w1);
+	real f2 = (real)valInteger(w2);
+  
+	return f1 < f2 ? LESS : f1 == f2 ? EQUAL : GREATER;
+      }
     }
 
     return t1 < t2 ? LESS : GREATER;
@@ -331,12 +333,11 @@ tail_recursion:
       { FunctorDef fd1 = valueFunctor(f1->definition);
 	FunctorDef fd2 = valueFunctor(f2->definition);
 
-	if ( fd1->name != fd2->name )
-	  return strcmp(stringAtom(fd1->name),
-			stringAtom(fd2->name));
-	if ( fd1->arity > fd2->arity )
-	  return GREATER;
-	return LESS;
+	if ( fd1->arity != fd2->arity )
+	  return fd1->arity > fd2->arity ? GREATER : LESS;
+
+	return strcmp(stringAtom(fd1->name),
+		      stringAtom(fd2->name));
       } else
       { int arity = arityFunctor(f1->definition);
 	int rval;
@@ -865,7 +866,7 @@ free_variables(Word t, term_t l, int n)
     term_t v;
 
     for(i=0; i<n; i++)
-    { Word p2 = valTermRef(l+1);	/* see whether we got this one! */
+    { Word p2 = valTermRef(l+i);	/* see whether we got this one! */
 
       deRef(p2);
       if ( p2 == t )
@@ -2118,6 +2119,7 @@ static const builtin_boolean_feature builtin_boolean_features[] =
   { ATOM_report_error,		         REPORT_ERROR_FEATURE },
   { ATOM_case_sensitive_file_names,      FILE_CASE_FEATURE },
   { ATOM_allow_variable_name_as_functor, ALLOW_VARNAME_FUNCTOR },
+  { ATOM_iso, 			 	 ISO_FEATURE },
   { NULL_ATOM,			         0L }
 };
 

@@ -1571,6 +1571,7 @@ typedef struct debuginfo
 #define FILE_CASE_PRESERVING_FEATURE 0x0100 /* case preserving file names */
 #define DOS_FILE_NAMES_FEATURE  0x0200	/* dos (8+3) file names */
 #define ALLOW_VARNAME_FUNCTOR	0x0400	/* Read Foo(x) as 'Foo'(x) */
+#define ISO_FEATURE	0x0800	/* Strict ISO compliance */
 
 typedef struct
 { unsigned long flags;			/* the feature flags */

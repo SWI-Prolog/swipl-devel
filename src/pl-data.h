@@ -91,8 +91,8 @@ Indirect data
 
 #define TAG_MASK	0x00000007L	/* mask for tag */
 #define TAG_VAR		0x00000000L	/* tag for variable (= 0L) */
-#define TAG_INTEGER	0x00000001L	/* Tagged or indirect integer */
-#define TAG_FLOAT	0x00000002L	/* Floating point number */
+#define TAG_FLOAT	0x00000001L	/* Floating point number */
+#define TAG_INTEGER	0x00000002L	/* Tagged or indirect integer */
 #define TAG_ATOM	0x00000003L	/* an atom */
 #define TAG_STRING	0x00000004L	/* String */
 #define TAG_LIST	0x00000005L	/* List */

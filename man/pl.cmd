@@ -45,6 +45,7 @@
 \cglobalvar{+}
 \exam{+}
 \file{+}
+\module{+}
 \pllib{+}
 \clib{+}
 \env{+}

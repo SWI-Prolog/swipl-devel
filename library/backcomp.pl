@@ -13,7 +13,8 @@
 	    display/1,
 	    display/2,
 	    displayq/1,
-	    displayq/2
+	    displayq/2,
+	    (ed)/1
 	  ]).
 
 '$arch'(Arch, unknown) :-
@@ -37,3 +38,10 @@ displayq(Term) :-
 displayq(Stream, Term) :-
 	write_term(Stream, Term, [ignore_ops(true),quoted(true)]).
 
+%	use edit/1
+
+ed(PredName) :-
+	atom(PredName), !,
+	edit(PredName/_Arity).
+ed(Pred) :-
+	edit(Pred).

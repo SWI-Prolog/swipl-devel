@@ -621,6 +621,7 @@ word		pl_convert_time(term_t time, term_t year,
 				term_t month, term_t day,
 				term_t hour, term_t minute,
 				term_t second, term_t usec);
+word		pl_convert_time2(term_t time, term_t string);
 word		pl_get_time(term_t t);
 word		pl_sleep(term_t time);
 

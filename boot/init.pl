@@ -1139,6 +1139,8 @@ $t_fill(S, SR, S1, T, (T, SR=S)) :-
 $t_fill(_S, SR, SR, T, T).
 
 
+$extend(More, M:OldT, M:NewT) :- !,
+	$extend(More, OldT, NewT).
 $extend(More, OldT, NewT) :-
 	OldT =.. OldL,
 	append(OldL, More, NewL),

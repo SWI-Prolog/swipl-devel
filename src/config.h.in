@@ -242,6 +242,9 @@
 /* Define if you have the signal function.  */
 #undef HAVE_SIGNAL
 
+/* Define if you have the sigprocmask function.  */
+#undef HAVE_SIGPROCMASK
+
 /* Define if you have the sigset function.  */
 #undef HAVE_SIGSET
 

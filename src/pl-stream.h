@@ -136,7 +136,7 @@ __pl_export_data IOSTREAM    S__iob[];		/* Libs standard streams */
 #define Sputchar(c)	Sputc((c), Soutput)
 
 #define S__updatefilepos(s, c) \
-	((s)->position ? S__fupdatefilepos((s)->position, (c)) \
+	((s)->position ? S__fupdatefilepos((s), (c)) \
 		       : (c))
 
 #define Snpgetc(s) ((s)->bufp < (s)->limitp ? (int)(*(s)->bufp++)&0xff \
@@ -204,7 +204,7 @@ __pl_export_data IOSTREAM    S__iob[];		/* Libs standard streams */
 		 *	    PROTOTYPES		*
 		 *******************************/
 
-__pl_export int		S__fupdatefilepos(IOPOS *p, int c);
+__pl_export int		S__fupdatefilepos(IOSTREAM *s, int c);
 __pl_export int		S__fillbuf(IOSTREAM *s);
 __pl_export int		Sputc(int c, IOSTREAM *s);
 __pl_export int		Sfgetc(IOSTREAM *s);

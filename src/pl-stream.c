@@ -234,16 +234,23 @@ S__fillbuf(IOSTREAM *s)
 
 
 inline int
-S___fupdatefilepos(IOPOS *p, int c)
-{ if ( p )
+S___fupdatefilepos(IOSTREAM *s, int c)
+{ IOPOS *p;
+
+  if ( (p = s->position) )
   { switch(c)
     { case '\n':
 	p->lineno++;
         p->linepos = 0;
-/*      p->flags &= ~SIO_NOLINEPOS; TBD*/
+	s->flags &= ~SIO_NOLINEPOS;
+#ifdef __WIN32__
+	if ( s->flags & O_TEXT )
+	  p->charno++;			/* writes one extra! */
+#endif
         break;
       case '\r':
 	p->linepos = 0;
+        s->flags &= ~SIO_NOLINEPOS;
 	break;
       case '\b':
 	if ( p->linepos > 0 )
@@ -1712,6 +1719,6 @@ Sopen_string(IOSTREAM *s, char *buf, int size, const char *mode)
 #undef S__fupdatefilepos
 
 int
-S__fupdatefilepos(IOPOS *p, int c)
-{ return S___fupdatefilepos(p, c);
+S__fupdatefilepos(IOSTREAM *s, int c)
+{ return S___fupdatefilepos(s, c);
 }

@@ -530,7 +530,8 @@ toIntegerNumber(Number n)
 
 void
 canoniseNumber(Number n)
-{ if ( n->type == V_REAL )		/* only if not explicit! */
+{					/* only if not explicit! */
+  if ( n->type == V_REAL && !trueFeature(ISO_FEATURE) )
   { long l;
 
 #ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
