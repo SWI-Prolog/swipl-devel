@@ -355,7 +355,7 @@ pl_import(Word pred)
   else
     return warning("import/1: illegal predicate specification");
 
-  if ((old = isCurrentProcedure(proc->functor, destination)) != (Procedure) NULL)
+  if ((old = isCurrentProcedure(proc->functor, destination)) != NULL)
   { if ( old->definition == proc->definition )
       succeed;			/* already done this! */
 

@@ -90,6 +90,35 @@ isDefinedProcedure(register Procedure proc)
   fail;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Find a procedure for defining it.  Here   we check whether the procedure
+to be defined is a system predicate.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+Procedure
+lookupProcedureToDefine(FunctorDef def, Module m)
+{ Procedure proc;
+
+  if ( (proc = isCurrentProcedure(def, m)) && false(proc->definition, SYSTEM) )
+    return proc;
+
+  if ( !SYSTEM_MODE &&
+       MODULE_system &&
+       (proc=isCurrentProcedure(def, MODULE_system)) &&
+       true(proc->definition, LOCKED) &&
+       false(proc->definition, DYNAMIC) )
+  { warning("Attempt to redefine a system predicate: %s/%d\n"
+	    "\tUse :- redefine_system_predicate(+Head) if this is intended",
+	    stringAtom(proc->functor->name),
+	    proc->functor->arity);
+    return NULL;
+  }
+ 
+  return lookupProcedure(def, m);
+}
+
+
 /*  Find a procedure from description `descr'. `descr' is one of:
     <term> or <module>:<term>. If the procedure does not exists NULL
     is returned.
@@ -551,7 +580,7 @@ pl_retract(Word term, word h)
 
   if ((term = stripModule(term, &m)) == (Word) NULL)
     fail;
-
+ 
   if (splitClause(term, &head, &body) == FALSE)
     return warning("retract/1: illegal specification");
 
@@ -568,7 +597,7 @@ pl_retract(Word term, word h)
 
     if ( true(proc->definition, FOREIGN) )
       return warning("retract/1: cannot retract from a foreign predicate");
-    if ( true(proc->definition, SYSTEM) && false(proc->definition, DYNAMIC) )
+    if ( true(proc->definition, LOCKED) && false(proc->definition, DYNAMIC) )
       return warning("retract/1: Attempt to retract from a system predicate");
 
     clause = proc->definition->definition.clauses;
@@ -642,7 +671,7 @@ pl_abolish(Word atom, Word arity)
   if ((proc = isCurrentProcedure(f, m)) == (Procedure) NULL)
     succeed;
 
-  if ( true(proc->definition, SYSTEM) && !SYSTEM_MODE && m == MODULE_system )
+  if ( true(proc->definition, LOCKED) && !SYSTEM_MODE && m == MODULE_system )
     return warning("abolish/2: attempt to abolish a system predicate");
 
   return abolishProcedure(proc, m);
@@ -709,31 +738,39 @@ pl_list_active_procedures(void)
   succeed;
 }
 
-static bool
-attribute(Definition def, Word value, short att)
-{ if ( isVar(*value) )
-    return unifyAtomic(value, consNum((def->flags & att) ? 1 : 0));
 
-  switch((int) valNum(*value))
-  { case 0:	clear(def, att);
-		succeed;
-    case 1:	set(def, att);
-		if ( (att == DYNAMIC || att == MULTIFILE) && SYSTEM_MODE )
-		{ set(def, SYSTEM);
-		  set(def, HIDE_CHILDS);
-		}
-		succeed;
-    default:	return sysError("$predicate_attribute/3: Illegal value");
-  }
+static unsigned long
+attribute_mask(Atom key)
+{
+#define TRACE_ANY (TRACE_CALL|TRACE_REDO|TRACE_EXIT|TRACE_FAIL)
+
+  if (key == ATOM_dynamic)	 return DYNAMIC;
+  if (key == ATOM_multifile)	 return MULTIFILE;
+  if (key == ATOM_system)	 return SYSTEM;
+  if (key == ATOM_locked)	 return LOCKED;
+  if (key == ATOM_spy)		 return SPY_ME;
+  if (key == ATOM_trace)	 return TRACE_ME;
+  if (key == ATOM_trace_call)	 return TRACE_CALL;
+  if (key == ATOM_trace_redo)	 return TRACE_REDO;
+  if (key == ATOM_trace_exit)	 return TRACE_EXIT;
+  if (key == ATOM_trace_fail)	 return TRACE_FAIL;
+  if (key == ATOM_trace_any)	 return TRACE_ANY;
+  if (key == ATOM_hide_childs)	 return HIDE_CHILDS;
+  if (key == ATOM_transparent)	 return TRANSPARENT;
+  if (key == ATOM_discontiguous) return DISCONTIGUOUS;
+
+  return 0;
 }
 
+
 word
-pl_predicate_attribute(Word pred, Word what, Word value)
+pl_get_predicate_attribute(Word pred, Word what, Word value)
 { Procedure proc;
   FunctorDef fd;
   Definition def;
   Atom key;
   Module module = (Module) NULL;
+  unsigned long att;
 
   pred = stripModule(pred, &module);
   if ( isAtom(*pred) )
@@ -743,57 +780,81 @@ pl_predicate_attribute(Word pred, Word what, Word value)
   else
     fail;
 
-  proc = (isVar(*value) ? resolveProcedure(fd, module)  /* lookup */
-		        : lookupProcedure(fd, module)); /* set */
+  proc = resolveProcedure(fd, module);
   def = proc->definition;
 
   if (!isAtom(*what) )
-    return warning("$predicate_attribute/3: key should be an atom");
+    return warning("$get_predicate_attribute/3: key should be an atom");
   key = (Atom) *what;
 
   if (key == ATOM_imported)
   { if (module == def->module)
       fail;
     return unifyAtomic(value, def->module->name);
-  }
-  if (key == ATOM_indexed)
+  } else if (key == ATOM_indexed)
   { if (def->indexPattern == 0x0)
       fail;
     return indexPatternToTerm(proc, value);
-  }
-
-  if (!isVar(*value) && (!isInteger(*value) || (valNum(*value) & ~1)))
-    return warning("$predicate_attribute/3: illegal 3rd argument");
-
-#define TRACE_ANY (TRACE_CALL|TRACE_REDO|TRACE_EXIT|TRACE_FAIL)
-
-  if (key == ATOM_dynamic)	return attribute(def, value, DYNAMIC);
-  if (key == ATOM_multifile)	return attribute(def, value, MULTIFILE);
-  if (key == ATOM_system)	return attribute(def, value, SYSTEM);
-  if (key == ATOM_spy)		return attribute(def, value, SPY_ME);
-  if (key == ATOM_trace)	return attribute(def, value, TRACE_ME);
-  if (key == ATOM_trace_call)	return attribute(def, value, TRACE_CALL);
-  if (key == ATOM_trace_redo)	return attribute(def, value, TRACE_REDO);
-  if (key == ATOM_trace_exit)	return attribute(def, value, TRACE_EXIT);
-  if (key == ATOM_trace_fail)	return attribute(def, value, TRACE_FAIL);
-  if (key == ATOM_trace_any)	return attribute(def, value, TRACE_ANY);
-  if (key == ATOM_hide_childs)	return attribute(def, value, HIDE_CHILDS);
-  if (key == ATOM_transparent)	return attribute(def, value, TRANSPARENT);
-  if (key == ATOM_discontiguous) return attribute(def,value, DISCONTIGUOUS);
-  if (key == ATOM_foreign)
-    return unifyAtomic(value, consNum(true(def, FOREIGN) ? 1 : 0));
-  if (key == ATOM_exported)
-    return unifyAtomic(value, consNum(isPublicModule(module, proc)));
-  if (key == ATOM_defined)
-    return unifyAtomic(value, consNum(true(def, FOREIGN) ||
-				      def->definition.clauses ? 1 : 0) );
-  if (key == ATOM_line_count)
+  } else if (key == ATOM_exported)
+  { return unifyAtomic(value, consNum(isPublicModule(module, proc)));
+  } else if (key == ATOM_defined)
+  { return unifyAtomic(value, consNum(true(def, FOREIGN) ||
+				      def->definition.clauses ? 1 : 0));
+  } else if (key == ATOM_line_count)
   { if ( def->line_no > 0 )
       return unifyAtomic(value, consNum(def->line_no));
     else
       fail;
+  } else if (key == ATOM_foreign)
+  { return unifyAtomic(value, consNum((def->flags & FOREIGN) ? 1 : 0));
+  } else if ( (att = attribute_mask(key)) )
+  { return unifyAtomic(value, consNum((def->flags & att) ? 1 : 0));
   } else
-    return warning("$predicate_attribute/4: unknown key");
+  { return warning("$get_predicate_attribute/4: unknown key: %s",
+		   stringAtom(key));
+  }
+}
+  
+
+word
+pl_set_predicate_attribute(Word pred, Word what, Word value)
+{ Procedure proc;
+  FunctorDef fd;
+  Definition def;
+  Atom key;
+  Module module = (Module) NULL;
+  unsigned long att;
+
+  pred = stripModule(pred, &module);
+  if ( isAtom(*pred) )
+    fd = lookupFunctorDef((Atom) *pred, 0);
+  else if ( isTerm(*pred) )
+    fd = functorTerm(*pred);
+  else
+    fail;
+
+  if ( !(proc = lookupProcedureToDefine(fd, module)) )
+    fail;
+  def = proc->definition;
+
+  if ( !isAtom(*what) ||
+       (!isInteger(*value) || (valNum(*value) & ~1)) )
+    return warning("$set_predicate_attribute/3: instantiation fault");
+  key = (Atom) *what;
+  if ( !(att = attribute_mask(key)) )
+    return warning("$set_predicate_attribute/4: unknown key: %s",
+		   stringAtom(key));
+
+  if ( *value == consNum(0) )
+  { clear(def, att);
+  } else
+  { set(def, att);
+    if ( (att == DYNAMIC || att == MULTIFILE) && SYSTEM_MODE )
+    { set(def, SYSTEM|HIDE_CHILDS);
+    }
+  }
+
+  succeed;
 }
 
 

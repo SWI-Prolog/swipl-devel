@@ -429,7 +429,7 @@ pl_erase(Word ref)
   if (isClause(record))
   { Clause clause = (Clause) record;
   
-    if ( true(clause->procedure->definition, SYSTEM) &&
+    if ( true(clause->procedure->definition, LOCKED) &&
 	 false(clause->procedure->definition, DYNAMIC) )
       return warning("erase/1: Attempt to erase clause from system predicate");
 

@@ -148,15 +148,15 @@ $trace(+H, Head) :-
 	tag_list(A0, +, A1),
 	$trace(A1, Head).
 $trace(+H, Head) :- !,
-	$predicate_attribute(Head, H, 1).
+	$set_predicate_attribute(Head, H, 1).
 $trace(-H, Head) :-
 	trace_alias(H, A0), !,
 	tag_list(A0, -, A1),
 	$trace(A1, Head).
 $trace(-H, Head) :- !,
-	$predicate_attribute(Head, H, 0).
+	$set_predicate_attribute(Head, H, 0).
 $trace(H, Head) :-
-	$predicate_attribute(Head, H, 1).
+	$set_predicate_attribute(Head, H, 1).
 
 tag_list([], _, []).
 tag_list([H0|T0], F, [H1|T1]) :-
@@ -208,8 +208,7 @@ debugging :-
 
 $show_spy_points :-
 	current_predicate(_, Module:Head),
-	$predicate_attribute(Module:Head, spy, True),
-	True == 1,
+	$get_predicate_attribute(Module:Head, spy, 1),
 	\+ predicate_property(Module:Head, imported_from(_)),
 	$predicate_name(Module:Head, Name),
 	format('~t~8|~w~n', [Name]),
@@ -218,8 +217,7 @@ $show_spy_points.
 
 show_trace_points :-
 	current_predicate(_, Module:Head),
-	$predicate_attribute(Module:Head, trace_any, True),
-	True == 1,
+	$get_predicate_attribute(Module:Head, trace_any, 1),
 	\+ predicate_property(Module:Head, imported_from(_)),
 	show_trace_point(Module:Head),
 	fail.
@@ -237,8 +235,7 @@ show_trace_point(Head) :-
 
 show_trace_ports(Head) :-
 	trace_alias(Port, [AttName]),
-	$predicate_attribute(Head, AttName, True),
-	True == 1,
+	$get_predicate_attribute(Head, AttName, 1),
 	format(' ~w', [Port]),
 	fail.
 show_trace_ports(_).
@@ -341,10 +338,9 @@ generate_current_predicate(Name, Module, Head) :-
 	$defined_predicate(Module:Head).
 
 $defined_predicate(Head) :-
-	$predicate_attribute(Head, defined, 1), !.
+	$get_predicate_attribute(Head, defined, 1), !.
 $defined_predicate(Head) :-
-	$predicate_attribute(Head, (dynamic), True),
-	True == 1.
+	$get_predicate_attribute(Head, (dynamic), 1).
 
 :- module_transparent
 	predicate_property/2,
@@ -368,34 +364,27 @@ predicate_property(Pred, Property) :-
 :- index($predicate_property(0, 1)).
 
 $predicate_property(Pred, interpreted) :-
-	$predicate_attribute(Pred, foreign, True),
-	True == 0.
+	$get_predicate_attribute(Pred, foreign, 0).
 $predicate_property(Pred, built_in) :-
-	$predicate_attribute(Pred, system, True),
-	True == 1.
+	$get_predicate_attribute(Pred, system, 1).
 $predicate_property(Pred, exported) :-
-	$predicate_attribute(Pred, exported, True),
-	True == 1.
+	$get_predicate_attribute(Pred, exported, 1).
 $predicate_property(Pred, foreign) :-
-	$predicate_attribute(Pred, foreign, True),
-	True == 1.
+	$get_predicate_attribute(Pred, foreign, 1).
 $predicate_property(Pred, (dynamic)) :-
-	$predicate_attribute(Pred, (dynamic), True),
-	True == 1.
+	$get_predicate_attribute(Pred, (dynamic), 1).
 $predicate_property(Pred, (multifile)) :-
-	$predicate_attribute(Pred, (multifile), True),
-	True == 1.
+	$get_predicate_attribute(Pred, (multifile), 1).
 $predicate_property(Pred, imported_from(Module)) :-
-	$predicate_attribute(Pred, imported, Module).
+	$get_predicate_attribute(Pred, imported, Module).
 $predicate_property(Pred, transparent) :-
-	$predicate_attribute(Pred, transparent, True),
-	True == 1.
+	$get_predicate_attribute(Pred, transparent, 1).
 $predicate_property(Pred, indexed(Pattern)) :-
-	$predicate_attribute(Pred, indexed, Pattern).
+	$get_predicate_attribute(Pred, indexed, Pattern).
 $predicate_property(Pred, file(File)) :-
 	source_file(Pred, File).
 $predicate_property(Pred, line_count(LineNumber)) :-
-	$predicate_attribute(Pred, line_count, LineNumber).
+	$get_predicate_attribute(Pred, line_count, LineNumber).
 
 :- module_transparent
 	clause/2,

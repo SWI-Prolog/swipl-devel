@@ -138,9 +138,12 @@ static struct foreign {
   ADD("asserta",		2, pl_asserta2,		TRANSPARENT|TRACE_ME),
   ADD("assertz",		2, pl_assertz2,		TRANSPARENT|TRACE_ME),
   ADD("$record_clause",		2, pl_record_clause,		TRACE_ME),
+  ADD("redefine_system_predicate", 1, pl_redefine_system_predicate,
+							TRANSPARENT|TRACE_ME),
 
   ADD("$c_current_predicate",	2, pl_current_predicate,  NONDETERMINISTIC|TRANSPARENT|TRACE_ME),
-  ADD("$predicate_attribute",	3, pl_predicate_attribute,TRANSPARENT|TRACE_ME),
+  ADD("$set_predicate_attribute", 3, pl_set_predicate_attribute,TRANSPARENT|TRACE_ME),
+  ADD("$get_predicate_attribute", 3, pl_get_predicate_attribute,TRANSPARENT|TRACE_ME),
   ADD("$source_file",		2, pl_source_file,	  TRANSPARENT|TRACE_ME),
   ADD("$time_source_file",	2, pl_time_source_file,	  NONDETERMINISTIC|TRACE_ME),
   ADD("$start_consult",		1, pl_start_consult,		TRACE_ME),
@@ -355,7 +358,7 @@ initBuildIns(void)
   for(f = &foreigns[0]; f->name; f++)
   { def = lookupProcedure(lookupFunctorDef(lookupAtom(f->name), f->arity), 
 					         MODULE_system)->definition;
-    set(def, FOREIGN|SYSTEM);
+    set(def, FOREIGN|SYSTEM|LOCKED);
     clear(def, TRACE_ME);
     set(def, f->flags);
     def->definition.function = f->function;

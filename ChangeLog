@@ -1,6 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 1.9.4.  Redefining system-predicates now   results in a warning.
+This may be overruled using :- redefine_system_predicate(+Head).
+
+Version  1.9.3.   Fix  index/1  problem    introduced   in  1.9.2.   Fix
+stack-expansion problem in all versions that   lack hardware support for
+stack-expansion.  Some cleanup in pl-gc.c to make clean compilation with
+-Wall  and  -DO_DEBUG  possible.   Regenerated   common  prototype  file
+pl-funcs.h using mkproto tool (and some editing).
+
 Version 1.9.2.  Configuration is  now  based   on  GNU's  autoload.  All
 md-*.h files have been removed from  the distribution.  $arch/2, $home/1
 and $version/1 have been replaced by feature/2.  A predicate read_link/3

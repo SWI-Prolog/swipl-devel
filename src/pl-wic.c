@@ -401,8 +401,7 @@ loadPredicate(FILE *fd)
   if ( SYSTEM_MODE &&
        false(def, DYNAMIC) &&
        false(def, MULTIFILE) )
-  { set(def, SYSTEM);
-    set(def, HIDE_CHILDS);
+  { set(def, SYSTEM|HIDE_CHILDS|LOCKED);
   }
 
   for(;;)

@@ -669,22 +669,24 @@ with one operation, it turns out to be faster as well.
 #define clear(s, a)		((s)->flags &= ~(a))
 #define clearFlags(s)		((s)->flags = 0)
 
-#define NONDETERMINISTIC	(0x0001) /* predicate */
-#define DISCONTIGUOUS		(0x0002) /* predicate */
-#define DYNAMIC			(0x0004) /* predicate */
-#define FOREIGN			(0x0008) /* predicate */
-#define HIDE_CHILDS		(0x0010) /* predicate */
-#define MULTIFILE		(0x0020) /* predicate */
-#define PROFILE_TICKED		(0x0040) /* predicate */
-#define SPY_ME			(0x0080) /* predicate */
-#define SYSTEM			(0x0100) /* predicate */
-#define TRACE_ME		(0x0200) /* predicate */
-#define TRANSPARENT		(0x0400) /* predicate */
-#define GC_SAVE			(0x0800) /* predicate */
-#define TRACE_CALL		(0x1000) /* predicate */
-#define TRACE_REDO		(0x2000) /* predicate */
-#define TRACE_EXIT		(0x4000) /* predicate */
-#define TRACE_FAIL		(0x8000) /* predicate */
+#define NONDETERMINISTIC	(0x00000001L) /* predicate */
+#define DISCONTIGUOUS		(0x00000002L) /* predicate */
+#define DYNAMIC			(0x00000004L) /* predicate */
+#define FOREIGN			(0x00000008L) /* predicate */
+#define HIDE_CHILDS		(0x00000010L) /* predicate */
+#define MULTIFILE		(0x00000020L) /* predicate */
+#define PROFILE_TICKED		(0x00000040L) /* predicate */
+#define SPY_ME			(0x00000080L) /* predicate */
+#define SYSTEM			(0x00000100L) /* predicate, module */
+#define TRACE_ME		(0x00000200L) /* predicate */
+#define TRANSPARENT		(0x00000400L) /* predicate */
+#define GC_SAVE			(0x00000800L) /* predicate */
+#define TRACE_CALL		(0x00001000L) /* predicate */
+#define TRACE_REDO		(0x00002000L) /* predicate */
+#define TRACE_EXIT		(0x00004000L) /* predicate */
+#define TRACE_FAIL		(0x00008000L) /* predicate */
+					/* This may be changed later ... */
+#define LOCKED			(SYSTEM)      /* predicate */
 
 #define ERASED			(0x0001) /* clause */
 #define UNKNOWN			(0x0002) /* module */
@@ -950,10 +952,7 @@ struct definition
   int		profile_fails;		/* profiler: number of fails */
 #endif /* O_PROFILE */
   unsigned long indexPattern;		/* indexed argument pattern */
-  char		indexCardinality;	/* cardinality of index pattern */
-  short		line_no;		/* Line number for the predicate */
-  short		source_count;		/* times (re)consulted */
-  unsigned short	flags;			/* booleans: */
+  unsigned long	flags;			/* booleans: */
 		/*	FOREIGN		   foreign predicate? */
 		/*	PROFILE_TICKED	   has been ticked this time? */
 		/*	TRACE_ME	   is my call visible? */
@@ -970,6 +969,9 @@ struct definition
 		/*	TRACE_REDO	   Trace redo-port */
 		/*	TRACE_EXIT	   Trace exit-port */
 		/*	TRACE_FAIL	   Trace fail-port */
+  char		indexCardinality;	/* cardinality of index pattern */
+  char		source_count;		/* times (re)consulted */
+  short		line_no;		/* Line number for the predicate */
 };
 
 struct localFrame

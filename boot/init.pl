@@ -45,35 +45,35 @@ op(Priority, Type, Name) :-
 
 dynamic((Pred/Arity, More)) :- !,
 	functor(Term, Pred, Arity),
-	$predicate_attribute(Term, (dynamic), 1),
+	$set_predicate_attribute(Term, (dynamic), 1),
 	dynamic(More).
 dynamic(Pred/Arity) :-
 	functor(Term, Pred, Arity),
-	$predicate_attribute(Term, (dynamic), 1).
+	$set_predicate_attribute(Term, (dynamic), 1).
 
 multifile((Pred/Arity, More)) :- !,
 	functor(Term, Pred, Arity),
-	$predicate_attribute(Term, (multifile), 1),
+	$set_predicate_attribute(Term, (multifile), 1),
 	multifile(More).
 multifile(Pred/Arity) :-
 	functor(Term, Pred, Arity),
-	$predicate_attribute(Term, (multifile), 1).
+	$set_predicate_attribute(Term, (multifile), 1).
 
 module_transparent((Pred/Arity, More)) :- !,
 	functor(Term, Pred, Arity),
-	$predicate_attribute(Term, transparent, 1),
+	$set_predicate_attribute(Term, transparent, 1),
 	module_transparent(More).
 module_transparent(Pred/Arity) :-
 	functor(Term, Pred, Arity),
-	$predicate_attribute(Term, transparent, 1).
+	$set_predicate_attribute(Term, transparent, 1).
 
 discontiguous((Pred/Arity, More)) :- !,
 	functor(Term, Pred, Arity),
-	$predicate_attribute(Term, (discontiguous), 1),
+	$set_predicate_attribute(Term, (discontiguous), 1),
 	discontiguous(More).
 discontiguous(Pred/Arity) :-
 	functor(Term, Pred, Arity),
-	$predicate_attribute(Term, (discontiguous), 1).
+	$set_predicate_attribute(Term, (discontiguous), 1).
 
 :- module_transparent
 	(dynamic)/1,
@@ -93,7 +93,7 @@ discontiguous(Pred/Arity) :-
 
 $hide(Name, Arity) :-
 	functor(Head, Name, Arity),
-	$predicate_attribute(Head, trace, 0).
+	$set_predicate_attribute(Head, trace, 0).
 
 %	$show_childs(+Name, +Arity)
 %	Normally system predicates hide their childs frames if these are
@@ -101,7 +101,7 @@ $hide(Name, Arity) :-
 
 $show_childs(Name, Arity) :-  
 	functor(Head, Name, Arity),
-        $predicate_attribute(Head, hide_childs, 0).
+        $set_predicate_attribute(Head, hide_childs, 0).
 
 		/********************************
 		*       CALLING, CONTROL        *

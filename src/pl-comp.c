@@ -505,6 +505,7 @@ setVars(register Word t, register struct vartable *vt)
   }
 }
 
+
 static Clause
 compile(Word term, Module module)
 { compileInfo ci;			/* data base for the compiler */
@@ -523,13 +524,15 @@ clause should belong to.
     return (Clause) NULL;
   }
   if (isAtom(*head) )
-    proc = lookupProcedure(lookupFunctorDef((Atom)*head, 0), module);
+    proc = lookupProcedureToDefine(lookupFunctorDef((Atom)*head, 0), module);
   else if (isTerm(*head) )
-    proc = lookupProcedure(functorTerm(*head), module);
+    proc = lookupProcedureToDefine(functorTerm(*head), module);
   else
   { warning("compiler: illegal clause head");
     return (Clause) NULL;
   }
+  if ( !proc )
+    return NULL;
 
   if ( (ci.arity = proc->functor->arity) > MAXARITY )
     return (Clause) warning("Compiler: arity too high (%d)\n", ci.arity);
@@ -1281,7 +1284,7 @@ care of reconsult, redefinition, etc.
 							   : clause;
     }
 
-    if (def->module != module)
+    if ( def->module != module )
     { if ( true(def->module, SYSTEM) )
         warning("Attempt to redefine a system predicate: %s", 
 				procedureName(proc));
@@ -1320,8 +1323,7 @@ mode, the predicate is still undefined and is not dynamic or multifile.
 	 false(def, DYNAMIC) &&
 	 false(def, MULTIFILE) &&
 	 def->definition.clauses == (Clause) NULL)
-    { set(def, SYSTEM);
-      set(def, HIDE_CHILDS);
+    { set(def, SYSTEM|HIDE_CHILDS|LOCKED);
 
       def->source = sf;
       def->source_count = sf->count;
@@ -1330,9 +1332,9 @@ mode, the predicate is still undefined and is not dynamic or multifile.
 							   : clause;
     }
 
-    if ( true(def, SYSTEM) && !SYSTEM_MODE )
+    if ( true(def, LOCKED) && !SYSTEM_MODE )
     { warning("Attempt to redefine a system predicate: %s", 
-				procedureName(proc) );
+	      procedureName(proc));
       freeClause(clause);
       return (Clause) NULL;
     }
@@ -1358,13 +1360,6 @@ mode, the predicate is still undefined and is not dynamic or multifile.
 
   /* assert[az]/1 */
 
-  if ( true(def, SYSTEM) && false(def, DYNAMIC) )
-  { warning("Attempt to redefine a system predicate: %s", 
-				procedureName(proc) );
-    freeClause(clause);
-    return (Clause) NULL;
-  }
-
   if ( def->module != module && false(def, DYNAMIC) )
   { warning("Attempt to redefine an imported predicate %s", 
 			      procedureName(proc) );
@@ -1387,6 +1382,7 @@ pl_asserta(Word term)
 { return assert_term(term, 'a', (Atom)NULL) == (Clause)NULL ? FALSE : TRUE;
 }
 
+
 word
 pl_assertz2(Word term, Word ref)
 { Clause clause = assert_term(term, 'z', (Atom)NULL);
@@ -1396,6 +1392,7 @@ pl_assertz2(Word term, Word ref)
 
   return unifyAtomic(ref, pointerToNum(clause));
 }
+
 
 word
 pl_asserta2(Word term, Word ref)
@@ -1407,6 +1404,7 @@ pl_asserta2(Word term, Word ref)
   return unifyAtomic(ref, pointerToNum(clause));
 }
 
+
 word
 pl_record_clause(Word term, Word file)
 { if (!isAtom(*file) )
@@ -1414,6 +1412,29 @@ pl_record_clause(Word term, Word file)
 
   return assert_term(term, 'z', (Atom)*file) == (Clause)NULL ? FALSE : TRUE;
 }  
+
+
+word
+pl_redefine_system_predicate(Word head)
+{ Module m = NULL;
+  FunctorDef def;
+  Procedure proc;
+
+  if ( (head = stripModule(head, &m)) == NULL )
+    fail;
+
+  if ( isAtom(*head) )
+    def = lookupFunctorDef((Atom)*head, 0);
+  else if ( isTerm(*head) )
+    def = functorTerm(*head);
+  else
+    return warning("redefine_system_predicate/1: instantiation fault");
+
+  proc = lookupProcedure(def, m);
+  abolishProcedure(proc, m);
+
+  succeed;
+}
 
 
 		/********************************

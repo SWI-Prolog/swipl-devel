@@ -197,3 +197,4 @@
 #define ATOM_block        (&atoms[196])
 #define ATOM_dcut         (&atoms[197])
 #define ATOM_dexit        (&atoms[198])
+#define ATOM_locked       (&atoms[199])

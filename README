@@ -3,6 +3,7 @@
 ** Last update: Fri Dec 18 13:57:18 1992 (1.6.7)
 		Mon Jun 28 14:42:06 1993 (1.7.0)
 		Mon Nov 22 15:23:54 1993 (1.8.5)
+		Thu Nov 10 10:03:46 1994 (1.9.4)
 
 AUTHOR
 ======
@@ -20,7 +21,6 @@ DIRECTORIES
 The SWI-Prolog source tree consists of the following directories:
 
 ./src		C sources
-./src/gnu	GNU-Emacs unexec() sources (MODIFIED VERSION)
 ./boot		Prolog system predicates defined in Prolog
 ./library	Prolog user's library
 ./include	Include files.  Mostly for handling foreign-code
@@ -32,91 +32,15 @@ The SWI-Prolog source tree consists of the following directories:
 BUILDING SWI-Prolog
 ===================
 
-Using gcc
+As from version 1.9.2, SWI-Prolog is configured using GNU autoconf.  The
+file  INSTALL  gives  the  generic    autoconf  installation  procedure.
+INSTALL.notes contains some SWI-Prolog specific hints.  Read this before
+running ./configure.  Finally, INSTALL.problems contains  some hints for
+if things go wrong.
 
-The C-compiler used for some architecture is defined in md-<machine.h>
-using the macro M_CC
-
-When available, please use the GNU-C  compiler gcc.  SWI-Prolog has been
-developed with this compiler.  Do not use  version 2.0, as this compiler
-crashes on pl-wam.c.  Version 2.1  is   ok.   Versions  2.5.[123] have a
-broken optimiser.  When nothingelse  is   available,  recompile pl-wam.c
-without optimisation as a work-around.  SWI-Prolog  makes use of GCC-2's
-facilities to deal with  label   addresses,  improving  performance with
-about 10%.
-
-
-INSTALLATION
-============
-
-Readline
-
-The current version of SWI-Prolog uses the GNU library readline to allow
-for editing input lines.  The library itself   is  *not* part of prolog.
-It  is  available  from  may  ftp  sites   as  well  as  from  the  file
-librl-11.tar.z in the SWI-Prolog ftp distribution directory.
-
-If you don't have it, compile and  install this library according to the
-instructions there.  If it is not installed in one of the default paths,
-edit the definitions of M_LDFLAGS and M_CFLAGS in md.h.
-
-The readline-1.1.tgz (or similar named) is a   bit outdated and does not
-compile on all machines.  If you  have   trouble,  check the readline as
-supplied with GDB.  If  you're  desparate   and  using  SWI-Prolog  as a
-GNU-Emacs inferior process anyway drop the O_READLINE flag from md.h.
-
-
-SWI-Prolog
-
-First, make a directory  for  the   specified  machine  using  the SETUP
-script.  The argument to SETUP describes   the  machine you are running.
-This machine is described in the file   src/md-MACHINE.h.  To get a list
-of architectures run SETUP without arguments.
-
-Next, edit config.h:
-
-M_SYSTEMHOME	absolute path pointing to this directory
-M_DEFSTARTUP	Personal startup file base-name
-M_BINDIR	Installation directory for executables
-M_PROLOG	Name of the resulting program
-
-Next, check src/md-MACHINE.h for things specific to your machine.
-
-Next:
-	1) cd ./MACHINE
-	2) make
-
-Installation:
-
-	1) cd ./MACHINE
-	2) make install
-
-Cleanup
-
-	1) cd ./MACHINE
-	2) make clean
-
-Automount filesystems; symbolic links
-
-When  the  installation directory is  on  an   automount filesystem or
-symbolic  links  provide     multiple  absolute  pathnames   for   the
-installation directory, the Unix  environment variable CANONICAL_PATHS
-may be set to a ':' separated list of `canonical paths.   For example,
-Prolog is installed   in /home/languages/pl.   Typing  'pwd'   in this
-directory yields /tmp_mnt/home/languages/pl.  Correct installation may
-be achieved by typing
-
-	% setenv CANONICAL_PATHS /home/languages/pl
-
-
-Prepare for static loading (runtime environment, PCE)
-
-When Prolog is to be mixed with  C-code using static  loading (such as
-for the graphical environment XPCE), the runtime environment has to be
-created.  After the installation, do
-
-	1) cd ./MACHINE
-	2) make runtime
+If SWI-Prolog does not automatically configure, you may wish to download
+swi.psy.uva.nl/pub/SWI-Prolog/old-md-files.tgz  to  check    the  manual
+configuration.
 
 
 GNU-EMACS INTERFACE
@@ -129,59 +53,28 @@ that redefines and adds some things.   See also the swi-prolog19.el file
 for using Emacs-19.
 
 
-PROBLEMS BUILDING SWI
-=====================
-
-SunOs 3.x
----------
-
-Ancient  users of   SunOs 3.x  should set  the  corresponding  flag in
-md-sun3.h. Dynamic stacks are not provided under SunOs 3.x.
-
-SunOs 4
--------
-
-This is the development platform.  Should compile ok, but SWI-Prolog
-does *not* compile with the System-V environment.
-
-AIX (RS6000)
-------------
-
-Saved states are not very robust. It has been reported that the states
-restore ok until the system is rebooted. The trouble is that it appears
-impossible to force *static linking* with AIX.
-
-SGI
----
-
-While compiling pl-load.c, some architectures report an error regarding
-the symbol N_TXTOFF. If this happens, drop O_FOREIGN to 0 in md-sgi.h
-and recompile.
-
-
 MODIFYING SWI-Prolog
 ====================
 
-You are free to modify SWI-Prolog under the licence terms specified in
-the  file LICENCE.  You  may  wish the  other    users can share  your
-improvements.  For code   to be  accepted   as part of  the   official
-distribution, it should be  written in the same  style as  the rest of
-the SWI-Prolog  sources.  I do  not claim  this style  to be  the best
-available, but I  want  the entire source to  have a consistent style.
-Please document the modifications and  if reasonably possible indicate
-them using #if ... #endif.  Please do  not send `diff' files  to me, I
-probably do  not have  the same version   of  the sources, so complete
-files, with the changes  indicated with #if ...  #endif are  easier to
+You are free to modify SWI-Prolog under   the licence terms specified in
+the file LICENCE.   You  may  wish  the   other  users  can  share  your
+improvements.   For  code  to  be  accepted  as  part  of  the  official
+distribution, it should be written in the same  style as the rest of the
+SWI-Prolog sources.  I do not claim this style to be the best available,
+but I want the  entire  source  to   have  a  consistent  style.  Please
+document the modifications and  if   reasonably  possible  indicate them
+using #if ...  #endif.   Please  do  not   send  `diff'  files  to me, I
+probably do not have the same version of the sources, so complete files,
+with  the  changes  indicated  with  #if   ...   #endif  are  easier  to
 incorporate.
 
-If your change is accepted, you  will be appropriately acknowledged in
-the distribution.
+If your change is accepted, you will  be propriately acknowledged in the
+distribution.
 
 PROLOG PROGRAMS
 
-Additions to the library and   other stand alone Prolog programs  have
-less strick   conditions.   Add  comments such  that   other users can
-understand the program or library module  and ensure the files provide
-sufficient  documentation on its   origin,  waranty and   distribution
-conditions.  Such contributions are copied verbatim and not maintained
-by me.
+Additions to the library and other stand alone Prolog programs have less
+strick conditions.  Add comments such that   other  users can understand
+the program or library module and   ensure  the files provide sufficient
+documentation on its origin, waranty  and distribution conditions.  Such
+contributions are copied verbatim and not maintained by me.

@@ -239,9 +239,11 @@ registerForeign(char *name, int arity, Func f, va_list args)
   proc = lookupProcedure(lookupFunctorDef(lookupAtom(name), arity), m);
   def = proc->definition;
 
-  if ( true(def, SYSTEM) )
-    return warning("PL_register_foreign(): Attempt to redefine a system predicate: %s",
-		   procedureName(proc));
+  if ( true(def, LOCKED) )
+  { warning("PL_register_foreign(): Attempt to redefine a system predicate: %s",
+	    procedureName(proc));
+    fail;
+  }
   if ( def->source != (SourceFile) NULL && def->source != sf )
     warning("PL_register_foreign(): redefined %s", procedureName(proc));
   def->source = sf;

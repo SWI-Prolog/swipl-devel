@@ -208,6 +208,7 @@ A min_free		"min_free"
 A block			"block"
 A dcut			"$cut"
 A dexit			"$exit"
+A locked		"locked"
 
 F apply			2
 F call			1

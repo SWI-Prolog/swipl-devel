@@ -118,8 +118,13 @@ writePrimitive(Word w, bool quote)
 	case AT_SYMBOL:
 	case AT_SOLO:
 	case AT_SPECIAL:
-	  Putf("%s", stringAtom(*w));
+	{ char *s = stringAtom(*w);
+
+	  for(; *s; s++)
+	    Put(*s);
+
           break;
+	}
         case AT_QUOTE:
         case AT_FULLSTOP:
 	default:

@@ -210,7 +210,7 @@ $user_call(Goal) :-
 
 :- $hide($user_call, 1),
    $show_childs($user_call, 1),
-   $predicate_attribute($user_call(_), system, 0).
+   $set_predicate_attribute($user_call(_), system, 0).
 
 $write_bindings([]) :- !, 
 	$ttyformat('Yes~n').

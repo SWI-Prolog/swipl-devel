@@ -197,3 +197,4 @@
 { (Atom)NULL, ATOM_TYPE, "block" },
 { (Atom)NULL, ATOM_TYPE, "$cut" },
 { (Atom)NULL, ATOM_TYPE, "$exit" },
+{ (Atom)NULL, ATOM_TYPE, "locked" },
