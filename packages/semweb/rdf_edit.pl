@@ -750,8 +750,10 @@ rdfe_open_journal(File, write) :- !,
 	get_time(T),
 	journal_open(start, T).
 rdfe_open_journal(File, append) :-
+	working_directory(CWD, CWD),
 	absolute_file_name(File,
 			   [ extensions([rdfj, '']),
+			     relative_to(CWD),
 			     access(write)
 			   ],
 			   Path),
