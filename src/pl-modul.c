@@ -575,7 +575,7 @@ in it are abolished.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-declareModule(atom_t name, SourceFile sf)
+declareModule(atom_t name, SourceFile sf, int line)
 { GET_LD
   Module module;
   term_t tmp = 0, rdef = 0, rtail = 0;
@@ -596,6 +596,7 @@ declareModule(atom_t name, SourceFile sf)
   }
 	    
   module->file = sf;
+  module->line_no = line;
   LD->modules.source = module;
 
   for_table(module->procedures, s,
@@ -634,17 +635,46 @@ declareModule(atom_t name, SourceFile sf)
 
 
 word
-pl_declare_module(term_t name, term_t file)
+pl_declare_module(term_t name, term_t file, term_t line)
 { SourceFile sf;
   atom_t mname, fname;
+  int line_no;
 
   if ( !PL_get_atom_ex(name, &mname) ||
-       !PL_get_atom_ex(file, &fname) )
+       !PL_get_atom_ex(file, &fname) ||
+       !PL_get_integer_ex(line, &line_no) )
     fail;
 
   sf = lookupSourceFile(fname);
-  return declareModule(mname, sf);
+  return declareModule(mname, sf, line_no);
 }
+
+
+static
+PRED_IMPL("$module_property", 2, module_property, 0)
+{ PRED_LD
+  Module m;
+  term_t a = PL_new_term_ref();
+
+  if ( !get_module(A1, &m, FALSE) )
+    fail;
+
+  if ( !PL_get_arg(1, A2, a) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE,
+		    ATOM_module_property, A2);
+
+  if ( PL_is_functor(A2, FUNCTOR_line_count1) )
+  { return PL_unify_integer(a, m->line_no);
+  } else if ( PL_is_functor(A2, FUNCTOR_file1) )
+  { if ( m->file )
+      return PL_unify_atom(a, m->file->name);
+    else
+      fail;
+  } else
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		    ATOM_module_property, A2);
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 export_list(+Module, -PublicPreds)
@@ -870,4 +900,5 @@ BeginPredDefs(module)
 	   PL_FA_NONDETERMINISTIC)
   PRED_DEF("add_import_module", 3, add_import_module, 0)
   PRED_DEF("delete_import_module", 2, delete_import_module, 0)
+  PRED_DEF("$module_property", 2, module_property, 0)
 EndPredDefs

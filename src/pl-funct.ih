@@ -158,3 +158,5 @@
 #define FUNCTOR_xor2         MK_FUNCTOR(157, 2)
 #define FUNCTOR_xpceref1     MK_FUNCTOR(158, 1)
 #define FUNCTOR_dprof_node1  MK_FUNCTOR(159, 1)
+#define FUNCTOR_file1        MK_FUNCTOR(160, 1)
+#define FUNCTOR_line_count1  MK_FUNCTOR(161, 1)

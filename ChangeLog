@@ -7,7 +7,11 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Keep track of line-number where a module is defined (no public
+    interface yet, available through '$module_property'(+Module, -Property).
+
   * FIXED: Bug#91: source level debugger generates error.  Holger Kanwischer.
+
 
 VERSION 5.2.8 (Sep 13, 2003)
 ============================

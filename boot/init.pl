@@ -1130,7 +1130,8 @@ $load_module(Reserved, _, _, _, _) :-
 	throw(error(permission_error(load, module, Reserved), _)).
 $load_module(Module, Public, Import, In, File) :-
 	$set_source_module(OldModule, OldModule),
-	$declare_module(Module, File),
+	source_location(_File, Line),
+	$declare_module(Module, File, Line),
 	$export_list(Module, Public),
 	$ifcompiling($qlf_start_module(Module)),
 	$consult_stream(In, File),

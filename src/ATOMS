@@ -528,6 +528,7 @@ A profile_node		"profile_node"
 A arity_not_less_than_one "arity_not_less_than_one"
 A start			"start"
 A noprofile		"noprofile"
+A module_property	"module_property"
 
 F abs			1
 F access		1
@@ -689,3 +690,5 @@ F warning		3
 F xor			2
 F xpceref		1
 F dprof_node		1
+F file			1
+F line_count		1

@@ -1444,6 +1444,7 @@ struct module
   Procedure	hook;		/* Hooked module */
 #endif
   int		level;		/* Distance to root (root=0) */
+  unsigned int	line_no; 	/* Source line-number */
   unsigned int  flags;		/* booleans: */
 		/*	SYSTEM	   system module */
   		/*	DBLQ_INHERIT inherit from default module */

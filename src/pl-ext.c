@@ -313,7 +313,7 @@ static const PL_extension foreigns[] = {
   FRG("$current_module",	2, pl_current_module,	     NDET),
   FRG("$module",		2, pl_module,			0),
   FRG("$set_source_module",	2, pl_set_source_module,	0),
-  FRG("$declare_module",	2, pl_declare_module,		0),
+  FRG("$declare_module",	3, pl_declare_module,		0),
   FRG("context_module",		1, pl_context_module,	     META),
   FRG("$strip_module",		3, pl_strip_module,	     META),
   FRG("import",			1, pl_import,		     META),
