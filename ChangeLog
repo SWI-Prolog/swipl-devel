@@ -4,7 +4,10 @@ VERSION 4.0.3
 =============
 
   * ENHANCED: Moved boot/listing.pl to the library, reducing the
-    footprint and startup time.
+    footprint and startup time.  Also modernised the code a bit,
+    allow for hooks, so listing(class->method) lists an XPCE method
+    and allow for partial listing: listing(foo(a, _)) to get only
+    the clauses for which a unifies to the first argument.
 
   * FIXED: tracer not to trap cut-port in system predicates (GUI).
 

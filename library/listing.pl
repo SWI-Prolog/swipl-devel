@@ -19,6 +19,9 @@
 	list_predicate/3, 
 	list_clauses/1.
 
+:- multifile
+	prolog:locate_clauses/2.	% +Spec, -ClauseRefList
+
 :- system_mode(on).
 
 %   calls listing(Pred) for each current_predicate Pred.
@@ -43,11 +46,24 @@ listing([X|Rest]) :- !,
         listing(X), 
         listing(Rest).
 listing(X) :-
-	'$find_predicate'(X, Preds), 
-	list_predicates(Preds, X).
+	(   prolog:locate_clauses(X, ClauseRefs)
+	->  list_clauserefs(ClauseRefs)
+	;   '$find_predicate'(X, Preds), 
+	    list_predicates(Preds, X)
+	).
 
-list_predicates(Preds, _) :-
+list_clauserefs([]) :- !.
+list_clauserefs([H|T]) :- !,
+	list_clauserefs(H),
+	list_clauserefs(T).
+list_clauserefs(Ref) :-
+	clause(Head, Body, Ref),
+	portray_clause((Head :- Body)).
+
+
+list_predicates(Preds, X) :-
 	member(Pred, Preds),
+	unify_args(Pred, X),
 	nl, 
 	'$define_predicate'(Pred),
 	'$strip_module'(Pred, _, Head), 
@@ -55,6 +71,14 @@ list_predicates(Preds, _) :-
         list_predicate(Name, Pred, Arity), 
         fail.
 list_predicates(_, _).
+
+%	Unify the arguments of the specification with the given term,
+%	so we can partially instantate the head.
+
+unify_args(_, _/_) :- !.		% Name/arity spec
+unify_args(X, X) :- !.
+unify_args(_:X, X) :- !.
+unify_args(_, _).
 
 list_predicate(Name, Pred, Arity) :-
 	predicate_property(Pred, undefined), !, 
@@ -118,7 +142,13 @@ notify_changed(_, _).
 %	clause  is  to our best standards.  As the actual variable names
 %	are not available we use A, B, ... Deals with ';', '|',  '->'  and
 %	various calls via meta-call predicates.
+%
+%	The prolog_list_goal/1 hook is a dubious as it may lead to
+%	confusion if the heads relates to other bodies.  For now it
+%	is only used for XPCE methods and works just nice.
 
+portray_clause(Head :- _Body) :-
+	user:prolog_list_goal(Head), !.
 portray_clause(Term) :-
 	numbervars(Term, '$VAR', 0, _), 
 	do_portray_clause(Term), 
@@ -131,7 +161,17 @@ do_portray_clause((Head :- true)) :- !,
 do_portray_clause((Head :- Body)) :- !, 
 	portray_head(Head), 
 	write(' :-'), 
-	portray_body(Body, 2, indent), 
+	(   nonvar(Body),
+	    Body = Module:LocalBody
+	->  nl, portray_indent(1),
+	    format('~q:', [Module]),
+	    nl, portray_indent(1),
+	    write('(   '),
+	    portray_body(LocalBody, 2, noindent),
+	    nl, portray_indent(1),
+	    write(')')
+	;   portray_body(Body, 2, indent)
+	),
 	put(0'.), nl.
 do_portray_clause(Fact) :-
 	do_portray_clause((Fact :- true)).

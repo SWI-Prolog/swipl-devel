@@ -131,12 +131,50 @@ user:file_search_path(image,   pce(bitmaps)).
 %	make sure SWI-Prolog edit/0 loads the XPCE edit hooks.
 
 :- multifile
-	prolog_edit:load/0.
+	prolog_edit:load/0,
+	prolog:locate_clauses/2.
 
 prolog_edit:load :-
 	ensure_loaded(library(swi_edit)).
 
+		 /*******************************
+		 *	    LIST HOOKS		*
+		 *******************************/
 
+%	prolog:locate_clauses(Term, Refs)
+%
+%	Locate a list of clause-references from a method-specification
+%	like Class->Method.
+%
+%	see library(listing).
+
+prolog:locate_clauses(Term, Refs) :-
+	(   Term = ->(_,_)
+	;   Term = <-(_,_)
+	), !,
+	findall(R, method_clause(Term, R), Refs).
+
+match_id(->(Class, Method), Id) :-
+	atomic(Class), atomic(Method), !,
+	concat_atom([Class, (->), Method], Id).
+match_id(->(_Class, _Method), _Id).
+match_id(<-(Class, Method), Id) :-
+	atomic(Class), atomic(Method), !,
+	concat_atom([Class, (<-), Method], Id).
+match_id(<-(_Class, _Method), _Id).
+
+method_clause(->(Class, Send), Ref) :-
+	match_id((Class->Send), Id),
+	clause(pce_principal:send_implementation(Id, _M, _O), _B, Ref),
+	atom(Id),
+	concat_atom([Class,Send], '->', Id).
+method_clause(<-(Class, Get), Ref) :-
+	match_id(<-(Class, Get), Id),
+	clause(pce_principal:get_implementation(Id, _M, _O, _R), _B, Ref),
+	atom(Id),
+	concat_atom([Class,Get], '->', Id).
+
+	
 		/********************************
 		*            BANNER		*
 		********************************/

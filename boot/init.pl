@@ -1369,8 +1369,11 @@ select(Elem, [Head|Tail], [Head|Rest]) :-
 		 *   HANDLE TRACER 'L'-COMMAND	*
 		 *******************************/
 
+:- multifile
+	user:prolog_list_goal/1.
+
 '$prolog_list_goal'(Goal) :-
-	catch(user:prolog_list_goal(Goal), _, fail), !.
+	user:prolog_list_goal(Goal), !.
 '$prolog_list_goal'(Goal) :-
 	user:listing(Goal).
 
