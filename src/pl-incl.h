@@ -906,31 +906,43 @@ Handling environment (or local stack) frames.
 #define generationFrame(f)	(0)
 #endif
 
-#define enterDefinition(def)	{ PL_LOCK(L_MISC); \
-				  def->references++; \
-				  PL_UNLOCK(L_MISC); \
-				}
-#if O_DEBUG
-#define leaveDefinition(def)	{ PL_LOCK(L_MISC); \
-				  if ( --def->references == 0 && \
-				       true(def, NEEDSCLAUSEGC) ) \
-				    gcClausesDefinition(def); \
-				  if ( def->references < 0 ) \
-				  { Sdprintf("%s: reference count < 0\n", \
-					     predicateName(def)); \
-				    def->references = 0; \
-				  } \
-				  PL_UNLOCK(L_MISC); \
-				}
-#else /*O_DEBUG*/
-#define leaveDefinition(def)	{ PL_LOCK(L_MISC); \
-				  if ( --def->references == 0 && \
-				       true(def, NEEDSCLAUSEGC) ) \
-				    gcClausesDefinition(def); \
-				  SECURE(assert(def->references >= 0)); \
-				  PL_UNLOCK(L_MISC); \
-				}
-#endif /*O_DEBUG*/
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Predicate reference counting. The macro  leaveDefinitionCL is introduced
+exclusively  to  handle  $dcall/1,  the    predicate  with  clauses  for
+meta-calling  of  complex  goals.  This   predicate  *must*  be  garbage
+collected at the clause level to avoid built-up of garbage clauses. 
+
+I'm not too happy with this solution,   but  I see few alternatives. You
+could use a special exit  instruction,  but   that  still  needs  to fix
+failure and cut or you could do garbage collection, but it is costly and
+when to invoke it?  Keeping  this   predicate  clean  actually  seems to
+outweight the extra test in a few quick-and-dirty performance tests. The
+problem was spotted by Stefan Mueller, whose program produced over 180MB
+of garbage on this clause.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define enterDefinition(def) \
+	{ PL_LOCK(L_MISC); \
+          def->references++; \
+	  PL_UNLOCK(L_MISC); \
+	}
+#define leaveDefinition(def) \
+	{ PL_LOCK(L_MISC); \
+	  if ( --def->references == 0 && true(def, NEEDSCLAUSEGC) ) \
+	    gcClausesDefinition(def); \
+	  DEBUG(0, assert(def->references >= 0)); \
+	  PL_UNLOCK(L_MISC); \
+	}
+#define leaveDefinitionCL(def, cl) \
+	{ PL_LOCK(L_MISC); \
+          if ( --def->references == 0 ) \
+	  { if ( true(def, NEEDSCLAUSEGC) ) \
+              gcClausesDefinition(def); \
+	  } else if ( def == PROCEDURE_dcall1->definition ) \
+	    retractClauseDefinition(def, cl->clause); \
+	  DEBUG(0, assert(def->references >= 0)); \
+	  PL_UNLOCK(L_MISC); \
+	}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Heuristics functions to determine whether an integer reference passed to

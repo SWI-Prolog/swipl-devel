@@ -816,6 +816,65 @@ to avoid the follow up clause  to  be   destroyed  it  is given an extra
 reference.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static bool
+retractClauseDefinitionMT(Definition def, Clause clause)
+{ ClauseRef prev = NULL;
+  ClauseRef c;
+  bool rval = FALSE;
+  startCritical;
+
+  if ( def->hash_info )
+    delClauseFromIndex(def->hash_info, clause);
+
+  for(c = def->definition.clauses; c; prev = c, c = c->next)
+  { if ( c->clause == clause )
+    { if ( !prev )
+      { def->definition.clauses = c->next;
+	if ( !c->next )
+	  def->lastClause = NULL;
+      } else
+      { prev->next = c->next;
+	if ( c->next == NULL)
+	  def->lastClause = prev;
+      }
+
+
+      freeClauseRef(c);
+#if O_DEBUGGER
+      if ( PROCEDURE_event_hook1 &&
+	   def != PROCEDURE_event_hook1->definition )
+	callEventHook(PLEV_ERASED, clause);
+#endif
+      freeClause(clause);
+      def->number_of_clauses--;
+
+      rval = TRUE;
+      break;
+    }
+  }
+  endCritical;
+
+  return rval;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+retractClauseDefinition() is only used to deled clauses from $dcall/1.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+retractClauseDefinition(Definition def, Clause clause)
+{ LOCK();
+
+  assert(true(clause, ERASED));
+  assert(!def->hash_info);
+  retractClauseDefinitionMT(def, clause);
+  def->erased_clauses--;
+
+  UNLOCK();
+}
+
+
 bool
 retractClauseProcedure(Procedure proc, Clause clause)
 { Definition def = proc->definition;
@@ -839,42 +898,7 @@ retractClauseProcedure(Procedure proc, Clause clause)
 #endif
     rval = TRUE;
   } else
-  { ClauseRef prev = NULL;
-    ClauseRef c;
-
-    rval = FALSE;
-    startCritical;
-
-    if ( def->hash_info )
-      delClauseFromIndex(def->hash_info, clause);
-
-    for(c = def->definition.clauses; c; prev = c, c = c->next)
-    { if ( c->clause == clause )
-      { if ( !prev )
-	{ def->definition.clauses = c->next;
-	  if ( !c->next )
-	    def->lastClause = NULL;
-	} else
-	{ prev->next = c->next;
-	  if ( c->next == NULL)
-	    def->lastClause = prev;
-	}
-
-
-  	freeClauseRef(c);
-#if O_DEBUGGER
-	if ( PROCEDURE_event_hook1 &&
-	     def != PROCEDURE_event_hook1->definition )
-	  callEventHook(PLEV_ERASED, clause);
-#endif
-	freeClause(clause);
-	def->number_of_clauses--;
-
-	rval = TRUE;
-	break;
-      }
-    }
-    endCritical;
+  { rval = retractClauseDefinitionMT(def, clause);
   }
   UNLOCK();
 

@@ -1351,7 +1351,7 @@ leaveFrame(LocalFrame fr)
 { Definition def = fr->predicate;
 
   if ( false(def, FOREIGN) )
-    leaveDefinition(def);
+    leaveDefinitionCL(def, fr->clause);
 
 #if O_DEBUGGER
   if ( true(fr, FR_WATCHED) )
@@ -1370,7 +1370,7 @@ discardFrame(LocalFrame fr)
   { if ( fr->clause )
       discardForeignFrame(fr);
   } else
-    leaveDefinition(fr->predicate);
+    leaveDefinitionCL(fr->predicate, fr->clause);
 
 #ifdef O_DEBUGGER
   if ( true(fr, FR_WATCHED) )
@@ -3683,7 +3683,7 @@ execution can continue at `next_instruction'
 #endif
 	  if ( true(DEF, HIDE_CHILDS) )
 	    set(FR, FR_NODEBUG);
-	  leaveDefinition(DEF);
+	  leaveDefinitionCL(DEF, CL);
 	  FR->predicate = DEF = ndef;
 
 	  copyFrameArguments(lSave, FR, arity PASS_LD);
@@ -3995,7 +3995,7 @@ bit more careful.
     exit_builtin:			/* tracer already by callForeign() */
 	if ( (void *)BFR <= (void *)FR ) /* deterministic */
 	{ if ( false(DEF, FOREIGN) )
-	    leaveDefinition(DEF);
+	    leaveDefinitionCL(DEF, CL);
 	  lTop = FR;
 	  DEBUG(3, Sdprintf("Deterministic exit of %s, lTop = #%ld\n",
 			    predicateName(FR->predicate), loffset(lTop)));
