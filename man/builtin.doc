@@ -4108,18 +4108,36 @@ for Win32 platforms.
 
     \predicate{win_exec}{2}{+Command, +Show}
 Win32 systems only. Spawns a Windows task without waiting for its
-completion.  \arg{Show} is either \const{iconic} or \const{normal} and
-dictates the initial status of the window.  The \const{iconic} option
-is notably handy to start (DDE) servers.
+completion.  \arg{Show} is one of the Win32 \const{SW_*} constants
+written in lowercase without the \const{SW_*}:
+\const{hide}
+\const{maximize}
+\const{minimize}
+\const{restore}
+\const{show}
+\const{showdefault}
+\const{showmaximized}
+\const{showminimized}
+\const{showminnoactive}
+\const{showna}
+\const{shownoactive}
+\const{shownormal}.
+In addition, \const{iconic} is a synonym for \const{minimize} and
+\const{normal} for \const{shownormal}
 
-    \predicate{win_shell}{2}{+Operation, +File}
+    \predicate{win_shell}{2}{+Operation, +File, +Show}
 Win32 systems only. Opens the document \arg{File} using the windows
 shell-rules for doing so. \arg{Operation} is one of \const{open},
 \const{print} or \const{explore} or another operation registered with
 the shell for the given document-type.  On modern systems it is also
 possible to pass a \index{URL}URL as \arg{File}, opening the URL in
 Windows default browser. This call interfaces to the Win32 API
-ShellExecute(). 
+ShellExecute().  The \arg{Show} argument determines the initial
+state of the opened window (if any).  See win_exec/2 for defined
+values.
+
+    \predicate{win_shell}{2}{+Operation, +File}
+Same as \term{win_shell}{Operation, File, normal}
 
     \predicate{win_registry_get_value}{3}{+Key, +Name, -Value}
 Win32 systems only. Fetches the value of a Win32 registry key.
