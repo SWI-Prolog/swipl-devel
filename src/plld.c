@@ -1465,6 +1465,7 @@ catchSignals()
 int
 main(int argc, char **argv)
 { plld = argv[0];
+  int special; 
   
   argc--;
   argv++;
@@ -1479,24 +1480,32 @@ main(int argc, char **argv)
   putenv("PLLD=true");			/* for subprograms */
 
   verbose = FALSE;
-					/* behave as cpp */
-  if ( argc > 0 && streq(argv[0], "-E") )
+
+  if ( argc > 2 && streq(argv[0], "-pl") )
+    special = 2;
+  else
+    special = 0;
+					/* plld [-pl x] -E ...: behave as cpp */
+  if ( argc-special > 0 && streq(argv[special], "-E") )
   { arglist cppoptions;
+    int i;
 
     memset(&cppoptions, 0, sizeof(cppoptions));
-    for(argc--, argv++ ; argc > 0; argc--, argv++)
-      appendArgList(&cppoptions, argv[0]);
+    for(i=special+1 ; i < argc; i++)
+      appendArgList(&cppoptions, argv[i]);
 
     callprog(PROG_CPP, &cppoptions);
 
     return 0;
   }
-  if ( argc > 0 && streq(argv[0], "-v") )
+					  /* plld [-pl x] -v: verbose */
+  if ( argc-special == 1 && streq(argv[special], "-v") )
   { arglist coptions;
+    int i;
 
     memset(&coptions, 0, sizeof(coptions));
-    for(; argc > 0; argc--, argv++)
-      appendArgList(&coptions, argv[0]);
+    for(i=special; i < argc; i++)
+      appendArgList(&coptions, argv[i]);
 
     callprog(PROG_CC, &coptions);
 

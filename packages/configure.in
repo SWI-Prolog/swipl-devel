@@ -14,18 +14,22 @@
 MAKE=@MAKE@
 export MAKE
 
-findexe()
-{ oldifs="$IFS"
-  IFS=:
-  for d in $PATH; do
-    if [ -x $d/$1 ]; then
-       IFS="$oldifs"
-       return 0
-    fi
-  done
-  IFS="$oldifs"
-  return 1
-}
+# Setup the environment, so that targets of configure can find the shared
+# objects of Prolog
+
+BUILDDIR=@BUILDDIR@
+srcdir=`echo @srcdir@ | sed 's=/../packages=='`
+ARCH=@ARCH@
+PL=@PL@@RT@
+bdir=$srcdir/../$BUILDDIR
+ldir=$srcdir/../lib/$ARCH
+
+if [ "x$@DLLIBVAR@" = "" ]; then
+  @DLLIBVAR@=$ldir
+else
+  @DLLIBVAR@="$ldir:$@DLLIBVAR@"
+fi
+export @DLLIBVAR@
 
 
 delpkg()
@@ -48,16 +52,13 @@ delpkg()
 
 
 if [ -z "$PKG" ]; then
-  PKG="clib cpp odbc table xpce sgml sgml/RDF semweb http chr clpr ssl"
+  PKG="clib cpp odbc table xpce sgml sgml/RDF semweb http chr clpr ssl jpl"
 fi
 
 configoptions=""
 
 while [ "$1" != "" ]; do
   case "$1" in
-	--without-jpl)	withjpl=no
-			shift
-			;;
 	--without-*)	pkg=`echo "$1" | sed 's/--without-//'`
 			if ! delpkg $pkg; then
 			  configoptions="$configoptions $1"
@@ -79,18 +80,17 @@ while [ "$1" != "" ]; do
   esac
 done
 
-if [ -z "$withjpl" ]; then
-  if findexe javac; then
-     echo "Found javac.  Including JPL in target packages"
-     withjpl=yes
-  else
-     withjpl=no
+for p in $PKG; do
+  if test -f $p/testenv; then
+    echo -n "Checking environment for package $p ..."
+    if $p/testenv; then
+      echo "ok"
+    else
+      echo "test failed, deleting $p from targets"
+      delpkg $p
+    fi
   fi
-fi
-
-if [ "$withjpl" = yes ]; then
-  PKG="$PKG jpl"
-fi
+done
 
 sed "s@^PKG=.*@PKG=$PKG@" Makefile > Makefile.pkg
 if cmp -s Makefile Makefile.pkg; then
