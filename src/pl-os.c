@@ -954,28 +954,7 @@ SameFile(const char *f1, const char *f2)
   }
 #endif
 #ifdef O_XOS
-  { char p1[MAXPATHLEN];
-    char p2[MAXPATHLEN];
-    int i;
-  
-    for(i=0; i<=1; i++)
-    { if ( i == 0 )
-      { _xos_limited_os_filename(f1, p1);
-	_xos_limited_os_filename(f2, p2);
-      } else
-      { AbsoluteFile(f1, p1);
-	AbsoluteFile(f2, p2);
-      }
-
-      if ( trueFeature(FILE_CASE_FEATURE) )
-      { if ( streq(p1, p2) )
-	  succeed;
-      } else
-      { if ( strcasecmp(p1, p2) == 0 )
-	  succeed;
-      }
-    }
-  }
+  return _xos_same_file(f1, f2);
 #endif /*O_XOS*/
     /* Amazing! There is no simple way to check two files for identity. */
     /* stat() and fstat() both return dummy values for inode and device. */

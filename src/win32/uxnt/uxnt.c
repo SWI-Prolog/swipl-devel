@@ -473,7 +473,9 @@ _xos_same_file(const char *p1, const char *p2)
 	 !GetFullPathName(osp2, PATH_MAX, abs2, &fp) )
       return -1;
 
-    if ( _tcscmp(abs1, abs2) == 0 )
+    //fwprintf(stderr, _T("f1='%s'\nf2='%s'\n"), abs1, abs2);
+
+    if ( _tcsicmp(abs1, abs2) == 0 )
       return TRUE;
   }
 
