@@ -394,6 +394,14 @@ pl_signal_handler(int sig)
     return;				/* make sure! */
   } else if ( sh->handler )
   { (*sh->handler)(sig);
+
+    if ( exception_term )		/* handler: PL_raise_exception() */
+    { unblockGC();
+      if ( gc_status.blocked )
+	Sdprintf("GC: blocked %d\n", gc_status.blocked);
+      PL_throw(exception_term);		/* throw longjmp's */
+      return;				/* make sure! */
+    }
   }
 
   LD->current_signal = saved_current_signal;

@@ -355,8 +355,8 @@ PL_discard_foreign_frame(fid_t id)
 { GET_LD
   FliFrame fr = (FliFrame) valTermRef(id);
 
-  Undo(fr->mark);
   fli_context = fr->parent;
+  Undo(fr->mark);
   lTop = (LocalFrame) fr;
 }
 
@@ -1464,20 +1464,17 @@ chp_chars(Choice ch)
 
 static void
 discardChoicesAfter(LocalFrame fr ARG_LD)
-{ Choice ch;
-
-  for(ch = BFR; ch && (LocalFrame)ch > fr; ch = ch->parent)
+{ for(; BFR && (LocalFrame)BFR > fr; BFR = BFR->parent)
   { LocalFrame fr2;
 
-    DEBUG(3, Sdprintf("Discarding %s\n", chp_chars(ch)));
-    for(fr2 = ch->frame;    
+    DEBUG(3, Sdprintf("Discarding %s\n", chp_chars(BFR)));
+    for(fr2 = BFR->frame;    
 	fr2 && fr2->clause && fr2 > fr;
 	fr2 = fr2->parent)
       discardFrame(fr2, FINISH_CUT);
   }
 
-  DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(ch)));
-  BFR = ch;
+  DEBUG(3, Sdprintf(" --> BFR = #%ld\n", loffset(BFR)));
   LD->mark_bar = BFR->mark.globaltop;
 } 
 
@@ -1498,6 +1495,7 @@ newChoice(choice_type type, LocalFrame fr ARG_LD)
   ch->type = type;
   ch->frame = fr;
   ch->parent = BFR;
+  Mark(ch->mark);
   BFR = ch;
   DEBUG(3, Sdprintf("NEW %s\n", chp_chars(ch)));
 
@@ -1932,7 +1930,9 @@ Is there a way to make the compiler keep its mouth shut!?
     fli_context = ffr;
 
     if ( LD->current_signal ) 
-      unblockSignal(LD->current_signal);
+    { unblockSignal(LD->current_signal);
+      LD->current_signal = 0;	/* TBD: saved? */
+    }
 
     goto b_throw;
   }
@@ -2473,10 +2473,7 @@ call the 1-st argument.  See also I_CATCH.
 	{ assert(BFR->type == CHP_DEBUG);
 	  BFR->type = CHP_CATCH;
 	} else
-	{ Choice ch = newChoice(CHP_CATCH, FR PASS_LD);
-
-	  Mark(ch->mark);
-	}
+	  newChoice(CHP_CATCH, FR PASS_LD);
 
 	set(FR, FR_WATCHED);
 				/* = B_VAR0 */
@@ -2518,10 +2515,7 @@ which is translated to:
 	{ assert(BFR->type == CHP_DEBUG);
 	  BFR->type = CHP_CATCH;
 	} else
-	{ Choice ch = newChoice(CHP_CATCH, FR PASS_LD);
-
-	  Mark(ch->mark);
-	}
+	  newChoice(CHP_CATCH, FR PASS_LD);
 
 					/* = B_VAR0 */
 	*argFrameP(lTop, 0) = linkVal(argFrameP(FR, 0));
@@ -2786,7 +2780,6 @@ debugger output.
 	  discardChoicesAfter(FR PASS_LD);
 	  lTop = (LocalFrame) argFrameP(FR, CL->clause->variables);
 	  ch = newChoice(CHP_DEBUG, FR PASS_LD);
-	  Mark(ch->mark);
 	  ARGP = argFrameP(lTop, 0);
 
 	  switch(tracePort(FR, BFR, CUT_EXIT_PORT, PC))
@@ -3497,7 +3490,6 @@ first call of $alt/1 simply succeeds.
     c_or:
       { int skip = *PC++;
 	Choice ch = newChoice(CHP_JUMP, FR PASS_LD);
-	Mark(ch->mark);
 	ch->value.PC = PC+skip;
 	ARGP = argFrameP(lTop, 0);
 
@@ -3986,9 +3978,8 @@ values found in the clause,  give  a   reference  to  the clause and set
 	if ( !(CL = firstClause(ARGP, FR, DEF, &next PASS_LD)) )
 	{ DEBUG(9, Sdprintf("No clause matching index.\n"));
 	  if ( debugstatus.debugging )
-	  { Choice ch = newChoice(CHP_DEBUG, FR PASS_LD);
-	    Mark(ch->mark);
-	  }
+	    newChoice(CHP_DEBUG, FR PASS_LD);
+
 	  FRAME_FAILED;
 	}
 	DEBUG(9, Sdprintf("Clauses found.\n"));
@@ -3999,13 +3990,10 @@ values found in the clause,  give  a   reference  to  the clause and set
 
 	if ( next )
 	{ Choice ch = newChoice(CHP_CLAUSE, FR PASS_LD);
-
-	  Mark(ch->mark);
 	  ch->value.clause = next;
 	} else if ( debugstatus.debugging )
-	{ Choice ch = newChoice(CHP_DEBUG, FR PASS_LD);
-	  Mark(ch->mark);
-	}
+	  newChoice(CHP_DEBUG, FR PASS_LD);
+
 			/* require space for the args of the next frame */
 	requireStack(local, (int)argFrameP((LocalFrame)NULL, MAXARITY));
       }
@@ -4304,11 +4292,9 @@ next_choice:
 
       if ( next )
       { ch = newChoice(CHP_CLAUSE, FR PASS_LD);
-	Mark(ch->mark);
 	ch->value.clause = next;
       } else if ( debugstatus.debugging )
       { ch = newChoice(CHP_DEBUG, FR PASS_LD);
-	Mark(ch->mark);
       }
 
 			/* require space for the args of the next frame */

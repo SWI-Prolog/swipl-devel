@@ -623,6 +623,17 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
 }
 
 
+static inline int
+slotsInFrame(LocalFrame fr, Code PC)
+{ Definition def = fr->predicate;
+
+  if ( !PC || true(def, FOREIGN) || !fr->clause )
+    return def->functor->arity;
+
+  return fr->clause->clause->prolog_vars;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Mark environments and all data that can   be  reached from them. Returns
 the QueryFrame that started this environment,  which provides use access
@@ -650,7 +661,7 @@ mark_environments(LocalFrame fr, Code PC)
 
     clearUninitialisedVarsFrame(fr, PC);
 
-    slots   = (PC == NULL ? fr->predicate->functor->arity : slotsFrame(fr));
+    slots  = slotsInFrame(fr, PC);
 #if O_SECURE
     oslots = slots;
 #endif
@@ -1161,7 +1172,7 @@ sweep_environments(LocalFrame fr, Code PC)
       return NULL;
     clear(fr, FR_MARKED);
 
-    slots = (PC == NULL ? fr->predicate->functor->arity : slotsFrame(fr));
+    slots = slotsInFrame(fr, PC);
 
     sp = argFrameP(fr, 0);
     for( ; slots > 0; slots--, sp++ )
@@ -1503,7 +1514,7 @@ check_environments(LocalFrame fr, Code PC)
 		      levelFrame(fr),
 		      predicateName(fr->predicate)));
 
-    slots   = (PC == NULL ? fr->predicate->functor->arity : slotsFrame(fr));
+    slots = slotsInFrame(fr, PC);
     sp = argFrameP(fr, 0);
     for( n=0; n < slots; n++ )
     { key += checkData(&sp[n]);
@@ -1636,6 +1647,8 @@ garbageCollect(LocalFrame fr, Choice ch)
 
   if ( gc_status.blocked || !trueFeature(GC_FEATURE) )
     return;
+
+  blockSignals(&mask);
   blockGC();				/* avoid recursion due to */
   gc_status.requested = FALSE;		/* printMessage() */
 
@@ -1645,8 +1658,6 @@ garbageCollect(LocalFrame fr, Choice ch)
     printMessage(ATOM_informational,
 		 PL_FUNCTOR_CHARS, "gc", 1,
 		   PL_CHARS, "start");
-
-  blockSignals(&mask);
 
 #ifdef O_PROFILE
   PROCEDURE_garbage_collect0->definition->profile_calls++;
@@ -1702,12 +1713,11 @@ garbageCollect(LocalFrame fr, Choice ch)
   LD->stacks.global.gced_size = usedStack(global);
   LD->stacks.trail.gced_size  = usedStack(trail);
   gc_status.active = FALSE;
-  unblockSignals(&mask);
 
   SECURE(if ( checkStacks(fr, ch) != key )
 	 { Sdprintf("Stack checksum failure\n");
 	   trap_gdb();
-	 } else
+	 } else if ( verbose )
 	   Sdprintf("(OK) "));
 
   if ( verbose )
@@ -1722,6 +1732,7 @@ garbageCollect(LocalFrame fr, Choice ch)
 		     PL_LONG, roomStack(global),
 		     PL_LONG, roomStack(trail));
   unblockGC();
+  unblockSignals(&mask);
 }
 
 word
