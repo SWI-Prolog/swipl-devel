@@ -109,6 +109,9 @@ static struct d_context
 { DContext	parent;			/* saved parent context */
   DrawContext	gcs;			/* The X GC's */                  
   Display      *display;		/* Current drawing display */     
+  int		screen;			/* X screen */
+  Visual       *visual;			/* X visual */
+  Colormap      colormap;		/* X colourmap */
   Drawable	drawable;		/* X Object we are drawing on */  
 #ifdef USE_XFT
   XftDraw      *xft_draw;		/* XFT drawable */
@@ -188,6 +191,9 @@ d_push_context(void)
 
   *ctx = context;			/* structure copy! */
   context.parent = ctx;
+#ifdef USE_XFT
+  context.xft_draw = NULL;
+#endif
 }
 
 
@@ -197,6 +203,7 @@ d_pop_context()
 #ifdef USE_XFT
   if ( context.depth == 1 && context.xft_draw )
     XftDrawDestroy(context.xft_draw);
+  context.xft_draw = NULL;
 #endif
 
   if ( context.parent != NULL )
@@ -283,6 +290,9 @@ d_display(DisplayObj d)
 
     context.pceDisplay = d;
     context.display    = r->display_xref;
+    context.screen     = r->screen;
+    context.visual     = r->visual;
+    context.colormap   = r->colour_map;
     context.depth      = r->depth;
     context.gcs	       = r->pixmap_context;
   }
@@ -2443,14 +2453,10 @@ xftDraw()
     { context.gcs->xft_draw = XftDrawCreateBitmap(context.display,
 						  (Pixmap)context.drawable);
     } else if ( !context.gcs->xft_draw )
-    { Visual *v = XDefaultVisual(context.display,
-				 DefaultScreen(context.display));
-      Colormap cmap = DefaultColormap(context.display,
-				      DefaultScreen(context.display));
-      
-      context.gcs->xft_draw = XftDrawCreate(context.display,
+    { context.gcs->xft_draw = XftDrawCreate(context.display,
 					    context.drawable,
-					    v, cmap);
+					    context.visual,
+					    context.colormap);
       context.xft_draw = context.gcs->xft_draw;
     } else
     { XftDrawChange(context.gcs->xft_draw, context.drawable);
@@ -2567,11 +2573,13 @@ lbearing(wint_t c)
 void
 s_printA(charA *s, int l, int x, int y, FontObj f)
 { if ( l > 0 )
-  { XftColor color;
+  { XftColor color, c2;
 
-    color.pixel = getPixelColour(context.gcs->colour, context.pceDisplay);
     if ( instanceOfObject(context.gcs->colour, ClassColour) )
     { Colour c = context.gcs->colour;
+
+      getXrefObject(c, context.pceDisplay); /* open the colour */
+
       color.color.red   = valInt(c->red);
       color.color.green = valInt(c->green);
       color.color.blue  = valInt(c->blue);
@@ -2580,11 +2588,19 @@ s_printA(charA *s, int l, int x, int y, FontObj f)
       color.color.green = 0;
       color.color.blue  = 0;
     }
-    color.color.alpha = 0;
-
+    color.color.alpha = 0xffff;
+    XftColorAllocValue(context.display,
+		       context.visual,
+		       context.colormap,
+		       &color.color,
+		       &c2);
     Translate(x, y);
     s_font(f);
-    XftDrawString8(xftDraw(), &color, context.gcs->xft_font, x, y, s, l);
+    XftDrawString8(xftDraw(), &c2, context.gcs->xft_font, x, y, s, l);
+    XftColorFree(context.display,
+		 context.visual,
+		 context.colormap,
+		 &c2);
   }
 }
 
@@ -2605,7 +2621,7 @@ s_printW(charW *s, int l, int x, int y, FontObj f)
       color.color.green = 0;
       color.color.blue  = 0;
     }
-    color.color.alpha = 0;
+    color.color.alpha = 0xffff;
 
     Translate(x, y);
     s_font(f);

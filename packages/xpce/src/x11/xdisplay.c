@@ -229,6 +229,8 @@ ws_open_display(DisplayObj d)
     XSynchronize(display, True);
 
     ref->display_xref = display;
+    ref->screen	      = screen;
+    ref->visual	      = DefaultVisual(display, screen);
     ref->colour_map   = DefaultColormap(display, screen);
     ref->white_pixel  = WhitePixel(display, screen);
     ref->black_pixel  = BlackPixel(display, screen);
@@ -276,7 +278,7 @@ new_draw_context(DisplayObj d, Drawable drawable, Name kind)
   unsigned long black, white;
   Name vclass = ws_get_visual_type_display(d);
 
-  memset(ctx, 0, sizeof(ctx));
+  memset(ctx, 0, sizeof(*ctx));
 
 # define GCALL (GCFunction|GCForeground|GCBackground|GCGraphicsExposures)
 

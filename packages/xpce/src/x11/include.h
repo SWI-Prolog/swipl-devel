@@ -108,6 +108,9 @@ typedef struct
 
 typedef struct
 { Display      *display_xref;		/* X-windows reference */
+  int		screen;			/* Default screen */
+  Visual       *visual;			/* Default visual */
+  Colormap	colour_map;		/* Colourmap of the display */
   Widget	shell_xref;		/* Top of widget tree */
   Pixmap	root_bitmap;		/* Bitmap for GC creation */
   DrawContext	pixmap_context;		/* Context for pixmap operations */
@@ -117,7 +120,6 @@ typedef struct
   unsigned long black_pixel;		/* a black pixel */
   unsigned long foreground_pixel;	/* foreground pixel */
   unsigned long background_pixel;	/* background pixel */
-  Colormap	colour_map;		/* Colourmap of the display */
 #ifdef O_XDND
   DndClass     *dnd;			/* The DND handler */
   Atom		XdndTextUriList;	/* "text/uri-list" */
