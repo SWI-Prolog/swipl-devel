@@ -1,8 +1,12 @@
 #chapter Interaction with the Host System
 
-This chapter deals with the interaction with the host language.
+This chapter deals with the interaction with the host language.  Class `c'
+implements the interface to the C and C++ languages.
 
 #end chapter
 
 #class host
+#end class
+
+#class c
 #end class

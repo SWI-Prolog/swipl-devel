@@ -86,6 +86,9 @@ and connections.
 #class bitmap
 #end class
 
+#class pixmap
+#end class
+
 #class line
 #end class
 

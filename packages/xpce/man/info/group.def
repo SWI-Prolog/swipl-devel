@@ -105,6 +105,7 @@
 #group active		"Activation (greying) of dialog objects"
 
 #group file		"Saving and loading files, file operations"
+#group file_type	"File properties"
 #group host		"Communication with the host language"
 
 #group mode		"Modes of operation"
@@ -121,6 +122,7 @@
 #group annotate		"Annotating text"
 #group interpolation	"Interpolation points for smooth lines"
 #group colour		"Defining and managing colours"
+#group 3d		"3-D effect related methods"
 #group layout		"Spatial relations between graphical objects"
 #group table		"Tabular layout of graphical objects"
 #group orientation	"Horizontal or vertical orientation"
@@ -216,9 +218,11 @@
 
 #group filter		"Filtering file I/O"
 #group control		"Control autonomous processes"
+#group unix		"Controlling Unix processes"
 #group environment	"Handling the process' environment"
 #group working_directory"Process' or PCE working directory"
 #group quit		"Exiting from PCE"
+#group console		"Controlling the host-language console"
 #group tty		"Controlling the terminal"
 #group statistics	"Timing, memory usage, etc."
 
@@ -231,6 +235,7 @@
 #group process		"Process identifier"
 
 #group miscellaneous	"Remaining behaviour"
+#group encoding		"Character-set related behaviour"
 
 #group postscript	"Generating PostScript for printing"
 

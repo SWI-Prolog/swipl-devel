@@ -25,6 +25,9 @@ font, cursor, etc.).
 #class colour
 #end class
 
+#class elevation
+#end class
+
 #class cursor
 #end class
 

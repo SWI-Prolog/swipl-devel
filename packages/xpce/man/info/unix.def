@@ -25,8 +25,10 @@ interaction into PCE:
 	using a single front-end to the end-user.
 
 The classes file and directory allow for all the common operations on
-the Unix file-system
+the Unix file-system.
 
+The class socket and process handle asynchronous communications.  The
+implementation of the communication details is part of class stream.
 
 
 #end chapter
@@ -35,6 +37,9 @@ the Unix file-system
 #end class
 
 #class directory
+#end class
+
+#class stream
 #end class
 
 #class process

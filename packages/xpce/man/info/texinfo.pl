@@ -48,9 +48,10 @@ texinfo_class(Class) :-
 	),
 	label_object(Class),
 	summary(Class, Summary),
-	output('@class{%s}\n', Class?name),
-	output('@section Class %s --- %s\n', [Class?name, Summary]),
-	output('@ciindex %s\n\n', Class?name),
+	name_of(Class, ClassName),
+	output('@class{%s}\n', ClassName),
+	output('@section Class %s --- %s\n', [ClassName, Summary]),
+	output('@ciindex %s\n\n', ClassName),
 	cindex(Class),
 	class_inheritance(Class),
 	description(Class),
@@ -66,6 +67,11 @@ summary(Obj, Summary) :-
 	get(Obj, summary, Summary),
 	Summary \== @nil, !.
 summary(_, '').
+
+
+name_of(Obj, TeXInfoName) :-
+	get(Obj, name, Name),
+	texinfo_escape(Name, TeXInfoName).
 
 
 		 /*******************************
@@ -88,7 +94,8 @@ class_inheritance(Class) :-
 show_inheritance(@nil) :- !,
 	output('\n').
 show_inheritance(Class) :-
-	output('@result{} %s ', [Class?name]),
+	name_of(Class, ClassName),
+	output('@result{} %s ', [ClassName]),
 	get(Class, super_class, Super),
 	show_inheritance(Super).
 
@@ -329,6 +336,13 @@ texinfo_escape(In, Out) :-
 	new(Out, string('%s', In)),
 	texinfo_escape(Out).
 
+texinfo_identifier(S) :-
+	substitute(S, [ '@',   'atsign'
+		      ]).
+texinfo_identifier(In, Out) :-
+	new(Out, string('%s', In)),
+	texinfo_identifier(Out).
+
 texinfo_unescape(S) :-
 	substitute(S, [ '@@',           '@',
 			'@{',           '{',
@@ -495,8 +509,10 @@ texinfo_behaviour(M) :-
 	output(' %s ', Name),
 	argument_vector(TypeVector),
 	output('\n'),
-	output('@biindex %s (@sendarrow{} %s)\n',
-	       [Name, M?context?name]).
+	get(M?context, name, CName),
+	texinfo_escape(Name, TeXName),
+	texinfo_escape(CName, TeXCName),
+	output('@biindex %s (@sendarrow{} %s)\n', [TeXName, TeXCName]).
 texinfo_behaviour(M) :-
 	send(M, instance_of, get_method), !,
 	get(M, name, Name),
@@ -550,12 +566,16 @@ man_id(Obj, TheId) :-
 	;   get(Obj, man_id, Id)
 	),
 	new(S, string('%s', Id)),
-	substitute(S, [ '\\\\==', ne ]),
+	substitute(S,
+		   [ '\\\\==', ne,
+		     '@=', atsign
+		   ]),
 	get(S, value, TheId).
 
 label_object(Obj) :-
 	man_id(Obj, Id),
-	output('@setref{%s}\n', Id).
+	texinfo_escape(Id, TeXId),
+	output('@setref{%s}\n', TeXId).
 
 
 		 /*******************************
@@ -1070,9 +1090,10 @@ object_summary(Obj) :-
 	tex_escape(Arrow, S2),
 	tex_escape(ClassName, S3),
 	tex_escape(Summary, S4),
+	texinfo_identifier(Identifier, S5),
 
 	output('%s&\\mbox{%s} (%s%s)&%s&\\pageref{%s}\\cr\n',
-	       [Id, S1, S2, S3, S4, Identifier]).
+	       [Id, S1, S2, S3, S4, S5]).
 
 
 		/********************************

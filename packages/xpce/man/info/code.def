@@ -17,9 +17,11 @@ The table below gives a brief overview of the classes in this chapter:
 	=, <, >, =<, >=	Arithmetic comparison operators
 	block		Compound procedure
 	==, \==		Equality test
+	@=		Assignment of references (`object ->name_reference')
 	function	General aspects of functions
 	quote_function	As the LISP ' operator
 	?		Get operation
+	create		Create new objects (`class <-instance')
 	progn		Compound function
 	when		Conditional function
 	+, -, *, /	Arithmetic operators
@@ -75,6 +77,8 @@ The table below gives a brief overview of the classes in this chapter:
 #class \==
 #end class
 
+#class @=
+#end class
 
 #class function
 #end class
