@@ -483,28 +483,18 @@ proto(Draw, Proto:'graphical|link*') :->
 
 
 		/********************************
-		*            FEEDBACK		*
+		*            ABOUT		*
 		********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The method ->feedback as defined here provides a general mechanism for
-any part of PceDraw to print a (short) feedback message:
-
-	send(MySelf?frame, feedback, string('%s: No such file', File))
-
-NOTE:	This mechanism should be exploited further in PCE itself by
-	providing sensible defaults for feedback handling.
+About simply sends a message  to  @display   to  inform  the user of the
+package.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-feedback(Draw, Str:string) :->
-	"Print feedback message in dialog"::
-	send(Draw?dialog?feedback_member, selection, Str).
-
 
 about(_Draw) :->
 	"Print `about' message"::
 	send(@display, inform, '%s\n\n%s\n%s\n%s\n',
-	     'PceDraw version 1.1',
+	     'PceDraw version 1.2',
 	     'By',
 	     'Jan Wielemaker',
 	     'E-mail: jan@swi.psy.uva.nl').

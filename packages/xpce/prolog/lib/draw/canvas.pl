@@ -684,8 +684,7 @@ save(Canvas, File:[file]) :->
 	new(Sheet, sheet(attribute(graphicals, Canvas?graphicals))),
 	send(Sheet, save_in_file, SaveFile),
 	send(Canvas, slot, modified, @off),
-	send(Canvas?frame, feedback,
-	     string('Saved %s', SaveFile?base_name)),
+	send(Canvas, report, status, 'Saved %s', SaveFile?base_name),
 	send(Sheet, free).
 
 
@@ -771,8 +770,8 @@ generate_postscript(Canvas, PsFile:file) :->
 	send(PsFile, append, Canvas?postscript),
 	send(PsFile, append, string('showpage\n')),
 	send(PsFile, close),
-	send(Canvas?frame, feedback,
-	     string('Written PostScript to `%s''', PsFile?base_name)).
+	send(Canvas, report, status,
+	     'Written PostScript to `%s''', PsFile?base_name).
 
 
 default_psfile(Canvas, DefName) :<-

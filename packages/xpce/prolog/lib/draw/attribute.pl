@@ -96,8 +96,6 @@ predicates to create the various menu's.
 fill_dialog(D) :-
 	new(A, D?frame),
 
-	send(D, append, label(feedback, '')),
-
 	make_line_menu(Pen,	pen,	 [0,1,2,3,4,5]),
 	make_line_menu(Texture, texture, [none, dotted, dashed, dashdot]),
 	make_line_menu(Arrows,	arrows,  [none, second, first, both]),
