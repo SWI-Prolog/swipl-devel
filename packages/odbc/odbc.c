@@ -1173,14 +1173,14 @@ pl_odbc_connect(term_t tdsource, term_t cid, term_t options)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-odbc_disconnect/0
+odbc_disconnect(+Connection)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static foreign_t
 pl_odbc_disconnect(term_t dsn)
 { connection *cn;
   
-  if ( get_connection(dsn, &cn) )
+  if ( !get_connection(dsn, &cn) )
     return FALSE;
 
   SQLDisconnect(cn->hdbc);  /* Disconnect from the data source */
