@@ -1571,8 +1571,6 @@ getContainsFrame(FrameObj fr)
 
 /* Type declarations */
 
-static char *T_report[] =
-        { "{status,inform,progress,done,warning,error}", "format=[char_array]", "argument=any ..." };
 static char *T_centerADpointD_grabADboolD[] =
         { "center=[point]", "grab=[bool]" };
 static char *T_busyCursor[] =

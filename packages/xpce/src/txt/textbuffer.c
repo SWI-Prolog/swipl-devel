@@ -2354,8 +2354,6 @@ static char *T_forAllComments[] =
 	{ "message=code", "from=[int]", "to=[int]" };
 static char *T_indexAint_startADintD[] =
         { "index=int", "start=[int]" };
-static char *T_report[] =
-        { "kind={status,inform,progress,done,warning,error}", "format=[char_array]", "argument=any ..." };
 static char *T_append[] =
         { "text=char_array", "times=[int]" };
 

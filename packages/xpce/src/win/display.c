@@ -986,9 +986,6 @@ static char *T_busyCursor[] =
         { "cursor=[cursor]*", "block_input=[bool]" };
 static char *T_drawIn[] =
         { "graphical", "at=[point]", "invert=[bool]", "subwindow=[bool]" };
-static char *T_report[] =
-        { "kind={status,inform,progress,done,warning,error}",
-	  "format=[char_array]", "argument=any ..." };
 static char *T_postscript[] =
         { "landscape=[bool]", "max_area=[area]" };
 static char *T_fontAlias[] =

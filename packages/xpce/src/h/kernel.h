@@ -1589,6 +1589,12 @@ GLOBAL Name	name_space;		/* " " */
 GLOBAL Code	qsortCompareCode;	/* used by qsortCompareObjects() */
 GLOBAL int	qsortReverse;		/* used by qsortCompareObjects() */
 
+		 /*******************************
+		 *	    GLOBAL TYPES	*
+		 *******************************/
+
+extern char *T_report[];		/* ->report: kind, format, args... */
+
 		/********************************
 		*        SET ITERATION		*
 		********************************/

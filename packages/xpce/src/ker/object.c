@@ -2567,6 +2567,14 @@ getPrintNameObject(Any obj)
 		 *	 CLASS DECLARATION	*
 		 *******************************/
 
+/* Public Type declaractions */
+
+char *T_report[] =
+        { "kind={status,inform,progress,done,warning,error,fatal}",
+	  "format=[char_array]",
+	  "argument=any ..."
+	};
+
 /* Type declaractions */
 
 static char *T_forSlotReference[] =
@@ -2581,8 +2589,6 @@ static char *T_hyper_nameADnameD_testADcodeD[] =
         { "hyper_name=[name]", "test=[code]" };
 static char *T_attachHyper[] =
         { "hyper", "object" };
-static char *T_report[] =
-        { "kind={status,inform,progress,done,warning,error}", "format=[char_array]", "argument=any ..." };
 static char *T_deleteHypers[] =
         { "name=[name]", "condition=[code]" };
 static char *T_slot[] =

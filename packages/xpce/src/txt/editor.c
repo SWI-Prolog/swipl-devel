@@ -4288,8 +4288,6 @@ static char *T_int_int[] =
         { "int", "int" };
 static char *T_keyBinding[] =
         { "key=name", "action=name|code" };
-static char *T_report[] =
-        { "kind={status,inform,progress,done,warning,error}", "format=[char_array]", "argument=any ..." };
 static char *T_selectLine[] =
         { "line=[int]", "newline=[bool]" };
 static char *T_linesADintD_columnADintD[] =

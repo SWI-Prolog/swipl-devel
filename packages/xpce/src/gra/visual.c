@@ -175,10 +175,6 @@ alertReporteeVisual(Any v)
 
 /* Type declaractions */
 
-static char *T_report[] =
-	{ "kind={status,inform,progress,done,warning,error}",
-	  "format=[char_array]", "argument=any ..." };
-
 /* Instance Variables */
 
 #define var_visual NULL

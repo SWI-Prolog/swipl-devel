@@ -329,8 +329,6 @@ reportLabel(Label lb, Name kind, CharArray fmt, int argc, Any *argv)
 
 /* Type declarations */
 
-static char *T_report[] =
-        { "kind={status,inform,progress,done,warning,error}", "format=[char_array]", "argument=any ..." };
 static char *T_initialise[] =
         { "name=[name]", "selection=[string|image]", "font=[font]" };
 static char *T_format[] =
