@@ -10,6 +10,23 @@
 :- module(emacs_sgml_mode, []).
 :- use_module(library(pce)).
 :- use_module(library(emacs_extend)).
+:- require([ free_sgml_parser/1
+	   , www_open_url/1
+	   , dtd/2
+	   , dtd_property/2
+	   , get_sgml_parser/2
+	   , message_to_string/2
+	   , new_sgml_parser/2
+	   , prolog_to_os_filename/2
+	   , set_sgml_parser/2
+	   , term_to_atom/2
+	   , absolute_file_name/3
+	   , atom_concat/3
+	   , catch/3
+	   , concat_atom/3
+	   , delete/3
+	   , send_list/3
+	   ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module exploits the SGML/XML  parser   from  the SWI-Prolog package
@@ -976,6 +993,16 @@ forward_move_out(M) :->
 	;   send(M, report, warning, 'Cannot find element')
 	).
 
+url(M, Url:name) :<-
+	"Return file:Path url for buffer"::
+	(   get(M, file, File),
+	    File \== @nil
+	->  get(File, absolute_path, Path),
+	    prolog_to_os_filename(Path, OsPath),
+	    atom_concat('file:', OsPath, Url)
+	;   send(M, return, warning, 'No current file')
+	).
+
 :- emacs_end_mode.
 
 
@@ -1007,7 +1034,9 @@ open_document(M, DTD:doctype=name) :->
 
 :- emacs_begin_mode(html, sgml,
 		    "Mode for editing HTML documents",
-		    [],
+		    [ -			= button(sgml),
+		      open_in_browser	= button(sgml)
+		    ],
 		    []).
 
 initialise(M) :->
@@ -1019,6 +1048,12 @@ open_document(M) :->
 	send(M, format,
 	     '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">\n\n'),
 	send(M, insert_element, html).
+
+open_in_browser(M) :->
+	"Open the user's WWW browser on the file"::
+	send(M, save_if_modified),
+	get(M, url, Url),
+	www_open_url(Url).
 
 :- emacs_end_mode.
 

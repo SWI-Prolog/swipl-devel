@@ -86,9 +86,6 @@ lasserta(Term) :-
 	asserta(Term).
 lretract(Term) :-
 	retract(Term).
-lretractall(Term) :-
-	retractall(Term).
-
 	
 		 /*******************************
 		 *	     REGISTER		*

@@ -4,6 +4,9 @@
 VERSION 5.1.11, distributed with SWI-Prolog 4.1.0
 =================================================
 
+* ADDED: PceEmacs HTML mode: open_in_browser to open the current page
+  in the user's browser.
+
 * ADDED: PceEmacs: ->pce_define_class as new command to the Prolog mode
   First of more to come.
 
