@@ -3277,24 +3277,44 @@ to give the compiler a hint to put ARGP not into a register.
 
     VMI(A_VAR) MARK(AVARN);
     { int offset;
-      term_t v;
       Number n;
       offset = *PC++;
+      Word p, p2;
 
     a_var_n:
-      v = consTermRef(varFrameP(FR, offset));
       n = (Number)ARGP;
+      p = varFrameP(FR, offset);
+      deRef2(p, p2);
 
-      if ( valueExpression(v, n PASS_LD) )
-      { ARGP = (Word)(n+1);
-	NEXT_INSTRUCTION;
-      } else
-      {
+      switch(tag(*p2))
+      { case TAG_INTEGER:
+	  n->value.i = valInteger(*p2);
+	  n->type = V_INTEGER;
+	a_ok:
+	  ARGP = (Word)(n+1);
+	  NEXT_INSTRUCTION;
+	  /*NOTREACHED*/
+	case TAG_FLOAT:
+	  n->value.f = valReal(*p2);
+	  n->type = V_REAL;
+	  goto a_ok;
+	  /*NOTREACHED*/
+        default:
+	{ LocalFrame lsave = lTop;	/* may do call-back on Prolog */
+	  lTop = (LocalFrame)ARGP;
+	  
+	  if ( valueExpression(consTermRef(p), n PASS_LD) )
+	  { lTop = lsave;
+	    goto a_ok;
+	  } else
+	  { lTop = lsave;
 #if O_CATCHTHROW
-	if ( exception_term )
-	  goto b_throw;
+            if ( exception_term )
+	      goto b_throw;
 #endif
-	BODY_FAILED;			/* check this */
+	    BODY_FAILED;		/* check this */
+	  }
+	}
       }
 
     VMI(A_VAR0) MARK(AVAR0);

@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug#85: Prolog arithmetic functions in optimised mode evaluating
+    complex not-compiled expressions.
+
   * PORT: make sure the profiler-support autoconf test runs at least 1 sec.
     This makes the test work regardless of the speed of the machine.
 
