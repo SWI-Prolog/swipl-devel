@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ISO: Replaced warning on atom_prefix/2 with exception.
+
+  * FIXED: Sflush() to return 0 rather then the number of characters
+    written on success.
+
   * ADDED: Messages for new error(limit_exceeded(Limit, Max), _) and
     error(goal_failed(Goal), _).
 
@@ -37,7 +42,7 @@ VERSION 3.3.4
     Joachim Katzer. 
 
   * FIXED: avoid call to win_registry_get_value/3 if this is not defined
-    (Unix version).  Otherwise check/0 reports the this predicate as
+    (Unix version).  Otherwise check/0 reports this predicate as
     undefined.
 
 VERSION 3.3.3
