@@ -653,6 +653,7 @@ End;
   Any		background;		/* Background colour of the window */ \
   Bool		has_pointer;		/* We own the pointer */ \
   Any		selection_feedback;	/* Feedback for selection */ \
+  Bool		buffered_update;	/* Buffered update? */ \
 					/* Alien stuff */ \
   UpdateArea	changes_data;		/* Recorded changes */ \
   WsRef		ws_ref;			/* Window system reference */

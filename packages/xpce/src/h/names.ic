@@ -285,6 +285,7 @@
   BUILTIN_NAME("bucket_value")
   BUILTIN_NAME("buckets")
   BUILTIN_NAME("buffer")
+  BUILTIN_NAME("buffered_update")
   BUILTIN_NAME("build")
   BUILTIN_NAME("build_term")
   BUILTIN_NAME("built_in")

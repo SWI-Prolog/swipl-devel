@@ -40,6 +40,7 @@ initialiseWindow(PceWindow sw, Name label, Size size, DisplayObj display)
   assign(sw, has_pointer,	   OFF);
   assign(sw, sensitive,		   ON);
   assign(sw, bounding_box,	   newObject(ClassArea, EAV));
+  assign(sw, buffered_update,	   ON);
   obtainClassVariablesObject(sw);
 
   if ( isDefault(size) )
@@ -2099,6 +2100,8 @@ static vardecl var_window[] =
   SV(NAME_selectionFeedback, "{invert,handles,colour}|elevation|colour*",
      IV_GET|IV_STORE, selectionFeedbackWindow,
      NAME_appearance, "How <-selected graphicals are visualised"),
+  IV(NAME_bufferedUpdate, "bool", IV_BOTH,
+     NAME_redraw, "If @on (default) use buffered update"),
   IV(NAME_changesData, "alien:UpdateArea", IV_NONE,
      NAME_repaint, "Summary info for redraw"),
   IV(NAME_wsRef, "alien:WsRef", IV_NONE,

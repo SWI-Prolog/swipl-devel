@@ -340,7 +340,7 @@ d_window(PceWindow sw, int x, int y, int w, int h, int clear, int limit)
 		env->area.x, env->area.y, env->area.w, env->area.h,
 		clear ? "clear" : "no clear"));
 
-  if ( limit && notNil(d->cache) && clear )
+  if ( limit && notNil(d->cache) && clear && sw->buffered_update != OFF )
   { NormaliseArea(x, y, w, h);
     context.cache_x = x; context.cache_y = y;
     context.cache_w = w; context.cache_h = h;

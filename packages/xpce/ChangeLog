@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: `window<->buffered_update': switch on/off double buffering on
+  window-basis.
+
 * ENHANCED: wheel-mouse events on a window are routed to the vertical
   scrollbar if one is attached.
 
