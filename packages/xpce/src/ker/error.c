@@ -391,6 +391,8 @@ static const error_def errors[] =
     "%N: Missing argument %d (%s): `%s' expected" },
   { NAME_unexpectedType,	0,
     "%O: Should be a %N" },
+  { NAME_unresolvedType,	0,
+    "%N: Unresolved type (not built-in and no such class)" },
   { NAME_elementType,		0,
     "%O: Element %d is not a %N" },
   { NAME_cannotConvert,		0,
