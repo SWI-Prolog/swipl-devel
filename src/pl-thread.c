@@ -898,9 +898,12 @@ pl_thread_get_message(term_t msg)
 
       if ( PL_unify(msg, tmp) )
       { if ( prev )
-	  prev->next = msgp->next;
-	else
-	  ld->thread.msg_head = msgp->next;
+	{ if ( !(prev->next = msgp->next) )
+	    ld->thread.msg_tail = prev;
+	} else
+	{ if ( !(ld->thread.msg_head = msgp->next) )
+	    ld->thread.msg_tail = NULL;
+	}
 	PL_erase(msgp->message);
 	freeHeap(msgp, sizeof(*msgp));
 	UNLOCK();
