@@ -1,6 +1,6 @@
 /*  $Id$
 
-<    Part of SWI-Prolog SGML/XML parser
+    Part of SWI-Prolog SGML/XML parser
 
     Author:  Jan Wielemaker
     E-mail:  jan@swi.psy.uva.nl
@@ -2321,6 +2321,22 @@ process_utf8(dtd_parser *p, int chr)
 #endif
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+add_cdata() adds a character to the output  data. It also maps \r\n onto
+a single \n for Windows newline conventions.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+add_cdata(dtd_parser *p, int chr)
+{ ocharbuf *buf = p->cdata;
+
+  if ( chr == '\n' && buf->size > 0 && buf->data[buf->size-1] == '\r' )
+    buf->size--;
+
+  add_ocharbuf(buf, chr);
+}
+
+
 /* We discovered illegal markup and now process it as normal CDATA
 */
 
@@ -2330,9 +2346,9 @@ recover_parser(dtd_parser *p)
   dtd *dtd = p->dtd;
 
   terminate_icharbuf(p->buffer);
-  add_ocharbuf(p->cdata, dtd->charmap->map[p->saved]);
+  add_cdata(p, dtd->charmap->map[p->saved]);
   for(s=p->buffer->data; *s; s++)
-    add_ocharbuf(p->cdata, dtd->charmap->map[*s]);
+    add_cdata(p, dtd->charmap->map[*s]);
   p->state = S_PCDATA;
 }
 
@@ -2402,7 +2418,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	    return;
 	  }
 #endif
-	  add_ocharbuf(p->cdata, dtd->charmap->map[chr]);
+	  add_cdata(p, dtd->charmap->map[chr]);
 	  return;
       }
     }
@@ -2421,7 +2437,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
 	empty_ocharbuf(p->cdata);
 	p->state = S_PCDATA;
       } else
-      { add_ocharbuf(p->cdata, dtd->charmap->map[chr]);
+      { add_cdata(p, dtd->charmap->map[chr]);
 	if ( p->etaglen < p->buffer->size || !HasClass(dtd, chr, CH_NAME))
 	{ empty_icharbuf(p->buffer);	/* mismatch */
 	  p->state = S_CDATA;
@@ -2431,7 +2447,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
       return;
     }
     case S_ECDATA1:			/* seen < in CDATA */
-    { add_ocharbuf(p->cdata, dtd->charmap->map[chr]);
+    { add_cdata(p, dtd->charmap->map[chr]);
       if ( f[CF_ETAGO2] == chr )	/* / */
       { empty_icharbuf(p->buffer);
 	p->state = S_ECDATA2;
@@ -2440,19 +2456,19 @@ putchar_dtd_parser(dtd_parser *p, int chr)
       return;
     }
     case S_CDATA:
-    { add_ocharbuf(p->cdata, dtd->charmap->map[chr]);
+    { add_cdata(p, dtd->charmap->map[chr]);
       if ( f[CF_MDO1] == chr )		/* < */
 	p->state = S_ECDATA1;
       return;
     }
     case S_MSCDATA:
-    { add_ocharbuf(p->cdata, dtd->charmap->map[chr]);
+    { add_cdata(p, dtd->charmap->map[chr]);
       if ( f[CF_DSC] == chr )		/* ] */
         p->state = S_EMSCDATA1;
       return;
     }
     case S_EMSCDATA1:
-    { add_ocharbuf(p->cdata, dtd->charmap->map[chr]);
+    { add_cdata(p, dtd->charmap->map[chr]);
       if ( f[CF_DSC] == chr )		/* ]] */
         p->state = S_EMSCDATA2;
       else
@@ -2460,7 +2476,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
       return;
     }
     case S_EMSCDATA2:
-    { add_ocharbuf(p->cdata, dtd->charmap->map[chr]);
+    { add_cdata(p, dtd->charmap->map[chr]);
       if ( f[CF_MDC] == chr )		/* ]]> */
       { p->cdata->size -= 3;		/* Delete chars for ]] */
 	pop_marked_section(p);
@@ -2586,7 +2602,7 @@ putchar_dtd_parser(dtd_parser *p, int chr)
       p->utf8_char <<= 6;
       p->utf8_char |= (chr & 0xc0);
       if ( --p->utf8_left == 0 )
-      { add_ocharbuf(p->cdata, p->utf8_char);
+      { add_cdata(p, p->utf8_char);
 	p->state = p->saved_state;
       }
     }
