@@ -1,3 +1,11 @@
+* FIXED: Various details around event processing of text_item objects.
+
+* ADDED: `socket->connect' to be no-op rather then error if socked is
+  already connected.
+
+* UPDATE: Updated getdate package with new version.  Now able to handle
+  HTTPD time format.
+
 * FIXED: `text_buffer<-scan_syntax' to deal properly with the 0'<char>
   syntax of Prolog.
 
