@@ -331,7 +331,7 @@ breakargs(const char *line, char **argv)
 { int argc = 0;
 
   while(*line)
-  { while(*line && isspace(*line))
+  { while(*line && isspace(CTOI(*line)))
       line++;
 
     if ( *line == '"' )			/* Windows-95 quoted arguments */
@@ -350,7 +350,7 @@ breakargs(const char *line, char **argv)
     if ( *line )
     { const char *start = line;
 
-      while(*line && !isspace(*line))
+      while(*line && !isspace(CTOI(*line)))
 	line++;
       argv[argc++] = strndup(start, line-start);
     }
