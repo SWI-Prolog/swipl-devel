@@ -3568,6 +3568,7 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
       case I_CALL_FV0:
       case I_CALL_FV1:
       case I_CALL_FV2:
+      case I_CATCH:
 	PC += ci->arguments;
         if ( loc == PC )
 	{ add_1_if_not_at_end(PC, end, tail);
