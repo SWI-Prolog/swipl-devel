@@ -433,7 +433,8 @@ EOF
 	LD=plld
 	LDSOFLAGS="-shared"
 	GCCLIB=""
-	CMFLAGS="$CMFLAGS -no-cpp-precomp"
+	CMFLAGS=`echo $CMFLAGS | sed 's/-fPIC//'`
+	CMFLAGS="$CMFLAGS -no-cpp-precomp -fno-common"
 	AC_DEFINE(__unix__)
 	;;
     *)
