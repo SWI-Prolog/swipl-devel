@@ -1039,7 +1039,7 @@ static senddecl send_image[] =
      NAME_file, "Load image using xli library"),
 #endif
   SM(NAME_save, 2, T_save, saveImage,
-     NAME_file, "Save bits in standard X11 format"),
+     NAME_file, "Save image to file in specified format"),
   SM(NAME_clearPixel, 2, T_xAint_yAint, clearPixelImage,
      NAME_pixel, "Clear pixel at x-y (to 0 or background)"),
   SM(NAME_invertPixel, 2, T_xAint_yAint, invertPixelImage,
