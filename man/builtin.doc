@@ -402,8 +402,11 @@ See also qsave_program/[1,2].
 
     \predicate{compiling}{0}{}
 Succeeds if the system is compiling source files with the \cmdlineoption{-c}
-option into an intermediate code file.  Can be used to perform code
-optimisations in expand_term/2 under this condition.
+option or qcompile/1 into an intermediate code file. Can be used to
+perform conditional code optimisations in term_expansion/2 (see also the
+\cmdlineoption{-O} option) or to omit execution of directives during
+compilation.
+
     \predicate{preprocessor}{2}{-Old, +New}
 Read the input file via a Unix process that acts as preprocessor. A
 preprocessor is specified as an atom. The first occurrence of the string
@@ -453,6 +456,9 @@ same \fileext{qlf} file. Other directives will be stored in the
 
 For term_expansion/2, the same rules as described in
 \secref{compilation} apply.
+
+Conditional execution or optimisation may test the predicate
+compiling/0.
 
 Source references (source_file/2) in the Quick Load File refer to
 the Prolog source file from which the compiled code originates. 

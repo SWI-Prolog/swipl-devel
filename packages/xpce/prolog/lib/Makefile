@@ -7,7 +7,7 @@
 PL=	pl
 
 QLF=	pce.qlf pce_manual.qlf pcedraw.qlf dialog/dialog.qlf \
-	emacs/emacs.qlf trace/trace.qlf
+	emacs/emacs.qlf trace/trace.qlf emacs/prolog_mode.qlf
 
 all:	checkwd INDEX.pl $(QLF)
 
@@ -48,8 +48,15 @@ trace/trace.qlf:	.pwd trace/trace.pl trace/clause.pl trace/util.pl \
 			trace/stack.pl trace/pprint.pl trace/viewterm.pl \
 			trace/gui.pl
 
+emacs/prolog_mode.qlf:	.pwd emacs/prolog_mode.pl emacs/prolog_colour.pl \
+			emacs/prolog_xref.pl xref/common.pl
+
+
 INDEX.pl:	.
 	$(PL) -g "make_library_index('.')" -t halt
 
 .pl.qlf:	
+	@echo '****************'
+	@echo '* QLF compilation of $*'
+	@echo '****************'
 	$(PL) -O -g "qcompile('$*')" -t halt -- -nopce

@@ -31,8 +31,9 @@
 
 :- module(emacs_prolog_mode, []).
 :- use_module(library(pce)).
+:- use_module(library(emacs_extend)).
 :- use_module(library(prolog_predicate)).
-:- use_module(library('emacs/prolog_xref')).
+:- [prolog_xref].
 :- require([ make/0
 	   , absolute_file_name/3
 	   , auto_call/1
@@ -1119,4 +1120,4 @@ backward_predicate(M, Arg:[int]) :->
 
 %	Load syntax colouring support.
 
-:- use_module(prolog_colour).
+:- [prolog_colour].

@@ -1,6 +1,17 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Many PceEmacs goodies for Prolog mode
+	- Colour arguments to all (declared) meta-calls
+	- Better handling of explicit cross-module calls and definitions
+	- Precompile prolog_mode.pl and related files to qlf to speed up
+	  loading on slow machines.
+
+* MODIFIED: Make pce_image_directory/1 not open the display when compiling
+  a state.  This should be fine as long as the compilation process doesn't
+  create images.  If it does, open the display explicitly before creating
+  the rest of the state using send(@display, open).
+
 * FIXED: Editor: bind C-j to newline_and_indent as well as LFD, as these
   sequences send different commands since a while.  Used to work nevertheless
   in PceEmacs because `fundamental_mode->typed' was defined to accept

@@ -266,6 +266,8 @@ prolog_message(illegal_autoload_index(Dir, Term)) -->
 	[ 'Illegal term in INDEX file of directory ~w: ~w'-[Dir, Term] ].
 prolog_message(redefined_procedure(Type, Proc)) -->
 	[ 'Redefined ~w procedure ~p'-[Type, Proc] ].
+prolog_message(discontiguous((-)/2)) -->
+	prolog_message(minus_in_identifier).
 prolog_message(discontiguous(Proc)) -->
 	[ 'Clauses of ~p are not together in the source-file'-[Proc] ].
 prolog_message(load_file(start(Level, File))) -->
@@ -292,6 +294,10 @@ prolog_message(error(loop_error(Spec), file_search(Used))) -->
 	  '    Used alias expansions:', nl
 	],
 	used_search(Used).
+prolog_message(minus_in_identifier) -->
+	[ 'The "-" character should not be used to seperate words in an', nl,
+	  'identifier.  Check the SWI-Prolog FAQ for details.'
+	].
 
 used_search([]) -->
 	[].

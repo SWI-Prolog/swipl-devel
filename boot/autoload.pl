@@ -61,6 +61,7 @@ $find_library(Module, Name, Arity, LoadModule, Library) :-
 	), !.
 
 %	$in_library(?Name, ?Arity)
+%
 %	Is true if Name/Arity is in the autoload libraries.
 
 $in_library(Name, Arity) :-
@@ -69,6 +70,7 @@ $in_library(Name, Arity) :-
 	functor(Head, Name, Arity).
 
 %	$define_predicate(+Head)
+%
 %	Make sure pred can be called.  First test if the predicate is
 %	defined.  If not, invoke the autoloader.
 

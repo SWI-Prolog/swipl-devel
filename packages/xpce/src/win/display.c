@@ -126,7 +126,7 @@ openDisplay(DisplayObj d)
 
 Bool
 getOpenDisplay(Any d)
-{ answer(ws_opened_display(d) ? OFF : ON);
+{ answer(ws_opened_display(d) ? ON : OFF);
 }
 
 
@@ -1159,6 +1159,8 @@ static getdecl get_display[] =
      DEFAULT, "Convert graphical or `host:display[.screen]'"),
   GM(NAME_depth, 0, "bits_per_pixel=int", NULL, getDepthDisplay,
      NAME_colour, "Number of bits/pixel"),
+  GM(NAME_open, 0, "bool", NULL, getOpenDisplay,
+     NAME_open, "Query connected status of the display"),
   GM(NAME_visualType, 0,
      "{monochrome,static_grey,grey_scale,static_colour,pseudo_colour,true_colour,direct_colour}",
      NULL, getVisualTypeDisplay,

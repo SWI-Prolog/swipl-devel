@@ -620,14 +620,19 @@ $canonise_extension(Atom, DotAtom) :-
 
 :-	flag($break_level,	_, 0),
 	flag($compiling,	_, database),
+	flag($directive,	_, database),
 	flag($preprocessor,	_, none),
 	prompt(_, '|: ').
 
 %	compiling
-%	Is true if SWI-Prolog is generating an intermediate code file
+%
+%	Is true if SWI-Prolog is generating a state or qlf file or
+%	executes a `call' directive while doing this.
 
 compiling :-
-	\+ flag($compiling, database, database).
+	\+ (   flag($compiling, database, database),
+	       flag($directive, database, database)
+	   ).
 
 :- module_transparent
 	$ifcompiling/1.
@@ -1054,15 +1059,15 @@ $consult_clause(Clause, File) :-
 $execute_directive(include(File), F) :- !,
 	$expand_include(File, F).
 $execute_directive(Goal, _) :-
-	compiling, !,
+	\+ flag($compiling, database, database), !,
 	$add_directive_wic2(Goal, Type),
 	(   Type == call		% suspend compiling into .qlf file
 	->  flag($compiling, Old, database),
-	    (	$execute_directive2(Goal)
-	    ->	flag($compiling, _, Old)
-	    ;	flag($compiling, _, Old),
-		fail
-	    )
+	    flag($directive, OldDir, Old),
+	    call_cleanup($execute_directive2(Goal),
+			 (   flag($compiling, _, Old),
+			     flag($directive, _, OldDir)
+			 ))
 	;   $execute_directive2(Goal)
 	).
 $execute_directive(Goal, _) :-

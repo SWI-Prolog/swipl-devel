@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * MODIFIED: compiling/0 now also succeed during execution of all directives
+    when compiling a state or qlf file.
+
   * FIXED: GUI tracer to handle the dynamic code used for handling compound
     meta-calls.  Found by Holger Kanwischer.  Thanks.
 

@@ -76,7 +76,7 @@
 		 *	     BUILT-INS		*
 		 *******************************/
 
-:- use_module(library('xref/common')).	% Common built-in's
+:- [library('xref/common')].		% Common built-in's
 
 system_predicate(require(_)).
 system_predicate(discontiguous(_)).
