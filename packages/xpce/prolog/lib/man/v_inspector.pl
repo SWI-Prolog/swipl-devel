@@ -15,6 +15,8 @@
 :- module(pce_inspector, []).
 
 :- use_module(library(pce)).
+:- use_module(library(toolbar)).
+:- use_module(library(pce_report)).
 :- require([ between/3
 	   , nth1/3
 	   , portray_object/2
@@ -23,7 +25,15 @@
 	   , term_to_atom/2
 	   ]).
 
-:- dynamic inspector_window/1.
+:- pce_autoload(select_graphical, v_select).
+
+:- dynamic
+	inspector_window/1.
+
+resource(clear,	image, image('16x16/trashcan.xpm')).
+resource(help,	image, image('16x16/help.xpm')).
+resource(grab,	image, image('16x16/handpoint.xpm')).
+
 
 		/********************************
 		*        SELECTABLE TEXT	*
@@ -739,39 +749,36 @@ freed_object(Instance) :-
 
 :- pce_begin_class(isp_frame, man_frame).
 
-variable(inspect_handler,	recogniser,	get).
-
 initialise(F, Manual:man_manual) :->
 	send(F, send_super, initialise, Manual, 'PCE Inspector'),
-	send(F, append, new(Inspector, isp_inspector_window)),
+	send(F, append, new(TD, tool_dialog)),
+	send_list(TD, append,
+		  [ tool_button(clear,
+				resource(clear),
+				'Clear window'),
+		    tool_button(help,
+				resource(help),
+				'Help on the inspector'),
+		    tool_button(grab,
+				resource(grab),
+				'Select object from screen')
+		  ]),
+	send(new(Inspector, isp_inspector_window), below, TD),
 	asserta(inspector_window(Inspector)),
+	send(new(report_dialog), below, Inspector),
 
-	new(D, dialog),
-	send(D, below, Inspector),
-
-	send(D, append, label(reporter,
-			      'ALT+SHIFT+CONTROL-I adds object')),
-	send(D, append, button(clear, message(Inspector, clear))),
-	send(D, append, button(help, message(F, help))),
-	send(D, append, button(quit, message(F, quit))),
-	send(D, append,
+	send(TD, append, graphical(0,0,20,0), right),
+	send(TD, append,
 	     new(TI, text_item(inspect, '',
 			       and(message(Inspector, inspect_atom, @arg1),
 				   message(@receiver, clear)))),
 	     right),
-	send(TI, length, 25),
-
-	send(@display, inspect_handler,
-	     new(H, handler('M-\\C-i', message(F, inspect, @arg1)))),
-	send(F, slot, inspect_handler, H).
+	send(TI, reference, point(0, TI?height)).
 
 
 unlink(F) :->
 	get(F, member, isp_inspector_window, Inspector),
 	retractall(inspector_window(Inspector)),
-	get(F, inspect_handler, H),
-	send(@display?inspect_handlers, delete_all, H),
-
 	send(Inspector, unregister),
 	send(F, send_super, unlink).
 
@@ -781,4 +788,20 @@ inspect(F, Object:object) :->
 	get(F, member, isp_inspector_window, Window),
 	send(Window, inspect, Object).
 
-:- pce_end_class.
+clear(F) :->
+	get(F, member, isp_inspector_window, Window),
+	send(Window, clear).
+
+grab(F) :->
+	"Add a new object from the screen"::
+	new(D, select_graphical('Select object to inspect')),
+	send(D, attribute, report_to, F),
+	get(D, select,
+	    @arg1?frame \== F,
+	    F?area?center, Obj),
+	send(D, destroy),
+	Obj \== @nil,
+	send(F, inspect, Obj).
+	
+
+:- pce_end_class(isp_frame).

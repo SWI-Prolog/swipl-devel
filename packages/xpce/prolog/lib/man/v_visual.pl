@@ -12,6 +12,8 @@
 
 :- module(pce_visual, []).
 :- use_module(library(pce)).
+:- use_module(library(toolbar)).
+:- use_module(library(pce_report)).
 :- use_module(pce_op).			% should move
 :- require([ concat_atom/2
 	   , ignore/1
@@ -28,10 +30,12 @@
 		*        ICON GENERATION	*
 		********************************/
 
-resource(builtin_class,       image, image('16x16/builtin_class.xpm')).
-resource(user_class,          image, image('16x16/user_class.xpm')).
+resource(builtin_class,	      image, image('16x16/builtin_class.xpm')).
+resource(user_class,	      image, image('16x16/user_class.xpm')).
 resource(builtin_class_flash, image, image('16x16/builtin_classflash.xpm')).
 resource(user_class_flash,    image, image('16x16/user_classflash.xpm')).
+resource(help,		      image, image('16x16/help.xpm')).
+resource(grab,		      image, image('16x16/handpoint.xpm')).
 
 :- pce_extend_class(visual).
 
@@ -232,29 +236,26 @@ object_details(V) :->
 :- pce_begin_class(vis_frame, man_frame,
 		   "Visual Hierarchy Tool").
 
-variable(handler,	handler,	get, "Inspect handler used").
-
 initialise(F, Manual:man_manual) :->
 	F*>>initialise(Manual, 'Visual Hierarchy'),
-	F->>append(new(V, vis_window)),
-	new(D, dialog)->>below(V),
-	D->>append(label(reporter,
-			 'ALT+SHIFT+CONTROL-V adds object to tree')),
-	D->>append(button(help)),
-	D->>append(button(quit)),
-	D->>append(text_item(add, '', message(F, visualise_from_atom, @arg1)),
-		   right),
-	F->>keyboard_focus(D),
-	F->>display->>inspect_handler(new(H, handler('M-\\C-v',
-						     message(V, visualise,
-							     @arg1)))),
-	F=>>handler(H).
-	
-unlink(F) :->
-	H = F->>handler,
-	F->>display->>inspect_handlers->>delete_all(H),
-	F*>>unlink.
+	F->>append(new(TD, tool_dialog)),
+	send_list(TD, append,
+		  [ tool_button(help,
+				resource(help),
+				'Help on the inspector'),
+		    tool_button(grab,
+				resource(grab),
+				'Select object from screen')
+		  ]),
+	TD->>append(graphical(0,0,20,0), right),
+	TD->>append(new(TI, text_item(add, '',
+				      message(F, visualise_from_atom, @arg1))),
+		    right),
+	TI->>reference(point(0, TI?height)),
 
+	new(V, vis_window)->>below(TD),
+	new(report_dialog)->>below(V).
+	
 window(F, Window:vis_window) :<-
 	Window = F->>member(vis_window).
 
@@ -274,4 +275,13 @@ visualise_from_atom(F, Atom:name) :->
 vis_expandable(_V) :->
 	fail.
 
-:- pce_end_class.
+grab(F) :->
+	"Add a new object from the screen"::
+	new(D, select_graphical('Select object from screen')),
+	D->>attribute(report_to, F),
+	Obj = D->>select(@arg1?frame \== F, F?area?center),
+	D->>destroy,
+	Obj \== @nil,
+	F->>window->>visualise(Obj).
+
+:- pce_end_class(vis_frame).
