@@ -131,6 +131,7 @@ default_emacs_mode('\.\(pl\|xpce\|pceemacs\)rc~?', 	prolog).
 default_emacs_mode('.*\.\(tex\|sty\)~?$', 		latex).
 default_emacs_mode('.*\.doc~?$',	 		latex).
 default_emacs_mode('.*\.html~?$',	 		html).
+default_emacs_mode('.*\.chml~?$',	 		html).
 default_emacs_mode('.*\.ann~?$',	 		annotate).
 default_emacs_mode('.*\.[ch]~?$', 			c).
 default_emacs_mode('.*\.C$',				cpp).

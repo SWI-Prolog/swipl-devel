@@ -11,10 +11,9 @@
 :- use_module(library(pce)).
 :- require([ default/3
 	   ]).
-:- set_prolog_flag(character_escapes, false).
 
-
-:- pce_begin_class(emacs_hit_list, frame).
+:- pce_begin_class(emacs_hit_list, frame,
+		   "Represent result of find, errors, etc.").
 
 variable(expose_on_append, bool := @off, both,
 	 "->expose on ->append_hit").
@@ -113,3 +112,5 @@ unlink_from(H) :->
 	free(H).
 
 :- pce_end_class.
+
+

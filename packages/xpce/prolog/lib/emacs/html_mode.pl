@@ -17,12 +17,35 @@
 :- op(100, fy, ?).
 :- op(100, fy, +).
 
+:- pce_global(@html_paragraph_end_regex,
+	      make_parent_regex).
+
+make_parent_regex(R) :-
+	findall(P, par(P), Ps),
+	concat_atom(Ps, '\\|', P0),
+	concat_atom(['\\s *\\($\\|<\\(', P0, '\\)\\)'], P1),
+	new(R, regex(P1)),
+	send(R, ignore_case, @on).
+
+par('h[1-4]').
+par('dl').
+par('ul').
+par('ol').
+par('li').
+par('dt').
+par('tr').
+par('p').
+par('hr').
+par('table').
+par('blockquote').
+
+
 :- emacs_begin_mode(html, language,
 		    "Mode for editing HTML documents",
 		    [ open_document     = key('\\C-c\\C-o') + button('HTML')
 		    ],
 		    [ '<'  = open_bracket('>'),
-		      paragraph_end(regex('\\s *\\(\\sn\\|<\\(H[1-4]\\|DL\|UL\\)\\)'))
+		      paragraph_end(@html_paragraph_end_regex)
 		    ]).
 
 :- pce_global(@html_end_element_regex, new(regex('</\\(\\w+\\)[^>]*>'))).
