@@ -55,7 +55,7 @@ forwards status promoteTextBuffer(TextBuffer tb);
 #define Address(tb, i)		(istbA(tb) ? &(tb)->tb_bufferA[(i)] \
 					   : (charA *)&(tb)->tb_bufferW[(i)])
 #define Index(tb, p) ((tb)->gap_start <= (p) ? \
-		(tb)->gap_end + ((p) - (tb)->gap_start) + 1 : (p) )
+		      (tb)->gap_end + ((p) - (tb)->gap_start) : (p) )
 
 
 static status
@@ -122,12 +122,13 @@ storeTextBuffer(TextBuffer tb, FileObj file)
 
   TRY(storeSlotsObject(tb, file));
   storeIntFile(file, toInt(tb->size));
+  storeIntFile(file, toInt(unitsize));
 
   Sfwrite(Address(tb, 0),
 	  unitsize,
 	  tb->gap_start,
 	  file->fd);
-  Sfwrite(Address(tb, tb->gap_end+1),
+  Sfwrite(Address(tb, tb->gap_end),
 	  unitsize,
 	  tb->size - tb->gap_start,
 	  file->fd);
@@ -138,7 +139,9 @@ storeTextBuffer(TextBuffer tb, FileObj file)
 
 static status
 loadTextBuffer(TextBuffer tb, IOSTREAM *fd, ClassDef def)
-{ TRY( loadSlotsObject(tb, fd, def) );
+{ int unitsize;
+
+  TRY( loadSlotsObject(tb, fd, def) );
 
   if ( isNil(tb->syntax) )
     assign(tb, syntax, getClassVariableValueObject(tb, NAME_syntax));
@@ -147,12 +150,25 @@ loadTextBuffer(TextBuffer tb, IOSTREAM *fd, ClassDef def)
 
   assign(tb, editors, newObject(ClassChain, EAV));
   tb->size = loadWord(fd);
+  if ( restoreVersion >= 18 )
+    unitsize = loadWord(fd);
   tb->allocated = ROUND(tb->size, ALLOC);
-  str_cphdr(&tb->buffer, str_nl(NULL));	/* ASCII */
-  tb->tb_bufferA = pceMalloc(tb->allocated);
-  Sfread(Address(tb, 0), sizeof(char), tb->size, fd); /* TBD */
+  if ( unitsize == 1 )
+  { str_cphdr(&tb->buffer, str_nl(NULL));	/* ASCII */
+    tb->tb_bufferA = pceMalloc(tb->allocated);
+    Sfread(Address(tb, 0), sizeof(char), tb->size, fd);
+  } else 
+  { str_inithdr(&tb->buffer, TRUE);
+
+    if ( unitsize == sizeof(charW) )
+    { Sfread(Address(tb, 0), unitsize, tb->size, fd);
+    } else
+    { assert(0);			/* TBD (also byte-order) */
+    }
+  }
+
   tb->gap_start = tb->size;
-  tb->gap_end = tb->allocated - 1;
+  tb->gap_end = tb->allocated;
 
   if ( tb->lines == 0 )
   { tb->lines = -1;			/* indicate invalid */
@@ -170,11 +186,15 @@ loadTextBuffer(TextBuffer tb, IOSTREAM *fd, ClassDef def)
 
 static status
 cloneTextBuffer(TextBuffer tb, TextBuffer clone)
-{ clonePceSlots(tb, clone);
+{ size_t bytes;
+
+  clonePceSlots(tb, clone);
+
+  bytes = istbA(tb) ? clone->allocated : clone->allocated*sizeof(charW);
 
   clone->undo_buffer = NULL;
-  clone->tb_bufferA = pceMalloc(clone->allocated);
-  memcpy(clone->tb_bufferA, tb->tb_bufferA, clone->allocated);
+  clone->tb_bufferA = pceMalloc(bytes);
+  memcpy(clone->tb_bufferA, tb->tb_bufferA, bytes);
   clone->changed_start = clone->size;
   clone->changed_end = 0;
 
@@ -1625,7 +1645,7 @@ count_lines_textbuffer(TextBuffer tb, int f, int t)
       { lines++;
       }
     }
-    b += tb->gap_end - tb->gap_start + 1;
+    b += tb->gap_end - tb->gap_start;
     for( ; f<t; f++)
     { if ( tisendsline(syntax, b[f]) )
       { lines++;
@@ -1639,7 +1659,7 @@ count_lines_textbuffer(TextBuffer tb, int f, int t)
     { if ( tisendsline(syntax, b[f]) )
 	lines++;
     }
-    b += tb->gap_end - tb->gap_start + 1;
+    b += tb->gap_end - tb->gap_start;
     for( ; f<t; f++)
     { if ( tisendsline(syntax, b[f]) )
 	lines++;
@@ -1667,7 +1687,7 @@ start_of_line_n_textbuffer(TextBuffer tb, int lineno)
 	  return i+1;
       }
     }
-    b += tb->gap_end - tb->gap_start + 1;
+    b += tb->gap_end - tb->gap_start;
     for( ; i<tb->size; i++)
     { if ( tisendsline(syntax, b[i]) )
       { if ( --lineno <= 0 )
@@ -1683,7 +1703,7 @@ start_of_line_n_textbuffer(TextBuffer tb, int lineno)
 	  return i+1;
       }
     }
-    b += tb->gap_end - tb->gap_start + 1;
+    b += tb->gap_end - tb->gap_start;
     for( ; i<tb->size; i++)
     { if ( tisendsline(syntax, b[i]) )
       { if ( --lineno <= 0 )
@@ -1954,7 +1974,7 @@ str_sub_text_buffer(TextBuffer tb, String s, int start, int len)
   if ( start < tb->gap_start )
     idx = start;
   else
-    idx = tb->gap_end + (start - tb->gap_start) + 1;
+    idx = tb->gap_end + (start - tb->gap_start);
 
   if ( isstrA(s) )
     s->s_textA = &tb->tb_bufferA[idx];
@@ -2156,7 +2176,7 @@ insert_textbuffer_shift(TextBuffer tb, int where, int times,
 
       while(f<e)
 	*d++ = *f++;
-    } else				/* inseet W in A */
+    } else				/* insert W in A */
     { charA *d = &tb->buffer.s_textA[tb->gap_start];
       const charW *f = s->s_textW;
       const charW *e = &f[s->size];
@@ -2202,10 +2222,10 @@ clear_textbuffer(TextBuffer tb)
   tb->size = 0;
   tb->lines = 0;
   tb->allocated = ALLOC;
-  tb->tb_bufferA = pceMalloc(istbA(tb) ? ALLOC : ALLOC*2);
+  tb->tb_bufferA = pceMalloc(istbA(tb) ? ALLOC : ALLOC*sizeof(charW));
 
   tb->gap_start = 0;
-  tb->gap_end = tb->allocated - 1;
+  tb->gap_end = tb->allocated;
   
   while( notNil(tb->first_fragment) )		/* destroy fragments */
     freeObject(tb->first_fragment);
@@ -2353,27 +2373,27 @@ room(TextBuffer tb, int where, int grow)
 
   if ( grow + tb->size > tb->allocated )
   { int s = ROUND(tb->size + grow, ALLOC);
-    int ag = tb->allocated - tb->gap_end - 1;
+    int ag = tb->allocated - tb->gap_end;
 
     shift = s - tb->allocated;
     tb->tb_bufferA = pceRealloc(tb->tb_bufferA,
 				istbA(tb) ? s : s*sizeof(charW));
     tb->allocated = s;
     
-    memmove(Address(tb, tb->gap_end + 1 + shift),
-	    Address(tb, tb->gap_end + 1),
+    memmove(Address(tb, tb->gap_end + shift),
+	    Address(tb, tb->gap_end),
 	    istbA(tb) ? ag : ag*sizeof(charW));
     tb->gap_end += shift;
   }
 
   shift = where - tb->gap_start;
   if ( shift < 0 )				/* move gap towards start */
-  { memmove(Address(tb, tb->gap_end + shift + 1),
+  { memmove(Address(tb, tb->gap_end + shift),
 	    Address(tb, where),
 	    istbA(tb) ? -shift : sizeof(charW) * -shift);
   } else if ( shift > 0 )			/* move gap towards end */
   { memmove(Address(tb, tb->gap_start),
-	    Address(tb, tb->gap_end + 1),
+	    Address(tb, tb->gap_end),
 	    istbA(tb) ? shift : sizeof(charW) * shift);
   }    
   tb->gap_start += shift;			/* move the gap pointers */

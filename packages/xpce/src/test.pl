@@ -430,7 +430,7 @@ re_match(regex(foo), 4, @default, 'aap foo bar', 4-7).
 re_match(regex(foo), 11, 0, 'aap foo bar', 4-7).
 re_match(regex(foo, @off), @default, @default, 'aap FOO bar', 4-7).
 re_match(regex(foo), @default, @default, String, 4-7) :-
-	atom_codes(W, [/*1080*/]),
+	atom_codes(W, [1080]),
 	atom_concat('aap foo bar', W, String).
 
 regex(regex-1) :-
