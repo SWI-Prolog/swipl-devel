@@ -25,6 +25,10 @@ toolkit.  See \chapref{online}.
     \secoverview{tabular}{Tabular layout}
 Primitives for dealing with tables.
 
+    \secoverview{libplot}{Plotting graphs and barcharts}
+This section describes a number of libraries providing promitives for
+drawing graphs and barcharts.
+
     \secoverview{mlingual}{Multi-lingual applications}
 Discusses support for multi-lingual applications.
 
@@ -52,6 +56,7 @@ architectures.
 \libinput{libdia.tex}
 \libinput{toc.tex}
 \libinput{tabular}
+\libinput{libplot}
 \libinput{mlingual.tex}
 \libinput{dragdrop.tex}
 \libinput{httpd}
