@@ -12,8 +12,8 @@ PLHOME=..\..
 !include ..\..\src\rules.mk
 PKGDLL=db4pl
 
-DBDIR=		e:\jan\src\db-4.0.14
-LIBDB=		libdb40
+DBDIR=		..\..\..\db-4.1.25.NC
+LIBDB=		libdb41
 DBLIB=		$(DBDIR)\build_win32\Release\$(LIBDB).lib
 DBDLL=		$(DBDIR)\build_win32\Release\$(LIBDB).dll
 DBDEFS=		-DHAVE_SET_RPC_SERVER
@@ -40,20 +40,20 @@ install:	idll ilib
 !ENDIF
 
 idll::
-		copy $(PKGDLL).dll $(PLBASE)\bin
-		copy $(DBDLL) $(PLBASE)\bin
+		copy $(PKGDLL).dll "$(PLBASE)\bin"
+		copy $(DBDLL) "$(PLBASE)\bin"
 ilib::
-		copy db.pl $(PLBASE)\library
+		copy db.pl "$(PLBASE)\library"
 		$(MAKEINDEX)
 
 uninstall::
-		del $(PLBASE)\bin\$(PKGDLL).dll
-		del $(PLBASE)\bin\$(LIBDB).dll
-		del $(PLBASE)\library\db.pl
+		del "$(PLBASE)\bin\$(PKGDLL).dll"
+		del "$(PLBASE)\bin\$(LIBDB).dll"
+		del "$(PLBASE)\library\db.pl"
 		$(MAKEINDEX)
 
 html-install::
-		copy doc\db4pl.html $(PKGDOC)
+		copy doc\db4pl.html "$(PKGDOC)"
 
 clean::
 		DEL *.obj *~

@@ -1,3 +1,7 @@
+Jun 4, 2003
+
+* PORT: Updated Makefile.mak for MS-Windows.  Fixed for spaces in path.
+
 Jun 3, 2003
 
 * PORT: Provide support for BerkeleyDB 4.1
