@@ -1915,9 +1915,11 @@ PL_unify_functor(term_t t, functor_t f)
   int arity = arityFunctor(f);
 
   deRef(p);
-  if ( isVar(*p) )
+  if ( canBind(*p) )
   { if ( arity == 0 )
-    { *p = nameFunctor(f);
+    { word name = nameFunctor(f);
+
+      bindConst(p, name);
     } else
     { 
 #ifdef O_SHIFT_STACKS
@@ -1932,15 +1934,16 @@ PL_unify_functor(term_t t, functor_t f)
 
       { Word a = gTop;
 	gTop += 1+arity;
+	word t = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
 
-	*p = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
 	*a = f;
 	while( --arity >= 0 )
 	  setVar(*++a);
+
+	bindConst(p, t);
       }
     }
 
-    Trail(p);
     succeed;
   } else
   { if ( arity == 0  )

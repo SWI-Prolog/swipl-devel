@@ -1110,6 +1110,8 @@ u(arith, X) :-
 	X is 3.
 u(args, X) :-
 	u_args(X, args).
+u(functor, X) :-
+	functor(X, foo, 1).
 
 test_wakeup(How) :-
 	freeze(X, Y=ok),
@@ -1158,6 +1160,8 @@ avar(wakeup-5) :-
 	test_wakeup(arith).
 avar(wakeup-6) :-
 	test_wakeup(args).
+avar(wakeup-7) :-
+	test_wakeup(functor).
 avar(type-1) :-
 	put_attr(X, test, a),
 	avar(X).

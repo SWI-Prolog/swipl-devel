@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Attribute wakeup in functor(-,+,+).  Spotted by Jon Sneyers.
+
   * ADDED: PL_query() option PL_QUERY_ENCODING to synchronise default
     encoding towards XPCE.
 
@@ -34,7 +36,7 @@ VERSION 5.5.1 (December 17, 2004)
   * FIXED: Protocol issues due to wide character encoding.
 
   * MODIFIED: Cleanup of foreign predicate registration by Salvador
-    Fandiño.  Added PL_register_foreign_in_module() and
+    Fandio.  Added PL_register_foreign_in_module() and
     PL_register_extensions_in_module().  Deleted the possibility to
     use PL_register_foreign("module:predicate", ...).  Foreign code
     using this construct must be updated.
@@ -70,7 +72,7 @@ VERSION 5.5.0 (December 1, 2004)
   * FIXED: Bug#204: conflicting <sys/malloc.h> on FreeBSD.  Deleted
     test for this header.  Tuomo Latto.
 
-  * FIXED: PL_query(PL_QUERY_ARGC).  With patch from Salvador Fandiño.
+  * FIXED: PL_query(PL_QUERY_ARGC).  With patch from Salvador Fandiï¿½o.
 
   * MODIFIED: incremented external record version format.  Unfortunately this
     makes old BerkeleyDB databases loading Prolog terms unusable.  The only
@@ -155,7 +157,7 @@ VERSION 5.4.0 (September 21, 2004)
 
   * ADDED: return value for PL_put_blob() to indicate new/reused blob
     identifier.  Also added `acquire' hook to the blob type.
-    Salvador Fandiño.
+    Salvador Fandiï¿½o.
 
 
 VERSION 5.3.21 (September 14, 2004)
@@ -273,7 +275,7 @@ VERSION 5.3.15 (July 16, 2004)
   * FIXED: portability issue in Makefile (Solaris).  Bill McEnaney.
 
   * FIXED: possibility to crash the debugger on exceptions in callback
-    from C.  Salvador Fandiño.
+    from C.  Salvador Fandiï¿½o.
 
 
 VERSION 5.3.14 (July 1, 2004)
@@ -518,7 +520,7 @@ VERSION 5.3.4 (Mar 12, 2004)
     ISO-latin-1.  Richard O'Keefe.  All these characters used to be
     classified as lowercase letter.  Note that this may cause errors
     reading old code containing not-quoted atoms holding such characters.
-    For example, Æab used to be read as an atom but is now read as a
+    For example, ï¿½ab used to be read as an atom but is now read as a
     Prolog variable.  Please use ?- style_check(+charset) to get warnings
     in possible conflicts.
 
@@ -661,7 +663,7 @@ VERSION 5.2.12 (Jan 17, 2004)
   * FIXED: destroying thread-local clauses with the GUI debugger loaded.
     Fabien Todescato.
 
-  * DOCUMENTATION: Typo in term_expansion/2 docs.  Márcio Mazza.
+  * DOCUMENTATION: Typo in term_expansion/2 docs.  Mï¿½rcio Mazza.
 
   * INTERNAL: changed tag schema freeing up an entry for attributed
     variables.
@@ -773,7 +775,7 @@ VERSION 5.2.8 (Sep 13, 2003)
   * FIXED: Made O_SECURE tests in pl-gc.c thread-safe (maintenance only).
 
   * FIXED: P_VARARG handling through PL_load_extensions().  With patch from
-    Salvador Fandiño.
+    Salvador Fandiï¿½o.
 
   * FIXED: bug in debugger crashing on an exception.
 
@@ -814,7 +816,7 @@ VERSION 5.2.6 (Aug 15, 2003)
 
   * FIXED: pl -q -t true printed a single newline.  Eric Goldlust.
 
-  * FIXED: Ignore -x in pl -- -x foo.  With patch from Salvador "Fandiño.
+  * FIXED: Ignore -x in pl -- -x foo.  With patch from Salvador "Fandiï¿½o.
 
   * FIXED: Memory management issues in the multi-threaded version.  Thanks to
     Sergey Tikhonov for his analysis.
@@ -951,7 +953,7 @@ VERSION 5.2.2 (Jun 23, 2003)
 ============================
 
   * MAYBEFIXED: Bug#68: lacking headers compiling pl-stream.c.  Lourens
-    van der Meij and Djamé Seddah.
+    van der Meij and Djamï¿½ Seddah.
 
   * FIXED: GC during autoload.  Fabien Todescato.  Thanks for the extensive
     test-suite!
@@ -1418,7 +1420,7 @@ VERSION 5.1.3 (Dec 8, 2002)
 ===========================
 
   * MODIFIED: ISO Compliance: retract((head :- _)) also retracts facts.
-    Gérard Milmeister and Roberto Bagnara.
+    Gï¿½rard Milmeister and Roberto Bagnara.
 
   * FIXED: make destruction of the Windows console somewhat more careful.
     (Bob Wielinga).
@@ -1846,7 +1848,7 @@ VERSION 5.0.5 (April 16, 2002)
 ==============================
 
   * PORT: Hopefully get plld -shared -o test.so test.c to produce foreign
-    libraries on BeOS.  With lots of help from Axel Dörfler.
+    libraries on BeOS.  With lots of help from Axel Dï¿½rfler.
 
   * FIXED: Avoid re-loading the initial file after qsave_program/2 from
     PLWIN.EXE (Ron Sele).
@@ -1855,9 +1857,9 @@ VERSION 5.0.5 (April 16, 2002)
     `standard', allowing for `interleaved I/O'.  After a couple of
     complaints that text-book code was broken.
 
-  * FIXED: Various problems in the manual (Ørjan Johansen).
+  * FIXED: Various problems in the manual (ï¿½rjan Johansen).
 
-  * FIXED: expand_file_name/2 handling of ~fred (Ørjan Johansen).
+  * FIXED: expand_file_name/2 handling of ~fred (ï¿½rjan Johansen).
 
   * DEBUGGER: Modified the trace-hooks to examine choice-points as first
     class objects.  Adjusted the GUI tracer to use the new code.  This
@@ -1889,12 +1891,12 @@ VERSION 5.0.5 (April 16, 2002)
     dereference (Fabien Todescato).
 
   * PORT: Added (non-tested) support for loading shared objects in BeOS
-    (with help by Axel Dörfler)
+    (with help by Axel Dï¿½rfler)
 
-  * PORT: Detect <SupportDefs.h> in recent BeOS and use it (Axel Dörfler).
+  * PORT: Detect <SupportDefs.h> in recent BeOS and use it (Axel Dï¿½rfler).
 
   * PORT: Fixed detection of ru_idrss in struct rusage (not around in BeOS,
-    reported by Axel Dörfler).
+    reported by Axel Dï¿½rfler).
 
   * FIXED: Documentation on obsolete prolog_navigator/1 replaced by new
     prolog_ide/1.  Fixed prolog_ide(open_navigator(Dir)) (Tolga Konik).
