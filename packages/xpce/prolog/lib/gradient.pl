@@ -17,7 +17,7 @@ as  a  smooth  transition  from  one  colour  to  another.  The  current
 implementation is more a prototype, lacking the following optimizations:
 
 	* Don't use to many colours on 256 colour displays
-	* Avoid creating a colour for each pixal when making long gradients
+	* Avoid creating a colour for each pixel when making long gradients
 	* Allow for different algorithms
 
 The current implementation uses a linear   transition in HSV-space. This
@@ -29,9 +29,16 @@ To create a vertical gradient in (X,Y,W,H), do:
 gradient(Device, ColourTop, ColourBottom, X, Y, W, H) :-
 	send(Device, display, new(B, box(W,H)), point(X,Y)),
 	send(B, pen, 0),
-	send(B, fill_offset, 0),
+	send(B, fill_offset, point(0,0)),
 	send(B, fill_pattern,
 	     gradient(@nil, ColourTop, ColourBottom, H, vertical)).
+
+NOTE: DOS-7 based Windows (Windows 95/98/ME)   has severe limitations on
+handling fill-patterns. XPCE has hacks to   avoid  these for rectangles,
+making the above code only work for   boxes with <-radius: 0, no shadow,
+and <-fill_offset: point(0,0). On X11 and NT   gradients  can be used on
+all objects accepting  an  image  as   `colour'  for  its  interior. For
+details, see also `box->fill_pattern'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 :- pce_begin_class(gradient, image,
