@@ -1000,10 +1000,10 @@ right_recursion:
 }
 
 
-word
-pl_unify_va(term_t t0, int argc, control_t ctx)		/* =/2 */
-{ ENGINE(ctx)
-  Word p0 = valTermRef(t0);
+static
+PRED_IMPL("=", 2, unify, 0)
+{ PRED_LD
+  Word p0 = valTermRef(A1);
   mark m;
   int rval;
 
@@ -4429,7 +4429,10 @@ next_choice:
 } /* end of PL_next_solution() */
 
 
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
 
-
-
-
+BeginPredDefs(wam)
+  PRED_DEF("=", 2, unify, 0)
+EndPredDefs

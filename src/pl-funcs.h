@@ -22,13 +22,6 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#define FOREIGN_VA(name) \
-	foreign_t name(term_t a0, int argc, control_t ctx)
-#define Arg(a0, n) ((a0)+(n))
-
-FOREIGN_VA(pl_unify_va);
-
-
 /* pl-alloc.c */
 void		freeHeap__LD(void *mem, size_t n ARG_LD);
 word		outOfStack(Stack s, stack_overflow_action how);
@@ -545,7 +538,6 @@ word		pl_greaterEqualStandard(term_t t1, term_t t2);
 word		pl_structural_equal(term_t t1, term_t t2);
 word		pl_structural_nonequal(term_t t1, term_t t2);
 word		pl_functor(term_t t, term_t f, term_t a);
-word		pl_arg(term_t n, term_t t, term_t a, control_t b);
 word		pl_setarg(term_t n, term_t term, term_t arg);
 int		lengthList(term_t list, int errors);
 word		pl_univ(term_t t, term_t l);

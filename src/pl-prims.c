@@ -648,13 +648,17 @@ pl_functor(term_t t, term_t f, term_t a)
 }
 
 
-word
-pl_arg(term_t n, term_t term, term_t arg, control_t b)
-{ GET_LD
+static
+PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
   atom_t name;
   int arity;
 
-  switch( ForeignControl(b) )
+  term_t n    = A1;
+  term_t term = A2;
+  term_t arg  = A3;
+
+  switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
     { int idx;
       Word p = valTermRef(term);
@@ -696,7 +700,7 @@ pl_arg(term_t n, term_t term, term_t arg, control_t b)
       return PL_error("arg", 3, NULL, ERR_TYPE, ATOM_integer, n);
     }
     case FRG_REDO:
-    { int argn = ForeignContextInt(b) + 1;
+    { int argn = CTX_INT + 1;
       term_t a = PL_new_term_ref();
 
       PL_get_name_arity(term, &name, &arity);
@@ -2769,3 +2773,12 @@ pl_style_check(term_t old, term_t new)
 
   fail;
 }
+
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(prims)
+  PRED_DEF("arg", 3, arg, PL_FA_NONDETERMINISTIC)
+EndPredDefs

@@ -158,7 +158,7 @@ extern PL_local_data_t *_LD(void) __attribute((const));
 #define GLOBAL_LD ((PL_local_data_t *)TLD_get(PL_ldata))
 #endif
 #define GET_LD    PL_local_data_t *__PL_ld = GLOBAL_LD;
-#define ENGINE(c) PL_local_data_t *__PL_ld = ForeignEngine(c);
+#define PRED_LD   PL_local_data_t *__PL_ld = PL__ctx->engine;
 
 #define ARG1_LD   PL_local_data_t *__PL_ld
 #define ARG_LD    , ARG1_LD
@@ -217,7 +217,7 @@ void			PL_atomic_dec(int *addr);
 		 *******************************/
 
 #define GET_LD
-#define ENGINE(ctx)
+#define PRED_LD
 #define LOCAL_LD  (&PL_local_data)
 #define GLOBAL_LD (&PL_local_data)
 #define LD	  GLOBAL_LD
