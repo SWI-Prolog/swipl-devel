@@ -26,9 +26,9 @@ initialiseColour(Colour c, Name name, Int r, Int g, Int b)
   } else
     assign(c, kind, NAME_rgb);
 
-  assign(c, red,     r);
-  assign(c, green,   g);
-  assign(c, blue,    b);
+  assign(c, red,   r);
+  assign(c, green, g);
+  assign(c, blue,  b);
 
   protectObject(c);
   sprintf(tmp, "%s_colour", strName(name));
@@ -82,6 +82,52 @@ XopenColour(Colour c, DisplayObj d)
 }
 
 
+Colour
+getHiliteColour(Colour c)
+{ Colour c2;
+  Int r, g, b;
+  Name n2;
+
+  if ( (c2 = getAttributeObject(c, NAME_hilite)) )
+    answer(c2);
+  if ( isDefault(c->green) )
+    getXrefObject(c2, CurrentDisplay(NIL));
+  
+  r = toInt(min(65535, (valInt(c->red)   * 3)/2)); /* resource? */
+  g = toInt(min(65535, (valInt(c->green) * 3)/2));
+  b = toInt(min(65535, (valInt(c->blue)  * 3)/2));
+
+  n2 = getAppendName(CtoName("hilited_"), c->name);
+  c2 = newObject(ClassColour, n2, r, g, b, 0);
+  attributeObject(c, newObject(ClassAttribute, NAME_hilite, c2, 0));
+
+  answer(c2);
+}
+
+
+Colour
+getReduceColour(Colour c)
+{ Colour c2;
+  Int r, g, b;
+  Name n2;
+
+  if ( (c2 = getAttributeObject(c, NAME_reduce)) )
+    answer(c2);
+  if ( isDefault(c->green) )
+    getXrefObject(c2, CurrentDisplay(NIL));
+  
+  r = toInt(max(0, (valInt(c->red)   * 2)/3)); /* resource? */
+  g = toInt(max(0, (valInt(c->green) * 2)/3));
+  b = toInt(max(0, (valInt(c->blue)  * 2)/3));
+
+  n2 = getAppendName(CtoName("reduced_"), c->name);
+  c2 = newObject(ClassColour, n2, r, g, b, 0);
+  attributeObject(c, newObject(ClassAttribute, NAME_reduce, c2, 0));
+
+  answer(c2);
+}
+
+
 status
 makeClassColour(Class class)
 { sourceClass(class, makeClassColour, __FILE__, "$Revision$");
@@ -115,6 +161,12 @@ makeClassColour(Class class)
   getMethod(class, NAME_lookup, NAME_oms, "colour", 1, "name",
 	    "Lookup in @colours table",
 	    getLookupColour);
+  getMethod(class, NAME_hilite, NAME_3d, "colour", 0,
+	    "Hilited version of the colour",
+	    getHiliteColour);
+  getMethod(class, NAME_reduce, NAME_3d, "colour", 0,
+	    "Reduced version of the colour",
+	    getReduceColour);
 
   ColourTable = globalObject(NAME_colours, ClassHashTable, toInt(32), 0);
 

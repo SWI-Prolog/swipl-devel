@@ -405,6 +405,7 @@ extern struct name builtin_names[];	/* object-array of built-in's */
 #define F_ASSOC			makeFlag(15) /* has name-assoc */
 #define F_ITFNAME		makeFlag(16) /* Name known to itf table */
 #define F_SOLID			makeFlag(17) /* Solid graphical object */
+#define F_RESOURCES_OBTAINED	makeFlag(18) /* obtainResourcesObject() */
 
 #define initHeaderObj(obj, cl) \
   { obj->class	      = cl; \

@@ -180,17 +180,6 @@ ws_open_display(DisplayObj d)
 }
 
 
-static void
-ws_3d_colours(DisplayObj d, DrawContext ctx)
-{ Any c;
-
-  if ( (c=getResourceValueObject(d, NAME_3dShadow)) )
-    x11_set_gc_foreground(d, c, 1, &ctx->shadowGC);
-  if ( (c=getResourceValueObject(d, NAME_3dRelief)) )
-    x11_set_gc_foreground(d, c, 1, &ctx->reliefGC);
-}
-
-
 static DrawContext
 new_draw_context(DisplayObj d, Drawable drawable, Name kind)
 { DrawContext ctx = alloc(sizeof(struct draw_context));
@@ -249,8 +238,6 @@ new_draw_context(DisplayObj d, Drawable drawable, Name kind)
   ctx->shadowGC	    = XCreateGC(display, drawable, GCALL, &values);
   values.foreground = white;
   ctx->reliefGC	    = XCreateGC(display, drawable, GCALL, &values);
-  if ( kind == NAME_pixmap )
-    ws_3d_colours(d, ctx);
 
 #undef GCALL
 

@@ -13,7 +13,7 @@
 static HashTable ElevationTable;	/* @elevations */
 
 static status
-initialiseElevation(Elevation e, Name name,
+initialiseElevation(Elevation e, Any name,
 		    Int height, Any colour, Any relief, Any shadow)
 { if ( isDefault(name) )
     name = NIL;
@@ -37,7 +37,7 @@ initialiseElevation(Elevation e, Name name,
 
 
 static Elevation
-getLookupElevation(Any receiver, Name name,
+getLookupElevation(Any receiver, Any name,
 		   Int height, Any colour, Any relief, Any shadow)
 { Elevation e = getMemberHashTable(ElevationTable, name);
 
@@ -55,17 +55,14 @@ getLookupElevation(Any receiver, Name name,
 static Elevation
 getConvertElevation(Any receiver, Any val)
 { Int i;
+  Elevation e;
 
-  if ( isName(val) )
-  { Elevation e;
-
-    if ( (e= getLookupElevation(receiver, val,
-				DEFAULT, DEFAULT, DEFAULT, DEFAULT)) )
-      return e;
-  }
+  if ( (e= getLookupElevation(receiver, val,
+			      DEFAULT, DEFAULT, DEFAULT, DEFAULT)) )
+    return e;
 
   if ( (i = toInteger(val)) )
-    answer(answerObject(ClassElevation, NIL, i, 0));
+    answer(answerObject(ClassElevation, i, i, 0));
 
   fail;
 }
@@ -90,12 +87,6 @@ attributeElevation(Elevation e, Name att, Any val)
     return errorPce(e, NAME_readOnly);
 
   return slotObject(e, att, val);
-}
-
-
-static status
-nameElevation(Elevation e, Name name)
-{ return attributeElevation(e, NAME_name, name);
 }
 
 
@@ -127,7 +118,7 @@ status
 makeClassElevation(Class class)
 { sourceClass(class, makeClassElevation, __FILE__, "$Revision$");
 
-  localClass(class, NAME_name, NAME_name, "name", NAME_get,
+  localClass(class, NAME_name, NAME_name, "name|int*", NAME_get,
 	     "Name for reuse");
   localClass(class, NAME_height, NAME_appearance, "int", NAME_get,
 	     "Height above the surface");
@@ -142,14 +133,13 @@ makeClassElevation(Class class)
 	    NAME_name, NAME_height, NAME_colour, NAME_relief, NAME_shadow);
   cloneStyleClass(class, NAME_none);
 
-  storeMethod(class, NAME_name,   nameElevation);
   storeMethod(class, NAME_height, heightElevation);
   storeMethod(class, NAME_colour, colourElevation);
   storeMethod(class, NAME_relief, reliefElevation);
   storeMethod(class, NAME_shadow, shadowElevation);
 
   sendMethod(class, NAME_initialise, DEFAULT, 5,
-	     "name=[name]*", "height=[int]",
+	     "name=[name|int]*", "height=[int]",
 	     "colour=[colour|pixmap]",
 	     "relief=[colour|pixmap]", "shadow=[colour|pixmap]",
 	     "Create elevation from name, heigth and colours",
@@ -162,7 +152,7 @@ makeClassElevation(Class class)
 	    "Convert name to object (reuse) or int to height",
 	    getConvertElevation);
   getMethod(class, NAME_lookup, DEFAULT, "elevation", 5,
-	    "name=[name]*", "height=[int]",
+	    "name=[name|int]*", "height=[int]",
 	    "colour=[colour|pixmap]",
 	    "relief=[colour|pixmap]", "shadow=[colour|pixmap]",
 	    "Lookup from @elevations",

@@ -106,6 +106,7 @@ struct draw_context
   ulong		background_pixel;	/* X pixel value of background */
   Bool		subwindow_mode;		/* Draw in subwindows too */
   Bool		invert_mode;		/* Just invert */
+  Elevation	elevation;		/* 3-d elevation GC's */
 };
 
 

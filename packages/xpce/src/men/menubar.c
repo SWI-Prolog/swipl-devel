@@ -26,7 +26,6 @@ initialiseMenuBar(MenuBar mb, Name name)
   assign(mb, gap, DEFAULT);
   assign(mb, radius, DEFAULT);
 
-  obtainResourcesObject(mb);
   succeed;
 }
 
@@ -60,8 +59,11 @@ static status
 computeMenuBar(MenuBar mb)
 { Cell cell;
   int x = 0;
-  int gap = valInt(mb->gap);
+  int gap;
   int h = 0;
+
+  obtainResourcesObject(mb);
+  gap = valInt(mb->gap);
 
   for_cell(cell, mb->buttons)
   { Button b = cell->value;

@@ -1808,41 +1808,43 @@ getResourceValueObject(Any obj, Name name)
 
 status
 obtainResourcesObject(Any obj)
-{ Instance inst = obj;
-  Class class = classOfObject(obj);
-  int slots = valInt(class->slots);
-  int i;
-  status rval = SUCCEED;
+{ if ( offFlag(obj, F_RESOURCES_OBTAINED) )
+  { Instance inst = obj;
+    Class class = classOfObject(obj);
+    int slots = valInt(class->slots);
+    int i;
+    status rval = SUCCEED;
 
-  for(i=0; i<slots; i++)
-  { if ( isDefault(inst->slots[i]) )
-    { Variable var = class->instance_variables->elements[i];
+    for(i=0; i<slots; i++)
+    { if ( isDefault(inst->slots[i]) )
+      { Variable var = class->instance_variables->elements[i];
+	
+	if ( !mayBeDefaultType(var->type) )
+	{ Any value;
 
-      if ( !mayBeDefaultType(var->type) )
-      { Any value;
+	  if ( (value = getResourceValueObject(obj, var->name)) )
+	  { Any v2;
 
-	if ( (value = getResourceValueObject(obj, var->name)) != FAIL )
-	{ Any v2;
-
-	  if ( (v2 = checkType(value, var->type, obj)) != FAIL )
-	    assignField(inst, &inst->slots[i], v2);
-	  else
-	  { errorPce(var, NAME_incompatibleResource);
+	    if ( (v2 = checkType(value, var->type, obj)) )
+	      assignField(inst, &inst->slots[i], v2);
+	    else
+	    { errorPce(var, NAME_incompatibleResource);
+	      rval = FAIL;
+	    }
+	  } else
+	  { errorPce(var, NAME_noResource);
 	    rval = FAIL;
 	  }
-	} else
-	{ errorPce(var, NAME_noResource);
-	  rval = FAIL;
 	}
       }
     }
+
+    setFlag(obj, F_RESOURCES_OBTAINED);
+    return rval;
   }
-	
-  return rval;
+
+  succeed;
 }
-
-
-
 
 
 		/********************************

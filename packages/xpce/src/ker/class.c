@@ -92,14 +92,14 @@ defineClass(Name name, Name super, StringObj summary, SendFunc makefunction)
   }
   if ( isDefault(class->creator) )
     assign(class, creator, inBoot ? NAME_builtIn : NAME_host);
+  if ( notDefault(summary) )
+    assign(class, summary, summary);
 
   if ( notDefault(class->realised) )
     return class;			/* existing (boot) class */
 
   if ( isDefault(class->sub_classes) )
     assign(class, sub_classes, NIL);
-  if ( notDefault(summary) )
-    assign(class, summary, summary);
 
   assign(class, realised, OFF);
   { char tmp[LINESIZE];
@@ -525,6 +525,8 @@ getLookupClass(Class class, Name name, Class super)
       errorPce(cl, NAME_cannotChangeSuperClass);
       fail;
     }
+    if ( name == NAME_object )		/* class(object) has no super! */
+      answer(cl);
   }
 
   if ( isDefault(super) )
@@ -1637,6 +1639,7 @@ int
 numberTreeClass(Class class, int n)
 { Cell cell;
 
+  DEBUG(NAME_class, printf("numberTreeClass(%s, %d)\n", pp(class->name), n));
   class->tree_index = n++;
   if ( notNil(class->sub_classes) )
     for_cell(cell, class->sub_classes	)

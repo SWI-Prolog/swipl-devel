@@ -33,55 +33,20 @@ initialiseButton(Button b, Name name, Message msg, Name acc)
 status
 RedrawAreaButton(Button b, Area a)
 { int x, y, w, h;
-  int pen    = valInt(b->pen);
-  int radius = valInt(b->radius);
-  int shadow = valInt(b->shadow);
   int defb = (getDefaultButtonButton(b) == ON);
   int rm = 0;				/* right-margin */
-  int swapc = 0;
-
-  if ( defb && b->look != NAME_openLook )
-    pen++;
 
   initialiseDeviceGraphical(b, &x, &y, &w, &h);
   NormaliseArea(x, y, w, h);
-  r_thickness(pen);
-  r_dash(b->texture);
-
-  if ( b->look == NAME_motif )
-  { int z  = valInt(getResourceValueObject(b, NAME_elevation));
-
-    if ( !(b->status == NAME_inactive || b->status == NAME_active) )
-      z = -z;
-
-    r_3d_box(x, y, w, h, abs(z), b->background, z > 0);
-  } else
-  { if ( b->status == NAME_inactive || b->status == NAME_active )
-    { r_shadow_box(x, y, w, h, radius, shadow, NIL);
-    } else if ( b->status == NAME_preview )
-    { r_shadow_box(x, y, w, h, radius, shadow, BLACK_IMAGE);
-      swapc = TRUE;
-    } else if ( b->status == NAME_execute )
-    { r_shadow_box(x, y, w, h, radius, shadow, GREY25_IMAGE);
-    }
-  }
-
-  if ( swapc )
-    r_swap_background_and_foreground();
   
-  if ( defb && b->look == NAME_openLook )
-    r_box(x+pen+1, y+pen+1, w-2*pen-2-shadow, h-2*pen-2-shadow, radius, NIL);
-  
-  if ( notNil(b->popup) )
-  { if ( notNil(b->popup_image) )
-    { int iw = valInt(b->popup_image->size->w);
-      int ih = valInt(b->popup_image->size->h);
+  if ( b->look == NAME_motif )		/* 3-d style */
+  { int up      = (b->status == NAME_inactive || b->status == NAME_active);
+    Elevation z = getResourceValueObject(b, NAME_elevation);
+   
+    r_3d_box(x, y, w, h, z, up);
 
-      rm = iw+8;
-      r_image(b->popup_image, 0, 0, x+w-rm, y + (h-ih)/2, iw, ih, ON);
-    } else
-    { int z = 1;
-      int th = 8;
+    if ( notNil(b->popup) )
+    { int th = 8;
       int tw = 9;
       int tx, ty;
 
@@ -89,15 +54,52 @@ RedrawAreaButton(Button b, Area a)
       tx = x+w-rm;
       ty = y + (h-th)/2;
 
-      r_3d_triangle(tx+tw/2, ty+th, tx, ty, tx+tw, ty, z);
+      r_3d_triangle(tx+tw/2, ty+th, tx, ty, tx+tw, ty, z, up);
     }
+
+    str_string(&b->label->data, b->font, x, y, w-rm, h,
+	       NAME_center, NAME_center);
+  } else				/* x, open_look */
+  { int swapc  = 0;
+    int pen    = valInt(b->pen);
+    int radius = valInt(b->radius);
+    int shadow = valInt(b->shadow);
+
+    if ( defb && b->look != NAME_openLook )
+      pen++;
+
+    r_thickness(pen);
+    r_dash(b->texture);
+
+    if ( b->status == NAME_inactive || b->status == NAME_active )
+    { r_shadow_box(x, y, w, h, radius, shadow, NIL);
+    } else if ( b->status == NAME_preview )
+    { r_shadow_box(x, y, w, h, radius, shadow, BLACK_IMAGE);
+      swapc = TRUE;
+    } else if ( b->status == NAME_execute )
+    { r_shadow_box(x, y, w, h, radius, shadow, GREY25_IMAGE);
+    }
+
+    if ( swapc )
+      r_swap_background_and_foreground();
+  
+    if ( defb && b->look == NAME_openLook )
+      r_box(x+pen+1, y+pen+1, w-2*pen-2-shadow, h-2*pen-2-shadow, radius, NIL);
+  
+    if ( notNil(b->popup) && notNil(b->popup_image) )
+    { int iw = valInt(b->popup_image->size->w);
+      int ih = valInt(b->popup_image->size->h);
+
+      rm = iw+8;
+      r_image(b->popup_image, 0, 0, x+w-rm, y + (h-ih)/2, iw, ih, ON);
+    }
+
+    str_string(&b->label->data, b->font, x, y, w-rm, h,
+	       NAME_center, NAME_center);
+
+    if ( swapc )
+      r_swap_background_and_foreground();
   }
-
-  str_string(&b->label->data, b->font, x, y, w-rm, h,
-	     NAME_center, NAME_center);
-
-  if ( swapc )
-    r_swap_background_and_foreground();
 
   return RedrawAreaGraphical(b, a);
 }

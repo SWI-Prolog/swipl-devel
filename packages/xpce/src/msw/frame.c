@@ -681,10 +681,17 @@ ws_image_of_frame(FrameObj fr)
     int w, h;
     HBITMAP obm, bm;
     HDC hdcimg;
+    Size size = getSizeDisplay(fr->display);
 
     GetWindowRect(hwnd, &rect);
+    if ( rect.left < 0 ) rect.left = 0;
+    if ( rect.top < 0 )  rect.top  = 0;
+    if ( rect.bottom > valInt(size->h) ) rect.bottom = valInt(size->h);
+    if ( rect.right >  valInt(size->w) ) rect.right  = valInt(size->w);
+    
     w = rect.right - rect.left;
     h = rect.bottom - rect.top;
+
     DEBUG(NAME_image, printf("hdc = %d, size = %dx%d\n", (int) hdc, w, h));
     image = answerObject(ClassImage, NIL,
 			 toInt(w), toInt(h), NAME_pixmap, 0);

@@ -224,12 +224,12 @@ makeClassFigure(Class class)
 
   setRedrawFunctionClass(class, RedrawAreaFigure);
 
-  storeMethod(class, NAME_status, statusFigure);
+  storeMethod(class, NAME_status,     statusFigure);
   storeMethod(class, NAME_background, backgroundFigure);
-  storeMethod(class, NAME_clipArea, clipAreaFigure);
-  storeMethod(class, NAME_border, borderFigure);
-  storeMethod(class, NAME_radius, radiusFigure);
-  storeMethod(class, NAME_shadow, shadowFigure);
+  storeMethod(class, NAME_clipArea,   clipAreaFigure);
+  storeMethod(class, NAME_border,     borderFigure);
+  storeMethod(class, NAME_radius,     radiusFigure);
+  storeMethod(class, NAME_shadow,     shadowFigure);
 
   sendMethod(class, NAME_initialise, DEFAULT, 0,
 	     "Create figure",

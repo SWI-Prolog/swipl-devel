@@ -358,7 +358,7 @@ ChangedItemMenu(Menu m, MenuItem mi)
 		********************************/
 
 static status
-RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, int z)
+RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, Elevation z)
 { int b = valInt(m->border);
   int lm = valInt(m->left_offset);
   int rm = valInt(m->right_offset);
@@ -388,18 +388,24 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, int z)
   { int up = (mi->selected == OFF || m->preview == mi);
 
     if ( pen > 0 || m->preview == mi )
-      r_3d_box(x, y, w, h, z, m->background, up); /* shadow? */
+      r_3d_box(x, y, w, h, z, up);
 
     if ( mi->end_group == ON )
-    { int lz = z/2;
-      
-      if ( abs(lz) < 1 )
-	lz = z;
-
-      if ( m->layout == NAME_vertical )
-	r_3d_line(x, y+h, x+w, y+h, lz);
+    { if ( m->layout == NAME_vertical )
+	r_3d_line(x, y+h, x+w, y+h, z);
       else
-	r_3d_line(x+w, y, x+w, y+h, lz);
+	r_3d_line(x+w, y, x+w, y+h, z);
+    }
+
+    if ( notNil(mi->popup) )
+    { int tw = 8;
+      int th = 7;
+      int ty = (m->vertical_format == NAME_top    ? y :
+		m->vertical_format == NAME_center ? y + (h-th)/2 :
+						    y + h - th);
+      int tx = x+w-b-tw;
+
+      r_3d_triangle(tx, ty+th, tx, ty, tx+tw, ty+th/2, z, m->preview != mi);
     }
   } else
   { if ( (mi->selected == ON && m->feedback == NAME_box) )
@@ -435,6 +441,18 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, int z)
       if ( notNil(fill) )
 	r_swap_background_and_foreground();
     }
+
+    if ( notNil(mi->popup) && notNil(m->popup_image) )
+    { Image pi = m->popup_image;
+      int bw, bh, by;
+    
+      bw = valInt(pi->size->w);
+      bh = valInt(pi->size->h);
+      by = (m->vertical_format == NAME_top    ? y :
+	    m->vertical_format == NAME_center ? y + (h-bh)/2 :
+	    					y + h - bh);
+      r_image(pi, 0, 0, x+w-b-bw, by, bw, bh, ON);
+    }
   }
 
   if ( notNil(leftmark) )
@@ -456,30 +474,6 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, int z)
 	       NAME_right, m->vertical_format);
   }
 
-  if ( notNil(mi->popup) )
-  { if ( notNil(m->popup_image) )
-    { Image pi = m->popup_image;
-      int bw, bh, by;
-    
-      bw = valInt(pi->size->w);
-      bh = valInt(pi->size->h);
-      by = (m->vertical_format == NAME_top    ? y :
-	    m->vertical_format == NAME_center ? y + (h-bh)/2 :
-	    					y + h - bh);
-      r_image(pi, 0, 0, x+w-b-bw, by, bw, bh, ON);
-    } else
-    { int z = 1;
-      int tw = 8;
-      int th = 7;
-      int ty = (m->vertical_format == NAME_top    ? y :
-		m->vertical_format == NAME_center ? y + (h-th)/2 :
-						    y + h - th);
-      int tx = x+w-b-tw;
-
-      r_3d_triangle(tx, ty+th, tx, ty, tx+tw, ty+th/2, z);
-    }
-  }
-
   ix = x + valInt(m->left_offset) + valInt(m->border);
   iw = w - (lm + 2*b + rm);
   iy = y + b;
@@ -488,11 +482,11 @@ RedrawMenuItem(Menu m, MenuItem mi, int x, int y, int w, int h, int z)
   if ( notDefault(colour) )
     r_colour(colour);
 
-  if ( isName(mi->label) )
+  if ( instanceOfObject(mi->label, ClassCharArray) )
   { FontObj f = getFontMenuItemMenu(m, mi);
     int fw = valInt(getExFont(f));
     str_string(&((Name) mi->label)->data, f,
-	       ix+fw/2, iy, iw, ih, m->format, m->vertical_format);
+	       ix+fw/2, iy, iw-fw, ih, m->format, m->vertical_format);
   } else if ( instanceOfObject(mi->label, ClassImage) )
   { int bx, by, bw, bh;
     Image image = (Image) mi->label;
@@ -530,8 +524,8 @@ RedrawAreaMenu(Menu m, Area a)
   int bx, by, cx, cy, iw, ih;
   int gx = x_gap(m);
   int gy = y_gap(m);
-  int z  = valInt(getResourceValueObject(m, NAME_elevation));
-  int iz = valInt(getResourceValueObject(m, NAME_itemElevation));
+  Elevation z  = getResourceValueObject(m, NAME_elevation);
+  Elevation iz = getResourceValueObject(m, NAME_itemElevation);
 
   initialiseDeviceGraphical(m, &x, &y, &w, &h);
   NormaliseArea(x, y, w, h);
@@ -571,7 +565,7 @@ RedrawAreaMenu(Menu m, Area a)
     rows_and_cols(m, &rows, &cols);
     
     if ( z )
-      r_3d_box(cx, cy, w-(cx-x), h-(cy-y), abs(z), m->background, z > 0);
+      r_3d_box(cx, cy, w-(cx-x), h-(cy-y), z, TRUE);
     cx += valInt(m->margin);
 
     if ( m->pen != ZERO )
@@ -1460,6 +1454,7 @@ getModifiedMenu(Menu m)
 
     n = 1;
     for_cell(cell, m->members)
+
       is_set[n++] = 0;
     
     for_cell(cell, (Chain) m->selection)
@@ -1816,7 +1811,7 @@ makeClassMenu(Class class)
 		  "Indication of a kind:cycle menu");
   attach_resource(class, "margin", "0..",  "0",
 		  "Margin to the left and right");
-  attach_resource(class, "item_elevation", "0..",  "0",
+  attach_resource(class, "item_elevation", "elevation",  "0",
 		  "Elevation of items in the menu");
 
   succeed;

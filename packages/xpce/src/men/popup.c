@@ -50,7 +50,7 @@ createPopupWindow(DisplayObj d)
   }
 
 
-  sw = newObject(ClassWindow, NAME_popup, DEFAULT, d, 0);
+  sw = newObject(ClassDialog, NAME_popup, DEFAULT, d, 0);
 
   send(sw, NAME_kind, NAME_popup, 0);
   send(sw, NAME_pen, ZERO, 0);

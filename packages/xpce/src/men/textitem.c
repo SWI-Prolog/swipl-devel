@@ -68,7 +68,7 @@ RedrawAreaTextItem(TextItem ti, Area a)
   int lw, lh;
   String lb = &ti->label->data;
   int fw = valInt(getExFont(ti->value_text->font));
-  int z = valInt(getResourceValueObject(ti, NAME_elevation));
+  Elevation z = getResourceValueObject(ti, NAME_elevation);
   int tx, ty, tw, th;
   TextObj vt = ti->value_text;
 
@@ -89,8 +89,8 @@ RedrawAreaTextItem(TextItem ti, Area a)
   tw = valInt(vt->area->w);
   th = valInt(vt->area->h);
 
-  if ( z )
-    r_3d_box(tx, ty, tw, th, abs(z), ti->background, z > 0);
+  if ( z && notNil(z) )
+    r_3d_box(tx, ty, tw, th, z, TRUE);
 
   repaintText(vt, tx, ty, tw, th);
 

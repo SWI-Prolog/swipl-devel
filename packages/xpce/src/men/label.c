@@ -34,16 +34,13 @@ initialiseLabel(Label lb, Name name, Any selection, FontObj font)
 static status
 RedrawAreaLabel(Label lb, Area a)
 { int x, y, w, h;
-  int z = valInt(getResourceValueObject(lb, NAME_elevation));
+  Elevation z = getResourceValueObject(lb, NAME_elevation);
   int preview = (lb->status == NAME_preview && notNil(lb->message));
 
   initialiseDeviceGraphical(lb, &x, &y, &w, &h);
 
   if ( z )
-  { if ( preview )
-      z = -z;
-    r_3d_box(x, y, w, h, abs(z), lb->background, z > 0);
-  }
+    r_3d_box(x, y, w, h, z, !preview);
 
   x += valInt(lb->border);
   y += valInt(lb->border);

@@ -773,6 +773,7 @@ r_background(Any c)
       }
 
       context.gcs->background = c;
+      context.gcs->elevation = NIL;	/* force update */
       XChangeGC(context.display, context.gcs->clearGC, mask, &values);
     }
   }
@@ -999,70 +1000,109 @@ r_shadow_box(int x, int y, int w, int h, int r, int shadow, Image fill)
 
 #define MAX_SHADOW 10
 
-void
-r_3d_box(int x, int y, int w, int h, int shadow, Any fill, int up)
-{ XSegment s[MAX_SHADOW * 2];
-  int i;
-  int pen = 1;
-  int ios, os;
-  GC TopLeftGC, BottomRightGC;
-  int xt, yt;
+static void
+r_elevation(Elevation e)
+{ if ( context.gcs->elevation != e )
+  { Any bg = context.gcs->background;
+    Any relief, shadow;
 
-  if ( up )
-  { TopLeftGC     = context.gcs->reliefGC;
-    BottomRightGC = context.gcs->shadowGC;
-  } else
-  { TopLeftGC     = context.gcs->shadowGC;
-    BottomRightGC = context.gcs->reliefGC;
-  }
+    if ( isDefault(e->relief) )
+    { if ( instanceOfObject(bg, ClassColour) && context.gcs->depth != 1 )
+	relief = getHiliteColour(bg);
+      else
+	relief = WHITE_COLOUR;
+    } else
+      relief = e->relief;
 
-  if ( shadow > MAX_SHADOW )
-    shadow = MAX_SHADOW;
-
-  xt = x, yt = y;
-  Translate(xt, yt);
-
-#if 0
-  if ( context.gcs->depth == 1 )	/* monochrome */
-  { XDrawRectangle(context.display, context.drawable, context.gcs->shadowGC,
-		   xt, yt, w-1, h-1);
-    ios = 1;
-  } else
-#endif
-    ios = 0;
-
-  for(i=0, os=ios; os < shadow; os += pen)
-  { s[i].x1 = xt+os;		s[i].y1 = yt+os;	/* top-side */
-    s[i].x2 = xt+w-1-os;	s[i].y2 = yt+os;
-    i++;
-    s[i].x1 = xt+os;		s[i].y1 = yt+os;	/* left-side */
-    s[i].x2 = xt+os;		s[i].y2 = yt+h-1-os;
-    i++;
-  }
-  XDrawSegments(context.display, context.drawable, TopLeftGC, s, i);
+    if ( isDefault(e->shadow) )
+    { if ( instanceOfObject(bg, ClassColour) && context.gcs->depth != 1 )
+	shadow = getReduceColour(bg);
+      else
+	shadow = BLACK_COLOUR;
+    } else
+      shadow = e->shadow;
   
-  for(i=0, os=ios; os < shadow; os += pen)
-  { s[i].x1 = xt+os;		s[i].y1 = yt+h-1-os;	/* bottom-side */
-    s[i].x2 = xt+w-1-os;	s[i].y2 = yt+h-1-os;
-    i++;
-    s[i].x1 = xt+w-1-os;	s[i].y1 = yt+os;	/* right-side */
-    s[i].x2 = xt+w-1-os;	s[i].y2 = yt+h-1-os;
-    i++;
+    x11_set_gc_foreground(context.pceDisplay, relief,
+			  1, &context.gcs->reliefGC);
+    x11_set_gc_foreground(context.pceDisplay, shadow,
+			  1, &context.gcs->shadowGC);
+
+    context.gcs->elevation = e;
   }
-  XDrawSegments(context.display, context.drawable, BottomRightGC, s, i);
-  
-  if ( notNil(fill) )
-    r_fill(x+shadow, y+shadow, w-2*shadow, h-2*shadow, fill);
 }
 
 
 void
-r_3d_line(int x1, int y1, int x2, int y2, int pen)
+r_3d_box(int x, int y, int w, int h, Elevation e, int up)
+{ XSegment s[MAX_SHADOW * 2];
+  int i;
+  int pen = 1;
+  int os;
+  GC TopLeftGC, BottomRightGC;
+  int xt, yt;
+  int shadow = valInt(e->height);
+
+  if ( !up  )
+    shadow = -shadow;
+
+  if ( shadow != 0 )
+  { r_elevation(e);
+
+    if ( shadow > 0 )
+    { TopLeftGC     = context.gcs->reliefGC;
+      BottomRightGC = context.gcs->shadowGC;
+    } else
+    { TopLeftGC     = context.gcs->shadowGC;
+      BottomRightGC = context.gcs->reliefGC;
+      shadow        = -shadow;
+    }
+  
+    if ( shadow > MAX_SHADOW )
+      shadow = MAX_SHADOW;
+  
+    xt = x, yt = y;
+    Translate(xt, yt);
+  
+    for(i=0, os=0; os < shadow; os += pen)
+    { s[i].x1 = xt+os;		s[i].y1 = yt+os;	/* top-side */
+      s[i].x2 = xt+w-1-os;	s[i].y2 = yt+os;
+      i++;
+      s[i].x1 = xt+os;		s[i].y1 = yt+os;	/* left-side */
+      s[i].x2 = xt+os;		s[i].y2 = yt+h-1-os;
+      i++;
+    }
+    XDrawSegments(context.display, context.drawable, TopLeftGC, s, i);
+    
+    for(i=0, os=0; os < shadow; os += pen)
+    { s[i].x1 = xt+os;		s[i].y1 = yt+h-1-os;	/* bottom-side */
+      s[i].x2 = xt+w-1-os;	s[i].y2 = yt+h-1-os;
+      i++;
+      s[i].x1 = xt+w-1-os;	s[i].y1 = yt+os;	/* right-side */
+      s[i].x2 = xt+w-1-os;	s[i].y2 = yt+h-1-os;
+      i++;
+    }
+    XDrawSegments(context.display, context.drawable, BottomRightGC, s, i);
+  }
+  
+  if ( notDefault(e->colour) )
+    r_fill(x+shadow, y+shadow, w-2*shadow, h-2*shadow, e->colour);
+}
+
+
+void
+r_3d_line(int x1, int y1, int x2, int y2, Elevation e)
 { XSegment s[MAX_SHADOW];
   int i;
+  int pen = valInt(e->height);
 
   Translate(x1, y1);
   Translate(x2, y2);
+
+  pen /= 2;
+  if ( pen == 0 )
+    pen = valInt(e->height);
+
+  r_elevation(e);
 
   if ( pen > MAX_SHADOW )
     pen = MAX_SHADOW;
@@ -1095,15 +1135,22 @@ r_3d_line(int x1, int y1, int x2, int y2, int pen)
 
 
 void
-r_3d_triangle(int x1, int y1, int x2, int y2, int x3, int y3, int z)
+r_3d_triangle(int x1, int y1, int x2, int y2, int x3, int y3,
+	      Elevation e, int up)
 { XSegment s[3];
   GC topGC, botGC;
+  int z = valInt(e->height);
+
+  r_elevation(e);
+
+  if ( !up )
+    z = -z;
 
   if ( z > 0 )
-  { topGC =    context.gcs->reliefGC;
+  { topGC = context.gcs->reliefGC;
     botGC = context.gcs->shadowGC;
   } else
-  { topGC =    context.gcs->shadowGC;
+  { topGC = context.gcs->shadowGC;
     botGC = context.gcs->reliefGC;
   }
 
@@ -1400,7 +1447,7 @@ r_image(Image image,
 
 
 void
-r_fill(int x, int y, int w, int h, Image pattern)
+r_fill(int x, int y, int w, int h, Any pattern)
 { Translate(x, y);
   Clip(x, y, w, h);
   if ( w > 0 && h > 0 )
