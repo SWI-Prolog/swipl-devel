@@ -2320,3 +2320,4 @@
 #define NAME_yref (&builtin_names[2319])
 #define NAME_yrefVar (&builtin_names[2320])
 #define NAME_zoom (&builtin_names[2321])
+#define NAME_upDownColumn (&builtin_names[2322])
