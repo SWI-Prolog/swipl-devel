@@ -785,17 +785,25 @@ unzoomNode(Node n)
 static status
 collapsedNode(Node n, Bool val)
 { if ( n->collapsed != val )
-  { int update = ((n->collapsed == ON || val == ON) && notNil(n->tree));
+  { if ( isNil(n->tree) )
+    { assign(n, collapsed, val);
+    } else
+    { int update = (n->collapsed == ON || val == ON);
 
-    assign(n, collapsed, val);  
+      if ( !update && n->tree->direction == NAME_list &&
+	   n == n->tree->displayRoot && isNil(n->collapsed) )
+	update = TRUE;
 
-    if ( update )
-    { updateDisplayedTree(n->tree);
-      requestComputeTree(n->tree);
+      assign(n, collapsed, val);  
+
+      if ( update )
+      { updateDisplayedTree(n->tree);
+	requestComputeTree(n->tree);
+      }
+
+      if ( n->tree->direction == NAME_list ) /* TBD: compute the area */
+	changedEntireImageGraphical(n->tree);
     }
-
-    if ( n->tree->direction == NAME_list ) /* TBD: actually compute the area */
-      changedEntireImageGraphical(n->tree);
   }
   
   succeed;

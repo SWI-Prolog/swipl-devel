@@ -212,7 +212,9 @@ RedrawAreaTree(Tree t, Area area)
   { Cell cell;
 
 					/* list-style connection lines */
-    if ( t->direction == NAME_list && notNil(t->displayRoot) )
+    if ( t->direction == NAME_list &&
+	 notNil(t->displayRoot) &&
+	 notNil(t->displayRoot->collapsed) )
     { Line proto = t->link->line;
 
       if ( proto->pen != ZERO )

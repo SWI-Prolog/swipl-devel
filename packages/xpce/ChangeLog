@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: `node->collapsed' for indented-list trees on the <-display_root
+  (screen update problem).
+
 * FIXED: handling of `tree->heighbour_gap' in `list' mode.
 
 * FIXED: `node->move_after' to succeed silently if the node is already the
