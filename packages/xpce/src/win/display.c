@@ -9,7 +9,6 @@
 
 #include <h/kernel.h>
 #include <h/graphics.h>
-#include <rclass.h>			/* provides RESOURCE_CLASS */
 					/* generated from Makefile */
 
 static status	backgroundDisplay(DisplayObj, Colour);
