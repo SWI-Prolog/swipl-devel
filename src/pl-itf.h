@@ -27,7 +27,11 @@
 
 #include <stdarg.h>
 #include <stdlib.h>			/* get size_t */
+#ifdef WIN32
+typedef __int64 int64_t;
+#else
 #include <stdint.h>			/* specific-width integers */
+#endif
 
 #ifdef __cplusplus
 extern "C" {

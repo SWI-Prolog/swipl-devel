@@ -26,7 +26,11 @@
 #define _PL_STREAM_H
 
 #include <stdarg.h>
-#include <stdint.h>
+#ifdef WIN32
+typedef __int64 int64_t;
+#else
+#include <stdint.h>			/* specific-width integers */
+#endif
 
 #ifdef __cplusplus
 extern "C" {
