@@ -51,6 +51,16 @@ rpm-install:
 	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
         done
 	
+pdf-install:
+	for p in $(PKG); do \
+	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
+        done
+	
+html-install:
+	for p in $(PKG); do \
+	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
+        done
+	
 configure::
 	@echo "**********************"
 	@echo "* Configuring packages $(PKG)"

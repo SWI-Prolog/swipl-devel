@@ -112,10 +112,11 @@ cmd(directive({RawName}, {Arity}, {Args}),
 	clean_name(RawName, Name),
 	sformat(RefName, '~w/~w', [Name, Arity]),
 	add_to_index(RefName, +RefName).
-cmd(cfunction({RType}, {Name}, {Args}),
+cmd(cfunction({RType}, {RawName}, {Args}),
     #defitem(#label(RefName,
-		    [ #var(RType), ' ', #strong(Name), #embrace(#var(+Args))
+		    [ #var(RType), ' ', #strong(+RawName), #embrace(#var(+Args))
 		    ]))) :-
+	clean_name(RawName, Name),
 	sformat(RefName, '~w()', [Name]),
 	add_to_index(RefName, +RefName).
 cmd(cmacro({RType}, {Name}, {Args}),
@@ -191,6 +192,21 @@ cmd(opsummary({Pri}, {Assoc}, {RawName}, {Summary}),
 cmd(texcmd({Name}), #code([nospace(\), Name])).
 cmd(texenv({Name}), #code(Name)).
 cmd(texmode({Name}), #var(Name)).
+
+% C++ Documentation (packages/cpp)
+
+cmd(classitem({Class}),
+    #defitem(#label(RefName, #strong(Class)))) :-
+	sformat(RefName, 'class:~w', [Class]).
+cmd(constructor({Class}, {Args}),
+    #defitem([#strong([Class, ::, Class]), #embrace(#var(+Args))])).
+cmd(destructor({Class}),
+    #defitem([#strong([~, Class]), #embrace(#var(''))])).
+cmd(cppcast({Class}, {Type}),
+    #defitem([#strong([Class, '::operator', Type]), #embrace(#var(void))])).
+cmd(nodescription, []).
+
+% Glossary support
 
 cmd(glossitem({Term}), #defitem(#label(RefName, #strong(Term)))) :-
 	canonise_glossitem(Term, Ref),
@@ -303,7 +319,13 @@ special('Shash', #).
 clean_name([\Special], Out) :-
 	special(Special, Out), !.
 clean_name([\tt, Out], Out) :- !.
-clean_name([Out], Out).
+clean_name($(Out), Out) :- !.
+clean_name([Out], Out) :- !.
+clean_name(X, X) :-
+	atomic(X), !.
+clean_name(L, Out) :-
+	maplist(clean_name, L, L2),
+	concat_atom(L2, Out).
 	
 predicate_refname(Symbol, Arity, Ref) :-
 	symbol_name(Symbol, Name), !,

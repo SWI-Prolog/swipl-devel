@@ -70,7 +70,7 @@ compiler used to compile SWI-Prolog.
 .B PLBASE
 The home directory of SWI-Prolog.  This is the same value as returned
 by the
-.I feature home.
+.I current_prolog_flag home.
 .TP
 .B PLARCH
 The architecture identifier used.  Together with 
@@ -95,6 +95,13 @@ Has the value
 if Prolog supports linking shared libraries using
 .B load_foreign_library/[1,2]
 and
+.B no
+otherwise.
+.TP
+.B PLTHREADS
+Has the value
+.B yes
+if Prolog was compiled for multi-threading and
 .B no
 otherwise.
 .RE
@@ -208,20 +215,6 @@ is a "`":"'" separated list of values for the alias. See
 .B file_search_path/2
 in the SWI-Prolog Reference Manual.
 .TP
-.BI \-r " restorefile"
-Restore a saved state created by
-.B save_program/[1,2]
-or
-.BR save/[1,2] .
-Equivalent to
-.BI restore( restorefile )
-from Prolog.  Note that very few machines support this style of saved
-states, but all machines support the states created using
-.BI qsave_program/[1,2],
-which may be started using the
-.B \-x
-flag.
-.TP
 .BI \-t " goal"
 Use
 .I goal
@@ -329,11 +322,6 @@ Location for the executables.
 Location for the include files.  If writeable, SWI-Prolog.h is also
 copied to @prefix@/include/SWI-Prolog.h.
 .TP
-.I @prefix@/include/SWI-Prolog.h
-Include file for creating extensions in the
-.B C
-language and/or embedding SWI-Prolog.
-.TP
 .I @prefix@/lib/@PL@-@PLVERSION@/library/
 SWI-Prolog user libraries.
 .TP
@@ -343,10 +331,10 @@ SWI-Prolog kernel parts written in Prolog.  The startup file
 the command from the directory @prefix@/lib/@PL@-@PLVERSION@:
 .RS
 .TP
-bin/@ARCH@/@PL@ -O -o startup/startup -b boot/init.pl
+bin/@ARCH@/@PL@ -O -o boot32.prc -b boot/init.pl
 .RE
 .TP
-.I @prefix@/lib/@PL@-@PLVERSION@/startup/startup
+.I @prefix@/lib/@PL@-@PLVERSION@/boot32.prc
 Default startup file.  This is a `intermediate code' file containing
 precompiled code from the boot directory.  The
 .BI \-x bootfile
@@ -356,15 +344,19 @@ option may be used to select a different file.
 SWI-Prolog library for embedding.  See also
 .I plld(1).
 .SH SEE ALSO
+.PP
+The SWI-Prolog web-home at
+.I http://www.swi.psy.uva.nl/projects/SWI-Prolog/ 
+.PP
 Jan\ Wielemaker
-.IR "SWI-Prolog 2.8 Reference Manual" ,
+.IR "SWI-Prolog 4.0 Reference Manual" ,
 University of Amsterdam, Dept. of Social Science and Informatics (SWI).
 .PP
 William\ F.\ Clocksin & Christopher\ S.\ Mellish,
 .IR "Programming in Prolog" ,
 fourth edition, Springer Verlag, Berlin 1994.
 .PP
-.IR chpl(1) " and " plld(1)
+.IR chpl(1) " and " plld(1) " and " xpce(1)
 .SH WARRANTY
 The software is provided
 .B as is,
@@ -375,7 +367,26 @@ employer be liable for any claim, damages or other liability, whether in
 an action of contract, tort or otherwise, arising from, out of or in
 connection with the software or the use or other dealings in the
 software.
+.SH COPYING
+SWI-Prolog is distributed under the General Public Licence version 2,
+also known as the
+.B GPL-2
+licence.  The license terms are in the file
+.I COPYING
+or on the GNU website at
+.I http://www.gnu.org.
+.PP
+In a nutshell, you can modify and use SWI-Prolog as long as you clearly
+indicate changes, don't change copyright messages and
+.B distribute the complete source of your work with every binary
+.B copy or make the source in some other form available for free to your users 
+.PP
+Especially if you do not wish to distribute the source of your work you
+may wish to consider optaining a
+.I commercial license.
+Please visit the SWI-Prolog home-page for details.
 .SH COPYRIGHT
-Copyright (c) 1993\-1997 University of Amsterdam, all rights reserved.
+Copyright (c) 1993\-2001 University of Amsterdam.
 .SH AUTHOR
 Jan Wielemaker
+

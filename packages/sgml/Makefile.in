@@ -7,6 +7,7 @@
 PL=@PL@
 PLBASE=@PLBASE@
 PLARCH=@PLARCH@
+PKGDOC=$(PLBASE)/doc/packages
 
 CC=@CC@
 COFLAGS=@COFLAGS@
@@ -62,6 +63,12 @@ install-dtd:
 		for f in $(DTDFILES); do \
 		   $(INSTALL_DATA) DTD/$$f $(PLBASE)/library/DTD; \
 		done
+
+pdf-install::
+		$(INSTALL_DATA) doc/sgml2pl.pdf $(PKGDOC)
+
+html-install::
+		$(INSTALL_DATA) doc/sgml2pl.html $(PKGDOC)
 
 check:
 		cd Test && $(PL) -f test.pl -g test,halt.

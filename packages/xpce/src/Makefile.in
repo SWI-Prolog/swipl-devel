@@ -805,6 +805,9 @@ dv-bins:
 		(cd $(bindir); \
 		 rm -f xpce-client; ln -s $(RTBINDIR)/xpce-client xpce-client)
 
+pdf-install::
+html-install::
+
 ################################################################
 # CXX interface installation
 ################################################################

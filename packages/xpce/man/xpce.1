@@ -1,9 +1,9 @@
-.TH XPCE 1 "February 8, 1999"
+.TH XPCE 1 "February 7, 2001"
 .SH NAME
 xpce \- Prolog with graphical user interface (GUI)
 .SH SYNOPSIS
 .BR xpce
-prologoption ...
+prolog-option ...
 .SH DESCRIPTION
 XPCE is a language independant library for GUI (Graphical User Interfaces).
 This manual page discusses XPCE/Prolog: the combination of a Prolog
@@ -82,19 +82,17 @@ is a reference to an XPCE object, invoke
 .I send(Ref, free).
 to the object.  Otherwise succeed silently.
 .SH "SEE ALSO"
+XPCE's web-home at
+.I http://www.swi.psy.uva.nl/projects/xpce/
+.PP
 Jan Wielemaker and Anjo Anjewierden
 .I Programming in XPCE/Prolog,
 University of Amsterdam, Dept. of Social Science and Informatics (SWI).
 .PP
-.I SICStus Prolog User's Manual,
-Swedish Institute of Computer Science, PO Box 1263, S-164 28 Kista, Sweden.
-.PP
-.I Quintus Prolog User's Manual
-.PP
 Jan Wielemaker
-.I SWI-Prolog 2.8 Reference Manual,
-University of Amsterdam, Dept. of Social Science and Informatics (SWI),
-Roetersstraat 18, 1018 WB  Amsterdam, The Netherlands.
+.IR "SWI-Prolog 4.0 Reference Manual" .
+Available from the SWI-Prolog web-home at
+.I http://www.swi.psy.uva.nl/projects/SWI-Prolog/
 .PP
 The online manual system started with
 .I ?- manpce.
@@ -107,36 +105,25 @@ The XPCE WWW home page:
 .PP
 xpce-client(1), pl(1)
 .SH COPYING
-XPCE is
-.I not
-free software. The only exception to this rule is the binary for
-i386/Linux systems, that may be distributed and used for
-non-comercial purposes free of charge. XPCE/SWI-Prolog is licenced to
-academic institutions at low cost. Such a licence allows for any number
-of machines and users in one research group.
+XPCE is distributed under the General Public Licence version 2,
+also known as the
+.B GPL-2
+licence.  The license terms are in the file
+.I COPYING
+or on the GNU website at
+.I http://www.gnu.org.
 .PP
-XPCE is also available for
-.I SICStus Prolog
-version 3.  For information on SICStus Prolog,
-see
-.I http://www.sics.se.isl/sicstus.html
+In a nutshell, you can modify and use XPCE as long as you clearly
+indicate changes, don't change copyright messages and
+.B distribute the complete source of your work with every binary
+.B copy or make the source in some other form available for free to your users 
 .PP
-A commercially supported version of XPCE is distributed by SICS for
-Quintus as ProWindows-3.  See
-.I http://www.sics.se/quintus
-for details.
-.PP
-For further information on available versions and copying you may use
-the XPCE WWW home at
-.I http://www.swi.psy.uva.nl/projects/xpce/
-or ftp to
-.I ftp://swi.psy.uva.nl/pub/xpce/
-or E-mail to
-.I xpce-request@swi.psy.uva.nl
-.PP
-Copyright (C) 1985-1999, SWI, University of Amsterdam
-.SH "SEE ALSO"
-xpce-client(1), pl(1)
+Especially if you do not wish to distribute the source of your work you
+may wish to consider optaining a
+.I commercial license.
+Please visit the SWI-Prolog home-page for details.
+.SH COPYRIGHT
+Copyright (c) 1985\-2001 University of Amsterdam.
 .SH AUTHOR
 Jan Wielemaker and Anjo Anjewierden
 

@@ -8,6 +8,7 @@ PL=@PL@
 PLBASE=@PLBASE@
 PLARCH=@PLARCH@
 PLINCL=@PLINCL@
+PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=../xpce
 
 CC=@CC@
@@ -21,7 +22,6 @@ NETLIBS=@NETLIBS@
 
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
 PLTOTEX=$(PCEHOME)/bin/pl2tex
-LATEX=latex
 DOC=clib
 TEX=$(DOC).tex
 DVI=$(DOC).dvi
@@ -65,7 +65,15 @@ install:	$(TARGETS) $(LIBPL)
 
 rpm-install:	install
 
-uninstall:
+html-install::
+		mkdir -p $(PKGDOC)/clib
+		$(INSTALL) -m 644 clib.html $(PKGDOC)
+
+pdf-install::
+		mkdir -p $(PKGDOC)/clib
+		$(INSTALL) -m 644 clib.pdf $(PKGDOC)
+
+uninstall::
 		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))
 		(cd $(PLBASE)/library && rm -f $(LIBPL))
 		$(PL) -f none -g make -t halt

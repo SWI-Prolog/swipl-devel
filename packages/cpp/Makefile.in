@@ -10,6 +10,7 @@ SHELL=/bin/sh
 
 PL=@PL@
 PLBASE=@PLBASE@
+PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=../xpce
 
 DOCTOTEX=$(PCEHOME)/bin/doc2tex
@@ -31,6 +32,12 @@ install::
 		$(INSTALL_DATA) SWI-cpp.h $(PLBASE)/include
 
 rpm-install:	install
+
+pdf-install::
+		$(INSTALL_DATA) $(DOC).pdf $(PKGDOC)
+
+html-install::
+		$(INSTALL_DATA) $(DOC).html $(PKGDOC)
 
 uninstall::
 		rm -f $(PLBASE)/include/SWI-cpp.h

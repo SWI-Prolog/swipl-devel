@@ -9,6 +9,7 @@
 PL=@PL@
 PLBASE=@PLBASE@
 PLARCH=@PLARCH@
+PKGDOC=$(PLBASE)/doc/packages
 PCEHOME=../../xpce
 
 CC=@CC@
@@ -52,6 +53,14 @@ install:	$(TARGETS) $(LIBPL)
 		$(PL) -f none -g make -t halt
 
 rpm-install:	install
+
+pdf-install::
+		mkdir -p $(PKGDOC)
+		$(INSTALL_DATA) $(DOC).pdf $(PKGDOC)
+
+html-install::
+		mkdir -p $(PKGDOC)
+		$(INSTALL_DATA) $(DOC).html $(PKGDOC)
 
 uninstall:
 		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))

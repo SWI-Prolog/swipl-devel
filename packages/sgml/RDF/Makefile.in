@@ -10,7 +10,8 @@ SHELL=/bin/bash
 
 PL=@PL@
 PLBASE=@PLBASE@
-PCEHOME=/staff/jan/src/xpce
+PKGDOC=$(PLBASE)/doc/packages
+PCEHOME=../../xpce
 
 CGISCRIPT=rdf-parser
 CGIDIR=/etc/httpd/cgi-bin
@@ -41,6 +42,12 @@ install:	$(LIBPL)
 		$(PL) -f none -g make -t halt
 
 rpm-install:	install
+
+pdf-install::
+		$(INSTALL_DATA) $(DOC).pdf $(PKGDOC)
+
+html-install::
+		$(INSTALL_DATA) $(DOC).html $(PKGDOC)
 
 uninstall:
 		(cd $(PLBASE)/library && rm -f $(LIBPL))
