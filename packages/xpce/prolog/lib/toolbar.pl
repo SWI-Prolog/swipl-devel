@@ -96,7 +96,9 @@ append(BG, B:'tool_button|{gap}') :->
 
 activate(BG) :->
 	"Update activation of member buttons"::
-	send(BG?graphicals, for_some, message(@arg1, activate)).
+	send(BG?graphicals, for_some,
+	     if(message(@arg1, has_send_method, activate),
+		message(@arg1, activate))).
 
 reference(BG, Ref:point) :<-
 	"Reference is at the baseline"::
