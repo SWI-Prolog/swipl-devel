@@ -839,9 +839,9 @@ signatures of these functions.  For full documentation consult the
 *_chars() function.
 
 \begin{description}
-    \cfunction{int}{PL_get_atom_nchars}{term_t t, unsigned int len, char **s}
+    \cfunction{int}{PL_get_atom_nchars}{term_t t, unsigned int *len, char **s}
 See PL_get_atom_chars().
-    \cfunction{int}{PL_get_list_nchars}{term_t t, unsigned int len, char **s}
+    \cfunction{int}{PL_get_list_nchars}{term_t t, unsigned int *len, char **s}
 See PL_get_list_chars().
     \cfunction{int}{PL_get_nchars}{term_t t, unsigned int *len, char **s,
 				   unsigned int flags}
