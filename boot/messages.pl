@@ -164,7 +164,6 @@ swi_message(system_error) -->
 	[ 'error in system call'
 	].
 
-
 swi_context(X) -->
 	{ var(X)
 	}, !,
@@ -354,6 +353,8 @@ prolog_message(var_query(_)) -->
 	[ '... 1,000,000 ............ 10,000,000 years later', nl, nl,
 	  '~t~8|>> 42 << (last release gives the question)'
 	].
+prolog_message(close_on_abort(Stream)) -->
+	[ 'Abort: closed stream ~p'-[Stream] ].
 
 prolog_message(query(no)) -->
 	[ nl, 'No' ].

@@ -673,7 +673,18 @@ closeFiles(int all)
     { IOSTREAM *s2 = tryGetStream(s);
 
       if ( s2 )
+      { if ( !all )
+	{ term_t t = PL_new_term_ref();
+
+	  PL_unify_stream_or_alias(t, s2);
+	  printMessage(ATOM_informational,
+		       PL_FUNCTOR, FUNCTOR_close_on_abort1,
+		         PL_TERM, t);
+	  PL_reset_term_refs(t);
+	}
+
 	closeStream(s2);
+      }
     }
   }
   freeTableEnum(e);
@@ -1019,9 +1030,9 @@ pl_set_stream(term_t stream, term_t attr)
 	  fail;
 
 	if ( close )
-	  s->flags |= SIO_NOCLOSE;
-	else
 	  s->flags &= ~SIO_NOCLOSE;
+	else
+	  s->flags |= SIO_NOCLOSE;
 
 	succeed;
       }
@@ -1947,6 +1958,12 @@ stream_reposition_prop(IOSTREAM *s, term_t prop)
 
 
 static int
+stream_close_on_abort_prop(IOSTREAM *s, term_t prop)
+{ return PL_unify_bool_ex(prop, !(s->flags & SIO_NOCLOSE));
+}
+
+
+static int
 stream_type_prop(IOSTREAM *s, term_t prop)
 { return PL_unify_atom(prop, s->flags & SIO_TEXT ? ATOM_text : ATOM_binary);
 }
@@ -1997,6 +2014,7 @@ static const sprop sprop_list [] =
   { FUNCTOR_type1,    	    stream_type_prop },
   { FUNCTOR_file_no1,	    stream_file_no_prop },
   { FUNCTOR_buffer1,	    stream_buffer_prop },
+  { FUNCTOR_close_on_abort1,stream_close_on_abort_prop },
   { 0,			    NULL }
 };
 

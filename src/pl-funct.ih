@@ -151,3 +151,4 @@
 #define FUNCTOR_assert1      MK_FUNCTOR(150, 1)
 #define FUNCTOR_shared_object2 MK_FUNCTOR(151, 2)
 #define FUNCTOR_buffer1      MK_FUNCTOR(152, 1)
+#define FUNCTOR_close_on_abort1 MK_FUNCTOR(153, 1)
