@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Ensure local stack-allocation on machines lacking hardware
+    stack guarding.
+
   * COMPAT: Renamed argument-names `new' in console.h to allow for loading in
     C++ projects (Uwe Lesta).
 

@@ -2928,6 +2928,7 @@ erasure as soon as the clause finishes executing.
 	    ARGP = argFrameP(FR, 0);
 	    *ARGP = ht[1];		/* copy the head here */
 	    lTop = (LocalFrame)(ARGP + cl->variables);
+	    requireStack(local, (int)argFrameP((LocalFrame)NULL, MAXARITY));
  	    set(cl, ERASED);
 	    DEF->erased_clauses++;
 	    set(DEF, NEEDSCLAUSEGC);	/* only `now and then'? */
@@ -3661,6 +3662,7 @@ values found in the clause,  give  a   reference  to  the clause and set
 	clause = CL->clause;
 	PC = clause->codes;
 	lTop = (LocalFrame)(ARGP + clause->variables);
+	requireStack(local, (int)argFrameP((LocalFrame)NULL, MAXARITY));
       }
 
 	SECURE(
@@ -3939,6 +3941,7 @@ resume_frame:
 
     PC = clause->codes;
     lTop = (LocalFrame) argFrameP(FR, clause->variables);
+    requireStack(local, (int)argFrameP((LocalFrame)NULL, MAXARITY));
   }
 
   NEXT_INSTRUCTION;
