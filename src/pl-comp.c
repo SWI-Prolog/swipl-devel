@@ -581,6 +581,12 @@ isFirstVar(VarTable vt, register int n)
   return result;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Emit  C_VAR  statements  for  all  variables  that  are  claimed  to  be
+uninitialised in valt1 and initialised in valt2.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 balanceVars(VarTable valt1, VarTable valt2, compileInfo *ci)
 { int *p1 = &valt1->entry[0];
@@ -903,6 +909,18 @@ A ; B, A -> B, A -> B ; C, \+ A
   
     If you add anything to this, please ensure registerControlFunctors()
     remains consistent.
+
+\+
+    NOT is a bit tricky too.  If it succeeds (i.e. the argument fails),
+    there are no variable-bindings done. Unfortunately, variables
+    introduced inside the not that are set using B_ARGFIRSTVAR create
+    references to terms above the (now unwount) global stack, but the
+    GC clearUninitialisedVarsFrame() won't see any initialisation of
+    these variables, leaving them invalid. Same holds for the
+    source-level debugger using the same function.  Therefore we
+    explicitely reset these variables at the end of the code created
+    by \+. For optimisation-reasons however we can consider them
+    uninitialised.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -1032,7 +1050,9 @@ compileBody(Word body, code call, compileInfo *ci)
 	Output_0(ci, C_FAIL);
 	OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
 	if ( !ci->islocal )
+	{ balanceVars(vsave, ci->used_var, ci); /* see comment above */
 	  copyVarTable(ci->used_var, vsave);
+	}
       
 	succeed;
 #endif /* O_COMPILE_OR */
