@@ -84,7 +84,8 @@ defaults([ output(user_output),
 	   operators(true),
 	   write_options([ quoted(true),
 			   numbervars(true),
-			   portray(true)
+			   portray(true),
+			   attributes(portray)
 			 ])
 	 ]).
 
