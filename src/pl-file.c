@@ -409,9 +409,6 @@ this  which  accepts  both  Prolog data structures (ints, floats, atoms,
 etc) and C data structures.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-/*VARARGS1*/
-word
-#if ANSI && !AIX
 Putf(char *fm, ...)
 { va_list args;
 
@@ -421,22 +418,6 @@ Putf(char *fm, ...)
 
   succeed;
 }
-
-#else
-
-Putf(va_alist)
-va_dcl
-{ va_list args;
-  char *fm;
-
-  va_start(args);
-  fm = va_arg(args, char *);
-  vPutf(fm, args);
-  va_end(args);
-
-  succeed;
-}
-#endif
 
 word
 vPutf(char *fm, va_list args)

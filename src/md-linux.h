@@ -84,7 +84,7 @@ Thu Mar 10 22:14:20 1994
 #define O_GETCWD		1
 
 /* This is for the newer libc (4.5.8+) */
-#ifdef _STDIO_USES_IOSTREAM
+#if O_LIBC45
 #define _gptr _IO_read_ptr
 #define _egptr _IO_read_end
 #endif
@@ -93,6 +93,7 @@ Thu Mar 10 22:14:20 1994
 
 			/* terminal driver */
 #define O_READLINE		1
+#define O_RL12			1	/* librl-1.2 */
 #define O_TERMIOS 		1
 #define O_FOLD 			0
 

@@ -1588,6 +1588,11 @@ int (*PL_dispatch_events)() = NULL;	/* event-dIspatching */
 
 #if O_READLINE
 
+#if O_RL12
+#define PAREN_MATCHING 1
+extern rl_delete_text(int from, int to);
+#endif
+
 #undef ESC				/* will be redefined ... */
 #include <readline/readline.h>
 #undef savestring
@@ -1609,6 +1614,7 @@ event_hook(void)
 }
 
 
+#if GLIBC44
 static char *
 xmalloc(int size)
 { char *result = malloc(size);
@@ -1618,6 +1624,7 @@ xmalloc(int size)
 
   return result;
 }
+#endif
 
 #define savestring(x) strcpy(xmalloc(1 + strlen(x)), (x))
 
@@ -1642,14 +1649,16 @@ Char
 GetChar(void)
 { static char *line;			/* read line */
   static char *line_p;			/* pointer in it */
+  static int prompt_next = TRUE;	/* prompt on next GetChar() */
   Atom sfn = source_file_name;		/* save over call-back */
   int  sln = source_line_no;
   Char c;
 
   if ( ttymode == TTY_RAW )
-  { c = GetRawChar();
+  { if ( (c = GetRawChar()) == '\n' )
+      prompt_next = TRUE;
   } else if ( status.notty )
-  { if ( !line )
+  { if ( prompt_next )
     { extern int Output;
       int old = Output;
       Output = 1;
@@ -1657,11 +1666,11 @@ GetChar(void)
       pl_flush();
       Output = old;
 
-      line = "ok";
+      prompt_next = FALSE;
     }
 
     if ( (c=GetRawChar()) == '\n' )
-      line = NULL;
+      prompt_next = TRUE;
   } else
   { if ( !line )
     { ttybuf buf;
@@ -1712,7 +1721,14 @@ prolog_complete(int ignore, int key)
   { rl_begin_undo_group();
     rl_complete(ignore, key);
     if ( rl_point > 0 && rl_line_buffer[rl_point-1] == ' ' )
+    {
+#if O_RL12
+      rl_delete_text(rl_point-1, rl_point);
+      rl_point -= 1;
+#else
       rl_delete(-1);
+#endif
+    }
     rl_end_undo_group();
   } else
     rl_complete(ignore, key);
@@ -1742,9 +1758,10 @@ ResetTty(void)				/* used to initialise readline */
 { ResetStdin();
 
   rl_readline_name = "Prolog";
-  rl_attempted_completion_function = (Function *)prolog_completion;
+  rl_attempted_completion_function = prolog_completion;
   rl_basic_word_break_characters = "\t\n\"\\'`@$><= [](){}+*!";
   rl_add_defun("prolog-complete", prolog_complete, '\t');
+  rl_add_defun("insert-close", rl_insert_close, ')');
 }
 
 #else /*!O_READLINE*/

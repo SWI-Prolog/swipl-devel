@@ -51,6 +51,7 @@ SunOS cc.
 
 			/* terminal driver */
 #define O_READLINE		1
+#define O_RL12			1	/* using libreadline version 1.2 */
 #define O_TERMIOS 		1
 #define O_FOLD 			0
 
