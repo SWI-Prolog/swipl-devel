@@ -148,6 +148,7 @@ typedef struct _dtd_parser
 #endif
   dtd_srcloc	location;		/* Current location */
   dtd_srcloc	startloc;		/* Start of last point */
+  dtd_symbol   *enforce_outer_element;	/* Outer element to look for */
 
   void *closure;			/* client handle */
   sgml_begin_element_f	on_begin_element; /* start an element */

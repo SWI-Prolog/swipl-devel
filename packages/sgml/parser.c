@@ -2352,6 +2352,20 @@ process_begin_element(dtd_parser *p, const ichar *decl)
     dtd_element *e = find_element(dtd, id);
     int empty = FALSE;
 
+    if ( !p->environments && p->enforce_outer_element )
+    { dtd_element *f = p->enforce_outer_element->element;
+
+      if ( f && f != e )
+      { if ( !f->structure ||
+	     !f->structure->omit_open )
+	  gripe(ERC_OMITTED_OPEN, f->name->name);
+
+	open_element(p, f);
+	if ( p->on_begin_element )
+	  (*p->on_begin_element)(p, f, 0, NULL);
+      }
+    }
+
     if ( !e->structure )
     { dtd_edef *def;
       if ( !dtd->implicit )
@@ -2483,6 +2497,8 @@ local:
     p->dmode    = oldmode;
     p->location = oldloc;
   }
+
+  p->enforce_outer_element = id;	/* make this the outer element */
 
   return TRUE;
 }
@@ -3747,6 +3763,15 @@ gripe(dtd_error_id e, ...)
     { const char *element = va_arg(args, const char *); 
 
       sprintf(buf, "Inserted omitted close tag for <%s>", element);
+      error.argv[0] = buf;
+      error.severity = ERS_WARNING;
+      e = ERC_VALIDATE;
+      break;
+    }
+    case ERC_OMITTED_OPEN:
+    { const char *element = va_arg(args, const char *); 
+
+      sprintf(buf, "Inserted omitted open tag for <%s>", element);
       error.argv[0] = buf;
       error.severity = ERS_WARNING;
       e = ERC_VALIDATE;

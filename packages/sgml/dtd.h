@@ -186,6 +186,8 @@ typedef enum
 	/* Type, found */
   ERC_OMITTED_CLOSE,
 	/* Element */
+  ERC_OMITTED_OPEN,
+	/* Element */
   ERC_NOT_OPEN,
 	/* Element */
   ERC_NOT_ALLOWED,

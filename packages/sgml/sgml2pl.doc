@@ -239,7 +239,7 @@ defined options are:
 
 \begin{description}
     \termitem{dtd}{?DTD}
-Reference to a DTT object.  If specified, the \verb$<!DOCTYPE ...>$
+Reference to a DTD object.  If specified, the \verb$<!DOCTYPE ...>$
 declaration is ignored and the document is parsed and validated against
 the provided DTD.  If provided as a variable, the implicitly created
 DTD is returned.  See \secref{implicitdtd}.
@@ -528,6 +528,17 @@ Returns a list holding the names of all \const{NOTATION} declarations.
 Yields the declared file for from a \const{NOTATION} declaration. 
 \end{description}
 \end{description}
+
+
+\subsubsection{The DOCTYPE declaration}
+
+As this parser allows for processing partial documents and process
+the DTD separately, the DOCTYPE declaration plays a special role.
+
+If a document has no DOCTYPE declaraction, the parser returns a
+list holding all elements and CDATA found.  If the document has
+a DOCTYPE declaraction, the parser will open the element defined
+in the DOCTYPE as soon as the first real data is encountered.
 
 
 \subsection{Extracting a DTD}		\label{sec:implicitdtd}

@@ -53,6 +53,9 @@ DTD. The parser is designed to be small, fast and flexible.
 <LI><A HREF="#sec:3.3.1">3.3.1 XML Namespaces</A>
 </UL>
 <LI><A HREF="#sec:3.4">3.4 DTD-Handling</A>
+<UL>
+<LI><A HREF="#sec:3.4.1">3.4.1 The DOCTYPE declaration</A>
+</UL>
 <LI><A HREF="#sec:3.5">3.5 Extracting a DTD</A>
 <LI><A HREF="#sec:3.6">3.6 Parsing Primitives</A>
 <UL>
@@ -283,7 +286,7 @@ Currently defined options are:
 
 <DL>
 <DT><STRONG>dtd</STRONG>(<VAR>?DTD</VAR>)<DD>
-Reference to a DTT object. If specified, the <CODE>&lt;!DOCTYPE ...&gt;</CODE> 
+Reference to a DTD object. If specified, the <CODE>&lt;!DOCTYPE ...&gt;</CODE> 
 declaration is ignored and the document is parsed and validated against 
 the provided DTD. If provided as a variable, the implicitly created DTD 
 is returned. See <A HREF="#sec:implicitdtd">section 3.5</A>.
@@ -598,6 +601,16 @@ Yields the declared file for from a <CODE>NOTATION</CODE> declaration.
 </DL>
 
 </DL>
+
+<H4><A NAME="sec:3.4.1">3.4.1 The DOCTYPE declaration</A></H4>
+
+<P>As this parser allows for processing partial documents and process 
+the DTD separately, the DOCTYPE declaration plays a special role.
+
+<P>If a document has no DOCTYPE declaraction, the parser returns a list 
+holding all elements and CDATA found. If the document has a DOCTYPE 
+declaraction, the parser will open the element defined in the DOCTYPE as 
+soon as the first real data is encountered.
 
 <H3><A NAME="sec:3.5">3.5 Extracting a DTD</A></H3>
 
