@@ -26,7 +26,7 @@
 void		freeHeap(void *mem, size_t n);
 word		outOfStack(Stack s, stack_overflow_action how);
 volatile void	outOfCore(void);
-Word		allocGlobal(int words);
+Word		allocGlobal__LD(int words ARG_LD);
 Void		allocHeap(size_t n);
 void		initMemAlloc(void);
 void		cleanupMemAlloc(void);
@@ -174,8 +174,8 @@ void		getIndex(Word argv, unsigned long pattern, int card,
 			 ARG_LD);
 ClauseRef	firstClause(Word argv, LocalFrame fr, Definition def,
 			    ClauseRef *next ARG_LD);
-ClauseRef	findClause(ClauseRef cl, Word argv,
-			   LocalFrame fr, Definition def, ClauseRef *next);
+ClauseRef	findClause(ClauseRef cl, Word argv, LocalFrame fr,
+			   Definition def, ClauseRef *next ARG_LD);
 bool		reindexClause(Clause clause);
 bool		unify_index_pattern(Procedure proc, term_t value);
 bool		hashDefinition(Definition def, int buckets);
@@ -352,7 +352,8 @@ atom_t		codeToAtom(int code);
 extern record_t PL_duplicate_record(record_t r);
 int		PL_unify_termv(term_t t, va_list args);
 term_t		wordToTermRef(Word p);
-void		_PL_get_arg_ld(int index, term_t t, term_t a ARG_LD);
+void		_PL_get_arg__LD(int index, term_t t, term_t a ARG_LD);
+int		PL_unify__LD(term_t t1, term_t t2 ARG_LD);
 void		registerForeignLicenses(void);
 
 /* pl-fmt.c */
@@ -382,6 +383,7 @@ int		growStacks(LocalFrame fr, Choice ch, Code PC,
 void		clearUninitialisedVarsFrame(LocalFrame, Code);
 word		check_foreign(void);	/* O_SECURE stuff */
 void		markAtomsOnStacks(PL_local_data_t *ld);
+void		markPredicatesInEnvironments(PL_local_data_t *ld);
 #ifdef O_SECURE
 word		checkStacks(LocalFrame fr, Choice ch);
 #endif
@@ -598,7 +600,7 @@ word		checkData(Word p);
 Procedure	lookupProcedure(functor_t f, Module m);
 Procedure	isCurrentProcedure(functor_t f, Module m);
 Procedure	lookupProcedureToDefine(functor_t def, Module m);
-bool		hasClausesDefinition(Definition def);
+ClauseRef	hasClausesDefinition(Definition def);
 bool		isDefinedProcedure(Procedure proc);
 int		get_head_functor(term_t head, functor_t *fdef, int flags);
 int		get_procedure(term_t descr, Procedure *proc, term_t he, int f);
@@ -607,7 +609,6 @@ foreign_t	pl_current_predicate1(term_t spec, word ctx);
 ClauseRef	assertProcedure(Procedure proc, Clause clause, int where);
 bool		abolishProcedure(Procedure proc, Module module);
 bool		retractClauseProcedure(Procedure proc, Clause clause);
-void		retractClauseDefinition(Definition def, Clause clause);
 void		freeClause(Clause c);
 void		freeClauseRef(ClauseRef c);
 ClauseRef	newClauseRef(Clause cl);
@@ -643,6 +644,7 @@ foreign_t	pl_list_generations(term_t desc);
 foreign_t	pl_check_procedure(term_t desc);
 void		checkDefinition(Definition def);
 Procedure	isStaticSystemProcedure(functor_t fd);
+foreign_t	pl_garbage_collect_clauses(void);
 
 
 /* pl-prof.c */

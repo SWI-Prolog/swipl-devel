@@ -2826,7 +2826,7 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings, word ctx)
   if ( !cref )
   { cref = firstClause(argv, fr, def, &next PASS_LD);
   } else
-  { cref = findClause(cref, argv, fr, def, &next);
+  { cref = findClause(cref, argv, fr, def, &next PASS_LD);
   }
 
   Mark(m);
@@ -2846,7 +2846,7 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings, word ctx)
     }
 
     Undo(m);
-    cref = findClause(next, argv, fr, def, &next);
+    cref = findClause(next, argv, fr, def, &next PASS_LD);
   }
 
   leaveDefinition(def);

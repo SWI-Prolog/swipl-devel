@@ -37,6 +37,15 @@ PROLOG FLAGS AND FOREIGN CODE
 	  level of a split pl_set_feature() if the system is porperly
 	  initialised.
 
+MULTITHREAD ISSUES
+==================
+
+Getting rid of predicate-reference counts on static code:
+
+	* Call garbage_collect_predicates/0 at end of consult
+	* Do not run atom-gc, clause-gc together.  What about normal-gc?
+	  [or, do this while starting consult for a predicate?]
+
 SCRIPT
 ======
 

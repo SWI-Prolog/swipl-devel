@@ -232,9 +232,7 @@ lookupAtom(const char *s, unsigned int length)
 	 memcmp(s, a->name, length) == 0 )
     { 
 #ifdef O_ATOMGC
-      PL_LOCK(L_MISC);			/* used by PL_(un)register_atom() */
-      a->references++;
-      PL_UNLOCK(L_MISC);
+      PL_atomic_inc(&a->references);
 #endif
       UNLOCK();
       return a->atom;
@@ -540,9 +538,8 @@ void
 PL_register_atom(atom_t a)
 {
 #ifdef O_ATOMGC
-  PL_LOCK(L_MISC);
-  atomValue(a)->references++;
-  PL_UNLOCK(L_MISC);
+  Atom p = atomValue(a);
+  PL_atomic_inc(&p->references);
 #endif
 }
 
@@ -553,10 +550,8 @@ PL_unregister_atom(atom_t a)
 #ifdef O_ATOMGC
   Atom p = atomValue(a);
 
-  PL_LOCK(L_MISC);
-  assert(p->references > 0);
-  p->references--;
-  PL_UNLOCK(L_MISC);
+  PL_atomic_dec(&p->references);
+  assert(p->references >= 0);
 #endif
 }
 

@@ -51,10 +51,9 @@ typedef struct assoc
 
 
 static void
-freeAssoc(Assoc prev, Assoc a)
+freeAssoc(Assoc prev, Assoc a ARG_LD)
 { if ( prev == NULL )
-  { GET_LD
-    alist = a->next;
+  { alist = a->next;
   } else
     prev->next = a->next;
 
@@ -124,20 +123,20 @@ pl_collect_bag(term_t bindings, term_t bag)
   if ( !(a = alist) )
     fail;
   if ( !a->record )
-  { freeAssoc(prev, a);
+  { freeAssoc(prev, a PASS_LD);
     fail;				/* trapped the mark */
   }
 
   PL_put_nil(list);
 					/* get variable term on global stack */
   copyRecordToGlobal(binding, a->record PASS_LD);
-  PL_get_arg(1, binding, var_term);
+  _PL_get_arg(1, binding, var_term);
   PL_unify(bindings, var_term);
-  PL_get_arg(2, binding, tmp);
+  _PL_get_arg(2, binding, tmp);
   PL_cons_list(list, tmp, list);
 
   next = a->next;
-  freeAssoc(prev, a);  
+  freeAssoc(prev, a PASS_LD);  
 
   if ( next != NULL )
   { for( a = next, next = a->next; next; a = next, next = a->next )
@@ -150,12 +149,12 @@ pl_collect_bag(term_t bindings, term_t bag)
       }
 
       copyRecordToGlobal(binding, a->record PASS_LD);
-      PL_get_arg(1, binding, tmp);
+      _PL_get_arg(1, binding, tmp);
       PL_unify(tmp, bindings);
-      PL_get_arg(2, binding, tmp);
+      _PL_get_arg(2, binding, tmp);
       PL_cons_list(list, tmp, list);
       SECURE(checkData(valTermRef(list)));
-      freeAssoc(prev, a);
+      freeAssoc(prev, a PASS_LD);
     }
   }
 

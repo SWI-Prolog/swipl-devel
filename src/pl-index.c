@@ -206,7 +206,7 @@ visibleClause(Clause cl, unsigned long gen)
 
 ClauseRef
 findClause(ClauseRef cref, Word argv,
-	   LocalFrame fr, Definition def, ClauseRef *next)
+	   LocalFrame fr, Definition def, ClauseRef *next ARG_LD)
 {
 #ifdef O_LOGICAL_UPDATE
   unsigned long gen = fr->generation;
@@ -226,8 +226,7 @@ findClause(ClauseRef cref, Word argv,
 	return NULL;
     }
   } else if ( def->indexPattern == 0x1L ) /* first-argument indexing */
-  { GET_LD
-    word key = indexOfWord(*argv PASS_LD);
+  { word key = indexOfWord(*argv PASS_LD);
 
     if ( !key )
       goto noindex;
@@ -257,10 +256,9 @@ findClause(ClauseRef cref, Word argv,
   } else if ( def->indexPattern & NEED_REINDEX )
   { assert(def->hash_info == NULL);
     reindexDefinition(def);
-    return findClause(cref, argv, fr, def, next);
+    return findClause(cref, argv, fr, def, next PASS_LD);
   } else
   { struct index argIndex;
-    GET_LD
 
     getIndex(argv, def->indexPattern, def->indexCardinality, &argIndex
 	     PASS_LD);

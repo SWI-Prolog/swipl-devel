@@ -2389,3 +2389,66 @@ markAtomsOnStacks(PL_local_data_t *ld)
 
 #endif /*O_ATOMGC*/
 
+#ifdef O_CLAUSEGC
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This is much like  check_environments(),  but   as  we  might  be called
+asynchronously, we have to be a bit careful about the first frame (if PC
+== NULL). The interpreter will  set  the   clause  field  to NULL before
+opening the frame, and we only have   to  consider the arguments. If the
+frame has a clause we must consider all variables of this clause.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static QueryFrame
+mark_predicates_in_environments(PL_local_data_t *ld, LocalFrame fr)
+{ if ( fr == NULL )
+    return NULL;
+
+  for(;;)
+  { if ( true(fr, FR_MARKED) )
+      return NULL;			/* from choicepoints only */
+    set(fr, FR_MARKED);
+    ld->gc._local_frames++;
+
+    if ( true(fr->predicate, NEEDSCLAUSEGC) &&
+	 false(fr->predicate, DYNAMIC) )
+      fr->predicate->references++;
+
+    if ( fr->parent )
+      fr = fr->parent;
+    else
+    { QueryFrame qf = (QueryFrame)addPointer(fr, -offset(queryFrame, frame));
+      return qf;
+    }
+  }
+}
+
+
+void
+markPredicatesInEnvironments(PL_local_data_t *ld)
+{ QueryFrame qf;
+  LocalFrame fr;
+  Choice ch;
+
+  ld->gc._local_frames = 0;
+
+  for( fr = ld->environment,
+       ch = ld->choicepoints
+     ; fr
+     ; fr = qf->saved_environment,
+       ch = qf->saved_bfr
+     )
+  { qf = mark_predicates_in_environments(ld, fr);
+    assert(qf->magic == QID_MAGIC);
+
+    for(; ch; ch = ch->parent)
+    { mark_atoms_in_environments(ld, ch->frame);
+    }
+  }
+
+  unmark_stacks(ld, ld->environment, ld->choicepoints);
+
+  assert(ld->gc._local_frames == 0);
+}
+
+
+#endif /*O_CLAUSEGC*/

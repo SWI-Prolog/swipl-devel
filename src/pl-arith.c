@@ -479,7 +479,7 @@ valueExpression(term_t t, Number r ARG_LD)
       { term_t a = PL_new_term_ref();
 	number n1;
 
-	_PL_get_arg_ld(1, t, a PASS_LD);
+	_PL_get_arg(1, t, a);
 	if ( valueExpression(a, &n1 PASS_LD) )
 	  rval = (*f->function)(&n1, r);
 	else
@@ -492,9 +492,9 @@ valueExpression(term_t t, Number r ARG_LD)
       { term_t a = PL_new_term_ref();
 	number n1, n2;
 
-	_PL_get_arg_ld(1, t, a PASS_LD);
+	_PL_get_arg(1, t, a);
 	if ( valueExpression(a, &n1 PASS_LD) )
-	{ _PL_get_arg_ld(2, t, a PASS_LD);
+	{ _PL_get_arg(2, t, a);
 	  if ( valueExpression(a, &n2 PASS_LD) )
 	    rval = (*f->function)(&n1, &n2, r);
 	  else

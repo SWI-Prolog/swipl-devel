@@ -71,14 +71,14 @@ Prolog int) is used by the garbage collector to update the stack frames.
 #define ulong unsigned long
 
 static inline word
-__valHandle(term_t r ARG_LD)
+valHandle__LD(term_t r ARG_LD)
 { Word p = valTermRef(r);
 
   deRef(p);
   return *p;
 }
 
-#define valHandle(r) __valHandle(r PASS_LD)
+#define valHandle(r) valHandle__LD(r PASS_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -415,10 +415,8 @@ makeNum(long i)
 		 *******************************/
 
 static inline void
-bindConsVal(Word to, Word p)
-{ GET_LD
-
-  deRef(p);
+bindConsVal(Word to, Word p ARG_LD)
+{ deRef(p);
   if ( isVar(*p) )
   { if ( to < p )
     { setVar(*to);
@@ -447,7 +445,7 @@ PL_cons_functor(term_t h, functor_t fd, ...)
     while( --arity >= 0 )
     { term_t r = va_arg(args, term_t);
 
-      bindConsVal(++a, valHandleP(r));
+      bindConsVal(++a, valHandleP(r) PASS_LD);
     }
     setHandle(h, consPtr(t, TAG_COMPOUND|STG_GLOBAL));
     va_end(args);
@@ -469,7 +467,7 @@ PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
 
     *a = fd;
     while( --arity >= 0 )
-      bindConsVal(++a, ai++);
+      bindConsVal(++a, ai++ PASS_LD);
 
     setHandle(h, consPtr(t, TAG_COMPOUND|STG_GLOBAL));
   }
@@ -482,8 +480,8 @@ PL_cons_list(term_t l, term_t head, term_t tail)
   Word a = allocGlobal(3);
   
   a[0] = FUNCTOR_dot2;
-  bindConsVal(&a[1], valHandleP(head));
-  bindConsVal(&a[2], valHandleP(tail));
+  bindConsVal(&a[1], valHandleP(head) PASS_LD);
+  bindConsVal(&a[2], valHandleP(tail) PASS_LD);
 
   setHandle(l, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
 }
@@ -1080,6 +1078,7 @@ PL_get_module(term_t t, module_t *m)
 }
 
 
+#undef _PL_get_arg			/* undo global definition */
 void
 _PL_get_arg(int index, term_t t, term_t a)
 { GET_LD
@@ -1089,10 +1088,11 @@ _PL_get_arg(int index, term_t t, term_t a)
 
   setHandle(a, linkVal(p));
 }
+#define _PL_get_arg(i, t, a) _PL_get_arg__LD(i, t, a PASS_LD)
 
 
 void
-_PL_get_arg_ld(int index, term_t t, term_t a ARG_LD)
+_PL_get_arg__LD(int index, term_t t, term_t a ARG_LD)
 { word w = valHandle(t);
   Functor f = (Functor)valPtr(w);
   Word p = &f->arguments[index-1];
@@ -1656,7 +1656,8 @@ codeToAtom(int code)
 
 int
 PL_unify_list_ncodes(term_t l, unsigned int len, const char *chars)
-{ if ( PL_is_variable(l) )
+{ GET_LD
+  if ( PL_is_variable(l) )
   { term_t tmp = PL_new_term_ref();
 
     PL_put_list_ncodes(tmp, len, chars);
@@ -1688,7 +1689,8 @@ PL_unify_list_codes(term_t l, const char *chars)
 
 int
 PL_unify_list_nchars(term_t l, unsigned int len, const char *chars)
-{ if ( PL_is_variable(l) )
+{ GET_LD
+  if ( PL_is_variable(l) )
   { term_t tmp = PL_new_term_ref();
 
     PL_put_list_nchars(tmp, len, chars);
@@ -1847,7 +1849,8 @@ typedef struct
 
 int
 PL_unify_termv(term_t t, va_list args)
-{ term_t tsave = PL_new_term_refs(0);	/* save for reclaim */
+{ GET_LD
+  term_t tsave = PL_new_term_refs(0);	/* save for reclaim */
   tmp_buffer buf;
   int tos = 0;				/* Top-of-stack */
   int rval;
@@ -1956,7 +1959,8 @@ cont:
       switch( w->type )
       { case w_term:
 	  if ( w->value.term.arg < w->value.term.arity )
-	  { _PL_get_arg(++w->value.term.arg, w->value.term.term, t);
+	  { _PL_get_arg(++w->value.term.arg,
+			w->value.term.term, t);
 	    goto cont;
 	  } else
 	  { tos--;
@@ -2050,7 +2054,7 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
 		 *       ATOMIC (INTERNAL)	*
 		 *******************************/
 
-atomic_t
+PL_atomic_t
 _PL_get_atomic(term_t t)
 { GET_LD
   return valHandle(t);
@@ -2058,21 +2062,21 @@ _PL_get_atomic(term_t t)
 
 
 int
-_PL_unify_atomic(term_t t, atomic_t a)
+_PL_unify_atomic(term_t t, PL_atomic_t a)
 { GET_LD
   return unifyAtomic(t, a PASS_LD);
 }
 
 
 void
-_PL_put_atomic(term_t t, atomic_t a)
+_PL_put_atomic(term_t t, PL_atomic_t a)
 { GET_LD
   setHandle(t, a);
 }
 
 
 void
-_PL_copy_atomic(term_t t, atomic_t arg) /* internal one */
+_PL_copy_atomic(term_t t, PL_atomic_t arg) /* internal one */
 { GET_LD
   word a;
 
@@ -2102,10 +2106,11 @@ PL_term_type(term_t t)
 		 *	      UNIFY		*
 		 *******************************/
 
+
+
 int
-PL_unify(term_t t1, term_t t2)
-{ GET_LD
-  Word p1 = valHandleP(t1);
+PL_unify__LD(term_t t1, term_t t2 ARG_LD)
+{ Word p1 = valHandleP(t1);
   Word p2 = valHandleP(t2);
   mark m;
 
@@ -2117,6 +2122,18 @@ PL_unify(term_t t1, term_t t2)
 
   succeed;
 }
+
+
+#undef PL_unify
+
+int
+PL_unify(term_t t1, term_t t2)
+{ GET_LD
+
+  return PL_unify__LD(t1, t2 PASS_LD);
+}
+
+#define PL_unify(t1, t2) PL_unify__LD(t1, t2 PASS_LD)
 
 
 		 /*******************************
@@ -2438,7 +2455,7 @@ PL_load_extensions(const PL_extension *ext)
       continue;
     }
     if ( def->definition.function )
-      warning("PL_load_ex<tensions(): redefined %s", procedureName(proc));
+      warning("PL_load_extensions(): redefined %s", procedureName(proc));
     if ( false(def, FOREIGN) && def->definition.clauses != NULL )
       abolishProcedure(proc, m);
     set(def, FOREIGN);

@@ -39,7 +39,7 @@ pl_crash()
 
   *lp = 5;
 
-  Sdprintf("Oops, this doesn't appear to be a protected OS\n");
+  Sdprintf("Oops, this doesn't appear to be a secure OS\n");
 
   fail;
 }
@@ -427,6 +427,7 @@ static const struct foreign {
   FRG("$garbage_collect",	1, pl_garbage_collect,		TRACE_ME),
 #ifdef O_ATOMGC
   FRG("garbage_collect_atoms",	0, pl_garbage_collect_atoms,	TRACE_ME),
+  FRG("garbage_collect_clauses", 0, pl_garbage_collect_clauses,	TRACE_ME),
   FRG("current_atom",		2, pl_current_atom2,	   NDET|TRACE_ME),
 #ifdef O_DEBUG_ATOMGC
   FRG("track_atom",		2, pl_track_atom,		TRACE_ME),

@@ -39,21 +39,21 @@ valHandle(term_t r)
 		*           ANALYSIS            *
 		*********************************/
 
-atomic_t
+PL_atomic_t
 _PL_atomic(term_t t)
 { return valHandle(t);
 }
 
 
 double
-_PL_float_value(atomic_t a)
+_PL_float_value(PL_atomic_t a)
 { return valReal(a);
 }
 
 
 #if O_STRING
 char *
-_PL_string_value(atomic_t a)
+_PL_string_value(PL_atomic_t a)
 { return valString(a);
 }
 #endif /* O_STRING */
@@ -71,7 +71,7 @@ _PL_list_string_value(term_t t)
 
 
 long
-_PL_integer_value(atomic_t a)
+_PL_integer_value(PL_atomic_t a)
 { return valInteger(a);
 }
 
@@ -120,7 +120,7 @@ _PL_new_term()
 
 
 term_t
-_PL_term(atomic_t a)
+_PL_term(PL_atomic_t a)
 { term_t t = PL_new_term_ref();
 
   setHandle(t, a);
@@ -129,27 +129,27 @@ _PL_term(atomic_t a)
 }
 
 
-atomic_t
+PL_atomic_t
 _PL_new_integer(long i)
 { return consInt(i);
 }
 
 
-atomic_t
+PL_atomic_t
 _PL_new_float(double f)
 { return globalReal(f);
 }
 
 
 #if O_STRING
-atomic_t
+PL_atomic_t
 _PL_new_string(const char *s)
 { return globalString(s);
 }
 #endif /* O_STRING */
 
 
-atomic_t
+PL_atomic_t
 _PL_new_var()
 { return 0L;
 }

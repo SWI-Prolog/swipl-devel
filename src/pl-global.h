@@ -214,6 +214,9 @@ typedef struct
     Procedure	portray;		/* portray/1 */
     Procedure   dcall1;			/* $call/1 */
     Procedure	call_cleanup3;		/* call_cleanup/2 */
+#ifdef O_CLAUSEGC
+    DefinitionChain dirty;		/* List of dirty static procedures */
+#endif
   } procedures;
 
   struct

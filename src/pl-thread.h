@@ -152,7 +152,7 @@ choose to store the result of LD is a local variable.
 
 extern TLD_KEY PL_ldata;		/* key to local data */
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && 0
 #define GLOBAL_LD _LD()
 extern PL_local_data_t *_LD(void) __attribute((const));
 #else
@@ -204,6 +204,10 @@ const char *		threadName(int id);
 void			executeThreadSignals(int sig);
 foreign_t		pl_attach_xterm(term_t in, term_t out);
 void			threadMarkAtomsOtherThreads(void);
+void			markPredicatesOtherThreads(void);
+
+void			PL_atomic_inc(int *addr);
+void			PL_atomic_dec(int *addr);
 
 #else /*O_PLMT, end of threading-stuff */
 
@@ -220,5 +224,13 @@ void			threadMarkAtomsOtherThreads(void);
 #define PL_UNLOCK(id)
 
 #endif /*O_PLMT*/
+
+		 /*******************************
+		 *	LD-USING FUNCTIONS	*
+		 *******************************/
+
+#define allocGlobal(n)		allocGlobal__LD(n PASS_LD)
+#define _PL_get_arg(n, t, a)	_PL_get_arg__LD(n, t, a PASS_LD)
+#define PL_unify(t1, t2)	PL_unify__LD(t1, t2 PASS_LD)
 
 #endif /*PL_THREAD_H_DEFINED*/

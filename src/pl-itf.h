@@ -117,7 +117,7 @@ typedef unsigned long	qid_t;		/* opaque query handle */
 typedef unsigned long	PL_fid_t;	/* opaque foreign context handle */
 #endif
 typedef unsigned long	functor_t;	/* Name/arity pair */
-typedef unsigned long	atomic_t;	/* same a word */
+typedef unsigned long	PL_atomic_t;	/* same a word */
 typedef unsigned long	control_t;	/* non-deterministic control arg */
 typedef unsigned long	foreign_t;	/* return type of foreign functions */
 #ifdef __cplusplus
@@ -485,10 +485,10 @@ __pl_export int		PL_set_feature(const char *name, int type, ...);
 		 *	INTERNAL FUNCTIONS	*
 		 *******************************/
 
-__pl_export atomic_t	_PL_get_atomic(term_t t);
-__pl_export void	_PL_put_atomic(term_t t, atomic_t a);
-__pl_export int		_PL_unify_atomic(term_t t, atomic_t a);
-__pl_export void	_PL_copy_atomic(term_t t, atomic_t a);
+__pl_export PL_atomic_t	_PL_get_atomic(term_t t);
+__pl_export void	_PL_put_atomic(term_t t, PL_atomic_t a);
+__pl_export int		_PL_unify_atomic(term_t t, PL_atomic_t a);
+__pl_export void	_PL_copy_atomic(term_t t, PL_atomic_t a);
 	    int		_PL_get_name_arity(term_t t, atom_t *name, int *arity);
 __pl_export void	_PL_get_arg(int index, term_t t, term_t a);
 
@@ -715,7 +715,7 @@ __pl_export void _PL_put_xpce_reference_a(term_t t, atom_t name);
 #ifdef PL_OLD_INTERFACE
 
 typedef term_t term;
-typedef atomic_t atomic;
+typedef PL_atomic_t atomic;
 
 #ifndef _PL_INCLUDE_H
 					/* renamed functions */
@@ -741,7 +741,7 @@ typedef atomic_t atomic;
 #define PL_new_string(s)	_PL_new_string(s)
 #define PL_new_var()		_PL_new_var()
 #define PL_term(a)		_PL_term(a)
-#define PL_unify_atomic(t, a)	_PL_unify_atomic(t, (atomic_t) (a))
+#define PL_unify_atomic(t, a)	_PL_unify_atomic(t, (PL_atomic_t) (a))
 
 typedef fid_t			bktrk_buf;
 #define PL_mark(b)		(*(b) = PL_open_foreign_frame())
@@ -752,10 +752,10 @@ typedef fid_t			bktrk_buf;
 		 *	     ANALYSIS		*
 		 *******************************/
 
-__pl_export atomic_t	_PL_atomic(term_t t);
-__pl_export long	_PL_integer_value(atomic_t t);
-__pl_export double	_PL_float_value(atomic_t t);
-__pl_export char *	_PL_string_value(atomic_t t);
+__pl_export PL_atomic_t	_PL_atomic(term_t t);
+__pl_export long	_PL_integer_value(PL_atomic_t t);
+__pl_export double	_PL_float_value(PL_atomic_t t);
+__pl_export char *	_PL_string_value(PL_atomic_t t);
 __pl_export char *	_PL_list_string_value(term_t t);
 __pl_export functor_t	_PL_functor(term_t t);
 __pl_export term_t	_PL_arg(term_t t, int n);
@@ -766,17 +766,17 @@ __pl_export term_t	_PL_arg(term_t t, int n);
 		 *******************************/
 
 __pl_export term_t	_PL_new_term(void);
-__pl_export atomic_t	_PL_new_integer(long i);
-__pl_export atomic_t	_PL_new_float(double f);
-__pl_export atomic_t	_PL_new_string(const char *s);
-__pl_export atomic_t	_PL_new_var(void);
-__pl_export term_t	_PL_term(atomic_t a);
+__pl_export PL_atomic_t	_PL_new_integer(long i);
+__pl_export PL_atomic_t	_PL_new_float(double f);
+__pl_export PL_atomic_t	_PL_new_string(const char *s);
+__pl_export PL_atomic_t	_PL_new_var(void);
+__pl_export term_t	_PL_term(PL_atomic_t a);
 
 		 /*******************************
 		 *	       UNIFY		*
 		 *******************************/
 
-__pl_export int		_PL_unify_atomic(term_t t, atomic_t a);
+__pl_export int		_PL_unify_atomic(term_t t, PL_atomic_t a);
 
 		 /*******************************
 		 *	       MODULES		*

@@ -124,6 +124,7 @@ handy for it someone wants to add a data type to the system.
 #define O_SAFE_SIGNALS		1
 #define O_LOGICAL_UPDATE	1
 #define O_ATOMGC		1
+#define O_CLAUSEGC		1
 
 #ifndef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
 #ifdef __i386__
@@ -782,6 +783,7 @@ typedef struct functor *	Functor;	/* complex term */
 typedef struct functorDef *	FunctorDef;	/* name/arity pair */
 typedef struct procedure *	Procedure;	/* predicate */
 typedef struct definition *	Definition;	/* predicate definition */
+typedef struct definition_chain *DefinitionChain; /* linked list of defs */
 typedef struct clause *		Clause;		/* compiled clause */
 typedef struct clause_ref *	ClauseRef;      /* reference to a clause */
 typedef struct clause_index *	ClauseIndex;    /* Clause indexing table */
@@ -974,36 +976,34 @@ Handling environment (or local stack) frames.
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Predicate reference counting. The macro  leaveDefinitionCL is introduced
-exclusively  to  handle  $dcall/1,  the    predicate  with  clauses  for
-meta-calling  of  complex  goals.  This   predicate  *must*  be  garbage
-collected at the clause level to avoid built-up of garbage clauses. 
-
-I'm not too happy with this solution,   but  I see few alternatives. You
-could use a special exit  instruction,  but   that  still  needs  to fix
-failure and cut or you could do garbage collection, but it is costly and
-when to invoke it?  Keeping  this   predicate  clean  actually  seems to
-outweight the extra test in a few quick-and-dirty performance tests. The
-problem was spotted by Stefan Mueller, whose program produced over 180MB
-of garbage on this clause.
+Predicate reference counting. The aim  of   this  mechanism  is to avoid
+modifying the predicate structure while  it   has  choicepoints  or (MT)
+other threads running the predicate. For dynamic  code we allow to clean
+the predicate as the reference-count drops to   zero. For static code we
+introduce a garbage collector (TBD).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define enterDefinitionNOLOCK(def) \
-	(def->references++)
+	if ( true(def, DYNAMIC) ) (def->references++)
 #define enterDefinition(def) \
+	if ( true(def, DYNAMIC) ) \
 	{ PL_LOCK(L_PREDICATE); \
-	  enterDefinitionNOLOCK(def); \
+	  def->references++; \
 	  PL_UNLOCK(L_PREDICATE); \
 	}
 #define leaveDefinitionNOLOCK(def) \
+	if ( true(def, DYNAMIC) ) \
 	{ if ( --def->references == 0 && \
 	       true(def, NEEDSCLAUSEGC|NEEDSREHASH) ) \
 	    gcClausesDefinition(def); \
 	  DEBUG(0, assert(def->references >= 0)); \
 	}
 #define leaveDefinition(def) \
+	if ( true(def, DYNAMIC) ) \
 	{ PL_LOCK(L_PREDICATE); \
-          leaveDefinitionNOLOCK(def); \
+	  if ( --def->references == 0 && \
+	       true(def, NEEDSCLAUSEGC|NEEDSREHASH) ) \
+	    gcClausesDefinition(def); \
 	  PL_UNLOCK(L_PREDICATE); \
 	}
 
@@ -1251,6 +1251,12 @@ struct definition
   		/*	P_SHARED	   Multiple procs are using me */
   unsigned	indexCardinality : 8;	/* cardinality of index pattern */
   unsigned	number_of_clauses : 24;	/* number of associated clauses */
+};
+
+
+struct definition_chain
+{ Definition		definition;	/* chain on definition */
+  DefinitionChain 	next;		/* next in chain */
 };
 
 

@@ -4336,7 +4336,7 @@ next_choice:
 			predicateName(DEF)));
       ARGP = argFrameP(FR, 0);
       BFR = ch->parent;
-      if ( !(CL = findClause(ch->value.clause, ARGP, FR, DEF, &next)) )
+      if ( !(CL = findClause(ch->value.clause, ARGP, FR, DEF, &next PASS_LD)) )
 	goto next_choice;		/* should not happen */
 
 #ifdef O_DEBUGGER

@@ -327,9 +327,8 @@ addFunctor(CompileInfo info, functor_t f)
 
 
 static void
-compile_term_to_heap(Word p, CompileInfo info)
-{ GET_LD
-  word w;
+compile_term_to_heap(Word p, CompileInfo info ARG_LD)
+{ word w;
 
 right_recursion:
   w = *p;
@@ -397,7 +396,7 @@ right_recursion:
       addFunctor(info, f->definition);
       p = f->arguments;
       for(; --arity > 0; p++)
-	compile_term_to_heap(p, info);
+	compile_term_to_heap(p, info PASS_LD);
       goto right_recursion;
     }
     case TAG_REFERENCE:
@@ -427,7 +426,7 @@ compileTermToHeap(term_t t, int flags)
   info.nvars = 0;
   info.external = (flags & R_EXTERNAL);
 
-  compile_term_to_heap(valTermRef(t), &info);
+  compile_term_to_heap(valTermRef(t), &info PASS_LD);
   n = info.nvars;
   p = (Word *)info.vars.base;
   while(--n >= 0)
@@ -521,7 +520,7 @@ PL_record_external(term_t t, unsigned int *len)
   info.nvars = 0;
   info.external = TRUE;
 
-  compile_term_to_heap(p, &info);
+  compile_term_to_heap(p, &info PASS_LD);
   n = info.nvars;
   vp = (Word *)info.vars.base;
   while(--n >= 0)
@@ -711,9 +710,8 @@ fetchChars(CopyInfo b, unsigned len, Word to)
 
 
 static void
-copy_record(Word p, CopyInfo b)
-{ GET_LD
-  long tag;
+copy_record(Word p, CopyInfo b ARG_LD)
+{ long tag;
 
 right_recursion:
   switch( (tag = fetchOpCode(b)) )
@@ -802,7 +800,7 @@ right_recursion:
       p = b->gstore;
       b->gstore += arity;
       for(; --arity > 0; p++)
-	copy_record(p, b);
+	copy_record(p, b PASS_LD);
       goto right_recursion;
     case PL_TYPE_EXT_COMPOUND:
     { atom_t name;
@@ -819,7 +817,7 @@ right_recursion:
       *b->gstore++ = FUNCTOR_dot2;
       p = b->gstore;
       b->gstore += 2;
-      copy_record(p, b);
+      copy_record(p, b PASS_LD);
       p++;
       goto right_recursion;
     }
@@ -839,7 +837,7 @@ copyRecordToGlobal(term_t copy, Record r ARG_LD)
   b.gstore = allocGlobal(r->gsize);
 
   INITCOPYVARS(b, r->nvars);
-  copy_record(valTermRef(copy), &b);
+  copy_record(valTermRef(copy), &b PASS_LD);
   FREECOPYVARS(b, r->nvars);
 
   assert(b.gstore == gTop);
@@ -1203,10 +1201,10 @@ PL_recorded_external(const char *rec, term_t t)
   { uint nvars = fetchSizeInt(&b);
 
     INITCOPYVARS(b, nvars);
-    copy_record(valTermRef(t), &b);
+    copy_record(valTermRef(t), &b PASS_LD);
     FREECOPYVARS(b, nvars);
   } else
-  { copy_record(valTermRef(t), &b);
+  { copy_record(valTermRef(t), &b PASS_LD);
   }
   assert(b.gstore == gTop);
 
@@ -1619,7 +1617,7 @@ undo_while_saving_term(mark *m, Word term)
   info.nvars = 0;
   info.external = FALSE;
 
-  compile_term_to_heap(term, &info);
+  compile_term_to_heap(term, &info PASS_LD);
   n = info.nvars;
   p = (Word *)info.vars.base;
   while(n-- > 0)
@@ -1630,7 +1628,7 @@ undo_while_saving_term(mark *m, Word term)
   b.data = info.code.base;
   b.gstore = allocGlobal(info.size);
   INITCOPYVARS(b, info.nvars);
-  copy_record(term, &b);
+  copy_record(term, &b PASS_LD);
   FREECOPYVARS(b, info.nvars);
   assert(b.gstore == gTop);
   discardBuffer(&info.code);

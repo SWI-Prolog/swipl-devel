@@ -142,9 +142,6 @@ simpleMutex _PL_mutexes[] =
   PTHREAD_MUTEX_INITIALIZER		/* L_TERM */
 };
 
-#define LOCK()   PL_LOCK(L_THREAD)
-#define UNLOCK() PL_UNLOCK(L_THREAD)
-
 #ifdef USE_CRITICAL_SECTIONS
 
 static void
@@ -177,6 +174,7 @@ DllMain(HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved)
 
 #endif /*USE_CRITICAL_SECTIONS*/
 
+
 		 /*******************************
 		 *	  LOCAL PROTOTYPES	*
 		 *******************************/
@@ -188,6 +186,49 @@ static void	unaliasThread(atom_t name);
 static void	run_thread_exit_hooks();
 static void	free_thread_info(PL_thread_info_t *info);
 static void	set_system_thread_id(PL_thread_info_t *info);
+
+
+		 /*******************************
+		 *	LOW-LEVEL UTILIIES	*
+		 *******************************/
+
+#ifdef HAVE_ASM_ATOMIC_H
+#include <asm/atomic.h>
+#endif
+
+void
+PL_atomic_inc(int *addr)
+{
+#ifdef HAVE_ASM_ATOMIC_H
+  atomic_inc((atomic_t *)addr);
+#else
+  PL_LOCK(L_MISC);
+  (*addr)++;
+  PL_UNLOCK(L_MISC);
+#endif
+}
+
+
+void
+PL_atomic_dec(int *addr)
+{
+#ifdef HAVE_ASM_ATOMIC_H
+  atomic_dec((atomic_t *)addr);
+#else
+  PL_LOCK(L_MISC);
+  (*addr)--;
+  PL_UNLOCK(L_MISC);
+#endif
+}
+
+#undef LOCK				/* clash with asm/atomic.h */
+
+		 /*******************************
+		 *	LOCK ON L_THREAD	*
+		 *******************************/
+
+#define LOCK()   PL_LOCK(L_THREAD)
+#define UNLOCK() PL_UNLOCK(L_THREAD)
 
 
 		 /*******************************
@@ -1677,14 +1718,40 @@ only one processor is doing the  job,   where  atom-gc  is a distributed
 activity in the POSIX based code.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef WIN32
+
+void					/* For comments, see above */
+forThreadLocalData(void (*func)(PL_local_data_t *))
+{ int i;
+  int me = PL_thread_self();
+
+  for(i=1; i<MAX_THREADS; i++)
+  { if ( threads[i].thread_data && i != me &&
+	 threads[i].status == PL_THREAD_RUNNING )
+    { HANDLE win_thread = pthread_getw32threadhandle_np(threads[i].tid);
+
+      if ( SuspendThread(win_thread) != -1L )
+      { (*func)(threads[i].thread_data);
+	ResumeThread(win_thread);
+      }
+    }
+  }
+}
+
+#else /*WIN32*/
+
 #include <signal.h>
 
 #ifndef SA_RESTART
 #define SA_RESTART 0
 #endif
 
+static void (*ldata_function)(PL_local_data_t *data);
+
+#define SIG_MARKATOMS SIGHUP
+
 static void
-threadMarkAtoms(int sig)
+doThreadLocalData(int sig)
 {
 #ifdef __linux__
   pid_t me = getpid();
@@ -1700,7 +1767,7 @@ threadMarkAtoms(int sig)
 #else
     if ( threads[i].tid == me )
 #endif
-    { markAtomsOnStacks(threads[i].thread_data);
+    { (*ldata_function)(threads[i].thread_data);
       break;
     }
   }
@@ -1714,37 +1781,16 @@ threadMarkAtoms(int sig)
 }
 
 
-#define SIG_MARKATOMS SIGHUP
-
-#ifdef WIN32
-
-void					/* For comments, see above */
-threadMarkAtomsOtherThreads()
-{ int i;
-  int me = PL_thread_self();
-
-  for(i=1; i<MAX_THREADS; i++)
-  { if ( threads[i].thread_data && i != me &&
-	 threads[i].status == PL_THREAD_RUNNING )
-    { HANDLE win_thread = pthread_getw32threadhandle_np(threads[i].tid);
-
-      if ( SuspendThread(win_thread) != -1L )
-      { markAtomsOnStacks(threads[i].thread_data);
-	ResumeThread(win_thread);
-      }
-    }
-  }
-}
-
-#else /*WIN32*/
-
 void
-threadMarkAtomsOtherThreads()
+forThreadLocalData(void (*func)(PL_local_data_t *))
 { int i;
   struct sigaction old;
   struct sigaction new;
   int me = PL_thread_self();
   int signalled = 0;
+
+  assert(ldata_function == NULL);
+  ldata_function = func;
 
 #ifdef HAVE_SEM_INIT
   sem_init(&sem_mark, 0, 0);
@@ -1755,7 +1801,7 @@ threadMarkAtomsOtherThreads()
 #endif
 
   memset(&new, 0, sizeof(new));
-  new.sa_handler = threadMarkAtoms;
+  new.sa_handler = doThreadLocalData;
   new.sa_flags   = SA_RESTART;
   sigaction(SIG_MARKATOMS, &new, &old);
 
@@ -1794,9 +1840,24 @@ threadMarkAtomsOtherThreads()
   DEBUG(1, Sdprintf("done!\n"));
 
   sigaction(SIG_MARKATOMS, &old, NULL);
+
+  assert(ldata_function == func);
+  ldata_function = NULL;
 }
 
 #endif /*WIN32*/
+
+void
+threadMarkAtomsOtherThreads(void)
+{ forThreadLocalData(markAtomsOnStacks);
+}
+
+
+void
+markPredicatesOtherThreads(void)
+{ forThreadLocalData(markPredicatesInEnvironments);
+}
+
 
 		 /*******************************
 		 *	DEBUGGING SUPPORT	*

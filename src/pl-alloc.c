@@ -517,9 +517,8 @@ inline  as  it is simple and usualy very time critical.
 
 #if O_SHIFT_STACKS
 Word
-allocGlobal(int n)
-{ GET_LD
-  Word result;
+allocGlobal(int n ARG_LD)
+{ Word result;
 
   if ( roomStack(global) < (long) n * sizeof(word) )
   { growStacks(NULL, NULL, NULL, FALSE, TRUE, FALSE);
@@ -537,9 +536,8 @@ allocGlobal(int n)
 #else
 
 static inline Word
-__allocGlobal(int n)
-{ GET_LD
-  Word result = gTop;
+__allocGlobal(int n ARG_LD)
+{ Word result = gTop;
 
   requireStack(global, n * sizeof(word));
   gTop += n;
@@ -547,11 +545,12 @@ __allocGlobal(int n)
   return result;
 }
 
-Word allocGlobal(int n)
-{ return __allocGlobal(n);
+Word allocGlobal__LD(int n ARG_LD)
+{ return __allocGlobal(n PASS_LD);
 }
 
-#define allocGlobal(n) __allocGlobal(n)
+#undef allocGlobal			/* use inline version here */
+#define allocGlobal(n) __allocGlobal(n PASS_LD)
 
 #endif
 
@@ -572,7 +571,8 @@ globalFunctor(functor_t f)
 
 Word
 newTerm(void)
-{ Word t = allocGlobal(1);
+{ GET_LD
+  Word t = allocGlobal(1);
 
   setVar(*t);
 
