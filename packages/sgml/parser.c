@@ -815,12 +815,12 @@ process_entity_declaraction(dtd *dtd, const ichar *decl)
   } else
   { if ( isparam )
       e->type = ET_LITERAL;
-    else
+    else				/* optional cdata!? */
     { if ( (s=isee_identifier(dtd, decl, "cdata")) )
       { decl = s;
 	e->type = ET_LITERAL;
       } else
-	return gripe(ERC_SYNTAX_ERROR, "Illegal entity value", decl);
+	e->type = ET_LITERAL;
     }
   }
 

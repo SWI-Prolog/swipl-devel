@@ -1,3 +1,7 @@
+* FIXED: Allow for <!ENTITY name 'value'> (i.e. without CDATA type decl).
+
+* FIXED: Allow for <!DOCTYPE name [DTD]> (i.e. no public nor system)
+
 * FIXED: Avoid crash on bad attribute-list
 
 * ADDED: Reporting errors and warnings through print_message/2.
