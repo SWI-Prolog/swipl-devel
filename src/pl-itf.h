@@ -417,7 +417,16 @@ __pl_export int		PL_unify_term(term_t t, ...);
 		 *	  FILENAME SUPPORT	*
 		 *******************************/
 
-__pl_export int		PL_get_filename(term_t n, char **name, int flags);
+#define PL_FILE_ABSOLUTE	0x01	/* return absolute path */
+#define PL_FILE_OSPATH		0x02	/* return path in OS notation */
+#define PL_FILE_SEARCH		0x04	/* use file_search_path */
+#define PL_FILE_EXIST		0x08	/* demand file to exist */
+#define PL_FILE_READ		0x10	/* demand read-access */
+#define PL_FILE_WRITE		0x20	/* demand write-access */
+#define PL_FILE_EXECUTE		0x40	/* demand execute-access */
+#define PL_FILE_NOERRORS	0x80	/* do not raise exceptions */
+
+__pl_export int		PL_get_file_name(term_t n, char **name, int flags);
 __pl_export void	PL_changed_cwd(void); /* foreign code changed CWD */
 __pl_export const char *PL_cwd();
 

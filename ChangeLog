@@ -1,6 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: PL_get_file_name() to fetch the name of files from Prolog
+    terms with options to include search, test properties, etc.
+    
+  * REMOVED: Undocumented interface function PL_get_filename().  Please use
+    the new PL_get_file_name(), providing a stable and much more flexible
+    API.
+
   * FIXED: compilation error on systems where profiling doesn't work
     (Pierre Barbier de Reuille).
 

@@ -198,7 +198,7 @@ pl_rc_save_archive(term_t rc_h, term_t to)
 
   if ( !get_rc(rc_h, &rc) )
     return FALSE;
-  if ( !PL_get_filename(to, &file, 0) &&
+  if ( !PL_get_file_name(to, &file, 0) &&
        !PL_is_variable(to) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_file_name, to);
 

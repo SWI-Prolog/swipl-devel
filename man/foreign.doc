@@ -1724,6 +1724,68 @@ times PL_thread_attach_engine() has been called.
 \end{description}
 
 
+\subsection{Catching Signals (Software Interrupts)}	\label{sec:csignal}
+
+SWI-Prolog offers both a C and Prolog interface to deal with software
+interrupts (signals). The Prolog mapping is defined in
+\secref{signal}. This subsection deals with handling signals from C.
+
+If a signal is not used by Prolog and the handler does not call Prolog
+in any way, the native signal interface routines may be used.
+
+Some versions of SWI-Prolog, notably running on popular Unix platforms,
+handle \const{SIG_SEGV} for guarding the Prolog stacks. If the
+application whishes to handle this signal too, it should use PL_signal()
+to install its handler after initialisating Prolog. SWI-Prolog will pass
+\const{SIG_SEGV} to the user code if it detected the signal is not
+related to a Prolog stack overflow.
+
+Any handler that wishes to call one of the Prolog interface functions
+should call PL_signal() for its installation.
+
+\begin{description}
+    \cfunction{void (*)()}{PL_signal}{sig, func}
+This function is equivalent to the BSD-Unix signal() function,
+regardless of the platform used.  The signal handler is blocked
+while the signal routine is active, and automatically reactivated
+after the handler returns.
+
+After a signal handler is registered using this function, the native
+signal interface redirects the signal to a generic signal handler inside
+SWI-Prolog. This generic handler validates the environment, creates a
+suitable environment for calling the interface functions described in
+this chapter and finally calls the registered user-handler.
+
+By default, signals are handled asynchronously (i.e.\ at the time they
+arrive). It is inheritly dangerous to call extensive code fragments,
+and especially exception related code from asynchronous handlers. The
+interface allows for \jargon{synchronous} handling of signals. In this
+case the native OS handler just schedules the signal using PL_raise(),
+which is checked by PL_handle_signals() at the call- and redo-port. This
+behaviour is realised by or-ing \arg{sig} with the constant
+\const{PL_SIGSYNC}.%
+    \footnote{A better default would be to use synchronous handling,
+	      but this interface preserves backward compatibility.}
+
+Signal handling routines may raise exceptions using
+PL_raise_exception().  The use of PL_throw() is not safe.  If a synchronous
+handler raises an exception, the exception is delayed to the next call
+to PL_handle_signals();
+
+    \cfunction{int}{PL_handle_signals}{void}
+Handle any signals pending from PL_raise(). PL_handle_signals() is
+called at each pass through the call- and redo-port at a safe point.
+Exceptions raised by the handler using PL_raise_exception() are properly
+passed to the environment.
+
+The user may call this function inside long-running foreign functions
+to handle scheduled interrupts.  This routine returns the number of
+signals handled.  If a handler raises an exception, the return value
+is -1 and the calling routine should return with \const{FALSE} as
+soon as possible.
+\end{description}
+
+
 \subsection{Miscellaneous}
 
 \subsubsection{Term Comparison}
@@ -1821,65 +1883,41 @@ compatibility with older records.
 \end{description}
 
 
-\subsection{Catching Signals (Software Interrupts)}	\label{sec:csignal}
+\subsubsection{Getting file names}		\label{sec:cfilenames}
 
-SWI-Prolog offers both a C and Prolog interface to deal with software
-interrupts (signals). The Prolog mapping is defined in
-\secref{signal}. This subsection deals with handling signals from C.
-
-If a signal is not used by Prolog and the handler does not call Prolog
-in any way, the native signal interface routines may be used.
-
-Some versions of SWI-Prolog, notably running on popular Unix platforms,
-handle \const{SIG_SEGV} for guarding the Prolog stacks. If the
-application whishes to handle this signal too, it should use PL_signal()
-to install its handler after initialisating Prolog. SWI-Prolog will pass
-\const{SIG_SEGV} to the user code if it detected the signal is not
-related to a Prolog stack overflow.
-
-Any handler that wishes to call one of the Prolog interface functions
-should call PL_signal() for its installation.
+The function PL_get_file_name() provides access to Prolog filenames and
+its file-search mechanism described with absolute_file_name/3. Its
+existence is motivated to realise a uniform interface to deal with
+file-properties, search, naming conventions etc.\ from foreign code.
 
 \begin{description}
-    \cfunction{void (*)()}{PL_signal}{sig, func}
-This function is equivalent to the BSD-Unix signal() function,
-regardless of the platform used.  The signal handler is blocked
-while the signal routine is active, and automatically reactivated
-after the handler returns.
+    \cfunction{int}{PL_get_file_name}{term_t spec, char **name, int flags}
+Translate a Prolog term into a file name.  The name is stored in the
+static buffer ring described with PL_get_chars() option
+\const{BUF_RING}.  \arg{flags} is a bit-mask controlling the conversion
+process.  Options are:
 
-After a signal handler is registered using this function, the native
-signal interface redirects the signal to a generic signal handler inside
-SWI-Prolog. This generic handler validates the environment, creates a
-suitable environment for calling the interface functions described in
-this chapter and finally calls the registered user-handler.
-
-By default, signals are handled asynchronously (i.e.\ at the time they
-arrive). It is inheritly dangerous to call extensive code fragments,
-and especially exception related code from asynchronous handlers. The
-interface allows for \jargon{synchronous} handling of signals. In this
-case the native OS handler just schedules the signal using PL_raise(),
-which is checked by PL_handle_signals() at the call- and redo-port. This
-behaviour is realised by or-ing \arg{sig} with the constant
-\const{PL_SIGSYNC}.%
-    \footnote{A better default would be to use synchronous handling,
-	      but this interface preserves backward compatibility.}
-
-Signal handling routines may raise exceptions using
-PL_raise_exception().  The use of PL_throw() is not safe.  If a synchronous
-handler raises an exception, the exception is delayed to the next call
-to PL_handle_signals();
-
-    \cfunction{int}{PL_handle_signals}{void}
-Handle any signals pending from PL_raise(). PL_handle_signals() is
-called at each pass through the call- and redo-port at a safe point.
-Exceptions raised by the handler using PL_raise_exception() are properly
-passed to the environment.
-
-The user may call this function inside long-running foreign functions
-to handle scheduled interrupts.  This routine returns the number of
-signals handled.  If a handler raises an exception, the return value
-is -1 and the calling routine should return with \const{FALSE} as
-soon as possible.
+\begin{description}
+    \definition{\const{PL_FILE_ABSOLUTE}}
+Return an absolute path to the requested file.
+    \definition{\const{PL_FILE_OSPATH}}
+Return a the name using the hosting OS conventions.  On MS-Windows,
+\chr{\} is used to seperate directories rather than the canonical
+\chr{/}.
+    \definition{\const{PL_FILE_SEARCH}}
+Invoke absolute_file_name/3.  This implies rules from file_search_path/2
+are used.
+    \definition{\const{PL_FILE_EXIST}}
+Demand the path to refer to an existing entity.
+    \definition{\const{PL_FILE_READ}}
+Demand read-access on the result.
+    \definition{\const{PL_FILE_WRITE}}
+Demand write-access on the result.
+    \definition{\const{PL_FILE_EXECUTE}}
+Demand execute-access on the result.
+    \definition{\const{PL_FILE_NOERRORS}}
+Do not raise any exceptions.
+\end{description}
 \end{description}
 
 

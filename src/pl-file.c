@@ -2636,19 +2636,88 @@ unifyTime(term_t t, long time)
 }
 
 
+static void
+add_option(term_t options, functor_t f, atom_t val)
+{ term_t head = PL_new_term_ref();
+
+  PL_unify_list(options, head, options);
+  PL_unify_term(head, PL_FUNCTOR, f, PL_ATOM, val);
+
+  PL_reset_term_refs(head);
+}
+
 int
-PL_get_filename(term_t n, char **namep, int flags)
+PL_get_file_name(term_t n, char **namep, int flags)
 { char *name;
   char tmp[MAXPATHLEN];
+  char ospath[MAXPATHLEN];
 
-  if ( !PL_get_chars_ex(n, &name, CVT_ALL) )
-    fail;
+  if ( flags & PL_FILE_SEARCH )
+  { predicate_t pred = PL_predicate("absolute_file_name", 3, "system");
+    term_t av = PL_new_term_refs(3);
+    term_t options = PL_copy_term_ref(av+2);
+    int cflags = ((flags&PL_FILE_NOERRORS) ? PL_Q_CATCH_EXCEPTION
+					   : PL_Q_PASS_EXCEPTION);
+
+    PL_put_term(av+0, n);
+    
+    if ( flags & PL_FILE_EXIST )
+      add_option(options, FUNCTOR_access1, ATOM_exist);
+    if ( flags & PL_FILE_READ )
+      add_option(options, FUNCTOR_access1, ATOM_read);
+    if ( flags & PL_FILE_WRITE )
+      add_option(options, FUNCTOR_access1, ATOM_write);
+    if ( flags & PL_FILE_EXECUTE )
+      add_option(options, FUNCTOR_access1, ATOM_execute);
+
+    PL_unify_nil(options);
+
+    if ( !PL_call_predicate(NULL, cflags, pred, av) )
+      fail;
+    
+    return PL_get_chars(av+1, namep, CVT_ATOMIC|BUF_RING);
+  }
+
+  if ( flags & PL_FILE_NOERRORS )
+  { if ( !PL_get_chars(n, &name, CVT_ALL) )
+      fail;
+  } else
+  { if ( !PL_get_chars_ex(n, &name, CVT_ALL) )
+      fail;
+  }
 
   if ( trueFeature(FILEVARS_FEATURE) )
   { if ( !(name = ExpandOneFile(name, tmp)) )
       fail;
   }
+  
+  if ( !(flags & PL_FILE_NOERRORS) )
+  { atom_t op = 0;
 
+    if ( (flags&PL_FILE_READ) && !AccessFile(name, ACCESS_READ) )
+      op = ATOM_read;
+    if ( !op && (flags&PL_FILE_WRITE) && !AccessFile(name, ACCESS_WRITE) )
+      op = ATOM_write;
+    if ( !op && (flags&PL_FILE_EXECUTE) && !AccessFile(name, ACCESS_EXECUTE) )
+      op = ATOM_execute;
+
+    if ( op )
+      return PL_error(NULL, 0, NULL, ERR_PERMISSION, ATOM_file, op, n);
+		    
+    if ( (flags & PL_FILE_EXIST) && !AccessFile(name, ACCESS_EXIST) )
+      return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_file, n);
+  }
+
+  if ( flags & PL_FILE_ABSOLUTE )
+  { if ( !(name = AbsoluteFile(name, tmp)) )
+      fail;
+  }
+
+  if ( flags & PL_FILE_OSPATH )
+  { if ( !(name = OsPath(name, ospath)) )
+      fail;
+  }
+    
   *namep = buffer_string(name, BUF_RING);
   succeed;
 }
@@ -2658,7 +2727,7 @@ word
 pl_time_file(term_t name, term_t t)
 { char *fn;
 
-  if ( PL_get_filename(name, &fn, 0) )
+  if ( PL_get_file_name(name, &fn, 0) )
   { long time;
 
     if ( (time = LastModifiedFile(fn)) == -1 )
@@ -2675,7 +2744,7 @@ word
 pl_size_file(term_t name, term_t len)
 { char *n;
 
-  if ( PL_get_filename(name, &n, 0) )
+  if ( PL_get_file_name(name, &n, 0) )
   { long size;
 
     if ( (size = SizeFile(n)) < 0 )
@@ -2712,7 +2781,7 @@ pl_access_file(term_t name, term_t mode)
 
   if ( !PL_get_atom(mode, &m) )
     return PL_error("access_file", 2, NULL, ERR_TYPE, ATOM_atom, mode);
-  if ( !PL_get_filename(name, &n, 0) )
+  if ( !PL_get_file_name(name, &n, 0) )
     fail;
 
   if ( m == ATOM_none )
@@ -2753,7 +2822,7 @@ pl_read_link(term_t file, term_t link, term_t to)
 { char *n, *l, *t;
   char buf[MAXPATHLEN];
 
-  if ( !PL_get_filename(file, &n, 0) )
+  if ( !PL_get_file_name(file, &n, 0) )
     fail;
 
   if ( (l = ReadLink(n, buf)) &&
@@ -2770,7 +2839,7 @@ word
 pl_exists_file(term_t name)
 { char *n;
 
-  if ( !PL_get_filename(name, &n, 0) )
+  if ( !PL_get_file_name(name, &n, 0) )
     fail;
   
   return ExistsFile(n);
@@ -2781,7 +2850,7 @@ word
 pl_exists_directory(term_t name)
 { char *n;
 
-  if ( !PL_get_filename(name, &n, 0) )
+  if ( !PL_get_file_name(name, &n, 0) )
     fail;
   
   return ExistsDirectory(n);
@@ -2803,7 +2872,7 @@ word
 pl_delete_file(term_t name)
 { char *n;
 
-  if ( !PL_get_filename(name, &n, 0) )
+  if ( !PL_get_file_name(name, &n, 0) )
     fail;
   
   return RemoveFile(n);
@@ -2814,7 +2883,7 @@ word
 pl_delete_directory(term_t name)
 { char *n;
 
-  if ( !PL_get_filename(name, &n, 0) )
+  if ( !PL_get_file_name(name, &n, 0) )
     fail;
   
   if ( rmdir(n) == 0 )
@@ -2829,7 +2898,7 @@ word
 pl_make_directory(term_t name)
 { char *n;
 
-  if ( !PL_get_filename(name, &n, 0) )
+  if ( !PL_get_file_name(name, &n, 0) )
     fail;
   
   if ( mkdir(n, 0777) == 0 )
@@ -2844,8 +2913,8 @@ word
 pl_same_file(term_t file1, term_t file2)
 { char *n1, *n2;
 
-  if ( PL_get_filename(file1, &n1, 0) &&
-       PL_get_filename(file2, &n2, 0) )
+  if ( PL_get_file_name(file1, &n1, 0) &&
+       PL_get_file_name(file2, &n2, 0) )
     return SameFile(n1, n2);
 
   fail;
@@ -2856,8 +2925,8 @@ word
 pl_rename_file(term_t old, term_t new)
 { char *o, *n;
 
-  if ( PL_get_filename(old, &o, 0) &&
-       PL_get_filename(new, &n, 0) )
+  if ( PL_get_file_name(old, &o, 0) &&
+       PL_get_file_name(new, &n, 0) )
   { if ( RenameFile(o, n) )
       succeed;
 
@@ -2882,7 +2951,7 @@ pl_absolute_file_name(term_t name, term_t expanded)
 { char *n;
   char tmp[MAXPATHLEN];
 
-  if ( PL_get_filename(name, &n, 0) &&
+  if ( PL_get_file_name(name, &n, 0) &&
        (n = AbsoluteFile(n, tmp)) )
     return PL_unify_atom_chars(expanded, n);
 
@@ -2894,7 +2963,7 @@ word
 pl_is_absolute_file_name(term_t name)
 { char *n;
 
-  if ( PL_get_filename(name, &n, 0) &&
+  if ( PL_get_file_name(name, &n, 0) &&
        IsAbsolutePath(n) )
     succeed;
 
@@ -2913,7 +2982,7 @@ pl_working_directory(term_t old, term_t new)
   { if ( PL_compare(old, new) != 0 )
     { char *n;
 
-      if ( PL_get_filename(new, &n, 0) )
+      if ( PL_get_file_name(new, &n, 0) )
       { if ( ChDir(n) )
 	  succeed;
 
@@ -3079,7 +3148,7 @@ foreign_t
 pl_mark_executable(term_t path)
 { char *name;
 
-  if ( !PL_get_filename(path, &name, 0) )
+  if ( !PL_get_file_name(path, &name, 0) )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_source_sink, path);
 
   return MarkExecutable(name);
@@ -3091,7 +3160,7 @@ word
 pl_make_fat_filemap(term_t dir)
 { char *n;
 
-  if ( PL_get_filename(dir, &n, 0) )
+  if ( PL_get_file_name(dir, &n, 0) )
   { if ( _xos_make_filemap(n) == 0 )
       succeed;
 

@@ -111,7 +111,7 @@ static foreign_t
 pl_rl_read_init_file(term_t file)
 { char *f;
 
-  if ( PL_get_filename(file, &f, 0) )
+  if ( PL_get_file_name(file, &f, 0) )
   {
 #ifdef O_XOS
     char buf[MAXPATHLEN];
