@@ -36,7 +36,6 @@
 
 #ifndef HAVE_ALLOCA
 #define MAXFIELDWIDTH 1024
-#define MAXRECORDWIDTH 2048
 #endif
 
 #include <SWI-Stream.h>
@@ -1044,7 +1043,7 @@ digitval(int chr)
 
 
 static void
-tab_memcpy(Table table, int flags, char *to, char *from, int len)
+tab_memcpy(Table table, int flags, char *to, const char *from, int len)
 { int i = len;
   char *t = to;
 
@@ -1089,6 +1088,52 @@ tab_memcpy(Table table, int flags, char *to, char *from, int len)
 
 
 static int
+unify_field_text(Table t, int flags, int type,
+		 term_t arg, const char *s, int len)
+{ char *tmp;
+  int rval = FALSE;
+#ifndef HAVE_ALLOCA
+  char buf[256];
+#endif
+
+  if ( (flags&(FIELD_DOWNCASE|FIELD_MAPSPACETOUNDERSCORE)) ||
+       t->escape >= 0 )
+  {
+#ifdef HAVE_ALLOCA
+    tmp = alloca(len+1);
+#else
+    if ( len < 256 )
+      tmp = buf;
+    else
+      tmp = malloc(len+1);
+#endif
+    tab_memcpy(t, flags, tmp, s, len);
+    len = strlen(tmp);
+    s = tmp;
+  }
+
+  switch(type)
+  { case FIELD_ATOM:
+      rval = PL_unify_atom_nchars(arg, len, s);
+      break;
+    case FIELD_STRING:
+      rval = PL_unify_string_nchars(arg, len, s);
+      break;
+    case FIELD_CODELIST:
+      rval = PL_unify_list_nchars(arg, len, s);
+      break;
+  }
+
+#ifndef HAVE_ALLOCA
+  if ( buf != tmp )
+    free(tmp);
+#endif  
+  return rval;
+}
+
+
+
+static int
 read_field(Table t, Field f, table_offset_t start, table_offset_t *end, term_t arg)
 { char *s, *z;
   int type;
@@ -1104,24 +1149,7 @@ read_field(Table t, Field f, table_offset_t start, table_offset_t *end, term_t a
     case_atom:;
     case FIELD_STRING:
     case FIELD_CODELIST:
-    { int len = z-s;
-#ifdef HAVE_ALLOCA
-      char *tmp = alloca(len+1);
-#else
-      char tmp[MAXFIELDWIDTH];
-#endif
-
-      tab_memcpy(t, f->flags, tmp, s, len);
-
-      switch(type)
-      { case FIELD_ATOM:
-	  return PL_unify_atom_chars(arg, tmp);
-	case FIELD_STRING:
-	  return PL_unify_string_chars(arg, tmp);
-	case FIELD_CODELIST:
-	  return PL_unify_list_chars(arg, tmp);
-      }
-    }
+      return unify_field_text(t, f->flags, arg, type, s, z-s);
     case FIELD_INTEGER:
     { long l = 0;
       char *a = s;
@@ -1251,17 +1279,8 @@ pl_read_record_data(term_t handle, term_t from, term_t to, term_t record)
     return FALSE;
 
   len = end-start-1;
-{
-#ifdef HAVE_ALLOCA
-  char *buf = alloca(len+1);
-#else
-  char buf[MAXRECORDWIDTH];
-#endif
-  strncpy(buf, start+table->window, len);
-  buf[len] = '\0';
 
-  return PL_unify_string_chars(record, buf);
-}
+  return PL_unify_string_nchars(record, len, start+table->window);
 }
 
 
@@ -1371,8 +1390,15 @@ match_field(Table t, Field f, QueryField q, table_offset_t start, table_offset_t
     { int len = z-a;
 #ifdef HAVE_ALLOCA
       char *tmp = alloca(len+1);
+#define DEALLOC()
 #else
-      char tmp[MAXFIELDWIDTH];
+      char buf[1024];
+
+      if ( len+1<1024 )
+	tmp = buf;
+      else
+	tmp = malloc(len+1);
+#define DEALLOC() do { if ( tmp != buf ) free(tmp); } while(0)
 #endif
 
       tab_memcpy(t, f->flags, tmp, a, len);
@@ -1390,24 +1416,32 @@ match_field(Table t, Field f, QueryField q, table_offset_t start, table_offset_t
 	    break;
 	}
 
+	DEALLOC();
 	return MATCH_EQ;
       }
 
       if ( q->flags & QUERY_EXACT )
       { if ( q->ord )
-	{ DEBUG(Sdprintf("Using ord %s for '%s' <-> '%s'\n",
+	{ int r = compare_strings(q->value.s, tmp, -1, q->ord);
+
+	  DEBUG(Sdprintf("Using ord %s for '%s' <-> '%s'\n",
 			 PL_atom_chars(q->ord->name),
 			 q->value.s, tmp));
-	  return compare_strings(q->value.s, tmp, -1, q->ord);
+	  DEALLOC();
+	  return r;
 	} else
 	{ int r = strcmp(q->value.s, tmp);
+	  DEALLOC();
 	  return r < 0 ? MATCH_LT : r > 0 ? MATCH_GT : MATCH_EQ;
 	}
       } else if ( q->flags & QUERY_PREFIX )
       { if ( q->ord )
-	  return compare_strings(q->value.s, tmp, q->length, q->ord);
-	else
+	{ int r = compare_strings(q->value.s, tmp, q->length, q->ord);
+	  DEALLOC();
+	  return r;
+	} else
 	{ int r = strncmp(q->value.s, tmp, q->length);
+	  DEALLOC();
 	  return r < 0 ? MATCH_LT : r > 0 ? MATCH_GT : MATCH_EQ;
 	}
       } else if ( q->flags & QUERY_SUBSTRING ) /* Use Boyle Moore */
@@ -1417,8 +1451,11 @@ match_field(Table t, Field f, QueryField q, table_offset_t start, table_offset_t
 
 	  for(i=0; i+ls<=len; i++)
 	  { if ( compare_strings(q->value.s, &tmp[i], ls, q->ord) == 0 )
+	    { DEALLOC();
 	      return MATCH_EQ;
+	    }
 	  }
+          DEALLOC();
 	  return MATCH_NE;
 	} else
 	{ int ls = q->length;
@@ -1426,8 +1463,11 @@ match_field(Table t, Field f, QueryField q, table_offset_t start, table_offset_t
 
 	  for(i=0; i+ls<=len; i++)
 	  { if ( strncmp(q->value.s, &tmp[i], ls) == 0 )
+	    { DEALLOC();
 	      return MATCH_EQ;
+	    }
 	  }
+	  DEALLOC();
 	  return MATCH_NE;
 	}
       }
