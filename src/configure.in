@@ -264,12 +264,9 @@ if test ! "$runtime" = "yes" -a "$configreadline" = "yes"; then
   if test "$ac_cv_lib_readline_main" = "yes"; then
     dnl rl_readline_state is a variable!
     AC_CHECK_HEADERS(readline/history.h)
-    AC_CHECK_FUNCS(rl_completion_matches
-		   rl_insert_close
-		   rl_readline_state
-		   rl_set_prompt
-		   rl_clear_pending_input
-		   rl_cleanup_after_signal)
+    AC_CHECK_FUNCS(rl_completion_matches rl_insert_close rl_readline_state)
+    AC_CHECK_FUNCS(rl_set_prompt rl_clear_pending_input)
+    AC_CHECK_FUNCS(rl_cleanup_after_signal)
     AC_MSG_CHECKING(whether to install readline.3)
     INSTALLRLMAN=install_rlman
     if test -z "$MANPATH"; then MANPATH=/usr/man; fi

@@ -1,7 +1,7 @@
 			SWI-Prolog ChangeLog
 			====================
 
-  * ENHANCED: GNU-readline interface.  Detect unful additions from readline
+  * ENHANCED: GNU-readline interface.  Detect useful additions from readline
     4.2, avoid type-conflicts and handle re-entrance through XPCE much more
     cleanly as well as aborts.
 
