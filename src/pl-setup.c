@@ -660,10 +660,13 @@ pl_on_signal(term_t sig, term_t name, term_t old, term_t new)
 
   if ( PL_get_integer(sig, &sign) && sign >= 1 && sign <= MAXSIGNAL )
   { TRY(PL_unify_atom_chars(name, signal_name(sign)));
-  } else if ( PL_get_atom_chars(name, &sn) && (sign = signal_index(sn)) != -1 )
-  { TRY(PL_unify_integer(sig, sign));
+  } else if ( PL_get_atom_chars(name, &sn) )
+  { if ( (sign = signal_index(sn)) != -1 )
+    { TRY(PL_unify_integer(sig, sign));
+    } else
+      return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_signal, name);
   } else
-    return PL_error("signal", 4, NULL, ERR_TYPE, ATOM_signal, sig);
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_signal, sig);
 
   sh = &GD->sig_handlers[sign];
 
@@ -682,7 +685,11 @@ pl_on_signal(term_t sig, term_t name, term_t old, term_t new)
 			   PL_ATOM, def->module->name, 
 			   PL_ATOM, def->functor->name));
     }
-  }
+  } else if ( sh->handler )
+  { TRY(PL_unify_term(old,
+		      PL_FUNCTOR, FUNCTOR_foreign_function1,
+		      PL_POINTER, sh->handler));
+  }    
 
   if ( PL_compare(old, new) == 0 )
     succeed;					/* no change */
@@ -702,15 +709,33 @@ pl_on_signal(term_t sig, term_t name, term_t old, term_t new)
       
       sh = prepareSignal(sign);
       clear(sh, PLSIG_THROW);
+      sh->handler = NULL;
       sh->predicate = pred;
     }
+  } else if ( PL_is_functor(new, FUNCTOR_foreign_function1) )
+  { term_t a = PL_new_term_ref();
+    void *f;
+
+    PL_get_arg(1, new, a);
+
+    if ( PL_get_pointer(a, &f) )
+    { sh = prepareSignal(sign);
+      clear(sh, PLSIG_THROW);
+      sh->handler = f;
+      sh->predicate = NULL;
+
+      succeed;
+    }
+
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_signal_handler, sig);
   } else
-    return PL_error("signal", 4, NULL, ERR_TYPE, ATOM_atom, sig);
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_signal_handler, sig);
 
   succeed;
 }
 
 #endif /*HAVE_SIGNAL*/
+
 
 		 /*******************************
 		 *	       STACKS		*

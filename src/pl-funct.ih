@@ -146,3 +146,4 @@
 #define FUNCTOR_dcall1       MK_FUNCTOR(145, 1)
 #define FUNCTOR_frame3       MK_FUNCTOR(146, 3)
 #define FUNCTOR_trace1       MK_FUNCTOR(147, 1)
+#define FUNCTOR_foreign_function1 MK_FUNCTOR(148, 1)

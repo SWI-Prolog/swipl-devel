@@ -350,7 +350,7 @@ for the other modules, where it is far less fime-critical.
 Actually, for normal operation, consPtr() is a macro from pl-data.h
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if !defined(consPtr) || defined(SECURE_GC)
+#if !defined(consPtr) || defined(SECURE_GC) || defined(_DEBUG)
 #undef consPtr
 
 static inline word

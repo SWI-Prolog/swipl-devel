@@ -2636,7 +2636,7 @@ PL_dispatch(int fd, int wait)
 
 record_t
 PL_record(term_t t)
-{ return compileTermToHeap(t, 0);
+{ return compileTermToHeap(t, R_DUPLICATE);
 }
 
 
@@ -2666,9 +2666,11 @@ PL_erase(record_t r)
 
 record_t
 PL_duplicate_record(record_t r)
-{ r->references++;
-
-  return r;
+{ if ( true(r, R_DUPLICATE) )
+  { r->references++;
+    return r;
+  } else
+    return NULL;
 }
 
 

@@ -689,10 +689,10 @@ assertProcedure(Procedure proc, Clause clause, int where)
   if ( def->hash_info )
   { assert(!(def->indexPattern & NEED_REINDEX));
 
-//    DEBUG(1,
+    DEBUG(1,
 	  if ( !clause->index.varmask )
 	    Sdprintf("Adding non-indexed clause to %s\n", predicateName(def));
-//	 );
+	 );
 
     addClauseToIndex(def, clause, where);
   } else

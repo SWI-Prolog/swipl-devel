@@ -196,9 +196,9 @@ meta(apply-3) :-
 		 *	    TYPE TESTS		*
 		 *******************************/
 
-type(type-1) :-
+type_test(type-1) :-
 	var(_), X = Y, var(X), Y = a, nonvar(X).
-type(type-2) :-
+type_test(type-2) :-
 	atom(hello), \+ atom(10), \+ atom("hello").
 
 
@@ -263,9 +263,32 @@ foo(1, d).
 foo(2, e).
 foo(3, f).
 
+type(atom).
+type(S) :- string_to_atom(S, "string").
+type(42).
+type(3.14).
+type([a, list]).
+type(compound(1)).
+type(compound(A, A)).
+type(compound(_A, _B)).
+
+set(X, 1) :- type(X).
+set(X, 2) :- type(X).
+
 sets(setof-1) :-
 	setof(A-Pairs, setof(B, foo(A,B), Pairs), Result),
 	Result = [1 - [a,d],2 - [b,e],3 - [c,f]].
+sets(setof-2) :-
+	setof(X-Ys, setof(Y, set(X,Y), Ys), R),
+	string_to_atom(S, "string"),
+	R =@= [3.14-[1, 2],
+	       42-[1, 2],
+	       atom-[1, 2],
+	       S-[1, 2],
+	       compound(1)-[1, 2],
+	       [a, list]-[1, 2],
+	       compound(_A, _B)-[1, 2],
+	       compound(A, A)-[1, 2]].
 sets(vars-1) :-
 	'$e_free_variables'(A^satisfy(B^C^(setof(D:E,
 						 (country(E), area(E, D)),
@@ -684,7 +707,7 @@ testset(syntax).
 testset(arithmetic).
 testset(arithmetic_functions).
 testset(floattest).
-testset(type).
+testset(type_test).
 testset(meta).
 testset(term).
 testset(list).

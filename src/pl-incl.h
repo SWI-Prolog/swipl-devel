@@ -243,6 +243,10 @@ A common basis for C keywords.
 #define register
 #endif
 
+#if defined(__GNUC__) && !defined(__OPTIMIZE__)
+#define _DEBUG 1
+#endif
+
 #ifndef HAVE_VOLATILE
 #define volatile
 #endif
@@ -739,7 +743,6 @@ typedef struct data_mark	mark;		/* backtrack mark */
 typedef struct index *		Index;		/* clause indexing */
 typedef struct stack *		Stack;		/* machine stack */
 typedef struct arithFunction * 	ArithFunction;  /* arithmetic function */
-typedef struct assoc *		Assoc;		/* pl-bags.c */
 typedef struct _varDef *	VarDef;		/* pl-comp.c */
 typedef struct extension_cell *	ExtensionCell;  /* pl-ext.c */
 typedef struct abort_handle *	AbortHandle;	/* PL_abort_hook() */
@@ -845,7 +848,9 @@ with one operation, it turns out to be faster as well.
 #define INLINE_F		(0x0001) /* functor */
 
 #define R_DIRTY			(0x0001) /* recordlist */
-#define R_EXTERNAL		(0x0002) /* record */
+#define R_EXTERNAL		(0x0002) /* record: inline atoms */
+#define R_LIST			(0x0004) /* record: include list pointer */
+#define R_DUPLICATE		(0x0008) /* record: include references */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Handling environment (or local stack) frames.
@@ -1210,18 +1215,17 @@ struct fliFrame
 };
 
 struct record
-{ RecordList	list;			/* list I belong to */
-  Record	next;			/* next of chain */
+{ int		size;			/* # bytes of the record */
   int		nvars;			/* # variables in the term */
-  int		gsize;			/* Stack space required (words) */
-  int		size;			/* # bytes of the record */
-  unsigned	flags;			/* Flags, holding */
+  unsigned	gsize : 28;		/* Stack space required (words) */
+  unsigned	flags : 4;		/* Flags, holding */
 					/* ERASED */
 					/* R_EXTERNAL */
+					/* R_DUPLICATE */
+					/* R_LIST */
   int		references;		/* PL_duplicate_record() support */
-#if SIZEOF_LONG != SIZEOF_INT		/* ensure long-aligned buffer */
-  int		pad;
-#endif
+  RecordList	list;			/* list I belong to */
+  Record	next;			/* next of chain */
   char 		buffer[1];		/* array holding codes */
 };
 

@@ -11,6 +11,7 @@
 */
 
 /*#define O_SECURE 1*/
+/*#define O_DEBUG 1*/
 #include "pl-incl.h"
 
 forwards RecordList lookupRecordList(word);
@@ -93,14 +94,21 @@ cleanRecordList(RecordList rl)
 		 *******************************/
 
 
+#undef uint
+#undef uchar
+#define uint unsigned int
+#define uchar unsigned char
+
 #ifndef offsetof
 #define offsetof(structure, field) ((int) &(((structure *)NULL)->field))
 #endif
-#ifndef roundup
-#define roundup(p, n) (((p)+(n)-1 / (n)) * (n))
-#endif
 
-#define SIZERECORD  offsetof(struct record, buffer[0])
+#define SIZERECORD(flags) \
+	((flags & R_LIST)      ? offsetof(struct record, buffer[0]) : \
+	 (flags & R_DUPLICATE) ? offsetof(struct record, list) : \
+	                         offsetof(struct record, references)) \
+
+#define dataRecord(r) ((char *)addPointer(r, SIZERECORD(r->flags)))
 
 typedef struct
 { tmp_buffer code;			/* code buffer */
@@ -115,6 +123,7 @@ typedef struct
 { word w[WORDS_PER_DOUBLE];
 } fword;
 
+
 #define	PL_TYPE_VARIABLE	(1)	/* variable */
 #define PL_TYPE_ATOM		(2)	/* atom */
 #define PL_TYPE_INTEGER	  	(3)	/* big integer */
@@ -127,12 +136,103 @@ typedef struct
 #define PL_TYPE_EXT_COMPOUND	(9)	/* External (inlined) functor */
 
 static void
-addAtomValue(Buffer b, atom_t name)
-{ Atom a = atomValue(name);
-  unsigned int padded = roundup(a->length, sizeof(word));
+addOpCode(CompileInfo info, int code)
+{ addBuffer(&info->code, code, uchar);
+  DEBUG(1, Sdprintf("Added %d, now %d big\n",
+		    code, sizeOfBuffer(&info->code)));
+}
 
-  addBuffer(b, a->length, long);
-  addMultipleBuffer(b, a->name, padded, char);
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+addSizeInt() deals with integers that should  be large enough to specify
+the size of an object on the  stack. This counts for variables, arities,
+sizes of strings and atoms, etc.
+
+Encoding: 7-bits per byte, MSF. All but the last (LSB) have the 8-th bit
+set. This format allows for arbitrary   bit integers and is architecture
+independent.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static inline void
+addSizeInt(CompileInfo info, uint val)
+{ if ( !(val & ~0x7f) )
+    addBuffer(&info->code, val, uchar);
+  else
+  { int zips = ((sizeof(val))*8+7-1)/7 - 1;
+    int leading = TRUE;
+
+    for(; zips >= 0; zips--)
+    { uint d = (val >> zips*7) & 0x7f;
+
+      if ( d || !leading )
+      { if ( zips != 0 )
+	  d |= 0x80;
+	addBuffer(&info->code, d, uchar);
+	leading = FALSE;
+      }
+    }
+  }
+}
+
+
+static void
+addWord(CompileInfo info, word w)
+{ addMultipleBuffer(&info->code, (char *)&w, sizeof(w), char);
+}
+
+
+static inline void
+addChars(CompileInfo info, int len, const char *data)
+{ addSizeInt(info, len);
+
+  addMultipleBuffer(&info->code, data, len, char);
+}
+
+
+static inline void
+addFloat(CompileInfo info, double val)
+{ const char *data = (const char *)&val;
+
+  addMultipleBuffer(&info->code, data, sizeof(val), char);
+}
+
+
+static inline void
+addAtomValue(CompileInfo info, atom_t name)
+{ Atom a = atomValue(name);
+  uint len = a->length;
+
+  addSizeInt(info, a->length);
+
+  addMultipleBuffer(&info->code, a->name, len, char);
+}
+
+
+static void
+addAtom(CompileInfo info, atom_t a)
+{ if ( info->external )
+  { addOpCode(info, PL_TYPE_EXT_ATOM);
+    addAtomValue(info, a);
+  } else
+  { addOpCode(info, PL_TYPE_ATOM);
+    addWord(info, a);
+    PL_register_atom(a);
+  }
+}
+
+
+static void
+addFunctor(CompileInfo info, functor_t f)
+{ if ( info->external )
+  { FunctorDef fd = valueFunctor(f);
+
+    addOpCode(info, PL_TYPE_EXT_COMPOUND);
+    addSizeInt(info, fd->arity);
+    addAtomValue(info, fd->name);
+  } else
+  { addOpCode(info, PL_TYPE_COMPOUND);
+    addBuffer(&info->code, f, word);
+  }
 }
 
 
@@ -150,25 +250,20 @@ right_recursion:
 
       *p = (n<<7)|TAG_ATOM|STG_GLOBAL;
       addBuffer(&info->vars, p, Word);
-      addBuffer(&info->code, PL_TYPE_VARIABLE, long);
-      addBuffer(&info->code, n, long);
+      addOpCode(info, PL_TYPE_VARIABLE);
+      addSizeInt(info, n);
 
       return;
     }
     case TAG_ATOM:
-    { if ( storage(w) == STG_GLOBAL )
+    { if ( storage(w) == STG_GLOBAL )	/* this is a variable */
       { long n = ((long)(w) >> 7);
 
-	addBuffer(&info->code, PL_TYPE_VARIABLE, long);
-	addBuffer(&info->code, n, long);
-      } else if ( info->external )
-      { addBuffer(&info->code, PL_TYPE_EXT_ATOM, long);
-	addAtomValue((Buffer)&info->code, w);
+	addOpCode(info, PL_TYPE_VARIABLE);
+	addSizeInt(info, n);
       } else
-      { addBuffer(&info->code, PL_TYPE_ATOM, long);
-	addBuffer(&info->code, w, atom_t);
-	PL_register_atom(w);
-      }
+	addAtom(info, w);
+
       return;
     }
     case TAG_INTEGER:
@@ -176,11 +271,11 @@ right_recursion:
 
       if ( isTaggedInt(w) )
       { val = valInt(w);
-	addBuffer(&info->code, PL_TYPE_TAGGED_INTEGER, long);
+	addOpCode(info, PL_TYPE_TAGGED_INTEGER);
       } else
       { info->size += sizeof(long)/sizeof(word) + 2;
 	val = valBignum(w);
-	addBuffer(&info->code, PL_TYPE_INTEGER, long);
+	addOpCode(info, PL_TYPE_INTEGER);
       }
       
       addBuffer(&info->code, val, long);
@@ -193,19 +288,15 @@ right_recursion:
       long l  = n*sizeof(word)-pad;
 
       info->size += n+2;
-      addBuffer(&info->code, PL_TYPE_STRING, long);
-      addBuffer(&info->code, l, long);
-      f++;
-      addMultipleBuffer(&info->code, f, n, word);
+      addOpCode(info, PL_TYPE_STRING);
+      addChars(info, l, (const char *)(f+1)); /* +1 to skip header */
       
       return;
     }
     case TAG_FLOAT:
-    { Word v = valIndirectP(w);
-
-      info->size += WORDS_PER_DOUBLE + 2;
-      addBuffer(&info->code, PL_TYPE_FLOAT, long);
-      addMultipleBuffer(&info->code, v, WORDS_PER_DOUBLE, word);
+    { info->size += WORDS_PER_DOUBLE + 2;
+      addOpCode(info, PL_TYPE_FLOAT);
+      addFloat(info, valReal(w));
 
       return;
     }
@@ -214,20 +305,10 @@ right_recursion:
       int arity = arityFunctor(f->definition);
 
       info->size += arity+1;
-      if ( info->external )
-      { FunctorDef fd = valueFunctor(f->definition);
-
-	addBuffer(&info->code, PL_TYPE_EXT_COMPOUND, long);
-	addBuffer(&info->code, fd->arity, long);
-	addAtomValue((Buffer)&info->code, fd->name);
-      } else
-      { addBuffer(&info->code, PL_TYPE_COMPOUND, long);
-	addBuffer(&info->code, f->definition, word);
-      }
+      addFunctor(info, f->definition);
       p = f->arguments;
       for(; --arity > 0; p++)
-      { compile_term_to_heap(p, info);
-      }
+	compile_term_to_heap(p, info);
       goto right_recursion;
     }
     case TAG_REFERENCE:
@@ -247,6 +328,7 @@ compileTermToHeap(term_t t, int flags)
   Record record;
   Word *p;
   int n, size;
+  int rsize = SIZERECORD(flags);
 
   SECURE(checkData(valTermRef(t)));
 
@@ -263,28 +345,33 @@ compileTermToHeap(term_t t, int flags)
     setVar(**p++);
   discardBuffer(&info.vars);
   
-  size = SIZERECORD + sizeOfBuffer(&info.code);
+  size = rsize + sizeOfBuffer(&info.code);
   record = allocHeap(size);
-  record->list  = NULL;			/* ensure initialised memory */
-  record->next  = NULL;			/* idem */
   record->gsize = info.size;
   record->nvars = info.nvars;
   record->size  = size;
-  record->flags = 0;
-  record->references = 1;
-  memcpy(record->buffer, info.code.base, sizeOfBuffer(&info.code));
+  record->flags = flags;
+  if ( flags & R_LIST )
+  { record->list  = NULL;		/* ensure initialised memory */
+    record->next  = NULL;		/* idem */
+  }
+  if ( flags & R_DUPLICATE )
+  { record->references = 1;
+  }
+  memcpy(addPointer(record, rsize), info.code.base, sizeOfBuffer(&info.code));
   discardBuffer(&info.code);
 
-  if ( info.external )
-    set(record, R_EXTERNAL);
+  DEBUG(1, Sdprintf("--> record at %p\n", record));
 
   return record;
 }
 
 
 typedef struct
-{ char *data;
+{ const char *data;
+  const char *base;			/* start of data */
   Word *vars;
+  int  nvars;				/* for se_record() */
   Word gstore;
 } copy_info, *CopyInfo;
 
@@ -306,16 +393,70 @@ typedef struct
 		((b)->data += sizeof(type))
 
 
+static inline int
+fetchOpCode(CopyInfo b)
+{ uchar tag;
+
+  fetchBuf(b, &tag, uchar);
+  DEBUG(1, Sdprintf("fetchOpCode() --> %d, (at %d)\n",
+		    tag, b->data-b->base));
+  return tag;
+}
+
+
+static uint
+fetchSizeInt(CopyInfo b)
+{ uint r = 0;
+  uint end;
+
+  do
+  { uint d = *b->data++;
+    
+    end = !(d & 0x80);
+    r = (r<<7)|(d&0x7f);
+  } while(!end);
+
+  return r;
+}
+
+
+static long
+fetchLong(CopyInfo b)
+{ long val;
+
+  fetchBuf(b, &val, long);
+  return val;
+}
+
+
+static word
+fetchWord(CopyInfo b)
+{ word val;
+
+  fetchBuf(b, &val, word);
+  return val;
+}
+
+
+static void
+fetchFloat(CopyInfo b, void *f)
+{ fetchMultipleBuf(b, f, WORDS_PER_DOUBLE, word);
+}
+
+
 static void
 fetchAtom(CopyInfo b, atom_t *a)
-{ long len;
-  long padded;
+{ unsigned int len = fetchSizeInt(b);
 
-  fetchBuf(b, &len, long);
-  padded = roundup(len, sizeof(word));
-  *a = lookupAtom(b->data, (unsigned int)len);
+  *a = lookupAtom(b->data, len);
 
-  (b)->data += padded;
+  (b)->data += len;
+}
+
+
+static void
+fetchChars(CopyInfo b, unsigned len, Word to)
+{ fetchMultipleBuf(b, (char *)to, len, char);
 }
 
 
@@ -325,12 +466,10 @@ copy_record(Word p, CopyInfo b)
   long tag;
 
 right_recursion:
-  fetchBuf(b, &tag, long);
-  switch(tag)
+  switch( (tag = fetchOpCode(b)) )
   { case PL_TYPE_VARIABLE:
-    { long n;
+    { long n = fetchSizeInt(b);
 
-      fetchBuf(b, &n, long);
       if ( b->vars[n] )
       { if ( p > b->vars[n] )		/* ensure the reference is in the */
 	  *p = makeRef(b->vars[n]);	/* right direction! */
@@ -347,7 +486,7 @@ right_recursion:
       return;
     }
     case PL_TYPE_ATOM:
-    { fetchBuf(b, p, word);
+    { *p = fetchWord(b);
 
       return;
     }
@@ -356,9 +495,8 @@ right_recursion:
       return;
     }
     case PL_TYPE_TAGGED_INTEGER:
-    { long val;
+    { long val = fetchLong(b);
 
-      fetchBuf(b, &val, long);
       *p = consInt(val);
 
       return;
@@ -366,8 +504,7 @@ right_recursion:
     case PL_TYPE_INTEGER:
     { *p = consPtr(b->gstore, TAG_INTEGER|STG_GLOBAL);
       *b->gstore++ = mkIndHdr(1, TAG_INTEGER);
-      fetchBuf(b, b->gstore, word);
-      b->gstore++;
+      *b->gstore++ = fetchLong(b);
       *b->gstore++ = mkIndHdr(1, TAG_INTEGER);
 
       return;
@@ -375,23 +512,23 @@ right_recursion:
     case PL_TYPE_FLOAT:
     { *p = consPtr(b->gstore, TAG_FLOAT|STG_GLOBAL);
       *b->gstore++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
-      fetchMultipleBuf(b, b->gstore, WORDS_PER_DOUBLE, word);
+      fetchFloat(b, b->gstore);
       b->gstore += WORDS_PER_DOUBLE;
       *b->gstore++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 
       return;
     }
     case PL_TYPE_STRING:
-    { long len;
+    { unsigned len = fetchSizeInt(b);
       int lw, pad;
       word hdr;
 
-      fetchBuf(b, &len, long);
-      lw = ((int)len+sizeof(word))/sizeof(word); /* see globalNString() */
-      pad = (lw*sizeof(word) - (int)len);
+      lw = (len+sizeof(word))/sizeof(word); /* see globalNString() */
+      pad = (lw*sizeof(word) - len);
       *p = consPtr(b->gstore, TAG_STRING|STG_GLOBAL);
       *b->gstore++ = hdr = mkStrHdr(lw, pad);
-      fetchMultipleBuf(b, b->gstore, lw, word);
+      b->gstore[lw-1] = 0L;		/* zero-padding */
+      fetchChars(b, len, b->gstore);
       b->gstore += lw;
       *b->gstore++ = hdr;
 
@@ -401,7 +538,7 @@ right_recursion:
     long arity;
     case PL_TYPE_COMPOUND:
 
-      fetchBuf(b, &fdef, word);
+      fdef = fetchWord(b);
       arity = arityFunctor(fdef);
 
     compound:
@@ -415,7 +552,7 @@ right_recursion:
     case PL_TYPE_EXT_COMPOUND:
     { atom_t name;
 
-      fetchBuf(b, &arity, long);
+      arity = fetchSizeInt(b);
       fetchAtom(b, &name);
       fdef = lookupFunctorDef(name, arity);
 
@@ -434,7 +571,9 @@ copyRecordToGlobal(term_t copy, Record r ARG_LD)
   Word *p;
   int n;
 
-  b.data = r->buffer;
+  DEBUG(1, Sdprintf("PL_recorded(%p)\n", r));
+
+  b.base = b.data = dataRecord(r);
   if ( r->nvars > 0 )
   { if ( !(b.vars = alloca(sizeof(Word) * r->nvars)) )
       fatalError("alloca() failed");
@@ -443,7 +582,6 @@ copyRecordToGlobal(term_t copy, Record r ARG_LD)
   }
   b.gstore = allocGlobal(r->gsize);
   
-  assert(((long)b.data % sizeof(long)) == 0);
   copy_record(valTermRef(copy), &b);
   assert(b.gstore == gTop);
 
@@ -462,29 +600,35 @@ recursion.   Other   options:   combine     into    copyRecordToGlobal()
 
 static void
 skipAtom(CopyInfo b)
-{ long len;
+{ uint len = fetchSizeInt(b);
 
-  fetchBuf(b, &len, long);
-  b->data += roundup(len, sizeof(word));
+  b->data += len;
+}
+
+
+static void
+skipSizeInt(CopyInfo b)
+{ while( b->data[0] & 0x80 )
+    b->data++;
+  b->data++;
 }
 
 
 static void
 unregisterAtomsRecord(CopyInfo b)
-{ long tag;
+{ int tag;
 
 right_recursion:
-  fetchBuf(b, &tag, long);
-  switch(tag)
+
+  switch( (tag = fetchOpCode(b)) )
   { case PL_TYPE_VARIABLE:
-    { skipBuf(b, long);
+    { skipSizeInt(b);
       return;
     }
     case PL_TYPE_ATOM:
-    { atom_t val;
+    { atom_t a = fetchWord(b);
 
-      fetchBuf(b, &val, atom_t);
-      PL_unregister_atom(val);
+      PL_unregister_atom(a);
       return;
     }
     case PL_TYPE_EXT_ATOM:
@@ -501,28 +645,24 @@ right_recursion:
       return;
     }
     case PL_TYPE_STRING:
-    { long len, lw;
+    { uint len = fetchSizeInt(b);
 
-      fetchBuf(b, &len, long);
-      lw = (len+sizeof(word))/sizeof(word); /* see globalNString() */
-      b->data += lw * sizeof(word);
+      b->data += len;
 
       return;
     }
     case PL_TYPE_COMPOUND:
-    { word fdef;
+    { word fdef = fetchWord(b);
       int arity;
 
-      fetchBuf(b, &fdef, word);
       arity = arityFunctor(fdef);
       while(--arity > 0)
 	unregisterAtomsRecord(b);
       goto right_recursion;
     }
     case PL_TYPE_EXT_COMPOUND:
-    { long arity;
+    { long arity = fetchSizeInt(b);
 
-      fetchBuf(b, &arity, word);
       skipAtom(b);
       while(--arity > 0)
 	unregisterAtomsRecord(b);
@@ -540,34 +680,26 @@ right_recursion:
 		 *     STRUCTURAL EQUIVALENCE	*
 		 *******************************/
 
-typedef struct
-{ char *data;				/* must align with copy_info! */
-  tmp_buffer vars;
-} se_info, *SeInfo;
-
-
 static int
-se_record(Word p, SeInfo info ARG_LD)
+se_record(Word p, CopyInfo info ARG_LD)
 { word w;
-  long stag;
+  int stag;
 
 right_recursion:
-  fetchBuf(info, &stag, long);
+  stag = fetchOpCode(info);
 unref_cont:
   w = *p;
 
   switch(tag(w))
   { case TAG_VAR:
       if ( stag == PL_TYPE_VARIABLE )
-      { int n = entriesBuffer(&info->vars, Word);
-	long i;
+      { uint i = fetchSizeInt(info);
 
-	fetchBuf(info, &i, long);
-	if ( i != n )
+	if ( i != info->nvars )
 	  fail;
 
-	*p = (n<<7)|TAG_ATOM|STG_GLOBAL;
-	addBuffer(&info->vars, p, Word);
+	*p = (info->nvars<<7)|TAG_ATOM|STG_GLOBAL;
+	info->vars[info->nvars++] = p;
 	succeed;
       }
       fail;
@@ -575,17 +707,15 @@ unref_cont:
       if ( storage(w) == STG_GLOBAL )
       { if ( stag == PL_TYPE_VARIABLE )
 	{ long n = ((long)(w) >> 7);
-	  long i;
+	  uint i = fetchSizeInt(info);
 
-	  fetchBuf(info, &i, long);
 	  if ( i == n )
 	    succeed;
 	}
 	fail;
       } else if ( stag == PL_TYPE_ATOM )
-      { atom_t val;
+      { atom_t val = fetchWord(info);
 
-	fetchBuf(info, &val, atom_t);
 	if ( val == w )
 	  succeed;
       } else if ( stag == PL_TYPE_EXT_ATOM )
@@ -601,18 +731,16 @@ unref_cont:
       if ( isTaggedInt(w) )
       { if ( stag == PL_TYPE_TAGGED_INTEGER )
 	{ long val = valInt(w);
-	  long v2;
+	  long v2 = fetchLong(info);
 
-	  fetchBuf(info, &v2, long);
 	  if ( v2 == val )
 	    succeed;
 	}
       } else
       { if ( stag == PL_TYPE_INTEGER )
 	{ long val = valBignum(w);
-	  long v2;
+	  long v2 = fetchLong(info);
 
-	  fetchBuf(info, &v2, long);
 	  if ( v2 == val )
 	    succeed;
 	}
@@ -620,16 +748,16 @@ unref_cont:
       fail;
     case TAG_STRING:
       if ( stag == PL_TYPE_STRING )
-      { long llen;
-	int len;
-	char *s1 = valString(w);
-	word m  = *((Word)addressIndirect(w));
-	int wn  = wsizeofInd(m);
+      { Word f  = addressIndirect(w);
+	int n   = wsizeofInd(*f);
+	int pad = padHdr(*f);		/* see also sizeString() */
+	long l  = n*sizeof(word)-pad;
 
-	fetchBuf(info, &llen, long);
-	len = (int)llen;
-	if ( wn == len && memcmp(s1, info->data, len * sizeof(word)) == 0 )
-	{ info->data += len * sizeof(word);
+	uint llen = fetchSizeInt(info);
+	if ( llen == l &&
+	     memcmp((char *)(f+1), info->data, l) == 0 )
+	{ info->data += l;
+
 	  succeed;
 	}
       }
@@ -638,23 +766,19 @@ unref_cont:
       if ( stag == PL_TYPE_FLOAT )
       { Word v = valIndirectP(w);
 	Word d = (Word)info->data;
-	int i;
 
-	for(i=0; i<WORDS_PER_DOUBLE; i++)
-	{ if ( v[i] != d[i] )
-	    fail;
+	if ( memcmp(v, d, sizeof(double)) == 0 )
+	{ info->data += sizeof(double);
+	  succeed;
 	}
-	info->data += sizeof(double);
-	succeed;
       }
 
       fail;
     case TAG_COMPOUND:
       if ( stag == PL_TYPE_COMPOUND )
       { Functor f = valueTerm(w);
-	word fdef;
+	word fdef = fetchWord(info);
 
-	fetchBuf(info, &fdef, word);
 	if ( fdef == f->definition )
 	{ int arity = arityFunctor(fdef);
 
@@ -668,10 +792,9 @@ unref_cont:
       } else if ( stag == PL_TYPE_EXT_COMPOUND )
       { Functor f = valueTerm(w);
 	FunctorDef fd = valueFunctor(f->definition);
-	long arity;
+	long arity = fetchSizeInt(info);
 	atom_t name;
 
-	fetchBuf(info, &arity, long);
 	if ( arity != fd->arity )
 	  fail;
 	fetchAtom((CopyInfo)info, &name);	/* TBD: optimise */
@@ -699,14 +822,22 @@ unref_cont:
 
 int
 structuralEqualArg1OfRecord(term_t t, Record r ARG_LD)
-{ se_info info;
+{ copy_info info;
   int n, rval;
   Word *p;
   long stag;
 
-  initBuffer(&info.vars);
-  info.data = r->buffer;
-  fetchBuf(&info, &stag, long);
+  info.base = info.data = dataRecord(r);
+  info.nvars = 0;
+  if ( r->nvars > 0 )
+  { if ( !(info.vars = alloca(sizeof(Word) * r->nvars)) )
+      fatalError("alloca() failed");
+    for(p = info.vars, n=r->nvars; --n >= 0;)
+      *p++ = 0;
+  }
+
+					/* skip PL_TYPE_COMPOUND <functor> */
+  stag = fetchOpCode(&info);
   if ( stag == PL_TYPE_COMPOUND )
     skipBuf(&info, word);
   else if ( stag == PL_TYPE_EXT_COMPOUND )
@@ -715,13 +846,10 @@ structuralEqualArg1OfRecord(term_t t, Record r ARG_LD)
   } else
     assert(0);
 
-					/* skip PL_TYPE_COMPOUND <functor> */
   rval = se_record(valTermRef(t), &info PASS_LD);
-  n = entriesBuffer(&info.vars, Word);
-  p = (Word *)info.vars.base;
-  while(--n >= 0)
-    setVar(**p++);
-  discardBuffer(&info.vars);
+
+  for(p = info.vars, n=info.nvars; --n >= 0; p++)
+    setVar(**p);
 
   return rval;
 }
@@ -729,19 +857,22 @@ structuralEqualArg1OfRecord(term_t t, Record r ARG_LD)
 
 bool
 freeRecord(Record record)
-{ if ( --record->references == 0 )
-  {
-#ifdef O_ATOMGC
-    if ( false(record, R_EXTERNAL) )
-    { copy_info ci;
+{ if ( true(record, R_DUPLICATE) && --record->references > 0 )
+    succeed;
 
-      ci.data = record->buffer;
-      unregisterAtomsRecord(&ci);
-      assert(ci.data == (record->buffer + record->size - SIZERECORD));
-    }
-#endif
-    freeHeap(record, record->size);
+#ifdef O_ATOMGC
+  if ( false(record, R_EXTERNAL) )
+  { copy_info ci;
+
+    DEBUG(1, Sdprintf("PL_recorded(%p)\n", record));
+
+    ci.base = ci.data = dataRecord(record);
+    unregisterAtomsRecord(&ci);
+    assert(ci.data == addPointer(record, record->size));
   }
+#endif
+
+  freeHeap(record, record->size);
 
   succeed;
 }
@@ -831,7 +962,7 @@ record(term_t key, term_t term, term_t ref, int az)
   if ( !PL_is_variable(ref) )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_variable, ref);
 
-  copy = compileTermToHeap(term, 0);
+  copy = compileTermToHeap(term, R_LIST);
   PL_unify_pointer(ref, copy);
 
   LOCK();
@@ -1110,6 +1241,7 @@ undo_while_saving_term(mark *m, Word term)
   initBuffer(&info.vars);
   info.size = 0;
   info.nvars = 0;
+  info.external = FALSE;
 
   compile_term_to_heap(term, &info);
   n = info.nvars;

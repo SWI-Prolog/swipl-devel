@@ -466,6 +466,8 @@ A canceled		"canceled"
 A time_stamp		"time_stamp"
 A dcatch		"$catch"
 A delete		"delete"
+A foreign_function	"$foreign_function"
+A signal_handler	"signal_handler"
 
 F abs			1
 F acos			1
@@ -615,3 +617,4 @@ F xpceref		1
 F dcall			1
 F frame			3
 F trace			1
+F foreign_function	1

@@ -455,3 +455,5 @@
 #define ATOM_time_stamp   MK_ATOM(454)
 #define ATOM_dcatch       MK_ATOM(455)
 #define ATOM_delete       MK_ATOM(456)
+#define ATOM_foreign_function MK_ATOM(457)
+#define ATOM_signal_handler MK_ATOM(458)

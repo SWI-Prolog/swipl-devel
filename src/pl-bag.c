@@ -28,24 +28,21 @@ The (toplevel) remainder of the all-solutions predicates is  written  in
 Prolog.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-struct assoc
-{ Record	binding;
-  Assoc		next;			/* next in chain */
-};
-
 #define alist LD->bags.bags		/* Each thread has its own */
 					/* storage for this */
 
 static void
-freeAssoc(Assoc prev, Assoc a)
+freeAssoc(Record prev, Record a)
 { if ( prev == NULL )
   { GET_LD
     alist = a->next;
   } else
     prev->next = a->next;
-  if ( a->binding )
-    freeRecord(a->binding);
-  freeHeap(a, sizeof(*a));
+
+  if ( a->size )
+    freeRecord(a);
+  else
+    freeHeap(a, sizeof(*a));
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -58,12 +55,14 @@ variable binding for solution `Gen'.  Key is ATOM_mark for the mark.
 word
 pl_record_bag(term_t t)
 { GET_LD
-  Assoc a = (Assoc) allocHeap(sizeof(struct assoc));
+  Record a;
 
   if ( PL_is_atom(t) )
-    a->binding = NULL;
-  else
-    a->binding = compileTermToHeap(t, 0);
+  { a = allocHeap(sizeof(*a));
+    a->size = 0;
+  } else
+    a = compileTermToHeap(t, R_LIST);	/* include ->next */
+
   a->next    = alist;
   alist      = a;
 
@@ -81,19 +80,19 @@ pl_collect_bag(term_t bindings, term_t bag)
   term_t list     = PL_new_term_ref();	/* list to construct */
   term_t binding  = PL_new_term_ref();	/* current binding */
   term_t tmp      = PL_new_term_ref();
-  Assoc a, next;
-  Assoc prev = (Assoc) NULL;
+  Record a, next;
+  Record prev = NULL;
   
   if ( !(a = alist) )
     fail;
-  if ( !a->binding )
+  if ( a->size == 0 )
   { freeAssoc(prev, a);
     fail;				/* trapped the mark */
   }
 
   PL_put_nil(list);
 					/* get variable term on global stack */
-  copyRecordToGlobal(binding, a->binding PASS_LD);
+  copyRecordToGlobal(binding, a PASS_LD);
   PL_get_arg(1, binding, var_term);
   PL_unify(bindings, var_term);
   PL_get_arg(2, binding, tmp);
@@ -104,15 +103,15 @@ pl_collect_bag(term_t bindings, term_t bag)
 
   if ( next != NULL )
   { for( a = next, next = a->next; next; a = next, next = a->next )
-    { if ( !a->binding )
+    { if ( a->size == 0 )
 	break;
 
-      if ( !structuralEqualArg1OfRecord(var_term, a->binding PASS_LD) )
+      if ( !structuralEqualArg1OfRecord(var_term, a PASS_LD) )
       { prev = a;
 	continue;
       }
 
-      copyRecordToGlobal(binding, a->binding PASS_LD);
+      copyRecordToGlobal(binding, a PASS_LD);
       PL_get_arg(1, binding, tmp);
       PL_unify(tmp, bindings);
       PL_get_arg(2, binding, tmp);
@@ -126,6 +125,7 @@ pl_collect_bag(term_t bindings, term_t bag)
 
   return PL_unify(bag, list);
 }
+
 
 
 
