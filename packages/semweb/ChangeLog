@@ -1,3 +1,9 @@
+Apr 1, 2005
+
+  * FIXED: memory leak creating many predicate structures on calls to
+    rdf(?,+,?) if the predicate does not exist.  This is used by
+    rdf_bnode/1.
+
 Mar 29, 2005
 
   * FIXED: rdf:dataType --> rdf:datatype

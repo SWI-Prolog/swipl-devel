@@ -988,6 +988,24 @@ init_pred_table(rdf_db *db)
 
 
 static predicate *
+existing_predicate(rdf_db *db, atom_t name)
+{ int hash = atom_hash(name) % db->pred_table_size;
+  predicate *p;
+
+  LOCK_MISC(db);
+  for(p=db->pred_table[hash]; p; p = p->next)
+  { if ( p->name == name )
+    { UNLOCK_MISC(db);
+      return p;
+    }
+  }
+
+  UNLOCK_MISC(db);
+  return NULL;
+}
+
+
+static predicate *
 lookup_predicate(rdf_db *db, atom_t name)
 { int hash = atom_hash(name) % db->pred_table_size;
   predicate *p;
@@ -1007,6 +1025,8 @@ lookup_predicate(rdf_db *db, atom_t name)
   p->next = db->pred_table[hash];
   db->pred_table[hash] = p;
   db->pred_count++;
+  DEBUG(5, Sdprintf("Pred %s (count = %d)\n",
+		    PL_atom_chars(name), db->pred_count));
   UNLOCK_MISC(db);
 
   return p;
@@ -3012,6 +3032,20 @@ get_src(term_t src, triple *t)
 
 
 static int
+get_existing_predicate(rdf_db *db, term_t t, predicate **p)
+{ atom_t name;
+
+  if ( !get_atom_ex(t, &name ) )
+    return FALSE;
+
+  if ( (*p = existing_predicate(db, name)) )
+    return TRUE;
+
+  return FALSE;				/* but no exception! */
+}
+
+
+static int
 get_predicate(rdf_db *db, term_t t, predicate **p)
 { atom_t name;
 
@@ -3036,6 +3070,14 @@ get_triple(rdf_db *db,
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+get_partial_triple() creates a triple  for   matching  purposes.  It can
+return FALSE for  two  reasons.  Mostly   (type)  errors,  but  also  if
+resources are accessed that do not   exist  and therefore the subsequent
+matching will always fail. This  is   notably  the  case for predicates,
+which are first class citizens to this library.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 get_partial_triple(rdf_db *db,
 		   term_t subject, term_t predicate, term_t object,
@@ -3043,7 +3085,7 @@ get_partial_triple(rdf_db *db,
 { if ( subject && !get_atom_or_var_ex(subject, &t->subject) )
     return FALSE;
   if ( !PL_is_variable(predicate) &&
-       !get_predicate(db, predicate, &t->predicate) )
+       !get_existing_predicate(db, predicate, &t->predicate) )
     return FALSE;
 					/* the object */
   if ( object && !PL_is_variable(object) )
