@@ -34,8 +34,17 @@ initialiseColourMap(ColourMap cm, Name name, Vector colours)
   if ( isDefault(colours) )
     colours = NIL;
 
-  assign(cm, name,    name);
-  assign(cm, colours, colours);
+  assign(cm, name,      name);
+  assign(cm, colours,   colours);
+  assign(cm, read_only, OFF);
+
+  succeed;
+}
+
+
+static status
+unlinkColourMap(ColourMap cm)
+{ ws_unlink_colour_map(cm);
 
   succeed;
 }
@@ -55,6 +64,7 @@ getConvertColourMap(Class class, Name name)
     lockObject(cm, ON);
 
     ws_colour_cube(cm, size);
+    assign(cm, read_only, ON);
     answer(cm);
   }
 
@@ -91,6 +101,8 @@ static vardecl var_colour_map[] =
      NAME_name, "Name (for lookup) of the colourmap"),
   IV(NAME_colours, "vector*", IV_NONE,
      NAME_storage, "Vector of colours defining the map"),
+  IV(NAME_readOnly, "bool", IV_NONE,
+     NAME_storage, "If @on, map cannot be changed"),
   IV(NAME_wsRef, "alien:WsRef", IV_NONE,
      NAME_storage, "Window system handle")
 };
@@ -99,7 +111,9 @@ static vardecl var_colour_map[] =
 
 static senddecl send_colour_map[] =
 { SM(NAME_initialise, 2, T_initialise, initialiseColourMap,
-     DEFAULT, "Create from name and colours")
+     DEFAULT, "Create from name and colours"),
+  SM(NAME_unlink, 0, NULL, unlinkColourMap,
+     DEFAULT, "Destroy system resources")
 };
 
 /* Get Methods */

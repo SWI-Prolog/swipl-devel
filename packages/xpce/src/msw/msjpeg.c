@@ -130,6 +130,99 @@ write_jpeg_file(IOSTREAM *fd, Image image, HBITMAP bm)
 		 *	   READING JPEG		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+status read_jpeg_file(IOSTREAM *fd, Image image)
+
+Reads JPEG from a stream and attaches a   DIB  to the image. If an error
+occurs this routine ensures the file-pointer is not moved, so we can try
+other image-formats.
+
+On colour-mapped displays, this routine  passes   the  colour-map of the
+display to the JPEG library to reach at an optimal rendered image.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+struct jpeg_colour_map
+{ int	   size;
+  int 	   allocated;
+  JSAMPLE *colours[3];
+  RGBQUAD *dib_colours;
+};
+
+static JpegColourMap
+alloc_jpeg_cmap(int size)
+{ JpegColourMap map = alloc(sizeof(*map));
+
+  map->allocated   = size;
+  map->size        = 0;
+  map->colours[0]  = alloc(sizeof(JSAMPLE)*size);
+  map->colours[1]  = alloc(sizeof(JSAMPLE)*size);
+  map->colours[2]  = alloc(sizeof(JSAMPLE)*size);
+  map->dib_colours = alloc(sizeof(RGBQUAD)*size);
+
+  return map;
+}
+
+void
+free_jpeg_cmap(JpegColourMap map)
+{ unalloc(sizeof(JSAMPLE)*map->allocated, map->colours[0]);
+  unalloc(sizeof(JSAMPLE)*map->allocated, map->colours[1]);
+  unalloc(sizeof(JSAMPLE)*map->allocated, map->colours[2]);
+  unalloc(sizeof(RGBQUAD)*map->allocated, map->dib_colours);
+
+  unalloc(sizeof(*map), map);
+}
+
+
+JpegColourMap
+jpeg_cmap_from_colour_map(ColourMap cm, DisplayObj d)
+{ WsCmdata data = getWsCmdata(cm);
+  Vector colours;
+
+  if ( data->jpeg_cmap )
+    return data->jpeg_cmap;
+
+  if ( (colours = get(cm, NAME_colours, EAV)) )
+  { int ncolors = valInt(colours->size);
+    int i=0;
+    Colour e;
+    JpegColourMap map = alloc_jpeg_cmap(ncolors);
+    
+    for_vector(colours, e,
+	       { if ( notNil(e) )
+		 { int r; int g; int b;
+		   if ( isDefault(e->red) )
+		     getXrefObject(e, d); 	/* Open the colour */
+
+		   r = valInt(e->red)>>8;
+		   g = valInt(e->green)>>8;
+		   b = valInt(e->blue)>>8;
+
+		   map->colours[0][i] = r;
+		   map->colours[1][i] = g;
+		   map->colours[2][i] = b;
+
+		   map->dib_colours[i].rgbRed   = r;
+		   map->dib_colours[i].rgbGreen = g;
+		   map->dib_colours[i].rgbBlue  = b;
+		     
+		   i++;
+		 }
+	       });
+
+    map->size = i;
+    data->jpeg_cmap = map;
+
+    return map;
+  }
+
+  return NULL;
+}
+
+
+		 /*******************************
+		 *	      ERRORS		*
+		 *******************************/
+
 struct my_jpeg_error_mgr
 { struct jpeg_error_mgr	jerr;
   jmp_buf 		jmp_context;
@@ -153,9 +246,12 @@ read_jpeg_file(IOSTREAM *fd, Image image)
   long row_stride;
   int width, height, bwidth, image_size;
   JSAMPLE **buff;
-  BYTE *data, *dest;
-  BITMAPINFO *dib = pceMalloc(sizeof(*dib));
-  BITMAPINFOHEADER *header = &dib->bmiHeader;
+  BYTE *data;
+  BITMAPINFO *dib = NULL;
+  BITMAPINFOHEADER *header;
+  DisplayObj d = image->display;
+  int outline;
+  JpegColourMap cmap = NULL;
 
   cinfo.err = jpeg_std_error((struct jpeg_error_mgr *)&jerr);
   if ( setjmp(jerr.jmp_context) )
@@ -186,6 +282,31 @@ read_jpeg_file(IOSTREAM *fd, Image image)
 
   jpeg_save_markers(&cinfo, JPEG_COM, 0xffff);
   jpeg_read_header(&cinfo, TRUE);
+
+					/* colourmap handling */
+  if ( cinfo.output_components == 3 )
+  { if ( isNil(d) )
+      d = CurrentDisplay(image);
+    openDisplay(d);
+
+    if ( ws_depth_display(d) < 16 &&
+	 instanceOfObject(d->colour_map, ClassColourMap) &&
+	 (cmap = jpeg_cmap_from_colour_map(d->colour_map, d)) )
+    { dib = pceMalloc(sizeof(dib->bmiHeader)+cmap->size*sizeof(RGBQUAD));
+
+      header = &dib->bmiHeader;
+      memset(header, 0, sizeof(*header));
+      memcpy(&dib->bmiColors[0], cmap->dib_colours,
+	     cmap->size*sizeof(RGBQUAD));
+      header->biBitCount = 8;
+      header->biClrUsed  = cmap->size;
+    
+      cinfo.colormap = cmap->colours;
+      cinfo.actual_number_of_colors = cmap->size;
+      cinfo.quantize_colors = TRUE;
+    }
+  }
+
   jpeg_start_decompress(&cinfo);
   row_stride = cinfo.output_width * cinfo.output_components;
   buff = (*cinfo.mem->alloc_sarray)((j_common_ptr)&cinfo,
@@ -193,29 +314,56 @@ read_jpeg_file(IOSTREAM *fd, Image image)
 
   width  = cinfo.image_width;
   height = cinfo.image_height;
-  bwidth = ((width*3+3)&0xfffc);
+  if ( cmap )
+    bwidth = width;
+  else
+    bwidth = ((width*3+3)&0xfffc);	/* why is this? */
   image_size = bwidth*height;
   
   data = pceMalloc(image_size);
-  dest = data + bwidth*(height-1);
 
-  while(cinfo.output_scanline < cinfo.output_height)
+  for(outline = height-1;
+      cinfo.output_scanline < cinfo.output_height;
+      outline--)
   { int i;
-    BYTE *src;
+    BYTE *src, *dest;
 
+    dest = data + bwidth*outline;
+  
     jpeg_read_scanlines(&cinfo, buff, 1);
     i = width;
     src = buff[0];
 
-    while(i--)
-    { *dest++ = src[2];
-      *dest++ = src[1];
-      *dest++ = src[0];
-      src += 3;
-    }
+    if ( cmap )				/* colour-mapped */
+    { while(i--)
+      { *dest++ = *src++;
+      }
+    } else
+    { switch( cinfo.output_components )
+      { case 1:				/* grayscale JPEG */
+	  while(i--)
+	  { *dest++ = src[0];
+	    *dest++ = src[0];
+	    *dest++ = src[0];
+	    src++;
+	  }
+	  break;
+	case 3:				/* RGB JPEG */
+	  while(i--)
+	  { *dest++ = src[2];
+	    *dest++ = src[1];
+	    *dest++ = src[0];
+	    src += 3;
+	  }
+	  break;
+	default:			/* We don't have this */
+	  Sseek(fd, here, SEEK_SET);
+	  Cprintf("JPeg with %d output_components??\n");
+	  fail;
+      }
 
-    memset(dest, 0, bwidth - width*3);
-    dest -= bwidth+width*3;
+      memset(dest, 0, bwidth - width*3);
+    }
   }
 
   if ( cinfo.marker_list )
@@ -240,13 +388,18 @@ read_jpeg_file(IOSTREAM *fd, Image image)
   jpeg_finish_decompress(&cinfo);
   jpeg_destroy_decompress(&cinfo);
 
-  memset(dib, 0, sizeof(*dib));
-  header->biSize      =	sizeof(BITMAPINFOHEADER) ;
-  header->biWidth     =	width;
-  header->biHeight    =	height;
-  header->biPlanes    =	1;
-  header->biBitCount  =	24;
-  header->biSizeImage =	image_size;
+  if ( !dib )
+  { dib = pceMalloc(sizeof(*dib));
+    header = &dib->bmiHeader;
+    memset(dib, 0, sizeof(*dib));
+    header->biBitCount	= 24;
+  }
+  header->biSize        = sizeof(BITMAPINFOHEADER);
+  header->biWidth       = width;
+  header->biHeight      = height;
+  header->biPlanes      = 1;
+  header->biCompression = BI_RGB;
+  header->biSizeImage   = image_size;
 
   attach_dib_image(image, dib, data);
   

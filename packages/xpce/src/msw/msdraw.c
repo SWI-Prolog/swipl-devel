@@ -2293,8 +2293,10 @@ r_image(Image image,
 			    pp(image), sx, sy, x, y, w, h, pp(transparent)));
   if ( w > 0 && h > 0 &&
        image->size->w != ZERO && image->size->h != ZERO )
-  { if ( image->ws_ref && ((WsImage)image->ws_ref)->msw_info &&
-	 isNil(image->mask) /*&& 0*/ )
+  {
+#if 0					/* very slow */
+    if ( image->ws_ref && ((WsImage)image->ws_ref)->msw_info &&
+	 isNil(image->mask) && 0 )
     { WsImage wsi = image->ws_ref;
 
       if ( transparent == ON )
@@ -2319,6 +2321,7 @@ r_image(Image image,
 		      wsi->data, wsi->msw_info, DIB_RGB_COLORS, SRCCOPY);
       }
     } else
+#endif
     { HBITMAP obm, bm = (HBITMAP) getXrefObject(image, context.display);
       HDC mhdc = CreateCompatibleDC(context.hdc);
       HPALETTE ohpal = NULL;

@@ -1,6 +1,13 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ENHANCED: JPEG bitmap loading to use a more direct approach through
+  DIB.  
+
+* MODIFIED: Windows: by default we now use the Netscape 216 colour
+  colour-cupe as read-only colour-map on 8-bit displays.  This provides
+  better reproducable and generally better results.
+
 * ADDED: `image<-rotate' now accepts a real rather then an integer.
 
 * COMPAT: re-added `finder->directory' (Bob Wielinga).

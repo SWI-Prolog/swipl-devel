@@ -895,7 +895,23 @@ windows_bitmap_from_dib(Image image)
       ZSelectObject(hdc, obm);
       DeleteDC(hdc);
     } else
-    { hdc = GetDC(NULL);
+    { HPALETTE ohpal, hpal;
+      DisplayObj d = image->display;
+
+      if ( isNil(d) )
+	d = CurrentDisplay(image);
+      if ( instanceOfObject(d->colour_map, ClassColourMap) )
+	hpal = getPaletteColourMap(d->colour_map);
+      else
+	hpal = NULL;
+
+      hdc = GetDC(NULL);
+      if ( hpal )
+      { ohpal = SelectPalette(hdc, hpal, FALSE);
+	RealizePalette(hdc);
+      } else
+	ohpal = NULL;
+
       bm = ZCreateDIBitmap(hdc,
 			   (LPBITMAPINFOHEADER) wsi->msw_info,
 			   CBM_INIT,
@@ -904,6 +920,9 @@ windows_bitmap_from_dib(Image image)
 			   DIB_RGB_COLORS);
       assign(image, depth, toInt(GetDeviceCaps(hdc, BITSPIXEL)));
       assign(image, kind, image->depth == ONE ? NAME_bitmap : NAME_pixmap);
+
+      if ( hpal )
+	SelectPalette(hdc, ohpal, FALSE);
       ReleaseDC(NULL, hdc);
 
       if ( !bm )

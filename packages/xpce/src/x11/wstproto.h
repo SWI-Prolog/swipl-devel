@@ -8,6 +8,7 @@ void		ws_colour_cube(ColourMap cm, int size);
 void		ws_colour_map_colours(ColourMap cm);
 status		ws_create_colour_map(ColourMap cm, DisplayObj d);
 status		ws_uncreate_colour_map(ColourMap cm, DisplayObj d);
+status		ws_unlink_colour_map(ColourMap cm);
 
 /* ../src/x11/xcursor.c */
 void		ws_init_cursor_font(void);

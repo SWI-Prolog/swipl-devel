@@ -101,10 +101,27 @@ typedef struct
   int		bbx, bby, bbw, bbh;	/* BB coordinates */
 } ws_frame, *WsFrame;
 
+		 /*******************************
+		 *	     COLOURMAP		*
+		 *******************************/
 
-#define getDisplayWindow(sw) getDisplayGraphical((Graphical)(sw))
+typedef struct jpeg_colour_map *JpegColourMap; /* JPEG <-> DIB colourmap */
+
+typedef struct ws_cmdata		/* colour_map data */
+{ HPALETTE      hpal;			/* Windows palette */
+  JpegColourMap jpeg_cmap;		/* JPEG <-> DIB colourmap */
+} *WsCmdata;
+
+extern WsCmdata getWsCmdata(ColourMap cm);
+extern void	free_jpeg_cmap(JpegColourMap map);
 
 #define EXACT_COLOUR_MASK 0x80000000L	/* Avoid rounding the colour */
+
+		 /*******************************
+		 *	    PROTOTYPES		*
+		 *******************************/
+
+#define getDisplayWindow(sw) getDisplayGraphical((Graphical)(sw))
 
 void		ws_renderall(void);
 int		ws_provide_selection(int format);

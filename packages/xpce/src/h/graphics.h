@@ -661,6 +661,7 @@ End;
 NewClass(colour_map)
   Name		name;			/* name of the map */
   Vector	colours;		/* colours in the map */
+  Bool		read_only;		/* colourmap cannot be changed */
   WsRef		ws_ref;			/* Window system reference */
 End;
 

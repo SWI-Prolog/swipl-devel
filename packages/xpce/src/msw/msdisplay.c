@@ -141,8 +141,13 @@ ws_open_display(DisplayObj d)
 
   if ( isDefault(d->colour_map) )
   { if ( ws_has_colourmap(d) )
-      send(d, NAME_colourMap, newObject(ClassColourMap, NAME_pce, EAV), EAV);
-    else
+    { int depth = ws_depth_display(d);
+
+      if ( depth == 8 )
+      { send(d, NAME_colourMap,
+	     newObject(ClassColourMap, CtoName("colour_cube_216"), EAV), EAV);
+      }
+    } else
       send(d, NAME_colourMap, NIL, EAV);
   }
 

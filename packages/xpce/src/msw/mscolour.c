@@ -318,7 +318,8 @@ ws_create_colour(Colour c, DisplayObj d)
     registerXrefObject(c, d, (void *)rgb);
   }
 
-  if ( notNil(d->colour_map) && notDefault(d->colour_map) )
+  if ( instanceOfObject(d->colour_map, ClassColourMap) &&
+       d->colour_map->read_only == OFF )
     ws_alloc_colour(d->colour_map, c);
 
   succeed;
@@ -330,7 +331,8 @@ ws_uncreate_colour(Colour c, DisplayObj d)
 { if ( isDefault(d) )
     d = CurrentDisplay(NIL);
 
-  if ( notNil(d->colour_map) && notDefault(d->colour_map) )
+  if ( instanceOfObject(d->colour_map, ClassColourMap) &&
+       d->colour_map->read_only == OFF )
     ws_unalloc_colour(d->colour_map, c);
 
   unregisterXrefObject(c, d);
@@ -428,6 +430,41 @@ ws_system_colours(DisplayObj d)
 #undef offset
 #define offset(s, f) ((int)&((s *)NULL)->f)
 
+static void ws_open_colourmap(ColourMap cm);
+
+void
+setPaletteColourMap(ColourMap cm, HPALETTE hpal)
+{ getWsCmdata(cm)->hpal = hpal;
+}
+
+
+HPALETTE
+getPaletteColourMap(ColourMap cm)
+{ WsCmdata data = getWsCmdata(cm);
+
+  if ( !data->hpal )
+    ws_open_colourmap(cm);
+
+  return data->hpal;
+}
+
+
+static HPALETTE
+getExistingPaletteColourMap(ColourMap cm)
+{ if ( cm->ws_ref )
+    return getWsCmdata(cm)->hpal;
+
+  return NULL;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+CreateCCPalette(int size)
+
+Create a cubic colourmap. The 6x6x6 (216) map created by this function
+is the same as used by Netscape on 8-bit displays.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static HPALETTE
 CreateCCPalette(int size)
 { int le = size * size * size;
@@ -464,7 +501,7 @@ CreateCCPalette(int size)
 
 static void
 ws_open_colourmap(ColourMap cm)
-{ if ( !cm->ws_ref && notNil(cm->colours) )
+{ if ( !getExistingPaletteColourMap(cm) && notNil(cm->colours) )
   { int size = valInt(cm->colours->size);
     LOGPALETTE *lp = pceMalloc(offset(LOGPALETTE, palPalEntry[size]));
     PALETTEENTRY *pe = &lp->palPalEntry[0];
@@ -506,16 +543,12 @@ ws_open_colourmap(ColourMap cm)
 }
 
 
-void
-setPaletteColourMap(ColourMap cm, HPALETTE hpal)
-{ cm->ws_ref = hpal;
-}
-
-
-HPALETTE
-getPaletteColourMap(ColourMap cm)
+WsCmdata
+getWsCmdata(ColourMap cm)
 { if ( !cm->ws_ref )
-    ws_open_colourmap(cm);
+  { cm->ws_ref = alloc(sizeof(struct ws_cmdata));
+    memset(cm->ws_ref, 0, sizeof(struct ws_cmdata));
+  }
 
   return cm->ws_ref;
 }
@@ -604,6 +637,25 @@ ws_uncreate_colour_map(ColourMap cm, DisplayObj d)
 }
 
 
+status
+ws_unlink_colour_map(ColourMap cm)
+{ WsCmdata data;
+
+  if ( (data = cm->ws_ref) )
+  { cm->ws_ref = NULL;
+    
+    if ( data->hpal )
+      DeleteObject(data->hpal);
+    if ( data->jpeg_cmap )
+      free_jpeg_cmap(data->jpeg_cmap);
+
+    unalloc(sizeof(struct ws_cmdata), data);
+  }
+
+  succeed;
+}
+
+
 		 /*******************************
 		 *EXPERIMENTAL COLOUR ALLOCATION*
 		 *******************************/
@@ -620,7 +672,8 @@ need to be updated (or all images should be stored as DIB images).
 
 static status
 ws_alloc_colour(ColourMap cm, Colour c)
-{ Int i;
+{ HPALETTE hpal;
+  Int i;
 
   if ( isNil(cm->colours) )
     ws_colour_map_colours(cm);
@@ -634,9 +687,8 @@ ws_alloc_colour(ColourMap cm, Colour c)
     appendVector(cm->colours, 1, (Any *)&c);
   delRefObj(c);
 
-  if ( cm->ws_ref )
-  { HPALETTE hpal = (HPALETTE) cm->ws_ref;
-    PALETTEENTRY peentry;
+  if ( (hpal=getExistingPaletteColourMap(cm)) )
+  { PALETTEENTRY peentry;
     PALETTEENTRY *pe = &peentry;
     int ne = valInt(cm->colours->size);
 
