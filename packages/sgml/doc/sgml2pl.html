@@ -10,7 +10,7 @@
 <center>
 
 <h1>SWI-Prolog SGML/XML parser<br>
-<font size="+0"><em>Version 2.0.2, February 2005</em></font></h1>
+<font size="+0"><em>Version 2.0.3, March 2005</em></font></h1>
 
 <br>
 <a href="mailto:jan@science.uva.nl"><em>Jan Wielemaker</em></a><br>
@@ -1595,17 +1595,28 @@ from <a href="#dtd/2"><b>dtd/2</b></a>. The <var>Options</var> are described wit
 <h2><a name="sec:sec-7.2">Simplify quoting</a></h2>
 
 <p>
-The <b>sgml2pl</b> package is a parser.  Output is generally much easier
-achieved directly from Prolog.  Nevertheless, it contains a few building
-blocks for emitting markup data.<a href="#fn-3" name="txt:fn-3"><sup>3</sup></a>
+The <b>sgml2pl</b> package is a parser. Output is generally much
+easier achieved directly from Prolog. Nevertheless, it contains a few
+building blocks for emitting markup data. The quote funtions return a
+version of the input text into one that contains entities for characters
+that need to be escaped. These are the XML meta characters and the
+characters that cannot be expressed by the document encoding. Therefore
+these predicates accept an <var>encoding</var> argument. Accepted values are
+<a name="const:ascii"><b><tt>ascii</tt></b></a>, <a name="const:iso_latin_1"><b><tt>iso_latin_1</tt></b></a>, <a name="const:utf8"><b><tt>utf8</tt></b></a> and <a name="const:unicode"><b><tt>unicode</tt></b></a>.   Versions with two
+arguments are provided for backward compatibility, making the safe
+<a name="const:ascii%2"><b><tt>ascii</tt></b></a> encoding assumption.
 
 <dl>
 <dt>&nbsp;<br>
-<b><a name="xml_quote_attribute/2">xml_quote_attribute(<var>+In, -Quoted</var>)</a></b><dd>
+<b><a name="xml_quote_attribute/3">xml_quote_attribute(<var>+In, -Quoted, +Encoding</var>)</a></b><dd>
 Map the characters that may not appear in XML attributes to entities.
-Currently these are <a name="const:&lt;&gt;&amp;'&quot;"><b><tt>&lt;&gt;&amp;'&quot;</tt></b></a>.  Future versions may
-also deal with characters that cannot be represented by the document
-character-set.
+Currently these are <a name="const:&lt;&gt;&amp;'&quot;"><b><tt>&lt;&gt;&amp;'&quot;</tt></b></a>.  Characters that
+cannot represented in <var>Encoding</var> are mapped to XML character entities.
+    
+<dt>&nbsp;<br>
+<b><a name="xml_quote_attribute/3%2">xml_quote_attribute(<var>+In, -Quoted, +Encoding</var>)</a></b><dd>
+Backward compatibility version for <a href="#xml_quote_attribute/3"><b>xml_quote_attribute/3</b></a>.
+Assumes <a name="const:ascii%3"><b><tt>ascii</tt></b></a> encoding.
     
 <dt>&nbsp;<br>
 <b><a name="xml_quote_cdata/2">xml_quote_cdata(<var>+In, -Quoted</var>)</a></b><dd>
@@ -1613,9 +1624,22 @@ Very similar to <a href="#xml_quote_attribute/2"><b>xml_quote_attribute/2</b></a
 single- and double-quotes.
     
 <dt>&nbsp;<br>
-<b><a name="xml_name/1">xml_name(<var>+In</var>)</a></b><dd>
+<b><a name="xml_quote_cdata/2%2">xml_quote_cdata(<var>+In, -Quoted</var>)</a></b><dd>
+Backward compatibility version for <a href="#xml_quote_cdata/3"><b>xml_quote_cdata/3</b></a>.
+Assumes <a name="const:ascii%4"><b><tt>ascii</tt></b></a> encoding.
+    
+<dt>&nbsp;<br>
+<b><a name="xml_name/2">xml_name(<var>+In, +Encoding</var>)</a></b><dd>
 Succeed if <var>In</var> is an atom or string that satisfies the rules for
-a valid XML element or attribute name.
+a valid XML element or attribute name.  As with the other predicates in
+this group, if <var>Encoding</var> cannot represent one of the characters, this
+function fails.  It uses a hard-coded table for ASCII-range characters and
+iswalpha()iswalnum() for the first and remaining characters of the name.
+    
+<dt>&nbsp;<br>
+<b><a name="xml_name/1">xml_name(<var>+In</var>)</a></b><dd>
+Backward compatibility version for <a href="#xml_name/2"><b>xml_name/2</b></a>.
+Assumes <a name="const:ascii%5"><b><tt>ascii</tt></b></a> encoding.
 </dl>
 
 <p>
@@ -1761,7 +1785,8 @@ standard.  He also made many suggestions for improving this document.
 <tr><td><a href="#sgml_register_catalog_file/2"><b>sgml_register_catalog_file/2</b></a></td><td>Register a catalog file</td></tr>
 <tr><td><a href="#sgml_write/3"><b>sgml_write/3</b></a></td><td>Write an SGML document from a parser-compatible term</td></tr>
 <tr><td><a href="#xml_name/1"><b>xml_name/1</b></a></td><td>Test atom for valid XML name</td></tr>
-<tr><td><a href="#xml_quote_attribute/2"><b>xml_quote_attribute/2</b></a></td><td>Quote text for use as an attribute</td></tr>
+<tr><td><a href="#xml_name/2"><b>xml_name/2</b></a></td><td>Test atom for valid XML name</td></tr>
+<tr><td><a href="#xml_quote_attribute/3"><b>xml_quote_attribute/3</b></a></td><td>Quote text for use as an attribute</td></tr>
 <tr><td><a href="#xml_quote_cdata/2"><b>xml_quote_cdata/2</b></a></td><td>Quote text for use as PCDATA</td></tr>
 <tr><td><a href="#xml_write/3"><b>xml_write/3</b></a></td><td>Write an XML document from a parser-compatible term</td></tr>
 </table>
@@ -1778,11 +1803,6 @@ in the 5.5 branch this is no longer needed
 In
 addition, newlines at the end of lines containing only markup should be
 deleted. This is not yet implemented.
-<dt><a href="#txt:fn-3" name="fn-3">3</a><dd>
-With the introduction of wide character
-support in Prolog and <b>sgml2pl</b> this is no longer simple.  The 
-provided interface is too simple as it needs to be aware of the stream
-encoding technique as well as entities defined in the DTD
 </dl>
 
 <h1>Index</h1>
@@ -1808,6 +1828,7 @@ encoding technique as well as entities defined in the DTD
 <li><a href="#const:amp"><b><tt>amp</tt></b></a>
 <li><a href="#const:any"><b><tt>any</tt></b></a>
 <li><a href="#const:apos"><b><tt>apos</tt></b></a>
+<li><a href="#const:ascii"><b><tt>ascii</tt></b></a> [ <a href="#const:ascii%2">2</a> <a href="#const:ascii%3">3</a> <a href="#const:ascii%4">4</a> <a href="#const:ascii%5">5</a>]
 <li><a href="#const:begin"><b><tt>begin</tt></b></a>
 <li><a href="#const:cdata"><b><tt>cdata</tt></b></a> [ <a href="#const:cdata%2">2</a> <a href="#const:cdata%3">3</a>]
 <li><a href="#const:conref"><b><tt>conref</tt></b></a>
@@ -1838,6 +1859,7 @@ encoding technique as well as entities defined in the DTD
 <li><a href="#const:input"><b><tt>input</tt></b></a>
 <li><a href="#const:integer"><b><tt>integer</tt></b></a> [ <a href="#const:integer%2">2</a>]
 <li><a href="#const:iso-8859-1"><b><tt>iso-8859-1</tt></b></a>
+<li><a href="#const:iso_latin_1"><b><tt>iso_latin_1</tt></b></a>
 <li><a href="#load_dtd/2"><b>load_dtd/2</b></a>
 <li><a href="#load_html_file/2"><b>load_html_file/2</b></a>
 <li><a href="#load_sgml_file/2"><b>load_sgml_file/2</b></a>
@@ -1873,13 +1895,16 @@ encoding technique as well as entities defined in the DTD
 <li><a href="#const:start"><b><tt>start</tt></b></a>
 <li><a href="#const:token"><b><tt>token</tt></b></a> [ <a href="#const:token%2">2</a>]
 <li><a href="#const:true"><b><tt>true</tt></b></a> [ <a href="#const:true%2">2</a>]
+<li><a href="#const:unicode"><b><tt>unicode</tt></b></a>
 <li><a href="#const:urlns"><b><tt>urlns</tt></b></a>
 <li><a href="#const:utf-8"><b><tt>utf-8</tt></b></a>
+<li><a href="#const:utf8"><b><tt>utf8</tt></b></a>
 <li><a href="#const:warning"><b><tt>warning</tt></b></a>
 <li><a href="#const:xml"><b><tt>xml</tt></b></a> [ <a href="#const:xml%2">2</a> <a href="#const:xml%3">3</a> <a href="#const:xml%4">4</a>]
 <li><a href="#xml_name/1"><b>xml_name/1</b></a>
-<li><a href="#xml_quote_attribute/2"><b>xml_quote_attribute/2</b></a>
-<li><a href="#xml_quote_cdata/2"><b>xml_quote_cdata/2</b></a>
+<li><a href="#xml_name/2"><b>xml_name/2</b></a>
+<li><a href="#xml_quote_attribute/3"><b>xml_quote_attribute/3</b></a> [ <a href="#xml_quote_attribute/3%2">2</a>]
+<li><a href="#xml_quote_cdata/2"><b>xml_quote_cdata/2</b></a> [ <a href="#xml_quote_cdata/2%2">2</a>]
 <li><a href="#xml_write/3"><b>xml_write/3</b></a>
 <li><a href="#const:xmlns"><b><tt>xmlns</tt></b></a> [ <a href="#const:xmlns%2">2</a> <a href="#const:xmlns%3">3</a> <a href="#const:xmlns%4">4</a> <a href="#const:xmlns%5">5</a> <a href="#const:xmlns%6">6</a> <a href="#const:xmlns%7">7</a> <a href="#const:xmlns%8">8</a> <a href="#const:xmlns%9">9</a>]
 </ul>

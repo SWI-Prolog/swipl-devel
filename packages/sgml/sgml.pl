@@ -52,6 +52,8 @@
 
 	    sgml_register_catalog_file/2, % +File, +StartOrEnd
 
+	    xml_quote_attribute/3,	% +In, -Quoted, +Encoding
+	    xml_quote_cdata/3,		% +In, -Quoted, +Encoding
 	    xml_quote_attribute/2,	% +In, -Quoted
 	    xml_quote_cdata/2,		% +In, -Quoted
 	    xml_name/1			% +In
@@ -298,6 +300,29 @@ select_option(Opt, Options, Rest) :-
 	functor(Opt, OptName, 1),
 	arg(1, Opt, OptVal),
 	select(OptName=OptVal, Options, Rest), !.
+
+
+		 /*******************************
+		 *	      ENCODING		*
+		 *******************************/
+
+%	xml_quote_attribute(+In, -Quoted)
+%	xml_quote_cdata(+In, -Quoted)
+%	
+%	Backward  compatibility  for  versions  that  allow  to  specify
+%	encoding. All characters that cannot fit the encoding are mapped
+%	to XML character entities (&#dd;).  Using   ASCII  is the safest
+%	value.
+
+xml_quote_attribute(In, Quoted) :-
+	xml_quote_attribute(In, Quoted, ascii).
+
+xml_quote_cdata(In, Quoted) :-
+	xml_quote_cdata(In, Quoted, ascii).
+
+xml_name(In) :-
+	xml_name(In, ascii).
+
 
 		 /*******************************
 		 *	      MESSAGES		*

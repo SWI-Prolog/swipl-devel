@@ -25,13 +25,6 @@ available test sets. The public goals are:
 
 :- format('RDF-DB test suite.  To run all tests run ?- test.~n~n', []).
 
-% Required to get this always running regardless of user LANG setting.
-% Without this the tests won't run on machines with -for example- LANG=ja
-% according to NIDE Naoyuki, nide@ics.nara-wu.ac.jp.  Thanks!
-
-:- getenv('LANG', _) -> setenv('LANG', 'C'); true.
-
-
 		 /*******************************
 		 *	     TEST DATA		*
 		 *******************************/
@@ -65,6 +58,16 @@ save_reload_db :-
 save_reload :-
 	tmp_file(rdf, File),
 	rdf_save(File),
+	rdf_reset_db,
+	rdf_load(File,
+		 [ base_uri([]),	% do not qualify
+		   convert_typed_literal(convert_typed)
+		 ]),
+	delete_file(File).
+
+save_reload(Encoding) :-
+	tmp_file(rdf, File),
+	rdf_save(File, [encoding(Encoding)]),
 	rdf_reset_db,
 	rdf_load(File,
 		 [ base_uri([]),	% do not qualify
@@ -222,6 +225,41 @@ lang(save) :-
 	;   format(user_error, 'Xs = ~q~n', [Xs]),
 	    fail
 	).
+
+		 /*******************************
+		 *	  WIDE CHARACTERS	*
+		 *******************************/
+
+wide_atom(A) :-
+	atom_codes(A, [97, 1080, 1081]).
+
+wide(iso-object-resource) :-
+	wide_atom(A),
+	rdf_assert(aap, noot, A),
+	save_reload(iso_latin_1).
+wide(utf8-object-resource) :-
+	wide_atom(A),
+	rdf_assert(aap, noot, A),
+	save_reload(utf8).
+wide(iso-object-literal) :-
+	wide_atom(A),
+	rdf_assert(aap, noot, literal(A)),
+	save_reload(iso_latin_1).
+wide(utf8-object-literal) :-
+	wide_atom(A),
+	rdf_assert(aap, noot, literal(A)),
+	save_reload(utf8).
+wide(iso-predicate) :-
+	wide_atom(A),
+	rdf_assert(aap, A, noot),
+	save_reload(iso_latin_1).
+wide(utf8-predicate) :-
+	wide_atom(A),
+	rdf_assert(aap, A, noot),
+	save_reload(utf8).
+
+
+
 
 		 /*******************************
 		 *	       UPDATE		*
@@ -439,6 +477,7 @@ testset(literal).
 testset(same).
 testset(typed).
 testset(lang).
+testset(wide).
 testset(update).
 testset(transaction).
 testset(label).

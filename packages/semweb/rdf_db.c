@@ -2704,10 +2704,10 @@ md5_triple(triple *t, md5_byte_t *digest)
   const char *s;
 
   md5_init(&state);
-  s = PL_atom_nchars(t->subject, &len);
+  s = PL_blob_data(t->subject, &len, NULL);
   md5_append(&state, (const md5_byte_t *)s, len);
   md5_append(&state, "P", 1);
-  s = PL_atom_nchars(t->predicate->name, &len);
+  s = PL_blob_data(t->predicate->name, &len, NULL);
   md5_append(&state, (const md5_byte_t *)s, len);
   tmp[0] = 'O';
   tmp[1] = (char)t->objtype;

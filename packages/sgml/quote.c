@@ -10,6 +10,7 @@
     Copyright (C) 1990-2002 SWI, University of Amsterdam. All rights reserved.
 */
 
+#include <SWI-Stream.h>			/* encoding */
 #include <SWI-Prolog.h>
 #include <stdlib.h>
 #ifdef HAVE_MALLOC_H
@@ -19,7 +20,13 @@
 #include <errno.h>
 #include <string.h>
 #include <stdio.h>
+#include <wctype.h>
 #include "dtd.h"
+
+static atom_t ATOM_iso_latin_1;
+static atom_t ATOM_utf8;
+static atom_t ATOM_unicode;
+static atom_t ATOM_ascii;
 
 #define CHARSET 256
 
@@ -139,7 +146,7 @@ add_str_bufW(charbuf *b, const char *s)
 
 
 static foreign_t
-do_quote(term_t in, term_t quoted, char **map)
+do_quote(term_t in, term_t quoted, char **map, int maxchr)
 { char *inA = NULL;
   wchar_t *inW = NULL;
   unsigned len;
@@ -165,6 +172,14 @@ do_quote(term_t in, term_t quoted, char **map)
 	  return FALSE;
 	
 	changes++;
+      } else if ( c > maxchr )
+      { char buf[10];
+
+	sprintf(buf, "&#%d;", c);
+	if ( !add_str_buf(&buffer, buf) )
+	  return FALSE;
+	
+	changes++;
       } else
       { add_char_buf(&buffer, c);
       }
@@ -183,7 +198,15 @@ do_quote(term_t in, term_t quoted, char **map)
 	  return FALSE;
 	
 	changes++;
-      } else
+      } else if ( c > maxchr )
+      { char buf[10];
+
+	sprintf(buf, "&#%d;", c);
+	if ( !add_str_bufW(&buffer, buf) )
+	  return FALSE;
+	
+	changes++;
+      }else
       { add_char_bufW(&buffer, c);
       }
     }
@@ -202,9 +225,33 @@ do_quote(term_t in, term_t quoted, char **map)
 }
 
 
+static int
+get_max_chr(term_t t, int *maxchr)
+{ atom_t a;
+
+  if ( PL_get_atom(t, &a) )
+  { if ( a == ATOM_iso_latin_1 )
+      *maxchr = 0xff;
+    else if ( a == ATOM_utf8 )
+      *maxchr = 0x7ffffff;
+    else if ( a == ATOM_unicode )
+      *maxchr = 0xffff;
+    else if ( a == ATOM_ascii )
+      *maxchr = 0x7f;
+    else
+      return sgml2pl_error(ERR_DOMAIN, "encoding", t);
+
+    return TRUE;
+  }
+
+  return sgml2pl_error(ERR_TYPE, "atom", t);
+}
+
+
 static foreign_t
-xml_quote_attribute(term_t in, term_t out)
+xml_quote_attribute(term_t in, term_t out, term_t encoding)
 { static char **map;
+  int maxchr;
 
   if ( !map )
   { int i;
@@ -222,13 +269,17 @@ xml_quote_attribute(term_t in, term_t out)
     map['"']  = "&quot;";
   }
 
-  return do_quote(in, out, map);
+  if ( !get_max_chr(encoding, &maxchr) )
+    return FALSE;
+
+  return do_quote(in, out, map, maxchr);
 }
 
 
 static foreign_t
-xml_quote_cdata(term_t in, term_t out)
+xml_quote_cdata(term_t in, term_t out, term_t encoding)
 { static char **map;
+  int maxchr;
 
   if ( !map )
   { int i;
@@ -244,33 +295,75 @@ xml_quote_cdata(term_t in, term_t out)
     map['&']  = "&amp;";
   }
 
-  return do_quote(in, out, map);
+  if ( !get_max_chr(encoding, &maxchr) )
+    return FALSE;
+
+  return do_quote(in, out, map, maxchr);
 }
 
 
 static foreign_t
-xml_name(term_t in)
+xml_name(term_t in, term_t encoding)
 { char *ins;
+  wchar_t *inW;
   unsigned len;
   static dtd_charclass *map;
   unsigned int i;
+  int maxchr;
+
+  if ( !get_max_chr(encoding, &maxchr) )
+    return FALSE;
 
   if ( !map )
     map = new_charclass();
 
-  if ( !PL_get_nchars(in, &len, &ins, CVT_ATOMIC) )
-    return FALSE;
-  if ( len == 0 )
-    return FALSE;
-  
-  if ( !(map->class[ins[0] & 0xff] & CH_NMSTART) )
-    return FALSE;
-  for(i=1; i<len; i++)
-  { if ( !(map->class[ins[i] & 0xff] & CH_NAME) )
+  if ( PL_get_nchars(in, &len, &ins, CVT_ATOMIC) )
+  { int c;
+
+    if ( len == 0 )
       return FALSE;
+
+    c = ins[0] & 0xff;
+    if ( c > maxchr )
+      return FALSE;
+    
+    if ( !(map->class[c] & CH_NMSTART) )
+      return FALSE;
+    for(i=1; i<len; i++)
+    { c = ins[i] & 0xff;
+
+      if ( c > maxchr || !(map->class[c] & CH_NAME) )
+	return FALSE;
+    }
+
+    return TRUE;
+  }
+  if ( PL_get_wchars(in, &len, &inW, CVT_ATOMIC) )
+  { if ( len == 0 )
+      return FALSE;
+  
+    if ( inW[0] > maxchr )
+      return FALSE;
+
+    if ( inW[0] <= 0xff &&
+	 !(map->class[inW[0]] & CH_NMSTART) )
+      return FALSE;
+    if ( inW[0] > 0xff && !iswalpha(inW[0]) )
+      return FALSE;
+	 
+    for(i=1; i<len; i++)
+    { int c = inW[i];
+
+      if ( c <= 0xff && !(map->class[c] & CH_NAME) )
+	return FALSE;
+      if ( c > 0xff && !iswalnum(c) )
+	return FALSE;
+    }
+
+    return TRUE;
   }
 
-  return TRUE;
+  return FALSE;
 }
 
 
@@ -278,7 +371,12 @@ xml_name(term_t in)
 
 install_t
 install_xml_quote()
-{ PL_register_foreign("xml_quote_attribute", 2, xml_quote_attribute, 0);
-  PL_register_foreign("xml_quote_cdata",     2, xml_quote_cdata,     0);
-  PL_register_foreign("xml_name",            1, xml_name,            0);
+{ ATOM_iso_latin_1 = PL_new_atom("iso_latin_1");
+  ATOM_utf8        = PL_new_atom("utf8");
+  ATOM_unicode     = PL_new_atom("unicode");
+  ATOM_ascii       = PL_new_atom("ascii");
+
+  PL_register_foreign("xml_quote_attribute", 3, xml_quote_attribute, 0);
+  PL_register_foreign("xml_quote_cdata",     3, xml_quote_cdata,     0);
+  PL_register_foreign("xml_name",            2, xml_name,            0);
 }

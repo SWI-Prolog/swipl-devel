@@ -2,8 +2,8 @@
 
 <pldoc>
 <head>
-<version>2.0.2
-<release-date>February 2005
+<version>2.0.3
+<release-date>March 2005
 <package>sgml2pl
 </head>
 
@@ -1187,28 +1187,46 @@ from <pref>dtd/2</pref>. The <aref/Options/ are described with
 <s2>Simplify quoting</title>
 
 <p>
-The <ref pkg/sgml2pl/ package is a parser.  Output is generally much easier
-achieved directly from Prolog.  Nevertheless, it contains a few building
-blocks for emitting markup data.<fn>With the introduction of wide character
-support in Prolog and <ref pkg/sgml2pl/ this is no longer simple.  The 
-provided interface is too simple as it needs to be aware of the stream
-encoding technique as well as entities defined in the DTD</fn>
+The <ref pkg/sgml2pl/ package is a parser. Output is generally much
+easier achieved directly from Prolog. Nevertheless, it contains a few
+building blocks for emitting markup data. The quote funtions return a
+version of the input text into one that contains entities for characters
+that need to be escaped. These are the XML meta characters and the
+characters that cannot be expressed by the document encoding. Therefore
+these predicates accept an <aref/encoding/ argument. Accepted values are
+<c/ascii/, <c/iso_latin_1/, <c/utf8/ and <c/unicode/.   Versions with two
+arguments are provided for backward compatibility, making the safe
+<c/ascii/ encoding assumption.
 
 <definitions>  
-    <pred>xml_quote_attribute(+In, -Quoted)
+    <pred>xml_quote_attribute(+In, -Quoted, +Encoding)
     <summary>Quote text for use as an attribute
 Map the characters that may not appear in XML attributes to entities.
-Currently these are <c>&lt;&gt;&amp;&apos;&quot</c>.  Future versions may
-also deal with characters that cannot be represented by the document
-character-set.
+Currently these are <c>&lt;&gt;&amp;&apos;&quot</c>.  Characters that
+cannot represented in <aref/Encoding/ are mapped to XML character entities.
+    <pred>xml_quote_attribute(+In, -Quoted, +Encoding)
+    <summary>Quote text for use as an attribute
+Backward compatibility version for <pref>xml_quote_attribute/3</pref>.
+Assumes <c/ascii/ encoding.
     <pred>xml_quote_cdata(+In, -Quoted)
     <summary>Quote text for use as PCDATA
 Very similar to <pref>xml_quote_attribute/2</pref>, but does not quote the
 single- and double-quotes.
-    <pred>xml_name(+In)
+    <pred>xml_quote_cdata(+In, -Quoted)
+    <summary>Quote text for use as PCDATA
+Backward compatibility version for <pref>xml_quote_cdata/3</pref>.
+Assumes <c/ascii/ encoding.
+    <pred>xml_name(+In, +Encoding)
     <summary>Test atom for valid XML name
 Succeed if <aref/In/ is an atom or string that satisfies the rules for
-a valid XML element or attribute name.
+a valid XML element or attribute name.  As with the other predicates in
+this group, if <aref/Encoding/ cannot represent one of the characters, this
+function fails.  It uses a hard-coded table for ASCII-range characters and
+iswalpha()/iswalnum() for the first and remaining characters of the name.
+    <pred>xml_name(+In)
+    <summary>Test atom for valid XML name
+Backward compatibility version for <pref>xml_name/2</pref>.
+Assumes <c/ascii/ encoding.
 </definitions>
 
 

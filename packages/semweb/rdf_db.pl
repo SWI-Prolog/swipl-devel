@@ -64,7 +64,7 @@
 	    rdf_load/1,			% +File
 	    rdf_load/2,			% +File, +Options
 	    rdf_save/1,			% +File
-	    rdf_save/2,			% +File, +DB
+	    rdf_save/2,			% +File, +Options
 	    rdf_unload/1,		% +File
 
 	    rdf_md5/2,			% +DB, -MD5
@@ -99,6 +99,7 @@
 :- use_module(library(shlib)).
 :- use_module(library(gensym)).
 :- use_module(library(sgml)).
+:- use_module(library(option)).
 
 :- initialization
    load_foreign_library(foreign(rdf_db)).
@@ -677,6 +678,9 @@ rdf_reset_db :-
 %		Call Convertor(-Type, -Content, +RDFObject), providing
 %		the opposite for the convert_typed_literal option of
 %		the RDF parser.
+%		
+%		# encoding(Encoding)
+%		Encoding for the output.  Either utf8 or iso_latin_1
 
 :- module_transparent
 	rdf_save/2,
@@ -695,7 +699,9 @@ rdf_save(File, DB) :-
 
 
 rdf_save2(File, Options) :-
-	open(File, write, Out),
+	option(encoding(Encoding), Options, utf8),
+	valid_encoding(Encoding),
+	open(File, write, Out, [encoding(Encoding)]),
 	flag(rdf_db_saved_subjects, OSavedSubjects, 0),
 	flag(rdf_db_saved_triples, OSavedTriples, 0),
 	call_cleanup(rdf_do_save(Out, Options),
@@ -705,6 +711,13 @@ rdf_save2(File, Options) :-
 				  OSavedSubjects,
 				  OSavedTriples,
 				  Out)).
+
+
+valid_encoding(ascii) :- !.
+valid_encoding(iso_latin_1) :- !.
+valid_encoding(utf8) :- !.
+valid_encoding(Enc) :-
+	throw(error(domain_error(encoding, Enc), _)).
 
 
 cleanup_save(Reason,
@@ -772,7 +785,8 @@ meta_options([H0|T0], [H|T]) :-
 rdf_save_header(Out, Options) :-
 	is_list(Options), !,
 	db(Options, DB),
-	format(Out, '<?xml version=\'1.0\' encoding=\'ISO-8859-1\'?>~n', []),
+	xml_encoding(Out, Encoding),
+	format(Out, '<?xml version=\'1.0\' encoding=\'~w\'?>~n', [Encoding]),
 	format(Out, '<!DOCTYPE rdf:RDF [', []),
 	used_namespaces(NSList, DB),
 	(   member(Id, NSList),
@@ -793,6 +807,14 @@ rdf_save_header(Out, FileRef) :-	% compatibility
 	atom(FileRef),
 	rdf_save_header(Out, [db(FileRef)]).
 	
+xml_encoding(Out, Encoding) :-
+	stream_property(Out, encoding(Enc)),
+	xml_encoding_name(Enc, Encoding).
+
+xml_encoding_name(ascii,       'US-ASCII').
+xml_encoding_name(iso_latin_1, 'ISO-8859-1').
+xml_encoding_name(utf8,        'UTF-8').
+
 
 %	used_namespaces(-List)
 %
@@ -944,7 +966,8 @@ xml_is_name(Atom) :-
 save_about(_Out, Subject) :-
 	anonymous_subject(Subject), !.
 save_about(Out, Subject) :-
-	rdf_value(Subject, QSubject),
+	stream_property(Out, encoding(Encoding)),
+	rdf_value(Subject, QSubject, Encoding),
 	format(Out, ' rdf:about="~w"', [QSubject]).
 
 %	save_attributes(+List, +DefNS, +Stream, Element)
@@ -1028,7 +1051,8 @@ save_attributes2([H|T], DefNS, Where, Out, Indent, Options) :-
 save_attribute(tag, Name=literal(Value), DefNS, Out, Indent, _DB) :-
 	AttIndent is Indent + 2,
 	rdf_att_id(Name, DefNS, NameText),
-	xml_quote_attribute(Value, QVal),
+	stream_property(Out, encoding(Encoding)),
+	xml_quote_attribute(Value, QVal, Encoding),
 	format(Out, '~N~*|~w="~w"', [AttIndent, NameText, QVal]).
 save_attribute(body, Name=literal(Literal0), DefNS, Out, Indent, Options) :- !,
 	rdf_id(Name, DefNS, NameText),
@@ -1064,13 +1088,15 @@ save_attribute(body, Name=Value, DefNS, Out, Indent, Options) :-
 	),
 	format(Out, '~N~*|</~w>~n', [Indent, NameText]).
 save_attribute(body, Name=Value, DefNS, Out, Indent, _DB) :-
-	rdf_value(Value, QVal),
+	stream_property(Out, encoding(Encoding)),
+	rdf_value(Value, QVal, Encoding),
 	rdf_id(Name, DefNS, NameText),
 	format(Out, '~N~*|<~w rdf:resource="~w"/>', [Indent, NameText, QVal]).
 
 save_attribute_value(Value, Out) :-	% strings
 	atom(Value), !,
-	xml_quote_cdata(Value, QVal),
+	stream_property(Out, encoding(Encoding)),
+	xml_quote_cdata(Value, QVal, Encoding),
 	write(Out, QVal).
 save_attribute_value(Value, Out) :-	% numbers
 	number(Value), !,
@@ -1085,7 +1111,8 @@ rdf_save_list(Out, List, DefNS, Indent, Options) :-
 	(   anonymous_subject(First)
 	->  nl(Out),
 	    rdf_save_subject(Out, First, DefNS, Indent, Options)
-	;   rdf_value(First, QVal),
+	;   stream_property(Out, encoding(Encoding)),
+	    rdf_value(First, QVal, Encoding),
 	    format(Out, '~N~*|<rdf:Description about="~w"/>',
 		   [Indent, QVal])
 	),
@@ -1129,13 +1156,13 @@ rdf_att_id(Id, _, NS:Local) :-
 rdf_att_id(Id, _, Id).
 
 
-rdf_value(V, Text) :-
+rdf_value(V, Text, Encoding) :-
 	ns(NS, Full),
 	atom_concat(Full, Local, V), !,
-	xml_quote_attribute(Local, QLocal),
+	xml_quote_attribute(Local, QLocal, Encoding),
 	concat_atom(['&', NS, (';'), QLocal], Text).
-rdf_value(V, Q) :-
-	xml_quote_attribute(V, Q).
+rdf_value(V, Q, Encoding) :-
+	xml_quote_attribute(V, Q, Encoding).
 
 
 		 /*******************************
