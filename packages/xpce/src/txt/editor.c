@@ -445,7 +445,7 @@ showLabelEditor(Editor e, Bool val)
 { if ( isNil(e->label_text) )
   { if ( val == ON )
     { assign(e, label_text,
-	     newObject(ClassText, getLabelNameName(e->name), NAME_left,
+	     newObject(ClassText, GetLabelNameName(e->name), NAME_left,
 		       getClassVariableValueObject(e, NAME_labelFont), 0));
       marginText(e->label_text, e->area->w, NAME_clip);
       displayDevice(e, e->label_text, DEFAULT);

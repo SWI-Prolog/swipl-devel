@@ -1,15 +1,15 @@
 
-/* win/browser.c */
+/* ../src/win/browser.c */
 status		makeClassBrowser(Class class);
 
-/* win/decorate.c */
+/* ../src/win/decorate.c */
 status		requestComputeScrollbarsWindowDecorator(WindowDecorator dw);
 status		makeClassWindowDecorator(Class class);
 
-/* win/dialog.c */
+/* ../src/win/dialog.c */
 status		makeClassDialog(Class class);
 
-/* win/display.c */
+/* ../src/win/display.c */
 status		openDisplay(DisplayObj d);
 Bool		getOpenDisplay(Any d);
 status		drawInDisplay(DisplayObj d, Graphical gr, Point pos, Bool invert, Bool subtoo);
@@ -28,7 +28,7 @@ status		busyCursorDisplay(DisplayObj d, CursorObj c, Bool block_events);
 status		inspectDisplay(DisplayObj d, Graphical gr, EventObj ev);
 status		makeClassDisplay(Class class);
 
-/* win/displaymgr.c */
+/* ../src/win/displaymgr.c */
 status		appendDisplayManager(DisplayManager dm, DisplayObj d);
 DisplayObj	getMemberDisplayManager(DisplayManager dm, Name address);
 DisplayObj	CurrentDisplay(Any obj);
@@ -37,7 +37,7 @@ status		dispatchDisplayManager(DisplayManager dm, Int fd, Int timeout);
 DisplayManager	TheDisplayManager(void);
 status		makeClassDisplayManager(Class class);
 
-/* win/frame.c */
+/* ../src/win/frame.c */
 Any		getConfirmFrame(FrameObj fr, Point pos, Bool grab, Bool normalise);
 Any		getConfirmCenteredFrame(FrameObj fr, Point pos, Bool grab);
 status		createdFrame(FrameObj fr);
@@ -54,12 +54,12 @@ status		blockedByModalFrame(FrameObj fr, EventObj ev);
 status		eventFrame(FrameObj fr, EventObj ev);
 status		makeClassFrame(Class class);
 
-/* win/picture.c */
+/* ../src/win/picture.c */
 status		makeClassPicture(Class class);
 
-/* win/setup.c */
+/* ../src/win/setup.c */
 
-/* win/tile.c */
+/* ../src/win/tile.c */
 status		unrelateTile(TileObj t);
 TileObj		getRootTile(TileObj t);
 status		distribute_stretches(stretch *s, int n, int w);
@@ -68,10 +68,10 @@ status		enforceTile(TileObj t, Bool val);
 TileObj		getSubTileToResizeTile(TileObj t, Point pos);
 status		makeClassTile(Class class);
 
-/* win/view.c */
+/* ../src/win/view.c */
 status		makeClassView(Class class);
 
-/* win/window.c */
+/* ../src/win/window.c */
 status		initialiseWindow(PceWindow sw, Name label, Size size, DisplayObj display);
 status		createdWindow(PceWindow sw);
 status		grabPointerWindow(PceWindow sw, Bool val);
@@ -109,6 +109,6 @@ status		flushWindow(PceWindow sw);
 status		flashWindow(PceWindow sw, Area a, Int time);
 status		makeClassWindow(Class class);
 
-/* win/application.c */
+/* ../src/win/application.c */
 void		resetApplications(void);
 status		makeClassApplication(Class class);

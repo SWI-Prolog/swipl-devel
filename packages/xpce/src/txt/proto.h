@@ -1,5 +1,5 @@
 
-/* txt/chararray.c */
+/* ../src/txt/chararray.c */
 status		initialiseCharArray(CharArray n, CharArray value);
 Name		getValueCharArray(CharArray n);
 status		equalCharArray(CharArray n1, CharArray n2);
@@ -20,7 +20,7 @@ void		doneScratchCharArray(CharArray n);
 CharArray	CtoCharArray(char *s);
 status		makeClassCharArray(Class class);
 
-/* txt/editor.c */
+/* ../src/txt/editor.c */
 status		normaliseEditor(Editor e, Int start, Int end);
 Any		ReceiverOfEditor(Editor e);
 status		forwardModifiedEditor(Editor e, Bool val);
@@ -32,10 +32,10 @@ status		formatEditor(Editor e, CharArray fmt, int argc, Any *argv);
 status		clearEditor(Editor e);
 status		makeClassEditor(Class class);
 
-/* txt/fragment.c */
+/* ../src/txt/fragment.c */
 status		makeClassFragment(Class class);
 
-/* txt/keybinding.c */
+/* ../src/txt/keybinding.c */
 Any		getFunctionKeyBinding(KeyBinding kb, Name key);
 status		functionKeyBinding(KeyBinding kb, EventId id, Any f);
 status		typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver);
@@ -44,7 +44,7 @@ KeyBinding	KeyBindingText(void);
 KeyBinding	KeyBindingTextItem(void);
 KeyBinding	KeyBindingTextItemView(void);
 
-/* txt/regex.c */
+/* ../src/txt/regex.c */
 status		ignoreCaseRegex(Regex re, Bool val);
 status		compileRegex(Regex re, Bool optimize);
 status		search_regex(Regex re, char *str1, int size1, char *str2, int size2, int start, int end);
@@ -54,7 +54,7 @@ status		matchRegex(Regex re, Any obj, Int start, Int end);
 Int		getRegisterEndRegex(Regex re, Int which);
 status		makeClassRegex(Class class);
 
-/* txt/str.c */
+/* ../src/txt/str.c */
 int		str_allocsize(String s);
 void		str_pad(String s);
 void		str_alloc(String s);
@@ -92,7 +92,7 @@ void		str_strip(String s);
 int		str_common_length(String s1, String s2);
 int		str_icase_common_length(String s1, String s2);
 
-/* txt/string.c */
+/* ../src/txt/string.c */
 StringObj	StringToString(String s);
 StringObj	CtoString(const char *s);
 StringObj	staticCtoString(const char *s);
@@ -107,14 +107,14 @@ status		str_insert_string(StringObj str, Int where, String s);
 StringObj	getSubString(StringObj n, Int start, Int end);
 status		makeClassString(Class class);
 
-/* txt/style.c */
+/* ../src/txt/style.c */
 status		boldStyle(Style s, Bool on);
 status		makeClassStyle(Class class);
 
-/* txt/syntax.c */
+/* ../src/txt/syntax.c */
 status		makeClassSyntaxTable(Class class);
 
-/* txt/textbuffer.c */
+/* ../src/txt/textbuffer.c */
 status		changedTextBuffer(TextBuffer tb);
 status		ChangedRegionTextBuffer(TextBuffer tb, Int start, Int end);
 status		ChangedFragmentListTextBuffer(TextBuffer tb);
@@ -149,11 +149,11 @@ status		insert_textbuffer(TextBuffer tb, int where, int times, String s);
 status		delete_textbuffer(TextBuffer tb, int where, int length);
 status		makeClassTextBuffer(Class class);
 
-/* txt/textcursor.c */
+/* ../src/txt/textcursor.c */
 status		setTextCursor(TextCursor c, Int x, Int y, Int w, Int h, Int b);
 status		makeClassTextCursor(Class class);
 
-/* txt/textimage.c */
+/* ../src/txt/textimage.c */
 status		InsertTextImage(TextImage ti, Int where, Int amount);
 status		ChangedRegionTextImage(TextImage ti, Int from, Int to);
 status		ChangedEntireTextImage(TextImage ti);
@@ -169,10 +169,10 @@ status		tabStopsTextImage(TextImage ti, Vector v);
 Int		getViewTextImage(TextImage ti);
 status		makeClassTextImage(Class class);
 
-/* txt/textmargin.c */
+/* ../src/txt/textmargin.c */
 status		makeClassTextMargin(Class class);
 
-/* txt/undo.c */
+/* ../src/txt/undo.c */
 void		destroyUndoBuffer(UndoBuffer ub);
 Int		getUndoTextBuffer(TextBuffer tb);
 status		undoTextBuffer(TextBuffer tb);

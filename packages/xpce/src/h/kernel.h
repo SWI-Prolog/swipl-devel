@@ -1525,7 +1525,6 @@ GLOBAL Host	HOST;			/* the one and only Host object */
 GLOBAL SendFunc	DispatchEvents;		/* Dispatch function */
 GLOBAL int	changedLevel;		/* Change forwarding levels */
 GLOBAL HashTable ErrorTable;		/* @error_database */
-GLOBAL ulong	ExecuteCalls;		/* Executed methods */
 
 GLOBAL struct constant ConstantNil;	/* MUST be first! */
 GLOBAL struct constant ConstantDefault;
