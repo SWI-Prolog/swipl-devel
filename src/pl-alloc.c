@@ -40,6 +40,11 @@
 #define ALLOC_FREE_MAGIC 0x5f
 #define ALLOC_VIRGIN_MAGIC 0x7f
 
+#define LOCK()   PL_LOCK(L_ALLOC)
+#define UNLOCK() PL_UNLOCK(L_ALLOC)
+#undef LD
+#define LD LOCAL_LD
+
 #if O_MYALLOC
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -55,10 +60,40 @@ The prolog machinery using these memory allocation functions always know
 how  much  memory  is  allocated  and  provides  this  argument  to  the
 corresponding  unalloc()  call if memory need to be freed.  This saves a
 word to store the size of the memory segment.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOCK()   PL_LOCK(L_ALLOC)
-#define UNLOCK() PL_UNLOCK(L_ALLOC)
+
+Releasing memory to the system in PL_cleanup()
+----------------------------------------------
+
+Big chunks are allocated using allocBigHeap(),  which preserves a double
+linked list of malloc() allocated object, so  we can easily and reliably
+return all allocated memory back to  the OS. Perfect-fit-allocated small
+blobs are formed from allocBigHeap() allocated   objects, so again there
+is no need to keep track  of  the   allocated  memory  for freeing it in
+PL_cleanup().
+
+
+Efficiency considerations in multi-threaded code
+------------------------------------------------
+
+Most malloc() libraries are thread-safe only by using a mutex around the
+entire function.  This poses a serious slow-down, especially in assert()
+and findall/3 and friends.
+
+We use a perfect-fit pool for each thread,   as well as a global pool in
+GD.  Rules:
+
+  * If a thread terminates  all  remaining   memory  is  merged with the
+    global pool.
+
+  * Memory freed during the execution of a thread is stored in the pool
+    of the thread.
+
+  * Memory is first allocated from the thread-pool.  If this is empty,
+    a quick-and-dirty access to the global pool is tried.  If there
+    appears to be memory it will try to nicely import the chain from
+    the global pool.  If it fails, allocate() allocates new memory.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef ALIGN_SIZE
 #if defined(__sgi) && !defined(__GNUC__)
@@ -81,16 +116,6 @@ static void  freeAllBigHeaps(void);
 
 #define ALLOCROUND(n) ROUND(n, ALIGN_SIZE)
 			   
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Allocate n bytes from the heap.  The amount returned is n rounded up to
-a multiple of words.  Allocated memory always starts at a word boundary.
-
-below ALLOCFAST we use a special purpose fast allocation scheme.  Above
-(which is very rare) we use Unix malloc()/free() mechanism.
-
-The rest of the code uses the macro allocHeap() to access this function
-to avoid problems with 16-bit machines not supporting an ANSI compiler.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 		 /*******************************
 		 *	       FREE		*
@@ -111,7 +136,7 @@ freeToPool(AllocPool pool, void *mem, size_t n)
 
 
 void
-freeHeap(void *mem, size_t n)
+freeHeap__LD(void *mem, size_t n ARG_LD)
 { if ( mem == NULL )
     return;
   n = ALLOCROUND(n);
@@ -120,14 +145,19 @@ freeHeap(void *mem, size_t n)
   memset((char *) mem, ALLOC_FREE_MAGIC, n);
 #endif
 
-  LOCK();
   if ( n <= ALLOCFAST )
+  {
+#ifdef O_PLMT
+    freeToPool(&LD->alloc_pool, mem, n);
+#else
     freeToPool(&GD->alloc_pool, mem, n);
-  else
-  { freeBigHeap(mem);
+#endif
+  } else
+  { LOCK();
+    freeBigHeap(mem);
     GD->statistics.heap += n;
+    UNLOCK();
   }
-  UNLOCK();
 }
 
 
@@ -142,6 +172,25 @@ of it.  Next we check whether any areas are  assigned  to  be  used  for
 allocation.   If  all  this fails we allocate new core using Allocate(),
 which normally calls malloc().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+leftoverToChains(AllocPool pool)
+{ if ( pool->free >= sizeof(struct chunk) )
+  { int m = pool->free/ALIGN_SIZE;
+    Chunk ch = (Chunk)pool->space;
+
+#if ALLOC_DEBUG
+    assert(m <= ALLOCFAST/ALIGN_SIZE);
+    memset(ch, ALLOC_FREE_MAGIC, spacefree);
+#endif
+
+    ch->next = pool->free_chains[m];
+    pool->free_chains[m] = ch;
+  }
+
+  pool->free = 0;
+}
+
 
 static void *
 allocate(AllocPool pool, size_t n)
@@ -161,27 +210,17 @@ allocate(AllocPool pool, size_t n)
 #endif
     pool->space += n;
     pool->free -= n;
+    pool->allocated += n;
     return p;
   }
 
-  if ( pool->free >= sizeof(struct chunk) )
-  { int m = pool->free/ALIGN_SIZE;
-    Chunk ch = (Chunk)pool->space;
-
-#if ALLOC_DEBUG
-    assert(m <= ALLOCFAST/ALIGN_SIZE);
-    memset(ch, ALLOC_FREE_MAGIC, spacefree);
-#endif
-
-    ch->next = pool->free_chains[m];
-    pool->free_chains[m] = ch;
-  }
-
+  leftoverToChains(pool);
   if ( !(p = allocBigHeap(ALLOCSIZE)) )
     outOfCore();
 
   pool->space = p + n;
   pool->free  = ALLOCSIZE - n;
+  pool->allocated += n;
 
 #if ALLOC_DEBUG
   memset(spaceptr, ALLOC_VIRGIN_MAGIC, spacefree);
@@ -199,10 +238,8 @@ allocFromPool() allocates a rounded amount of bytes upto ALLOCFAST
 static void *
 allocFromPool(AllocPool pool, size_t n)
 { Chunk f;
-  size_t m = n / (int) ALIGN_SIZE;;
+  size_t m = n / (int) ALIGN_SIZE;
   
-  pool->allocated += n;			/* n is already rounded */
-
   if ( (f = pool->free_chains[m]) )
   { pool->free_chains[m] = f->next;
     DEBUG(9, Sdprintf("(r) %p\n", f));
@@ -216,37 +253,55 @@ allocFromPool(AllocPool pool, size_t n)
       memset(f, ALLOC_MAGIC, n);
     }
 #endif
+    pool->allocated += n;
+
     return f;
   }
-  f = allocate(pool, n);		/* allocate from core */
 
-  DEBUG(9, Sdprintf("(n) %p\n", f));
-#if ALLOC_DEBUG
-  memset((char *) f, ALLOC_MAGIC, n);
-#endif
-  return f;
+  return NULL;
 }
 
 
 void *
-allocHeap(size_t n)
+allocHeap__LD(size_t n ARG_LD)
 { void *mem;
 
   if ( n == 0 )
     return NULL;
   n = ALLOCROUND(n);
 
-  LOCK();
   if ( n <= ALLOCFAST )
-    mem = allocFromPool(&GD->alloc_pool, n);
-  else
-  { mem = allocBigHeap(n);
-    GD->statistics.heap += n;
-  }
-  UNLOCK();
+  {
+#ifdef O_PLMT
+    if ( !(mem = allocFromPool(&LD->alloc_pool, n)) )
+    { size_t m = n / (int) ALIGN_SIZE;
 
-  assert(inCore(mem));
-  assert(inCore((char *)mem+n));
+      if ( GD->alloc_pool.free_chains[m] )
+      { LOCK();
+	LD->alloc_pool.free_chains[m] = GD->alloc_pool.free_chains[m];
+	UNLOCK();
+
+	if ( !(mem = allocFromPool(&LD->alloc_pool, n)) )
+	  mem = allocate(&LD->alloc_pool, n);
+      } else
+	mem = allocate(&LD->alloc_pool, n);
+    }
+#else /*O_PLMT*/
+    LOCK();
+    if ( !(mem = allocFromPool(&GD->alloc_pool, n)) )
+      mem = allocate(&GD->alloc_pool, n);
+    UNLOCK();
+#endif /*O_PLMT*/
+  } else
+  { LOCK();
+    mem = allocBigHeap(n);
+    GD->statistics.heap += n;
+    UNLOCK();
+  }
+
+#if ALLOC_DEBUG
+  memset((char *)mem, ALLOC_MAGIC, n);
+#endif
 
   return mem;
 }
@@ -267,6 +322,50 @@ cleanupMemAlloc(void)
   destroyAllocPool(&GD->alloc_pool);
 }
 
+
+		 /*******************************
+		 *	 EXCHANGING POOLS	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+mergeAllocPool(to, from)
+    Merge all chain from `from' into `to'.  Used to move the pool of a
+    terminated thread into the global pool.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+mergeAllocPool(AllocPool to, AllocPool from)
+{ Chunk *t, *f;
+  int i;
+
+  leftoverToChains(from);
+
+  LOCK();
+  for(i=0, t=to->free_chains, f = from->free_chains;
+      i < (ALLOCFAST/ALIGN_SIZE);
+      i++, t++, f++)
+  { if ( *f )
+    { Chunk c = *t;
+
+      if ( c )
+      { while(c->next)			/* find end of chain */
+	  c = c->next;
+	c->next = *f;
+      } else
+	*t = *f;
+
+      *f = NULL;
+    }
+  }
+  UNLOCK();
+
+  to->allocated += from->allocated;
+}
+
+
+		 /*******************************
+		 *	   LARGE CHUNKS		*
+		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Deal with big allocHeap() calls. We have   comitted ourselves to be able
@@ -390,7 +489,8 @@ cleanupMemAlloc(void)
 
 word
 outOfStack(Stack s, stack_overflow_action how)
-{ LD->trim_stack_requested = TRUE;
+{ GET_LD
+  LD->trim_stack_requested = TRUE;
 
   switch(how)
   { case STACK_OVERFLOW_FATAL:
@@ -434,9 +534,6 @@ outOfCore()
 		 /*******************************
 		 *	REFS AND POINTERS	*
 		 *******************************/
-
-#undef LD
-#define LD LOCAL_LD
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 __consPtr() is inlined for this module (including pl-wam.c), but external
@@ -810,7 +907,8 @@ remove_string(char *s)
 
 char *
 store_string(const char *s)
-{ char *copy = (char *)allocHeap(strlen(s)+1);
+{ GET_LD
+  char *copy = (char *)allocHeap(strlen(s)+1);
 
   strcpy(copy, s);
   return copy;
@@ -820,7 +918,9 @@ store_string(const char *s)
 void
 remove_string(char *s)
 { if ( s )
+  { GET_LD
     freeHeap(s, strlen(s)+1);
+  }
 }
 
 #endif /*O_DEBUG*/

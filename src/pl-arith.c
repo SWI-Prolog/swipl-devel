@@ -1353,7 +1353,8 @@ registerFunction(ArithFunction f)
 
 static void
 registerBuiltinFunctions()
-{ int n, size = sizeof(ar_funcdefs)/sizeof(ar_funcdef);
+{ GET_LD
+  int n, size = sizeof(ar_funcdefs)/sizeof(ar_funcdef);
   ArithFunction f = allocHeap(size * sizeof(struct arithFunction));
   const ar_funcdef *d;
 

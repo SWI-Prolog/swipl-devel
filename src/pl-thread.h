@@ -230,6 +230,8 @@ void			PL_atomic_dec(int *addr);
 		 *******************************/
 
 #define allocGlobal(n)		allocGlobal__LD(n PASS_LD)
+#define allocHeap(n)		allocHeap__LD(n PASS_LD)
+#define freeHeap(p, n)		freeHeap__LD(p, n PASS_LD)
 #define makeNum(n)		makeNum__LD(n PASS_LD)
 #define getInputStream(t, s)	getInputStream__LD(t, s PASS_LD)
 

@@ -313,6 +313,8 @@ free_prolog_thread(void *data)
 
   freeThreadMessages(ld);
   freeThreadSignals(ld);
+					/* give memory back */
+  mergeAllocPool(&GD->alloc_pool, &ld->alloc_pool);
 
   TLD_set(PL_ldata, NULL);		/* to NULL (avoid recursion) */
 

@@ -197,7 +197,8 @@ NOTE:	If the assert() fails, look at pl-wam.c: VMI(C_NOT, ... for
 #if VMCODE_IS_ADDRESS
 void
 initWamTable(void)
-{ int n;
+{ GET_LD
+  int n;
   code maxcoded, mincoded;
 
   if ( interpreter_jmp_table == NULL )
@@ -3716,7 +3717,8 @@ typedef struct
 
 static bool
 setBreak(Clause clause, int offset)
-{ Code PC = clause->codes + offset;
+{ GET_LD
+  Code PC = clause->codes + offset;
 
   if ( !breakTable )
     breakTable = newHTable(16);
@@ -3742,7 +3744,8 @@ setBreak(Clause clause, int offset)
 
 static int
 clearBreak(Clause clause, int offset)
-{ Code PC;
+{ GET_LD
+  Code PC;
   BreakPoint bp;
   Symbol s;
 

@@ -23,13 +23,14 @@
 */
 
 /* pl-alloc.c */
-void		freeHeap(void *mem, size_t n);
+void		freeHeap__LD(void *mem, size_t n ARG_LD);
 word		outOfStack(Stack s, stack_overflow_action how);
 volatile void	outOfCore(void);
 Word		allocGlobal__LD(int words ARG_LD);
-Void		allocHeap(size_t n);
+Void		allocHeap__LD(size_t n ARG_LD);
 void		initMemAlloc(void);
 void		cleanupMemAlloc(void);
+void		mergeAllocPool(AllocPool to, AllocPool from);
 word		globalFunctor(functor_t def);
 int		sizeString(word w);
 word		globalString(const char *s);

@@ -402,6 +402,8 @@ typedef struct
     struct _thread_sig   *sig_tail;	/* Tail of signal queue */
     struct _at_exit_goal *exit_goals;	/* thread_at_exit/1 goals */
   } thread;
+
+  struct alloc_pool alloc_pool;		/* Thread allocation pool */
 #endif
 } PL_local_data_t;
 

@@ -55,7 +55,8 @@ lookupRecordList(word key)
   if ( (s = lookupHTable(GD->tables.record_lists, (void *)key)) )
   { return s->value;
   } else
-  { RecordList l;
+  { GET_LD
+    RecordList l;
 
     if ( isAtom(key) )			/* can also be functor_t */
       PL_register_atom(key);
@@ -1136,7 +1137,8 @@ structuralEqualArg1OfRecord(term_t t, Record r ARG_LD)
 
 bool
 freeRecord(Record record)
-{ if ( true(record, R_DUPLICATE) && --record->references > 0 )
+{ GET_LD
+  if ( true(record, R_DUPLICATE) && --record->references > 0 )
     succeed;
 
 #ifdef O_ATOMGC
@@ -1159,7 +1161,8 @@ freeRecord(Record record)
 
 static void
 freeRecordRef(RecordRef r)
-{ freeRecord(r->record);
+{ GET_LD
+  freeRecord(r->record);
   freeHeap(r, sizeof(*r));
 }
 
@@ -1216,7 +1219,8 @@ PL_recorded_external(const char *rec, term_t t)
 
 int
 PL_erase_external(char *rec)
-{ copy_info b;
+{ GET_LD
+  copy_info b;
   uint scode;
   uchar m;
 

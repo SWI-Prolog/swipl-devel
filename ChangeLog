@@ -10,6 +10,8 @@
 	  garbage collection to collect redefined static procedures.
 	- Large reduction of access to thread-local data by passing
 	  this data around and use one-fetch-per-function more widely.
+	- Introduced thread-local heap-allocation policy to reduce
+	  the use of locks.
 
   * ADDED: multi-threading support in the windows version based on
     pthread-win32, an Open Source emulation of POSIX threads on
