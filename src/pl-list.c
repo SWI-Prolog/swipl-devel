@@ -108,10 +108,13 @@ list_to_sorted_array(term_t List, int *size ARG_LD)
   { outOfStack((Stack)&LD->stacks.local, STACK_OVERFLOW_RAISE);
     fail;
   }
+
+#if O_SHIFT_STACKS
 					/* grow stack if needed */
   if ( roomStack(local) < minfree )
   { growStacks(NULL, NULL, NULL, minfree, FALSE, FALSE);
   }
+#endif
 
   rval = PL_new_term_refs(n);
   
