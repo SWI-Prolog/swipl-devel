@@ -766,31 +766,41 @@ eexxppllaaiinn((_+_T_o_E_x_p_l_a_i_n_, _-_E_x_p_l_a_n_
 22..44 QQuueerryy SSuubbssttiittuuttiioonnss
 
 SWI-Prolog  offers a  query substitution  mechanism similar  to that  of
-Unix csh (csh(1)), called `history'.  It allows the  user to compose new
-queries from those typed  before and remembered by the system.   It also
-allows to correct queries and syntax errors.   SWI-Prolog does not offer
-the Unix csh capabilities  to include arguments.  This is omitted  as it
-is unclear how the first, second, etc. argument should be defined.
+Unix csh (csh(1)), called  `history'.  The availability of  this feature
+is controlled by sseett__ffeeaattuurree//22, using the history feature.   By default,
+history is available if  the feature readline is false.  To  enable this
+feature, remembering the  last 50 commands, put the following  into your
+~/.plrc file:
+
+:- set_feature(history, 50).
+
+The history  system allows the  user to compose  new queries from  those
+typed before and  remembered by the system.   It also allows to  correct
+queries and  syntax errors.    SWI-Prolog does  not offer  the Unix  csh
+capabilities to  include arguments.   This is omitted  as it is  unclear
+how the first, second, etc. argument should be defined.
 
 The available  history commands  are shown  in table  2.1.   Figure  2.1
 gives some examples.
        __________________________________________________________
        | !!.            |Repeat last query                        |
+
        | !nr.           |Repeat query numbered <_n_r>               |
        | !str.          |Repeat last query starting with <_s_t_r>    |
        | !?str.         |Repeat last query holding <_s_t_r>          |
        | ^old^new.      |Substitute <_o_l_d> into <_n_e_w> of last query |
-
        | !nr^old^new.   |Substitute in query numbered <_n_r>        |
        | !str^old^new.  |Substitute in query starting with <_s_t_r>  |
        | !?str^old^new. |Substitute in query holding <_s_t_r>        |
        | h.             |Show history list                        |
+
        |_!h.____________|Show_this_list__________________________ |
 
                       Table 2.1:  History commands
 
 /staff/jan/.plrc consulted, 0.066667 seconds, 591 bytes
 Welcome to SWI-Prolog (Version \plversion)
+
 Copyright (c) 1993-1996 University of Amsterdam.  All rights reserved.
 
 For help, use ?- help(Topic). or ?- apropos(Word).
@@ -802,7 +812,6 @@ L = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100]
 Yes
 2 ?- !!, writef('L = %s\n', [L]).
 append("Hello ", "World", L), writef('L = %s\n', [L]).
-
 L = Hello World
 
 L = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100]
@@ -814,6 +823,7 @@ L = [3]
 
 Yes
 4 ?- ^integer^number.
+
 sublist(number, [3, f, 3.4], L).
 
 L = [3, 3.400000]
@@ -822,11 +832,11 @@ Yes
 5 ?- h.
     1   append("Hello ", "World", L).
     2   append("Hello ", "World", L), writef('L = %s\n', [L]).
+
     3   sublist(integer, [3, f, 3.4], L).
     4   sublist(number, [3, f, 3.4], L).
 
 5 ?- !2^World^Universe.
-
 append("Hello ", "Universe", L), writef('L = %s\n', [L]).
 L = Hello Universe
 
@@ -1340,6 +1350,13 @@ ffeeaattuurree((_?_K_e_y_, _-_V_a_l_u_e))
          the variables to their name.   Using this feature, F(x)  can be
          turned into valid syntax for such script languages.   Suggested
          by Robert van Engelen.  SWI-Prolog specific.
+
+    hhiissttoorryy ((_i_n_t_e_g_e_r))
+         If  >0,  support  Unix  csh(1) like  history  as  described in
+         section 2.4.  Otherwise, only support  reusing commands through
+         the commandline editor.  The default is to set  this feature to
+         0 if a  commandline editor is  provided (see feature  readline)
+         and 15 otherwise.
 
     ggcc ((_b_o_o_l))
          If true (default), the garbage collector is active.   If false,
@@ -3645,13 +3662,6 @@ rreeaadd__hhiissttoorryy((_+_S_h_o_w_, _+_H_e_l_p_, _+
     read_history(h, '!h', [trace], '%w ?- ', Goal, Bindings)
 
 
-hhiissttoorryy__ddeepptthh((_-_I_n_t))
-    Dynamic  predicate, normally not defined.  The user can  define this
-    predicate  to set the history depth.   It should unify the  argument
-    with  a  positive integer.    When not  defined 15  is  used as  the
-    default.
-
-
 pprroommpptt((_-_O_l_d_, _+_N_e_w))
     Set  prompt associated  with rreeaadd//11  and its  derivatives.   _O_l_d  is
     first  unified with the current prompt.  On success the  prompt will
@@ -5113,8 +5123,10 @@ hhaalltt((_+_S_t_a_t_u_s))
 
 
 pprroolloogg
-    This  goal starts the  default interactive top  level.  pprroolloogg//00  is
-    terminated (succeeds) by typing control-D.
+    This  goal starts the  default interactive top  level.  Queries  are
+    read  from the  stream user_input.    See also  the history  feature
+    (ffeeaattuurree//22).    The pprroolloogg//00 predicate  is terminated (succeeds)  by
+    typing the end-of-file character (Unix:  control-D).
 
 The following  two hooks allow  for expanding  queries and handling  the
 result  of a  query.   These  hooks are  used by  the toplevel  variable
@@ -9105,14 +9117,13 @@ suggest predicates from a keyword.
  help/0                        Give help on help
 
  help/1                        Give help on predicates and show parts of manual
- history_depth/1               Number of remembered queries
  ignore/1                      Call the argument, but always succeed
  import/1                      Import a predicate from a module
  index/1                       Change clause indexing
  initialization/1              Initialization directive
  int_to_atom/2                 Convert from integer to atom
-
  int_to_atom/3                 Convert from integer to atom (non-decimal)
+
  integer/1                     Type check for integer
  intersection/3                Set intersection
  is/2                          Evaluate arithmetic expression
@@ -9120,16 +9131,16 @@ suggest predicates from a keyword.
  is_list/1                     Type check for a list
  is_set/1                      Type check for a set
  keysort/2                     Sort, using a key
-
  last/2                        Last element of a list
+
  leash/1                       Change ports visited by the tracer
  length/2                      Length of a list
  library_directory/1           (hook) Directories holding Prolog libraries
  limit_stack/2                 Limit stack expansion
  line_count/2                  Line number on stream
  line_position/2               Character position in line on stream
-
  list_to_set/2                 Remove duplicates
+
  listing/0                     List program in current module
  listing/1                     List predicate
  load_files/2                  Load source files with options
@@ -9137,16 +9148,16 @@ suggest predicates from a keyword.
  load_foreign/5                Load foreign (C) module
  load_foreign_library/1        library(shlib) Load shared library (.so file)
  load_foreign_library/2        library(shlib) Load shared library (.so file)
-
  make/0                        Reconsult all changed source files
+
  make_fat_filemap/1            Win32:  Create file containing non-FAT filenames
  make_library_index/1          Create autoload file INDEX.pl
  maplist/3                     Transform all elements of a list
  member/2                      Element is member of a list
  memberchk/2                   Deterministic mmeemmbbeerr//22
  merge/3                       Merge two sorted lists
-
  merge_set/3                   Merge two sorted sets
+
  meta_predicate/1              Quintus compatibility
  module/1                      Query/set current type-in module
  module/2                      Declare a module
@@ -9154,16 +9165,16 @@ suggest predicates from a keyword.
  msort/2                       Sort, do not remove duplicates
  multifile/1                   Indicate distributed definition of predicate
  name/2                        Convert between atom and list of ASCII characters
-
  nl/0                          Generate a newline
+
  nl/1                          Generate a newline on a stream
  nodebug/0                     Disable debugging
  nonvar/1                      Type check for bound term
  noprotocol/0                  Disable logging of user interaction
  nospy/1                       Remove spy point
  nospyall/0                    Remove all spy points
-
  not/1                         Negation by failure (argument not provable).  Same as \+//11
+
  notrace/0                     Stop tracing
  notrace/1                     Do not debug argument goal
  nth0/3                        N-th element of a list (0-based)
@@ -9171,16 +9182,16 @@ suggest predicates from a keyword.
  nth_clause/3                  N-th clause of a predicate
  number/1                      Type check for integer or float
  number_chars/2                Convert between number and atom
-
  numbervars/4                  Enumerate unbound variables of a term using a given base
+
  once/1                        Call a goal deterministically
  op/3                          Declare an operator
  open/3                        Open a file (creating a stream)
  open/4                        Open a file (creating a stream)
  open_dde_conversation/3       Win32:  Open DDE channel
  open_null_stream/1            Open a stream to discard output
-
  open_shared_object/2          UNIX: Open shared library (.so file)
+
  open_shared_object/3          UNIX: Open shared library (.so file)
  peek_byte/1                   Read character without removing
  peek_byte/2                   Read character without removing
@@ -9188,16 +9199,16 @@ suggest predicates from a keyword.
  phrase/3                      Activate grammar-rule set (returning rest)
  please/3                      Query/change environment parameters
  plus/3                        Logical integer addition
-
  portray/1                     (hook) Modify behaviour of pprriinntt//11
+
  portray_clause/1              Pretty print a clause
  predicate_property/2          Query predicate attributes
  predsort/3                    Sort, using a predicate to determine the order
  preprocessor/2                Install a preprocessor before the compiler
  print/1                       Print a term
  print/2                       Print a term on a stream
-
  print_message/2               Print message from (exception) term
+
  profile/3                     Obtain execution statistics
  profile_count/3               Obtain profile results on a predicate
  profiler/2                    Obtain/change status of the profiler
@@ -9205,16 +9216,16 @@ suggest predicates from a keyword.
  prolog_current_frame/1        Reference to goal's environment stack
  prolog_frame_attribute/3      Obtain information on a goal environment
  prolog_load_context/2         Context information for directives
-
  prolog_skip_level/2           Indicate deepest recursion to trace
+
  prolog_to_os_filename/2       Convert between Prolog and OS filenames
  prolog_trace_interception/4   library(user) Intercept the Prolog tracer
  prompt1/1                     Change prompt for 1 line
  prompt/2                      Change the prompt used by rreeaadd//11
  proper_list/1                 Type check for list
  protocol/1                    Make a log of the user interaction
-
  protocola/1                   Append log of the user interaction to file
+
  protocolling/1                On what file is user interaction logged
  put/1                         Write a character
  put/2                         Write a character on a stream
@@ -9222,16 +9233,16 @@ suggest predicates from a keyword.
  qload/1                       Load Quick Load File as ccoonnssuulltt//11
  qsave_program/1               Create runtime application
  qsave_program/2               Create runtime application
-
  read/1                        Read Prolog term
+
  read/2                        Read Prolog term from stream
  read_clause/1                 Read clause
  read_clause/2                 Read clause from stream
  read_history/6                Read using history substitution
  read_link/3                   Read a symbolic link
  read_term/2                   Read term with options
-
  read_term/3                   Read term with options from stream
+
  read_variables/2              Read clause including variable names
  read_variables/3              Read clause including variable names from stream
  recorda/2                     Record term in the database (first)
@@ -9239,16 +9250,16 @@ suggest predicates from a keyword.
  recorded/2                    Obtain term from the database
  recorded/3                    Obtain term from the database
  recordz/2                     Record term in the database (last)
-
  recordz/3                     Record term in the database (last)
+
  redefine_system_predicate/1   Abolish system definition
  rename_file/2                 Change name of file
  repeat/0                      Succeed, leaving infinite backtrack points
  require/1                     This file requires these predicates
  reset_profiler/0              Clear statistics obtained by the profiler
  restore/1                     Restore saved-state (ssaavvee//11, ssaavvee__pprrooggrraamm//11)
-
  retract/1                     Remove clause from the database
+
  retractall/1                  Remove unifying clauses from the database
  reverse/2                     Inverse the order of the elements in a list
  same_file/2                   Succeeds if arguments refer to same file
@@ -9256,16 +9267,16 @@ suggest predicates from a keyword.
  save/2                        Save program including current goal
  save_program/1                Save the current program on a file
  save_program/2                Save the current program on a file
-
  see/1                         Change the current input stream
+
  seeing/1                      Query the current input stream
  seen/0                        Close the current input stream
  select/3                      Select element of a list
  set_feature/2                 Define a system feature
  set_input/1                   Set current input stream from a stream
  set_output/1                  Set current output stream from a stream
-
  set_tty/2                     Set `tty' stream
+
  setarg/3                      Destructive assignment on term
  setenv/2                      Set shell environment variable
  setof/3                       Find all unique solutions to a goal
@@ -9273,16 +9284,16 @@ suggest predicates from a keyword.
  sformat/3                     Format on a string
  shell/0                       Execute interactive subshell
  shell/1                       Execute OS command
-
  shell/2                       Execute OS command
+
  show_profile/1                Show results of the profiler
  size_file/2                   Get size of a file in characters
  skip/1                        Skip to character in current input
  skip/2                        Skip to character on stream
  rl_add_history/1              Add line to readline(3) history
  rl_read_init_file/1           Read readline(3) init file
-
  sleep/1                       Suspend execution for specified time
+
  sort/2                        Sort elements in a list
  source_file/1                 Examine currently loaded source files
  source_file/2                 Obtain source file of predicate
@@ -9290,16 +9301,16 @@ suggest predicates from a keyword.
  spy/1                         Force tracer on specified predicate
  stack_parameter/4             Some systems:  Query/Set runtime stack parameter
  statistics/0                  Show execution statistics
-
  statistics/2                  Obtain collected statistics
+
  stream_position/3             Get/seek to position in file
  string/1                      Type check for string
  string_concat/3               ccoonnccaatt//33 for strings (non-deterministic)
  string_length/2               Determine length of a string
  string_to_atom/2              Conversion between string and atom
  string_to_list/2              Conversion between string and list of ASCII
-
  style_check/1                 Change level of warnings
+
  sublist/3                     Determine elements that meet condition
  subset/2                      Generate/check subset relation
  substring/4                   Get part of a string
@@ -9307,16 +9318,16 @@ suggest predicates from a keyword.
  succ/2                        Logical integer successor relation
  swritef/2                     Formatted write on a string
  swritef/3                     Formatted write on a string
-
  tab/1                         Output number of spaces
+
  tab/2                         Output number of spaces on a stream
  tell/1                        Change current output stream
  telling/1                     Query current output stream
  term_expansion/2              (hook) Convert term before compilation
  term_to_atom/2                Convert between term and atom
  throw/1                       Raise an exception (see ccaattcchh//33)
-
  time/1                        Determine time needed to execute goal
+
  time_file/2                   Get last modification time of file
  tmp_file/2                    Create a temporary filename
  told/0                        Close current output
@@ -9324,16 +9335,16 @@ suggest predicates from a keyword.
  trace/1                       Set trace-point on predicate
  trace/2                       Set/Clear trace-point on ports
  tracing/0                     Query status of the tracer
-
  trim_stacks/0                 Release unused memory resources
+
  true/0                        Succeed
  tty_get_capability/3          Get terminal parameter
  tty_goto/2                    Goto position on screen
  tty_put/2                     Write control string to terminal
  ttyflush/0                    Flush output on terminal
  union/3                       Union of two sets
-
  unknown/2                     Trap undefined predicates
+
  unload_foreign_library/1      library(shlib) Detach shared library (.so file)
  unsetenv/1                    Delete shell environment variable
  use_module/1                  Import a module
@@ -9341,16 +9352,16 @@ suggest predicates from a keyword.
  var/1                         Type check for unbound variable
  visible/1                     Ports that are visible in the tracer
  volatile/1                    Predicates that are not saved
-
  wait_for_input/3              Wait for input with optional timeout
+
  wildcard_match/2              Csh(1) style wildcard match
  win_exec/2                    Win32:  spawn Windows task
  write/1                       Write term
  write/2                       Write term to stream
  write_ln/1                    Write term, followed by a newline
  write_canonical/1             Write a term with quotes, ignore operators
-
  write_canonical/2             Write a term with quotes, ignore operators on a stream
+
  write_term/2                  Write term with options
  write_term/3                  Write term with options to stream
  writef/1                      Formatted write
@@ -9534,4 +9545,4 @@ Bibliography
                                   New York, 1983.  Major revision  March
                                   1984.
 
-                                  721
+                                  720

@@ -2874,8 +2874,10 @@ is equivalent to \exam{halt(0)}.
 Terminate Prolog execution with given status.  Status is an integer.
 See also halt/0.
 \predicate{prolog}{0}{}
-This goal starts the default interactive top level. prolog/0
-is terminated (succeeds) by typing control-D.
+This goal starts the default interactive top level. Queries are read
+from the stream \const{user_input}. See also the \const{history} feature
+(feature/2). The prolog/0 predicate is terminated (succeeds) by typing
+the end-of-file character (Unix: control-D).
 \end{description}
 
 The following two hooks allow for expanding queries and handling the

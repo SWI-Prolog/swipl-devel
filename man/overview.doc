@@ -244,13 +244,22 @@ Backtracking yields further explanations.
 \section{Query Substitutions}
 \label{sec:history}
 
-SWI-Prolog offers a query substitution mechanism similar to that
-of Unix csh (csh(1)), called `history'. It allows the user to compose
-new queries from those typed before and remembered by the system. It
-also allows to correct queries and syntax errors. SWI-Prolog does not
-offer the Unix csh capabilities to include arguments. This is omitted
-as it is unclear how the first, second, etc.\ argument should be
-defined.%
+SWI-Prolog offers a query substitution mechanism similar to that of Unix
+csh (csh(1)), called `history'. The availability of this feature is
+controlled by set_feature/2, using the \const{history} feature. By
+default, history is available if the feature \const{readline} is
+\const{false}. To enable this feature, remembering the last 50 commands,
+put the following into your \file{~/.plrc} file:
+
+\begin{code}
+:- set_feature(history, 50).
+\end{code}
+
+The history system allows the user to compose new queries from those
+typed before and remembered by the system. It also allows to correct
+queries and syntax errors. SWI-Prolog does not offer the Unix csh
+capabilities to include arguments. This is omitted as it is unclear how
+the first, second, etc.\ argument should be defined.%
     \footnote{One could choose words, defining words as a sequence of
               alpha-numeric characters and the word separators as
               anything else, but one could also choose Prolog
