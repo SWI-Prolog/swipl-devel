@@ -1023,6 +1023,8 @@ ws_resize_image(Image image, Int w, Int h)
 }
 
 
+#ifdef USE_MS_ZOOM
+
 Image
 ws_scale_image(Image image, int w, int h)
 { Image copy = answerObject(ClassImage, NIL,
@@ -1080,6 +1082,115 @@ ws_scale_image(Image image, int w, int h)
 
   answer(copy);
 }
+
+#else /*USE_MS_ZOOM*/
+
+static unsigned int *
+buildIndex(unsigned width, unsigned rwidth)
+{ float         fzoom;
+  int		 zoom;
+  unsigned int *index;
+  unsigned int  a;
+
+
+  if ( width == rwidth )
+  { zoom  = FALSE;
+    fzoom = 100.0;
+  } else
+  { zoom  = TRUE;
+    fzoom = (float)rwidth / (float) width;
+  }
+
+  index = pceMalloc(sizeof(unsigned int) * rwidth);
+
+  if ( zoom )
+  { for(a=0; a < rwidth; a++)
+      index[a] = rfloat((float)a/fzoom);
+  } else
+  { for(a=0; a < rwidth; a++)
+      index[a] = a;
+  }
+
+  return index;
+}
+
+
+Image
+ws_scale_image(Image image, int w, int h)
+{ Image copy = answerObject(ClassImage, NIL,
+			    toInt(w), toInt(h), image->kind, 0);
+  DisplayObj d = image->display;
+
+  if ( isNil(d) )
+    d = CurrentDisplay(image);
+
+  if ( copy && d )
+  { HBITMAP sbm = (HBITMAP) getXrefObject(image, d);
+
+    if ( sbm )
+    { HPALETTE ohpalsrc=0, ohpaldst=0, hpal;
+      HDC hdcsrc   = CreateCompatibleDC(NULL);
+      HDC hdcdst   = CreateCompatibleDC(hdcsrc);
+      HBITMAP osbm, dbm, odbm;
+
+      osbm = ZSelectObject(hdcsrc, sbm);
+       dbm = ZCreateCompatibleBitmap(hdcsrc, w, h);
+      odbm = ZSelectObject(hdcdst, dbm);
+
+      if ( instanceOfObject(d->colour_map, ClassColourMap) )
+	hpal = getPaletteColourMap(d->colour_map);
+      else
+	hpal = NULL;
+    
+      if ( hpal )
+      { ohpalsrc = SelectPalette(hdcsrc, hpal, FALSE);
+	ohpaldst = SelectPalette(hdcdst, hpal, FALSE);
+	RealizePalette(hdcsrc);
+	RealizePalette(hdcdst);
+      }
+      
+      { unsigned int *xindex, *yindex;
+	unsigned int  x, y, xsrc, ysrc;
+
+	xindex = buildIndex(valInt(image->size->width),  w);
+	yindex = buildIndex(valInt(image->size->height), h);
+
+	for(y = 0; y < (unsigned int) h; y++)
+	{ ysrc = yindex[y];
+
+	  for(x= 0; x < (unsigned int)w; x++)
+	  { COLORREF value;
+	    xsrc = xindex[x];
+
+	    value = GetPixel(hdcsrc, xsrc, ysrc);
+	    PutPixel(hdcdst, x, y, value);
+	  }
+	}
+
+        pceFree(xindex);
+	pceFree(yindex);
+      }
+      
+      ZSelectObject(hdcsrc, osbm);
+      ZSelectObject(hdcdst, odbm);
+
+      if ( ohpalsrc )
+	SelectPalette(hdcsrc, ohpalsrc, FALSE);
+      if ( ohpaldst )
+	SelectPalette(hdcdst, ohpaldst, FALSE);
+
+      DeleteDC(hdcsrc);
+      DeleteDC(hdcdst);
+
+      registerXrefObject(copy, d, (void *) dbm);
+    }
+  }
+
+  answer(copy);
+}
+
+#endif /*USE_MS_ZOOM*/
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 XFORM is a transformation matrix of the format:
