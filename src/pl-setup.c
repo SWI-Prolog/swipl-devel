@@ -1158,7 +1158,13 @@ allocStacks(long local, long global, long trail, long argument)
   size_alignment = getpagesize();
   while(size_alignment < 4*SIZEOF_LONG K)
     size_alignment *= 2;
-  mapfd  = get_map_fd();
+
+#ifndef HAVE_MAP_ANON
+  PL_LOCK(L_MISC);
+  if ( mapfd < 0 )
+    mapfd = get_map_fd();
+  PL_UNLOCK(L_MISC);
+#endif
 
 #ifdef NO_SEGV_HANDLING
   lsep = tsep = 0;
