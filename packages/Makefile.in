@@ -21,7 +21,7 @@ PKG=	clib \
 # version of SWI-Prolog and pl-mt to the same install-base, you must provide
 # --enable-mt here.
 
-#CNFG=	--enable-mt
+CNFG=@CNFG@
 
 ################################################################
 # Normally, all should be fine below here
@@ -66,7 +66,7 @@ CONFIG=	env PL="$(PL)" PLBASE="$(PLBASE)" PLARCH="$(PLARCH)" \
 	    PLINCL="$(PLINCL)" PLSHARED="$(PLSHARED)" \
 	    PLSOEXT="$(SO)" BUILDDIR="$(BUILDDIR)" \
 	    MAKE="$(MAKE)" \
-	    ./configure $(CNFG) --prefix=$(prefix)
+	    ./configure $(CNFG) $(CNFGPASSED) --prefix=$(prefix)
 
 all:	objects
 

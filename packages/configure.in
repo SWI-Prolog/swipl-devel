@@ -14,4 +14,4 @@
 # you should pass the option --enable-mt to configure.  The resulting
 # packages work both with the single-threaded and multi-treaded SWI-Prolog.
 
-@MAKE@ CNFG="$*" configure
+@MAKE@ CNFGPASSED="$*" configure
