@@ -4,6 +4,9 @@
 VERSION 6.2.9, distributed with SWI-Prolog 5.2.9
 ================================================
 
+* FIXED/MODIFIED: `node->image' now use ->destroy to destroy the old image.
+  The new image is immediately connected to the tree so <-contained works.
+
 * FIXED: `event->inside' for windows that are not the receiver of the event.
 
 * PORT: manual installation according to the GNU make/autoconf guidelines.

@@ -459,20 +459,27 @@ static status
 imageNode(Node n, Graphical gr)		/* change image of node */
 { if ( isNil(n->tree) )
   { assign(n, image, gr);
-    succeed;
+  } else
+  { if ( notNil(n->image) )
+    { Device dev = n->image->device;
+      Bool disp = n->image->displayed;
+
+      unrelateImagesNode(n);
+      send(n->image, NAME_destroy, EAV);
+      assign(n, image, gr);
+      if ( notNil(dev) && disp == ON )
+	send(dev, NAME_display, gr, EAV);
+      else
+	send(gr, NAME_device, dev, EAV);
+    }
+
+    send(gr, NAME_handle, n->tree->sonHandle, EAV);
+    send(gr, NAME_handle, n->tree->parentHandle, EAV);
+    relateImagesNode(n);
+    
+    requestComputeTree(n->tree);
   }
 
-  unrelateImagesNode( n );
-  send(n->image, NAME_device, NIL, EAV);
-
-  send(gr, NAME_handle,     n->tree->sonHandle, EAV);
-  send(gr, NAME_handle,     n->tree->parentHandle, EAV);
-
-  assign(n, image, gr);
-  relateImagesNode( n );
-
-  requestComputeTree(n->tree);
-  
   succeed;
 }
 
