@@ -960,8 +960,16 @@ deleteHyperObject(Any obj, Hyper h)
 { Chain ch;
 
   TRY(ch = getAllHypersObject(obj, OFF));
+  if ( deleteChain(ch, h) )
+  { if ( emptyChain(ch) )
+    { deleteHashTable(ObjectHyperTable, obj);
+      clearFlag(obj, F_HYPER);
+    }
 
-  return deleteChain(ch, h);
+    succeed;
+  }
+  
+  fail;
 }
 
 

@@ -2,6 +2,10 @@
 			   ==============
 
 
+* ENHANCED: object->delete_hyper to destroy the object's <-hypers chain
+  after deleting the last hyper.
+
+
 VERSION 6.2.7, distributed with SWI-Prolog 5.2.7
 ================================================
 
