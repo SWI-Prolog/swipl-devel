@@ -1,5 +1,5 @@
 # Microsoft Developer Studio Project File - Name="plwin" - Package Owner=<4>
-# Microsoft Developer Studio Generated Build File, Format Version 5.00
+# Microsoft Developer Studio Generated Build File, Format Version 6.00
 # ** DO NOT EDIT **
 
 # TARGTYPE "Win32 (x86) Application" 0x0101
@@ -22,6 +22,7 @@ CFG=plwin - Win32 Release
 !MESSAGE 
 
 # Begin Project
+# PROP AllowPerConfigDependencies 0
 # PROP Scc_ProjName ""
 # PROP Scc_LocalPath ""
 CPP=cl.exe
@@ -65,7 +66,7 @@ LINK32=link.exe
 # PROP Intermediate_Dir "..\objects\debug\plwin"
 # PROP Ignore_Export_Lib 0
 # ADD BASE CPP /nologo /W3 /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /c
-# ADD CPP /nologo /MD /W3 /Gm /GX /Zi /Od /I "win32\console" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "PL_WIN" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /Gm /GX /ZI /Od /I "win32\console" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /D "PL_WIN" /YX /FD /c
 # SUBTRACT CPP /Fr
 # ADD BASE MTL /nologo /D "_DEBUG" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32

@@ -1,5 +1,5 @@
 # Microsoft Developer Studio Project File - Name="console" - Package Owner=<4>
-# Microsoft Developer Studio Generated Build File, Format Version 5.00
+# Microsoft Developer Studio Generated Build File, Format Version 6.00
 # ** DO NOT EDIT **
 
 # TARGTYPE "Win32 (x86) Dynamic-Link Library" 0x0102
@@ -17,12 +17,12 @@ CFG=console - Win32 Release
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
-!MESSAGE "console - Win32 Release" (based on\
- "Win32 (x86) Dynamic-Link Library")
+!MESSAGE "console - Win32 Release" (based on "Win32 (x86) Dynamic-Link Library")
 !MESSAGE "console - Win32 Debug" (based on "Win32 (x86) Dynamic-Link Library")
 !MESSAGE 
 
 # Begin Project
+# PROP AllowPerConfigDependencies 0
 # PROP Scc_ProjName ""
 # PROP Scc_LocalPath ""
 CPP=cl.exe
@@ -55,9 +55,8 @@ LINK32=link.exe
 # ADD LINK32 kernel32.lib user32.lib gdi32.lib advapi32.lib comdlg32.lib /nologo /subsystem:windows /dll /machine:I386 /nodefaultlib:"libcmt.lib" /out:"..\..\..\bin/plterm.dll"
 # SUBTRACT LINK32 /pdb:none
 # Begin Special Build Tool
-SOURCE=$(InputPath)
-PostBuild_Cmds=if not exist ..\..\..\include mkdir  ..\..\..\include	copy\
-  console.h ..\..\..\include
+SOURCE="$(InputPath)"
+PostBuild_Cmds=if not exist ..\..\..\include mkdir  ..\..\..\include	copy   console.h ..\..\..\include
 # End Special Build Tool
 
 !ELSEIF  "$(CFG)" == "console - Win32 Debug"
@@ -72,7 +71,7 @@ PostBuild_Cmds=if not exist ..\..\..\include mkdir  ..\..\..\include	copy\
 # PROP Intermediate_Dir "..\..\..\objects\debug\console"
 # PROP Ignore_Export_Lib 0
 # ADD BASE CPP /nologo /MT /W3 /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /c
-# ADD CPP /nologo /MD /W3 /Gm /GX /Zi /Od /I "..\xnt" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /Gm /GX /ZI /Od /I "..\xnt" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "__WIN32__" /YX /FD /c
 # SUBTRACT CPP /Fr
 # ADD BASE MTL /nologo /D "_DEBUG" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
@@ -86,9 +85,8 @@ LINK32=link.exe
 # ADD LINK32 msvcrtd.lib kernel32.lib user32.lib gdi32.lib advapi32.lib comdlg32.lib /nologo /subsystem:windows /dll /debug /machine:I386 /nodefaultlib:"MSVCRT.LIB" /out:"..\..\..\bin/pltermD.dll"
 # SUBTRACT LINK32 /pdb:none
 # Begin Special Build Tool
-SOURCE=$(InputPath)
-PostBuild_Cmds=if not exist ..\..\..\include mkdir  ..\..\..\include	copy\
-  console.h ..\..\..\include
+SOURCE="$(InputPath)"
+PostBuild_Cmds=if not exist ..\..\..\include mkdir  ..\..\..\include	copy   console.h ..\..\..\include
 # End Special Build Tool
 
 !ENDIF 
