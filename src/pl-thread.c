@@ -177,6 +177,19 @@ counting_mutex _PL_mutexes[] =
   COUNT_MUTEX_INITIALIZER("L_FOREIGN")
 };
 
+
+static void
+link_mutexes()
+{ counting_mutex *m;
+  int n = sizeof(_PL_mutexes)/sizeof(*m);
+  int i;
+
+  GD->thread.mutexes = _PL_mutexes;
+  for(i=0, m=_PL_mutexes; i<n-1; i++, m++)
+    m->next = m+1;
+}
+
+
 #ifdef USE_CRITICAL_SECTIONS
 
 static void
@@ -212,17 +225,22 @@ DllMain(HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved)
 
 static
 PRED_IMPL("$mutex_statistics", 0, mutex_statistics, 0)
-{ int i;
-  counting_mutex *cm = _PL_mutexes;
+{ counting_mutex *cm;
 
-  Sdprintf("        Name   locked\n");
-  for(i=0; i<= L_FOREIGN; i++, cm++)
-  { Sdprintf("%12s %8d", cm->name, cm->count);
+  Sdprintf("Name                               locked contention\n"
+	   "----------------------------------------------------\n");
+  PL_LOCK(L_THREAD);
+  for(cm = GD->thread.mutexes; cm; cm = cm->next)
+  { Sdprintf("%-32s %8d", cm->name, cm->count);
+#ifdef O_CONTENTION_STATISTICS
+    Sdprintf(" %8d", cm->contention);
+#endif
     if ( cm->unlocked != cm->count )
       Sdprintf(" LOCKS: %d\n", cm->count - cm->unlocked);
     else
       Sdprintf("\n");
   }
+  PL_UNLOCK(L_THREAD);
 
   succeed;
 }
@@ -455,6 +473,7 @@ initPrologThreads()
   GD->statistics.threads_created = 1;
   GD->thread.mutexTable = newHTable(16);
   GD->thread.MUTEX_load = mutexCreate(ATOM_dload);
+  link_mutexes();
   threads_ready = TRUE;
   UNLOCK();
 }
@@ -1975,18 +1994,41 @@ recursiveMutexUnlock(recursiveMutex *m)
 #endif /*RECURSIVE_MUTEXES*/
 
 
-simpleMutex *
-allocSimpleMutex()
-{ simpleMutex *m = alignedAllocHeap(sizeof(*m));
+counting_mutex *
+allocSimpleMutex(const char *name)
+{ counting_mutex *m = alignedAllocHeap(sizeof(*m));
 
-  simpleMutexInit(m);
+  simpleMutexInit(&m->mutex);
+  m->count = 0L;
+  m->unlocked = 0L;
+  m->contention = 0L;
+  m->name = store_string(name);
+  LOCK();
+  m->next = GD->thread.mutexes;
+  GD->thread.mutexes = m;
+  UNLOCK();
+
   return m;
 }
 
 
 void
-freeSimpleMutex(simpleMutex *m)
-{ simpleMutexDelete(m);
+freeSimpleMutex(counting_mutex *m)
+{ counting_mutex *cm;
+
+  simpleMutexDelete(&m->mutex);
+  LOCK();
+  if ( m == GD->thread.mutexes )
+  { GD->thread.mutexes = m->next;
+  } else
+  { for(cm=GD->thread.mutexes; cm; cm=cm->next)
+    { if ( cm->next == m )
+	cm->next = m->next;
+    }
+  }
+  UNLOCK();
+
+  remove_string((char *)m->name);
   freeHeap(m, sizeof(*m));
 }
 

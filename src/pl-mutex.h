@@ -119,8 +119,24 @@ extern int recursiveMutexUnlock(recursiveMutex *m);
 
 #endif /*RECURSIVE_MUTEXES*/
 
-extern simpleMutex     *allocSimpleMutex(void);
-extern void		freeSimpleMutex(simpleMutex *m);
+#ifndef USE_CRITICAL_SECTIONS
+#define O_CONTENTION_STATISTICS 1
+#include <errno.h>
+#endif
+
+typedef struct counting_mutex
+{ simpleMutex mutex;			/* mutex itself */
+  const char *name;			/* name of the mutex */
+  unsigned long count;			/* # times locked */
+  unsigned long unlocked;		/* # times unlocked */
+#ifdef O_CONTENTION_STATISTICS
+  unsigned long contention;		/* # contentions */
+#endif
+  struct counting_mutex *next;		/* next of allocated chain */
+} counting_mutex;
+
+extern counting_mutex  *allocSimpleMutex(const char *name);
+extern void		freeSimpleMutex(counting_mutex *m);
 
 #endif /*O_PLMT*/
 #endif /*PL_MUTEX_H_DEFINED*/

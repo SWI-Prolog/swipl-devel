@@ -1840,18 +1840,18 @@ attach or detach the mutex.
 static void
 attachMutexAndUnlock(Definition def)
 { if ( !def->mutex )
-  { def->mutex = allocSimpleMutex();
+  { def->mutex = allocSimpleMutex(predicateName(def));
     PL_UNLOCK(L_PREDICATE);
   } else
-    simpleMutexUnlock(def->mutex);
+    countingMutexUnlock(def->mutex);
 }
 
 static void
 detachMutexAndUnlock(Definition def)
 { if ( def->mutex )
-  { simpleMutex *m = def->mutex;
+  { counting_mutex *m = def->mutex;
     def->mutex = NULL;
-    simpleMutexUnlock(m);
+    countingMutexUnlock(m);
     freeSimpleMutex(m);
   } else
     PL_UNLOCK(L_PREDICATE);

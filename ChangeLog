@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: some more statistics on mutex usage
+
   * ENHANCED: Use mutex per dynamic predicate in the multi-threaded version.
     This reduces contention a lot on the Aleph test.
 

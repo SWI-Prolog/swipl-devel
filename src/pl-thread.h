@@ -75,13 +75,6 @@ typedef struct pl_mutex
   word id;				/* id of the mutex */
 } pl_mutex;
 
-typedef struct counting_mutex
-{ simpleMutex mutex;			/* mutex itself */
-  const char *name;			/* name of the mutex */
-  unsigned long count;			/* # times locked */
-  unsigned long unlocked;		/* # times unlocked */
-} counting_mutex;
-
 #define PL_THREAD_MAGIC 0x2737234f
 
 #define PL_THREAD_UNUSED	0	/* no thread on this slot */
@@ -128,11 +121,22 @@ compile-time
 
 #define IFMT(id, g) if ( id == L_THREAD || GD->thread.enabled ) g
 
+#ifdef O_CONTENTION_STATISTICS
+#define countingMutexLock(cm) \
+	do \
+	{ if ( pthread_mutex_trylock(&(cm)->mutex) == EBUSY ) \
+	  { (cm)->contention++; \
+	    pthread_mutex_lock(&(cm)->mutex); \
+	  } \
+	  (cm)->count++; \
+	} while(0)
+#else
 #define countingMutexLock(cm) \
 	do \
 	{ simpleMutexLock(&(cm)->mutex); \
 	  (cm)->count++; \
 	} while(0)
+#endif
 #define countingMutexUnlock(cm) \
 	do \
 	{ (cm)->unlocked++; \
@@ -162,7 +166,7 @@ compile-time
 #define LOCKDEF(def) \
 	if ( GD->thread.enabled ) \
 	{ if ( def->mutex ) \
-	  { simpleMutexLock(def->mutex); \
+	  { countingMutexLock(def->mutex); \
 	  } else if ( false(def, DYNAMIC) ) \
 	  { countingMutexLock(&_PL_mutexes[L_PREDICATE]); \
 	  } \
@@ -171,16 +175,16 @@ compile-time
 #define UNLOCKDEF(def) \
 	if ( GD->thread.enabled ) \
 	{ if ( def->mutex ) \
-	  { simpleMutexUnlock(def->mutex); \
+	  { countingMutexUnlock(def->mutex); \
 	  } else if ( false(def, DYNAMIC) ) \
 	  { countingMutexUnlock(&_PL_mutexes[L_PREDICATE]); \
 	  } \
 	}
 
 #define LOCKDYNDEF(def) \
-	if ( GD->thread.enabled && def->mutex ) simpleMutexLock(def->mutex)
+	if ( GD->thread.enabled && def->mutex ) countingMutexLock(def->mutex)
 #define UNLOCKDYNDEF(def) \
-	if ( GD->thread.enabled && def->mutex ) simpleMutexUnlock(def->mutex)
+	if ( GD->thread.enabled && def->mutex ) countingMutexUnlock(def->mutex)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 				Thread-local data

@@ -1227,7 +1227,7 @@ struct definition
   int		references;		/* reference count */
   unsigned int  erased_clauses;		/* #erased but not reclaimed clauses */
 #ifdef O_PLMT
-  simpleMutex  *mutex;			/* serialize access to dynamic pred */
+  counting_mutex  *mutex;		/* serialize access to dynamic pred */
 #endif
   ClauseIndex 	hash_info;		/* clause hash-tables */
   unsigned long indexPattern;		/* indexed argument pattern */

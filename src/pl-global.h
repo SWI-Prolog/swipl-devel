@@ -262,6 +262,7 @@ typedef struct
 #ifdef WIN32
     HINSTANCE	    	instance;	/* Win32 process instance */
 #endif
+    counting_mutex     *mutexes;	/* Registered mutexes */
   } thread;
 #endif /*O_PLMT*/
 } PL_global_data_t;
