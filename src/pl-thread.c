@@ -976,7 +976,7 @@ typedef struct _at_exit_goal
     { void (*function)(void *);		/* called function */
       void *closure;			/* client data */
     } c;
-  };
+  } goal;
 } at_exit_goal;
 
 
@@ -988,8 +988,8 @@ pl_thread_at_exit(term_t goal)
   PL_strip_module(goal, &m, goal);
   eg->next = NULL;
   eg->type = EXIT_PROLOG;
-  eg->prolog.module = m;
-  eg->prolog.goal   = PL_record(goal);
+  eg->goal.prolog.module = m;
+  eg->goal.prolog.goal   = PL_record(goal);
 
   eg->next = LD->thread.exit_goals;
   LD->thread.exit_goals = eg;
@@ -1009,8 +1009,8 @@ PL_thread_at_exit(void (*function)(void *), void *closure, int global)
 
   eg->next = NULL;
   eg->type = EXIT_C;
-  eg->c.function = function;
-  eg->c.closure  = closure;
+  eg->goal.c.function = function;
+  eg->goal.c.closure  = closure;
 
   if ( global )
   { LOCK();
@@ -1045,14 +1045,14 @@ run_exit_hooks(at_exit_goal *eg, int free)
   
     switch(eg->type)
     { case EXIT_PROLOG:
-	PL_recorded(eg->prolog.goal, goal);
+	PL_recorded(eg->goal.prolog.goal, goal);
         if ( free )
-	  PL_erase(eg->prolog.goal);
-	callProlog(eg->prolog.module, goal, PL_Q_NODEBUG, NULL);
+	  PL_erase(eg->goal.prolog.goal);
+	callProlog(eg->goal.prolog.module, goal, PL_Q_NODEBUG, NULL);
 	PL_rewind_foreign_frame(fid);
 	break;
       case EXIT_C:
-	(*eg->c.function)(eg->c.closure);
+	(*eg->goal.c.function)(eg->goal.c.closure);
         break;
       default:
 	assert(0);
