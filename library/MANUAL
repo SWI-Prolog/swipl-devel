@@ -1493,12 +1493,9 @@ ccuurrrreenntt__pprroolloogg__ffllaagg((_?_K_e_y_, _-_
          code  optimisation is  never  applied  to predicates  that  are
          declared dynamic (see dynamic/1).
 
-    cchhaarr__ccoonnvveerrssiioonn _(_b_o_o_l_)
+    cchhaarr__ccoonnvveerrssiioonn _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
          Determines  whether  character-conversion  takes   place  while
-         reading terms.   Though the  flag and predicates are  provided,
-         the current  release of SWI-Prolog  does not support  character
-         conversion.   Hence this prolog  flag is read-only.   See  also
-         char_conversion/2.
+         reading terms.  See also char_conversion/2.
 
     aauuttoollooaadd _(_b_o_o_l_, _c_h_a_n_g_e_a_b_l_e_)
          If true (default) autoloading of library functions  is enabled.
@@ -4392,6 +4389,15 @@ rreeaadd__tteerrmm((_-_T_e_r_m_, _+_O_p_t_i_o_n_s))
          As variable_names,  but only  reports  the variables  occurring
          only  once in  the  _T_e_r_m read.     Variables starting  with  an
          underscore (`_') are not included in this list.  (ISO).
+
+    ssyynntteexx__eerrrroorrss((_A_t_o_m))
+         If error  (default),  throw and  exception on  a syntax  error.
+         Other values  are fail, which  causes a  message to be  printed
+         using pring_message/2, after which  the predicate fails,  quiet
+         which causes  the predicate  to fail silently  and dec10  which
+         causes syntax errors to be printed, after which read_term/[2,3]
+         continues reading the next term.   Using dec10, read_term/[2,3]
+         never fails.  (Quintus, SICStus).
 
     mmoodduullee((_M_o_d_u_l_e))
          Specify  _M_o_d_u_l_e  for  operators,   character_escapes   flag  and

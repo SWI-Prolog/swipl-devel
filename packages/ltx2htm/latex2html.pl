@@ -32,7 +32,8 @@
 	  ]).
 :- use_module(library(quintus)).
 
-version('0.12').			% for SWI-Prolog 3.3
+version('0.13').			% for SWI-Prolog 3.3
+page_header('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">\n\n').
 
 :- dynamic			
 	html_output_dir/1,		% output relative to this dir
@@ -58,8 +59,8 @@ html_file_base('Title').
 	user:file_search_path/2.
 
 user:file_search_path(foreign, library(Lib)) :-
-	feature(arch, Arch),
-	concat('lib/', Arch, Lib).
+	current_prolog_flag(arch, Arch),
+	atom_concat('lib/', Arch, Lib).
 user:file_search_path(psfig, tex(figs)).
 user:file_search_path(includegraphics, tex(figs)).
 user:file_search_path(tex, '.').
@@ -238,6 +239,8 @@ open_output(Base) :-
 	html_output_dir(Dir), !,
 	concat_atom([Dir, /, Base, '.html'], HtmlFile),
 	tex_tell(HtmlFile),
+	page_header(Header),
+	put_html_token(html(Header)),
 	put_html_token(html('<HTML>')),
 	asserta(current_html_output_db(Base)).
 

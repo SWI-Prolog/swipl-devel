@@ -550,6 +550,7 @@ word		checkData(Word p);
 Procedure	lookupProcedure(functor_t f, Module m);
 Procedure	isCurrentProcedure(functor_t f, Module m);
 Procedure	lookupProcedureToDefine(functor_t def, Module m);
+bool		hasClausesDefinition(Definition def);
 bool		isDefinedProcedure(Procedure proc);
 int		get_head_functor(term_t head, functor_t *fdef);
 int		get_procedure(term_t descr, Procedure *proc, term_t he, int f);

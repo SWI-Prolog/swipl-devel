@@ -130,9 +130,9 @@ struct token
 
 struct read_buffer
 { int	size;			/* current size of read buffer */
-  int	left;			/* left space in read buffer */
   unsigned char *base;		/* base of read buffer */
   unsigned char *here;		/* current position in read buffer */
+  unsigned char *end;		/* end of the valid buffer */
   IOSTREAM *stream;		/* stream we are reading from */
 };
 
@@ -174,6 +174,8 @@ typedef struct
   Module	module;			/* Current source module */
   unsigned int	flags;			/* Module syntax flags */
 
+  atom_t	on_error;		/* Handling of syntax errors */
+
   term_t	exception;		/* raised exception */
   term_t	variables;		/* report variables */
   term_t	varnames;		/* Report variables+names */
@@ -201,6 +203,7 @@ init_read_data(ReadData _PL_rd, IOSTREAM *in)
   rb.stream = in;
   _PL_rd->module = MODULE_parse;
   _PL_rd->flags  = _PL_rd->module->flags; /* change for options! */
+  _PL_rd->on_error = ATOM_error;
 }
 
 static void
@@ -337,6 +340,27 @@ singletonWarning(atom_t *vars, int nvars)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	FAIL	return false
+	TRUE	redo
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+reportReadError(ReadData rd)
+{ if ( rd->on_error == ATOM_error )
+    return PL_raise_exception(rd->exception);
+  if ( rd->on_error == ATOM_quiet )
+    fail;
+
+  printMessage(ATOM_error, PL_TERM, rd->exception);
+  
+  if ( rd->on_error == ATOM_dec10 )
+    succeed;
+
+  fail;
+}
+
+
 		/********************************
 		*           RAW READING         *
 		*********************************/
@@ -358,22 +382,30 @@ clearBuffer(ReadData _PL_rd)
       fatalError("%s", OsError());
     rb.size = RBSIZE;
   }
-  rb.left = rb.size;
+  rb.end = rb.base + rb.size;
   rdbase = rb.here = rb.base;
 }      
 
+#define addToBuffer(c, _PL_rd) \
+	do \
+        { \
+	  if ( rb.here >= rb.end ) \
+	    growToBuffer(c, _PL_rd); \
+	  else \
+	    *rb.here++ = c; \
+	} while(0)
 
-static inline void
-addToBuffer(int c, ReadData _PL_rd)
-{ if (rb.left-- == 0)
-  { if ( !(rb.base = (unsigned char *)realloc(rb.base, rb.size * 2)) )
-      fatalError("%s", OsError());
-    DEBUG(8, Sdprintf("Reallocated read buffer at %ld\n", (long) rb.base));
-    rdbase = rb.base;
-    rb.here = rb.base + rb.size;
-    rb.left = rb.size - 1;
-    rb.size *= 2;
-  }
+static void
+growToBuffer(int c, ReadData _PL_rd)
+{ if ( !(rb.base = (unsigned char *)realloc(rb.base, rb.size * 2)) )
+    fatalError("%s", OsError());
+
+  DEBUG(8, Sdprintf("Reallocated read buffer at %ld\n", (long) rb.base));
+  rdbase = rb.base;
+  rb.here = rb.base + rb.size;
+  rb.size *= 2;
+  rb.end  = rb.base + rb.size;
+
   *rb.here++ = c & 0xff;
 }
 
@@ -2035,14 +2067,24 @@ pl_read_clause2(term_t from, term_t term)
 { read_data rd;
   int rval;
   IOSTREAM *s;
+  mark m;
+
+retry:
+  Mark(m);
 
   if ( !getInputStream(from, &s) )
     fail;
 
   init_read_data(&rd, s);
+  rd.on_error = ATOM_dec10;
   rd.singles = debugstatus.styleCheck & SINGLETON_CHECK ? TRUE : FALSE;
   if ( !(rval = read_term(term, &rd)) )
-    rval = PL_raise_exception(rd.exception);
+  { if ( reportReadError(&rd) )
+    { Undo(m);
+      free_read_data(&rd);
+      goto retry;
+    }
+  }
   free_read_data(&rd);
   PL_release_stream(s);
 
@@ -2063,6 +2105,7 @@ static const opt_spec read_term_options[] =
   { ATOM_character_escapes, OPT_BOOL },
   { ATOM_double_quotes,	    OPT_ATOM },
   { ATOM_module,	    OPT_ATOM },
+  { ATOM_syntax_errors,     OPT_ATOM },
   { NULL_ATOM,	     	    0 }
 };
 
@@ -2076,6 +2119,10 @@ pl_read_term3(term_t from, term_t term, term_t options)
   bool charescapes = -1;
   atom_t dq = NULL_ATOM;
   atom_t mname = NULL_ATOM;
+  mark m;
+
+retry:
+  Mark(m);
 
   if ( !getInputStream(from, &s) )
     fail;
@@ -2089,7 +2136,8 @@ pl_read_term3(term_t from, term_t term, term_t options)
 		     &rd.subtpos,
 		     &charescapes,
 		     &dq,
-		     &mname) )
+		     &mname,
+		     &rd.on_error) )
   { PL_release_stream(s);
     fail;
   }
@@ -2125,7 +2173,12 @@ pl_read_term3(term_t from, term_t term, term_t options)
 			   PL_INTEGER, source_line_no,
 			   PL_INTEGER, 0); /* should be charpos! */
   } else
-    rval = PL_raise_exception(rd.exception);
+  { if ( reportReadError(&rd) )
+    { Undo(m);
+      free_read_data(&rd);
+      goto retry;
+    }
+  }
 
   free_read_data(&rd);
 

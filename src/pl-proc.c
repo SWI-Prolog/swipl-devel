@@ -102,14 +102,10 @@ isCurrentProcedure(functor_t f, Module m)
   return NULL;
 }
 
+
 bool
-isDefinedProcedure(Procedure proc)
-{ Definition def = proc->definition;
-
-  if ( true(def, PROC_DEFINED) )
-    succeed;
-
-  if ( def->definition.clauses )
+hasClausesDefinition(Definition def)
+{ if ( def->definition.clauses )
   { ClauseRef c;
 #ifdef O_LOGICAL_UPDATE
     unsigned long generation;
@@ -133,6 +129,17 @@ isDefinedProcedure(Procedure proc)
   }
 
   fail;
+}
+
+
+bool
+isDefinedProcedure(Procedure proc)
+{ Definition def = proc->definition;
+
+  if ( true(def, PROC_DEFINED) )
+    succeed;
+
+  return hasClausesDefinition(def);
 }
 
 

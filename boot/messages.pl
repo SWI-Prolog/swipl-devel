@@ -466,8 +466,7 @@ prolog_message(frame(Frame, trace(Port), _PC)) --> !,
 	port(Port),
 	frame_level(Frame),
 	frame_context(Frame),
-	frame_goal(Frame),
-	[ flush ].
+	frame_goal(Frame).
 prolog_message(frame(Frame, Port, _PC)) -->
 	frame_flags(Frame),
 	port(Port),

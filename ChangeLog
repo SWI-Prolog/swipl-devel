@@ -1,6 +1,20 @@
 			SWI-Prolog ChangeLog
 			====================
 
+VERSION 3.3.0 (release-9)
+=========================
+
+  * ADDED: option syntax_errors to read_term.  Modified read_clause to
+    use syntax_errors(dec10).
+
+  * FIXED: Performance problem in registerAtom(), slowing down loading
+    large files by a factor 10.  Caused by atom garbage collector.
+    Reported by Luis Iraola Moreno.
+
+  * FIXED: Avoid tracing $messages:prolog_message/3 after ?- trace.
+
+  * FIXED: Force a linebreak after trace-output from trace/1.
+
 VERSION 3.3.0 (release-8)
 =========================
 

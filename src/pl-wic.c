@@ -802,6 +802,9 @@ loadPredicate(IOSTREAM *fd, int skip)
   Clause clause;
   functor_t f = (functor_t) loadXR(fd);
 
+  if ( f == PL_new_functor(PL_new_atom("prolog_message"), 3) )
+    trap_gdb();
+
   notifyPredicate(f);
   proc = lookupProcedure(f, LD->modules.source);
   DEBUG(3, Sdprintf("Loading %s ", procedureName(proc)));

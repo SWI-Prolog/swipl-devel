@@ -1507,7 +1507,9 @@ This `if' locks predicates as system predicates  if  we  are  in  system
 mode, the predicate is still undefined and is not dynamic or multifile.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    if ( SYSTEM_MODE && false(def, SYSTEM) && !isDefinedProcedure(proc) )
+    if ( SYSTEM_MODE && false(def, SYSTEM) &&
+	 !(true(def, DYNAMIC|FOREIGN|MULTIFILE) ||
+	   hasClausesDefinition(def)) )
       set(def, SYSTEM|HIDE_CHILDS|LOCKED);
 
     addProcedureSourceFile(sf, proc);

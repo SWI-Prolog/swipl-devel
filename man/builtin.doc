@@ -2202,6 +2202,15 @@ As \const{variable_names}, but only reports the variables occurring only
 once in the \arg{Term} read. Variables starting with an underscore
 (`\chr{_}') are not included in this list. (ISO).
 
+    \termitem{syntex_errors}{Atom}
+If \const{error} (default), throw and exception on a syntax error. Other
+values are \const{fail}, which causes a message to be printed using
+pring_message/2, after which the predicate fails, \const{quiet} which
+causes the predicate to fail silently and \const{dec10} which causes
+syntax errors to be printed, after which read_term/[2,3] continues
+reading the next term. Using \const{dec10}, read_term/[2,3] never fails.
+(Quintus, SICStus).
+
     \termitem{module}{Module}
 Specify \arg{Module} for operators, \const{character_escapes} flag
 and \const{double_quotes} flag. The value of the latter two is overruled

@@ -185,7 +185,9 @@ registerAtom(Atom a)
       return;
     }
   }
-#endif
+  GD->atoms.no_hole_before = n+1;
+#endif /*O_ATOMGC*/
+
   a->atom = (n<<LMASK_BITS)|TAG_ATOM;
 
   addBuffer(&atom_array, a, Atom);

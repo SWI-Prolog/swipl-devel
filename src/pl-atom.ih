@@ -451,3 +451,4 @@
 #define ATOM_backtrace    MK_ATOM(450)
 #define ATOM_choice       MK_ATOM(451)
 #define ATOM_debugger_show_context MK_ATOM(452)
+#define ATOM_dec10        MK_ATOM(453)

@@ -951,11 +951,9 @@ integrating small predicates into their callers, eliminating constant
 expressions and other predictable constructs. Source code optimisation
 is never applied to predicates that are declared dynamic (see
 dynamic/1).
-    \prologflagitem{char_conversion}{bool}{r}
+    \prologflagitem{char_conversion}{bool}{rw}
 Determines whether character-conversion takes place while reading terms.
-Though the flag and predicates are provided, the current release of
-SWI-Prolog does not support character conversion.  Hence this prolog
-flag is read-only. See also char_conversion/2.
+See also char_conversion/2.
     \prologflagitem{autoload}{bool}{rw}
 If \const{true} (default) autoloading of library functions is enabled.
 See \secref{autoload}.

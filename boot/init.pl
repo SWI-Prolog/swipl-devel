@@ -803,10 +803,6 @@ $print_message(Level, Term) :-
 	print_message(Level, Term).
 $print_message(_Level, _Term).
 
-$read_clause(Clause) :-				% get the first non-syntax
-	repeat,					% error
-	catch(read_clause(Clause), E, $print_message_fail(E)), !.
-
 $print_message_fail(E) :-
 	print_message(error, E),
 	fail.
@@ -833,7 +829,7 @@ $consult_file_2(Absolute, Module, Import, IsModule, What, LM) :-
 
 	$style_check(OldStyle, OldStyle),	% Save style parameters
 	$open_source(Absolute, (		% Load the file
-	    $read_clause(First),
+	    read_clause(First),
 	    $load_file(First, Absolute, Import, IsModule, LM))),
 	$style_check(_, OldStyle),		% Restore old style
 	$set_source_module(_, OldModule).	% Restore old module
@@ -879,11 +875,8 @@ $load_file(FirstClause, File, _, false, Module) :- !,
 	$set_source_module(Module, Module),
 	$ifcompiling($qlf_start_file(File)),
 	ignore($consult_clause(FirstClause, File)),
-	repeat,
-	    $read_clause(Clause),
-	    $consult_clause(Clause, File), !,
+	$consult_clauses(File),
 	$ifcompiling($qlf_end_part).
-
 
 $reserved_module(system).
 $reserved_module(user).
@@ -896,11 +889,7 @@ $load_module(Module, Public, Import, File) :-
 	$declare_module(Module, File),
 	$export_list(Module, Public),
 	$ifcompiling($qlf_start_module(Module)),
-
-	repeat,
-	    $read_clause(Clause),
-	    $consult_clause(Clause, File), !,
-
+	$consult_clauses(File),
 	Module:$check_export,
 	$ifcompiling($qlf_end_part),
 	$import_list(OldModule, Module, Import).
@@ -932,12 +921,29 @@ $export_list(Module, [Name/Arity|Rest]) :-
 $export_list(_Module, [Term|_Rest]) :-
 	throw(error(type_error(predicate_indicator, Term), _)).
 
+%	$consult_clauses(+File)
+%
+%	Read and record all clauses until the rest of the file.
+
+$consult_clauses(File) :-
+	catch($consult_clauses2(File),
+	      E,
+	      (	  print_message(error, E),
+		  $consult_clauses(File)
+	      )).
+	      
+$consult_clauses2(File) :-
+	repeat,
+	    read_clause(Clause),
+	    expand_term(Clause, Expanded),
+	    $store_clause(Expanded, File),
+	    Clause == end_of_file, !.
+
 $consult_clause(Clause, File) :-
-	expand_term(Clause, Expanded),
-	(   $store_clause(Expanded, File)
-	->  Clause == end_of_file
-	;   fail
-	).
+	catch((expand_term(Clause, Expanded),
+	       $store_clause(Expanded, File)),
+	       E,
+	       $print_message_fail(E)).
 
 $execute_directive(include(File), F) :- !,
 	$expand_include(File, F).
@@ -1022,11 +1028,14 @@ expand_term(Term, Expanded) :-		% local term-expansion
 	$term_expansion_module(Module),
 	Module:term_expansion(Term, Expanded0), !,
 	$expand_clauses(Expanded0, Expanded).
-expand_term(Term, Expanded) :-
-	$translate_rule(Term, Expanded0), !,
+expand_term(Head --> Body, Expanded) :-
+	$translate_rule(Head --> Body, Expanded0), !,
 	$expand_clauses(Expanded0, Expanded).
 expand_term(Term0, Term) :-
+	$goal_expansion_module(_), !,
 	$expand_clauses(Term0, Term).
+expand_term(Term, Term).
+
 
 $store_clause([], _) :- !.
 $store_clause([C|T], F) :- !,
@@ -1041,15 +1050,16 @@ $store_clause((_, _), _) :- !,
 	print_message(error, cannot_redefine_comma),
 	fail.
 $store_clause($source_location(File, Line):Term, _) :- !,
-	catch($record_clause(Term, File:Line, Ref),
-	      E,
-	      $print_message_fail(E)),
-        $ifcompiling($qlf_assert_clause(Ref, development)).
+	$record_clause(Term, File:Line, Ref),
+	$qlf_assert_clause(Ref).
 $store_clause(Term, File) :-
-	catch($record_clause(Term, File, Ref),
-	      E,
-	      $print_message_fail(E)),
-        $ifcompiling($qlf_assert_clause(Ref, development)).
+	$record_clause(Term, File, Ref),
+        $qlf_assert_clause(Ref).
+
+$qlf_assert_clause(_) :-
+	flag($compiling, database, database), !.
+$qlf_assert_clause(Ref) :-
+	$qlf_assert_clause(Ref, development).
 
 
 		 /*******************************
@@ -1062,14 +1072,14 @@ $expand_include(File, FileInto) :-
 			     access(read)
 			   ], Path),
 	seeing(Old), see(Path),
-	$read_clause(Term0),
+	read_clause(Term0),
 	$read_include_file(Term0, Terms),
 	seen, see(Old),
 	$consult_clauses(Terms, FileInto).
 
 $read_include_file(end_of_file, []) :- !.
 $read_include_file(T0, [T0|T]) :-
-	$read_clause(T1),
+	read_clause(T1),
 	$read_include_file(T1, T).
 
 $consult_clauses([], _).
@@ -1094,8 +1104,6 @@ $consult_clauses([H|T], File) :-
 		 *   GOAL_EXPANSION/2 SUPPORT	*
 		 *******************************/
 
-$expand_clauses(X, X) :-
-	\+ $goal_expansion_module(_), !.
 $expand_clauses(X, X) :-
 	var(X), !.
 $expand_clauses([H0|T0], [H|T]) :- !,
