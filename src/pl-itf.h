@@ -44,7 +44,7 @@ before loading this file.  See end of this file.
 /* PLVERSION: 10000 * <Major> + 100 * <Minor> + <Patch> */
 
 #ifndef PLVERSION
-#define PLVERSION 50500
+#define PLVERSION 50501
 #endif
 
 		 /*******************************
@@ -232,9 +232,13 @@ typedef struct _PL_extension
 
 extern			PL_extension PL_extensions[]; /* not Win32! */
 PL_EXPORT(void)		PL_register_extensions(const PL_extension *e);
-PL_EXPORT(void)		PL_load_extensions(const PL_extension *e);
+PL_EXPORT(void)		PL_register_extensions_in_module(const char *module, const PL_extension *e);
 PL_EXPORT(int)		PL_register_foreign(const char *name, int arity,
 					    pl_function_t func, int flags);
+PL_EXPORT(int)		PL_register_foreign_in_module(const char *module,
+						      const char *name, int arity,
+						      pl_function_t func, int flags);
+PL_EXPORT(void)		PL_load_extensions(const PL_extension *e);
 
 
 		 /*******************************

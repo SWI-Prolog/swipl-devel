@@ -2188,14 +2188,16 @@ information is wanted. The  options are given in \tabref{query}.
 
 
 \begin{description}
-\cfunction{int}{PL_register_foreign}{const char *name, int arity,
-				     foreign_t (*function)(), int flags}
+\cfunction{int}{PL_register_foreign_in_module}{const char *module,
+					       const char *name, int arity,
+					       foreign_t (*function)(),
+					       int flags}
 Register a C-function to implement a Prolog predicate. After this call
 returns successfully a predicate with name \arg{name} (a char *) and
-arity \arg{arity} (a C int) is created. As a special case, \arg{name}
-may consist of a sequence of alpha-numerical characters followed by the
-colon (\const{:}). In this case the name uptil the colon is taken to be
-the destination module and the rest of the name the predicate name.
+arity \arg{arity} (a C int) is created in module \arg{module}.  If
+\arg{module} is \const{NULL}, the predicate is created in the module
+of the calling context or if no context is present in the module
+\const{user}.
 
 When called in Prolog, Prolog will call \arg{function}. \arg{flags}
 forms bitwise or'ed list of options for the installation. These are:
@@ -2209,6 +2211,11 @@ forms bitwise or'ed list of options for the installation. These are:
 \const{PL_FA_VARARGS}	       & Use alternative calling convention. \\
 \hline
 \end{tabular}
+
+Predicates may be registered either before or after PL_initialise().
+When registered before initialisation the registration is recorded and
+executed after installing the system predicates and before loading the
+saved state.
 
 Default calling (i.e.\ without \const{PL_FA_VARARGS}) \arg{function} is
 passed the same number of term_t arguments as the arity of the predicate
@@ -2245,30 +2252,30 @@ install()
 }
 \end{code}
 
-    \cfunction{void}{PL_load_extensions}{PL_extension *e}
-Register foreign predicates from a table of structures. This is an
-alternative to multiple calls to PL_register_foreign() and simplifies
-code that wishes to use PL_register_extensions() as an alternative.
-The type \ctype{PL_extension} is defined as:
+\cfunction{int}{PL_register_foreign}{const char *name, int arity,
+				     foreign_t (*function)(), int flags}
+Same as PL_register_foreign_in_module(), passing \const{NULL} for the
+\arg{module}.
+
+    \cfunction{void}{PL_register_extensions_in_module}{const char *module, 
+						       PL_extension *e}
+Register a series of predicates from an array of definitions of the type
+\ctype{PL_extension} in the given \arg{module}. If \arg{module} is
+\const{NULL}, the predicate is created in the module of the calling
+context or if no context is present in the module \const{user}.
+The \ctype{PL_extension} type is defined as
 
 \begin{code}
-typedef struct _PL_extension
-{ char 		*predicate_name; /* Name of the predicate */
-  short		arity;		 /* Arity of the predicate */
-  pl_function_t	function;	 /* Implementing functions */
-  short		flags;		 /* Or of PL_FA_... */
+typedef struct PL_extension
+{ char 		*predicate_name;	/* Name of the predicate */
+  short		arity;			/* Arity of the predicate */
+  pl_function_t	function;		/* Implementing functions */
+  short		flags;			/* Or of PL_FA_... */
 } PL_extension;
 \end{code}
 
-    \cfunction{void}{PL_register_extensions}{PL_extension *e}
-The function PL_register_extensions() behaves as PL_load_extensions(),
-but is the only PL_* function that may be called \strong{before}
-PL_initialise(). The predicates are registered {\bf into the module
-\const{user}} after registration of the SWI-Prolog builtin foreign
-predicates and before loading the initial saved state. This implies that
-initialization/1 directives can refer to them.
-
-Here is an example of its usage:
+For details, see PL_register_foreign_in_module(). Here is an example of
+its usage:
 
 \begin{code}
 static PL_extension predicates[] = {
@@ -2278,7 +2285,7 @@ static PL_extension predicates[] = {
 };
 
 main(int argc, char **argv)
-{ PL_register_extensions(predicates);
+{ PL_register_extensions_in_module("user", predicates);
 
   if ( !PL_initialise(argc, argv) )
     PL_halt(1);
@@ -2286,6 +2293,10 @@ main(int argc, char **argv)
   ...
 }
 \end{code}
+
+    \cfunction{void}{PL_register_extensions}{ PL_extension *e}
+Same as PL_register_extensions_in_module() using \const{NULL} for
+the \arg{module} argument.
 \end{description}
 
 

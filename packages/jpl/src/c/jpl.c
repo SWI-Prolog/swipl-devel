@@ -3293,9 +3293,7 @@ PL_extension predspecs[] =
 install_t
 install()
     {
-
- // PL_register_extensions( predspecs);
-    PL_load_extensions( predspecs);
+    PL_register_extensions( predspecs);
     }
 
 

@@ -439,6 +439,7 @@ predicates, the extensions will be registered.
 
 struct extension_cell
 { PL_extension *extensions;
+  char *module;
   ExtensionCell next;
 };
 
@@ -446,63 +447,51 @@ struct extension_cell
 #define ext_tail		(GD->foreign._ext_tail)
 #define extensions_loaded	(GD->foreign._loaded)
 
-static void
-bindExtensions(const PL_extension *e)
-{ Definition def;
+static char *
+dupStr(const char *str)
+{ if (str)
+  { int len = strlen(str)+1;
+    char *m = PL_malloc(len);
+    memcpy(m, str, len);
+    return m;
+  }
+  return NULL;
+}
 
-  for(; e->predicate_name; e++)
-  { unsigned long flags = TRACE_ME;
-    Module m;
-    atom_t name;
-    char *s;
 
-    for(s=e->predicate_name; isAlpha(*s); s++)
-      ;
+static PL_extension *
+dupExtensions(const PL_extension *e)
+{ int i;
+  PL_extension *dup;
+  int len = 0;
 
-    if ( *s == ':' )			/* module:predicate */
-    { m = PL_new_module(PL_new_atom_nchars(s-e->predicate_name,
-					   e->predicate_name));
-      name = PL_new_atom(s+1);
-    } else
-    { name = PL_new_atom(e->predicate_name);
-      m = (environment_frame ? contextModule(environment_frame)
-	   		     : MODULE_user);
-    }
+  while ( e[len++].predicate_name );
+  dup = PL_malloc(len*sizeof(*e));
 
-    if ( e->flags & PL_FA_NOTRACE )	     flags &= ~TRACE_ME;
-    if ( e->flags & PL_FA_TRANSPARENT )	     flags |= METAPRED;
-    if ( e->flags & PL_FA_NONDETERMINISTIC ) flags |= NONDETERMINISTIC;
-    if ( e->flags & PL_FA_VARARGS )	     flags |= P_VARARG;
-    if ( e->flags & PL_FA_CREF )	     flags |= P_FOREIGN_CREF;
+  for ( i=0; i<len; i++)
+  { dup[i].predicate_name = dupStr(e->predicate_name);
+    dup[i].arity = e->arity;
+    dup[i].function = e->function;
+    dup[i].flags = e->flags;
+  }
 
-    def = lookupProcedure(lookupFunctorDef(name, e->arity), m)->definition;
-    PL_unregister_atom(name);
-    set(def, FOREIGN);
-    if ( m == MODULE_system )
-      set(def, SYSTEM|HIDE_CHILDS);
-    set(def, flags);
-    def->definition.function = e->function;
-    def->indexPattern = 0;
-    def->indexCardinality = 0;
-  }    
+  return dup;
 }
 
 
 void
-PL_register_extensions(const PL_extension *e)
-{ if ( extensions_loaded )
-    bindExtensions(e);
-  else
-  { ExtensionCell cell = malloc(sizeof *cell);
+rememberExtensions(const char *module, const PL_extension *e)
+{ ExtensionCell cell = PL_malloc(sizeof *cell);
 
-    cell->extensions = (PL_extension *) e;
-    cell->next = NULL;
-    if ( ext_tail )
-    { ext_tail->next = cell;
-      ext_tail = cell;
-    } else
-    { ext_head = ext_tail = cell;
-    }
+  cell->extensions = dupExtensions(e);
+  cell->next = NULL;
+  cell->module = dupStr(module);
+  
+  if ( ext_tail )
+  { ext_tail->next = cell;
+    ext_tail = cell;
+  } else
+  { ext_head = ext_tail = cell;
   }
 }
 
@@ -513,7 +502,19 @@ cleanupExtensions(void)
 
   for(c=ext_head; c; c=next)
   { next = c->next;
-    free(c);
+    if (c->module)
+      PL_free(c->module);
+
+    if (c->extensions)
+    { PL_extension *e = c->extensions;
+
+      for(;e->predicate_name; e++)
+	PL_free(e->predicate_name);
+
+      PL_free(c->extensions);
+    }
+
+    PL_free(c);
   }
 
   ext_head = ext_tail = NULL;
@@ -621,7 +622,7 @@ initBuildIns(void)
   set(PROCEDURE_dcall1->definition, DYNAMIC);
 
   for( ecell = ext_head; ecell; ecell = ecell->next )
-    bindExtensions(ecell->extensions);
+    bindExtensions(ecell->module, ecell->extensions);
 
   extensions_loaded = TRUE;
 }

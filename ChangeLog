@@ -8,6 +8,12 @@
 					--------------------------------------
 
 
+  * MODIFIED: Cleanup of foreign predicate registration by Salvador
+    Fandiño.  Added PL_register_foreign_in_module() and
+    PL_register_extensions_in_module().  Deleted the possibility to
+    use PL_register_foreign("module:predicate", ...).  Foreign code
+    using this construct must be updated.
+
   * ADDED: clp(r): Constraint Logic Programming over Reals.  Leslie De
     Koninck, K.U. Leuven supervised by Tom Schrijvers and Bart Demoen.
 

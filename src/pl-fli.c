@@ -2803,6 +2803,8 @@ PL_throw(term_t exception)
 		*      REGISTERING FOREIGNS     *
 		*********************************/
 
+#define extensions_loaded	(GD->foreign._loaded)
+
 static void
 notify_registered_foreign(functor_t fd, Module m)
 { if ( GD->initialised )
@@ -2820,61 +2822,41 @@ notify_registered_foreign(functor_t fd, Module m)
 }
 
 
-bool
-PL_register_foreign(const char *name, int arity, Func f, int flags)
+static bool
+bindForeign(Module m, const char *name, int arity, Func f, int flags)
 { Procedure proc;
   Definition def;
-  Module m;
   functor_t fdef;
   atom_t aname;
-  const char *s;
 
-  if ( !GD->initialised )
-    initModules();			/* Before PL_initialise()! */
-
-					/* check for module:name */
-  for(s=name; isAlpha(*s); s++)
-    ;
-
-  if ( *s == ':' )
-  { m = PL_new_module(PL_new_atom_nchars(s-name, name));
-    aname = PL_new_atom(s+1);
-  } else
-  { GET_LD
-    aname = PL_new_atom(name);
-    m = (LD && environment_frame ? contextModule(environment_frame)
-			         : MODULE_user);
-  }
+  aname = PL_new_atom(name);
 
   fdef = lookupFunctorDef(aname, arity);
   proc = lookupProcedure(fdef, m);
   def = proc->definition;
 
   if ( true(def, LOCKED) )
-  { warning("PL_register_foreign(): Attempt to redefine a system predicate: %s",
+  { warning("PL_register_foreign: attempt to redefine a system predicate: %s",
 	    procedureName(proc));
     fail;
   }
 
   if ( def->definition.function )
-    warning("PL_register_foreign(): redefined %s", procedureName(proc));
+    warning("PL_register_foreign: redefined %s", procedureName(proc));
   if ( false(def, FOREIGN) && def->definition.clauses != NULL )
     abolishProcedure(proc, m);
 
   def->definition.function = f;
   def->indexPattern = 0;
   def->indexCardinality = 0;
-  def->flags = 0;
+  def->flags = FOREIGN|TRACE_ME;
 
   if ( m == MODULE_system )
-    set(def, FOREIGN|SYSTEM|TRACE_ME);
+    set(def, SYSTEM|HIDE_CHILDS);
   else
-  { GET_LD
-    
+  { GET_LD    
     if ( SYSTEM_MODE )
-      set(def, FOREIGN|SYSTEM|TRACE_ME);
-    else
-      set(def, FOREIGN|TRACE_ME);
+      set(def, SYSTEM|HIDE_CHILDS);
   }
 
   if ( (flags & PL_FA_NOTRACE) )	  clear(def, TRACE_ME);
@@ -2885,52 +2867,79 @@ PL_register_foreign(const char *name, int arity, Func f, int flags)
   notify_registered_foreign(fdef, m);
 
   succeed;
-}  
+}
+
+
+static Module
+resolveModule(const char *module)
+{ if ( !GD->initialised )      /* Before PL_initialise()! */
+    initModules();
+
+  if (module)
+    return PL_new_module(PL_new_atom(module));
+  else
+  { GET_LD
+    return (LD && environment_frame ? contextModule(environment_frame)
+	                            : MODULE_user);
+  }
+}
+
+void
+bindExtensions(const char *module, const PL_extension *ext)
+{ Module m = resolveModule(module);
+
+  for(; ext->predicate_name; ext++)
+  { bindForeign(m, ext->predicate_name, ext->arity,
+		ext->function, ext->flags);
+  }
+}
+
+void
+PL_register_extensions_in_module(const char *module, const PL_extension *e)
+{ if ( extensions_loaded )
+    bindExtensions(module, e);
+  else
+    rememberExtensions(module, e);
+}
 
 
 void
-PL_load_extensions(const PL_extension *ext)
-{ GET_LD
-  const PL_extension *e;
-  Module m;
-
-  m = (environment_frame ? contextModule(environment_frame)
-			 : MODULE_system);
-
-  for(e = ext; e->predicate_name; e++)
-  { unsigned long flags = TRACE_ME;
-    Definition def;
-    Procedure proc;
-    atom_t a = PL_new_atom(e->predicate_name);
-    functor_t fd = lookupFunctorDef(a, e->arity);
-
-    PL_unregister_atom(a);
-
-    if ( e->flags & PL_FA_NOTRACE )	     flags &= ~TRACE_ME;
-    if ( e->flags & PL_FA_TRANSPARENT )	     flags |= METAPRED;
-    if ( e->flags & PL_FA_NONDETERMINISTIC ) flags |= NONDETERMINISTIC;
-    if ( e->flags & PL_FA_VARARGS )	     flags |= P_VARARG;
-
-    proc = lookupProcedure(fd, m);
-    def = proc->definition;
-    if ( true(def, LOCKED) )
-    { warning("PL_load_extensions(): Attempt to redefine system predicate: %s",
-	      procedureName(proc));
-      continue;
-    }
-    if ( def->definition.function )
-      warning("PL_load_extensions(): redefined %s", procedureName(proc));
-    if ( false(def, FOREIGN) && def->definition.clauses != NULL )
-      abolishProcedure(proc, m);
-    set(def, FOREIGN);
-    set(def, flags);
-    def->definition.function = e->function;
-    def->indexPattern = 0;
-    def->indexCardinality = 0;
-
-    notify_registered_foreign(def->functor->functor, m);
-  }    
+PL_register_extensions(const PL_extension *e)
+{ PL_register_extensions_in_module(NULL, e);
 }
+
+
+bool
+PL_register_foreign_in_module(const char *module,
+			      const char *name, int arity, Func f, int flags)
+{ if ( extensions_loaded )
+  { Module m = resolveModule(module);
+    return bindForeign(m, name, arity, f, flags);
+  } else
+  { PL_extension ext[2];
+    ext->predicate_name = (char *)name;
+    ext->arity = arity;
+    ext->function = f;
+    ext->flags = flags;
+    ext[1].predicate_name = NULL;
+    rememberExtensions(module, ext);
+
+    return TRUE;
+  }
+}
+
+
+bool
+PL_register_foreign(const char *name, int arity, Func f, int flags)
+{ return PL_register_foreign_in_module(NULL, name, arity, f, flags);
+}
+
+		    /* deprecated */
+void
+PL_load_extensions(const PL_extension *ext)
+{ PL_register_extensions_in_module(NULL, ext);
+}
+
 
 		 /*******************************
 		 *	 EMBEDDING PROLOG	*

@@ -214,6 +214,8 @@ COMMON(word) 		pl_dwim_predicate(term_t term, term_t dwim,
 /* pl-ext.c */
 COMMON(void) 		initBuildIns(void);
 COMMON(void) 		cleanupExtensions(void);
+COMMON(void)            rememberExtensions(const char *module,
+					   const PL_extension *e);
 
 /* pl-error.c */
 
@@ -396,6 +398,8 @@ COMMON(Buffer)		findBuffer(int flags);
 COMMON(int)		unfindBuffer(int flags);
 
 COMMON(void) 		registerForeignLicenses(void);
+COMMON(void)            bindExtensions(const char *module,
+				       const PL_extension *ext);
 
 /* pl-fmt.c */
 COMMON(word) 		pl_format_predicate(term_t chr, term_t descr);

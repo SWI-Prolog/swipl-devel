@@ -48,7 +48,7 @@ delpkg()
 
 
 if [ -z "$PKG" ]; then
-  PKG="clib cpp odbc table xpce sgml sgml/RDF semweb http chr ssl"
+  PKG="clib cpp odbc table xpce sgml sgml/RDF semweb http chr clpr ssl"
 fi
 
 configoptions=""

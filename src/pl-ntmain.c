@@ -874,11 +874,11 @@ PL_extension extensions[] =
 {
 /*{ "name",	arity,  function,	PL_FA_<flags> },*/
 
-  { "system:window_title",          2, pl_window_title,         0 },
-  { "system:$win_insert_menu_item", 3, pl_win_insert_menu_item, 0 },
-  { "system:win_insert_menu",       2, pl_win_insert_menu,      0 },
-  { "system:win_window_pos",        1, pl_window_pos,           0 },
-  { NULL,		            0, NULL,		        0 }
+  { "window_title",          2, pl_window_title,         0 },
+  { "$win_insert_menu_item", 3, pl_win_insert_menu_item, 0 },
+  { "win_insert_menu",       2, pl_win_insert_menu,      0 },
+  { "win_window_pos",        1, pl_window_pos,           0 },
+  { NULL,                    0, NULL,                    0 }
 };
 
 
@@ -892,8 +892,8 @@ install_readline(rlc_console c)
 { rlc_init_history(c, 50);
   file_completer = rlc_complete_hook(do_complete);
 
-  PL_register_foreign("system:rl_add_history",    1, pl_rl_add_history,    0);
-  PL_register_foreign("system:rl_read_init_file", 1, pl_rl_read_init_file, 0);
+  PL_register_foreign_in_module("system", "rl_add_history",    1, pl_rl_add_history,    0);
+  PL_register_foreign_in_module("system", "rl_read_init_file", 1, pl_rl_read_init_file, 0);
 
   PL_set_feature("tty_control", PL_BOOL, TRUE);
   PL_set_feature("readline",    PL_BOOL, TRUE);
@@ -928,7 +928,7 @@ win32main(rlc_console c, int argc, TCHAR **argv)
   set_window_title(c);
   rlc_bind_terminal(c);
 
-  PL_register_extensions(extensions);
+  PL_register_extensions_in_module("system", extensions);
   install_readline(c);
   PL_action(PL_ACTION_GUIAPP, TRUE);
   main_console = c;
@@ -946,7 +946,7 @@ win32main(rlc_console c, int argc, TCHAR **argv)
 #if !defined(O_DEBUG) && !defined(_DEBUG)
   initSignals();
 #endif
-  PL_register_foreign("system:win_open_console", 5,
+  PL_register_foreign_in_module("system", "win_open_console", 5,
 		      pl_win_open_console, 0);
 
   if ( argc > MAX_ARGC )
