@@ -1,7 +1,6 @@
 \chapter{Using the online manual}		\label{sec:online}
 
-In the previous sections we have introduced \product{} using examples
-and described the global architecture of the \productpl{} environment.
+In the previous sections we have introduced \product{} using examples.
 The language primitives of \product{} are simple, but \product{} as a
 whole is a massive library of very diverse classes with many methods.
 The current system contains about 160 classes defining over 2700
@@ -440,7 +439,7 @@ card summaries of all matching cards.
 
 \subsection{Class hierarchy}		\label{sec:classhierarchy}
 
-\postscriptfig[width=\textwidth]{hierarchy}{Class Hierachy Tool}
+\postscriptfig[width=\textwidth]{classhierarchy}{Class Hierachy Tool}
 
 The ``Class Hierachy'' tool shown in \figref{hierarchy} may be used to
 get an overview of \product{}'s class hierarchy or to find the (inheritance)

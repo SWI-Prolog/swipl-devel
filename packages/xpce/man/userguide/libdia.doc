@@ -43,7 +43,7 @@ Create a \class{tool_bar} for which the buttons execute actions on
 buttons are placed left-to-right, but using \const{vertical}
 \arg{Orientation} they can be stacked top-to-bottom.
 
-    \sendmethod{tool_bar}{append}{Button:tool_button\string|\{gap\}}
+    \sendmethod{tool_bar}{append}{Button:tool_button{\tt|}\{gap\}}
 Append a tool-button to the bar or, using the name \const{gap}, make
 a small gap to separate logical groups of buttons.
 
@@ -52,9 +52,9 @@ Send ->activate to all member buttons, reflecting whether they are
 ready to accept commands or `greyed-out'.
 
     \sendmethod{tool_button}{initialise}{%
-	   Action:name|code,
-	   Label:name|image,
-	   Balloon:[name|string],
+	   Action:name{\tt|}code,
+	   Label:name{\tt|}image,
+	   Balloon:[name{\tt|}string],
 	   Condition:[code]*}
 Define a button for `tool_bar->append'.  \arg{Action} is the action
 to execute.  If this is a plain atom, this method without arguments

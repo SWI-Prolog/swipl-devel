@@ -8,11 +8,18 @@ the interface primitives is given in \appref{interface}.
 \section{Starting \productpl{}}
 
 \begin{xpceonly}
-\product{} can be connected to several Prolog implementations.  It is a
-normal Unix executable and is started from the Unix shell like
-any other program.  When \productpl{} starts, it appears just like
-the Prolog system it is based on, except for the banner message.
-Below we started \product{}/SWI-Prolog.
+\product{} is distributed as a library on top of the hosting Prolog
+system.  For use with SWI-Prolog, this library is auto-loaded as soon
+as one of its predicates (such as new/2) is accessed or it can be loaded
+explicitly using
+
+\begin{code}
+:- use_module(library(pce)).
+\end{code}
+
+In Unix XPCE/SWI-Prolog distribution the program \program{xpce} is
+a symbolic link to \program{pl} and causes the system to pull in and
+announce the \product{} library with the banner:
 
 \begin{code}
 % xpce
@@ -30,9 +37,18 @@ For HELP on prolog, please type help. or apropos(topic).
 \end{code}
 
 \index{version}%
-SWI-Prolog's prompt is ``<n> ?-'' where <n> is the
-history-number of the command. The banner indicates the \product{} version.
-The indicated version is 5.1 and the patch-level is 0.
+SWI-Prolog's prompt is ``<n> ?-'' where <n> is the history-number of the
+command. The banner indicates the \product{} version. The indicated
+version is 5.1 and the patch-level is 0.
+
+On MS-Windows, Prolog programs are normally loaded and started by
+double-clicking a \fileext{.pl} file. \product{}, being a normal
+library, does not change this. Note that \product{} can only be used
+fully with the GUI-based \program{plwin.exe}. Using the the
+console-based \program{plcon.exe} program only the non-GUI functionality
+of \product{} is accessible.
+
+
 \end{xpceonly}
 
 \begin{pwonly}
@@ -250,7 +266,7 @@ No
 \end{code}
 
 The second example not only removed the dialog window object from
-the \product{} object base, it also removes the associated X-window from
+the \product{} object base, it also removes the associated window from
 the screen.  The last example illustrates that certain system objects
 have been protected against freeing.
 
@@ -260,8 +276,8 @@ have been protected against freeing.
 \index{default arguments}\index{optional arguments}\index{argument,optional}%
 Arguments to \product{} methods are identified by their position.  Many
 methods have both obligatory and optional arguments.  If obligatory
-arguments are omitted \product{} will generate a warning.  If optional
-arguments are omitted \product{} will fill the argument with the constant
+arguments are omitted \product{} will generate an error.  If optional
+arguments are omitted \product{} fills the argument with the constant
 @default.  The interpretation of @default is left to the
 implementation of the receiving method.  See also \chapref{online}.
 
@@ -390,7 +406,7 @@ In some cases, the arguments and/or the return type of the
 method are specified:
 
 \begin{quote}
-`box ->colour: colour'
+`box ->colour: colour'\\
 `window <-height ==>int'
 \end{quote}
 
@@ -432,10 +448,9 @@ windows are properly aligned and handles resizing of the frame.  See
 also \secref{framelayout}.
 
 In line 3, a \class{browser} is ->append{}ed to the frame object. A
-browser is a window specialised for displaying a list of objects.
-Browsers handle very large numbers of items efficiently.  Next,
-a \class{dialog} is positioned below the browser.  A dialog is
-a window specialised in handling the layout of controllers, or
+browser is a window specialised for displaying a list of objects. Next,
+a \class{dialog} is positioned below the browser. A dialog is a window
+specialised in handling the layout of controllers, or
 \class{dialog_item} objects as \product{} calls them.
 
 Line 5 adds a \class{button} to the dialog. `view' specifies the {\em

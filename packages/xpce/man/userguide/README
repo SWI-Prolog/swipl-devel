@@ -2,9 +2,12 @@
 
 
 This directory contains the sources to   the XPCE userguide. To generate
-it you have to be a  bit  courageous.   By  default  it uses pdflatex to
-generate a PDF document. For success you  have   to  make sure to have a
-machine with recent copies of
+it you have to be a bit courageous   and  you need a Unix machine. We've
+(february 2001) used a machine running SuSE  linux 7.0. We rebuilt teTeX
+from the most recent snapshot to get pdfTeX 0.14f.
+
+By default it uses pdflatex to generate  a PDF document. For success you
+have to make sure to have a machine with recent copies of
 
 	* epstopsf (>= 2.6)
 	* pdflatex (>= 0.14f)

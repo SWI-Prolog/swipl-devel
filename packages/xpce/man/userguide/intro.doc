@@ -58,11 +58,10 @@ the other documentation:
 
 \begin{itemize}
     \tick{The \product{} Reference Manual} \ifpw{}{\cite{XPCE:reference}}
-The reference manual is available in two formats: printed and by means
-of the Prolog predicate \ifpw{user_help/0}{manpce/0}. The reference
-manual provides detailed descriptions of all classes, methods, etc.\
-which may be accessed from various viewpoints. See also
-\chapref{online}.
+The reference manual is available by means of the Prolog predicate
+\ifpw{user_help/0}{manpce/0}. The reference manual provides detailed
+descriptions of all classes, methods, etc.\ which may be accessed from
+various viewpoints. See also \chapref{online}.
     \tick{PceDraw: An example of using \product{}} \ifpw{}{\cite{XPCE:draw}}
 This document contains the annotated sources of the drawing tool PceDraw.
 It illustrates the (graphical) functionality of \product{} and is useful as
@@ -78,8 +77,9 @@ be a quick alternative to this user guide.
 
 \section{Other sources of information}		\label{sec:faq}
 
-Various other information can be found on or through the \product{} internet
-home-page:
+\index{home,web}\index{WWW,addresses}%
+Various other information can be found on or through the \product{}
+WEB-home:
 
 \begin{quote}\small
 \ifpw{\url{http://www.swi.psy.uva.nl/projects/xpce/ProWindows.html}}{%
@@ -281,19 +281,15 @@ Quintus GUI environment.
 
 \section{About this manual}
 
-This userguide introduces the basics of \productpl{} and its development
-environment. \Chapref{starting} and \chapref{globalarch}, ``Getting
-Started'' and ``Global Architecture'' explain the interface and provide
-a global overview of the \productpl{} hybrid environment.
-\Chapref{online}, ``Using the online manual'' introduces the online
-documentation tools. These are introduced early, as many of the examples
-in this manual introduce classes and methods without explaining them.
-The online manual tool can be used to find the definitions of these
-constructs quickly. The \chapref{graphics} and \chapref{controller},
-``Dialog (controller) windows'' and ``Simple Graphics'' introduce the
-various controller and graphical primitives. \Chapref{dialogeditor},
-``The Dialog Editor'' introduces the tool to built controller windows
-with the mouse. 
+qThis userguide introduces the basics of \productpl{} and its
+development environment. \Chapref{starting}, ``Getting Started''
+explains the interface. \Chapref{online}, ``Using the online manual''
+introduces the online documentation tools. These are introduced early,
+as many of the examples in this manual introduce classes and methods
+without explaining them. The online manual tool can be used to find the
+definitions of these constructs quickly. The \chapref{graphics} and
+\chapref{controller}, ``Dialog (controller) windows'' and ``Simple
+Graphics'' introduce the various controller and graphical primitives.
 
 With the material of the above described chapters, the user is
 sufficiently informed to create simple GUI's from predefined \product{}
@@ -302,11 +298,13 @@ and techniques that allow for the design of larger graphical systems.
 
 \Chapref{pceprolog}, ``The relation between \product{} and Prolog'' is a
 brief intermezzo, explaining the relation between \product{} and Prolog
-data in more detail. \Chapref{udc}, ``User defined classes'' explain the
+data in more detail. \Chapref{udc}, ``Defining classes'' explain the
 definition of new \product{} classes from Prolog and thus brings
 object-oriented programming to the user. \Chapref{techniques},
 ``Programming techniques'' is an assorted collection of hints on how
 \product{} can be used to solve real-world problems elegantly.
+\Chapref{libraries}, ``Commonly used libraries'' documents some of
+the commonly used \productpl{} libraries.
 
 \Chapref{debugging}, ``Development and debugging tools'' introduces
 the \product{} debugger.  The current debugger is powerful, but not very

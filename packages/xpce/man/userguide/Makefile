@@ -21,8 +21,8 @@ COMMON=	intro.tex starting.tex globalarch.tex online.tex debug.tex \
 	dialog.tex wysiwyg.tex frame.tex error.tex application.tex \
 	resource.tex images.tex summary.tex body.tex \
 	mswin.tex \
-	libs.tex findfile.tex toc.tex libdia.tex mlingual.tex \
-	httpd.tex httpd-ex.tex
+	libs.tex findfile.tex toc.tex tabular.tex libdia.tex mlingual.tex \
+	httpd.tex httpd-ex.tex docrender.tex
 
 XPCETEX=	xpceusg.tex $(COMMON)
 PWTEX=		pwusg.tex pwinfo.tex $(COMMON)

@@ -1,0 +1,228 @@
+\section{Tabular layout}		\label{sec:tabular}
+
+\product{} provides various mechanisms for two-dimensional layout.
+
+\begin{itemlist}
+    \item [ Controller layout using `device->layout_dialog' ]
+This method is used by the classes \class{dialog} and
+\class{dialog_group}.  It knows about layout requirements in
+controller windows, such as alignment of label- and value-width
+in stacked controllers. etc.  Layout of controllers is described
+in \chapref{controller}.
+
+    \item [ Simple tabular layout using \class{format} ]
+In instance of class \class{format} can be attached to a \class{device}
+using `device->format'.  This causes the device to place its graphicals
+according to the specification in the format object.  This technique is
+frequently used to label images, place images in an image browser, etc.
+See \secref{format}.
+
+    \item [ Full table support using \class{table} ]
+An instance of \class{table} can be associated with a \class{device} to
+realise modern tables using the same primitives as defined in HTML-3:
+row- and column spanning, alignment, spacing, rules and borders, etc.
+The library \pllib{tabular} provides a user-friendly front-end for
+most of the functionality of class \class{table}.
+\end{itemlist}
+
+
+\subsection{Using \class{format}}
+
+Class \class{format} can be seen as a poor-mens version of
+\class{table}. On the other hand, there are two cases that still make it
+a valuable solution. One is to deal with simple compound graphicals,
+such as a bitmap with a label displayed below it. The other is for
+browsing collections of graphical objects such as images.
+
+The class \class{icon} below displays a label-text below an image.
+
+\begin{pcecode}
+:- pce_begin_class(icon, device).
+
+:- pce_global(@icon_format, make_icon_format).
+
+make_icon_format(F) :-
+	new(F, format(horizontal, 1, @on)),
+	send(F, adjustment, vector(center)),
+	send(F, row_sep, 2).
+
+initialise(Icon, Img:image, Label:name) :->
+	send_super(Icon, initialise),
+	send(Icon, format, @icon_format),
+	send(Icon, display, bitmap(Img)),
+	send(Icon, display, text(Label, center)). 
+
+:- pce_end_class.
+\end{pcecode}
+
+An example using \class{format} for distribution graphicals over a
+window is the library \pllib{pce_image_browser}.
+
+
+\subsection{Using \class{table} using the ``tabular'' library}
+
+\index{layout,manager}%
+The class \class{table} acts much the same way as class \class{format}
+in the sence that it is attached to a \class{device} and modifies the
+layout management of this device.  For this purpose it uses an interface
+defined in \product{} version 5.0 and realised using the methods
+`device<->layout_manager' and `graphical<->layout_interface'.
+\Figref{layoutmgr} gives an overview of the classes realising
+tabular layout.
+
+\postscriptfig[width=\linewidth]{layoutmgr}{Layout manager interface for
+tables}
+
+The advantage of the approach using layout manager objects is that they
+can easily be associated with any subclass of \class{device}, such as
+a \class{window}.  The disadvantage is that the communication gets more
+difficult due to the different objects involved.  This complication is
+hidden in the \productpl{} class \class{tabular}, a subclass of
+\class{device} with an associated \class{table} and methods for
+guiding the messages for common usage.
+
+\begin{description}
+    \sendmethod{tabular}{initialise}{}
+Create a device with associated table.
+
+    \sendmethod{tabular}{append}{%
+       Label:name{\tt |}graphical,
+       Font:[font],
+       HAlign:[\{left,center,right\}],
+       Valign[\{top,center,bottom\}],
+       Colspan:[1..],
+       Rowspan:[1..],
+       Background:[colour],
+       Colour:[colour]}
+Append a new cell. Cells are places left-to-right.  The arguments are:
+
+\begin{itemlist}
+    \item[\arg{Label}]
+Defines the content. It this is a \class{name}, a \class{text} is created.
+Otherwise the graphical is immediately placed in the table.  
+
+    \item[\arg{Font}]
+Defines the \class{font} if a \class{text} is created from a
+\arg{Label} of type \class{name}.
+
+    \item[\arg{HAlign}]
+Horizontal alignment.  When omitted, the value from the corresponding
+\class{table_column} is used.
+
+    \item[\arg{VAlign}]
+Vertical alignment. When omitted, the value from the corresponding
+\class{table_row} is used.
+
+    \item[\arg{Colspan}]
+Number of columns spanned.  Default is 1.
+
+    \item[\arg{Rowspan}]
+Number of rows spanned.  Default is 1.
+
+    \item[\arg{Background}]
+Colour or pattern used to fill the background of the cell.  When
+omitted, the value from row or column is used or the background is
+left untouched.
+
+    \item[\arg{Colour}]
+Defines the default foreground colour when painting the cell's
+graphical.  When omitted, the row, column and finally device are
+tried.
+\end{itemlist}
+
+    \sendmethod{tabular}{append_label_button}{Field:name}
+This method appends a button that is nicely aligned with the cell. If
+the button is depressed it activates ->sort_rows, providing the column
+index and the row below the row holding the button.
+
+    \sendmethod{tabular}{sort_rows}{Col:int, Row:int}
+A virtual method with a body that prints an informative message.  It
+is called from a button installed using ->append_label_button and
+receives the column to sort-on as well as the first row to sort.
+
+    \getmethod{tabular}{table}{}{Table}
+Returns the \class{table} serving as <-layout_manager.
+
+    \sendmethod{tabular}{table_width}{Width:int}
+Force the table to perform the layout in the indicated width.  Initially
+the width of a \class{tabular} is defined by the content.  Setting the
+width forces the \class{table} to negotiate with its columns and then
+force the width of the columns.
+
+    \sendmethod{tabular}{event}{Event:event}
+This refinement of `device->event' determines the cell in which the
+event occurs.  If this cell has a `cell<->note_mark' attached and the
+graphical defines the method ->on_mark_clicked, the event is checked
+against the mark-image. Otherwise the event is forwarded to the
+graphical inside the cell, even it it doesn't occur in the area of
+the graphical, making small (text-)objects sensitive to all events in
+the cell. Finally, this method checks for attempts to drag the
+column-borders, changing the layout of the table.
+\end{description}
+
+As \class{tabular} \jargon{delegates} all messages not understood to
+the <-table, the messages of this class are also available.  Below are
+the most important ones.
+
+\begin{description}
+    \sendmethod{table}{next_row}{EndGroup:[bool]}
+Start the next row in the table. If \arg{EndGroup} is @on, the
+just-finished row is marked to end a row-group.  See also ->rules.
+
+    \sendmethod{table}{border}{Border:0..}
+Defines the thickness of border and rule-lines.  Default is 0, not
+drawing any lines.
+
+    \sendmethod{table}{frame}{\{void,above,below,hsides,vsides,box\}}
+Defines which parts of the box around the table are painted (if <-border
+$> 0$).  The terminology is from HTML-3.
+
+    \sendmethod{table}{rules}{\{none,groups,rows,cols,all\}}
+Defines which lines between rows/columns are painted (if <-border
+$> 0$).  The terminology is from HTML-3.
+
+    \sendmethod{table}{cell_padding}{Padding:int{\tt|}size}
+Defines the space around the content of a cell.  If this is an integer
+this space is the same in horizontal and vertical directions.  If it
+is a \class{size} these can be specified independently.
+
+    \sendmethod{table}{cell_spacing}{Spacing:int{\tt|}size}
+Defines the distance between the cells. Same rules as for ->cell_padding
+applies.  In some cases pretty effects can be achieved settin this value
+to minus the <-border.
+\end{description}
+
+Below we build a small example.
+
+\begin{pcecode}
+:- use_module(library(tabular)).
+:- use_module(library(autowin)).
+
+make_table :-
+	new(P, auto_sized_picture('Table with merged cells')), 
+	send(P, display, new(T, tabular)),
+	send(T, border, 1),
+	send(T, cell_spacing, -1),
+	send(T, rules, all),
+	send_list(T,
+		  [ append(new(graphical), rowspan := 2),
+		    append('Length/mm', bold, center, colspan := 3),
+		    next_row,
+		    append('body', bold, center),
+		    append('tail', bold, center),
+		    append('ears', bold, center),
+		    next_row,
+		    append('males', bold),
+		    append('31.4'),
+		    append('23.7'),
+		    append('3.8'),
+		    next_row,
+		    append('females', bold),
+		    append('29.6'),
+		    append('20.8'),
+		    append('3.4')
+		  ]),
+	send(P, open).
+\end{pcecode}
+
+\postscriptfig{tabular}{Small table with row/column spanning}

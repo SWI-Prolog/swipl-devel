@@ -1,4 +1,4 @@
-section{Library ``find_file''}		\label{sec:findfile}
+\section{Library ``find_file''}		\label{sec:findfile}
 
 \index{file,prompting for}%
 The library \pllib{find_file} defines the class \class{finder},
@@ -31,3 +31,13 @@ for an existing Prolog file.
 \end{code}
 \end{description}
 
+\index{file,get name in Windows}%
+The Windows version of \product{} implements the method
+`display<-win_file_name', using the Win32 API standard functions
+GetOpenFileName() or GetSaveFileName() to obtain a file-name for saving
+or loading.  If this method is defined, `finder<-file' uses it, showing
+the users familar dialog.
+
+Names for the extensions (as `Prolog file' rather than '*.pl') can be
+defined by extending the multfile predicate pce_finder:file_type/2.  See
+the library source for the standard definition.

@@ -1,0 +1,491 @@
+\section{Document rendering primitives}		\label{sec:docrender}
+
+Dynamic HTML has enabled the presentation of user interfaces as
+documents the user can interact with.  None of the traditional
+GUI components can deal with the mixture of properly formatted
+text with (interactive) graphics.  \product{} provides support
+using a set of primitive classes that realise a box-model based
+on \TeX.  This basic model is enhanced using a Prolog library
+providing HTML-based primitives.  First we will introduce the
+basics.
+
+\begin{itemlist}
+    \item [Class \class{parbox}]
+This is the central class of the document-rendering support.  It is
+a subclass of \class{device}, placing \class{hbox} objects as words
+within a paragraph.  Parbox devices have a <->width, realise alignment
+and adjustment and can place text around \jargon{floating} objects.
+
+    \item [Class \class{hbox}]
+This is an abstract super-class for \class{tbox} and \class{grbox}
+that allow for text and graphics within a \class{parbox}.
+
+    \item [Class \class{tbox}]
+Represent text in a \class{parbox}.  Normally, a \class{tbox} represents
+a word.
+
+    \item [Class \class{grbox}]
+Embeds any \class{graphical} object in a \class{parbox}. The
+\class{grbox} negotiates with the \class{parbox} on the placement and
+then places the graphical on the \class{parbox} using normal behaviour
+of \class{device}.
+
+    \item [Class \class{lbox}]
+This is another subclass of \class{device} that realises \LaTeX-like 
+list-environment.  The class deals with placement of labels and text for
+the items.  Both label and item are arbitrary graphical objects.  Items
+are normally instances of \class{parbox}.
+
+    \item [Class \class{rubber}]
+This is a data object containing information on the
+\jargon{stretchability} of boxes.  Rubber object are used to distribute
+space horizontally as well as to determine the location of line-breaks.
+A space in a \class{parbox} is realised using a \class{hbox} whose
+natrual width is the width of a space in the current \class{font} that
+can shrink a little and expand a bit easier.
+\end{itemlist}
+
+Before discussing the library we show a small example using the
+primitives directly.
+
+\begin{pcecode}
+parbox :-
+	send(new(W, window), open),
+	send(W, display, new(P, parbox(W?width)), point(10,10)),
+	send(W, resize_message, message(P, width, @arg2?width-20)),
+	
+	send(P, alignment, justify),
+	send_list(P,
+		  [ append(grbox(box(40,40), left)),
+		    cdata('This is the central class of the '),
+		    cdata('document-rendering support.  It is '),
+		    cdata('a subclass of '),
+		    cdata('device', style(underline := @on)),
+		    cdata(', placing '),
+		    cdata('hbox', style(underline := @on)),
+		    cdata(' objects as words within a paragraph. '),
+		    cdata('Parbox devices have a <->width, realise '),
+		    cdata('alignment and adjustment and can place text '),
+		    cdata('around '),
+		    cdata('floating ', style(font := italic)),
+		    cdata(' objects.')
+		  ]).
+\end{pcecode}
+
+\postscriptfig{parbox1}{A parbox floating text around a box}
+
+In line 4, we forward changes to the width of the window to the
+\class{parbox} to force reformatting the text if the width of the
+window changes.  Line 6 asks for a straight right-margin.  Line 8
+appends a \class{box} that is left aligned, the text floating around
+it.  The remaining lines append text.  The method `parbox->cdata'
+breaks the argument into words and adds instances of \class{tbox}
+for each word, separated by instances of \class{hbox} with appropriate
+\class{rubber} for each sequence of white-space, doing much the same
+as an HTML browser processing \const{CDATA} text.
+
+Defining a document from Prolog text using these primitives is not
+attractive.   This is the motivation for using a library.
+
+
+\subsection{The rendering library}		\label{sec:docemit}
+
+The directory \file{<pcehome>/prolog/lib/doc} contains the
+document-rendering library, providing HTML-oriented primitives for
+document rendering.  The translation process can be extended by
+defining predicates for two \jargon{multifile} predicates.
+
+The central library is \pllib{doc/emit}.  This library defines the
+predicate emit/3:
+
+\begin{description}
+    \predicate{emit}{3}{+ListOfTerm, +PBox, +Mode}
+This predicate takes a list of processing instructions and applies
+these on \arg{PBox}, an instance of class \class{pbox}, a subclass of
+\class{parbox} supporting this library. \arg{Mode} provides an instance
+of \class{doc_mode}, a data-object holding style-information.
+
+\arg{ListOfTerm} consists of the following instructions:
+
+\begin{itemlist}
+    \item [<Atomic>]
+Atomic data is added as text to the output.  If `doc_mode<-space_mode'
+equals \const{preserve}, spaces are preserved.  Otherwise space is
+canonised, smashing multiple consecutive banks into a single (rubber)
+space.
+
+    \item [\bsl{}Action]
+Execute an \arg{Action}.  Actions are like \TeX{} commands, which is
+why we use the backslash.  The built-in actions and the definition of
+new actions is discussed in \secref{docactions}.
+
+    \item [@Object]
+\product{} objects are simply appended to the \class{pbox}.  This can
+be used to append self-created objects or use one of the predefined
+layout objects defined in \secref{docobjects}.
+\end{itemlist}
+
+Before handed to the above, emit/3 calls the multifile predicate
+doc:emit/3 passing the whole list as you can see from the definition
+below. This allows the user-hook to process sequences of instructions.
+
+\begin{code}
+emit(Term, PB, Mode) :-
+        doc:emit(Term, PB, Mode), !.
+\end{code}
+\end{description}
+
+\subsection{Predefined objects}			\label{sec:docobjects}
+
+The file \pllib{doc/objects} defines a number of globally named
+instances of the box classes.  Appending these objects is like executing
+an action.  These objects are:
+
+\begin{center}
+\begin{tabular}{lp{0.7\linewidth}}
+@br	& Nul-dimension \class{hbox} with rubber to force a line-break. \\
+@nbsp	& Non-breaking space. \\
+@hfill	& Rubber \class{hbox} for alignment and centering. \\
+@space_rubber & Rubber used for \class{hbox} objects representing a
+	  space.  This rubber allows for a line-break. \\
+@h<n>_above & Space above HTML section-headers. \\
+@h<n>_below & Space below HTML section-headers. \\
+\end{tabular}
+\end{center}
+
+\subsection{Class and method reference}		\label{sec:docreference}
+
+This section provides a partial reference to the classes and methods
+defining the document-rendering library.  For full information, please
+use the {\sf ClassBrowser} and check the source-code.
+
+\begin{description}
+    \sendmethod{pbox}{show}{Content:prolog, Mode:[doc_mode]}
+Calls emit/3 using \arg{Content} and \arg{Mode}.  If mode is omitted,
+a default mode object is created.
+
+    \sendmethod{pbox}{event}{Event:event}
+Handles clicking a button or footnote and showing \jargon{balloons} from
+buttons after trying to pass the event to one of the embedded
+graphicals.
+
+    \getmethod{pbox}{anchor}{Name}{tuple(Box, Index)}
+Return the \arg{Box} and index thereof in the `parbox<-content' vector
+that starts the named anchor (see \secref{docactions}.
+
+    \sendmethod{doc_mode}{initialise}{}
+Creates a default document-rendering mode.  This mode has the following
+properties:
+
+    \begin{center}
+    \begin{tabular}{llp{0.5\linewidth}}
+\bf vfont & new(vfont) & The \jargon{virtual} font for text \\
+\bf link_colour & dark_green & Text-colour while rendering buttons \\
+\bf parsep & hbox(0,8) & Skip 8 pixels between paragraphs \\
+\bf parindent & hbox(0,0) & Do not indent paragraphs \\
+\bf space_mode & canonical & Collapse spaces \\
+\bf alignment & justify & Make a right-margin \\
+\bf base_url & '' & URL for HTML hyper-links \\
+    \end{tabular}
+    \end{center}
+
+    \sendmethod{doc_mode}{set_font}{Att:name, Value:any}
+Set an attribute of <-vfont and update <-style and <-space to
+reflect the new font-settings.
+
+    \sendmethod{doc_mode}{colour}{Colour}
+Set the colour of <-style.
+
+    \sendmethod{doc_mode}{underline}{Bool}
+Set underline mode in <-style.
+\end{description}
+
+
+\subsubsection{Class \class{vfont}}
+
+The class \class{vfont} realises \jargon{virtual} fonts, Microsoft also
+calls these \jargon{logical} fonts. \product{} \class{font} objects are
+read-only. When dealing with incremental font manipulation it is
+necessary to have a font that can be manipulated. Therefore,
+\class{vfont} defines a number of slots to represent the font attributes
+regardless of the fonts existence. At any time the user can request the
+best matching font using `vfont<-font'. The mapping between virtual font
+attributes and physical fonts can be programmed by adding clauses to the
+multifile predicate vfont:font_map/7. This class is defined in
+\pllib{doc/vfont} where you find further programming details. 
+
+
+\subsubsection{Rendering actions}		\label{sec:docactions}
+
+The action subsystem processes actions (\bsl{}Action) from emit/3,
+providing a hook for adding new actions.  Before doing anything else,
+the hook doc:action/3 is called:
+
+\begin{description}
+    \predicate{doc:action}{3}{+Action, +PBox, +Mode}
+Execute \arg{Action}. The actions are passed from emit/3 after stripping
+the backslash.  If this hook succeeds the action is considered handled.
+\end{description}
+
+The built-in actions are:
+
+\begin{description}
+    \termitem{ignorespaces}{}
+Tells emit/3 eat all input until the first action or non-blank
+character.
+
+    \termitem{space}{SpaceMode}
+Tells emit/3 to \const{preserve} white-space or render it
+\const{canonical}.  Default is \class{canonical}.
+
+    \termitem{pre}{Text}
+Add verbatim text.
+
+    \termitem{par}{}
+Start a new paragraph. This is the action-sequence \const{parskip},
+followed by \const{parsep}.
+
+    \termitem{parskip}{}
+Inserts <-parsep from the current mode, surrounded by two line-breaks
+(@br).
+
+    \termitem{parindent}{}
+Insert the <-parindent from the current mode.
+
+    \termitem{group}{Group}
+Use emit/3 on \arg{Group} on a <-clone of the \class{doc_mode} object.
+This is essentially the same as a \TeX{} group, scoping changes to the
+mode such as font-changes, etc.
+
+    \termitem{setfont}{Attribute, Value}
+Set an attribute of the font.  Fonts are maintained using the Prolog
+defined class \class{vfont} (\jargon{virtual} font) that allows for
+independent changes to font attributes.  When text needs to be rendered,
+a close real font is mounted.  Defined attributes are:
+\const{family}, \const{encoding}, \const{slant}, \const{weight},
+\const{fixed} and \const{size}. See
+\file{<pcehome>/prolog/lib/doc/vfont.pl} for details.
+
+    \termitem{ul}{}
+Switch on underlining.  Normally this should be inside a group to
+limit the scope.
+
+    \termitem{colour}{Colour}
+Set the text-colour.
+
+    \termitem{list}{Options, Content}
+Produce a list-environment.  The option \term{class}{Class} defines the
+subclass of \class{lbox} used to instantiate, default
+\class{bullet_list}.  The \arg{Content} is passed to emit/3, using the
+created list-object as 2nd argument.
+
+When using a \class{bullet_list} or \class{enum_list} \arg{Content} must
+translated into a sequence of \const{li} commands. Using a
+\class{definition_list}, a sequence of \const{dt} and \const{dd}
+commands is expected.
+
+    \termitem{li}{Content}
+If we are processing a \class{bullet_list} or \class{enum_list}, start a
+new item using `<-make_item', then emit \arg{Content} to the new item.
+
+    \termitem{dt}{ItemTitle}
+If we are processing a \class{definition_list}, create a new label from
+\arg{ItemTitle}.
+
+    \termitem{dd}{ItemContent}
+Create a \class{pbox} for the item body and emit \arg{ItemContent} to
+it.
+
+    \termitem{title}{Title}
+Get the <-frame of the \class{pbox} and send it the given title using
+`frame->label'.
+
+    \termitem{body}{Options}
+Apply options to the window as a whole.  Defines options are
+\term{bgcolour}{Colour}, \term{background}{Image} and
+\term{text}{Colour}.
+
+    \termitem{button}{Message, Content, Balloon}
+Add an active area (hyper-link) to the document. When depressed,
+\arg{Message} is executed.  When hoovering, \arg{Balloon} is reported
+as status (see \secref{report}).  \arg{Content} is emitted inside a
+group after setting the default colour to `doc_mode<-link_colour' and
+underlining to @on.
+
+    \termitem{anchor}{Label, Content}
+Label some content.  This has no visual implications, but the the anchor
+can be located using `pbox<-anchor'.
+
+    \termitem{parbox}{Content, Options}
+Add a sub-parbox.  Defined options are:
+
+    \begin{description}
+	\termitem{width}{Width}
+Define the width of the sub-box.
+	\termitem{rubber}{Rubber}
+Define the shrink- and stretchability of the sub-box.
+	\termitem{align}{Alignment}
+Define text-adjustment
+(\const{left},\const{center},\const{right},\const{justify}) within the
+box.
+	\termitem{valign}{VAlign}
+Define the vertical alignment of the box (\const{top}, \const{center},
+\const{bottom}.
+
+	\termitem{auto_crop}{Bool}
+If @on, tell the \class{pbox} its <-area is determined by the
+content rather than the specified width.  Text may be formatted
+left-to-write without wrapping by defining a wide parbox and using
+this option.
+    \end{description}
+
+    \termitem{table}{Options, Content}
+Create a tabular layout using the class \class{doc_table}, a
+\class{device} holding a \class{table}.  See also \secref{tabular}.
+The options and commands are modelled after HTML-3.  Table-related
+commands are \const{tr}, \const{td}, \const{col}, \const{thead} and
+\const{tbody}.  Defined options are:
+
+    \begin{description}
+	\termitem{align}{Align}
+Graphical alignment, allowing placement as \const{left} or \const{right}
+floating object or \const{center}ed placement.
+	\termitem{width}{Width}
+Give the table a specified width.
+	\termitem{bgcolor}{Colour}
+Set the default background colour for the rows, columns and cells.
+	\termitem{cellpadding}{IntOrSize}
+Specify the space inside a cell around its content.
+	\termitem{cellspacing}{IntOrSize}
+Specify the space between cells.
+    \end{description}
+
+    \termitem{tr}{}
+Open the next table-row.
+
+    \termitem{tr}{Options, Content}
+Open a new row and emit \arg{Content} therein.  \arg{Options} are
+applied to the row.  See class \class{table_row} for details.
+
+    \termitem{td}{Options, Content}
+Add a table-cell and emit \arg{Content} into it.  \arg{Options} are
+applied to the new cell.  See class \class{table_cell} for details.
+
+    \termitem{col}{Options}
+Handle an HTML-3 \const{col} element, specifying parameters for the
+next column.  Defined \arg{Options} are \term{span}{Span} to apply
+these settings to the next \arg{Span} columns and \term{width}{Spec},
+where \arg{Spec} is an integer (pixels) or a term \term{*}{N}, defining
+the weight for shrinking and stretching relative to other columns using
+this notation.  The following defines the second column to be twice
+as wide as the first:
+
+\begin{code}
+	[ \col(*(1)),
+	  \col(*(2))
+	]
+\end{code}
+
+    \termitem{tbody}{Options}
+Start a row-group.  See `table_row->end_group'.  \arg{Options} is
+currently ignored.
+
+    \termitem{thead}{Options, Content}
+Handle a table-head.  It expects a number of rows in \arg{Content}.
+While processing \arg{Content} it sets the default cell alignment
+to \const{center} and font to \const{bold}.
+
+    \termitem{footnote}{Content}
+Add a footnote-mark.  Pressing the mark shows a popup-window holding
+the text of the footnote.
+
+    \termitem{preformatted}{Text}
+Adds \arg{text} in a \class{tbox} to the parbox	without checking the
+content.  The current style is applied to \arg{Text}
+\end{description}
+
+
+\subsection{Using the ``doc/emit'' library}
+
+In \secref{docemit} and \secref{docactions} we have seen the definition
+of the basic rendering library infrastructure.  It uses concepts from
+\TeX{} and HTML-3, introducing primitives for grouping, attribute
+settings, lists, tables and whitespace-handling.
+
+The emit/3 predicate as described above is not intended for direct use
+though.  It is hard to imagine a good syntax for defining significant
+amounts of formatted text in a Prolog text-file.  In some cases it is
+feasible to define a suitable set of new commands and use emit/3
+direcly from Prolog.  In most cases you'll want to use tokens from an
+external source using an external markup language.
+
+One option to arrive at a token-list is using the XML/SGML parser
+included in SWI-Prolog.  It can be used either with a domain-specific
+DTD, in which case you need to define the translations by hand or using
+an HTML DTD, in which case the library \pllib{doc/html} defines the
+required translations.
+
+We will illustrate this in a small example.  First the code to show
+HTML inside a window is below.  In line 1 we load the always-needed
+document rendering infra-structure and register the \const{doc}
+search-path to reflect the \file{<pcehome>/prolog/lib/doc} directory.
+Next we import emit/3 and load the HTML-rendering extensions to
+doc:emit/3 and doc:action/3.
+
+\begin{pcecode}
+:- use_module(library('doc/load')).
+:- use_module(doc(emit)).
+:- use_module(doc(html)).
+:- use_module(library(sgml)).
+
+show_html(File) :-
+	send(new(P, picture), open),
+	send(P, display, new(PB, pbox), point(10,10)),
+	send(P, resize_message, message(PB, width, @arg2?width - 20)),
+	
+	load_html_file(File, Tokens),
+	send(PB, show, Tokens).
+\end{pcecode}
+
+Here is the HTML code loaded and the visual result.
+
+\begin{code}
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+
+<html>  
+  <head>  
+    <title>Document rendering</title>
+  </head>  
+<body>
+<h1>SWI-Prolog SGML-DOM</h1>
+
+<p>
+SWI-Prolog 4.0 provides a library for loading XML, SGML and
+HTML files and convert them to a complex Prolog term.  This
+term has the format
+
+<p>
+<pre>
+element(Name,
+        ListOfNameValue
+        ListOfContent)
+</pre>
+
+<p>
+Where <var/ListOfNameValue/ reflects the attribute-list of the
+element and <var/ListOfContent/ is mixed list of atoms representing
+<em/CDATA/ and <b>element/3</b> terms representing nested elements.
+</body>
+</html>
+\end{code}
+
+\postscriptfig{dochtml}{Rendering HTML code}
+
+In general you do not want to render plain HTML using \productpl{} as it
+is far less flexible than real browsers dealing with errornous HTML, the
+implementation of HTML is incomplete and it supports Java nor
+Javascript.
+
+It has proved to be worthwile using the extensibility of SGML and this
+layout to render domain-specific documents, often using HTML elements
+for the basic layout.

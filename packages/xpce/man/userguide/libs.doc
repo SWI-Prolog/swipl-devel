@@ -22,6 +22,9 @@ hierachy inside a window.  This library is used for displaying the
 VisualHierachy and ClassHierarchy tools of the \product{} manual
 toolkit.  See \chapref{online}.
 
+    \secoverview{tabular}{Tabular layout}
+Primitives for dealing with tables.
+
     \secoverview{mlingual}{Multi-lingual applications}
 Discusses support for multi-lingual applications.
 
@@ -33,12 +36,18 @@ application.
 Class \class{httpd} is a subclass of \class{socket} that deals with
 the HTTP protocol.  It allows \product{} to act as a web-server.
 
+    \secoverview{docrender}{Document rendering}
+Primitives for rendering mixed text/graphics, handling fonts, alignment,
+tables and other common text-layout primitives.
 \end{itemize}
 
-\input{findfile.tex}
-\input{libdia.tex}
-\input{toc.tex}
-\input{mlingual.tex}
-\input{dragdrop.tex}
-\input{httpd}
+\newcommand{\libinput}[1]{\cleardoublepage\input{#1}}
 
+\libinput{findfile.tex}
+\libinput{libdia.tex}
+\libinput{toc.tex}
+\libinput{tabular}
+\libinput{mlingual.tex}
+\libinput{dragdrop.tex}
+\libinput{httpd}
+\libinput{docrender}

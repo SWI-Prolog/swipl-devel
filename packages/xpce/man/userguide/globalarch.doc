@@ -1,8 +1,7 @@
-\chapter{Global architecture}			\label{sec:globalarch}
+\chapter{\productpl{} architecture} \label{sec:globalarch}
 
-\Secref{starting} introduced the basic principles of \productpl{}
-with examples.  In this section we present a conceptual overview of \product{}
-and the \productpl{} environment.
+In this appendix we present an overview of \product{}'s primitives
+and the interaction to the \productpl{} environment.
 
 
 \section{What is ``Object-Oriented''?}

@@ -40,7 +40,7 @@ presentation and distribution applications.
 We start with a small demo, illustrating frames and text.
 
 \postscriptfig[width=0.9\linewidth]{httpd}{Mozilla showing \product{}
-					   regerated figure}
+					   generated figure}
 
 \input{httpd-ex}
 

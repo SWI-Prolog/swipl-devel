@@ -38,7 +38,7 @@
 
 \makeindex
 
-%\includeonly{libs}
+\includeonly{libs}
 
 \begin{document}
 
@@ -153,13 +153,13 @@ Product information, documentation and additional resources specific to
 
 \vfil\vfil
 \noindent
-Titlepage created using \product{} \productversion{} on Windows-NT 4.0
+Titlepage created using \product{} 4.8.10 on Windows-NT 4.0
 \vfil
 \noindent
 Last updated February 2001 for \product{} version \productversion
 \vfil
 \noindent
-Copyright \copyright\ 1992-1997 University of Amsterdam
+Copyright \copyright\ 1992-2001 University of Amsterdam
 \end{titlepage}
 \end{xpceonly}
 
