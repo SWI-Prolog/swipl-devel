@@ -1781,7 +1781,7 @@ pl_get_char2(term_t in, term_t chr)
   if ( getInputStream(in, &s) )
   { int c = Sgetcode(s);
 
-    if ( PL_unify_atom(chr, codeToAtom(c)) )
+    if ( PL_unify_atom(chr, c == -1 ? ATOM_end_of_file : codeToAtom(c)) )
       return streamStatus(s);
 
     if ( Sferror(s) )

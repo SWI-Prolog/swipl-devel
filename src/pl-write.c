@@ -145,21 +145,31 @@ atomType(atom_t a)
 
 static bool
 Putc(int c, IOSTREAM *s)
-{ return Sputc(c, s) == EOF ? FALSE : TRUE;
+{ return Sputcode(c, s) == EOF ? FALSE : TRUE;
 }
 
 
 static bool
 PutString(const char *str, IOSTREAM *s)
-{ return Sfputs(str, s) == EOF ? FALSE : TRUE;
+{ for( ; *str != EOS; str++ )
+  { if ( Sputcode(*str, s) == EOF )
+      return FALSE;
+  }
+
+  return TRUE;
 }
 
 
 static bool
 PutStringN(const char *str, unsigned int length, IOSTREAM *s)
-{ int len = (int)length;
+{ unsigned int i;
 
-  return Sfwrite(str, 1, len, s) == len ? TRUE : FALSE;
+  for(i=0; i<length; i++, str++)
+  { if ( Sputcode(*str, s) == EOF )
+      return FALSE;
+  } 
+
+  return TRUE;
 }
 
 
@@ -223,6 +233,68 @@ PutCloseBrace(IOSTREAM *s)
 
 
 static bool
+putQuoted(int c, int quote, int flags, IOSTREAM *stream)
+{ if ( (flags & PL_WRT_CHARESCAPES) )
+  { if ( !(c < 0xff && isControl(c)) && c != quote && c != '\\' )
+    { TRY(Putc(c, stream));
+    } else
+    { char esc[8];
+
+      esc[1] = EOS;
+
+      if ( c == quote )
+      { esc[0] = c;
+      } else
+      { switch(c)
+	{ case 7:
+	    esc[0] = 'a';
+	    break;
+	  case '\b':
+	    esc[0] = 'b';
+	    break;
+	  case '\t':
+	    esc[0] = 't';
+	    break;
+	  case '\n':
+	    esc[0] = 'n';
+	    break;
+	  case 11:
+	    esc[0] = 'v';
+	    break;
+	  case '\r':
+	    esc[0] = 'r';
+	    break;
+	  case '\f':
+	    esc[0] = 'f';
+	    break;
+	  case '\\':
+	    esc[0] = '\\';
+	    break;
+	  default:
+	    if ( c <= 0xff )
+	      Ssprintf(esc, "%03o\\", c);
+	    else
+	      assert(0);			/* to be done */
+	}
+	if ( !Putc('\\', stream) ||
+	     !PutString(esc, stream) )
+	  fail;
+      }
+    }
+  } else
+  { if ( c == quote )
+    { TRY(Putc(c, stream) && Putc(c, stream));
+    } else
+    { return Putc(c, stream);
+    }
+  }
+
+  return TRUE;
+}
+
+
+
+static bool
 writeQuoted(IOSTREAM *stream, const char *text, int len, int quote,
 	    write_options *options)
 { const unsigned char *s = (const unsigned char *)text;
@@ -230,59 +302,7 @@ writeQuoted(IOSTREAM *stream, const char *text, int len, int quote,
   TRY(Putc(quote, stream));
 
   while(len-- > 0)
-  { int c = *s++;
-
-    if ( true(options, PL_WRT_CHARESCAPES) )
-    { if ( !isControl(c) && c != quote && c != '\\' )
-      { TRY(Putc(c, stream));
-      } else
-      { char esc[8];
-
-	esc[1] = EOS;
-
-	if ( c == quote )
-	{ esc[0] = c;
-	} else
-	{ switch(c)
-	  { case 7:
-	      esc[0] = 'a';
-	      break;
-	    case '\b':
-	      esc[0] = 'b';
-	      break;
-	    case '\t':
-	      esc[0] = 't';
-	      break;
-	    case '\n':
-	      esc[0] = 'n';
-	      break;
-	    case 11:
-	      esc[0] = 'v';
-	      break;
-	    case '\r':
-	      esc[0] = 'r';
-	      break;
-	    case '\f':
-	      esc[0] = 'f';
-	      break;
-	    case '\\':
-	      esc[0] = '\\';
-	      break;
-	    default:
-	      Ssprintf(esc, "%03o\\", c);
-	  }
-	}
-	if ( !Putc('\\', stream) ||
-	     !PutString(esc, stream) )
-	  fail;
-      }
-    } else
-    { if ( c == quote )
-      { TRY(Putc(c, stream) && Putc(c, stream));
-      } else
-      { TRY(Putc(c, stream));
-      }
-    }
+  { TRY(putQuoted(*s++, quote, options->flags, stream));
   }
 
   return Putc(quote, stream);
@@ -388,6 +408,52 @@ writeAtom(atom_t a, write_options *options)
   } else
     return PutTokenN(atom->name, atom->length, options->out);
 }
+
+
+int
+writeUSCAtom(IOSTREAM *fd, atom_t atom, int flags)
+{ Atom a = atomValue(atom);
+  pl_wchar_t *s = (pl_wchar_t*)a->name;
+  int len = a->length/sizeof(pl_wchar_t);
+  pl_wchar_t *e = &s[len];
+
+  if ( flags & PL_WRT_QUOTED )
+  { pl_wchar_t quote = L'\'';
+
+    if ( isLowerW(*s) )
+    { pl_wchar_t *q;
+
+      for(q=s; q<e; q++)
+      { if ( !isAlphaW(*q) )
+	  break;
+      }
+      if ( q == e )
+        goto unquoted;
+    }
+
+    TRY(Putc(quote, fd));
+
+    while(s < e)
+    { TRY(putQuoted(*s++, quote, flags, fd));
+    }
+
+    return Putc(quote, fd);
+  }
+
+unquoted:
+  if ( s < e )
+  { if ( !PutOpenToken(s[0], fd) )
+      return FALSE;
+    s++;
+  }
+  for( ; s<e; s++)
+  { if ( !Putc(*s, fd) )
+      return FALSE;
+  }
+
+  return TRUE;
+}
+
 
 
 #if !defined(HAVE_ISNAN) && defined(NaN)

@@ -820,25 +820,71 @@ globalLong(long l ARG_LD)
 		 *    OPERATIONS ON STRINGS	*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+To distinguish between byte and wide strings,   the system adds a 'B' or
+'W' in front of the real string. For   a  'W', the following 3 bytes are
+ignored to avoid alignment restriction problems.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static Word
+allocString(long len ARG_LD)
+{ int lw = (len+sizeof(word))/sizeof(word);
+  int pad = (lw*sizeof(word) - len);
+  Word p = allocGlobal(2 + lw);
+  word m = mkStrHdr(lw, pad);
+
+  p[0]    = m;
+  p[lw]   = 0L;				/* zero the pad bytes */
+  p[lw+1] = m;
+
+  return p;
+}
+
+
 word
 globalString(long l, const char *s)
 { GET_LD
-  int lw = (l+sizeof(word))/sizeof(word);
-  int pad = (lw*sizeof(word) - l);
-  Word p = allocGlobal(2 + lw);
-  word r = consPtr(p, TAG_STRING|STG_GLOBAL);
-  word m = mkStrHdr(lw, pad);
-  int i;
-  char *q;
+  Word p = allocString(l+1 PASS_LD);
+  char *q = (char *)&p[1];
 
-  *p++ = m;
-  memcpy(p, s, l);
-  for(q=(char *)p+l, i=0; i<pad; i++)
-    *q++ = EOS;
-  p += lw;
-  *p = m;
+  *q++ = 'B';
+  memcpy(q, s, l);
   
-  return r;
+  return consPtr(p, TAG_STRING|STG_GLOBAL);
+}
+
+
+word
+globalWString(unsigned len, const pl_wchar_t *s)
+{ GET_LD
+  const pl_wchar_t *e = &s[len];
+  const pl_wchar_t *p;
+  Word g;
+
+  for(p=s; p<e; p++)
+  { if ( *p > 0xff )
+      break;
+  }
+
+  if ( p == e )				/* 8-bit string */
+  { char *t;
+
+    g = allocString(len+1 PASS_LD);
+    t = (char *)&g[1];
+    *t++ = 'B';
+    for(p=s; p<e; )
+      *t++ = *p++;
+  } else				/* wide string */
+  { char *t;
+
+    g = allocString((len+1)*sizeof(pl_wchar_t) PASS_LD);
+    g[1] = 0L;
+    t = (char *)&g[1];
+    *t = 'W';
+    memcpy(&g[2], s, len*sizeof(pl_wchar_t));
+  }
+
+  return consPtr(g, TAG_STRING|STG_GLOBAL);
 }
 
 
@@ -848,12 +894,15 @@ getCharsString__LD(word w, unsigned *len ARG_LD)
   word m = *p;
   int wn  = wsizeofInd(m);
   int pad = padHdr(m);
+  char *s;
 
   if ( len )
-    *len = wn*sizeof(word) - pad;
+    *len = wn*sizeof(word) - pad - 1;	/* -1 for the 'B' */
   
-  p++;
-  return (char *)p;
+  s = (char *)&p[1];
+  assert(*s == 'B');
+  
+  return s+1;
 }
 
 

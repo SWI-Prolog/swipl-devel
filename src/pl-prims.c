@@ -1932,21 +1932,31 @@ formatInteger(bool split, int div, int radix, bool small, long int n,
 static word
 x_chars(const char *pred, term_t atom, term_t string, int how)
 { char *s;
+  pl_wchar_t *ws;
   unsigned int len;
   int arg1;
 
   if ( (how & X_NUMBER) )
-    arg1 = PL_get_nchars(atom, &len, &s, CVT_NUMBER);
-  else
-    arg1 = PL_get_nchars(atom, &len, &s, CVT_ATOMIC);
+  { arg1 = PL_get_nchars(atom, &len, &s, CVT_NUMBER);
+  } else
+  { if ( !(arg1 = PL_get_nchars(atom, &len, &s, CVT_ATOMIC)) )
+    { s = NULL;
+      arg1 = PL_get_wchars(atom, &len, &ws, CVT_ATOM|CVT_STRING);
+    }
+  }
 
   if ( arg1 )
   { int ok;
 
-    if ( how & X_CHARS )
-      ok = PL_unify_list_nchars(string, len, s);
-    else
-      ok = PL_unify_list_ncodes(string, len, s);
+    if ( s )
+    { if ( how & X_CHARS )
+	ok = PL_unify_list_nchars(string, len, s);
+      else
+	ok = PL_unify_list_ncodes(string, len, s);
+    } else
+    { int flags = (how & X_CHARS) ? PL_CHAR_LIST : PL_CODE_LIST;
+      ok = PL_unify_wchars(string, flags, len, ws);
+    }
 
     if ( ok || !(how & X_NUMBER) )
       return ok;
@@ -1960,7 +1970,8 @@ x_chars(const char *pred, term_t atom, term_t string, int how)
   { if ( !PL_is_list(string) )
       return PL_error(pred, 2, NULL,
 		      ERR_TYPE, ATOM_list, string);
-    else
+    s = NULL;
+    if ( !PL_get_wchars(string, &len, &ws, CVT_LIST) )
       return PL_error(pred, 2, NULL,
 		      ERR_REPRESENTATION,
 		      ATOM_character_code);
@@ -1970,21 +1981,25 @@ x_chars(const char *pred, term_t atom, term_t string, int how)
 
   switch(how)
   { case X_ATOM:
-      return PL_unify_atom_nchars(atom, len, s);
+    case_atom:
+      if ( s )
+	return PL_unify_atom_nchars(atom, len, s);
+      else
+	return PL_unify_wchars(atom, PL_ATOM, len, ws);
     case X_AUTO:
     case X_NUMBER:
     default:
     { number n;
       unsigned char *q;
 
-      if ( get_number((unsigned char *)s, &q, &n, FALSE) && *q == EOS )
+      if ( s && get_number((unsigned char *)s, &q, &n, FALSE) && *q == EOS )
       { if ( intNumber(&n) )
 	  return PL_unify_integer(atom, n.value.i);
 	else
 	  return PL_unify_float(atom, n.value.f);
       }
       if ( how == X_AUTO )
-	return PL_unify_atom_nchars(atom, len, s);
+	goto case_atom;
       else
 	return PL_error(pred, 2, NULL, ERR_SYNTAX, "illegal_number");
     }
@@ -2032,7 +2047,7 @@ pl_char_code(term_t atom, term_t chr)
 
     return PL_unify_integer(chr, i);
   } else if ( PL_get_integer(chr, &n) )
-  { if ( n >= 0 && n < 256 )
+  { if ( n >= 0 )
       return PL_unify_atom(atom, codeToAtom(n));
 
     return PL_error("char_code", 2, NULL, ERR_REPRESENTATION,

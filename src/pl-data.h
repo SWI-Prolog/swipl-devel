@@ -277,6 +277,8 @@ and while loading .wic files.  It comes at no price.
 #define isBignum(w)	(isInteger(w) && storage(w) != STG_INLINE)
 #define isTaggedInt(w)	(tagex(w) == (TAG_INTEGER|STG_INLINE))
 			/* == (isInteger(w) && storage(w) == STG_INLINE) */
+#define isBString(w)	(isString(w) && ((char *)valIndirectP(w))[0] == 'B')
+#define isWString(w)	(isString(w) && ((char *)valIndirectP(w))[0] == 'W')
 
 		 /*******************************
 		 *	       VALUES		*

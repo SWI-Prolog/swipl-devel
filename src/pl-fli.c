@@ -326,8 +326,12 @@ PL_functor_arity(functor_t f)
 static PL_blob_t ucs_atom =
 { PL_BLOB_MAGIC,
   PL_BLOB_UNIQUE|PL_BLOB_TEXT,		/* unique representation of text */
-  "ucs_text"
+  "ucs_text",
+  NULL,					/* release */
+  NULL,					/* compare */
+  writeUSCAtom				/* write */
 };
+
 
 #define TEXT_REPRESENTATION_MASK 0xff
 
@@ -373,14 +377,16 @@ PL_unify_wchars(term_t t, int flags, unsigned int len, const pl_wchar_t *text)
 
     return rval;
   } else				/* wide character version */
-  { if ( malloced )
+  { GET_LD
+    if ( malloced )
       PL_free(small);
 
-    switch(flags&TEXT_REPRESENTATION_MASK)
+    flags &= TEXT_REPRESENTATION_MASK;
+
+    switch(flags)
     { case PL_ATOM:
-      { GET_LD
-	atom_t a;
-	int new, rval;
+      { atom_t a;
+	int rval, new;
 
 	a = lookupBlob((const char *)text, len*sizeof(pl_wchar_t),
 		       &ucs_atom, &new);
@@ -389,9 +395,34 @@ PL_unify_wchars(term_t t, int flags, unsigned int len, const pl_wchar_t *text)
 	return rval;
       }
       case PL_STRING:
+      { word str = globalWString(len, text);
+
+	return unifyAtomic(t, str PASS_LD);
+      }
       case PL_CODE_LIST:
       case PL_CHAR_LIST:
-	return PL_warning("PL_unify_wchars(): TBD");
+      { term_t l = PL_new_term_ref();
+
+	if ( len == 0 )
+	{ setHandle(l, ATOM_nil);
+	} else
+	{ Word p = allocGlobal(len*3);
+
+	  setHandle(l, consPtr(p, TAG_COMPOUND|STG_GLOBAL));
+	  for( ; len-- != 0; text++)
+	  { *p++ = FUNCTOR_dot2;
+	    if ( flags == PL_CODE_LIST )
+	      *p++ = consInt(*text);
+	    else
+	      *p++ = codeToAtom(*text);
+	    *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
+	    p++;
+	  }
+	  p[-1] = ATOM_nil;
+	}
+
+	return PL_unify(l, t);
+      }
       default:
 	return PL_warning("PL_unify_wchars(): bad flags");
     }
@@ -841,6 +872,24 @@ the characters. If wide == TRUE  the   buffer  contains  objects of type
 pl_wchar_t. Otherwise it contains traditional characters.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static int
+charCode(word w)
+{ if ( isAtom(w) )
+  { Atom a = atomValue(w);
+
+    if ( a->length == 1 && true(a->type, PL_BLOB_TEXT) )
+      return a->name[0] & 0xff;
+    if ( a->length == sizeof(pl_wchar_t) && a->type == &ucs_atom )
+    { pl_wchar_t *p = (pl_wchar_t*)a->name;
+
+      return p[0];
+    }
+  }
+
+  return -1;
+}
+
+
 static Buffer
 get_code_list(term_t l, unsigned int flags, int wide)
 { GET_LD
@@ -854,17 +903,13 @@ get_code_list(term_t l, unsigned int flags, int wide)
     deRef(arg);
     if ( isTaggedInt(*arg) )
     { int i = valInt(*arg);
-      if ( i >= 0 && i < 256 )
+      if ( i >= 0 && (wide || i < 256) )
       { type = CODES;
 	goto ok;
       }
-    } else if ( isAtom(*arg) )
-    { Atom a = atomValue(*arg);
-
-      if ( a->length == 1 && true(a->type, PL_BLOB_TEXT) )
-      { type = CHARS;
-	goto ok;
-      }
+    } else if ( charCode(*arg) >= 0 )
+    { type = CHARS;
+      goto ok;
     }
   } else if ( isNil(list) )
   { return findBuffer(flags);
@@ -888,19 +933,8 @@ ok:
 	}
         break;
       case CHARS:
-	if ( isAtom(*arg) )
-	{ Atom a = atomValue(*arg);
-
-	  if ( a->length == 1 && true(a->type, PL_BLOB_TEXT) )
-	    c = a->name[0] & 0xff;
-	  if ( a->type == &ucs_atom && a->length == sizeof(pl_wchar_t) )
-	  { pl_wchar_t *n = (pl_wchar_t*)a->name;
-
-	    c = n[0];
-	  }
-
-	  break;
-	}
+	c = charCode(*arg);
+        break;
     }
 
     if ( c < 0 || (!wide && c > 0xff) )
@@ -976,6 +1010,8 @@ PL_get_nchars(term_t l, unsigned int *length, char **s, unsigned flags)
   { Atom a = atomValue(w);
     if ( false(a->type, PL_BLOB_TEXT) )
       fail;				/* non-textual atom */
+    if ( a->type == &ucs_atom )
+      fail;
     type = PL_ATOM;
     r = a->name;
     len = a->length;
@@ -1002,7 +1038,7 @@ PL_get_nchars(term_t l, unsigned int *length, char **s, unsigned flags)
       *q = EOS;
     }
 #ifdef O_STRING
-  } else if ( (flags & CVT_STRING) && isString(w) )
+  } else if ( (flags & CVT_STRING) && isBString(w) )
   { type = PL_STRING;
     flags |= BUF_RING;			/* always buffer strings */
     r = getCharsString(w, &len);
@@ -2130,6 +2166,25 @@ PL_unify_atom_nchars(term_t t, unsigned int len, const char *chars)
 }
 
 
+static atom_t
+uncachedCodeToAtom(int code)
+{ if ( code < 256 )
+  { char tmp[1];
+
+    tmp[0] = code;
+    return lookupAtom(tmp, 1);
+  } else
+  { pl_wchar_t tmp[1];
+    int new;
+
+    tmp[0] = code;
+
+    return lookupBlob((const char *)tmp, sizeof(pl_wchar_t),
+		      &ucs_atom, &new);
+  }
+}
+
+
 atom_t
 codeToAtom(int code)
 { atom_t a;
@@ -2137,14 +2192,25 @@ codeToAtom(int code)
   if ( code == EOF )
     return ATOM_end_of_file;
 
-  code &= 0xff;				/* mask for signedness */
+  assert(code >= 0);
 
-  if ( !(a=GD->atoms.for_code[code]) )
-  { char tmp[1];
+  if ( code < (1<<15) )
+  { int page  = code / 256;
+    int entry = code % 256;
+    atom_t *pv;
 
-    tmp[0] = code;
-    a = lookupAtom(tmp, 1);
-    GD->atoms.for_code[code] = a;
+    if ( !(pv=GD->atoms.for_code[page]) )
+    { pv = PL_malloc(256*sizeof(atom_t));
+      
+      memset(pv, 0, 256*sizeof(atom_t));
+      GD->atoms.for_code[page] = pv;
+    }
+
+    if ( !(a=pv[entry]) )
+    { a = uncachedCodeToAtom(code);
+    }
+  } else
+  { a = uncachedCodeToAtom(code);
   }
   
   return a;

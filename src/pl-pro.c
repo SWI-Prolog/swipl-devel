@@ -477,7 +477,7 @@ last_arg:
 
       s = getCharsString(*p, &sz);
 
-      if ( sz != (len=strlen(valString(*p))) )
+      if ( sz != (len=strlen(s)) )
       { if ( sz < len )
 	  printk("String has inconsistent length: 0x%x", *p);
 	else if ( s[sz] )

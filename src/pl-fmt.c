@@ -212,6 +212,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
   struct rubber rub[MAXRUBBER];
   Symbol s;
   const char *end = fmt+len;
+  int rc = TRUE;
 
   Slock(fd);				/* buffer locally */
 
@@ -437,8 +438,10 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 
 		    str = buf;
 		    tellString(&str, &bufsize);
-		    pl_write_term(argv, argv+1);
+		    rc = pl_write_term(argv, argv+1);
 		    toldString();
+		    if ( !rc )
+		      goto out;
 		    OUTSTRING(str, bufsize);
 		    if ( str != buf )
 		      free(str);
@@ -447,8 +450,10 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		    { IOSTREAM *old = Scurout;
 
 		      Scurout = fd;
-		      pl_write_term(argv, argv+1);
+		      rc = pl_write_term(argv, argv+1);
 		      Scurout = old;
+		      if ( !rc )
+			goto out;
 
 		      column = fd->position->linepos;
 		    } else
@@ -456,7 +461,9 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 
 		      str = buf;
 		      tellString(&str, &bufsize);
-		      pl_write_term(argv, argv+1);
+		      rc = pl_write_term(argv, argv+1);
+		      if ( !rc )
+			goto out;
 		      toldString();
 		      OUTSTRING(str, bufsize);
 		      if ( str != buf )
@@ -486,7 +493,9 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		    free(str);
 
 		  if ( !rval && ex )
+		  { Sunlock(fd);
 		    return PL_raise_exception(ex);
+		  }
 
 		  SHIFT;
 		  fmt++;
@@ -544,7 +553,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 	      { term_t ex = PL_new_term_ref();
 
 		Sunlock(fd);
-		PL_put_atom(ex, codeToAtom(*fmt));
+		PL_put_atom(ex, codeToAtom(*(unsigned char *)fmt));
 		return PL_error("format", 2, NULL, ERR_EXISTENCE,
 				PL_new_atom("format_character"),
 				ex);
@@ -564,9 +573,10 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
   if ( pending_rubber )			/* not closed ~t: flush out */
     emit_rubber(fd, buffer, index, rub, 0);
 
+out:
   Sunlock(fd);
 
-  succeed;
+  return rc;
 }
 
 

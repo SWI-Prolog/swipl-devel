@@ -154,7 +154,7 @@ typedef struct
     real	gc_time;		/* Time spent on atom-gc */
     PL_agc_hook_t gc_hook;		/* Current hook */
 #endif
-    atom_t	for_code[256];		/* code --> one-char-atom */
+    atom_t     *for_code[256];		/* code --> one-char-atom */
     PL_blob_t  *types;			/* registered atom types */
   } atoms;
 
