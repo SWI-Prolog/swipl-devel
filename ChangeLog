@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: allow for swapped 2nd/3th argument in absolute_file_name/3.
+
+  * MODIFIED: relative_to(FileOrDir) to assume the relative-to is a 
+    directory if nothing is known about it (Nikolaos Angelopoulos).
+
   * FIXED: Some manual typos (Nikolaos Angelopoulos).
 
   * FIXED: GC/GUI-Tracer crash related to the compilation of \+ if the

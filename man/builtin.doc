@@ -4228,6 +4228,12 @@ proceeding.  This is a SWI-Prolog extension.
 The prolog-flag \const{verbose_file_search} can be set to \const{true}
 to help debugging Prolog's search for files.
 
+Compatibility considerations to common argument-order in ISO as well as
+SICStus absolute_file_name/3 forced us to be flexible here.  If the last
+argument is a list and the 2nd not, the arguments are swapped, making
+the call \term{absolute_file_name}{+Spec, -Path, +Options} valid as
+well.
+
     \predicate{is_absolute_file_name}{1}{+File}
 True if \arg{File} specifies and absolute path-name.  On Unix systems,
 this implies the path starts with a `/'.  For Microsoft based systems

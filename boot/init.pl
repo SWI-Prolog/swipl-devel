@@ -425,7 +425,20 @@ $make_path(Dir, File, Path) :-
 		*********************************/
 
 %	absolute_file_name(+Term, +Args, -AbsoluteFile)
+%	absolute_file_name(+Term, +AbsoluteFile, -Args)
+%	
+%	Translate path-specifier into a full   path-name. This predicate
+%	originates from Quintus was introduced  in SWI-Prolog very early
+%	and  has  re-appeared  in  SICStus  3.9.0,  where  they  changed
+%	argument order and  added  some   options.  As  arguments aren't
+%	really ambiguous we swap the arguments if we find the new order.
+%	The  SICStus  options  file_type(source)   and  relative_to  are
+%	supported as well.
 
+absolute_file_name(Spec, Args, Path) :-
+	is_list(Path),
+	\+ is_list(Args), !,
+	absolute_file_name(Spec, Path, Args).
 absolute_file_name(Spec, Args, Path) :-
 	(   is_list(Args)
 	->  true
@@ -536,9 +549,9 @@ $dochk_file(File, Exts, Cond, FullName) :-
 
 $relative_to(Conditions, Default, Dir) :-
 	(   member(relative_to(FileOrDir), Conditions)
-	*-> (   exists_directory(FileOrDir)
-	    ->  Dir = FileOrDir
-	    ;   file_directory_name(FileOrDir, Dir)
+	*-> (   exists_file(FileOrDir)
+	    ->  file_directory_name(FileOrDir, Dir)
+	    ;   Dir = FileOrDir
 	    )
 	;   Default == cwd
 	->  working_directory(Dir, Dir)
