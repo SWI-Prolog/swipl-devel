@@ -38,6 +38,11 @@
 #define C_STATICLIBS ""
 #define C_CC	     "cl"
 #define C_LDFLAGS    ""
+#if defined(_DEBUG)
+#define C_PLLIB	    "libplD.lib"
+#else
+#define C_PLLIB	    "libpl.lib"
+#endif
 #else
 #include <parms.h>			/* pick from the working dir */
 #endif

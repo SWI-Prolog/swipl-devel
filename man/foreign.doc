@@ -234,12 +234,6 @@ extensions.  Below is stub.c, modified to link the lowercase example
 described later in this chapter:
 
 \begin{code}
-/*  Copyright (c) 1991 Jan Wielemaker. All rights reserved.
-    jan@swi.psy.uva.nl
-
-    Purpose: Skeleton for extensions
-*/
-
 #include <stdio.h>
 #include <SWI-Prolog.h>
 
@@ -268,10 +262,13 @@ main(int argc, char **argv)
 \end{code}
 
 Now, a new executable may be created by compiling this file and linking
-it to libpl.a from the runtime directory and the libraries required by
-both the extensions and the SWI-Prolog kernel. This may be done by hand,
-or using the \program{plld} utility described in secref{plld}.
-
+it to \file{libpl.a} from the runtime directory and the libraries
+required by both the extensions and the SWI-Prolog kernel. This may be
+done by hand, or using the \program{plld} utility described in
+secref{plld}. If the linking is preformed `by hand', the commandline
+option \const{-dump-runtime-variables} (see \secref{cmdline}) can be
+used to obtain the required paths, libraries and linking options to link
+the new executable.
 
 \section{Interface Data types}		\label{sec:foreigntypes}
 

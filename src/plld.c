@@ -56,8 +56,6 @@ embedded application.
 #define PROG_CXX "cl.exe /MD /GX"
 #define PROG_OUT "plout.exe"
 #define PROG_CPP "cl.exe -P"
-#define LIB_PL	 "libpl.lib"
-#define LIB_PLMT LIB_PL
 #define LIB_PL_DEBUG "libplD.lib"
 #define EXT_OBJ "obj"
 #define OPT_DEBUG "/DEBUG"
@@ -71,8 +69,6 @@ embedded application.
 #define PROG_CXX "c++"
 #define PROG_OUT "a.out"
 #define EXT_OBJ "o"
-#define LIB_PL	"-lpl"
-#define LIB_PLMT "-lplmt"
 #define OPT_DEBUG "-g"
 
 #ifndef SO_LDFLAGS
@@ -173,7 +169,7 @@ static arglist lastlibs;		/* libs that must be at the end */
 static arglist libdirs;			/* -L library directories */
 static arglist includedirs;		/* -I include directories */
 
-static char *pllib = LIB_PL;    /* libpl option -lpl, libpl.lib or libplD.lib */
+static char *pllib;    			/* -lpl, libpl.lib, libplD.lib, ... */
 
 static char *pl;			/* Prolog executable */
 static char *cc;			/* CC executable */
@@ -862,7 +858,8 @@ fillDefaultOptions()
   }
 
 #ifdef WIN32
-  if (strcmp(LIB_PL_DEBUG,pllib) == 0) ensureOption(&coptions, "/MDd");
+  if ( strcmp(LIB_PL_DEBUG,pllib) == 0 )
+    ensureOption(&coptions, "/MDd");
   else ensureOption(&coptions, "/MD");
   ensureOption(&coptions, "/DWIN32");
   ensureOption(&coptions, "/nologo");
@@ -943,6 +940,8 @@ getPrologOptions()
 	  defaultPath(&plarch, v);
 	else if ( streq(name, "PLLIBS") && !shared )
 	  addOptionString(v);
+	else if ( streq(name, "PLLIB") )
+	  defaultProgram(&pllib, v);
 	else if ( streq(name, "PLLDFLAGS") && !shared )
 	  appendArgList(&ldoptions, v);
 	else if ( streq(name, "PLSOEXT") )
@@ -954,7 +953,6 @@ getPrologOptions()
           ensureOption(&coptions, "-D_THREAD_SAFE");
 	  ensureOption(&cppoptions, "-D_THREAD_SAFE");
 #endif
-	  pllib = LIB_PLMT;
 	} else
 	  continue;
 

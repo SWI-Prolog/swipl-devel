@@ -948,6 +948,7 @@ runtime_vars()
 	  "PLBASE=\"%s\";\n"
 	  "PLARCH=\"%s\";\n"
 	  "PLLIBS=\"%s\";\n"
+	  "PLLIB=\"%s\";\n"
 	  "PLLDFLAGS=\"%s\";\n"
 #ifdef SO_EXT
 	  "PLSOEXT=\"%s\";\n"
@@ -968,6 +969,7 @@ runtime_vars()
 	  systemDefaults.home ? systemDefaults.home : "<no home>",
 	  ARCH,
 	  C_LIBS,
+	  C_PLLIB,
 	  C_LDFLAGS,
 #ifdef SO_EXT
 	  SO_EXT,

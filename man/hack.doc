@@ -43,6 +43,14 @@ should be discarded before the frame terminates.%
 		  that may hold references from the global- to the local
 		  stack to preserve the variable names.}
 
+    \termitem{parent_goal}{}
+If \arg{Value} is instantiated to a callable term, find a frame
+executing the predicate described by \arg{Value} and unify the arguments
+of \arg{Value} to the goal arguments associated with the frame. This is
+intended to check the current execution context. The user must ensure
+the checked parent goal is not removed from the stack due to last-call
+optimisation and be aware of the slow operation on deeply nested calls.
+
     \termitem{clause}{}
 \arg{Value} is unified with a reference to the currently running clause.
 Fails if the current goal is associated with a foreign (C) defined

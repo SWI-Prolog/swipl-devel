@@ -1610,6 +1610,33 @@ pl_prolog_frame_attribute(term_t frame, term_t what,
 	*argp++ = (isVar(*a) ? makeRef(a) : *a);
       }
     }
+  } else if ( key == ATOM_parent_goal )
+  { Procedure proc;
+    term_t head = PL_new_term_ref();
+
+    if ( !get_procedure(value, &proc, head, GP_FIND) ) 
+      fail;
+    while(fr)
+    { while(fr && fr->predicate != proc->definition)
+	fr = parentFrame(fr);
+
+      if ( fr )
+      { term_t a  = PL_new_term_ref();
+	term_t fa = argFrameP(fr, 0) - (Word)lBase;
+	int i, arity = fr->predicate->functor->arity;
+	
+	for(i=0; i<arity; i++, fa++)
+	{ _PL_get_arg(i+1, head, a);
+	  if ( !PL_unify(a, fa) )
+	    break;
+	}
+        if ( i == arity )
+	  succeed;
+      } else
+	fail;
+
+      fr = parentFrame(fr);
+    }
   } else if ( key == ATOM_pc )
   { if ( fr->programPointer &&
 	 fr->parent &&

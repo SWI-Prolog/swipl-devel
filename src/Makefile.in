@@ -87,6 +87,7 @@ STUBC=$(INCLUDEDIR)/stub.c
 STARTUPPATH=$(PL).prc
 RUNTIMEDIR=../runtime/$(ARCH)
 PLLIB=@PLLIB@
+USEPLLIB=@USEPLLIB@
 RUNTIME=$(RUNTIMEDIR)/$(PLLIB)
 LIBRARYDIR=${PLBASE}/library
 
@@ -218,6 +219,7 @@ parms.h:	Makefile
 		$(AWK) -F. '{ printf("#define PLVERSION %d\n", $$1 * 10000 + $$2 * 100 + $$3); }' >> $@%
 		@echo "#define ARCH	    \"$(ARCH)\""       >> $@%
 		@echo "#define C_LIBS	    \"$(LIBS)\""       >> $@%
+		@echo "#define C_PLLIB	    \"$(USEPLLIB)\""   >> $@%
 		@echo "#define C_CC	    \"$(CC)\""	       >> $@%
 		@echo "#define C_LDFLAGS    \"$(LDFLAGS)\""    >> $@%
 		@if cmp -s $@% $@; then rm $@%; else mv $@% $@; fi

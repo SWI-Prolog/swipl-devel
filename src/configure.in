@@ -23,7 +23,8 @@ AC_SUBST(INSTALLTARGET)
 AC_SUBST(INSTALLRLMAN)
 AC_SUBST(EXTRAOBJ)
 AC_SUBST(BOOTFILE)
-AC_SUBST(PLLIB)
+AC_SUBST(PLLIB)			dnl libpl.a
+AC_SUBST(USEPLLIB)		dnl -lpl
 AC_SUBST(LDEXE)
 AC_SUBST(EXTRAHDR)
 AC_SUBST(SO)
@@ -232,6 +233,10 @@ case "$ARCH" in
 		  [Required in FreeBSD for compiling thread-safe code])
 	;;
 esac
+
+changequote(,)dnl
+USEPLLIB=`echo $PLLIB | sed 's/lib\([a-z]*\).a/-l\1/'`
+changequote([,])dnl
 
   if test "$GCC" = "yes"; then
 AC_MSG_CHECKING("whether gcc supports -pthread")

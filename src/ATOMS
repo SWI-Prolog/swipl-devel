@@ -529,6 +529,7 @@ A arity_not_less_than_one "arity_not_less_than_one"
 A start			"start"
 A noprofile		"noprofile"
 A module_property	"module_property"
+A parent_goal		"parent_goal"
 
 F abs			1
 F access		1
