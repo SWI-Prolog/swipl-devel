@@ -288,27 +288,27 @@ warn_big_paragraph(M, Action:name, N:int) :->
 upcase_region(M) :->
 	"Upcase region, but warn if dangerous"::
 	send(M, warn_big_region, upcase, 100),
-	send(M, send_super, upcase_region).
+	send_super(M, upcase_region).
 
 downcase_region(M) :->
 	"Downcase region, but warn if dangerous"::
 	send(M, warn_big_region, downcase, 100),
-	send(M, send_super, downcase_region).
+	send_super(M, downcase_region).
 
 fill_region(M) :->
 	"Fill region, but warn if dangerous"::
 	send(M, warn_big_region, fill, 1000),
-	send(M, send_super, fill_region).
+	send_super(M, fill_region).
 
 justify_paragraph(M) :->
 	"Justify paragraph, but warn if dangerous"::
 	send(M, warn_big_paragraph, justify, 1000),
-	send(M, send_super, justify_paragraph).
+	send_super(M, justify_paragraph).
 
-fill_paragraph(M) :->
+fill_paragraph(M, Arg:[int]) :->
 	"Fill paragraph, but warn if dangerous"::
 	send(M, warn_big_paragraph, justify, 1000),
-	send(M, send_super, fill_paragraph).
+	send_super(M, fill_paragraph, Arg).
 
 
 		 /*******************************

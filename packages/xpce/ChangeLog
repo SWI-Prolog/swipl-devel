@@ -1,9 +1,10 @@
 			   XPCE ChangeLog
 			   ==============
 
-* COMPATIBILITY: Make PceEmacs Control-J work the same as GNU-Emacs.  Also
-  make prompters return immediately if the value is unique within the
-  value-set: M-x goto-l RET 42 RET now works.
+* COMPATIBILITY: PceEmacs look-and-feel synchronisation to GNU-Emacs
+	- Fix Control-J (new_line_and_indent)
+	- Make prompters return immediately if typed value is unique
+	- `editor->fill_paragraph' justifies if argument is specified
 
 
 VERSION 6.0.1, distributed with SWI-Prolog 5.0.1

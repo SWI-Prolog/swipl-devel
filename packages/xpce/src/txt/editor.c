@@ -2981,14 +2981,15 @@ fillRegionEditor(Editor e)
 
 
 static status
-fillParagraphEditor(Editor e)
+fillParagraphEditor(Editor e, Int arg)
 { TextBuffer tb = e->text_buffer;
   Int from = getScanTextBuffer(tb, add(e->caret, ONE), NAME_paragraph,
 			       ZERO, NAME_start);
   Int to   = getScanTextBuffer(tb, sub(e->caret, ONE), NAME_paragraph,
 			       ZERO, NAME_end);
+  Bool justify = (isDefault(arg) ? OFF : ON);
 
-  return fillEditor(e, from, to, DEFAULT, DEFAULT, OFF);
+  return fillEditor(e, from, to, DEFAULT, DEFAULT, justify);
 }
 
 
@@ -4645,7 +4646,7 @@ static senddecl send_editor[] =
      NAME_file, "Save to current <-file"),
   SM(NAME_fill, 5, T_fill, fillEditor,
      NAME_fill, "Fill (from, to) using left- and rightmargin [justify]"),
-  SM(NAME_fillParagraph, 0, NULL, fillParagraphEditor,
+  SM(NAME_fillParagraph, 1, "justify=[int]", fillParagraphEditor,
      NAME_fill, "Fill paragraph around point"),
   SM(NAME_fillRegion, 0, NULL, fillRegionEditor,
      NAME_fill, "Fill paragraphs in region"),
