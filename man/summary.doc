@@ -431,6 +431,7 @@ suggest predicates from a keyword.
 \predicatesummary{wait_for_input}{3}{Wait for input with optional timeout}
 \predicatesummary{wildcard_match}{2}{Csh(1) style wildcard match}
 \predicatesummary{win_exec}{2}{Win32: spawn Windows task}
+\predicatesummary{with_mutex}{2}{Run goal while holding mutex}
 \predicatesummary{write}{1}{Write term}
 \predicatesummary{write}{2}{Write term to stream}
 \predicatesummary{write_ln}{1}{Write term, followed by a newline}

@@ -6038,10 +6038,12 @@ mmuutteexx__lloocckk((_+_M_u_t_e_x_I_d))
     Lock  the mutex.   Prolog mutexes are  _r_e_c_u_r_s_i_v_e mutexes:  they  can
     be  locked multiple times by the same thread.  Only  after unlocking
     it  as many times as it  is locked, the mutex becomes  available for
-    locking by other threads.
+    locking  by other threads.   If another thread has locked the  mutex
+    the calling thread is suspended until to mutex is unlocked.
 
-    If  another  thread  has locked  the  mutex  the calling  thread  is
-    suspended until to mutex is unlocked.
+    If  _M_u_t_e_x_I_d is  an atom,  and there  is no current  mutex with  that
+    name,  the  mutex  is  created automatically  using  mutex_create/1.
+    This implies named mutexes need not be declared explicitly.
 
 
 mmuutteexx__ttrryylloocckk((_+_M_u_t_e_x_I_d))
@@ -6066,6 +6068,14 @@ ccuurrrreenntt__mmuutteexx((_?_M_u_t_e_x_I_d_, _?_T_h_
     thread,  _T_h_r_e_a_d_I_d  is  unified with  the  identifier of  te  holding
     thread and _C_o_u_n_t with  the recursive count of the mutex.  Otherwise,
     _T_h_r_e_a_d_I_d is [] and _C_o_u_n_t is 0.
+
+
+wwiitthh__mmuutteexx((_+_M_u_t_e_x_I_d_, _:_G_o_a_l))
+    Execute  _G_o_a_l while holding _M_u_t_e_x_I_d.  If _G_o_a_l  leaves choicepointes,
+    these  are  destroyed  (as  in  once/1).    The  mutex  is  unlocked
+    regardless  of whether _G_o_a_l succeeds, fails or raises  an exception.
+    An  exception thrown by _G_o_a_l is  re-thrown after the mutex has  been
+    successfully unlocked.  See also mutex_create/2.
 
 
 33..3377..33 TThhrreeaadd--ssuuppppoorrtt lliibbrraarryy((tthhrreeaadduuttiill))
@@ -10899,12 +10909,13 @@ suggest predicates from a keyword.
 
  wildcard_match/2              Csh(1) style wildcard match
  win_exec/2                    Win32:  spawn Windows task
+ with_mutex/2                  Run goal while holding mutex
  write/1                       Write term
  write/2                       Write term to stream
  write_ln/1                    Write term, followed by a newline
  write_canonical/1             Write a term with quotes, ignore operators
- write_canonical/2             Write a term with quotes, ignore operators on a stream
 
+ write_canonical/2             Write a term with quotes, ignore operators on a stream
  write_term/2                  Write term with options
  write_term/3                  Write term with options to stream
  writef/1                      Formatted write
@@ -11088,4 +11099,4 @@ Bibliography
                                   New York, 1983.  Major revision  March
                                   1984.
 
-                                  784
+                                  785

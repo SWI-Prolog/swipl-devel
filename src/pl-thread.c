@@ -877,30 +877,28 @@ unify_mutex_owner(term_t t, int owner)
 }
 
 
-foreign_t
-pl_mutex_create(term_t mutex)
+static pl_mutex *
+unlocked_pl_mutex_create(term_t mutex)
 { Symbol s;
   atom_t name = NULL_ATOM;
   pl_mutex *m;
   word id;
-
-  LOCK();
 
   if ( !mutexTable )
     mutexTable = newHTable(16);
   
   if ( PL_get_atom(mutex, &name) )
   { if ( (s = lookupHTable(mutexTable, (void *)name)) )
-    { UNLOCK();
-      return PL_error("mutex_create", 1, NULL, ERR_PERMISSION,
-		      ATOM_mutex, ATOM_create, mutex);
+    { PL_error("mutex_create", 1, NULL, ERR_PERMISSION,
+	       ATOM_mutex, ATOM_create, mutex);
+      return NULL;
     }
     id = name;
   } else if ( PL_is_variable(mutex) )
   { id = consInt(mutex_id++);
   } else
-  { UNLOCK();
-    return PL_error("mutex_create", 1, NULL, ERR_TYPE, ATOM_mutex, mutex);
+  { PL_error("mutex_create", 1, NULL, ERR_TYPE, ATOM_mutex, mutex);
+    return NULL;
   }
 
   m = allocHeap(sizeof(*m));
@@ -915,14 +913,27 @@ pl_mutex_create(term_t mutex)
   m->id    = id;
   addHTable(mutexTable, (void *)id, m);
 
+  if ( unify_mutex(mutex, m) )
+    return m;
+
+  return NULL;
+}
+
+
+foreign_t
+pl_mutex_create(term_t mutex)
+{ int rval;
+
+  LOCK();
+  rval = (unlocked_pl_mutex_create(mutex) ? TRUE : FALSE);
   UNLOCK();
 
-  return unify_mutex(mutex, m);
+  return rval;
 }
 
 
 static int
-get_mutex(term_t t, pl_mutex **mutex)
+get_mutex(term_t t, pl_mutex **mutex, int create)
 { atom_t name;
   word id = 0;
 
@@ -939,14 +950,27 @@ get_mutex(term_t t, pl_mutex **mutex)
   if ( !id )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_mutex, t);
 
+  LOCK();
   if ( mutexTable )
   { Symbol s = lookupHTable(mutexTable, (void *)id);
 
     if ( s )
     { *mutex = s->value;
+      UNLOCK();
       return TRUE;
     }
   }
+
+  if ( create && isAtom(id) )
+  { pl_mutex *new;
+
+    if ( (new = unlocked_pl_mutex_create(t)) )
+    { *mutex = new;
+      UNLOCK();
+      return TRUE;
+    }
+  }
+  UNLOCK();
 
   return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_mutex, t);
 }
@@ -957,7 +981,7 @@ foreign_t
 pl_mutex_lock(term_t mutex)
 { pl_mutex *m;
 
-  if ( !get_mutex(mutex, &m) )
+  if ( !get_mutex(mutex, &m, TRUE) )
     fail;
 
   if ( pthread_mutex_lock(&m->mutex) == 0 )
@@ -976,7 +1000,7 @@ foreign_t
 pl_mutex_trylock(term_t mutex)
 { pl_mutex *m;
 
-  if ( !get_mutex(mutex, &m) )
+  if ( !get_mutex(mutex, &m, TRUE) )
     fail;
 
   switch( pthread_mutex_trylock(&m->mutex) )
@@ -1000,7 +1024,7 @@ foreign_t
 pl_mutex_unlock(term_t mutex)
 { pl_mutex *m;
 
-  if ( !get_mutex(mutex, &m) )
+  if ( !get_mutex(mutex, &m, FALSE) )
     fail;
 
   if ( pthread_mutex_unlock(&m->mutex) == 0 )
@@ -1043,7 +1067,7 @@ pl_mutex_destroy(term_t mutex)
 { pl_mutex *m;
   Symbol s;
 
-  if ( !get_mutex(mutex, &m) )
+  if ( !get_mutex(mutex, &m, FALSE) )
     fail;
 
   if ( pthread_mutex_destroy(&m->mutex) != 0 )
@@ -1075,7 +1099,7 @@ pl_current_mutex(term_t mutex, term_t owner, term_t count, word h)
       } else
       { pl_mutex *m;
 
-        if ( get_mutex(mutex, &m) &&
+        if ( get_mutex(mutex, &m, FALSE) &&
 	     unify_mutex_owner(owner, m->owner) &&
 	     PL_unify_integer(count, m->count) )
 	  succeed;
@@ -1132,5 +1156,30 @@ lBase()
 { return (LD->stacks.local.base);
 }
 
-#endif /*O_PLMT*/
+#else /*O_PLMT*/
+
+#define pl_mutex_lock(mutex)
+#define pl_mutex_unlock(mutex)
+
+#endif  /*O_PLMT*/
+
+		 /*******************************
+		 *	    WITH-MUTEX		*
+		 *******************************/
+
+foreign_t
+pl_with_mutex(term_t mutex, term_t goal)
+{ term_t ex = 0;
+  int rval;
+
+  pl_mutex_lock(mutex);
+  rval = callProlog(NULL, goal, PL_Q_CATCH_EXCEPTION, &ex);
+  pl_mutex_unlock(mutex);
+
+  if ( !rval && ex )
+    PL_raise_exception(ex);
+
+  return rval;
+}
+
 

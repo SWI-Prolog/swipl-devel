@@ -783,3 +783,8 @@ foreign_t	pl_char_type(term_t chr, term_t class, word h);
 foreign_t	pl_code_type(term_t chr, term_t class, word h);
 void		initCharTypes(void);
 void		systemMode(bool accept);
+
+
+/* pl-thread.c */
+foreign_t	pl_with_mutex(term_t mutex, term_t goal);
+

@@ -673,7 +673,7 @@ load_files(Files) :-
 	load_files(Files, []).
 load_files(Files, Options) :-
 	$strip_module(Files, Module, TheFiles),
-        $load_files(TheFiles, Module, Options).
+        with_mutex('$load', $load_files(TheFiles, Module, Options)).
 
 $load_files([], _, _) :- !.
 $load_files([H|T], Module, Options) :- !,

@@ -470,6 +470,8 @@ static const struct foreign {
   FRG("open_xterm",		3, pl_open_xterm,		TRACE_ME),
 #endif
 
+  FRG("with_mutex",		2, pl_with_mutex,	   META|TRACE_ME),
+
   /* DO NOT ADD ENTRIES BELOW THIS ONE */
   FRG((char *)NULL,		0, (Func)NULL,			0)
 };

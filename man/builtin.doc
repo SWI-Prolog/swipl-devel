@@ -3679,10 +3679,12 @@ further references yield an \except{existence_error} exception.
 Lock the mutex.  Prolog mutexes are \jargon{recursive} mutexes: they
 can be locked multiple times by the same thread.  Only after unlocking
 it as many times as it is locked, the mutex becomes available for
-locking by other threads.
+locking by other threads. If another thread has locked the mutex the
+calling thread is suspended until to mutex is unlocked.
 
-If another thread has locked the mutex the calling thread is suspended
-until to mutex is unlocked.
+If \arg{MutexId} is an atom, and there is no current mutex with that
+name, the mutex is created automatically using mutex_create/1.  This
+implies named mutexes need not be declared explicitly.
     \predicate{mutex_trylock}{1}{+MutexId}
 As mutex_lock/1, but if the mutex is held by another thread, this
 predicates fails immediately.
@@ -3699,6 +3701,12 @@ Enumerates all existing mutexes.  If the mutex is held by some thread,
 \arg{ThreadId} is unified with the identifier of te holding thread and
 \arg{Count} with the recursive count of the mutex. Otherwise,
 \arg{ThreadId} is \const{[]} and \arg{Count} is 0.
+    \predicate{with_mutex}{2}{+MutexId, :Goal}
+Execute \arg{Goal} while holding \arg{MutexId}.  If \arg{Goal} leaves
+choicepointes, these are destroyed (as in once/1).  The mutex is unlocked
+regardless of whether \arg{Goal} succeeds, fails or raises an exception.
+An exception thrown by \arg{Goal} is re-thrown after the mutex has been
+successfully unlocked.  See also mutex_create/2.
 \end{description}
 
 
