@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED/FIXED: Various problems and enhancements to check/0 reporting
+    undefined predicates.  Moved make/0 to library(make) and added a
+    call to list_undefined/0 to report on undefined predicates.
+
   * FIXED: features not available in some port are not reported with the
     exception not_implemented(Category, Description).  Lourens van der Meij.
 

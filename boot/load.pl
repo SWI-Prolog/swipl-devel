@@ -33,7 +33,6 @@
 	     syspred,
 	     messages,
 	     toplevel,
-	     make,
 	     sort,
 	     bags,
 	     apply,

@@ -2743,8 +2743,8 @@ unify_definition(term_t head, Definition def, term_t thehead, int how)
   { term_t h = PL_new_term_ref();
     Module m = NULL;
 
-    if ( !PL_strip_module(head, &m, h) ||
-	 !isSuperModule(def->module, m) )
+    PL_strip_module(head, &m, h);
+    if ( isSuperModule(def->module, m) )
     { if ( PL_is_functor(head, FUNCTOR_colon2) )
       {	PL_get_arg(1, head, h);
 	if ( !PL_unify_atom(h, def->module->name) )
@@ -2947,7 +2947,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
 		      ATOM_clause_reference, ref);
 	
     if ( true(clause, GOAL_CLAUSE) )
-      fail;				/* I'm don't belong to a predicate */
+      fail;				/* I don't belong to a predicate */
 
     proc = clause->procedure;
     def  = getProcDefinition(proc);
@@ -3163,8 +3163,7 @@ pl_xr_member(term_t ref, term_t term, control_t h)
 
     fail;
   } else				/* instantiated */
-  { GET_LD
-    Procedure proc;
+  { Procedure proc;
     functor_t fd;
 
     if ( PL_is_atomic(term) )
@@ -3177,7 +3176,10 @@ pl_xr_member(term_t ref, term_t term, control_t h)
 
 	PC = stepPC(PC);
       }
-    } else if ( PL_get_functor(term, &fd) && fd != FUNCTOR_colon2 )
+    }
+
+    PC = clause->codes;
+    if ( PL_get_functor(term, &fd) && fd != FUNCTOR_colon2 )
     { while( PC < end )
       { code op = fetchop(PC);
 
@@ -3200,17 +3202,23 @@ pl_xr_member(term_t ref, term_t term, control_t h)
 
 	PC = stepPC(PC);
       }
-    } else if ( get_procedure(term, &proc, 0, GP_FIND) )
-    { while( PC < end )
+    }
+
+    PC = clause->codes;
+    if ( get_procedure(term, &proc, 0, GP_FINDHERE) )
+    { Definition pd = getProcDefinition(proc);
+
+      while( PC < end )
       { code op = fetchop(PC);
 
 	if ( codeTable[op].argtype == CA1_PROC )
 	{ Procedure pa = (Procedure)PC[1];
+	  Definition def = getProcDefinition(pa);
 
-	  if ( pa->definition == proc->definition )
+	  if ( pd == def )
 	    succeed;
-	  if ( pa->definition->functor == proc->definition->functor &&
-	       wouldBindToDefinition(pa->definition, proc->definition) )
+	  if ( pd->functor == def->functor &&
+	       wouldBindToDefinition(def, pd) )
 	    succeed;
 	}
 

@@ -42,6 +42,7 @@ cross-referencer.
 	    explain/2
 	  ]).
 :- use_module(library(helpidx)).
+:- use_module(library(lists)).
 
 explain(Item) :-
 	explain(Item, Explanation),
@@ -95,17 +96,35 @@ explain(Name/Arity, Explanation) :-
 	atom(Name),
 	integer(Arity), !,
 	functor(Head, Name, Arity),
-	current_predicate(_, Module:Head),
+	known_predicate(Module:Head),
 	(   Module == system
 	->  true
 	;   \+ predicate_property(Module:Head, imported_from(_))
 	),
+	explain_predicate(Module:Head, Explanation).
+explain(Module:Name/Arity, Explanation) :-
+	atom(Module), atom(Name), integer(Arity), !,
+	functor(Head, Name, Arity),
+	explain_predicate(Module:Head, Explanation).
+explain(Module:Head, Explanation) :-
+	callable(Head), !,
 	explain_predicate(Module:Head, Explanation).
 explain(Term, Explanation) :-
 	utter(Explanation, '"~w" is a compound term', [Term]).
 explain(Term, Explanation) :-
 	explain_functor(Term, Explanation).
 	
+%	known_predicate(:Head)
+%	
+%	Succeeds if we know anything about this predicate.  Undefined
+%	predicates are considered `known' for this purpose, so we can
+%	provide referenced messages on them.
+
+known_predicate(Pred) :-
+	current_predicate(_, Pred), !.
+known_predicate(Pred) :-
+	predicate_property(Pred, undefined).
+
 op_type(X, prefix) :-
 	atom_chars(X, [f, _]).
 op_type(X, infix) :-
@@ -130,6 +149,11 @@ explain_atom(A, Explanation) :-
 	;   \+ predicate_property(Module:Head, imported_from(_))
 	),
 	explain_predicate(Module:Head, Explanation).
+explain_atom(A, Explanation) :-
+	predicate_property(Module:Head, undefined),
+	functor(Head, A, _),
+	explain_predicate(Module:Head, Explanation).
+
 
 		/********************************
 		*            FUNCTOR             *
@@ -144,7 +168,8 @@ explain_functor(Head, Explanation) :-
 explain_functor(Head, Explanation) :-
 	predicate_property(M:Head, undefined),
 	(   functor(Head, N, A),
-	    utter(Explanation, '~w:~w/~d is an undefined predicate', [M,N,A])
+	    utter(Explanation,
+		  '~w:~w/~d is an undefined predicate', [M,N,A])
 	;   referenced(M:Head, Explanation)
 	).
 	
@@ -172,20 +197,26 @@ combine_utterances(Pairs, Explanation) :-
 first(A-_B, A).
 second(_A-B, B).
 
+%	explain_predicate(+Module:+Head, -Explanation)
+
 explain_predicate(Pred, Explanation) :-
 	Pred = Module:Head,
 	functor(Head, Name, Arity),
 	
-	U0 = '~w:~w/~d is a' - [Module, Name, Arity],
-	findall(Fmt-Arg, (lproperty(Prop, Fmt, Arg),
-			  predicate_property(Pred, Prop)),
-		U1),
- 	U2 = ' predicate' - [],
-	findall(Fmt-Arg, (tproperty(Prop, Fmt, Arg),
-			  predicate_property(Pred, Prop)),
-		U3),
-	flatten([U0, U1, U2, U3], Utters),
-	combine_utterances(Utters, Explanation).
+	(   predicate_property(Pred, undefined)
+	->  utter(Explanation,
+		  '~w:~w/~d is an undefined predicate', [Module,Name,Arity])
+	;   U0 = '~w:~w/~d is a' - [Module, Name, Arity],
+	    findall(Fmt-Arg, (lproperty(Prop, Fmt, Arg),
+			      predicate_property(Pred, Prop)),
+		    U1),
+	    U2 = ' predicate' - [],
+	    findall(Fmt-Arg, (tproperty(Prop, Fmt, Arg),
+			      predicate_property(Pred, Prop)),
+		    U3),
+	    flatten([U0, U1, U2, U3], Utters),
+	    combine_utterances(Utters, Explanation)
+	).
 explain_predicate(Pred, Explanation) :-
 	predicate_property(Pred, built_in),
 	Pred = _Module:Head,
@@ -204,13 +235,11 @@ referenced(Term, Explanation) :-
 	\+ predicate_property(Module:Head, built_in),
 	\+ predicate_property(Module:Head, imported_from(_)),
 	Module:Head \= help_index:predicate(_,_,_,_,_),
-	Head \= '$user_query'(_,_),
 	nth_clause(Module:Head, N, Ref),
 	'$xr_member'(Ref, Term),
 	utter_referenced(Module:Head, N, Ref,
 			 'Referenced', Explanation).
-
-referenced(_Module:Head, Explanation) :-
+referenced(_:Head, Explanation) :-
 	current_predicate(_, Module:Head),
 	\+ predicate_property(Module:Head, built_in),
 	\+ predicate_property(Module:Head, imported_from(_)),

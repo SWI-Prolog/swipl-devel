@@ -30,10 +30,10 @@
 */
 
 :- module(check,
-	[ check/0			% run all checks
-        , list_undefined/0		% list undefined predicates
-	, list_autoload/0		% list predicates that need autoloading
-	, list_redefined/0		% list redefinitions
+	[ check/0,			% run all checks
+	  list_undefined/0,		% list undefined predicates
+	  list_autoload/0,		% list predicates that need autoloading
+	  list_redefined/0		% list redefinitions
 	]).
 
 :- style_check(+dollar).		% lock these predicates
@@ -42,14 +42,15 @@
 %	run all consistency checks of this module
 
 check :-
-	format('PASS 1: Scanning for undefined predicates ...~n'),
+	format('PASS 1: Undefined predicates ...~n'),
 	list_undefined,
-	format('~nPASS 2: Scanning for redefined system and global predicates ...~n'),
+	format('~nPASS 2: System and global predicates ...~n'),
 	list_redefined,
-	format('~nPASS 3: Scanning for predicates that need autoloading ...~n'),
+	format('~nPASS 3: Predicates that need autoloading ...~n'),
 	list_autoload.
 
-%	list_undefined
+%	list_undefined/0
+%	
 %	List predicates names refered to  in  a  clause  body,  but  not
 %	defined.  This forms a "Quick and Dirty" alternative for a cross
 %	referencing tool (which I need to write someday).
@@ -61,23 +62,74 @@ list_undefined :-
 	$style_check(_, Old).
 
 list_undefined_ :-
+	findall(Pred-Refs, undefined_predicate(Pred, Refs), Pairs),
+	(   Pairs == []
+	->  true
+	;   format('WARNING: The following predicates are not defined~n'),
+	    format('         If these are later defined using assert/1~n'),
+	    format('         use the :- dynamic Name/Arity ... declaration.~n~n'),
+	    (	member((Module:Head)-Refs, Pairs),
+		functor(Head, Functor, Arity),
+		write_predicate(Module:Functor/Arity),
+		list_references(Refs),
+		fail
+	    ;	true
+	    )
+	).
+
+undefined_predicate(Module:Head, Refs) :-
 	predicate_property(Module:Head, undefined), 
 	\+ predicate_property(Module:Head, imported_from(_)), 
+	findall(Ref, referenced(Module:Head, Ref), Refs),
+	Refs \== [],
 	functor(Head, Functor, Arity), 
 	\+ $in_library(Functor, Arity),
-	\+ system_undefined(Module:Functor/Arity),
-	write_undefined(Module:Functor/Arity), 
-	fail.
-list_undefined_.
+	\+ system_undefined(Module:Functor/Arity).
 
 system_undefined(user:prolog_trace_interception/4).
 
-write_undefined(user:Name/Arity) :- !, 
-	format('~w/~w~n', [Name, Arity]).
-write_undefined(Module:Name/Arity) :-
-	format('~w:~w/~w~n', [Module, Name, Arity]).
+write_predicate(user:Name/Arity) :- !, 
+	format('~w/~w', [Name, Arity]).
+write_predicate(Module:Name/Arity) :-
+	format('~w:~w/~w', [Module, Name, Arity]).
+
+list_references(Refs) :-
+	(   Refs == []
+	->  format(' (cannot find references)~n')
+	;   format(', which is referenced from:~n'),
+	    write_clause_refs(Refs),
+	    format('~n')
+	).
+
+write_clause_refs([]).
+write_clause_refs([H|T]) :-
+	write_clause_ref(H),
+	write_clause_refs(T).
+
+write_clause_ref(Ref) :-
+	nth_clause(M:Head, N, Ref),
+	suffix(N, Suff),
+	format('~N~t~8|~d-~w clause of ', [N, Suff]),
+	functor(Head, Name, Arity),
+	write_predicate(M:Name/Arity).
+
+suffix(1, st) :- !.
+suffix(2, nd) :- !.
+suffix(_, th).
+
+%	referenced(+Predicate, -ClauseRef)
+%
+%	True if Clause ClauseRef references Predicate.
+
+referenced(Term, Ref) :-
+	current_predicate(_, Module:Head),
+	\+ predicate_property(Module:Head, built_in),
+	\+ predicate_property(Module:Head, imported_from(_)),
+	nth_clause(Module:Head, _, Ref),
+	'$xr_member'(Ref, Term).
 
 %	list_autoload/0
+%	
 %	Show predicates that need be linked via the autoload mechanism
 
 list_autoload :-
@@ -91,6 +143,7 @@ list_autoload :-
 	
 list_autoload_ :-
 	predicate_property(Module:Head, undefined), 
+	referenced(Module:Head, _),
 	\+ predicate_property(Module:Head, imported_from(_)), 
 	functor(Head, Functor, Arity), 
 	$in_library(Functor, Arity),
@@ -106,6 +159,7 @@ show_library(Module, Name, Arity) :-
 	).
 
 %	list_redefined/0
+%	
 %	Show redefined system predicates
 
 list_redefined :-
