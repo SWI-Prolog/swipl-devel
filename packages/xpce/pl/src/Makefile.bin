@@ -33,7 +33,7 @@ mandir=$(prefix)/man/man$(mansec)
 PL=pl
 XPCE=xpce
 
-BPL=		bin/pl
+BPL=		@BPL@
 PWD=`pwd`
 
 STARTUP=	startup/startup
@@ -52,14 +52,8 @@ $(STARTUP):	$(BOOTPLS)
 xpce-qlfs:	
 		@PLBASE=$(PWD); \
 		if [ -d xpce ]; then \
-		   if xprop -root 2>/dev/null >/dev/null; then \
-		      echo make PL=$$PLBASE/$(BPL); \
-		      (cd xpce/prolog/lib; make PL=$$PLBASE/$(BPL)); \
-		   else \
-		      echo "No access to X-server.  Please check \$$DISPLAY"; \
-		      echo "or the X-server authority"; \
-		      exit 1; \
-		   fi \
+		   echo make PL=$$PLBASE/$(BPL); \
+                   (cd xpce/prolog/lib; make PL=$$PLBASE/$(BPL)); \
 		fi
 
 install:	all
@@ -67,9 +61,9 @@ install:	all
 		for f in chpl pl-bite; do \
 		    (cd $(bindir); rm -f $$f; ln -s $$PLBASE/bin/$$f .); \
 		done; \
-		(cd $(bindir); rm -f $(PL); ln -s $$PLBASE/$(BPL) $(PL))
+		(cd $(bindir); rm -f $(PL); ln -s $$PLBASE/pl $(PL))
 		if [ -d xpce ]; then \
-		    (cd $(bindir); rm -f $(XPCE); ln -s $(PL) $(XPCE)); \
+		  (cd $(bindir);rm -f $(XPCE);ln -s $$PLBASE/$(BPL) $(XPCE));\
 		fi
 		-for f in pl chpl; do \
 		    cp man/$$f.1 $(mandir)/$$f.$(mansec); \

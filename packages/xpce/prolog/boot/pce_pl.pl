@@ -203,7 +203,7 @@ pce_home(PceHome) :-
 	absolute_file_name(RawHome, PceHome).
 pce_home(_) :-
 	$warning('Cannot find XPCE home directory'),
-	fail.
+	halt(1).
 
 '$load_pce' :-
 	'$c_current_predicate'('$pce_init', user:'$pce_init'(_)), !,

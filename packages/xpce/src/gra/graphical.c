@@ -706,12 +706,12 @@ paintSelectedGraphical(Graphical gr)
 
 status
 RedrawAreaGraphical(Any obj, Area area)
-{ int init = FALSE, x, y, w, h;
-  Graphical gr = obj;
+{ Graphical gr = obj;
 
   if ( gr->inverted == ON )
-  { initialiseDeviceGraphical(gr, &x, &y, &w, &h);
-    init = TRUE;
+  { int x, y, w, h;
+
+    initialiseDeviceGraphical(gr, &x, &y, &w, &h);
     r_complement(x, y, w, h);
   }
   
@@ -2719,6 +2719,9 @@ drawArcGraphical(Graphical gr,		/* has to handle mode */
 { int s = (isDefault(start) ? 0      : rfloat(start->value * 64.0));
   int e = (isDefault(end)   ? 360*64 : rfloat(end->value * 64.0));
   
+  if ( isDefault(fill) )
+    fill = NIL;
+
   r_arc(valInt(x), valInt(y), valInt(w), valInt(h), s, e, fill);
 
   succeed;

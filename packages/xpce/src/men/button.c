@@ -42,7 +42,6 @@ RedrawAreaButton(Button b, Area a)
   
   if ( z && notNil(z) )			/* 3-d style */
   { int up = (b->status == NAME_inactive || b->status == NAME_active);
-    Colour oldc = NIL;
    
     if ( b->look == NAME_motif || b->look == NAME_win )
     { int bx = x, by = y, bw = w, bh = h;
@@ -112,19 +111,9 @@ RedrawAreaButton(Button b, Area a)
       }
     }
 
-    if ( !up )
-    { Colour c  = getDisplayColourGraphical((Graphical)b);
-      
-      if ( c->name == NAME_black )
-	oldc = r_colour(WHITE_COLOUR);
-    }
-
     str_string(&b->label->data, b->label_font, x, y, w-rm, h,
 	       NAME_center, NAME_center);
-
-    if ( notNil(oldc) )
-      r_colour(oldc);
-  } else				/* x, open_look */
+  } else				/* x, 2D-open_look */
   { int swapc  = 0;
     int pen    = valInt(b->pen);
     int radius = valInt(b->radius);

@@ -55,6 +55,7 @@ file_search_path(foreign, pce(lib)).
 	pcehome_(PceHome),
 	exists_directory(PceHome),
 	'$argv'([Proc|Args]),
+	\+ member('-nopce', Args),
 	(   member('-pce', Args)
 	;   '$apropos_match'(pce, Proc)
 	)

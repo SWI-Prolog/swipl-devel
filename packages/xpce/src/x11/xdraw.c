@@ -1396,7 +1396,7 @@ r_3d_triangle(int x1, int y1, int x2, int y2, int x3, int y3,
       
       do
       { n++;
-      } while(n < 4 &&
+      } while(n < 3 &&
 	      ((light && (map & (1<<n))) ||
 	       (!light && !(map & (1<<n)))));
 

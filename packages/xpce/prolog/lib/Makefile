@@ -15,15 +15,8 @@ clean:
 	rm -f $(QLF)
 
 checkwd:	
-		@pwd > %.pwd%
-		@if cmp -s %.pwd% .pwd; then rm %.pwd%; else mv %.pwd% .pwd; fi
-
-checkx:
-		if xprop -root 2>/dev/null >/dev/null; then \
-		    touch .xok; \
-		else \
-		    rm -f .xok; \
-		fi
+		@pwd > .pwd%
+		@if cmp -s .pwd% .pwd; then rm .pwd%; else mv .pwd% .pwd; fi
 
 pce.qlf:	.pwd pce.pl ../boot/pce_expand.pl ../boot/pce_pl.pl \
 		../boot/english/pce_messages.pl ../boot/pce_principal.pl \
@@ -49,4 +42,4 @@ emacs/emacs.qlf:	.pwd emacs/emacs.pl emacs/window.pl emacs/buffer.pl \
 			emacs/outline_mode.pl
 
 .pl.qlf:	
-	$(PL) -g "qcompile('$*')" -t halt
+	$(PL) -g "qcompile('$*')" -t halt -- -nopce
