@@ -960,7 +960,7 @@ mainly for compatibility to LPA Prolog.
 
     \prologflagitem{bounded}{true}{r}
 ISO prolog-flag describing integer representation is bound by
-{\tt min_integer} and {\tt min_integer}.
+\const{min_integer} and \const{max_integer}.
 
     \prologflagitem{c_cc}{atom}{r}
 Name of the C-compiler used to compile SWI-Prolog.  Normally either gcc
