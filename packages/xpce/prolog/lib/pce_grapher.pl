@@ -531,6 +531,9 @@ create_popup(G) :->
 		    menu_item(print,
 			      message(G, print),
 			      condition := NonEmpty),
+		    menu_item(copy_graph,
+			      message(G, copy_graph),
+			      condition := @pce?window_system == windows),
 		    menu_item(clear,
 			      message(G, clear),
 			      condition := NonEmpty)
@@ -592,6 +595,20 @@ prompt_step(G, Reply:{forward,fast_forward,abort}) :<-
 	    get(D, confirm, point(FX, FY), Reply)
 	),
 	send(D, destroy).
+
+:- pce_group(clipboard).
+
+
+copy_diagram(Canvas) :->
+	"Export to the Windows clipboard"::
+	new(MF, win_metafile),
+	send(MF, draw_in, Canvas?graphicals),
+	send(@display, selection_owner, MF,
+	     primary,			% which
+	     @receiver,			% fetch object
+	     message(@receiver, free),	% loose selection
+	     emf),
+	send(Canvas, report, status, 'Placed graph on clipboard').
 
 :- pce_end_class(grapher).
 
