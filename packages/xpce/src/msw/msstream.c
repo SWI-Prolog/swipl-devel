@@ -320,7 +320,7 @@ ws_write_stream_data(Stream s, void *data, int len)
   { char *str = data;
 #undef send
     while( len > 0 )
-    { int n = send((SOCKET)s->ws_ref, str, len, EAV);
+    { int n = send((SOCKET)s->ws_ref, str, len, 0);
       if ( n < 0 )
 	return errorPce(s, NAME_ioError, SockError());
       len -= n;
