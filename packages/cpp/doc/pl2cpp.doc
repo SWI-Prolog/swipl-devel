@@ -115,8 +115,12 @@ for fast comparison.
     \classitem{PlQuery}
 Represents opening and enumerating the solutions to a Prolog query.
     \classitem{PlFrame}
-This utility-predicate can be used to discard unused term-references as
-well as to do `\jargon{data-backtracking}'.
+This utility-class can be used to discard unused term-references as well
+as to do `\jargon{data-backtracking}'.
+    \classitem{PlEngine}
+This class is used in \jargon{embedded} applications (applications
+where the main control is held in C++).  It provides creation and
+destruction of the Prolog environment.
     \classitem{PlRegister}
 The encapsulation of PL_register_foreign() is defined to be able to
 use C++ global constructors for registering foreign predicates.
@@ -490,7 +494,7 @@ PlCompound("hello", PlTermv("world"))
 \end{description}
 
 
-\subsection{The class PlTail}
+\subsection{The class PlTail}		\label{sec:pltail}
 
 The class \class{PlTail} is both for analysing and constructing lists.
 It is called \class{PlTail} as enumeration-steps make the term-reference
@@ -1005,6 +1009,42 @@ Creates an ISO standard Prolog error term expressing a the
 \arg{expected} domain and the \arg{actual} term found.
 \end{description}
 
+
+\section{Embedded applications}
+
+Most of the above assumes Prolog is `in charge' of the application and
+C++ is used to add functionality to Prolog, either for accessing
+external resources or for performance reasons.  In some applications,
+there is a \jargon{main-program} and we want to use Prolog as a
+\jargon{logic server}.  For these applications, the class
+\class{PlEngine} has been defined.
+
+Only a single instance of this class can exist in a process.  When used
+in a multi-threading application, only one thread at a time may have
+a running query on this engine.  Applications should ensure this using
+proper locking techniques.%
+    \footnote{For Unix, there is a multi-threaded version of SWI-Prolog.
+	      In this version each thread can create and destroy a
+	      thread-engine. There is currently no C++ interface defined
+	      to access this functionality, though ---of course--- you
+	      can use the C-functions.}
+
+\begin{description}
+    \constructor{PlEngine}{int argc, char **argv}
+Initialises the Prolog engine.  The application should make sure to
+pass \exam{argv[0]} from its main function, which is needed in the
+Unix version to find the running executable.  See PL_initialise()
+for details.
+    \constructor{PlEngine}{char *argv0}
+Simple constructure using the main constructor with the specified
+argument for \exam{argv[0]}.
+    \destructor{PlEngine}
+Calls PL_cleanup() to destroy all data created by the Prolog engine.
+\end{description}
+
+\Secref{pltail} has a simple example using this class.
+
+
 \section{Considerations}
 
 \subsection{The C++ versus the C interface}
@@ -1030,16 +1070,6 @@ linker should be used to deal with the C++ runtime libraries and global
 constructors. As of SWI-Prolog 3.2.9, PL_register_foreign() can be
 called {\em before} PL_initialise(), which is required to handle the
 calls from the global \class{PlRegister} calls.
-
-\subsubsection{Using g++ on Unix}
-
-Applications that embed Prolog with C++ extensions, g++ should be used
-to link the final executable for proper dealing with global constructors
-and the g++ standard libraries.  A typical sequence is:
-
-\begin{code}
-% plld -ld g++ myfile.cpp load.pl
-\end{code}
 
 \subsection{Status and compiler versions}
 
