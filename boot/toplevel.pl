@@ -176,6 +176,7 @@ hkey('HKEY_CURRENT_USER/Software/SWI/Prolog').
 hkey('HKEY_LOCAL_MACHINE/Software/SWI/Prolog').
 
 $set_prolog_file_extension :-
+	current_predicate(_, win_registry_get_value(_,_,_)),
 	hkey(Key),
 	catch(win_registry_get_value(Key, fileExtension, Ext0),
 	      _, fail), !,
