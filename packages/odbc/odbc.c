@@ -573,7 +573,7 @@ formatted_string(term_t in, unsigned int *len, char **out)
   if ( !PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, format, av) )
   { Sclose(fd);
     if ( *out )
-      free(*out);
+      PL_free(*out);
     return FALSE;
   }
   
