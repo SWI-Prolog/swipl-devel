@@ -1292,10 +1292,12 @@ nextLineListBrowser(ListBrowser lb, Int lines)
       if ( di )
       { CharArray lbl = getLabelDictItem(di);
 	DictItem di2 = getNth0Chain(lb->dict->members, lb->search_hit);
+	Bool ign_case = getClassVariableValueObject(lb,
+						    NAME_searchIgnoreCase);
 
 	ChangeItemListBrowser(lb, di2);
 
-	if ( !prefixCharArray(lbl, (CharArray)lb->search_string) ||
+	if ( !prefixCharArray(lbl, (CharArray)lb->search_string, ign_case) ||
 	     getSizeCharArray(lb->search_string) == ZERO )
 	{ assign(lb, search_string,
 		 newObject(ClassString, name_procent_s, lbl, 0));
