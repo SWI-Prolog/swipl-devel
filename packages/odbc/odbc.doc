@@ -27,7 +27,7 @@ This document describes the SWI-Prolog interface to ODBC, the Microsoft
 standard for \jargon{Open DataBase Connectivity}.  These days there are
 ODBC managers from multiple vendors for many platforms as well as
 drivers for most databases, making it an attractive target for a Prolog
-Database connection.
+database connection.
  
 The database interface is envisioned to consist of two layers. The first
 layer is an encapsulation of the core functionality of ODBC.  This layer
@@ -66,7 +66,7 @@ described here.
 
 \subsection{Connection management}
 
-The ODBC interface deals with a single ODBC environment but with
+The ODBC interface deals with a single ODBC environment with
 multiple simultaneous connections.  The predicates in this section
 deal with connection management.
 
@@ -75,7 +75,7 @@ deal with connection management.
 Create a new ODBC connection to data-source \arg{DSN} and return a
 handle to this connection in \arg{Connection}.  The connection handle
 is either an opaque structure or an atom of the \const{alias} option
-is used.  The options below are defined.  In addition, options of
+is used.  In addition to the options below, options applicable to
 odbc_set_connection/2 may be provided.
 
 \begin{description}
@@ -100,9 +100,11 @@ no alias name), a second connection to the same data-source is
 opened.
 \end{description}
 
-The following example connects to the WordNet database, using the
-connection alias \const{wordnet} and opening the connection only
-once:
+The following example connects to the WordNet%
+	\footnote{An SQL version of WordNet is available from
+		  \url{http://wordnet2sql.infocity.cjb.net/}}
+\cite{miller1990} database, using the connection alias \const{wordnet}
+and opening the connection only once:
 
 \begin{code}
 open_wordnet :-
@@ -148,6 +150,7 @@ are \const{static}, \const{forwards_only} and \const{keyset_driven}.
     \termitem{silent}{Bool}
 If \const{true} (default \const{false}), statements returning
 \const{SQL_SUCCESS_WITH_INFO} succeed without printing the info.
+See also \secref{successwithinfo}.
 
     \termitem{null}{NullSpecifier}
 Defines how the SQL constant NULL is represented. Without specification,
@@ -159,7 +162,7 @@ The representation \term{null}{_} is a commonly used alternative.
 The specified default holds for all statements executed on this
 connection. Changing the connection default does not affect already
 prepared or running statements.  The null-value can also be specified
-at the statement level.
+at the statement level.  See the option list of odbc_query/4.
 \end{description}
 
     \predicate{odbc_get_connection}{2}{+Connection, ?Property}
@@ -169,21 +172,21 @@ is unbound all defined properties are enumerated on backtracking.
 Currently the following properties are defined.
 
 \begin{description}
-    \termitem{database_name}{Name}
+    \termitem{database_name}{Atom}
 Name of the database associated to the connection.
     \termitem{dbms_name}{Name}
 Name of the database engine.  This constant can be used to identify
 the engine.
-    \termitem{dbms_version}{Name}
+    \termitem{dbms_version}{Atom}
 Version identifier from the database engine.
     \termitem{driver_name}{Name}
 ODBC Dynamic Link Library providing the interface between ODBC and
 the database.
-    \termitem{driver_odbc_version}
+    \termitem{driver_odbc_version}{Atom}
 ODBC version supported by the driver.
-    \termitem{driver_version}
+    \termitem{driver_version}{Atom}
 The drivers version identifier.
-    \termitem{active_statements}
+    \termitem{active_statements}{Integer}
 Maximum number of statements that can be active at the same time on
 this connection.  Returns 0 (zero) if this is unlimited.%
 	\footnote{Microsoft SQL server can have multiple active
@@ -191,6 +194,14 @@ this connection.  Returns 0 (zero) if this is unlimited.%
 		  \const{cursor_type} to \const{dynamic}.  See
 		  odbc_set_connection/2.}
 \end{description}
+    \predicate{odbc_data_source}{2}{?DSN, ?Description}
+Query the defined data sources.  It is not required to have any open
+connections before calling this predicate. \arg{DSN} is the name
+of the data source as required by odbc_connect/3. \arg{Description} is
+the name of the driver.  The driver name may be used to tailor the
+SQL statements used on the database.  Unfortunately this name depends
+on the local installing details and is therefore not universally 
+useful.
 \end{description}
 
 \subsection{Running SQL queries}
@@ -222,16 +233,16 @@ on backtracking as terms of the functor \functor{row}{\arg{Arity}},
 where \arg{Arity} denotes the number of columns in the result-set. The
 library pre-fetches the next value to be able to close the statement and
 return deterministic success when returning the last row of the
-result-set. Using the option \funcref{findall}{2} (see below) the
+result-set. Using the option \functor{findall}{2} (see below) the
 result-set is returned as a list of user-specified terms. For other
 statements this argument returns \term{affected}{Rows}, where \arg{Rows}
-represents the number of rows affected by the statement.
+represents the number of rows affected by the statement. If you are not
+interested in the number of affected rows odbc_query/2 provides a simple
+interface for sending SQL-statements.
 
-Bwlow is a small example using the connection created from
+Below is a small example using the connection created from
 odbc_connect/3. Please note that the SQL-statement does not end in the
-\chr{;} character. \arg{Options} defines the following options.  If you
-are not interested in the number of affected rows odbc_query/2 provides
-a simple interface for sending SQL-statements.
+`\chr{;}' character.
 
 \begin{code}
 lemma(Lemma) :-
@@ -250,6 +261,8 @@ insert_child(Child, Mother, Father, Affected) :-
 		      VALUES ("mary", "christine", "bob")',
 		   affected(Affected)).
 \end{code}
+
+\arg{Options} defines the following options.
 
 \begin{description}
     \termitem{types}{ListOfTypes}
@@ -271,7 +284,9 @@ query extracts rows using Prolog integers:
 	      [ types([integer,default])
 	      ]).
 
-X = row(1, entity)
+X = row(1, entity) ;
+X = row(2, thing) ;
+...
 \end{code}
 
 See also \secref{sqltypes} for notes on type-conversion.
@@ -280,10 +295,10 @@ See also \secref{sqltypes} for notes on type-conversion.
 Specify SQL NULL representation.  See odbc_set_connection/2 for details.
 
     \termitem{source}{Bool}
-If \const{true} (default \const{false}), include the source of the
-column with each result-value.  With this option, each result in
-the \funcref{row}{\arg{N}}-term is of the format below.  \arg{TableName}
-or \arg{ColumnName} may be the empty atom if the information is not
+If \const{true} (default \const{false}), include the source-column with
+each result-value. With this option, each result in the
+\functor{row}{\arg{N}}-term is of the format below. \arg{TableName} or
+\arg{ColumnName} may be the empty atom if the information is not
 available.%
 	\footnote{This is one possible interface to this information.
 		  In many cases it is more efficient and convenient to
@@ -298,7 +313,7 @@ available.%
 Instead of returning rows on backtracking this option makes odbc_query/3
 return all rows in a list and close the statement.  The option is named
 after the Prolog findall/3 predicate, as the it makes odbc_query/3
-behave as the following commonly used findall/3 construct:
+behave as the commonly used findall/3 construct below.
 
 \begin{code}
 lemmas(Lemmas) :-
@@ -309,7 +324,7 @@ lemmas(Lemmas) :-
 	        Lemmas).
 \end{code}
 
-Using the \funcref{findall}{2} option the above can be implemented as
+Using the \functor{findall}{2} option the above can be implemented as
 below.  The number of argument of the \const{row} term must match the
 number of columns in the result-set.
 
@@ -363,15 +378,15 @@ of the following:
 \begin{description}
     \termitem{default}{}
 Uses the ODBC function SQLDescribeParam() to obtain information about
-the parameter and applies default rules.  See \secref{sqltypes} for
+the parameter and apply default rules.  See \secref{sqltypes} for
 details.
 
     \termitem{\arg{SqlType}}{Specifier, ...}
 Declare the parameter to be of type \arg{SqlType} with the given
 specifiers. Specifiers are required for \type{char}, \type{varchar},
-etc.\ to specify the field-width. In odbc_execute/[2-3], the must supply
-the value in default Prolog type for this SQL type. See
-\secref{sqltypes} for details.
+etc.\ to specify the field-width. When calling odbc_execute/[2-3],
+the user must supply the parameter values in the default Prolog type for
+this SQL type. See \secref{sqltypes} for details.
 
     \definition{\arg{PrologType} $>$ \arg{SqlType}}
 As above, but supply values of the given \arg{PrologType}, using the
@@ -401,7 +416,7 @@ ODBC doesn't appear to allow for multiple cursors on the same
 result-set.%
 	\footnote{Is this right?}
 This would imply there can only be one active odbc_execute/3
-(i.e.\ have a choice-point) on a prepared statement.  Suppose we
+(i.e.\ with a choice-point) on a prepared statement.  Suppose we
 have a table \exam{age (name char(25), age integer)} bound to the
 predicate \predref{age}{2} we cannot write the code below without
 special precautions.  The ODBC interface therefore creates a clone
@@ -539,15 +554,6 @@ Minimum scale of the type.
     \termitem{maximum_scale}{MaxScale}
 Maximum scale of the type.
 \end{description}
-
-    \predicate{odbc_data_source}{2}{?DSN, ?Description}
-Query the defined data sources.  It is not required to have any open
-connections before calling this predicate. \arg{DSN} is the name
-of the data source as required by odbc_connect/3. \arg{Description} is
-the name of the driver.  The driver name may be used to tailor the
-SQL statements used on the database.  Unfortunately this name depends
-on the local installing details and is therefore not universally 
-useful.
 \end{description}
 
 
@@ -605,13 +611,13 @@ Used as default for the SQL types \const{bit}, \const{tinyint},
 \const{smallint} and \const{integer}.  Please note that SWI-Prolog
 integers are signed 32-bit values, where SQL allows for unsigned
 values as well. Can be used for the integral, and \const{decimal} types
-as well as the types \const{date} and \const{time_stamp}, which are
+as well as the types \const{date} and \const{timestamp}, which are
 represented as POSIX time-stamps (seconds after Jan 1, 1970).
 
     \termitem{double}{}
 Used as default for the SQL types \const{real}, \const{float} and
 \const{double}.  Can be used for the integral, float and \const{decimal}
-types as well as the types \const{date} and \const{time_stamp}, which
+types as well as the types \const{date} and \const{timestamp}, which
 are represented as POSIX time-stamps (seconds after Jan 1, 1970).
 Representing time this way is compatible to SWI-Prologs time-stamp
 handling.
@@ -624,20 +630,19 @@ for the SQL type \const{date}.
 A Prolog term of the form \term{time}{Hour,Minute,Second} used as
 default for the SQL type \const{time}.
 
-    \termitem{time_stamp}{}
+    \termitem{timestamp}{}
 A Prolog term of the form
-\term{time_tamp}{Year,Month,Day,Hour,Minute,Second,Fraction} used as
-default for the SQL type \const{time_stamp}.
+\term{timestamp}{Year,Month,Day,Hour,Minute,Second,Fraction} used as
+default for the SQL type \const{timestamp}.
 \end{description}
 
 
 \subsection{Errors and warnings}
 
-Disregarding some details, ODBC operations return success, error or
-`success with information'.  This section explains how results from
-the ODBC layer are reported to Prolog.
+ODBC operations return success, error or `success with info'. This
+section explains how results from the ODBC layer are reported to Prolog.
 
-\subsubsection{ODBC messages: `Result with info'}
+\subsubsection{ODBC messages: `Success with info'}
 \label{sec:successwithinfo}
 
 If an ODBC operation returns `with info', the info is extracted from the
@@ -656,7 +661,7 @@ and \arg{Message} is a human readable explanation of the message.
 
 If an ODBC operation signals an error, it throws the exception
 \term{error}{\term{odbc}{State, Native, Message}, _}. The arguments
-of the \funcref{odbc}{3} term are explained in \secref{successwithinfo}.
+of the \functor{odbc}{3} term are explained in \secref{successwithinfo}.
 
 In addition, the Prolog layer performs the normal tests for proper
 arguments and state, signaling the conventional instantiation, type,
@@ -732,6 +737,9 @@ The SWI-Prolog ODBC interface started from a partial interface by
 Stefano De Giorgi. Mike Elston suggested programmable
 null-representation with many other suggestions while doing the first
 field-tests with this package.
+
+\bibliographystyle{plain}
+\bibliography{odbc}
 
 \printindex
 

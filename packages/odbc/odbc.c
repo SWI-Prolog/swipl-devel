@@ -2149,7 +2149,8 @@ get_sqltype_from_atom(atom_t name, SWORD *type)
 }
 
 static sqltypedef pltypes[] = 
-{ { SQL_PL_ATOM,       "atom" },
+{ { SQL_PL_DEFAULT,    "default" },
+  { SQL_PL_ATOM,       "atom" },
   { SQL_PL_STRING,     "string" },
   { SQL_PL_CODES,      "codes" },
   { SQL_PL_INTEGER,    "integer" },

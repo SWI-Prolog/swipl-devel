@@ -1,3 +1,9 @@
+Jul 13, 2002
+
+* Fixed handling default in types(Types) option of odbc_query.
+
+* Many textual improvements in the documentation.
+
 Jul 12, 2002
 
 * Add alpha findall/2 option to odbc_query/4 and odbc_prepare/5.
