@@ -115,7 +115,6 @@ static const PL_extension foreigns[] = {
   FRG("$mark_executable",	1, pl_mark_executable,		0),
 #ifdef __WIN32__
   FRG("win_exec",		2, pl_win_exec,			0),
-  FRG("win_shell",		2, pl_shell_execute,		0),
   FRG("win_module_file",	2, pl_win_module_file,		0),
   FRG("win_registry_get_value", 3, pl_get_registry_value,	0),
 #ifdef O_XOS
@@ -607,6 +606,7 @@ DECL_PLIST(wam);
 DECL_PLIST(thread);
 DECL_PLIST(profile);
 DECL_PLIST(wic);
+DECL_PLIST(win);
 
 void
 initBuildIns(void)
@@ -626,6 +626,9 @@ initBuildIns(void)
   REG_PLIST(thread);
   REG_PLIST(profile);
   REG_PLIST(wic);
+#ifdef __WIN32__
+  REG_PLIST(win);
+#endif
 
   PROCEDURE_garbage_collect0 = lookupProcedure(FUNCTOR_dgarbage_collect1, m);
   PROCEDURE_block3	     = lookupProcedure(FUNCTOR_block3, 		  m);

@@ -232,16 +232,58 @@ findExecutable(const char *module, char *exe)
 		 *     SUPPORT FOR SHELL/2	*
 		 *******************************/
 
-static char *
-win_exec(const char *cmd, const char *how)
-{ UINT show;
-  char *msg;
-  int rval;
+typedef struct
+{ const char *name;
+  int         id;
+} showtype;
 
-  if ( streq(how, "iconic") )
-    show = SW_MINIMIZE;
-  else /*if ( streq(how, "normal") )*/
-    show = SW_NORMAL;
+static int
+get_showCmd(term_t show, int *cmd)
+{ char *s;
+  showtype *st;
+  static showtype types[] =
+  { { "hide", 		 SW_HIDE },
+    { "maximize", 	 SW_MAXIMIZE },
+    { "minimize", 	 SW_MINIMIZE },
+    { "restore", 	 SW_RESTORE },
+    { "show", 		 SW_SHOW },
+    { "showdefault", 	 SW_SHOWDEFAULT },
+    { "showmaximized",   SW_SHOWMAXIMIZED },
+    { "showminimized",   SW_SHOWMINIMIZED },
+    { "showminnoactive", SW_SHOWMINNOACTIVE },
+    { "showna",          SW_SHOWNA },
+    { "shownoactive",    SW_SHOWNOACTIVATE },
+    { "shownormal",      SW_SHOWNORMAL },
+					/* compatibility */
+    { "normal", 	 SW_SHOWNORMAL },
+    { "iconic", 	 SW_MINIMIZE },
+    { NULL, 0 },
+  };
+
+  if ( show == 0 )
+  { *cmd = SW_SHOWNORMAL;
+    succeed;
+  }
+
+  if ( !PL_get_chars_ex(show, &s, CVT_ATOM) )
+    fail;
+  for(st=types; st->name; st++)
+  { if ( streq(st->name, s) )
+    { *cmd = st->id;
+      succeed;
+    }
+  }
+
+  return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		  PL_new_atom("win_show"), show);
+}
+
+
+
+static char *
+win_exec(const char *cmd, UINT show)
+{ char *msg;
+  int rval;
 
   switch((rval = WinExec(cmd, show)))
   { case 0:
@@ -316,10 +358,10 @@ System(char *command)
 word
 pl_win_exec(term_t cmd, term_t how)
 { char *s;
-  char *h;
+  UINT h;
 
   if ( PL_get_chars_ex(cmd, &s, CVT_ALL) &&
-       PL_get_chars_ex(how, &h, CVT_ATOM) )
+       get_showCmd(how, &h) )
   { char *msg = win_exec(s, h);
 
     if ( msg )
@@ -355,16 +397,18 @@ static const shell_error se_errors[] =
 };
  
 
-word
-pl_shell_execute(term_t op, term_t file)
+static int
+win_shell(term_t op, term_t file, term_t how)
 { char *o, *f;
+  UINT h;
   HINSTANCE instance;
 
   if ( !PL_get_chars_ex(op,   &o, CVT_ALL|BUF_RING) ||
-       !PL_get_chars_ex(file, &f, CVT_ALL|BUF_RING) )
+       !PL_get_chars_ex(file, &f, CVT_ALL|BUF_RING) ||
+       !get_showCmd(how, &h) )
     fail;
        
-  instance = ShellExecute(NULL, o, f, NULL, NULL, 0);
+  instance = ShellExecute(NULL, o, f, NULL, NULL, h);
 
   if ( (long)instance <= 32 )
   { const shell_error *se;
@@ -377,6 +421,18 @@ pl_shell_execute(term_t op, term_t file)
   }
 
   succeed;
+}
+
+
+static
+PRED_IMPL("win_shell", 2, win_shell2, 0)
+{ return win_shell(A1, A2, 0);
+}
+
+
+static
+PRED_IMPL("win_shell", 3, win_shell3, 0)
+{ return win_shell(A1, A2, A3);
 }
 
 
@@ -648,6 +704,14 @@ getDefaultsFromRegistry()
   }
 }
 
-#endif /*__WINDOWS__*/
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
 
+BeginPredDefs(win)
+  PRED_DEF("win_shell", 2, win_shell2, 0)
+  PRED_DEF("win_shell", 3, win_shell3, 0)
+EndPredDefs
+
+#endif /*__WINDOWS__*/
 
