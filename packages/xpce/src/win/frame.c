@@ -224,7 +224,10 @@ openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
   if ( !createdFrame(fr) )
     TRY( send(fr, NAME_create, EAV) );
   
-  if ( notDefault(pos) )
+  if ( isDefault(pos) && isOpenFrameStatus(fr->status) )
+    succeed;
+
+  if ( notDefault(pos) )		/* X11 transient is done by WM */
   { x = pos->x;
     y = pos->y;
 
@@ -243,7 +246,7 @@ openFrame(FrameObj fr, Point pos, Bool grab, Bool normalise)
     }
 
     setFrame(fr, x, y, w, h);  
-  }
+  }					/* But in Windows `do-it-yourself' */
 #ifdef WIN32
   else if ( notNil(fr->transient_for) )
   { Area pa = fr->transient_for->area;

@@ -1,10 +1,13 @@
 			   XPCE ChangeLog
 			   ==============
 
-* MAINTAIN: Fixed src/FN not to touch the name database it it wasn't changed.
-
 VERSION 5.1.9, distributed with SWI-Prolog 4.0.10
 =================================================
+
+* FIXED: Win32: `Frame<-comfirm' to move/resize already open transient frames.
+  Reported by Tolga Konik on the GUI tracer.
+
+* MAINTAIN: Fixed src/FN not to touch the name database it it wasn't changed.
 
 * FIXED: send(file('~/.xpce/Defaults'), exists) to take very long on Windows
   98 and friends: ~/xyz is expanded to c://xyz, which in turn is treated as
