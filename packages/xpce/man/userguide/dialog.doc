@@ -13,8 +13,55 @@ to dialog windows and the locations of the most important methods.
 
 Dialogs can be created both by using the new/2 and send/[2-12]
 operations as well as by using the Dialog Editor which is described in
-\chapref{dialogeditor}. This section describes the first mechanism.
+\appref{dialogeditor}. This section describes the first mechanism.
 Reading this chapter will help you understanding the dialog editor.
+
+
+\section{An example}
+
+Before diving into the complexities we will illustrate normal usage
+through an example.  The following Prolog predicate creates a dialog
+for entering information on an employee. The result, running on
+Windows-NT, is shown in \figref{employee}.
+
+\begin{pcecode}
+ask_employee :-
+	new(Dialog, dialog('Define employee')),
+	send_list(Dialog, append, 
+		  [ new(N1, text_item(first_name)),
+		    new(N2, text_item(family_name)),
+		    new(S,  new(S, menu(sex))),
+		    new(A,  int_item(age, low := 18, high := 65)),
+		    new(D,  menu(department, cycle)),
+		    button(cancel, message(Dialog, destroy)),
+		    button(enter, and(message(@prolog,
+					      assert_employee,
+					      N1?selection,
+					      N2?selection,
+					      S?selection,
+					      A?selection,
+					      D?selection),
+				      message(Dialog, destroy)))
+		  ]),
+	send_list(S, append, [male, female]),
+	send_list(D, append, [research, development, marketing]),
+	send(Dialog, default_button, enter),
+	send(Dialog, open).
+
+assert_employee(FirstName, FamilyName, Sex, Age, Depth) :-
+	format('Adding ~w ~w ~w, age ~w, working at ~w~n',
+	       [ Sex, FirstName, FamilyName, Age, Depth]).
+\end{pcecode}
+
+This example shows the layout capabilities of \class{dialog} and
+its \class{dialog_item} objects.  Simply appending items will place
+items vertically and group buttons in rows.  Labels are properly
+aligned.  The {\sf enter} button defines a call-back on the
+predicate assert_employee/5 using the values from the various
+controllers.  \Secref{exeobjects} explains the use of \class{message}
+objects in detail.
+
+\postscriptfig{employee}{Enter employee}
 
 
 \section{Built-in dialog items}

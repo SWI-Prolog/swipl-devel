@@ -116,6 +116,6 @@ clean::
 		*.out *.dvi *.toc *.aux *.idx *.ind *.blg *.log *.ilg \
 		*~ figs/*~ \
 		$(LOGO) summary.tmp
-	rm -rf figs/class
 
 distclean:	clean
+	rm -rf figs/class

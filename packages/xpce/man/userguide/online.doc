@@ -1,10 +1,11 @@
 \chapter{Using the online manual}		\label{sec:online}
 
-In the previous sections we have introduced \product{} using examples and
-described the global architecture of the \productpl{} environment.  The
-primitives of \product{} are simple, but \product{} as a whole is a massive library
-of very diverse classes with many methods.  The current system contains
-about 160 classes defining over 2700 methods.
+In the previous sections we have introduced \product{} using examples
+and described the global architecture of the \productpl{} environment.
+The language primitives of \product{} are simple, but \product{} as a
+whole is a massive library of very diverse classes with many methods.
+The current system contains about 160 classes defining over 2700
+methods.
 
 To help you finding your way around in the package as well as in
 libraries and private code loaded in \product{}, an integrated manual is
@@ -76,7 +77,7 @@ be obtained using
 \begin{xpceonly}
 \begin{code}
 1 ?- get(@pce, home, Home).
-Home = '/usr/local/lib/pl-2.1.13/xpce'
+Home = '/usr/local/lib/pl-4.0.0/xpce'
 \end{code}
 \end{xpceonly}
 \begin{pwonly}
@@ -129,7 +130,7 @@ described object itself:
 {\tt M} class \verb$<- $selector: type ... \verb$-->$type
 	& Get-Method with argument-types returning value of type \\
 {\tt R} Class.attribute:   type &
-	Resource of specified class for specified attribute \\
+	Class-variable with type \\
 \hline
 \end{tabularlp}
 \end{center}
@@ -249,16 +250,16 @@ of the categories is:
 \begin{itemize}
 \setlength{\itemsep}{5pt}
     \tick{Basic}
-Principal methods that are used very often. This is ---together with
-{\em Application}--- the default selection of this menu.
+Principal methods that are used very often. This is, together with
+{\em Application}, the default selection of this menu.
     \tick{Advanced}
 Less often used and sometimes complicated methods.
     \tick{Rare}
 Infrequently used methods.  Note that does not mean they are complicated
 or do things you'd hardly ever want to use.  For example, most of the
 caret-manipulation of class editor is in this category.  It is essential
-and commonly used behaviour of the editor, but hardly ever used directly
-from program-control.
+and commonly used behaviour of the editor, but rarely used directly from
+program-control.
     \tick{Internal}
 Behaviour that is not directly intended for public usage.  It may be
 useful to understand how other methods interact.  Try to avoid using
@@ -330,7 +331,7 @@ class is removed from the object-base and may be compared to the C++
 \idx{destructor}.
     \getmethod{object}{lookup}{<Class-Defined>}{object}
 \index{reusability}%
-If defined, this method describes the lookup of already an already
+If defined, this method describes the lookup an already
 defined instance instead of object creation.  For example
 
 \begin{code}
@@ -406,13 +407,10 @@ or get-method.  Method completion considers inheritance and delegation.%
 
 \subsection{Search tool}		\label{sec:searchtool}
 
-The search tool is shown in \figref{searchtool}.  It allows the user to
-search through all \product{} manual cards in an efficient manner with queries
-similar to that what is found in \idx{WAIS} tools.  \product{} maintains a
-word index for the text off all material in the online manual and this
-tool quickly finds all cards holding a, or a combination of words.  A
-search specification is an expression formed from the following
-primitives:
+The search tool is shown in \figref{searchtool}. It allows the user to
+search through all \product{} manual cards in an efficient manner with
+queries similar to that what is found in \idx{WAIS} tools. A search
+specification is an expression formed from the following primitives:
 
 \begin{itemize}
 \setlength{\itemsep}{5pt}
