@@ -1030,7 +1030,7 @@ identify(F) :->
 	    Msg \== @nil
 	->  get(F, severity, Severity),
 	    (	Severity == status
-	    ->	send(F?text_buffer, report, inform, Msg)
+	    ->	send(F?text_buffer, report, status, Msg)
 	    ;	send(F?text_buffer, report, inform,
 		     string('%s: %s', F?severity, Msg))
 	    )

@@ -181,15 +181,36 @@ find_varname(Var, [_|T], Name) :-
 	find_varname(Var, T, Name).
 
 %	unify_clause(+Read, +Decompiled, +ReadTermPos, -RecompiledTermPos).
+%	
+%	What you read isn't always what goes into the database. The task
+%	of this predicate is to establish the relation between the term
+%	read from the file and the result from decompiling the clause.
+%	
+%	This really must be more flexible, dealing with much more
+%	complex source-translations, falling back to a heristic method
+%	locating as much as possible.
 
 unify_clause(Read, Read, TermPos, TermPos) :- !.
+					% XPCE send-methods 
 unify_clause(:->(Head, Body), (PlHead :- PlBody), TermPos0, TermPos) :- !,
 	pce_method_clause(Head, Body, PlHead, PlBody, TermPos0, TermPos).
+					% XPCE get-methods
 unify_clause(:<-(Head, Body), (PlHead :- PlBody), TermPos0, TermPos) :- !,
 	pce_method_clause(Head, Body, PlHead, PlBody, TermPos0, TermPos).
+					% module:head :- body
+unify_clause((Head :- Read),
+	     (Head :- _M:Compiled), TermPos0, TermPos) :-
+	unify_clause((Head :- Read), (Head :- Compiled), TermPos0, TermPos1),
+	TermPos1 = term_position(TA,TZ,FA,FZ,[PH,PB]),
+	TermPos  = term_position(TA,TZ,FA,FZ,
+				 [ PH,
+				   term_position(0,0,0,0,[PB])
+				 ]).
+					% general term-expansion
 unify_clause(Read, Compiled1, TermPos0, TermPos) :-
 	expand_term(Read, Compiled2),
 	match_module(Compiled2, Compiled1, TermPos0, TermPos).
+					% I don't know ...
 unify_clause(_, _, _, _) :-
 	send(@nil, report, warning, 'Could not unify clause'),
 	fail.

@@ -1,3 +1,16 @@
+		      SWI-Prolog GUI tracer ChangeLog
+
+
+This ChangeLog logs changes to the debugger   as  well as changes to the
+rest of the system that only affect the debugger.
+
+
+VERSION 1.1.1 for SWI-Prolog 5.0.2
+==================================
+
+* FIXED: Handling of I_CATCH and I_CONTEXT instructions for unifying and
+  locating calls in clauses.
+
 * FIXED: Avoid sending ->file: @nil to the source-view
 
 * FIXED: `Up' pass through foreign frames, so we can really get to the top,

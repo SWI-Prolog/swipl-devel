@@ -737,7 +737,8 @@ caret(E, Caret:[int]) :->
 	send_super(E, caret, Caret),
 	send(E, start_idle_timer),
 	get(E, mode, Mode),
-	(   send(Mode, has_send_method, new_caret_position)
+	(				% Mode can be @nil
+	    send(Mode, has_send_method, new_caret_position)
 	->  (   Caret == @default
 	    ->  get(E, caret, NewCaret)
 	    ;   NewCaret = Caret
