@@ -340,7 +340,7 @@ static const error_def errors[] =
     "%N: Selectiontype %s is not supported" },
   { NAME_replacedColour,	EF_REPORT|ET_IGNORED,
     "%N: Replaced by close value" },
-  { NAME_replacedByColour,	ET_WARNING,
+  { NAME_replacedByColour,	ET_IGNORED,
     "%O: replaced by colour(%N)" },
 
 					/* Fonts */

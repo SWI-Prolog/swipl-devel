@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Make `window->background' work with images on Windows.  Used to be
+  supported on the X11 version only.
+
 VERSION 6.1.10, distributed with SWI-Prolog 5.1.10
 ==================================================
 

@@ -1369,12 +1369,18 @@ r_background(Any c)
   if ( isDefault(c) )
   { c = context.default_background;
     DEBUG(NAME_background, Cprintf("Using default background %s\n", pp(c)));
-  } else if ( !instanceOfObject(c, ClassColour) )
-    c = getReplacementColourPixmap(c);
+  }
 
   if ( context.background != c )
-  { COLORREF rgb = cref_colour(c);
-    
+  { COLORREF rgb;
+
+    if ( instanceOfObject(c, ClassColour) )
+    { rgb = cref_colour(c);
+    } else
+    { Colour colour = getReplacementColourPixmap(c);
+      rgb = cref_colour(colour);
+    }
+
     SetBkColor(context.hdc, rgb);
     context.background     = c;
     context.background_rgb = rgb;
