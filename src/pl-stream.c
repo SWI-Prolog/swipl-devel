@@ -1121,6 +1121,7 @@ Sunit_size(IOSTREAM *s)
     case ENC_OCTET:
     case ENC_ASCII:
     case ENC_ISO_LATIN_1:
+    case ENC_ANSI:
     case ENC_UTF8:
       return 1;
     case ENC_UNICODE_BE:
