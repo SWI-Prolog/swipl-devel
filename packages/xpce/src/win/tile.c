@@ -1014,7 +1014,7 @@ static int
 adjust_pos(Int H, int bh)
 { int h  = valInt(H);
   int i1 = h*3/4;
-  int i2 = h - 20;
+  int i2 = h - 30;
   int i  = max(i1, i2);
   
   return i;
