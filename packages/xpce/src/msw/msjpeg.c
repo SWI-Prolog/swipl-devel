@@ -40,10 +40,12 @@ gra/image.c implementing class image.
 #undef GLOBAL				/* conflict */
 #include <jpeglib.h>
 #include <jerror.h>
+#include <setjmp.h>
+
 
 extern void jpeg_iostream_dest(j_compress_ptr cinfo, IOSTREAM *outfile);
 extern void jpeg_iostream_src(j_decompress_ptr cinfo, IOSTREAM* infile);
-extern void void attach_dib_image(Image image, BITMAPINFO *bmi, BYTE *bits);
+extern void attach_dib_image(Image image, BITMAPINFO *bmi, BYTE *bits);
 
 int
 write_jpeg_file(IOSTREAM *fd, Image image, HBITMAP bm)
@@ -148,8 +150,10 @@ read_jpeg_file(IOSTREAM *fd, Image image)
 { struct jpeg_decompress_struct cinfo;
   struct my_jpeg_error_mgr jerr;
   long here = Stell(fd);
+  long row_stride;
   int width, height, bwidth, image_size;
-  BYTE *data;
+  JSAMPLE **buff;
+  BYTE *data, *dest;
   BITMAPINFO *dib = pceMalloc(sizeof(*dib));
   BITMAPINFOHEADER *header = &dib->bmiHeader;
 
@@ -159,7 +163,7 @@ read_jpeg_file(IOSTREAM *fd, Image image)
     { case JERR_OUT_OF_MEMORY:
 	return sysPce("Not enough memory");
       case JERR_NO_SOI:
-	fail;				/* invalid */
+	break;				/* invalid */
       default:
       DEBUG(NAME_image,
 	    { char buf[1024];
@@ -167,7 +171,7 @@ read_jpeg_file(IOSTREAM *fd, Image image)
 	      (*jerr.jerr.format_message)((j_common_ptr)&cinfo, buf);
 	      Cprintf("JPEG: %s\n", buf);
 	    });
-        fail;				/* also invalid */
+        break;				/* also invalid */
     }
 
     jpeg_destroy_decompress(&cinfo);
@@ -184,8 +188,8 @@ read_jpeg_file(IOSTREAM *fd, Image image)
   jpeg_read_header(&cinfo, TRUE);
   jpeg_start_decompress(&cinfo);
   row_stride = cinfo.output_width * cinfo.output_components;
-  buffer = (*cinfo.mem->alloc_sarray)((j_common_ptr)&cinfo,
-				      JPOOL_IMAGE, row_stride, 1);
+  buff = (*cinfo.mem->alloc_sarray)((j_common_ptr)&cinfo,
+				    JPOOL_IMAGE, row_stride, 1);
 
   width  = cinfo.image_width;
   height = cinfo.image_height;
@@ -196,9 +200,12 @@ read_jpeg_file(IOSTREAM *fd, Image image)
   dest = data + bwidth*(height-1);
 
   while(cinfo.output_scanline < cinfo.output_height)
-  { jpeg_read_scanlines(&cinfo, buff, 1);
+  { int i;
+    BYTE *src;
+
+    jpeg_read_scanlines(&cinfo, buff, 1);
     i = width;
-    src = (char *)buff[0];
+    src = buff[0];
 
     while(i--)
     { *dest++ = src[2];

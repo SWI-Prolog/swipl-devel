@@ -645,7 +645,7 @@ ws_load_image_file(Image image)
     return errorPce(image->file, NAME_openFile,
 		    NAME_read, getOsErrorPce(PCE));
 
-  if ( read_jpeg_file(IOSTREAM *fd, Image image) )
+  if ( read_jpeg_file(fd, image) )
     succeed;
 
 #ifdef O_XPM
