@@ -188,7 +188,7 @@ scrollMessage(Gesture g, EventObj ev,
   Int amount;
 
   if ( !(isDragEvent(ev) ||
-	 isAEvent(ev, NAME_position) ||
+	 isAEvent(ev, NAME_locMove) ||
 	 isAEvent(ev, NAME_area)) )
     fail;
 

@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Stop combobox browser from scrolling after a loc-still.
+
 * UI: PceEmacs: swapped ok/cancel buttons in M-x argument prompter.
 
 * PORT: By default disabled non-functioning C++ interface.

@@ -56,10 +56,6 @@ eventBrowserSelectGesture(BrowserSelectGesture g, EventObj ev)
   ListBrowser lb = get_list_browser(ev);
 
 					/* Handle the browsers scrollbar */
-#if 0
-  if ( insideEvent(ev, (Graphical)lb->scroll_bar) )
-    return send(lb->scroll_bar, NAME_event, ev, 0);
-#else
   if ( g->scrolling == ON )
   { send(lb->scroll_bar, NAME_event, ev, 0);
     if ( isUpEvent(ev) )
@@ -71,7 +67,7 @@ eventBrowserSelectGesture(BrowserSelectGesture g, EventObj ev)
     send(lb->scroll_bar, NAME_event, ev, 0);
     succeed;
   }
-#endif
+
   rval = eventGesture(g, ev);
 
   if ( g->status == NAME_active && isAEvent(ev, NAME_locMove) )
