@@ -26,12 +26,13 @@ qsave_program(File, Options0) :-
 	option(Options0, autoload/true, Autoload, Options1),
 	option(Options1, map/[],        Map,      Options2),
 	option(Options2, goal/[],       GoalTerm, Options3),
+	option(Options3, op/save,	SaveOps,  Options4),
 	(   GoalTerm == []
-	->  Options = Options3
+	->  Options = Options4
 	;   term_to_atom(GoalTerm, GoalAtom),
 	    term_to_atom(GT, GoalAtom),
 	    '$define_predicate'(user:GT),	% autoloader
-	    Options = [goal=GoalAtom|Options3]
+	    Options = [goal=GoalAtom|Options4]
 	),
 	(   Autoload == true
 	->  save_autoload
@@ -51,7 +52,10 @@ qsave_program(File, Options0) :-
 	save_flags,
 	save_imports,
 	save_features,
-	save_operators,
+	(   SaveOps == save
+	->  save_operators
+	;   true
+	),
 %	save_foreign_libraries,
 	system_mode(off),
 	$close_wic,
@@ -204,8 +208,43 @@ c_feature(arch).
 		 *******************************/
 
 save_operators :-
-	true.				% TBD
+	feedback('~nOPERATORS~n', []),
+	findall(op(P, T, N), current_op(P, T, N), Ops),
+	$reset_operators,
+	make_operators(Ops, Set),
+	findall(D, deleted_operator(Ops, D), Deleted),
+	append(Set, Deleted, Modify),
+	forall(member(O, Modify),
+	       (   feedback('~n~t~8|~w ', [O]),
+		   $add_directive_wic(O),
+		   O)).
 
+make_operators([], []).
+make_operators([Op|L0], [Op|L]) :-
+	Op = op(P, T, N),
+	\+ current_op(P, T, N), !,
+	make_operators(L0, L).
+make_operators([_|T], L) :-
+	make_operators(T, L).
+
+deleted_operator(Ops, op(0, T, N)) :-
+	current_op(_, T, N),
+	\+ (  member(op(_, OT, N), Ops),
+	      same_op_type(T, OT)
+	   ).
+	
+same_op_type(T, OT) :-
+	op_type(T, Type),
+	op_type(OT, Type).
+
+op_type(fx,  prefix).
+op_type(fy,  prefix).
+op_type(xfx, infix).
+op_type(xfy, infix).
+op_type(yfx, infix).
+op_type(yfy, infix).
+op_type(xf,  postfix).
+op_type(yf,  postfix).
 
 		 /*******************************
 		 *       FOREIGN LIBRARIES	*

@@ -311,6 +311,7 @@ bool		isInfixOperator(Atom atom, int *type, int *priority);
 word		pl_op1(Word priority, Word type, Word name);
 bool		newOp(char *name, int type, int pri);
 void		initOperators(void);
+word		pl_reset_operators(void);
 
 /* pl-os.c */
 bool		initOs(void);

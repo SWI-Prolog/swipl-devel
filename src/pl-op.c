@@ -324,15 +324,35 @@ initOperators(void)
 
     for(n=0, op=operatorTable; n < (OPERATORHASHSIZE-1); n++, op++)
       *op = (Operator)makeRef(op+1);
+
+    *op = NULL;
   }
 
   { register Operator op;
     register int v;
 
-    for( op = &operators[0]; op->name; op++ )
-    { v = pointerHashValue(op->name, OPERATORHASHSIZE);
-      op->next = operatorTable[v];
-      operatorTable[v] = op;
+    for( op = operators; op->name; op++ )
+      operator(op->name, op->type, op->priority);
+  }
+}
+
+
+word
+pl_reset_operators()
+{ int n;
+
+  for(n=0; n<OPERATORHASHSIZE; n++)
+  { Operator op = operatorTable[n];
+    Operator next;
+
+    for( ; op && !isRef(op); op = next )
+    { next = op->next;
+
+      freeHeap(op, sizeof(*op));
     }
   }
+
+  initOperators();
+
+  succeed;
 }

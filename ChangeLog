@@ -4,6 +4,10 @@
 Version 2.1.7
 =============
 
+  * ADDED: Saving current operator declarations with qsave_program/[1,2].
+
+  * FIXED: Garbage-collector error.
+
   * FIXED: predicate-reference count problem
   
   * ADDED: style_check(+dynamic) to report on manipulation of predicates
@@ -13,7 +17,8 @@ Version 2.1.6
 =============
 
   * INSTALL: installs pl in the SWI-Prolog tree and just creates a link
-    from the binary directory
+    from the binary directory.  Makes it easier to move and redistribute
+    the SWI-Prolog binaries.
 
   * CHPL.c: fixed conflict for basename()
   

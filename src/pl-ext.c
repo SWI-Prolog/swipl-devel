@@ -104,6 +104,7 @@ static struct foreign {
   ADD("$complete_atom",		3, pl_complete_atom,		TRACE_ME),
   ADD("$atom_completions",	2, pl_atom_completions,		TRACE_ME),
   ADD("$op",			3, pl_op1,			TRACE_ME),
+  ADD("$reset_operators",	0, pl_reset_operators,		TRACE_ME),
 
   ADD("!",			0, pl_metacut,			TRACE_ME),
   ADD("functor",		3, pl_functor,			TRACE_ME),

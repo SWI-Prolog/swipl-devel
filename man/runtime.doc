@@ -35,6 +35,7 @@ init_file& \bf -f	& atom		& Personal initialisation file \\
 \hline
 autoload &		& bool		& If true, run autoload/0 first \\
 map	 &	        & atom		& File containing info on dump \\
+op	 &		& \tt save/standard & Save operator declarations? \\
 \hline
 \end{tabular}
 \end{center}
