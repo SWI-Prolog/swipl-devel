@@ -383,7 +383,12 @@ Random(void)
 #ifdef HAVE_RANDOM
   return random();
 #else
-  return rand();
+  long l = rand();			/* 0<n<2^15-1 */
+  
+  l ^= rand()<<10;
+  l ^= rand()<<20;
+
+  return l & 0x7fffffff;
 #endif
 }
 

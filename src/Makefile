@@ -55,7 +55,7 @@ INSTALL=/usr/gnu/bin/install -c
 INSTALL_PROGRAM=${INSTALL}
 INSTALL_DATA=${INSTALL} -m 644
 
-COFLAGS=-O2
+COFLAGS=-g
 CWFLAGS=-Wall
 CIFLAGS=
 CMFLAGS=-funsigned-char

@@ -7,8 +7,8 @@
 
 \newcommand{\vmajor}{2}
 \newcommand{\vminor}{7}
-\newcommand{\vpatch}{13}
-\newcommand{\vmonth}{August}
+\newcommand{\vpatch}{14}
+\newcommand{\vmonth}{September}
 \newcommand{\vyear}{1996}
 
 \newcommand{\double}{\thispagestyle{plain}\cleardoublepage}

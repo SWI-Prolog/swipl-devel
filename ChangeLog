@@ -1,6 +1,31 @@
+
 			SWI-Prolog ChangeLog
 			====================
 
+
+Version 2.7.14
+==============
+
+  * MODIFIED: ensure_loaded and use_module now load if the file has
+    been changed since it was last loaded, and not only if it was not
+    loaded before.
+
+  * ADDED: load_files/2 to load files with various options (including
+    silent loading).  The undocumented $consult_file/2 has gone!
+
+  * INSTALL: Win32: nice looking installation procedure, based on the
+    WISE installation expert package.
+
+  * ADDED: A *-> B ; C (softcut).
+
+  * FIXED: Random generation for machines that use rand().  Still
+    poor, but then this function is bad.  Maybe use our own someday.
+
+  * ADDED: Win32: console support for variable-pitch fonts and user
+    selection of fonts.
+
+  * FIXED: <String> =.. X, found by Robert van Engelen.
+	
 Version 2.7.13
 ==============
 

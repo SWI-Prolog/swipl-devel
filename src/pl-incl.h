@@ -76,6 +76,7 @@ handy for it someone wants to add a data type to the system.
 
 #define PL_KERNEL		1
 #define O_COMPILE_OR		1
+#define O_SOFTCUT		1
 #define O_COMPILE_ARITH		1
 #define O_STRING		1
 #define O_PROLOG_FUNCTIONS	1
@@ -516,7 +517,12 @@ codes.
 #define I_FAIL		((code)71)		/* fail */
 #define I_TRUE		((code)72)		/* true */
 
-#define I_HIGHEST	((code)72)		/* largest WAM code !!! */
+#ifdef O_SOFTCUT
+#define C_SOFTIF	((code)73)		/* Start A *-> B ; C */
+#define C_SOFTCUT	((code)74)		/* `Cut' of A *-> B ; C */
+#endif /*O_SOFTCUT*/
+
+#define I_HIGHEST	((code)74)		/* largest WAM code !!! */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Arithmetic comparison

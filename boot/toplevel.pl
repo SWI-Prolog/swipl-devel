@@ -61,7 +61,7 @@ $load_system_init_file :-
 	    concat_atom([Home, '/', Name], File),
 	    access_file(File, read),
 	    asserta(loaded_init_file(system)),
-	    $consult_file(user:File, []), ! % silent loading
+	    load_files(user:File, [silent(true)]), !
 	).
 $load_system_init_file.
 

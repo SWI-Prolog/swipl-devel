@@ -216,6 +216,18 @@ predicate_line(Name, 2) -->			% infix operator
 	skip_blanks,
 	arg,
 	skip_blanks, !.
+predicate_line(Name, 2) -->			% infix operator
+	skip_blanks,
+	arg,
+	skip_blanks,
+	atom(Name),
+	skip_blanks,
+	arg,
+	skip_blanks,
+	";",
+	skip_blanks,
+	arg,
+	skip_blanks.
 predicate_line(Name, 0) -->
 	atom(Name).
 
@@ -293,8 +305,10 @@ function_line(Name) -->
 
 function_type -->
 	skip_blanks,
-	alpha(_),
-	alpha(_),
+	(   alpha(_),
+	    alpha(_)
+	;   "PL_"
+	),
 	atom(_),
 	skip_blanks,
 	optional(0'(),
@@ -302,9 +316,7 @@ function_type -->
 	skip_blanks.
 
 function_name(Name) -->
-	char(0'P),
-	char(0'L),
-	char(0'_),
+	"PL_",
 	atom(Rest),
 	{ concat('PL_', Rest, Name) }.
 

@@ -11,7 +11,7 @@
 
                    Reference Manual
 
-      Updated for version 2.7.13, August 1996
+     Updated for version 2.7.14, September 1996
 
                     Jan Wielemaker
 
@@ -1588,7 +1588,10 @@ checked for existence. Library files are specified by embedding the file
 name using the functor library/1. Thus `foo ' refers to `foo.pl ' or
 `foo ' in the current directory, `library(foo) ' refers to `foo.pl ' or
 `foo ' in one of the library directories specified by the dynamic predicate
-library_directory/1.
+library_directory/1. The user may specify other `aliases' than
+library using the predicate file_search_path/2. This is strongly
+encouraged for managing complex applications. See also
+absolute_file_name/[2,3].
 
 SWI-Prolog recognises grammar rules as defined in . The user may
 define additional compilation of the source file by defining the dynamic
@@ -1607,6 +1610,34 @@ Reconsulting is implied automatically by the fact that a file is consulted
 which is already loaded.
 
 
+load_files(+Files, +Options)
+     The predicate load_files/2 is the parent of all the other loading
+     predicates. It currently supports a subset of the options of
+     Quintus load_files/2. Files is either specifies a single, or a list
+     of source-files. The specification for a source-file is handled
+     absolute_file_name/2. See this predicate for the supported
+     expansions. Options is a list of options using the format
+
+         OptionName(OptionValue)
+
+     The following options are currently supported:
+
+       if(Condition)             Load the file only if the specified condition is
+                                 satisfied.  The value true loads the file un-
+                                 conditionally, changed loads the file if it was
+                                 not loaded before, or has been modified since
+                                 it was loaded the last time, not_loaded loads
+                                 the file if it was not loaded before.
+       must_be_module(Bool)      If true, raise an error if the file is not a module
+                                 file. Used by use_module/[1,2].
+       imports(List|all)         If all and the file is a module file, import all
+                                 public predicates.  Otherwise import only the
+                                 named predicates. No effect if the file is not a
+                                 module file.
+       silent(Bool)              If  true,  load  the  file  without  printing  a
+                                 message.
+
+
 consult(+File)
      Read File as a Prolog source file. File may be a list of files, in
      which case all members are consulted in turn. File may start with
@@ -1618,6 +1649,8 @@ consult(+File)
 
        ?- consult(load).           % consult `load' or `load.pl'
        ?- [library(quintus)].      % load Quintus compatibility library
+
+     Equivalent to load_files(Files, []).
 
 
 ensure_loaded(+File)
@@ -1630,6 +1663,8 @@ ensure_loaded(+File)
      With the semantics, we hope to get as closely possible to the clear
      semantics without the presence of a module system. Applications
      using modules should consider using use_module/[1,2].
+
+     Equivalent to load_files(Files, [if(changed)]).
 
 
 require(+ListOfNameAndArity)
@@ -2112,6 +2147,15 @@ repeat
          If -> Then; _Else :- If, !, Then.
          If -> _Then; Else :- !, Else.
          If -> Then :- If, !, Then.
+
+
++Condition *-> +Action ; +Else
+     This construct implements the so-called `soft-cut'. The control is
+     defined as follows: If Condition succeeds at least once, the
+     semantics is the same as (Condition, Action). If Condition does
+     not succeed, the semantics is that of (Condition, Else). In other
+     words, If Condition succeeds at least once, simply behave as the
+     conjuction of Condition and Action, otherwise execute Else.
 
 
 \+ +Goal
@@ -8119,6 +8163,7 @@ Summary
 ! /1                             Cut block. See block/3
 ,     /2{xfy 1000}               Conjuction of goals
 ->    /2{xfy 1050}               If-then-else
+*->  /2{xfy 1050}               Soft-cut
 . /2                             Consult. Also list constructor
 ;     /2{xfy 1100}               Disjunction of goals. Same as | /2
 <     /2{xfx  700}               Arithmetic smaller
@@ -8321,6 +8366,7 @@ line_position/2                 Character position in line on stream
 list_to_set/2                   Remove duplicates
 listing/0                       List program in current module
 listing/1                       List predicate
+load_files/2                    Load source files with options
 load_foreign/2                  Load foreign (C) module
 load_foreign/5                  Load foreign (C) module
 load_foreign_library/1         library(shlib): Load shared library (.so file)

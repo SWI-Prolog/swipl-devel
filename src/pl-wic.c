@@ -158,7 +158,8 @@ between  16  and  32  bits  machines (arities on 16 bits machines are 16
 bits) as well as machines with different byte order.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define VERSION 30			/* save version number */
+#define LOADVERSION 30			/* load all versions later >= 30 */
+#define VERSION 31			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF     0			/* reference to previous */
@@ -648,7 +649,7 @@ loadWicFd(char *file, IOSTREAM *fd, int flags)
   if ( !s || !streq(s, saveMagic) )
     return fatalError("%s is not a SWI-Prolog intermediate code file", file);
 
-  if ( getNum(fd) != VERSION )
+  if ( getNum(fd) < LOADVERSION )
   { fatalError("Intermediate code file %s has incompatible save version",
 	       file);
     fail;
@@ -1857,7 +1858,7 @@ qlfLoad(char *file, Module *module)
   
   if ( !(fd = Sopen_file(file, "rbr")) )
     return warning("$qlf_load/1: can't open %s: %s", file, OsError());
-  if ( (lversion = qlfVersion(fd)) != VERSION )
+  if ( !(lversion = qlfVersion(fd)) || lversion < LOADVERSION )
   { Sclose(fd);
     if ( lversion )
       warning("$qlf_load/1: %s bad version (file version = %d, prolog = %d)",

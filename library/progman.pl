@@ -13,6 +13,7 @@
 	    progman_make_group/1,	% +Group
 	    progman_make_group/2,	% +Group, +GroupFile
 	    progman_make_item/4,	% +Group, +Title, +CmdLine, +Cwd
+	    progman_make_item/5,	% +Group, +Title, +CmdLine, +Cwd, +Icon
 
 	    progman_setup/0		% Installs icons
 	  ]).
@@ -69,21 +70,27 @@ progman_make_group(Name, File) :-
 %	progman_make_item(+Group, +Title, +CmdLine, +Dir)
 %	
 %	Make a new program item in the named group.  If the item already
-%	exists, ask to delete the item.
+%	exists, delete it.
 
 progman_make_item(Group, Title, CmdLine, Dir) :-
+	progman_make_item(Group, Title, CmdLine, Dir, -).
+progman_make_item(Group, Title, CmdLine, Dir, Icon) :-
+	(   nonvar(Icon),
+	    Icon = IconFile:IconNum
+	->  true
+	;   IconFile = '',
+	    IconFile = ''
+	),
 	progman_group_info(Group, _File, Items),
 	open_dde_conversation(progman, progman, DDE),
+	dde_fmt_execute(DDE, '[ShowGroup("~w", 1)]', Group),
 	(   memberchk(item(Title, _, _), Items)
-	->  (   '$confirm'('Replace item ~w from group ~w', [Title, Group])
-	    ->	dde_fmt_execute(DDE, '[ReplaceItem("~w")]', [Title])
-	    ;	format('Adding duplicate item~n', [])
-	    )
+	->  dde_fmt_execute(DDE, '[ReplaceItem("~w")]', [Title])
 	;   true
 	),
-	dde_fmt_execute(DDE, '[ShowGroup("~w", 1)]', Group),
-	dde_fmt_execute(DDE, '[addItem(~w, "~w",,,,, "~w",,)]',
-		    [CmdLine, Title, Dir]),
+	dde_fmt_execute(DDE, '[addItem(~w, "~w",~w,~w,,, "~w",,)]',
+		    [CmdLine, Title, IconFile, IconNum, Dir]),
+	dde_fmt_execute(DDE, '[ShowGroup("~w", 0)]', Group),
 	close_dde_conversation(DDE).
 
 %	program_group(+Default, -Group)

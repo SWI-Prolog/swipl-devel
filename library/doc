@@ -1,8 +1,0 @@
-#!/bin/csh
-# Generate documentation from a library file
-# Jan Wielemaker. July 17, 1988
-
-foreach file ($*)
-    if ( $file =~ *.pl ) set file=$file:r
-    awk -f Doc.Awk $file:r.pl | sed -f Doc.Sed > doc/$file:r.doc
-end

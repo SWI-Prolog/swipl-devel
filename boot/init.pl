@@ -137,15 +137,13 @@ $show_childs(Name, Arity) :-
 
 (If -> Then) :- If, !, Then.
 
-(If -> Then; _Else) :- If, !, Then.
-(_If -> _Then; Else) :- !, Else.
-';'(Goal, _) :- Goal.
-';'(_, Goal) :- Goal.
+(If ->  Then; Else) :- !, (If  -> Then ; Else).
+(If *-> Then; Else) :- !, (If *-> Then ; Else).
+(A ; B) :- (A ; B).
 
-(If -> Then | _Else) :- If, !, Then.
-(_If -> _Then | Else) :- !, Else.
-'|'(Goal, _) :- Goal.
-'|'(_, Goal) :- Goal.
+(If ->  Then| Else) :- !, (If  -> Then ; Else).
+(If *-> Then| Else) :- !, (If *-> Then ; Else).
+(A | B) :- (A ; B).
 
 ','(Goal1, Goal2) :-			% Puzzle for beginners!
 	Goal1,
@@ -473,16 +471,13 @@ $dochk_file(File, Exts, Cond, FullName) :-
 	$search_path_file_cache/4.
 
 $chk_alias_file(Spec, Exts, Cond, FullFile) :-
-	$search_path_file_cache(Spec, Cond, FullFile, Ext),
-	memberchk(Ext, Exts).
+	$search_path_file_cache(Spec, Cond, FullFile, Exts).
 $chk_alias_file(Spec, Exts, Cond, FullFile) :-
 	expand_file_search_path(Spec, Expanded),
 	$extend_file(Expanded, Exts, LibFile),
 	$file_condition(Cond, LibFile),
 	$absolute_file_name(LibFile, FullFile),
-	concat(Expanded, Ext, LibFile),
-	\+ $search_path_file_cache(Spec, Cond, FullFile, Ext),
-	assert($search_path_file_cache(Spec, Cond, FullFile, Ext)).
+	asserta($search_path_file_cache(Spec, Cond, FullFile, Exts)).
 	
 $file_condition([], _) :- !.
 $file_condition([H|T], File) :- !,
@@ -629,9 +624,9 @@ $substitute_atom(Old, New, Org, Result) :-
 	consult/1,
 	use_module/1,
 	use_module/2,
-	$use_module/3,
-	$ensure_loaded/2,
-	$consult_file/2.
+	$load_file/2,
+	load_files/1,
+	load_files/2.
 
 %	ensure_loaded(+File|+ListOfFiles)
 %	
@@ -639,30 +634,8 @@ $substitute_atom(Old, New, Org, Result) :-
 %	file is a module file import the public predicates into the context
 %	module.
 
-ensure_loaded([]) :- !.
-ensure_loaded([Spec|Rest]) :- !,
-	ensure_loaded(Spec),
-	ensure_loaded(Rest).
-ensure_loaded(Spec) :-
-	$strip_module(Spec, _, File),
-	(   $check_file(File, FullFile)
-	->  $ensure_loaded(Spec, FullFile)
-	;   $warning('ensure_loaded/1: No such file: ~w', Spec),
-	    fail
-	).
-
-$ensure_loaded(Spec, FullFile) :-
-	source_file(FullFile), !,
-	$strip_module(Spec, Context, _),
-	(   $current_module(Module, FullFile)
-	->  $import_list(Context, Module, all)
-	;   (   Context == user
-	    ->	true
-	    ;   consult(FullFile)
-	    )
-	).
-$ensure_loaded(Spec, _) :-
-	$consult_file(Spec, [verbose]).
+ensure_loaded(Files) :-
+	load_files(Files, [if(changed)]).
 
 %	use_module(+File|+ListOfFiles)
 %	
@@ -671,42 +644,25 @@ $ensure_loaded(Spec, _) :-
 %	predicates are not yet imported into the context module, then do
 %	so.
 
-use_module([]) :- !.
-use_module([Spec|Rest]) :- !,
-	use_module(Spec),
-	use_module(Rest).
-use_module(Spec) :-
-	use_module(Spec, all).
+use_module(Files) :-
+	load_files(Files, [if(changed), must_be_module(true)]).
 
 %	use_module(+File, +ImportList)
 %	
 %	As use_module/1, but takes only one file argument and imports only
 %	the specified predicates rather than all public predicates.
 
-use_module(File, ImportList) :-
-	$use_module(File, ImportList, [verbose]).
-
-$use_module(Spec, Import, _) :-
-	$strip_module(Spec, _, File),
-	$check_file(File, FullFile),
-	$current_module(Module, FullFile), !,
-	context_module(Context),
-	$import_list(Context, Module, Import).	
-$use_module(Spec, Import, Options) :-
-	$consult_file(Spec, [import = Import, is_module | Options]).
-	
+use_module(Files, Import) :-
+	load_files(Files, [ if(changed),
+			    must_be_module(true),
+			    imports(Import)]).
 
 [F|R] :-
 	consult([F|R]).
 [].
 
-consult([]) :- !.
-consult([File|Rest]) :- !,
-	consult(File),
-	consult(Rest).
-consult(Spec) :-
-	$consult_file(Spec, [verbose]).
-
+consult(List) :-
+	load_files(List).
 
 %	Compilation extensions
 
@@ -729,36 +685,86 @@ $consult_goal(Path, Goal) :-
 %	    is_module		File MUST be a module file
 %	    import = List	List of predicates to import
 
-$consult_file(Spec, Options) :-
+load_files(Files) :-
+	load_files(Files, []).
+load_files(Files, Options) :-
+	$strip_module(Files, Module, TheFiles),
+        $load_files(TheFiles, Module, Options).
+
+$load_files([], _, _) :- !.
+$load_files([H|T], Module, Options) :- !,
+	$load_file(Module:H, Options),
+	$load_files(T, Module, Options).
+$load_files(File, Module, Options) :-
+	$load_file(Module:File, Options).
+
+
+$get_option(Term, Options, Default) :-
+	(   memberchk(Term, Options)
+	->  true
+	;   arg(1, Term, Default)
+	).
+
+
+$noload(true, _) :- !,
+	fail.
+$noload(not_loaded, FullFile) :-
+	source_file(FullFile), !.
+$noload(changed, FullFile) :-
+	$time_source_file(FullFile, LoadTime),
+        time_file(FullFile, Modified),
+        Modified @=< LoadTime, !.
+
+
+$load_file(Spec, Options) :-
 	statistics(heapused, OldHeap),
 	statistics(cputime, OldTime),
  
-	(memberchk(import = Import, Options) -> true ; Import = all),
-	(memberchk(is_module, Options) -> IsModule = true ; IsModule = false),
+	$get_option(imports(Import), Options, all),
+	$get_option(must_be_module(IsModule), Options, false),
+	$get_option(silent(Silent), Options, false),
+	$get_option(if(If), Options, true),
 
-	$strip_module(Spec, Module, File),
-	(   $check_file(File, Absolute),
-	    $consult_goal(Absolute, Goal),
-	    $apply(Goal, [Absolute, Module, Import, IsModule, Action, LM])
-	->  true
-	;   $warning('No such file: ~w', Spec),
-	    fail
-	),
+        $strip_module(Spec, Module, File),
+	    
+	(   once($chk_file(File, ['.pl', ''], exists, FullFile)),
+	    $noload(If, FullFile)
+	->  (   $current_module(LoadModule, FullFile)
+	    ->  $import_list(Module, LoadModule, all)
+	    ;   (   Module == user
+		->  true
+		;   $load_file(Spec, [if(true)|Options])
+		)
+	    )
+	;   (   $check_file(File, Absolute)
+	    *-> true
+	    ;   $warning('No such file: ~w', Spec),
+		fail
+	    ),
 
-	(   memberchk(verbose, Options),
-	    (flag($autoloading, 0, 0) ; flag($verbose_autoload, on, on))
-	->  statistics(heapused, Heap),
-	    statistics(cputime, Time),
-	    HeapUsed is Heap - OldHeap,
-	    TimeUsed is Time - OldTime,
-	    $confirm_file(File, Absolute, ConfirmFile),
-	    $confirm_module(LM, ConfirmModule),
+	    (   $consult_goal(Absolute, Goal),
+	        $apply(Goal, [Absolute, Module, Import, IsModule, Action, LM])
+	    ->  true
+	    ;   $warning('Failed to load file: ~w', Spec),
+		fail
+	    ),
 
-	    $ttyformat('~N~w ~w~w, ~2f sec, ~D bytes.~n',
-		       [ConfirmFile, Action, ConfirmModule,
-			TimeUsed, HeapUsed])
-	;   true
+	    (   Silent == false,
+		(flag($autoloading, 0, 0) ; flag($verbose_autoload, on, on))
+	    ->  statistics(heapused, Heap),
+		statistics(cputime, Time),
+		HeapUsed is Heap - OldHeap,
+		TimeUsed is Time - OldTime,
+		$confirm_file(File, Absolute, ConfirmFile),
+		$confirm_module(LM, ConfirmModule),
+
+		$ttyformat('~N~w ~w~w, ~2f sec, ~D bytes.~n',
+			   [ConfirmFile, Action, ConfirmModule,
+			    TimeUsed, HeapUsed])
+	    ;   true
+	    )
 	).
+
 
 $confirm_file(library(_), Absolute, Absolute) :- !.
 $confirm_file(File, _, File).

@@ -90,6 +90,10 @@ struct code_info codeTable[] = {
 #endif
   CODE(I_FAIL,		"i_fail",	0, 0),
   CODE(I_TRUE,		"i_true",	0, 0),
+#ifdef O_SOFTCUT
+  CODE(C_SOFTIF,	"c_softif",	2, 0),
+  CODE(C_SOFTCUT,	"c_softcut",	1, 0),
+#endif
 /*List terminator */
   CODE(0,		NULL,		0, 0)
 };
@@ -774,19 +778,21 @@ compileBody(register Word body, code call, register compileInfo *ci)
       VarTable vsave = mkCopiedVarTable(ci->used_var);
       VarTable valt1 = mkCopiedVarTable(ci->used_var);
       VarTable valt2 = mkCopiedVarTable(ci->used_var);
+      int hard;
       
       setVars(argTermP(*body, 0), valt1);
       setVars(argTermP(*body, 1), valt2);
 
       deRef(a0);
-      if ( hasFunctor(*a0, FUNCTOR_ifthen2) )	/* A -> B ; C */
+      if ( (hard=hasFunctor(*a0, FUNCTOR_ifthen2)) || /* A  -> B ; C */
+	   hasFunctor(*a0, FUNCTOR_softcut2) )        /* A *-> B ; C */
       { int var = VAROFFSET(ci->clause->variables++);
 	int tc_or, tc_jmp;
 
-	Output_2(ci, C_IFTHENELSE, var, (code)0);
+	Output_2(ci, hard ? C_IFTHENELSE : C_SOFTIF, var, (code)0);
 	tc_or = PC(ci);
 	TRY( compileBody(argTermP(*a0, 0), I_CALL, ci) );	
-	Output_1(ci, C_CUT, var);
+	Output_1(ci, hard ? C_CUT : C_SOFTCUT, var);
 	TRY( compileBody(argTermP(*a0, 1), I_CALL, ci) );	
 	balanceVars(valt1, valt2, ci);
 	Output_1(ci, C_JMP, (code)0);
@@ -2037,18 +2043,26 @@ decompileBody(register decompileInfo *di, code end, Code until)
 			    pushed++;
 			    continue;
 			  }
-      case C_IFTHENELSE:			/* A -> B ; C */
 			  { Code adr1;
 			    int jmp;
-
+			    code icut;
+			    functor_t f;
+      case C_SOFTIF:				/* A *-> B ; C */
+			    icut = C_SOFTCUT;
+			    f = FUNCTOR_softcut2;
+			    goto ifcommon;
+      case C_IFTHENELSE:			/* A  -> B ; C */
+			    icut = C_CUT;
+			    f = FUNCTOR_ifthen2;
+			ifcommon:
 			    PC++;		/* skip the 'MARK' variable */
 			    jmp  = (int) *PC++;
 			    adr1 = PC+jmp;
 
-			    decompileBody(di, C_CUT, (Code)NULL);   /* A */
+			    decompileBody(di, icut, (Code)NULL);   /* A */
 			    PC += 2;		/* skip the cut */
 			    decompileBody(di, (code)-1, adr1);	    /* B */
-			    build_term(FUNCTOR_ifthen2, di);
+			    build_term(f, di);
 			    PC--;
 			    DECOMPILETOJUMP;	/* C */
 			    build_term(FUNCTOR_semicolon2, di);
@@ -2536,10 +2550,12 @@ wamListClause(Clause clause)
       case H_VAR:
       case C_VAR:
       case C_MARK:
+      case C_SOFTCUT:
       case C_CUT:			/* var */
 	assert(ci->arguments == 1);
 	Putf(" var(%d)", VARNUM(*bp++));
 	break;
+      case C_SOFTIF:
       case C_IFTHENELSE:		/* var, jump */
       case C_NOT:
       { int var = VARNUM(*bp++);

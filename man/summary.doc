@@ -10,6 +10,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
 \\ \verb"! /1"				\> Cut block. See \verb"block/3"
 \\ \verb",    /2{xfy 1000}"		\> Conjuction of goals
 \\ \verb"->   /2{xfy 1050}"		\> If-then-else
+\\ \verb"*->  /2{xfy 1050}"		\> Soft-cut
 \\ \verb". /2"				\> Consult. Also list constructor
 \\ \verb";    /2{xfy 1100}"		\> Disjunction of goals. Same as \verb"| /2"
 \\ \verb"<    /2{xfx  700}"		\> Arithmetic smaller
@@ -212,6 +213,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\=\kill
 \\ \verb"list_to_set/2"			\> Remove duplicates
 \\ \verb"listing/0"			\> List program in current module
 \\ \verb"listing/1"			\> List predicate
+\\ \verb"load_files/2"			\> Load source files with options
 \\ \verb"load_foreign/2"		\> Load foreign (C) module
 \\ \verb"load_foreign/5"		\> Load foreign (C) module
 \\ \verb"load_foreign_library/1"	\> \lib{shlib} Load shared library (.so file)

@@ -269,6 +269,7 @@ static struct operator operators[] = {
   OP(ATOM_minus,	OP_YFX,		500),
   OP(ATOM_grammar,	OP_XFX,	       1200),		/* --> */
   OP(ATOM_ifthen,	OP_XFY,	       1050),		/* -> */
+  OP(ATOM_softcut,	OP_XFY,	       1050),		/* *-> */
   OP(ATOM_divide,	OP_YFX,		400),		/* / */
   OP(ATOM_div,		OP_YFX,		400),		/* // */
   OP(ATOM_and,		OP_YFX,		500),		/* /\ */

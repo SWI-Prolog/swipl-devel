@@ -768,7 +768,7 @@ pl_univ(term_t t, term_t list)
     return PL_unify_nil(l);
   }
 
-  if ( PL_is_number(t) )		/* 3 =.. X and 3.4 =.. X */
+  if ( PL_is_atomic(t) )		/* 3 =.. X, 3.4 =.. X, "foo" =.. X */
   { term_t head = PL_new_term_ref();
 
     if ( PL_unify_list(list, head, l) &&

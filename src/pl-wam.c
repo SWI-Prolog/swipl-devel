@@ -1144,6 +1144,10 @@ pl-comp.c
 #endif /*O_INLINE_FOREIGNS*/
     &&I_FAIL_LBL,
     &&I_TRUE_LBL,
+#ifdef O_SOFTCUT
+    &&C_SOFTIF_LBL,
+    &&C_SOFTCUT_LBL,
+#endif
     NULL
   };
 
@@ -1942,6 +1946,21 @@ discarded.
         NEXT_INSTRUCTION;
       }
 
+#ifdef O_SOFTCUT
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Handle the commit-to of A *-> B; C.  Simply mark the $alt/1 frame as cutted,
+and control will not reach C again.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    VMI(C_SOFTCUT, COUNT_N(c_softcut), ("c_softcut %d\n", *PC)) MARK(CSOFTCUT);
+      { LocalFrame altfr = (LocalFrame) varFrame(FR, *PC);
+
+	assert(altfr->predicate == PROCEDURE_alt1->definition);
+	PC++;
+	set(altfr, FR_CUT);
+	NEXT_INSTRUCTION;
+      }
+#endif
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 C_END is a dummy instruction to help the decompiler to find the end of A
 ->  B.  (Note  that  a  :-  (b  ->  c),  d == a :- (b -> c, d) as far as
@@ -2378,22 +2397,32 @@ doesn't exist.
       NEXT_INSTRUCTION;
 
 #if O_COMPILE_OR
+#ifdef O_SOFTCUT
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+A *-> B ; C is translated to C_SOFIF <A> C_SOFTCUT <B> C_JMP end <C>.  See
+pl-comp.c and C_SOFTCUT implementation for details.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+    VMI(C_SOFTIF, COUNT_2N(c_softif), ("c_softif %d\n", *PC)) MARK(C_SOFTIF);
+      { varFrame(FR, *PC++) = (word) lTop; /* see C_SOFTCUT */
 
+	goto c_or;
+      }
+
+#endif
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 If-then-else is a contraction of C_MARK and C_OR.  This contraction  has
 been  made  to help the decompiler distinguis between (a ; b) -> c and a
 -> b ; c, which would otherwise only be  possible  to  distinguis  using
 look-ahead.
 
-The   asm("nop")  is a  tricky.    The  problem  is    that  C_NOT and
-C_IFTHENELSE are the same instructions.   The one is generated on \+/1
-and the  other    on (Cond ->   True    ;   False).   Their  different
-virtual-machine   id is  used   by  the   decompiler.  Now,   as   the
-VMCODE_IS_ADDRESS is in effect,  these two instruction would  become
-the same.  The asm("nop") ensures  they have the same *functionality*,
-but a  *different* address.  If your  machine does't like nop,  define
-the  macro ASM_NOP  in your md-file  to do something that 1)  has  *no
-effect* and 2) is *not optimised* away by the compiler.
+The asm("nop") is a tricky. The problem   is that C_NOT and C_IFTHENELSE
+are the same instructions. The one is generated on \+/1 and the other on
+(Cond -> True ; False). Their different   virtual-machine  id is used by
+the decompiler. Now, as the VMCODE_IS_ADDRESS   is  in effect, these two
+instruction would become the same. The  asm("nop") ensures they have the
+same *functionality*, but a *different* address.  If your machine does't
+like nop, define the macro ASM_NOP in  your md-file to do something that
+1) has *no effect* and 2) is *not optimised* away by the compiler.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(C_NOT, {}, ("c_not %d\n", *PC))
 #if VMCODE_IS_ADDRESS
@@ -2429,6 +2458,7 @@ build the frame for $alt/1 and then   continue execution.  This is ok as
 the first call of $alt/1 simply succeeds.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(C_OR, COUNT_N(c_or), ("c_or %d\n", *PC)) MARK(C_OR);
+    c_or:
       { int skip = *PC++;
 	Word a;
 
@@ -3200,11 +3230,10 @@ might free it!
 resume_from_body:
 
     DEF = FR->predicate;
-    if ( false(DEF, FOREIGN) )
-    { CL = CL->next;
-      if ( true(FR, FR_CUT) || !CL )	/* just confusing in the tracer */
-	continue;
-    }
+    if ( true(FR, FR_CUT) )
+      continue;
+    if ( false(DEF, FOREIGN) && !(CL = CL->next) )
+      continue;
 
 #if O_DEBUGGER
     if ( debugstatus.debugging )
@@ -3256,9 +3285,11 @@ pl_alt(term_t skip, word h)
       ForeignRedoInt(i);
     }
     case FRG_REDO:
+    { int skip = ForeignContextInt(h);
       DEBUG(9, Sdprintf("$alt/1: skipping %ld codes\n", ForeignContextInt(h)));
-      environment_frame->programPointer += ForeignContextInt(h);
+      environment_frame->programPointer += skip;
       succeed;
+    }
     case FRG_CUTTED:
     default:
       succeed;
