@@ -2811,7 +2811,11 @@ s_printA(charA *s, int l, int x, int y, FontObj f)
 
 void
 s_printW(charW *s, int l, int x, int y, FontObj f)
-{ Cprintf("16-bits characters are not supported on XPCE for Windows\n");
+{ if ( l > 0 )
+  { s_font(f);
+    y -= context.wsf->ascent;
+    TextOutW(context.hdc, x, y, s, l);
+  }
 }
 
 
@@ -2837,9 +2841,10 @@ the baseline.
 
 static void
 str_text(String s, int x, int y)
-{ assert(isstrA(s));
-
-  TextOut(context.hdc, x, y, s->s_textA, s->size);
+{ if ( isstrA(s) )
+    TextOutA(context.hdc, x, y, s->s_textA, s->size);
+  else
+    TextOutW(context.hdc, x, y, s->s_textW, s->size);
 }    
 
 
@@ -2856,7 +2861,11 @@ str_size(String s, FontObj font, int *width, int *height)
     rect.bottom = 0;
 
     s_font(font);
-    rval = DrawText(context.hdc, s->s_textA, s->size, &rect, flags);
+    if ( isstrA(s) )
+      rval = DrawTextA(context.hdc, s->s_textA, s->size, &rect, flags);
+    else
+      rval = DrawTextW(context.hdc, s->s_textW, s->size, &rect, flags);
+
     DEBUG(NAME_font,
 	  { char buf[32];
 	    int n = min(s->size, 25);
@@ -2940,11 +2949,11 @@ str_compute_lines(strTextLine *lines, int nlines, FontObj font,
   strTextLine *line;
   int n;
 
-  if ( equalName(vadjust, NAME_top) )
+  if ( vadjust == NAME_top )
     cy = y;
-  else if ( equalName(vadjust, NAME_center) )
+  else if ( vadjust == NAME_center )
     cy = y + (h - nlines*th)/2;
-  else /*if ( equalName(vadjust, NAME_bottom) )*/
+  else /*if ( vadjust == NAME_bottom )*/
     cy = y + h - nlines*th;
 
   for( n = 0, line = lines; n++ < nlines; line++, cy += th )
@@ -2952,11 +2961,11 @@ str_compute_lines(strTextLine *lines, int nlines, FontObj font,
     line->height = th;
     line->width  = str_width(&line->text, 0, line->text.size, font);
 
-    if ( equalName(hadjust, NAME_left) )
+    if ( hadjust == NAME_left )
       line->x = x;
-    else if ( equalName(hadjust, NAME_center) )
+    else if ( hadjust == NAME_center )
       line->x = x + (w - line->width)/2;
-    else /*if ( equalName(hadjust, NAME_right) )*/
+    else /*if ( hadjust == NAME_right )*/
       line->x = x + w - line->width;
   }
 }
@@ -3026,40 +3035,6 @@ str_string(String s, FontObj font,
 
   SetTextAlign(context.hdc, oalign);
 }
-
-#if 0
-{ RECT rect;
-  UINT flags = DT_EXTERNALLEADING|DT_NOCLIP|DT_NOPREFIX;
-  
-  if ( hadjust == NAME_left )
-    flags |= DT_LEFT;
-  else if ( hadjust == NAME_center )
-    flags |= DT_CENTER;
-  else
-    flags |= DT_RIGHT;
-
-  if ( vadjust != NAME_top )
-  { int th = valInt(getHeightFont(font)) *
-             (str_count_chr(s, 0, s->size, '\n')+1);
-
-    if ( vadjust == NAME_center )
-      y += (h-th)/2;
-    else
-      y += h-th;
-  } else
-    h = 10000;				/* hack: 0x0 does not draw??? */
-  if ( hadjust == NAME_left )
-    w = 10000;
-
-  rect.left   = x;
-  rect.top    = y;
-  rect.right  = rect.left + w;
-  rect.bottom = rect.top + h;
-
-  s_font(font);
-  DrawText(context.hdc, s->s_textA, s->size, &rect, flags);
-}
-#endif
 
 
 static void
