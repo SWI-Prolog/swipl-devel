@@ -12,6 +12,7 @@
 
 /*#define O_DEBUG 1*/			/* include crash/0 */
 #include "pl-incl.h"
+#include "pl-ctype.h"
 
 #if O_DEBUG
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -542,17 +543,33 @@ bindExtensions(const PL_extension *e)
 
   for(; e->predicate_name; e++)
   { short flags = TRACE_ME;
+    Module m;
     atom_t name = PL_new_atom(e->predicate_name);
+    char *s;
+
+    for(s=e->predicate_name; isAlpha(*s); s++)
+      ;
+
+    if ( *s == ':' )			/* module:predicate */
+    { m = PL_new_module(PL_new_atom_nchars(s-e->predicate_name,
+					   e->predicate_name));
+      name = PL_new_atom(s+1);
+    } else
+    { name = PL_new_atom(e->predicate_name);
+      m = (environment_frame ? contextModule(environment_frame)
+	   		     : MODULE_user);
+    }
 
     if ( e->flags & PL_FA_NOTRACE )	     flags &= ~TRACE_ME;
     if ( e->flags & PL_FA_TRANSPARENT )	     flags |= METAPRED;
     if ( e->flags & PL_FA_NONDETERMINISTIC ) flags |= NONDETERMINISTIC;
     if ( e->flags & PL_FA_VARARGS )	     flags |= P_VARARG;
 
-    def = lookupProcedure(lookupFunctorDef(name, e->arity), 
-			  MODULE_user)->definition;
+    def = lookupProcedure(lookupFunctorDef(name, e->arity), m)->definition;
     PL_unregister_atom(name);
     set(def, FOREIGN);
+    if ( m == MODULE_system )
+      set(def, SYSTEM|HIDE_CHILDS);
     set(def, flags);
     def->definition.function = e->function;
     def->indexPattern = 0;

@@ -2322,11 +2322,7 @@ PL_register_foreign(const char *name, int arity, Func f, int flags)
     ;
 
   if ( *s == ':' )
-  { LocalArray(char, mbuf, (s-name)+1);
-
-    strncpy(mbuf, name, s-name);
-    mbuf[s-name] = EOS;
-    m = PL_new_module(PL_new_atom(mbuf));
+  { m = PL_new_module(PL_new_atom_nchars(s-name, name));
     aname = PL_new_atom(s+1);
   } else
   { aname = PL_new_atom(name);
@@ -2353,10 +2349,11 @@ PL_register_foreign(const char *name, int arity, Func f, int flags)
   def->indexPattern = 0;
   def->indexCardinality = 0;
   def->flags = 0;
-  set(def, FOREIGN|TRACE_ME);
-  clear(def, NONDETERMINISTIC);
-  if ( SYSTEM_MODE )
-    set(def, SYSTEM|HIDE_CHILDS);
+
+  if ( m == MODULE_system || SYSTEM_MODE )
+    set(def, FOREIGN|SYSTEM|HIDE_CHILDS);
+  else
+    set(def, FOREIGN|TRACE_ME);
 
   if ( (flags & PL_FA_NOTRACE) )	  clear(def, TRACE_ME);
   if ( (flags & PL_FA_TRANSPARENT) )	  set(def, METAPRED);

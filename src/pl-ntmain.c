@@ -203,7 +203,7 @@ call_menu(const char *name)
 
 
 foreign_t
-pl_prolog_insert_menu_item(foreign_t menu, foreign_t label, foreign_t before)
+pl_win_insert_menu_item(foreign_t menu, foreign_t label, foreign_t before)
 { char *m, *l, *b;
 
   if ( !PL_get_atom_chars(menu, &m) ||
@@ -221,7 +221,7 @@ pl_prolog_insert_menu_item(foreign_t menu, foreign_t label, foreign_t before)
 
 
 foreign_t
-pl_prolog_insert_menu(foreign_t label, foreign_t before)
+pl_win_insert_menu(foreign_t label, foreign_t before)
 { char *l, *b;
 
   if ( !PL_get_atom_chars(label, &l) ||
@@ -400,10 +400,10 @@ PL_extension extensions[] =
 {
 /*{ "name",	arity,  function,	PL_FA_<flags> },*/
 
-  { "window_title", 2,  pl_window_title, 0 },
-  { "prolog_insert_menu_item", 3, pl_prolog_insert_menu_item, 0 },
-  { "prolog_insert_menu", 2, pl_prolog_insert_menu, 0 },
-  { NULL,	    0, 	NULL,		 0 }	/* terminating line */
+  { "system:window_title",          2, pl_window_title,         0 },
+  { "system:$win_insert_menu_item", 3, pl_win_insert_menu_item, 0 },
+  { "system:win_insert_menu",       2, pl_win_insert_menu,      0 },
+  { NULL,		            0, NULL,		        0 }
 };
 
 
@@ -421,9 +421,8 @@ install_readline(int argc, char **argv)
   rlc_init_history(FALSE, 50);
   file_completer = rlc_complete_hook(do_complete);
 
-  PL_register_foreign("rl_add_history",    1, pl_rl_add_history,
-		      PL_FA_NOTRACE);
-  PL_register_foreign("rl_read_init_file", 1, pl_rl_read_init_file, 0);
+  PL_register_foreign("system:rl_add_history", 1, pl_rl_add_history, 0);
+  PL_register_foreign("system:rl_read_init_file", 1, pl_rl_read_init_file, 0);
 
   PL_set_feature("tty_control", PL_BOOL, TRUE);
   PL_set_feature("readline",    PL_BOOL, TRUE);
@@ -453,6 +452,7 @@ win32main(int argc, char **argv)
   PL_set_feature("hwnd", PL_INTEGER, (long)rlc_hwnd());
   rlc_interrupt_hook(interrupt);
   rlc_menu_hook(menu_select);
+  PL_set_feature("console_menu", PL_BOOL, TRUE);
 #if !defined(O_DEBUG) && !defined(_DEBUG)
   initSignals();
 #endif

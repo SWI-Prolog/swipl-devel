@@ -72,7 +72,7 @@ PLSRC=	../boot/syspred.pl ../boot/toplevel.pl \
 	../boot/list.pl ../boot/writef.pl ../boot/history.pl \
 	../boot/profile.pl ../boot/dwim.pl ../boot/rc.pl \
 	../boot/parms.pl ../boot/autoload.pl ../boot/qlf.pl \
-	../boot/topvars.pl ../boot/messages.pl ../boot/load.pl
+	../boot/topvars.pl ../boot/messages.pl ../boot/load.pl ../boot/menu.pl
 PLWINLIBS=	wise.pl dde.pl progman.pl registry.pl
 PLLIBS= MANUAL helpidx.pl help.pl explain.pl \
 	qsave.pl shlib.pl statistics.pl system.pl \
