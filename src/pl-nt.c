@@ -547,8 +547,8 @@ system-wide settings.
 
 static struct regdef
 { const char *name;
-  const int  *address;
-} regdefs[] =
+  int        *address;
+} const regdefs[] =
 { { "localSize",    &GD->defaults.local },
   { "globalSize",   &GD->defaults.global },
   { "trailSize",    &GD->defaults.trail },
@@ -562,7 +562,7 @@ setStacksFromKey(HKEY key)
 { DWORD type;
   BYTE  data[128];
   DWORD len = sizeof(data);
-  struct regdef *rd;
+  const struct regdef *rd;
 
   for(rd = regdefs; rd->name; rd++)
   { if ( RegQueryValueEx(key, rd->name, NULL, &type, data, &len) ==
@@ -579,9 +579,6 @@ setStacksFromKey(HKEY key)
 void
 getDefaultsFromRegistry()
 { HKEY key;
-  DWORD type;
-  BYTE  data[128];
-  DWORD len = sizeof(data);
 
   if ( (key = reg_open_key("HKEY_LOCAL_MACHINE/Software/SWI/Prolog", FALSE)) )
   { setStacksFromKey(key);

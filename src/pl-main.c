@@ -255,7 +255,7 @@ initDefaults()
   systemDefaults.notty       = NOTTYCONTROL;
 
 #ifdef __WIN32__
-  getDefaultsFromRegistry()
+  getDefaultsFromRegistry();
 #endif
 
   GD->io_initialised	     = FALSE;

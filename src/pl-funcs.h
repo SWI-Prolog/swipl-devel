@@ -848,6 +848,7 @@ void *		dlsym(void *handle, char *symbol);
 int		dlclose(void *handle);
 #endif /*EMULATE_DLOPEN*/
 foreign_t	pl_get_registry_value(term_t Key, term_t Name, term_t Value);
+void		getDefaultsFromRegistry(void);
 
 /* pl-rc.c */
 IOSTREAM *      SopenRC(void *rca,
