@@ -25,13 +25,6 @@
 #ifndef PL_TEXT_H_INCLUDED
 #define PL_TEXT_H_INCLUDED
 
-typedef enum 
-{ PL_CHARS_LATIN,
-  PL_CHARS_UCS,
-  PL_CHARS_UTF8
-} PL_chars_enc_t;
-
-
 typedef enum
 { PL_CHARS_MALLOC,			/* malloced data */
   PL_CHARS_RING,			/* stored in the buffer ring */
@@ -48,7 +41,7 @@ typedef struct
   } text;
   unsigned int	length;
 					/* private stuff */
-  PL_chars_enc_t encoding;		/* how it is encoded */
+  IOENC encoding;			/* how it is encoded */
   PL_chars_alloc_t storage;		/* how it is stored */
   char buf[100];			/* buffer for simple stuff */
 } PL_chars_t;

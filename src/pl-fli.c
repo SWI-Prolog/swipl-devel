@@ -345,7 +345,7 @@ PL_unify_wchars(term_t t, int flags, unsigned int len, const pl_wchar_t *s)
   int rc;
 
   text.text.w   = (pl_wchar_t *)s;
-  text.encoding = PL_CHARS_UCS;
+  text.encoding = ENC_WCHAR;
   text.storage  = PL_CHARS_HEAP;
   text.length   = len;
 
