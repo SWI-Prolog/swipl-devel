@@ -1,0 +1,7 @@
+<!DOCTYPE test [
+  <!ELEMENT test o o (p)*>
+  <!ELEMENT p    o o (#PCDATA)>
+  <!ENTITY amp CDATA "&#38;">
+]>
+
+&amp;

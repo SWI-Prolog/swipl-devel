@@ -1,5 +1,5 @@
 <!DOCTYPE test [
-  <!ELEMENT test - - p*>
+  <!ELEMENT test - - (p)*>
   <!ELEMENT p    o o (#PCDATA|q)*>
   <!ELEMENT q    - - (#PCDATA)>
 
@@ -8,7 +8,7 @@
   <!ENTITY   beg..p STARTTAG "p">
 
   <!SHORTREF in..p  '"' beg..q
-		    '&#RS;B&#RE' beg..p>
+		    '&#RS;B&#RE;' beg..p>
   <!SHORTREF in..q  '"' end..q>
   <!USEMAP in..p p>
 ]>

@@ -1,0 +1,10 @@
+<!DOCTYPE oops [
+ <!ENTITY s CDATA "attr">
+ <!ENTITY o STARTTAG "snag &#38;s;=2">
+ <!ELEMENT snag - O EMPTY>
+ <!ATTLIST snag attr NUMBER #REQUIRED>
+ <!ELEMENT oops - O RCDATA>
+]>
+
+<oops>
+&o;
