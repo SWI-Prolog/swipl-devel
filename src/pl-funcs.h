@@ -347,6 +347,9 @@ int		growStacks(LocalFrame fr, Choice ch, Code PC,
 void		clearUninitialisedVarsFrame(LocalFrame, Code);
 word		check_foreign(void);	/* O_SECURE stuff */
 void		markAtomsOnStacks(PL_local_data_t *ld);
+#ifdef O_SECURE
+word		checkStacks(LocalFrame fr, Choice ch);
+#endif
 
 /* pl-glob.c */
 word		pl_wildcard_match(term_t pattern, term_t string);

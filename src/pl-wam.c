@@ -1446,7 +1446,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   def   = proc->definition;
   arity	= def->functor->arity;
 
-  SECURE(checkStacks(environment_frame));
+  SECURE(checkStacks(environment_frame, NULL));
   assert((ulong)fli_context > (ulong)environment_frame);
   assert((ulong)lTop >= (ulong)(fli_context+1));
 
@@ -1575,7 +1575,7 @@ restore_after_query(QueryFrame qf)
     depth_reached = qf->saved_depth_reached;
 #endif /*O_LIMIT_DEPTH*/
   }
-  SECURE(checkStacks(environment_frame));
+  SECURE(checkStacks(environment_frame, NULL));
 }
 
 
