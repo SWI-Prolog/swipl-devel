@@ -911,7 +911,8 @@ register_recent_file(Path) :-
 	(   get_config(Key, Set0)
 	;   Set0 = []
 	),
-	first_n(20, [Path|Set0], Set),
+	delete(Set0, Path, Set1),
+	first_n(10, [Path|Set1], Set),
 	set_config(Key, Set).
 
 first_n(0, _, []) :- !.
