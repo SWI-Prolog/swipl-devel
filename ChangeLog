@@ -8,6 +8,8 @@
 					--------------------------------------
 
 
+  * FIXED: (a)cyclic_term/1.  Paul Singleton.
+
   * FIXED: Bug#204: conflicting <sys/malloc.h> on FreeBSD.  Deleted
     test for this header.  Tuomo Latto.
 

@@ -119,6 +119,14 @@ cyclic(hash_term-1) :-
 	integer(T).
 cyclic(streq-1) :-
 	X = [X], Y = [Y], X =@= Y.
+cyclic(test-1) :-
+	X = f(X), cyclic_term(X).
+cyclic(test-2) :-
+	acyclic_term(f(x)).
+cyclic(test-2) :-
+	acyclic_term(_).
+cyclic(test-3) :-
+	X = f(a), acyclic_term(a(X, X)).
 
 
 		 /*******************************

@@ -100,7 +100,7 @@ visitedWord(Word p ARG_LD)
 }
 
 
-static int
+static inline int
 visited(Functor f ARG_LD)
 { Word p = &f->definition;
 
@@ -118,6 +118,16 @@ unvisit(Word *base ARG_LD)
   }
 
   aTop = base;
+}
+
+
+static void
+popVisited(ARG1_LD)
+{ Word *p = aTop;
+
+  p--;
+  clear_marked(*p);
+  aTop = p;
 }
 
 
@@ -232,10 +242,9 @@ static int
 is_acyclic(Word p ARG_LD)
 { int arity;
   Functor f;
+  int rc;
 
-last:
   deRef(p);
-
   if ( !isTerm(*p) )
     succeed;
 
@@ -245,38 +254,32 @@ last:
   if ( visited(f PASS_LD) )	/* Got a cycle! */
     fail;
 
-  for(; --arity > 0; p++)
+  rc = TRUE;
+  for(; arity-- > 0; p++)
   { if ( !is_acyclic(p PASS_LD) )
-      fail;
+    { rc = FALSE;
+      break;
+    }
   }
-
-  goto last;
-}
-
-
-static
-PRED_IMPL("acyclic_term", 1, acyclic_term, 0)
-{ PRED_LD
-  Word *m = aTop;
-  int rc;
-
-  rc = is_acyclic(valTermRef(A1) PASS_LD);
-  unvisit(m PASS_LD);
+  popVisited(PASS_LD1);
 
   return rc;
 }
 
 
 static
+PRED_IMPL("acyclic_term", 1, acyclic_term, 0)
+{ PRED_LD
+
+  return is_acyclic(valTermRef(A1) PASS_LD);
+}
+
+
+static
 PRED_IMPL("cyclic_term", 1, cyclic_term, 0)
 { PRED_LD
-  Word *m = aTop;
-  int rc;
 
-  rc = is_acyclic(valTermRef(A1) PASS_LD);
-  unvisit(m PASS_LD);
-
-  return rc ? FALSE : TRUE;
+  return is_acyclic(valTermRef(A1) PASS_LD) ? FALSE : TRUE;
 }
 
 
