@@ -1,0 +1,9 @@
+VERSION 0.95
+============
+
+* ADDED: Use name of label as filename for sections if a label is present.
+
+* STARTED: this changelog
+
+VERSION 0.15
+============
