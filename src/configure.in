@@ -516,6 +516,9 @@ AC_CHECK_SIZEOF(long, 4)
 AC_CHECK_SIZEOF(int,  4)
 AC_CHECK_SIZEOF(long long, 8)
 
+AC_DEFINE(INT64_FORMAT, ["%lld"],
+	  [printf format for int64_t datatype])
+
 AC_MSG_CHECKING("Boot filename");
 BOOTFILE=boot`expr ${ac_cv_sizeof_long} \* 8`.prc
 AC_DEFINE_UNQUOTED(BOOTFILE, "$BOOTFILE",

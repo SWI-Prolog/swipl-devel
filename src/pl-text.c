@@ -99,7 +99,7 @@ PL_get_text(term_t l, PL_chars_t *text, int flags)
   { if ( !get_string_text(w, text PASS_LD) )
       fail;
   } else if ( (flags & CVT_INTEGER) && isInteger(w) )
-  { Ssprintf(text->buf, "%lld", valInteger(w) );
+  { sprintf(text->buf, INT64_FORMAT, valInteger(w) );
     text->text.t    = text->buf;
     text->length    = strlen(text->text.t);
     text->encoding  = ENC_ISO_LATIN_1;

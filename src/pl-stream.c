@@ -1420,7 +1420,13 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	      *fp   = '\0';
 	      sprintf(fs, fmbuf, v);
 	    } else
-	    { *fp++ = 'l';
+	    {
+#ifdef WIN32
+	      strcat(fp-1, "I64");	/* Synchronise with INT64_FORMAT! */
+	      fp += strlen(fp);
+#else
+	      *fp++ = 'l';
+#endif
 	      *fp++ = *fm;
 	      *fp   = '\0';
 	      sprintf(fs, fmbuf, vl);

@@ -444,6 +444,9 @@
 /* Define to 1 if `vfork' works. */
 #undef HAVE_WORKING_VFORK
 
+/* printf format for int64_t datatype */
+#undef INT64_FORMAT
+
 /* String used to prefix all symbols requested through dlsym() */
 #undef LD_SYMBOL_PREFIX
 
@@ -519,6 +522,9 @@
 
 /* The size of a `long', as computed by sizeof. */
 #undef SIZEOF_LONG
+
+/* The size of a `long long', as computed by sizeof. */
+#undef SIZEOF_LONG_LONG
 
 /* Define to the extension of shared objects (.so normally) */
 #undef SO_EXT
