@@ -137,6 +137,7 @@ expl-install::
 
 exjava-compile::
 		echo "Compiling Java examples"
+		PL=`(cd .. && pwd)`/pl.sh; export PL; \
 		JPLJAR=`pwd`/jpl.jar; export JPLJAR; \
 		for d in $(EXJAVAS); do \
 		    (cd examples/java/$$d && env JPL_COMPILE_ONLY=yes ./run.sh); \
