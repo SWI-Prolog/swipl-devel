@@ -400,6 +400,11 @@ beginning_of_line(E, Lines:[int]) :->
 	).
 
 
+clear(E) :->
+	"Clear process buffer"::
+	get(E, text_buffer, TB),
+	send(TB, clear).
+
 		 /*******************************
 		 *	     HISTORY		*
 		 *******************************/
