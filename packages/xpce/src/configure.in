@@ -154,7 +154,7 @@ if test "$swipl" != "no"; then
      fi
   else
      swipl=yes
-     if test -z "$PLICL"; then
+     if test -z "$PLINCL"; then
          AC_CHECKING("Running $PL -dump-runtime-variables")
          eval `$PL -dump-runtime-variables`
      fi

@@ -40,6 +40,8 @@ install:	$(LIBPL)
 		$(INSTALL) -m 644 $(LIBPL) $(PLBASE)/library
 		$(PL) -f none -g make -t halt
 
+rmp-install:	install
+
 uninstall:
 		(cd $(PLBASE)/library && rm -f $(LIBPL))
 		$(PL) -f none -g make -t halt

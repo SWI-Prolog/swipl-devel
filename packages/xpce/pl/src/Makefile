@@ -59,9 +59,9 @@ LIBQLFS=	pce_manual.qlf dialog/dialog.qlf emacs/emacs.qlf pcedraw.qlf
 # The main targets
 ################################################################
 
-nosoall:	common $(XPCE)
+nosoall:	$(XPCE)
 
-soall:		common $(PLBASE)/xpce/lib/$(PLARCH) $(XPCESO)
+soall:		$(PLBASE)/xpce/lib/$(PLARCH) $(XPCESO)
 
 common:		$(PLBASE)/pl.rc $(PLBASE)/xpce.rc $(PLBASE)/xpce \
 		$(PLBASE)/Makefile \

@@ -55,6 +55,8 @@ install:	$(TARGETS) $(LIBPL) install-dtd
 		$(INSTALL) -m 644 $(LIBPL) $(PLBASE)/library
 		$(PL) -f none -g make -t halt
 
+rpm-install:	install
+
 install-dtd:
 		mkdir -p $(PLBASE)/library/DTD
 		for f in $(DTDFILES); do \

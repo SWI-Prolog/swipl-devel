@@ -1,7 +1,18 @@
 ################################################################
 # This Makefile is created from Makefile.in by the main Prolog
 # configuration in .../pl/src/configure.
+#
+# It can be used to configure and make the add-on packages.  
+
 ################################################################
+
+PKG=	clib \
+	table \
+	sgml \
+	sgml/RDF \
+	xpce
+
+# Values filled from the main SWI-Prolog configure
 
 prefix=@prefix@
 PL=@PL@@RT@
@@ -13,11 +24,10 @@ PLLDFLAGS=@LDFLAGS@
 PLINCL=$(shell dirname `pwd`)/include
 PLSHARED=@PLSHARED@
 
-PKG=	clib \
-	table \
-	sgml \
-	sgml/RDF \
-	xpce
+# How to run configure.  We pass the information required from SWI-Prolog
+# in the environment.  All configure scripts in the packages are designed
+# to trust the environment if they find $PLINCL.  Otherwise they run Prolog
+# to find the required parameters.
 
 CONFIG=	env PL="$(PL)" PLBASE="$(PLBASE)" PLARCH="$(PLARCH)" \
 	    PLLIBS="$(PLLIBS)" PLLDFLAGS="$(PLLDFLAGS)" \
@@ -28,26 +38,39 @@ all:	objects
 	
 objects:
 	for p in $(PKG); do \
-	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) ); fi \
+	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) ); fi; \
         done
 	
 install:
 	for p in $(PKG); do \
-	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) install ); fi \
+	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
+        done
+
+rpm-install:
+	for p in $(PKG); do \
+	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
         done
 	
 configure::
-	for p in $(PKG); do \
-	    if [ -r $$p/configure ]; ( cd $$p && $(CONFIG) ); fi \
+	@echo "**********************"
+	@echo "* Configuring packages $(PKG)"
+	@echo "**********************"
+	@for p in $(PKG); do \
+	    if [ -r $$p/configure ]; then \
+	        echo "**********************"; \
+		echo "* Package $$p"; \
+		echo "**********************"; \
+	        ( cd $$p && $(CONFIG) ); \
+	    fi; \
         done
 	
 distclean:
 	for p in $(PKG); do \
-	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) distclean ); fi \
+	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
         done
 
 clean:
 	for p in $(PKG); do \
-	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) clean ); fi \
+	    if [ -r $$p/Makefile ]; then ( cd $$p && $(MAKE) $@ ); fi; \
         done
 

@@ -51,6 +51,8 @@ install:	$(TARGETS) $(LIBPL)
 		$(INSTALL) -m 644 $(LIBPL) $(PLBASE)/library
 		$(PL) -f none -g make -t halt
 
+rpm-install:	install
+
 uninstall:
 		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))
 		(cd $(PLBASE)/library && rm -f $(LIBPL))
