@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: PceEmacs colourise "Comment":: in method-body.
+
 VERSION 6.1.8, distributed with SWI-Prolog 5.1.8
 ================================================
 

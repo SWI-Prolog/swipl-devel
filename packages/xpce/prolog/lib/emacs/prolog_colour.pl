@@ -238,13 +238,13 @@ colourise_term(:->(Head, Body), TB,
 	colour_item(method,		TB, F-T),
 	colour_item(neck(method(send)),	TB, FF-FT),
 	colour_method_head(send(Head),	TB, HP),
-	colourise_body(Body,		TB, BP).
+	colourise_method_body(Body,	TB, BP).
 colourise_term(:<-(Head, Body), TB,
 	       term_position(F,T,FF,FT,[HP,BP])) :- !,
 	colour_item(method,	       TB, F-T),
 	colour_item(neck(method(get)), TB, FF-FT),
 	colour_method_head(get(Head),  TB, HP),
-	colourise_body(Body,	       TB, BP).
+	colourise_method_body(Body,    TB, BP).
 colourise_term((:- Directive), TB, Pos) :- !,
 	arg(1, Pos, F),
 	arg(2, Pos, T),
@@ -315,13 +315,21 @@ colourise_body(Body, Origin, TB, Pos) :-
 	colour_item(body, TB, Pos),
 	colourise_goals(Body, Origin, TB, Pos).
 
+%	colourise_method_body(+MethodBody, +TB, +Pos)
+%	
+%	Colourise the optional "comment":: as pce(comment) and proceed
+%	with the body.
+
+colourise_method_body(_Comment::Body, TB,
+		      term_position(_F,_T,_FF,_FT,[CP,BP])) :- !,
+	colour_item(comment, TB, CP),
+	colourise_body(Body, TB, BP).
+colourise_method_body(Body, TB, Pos) :-
+	colourise_body(Body, TB, Pos).
+
 colourise_goals(Body, Origin, TB, term_position(_,_,_,_,ArgPos)) :-
 	body_compiled(Body), !,
 	colourise_subgoals(ArgPos, 1, Body, Origin, TB).
-colourise_goals(::(_Comment, Body), Origin, TB,% XPCE <Comment>::Body construct
-	       term_position(_,_,_,_,[CommentPos, BodyPos])) :- !,
-	colour_item(pce(comment), TB, CommentPos),
-	colourise_goals(Body, Origin, TB, BodyPos).
 colourise_goals(Goal, Origin, TB, Pos) :-
 	colourise_goal(Goal, Origin, TB, Pos).
 
