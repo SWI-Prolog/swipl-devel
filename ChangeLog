@@ -1,8 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: relative uri net path resolution (awkward, but needed for RDF
+    test-suite).  library(url).
+
   * FIXED: #2: Handle Control-C in plcon.exe (Windows console app).
 
+>>>>>>> 1.649
 VERSION 5.1.5 (Jan 06, 2003)
 ============================
 

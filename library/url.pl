@@ -116,6 +116,10 @@ http_location(?Parts, ?Location)
 global_url(URL, BaseURL, Global) :-
 	(   is_absolute_url(URL)
 	->  Global = URL
+	;   sub_atom(URL, 0, _, _, '//')
+	->  parse_url(BaseURL, [], Attributes),
+	    memberchk(protocol(Proto), Attributes),
+	    concat_atom([Proto, :, URL], Global)
 	;   sub_atom(URL, 0, _, _, #)
 	->  (   sub_atom(BaseURL, _, _, 0, #)
 	    ->	sub_atom(URL, 1, _, 0, NoHash),
