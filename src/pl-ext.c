@@ -500,7 +500,6 @@ static const struct foreign {
 
 #ifdef O_PLMT
   FRG("thread_create",		3, pl_thread_create,	   META|TRACE_ME),
-  FRG("thread_self",		1, pl_thread_self,	        TRACE_ME),
   FRG("thread_join",		2, pl_thread_join,	        TRACE_ME),
   FRG("thread_exit",		1, pl_thread_exit,		TRACE_ME),
   FRG("current_thread",		2, pl_current_thread,      NDET|TRACE_ME),
@@ -520,6 +519,7 @@ static const struct foreign {
   FRG("open_xterm",		3, pl_open_xterm,		TRACE_ME),
 #endif
 
+  FRG("thread_self",		1, pl_thread_self,	        TRACE_ME),
   FRG("with_mutex",		2, pl_with_mutex,	   META|TRACE_ME),
   FRG("$get_pid",		1, pl_get_pid,			TRACE_ME),
 

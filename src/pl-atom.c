@@ -453,6 +453,10 @@ pl_garbage_collect_atoms()
   long oldheap = GD->statistics.heap;
   long freed;
   double t;
+  sigset_t set;
+
+  if ( gc_status.blocked )		/* Tricky things; avoid problems. */
+    succeed;
 
   LOCK();
   if ( GD->atoms.gc_active )
@@ -477,7 +481,9 @@ pl_garbage_collect_atoms()
 		   PL_CHARS, "start");
   }
 
+  PL_LOCK(L_THREAD);
   LOCK();
+  blockSignals(&set);
   t = CpuTime(CPU_USER);
   markAtomsOnStacks(LD);
 #ifdef O_PLMT
@@ -492,8 +498,9 @@ pl_garbage_collect_atoms()
   freed = oldheap - GD->statistics.heap;
   GD->statistics.atomspacefreed += freed;
   GD->statistics.atomspace -= freed;
+  unblockSignals(&set);
   UNLOCK();
-
+  PL_UNLOCK(L_THREAD);
   
   if ( verbose )
     printMessage(ATOM_informational,
@@ -531,9 +538,9 @@ void
 PL_register_atom(atom_t a)
 {
 #ifdef O_ATOMGC
-  LOCK();
+  PL_LOCK(L_MISC);
   atomValue(a)->references++;
-  UNLOCK();
+  PL_UNLOCK(L_MISC);
 #endif
 }
 
@@ -544,10 +551,10 @@ PL_unregister_atom(atom_t a)
 #ifdef O_ATOMGC
   Atom p = atomValue(a);
 
-  LOCK();
+  PL_LOCK(L_MISC);
   assert(p->references > 0);
   p->references--;
-  UNLOCK();
+  PL_UNLOCK(L_MISC);
 #endif
 }
 

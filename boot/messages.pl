@@ -669,8 +669,18 @@ prefix(warning,	      'Warning: (~w:~d):~n', '\t', '', 0,   user_error).
 prefix(help,	      '',          user_error).
 prefix(query,	      '',          user_error).
 prefix(debug,	      '',          user_output).
-prefix(warning,	      'Warning: ', user_error).
-prefix(error,	      'ERROR: ',   user_error).
+prefix(warning,	      Prefix,      user_error) :-
+	thread_self(Id),
+	(   Id == main
+	->  Prefix = 'Warning: '
+	;   concat_atom(['Warning: [Thread ', Id, ']'], Prefix)
+	).
+prefix(error,	      Prefix,   user_error) :-
+	thread_self(Id),
+	(   Id == main
+	->  Prefix = 'ERROR: '
+	;   concat_atom(['ERROR: [Thread ', Id, ']'], Prefix)
+	).
 prefix(banner,	      '',	   user_error).
 prefix(informational, '% ',        user_error).
 

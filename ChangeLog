@@ -1,6 +1,18 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED/ADDED (MT-Version):
+
+	* Atom-gc problems
+	* assert/retract corruption
+	* Atom reference counting deadlock
+	* Added thread_self/1 to the single-threaded version (returning
+          main).
+	* Added thread-indication to warning and error messages in
+	  print_message/2.
+
+    Most of this hard work by Sergey Tikhonov.  Thanks!
+
   * DOC: Various updates to web-references and XPCE references
 
   * FIXED: PL_cons_functor_v() and related interface functions: forgotten

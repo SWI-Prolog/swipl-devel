@@ -236,6 +236,7 @@ CpuTime(cputime_kind which)
 {
 #ifdef HAVE_TIMES
   struct tms t;
+  double used;
   static int MTOK_got_hz = FALSE;
   static double MTOK_hz;
 
@@ -247,10 +248,16 @@ CpuTime(cputime_kind which)
 
   switch( which )
   { case CPU_USER:
-      return (double) t.tms_utime / MTOK_hz;
+      used = (double) t.tms_utime / MTOK_hz;
+      break;
     case CPU_SYSTEM:
-      return (double) t.tms_stime / MTOK_hz;
+      used = (double) t.tms_stime / MTOK_hz;
   }
+
+  if ( isnan(used) )			/* very dubious, but this */
+    used = 0.0;				/* happens when running under GDB */
+
+  return used;
 #endif
 
 #if OS2 && EMX

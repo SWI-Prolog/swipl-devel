@@ -89,7 +89,7 @@ has_console(Id) :-
 
 attach_console :-
 	thread_self(Id),
-	has_console(Id, _, _), !.
+	has_console(Id), !.
 attach_console :-
 	thread_self(Id),
 	'$get_pid'(Pid),

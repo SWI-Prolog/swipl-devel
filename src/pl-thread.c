@@ -90,6 +90,19 @@ static Table threadAliases;		/* name --> integer-id */
 static PL_thread_info_t threads[MAX_THREADS];
 
 pthread_key_t PL_ldata;			/* key for thread PL_local_data */
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The global mutexes. Most are using  within   a  module and their name is
+simply the module-name. The idea is that   a module holds a coherent bit
+of data that needs a mutex for all operations.
+
+Some remarks:
+
+    L_MISC
+	General-purpose mutex.  Should only be used for simple, very
+	local tasks and may not be used to lock anything significant.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 pthread_mutex_t _PL_mutexes[] =
 { PTHREAD_MUTEX_INITIALIZER,		/* L_MISC */
   PTHREAD_MUTEX_INITIALIZER,		/* L_ALLOC */
@@ -1467,6 +1480,22 @@ PL_thread_destroy_engine()
 		 *	      ATOM-GC		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This  is  hairy  and  hard-to-port   code.    The   job   of  the  entry
+threadMarkAtomsOtherThreads() is to mark the   atoms referenced from all
+other threads. This function is  called from pl_garbage_collect_atoms(),
+which already has locked the L_ATOM and L_THREAD mutexes.
+
+We set up a semaphore and  signal   all  the  other threads. Each thread
+receiving a the SIG_MARKATOMS signal calls markAtomsOnStacks() and posts
+the semaphore. The latter performs its  job with certain heuristics, but
+must ensure it doesn't  forget  any  atoms   (a  few  too  many  is ok).
+Basically this signal handler can run whenever  necessary, as long as as
+the thread is not in a GC,  which   makes  it impossible to traverse the
+stacks.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
 #include <signal.h>
 
 #ifndef SA_RESTART
@@ -1514,7 +1543,6 @@ threadMarkAtomsOtherThreads()
   int me = PL_thread_self();
   int signalled = 0;
 
-  LOCK();				/* don't make new threads */
 #ifdef HAVE_SEM_INIT
   sem_init(&sem_mark, 0, 0);
 #else
@@ -1562,7 +1590,6 @@ threadMarkAtomsOtherThreads()
   DEBUG(1, Sdprintf("done!\n"));
 
   sigaction(SIG_MARKATOMS, &old, NULL);
-  UNLOCK();
 }
 
 		 /*******************************
@@ -1587,9 +1614,9 @@ lBase()
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This is from implements the function called from GNU <assert.h>, so we can
-print which thread caused the problem.  If the thread is not the main one,
-we could try to recover!
+This function is called from  GNU  <assert.h>,   so  we  can print which
+thread caused the problem. If the thread is   not the main one, we could
+try to recover!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
@@ -1622,6 +1649,12 @@ int
 PL_thread_destroy_engine()
 { return FALSE;
 }
+
+foreign_t
+pl_thread_self(term_t id)
+{ return PL_unify_atom(id, ATOM_main);
+}
+
 
 #endif  /*O_PLMT*/
 

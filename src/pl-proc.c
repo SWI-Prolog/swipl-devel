@@ -889,10 +889,12 @@ retractClauseProcedure(Procedure proc, Clause clause)
 { Definition def = proc->definition;
   bool rval;
 
-  if ( true(clause, ERASED) )
-    succeed;
-
   LOCK();
+  if ( true(clause, ERASED) )
+  { UNLOCK();
+    succeed;
+  }
+
   if ( def->references )
   { set(clause, ERASED);
     if ( def->hash_info )
@@ -993,6 +995,11 @@ gcClausesDefinition(Definition def)
       DEBUG(0, left++);
     }
   }
+
+  DEBUG(0, if ( def->erased_clauses != 0 )
+	     Sdprintf("*** %s has %d erased claused\n",
+		      predicateName(def), def->erased_clauses));
+
   assert(def->erased_clauses == 0);
 
   DEBUG(1, Sdprintf("removed %d, left %d\n", removed, left));
