@@ -86,8 +86,8 @@ pce_home(PceHome) :-
 	getenv('XPCEHOME', PceHome),
 	exists_directory(PceHome), !.
 pce_home(PceHome) :-
-	(   feature(xpce_version, Version),
-	    concat('/xpce-', Version, Suffix)
+	(   current_prolog_flag(xpce_version, Version),
+	    atom_concat('/xpce-', Version, Suffix)
 	;   Suffix = '/xpce'
 	),
 	absolute_file_name(swi(Suffix),
@@ -96,10 +96,10 @@ pce_home(PceHome) :-
 			   ], PceHome),
 	exists_directory(PceHome), !.
 pce_home(PceHome) :-
-	feature(saved_program, true), !,
-	(   feature(home, PceHome)
+	current_prolog_flag(saved_program, true), !,
+	(   current_prolog_flag(home, PceHome)
 	->  true
-	;   feature(symbol_file, Exe)
+	;   current_prolog_flag(symbol_file, Exe)
 	->  file_directory_name(Exe, PceHome)
 	;   PceHome = '.'
 	).
@@ -111,9 +111,7 @@ pce_home(_) :-
 	'$c_current_predicate'('$pce_init', user:'$pce_init'(_)), !,
 	init_pce.
 '$load_pce' :-
-	(   feature(dll, true)
-	;   feature(open_shared_object, true)
-	), !,
+	current_prolog_flag(open_shared_object, true),
 	(   load_foreign_library(pce_principal:foreign(pl2xpce))
 	->  true
 	;   print_message(error,
@@ -122,10 +120,20 @@ pce_home(_) :-
 	),
 	init_pce.
 
+init_threads :-
+	current_prolog_flag(threads, true), !,
+	(   pce_principal:send(@pce, multi_threading(@on))
+	->  true
+	;   print_message(warning, pce(no_threads))
+	).
+init_threads.
+
 init_pce :-
 	(   pce_home(PceHome),
 	    pce_principal:'$pce_init'(PceHome)
-	->  set_feature(xpce, true)
-	;   format(user_error, '[PCE ERROR: Failed to initialise XPCE]~n', []),
+	->  set_prolog_flag(xpce, true),
+	    init_threads
+	;   print_message(error,
+			  format('Failed to initialise XPCE]', [])),
 	    halt(1)
 	).
