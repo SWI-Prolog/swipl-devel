@@ -852,7 +852,7 @@ char *path;
     return path;
   }
 
-  printf("(nonexisting) %s\n", path);
+  DEBUG(1, printf("(nonexisting) %s\n", path));
   return path;
 }
 
