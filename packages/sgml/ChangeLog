@@ -1,6 +1,11 @@
+Mar 31, 2005
+
+  * ADDED: make exceptions in call-backs from sgml_parse/3 return the
+    parser immediately with the given exception.
+
 Mar 29, 2005
 
-  * Add layout(Bolol) option to the xml_write/3 and friends predciates.
+  * ADDED: layout(Bool) option to the xml_write/3 and friends predciates.
 
 Mar 21, 2005
 

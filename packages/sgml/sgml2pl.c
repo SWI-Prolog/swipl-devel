@@ -82,6 +82,7 @@ typedef struct _parser_data
   int	      max_warnings;		/* warning limit */
   errormode   error_mode;		/* how to handle errors */
   int	      positions;		/* report file-positions */
+  term_t      exception;		/* pending exception from callback */
 
   predicate_t on_begin;			/* begin element */
   predicate_t on_end;			/* end element */
@@ -674,6 +675,22 @@ pl_get_sgml_parser(term_t parser, term_t option)
 }
 
 
+static int
+call_prolog(parser_data *pd, predicate_t pred, term_t av)
+{ qid_t qid = PL_open_query(NULL, PL_Q_CATCH_EXCEPTION, pred, av);
+  int rc = PL_next_solution(qid);
+
+  if ( !rc )
+    pd->exception = PL_exception(qid);
+  else
+    pd->exception = 0;
+
+  PL_close_query(qid);
+
+  return rc;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 put_url(dtd_parser *p, term_t t, const ichar *url)
     Store the url-part of a name-space qualifier in term.  We call
@@ -988,7 +1005,7 @@ on_begin(dtd_parser *p, dtd_element *e, int argc, sgml_attribute *argv)
     unify_attribute_list(p, av+1, argc, argv);
     unify_parser(av+2, p);
 
-    PL_call_predicate(NULL, PL_Q_NORMAL, pd->on_begin, av);
+    call_prolog(pd, pd->on_begin, av);
     PL_discard_foreign_frame(fid);
   }
 
@@ -1010,7 +1027,7 @@ on_end(dtd_parser *p, dtd_element *e)
     put_element_name(p, av+0, e);
     unify_parser(av+1, p);
 
-    PL_call_predicate(NULL, PL_Q_NORMAL, pd->on_end, av);
+    call_prolog(pd, pd->on_end, av);
     PL_discard_foreign_frame(fid);
   }
 
@@ -1055,7 +1072,7 @@ on_entity(dtd_parser *p, dtd_entity *e, int chr)
 
     unify_parser(av+1, p);
 
-    PL_call_predicate(NULL, PL_Q_NORMAL, pd->on_end, av);
+    call_prolog(pd, pd->on_end, av);
     PL_discard_foreign_frame(fid);
   }
 
@@ -1097,7 +1114,7 @@ on_data(dtd_parser *p, data_type type, int len,
 
     unify_parser(av+1, p);
 
-    PL_call_predicate(NULL, PL_Q_NORMAL, pd->on_cdata, av);
+    call_prolog(pd, pd->on_cdata, av);
     PL_discard_foreign_frame(fid);
   }
 
@@ -1218,7 +1235,7 @@ on_error(dtd_parser *p, dtd_error *error)
     PL_put_atom_chars(av+1, error->plain_message);
     unify_parser(av+2, p);
 
-    PL_call_predicate(NULL, PL_Q_NORMAL, pd->on_error, av);
+    call_prolog(pd, pd->on_error, av);
     PL_discard_foreign_frame(fid);
   } else if ( pd->error_mode != EM_QUIET )
   { fid_t fid = PL_open_foreign_frame();
@@ -1264,7 +1281,7 @@ on_xmlns(dtd_parser *p, dtd_symbol *ns, dtd_symbol *url)
     PL_put_atom_chars(av+1, url->name);
     unify_parser(av+2, p);
 
-    PL_call_predicate(NULL, PL_Q_NORMAL, pd->on_xmlns, av);
+    call_prolog(pd, pd->on_xmlns, av);
     PL_discard_foreign_frame(fid);
   }
 
@@ -1286,7 +1303,7 @@ on_pi(dtd_parser *p, const ichar *pi)
     PL_put_atom_chars(av+0, pi);
     unify_parser(av+1, p);
 
-    PL_call_predicate(NULL, PL_Q_NORMAL, pd->on_pi, av);
+    call_prolog(pd, pd->on_pi, av);
     PL_discard_foreign_frame(fid);
   }
 
@@ -1321,7 +1338,7 @@ on_decl(dtd_parser *p, const ichar *decl)
     PL_put_atom_chars(av+0, decl);
     unify_parser(av+1, p);
 
-    PL_call_predicate(NULL, PL_Q_NORMAL, pd->on_decl, av);
+    call_prolog(pd, pd->on_decl, av);
     PL_discard_foreign_frame(fid);
   }
 
@@ -1401,6 +1418,7 @@ new_parser_data(dtd_parser *p)
   pd->max_errors = MAX_ERRORS;
   pd->max_warnings = MAX_WARNINGS;
   pd->error_mode = EM_PRINT;
+  pd->exception = 0;
   p->closure = pd;
   
   return pd;
@@ -1639,8 +1657,11 @@ pl_sgml_parse(term_t parser, term_t options)
 
 					/* Parsing input from a stream */
 #define CHECKERROR \
+    { if ( pd->exception ) \
+	return PL_raise_exception(pd->exception); \
       if ( pd->errors > pd->max_errors && pd->max_errors >= 0 ) \
-	return sgml2pl_error(ERR_LIMIT, "max_errors", (long)pd->max_errors);
+	return sgml2pl_error(ERR_LIMIT, "max_errors", (long)pd->max_errors); \
+    }
 
   if ( pd->stopat == SA_CONTENT && p->empty_element )
     goto out;
