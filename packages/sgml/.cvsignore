@@ -28,3 +28,4 @@ config.h
 *.dll
 *.lib
 *.exp
+*.pdb

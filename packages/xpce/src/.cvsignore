@@ -5,3 +5,4 @@ config.log
 *.dll
 *.lib
 *.exp
+*.pdb

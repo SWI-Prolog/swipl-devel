@@ -3,6 +3,7 @@
 *.lib
 *.dll
 *.exp
+*.pdb
 Makefile
 config.h
 config.log
