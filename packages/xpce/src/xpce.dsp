@@ -849,6 +849,10 @@ SOURCE=.\evt\resizegesture.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\evt\resizetabslice.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\box\rubber.c
 # End Source File
 # Begin Source File
