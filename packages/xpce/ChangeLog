@@ -1,6 +1,30 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED/MODIFIED: `graphical <-{above,below,left,right}' now tell the
+  object I'm above, ... rather then *who is* above, ...  This makes
+  send(X, below, Y) and get(X, below, Y) behave consistently.  More
+  important, we can now destroy a dialog item in the middle of a
+  (for example) vertical stack:
+
+  cut(Me) :-
+	get(Me, device, Dev),
+  	(   get(Me, above, UnderMe),
+	    get(Me, below, OverMe),
+	    UnderMe \== @nil, OverMe \== @nil
+	->  send(Me, destroy),
+	    send(UnderMe, below, OverMe)
+	;   send(Me, destroy)
+	),
+	send(Dev, layout_dialog).
+
+  This used not to work for a rather obscure technical reason.  It is
+  anticipated there is very few usercode that will be broken by this
+  change.
+
+* FIXED: Bug in allocation _debugging_, causing problems on machines
+  with signed characters.
+
 * FIXED: Added a few more sanity checks to reading gif files.
 
 * FIXED: Properly handle resource context in class_variable declarations.
