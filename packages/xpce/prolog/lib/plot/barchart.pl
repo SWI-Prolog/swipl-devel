@@ -727,6 +727,15 @@ modified_plot_axis(P, A:[plot_axis]) :->
 	send_super(P, modified_plot_axis, A),
 	send(P, expose_member, bar_base).
 
+sort(BC) :->
+	"Sort bars by value"::
+	(   get(BC, orientation, horizontal)
+	->  send(BC?bars, sort, ?(@arg1?value, compare, @arg2?value))
+	;   send(BC?bars, sort, ?(@arg2?value, compare, @arg1?value))
+	),
+	send(BC, place_bars).
+
+
 :- pce_group(value).
 
 value(BC, BarName:name, Value:real) :->

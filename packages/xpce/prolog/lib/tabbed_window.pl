@@ -124,7 +124,7 @@ tab(W, Name:name, Tab:tab) :<-
 :- pce_begin_class(window_tab, tab,
 		   "Tab displaying a window").
 
-variable(window,	window, get, "Displayed window").
+variable(window,	window*, get, "Displayed window").
 delegate_to(window).
 
 initialise(T, Window:window=[window], Name:name=[name]) :->
@@ -148,7 +148,7 @@ initialise(T, Window:window=[window], Name:name=[name]) :->
 	send(T, border, size(0,0)),
 	send_super(T, display, P),
 	send(T, slot, window, P),
-	new(_, mutual_dependency_hyper(T, P)).
+	new(_, mutual_dependency_hyper(T, P, window, tab)).
 
 
 :- pce_group(resize).
@@ -171,7 +171,9 @@ status(T, Status:{on_top,hidden}) :->
 	send_super(T, status, Status),
 	(   Status == on_top,
 	    get(T, frame, Frame)
-	->  send(Frame, keyboard_focus, T?window)
+	->  get(T, window, Window),
+	    send(Window, resize),
+	    send(Frame, keyboard_focus, Window)
 	;   true
 	).
 
@@ -192,7 +194,8 @@ append(T, Item:graphical, RelPos:[{below,right,next_row}]) :->
 label_popup(Tab, Popup:popup) :<-
 	"Get popup for label"::
 	get_super(Tab, window, TabbedWindow),
-	get(TabbedWindow, label_popup, Popup).
+	get(TabbedWindow, label_popup, Popup),
+	Popup \== @nil.
 
 :- pce_global(@window_tab_label_recogniser,
 	      new(popup_gesture(@receiver?label_popup))).
@@ -203,5 +206,22 @@ label_event(G, Ev:event) :->
 	->  true
 	;   send(@window_tab_label_recogniser, event, Ev)
 	).
+
+:- pce_group(frame).
+
+untab(Tab, W:window) :<-
+	"Remove a tab from the tabbed window and return the window"::
+	get(Tab, window, W),
+	send(W, lock_object, @on),
+	send(Tab, delete_hypers, window),
+	free(Tab),
+	get(W, unlock, _).
+	
+untab(Tab) :->
+	"Turn the window into a toplevel window"::
+	get(Tab, name, Name),
+	get(Tab, untab, Window),
+	send(Window?frame, label, Name?label_name),
+	send(Window, open).
 
 :- pce_end_class(window_tab).

@@ -1,6 +1,13 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: `bar_chart->sort' to sort the bars by <-value.
+
+* ADDED: window_tab->untab to transform a tabbed window into a toplevel
+  window.
+
+* FIXED: right-click on tab of tabbed_window (exception).
+
 * FIXED: tracepce/1 on Prolog-defined get-methods that fail (crashed).
 
 * FIXED: Properly deal with := in variable initialisations if the value is

@@ -50,25 +50,26 @@ cancelPopupGesture(PopupGesture g)
 static status
 updatePopupGesture(PopupGesture g, EventObj ev)
 { PopupObj p;
+  Any rec = getMasterEvent(ev);
+
+  DEBUG(NAME_popup, Cprintf("updatePopupGesture(): rec=%s\n", pp(rec)));
 
   if ( notNil(g->popup) )
   { if ( instanceOfObject(g->popup, ClassFunction) )
-    { Any rec = getMasterEvent(ev);
-      TRY( p = getForwardReceiverFunction((Function) g->popup, rec,
+    { TRY( p = getForwardReceiverFunction((Function) g->popup, rec,
 				  rec, ev, EAV) );
       TRY( p = checkType(p, nameToType(NAME_popup), g));
     } else
       p = g->popup;
   } else
-  { TRY( p = get(getMasterEvent(ev), NAME_popup, EAV) );
+  { TRY( p = get(rec, NAME_popup, EAV) );
   }
 
   assign(g, current, p);
   if ( isNil(g->context) )
-    assign(g, context, notNil(g->current->context) ? g->current->context
-	   					   : getMasterEvent(ev));
-
+    assign(g, context, notNil(p->context) ? p->context : rec);
   send(p, NAME_update, g->context, EAV);
+
   if ( p->active == OFF || emptyChain(p->members) )
   { cancelPopupGesture(g);
     fail;

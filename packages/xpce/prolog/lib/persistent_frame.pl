@@ -81,7 +81,7 @@ unlink(F) :->
 create(F) :->
 	"Create and restore layout"::
 	send_super(F, create),
-	send(F, load_layout).
+	ignore(send(F, load_layout)).
 
 :- pce_group(config).
 
