@@ -10,3 +10,5 @@ config.cache
 config.status
 clib.log
 clib.aux
+t.c
+.gdbinit
