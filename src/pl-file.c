@@ -215,6 +215,7 @@ freeStream(IOSTREAM *s)
 
 					/* if we are a standard stream */
 					/* reassociate with standard I/O */
+					/* NOTE: there may be more! */
   for(i=0, sp = LD->IO.streams; i<6; i++, sp++)
   { if ( *sp == s )
     { if ( s->flags & SIO_INPUT )
@@ -225,8 +226,6 @@ freeStream(IOSTREAM *s)
 	*sp = NULL;
       else
 	*sp = Soutput;
-
-      break;
     }
   }
 }
@@ -398,7 +397,7 @@ PL_unify_stream(term_t t, IOSTREAM *s)
   stream_context *ctx;
   int i;
 
-  if ( (i=standardStreamIndexFromStream(s)) >= 0 )
+  if ( (i=standardStreamIndexFromStream(s)) >= 0 && i < 3 )
     return PL_unify_atom(t, standardStreams[i]);
 
   LOCK();
@@ -1117,7 +1116,7 @@ pl_skip(term_t chr)
 
 word
 pl_get_single_char(term_t chr)
-{ IOSTREAM *s = getStream(Scurin);
+{ IOSTREAM *s = getStream(Suser_input);
   int c = getSingleChar(s);
 
   if ( c == EOF )

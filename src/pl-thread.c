@@ -1198,9 +1198,78 @@ PL_thread_destroy_engine()
   return FALSE;				/* we had no thread */
 }
 
+		 /*******************************
+		 *	      ATOM-GC		*
+		 *******************************/
+
+#include <signal.h>
+
+#ifndef SA_RESTART
+#define SA_RESTART 0
+#endif
+
+static pthread_cond_t  marked_cond     = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t marked_mutex    = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t signalled_mutex = PTHREAD_MUTEX_INITIALIZER;
+static int signalled_threads;
+
+static void
+threadMarkAtoms(int sig)
+{ markAtomsOnStacks(LD);
+
+  pthread_mutex_lock(&signalled_mutex);
+  signalled_threads--;
+  pthread_mutex_unlock(&signalled_mutex);
+
+  pthread_cond_signal(&marked_cond);
+}
+
+
+void
+threadMarkAtomsOtherThreads()
+{ int i;
+  struct sigaction old;
+  struct sigaction new;
+  int me = PL_thread_self();
+  int sent = 0;
+
+  LOCK();				/* don't make new threads */
+  assert(signalled_threads == 0);
+  memset(&new, 0, sizeof(new));
+  new.sa_handler = threadMarkAtoms;
+  new.sa_flags   = SA_RESTART;
+  sigaction(SIGUSR1, &new, &old);
+
+  for(i=1; i<MAX_THREADS; i++)
+  { if ( threads[i].thread_data && i != me )
+    { DEBUG(1, Sdprintf("Signalling %d\n", i));
+      if ( pthread_kill(threads[i].tid, SIGUSR1) == 0 )
+      { pthread_mutex_lock(&signalled_mutex);
+	signalled_threads++;
+	pthread_mutex_unlock(&signalled_mutex);
+	sent++;
+      } else if ( errno != ESRCH )
+	Sdprintf("Failed to signal: %s\n", OsError());
+    }
+  }
+
+  DEBUG(1, Sdprintf("Signalled %d threads.  Waiting for %d ... ",
+		    sent, signalled_threads));
+
+  while(signalled_threads)
+  { pthread_mutex_lock(&marked_mutex);
+    pthread_cond_wait(&marked_cond, &marked_mutex);
+    pthread_mutex_unlock(&marked_mutex);
+  }
+
+  DEBUG(1, Sdprintf("done!\n"));
+
+  sigaction(SIGUSR1, &old, NULL);
+  UNLOCK();
+}
 
 		 /*******************************
-		 *	  DEBUGGING AIDS	*
+		 *	DEBUGGING SUPPORT	*
 		 *******************************/
 
 PL_local_data_t *

@@ -75,7 +75,8 @@ get_rc(term_t handle, RcArchive *a)
     return TRUE;
   }
 
-  return PL_warning("Illegal resource-archive handle");
+  return PL_error(NULL, 0, NULL, ERR_TYPE,
+		  ATOM_resource_handle, handle);
 }
 
 
@@ -94,24 +95,24 @@ pl_rc_open(term_t rc_h,
 	   term_t handle)
 { char *n, *c = NULL;
   RcArchive rc;
-  char *how;
+  atom_t how;
   int flags = 0, sflags = 0;		/* compiler isn't smart enough */
 
   if ( !get_rc(rc_h, &rc) )
     return FALSE;
 
-  if ( PL_get_atom_chars(rw, &how) )
-  { if ( strcmp(how, "read") == 0 )
+  if ( PL_get_atom_ex(rw, &how) )
+  { if ( how == ATOM_read )
     { flags = RC_RDONLY;
       sflags = SIO_INPUT;
-    } else if ( strcmp(how, "write") == 0 )
+    } else if ( how == ATOM_write )
     { flags = RC_WRONLY;
       sflags = SIO_OUTPUT;
     } else
-      goto ifault;
+      return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_io_mode, how);
   }
 
-  if ( PL_get_chars(name, &n, CVT_ALL) )
+  if ( PL_get_chars_ex(name, &n, CVT_ALL) )
   { RcObject o;
 
     PL_get_chars(class, &c, CVT_ALL);
@@ -142,8 +143,7 @@ pl_rc_open(term_t rc_h,
       return FALSE;
   }
 
-ifault:
-  return PL_warning("$rc_open/5: instantiation fault");
+  fail;
 }
 
 
@@ -151,16 +151,14 @@ foreign_t
 pl_rc_open_archive(term_t file, term_t handle)
 { char *name;
 
-  if ( PL_get_chars(file, &name, CVT_ALL) )
+  if ( PL_get_chars_ex(file, &name, CVT_ALL) )
   { RcArchive a = rc_open_archive(name, RC_RDWR|RC_CREATE);
 
     if ( a )
       return PL_unify_pointer(handle, a);
-
-    return FALSE;
   }
 
-  return PL_warning("rc_open_archive/2: instantiation fault");
+  return FALSE;
 }
 
 
@@ -184,7 +182,7 @@ pl_rc_save_archive(term_t rc_h, term_t to)
     return FALSE;
   if ( !PL_get_filename(to, file, sizeof(file)) &&
        !PL_is_variable(to) )
-    return PL_warning("rc_save_archive/2: instantiation fault");
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_file_name, to);
 
   if ( rc_save_archive(rc, file) )
   { if ( PL_is_variable(to) )
@@ -208,17 +206,16 @@ pl_rc_append_file(term_t rc_h,
 
   if ( !get_rc(rc_h, &rc) )
     return FALSE;
-  if ( !PL_get_chars(name, &n, CVT_ALL) ||
-       !PL_get_chars(file, &f, CVT_ALL) )
-  { badarg:
-    return PL_warning("rc_append_file/5: instantiation fault");
-  }
-  if ( !PL_get_chars(class, &c, CVT_ALL) &&
+  if ( !PL_get_chars_ex(name, &n, CVT_ALL) ||
+       !PL_get_chars_ex(file, &f, CVT_ALL) )
+    fail;
+
+  if ( !PL_get_chars_ex(class, &c, CVT_ALL) &&
        !PL_unify_atom_chars(class, c) )
-    goto badarg;
-  if ( !PL_get_chars(encoding, &enc, CVT_ALL) &&
+    fail;
+  if ( !PL_get_chars_ex(encoding, &enc, CVT_ALL) &&
        !PL_unify_atom_chars(encoding, enc) )
-    goto badarg;
+    fail;
   
   if ( !rc_append_file(rc, n, c, enc, f) )
     return FALSE;

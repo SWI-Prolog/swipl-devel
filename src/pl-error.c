@@ -435,10 +435,10 @@ printMessage(atom_t severity, ...)
 		 *******************************/
 
 int
-PL_get_nchars_ex(term_t t, char **s, unsigned int *len, unsigned int flags)
+PL_get_nchars_ex(term_t t, unsigned int *len, char **s, unsigned int flags)
 { atom_t expected;
 
-  if ( PL_get_nchars(t, s, len, flags) )
+  if ( PL_get_nchars(t, len, s, flags) )
     return TRUE;
 
   if ( flags & CVT_LIST )
@@ -448,3 +448,38 @@ PL_get_nchars_ex(term_t t, char **s, unsigned int *len, unsigned int flags)
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, expected, t);
 }
+
+
+int
+PL_get_chars_ex(term_t t, char **s, unsigned int flags)
+{ return PL_get_nchars_ex(t, NULL, s, flags);
+}
+
+
+int
+PL_get_atom_ex(term_t t, atom_t *a)
+{ if ( PL_get_atom(t, a) )
+    succeed;
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, t);
+}
+
+
+int
+PL_get_integer_ex(term_t t, int *i)
+{ if ( PL_get_integer(t, i) )
+    succeed;
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
+}
+
+
+int
+PL_get_long_ex(term_t t, long *i)
+{ if ( PL_get_long(t, i) )
+    succeed;
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
+}
+
+

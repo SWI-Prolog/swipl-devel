@@ -319,9 +319,9 @@ now defined on top of this layer instead of the other way around.  This
 fixes various internal problems and removes Prolog limits on the number
 of streams.
 
-Progress has been made to improve ISO compliance: handling strings as
-lists of one-character atoms is now supported (next to character codes
-as integers). Many more exceptions have been added and printing of
+Much progress has been made to improve ISO compliance: handling strings
+as lists of one-character atoms is now supported (next to character
+codes as integers). Many more exceptions have been added and printing of
 exceptions and messages is rationalised using Quintus and SICStus Prolog
 compatible print_message/2, message_hook/3 and print_message_lines/3.
 All predicates descriped in \cite{Deransart:96} except for
@@ -329,6 +329,11 @@ char_conversion/2 and current_char_conversion/2 are now implemented.
 
 As of version 3.3, SWI-Prolog adheres the ISO \jargon{logical update view}
 for dynamic predicates.  See \secref{update} for details.
+
+SWI-Prolog 3.3 includes garbage collection on atoms, removing the last
+serious memory leak especially in text-manipulation applications. See
+\secref{atomgc}. In addition, both the user-level and foreign interface
+supports atoms holding \jargon{0-bytes}.
 
 Finally, an alpha version of a multi-threaded SWI-Prolog for Linux is
 added. This version is still much slower than the single-threaded

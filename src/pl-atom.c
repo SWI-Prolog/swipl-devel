@@ -396,10 +396,14 @@ pl_garbage_collect_atoms()
   LOCK();
   t = CpuTime();
   markAtomsOnStacks(LD);
+#ifdef O_PLMT
+  threadMarkAtomsOtherThreads();
+#endif
   collectAtoms();
   GD->atoms.non_garbage = GD->statistics.atoms;
   t = CpuTime() - t;
   GD->atoms.gc_time += t;
+  GD->atoms.gc++;
   UNLOCK();
 
   

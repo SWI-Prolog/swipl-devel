@@ -191,6 +191,8 @@ allocServerHandle(HCONV handle)
     }
   }
 
+  PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_max_dde_handles);
+
   return -1;
 }
 
@@ -244,8 +246,6 @@ DdeCallback(UINT type, UINT fmt, HCONV hconv, HSZ hsz1, HSZ hsz2,
 
 	 PL_call_predicate(MODULE_dde, TRUE, pred, argv);
 	 PL_discard_foreign_frame(cid);
-       } else
-       { warning("No more DDE server handles");
        }
 
        return NULL;
@@ -391,7 +391,7 @@ pl_open_dde_conversation(term_t service, term_t topic, term_t handle)
       break;
   }
   if (i == MAX_CONVERSATIONS)
-    return warning("open_dde_conversation/3: too many conversations");
+    return PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_max_dde_handles);
 
   if ( !(conv_handle[i] = DdeConnect(ddeInst, Hservice, Htopic, 0)) )
     fail;
@@ -487,12 +487,10 @@ pl_dde_execute(term_t handle, term_t command, term_t timeout)
   DWORD result;
   long tmo;
 
-  if ( !get_conv_handle(handle, &hdl) )
+  if ( !get_conv_handle(handle, &hdl) ||
+       !PL_get_chars_ex(command, &cmdstr, CVT_ALL) ||
+       !PL_get_long_ex(timeout, &tmo) )
     fail;
-  if ( !PL_get_chars(command, &cmdstr, CVT_ALL) )
-    return warning("dde_execute/3: invalid command");
-  if ( !PL_get_long(timeout, &tmo) )
-    return warning("dde_execute/2: invalid timeout");
 
   if ( tmo <= 0 )
     tmo = TIMEOUT_VERY_LONG;

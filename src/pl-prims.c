@@ -251,6 +251,36 @@ pl_nonequal(term_t t1, term_t t2) /* \== */
 		*        STANDARD ORDER         *
 		*********************************/
 
+static int
+compareAtoms(atom_t w1, atom_t w2)
+{ Atom a1 = atomValue(w1);
+  Atom a2 = atomValue(w2);
+  int l   = (a1->length <= a2->length ? a1->length : a2->length);
+  int v;
+
+  if ( (v=memcmp(a1->name, a2->name, l)) != 0 )
+    return v;
+
+  return (int)a1->length - (int)a2->length;
+}
+
+
+static int
+compareStrings(word w1, word w2)
+{ char *s1 = valString(w1);
+  char *s2 = valString(w2);
+  int l1 = sizeString(w1);
+  int l2 = sizeString(w2);
+  int l = (l1 < l2 ? l1 : l2);
+  int v;
+
+  if ( (v=memcmp(s1, s2, l)) != 0 )
+    return v;
+
+  return l1-l2;
+}
+
+
 /*  Rules:
 
     Var @< Number @< Atom @< String < Term
@@ -322,9 +352,9 @@ tail_recursion:
       return f1 < f2 ? LESS : f1 == f2 ? EQUAL : GREATER;
     }
     case TAG_ATOM:
-      return strcmp(stringAtom(w1), stringAtom(w2));
+      return compareAtoms(w1, w2);
     case TAG_STRING:
-      return strcmp(valString(w1), valString(w2));
+      return compareStrings(w1, w2);
     case TAG_COMPOUND:
     { Functor f1 = (Functor)valPtr(w1);
       Functor f2 = (Functor)valPtr(w2);
@@ -336,8 +366,7 @@ tail_recursion:
 	if ( fd1->arity != fd2->arity )
 	  return fd1->arity > fd2->arity ? GREATER : LESS;
 
-	return strcmp(stringAtom(fd1->name),
-		      stringAtom(fd2->name));
+	return compareAtoms(fd1->name, fd2->name);
       } else
       { int arity = arityFunctor(f1->definition);
 	int rval;
@@ -1235,7 +1264,7 @@ pl_atom_length(term_t w, term_t n)
 { char *s;
   int len;
 
-  if ( PL_get_nchars_ex(w, &s, &len, CVT_ALL) )
+  if ( PL_get_nchars_ex(w, &len, &s, CVT_ALL) )
     return PL_unify_integer(n, len);
 
   fail;
@@ -1397,7 +1426,7 @@ x_chars(const char *pred, term_t atom, term_t string, int how)
 { char *s;
   unsigned int len;
 
-  if ( PL_get_nchars(atom, &s, &len, CVT_ATOMIC) ) /* atomic --> "list" */
+  if ( PL_get_nchars(atom, &len, &s, CVT_ATOMIC) ) /* atomic --> "list" */
   { if ( how & X_CHARS )
       return PL_unify_list_nchars(string, len, s);
     else
@@ -1405,7 +1434,7 @@ x_chars(const char *pred, term_t atom, term_t string, int how)
   }
 
   if ( PL_is_variable(atom) )
-  { if ( !PL_get_list_nchars(string, &s, &len, 0) )
+  { if ( !PL_get_list_nchars(string, &len, &s, 0) )
     { if ( !PL_is_list(string) )
 	return PL_error(pred, 2, NULL,
 			ERR_TYPE, ATOM_list, string);
@@ -1527,9 +1556,9 @@ concat(const char *pred,
   unsigned int l1, l2, l3;
   char *tmp;
 
-  PL_get_nchars(a1, &s1, &l1, CVT_ATOMIC|BUF_RING);
-  PL_get_nchars(a2, &s2, &l2, CVT_ATOMIC|BUF_RING);
-  PL_get_nchars(a3, &s3, &l3, CVT_ATOMIC|BUF_RING);
+  PL_get_nchars(a1, &l1, &s1, CVT_ATOMIC|BUF_RING);
+  PL_get_nchars(a2, &l2, &s2, CVT_ATOMIC|BUF_RING);
+  PL_get_nchars(a3, &l3, &s3, CVT_ATOMIC|BUF_RING);
 
   if ( !s1 && !PL_is_variable(a1) )
     return PL_error(pred, 3, NULL, ERR_TYPE, ATOM_atomic, a1);
@@ -1966,7 +1995,7 @@ pl_string_length(term_t str, term_t l)
   unsigned int len;
 
   if ( PL_get_string(str, &s, &len) ||
-       PL_get_nchars(str, &s, &len, CVT_ALL) )
+       PL_get_nchars(str, &len, &s, CVT_ALL) )
     return PL_unify_integer(l, len);
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_string, str);
@@ -1984,9 +2013,9 @@ pl_string_to_atom(term_t str, term_t a)
 { char *s;
   unsigned int len;
 
-  if ( PL_get_nchars(str, &s, &len, CVT_ALL) )
+  if ( PL_get_nchars(str, &len, &s, CVT_ALL) )
     return PL_unify_atom_nchars(a, len, s);
-  if ( PL_get_nchars(a, &s, &len, CVT_ALL) )
+  if ( PL_get_nchars(a, &len, &s, CVT_ALL) )
     return PL_unify_string_nchars(str, len, s);
 
   return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
@@ -1998,11 +2027,11 @@ pl_string_to_list(term_t str, term_t list)
 { char *s;
   unsigned int len;
 
-  if ( PL_get_nchars(str, &s, &len, CVT_ALL) )
+  if ( PL_get_nchars(str, &len, &s, CVT_ALL) )
     return PL_unify_list_ncodes(list, len, s);
-  if ( PL_get_list_nchars(list, &s, &len, 0) )	/* string_to_list(S, []). */
+  if ( PL_get_list_nchars(list, &len, &s, 0) )	/* string_to_list(S, []). */
     return PL_unify_string_nchars(str, len, s);
-  if ( PL_get_nchars(list, &s, &len, CVT_ALL) )
+  if ( PL_get_nchars(list, &len, &s, CVT_ALL) )
     return PL_unify_string_nchars(str, len, s);
 
   return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
@@ -2232,8 +2261,8 @@ pl_statistics(term_t k, term_t value)
 { word result;
   atom_t key;
 
-  if ( !PL_get_atom(k, &key) )
-    return PL_error("statistics", 2, NULL, ERR_TYPE, ATOM_atom, k);
+  if ( !PL_get_atom_ex(k, &key) )
+    fail;
 
   if      (key == ATOM_cputime)				/* time */
     result = globalReal(CpuTime());
@@ -2279,11 +2308,13 @@ pl_statistics(term_t k, term_t value)
     result = consInt(gc_status.collections);
   else if (key == ATOM_collected)
     result = makeNum(gc_status.trail_gained + gc_status.global_gained);
-  else if (key == ATOM_core_left)			/* core left */
-#if tos
-    result = consInt((long)coreleft());
-#else
-    fail;
+#ifdef O_ATOMGC
+  else if (key == ATOM_agc)
+    result = makeNum(GD->atoms.gc);
+  else if (key == ATOM_agc_gained)
+    result = makeNum(GD->atoms.collected);
+  else if (key == ATOM_agc_time)
+    result = globalReal(GD->atoms.gc_time);
 #endif
 #if O_SHIFT_STACKS
   else if (key == ATOM_global_shifts)

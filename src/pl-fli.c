@@ -126,6 +126,17 @@ linkVal(Word p)
 }
 
 
+term_t
+wordToTermRef(Word p)
+{ GET_LD
+  term_t t = PL_new_term_ref();
+
+  setHandle(t, linkVal(p));
+  return t;
+}
+
+
+
 		 /*******************************
 		 *	   CREATE/RESET		*
 		 *******************************/
@@ -574,7 +585,7 @@ PL_get_atom_chars(term_t t, char **s)
 
 
 int
-PL_get_atom_nchars(term_t t, char **s, unsigned int *len)
+PL_get_atom_nchars(term_t t, unsigned int *len, char **s)
 { GET_LD
   word w = valHandle(t);
 
@@ -654,8 +665,8 @@ unfindBuffer(int flags)
 
 
 int
-PL_get_list_nchars(term_t l, char **s,
-		   unsigned int *length, unsigned int flags)
+PL_get_list_nchars(term_t l,
+		   unsigned int *length, char **s, unsigned int flags)
 { GET_LD
   Buffer b = findBuffer(flags);
   word list = valHandle(l);
@@ -707,12 +718,12 @@ PL_get_list_nchars(term_t l, char **s,
 
 int
 PL_get_list_chars(term_t l, char **s, unsigned flags)
-{ return PL_get_list_nchars(l, s, NULL, flags);
+{ return PL_get_list_nchars(l, NULL, s, flags);
 }
 
 
 int
-PL_get_nchars(term_t l, char **s, unsigned int *length, unsigned flags)
+PL_get_nchars(term_t l, unsigned int *length, char **s, unsigned flags)
 { GET_LD
   word w = valHandle(l);
   char tmp[100];
@@ -744,7 +755,7 @@ PL_get_nchars(term_t l, char **s, unsigned int *length, unsigned flags)
 #endif
   } else if ( (flags & CVT_LIST) &&
 	      (isList(w) || isNil(w)) &&
-	      PL_get_list_nchars(l, s, length, flags) )
+	      PL_get_list_nchars(l, length, s, flags) )
   { DEBUG(7, Sdprintf("--> %s\n", *s));
     succeed;
   } else if ( (flags & CVT_VARIABLE) && isVar(w) )
@@ -798,7 +809,7 @@ PL_get_nchars(term_t l, char **s, unsigned int *length, unsigned flags)
 
 int
 PL_get_chars(term_t t, char **s, unsigned flags)
-{ return PL_get_nchars(t, s, NULL, flags);
+{ return PL_get_nchars(t, NULL, s, flags);
 }
 
 

@@ -119,9 +119,10 @@ typedef struct
 #ifdef O_ATOMGC
     int		builtin;		/* Locked atoms (atom-gc) */
     int		no_hole_before;		/* You won't find a hole before here */
-    int		collected;		/* # collected atoms */
     int		margin;			/* # atoms to grow before collect */
     int		non_garbage;		/* # atoms for after last AGC */
+    int		collected;		/* # collected atoms */
+    int		gc;			/* # atom garbage collections */
     real	gc_time;		/* Time spent on atom-gc */
 #endif
     atom_t	for_code[256];		/* code --> one-char-atom */

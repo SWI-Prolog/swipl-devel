@@ -9,6 +9,9 @@
 
 #include "pl-incl.h"
 
+#define setHandle(h, w)		(*valTermRef(h) = (w))
+#define valHandleP(h)		valTermRef(h)
+
 #define CODE(c, n, a, e)	{ n, c, a, e }
 
 const code_info codeTable[] = {
@@ -591,6 +594,24 @@ copyVarTable(VarTable to, VarTable from)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Reset all variables we initialised to the variable analysis  functor  to
+become variables again.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+resetVars()
+{ int n;
+
+  for(n=0; n < filledVars; n++)
+  { VarDef vd = vardefs[n];
+
+    if ( vd->address )
+      setVar(*(vd->address));
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Note: `head' and `body' are dereferenced!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -661,27 +682,15 @@ automatic update if a predicate is later defined as meta-predicate.
 	 false(proc->definition, METAPRED) )
     { Output_1(&ci, I_CONTEXT, (code)ci.module);
     }
-    compileBody(body, I_DEPART, &ci);
+    if ( !compileBody(body, I_DEPART, &ci) )
+      goto exit_fail;
     Output_0(&ci, I_EXIT);
   } else
   { set(clause, UNIT_CLAUSE);		/* fact (for decompiler) */
     Output_0(&ci, I_EXITFACT);
   }
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Reset all variables we initialised to the variable analysis  functor  to
-become variables again.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  { int n;
-
-    for(n=0; n < filledVars; n++)
-    { VarDef vd = vardefs[n];
-
-      if ( vd->address != (Word) NULL )
-	setVar(*(vd->address));
-    }
-  }
+  resetVars();
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Finish up the clause.
@@ -697,6 +706,10 @@ Finish up the clause.
   }
 
   return clause;
+
+exit_fail:
+  resetVars();
+  return NULL;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -740,7 +753,7 @@ A ; B, A -> B, A -> B ; C, \+ A
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
-compileBody(register Word body, code call, register compileInfo *ci)
+compileBody(Word body, code call, register compileInfo *ci)
 { deRef(body);
 
   if ( isTerm(*body) )
@@ -1018,7 +1031,7 @@ will check for the subclause just beeing a variable or the cut.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
-compileSubClause(register Word arg, code call, compileInfo *ci)
+compileSubClause(Word arg, code call, compileInfo *ci)
 { GET_LD
 #undef LD
 #define LD LOCAL_LD
@@ -1172,7 +1185,7 @@ operator.
     succeed;
   }
     
-  return warning("assert/1: illegal clause");
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, wordToTermRef(arg));
 #undef LD
 #define LD GLOBAL_LD
 }
@@ -1275,7 +1288,8 @@ compileArithArgument(Word arg, compileInfo *ci)
         succeed;
       }
       if ( first )
-	return warning("Compiler: Unbound variable in arithmetic expression");
+	return PL_error(NULL, 0, "Unbound variable in arithmetic expression",
+			ERR_TYPE, ATOM_evaluable, wordToTermRef(arg));
       Output_0(ci, A_VAR);
     }          
     Output_a(ci, VAROFFSET(index));
@@ -1283,7 +1297,8 @@ compileArithArgument(Word arg, compileInfo *ci)
   }
 
   if ( isVar(*arg) )			/* void variable */
-    return warning("Compiler: void variable in arithmetic expression");
+    return PL_error(NULL, 0, "Unbound variable in arithmetic expression",
+		    ERR_TYPE, ATOM_evaluable, wordToTermRef(arg));
 
   { functor_t fdef;
     int n, ar;
@@ -1298,11 +1313,13 @@ compileArithArgument(Word arg, compileInfo *ci)
       ar = arityFunctor(fdef);
       a = argTermP(*arg, 0);      
     } else
-      return warning("Illegal argument to arithmic function");
+      return PL_error(NULL, 0, NULL, ERR_TYPE,
+		      ATOM_evaluable, wordToTermRef(arg));
 
     if ( (index = indexArithFunction(fdef, ci->module)) < 0 )
-      return warning("%s/%d: unknown arithmetic operator",
-		     stringAtom(nameFunctor(fdef)), ar);
+    { return PL_error(NULL, 0, "No such aritmetic function",
+			ERR_TYPE, ATOM_evaluable, wordToTermRef(arg));
+    }
 
     for(n=0; n<ar; a++, n++)
       TRY( compileArithArgument(a, ci) );
@@ -1521,11 +1538,11 @@ pl_record_clause(term_t term, term_t file, term_t ref)
   { term_t arg = PL_new_term_ref();	/* file:line */
 
     PL_get_arg(1, file, arg);
-    if ( !PL_get_atom(arg, &loc.file) )
-      return warning("$record_clause/3: instantiation fault");
+    if ( !PL_get_atom_ex(arg, &loc.file) )
+      fail;
     PL_get_arg(2, file, arg);
-    if ( !PL_get_integer(arg, &loc.line) )
-      return warning("$record_clause/3: instantiation fault");
+    if ( !PL_get_integer_ex(arg, &loc.line) )
+      fail;
   }
 
   if ( (clause = assert_term(term, CL_END, &loc)) )
@@ -1542,9 +1559,9 @@ pl_redefine_system_predicate(term_t pred)
   functor_t fd;
   term_t head = PL_new_term_ref();
 
-  if ( !PL_strip_module(pred, &m, head) ||
-       !PL_get_functor(head, &fd) )
-    return warning("redefine_system_predicate/1: instantiation fault");
+  PL_strip_module(pred, &m, head);
+  if ( !PL_get_functor(head, &fd) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, pred);
 
   proc = lookupProcedure(fd, m);
   abolishProcedure(proc, m);
@@ -1651,9 +1668,6 @@ defined.  Also for intermediate  code  file   loaded  clauses  the index
 information is recalculated as the constants   may  be different accross
 runs.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define setHandle(h, w)		(*valTermRef(h) = (w))
-#define valHandleP(h)		valTermRef(h)
 
 static inline word
 valHandle(term_t r)
@@ -2310,7 +2324,7 @@ pl_clause4(term_t p, term_t term, term_t ref, term_t bindings, word h)
 	functor_t f;
     
 	if ( !inCore(clause) || !isClause(clause) )
-	  return warning("clause/3: Invalid reference");
+	  PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_clause_reference, ref);
 	    
 	if ( !decompile(clause, term, bindings) )
 	  fail;
@@ -2549,6 +2563,20 @@ wouldBindToDefinition(Definition from, Definition to)
 }
 
 
+static int
+get_clause_ptr_ex(term_t ref, Clause *cl)
+{ Clause clause;
+
+  if ( !PL_get_pointer(ref, (void **)&clause) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_clause_reference, ref);
+  if ( !inCore(clause) || !isClause(clause) )
+    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_clause_reference, ref);
+
+  *cl = clause;
+  succeed;
+}
+
+
 word
 pl_xr_member(term_t ref, term_t term, word h)
 { Clause clause;
@@ -2558,9 +2586,8 @@ pl_xr_member(term_t ref, term_t term, word h)
   if ( ForeignControl(h) == FRG_CUTTED )
     succeed;
 
-  if ( !PL_get_pointer(ref, (void **)&clause) ||
-       !inCore(clause) || !isClause(clause) )
-    return warning("$xr_member/2: Invalid reference");
+  if ( !get_clause_ptr_ex(ref, &clause) )
+    fail;
 
   PC  = clause->codes;
   end = &PC[clause->code_size];
@@ -2822,9 +2849,8 @@ word
 pl_wam_list(term_t ref)
 { Clause clause;
 
-  if ( !PL_get_pointer(ref, (void **)&clause) ||
-       !inCore(clause) || !isClause(clause) )
-    return warning("$wam_list/1: Invalid reference");
+  if ( !get_clause_ptr_ex(ref, &clause) )
+    fail;
 
   wamListClause(clause);
 
@@ -2849,11 +2875,11 @@ pl_fetch_vm(term_t ref, term_t offset, term_t noffset, term_t instruction)
   code op;
   const code_info *ci;
 
-  if ( !PL_get_pointer(ref, (void **)&clause) ||
-       !inCore(clause) || !isClause(clause) ||
-       !PL_get_integer(offset, &pcoffset) ||
-       pcoffset < 0 || pcoffset >= clause->code_size )
-    return warning("$fetch_vm/4: instantiation fault");
+  if ( !get_clause_ptr_ex(ref, &clause) ||
+       !PL_get_integer_ex(offset, &pcoffset) )
+    fail;
+  if ( pcoffset < 0 || pcoffset >= clause->code_size )
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_program_counter, offset);
 
   PC = clause->codes + pcoffset;
   op = decode(*PC);
@@ -2953,11 +2979,11 @@ pl_clause_term_position(term_t ref, term_t pc, term_t locterm)
   Code PC, loc, end;
   term_t tail = PL_copy_term_ref(locterm);
 
-  if ( !PL_get_pointer(ref, (void **)&clause) ||
-       !inCore(clause) || !isClause(clause) ||
-       !PL_get_integer(pc, &pcoffset) ||
-       pcoffset < 0 || pcoffset > clause->code_size )
-    return warning("$clause_location/3: invalid argument");
+  if ( !get_clause_ptr_ex(ref, &clause) ||
+       !PL_get_integer_ex(pc, &pcoffset) )
+    fail;
+  if ( pcoffset < 0 || pcoffset >= clause->code_size )
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_program_counter, pc);
 
   PC = clause->codes;
   loc = &PC[pcoffset];

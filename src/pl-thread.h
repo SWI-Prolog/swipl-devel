@@ -137,6 +137,7 @@ extern foreign_t	pl_current_mutex(term_t mutex,
 const char *		threadName(int id);
 void			executeThreadSignals(int sig);
 foreign_t		pl_attach_xterm(term_t in, term_t out);
+void			threadMarkAtomsOtherThreads(void);
 #else /*O_PLMT*/
 
 		 /*******************************

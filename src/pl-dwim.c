@@ -193,7 +193,7 @@ pl_dwim_predicate(term_t pred, term_t dwim, word h)
   if ( !PL_strip_module(pred, &module, head) )
     fail;
   if ( !PL_get_functor(head, &fdef) )
-    return warning("dwim_predicate/2: instantiation fault");
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, head);
   	
   if ( ForeignControl(h) == FRG_FIRST_CALL )
     e = newTableEnum(module->procedures);

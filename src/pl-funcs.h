@@ -169,8 +169,13 @@ int		PL_error(const char *pred, int arity, const char *msg,
 			 int id, ...);
 char *		tostr(char *buf, const char *fmt, ...);
 void		printMessage(atom_t severity, ...);
-int		PL_get_nchars_ex(term_t t, char **s,
-				 unsigned int *len, unsigned int flags);
+int		PL_get_nchars_ex(term_t t, unsigned int *len, char **s,
+				 unsigned int flags);
+int		PL_get_chars_ex(term_t t, char **s, unsigned int flags);
+int		PL_get_atom_ex(term_t t, atom_t *a);
+int		PL_get_integer_ex(term_t t, int *i);
+int		PL_get_long_ex(term_t t, long *i);
+
 
 /* pl-file.c */
 void		initIO(void);
@@ -302,6 +307,7 @@ char *		buffer_string(const char *s, int flags);
 atom_t		codeToAtom(int code);
 extern record_t PL_duplicate_record(record_t r);
 int		PL_unify_termv(term_t t, va_list args);
+term_t		wordToTermRef(Word p);
 
 /* pl-fmt.c */
 word		pl_format_predicate(term_t chr, term_t descr);

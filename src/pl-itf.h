@@ -270,13 +270,13 @@ __pl_export int		PL_get_string(term_t t, char **s, int *len);
 __pl_export int		PL_get_chars(term_t t, char **s, unsigned int flags);
 __pl_export int		PL_get_list_chars(term_t l, char **s,
 					  unsigned int flags);
-__pl_export int		PL_get_atom_nchars(term_t t, char **a,
-					   unsigned int *length);
-__pl_export int		PL_get_list_nchars(term_t l, char **s,
-					   unsigned int *length,
+__pl_export int		PL_get_atom_nchars(term_t t,
+					   unsigned int *length, char **a);
+__pl_export int		PL_get_list_nchars(term_t l,
+					   unsigned int *length, char **s,
 					   unsigned int flags);
-__pl_export int		PL_get_nchars(term_t t, char **s,
-				      unsigned int *length,
+__pl_export int		PL_get_nchars(term_t t,
+				      unsigned int *length, char **s,
 				      unsigned int flags);
 __pl_export int		PL_get_integer(term_t t, int *i);
 __pl_export int		PL_get_long(term_t t, long *i);

@@ -504,10 +504,15 @@ callForeign(const Definition def, LocalFrame frame)
     { assert(result & FRG_CONTROL_MASK);
       frame->clause = (ClauseRef) result;
       succeed;
+    } else
+    { FunctorDef fd = def->functor;
+      term_t ex = PL_new_term_ref();
+
+      PL_put_integer(ex, result);
+
+      return PL_error(stringAtom(fd->name), fd->arity, NULL, ERR_DOMAIN,
+		      ATOM_foreign_return_value, ex);
     }
-    warning("Deterministic foreign predicate %s returns 0x%x",
-	    predicateName(def), result);
-    fail;
   }
 #undef LD
 #define LD GLOBAL_LD
@@ -942,7 +947,7 @@ findBlock(LocalFrame fr, Word block)
       return fr;
   }
 
-  warning("Can't find block");
+  PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_block, wordToTermRef(block));
 
   return NULL;
 }
@@ -2243,7 +2248,10 @@ exit(Block, RVal).  First does !(Block).
 	rval = argFrameP(lTop, 1); deRef(rval);
 
         if ( !(blockfr = findBlock(FR, name)) )
-	{ BODY_FAILED;
+	{ if ( exception_term )
+	    goto b_throw;
+
+	  BODY_FAILED;
 	}
 	
 	set(blockfr, FR_CUT);
@@ -2303,7 +2311,9 @@ exit(Block, RVal).  First does !(Block).
 	name = argFrameP(lTop, 0); deRef(name);
 
 	if ( !(cutfr = findBlock(FR, name)) )
-	{ BODY_FAILED;
+	{ if ( exception_term )
+	    goto b_throw;
+	  BODY_FAILED;
 	}
 	
 #ifdef O_DEBUGGER
@@ -2844,8 +2854,8 @@ arity and a pointer to the argument vector of the goal.
 	  functor = functorTerm(goal);
 	  arity   = arityFunctor(functor);
 	} else
-	{ warning("call/1 or variable as subclause: Illegal goal");
-	  FRAME_FAILED;
+	{ PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, wordToTermRef(a));
+	  goto b_throw;
 	}
 	goto i_usercall_common;
 
@@ -2869,8 +2879,8 @@ arity and a pointer to the argument vector of the goal.
 	  functor = lookupFunctorDef(fdef->name, arity + callargs);
 	  args    = argTermP(goal, 0);
 	} else
-	{ warning("call/%d: Illegal goal", callargs+1);
-	  FRAME_FAILED;
+	{ PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, wordToTermRef(a));
+	  goto b_throw;
 	}
 
 	if ( arity != 1 )
@@ -3222,7 +3232,7 @@ be overwritten by the arguments for the actual call.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
       VMI(I_APPLY, COUNT(i_apply), ("apply\n")) MARK(APPLY);
       { atom_t functor;
-	word list;
+	Word lp;
 	Module module = (Module) NULL;
 	Word gp;
 
@@ -3232,14 +3242,13 @@ be overwritten by the arguments for the actual call.
 	  set(next, FR_NODEBUG);
 
 	ARGP = argFrameP(next, 0); deRef(ARGP); gp = ARGP;
-	ARGP = argFrameP(next, 1); deRef(ARGP); list = *ARGP;
+	ARGP = argFrameP(next, 1); deRef(ARGP); lp = ARGP;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Obtain the functor of the actual goal from the first argument  and  copy
 the arguments of this term in the frame.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 	
-	if ((gp = stripModule(gp, &module)) == (Word) NULL)
-	  FRAME_FAILED;
+	gp = stripModule(gp, &module);
 	next->context = module;
 	goal = *gp;
 
@@ -3258,27 +3267,28 @@ the arguments of this term in the frame.
 	  for(n=0; n<arity; n++, ARGP++, args++)
 	    *ARGP = linkVal(args);
 	} else
-	{ warning("apply/2: Illegal goal");
-	  FRAME_FAILED;
+	{ PL_error("apply", 2, NULL, ERR_TYPE,
+		   ATOM_callable, wordToTermRef(a));
+	  goto b_throw;
 	}
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Scan the list and add the elements to the argument vector of the frame.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-	while(!isNil(list) )
-	{ if (!isList(list) )
-	  { warning("apply/2: Illegal argument list");
-	    FRAME_FAILED;
+	while(!isNil(*lp) )
+	{ if (!isList(*lp) )
+	  { PL_error("apply", 2, NULL, ERR_TYPE,
+		     ATOM_list, wordToTermRef(lp));
+	    goto b_throw;
 	  }
-	  args = argTermP(list, 0);	/* i.e. the head */
+	  args = argTermP(*lp, 0);	/* i.e. the head */
 	  *ARGP++ = linkVal(args);
 	  arity++;
 	  if (arity > MAXARITY)
-	  { warning("apply/2: arity too high");
-	    FRAME_FAILED;
+	  { PL_error("apply", 2, NULL, ERR_REPRESENTATION, ATOM_max_arity);
+	    goto b_throw;
 	  }
-	  args = argTermP(list, 1);	/* i.e. the tail */
-	  deRef(args);
-	  list = *args;
+	  lp = argTermP(*lp, 1);	/* i.e. the tail */
+	  deRef(lp);
 	}
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Find the associated procedure (see I_CALL for module handling), save the
@@ -3373,6 +3383,7 @@ Note: we are working above `lTop' here!
 	next->parent         = FR;
 	next->predicate	     = DEF;		/* TBD */
 	next->programPointer = PC;		/* save PC in child */
+	next->clause         = NULL;		/* for save atom-gc */
 	environment_frame = FR = next;		/* open the frame */
 
       depart_continue:

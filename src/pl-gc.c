@@ -2117,6 +2117,14 @@ markAtomsOnGlobalStack(PL_local_data_t *ld)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This is much like  check_environments(),  but   as  we  might  be called
+asynchronously, we have to be a bit careful about the first frame (if PC
+== NULL). The interpreter will  set  the   clause  field  to NULL before
+opening the frame, and we only have   to  consider the arguments. If the
+frame has a clause we must consider all variables of this clause.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static QueryFrame
 mark_atoms_in_environments(LocalFrame fr)
 { Code PC = NULL;
@@ -2137,7 +2145,12 @@ mark_atoms_in_environments(LocalFrame fr)
     local_frames++;
     clearUninitialisedVarsFrame(fr, PC);
 
-    slots = slotsFrame(fr);
+    if ( true(fr->predicate, FOREIGN) ||
+	 !fr->clause )
+      slots = fr->predicate->functor->arity;
+    else
+      slots = fr->clause->clause->prolog_vars;
+
     sp = argFrameP(fr, 0);
     for( n=0; n < slots; n++, sp++ )
     { if ( isAtom(*sp) )

@@ -340,26 +340,6 @@ Allocate(long n)
 
 
 		/********************************
-		*     STRING MANIPULATION	*
-		********************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The builtin strcmp() of SunOs is broken on some machines ...
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#if sun
-int
-strcmp(const char *s1, const char *s2)
-{ while(*s1 && *s1 == *s2)
-    s1++, s2++;
-
-  return *(const unsigned char *)s1 -
-	 *(const unsigned char *)s2;
-}
-#endif
-
-
-		/********************************
 		*           ARITHMETIC          *
 		*********************************/
 

@@ -102,10 +102,6 @@ handy for it someone wants to add a data type to the system.
 #define O_LOGICAL_UPDATE	1
 #define O_ATOMGC		1
 
-#ifdef O_PLMT				/* not yet provided */
-#undef O_ATOMGC
-#endif
-
 #ifndef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
 #ifdef __i386__
 #define DOUBLE_TO_LONG_CAST_RAISES_SIGFPE 1

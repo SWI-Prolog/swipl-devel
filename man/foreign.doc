@@ -1628,7 +1628,7 @@ compile SWI-Prolog.}
 
 
 \begin{description}
-    \cfunction{int}PL_thread_self}{}
+    \cfunction{int}{PL_thread_self}{}
 Returns the integer Prolog identifier of the engine or -1 if the calling
 thread has no Prolog engine.  This function is also provided in the
 single-threaded version of SWI-Prolog, where it returns -2.

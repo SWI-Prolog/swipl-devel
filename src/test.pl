@@ -21,6 +21,8 @@ available test sets. The public goals are:
 	?- test.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+:- format('SWI-Prolog test suite.  To run all tests run ?- test.~n~n', []).
+
 
 		 /*******************************
 		 *	      SYNTAX		*
@@ -177,6 +179,8 @@ term(univ-3) :-
 term(univ-4) :-
 	a(a,b,c) =.. [a, a | L], L == [b,c].
 
+
+
 		 /*******************************
 		 *	       LIST		*
 		 *******************************/
@@ -329,10 +333,28 @@ softcut2(A) :-
 	;   A = 1
 	).
 
+do_block :-
+	exit(notmyblock, ok).
+
 control(softcut-1) :-
 	findall(A, softcut1(A), [1,2]).
 control(softcut-2) :-
 	findall(A, softcut2(A), [1]).
+control(block-1) :-
+	catch(block(myblock, do_block, _), E, true),
+	E =@= error(existence_error(block, notmyblock), _).
+
+		 /*******************************
+		 *	     EXCEPTIONS		*
+		 *******************************/
+
+do_exception_1 :-
+	A = _,
+	A.
+
+exception(call-1) :-
+	catch(do_exception_1, E, true),
+	E =@= error(instantiation_error, _).
 
 
 		 /*******************************
@@ -350,6 +372,22 @@ gc(shift-1) :-
 	;   MinFree is 400 * 1024,
 	    stack_parameter(global, min_free, _, MinFree)
 	).
+gc(gc-1) :-
+	garbage_collect.
+gc(agc-1) :-
+	garbage_collect_atoms.
+gc(agc-2) :-
+	(   current_prolog_flag(agc_margin, Margin),
+	    Margin > 0
+	->  UpTo is Margin*2,
+	    statistics(agc_gained, Gained0),
+	    forall(between(0, UpTo, X), atom_concat(foobar, X, _)),
+	    statistics(agc_gained, Gained1),
+	    Gained is Gained1 - Gained0,
+	    Gained > UpTo - 10		% might be some junk
+	;   true			% no atom-gc
+	).
+
 
 		 /*******************************
 		 *            FLOATS		*
@@ -471,6 +509,7 @@ testset(update).
 testset(gc).
 testset(floatconv).
 testset(control).
+testset(exception).
 testset(term_atom).
 testset(popen) :-
 	feature(pipe, true).

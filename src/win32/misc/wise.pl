@@ -78,7 +78,7 @@ wise_install_xpce :-
 	halt(1).
 	
 pce_manual_index :-
-	send(@display, confirm,
+	send(@(display), confirm,
 	     'I can now create the index for the XPCE manual tools\n\n\
 	      This process takes several minutes and requires about 2MB\n\
 	      disk-space.\n\n\

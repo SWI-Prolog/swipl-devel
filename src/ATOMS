@@ -441,6 +441,13 @@ A agc_margin		"agc_margin"
 A dde_error		"dde_error"
 A dde_handle		"dde_handle"
 A character_code	"character_code"
+A resource_handle	"resource_handle"
+A program_counter	"program_counter"
+A foreign_return_value	"foreign_return_value"
+A max_dde_handles	"max_dde_handles"
+A agc			"agc"
+A agc_gained		"agc_gained"
+A agc_time		"agc_time"
 
 F abs			1
 F acos			1

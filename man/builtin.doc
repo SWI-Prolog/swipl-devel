@@ -4243,6 +4243,9 @@ possible keys are given in the \tabref{statistics}.
 \begin{center}
 \begin{tabular}{|l|p{4in}|}
 \hline
+agc		& Number of atom garbage-collections performed \\
+agc_gained	& Number of atoms removed \\
+agc_time	& Time spent in atom garbage-collections \\
 cputime         & (User) {\sc cpu} time since Prolog was started in seconds \\
 inferences      & Total number of passes via the call and redo ports
                   since Prolog was started. \\
