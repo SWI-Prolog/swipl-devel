@@ -48,7 +48,7 @@ find_library(Spec, Lib) :-
 	current_prolog_flag(windows, true),
 	current_prolog_flag(kernel_compile_mode, debug),
 	libd_spec(Spec, SpecD),
-	catch(find_library2(SpecD, Lib), _, fail), !.
+	catch(find_library2(SpecD, Lib), _, fail).
 find_library(Spec, Lib) :-
 	find_library2(Spec, Lib).
 
@@ -66,12 +66,13 @@ find_library2(Spec, _) :-
 	throw(error(existence_error(source_sink, Spec), _)).
 
 libd_spec(Name, NameD) :-
-	atomic(Name), !,
+	atomic(Name),
 	file_name_extension(Base, Ext, Name),
 	atom_concat(Base, 'D', BaseD),
 	file_name_extension(BaseD, Ext, NameD).
 libd_spec(Spec, SpecD) :-
-	Spec =.. [Alias,Name], !,
+	compound(Spec),
+	Spec =.. [Alias,Name],
 	libd_spec(Name, NameD),
 	SpecD =.. [Alias,NameD].
 libd_spec(Spec, Spec).			% delay errors
@@ -105,10 +106,10 @@ load_foreign_library(LibFileSpec, Entry) :-
 load_foreign_library(LibFile, _Module, _) :-
 	current_library(LibFile, _, _, _, _, _), !.
 load_foreign_library(LibFile, Module, DefEntry) :-
+	clean_fpublic,			% make sure!
 	find_library(LibFile, Path),
-	(   clean_fpublic,		% safety
-	    Module:open_shared_object(Path, Handle),
-	    (	entry(LibFile, DefEntry, Entry),
+	catch(Module:open_shared_object(Path, Handle), _, fail), !,
+	(   (	entry(LibFile, DefEntry, Entry),
 		Module:call_shared_object_function(Handle, Entry)
 	    ->	true
 	    ;	DefEntry == default(install)
@@ -119,6 +120,8 @@ load_foreign_library(LibFile, Module, DefEntry) :-
 	    close_shared_object(Handle),
 	    fail
 	).
+load_foreign_library(LibFile, _, _) :-
+	throw(error(existence_error(foreign_library, LibFile), _)).
 
 unload_foreign_library(LibFile) :-
 	unload_foreign_library(LibFile, default(uninstall)).

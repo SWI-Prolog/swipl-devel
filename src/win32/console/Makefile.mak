@@ -11,11 +11,7 @@ OUTDLL=		$(PLHOME)\bin\plterm.dll
 OUTLIB=		$(PLHOME)\lib\plterm.lib
 OUTINC=		$(PLHOME)\include\console.h
 
-!IF "$(DBG)" == "false"
-XLIBS=		gdi32.lib comdlg32.lib
-!ELSE
-XLIBS=		msvcrtd.lib gdi32.lib comdlg32.lib
-!ENDIF
+XLIBS=		gdi32.lib comdlg32.lib $(DBGLIBS)
 
 OBJ=		complete.obj console.obj edit.obj history.obj
 

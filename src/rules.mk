@@ -10,7 +10,7 @@
 # copy the result to wherever you want.
 
 # prefix=C:\Program Files
-prefix=E:\jan\installed
+prefix=E:\jan\debug
 PLBASE=$(prefix)\pl
 BINDIR=$(PLBASE)\bin
 LIBDIR=$(PLBASE)\lib
@@ -26,7 +26,7 @@ LIB=$(LIB);E:\jan\lib
 # Configuration selection
 
 CFG=dev
-DBG=false
+DBG=true
 
 !IF "$(CFG)" == "rt"
 CMFLAGS=/DO_RUNTIME
@@ -77,11 +77,13 @@ UXLIB=$(PLHOME)\lib\uxnt.lib
 CFLAGS=/MD /W3 /O2 /GX /DNDEBUG /DWIN32 /D_WINDOWS $(CMFLAGS) /nologo /c
 LDFLAGS=
 D=
+DBGLIBS=
 !ELSE
 CFLAGS=/MD /W3 /Zi /Od /GX /D_DEBUG /DWIN32 /D_WINDOWS $(CMFLAGS) /nologo /c
 LD=link.exe /nologo /incremental:yes
 LDFLAGS=/DEBUG
 D=D
+DBGLIBS=msvcrtd.lib
 !ENDIF
 
 .c.obj:
