@@ -504,9 +504,15 @@ makeClassColour(Class class)
 /* Don't know why this is done, it cannot be here as it is the reason why
    the X11 display is opened during XPCE's initialisation.  Possibly related
    to the variable BLACK_COLOUR, set when opening the display
+
+   Well, it has to initialise the emulated colour resources on Windows.
+   There is no harm in this, so we'll just call it then.  Maybe some day
+   we should make this more lazy.
 */
 
-/*ws_colour_name(CurrentDisplay(NIL), NAME_black);*/
+#ifdef WIN32_GRAPHICS
+  ws_colour_name(CurrentDisplay(NIL), NAME_black);
+#endif
 
   succeed;
 }
