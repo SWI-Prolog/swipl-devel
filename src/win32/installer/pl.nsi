@@ -179,19 +179,30 @@ Section "ODBC Interface"
   File pl\doc\packages\odbc.html
 SectionEnd
 
-Section "SGML/XML/HTML and RDF package"
+Section "SGML/XML/HTML parser"
   SetOutPath $INSTDIR\bin
   File pl\bin\sgml2pl.dll
   SetOutPath $INSTDIR\library
   File /r pl\library\DTD
+  File pl\library\sgml.pl
+  SetOutPath $INSTDIR\doc\packages
+  File pl\doc\packages\sgml2pl.html
+SectionEnd
+
+Section "RDF and Semantic Web Library"
+  SetOutPath $INSTDIR\bin
+  File pl\bin\rdf_db.dll
+
+  SetOutPath $INSTDIR\library
   File pl\library\rdf.pl
   File pl\library\rdf_parser.pl
   File pl\library\rdf_triple.pl
   File pl\library\rewrite.pl
-  File pl\library\sgml.pl
+  File /r pl\library\semweb
+
   SetOutPath $INSTDIR\doc\packages
-  File pl\doc\packages\sgml2pl.html
   File pl\doc\packages\rdf2pl.html
+  File pl\doc\packages\semweb.html
 SectionEnd
 
 Section "HTTP Client/Server package"

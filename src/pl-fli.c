@@ -3011,6 +3011,8 @@ PL_set_feature(const char *name, int type, ...)
     }
     case PL_ATOM:
     { const char *v = va_arg(args, const char *);
+      if ( !GD->initialised )
+	initAtoms();
       defFeature(name, FT_ATOM, v);
       break;
     }

@@ -22,6 +22,7 @@
 static int   breakargs(char *program, char *line, char **argv);
 static char *program_name(HANDLE hInstance);
 static void  bind_terminal(void);
+static int   attach_console(void);
 
 static char *program;
 
@@ -35,6 +36,8 @@ WinMain(HANDLE hInstance, HANDLE hPrevInstance,
   argc = breakargs(program, lpszCmdLine, argv);
 
   bind_terminal();
+/*attach_console();*/
+//PL_set_feature("verbose", PL_ATOM, "silent");
   if ( !PL_initialise(argc, argv) )
     PL_halt(1);
   
@@ -43,124 +46,152 @@ WinMain(HANDLE hInstance, HANDLE hPrevInstance,
   return 0;
 }
 
+
+static void
+ok(const char *msg)
+{ MessageBox(NULL, msg, program, MB_OK|MB_TASKMODAL);
+}
+
+
+
+		 /*******************************
+		 *	  USE MS-Console	*
+		 *******************************/
+
+static IOFUNCTIONS console_functions;
+
+static int    use_console;		/* use the console */
+static HANDLE cin;			/* console input handle */
+static HANDLE cout;			/* console output handle */
+static HANDLE cerr;
+
+typedef struct
+{ HANDLE input;
+  LPVOID buf;
+  DWORD  len;
+  DWORD  done;
+  DWORD  rc;
+} input_context;
+
+static DWORD WINAPI
+getInput(LPVOID h)
+{ input_context *ctx = h;
+
+  ctx->rc = ReadConsole(ctx->input, ctx->buf, ctx->len, &ctx->done, NULL);
+
+  return ctx->rc;
+}
+  
+static int
+read_console(void *h, char *buf, unsigned len)
+{ HANDLE th;
+  input_context ctx;
+  DWORD tid;
+
+  ctx.input = cin;
+  ctx.buf = buf;
+  ctx.len = len;
+
+  th = CreateThread(NULL, 10240, getInput, &ctx, 0, &tid);
+
+  for(;;)
+  { DWORD rc = MsgWaitForMultipleObjects(1, &th, FALSE,
+					 INFINITE, QS_ALLINPUT);
+    if ( rc == WAIT_OBJECT_0 )
+    { CloseHandle(th);
+      if ( ctx.rc )
+      { return ctx.done;
+      }
+      return -1;			/* error */
+    } else /*if ( rc == WAIT_OBJECT_0+1 )*/
+    { MSG msg;
+
+      if ( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) )
+      { TranslateMessage(&msg);
+	DispatchMessage(&msg);
+      }
+    }
+  }
+}
+
+
+static int
+write_console(void *h, char *buf, unsigned len)
+{ HANDLE co = (h == Soutput->handle ? cout : cerr);
+  DWORD done;
+
+  if ( WriteConsole(co, buf, len, &done, NULL) )
+    return done;
+
+  return -1;
+}
+
+
+static int
+attach_console(void)
+{ static int done = 0;
+
+  switch(done)
+  { case 0:
+      if ( AllocConsole() )
+      { cin  = GetStdHandle(STD_INPUT_HANDLE);
+	cout = GetStdHandle(STD_OUTPUT_HANDLE);
+	cerr = GetStdHandle(STD_ERROR_HANDLE);
+	
+	if ( cin  != INVALID_HANDLE_VALUE &&
+	     cerr != INVALID_HANDLE_VALUE &&
+	     cout != INVALID_HANDLE_VALUE )
+	{ use_console = TRUE;
+	  done = 1;
+
+	  return TRUE;
+	}
+      }
+      done = -1;
+      return FALSE;
+    case 1:
+      return TRUE;			/* already done so */
+    default:
+      return FALSE;			/* tried but failed */
+  }
+}
+
+
+
 		 /*******************************
 		 *	       I/O		*
 		 *******************************/
 
 static int
 do_read(void *handle, char *buffer, int size)
-{ MessageBox(NULL,
-	     "Application tries to read",
-	     program,
-	     MB_OK|MB_TASKMODAL);
+{ if ( use_console )
+    return read_console(handle, buffer, size);
 
-  return 0;				/* return END-OF-FILE */
-}
+  MessageBox(NULL,
+	     "The application tries to read.\n"
+	     "A console will be attached to help diagnose the problem.",
+	     program, MB_OK|MB_TASKMODAL);
 
-#define MAXMSG 1024
+  if ( attach_console() )
+    return read_console(handle, buffer, size);
 
-static int
-count_lines(const char *s, int len)
-{ int lines = 0;
-
-  while(len-- > 0)
-  { if ( *s++ == '\n' )
-      lines++;
-  }
-
-  return lines;
+  return -1;
 }
 
 
 static int
 do_write(void *handle, char *buffer, int size)
-{ char msg[MAXMSG];
-  static int action = IDYES;
-  char logfilename[MAXPATHLEN];
-  static HANDLE logfile = 0;
-  int l;
-  int tlen = size+count_lines(buffer, size);
-  char *tbuffer = alloca(tlen);
+{ if ( use_console )
+    return write_console(handle, buffer, size);
 
-  if ( tbuffer )
-  { char *f = buffer;
-    char *t = tbuffer;
-    int done = 0;
+  if ( handle == Serror->handle )
+  { MessageBox(NULL,
+	       "The application produced an error message.\n"
+	       "A console will be attached to help diagnose the problem.",
+	       program, MB_OK|MB_TASKMODAL);
 
-    while( done++ < size )
-    { if ( *f == '\n' )
-	*t++ = '\r';
-      *t++ = *f++;
-    }
-  } else				/* no room, poor mens solution */
-  { tlen = size;
-    tbuffer = buffer;
-  }
-
-  if ( (l=GetModuleFileName(NULL, logfilename, MAXPATHLEN)) > 0 )
-  { char *t = logfilename+l;
-    
-    while(t>logfilename && t[-1] != '\\' && t[-1] != '.')
-      t--;
-    if ( t[-1] == '.' )
-      strcpy(t, "log");
-    else
-      strcpy(logfilename+l, ".log");
-  } else
-    strcpy(logfilename, "xpce.log");
-
-  switch(action)
-  { case IDYES:
-    { char *t, *s = buffer;
-      int space, ml;
-
-      strcpy(msg, 
-	     "The application produced the output below\n"
-	     "Press [yes] to continue and show this box on new output\n"
-	     "Press [no] to continue and write further output to ");
-      strcat(msg,
-	     logfilename);
-      strcat(msg,
-	     "\n"
-	     "Press [cancel] to terminate the application\n\n");
-      ml = strlen(msg);
-      t = msg+ml;
-      space = MAXMSG - ml - 1;
-      if ( tlen > space )
-      { strncpy(t, tbuffer, space-4);
-	strcpy(t+space-4, " ...");
-      } else
-      { strncpy(t, tbuffer, tlen);
-	t[tlen] = '\0';
-      }
-	
-      switch((action=MessageBox(NULL,
-				msg,
-				program,
-				MB_ICONEXCLAMATION|
-				MB_YESNOCANCEL|MB_TASKMODAL)))
-      { case IDNO:
-	{ logfile = CreateFile(logfilename,
-			       GENERIC_WRITE,
-			       FILE_SHARE_READ,
-			       NULL,
-			       CREATE_ALWAYS,
-			       FILE_ATTRIBUTE_NORMAL,
-			       NULL);
-	  goto writelog;
-	}
-	case IDCANCEL:
-	  PL_halt(1);
-      }
-      break;
-    }
-    case IDNO:
-    { DWORD len;
-
-    writelog:
-      WriteFile(logfile, tbuffer, tlen, &len, NULL);
-      break;
-    }
+    if ( attach_console() )
+      return write_console(handle, buffer, size);
   }
 
   return size;
@@ -169,15 +200,13 @@ do_write(void *handle, char *buffer, int size)
 
 static void
 bind_terminal(void)
-{ static IOFUNCTIONS funcs;
+{ console_functions       = *Sinput->functions;
+  console_functions.read  = do_read;
+  console_functions.write = do_write;
 
-  funcs = *Sinput->functions;
-  funcs.read     = do_read;
-  funcs.write    = do_write;
-
-  Sinput->functions  = &funcs;
-  Soutput->functions = &funcs;
-  Serror->functions  = &funcs;
+  Sinput->functions  = &console_functions;
+  Soutput->functions = &console_functions;
+  Serror->functions  = &console_functions;
 }
 
 
