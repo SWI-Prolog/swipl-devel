@@ -1570,8 +1570,11 @@ provided by the DTD or a numeric character entity.
 <dt>&nbsp;<br>
 <b><a name="xml_write/3">xml_write(<var>+Stream, +Term, +Options</var>)</a></b><dd>
 Write the XML header with encoding information and the content of
-the document as represented by <var>Term</var> to <var>Stream</var>. 
-This predicate defines the following <var>Options</var>
+the document as represented by <var>Term</var> to <var>Stream</var>.  This
+predicate deals with XML with or without namespaces.   If namespace
+identifiers are not provided they are generated.  This predicate
+defines the following <var>Options</var>
+
 
 <dl>
 <dt>&nbsp;<br>
@@ -1591,7 +1594,20 @@ the outer element.
 <b>header(<var>Bool</var>)</b><dd>
 If <var>Bool</var> is <a name="const:false%3"><b><tt>false</tt></b></a>, the XML header is suppressed.  Useful for
 embedding in other XML streams.
+    
+<dt>&nbsp;<br>
+<b>indent(<var>Integer</var>)</b><dd>
+Set the initial element indentation.  It more than zero, the indent
+is written before the document.
+    
+<dt>&nbsp;<br>
+<b>nsmap(<var>Map</var>)</b><dd>
+Set the initial namespace map.  <var>Map</var> is a list of 
+<var>Name</var> = <var>URI</var>.  This option, together with <a name="const:header"><b><tt>header</tt></b></a> and
+<a name="const:ident"><b><tt>ident</tt></b></a> is added to use <a href="#xml_write/3"><b>xml_write/3</b></a> to generate XML
+that is embedded in a larger XML document.
 </dl>
+
 
     
 <dt>&nbsp;<br>
@@ -1870,8 +1886,10 @@ deleted. This is not yet implemented.
 <li><a href="#free_sgml_parser/1"><b>free_sgml_parser/1</b></a>
 <li><a href="#get_sgml_parser/2"><b>get_sgml_parser/2</b></a>
 <li><a href="#const:gt"><b><tt>gt</tt></b></a>
+<li><a href="#const:header"><b><tt>header</tt></b></a>
 <li><a href="#html_write/3"><b>html_write/3</b></a>
 <li><a href="#const:id"><b><tt>id</tt></b></a>
+<li><a href="#const:ident"><b><tt>ident</tt></b></a>
 <li><a href="#const:idref"><b><tt>idref</tt></b></a>
 <li><a href="#const:implied"><b><tt>implied</tt></b></a>
 <li><a href="#const:informational"><b><tt>informational</tt></b></a>

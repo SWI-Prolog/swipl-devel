@@ -69,6 +69,18 @@ stage.
 %		* doctype(DOCTYPE)
 %		Doctype for the SGML documentype declaration. If omitted
 %		it is taken from the first element.
+%		
+%		* header(Bool)
+%		If Bool is 'false', do not emit the <xml ...> header
+%		line.  (xml_write/3 only)
+%		
+%		* nsmap([Id=URI ...])
+%		When emitting embedded XML, assume these namespaces
+%		are already defined from the environment.  (xml_write/3
+%		only).
+%		
+%		* indent(Indent)
+%		Indentation of the document (for embedding)
 %	
 %	Note that if the stream is UTF-8,  the system will write special
 %	characters as UTF-8 sequences, while  if   it  is ISO Latin-1 it
@@ -78,14 +90,18 @@ xml_write(Stream, Data, Options) :-
 	new_state(State),
 	set_state(State, dialect, xml),
 	init_state(Options, State),
+	write_initial_indent(State, Stream),
 	emit_xml_encoding(Stream, Options),
-	emit(Data, Stream, State).
+	get_state(State, nsmap, NSMap),
+	add_missing_namespaces(Data, NSMap, Data1),
+	emit(Data1, Stream, State).
 
 
 sgml_write(Stream, Data, Options) :-
 	new_state(State),
 	set_state(State, dialect, sgml),
 	init_state(Options, State),
+	write_initial_indent(State, Stream),
 	emit_doctype(Options, Data, Stream),
 	emit(Data, Stream, State).
 
@@ -110,6 +126,10 @@ update_state(dtd(DTD), State) :- !,
 	set_state(State, dtd, DTDObj),
 	dtd_character_entities(DTDObj, EntityMap),
 	set_state(State, entity_map, EntityMap).
+update_state(nsmap(Map), State) :- !,
+	set_state(State, nsmap, Map).
+update_state(indent(Indent), State) :- !,
+	set_state(State, indent, Indent).
 update_state(doctype(_), _) :- !.
 update_state(header(_), _) :- !.
 update_state(Option, _) :-
@@ -350,6 +370,76 @@ write_element_content([H|T], Out, State) :-
 
 
 		 /*******************************
+		 *	     NAMESPACES		*
+		 *******************************/
+
+%	add_missing_namespaces(+DOM0, +NsMap, -DOM)
+%	
+%	Add xmlns:NS=URI definitions to the toplevel element(s) to
+%	deal with missing namespaces.
+
+add_missing_namespaces([], _, []) :- !.
+add_missing_namespaces([H0|T0], Def, [H|T]) :- !,
+	add_missing_namespaces(H0, Def, H),
+	add_missing_namespaces(T0, Def, T).
+add_missing_namespaces(Elem0, Def, Elem) :-
+	Elem0 = element(Name, Atts0, Content), !,
+	missing_namespaces(Elem0, Def, Missing),
+	(   Missing == []
+	->  Elem = Elem0
+	;   add_missing_ns(Missing, Atts0, Atts),
+	    Elem = element(Name, Atts, Content)
+	).
+add_missing_namespaces(DOM, _, DOM).	% CDATA, etc.
+
+add_missing_ns([], Atts, Atts).
+add_missing_ns([H|T], Atts0, Atts) :-
+	generate_ns(H, NS),
+	add_missing_ns(T, [xmlns:NS=H|Atts0], Atts).
+
+generate_ns(URI, NS) :-
+	default_ns(URI, NS), !.
+generate_ns(_, NS) :-
+	gensym(xns, NS).
+
+default_ns('http://www.w3.org/2001/XMLSchema-instance', xsi).
+
+%	missing_namespaces(+DOM, +NSMap, -Missing)
+%	
+%	Return a list of URIs appearing in DOM that are not covered
+%	by xmlns definitions.
+
+missing_namespaces(DOM, Defined, Missing) :-
+	missing_namespaces(DOM, Defined, [], Missing).
+
+missing_namespaces([], _, L, L) :- !.
+missing_namespaces([H|T], Def, L0, L) :- !,
+	missing_namespaces(H, Def, L0, L1),
+	missing_namespaces(T, Def, L1, L).
+missing_namespaces(element(Name, Atts, Content), Def, L0, L) :- !,
+	update_nsmap(Atts, Def, Def1),
+	missing_ns(Name, Def1, L0, L1),
+	missing_att_ns(Atts, Def1, L1, L2),
+	missing_namespaces(Content, Def1, L2, L).
+missing_namespaces(_, _, L, L).
+
+missing_att_ns([], _, M, M).
+missing_att_ns([Name=_|T], Def, M0, M) :-
+	missing_ns(Name, Def, M0, M1),
+	missing_att_ns(T, Def, M1, M).
+
+missing_ns(URI:_, Def, M0, M) :- !,
+	(   (   memberchk(_=URI, Def)
+	    ;	memberchk(URI, M0)
+	    ;	URI = xml		% predefined ones
+	    ;	URI = xmlns
+	    )
+	->  M = M0
+	;   M = [URI|M0]
+	).
+missing_ns(_, _, M, M).
+
+		 /*******************************
 		 *	   QUOTED WRITE		*
 		 *******************************/
 
@@ -409,6 +499,13 @@ write_entity(Code, Out, EntityMap) :-
 		 /*******************************
 		 *	    INDENTATION		*
 		 *******************************/
+
+write_initial_indent(State, Out) :-
+	(   get_state(State, indent, Indent),
+	    Indent > 0
+	->  emit_indent(Indent, Out)
+	;   true
+	).
 
 write_indent(State, Out) :-
 	get_state(State, indent, Indent),

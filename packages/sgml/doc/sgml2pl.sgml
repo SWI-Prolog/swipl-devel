@@ -1168,8 +1168,11 @@ provided by the DTD or a numeric character entity.
     <pred>xml_write(+Stream, +Term, +Options)
     <summary>Write an XML document from a parser-compatible term
 Write the XML header with encoding information and the content of
-the document as represented by <aref/Term/ to <aref/Stream/. 
-This predicate defines the following <aref/Options/
+the document as represented by <aref/Term/ to <aref/Stream/.  This
+predicate deals with XML with or without namespaces.   If namespace
+identifiers are not provided they are generated.  This predicate
+defines the following <aref/Options/
+
 <argdef>
     <termitem>dtd(DTD)
 Specify the DTD.  In SGML documents the DTD is required to distinguish
@@ -1183,7 +1186,16 @@ the outer element.
     <termitem>header(Bool)
 If <aref/Bool/ is <c/false/, the XML header is suppressed.  Useful for
 embedding in other XML streams.
+    <termitem>indent(Integer)
+Set the initial element indentation.  It more than zero, the indent
+is written before the document.
+    <termitem>nsmap(Map)
+Set the initial namespace map.  <aref/Map/ is a list of 
+<var/Name/ = <var/URI/.  This option, together with <c/header/ and
+<c/ident/ is added to use <pref>xml_write/3</pref> to generate XML
+that is embedded in a larger XML document.
 </argdef>
+
     <pred>sgml_write(+Stream, +Term, +Options)
     <summary>Write an SGML document from a parser-compatible term
 Write the SGML <c/DOCTYPE/ header and the content of the document as

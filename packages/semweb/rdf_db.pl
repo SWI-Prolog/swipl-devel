@@ -99,6 +99,7 @@
 :- use_module(library(shlib)).
 :- use_module(library(gensym)).
 :- use_module(library(sgml)).
+:- use_module(library(sgml_write)).
 :- use_module(library(option)).
 
 :- initialization
@@ -1069,10 +1070,14 @@ save_attribute(body, Name=literal(Literal0), DefNS, Out, Indent, Options) :- !,
 	->  rdf_id(Type, DefNS, TypeText),
 	    format(Out, '~N~*|<~w rdf:dataType="~w">',
 		   [Indent, NameText, TypeText])
-	;   format(Out, '~N~*|<~w>', [Indent, NameText]),
+	;   atomic(Literal)
+	->  format(Out, '~N~*|<~w>', [Indent, NameText]),
+	    Value = Literal
+	;   format(Out, '~N~*|<~w rdf:parseType="Literal">',
+		   [Indent, NameText]),
 	    Value = Literal
 	),
-	save_attribute_value(Value, Out),
+	save_attribute_value(Value, Out, Indent),
 	format(Out, '</~w>', [NameText]).
 save_attribute(body, Name=Value, DefNS, Out, Indent, Options) :-
 	anonymous_subject(Value), !,
@@ -1093,15 +1098,22 @@ save_attribute(body, Name=Value, DefNS, Out, Indent, _DB) :-
 	rdf_id(Name, DefNS, NameText),
 	format(Out, '~N~*|<~w rdf:resource="~w"/>', [Indent, NameText, QVal]).
 
-save_attribute_value(Value, Out) :-	% strings
+save_attribute_value(Value, Out, _) :-	% strings
 	atom(Value), !,
 	stream_property(Out, encoding(Encoding)),
 	xml_quote_cdata(Value, QVal, Encoding),
 	write(Out, QVal).
-save_attribute_value(Value, Out) :-	% numbers
+save_attribute_value(Value, Out, _) :-	% numbers
 	number(Value), !,
 	writeq(Out, Value).		% quoted: preserve floats
-save_attribute_value(Value, _Out) :-
+save_attribute_value(Value, Out, Indent) :-
+	xml_is_dom(Value), !,
+	XMLIndent is Indent+2,
+	xml_write(Out, Value,
+		  [ header(false),
+		    indent(XMLIndent)
+		  ]).
+save_attribute_value(Value, _Out, _) :-
 	throw(error(save_attribute_value(Value), _)).
 
 rdf_save_list(_, List, _, _, _) :-
