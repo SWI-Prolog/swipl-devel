@@ -356,7 +356,6 @@ help(+What)
     Show specified part of the manual.  What is one of:
 
          Name/Arity   give help on specified predicate
-
          Name         give help on named predicate with any arity
                       or C interface function with that name
          Section      display specified section.  section numbers
@@ -367,9 +366,7 @@ help(+What)
     Examples
 
       ?- help(assert).     give help on predicate assert
-
       ?- help(3-4).        display section 3.4 of the manual
-
       ?- help('PL_retry'). give help on interface function PL_retry()
 
 
@@ -445,8 +442,7 @@ some examples.
     append("Hello ", "Universe", L), writef('L = %s\n', [L]).
     L = Hello Universe
 
-    L = [72, 101, 108, 108, 111, 32, 85, 110, 105, 118, 101, 114, 115,
-    101]
+    L = [72, 101, 108, 108, 111, 32, 85, 110, 105, 118, 101, 114, 115, 101]
 
     Yes
     6 ?- halt.
@@ -533,10 +529,8 @@ options:
     to that atom matches.  Examples:
 
           /f               Search for any fail port
-
           /fe solve        Search for a fail or exit port of any
                            goal with name solve
-
           /c solve(a, _)   Search for a call to solve/2 whose
                            first argument is a variable or the
                            atom a
@@ -762,8 +756,7 @@ save_program(+NewProgram, +ListOfOptions)
            , init_file = none
            ]).
    Running executable: /usr/local/bin/pl
-   Saving to my_program; text: 204800 ... data: 357000 ... symbols ...
-   done.
+   Saving to my_program; text: 204800 ... data: 357000 ... symbols ... done.
    Yes
    2 ?- halt.
    sun%
@@ -931,7 +924,6 @@ This area is dynamically enlarged at runtime on all versions of
 SWI-Prolog.
 
  Option    Default    Area name       Description
-
    -L     200K (2M)   local stack     The local stack is used to store the
                                       execution environments of procedure
                                       invocations.  The space for an
@@ -943,7 +935,6 @@ SWI-Prolog.
                                       invocation and the last subclause is
                                       started (tail recursion
                                       optimisation).
-
    -G     100K (4M)   global stack    The global stack is used to store
                                       terms created during Prolog's
                                       execution.  Terms on this stack will
@@ -951,7 +942,6 @@ SWI-Prolog.
                                       point before the term was created or
                                       by garbage collection (provided the
                                       term is no longer referenced).
-
    -T      50K (4M)   trail stack     The trail stack is used to store
                                       assignments during execution.
                                       Entries on this stack remain alive
@@ -959,7 +949,6 @@ SWI-Prolog.
                                       of creation or the garbage collector
                                       determines they are nor needed any
                                       longer.
-
    -A      5K (1M)    argument stack  The argument stack is used to store
                                       one of the intermediate code
                                       interpreter's registers.  The amount
@@ -1747,6 +1736,11 @@ predicate_property(?Head, ?Property)
         term whose name and arity are identical to the predicate.  The
         arguments are unified with `1' for indexed arguments, `0'
         otherwise.
+
+    line_count(LineNumber)
+        Unify LineNumber with the line number of the first clause of the
+        predicate.  Fails if the predicate is not associated with a file.
+        See also source_file/2.
 
 
 dwim_predicate(+Term, -Dwim)
@@ -1801,11 +1795,8 @@ and user_errorare for neat integration with the explicit streams.
      user                  This reserved name refers to the
                            terminal
      user_input            Input from the terminal
-
      user_output           Output to the terminal
-
      stderr or user_error  Unix error stream (output only)
-
      Atom                  Name of a Unix file
      pipe(Atom)            Name of a Unix command
 
@@ -2397,31 +2388,20 @@ op(+Precedence, +Type, +Name)
     operators can be redefined by the user.
 
           1200   xfx   -->, :-
-
           1200   fx    :-, ?-
-
           1150   fx    dynamic, multifile,
                        module_transparent, discontiguous
-
           1100   xfy   ;, |
-
           1050   xfy   ->
           1000   xfy   ,
-
           954    xfy   \\
-
           900    fy    \+, not
-
           700    xfx   <, =, =.., =@=, =:=, =<, ==, =\=, >,
                        >=, @<, @=<, @>, @>=, \=, \==, is
-
           600    xfy   :
           500    yfx   +, -, /\, \/, xor
-
           500    fx    +, -, ?, \
-
           400    yfx   *, /, //, <<, >>
-
           300    xfx   mod
           200    xfy   ^
 
@@ -2514,10 +2494,8 @@ integer.  There are three types of arguments to functions:
 
       Expr     Arbitrary expression, returning either a floating
                point value or an integer.
-
       IntExpr  Arbitrary expression that should evaluate into an
                integer.
-
       Int      An integer.
 
 In case integer addition, subtraction and multiplication would lead to an
@@ -3004,17 +2982,11 @@ writef(+Format, +Arguments)
     Escape sequences to generate a single special character:
 
             \n     <NL> is output
-
             \l     <LF> is output
-
             \r     <CR> is output
-
             \t     <TAB> is output
-
             \\     The character `\' is output
-
             \%     The character `%' is output
-
             \nnn   where nnn is an integer (1-3 digits) the
                    character with ASCII code nnn is output (NB
                    : nnn is read as DECIMAL)
@@ -3024,26 +2996,17 @@ writef(+Format, +Arguments)
     is formatted according to the specification.
 
             %t     print/1 the next item (mnemonic:  term)
-
             %w     write/1 the next item
-
             %q     writeq/1 the next item
-
             %d     display/1 the next item
-
             %p     print/1 the next item (identical to %t)
-
             %n     put the next item as a character (i.e.  it
                    is an ASCII value)
-
             %r     write the next item N times where N is the
                    second item (an integer)
-
             %s     write the next item as a String (so it must
                    be a list of characters)
-
             %f     perform a ttyflush/0 (no items used)
-
             %Nc    write the next item Centered in N columns.
             %Nl    write the next item Left justified in N
                    columns.
@@ -3466,7 +3429,6 @@ trace(+Pred, +Ports)
 
        ?- trace(hello).       Trace all ports of hello with any
                               arity in any module.
-
        ?- trace(foo/2, +fail) Trace failures of foo/2 in any
                               module.
        ?- trace(bar/1, -all)  Stop tracing bar/1.
@@ -3546,7 +3508,6 @@ style_check(+Spec)
     Currently available options are:
 
       Name           Default   Description
-
       singleton        on      read_clause/1 (used by consult/1) warns on
                                variables only appearing once in a term
                                (clause) which have a name not starting with
@@ -3558,10 +3519,8 @@ style_check(+Spec)
                                thus avoiding the need for quoting atoms
                                with dollar signs.  System maintenance use
                                only.
-
       discontiguous    on      Warn if the clauses for a predicate are not
                                together in the same source file.
-
       string           off     Read and derivates transform "..." into a
                                prolog string instead of a list of ASCII
                                characters.
@@ -3578,32 +3537,19 @@ statistics(+Key, -Value)
                  seconds
     inferences   Total number of passes via the call and redo ports
                  since Prolog was started.
-
     heapused     Bytes heap in use.
-
     local        Allocated size of the local stack in bytes.
-
     localused    Number of bytes in use on the local stack.
-
     locallimit   Size to which the local stack is allowed to grow
-
     global       Allocated size of the global stack in bytes.
-
     globalused   Number of bytes in use on the global stack.
-
     globallimit  Size to which the global stack is allowed to grow
-
     trail        Allocated size of the trail stack in bytes.
-
     trailused    Number of bytes in use on the trail stack.
-
     traillimit   Size to which the trail stack is allowed to grow
-
     atoms        Total number of defined atoms.
     functors     Total number of defined name/arity pairs.
-
     predicates   Total number of predicate definitions.
-
     modules      Total number of module definitions.
     externals    Total number of external references in all
                  clauses.
@@ -3999,8 +3945,7 @@ looks like this:
 
     :- use_module(                % load generic parts
            [ error                % errors and warnings
-           , goodies              % general goodies (library
-    extensions)
+           , goodies              % general goodies (library extensions)
            , debug                % application specific debugging
            , virtual_machine       % virtual machine of application
            , ...                 % more generic stuff
@@ -4113,8 +4058,7 @@ declared module_transparent.  Below is the code defining maplist.
     :- module_transparent maplist/3.
 
     %       maplist(+Goal, +List1, ?List2)
-    %       True if Goal can succesfully be applied to all succesive
-    pairs
+    %       True if Goal can succesfully be applied to all succesive pairs
     %       of elements of List1 and List2.
 
     maplist(_, [], []).
@@ -4174,8 +4118,7 @@ tracer or autoloader for this module (see unknown/2).
 Import and export from dynamically created world is arranged via the
 predicates import/1 and export/1:
 
-    ?- world_b:export(solve(_,_)).         % exports solve/2 from
-    world_b
+    ?- world_b:export(solve(_,_)).         % exports solve/2 from world_b
     ?- world_c:import(world_b:solve(_,_)).  % and import it to world_c
 
 
@@ -4417,14 +4360,12 @@ modified to link the lowercase example described later in this chapter:
     /*{ "name",      arity,  function,      PL_FA_<flags> },*/
 
       { "lowercase", 2       pl_lowercase,  0 },
-      { NULL,       0,      NULL,         0 }     /* terminating line
-    */
+      { NULL,       0,      NULL,         0 }     /* terminating line */
     };
 
 Now, a new executable may be created using:
 
-    sun% gcc -static .../pl/runtime/<arch>/pl.o lowercase.c stub.c -lm
-    -ltermcap
+    sun% gcc -static .../pl/runtime/<arch>/pl.o lowercase.c stub.c -lm -ltermcap
 
 The resulting a.out file will load the standard prolog bootstrap file.
 Normally, your extensions partly be written in Prolog.  In this case,
@@ -4684,13 +4625,9 @@ int PL_type(term)
                              such is a unique identifier for the
                              variable.
       PL_ATOM                A Prolog atom.
-
       PL_STRING              A Prolog string.
-
       PL_INTEGER             A Prolog integer.
-
       PL_FLOAT               A Prolog floating point number.
-
       PL_TERM                A compound term.  Note that a list is a
                              compound term with name `.'  and arity 2.
 
@@ -5098,13 +5035,10 @@ int PL_action(int, C_type)
     table 5.1.
 
      PL_ACTION_TRACE        Start Prolog tracer
-
      PL_ACTION_DEBUG        Switch on Prolog debug mode
-
      PL_ACTION_BACKTRACE    Print backtrace on current output stream.
                             The argument (an int) is the number of
                             frames printed.
-
      PL_ACTION_HALT         Halt Prolog execution.  This action should
                             be called rather than Unix exit() to give
                             Prolog the opportunity to clean up.  This
@@ -5113,7 +5047,6 @@ int PL_action(int, C_type)
                             return.
      PL_ACTION_BREAK        Create a standard Prolog break environment.
                             Returns after the user types control-D.
-
      PL_ACTION_SYMBOLFILE   The argument (a char *) is considered to be
                             hold the symbolfile for further incremental
                             loading.  Should be called by user
@@ -5134,13 +5067,10 @@ C_type PL_query(int)
 
         PL_QUERY_ARGC          Return an integer holding the number of
                                arguments given to Prolog from Unix.
-
         PL_QUERY_ARGV          Return a char ** holding the argument vector
                                given to Prolog from Unix.
-
         PL_QUERY_SYMBOLFILE    Return a char * holding the current symbol
                                file of the running process.
-
         PL_QUERY_ORGSYMBOLFILE Return the initial symbol file (before
                                loading) of Prolog.  By setting the symbol
                                file to this value no name clashes can occur
@@ -5162,13 +5092,10 @@ int PL_register_foreign(name, arity, function, [...option...]  0)
     for the installation.  These are:
 
          PL_FA_NOTRACE           Predicate cannot be seen in the tracer
-
          PL_FA_TRANSPARENT       Predicate is module transparent
-
          PL_FA_NONDETERMINISTIC  Predicate is non-deterministic.  This
                                  attribute is currently ignored, but will
                                  probably be used in future versions.
-
          PL_FA_GCSAVE            The C-implementation properly uses PL_lock()
                                  and PL_unlock() to protect variables from
                                  the garbage collector and stack-shifter
@@ -5377,14 +5304,11 @@ prolog_frame_attribute(+Frame, +Key, -Value)
                       represented as module:goal.  Do not
                       instantiate variables in this goal unless
                       you know what you are doing!
-
     level             Value is unified with the recursion level of
                       Frame.  The top level frame is at level `0'.
-
     parent            Value is unified with an integer reference
                       to the parent local stack frame of Frame.
                       Fails if Frame is the top frame.
-
     context_module    Value is unified with the name of the
                       context module of the environment.
     top               Value is unified with `1' if Frame is the
