@@ -346,7 +346,7 @@ rfc2045_error(const char *errmsg)
 
 
 install_t
-install_mime4pl()
+install_mime()
 { ATOM_			     = PL_new_atom("");
   ATOM_stream		     = PL_new_atom("stream");
 

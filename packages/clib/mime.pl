@@ -14,7 +14,7 @@
 	  [ mime_parse/2		% +Data, -Mime
 	  ]).
 
-:- load_foreign_library(mime4pl).
+:- load_foreign_library(foreign(mime), install_mime).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module defines an interface to   the rfc2045 (MIME) parsing library
