@@ -134,7 +134,6 @@ simpleMutex _PL_mutexes[] =
   PTHREAD_MUTEX_INITIALIZER,		/* L_MODULE */
   PTHREAD_MUTEX_INITIALIZER,		/* L_TABLE */
   PTHREAD_MUTEX_INITIALIZER,		/* L_BREAK */
-  PTHREAD_MUTEX_INITIALIZER,		/* L_INIT_ALLOC */
   PTHREAD_MUTEX_INITIALIZER,		/* L_FILE */
   PTHREAD_MUTEX_INITIALIZER,		/* L_FEATURE */
   PTHREAD_MUTEX_INITIALIZER,		/* L_OP */
@@ -917,6 +916,32 @@ pl_current_thread(term_t id, term_t status, word h)
       succeed;
   }
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Sum the amount of heap allocated through all threads allocation-pools.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+long
+threadLocalHeapUsed(void)
+{ int i;
+  PL_thread_info_t *info;
+  long heap = 0;
+
+  LOCK();
+  for(i=0, info=threads; i<MAX_THREADS; i++, info++)
+  { PL_local_data_t *ld;
+
+    if ( (ld = info->thread_data) )
+    { heap += ld->alloc_pool.allocated;
+    }
+  }
+  UNLOCK();
+
+  return heap;
+}
+
+
 
 		 /*******************************
 		 *	     CLEANUP		*

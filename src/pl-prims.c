@@ -2390,6 +2390,18 @@ QP_STATISTICS is defined. The compatibility   is pretty complete, except
 the `atoms' key that is defined by both and this ambiguous.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static long
+heapUsed(void)
+{ long heap = GD->statistics.heap;	/* Big allocations */
+  
+  heap += GD->alloc_pool.allocated;	/* global small allocations */
+#ifdef O_PLMT
+  heap += threadLocalHeapUsed();	/* thread-local small allocations */
+#endif
+
+  return heap;
+}
+
 #define QP_STATISTICS 1
 
 word
@@ -2419,7 +2431,7 @@ pl_statistics(term_t k, term_t value)
   else if (key == ATOM_heap)
     fail;
   else if (key == ATOM_heapused)			/* heap usage */
-    result = makeNum(GD->statistics.heap + GD->alloc_pool.allocated);
+    result = makeNum(heapUsed());
   else if (key == ATOM_trail)				/* trail */
     result = makeNum(sizeStack(trail));
   else if (key == ATOM_trailused)	

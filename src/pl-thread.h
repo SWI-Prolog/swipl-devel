@@ -80,12 +80,11 @@ extern simpleMutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_MODULE	8
 #define L_TABLE		9
 #define L_BREAK	       10
-#define L_INIT_ALLOC   11
-#define L_FILE	       12
-#define L_FEATURE      13
-#define L_OP	       14
-#define L_INIT	       15
-#define L_TERM	       16
+#define L_FILE	       11
+#define L_FEATURE      12
+#define L_OP	       13
+#define L_INIT	       14
+#define L_TERM	       15
 
 #ifdef O_DEBUG_MT
 #define PL_LOCK(id) \
@@ -205,6 +204,7 @@ void			executeThreadSignals(int sig);
 foreign_t		pl_attach_xterm(term_t in, term_t out);
 void			threadMarkAtomsOtherThreads(void);
 void			markPredicatesOtherThreads(void);
+long			threadLocalHeapUsed(void);
 
 void			PL_atomic_inc(int *addr);
 void			PL_atomic_dec(int *addr);
