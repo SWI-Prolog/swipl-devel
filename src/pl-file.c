@@ -1998,6 +1998,7 @@ static struct encname
   { ENC_OCTET,       ATOM_octet },
   { ENC_ASCII,       ATOM_ascii },
   { ENC_ISO_LATIN_1, ATOM_iso_latin_1 },
+  { ENC_ANSI,	     ATOM_ansi },
   { ENC_UTF8,        ATOM_utf8 },
   { ENC_UNICODE_BE,  ATOM_unicode_be },
   { ENC_UNICODE_LE,  ATOM_unicode_le },

@@ -605,6 +605,30 @@ Sputcode(int c, IOSTREAM *s)
 	break;
       }
       goto simple;
+    case ENC_ANSI:
+    { char b[MB_CUR_MAX];
+      int n;
+
+      if ( !s->mbstate )
+      { if ( !(s->mbstate = malloc(sizeof(*s->mbstate))) )
+	  return EOF;			/* out of memory */
+	memset(s->mbstate, 0, sizeof(*s->mbstate));
+      }
+
+      if ( (n = wcrtomb(b, c, s->mbstate)) < 0 )
+      { if ( reperror(c, s) < 0 )
+	  return -1;
+      } else
+      { int i;
+
+	for(i=0; i<n; i++)
+	{ if ( put_byte(b[i]&0xff, s) < 0 )
+	    return -1;
+	}
+      }
+
+      break;
+    }
     case ENC_UTF8:
     { char buf[6];
       char *p, *end;
@@ -674,6 +698,41 @@ Sgetcode(IOSTREAM *s)
       if ( c > 128 )
 	Sseterr(s, SIO_WARN, "non-ASCII character");
       break;
+    }
+    case ENC_ANSI:
+    { char b[1];
+      int rc, n = 0;
+      wchar_t wc;
+
+      if ( !s->mbstate )
+      { if ( !(s->mbstate = malloc(sizeof(*s->mbstate))) )
+	  return EOF;			/* out of memory */
+	memset(s->mbstate, 0, sizeof(*s->mbstate));
+      }
+
+      for(;;)
+      { if ( (c = Snpgetc(s)) == EOF )
+	{ if ( n == 0 )
+	    return EOF;
+	  else
+	  { Sseterr(s, SIO_WARN, "EOF in multibyte Sequence");
+	    goto mberr;
+	  }
+	}
+	b[0] = c;
+
+	if ( (rc=mbrtowc(&wc, b, 1, s->mbstate)) == 1 )
+	{ c = wc;
+	  goto out;
+	} else if ( rc == -1 )
+	{ Sseterr(s, SIO_WARN, "Illegal multibyte Sequence");
+	  goto mberr;
+	}				/* else -2: incomplete */
+      }
+
+    mberr:
+      c = UTF8_MALFORMED_REPLACEMENT;
+      goto out;
     }
     case ENC_UTF8:
     { c = Snpgetc(s);
@@ -775,6 +834,29 @@ Sungetcode(int c, IOSTREAM *s)
       if ( c >= 128 )
 	return -1;			/* illegal */
       goto simple;
+    case ENC_ANSI:
+    { char b[MB_CUR_MAX];
+      int n;
+
+      if ( !s->mbstate )		/* do we need a seperate state? */
+      { if ( !(s->mbstate = malloc(sizeof(*s->mbstate))) )
+	  return EOF;			/* out of memory */
+	memset(s->mbstate, 0, sizeof(*s->mbstate));
+      }
+
+      if ( (n = wcrtomb(b, c, s->mbstate)) > 0  &&
+	   ( s->bufp - s->unbuffer >= n ) )
+      { int i;
+
+	for(i=n-1; i>=0; i--)
+	{ *--s->bufp = b[n];
+	}
+
+        return c;
+      }
+
+      return -1;
+    }
     case ENC_UTF8:
     { if ( (unsigned)c >= 0x8000000 )
 	return -1;
@@ -1221,6 +1303,8 @@ Sclose(IOSTREAM *s)
 
     s->buffer = NULL;
   }
+  if ( s->mbstate )
+    free(s->mbstate);
 
   s->flags |= SIO_CLOSING;
 #ifdef __WIN32__

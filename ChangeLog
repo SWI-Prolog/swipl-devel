@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * ADDED: Support for default locale multibyte I/O.  Work in progress.
+
   * ENHANCED: library url www_form_encode/2 not to encode _, and :.  Needed
     for some broken servers.  What is the full list we must use here?
 

@@ -36,7 +36,6 @@ TBD:
 	Foreign language handling:
 
 		- file-name handling (PL_get_filename)
-		- Put, unify/get 
 		- PL_get_term_value() issues
 
 Performance analysis:
@@ -50,3 +49,29 @@ TBD Documentation:
 	:- encoding directive
 	foreign-language interface
 	
+Windows: reading and writing ANSI files (traditional 8-bit files)
+
+	GetACP() --> return ANSI code page
+	GetCPInfo() --> find out max characters per byte
+	if (1)
+	{ create array 0..255
+	  use MultiByteToWideChar() to create wchar map
+	  use in Sgetcode() using encoding 'ansi'
+	}
+
+	Output: call WideCharToMultiByte() on buffer and emit result?
+
+
+Alternatively
+
+	read --> read buffer
+	Map using MultiByteToWideChar()
+	return chars from buffer
+
+		- What about incomplete buffers?
+			- Unsolvable (see many articles. M$ simply doesn't
+			  get the problem).
+
+	Could use GNU iconv, but the library is almost 1MB --> bloatware.
+	Good for glibc based systems though!
+

@@ -26,6 +26,7 @@
 #define _PL_STREAM_H
 
 #include <stdarg.h>
+#include <wchar.h>
 #ifdef WIN32
 typedef __int64 int64_t;
 #else
@@ -133,8 +134,9 @@ typedef struct io_position
 typedef enum
 { ENC_UNKNOWN = 0,			/* invalid/unknown */
   ENC_OCTET,				/* raw 8 bit input */
-  ENC_ASCII,
-  ENC_ISO_LATIN_1,
+  ENC_ASCII,				/* US-ASCII (0..127) */
+  ENC_ISO_LATIN_1,			/* ISO Latin-1 (0..256) */
+  ENC_ANSI,				/* default (multibyte) codepage */
   ENC_UTF8,
   ENC_UNICODE_BE,			/* big endian unicode file */
   ENC_UNICODE_LE,			/* little endian unicode file */
@@ -165,7 +167,8 @@ typedef struct io_stream
   char *		message;	/* error/warning message */
   IOENC			encoding;	/* character encoding used */
   struct io_stream *	tee;		/* copy data to this stream */
-  long			reserved[7];	/* reserved for extension */
+  mbstate_t *		mbstate;	/* ENC_ANSI decoding */
+  long			reserved[6];	/* reserved for extension */
 } IOSTREAM;
 
 
