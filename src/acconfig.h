@@ -96,3 +96,6 @@
 
 /* Define how to invoke the linker for incremental linking (default: ld) */
 #undef LD_COMMAND
+
+/* Define to make runtime version */
+#undef O_RUNTIME

@@ -14,13 +14,13 @@
 #
 ################################################################
 
-PLVERSION=2.0.3
+PLVERSION=2.0.4
 
-PL=pl
+PL=@PL@@RT@
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 bindir=$(exec_prefix)/bin
-PLBASE=$(prefix)/lib/$(PL)-$(PLVERSION)
+PLBASE=$(prefix)/lib/@PL@-$(PLVERSION)
 mansec=1
 mandir=$(prefix)/man/man$(mansec)
 
@@ -30,6 +30,7 @@ STATICLIBS=@STATICLIBS@
 AWK=@AWK@
 SED=sed
 LD_R=@LD_R@
+RM=rm
 ETAGS=@ETAGS@
 ARCH=@ARCH@
 INSTALL=@INSTALL@
@@ -52,7 +53,7 @@ EXPORTS=../include/SWI-Exports
 CINCLUDE=../include/SWI-Prolog.h
 STARTUPPATH=$(PL).qlf
 RUNTIMEDIR=../runtime/$(ARCH)
-RUNTIME=$(RUNTIMEDIR)/pl.o
+RUNTIME=$(RUNTIMEDIR)/$(PL).o
 LIBRARYDIR=${PLBASE}/library
 
 
@@ -172,8 +173,8 @@ iruntime:
 		if [ ! -d $(PLBASE)/runtime/$(ARCH) ]; then \
 			mkdir $(PLBASE)/runtime/$(ARCH); \
 		fi
-		if [ -f ../runtime/$(ARCH)/pl.o ]; then \
-			$(INSTALL_DATA) ../runtime/$(ARCH)/pl.o \
+		if [ -f ../runtime/$(ARCH)/$(PL).o ]; then \
+			$(INSTALL_DATA) ../runtime/$(ARCH)/$(PL).o \
 					$(PLBASE)/runtime/$(ARCH); \
 		fi
 		$(INSTALL_DATA) pl-extend.c $(PLBASE)/runtime
@@ -213,12 +214,11 @@ iman:
 #
 
 clean:
-		rm -f *.o a.out core *~ #* parms.h
+		$(RM) -f *.o a.out core *~ #* parms.h
 
 distclean:	clean
-		rm -f config.log config.cache
+		$(RM) -f $(STARTUPPATH)
+		$(RM) -f config.log config.cache
+		$(RM) -rf $(PL) pl-bite ../startup ../include ../runtime
 
-realclean:	clean
-		rm -f $(STARTUPPATH)
-		rm -f config.log config.cache
-		rm -rf $(PL) pl-bite ../startup ../include ../runtime
+realclean:	distclean

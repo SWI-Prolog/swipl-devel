@@ -8,10 +8,7 @@
 
 /*
 Consult, derivates and basic things.   This  module  is  loaded  by  the
-C-written  bootstrap  compiler.   For this reason the module is declared
-using low-level foreign predicates rather then the high level predicates
-use_module/[1,2].  Be careful: order of declarations is delicate in this
-module.
+C-written  bootstrap  compiler.
 
 The $:- directive  is  executed  by  the  bootstrap  compiler,  but  not
 inserted  in  the  intermediate  code  file.   Used  to print diagnostic
@@ -401,21 +398,31 @@ $chk_file(Term, FullName, Prefixes, Ext) :-	% allow a/b, a-b, etc.
 	name(Atom, S1),
 	$chk_file(Atom, FullName, Prefixes, Ext).
 $chk_file(File, FullName, _, Exts) :-
-	atomic(File),
+	name(File, [F|_]),
+	memberchk(F, "/$~"), !,
 	member(Ext, Exts),
-	Ext \== '',
-	concat(_, Ext, File), !,
-	$absolute_file_name(File, FullName),
-	exists_file(FullName).
+	ensure_extension(File, Ext, Extended),
+	exists_file(Extended),
+	$absolute_file_name(Extended, FullName).
 $chk_file(File, FullName, _, Exts) :-
-	atomic(File),
+	source_location(ContextFile, _Line),
+	$file_dir_name(ContextFile, ContextDir), !,
+	$concat_atom([ContextDir, /, File], AbsFile),
 	member(Ext, Exts),
+	ensure_extension(AbsFile, Ext, Extended),
+	exists_file(Extended),
+	$absolute_file_name(Extended, FullName).
+$chk_file(File, FullName, _, Exts) :-
+	member(Ext, Exts),
+	ensure_extension(File, Ext, Extended),
+	exists_file(Extended),
+	$absolute_file_name(Extended, FullName).
+
+ensure_extension(File, Ext, Extended) :-
 	(   concat(_, Ext, File)
-	->  PlFile = File
-	;   concat(File, Ext, PlFile)
-	),
-	$absolute_file_name(PlFile, FullName),
-	exists_file(FullName).
+	->  Extended = File
+	;   concat(File, Ext, Extended)
+	).
 
 :- dynamic
 	$lib_file_cache/4.
@@ -428,7 +435,8 @@ $chk_lib_file(File, FullFile, Prefixes, Exts) :-
 	user:library_directory(Dir),
 	member(Prefix, Prefixes),
 	member(Ext, Exts),
-	concat_atom([Dir, '/', Prefix, '/', File, Ext], LibFile),
+	concat_atom([Dir, '/', Prefix, '/', File], LibBase),
+	ensure_extension(LibBase, Ext, LibFile),
 	exists_file(LibFile),
 	$absolute_file_name(LibFile, FullFile),
 	asserta($lib_file_cache(File, FullFile, Prefix, Ext)).
@@ -469,31 +477,20 @@ preprocessor(Old, New) :-
 
 $open_source(File, Goal) :-
 	preprocessor(none, none), !,
-	$file_dir_name(File, Dir),
-	seeing(Old),
-	$absolute_file_name('', OldDir), chdir(Dir),
-	see(File),
+	seeing(Old), see(File),
 	$open_source_call(File, Goal, True),
-	seen,
-	chdir(OldDir), !,
-	see(Old),
+	seen, see(Old),
 	True == yes.
 $open_source(File, Goal) :-
 	preprocessor(Pre, Pre),
-	$file_dir_name(File, Dir),
-	$file_base_name(File, Base),
-	seeing(Old),
-	$absolute_file_name('', OldDir), chdir(Dir),
-	$substitute_atom('%f', Base, Pre, Command),
-	see(pipe(Command)),
-	$open_source_call(File, Goal, True),
-	seen, chdir(OldDir),
-	see(Old), !,
-	True == yes.
-$open_source(_, _) :-
-	preprocessor(Pre, Pre),
-	$warning('Illegal preprocessor specification: `~w''', [Pre]),
-	fail.
+	(   $substitute_atom('%f', File, Pre, Command)
+	->  seeing(Old), see(pipe(Command)),
+	    $open_source_call(File, Goal, True),
+	    seen, see(Old), !,
+	    True == yes
+	;   $warning('Illegal preprocessor specification: `~w''', [Pre]),
+	    fail
+	).
 
 
 $open_source_call(File, Goal, Status) :-
@@ -781,8 +778,16 @@ $consult_clause(Clause, File) :-
 
 $execute_directive(Goal) :-
 	compiling, !,
-	$add_directive_wic2(Goal),
-	$execute_directive2(Goal).
+	$add_directive_wic2(Goal, Type),
+	(   Type == call		% suspend compiling into .qlf file
+	->  flag($compiling, Old, database),
+	    (	$execute_directive2(Goal)
+	    ->	flag($compiling, _, Old)
+	    ;	flag($compiling, _, Old),
+		fail
+	    )
+	;   $execute_directive2(Goal)
+	).
 $execute_directive(Goal) :-
 	$execute_directive2(Goal).
 
@@ -801,15 +806,19 @@ $execute_directive2(Goal) :-
 %	handled at compile time and therefore should not go into the
 %	intermediate code file.
 
-$add_directive_wic2(Goal) :-
+$add_directive_wic2(Goal, Type) :-
 	$common_goal_type(Goal, Type), !,
 	(   Type == load
 	->  true
 	;   $set_source_module(Module, Module),
 	    $add_directive_wic(Module:Goal)
 	).
-$add_directive_wic2(Goal) :-
-	$warning('Cannot compile mixed loading/calling directives: ~w', Goal).
+$add_directive_wic2(Goal, _) :-
+	(   flag($compiling, qlf, qlf)	% no problem for qlf files
+	->  true
+	;   $warning('Cannot compile mixed loading/calling directives: ~w',
+		     [Goal])
+	).
 	
 $common_goal_type((A,B), Type) :- !,
 	$common_goal_type(A, Type),

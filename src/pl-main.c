@@ -522,13 +522,16 @@ va_list args;
   { fprintf(stderr,
 	    "\n[While in %ld-th garbage collection; skipping stacktrace]\n",
 	    gc_status.collections);
-  } else
+  }
+#ifdef O_DEBUGGER
+  else
   { fprintf(stderr, "\n[Switched to system mode: style_check(+dollar)]\n");
     debugstatus.styleCheck |= DOLLAR_STYLE;
     fprintf(stderr, "PROLOG STACK:\n");
     backTrace(NULL, 10);
     fprintf(stderr, "]\n");
   }
+#endif /*O_DEBUGGER*/
 
   pl_abort();
   Halt(3);

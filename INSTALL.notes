@@ -23,6 +23,17 @@ libraries in /usr/local/lib/pl (possible existing   library  is moved to
 
 	% ./configure --prefix=PREFIX
 
+Building a runtime version
+==========================
+
+The runtime version has  no  tracer,   doesn't  handle  interrupts (just
+exists), has no profiler and no readline included.  To build it:
+
+	% make realclean
+	% ./configure --enable-runtime
+	% make
+	% make install
+
 Some things may need attention:
 ===============================
 
@@ -64,3 +75,14 @@ fails this test, please look at  the   header  of pl-save.c for possible
 fixes.  Many systems will need special  declarations to inform save() of
 the active program data-area (which it assumes to range from &environ to
 sbrk(0)).  Please report misbehaviour (with patch would be great).
+
+# Memory mapped stacks
+
+Configure will see if mmap() may be used to allocate the stacks.  If you
+think this should be possible, but Configure   says `no', please work on
+test/mmap.c
+
+# Assembler warnings
+
+If you get assembler warnings compiling pl-wam.c, try #define NO_ASM_NOP
+1 in config.h.  Should be determined automatically by test/nop.c

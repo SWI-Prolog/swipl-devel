@@ -746,15 +746,15 @@ please(+Key, -Old, +New)
         come from?).
 
 
-feature(?Key, ?Value)
+feature(?Key, -Value)
     The predicate feature/2 defines an interface to installation
     features:  options compiled in, version, home, etc.  With both
     arguments unbound, it will generate all defined features.  With the
-    `Key' instantiated it will set (if `Value' is bound to an atom) or
-    unify (if `Value' is unbound) the value of the feature.  Features
-    come in two types:  boolean features, and features with an atom
-    value.  A boolean feature is true iff the feature is present and the
-    Value is the atom true.  Currently defined keys:
+    `Key' instantiated it unify the value of the feature.  Features come
+    in three types:  boolean features, features with an atom value and
+    features with an integer value.  A boolean feature is true iff the
+    feature is present and the Value is the atom true.  Currently defined
+    keys:
 
     arch (atom)
         Identifier for the hardware and operating system SWI-Prolog is
@@ -784,6 +784,14 @@ feature(?Key, ?Value)
         the C-library functions dlopen() and friends as well as the
         configuration option --with-dlopen.
 
+    dynamic_stacks (bool)
+        If true, the system provides virtual memory based stack
+        expansion.  This makes stack-expansion safe when called from C
+        and while running C-defined functions without these functions
+        taking any precautions.  Pure Prolog programs are not affected by
+        this feature as the system will use stack-shifting to expand the
+        stacks at runtime.
+
     c_libs (atom)
         Libraries passed to the C-linker when SWI-Prolog was linked.  May
         be used to determine the libraries needed to create statically
@@ -810,6 +818,24 @@ feature(?Key, ?Value)
         If true, SWI-Prolog is linked with the readline library.  This is
         done by default if you have this library installed on your
         system.
+
+    runtime (bool)
+        If true, SWI-Prolog is compiled with -DO_RUNTIME, disabling
+        various useful development features (currently the tracer and
+        profiler).
+
+    max_integer (integer)
+        Maximum integer value.  Most arithmetic operations will
+        automatically convert to floats if integer values above this are
+        returned.
+
+    min_integer (integer)
+        Minimum integer value.
+
+
+set_feature(+Key, +Value)
+    Define a new feature or change its value.  Both arguments must be
+    atoms.
 
 
 2.9 Saved States
@@ -1130,7 +1156,7 @@ Chapter  3
 
 Built-In  Predicates
 
-                                45
+                                46
 
 
 3.1 Notation of Predicate Descriptions
@@ -4134,7 +4160,7 @@ Chapter  4
 
 Using  Modules
 
-                                421
+                                422
 
 
 4.1 Why Using Modules?
@@ -4643,7 +4669,7 @@ trade-off the user is responsible for type checking and should be careful
 not to violate consistency rules as Prolog provides access to its internal
 data structures.
 
-                                444
+                                445
 
 
 5.1 Overview of the Interface
@@ -5670,7 +5696,7 @@ debugging tools for Prolog.  The predicates described here should be
 handled with some care as it is easy to corrupt the consistency of the
 Prolog system by misusing them.
 
-                                532
+                                533
 
 
 6.1 Examining the Environment Stack
@@ -6101,6 +6127,7 @@ see/1                       Change the current input stream
 seeing/1                    Query the current input stream
 seen/0                      Close the current input stream
 select/3                    Select element of a list
+set_feature/2                Define a system feature
 set_input/1                 Set current input stream from a stream
 set_output/1                Set current output stream from a stream
 set_tty/2                   Set `tty' stream
@@ -6176,4 +6203,4 @@ writeq/2                    Write term, insert quotes on stream
 xor/2                       Arithmetic:  exclusive or
 |/2                         Disjunction of goals
 
-                                541
+                                542

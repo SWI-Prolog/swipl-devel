@@ -1315,7 +1315,7 @@ qlfLoad(char *file, Module *module)
     fail;
   }
 
-  if ( fgetc(fd) != 'Q' )
+  if ( getc(fd) != 'Q' )
     return qlfLoadError(fd, "qlfLoad()");
 
   pushXrIdTable();

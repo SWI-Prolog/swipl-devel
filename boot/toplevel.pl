@@ -27,8 +27,12 @@
 
 $welcome :-
 	feature(version, Version),
-	$ttyformat('Welcome to SWI-Prolog (Version ~w)~n', [Version]),
-	$ttyformat('Copyright (c) 1993,1994 University of Amsterdam.  '),
+	(   feature(runtime, true)
+	->  $ttyformat('Welcome to SWI-Prolog RUNTIME (Version ~w)~n',
+		       [Version])
+	;   $ttyformat('Welcome to SWI-Prolog (Version ~w)~n', [Version])
+	),
+	$ttyformat('Copyright (c) 1993-1995 University of Amsterdam.  '),
 	$ttyformat('All rights reserved.~n~n').
 
 $load_init_file(none) :- !.
@@ -90,8 +94,11 @@ $init_return :-
 	$check_novice, 
 	$clean_history,
 	$load_gnu_emacs_interface,
-	$option(init_file, File, File), 
-	$load_init_file(File), 
+	(   feature(runtime, true)
+	->  true
+	;   $option(init_file, File, File), 
+	    $load_init_file(File)
+	),
 	$run_at_initialisation,
 	$option(goal, GoalAtom, GoalAtom), 
 	term_to_atom(Goal, GoalAtom), 

@@ -302,6 +302,7 @@ static struct foreign {
   ADD("$tty",			0, pl_tty,			TRACE_ME),
   ADD("$grep",			3, pl_grep,	NONDETERMINISTIC|TRACE_ME),
   ADD("feature",		2, pl_feature,	NONDETERMINISTIC|TRACE_ME),
+  ADD("set_feature",		2, pl_set_feature,		TRACE_ME),
   ADD("limit_stack",		2, pl_limit_stack,		TRACE_ME),
   ADD("trim_stacks",		0, pl_trim_stacks,		TRACE_ME),
 #if O_SHIFT_STACKS

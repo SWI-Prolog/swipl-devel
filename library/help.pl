@@ -90,7 +90,7 @@ show_help(_, Ranges) :-
 	write_ranges_to_file(Ranges, Outfile),
 	call_emacs('(view-file-other-window "~w")', [Outfile]).
 show_help(_, Ranges) :-
-	\+ (feature(pipe, V), V == true), !,
+	\+ feature(pipe, true), !,
 	online_manual_stream(Manual),
 	show_ranges(Ranges, Manual, user_output).
 show_help(_, [Start-End]) :-

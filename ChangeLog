@@ -1,6 +1,25 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.0.4
+=============
+
+  * MODIFIED: Consult and friends (ensure_loaded, use_module, etc.)
+    no longer change directory to the directory in which the file
+    lives.  As a consequence, directives have to use prolog_load_context/2
+    or source_location/2 to find the context directory of the directive.
+
+    consult and related directives still load relative to the directory
+    in which the currently loading file lives.
+
+  * Added prolog_load_context/2 to provide context for directives.
+    Actually moved from library(quintus) to the boot image as the
+    predicate is now necessary.
+
+  * Added -DO_RUNTIME support to make a version	that is more suitable
+    for distribution of products: no profiling, no tracer, no readline
+    and no interrupt handling.  Setup using configure --enable-runtime
+
 Version 2.0.3
 =============
 

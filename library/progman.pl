@@ -17,7 +17,7 @@
 	    progman_setup/0		% Installs icons
 	  ]).
 
-:- (   feature(dde, X), X == true
+:- (   feature(dde, true)
    ->  true
    ;   '$warning'('Module "library(progman)" requires DDE support')
    ).
@@ -107,7 +107,7 @@ program_group(Default, Default).
 		 *******************************/
 
 progman_setup :-
-	feature(xpce, IsPce), IsPce == true, !,
+	feature(xpce, true), !,
 
 	explain(start),
 	program_group('XPCE/SWI-Prolog', Group),

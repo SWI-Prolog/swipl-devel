@@ -25,6 +25,7 @@
 	, dwim_match/2
 	, source_file/1
 	, source_file/2
+	, prolog_load_context/2
 	, current_predicate/2
 	, $defined_predicate/1
 	, predicate_property/2
@@ -295,6 +296,27 @@ source_file(File) :-
 	atom(File),
 	absolute_file_name(File, Abs),	% canonise
 	$time_source_file(Abs, _).
+
+%	prolog_load_context(+Key, -Value)
+%
+%	Provides context information for term_expansion and directives.
+%	Note that only the line-number info is valid for the
+%	'$stream_position'.  Largely Quintus compatible.
+
+:- module_transparent
+	prolog_load_context/2.
+
+prolog_load_context(module, M) :-
+	context_module(M).
+prolog_load_context(file, F) :-
+	source_location(F, _).
+prolog_load_context(stream, S) :-
+	current_input(S).
+prolog_load_context(directory, D) :-
+	source_location(F, _),
+	$file_dir_name(F, D).
+prolog_load_context(term_position, '$stream_position'(0,L,0,0,0)) :-
+	source_location(_, L).
 
 
 		/********************************

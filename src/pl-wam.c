@@ -821,6 +821,7 @@ registers.
     }
     FR->context = (true(DEF, TRANSPARENT) ? module : DEF->module);
 
+#if O_DEBUGGER
     if ( debugstatus.debugging )
     { LocalFrame lTopSave = lTop;
       int action;
@@ -833,6 +834,7 @@ registers.
 	case ACTION_IGNORE:	RETURN(TRUE);
       }
     }
+#endif /*O_DEBUGGER*/
 
     if ( true(DEF, FOREIGN) )
     { bool rval;
@@ -1190,10 +1192,12 @@ backtrack without showing the fail ports explicitely.
     VMI(I_ENTER, COUNT(i_enter), ("enter\n")) MARK(ENTER);
       { ARGP = argFrameP(lTop, 0);
 
+#if O_DEBUGGER
 	if ( debugstatus.debugging )
 	{ tracePort(FR, UNIFY_PORT);
 	  SetBfr(FR);
 	} else
+#endif /*O_DEBUGGER*/
 	{ if ( true(FR, FR_CUT ) )
 	  { SetBfr(FR->backtrackFrame);
 	  } else
@@ -1227,7 +1231,11 @@ exit(Block, RVal).  First does !(Block).
 	    fr2->clause = (Clause) NULL;
 	  }
 	}
+#ifdef O_DEBUGGER
 	SetBfr(debugstatus.debugging ? blockfr : blockfr->backtrackFrame);
+#else
+	SetBfr(blockfr->backtrackFrame);
+#endif
 	for(fr = FR; fr > blockfr; fr = fr->parent)
 	{ set(fr, FR_CUT);
 	  fr->backtrackFrame = BFR;
@@ -1272,7 +1280,11 @@ exit(Block, RVal).  First does !(Block).
 	{ BODY_FAILED;
 	}
 	
+#ifdef O_DEBUGGER
 	SetBfr(debugstatus.debugging ? cutfr : cutfr->backtrackFrame);
+#else
+	SetBfr(cutfr->backtrackFrame);
+#endif
 	for(fr = FR; fr > cutfr; fr = fr->parent)
 	{ set(fr, FR_CUT);
 	  fr->backtrackFrame = BFR;
@@ -1329,7 +1341,11 @@ backtrack that makes it difficult to understand the tracer's output.
 	    fr2->clause = (Clause) NULL;
 	  }
 	}
+#ifdef O_DEBUGGER
 	SetBfr(debugstatus.debugging ? FR : FR->backtrackFrame);
+#else
+	SetBfr(FR->backtrackFrame);
+#endif
 
 	DEBUG(3, printf("BFR = %d\n", (Word)BFR - (Word)lBase) );
 	lTop = (LocalFrame) argFrameP(FR, CL->variables);
@@ -1802,7 +1818,11 @@ argument that is a variable.
 	    f = fproc->definition->definition.function;
 	  }
 
-	  if ( debugstatus.debugging || false(fproc->definition, FOREIGN) )
+	  if ( 
+#ifdef O_DEBUGGER
+	       debugstatus.debugging ||
+#endif
+	       false(fproc->definition, FOREIGN) )
 	  { for(i=0; i<nvars; i++)
 	      *ARGP++ = (isVar(*vars[i]) ? makeRef(vars[i]) : *vars[i]);
 	  
@@ -1940,7 +1960,11 @@ execution can continue at `next_instruction'
 #define TAILRECURSION 1
       VMI(I_DEPART, COUNT(i_depart), ("depart %d\n", *PC)) MARK(DEPART);
 #if TAILRECURSION
-	if ( true(FR, FR_CUT) && BFR <= FR && !debugstatus.debugging )
+	if ( true(FR, FR_CUT) && BFR <= FR
+#ifdef O_DEBUGGER
+	     && !debugstatus.debugging
+#endif
+	   )
 	{ leaveClause(CL);
 
 	  if ( true(DEF, HIDE_CHILDS) )
@@ -2078,6 +2102,7 @@ Testing is suffices to find out that the predicate is defined.
 #endif /*O_SHIFT_STACKS*/
 #endif /*O_DYNAMIC_STACKS*/
 
+#if O_DEBUGGER
 	if ( debugstatus.debugging )
 	{ lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
 	  CL = DEF->definition.clauses;
@@ -2086,6 +2111,7 @@ Testing is suffices to find out that the predicate is defined.
 	    case ACTION_IGNORE: goto exit_builtin;
 	  }
 	}
+#endif /*O_DEBUGGER*/
 
 	if ( true(DEF, FOREIGN) )
 	{ CL = (Clause) FIRST_CALL;
@@ -2177,6 +2203,7 @@ Leave the clause:
 	if (FR->parent == (LocalFrame) NULL)
 	{ leaveClause(CL);
     top_exit:
+#if O_DEBUGGER
 	  if (debugstatus.debugging)
 	  { CL = (Clause) NULL;
 
@@ -2186,6 +2213,7 @@ Leave the clause:
 					goto frame_failed;
 	    }
 	  }
+#endif /*O_DEBUGGER*/
 	  RETURN(TRUE);
 	}
 
@@ -2202,6 +2230,7 @@ Leave the clause:
 	}
 
     normal_exit:
+#if O_DEBUGGER
 	if (debugstatus.debugging)
 	{ int action;
 	  LocalFrame lSave = lTop;
@@ -2218,6 +2247,7 @@ Leave the clause:
 
 	  lTop = lSave;
 	}
+#endif /*O_DEBUGGER*/
 
 	PC = FR->programPointer;
 	environment_frame = FR = FR->parent;
@@ -2248,12 +2278,14 @@ retry:					MARK(RETRY);
   DoUndo(FR->mark);
   SetBfr(FR);
   clear(FR, FR_CUT);
+#if O_DEBUGGER
   if (debugstatus.debugging)
   { LocalFrame lTopSave = lTop;
     lTop = (LocalFrame) argFrameP(FR, PROC->functor->arity);
     tracePort(FR, CALL_PORT);
     lTop = lTopSave;
   }
+#endif /*O_DEBUGGER*/
   if ( false(DEF, FOREIGN) )
   { struct clause zero;				/* fake a clause */
 
@@ -2364,6 +2396,7 @@ frame_failed:				MARK(FAIL);
 	  FR->procedure->definition->profile_fails++;
 #endif
 
+#if O_DEBUGGER
     if ( debugstatus.debugging )
     { switch( tracePort(FR, FAIL_PORT) )
       { case ACTION_RETRY:	PROC = FR->procedure;
@@ -2372,6 +2405,7 @@ frame_failed:				MARK(FAIL);
 	case ACTION_IGNORE:	Putf("ignore not (yet) implemented here\n");
       }
     }
+#endif /*O_DEBUGGER*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Update references due to failure of this frame.  The references of  this
@@ -2415,6 +2449,7 @@ resume_from_body:
       CL = next;
     }
 
+#if O_DEBUGGER
     if ( debugstatus.debugging )
     { DoUndo(FR->mark);			/* data backtracking to get nice */
 					/* tracer output */
@@ -2426,6 +2461,7 @@ resume_from_body:
 	case ACTION_RETRY:	goto retry;
       }
     }
+#endif /*O_DEBUGGER*/
     
     statistics.inferences++;
 #ifdef O_PROFILE

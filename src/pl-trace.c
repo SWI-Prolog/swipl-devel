@@ -10,6 +10,24 @@
 #include "pl-incl.h"
 #include "pl-ctype.h"
 
+int trace_continuation;			/* how to continue? */
+
+#define W_PRINT		1		/* print/1 for displaying goal */
+#define W_WRITE		2		/* write/1 */
+#define W_WRITEQ	3		/* writeq/1 */
+#define W_DISPLAY	4		/* display/1 */
+
+static struct
+{ int	 port;				/* Port to find */
+  bool	 searching;			/* Currently searching? */
+  Record goal;				/* Goal to find */
+} find;
+
+#define PrologRef(fr)	 consNum((Word)fr - (Word)lBase)
+#define FrameRef(w)	 ((LocalFrame)((Word)lBase + valNum(w)))
+
+#ifdef O_DEBUGGER
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module defines the tracer and interrupt  handler  that  allows  the
 user  to break the normal Prolog execution.  The tracer is written in C,
@@ -17,31 +35,19 @@ but before taking action it calls Prolog.   This  mechanism  allows  the
 user to intercept and redefine the tracer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define W_PRINT		1		/* print/1 for displaying goal */
-#define W_WRITE		2		/* write/1 */
-#define W_WRITEQ	3		/* writeq/1 */
-#define W_DISPLAY	4		/* display/1 */
-
 					/* Frame <-> Prolog integer */
-#define PrologRef(fr)	 consNum((Word)fr - (Word)lBase)
-#define FrameRef(w)	 ((LocalFrame)((Word)lBase + valNum(w)))
-
 forwards LocalFrame	redoFrame(LocalFrame);
 forwards int		traceAction(char *, int, LocalFrame, bool);
 forwards void		helpTrace(void);
+#ifdef O_INTERRUPT
 forwards void		helpInterrupt(void);
+#endif
 forwards bool		hasAlternativesFrame(LocalFrame);
 forwards void		alternatives(LocalFrame);
 forwards void		listProcedure(Procedure);
 forwards int		traceInterception(LocalFrame, int);
 forwards bool		canUnifyTermWithGoal(Word, LocalFrame);
 forwards int		setupFind(char *);
-
-static struct
-{ int	 port;				/* Port to find */
-  bool	 searching;			/* Currently searching? */
-  Record goal;				/* Goal to find */
-} find;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 redoFrame() returns the latest skipped frame or NULL if  no  such  frame
@@ -526,20 +532,6 @@ writeFrameGoal(LocalFrame frame, int how)
 
  ** Tue May 10 23:23:11 1988  jan@swivax.UUCP (Jan Wielemaker)  */
 
-static bool
-hasAlternativesFrame(register LocalFrame frame)
-{ register Clause clause;
-
-  if ( true(frame, FR_CUT) )
-    fail;
-  if (true(frame->procedure->definition, FOREIGN))
-    succeed;
-  for(clause = frame->clause; clause; clause = clause->next)
-    if ( false(clause, ERASED) )
-      succeed;
-  fail;
-}
-
 static void
 alternatives(LocalFrame frame)
 { for(; frame; frame = frame->backtrackFrame)
@@ -640,18 +632,6 @@ the entry points from the C-defined tracer. $prolog_trace_interception/2
 is responsible for the communication with the users' predicate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int trace_continuation;			/* how to continue? */
-
-word
-pl_trace_continuation(Word what)
-{ if (isInteger(*what) )
-  { trace_continuation = (int)valNum(*what);
-    succeed;
-  }
-
-  fail;
-}
-
 static int
 traceInterception(LocalFrame frame, int port)
 { word goal;
@@ -686,6 +666,34 @@ traceInterception(LocalFrame frame, int port)
     return -1;
 }
 
+#endif /*O_DEBUGGER*/
+
+static bool
+hasAlternativesFrame(register LocalFrame frame)
+{ register Clause clause;
+
+  if ( true(frame, FR_CUT) )
+    fail;
+  if (true(frame->procedure->definition, FOREIGN))
+    succeed;
+  for(clause = frame->clause; clause; clause = clause->next)
+    if ( false(clause, ERASED) )
+      succeed;
+  fail;
+}
+
+word
+pl_trace_continuation(Word what)
+{ if (isInteger(*what) )
+  { trace_continuation = (int)valNum(*what);
+    succeed;
+  }
+
+  fail;
+}
+
+#ifdef O_INTERRUPT
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Handling  interrupts.   We  know  we  are  not  in  critical  code  (see
 startCritical()  and endCritical(), so the heap is consistent.  The only
@@ -699,8 +707,11 @@ helpInterrupt(void)
 { Putf("Options:\n");
   Putf("a:                 abort      b:                 break\n");
   Putf("c:                 continue   e:                 exit\n");
-  Putf("g:                 goals      h (?):             help\n");
-  Putf("t:                 trace\n");
+#ifdef O_DEBUGGER
+  Putf("g:                 goals      t:                 trace\n");
+#endif
+  Putf("h (?):             help\n");
+
 }
 
 void
@@ -747,15 +758,19 @@ again:
     case 'e':	Putf("exit\n");
 		Halt(0);
 		break;
+#ifdef O_DEBUGGER
     case 'g':	Putf("goals\n");
 		backTrace(environment_frame, 5);
 		goto again;
+#endif /*O_DEBUGGER*/
     case 'h':
     case '?':	helpInterrupt();
 		goto again;
+#ifdef O_DEBUGGER
     case 't':	Putf("trace\n");
 		pl_trace();
 		break;
+#endif /*O_DEBUGGER*/
     default:	Putf("Unknown option (h for help)\n");
 		goto again;
   }
@@ -763,10 +778,12 @@ again:
   lTop = oldltop;
 }
 
+#endif /*O_INTERRUPT*/
+
 void
 initTracer(void)
 { 
-#ifdef SIGINT
+#if defined(SIGINT) && defined(O_INTERRUPT)
   pl_signal(SIGINT, interruptHandler);
 #endif
 

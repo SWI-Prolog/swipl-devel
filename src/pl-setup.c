@@ -118,7 +118,7 @@ Feature interface
 
 static void
 CSetFeature(char *name, char *value)
-{ setFeature(lookupAtom(name), lookupAtom(value));
+{ setFeature(lookupAtom(name), (word) lookupAtom(value));
 }
 
 static void
@@ -155,6 +155,11 @@ initFeatures()
 #ifdef O_DDE
   CSetFeature("dde",		"true");
 #endif
+#ifdef O_RUNTIME
+  CSetFeature("runtime",	"true");
+#endif
+  setFeature(lookupAtom("max_integer"), consNum(PLMAXINT));
+  setFeature(lookupAtom("min_integer"), consNum(PLMININT));
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -1420,14 +1420,14 @@ pl_statistics(Word k, Word value)
 typedef struct feature *Feature;
 struct feature
 { Atom name;
-  Atom value;
+  word value;
   Feature next;
 };
 
 static Feature features = NULL;
 
 void
-setFeature(Atom name, Atom value)
+setFeature(Atom name, word value)
 { Feature f;
 
   for(f=features; f; f = f->next)
@@ -1444,7 +1444,7 @@ setFeature(Atom name, Atom value)
 }
 
 
-Atom
+word
 getFeature(Atom name)
 { Feature f;
 
@@ -1453,7 +1453,17 @@ getFeature(Atom name)
       return f->value;
   }
 
-  return NULL;
+  fail;
+}
+
+
+word
+pl_set_feature(Word key, Word value)
+{ if ( isAtom(*key) && (isAtom(*value) || isInteger(*value)) )
+  { setFeature((Atom)*key, *value);
+    succeed;
+  } else
+    return warning("set_feature/2; instantiation fault");
 }
 
 
@@ -1463,15 +1473,12 @@ pl_feature(Word key, Word value, word h)
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
-      if ( isAtom(*key) && isVar(*value) )
-      { Atom val;
+      if ( isAtom(*key) )
+      { word val;
 
 	if ( (val=getFeature((Atom)*key)) )
 	  return unifyAtomic(value, val);
 	fail;
-      } else if ( isAtom(*key) && isAtom(*value) )
-      { setFeature((Atom)*key, (Atom)*value);
-	succeed;
       } else if ( isVar(*key) )
       { here = features;
 	break;

@@ -30,7 +30,6 @@
 	, otherwise/0
 	, (initialization)/1
 	, absolute_file_name/3
-	, prolog_load_context/2
 	, numbervars/3
 	, statistics/2
 	]).
@@ -81,28 +80,6 @@ ensure_extension_(Base, Ext, Base) :-
 	concat(_, Ext, Base), !.
 ensure_extension_(Base, Ext, Name) :-
 	concat(Base, Ext, Name).
-
-
-%	prolog_load_context(+Key, -Value)
-%
-%	Provides context information for term_expansion and directives.
-%	Note that only the line-number info is valid for the
-%	'$stream_position'
-
-:- module_transparent
-	prolog_load_context/2.
-
-prolog_load_context(module, M) :-
-	context_module(M).
-prolog_load_context(file, F) :-
-	source_location(F, _).
-prolog_load_context(stream, S) :-
-	current_input(S).
-prolog_load_context(directory, D) :-
-	source_location(F, _),
-	'$file_dir_name'(F, D).
-prolog_load_context(term_position, '$stream_position'(0,L,0,0,0)) :-
-	source_location(_, L).
 
 
 		/********************************

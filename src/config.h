@@ -128,6 +128,9 @@
 /* Define how to invoke the linker for incremental linking (default: ld) */
 #define LD_COMMAND "gcc"
 
+/* Define to make runtime version */
+/* #undef O_RUNTIME */
+
 /* Define if you have the access function.  */
 #define HAVE_ACCESS 1
 

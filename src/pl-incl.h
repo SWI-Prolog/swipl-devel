@@ -69,6 +69,8 @@ handy for it someone wants to add a data type to the system.
 #define O_BLOCK			1
 #define O_INLINE_FOREIGNS	1
 #define O_PCE			1	/* doesn't depend any longer */
+#define O_DEBUGGER		1
+#define O_INTERRUPT		1
 
 #ifndef O_LABEL_ADDRESSES
 #if __GNUC__ == 2
@@ -78,6 +80,18 @@ handy for it someone wants to add a data type to the system.
 #endif
 #endif
 #endif
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Runtime version.  Uses somewhat less memory and has no tracer.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef O_RUNTIME
+#undef O_PROFILE			/* no profiling */
+#undef O_DEBUGGER			/* no debugging */
+#undef O_READLINE			/* no readline too */
+#undef O_INTERRUPT			/* no interrupts too */
+#endif
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The macros below try to establish a common basis for various  compilers,

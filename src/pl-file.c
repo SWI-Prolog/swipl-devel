@@ -82,6 +82,15 @@ static int   fold = O_FOLD;		/* default line folding */
 static int   fold = -1;			/* line folding */
 #endif
 
+typedef struct input_context * InputContext;
+
+static struct input_context
+{ int	stream;				/* pushed input */
+  Atom	term_file;			/* old term_position file */
+  int	term_line;			/* old term_position line */
+  InputContext previous;		/* previous context */
+} *input_context_stack = NULL;
+
 forwards void	protocol(Char c, int mode);
 forwards bool	openStream(word file, int mode, int fresh);
 forwards bool	flush(void);
@@ -253,6 +262,44 @@ protocol(register Char c, int mode)
     Output = out;
   }
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+push/popInputContext() maintain the source_location   info  over see(X),
+..., seen(X). This is very  hairy.   Note  the common seeing(O), see(N),
+..., seen, see(O) construct. To fix this   one, see/1 will only push the
+context if it concerns a new stream and seen() will only pop if it is an
+open stream.
+
+Should be fixed decently if we redesign all of I/O stream manegement.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+pushInputContext()
+{ InputContext c = allocHeap(sizeof(struct input_context));
+
+  c->stream           = Input;
+  c->term_file        = source_file_name;
+  c->term_line        = source_line_no;
+  c->previous         = input_context_stack;
+  input_context_stack = c;
+}
+
+
+static void
+popInputContext()
+{ InputContext c = input_context_stack;
+
+  if ( c )
+  { Input               = c->stream;
+    source_file_name    = c->term_file;
+    source_line_no      = c->term_line;
+    input_context_stack = c->previous;
+    freeHeap(c, sizeof(struct input_context));
+  } else
+    Input = 0;
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 read() first checks the input stream and calls  getc(fd)  directly  when
@@ -532,7 +579,7 @@ openStream(word file, int mode, bool fresh)
       return warning("Cannot open a pipe in `append' mode");
   }
     
-  if ( !fresh )
+  if ( !fresh )				/* see/1, tell/1, append/1 */
   { for(n=0; n<maxfiles; n++)
     { if (fileTable[n].name == f && fileTable[n].pipe == pipe)
       { if (fileTable[n].status == mode)
@@ -549,6 +596,9 @@ openStream(word file, int mode, bool fresh)
 	break;
       }
     }
+
+    if ( mode == F_READ )
+      pushInputContext();		/* see/1 to a new file */
   }
 
   DEBUG(2, printf("Starting Unix open\n"));
@@ -661,8 +711,7 @@ seen()
     succeed;
 
   closeStream(Input);
-
-  Input = 0;  
+  popInputContext();
 
   succeed;
 }

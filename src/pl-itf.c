@@ -581,8 +581,13 @@ PL_action(int action, void *arg)
     case PL_ACTION_DEBUG:
       return (bool) pl_debug();
     case PL_ACTION_BACKTRACE:
+#ifdef O_DEBUGGER
       backTrace(environment_frame, (int) arg);
       succeed;
+#else
+      warning("No Prolog backtrace in runtime version");
+      fail;
+#endif
     case PL_ACTION_BREAK:
       return (bool) pl_break();
     case PL_ACTION_HALT:
