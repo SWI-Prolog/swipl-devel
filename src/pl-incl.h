@@ -771,9 +771,9 @@ REFERENCES
 #include "pl-data.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Common Prolog objects typedefs.  Note that code is word-aligned for two
-reasons.  First of all, we want to get the maximum speed and second, we
-must ensure that sizeof(struct clause) is a multiple of sizeof(word) to
+Common Prolog objects typedefs. Note that   code is word-aligned for two
+reasons. First of all, we want to get   the maximum speed and second, we
+must ensure that sizeof(struct clause) is  a multiple of sizeof(word) to
 place them on the stack (see I_USERCALL).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -1145,13 +1145,13 @@ struct functorDef
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Because struct clause must be a multiple of sizeof(word) for compilation
-on behalf of I_USERCALL the number of shorts should be even.  When compiling
-for the stack-shifter we use shorts for the marks slot and the line-number,
-otherwise we use an int for the line-number.  See also WORD_ALIGNED at
-the declaration of `code'.  Demanding word-alignment is a machine independent
-way to achieve proper alignment, but unfortunately it does not port to other
-C compilers.  Hence the trick with data sizes to avoid problems for most
-platforms.
+on behalf of I_USERCALL the  number  of   shorts  should  be  even. When
+compiling for the stack-shifter we use shorts for the marks slot and the
+line-number, otherwise we use  an  int   for  the  line-number. See also
+WORD_ALIGNED at the declaration of `code'. Demanding word-alignment is a
+machine independent way to achieve   proper alignment, but unfortunately
+it does not port to other C compilers.   Hence the trick with data sizes
+to avoid problems for most platforms.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define sizeofClause(n) ((int)&((Clause)NULL)->codes[n])
