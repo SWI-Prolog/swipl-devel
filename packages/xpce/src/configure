@@ -309,7 +309,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS YACC NETLIBS PL PLBUILD PLNAME PLLD PLLIBS PLBASE PLARCH PLINCL XLIB XINCLUDES XLIBS CXXLIBHACK PCEHOME CIFLAGS COFLAGS CWFLAGS CMFLAGS ETAGS ARCH OS TAR_CP_FLAGS ALLTARGET RTSUFFIX LD SO LDSOFLAGS SONAMEFLAG SOWHOLEARCHIVE CXXTARGETS GCCLIB SOEXTRAOBJ PLTARGET buildsubdir VMAJOR VMINOR VPATCH LDCONFIG AR MAKESHELL RSYNC QPENTRIES QPBIN QPPATH SP_PATH VWS DLLIBVAR CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT RANLIB ac_ct_RANLIB build build_cpu build_vendor build_os host host_cpu host_vendor host_os QPproduct QGETPATH QPPRODUCT SICSTUS MAKE GXX LN_S CPP CXX CXXFLAGS ac_ct_CXX EGREP ALLOCA XFTCONF LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS YACC NETLIBS PL PLBUILD PLNAME PLLD PLLIBS PLBASE PLARCH PLINCL XLIB XINCLUDES XLIBS CXXLIBHACK PCEHOME CIFLAGS COFLAGS CWFLAGS CMFLAGS ETAGS ARCH OS TAR_CP_FLAGS ALLTARGET RTSUFFIX LD SO LDSOFLAGS SONAMEFLAG SOWHOLEARCHIVE CXXTARGETS GCCLIB SOEXTRAOBJ PLTARGET buildsubdir VMAJOR VMINOR VPATCH LDCONFIG AR MAKESHELL RSYNC QPENTRIES QPBIN QPPATH SP_PATH VWS DLLIBVAR CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT RANLIB ac_ct_RANLIB build build_cpu build_vendor build_os host host_cpu host_vendor host_os QPproduct QGETPATH QPPRODUCT SICSTUS MAKE GXX LN_S CPP CXX CXXFLAGS ac_ct_CXX EGREP ALLOCA XFTCONFIG LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -8854,11 +8854,11 @@ do
 set dummy $ac_prog; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
 echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_prog_XFTCONF+set}" = set; then
+if test "${ac_cv_prog_XFTCONFIG+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
-  if test -n "$XFTCONF"; then
-  ac_cv_prog_XFTCONF="$XFTCONF" # Let the user override the test.
+  if test -n "$XFTCONFIG"; then
+  ac_cv_prog_XFTCONFIG="$XFTCONFIG" # Let the user override the test.
 else
 as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
 for as_dir in $PATH
@@ -8867,7 +8867,7 @@ do
   test -z "$as_dir" && as_dir=.
   for ac_exec_ext in '' $ac_executable_extensions; do
   if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_XFTCONF="$ac_prog"
+    ac_cv_prog_XFTCONFIG="$ac_prog"
     echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
     break 2
   fi
@@ -8876,27 +8876,27 @@ done
 
 fi
 fi
-XFTCONF=$ac_cv_prog_XFTCONF
-if test -n "$XFTCONF"; then
-  echo "$as_me:$LINENO: result: $XFTCONF" >&5
-echo "${ECHO_T}$XFTCONF" >&6
+XFTCONFIG=$ac_cv_prog_XFTCONFIG
+if test -n "$XFTCONFIG"; then
+  echo "$as_me:$LINENO: result: $XFTCONFIG" >&5
+echo "${ECHO_T}$XFTCONFIG" >&6
 else
   echo "$as_me:$LINENO: result: no" >&5
 echo "${ECHO_T}no" >&6
 fi
 
-  test -n "$XFTCONF" && break
+  test -n "$XFTCONFIG" && break
 done
-test -n "$XFTCONF" || XFTCONF=""false""
+test -n "$XFTCONFIG" || XFTCONFIG=""false""
 
-if test "$XFTCONF" != "false" ; then
+if test "$XFTCONFIG" != "false" ; then
 
 cat >>confdefs.h <<\_ACEOF
 #define USE_XFT 1
 _ACEOF
 
-   XLIBS="$XLIBS `$XFTCONF --libs`"
-   XINCLUDES="$XINCLUDES `$XFTCONF --cflags`"
+   XLIBS="$XLIBS `$XFTCONFIG --libs`"
+   XINCLUDES="$XINCLUDES `$XFTCONFIG --cflags`"
 fi;
 
 
@@ -9639,7 +9639,7 @@ s,@CXXFLAGS@,$CXXFLAGS,;t t
 s,@ac_ct_CXX@,$ac_ct_CXX,;t t
 s,@EGREP@,$EGREP,;t t
 s,@ALLOCA@,$ALLOCA,;t t
-s,@XFTCONF@,$XFTCONF,;t t
+s,@XFTCONFIG@,$XFTCONFIG,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t
 CEOF
