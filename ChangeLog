@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Editor handling problems.
+
   * ADDED: Statistical profiling to the Windows version.  Also modernised
     the Unix profiling implementation a bit.
 

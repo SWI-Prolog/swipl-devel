@@ -65,7 +65,7 @@ start_emacs :-
 
 register_emacs :-
 	(   current_prolog_flag(editor, '$EDITOR')
-	->  set_prolog_flag(editor, pceemacs)
+	->  set_prolog_flag(editor, pce_emacs)
 	;   true
 	).
 
