@@ -53,7 +53,7 @@ prolog:on_menu(Label) :-
 %	for details.
 
 win_insert_menu_item(Popup, --, Before, _Goal) :- !,
-	$win_insert_menu_item(Popup, --, Before).
+	call($win_insert_menu_item(Popup, --, Before)). % fool check/0
 win_insert_menu_item(Popup, Item, Before, Goal) :-
 	$strip_module(Goal, Module, PlainGoal),
 	insert_menu_item(Popup, Item, Before, Module:PlainGoal).
@@ -65,5 +65,5 @@ insert_menu_item(Popup, Item, Before, Goal) :-
 			win_insert_menu_item/4))
 	;   true
 	),
-	$win_insert_menu_item(Popup, Item, Before),
+	call($win_insert_menu_item(Popup, Item, Before)),
 	assert(menu_action(Item, Goal)).
