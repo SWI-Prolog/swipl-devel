@@ -37,8 +37,8 @@
 
 \newcommand{\vmajor}{4}
 \newcommand{\vminor}{0}
-\newcommand{\vpatch}{0}
-\newcommand{\vmonth}{February}
+\newcommand{\vpatch}{2}
+\newcommand{\vmonth}{March}
 \newcommand{\vyear}{2001}
 
 \newcommand{\versionshort}{\vmajor.\vminor}
@@ -57,9 +57,9 @@
 
 \begin{abstract}
 SWI-Prolog is a Prolog implementation based on a subset of the WAM
-(Warren Abstract Machine). SWI-Prolog was developed as an `open' Prolog
-environment, providing a powerful and bi-directional interface to C in
-an era this was unknown to other Prolog implementations. This
+(Warren Abstract Machine). SWI-Prolog was developed as an {\em open}
+Prolog environment, providing a powerful and bi-directional interface to
+C in an era this was unknown to other Prolog implementations. This
 environment is required to deal with XPCE, an object-oriented GUI system
 developed at SWI. XPCE is used at SWI for the development of
 knowledge-intensive graphical applications.
@@ -67,7 +67,7 @@ knowledge-intensive graphical applications.
 As SWI-Prolog became more popular, a large user-community provided
 requirements that guided its development. Compatibility, portability,
 scalability, stability and providing a powerful development environment
-have been the most important requirements. `Edinburgh', Quintus, SICStus
+have been the most important requirements. Edinburgh, Quintus, SICStus
 and the ISO-standard guide the development of the SWI-Prolog primitives.
 
 This document gives an overview of the features, system limits and
@@ -131,9 +131,9 @@ Copyright \copyright\ 1990--\year, University of Amsterdam
 \vfil
 \begin{quote}
 SWI-Prolog is a Prolog implementation based on a subset of the WAM
-(Warren Abstract Machine). SWI-Prolog was developed as an `open' Prolog
-environment, providing a powerful and bi-directional interface to C in
-an era this was unknown to other Prolog implementations. This
+(Warren Abstract Machine). SWI-Prolog was developed as an {\em open}
+Prolog environment, providing a powerful and bi-directional interface to
+C in an era this was unknown to other Prolog implementations. This
 environment is required to deal with XPCE, an object-oriented GUI system
 developed at SWI. XPCE is used at SWI for the development of
 knowledge-intensive graphical applications.
@@ -141,7 +141,7 @@ knowledge-intensive graphical applications.
 As SWI-Prolog became more popular, a large user-community provided
 requirements that guided its development. Compatibility, portability,
 scalability, stability and providing a powerful development environment
-have been the most important requirements. `Edinburgh', Quintus, SICStus
+have been the most important requirements. Edinburgh, Quintus, SICStus
 and the ISO-standard guide the development of the SWI-Prolog primitives.
 
 This document gives an overview of the features, system limits and
