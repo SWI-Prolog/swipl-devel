@@ -386,6 +386,10 @@ d_image(Image i, int x, int y, int w, int h)
 { DisplayObj d = i->display;
   Pixmap image;
 
+  DEBUG(NAME_redraw,
+	Cprintf("d_image(%s, %d, %d, %d, %d)\n",
+		pp(i), x, y, w, h));
+
   d_push_context();
 
   if ( isNil(d) )
