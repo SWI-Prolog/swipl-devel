@@ -36,7 +36,7 @@ dlldemo directory.
 
 shell_register_prolog :-
 	'$argv'([Me|_]),
-	concat(Me, ' "%1"', OpenCommand),
+	concat_atom(['"', Me, '" "%1"'], OpenCommand),
 	shell_register_file_type(pl, 'prolog.type', 'Prolog Source',
 				 OpenCommand),
 	shell_register_dde('prolog.type', consult,
@@ -56,7 +56,7 @@ shell_register_prolog :-
 %	their description in the explorer.  For example:
 % 
 %	?- shell_register_file_type(pl, 'prolog.type', 'Prolog Source',
-%				    'c:\pl\bin\plwin.exe %1').
+%				    '"c:\pl\bin\plwin.exe" "%1"').
 
 shell_register_file_type(Ext, Type, Name, Open) :-
 	ensure_dot(Ext, DExt),
