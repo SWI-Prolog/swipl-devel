@@ -132,16 +132,16 @@ storeWinMF(WinMF mf, FileObj file)
     if ( (size = GetEnhMetaFileBits(mf->hmf, 0, NULL)) )
     { LPBYTE data = pceMalloc(size);
       GetEnhMetaFileBits(mf->hmf, size, data);
-      putc('E', file->fd);
+      Sputc('E', file->fd);
       putstdw(size, file->fd);
-      fwrite(data, sizeof(char), size, file->fd);
+      Sfwrite(data, sizeof(char), size, file->fd);
       pceFree(data);
 
       succeed;
     }
   }
 
-  putc('X', file->fd);
+  Sputc('X', file->fd);
 
   succeed;
 }
@@ -634,7 +634,7 @@ saveALDUS(WinMF mf, HMETAFILE ghmf, FileObj file,
     for (p = (WORD *)&AldHdr; p < (WORD *)&(AldHdr.checksum); ++p)
       AldHdr.checksum ^= *p;
 
-    if ( fwrite(&AldHdr, APMSIZE, 1, file->fd) != 1 )
+    if ( Sfwrite(&AldHdr, APMSIZE, 1, file->fd) != 1 )
     { reportErrorFile(file);
       closeFile(file);
       fail;
@@ -642,7 +642,7 @@ saveALDUS(WinMF mf, HMETAFILE ghmf, FileObj file,
     
     buf = pceMalloc(uiSize);
     GetMetaFileBitsEx(ghmf, uiSize, buf);
-    if ( fwrite(buf, sizeof(char), uiSize, file->fd) != uiSize )
+    if ( Sfwrite(buf, sizeof(char), uiSize, file->fd) != uiSize )
     { reportErrorFile(file);
       closeFile(file);
       pceFree(buf);

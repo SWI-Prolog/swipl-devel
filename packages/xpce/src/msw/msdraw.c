@@ -2725,9 +2725,15 @@ s_height(FontObj f)
 
 int
 c_width(unsigned int c, FontObj font)
-{ s_font(font);
-  
-  return context.wsf->widths[c];
+{ INT w[1];
+
+  s_font(font);
+  if ( GetCharWidth32(context.hdc, c, c, w) )
+    return w[0];
+  else if ( GetCharWidth32(context.hdc, 'x', 'x', w) )
+    return w[0];
+  else
+    return 10;				/* avoid crashes */
 }
 
 
@@ -2736,23 +2742,15 @@ s_width_(String s, int from, int to)
 { if ( !context.wsf )
   { return 0;			/* TBD */
   } else
-  { cwidth *widths = context.wsf->widths;
-    int width;
-    int n = to-from;
+  { SIZE size;
 
     if ( isstrA(s) )
-    { charA *q = &s->s_textA[from];
-
-      for(width = 0; n-- > 0; q++)
-	width += widths[*q];
+    { GetTextExtentPoint32A(context.hdc, s->s_textA+from, to-from, &size);
     } else
-    { charW *q = &s->s_textW[from];
-
-      for(width = 0; n-- > 0; q++)
-	width += widths[*q];
+    { GetTextExtentPoint32W(context.hdc, s->s_textW+from, to-from, &size);
     }
 
-    return width;
+    return size.cx;
   }
 }
 
@@ -2761,24 +2759,6 @@ int
 str_width(String s, int from, int to, FontObj f)
 { string s2;
 
-  s_font(f);
-
-  if ( f->iswide == ON && isstrA(s) )
-  { s2 = *s;
-    s2.iswide = TRUE;
-    s2.size /= 2;
-    from /= 2;
-    to /= 2;
-    s = &s2;
-  } else if ( f->iswide != ON && !isstrA(s) )
-  { s2 = *s;
-    s2.iswide = FALSE;
-    s2.size *= 2;
-    from *= 2;
-    to *= 2;
-    s = &s2;
-  }
-
   if ( from < 0 )
     from = 0;
   if ( from >= s->size || to <= from )
@@ -2786,6 +2766,7 @@ str_width(String s, int from, int to, FontObj f)
   if ( to > s->size )
     to = s->size;
 
+  s_font(f);
   return s_width_(s, from, to);
 }
 

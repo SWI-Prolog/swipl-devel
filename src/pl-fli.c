@@ -1933,9 +1933,9 @@ PL_unify_functor(term_t t, functor_t f)
 #endif
 
       { Word a = gTop;
-	gTop += 1+arity;
 	word t = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
 
+	gTop += 1+arity;
 	*a = f;
 	while( --arity >= 0 )
 	  setVar(*++a);
