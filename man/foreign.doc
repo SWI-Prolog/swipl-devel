@@ -795,6 +795,10 @@ If \arg{t} is a Prolog integer, assign its value over \arg{i}.  Note
 that Prolog integers have limited value-range.  If \arg{t} is a floating
 point number that can be represented as a long, this function succeeds
 as well.
+\cfunction{int}{PL_get_bool}{term_t +t, int *val}
+If \arg{t} has the value \const{true} or \const{false}, set \arg{val}
+to the C constant \const{TRUE} or \const{FALSE} and return success.
+otherwise return failure.
 \cfunction{int}{PL_get_pointer}{term_t +t, void **ptr}
 In the current system, pointers are represented by Prolog integers,
 but need some manipulation to make sure they do not get truncated due
