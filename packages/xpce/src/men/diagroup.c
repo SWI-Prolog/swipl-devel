@@ -217,7 +217,13 @@ static status
 layoutDialogDialogGroup(DialogGroup g)
 { obtainClassVariablesObject(g);
 
-  return layoutDialogDevice((Device)g, g->gap, g->size, g->border);
+  if ( notNil(g->layout_manager) )
+  { if ( notNil(notNil(g->layout_manager->request_compute)) )
+      qadSendv(g->layout_manager, NAME_compute, 0, NULL);
+  } else
+    layoutDialogDevice((Device)g, g->gap, g->size, g->border);
+
+  succeed;
 }
 
 
@@ -475,6 +481,10 @@ RedrawAreaDialogGroup(DialogGroup g, Area a)
 
     if ( notNil(bg) )
       obg = r_background(bg);
+
+    if ( notNil(g->layout_manager) )
+      qadSendv(g->layout_manager, NAME_RedrawArea, 1, (Any*)&a);
+
     for_cell(cell, g->graphicals)
     { Graphical gr = cell->value;
 

@@ -2135,7 +2135,7 @@ that is not a variable.  If portray/1 succeeds, the term is considered
 printed.  See also print/1.  The default is \const{false}.  This option
 is an extension to the ISO write_term options.
     \termitem{max_depth}{Integer}
-If the term is nested deaper than \arg{Integer}, print the remainder
+If the term is nested deeper than \arg{Integer}, print the remainder
 as eclipse (\ldots).  A 0 (zero) value (default) imposes no depth limit.
 This option also delimits the number of printed for a list.  Example:
 

@@ -258,15 +258,15 @@ tracePort(LocalFrame frame, Choice bfr, int port, Code PC)
   if ( debugstatus.skiplevel < levelFrame(frame) )
     return ACTION_CONTINUE;		/* skipped */
   if ( debugstatus.skiplevel == levelFrame(frame) &&
-       (port == REDO_PORT || port == CUT_CALL_PORT || port == CUT_EXIT_PORT) )
-    return ACTION_CONTINUE;		/* skipped */
+       (port & (REDO_PORT|CUT_PORT)) )
+    return ACTION_CONTINUE;		/* redo or ! in skipped predicate */
   if ( false(def, TRACE_ME) )
     return ACTION_CONTINUE;		/* non-traced predicate */
   if ( (!(debugstatus.visible & port)) )
     return ACTION_CONTINUE;		/* wrong port */
-  if ( port == REDO_PORT &&
-       (true(def, HIDE_CHILDS) && !SYSTEM_MODE) )
-    return ACTION_CONTINUE;		/* redo's in system predicates */
+  if ( (true(def, HIDE_CHILDS) && !SYSTEM_MODE) &&
+       (port & (REDO_PORT|CUT_PORT)) )
+    return ACTION_CONTINUE;		/* redo or ! in system predicates */
 ok:
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

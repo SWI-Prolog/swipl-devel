@@ -37,14 +37,19 @@
 break_at(File, Line, Char) :-
 	debug('break_at(~q, ~d, ~d).~n', [File, Line, Char]),
 	'$clause_from_source'(File, Line, ClauseRef),
-	clause_info(ClauseRef, _File, TermPos, _NameOffset),
-	'$break_pc'(ClauseRef, PC, NextPC),
-	debug('Clause ~p, NextPC = ~w~n', [ClauseRef, NextPC]),
-	'$clause_term_position'(ClauseRef, NextPC, List),
-	debug('Location = ~w~n', [List]),
-	range(List, TermPos, A, Z),
-	debug('Term from ~w-~w~n', [A, Z]),
-	Z >= Char, !,
+	clause_info(ClauseRef, InfoFile, TermPos, _NameOffset),
+	(   InfoFile == File
+	->  '$break_pc'(ClauseRef, PC, NextPC),
+	    debug('Clause ~p, NextPC = ~w~n', [ClauseRef, NextPC]),
+	    '$clause_term_position'(ClauseRef, NextPC, List),
+	    debug('Location = ~w~n', [List]),
+	    range(List, TermPos, A, Z),
+	    debug('Term from ~w-~w~n', [A, Z]),
+	    Z >= Char, !
+	;   format('Failed to unify clause ~p, using first break~n',
+		   [ClauseRef]),
+	    '$break_pc'(ClauseRef, PC, _), !
+	),
 	debug('Break at clause ~w, PC=~w~n', [ClauseRef, PC]),
 	'$break_at'(ClauseRef, PC, true),
 	debug.

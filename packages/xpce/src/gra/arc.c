@@ -380,7 +380,7 @@ getStartArc(Arc a)
 { int sx, sy;
 
   points_arc(a, &sx, &sy, NULL, NULL);
-  answer(answerObject(ClassPoint, toInt(sx), toInt(sy)));
+  answer(answerObject(ClassPoint, toInt(sx), toInt(sy), 0));
 }
 
 
@@ -389,7 +389,7 @@ getEndArc(Arc a)
 { int ex, ey;
 
   points_arc(a, NULL, NULL, &ex, &ey);
-  answer(answerObject(ClassPoint, toInt(ex), toInt(ey)));
+  answer(answerObject(ClassPoint, toInt(ex), toInt(ey), 0));
 }
 
 

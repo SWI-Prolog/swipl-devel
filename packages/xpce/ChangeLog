@@ -1,6 +1,14 @@
 VERSION 5.1.3
 =============
 
+* ADDED: Make class dialog_group react properly on the existence of a
+  <-layout_manager.
+
+* FIXED: `arc<-start', and `arc<-end': crash.
+
+* PORT: Fixed old demo(chess) program to run using GNU-chess.  Only
+  tested on the basic responses!
+
 * MODIFIED: `@pce <-operating_system' now returns one of win32, win95
   or winnt on Windows system rather then just the fixed win32.
   @pce<-window_system returns `windows', regardless of the version.
