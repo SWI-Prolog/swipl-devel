@@ -383,6 +383,8 @@ colourise_dcg_goal(Goal, _, TB, Pos) :-
 
 
 %	colourise_goal(+Goal, +Origin, +TB, +Pos)
+%	
+%	Colourise access to a single goal.
 
 colourise_goal(Goal, Origin, TB, Pos) :-
 	nonvar(Goal),
@@ -473,6 +475,24 @@ expand_meta(MetaSpec, Goal, Expanded) :-
 	Goal =.. List0,
 	append(List0, Extra, List),
 	Expanded =.. List.
+
+%	colourise_db(+Arg, +TB, +Pos)
+%	
+%	Colourise database modification calls (assert/1, retract/1 and
+%	friends.
+
+colourise_db((Head:-_Body), TB, term_position(_,_,_,_,[HP,_])) :- !,
+	colourise_db(Head, TB, HP).
+colourise_db(Module:Head, TB, term_position(_,_,_,_,[MP,HP])) :- !,
+	colour_item(module(Module), TB, MP),
+	(   atom(Module),
+	    xref_module(Module, TB)
+	->  colourise_db(Head, TB, HP)
+	;   true			% TBD: Modifying in other module
+	).
+colourise_db(Head, TB, Pos) :-
+	colourise_goal(Head, '<db-change>', TB, Pos).
+
 
 %	colourise_files(+Arg, +TB, +Pos)
 %
@@ -802,6 +822,16 @@ goal_colours(consult(_),	     built_in-[file]).
 goal_colours(include(_),	     built_in-[file]).
 goal_colours(ensure_loaded(_),	     built_in-[file]).
 goal_colours(load_files(_,_),	     built_in-[file,classify]).
+% Database access
+goal_colours(assert(_),		     built_in-[db]).
+goal_colours(asserta(_),	     built_in-[db]).
+goal_colours(assertz(_),	     built_in-[db]).
+goal_colours(assert(_,_),	     built_in-[db,classify]).
+goal_colours(asserta(_,_),	     built_in-[db,classify]).
+goal_colours(assertz(_,_),	     built_in-[db,classify]).
+goal_colours(retract(_),	     built_in-[db]).
+goal_colours(retractall(_),	     built_in-[db]).
+% XPCE stuff
 goal_colours(pce_autoload(_,_),	     classify-[classify,file]).
 goal_colours(pce_image_directory(_), classify-[file]).
 goal_colours(new(_, _),		     built_in-[classify,pce_new]).
@@ -1036,6 +1066,9 @@ specified_item(extern(M), Term, TB, Pos) :- !,
 					% classify as body
 specified_item(body, Term, TB, Pos) :- !,
 	colourise_body(Term, TB, Pos).
+					% assert/retract arguments
+specified_item(db, Term, TB, Pos) :- !,
+	colourise_db(Term, TB, Pos).
 					% files
 specified_item(file, Term, TB, Pos) :- !,
 	colourise_files(Term, TB, Pos).
@@ -1245,6 +1278,14 @@ identify_pred(built_in, F, Summary) :-	% SWI-Prolog documented built-in
 	get(F, predicate, Pred),
 	get(Pred, summary, Summary0), !,
 	new(Summary, string('%N: %s', Pred, Summary0)).
+identify_pred(built_in, F, Summary) :-
+	get(F, head, Head),
+	predicate_property(system:Head, foreign), !,
+	new(Summary, string('%N: Built-in foreign predicate', F)).
+identify_pred(built_in, F, Summary) :-
+	get(F, name, Name),
+	sub_atom(Name, 0, _, _, $), !,
+	new(Summary, string('%N: SWI-Prolog private built-in', F)).
 identify_pred(autoload, F, Summary) :-	% Autoloaded predicates
 	get(F, name, Name),
 	get(F, arity, Arity),
@@ -1261,6 +1302,21 @@ identify_pred(local(Line), F, Summary) :-	% Local predicates
 identify_pred(imported(From), F, Summary) :-
 	new(Summary, string('%N: imported from %s', F, From)).
 identify_pred(recursion, _, 'Recursive reference') :- !.
+identify_pred(dynamic, F, Summary) :-
+	get(F, head, Head),
+	(   Head = _:_
+	->  TheHead = Head
+	;   get(F, text_buffer, TB),
+	    xref_module(TB, M)
+	->  TheHead = M:Head
+	;   TheHead = _:Head
+	),
+	(   predicate_property(TheHead, number_of_clauses(N))
+	->  new(Summary, string('%N: dynamic predicate with %d clauses',
+				prolog_predicate(TheHead),
+				N))
+	;   new(Summary, string('%N: dynamic predicate', F))
+	).
 identify_pred(Class, _, ClassName) :-
 	term_to_atom(Class, ClassName).
 

@@ -127,10 +127,12 @@ xref_cleanup(state(Xref, Ref)) :-
 xref_clean(Source) :-
 	canonical_source(Source, Src),
 	retractall(called(_, Src, _Origin)),
-	retractall(defined(_, Src, _Line)),
-	retractall(exported(_, Src)),
 	retractall(dynamic(_, Src)),
 	retractall(multifile(_, Src)),
+	retractall(defined(_, Src, _Line)),
+	retractall(imported(_, Src, _From)),
+	retractall(exported(_, Src)),
+	retractall(xmodule(_, Src)),
 	retractall(source(Src)).
 	
 
