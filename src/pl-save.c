@@ -101,6 +101,7 @@ PORTABILITY/OPTIONS
 #define ResetTty()
 #define Sdprintf printf
 #define Ssprintf sprintf
+#define PL_initialise main
 #endif
 
 #if O_SAVE
@@ -634,7 +635,7 @@ PL_initialise(int argc, char **argv, char **env)
 
 int
 PL_initialise(int argc, char **argv, char **env)
-{ return startProlog(argc, argv, env));
+{ return startProlog(argc, argv, env);
 }
 
 #endif /*O_SAVE*/
