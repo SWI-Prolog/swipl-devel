@@ -701,6 +701,7 @@ right_recursion:
     }
     case PL_TYPE_EXT_ATOM:
     { fetchAtom(b, p);
+      PL_unregister_atom(*p);
       return;
     }
     case PL_TYPE_TAGGED_INTEGER:
