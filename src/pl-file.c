@@ -610,7 +610,7 @@ bool
 streamStatus(IOSTREAM *s)
 { int rval;
 
-  if ( Sferror(s)
+  if ( Sferror(s) && GD->cleaning == CLN_NORMAL
 #ifdef __WIN32__
        && !isConsoleStream(s)
 #endif
