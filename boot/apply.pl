@@ -58,6 +58,7 @@ checklist2([Elem|Tail], Goal) :-
 	checklist2(Tail, Goal).
 
 %	maplist(+Goal, +List1, ?List2)
+%
 %	True if Goal can succesfully be applied to all succesive pairs
 %	of elements of List1 and List2.
 
@@ -70,6 +71,7 @@ maplist2([Elem1|Tail1], [Elem2|Tail2], Goal) :-
 	maplist2(Tail1, Tail2, Goal).
 
 %	sublist(+Goal, +List1, ?List2)
+%	
 %	Succeeds if List2 unifies with a list holding those terms for wich
 %	apply(Goal, Elem) succeeds.
 
@@ -82,13 +84,9 @@ sublist(Goal, [_|T], R) :-
 	sublist(Goal, T, R).
 
 %	forall(+Condition, +Action)
+%	
 %	True if Action if true for all variable bindings for which Condition
 %	if true.
 
 forall(Cond, Action) :-
 	\+ (Cond, \+ Action).
-
-%	call_cleanup(:Goal, :Cleanup)
-%
-%	Calls Goal as call/1 and executes Cleanup whenever Goal finishes
-%	due to deterministic success, failure, exception or cut.
