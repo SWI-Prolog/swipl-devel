@@ -3208,7 +3208,7 @@ maxpath:
 
 word
 pl_prolog_to_os_filename(term_t pl, term_t os)
-{
+{ GET_LD
 #ifdef O_XOS
   char *n;
   char buf[MAXPATHLEN];
@@ -3232,7 +3232,6 @@ pl_prolog_to_os_filename(term_t pl, term_t os)
   return PL_error("prolog_to_os_filename", 2, NULL, ERR_TYPE,
 		  ATOM_atom, os);
 #else /*O_XOS*/
-  GET_LD
   return PL_unify(pl, os);
 #endif /*O_XOS*/
 }
