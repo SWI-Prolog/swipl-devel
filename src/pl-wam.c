@@ -3780,6 +3780,7 @@ be able to access these!
 	       false(DEF, PROC_DEFINED) &&
 	       true(DEF->module, UNKNOWN_ERROR) )
 	  { FR->clause = NULL;
+	    enterDefinition(DEF);	/* will be left in exception code */
 	    if ( exception_term )
 	      goto b_throw;
 	  }

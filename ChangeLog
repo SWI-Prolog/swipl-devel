@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Predicate reference-count problem trapping an undefined
+    procedure.  Thanks to Radek Marik.
+
+  * FIXED: Some path problems installing Unix runtime environment.
+    Thanks to Lourens van der Meij.
+
 VERSION 3.4.4
 =============
 
