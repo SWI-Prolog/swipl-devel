@@ -53,7 +53,7 @@ xml_to_plrdf(Objects, BaseURI, RDF) :-
 	erase(Ref).
 
 rdf_objects([]) ::=
-	[].
+	[], !.
 rdf_objects([H|T]) ::=
 	[ \rdf_object(H)
 	| \rdf_objects(T)
@@ -62,8 +62,9 @@ rdf_objects([H|T]) ::=
 rdf_object(container(Type, Id, Elements)) ::=
 	\container(Type, Id, Elements), !.
 rdf_object(description(Type, About, BagID, Properties)) ::=
-	\description(Type, About, BagID, Properties).
-
+	\description(Type, About, BagID, Properties), !.
+rdf_object(unparsed(Data)) ::=
+	Data.
 
 		 /*******************************
 		 *	    DESCRIPTION		*
@@ -89,7 +90,7 @@ description(Type, About, BagID, Properties) ::=
 	}.
 		
 propAttrs([]) ::=
-	[].
+	[], !.
 propAttrs([H|T]) ::=
 	[ \propAttr(H)
 	| \propAttrs(T)
@@ -101,7 +102,7 @@ propAttr(Name = literal(Value)) ::=
 	Name = Value.
 
 propertyElts([]) ::=
-	[].
+	[], !.
 propertyElts([H|T]) ::=
 	[ \propertyElt(Id, Name, Value)
 	| \propertyElts(T)
@@ -144,7 +145,7 @@ propertyElt(Id, Name, literal(Value)) ::=
 propertyElt(_Id, Name, description(description, About, BagID, Properties)) ::=
 	element(Name,
 		\attrs([ \?idRefAttr(About),
-			 \?bagIdAttr(BagID) 	% What to do with this?
+			 \?bagIdAttr(BagID)
 		       | \propAttrs(Properties)
 		       ]),
 		[]).

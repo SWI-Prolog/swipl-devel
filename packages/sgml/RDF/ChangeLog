@@ -1,0 +1,4 @@
+  * Warn on things that cannot be converted into an RDF-object rather then
+    failing silently.
+
+  * Removed some undesirable choice-points.
