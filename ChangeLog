@@ -4,6 +4,10 @@
 VERSION 3.2.6
 =============
 
+  * FIXED: definition of last/2 to be both logical and determinitic if
+    applicable.  Based on implementation published on comp.lang.prolog
+    a while ago.
+
   * FIXED/PORTABILITY: Modified implementation of stack-allocation based
     in mmap() (Many Unix systems).  This makes the configuration work on
     the Linux 2.2 kernels, but most likely fixes problems on many other
