@@ -297,7 +297,7 @@ IDIRS=	appl-help \
 	prolog\lib\trace \
 	prolog\lib\trace\icons
 
-MANINDEX=$(IBASE)\man\index.obj
+MANINDEX=$(IBASE)\man\reference\index.obj
 
 README=	ChangeLog \
 	Defaults \
@@ -342,9 +342,10 @@ ireadme::
 
 imanidx:	$(MANINDEX)
 		
-$(MANINDEX):
+$(MANINDEX):	..\man\reference\*.doc ..\man\reference\class\*.doc
+		chdir $(IBASE)\man\reference & \
 		$(PLBASE)\bin\plwin.exe \
-		  -g "[library('man/man_index')],pce_make_manual_index('$@')" \
+		  -g "[library('man/man_index')],pce_make_manual_index('index.obj')" \
 		  -t halt
 
 ################################################################

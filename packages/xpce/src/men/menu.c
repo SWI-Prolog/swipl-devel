@@ -1628,50 +1628,55 @@ kindMenu(Menu m, Name kind)
     }
   }
 
-  if ( equalName(kind, NAME_cycle) )
+  if ( kind == NAME_cycle )
   { assign(m, on_image, NIL);
     assign(m, off_image, NIL);
     assign(m, feedback, NAME_showSelectionOnly);
     assign(m, layout,   NAME_horizontal);
     assign(m, accelerator_font, NIL);
+    assign(m, auto_value_align, OFF),
     multipleSelectionMenu(m, OFF);
     if ( m->look != NAME_win )
     { assign(m, popup, newObject(ClassPopup, 0));
       assign(m->popup, members, m->members);
       kindMenu((Menu) m->popup,  NAME_cyclePopup);
     }
-  } else if ( equalName(kind, NAME_marked) )
-  { assign(m, on_image, MARK_IMAGE);
-    assign(m, off_image, NOMARK_IMAGE);
-    assign(m, feedback, NAME_image);
-    multipleSelectionMenu(m, OFF);
-  } else if ( equalName(kind, NAME_choice) )
-  { assign(m, on_image, NIL);
-    assign(m, off_image, NIL);
-    assign(m, feedback, NAME_invert);
-    multipleSelectionMenu(m, OFF);
-  } else if ( equalName(kind, NAME_toggle) )
-  { assign(m, on_image, MARK_IMAGE);
-    assign(m, off_image, NOMARK_IMAGE);
-    assign(m, feedback, NAME_image);
-    multipleSelectionMenu(m, ON);
-  } else if ( equalName(kind, NAME_popup) )
-  { if ( instanceOfObject(m, ClassPopup) )
-    { defaultPopupImages((PopupObj)m);
-    } else
+  } else
+  { assign(m, auto_value_align, ON);
+
+    if ( kind == NAME_marked )
+    { assign(m, on_image, MARK_IMAGE);
+      assign(m, off_image, NOMARK_IMAGE);
+      assign(m, feedback, NAME_image);
+      multipleSelectionMenu(m, OFF);
+    } else if ( kind == NAME_choice )
     { assign(m, on_image, NIL);
       assign(m, off_image, NIL);
-    }
-    multipleSelectionMenu(m, OFF);
-  } else if ( equalName(kind, NAME_cyclePopup) )
-  { if ( m->look == NAME_win || m->look == NAME_motif )
-      assign(m, on_image, NAME_marked);
-    else
-      assign(m, on_image, MARK_IMAGE);
-    assign(m, off_image, NIL);
-    multipleSelectionMenu(m, OFF);
-  } else
-    fail;
+      assign(m, feedback, NAME_invert);
+      multipleSelectionMenu(m, OFF);
+    } else if ( kind == NAME_toggle )
+    { assign(m, on_image, MARK_IMAGE);
+      assign(m, off_image, NOMARK_IMAGE);
+      assign(m, feedback, NAME_image);
+      multipleSelectionMenu(m, ON);
+    } else if ( kind == NAME_popup )
+    { if ( instanceOfObject(m, ClassPopup) )
+      { defaultPopupImages((PopupObj)m);
+      } else
+      { assign(m, on_image, NIL);
+	assign(m, off_image, NIL);
+      }
+      multipleSelectionMenu(m, OFF);
+    } else if ( kind == NAME_cyclePopup )
+    { if ( m->look == NAME_win || m->look == NAME_motif )
+	assign(m, on_image, NAME_marked);
+      else
+	assign(m, on_image, MARK_IMAGE);
+      assign(m, off_image, NIL);
+      multipleSelectionMenu(m, OFF);
+    } else
+      fail;
+  }
 
   assign(m, kind, kind);
 
