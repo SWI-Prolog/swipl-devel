@@ -81,18 +81,56 @@ No
 \end{code}
 
 
-\subsection{Menu commands}
+\subsection{Menu commands}		\label{sec:menu}
 
 The SWI-Prolog console provided by \program{plwin.exe} has a menu for
-accessing the most commonly used commands.
+accessing the most commonly used commands. We assume not all menu
+entries need to be explained in details.  We make some exceptions:
+
+\begin{description}
+    \definition{File/Reload modified files}
+This menu reloads all loaded source-files that have been modified
+using the make/0 command described in \secref{commands}.
+
+    \definition{File/Navigator ...}
+Opens an explorer-like view on Prolog files and the predicates they
+contain.
+
+    \definition{Settings/Font ...}
+Allows for changing the font of the console.  On some installation the
+default font gives redraw and cursor dislocation problems.  In this case
+you may wish to select an alternative.  Some built-in commands assume
+non-proportional fonts.
+
+    \definition{User init file ...}
+Edits the user personalisation file.  If no such file exists it first
+installes a default file as \file{pl.ini} that contains commonly used
+settings in comments.
+
+    \definition{Stack sizes ...}
+Allows to define the maximum size to which the various Prolog stacks are
+allowed to grow. The system defaults suffice for many applications. 
+\end{description}
 
 
+\subsection{Editing Prolog programs}
+
+There are three options for editing.  One is to run an editor of choice
+in a seperate window and use the below described make/0 command to
+reload modified files.  In addition to this option Prolog can be used
+to locate predicates, modules and loaded files by specifying the editor
+of choice for use with the edit/1 command described below.  This is
+achieved by editing the personalisation file (see \sectref{menu}) and
+follow the instructions in the comments.
+
+Finally, you may wish to use the built-in editor called \emph{PceEmacs}.
+This editor provides colourisation support based on real-time parsing
+and cross-reference analysis of the program. It is started using the
+command \verb$?- emacs.$ or can be set as default editor in the
+personalisation file.
 
 
-
-
-
-\subsection{Useful commands}
+\subsection{Some useful commands}
 
 
 \begin{description}
@@ -206,9 +244,7 @@ The following tools and programs are installed:
 The filetype \fileext{pl} or choosen alternative (see \secref{ext}) is
 associated to \program{plwin.exe}.  A choosen folder (default SWI-Prolog)
 is added to the start-menu holding shortcuts to Prolog and some related
-utilities.
-
-The following registry keys are in use:
+utilities. The following registry keys are in use:
 
 \begin{center}
 \begin{tabular}{|l|p{4in}|}
@@ -245,10 +281,55 @@ The following registry keys are in use:
 
 \subsection{Web-site and mailinglists}
 
+The SWI-Prolog web-site is located at \url{http://www.swi-prolog.org/}.
+Part of the web is powered by \url[TWiki]{http://twiki.org/}, a
+\emph{wiki} web that can be edited by any registered user and used to
+exchange ideas, problems and solutions.  The web also provides access
+to the archive of the mailinglist and allows to (de)register the
+mailinglist.  Finally, it incorporates Bugzilla, the Mozilla project
+bugtracking system, for reporting bugs and tracking issues.
 
 
+\subsection{About license conditions}
 
-\subsection{License conditions}
+The SWI-Prolog license allows it to be used in a wide variety of
+environments, including closed-source commercial applications. In
+practice, redistribution and embedding is allowed, as long as
+\emph{modifications} to the SWI-Prolog source are published following
+the Free Software rules.
 
+The SWI-Prolog kernel and foreign libraries are licensed under the
+\emph{Lesser General Public License} (LGPL).  The Prolog files are
+licensed under the normal \emph{General Public License} GPL with
+an additional statement that allows for embedding in proprietary
+software:
+
+\begin{quote}
+    As a special exception, if you link this library with other files,
+    compiled with a Free Software compiler, to produce an executable, this
+    library does not by itself cause the resulting executable to be covered
+    by the GNU General Public License. This exception does not however
+    invalidate any other reasons why the executable file might be covered by
+    the GNU General Public License.
+\end{quote}
+
+This exception is a proven construct used for \emph{libgcc}, the GNU
+C-compiler runtime library.
+
+
+\subsection{Supporting SWI-Prolog}
+
+There are several ways to support SWI-Prolog:
+
+\begin{itemlist}
+    \item Extend the system with contributions
+    \item Improve the system by submitting bug reports and patches.
+    \item Link to \url{http://www.swi-prolog.org} and refer to SWI-Prolog
+          in publications.
+    \item Ask for commercial development or support at
+          \url{http://www.cognitivetools.com/SWI-Prolog.html}
+    \item Support development financially at 
+          \url{http://www.swi-prolog.org/donate.html}.
+\end{itemlist}
 
 \end{document}
