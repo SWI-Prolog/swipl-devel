@@ -400,7 +400,13 @@ char_entity_value(const ichar *decl)
 { if ( *decl == '#' )
   { const ichar *s = decl+1;
     char *end;
-    long v = strtol((char *)s, &end, 10);
+    long v;
+
+					/* do octal too? */
+    if ( s[0] == 'x' || s[0] == 'X' )
+      v = strtoul((char *)s+1, &end, 16);
+    else
+      v = strtoul((char *)s, &end, 10);
 
     if ( *end == '\0' )
     { return (int)v;
