@@ -343,7 +343,7 @@ adjust_selected(D, Sel:'image|chain*') :->
 selected(D) :->
 	"Test of object is selected"::
 	get(D, member, bitmap, BM),
-	get(BM, selected, @on).
+	\+ get(BM, pen, 0).
 
 event(D, Ev:event) :->
 	(   send(D, send_super, event, Ev)

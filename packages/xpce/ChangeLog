@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: `image_browser<-selected' from library(pce_image_browser).
+
 * ADDED: Allow unbound value as default in default/3.
 
 * ADDED: `path<-distance' to compute distance to a point or event.
