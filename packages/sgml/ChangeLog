@@ -1,3 +1,7 @@
+Jun 4, 2003
+
+  * ENHANCED: type the conflicting CDATA in #PCDATA that violates the DTD
+
 May 23, 2003
 
   * FIXED: More catalog trouble.  Richard O'Keefe.

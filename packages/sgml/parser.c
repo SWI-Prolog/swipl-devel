@@ -3985,7 +3985,9 @@ emit_cdata(dtd_parser *p, int last)
   assert(p->cdata->size > 0);
   if ( !p->blank_cdata )
   { if ( p->cdata_must_be_empty )
-      gripe(ERC_VALIDATE, "#PCDATA not allowed here");
+    { terminate_ocharbuf(p->cdata);
+      gripe(ERC_NOT_ALLOWED_PCDATA, p->cdata->data);
+    }
     if ( p->on_data )
       (*p->on_data)(p, EC_CDATA, p->cdata->size, data);
   } else if ( p->environments )
@@ -5192,6 +5194,15 @@ gripe(dtd_error_id e, ...)
       error.severity = ERS_WARNING;
       e = ERC_VALIDATE;
       break;
+    }
+    case ERC_NOT_ALLOWED_PCDATA:
+    { const char *text = va_arg(args, const char *); 
+
+      sprintf(buf, "#PCDATA (\"%s\") not allowed here", str_summary(text, 25));
+      error.argv[0] = buf;
+      error.severity = ERS_WARNING;
+      e = ERC_VALIDATE;
+      break;      
     }
     case ERC_NO_ATTRIBUTE:
     { const char *elem = va_arg(args, char *); /* element */

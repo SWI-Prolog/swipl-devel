@@ -227,6 +227,8 @@ typedef enum
 	/* Element */
   ERC_NOT_ALLOWED,
 	/* Element */
+  ERC_NOT_ALLOWED_PCDATA,
+        /* Text */
   ERC_NO_ATTRIBUTE,
 	/* Element, Attribute */
   ERC_NO_ATTRIBUTE_VALUE,
