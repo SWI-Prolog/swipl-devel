@@ -116,37 +116,6 @@ recursion levels deeper than the level of the variable.  Used to
 implement the trace options `skip' (sets skip level to the level of the
 frame) and `up' (sets skip level to the level of the parent frame (i.e.\
 the level of this frame minus 1).
-
-    \predicate{prolog_list_goal}{1}{:Goal}
-Hook, normally not defined. This hook is called by the 'L' command of
-the tracer in the module \module{user} to list the currently called
-predicate. This hook may be defined to list only relevant clauses of the
-indicated \arg{Goal} and/or show the actual source-code in an editor.
-See also portray/1 and multifile/1.
-
-    \predicate{prolog:debug_control_hook}{1}{:Action}
-Hook for the debugger-control predicates that allows the creator of
-more high-level programming languages to use the common front-end
-predicates to control de debugger.  For example, XPCE uses these hooks
-to allow for spying methods rather then predicates. \arg{Action} is one
-of:
-
-\begin{description}
-    \termitem{spy}{Spec}
-Hook in spy/1.  If the hook succeeds spy/1 takes no further action.
-    \termitem{nospy}{Spec}
-Hook in nospy/1.  If the hook succeeds spy/1 takes no further action.
-If spy/1 is hooked, it is adviced to place a complementary hook for
-nospy/1.
-    \termitem{nospyall}{}
-Hook in nospyall/0.  Should remove all spy-points.  This hook is
-called in a failure-driven loop.
-    \termitem{debugging}{}
-Hook in debugging/0.  It can be used in two ways.  It can report
-the status of the additional debug-points controlled by the above
-hooks and fail to let the system report the others or it succeed,
-overruling the entire behaviour of debugging/0.
-\end{description}
 \end{description}
 
 
@@ -183,6 +152,65 @@ atom \const{fail} to tell Prolog to fail the predicate, the atom
 \const{retry} to tell Prolog to retry the predicate or \const{error} to
 make the system generate an exception. The action \const{retry} only
 makes sense if the exception handler has defined the predicate.
+\end{description}
+\end{description}
+
+
+\section{Hooks for integrating libraries}
+
+Some libraries realise an entirely new programming paradigm on top of
+Prolog.  An example is XPCE which adds an object-system to Prolog as
+well as an extensive set of graphical primitives.  SWI-Prolog provides
+several hooks to improve the integration of such libraries.  See also
+\secref{listing} for editing hooks and \secref{printmsg} for hooking
+into the message system.
+
+\begin{description}
+    \predicate{prolog_list_goal}{1}{:Goal}
+Hook, normally not defined. This hook is called by the 'L' command of
+the tracer in the module \module{user} to list the currently called
+predicate. This hook may be defined to list only relevant clauses of the
+indicated \arg{Goal} and/or show the actual source-code in an editor.
+See also portray/1 and multifile/1.
+
+    \predicate{prolog:debug_control_hook}{1}{:Action}
+Hook for the debugger-control predicates that allows the creator of
+more high-level programming languages to use the common front-end
+predicates to control de debugger.  For example, XPCE uses these hooks
+to allow for spying methods rather then predicates. \arg{Action} is one
+of:
+
+\begin{description}
+    \termitem{spy}{Spec}
+Hook in spy/1.  If the hook succeeds spy/1 takes no further action.
+    \termitem{nospy}{Spec}
+Hook in nospy/1.  If the hook succeeds spy/1 takes no further action.
+If spy/1 is hooked, it is adviced to place a complementary hook for
+nospy/1.
+    \termitem{nospyall}{}
+Hook in nospyall/0.  Should remove all spy-points.  This hook is
+called in a failure-driven loop.
+    \termitem{debugging}{}
+Hook in debugging/0.  It can be used in two ways.  It can report
+the status of the additional debug-points controlled by the above
+hooks and fail to let the system report the others or it succeed,
+overruling the entire behaviour of debugging/0.
+\end{description}
+
+    \predicate{prolog:help_hook}{1}{+Action}
+Hook into help/0 and help/1.  If the hook succeeds, the built-in actions
+are not executed. For example, \exam{?- help(picture).} is caught by the
+XPCE help-hook to give help on the class {\em picture}.  Defined actions
+are:
+
+\begin{description}
+    \termitem{help}{}
+User entered plain help/0 to give default help.  The default performs
+\exam{help(help/1)}, giving help on help.
+    \termitem{help}{What}
+Hook in help/1 on the topic \arg{What}.
+    \termitem{apropos}{What}
+Hook in apropos/1 on the topic \arg{What}.
 \end{description}
 \end{description}
 

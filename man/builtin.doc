@@ -958,7 +958,7 @@ the error.  Any part of this structure may be a variable if no
 information was present.
 
 
-\subsection{Printing messages}
+\subsection{Printing messages}			\label{sec:printmsg}
 
 The predicate print_message/2 may be used to print a message term
 in a human readable format.  The other predicates from this section

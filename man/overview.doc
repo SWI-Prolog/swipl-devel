@@ -1085,6 +1085,8 @@ Hook into the tracer to handle trace-events (SWI).
     \item [prolog:debug_control_hook/1]
 Hook in spy/1, nospy/1, nospyall/0 and debugging/0 to extend these
 control-predicates to higher-level libraries.
+    \item [prolog:help_hook/1]
+Hook in help/0, help/1 and apropos/1 to extend the help-system.
     \item [resource/3]
 Defines a new resource (not really a hook, but similar) (SWI).    
     \item [exception/3]

@@ -210,6 +210,7 @@ suggest predicates from a keyword.
 \predicatesummary{hash_term}{2}{Hash-value of ground term}
 \predicatesummary{help}{0}{Give help on help}
 \predicatesummary{help}{1}{Give help on predicates and show parts of manual}
+\predicatesummary{help_hook}{1}{\hook{prolog} User-hook in the help-system}
 \predicatesummary{ignore}{1}{Call the argument, but always succeed}
 \predicatesummary{import}{1}{Import a predicate from a module}
 \predicatesummary{include}{1}{Include a file with declarations}
