@@ -507,3 +507,4 @@
 #define ATOM_thread_local MK_ATOM(506)
 #define ATOM_thread_local_procedure MK_ATOM(507)
 #define ATOM_dload        MK_ATOM(508)
+#define ATOM_meta_predicate MK_ATOM(509)

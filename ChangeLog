@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: Bug #25: compilation on Solaris 8
+
   * ADDED: op(1150, fx, meta_predicate) to avoid syntax errors if library
     quintus is not loaded explcitely.
 

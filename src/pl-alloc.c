@@ -362,12 +362,12 @@ alignedAllocHeap(size_t n)
 #ifdef JMPBUF_ALIGNMENT
   ptr = allocHeap__LD((n + JMPBUF_ALIGNMENT - ALIGN_SIZE) PASS_LD);
 
-#if JMPBUF_ALIGNMENT != ALIGN_SIZE
-  assert(JMPBUF_ALIGNMENT%ALIGN_SIZE == 0);
+  if ( JMPBUF_ALIGNMENT != ALIGN_SIZE )
+  { assert(JMPBUF_ALIGNMENT%ALIGN_SIZE == 0);
 
-  while((unsigned long)ptr % JMPBUF_ALIGNMENT)
-    ptr += ALIGN_SIZE;
-#endif
+    while((unsigned long)ptr % JMPBUF_ALIGNMENT)
+      ptr += ALIGN_SIZE;
+  }
 #else
   ptr = allocHeap__LD(n PASS_LD);
 #endif
