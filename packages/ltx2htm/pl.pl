@@ -51,11 +51,14 @@ cmd(exam(		{A1}), #code(+A1)).
 cmd(jargon(		{A1}), #em(+A1)).
 cmd(chr(		{A1}), #code(+A1)).
 cmd(const(		{A1}), #code(+A1)).
+cmd(key(		{A1}), #code(+A1)).
 cmd(plflag(		{A1}), #code(+A1)).
 cmd(module(		{A1}), #code(+A1)).
 cmd(except(		{A1}), #code(+A1)).
 cmd(op(			{A1}), #strong(+A1)).
 cmd(cmdlineoption(	{A1}), #strong(+A1)).
+cmd(menu({A1},{[]}),	       #strong(+A1)).
+cmd(menu({A1},{A2}),	       [#strong(+A1), ' ', #embrace(#code(+A2))]).
 cmd(longoption(	   {A1},{[]}), [#strong([nospace(--), +A1])]).
 cmd(longoption(	   {A1},{A2}), [#strong([nospace(--), +A1,
 					 nospace(=)]), #var(+A2)]).
@@ -207,6 +210,12 @@ cmd(destructor({Class}),
 cmd(cppcast({Class}, {Type}),
     #defitem([#strong([Class, '::operator', Type]), #embrace(#var(void))])).
 cmd(nodescription, []).
+
+% Some XPCE things
+
+cmd(class({Name}),              #lref(Label, Name)) :-
+        concat('class:', Name, Label),
+        add_to_index(Name).
 
 % Glossary support
 

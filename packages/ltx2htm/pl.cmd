@@ -71,6 +71,8 @@
 \bug{+}
 \hook{+}
 \tm
+\key{+}
+\menu{+}{+}
 
 \secref{-}
 \Secref{-}

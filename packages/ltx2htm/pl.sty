@@ -207,6 +207,12 @@
 \newcommand{\texmode}[1]{{\tt #1}}
 \newcommand{\HTML}[1]{{\bf #1}}
 \newcommand{\libdoc}[2]{\section{\pllib{#1}: #2}\label{sec:lib:#1}}
+\newcommand{\key}[1]{{\sf #1}}
+\newcommand{\menu}[2]{%
+	{\sf #1}%
+	\ifthenelse{\equal{#2}{}}{%
+	    }{%
+	    ~(\texttt{#2})}}
 
 \newcommand\satom{\begingroup \urlstyle{tt}\Url}
 \newcommand\fmtseq{\begingroup \urlstyle{tt}\Url}
