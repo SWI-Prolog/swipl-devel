@@ -29,7 +29,7 @@
 		      '`'  = open_bracket(''''),
 		      '%'  = comment_start,
 		      '\n' + comment_end,
-		      paragraph_end(regex('\s *\(\sn\|%\|\\item\|\\tick\|\\begin\|\\end\|\\\(sub\)*section\)'))
+		      paragraph_end(regex('\s *\(\sn\|%\|\\item\|\\tick\|\\begin\|\\end\|\\\(sub\)*section\)\|%$'))
 		    ]).
 
 :- send(@class, attribute, outline_regex_list,
