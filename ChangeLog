@@ -7,6 +7,9 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: negative random numbers on MS-Windows.  Upgraded random/1 to
+    return 64-bit random numbers.  Jocelyn Paine.
+
   * FIXED: typo in message context.
 
   * FIXED: Seek issues for wchar and unicode streams.

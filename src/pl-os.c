@@ -360,7 +360,7 @@ FreeMemory(void)
 		*********************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    long _PL_Random()
+    uint64_t _PL_Random()
 
     Return a random number. Used for arithmetic only. More trouble. On
     some systems (WIN32) the seed of rand() is thread-local, while on
@@ -403,7 +403,7 @@ initRandom(void)
 #endif
 }
 
-long
+int64_t
 _PL_Random(void)
 { if ( !LD->os.rand_initialised )
   { initRandom();
@@ -411,12 +411,17 @@ _PL_Random(void)
   }
 
 #ifdef HAVE_RANDOM
-  return random();
+#if SIZEOF_LONG == 4
+  return random() ^ (random()<<32);
 #else
-  { long l = rand();			/* 0<n<2^15-1 */
+  return random();
+#endif
+#else
+  { uint64_t l = rand();			/* 0<n<2^15-1 */
   
-    l ^= rand()<<10;
-    l ^= rand()<<20;
+    l ^= rand()<<15;
+    l ^= rand()<<30;
+    l ^= rand()<<45;
 
     return l;
   }
