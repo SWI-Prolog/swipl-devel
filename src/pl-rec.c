@@ -1175,7 +1175,7 @@ PL_recorded_external(const char *rec, term_t t)
   copy_record(valTermRef(t), &b);
   assert(b.gstore == gTop);
 
-  SECURE(checkData(valTermRef(copy)));
+  SECURE(checkData(valTermRef(t)));
   
   return TRUE;
 }
