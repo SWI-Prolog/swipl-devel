@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Non-portable test in config.guess (Kenneth Pronovici).
+
+  * FIXED: reported undefined predicate by check/0 on plcon.exe (Mike Elston).
+
   * ENHANCED: Allow for PL_set_feature() before PL_initialise().  Improved
     initialisation procedure for plwin.exe for better compatibility with
     the other versions.
