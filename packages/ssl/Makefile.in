@@ -78,9 +78,9 @@ pdf-install:	install-examples
 		$(INSTALL) -m 644 $(DOC).pdf $(DESTDIR)/$(PKGDOC)
 
 install-examples::
-		mkdir -p $(EXDIR)
+		mkdir -p $(DESTDIR)/$(EXDIR)
 		$(INSTALL_DATA) $(EXAMPLES) $(DESTDIR)/$(EXDIR)
-		cp -r etc $(EXDIR)
+		cp -r etc $(DESTDIR)/$(EXDIR)
 
 uninstall::
 		(cd $(PLBASE)/lib/$(PLARCH) && rm -f $(TARGETS))
