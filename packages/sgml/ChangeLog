@@ -1,3 +1,8 @@
+May 22, 2003
+
+  * FIXED: Lookup of system identifiers through the catalogue (avoid early
+    tagging with file:)  Richard O'Keefe.
+
 May 21, 2003
 
   * FIXED: Handle -- in element-names (Bijan Parsia).

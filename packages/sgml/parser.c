@@ -941,35 +941,21 @@ itake_dubbed_string(dtd *dtd, const ichar *in, ichar **out)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+itake_url() is used to get the argument of a SYSTEM or 2nd argument of a
+PUBLIC reference. Once upon a  time  it   tried  to  tag the argument as
+file:<path>, but this job cannot be before   lookup in the catalogue. We
+could have replaced the calls  with   itake_string(),  but I'll leave it
+this way for documentation purposes.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static const ichar *
 itake_url(dtd *dtd, const ichar *in, ichar **out)
 { ichar buf[MAXSTRINGLEN];
-  ichar *s;
   const ichar *end;
-  int len;
 
-  strcpy(buf, "file:");
-  s = buf+strlen(buf);
-  len = MAXSTRINGLEN - strlen(buf);
-
-  if ( (end=itake_string(dtd, in, s, len)) )
-  { ichar *t = s;
-
-#ifdef WIN32				/* drive: --> interpret as file */
-    if ( HasClass(dtd, *t, CH_LETTER) && t[1] == ':' )
-    { *out = istrdup(buf);
-      return end;
-    }
-#endif
-
-    while(*t && HasClass(dtd, *t, CH_LETTER))
-      t++;
-    if ( *t == ':' )			/* name: --> interpret as type */
-    { *out = istrdup(s);
-      return end;
-    }
-
-    *out = istrdup(buf);		/* interpret as file */
+  if ( (end=itake_string(dtd, in, buf, sizeof(buf))) )
+  { *out = istrdup(buf);
   }
 
   return end;
