@@ -232,7 +232,6 @@
   BUILTIN_NAME("bad_vector_usage")
   BUILTIN_NAME("banner")
   BUILTIN_NAME("base_name")
-  BUILTIN_NAME("baseline")
   BUILTIN_NAME("before")
   BUILTIN_NAME("begin")
   BUILTIN_NAME("beginning_of_line")
@@ -2295,3 +2294,4 @@
   BUILTIN_NAME("yref")
   BUILTIN_NAME("yref_var")
   BUILTIN_NAME("zoom")
+  BUILTIN_NAME("item_width")
