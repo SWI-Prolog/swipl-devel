@@ -130,7 +130,7 @@ initialiseFile(FileObj f, Name name, Name encoding)
   { char buf[MAXPATHLEN];
     char lng[MAXPATHLEN];
     
-    if ( _xos_long_file_name(strName(name), lng) &&
+    if ( _xos_long_file_name(strName(name), lng, sizeof(lng)) &&
 	 _xos_canonical_filename(lng, buf, sizeof(buf), 0) )
     { assign(f, name, CtoName(buf));
     } else
