@@ -84,8 +84,10 @@ obtain_focus(T) :->
 	;   get(T, pen, OldPen),
 	    get(T, border, OldBorder),
 	    send(T, attribute, edit_saved_parms, chain(OldPen, OldBorder)),
-	    send(T, pen, 1),
-	    send(T, border, 2)
+	    NewPen is OldPen+1,
+	    send(T, pen, NewPen),
+	    NewBorder is max(2, OldBorder),
+	    send(T, border, NewBorder)
 	),
 	send(T, show_caret, @on).
 

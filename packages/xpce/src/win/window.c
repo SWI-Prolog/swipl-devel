@@ -28,6 +28,7 @@
 static status	uncreateWindow(PceWindow sw);
 static status   tileWindow(PceWindow sw, TileObj t);
 static status   updateScrollbarValuesWindow(PceWindow sw);
+static status	visible_window(PceWindow sw, IArea a);
 extern void	unlink_changes_data_window(PceWindow sw);
 
 
@@ -886,6 +887,29 @@ inside_iarea(IArea a, IArea b)
   fail;
 }
 
+
+static status
+intersect_iarea(IArea a, IArea b)	/* shrink a with b; fail of empty */
+{ int x, y, w, h;
+
+  x = (a->x > b->x ? a->x : b->x);
+  y = (a->y > b->y ? a->y : b->y);
+  w = (a->x + a->w < b->x + b->w ? a->x + a->w : b->x + b->w) - x;
+  h = (a->y + a->h < b->y + b->h ? a->y + a->h : b->y + b->h) - y;
+
+  if ( w < 0 || h < 0 )
+    fail;
+  
+  a->x = x;
+  a->y = y;
+  a->w = w;
+  a->h = h;
+
+  succeed;
+}
+
+
+
 #ifdef O_CHDEBUG
 #define CHDEBUG(s, g) DEBUG(s, g)
 #else
@@ -1070,11 +1094,13 @@ RedrawWindow(PceWindow sw)
   if ( sw->displayed == ON && createdWindow(sw) )
   { UpdateArea a, b;
     AnswerMark mark;
+    iarea visible;
 
     markAnswerStack(mark);
 
     ComputeGraphical(sw);
     combine_changes_window(sw);
+    visible_window(sw, &visible);
 
     a = sw->changes_data;
     sw->changes_data = NULL;		/* if we crash, data will be fine! */
@@ -1084,7 +1110,7 @@ RedrawWindow(PceWindow sw)
     DEBUG(NAME_changesData, Cprintf("%s:\n", pp(sw)));
     for(; a; a = b)
     { b = a->next;
-      if ( !a->deleted )
+      if ( !a->deleted && intersect_iarea(&a->area, &visible) )
       { DEBUG(NAME_changesData,
 	      Cprintf("\tUpdate %d %d %d %d (%s)\n",
 		      a->area.x, a->area.y, a->area.w, a->area.h,
@@ -1570,16 +1596,27 @@ get_display_position_window(PceWindow sw, int *X, int *Y)
 }
 
 
+static status
+visible_window(PceWindow sw, IArea a)
+{ int p = valInt(sw->pen);
+
+  compute_window(sw, &a->x, &a->y, &a->w, &a->h);
+  a->x -= valInt(sw->scroll_offset->x) + p;
+  a->y -= valInt(sw->scroll_offset->y) + p;
+
+  succeed;
+}
+
+
 static Area
 getVisibleWindow(PceWindow sw)
-{ int x, y, w, h; 
-  int p = valInt(sw->pen);
+{ iarea a;
 
-  compute_window(sw, &x, &y, &w, &h);
-  x -= valInt(sw->scroll_offset->x) + p;
-  y -= valInt(sw->scroll_offset->y) + p;
+  visible_window(sw, &a);
 
-  answer(answerObject(ClassArea, toInt(x), toInt(y), toInt(w), toInt(h), EAV));
+  answer(answerObject(ClassArea,
+		      toInt(a.x), toInt(a.y), toInt(a.w), toInt(a.h),
+		      EAV));
 }
 
 
