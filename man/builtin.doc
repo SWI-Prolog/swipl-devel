@@ -1226,10 +1226,11 @@ digit(D) -->
 
 The body of a grammar rule can contain three types of terms.  A compound
 term interpreted as a reference to a grammar-rule.  Code between
-\{\ldots\} is interpreted as a reference to ordinary Prolog code and
-finally, a list is interpreted as a sequence of literals.  The Prolog
-control-constructs (\funcref{\+}{1}, \funcref{->}{2}, \funcref{;}/2,
-\funcref{,}{2} and \funcref{!}{0}) can be used in grammar rules.
+\verb${$\ldots\verb$}$ is interpreted as a reference to ordinary Prolog
+code and finally, a list is interpreted as a sequence of literals. The
+Prolog control-constructs (\funcref{\+}{1}, \funcref{->}{2},
+\funcref{;}/2, \funcref{,}{2} and \funcref{!}{0}) can be used in grammar
+rules.
 
 Grammar rule-sets are called using the builtin predicates phrase/2
 and phrase/3:
