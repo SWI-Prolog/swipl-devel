@@ -90,7 +90,7 @@ initialise(S, Att:name, Size:size) :->
 		  [ menu_item(select,
 			      message(S, request_selection, Obj, @on))
 		  , menu_item(class_browser,
-			      message(Tool, request_tool_focus, Obj),
+			      message(Tool, request_tool_focus, Obj, @on),
 			      @default, @on,
 			      DI?style \== header)
 		  , menu_item(source,

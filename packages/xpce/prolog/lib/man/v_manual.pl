@@ -762,12 +762,14 @@ request_selection(M, Frame:man_frame*, Obj:any*, Open:[bool]) :->
 	).
 	
 
-request_tool_focus(M, Obj:object*) :->
+request_tool_focus(M, Obj:object*, ForceClass:[bool]) :->
 	"Change the tool focus"::
 	send(M, slot, tool_focus, Obj),
 	send(M, update_history, focus_history, Obj),
 	send(M?tools, for_some, message(@arg1?value, tool_focus, Obj)),
-	(   send(Obj, instance_of, class),
+	(   (	ForceClass == @on
+	    ;   send(Obj, instance_of, class)
+	    ),
 	    \+ get(M?tools, value, class_browser, _)
 	->  send(M, report, progress, 'Starting Class Browser'),
 	    send(M, start_tool, class_browser),
@@ -1011,8 +1013,8 @@ quit(F) :->
 request_selection(F, Obj:any*, Open:[bool]) :->
 	send(F?manual, request_selection, F, Obj, Open).
 
-request_tool_focus(F, Obj:object) :->
-	send(F?manual, request_tool_focus, Obj).
+request_tool_focus(F, Obj:object, Force:[bool]) :->
+	send(F?manual, request_tool_focus, Obj, Force).
 
 request_source(F, Obj:object) :->
 	send(F?manual, request_source, Obj).

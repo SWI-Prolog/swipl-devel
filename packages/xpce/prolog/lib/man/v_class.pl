@@ -217,7 +217,7 @@ scope(CB, Scope:chain) :<-
 		*         COMMUNICATION		*
 		********************************/
 
-request_tool_focus(CB, Obj:object*) :->
+request_tool_focus(CB, Obj:object*, _Force:[bool]) :->
 	"Do not broadcast a request"::
 	send(CB, tool_focus, Obj).
 

@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Manual tools object browser doesn't open class browser on request.
+  Fabien Todescato.
+
 * ADDED: `object <-create_context' to query the goal stack for the object
   that creates me.
 
