@@ -180,8 +180,7 @@ take_label(Class, Label) :-
 %	Enumerate the properties in the domain of Class.
 
 rdfs_class_property(Class, Property) :-
-	rdfs_subclass_of(PropClass, rdf:'Property'),
-	rdfs_individual_of(Property, PropClass),
+	rdfs_individual_of(Property, rdf:'Property'),
 	rdf_has(Property, rdfs:domain, Domain),
 	rdfs_subclass_of(Class, Domain).
 
