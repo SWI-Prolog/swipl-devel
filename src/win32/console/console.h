@@ -104,7 +104,7 @@ _export void		ScreenGetCursor(int *row, int *col);
 _export void		ScreenSetCursor(int row, int col);
 _export int		ScreenCols(void);
 _export int		ScreenRows(void);
-_export const char *	rlc_prompt(const char *new);
+_export const char *	rlc_prompt(const char *prompt);
 _export void		rlc_clearprompt(void);
 
 		 /*******************************
@@ -144,7 +144,7 @@ typedef struct _complete_data
   long		num_handle;		/* numeric handle for client */
 } rlc_complete_data, *RlcCompleteData;
 
-_export RlcCompleteFunc rlc_complete_hook(RlcCompleteFunc new);
+_export RlcCompleteFunc rlc_complete_hook(RlcCompleteFunc func);
 
 _export char	*read_line(void);
 _export int	rlc_complete_file_function(RlcCompleteData data);
