@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Object-reference counting problem that may cause colour objects
+  to be garbage collected early.  (Lourens van der Meij).
+
 * ADDED: PceEmacs: provisional RDF, RDFS and OWL modes to insert the lengthy
   header and draw a tripple diagram from small files.
 

@@ -192,10 +192,10 @@ d_pop_context()
 { if ( context.parent != NULL )
   { DContext ctx = context.parent;
 
+    context = *ctx;			/* structure copy! */
     registerColour(&context.colour, NIL);
     registerColour(&context.background, NIL);
 
-    context = *ctx;			/* structure copy! */
     unalloc(sizeof(struct d_context), ctx);
   }
 }
