@@ -42,8 +42,8 @@ else
 fi
 
 
-function replace()
-{ if [ -e $2 ]; then
+replace()
+{ if [ -r $2 ]; then
     if cmp $1 $2 2>/dev/null; then
       echo "$2: no change"
       rm $1
