@@ -35,6 +35,11 @@
 :- system_module.
 :- op(100, fx, @).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This library sets up the menu of PLWIN.EXE. It is called from the system
+initialisation file plwin.rc, predicate gui_setup_/0.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 menu('&File',
      [ '&Consult ...' = action(user:consult(+file(open,
 						  'Load file into Prolog'))),

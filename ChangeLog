@@ -12,6 +12,9 @@
   * ENHANCED: downcase_atom/2 and upcase_atom/2 performance if both
     arguments are instantiated.
 
+  * FIXED: symbol typo when compiling for threading on systems that do 
+    not support recursive mutexes.
+
   * FIXED: Bug #7: Protocol of typed input in (Windows).  Tolga Konik.
 
   * ADDED: assume/1 (library(debug)) to call expand_goal/2 on arguments.
