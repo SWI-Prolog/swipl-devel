@@ -914,7 +914,7 @@ RotateXImage(Display *dsp, XImage *oimage, float angle, Pixel bg)
 
 
 Image
-ws_rotate_image(Image image, int angle)	/* 0<angle<360 */
+ws_rotate_image(Image image, float angle)	/* 0.0<angle<360.0 */
 { XImage *i;
   DisplayObj d = image->display;
   DisplayWsXref r;
@@ -945,7 +945,7 @@ ws_rotate_image(Image image, int angle)	/* 0<angle<360 */
     } else
       bg = 0L;
 
-    ic   = RotateXImage(r->display_xref, i, ((float)angle * M_PI)/180.0, bg);
+    ic   = RotateXImage(r->display_xref, i, (angle * M_PI)/180.0, bg);
     copy = answerObject(ClassImage, NIL,
 			toInt(ic->width), toInt(ic->height),
 			image->kind, EAV);

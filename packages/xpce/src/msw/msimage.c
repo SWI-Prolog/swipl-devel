@@ -1305,11 +1305,11 @@ copy_bits(HDC dst, int dx0, int dy0, int dx1, int dy1,
 #define falmost(f1, f2) (fabs((f1)-(f2)) < 0.001)
 
 Image
-ws_rotate_image(Image image, int a)	/* 0<angle<360 */
+ws_rotate_image(Image image, float a)	/* 0.0<angle<360.0 */
 { int ow = valInt(image->size->w);
   int oh = valInt(image->size->h);
   int w, h;
-  float angle = ((float)a * M_PI)/180.0;
+  float angle = (a * M_PI)/180.0;
   float sina, cosa;
   int rot90;				/* rotation by 0,90,180,270 */
   Image copy;				/* rotated image */

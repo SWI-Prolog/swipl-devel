@@ -772,14 +772,14 @@ getScaleImage(Image image, Size size)
 
 
 static Image
-getRotateImage(Image image, Int degrees)
-{ int a = valInt(degrees);
+getRotateImage(Image image, Real degrees)
+{ float a = (float)valReal(degrees);
   Image rimg;
 
-  a %= 360;
-  if ( a < 0 )				/* normalise 0<=a<360 */
-    a += 360;
-  else if ( a == 0 )				/* just copy */
+  a -= (float)(((int)a / 360)*360);
+  if ( a < 0.0 )				/* normalise 0<=a<360 */
+    a += 360.0;
+  else if ( a == 0.0 )				/* just copy */
     answer(getClipImage(image, DEFAULT));
 
   rimg = ws_rotate_image(image, a);
@@ -789,17 +789,17 @@ getRotateImage(Image image, Int degrees)
     { int hx = valInt(image->hot_spot->x);
       int hy = valInt(image->hot_spot->y);
       int nhx, nhy;
-      double rads = ((double)a * M_PI) / 180.0;
+      double rads = (a * M_PI) / 180.0;
   
       nhx = rfloat((double)hx * cos(rads) + (double)hy * sin(rads));
       nhy = rfloat((double)hy * cos(rads) - (double)hx * sin(rads));
       
-      if ( a <= 90 )
+      if ( a <= 90.0 )
       { nhy += rfloat(sin(rads) * (double)valInt(image->size->w));
-      } else if ( a <= 180 )
+      } else if ( a <= 180.0 )
       { nhx -= rfloat(cos(rads) * (double)valInt(image->size->w));
 	nhy += valInt(rimg->size->h);
-      } else if ( a <= 270 )
+      } else if ( a <= 270.0 )
       { nhx += valInt(rimg->size->w);
 	nhy -= rfloat(cos(rads) * (double)valInt(image->size->h));
       } else
@@ -1101,7 +1101,7 @@ static getdecl get_image[] =
      NAME_copy, "Get monochrome version of pixmap image"),
   GM(NAME_scale, 1, "image", "size", getScaleImage,
      NAME_copy, "Get copy with different dimensions"),
-  GM(NAME_rotate, 1, "image", "degrees=int", getRotateImage,
+  GM(NAME_rotate, 1, "image", "degrees=real", getRotateImage,
      NAME_copy, "Get anti-clockwise rotated copy"),
   GM(NAME_lookup, 1, "image", "name|resource", getLookupImage,
      NAME_oms, "Lookup in @images table"),

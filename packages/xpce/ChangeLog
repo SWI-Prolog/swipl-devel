@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: `image<-rotate' now accepts a real rather then an integer.
+
 * FIXED: Completion (TAB) in file_item (library(pce_file_item)).
 
 * FIXED: `graphical->draw_image': correctly handle non-rectangular images.

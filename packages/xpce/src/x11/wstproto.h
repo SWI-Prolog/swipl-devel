@@ -187,7 +187,7 @@ status		ws_open_image(Image image, DisplayObj d);
 void		ws_close_image(Image image, DisplayObj d);
 status		ws_resize_image(Image image, Int w, Int h);
 Image		ws_scale_image(Image image, int w, int h);
-Image		ws_rotate_image(Image image, int angle);
+Image		ws_rotate_image(Image image, float angle);
 Image		ws_monochrome_image(Image image);
 void		ws_postscript_image(Image image, Int depth);
 status		loadXliImage(Image image, FileObj file, Int bright);
