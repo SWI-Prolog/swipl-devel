@@ -283,23 +283,23 @@ resource file, taking care of the offset and length of the resource.
 This predicate is defined as a dynamic predicate in the module
 \const{user}. Clauses for it may be defined in any module, including the
 user module. \arg{Name} is the name of the resource (an atom). A
-resource name may contain all characters, except for \$ and :, which are
+resource name may contain any character, except for \$ and :, which are
 reserved for internal usage by the resource library. \arg{Class}
-describes the what kind of object we are dealing with. In the current
-implementation, it is just an atom. \arg{FileSpec} is a file
+describes the what kind of object is stored in the resource. In the
+current implementation, it is just an atom. \arg{FileSpec} is a file
 specification that may exploit file_search_path/2 (see
 absolute_file_name/2).
 
 Normally, resources are defined as unit clauses (facts), but the
-definition of this predicate can also imply rules. For proper generation
-of the saved state generation, it must be possible to enumerate the
+definition of this predicate also allows for rules. For proper
+generation of the saved state, it must be possible to enumerate the
 available resources by calling this predicate with all its arguments
 unbound.
 
-Dynamic rules can be useful to turn all files in a certain directory
+Dynamic rules are useful to turn all files in a certain directory
 into resources, without specifying a resources for each file.  For
 example, assume the file_search_path/2 \const{icons} refers to the
-resource directory containing (XPM) icons.  The following definition
+resource directory containing icon-files.  The following definition
 makes all these images available as resources:
 
 \begin{code}
@@ -317,7 +317,7 @@ resource(Name, image, XpmFile) :-
     \predicate{open_resource}{3}{+Name, ?Class, -Stream}
 Opens the resource specified by \arg{Name} and \arg{Class}.  If the
 latter is a variable, it will be unified to the class of the first
-resource found that has tehe specified \arg{Name}.  If successful,
+resource found that has the specified \arg{Name}.  If successful,
 \arg{Stream} becomes a handle to a binary input stream, providing
 access to the content of the resource.
 
