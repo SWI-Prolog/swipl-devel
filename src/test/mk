@@ -11,7 +11,7 @@ if [ x"$1" = "x-segv" ]; then
   shift
 fi
 
-arch="src"
+arch="linux"
 
 if [ ! -d ../../$arch ]; then
    echo "Usage: `basename $0`: architecture"
