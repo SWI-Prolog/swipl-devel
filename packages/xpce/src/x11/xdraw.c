@@ -2532,7 +2532,7 @@ c_width(wint_t c, FontObj font)
 
   XftTextExtents32(context.display, context.gcs->xft_font, s, 1, &info);
 
-  return info.width;
+  return info.xOff;
 }
 
 
