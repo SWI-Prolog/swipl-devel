@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Memory leaking in $write_on_string, used by swritef and sformat.
+    With help from Paul Sephton, who pointed the exact problem in the C-code.
+
 VERSION 3.3.7
 =============
 

@@ -2127,8 +2127,9 @@ pl_sub_string(term_t atom,
 
 word
 pl_write_on_string(term_t goal, term_t target)
-{ int size = 0;
-  char *str = NULL;
+{ char buf[1024];
+  char *str = buf;
+  int size = sizeof(buf);
   IOSTREAM *fd = Sopenmem(&str, &size, "w");
   term_t tmp = PL_new_term_ref();
   int rval;
@@ -2143,6 +2144,8 @@ pl_write_on_string(term_t goal, term_t target)
     PL_put_string_nchars(tmp, size, str);
   }
   Sclose(fd);
+  if ( str != buf )
+    free(str);
   popOutputContext();
 
   if ( rval )

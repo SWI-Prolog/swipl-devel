@@ -1725,6 +1725,23 @@ Sopenmem(char **buffer, int *size, const char* mode)
     Open an memory area as a stream.  Output streams will automatically
     resized using realloc() if *size = 0 or the stream is opened with mode
     "wa".
+
+    If the buffer is allocated or enlarged, this is achieved using malloc()
+    or realloc().  In this case the returned buffer should be freed by the
+    caller when done.  Example:
+
+    { char buf[1024];			(don't allocate for small stuff)
+      char *s = buf;
+      IOSTREAM *fd;
+      int size = sizeof(buf);
+
+      fd = Sopenmem(&s, &size, "w");
+      ...
+      Sclose(fd);
+      ...
+      if ( s != buf )			(appearently moved)
+	free(s);
+    }
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 IOSTREAM *
