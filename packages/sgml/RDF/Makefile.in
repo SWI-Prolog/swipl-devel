@@ -6,6 +6,8 @@
 
 .SUFFIXES: .tex .dvi .doc .pl
 
+SHELL=/bin/bash
+
 PL=@PL@
 PLBASE=@PLBASE@
 PCEHOME=/staff/jan/src/xpce
@@ -50,16 +52,19 @@ cgi-install:	$(CGIDIR)/$(CGISCRIPT) \
 		Online-requests \
 		$(WEBPAGE)
 
+cgi-uninstall:
+		rm -f $(CGIDIR)/$(CGISCRIPT) $(WEBPAGE)
+
 Online-requests:
 		mkdir $@
 		chmod 775 $@
 		chgrp $(CGIGRP) $@
 
 $(WEBPAGE):	online.html
-		sed 's!@ACTION@!$(CGIURL)/$(CGISCRIPT)!' online.html > $@
+		sed 's%@ACTION@%$(CGIURL)/$(CGISCRIPT)%' online.html > $@
 
 $(CGIDIR)/$(CGISCRIPT): rdf-parser
-		sed "s!@BASEDIR@!`pwd`!" rdf-parser > $@
+		sed "s%@BASEDIR@%`pwd`%" rdf-parser > $@
 		chmod 755 $@
 
 ################################################################
