@@ -227,7 +227,7 @@ is_signalled()
 
 #else
 
-#define is_signalled() (signalled != 0)
+#define is_signalled() (LD->pending_signals != 0)
 
 #endif
 

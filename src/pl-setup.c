@@ -53,7 +53,7 @@ setupProlog(void)
 
   GD->critical = 0;
   LD->aborted = FALSE;
-  signalled = 0;
+  LD->pending_signals = 0;
 
   startCritical;
   initCharTypes();
@@ -458,7 +458,7 @@ initSignals(void)
 void
 resetSignals()
 { LD->current_signal = 0;
-  signalled = 0L;
+  LD->pending_signals = 0L;
 }
 
 
@@ -539,13 +539,13 @@ PL_signal(int sig, handler_t func)
 
 void
 PL_handle_signals()
-{ while(!GD->critical && signalled)
+{ while(!GD->critical && LD->pending_signals)
   { ulong mask = 1L;
     int sig = 1;
 
     for( ; mask ; mask <<= 1, sig++ )
-    { if ( signalled & mask )
-      { signalled &= ~mask;		/* reset the signal */
+    { if ( LD->pending_signals & mask )
+      { LD->pending_signals &= ~mask;	/* reset the signal */
 
 #ifdef O_PLMT
         if ( sig == SIG_THREAD_SIGNAL )

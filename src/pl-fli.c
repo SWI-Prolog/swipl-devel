@@ -2365,7 +2365,7 @@ void
 PL_raise(int sig)
 { GET_LD
   if ( sig > 0 && sig <= MAXSIGNAL )
-    signalled |= (1L << (sig-1));
+    LD->pending_signals |= (1L << (sig-1));
 }
 
 

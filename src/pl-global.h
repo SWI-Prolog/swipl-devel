@@ -378,7 +378,6 @@ GLOBAL PL_local_data_t  PL_local_data;
 #define source_file_name	(LD->read_source.file)
 #define source_line_no		(LD->read_source.line)
 #define source_char_no		(LD->read_source.character)
-#define signalled		(LD->pending_signals)
 #define exception_term		(LD->exception.term)
 #define exception_bin		(LD->exception.bin)
 #define exception_printed	(LD->exception.printed)

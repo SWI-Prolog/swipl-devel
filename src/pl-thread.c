@@ -1203,25 +1203,19 @@ PL_thread_destroy_engine()
 		 *******************************/
 
 #include <signal.h>
+#include <semaphore.h>
 
 #ifndef SA_RESTART
 #define SA_RESTART 0
 #endif
 
-static pthread_cond_t  marked_cond     = PTHREAD_COND_INITIALIZER;
-static pthread_mutex_t marked_mutex    = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t signalled_mutex = PTHREAD_MUTEX_INITIALIZER;
-static int signalled_threads;
+static sem_t sem_mark;
 
 static void
 threadMarkAtoms(int sig)
 { markAtomsOnStacks(LD);
 
-  pthread_mutex_lock(&signalled_mutex);
-  signalled_threads--;
-  pthread_mutex_unlock(&signalled_mutex);
-
-  pthread_cond_signal(&marked_cond);
+  sem_post(&sem_mark);
 }
 
 
@@ -1233,10 +1227,10 @@ threadMarkAtomsOtherThreads()
   struct sigaction old;
   struct sigaction new;
   int me = PL_thread_self();
-  int sent = 0;
+  int signalled = 0;
 
   LOCK();				/* don't make new threads */
-  assert(signalled_threads == 0);
+  sem_init(&sem_mark, 0, 0);
   memset(&new, 0, sizeof(new));
   new.sa_handler = threadMarkAtoms;
   new.sa_flags   = SA_RESTART;
@@ -1246,23 +1240,19 @@ threadMarkAtomsOtherThreads()
   { if ( threads[i].thread_data && i != me )
     { DEBUG(1, Sdprintf("Signalling %d\n", i));
       if ( pthread_kill(threads[i].tid, SIG_MARKATOMS) == 0 )
-      { pthread_mutex_lock(&signalled_mutex);
-	signalled_threads++;
-	pthread_mutex_unlock(&signalled_mutex);
-	sent++;
+      { signalled++;
       } else if ( errno != ESRCH )
 	Sdprintf("Failed to signal: %s\n", OsError());
     }
   }
 
-  DEBUG(1, Sdprintf("Signalled %d threads.  Waiting for %d ... ",
-		    sent, signalled_threads));
+  DEBUG(1, Sdprintf("Signalled %d threads.  Waiting ... ", signalled));
 
-  while(signalled_threads)
-  { pthread_mutex_lock(&marked_mutex);
-    pthread_cond_wait(&marked_cond, &marked_mutex);
-    pthread_mutex_unlock(&marked_mutex);
+  while(signalled)
+  { sem_wait(&sem_mark);
+    signalled--;
   }
+  sem_destroy(&sem_mark);
 
   DEBUG(1, Sdprintf("done!\n"));
 
