@@ -355,13 +355,15 @@ link_to(AV, Dest:'name|int') :->
 
 make_isp_attribute_value_sheet_handler(H) :-
 	new(H, handler_group(popup_gesture(new(P, popup)),
+			     click_gesture(left, '', single,
+					   message(@receiver, expose)),
 			     new(move_outline_gesture))),
 	new(IsObjectSheet, message(@arg1, instance_of, isp_object_sheet)),
 	new(Obj, @arg1?object),
 	send_list(P, append,
-		  [ menu_item(expose,
+		  [ menu_item(send_to_foreground,
 			      message(@arg1, expose)),
-		    menu_item(hide,
+		    menu_item(send_to_background,
 			      message(@arg1, hide)),
 		    menu_item(quit,
 			      message(@arg1, quit), end_group := @on),

@@ -1,6 +1,14 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Inpector Tool: possible crash on ->clear.
+
+* ADDED: Inpector Tool: `find_references' option to display the cards
+  of objects pointing at me.
+
+* FIXED: pcerefer/1 error message.  Added printing number of found
+  references.
+
 VERSION 5.1.7
 =============
 
@@ -11,7 +19,7 @@ VERSION 5.1.7
 
 * ADDED: X11 Client-side DragAndDrop supporting `window->drop_files'
   compatible to the MS-Windows version based on the XDND protocol.
-  Tested with xftree as server.
+  Tested with xftree (part of XFCE desktop environment) as server.
 
 * FIXED: get(@finder, file, @off, ...) not to return the obtainer.
   (Anjo Anjewierden).
