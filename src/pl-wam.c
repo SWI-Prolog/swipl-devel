@@ -1447,6 +1447,35 @@ isCatchedInOuterQuery(QueryFrame qf, Word catcher)
 
   fail;
 }
+
+
+static inline int
+slotsInFrame(LocalFrame fr, Code PC)
+{ Definition def = fr->predicate;
+
+  if ( !PC || true(def, FOREIGN) || !fr->clause )
+    return def->functor->arity;
+
+  return fr->clause->clause->prolog_vars;
+}
+
+
+static void
+updateMovedTerm(LocalFrame fr, word old, word new)
+{ Code pc = NULL;
+
+  for(; fr; fr=fr->parent)
+  { int slots = slotsInFrame(fr, pc);
+    Word p = argFrameP(fr, 0);
+    
+    for(; slots-- > 0; p++)
+    { if ( *p == old )
+	*p = new;
+    }
+  }
+}
+
+
 #endif /*O_DEBUGGER*/
 
 
@@ -2770,6 +2799,12 @@ throw/3 is not found, it sets  the   query  exception  field and returns
 failure. Otherwise, it will simulate an I_USERCALL0 instruction: it sets
 the FR and lTop as it it  was   running  the  throw/3 predicate. Then it
 pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
+
+NOTE (**): At the moment  this   code  uses  undo_while_saving_term() to
+unwind while preserving the ball. This  call   may  move the ball in the
+current implementation but there may be   references  from the old ball.
+What exactly are the conditions and how   can we avoid trouble here? For
+the moment the code marked (**) handles this not very elegant
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     VMI(B_THROW) MARK(B_THROW);
       { Word catcher;
@@ -2821,6 +2856,7 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 
 	    if ( ch )
 	    { int printed = (*valTermRef(exception_printed) == except);
+	      word old = except;
 
 					/* needed to avoid destruction */
 					/* in the undo */
@@ -2831,7 +2867,11 @@ pushes the recovery goal from throw/3 and jumps to I_USERCALL0.
 	      if ( printed )
 		*valTermRef(exception_printed) = except;
 
+	      if ( old != except )
+		updateMovedTerm(FR, old, except);  /* (**) See above */
+
 	      environment_frame = FR;
+	      SECURE(checkStacks(FR, ch));
 	      switch(tracePort(FR, ch, EXCEPTION_PORT, PC))
 	      { case ACTION_RETRY:
 		  *valTermRef(exception_printed) = 0;

@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: bug in debugger crashing on an exception.
+
 VERSION 5.2.7 (Aug 29, 2003)
 ============================
 

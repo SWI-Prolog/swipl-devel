@@ -541,6 +541,12 @@ get_xy_event_graphical(EventObj ev, Graphical gr, int *rx, int *ry)
 }
 
 
+static void
+get_xy_event_node(EventObj ev, Node node, int *rx, int *ry)
+{ return get_xy_event_graphical(ev, node->image, rx, ry);
+}
+
+
 status
 get_xy_event(EventObj ev, Any obj, Bool area, Int *rx, Int *ry)
 { int x = 0, y = 0;
@@ -559,6 +565,8 @@ get_xy_event(EventObj ev, Any obj, Bool area, Int *rx, Int *ry)
     get_xy_event_device(ev, obj, &x, &y);
   else if ( instanceOfObject(obj, ClassGraphical) )
     get_xy_event_graphical(ev, obj, &x, &y);
+  else if ( instanceOfObject(obj, ClassNode) )
+    get_xy_event_node(ev, obj, &x, &y);
   else
   { *rx = ev->x;
     *ry = ev->y;

@@ -46,7 +46,7 @@ drop that will take place when the button is released here.
 :- pce_begin_class(drag_and_drop_gesture, gesture,
 		   "Drag and drop command-gesture").
 
-variable(target,	graphical*,	get,  "Drop target").
+variable(target,	visual*,	get,  "Drop target").
 variable(warp,		bool,		both, "Pointer in center?").
 variable(offset,	point,		get,  "Offset X-y <->caret pointer").
 variable(get_source,	function*,	both, "Function to map the source").
@@ -170,27 +170,35 @@ move_target(G, Ev:event) :->
 target(G, Source:any, Ev:event*, Gr:graphical*) :->
 	"Make the given object the target"::
 	(   Gr == @nil
+	->  Target = Gr
 	;   get(Gr, is_displayed, @on),
-	    send(Gr, has_send_method, drop)
+	    container_with_send_method(Gr, drop, Target)
+	->  true
 	),
 	ignore((get(G, target, Old),
 		send(Old, has_send_method, preview_drop),
 		send(Old, preview_drop, @nil))),
-	(   get(Gr, send_method, preview_drop, tuple(_, Method)),
+	(   get(Target, send_method, preview_drop, tuple(_, Method)),
 	    get(Method, argument_type, 1, Type),
 	    get(Type, check, Source, Src)
 	->  (   get(Method, argument_type, 2, PosType),
 	        send(PosType, validate, @dd_dummy_point)
-	    ->	get(Ev, position, Gr, Pos),
+	    ->	get(Ev, position, Target, Pos),
 		get(Pos, copy, P2),
 		send(P2, minus, G?offset),
-		send(Gr, preview_drop, Src, P2)
-	    ;	send(Gr, preview_drop, Src)
+		send(Target, preview_drop, Src, P2)
+	    ;	send(Target, preview_drop, Src)
 	    )
 	;   true
 	),
-	send(G, slot, target, Gr).
+	send(G, slot, target, Target).
 		
+container_with_send_method(Obj, Method, Obj) :-
+	send(Obj, has_send_method, Method).
+container_with_send_method(Obj, Method, Container) :-
+	get(Obj, contained_in, C0),
+	container_with_send_method(C0, Method, Container).
+
 
 terminate(G, Ev:event) :->
 	"->drop to <-target"::
