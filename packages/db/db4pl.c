@@ -7,6 +7,7 @@
     Copyright (C) 2000 University of Amsterdam. All rights reserved.
 */
 
+#include <SWI-Stream.h>
 #include "db4pl.h"
 #include <sys/types.h>
 #include <limits.h>
@@ -30,6 +31,10 @@ static atom_t ATOM_mp_mmapsize;
 static atom_t ATOM_mp_size;
 static atom_t ATOM_home;
 static atom_t ATOM_config;
+static atom_t ATOM_locking;
+static atom_t ATOM_logging;
+static atom_t ATOM_transactions;
+static atom_t ATOM_create;
 
 static functor_t FUNCTOR_db1;
 static functor_t FUNCTOR_type1;
@@ -41,22 +46,26 @@ DB_ENV db_env;				/* default environment */
 static void
 initConstants()
 {
-  ATOM_read	  = PL_new_atom("read");
-  ATOM_update	  = PL_new_atom("update");
-  ATOM_true	  = PL_new_atom("true");
-  ATOM_false	  = PL_new_atom("false");
-  ATOM_btree	  = PL_new_atom("btree");
-  ATOM_hash	  = PL_new_atom("hash");
-  ATOM_recno	  = PL_new_atom("recno");
-  ATOM_unknown	  = PL_new_atom("unknown");
-  ATOM_duplicates = PL_new_atom("duplicates");
-  ATOM_mp_size    = PL_new_atom("mp_size");
-  ATOM_mp_mmapsize= PL_new_atom("mp_mmapsize");
-  ATOM_home	  = PL_new_atom("home");
-  ATOM_config	  = PL_new_atom("config");
+  ATOM_read	    = PL_new_atom("read");
+  ATOM_update	    = PL_new_atom("update");
+  ATOM_true	    = PL_new_atom("true");
+  ATOM_false	    = PL_new_atom("false");
+  ATOM_btree	    = PL_new_atom("btree");
+  ATOM_hash	    = PL_new_atom("hash");
+  ATOM_recno	    = PL_new_atom("recno");
+  ATOM_unknown	    = PL_new_atom("unknown");
+  ATOM_duplicates   = PL_new_atom("duplicates");
+  ATOM_mp_size	    = PL_new_atom("mp_size");
+  ATOM_mp_mmapsize  = PL_new_atom("mp_mmapsize");
+  ATOM_home	    = PL_new_atom("home");
+  ATOM_config	    = PL_new_atom("config");
+  ATOM_locking	    = PL_new_atom("locking");
+  ATOM_logging	    = PL_new_atom("logging");
+  ATOM_transactions = PL_new_atom("transactions");
+  ATOM_create       = PL_new_atom("create");
 
-  FUNCTOR_db1	  = mkfunctor("$db", 1);
-  FUNCTOR_type1	  = mkfunctor("type", 1);
+  FUNCTOR_db1	    = mkfunctor("$db", 1);
+  FUNCTOR_type1	    = mkfunctor("type", 1);
 }
 
 
@@ -173,7 +182,7 @@ db_status(int rval)
   if ( rval < 0 )
     return FALSE;			/* normal failure */
 
-  return pl_error(ERR_ERRNO, rval);	/* system error */
+  return pl_error(ERR_ERRNO, rval, "?"); /* system error */
 }
 
 
@@ -306,6 +315,115 @@ pl_db_close(term_t handle)
   return FALSE;
 }
 
+		 /*******************************
+		 *	   TRANSACTIONS		*
+		 *******************************/
+
+typedef struct _transaction
+{ DB_TXN *tid;				/* transaction id */
+  struct _transaction *parent;		/* parent id */
+} transaction;
+
+static transaction *transaction_stack;
+
+static int
+begin_transaction()
+{ if ( db_env.tx_info )
+  { int rval;
+    DB_TXN *pid, *tid;
+    transaction *t;
+
+    if ( transaction_stack )
+      pid = transaction_stack->tid;
+    else
+      pid = NULL;
+
+    if ( (rval=txn_begin(db_env.tx_info, pid, &tid)) )
+      return db_status(rval);
+
+    t = malloc(sizeof(*t));
+    t->parent = transaction_stack;
+    t->tid = tid;
+    transaction_stack = t;
+
+    return TRUE;
+  }
+
+  return pl_error(ERR_PACKAGE_INT, "db", 0,
+		  "Not initialized for transactions");
+}
+
+
+static int
+commit_transaction()
+{ transaction *t;
+
+  if ( (t=transaction_stack) )
+  { DB_TXN *tid = t->tid;
+    int rval;
+    
+    transaction_stack = t->parent;
+    free(t);
+
+    if ( (rval=txn_commit(tid)) )
+      return db_status(rval);
+  }
+
+  return pl_error(ERR_PACKAGE_INT, "db", 0, "No transactions");
+}
+
+
+static int
+abort_transaction()
+{ transaction *t;
+
+  if ( (t=transaction_stack) )
+  { DB_TXN *tid = t->tid;
+    int rval;
+    
+    transaction_stack = t->parent;
+    free(t);
+
+    if ( (rval=txn_abort(tid)) )
+      return db_status(rval);
+  }
+
+  return pl_error(ERR_PACKAGE_INT, "db", 0, "No transactions");
+}
+
+
+static DB_TXN *
+current_transaction()
+{ if ( transaction_stack )
+    return transaction_stack->tid;
+
+  return NULL;
+}
+
+
+static foreign_t
+pl_db_transaction(term_t goal)
+{ static predicate_t call1;
+
+  if ( !call1 )
+    call1 = PL_predicate("call", 1, "user");
+  
+  if ( !begin_transaction() )
+    return FALSE;
+
+  if ( PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, call1, goal) )
+    return commit_transaction();
+
+  if ( !abort_transaction() )
+    return FALSE;
+
+  return FALSE;
+}
+
+
+		 /*******************************
+		 *	     DB ACCESS		*
+		 *******************************/
 
 static foreign_t
 pl_db_put(term_t handle, term_t key, term_t value)
@@ -320,7 +438,7 @@ pl_db_put(term_t handle, term_t key, term_t value)
   get_dbt(key, &k);
   get_dbt(value, &v);
 
-  rval = db_status(db->db->put(db->db, NULL, &k, &v, flags));
+  rval = db_status(db->db->put(db->db, current_transaction(), &k, &v, flags));
   free_dbt(&k);
   free_dbt(&v);
 
@@ -340,7 +458,7 @@ pl_db_del2(term_t handle, term_t key)
 
   get_dbt(key, &k);
 
-  rval = db_status(db->db->del(db->db, NULL, &k, flags));
+  rval = db_status(db->db->del(db->db, current_transaction(), &k, flags));
   free_dbt(&k);
 
   return rval;
@@ -377,7 +495,7 @@ pl_db_getall(term_t handle, term_t key, term_t value)
     term_t tail = PL_copy_term_ref(value);
     term_t head = PL_new_term_ref();
 
-    if ( (rval = db->db->cursor(db->db, NULL, &cursor)) != 0 )
+    if ( (rval = db->db->cursor(db->db, current_transaction(), &cursor)) != 0 )
       return db_status(rval);
 
     if ( (rval=cursor->c_get(cursor, &k, &v, DB_SET)) == 0 )
@@ -415,7 +533,7 @@ pl_db_getall(term_t handle, term_t key, term_t value)
       return db_status(rval);
     }
   } else
-  { if ( (rval=db->db->get(db->db, NULL, &k, &v, 0)) == 0 )
+  { if ( (rval=db->db->get(db->db, current_transaction(), &k, &v, 0)) == 0 )
     { term_t t = PL_new_term_ref();
       term_t tail = PL_copy_term_ref(value);
       term_t head = PL_new_term_ref();
@@ -592,11 +710,22 @@ cleanup()
 }
 
 
+		 /*******************************
+		 *	     APPINIT		*
+		 *******************************/
+
+static void
+pl_db_error(const char *prefix, char *buffer)
+{ Sdprintf("%s%s\n", prefix, buffer);
+}
+
+
 #define MAXCONFIG 20
 
 static foreign_t
-pl_db_init(term_t options)
+pl_db_init(term_t option_list)
 { int rval;
+  term_t options = PL_copy_term_ref(option_list);
   u_int32_t flags = 0;
   term_t head = PL_new_term_ref();
   term_t a    = PL_new_term_ref();
@@ -608,6 +737,9 @@ pl_db_init(term_t options)
     return pl_error(ERR_PACKAGE_INT, "db", 0, "Already initialized");
 
   config[0] = NULL;
+
+  db_env.db_errpfx = "db4pl: ";
+  db_env.db_errcall = pl_db_error;
 
   while(PL_get_list(options, head, options))
   { atom_t name;
@@ -633,6 +765,34 @@ pl_db_init(term_t options)
       } else if ( name == ATOM_home )	/* db_home */
       {	if ( !get_chars_ex(a, &home) )
 	  return FALSE;
+      } else if ( name == ATOM_locking ) /* locking */
+      {	int v;
+
+	if ( !get_bool_ex(a, &v) )
+	  return FALSE;
+	if ( v )
+	  flags |= DB_INIT_LOCK;
+      } else if ( name == ATOM_logging ) /* logging */
+      {	int v;
+
+	if ( !get_bool_ex(a, &v) )
+	  return FALSE;
+	if ( v )
+	  flags |= DB_INIT_LOG;
+      } else if ( name == ATOM_transactions )	/* transactions */
+      {	int v;
+
+	if ( !get_bool_ex(a, &v) )
+	  return FALSE;
+	if ( v )
+	  flags |= DB_INIT_TXN;
+      } else if ( name == ATOM_create )	/* Create files */
+      {	int v;
+
+	if ( !get_bool_ex(a, &v) )
+	  return FALSE;
+	if ( v )
+	  flags |= DB_CREATE;
       } else if ( name == ATOM_config )	/* db_config */
       { term_t h = PL_new_term_ref();
 	term_t a2 = PL_new_term_ref();
@@ -667,7 +827,7 @@ pl_db_init(term_t options)
     return pl_error(ERR_TYPE, "list", options);
 
   if ( (rval=db_appinit(home, config, &db_env, flags)) != 0 )
-    db_status(rval);
+    return db_status(rval);
 
   app_initted = TRUE;
   atexit(cleanup);
@@ -717,6 +877,8 @@ install()
   PL_register_foreign("db_getall", 3, pl_db_getall, 0);
   PL_register_foreign("db_get",    3, pl_db_get,    PL_FA_NONDETERMINISTIC);
   PL_register_foreign("db_init",   1, pl_db_init,   0);
+  PL_register_foreign("db_transaction", 1, pl_db_transaction,
+						    PL_FA_TRANSPARENT);
 
   PL_register_foreign("db_atom",  3, pl_db_atom,  0);
 }

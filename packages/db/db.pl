@@ -17,6 +17,7 @@
 	    db_get/3,			% +DB, +Key, -Value
 	    db_getall/3,		% +DB, +Key, -ValueList
 	    db_init/1,			% +Options
+	    db_transaction/1,		% :Goal
 	    db_atom/3			% +DB, ?Atom, ?Id
 	  ]).
 :- load_foreign_library(db4pl).
