@@ -1,0 +1,380 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+
+<HTML>
+<HEAD>
+<TITLE>SWI-Prolog RDF parser</TITLE>
+</HEAD>
+<BODY BGCOLOR="white">
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<BLOCKQUOTE>
+<CENTER>
+
+<H1>SWI-Prolog RDF parser</H1>
+
+</CENTER>
+<HR>
+<CENTER>
+<I>Jan Wielemaker <BR>
+SWI, <BR>
+University of Amsterdam <BR>
+The Netherlands <BR>
+E-mail: <A HREF="mailto:jan@swi.psy.uva.nl">jan@swi.psy.uva.nl</A></I>
+</CENTER>
+<HR>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+<CENTER><H3>Abstract</H3></Center>
+<TABLE WIDTH="90%" ALIGN=center BORDER=2 BGCOLOR="#f0f0f0"><TR><TD>
+RDF (<B>R</B>esource <B>D</B>escription <B>F</B>ormat) is a W3C standard 
+for expressing meta-data about web-resources. It has three 
+representations providing the same semantics. RDF documents are normally 
+transferred as XML documents using the RDF-XML syntax. This format is 
+very unsuitable for processing. The parser defined here converts an 
+RDF-XML document into the triple notation.
+</TABLE>
+
+<H1><A NAME="document-contents">Table of Contents</A></H1>
+
+<UL>
+<LI><A HREF="#sec:1"><B>1 Introduction</B></A>
+<LI><A HREF="#sec:2"><B>2 Parsing RDF in Prolog</B></A>
+<LI><A HREF="#sec:3"><B>3 Predicates</B></A>
+<LI><A HREF="#sec:4"><B>4 Name spaces</B></A>
+<UL>
+<LI><A HREF="#sec:4.1">4.1 Low-level access</A>
+</UL>
+<LI><A HREF="#sec:5"><B>5 Testing the RDF translator</B></A>
+<LI><A HREF="#sec:6"><B>6 Metrics</B></A>
+<LI><A HREF="#sec:7"><B>7 Installation</B></A>
+<UL>
+<LI><A HREF="#sec:7.1">7.1 Unix systems</A>
+<LI><A HREF="#sec:7.2">7.2 Windows</A>
+</UL>
+</UL>
+
+<P>
+
+<H2><A NAME="sec:1">1 Introduction</A></H2>
+
+<P>RDF is a promising standard for representing meta-data about 
+documents on the web as well as exchanging ontologies. RDF is often 
+associated with `semantics on the web'. It consists of a formal 
+data-model defined in terms of <EM>triples</EM>. In addition, a <EM>graph</EM> 
+model is defined for visualisation and an XML application is defined for 
+exchange.
+
+<P>`Semantics on the web' is often associated with the Prolog 
+programming language. It is assumed that Prolog is a suitable vehicle to 
+reason with the data expressed in RDF models. Most of the related 
+web-infra structure (e.g. XML parsers, DOM implementations) are defined 
+in Java, Perl, C or C++.
+
+<P>Various routes are available to the Prolog user. Low-level XML 
+parsing is due to its nature best done in C or C++. These languages 
+produce fast code. As XML/SGML are the basis of most of the other 
+web-related formats we will benefit most here. XML and SGML being very 
+stable specifications make this even more attractive.
+
+<P>But what about RDF? RDF-XML is defined in XML, and provided with a 
+Prolog term representing the XML document processing it according to the 
+RDF syntax is quick and easy in Prolog. The alternative, getting yet 
+another library and language attached to the system, is getting less 
+attractive.
+
+<H2><A NAME="sec:2">2 Parsing RDF in Prolog</A></H2>
+
+<P>To demonstrate this, we realised an RDF compiler in Prolog on top of 
+the sgml2pl package (providing a name-space sensitive XML parser). The 
+transformation is realised in two passes.
+
+<P>The first pass rewrites the XML term into a Prolog term conveying the 
+same information in a more friendly manner. This transformation is 
+defined in a high-level pattern matching language defined on top of 
+Prolog with properties similar to DCG (Definite Clause Grammar).
+
+<P>The source of this translation is very close to the BNF notation used 
+by the <A HREF="http://www.w3.org/TR/REC-rdf-syntax/">specification</A>, 
+so correctness is `obvious'. Below is a part of the definition of RDF 
+containers. Note that XML elements are represented using a term of the 
+format:
+<BLOCKQUOTE>
+<CODE>element(Name, [AttrName = Value...], [Content ...])</CODE>
+</BLOCKQUOTE>
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+memberElt(LI) ::=
+        \referencedItem(LI).
+memberElt(LI) ::=
+        \inlineItem(LI).
+
+referencedItem(LI) ::=
+        element(\rdf(li),
+                [ \resourceAttr(LI) ],
+                []).
+
+inlineItem(literal(LI)) ::=
+        element(\rdf(li),
+                [ \parseLiteral ],
+                LI).
+inlineItem(description(description, _, _, Properties)) ::=
+        element(\rdf(li),
+                [ \parseResource ],
+                \propertyElts(Properties)).
+inlineItem(LI) ::=
+        element(\rdf(li),
+                [],
+                [\rdf_object(LI)]), !.  % inlined object
+inlineItem(literal(LI)) ::=
+        element(\rdf(li),
+                [],
+                [LI]).                  % string value
+</PRE>
+</TABLE>
+
+<P>Expression in the rule that are prefixed by the <CODE>\</CODE> 
+operator acts as invocation of another rule-set. The body-term is 
+converted into a term where all rule-references are replaced by 
+variables. The resulting term is matched and translation of the 
+arguments is achieved by calling the appropriate rule. Below is the 
+Prolog code for the
+<B>referencedItem</B> rule:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+referencedItem(A, element(B, [C], [])) :-
+        rdf(li, B),
+        resourceAttr(A, C).
+</PRE>
+</TABLE>
+
+<P>Additional code can be added using a notation close to the Prolog DCG 
+notation. Here is the rule for a description, producing properties both 
+using <B>propAttrs</B> and <B>propertyElts</B>.
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+description(description, About, BagID, Properties) ::=
+        element(\rdf('Description'),
+                \attrs([ \?idAboutAttr(About),
+                         \?bagIdAttr(BagID)
+                       | \propAttrs(PropAttrs)
+                       ]),
+                \propertyElts(PropElts)),
+        { !, append(PropAttrs, PropElts, Properties)
+        }.
+</PRE>
+</TABLE>
+
+<H2><A NAME="sec:3">3 Predicates</A></H2>
+
+<P>The parser is designed to operate on various environments and 
+therefore provides interfaces at various levels. First we describe the 
+top level defined in <CODE>library(rdf)</CODE>, simply parsing a PDF-XML 
+file into a list of triples. Please note these are <EM>not</EM> asserted 
+into the database because it is not necessarily the final format the 
+user wishes to reason with and it is not clean how the user wants to 
+deal with multiple RDF documents. Some options are using global URI's in 
+one pool, in Prolog modules or using an additional argument.
+
+<DL>
+<DT><A NAME="load_rdf/2"><STRONG>load_rdf</STRONG>(<VAR>+File, -Triples</VAR>)</A><DD>
+Same as <CODE>load_rdf(File, Triples,)</CODE>.
+<DT><A NAME="load_rdf/3"><STRONG>load_rdf</STRONG>(<VAR>+File, -Triples, 
++Options</VAR>)</A><DD>
+Read the RDF-XML file <VAR>File</VAR> and return a list of <VAR>Triples</VAR>.
+<VAR>Options</VAR> defines additional processing options. Currently 
+defined options are:
+
+<DL>
+<DT><STRONG>base_uri</STRONG>(<VAR>BaseURI</VAR>)<DD>
+If provided local identifiers and identifier-references are globalised 
+using this URI. If omited or the atom <CODE>[]</CODE>, local identifiers 
+are not tagged.
+</DL>
+
+<P>The <VAR>Triples</VAR> list is a list of <CODE>rdf(Subject, 
+Predicate, Object)</CODE> triples. <VAR>Subject</VAR> is either a plain 
+resource (an atom), or one of the terms <CODE>each(URI)</CODE> or <CODE>prefix(URI)</CODE> 
+with the obvious meaning. <VAR>Predicate</VAR> is either a plain atom 
+for explicitely non-qualified names or a term
+<VAR>NameSpace</VAR><B>:</B><VAR>Name</VAR>. If <VAR>NameSpace</VAR> is 
+the defined RDF name space it is returned as the atom <CODE>rdf</CODE>. 
+Finally, <VAR>Object</VAR> is a URI, a <VAR>Predicate</VAR> or a term of 
+the format <CODE>literal(Value)</CODE> for literal values. <VAR>Value</VAR> 
+is either a plain atom or a parsed XML term (list of atoms and 
+elements).
+</DL>
+
+<H2><A NAME="sec:4">4 Name spaces</A></H2>
+
+<P>XML name spaces are identified using a URI. Unfortunately various 
+URI's are in common use to refer to RDF. The <CODE>rdf_parser.pl</CODE> 
+module therefore defined the namespace as a <A NAME="idx:multifile1:1"></A><B>multifile/1</B> 
+predicate, that can be extended by the user. For example, to parse the <A HREF="http://www.mozilla.org/rdf/doc/inference.html">Netscape 
+OpenDirectory</A>
+<CODE>structure.rdf</CODE> file, the following declarations are used:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+:- multifile
+        rdf_parser:rdf_name_space/1.
+
+rdf_parser:rdf_name_space('http://www.w3.org/TR/RDF/').
+rdf_parser:rdf_name_space('http://directory.mozilla.org/rdf').
+rdf_parser:rdf_name_space('http://dmoz.org/rdf').
+</PRE>
+</TABLE>
+
+<P>The initial definition of this predicate is given below.
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+rdf_name_space('http://www.w3.org/1999/02/22-rdf-syntax-ns#').
+rdf_name_space('http://www.w3.org/TR/REC-rdf-syntax').
+</PRE>
+</TABLE>
+
+<H3><A NAME="sec:4.1">4.1 Low-level access</A></H3>
+
+<P>The above defined <A NAME="idx:loadrdf23:2"></A><A HREF="#load_rdf/2">load_rdf/[2,3]</A> 
+is not always suitable. For example, it cannot deal with documents where 
+the RDF statement is embedded an XML document. It also cannot deal with 
+really big documents (e.g. the Netscape OpenDirectory project), without 
+huge amounts of memory.
+
+<P>For really big documents, the <B>sgml2pl</B> parser can be programmed 
+to handle the content of a specific element (i.e. <TT>&lt;rdf:RDF&gt;</TT>) 
+element-by-element. The parsing primitives defined in this section can 
+be used to process these one-by-one.
+
+<DL>
+<DT><A NAME="xml_to_rdf/3"><STRONG>xml_to_rdf</STRONG>(<VAR>+XML, 
++BaseURI, -Triples</VAR>)</A><DD>
+Process an XML term produced by <A NAME="idx:loadstructure3:3"></A><B>load_structure/3</B> 
+using the
+<CODE>dialect(xmlns)</CODE> output option. <VAR>XML</VAR> is either a 
+complete <TT>&lt;rdf:RDF&gt;</TT> element, a list of RDF-objects 
+(container or description) or a single description of container.
+<DT><A NAME="process_rdf/3"><STRONG>process_rdf</STRONG>(<VAR>+File, 
++BaseURI, :OnTriples</VAR>)</A><DD>
+Exploits the call-back interface of <B>sgml2pl</B>, calling
+<VAR>OnTriples</VAR> with the list of triples resulting from a single 
+top level RDF object for each RDF element in the file. This predicate 
+can be used to process arbitrary large RDF files as the file is 
+processed object-by-object. The example below simply asserts all triples 
+into the database:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+assert_list([]).
+assert_list([H|T]) :-
+        assert(H),
+        assert_list(T).
+
+?- process_rdf('structure,rdf', [], assert_list).
+</PRE>
+</TABLE>
+
+<P>
+</DL>
+
+<H2><A NAME="sec:5">5 Testing the RDF translator</A></H2>
+
+<P>A test-suite and driver program are provided by <CODE>rdf_test.pl</CODE> 
+in the source directory. To run these tests, load this file into Prolog 
+in the distribution directory. The test files are in the directory
+<CODE>suite</CODE> and the proper output in <CODE>suite/ok</CODE>. 
+Predicates provided by <CODE>rdf_test.pl</CODE>:
+
+<DL>
+<DT><A NAME="suite/1"><STRONG>suite</STRONG>(<VAR>+N</VAR>)</A><DD>
+Run test <VAR>N</VAR> using the file <CODE>suite/tN.rdf</CODE> and 
+display the RDF source, the intermediate Prolog representation and the 
+resulting triples.
+<DT><A NAME="passed/1"><STRONG>passed</STRONG>(<VAR>+N</VAR>)</A><DD>
+Process <CODE>suite/tN.rdf</CODE> and store the resulting triples in
+<CODE>suite/ok/tN.pl</CODE> for later validation by <A NAME="idx:test0:4"></A><A HREF="#test/0">test/0</A>.
+<DT><A NAME="test/0"><STRONG>test</STRONG></A><DD>
+Run all tests and classify the result.
+</DL>
+
+<H2><A NAME="sec:6">6 Metrics</A></H2>
+
+<P>It took three days to write and one to document the Prolog RDF 
+parser. A significant part of the time was spent understanding the RDF 
+specification.
+
+<P>The size of the source (including comments) is given in the table 
+below.
+
+<P>
+<CENTER>
+<TABLE BORDER=2 FRAME=box RULES=groups>
+<TR VALIGN=top><TD ALIGN=right><B>lines</B></TD><TD ALIGN=right><B>words</B></TD><TD ALIGN=right><B>bytes</B></TD><TD><B>file</B></TD><TD><B>function </B></TD></TR>
+<TBODY>
+<TR VALIGN=top><TD ALIGN=right>109</TD><TD ALIGN=right>255</TD><TD ALIGN=right>2663</TD><TD>rdf.pl</TD><TD>Driver 
+program </TD></TR>
+<TR VALIGN=top><TD ALIGN=right>312</TD><TD ALIGN=right>649</TD><TD ALIGN=right>6416</TD><TD>rdf_parser.pl</TD><TD>1-st 
+phase parser </TD></TR>
+<TR VALIGN=top><TD ALIGN=right>246</TD><TD ALIGN=right>752</TD><TD ALIGN=right>5852</TD><TD>rdf_triple.pl</TD><TD>2-nd 
+phase parser </TD></TR>
+<TR VALIGN=top><TD ALIGN=right>126</TD><TD ALIGN=right>339</TD><TD ALIGN=right>2596</TD><TD>rewrite.pl</TD><TD>rule-compiler </TD></TR>
+<TBODY>
+<TR VALIGN=top><TD ALIGN=right>793</TD><TD ALIGN=right>1995</TD><TD ALIGN=right>17527</TD><TD>total</TD></TR>
+</TABLE>
+
+</CENTER>
+
+<P>We also compared the performance using an RDF-Schema file generated 
+by
+<A HREF="http://www.smi.stanford.edu/projects/protege/">Protege-2000</A> 
+and interpreted as RDF. This file contains 162 descriptions in 50 
+Kbytes, resulting in 599 triples. Environment: Intel Pentium-II/450 with 
+384 Mbytes memory running SuSE Linux 6.3.
+
+<P>The parser described here requires 0.15 seconds excluding 0.13 
+seconds Prolog startup time to process this file. The <A HREF="http://www.pro-solutions.com/rdfdemo/">Pro 
+Solutions</A> parser (written in Perl) requires 1.5 seconds exluding 
+0.25 seconds startup time.
+
+<H2><A NAME="sec:7">7 Installation</A></H2>
+
+<H3><A NAME="sec:7.1">7.1 Unix systems</A></H3>
+
+<P>Installation on Unix system uses the commonly found <EM>configure</EM>,
+<EM>make</EM> and <EM>make install</EM> sequence. SWI-Prolog should be 
+installed before building this package. If SWI-Prolog is not installed 
+as <B>pl</B>, the environment variable <CODE>PL</CODE> must be set to 
+the name of the SWI-Prolog executable. Installation is now accomplished 
+using:
+
+<P><P><TABLE WIDTH="90%" ALIGN=center BORDER=6 BGCOLOR="#e0e0e0"><TR><TD NOWRAP>
+<PRE>
+
+% ./configure
+% make
+% make install
+</PRE>
+</TABLE>
+
+<P>This installs the Prolog library files in <CODE>$PLBASE/library</CODE>, 
+where
+<CODE>$PLBASE</CODE> refers to the SWI-Prolog `home-directory'.
+
+<H3><A NAME="sec:7.2">7.2 Windows</A></H3>
+
+<P>Copy the files <CODE>rdf.pl</CODE>, <CODE>rdf_parse.pl</CODE>, <CODE>rdf_triple.pl</CODE> 
+and <CODE>rewrite.pl</CODE> to the SWI-Prolog library, start Prolog and 
+run
+<A NAME="idx:make0:5"></A><B>make/0</B> to update the library index.</BODY></HTML>

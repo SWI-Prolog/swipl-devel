@@ -1,0 +1,25 @@
+dnl Process this file with autoconf to produce a configure script.
+
+AC_INIT(install-sh)
+AC_CONFIG_HEADER(config.h)
+
+AC_SUBST(PL)
+AC_SUBST(PLBASE)
+
+plcandidates="pl swipl swi-prolog"
+AC_CHECK_PROGS(PL, $plcandidates, "none")
+if test $PL = "none"; then
+   AC_ERROR("Cannot find SWI-Prolog. SWI-Prolog must be installed first")
+else
+   AC_CHECKING("Running $PL -dump-runtime-variables")
+   eval `$PL -dump-runtime-variables`
+fi
+if test "$PLSHARED" = "yes"; then
+   MAKE_SHARED_OBJECT=yes
+fi
+AC_MSG_RESULT("		PLBASE=$PLBASE")
+
+AC_CHECK_PROGS(MAKE, gmake make, "make")
+AC_PROG_INSTALL
+
+AC_OUTPUT(Makefile)

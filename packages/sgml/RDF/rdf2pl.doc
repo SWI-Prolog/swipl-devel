@@ -1,0 +1,339 @@
+\documentclass[11pt]{article}
+\usepackage{pl}
+\usepackage{html}
+
+\onefile
+\htmloutput{html}				% Output directory
+\htmlmainfile{index}				% Main document file
+\bodycolor{white}				% Page colour
+
+\renewcommand{\runningtitle}{SWI-Prolog RDF parser}
+
+\newcommand{\elem}[1]{{\tt\string<#1\string>}}
+
+\begin{document}
+
+\title{SWI-Prolog RDF parser}
+\author{Jan Wielemaker \\
+	SWI, \\
+	University of Amsterdam \\
+	The Netherlands \\
+	E-mail: \email{jan@swi.psy.uva.nl}}
+
+\maketitle
+
+\begin{abstract}
+RDF ({\bf R}esource {\bf D}escription {\bf F}ormat) is a W3C standard
+for expressing meta-data about web-resources. It has three 
+representations providing the same semantics. RDF documents are
+normally transferred as XML documents using the RDF-XML syntax.  This
+format is very unsuitable for processing.  The parser defined here
+converts an RDF-XML document into the triple notation.
+\end{abstract}
+
+\vfill
+
+\tableofcontents
+
+\vfill
+\vfill
+
+\newpage
+
+\section{Introduction}
+
+RDF is a promising standard for representing meta-data about documents
+on the web as well as exchanging ontologies. RDF is often associated
+with `semantics on the web'. It consists of a formal data-model defined
+in terms of \jargon{triples}. In addition, a \jargon{graph} model is
+defined for visualisation and an XML application is defined for
+exchange.
+
+`Semantics on the web' is often associated with the Prolog programming
+language. It is assumed that Prolog is a suitable vehicle to reason with
+the data expressed in RDF models. Most of the related web-infra
+structure (e.g. XML parsers, DOM implementations) are defined in Java,
+Perl, C or C++.
+
+Various routes are available to the Prolog user. Low-level XML parsing
+is due to its nature best done in C or C++. These languages produce fast
+code. As XML/SGML are the basis of most of the other web-related formats
+we will benefit most here. XML and SGML being very stable specifications
+make this even more attractive.
+
+But what about RDF?  RDF-XML is defined in XML, and provided with a
+Prolog term representing the XML document processing it according to
+the RDF syntax is quick and easy in Prolog.  The alternative, getting
+yet another library and language attached to the system, is getting
+less attractive.
+
+
+\section{Parsing RDF in Prolog}
+
+To demonstrate this, we realised an RDF compiler in Prolog on top of
+the sgml2pl package (providing a name-space sensitive XML parser).
+The transformation is realised in two passes.
+
+The first pass rewrites the XML term into a Prolog term conveying the
+same information in a more friendly manner.  This transformation is
+defined in a high-level pattern matching language defined on top of
+Prolog with properties similar to DCG (Definite Clause Grammar).
+
+The source of this translation is very close to the BNF notation used by
+the \url[specification]{http://www.w3.org/TR/REC-rdf-syntax/}, so
+correctness is `obvious'. Below is a part of the definition of RDF
+containers. Note that XML elements are represented using a term of the
+format:
+
+\begin{quote}
+    \term{element}{Name, [AttrName = Value...], [Content ...]}
+\end{quote}
+
+\begin{code}
+memberElt(LI) ::=
+	\referencedItem(LI).
+memberElt(LI) ::=
+	\inlineItem(LI).
+
+referencedItem(LI) ::=
+	element(\rdf(li),
+		[ \resourceAttr(LI) ],
+		[]).
+
+inlineItem(literal(LI)) ::=
+	element(\rdf(li),
+		[ \parseLiteral ],
+		LI).
+inlineItem(description(description, _, _, Properties)) ::=
+	element(\rdf(li),
+		[ \parseResource ],
+		\propertyElts(Properties)).
+inlineItem(LI) ::=
+	element(\rdf(li),
+		[],
+		[\rdf_object(LI)]), !.	% inlined object
+inlineItem(literal(LI)) ::=
+	element(\rdf(li),
+		[],
+		[LI]).			% string value
+\end{code}
+
+Expression in the rule that are prefixed by the \verb$\$ operator acts
+as invocation of another rule-set.  The body-term is converted into
+a term where all rule-references are replaced by variables.  The
+resulting term is matched and translation of the arguments is achieved
+by calling the appropriate rule.  Below is the Prolog code for the
+{\bf referencedItem} rule:
+
+\begin{code}
+referencedItem(A, element(B, [C], [])) :-
+        rdf(li, B),
+        resourceAttr(A, C).
+\end{code}
+
+Additional code can be added using a notation close to the Prolog
+DCG notation.  Here is the rule for a description, producing
+properties both using {\bf propAttrs} and {\bf propertyElts}.
+
+\begin{code}
+description(description, About, BagID, Properties) ::=
+	element(\rdf('Description'),
+		\attrs([ \?idAboutAttr(About),
+			 \?bagIdAttr(BagID)
+		       | \propAttrs(PropAttrs)
+		       ]),
+		\propertyElts(PropElts)),
+	{ !, append(PropAttrs, PropElts, Properties)
+	}.
+\end{code}
+
+
+\section{Predicates}
+
+The parser is designed to operate on various environments and therefore
+provides interfaces at various levels. First we describe the top level
+defined in \pllib{rdf}, simply parsing a PDF-XML file into a list of
+triples. Please note these are {\em not} asserted into the database
+because it is not necessarily the final format the user wishes to reason
+with and it is not clean how the user wants to deal with multiple RDF
+documents.  Some options are using global URI's in one pool, in Prolog
+modules or using an additional argument.
+
+\begin{description}
+    \predicate{load_rdf}{2}{+File, -Triples}
+Same as \term{load_rdf}{File, Triples, []}.
+    \predicate{load_rdf}{3}{+File, -Triples, +Options}
+Read the RDF-XML file \arg{File} and return a list of \arg{Triples}.
+\arg{Options} defines additional processing options.  Currently defined
+options are:
+
+   \begin{description}
+	\termitem{base_uri}{BaseURI}
+If provided local identifiers and identifier-references are globalised
+using this URI.  If omited or the atom \verb$[]$, local identifiers are
+not tagged.
+   \end{description}
+
+The \arg{Triples} list is a list of \term{rdf}{Subject, Predicate,
+Object} triples.  \arg{Subject} is either a plain resource (an atom),
+or one of the terms \term{each}{URI} or \term{prefix}{URI} with the
+obvious meaning.  \arg{Predicate} is either a plain atom for
+explicitely non-qualified names or a term 
+\mbox{\arg{NameSpace}{\bf :}\arg{Name}}.  If \arg{NameSpace} is the
+defined RDF name space it is returned as the atom \const{rdf}.
+Finally, \arg{Object} is a URI, a \arg{Predicate} or a term of the
+format \term{literal}{Value} for literal values.  \arg{Value} is
+either a plain atom or a parsed XML term (list of atoms and elements).
+\end{description}
+
+
+\section{Name spaces}
+
+XML name spaces are identified using a URI. Unfortunately various URI's
+are in common use to refer to RDF. The \file{rdf_parser.pl} module
+therefore defined the namespace as a multifile/1 predicate, that can be
+extended by the user. For example, to parse the \url[Netscape
+OpenDirectory]{http://www.mozilla.org/rdf/doc/inference.html}
+\file{structure.rdf} file, the following declarations are used:
+
+\begin{code}
+:- multifile
+	rdf_parser:rdf_name_space/1.
+
+rdf_parser:rdf_name_space('http://www.w3.org/TR/RDF/').
+rdf_parser:rdf_name_space('http://directory.mozilla.org/rdf').
+rdf_parser:rdf_name_space('http://dmoz.org/rdf').
+\end{code}
+
+The initial definition of this predicate is given below.
+
+\begin{code}
+rdf_name_space('http://www.w3.org/1999/02/22-rdf-syntax-ns#').
+rdf_name_space('http://www.w3.org/TR/REC-rdf-syntax').
+\end{code}
+
+
+\subsection{Low-level access}
+
+The above defined load_rdf/[2,3] is not always suitable.  For example,
+it cannot deal with documents where the RDF statement is embedded an
+XML document. It also cannot deal with really big documents (e.g.\
+the Netscape OpenDirectory project), without huge amounts of memory.
+
+For really big documents, the {\bf sgml2pl} parser can be programmed
+to handle the content of a specific element (i.e. \elem{rdf:RDF})
+element-by-element.  The parsing primitives defined in this section
+can be used to process these one-by-one.
+
+\begin{description}
+    \predicate{xml_to_rdf}{3}{+XML, +BaseURI, -Triples}
+Process an XML term produced by load_structure/3 using the
+\term{dialect}{xmlns} output option.  \arg{XML} is either
+a complete \elem{rdf:RDF} element, a list of RDF-objects
+(container or description) or a single description of container.
+    \predicate{process_rdf}{3}{+File, +BaseURI, :OnTriples}
+Exploits the call-back interface of {\bf sgml2pl}, calling
+\arg{OnTriples} with the list of triples resulting from a single
+top level RDF object for each RDF element in the file.  This predicate
+can be used to process arbitrary large RDF files as the file is
+processed object-by-object.  The example below simply asserts all
+triples into the database:
+
+\begin{code}
+assert_list([]).
+assert_list([H|T]) :-
+	assert(H),
+	assert_list(T).
+
+?- process_rdf('structure,rdf', [], assert_list).
+\end{code}
+\end{description}
+
+\section{Testing the RDF translator}
+
+A test-suite and driver program are provided by \file{rdf_test.pl} in
+the source directory. To run these tests, load this file into Prolog in
+the distribution directory. The test files are in the directory
+\file{suite} and the proper output in \file{suite/ok}. Predicates
+provided by \file{rdf_test.pl}:
+
+\begin{description}
+    \predicate{suite}{1}{+N}
+Run test \arg{N} using the file \file{suite/tN.rdf} and display the
+RDF source, the intermediate Prolog representation and the resulting
+triples.
+    \predicate{passed}{1}{+N}
+Process \file{suite/tN.rdf} and store the resulting triples in
+\file{suite/ok/tN.pl} for later validation by test/0.
+    \predicate{test}{0}{}
+Run all tests and classify the result.
+\end{description}
+
+\appendix
+
+\section{Metrics}
+
+It took three days to write and one to document the Prolog RDF parser.
+A significant part of the time was spent understanding the RDF
+specification.
+
+The size of the source (including comments) is given in the table
+below.
+
+\begin{center}
+\begin{tabular}{|rrr|l|l|}
+\hline
+\bf lines & \bf words & \bf bytes & \bf file & \bf function \\
+\hline
+    109  &   255  &  2663 & rdf.pl        & Driver program \\
+    312  &   649  &  6416 & rdf_parser.pl & 1-st phase parser \\
+    246  &   752  &  5852 & rdf_triple.pl & 2-nd phase parser \\
+    126  &   339  &  2596 & rewrite.pl    & rule-compiler \\
+\hline
+    793  &  1995  & 17527 & total & \\
+\hline
+\end{tabular}
+\end{center}
+
+
+We also compared the performance using an RDF-Schema file generated by
+\url[Protege-2000]{http://www.smi.stanford.edu/projects/protege/} and
+interpreted as RDF. This file contains 162 descriptions in 50 Kbytes,
+resulting in 599 triples.  Environment: Intel Pentium-II/450 with
+384 Mbytes memory running SuSE Linux 6.3.
+
+The parser described here requires 0.15 seconds excluding 0.13 seconds
+Prolog startup time to process this file. The \url[Pro
+Solutions]{http://www.pro-solutions.com/rdfdemo/} parser (written in
+Perl) requires 1.5 seconds exluding 0.25 seconds startup time.
+
+
+\section{Installation}
+
+\subsection{Unix systems}
+
+Installation on Unix system uses the commonly found {\em configure},
+{\em make} and {\em make install} sequence. SWI-Prolog should be
+installed before building this package. If SWI-Prolog is not installed
+as \program{pl}, the environment variable \env{PL} must be set to the
+name of the SWI-Prolog executable. Installation is now accomplished
+using:
+
+\begin{code}
+% ./configure
+% make
+% make install
+\end{code}
+
+This installs the Prolog library files in \file{$PLBASE/library}, where
+\file{$PLBASE} refers to the SWI-Prolog `home-directory'.
+
+\subsection{Windows}
+
+Copy the files \file{rdf.pl}, \file{rdf_parse.pl}, \file{rdf_triple.pl}
+and \file{rewrite.pl} to the SWI-Prolog library, start Prolog and run
+make/0 to update the library index.
+
+\end{document}
+
+
