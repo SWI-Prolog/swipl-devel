@@ -176,13 +176,32 @@ isClassType(Type t)
 { return t->kind == NAME_class || t->kind == NAME_object;
 }
 
+#define SpecialClass(c) ( isAClass(c, ClassFunction) || \
+			  isAClass(c, ClassHostData) )
+
+static inline status
+realiseClassType(Type t)
+{ if ( t->validate_function == TV_CLASS &&
+       onFlag(t->context, F_ISNAME) )
+  { Class class;
+
+    if ( (class=getConvertClass(ClassClass, t->context)) )
+      assign(t, context, class);
+    else
+      fail;
+  }
+
+  succeed;
+}
+
+
+/* t1 is specialised regarding to t2 */
 
 status
-NEW_specialisedType(Type t1, Type t2)	/* t1 is specialised regarding to t2 */
-{
-l1:
-  while(t1->validate_function == TV_ALIAS )
+specialisedType(Type t1, Type t2)
+{ while(t1->validate_function == TV_ALIAS )
     t1 = t1->context;
+  realiseClassType(t1);
 
 l2:
   switch(t2->validate_function)
@@ -190,18 +209,17 @@ l2:
       t2 = t2->context;
       goto l2;
     case TV_CLASS:
+      realiseClassType(t2);
       if ( t1->validate_function == TV_CLASS &&
 	   isAClass(t1->context, t2->context) )
 	succeed;
       break;
     case TV_OBJECT:
-      if ( t1->validate_function == TV_CLASS &&
-	   !isAClass(t1->context, ClassFunction) )
+      if ( t1->validate_function == TV_CLASS && !SpecialClass(t1->context) )
 	succeed;
       break;
     case TV_ANY:
-      if ( !(t1->validate_function == TV_CLASS &&
-	     isAClass(t1->context, ClassFunction)) )
+      if ( !(t1->validate_function == TV_CLASS && SpecialClass(t1->context)) )
 	succeed;
       break;
     case TV_UNCHECKED:
@@ -215,16 +233,16 @@ l2:
   switch(t1->validate_function)
   { case TV_NAMEOF:
       t1 = TypeName;
-      goto l1;
+      goto l2;
     case TV_INTRANGE:
       t1 = TypeInt;
-      goto l1;
+      goto l2;
     case TV_REALRANGE:
       t1 = TypeReal;
-      goto l1;
+      goto l2;
     case TV_CHAR:
       t1 = TypeInt;
-      goto l1;
+      goto l2;
   }
 
   if ( notNil(t2->supers) )
@@ -240,9 +258,7 @@ l2:
 }
 
 
-#define SpecialClass(c) ( isAClass(c, ClassFunction) || \
-			  isAClass(c, ClassHostData) )
-
+#if 0
 status
 specialisedType(Type t1, Type t2)	/* t1 is specialised regarding to t2 */
 { while(t1->kind == NAME_alias)
@@ -291,6 +307,7 @@ specialisedType(Type t1, Type t2)	/* t1 is specialised regarding to t2 */
 
   fail;
 }
+#endif
 
 
 status
@@ -1586,6 +1603,33 @@ defined in the host-language.
 int
 pceIncludesType(PceType t, PceType super)
 { return specialisedType(super, t);
+}
+
+
+int
+pceIncludesHostDataType(PceType t, PceClass cl)
+{ l1:
+
+  switch(t->validate_function)
+  { case TV_ALIAS:
+      t = t->context;
+      goto l1;
+    case TV_CLASS:
+      realiseClassType(t);
+      if ( isAClass(cl, t->context) )
+	succeed;
+  }
+  
+  if ( notNil(t->supers) )
+  { Cell cell;
+
+    for_cell(cell, t->supers)
+    { if ( pceIncludesHostDataType(cell->value, cl) )
+	succeed;
+    }
+  }
+
+  fail;
 }
 
 
