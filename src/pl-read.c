@@ -897,7 +897,6 @@ scan_decimal(cucharp *sp, Number n)
     { real maxf = MAXREAL / (real) 10 - (real) 10;
       real tf = (real)t;
 
-      tf = tf * (real)10 + (real)(c - '0');
       for(c = *s; isDigit(c); c = *++s)
       { if ( tf > maxf )
 	  fail;				/* number too large */

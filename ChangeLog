@@ -7,6 +7,8 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * FIXED: int->float conversions reading large integers.  Anjo Anjewierden.
+
   * MODIFIED: PL_get_chars() and friends always return floats in a format
     that reads as a float.
 
