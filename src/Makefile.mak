@@ -250,6 +250,7 @@ install-readme::
 		$(INSTALL_DATA) ..\ChangeLog "$(PLBASE)\ChangeLog.TXT"
 		$(INSTALL_DATA) ..\README.WIN "$(PLBASE)\READWIN.TXT"
 		$(INSTALL_DATA) ..\COPYING "$(PLBASE)\COPYING.TXT"
+		$(INSTALL_DATA) ..\man\windows.html "$(PLBASE)\doc"
 
 install-dotfiles::
 		$(INSTALL_DATA) ..\dotfiles\dotplrc "$(PLCUSTOM)\pl.ini"
@@ -261,6 +262,16 @@ install-demo::
 		    $(INSTALL_DATA) ..\demo\likes.pl "$(PLBASE)\demo\likes.pl"
 		if exist ..\demo \
 		$(INSTALL_DATA) ..\demo\README "$(PLBASE)\demo\README.TXT"
+
+################################################################
+# INSTALLER
+################################################################
+
+installer::
+		$(INSTALL_DATA) win32\installer\options.ini "$(PLBASE)\.."
+		$(INSTALL_DATA) win32\installer\pl.nsi "$(PLBASE)\.."
+		$(INSTALL_DATA) win32\installer\mkinstaller.pl "$(PLBASE)\.."
+		"C:\Program Files\NSIS\MakeNSIS.exe" "$(PLBASE)\..\pl.nsi"
 
 ################################################################
 # DLL DEMOS
