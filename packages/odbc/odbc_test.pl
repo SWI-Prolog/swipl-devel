@@ -149,8 +149,9 @@ type(varchar(2000),				% can we access as integers?
      ],
      [ \+ dbms_name('MySQL')
      ]) :-
-	findall(a, between(1, 1500, _), LongChars),
-	atom_chars(Long, LongChars).
+	findall(C, (between(1, 1500, X),
+		    C is X mod 64 + "@"), LongCodes),
+	atom_chars(Long, LongCodes).
 type(varbinary(20),
      atom = [ foo,
 	      '',
