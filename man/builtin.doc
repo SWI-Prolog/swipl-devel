@@ -1946,6 +1946,10 @@ of \const{full}, \const{line} or \const{false}.
     \termitem{eof_action}{Action}
 Set end-of-file handling to one of \const{eof_code}, \const{reset} or
 \const{error}.
+
+    \termitem{close_on_abort}{Bool}
+Determine whether or not the stream is closed by abort/0.  By default
+streams are closed.
 \end{description}
 \end{description}
 
