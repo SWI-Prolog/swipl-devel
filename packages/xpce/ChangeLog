@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Bug#103: Error loading XPCE on MS-Windows when compiled for single
+  threading.  Holger Kanwischer.
+
 * FIXED: Bug#101: @finder<-file using a specified default file (MS-Windows
   version).  Laurens van der Meij.
 

@@ -334,7 +334,9 @@ install_t
 install_pcecall()
 {
 #ifdef WIN32
-  if ( PL_thread_self() != 1 )
+  int tid = PL_thread_self();
+
+  if ( tid >= 0 && PL_thread_self() != 1 )
     PL_warning("in_pce_thread/1 must be loaded from main thread");
   setup();
 #else
