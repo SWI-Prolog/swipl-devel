@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH @PL@ 1L "June 17, 2001" "SWI-Prolog 4.0"
+.TH @PL@ 1L "Feb 26, 2002" "SWI-Prolog 5.0"
 .SH NAME
 @PL@ \- SWI-Prolog @PLVERSION@
 .SH SYNOPSIS
@@ -26,12 +26,10 @@ are a very fast compiler, a Quintus-like module system, library autoloading,
 garbage collection, atom garbage collection, fast bi-directional C
 interface, true C++ interface, execution profiling and many more.
 
-All of SWI-Prolog and its packages should work out-of-the-box on
-ELF-based Unix systems using gcc. On other Unix systems or using another
-C-compiler it is often required to tweak a bit with the compiler options
-to get the foreign packages compiled. For MS-Windows Makefiles and tools
-are maintained seperately. The status on other non-POSIX platforms is
-varying and unstable.
+Add-on packages provide graphics (XPCE), TCP/IP, process controll,
+SGML/XML/HTML/RDF support and many more. In addition, XPCE provides a
+development environment, consisting of hypertext help-system,
+source-level debugger, integrated editor and many navigation tools.
 
 This manual page only lists the commandline options.  Full documentation
 is available on-line as well as in
@@ -39,13 +37,11 @@ is available on-line as well as in
 format from the WWW home page.
 
 .SH LICENSE INFORMATION
-SWI-Prolog is distributed under the GNU-2 (Gnu Public License, version 2).
-See the file COPYING for details.  In addition, we offer commercial licenses
-for those who want to use SWI-Prolog with
-.B proprietary
-software.  See the
-SWI-Prolog home page at
-.B http://swi.psy.uva.nl/projects/SWI-Prolog/
+SWI-Prolog is distributed under the LGPL (Lesser Gnu Public License) for
+maximal compatibility with the Free Software movement, while allowing for
+use with proprietary software components.
+See the SWI-Prolog home page at
+.B http://www.swi-prolog.org
 for details.
 
 .SH OPTIONS
@@ -379,10 +375,10 @@ SWI-Prolog library for embedding.  See also
 .SH SEE ALSO
 .PP
 The SWI-Prolog web-home at
-.I http://www.swi.psy.uva.nl/projects/SWI-Prolog/ 
+.I http://www.swi-prolog.org 
 .PP
 Jan\ Wielemaker
-.IR "SWI-Prolog 4.0 Reference Manual" at
+.IR "SWI-Prolog 5.0 Reference Manual" at
 .I http://www.swi.psy.uva.nl/projects/SWI-Prolog/Manual/
 .PP
 Documentation on the add-on packages in
@@ -404,25 +400,13 @@ an action of contract, tort or otherwise, arising from, out of or in
 connection with the software or the use or other dealings in the
 software.
 .SH COPYING
-SWI-Prolog is distributed under the General Public Licence version 2,
-also known as the
-.B GPL-2
-licence.  The license terms are in the file
+SWI-Prolog is distributed under the LGPL (Lesser GNU Public Licence).
+The license terms are in the file
 .I COPYING
 or on the GNU website at
 .I http://www.gnu.org.
-.PP
-In a nutshell, you can modify and use SWI-Prolog as long as you clearly
-indicate changes, don't change copyright messages and
-.B distribute the complete source of your work with every binary
-.B copy or make the source in some other form available for free to your users 
-.PP
-Especially if you do not wish to distribute the source of your work you
-may wish to consider obtaining a
-.I commercial license.
-Please visit the SWI-Prolog home-page for details.
 .SH COPYRIGHT
-Copyright (c) 1993\-2001 University of Amsterdam.
+Copyright (c) 1993\-2002 University of Amsterdam.
 .SH AUTHOR
 Jan Wielemaker
 
