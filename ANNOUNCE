@@ -28,7 +28,6 @@ Planned features in 5.5.x relative to 5.4.x and their status
 	- No support for input methods (XIM, ...)
 	- Incomplete support in packages
 		- ODBC
-		- Text matching in SemWeb library
 		- Filenames, window titles, etc. in XPCE
 	- Clear vision on foreign interface
 	- Clear vision on handling non-iso-latin-1 8-bit codepages
@@ -58,6 +57,9 @@ Packages
   * Provide wide-character support for the XPCE.  Provide support for
     core X11 8/16 bit font handling, Xwc* wide-character versions and
     XFT scalable anti-aliased fonts.
+
+  * Provide wide character support in literal matches (substring,
+    word, prefix, etc.) for library(rdf_db).
 
   * Provide JPL for MacOS X.  There is an issue when loading Java in
     Prolog and using AWT (graphics) that is unresolved.
