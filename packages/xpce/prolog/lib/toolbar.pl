@@ -231,7 +231,81 @@ reset(TB) :->
 	;   send(TB, status, execute)
 	).
 
-:- pce_end_class.
+:- pce_end_class(tool_status_button).
+
+
+		 /*******************************
+		 *	      DIALOG		*
+		 *******************************/
+
+:- pce_begin_class(tool_dialog, dialog,
+		   "Dialog for menu-bar and toolbar").
+
+variable(client,	[object],	get, "The client").
+
+initialise(TD, Client:[object]) :->
+	"Refine layout"::
+	send_super(TD, initialise),
+	send(TD, slot, client, Client),
+	send(TD, pen, 0),
+	send(TD, gap, size(0, 5)).
+
+
+menu_bar(TD, Create:[bool], MB:menu_bar) :<-
+	"Get (or create) the menu_bar"::
+	(   get(TD, member, menu_bar, MB)
+	->  true
+	;   Create == @on
+	->  (   get(TD, tool_bar, TB)
+	    ->	send(new(MB, menu_bar), above, TB)
+	    ;	send(TD, append, new(MB, menu_bar))
+	    )
+	).
+
+tool_bar(TD, Create:[bool], TB:tool_bar) :<-
+	"Get (or create) the tool_bar"::
+	(   get(TD, member, tool_bar, TB)
+	->  true
+	;   Create == @on
+	->  (   get(TD, client, Client),
+	        Client \== @default
+	    ->	true
+	    ;	get(TD, frame, Client)
+	    ),
+	    (   get(TD, menu_bar, MB)
+	    ->	send(new(TB, tool_bar(Client)), below, MB)
+	    ;	send(TD, append, new(TB, tool_bar(Client)))
+	    )
+	).
+
+
+popup(TD, Name:name, Create:[bool], Popup:popup) :<-
+	"Find named popup or create it"::
+	get(TD, menu_bar, Create, MB),
+	(   get(MB, member, Name, Popup)
+	->  true
+	;   Create == @on
+	->  send(MB, append, new(Popup, popup(Name)))
+	).
+
+
+append(TD, B:'popup|tool_button|graphical|{gap}', Where:[name]) :->
+	"Append buttons or popup for manu-bar"::
+	(   send(B, instance_of, popup)
+	->  get(TD, menu_bar, @on, MB),
+	    send(MB, append, B)
+	;   send(B, instance_of, menu_item)
+	->  get(TD, popup, Where, @on, Popup),
+	    send(Popup, append, B)
+	;   (   send(B, instance_of, tool_button)
+	    ;	B == gap
+	    )
+	->  get(TD, tool_bar, @on, TB),
+	    send(TB, append, B)
+	;   send_super(TD, append, B, Where)
+	).
+
+:- pce_end_class(tool_dialog).
 
 
 		 /*******************************
