@@ -234,7 +234,7 @@ main(int argc, char **argv)
   { p = new_dtd_parser(new_dtd("html"));
 
     load_dtd_from_file(p, "html.dtd");
-  } else if ( istrcaseeq(ext, ".xml") )
+  } else if ( xml || istrcaseeq(ext, ".xml") )
   { dtd *dtd = new_dtd(NULL);
 
     set_dialect_dtd(dtd, DL_XML);

@@ -200,8 +200,10 @@ typedef enum
 	/* Element, Attribute */
   ERC_NO_ATTRIBUTE_VALUE,
 	/* Element, Value */
-  ERC_NO_VALUE
+  ERC_NO_VALUE,
 	/* Entity */
+  ERC_NO_DOCTYPE
+        /* Implicit, file */
 #endif
 } dtd_error_id;
 

@@ -2246,6 +2246,23 @@ open_element(dtd_parser *p, dtd_element *e, int warn)
     }
   }
 
+					/* no DTD available yet */
+  if ( !p->environments && !p->dtd->doctype )
+  { const char *file;
+
+    if ( (file=find_in_catalog("DOCTYPE", e->name->name)) )
+    { dtd_parser *clone = clone_dtd_parser(p);
+
+      gripe(ERC_NO_DOCTYPE, e->name->name, file);
+
+      if ( load_dtd_from_file(clone, file) )
+	p->dtd->doctype = istrdup(e->name->name);
+      else
+	gripe(ERC_EXISTENCE, "file", file);
+      free_dtd_parser(clone);
+    }
+  }
+
   if ( p->environments )
   { sgml_environment *env = p->environments;
 
@@ -2689,6 +2706,7 @@ local:
 	break;
       putchar_dtd_parser(p, *s);
     }
+    p->dtd->implicit = FALSE;
 
     p->state    = oldstate;
     p->dmode    = oldmode;
@@ -4088,6 +4106,18 @@ gripe(dtd_error_id e, ...)
 
       error.severity = ERS_ERROR;
       e = ERC_EXISTENCE;
+      break;
+    }
+    case ERC_NO_DOCTYPE:
+    { const char *doctype = va_arg(args, char *); /* element */
+      const char *file    = va_arg(args, char *); /* DTD file */
+
+      sprintf(buf, "No <!DOCTYPE ...>, assuming `%s' from DTD file `%s'",
+	      doctype, file);
+      error.argv[0] = buf;
+      error.severity = ERS_WARNING;
+      
+      e = ERC_VALIDATE;
       break;
     }
   } 

@@ -1,3 +1,9 @@
+* ADDED: If a document is parsed without DTD and a catalog is provided,
+  try finding a matching DTD file from the catalog.  If successful
+  print a warning and load this DTD.
+
+* FIXED: Ensure the -xml flag to the sgml utility works again.
+
 * INSTALL: Check for existence of runtex
 
 * INSTALL: Do not cache Prolog related variables.
