@@ -3,6 +3,22 @@ SWI-Prolog 5.0.6/XPCE 6.0.6 Summary of changes
 SWI-Prolog
 ==========
 
+    * Be better trapping redefined system predicates.  System predicates
+      that were referenced from a predicate before being defined caused
+      a silent redefinition.
+
+      NOTE: this may imply programs that redefined system predicates 
+      silently this way now trap an error while loading and possibly
+      won't work any longer.  In this case you must rename your predicate
+      or use :- redefine_system_predicate/1 (not recommended).
+
+    * Crash in PLWIN.EXE using the page up/down buttons.
+
+    * Various problems in the multi-threading version.
+
+    * Performance issues in retract/1 with many clauses around.  Can make
+      huge differences!
+
     * Added downcase_atom/2 and upcase_atom/2.
 
     * Fixed writing 0-bytes as first byte in write/1 and friends
@@ -25,6 +41,8 @@ Development Environment
     * Fixed GUI-Tracer and PceEmacs problems wasting stream-handles that
       ultimately make the environment stop functioning.
 
+    * Fixed PceEmacs prolog-mode crash in singleton handling.
+
     * Fixed some GUI-Tracer source-handling issues.
 
     * Fixed GUI-Tracer choice-point view.
@@ -32,6 +50,11 @@ Development Environment
 
 XPCE
 ====
+
+    * Added a new file-finder with more flexible (compatible) interface
+      and a much better XPCE-provided file-dialog for the X11 version.
+
+    * X11: fixed timers (sometimes stopped working).
 
     * Fixed window-placement (Windows)
 
