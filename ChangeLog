@@ -5,7 +5,7 @@
     Windows distribution.
 
   * ADDED: stream_property/2 and set_stream/2 set and query the buffer mode
-    of existing streams.
+    of existing streams.  Also added eof_action(Action) to set_stream/2.
 
   * MODIFIED: The sequence X=!, X doesn't cut any longer as this was
     in conflict with the ISO standard (Bart Demoen).
