@@ -540,7 +540,6 @@ typedef int  (*PL_dispatch_hook_t)(int fd);
 typedef void (*PL_abort_hook_t)(void);
 typedef void (*PL_initialise_hook_t)(int argc, char **argv);
 typedef void (*PL_async_hook_t)(void);	/* Win32 only (O_ASYNC_HOOK) */
-typedef int  (*PL_getkey_hook_t)(int fd);
 typedef int  (*PL_agc_hook_t)(atom_t a);
 
 __pl_export PL_dispatch_hook_t PL_dispatch_hook(PL_dispatch_hook_t);
@@ -548,7 +547,6 @@ __pl_export void	       PL_abort_hook(PL_abort_hook_t);
 __pl_export void	       PL_initialise_hook(PL_initialise_hook_t);
 __pl_export int		       PL_abort_unhook(PL_abort_hook_t);
 __pl_export PL_async_hook_t    PL_async_hook(unsigned int, PL_async_hook_t);
-__pl_export PL_getkey_hook_t   PL_getkey_hook(PL_getkey_hook_t);
 __pl_export PL_agc_hook_t      PL_agc_hook(PL_agc_hook_t);
 
 

@@ -312,77 +312,6 @@ AC_TRY_COMPILE(
    AC_MSG_RESULT(no))
 fi
 
-if test "$ac_cv_func_dlopen" = "yes" || \
-   test "$ac_cv_func_shl_load" = "yes"; then
-
-dnl Some versions of (g)cc need to export the symbols from the main program
-dnl using -export-dynamic or (older versions) -rdynamic.  See whether
-dnl this gcc understands this flag.
-
-AC_MSG_CHECKING("whether LDFLAGS need -export-dynamic")
-  old_ldflags="$LDFLAGS"
-  LDFLAGS="-export-dynamic $LDFLAGS"
-  AC_TRY_RUN(
-main()
-{ exit(0);
-},
-     if grep 'unrecognized option `-export-dynamic'"'" config.log >/dev/null; then
-       AC_MSG_RESULT(no)
-       LDFLAGS="$old_ldflags"
-     else
-       AC_MSG_RESULT(yes)
-       exportdynamic=done
-     fi,
-     AC_MSG_RESULT(no)
-     LDFLAGS="$old_ldflags",
-     AC_MSG_RESULT(no)
-     LDFLAGS="$old_ldflags")
-
-if test "$exportdynamic" != "done"; then
-AC_MSG_CHECKING("whether LDFLAGS need -rdynamic")
-  old_ldflags="$LDFLAGS"
-  LDFLAGS="-rdynamic $LDFLAGS"
-  AC_TRY_RUN(
-main()
-{ exit(0);
-},
-     if grep 'unrecognized option `-rdynamic'"'" config.log >/dev/null; then
-       AC_MSG_RESULT(no)
-       LDFLAGS="$old_ldflags"
-     else
-       AC_MSG_RESULT(yes)
-     fi,
-     AC_MSG_RESULT(no)
-     LDFLAGS="$old_ldflags",
-     AC_MSG_RESULT(no)
-     LDFLAGS="$old_ldflags")
-fi	dnl test for -exportdynamic
-
-dnl Some specific OS stuff
-
-case "$ARCH" in
-  *hppa*|*hpux*)
-	AC_DEFINE(SO_EXT, "sl")
-	if test "$GCC" = "yes"; then
-	    LDFLAGS="$LDFLAGS -Wl,-E"
-	else
-	    LDFLAGS="$LDFLAGS -E"
-	fi
-	;;
-  *aix*)
-	AC_DEFINE(SO_EXT, "so")
-	if test "$GCC" = "yes"; then
-	    LDFLAGS="$LDFLAGS -Wl,-bE:../include/SWI-Exports"
-	else
-	    LDFLAGS="$LDFLAGS -bE:../include/SWI-Exports"
-	fi
-	;;
-  *)
-	AC_DEFINE(SO_EXT, "so")
-	;;
-esac
-
-fi	dnl dlopen or shl_load
 
 AC_MSG_CHECKING(for cc -c -o)
   cat > conftest.c << _EOP_
@@ -398,10 +327,6 @@ _EOP_
     AC_MSG_RESULT(no)
   fi
   rm -rf conftest.*
-
-echo "	CFLAGS=$CWFLAGS $COFLAGS $CIFLAGS $CMFLAGS"
-echo "	LDFLAGS=$LDFLAGS"
-echo "	LIBS=$LIBS"
 
 AC_CHECK_HEADERS(unistd.h string.h memory.h sys/time.h sys/stat.h pwd.h)
 AC_CHECK_HEADERS(sys/select.h sys/param.h sys/file.h sys/resource.h malloc.h)
@@ -803,5 +728,83 @@ fi
 done
 fi # mmap
 
+if test "$ac_cv_func_dlopen" = "yes" || \
+   test "$ac_cv_func_shl_load" = "yes"; then
+
+dnl Some versions of (g)cc need to export the symbols from the main program
+dnl using -export-dynamic or (older versions) -rdynamic.  See whether
+dnl this gcc understands this flag.
+
+AC_MSG_CHECKING("whether LDFLAGS need -export-dynamic")
+  old_ldflags="$LDFLAGS"
+  LDFLAGS="-export-dynamic $LDFLAGS"
+  AC_TRY_RUN(
+main()
+{ exit(0);
+},
+     if grep 'unrecognized option `-export-dynamic'"'" config.log >/dev/null; then
+       AC_MSG_RESULT(no)
+       LDFLAGS="$old_ldflags"
+     else
+       AC_MSG_RESULT(yes)
+       exportdynamic=done
+     fi,
+     AC_MSG_RESULT(no)
+     LDFLAGS="$old_ldflags",
+     AC_MSG_RESULT(no)
+     LDFLAGS="$old_ldflags")
+
+if test "$exportdynamic" != "done"; then
+AC_MSG_CHECKING("whether LDFLAGS need -rdynamic")
+  old_ldflags="$LDFLAGS"
+  LDFLAGS="-rdynamic $LDFLAGS"
+  AC_TRY_RUN(
+main()
+{ exit(0);
+},
+     if grep 'unrecognized option `-rdynamic'"'" config.log >/dev/null; then
+       AC_MSG_RESULT(no)
+       LDFLAGS="$old_ldflags"
+     else
+       AC_MSG_RESULT(yes)
+     fi,
+     AC_MSG_RESULT(no)
+     LDFLAGS="$old_ldflags",
+     AC_MSG_RESULT(no)
+     LDFLAGS="$old_ldflags")
+fi	dnl test for -exportdynamic
+
+dnl Some specific OS stuff
+
+case "$ARCH" in
+  *hppa*|*hpux*)
+	AC_DEFINE(SO_EXT, "sl")
+	if test "$GCC" = "yes"; then
+	    LDFLAGS="$LDFLAGS -Wl,-E"
+	else
+	    LDFLAGS="$LDFLAGS -E"
+	fi
+	;;
+  *aix*)
+	AC_DEFINE(SO_EXT, "so")
+	if test "$GCC" = "yes"; then
+	    LDFLAGS="$LDFLAGS -Wl,-bE:../include/SWI-Exports"
+	else
+	    LDFLAGS="$LDFLAGS -bE:../include/SWI-Exports"
+	fi
+	;;
+  *)
+	AC_DEFINE(SO_EXT, "so")
+	;;
+esac
+
+fi	dnl dlopen or shl_load
+
+echo "	CFLAGS=$CWFLAGS $COFLAGS $CIFLAGS $CMFLAGS"
+echo "	LDFLAGS=$LDFLAGS"
+echo "	LIBS=$LIBS"
+
 AC_OUTPUT(Makefile rc/Makefile README.bin pl.1)
+
+
 

@@ -176,9 +176,10 @@ $(INCLUDEDIR):
 $(EXPORTS):	Makefile $(srcdir)/pl-itf.h $(INCLUDEDIR)
 		echo \#\!$(bindir)/$(PL) > $(EXPORTS)
 		grep '^__pl_export' $(srcdir)/pl-itf.h $(srcdir)/pl-stream.h | \
-			$(SED) 's/.*[ 	*]\(_*PL_[a-zA-Z0-9_]*\|S[a-z_]*\).*/\1/' | \
-			grep -v '_t$$' | \
-			sort -u >> $(EXPORTS)
+		    $(SED) -e 's/.*[ 	*]\(_*PL_[a-zA-Z0-9_]*\).*/\1/' \
+			   -e 's/.*[ 	*]\(S[a-z[A-Z]_]*\).*/\1/' | \
+		    grep -v '_t$$' | grep -v '^PL_extension$$' \
+		    sort -u >> $(EXPORTS)
 
 $(CINCLUDE):	$(srcdir)/pl-itf.h $(INCLUDEDIR)
 		cp $(srcdir)/pl-itf.h $(CINCLUDE)

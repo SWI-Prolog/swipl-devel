@@ -247,13 +247,13 @@ CpuTime(void)
 
 #endif /*__WIN32__*/
 
-#ifdef HAVE_CLOCK
 void
 PL_clock_wait_ticks(long waited)
-{ clock_wait_ticks += waited;
-}
+{
+#ifdef HAVE_CLOCK
+  clock_wait_ticks += waited;
 #endif
-
+}
 
 		/********************************
 		*           ARITHMETIC          *
