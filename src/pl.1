@@ -1,10 +1,10 @@
 .\" -*- nroff -*-
-.TH PL 1L "January 26, 1996" "SWI-Prolog 2.5"
+.TH PL 1L "November 13, 1996" "SWI-Prolog 2.7"
 .SH NAME
 pl \- SWI-Prolog
 .SH SYNOPSIS
 .B pl
-.RB [ \-help | \-v | \-arch ]
+.RB [ \-help | \-v | \-arch | \-dump\-runtime\-variables ]
 .br
 .B pl
 [options]
@@ -26,6 +26,30 @@ Prolog and SICStus Prolog.  It has a fairly good performance, with a fast
 compiler.  It includes a Quintus-like module system, a library autoload
 facility, a garbage collector, on-line help, a trasparent and fast C interface
 (in both directions), and a profiler.
+
+SWI-Prolog runs on most Unix machines, as well as on the Microsoft Win32
+platform.
+
+.SH LICENSE INFORMATION
+SWI-Prolog is distributed in source-form as well as in binary format for
+some architectures.  The user is free to modify and redistribute the
+sources, provided the copyright and authorship messages are left in place.
+Modifications should be properly marked in the sources and if the modified
+version is distributed, the user should indicate it concerns a modified
+version and point to the location of the main source,
+.br
+.BI ftp://swi.psy.uva.nl/pub/SWI-Prolog/
+
+SWI-Prolog may be used free of charge for personal and educational purposes,
+as well as for research projects inside commercial organisations.  It is
+however
+.B not allowed to distribute commercial applications
+in which SWI-Prolog is embedded without an additional license.  Please
+contact
+.BI prolog-request@swi.psy.uva.nl
+for further information.
+
+
 .SH OPTIONS
 .TP
 .B \-help
@@ -36,6 +60,54 @@ Displays version and architecture information.
 .TP
 .B \-arch
 Prints the architecture identifier.
+.TP
+.B \-dump\-runtime\-variables
+Dump information that is generally useful for installation scripts in
+a form compatible with the
+.B sh
+(bourne) shell.  This option is used by
+.B plld (1)
+to fetch necessary information about Prolog.  It is normally invoked as
+.I eval `pl -dump-runtime-variables`,
+which assigns the following shell variables:
+.RS
+.TP
+.B CC
+The
+.B C\-
+compiler used to compile SWI-Prolog.
+.TP
+.B PLBASE
+The home directory of SWI-Prolog.  This is the same value as returned
+by the
+.I feature home.
+.TP
+.B PLARCH
+The architecture identifier used.  Together with 
+.B PLBASE
+this defines the location of various components.  For example,
+the library for embedding is in
+.B $PLBASE/runtime/$PLARCH/libpl.a
+.TP
+.B PLLIBS
+The required libraries for linking
+.B libpl.a
+.TP
+.B PLLDFLAGS
+Flags that need to be passed to the C-linker for linking embedded executables.
+.TP
+.B PLVERSION
+Numeric representation of the SWI-Prolog version.
+.TP
+.B PLSHARED
+Has the value
+.B yes
+if Prolog supports linking shared libraries using
+.B load_foreign_library/[1,2]
+and
+.B no
+otherwise.
+.RE
 .TP
 .BI \-A size
 Sets the argument stack size to
@@ -143,7 +215,12 @@ or
 .BR save/[1,2] .
 Equivalent to
 .BI restore( restorefile )
-from Prolog.
+from Prolog.  Note that very few machines support this style of saved
+states, but all machines support the states created using
+.BI qsave_program/[1,2],
+which may be started using the
+.B \-x
+flag.
 .TP
 .BI \-t " goal"
 Use
@@ -171,7 +248,8 @@ using the
 .B \-b
 or
 .B \-c
-option.
+option, or created using
+.B qsave_program/[1,2].
 .TP
 .RB [ \+ | \- ] tty
 Switches tty control (using 
@@ -244,7 +322,17 @@ William\ F.\ Clocksin & Christopher\ S.\ Mellish,
 fourth edition, Springer Verlag, Berlin 1994.
 .PP
 .IR chpl(1) " and " plld(1)
+.SH WARRANTY
+The software is provided
+.B as is,
+without warranty of any kind, express or implied, including but not
+limited to the warranties of merchantability, fitness for a particular
+purpose and noninfringement. In no event shall the author or his
+employer be liable for any claim, damages or other liability, whether in
+an action of contract, tort or otherwise, arising from, out of or in
+connection with the software or the use or other dealings in the
+software.
 .SH COPYRIGHT
-Copyright (c) 1993\-1996 University of Amsterdam
+Copyright (c) 1993\-1996 University of Amsterdam, all rights reserved.
 .SH AUTHOR
 Jan Wielemaker

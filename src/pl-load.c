@@ -188,7 +188,7 @@ pl_load_foreign(term_t file, term_t entry, term_t options,
 		term_t libraries, term_t size)
 { char *sfile, *sentry, *soptions, *slibraries;
   long sz, nsz, n;
-  Atom execName;
+  atom_t execName;
   char *execFile;
   long base;
   int fd;

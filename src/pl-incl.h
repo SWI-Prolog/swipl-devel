@@ -17,7 +17,7 @@
 #define ARCH	     "i386-win32"
 #define C_LIBS	     "-lreadline -lconsole -luxnt"
 #define C_STATICLIBS ""
-#define C_CC	     "msvc++ 2.0"
+#define C_CC	     "msvc++ 4.2"
 #define C_LDFLAGS    ""
 #else
 #include <parms.h>			/* pick from the working dir */
@@ -573,7 +573,7 @@ Files and streams.  Don't change the numbers, or change FOPENMODE below.
 #define F_READ		1		/* open for reading */
 #define F_WRITE		2		/* open for writing */
 #define F_APPEND	3		/* open for append writing */
-#define F_UPDATE	4		/* open for write without truncate */
+#define F_WRNOTRUNC	4		/* open for write without truncate */
 #define F_ANY		5		/* any mode (finding stream) */
 
 #define FOPENMODE "-rwau"		/* Sopen_file() mode argument */
@@ -1065,6 +1065,8 @@ struct queryFrame
     LocalFrame  bfr;
   } registers;
 #endif
+  int		debug;			/* FALSE: nondebugging call */
+  int		debugSave;		/* saved debugstatus.debugging */
   Word	       *aSave;			/* saved argument-stack */
   int		solutions;		/* # of solutions produced */
   int		deterministic;		/* Last success was deterministic */

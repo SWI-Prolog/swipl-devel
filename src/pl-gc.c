@@ -378,7 +378,7 @@ forward:				/* Go into the tree */
       next--;				/* last cell of term */
       val = get_value(next);		/* invariant */
 					/* backwards pointer (NO ref!) */
-      set_value(next, consPtr(current, TAG_COMPOUND|STG_GLOBAL));
+      set_value(next, makePtr(current, TAG_COMPOUND));
       current = next;
       FORWARD;
     }
@@ -410,7 +410,7 @@ backward:  				/* reversing backwards */
     if ( isRef(w) )
       val = makeRef(current);
     else
-      val = consPtr(current-1, TAG_COMPOUND|STG_GLOBAL);
+      val = makePtr(current-1, TAG_COMPOUND);
     current= next;
   }
 

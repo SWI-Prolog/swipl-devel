@@ -575,17 +575,14 @@ listProcedure(Definition def)
   qid_t qid;
   extern int Output;
   int OldOut = Output;
-  int debugSave = debugstatus.debugging;
   term_t argv = PL_new_term_refs(1);
   Procedure proc = lookupProcedure(FUNCTOR_listing1, MODULE_system);
 
   unify_definition(argv, def, 0);	/* module:name(args) */
   Output = 1;
-  debugstatus.debugging = FALSE;
   qid = PL_open_query(MODULE_user, FALSE, proc, argv);
   PL_next_solution(qid);
   PL_close_query(qid);
-  debugstatus.debugging = debugSave;
   Output = OldOut;
   PL_discard_foreign_frame(cid);
 }
@@ -707,7 +704,6 @@ traceInterception(LocalFrame frame, LocalFrame bfr, int port, Code PC)
     PL_put_integer(argv+2, PrologRef(bfr));
     PL_put_variable(rarg);
 
-    debugstatus.suspendTrace++;
     qid = PL_open_query(MODULE_user, FALSE, proc, argv);
     if ( PL_next_solution(qid) )
     { atom_t a;
@@ -734,7 +730,6 @@ traceInterception(LocalFrame frame, LocalFrame bfr, int port, Code PC)
     }
     PL_close_query(qid);
     PL_discard_foreign_frame(cid);
-    debugstatus.suspendTrace--;
   }
 
   return rval;
@@ -962,7 +957,10 @@ pl_debug()
 
 word
 pl_nodebug()
-{ return debugmode(FALSE, NULL);
+{ tracemode(FALSE, NULL);
+  debugmode(FALSE, NULL);
+
+  succeed;
 }
 
 word

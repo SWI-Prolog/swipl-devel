@@ -2374,15 +2374,17 @@ pl_nth_clause(term_t p, term_t n, term_t ref, word h)
     if ( !cref )
       fail;
 
-    if ( PL_get_integer(n, &i) )		/* proc and n specified */
-    { while(i > 1 && cref)
+    if ( PL_get_integer(n, &i) )	/* proc and n specified */
+    { i--;				/* 0-based */
+
+      while(i > 0 && cref)
       { do
 	{ cref = cref->next;
 	} while ( cref && true(cref->clause, ERASED) );
 
 	i--;
       }
-      if ( i == 1 )
+      if ( i == 0 && cref )
 	return PL_unify_pointer(ref, cref->clause);
       fail;
     }

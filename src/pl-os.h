@@ -185,22 +185,22 @@ extern real	  CpuTime(void);
 #ifdef HAVE_SYS_TERMIO_H
 #include <sys/termio.h>
 #define termios termio
-#define O_TERMIO 1
+#define O_HAVE_TERMIO 1
 #else
 #ifdef HAVE_SYS_TERMIOS_H
 #include <sys/termios.h>
-#define O_TERMIO 1
+#define O_HAVE_TERMIO 1
 #endif
 #endif
 
-#ifdef O_TERMIO
+#ifdef O_HAVE_TERMIO
 
 typedef struct
 { struct termios tab;		/* saved tty status */
   int		mode;		/* Prolog;'s view on mode */
 } ttybuf;
 
-#else /* !O_TERMIO */
+#else /* !O_HAVE_TERMIO */
 
 #ifdef HAVE_SGTTYB
 #include <sys/ioctl.h>
@@ -216,7 +216,7 @@ typedef struct
 } ttybuf;
 
 #endif /*HAVE_SGTTYB*/
-#endif /*O_TERMIO*/
+#endif /*O_HAVE_TERMIO*/
 
 extern ttybuf	ttytab;			/* saved tty status */
 extern int	ttymode;		/* Current tty mode */

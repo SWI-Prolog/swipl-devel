@@ -95,6 +95,13 @@ SRC=	$(OBJ:.o=.c) $(DEPOBJ:.o=.c) $(EXT:.o=.c) pl-index.c pl-alloc.c
 HDR=	config.h parms.h pl-buffer.h pl-ctype.h pl-incl.h pl-itf.h pl-main.h \
 	pl-os.h pl-save.h pl-data.h
 
+PLSRC=	../boot/syspred.pl ../boot/toplevel.pl ../boot/listing.pl \
+	../boot/edit.pl ../boot/sort.pl ../boot/bags.pl ../boot/apply.pl \
+	../boot/list.pl ../boot/writef.pl ../boot/history.pl \
+	../boot/portray.pl ../boot/profile.pl ../boot/dwim.pl \
+	../boot/foreign.pl ../boot/parms.pl ../boot/autoload.pl \
+	../boot/qlf.pl ../boot/topvars.pl
+
 all:	banner headers system startup index runtime pl-bite chpl swipl swiplbin
 
 .c.o:
@@ -121,7 +128,7 @@ $(PL):		$(ALLOBJ)
 		$(CC) $(LDFLAGS) -o $(PL) $(ALLOBJ) $(LIBS) $(STATICLIBS) 
 
 
-$(STARTUPPATH):	$(PLINIT) pl-wam.o pl-wic.o
+$(STARTUPPATH):	$(PLINIT) $(PLSRC) pl-wam.o pl-wic.o
 		./$(PL) -O -o $(STARTUPPATH) -b $(PLINIT)
 
 
@@ -226,7 +233,7 @@ install-libs:	idirs iboot ilib iruntime iinclude iman
 		$(INSTALL_DATA) swipl $(PLBASE)
 		$(INSTALL_DATA) swiplbin $(PLBASE)/bin/swipl
 		$(INSTALL_DATA) README.bin $(PLBASE)
-		$(INSTALL_DATA) ../LICENCE $(PLBASE)
+		$(INSTALL_DATA) ../LICENSE $(PLBASE)
 		cd $(PLBASE)/library; \
 		   ../bin/$(ARCH)/$(PL) \
 			-f none \

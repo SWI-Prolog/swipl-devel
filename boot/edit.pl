@@ -155,7 +155,7 @@ edit_command(vi,		search,   '%e ''+/^%s'' ''%f''').
 edit_command(emacs,   		search,   '%e +%d ''%f''').
 edit_command(emacsclient,   	search,   '%e +%d ''%f''').
 edit_command(notepad, 		nosearch, '%e %f').
-edit_command(_,       		nosearch, '%e ''%f''').
+edit_command(_,       		nosearch, '%e "%f"').
 
 substitute(From, ToAtom, Old, New) :-
 	name(ToAtom, To),

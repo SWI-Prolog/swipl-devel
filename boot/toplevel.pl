@@ -167,10 +167,12 @@ $search_aliases([Alias|More]) -->
 	$search_aliases(More).
 $search_aliases([Alias]) -->
 	$string(AliasChars),
-	[], !,
+	$eos, !,
 	{ $make_alias(AliasChars, Alias) }.
 
 $string(X) --> {X=[_|_]}, X.
+
+$eos([], []).
 
 $make_alias(Chars, Alias) :-
 	term_to_atom(Alias, Chars),
@@ -264,14 +266,6 @@ $runtoplevel :-
 $compile :-
 	$compile_wic.
 
-
-$calleventhook(Term) :-
-	(   notrace(user:prolog_event_hook(Term))
-	->  true
-	;   true
-	).
-
-:- $hide($calleventhook, 1).
 
 		/********************************
 		*    USER INTERACTIVE LOOP      *
@@ -376,13 +370,13 @@ $execute_goal(Goal, Bindings) :-
 	    (	$write_bindings(NewBindings)
 	    ->	!,
 	        notrace,
-		$calleventhook(finished_query(Qid)),
+		$calleventhook(finished_query(Qid, true)),
 		erase(Ref),
 		fail
 	    )
 	;   notrace, 
 	    $ttyformat('~nNo~n'),
-	    $calleventhook(finished_query(Qid)),
+	    $calleventhook(finished_query(Qid, false)),
 	    erase(Ref),
 	    fail
 	).

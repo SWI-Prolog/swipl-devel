@@ -84,18 +84,10 @@ pl_notrace1(term_t goal)
 
   long	     skipSave  = debugstatus.skiplevel;
   bool	     traceSave = debugstatus.tracing;
-  bool	     debugSave = debugstatus.debugging;
-  int	     suspSave  = debugstatus.suspendTrace;
-
-  debugstatus.tracing = FALSE;
-  debugstatus.debugging = FALSE;
-  debugstatus.suspendTrace = 1;
 
   rval = callProlog(NULL, goal, FALSE);
 
-  debugstatus.suspendTrace = suspSave;
   debugstatus.skiplevel    = skipSave;
-  debugstatus.debugging    = debugSave;
   debugstatus.tracing      = traceSave;
 
   return rval;
@@ -216,7 +208,7 @@ prolog(volatile atom_t goal)
   can_abort = TRUE;
   { fid_t cid = PL_open_foreign_frame();
     Procedure p = lookupProcedure(lookupFunctorDef(goal, 0), MODULE_system);
-    qid_t qid  = PL_open_query(MODULE_system, FALSE, p, 0);
+    qid_t qid  = PL_open_query(MODULE_system, TRUE, p, 0);
     rval = PL_next_solution(qid);
     PL_close_query(qid);
     PL_discard_foreign_frame(cid);

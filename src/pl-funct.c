@@ -197,7 +197,7 @@ pl_current_functor(term_t name, term_t arity, word h)
   { case FRG_FIRST_CALL:
       if ( (name_is_atom = PL_get_atom(name, &nm)) &&
 	   PL_get_integer(arity, &ar) )
-	return isCurrentFunctor(nm, ar) ? FALSE : TRUE;
+	return isCurrentFunctor(nm, ar) ? TRUE : FALSE;
 
       if ( !(PL_is_integer(arity) || PL_is_variable(arity)) )
 	return warning("current_functor/2: instantiation fault");

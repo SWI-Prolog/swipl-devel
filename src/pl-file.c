@@ -332,8 +332,10 @@ getSingleChar(void)
 { int c;
   int OldIn = Input;
   ttybuf buf;
+  IOSTREAM *stream;
     
   Input = 0;
+  stream = fileTable[Input].stream;
   debugstatus.suspendTrace++;
   pl_ttyflush();
   PushTty(&buf, TTY_RAW);		/* just donot prompt */
@@ -348,7 +350,13 @@ getSingleChar(void)
     while( c2 != EOF && c2 != '\n' )	/* read upto newline */
       c2 = Get0();
   } else
-    c = Get0();
+  { if ( stream->position )
+    { IOPOS oldpos = *stream->position;
+      c = Get0();
+      *stream->position = oldpos;
+    } else
+      c = Get0();
+  }
 
   PopTty(&buf);
   debugstatus.suspendTrace--;
@@ -592,7 +600,7 @@ openStream(term_t file, int mode, int flags)
 	succeed;
       }
     }
-  } else if ( type == ST_PIPE && (mode == F_APPEND || mode == F_UPDATE) )
+  } else if ( type == ST_PIPE && (mode == F_APPEND || mode == F_WRNOTRUNC) )
     return warning("Cannot open a pipe in `append' or `update' mode");
     
   if ( !(flags & OPEN_OPEN) )		/* see/1, tell/1, append/1 */
@@ -602,7 +610,7 @@ openStream(term_t file, int mode, int flags)
 	{ switch(mode)
 	  { case F_READ:	Input = n; break;
 	    case F_WRITE:
-	    case F_UPDATE:
+	    case F_WRNOTRUNC:
 	    case F_APPEND:	Output = n; break;
 	  }
 	  DEBUG(3, Sdprintf("Switched back to already open stream %d\n", n));
@@ -663,7 +671,7 @@ openStream(term_t file, int mode, int flags)
   { case F_READ:
       Input = n; break;
     case F_WRITE:
-    case F_UPDATE:
+    case F_WRNOTRUNC:
     case F_APPEND:
       mode = F_WRITE;
       Output = n; break;
@@ -1269,7 +1277,7 @@ pl_open4(term_t file, term_t mode,
     else if ( mname == ATOM_append )
       m = F_APPEND;
     else if ( mname == ATOM_update )
-      m = F_UPDATE;
+      m = F_WRNOTRUNC;
     else if ( mname == ATOM_read )
       m = F_READ;
   }
@@ -1419,7 +1427,7 @@ streamNo(term_t spec, int mode)
 	return warning("Stream is not open for reading");
       break;
     case F_APPEND:
-    case F_UPDATE:
+    case F_WRNOTRUNC:
     case F_WRITE:	
       if ( fileTable[n].status != F_WRITE )
       { warning("Stream is not open for writing");

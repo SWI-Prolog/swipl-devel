@@ -298,11 +298,9 @@ pl_call2(term_t goal, term_t arg)
   }
   PL_put_term(argv+n, arg);
 
-  debugstatus.suspendTrace++;
   qid = PL_open_query(mod, FALSE, proc, argv);
   rval = PL_next_solution(qid);
   PL_close_query(qid);
-  debugstatus.suspendTrace--;
 
 out:
   PL_discard_foreign_frame(cid);

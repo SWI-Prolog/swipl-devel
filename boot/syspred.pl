@@ -424,6 +424,9 @@ $predicate_property(hashed(N), Pred) :-
 $predicate_property(references(N), Pred) :-
 	$get_predicate_attribute(Pred, references, N),
 	N > 0.
+$predicate_property(number_of_clauses(N), Pred) :-
+	$get_predicate_attribute(Pred, number_of_clauses, N),
+	N > 0.
 
 :- index(clause_property(0, 1)).
 
@@ -433,6 +436,8 @@ clause_property(Clause, file(File)) :-
 	$get_clause_attribute(Clause, file, File).
 clause_property(Clause, fact) :-
 	$get_clause_attribute(Clause, fact, true).
+clause_property(Clause, erased) :-
+	$get_clause_attribute(Clause, erased, true).
 
 
 :- module_transparent

@@ -904,6 +904,7 @@ PL_open_query(Module ctx, bool debug, Procedure proc, term_t args)
   qf->solutions         = 0;
   qf->deterministic     = FALSE;	/* last solution was deterministic */
   qf->bfr		= fr;
+  qf->debug		= debug;
 
   DEBUG(1, { extern int Output;		/* --atoenne-- */
 	     FunctorDef f = proc->definition->functor;
@@ -959,7 +960,11 @@ PL_open_query(Module ctx, bool debug, Procedure proc, term_t args)
   clearFlags(fr);
   setLevelFrame(fr, !parentFrame(fr) ? 0L : levelFrame(parentFrame(fr)) + 1);
   if ( !debug )
-    set(fr, FR_NODEBUG);
+  { set(fr, FR_NODEBUG);
+    debugstatus.suspendTrace++;
+    qf->debugSave = debugstatus.debugging;
+    debugstatus.debugging = FALSE;
+  }
   fr->backtrackFrame = (LocalFrame) NULL;
   fr->predicate = def;
   Mark(fr->mark);
@@ -1000,6 +1005,10 @@ PL_cut_query(qid_t qid)
   environment_frame = qf->saved_environment;
   aTop		    = qf->aSave;
   lTop		    = (LocalFrame)qf;
+  if ( !qf->debug )
+  { debugstatus.suspendTrace--;
+    debugstatus.debugging = qf->debugSave;
+  }
   SECURE(checkStacks(environment_frame));
 }
 
@@ -1020,6 +1029,10 @@ PL_close_query(qid_t qid)
   environment_frame = qf->saved_environment;
   aTop		    = qf->aSave;
   lTop		    = (LocalFrame)qf;
+  if ( !qf->debug )
+  { debugstatus.suspendTrace--;
+    debugstatus.debugging = qf->debugSave;
+  }
   SECURE(checkStacks(environment_frame));
 }
 

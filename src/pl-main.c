@@ -425,6 +425,10 @@ startProlog(int argc, char **argv, char **env)
 			} else
 			  usage();
 			break;
+	case 'p':	if (!argc)	/* handled in Prolog */
+			  usage();
+			argc--, argv++;
+			break;
 	case 'O':	status.optimise = TRUE;
 			break;
   	case 'o':	optionString(options.compileOut);

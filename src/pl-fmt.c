@@ -225,11 +225,9 @@ do_format(const char *fmt, int argc, term_t argv)
 	    argv += fdef->arity;
 
 	    tellString(&str, BUFSIZE);
-	    debugstatus.suspendTrace++;
 	    qid = PL_open_query(proc->definition->module, FALSE, proc, av);
 	    PL_next_solution(qid);
 	    PL_close_query(qid);
-	    debugstatus.suspendTrace--;
 	    toldString();
 	    OUTSTRING(str);
 	    if ( str != buf )

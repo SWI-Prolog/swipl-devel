@@ -18,10 +18,10 @@
 #include <os2.h>                /* this has to appear before pl-incl.h */
 #endif
 
+#include <math.h>			/* avoid abs() problem with msvc++ */
 #include "pl-incl.h"
 #include "pl-ctype.h"
 
-#include <math.h>
 #if HAVE_SYS_STAT_H
 #include <sys/stat.h>
 #endif
@@ -405,8 +405,8 @@ available to the Prolog user based on these functions.  These  functions
 are  in  this  module as non-UNIX OS probably don't have getpid() or put
 temporaries on /tmp.
 
-    Atom TemporaryFile(id)
-	 char *id;
+    atom_t TemporaryFile(id)
+	   char *id;
 
     The return value of this call is an atom,  whose  string  represents
     the  path  name of a unique file that can be used as temporary file.
@@ -1733,7 +1733,7 @@ ResetTty()
   prompt_next = TRUE;
 }
 
-#ifdef O_TERMIO				/* sys/termios.h or sys/termio.h */
+#ifdef O_HAVE_TERMIO				/* sys/termios.h or sys/termio.h */
 
 #ifndef NO_SYS_IOCTL_H_WITH_SYS_TERMIOS_H
 #include <sys/ioctl.h>
@@ -1799,7 +1799,7 @@ PopTty(ttybuf *buf)
   succeed;
 }
 
-#else /* O_TERMIO */
+#else /* O_HAVE_TERMIO */
 
 #ifdef HAVE_SGTTYB
 
@@ -1877,7 +1877,7 @@ ttybuf *buf;
 }
 
 #endif /*HAVE_SGTTYB*/
-#endif /*O_TERMIO*/
+#endif /*O_HAVE_TERMIO*/
 
 
 		/********************************

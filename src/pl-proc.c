@@ -709,14 +709,12 @@ trapUndefined(Definition def)
       PL_put_integer( argv+2, def->functor->arity);
       PL_put_variable(argv+3);
 
-      debugstatus.suspendTrace++;
       undefined_nesting++;
       qid = PL_open_query(MODULE_system, FALSE, pred, argv);
       if ( PL_next_solution(qid) )
 	PL_get_atom(argv+3, &answer);
       PL_close_query(qid);
       undefined_nesting--;
-      debugstatus.suspendTrace--;
       source_file_name = sfn;
       source_line_no   = sln;
       PL_discard_foreign_frame(cid);
@@ -1010,7 +1008,10 @@ pl_get_predicate_attribute(term_t pred,
   } else if ( key == ATOM_references )
   { return PL_unify_integer(value, def->references);
   } else if ( key == ATOM_number_of_clauses )
-  { return PL_unify_integer(value, def->number_of_clauses);
+  { if ( def->flags & FOREIGN )
+      fail;
+
+    return PL_unify_integer(value, def->number_of_clauses);
   } else if ( (att = attribute_mask(key)) )
   { return PL_unify_integer(value, (def->flags & att) ? 1 : 0);
   } else
@@ -1191,6 +1192,9 @@ pl_get_clause_attribute(term_t ref, term_t att, term_t value)
   { return PL_unify_atom(value,
 			 true(clause, UNIT_CLAUSE) ? ATOM_true
 			 			   : ATOM_false);
+  } else if ( a == ATOM_erased )
+  { return PL_unify_atom(value,
+			 true(clause, ERASED) ? ATOM_true : ATOM_false);
   }
 
   fail;

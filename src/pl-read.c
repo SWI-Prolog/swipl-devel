@@ -189,11 +189,7 @@ errorWarning(char *what)
       Sfprintf(Serror, "%s]\n", token_start);
     }
   } else
-  { fid_t cid = PL_open_foreign_frame();
-    qid_t qid;
-    term_t argv = PL_new_term_refs(3);
-    term_t a    = PL_new_term_ref();
-    predicate_t pred = PL_pred(FUNCTOR_exception3, MODULE_user);
+  { predicate_t pred = PL_pred(FUNCTOR_exception3, MODULE_user);
     int rval;
     char *s;
 
@@ -202,17 +198,25 @@ errorWarning(char *what)
       	source_line_no++;
     }
 	
-    PL_put_atom(    argv+0, ATOM_syntax_error);
-    PL_put_functor( argv+1, FUNCTOR_syntax_error3);
-    PL_put_variable(argv+2);
-    PL_get_arg(1, argv+1, a); PL_unify_atom(a, source_file_name);
-    PL_get_arg(2, argv+1, a); PL_unify_integer(a, source_line_no);
-    PL_get_arg(3, argv+1, a); PL_unify_atom_chars(a, what);
+    if ( pred->definition->definition.clauses )
+    { fid_t cid = PL_open_foreign_frame();
+      qid_t qid;
+      term_t argv = PL_new_term_refs(3);
+      term_t a    = PL_new_term_ref();
+    
+      PL_put_atom(    argv+0, ATOM_syntax_error);
+      PL_put_functor( argv+1, FUNCTOR_syntax_error3);
+      PL_put_variable(argv+2);
+      PL_get_arg(1, argv+1, a); PL_unify_atom(a, source_file_name);
+      PL_get_arg(2, argv+1, a); PL_unify_integer(a, source_line_no);
+      PL_get_arg(3, argv+1, a); PL_unify_atom_chars(a, what);
 	       
-    qid = PL_open_query(MODULE_user, FALSE, pred, argv);
-    rval = PL_next_solution(qid);
-    PL_close_query(qid);
-    PL_discard_foreign_frame(cid);
+      qid = PL_open_query(MODULE_user, FALSE, pred, argv);
+      rval = PL_next_solution(qid);
+      PL_close_query(qid);
+      PL_discard_foreign_frame(cid);
+    } else
+      rval = FALSE;
 
     if ( !rval )
       warning("%s:%d: Syntax error: %s",
@@ -360,7 +364,14 @@ raw_read2()
 		  return rb.base;
 		}
 		if (something_read)
-		{ rawSyntaxError("Unexpected end of file");
+		{ if ( dotseen )		/* term.<EOF> */
+		  { if ( rb.here - rb.base == 1 )
+		      rawSyntaxError("Unexpected end of clause");
+		    ensure_space(' ');
+		    addToBuffer(EOS);
+		    return rb.base;
+		  }
+		  rawSyntaxError("Unexpected end of file");
 		}
 		if ( Sfpasteof(ioi) )
 		{ warning("Attempt to read past end-of-file");

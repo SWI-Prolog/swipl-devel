@@ -2,8 +2,41 @@
 			SWI-Prolog ChangeLog
 			====================
 
+Version 2.7.18
+==============
+
+  * WIN32: Removed the uxnt.dll library.  This library is now a static
+    library linked into libpl.lib, the SWI-Prolog kernel.
+
+  * FIXED: Handling of -p alias=path:...: order of the arguments doesn't
+    matter anymore and parsing of the path has been fixed.
+
+  * MODIFIED: load_files/2, `silent' option inherits to loads triggerred
+    from this one.
+
+  * FIXED: Garbage collector error, causing a crash if the local
+    and global stack together exceed 64 MB.  Now, they can each
+    be 64 MB and be allocated at arbitrary positions.
+
+  * CHANGED: Default editor command is now <editor> "<file>", using
+    double instead of single quotes.  This fixes problems on Windows
+    platforms.
+
+  * ADDED: clause_property(+Ref, ?erased), to support the debugger
+    reporting about running modified clauses.
+
+  * FIXED: current_functor(+Name, +Arity).  Reported by Stefan Wimmel.
+    Thanks.
+
 Version 2.7.17
 ==============
+
+  * MODIFIED: the `debug' argument to PL_open_query() now really stops
+    the debugger operating inside the called goal, also if an error
+    arrises.
+
+  * PORT: Sgi/Irix headers configuration and detection of alignment
+    restrictions on doubles.
 
   * FIXED: Better operator priority checking, making a :- b :- c illegal
     syntax, as it should be.  Also improved the warning issued.

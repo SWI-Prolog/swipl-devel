@@ -423,7 +423,8 @@ extern int errno;
 static int size_alignment;	/* Stack sizes must be aligned to this */
 static int base_alignment;	/* Stack bases must be aligned to this */
 
-#define MB (1024L * 1024L)	/* megabytes */
+#undef MB
+#define MB * (1024L * 1024L)
 
 static long
 align_size(long int x)
@@ -835,7 +836,7 @@ unmap(Stack s)
 }
 
 
-#define MAX_VIRTUAL_ALLOC (100 * MB)
+#define MAX_VIRTUAL_ALLOC (100 MB)
 #define SPECIFIC_INIT_STACK 1
 
 static void
@@ -1044,8 +1045,6 @@ of the page size.
 #ifdef FORCED_MALLOC_BASE
 #undef MMAP_MAX_ADDRESS
 #undef MMAP_MIN_ADDRESS
-#undef MB
-#define MB * 1024 * 1024
 #define MMAP_MAX_ADDRESS (FORCED_MALLOC_BASE + 64 MB)
 #define MMAP_MIN_ADDRESS (FORCED_MALLOC_BASE + 16 MB)
 #endif
@@ -1094,6 +1093,8 @@ initStacks(long local, long global, long trail, long argument)
 	   align_base(argument);
   
   large_size = ((space / large) / base_alignment) * base_alignment;
+  if ( large_size > 64 MB )
+    large_size = 64 MB;
   if ( large_size < STACK_MINIMUM )
     fatalError("Can't fit requested stack sizes in address space");
   DEBUG(1, Sdprintf("Large stacks are %ld\n", large_size));

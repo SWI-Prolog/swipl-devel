@@ -283,6 +283,14 @@ $undefined_procedure(Module, Name, Arity, fail) :-
 	$warn_undefined(Pred, Dwims),
 	trace.
 
+$calleventhook(Term) :-
+	(   notrace(user:prolog_event_hook(Term))
+	->  true
+	;   true
+	).
+
+:- $hide($calleventhook, 1).
+
 
 		/********************************
 		*        SYSTEM MESSAGES        *
@@ -716,6 +724,7 @@ $noload(changed, FullFile) :-
         time_file(FullFile, Modified),
         Modified @=< LoadTime, !.
 
+:- flag($load_silent, _, false).
 
 $load_file(Spec, Options) :-
 	statistics(heapused, OldHeap),
@@ -723,7 +732,9 @@ $load_file(Spec, Options) :-
  
 	$get_option(imports(Import), Options, all),
 	$get_option(must_be_module(IsModule), Options, false),
-	$get_option(silent(Silent), Options, false),
+	flag($load_silent, DefSilent, DefSilent),
+	$get_option(silent(Silent), Options, DefSilent),
+	flag($load_silent, _, Silent),
 	$get_option(if(If), Options, true),
 
         $strip_module(Spec, Module, File),
@@ -743,12 +754,15 @@ $load_file(Spec, Options) :-
 		fail
 	    ),
 
+	    $calleventhook(load_file(Absolute, start)),
 	    (   $consult_goal(Absolute, Goal),
 	        $apply(Goal, [Absolute, Module, Import, IsModule, Action, LM])
 	    ->  true
 	    ;   $warning('Failed to load file: ~w', Spec),
+		$calleventhook(load_file(Absolute, false)),
 		fail
 	    ),
+	    $calleventhook(load_file(Absolute, true)),
 
 	    (   Silent == false,
 		(flag($autoloading, 0, 0) ; flag($verbose_autoload, on, on))
@@ -764,7 +778,8 @@ $load_file(Spec, Options) :-
 			    TimeUsed, HeapUsed])
 	    ;   true
 	    )
-	).
+	),
+	flag($load_silent, _, DefSilent).
 
 
 $confirm_file(library(_), Absolute, Absolute) :- !.
