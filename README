@@ -1,6 +1,6 @@
 		    SWI-Prolog Distribution Directory
 
-** Last update: Tue Jan 26 13:57:32 1999 (3.2.0)
+** Last update: Thu Nov 11 1999 (3.3.0)
 
 AUTHOR
 ======
@@ -22,8 +22,6 @@ The SWI-Prolog source tree consists of the following directories:
 ./library	Prolog user's library
 ./include	Include files.  Mostly for handling foreign-code
 ./man		Manual (LaTeX)
-./lisp		GNU-Emacs Lisp sources for a better Prolog-mode
-		(See swi-prolog19.el for using Emacs-19)
 
 
 BUILDING SWI-Prolog
@@ -40,13 +38,17 @@ SWI-Prolog should compile using any Unix-type   system with 32 or larger
 (64) word-length and an ANSI-compliant C-compiler.
 
 If SWI-Prolog crashes during the installation,  the most likely cause is
-that  the  detection  of  mmap()   for  stack-memory  management  wasn't
-configured properly. If you are knowledgeable   in  mmap() issues, check
-src/test/mmap.c and src/pl-setup.c. Otherwise, run   configure using the
-option below to use malloc() based stacks.
+that the detection of mmap()  for   stack-memory  management or handling
+exception-based stack guarding is not configured   properly.  If you are
+knowledgeable in these issues, check src/test/mmap.c and src/pl-setup.c.
+Otherwise, run configure using the options below,   first  to get rid of
+exception-handling and second to  fall  back   to  malloc()  based stack
+management.
 
+	./configure --diable-segv-handling
 	./configure --disable-mapped-stacks
 
+Run `make clean && make' to recompile after reconfiguration.
 
 MS-Windows
 ----------
@@ -65,31 +67,23 @@ distribution to arrive at a properly configured system.
 GNU-EMACS INTERFACE
 ===================
 
-In the directory ./lisp, you'll  find   an  interface to GNU-EMACS.  The
-file README.SWI provides installation directives.    In  consists of the
-Quintus Prolog gnu-emacs interface with an additional file swi-prolog.el
-that redefines and adds some things.   See also the swi-prolog19.el file
-for using Emacs-19.
+The Prolog-mode of GNU-Emacs is  rather  poor.   Once  there  was a much
+better mode developed for  Quintus  which   was  addapted  for  use with
+SWI-Prolog by me. Unfortunately  this  died   in  Emacs-19.  If you have
+pointers to a properly  working  and   usable  Prolog  interface, please
+inform us.
 
 
 MODIFYING SWI-Prolog
 ====================
 
-You are free to modify SWI-Prolog under   the licence terms specified in
-the  file  LICENCE.  You  may  wish  the  other  users  can  share  your
-improvements.  For  code  to  be  accepted   as  part  of  the  official
-distribution, it should be written in the same  style as the rest of the
-SWI-Prolog sources. I do not claim this  style to be the best available,
-but I want the entire source to have a consistent style. Please document
-the modifications and if reasonably indicate  them using #if ... #endif.
-Please do not send `diff' files to me,   I probably do not have the same
-version of the sources, so complete   files,  with the changes indicated
-with #if ... #endif are easier to incorporate.
+You are free to modify SWI-Prolog under   the  GPL-2. As we also provide
+licenses for use with proprietary software,   your  changes will only be
+integrated into the base system if you grant us the copyright.
 
-If your change is accepted, you will  be propriately acknowledged in the
-distribution.
 
 PROLOG PROGRAMS
+===============
 
 Additions to the library and other stand alone Prolog programs have less
 strick conditions.  Add comments such that   other  users can understand

@@ -12,10 +12,10 @@ Prefix:		/usr
 BuildRoot:	/var/tmp/pl
 
 %description
-Edinburgh-style Prolog compiler including modules, autoload,
-libraries, Garbage-collector, stack-expandor, C-interface,
-GNU-readline and GNU-Emacs interface, very fast compiler,
-X11 interface using XPCE (http://swi.psy.uva.nl/projects/xpce/)
+ISO/Edinburgh-style Prolog compiler including modules, autoload, libraries,
+Garbage-collector, stack-expandor, C/C++-interface, GNU-readline interface,
+very fast compiler, X11 interface using XPCE
+(http://swi.psy.uva.nl/projects/xpce/)
 
 %prep
 %setup
@@ -34,7 +34,7 @@ cp README.bin ..
 
 
 %files
-%doc ChangeLog INSTALL INSTALL.notes LICENSE LSM PORTING
+%doc ChangeLog INSTALL INSTALL.notes COPYING LSM PORTING
 %doc README README.bin README.GUI
 %doc VERSION
 %attr(755,root,root)/usr/lib/pl-3.3.0/bin/*
@@ -52,20 +52,6 @@ cp README.bin ..
 %attr(-,root,root)/usr/bin/pl
 %attr(-,root,root)/usr/bin/plrc
 %attr(-,root,root)/usr/bin/plld
-%attr(-,root,root)/usr/bin/pl-bite
-
-%post
-cd $RPM_INSTALL_PREFIX/bin
-for f in pl plrc plld pl-bite; do
-    rm -f $f
-    ln -s $RPM_INSTALL_PREFIX/lib/pl-3.3.0/bin/i?86-linux/$f .
-done
-
-%postun
-cd $RPM_INSTALL_PREFIX/bin
-for f in pl plrc plld pl-bite; do
-    rm -f $f
-done
 
 %clean
 rm -rf $RPM_BUILD_ROOT
