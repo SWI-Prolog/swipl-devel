@@ -249,6 +249,7 @@ pl_set_feature(term_t key, term_t value)
   Symbol s;
   feature *f;
   Module m = MODULE_parse;
+  int rval = TRUE;
 
   PL_strip_module(key, &m, key);
   if ( !PL_get_atom(key, &k) )
@@ -332,7 +333,6 @@ pl_set_feature(term_t key, term_t value)
 
       if ( !PL_get_bool(value, &val) )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_bool, value);
-      f->value.a = (val ? ATOM_true : ATOM_false);
       if ( f->index > 0 )
       { unsigned long mask = 1L << (f->index-1);
 
@@ -360,7 +360,14 @@ pl_set_feature(term_t key, term_t value)
 	  _PL_char_types[(int)'`'] = BQ;
 	else
 	  _PL_char_types[(int)'`'] = SY;
+#ifdef O_PLMT
+      } else if ( k == ATOM_threads )
+      { if ( !(rval = enableThreads(val)) )
+	  break;			/* don't change value */
+#endif
       }
+					/* set the flag value */
+      f->value.a = (val ? ATOM_true : ATOM_false);
 
       break;
     }
@@ -376,10 +383,7 @@ pl_set_feature(term_t key, term_t value)
       { PL_register_atom(a);		/* so it will never be lost! */
 	LD->float_format = PL_atom_chars(a);
       } else if ( k == ATOM_double_quotes )
-      { if ( !setDoubleQuotes(a, &m->flags) )
-	{ UNLOCK();
-	  fail;
-	}
+      { rval = setDoubleQuotes(a, &m->flags);
       } else if ( k == ATOM_unknown )
       { if ( !setUnknown(a, &m->flags) )
 	{ UNLOCK();
@@ -392,7 +396,9 @@ pl_set_feature(term_t key, term_t value)
     { long i;
 
       if ( !PL_get_long(value, &i) )
-	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, value);
+      { rval = PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, value);
+	break;
+      }
       f->value.i = i;
 #ifdef O_ATOMGC
       if ( k == ATOM_agc_margin )
@@ -411,7 +417,7 @@ pl_set_feature(term_t key, term_t value)
   }
   UNLOCK();
 
-  succeed;
+  return rval;
 }
 
 
@@ -693,6 +699,8 @@ initFeatures()
 #endif
 #ifdef O_PLMT
   defFeature("threads",	FT_BOOL, TRUE, 0);	/* FF_READONLY? */
+#else
+  defFeature("threads",	FT_BOOL, FALSE|FF_READONLY, 0);
 #endif
 #ifdef ASSOCIATE_SRC
   defFeature("associate", FT_ATOM, ASSOCIATE_SRC);

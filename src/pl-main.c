@@ -793,6 +793,7 @@ properly on Linux. Don't bother with it.
   setupProlog();
 #ifdef O_PLMT
   aliasThread(PL_thread_self(), ATOM_main);
+  enableThreads(TRUE);
 #endif
   defFeature("resource_database", FT_ATOM|FF_READONLY, rcpath);
   initialiseForeign(GD->cmdline.argc, /* PL_initialise_hook() functions */

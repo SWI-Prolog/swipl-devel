@@ -245,6 +245,7 @@ typedef struct
 
   struct
   { struct _at_exit_goal *exit_goals;	/* Global thread_at_exit/1 goals */
+    int		    enabled;		/* threads are enabled */
 #ifdef WIN32
     HINSTANCE	    instance;		/* Win32 process instance */
 #endif

@@ -254,6 +254,36 @@ PL_atomic_dec(int *addr)
 
 
 		 /*******************************
+		 *     RUNTIME ENABLE/DISABLE	*
+		 *******************************/
+
+int
+enableThreads(int enable)
+{ if ( enable )
+  { GD->thread.enabled = TRUE;		/* print system message? */
+  } else
+  { LOCK();
+    if ( GD->statistics.threads_created -
+	 GD->statistics.threads_finished == 1 ) /* I am alone */
+    { GD->thread.enabled = FALSE;
+    } else
+    { term_t key = PL_new_term_ref();
+
+      PL_put_atom(key, ATOM_threads);
+
+      UNLOCK();
+      return PL_error(NULL, 0, "Active threads",
+		      ERR_PERMISSION,
+		      ATOM_modify, ATOM_flag, key);
+    }
+    UNLOCK();
+  }
+
+  succeed;
+}
+
+
+		 /*******************************
 		 *	 THREAD ALLOCATION	*
 		 *******************************/
 
