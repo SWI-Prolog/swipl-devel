@@ -1,6 +1,11 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: thread_get_message/1 (deleted all messages from queue if
+    the first was extracted).
+
+  * ADDED: message_to_string/2 for translating message-terms to text.
+
 VERSION 3.3.0 (release-12)
 ==========================
 
