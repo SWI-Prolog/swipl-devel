@@ -56,14 +56,16 @@ tv(Term, Attributes) :-
 	attribute(Attributes, view(V)),
 	if(Attributes, clear(true), send(V, clear)),
 	if(Attributes, open(true), send(V, open)),
-	if(Attributes, comment(Comment), send(V?frame, label, Comment)),
+	if(Attributes, comment(Comment), send(V, label, Comment)),
+	if(Attributes, source_object(Frag), send(V, source_object, Frag)),
 	get(V, text_buffer, TB),
 	pce_open(TB, write, Fd),
 	print_term(Term, [output(Fd)|Attributes]),
 	close(Fd),
 	send(V, caret, 0),
 	send(V, editable, @off),
-	send(V?text_cursor, displayed, @off).
+	send(V, show_options, Attributes).
+
 
 attribute(Attributes, A) :-
 	memberchk(A, Attributes).
@@ -75,8 +77,75 @@ if(_, _, _).
 
 :- pce_global(@view_term, new(term_viewer)).
 
-:- pce_begin_class(term_viewer, view,
+:- pce_begin_class(term_viewer, frame,
 		   "Pretty-print a Prolog term").
 
+initialise(TV) :->
+	send_super(TV, initialise),
+	send(TV, append, new(TD, dialog)),
+	send(new(view), below, TD),
+	send(TD, border, size(0,2)),
+	send(TD, append, new(M, menu(options, toggle,
+				     message(TV, update,
+					     @receiver?selection)))),
+	send(M, layout, horizontal),
+	send_list(M, append,
+		  [ portray,
+		    quoted
+		  ]).
+
+clear(TV) :->
+	get(TV, member, view, View),
+	send(View, clear).
+
+text_buffer(TV, TB:text_buffer) :<-
+	get(TV, member, view, View),
+	get(View, text_buffer, TB).
+
+caret(TV, Caret:int) :->
+	get(TV, member, view, View),
+	send(View, caret, Caret).
+
+editable(TV, E:bool) :->
+	get(TV, member, view, View),
+	send(View, editable, E).
+
+source_object(TV, Obj:object) :->
+	send(TV, delete_hypers, source),
+	new(_, hyper(TV, Obj, source, view)).
+
+update(TV, Options:chain) :->
+	make_options([ portray,
+		       quoted
+		     ], Options, OptionList),
+	pp(OptionList),
+	get(TV, hypered, source, Source),
+	get(Source, value, Term),
+	tv(Term,
+	   [ view(TV),
+	     clear(true)
+	   | OptionList
+	   ]).
+	
+make_options([], _, []).
+make_options([H0|T0], Selection, [H|T]) :-
+	(   send(Selection, member, H0)
+	->  V = true
+	;   V = false
+	),
+	H =.. [H0,V],
+	make_options(T0, Selection, T).
+
+show_options(V, Options:prolog) :->
+	get(V, member, dialog, D),
+	get(D, member, options, Menu),
+	(   member(Option, Options),
+	    functor(Option, Name, 1),
+	    get(Menu, member, Name, Item),
+	    arg(1, Option, Value),
+	    send(Item, selected, Value),
+	    fail
+	;   true
+	).
 
 :- pce_end_class.

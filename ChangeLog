@@ -1,6 +1,8 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: backtracking foreign predicates using integer handles (between/3).
+
   * FIXED: toldString() didn't unlock current output, notably causing
     warnings from background threads to lock I/O.  Sergey Tikhonov.
 

@@ -628,8 +628,9 @@ retry:
     Choice ch;
 
     if ( (result & FRG_REDO_MASK) == REDO_INT )
-      result >>= FRG_REDO_BITS;
-    else
+    {					/* must be a signed shift */
+      result = (word)(((long)result)>>FRG_REDO_BITS);
+    } else
       result &= ~FRG_REDO_MASK;
 
     fli_context = ffr->parent;

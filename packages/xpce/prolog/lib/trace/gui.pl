@@ -601,7 +601,7 @@ clear(B) :->
 	send_super(B, clear),
 	send(B, prolog_frame, @nil).
 
-details(B, Fragment:[fragment]) :->	% also handle a variable name!
+details(B, Fragment:[prolog_frame_var_fragment]) :->
 	"View details of the binding"::
 	get(B, prolog_frame, Frame),
 	(   Frame \== @nil
@@ -619,8 +619,7 @@ details(B, Fragment:[fragment]) :->	% also handle a variable name!
 	;   Frag = Fragment
 	),
 	get(Frag, var_name, VarName),
-	get(Frag, argn, ArgN),
-	prolog_frame_attribute(Frame, argument(ArgN), Value),
+	get(Frag, value, Value),
 	prolog_frame_attribute(Frame, level, Level),
 	prolog_frame_attribute(Frame, goal, Goal),
 	predicate_name(Goal, PredName),
@@ -630,7 +629,10 @@ details(B, Fragment:[fragment]) :->	% also handle a variable name!
 	),
 	sformat(Label, '~w ~w of frame at level ~d running ~w',
 		[ VarType, VarName, Level, PredName ]),
-	view_term(Value, [comment(Label)]).
+	view_term(Value,
+		  [ comment(Label),
+		    source_object(Frag)
+		  ]).
 
 on_click(B, Index:int) :->
 	"Select fragment clicked"::
@@ -665,9 +667,7 @@ append_binding(B, Names:prolog, Value:prolog, Fd:prolog) :->
 	    format(Fd, '\t= ~W~n', [Value, Options]),
 	    flush_output(Fd),
 	    get(TB, size, S1),
-	    new(Frag, fragment(TB, S0, S1-S0, frame)),
-	    send(Frag, attribute, var_name, VarName),
-	    send(Frag, attribute, argn, ArgN)
+	    new(_, prolog_frame_var_fragment(TB, S0, S1, VarName, ArgN))
 	).
 
 write_varnames(Fd, [N:_]) :- !,
@@ -676,5 +676,28 @@ write_varnames(Fd, [N:_|T]) :-
 	format(Fd, '~w = ', N),
 	write_varnames(Fd, T).
 
-:- pce_end_class.
+:- pce_end_class(prolog_bindings_view).
 
+
+:- pce_begin_class(prolog_frame_var_fragment, fragment,
+		   "Represent a variable in a frame").
+
+variable(var_name, name, get, "Name of displayed variable").
+variable(argn,	   int,  get, "Slot in frame").
+
+initialise(F, TB:text_buffer, From:int, To:int, Name:name, ArgN:int) :->
+	Len is To-From,
+	send_super(F, initialise, TB, From, Len, frame),
+	send(F, slot, var_name, Name),
+	send(F, slot, argn, ArgN).
+
+value(F, Value:prolog) :<-
+	"Get current value of the variable"::
+	get(F, text_buffer, TB),
+	get(TB?editors, head, Editor),
+	get(Editor, window, View),
+	get(View, prolog_frame, Frame), Frame \== @nil,
+	get(F, argn, ArgN),
+	prolog_frame_attribute(Frame, argument(ArgN), Value).
+	
+:- pce_end_class(prolog_frame_var_fragment).
