@@ -1,6 +1,20 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: pl.lsm (Linux Software Map Entry) to the source distribution
+
+  * INSTALL: Fixed `make install-version'.  Thanks to Joachim Katzer. 
+
+  * PORT: Removed accidental C++-style comment from pl-wam.c.  Thanks to
+    Joachim Katzer.
+
+  * INSTALL: rel-ln to avoid using grep -q (GNU-grep specific). Thanks to
+    Joachim Katzer. 
+
+  * FIXED: avoid call to win_registry_get_value/3 if this is not defined
+    (Unix version).  Otherwise check/0 reports the this predicate as
+    undefined.
+
 VERSION 3.3.3
 =============
 
