@@ -454,10 +454,17 @@ changedImageGraphical(Any obj, Int x, Int y, Int w, Int h)
 
       if ( instanceOfObject(d, ClassWindow) )
       { PceWindow sw = (PceWindow) d;
-	int cx = valInt(x) + valInt(gr->area->x),
-	    cy = valInt(y) + valInt(gr->area->y),
-	    cw = valInt(w),
-	    ch = valInt(h);
+	int cx, cy, cw, ch;
+
+	if ( isDefault(x) ) x = ZERO;
+	if ( isDefault(y) ) y = ZERO;
+	if ( isDefault(w) ) w = gr->area->w;
+	if ( isDefault(h) ) h = gr->area->h;
+
+	cx = valInt(x) + valInt(gr->area->x),
+	cy = valInt(y) + valInt(gr->area->y),
+	cw = valInt(w),
+	ch = valInt(h);
 
 	NormaliseArea(cx, cy, cw, ch);
 	cx += ox;
@@ -624,7 +631,15 @@ RedrawArea(Any obj, Area area)
   if ( notDefault(c) )
     oc = r_default_colour(c);
 
-  rval = qadSendv(gr, NAME_RedrawArea, 1, (Any *)&area);
+  if ( instanceOfObject(gr, ClassWindow) ) /* Must be quicker */
+  { PceWindow sw = (PceWindow) gr;
+
+    if ( !createdWindow(sw) )
+      updatePositionWindow(sw);
+
+    rval = RedrawAreaGraphical(sw, area);
+  } else
+    rval = qadSendv(gr, NAME_RedrawArea, 1, (Any *)&area);
 
   if ( oc )
     r_default_colour(oc);
@@ -2584,6 +2599,214 @@ drawPostScriptGraphical(Graphical gr)
   fail;
 }
 
+		 /*******************************
+		 *	       DRAW		*
+		 *******************************/
+
+status
+clipGraphical(Graphical gr, Area a)
+{ if ( isDefault(a) )
+    a = gr->area;
+
+  d_clip(valInt(a->x), valInt(a->y), valInt(a->w), valInt(a->h));
+
+  succeed;
+}
+
+
+status
+unclipGraphical(Graphical gr)
+{ d_clip_done();
+
+  succeed;
+}
+
+
+static status
+saveGraphicsStateGraphical(Graphical gr)
+{ g_save();
+
+  succeed;
+}
+
+
+static status
+restoreGraphicsStateGraphical(Graphical gr)
+{ g_restore();
+
+  succeed;
+}
+
+
+static status
+graphicsStateGraphical(Graphical gr,
+		       Int pen, Name texture,
+		       Colour colour, Colour background)
+{ if ( notDefault(pen) )
+    r_thickness(valInt(pen));
+  if ( notDefault(texture) )
+    r_dash(texture);
+  if ( notDefault(colour) )
+    r_colour(colour);
+  if ( notDefault(background) )
+    r_background(background);
+
+  succeed;
+}
+
+
+static status
+drawLineGraphical(Graphical gr, Int x1, Int y1, Int x2, Int y2)
+{ r_line(valInt(x1), valInt(y1), valInt(x2), valInt(y2));
+
+  succeed;
+}
+
+
+static status
+drawPolyGraphical(Graphical gr, Any points, Bool closed, Any fill)
+{ IPoint pts;
+  int npts = 0;
+
+  if ( instanceOfObject(points, ClassChain) )
+  { Chain ch = points;
+    Cell cell;
+
+    pts = alloca(sizeof(struct ipoint) * valInt(ch->size));
+    for_cell(cell, ch)
+    { Point pt = cell->value;
+
+      if ( instanceOfObject(pt, ClassPoint) )
+      {	pts[npts].x = valInt(pt->x);
+	pts[npts].y = valInt(pt->y);
+	npts++;
+      } else
+      { return errorPce(pt, NAME_unexpectedType, nameToType(NAME_point));
+      }
+    }
+  } else				/* vector */
+  { Vector vector = points;
+    Point pt;
+    
+    pts = alloca(sizeof(struct ipoint) * valInt(vector->size));
+
+    for_vector(vector, pt,
+	       { if ( instanceOfObject(pt, ClassPoint) )
+		 { pts[npts].x = valInt(pt->x);
+		   pts[npts].y = valInt(pt->y);
+		   npts++;
+		 } else
+		 { return errorPce(pt, NAME_unexpectedType,
+				   nameToType(NAME_point));
+		 }
+	       });
+  }
+
+  r_polygon(pts, npts, closed == ON);
+  if ( notDefault(fill) && notNil(fill) )
+  { r_fillpattern(fill);
+    r_fill_polygon(pts, npts);
+  }
+
+  succeed;
+}
+
+
+static status
+drawArcGraphical(Graphical gr,		/* has to handle mode */
+		 Int x, Int y, Int w, Int h,
+		 Real start, Real end, Any fill)
+{ int s = (isDefault(start) ? 0      : rfloat(start->value * 64.0));
+  int e = (isDefault(end)   ? 360*64 : rfloat(end->value * 64.0));
+  
+  r_arc(valInt(x), valInt(y), valInt(w), valInt(h), s, e, fill);
+
+  succeed;
+}
+
+
+static status
+drawBoxGraphical(Graphical gr,
+		 Int x, Int y, Int w, Int h,
+		 Int r, Any fill, Bool up)
+{ int radius = (isDefault(r) ? 0 : valInt(r));
+  Any fillp;
+  Elevation e;
+
+  if ( isNil(fill) || isDefault(fill) )
+  { e = NIL;
+    fillp = NIL;
+  } else if ( instanceOfObject(fill, ClassElevation) )
+  { e = fill;
+    fillp = NIL;
+  } else
+  { e = NIL;
+    fillp = fill;
+  }
+
+  if ( isNil(e) )
+    r_box(valInt(x), valInt(y), valInt(w), valInt(h), radius, fillp);
+  else
+    r_3d_box(valInt(x), valInt(y), valInt(w), valInt(h), radius, e, up != OFF);
+
+  succeed;
+}
+		 
+
+static status
+drawFillGraphical(Graphical gr,
+		  Int x, Int y, Int w, Int h,
+		  Any fill)
+{ int ax = valInt(x), ay = valInt(y), aw = valInt(w), ah = valInt(h);
+
+  if ( isNil(fill) )
+    r_clear(ax, ay, aw, ah);
+  else if ( isDefault(fill) )
+    r_fill(ax, ay, aw, ah, fill);
+
+  succeed;
+}
+
+
+static status
+drawImageGraphical(Graphical gr, Image img,
+		   Int x, Int y,
+		   Int sx, Int sy, Int sw, Int sh, Bool transparent)
+{ if ( isDefault(transparent) )
+    transparent = ON;
+
+  r_image(img,
+	  valInt(x), valInt(y),
+	  isDefault(sx) ? 0 : valInt(sx),
+	  isDefault(sy) ? 0 : valInt(sy),
+	  isDefault(sw) ? valInt(img->size->w) : valInt(sw),
+	  isDefault(sh) ? valInt(img->size->w) : valInt(sh),
+	  transparent);
+
+  succeed;
+}
+
+static status
+drawTextGraphical(Graphical gr, CharArray txt, FontObj font,
+		  Int x, Int y, Int w, Int h,
+		  Name hadjust, Name vadjust)
+{ if ( isDefault(w) && isDefault(h) )
+  { s_print(&txt->data, valInt(x), valInt(y), font);
+  } else
+  { if ( isDefault(hadjust) )
+      hadjust = NAME_left;
+    if ( isDefault(vadjust) )
+      vadjust = NAME_top;
+
+    str_string(&txt->data, font,
+	       valInt(x), valInt(y), valInt(w), valInt(h), 
+	       hadjust, vadjust);
+  }
+
+  succeed;
+}
+
+
 
 status
 makeClassGraphical(Class class)
@@ -2889,6 +3112,59 @@ makeClassGraphical(Class class)
   sendMethod(class, NAME_DrawPostScript, NAME_postscript, 0,
 	     "Create PostScript using intermediate image object",
 	     drawPostScriptGraphical);
+
+  sendMethod(class, NAME_clip, NAME_draw, 1, "[area]",
+	     "Clip subsequent drawing actions to area",
+	     clipGraphical);
+  sendMethod(class, NAME_unclip, NAME_draw, 0,
+	     "Undo previous ->clip",
+	     unclipGraphical);
+  sendMethod(class, NAME_saveGraphicsState, NAME_draw, 0,
+	     "Save current pen, texture, colours and font",
+	     saveGraphicsStateGraphical);
+  sendMethod(class, NAME_restoreGraphicsState, NAME_draw, 0,
+	     "Restore saved pen, texture, colours and font",
+	     restoreGraphicsStateGraphical);
+  sendMethod(class, NAME_graphicsState, NAME_draw, 4,
+	     "pen=[0..]", "texture=[texture_name]",
+	     "colour=[colour|pixmap]", "background=[colour|pixmap]",
+	     "Modify the graphics state",
+	     graphicsStateGraphical);
+
+  sendMethod(class, NAME_drawLine, NAME_draw, 4,
+	     "x1=[int]", "y1=[int]", "x2=[int]", "y2=[int]",
+	     "Draw line segment from (X1,Y1) to (X2,Y2)",
+	     drawLineGraphical);
+  sendMethod(class, NAME_drawBox, NAME_draw, 7,
+	     "x=int", "y=int", "w=int", "h=int",
+	     "radius=[0..]", "fill=[image|colour|elevation]", "up=[bool]",
+	     "Draw rectangular (rounded) box",
+	     drawBoxGraphical);
+  sendMethod(class, NAME_drawText, NAME_draw, 8,
+	     "string=char_array", "font",
+	     "x=int", "y=int", "w=[0..]", "h=[0..]",
+	     "hadjust=[{left,center,right}]", "vadjust=[{top,center,bottom}]",
+	     "Draw text-string",
+	     drawTextGraphical);
+  sendMethod(class, NAME_drawFill, NAME_draw, 5,
+	     "x=int", "y=int", "w=int", "h=int", "fill=[colour|image]*",
+	     "Fill rectangle with specified pattern",
+	     drawFillGraphical);
+  sendMethod(class, NAME_drawPoly, NAME_draw, 3,
+	     "points=chain|vector", "closed=[bool]", "fill=[colour|image]*",
+	     "Draw/fill a polyfon",
+	     drawPolyGraphical);
+  sendMethod(class, NAME_drawImage, NAME_draw, 8,
+	     "image", "x=int", "y=int",
+	     "sx=[int]", "sy=[int]", "sw=[int]", "sh=[int]",
+	     "transparent=bool",
+	     "Draw a bitmap or pixmap image",
+	     drawImageGraphical);
+  sendMethod(class, NAME_drawArc, NAME_draw, 7,
+	     "x=int", "y=int", "w=int", "h=int",
+	     "angle1=[real]", "angle2=[real]", "fill=[colour|image]*",
+	     "Draw a ellipse-part",
+	     drawArcGraphical);
 
   getMethod(class, NAME_absolutePosition, NAME_area, "point", 1, "[device]",
 	    "Get position relative to device (or window)",

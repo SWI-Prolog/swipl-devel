@@ -618,7 +618,7 @@ repeatScrollBar(ScrollBar s)
 #else
         Timer tmr = scrollBarRepeatTimer();
 
-	intervalTimer(tmr, CtoReal(ct));
+	intervalTimer(tmr, CtoReal((float)ct / 1000.0));
 	statusTimer(tmr, NAME_once);
 #endif
       } else

@@ -10,8 +10,6 @@
 #include <h/kernel.h>
 #include <h/graphics.h>
 
-static void	clipDevice(Device, Area);
-static void	unclipDevice(Device);
 static status	updateConnectionsDevice(Device dev, Int level);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -571,7 +569,7 @@ RedrawAreaDevice(Device dev, Area a)
   { if ( !intersectionArea(a, dev->clip_area) )
       succeed;
 
-    clipDevice(dev, a);
+    clipGraphical((Graphical)dev, a);
   }
 
   for_cell(cell, dev->graphicals)
@@ -582,7 +580,7 @@ RedrawAreaDevice(Device dev, Area a)
   }
 
   if ( notNil(dev->clip_area) )
-    unclipDevice(dev);
+    unclipGraphical((Graphical)dev);
 
   r_offset(-ox, -oy);
   assign(a, x, ax);
@@ -593,17 +591,6 @@ RedrawAreaDevice(Device dev, Area a)
   return RedrawAreaGraphical(dev, a);
 }
 
-
-static void
-clipDevice(Device dev, Area a)
-{ d_clip(valInt(a->x), valInt(a->y), valInt(a->w), valInt(a->h));
-}
-
-
-static void
-unclipDevice(Device dev)
-{ d_clip_done();
-}
 
 
 		/********************************

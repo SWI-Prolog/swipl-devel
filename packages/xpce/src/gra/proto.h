@@ -170,6 +170,8 @@ status		pointerGraphical(Graphical gr, Point pos);
 Any		getMasterGraphical(Graphical gr);
 status		nameGraphical(Graphical gr, Name name);
 status		initialiseNewSlotGraphical(Graphical gr, Variable new);
+status		clipGraphical(Graphical gr, Area a);
+status		unclipGraphical(Graphical gr);
 status		makeClassGraphical(Class class);
 
 /* gra/handle.c */
@@ -298,3 +300,6 @@ status		makeClassPixmap(Class class);
 /* gra/elevation.c */
 Elevation	getModifyElevation(Elevation e, Name att, Any val);
 status		makeClassElevation(Class class);
+
+/* gra/pen.c */
+status		makeClassPen(Class class);

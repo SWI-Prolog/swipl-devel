@@ -48,6 +48,7 @@ initialiseListBrowser(ListBrowser lb, Dict dict, Int w, Int h)
 
   initialiseDevice((Device) lb);
 
+  assign(lb,   pen,		      getResourceValueObject(lb, NAME_pen));
   assign(lb,   dict,                  dict);
   assign(dict, browser,               lb);
   assign(lb,   status, 		      NAME_inactive);
@@ -1619,6 +1620,8 @@ makeClassListBrowser(Class class)
 		  "@default", "Style for incremental search");
   attach_resource(class, "background", "colour|pixmap", "white",
 		  "Colour/fill pattern of the background");
+  attach_resource(class, "pen", "0..", "0",
+		  "Thickness of box around list_browser");
 
   succeed;
 }

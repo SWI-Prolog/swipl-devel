@@ -543,37 +543,41 @@ geometryPath(Path p, Int x, Int y, Int w, Int h)
   oh = p->area->h;
 
   CHANGING_GRAPHICAL(p,
-	setArea(p->area, x, y, w, h);
-	ax = valInt(p->area->x);
-	ay = valInt(p->area->y);
- 	ooffx = valInt(p->offset->x); 
- 	ooffy = valInt(p->offset->y); 
- 	offx = ooffx + ax - ox;
- 	offy = ooffy + ay - oy;
-	xf = (float) valInt(p->area->w) / (float) valInt(ow);
-	yf = (float) valInt(p->area->h) / (float) valInt(oh);
-
- 	assign(p->offset, x, toInt(offx));
- 	assign(p->offset, y, toInt(offy));
-
-	for_cell(cell, p->points)
-	{ Point pt = cell->value;
-	  int nx = ax + rfloat((float) (valInt(pt->x)-ox+ooffx) * xf) - offx;
-	  int ny = ay + rfloat((float) (valInt(pt->y)-oy+ooffy) * yf) - offy;
-    
-	  assign(pt, x, toInt(nx));
-	  assign(pt, y, toInt(ny));
-	}
-
-	if ( p->kind == NAME_smooth && notNil(p->interpolation) )
-	{ if ( xf == 1.0 && yf == 1.0 )		     
-	  { Int dx = toInt(ax - ox - (offx - ooffx));
-	    Int dy = toInt(ay - oy - (offy - ooffy));
-
-	    for_cell(cell, p->interpolation)
-	      offsetPoint(cell->value, dx, dy);
-	  } else
-	    smooth_path(p);
+        if ( ow == ZERO || oh == ZERO )	/* empty path */
+	{ setArea(p->area, x, y, ow, oh);
+	} else
+	{ setArea(p->area, x, y, w, h);
+	  ax = valInt(p->area->x);
+	  ay = valInt(p->area->y);
+	  ooffx = valInt(p->offset->x); 
+	  ooffy = valInt(p->offset->y); 
+	  offx = ooffx + ax - ox;
+	  offy = ooffy + ay - oy;
+	  xf = (float) valInt(p->area->w) / (float) valInt(ow);
+	  yf = (float) valInt(p->area->h) / (float) valInt(oh);
+  
+	  assign(p->offset, x, toInt(offx));
+	  assign(p->offset, y, toInt(offy));
+  
+	  for_cell(cell, p->points)
+	  { Point pt = cell->value;
+	    int nx = ax + rfloat((float) (valInt(pt->x)-ox+ooffx) * xf) - offx;
+	    int ny = ay + rfloat((float) (valInt(pt->y)-oy+ooffy) * yf) - offy;
+      
+	    assign(pt, x, toInt(nx));
+	    assign(pt, y, toInt(ny));
+	  }
+  
+	  if ( p->kind == NAME_smooth && notNil(p->interpolation) )
+	  { if ( xf == 1.0 && yf == 1.0 )		     
+	    { Int dx = toInt(ax - ox - (offx - ooffx));
+	      Int dy = toInt(ay - oy - (offy - ooffy));
+  
+	      for_cell(cell, p->interpolation)
+		offsetPoint(cell->value, dx, dy);
+	    } else
+	      smooth_path(p);
+	  }
 	});
 
   succeed;
@@ -701,7 +705,7 @@ getSegmentPath(Path p, Point pos)
     } else
     { Point p1 = cell->value;
       int   d1 = valInt(getDistancePoint(p1, pos));
-      int   dt = min(1, valInt(getDistancePoint(p0, p1)));
+      int   dt = max(1, valInt(getDistancePoint(p0, p1)));
       int    h = (1000 * (d0 + d1 - dt)) / dt;
 
       DEBUG(NAME_path,
