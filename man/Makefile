@@ -102,7 +102,7 @@ distclean:	clean
 		make -C$(DVITOTTY-HOME) distclean
 
 $(PDF):		doc.tex $(TEXFILES) doc.bbl
-		./runtex --pdf doc
+		env TEXINPUTS=lib:$$TEXINPUTS ./runtex --pdf doc
 		mv doc.pdf $@
 
 man:		doc.tex $(TEXFILES) doc.bbl doc.ind
@@ -133,7 +133,7 @@ $(ONLINE):	online.dvi $(DVITOTTY)
 		sed 's/\(.\)_/_\1/g' > $(ONLINE)
 
 online.dvi:	online.tex $(TEXFILES) online.bbl
-		./runtex online
+		env TEXINPUTS=lib:$$TEXINPUTS ./runtex online
 
 online.doc:	main.doc
 		cp main.doc main.h
