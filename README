@@ -33,11 +33,11 @@ Using gcc
 The C-compiler used for some architecture is defined in md-<machine.h>
 using the macro M_CC
 
-When available,   please use the GNU-C  compiler  gcc.  SWI-Prolog has
-been developed  with this compiler.    Donot use version  2.0, as this
-compiler crashes on  pl-wam.c.  Version  2.1 is ok.   SWI-Prolog makes
-use  of  GCC-2's  facilities to deal  with  label addresses, improving
-performance with about 10%.
+When available, please use the GNU-C compiler gcc.  SWI-Prolog has been
+developed with this compiler.  Do not use version 2.0, as this compiler
+crashes on pl-wam.c. Version 2.1 is ok.  SWI-Prolog makes use of GCC-2's
+facilities to deal with label addresses, improving performance with
+about 10%.
 
 
 Building
@@ -50,7 +50,7 @@ of architectures run SETUP without arguments.
 Next, edit config.h:
 
 M_SYSTEMHOME	absolute path pointing to this directory
-M_DEFSTARTUP	Personal startup file basename
+M_DEFSTARTUP	Personal startup file base-name
 M_BINDIR	Installation directory for executables
 M_PROLOG	Name of the resulting program
 
