@@ -26,8 +26,9 @@ initialiseGrBox(GrBox grb, Graphical gr,
   assign(grb, alignment, align);
   assign(grb, rubber,    rubber);
 
-  computeGrBox(grb);
-  assign(grb, width, gr->area->w);	/* TBD */
+  ComputeGraphical(gr);
+  assign(grb, width, gr->area->w);
+  computeAscentDescentGrBox(grb);
 
   succeed;
 }
@@ -46,7 +47,15 @@ computeGrBox(GrBox grb)
        ( grb->rubber->stretch == ZERO &&
 	 grb->rubber->shrink  == ZERO 
        ) )
+  { DEBUG(NAME_grbox,
+	  Cprintf("%s width %d --> %d\n",
+		  pp(grb), valInt(grb->width), valInt(gr->area->w)));
     assign(grb, width, gr->area->w);	/* TBD */
+  } else
+  { DEBUG(NAME_grbox,
+	  Cprintf("%s IGNORING width %d --> %d\n",
+		  pp(grb), valInt(grb->width), valInt(gr->area->w)));
+  }
   computeAscentDescentGrBox(grb);
 
   succeed;

@@ -1034,26 +1034,29 @@ static status
 geometryParBox(ParBox pb, Int x, Int y, Int w, Int h)
 { Area a = pb->area;
   Point o = pb->offset;
+  int chw;
 
   if ( isDefault(x) ) x = a->x;
   if ( isDefault(y) ) y = a->y;
   if ( isDefault(w) ) w = a->w;
+  chw = (w != a->w);
 
-  if ( x != a->x || y != a->y || w != a->w )
+  if ( x != a->x || y != a->y || chw )
   { Int dx = sub(x, a->x);
     Int dy = sub(y, a->y);
 
     CHANGING_GRAPHICAL(pb,
-		       assign(o, x, add(o->x, dx));
-		       assign(o, y, add(o->y, dy));
+		       { int lw = valInt(x)+valInt(w)-valInt(o->x);
 
-		       assign(a, w, w);
-		       assign(a, x, x);
-		       assign(a, y, y);
-		       assign(pb, line_width,
-			      toInt(valInt(a->x)+valInt(a->w)-valInt(o->x)));
-		       assign(pb, request_compute, DEFAULT);
-		       computeParBox(pb));
+			 assign(o, x, add(o->x, dx));
+			 assign(o, y, add(o->y, dy));
+
+			 assign(a, w, w);
+			 assign(a, x, x);
+			 assign(a, y, y);
+			 send(pb, NAME_lineWidth, toInt(lw), 0);
+			 computeParBox(pb); /* update ->height */
+		       });
 
     updateConnectionsDevice((Device) pb, sub(pb->level, ONE));
   }
@@ -1070,7 +1073,24 @@ alignmentParBox(ParBox pb, Name alignment)
 
 static status
 lineWidthParBox(ParBox pb, Int w)
-{ return assignGraphical(pb, NAME_lineWidth, w);
+{ if ( pb->line_width != w )
+  { Cell cell;
+
+    assign(pb, line_width, w);
+    
+    for_cell(cell, pb->graphicals)
+    { Any av[2];
+      
+      av[0] = w;
+      av[1] = DEFAULT;
+
+      qadSendv(cell->value, NAME_containerSizeChanged, 2, av);
+    }
+
+    requestComputeGraphical(pb, DEFAULT);
+  }
+
+  succeed;
 }
 
 
