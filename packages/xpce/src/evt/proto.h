@@ -22,6 +22,7 @@ status		hasModifierEvent(EventObj ev, Modifier m);
 Name		getMulticlickEvent(EventObj e);
 Int		getClickTimeEvent(EventObj e);
 Int		getClickDisplacementEvent(EventObj e);
+status		windowEvent(EventObj ev, PceWindow sw);
 status		get_xy_event(EventObj ev, Any obj, Bool area, Int *rx, Int *ry);
 Point		getPositionEvent(EventObj ev, Any obj);
 Point		getAreaPositionEvent(EventObj ev, Graphical gr);
@@ -49,6 +50,7 @@ status		makeClassEventTree(Class class);
 status		initialiseGesture(Gesture g, Name button, Modifier modifier);
 status		eventGesture(Any obj, EventObj ev);
 status		cancelGesture(Gesture g, EventObj ev);
+status		restrictAreaEvent(EventObj ev, Graphical gr);
 status		makeClassGesture(Class class);
 
 /* ../src/evt/handler.c */
@@ -84,3 +86,6 @@ status		makeClassResizeOutlineGesture(Class class);
 
 /* ../src/evt/edittextgest.c */
 status		makeClassEditTextGesture(Class class);
+
+/* ../src/evt/browserselgesture.c */
+status		makeClassBrowserSelectGesture(Class class);

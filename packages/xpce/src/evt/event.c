@@ -18,12 +18,6 @@ forwards void init_event_tree(void);
 
 extern EventNodeObj getNodeEventTree(EventTreeObj t, Any value);
 
-					/* buttons bit mask */
-#define CLICK_TYPE_mask		(0xC0)
-#define CLICK_TYPE_single	(0x40)
-#define CLICK_TYPE_double	(0x80)
-#define CLICK_TYPE_triple	(0xC0)
-
 #define TOINT(x) x
 
 static Int 	 last_buttons     = TOINT(ZERO); /* defaults for next event */
@@ -88,14 +82,23 @@ initialiseEvent(EventObj e, Name id, Any window,
 				   t, last_down_time, px, last_down_x,
 				   py, last_down_y));
 
-    if ( (t - last_down_time) < multi_click_time &&
-	 abs(last_down_x - px) <= multi_click_diff &&
-	 abs(last_down_y - py) <= multi_click_diff &&
-	 (valInt(last_down_bts)&BUTTON_mask) == (valInt(bts)&BUTTON_mask) &&
-	 last_window == window )
+    if ( (valInt(e->buttons) & CLICK_TYPE_mask) == CLICK_TYPE_double )
     { switch( last_click_type )
       { case CLICK_TYPE_single:	clt = CLICK_TYPE_double; break;
 	case CLICK_TYPE_double:	clt = CLICK_TYPE_triple; break;
+	default:		clt = CLICK_TYPE_single; break;
+      }
+      e->buttons = toInt(valInt(e->buttons) & ~CLICK_TYPE_mask);
+    } else
+    { if ( (t - last_down_time) < multi_click_time &&
+	   abs(last_down_x - px) <= multi_click_diff &&
+	   abs(last_down_y - py) <= multi_click_diff &&
+	   (valInt(last_down_bts)&BUTTON_mask) == (valInt(bts)&BUTTON_mask) &&
+	   last_window == window )
+      { switch( last_click_type )
+	{ case CLICK_TYPE_single:	clt = CLICK_TYPE_double; break;
+	  case CLICK_TYPE_double:	clt = CLICK_TYPE_triple; break;
+	}
       }
     }
 
@@ -378,6 +381,21 @@ getClickDisplacementEvent(EventObj e)
   int dy = valInt(e->y) - last_down_y;
     
   answer(toInt(isqrt(dx*dx + dy*dy)));
+}
+
+
+status
+windowEvent(EventObj ev, PceWindow sw)
+{ if ( ev->window != sw )
+  { int x, y;
+
+    offset_windows(sw, ev->window, &x, &y);
+    assign(ev, x, toInt(valInt(ev->x) - x));
+    assign(ev, y, toInt(valInt(ev->y) - y));
+    assign(ev, window, sw);
+  }
+
+  succeed;
 }
 
 
@@ -843,6 +861,8 @@ ClassDecl(event_decls,
 status
 makeClassEvent(Class class)
 { declareClass(class, &event_decls);
+  cloneStyleVariableClass(class, NAME_receiver, NAME_reference);
+  cloneStyleVariableClass(class, NAME_window,   NAME_reference);
   init_event_tree();
 
   succeed;
