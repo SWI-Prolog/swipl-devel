@@ -1,3 +1,7 @@
+Sep 11, 2003
+
+  * ENHANCED: Duplicate handling
+
 Sep 10, 2003
 
   * FIXED: Undo redo administration in rdf_edit.pl

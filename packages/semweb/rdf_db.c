@@ -66,6 +66,7 @@ static atom_t	ATOM_subPropertyOf;
 
 #define MATCH_EXACT 		0x1	/* exact triple match */
 #define MATCH_SUBPROPERTY	0x2	/* Use subPropertyOf relations */
+#define MATCH_SRC		0x4	/* Match source location */
 
 static int match(int how, atom_t search, atom_t label);
 static int update_duplicates_add(triple *t);
@@ -744,10 +745,12 @@ match_triples(triple *t, triple *p, unsigned flags)
   }
   if ( p->objtype && t->objtype != p->objtype )
     return FALSE;
-  if ( p->source && t->source != p->source )
-    return FALSE;
-  if ( p->line && t->line != p->line )
-    return FALSE;
+  if ( flags & MATCH_SRC )
+  { if ( p->source && t->source != p->source )
+      return FALSE;
+    if ( p->line && t->line != p->line )
+      return FALSE;
+  }
 					/* last; may be expensive */
   if ( p->predicate && t->predicate != p->predicate )
   { if ( (flags & MATCH_SUBPROPERTY) )
@@ -1522,6 +1525,9 @@ rdf(term_t subject, term_t predicate, term_t object,
 { unsigned flags = realpred ? MATCH_SUBPROPERTY : MATCH_EXACT;
   term_t retpred = realpred ? realpred : predicate;
 
+  if ( src )
+    flags |= MATCH_SRC;
+
   switch(PL_foreign_control(h))
   { case PL_FIRST_CALL:
     { triple t, *p;
@@ -1539,7 +1545,10 @@ rdf(term_t subject, term_t predicate, term_t object,
 	    PL_unify(predicate, retpred);
 
 	  for(p=p->next[t.indexed]; p; p = p->next[t.indexed])
-	  { if ( match_triples(p, &t, flags) )
+	  { if ( p->is_duplicate && !src )
+	      continue;
+
+	    if ( match_triples(p, &t, flags) )
 	    { t.next[0] = p;
 	      
 	      active_queries++;
@@ -1557,7 +1566,10 @@ rdf(term_t subject, term_t predicate, term_t object,
 
       p = t->next[0];
       for( ; p; p = p->next[t->indexed])
-      { if ( match_triples(p, t, flags) )
+      { if ( p->is_duplicate && !src )
+	  continue;
+
+	if ( match_triples(p, t, flags) )
 	{ unify_triple(subject, retpred, object, src, p);
 	  if ( realpred && PL_is_variable(predicate) )
 	    PL_unify(predicate, retpred);
@@ -1708,7 +1720,7 @@ rdf_retractall4(term_t subject, term_t predicate, term_t object, term_t src)
   update_hash();
   p = table[t.indexed][triple_hash(&t, t.indexed)];
   for( ; p; p = p->next[t.indexed])
-  { if ( match_triples(p, &t, MATCH_EXACT) )
+  { if ( match_triples(p, &t, MATCH_EXACT|MATCH_SRC) )
     { erase_triple(p);
       erased++;
     }

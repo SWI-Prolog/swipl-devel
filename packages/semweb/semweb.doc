@@ -142,11 +142,16 @@ For querying purposes, \arg{Object} can be of the form
 	    indexed on \arg{Object}.
     \end{description}
 
+Backtracking never returns duplicate triples. Duplicates can be
+retrieved using rdf/4.
+
     \predicate{rdf}{4}{?Subject, ?Predicate, ?Object, ?Source}
 As rdf/3 but in addition return the source-location of the triple.  The
 source is either a plain atom or a term of the format
 \infixterm{:}{Atom}{Integer} where \arg{Atom} is intended to be used as
 filename or URL and \arg{Integer} for representing the line-number.
+Unlike rdf/3, this predicate does not remove duplicates from the result
+set.
 
     \predicate{rdf_has}{4}{?Subject, ?Predicate, ?Object, -TriplePred}
 This query exploits the RDFS \const{subPropertyOf} relation.  It 
@@ -166,6 +171,9 @@ sub-property thereof.%
 subclasses(Class, SubClasses) :-
 	findall(S, rdf_has(S, rdfs:subClassOf, Class), SubClasses).
 \end{code}
+
+Note that rdf_has/4 and rdf_has/3 can return duplicate answers if
+they use a different \arg{TriplePred}.
 
     \predicate{rdf_has}{3}{?Subject, ?Predicate, ?Object}
 Same as \term{rdf_has}{Subject, Predicate, Object, _}.
