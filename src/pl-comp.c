@@ -2379,6 +2379,22 @@ unify_definition(term_t head, Definition def, term_t thehead, int how)
 }
 
 
+static int
+unify_head(term_t h, term_t d)
+{ if ( !PL_unify(h, d) )
+  { term_t h1 = PL_new_term_ref();
+    term_t d1 = PL_new_term_ref();
+    Module m = NULL;
+
+    PL_strip_module(h, &m, h1);
+    PL_strip_module(d, &m, d1);
+
+    return PL_unify(h1, d1);
+  } else
+    return TRUE;
+}
+
+
 word
 pl_clause4(term_t head, term_t body, term_t ref, term_t bindings, word ctx)
 { Procedure proc;
@@ -2409,7 +2425,7 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings, word ctx)
 	  if ( !unify_definition(head, def, tmp, 0) )
 	    fail;
 	  get_head_and_body_clause(term, h, b, NULL);
-	  if ( PL_unify(tmp, h) && PL_unify(body, b) )
+	  if ( unify_head(tmp, h) && PL_unify(body, b) )
 	    succeed;
 	  fail;
 	}
@@ -2467,7 +2483,7 @@ pl_clause4(term_t head, term_t body, term_t ref, term_t bindings, word ctx)
   while(cref)
   { if ( decompile(cref->clause, term, bindings) )
     { get_head_and_body_clause(term, h, b, NULL);
-      if ( PL_unify(head, h) &&
+      if ( unify_head(head, h) &&
 	   PL_unify(b, body) &&
 	   (!ref || PL_unify_pointer(ref, cref->clause)) )
       { if ( !next )
