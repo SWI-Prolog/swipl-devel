@@ -55,6 +55,7 @@ parse_atom(Atom, Term) :-
 	open_memory_file(MemFile, read, Stream),
 	new_sgml_parser(Parser, []),
 	set_sgml_parser(Parser, dialect(xmlns)),
+	set_sgml_parser(Parser, space(sgml)),
 	sgml_parse(Parser,
 		   [ source(Stream),
 		     document(Term)
