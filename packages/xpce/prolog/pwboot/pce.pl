@@ -18,6 +18,8 @@
 
 	  , object/1, object/2
 
+	  , pce_open/3
+
 	  , pce_global/2
 	  , pce_autoload/2
 	  , pce_autoload_all/0

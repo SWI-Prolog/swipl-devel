@@ -2,11 +2,21 @@
 #  Makefile to make a release. Requires GNU make to execute
 #
 
-BIN=sun4-4
-SUNOS=SUNOS5
+# QUINTUS binary identifier: `machine`
+# To change PWVERSION, also modify pwversion/1 in pce_qp.pl!
 
+BIN=sun4-5
+PWVERSION=3.1
 QPC=qpc
 QLD=qld
+
+PCEMAJOR=4
+PCEMINOR=9
+PCEPATCH=0
+PCEBINDIR=solaris
+
+SO=so
+
 CP=cp -p
 LN=ln -s
 
@@ -18,8 +28,7 @@ CDEBUGFLAGS=
 #DELFLAGS = 
 #CDEBUGFLAGS= -g
 
-PCEHOME=../../prowindows3.0
-#PCEHOME=/q/ptg3/RELEASE/prowindows3.0
+PCEHOME=../../prowindows$(PWVERSION)
 PCEHLP=$(PCEHOME)/appl-help
 PCELIB=$(PCEHOME)/library
 PCEDEMO=$(PCEHOME)/demo
@@ -38,10 +47,12 @@ PCESHARE=	pce_editor.pl \
 		pce_expand.pl \
 		pce_global.pl \
 		pce_operator.pl \
+		pce_accelerator.pl \
 		pce_autoload.pl
 
 
 PCEQOFS=	pce_boot.qof \
+		pce_qp.qof \
 		pce_principal.qof \
 		pce_error.qof \
 		pce_autoload.qof \
@@ -49,14 +60,19 @@ PCEQOFS=	pce_boot.qof \
 		pce_realise.qof \
 		pce_expansion.qof \
 		pce_operator.qof \
+		pce_accelerator.qof \
 		pce_editor.qof \
 		pce_utils.qof \
 		require.qof
 
 OBJS=		../../quintus/src/$(BIN)/libpce.so
 
+BINFILES=	libpce.$(SO) \
+		libXPCE.a libXPCEmain.a
+#		libXPCE.$(SO) libXPCE.$(SO).$(PCEMAJOR) \
+#		libXPCE.$(SO).$(PCEMAJOR).$(PCEMINOR).$(PCEPATCH)
+
 BOOTQOFS=	pce_qpc.qof \
-		prowindows.qof \
 		qp_pce.qof \
 		pce.qof
 BOOTPLS=	pce_qux.pl \
@@ -96,12 +112,15 @@ LIBPLS=		pce.pl \
 		pce_drag_and_drop_dict_item.pl \
 		dragdict.pl \
 		pce_require.pl \
-		dialog.pl \
+		pce_shell.pl \
+		pce_main.pl \
+		pce_toc.pl \
+		pce_tick_box.pl \
+		edit_dialog.pl \
 		make_dialog.pl \
 		pce_editable_text.pl \
 		pce_helper.pl \
 		pce_help_file.pl \
-		show_help.pl \
 		pce_image.pl \
 		pce_prompter.pl \
 		pce_template.pl \
@@ -215,56 +234,51 @@ PW2DEMOS=	pw2/README \
 		pw2/thermo.pl \
 		pw2/verb
 
-HLPFILES=	help.hlp dialog.hlp customise.hlp emacs.hlp pcedraw.hlp
+HLPFILES=	help.hlp dialog.hlp customise.hlp emacs.hlp pcedraw.hlp \
+		pcefaq.hlp
+LIBHLPFILES=	dragdrop.hlp findfile.hlp overview.hlp
 
-INFOFILES=	ChangeLog
+INFOFILES=	ChangeLog README.16bit README.CXX README.RT README.customise \
+		README.font
 
 all:	qofs release
 
-qofs: pceshare pce_qpc.qof prowindows.qof qp_pce.qof pce.qof
+qofs:	pceshare pce_qpc.qof pce.qof
 
-#pw: prowindows.qof qp_pce.qof
-#	$(QLD) -Ddv -L `pwd` -L `pwd`/../boot \
-#		-L `pwd`/../lib prowindows.qof \
-
-rttest: $(OBJS) prowindows.qof rte_test.qof
+rttest: $(OBJS) rte_test.qof
 	$(QLD) -dv -L `pwd` -L `pwd`/../boot \
-		-L `pwd`/../lib prowindows.qof rte_test.qof
+		-L `pwd`/../lib rte_test.qof
 
-pw.qui: $(OBJS) prowindows.qof
+pw.qui: $(OBJS) 
 	$(QLD) -Ddv -L `pwd` -L `pwd`/../boot \
-		-L `pwd`/../lib prowindows.qof 'library(qui)' \
+		-L `pwd`/../lib 'library(qui)' \
 		$(EXTRALIBS)
 
 pce_qpc.qof: pce_qpc.pl
+	$(QPC) -L . -c pce_qux.pl
 	$(QPC) -L . -i pce_qpc.pl -c pce_qpc.pl -o pce_qpc0.qof
 	$(QLD) -L . -dr pce_qpc0.qof -o $@
 	rm -f pce_qpc0.qof
 
-prowindows.qof: pce_qpc.qof english/pce_messages.qof
-
 qp_pce.qof: $(PCEQOFS)
 	$(QLD) -ro $@ $(PCEQOFS)
+
+pce.qof:	qp_pce.qof
 
 require.qof: require.pl
 	$(QPC) -c require.pl
 
 $(PCEQOFS):	pce_qpc.qof
 
-$(BIN)/XPCE_main.o: XPCE_main.c
-	cc $(CDEBUGFLAGS) -O -K PIC -D$(SUNOS) -I../../src -c XPCE_main.c -o $@
-
-$(BIN)/pl-crt0.o: pl-crt0.c
-	cc $(CDEBUGFLAGS) -O -K PIC -D$(SUNOS) -c pl-crt0.c -o $@
-
 release: directories release_lib release_demo release_contrib \
 	 release_bin release_makes release_misc info_files help_files
-	cd $(PCELIB); make
-	cd $(PCEDEMO); make
+	cd $(PCELIB); $(MAKE)
+	cd $(PCEDEMO); $(MAKE)
 
 directories:
 	@[ -d $(PCEHOME) ] || mkdir $(PCEHOME)
 	@[ -d $(PCEHLP) ] || mkdir $(PCEHLP)
+	@[ -d $(PCEHLP)/lib ] || mkdir $(PCEHLP)/lib
 	@[ -d $(PCELIB) ] || mkdir $(PCELIB)
 	@[ -d $(PCELIB)/$(BIN) ] || mkdir $(PCELIB)/$(BIN)
 	@[ -d $(PCELIB)/dialog ] || mkdir $(PCELIB)/dialog
@@ -299,9 +313,11 @@ release_contrib:	$(addprefix $(PCECONTRIB)/, $(CTBPLS)) \
 
 info_files:		$(addprefix $(PCEHOME)/, $(INFOFILES))
 
-help_files:		$(addprefix $(PCEHLP)/, $(HLPFILES))
+help_files:		$(addprefix $(PCEHLP)/, $(HLPFILES)) \
+			$(addprefix $(PCEHLP)/lib/, $(LIBHLPFILES))
 
-release_bin:	$(PCELIB)/$(BIN)/libpce.a $(PCELIB)/$(BIN)/libXt.so.4.0
+release_bin:	$(addprefix $(PCELIB)/$(BIN)/, $(BINFILES)) \
+		$(PCELIB)/$(BIN)/libXt.so.4.0
 
 release_makes:	$(PCEHOME)/Makefile $(PCELIB)/Makefile $(PCEDEMO)/Makefile
 
@@ -309,10 +325,26 @@ release_misc:	$(PCEHOME)/Pce $(PCEHOME)/bitmaps $(PCELIB)/dialog/bitmaps \
 		$(PCEHOME)/include $(PCEHOME)/man $(PCEHOME)/postscript \
 		$(PCELIB)/xref/common.pl $(PCELIB)/xref/quintus.pl
 
-pceshare:	
-		@for f in $(PCESHARE); do \
-		    if [ ! -r "$$f" ]; then $(LN) ../boot/$$f .; fi \
-		done
+pceshare:	$(PCESHARE)
+
+pce_editor.pl: ../boot/pce_editor.pl
+	$(LN) $< $@
+pce_realise.pl: ../boot/pce_realise.pl
+	$(LN) $< $@
+pce_expansion.pl: ../boot/pce_expansion.pl
+	$(LN) $< $@
+pce_error.pl: ../boot/pce_error.pl
+	$(LN) $< $@
+pce_expand.pl: ../boot/pce_expand.pl
+	$(LN) $< $@
+pce_global.pl: ../boot/pce_global.pl
+	$(LN) $< $@
+pce_operator.pl: ../boot/pce_operator.pl
+	$(LN) $< $@
+pce_accelerator.pl: ../boot/pce_accelerator.pl
+	$(LN) $< $@
+pce_autoload.pl: ../boot/pce_autoload.pl
+	$(LN) $< $@
 
 $(PCELIB)/pce.pl:	../pwboot/pce.pl
 	$(CP) ../pwboot/pce.pl $(PCELIB)/pce.pl
@@ -354,8 +386,15 @@ $(PCELIB)/Makefile:  lib_make
 $(PCEDEMO)/Makefile: demo_make
 	$(CP) $< $@
 
-$(PCELIB)/$(BIN)/libpce.a:	../../quintus/src/$(BIN)/libpce.a
+$(PCELIB)/$(BIN)/libpce.$(SO):	../../quintus/src/$(BIN)/libpce.so
 	$(CP) $< $@
+
+$(PCELIB)/$(BIN)/%:	../../$(PCEBINDIR)/%
+	$(CP) $< $@
+$(PCELIB)/$(BIN)/libXPCE.$(SO).$(PCEMAJOR):
+	$(LN) libXPCE.$(SO) $@
+$(PCELIB)/$(BIN)/libXPCE.$(SO).$(PCEMAJOR).$(PCEMINOR).$(PCEPATCH):
+	$(LN) libXPCE.$(SO) $@
 
 ifeq "$(BIN)" "sun4-4"
 $(PCELIB)/$(BIN)/libXt.so.4.0:	../../quintus/src/$(BIN)/libXt.so.4.0
@@ -369,11 +408,11 @@ endif
 
 $(PCEHOME)/bitmaps:
 	mkdir $@
-	$(CP) -r ../../bitmaps/* $@
+	$(CP) ../../bitmaps/*.bm $@
 
 $(PCELIB)/dialog/bitmaps:
 	mkdir $@
-	$(CP) -r ../lib/dialog/bitmaps/* $@
+	$(CP) ../lib/dialog/bitmaps/*.bm $@
 
 $(PCEHOME)/include:
 	mkdir $@
@@ -393,7 +432,6 @@ $(PCEHOME)/postscript:
 	mkdir $@
 	$(CP) -r ../../postscript/* $@
 	rm -fr $@/CVS
-
 
 clean:
 	rm -fr $(PCEHOME)

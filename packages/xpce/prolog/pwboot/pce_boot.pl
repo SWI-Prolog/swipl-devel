@@ -22,6 +22,8 @@ PCE public predicates
 
 	  , object/1, object/2
 
+	  , pce_open/3
+
 	  , pce_global/2
 	  , pce_autoload/2
 	  , pce_autoload_all/0
@@ -85,11 +87,13 @@ pce_ifhostproperty(repeat_meta_declaraction,
 		*          PROLOG PART		*
 		********************************/
 
+:- use_module(pce_qp).
 :- use_module(pce_principal).
 :- use_module(pce_error).
 :- use_module(pce_autoload).
 :- use_module(pce_global).
-:- use_module(pce_editor).
 :- use_module(pce_expansion).
 :- use_module(pce_realise).
 :- use_module(require).
+:- use_module(pce_editor).
+:- use_module(pce_accelerator).

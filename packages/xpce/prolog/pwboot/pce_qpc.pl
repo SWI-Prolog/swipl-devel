@@ -123,6 +123,7 @@ property(file_extensions([qof, pl])).
 property(repeat_meta_declaraction).
 property(need_extern_declaration).
 property(use_predicate_references).
+property(qpc).
 
 
 		 /*******************************

@@ -30,8 +30,12 @@
 	  sformat/3,
 	  is_absolute_file_name/1,
 	  file_directory_name/2,
+	  file_base_name/2,
+	  file_name_extension/3,
 	  expand_file_name/2,
-	  defined_predicate/1
+	  callable_predicate/1,
+	  modified_since_last_loaded/1,
+	  xpce_loop/0
 	]).
 
 :- meta_predicate
@@ -39,6 +43,8 @@
 	auto_call(:),
 	defined_predicate(:),
 	sublist(:, +, ?).
+
+:- op(100, fx, @).
 
 :- use_module(library(charsio), [chars_to_stream/2,
 				 with_input_from_chars/2,
@@ -93,6 +99,51 @@ file_directory_name(Path, Dir) :-
 	;   PathChars = [0'/|_]
 	->  Dir = /
 	;   Dir = ''
+	).
+
+file_base_name(Path, Base) :-
+	atom_chars(Path, PathChars),
+	(   append(_, BaseChars, PathChars),
+	    \+ member(0'/, BaseChars),
+	    BaseChars \== []
+	->  atom_chars(Base, BaseChars)
+	;   Base = Path
+	).
+
+%	file_name_extension(?Base, ?Ext, ?Path).
+%
+%	BUG: should take care of case-insensitive and other OS
+%	dependencies.  This port of the SWI-Prolog predicate only
+%	works on Unix.
+
+file_name_extension(Base, DotExt, Path) :-
+	nonvar(DotExt),
+	atom_chars(DotExt, [0'.|EC]), !,
+	atom_chars(Ext, EC),
+	file_name_extension2(Base, Ext, Path).
+file_name_extension(Base, Ext, Path) :-
+	file_name_extension2(Base, Ext, Path).
+	
+file_name_extension2(Base, Ext, Path) :-	% -, -, +
+	nonvar(Path), !,
+	(   atom_chars(Path, PC),
+	    append(BC, [0'.|EC], PC),
+	    \+ member(0'/, EC),
+	    \+ member(0'., EC)
+	->  atom_chars(Base, BC),
+	    atom_chars(Ext, EC)
+	;   Ext = '',
+	    Base = Path
+	).
+file_name_extension2(Base, Ext, Path) :- % +, +, -
+	nonvar(Base),
+	nonvar(Ext), !,
+	atom_chars(Base, BC),
+	atom_chars(Ext, EC),
+	(   append(_, [0'.|EC], BC)
+	->  Path = Base
+	;   append(BC, [0'.|EC], PC),
+	    atom_chars(Path, PC)
 	).
 
 
@@ -280,13 +331,25 @@ sformat(Chars, Format, Args):-
 
 %	defined_predicate(:Head)
 
-defined_predicate(Spec) :-
+callable_predicate(Spec) :-
       strip_module(Spec, Module, Head),
       (   predicate_property(Head, built_in)
       ->  true
       ;	  current_predicate(_, Module:Head)
       ).
 
+%	succeeds if source file is modified since it was loaded the last
+%	time.
+
+modified_since_last_loaded(_File) :-
+      fail.
+
+%	xpce_loop
+
+xpce_loop :-
+	repeat,
+	    pce_principal:send(@display, dispatch),
+	fail.
 
 % following was added for QP3.2
 

@@ -5,8 +5,17 @@
     Purpose: Provide index for autoload
 */
 
+		 /*******************************
+		 *	   PCE LIBRARY		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Created  using  ?-  make_library_index(.)  in  prowindows3.2/library  by
+SWI-Prolog.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 index((side_pattern), 3, area, area).
-index((dialog), 0, dialog, dialog).
+index((dialog), 0, dia_main, edit_dialog).
 index((declare_emacs_mode), 2, emacs_extend, emacs_extend).
 index((declare_emacs_mode), 3, emacs_extend, emacs_extend).
 index((emacs_tag), 3, emacs_tags, emacs_tags).
@@ -15,6 +24,50 @@ index((emacs_init_tags), 1, emacs_tags, emacs_tags).
 index((emacs_complete_tag), 2, emacs_tags, emacs_tags).
 index((show_key_bindings), 1, key_binding, keybinding).
 index((make_dialog), 2, pce_make_dialog, make_dialog).
+index((new), 2, pce, pce).
+index((free), 1, pce, pce).
+index((send), 2, pce, pce).
+index((send), 3, pce, pce).
+index((send), 4, pce, pce).
+index((send), 5, pce, pce).
+index((send), 6, pce, pce).
+index((send), 7, pce, pce).
+index((send), 8, pce, pce).
+index((send), 9, pce, pce).
+index((send), 10, pce, pce).
+index((send), 11, pce, pce).
+index((send), 12, pce, pce).
+index((get), 3, pce, pce).
+index((get), 4, pce, pce).
+index((get), 5, pce, pce).
+index((get), 6, pce, pce).
+index((get), 7, pce, pce).
+index((get), 8, pce, pce).
+index((get), 9, pce, pce).
+index((get), 10, pce, pce).
+index((get), 11, pce, pce).
+index((get), 12, pce, pce).
+index((get), 13, pce, pce).
+index((object), 1, pce, pce).
+index((object), 2, pce, pce).
+index((pce_global), 2, pce, pce).
+index((pce_autoload), 2, pce, pce).
+index((pce_autoload_all), 0, pce, pce).
+index((pce_predicate_reference), 2, pce, pce).
+index((pce_term_expansion), 2, pce, pce).
+index((pce_compiling), 1, pce, pce).
+index((pce_begin_recording), 1, pce, pce).
+index((pce_end_recording), 0, pce, pce).
+index((pce_register_class), 1, pce, pce).
+index((pce_extended_class), 1, pce, pce).
+index((pce_prolog_class), 1, pce, pce).
+index((pce_prolog_class), 2, pce, pce).
+index((pce_bind_send_method), 8, pce, pce).
+index((pce_bind_get_method), 9, pce, pce).
+index((pce_send_method_message), 2, pce, pce).
+index((pce_get_method_message), 2, pce, pce).
+index((pce_catch_error), 2, pce, pce).
+index((require), 1, pce, pce).
 index((generate_cpp_class_header_file), 0, pce_cpp_header, pce_cxx_headers).
 index((debugpce), 0, pce_debug, pce_debug).
 index((debugpce), 1, pce_debug, pce_debug).
@@ -36,10 +89,15 @@ index((editpce), 1, pce_edit, pce_edit).
 index((emacs), 0, start_emacs, pce_emacs).
 index((emacs), 1, start_emacs, pce_emacs).
 index((start_emacs), 0, start_emacs, pce_emacs).
+index((emacs_server), 0, start_emacs, pce_emacs).
+index((emacs_toplevel), 0, start_emacs, pce_emacs).
 index((pce_help_file), 2, pce_help_file, pce_help_file).
 index((pce_help), 2, pce_help_file, pce_help_file).
 index((pce_registered_help_file), 2, pce_help_file, pce_help_file).
 index((pce_image_directory), 1, pce_image, pce_image).
+index((pce_loop), 2, pce_main, pce_main).
+index((pce_loop), 1, pce_main, pce_main).
+index((pce_main_loop), 1, pce_main, pce_main).
 index((manpce), 0, pce_manual, pce_manual).
 index((manpce), 1, pce_manual, pce_manual).
 index((postscript), 2, pce_postscript, pce_postscript).
@@ -64,16 +122,19 @@ index((exists_file), 1, pce_qux, pce_qux).
 index((make), 0, pce_qux, pce_qux).
 index((source_warning), 2, pce_qux, pce_qux).
 index((sformat), 3, pce_qux, pce_qux).
-index((defined_predicate), 1, pce_qux, pce_qux).
 index((is_absolute_file_name), 1, pce_qux, pce_qux).
 index((file_directory_name), 2, pce_qux, pce_qux).
+index((file_base_name), 2, pce_qux, pce_qux).
+index((file_name_extension), 3, pce_qux, pce_qux).
 index((expand_file_name), 2, pce_qux, pce_qux).
+index((callable_predicate), 1, pce_qux, pce_qux).
+index((modified_since_last_loaded), 1, pce_qux, pce_qux).
+index((xpce_loop), 0, pce_qux, pce_qux).
 index((pce_renew), 1, pce_renew, pce_renew).
 index((pce_require), 1, pce_require, pce_require).
 index((pce_require), 3, pce_require, pce_require).
-index((emacs_require), 1, pce_require, pce_require).
-index((pce_require_all), 1, pce_require, pce_require).
 index((pce_server), 1, pce_server, pce_server).
+index((pce_shell_command), 1, pce_shell, pce_shell).
 index((use_class_template), 1, pce_class_template, pce_template).
 index((use_class_template), 2, pce_class_template, pce_template).
 index((get_object), 3, pce_util, pce_util).
@@ -99,7 +160,6 @@ index((portray_object), 1, pce_portray, portray_object).
 index((portray_object), 2, pce_portray, portray_object).
 index((scan_arguments), 2, scan_arguments, scan_arguments).
 index((scan_arguments), 3, scan_arguments, scan_arguments).
-index((show_help_hook), 2, pl_show_help, show_help).
 
 
 		 /*******************************

@@ -31,12 +31,15 @@ LIBQOFS= area.qof \
 	pce_cxx_headers.qof \
 	pce_drag_and_drop.qof \
 	pce_require.qof \
-        dialog.qof \
+        edit_dialog.qof \
         make_dialog.qof \
         pce_editable_text.qof \
         pce_helper.qof \
 	pce_help_file.qof \
-	show_help.qof \
+	pce_shell.qof \
+	pce_main.qof \
+	pce_toc.qof \
+	pce_tick_box.qof \
         pce_image.qof \
         pce_prompter.qof \
         pce_tagged_connection.qof \
