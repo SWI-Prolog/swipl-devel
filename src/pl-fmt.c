@@ -34,11 +34,11 @@ source should also use format() to produce error messages, etc.
 #define DEFAULT 	(-1)
 #define SHIFT   	{ argc--; argv++; }
 #define NEED_ARG	{ if ( argc <= 0 ) \
-			  { ERROR("not enough arguments"); \
+			  { FMT_ERROR("not enough arguments"); \
 			  } \
 			}
-#define ERROR(fmt)	return warning("format/2: %s", fmt)
-#define ERROR1(fmt, a)	{ char tp[50]; \
+#define FMT_ERROR(fmt)	return warning("format/2: %s", fmt)
+#define FMT_ERROR1(fmt, a)	{ char tp[50]; \
 			  strcpy(tp, "format/2: "); \
 			  strcat(tp, fmt); \
 			  return warning(tp, a); \
@@ -231,7 +231,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 	    if ( PL_get_integer(argv, &arg) )
 	    { SHIFT;
 	    } else
-	      ERROR("no or negative integer for `*' argument");
+	      FMT_ERROR("no or negative integer for `*' argument");
 	    fmt++;
 	  } else if ( *fmt == '`' )
 	  { arg = *++fmt;
@@ -279,7 +279,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 
 		  NEED_ARG;
 		  if ( !PL_get_chars(argv, &s, CVT_ATOMIC) )
-		    ERROR("illegal argument to ~a");
+		    FMT_ERROR("illegal argument to ~a");
 		  SHIFT;
 		  OUTSTRING(s);
 		  fmt++;
@@ -297,7 +297,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		    { OUTCHR(c);
 		    }
 		  } else
-		    ERROR("illegal argument to ~c");
+		    FMT_ERROR("illegal argument to ~c");
 		  fmt++;
 		  break;
 		}
@@ -312,7 +312,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 
 		  NEED_ARG;
 		  if ( !PL_get_float(argv, &f) )
-		    ERROR1("illegal argument to ~%c", *fmt);
+		    FMT_ERROR1("illegal argument to ~%c", *fmt);
 		  SHIFT;
 		  Ssprintf(tmp, "%%.%d%c", arg == DEFAULT ? 6 : arg, *fmt);
 		  Ssprintf(buf, tmp, f);
@@ -329,7 +329,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 
 		  NEED_ARG;
 		  if ( !PL_get_integer(argv, &i) )
-		    ERROR1("illegal argument to ~%c", *fmt);
+		    FMT_ERROR1("illegal argument to ~%c", *fmt);
 		  SHIFT;
 		  if ( arg == DEFAULT )
 		    arg = 0;
@@ -346,7 +346,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 
 		  NEED_ARG;
 		  if ( !PL_get_chars(argv, &s, CVT_LIST|CVT_STRING) )
-		    ERROR("illegal argument to ~s");
+		    FMT_ERROR("illegal argument to ~s");
 		  OUTSTRING(s);
 		  SHIFT;
 		  fmt++;
@@ -416,7 +416,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		 char *str;
 
 		 if ( argc < 2 )
-		 { ERROR("not enough arguments");
+		 { FMT_ERROR("not enough arguments");
 		 }
 		 if ( pending_rubber )
 		  { int bufsize = BUFSIZE;
@@ -503,7 +503,7 @@ do_format(IOSTREAM *fd, const char *fmt, unsigned len, int argc, term_t argv)
 		  break;
 		}
 	      default:
-		ERROR1("unknown format: %c", *fmt);
+		FMT_ERROR1("unknown format: %c", *fmt);
 	    }
 	  }
 	  break;			/* the '~' switch */

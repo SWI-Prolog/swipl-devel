@@ -96,7 +96,7 @@ typedef int   (*Scontrol_function)(void *handle, int action, void *arg);
 
 #ifdef O_PLMT				/* only needed when compiling kernel */
 #include "pl-mutex.h"
-typedef recursive_mutex_t IOLOCK;
+#define IOLOCK recursiveMutex
 #else
 typedef void *		IOLOCK;		/* Definition for external use */
 #endif

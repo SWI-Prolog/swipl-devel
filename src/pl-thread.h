@@ -67,29 +67,7 @@ typedef struct _PL_thread_info_t
 #define PL_THREAD_CANCELED	6
 #define	PL_THREAD_CREATED	7
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-				Thread-local data
-
-All  thread-local  data  is  combined  in    one  structure  defined  in
-pl-global.h. If Prolog is compiled for single-threading this is a simple
-global variable and the macro LD is defined   to  pick up the address of
-this variable. In multithreaded context,  POSIX pthread_getspecific() is
-used to get separate versions for each  thread. Functions uisng LD often
-may wish to write:
-
-<header>
-{ GET_LD
-#undef LD
-#define LD LOCAL_LD
-  ...
-
-#undef LD
-#define LD GLOBAL_LD
-}
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-extern pthread_key_t PL_ldata;		/* key to local data */
-extern pthread_mutex_t _PL_mutexes[];	/* Prolog mutexes */
+extern simpleMutex _PL_mutexes[];	/* Prolog mutexes */
 
 #define L_MISC		0
 #define L_ALLOC		1
@@ -114,17 +92,57 @@ extern pthread_mutex_t _PL_mutexes[];	/* Prolog mutexes */
 	do { Sdprintf("[%s] %s:%d: LOCK(%s)\n", \
 		      threadName(0), \
 		      __BASE_FILE__, __LINE__, #id); \
-             pthread_mutex_lock(&_PL_mutexes[id]); \
+             simpleMutexLock(&_PL_mutexes[id]); \
 	   } while(0)
 #define PL_UNLOCK(id) \
 	do { Sdprintf("[%s] %s:%d: UNLOCK(%s)\n", \
 		      threadName(0), \
 		      __BASE_FILE__, __LINE__, #id); \
-	     pthread_mutex_unlock(&_PL_mutexes[id]); \
+	     simpleMutexUnlock(&_PL_mutexes[id]); \
 	   } while(0)
 #else
-#define PL_LOCK(id)   pthread_mutex_lock(&_PL_mutexes[id])
-#define PL_UNLOCK(id) pthread_mutex_unlock(&_PL_mutexes[id])
+#define PL_LOCK(id)   simpleMutexLock(&_PL_mutexes[id])
+#define PL_UNLOCK(id) simpleMutexUnlock(&_PL_mutexes[id])
+#endif
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+				Thread-local data
+
+All  thread-local  data  is  combined  in    one  structure  defined  in
+pl-global.h. If Prolog is compiled for single-threading this is a simple
+global variable and the macro LD is defined   to  pick up the address of
+this variable. In multithreaded context,  POSIX pthread_getspecific() is
+used to get separate versions for each  thread. Functions uisng LD often
+may wish to write:
+
+<header>
+{ GET_LD
+#undef LD
+#define LD LOCAL_LD
+  ...
+
+#undef LD
+#define LD GLOBAL_LD
+}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+		 /*******************************
+		 *   NATIVE THREAD-LOCAL DATA	*
+		 *******************************/
+
+#ifdef WIN32
+typedef DWORD	TLD_KEY;
+
+#define TLD_alloc(p)	(*(p) = TlsAlloc())
+#define TLD_get(p)	TlsGetValue((p))
+#define TLD_set(p, v)	TlsSetValue((p), (v))
+
+#else
+typedef pthread_key_t TLD_KEY;
+
+#define TLD_alloc(p)	pthread_key_create(p, NULL)
+#define TLD_get(p)	pthread_getspecific(p)
+#define TLD_set(p, v)	pthread_setspecific((p), (v))
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -132,11 +150,13 @@ If available, use GCC's __attribute((const)) to tell the compiler it may
 choose to store the result of LD is a local variable.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+extern TLD_KEY PL_ldata;		/* key to local data */
+
 #ifdef __GNUC__
 #define GLOBAL_LD _LD()
 extern PL_local_data_t *_LD(void) __attribute((const));
 #else
-#define GLOBAL_LD ((PL_local_data_t *)pthread_getspecific(PL_ldata))
+#define GLOBAL_LD ((PL_local_data_t *)TLD_get(PL_ldata))
 #endif
 #define GET_LD    PL_local_data_t *__PL_ld = GLOBAL_LD;
 
@@ -147,6 +167,10 @@ extern PL_local_data_t *_LD(void) __attribute((const));
 #define LOCAL_LD  __PL_ld
 #define LD	  GLOBAL_LD
 
+
+		 /*******************************
+		 *	    FUNCTIONS		*
+		 *******************************/
 
 extern void		initPrologThreads(void);
 extern void		exitPrologThreads(void);
@@ -181,9 +205,7 @@ void			executeThreadSignals(int sig);
 foreign_t		pl_attach_xterm(term_t in, term_t out);
 void			threadMarkAtomsOtherThreads(void);
 
-recursive_mutex_t *	newRecursiveMutex(void);
-int			freeRecursiveMutex(recursive_mutex_t *m);
-#else /*O_PLMT*/
+#else /*O_PLMT, end of threading-stuff */
 
 		 /*******************************
 		 *	 NON-THREAD STUFF	*

@@ -105,8 +105,10 @@ banner:
 		@echo Making SWI-Prolog $(PLVERSION) for $(ARCH)
 		@echo To be installed in $(PLBASE)
 !IF "$(DBG)" == "true"
-		@echo ""
-		@echo Compiling version for DEBUGGING
+		@echo *** Compiling version for DEBUGGING
+!ENDIF
+!ID "$(MT)" == "true"
+		@echo *** Building MULTI-Threading version
 !ENDIF
 		@echo ****************
 

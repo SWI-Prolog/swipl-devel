@@ -29,6 +29,25 @@ multi-threading support. It is in a separate file because it needs to be
 included before pl-stream.h, which in turn   needs to be included early.
 The remainder of the thread support must be at the end to exploit access
 to the other Prolog data-types.
+
+To allow for multiple thread-implementations, we  do not use plain POSIX
+mutex-primitives in the remainder of  the   code.  Instead,  mutexes are
+controlled using the following macros:
+
+	type simpleMutex	Non-recursive mutex
+	type recursiveMutex	Recursive mutex
+
+	simpleMutexInit(p)	Initialise a simple mutex
+	simpleMutexDelete(p)	Delete a simple mutex
+	simpleMutexLock(p)	Lock a simple mutex
+	simpleMutexTryLock(p)	Try Lock a simple mutex
+	simpleMutexUnlock(p)	unlock a simple mutex
+
+	recursiveMutexInit(p)	Initialise a recursive mutex
+	recursiveMutexDelete(p)	Delete a recursive mutex
+	recursiveMutexLock(p)	Lock a recursive mutex
+	recursiveMutexTryLock(p) Try Lock a recursive mutex
+	recursiveMutexUnlock(p)	unlock a recursive mutex
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifndef PL_MUTEX_H_DEFINED
@@ -36,28 +55,69 @@ to the other Prolog data-types.
 
 #ifdef O_PLMT
 
+#if defined(WIN32)
+#define USE_CRITICAL_SECTIONS 1
+#endif
+
 #include <pthread.h>
 
-#ifdef RECURSIVE_MUTEXES
+#ifdef USE_CRITICAL_SECTIONS
+#define WINDOWS_LEAN_AND_MEAN
+#include <windows.h>
+#define RECURSIVE_MUTEXES 1
 
-typedef pthread_mutex_t recursive_mutex_t;
-#define recursive_mutex_lock(mutex) (pthread_mutex_lock(mutex))
-#define recursive_mutex_trylock(mutex) (pthread_mutex_trylock(mutex))
-#define recursive_mutex_unlock(mutex) (pthread_mutex_unlock(mutex))
+#define simpleMutex CRITICAL_SECTION
+
+#define simpleMutexInit(p)	InitializeCriticalSection(p)
+#define simpleMutexDelete(p)	DeleteCriticalSection(p)
+#define simpleMutexLock(p)	EnterCriticalSection(p)
+#define simpleMutexUnlock(p)	LeaveCriticalSection(p)
+
+#define MUTEX_BUSY 0			/* return from unsuccessful */
+					/* recursiveMutexTryLock() */
+#define MUTEX_OK(g) (g)
+
+#else /* USE_CRITICAL_SECTIONS */
+
+typedef pthread_mutex_t simpleMutex;
+
+#define simpleMutexInit(p)	pthread_mutex_init(p, NULL)
+#define simpleMutexDelete(p)	pthread_mutex_destroy(p)
+#define simpleMutexLock(p)	pthread_mutex_lock(p)
+#define simpleMutexUnlock(p)	pthread_mutex_unlock(p)
+
+#define MUTEX_OK(g) ((g) == 0)
+#define MUTEX_BUSY  EBUSY
+
+#endif /*USE_CRITICAL_SECTIONS*/
+
+#ifdef RECURSIVE_MUTEXES
+typedef pthread_mutex_t recursiveMutex;
+
+#define NEED_RECURSIVE_MUTEX_INIT 1
+extern int recursiveMutexInit(recursiveMutex *m);
+#define recursiveMutexDelete(p)	 pthread_mutex_destroy(p)
+#define recursiveMutexLock(p)	 pthread_mutex_lock(p)
+#define recursiveMutexTryLock(p) pthread_mutex_trylock(p)
+#define recursiveMutexUnlock(p)	 pthread_mutex_unlock(p)
 
 #else /*RECURSIVE_MUTEXES*/
 
-typedef struct my_mutex_t {
+typedef struct {
   pthread_mutex_t lock;
 	pthread_t owner;
 	unsigned int count;
-} recursive_mutex_t;
+} recursiveMutex;
 
-extern int recursive_mutex_lock(recursive_mutex_t *m);
-extern int recursive_mutex_trylock(recursive_mutex_t *m);
-extern int recursive_mutex_unlock(recursive_mutex_t *m);
+#define NEED_RECURSIVE_MUTEX_INIT 1
+#define NEED_RECURSIVE_MUTEX_DELETE 1
+extern int recursiveMutexInit(recursiveMutex *m);
+extern int recursiveMutexDelete(recursiveMutex *m);
+extern int recursiveMutexLock(recursiveMutex *m);
+extern int recursiveMutexTryLock(recursiveMutex *m);
+extern int recursiveMutexUnlock(recursiveMutex *m);
+
 #endif /*RECURSIVE_MUTEXES*/
 
-#endif
-
+#endif /*O_PLMT*/
 #endif /*PL_MUTEX_H_DEFINED*/

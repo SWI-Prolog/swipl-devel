@@ -84,6 +84,7 @@ static sema_t sem_canceled;		/* used on halt */
 #endif /*HAVE_SEMA_INIT*/
 #endif /*HAVE_SEM_INIT*/
 
+
 		 /*******************************
 		 *	    GLOBAL DATA		*
 		 *******************************/
@@ -92,7 +93,7 @@ static Table threadAliases;		/* name --> integer-id */
 static PL_thread_info_t threads[MAX_THREADS];
 static int threads_exited = FALSE;	/* Prolog threads are finished */
 
-pthread_key_t PL_ldata;			/* key for thread PL_local_data */
+TLD_KEY PL_ldata;			/* key for thread PL_local_data */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The global mutexes. Most are using  within   a  module and their name is
@@ -104,9 +105,24 @@ Some remarks:
     L_MISC
 	General-purpose mutex.  Should only be used for simple, very
 	local tasks and may not be used to lock anything significant.
+
+    WIN32
+	We use native windows CRITICAL_SECTIONS for mutexes here to
+	get the best performance, notably on single-processor hardware.
+	This is selected in pl-mutex.h based on the macro
+	USE_CRITICAL_SECTIONS
+
+	Unfortunately critical sections have no static initialiser,
+	so we need something called before anything else happens.  This
+	can only be DllMain().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-pthread_mutex_t _PL_mutexes[] =
+#ifdef USE_CRITICAL_SECTIONS
+#undef PTHREAD_MUTEX_INITIALIZER
+#define PTHREAD_MUTEX_INITIALIZER {0}
+#endif
+
+simpleMutex _PL_mutexes[] =
 { PTHREAD_MUTEX_INITIALIZER,		/* L_MISC */
   PTHREAD_MUTEX_INITIALIZER,		/* L_ALLOC */
   PTHREAD_MUTEX_INITIALIZER,		/* L_ATOM */
@@ -129,6 +145,38 @@ pthread_mutex_t _PL_mutexes[] =
 #define LOCK()   PL_LOCK(L_THREAD)
 #define UNLOCK() PL_UNLOCK(L_THREAD)
 
+#ifdef USE_CRITICAL_SECTIONS
+
+static void
+initMutexes()
+{ simpleMutex *m;
+  int n = sizeof(_PL_mutexes)/sizeof(simpleMutex);
+  int i;
+
+  for(i=0, m=_PL_mutexes; i<n; i++, m++)
+    simpleMutexInit(m);
+}
+
+
+BOOL WINAPI
+DllMain(HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved)
+{ BOOL result = TRUE;
+
+  switch(fdwReason)
+  { case DLL_PROCESS_ATTACH:
+      initMutexes();
+      break;
+    case DLL_PROCESS_DETACH:
+    case DLL_THREAD_ATTACH:
+    case DLL_THREAD_DETACH:
+      break;
+  }
+
+  return result;
+}
+
+#endif /*USE_CRITICAL_SECTIONS*/
+
 		 /*******************************
 		 *	  LOCAL PROTOTYPES	*
 		 *******************************/
@@ -150,7 +198,7 @@ int
 PL_initialise_thread(PL_thread_info_t *info)
 { assert(info->thread_data);
 
-  pthread_setspecific(PL_ldata, info->thread_data);
+  TLD_set(PL_ldata, info->thread_data);
 
   if ( !info->local_size    ) info->local_size    = GD->options.localSize;
   if ( !info->global_size   ) info->global_size   = GD->options.globalSize;
@@ -182,6 +230,11 @@ free_prolog_thread()
 
     We try to call the exit hooks from here by temporary reinstalling
     the thread local-data.
+
+NEW:
+    We no longer use the free function associated with the thread.
+    Instead, we use cleanup handlers.  This seems cleaner, while it
+    also allows us to use Windows native thread-local data.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -195,7 +248,9 @@ free_prolog_thread(void *data)
   DEBUG(1, Sdprintf("Freeing prolog thread %u\n", pthread_self()));
 
   info = ld->thread.info;
-  pthread_setspecific(PL_ldata, data);	/* put it back */
+#if 0					/* see NEW above */
+  TLD_set(PL_ldata, data);		/* put it back */
+#endif
   run_thread_exit_hooks();
   
   freeStacks(ld);
@@ -208,7 +263,7 @@ free_prolog_thread(void *data)
   freeThreadMessages(ld);
   freeThreadSignals(ld);
 
-  pthread_setspecific(PL_ldata, NULL);	/* to NULL (avoid recursion) */
+  TLD_set(PL_ldata, NULL);		/* to NULL (avoid recursion) */
 
   LOCK();
   GD->statistics.threads_finished++;
@@ -236,13 +291,13 @@ void
 initPrologThreads()
 { PL_thread_info_t *info;
 
-  pthread_key_create(&PL_ldata, free_prolog_thread);
+  TLD_alloc(&PL_ldata);
   info = alloc_thread();
   info->tid = pthread_self();
 #ifdef WIN32
   info->w32id = GetCurrentThreadId();
 #endif
-  pthread_setspecific(PL_ldata, info->thread_data);
+  TLD_set(PL_ldata, info->thread_data);
   set_system_thread_id(info);
 
   GD->statistics.thread_cputime = 0.0;
@@ -509,6 +564,8 @@ start_thread(void *closure)
   term_t ex, goal;
   int rval;
 
+  pthread_cleanup_push(free_prolog_thread, info->thread_data);
+
   blockSignal(SIGINT);			/* only the main thread processes */
 					/* Control-C */
   LOCK();
@@ -536,8 +593,9 @@ start_thread(void *closure)
     { info->status = PL_THREAD_FAILED;
     }
   }    
-    UNLOCK();
-  run_thread_exit_hooks();
+  UNLOCK();
+
+  pthread_cleanup_pop(1);
 
   return (void *)TRUE;
 }
@@ -1099,18 +1157,123 @@ freeThreadMessages(PL_local_data_t *ld)
 }
 
 		 /*******************************
+		 *	 MUTEX PRIMITIVES	*
+		 *******************************/
+
+#ifdef NEED_RECURSIVE_MUTEX_INIT
+
+int
+recursiveMutexInit(recursiveMutex *m)
+{ 
+#ifdef RECURSIVE_MUTEXES
+  pthread_mutexattr_t attr;
+
+  pthread_mutexattr_init(&attr);
+#ifdef HAVE_PTHREAD_MUTEXATTR_SETKIND_NP
+  pthread_mutexattr_setkind_np(&attr, PTHREAD_MUTEX_RECURSIVE_NP);
+#else
+#ifdef HAVE_PTHREAD_MUTEXATTR_SETTYPE
+  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+#endif
+#endif
+  pthread_mutex_init(m, &attr);
+#else /*RECURSIVE_MUTEXES*/
+  m->owner = 0;
+  m->count = 0;
+  pthread_mutex_init(&(m->lock),NULL);
+#endif /* RECURSIVE_MUTEXES */
+
+  return 0;
+}
+
+#endif /*NEED_RECURSIVE_MUTEX_INIT*/
+
+#ifdef NEED_RECURSIVE_MUTEX_DELETE
+
+int
+RecursiveMutexDelete(recursiveMutex *m)
+{ if ( m->owner != 0 )
+    return EBUSY;
+
+  return pthread_mutex_destroy(&(m->lock));
+}
+
+#endif /*NEED_RECURSIVE_MUTEX_DELETE*/
+
+#ifndef RECURSIVE_MUTEXES
+int
+recursiveMutexLock(recursiveMutex *m)
+{ int result = 0;
+  pthread_t self = pthread_self();
+
+  if ( pthread_equal(self, m->owner) )
+    m->count++;
+  else
+  { result = pthread_mutex_lock(&(m->lock));
+    m->owner = self;
+    m->count = 1;
+  }
+
+  return result;
+}
+
+
+int
+recursiveMutexTryLock(recursiveMutex *m)
+{ int result = 0;
+  pthread_t self = pthread_self();
+
+  if ( pthread_equal(self, m->owner) )
+    m->count++;
+  else
+  { result = pthread_mutex_trylock(&(m->lock));
+    if ( result == 0 )
+    { m->owner = self;
+      m->count = 1;
+    }
+  }
+
+  return result;
+}
+
+
+int
+recursiveMutexUnlock(recursiveMutex *m)
+{ int result = 0;
+  pthread_t self = pthread_self();
+
+  if ( pthread_equal(self,m->owner) )
+  { if ( --m->count < 1 )
+    { m->owner = 0;
+      result = pthread_mutex_unlock(&(m->lock));
+    }
+  } else if ( !pthread_equal(m->owner, 0) )
+  { Sdprintf("unlocking unowned mutex %p,not done!!\n", m);
+    Sdprintf("\tlocking thread was %u , unlocking is %u\n",m->owner,self);
+
+    result = -1;
+  }
+
+  return result;
+}
+
+#endif /*RECURSIVE_MUTEXES*/
+
+		 /*******************************
 		 *	    USER MUTEXES	*
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-User-level mutexes (critical sections in MS parlance).  
+User-level mutexes. On Windows we can't   use  critical sections here as
+TryEnterCriticalSection() is only defined on NT 4, not on Windows 95 and
+friends.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Table mutexTable;
 static int mutex_id;
 
 typedef struct _pl_mutex
-{ pthread_mutex_t mutex;		/* the system mutex */
+{ pthread_mutex_t mutex;			/* the system mutex */
   int count;				/* lock count */
   int owner;				/* integer id of owner */
   word id;				/* id of the mutex */
@@ -1136,112 +1299,6 @@ unify_mutex_owner(term_t t, int owner)
     return PL_unify_nil(t);
 }
 
-
-recursive_mutex_t *
-newRecursiveMutex()
-{ recursive_mutex_t *m = allocHeap(sizeof(*m));
-
-#ifdef RECURSIVE_MUTEXES
-  /*pthread_mutex_t *m = allocHeap(sizeof(*m));*/
-  pthread_mutexattr_t attr;
-
-  if ( !m )
-    return NULL;
-
-  pthread_mutexattr_init(&attr);
-#ifdef HAVE_PTHREAD_MUTEXATTR_SETKIND_NP
-  pthread_mutexattr_setkind_np(&attr, PTHREAD_MUTEX_RECURSIVE_NP);
-#else
-#ifdef HAVE_PTHREAD_MUTEXATTR_SETTYPE
-  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-#endif
-#endif
-  pthread_mutex_init(m, &attr);
-#else
-  m->owner = 0;
-  m->count = 0;
-  pthread_mutex_init(&(m->lock),NULL);
-#endif /* RECURSIVE_MUTEXES */
-
-  return m;
-}
-
-
-int
-freeRecursiveMutex(recursive_mutex_t *m)
-{
-#ifdef RECURSIVE_MUTEXES
-  if ( pthread_mutex_destroy(m) != 0 )
-    fail;
-#else
-  if (m->owner != 0)
-    fail;
-  else if ( pthread_mutex_destroy(&(m->lock)) != 0)
-    fail;
-#endif
-  freeHeap(m, sizeof(*m));
-  succeed;
-}
-
-
-#ifndef RECURSIVE_MUTEXES
-int
-recursive_mutex_lock(recursive_mutex_t *m)
-{ int result = 0;
-  pthread_t self = pthread_self();
-
-  if ( pthread_equal(self, m->owner) )
-    m->count++;
-  else
-  { result = pthread_mutex_lock(&(m->lock));
-    m->owner = self;
-    m->count = 1;
-  }
-
-  return result;
-}
-
-
-int
-recursive_mutex_trylock(recursive_mutex_t *m)
-{ int result = 0;
-  pthread_t self = pthread_self();
-
-  if ( pthread_equal(self, m->owner) )
-    m->count++;
-  else
-  { result = pthread_mutex_trylock(&(m->lock));
-    if ( result == 0 )
-    { m->owner = self;
-      m->count = 1;
-    }
-  }
-
-  return result;
-}
-
-
-int
-recursive_mutex_unlock(recursive_mutex_t *m)
-{ int result = 0;
-  pthread_t self = pthread_self();
-
-  if ( pthread_equal(self,m->owner) )
-  { if ( --m->count < 1 )
-    { m->owner = 0;
-      result = pthread_mutex_unlock(&(m->lock));
-    }
-  } else if ( !pthread_equal(m->owner, 0) )
-  { Sdprintf("unlocking unowned mutex %p,not done!!\n", m);
-    Sdprintf("\tlocking thread was %u , unlocking is %u\n",m->owner,self);
-
-    result = -1;
-  }
-
-  return result;
-}
-
-#endif /*RECURSIVE_MUTEXES*/
 
 static pl_mutex *
 unlocked_pl_mutex_create(term_t mutex)
@@ -1348,11 +1405,10 @@ pl_mutex_lock(term_t mutex)
 
   if ( self == m->owner )
   { m->count++;
-  } else if ( pthread_mutex_lock(&m->mutex) == 0 )
-  { m->count = 1;
-    m->owner = self;
   } else
-  { assert(0);
+  { pthread_mutex_lock(&m->mutex);
+    m->count = 1;
+    m->owner = self;
   }
 
   succeed;
@@ -1370,10 +1426,10 @@ pl_mutex_trylock(term_t mutex)
 
   if ( self == m->owner )
   { m->count++;
-  } else if ( (rval = pthread_mutex_trylock(&m->mutex)) == 0 )
+  } else if ( MUTEX_OK(rval = pthread_mutex_trylock(&m->mutex)) )
   { m->count = 1;
     m->owner = self;
-  } else if ( rval == EBUSY )
+  } else if ( rval == MUTEX_BUSY )
   { fail;
   } else
   { assert(0);
@@ -1395,8 +1451,7 @@ pl_mutex_unlock(term_t mutex)
   { if ( --m->count == 0 )
     { m->owner = 0;
 
-      if ( pthread_mutex_unlock(&m->mutex) != 0 )
-	assert(0);
+      pthread_mutex_unlock(&m->mutex);
     }
 
     succeed;
@@ -1439,9 +1494,15 @@ pl_mutex_destroy(term_t mutex)
   if ( !get_mutex(mutex, &m, FALSE) )
     fail;
 
-  if ( !pthread_mutex_destroy(&m->mutex) )
-    return PL_error("mutex_destroy", 1, NULL,
+  if ( m->owner )
+  { char msg[100];
+    
+    Ssprintf(msg, "Owned by thread %d", m->owner); /* TBD: named threads */
+    return PL_error("mutex_destroy", 1, msg,
 		    ERR_PERMISSION, ATOM_mutex, ATOM_destroy, mutex);
+  }
+
+  pthread_mutex_destroy(&m->mutex);
 
   LOCK();
   s = lookupHTable(mutexTable, (void *)m->id);
@@ -1569,7 +1630,7 @@ PL_thread_destroy_engine()
   if ( ld )
   { if ( --ld->thread.info->open_count == 0 )
     { free_prolog_thread(ld);
-      pthread_setspecific(PL_ldata, NULL);
+      TLD_set(PL_ldata, NULL);
     }
 
     return TRUE;
@@ -1743,7 +1804,7 @@ threadMarkAtomsOtherThreads()
 
 PL_local_data_t *
 _LD()
-{ PL_local_data_t *ld = ((PL_local_data_t *)pthread_getspecific(PL_ldata));
+{ PL_local_data_t *ld = ((PL_local_data_t *)TLD_get(PL_ldata));
   return ld;
 }
 

@@ -700,10 +700,8 @@ PL_initialise(int argc, char **argv)
 		 _CRTDBG_LEAK_CHECK_DF*/);
 #endif
 
-  LOCK();
   if ( GD->initialised )
-  { UNLOCK();
-    succeed;
+  { succeed;
   }
 
   SinitStreams();			/* before anything else */
@@ -760,8 +758,7 @@ properly on Linux. Don't bother with it.
     argc--; argv++;
 
     if ( argc == 1 && giveVersionInfo(argv[0]) ) /* -help, -v, etc */
-    { UNLOCK();
-      exit(0);
+    { exit(0);
     }
 
     for(n=0; n<argc; n++)		/* need to check this first */
@@ -777,8 +774,7 @@ properly on Linux. Don't bother with it.
 
     if ( !GD->resourceDB )
     { if ( !(GD->resourceDB = openResourceDB(argc, argv)) )
-      { UNLOCK();
-	fatalError("Could not find system resources");
+      { fatalError("Could not find system resources");
       }
       rcpath = ((RcArchive)GD->resourceDB)->path;
 
@@ -787,7 +783,6 @@ properly on Linux. Don't bother with it.
 
     if ( (done = parseCommandLineOptions(argc, argv, &compile)) < 0 )
     { usage();
-      UNLOCK();
       fail;
     }
     argc -= done;
@@ -808,8 +803,7 @@ properly on Linux. Don't bother with it.
     char *rcpathcopy = store_string(rcpath); /* rcpath is destroyed on close */
 
     if ( !compileFileList(s, argc, argv) )
-    { UNLOCK();
-      PL_halt(1);
+    { PL_halt(1);
     }
     if ( Sclose(s) != 0 || !rc_save_archive(GD->resourceDB, NULL) )
     { 
@@ -820,7 +814,6 @@ properly on Linux. Don't bother with it.
 	       "[ERROR: Failed to save system resources %s]\n",
 	       rc_strerror(rc_errno));
 #endif
-      UNLOCK();
       PL_halt(1);
     }
 #if defined(__WINDOWS__) || defined(__WIN32__)
@@ -829,7 +822,6 @@ properly on Linux. Don't bother with it.
     Sfprintf(Serror,
 	     "Boot compilation has created %s\n", rcpathcopy);
 #endif
-    UNLOCK();
     PL_halt(0);
   } else
   { IOSTREAM *statefd = SopenRC(GD->resourceDB, "$state", "$prolog", RC_RDONLY);
@@ -837,15 +829,13 @@ properly on Linux. Don't bother with it.
     if ( statefd )
     { GD->bootsession = TRUE;
       if ( !loadWicFromStream(statefd) )
-      { UNLOCK();
-	fail;
+      { fail;
       }
       GD->bootsession = FALSE;
 
       Sclose(statefd);
     } else
-    { UNLOCK();
-      fatalError("Resource database \"%s\" does not contain a saved state",
+    { fatalError("Resource database \"%s\" does not contain a saved state",
 		 rcpath);
     }
   }
@@ -862,12 +852,10 @@ properly on Linux. Don't bother with it.
   if ( compile )
   { int status = prologToplevel(PL_new_atom("$compile")) ? 0 : 1;
 
-    UNLOCK();
     PL_halt(status);
     fail;				/* make compile happy */
   } else
   { int status = prologToplevel(PL_new_atom("$initialise"));
-    UNLOCK();
     return status;
   }
 }

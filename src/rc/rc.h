@@ -28,9 +28,13 @@
 #ifdef WIN32
 #  include "../config/win32.h"
 #  ifdef RC_KERNEL
-#    include <windows.h>
+#  define WINDOWS_LEAN_AND_MEAN 1
+#  include <windows.h>
+#  endif
+#  ifdef _WINDOWS_
+#    define WIN_HANDLE HANDLE
 #  else
-#    define HANDLE void *
+     typedef void *WIN_HANDLE;
 #  endif
 #else
 #  if defined(HAVE_CONFIG_H) || defined(RC_KERNEL)
@@ -104,8 +108,8 @@ typedef struct _rc_archive
   rc_size	map_size;		/* Size of the map */
   void	       *data;			/* Handle to data */
 #ifdef WIN32
-  HANDLE	hfile;			/* handle to the file */
-  HANDLE	hmap;			/* handle to the map */
+  WIN_HANDLE	hfile;			/* handle to the file */
+  WIN_HANDLE	hmap;			/* handle to the map */
 #endif
 } rc_archive, *RcArchive;
 

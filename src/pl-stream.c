@@ -95,12 +95,12 @@ static void	run_close_hooks(IOSTREAM *s);
 #define S__fupdatefilepos(s, c) S___fupdatefilepos(s, c)
 
 #ifdef O_PLMT
-#define SLOCK(s)    if ( s->mutex ) recursive_mutex_lock(s->mutex)
-#define SUNLOCK(s)  if ( s->mutex ) recursive_mutex_unlock(s->mutex)
+#define SLOCK(s)    if ( s->mutex ) recursiveMutexLock(s->mutex)
+#define SUNLOCK(s)  if ( s->mutex ) recursiveMutexUnlock(s->mutex)
 inline int
 STRYLOCK(IOSTREAM *s)
 { if ( s->mutex &&
-       recursive_mutex_trylock(s->mutex) == EBUSY )
+       recursiveMutexTryLock(s->mutex) == MUTEX_BUSY )
     return FALSE;
 
   return TRUE;
@@ -115,10 +115,6 @@ STRYLOCK(IOSTREAM *s)
 extern int 			fatalError(const char *fm, ...);
 extern int 			PL_error(const char *pred, int arity,
 					 const char *msg, int id, ...);
-#ifdef O_PLMT
-extern recursive_mutex_t *	newRecursiveMutex(void);
-extern int			freeRecursiveMutex(recursive_mutex_t *m);
-#endif
 
 		 /*******************************
 		 *	      BUFFER		*
@@ -709,7 +705,8 @@ Sclose(IOSTREAM *s)
 
 #ifdef O_PLMT
   if ( s->mutex )
-  { freeRecursiveMutex(s->mutex);
+  { recursiveMutexDelete(s->mutex);
+    free(s->mutex);
     s->mutex = NULL;
   }
 #endif
@@ -822,7 +819,7 @@ Svprintf(const char *fm, va_list args)
 }
 
 
-#define OUT(s, c)	do { printed++; \
+#define OUTCHR(s, c)	do { printed++; \
 			     if ( Sputc((c), (s)) < 0 ) goto error; \
 			   } while(0)
 #define valdigit(c)	((c) - '0')
@@ -848,7 +845,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
     { fm++;
 
       if ( *fm == '%' )
-      { OUT(s, *fm);
+      { OUTCHR(s, *fm);
 	fm++;
 	continue;
       } else
@@ -969,11 +966,11 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	  if ( align == A_LEFT )
 	  { int w = 0;
 	    while(*fs)
-	    { OUT(s, *fs++);
+	    { OUTCHR(s, *fs++);
 	      w++;
 	    }
 	    while(w < arg1)
-	    { OUT(s, pad);
+	    { OUTCHR(s, pad);
 	      w++;
 	    }
 	  } else /*if ( align == A_RIGHT ) */
@@ -986,28 +983,28 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 
 	    w = arg1 - w;
 	    while(w > 0 )
-	    { OUT(s, pad);
+	    { OUTCHR(s, pad);
 	      w--;
 	    }
 	    while(*fs)
-	      OUT(s, *fs++);
+	      OUTCHR(s, *fs++);
 	  }
 	} else
 	{ if ( fs == fbuf )		/* unaligned field, just output */
 	  { while(fs < fe)
-	      OUT(s, *fs++);
+	      OUTCHR(s, *fs++);
 	  } else
 	  { while(*fs)
-	      OUT(s, *fs++);
+	      OUTCHR(s, *fs++);
 	  }
 	}
 	fm++;
       }
     } else if ( *fm == '\\' && fm[1] )
-    { OUT(s, fm[1]);
+    { OUTCHR(s, fm[1]);
       fm += 2;
     } else
-    { OUT(s, *fm);
+    { OUTCHR(s, *fm);
       fm++;
     }
   }
@@ -1443,10 +1440,11 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
   if ( flags & SIO_RECORDPOS )
     s->position = &s->posbuf;
 #ifdef O_PLMT
-  if ( !(s->mutex = newRecursiveMutex()) )
+  if ( !(s->mutex = malloc(sizeof(recursiveMutex))) )
   { free(s);
     return NULL;
   }
+  recursiveMutexInit(s->mutex);
 #endif
   if ( (fd = Sfileno(s)) >= 0 && isatty(fd) )
     s->flags |= SIO_ISATTY;
@@ -1622,15 +1620,16 @@ SinitStreams()
 { static int done;
 
   if ( !done++ )
-  {
+  { int i;
+
+    for(i=0; i<=2; i++)
+    { if ( !isatty(i) )
+	S__iob[i].flags &= ~SIO_ISATTY;
 #ifdef O_PLMT
-    S__iob[0].mutex = newRecursiveMutex();
-    S__iob[1].mutex = newRecursiveMutex();
-    S__iob[2].mutex = newRecursiveMutex();
+      S__iob[i].mutex = malloc(sizeof(recursiveMutex));
+      recursiveMutexInit(S__iob[i].mutex);
 #endif
-    if ( !isatty(0) ) S__iob[0].flags &= ~SIO_ISATTY;
-    if ( !isatty(2) ) S__iob[1].flags &= ~SIO_ISATTY;
-    if ( !isatty(3) ) S__iob[2].flags &= ~SIO_ISATTY;
+    }
   }
 }
 
