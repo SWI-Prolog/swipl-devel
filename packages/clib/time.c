@@ -90,15 +90,16 @@ regions in the code.  To make a start:
 
 static void	on_alarm(int sig);
 
-static module_t  MODULE_user;
-static atom_t	 ATOM_true;
-static atom_t	 ATOM_false;
-static atom_t	 ATOM_remove;
-static atom_t    ATOM_done;
-static atom_t	 ATOM_next;
-static atom_t	 ATOM_scheduled;
-static functor_t FUNCTOR_module2;
-static functor_t FUNCTOR_alarm1;
+static module_t	   MODULE_user;
+static atom_t	   ATOM_true;
+static atom_t	   ATOM_false;
+static atom_t	   ATOM_remove;
+static atom_t	   ATOM_done;
+static atom_t	   ATOM_next;
+static atom_t	   ATOM_scheduled;
+static functor_t   FUNCTOR_module2;
+static functor_t   FUNCTOR_alarm1;
+static predicate_t PREDICATE_call1;
 
 #define EV_MAGIC	1920299187	/* Random magic number */
 
@@ -264,6 +265,39 @@ schedule()
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+glibc defines backtrace() and friends to  print the calling context. For
+debugging this is just great,  as   the  problem  generally appear after
+generating an exception.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define BACKTRACE 1
+
+#ifdef BACKTRACE
+#include <execinfo.h>
+#include <string.h>
+
+static void
+print_trace (void)
+{ void *array[10];
+  size_t size;
+  char **strings;
+  size_t i;
+     
+  size = backtrace(array, 100);
+  strings = backtrace_symbols(array, size);
+     
+  Sdprintf("on_alarm() context:\n");
+  
+  for(i = 0; i < size; i++)
+  { if ( !strstr(strings[i], "checkData") )
+      Sdprintf("\t[%d] %s\n", i, strings[i]);
+  }
+       
+  free(strings);
+}
+#endif /*BACKTRACE*/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This one is  asynchronously  called  from   the  hook  registered  using
 PL_signal(). Throwing an exception is normally   safe,  but some foreign
 code might not leave the  system   unstable  after resulting long_jmp().
@@ -277,23 +311,22 @@ static void
 on_alarm(int sig)
 { Event ev;
 
+#ifdef BACKTRACE
+  print_trace();
+#endif
+
   if ( (ev=scheduled) )
-  { predicate_t pred = PL_predicate("call", 1, "user");
-    term_t goal = PL_new_term_ref();
-    qid_t qid;
-    term_t ex;
+  { term_t goal = PL_new_term_ref();
 
     scheduled = NULL;
 
     ev->flags |= EV_DONE;
     
     PL_recorded(ev->goal, goal);
-    qid = PL_open_query(ev->module, PL_Q_CATCH_EXCEPTION, pred, goal);
-    if ( !PL_next_solution(qid) && (ex = PL_exception(qid)) )
-    { PL_cut_query(qid);
-      PL_raise_exception(ex);
-    }
-    PL_close_query(qid);
+    PL_call_predicate(NULL,
+		      PL_Q_PASS_EXCEPTION,
+		      PREDICATE_call1,
+		      goal);
 
     if ( ev->flags & EV_REMOVE )
       freeEvent(ev);
@@ -522,6 +555,8 @@ install()
   ATOM_done	  = PL_new_atom("done");
   ATOM_next	  = PL_new_atom("next");
   ATOM_scheduled  = PL_new_atom("scheduled");
+
+  PREDICATE_call1 = PL_predicate("call", 1, "user");
 
   PL_register_foreign("alarm",        4, alarm4,       PL_FA_TRANSPARENT);
   PL_register_foreign("alarm",        3, alarm3,       PL_FA_TRANSPARENT);
