@@ -143,5 +143,13 @@ SOURCE=.\util.c
 
 SOURCE=.\util.h
 # End Source File
+# Begin Source File
+
+SOURCE=.\xmlns.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\xmlns.h
+# End Source File
 # End Target
 # End Project
