@@ -358,7 +358,7 @@ main(int argc, char **argv)
   switch (argc)
   { case 1:
     { set_functions(p, output);
-      sgml_process_file(p, argv[0]);
+      sgml_process_file(p, argv[0], 0);
       free_dtd_parser(p);
       if (output && nerrors == 0)
 	printf("C\n");
@@ -368,7 +368,7 @@ main(int argc, char **argv)
     { set_functions(p, output);
       set_src_dtd_parser(p, IN_FILE, "stdin");
       set_mode_dtd_parser(p, DM_DATA);
-      sgml_process_stream(p, stdin);
+      sgml_process_stream(p, stdin, 0);
       free_dtd_parser(p);
       if (output && nerrors == 0)
 	printf("C\n");

@@ -439,9 +439,10 @@ extern dtd_symbol*	dtd_add_symbol(dtd *dtd, const ichar *name);
 
 dtd *		file_to_dtd(const char *file, const char *doctype,
 			    dtd_dialect dialect);
-int		sgml_process_file(dtd_parser *p, const char *file);
-int		sgml_process_stream(dtd_parser *p, FILE *in);
-
+int		sgml_process_file(dtd_parser *p,
+				  const char *file, unsigned flags);
+int		sgml_process_stream(dtd_parser *p, FILE *in,
+				    unsigned flags);
 dtd_parser *	new_dtd_parser(dtd *dtd);
 void		free_dtd_parser(dtd_parser *p);
 

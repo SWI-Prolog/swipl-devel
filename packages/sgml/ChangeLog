@@ -1,3 +1,9 @@
+* ADDED: Warning when redefining (parameter) entities.
+
+* ENHANCED/FIXED: Process entities refering to files directly.  This
+  reduces memory needs and fixes path-problems in recursive includes.
+  This applies for both normal and parameter entities.
+
 * ADDED: Test for legal value in attributes with type NAMEOF (a|b)
 
 * FIXED: Handle (a,b), (a&b) and (a|b) as equivalent in ATTLIST type

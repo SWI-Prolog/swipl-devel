@@ -317,15 +317,23 @@ entity_file(dtd *dtd, dtd_entity *e)
   { case ET_SYSTEM:
     et_system:
     { const ichar *f = isee_text(dtd, e->exturl, "file:");
+
       if ( f )
       { const ichar *b;
+	char *file;
 
 	if ( is_absolute_path(f) ||
 	     !e->baseurl ||
 	     !(b=isee_text(dtd, e->baseurl, "file:")) )
-	return (char *)f;
-      
-        return localpath(b, f);
+	  file = (char *)f;
+	else
+	  file = localpath(b, f);
+
+/*	printf("ENTITY %s (base %s) --> %s\n",
+	       e->name->name, e->baseurl ? (char *)e->baseurl : "(nil)", file);
+*/
+
+	return file;
       }
 
       return NULL;
@@ -1354,10 +1362,16 @@ process_entity_declaraction(dtd_parser *p, const ichar *decl)
   }
 
   if ( isparam )
-  { e->next = dtd->pentities;
+  { if ( find_pentity(dtd, e->name) )
+      gripe(ERC_REDEFINED, "parameter entity", e->name->name);
+
+    e->next = dtd->pentities;
     dtd->pentities = e;
   } else
-  { e->name->entity = e;
+  { if ( e->name->entity )
+      gripe(ERC_REDEFINED, "entity", e->name->name);
+
+    e->name->entity = e;
     e->next = dtd->entities;
     dtd->entities = e;
   }
@@ -3635,12 +3649,18 @@ process_include(dtd_parser *p, const ichar *entity_name)
 
   if ( (id=dtd_find_entity_symbol(dtd, entity_name)) &&
        (pe=find_pentity(p->dtd, id)) )
-  { const ichar *text = entity_value(p, pe, NULL);
+  { const char *file;
 
-    if ( !text )
-      return gripe(ERC_NO_VALUE, pe->name->name);
+    if ( (file = entity_file(dtd, pe)) )
+      return sgml_process_file(p, file, SGML_SUB_DOCUMENT);
+    else
+    { const ichar *text = entity_value(p, pe, NULL);
 
-    return process_chars(p, IN_ENTITY, entity_name, text);
+      if ( !text )
+	return gripe(ERC_NO_VALUE, pe->name->name);
+
+      return process_chars(p, IN_ENTITY, entity_name, text);
+    }
   }
   
   return gripe(ERC_EXISTENCE, "parameter entity", entity_name);
@@ -3980,18 +4000,13 @@ process_entity(dtd_parser *p, const ichar *name)
 	return gripe(ERC_EXISTENCE, "entity", name);
     }
 
-#if 0					/* TBD */
-    if ( !e->value && e->content == EC_SGML && (file=entity_file(p->dtd, e)) )
-    { locbuf oldloc;
+    if ( !e->value &&
+	 e->content == EC_SGML &&
+	 (file=entity_file(p->dtd, e)) )
+    { empty_icharbuf(p->buffer);		/* dubious */
 
-      push_location(p, &oldloc);
-      set_src_dtd_parser(p, IN_ENTITY, e->name->name);
-      empty_icharbuf(p->buffer);		/* dubious */
-      for(s=text; *s; s++)
-	putchar_dtd_parser(p, *s);
-      pop_location(p, &oldloc);
+      return sgml_process_file(p, file, SGML_SUB_DOCUMENT);
     }
-#endif
 
     if ( !(text = entity_value(p, e, &len)) )
       return gripe(ERC_NO_VALUE, e->name->name);
@@ -4793,7 +4808,7 @@ Richard O'Keefe.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-sgml_process_stream(dtd_parser *p, FILE *fd)
+sgml_process_stream(dtd_parser *p, FILE *fd, unsigned flags)
 { int p0, p1;
 
   if ( (p0 = getc(fd)) == EOF )
@@ -4813,7 +4828,10 @@ sgml_process_stream(dtd_parser *p, FILE *fd)
       else if ( p0 != CR )
 	putchar_dtd_parser(p, CR);
 
-      return end_document_dtd_parser(p);
+      if ( flags & SGML_SUB_DOCUMENT )
+	return TRUE;
+      else
+	return end_document_dtd_parser(p);
     }
 
     putchar_dtd_parser(p, p0);
@@ -4824,17 +4842,18 @@ sgml_process_stream(dtd_parser *p, FILE *fd)
 
 
 int
-sgml_process_file(dtd_parser *p, const char *file)
+sgml_process_file(dtd_parser *p, const char *file, unsigned flags)
 { FILE *fd;
   int rval;
   locbuf oldloc;
 
   push_location(p, &oldloc);
   set_src_dtd_parser(p, IN_FILE, file);
-  set_mode_dtd_parser(p, DM_DATA);
+  if ( !(flags & SGML_SUB_DOCUMENT) )
+    set_mode_dtd_parser(p, DM_DATA);
 
   if ( (fd = fopen(file, "rb")) )
-    sgml_process_stream(p, fd);
+    rval = sgml_process_stream(p, fd, flags);
   else
     rval = FALSE;
 

@@ -200,5 +200,7 @@ typedef struct _dtd_parser
 
 extern int		gripe(dtd_error_id e, ...);
 
+#define SGML_SUB_DOCUMENT	0x1
+
 #endif /*SGML_PARSER_H_INCLUDED*/
 
