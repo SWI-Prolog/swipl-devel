@@ -424,6 +424,16 @@ See PL_retry*() and PL_foreign_context*().
     \item[install_t]
 Type for the install() and uninstall() functions of shared
 or dynamic link libraries.  See secref{shlib}.
+    \item[int64_t]
+Actually part of the C99 standard rather than Prolog.  As of version
+5.5.6, Prolog integers are 64-bit on all hardware.  The C99 type
+int64_t is defined in the \file{stdint.h} standard header and provides
+platform independent 64-bit integers.  Portable code accessing Prolog
+should use this type to exchange integer values.  Please note that
+PL_get_long() can return \const{FALSE} on Prolog integers outside
+the long domain.  Robust code should not assume any of the integer
+fetching functions to succeed if the Prolog term is know to be an
+integer.
 \end{description}
 
 \section{The Foreign Include File}	\label{sec:foreigninclude}
@@ -796,11 +806,20 @@ provided \arg{flags} contains no of the {\tt CVT_*} flags.
 If \arg{t} is a Prolog integer, assign its value over \arg{i}.  On
 32-bit machines, this is the same as PL_get_long(), but avoids a
 warning from the compiler.  See also PL_get_long().
+
 \cfunction{int}{PL_get_long}{term_t +t, long *i}
-If \arg{t} is a Prolog integer, assign its value over \arg{i}.  Note
-that Prolog integers have limited value-range.  If \arg{t} is a floating
-point number that can be represented as a long, this function succeeds
-as well.
+If \arg{t} is a Prolog integer that can be represented as a long, assign
+its value over \arg{i}. If \arg{t} is an integer that cannot be
+represented by a C long, this function returns \const{FALSE}. If \arg{t}
+is a floating point number that can be represented as a long, this
+function succeeds as well.  See also PL_get_int64()
+
+\cfunction{int}{PL_get_int64}{term_t +t, int64_t *i}
+If \arg{t} is a Prolog integer or float that can be represented as a
+\ctype{int64_t}, assign its value over \arg{i}.  Currently all Prolog
+integers can be represented using this type, but this might change if
+SWI-Prolog introduces unbounded integers.
+
 \cfunction{int}{PL_get_bool}{term_t +t, int *val}
 If \arg{t} has the value \const{true} or \const{false}, set \arg{val}
 to the C constant \const{TRUE} or \const{FALSE} and return success.
@@ -1054,6 +1073,8 @@ with 0-bytes in the string.  See also \secref{foreigndata}.
 Put a list of ASCII values in the term-reference.
 \cfunction{void}{PL_put_integer}{term_t -t, long i}
 Put a Prolog integer in the term reference.
+\cfunction{void}{PL_put_int64}{term_t -t, int64_t i}
+Put a Prolog integer in the term reference.
 \cfunction{void}{PL_put_pointer}{term_t -t, void *ptr}
 Put a Prolog integer in the term-reference.  Provided ptr is in the
 `malloc()-area', PL_get_pointer() will get the pointer back.
@@ -1189,6 +1210,8 @@ created from the \arg{len}/\arg{chars} pair. The data will be copied.
 This interface can deal with 0-bytes in the string. See also
 \secref{foreigndata}.
 \cfunction{int}{PL_unify_integer}{term_t ?t, long n}
+Unify \arg{t} with a Prolog integer from \arg{n}.
+\cfunction{int}{PL_unify_int64}{term_t ?t, int64_t n}
 Unify \arg{t} with a Prolog integer from \arg{n}.
 \cfunction{int}{PL_unify_float}{term_t ?t, double f}
 Unify \arg{t} with a Prolog float from \arg{f}.

@@ -28,6 +28,12 @@
 #include "pl-ctype.h"
 #include <errno.h>
 
+#include <limits.h>
+#if !defined(LLONG_MAX)
+#define LLONG_MAX 9223372036854775807LL
+#define LLONG_MIN (-LLONG_MAX - 1LL)
+#endif
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog  new-style  foreign-language  interface.   This  new  foreign
 interface is a mix of the old  interface using the ideas on term-handles
@@ -1103,7 +1109,12 @@ PL_get_integer__LD(term_t t, int *i ARG_LD)
     succeed;
   }
   if ( isBignum(w) )
-  { *i = valBignum(w);
+  { int64_t val = valBignum(w);
+
+    if ( val > INT_MAX || val < INT_MIN )
+      fail;
+    
+    *i = (int)val;
     succeed;
   }
   if ( isReal(w) )
@@ -1111,7 +1122,7 @@ PL_get_integer__LD(term_t t, int *i ARG_LD)
     int l;
 
 #ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
-    if ( !((f >= PLMININT) && (f <= PLMAXINT)) )
+    if ( f > (real)INT_MAX || f < (real)INT_MIN )
       fail;
 #endif
 
@@ -1143,7 +1154,12 @@ PL_get_long__LD(term_t t, long *i ARG_LD)
     succeed;
   }
   if ( isBignum(w) )
-  { *i = valBignum(w);
+  { int64_t val = valBignum(w);
+
+    if ( val > LONG_MAX || val < LONG_MIN )
+      fail;
+    
+    *i = (long)val;
     succeed;
   }
   if ( isReal(w) )
@@ -1151,7 +1167,7 @@ PL_get_long__LD(term_t t, long *i ARG_LD)
     long l;
     
 #ifdef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
-    if ( !((f >= PLMININT) && (f <= PLMAXINT)) )
+    if ( f > (real)LONG_MAX || f < (real)LONG_MIN )
       fail;
 #endif
 
@@ -1173,12 +1189,6 @@ PL_get_long(term_t t, long *i)
 }
 #define PL_get_long(t, i) PL_get_long__LD(t, i PASS_LD)
 
-
-#include <limits.h>
-#if !defined(LLONG_MAX)
-#define LLONG_MAX 9223372036854775807LL
-#define LLONG_MIN (-LLONG_MAX - 1LL)
-#endif
 
 int
 PL_get_int64(term_t t, int64_t *i)

@@ -1541,11 +1541,9 @@ SWI-Prolog offers ISO compatible extensions to the Edinburgh syntax.
 
 \index{iso latin 1}\index{character set}%
 The processor character set specifies the class of each character used
-for parsing Prolog source text.  The character classes are compatible to
-the ISO-latin-1 character set.  The style_check/1 flag \const{charset}
-can be used to provide warnings on the use of unquoted variables and
-atoms holding non-ASCII characters.
-
+for parsing Prolog source text.  Character classification is fixed to
+use UCS/UNICODE as provided by the C-library \ctype{wchar_t} based
+primitives.  See also \secref{widechars}.
 
 \subsubsection{Character Escape Syntax} 	\label{sec:charescapes}
 
@@ -1825,16 +1823,18 @@ switched off with style_check/1.
 The number of atoms is limited to 16777216 (16M) on 32-bit machines.  On
 64-bit machines this is virtually unlimited.  See also \secref{atomgc}.
 
-    \item[Address space]
-SWI-Prolog data is packed in a 32-bit word, which contains both type
-and value information.  The size of the various memory areas is limited
-to 128 Mb for each of the areas, except for the program heap, which is
-not limited.
+    \item[Memory areas]
+On 32-bit hardware, SWI-Prolog data is packed in a 32-bit word, which
+contains both type and value information. The size of the various memory
+areas is limited to 128 Mb for each of the areas, except for the program
+heap, which is not limited.  On 64-bit hardware there are no meaningful
+limits.
 
     \item[Integers]
-Integers are 32-bit (64 on 64-bit machines) to the user, but integers up
-to the value of the \const{max_tagged_integer} prolog-flag are
-represented more efficiently.
+Integers are 64-bit on 32 as well as 64-bit machines.  Integers up to
+the value of the \const{max_tagged_integer} prolog-flag are represented
+more efficiently on the stack.  For clauses and records the difference
+is much smaller.
 
     \item[Floats]
 Floating point numbers are represented as C-native double precision

@@ -681,6 +681,15 @@ canoniseNumber(Number n)
 }
 
 
+int
+unifyNumber(term_t t, Number n)
+{ if ( intNumber(n) )
+    return PL_unify_int64(t, n->value.i);
+  else
+    return PL_unify_float(t, n->value.f);
+}
+
+
 		/********************************
 		*     ARITHMETIC FUNCTIONS      *
 		*********************************/
@@ -1245,10 +1254,7 @@ PRED_IMPL("is", 2, is, PL_FA_TRANSPARENT)	/* -Value is +Expr */
   { if ( arg.type == V_REAL && !trueFeature(ISO_FEATURE) )
       canoniseNumber(&arg);
 
-    if ( intNumber(&arg) )
-      return PL_unify_int64(A1, arg.value.i);
-    else
-      return PL_unify_float(A1, arg.value.f);
+    return unifyNumber(A1, &arg);
   }
 
   fail;

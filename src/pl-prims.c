@@ -2030,11 +2030,7 @@ x_chars(const char *pred, term_t atom, term_t string, int how)
       unsigned char *q;
 
       if ( s && get_number((unsigned char *)s, &q, &n, FALSE) && *q == EOS )
-      { if ( intNumber(&n) )
-	  return PL_unify_int64(atom, n.value.i);
-	else
-	  return PL_unify_float(atom, n.value.f);
-      }
+	return unifyNumber(atom, &n);
       if ( how == X_AUTO )
 	goto case_atom;
       else
@@ -2106,11 +2102,8 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
     unsigned char *q;
 
     if ( get_number((unsigned char *)s, &q, &n, FALSE) && *q == EOS )
-    { if ( intNumber(&n) )
-	return PL_unify_integer(A2, n.value.i);
-      else
-	return PL_unify_float(A2, n.value.f);
-    } else
+      return unifyNumber(A2, &n);
+    else
       return PL_error(NULL, 0, NULL, ERR_SYNTAX, "illegal_number");
   } else if ( PL_get_nchars(A2, &len, &s, CVT_NUMBER) )
     return PL_unify_atom_nchars(A1, len, s);
@@ -3243,10 +3236,7 @@ pl_statistics_ld(term_t k, term_t value, PL_local_data_t *ld ARG_LD)
   if ( !PL_is_list(value) )
   { switch(swi_statistics__LD(key, &result, ld))
     { case TRUE:
-	if ( intNumber(&result) )
-	  return PL_unify_integer(value, result.value.i);
-	else
-	  return PL_unify_float(value, result.value.f);
+	return unifyNumber(value, &result);
       case FALSE:
 	fail;
       case -1:

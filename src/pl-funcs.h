@@ -131,6 +131,7 @@ COMMON(bool) 		ar_func_n(code n, int argc, Number *stack);
 COMMON(int) 		valueExpression(term_t p, Number n ARG_LD);
 COMMON(int) 		toIntegerNumber(Number n);
 COMMON(void) 		canoniseNumber(Number n);
+COMMON(int)		unifyNumber(term_t t, Number n);
 COMMON(int) 		arithChar(Word p ARG_LD);
 
 /* pl-bag.c */

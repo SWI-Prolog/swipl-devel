@@ -37,16 +37,16 @@
 
 \newcommand{\vmajor}{5}
 \newcommand{\vminor}{5}
-\newcommand{\vpatch}{2}
-\newcommand{\vmonth}{December}
-\newcommand{\vyear}{2004}
+\newcommand{\vpatch}{6}
+\newcommand{\vmonth}{Februari}
+\newcommand{\vyear}{2005}
 
 \newcommand{\versionshort}{\vmajor.\vminor}
 \newcommand{\versionlong}{\vmajor.\vminor.\vpatch, \vmonth~\vyear}
 \renewcommand{\arabicday}{\versionshort}
 
 \title{SWI-Prolog \versionshort{} Reference Manual}
-\author{\email[Jan Wielemaker]{jan@swi.psy.uva.nl} \ Dept. of Social Science Informatics (SWI) \ Roeterstraat 15, 1018 WB~~Amsterdam \ The Netherlands \ Tel. (+31) 20 5256121}
+\author{\email[Jan Wielemaker]{wielemaker@science.uva.nl} \ Human-Computer Studies (HCS, formerly SWI) \ Kruislaan 419, 1098 VA~~Amsterdam \ The Netherlands \ Tel. (+31) 20 8884671}
 
 \begin{htmlonly}
 \maketitle
