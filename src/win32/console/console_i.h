@@ -175,7 +175,11 @@ void		rlc_clearprompt(rlc_console c);
 		 *	 INLINE FUNCTIONS	*
 		 *******************************/
 
+#ifdef O_DEBUG
 #define assert(g) if ( !(g) ) rlc_assert(#g)
+#else
+#define assert(g) (void)0
+#endif
 
 __inline RlcData
 rlc_get_data(rlc_console c)

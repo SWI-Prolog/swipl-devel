@@ -79,7 +79,7 @@ pl_rlc_color(term_t which, term_t r, term_t b, term_t g)
   { if ( tr < 0 || tr > 255 || (tb < 0) || tb > 255 || tg < 0 || tg > 255 )
       goto usage;
 
-    rlc_color(w, RGB(tr,tb,tg));
+    rlc_color(NULL, w, RGB(tr,tb,tg));
     PL_succeed;
   }
 
