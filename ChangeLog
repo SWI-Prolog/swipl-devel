@@ -1,6 +1,13 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ENHANCED: MT-Version: install libpl.a as libplmt.a for the
+    multi-threaded version.
+
+  * FIXED: MT-Version: open xterm for thread on systems using the
+    /dev/pts filesystem.  On these terminals the xterm is started
+    using <basename of slave>/<descriptor>
+
   * FIXED: MT-Version: deadlock and corruption problem.  Modified
     mutex-structure slightly, so new problems may have been be
     introduced.

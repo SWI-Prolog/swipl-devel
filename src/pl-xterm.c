@@ -126,7 +126,6 @@ foreign_t
 pl_open_xterm(term_t title, term_t in, term_t out)
 { int master, slave, pid;
   char *slavename;
-  char *cc;
   struct termios termio;
   xterm *xt;
   char *titlechars;
@@ -138,7 +137,6 @@ pl_open_xterm(term_t title, term_t in, term_t out)
   grantpt(master);                             
   unlockpt(master);
   slavename = ptsname(master);
-  cc = slavename+strlen(slavename)-2;
   slave = open(slavename, O_RDWR);
   ioctl(slave, I_PUSH, "ptem"); 
   ioctl(slave, I_PUSH, "ldterm");
@@ -148,12 +146,17 @@ pl_open_xterm(term_t title, term_t in, term_t out)
   tcsetattr(slave, TCSADRAIN, &termio);
  
   if ( (pid = fork()) == 0 )
-  { char arg[32];
+  { char arg[64];
+    char *cc;
+    
 
     signal(SIGINT, SIG_IGN);		/* Don't stop on user interaction */
 					/* from toplevel */
-
-    sprintf(arg, "-S%c%c%d", cc[0], cc[1], master);
+    cc = slavename+strlen(slavename)-2;
+    if ( index(cc, '/' ) )
+      sprintf(arg, "-S%s/%d", BaseName(slavename), master);
+    else
+      sprintf(arg, "-S%c%c%d", cc[0], cc[1], master);
     execlp("xterm", "xterm", arg, "-T", titlechars, NULL);
     perror("execlp");
   }
