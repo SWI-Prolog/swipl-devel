@@ -205,7 +205,7 @@ colourise_term(Fact, TB, Pos) :- !,
 	colourise_clause_head(Fact, TB, Pos).
 
 colourise_dcg_head(Head, TB, Pos) :-
-	functor_position(Pos, FPos),
+	functor_position(Pos, FPos, _),
 	Head =.. List,
 	append(List, [_,_], List1),
 	TheHead =.. List1,
@@ -214,7 +214,17 @@ colourise_dcg_head(Head, TB, Pos) :-
 	colourise_term_args(Head, TB, Pos).
 
 colourise_clause_head(Head, TB, Pos) :-
-	functor_position(Pos, FPos),
+	nonvar(Head),
+	head_colours(Head, ClassSpec-ArgSpecs), !,
+	functor_position(Pos, FPos, ArgPos),
+	(   ClassSpec == classify
+	->  classify_head(TB, Head, Class)
+	;   Class = ClassSpec
+	),
+	colour_item(head(Class), TB, FPos),
+	specified_items(ArgSpecs, Head, TB, ArgPos).
+colourise_clause_head(Head, TB, Pos) :-
+	functor_position(Pos, FPos, _),
 	classify_head(TB, Head, Class),
 	colour_item(head(Class), TB, FPos),
 	colourise_term_args(Head, TB, Pos).
@@ -222,12 +232,12 @@ colourise_clause_head(Head, TB, Pos) :-
 colour_method_head(SGHead, TB, Pos) :-
 	arg(1, SGHead, Head),
 	functor(SGHead, SG, _),
-	functor_position(Pos, FPos),
+	functor_position(Pos, FPos, _),
 	colour_item(method(SG), TB, FPos),
 	colourise_term_args(Head, TB, Pos).
 
-functor_position(term_position(_,_,FF,FT,_), FF-FT) :- !.
-functor_position(Pos, Pos).
+functor_position(term_position(_,_,FF,FT,ArgPos), FF-FT, ArgPos) :- !.
+functor_position(Pos, Pos, []).
 
 %	colourise_body(+Body, +TB, +Pos)
 %	
@@ -300,10 +310,7 @@ colourise_dcg_goal(Goal, TB, Pos) :-
 colourise_goal(Goal, TB, Pos) :-
 	nonvar(Goal),
 	goal_colours(Goal, ClassSpec-ArgSpecs), !,
-	(   Pos = term_position(_,_,FF,FT,ArgPos)
-	->  FPos = FF-FT
-	;   FPos = Pos
-	),
+	functor_position(Pos, FPos, ArgPos),
 	(   ClassSpec == classify
 	->  goal_classification(TB, Goal, Class)
 	;   Class = ClassSpec
@@ -546,6 +553,25 @@ pce_functor(get).
 pce_functor(send_super).
 pce_functor(get_super).
 
+
+		 /*******************************
+		 *	  SPECIFIC HEADS	*
+		 *******************************/
+
+head_colours(file_search_path(_,_), hook-[identifier,classify]).
+head_colours(library_directory(_),  hook-[file]).
+head_colours(message_hook(_,_,_),   hook-[classify,classify,classify]).
+head_colours(portray(_),	    hook-[classify]).
+head_colours(resource(_,_,_),	    hook-[identifier,classify,file]).
+head_colours(term_expansion(_,_),   hook-[classify,classify]).
+head_colours(M:H, Colours) :-
+	M == user,
+	head_colours(H, HC),
+	HC = hook - _, !,
+	Colours = hook - [ hook, HC ].
+head_colours(M:_,		    built_in-[module(M),head]).
+
+
 		 /*******************************
 		 *	       STYLES		*
 		 *******************************/
@@ -567,7 +593,8 @@ style(goal(expanded),	  style(colour	   := blue,
 style(head(exported),	  style(bold	   := @on, colour := blue)).
 style(head(local(_)),	  style(bold	   := @on)).
 style(head(unreferenced), style(bold	   := @on, colour := red)).
-
+style(head(hook),	  style(colour	   := blue,
+				underline  := @on)).
 style(comment,		  style(colour	   := dark_green)).
 
 style(directive,	  style(background := grey90)).
@@ -589,6 +616,8 @@ style(class(_,_),	  style(underline  := @on)).
 style(identifier,	  style(bold       := @on)).
 style(expanded,		  style(colour	   := blue,
 				underline  := @on)).
+style(hook,		  style(colour	   := blue,
+				underline  := @on)).
 style(error,		  style(background := orange)).
 
 :- dynamic
@@ -605,67 +634,10 @@ style(Class, Name, Style) :-
 %
 %	Define colourisation for specific terms.
 
-term_colours(file_search_path(_,_),
-	     expanded - [ identifier,
-			  classify
-			]).
-term_colours(user:file_search_path(_,_),
-	     expanded - [ expanded,
-			  expanded - [ identifier,
-				       classify
-				     ]
-			]).
-term_colours(library_directory(_),
-	     expanded - [ file
-			]).
-term_colours(user:library_directory(_),
-	     expanded - [ expanded,
-			  expanded - [ file
-				     ]
-			]).
-term_colours((user:message_hook(_,_,_) :- _),
-	     classify - [ expanded - [ expanded,
-				       expanded - [ classify,
-				                    classify,
-						    classify
-						  ]
-				     ],
-		          classify
-			]).
 term_colours((prolog:message(_) --> _),
 	     expanded - [ expanded - [ expanded,
 				       expanded - [ identifier
 						  ]
-				     ],
-			  classify
-			]).
-term_colours(portray(_),
-	     expanded - [ classify
-			]).
-term_colours(user:portray(_),
-	     expanded - [ expanded,
-			  expanded - [ classify
-				     ]
-			]).
-term_colours(resource(_,_,_),
-	     expanded - [ identifier,
-			  classify,
-			  file
-			]).
-term_colours((resource(_,_,_) :- _),
-	     expanded - [ expanded - [ identifier,
-				       classify,
-				       file
-				     ],
-			  classify
-			]).
-term_colours(term_expansion(_,_),
-	     expanded - [ classify,
-			  classify
-			]).
-term_colours((term_expansion(_,_) :- _),
-	     expanded - [ expanded - [ classify,
-				       classify
 				     ],
 			  classify
 			]).
@@ -772,8 +744,15 @@ term_colours((_,_),
 specified_item(_, Var, TB, Pos) :-
 	var(Var), !,
 	colourise_term_arg(Var, TB, Pos).
+					% generic classification
 specified_item(classify, Term, TB, Pos) :- !,
 	colourise_term_arg(Term, TB, Pos).
+					% classify as head
+specified_item(head, Term, TB, Pos) :- !,
+	colourise_clause_head(Term, TB, Pos).
+					% classify as body
+specified_item(body, Term, TB, Pos) :- !,
+	colourise_body(Term, TB, Pos).
 					% files
 specified_item(file, Term, TB, Pos) :- !,
 	colourise_files(Term, TB, Pos).
