@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+
+<!-- Example from REC-rdf-syntax, demonstrating abbrevation -->
+
+<rdf:RDF
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:dc="http://purl.org/metadata/dublin_core#">
+  <rdf:Description about="http://www.dlib.org">
+    <dc:Title>D-Lib Program - Research in Digital Libraries</dc:Title>
+    <dc:Description>The D-Lib program supports the community of people
+     with research interests in digital libraries and electronic
+     publishing.</dc:Description>
+    <dc:Publisher>Corporation For National Research Initiatives</dc:Publisher>
+    <dc:Date>1995-01-07</dc:Date>
+    <dc:Subject>
+      <rdf:Bag>
+        <rdf:li>Research; statistical methods</rdf:li>
+	<rdf:li>Education, research, related topics</rdf:li>
+	<rdf:li>Library use Studies</rdf:li>
+      </rdf:Bag>
+    </dc:Subject>
+    <dc:Type>World Wide Web Home Page</dc:Type>
+    <dc:Format>text/html</dc:Format>
+    <dc:Language>en</dc:Language>
+  </rdf:Description>
+</rdf:RDF>

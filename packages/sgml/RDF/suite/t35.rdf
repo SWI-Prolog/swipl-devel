@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+
+<!-- Example from REC-rdf-syntax, demonstrating literal value -->
+
+<rdf:RDF
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:pics="http://www.w3.org/TR/xxxx/WD-PICS-labels#"
+  xmlns:ages="http://www.ages.org/our-service/v1.0/">
+  <rdf:Description aboutEachPrefix="http://www.w3.org/WWW/" bagID="L03"
+    ages:age="11"/>
+
+  <rdf:Description aboutEach="#L03"
+    pics:by="abaird@w3.org"/>
+</rdf:RDF>
+

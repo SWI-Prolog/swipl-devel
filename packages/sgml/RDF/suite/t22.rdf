@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+
+<!-- Example from REC-rdf-syntax, demonstrating abbrevation -->
+
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:s="http://description.org/schema/"
+         xmlns:v="http://description.org/view/">
+  <rdf:Description about="http://x.org/packages/X11">
+    <s:DistributionSite>
+      <rdf:Alt>
+        <rdf:li resource="ftp://ftp.x.org"/>
+	<rdf:li resource="ftp://ftp.cs.purdue.edu"/>
+	<rdf:li resource="ftp://ftp.eu.net"/>
+      </rdf:Alt>
+    </s:DistributionSite>
+  </rdf:Description>
+</rdf:RDF>

@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+
+<!-- Example from REC-rdf-syntax, demonstrating abbrevation -->
+
+<rdf:RDF
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:dc="http://purl.org/metadata/dublin_core#"> 
+  <rdf:Description about="http://www.foo.com/cool.html"> 
+    <dc:Creator>
+      <rdf:Seq ID="CreatorsAlphabeticalBySurname">
+        <rdf:li>Mary Andrew</rdf:li>
+	<rdf:li>Jacky Crystal</rdf:li>
+      </rdf:Seq>
+    </dc:Creator>
+    
+    <dc:Identifier>
+      <rdf:Bag ID="MirroredSites"> 
+        <rdf:li rdf:resource="http://www.foo.com.au/cool.html"/>
+	<rdf:li rdf:resource="http://www.foo.com.it/cool.html"/>
+      </rdf:Bag>
+    </dc:Identifier>
+    
+    <dc:Title>
+      <rdf:Alt>
+        <rdf:li xml:lang="en">The Coolest Web Page</rdf:li>
+	<rdf:li xml:lang="it">Il Pagio di Web Fuba</rdf:li>
+      </rdf:Alt>
+    </dc:Title>
+  </rdf:Description> 
+</rdf:RDF>

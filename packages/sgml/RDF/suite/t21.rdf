@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+
+<!-- Example from REC-rdf-syntax, demonstrating abbrevation -->
+
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:s="http://description.org/schema/"
+         xmlns:v="http://description.org/view/">
+  <rdf:Description about="http://mycollege.edu/courses/6.001">
+    <s:students>
+      <rdf:Bag>
+        <rdf:li resource="http://mycollege.edu/students/Amy"/>
+	<rdf:li resource="http://mycollege.edu/students/Tim"/>
+	<rdf:li resource="http://mycollege.edu/students/John"/>
+	<rdf:li resource="http://mycollege.edu/students/Mary"/>
+	<rdf:li resource="http://mycollege.edu/students/Sue"/>
+      </rdf:Bag>
+    </s:students>
+  </rdf:Description>
+</rdf:RDF>

@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+
+<!-- Example from REC-rdf-syntax, demonstrating abbrevation -->
+
+<rdf:RDF
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:dc="http://purl.org/metadata/dublin_core#"
+  xmlns:dcq="http://purl.org/metadata/dublin_core_qualifiers#">
+  <rdf:Description about="http://www.dlib.org/dlib/may98/05contents.html">
+    <dc:Title>DLIB Magazine - The Magazine for Digital Library Research
+      - May 1998</dc:Title>
+    <dc:Description>D-LIB magazine is a monthly compilation of
+     contributed stories, commentary, and briefings.</dc:Description>
+    <dc:Contributor rdf:parseType="Resource">
+      <dcq:AgentType
+	rdf:resource="http://purl.org/metadata/dublin_core_qualifiers#Editor"/>
+      <rdf:value>Amy Friedlander</rdf:value>
+    </dc:Contributor>
+    <dc:Publisher>Corporation for National Research Initiatives</dc:Publisher>
+    <dc:Date>1998-01-05</dc:Date>
+    <dc:Type>electronic journal</dc:Type>
+    <dc:Subject>
+      <rdf:Bag>
+	<rdf:li>library use studies</rdf:li>
+	<rdf:li>magazines and newspapers</rdf:li>
+      </rdf:Bag>
+    </dc:Subject>
+    <dc:Format>text/html</dc:Format>
+    <dc:Identifier>urn:issn:1082-9873</dc:Identifier>
+    <dc:Relation rdf:parseType="Resource">
+      <dcq:RelationType
+	rdf:resource="http://purl.org/metadata/dublin_core_qualifiers#IsPartOf"/>
+      <rdf:value resource="http://www.dlib.org"/>
+    </dc:Relation>
+  </rdf:Description>
+</rdf:RDF>

@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+
+<!-- Copied from Pro Solutions RDF parser examples -->
+
+<RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:NIST="http://www.nist.gov/RDFschema/">
+  <Description about="John_Smith">
+    <NIST:Weight>
+      <Description ID="weight_001">
+        <NIST:Units rdf:resource="http://www.nist.gov/units/pounds"/>
+        <value xmlns="">200</value>
+      </Description>
+    </NIST:Weight>
+  </Description>
+</RDF>

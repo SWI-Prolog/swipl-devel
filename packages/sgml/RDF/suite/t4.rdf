@@ -1,0 +1,14 @@
+<?xml version='1.0'?>
+
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+	 xmlns:s="http://description.org/schema/">
+  <rdf:Description about="http://www.w3.org/Home/Lassila">
+     <s:Creator rdf:ID="statement1">Ora Lassila</s:Creator>
+  </rdf:Description>
+
+<!-- The statement saying that i believe the above statement -->
+
+  <rdf:Description about="#statement1">
+    <s:believedBy>Stefan Decker</s:believedBy>
+  </rdf:Description>
+</rdf:RDF>

@@ -1,0 +1,15 @@
+<?xml version='1.0'?>
+
+<!-- Test inline description -->
+
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:s="http://description.org/schema/">
+  <rdf:Description about="http://www.swi.psy.uva.nl/projects/SWI-Prolog/">
+    <s:Creator>
+      <rdf:Description ID="JW">
+        <name>Jan Wielemaker</name>
+	<works_at>SWI</works_at>
+      </rdf:Description>
+    </s:Creator>
+  </rdf:Description>
+</rdf:RDF>

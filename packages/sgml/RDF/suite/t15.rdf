@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+
+<!-- Example from REC-rdf-syntax, demonstrating abbrevation -->
+
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:s="http://description.org/schema/">
+  <rdf:Description about="http://www.w3.org"
+         s:Publisher="World Wide Web Consortium"
+         s:Title="W3C Home Page"
+         s:Date="1998-10-03T02:27"/>
+</rdf:RDF>

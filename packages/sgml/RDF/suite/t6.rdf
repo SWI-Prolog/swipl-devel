@@ -1,0 +1,15 @@
+<?xml version='1.0'?>
+
+<!-- Test attribute-bag -->
+
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:s="http://description.org/schema/">
+  <rdf:Description about="http://www.swi.psy.uva.nl/projects/xpce/">
+    <s:Creator>
+      <rdf:Bag>
+        <rdf:li>Jan Wielemaker</rdf:li>
+        <rdf:li>Anjo Anjewierden</rdf:li>
+      </rdf:Bag>
+    </s:Creator>
+  </rdf:Description>
+</rdf:RDF>

@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+
+
+
+<RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:DC="http://purl.org/metadata/dublin_core/">
+ <Bag ID="pages">
+   <li resource="http://foo.org/foo.html" />
+   <li resource="http://bar.org/bar.html" />
+ </Bag>
+ <Description aboutEach="#pages">
+   <DC:Creator>Ora Lassila</DC:Creator>
+ </Description>
+</RDF>

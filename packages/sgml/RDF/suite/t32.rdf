@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+
+<!-- Example from REC-rdf-syntax, demonstrating abbrevation -->
+
+<rdf:RDF
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:dc="http://purl.org/metadata/dublin_core#"
+  xmlns:dcq="http://purl.org/metadata/dublin_core_qualifiers#">
+  <rdf:Description about=
+  "http://www.dlib.org/dlib/may98/miller/05miller.html">
+    <dc:Title>An Introduction to the Resource Description Framework</dc:Title>
+    <dc:Creator>Eric J. Miller</dc:Creator>
+    <dc:Description>The Resource Description Framework (RDF) is an
+     infrastructure that enables the encoding, exchange and reuse of
+     structured metadata. rdf is an application of xml that imposes needed
+     structural constraints to provide unambiguous methods of expressing
+     semantics. rdf additionally provides a means for publishing both
+     human-readable and machine-processable vocabularies designed to
+     encourage the reuse and extension of metadata semantics among
+     disparate information communities. the structural constraints rdf
+     imposes to support the consistent encoding and exchange of
+     standardized metadata provides for the interchangeability of separate
+     packages of metadata defined by different resource description
+     communities. </dc:Description>
+    <dc:Publisher>Corporation for National Research Initiatives</dc:Publisher>
+    <dc:Subject>
+      <rdf:Bag>
+	<rdf:li>machine-readable catalog record formats</rdf:li>
+	<rdf:li>applications of computer file organization and
+	 access methods</rdf:li>
+      </rdf:Bag>
+    </dc:Subject>
+    <dc:Rights>Copyright @ 1998 Eric Miller</dc:Rights>
+    <dc:Type>Electronic Document</dc:Type>
+    <dc:Format>text/html</dc:Format>
+    <dc:Language>en</dc:Language>
+    <dc:Relation rdf:parseType="Resource">
+      <dcq:RelationType
+	rdf:resource="http://purl.org/metadata/dublin_core_qualifiers#IsPartOf"/>
+      <rdf:value resource="http://www.dlib.org/dlib/may98/05contents.html"/>
+    </dc:Relation>
+  </rdf:Description>
+</rdf:RDF>

@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+
+<!-- Example from REC-rdf-syntax, demonstrating abbrevation -->
+
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:s="http://description.org/schema/"
+         xmlns:v="http://description.org/view/">
+  <rdf:Description aboutEachPrefix="http://foo.org/doc">
+    <s:Copyright>© 1998, The Foo Organization</s:Copyright>
+  </rdf:Description>
+</rdf:RDF>

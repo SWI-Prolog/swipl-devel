@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+
+<!-- Example from REC-rdf-syntax, demonstrating namespaces -->
+
+<RDF
+  xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:s="http://description.org/schema/">
+  <Description about="http://www.w3.org/Home/Lassila">
+    <s:Creator>Ora Lassila</s:Creator>
+  </Description>
+</RDF>

@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+
+<!-- Example from REC-rdf-syntax, demonstrating abbrevation -->
+
+<rdf:RDF
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:a="http://description.org/schema/">
+  <rdf:Description>
+    <rdf:subject resource="http://www.w3.org/Home/Lassila" />
+    <rdf:predicate resource="http://description.org/schema/Creator" />
+    <rdf:object>Ora Lassila</rdf:object>
+    <rdf:type resource="http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement" />
+    <a:attributedTo>Ralph Swick</a:attributedTo>
+  </rdf:Description>
+</rdf:RDF>

@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:DC="http://purl.org/metadata/dublin_core/"
+     xmlns:DS="http://www.w3.org/Schemas/DS-Schema/">
+  <Description about="http://www.bar.com/some.doc" bagID="Statement_001">
+    <DC:Creator>John Smith</DC:Creator>
+  </Description> 
+  <Description aboutEach="#Statement_001">
+    <DS:CreatedOn>1998-02-06T14:00Z</DS:CreatedOn>
+    <DS:CreatedBy>Jane Cooper</DS:CreatedBy>
+  </Description>
+</RDF>

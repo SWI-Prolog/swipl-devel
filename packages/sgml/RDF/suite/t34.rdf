@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+
+<!-- Example from REC-rdf-syntax, demonstrating literal value -->
+
+<rdf:RDF
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:pics="http://www.w3.org/TR/xxxx/WD-PICS-labels#"
+  xmlns:gcf="http://www.gcf.org/v2.5">
+  <rdf:Description about="http://www.w3.org/PICS/Overview.html" bagID="L01"
+    gcf:suds="0.5"
+    gcf:density="0"
+    gcf:color.hue="1"/>
+
+  <rdf:Description about="http://www.w3.org/PICS/Underview.html" bagID="L02"
+    gcf:subject="2"
+    gcf:density="1"
+    gcf:color.hue="1"/>
+
+  <rdf:Description aboutEach="#L01"
+    pics:by="John Doe"
+    pics:on="1994.11.05T08:15-0500"
+    pics:until="1995.12.31T23:59-0000"/>
+
+  <rdf:Description aboutEach="#L02"
+    pics:by="Jane Doe"
+    pics:on="1994.11.05T08:15-0500"
+    pics:until="1995.12.31T23:59-0000"/>
+</rdf:RDF>
