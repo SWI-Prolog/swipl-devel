@@ -639,9 +639,9 @@ foreign_t	pl_garbage_collect_clauses(void);
 /* pl-prof.c */
 void		stopItimer(void);
 bool		resetProfiler(void);
-struct call_node* profCall(Definition def);
-void		profExit(struct call_node *node);
-void		profRedo(struct call_node *node);
+struct call_node* profCall(Definition def ARG_LD);
+void		profExit(struct call_node *node ARG_LD);
+void		profRedo(struct call_node *node ARG_LD);
 
 /* pl-read.c */
 void		resetRead(void);

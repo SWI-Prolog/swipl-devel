@@ -25,6 +25,9 @@
 #define O_DEBUG 1
 #include "pl-incl.h"
 
+#undef LD
+#define LD LOCAL_LD
+
 #ifdef O_PROFILE
 
 #define current    (LD->profile.current) 	/* current call-node */
@@ -181,7 +184,8 @@ static struct itimerval value, ovalue;	/* itimer controlling structures */
 
 static bool
 startProfiler(void)
-{ set_sighandler(SIGPROF, profile);
+{ GET_LD
+  set_sighandler(SIGPROF, profile);
 
   value.it_interval.tv_sec  = 0;
   value.it_interval.tv_usec = 1;
@@ -197,7 +201,8 @@ startProfiler(void)
 
 void
 stopItimer(void)
-{ value.it_interval.tv_sec  = 0;
+{ GET_LD
+  value.it_interval.tv_sec  = 0;
   value.it_interval.tv_usec = 0;
   value.it_value.tv_sec  = 0;
   value.it_value.tv_usec = 0;
@@ -214,7 +219,8 @@ stopItimer(void)
 
 static bool
 stopProfiler(void)
-{ if ( !LD->profile.active )
+{ GET_LD
+  if ( !LD->profile.active )
     succeed;
 
   stopItimer();
@@ -229,7 +235,8 @@ stopProfiler(void)
 
 static 
 PRED_IMPL("profiler", 2, profiler, 0)
-{ int val;
+{ PRED_LD
+  int val;
 
   if ( !PL_unify_bool_ex(A1, LD->profile.active) )
     fail;
@@ -257,7 +264,7 @@ $prof_node(+Node, -Pred, -Calls, -Redos, -Exits, -TickFraction)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-get_node(term_t t, call_node **node)
+get_node(term_t t, call_node **node ARG_LD)
 { if ( PL_is_functor(t, FUNCTOR_dprof_node1) )
   { term_t a = PL_new_term_ref();
     call_node *n;
@@ -294,7 +301,7 @@ PRED_IMPL("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
     { atom_t a;
 
       if ( !PL_is_variable(A1) )
-      { if ( get_node(A1, &sibling) )
+      { if ( get_node(A1, &sibling PASS_LD) )
 	{ if ( sibling->parent )
 	    return unify_node(A2, sibling->parent);
 	}
@@ -302,7 +309,7 @@ PRED_IMPL("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
       } else
       { if ( PL_get_atom(A2, &a) && a == ATOM_minus )
 	  sibling = roots;
-	else if ( get_node(A2, &parent) )
+	else if ( get_node(A2, &parent PASS_LD) )
 	  sibling = parent->siblings;
 	else 
 	  fail;
@@ -332,9 +339,10 @@ PRED_IMPL("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
 
 static
 PRED_IMPL("$prof_node", 7, prof_node, 0)
-{ call_node *n;
+{ PRED_LD
+  call_node *n;
 
-  if ( !get_node(A1, &n) )
+  if ( !get_node(A1, &n PASS_LD) )
     fail;
 
   if ( unify_definition(A2, n->def, 0, 0) &&
@@ -383,7 +391,7 @@ typedef struct
 
 
 static void
-free_relatives(prof_ref *r)
+free_relatives(prof_ref *r ARG_LD)
 { prof_ref *n;
 
   for( ; r; r=n)
@@ -394,7 +402,7 @@ free_relatives(prof_ref *r)
 
 
 static void
-add_parent_ref(node_sum *sum, call_node *self, call_node *parent)
+add_parent_ref(node_sum *sum, call_node *self, call_node *parent ARG_LD)
 { prof_ref *r;
   Definition def = parent ? parent->def : NULL;
 
@@ -428,7 +436,7 @@ add_parent_ref(node_sum *sum, call_node *self, call_node *parent)
 
 
 static void
-add_sibling_ref(node_sum *sum, call_node *self, call_node *sibling)
+add_sibling_ref(node_sum *sum, call_node *self, call_node *sibling ARG_LD)
 { prof_ref *r;
 
   for(r=sum->callees; r; r=r->next)
@@ -456,7 +464,7 @@ add_sibling_ref(node_sum *sum, call_node *self, call_node *sibling)
 
 
 static int
-sumProfile(call_node *n, Definition def, node_sum *sum)
+sumProfile(call_node *n, Definition def, node_sum *sum ARG_LD)
 { call_node *s;
   int count = 0;
 
@@ -465,20 +473,20 @@ sumProfile(call_node *n, Definition def, node_sum *sum)
     sum->ticks += n->ticks;
     sum->sibling_ticks += n->sibling_ticks;
     sum->recur += n->recur;
-    add_parent_ref(sum, n, n->parent);
+    add_parent_ref(sum, n, n->parent PASS_LD);
     for(s=n->siblings; s; s = s->next)
-      add_sibling_ref(sum, n, s);
+      add_sibling_ref(sum, n, s PASS_LD);
   }
 
   for(s=n->siblings; s; s = s->next)
-    count += sumProfile(s, def, sum);
+    count += sumProfile(s, def, sum PASS_LD);
 
   return count;
 }
 
 
 static int
-unify_relatives(term_t list, prof_ref *r)
+unify_relatives(term_t list, prof_ref *r ARG_LD)
 { term_t tail = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
   term_t tmp = PL_new_term_ref();
@@ -513,7 +521,8 @@ unify_relatives(term_t list, prof_ref *r)
 
 static
 PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
-{ Procedure proc;
+{ PRED_LD
+  Procedure proc;
   Definition def;
   node_sum sum;
   call_node *n;
@@ -522,10 +531,11 @@ PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
 
   if ( !get_procedure(A1, &proc, 0, GP_FIND) )
     return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_procedure, A1);
+  def = proc->definition;
 
   memset(&sum, 0, sizeof(sum));
   for(n=roots; n; n=n->next)
-    count += sumProfile(n, def, &sum);
+    count += sumProfile(n, def, &sum PASS_LD);
   
   if ( count == 0 )
     fail;				/* nothing known about this one */
@@ -535,12 +545,12 @@ PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
 	 PL_unify_integer(A4, sum.calls) &&
 	 PL_unify_integer(A5, sum.redos) &&
 	 PL_unify_integer(A6, sum.recur) &&
-	 unify_relatives(A7, sum.callers) &&
-	 unify_relatives(A8, sum.callees)
+	 unify_relatives(A7, sum.callers PASS_LD) &&
+	 unify_relatives(A8, sum.callees PASS_LD)
        );
 
-  free_relatives(sum.callers);
-  free_relatives(sum.callees);
+  free_relatives(sum.callers PASS_LD);
+  free_relatives(sum.callees PASS_LD);
 
   return rc ? TRUE : FALSE;
 }
@@ -548,7 +558,8 @@ PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
 
 static
 PRED_IMPL("$prof_statistics", 4, prof_statistics, 0)
-{ if ( PL_unify_integer(A1, LD->profile.ticks) &&
+{ PRED_LD
+  if ( PL_unify_integer(A1, LD->profile.ticks) &&
        PL_unify_integer(A2, LD->profile.accounting_ticks) &&
        PL_unify_float(A3, LD->profile.time) &&
        PL_unify_integer(A4, nodes) )
@@ -564,7 +575,8 @@ PRED_IMPL("$prof_statistics", 4, prof_statistics, 0)
 
 bool
 resetProfiler()
-{ stopProfiler();
+{ GET_LD
+  stopProfiler();
 
   freeProfileData();
   LD->profile.ticks = 0;
@@ -589,7 +601,8 @@ PRED_IMPL("reset_profiler", 0, reset_profiler, 0)
 
 static
 PRED_IMPL("$profile", 1, profile, PL_FA_TRANSPARENT)
-{ int rc;
+{ PRED_LD
+  int rc;
   ulong ticks;
 
   resetProfiler();
@@ -665,7 +678,7 @@ profCall(Definition def)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 call_node *
-profCall(Definition def)
+profCall(Definition def ARG_LD)
 { call_node *node = current;
 
   accounting = TRUE;
@@ -734,7 +747,7 @@ Exit, resuming execution in node
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-profExit(struct call_node *node)
+profExit(struct call_node *node ARG_LD)
 { call_node *n;
 
   if ( node == PROF_META_NODE )
@@ -757,7 +770,7 @@ profExit(struct call_node *node)
 
 
 void
-profRedo(struct call_node *node)
+profRedo(struct call_node *node ARG_LD)
 { assert(!node || node->magic == PROFNODE_MAGIC);
 
   if ( node )
@@ -784,7 +797,8 @@ collectSiblingsNode(call_node *n)
 
 static ulong
 collectSiblingsTime()
-{ ulong count = 0;
+{ GET_LD
+  ulong count = 0;
   call_node *n;
   
   for(n=roots; n; n=n->next)
@@ -796,11 +810,11 @@ collectSiblingsTime()
 
 
 static void
-freeProfileNode(call_node *node)
+freeProfileNode(call_node *node ARG_LD)
 { call_node *n;
 
   for(n=node->siblings; n; n=n->next)
-  { freeProfileNode(n);
+  { freeProfileNode(n PASS_LD);
   }
 
   node->magic = 0;
@@ -811,10 +825,11 @@ freeProfileNode(call_node *node)
 
 static void
 freeProfileData()
-{ call_node *n;
+{ GET_LD
+  call_node *n;
   
   for(n=roots; n; n=n->next)
-  { freeProfileNode(n);
+  { freeProfileNode(n PASS_LD);
   }
 
   roots = NULL;

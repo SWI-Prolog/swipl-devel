@@ -1694,7 +1694,7 @@ garbageCollect(LocalFrame fr, Choice ch)
 
 #ifdef O_PROFILE
   if ( LD->profile.active )
-    profCall(PROCEDURE_garbage_collect0->definition);
+    profCall(PROCEDURE_garbage_collect0->definition PASS_LD);
 #endif
 
 #if O_SECURE
@@ -1768,7 +1768,7 @@ garbageCollect(LocalFrame fr, Choice ch)
 
 #ifdef O_PROFILE
   if ( fr && LD->profile.active )
-    profExit(fr->prof_node);
+    profExit(fr->prof_node PASS_LD);
 #endif
 
   unblockGC(PASS_LD1);

@@ -3819,7 +3819,7 @@ increase lTop too to prepare for asynchronous interrupts.
 	    incLevel(next);
 #ifdef O_PROFILE	
 	    if ( LD->profile.active )
-	      next->prof_node = profCall(DEF);
+	      next->prof_node = profCall(DEF PASS_LD);
 	    else
 	      next->prof_node = NULL;
 #endif
@@ -4137,7 +4137,7 @@ be able to access these!
 
 #ifdef O_PROFILE	
 	if ( LD->profile.active )
-	  FR->prof_node = profCall(DEF);
+	  FR->prof_node = profCall(DEF PASS_LD);
 	else
 	  FR->prof_node = NULL;
 #endif
@@ -4374,9 +4374,9 @@ bit more careful.
           { LocalFrame parent = parentFrame(FR);
 
 	    if ( parent )
-	      profExit(parent->prof_node);
+	      profExit(parent->prof_node PASS_LD);
 	    else
-	      profExit(NULL);
+	      profExit(NULL PASS_LD);
 	  }
 #endif
 
@@ -4396,7 +4396,7 @@ bit more careful.
 	environment_frame = FR = FR->parent;
 	DEF = FR->predicate;
 	ARGP = argFrameP(lTop, 0);
-	Profile(profExit(FR->prof_node));
+	Profile(profExit(FR->prof_node PASS_LD));
 
 #if O_DEBUGGER
 	if ( leave )
@@ -4591,7 +4591,7 @@ next_choice:
 			predicateName(DEF)));
       PC   = ch->value.PC;
       BFR  = ch->parent;
-      Profile(profRedo(ch->prof_node));
+      Profile(profRedo(ch->prof_node PASS_LD));
       lTop = (LocalFrame)ch;
       ARGP = argFrameP(lTop, 0);
       NEXT_INSTRUCTION;
@@ -4626,7 +4626,7 @@ next_choice:
 
       clause = CL->clause;
       PC     = clause->codes;
-      Profile(profRedo(ch->prof_node));
+      Profile(profRedo(ch->prof_node PASS_LD));
       lTop   = (LocalFrame)argFrameP(FR, clause->variables);
 
       if ( next )
@@ -4648,7 +4648,7 @@ next_choice:
 			predicateName(DEF),
 		        ch->value.foreign));
       BFR  = ch->parent;
-      Profile(profRedo(ch->prof_node));
+      Profile(profRedo(ch->prof_node PASS_LD));
       lTop = (LocalFrame)ch;
 
       SAVE_REGISTERS(qid);
@@ -4663,7 +4663,7 @@ next_choice:
       FRAME_FAILED;
     }
     case CHP_TOP:			/* Query toplevel */
-    { Profile(profRedo(ch->prof_node));
+    { Profile(profRedo(ch->prof_node PASS_LD));
       QF = QueryFromQid(qid);
       set(QF, PL_Q_DETERMINISTIC);
       fail;
