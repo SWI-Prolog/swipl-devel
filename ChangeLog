@@ -7,6 +7,10 @@
 					http://gollem.swi.psy.uva.nl/bugzilla/
 					--------------------------------------
 
+  * MODIFIED: succ/2 now only handles natural (>= 0) numbers.  Compatibility.
+    See discussion in the mailing list (Richard O'Keefe):
+    http://www.swi.psy.uva.nl/projects/SWI-Prolog/mailinglist/archive/2833.html
+
   * ADDED: library(url): is_global_url/1
 
   * ADDED/FIXED: Various problems and enhancements to check/0 reporting
