@@ -275,6 +275,9 @@ user:goal_expansion(rdf_estimate_complexity(Subj0, Pred0, Obj0, C),
 	rdf_global_id(Subj0, Subj),
 	rdf_global_id(Pred0, Pred),
 	rdf_global_object(Obj0, Obj).
+					% meta predicates
+user:goal_expansion(rdf_transaction(G0), rdf_transaction(G)) :-
+	expand_goal(G0, G).
 
 
 %	rdf_equal(?Resource1, ?Resource2)
