@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Demo ispell file-open (Kip Rugger).
+
 * FIXED: Crash in button->redraw if the button was nost displayed in a
   window (i.e. `image->draw_in').  Lourens van der Meij.
 

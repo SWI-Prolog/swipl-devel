@@ -1,3 +1,7 @@
+Oct 2, 2003
+
+  * FIXED: returning fields as codelist or string.  Kip Rugger.
+
 * Fri Mar 26 16:52:14 1999
   Avoid off_t type conflict
 
