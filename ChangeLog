@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: Dangling trail-references from trimStacks().  Often causes
+    crashes after out-of-stack errors.
+
   * FIXED: Ensure local stack-allocation on machines lacking hardware
     stack guarding.
 
