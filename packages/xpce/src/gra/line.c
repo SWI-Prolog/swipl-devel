@@ -205,7 +205,7 @@ inEventAreaLine(Line ln, Int x, Int y)
 
   area_points(valInt(a->x), valInt(a->y), valInt(a->w), valInt(a->h));
   d = distanceLineToPoint(x1, y1, x2, y2, valInt(x), valInt(y));
-  if ( d < 4 )
+  if ( d < 5 )
     succeed;
   
   fail;

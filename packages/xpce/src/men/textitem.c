@@ -178,13 +178,13 @@ computeTextItem(TextItem ti)
 { if ( notNil(ti->request_compute) )
   { int lw, lh, w, h;
     Int b = getResourceValueObject(ti, NAME_border);
-    int cbw;
+    int cwb = combo_width(ti);
 
     obtainResourcesObject(ti);
     fontText(ti->value_text, ti->value_font);
     borderText(ti->value_text, b);
     if ( notDefault(ti->value_width) )
-    { Int vw = toInt(valInt(ti->value_width) - 2*valInt(b) - combo_width(ti));
+    { Int vw = toInt(valInt(ti->value_width) - cwb);
       marginText(ti->value_text, vw, NAME_clip);
     } else
       lengthText(ti->value_text, ti->length);
@@ -192,10 +192,7 @@ computeTextItem(TextItem ti)
 
     compute_label_text_item(ti, &lw, &lh);
     h = max(lh, valInt(ti->value_text->area->h));
-    w = lw + valInt(ti->value_text->area->w);
-
-    if ( (cbw = combo_width(ti)) )
-      w += cbw;
+    w = lw + valInt(ti->value_text->area->w) + cwb;
 
     if ( ti->pen != ZERO )
     { int al, av, am;

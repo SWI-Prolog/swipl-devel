@@ -132,7 +132,7 @@ ws_create_frame(FrameObj fr)
     XtSetArg(args[n], XtNiconY, valInt(fr->icon_position->y)); n++;
   }
 #if O_MOTIF
-  XtSetArg(args[n], XmNdeleteResponse, XmDO_NOTHING); n++;
+<  XtSetArg(args[n], XmNdeleteResponse, XmDO_NOTHING); n++;
 #endif
 
   w = XtCreatePopupShell(
@@ -483,7 +483,7 @@ updateAreaFrame(FrameObj fr, Int border)
 	assign(fr, border, border);
 
       if ( a->w != ow || a->h != oh )
-	resizeFrame(fr);
+	send(fr, NAME_resize, 0);
     }
 
     succeed;

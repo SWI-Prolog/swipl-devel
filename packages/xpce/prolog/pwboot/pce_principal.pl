@@ -263,7 +263,7 @@ user:(:- extern(call(+term))).
 		 *******************************/
 
 :- initialization
-	(   (prolog_flag(system_type, development), fail) % no check
+	(   (prolog_flag(system_type, development))
 	->  pce_host:pwversion(PwVersion),
 	    '$Quintus: check_license'(prowindows, PwVersion)
 	;   true  % no checking in runtimes

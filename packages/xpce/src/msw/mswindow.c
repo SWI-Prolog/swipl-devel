@@ -454,6 +454,29 @@ ws_flash_window(PceWindow sw, int msecs)
 
 
 void
+ws_flash_area_window(PceWindow sw, int x, int y, int w, int h, int msecs)
+{ HWND hwnd = getHwndWindow(sw);
+
+  if ( hwnd && sw->displayed == ON )
+  { RECT rect;
+
+    rect.left   = x + valInt(sw->scroll_offset->x);
+    rect.right  = rect.left + w;
+    rect.top    = y + valInt(sw->scroll_offset->y);
+    rect.bottom = rect.top  + h;
+    
+    invert_window = TRUE;
+    InvalidateRect(hwnd, &rect, FALSE);
+    UpdateWindow(hwnd);
+    msleep(msecs);
+    InvalidateRect(hwnd, &rect, FALSE);
+    UpdateWindow(hwnd);
+    invert_window = FALSE;
+  }
+}
+
+
+void
 ws_scroll_window(PceWindow sw, int dx, int dy)
 { HWND hwnd;
 

@@ -55,15 +55,11 @@ variable(modified,	bool,	get,
 	 "Menu has been modified").
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Create  the picture.   The width  of the  picture   is fixed using the
-->hor_stretch and  ->hor_shrink methods.   Next, a  `format' object is
-attached to the picture.  When a  format is attached  to a device, the
-graphicals are  located   according  to  the   format   specification.
-Attaching a  format object to a  device is a   simple way to represent
-tabular information in PCE.
-
-NOTE:	Formats are a rather hacky solution.  There are plans to
-	extend them with a more powerful table mechanisms.
+The menu of with the modes and  prototypes   is  a  dialog window with a
+displayed menu. This is one  of   the  many possibilities. When updating
+this documentation, it would have been a   more  natural choice to use a
+dialog window with an attached format and buttons using an `image' label
+for the modes.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 initialise(M) :->
@@ -75,7 +71,15 @@ initialise(M) :->
 	     new(P, menu(proto, choice, message(@arg1, activate)))),
 	send(P, layout, vertical),
 	send(P, show_label, @off),
+	send(M, resize_message, message(M, new_size, @arg2)),
 	send(M, modified, @off).
+
+
+new_size(M, Size:size) :->
+	get(M, member, proto, Menu),
+	get(Size, width, W),
+	Cols is max(1, W // 48),
+	send(Menu, columns, Cols).
 
 
 modified(M, Value:[bool]) :->
@@ -91,7 +95,27 @@ proto(M, Proto:'graphical|link*', Mode:name, Cursor:cursor) :->
 	"Attach a new prototype"::
 	get(M, member, proto, Menu),
 	send(Menu, append, draw_icon(Proto, Mode, Cursor)),
+	send(M, adjust),
 	send(M, modified, @on).
+
+
+adjust(M) :->
+	"Make it wide enough to display all items"::
+	(   get(M, displayed, @on)
+	->  get(M?visible, height, H),
+	    get(M, member, proto, Menu),
+	    get(Menu?members, size, S),
+	    get(Menu, border, B),
+	    Rows is max(1, H//(32+2*B)),
+	    Cols is (S+Rows-1)//Rows,
+	    (	get(Menu, columns, Cols)
+	    ->	true
+	    ;	send(Menu, columns, Cols),
+		send(M, ideal_width, Menu?width),
+		send(M?frame, resize)
+	    )
+	;   true
+	).
 
 
 current(M, Icon:draw_icon) :<-
@@ -216,7 +240,8 @@ load(M, File:[file]) :->
 	send(M, clear),
 	get(LoadFile, object, Chain),
 	send(Chain, for_all, message(M, display, @arg1)),
-	send(M?graphicals?head, activate),
+	send(M, activate_select),
+	send(M, adjust),
 	send(M, modified, @off).
 	
 :- pce_end_class.

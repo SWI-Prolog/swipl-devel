@@ -1063,6 +1063,7 @@ redrawAreaWindow(PceWindow sw, Area a)
 }
 
 
+
 		/********************************
 		*           SCROLLING		*
 		********************************/
@@ -1754,16 +1755,32 @@ flushWindow(PceWindow sw)
 		*             ALERT		*
 		********************************/
 
-static status
-flashWindow(PceWindow sw)
-{ Int msecs = getResourceValueObject(sw, NAME_visualBellDuration);
+status
+flashWindow(PceWindow sw, Area a, Int time)
+{ if ( sw->displayed == ON )
+  { int t;
+    
+    if ( isDefault(time) )
+      time = getResourceValueObject(sw, NAME_visualBellDuration);
+    t = (isInteger(time) ? valInt(time) : 250);
 
-  if ( msecs && sw->displayed == ON )
-    ws_flash_window(sw, valInt(msecs));
+    if ( isDefault(a) )
+      ws_flash_window(sw, t);
+    else
+    { int x, y, w, h;
+
+      x = valInt(a->x);
+      y = valInt(a->y);
+      w = valInt(a->w);
+      h = valInt(a->h);
+      NormaliseArea(x, y, w, h);
+
+      ws_flash_area_window(sw, x, y, w, h, t);
+    }
+  }
 
   succeed;
 }
-
 
 
 		/********************************
@@ -1879,6 +1896,8 @@ static char *T_confirm[] =
         { "position=[point]", "grab=[bool]", "normalise=[bool]" };
 static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+static char *T_flash[] =
+	{ "area=[area]", "time=[int]" };
 
 /* Instance Variables */
 
@@ -2007,8 +2026,8 @@ static senddecl send_window[] =
      NAME_pointer, "Move the pointer relative to window"),
   SM(NAME_redraw, 1, "[area]", redrawWindow,
      NAME_repaint, "Redraw (area of) the window"),
-  SM(NAME_flash, 0, NULL, flashWindow,
-     NAME_report, "Flash the window"),
+  SM(NAME_flash, 2, T_flash, flashWindow,
+     NAME_report, "Flash (part of) the window"),
   SM(NAME_bubbleScrollBar, 1, "scroll_bar", bubbleScrollBarWindow,
      NAME_scroll, "Update bubble of given scroll_bar object"),
   SM(NAME_changedUnion, 4, T_changedUnion, changedUnionWindow,

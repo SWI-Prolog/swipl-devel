@@ -1,5 +1,45 @@
 [VERSION 4.9.0]
 
+* ADDED/FIXED: Added `tab ->in_event_area' test to fix event-handling and
+  cursor management in tab_stack objects.
+
+* ADDED/FIXED: Flash management.  All graphicals now define ->flash:
+  [area], time=[int].  Implementation is done by inverting part of the
+  window using the low-level window primitives rather then by
+  manipulating the `graphical <->inverted' attribute.  The added
+  area argument allows for flashing part of an object, which is exploited
+  by class tab to only flash the label if it is not the top tab, and the
+  whole area otherwise.
+
+* ADDED: `dialog_group ->kind', ->border and a kind attribute to
+  ->initialise.  The system now provides both boxed groups and groups
+  that lack visual feedback, and may be used to define compound
+  dialog objects.
+
+* FIXED: Repaint of text objects with border and clipping (appears 
+  as loosing the last character in scrolled text_item objects).
+
+* PERFORMANCE: Better detection of changes while doing dialog layout, to
+  avoid unnecessary work being done.
+
+* FIXED: dialog_group compute management.
+
+* ADDED: Demo: colour for (pre-)viewing the XPCE mapping of the X11
+  named colour database.
+
+* PCEDRAW: Added resources Pce.Draw.draw_fill_patterns and
+  Pce.Draw.draw_colours, allowing for easy extension of these menus.
+
+* PCEDRAW: Added automatic alignment on the basis of handle positions.
+
+* PCEDRAW: Added automatic adjustment of the mode-menu for too many items
+  or resized window.
+
+* ADDED: On a frame resize, initiated from the user, the method `frame
+  ->resize' is now explicitely called, allowing for redefinition.
+
+* FIXED: Win32: Popup windows not to show in the Windows 95 taskbar.
+
 * FIXED: Win32 `file->copy' (actually, worked around Win32 bug).
 
 * FIXED: ListBrowser event handling to use the {left,middle} up events for

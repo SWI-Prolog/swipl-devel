@@ -23,7 +23,7 @@ initialiseTab(Tab t, Name name)
   assign(t, status,	  NAME_onTop);
   assign(t, size,	  DEFAULT);
 
-  initialiseDialogGroup((DialogGroup) t, name);
+  initialiseDialogGroup((DialogGroup) t, name, DEFAULT);
 
   succeed;
 }
@@ -236,6 +236,25 @@ RedrawAreaTab(Tab t, Area a)
 		 *******************************/
 
 static status
+inEventAreaTab(Tab t, Int X, Int Y)
+{ int x = valInt(X) - valInt(t->offset->x);
+  int y = valInt(Y) - valInt(t->offset->y);
+
+  if ( y < 0 )				/* tab-bar */
+  { if ( y > -valInt(t->label_size->h) &&
+	 x > valInt(t->label_offset) &&
+	 x < valInt(t->label_offset) + valInt(t->label_size->w) )
+      succeed;
+  } else
+  { if ( t->status == NAME_onTop )
+      succeed;
+  }
+
+  fail;
+}
+
+
+static status
 eventTab(Tab t, EventObj ev)
 { Int X, Y;
   int x, y;
@@ -263,6 +282,28 @@ eventTab(Tab t, EventObj ev)
   fail;
 }
 
+
+static status
+flashTab(Tab t, Area a, Int time)
+{ if ( notDefault(a) )
+    return flashDevice((Device)t, a, DEFAULT);
+
+  if ( t->status == NAME_onTop )
+  { a = answerObject(ClassArea,
+		     ZERO, ZERO,
+		     t->area->w,
+		     sub(t->area->h, t->label_size->h), 0);
+  } else
+  { a = answerObject(ClassArea,
+		     t->label_offset, neg(t->label_size->h),
+		     t->label_size->w, t->label_size->h, 0);
+  }
+
+  flashDevice((Device)t, a, DEFAULT);
+  doneObject(a);
+  succeed;
+}
+
 		 /*******************************
 		 *	 CLASS DECLARATION	*
 		 *******************************/
@@ -271,6 +312,8 @@ eventTab(Tab t, EventObj ev)
 
 static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
+static char *T_flash[] =
+	{ "area=[area]", "time=[int]" };
 
 /* Instance Variables */
 
@@ -295,6 +338,8 @@ static senddecl send_tab[] =
      DEFAULT, "Move/resize tab"),
   SM(NAME_event, 1, "event", eventTab,
      NAME_event, "Process event"),
+  SM(NAME_flash, 2, T_flash, flashTab,
+     NAME_report, "Flash tab or area"),
   SM(NAME_position, 1, "point", positionGraphical,
      NAME_geometry, "Top-left corner of tab"),
   SM(NAME_x, 1, "int", xGraphical,
@@ -347,7 +392,9 @@ ClassDecl(tab_decls,
 status
 makeClassTab(Class class)
 { declareClass(class, &tab_decls);
+
   setRedrawFunctionClass(class, RedrawAreaTab);
+  setInEventAreaFunctionClass(class, inEventAreaTab);
 
   succeed;
 }

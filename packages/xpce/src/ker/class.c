@@ -946,6 +946,12 @@ status
 setInEventAreaFunctionClass(Class class, SendFunc func)
 { class->in_event_area_function = func;
 
+/* TBD, but implementation needs to be cleaned first
+  sendMethod(class, NAME_inEventArea, NAME_event, 2, "x=int", "y=int",
+	     "Test if location is in sensitive area",
+	     func);
+*/
+
   succeed;
 }
 

@@ -146,6 +146,23 @@ resource(printer,			[name], '@default',
 	 "Printer used for direct printing").
 resource(print_command,			name, 'lpr -P%p %f',
 	 "Command to print a file").
+resource(draw_fill_patterns,		chain,
+	 [ @nil
+	 , @white_image
+	 , @grey12_image
+	 , @grey25_image
+	 , @grey50_image
+	 , @grey75_image
+	 , @black_image
+	 ],
+	 "List of fill-patterns that can be used").
+resource(draw_colours,			chain,
+	 [ red
+	 , green
+	 , blue
+	 , yellow
+	 ],
+	 "List of colours that can be used").
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 If  the initialisation of an instance  of  this class differs from the
@@ -192,6 +209,11 @@ initialise(Draw) :->
 	send(Draw, fill_dialog, D),
 	send(Draw, fill_menu),
 	send(Menu, activate_select).
+
+resize(Draw) :->
+	send(Draw, send_super, resize),
+	get(Draw, menu, MenuWindow),
+	send(MenuWindow, adjust).
 
 
 		/********************************
@@ -490,12 +512,12 @@ dialog(Draw, D) :<-
 	"Find the dialog of the tool"::
 	get(Draw, member, dialog, D).
 
-canvas(Draw, C) :<-
+canvas(Draw, C:draw_canvas) :<-
 	"Find the drawing canvas"::
 	get(Draw, member, draw_canvas, C).
 
-menu(Draw, C) :<-
-	"Find the icon menu"::
+menu(Draw, C:draw_menu) :<-
+	"Find the icon menu window"::
 	get(Draw, member, draw_menu, C).
 
 

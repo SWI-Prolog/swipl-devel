@@ -421,6 +421,27 @@ ws_ungrab_all()
 
 
 void
+ws_flash_area_window(PceWindow sw, int x, int y, int w, int h, int msecs)
+{ if ( sw->displayed == ON )
+  { int ox, oy, dw, dh;
+
+    compute_window(sw, &ox, &oy, &dw, &dh);
+    ox += valInt(sw->scroll_offset->x);
+    oy += valInt(sw->scroll_offset->y);
+
+    d_offset(ox, oy);
+    d_window(sw, x, y, w, h, FALSE, TRUE);
+    r_complement(x, y, w, h);
+    d_flush();
+    msleep(msecs);
+    r_complement(x, y, w, h);
+    d_flush();
+    d_done();
+  }
+}
+
+
+void
 ws_flash_window(PceWindow sw, int msecs)
 { if ( sw->displayed == ON )
   { int w = valInt(sw->area->w);

@@ -387,7 +387,7 @@ initOffsetText(TextObj t, int tw)
     assign(t, x_caret, toInt(x));
     assign(t, y_caret, toInt(y));
   } else
-  { int x, y, w = valInt(t->area->w), shift;
+  { int x, y, w = valInt(t->area->w) - valInt(t->border), shift;
     int xoff;
 
     if ( tw <= w || t->caret == ZERO )

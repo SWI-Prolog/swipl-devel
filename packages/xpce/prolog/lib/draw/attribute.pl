@@ -11,6 +11,7 @@
 :- module(draw_attribute, []).
 :- use_module(library(pce)).
 :- require([ between/3
+	   , chain_list/2
 	   , default/3
 	   , forall/2
 	   , member/2
@@ -83,9 +84,9 @@ initialise(A, Draw:object, Label:[name]) :->
 	default(Label, 'Attributes', Lbl),
 	send(A, send_super, initialise, Lbl),
 	send(A, done_message, message(A, quit)),
-	send(A, append, new(D, dialog)),
+	send(A, append, new(dialog)),
 	send(A, slot, editor, Draw),
-	fill_dialog(D).
+	send(A, fill_dialog).
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -93,14 +94,16 @@ Fill the dialog with the various menus.  We defined some generic Prolog
 predicates to create the various menu's.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-fill_dialog(D) :-
-	new(A, D?frame),
+fill_dialog(A) :->
+	get(A, member, dialog, D),
+	get(A, editor, Canvas),
+	get(Canvas, frame, Draw),
 
 	make_line_menu(Pen,	pen,	 [0,1,2,3,4,5]),
 	make_line_menu(Texture, texture, [none, dotted, dashed, dashdot]),
 	make_line_menu(Arrows,	arrows,  [none, second, first, both]),
-	make_fill_pattern_menu(FillPattern),
-	make_colour_menu(Colour),
+	make_fill_pattern_menu(Draw, FillPattern),
+	make_colour_menu(Draw, Colour),
 	make_font_menu(Font),
 	make_transparent_menu(Transparent),
 	make_coordinate_menu(X, x),
@@ -149,17 +152,11 @@ make_line_menu(Menu, Attribute, Values) :-
 	send(Proto, done).
 
 
-make_fill_pattern_menu(Menu) :-
+make_fill_pattern_menu(Draw, Menu) :-
+	get(Draw, resource_value, draw_fill_patterns, Patterns),
+	chain_list(Patterns, List),
 	new(Proto, box(30, 16)),
-	make_proto_menu(Menu, Proto, fill_pattern,
-			[ @nil
-			, @white_image
-			, @grey12_image
-			, @grey25_image
-			, @grey50_image
-			, @grey75_image
-			, @black_image
-			]),
+	make_proto_menu(Menu, Proto, fill_pattern, List),
 	send(Proto, done).
 
 
@@ -184,11 +181,13 @@ image with all pixels set to 1.
 colour_display :-
 	\+ get(@display, depth, 1).
 
-colour(white).
-colour(Colour) :-
+colour(_, white).
+colour(Draw, Colour) :-
 	colour_display,
-	colour_display_colour(Colour).
-colour(black).
+	get(Draw, resource_value, draw_colours, Chain),
+	chain_list(Chain, List),
+	member(Colour, List).
+colour(_, black).
 
 colour_display_colour(red).
 colour_display_colour(green).
@@ -196,10 +195,10 @@ colour_display_colour(blue).
 colour_display_colour(yellow).
 
 
-make_colour_menu(Menu) :-
+make_colour_menu(Draw, Menu) :-
 	new(Proto, box(30, 16)),
 	send(Proto, fill_pattern, @black_image),
-	findall(colour(Colour), colour(Colour), Colours),
+	findall(colour(Colour), colour(Draw, Colour), Colours),
 	make_proto_menu(Menu, Proto, colour, [@default|Colours]),
 	send(Proto, done).
 

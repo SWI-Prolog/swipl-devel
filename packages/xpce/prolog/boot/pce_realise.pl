@@ -287,12 +287,6 @@ resolve_method_message(X) :-
 	    send(CPtr, name_reference, pce_resolve_method_message)
 	).
 
-doretract :-
-	get(@pce, is_runtime_system, @on).
-
-find_data(Goal) :-
-	doretract, !,
-	retract(Goal).
 find_data(Goal) :-
 	current_predicate(_, Goal),
 	Goal.
@@ -304,6 +298,7 @@ pce_ifhostproperty(need_extern_declaration,
 		   (:- extern('_bind_lazy'(+term, +term, +term, +term)))).
 
 '_bind_lazy'(_Class, Type, Class, Selector) :-
+%	format('bind_lazy(~p, ~p, ~p)~n', [Type, Class, Selector]),
 	notrace(do_bind_lazy(Type, Class, Selector)).
 
 do_bind_lazy(send, ClassName, @default) :- !,

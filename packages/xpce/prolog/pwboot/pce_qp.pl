@@ -65,7 +65,8 @@ user:user_help :-
 		 *	       ABOUT		*
 		 *******************************/
 
-about('ProWindows version 3.2', boldhuge).
+about('ProWindows version %s'+[Version], boldhuge) :-
+	pwversion(Version).
 about('Based on', italic).
 about('XPCE version %s'+[@pce?version], huge).
 about('Copyright 1992-1996, AIIL / University of Amsterdam', normal).

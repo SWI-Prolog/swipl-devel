@@ -19,7 +19,7 @@ static status labelDialogGroup(DialogGroup g, Name name);
 		********************************/
 
 status
-initialiseDialogGroup(DialogGroup g, Name name)
+initialiseDialogGroup(DialogGroup g, Name name, Name kind)
 { initialiseDevice((Device) g);
 
   if ( isDefault(name) )
@@ -30,10 +30,14 @@ initialiseDialogGroup(DialogGroup g, Name name)
   assign(g, radius,       DEFAULT);	/* Resource */
   assign(g, size,	  DEFAULT);
   assign(g, gap,	  DEFAULT);	/* Resource */
+  assign(g, border,	  getResourceValueObject(g, NAME_border));
   assign(g, auto_align,	  ON);
   assign(g, alignment,	  DEFAULT);	/* Resource */
 
   nameDialogGroup(g, name);
+
+  if ( notDefault(kind) )
+    return qadSendv(g, NAME_kind, 1, (Any *)&kind);
 
   succeed;
 }
@@ -75,6 +79,7 @@ computeDialogGroup(DialogGroup g)
   { int x, y, w, h;
     int lx, ly, lw, lh;
     Area a = g->area;
+    Size border = (isDefault(g->border) ? g->gap : g->border);
 
     obtainResourcesObject(g);
     computeGraphicalsDevice((Device) g);
@@ -91,8 +96,8 @@ computeDialogGroup(DialogGroup g)
       }
       relativeMoveArea(a, g->offset);
 
-      w = valInt(a->w) + 2 * valInt(g->gap->w);
-      h = valInt(a->h) + 2 * valInt(g->gap->h);
+      w = valInt(a->w) + 2 * valInt(border->w);
+      h = valInt(a->h) + 2 * valInt(border->h);
     } else				/* explicit size */
     { w = valInt(g->size->w);
       h = valInt(g->size->h);
@@ -138,6 +143,7 @@ geometryDialogGroup(DialogGroup g, Int x, Int y, Int w, Int h)
 
     size = newObject(ClassSize, w, h, 0);
     qadSendv(g, NAME_size, 1, &size);
+    doneObject(size);
   }
 
   geometryDevice((Device) g, x, y, w, h);
@@ -166,7 +172,32 @@ static status
 layoutDialogDialogGroup(DialogGroup g)
 { obtainResourcesObject(g);
 
-  return layoutDialogDevice((Device)g, g->gap, g->size);
+  return layoutDialogDevice((Device)g, g->gap, g->size, g->border);
+}
+
+
+static status
+gapDialogGroup(DialogGroup g, Size gap)
+{ if ( !equalSize(gap, g->gap) )
+  { assign(g, gap, gap);
+    send(g, NAME_layoutDialog, 0);
+  }
+
+  succeed;
+}
+
+
+static status
+borderDialogGroup(DialogGroup g, Size border)
+{ if ( (isDefault(border) && notDefault(g->border)) ||
+       (notDefault(border) && isDefault(g->border)) ||
+       (notDefault(border) && notDefault(g->border) &&
+	!equalSize(border, g->border)) )
+  { assign(g, border, border);
+    send(g, NAME_layoutDialog, 0);
+  }
+
+  succeed;
 }
 
 
@@ -185,7 +216,7 @@ nameDialogGroup(DialogGroup g, Name name)
 
 static status 
 ChangedLabelDialogGroup(DialogGroup g)
-{ assign(g, request_compute, ON);
+{ requestComputeGraphical(g, DEFAULT);
 
   return changedEntireImageGraphical(g);
 }
@@ -238,6 +269,27 @@ radiusDialogGroup(DialogGroup g, Int radius)
 }
 
 
+		 /*******************************
+		 *	       KIND		*
+		 *******************************/
+
+static status
+kindDialogGroup(DialogGroup g, Name kind)
+{ if ( kind == NAME_box )
+  { assign(g, pen, toInt(1));
+    assign(g, border, getResourceValueObject(g, NAME_border));
+    nameDialogGroup(g, g->name);
+  } else if ( kind == NAME_group )
+  { assign(g, pen, toInt(0));
+    assign(g, border, newObject(ClassSize, 0));
+    assign(g, label, NAME_);
+  } else
+    fail;
+
+  return requestComputeGraphical(g, DEFAULT);
+}
+
+
 		/********************************
 		*             REDRAW		*
 		********************************/
@@ -278,9 +330,11 @@ RedrawAreaDialogGroup(DialogGroup g, Area a)
   } else
     eh = 0;
 
-  r_clear(x+lx-ex/2, y, lw+ex, lh);
-  str_string(&g->label->data, g->label_font,
-	     x+lx, y, lw, lh, NAME_center, NAME_center);
+  if ( g->label != NAME_ )
+  { r_clear(x+lx-ex/2, y, lw+ex, lh);
+    str_string(&g->label->data, g->label_font,
+	       x+lx, y, lw, lh, NAME_center, NAME_center);
+  }
 
   { Cell cell;
     Int ax = a->x, ay = a->y;
@@ -410,6 +464,9 @@ appendDialogGroup(DialogGroup g, Graphical item, Name where)
 
 /* Type declaractions */
 
+static char T_kind[] = "kind=[{box,group}]";
+static char *T_initialise[] =
+	{ "name=[name]", T_kind };
 static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 static char *T_append[] =
@@ -431,8 +488,10 @@ static vardecl var_diagroup[] =
      NAME_appearance, "Radius for the corners"),
   IV(NAME_size, "[size]", IV_GET,
      NAME_geometry, "Size of the contents"),
-  IV(NAME_gap, "size", IV_GET,
+  SV(NAME_gap, "size", IV_GET|IV_STORE, gapDialogGroup,
      NAME_appearance, "Distance between the items"),
+  SV(NAME_border, "[size]", IV_GET|IV_STORE, borderDialogGroup,
+     NAME_appearance, "Space around the items"),
   IV(NAME_autoAlign, "bool", IV_BOTH,
      NAME_layout, "Automatically align in dialog (@on)"),
   IV(NAME_alignment, "{column,left,center,right}", IV_BOTH,
@@ -442,7 +501,7 @@ static vardecl var_diagroup[] =
 /* Send Methods */
 
 static senddecl send_diagroup[] =
-{ SM(NAME_initialise, 1, "name=[name]", initialiseDialogGroup,
+{ SM(NAME_initialise, 2, T_initialise, initialiseDialogGroup,
      DEFAULT, "Create a new group of dialog items"),
   SM(NAME_geometry, 4, T_geometry, geometryDialogGroup,
      DEFAULT, "Move/resize tab"),
@@ -460,6 +519,8 @@ static senddecl send_diagroup[] =
      NAME_name, "Change visual label"),
   SM(NAME_name, 1, "name", nameDialogGroup,
      NAME_name, "Change <-name, update <-label"),
+  SM(NAME_kind, 1, T_kind, kindDialogGroup,
+     NAME_appearance, "Set standard default appearance"),
   SM(NAME_append, 2, T_append, appendDialogGroup,
      NAME_organisation, "Append dialog_item {below,right,next_row} last"),
   SM(NAME_compute, 0, NULL, computeDialogGroup,
@@ -505,6 +566,8 @@ static resourcedecl rc_diagroup[] =
      "Radius for the corners"),
   RC(NAME_gap, "size", "size(15,8)",
      "Distance between items in X and Y"),
+  RC(NAME_border, "[size]", "@default",
+     "Distance around the items in X and Y"),
   RC(NAME_labelFont, "font", "bold",
      "Font used to display the label"),
   RC(NAME_labelFormat, "{top,center,bottom}", "center",

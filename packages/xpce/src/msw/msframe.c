@@ -136,7 +136,7 @@ frame_wnd_proc(HWND hwnd, UINT message, UINT wParam, LONG lParam)
 	  if ( IsWindowVisible(hwnd) )
 	  { Cell cell;
 
-	    resizeFrame(fr);
+	    send(fr, NAME_resize, 0);
 	    SetWindowText(hwnd, strName(fr->label));
 	    assign(fr, status, NAME_open);
 	    for_cell(cell, fr->members)
@@ -571,7 +571,7 @@ outer_frame_area(FrameObj fr, int *x, int *y, int *w, int *h, int limit)
 status
 ws_create_frame(FrameObj fr)
 { HWND ref;
-  DWORD style;
+  DWORD style, exstyle = 0;
   int x, y, w, h;
 
   if ( fr->kind == NAME_toplevel )
@@ -582,17 +582,19 @@ ws_create_frame(FrameObj fr)
   { style = WS_POPUP;
     if ( fr->border != ZERO )
       style |= WS_BORDER;
+    exstyle |= WS_EX_TOOLWINDOW;
   }
     
   outer_frame_area(fr, &x, &y, &w, &h, TRUE);
 
   current_frame = fr;
-  ref = CreateWindow(fr->kind == NAME_popup ? WinPopupFrameClass()
-		     			    : WinFrameClass(),
-		     strName(getIconLabelFrame(fr)),
-		     style,
-		     x, y, w, h,
-		     NULL, NULL, PceHInstance, NULL);
+  ref = CreateWindowEx(exstyle,
+		       fr->kind == NAME_popup ? WinPopupFrameClass()
+		       			      : WinFrameClass(),
+		       strName(getIconLabelFrame(fr)),
+		       style,
+		       x, y, w, h,
+		       NULL, NULL, PceHInstance, NULL);
 		     
   if ( !ref )
     return errorPce(fr, NAME_xOpen, fr->display);

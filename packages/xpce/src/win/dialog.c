@@ -73,7 +73,7 @@ appendDialog(Dialog d, Graphical item, Name where)
 
 static status
 layoutDialog(Dialog d, Size size)
-{ return layoutDialogDevice((Device) d, d->gap, size);
+{ return layoutDialogDevice((Device) d, d->gap, size, DEFAULT);
 }
 
 

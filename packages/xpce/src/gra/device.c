@@ -473,7 +473,7 @@ computeBoundingBoxDevice(Device dev)
     DEBUG(NAME_compute,
 	  Cprintf("computeBoundingBoxDevice(%s) %ld %ld %ld %ld\n",
 		  pp(dev),
-		  valInt(od[0]), valInt(od[1]), valInt(od[3]), valInt(od[4])));
+		  valInt(od[0]), valInt(od[1]), valInt(od[2]), valInt(od[3])));
 
 
     for_cell(cell, dev->graphicals)
@@ -578,6 +578,25 @@ RedrawAreaDevice(Device dev, Area a)
   return RedrawAreaGraphical(dev, a);
 }
 
+
+status
+flashDevice(Device dev, Area a, Int time)
+{ if ( isDefault(a) ||
+       (dev->offset->x == dev->area->x &&
+	dev->offset->y == dev->area->y) )
+    return flashGraphical((Graphical)dev, a, time);
+  else
+  { Area a2;
+    int nx = valInt(a->x) + valInt(dev->offset->x) - valInt(dev->area->x);
+    int ny = valInt(a->y) + valInt(dev->offset->y) - valInt(dev->area->y);
+
+    a2 = answerObject(ClassArea, toInt(nx), toInt(ny), a->w, a->h, 0);
+    flashGraphical((Graphical)dev, a2, time);
+    doneObject(a2);
+  }
+
+  succeed;
+}
 
 
 		/********************************
@@ -1110,8 +1129,31 @@ distribute(int total, int n, int *buckets)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+adjustDialogItem() is as doSetGraphical, but returns 0 if there was no
+change and 1 if there was a change.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+adjustDialogItem(Any obj, Int x, Int y, Int w, Int h)
+{ Graphical gr = obj;
+
+#define Changed(a) (gr->area->a != a && notDefault(a))
+  if ( Changed(x) || Changed(y) || Changed(w) || Changed(h) )
+  { Int av[4];
+
+    av[0] = x; av[1] = y; av[2] = w; av[3] = h;
+    qadSendv(gr, NAME_geometry, 4, av);
+    return 1;
+  }
+#undef Changed
+
+  return 0;
+}
+
+
 status
-layoutDialogDevice(Device d, Size gap, Size bb)
+layoutDialogDevice(Device d, Size gap, Size bb, Size border)
 { matrix m;
   int x, y, max_x = 0, max_y = 0;
   int px, py;
@@ -1119,6 +1161,7 @@ layoutDialogDevice(Device d, Size gap, Size bb)
   Cell cell;
   int ln;
   int found = 0;
+  int changed = 1;
 
   if ( isDefault(gap) )
   { PceWindow sw = getWindowGraphical((Graphical) d);
@@ -1134,13 +1177,11 @@ layoutDialogDevice(Device d, Size gap, Size bb)
     if ( !gap )
       gap = answerObject(ClassSize, toInt(15), toInt(8), 0);
   }
+  if ( isDefault(border) )
+    border = gap;
 
-  if ( notNil(d->request_compute) )
-  { Cell cell;
-
-    for_cell(cell, d->graphicals)
-      send(cell->value, NAME_layoutDialog, 0, NULL);
-  }
+  for_cell(cell, d->graphicals)
+    send(cell->value, NAME_layoutDialog, 0);
 
   if ( !PlacedTable )
     PlacedTable = createHashTable(toInt(32), OFF);
@@ -1156,14 +1197,18 @@ layoutDialogDevice(Device d, Size gap, Size bb)
     }
   }
 
-  if ( !found )
+  if ( found == 0 )
     succeed;				/* finished */
 
-  for(ln = 0; ln < 4; ln++)		/* avoid endless recursion */
-  { for(x=0; x<max_x; x++)		/* Align labels and values */
+  for(ln = 0; changed && ln < 4; ln++)	/* avoid endless recursion */
+  { changed = 0;			/* see whether something changed */
+
+    for(x=0; x<max_x; x++)		/* Align labels and values */
     { int lw = -1;
       int vw = -1;
       int align_flags[MAXCOLLUMNS];
+      int chl = FALSE;
+      int chv = FALSE;
 
 #define AUTO_ALIGN_LABEL 1
 #define AUTO_ALIGN_VALUE 2
@@ -1178,28 +1223,38 @@ layoutDialogDevice(Device d, Size gap, Size bb)
 
 	  if ( get(gr, NAME_autoLabelAlign, 0) == ON )
 	  { if ( (w = valInt(get(gr, NAME_labelWidth, 0))) > lw )
+	    { if ( lw >= 0 )
+		chl++;
 	      lw = w;
+	    }
 	    align_flags[y] |= AUTO_ALIGN_LABEL;
 	  }
 
 	  if ( get(gr, NAME_autoValueAlign, 0) == ON )
 	  { if ( (w = valInt(get(gr, NAME_valueWidth, 0))) > vw )
+	    { if ( vw >= 0 )
+		chv++;
 	      vw = w;
+	    }
 	    align_flags[y] |= AUTO_ALIGN_VALUE;
 	  }
 	}
       }
-      if ( lw >= 0 )
-      { for(y=0; y<max_y; y++)
-	  if ( (align_flags[y] & AUTO_ALIGN_LABEL) &&
-	       m.units[x][y].alignment == NAME_column )
+      if ( chl )
+      { changed++;
+
+	for(y=0; y<max_y; y++)
+	{ if ( (align_flags[y] & AUTO_ALIGN_LABEL) )
 	    send(m.units[x][y].item, NAME_labelWidth, toInt(lw), 0);
+	}
       }
-      if ( vw >= 0 )
-      { for(y=0; y<max_y; y++)
-	  if ( (align_flags[y] & AUTO_ALIGN_VALUE) &&
-	       m.units[x][y].alignment == NAME_column )
+      if ( chv )
+      { changed++;
+
+	for(y=0; y<max_y; y++)
+	{ if ( (align_flags[y] & AUTO_ALIGN_VALUE) )
 	    send(m.units[x][y].item, NAME_valueWidth, toInt(vw), 0);
+	}
       }
     }
 
@@ -1255,9 +1310,8 @@ layoutDialogDevice(Device d, Size gap, Size bb)
       }
     }
 
-
   { int gaph = valInt(gap->h);
-    int ideal_y = gaph * 2;
+    int ideal_y = valInt(border->h) * 2;
     int ngaps = -1;
 
     for(y=0; y<max_y; y++)		/* Determine unit height */
@@ -1297,8 +1351,8 @@ layoutDialogDevice(Device d, Size gap, Size bb)
     }
 
 					  /* Place the items */
-    for(py = gaph, y=0; y<max_y; y++)
-    { int px = valInt(gap->w);
+    for(py = valInt(border->h), y=0; y<max_y; y++)
+    { int px = valInt(border->w);
       int lx = px;			/* x for left aligned items */
       int gapw = valInt(gap->w);
       
@@ -1324,17 +1378,28 @@ layoutDialogDevice(Device d, Size gap, Size bb)
 		nx += px;
 	      else
 		nx += ix - rx;
+
+	      DEBUG(NAME_layout,
+		    Cprintf("Right stretch of %s to next column at %d\n",
+			    pp(gr), nx));
 	    } else if ( notDefault(bb) )
-	    { nx = valInt(bb->w);
+	    { iw = toInt(valInt(bb->w) - valInt(border->w) - (ix - rx));
+	      DEBUG(NAME_layout,
+		    Cprintf("Right stretch of %s to BB at %d\n",
+			    pp(gr), valInt(bb->w)));
 	    } else
 	    { iw = toInt(m.units[x][y].left + m.units[x][y].right);
+	      DEBUG(NAME_layout,
+		    Cprintf("Right stretch of %s to column width %d\n",
+			    pp(gr), valInt(iw)));
 	    }
 
 	    if ( isDefault(iw) )
 	      iw = toInt(nx - gapw - (ix - rx));
 	  }
 
-	  doSetGraphical(gr, toInt(ix - rx), toInt(iy - ry), iw, DEFAULT);
+	  changed += adjustDialogItem(gr, toInt(ix - rx), toInt(iy - ry),
+				      iw, DEFAULT);
 	  lx = valInt(gr->area->x) + valInt(gr->area->w) + gapw;
 	}
 	px += m.units[x][y].left + m.units[x][y].right + gapw;
@@ -1355,10 +1420,10 @@ layoutDialogDevice(Device d, Size gap, Size bb)
 
 	  px = valInt(sw->bounding_box->x) +
 	       valInt(sw->bounding_box->w) +
-	       valInt(gap->w);
+	       valInt(border->w);
 	} else
 	{ px = valInt(d->area->x) - valInt(d->offset->x) +
-	       valInt(d->area->w) + valInt(gap->w);
+	       valInt(d->area->w) + valInt(border->w);
 	} 
       }
 
@@ -1406,8 +1471,9 @@ layoutDialogDevice(Device d, Size gap, Size bb)
 	    for(; ; x--)
 	    { if ( notNil(gr = m.units[x][y].item) &&
 		   gr->displayed == ON )
-	      { setGraphical(gr, toInt(valInt(gr->area->x) + dx),
-			     DEFAULT, DEFAULT, DEFAULT);
+	      { changed += adjustDialogItem(gr,
+					    toInt(valInt(gr->area->x) + dx),
+					    DEFAULT, DEFAULT, DEFAULT);
 		DEBUG(NAME_layout, Cprintf("\t moved %s\n", pp(gr)));
 		if ( gr == grl )
 		  break;
@@ -1812,7 +1878,7 @@ static char *T_typed[] =
 static char *T_format[] =
         { "format*|name", "[any]" };
 static char *T_layout[] =
-        { "gap=[size]", "size=[size]" };
+        { "gap=[size]", "size=[size]", "border=[size]" };
 static char *T_modifiedItem[] =
         { "graphical", "bool" };
 static char *T_display[] =
@@ -1827,6 +1893,8 @@ static char *T_geometry[] =
         { "x=[int]", "y=[int]", "width=[int]", "height=[int]" };
 static char *T_resize[] =
         { "x_factor=real", "y_factor=[real]", "origin=[point]" };
+static char *T_flash[] =
+	{ "area=[area]", "time=[int]" };
 
 /* Instance Variables */
 
@@ -1885,13 +1953,15 @@ static senddecl send_device[] =
      NAME_event, "Update <-pointed, sending area_enter and area_exit events"),
   SM(NAME_advance, 1, "[graphical]*", advanceDevice,
      NAME_focus, "Advance keyboard focus to next item"),
+  SM(NAME_flash, 2, T_flash, flashDevice,
+     NAME_report, "Alert visual by temporary inverting"),
   SM(NAME_forAll, 2, T_DnameD_code, forAllDevice,
      NAME_iterate, "Run code on graphicals; demand acceptance"),
   SM(NAME_forSome, 2, T_DnameD_code, forSomeDevice,
      NAME_iterate, "Run code on all graphicals"),
   SM(NAME_format, 2, T_format, formatDevice,
      NAME_layout, "Use tabular layout"),
-  SM(NAME_layoutDialog, 2, T_layout, layoutDialogDevice,
+  SM(NAME_layoutDialog, 3, T_layout, layoutDialogDevice,
      NAME_layout, "(Re)compute layout of dialog_items"),
   SM(NAME_room, 1, "area", roomDevice,
      NAME_layout, "Test if no graphicals are in area"),

@@ -2374,8 +2374,9 @@ inEventAreaGraphical(Graphical gr, Int xc, Int yc)
   { Class class = classOfObject(gr);
 
     if ( class->in_event_area_function != NULL )
-      if ( (*class->in_event_area_function)(gr, xc, yc) == FAIL )
+    { if ( !(*class->in_event_area_function)(gr, xc, yc) )
 	fail;
+    }
 
     succeed;
   }
@@ -2465,23 +2466,38 @@ bellGraphical(Graphical gr, Int volume)
 }
 
 
-static status
-flashGraphical(Graphical gr)
-{ Bool oldinv = gr->inverted;
+status
+flashGraphical(Graphical gr, Area a, Int time)
+{ PceWindow sw = getWindowGraphical(gr);
 
-  DEBUG(NAME_flash, Cprintf("Flash ... "));
-  CHANGING_GRAPHICAL(gr,
-		     assign(gr, inverted, oldinv == ON ? OFF : ON);
-		     changedEntireImageGraphical(gr));
-  flushGraphical(gr);
-  DEBUG(NAME_flash, Cprintf("sleeping ... "));
-  msleep(valInt((Int)getResourceValueObject(gr, NAME_visualBellDuration)));
-  DEBUG(NAME_flash, Cprintf("waking up ... "));
-  CHANGING_GRAPHICAL(gr,
-		     assign(gr, inverted, oldinv);
-		     changedEntireImageGraphical(gr));
-  flushGraphical(gr);
-  DEBUG(NAME_flash, Cprintf("done.\n"));
+  if ( sw )
+  { int x, y;
+    Int w, h;
+    Area a2;
+
+    if ( isDefault(time) )
+      time = getResourceValueObject(gr, NAME_visualBellDuration);
+    if ( !isInteger(time) )
+      time = toInt(250);
+
+    offsetDeviceGraphical(gr, &x, &y);
+    x += valInt(gr->area->x);
+    y += valInt(gr->area->y);
+
+    if ( isDefault(a) )
+    { w = gr->area->w;
+      h = gr->area->h;
+    } else
+    { x += valInt(a->x);
+      y += valInt(a->y);
+      w = a->w;
+      h = a->h;
+    }
+
+    a2 = answerObject(ClassArea, toInt(x), toInt(y), w, h, 0);
+    flashWindow(sw, a2, time);
+    doneObject(a2);
+  }
 
   succeed;
 }
@@ -2895,6 +2911,8 @@ static char *T_drawFill[] =
 static char *T_drawBox[] =
 	{ "x=int", "y=int", "w=int", "h=int", "radius=[0..]",
 	  "fill=[image|colour|elevation]", "up=[bool]" };
+static char *T_flash[] =
+	{ "area=[area]", "time=[int]" };
 
 /* Instance Variables */
 
@@ -3091,7 +3109,7 @@ static senddecl send_graphical[] =
      NAME_report, "Alert visual or using the bell"),
   SM(NAME_bell, 1, "[int]", bellGraphical,
      NAME_report, "Ring the bell on associated display"),
-  SM(NAME_flash, 0, NULL, flashGraphical,
+  SM(NAME_flash, 2, T_flash, flashGraphical,
      NAME_report, "Alert visual by temporary inverting"),
   SM(NAME_geometry, 4, T_geometry, geometryGraphical,
      NAME_resize, "Resize graphical"),

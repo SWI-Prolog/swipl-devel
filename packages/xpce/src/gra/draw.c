@@ -19,7 +19,7 @@ now, it contains only the new primitives.
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 r_3d_rectangular_polygon(int n, IPoint pts, Elevation e, int flags)
-	Draws a 3-d polygon.  The current implementation olny deals
+	Draws a 3-d polygon.  The current implementation only deals
 	with horizontal and vertical lines.  Might be abstracted
 	further.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */

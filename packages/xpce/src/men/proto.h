@@ -66,7 +66,7 @@ status		makeClassTextItem(Class class);
 status		makeClassTab(Class class);
 
 /* men/diagroup.c */
-status		initialiseDialogGroup(DialogGroup g, Name name);
+status		initialiseDialogGroup(DialogGroup g, Name name, Name kind);
 status		labelFormatDialogGroup(DialogGroup g, Name fmt);
 status		eventDialogGroup(DialogGroup g, EventObj ev);
 status		makeClassDialogGroup(Class class);

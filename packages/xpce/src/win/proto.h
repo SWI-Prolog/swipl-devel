@@ -124,4 +124,5 @@ status		frameWindow(PceWindow sw, FrameObj frame);
 TileObj		getTileWindow(PceWindow sw);
 FrameObj	getFrameWindow(PceWindow sw, Bool create);
 status		flushWindow(PceWindow sw);
+status		flashWindow(PceWindow sw, Area a, Int time);
 status		makeClassWindow(Class class);

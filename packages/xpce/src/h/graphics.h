@@ -107,6 +107,7 @@ End;
   Int		radius;			/* corners rounding radius */ \
   Size		size;			/* Size of the drawing area */ \
   Size		gap;			/* Layout gap for items (dialog) */ \
+  Size		border;			/* Border around graphicals */ \
   Bool		auto_align;		/* Align in dialog window? */ \
   Name		alignment;		/* Row alignment */
 
