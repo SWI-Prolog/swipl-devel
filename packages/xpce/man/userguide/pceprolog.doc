@@ -67,7 +67,7 @@ may have types. Prolog is untyped.
 \end{itemize}
 
 
-\section{Dealing with Prolog data}
+\section{Dealing with Prolog data}		\label{sec:prologdata}
 
 By nature, \plainproduct{} data is not Prolog data.  This implies that
 anything passed to a \plainproduct{} method must be converted from Prolog

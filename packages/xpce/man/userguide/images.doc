@@ -11,7 +11,7 @@ platforms, in addition to the most popular formats for each individual
 platform.
 
 
-\subsection{Colour handling}
+\subsection{Colour handling}			\label{sec:colour}
 
 \index{colour,images}%
 Colour handling is a hard task for todays computerprogrammer. There is a

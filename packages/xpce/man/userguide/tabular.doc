@@ -26,7 +26,7 @@ most of the functionality of class \class{table}.
 \end{itemlist}
 
 
-\subsection{Using \class{format}}
+\subsection{Using \class{format}}		\label{sec:format}
 
 Class \class{format} can be seen as a poor-mens version of
 \class{table}. On the other hand, there are two cases that still make it

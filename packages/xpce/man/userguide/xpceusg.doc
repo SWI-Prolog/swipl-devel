@@ -38,7 +38,7 @@
 
 \makeindex
 
-\includeonly{libs}
+%\includeonly{libs}
 
 \begin{document}
 

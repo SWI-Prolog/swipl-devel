@@ -139,6 +139,12 @@ Super class of \class{method} and \class{variable}, representing the
 two types of objects that can realise behaviour in classes.  Not useful
 for the application programmer.
 
+#class bezier_curve "bezier_curve(start, end, control1, control2)"
+Create a Bezier curve from \arg{start} to \arg{end} using one or two
+control-points (quadradic or cubic Bezier curve).  Bezier curves are
+nice smooth curves departing and arriving in a specified direction.
+See also \class{path}.
+
 #class binary_condition "binary_condition(left, right)"
 #class <  "expression  < expression" lt
 #class =  "expression  = expression" eq
@@ -224,6 +230,10 @@ text of the browser.
    send_list(B, append, [gnu, gnat]).
 \end{code}
 
+#class browser_select_gesture "browser_select_gesture()"
+Internal class dealing with selection handling in class
+\class{list_browser}.
+
 #class button "button(label, message, accelerator)"
 A button is a push-button controller. It has an associated
 \class{message} that is executed if the button is activated using the
@@ -266,6 +276,10 @@ send(Device?graphicals, for_all,
 ...
 \end{code}
  
+#class chain_hyper "chain_hyper(from, to, forward, backward)"
+Link two objects with a `chain'.  If either dies, the other will die
+with it.  See also the library \pllib{hyper} and \secref{hyper}.
+
 #class chain_table "chain_table(buckets)"
 Version of a \class{hash_table} that allows multiple values to be
 associated with the same key.  The key can be any object.  If the
@@ -362,6 +376,11 @@ A \class{colour} represents an `RGB' triple.%
 		  the intensities of the three primary colours}
 Colours are used as attributes to graphicals, windows, \classs{style} and
 \classs{pixmap}
+
+#class colour_map "colour_map(name, colours)"
+Manipulate the colourmap.  Colourmaps are normally left untouched, but
+using a 256 entries colour palette in MS-Windows they can be used to
+improve full-colour image rendering.  See also \secref{colour}.
 
 #class connect_gesture "connect_gesture(button, modifier, link)"
 A \class{connect_gesture} allows the user to connect two graphicals
@@ -580,6 +599,10 @@ provides access to the system-wide event-dispatching services.  It is
 the root of the consist-of hierarchy of \class{visual} objects as
 displayed by the \tool{Visual Hierarchy} tool.
 
+#class edit_text_gesture "edit_text_gesture(button, modifier)"
+Used internally to handle selection inside a \class{text} object. See
+also the library \pllib{pce_editable_text}.
+
 #class editor "editor(text_buffer, width, height, margin_width)"
 An \class{editor} is a general-purpose text editor. It is a graphical.
 Class \class{view} provides a window-based version of the editor. \product{}'s
@@ -757,6 +780,11 @@ The most generic graphical object.  This class defines generic geometry
 management, display, update, event-handling, etc.  This class can be
 sub-classed to defined specialised graphics.  See \secref{ugraphics}.
 
+#class grbox "grbox(graphical, alignment, rubber)"
+Embed a graphical in a \class{parbox}. Using \const{left} or
+\const{right} alignment, \class{grbox} can also be used to have text
+floating around graphical illustrations.  See \secref{docrender}.
+
 #class handle "handle(x_position, y_position, kind, name)"
 A \class{handle} defines a typed and named position on a graphical used
 by connections to connect to.  The positions are formulas expressed in
@@ -817,6 +845,11 @@ implementation poses no limit on the type of the key.
 ?- get(@ht, member, gnu, Image).
 \end{code}
 
+#class hbox "hbox(width, ascent, descent, rubber)"
+Superclass of \class{tbox} and \class{grbox} dealing with
+document-rendering.  Instances of \class{hbox} itself can be used to
+define `rubber'.  See \secref{docrender} for details.
+
 #class host "host(system)"
 Class \class{host} represents the \idx{host-language}, Prolog for this
 manual. It predefines a single instance called @prolog. Sending messages
@@ -826,6 +859,12 @@ to @prolog calls predicates.  See also \secref{pceprolog}.
 ?- send(@prolog, write, hello).
 hello
 \end{code}
+
+#class host_data "host_data(handle)"
+Support class for passing data of the host-language natively around in
+\product{}. The Prolog interface defines the subclass
+\class{prolog_term} and the interface-type \type{prolog}.  Details are
+discussed in the interface definition in \secref{prologdata}.
 
 #class hyper "hyper(from, to, forward_name, backward_name)"
 A \class{hyper} is a \idx{binary relation} between two objects.  The
@@ -869,6 +908,10 @@ device using a \class{bitmap}. They are also used to specify
 \class{cursor} objects and the icon associated with a `frame'.
 See \secref{images}.
 
+#class int_item "int_item(name, default, message, low, high)"
+Subclass of \class{text_item} for entering integer values.  Has stepper
+buttons for incrementing and decrementing the value.
+
 #class joint "joint(arrows)"
 Class \class{joint} is a super-class of the various line-types with
 a start- end end-point.  It provides the code dealing with attached
@@ -897,6 +940,10 @@ send(Dialog, append, label(reporter)),
 ...
 \end{code}
 
+#class label_box "label_box(name, message)"
+Subclass of \class{dialog_group} for the definition of compound
+controllers with a properly aligned label at their left-hand side.
+
 #class layout_manager "layout_manager()"
 #class layout_interface "layout_interface(graphical)"
 
@@ -904,6 +951,10 @@ A \class{layout_manager} may be attached to a graphical \class{device}
 (including a \class{window}) to manage the layout of graphicals
 displayed on the device, as well as painting the background of the
 device.  See \class{table} for a typical example.
+
+#class lbox "lbox(width)"
+Class of the document-rendering system to render a list environment,
+a sequence of labels and text.  See \secref{docrender} for details.
 
 #class line "line(start_x, start_y, end_x, end_y, arrows)"
 A \class{line} is a straight line-segment with optional arrows,
@@ -1114,6 +1165,11 @@ Disjunctive \class{code} object.  An or starts executing its argument
 statements left-to-right and terminates successfully as soon as one
 succeeds.  The empty \class{or} fails immediately.
 
+#class parbox "parbox(width, alignment)"
+Class to render text with mixed fonts and colours together with
+graphics.  Class \class{parbox} is the heart of the document-rendering
+primitives described in \secref{docrender}.
+
 #class parser "parser(tokeniser)"
 Part of \product{}'s object parser.  Not (yet) available to the application
 programmer.
@@ -1322,6 +1378,11 @@ Outline version of the \class{resize_gesture}, often used to resize
 objects that are expensive to resize, such as \class{editor} or
 \class{list_browser}.
 
+#class resize_table_slice_gesture "resize_table_slice_gesture(mode, button, modifier"
+Gesture that can be used together with class \class{table} to allow the
+user dragging the boundaries between columns and rows in a table.  See
+also \secref{tabular}.
+
 #class resource "resource(name, class)"
 
 A \class{resource} is data associated with the application.  It is most
@@ -1342,6 +1403,12 @@ show_splash_screen :-
 	send(W, destroy).
 	
 \end{code}
+
+#class rubber "rubber(level, stretch, shrink, linebreak)"
+Defines how elastic objects in the document-rendering system such as
+\class{hbox} and its subclasses are.  Used by \class{parbox} to realise
+layout.  See \secref{docrender} for a full description of the rendering
+primitives.
 
 #class scroll_bar "scroll_bar(object, orientation, message)"
 A \class{scroll_bar} is used to indicate and control the visible part
@@ -1401,6 +1468,14 @@ in \pllib{'emacs/server'}.
 #class source_location "source_location(file_name, line_no)"
 Specifies the location in a source file.  Used by \class{method} objects
 to register the location they are defined.
+
+#class source_sink "source_sink()"
+Abstract super-class of \class{file}, \class{resource} and
+\class{text_buffer} for type-checking purposes.  All \class{source_sink}
+objects may be used for storing and retrieving image-data.  Notably
+a \class{resource} can be used for creating images (see
+\secref{resources} and \class{text_buffer} can be used to communicate
+images over network connections (see \secref{httpd}).
 
 #class spatial "spatial(x_from, y_from, x_to, y_to, w_to, h_to)"
 A \class{spatial} defines a geometry \class{relation} between two
@@ -1535,6 +1610,9 @@ or delete rows or columns from the table.  Example:
 	...
 \end{code}
 
+#class tbox "tbox(text, style)"
+Add text using a defined \class{style} to a \class{parbox}.  Part of the
+document-rendering infra-structure.  See \secref{docrender}.
 
 #class relation_table "table(names, keys)"
 A \class{relation_table} defines a multi-column table data object that

@@ -41,7 +41,8 @@ do_process(In, Out) :-
 	    fail
         ;   !
 	),
-	make_diagrams('figs/class').
+	make_diagrams('figs/class'),
+	no_summary.
 	    
 :- dynamic
 	diagram/3.			% LineNo, file, classes
@@ -68,6 +69,22 @@ make_diagrams(Dir) :-
 	    send(F, close),
 	    format(') ', []), flush,
 	fail ; true.
+
+no_summary :-
+	findall(X, diagram(_,_,X), Xs),
+	flatten(Xs, Flat),
+	sort(Flat, Done),
+	new(S, chain),
+	send(@classes, for_all,
+	     if(@arg2?creator == built_in,
+		message(S, append, @arg1))),
+	send(S, sort),
+	send(S, subtract, Done),
+	(   send(S, empty)
+	->  true
+	;   format('The following classes have no summary:~n'),
+	    send(S, for_all, message(@pce, format, '\t%s\n', @arg1))
+	).
 
 process_line(In, LineNo, Out) :-
 	phrase(line(Class, _Header, PS), In),
