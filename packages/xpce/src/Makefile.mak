@@ -259,14 +259,14 @@ $(PL2XPCE).dll:	$(PLOBJ)
 # Stand-alone toplevel (xpce.exe)
 ################################################################
 
-xpce-stub.exe:	xpce.res xpce.obj
-		$(LD) $(LDFLAGS) /subsystem:windows /out:$@ xpce.obj $(PLLIB) xpce.res $(LIBS)
+xpce-stub.exe:	xpce-stub.res xpce-stub.obj
+		$(LD) $(LDFLAGS) /subsystem:windows /out:$@ xpce.obj $(PLLIB) xpce-stub.res $(LIBS)
 
-xpce.res:	..\pl\src\xpce.rc ..\pl\src\xpce.ico
-		$(RSC) /fo$@ ..\pl\src\xpce.rc
+xpce-stub.res:	..\pl\src\xpce-stub.rc ..\pl\src\xpce.ico
+		$(RSC) /fo$@ ..\pl\src\xpce-stub.rc
 
-xpce.obj:	..\pl\src\xpce.c
-		@$(CC) -I $(PLHOME)\include $(CFLAGS) /Fo$@ ..\pl\src\xpce.c
+xpce-stub.obj:	..\pl\src\xpce-stub.c
+		@$(CC) -I $(PLHOME)\include $(CFLAGS) /Fo$@ ..\pl\src\xpce-stub.c
 
 ################################################################
 # Installation program
