@@ -1,6 +1,18 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: pl.spec to taball to allow for rpm -tb pl-x.y.z.tar.gz
+    (also Jan Nieuwenhuizen)
+
+  * FIXED: Proper cleanup using `make distclean', suggested by
+    Jan Nieuwenhuizen.
+
+  * FIXED: Deleted temporary assert() statements from pl-rec.c.
+    reported by Jan Nieuwenhuizen.
+
+  * PORTABILITY: Added <stdio.h> to pl-os.c for rename() and remove()
+    prototypes (Linux/PPC), thanks to Paulo Moura.
+
 VERSION 3.2.9
 =============
 

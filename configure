@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# The real work is done in the `src' directory.  This is just here to
+# allow for the standard ./configure && make && make install sequence
+# from the topdirectory
+#
+# If you want to build for multiple architectures, do:
+# 
+#	% mkdir myarch
+#	% cd myarch
+#	% ../src/configure [options]
+#	% make
+#	% make install
+
+(cd src && ./configure $*)
