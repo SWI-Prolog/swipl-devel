@@ -48,7 +48,7 @@ make_cell(T, Options:prolog, PB:parbox) :<-
 	),
 	new(Cell, table_cell(PB)),
 	send(Cell, halign, stretch),
-	(   select(Options, align=Align, Options1)
+	(   select(align=Align, Options, Options1)
 	->  (   Align == char
 	    ->	print_message(warning, doc(ignored_attribute(td, align=char)))
 	    ;   send(PB, alignment, Align)

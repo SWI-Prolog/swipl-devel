@@ -67,54 +67,24 @@ modified_since_last_loaded(InFile) :-
 
 :- consult(library('english/pce_messages')).
 
-xpce_message(Spec, Lines, Rest) :-
-	pce_message(Spec, Lines, Rest).
-xpce_message(context_error(Goal, Context, What)) -->
+:- multifile
+	prolog:message/3.
+
+prolog:message(Spec) -->
+	pce_message(Spec).
+prolog:message(context_error(Goal, Context, What)) -->
 	[ '~w: ~w '-[Goal, What] ],
 	pce_message_context(Context).
-xpce_message(type_error(Goal, ArgN, Type, _Value)) -->
+prolog:message(type_error(Goal, ArgN, Type, _Value)) -->
 	[ '~w: argument ~w must be a ~w'-[Goal, ArgN, Type], nl ].
-xpce_message(Spec, [Spec|Tail], Tail).
 
 pce_error(Term) :-
-	source_location(File, Line), !,
-	message_to_string(Term, Str),
-	(   user:exception(warning, warning(File, Line, Str), _)
-	->  true
-	;   format(user_error,
-		   '[PCE/Prolog: (~w:~d)~n~t~8|~w]~n',
-		   [File, Line, Str])
-        ).
-pce_error(Term) :-
-	message_to_string(Term, Str),
-        format(user_error, '[PCE/Prolog: ~w]~n', [Str]).
+	print_message(error, Term).
 
 pce_warn(Term) :-
-	pce_error(Term).
+	print_message(warning, Term).
 
 pce_info(Term) :-
-	message_to_string(Term, Str),
-	format(user_output, '~w~n', [Str]).
-
-message_to_string(Term, Str) :-
-	xpce_message(Term, Actions, []), !,
-	actions_to_format(Actions, Fmt, Args),
-	sformat(Str, Fmt, Args).
-
-actions_to_format([], '', []) :- !.
-actions_to_format([nl], '', []) :- !.
-actions_to_format([Fmt-Args,nl], Fmt, Args) :- !.
-actions_to_format([Fmt0-Args0,nl|Tail], Fmt, Args) :- !,
-	actions_to_format(Tail, Fmt1, Args1),
-	concat_atom([Fmt0, '~n', Fmt1], Fmt),
-	append(Args0, Args1, Args).
-actions_to_format([Fmt0-Args0|Tail], Fmt, Args) :- !,
-	actions_to_format(Tail, Fmt1, Args1),
-	atom_concat(Fmt0, Fmt1, Fmt),
-	append(Args0, Args1, Args).
-actions_to_format([Term|Tail], Fmt, Args) :-
-	actions_to_format(Tail, Fmt1, Args1),
-	atom_concat('~w', Fmt1, Fmt),
-	append([Term], Args1, Args).
+	print_message(informational, Term).
 
 

@@ -65,13 +65,13 @@ scan_arguments(Args, List) :-
 get_arguments([], Args, Args) :- !.
 get_arguments([Name = Value|T], Args, RestArgs) :-
 	non_default_argument(Value), !,
-	(   select(Args, Name=Value, Rest)
+	(   select(Name=Value, Args, Rest)
 	->  get_arguments(T, Rest, RestArgs)
 	;   format(user_error,
 		   'Argument ~w not present and no default defined', [Name])
 	).
 get_arguments([Name = Value / Default|T], Args, RestArgs) :-
-	(   select(Args, Name=Value, Rest)
+	(   select(Name=Value, Args, Rest)
 	->  get_arguments(T, Rest, RestArgs)
 	;   Value = Default,
 	    get_arguments(T, Args, RestArgs)
