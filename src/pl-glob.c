@@ -114,7 +114,7 @@ forwards char	*compile_pattern(compiled_pattern *, char *, int);
 forwards bool	match_pattern(matchcode *, char *);
 forwards int	stringCompare(const void *, const void *);
 forwards bool	expand(char *, char **, int *);
-forwards char	*change_string(char *, char *);
+forwards void   freeStringsBag(struct bag *b);
 forwards bool	expandBag(struct bag *);
 
 #define Output(c)	{ if ( Out->size > MAXCODE-1 ) \
@@ -349,6 +349,7 @@ pl_expand_file_name(term_t f, term_t list)
   int filled;
   term_t l    = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
+  int rval = TRUE;
 
   if ( !PL_get_chars_ex(f, &s, CVT_ALL) )
     fail;
@@ -360,12 +361,18 @@ pl_expand_file_name(term_t f, term_t list)
   TRY( expand(spec, vector, &filled) );
 
   for( v = vector; filled > 0; filled--, v++ )
-  { if ( !PL_unify_list(l, head, l) ||
-	 !PL_unify_atom_chars(head, *v) )
-      fail;
+  { if ( rval )
+    { if ( !PL_unify_list(l, head, l) ||
+	   !PL_unify_atom_chars(head, *v) )
+	rval = FALSE;
+    }
+    remove_string(*v);
   }
 
-  return PL_unify_nil(l);
+  if ( rval )
+    return PL_unify_nil(l);
+
+  fail;
 }
 
 
@@ -398,21 +405,26 @@ expand(char *f, char **argv, int *argc)
 
   { char **r = argv;
     char plp[MAXPATHLEN];
+    int at;
 
     *argc = b.size;
-    for( ; b.out != b.in; b.out = NextIndex(b.out) )
-      *r++ = change_string(b.bag[b.out], PrologPath(b.bag[b.out], plp));
+    for( at = b.out; at != b.in; at = NextIndex(at) )
+      *r++ = store_string(PrologPath(b.bag[at], plp));
     *r = (char *) NULL;
     qsort(argv, b.size, sizeof(char *), stringCompare);
 
+    freeStringsBag(&b);
     succeed;
   }
 }
 
 
-static char *
-change_string(char *old, char *new)
-{ return store_string(new);
+static void
+freeStringsBag(struct bag *b)
+{ int at;
+
+  for( at = b->out; at != b->in; at = NextIndex(at) )
+    remove_string(b->bag[at]);
 }
 
 
@@ -421,7 +433,8 @@ expandBag(struct bag *b)
 { int high = b->in;
 
   for( ; b->out != high; b->out = NextIndex(b->out) )
-  { char *head = b->bag[b->out];
+  { char *current = b->bag[b->out];
+    char *head = current;
     char *tail;
     char *s = head;
     compiled_pattern cbuf;
@@ -432,14 +445,15 @@ expandBag(struct bag *b)
       switch( (c = *s++) )
       { case EOS:				/* no special characters */
 #ifdef O_EXPANDS_TESTS_EXISTS
-	  if ( b->expanded == FALSE || ExistsFile(b->bag[b->out]) )
-	  { b->bag[b->in] = b->bag[b->out];
+	  if ( b->expanded == FALSE || ExistsFile(current) )
+	  { b->bag[b->in] = current;
 	    b->in = NextIndex(b->in);
 	  } else
-	  { b->size--;
+	  { remove_string(current);
+	    b->size--;
 	  }
 #else
-	  b->bag[b->in] = b->bag[b->out];
+	  b->bag[b->in] = current;
 	  b->in = NextIndex(b->in);
 #endif
 	  goto next_bag;
@@ -511,7 +525,7 @@ expandBag(struct bag *b)
 		  
 	      strcat(expanded, tail);
 
-	      b->bag[b->in] = change_string(b->bag[b->out], expanded);
+	      b->bag[b->in] = store_string(expanded);
 	      b->in = NextIndex(b->in);
 	      b->size++;
 	      if ( b->in == b->out )
@@ -523,9 +537,13 @@ expandBag(struct bag *b)
       }
 #endif /*HAVE_OPENDIR*/
     }
+    remove_string(current);
   next_bag:;
   }
 
   succeed;
 }
+
+
+
 
