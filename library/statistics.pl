@@ -47,6 +47,7 @@
 %	removed.
 
 time(Goal) :-
+	get_time(OldWall),
 	statistics(cputime, OldTime), 
 	statistics(inferences, OldInferences), 
 	(   catch(Goal, E, true)
@@ -55,13 +56,15 @@ time(Goal) :-
 	),
 	statistics(inferences, NewInferences), 
 	statistics(cputime, NewTime), 
+	get_time(NewWall),
 	UsedTime is NewTime - OldTime, 
 	UsedInf  is NewInferences - OldInferences - 3, 
+	Wall     is NewWall - OldWall,
 	(   UsedTime =:= 0
 	->  Lips = 'Infinite'
 	;   Lips is integer(UsedInf / UsedTime)
 	), 
-	print_message(informational, time(UsedInf, UsedTime, Lips)),
+	print_message(informational, time(UsedInf, UsedTime, Wall, Lips)),
 	(   nonvar(E)
 	->  throw(E)
 	;   Result == yes
@@ -254,5 +257,10 @@ predicate_name(H, Name) :-
 :- multifile
 	prolog:message/3.
 
-prolog:message(time(UsedInf, UsedTime, Lips)) -->
-	[ '~D inferences in ~2f seconds (~w Lips)'-[UsedInf, UsedTime, Lips] ].
+prolog:message(time(UsedInf, UsedTime, Wall, Lips)) -->
+	[ '~D inferences, ~2f CPU in ~2f seconds (~w% CPU, ~w Lips)'-
+	  [UsedInf, UsedTime, Wall, Perc, Lips] ],
+	{   Wall > 0
+	->  Perc is round(100*UsedTime/Wall)
+	;   Perc = ?
+	}.
