@@ -25,13 +25,13 @@ INSTALL_PROGRAM=@INSTALL_PROGRAM@
 INSTALL_DATA=@INSTALL_DATA@
 
 LIBPL=		mp.pl
-TARGETS=	mp.so
+TARGETS=	mp.@SO@
 
 MPOBJ=		mp.o main.o
 
 all:		$(TARGETS)
 
-mp.so:		$(MPOBJ)
+mp.@SO@:	$(MPOBJ)
 		$(LD) $(LDFLAGS) $(LOCALLIB) -o $@ $(MPOBJ) $(LIBS)
 
 plmp:		$(LIBPL) $(MPOBJ)

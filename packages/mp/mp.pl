@@ -81,13 +81,13 @@ print_q(Q) :- write(Q).
 print_c(complex(R, I)) :- string(R), !, format('complex(''~w'',''~w'')', [R, I]).
 print_c(C) :- write(C).
 
-user:portray(X) :- portray(X).
+user:portray(X) :- mp_portray(X).
 
-portray($mpz(X))    :- mp_term($mpz(X), 10, 0, Z), !, print_n(Z).
-portray($mpf(X))    :- mp_getprec($mpf(X), P), P =< 64, mp_f(_, $mpf(X)), !, mp_term($mpf(X), 10, 0, F), !, write(F).
-portray($mpf(X))    :- mp_term($mpf(X), 10, 0, F), !, print_n(F).
-portray($mpq(X, Y)) :- mp_term($mpq(X, Y), 10, 0, Q), !, print_q(Q).
-portray($mpc(X, Y)) :- mp_term($mpc(X, Y), 10, 0, C), !, print_c(C).
+mp_portray($mpz(X))    :- mp_term($mpz(X), 10, 0, Z), !, print_n(Z).
+mp_portray($mpf(X))    :- mp_getprec($mpf(X), P), P =< 64, mp_f(_, $mpf(X)), !, mp_term($mpf(X), 10, 0, F), !, write(F).
+mp_portray($mpf(X))    :- mp_term($mpf(X), 10, 0, F), !, print_n(F).
+mp_portray($mpq(X, Y)) :- mp_term($mpq(X, Y), 10, 0, Q), !, print_q(Q).
+mp_portray($mpc(X, Y)) :- mp_term($mpc(X, Y), 10, 0, C), !, print_c(C).
 
 :-		current_predicate(_, user:current_prolog_flag(_,_)),
 		op(700, xfx, user:mp_is),
