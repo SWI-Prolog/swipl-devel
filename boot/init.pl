@@ -823,7 +823,7 @@ $consult_goal(Path, Goal) :-
 	;   Goal = $consult_file
 	).
 
-%	$consult_file(+File, +Options)
+%	load_files(+File, +Options)
 %	
 %	Common entry for all the consult derivates.  File is the raw user
 %	specified file specification, possibly tagged with the module.
@@ -877,19 +877,35 @@ $noload(changed, FullFile) :-
         time_file(FullFile, Modified),
         Modified @=< LoadTime, !.
 
-%	$qlf_file(+PlFile, -LoadFile)
+%	$qlf_file(+Spec, +PlFile, -LoadFile)
 %
 %	Return the QLF file if it exists.  Might check for modification
 %	time, version, etc.
+%	
+%	If the user-specification specified a prolog file, do not
+%	replace this with a .qlf file.
 
-$qlf_file(FullFile, QlfFile) :-
+$qlf_file(Spec, FullFile, FullFile) :-
+	$spec_extension(Spec, Ext),
+	user:prolog_file_type(Ext, prolog), !.
+$qlf_file(_, FullFile, QlfFile) :-
 	flag($compiling, database, database),
 	file_name_extension(Base, PlExt, FullFile),
 	user:prolog_file_type(PlExt, prolog),
 	user:prolog_file_type(QlfExt, qlf),
 	file_name_extension(Base, QlfExt, QlfFile),
 	access_file(QlfFile, read).
-$qlf_file(FullFile, FullFile).
+$qlf_file(_, FullFile, FullFile).
+
+
+$spec_extension(File, Ext) :-
+	atom(File),
+	file_name_extension(_, Ext, File).
+$spec_extension(Spec, Ext) :-
+	compound(Spec),
+	arg(1, Spec, Arg),
+	$spec_extension(Arg, Ext).
+
 
 :- flag($load_silent, _, false).
 
@@ -933,7 +949,7 @@ $load_file(File, Module, Options) :-
 	    )
 	;   (   nonvar(FromStream)
 	    ->	Absolute = File
-	    ;   $qlf_file(FullFile, Absolute)
+	    ;   $qlf_file(File, FullFile, Absolute)
 	    ),
 
 	    flag($compilation_level, Level, Level),

@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: load .pl files rather then .qlf if user told us so.  Thanks to
+    Holger Kanwischer.
+
   * MODIFIED: use ; as separator for the -p alias=path1:path2 option
     on MS-Windows.  Mike Elston.
 
