@@ -1624,7 +1624,8 @@ process_shortref_declaration(dtd_parser *p, const ichar *decl)
 
   sr->defined = TRUE;
 
-  while( *decl && (s=shortref_add_map(dtd, decl, sr)) )
+  while( *(decl = iskip_layout(dtd, decl)) != '\0'
+	 && (s=shortref_add_map(dtd, decl, sr)) )
     decl = s;
   compile_map(dtd, sr);
 

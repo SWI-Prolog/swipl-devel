@@ -1,0 +1,41 @@
+<!DOCTYPE D [
+
+<!ELEMENT D O O (P+)>
+<!ELEMENT P O O (#PCDATA|Q|M)*>
+<!ELEMENT Q - - (#PCDATA|M)*>
+<!ELEMENT M - - (#PCDATA)>
+
+<!ENTITY  P     STARTTAG "P">
+<!ENTITY  beg.q STARTTAG "Q">
+<!ENTITY  end.q ENDTAG   "Q">
+<!ENTITY  err.q STARTTAG "MISS-Q">
+<!ENTITY  beg.m STARTTAG "M">
+<!ENTITY  end.m ENDTAG   "M">
+<!ENTITY  err.m STARTTAG "MISS-PCT">
+
+<!SHORTREF For.D
+    "%"          beg.m
+    "&#RS;&#RE;" P
+    '"'          beg.q    
+>
+<!USEMAP   For.D (D|P)>
+
+<!SHORTREF For.Q
+    "%"          beg.m
+    "&#RS;&#RE;" err.q
+    '"'          end.q    
+>
+<!USEMAP   For.Q (Q)>
+
+<!SHORTREF For.M
+    "%"          end.m
+    "&#RS;&#RE;" err.m
+>
+<!USEMAP   For.M (M)>
+]>
+The "first" paragraph.
+
+The "%2%nd" paragraph.
+
+The %3%rd paragraph.
+
