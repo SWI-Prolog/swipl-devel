@@ -250,14 +250,15 @@ do_check_relocation(Word addr, char *file, int line)
 
 static inline int
 isGlobalRef(word w)
-{ if ( isIndirect(w) || isPointer(w) )
-    return onGlobal(unMask(w));
-  if ( is_ref(w) )
+{ if ( is_ref(w) )
     return onGlobal(unRef(w));
+
+  if ( isIndirect(w) || isPointer(w) )
+    return onGlobal(unMask(w));
 
   return 0;
 }
-  
+
 
 static inline int
 offset_cell(Word p)
@@ -1009,6 +1010,10 @@ is_downward_ref(Word p)
 { word val = get_value(p);
   Word ptr;
 
+  if ( is_ref(val) )
+  { DEBUG(5, if ( unRef(val) < p ) Sdprintf("REF: "));
+    return unRef(val) < p;
+  }
   if ( isVar(val) || isInteger(val) )
     fail;
   if ( isIndirect(val) )
@@ -1022,10 +1027,6 @@ is_downward_ref(Word p)
     }
 
     fail;
-  }
-  if ( is_ref(val) )
-  { DEBUG(5, if ( unRef(val) < p ) Sdprintf("REF: "));
-    return unRef(val) < p;
   }
 
   ptr = (Word) val;
