@@ -81,7 +81,7 @@ reexports the content of these files.
 
 
 set_version :-
-	feature(version, PlVersion),
+	current_prolog_flag(version, PlVersion),
 	send(@pce, catch_error_signals, @on),
 	Major is PlVersion // 10000,
 	Minor is (PlVersion // 100) mod 100,
@@ -92,10 +92,10 @@ set_version :-
 :- initialization set_version.
    
 get_pce_version :-
-	(   feature(xpce_version, _)
+	(   current_prolog_flag(xpce_version, _)
 	->  true
 	;   get(@pce, version, name, Version),
-	    set_feature(xpce_version, Version)
+	    set_prolog_flag(xpce_version, Version)
 	).
 
 :- initialization get_pce_version.
