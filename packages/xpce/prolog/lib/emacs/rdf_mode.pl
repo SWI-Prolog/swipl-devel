@@ -111,13 +111,14 @@ open_document(M) :->
 	      <!DOCTYPE owl [\n  \
 	      <!ENTITY rdf  "http://www.w3.org/1999/02/22-rdf-syntax-ns#">\n  \
      	      <!ENTITY rdfs "http://www.w3.org/2000/01/rdf-schema#">\n  \
-              <!ENTITY xsd  "http://www.w3.org/2000/10/XMLSchema#">\n  \
 	      <!ENTITY owl  "http://www.w3.org/2002/7/owl#">\n  \
+              <!ENTITY xsd  "http://www.w3.org/2000/10/XMLSchema#">\n  \
 	      <!ENTITY dc   "http://purl.org/dc/elements/1.1/">\n\
               ]>\n\n\
 	      <rdf:RDF\n  \
 	      xmlns:rdf ="&rdf;"\n  \
 	      xmlns:rdfs="&rdfs;"\n  \
+	      xmlns:owl ="&owl;"\n  \
 	      xmlns:xsd ="&xsd;"\n  \
 	      xmlns:dc  ="&dc;"\n\
 	      >\n\n\
