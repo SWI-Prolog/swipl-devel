@@ -1,6 +1,12 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * FIXED: toldString() didn't unlock current output, notably causing
+    warnings from background threads to lock I/O.  Sergey Tikhonov.
+
+  * FIXED/MODIFIED: mutex-locking stragety for I/O after comments from
+    Sergey Tikhonov.  Thanks
+
   * ADDED: non-buffering user_error stream with interactor/0 on Unix/X11.
 
   * FIXED: stack and detached option parsing in thread_create/3.
