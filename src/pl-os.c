@@ -869,7 +869,7 @@ SizeFile(const char *path)
   struct stat buf;
 
 #if defined(HAVE_STAT) || defined(__unix__)
-  if ( statfunc(OsPath(path, tmp), &buf) == -1 )
+  if ( statfunc(OsPath(path, tmp), &buf) < 0 )
     return -1;
 #endif
 
