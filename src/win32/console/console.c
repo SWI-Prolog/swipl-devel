@@ -2511,7 +2511,7 @@ rlc_putansi(RlcData b, int chr)
 	  break;
       }
       break;
-    case CMD_ANSI:
+    case CMD_ANSI:			/* ESC [ */
       if ( isdigit(chr) )
       { if ( !b->argstat )
 	{ b->argv[b->argc] = (chr - '0');
