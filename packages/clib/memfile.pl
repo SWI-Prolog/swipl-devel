@@ -38,4 +38,4 @@
 	    memory_file_to_atom/2,	% +Handle, -Atom
 	    memory_file_to_codes/2	% +Handle, -CodeList
 	  ]).
-:- load_foreign_library(foreign(memfile)).
+:- initialization(load_foreign_library(foreign(memfile))).

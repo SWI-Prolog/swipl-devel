@@ -1,3 +1,8 @@
+29/04/2002
+  
+ * Add initialization to load_foreign_library for calls lacking this.
+   Holger Kanwischer.
+
 28/03/2002
 
  * Record position on socket-streams (SIO_RECORDPOS).

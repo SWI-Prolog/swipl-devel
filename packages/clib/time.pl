@@ -69,9 +69,11 @@
 %	been fired, =next= if the event is the next to be executed and
 %	=scheduled= otherwise.
 
-:- load_foreign_library(foreign(time)).
+:- initialization
+   load_foreign_library(foreign(time)).
 
-:- meta_predicate((call_with_time_limit(+, :),
+:- initialization
+   meta_predicate((call_with_time_limit(+, :),
 		   schedule_timeout(+,:,-))).
 
 %	call_with_time_limit(+Time, :Goal)

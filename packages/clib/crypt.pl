@@ -33,7 +33,8 @@
 	  [ crypt/2
 	  ]).
 
-:- load_foreign_library(foreign(crypt), install_crypt).
+:- initialization
+   load_foreign_library(foreign(crypt), install_crypt).
 
 %	crypt(+Passwd, ?Encripted).
 %
