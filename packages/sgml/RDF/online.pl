@@ -80,7 +80,7 @@ emit(#Term) :- !,
 emit(#Term::Content) :- !,
 	#Term::Content.
 emit(Atom) :-
-	format(Atom, []).
+	write(Atom).
 
 #Term::Content :-
 	Term =.. [Name|Attributes],
@@ -113,16 +113,16 @@ attlist([Name|T]) :-
 	attlist(T).
 
 head(Title) :-
-	emit([ 'Content-type: text/html~n~n',
-	       '<html>~n',
-	       '<head>~n',
+	emit([ 'Content-type: text/html\n\n',
+	       '<html>\n',
+	       '<head>\n',
 	       '<title>~w</title>~n'-[Title],
-	       '</head>~n~n',
-	       '<body bgcolor="white">~n'
+	       '</head>\n\n',
+	       '<body bgcolor="white">\n'
 	     ]).
 foot :-
-	emit([ '</body>~n',
-	       '</html>~n'
+	emit([ '</body>\n',
+	       '</html>\n'
 	     ]).
 	     
 
@@ -131,7 +131,7 @@ pre(Text) :-
 	#pre::Quoted.
 
 box(Text, Colour) :-
-	emit('<p>~n'),
+	emit('<p>\n'),
 	#table(width='80%', align=center, border=6, bgcolor=Colour)::
 	  [#tr::[#td(nowrap)::[#pre(Text)]]].
 
