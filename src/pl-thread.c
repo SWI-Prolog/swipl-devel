@@ -1956,8 +1956,9 @@ PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
     fail;
   }
 
-  destroy_message_queue(q);
   s = lookupHTable(queueTable, (void *)q->id);
+  assert(s);
+  destroy_message_queue(q);
   deleteSymbolHTable(queueTable, s);
   PL_free(q);
   UNLOCK();

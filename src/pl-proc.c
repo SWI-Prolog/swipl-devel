@@ -2627,7 +2627,7 @@ pl_clause_from_source(term_t file, term_t line, term_t clause)
       { Clause cl = cref->clause;
 
 	if ( cl->source_no == f->index )
-	{ if ( ln >= cl->line_no )
+	{ if ( ln >= (int)cl->line_no )
 	  { if ( !c || c->line_no < cl->line_no )
 	      c = cl;
 	  }
