@@ -1,6 +1,6 @@
 Summary:	SWI-Prolog - Edinburgh compatible Prolog compiler
 Name:		pl
-Version:	3.3.0
+Version:	3.3.1
 Release:	1
 Copyright:	GPL-2
 Source:		ftp://swi.psy.uva.nl/pub/SWI-Prolog/pl-%{version}.tar.gz
@@ -30,29 +30,16 @@ rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT/usr
 make install prefix=$RPM_BUILD_ROOT/usr bindir=$RPM_BUILD_ROOT/usr/bin \
 	man_prefix=$RPM_BUILD_ROOT/usr/man
-cp src/README.bin ..
 
 # why are manpages installed twice?
 rm -rf /usr/lib/pl-%{version}/man
-
-# --- obsolated by rel-ln :
-# # Make the package relocatable by using local links
-# ARCH=`$RPM_BUILD_ROOT/usr/bin/pl -arch`
-# for f in pl plrc plld; do
-#       ln -sf ../lib/pl-%{version}/bin/$ARCH/$f $RPM_BUILD_ROOT/usr/bin
-# done
-# # or even:
-# # ln -sf ../lib/pl-%{version}/bin/`$RPM_BUILD_ROOT/usr/bin/pl -arch`/pl{,rc,ld} \
-# #	$RPM_BUILD_ROOT/usr/bin
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-%doc ChangeLog README README.bin README.GUI COPYING
-# not necessary in binary rpm, I think
-# %doc INSTALL INSTALL.notes LSM PORTING VERSION
+%doc ChangeLog README src/README.bin README.GUI COPYING
 /usr/lib/pl-%{version}
 /usr/man/man1/*
 /usr/bin/pl*
