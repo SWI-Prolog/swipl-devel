@@ -1,0 +1,122 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%							      %
+% 	Style file voor slides			      %
+%	Guus Schreiber					      %
+%       Last update: May 27, 1991			      %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Contains style definitions for slides
+% 
+% Defines:
+%
+%   \begin{sli}{<Title of slide>}
+% 
+%     <text of the slide>
+% 
+%   \end{sli}
+% 
+% This environment creates a page like this:
+% 
+%
+%
+%     					 
+%              <Title in bold>		 
+%     					 
+%     					 
+%     	Text in sans-serif style	 
+%     	with usual LaTeX commands	 
+%     	NB. some fontsize commands are	 
+%     	redefined			 
+%     					 
+%     	.......				 
+%     					 
+%     					 
+%     					 
+%     					 
+%     					 
+%     					 
+%      <note>			  <num>  
+% 
+% The note is printed in very small fontsize and is default set
+% to "\today". It can be redefined with:
+% 
+% \renewcommand{\slinote}{Lecture XXX, ...}
+% 
+% Each slide is numbered. Note that the "psfig.sty" file must be one of
+% the optional parameters of the documentstyle.
+% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\catcode`\@=11\relax
+
+% PS FIGURES
+
+
+\def\slifig#1#2{\def\psfigure##1##2##3{%
+	\vspace*{\fill}
+	\centerline{\psfig{figure=##2/##3.ps,width=##1}}}
+   \def\psfound{0}
+   \openin15 #2.ps
+   \ifeof15  \@for \psdir:=\psdirs\do
+    {\closein15 \openin15 \psdir/#2.ps
+     \ifeof15
+       \relax
+     \else
+       \def\psfound{1}
+       \psfigure{#1}{\psdir}{#2}
+       \def\psfigure##1##2##3{\relax}
+     \fi}
+   \else
+     \def\psfound{1}
+     \psfigure{#1}{.}{#2}
+   \fi
+   \closein15
+   \ifnum\psfound=0 \@warning{Figure #2.ps not found}\fi}
+
+% SLI ENVIRONMENT
+
+\newcounter{slide}
+\setcounter{slide}{0}
+
+\newenvironment{sli}[1]{%
+	% Everuthing at least as large as \Large
+	\def\small{\Large}
+	\def\normalsize{\LARGE}
+	\LARGE \sf
+	\addtocounter{slide}{1}
+	\vspace*{\fill}
+	\begin{center}{\Huge \bf #1} \end{center}\vskip 20pt}{%
+	\par\vspace*{\fill} \pagebreak}
+
+% PAGESTYLE
+
+\def\ps@sliheadings{%
+\def\@oddhead{}\def\@evenhead{}%
+\def\@oddfoot{{\tiny \slinote} \hfil \tiny\theslide}%
+\def\@evenfoot{{\tiny \slinote} \hfil \tiny\theslide}}
+
+\def\slinote{\today}		        % Default slinote
+
+\pagestyle{sliheadings} 		% \ps@sliheadings
+\thispagestyle{sliheadings}
+
+
+% PARAMETER SETTINGS
+
+\setlength{\parskip}{12pt}
+\setlength{\itemsep}{12pt}
+\setlength{\topsep}{12pt}
+\setlength{\parindent}{0pt}
+
+\topmargin -10pt
+\oddsidemargin 0pt
+\evensidemargin 0pt
+
+\headheight 14pt
+\headsep 15pt
+\footheight 14pt
+\footskip 25pt
+\textheight 20cm
+\textwidth  17cm
+
+\catcode`\@=12\relax
