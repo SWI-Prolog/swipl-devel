@@ -200,7 +200,10 @@ source_file(Pred, File) :-
 
 source_file(File) :-
 	$time_source_file(File, _).
-
+source_file(File) :-
+	atom(File),
+	$time_source_file(LoadedFile, _),
+	same_file(LoadedFile, File), !.
 
 		/********************************
 		*           DATA BASE           *
