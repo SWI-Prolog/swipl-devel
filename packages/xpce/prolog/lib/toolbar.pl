@@ -53,8 +53,8 @@ print(MyApp) :->
 :- pce_begin_class(tool_bar, dialog_group,
 		   "Row of buttons").
 
-variable(orientation, 	{horizontal,vertical},	get, "Stacking direction").
-variable(client,	object*,		get, "Receiving object").
+variable(orientation, 	{horizontal,vertical},	get,  "Stacking direction").
+variable(client,	object*,		both, "Receiving object").
 
 initialise(BG, Client:object*, Orientation:[{horizontal,vertical}]) :->
 	default(Orientation, horizontal, O),
