@@ -175,7 +175,7 @@ browse(FI) :->
 	),
 	get(FI, exists, Exists),
 	get(@finder, file, Exists, directory := Dir, New),
-	send(FI?value_text, string, New),
+	send(FI, value, New),
 	send(FI, apply).
 
 :- pce_end_class(file_item).
