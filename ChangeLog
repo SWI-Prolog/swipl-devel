@@ -1,6 +1,15 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * ADDED: use expand_file_name in load_files/2, underlying all consult
+    and compile predicates.  This allows for ?- ['~/.foo'].
+
+  * ADDED: PL_record_external() Experimental recorded-database support
+    providing records that are independent from the SWI-Prolog symbol-table
+    and thus can be stored in external databases.
+
+  * FIXED: Position handling with \r in a format/2 format spec.
+
   * FIXED: Deal properly with 0-bytes in the format string for format/[2,3].
     Still a bug: format('~t~w~72|~n', [ 'hello\0\world' ]) (write arguments
     with `pending rubber' holding 0-bytes).
