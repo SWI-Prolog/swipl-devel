@@ -3798,15 +3798,21 @@ arguments. Defined \arg{Command}'s are below.
 \begin{description}
     \termitem{system}{+Command}
 Equivalent to calling shell/1.  Use for compatibility only.
+
     \termitem{shell}{+Command}
 Equivalent to calling shell/1.  Use for compatibility only.
+
     \termitem{shell}{}
 Equivalent to calling shell/0.  Use for compatibility only.
+
     \termitem{cd}{}
-Equivalent to calling chdir/1 as \verb$chdir(~)$. Use for compatibility
-only.
+Equivalent to calling working_directory/2 to the expansion (see
+expand_file_name/2) of \chr{~}.  for compatibility only.
+
     \termitem{cd}{+Directory}
-Equivalent to calling chdir/1.  Use for compatibility only.
+Equivalent to calling working_directory/2. Use for compatibility
+only.
+
     \termitem{argv}{-Argv}
 Unify \arg{Argv} with the list of commandline arguments provides to
 this Prolog run. Please note that Prolog system-arguments and
@@ -3824,7 +3830,6 @@ main :-
 	append(_PrologArgs, [--|AppArgs], Argv), !,
 	main(AppArgs).
 \end{code}
-
 \end{description}
 
     \predicate{get_time}{1}{-Time}
@@ -4011,11 +4016,17 @@ Delete directory (folder) from the filesystem.  Raises an exception on
 failure.  Please note that in general it will not be possible to delete
 a non-empty directory.
 
-    \predicate{chdir}{1}{+Path}
-Change working directory to \arg{Path}.%
+    \predicate{working_directory}{2}{-Old, +New}
+Unify \arg{Old} with an absolute path to the current working directory
+and change working directory to \arg{New}.  Use the pattern
+\term{working_directory}{CWD, CWD} to get the current directory.  See
+also absolute_file_name/2 and chdir/1.%
 	\bug{Some of the file-I/O predicates use local filenames.  
-	     Using chdir/1 while file-bound streams are open causes
+	     Changing directory while file-bound streams are open causes
 	     wrong results on telling/1, seeing/1 and current_stream/3}
+
+    \predicate{chdir}{1}{+Path}
+Compatibility predicate.  New code should use working_directory/2.
 \end{description}
 
 \section{Multi-threading (alpha code)}		\label{sec:threads}

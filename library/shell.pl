@@ -40,7 +40,7 @@
 
 cd(Dir) :-
 	name_to_atom(Dir, Name),
-	chdir(Name).
+	working_directory(_, Name).
 
 %	dirs	-- Print Directory Stack
 %	pushd	-- Push Directory Stack
@@ -63,13 +63,12 @@ pushd(N) :-
 	).
 pushd(Dir) :-
 	name_to_atom(Dir, Name),
-	absolute_file_name('', Old),
-	chdir(Name),
+	working_directory(Old, Name),
 	asserta(stack(Old)).
 
 popd :-
 	retract(stack(Dir)), !,
-	chdir(Dir).
+	working_directory(_, Dir).
 popd :-
 	warning('Directory stack empty', []),
 	fail.
@@ -118,11 +117,9 @@ ls(Spec) :-
 
 ls_([Dir]) :-
 	exists_directory(Dir), !,
-	absolute_file_name('', Here),
-	chdir(Dir),
+	working_directory(Here, Dir),
 	expand_file_name('*', Files),
-	ls__(Files),
-	chdir(Here).
+	call_cleanup(ls__(Files), working_directory(_, Here)).
 ls_(Files) :-
 	ls__(Files).
 

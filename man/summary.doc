@@ -90,7 +90,7 @@ suggest predicates from a keyword.
 \predicatesummary{char_conversion}{2}{Provide mapping of input characters}
 \predicatesummary{char_type}{2}{Classify characters}
 \predicatesummary{character_count}{2}{Get character index on a stream}
-\predicatesummary{chdir}{1}{Change working directory}
+\predicatesummary{chdir}{1}{Compatibility: change working directory}
 \predicatesummary{checklist}{2}{Invoke goal on all members of a list}
 \predicatesummary{clause}{2}{Get clauses of a predicate}
 \predicatesummary{clause}{3}{Get clauses of a predicate}
@@ -472,6 +472,7 @@ suggest predicates from a keyword.
 \predicatesummary{win_shell}{2}{Win32: open document through Shell}
 \predicatesummary{win_registry_get_value}{3}{Win32: get registry value}
 \predicatesummary{with_mutex}{2}{Run goal while holding mutex}
+\predicatesummary{working_directory}{2}{Query/change CWD}
 \predicatesummary{write}{1}{Write term}
 \predicatesummary{write}{2}{Write term to stream}
 \predicatesummary{write_ln}{1}{Write term, followed by a newline}

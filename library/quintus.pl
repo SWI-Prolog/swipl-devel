@@ -73,9 +73,10 @@ unix(shell) :-
 unix(access(File, 0)) :-
         access_file(File, read).
 unix(cd) :-
-        chdir('~').
+	expand_file_name(~, Home),
+	working_directory(_, Home).
 unix(cd(Dir)) :-
-        chdir(Dir).
+	working_directory(_, Dir).
 unix(args(L)) :-
 	current_prolog_flag(argv, L).
 unix(argv(L)) :-
