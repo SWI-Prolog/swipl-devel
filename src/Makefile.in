@@ -299,7 +299,7 @@ iman:		@INSTALLRLMAN@
 install_rlman:
 		-if [ ! -d $(lmandir) ]; then mkdir $(lmandir); fi
 		-if [ ! -r $(lmandir)/readline.$(lmansec) ]; then \
-		  $(INSTALL_DATA) $(plmandir)/readline.$(lmansec) $(lmandir); \
+		  $(INSTALL_DATA) $(srcdir)/readline.3 $(lmandir)/readline.$(lmansec); \
 		fi
 
 #
