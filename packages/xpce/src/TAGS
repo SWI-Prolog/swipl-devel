@@ -4496,7 +4496,7 @@ static getdecl get_handle[] =get_handle124,2672
 static Name handle_termnames[] =handle_termnames144,3317
 makeClassHandle(Class class)makeClassHandle153,3551
 
-gra/image.c,3547
+gra/image.c,3592
 #define M_PI M_PI16,343
 initialiseImage(Image image, SourceSink data, Int w, Int h, Name kind)initialiseImage26,562
 getLookupImage(Class class, Any from)getLookupImage72,1823
@@ -4537,26 +4537,27 @@ getScaleImage(Image image, Size size)getScaleImage727,15419
 getRotateImage(Image image, Int degrees)getRotateImage757,16218
 getBoundingBoxImage(Image image)getBoundingBoxImage807,17596
 getPostscriptDepthImage(Image image)getPostscriptDepthImage814,17734
-stdImage(Name name, Image *global, char *bits, int w, int h)stdImage846,18535
-greyImage(Name name, int grey, Image *global,greyImage872,19121
-standardImages(void)standardImages883,19335
-static char *T_load[] =T_load945,21820
-static char *T_drawIn[] =T_drawIn947,21899
-static char *T_fill[] =T_fill949,21964
-static char *T_initialise[] =T_initialise951,22019
-static char *T_image_atADpointD[] =T_image_atADpointD954,22137
-static char *T_save[] =T_save956,22208
-static char *T_postscript[] =T_postscript958,22295
-static char *T_resize[] =T_resize960,22380
-static char *T_xAint_yAint[] =T_xAint_yAint962,22445
-static char *T_pixel[] =T_pixel964,22506
-static char *T_loadXli[] =T_loadXli967,22595
-static vardecl var_image[] =var_image973,22690
-static senddecl send_image[] =send_image1008,24039
-static getdecl get_image[] =get_image1057,26188
-static classvardecl rc_image[] =rc_image1086,27666
-static Name image_termnames[] = { NAME_name };image_termnames1095,27892
-makeClassImage(Class class)makeClassImage1104,28076
+#define XPM_PCEIMAGE XPM_PCEIMAGE831,18128
+stdImage(Name name, Image *global, char *bits, int w, int h)stdImage850,18634
+greyImage(Name name, int grey, Image *global,greyImage876,19227
+standardImages(void)standardImages887,19441
+static char *T_load[] =T_load949,21927
+static char *T_drawIn[] =T_drawIn951,22006
+static char *T_fill[] =T_fill953,22071
+static char *T_initialise[] =T_initialise955,22126
+static char *T_image_atADpointD[] =T_image_atADpointD958,22244
+static char *T_save[] =T_save960,22315
+static char *T_postscript[] =T_postscript962,22402
+static char *T_resize[] =T_resize964,22487
+static char *T_xAint_yAint[] =T_xAint_yAint966,22552
+static char *T_pixel[] =T_pixel968,22613
+static char *T_loadXli[] =T_loadXli971,22702
+static vardecl var_image[] =var_image977,22797
+static senddecl send_image[] =send_image1012,24146
+static getdecl get_image[] =get_image1061,26295
+static classvardecl rc_image[] =rc_image1090,27773
+static Name image_termnames[] = { NAME_name };image_termnames1099,27999
+makeClassImage(Class class)makeClassImage1108,28183
 
 gra/joint.c,991
 initialiseJoint(Joint jt, Int x, Int y, Int w, Int h, Name arrows)initialiseJoint16,339
@@ -9743,7 +9744,7 @@ box/boxes.c,129
 static struct class_definition boxdefs[] =boxdefs13,287
 initBoxes()initBoxes31,960
 
-box/boxes.h,1761
+box/boxes.h,1701
 #define BOXES_H_INCLUDEDBOXES_H_INCLUDED11,269
 typedef struct hbox	*HBox;HBox13,295
 typedef struct tbox	*TBox;TBox14,322
@@ -9762,35 +9763,34 @@ GLOBAL Class ClassLBox;ClassLBox36,742
 #define ABSTRACT_HBOX ABSTRACT_HBOX38,767
   CharArray	text;			/* represented text */text52,1035
   Style		style;			/* used style parameters */style53,1078
-  Any		baseline;		/* Location of the baseline */baseline60,1216
-  Any		alignment;		/* left, right (in paragraph) */alignment61,1265
-  Int		shrink;			/* Get smaller */shrink67,1375
-  Int		level;			/* hfil/hfill/hfilll (1/2/3) */level68,1410
-  Int		natural;		/* Natural desired size */natural69,1458
-  Int		minimum;		/* Minimum size */minimum70,1502
-  Int		maximum;		/* Maximum size */maximum71,1538
-  Name		linebreak;		/* @nil, allow, force */linebreak72,1574
-  Vector	content;		/* Contained hboxes */content79,1732
-  Name		alignment;		/* left,right,center,justify */alignment80,1774
-  Bool		auto_crop;		/* Crop content */auto_crop81,1826
-  Int		right_margin;		/* with of right margin */right_margin88,1953
-  Int		top_sep;		/* separation above  */top_sep89,2002
-  Int		item_sep;		/* separation between items */item_sep90,2043
-  Int		label_sep;		/* label to item distance */label_sep91,2092
-  Int		label_width;		/* Width of label box */label_width92,2140
+  Any		alignment;		/* top, bottom, center, left, right */alignment60,1216
+  Int		shrink;			/* Get smaller */shrink66,1332
+  Int		level;			/* hfil/hfill/hfilll (1/2/3) */level67,1367
+  Int		natural;		/* Natural desired size */natural68,1415
+  Int		minimum;		/* Minimum size */minimum69,1459
+  Int		maximum;		/* Maximum size */maximum70,1495
+  Name		linebreak;		/* @nil, allow, force */linebreak71,1531
+  Vector	content;		/* Contained hboxes */content78,1689
+  Name		alignment;		/* left,right,center,justify */alignment79,1731
+  Bool		auto_crop;		/* Crop content */auto_crop80,1783
+  Int		right_margin;		/* with of right margin */right_margin87,1910
+  Int		top_sep;		/* separation above  */top_sep88,1959
+  Int		item_sep;		/* separation between items */item_sep89,2000
+  Int		label_sep;		/* label to item distance */label_sep90,2049
+  Int		label_width;		/* Width of label box */label_width91,2097
 
-box/grbox.c,594
+box/grbox.c,597
 initialiseGrBox(GrBox grb, Graphical gr,initialiseGrBox13,278
-computeGrBox(GrBox grb)computeGrBox42,883
-computeAscentDescentGrBox(GrBox grb)computeAscentDescentGrBox66,1430
-baselineGrBox(GrBox grb, Any baseline)baselineGrBox95,2066
-static char *T_initialise[] =T_initialise111,2358
-static vardecl var_grbox[] =var_grbox120,2547
-static senddecl send_grbox[] =send_grbox132,2915
-#define get_grbox get_grbox141,3189
-#define rc_grbox rc_grbox150,3271
-static Name grbox_termnames[] = { NAME_graphical };grbox_termnames159,3364
-makeClassGrBox(Class class)makeClassGrBox168,3553
+computeGrBox(GrBox grb)computeGrBox38,782
+computeAscentDescentGrBox(GrBox grb)computeAscentDescentGrBox62,1329
+alignmentGrBox(GrBox grb, Any alignment)alignmentGrBox89,1888
+static char *T_initialise[] =T_initialise105,2186
+static vardecl var_grbox[] =var_grbox113,2351
+static senddecl send_grbox[] =send_grbox123,2635
+#define get_grbox get_grbox132,2918
+#define rc_grbox rc_grbox141,3000
+static Name grbox_termnames[] = { NAME_graphical };grbox_termnames150,3093
+makeClassGrBox(Class class)makeClassGrBox159,3282
 
 box/hbox.c,412
 initialiseHBox(HBox hb, Int width, Int ascent, Int descent, Rubber rubber)initialiseHBox13,270
@@ -9820,7 +9820,7 @@ static getdecl get_lbox[] =get_lbox231,5280
 static classvardecl rc_lbox[] =rc_lbox240,5550
 makeClassLBox(Class class)makeClassLBox260,6053
 
-box/parbox.c,4950
+box/parbox.c,4962
 initialiseParBox(ParBox pb, Int width, Name alignment)initialiseParBox18,379
 appendParBox(ParBox pb, HBox hb)appendParBox35,805
 clearParBox(ParBox pb)clearParBox50,1117
@@ -9887,27 +9887,27 @@ add_right_margin(parshape *s, int y, int h, int x)add_right_margin681,15654
 justify_line(parline *line, Name alignment)justify_line713,16675
 compute_line(parline *line)compute_line775,18245
 fill_line(ParBox pb, int here, parline *line, parshape *shape, int compute)fill_line820,19174
-push_shape_graphicals(parline *l, parshape *s)push_shape_graphicals937,21836
-print_line(parline *l)print_line962,22456
-compute_ascent_descent_line(parline *l)compute_ascent_descent_line986,22985
-PlaceGrBox(ParBox pb, GrBox grb, Int x, Int y, Int w)PlaceGrBox1005,23330
-PlaceAlignedGr(GrBox grb, parline *line, parshape *shape, int below)PlaceAlignedGr1030,24088
-computeParBox(ParBox pb)computeParBox1058,24774
-requestGeometryParBox(ParBox pb, Int x, Int y, Int w, Int h)requestGeometryParBox1173,27501
-geometryParBox(ParBox pb, Int x, Int y, Int w, Int h)geometryParBox1194,27881
-alignmentParBox(ParBox pb, Name alignment)alignmentParBox1236,28711
-lineWidthParBox(ParBox pb, Int w)lineWidthParBox1242,28829
-autoCropParBox(ParBox pb, Bool crop)autoCropParBox1257,29049
-static char *T_initialise[] = T_initialise1269,29266
-static char *T_geometry[] =T_geometry1273,29364
-static char *T_boxArea[] =T_boxArea1275,29457
-static char *T_cdata[] = T_cdata1277,29529
-static vardecl var_parbox[] =var_parbox1284,29688
-static senddecl send_parbox[] =send_parbox1297,30183
-static getdecl get_parbox[] =get_parbox1316,30883
-static classvardecl rc_parbox[] =rc_parbox1336,31642
-static Name parbox_termnames[] = { NAME_width, NAME_alignment };parbox_termnames1344,31830
-makeClassParBox(Class class)makeClassParBox1353,32038
+push_shape_graphicals(parline *l, parshape *s)push_shape_graphicals937,21873
+print_line(parline *l)print_line962,22493
+compute_ascent_descent_line(parline *l)compute_ascent_descent_line986,23022
+PlaceGrBox(ParBox pb, GrBox grb, parline *l, Int x, Int y, Int w)PlaceGrBox1005,23367
+PlaceAlignedGr(GrBox grb, parline *line, parshape *shape, int below)PlaceAlignedGr1052,24691
+computeParBox(ParBox pb)computeParBox1080,25389
+requestGeometryParBox(ParBox pb, Int x, Int y, Int w, Int h)requestGeometryParBox1196,28130
+geometryParBox(ParBox pb, Int x, Int y, Int w, Int h)geometryParBox1217,28510
+alignmentParBox(ParBox pb, Name alignment)alignmentParBox1269,29525
+lineWidthParBox(ParBox pb, Int w)lineWidthParBox1275,29643
+autoCropParBox(ParBox pb, Bool crop)autoCropParBox1290,29863
+static char *T_initialise[] = T_initialise1302,30080
+static char *T_geometry[] =T_geometry1306,30178
+static char *T_boxArea[] =T_boxArea1308,30271
+static char *T_cdata[] = T_cdata1310,30343
+static vardecl var_parbox[] =var_parbox1317,30502
+static senddecl send_parbox[] =send_parbox1330,30997
+static getdecl get_parbox[] =get_parbox1349,31697
+static classvardecl rc_parbox[] =rc_parbox1369,32456
+static Name parbox_termnames[] = { NAME_width, NAME_alignment };parbox_termnames1377,32644
+makeClassParBox(Class class)makeClassParBox1386,32852
 
 box/proto.h,0
 
@@ -10215,7 +10215,7 @@ CtoEvent(Any window, XEvent *event)	/* window or frame */CtoEvent656,15738
 Status XSetWMProtocols (dpy, w, protocols, count)XSetWMProtocols744,17857
 void XtPopupSpringLoaded (widget)XtPopupSpringLoaded765,18336
 
-x11/xconvert.c,1055
+x11/xconvert.c,1157
 #define O_GIFTOXPM O_GIFTOXPM15,336
 #define Round(Round41,1156
 read_bitmap_data(IOSTREAM *fd, int *w, int *h)read_bitmap_data44,1232
@@ -10231,9 +10231,10 @@ NextInt(IOSTREAM *fstream)NextInt180,4563
 read_x11_bitmap_file(IOSTREAM *fd, int *w, int *h)read_x11_bitmap_file209,5081
 #define	RETURN_ERROR RETURN_ERROR227,5661
 read_sun_icon_file(IOSTREAM *fd, int *width, int *height)read_sun_icon_file320,7685
-readXpmFile(Image image, IOSTREAM *fd)readXpmFile374,8817
-readGIFFile(Image image, IOSTREAM *fd)readGIFFile440,10323
-readJPEGFile(Image image, IOSTREAM *fd)readJPEGFile475,11092
+setXpmAttributesImage(Image image, XImage *shape, XpmAttributes *atts)setXpmAttributesImage374,8813
+readXpmFile(Image image, IOSTREAM *fd)readXpmFile393,9296
+readGIFFile(Image image, IOSTREAM *fd)readGIFFile446,10442
+readJPEGFile(Image image, IOSTREAM *fd)readJPEGFile481,11259
 
 x11/xcursor.c,513
 static Sheet	cursorNames = NIL;cursorNames18,412
@@ -10522,23 +10523,23 @@ loadPNMImage(Image image, IOSTREAM *fd)loadPNMImage163,3429
 ws_load_old_image(Image image, IOSTREAM *fd)ws_load_old_image190,4038
 ws_load_image_file(Image image)ws_load_image_file202,4252
 ws_std_xpm_image(Name name, Image *global, char **data)ws_std_xpm_image242,5098
-ws_save_image_file(Image image, FileObj file, Name fmt)ws_save_image_file250,5222
-ws_open_image(Image image, DisplayObj d)ws_open_image341,7403
-ws_close_image(Image image, DisplayObj d)ws_close_image413,9318
-ws_resize_image(Image image, Int w, Int h)ws_resize_image428,9624
-MakeXImage(Display *dpy, XImage *oimage, int w, int h)MakeXImage479,11194
-buildIndex(unsigned width, unsigned rwidth)buildIndex523,12791
-ZoomXImage(Display *dsp, Visual *v, XImage *oimage,ZoomXImage552,13291
-ws_scale_image(Image image, int w, int h)ws_scale_image589,14038
-#define falmost(falmost624,14755
-RotateXImage(Display *dsp, XImage *oimage, float angle, Pixel bg)RotateXImage628,14823
-ws_rotate_image(Image image, int angle)	/* 0<angle<360 */ws_rotate_image751,17940
-ws_monochrome_image(Image image)ws_monochrome_image807,19385
-ws_postscript_image(Image image, Int depth)ws_postscript_image828,19799
-loadXliImage(Image image, FileObj file, Int bright)loadXliImage869,20689
-ws_create_image_from_x11_data(Image image,ws_create_image_from_x11_data910,21639
-ws_colour_map_for_image(Image image)ws_colour_map_for_image925,21928
-ws_system_images()ws_system_images931,21982
+ws_save_image_file(Image image, FileObj file, Name fmt)ws_save_image_file267,5540
+ws_open_image(Image image, DisplayObj d)ws_open_image358,7721
+ws_close_image(Image image, DisplayObj d)ws_close_image430,9636
+ws_resize_image(Image image, Int w, Int h)ws_resize_image445,9942
+MakeXImage(Display *dpy, XImage *oimage, int w, int h)MakeXImage496,11512
+buildIndex(unsigned width, unsigned rwidth)buildIndex540,13109
+ZoomXImage(Display *dsp, Visual *v, XImage *oimage,ZoomXImage569,13609
+ws_scale_image(Image image, int w, int h)ws_scale_image606,14356
+#define falmost(falmost641,15073
+RotateXImage(Display *dsp, XImage *oimage, float angle, Pixel bg)RotateXImage645,15141
+ws_rotate_image(Image image, int angle)	/* 0<angle<360 */ws_rotate_image768,18258
+ws_monochrome_image(Image image)ws_monochrome_image824,19703
+ws_postscript_image(Image image, Int depth)ws_postscript_image845,20117
+loadXliImage(Image image, FileObj file, Int bright)loadXliImage886,21007
+ws_create_image_from_x11_data(Image image,ws_create_image_from_x11_data927,21957
+ws_colour_map_for_image(Image image)ws_colour_map_for_image942,22246
+ws_system_images()ws_system_images948,22300
 
 x11/xmenu.c,720
 ws_draw_scrollbar_arrow(ScrollBar s,ws_draw_scrollbar_arrow20,439
