@@ -651,8 +651,9 @@ predicate_apropos(V, Pattern) :-
 	       )).
 
 function_apropos(V, Pattern) :-
-	setof(Name, (function(Name, _, _),
-		     apropos_match(Pattern, Name)), Names),
+	findall(Name, (function(Name, _, _),
+		       apropos_match(Pattern, Name)), Names),
+	Names \= [],
 	send(V, insert_section,
 	     string('Foreign language interface functions from "%s":', Pattern)),
 	forall(member(Name, Names),

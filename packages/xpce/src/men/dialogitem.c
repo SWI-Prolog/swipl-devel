@@ -131,7 +131,7 @@ dia_label_size(Any obj, int *w, int *h, int *isimage)
 
 static status
 deviceDialogItem(DialogItem di, Device dev)
-{ if ( di->device != dev )
+{ if ( di->device != dev && notNil(di->device) )
   { Graphical gr = (Graphical) di;
 
     aboveGraphical(gr, NIL);

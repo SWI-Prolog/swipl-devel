@@ -159,6 +159,7 @@ canvas_keybinding('\C-h', hide_selection).
 canvas_keybinding('\C-e', expose_selection).
 canvas_keybinding('\C-c', copy_selection).
 canvas_keybinding('\C-_', simple_undo).
+canvas_keybinding('\C-s', save).
 
 make_draw_canvas_keybinding(B) :-
 	new(B, key_binding),

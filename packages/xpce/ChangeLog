@@ -1,5 +1,13 @@
 [VERSION 4.9.4]
 
+* FIXED: Adding windows to open frames.
+
+* FIXED: key_binding reset of prefix and argument if a non-implemented
+  key is activated.  Fixes `hanging' PceEmacs on \C-x\C-f\C-x\C-f.
+
+* FIXED: `dialog_item ->left', etc. to configure items, appending them
+  to a dialog later.
+
 * IMPROVED: allow for user-abort while creating the manual index for the
   search tool.
 

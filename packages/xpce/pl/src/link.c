@@ -46,8 +46,8 @@ PL_extension PL_extensions [] =
 };
 
 int
-main(int argc, char **argv, char **env)
-{ if ( !PL_initialise(argc, argv, env) )
+main(int argc, char **argv)
+{ if ( !PL_initialise(argc, argv) )
     PL_halt(1);
 
   PL_install_readline();		/* delete if you don't want readline */

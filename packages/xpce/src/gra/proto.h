@@ -150,6 +150,7 @@ Int		getAbsoluteXGraphical(Any gr, Device dev);
 Int		getAbsoluteYGraphical(Any gr, Device dev);
 Point		getDisplayPositionGraphical(Graphical gr);
 Size		getSizeGraphical(Graphical gr);
+status		appendDialogItemNetworkDevice(Device dev, Graphical gr1);
 status		aboveGraphical(Graphical gr1, Graphical gr2);
 status		belowGraphical(Graphical gr1, Graphical gr2);
 status		rightGraphical(Graphical gr1, Graphical gr2);

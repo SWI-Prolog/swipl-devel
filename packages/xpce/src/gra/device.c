@@ -1536,10 +1536,10 @@ appendDialogItemDevice(Device d, Graphical item, Name where)
 { Graphical di;
   Name algmnt;
 
-  send(item, NAME_autoAlign, ON, 0);
-
   if ( emptyChain(d->graphicals) )
-    return displayDevice(d, item, DEFAULT);
+    return appendDialogItemNetworkDevice(d, item);
+
+  send(item, NAME_autoAlign, ON, 0);
 
   di = getTailChain(d->graphicals);
   if ( isDefault(where) )

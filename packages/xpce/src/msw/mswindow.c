@@ -610,6 +610,7 @@ ws_window_cursor(PceWindow sw, CursorObj c)
       w->hcursor = (HCURSOR)getXrefObject(c,
 					  getDisplayGraphical((Graphical)sw));
 
+      GetCursorPos(&pt);
       if ( getHwndWindow(sw) == WindowFromPoint(pt) )
 	ZSetCursor(w->hcursor);
     }

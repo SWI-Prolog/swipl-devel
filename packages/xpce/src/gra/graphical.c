@@ -1421,6 +1421,29 @@ getDistanceYGraphical(Graphical gr, Graphical gr2)
 		 *	  DIALOG POSITIONS	*
 		 *******************************/
 
+status
+appendDialogItemNetworkDevice(Device dev, Graphical gr1)
+{ Graphical gr2;
+
+  if ( notNil(gr1) && ((Graphical)getContainerGraphical(gr1))->device != dev )
+  { send(gr1, NAME_autoAlign, ON, 0);
+    DEBUG(NAME_dialog, Cprintf("Adding %s to %s\n", pp(gr1), pp(dev)));
+    displayDevice(dev, gr1, DEFAULT);
+
+    if ( (gr2 = get(gr1, NAME_left, 0)) )
+      appendDialogItemNetworkDevice(dev, gr2);
+    if ( (gr2 = get(gr1, NAME_right, 0)) )
+      appendDialogItemNetworkDevice(dev, gr2);
+    if ( (gr2 = get(gr1, NAME_above, 0)) )
+      appendDialogItemNetworkDevice(dev, gr2);
+    if ( (gr2 = get(gr1, NAME_below, 0)) )
+      appendDialogItemNetworkDevice(dev, gr2);
+  }
+
+  succeed;
+}
+
+
 static status
 same_device(Graphical gr1, Graphical gr2)
 { gr1 = getContainerGraphical(gr1);
@@ -1428,9 +1451,9 @@ same_device(Graphical gr1, Graphical gr2)
 
   if ( notNil(gr1) && notNil(gr2) && gr1->device != gr2->device )
   { if ( isNil(gr1->device) )
-      displayDevice((Dialog) gr2->device, gr1, DEFAULT);
+      appendDialogItemNetworkDevice(gr2->device, gr1);
     else if ( isNil(gr2->device) )
-      displayDevice((Dialog) gr1->device, gr2, DEFAULT);
+      appendDialogItemNetworkDevice(gr1->device, gr2);
     else
       return errorPce(gr1, NAME_alreadyShown, 12, gr2->device);
   }

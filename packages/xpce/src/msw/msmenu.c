@@ -346,7 +346,7 @@ static checkbox_location checkboxes[] =
 static Image CheckBoxes;		/* win_checkboxes */
 static Image BtnCorners;		/* win_btncorners */
 
-#define USE_MASKBLT			/* for now, but may nor work on 3.x */
+#undef USE_MASKBLT			/* for now, but may nor work on 3.x */
 
 static void
 init_checkboxes()
@@ -393,7 +393,7 @@ ws_draw_checkbox(int x, int y, int w, int h, int b, int flags)
       HBITMAP bm  = (HBITMAP) getXrefObject(CheckBoxes, CurrentDisplay(NIL));
       HBITMAP obm;
 
-#ifdef USE_MASKBLT
+#ifdef USE_MASKBLT			/* Only in NT */
       obm = ZSelectObject(bmhdc, bm);
       MaskBlt(hdc,			/* destination */
 	      x+b, by, iw, ih,		/* destination rectangle */
@@ -402,11 +402,18 @@ ws_draw_checkbox(int x, int y, int w, int h, int b, int flags)
 	      msk,			/* mask */
 	      0, 0,			/* mask rectangle */
 	      MAKEROP4(SRCCOPY, SRCAND)); /* operations */
-#else
+#else					/* So needs this for '95 */
+    { COLORREF oldbg = SetBkColor(hdc, RGB(0,0,0));
+      COLORREF oldfg = SetTextColor(hdc, RGB(255,255,255));
       obm = ZSelectObject(bmhdc, msk);
-      BitBlt(hdc, x+b, by, iw, ih, bmhdc, 0, 0, SRCAND);
+					/* OR, making a white circle */
+      BitBlt(hdc, x+b, by, iw, ih, bmhdc, 0, 0, SRCPAINT);
+      SetBkColor(hdc, oldbg);
+      SetTextColor(hdc, oldfg);
       ZSelectObject(bmhdc, bm);
-      BitBlt(hdc, x+b, by, iw, ih, bmhdc, sx, sy, SRCPAINT);
+					/* AND: paiting the image */
+      BitBlt(hdc, x+b, by, iw, ih, bmhdc, sx, sy, SRCAND);
+    }
 #endif
 
       ZSelectObject(bmhdc, obm);

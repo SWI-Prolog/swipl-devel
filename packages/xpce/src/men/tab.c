@@ -304,9 +304,7 @@ eventTab(Tab t, EventObj ev)
   }
 
   if ( t->status == NAME_onTop )
-  { eventDialogGroup((DialogGroup) t, ev);
-    succeed;				/* don't continue */
-  }
+    return eventDialogGroup((DialogGroup) t, ev);
 
   fail;
 }

@@ -802,7 +802,7 @@ getSelectionText(TextObj t)
 
 
 static StringObj
-getSelectedText(TextObj t)
+getSelectedTextText(TextObj t)
 { if ( notNil(t->selection) )
   { int from, to;
 
@@ -816,7 +816,7 @@ getSelectedText(TextObj t)
 
 static status
 copyText(TextObj t)
-{ StringObj s = getSelectedText(t);
+{ StringObj s = getSelectedTextText(t);
   DisplayObj d = getDisplayGraphical((Graphical)t);
 
   if ( !d )
@@ -1126,7 +1126,11 @@ backwardWordText(TextObj t, Int arg)
 
 static void
 prepareInsertText(TextObj t)
-{ if ( getResourceValueObject(t, NAME_insertDeletesSelection) == ON )
+{ if ( !instanceOfObject(t->string, ClassString) )
+    assign(t, string, newObject(ClassString, name_procent_s,
+				t->string, 0));
+
+  if ( getResourceValueObject(t, NAME_insertDeletesSelection) == ON )
     deleteSelectionText(t);
 }
 
@@ -1148,7 +1152,6 @@ pasteText(TextObj t, Int buffer)
 
   TRY((str = get(d, NAME_cutBuffer, buffer, 0)) &&
       (str = checkType(str, nameToType(NAME_charArray), NIL)));
-  prepareEditText(t);
   prepareInsertText(t);
   insertString((StringObj) t->string, t->caret, str);
   caretText(t, add(t->caret, getSizeCharArray(str)));
@@ -1274,8 +1277,7 @@ insertSelfText(TextObj t, Int times, Int chr)
   } else
     c = valInt(chr);
     
-    prepareEditText(t);
-    prepareInsertText(t);
+  prepareInsertText(t);
 
   { LocalString(buf, &t->string->data, tms);
     int i;
@@ -1311,7 +1313,6 @@ openLineText(TextObj t, Int arg)
       str_ncpy(buf, i * nl->size, nl, 0, nl->size);
     buf->size = nl->size * tms;
 
-    prepareEditText(t);
     prepareInsertText(t);
     str_insert_string((StringObj) t->string, t->caret, buf);
     recomputeText(t, NAME_area);
@@ -1668,7 +1669,7 @@ static getdecl get_text[] =
      NAME_compatibility, "Map <-background"),
   GM(NAME_pointed, 1, "index=int", "at=point", getPointedText,
      NAME_event, "Convert position to character index"),
-  GM(NAME_selected, 0, "string", NULL, getSelectedText,
+  GM(NAME_selectedText, 0, "string", NULL, getSelectedTextText,
      NAME_selection, "New string with contents of selection"),
   GM(NAME_selection, 0, "point", NULL, getSelectionText,
      NAME_selection, "New point with start and end of selection")

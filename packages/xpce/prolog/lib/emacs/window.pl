@@ -252,7 +252,8 @@ prompt(F, Label:char_array, Default:[any], Type:[type], History:[chain],
 	    send(Item, value_set, Classes)
 	;   new(Item, text_item(Label, Selection)),
 	    send(Item, type, Type),
-	    (	History \== @default
+	    (	History \== @default,
+		\+ get(Type, value_set, _)
 	    ->	send(Item, value_set, History)
 	    ;	true
 	    )

@@ -3011,7 +3011,8 @@ IsearchEditor(Editor e, EventId id)
 
     return executeSearchEditor(e, DEFAULT);
   }
-  if ( equalName(cmd, NAME_backwardDeleteChar) )
+  if ( cmd == NAME_backwardDeleteChar ||
+       cmd == NAME_cutOrBackwardDeleteChar )
   { backwardDeleteCharSearchStringEditor(e);
     if ( notNil(e->search_string) )
     { selection_editor(e, e->search_base, e->search_base);

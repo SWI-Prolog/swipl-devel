@@ -209,7 +209,8 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
   Any argv[MAX_ARGS];
   int argc = 0;
   int reset = 0;
-    
+  status rval = FAIL;
+        
   if ( notDefault(receiver) )
   { if ( receiver != crec )
       resetKeyBinding(kb, receiver);
@@ -219,7 +220,7 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
     errorPce(kb, NAME_noReceiver);
 
   key = getAppendName(kb->prefix, characterName(id));
-  DEBUG(NAME_keyBinding, writef("Key = %s\n", key));
+  DEBUG(NAME_keyBinding, writef("%O: Key = %s\n", kb, key));
     
   if ( kb->status == NAME_quotedInsert )
   { cmd = NAME_insertQuoted;
@@ -229,9 +230,7 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
   }
 
   if ( cmd )
-  { status rval = FAIL;
-
-    if ( isName(cmd) )
+  { if ( isName(cmd) )
     { int cmdi;
 
       argv[argc++]        = id;
@@ -302,21 +301,21 @@ typedKeyBinding(KeyBinding kb, EventId id, Graphical receiver)
     } else if ( instanceOfObject(cmd, ClassCode) )
     { rval = forwardReceiverCode(cmd, receiver, kb->argument, id, 0);
     }
-
-    if ( reset & RESET_COLUMN )
-      assign(kb, saved_column, NIL);
-    if ( reset & RESET_ARGUMENT )
-      assign(kb, argument, DEFAULT);
-    if ( reset & RESET_STATUS )
-      assign(kb, status, NIL);
-
-    if ( cmd != NAME_prefix )
-      assign(kb, prefix, NAME_);
-
-    return rval;
+  } else
+  { reset = (RESET_COLUMN|RESET_ARGUMENT|RESET_STATUS);
   }
 
-  fail;
+  if ( reset & RESET_COLUMN )
+    assign(kb, saved_column, NIL);
+  if ( reset & RESET_ARGUMENT )
+    assign(kb, argument, DEFAULT);
+  if ( reset & RESET_STATUS )
+    assign(kb, status, NIL);
+
+  if ( cmd != NAME_prefix )
+    assign(kb, prefix, NAME_);
+
+  return rval;
 }
 
 

@@ -969,6 +969,8 @@ AppendFrame(FrameObj fr, PceWindow sw)
 
     ws_manage_window(sw);
     send(fr, NAME_fit, 0);
+    if ( isOpenFrameStatus(fr->status) )
+      send(sw, NAME_displayed, ON, 0);
   }
 
   succeed;
