@@ -119,7 +119,7 @@ compute(BG) :->
 
 :- pce_end_class.
 
-:- pce_begin_class(tool_button, button,
+:- pce_begin_class(tool_button(client, name), button,
 		   "Button for a tool_bar").
 
 variable(condition,	code*,	     get, "Condition for activation").
