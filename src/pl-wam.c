@@ -855,6 +855,116 @@ are:
   - various builtin predicates. They should be flagged some way.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define NON_RECURSIVE_UNIFY 1
+#if NON_RECURSIVE_UNIFY
+typedef struct uchoice *UChoice;
+
+struct uchoice
+{ Word		alist1;
+  Word		alist2;
+  int		size;
+  UChoice	next;
+};
+
+#define deRefw(p, w) while(isRef(w=*p)) p = unRef(w)
+
+static bool
+unify(Word t1, Word t2 ARG_LD)
+{ Word p1, p2;
+  word w1, w2;
+  int todo = 1;
+  UChoice nextch = NULL, tailch = NULL;
+
+  for(;;)
+  { if ( !todo )
+    { if ( nextch )
+      { t1 = nextch->alist1;
+	t2 = nextch->alist2;
+	todo = nextch->size;
+	nextch = nextch->next;
+      } else
+	succeed;
+    }
+
+    todo--;
+    p1 = t1++; deRefw(p1, w1);
+    p2 = t2++; deRefw(p2, w2);
+    
+    if ( w1 == w2 )
+    { if ( isVar(w1) && p1 != p2 )
+      { if ( p1 < p2 )			/* always point downwards */
+	{ *p2 = makeRef(p1);
+	  Trail(p2);
+	} else
+	{ *p1 = makeRef(p2);
+	  Trail(p1);
+	}
+      }
+      continue;
+    } 
+
+    if ( tag(w1) != tag(w2) )
+    { if ( isVar(w1) )
+      { *p1 = w2;
+        Trail(p1);
+	continue;
+      }
+      if ( isVar(w2) )
+      { *p2 = w1;
+        Trail(p2);
+	continue;
+      }
+      fail;
+    }
+
+    switch(tag(w1))
+    { case TAG_ATOM:
+	fail;
+      case TAG_INTEGER:
+	if ( storage(w1) == STG_INLINE ||
+	     storage(w2) == STG_INLINE )
+	  fail;
+      case TAG_STRING:
+      case TAG_FLOAT:
+	if ( equalIndirect(w1, w2) )
+	  continue;
+        fail;
+      case TAG_COMPOUND:
+      { Functor f1, f2;
+	int arity;
+
+	f1 = valueTerm(w1);
+	f2 = valueTerm(w2);
+  
+	if ( f1->definition != f2->definition )
+	  fail;
+	arity = arityFunctor(f1->definition);
+
+	if ( todo == 0 )		/* right-most argument recursion */
+	{ todo = arity;
+	  t1 = f1->arguments;
+	  t2 = f2->arguments;
+	} else if ( arity > 0 )
+	{ UChoice next = alloca(sizeof(*next));
+
+	  next->size   = arity;
+	  next->alist1 = f1->arguments;
+	  next->alist2 = f2->arguments;
+	  next->next   = NULL;
+	  if ( !tailch )
+	    nextch = tailch = next;
+	  else
+	  { tailch->next = next;
+	    tailch = next;
+	  }
+	}
+      }
+    }
+  }
+}
+
+#else /*NON_RECURSIVE_UNIFY*/
+
 static bool
 unify(Word t1, Word t2 ARG_LD)
 { 
@@ -935,6 +1045,8 @@ right_recursion:
   succeed;
 }
 
+#endif /*NON_RECURSIVE_UNIFY*/
+
 
 static
 PRED_IMPL("=", 2, unify, 0)
@@ -946,7 +1058,7 @@ PRED_IMPL("=", 2, unify, 0)
   Mark(m);
   if ( !(rval = unify(p0, p0+1 PASS_LD)) )
     Undo(m);
-
+  
   return rval;  
 }
 
