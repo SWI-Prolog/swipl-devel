@@ -1055,7 +1055,7 @@ This predicate should be defined dynamic and multifile to allow other
 modules defining clauses for it too.
 
     \predicate{message_to_string}{2}{+Term, -String}
-Translates a message-term into a string object (see \secref{string}.
+Translates a message-term into a string object (see \secref{strings}.
 Primarily intended to write messages to Windows in XPCE (see
 \secref{xpce}) or other GUI environments.
 \end{description}
