@@ -34,6 +34,7 @@ ONLINE_INDEX=	../library/helpidx.pl
 
 WWWMAN=		~ftp/SWI-Prolog/Manual
 FTPDIR=		~ftp/SWI-Prolog
+BETAMAN=	~ftp/SWI-Prolog/BETA/Manual
 
 LIBFILES=	lib/library.tex lib/readutil.tex lib/netscape.tex \
 		lib/registry.tex lib/check.tex lib/url.tex lib/debug.tex \
@@ -158,9 +159,11 @@ install::
 		rm -rf $(WWWMAN)
 		cp -a Manual $(WWWMAN)
 		tar zcvf $(FTPDIR)/refman/HTMLmanual.tar.gz Manual
-		cp -a $(PDF) $(FTPDIR)/refman/refman.pdf
+		install -m 644 $(PDF) $(FTPDIR)/refman/refman.pdf
 
 beta-install::
+		rm -rf $(BETAMAN)
+		cp -a Manual $(BETAMAN)
 		install -m 644 MANUAL.pdf $(FTPDIR)/BETA/Manual.pdf
 		tar zcvf $(FTPDIR)/BETA/Manual.html.tgz Manual
 
