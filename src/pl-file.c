@@ -863,7 +863,11 @@ Word streams, available, timeout;
   } else
     to = NULL;
 
+#if hpux
+  select(max, (int*) &fds, NULL, NULL, to);
+#else
   select(max, &fds, NULL, NULL, to);
+#endif
 
   for(n=0; n <= max; n++)
   { if ( FD_ISSET(n, &fds) )

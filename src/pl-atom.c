@@ -202,8 +202,8 @@ Word prefix, common, unique;
 
 static int
 compareMatch(m1, m2)
-Match m1, m2;
-{ return strcmp(stringMatch(m1), stringMatch(m2));
+const void * m1, * m2;
+{ return strcmp(stringMatch((Match)m1), stringMatch((Match)m2));
 }
 
 

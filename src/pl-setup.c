@@ -869,7 +869,8 @@ long size, limit, minfree;
   s->minfree	= minfree;
   s->max	= s->base + size;
   s->gced_size = 0L;			/* size after last gc */
-  s->gc	       = ((s == &stacks.global || s == &stacks.trail) ? TRUE : FALSE);
+  s->gc	       = ((s == (Stack) &stacks.global ||
+		   s == (Stack) &stacks.trail) ? TRUE : FALSE);
   s->small     = (s->gc ? 100 K : 0);
 }
 

@@ -93,3 +93,5 @@ Integrated O_FOREIGN support sent to me by Dave	Sherratt.
 
 #define MACHINE			"hp"
 #define OPERATING_SYSTEM	"hpux"
+
+#define index(s, c)		strchr(s, (int)(c))
