@@ -73,7 +73,7 @@ AC_FUNC_ALLOCA
 AC_C_BIGENDIAN
 
 if test ! -z "$GCC"; then
-    COFLAGS=-O2
+    COFLAGS="-O2 -fno-strict-aliasing"
     CWFLAGS=-Wall
 else
     COFLAGS=-O

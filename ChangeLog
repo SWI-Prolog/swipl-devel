@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * PORT: Added -fno-strict-aliasing when compiling using gcc, needed for
+    gcc-3 (Lourens van der Meij)
+
   * PERFORMANCE: Allow a certain (16%) amount of `dirty' clauses
     in a predicate, also if the reference-count is 0 when starting a retract.
     This makes a *tremendous* difference retracting 60,000 facts from a

@@ -1,6 +1,9 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Added -fno-strict-aliasing to make XPCE compile correctly using
+  GCC-3 (Lourens van der Meij).
+
 * FIXED: `image_browser<-selected' from library(pce_image_browser).
 
 * ADDED: Allow unbound value as default in default/3.

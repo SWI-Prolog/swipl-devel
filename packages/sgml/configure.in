@@ -92,7 +92,7 @@ if test ! -z "$GCC"; then
     if test $gmake = yes; then
         COFLAGS='$(shell if test -r .coflags; then cat .coflags; else echo "-O2"; fi)'
     else
-	COFLAGS=-O2
+	COFLAGS="-O2 -fno-strict-aliasing"
     fi
     CWFLAGS="$CWFLAGS -Wall"
 else

@@ -2313,7 +2313,7 @@ EOF
 fi
 
 if test ! -z "$GCC"; then
-    COFLAGS=-O2
+    COFLAGS="-O2 -fno-strict-aliasing"
     CWFLAGS=-Wall
 else
     COFLAGS=-O

@@ -3456,7 +3456,7 @@ EOF
 fi
 
 if test ! -z "$GCC"; then
-    COFLAGS=-O2
+    COFLAGS="-O2 -fno-strict-aliasing"
     if test "$ac_cv_header_stdc" = "yes" || test "$syslibh" = "yes"; then
         CWFLAGS=-Wall
     else
