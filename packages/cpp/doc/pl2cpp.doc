@@ -416,7 +416,7 @@ an atom or string equal to \exam{gnat}.
      ...
 \end{code}
 
-    \cfunction{const char *}{PlTerm::functor}{}
+    \cfunction{const char *}{PlTerm::name}{}
 Return a \type{const char *} holding the name of the functor of the
 compound term.  Raises a \except{type_error} if the argument is not
 compound.
