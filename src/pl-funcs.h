@@ -634,6 +634,7 @@ foreign_t	pl_check_procedure(term_t desc);
 void		checkDefinition(Definition def);
 Procedure	isStaticSystemProcedure(functor_t fd);
 foreign_t	pl_garbage_collect_clauses(void);
+int		setDynamicProcedure(Procedure proc, bool isdyn);
 
 
 /* pl-prof.c */

@@ -1867,8 +1867,8 @@ detachMutexAndUnlock(Definition def)
 #endif /*O_PLMT*/
 
 
-static int
-set_dynamic_procedure(Procedure proc, bool isdyn)
+int
+setDynamicProcedure(Procedure proc, bool isdyn)
 { Definition def = proc->definition;
 
   LOCKDEF(def);
@@ -1933,7 +1933,7 @@ set_thread_local_procedure(Procedure proc, bool val)
 		    ERR_MODIFY_STATIC_PROC, proc);
   }
 #else
-  set_dynamic_procedure(proc, val);
+  setDynamicProcedure(proc, val);
 
   if ( val )
     set(proc->definition, VOLATILE|P_THREAD_LOCAL);
@@ -1972,7 +1972,7 @@ pl_set_predicate_attribute(term_t pred,
   def = proc->definition;
 
   if ( att == DYNAMIC )
-    return set_dynamic_procedure(proc, val);
+    return setDynamicProcedure(proc, val);
   if ( att == P_THREAD_LOCAL )
     return set_thread_local_procedure(proc, val);
 
