@@ -8,7 +8,7 @@
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This program   was written  to  determine the  memory  model   of your
-machine.  It may be used when writing a new md-machine.h file.
+machine.  Normally this will be called by configure.
 
 Compile this file using:
 
@@ -47,6 +47,7 @@ char *argv[];
 { char buf[10];
   unsigned long gva = (unsigned long) &global_var;
   unsigned long gta = (unsigned long) sub;
+  unsigned long mad = (unsigned long) malloc(2000);
   int stack_up = (sub() > buf);
   char *decl[MAX_DECL];
   int ndecl = 0;
@@ -57,31 +58,21 @@ char *argv[];
   printf("\tText at 0x%x\n", sub);
   printf("\tGlobal variable at 0x%x\n", gva);
   printf("\tLocal variable at 0x%x\n", buf);
-  printf("\tmalloc() at 0x%x\n", malloc(10));
+  printf("\tmalloc() at 0x%x\n", mad);
   printf("\tC-Stack grows %sward\n", stack_up ? "Up" : "Down");
 #endif
 	 
-  if      ( (gva & 0xf0000000L) == 0x80000000L )
-    decl[ndecl++] = "POINTER_OFFSET=0x80000000L";
-  else if ( (gva & 0xf0000000L) == 0x40000000L )
-    decl[ndecl++] = "POINTER_OFFSET=0x40000000L";
-  else if ( (gva & 0xf0000000L) == 0x20000000L )
-    decl[ndecl++] = "POINTER_OFFSET=0x20000000L";
-  else if ( (gva & 0xf0000000L) == 0x10000000L )
-    decl[ndecl++] = "POINTER_OFFSET=0x10000000L";
-  else if ( (gva & 0xf0000000L) )
-    printf("ERROR: Cannot determine POINTER_OFFSET\n");
-  
-  if      ( (gta & 0xf0000000L) == 0x80000000L )
-    decl[ndecl++] = "TEXT_OFFSET=0x80000000L";
-  else if ( (gta & 0xf0000000L) == 0x40000000L )
-    decl[ndecl++] = "TEXT_OFFSET=0x40000000L";
-  else if ( (gta & 0xf0000000L) == 0x20000000L )
-    decl[ndecl++] = "TEXT_OFFSET=0x20000000L";
-  else if ( (gta & 0xf0000000L) == 0x10000000L )
-    decl[ndecl++] = "TEXT_OFFSET=0x10000000L";
-  else if ( (gta & 0xf0000000L) )
-    printf("ERROR: Cannot determine TEXT_OFFSET\n");
+  if ( (gva & 0xfC000000L) )
+  { if ( (gva & 0xfC000000L) == (mad & 0xfC000000L) )
+    { static char msg[100];
+
+      sprintf(msg, "POINTER_OFFSET=0x%08xL", gva & 0xfC000000L );
+      decl[ndecl++] = msg;
+    } else
+    { fprintf(stderr, "Static and malloced data far apart\n");
+      exit(1);
+    }
+  }
   
   if ( stack_up )
     decl[ndecl++] = "STACK_DIRECTION=1";
