@@ -154,7 +154,7 @@ redrawDisplayManager(DisplayManager dm)
 
 status
 RedrawDisplayManager(DisplayManager dm)
-{ return qadSendv(dm, NAME_redraw, 0, NULL);
+{ return sendv(dm, NAME_redraw, 0, NULL);
 }
 
 
