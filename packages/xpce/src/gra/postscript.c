@@ -336,7 +336,7 @@ ps_font(FontObj font)
 
 static void
 ps_colour(Colour c, int grey)
-{ if ( notDefault(c) )
+{ if ( notDefault(c) && notNil(c) )
   { float r = (float) valInt(getRedColour(c))   / (float) valInt(BRIGHT);
     float g = (float) valInt(getGreenColour(c)) / (float) valInt(BRIGHT);
     float b = (float) valInt(getBlueColour(c))  / (float) valInt(BRIGHT);
@@ -1172,27 +1172,35 @@ drawPostScriptBox(Box b)
     psdef_texture(b);
     psdef_fill(b, NAME_fillPattern);
   } else
-  { int rmax = min(valInt(b->area->w), valInt(b->area->h))/2;
-    Int r = (valInt(b->radius) > rmax ? toInt(rmax) : b->radius);
+  { Area a = b->area;
+    int x = valInt(a->x);
+    int y = valInt(a->y);
+    int w = valInt(a->w);
+    int h = valInt(a->h);
+    int r = valInt(b->radius);
+    int rmax;
+
+    NormaliseArea(x, y, w, h);
+    rmax = min(w, h)/2;
+    if ( r > rmax )
+      r = rmax;
 
     if ( b->shadow != ZERO )
-    { Area a = b->area;
-      Int s = b->shadow;
+    { int s = valInt(b->shadow);
   
-      ps_output("gsave nodash 0 ~d ~d ~d ~d ~d boxpath\n",
-		add(a->x, s), add(a->y, s), sub(a->w, s), sub(a->h, s),
-		r);
+      ps_output("gsave nodash 0 ~D ~D ~D ~D ~D boxpath\n",
+		x+s, y+s, w-s, h-s, r);
       ps_output("0.0 setgray fill grestore\n");
       ps_output("gsave ~C ~T ~p ~x ~y ~d ~d ~d boxpath\n", b, b,
-		b, b, b, sub(a->w, s), sub(a->h, s), r);
+		b, b, b, toInt(w-s), toInt(h-s), toInt(r));
       if ( notNil(b->fill_pattern) )
 	fill(b, NAME_fillPattern);
       else
 	ps_output("gsave 1.0 setgray fill grestore\n");
       ps_output("draw grestore\n");
     } else
-    { ps_output("gsave ~C ~T ~p ~x ~y ~w ~h ~d boxpath\n",
-		b, b, b, b, b, b, b, r);
+    { ps_output("gsave ~C ~T ~p ~D ~D ~D ~D ~D boxpath\n",
+		b, b, b, x, y, w, h, r);
       fill(b, NAME_fillPattern);
       ps_output("draw grestore\n");
     }

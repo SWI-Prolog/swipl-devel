@@ -1,6 +1,8 @@
 			   XPCE ChangeLog
 			   ==============
 
+* FIXED: Generating PostScript from boxes with negative dimension.
+
 * FIXED: bar->compute can fail.
 
 * FIXED: Prolog navigator loading wrong Prolog module.  Fabien Todescato.

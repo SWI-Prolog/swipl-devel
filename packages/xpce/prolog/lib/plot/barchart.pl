@@ -156,10 +156,10 @@ variable(drag_message,	code*,			both, "Executed on drags").
 initialise(B,
 	   Name:name=name,
 	   Value:value=real,
-	   Colour:colour=[colour|image],
+	   Colour:colour=[colour|image]*,
 	   Orientation:orientation=[{horizontal,vertical}]) :->
 	default(Value, 0, TheValue),
-	default(Colour, white, TheColour),
+	default(Colour, @nil, TheColour),
 	default(Orientation, vertical, TheOrientation),
 	get(B, thickness, W),
 	send_super(B, initialise, W, W),
@@ -188,10 +188,14 @@ range(B, Low:low=real*, High:high=real*) :->
 	send(B, slot, low, Low),
 	send(B, slot, high, High).
 
-colour(B, Colour:'colour|image') :->
+colour(B, Colour:'colour|image*') :->
 	"Colour of the interior"::
-	send(B, fill_pattern, Colour).
-colour(B, Colour:'colour|image') :<-
+	send(B, fill_pattern, Colour),
+	(   Colour == @nil
+	->  send(B, pen, 1)
+	;   send(B, pen, 0)
+	).
+colour(B, Colour:'colour|image*') :<-
 	"Colour of the interior"::
 	get(B, fill_pattern, Colour).
 
