@@ -302,10 +302,115 @@ ws_load_windows_bmp_file(Image image, IOSTREAM *fd)
 }
 
 
+#define LOAD_ICO_FROM_STREAM 1
+
+#ifdef LOAD_ICO_FROM_STREAM
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Read the ICO myself from the file. This  work is based on the Win32 SDK.
+Note that for reading the ICONDIR header,   the  file is 16-bit aligned,
+while the structure in memory is 32-bit aligned.  Hence, we read 3 times
+sizeof(WORD).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define offsetof(type, field) (int)(&((type *)NULL)->field)
+
+typedef struct
+{ BYTE	bWidth;               /* Width of the image */
+  BYTE	bHeight;              /* Height of the image (times 2) */
+  BYTE	bColorCount;          /* Number of colors in image (0 if >=8bpp) */
+  BYTE	bReserved;            /* Reserved */
+  WORD	wPlanes;              /* Color Planes */
+  WORD	wBitCount;            /* Bits per pixel */
+  DWORD	dwBytesInRes;         /* how many bytes in this resource? */
+  DWORD	dwImageOffset;        /* where in the file is this image */
+} ICONDIRENTRY, *LPICONDIRENTRY;
+
+typedef struct 
+{ WORD  	idReserved;   /* Reserved */
+  WORD  	idType;       /* resource type (1 for icons) */
+  WORD  	idCount;      /* how many images? */
+  ICONDIRENTRY	idEntries[1]; /* the entries for each image */
+} ICONDIR, *LPICONDIR;
+
+typedef struct
+{ UINT		Width, Height, Colors; /* Width, Height and bpp */
+  LPBYTE	lpBits;                /* ptr to DIB bits */
+  DWORD		dwNumBytes;            /* how many bytes? */
+  LPBITMAPINFO	lpbi;                  /* ptr to header */
+  LPBYTE	lpXOR;                 /* ptr to XOR image bits */
+  LPBYTE	lpAND;                 /* ptr to AND image bits */
+} ICONIMAGE, *LPICONIMAGE;
+
+#endif /*LOAD_ICO_FROM_STREAM*/
+
 static status
-ws_load_windows_ico_file(Image image)
-{ char *fname;
-  HICON hi;
+ws_load_windows_ico_file(Image image, IOSTREAM *fd)
+{ HICON hi;
+
+#ifdef LOAD_ICO_FROM_STREAM
+  long start = Stell(fd);
+  int dirsize, size = 3 * sizeof(WORD);
+  ICONDIR *dir = pceMalloc(size);
+  ICONIMAGE *iimg = NULL;
+  int id;
+  long res_offset, res_size;
+
+  if ( Sfread(dir, 1, size, fd) != size )
+  { error:
+    Sseek(fd, start, SIO_SEEK_SET);
+    if ( dir )
+      pceFree(dir);
+    if ( iimg )
+      pceFree(iimg);
+
+    return FALSE;
+  }
+  if ( dir->idType != 1 &&
+       dir->idType != 2 )
+    goto error;				/* bad type */
+
+  if ( dir->idCount < 1 || dir->idCount > 100 )	/* doesn't make sense */
+  { Cprintf("idCount = %d???\n", dir->idCount);
+    goto error;
+  }
+  dirsize = offsetof(ICONDIR, idEntries[dir->idCount]);
+  DEBUG(NAME_icon,
+	Cprintf("Type = %d, count = %d, dirsize = %d (extra = %d)\n",
+		dir->idType, dir->idCount, dirsize, dirsize - size));
+  pceRealloc(dir, dirsize);
+  if ( Sfread(&dir->idEntries[0], 1, dirsize-size, fd) != (dirsize-size) )
+  { DEBUG(NAME_icon,
+	  Cprintf("Failed to read %d bytes directory\n", dirsize-size));
+    goto error;
+  }
+
+  id = LookupIconIdFromDirectory((LPBYTE)dir, TRUE);
+  if ( id < 0 || id >= dir->idCount )
+  { id = LookupIconIdFromDirectory((LPBYTE)dir, FALSE);
+    if ( id < 0 || id >= dir->idCount )
+      goto error;
+  }
+
+  res_offset = dir->idEntries[id].dwImageOffset;
+  res_size   = dir->idEntries[id].dwBytesInRes;
+
+  DEBUG(NAME_icon,
+	Cprintf("At id=%d, offset=%ld, size=%d\n",
+		id, res_offset, res_size));
+
+  pceFree(dir);
+  dir = NULL;
+
+  iimg = pceMalloc(res_size);
+  Sseek(fd, res_offset, SIO_SEEK_SET);
+  if ( Sfread(iimg, 1, res_size, fd) != res_size )
+    goto error;
+  
+  hi=CreateIconFromResource((LPBYTE)iimg, res_size, TRUE, 0x00030000);
+
+#else /*LOAD_ICO_FROM_STREAM*/
+  char *fname;
 
   if ( instanceOfObject(image->file, ClassFile) )
   { FileObj file = (FileObj) image->file;
@@ -316,7 +421,11 @@ ws_load_windows_ico_file(Image image)
     fail;
   }
 
-  if ( (hi=(HICON)LoadCursorFromFile(fname)) )
+  hi=(HICON)LoadCursorFromFile(fname);
+
+#endif /*LOAD_ICO_FROM_STREAM*/
+
+  if ( hi )
   { ICONINFO info;
 
     if ( GetIconInfo(hi, &info) )
@@ -385,6 +494,9 @@ ws_load_windows_ico_file(Image image)
 	  registerXrefObject(image->mask, image->display, bmsk);
 
 	  DestroyIcon(hi);
+#ifdef LOAD_ICO_FROM_STREAM
+	  pceFree(iimg);
+#endif
 
 	  succeed;
 	}
@@ -419,10 +531,16 @@ ws_load_windows_ico_file(Image image)
 	  Cprintf("Warning: could not copy icon images\n");
       }
 
+#ifdef LOAD_ICO_FROM_STREAM
+      pceFree(iimg);
+#endif
       succeed;
     }
   }
 
+#ifdef LOAD_ICO_FROM_STREAM
+  pceFree(iimg);
+#endif
   fail;
 }
 
@@ -692,7 +810,7 @@ register the colours.
       rval = SUCCEED;
     } else if ( ws_load_windows_bmp_file(image, fd) )
     { rval = SUCCEED;
-    } else if ( ws_load_windows_ico_file(image) )
+    } else if ( ws_load_windows_ico_file(image, fd) )
     { rval = SUCCEED;
     } else
       rval = loadPNMImage(image, fd);

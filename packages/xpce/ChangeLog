@@ -1,9 +1,11 @@
 			   XPCE ChangeLog
 			   ==============
 
+* ADDED: Windows version: load .ICO data from streams and therefore from
+  SWI-Prolog resources.  With help from	Fabien Todescato.  Thanks.
+
 * FIXED: Handling `default' argument in @finder<-get_file.
   (Lourens van der Meij).
-
 
 VERSION 6.1.5, distributed with SWI-Prolog 5.1.5
 ================================================
