@@ -87,8 +87,17 @@ on_top(W, Name:name) :->
 
 :- pce_group(members).
 
+%	->append: Window, Label
+%	
+%	Append a new tab using Window with the given tab label.
+%
+%	The call to ->'_compute_desired_size' should be properly delayed
+%	until the tabbed window is actually   created,  but this doesn't
+%	appear to work properly.
+
 append(W, Window:window=window, Label:name=[name]) :->
 	"Append a window to the tabs"::
+	send(Window, '_compute_desired_size'),
 	send(W, tab, window_tab(Window, Label)).
 
 member(W, Name:name, Window:window) :<-
@@ -113,7 +122,10 @@ tab(W, Tab:tab) :->
 	"Add normal tab"::
 	get_super(W, member, tab_stack, TS),
 	send(TS, append, Tab),
-	send(W, resize, Tab).
+	(   get(Tab, is_displayed, @on)
+	->  send(W, resize, Tab)
+	;   true
+	).
 
 tab(W, Name:name, Tab:tab) :<-
 	"Find named tab"::
@@ -172,14 +184,23 @@ size(T, Size:size) :->
 	),
 	send_super(T, size, Size).
 
+%layout_dialog(T) :->
+%	(   get(T, window, Window),
+%	    Window \== @nil
+%	->  send(Window, '_compute_desired_size')
+%	;   true
+%	),
+%	send_super(T, layout_dialog).
+
 :- pce_group(event).
 
 status(T, Status:{on_top,hidden}) :->
 	send_super(T, status, Status),
-	get(T, window, Window),
 	(   Status == on_top,
+	    get(T, is_displayed, @on),
 	    get(T, frame, Frame)
-	->  send(Window, resize),
+	->  get(T, window, Window),
+	    send(Window, resize),
 	    send(Frame, keyboard_focus, Window)
 	;   true
 	).
