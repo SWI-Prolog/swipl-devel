@@ -133,7 +133,7 @@ about(_F) :->
 
 fill_menu_bar(F) :->
 	get(F, member, menu_bar_dialog, D),
-	send(D, gap, size(0, 3)),
+	send(D, gap, size(0, 0)),
 	send(D, pen, 0),
 					% the menu-bar
 	send(D, append, new(MB, menu_bar)),

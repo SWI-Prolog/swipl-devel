@@ -5,7 +5,7 @@
   `device->advance' has a new `direction' argument.
 
 * MODIFIED: Unix/X11 version look-and-feel aspects of the classes button,
-  menu_bar: including `gtk' look and feel.
+  menu_bar, scroll_bar: including `gtk' look and feel.
 
 * FIXED: Minor redraw issues when uncovering windows involving dialog items
   or text `with things sticking out'.

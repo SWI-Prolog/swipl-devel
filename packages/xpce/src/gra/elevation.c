@@ -183,9 +183,10 @@ static char *T_modify[] =
         { "attribute={height,colour,relief,shadow,kind,background}",
 	  "value=any" };
 static char *T_initialise[] =
-{ "name=[name|int]*", "height=[int]", "colour=[{hilited}|colour|pixmap]",
-	  "relief=[colour|pixmap]", "shadow=[colour|pixmap]",
-	  "kind=[{3d,shadow}]", "background=[{reduced}|colour|pixmap]" };
+{ "name=[name|int]*", "height=[int]",
+  "colour=[{hilited,reduced}|colour|pixmap]",
+  "relief=[colour|pixmap]", "shadow=[colour|pixmap]",
+  "kind=[{3d,shadow}]", "background=[{reduced}|colour|pixmap]" };
 static char T_cbg[] = "[{hilited,reduced}|colour|pixmap]";
 
 /* Instance Variables */

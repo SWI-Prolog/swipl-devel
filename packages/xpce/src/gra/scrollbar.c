@@ -110,14 +110,17 @@ initialiseScrollBar(ScrollBar s, Any obj, Name orientation, Message msg)
 
 static int
 arrow_height_scrollbar(ScrollBar sb)
-{ if ( sb->look == NAME_motif || sb->look == NAME_win )
+{ if ( sb->look == NAME_motif ||
+       sb->look == NAME_gtk ||
+       sb->look == NAME_win )
   { int ah;
 
-    if ( (ah = ws_arrow_height_scrollbar(sb)) >= 0 )
-      return ah;
-
-    return valInt(sb->orientation == NAME_vertical ? sb->area->w
+    if ( (ah = ws_arrow_height_scrollbar(sb)) < 0 )
+    { ah = valInt(sb->orientation == NAME_vertical ? sb->area->w
 		  				   : sb->area->h);
+    }
+
+    return ah;
   }
   
   return 0;
@@ -286,9 +289,9 @@ compute_bubble(ScrollBar s, struct bubble_info *bi,
 
 					/* bar sizes */
   bi->bar_start   = bar_start;
-  bi->bar_length  = (equalName(s->orientation, NAME_vertical)
-		     ? valInt(s->area->h)
-		     : valInt(s->area->w));
+  bi->bar_length  = (s->orientation == NAME_vertical
+		         ? valInt(s->area->h)
+		         : valInt(s->area->w));
   bi->bar_length -= 2 * bi->bar_start;
 
 					/* bubble characteristics */
@@ -332,14 +335,32 @@ compute_bubble(ScrollBar s, struct bubble_info *bi,
 		 *******************************/
 
 static void
-sb_init_draw_data(ScrollBar s, Area a, SbDrawData d)
-{ initialiseDeviceGraphical(s, &d->x, &d->y, &d->w, &d->h);
+sb_init_draw_data(ScrollBar s, Area a, SbDrawData d, Any bg)
+{ int m;
+
+  initialiseDeviceGraphical(s, &d->x, &d->y, &d->w, &d->h);
   NormaliseArea(d->x, d->y, d->w, d->h);
+
+  if ( instanceOfObject(bg, ClassElevation) )
+  { Elevation z = bg;
+
+    r_3d_box(d->x, d->y, d->w, d->h, 0, bg, TRUE);
+
+    m = abs(valInt(z->height)) + 1;
+    d->x += m;
+    d->y += m;
+    d->w -= 2*m;
+    d->h -= 2*m;
+  } else
+    m = 0;
 
   d->vertical = (s->orientation == NAME_vertical);
   d->arrow = arrow_height_scrollbar(s);
-
-  compute_bubble(s, &d->bubble, d->arrow, MIN_BUBBLE, FALSE);
+  compute_bubble(s, &d->bubble,
+		 m ? d->arrow - 1 : d->arrow,
+		 MIN_BUBBLE, FALSE);
+  d->bubble.start -= m;
+  d->arrow -= 2*m;
 }
 
 #define X1 pts[0]
@@ -356,30 +377,30 @@ compute_arrow_corners(int x, int y, int w, int h,
 		      int *pts)
 { int aw2;
 
-  aw &= ~1;
+  aw = (aw+1) & ~1;				/* make even */
   ah = aw/2;
   aw2 = (aw+1)/2;
 
   DEBUG(NAME_arrow, Cprintf("ScrollBar arrow: %d x %d\n", aw, ah));
 
   if ( which == NAME_down )
-  { int mx = x + w/2;
+  { int mx = x + w/2 - 1;
     int dy = (h-ah)/2;
       
     X1 = mx-aw2; Y1 = y+dy; X2 = mx+aw2; Y2 = Y1; X3 = mx, Y3 = Y1+ah;
   } else if ( which == NAME_up )
-  { int mx = x + w/2;
+  { int mx = x + w/2 - 1;
     int dy = (1+h-ah)/2;
 
     X1 = mx-aw2; Y1 = y+h-dy; X2 = mx+aw2; Y2 = Y1; X3 = mx, Y3 = Y1-ah;
   } else if ( which == NAME_left )
   { int dx = (w-ah)/2;
-    int my = y + h/2;
+    int my = y + h/2 - 1;
       
     X1 = x+dx+ah, Y1 = my-aw2; X2 = X1; Y2 = my+aw2; X3 = X1-ah; Y3 = my;
   } else /* if ( which == NAME_right ) */
   { int dx = (w-ah)/2;
-    int my = y + h/2;
+    int my = y + h/2 - 1;
 
     X1 = x+dx, Y1 = my-aw2; X2 = X1; Y2 = my+aw2; X3=X1+ah; Y3 = my;
   }
@@ -405,7 +426,8 @@ draw_arrow(ScrollBar s, int x, int y, int w, int h, Name which, int up)
 
     DEBUG(NAME_arrow, Cprintf("Arrow box(%d, %d, %d, %d)\n", x, y, w, h));
 
-    if ( s->look == NAME_win )
+    if ( s->look == NAME_win ||
+         s->look == NAME_gtk )
     { int pts[6];
 
       r_thickness(valInt(s->pen));
@@ -415,7 +437,7 @@ draw_arrow(ScrollBar s, int x, int y, int w, int h, Name which, int up)
       else
 	r_box(x, y, w, h, 0, isDefault(z->colour) ? NIL : (Any) z->colour);
 
-      compute_arrow_corners(x, y, w, h, which, w/2, h/4, pts);
+      compute_arrow_corners(x, y, w, h, which, (w*2)/3, h/4, pts);
       r_triangle(X1, Y1, X2, Y2, X3, Y3, BLACK_COLOUR);
     } else				/* motif */
     {
@@ -499,13 +521,15 @@ draw_bubble(ScrollBar s, SbDrawData d)
 
     ym += hm;
     hm = (bi->bar_start+bi->bar_length) - (bi->start+bi->length);
-    if ( pf )
-      r_fill(x, ym, w, hm, BLACK_COLOUR);
-    else if ( s->look == NAME_win && z )
-      r_fill(x, ym, w, hm, GREY50_IMAGE);
-    else
-      r_clear(x, ym, w, hm);
-  } else /* if ( equalName(s->orientation, NAME_horizontal) ) */
+    if ( hm > 0 )
+    { if ( pf )
+	r_fill(x, ym, w, hm, BLACK_COLOUR);
+      else if ( s->look == NAME_win && z )
+	r_fill(x, ym, w, hm, GREY50_IMAGE);
+      else
+	r_clear(x, ym, w, hm);
+    }
+  } else /* horizontal */
   { int xm, wm;
 
     y += p;
@@ -530,12 +554,14 @@ draw_bubble(ScrollBar s, SbDrawData d)
 
     xm += wm;
     wm = (bi->bar_start+bi->bar_length) - (bi->start+bi->length);
-    if ( pf )
-      r_fill(xm, y, wm, h, BLACK_COLOUR);
-    else if ( s->look == NAME_win && z )
-      r_fill(xm, y, wm, h, GREY50_IMAGE);
-    else
-      r_clear(xm, y, wm, h);
+    if ( wm > 0 )
+    { if ( pf )
+	r_fill(xm, y, wm, h, BLACK_COLOUR);
+      else if ( s->look == NAME_win && z )
+	r_fill(xm, y, wm, h, GREY50_IMAGE);
+      else
+	r_clear(xm, y, wm, h);
+    }
   }
 }
 
@@ -544,20 +570,28 @@ static status
 RedrawAreaScrollBar(ScrollBar s, Area a)
 { Any bg = getClassVariableValueObject(s, NAME_background);
   Any obg = NIL;
-
-  if ( bg && (instanceOfObject(bg, ClassColour) ||
-	      instanceOfObject(bg, ClassPixmap)) )
-    obg = r_background(bg);
+  Elevation z = NIL;
+  
+  if ( bg )
+  { if ( instanceOfObject(bg, ClassColour) ||
+	 instanceOfObject(bg, ClassPixmap) )
+      obg = r_background(bg);
+    else if ( instanceOfObject(bg, ClassElevation) )
+    { z = bg;
+      if ( instanceOfObject(z->colour, ClassColour) )
+	obg = r_background(z->colour);
+    }
+  }
 
   if ( s->look == NAME_openLook )
-    OpenLookRedrawAreaScrollBar(s, a);
-  else
+  { OpenLookRedrawAreaScrollBar(s, a);
+  } else
   { struct sb_draw_data d;
 
-    sb_init_draw_data(s, a, &d);
+    sb_init_draw_data(s, a, &d, z);
+    draw_bubble(s, &d);
     if ( d.arrow )
       draw_arrows(s, &d);
-    draw_bubble(s, &d);
   }
 
   if ( notNil(obg) )
@@ -1211,7 +1245,9 @@ eventScrollBar(ScrollBar s, EventObj ev)
   } else if ( s->look == NAME_openLook )
   { if ( OpenLookEventScrollBar(s, ev) )
       succeed;
-  } else if ( s->look == NAME_motif || s->look == NAME_win )
+  } else if ( s->look == NAME_motif ||
+	      s->look == NAME_gtk ||
+	      s->look == NAME_win )
   { if ( MotifEventScrollBar(s, ev) )
       succeed;
   }
@@ -1390,7 +1426,7 @@ static vardecl var_scrollBar[] =
      NAME_internal, "Pixel position of bubble"),
   IV(NAME_bubbleLength, "int", IV_NONE,
      NAME_internal, "Pixel size of bubble"),
-  SV(NAME_look, "{x,open_look,motif,win}", IV_GET|IV_STORE, lookScrollBar,
+  SV(NAME_look, "{x,open_look,motif,win,gtk}", IV_GET|IV_STORE, lookScrollBar,
      NAME_appearance, "Look-and-feel (only `x')"),
   IV(NAME_drag, "bool", IV_BOTH,
      NAME_event, "If @on, messages are sent continuously"),
@@ -1440,17 +1476,18 @@ static getdecl get_scrollBar[] =
 
 static classvardecl rc_scrollBar[] =
 { RC(NAME_background, "[elevation|colour|pixmap]",
-     UXWIN("@_dialog_bg", "win_window"),
+/*   UXWIN("@_dialog_bg", "win_window"), */
+     UXWIN("elevation(@nil, -1, grey66)", "win_window"),
      "Colour of background parts"),
-  RC(NAME_colour, "[colour]", UXWIN("@default", "win_btnface"),
+  RC(NAME_colour, "[colour]", UXWIN("@_dialog_bg", "win_btnface"),
      "Colour of foreground parts"),
   RC(NAME_distance, "int", "0",
      "Distance to graphical"),
   RC(NAME_elevation, "elevation*",
-     UXWIN("when(@colour_display, 1, @nil)",
+     UXWIN("elevation(@nil, 1, @_dialog_bg)",
 	   "elevation(@nil, 2, win_menu)"),
      "3-D effect elevation"),
-  RC(NAME_look, "{x,open_look,motif,win}", UXWIN("open_look", "win"),
+  RC(NAME_look, "{x,open_look,motif,gtk,win}", UXWIN("gtk", "win"),
      "Look-and-feel"),
   RC(NAME_pen, "int", UXWIN("@_win_pen", "0"),
      "Thickness of surrounding box"),
@@ -1460,7 +1497,7 @@ static classvardecl rc_scrollBar[] =
      "OpenLook: time to wait until start of repeat"),
   RC(NAME_repeatInterval, "real", "0.06",
      "OpenLook: interval between repeats"),
-  RC(NAME_width, "[int]", UXWIN("16", "@default"),
+  RC(NAME_width, "[int]", UXWIN("18", "@default"),
      "Width of the scroll_bar"),
   RC(NAME_autoHide, "bool", "@on",
      "Automatically hide bar if all is shown")
