@@ -641,7 +641,8 @@ PLBINDIR=	$(PLBASE)/bin/$(PLARCH)
 RTBINDIR=	$(RTHOME)/bin/$(PLARCH)
 DVHOME=		$(RTHOME)
 DVLIBDIRS=	lib lib/compatibility lib/dialog lib/draw lib/emacs lib/man \
-		lib/xref lib/english demo contrib contrib/rubik lib/trace
+		lib/xref lib/english demo contrib contrib/rubik lib/trace \
+		lib/http
 DVIMGDIRS=	lib/dialog/bitmaps lib/trace/icons
 DVBOOTDIRS=	boot
 DVMISCFILES=	ChangeLog 
