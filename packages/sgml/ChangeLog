@@ -1,3 +1,6 @@
+* FIXED: skip [] for detection of nesting inside literal values and fix
+  handling of [] in the <!DOCTYPE xxx [...]> declaration.  Richard O'Keefe.
+
 * MODIFIED/ADDED: qualify_attributes option for xmlns mode.  Default is
   now *not* to qualify attributes.
 

@@ -184,13 +184,14 @@ typedef struct _dtd_parser
   int	   etaglen;			/* length of end-tag */
   int	   grouplevel;			/* [..] level in declaration */
   int	   saved;			/* saved character */
+  dtdstate lit_saved_state;		/* literal saved-state */
   dtd_char_encoding encoding;		/* CDATA output character-set */
   dtd_shortref *map;			/* SHORTREF map */
 #ifdef UTF8
   int	   utf8_decode;			/* decode UTF-8 sequences? */
   int      utf8_char;			/* building character */
   int	   utf8_left;			/* bytes left */
-  dtdstate saved_state;			/* state from which we come */
+  dtdstate utf8_saved_state;		/* state from which we come */
 #endif
   dtd_srcloc	location;		/* Current location */
   dtd_srcloc	startloc;		/* Start of last markup */

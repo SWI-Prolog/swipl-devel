@@ -3452,7 +3452,23 @@ local:
     p->buffer = new_icharbuf();
 
     for( ; *s; s++ )
-    { if ( isee_func(dtd, s, CF_DSC) && --grouplevel == 0 )
+    { if ( isee_func(dtd, s, CF_LIT) ||	/* skip quoted strings */
+	   isee_func(dtd, s, CF_LITA) )
+      { ichar q = *s;
+
+	putchar_dtd_parser(p, *s++);	/* pass open quote */
+
+	for( ; *s && *s != q; s++ )
+	  putchar_dtd_parser(p, *s);
+
+	if ( *s == q )			/* pass closing quote */
+	  putchar_dtd_parser(p, *s);
+	continue;
+      }
+
+      if ( isee_func(dtd, s, CF_DSO) )
+	grouplevel++;
+      else if ( isee_func(dtd, s, CF_DSC) && --grouplevel == 0 )
 	break;
       putchar_dtd_parser(p, *s);
     }
@@ -4317,7 +4333,7 @@ process_utf8(dtd_parser *p, int chr)
     ;
   mask--;				/* 0x20 --> 0x1f */
 
-  p->saved_state = p->state;		/* state to return to */
+  p->utf8_saved_state = p->state;		/* state to return to */
   p->state = S_UTF8;
   p->utf8_char = chr & mask;
   p->utf8_left = bytes;
@@ -4705,16 +4721,18 @@ reprocess:
 
       add_icharbuf(p->buffer, chr);
 
-      if ( f[CF_LIT] == chr )
+      if ( f[CF_LIT] == chr )		/* " */
       { p->state = S_STRING;
 	p->saved = chr;
-      } else if ( f[CF_LITA] == chr )
+	p->lit_saved_state = S_DECL;
+      } else if ( f[CF_LITA] == chr )	/* ' */
       { p->state = S_STRING;
 	p->saved = chr;
+	p->lit_saved_state = S_DECL;
 	return;
-      } else if ( f[CF_CMT] == chr )
+      } else if ( f[CF_CMT] == chr )	/* - */
       { p->state = S_DECLCMT0;
-      } else if ( f[CF_DSO] == chr )		/* [: marked section */
+      } else if ( f[CF_DSO] == chr )	/* [: marked section */
       { terminate_icharbuf(p->buffer);
 
 	process_marked_section(p);
@@ -4772,7 +4790,7 @@ reprocess:
     case S_STRING:
     { add_icharbuf(p->buffer, chr);
       if ( chr == p->saved )
-	p->state = S_DECL;
+	p->state = p->lit_saved_state;
       break;
     }
     case S_CMTO:			/* Seen <!- */
@@ -4809,13 +4827,22 @@ reprocess:
 	p->state = S_CMT;
       break;
     }
-    case S_GROUP:
+    case S_GROUP:			/* [...] in declaration */
     { add_icharbuf(p->buffer, chr);
       if ( f[CF_DSO] == chr )
-	p->grouplevel++;
-      else if ( f[CF_DSC] == chr )
+      { p->grouplevel++;
+      } else if ( f[CF_DSC] == chr )
       { if ( --p->grouplevel == 0 )
 	  p->state = S_DECL;
+      } else if ( f[CF_LIT] == chr )	/* " */
+      { p->state = S_STRING;
+	p->saved = chr;
+	p->lit_saved_state = S_GROUP;
+      } else if ( f[CF_LITA] == chr )	/* ' */
+      { p->state = S_STRING;
+	p->saved = chr;
+	p->lit_saved_state = S_GROUP;
+	return;
       }
       break;
     }
@@ -4827,7 +4854,7 @@ reprocess:
       p->utf8_char |= (chr & ~0xc0);
       if ( --p->utf8_left == 0 )
       { add_cdata(p, p->utf8_char);	/* verbatim? */
-	p->state = p->saved_state;
+	p->state = p->utf8_saved_state;
       }
     }
 #endif

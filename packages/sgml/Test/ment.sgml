@@ -1,0 +1,7 @@
+<!DOCTYPE ent [
+  <!ENTITY #DEFAULT CDATA "[missing]">
+  <!ELEMENT ent O O (#PCDATA)>
+]>
+One: &one;.
+Two: &two;.
+Three: &three;.
