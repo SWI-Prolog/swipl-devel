@@ -77,7 +77,6 @@ static void	r_andpattern(Image i);
 		********************************/
 
 #define MAX_CLIP_NESTING	(50)
-#define MAX_POLYGON_POINTS      (20)
 
 static int quick;			/* display quick_and_dirty */
 
@@ -100,7 +99,6 @@ static struct d_context
   DisplayObj	pceDisplay;		/* PCE display object */          
   Image		cache;			/* Actually writing here */       
   Window	window;			/* Window we are caching for */   
-  Any		default_foreground;	/* Default foreground colour */   
   Any		default_background;	/* Default background colour */    
   Any		default_colour;		/* Colour for @default */
   int		cache_x;		/* X-offset of cache */           
@@ -338,9 +336,9 @@ d_image(Image i, int x, int y, int w, int h)
   }
 
   if ( isDefault(i->foreground) )
-    context.default_foreground = d->foreground;
+    context.default_colour = d->foreground;
   else
-    context.default_foreground = i->foreground;
+    context.default_colour = i->foreground;
   if ( isDefault(i->background) )
     context.default_background = d->background;    
   else
@@ -348,11 +346,9 @@ d_image(Image i, int x, int y, int w, int h)
   context.drawable	     = (Drawable) image;
   context.kind		     = i->kind;
 
-  context.default_colour = context.default_foreground;
-
   if ( i->kind == NAME_pixmap )
   { r_background(context.default_background);
-    r_default_colour(context.default_foreground);
+    r_default_colour(context.default_colour);
   }
 
   env++;
@@ -380,7 +376,6 @@ d_xwindow(DisplayObj d, Window win, int x, int y, int w, int h)
   context.origin_x	     = 0;
   context.origin_y	     = 0;
   context.drawable	     = (Drawable) win;
-  context.default_foreground = d->foreground;
   context.default_background = d->background;
   context.kind		     = NAME_window;
 

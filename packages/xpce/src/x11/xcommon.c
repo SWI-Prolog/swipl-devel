@@ -499,7 +499,7 @@ keycode_to_name(XEvent *event)
   }
 
   if ( bytes == 1 )
-  { int c = buf[0];
+  { int c = buf[0] & 0xff;
 
     if ( event->xkey.state & Mod1Mask )	/* meta depressed */
       c += META_OFFSET;
