@@ -1,3 +1,9 @@
+* FIXED: `text_buffer<-scan_syntax' to deal properly with the 0'<char>
+  syntax of Prolog.
+
+* FIXED: `chain_table->add' to add only if not already part.  Thanks to
+  Lourens van der Meij.
+
 VERSION 5.0.7-beta-5
 ====================
 
