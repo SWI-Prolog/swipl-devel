@@ -38,6 +38,8 @@ user:message_hook(Term, Level, Lines) :-
 	accept_level(Level),
 	(   Term = error(syntax_error(Error), file(Path, Line))
 	->  new(Message, string('Syntax error: %s', Error))
+	;   Term = error(_, file(Path, Line))
+	->  make_message(Lines, Message)
 	;   source_location(Path, Line),
 	    make_message(Lines, Message)
 	),

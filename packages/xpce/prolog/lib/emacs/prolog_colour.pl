@@ -16,6 +16,14 @@
 :- use_module(library(emacs_extend)).
 :- use_module(prolog_xref).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+User extension hooks.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- multifile
+	term_colours/2,
+	goal_classification/2.
+
 :- emacs_extend_mode(prolog,
 		     [ colourise_and_recenter = key('\\C-l'),
 		       colourise_buffer = button(prolog)
@@ -281,7 +289,7 @@ colourise_dcg_goal(Goal, TB, Pos) :-
 %	colourise_goal(+Goal, +TB, +Pos).
 
 colourise_goal(Goal, TB, Pos) :-
-	classify_goal(TB, Goal, Class),
+	goal_classification(TB, Goal, Class),
 	(   Pos = term_position(_,_,FF,FT,_ArgPos)
 	->  FPos = FF-FT
 	;   FPos = Pos
@@ -406,20 +414,23 @@ body_compiled((_*->_)).
 body_compiled((_;_)).
 body_compiled(\+_).
 
-classify_goal(TB, Goal, How) :-
+goal_classification(TB, Goal, How) :-
 	xref_defined(TB, Goal, How), !.
-classify_goal(_TB, Goal, built_in) :-
+goal_classification(_TB, Goal, Class) :-
+	goal_classification(Goal, Class), !.
+goal_classification(_TB, _Goal, undefined).
+
+goal_classification(Goal, built_in) :-
 	built_in_predicate(Goal), !.
-classify_goal(_TB, Goal, autoload) :-			% SWI-Prolog
+goal_classification(Goal, autoload) :-			% SWI-Prolog
 	functor(Goal, Name, Arity),
 	'$in_library'(Name, Arity), !.
-classify_goal(_, SS, expanded) :-	% XPCE (TBD)
+goal_classification(SS, expanded) :-	% XPCE (TBD)
 	functor(SS, send_super, A),
 	A >= 2, !.
-classify_goal(_, SS, expanded) :-	% XPCE (TBD)
+goal_classification(SS, expanded) :-	% XPCE (TBD)
 	functor(SS, get_super, A), 
 	A >= 3, !.
-classify_goal(_TB, _Goal, undefined).
 
 classify_head(TB, Goal, exported) :-
 	xref_exported(TB, Goal), !.
@@ -495,9 +506,6 @@ style(Class, Name, Style) :-
 %	term_colours(+Term, -FunctorColour, -ArgColours)
 %
 %	Define colourisation for specific terms.
-
-:- multifile
-	term_colours/2.
 
 term_colours(file_search_path(_,_),
 	     expanded - [ identifier,
