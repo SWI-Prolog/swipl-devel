@@ -3,6 +3,8 @@
 VERSION 4.0.3
 =============
 
+  * FIXED: Allow for -f "c:\..." in Windows.
+
   * ENHANCED: Moved boot/listing.pl to the library, reducing the
     footprint and startup time.  Also modernised the code a bit,
     allow for hooks, so listing(class->method) lists an XPCE method
