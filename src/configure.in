@@ -638,10 +638,11 @@ AC_TRY_RUN([
 #endif
 #endif
 #include <signal.h>
-static RETSIGTYPE prof(s) int s; {exit(0);}
+int n; /*global to avoid optimizing too much */
+int done;
+static RETSIGTYPE prof(s) int s; { done++; }
 main()
 { struct itimerval value, ovalue;
-  int n;
   value.it_interval.tv_sec  = 0;
   value.it_interval.tv_usec = 1;
   value.it_value.tv_sec  = 0;
@@ -652,9 +653,13 @@ main()
   if (setitimer(ITIMER_PROF, &value, &ovalue) != 0)
     exit(1);
 
-  for(n=0; n<10000000; n++)
+  for(n=0; n<50000000; n++)
     ;
-  exit(1);
+  if ( done )
+  { printf("(%d interrupts) ", done);
+    exit(0);
+  } else
+    exit(1);
 }], AC_DEFINE(O_PROFILE)
     AC_MSG_RESULT(yes),
     AC_MSG_RESULT(no),

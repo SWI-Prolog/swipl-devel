@@ -1,6 +1,10 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * INSTALL: Fixed detection of profiling support on really fast machines
+    (Sergey Tikhonov).
+
+
 VERSION 5.0.4
 =============
 
