@@ -69,7 +69,7 @@ typedef DWORD SQLLEN;
 #define NameBufferLength 256
 #define CVNERR -1			/* conversion error */
 
-#ifdef _REENTRANT
+#if defined(_REENTRANT) && 0
 #include <pthread.h>
 
 					/* FIXME: Actually use these */
@@ -1724,8 +1724,13 @@ prepare_result(context *ctxt)
     switch (ptr_result->sqlTypeID)
     { case SQL_LONGVARCHAR:
       case SQL_LONGVARBINARY:
-	ptr_result->ptr_value = NULL;	/* handle using SQLGetData() */
-        continue;
+      { if ( columnSize > 1024 )
+	{ ptr_result->ptr_value = NULL;	/* handle using SQLGetData() */
+	  continue;
+	}
+	ptr_result->len_value = sizeof(char)*columnSize+1;
+	goto bind;
+      }
     }
 
     switch (ptr_result->cTypeID)
@@ -1759,6 +1764,7 @@ prepare_result(context *ctxt)
         return FALSE;			/* make compiler happy */
     }
 	
+  bind:
     if ( ptr_result->len_value <= PARAM_BUFSIZE )
       ptr_result->ptr_value = (void *)ptr_result->buf;
     else
