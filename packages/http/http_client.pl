@@ -82,8 +82,11 @@ do_connect(Address, _, _) :-
 	
 
 disconnect(Parts) :-
-	address(Parts, Address, []),
+	address(Parts, Address, []), !,
 	with_mutex(http_client_connect, disconnect2(Address)).
+disconnect(Address) :-
+	with_mutex(http_client_connect, disconnect2(Address)).
+
 
 disconnect2(Address) :-
 	thread_self(Me),

@@ -1,3 +1,7 @@
+Jan 4, 2005
+
+  * FIXED: Bug#2: Disconnect from POST replies.
+
 Sep 23, 2004
 
   * FIXED: Ignore minor types when deciding which plugin to use for the
