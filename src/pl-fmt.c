@@ -745,7 +745,7 @@ emit_rubber(format_state *state)
   int rn = state->pending_rubber;
   int j;
 
-  for(j = 0; s < e; j++)
+  for(j = 0; s <= e; j++)
   { int chr;
 
     if ( r->where == j && rn )
@@ -759,9 +759,12 @@ emit_rubber(format_state *state)
       rn--;
     }
 
-    s = utf8_get_char(s, &chr);
-    if ( Sputcode(chr, state->out) < 0 )
-      return FALSE;
+    if ( s < e )
+    { s = utf8_get_char(s, &chr);
+      if ( Sputcode(chr, state->out) < 0 )
+	return FALSE;
+    } else
+      break;
   }
 
   discardBuffer(&state->buffer);
