@@ -257,44 +257,40 @@ prologToplevel(volatile atom_t goal)
 #ifndef O_ABORT_WITH_THROW
   can_abort = TRUE;
 #endif
+  for(;;)
   { fid_t fid = PL_open_foreign_frame();
+    qid_t qid;
+    term_t except = 0;
+    Procedure p;
+    word gn;
 
-    for(;;)
-    { qid_t qid;
-      term_t except;
-      Procedure p;
-      word gn;
+    if ( aborted )
+    { aborted = FALSE;
+      gn = ATOM_abort;
+    } else
+      gn = goal;
 
-      if ( aborted )
-      { aborted = FALSE;
-	gn = ATOM_abort;
-      } else
-	gn = goal;
+    p = lookupProcedure(lookupFunctorDef(gn, 0), MODULE_system);
 
-      p = lookupProcedure(lookupFunctorDef(gn, 0), MODULE_system);
-
-      qid = PL_open_query(MODULE_system, PL_Q_NORMAL, p, 0);
-      rval = PL_next_solution(qid);
-      if ( !rval && (except = PL_exception(qid)) )
-      { atom_t a;
-	
-	tracemode(FALSE, NULL);
-	debugmode(FALSE, NULL);
-	if ( PL_get_atom(except, &a) && a == ATOM_aborted )
-	{ printMessage(ATOM_informational, PL_ATOM, ATOM_aborted);
-	} else if ( !PL_is_functor(except, FUNCTOR_error2) )
-	{ printMessage(ATOM_error,
-		       PL_FUNCTOR_CHARS, "unhandled_exception", 1,
-		         PL_TERM, except);
-	}
-	PL_close_query(qid);
-	continue;
+    qid = PL_open_query(MODULE_system, PL_Q_NORMAL, p, 0);
+    rval = PL_next_solution(qid);
+    if ( !rval && (except = PL_exception(qid)) )
+    { atom_t a;
+      
+      tracemode(FALSE, NULL);
+      debugmode(FALSE, NULL);
+      if ( PL_get_atom(except, &a) && a == ATOM_aborted )
+      { printMessage(ATOM_informational, PL_ATOM, ATOM_aborted);
+      } else if ( !PL_is_functor(except, FUNCTOR_error2) )
+      { printMessage(ATOM_error,
+		     PL_FUNCTOR_CHARS, "unhandled_exception", 1,
+		       PL_TERM, except);
       }
-      PL_close_query(qid);
-      break;
     }
-
+    PL_close_query(qid);
     PL_discard_foreign_frame(fid);
+    if ( !except )
+      break;
   }
 #ifndef O_ABORT_WITH_THROW
   can_abort = FALSE;

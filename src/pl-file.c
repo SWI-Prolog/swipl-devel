@@ -292,7 +292,7 @@ initIO()
   getStreamContext(Soutput);
   getStreamContext(Serror);
   for( i=0, np = standardStreams; *np; np++, i++ )
-    addHTable(streamAliases, (void *)*np, (void *)i);
+    addHTable(streamAliases, (void *)*np, (void *)(long)i);
 
   GD->io_initialised = TRUE;
 }

@@ -114,7 +114,7 @@ pl_current_format_predicate(term_t chr, term_t descr, control_t h)
   while( (s=advanceTableEnum(e)) )
   { Mark(m);
 
-    if ( PL_unify_integer(chr, (int)s->name) &&
+    if ( PL_unify_integer(chr, (long)s->name) &&
 	 unify_definition(descr, ((Procedure)s->value)->definition, 0, 0) )
     { ForeignRedoPtr(e);
     }

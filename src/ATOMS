@@ -346,7 +346,6 @@ A sign			"sign"
 A signal		"signal"
 A silent		"silent"
 A sin			"sin"
-A singleton		"singleton"
 A singletons		"singletons"
 A size			"size"
 A smaller		"<"
@@ -584,7 +583,7 @@ F sign			1
 F signal		1
 F signal		2
 F sin			1
-F singleton		3
+F singletons		1
 F smaller		2
 F smaller_equal		2
 F softcut		2

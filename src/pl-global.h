@@ -126,8 +126,8 @@ typedef struct
     int		no_hole_before;		/* You won't find a hole before here */
     int		margin;			/* # atoms to grow before collect */
     int		non_garbage;		/* # atoms for after last AGC */
-    int		collected;		/* # collected atoms */
     int		gc;			/* # atom garbage collections */
+    long	collected;		/* # collected atoms */
     real	gc_time;		/* Time spent on atom-gc */
     PL_agc_hook_t gc_hook;		/* Current hook */
 #endif

@@ -1256,7 +1256,7 @@ savedXR(void *xr, IOSTREAM *fd)
   long id;
 
   if ( (s = lookupHTable(savedXRTable, xr)) )
-  { id = (int) s->value;
+  { id = (long) s->value;
     Sputc(XR_REF, fd);
     putNum(id, fd);
     

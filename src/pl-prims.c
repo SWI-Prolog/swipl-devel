@@ -2386,7 +2386,7 @@ pl_statistics(term_t k, term_t value)
     result = makeNum(gc_status.trail_gained + gc_status.global_gained);
 #ifdef O_ATOMGC
   else if (key == ATOM_agc)
-    result = makeNum(GD->atoms.gc);
+    result = consInt(GD->atoms.gc);
   else if (key == ATOM_agc_gained)
     result = makeNum(GD->atoms.collected);
   else if (key == ATOM_agc_time)

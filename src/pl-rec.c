@@ -612,6 +612,7 @@ freeRecord(Record record)
 
     ci.data = record->buffer;
     unregisterAtomsRecord(&ci);
+    assert(ci.data == (record->buffer + record->size - SIZERECORD));
 #endif
     freeHeap(record, record->size);
   }

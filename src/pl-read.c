@@ -299,20 +299,11 @@ errorWarning(const char *id_str, ReadData _PL_rd)
 static void
 singletonWarning(atom_t *vars, int nvars)
 { fid_t cid = PL_open_foreign_frame();
-  qid_t qid;
-  term_t argv      = PL_new_term_refs(3);
-  term_t a         = PL_new_term_ref();
-  term_t h	   = PL_new_term_ref();
-  predicate_t pred = PL_pred(FUNCTOR_exception3, MODULE_user);
-  int n, rval;
-	
-  PL_put_atom(    argv+0, ATOM_singleton);
-  PL_put_functor( argv+1, FUNCTOR_singleton3);
-  PL_put_variable(argv+2);
-  PL_get_arg(1, argv+1, a); PL_unify_atom(a, source_file_name);
-  PL_get_arg(2, argv+1, a); PL_unify_integer(a, source_line_no);
-  PL_get_arg(3, argv+1, a);
-	       
+  term_t l = PL_new_term_ref();
+  term_t a = PL_copy_term_ref(l);
+  term_t h = PL_new_term_ref();
+  int n;
+
   for(n=0; n<nvars; n++)
   { PL_unify_list(a, h, a);
     PL_unify_atom(h, vars[n]);
@@ -320,23 +311,11 @@ singletonWarning(atom_t *vars, int nvars)
   }
   PL_unify_nil(a);
 
-  qid = PL_open_query(MODULE_user, PL_Q_NODEBUG, pred, argv);
-  rval = PL_next_solution(qid);
-  PL_close_query(qid);
+  printMessage(ATOM_warning,
+	       PL_FUNCTOR, FUNCTOR_singletons1,
+	         PL_TERM,    l);
+
   PL_discard_foreign_frame(cid);
-
-  if ( !rval )
-  { char buf[LINESIZ];
-
-    buf[0] = EOS;
-    for(n=0; n<nvars; n++)
-    { if ( n > 0 )
-	strcat(buf, ", ");
-      strcat(buf, stringAtom(vars[n]));
-    }
-
-    warning("Singleton variables: %s", buf);
-  }
 }
 
 
