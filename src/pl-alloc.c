@@ -245,6 +245,9 @@ allocHeap(size_t n)
   }
   UNLOCK();
 
+  assert(inCore(mem));
+  assert(inCore((char *)mem+n));
+
   return mem;
 }
 
@@ -254,28 +257,6 @@ destroyAllocPool(AllocPool pool)
 { memset(pool->free_chains, 0, sizeof(pool->free_chains));
   pool->free  = 0;
   pool->space = NULL;
-}
-
-
-void
-initMemAlloc()
-{ static int done = FALSE;
-
-  PL_LOCK(L_INIT_ALLOC);		/* avoid recursive lock */
-  if ( !done )
-  { Word hbase;
-
-    done = TRUE;
-
-    assert(ALIGN_SIZE >= ALLOC_MIN);
-    hBase = (char *)(~0L);
-    hTop  = (char *)NULL;
-    hbase = allocHeap(sizeof(word));
-    *hbase = 0;
-    heap_base = (ulong)hbase & ~0x007fffffL; /* 8MB */
-    freeHeap(hbase, sizeof(word));
-  }
-  PL_UNLOCK(L_INIT_ALLOC);
 }
 
 
@@ -312,8 +293,14 @@ allocBigHeap(size_t size)
   big_heaps = h;
   h++;					/* point to user-data */
 
-  SetHBase(h);
-  SetHTop((char *)h + size);
+  if ( !hTop )
+  { hBase = (char *)h;
+    hTop = (char *)h + size;
+    heap_base = (ulong)h & ~0x007fffffL; /* 8MB */
+  } else
+  { SetHBase(h);
+    SetHTop((char *)h + size);
+  }
 
 #if ALLOC_DEBUG
   memset(h, ALLOC_MAGIC, size);
@@ -361,8 +348,14 @@ allocHeap(size_t n)
       outOfCore();
     
     GD->statistics.heap += n;
-    SetHBase(mem);
-    SetHTop((char *)mem + n);
+    if ( !hTop )
+    { hBase = mem;
+      hTop = (char *)mem + size;
+      heap_base = (ulong)mem & ~0x007fffffL; /* 8MB */
+    } else
+    { SetHBase(mem);
+      SetHTop((char *)mem + n);
+    }
 
     return mem;
   }
@@ -380,26 +373,6 @@ freeHeap(void *mem, size_t n)
 
   free(mem);
   GD->statistics.heap -= n;
-}
-
-
-void
-initMemAlloc()
-{ static int done = FALSE;
-
-  PL_LOCK(L_INIT_ALLOC);		/* avoid recursive lock */
-  if ( !done )
-  { void *hbase;
-
-    done = TRUE;
-
-    hBase = (char *)(~0L);
-    hTop  = (char *)NULL;
-    hbase = allocHeap(sizeof(word));
-    heap_base = (ulong)hbase & ~0x007fffffL; /* 8MB */
-    freeHeap(hbase, sizeof(word));
-  }
-  PL_UNLOCK(L_INIT_ALLOC);
 }
 
 

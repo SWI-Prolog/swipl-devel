@@ -652,8 +652,7 @@ void
 initAtoms(void)
 { LOCK();
   if ( !atomTable )
-  { initMemAlloc();
-    atom_buckets = ATOMHASHSIZE;
+  { atom_buckets = ATOMHASHSIZE;
     atomTable = allocHeap(atom_buckets * sizeof(Atom));
 
     memset(atomTable, 0, atom_buckets * sizeof(Atom));

@@ -105,7 +105,6 @@ initTables()
   if ( !done )
   { done = TRUE;
     
-    initMemAlloc();
     HASHSTAT(PL_on_halt(exitTables, NULL));
   }
   UNLOCK();
