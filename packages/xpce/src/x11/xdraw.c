@@ -2537,6 +2537,21 @@ s_print(String s, int x, int y, FontObj f)
     s_print16(s->s_text16, s->size, x, y, f);
 }
 
+
+void
+s_print_aligned(String s, int x, int y, FontObj f)
+{ if ( s->size > 0 )
+  { s_font(f);
+    
+    x += lbearing(str_fetch(s, 0), context.gcs->font_info);
+    Translate(x, y);
+
+    XDrawString(context.display, context.drawable, context.gcs->workGC,
+		x, y, s->s_text8, s->size);
+  } 
+}
+
+
 static void
 str_stext(String s, int f, int len, int x, int y, Style style)
 { if ( len > 0 )

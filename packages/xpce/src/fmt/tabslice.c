@@ -291,6 +291,31 @@ computeTableColumn(TableColumn col)
 }
 
 
+static status
+forAllTableColumn(TableColumn col, Code code)
+{ Table tab = col->table;
+  int ymin = valInt(getLowIndexVector(tab->rows));
+  int ymax = valInt(getHighIndexVector(tab->rows));
+  int y;
+
+  for(y=ymin; y<=ymax; y++)
+  { TableCell cell = getCellTableColumn(col, toInt(y));
+
+    if ( cell )
+    { Any av[2];
+
+      av[1] = cell;
+      av[2] = toInt(y);
+      if ( !forwardCodev(code, 2, av) )
+	fail;
+    }
+  }
+
+  succeed;
+}
+
+
+
 /* Type declarations */
 
 static char T_halign[]    = "{left,right,center,reference,stretch}";
@@ -317,7 +342,9 @@ static senddecl send_table_column[] =
   SM(NAME_halign, 1, T_halign, halignTableColumn,
      NAME_alignment, "Default horizontal alignment"),
   SM(NAME_compute, 0, NULL, computeTableColumn,
-     NAME_layout, "Compute dimensions of the column")
+     NAME_layout, "Compute dimensions of the column"),
+  SM(NAME_forAll, 1, "code", forAllTableColumn,
+     NAME_iterate, "Run code on all cells in column")
 };
 
 /* Get Methods */

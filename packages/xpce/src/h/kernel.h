@@ -1201,6 +1201,7 @@ End;
 #define ABSTRACT_VECTOR \
   Int		offset;			/* index of element 0 of array */ \
   Int		size;			/* number of valid entries */ \
+  Int		allocated;		/* # allocated cells */ \
   Any		*elements;		/* array of elements */
 
 NewClass(vector)

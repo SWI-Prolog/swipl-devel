@@ -26,7 +26,10 @@ initialiseGrBox(GrBox grb, Graphical gr,
   assign(grb, alignment, align);
   assign(grb, rubber,    rubber);
 
-  return computeGrBox(grb);
+  computeGrBox(grb);
+  assign(grb, width, gr->area->w);	/* TBD */
+
+  succeed;
 }
 
 
@@ -39,7 +42,11 @@ computeGrBox(GrBox grb)
 { Graphical gr = grb->graphical;
 
   ComputeGraphical(gr);
-  assign(grb, width, gr->area->w);
+  if ( isNil(grb->rubber) ||
+       ( grb->rubber->stretch == ZERO &&
+	 grb->rubber->shrink  == ZERO 
+       ) )
+    assign(grb, width, gr->area->w);	/* TBD */
   computeAscentDescentGrBox(grb);
 
   succeed;

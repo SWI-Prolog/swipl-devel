@@ -22,6 +22,7 @@ initialiseVectorv(Vector v, int argc, Any *argv)
   
   v->offset = ZERO;
   v->size = toInt(argc);
+  v->allocated = v->size;
   if ( argc > 0 )
   { v->elements = alloc(argc * sizeof(Any));
   
@@ -41,7 +42,8 @@ cloneVector(Vector v, Vector clone)
 { int n, size = valInt(v->size);
 
   clonePceSlots(v, clone);
-  clone->elements = alloc(size * sizeof(Any));
+  clone->allocated = v->size;
+  clone->elements  = alloc(size * sizeof(Any));
 
   for( n=0; n<size; n++ )
   { clone->elements[n] = NIL;
@@ -88,6 +90,7 @@ storeVector(Vector v, FileObj file)
   succeed;
 }
     
+
 static status
 loadVector(Vector v, IOSTREAM *fd, ClassDef def)
 { int n;
@@ -96,6 +99,7 @@ loadVector(Vector v, IOSTREAM *fd, ClassDef def)
 
   loadSlotsObject(v, fd, def);
   size = valInt(v->size);
+  v->allocated = v->size;
   v->elements = alloc(size * sizeof(Any));
   for(n = 0; n < size; n++)
   { TRY( obj = loadObject(fd) );
@@ -161,9 +165,10 @@ highIndexVector(Vector v, Int high)
 
       fillVector(v, NIL, inc(high), DEFAULT); /* dereference */
       cpdata(elms, v->elements, Any, size);
-      unalloc(valInt(v->size)*sizeof(Any), v->elements);
+      unalloc(valInt(v->allocated)*sizeof(Any), v->elements);
       v->elements = elms;
-      assign(v, size, toInt(size));
+      assign(v,	size,	   toInt(size));
+      assign(v,	allocated, v->size);
 
       succeed;
     } else
@@ -189,9 +194,10 @@ lowIndexVector(Vector v, Int low)
 
       fillVector(v, NIL, toInt(l), toInt(ol-1)); /* dereference */
       cpdata(elms, &v->elements[l-ol], Any, size);
-      unalloc(valInt(v->size)*sizeof(Any), v->elements);
+      unalloc(valInt(v->allocated)*sizeof(Any), v->elements);
       v->elements = elms;
       assign(v, size, toInt(size));
+      assign(v, allocated, v->size);
 
       succeed;
     } else
@@ -221,11 +227,12 @@ clearVector(Vector v)
 { if ( v->elements )
   { fillVector(v, NIL, DEFAULT, DEFAULT);
 
-    unalloc(valInt(v->size)*sizeof(Any), v->elements);
+    unalloc(valInt(v->allocated)*sizeof(Any), v->elements);
     v->elements = NULL;
   }
-  assign(v, size, ZERO);
-  assign(v, offset, ZERO);
+  assign(v, allocated, ZERO);
+  assign(v, size,      ZERO);
+  assign(v, offset,    ZERO);
 
   succeed;
 }
@@ -273,8 +280,9 @@ fillVector(Vector v, Any obj, Int from, Int to)
   { int size = t-f+1;
     int n;
 
-    assign(v, offset, toInt(f - 1));
-    assign(v, size,   toInt(size));
+    assign(v, offset,	 toInt(f - 1));
+    assign(v, size,	 toInt(size));
+    assign(v, allocated, v->size);
     if ( v->elements )
       unalloc(0, v->elements);
     v->elements = alloc(sizeof(Any) * size);
@@ -335,33 +343,40 @@ elementVector(Vector v, Int e, Any obj)
 { int n = indexVector(v, e);
 
   if ( n < 0 )
-  { Any *newElements = alloc((valInt(v->size)-n)*sizeof(Any));
+  { int nsize = valInt(v->size)-n;
+    Any *newElements = alloc(nsize*sizeof(Any));
     int m;
 
     if ( v->elements )
     { cpdata(&newElements[-n], v->elements, Any, valInt(v->size));
-      unalloc(valInt(v->size)*sizeof(Any), v->elements);
+      unalloc(valInt(v->allocated)*sizeof(Any), v->elements);
     }
     v->elements = newElements;
     for( m = 0; m < -n; m++ )
       v->elements[m] = NIL;
     assignVector(v, 0, obj);
 
-    assign(v, size, toInt(valInt(v->size)-n));
-    assign(v, offset, toInt(valInt(e)-1));
+    assign(v, size,	 toInt(nsize));
+    assign(v, allocated, toInt(nsize));
+    assign(v, offset,	 toInt(valInt(e)-1));
 
     succeed;
   }
 
   if ( n >= valInt(v->size) )
-  { Any *newElements = alloc((n+1) * sizeof(Any));
-    int m;
+  { int m;
 
-    if ( v->elements )
-    { cpdata(newElements, v->elements, Any, valInt(v->size));
-      unalloc(valInt(v->size)*sizeof(Any), v->elements);
+    if ( n >= valInt(v->allocated) )
+    { int nalloc = max(valInt(v->allocated)*2, n+1);
+      Any *newElements = alloc(nalloc * sizeof(Any));
+
+      if ( v->elements )
+      { cpdata(newElements, v->elements, Any, valInt(v->size));
+	unalloc(valInt(v->allocated)*sizeof(Any), v->elements);
+      }
+      v->elements = newElements;
+      assign(v, allocated, toInt(nalloc));
     }
-    v->elements = newElements;
     for( m = valInt(v->size); m <= n ; m++ )
       v->elements[m] = NIL;
     assignVector(v, n, obj);
@@ -681,8 +696,10 @@ static char *T_enum[] =
 static vardecl var_vector[] =
 { IV(NAME_offset, "int", IV_GET,
      NAME_range, "Offset relative to 1-based"),
-  IV(NAME_size, "int", IV_GET,
+  IV(NAME_size, "0..", IV_GET,
      NAME_range, "Number of elements"),
+  IV(NAME_allocated, "0..", IV_GET,
+     NAME_internal, "Allocated size of array"),
   IV(NAME_elements, "alien:Any *", IV_NONE,
      NAME_storage, "The elements themselves")
 };

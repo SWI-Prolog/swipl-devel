@@ -281,6 +281,12 @@ copyArea(Area a, Area b)
 }
 
 
+Area
+getCopyArea(Area a)
+{ answer(answerObject(classOfObject(a), a->x, a->y, a->w, a->h, 0));
+}
+
+
 status
 insideArea(Area a, Area b)
 { InitAreaA;

@@ -10,6 +10,7 @@ status		relativeMoveArea(Area a, Point p);
 status		relativeMoveBackArea(Area a, Point p);
 Point		getPositionArea(Area a);
 status		copyArea(Area a, Area b);
+Area		getCopyArea(Area a);
 status		insideArea(Area a, Area b);
 Int		getDistanceXArea(Area a, Area b);
 Int		getDistanceYArea(Area a, Area b);

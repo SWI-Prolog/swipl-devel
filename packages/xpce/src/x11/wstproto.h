@@ -119,6 +119,7 @@ int		str_advance(String s, int from, int to, FontObj f);
 void		s_print8(char8 *s, int l, int x, int y, FontObj f);
 void		s_print16(char16 *s, int l, int x, int y, FontObj f);
 void		s_print(String s, int x, int y, FontObj f);
+void		s_print_aligned(String s, int x, int y, FontObj f);
 void		str_size(String s, FontObj font, int *width, int *height);
 void		str_string(String s, FontObj font, int x, int y, int w, int h, Name hadjust, Name vadjust, int flags);
 void		str_selected_string(String s, FontObj font, int f, int t, Style style, int x, int y, int w, int h, Name hadjust, Name vadjust);

@@ -59,7 +59,7 @@ drawTBox(TBox tb, int x, int y, int w)
   if ( notDefault(s->colour) )
     old_colour = r_colour(s->colour);
 
-  s_print(&tb->text->data, x, y, f);
+  s_print_aligned(&tb->text->data, x, y, f);
   if ( s->attributes & TXT_UNDERLINED )
   { r_thickness(1);
     r_dash(NAME_none);

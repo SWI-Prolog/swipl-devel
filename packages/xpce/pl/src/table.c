@@ -73,6 +73,7 @@ atomToName(Atom a)
       return s->name;
   }
        
+  PL_register_atom(a);
   name = cToPceName(AtomCharp(a));
   s = pceAlloc(sizeof(struct asymbol));
   s->atom = a;

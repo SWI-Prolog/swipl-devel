@@ -1,5 +1,10 @@
+* ADDED: `table_column->for_all' to iterate over the cells in a table-column
 
+* FIXED: Locking atoms against the Prolog atom garbage collector (SWI-Prolog
+  3.3.0).
 
+* MODIFIED: Class vector to distinguish between size and allocated size.
+ 
 * FIXED: `style <-underline' and similar attributes.  Returned @on on
   all attributes if any of the attributes was set.
 

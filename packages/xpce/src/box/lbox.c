@@ -102,6 +102,7 @@ computeLBox(LBox lb)
       }
     }
 
+    cy -= isep;				/* correct for last */
     cy += valInt(lb->top_sep);
     
     if ( valInt(lb->area->h) != cy )
