@@ -23,6 +23,19 @@
 
 :- pce_global(@draw_default_arrow, new(arrow)).
 
+		 /*******************************
+		 *	CHECK ENVIRONMENT	*
+		 *******************************/
+
+has_metafile :-
+	get(@pce, convert, win_metafile, class, _).
+has_printer_class :-
+	get(@pce, convert, win_printer, class, _).
+
+		 /*******************************
+		 *	   CONFIG STUFF		*
+		 *******************************/
+
 config(Path, Attributes) :-
 	broadcast_request(config(draw_config:Path, Attributes)).
 
@@ -77,7 +90,7 @@ config(print/printer,
 	 comment('Name of the default printer.  May be $VARIABLE'),
 	 default(DefPrinter)
        ]) :-
-	\+ get(@pce, operating_system, win32),
+	\+ has_printer_class,
 	(   get(@pce, environment_variable, 'PRINTER', _DefPrinter)
 	->  DefPrinter = '$PRINTER'
 	;   DefPrinter = 'PostScript'
@@ -89,7 +102,7 @@ config(print/print_command,
 		  'PostScript file']),
 	 default('lpr -P%p %f')
        ]) :-
-	\+ get(@pce, operating_system, win32).
+	\+ has_printer_class.
 config(file/save_prototypes,
        [ type(bool),
 	 comment('Save user prototypes with drawing.'),
@@ -109,7 +122,7 @@ config(file/save_metafile_on_save,
 		 ]),
 	 default(false)
        ]) :-
-	get(@pce, operating_system, win32).
+	has_metafile.
 config(file/postscript_file_extension,
        [ type(name),
 	 comment(['Extension for PostScript files.  ',
@@ -126,7 +139,7 @@ config(file/meta_file_format,
 		 ]),
 	 default(emf)
        ]) :-
-	get(@pce, operating_system, win32).
+	has_metafile.
 config(history/recent_files,
        [ type(setof(file)),
 	 comment('Recently visited files'),
