@@ -1844,6 +1844,7 @@ ARGP is pointing into the term on the global stack we are creating.
 
 	NEXT_INSTRUCTION;
       }
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A variable in the body which is not an anonymous one and is not used for
 the first time.  We now know that *ARGP is a variable, so we either copy
@@ -1851,17 +1852,27 @@ the value or make a reference.  Trailing is not needed as we are writing
 above the stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define BODY_VAR(n)   { *ARGP++ = linkVal(varFrameP(FR, (n))); \
-			NEXT_INSTRUCTION; \
-		      }
-    VMI(B_VAR) MARK(BVARN);
-      BODY_VAR(*PC++);
-    VMI(B_VAR0) MARK(BVAR0);
-      BODY_VAR(ARGOFFSET / sizeof(word));
-    VMI(B_VAR1) MARK(BVAR1);
-      BODY_VAR(1 + ARGOFFSET / sizeof(word));
-    VMI(B_VAR2) MARK(BVAR2);
-      BODY_VAR(2 + ARGOFFSET / sizeof(word));
+  { int n;
+
+    VMI(B_VAR0)						MARK(BVAR0);
+      n = VAROFFSET(0);
+      goto common_bvar;
+    VMI(B_VAR1)						MARK(BVAR1);
+      n = VAROFFSET(1);
+      goto common_bvar;
+    VMI(B_VAR2)						MARK(BVAR2);
+      n = VAROFFSET(2);
+      goto common_bvar;
+    VMI(B_VAR)					MARK(BVARN);
+      n = (int)*PC++;
+    common_bvar:
+    { Word k = varFrameP(FR, n);
+
+      *ARGP++ = linkVal(k);
+
+      NEXT_INSTRUCTION;
+    }
+  }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A variable in the head, which is  not anonymous, but encountered for the

@@ -301,8 +301,6 @@ getVarDef(int i)
   return vd;
 }
 
-#define VAROFFSET(var) ( (var) + ARGOFFSET / (int) sizeof(word) )
-
 void
 get_head_and_body_clause(term_t clause,
 			 term_t head, term_t body, Module *m)

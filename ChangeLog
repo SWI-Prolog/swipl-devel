@@ -1,6 +1,9 @@
 			SWI-Prolog ChangeLog
 			====================
 
+  * INTERNAL: Got -DCOUNTING cpp option to work again for statistics
+    on the virtual machine.
+
   * ADDED: PL_agc_hook() to register a hook into the atom garbage
     collector.
 
@@ -13,7 +16,7 @@
     prolog flag is set to true.
 
 VERSION 3.3.0 (release-10)
-=========================
+==========================
 
   * FIXED: MT version: ensure calling thread_exit/1 gets the thread_at_exit
     handlers called.  Improved handling of halt/[0,1] by cancelling the other

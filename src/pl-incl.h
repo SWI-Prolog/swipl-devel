@@ -856,7 +856,8 @@ Handling environment (or local stack) frames.
 #define FR_WATCHED		(0x20L)
 #define FR_CATCHED		(0x40L)
 
-#define ARGOFFSET		((int) sizeof(struct localFrame))
+#define ARGOFFSET		((int)sizeof(struct localFrame))
+#define VAROFFSET(var) 		((var)+(ARGOFFSET/(int)sizeof(word)))
 
 #define setLevelFrame(fr, l)	{ (fr)->flags &= ~FR_LEVEL;   \
 				  (fr)->flags |= ((l) << 8); \
